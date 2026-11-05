@@ -1,0 +1,4839 @@
+{
+ "built": "2026-11-04",
+ "builder": "docs/reviews/freeze-panel-2026-11-04/fixtures/build_fixtures.py",
+ "rule": "Evidence renders use existing run facts and media only: no invented copy, fake fact sheets, synthetic grounds or a photo paired with another topic's text. Anything new is labelled 'new: <why>'.",
+ "paths": "relative to the repository root (fixtures.py resolves them)",
+ "measures": "mean_luma (Rec.601, 0-255), p90_luma, mean_saturation (HSV S, 0-255), edge_energy (mean PIL FIND_EDGES on luma), edge_density (share of edge response > 40); all at 512 px long side",
+ "runs_scanned": 47,
+ "designs": {
+  "covers": {
+   "cases": [
+    {
+     "run": "output/run_wieliczka_salt_mine_1792974672",
+     "topic": "wieliczka_salt_mine",
+     "hero": {
+      "photo": "assets/wieliczka_salt_mine/01_commons.jpg",
+      "how": "the run's still that best matches its delivered thumbnail_cover.jpg (luma correlation 0.88; the run kept no cover recipe); it is also the sequence's first still (visual_engine.hero_image)",
+      "cover_similarity": 0.88,
+      "first_still": "assets/wieliczka_salt_mine/01_commons.jpg"
+     },
+     "measured": {
+      "size": [
+       2592,
+       1728
+      ],
+      "mean_luma": 69.4,
+      "p90_luma": 124.0,
+      "mean_saturation": 121.7,
+      "edge_energy": 15.8,
+      "edge_density": 0.117
+     },
+     "ground": "dark, busy, colourful",
+     "copy": {
+      "eyebrow": "SUBTERRANEAN MARVEL",
+      "line1": "CARVED FROM",
+      "line2": "SOLID SALT",
+      "tagline": "327 METERS DOWN"
+     },
+     "copy_chars": {
+      "eyebrow": 19,
+      "line1": 11,
+      "line2": 10,
+      "tagline": 15,
+      "total": 55
+     },
+     "youtube_title": null,
+     "payload": "output/run_wieliczka_salt_mine_1792974672/verified_script.json",
+     "delivered": {
+      "reel_cover": "output/run_wieliczka_salt_mine_1792974672/thumbnail_cover.jpg",
+      "grid_tile": "output/run_wieliczka_salt_mine_1792974672/thumbnail_profile_grid.jpg"
+     },
+     "why": "darkest hero across all runs",
+     "feed": {
+      "hero": "assets/wieliczka_salt_mine/01_commons.jpg",
+      "payload": "output/run_wieliczka_salt_mine_1792974672/verified_script.json",
+      "call": "VisualEngine().generate_thumbnails(hero, payload, out_dir, style=hero.style or 'badge') for the Reel cover + grid tile; generate_youtube_thumbnail(hero, payload, out) for the YouTube thumbnail (copy from documentary_cover_copy(payload))"
+     }
+    },
+    {
+     "run": "output/run_greek_fire_siphon_1792735284_short",
+     "topic": "greek_fire_siphon",
+     "hero": {
+      "photo": "cache/privacy/01_commons_2cb3dd9c04510a9f_bcf0fcf0364f53e3.jpg",
+      "how": "the run's still that best matches its delivered thumbnail_cover.jpg (luma correlation 0.995; the run kept no cover recipe); the first still assets/greek_fire_siphon/01_commons.jpg matches at 0.991",
+      "cover_similarity": 0.995,
+      "first_still": "assets/greek_fire_siphon/01_commons.jpg"
+     },
+     "measured": {
+      "size": [
+       3750,
+       1921
+      ],
+      "mean_luma": 176.1,
+      "p90_luma": 254.0,
+      "mean_saturation": 55.5,
+      "edge_energy": 31.9,
+      "edge_density": 0.217
+     },
+     "ground": "bright, busy",
+     "copy": {
+      "eyebrow": "MEDIEVAL WARFARE",
+      "line1": "THE SECRET WEAPON",
+      "line2": "WATER COULD NOT STOP",
+      "tagline": "BYZANTINE GREEK FIRE"
+     },
+     "copy_chars": {
+      "eyebrow": 16,
+      "line1": 17,
+      "line2": 20,
+      "tagline": 20,
+      "total": 73
+     },
+     "youtube_title": null,
+     "payload": "output/run_greek_fire_siphon_1792735284_short/verified_script.json",
+     "delivered": {
+      "reel_cover": "output/run_greek_fire_siphon_1792735284_short/thumbnail_cover.jpg",
+      "grid_tile": "output/run_greek_fire_siphon_1792735284_short/thumbnail_profile_grid.jpg"
+     },
+     "why": "brightest (near-white) hero across all runs; longest real thumbnail copy across all runs; longest single title line (line1/line2) across all runs",
+     "feed": {
+      "hero": "cache/privacy/01_commons_2cb3dd9c04510a9f_bcf0fcf0364f53e3.jpg",
+      "payload": "output/run_greek_fire_siphon_1792735284_short/verified_script.json",
+      "call": "VisualEngine().generate_thumbnails(hero, payload, out_dir, style=hero.style or 'badge') for the Reel cover + grid tile; generate_youtube_thumbnail(hero, payload, out) for the YouTube thumbnail (copy from documentary_cover_copy(payload))"
+     }
+    },
+    {
+     "run": "output/run_tunguska_event_1908_1792930600",
+     "topic": "tunguska_event_1908",
+     "hero": {
+      "photo": "assets/tunguska_event_1908/01_commons.jpg",
+      "how": "the run's still that best matches its delivered thumbnail_cover.jpg (luma correlation 0.773; the run kept no cover recipe); the first still cache/upscaled/03_commons_3cd6454bbc2e9623.jpg matches at -0.712",
+      "cover_similarity": 0.773,
+      "first_still": "cache/upscaled/03_commons_3cd6454bbc2e9623.jpg"
+     },
+     "measured": {
+      "size": [
+       2609,
+       1772
+      ],
+      "mean_luma": 113.9,
+      "p90_luma": 215.0,
+      "mean_saturation": 0.0,
+      "edge_energy": 43.1,
+      "edge_density": 0.297
+     },
+     "ground": "busy",
+     "copy": {
+      "eyebrow": "SIBERIA 1908",
+      "line1": "830 SQUARE MILES",
+      "line2": "FLATTENED FOREST",
+      "tagline": "WHAT EXPLODED ABOVE?"
+     },
+     "copy_chars": {
+      "eyebrow": 12,
+      "line1": 16,
+      "line2": 16,
+      "tagline": 20,
+      "total": 64
+     },
+     "youtube_title": null,
+     "payload": "output/run_tunguska_event_1908_1792930600/verified_script.json",
+     "delivered": {
+      "reel_cover": "output/run_tunguska_event_1908_1792930600/thumbnail_cover.jpg",
+      "grid_tile": "output/run_tunguska_event_1908_1792930600/thumbnail_profile_grid.jpg"
+     },
+     "why": "busiest hero (edge energy) across all runs",
+     "feed": {
+      "hero": "assets/tunguska_event_1908/01_commons.jpg",
+      "payload": "output/run_tunguska_event_1908_1792930600/verified_script.json",
+      "call": "VisualEngine().generate_thumbnails(hero, payload, out_dir, style=hero.style or 'badge') for the Reel cover + grid tile; generate_youtube_thumbnail(hero, payload, out) for the YouTube thumbnail (copy from documentary_cover_copy(payload))"
+     }
+    },
+    {
+     "run": "output/run_amber_room_heist_1792790550",
+     "topic": "amber_room_heist",
+     "hero": {
+      "photo": "assets/amber_room_heist/01_commons.jpg",
+      "how": "the run's still that best matches its delivered thumbnail_cover.jpg (luma correlation 0.656; the run kept no cover recipe); the first still assets/amber_room_heist/07_commons.jpg matches at 0.145",
+      "cover_similarity": 0.656,
+      "first_still": "assets/amber_room_heist/07_commons.jpg"
+     },
+     "measured": {
+      "size": [
+       3000,
+       2000
+      ],
+      "mean_luma": 77.6,
+      "p90_luma": 136.0,
+      "mean_saturation": 177.6,
+      "edge_energy": 35.0,
+      "edge_density": 0.275
+     },
+     "ground": "busy, colourful",
+     "copy": {
+      "eyebrow": "HISTORICAL HEIST",
+      "line1": "THE 6-TON ROOM",
+      "line2": "STOLEN IN 36 HOURS",
+      "tagline": "VANISHED IN 1944"
+     },
+     "copy_chars": {
+      "eyebrow": 16,
+      "line1": 14,
+      "line2": 18,
+      "tagline": 16,
+      "total": 64
+     },
+     "youtube_title": null,
+     "payload": "output/run_amber_room_heist_1792790550/verified_script.json",
+     "delivered": {
+      "reel_cover": "output/run_amber_room_heist_1792790550/thumbnail_cover.jpg",
+      "grid_tile": "output/run_amber_room_heist_1792790550/thumbnail_profile_grid.jpg"
+     },
+     "why": "most colourful hero (saturation) across all runs; longest tagline across all runs",
+     "feed": {
+      "hero": "assets/amber_room_heist/01_commons.jpg",
+      "payload": "output/run_amber_room_heist_1792790550/verified_script.json",
+      "call": "VisualEngine().generate_thumbnails(hero, payload, out_dir, style=hero.style or 'badge') for the Reel cover + grid tile; generate_youtube_thumbnail(hero, payload, out) for the YouTube thumbnail (copy from documentary_cover_copy(payload))"
+     }
+    },
+    {
+     "run": "output/run_richat_structure_sahara_eye_1793272675",
+     "topic": "richat_structure_sahara_eye",
+     "hero": {
+      "photo": "assets/richat_structure_sahara_eye/02_commons.jpg",
+      "how": "still_layout.json thumbnail_cover.jpg recipe.hero (the photo the cover was drawn from)",
+      "recorded_copy": {
+       "eyebrow": "DESERT ANOMALY",
+       "line1": "THE 25-MILE",
+       "line2": "SAHARA EYE",
+       "tagline": "CARVED BY NATURE",
+       "badge": "DESERT ANOMALY"
+      },
+      "style": "lower_third",
+      "text_cy": 760
+     },
+     "measured": {
+      "size": [
+       1920,
+       1268
+      ],
+      "mean_luma": 121.1,
+      "p90_luma": 211.0,
+      "mean_saturation": 139.0,
+      "edge_energy": 24.3,
+      "edge_density": 0.173
+     },
+     "ground": "busy, colourful",
+     "copy": {
+      "eyebrow": "DESERT ANOMALY",
+      "line1": "THE 25-MILE",
+      "line2": "SAHARA EYE",
+      "tagline": "CARVED BY NATURE"
+     },
+     "copy_chars": {
+      "eyebrow": 14,
+      "line1": 11,
+      "line2": 10,
+      "tagline": 16,
+      "total": 51
+     },
+     "youtube_title": null,
+     "payload": "output/run_richat_structure_sahara_eye_1793272675/verified_script.json",
+     "delivered": {
+      "reel_cover": "output/run_richat_structure_sahara_eye_1793272675/thumbnail_cover.jpg",
+      "grid_tile": "output/run_richat_structure_sahara_eye_1793272675/thumbnail_profile_grid.jpg"
+     },
+     "why": "shortest real thumbnail copy across all runs",
+     "feed": {
+      "hero": "assets/richat_structure_sahara_eye/02_commons.jpg",
+      "payload": "output/run_richat_structure_sahara_eye_1793272675/verified_script.json",
+      "call": "VisualEngine().generate_thumbnails(hero, payload, out_dir, style=hero.style or 'badge') for the Reel cover + grid tile; generate_youtube_thumbnail(hero, payload, out) for the YouTube thumbnail (copy from documentary_cover_copy(payload))"
+     }
+    }
+   ],
+   "range": {
+    "luma": [
+     69.4,
+     176.1
+    ],
+    "copy_chars_total": [
+     51,
+     73
+    ],
+    "runs_with_hero_and_copy": 26
+   },
+   "survey": [
+    {
+     "run": "output/run_amber_room_heist_1792790550",
+     "hero": "assets/amber_room_heist/01_commons.jpg",
+     "how": "the run's still that best matches its de",
+     "cover_similarity": 0.656,
+     "ground": "busy, colourful",
+     "luma": 77.6,
+     "sat": 177.6,
+     "edge": 35.0,
+     "copy_total": 64
+    },
+    {
+     "run": "output/run_amber_room_heist_1792801257",
+     "hero": "assets/amber_room_heist/01_commons.jpg",
+     "how": "the run's still that best matches its de",
+     "cover_similarity": 0.741,
+     "ground": "busy, colourful",
+     "luma": 77.6,
+     "sat": 177.6,
+     "edge": 35.0,
+     "copy_total": 53
+    },
+    {
+     "run": "output/run_amber_room_heist_1792805842",
+     "hero": "assets/amber_room_heist/01_commons.jpg",
+     "how": "the run's still that best matches its de",
+     "cover_similarity": 0.891,
+     "ground": "busy, colourful",
+     "luma": 77.6,
+     "sat": 177.6,
+     "edge": 35.0,
+     "copy_total": 66
+    },
+    {
+     "run": "output/run_gol_gumbaz_whispering_gallery_1793278143",
+     "hero": "cache/upscaled/22_commons_466e53f5c2d25a35.jpg",
+     "how": "still_layout.json thumbnail_cover.jpg re",
+     "cover_similarity": null,
+     "ground": "mid",
+     "luma": 114.3,
+     "sat": 30.8,
+     "edge": 11.0,
+     "copy_total": 63
+    },
+    {
+     "run": "output/run_greek_fire_siphon_1792735284_short",
+     "hero": "cache/privacy/01_commons_2cb3dd9c04510a9f_bcf0fcf0364f53e3.jpg",
+     "how": "the run's still that best matches its de",
+     "cover_similarity": 0.995,
+     "ground": "bright, busy",
+     "luma": 176.1,
+     "sat": 55.5,
+     "edge": 31.9,
+     "copy_total": 73
+    },
+    {
+     "run": "output/run_hal_saflieni_hypogeum_1792949304",
+     "hero": "assets/hal_saflieni_hypogeum/01_commons.jpg",
+     "how": "the run's still that best matches its de",
+     "cover_similarity": 0.978,
+     "ground": "mid",
+     "luma": 109.9,
+     "sat": 95.6,
+     "edge": 11.5,
+     "copy_total": 54
+    },
+    {
+     "run": "output/run_nazca_lines_runway_paradox_1792961797",
+     "hero": "assets/nazca_lines_runway_paradox/08_commons.jpg",
+     "how": "the run's still that best matches its de",
+     "cover_similarity": 0.918,
+     "ground": "busy",
+     "luma": 141.7,
+     "sat": 24.1,
+     "edge": 24.4,
+     "copy_total": 65
+    },
+    {
+     "run": "output/run_nazca_lines_runway_paradox_1793247464",
+     "hero": "assets/nazca_lines_runway_paradox/08_commons.jpg",
+     "how": "still_layout.json thumbnail_cover.jpg re",
+     "cover_similarity": null,
+     "ground": "busy",
+     "luma": 141.7,
+     "sat": 24.1,
+     "edge": 24.4,
+     "copy_total": 58
+    },
+    {
+     "run": "output/run_nazca_lines_runway_paradox_1793251266",
+     "hero": "assets/nazca_lines_runway_paradox/08_commons.jpg",
+     "how": "still_layout.json thumbnail_cover.jpg re",
+     "cover_similarity": null,
+     "ground": "busy",
+     "luma": 141.7,
+     "sat": 24.1,
+     "edge": 24.4,
+     "copy_total": 58
+    },
+    {
+     "run": "output/run_nazca_lines_runway_paradox_1793262388",
+     "hero": "assets/nazca_lines_runway_paradox/08_commons.jpg",
+     "how": "still_layout.json thumbnail_cover.jpg re",
+     "cover_similarity": null,
+     "ground": "busy",
+     "luma": 141.7,
+     "sat": 24.1,
+     "edge": 24.4,
+     "copy_total": 58
+    },
+    {
+     "run": "output/run_nazca_lines_runway_paradox_1793267092",
+     "hero": "assets/nazca_lines_runway_paradox/08_commons.jpg",
+     "how": "still_layout.json thumbnail_cover.jpg re",
+     "cover_similarity": null,
+     "ground": "busy",
+     "luma": 141.7,
+     "sat": 24.1,
+     "edge": 24.4,
+     "copy_total": 58
+    },
+    {
+     "run": "output/run_odessa_catacombs_1792970549",
+     "hero": "assets/odessa_catacombs/01_commons.jpg",
+     "how": "the run's still that best matches its de",
+     "cover_similarity": 0.902,
+     "ground": "busy, colourful",
+     "luma": 82.5,
+     "sat": 119.7,
+     "edge": 14.6,
+     "copy_total": 70
+    },
+    {
+     "run": "output/run_odessa_catacombs_1793098390",
+     "hero": "assets/odessa_catacombs/01_commons.jpg",
+     "how": "the run's still that best matches its de",
+     "cover_similarity": 0.902,
+     "ground": "busy, colourful",
+     "luma": 82.5,
+     "sat": 119.7,
+     "edge": 14.6,
+     "copy_total": 70
+    },
+    {
+     "run": "output/run_odessa_catacombs_1793100750",
+     "hero": "cache/upscaled/01_commons_01e7306db9b0e623.jpg",
+     "how": "the run's still that best matches its de",
+     "cover_similarity": 0.706,
+     "ground": "colourful",
+     "luma": 81.6,
+     "sat": 112.6,
+     "edge": 11.8,
+     "copy_total": 70
+    },
+    {
+     "run": "output/run_richat_structure_sahara_eye_1792737039_short",
+     "hero": "assets/richat_structure_sahara_eye/01_commons.jpg",
+     "how": "the run's still that best matches its de",
+     "cover_similarity": 0.915,
+     "ground": "colourful",
+     "luma": 141.5,
+     "sat": 140.3,
+     "edge": 14.0,
+     "copy_total": 66
+    },
+    {
+     "run": "output/run_richat_structure_sahara_eye_1792778206",
+     "hero": "assets/richat_structure_sahara_eye/01_commons.jpg",
+     "how": "the run's still that best matches its de",
+     "cover_similarity": 0.92,
+     "ground": "colourful",
+     "luma": 141.5,
+     "sat": 140.3,
+     "edge": 14.0,
+     "copy_total": 62
+    },
+    {
+     "run": "output/run_richat_structure_sahara_eye_1793272675",
+     "hero": "assets/richat_structure_sahara_eye/02_commons.jpg",
+     "how": "still_layout.json thumbnail_cover.jpg re",
+     "cover_similarity": null,
+     "ground": "busy, colourful",
+     "luma": 121.1,
+     "sat": 139.0,
+     "edge": 24.3,
+     "copy_total": 51
+    },
+    {
+     "run": "output/run_richat_structure_sahara_eye_1793474843",
+     "hero": "cache/text_crop/39aa01ff3d533d7d/01_commons.jpg",
+     "how": "still_layout.json thumbnail_cover.jpg re",
+     "cover_similarity": null,
+     "ground": "busy, colourful",
+     "luma": 138.1,
+     "sat": 139.8,
+     "edge": 14.1,
+     "copy_total": 52
+    },
+    {
+     "run": "output/run_roman_self_healing_concrete_1793163918",
+     "hero": "assets/roman_self_healing_concrete/04_commons.jpg",
+     "how": "the run's still that best matches its de",
+     "cover_similarity": 0.844,
+     "ground": "busy",
+     "luma": 101.1,
+     "sat": 49.0,
+     "edge": 33.0,
+     "copy_total": 63
+    },
+    {
+     "run": "output/run_singing_colossi_of_memnon_1792952878",
+     "hero": "assets/singing_colossi_of_memnon/01_commons.jpg",
+     "how": "the run's still that best matches its de",
+     "cover_similarity": 0.961,
+     "ground": "busy",
+     "luma": 139.2,
+     "sat": 87.2,
+     "edge": 20.4,
+     "copy_total": 60
+    },
+    {
+     "run": "output/run_trepanation_miracle_1792995462",
+     "hero": "assets/trepanation_miracle/05_commons.jpg",
+     "how": "the run's still that best matches its de",
+     "cover_similarity": 0.866,
+     "ground": "busy",
+     "luma": 119.5,
+     "sat": 51.4,
+     "edge": 25.2,
+     "copy_total": 70
+    },
+    {
+     "run": "output/run_tunguska_event_1908_1792930600",
+     "hero": "assets/tunguska_event_1908/01_commons.jpg",
+     "how": "the run's still that best matches its de",
+     "cover_similarity": 0.773,
+     "ground": "busy",
+     "luma": 113.9,
+     "sat": 0.0,
+     "edge": 43.1,
+     "copy_total": 64
+    },
+    {
+     "run": "output/run_unfinished_obelisk_aswan_1792985912",
+     "hero": "assets/unfinished_obelisk_aswan/01_commons.jpg",
+     "how": "the run's still that best matches its de",
+     "cover_similarity": 0.99,
+     "ground": "busy",
+     "luma": 146.4,
+     "sat": 64.6,
+     "edge": 28.2,
+     "copy_total": 54
+    },
+    {
+     "run": "output/run_unfinished_obelisk_aswan_1792993374",
+     "hero": "assets/unfinished_obelisk_aswan/01_commons.jpg",
+     "how": "the run's still that best matches its de",
+     "cover_similarity": 0.888,
+     "ground": "busy",
+     "luma": 146.4,
+     "sat": 64.6,
+     "edge": 28.2,
+     "copy_total": 60
+    },
+    {
+     "run": "output/run_unfinished_obelisk_aswan_1793056896",
+     "hero": "assets/unfinished_obelisk_aswan/01_commons.jpg",
+     "how": "the run's still that best matches its de",
+     "cover_similarity": 0.99,
+     "ground": "busy",
+     "luma": 146.4,
+     "sat": 64.6,
+     "edge": 28.2,
+     "copy_total": 72
+    },
+    {
+     "run": "output/run_wieliczka_salt_mine_1792974672",
+     "hero": "assets/wieliczka_salt_mine/01_commons.jpg",
+     "how": "the run's still that best matches its de",
+     "cover_similarity": 0.88,
+     "ground": "dark, busy, colourful",
+     "luma": 69.4,
+     "sat": 121.7,
+     "edge": 15.8,
+     "copy_total": 55
+    }
+   ],
+   "heroes_not_verified": [
+    {
+     "run": "output/run_damascus_steel_nanotubes_1792732472_short",
+     "photo": null,
+     "how": "unverified: no still of the run matches its delivered cover (best assets/damascus_steel_nanotubes/15_commons.jpg at 0.404); not used",
+     "first_still": "assets/damascus_steel_nanotubes/11_commons.jpg",
+     "cover_similarity": -0.189
+    },
+    {
+     "run": "output/run_voynich_manuscript_1792965308",
+     "photo": null,
+     "how": "unverified: no still of the run matches its delivered cover (best cache/upscaled/07_commons_655895de06440fb0.jpg at 0.532); not used",
+     "first_still": "assets/voynich_manuscript/01_commons.jpg",
+     "cover_similarity": 0.312
+    }
+   ]
+  },
+  "captions": {
+   "cases": [
+    {
+     "run": "output/run_richat_structure_sahara_eye_1792740961_long",
+     "topic": "richat_structure_sahara_eye",
+     "format": "16:9",
+     "words": "output/run_richat_structure_sahara_eye_1792740961_long/words.json",
+     "n_words": 454,
+     "duration_s": 195.93,
+     "emphasis_words": [],
+     "proper_names": [
+      {
+       "name": "Richat Structure",
+       "word_index": 1,
+       "start_s": 0.191
+      },
+      {
+       "name": "Adrar Plateau",
+       "word_index": 9,
+       "start_s": 3.151
+      },
+      {
+       "name": "Adrar Region",
+       "word_index": 13,
+       "start_s": 4.566
+      },
+      {
+       "name": "Richat Structure",
+       "word_index": 198,
+       "start_s": 79.452
+      },
+      {
+       "name": "Middle Stone Age Aterian",
+       "word_index": 289,
+       "start_s": 123.163
+      },
+      {
+       "name": "Richat Structure",
+       "word_index": 386,
+       "start_s": 165.612
+      },
+      {
+       "name": "International Union",
+       "word_index": 408,
+       "start_s": 175.523
+      },
+      {
+       "name": "Geological Sciences",
+       "word_index": 411,
+       "start_s": 176.786
+      }
+     ],
+     "multiword_names": [
+      "Adrar Plateau",
+      "Adrar Region",
+      "Geological Sciences",
+      "International Union",
+      "Middle Stone Age Aterian",
+      "Richat Structure"
+     ],
+     "longest_words": [
+      {
+       "word": "shock-metamorphism",
+       "chars": 18
+      },
+      {
+       "word": "extraterrestrial",
+       "chars": 16
+      },
+      {
+       "word": "characteristics",
+       "chars": 15
+      },
+      {
+       "word": "observational",
+       "chars": 13
+      },
+      {
+       "word": "International",
+       "chars": 13
+      }
+     ],
+     "delivered_ass": "output/run_richat_structure_sahara_eye_1792740961_long/richat_structure_sahara_eye_documentary_16x9_captions.ass",
+     "master": "output/run_richat_structure_sahara_eye_1792740961_long/richat_structure_sahara_eye_documentary_16x9.mp4",
+     "timeline": [
+      {
+       "clip": "assets/richat_structure_sahara_eye/01_commons.jpg",
+       "clip_exists": true,
+       "photo": "assets/richat_structure_sahara_eye/01_commons.jpg",
+       "duration_s": null,
+       "start_s_est": 0.0
+      },
+      {
+       "clip": "assets/richat_structure_sahara_eye/02_commons.jpg",
+       "clip_exists": true,
+       "photo": "assets/richat_structure_sahara_eye/02_commons.jpg",
+       "duration_s": null,
+       "start_s_est": null
+      },
+      {
+       "clip": "cache/upscaled/03_commons_8553d4052c3cd146.jpg",
+       "clip_exists": true,
+       "photo": "cache/upscaled/03_commons_8553d4052c3cd146.jpg",
+       "duration_s": null,
+       "start_s_est": null
+      },
+      {
+       "clip": "cache/upscaled/04_commons_2545f068e11dc8eb.jpg",
+       "clip_exists": true,
+       "photo": "cache/upscaled/04_commons_2545f068e11dc8eb.jpg",
+       "duration_s": null,
+       "start_s_est": null
+      },
+      {
+       "clip": "assets/richat_structure_sahara_eye/05_commons.jpg",
+       "clip_exists": true,
+       "photo": "assets/richat_structure_sahara_eye/05_commons.jpg",
+       "duration_s": null,
+       "start_s_est": null
+      },
+      {
+       "clip": "assets/richat_structure_sahara_eye/06_commons.jpg",
+       "clip_exists": true,
+       "photo": "assets/richat_structure_sahara_eye/06_commons.jpg",
+       "duration_s": null,
+       "start_s_est": null
+      },
+      {
+       "clip": "cache/privacy/07_commons_25fae6b82d8a67cf.jpg",
+       "clip_exists": true,
+       "photo": "cache/privacy/07_commons_25fae6b82d8a67cf.jpg",
+       "duration_s": null,
+       "start_s_est": null
+      },
+      {
+       "clip": "assets/richat_structure_sahara_eye/08_commons.jpg",
+       "clip_exists": true,
+       "photo": "assets/richat_structure_sahara_eye/08_commons.jpg",
+       "duration_s": null,
+       "start_s_est": null
+      },
+      {
+       "clip": "assets/richat_structure_sahara_eye/09_commons.jpg",
+       "clip_exists": true,
+       "photo": "assets/richat_structure_sahara_eye/09_commons.jpg",
+       "duration_s": null,
+       "start_s_est": null
+      },
+      {
+       "clip": "assets/richat_structure_sahara_eye/10_commons.jpg",
+       "clip_exists": true,
+       "photo": "assets/richat_structure_sahara_eye/10_commons.jpg",
+       "duration_s": null,
+       "start_s_est": null
+      },
+      {
+       "clip": "assets/richat_structure_sahara_eye/11_commons.jpg",
+       "clip_exists": true,
+       "photo": "assets/richat_structure_sahara_eye/11_commons.jpg",
+       "duration_s": null,
+       "start_s_est": null
+      },
+      {
+       "clip": "assets/richat_structure_sahara_eye/12_commons.jpg",
+       "clip_exists": true,
+       "photo": "assets/richat_structure_sahara_eye/12_commons.jpg",
+       "duration_s": null,
+       "start_s_est": null
+      },
+      {
+       "clip": "assets/richat_structure_sahara_eye/13_commons.jpg",
+       "clip_exists": true,
+       "photo": "assets/richat_structure_sahara_eye/13_commons.jpg",
+       "duration_s": null,
+       "start_s_est": null
+      },
+      {
+       "clip": "assets/richat_structure_sahara_eye/14_commons.jpg",
+       "clip_exists": true,
+       "photo": "assets/richat_structure_sahara_eye/14_commons.jpg",
+       "duration_s": null,
+       "start_s_est": null
+      },
+      {
+       "clip": "assets/richat_structure_sahara_eye/15_commons.jpg",
+       "clip_exists": true,
+       "photo": "assets/richat_structure_sahara_eye/15_commons.jpg",
+       "duration_s": null,
+       "start_s_est": null
+      },
+      {
+       "clip": "assets/richat_structure_sahara_eye/16_commons.jpg",
+       "clip_exists": true,
+       "photo": "assets/richat_structure_sahara_eye/16_commons.jpg",
+       "duration_s": null,
+       "start_s_est": null
+      },
+      {
+       "clip": "assets/richat_structure_sahara_eye/18_commons.jpg",
+       "clip_exists": true,
+       "photo": "assets/richat_structure_sahara_eye/18_commons.jpg",
+       "duration_s": null,
+       "start_s_est": null
+      },
+      {
+       "clip": "assets/richat_structure_sahara_eye/19_commons.jpg",
+       "clip_exists": true,
+       "photo": "assets/richat_structure_sahara_eye/19_commons.jpg",
+       "duration_s": null,
+       "start_s_est": null
+      },
+      {
+       "clip": "cache/privacy/20_commons_405b0b5e2991a4b5.jpg",
+       "clip_exists": true,
+       "photo": "cache/privacy/20_commons_405b0b5e2991a4b5.jpg",
+       "duration_s": null,
+       "start_s_est": null
+      }
+     ],
+     "beat_images": [],
+     "has_backgrounds": true,
+     "timeline_complete": false,
+     "why": "the only 16:9 narration (documentary words.json)",
+     "feed": {
+      "words": "output/run_richat_structure_sahara_eye_1792740961_long/words.json",
+      "emphasis": "payload.emphasis_words",
+      "call": "composer.build_subtitles(words, ass_path, emphasis=emphasis_words, width, height); background at a burst time t = the scene clip in `timeline` covering t (caption-free parallax/graphic clip or the still itself), see fixtures.background_at"
+     }
+    },
+    {
+     "run": "output/run_gol_gumbaz_whispering_gallery_1793278143",
+     "topic": "gol_gumbaz_whispering_gallery",
+     "format": "9:16",
+     "words": "output/run_gol_gumbaz_whispering_gallery_1793278143/words.json",
+     "n_words": 100,
+     "duration_s": 44.39,
+     "emphasis_words": [
+      "Gol Gumbaz",
+      "Bijapur",
+      "1656"
+     ],
+     "proper_names": [
+      {
+       "name": "Gol Gumbaz",
+       "word_index": 18,
+       "start_s": 8.367
+      },
+      {
+       "name": "Central Asian",
+       "word_index": 59,
+       "start_s": 25.816
+      },
+      {
+       "name": "Mohammad Adil Shah's",
+       "word_index": 74,
+       "start_s": 32.411
+      }
+     ],
+     "multiword_names": [
+      "Central Asian",
+      "Gol Gumbaz",
+      "Mohammad Adil Shah's"
+     ],
+     "longest_words": [
+      {
+       "word": "Construction",
+       "chars": 12
+      },
+      {
+       "word": "continuously",
+       "chars": 12
+      },
+      {
+       "word": "unfinished",
+       "chars": 10
+      },
+      {
+       "word": "pendentive",
+       "chars": 10
+      },
+      {
+       "word": "whispering",
+       "chars": 10
+      }
+     ],
+     "delivered_ass": "output/run_gol_gumbaz_whispering_gallery_1793278143/gol_gumbaz_whispering_gallery_master_captions.ass",
+     "master": "output/run_gol_gumbaz_whispering_gallery_1793278143/gol_gumbaz_whispering_gallery_master.mp4",
+     "timeline": [
+      {
+       "clip": "output/run_gol_gumbaz_whispering_gallery_1793278143/parallax/scene_01.mp4",
+       "clip_exists": true,
+       "photo": "cache/upscaled/04_commons_fad489b1b2468caa.jpg",
+       "duration_s": 6.289,
+       "start_s_est": 0.0
+      },
+      {
+       "clip": "output/run_gol_gumbaz_whispering_gallery_1793278143/graphics/graphic_map.mp4",
+       "clip_exists": true,
+       "photo": "tools/geo/relief/SR_HR.tif",
+       "duration_s": 6.0,
+       "start_s_est": 5.889
+      },
+      {
+       "clip": "output/run_gol_gumbaz_whispering_gallery_1793278143/parallax/scene_03.mp4",
+       "clip_exists": true,
+       "photo": "cache/upscaled/24_commons_b3593d8c94b1c5f2.jpg",
+       "duration_s": 6.06,
+       "start_s_est": 11.489
+      },
+      {
+       "clip": "output/run_gol_gumbaz_whispering_gallery_1793278143/parallax/scene_04.mp4",
+       "clip_exists": true,
+       "photo": "cache/upscaled/26_commons_568126e2b8f34c54.jpg",
+       "duration_s": 6.608,
+       "start_s_est": 17.149
+      },
+      {
+       "clip": "output/run_gol_gumbaz_whispering_gallery_1793278143/parallax/scene_05.mp4",
+       "clip_exists": true,
+       "photo": "output/run_gol_gumbaz_whispering_gallery_1793278143/beat_images/beat03_2.jpg",
+       "duration_s": 5.805,
+       "start_s_est": 23.357
+      },
+      {
+       "clip": "output/run_gol_gumbaz_whispering_gallery_1793278143/parallax/scene_06.mp4",
+       "clip_exists": true,
+       "photo": "cache/upscaled/28_commons_c0c39cc2427b977a.jpg",
+       "duration_s": 5.843,
+       "start_s_est": 28.762
+      },
+      {
+       "clip": "output/run_gol_gumbaz_whispering_gallery_1793278143/parallax/scene_07.mp4",
+       "clip_exists": true,
+       "photo": "cache/privacy/beat02_2_f623e3971478cf26_3184e209b19dd0de.jpg",
+       "duration_s": 5.345,
+       "start_s_est": 34.205
+      },
+      {
+       "clip": "output/run_gol_gumbaz_whispering_gallery_1793278143/parallax/scene_08.mp4",
+       "clip_exists": true,
+       "photo": "cache/upscaled/23_commons_49430d838523f856.jpg",
+       "duration_s": 5.958,
+       "start_s_est": 39.15
+      },
+      {
+       "clip": "output/run_gol_gumbaz_whispering_gallery_1793278143/parallax/scene_09.mp4",
+       "clip_exists": true,
+       "photo": "cache/upscaled/22_commons_466e53f5c2d25a35.jpg",
+       "duration_s": 6.598,
+       "start_s_est": 44.708
+      }
+     ],
+     "beat_images": [
+      "output/run_gol_gumbaz_whispering_gallery_1793278143/beat_images/beat02_1.jpg",
+      "output/run_gol_gumbaz_whispering_gallery_1793278143/beat_images/beat02_2.jpg",
+      "output/run_gol_gumbaz_whispering_gallery_1793278143/beat_images/beat02_3.jpg",
+      "output/run_gol_gumbaz_whispering_gallery_1793278143/beat_images/beat03_1.jpg",
+      "output/run_gol_gumbaz_whispering_gallery_1793278143/beat_images/beat03_2.jpg",
+      "output/run_gol_gumbaz_whispering_gallery_1793278143/beat_images/beat07_1.jpg",
+      "output/run_gol_gumbaz_whispering_gallery_1793278143/beat_images/beat07_2.jpg",
+      "output/run_gol_gumbaz_whispering_gallery_1793278143/beat_images/beat07_3.jpg"
+     ],
+     "has_backgrounds": true,
+     "timeline_complete": true,
+     "why": "most multi-word proper names in one 9:16 narration",
+     "feed": {
+      "words": "output/run_gol_gumbaz_whispering_gallery_1793278143/words.json",
+      "emphasis": "payload.emphasis_words",
+      "call": "composer.build_subtitles(words, ass_path, emphasis=emphasis_words, width, height); background at a burst time t = the scene clip in `timeline` covering t (caption-free parallax/graphic clip or the still itself), see fixtures.background_at"
+     }
+    },
+    {
+     "run": "output/run_tunguska_event_1908_1792930600",
+     "topic": "tunguska_event_1908",
+     "format": "9:16",
+     "words": "output/run_tunguska_event_1908_1792930600/words.json",
+     "n_words": 98,
+     "duration_s": 42.46,
+     "emphasis_words": [
+      "Podkamennaya Tunguska River",
+      "meteor air burst"
+     ],
+     "proper_names": [
+      {
+       "name": "Podkamennaya Tunguska River",
+       "word_index": 14,
+       "start_s": 5.497
+      },
+      {
+       "name": "Central Siberia",
+       "word_index": 18,
+       "start_s": 7.411
+      }
+     ],
+     "multiword_names": [
+      "Central Siberia",
+      "Podkamennaya Tunguska River"
+     ],
+     "longest_words": [
+      {
+       "word": "Podkamennaya",
+       "chars": 12
+      },
+      {
+       "word": "atmospheric",
+       "chars": 11
+      },
+      {
+       "word": "Atmospheric",
+       "chars": 11
+      },
+      {
+       "word": "distinctive",
+       "chars": 11
+      },
+      {
+       "word": "barographs",
+       "chars": 10
+      }
+     ],
+     "delivered_ass": "output/run_tunguska_event_1908_1792930600/tunguska_event_1908_master_captions.ass",
+     "master": "output/run_tunguska_event_1908_1792930600/tunguska_event_1908_master.mp4",
+     "timeline": [
+      {
+       "clip": "output/run_tunguska_event_1908_1792930600/parallax/scene_01.mp4",
+       "clip_exists": true,
+       "photo": "cache/upscaled/03_commons_3cd6454bbc2e9623.jpg",
+       "duration_s": 6.43,
+       "start_s_est": 0.0
+      },
+      {
+       "clip": "output/run_tunguska_event_1908_1792930600/graphics/graphic_map.mp4",
+       "clip_exists": true,
+       "photo": "tools/geo/relief/SR_HR.tif",
+       "duration_s": 6.0,
+       "start_s_est": 6.03
+      },
+      {
+       "clip": "output/run_tunguska_event_1908_1792930600/parallax/scene_03.mp4",
+       "clip_exists": true,
+       "photo": "cache/upscaled/10_commons_668afd8dd3008c62.jpg",
+       "duration_s": 5.856,
+       "start_s_est": 11.63
+      },
+      {
+       "clip": "output/run_tunguska_event_1908_1792930600/parallax/scene_04.mp4",
+       "clip_exists": true,
+       "photo": "cache/upscaled/04_commons_14e94e6ab0e4358e.jpg",
+       "duration_s": 4.402,
+       "start_s_est": 17.085
+      },
+      {
+       "clip": "output/run_tunguska_event_1908_1792930600/parallax/scene_05.mp4",
+       "clip_exists": true,
+       "photo": "assets/tunguska_event_1908/01_commons.jpg",
+       "duration_s": 4.248,
+       "start_s_est": 21.087
+      },
+      {
+       "clip": "output/run_tunguska_event_1908_1792930600/graphics/graphic_numbers.mp4",
+       "clip_exists": true,
+       "photo": "assets/tunguska_event_1908/01_commons.jpg",
+       "duration_s": 6.0,
+       "start_s_est": 24.935
+      },
+      {
+       "clip": "output/run_tunguska_event_1908_1792930600/parallax/scene_07.mp4",
+       "clip_exists": true,
+       "photo": "cache/upscaled/05_commons_8581128e615691de.jpg",
+       "duration_s": 6.034,
+       "start_s_est": 30.535
+      },
+      {
+       "clip": "output/run_tunguska_event_1908_1792930600/parallax/scene_08.mp4",
+       "clip_exists": true,
+       "photo": "cache/upscaled/11_commons_2b49d67ede3770c0.jpg",
+       "duration_s": 4.708,
+       "start_s_est": 36.169
+      },
+      {
+       "clip": "output/run_tunguska_event_1908_1792930600/parallax/scene_09.mp4",
+       "clip_exists": true,
+       "photo": "cache/upscaled/02_commons_132b99a1a22ab534.jpg",
+       "duration_s": 6.034,
+       "start_s_est": 40.477
+      },
+      {
+       "clip": "output/run_tunguska_event_1908_1792930600/parallax/scene_10.mp4",
+       "clip_exists": true,
+       "photo": "cache/upscaled/06_commons_4d13a09dd95615cd.jpg",
+       "duration_s": 6.323,
+       "start_s_est": 46.111
+      }
+     ],
+     "beat_images": [],
+     "has_backgrounds": true,
+     "timeline_complete": true,
+     "why": "longest multi-word proper name (characters)",
+     "feed": {
+      "words": "output/run_tunguska_event_1908_1792930600/words.json",
+      "emphasis": "payload.emphasis_words",
+      "call": "composer.build_subtitles(words, ass_path, emphasis=emphasis_words, width, height); background at a burst time t = the scene clip in `timeline` covering t (caption-free parallax/graphic clip or the still itself), see fixtures.background_at"
+     }
+    },
+    {
+     "run": "output/run_amber_room_heist_1792790550",
+     "topic": "amber_room_heist",
+     "format": "9:16",
+     "words": "output/run_amber_room_heist_1792790550/words.json",
+     "n_words": 105,
+     "duration_s": 48.86,
+     "emphasis_words": [
+      "Amber Room",
+      "36 hours",
+      "Königsberg Castle"
+     ],
+     "proper_names": [
+      {
+       "name": "Army Group North",
+       "word_index": 5,
+       "start_s": 2.717
+      },
+      {
+       "name": "Amber Room",
+       "word_index": 10,
+       "start_s": 4.63
+      },
+      {
+       "name": "Königsberg Castle",
+       "word_index": 49,
+       "start_s": 22.474
+      },
+      {
+       "name": "Königsberg Castle",
+       "word_index": 74,
+       "start_s": 35.446
+      }
+     ],
+     "multiword_names": [
+      "Amber Room",
+      "Army Group North",
+      "Königsberg Castle"
+     ],
+     "longest_words": [
+      {
+       "word": "eighteenth-century",
+       "chars": 18
+      },
+      {
+       "word": "Investigations",
+       "chars": 14
+      },
+      {
+       "word": "Documentation",
+       "chars": 13
+      },
+      {
+       "word": "disassembled",
+       "chars": 12
+      },
+      {
+       "word": "fire-bombed",
+       "chars": 11
+      }
+     ],
+     "delivered_ass": "output/run_amber_room_heist_1792790550/amber_room_heist_master_captions.ass",
+     "master": "output/run_amber_room_heist_1792790550/amber_room_heist_master.mp4",
+     "timeline": [
+      {
+       "clip": "output/run_amber_room_heist_1792790550/parallax/scene_01.mp4",
+       "clip_exists": false,
+       "photo": "assets/amber_room_heist/07_commons.jpg",
+       "duration_s": null,
+       "start_s_est": 0.0
+      },
+      {
+       "clip": "output/run_amber_room_heist_1792790550/graphics/graphic_numbers.mp4",
+       "clip_exists": true,
+       "photo": "assets/amber_room_heist/01_commons.jpg",
+       "duration_s": 6.0,
+       "start_s_est": null
+      },
+      {
+       "clip": "output/run_amber_room_heist_1792790550/parallax/scene_03.mp4",
+       "clip_exists": false,
+       "photo": "assets/amber_room_heist/02_commons.jpg",
+       "duration_s": null,
+       "start_s_est": null
+      },
+      {
+       "clip": "output/run_amber_room_heist_1792790550/parallax/scene_04.mp4",
+       "clip_exists": false,
+       "photo": "assets/amber_room_heist/05_commons.jpg",
+       "duration_s": null,
+       "start_s_est": null
+      },
+      {
+       "clip": "output/run_amber_room_heist_1792790550/parallax/scene_05.mp4",
+       "clip_exists": false,
+       "photo": "assets/amber_room_heist/01_commons.jpg",
+       "duration_s": null,
+       "start_s_est": null
+      },
+      {
+       "clip": "output/run_amber_room_heist_1792790550/parallax/scene_06.mp4",
+       "clip_exists": false,
+       "photo": "output/run_amber_room_heist_1792790550/beat_images/beat02_1.jpg",
+       "duration_s": null,
+       "start_s_est": null
+      },
+      {
+       "clip": "output/run_amber_room_heist_1792790550/parallax/scene_07.mp4",
+       "clip_exists": false,
+       "photo": "assets/amber_room_heist/08_commons.jpg",
+       "duration_s": null,
+       "start_s_est": null
+      },
+      {
+       "clip": "output/run_amber_room_heist_1792790550/parallax/scene_08.mp4",
+       "clip_exists": false,
+       "photo": "assets/amber_room_heist/04_commons.jpg",
+       "duration_s": null,
+       "start_s_est": null
+      },
+      {
+       "clip": "output/run_amber_room_heist_1792790550/parallax/scene_09.mp4",
+       "clip_exists": false,
+       "photo": "assets/amber_room_heist/11_commons.jpg",
+       "duration_s": null,
+       "start_s_est": null
+      },
+      {
+       "clip": "output/run_amber_room_heist_1792790550/parallax/scene_10.mp4",
+       "clip_exists": false,
+       "photo": "output/run_amber_room_heist_1792790550/beat_images/beat10_1.jpg",
+       "duration_s": null,
+       "start_s_est": null
+      },
+      {
+       "clip": "output/run_amber_room_heist_1792790550/graphics/graphic_timeline.mp4",
+       "clip_exists": true,
+       "photo": null,
+       "duration_s": 6.0,
+       "start_s_est": null
+      },
+      {
+       "clip": "output/run_amber_room_heist_1792790550/parallax/scene_12.mp4",
+       "clip_exists": false,
+       "photo": "output/run_amber_room_heist_1792790550/beat_images/beat10_2.jpg",
+       "duration_s": null,
+       "start_s_est": null
+      }
+     ],
+     "beat_images": [
+      "output/run_amber_room_heist_1792790550/beat_images/beat02_1.jpg",
+      "output/run_amber_room_heist_1792790550/beat_images/beat10_1.jpg",
+      "output/run_amber_room_heist_1792790550/beat_images/beat10_2.jpg"
+     ],
+     "has_backgrounds": true,
+     "timeline_complete": false,
+     "why": "longest single word across all narrations; non-ASCII letters in a proper name (Königsberg)",
+     "feed": {
+      "words": "output/run_amber_room_heist_1792790550/words.json",
+      "emphasis": "payload.emphasis_words",
+      "call": "composer.build_subtitles(words, ass_path, emphasis=emphasis_words, width, height); background at a burst time t = the scene clip in `timeline` covering t (caption-free parallax/graphic clip or the still itself), see fixtures.background_at"
+     }
+    },
+    {
+     "run": "output/run_voynich_manuscript_1792965308",
+     "topic": "voynich_manuscript",
+     "format": "9:16",
+     "words": "output/run_voynich_manuscript_1792965308/words.json",
+     "n_words": 115,
+     "duration_s": 45.68,
+     "emphasis_words": [
+      "Wilfrid Voynich",
+      "Zipf's law"
+     ],
+     "proper_names": [
+      {
+       "name": "Wilfrid Voynich",
+       "word_index": 87,
+       "start_s": 34.592
+      },
+      {
+       "name": "World War One",
+       "word_index": 101,
+       "start_s": 41.173
+      },
+      {
+       "name": "World War Two",
+       "word_index": 105,
+       "start_s": 42.258
+      }
+     ],
+     "multiword_names": [
+      "Wilfrid Voynich",
+      "World War One",
+      "World War Two"
+     ],
+     "longest_words": [
+      {
+       "word": "cryptographers",
+       "chars": 14
+      },
+      {
+       "word": "cryptanalysis",
+       "chars": 13
+      },
+      {
+       "word": "manuscript's",
+       "chars": 12
+      },
+      {
+       "word": "unidentified",
+       "chars": 12
+      },
+      {
+       "word": "established",
+       "chars": 11
+      }
+     ],
+     "delivered_ass": "output/run_voynich_manuscript_1792965308/voynich_manuscript_master_captions.ass",
+     "master": "output/run_voynich_manuscript_1792965308/voynich_manuscript_master.mp4",
+     "timeline": [
+      {
+       "clip": "output/run_voynich_manuscript_1792965308/parallax/scene_01.mp4",
+       "clip_exists": true,
+       "photo": "assets/voynich_manuscript/01_commons.jpg",
+       "duration_s": 5.856,
+       "start_s_est": 0.0
+      },
+      {
+       "clip": "output/run_voynich_manuscript_1792965308/parallax/scene_02.mp4",
+       "clip_exists": true,
+       "photo": "cache/upscaled/02_commons_e456ff1c055dfcea.jpg",
+       "duration_s": 5.856,
+       "start_s_est": 5.456
+      },
+      {
+       "clip": "output/run_voynich_manuscript_1792965308/parallax/scene_03.mp4",
+       "clip_exists": true,
+       "photo": "cache/upscaled/03_commons_787d2335dd7830b4.jpg",
+       "duration_s": 4.631,
+       "start_s_est": 10.911
+      },
+      {
+       "clip": "output/run_voynich_manuscript_1792965308/parallax/scene_04.mp4",
+       "clip_exists": true,
+       "photo": "cache/upscaled/05_commons_c4c664aaf8016c7f.jpg",
+       "duration_s": 5.805,
+       "start_s_est": 15.142
+      },
+      {
+       "clip": "output/run_voynich_manuscript_1792965308/graphics/graphic_numbers.mp4",
+       "clip_exists": true,
+       "photo": "assets/voynich_manuscript/01_commons.jpg",
+       "duration_s": 6.0,
+       "start_s_est": 20.547
+      },
+      {
+       "clip": "output/run_voynich_manuscript_1792965308/parallax/scene_06.mp4",
+       "clip_exists": true,
+       "photo": "cache/upscaled/13_commons_b005e858b75d9b17.jpg",
+       "duration_s": 4.491,
+       "start_s_est": 26.147
+      },
+      {
+       "clip": "output/run_voynich_manuscript_1792965308/parallax/scene_07.mp4",
+       "clip_exists": true,
+       "photo": "cache/upscaled/11_commons_95db729a715c780d.jpg",
+       "duration_s": 5.958,
+       "start_s_est": 30.238
+      },
+      {
+       "clip": "output/run_voynich_manuscript_1792965308/graphics/graphic_map.mp4",
+       "clip_exists": true,
+       "photo": "tools/geo/relief/SR_HR.tif",
+       "duration_s": 6.0,
+       "start_s_est": 35.795
+      },
+      {
+       "clip": "output/run_voynich_manuscript_1792965308/parallax/scene_09.mp4",
+       "clip_exists": true,
+       "photo": "cache/upscaled/10_commons_7904f2489b661427.jpg",
+       "duration_s": 4.453,
+       "start_s_est": 41.395
+      },
+      {
+       "clip": "output/run_voynich_manuscript_1792965308/parallax/scene_10.mp4",
+       "clip_exists": true,
+       "photo": "cache/upscaled/07_commons_655895de06440fb0.jpg",
+       "duration_s": 6.009,
+       "start_s_est": 45.448
+      },
+      {
+       "clip": "output/run_voynich_manuscript_1792965308/parallax/scene_11.mp4",
+       "clip_exists": true,
+       "photo": "cache/upscaled/08_commons_b0cedb283f534c8d.jpg",
+       "duration_s": 4.208,
+       "start_s_est": 51.057
+      }
+     ],
+     "beat_images": [
+      "output/run_voynich_manuscript_1792965308/beat_images/beat01_1.jpg"
+     ],
+     "has_backgrounds": true,
+     "timeline_complete": true,
+     "why": "most words in a 9:16 narration (densest bursts)",
+     "feed": {
+      "words": "output/run_voynich_manuscript_1792965308/words.json",
+      "emphasis": "payload.emphasis_words",
+      "call": "composer.build_subtitles(words, ass_path, emphasis=emphasis_words, width, height); background at a burst time t = the scene clip in `timeline` covering t (caption-free parallax/graphic clip or the still itself), see fixtures.background_at"
+     }
+    }
+   ],
+   "all_multiword_names": [
+    "Podkamennaya Tunguska River",
+    "UNESCO World Heritage Sites",
+    "Russia's Catherine Palace",
+    "Middle Stone Age Aterian",
+    "Mohammad Adil Shah's",
+    "International Union",
+    "Geological Sciences",
+    "Peru's Nazca Desert",
+    "Königsberg Castle",
+    "Army Group North",
+    "Catherine Palace",
+    "Richat Structure",
+    "Ancient Peruvian",
+    "Wilfrid Voynich",
+    "Central Siberia",
+    "Rome’s Pantheon",
+    "World War One",
+    "World War Two",
+    "Central Asian",
+    "Egypt’s Aswan",
+    "Adrar Plateau",
+    "Nazca Desert",
+    "Adrar Region",
+    "Kievan Rus'",
+    "Oracle Room",
+    "Golden Horn",
+    "Amber Room",
+    "Gol Gumbaz",
+    "Near East",
+    "Black Sea"
+   ],
+   "longest_words_all_runs": [
+    "eighteenth-century",
+    "shock-metamorphism",
+    "extraterrestrial",
+    "petroleum-based",
+    "characteristics",
+    "Archaeological",
+    "cryptographers",
+    "microstructure",
+    "Investigations",
+    "reconstruction",
+    "characterized",
+    "light-colored"
+   ],
+   "runs_with_words": 35
+  },
+  "social": {
+   "cases": [
+    {
+     "run": "output/run_gol_gumbaz_whispering_gallery_1793278143",
+     "topic": "gol_gumbaz_whispering_gallery",
+     "payload": "output/run_gol_gumbaz_whispering_gallery_1793278143/verified_script.json",
+     "exact_recipes": true,
+     "carousel_slides": 7,
+     "story_slides": 3,
+     "carousel_body_chars": [
+      81,
+      83,
+      77,
+      83,
+      81,
+      81,
+      84
+     ],
+     "carousel_heading_chars": [
+      20,
+      13,
+      17,
+      25,
+      19,
+      19,
+      15
+     ],
+     "story_chars": [
+      {
+       "kicker": 14,
+       "line1": 17,
+       "line2": 13,
+       "body": 58
+      },
+      {
+       "kicker": 14,
+       "line1": 16,
+       "line2": 15,
+       "body": 56
+      },
+      {
+       "kicker": 16,
+       "line1": 18,
+       "line2": 15,
+       "body": 58
+      }
+     ],
+     "poll": {
+      "question": "Intentional design or lucky accident?",
+      "options": [
+       "Planned acoustics",
+       "Lucky accident"
+      ]
+     },
+     "carousel_recipes": [
+      {
+       "frame": "carousel_slide_01.jpg",
+       "renderer": "multi_format.redraw_carousel_slide",
+       "archetype": "cover",
+       "photo": "cache/upscaled/04_commons_fad489b1b2468caa.jpg",
+       "photo_next": "cache/upscaled/03_commons_749e0ecf629ab119.jpg",
+       "card": {
+        "heading": "THE WHISPERING VAULT",
+        "body": "How did seventeenth-century builders create an acoustic wonder in Bijapur, India?"
+       },
+       "slide": null,
+       "index": 0,
+       "total": 7,
+       "poll": {
+        "question": "Intentional design or lucky accident?",
+        "options": [
+         "Planned acoustics",
+         "Lucky accident"
+        ]
+       }
+      },
+      {
+       "frame": "carousel_slide_02.jpg",
+       "renderer": "multi_format.redraw_carousel_slide",
+       "archetype": "colossal_stat",
+       "photo": "cache/upscaled/03_commons_749e0ecf629ab119.jpg",
+       "photo_next": "cache/upscaled/14_commons_f278c785b4299352.jpg",
+       "card": {
+        "heading": "MASSIVE SCALE",
+        "body": "By one estimate, the central dome has an external diameter of 44 meters (144 feet)."
+       },
+       "slide": null,
+       "index": 1,
+       "total": 7,
+       "poll": {
+        "question": "Intentional design or lucky accident?",
+        "options": [
+         "Planned acoustics",
+         "Lucky accident"
+        ]
+       }
+      },
+      {
+       "frame": "carousel_slide_03.jpg",
+       "renderer": "multi_format.redraw_carousel_slide",
+       "archetype": "editorial_split",
+       "photo": "cache/upscaled/14_commons_f278c785b4299352.jpg",
+       "photo_next": "cache/upscaled/28_commons_c0c39cc2427b977a.jpg",
+       "card": {
+        "heading": "ACOUSTIC GUIDANCE",
+        "body": "Sound waves are guided continuously along the curved boundary of the gallery."
+       },
+       "slide": null,
+       "index": 2,
+       "total": 7,
+       "poll": {
+        "question": "Intentional design or lucky accident?",
+        "options": [
+         "Planned acoustics",
+         "Lucky accident"
+        ]
+       }
+      },
+      {
+       "frame": "carousel_slide_04.jpg",
+       "renderer": "multi_format.redraw_carousel_slide",
+       "archetype": "immersive",
+       "photo": "cache/upscaled/28_commons_c0c39cc2427b977a.jpg",
+       "photo_next": "cache/upscaled/23_commons_49430d838523f856.jpg",
+       "card": {
+        "heading": "ENGINEERING WITHOUT METAL",
+        "body": "The dome achieved structural integrity using bricks and mortar without metal rings."
+       },
+       "slide": null,
+       "index": 3,
+       "total": 7,
+       "poll": {
+        "question": "Intentional design or lucky accident?",
+        "options": [
+         "Planned acoustics",
+         "Lucky accident"
+        ]
+       }
+      },
+      {
+       "frame": "carousel_slide_05.jpg",
+       "renderer": "multi_format.redraw_carousel_slide",
+       "archetype": "editorial_split",
+       "photo": "cache/upscaled/23_commons_49430d838523f856.jpg",
+       "photo_next": "cache/upscaled/15_commons_5176bcee9e7530cb.jpg",
+       "card": {
+        "heading": "CENTRAL ASIAN ROOTS",
+        "body": "The pendentive support system is attributed to Central Asian building traditions."
+       },
+       "slide": null,
+       "index": 4,
+       "total": 7,
+       "poll": {
+        "question": "Intentional design or lucky accident?",
+        "options": [
+         "Planned acoustics",
+         "Lucky accident"
+        ]
+       }
+      },
+      {
+       "frame": "carousel_slide_06.jpg",
+       "renderer": "multi_format.redraw_carousel_slide",
+       "archetype": "immersive",
+       "photo": "cache/upscaled/15_commons_5176bcee9e7530cb.jpg",
+       "photo_next": "cache/upscaled/30_commons_2f7bfb0c39fc411f.jpg",
+       "card": {
+        "heading": "UNFINISHED MONUMENT",
+        "body": "Work ceased in 1656 upon Mohammad Adil Shah's death, leaving elements unfinished."
+       },
+       "slide": null,
+       "index": 5,
+       "total": 7,
+       "poll": {
+        "question": "Intentional design or lucky accident?",
+        "options": [
+         "Planned acoustics",
+         "Lucky accident"
+        ]
+       }
+      },
+      {
+       "frame": "carousel_slide_07.jpg",
+       "renderer": "multi_format.redraw_carousel_slide",
+       "archetype": "debate",
+       "photo": "cache/upscaled/30_commons_2f7bfb0c39fc411f.jpg",
+       "photo_next": "cache/upscaled/04_commons_fad489b1b2468caa.jpg",
+       "card": {
+        "heading": "LOST INGENUITY?",
+        "body": "Did ancient builders master acoustic physics that modern architecture has forgotten?"
+       },
+       "slide": null,
+       "index": 6,
+       "total": 7,
+       "poll": {
+        "question": "Intentional design or lucky accident?",
+        "options": [
+         "Planned acoustics",
+         "Lucky accident"
+        ]
+       }
+      }
+     ],
+     "carousel_fb_recipes": [
+      {
+       "frame": "carousel_slide_01.jpg",
+       "renderer": "multi_format.redraw_carousel_slide",
+       "archetype": "cover",
+       "photo": "cache/upscaled/04_commons_fad489b1b2468caa.jpg",
+       "photo_next": "cache/upscaled/03_commons_749e0ecf629ab119.jpg",
+       "card": {
+        "heading": "THE WHISPERING VAULT",
+        "body": "How did seventeenth-century builders create an acoustic wonder in Bijapur, India?"
+       },
+       "slide": null,
+       "index": 0,
+       "total": 7,
+       "poll": {
+        "question": "Intentional design or lucky accident?",
+        "options": [
+         "Planned acoustics",
+         "Lucky accident"
+        ]
+       }
+      },
+      {
+       "frame": "carousel_slide_02.jpg",
+       "renderer": "multi_format.redraw_carousel_slide",
+       "archetype": "colossal_stat",
+       "photo": "cache/upscaled/03_commons_749e0ecf629ab119.jpg",
+       "photo_next": "cache/upscaled/14_commons_f278c785b4299352.jpg",
+       "card": {
+        "heading": "MASSIVE SCALE",
+        "body": "By one estimate, the central dome has an external diameter of 44 meters (144 feet)."
+       },
+       "slide": null,
+       "index": 1,
+       "total": 7,
+       "poll": {
+        "question": "Intentional design or lucky accident?",
+        "options": [
+         "Planned acoustics",
+         "Lucky accident"
+        ]
+       }
+      },
+      {
+       "frame": "carousel_slide_03.jpg",
+       "renderer": "multi_format.redraw_carousel_slide",
+       "archetype": "editorial_split",
+       "photo": "cache/upscaled/14_commons_f278c785b4299352.jpg",
+       "photo_next": "cache/upscaled/28_commons_c0c39cc2427b977a.jpg",
+       "card": {
+        "heading": "ACOUSTIC GUIDANCE",
+        "body": "Sound waves are guided continuously along the curved boundary of the gallery."
+       },
+       "slide": null,
+       "index": 2,
+       "total": 7,
+       "poll": {
+        "question": "Intentional design or lucky accident?",
+        "options": [
+         "Planned acoustics",
+         "Lucky accident"
+        ]
+       }
+      },
+      {
+       "frame": "carousel_slide_04.jpg",
+       "renderer": "multi_format.redraw_carousel_slide",
+       "archetype": "immersive",
+       "photo": "cache/upscaled/28_commons_c0c39cc2427b977a.jpg",
+       "photo_next": "cache/upscaled/23_commons_49430d838523f856.jpg",
+       "card": {
+        "heading": "ENGINEERING WITHOUT METAL",
+        "body": "The dome achieved structural integrity using bricks and mortar without metal rings."
+       },
+       "slide": null,
+       "index": 3,
+       "total": 7,
+       "poll": {
+        "question": "Intentional design or lucky accident?",
+        "options": [
+         "Planned acoustics",
+         "Lucky accident"
+        ]
+       }
+      },
+      {
+       "frame": "carousel_slide_05.jpg",
+       "renderer": "multi_format.redraw_carousel_slide",
+       "archetype": "editorial_split",
+       "photo": "cache/upscaled/23_commons_49430d838523f856.jpg",
+       "photo_next": "cache/upscaled/15_commons_5176bcee9e7530cb.jpg",
+       "card": {
+        "heading": "CENTRAL ASIAN ROOTS",
+        "body": "The pendentive support system is attributed to Central Asian building traditions."
+       },
+       "slide": null,
+       "index": 4,
+       "total": 7,
+       "poll": {
+        "question": "Intentional design or lucky accident?",
+        "options": [
+         "Planned acoustics",
+         "Lucky accident"
+        ]
+       }
+      },
+      {
+       "frame": "carousel_slide_06.jpg",
+       "renderer": "multi_format.redraw_carousel_slide",
+       "archetype": "immersive",
+       "photo": "cache/upscaled/15_commons_5176bcee9e7530cb.jpg",
+       "photo_next": "cache/upscaled/30_commons_2f7bfb0c39fc411f.jpg",
+       "card": {
+        "heading": "UNFINISHED MONUMENT",
+        "body": "Work ceased in 1656 upon Mohammad Adil Shah's death, leaving elements unfinished."
+       },
+       "slide": null,
+       "index": 5,
+       "total": 7,
+       "poll": {
+        "question": "Intentional design or lucky accident?",
+        "options": [
+         "Planned acoustics",
+         "Lucky accident"
+        ]
+       }
+      },
+      {
+       "frame": "carousel_slide_07.jpg",
+       "renderer": "multi_format.redraw_carousel_slide",
+       "archetype": "debate",
+       "photo": "cache/upscaled/30_commons_2f7bfb0c39fc411f.jpg",
+       "photo_next": "cache/upscaled/04_commons_fad489b1b2468caa.jpg",
+       "card": {
+        "heading": "LOST INGENUITY?",
+        "body": "Did ancient builders master acoustic physics that modern architecture has forgotten?"
+       },
+       "slide": null,
+       "index": 6,
+       "total": 7,
+       "poll": {
+        "question": "Intentional design or lucky accident?",
+        "options": [
+         "Planned acoustics",
+         "Lucky accident"
+        ]
+       }
+      }
+     ],
+     "story_recipes": [
+      {
+       "frame": "story_01_hook.jpg",
+       "renderer": "multi_format.redraw_story_frame",
+       "archetype": null,
+       "photo": "cache/upscaled/04_commons_fad489b1b2468caa.jpg",
+       "photo_next": null,
+       "card": null,
+       "slide": {
+        "kicker": "ANCIENT MARVEL",
+        "line1": "THE ACOUSTIC DOME",
+        "line2": "OF GOL GUMBAZ",
+        "body": "Sound circles this vast chamber along its curved boundary."
+       },
+       "index": 0,
+       "total": 3,
+       "poll": {
+        "question": "Intentional design or lucky accident?",
+        "options": [
+         "Planned acoustics",
+         "Lucky accident"
+        ]
+       }
+      },
+      {
+       "frame": "story_02_reveal.jpg",
+       "renderer": "multi_format.redraw_story_frame",
+       "archetype": null,
+       "photo": "cache/upscaled/28_commons_c0c39cc2427b977a.jpg",
+       "photo_next": null,
+       "card": null,
+       "slide": {
+        "kicker": "NO METAL RINGS",
+        "line1": "BRICK AND MORTAR",
+        "line2": "WITHOUT TENSION",
+        "body": "By one estimate, the central dome spans 144 feet (44 m)."
+       },
+       "index": 1,
+       "total": 3,
+       "poll": {
+        "question": "Intentional design or lucky accident?",
+        "options": [
+         "Planned acoustics",
+         "Lucky accident"
+        ]
+       }
+      },
+      {
+       "frame": "story_03_question.jpg",
+       "renderer": "multi_format.redraw_story_frame",
+       "archetype": null,
+       "photo": "cache/upscaled/15_commons_5176bcee9e7530cb.jpg",
+       "photo_next": null,
+       "card": null,
+       "slide": {
+        "kicker": "ACOUSTIC MYSTERY",
+        "line1": "INTENTIONAL DESIGN",
+        "line2": "OR PURE CHANCE?",
+        "body": "Construction halted in 1656 after Mohammad Adil Shah died."
+       },
+       "index": 2,
+       "total": 3,
+       "poll": {
+        "question": "Intentional design or lucky accident?",
+        "options": [
+         "Planned acoustics",
+         "Lucky accident"
+        ]
+       }
+      }
+     ],
+     "carousel_photos": [
+      "cache/upscaled/04_commons_fad489b1b2468caa.jpg",
+      "cache/upscaled/03_commons_749e0ecf629ab119.jpg",
+      "cache/upscaled/14_commons_f278c785b4299352.jpg",
+      "cache/upscaled/28_commons_c0c39cc2427b977a.jpg",
+      "cache/upscaled/23_commons_49430d838523f856.jpg",
+      "cache/upscaled/15_commons_5176bcee9e7530cb.jpg",
+      "cache/upscaled/30_commons_2f7bfb0c39fc411f.jpg"
+     ],
+     "scene_stills": [
+      "cache/upscaled/22_commons_466e53f5c2d25a35.jpg",
+      "cache/upscaled/23_commons_49430d838523f856.jpg",
+      "cache/upscaled/24_commons_b3593d8c94b1c5f2.jpg",
+      "cache/upscaled/26_commons_568126e2b8f34c54.jpg",
+      "cache/upscaled/28_commons_c0c39cc2427b977a.jpg",
+      "cache/upscaled/30_commons_2f7bfb0c39fc411f.jpg",
+      "cache/privacy/02_commons_c6cb586e4f80b165_f33132c587b02ecc.jpg",
+      "cache/upscaled/03_commons_749e0ecf629ab119.jpg",
+      "cache/upscaled/04_commons_fad489b1b2468caa.jpg",
+      "cache/upscaled/05_commons_44c1fba56ab64598.jpg",
+      "cache/upscaled/14_commons_f278c785b4299352.jpg",
+      "cache/upscaled/15_commons_5176bcee9e7530cb.jpg",
+      "cache/upscaled/20_commons_7b0bff8940d901ba.jpg"
+     ],
+     "photo_luma_range": [
+      104.4,
+      141.4
+     ],
+     "delivered": {
+      "carousel": "output/run_gol_gumbaz_whispering_gallery_1793278143/carousel",
+      "carousel_fb": "output/run_gol_gumbaz_whispering_gallery_1793278143/carousel_fb",
+      "stories": "output/run_gol_gumbaz_whispering_gallery_1793278143/stories"
+     },
+     "why": "gol_gumbaz_whispering_gallery: per-slide recipes recorded (exact photo + card per slide, IG, FB and Stories)",
+     "feed": {
+      "how": "per frame: the recorded recipe (multi_format.redraw_carousel_slide / redraw_story_frame take exactly these fields); or the whole set: generate_carousel_sequence(scene_stills, payload, out[, facebook=True]) and generate_story_sequence(hero, payload, out, scene_images=scene_stills)"
+     }
+    },
+    {
+     "run": "output/run_nazca_lines_runway_paradox_1793247464",
+     "topic": "nazca_lines_runway_paradox",
+     "payload": "output/run_nazca_lines_runway_paradox_1793247464/verified_script.json",
+     "exact_recipes": true,
+     "carousel_slides": 7,
+     "story_slides": 3,
+     "carousel_body_chars": [
+      80,
+      84,
+      87,
+      73,
+      79,
+      85,
+      90
+     ],
+     "carousel_heading_chars": [
+      17,
+      20,
+      18,
+      16,
+      16,
+      18,
+      15
+     ],
+     "story_chars": [
+      {
+       "kicker": 17,
+       "line1": 12,
+       "line2": 8,
+       "body": 62
+      },
+      {
+       "kicker": 12,
+       "line1": 13,
+       "line2": 5,
+       "body": 73
+      },
+      {
+       "kicker": 11,
+       "line1": 12,
+       "line2": 12,
+       "body": 58
+      }
+     ],
+     "poll": {
+      "question": "Why were the lines etched?",
+      "options": [
+       "Ritual ceremonies",
+       "Astronomical maps"
+      ]
+     },
+     "carousel_recipes": [
+      {
+       "frame": "carousel_slide_01.jpg",
+       "renderer": "multi_format.redraw_carousel_slide",
+       "archetype": "cover",
+       "photo": "cache/upscaled/06_commons_e3cf85989c79a369.jpg",
+       "photo_next": "assets/nazca_lines_runway_paradox/08_commons.jpg",
+       "card": {
+        "heading": "Lines in the Sand",
+        "body": "How ancient builders etched giant geoglyphs without ever seeing them from above."
+       },
+       "slide": null,
+       "index": 0,
+       "total": 7,
+       "poll": {
+        "question": "Why were the lines etched?",
+        "options": [
+         "Ritual ceremonies",
+         "Astronomical maps"
+        ]
+       }
+      },
+      {
+       "frame": "carousel_slide_02.jpg",
+       "renderer": "multi_format.redraw_carousel_slide",
+       "archetype": "comparison",
+       "photo": "assets/nazca_lines_runway_paradox/08_commons.jpg",
+       "photo_next": "assets/nazca_lines_runway_paradox/02_commons.jpg",
+       "card": {
+        "heading": "Scraping the Pebbles",
+        "body": "Scraping reddish-brown pebbles exposed contrasting light-colored clay earth beneath."
+       },
+       "slide": null,
+       "index": 1,
+       "total": 7,
+       "poll": {
+        "question": "Why were the lines etched?",
+        "options": [
+         "Ritual ceremonies",
+         "Astronomical maps"
+        ]
+       }
+      },
+      {
+       "frame": "carousel_slide_03.jpg",
+       "renderer": "multi_format.redraw_carousel_slide",
+       "archetype": "editorial_split",
+       "photo": "assets/nazca_lines_runway_paradox/02_commons.jpg",
+       "photo_next": "assets/nazca_lines_runway_paradox/10_commons.jpg",
+       "card": {
+        "heading": "Morning Mist Armor",
+        "body": "Morning mist provides moisture that hardens exposed clay into a protective wind shield."
+       },
+       "slide": null,
+       "index": 2,
+       "total": 7,
+       "poll": {
+        "question": "Why were the lines etched?",
+        "options": [
+         "Ritual ceremonies",
+         "Astronomical maps"
+        ]
+       }
+      },
+      {
+       "frame": "carousel_slide_04.jpg",
+       "renderer": "multi_format.redraw_carousel_slide",
+       "archetype": "immersive",
+       "photo": "assets/nazca_lines_runway_paradox/10_commons.jpg",
+       "photo_next": "assets/nazca_lines_runway_paradox/08_commons.jpg",
+       "card": {
+        "heading": "Two Ancient Eras",
+        "body": "Created between 500 BC and 500 AD, spanning the Paracas and Nazca phases."
+       },
+       "slide": null,
+       "index": 3,
+       "total": 7,
+       "poll": {
+        "question": "Why were the lines etched?",
+        "options": [
+         "Ritual ceremonies",
+         "Astronomical maps"
+        ]
+       }
+      },
+      {
+       "frame": "carousel_slide_05.jpg",
+       "renderer": "multi_format.redraw_carousel_slide",
+       "archetype": "editorial_split",
+       "photo": "assets/nazca_lines_runway_paradox/08_commons.jpg",
+       "photo_next": "cache/upscaled/06_commons_e3cf85989c79a369.jpg",
+       "card": {
+        "heading": "Surveying Stakes",
+        "body": "Wooden stakes found at line ends show builders used simple surveying equipment."
+       },
+       "slide": null,
+       "index": 4,
+       "total": 7,
+       "poll": {
+        "question": "Why were the lines etched?",
+        "options": [
+         "Ritual ceremonies",
+         "Astronomical maps"
+        ]
+       }
+      },
+      {
+       "frame": "carousel_slide_06.jpg",
+       "renderer": "multi_format.redraw_carousel_slide",
+       "archetype": "comparison",
+       "photo": "cache/upscaled/06_commons_e3cf85989c79a369.jpg",
+       "photo_next": "assets/nazca_lines_runway_paradox/02_commons.jpg",
+       "card": {
+        "heading": "Modern Drone Views",
+        "body": "Drones identified several hundred previously unrecorded geoglyphs across the plateau."
+       },
+       "slide": null,
+       "index": 5,
+       "total": 7,
+       "poll": {
+        "question": "Why were the lines etched?",
+        "options": [
+         "Ritual ceremonies",
+         "Astronomical maps"
+        ]
+       }
+      },
+      {
+       "frame": "carousel_slide_07.jpg",
+       "renderer": "multi_format.redraw_carousel_slide",
+       "archetype": "debate",
+       "photo": "assets/nazca_lines_runway_paradox/02_commons.jpg",
+       "photo_next": "cache/upscaled/06_commons_e3cf85989c79a369.jpg",
+       "card": {
+        "heading": "Enduring Vision",
+        "body": "What drives human cultures to build monumental works they can never fully view themselves?"
+       },
+       "slide": null,
+       "index": 6,
+       "total": 7,
+       "poll": {
+        "question": "Why were the lines etched?",
+        "options": [
+         "Ritual ceremonies",
+         "Astronomical maps"
+        ]
+       }
+      }
+     ],
+     "carousel_fb_recipes": [
+      {
+       "frame": "carousel_slide_01.jpg",
+       "renderer": "multi_format.redraw_carousel_slide",
+       "archetype": "cover",
+       "photo": "cache/upscaled/06_commons_e3cf85989c79a369.jpg",
+       "photo_next": "assets/nazca_lines_runway_paradox/08_commons.jpg",
+       "card": {
+        "heading": "Lines in the Sand",
+        "body": "How ancient builders etched giant geoglyphs without ever seeing them from above."
+       },
+       "slide": null,
+       "index": 0,
+       "total": 7,
+       "poll": {
+        "question": "Why were the lines etched?",
+        "options": [
+         "Ritual ceremonies",
+         "Astronomical maps"
+        ]
+       }
+      },
+      {
+       "frame": "carousel_slide_02.jpg",
+       "renderer": "multi_format.redraw_carousel_slide",
+       "archetype": "comparison",
+       "photo": "assets/nazca_lines_runway_paradox/08_commons.jpg",
+       "photo_next": "assets/nazca_lines_runway_paradox/02_commons.jpg",
+       "card": {
+        "heading": "Scraping the Pebbles",
+        "body": "Scraping reddish-brown pebbles exposed contrasting light-colored clay earth beneath."
+       },
+       "slide": null,
+       "index": 1,
+       "total": 7,
+       "poll": {
+        "question": "Why were the lines etched?",
+        "options": [
+         "Ritual ceremonies",
+         "Astronomical maps"
+        ]
+       }
+      },
+      {
+       "frame": "carousel_slide_03.jpg",
+       "renderer": "multi_format.redraw_carousel_slide",
+       "archetype": "editorial_split",
+       "photo": "assets/nazca_lines_runway_paradox/02_commons.jpg",
+       "photo_next": "assets/nazca_lines_runway_paradox/10_commons.jpg",
+       "card": {
+        "heading": "Morning Mist Armor",
+        "body": "Morning mist provides moisture that hardens exposed clay into a protective wind shield."
+       },
+       "slide": null,
+       "index": 2,
+       "total": 7,
+       "poll": {
+        "question": "Why were the lines etched?",
+        "options": [
+         "Ritual ceremonies",
+         "Astronomical maps"
+        ]
+       }
+      },
+      {
+       "frame": "carousel_slide_04.jpg",
+       "renderer": "multi_format.redraw_carousel_slide",
+       "archetype": "immersive",
+       "photo": "assets/nazca_lines_runway_paradox/10_commons.jpg",
+       "photo_next": "assets/nazca_lines_runway_paradox/08_commons.jpg",
+       "card": {
+        "heading": "Two Ancient Eras",
+        "body": "Created between 500 BC and 500 AD, spanning the Paracas and Nazca phases."
+       },
+       "slide": null,
+       "index": 3,
+       "total": 7,
+       "poll": {
+        "question": "Why were the lines etched?",
+        "options": [
+         "Ritual ceremonies",
+         "Astronomical maps"
+        ]
+       }
+      },
+      {
+       "frame": "carousel_slide_05.jpg",
+       "renderer": "multi_format.redraw_carousel_slide",
+       "archetype": "editorial_split",
+       "photo": "assets/nazca_lines_runway_paradox/08_commons.jpg",
+       "photo_next": "cache/upscaled/06_commons_e3cf85989c79a369.jpg",
+       "card": {
+        "heading": "Surveying Stakes",
+        "body": "Wooden stakes found at line ends show builders used simple surveying equipment."
+       },
+       "slide": null,
+       "index": 4,
+       "total": 7,
+       "poll": {
+        "question": "Why were the lines etched?",
+        "options": [
+         "Ritual ceremonies",
+         "Astronomical maps"
+        ]
+       }
+      },
+      {
+       "frame": "carousel_slide_06.jpg",
+       "renderer": "multi_format.redraw_carousel_slide",
+       "archetype": "comparison",
+       "photo": "cache/upscaled/06_commons_e3cf85989c79a369.jpg",
+       "photo_next": "assets/nazca_lines_runway_paradox/02_commons.jpg",
+       "card": {
+        "heading": "Modern Drone Views",
+        "body": "Drones identified several hundred previously unrecorded geoglyphs across the plateau."
+       },
+       "slide": null,
+       "index": 5,
+       "total": 7,
+       "poll": {
+        "question": "Why were the lines etched?",
+        "options": [
+         "Ritual ceremonies",
+         "Astronomical maps"
+        ]
+       }
+      },
+      {
+       "frame": "carousel_slide_07.jpg",
+       "renderer": "multi_format.redraw_carousel_slide",
+       "archetype": "debate",
+       "photo": "assets/nazca_lines_runway_paradox/02_commons.jpg",
+       "photo_next": "cache/upscaled/06_commons_e3cf85989c79a369.jpg",
+       "card": {
+        "heading": "Enduring Vision",
+        "body": "What drives human cultures to build monumental works they can never fully view themselves?"
+       },
+       "slide": null,
+       "index": 6,
+       "total": 7,
+       "poll": {
+        "question": "Why were the lines etched?",
+        "options": [
+         "Ritual ceremonies",
+         "Astronomical maps"
+        ]
+       }
+      }
+     ],
+     "story_recipes": [
+      {
+       "frame": "story_01_hook.jpg",
+       "renderer": "multi_format.redraw_story_frame",
+       "archetype": null,
+       "photo": "cache/upscaled/06_commons_e3cf85989c79a369.jpg",
+       "photo_next": null,
+       "card": null,
+       "slide": {
+        "kicker": "ANCIENT SURVEYING",
+        "line1": "GIANT DESERT",
+        "line2": "DRAWINGS",
+        "body": "Builders etched massive geoglyphs into the Nazca Desert floor."
+       },
+       "index": 0,
+       "total": 3,
+       "poll": {
+        "question": "Why were the lines etched?",
+        "options": [
+         "Ritual ceremonies",
+         "Astronomical maps"
+        ]
+       }
+      },
+      {
+       "frame": "story_02_reveal.jpg",
+       "renderer": "multi_format.redraw_story_frame",
+       "archetype": null,
+       "photo": "assets/nazca_lines_runway_paradox/08_commons.jpg",
+       "photo_next": null,
+       "card": null,
+       "slide": {
+        "kicker": "SIMPLE TOOLS",
+        "line1": "WOODEN STAKES",
+        "line2": "FOUND",
+        "body": "Surveys discovered wooden stakes positioned at the ends of several lines."
+       },
+       "index": 1,
+       "total": 3,
+       "poll": {
+        "question": "Why were the lines etched?",
+        "options": [
+         "Ritual ceremonies",
+         "Astronomical maps"
+        ]
+       }
+      },
+      {
+       "frame": "story_03_question.jpg",
+       "renderer": "multi_format.redraw_story_frame",
+       "archetype": null,
+       "photo": "assets/nazca_lines_runway_paradox/02_commons.jpg",
+       "photo_next": null,
+       "card": null,
+       "slide": {
+        "kicker": "THE VERDICT",
+        "line1": "SACRED PATHS",
+        "line2": "OR ASTRONOMY",
+        "body": "Wooden stakes helped guide surveying on the desert ground."
+       },
+       "index": 2,
+       "total": 3,
+       "poll": {
+        "question": "Why were the lines etched?",
+        "options": [
+         "Ritual ceremonies",
+         "Astronomical maps"
+        ]
+       }
+      }
+     ],
+     "carousel_photos": [
+      "cache/upscaled/06_commons_e3cf85989c79a369.jpg",
+      "assets/nazca_lines_runway_paradox/08_commons.jpg",
+      "assets/nazca_lines_runway_paradox/02_commons.jpg",
+      "assets/nazca_lines_runway_paradox/10_commons.jpg",
+      "assets/nazca_lines_runway_paradox/08_commons.jpg",
+      "cache/upscaled/06_commons_e3cf85989c79a369.jpg",
+      "assets/nazca_lines_runway_paradox/02_commons.jpg"
+     ],
+     "scene_stills": [
+      "assets/nazca_lines_runway_paradox/08_commons.jpg",
+      "assets/nazca_lines_runway_paradox/02_commons.jpg",
+      "cache/upscaled/06_commons_e3cf85989c79a369.jpg",
+      "assets/nazca_lines_runway_paradox/10_commons.jpg"
+     ],
+     "photo_luma_range": [
+      133.9,
+      162.7
+     ],
+     "delivered": {
+      "carousel": "output/run_nazca_lines_runway_paradox_1793247464/carousel",
+      "carousel_fb": "output/run_nazca_lines_runway_paradox_1793247464/carousel_fb",
+      "stories": "output/run_nazca_lines_runway_paradox_1793247464/stories"
+     },
+     "why": "nazca_lines_runway_paradox: per-slide recipes recorded (exact photo + card per slide, IG, FB and Stories)",
+     "feed": {
+      "how": "per frame: the recorded recipe (multi_format.redraw_carousel_slide / redraw_story_frame take exactly these fields); or the whole set: generate_carousel_sequence(scene_stills, payload, out[, facebook=True]) and generate_story_sequence(hero, payload, out, scene_images=scene_stills)"
+     }
+    },
+    {
+     "run": "output/run_richat_structure_sahara_eye_1793272675",
+     "topic": "richat_structure_sahara_eye",
+     "payload": "output/run_richat_structure_sahara_eye_1793272675/verified_script.json",
+     "exact_recipes": true,
+     "carousel_slides": 7,
+     "story_slides": 3,
+     "carousel_body_chars": [
+      83,
+      83,
+      72,
+      87,
+      82,
+      89,
+      86
+     ],
+     "carousel_heading_chars": [
+      21,
+      16,
+      23,
+      15,
+      15,
+      15,
+      22
+     ],
+     "story_chars": [
+      {
+       "kicker": 15,
+       "line1": 14,
+       "line2": 15,
+       "body": 66
+      },
+      {
+       "kicker": 15,
+       "line1": 12,
+       "line2": 15,
+       "body": 82
+      },
+      {
+       "kicker": 19,
+       "line1": 15,
+       "line2": 14,
+       "body": 25
+      }
+     ],
+     "poll": {
+      "question": "Best way to view the Eye?",
+      "options": [
+       "From Earth orbit",
+       "Walking the ridges"
+      ]
+     },
+     "carousel_recipes": [
+      {
+       "frame": "carousel_slide_01.jpg",
+       "renderer": "multi_format.redraw_carousel_slide",
+       "archetype": "cover",
+       "photo": "assets/richat_structure_sahara_eye/05_commons.jpg",
+       "photo_next": "assets/richat_structure_sahara_eye/06_commons.jpg",
+       "card": {
+        "heading": "THE EYE OF THE SAHARA",
+        "body": "A concentric formation in Mauritania that has long fascinated observers from orbit."
+       },
+       "slide": null,
+       "index": 0,
+       "total": 7,
+       "poll": {
+        "question": "Best way to view the Eye?",
+        "options": [
+         "From Earth orbit",
+         "Walking the ridges"
+        ]
+       }
+      },
+      {
+       "frame": "carousel_slide_02.jpg",
+       "renderer": "multi_format.redraw_carousel_slide",
+       "archetype": "immersive",
+       "photo": "assets/richat_structure_sahara_eye/06_commons.jpg",
+       "photo_next": "assets/richat_structure_sahara_eye/14_commons.jpg",
+       "card": {
+        "heading": "ORBITAL LANDMARK",
+        "body": "Visible from space, the concentric formation serves as a prominent desert landmark."
+       },
+       "slide": null,
+       "index": 1,
+       "total": 7,
+       "poll": {
+        "question": "Best way to view the Eye?",
+        "options": [
+         "From Earth orbit",
+         "Walking the ridges"
+        ]
+       }
+      },
+      {
+       "frame": "carousel_slide_03.jpg",
+       "renderer": "multi_format.redraw_carousel_slide",
+       "archetype": "editorial_split",
+       "photo": "assets/richat_structure_sahara_eye/14_commons.jpg",
+       "photo_next": "assets/richat_structure_sahara_eye/19_commons.jpg",
+       "card": {
+        "heading": "IMPACT THEORY DISPROVED",
+        "body": "Initially considered an impact crater, the theory was disproved in 1969."
+       },
+       "slide": null,
+       "index": 2,
+       "total": 7,
+       "poll": {
+        "question": "Best way to view the Eye?",
+        "options": [
+         "From Earth orbit",
+         "Walking the ridges"
+        ]
+       }
+      },
+      {
+       "frame": "carousel_slide_04.jpg",
+       "renderer": "multi_format.redraw_carousel_slide",
+       "archetype": "comparison",
+       "photo": "assets/richat_structure_sahara_eye/19_commons.jpg",
+       "photo_next": "cache/upscaled/04_commons_2545f068e11dc8eb.jpg",
+       "card": {
+        "heading": "MAGMATIC UPLIFT",
+        "body": "Subsurface igneous intrusion deformed overlying sedimentary rock into concentric rings."
+       },
+       "slide": null,
+       "index": 3,
+       "total": 7,
+       "poll": {
+        "question": "Best way to view the Eye?",
+        "options": [
+         "From Earth orbit",
+         "Walking the ridges"
+        ]
+       }
+      },
+      {
+       "frame": "carousel_slide_05.jpg",
+       "renderer": "multi_format.redraw_carousel_slide",
+       "archetype": "comparison",
+       "photo": "cache/upscaled/04_commons_2545f068e11dc8eb.jpg",
+       "photo_next": "assets/richat_structure_sahara_eye/12_commons.jpg",
+       "card": {
+        "heading": "ANCIENT COOLING",
+        "body": "Carbonatite rocks cooled between 94 and 104 million years ago beneath the surface."
+       },
+       "slide": null,
+       "index": 4,
+       "total": 7,
+       "poll": {
+        "question": "Best way to view the Eye?",
+        "options": [
+         "From Earth orbit",
+         "Walking the ridges"
+        ]
+       }
+      },
+      {
+       "frame": "carousel_slide_06.jpg",
+       "renderer": "multi_format.redraw_carousel_slide",
+       "archetype": "immersive",
+       "photo": "assets/richat_structure_sahara_eye/12_commons.jpg",
+       "photo_next": "assets/richat_structure_sahara_eye/10_commons.jpg",
+       "card": {
+        "heading": "GLOBAL HERITAGE",
+        "body": "In October 2022, international scientists named it one of Earth's top 100 heritage sites."
+       },
+       "slide": null,
+       "index": 5,
+       "total": 7,
+       "poll": {
+        "question": "Best way to view the Eye?",
+        "options": [
+         "From Earth orbit",
+         "Walking the ridges"
+        ]
+       }
+      },
+      {
+       "frame": "carousel_slide_07.jpg",
+       "renderer": "multi_format.redraw_carousel_slide",
+       "archetype": "debate",
+       "photo": "assets/richat_structure_sahara_eye/10_commons.jpg",
+       "photo_next": "assets/richat_structure_sahara_eye/05_commons.jpg",
+       "card": {
+        "heading": "EARTH'S HIDDEN MARVELS",
+        "body": "What natural wonders on Earth do you think look most magnificent when seen from space?"
+       },
+       "slide": null,
+       "index": 6,
+       "total": 7,
+       "poll": {
+        "question": "Best way to view the Eye?",
+        "options": [
+         "From Earth orbit",
+         "Walking the ridges"
+        ]
+       }
+      }
+     ],
+     "carousel_fb_recipes": [
+      {
+       "frame": "carousel_slide_01.jpg",
+       "renderer": "multi_format.redraw_carousel_slide",
+       "archetype": "cover",
+       "photo": "assets/richat_structure_sahara_eye/05_commons.jpg",
+       "photo_next": "assets/richat_structure_sahara_eye/06_commons.jpg",
+       "card": {
+        "heading": "THE EYE OF THE SAHARA",
+        "body": "A concentric formation in Mauritania that has long fascinated observers from orbit."
+       },
+       "slide": null,
+       "index": 0,
+       "total": 7,
+       "poll": {
+        "question": "Best way to view the Eye?",
+        "options": [
+         "From Earth orbit",
+         "Walking the ridges"
+        ]
+       }
+      },
+      {
+       "frame": "carousel_slide_02.jpg",
+       "renderer": "multi_format.redraw_carousel_slide",
+       "archetype": "immersive",
+       "photo": "assets/richat_structure_sahara_eye/06_commons.jpg",
+       "photo_next": "assets/richat_structure_sahara_eye/14_commons.jpg",
+       "card": {
+        "heading": "ORBITAL LANDMARK",
+        "body": "Visible from space, the concentric formation serves as a prominent desert landmark."
+       },
+       "slide": null,
+       "index": 1,
+       "total": 7,
+       "poll": {
+        "question": "Best way to view the Eye?",
+        "options": [
+         "From Earth orbit",
+         "Walking the ridges"
+        ]
+       }
+      },
+      {
+       "frame": "carousel_slide_03.jpg",
+       "renderer": "multi_format.redraw_carousel_slide",
+       "archetype": "editorial_split",
+       "photo": "assets/richat_structure_sahara_eye/14_commons.jpg",
+       "photo_next": "assets/richat_structure_sahara_eye/19_commons.jpg",
+       "card": {
+        "heading": "IMPACT THEORY DISPROVED",
+        "body": "Initially considered an impact crater, the theory was disproved in 1969."
+       },
+       "slide": null,
+       "index": 2,
+       "total": 7,
+       "poll": {
+        "question": "Best way to view the Eye?",
+        "options": [
+         "From Earth orbit",
+         "Walking the ridges"
+        ]
+       }
+      },
+      {
+       "frame": "carousel_slide_04.jpg",
+       "renderer": "multi_format.redraw_carousel_slide",
+       "archetype": "comparison",
+       "photo": "assets/richat_structure_sahara_eye/19_commons.jpg",
+       "photo_next": "cache/upscaled/04_commons_2545f068e11dc8eb.jpg",
+       "card": {
+        "heading": "MAGMATIC UPLIFT",
+        "body": "Subsurface igneous intrusion deformed overlying sedimentary rock into concentric rings."
+       },
+       "slide": null,
+       "index": 3,
+       "total": 7,
+       "poll": {
+        "question": "Best way to view the Eye?",
+        "options": [
+         "From Earth orbit",
+         "Walking the ridges"
+        ]
+       }
+      },
+      {
+       "frame": "carousel_slide_05.jpg",
+       "renderer": "multi_format.redraw_carousel_slide",
+       "archetype": "comparison",
+       "photo": "cache/upscaled/04_commons_2545f068e11dc8eb.jpg",
+       "photo_next": "assets/richat_structure_sahara_eye/12_commons.jpg",
+       "card": {
+        "heading": "ANCIENT COOLING",
+        "body": "Carbonatite rocks cooled between 94 and 104 million years ago beneath the surface."
+       },
+       "slide": null,
+       "index": 4,
+       "total": 7,
+       "poll": {
+        "question": "Best way to view the Eye?",
+        "options": [
+         "From Earth orbit",
+         "Walking the ridges"
+        ]
+       }
+      },
+      {
+       "frame": "carousel_slide_06.jpg",
+       "renderer": "multi_format.redraw_carousel_slide",
+       "archetype": "immersive",
+       "photo": "assets/richat_structure_sahara_eye/12_commons.jpg",
+       "photo_next": "assets/richat_structure_sahara_eye/10_commons.jpg",
+       "card": {
+        "heading": "GLOBAL HERITAGE",
+        "body": "In October 2022, international scientists named it one of Earth's top 100 heritage sites."
+       },
+       "slide": null,
+       "index": 5,
+       "total": 7,
+       "poll": {
+        "question": "Best way to view the Eye?",
+        "options": [
+         "From Earth orbit",
+         "Walking the ridges"
+        ]
+       }
+      },
+      {
+       "frame": "carousel_slide_07.jpg",
+       "renderer": "multi_format.redraw_carousel_slide",
+       "archetype": "debate",
+       "photo": "assets/richat_structure_sahara_eye/10_commons.jpg",
+       "photo_next": "assets/richat_structure_sahara_eye/05_commons.jpg",
+       "card": {
+        "heading": "EARTH'S HIDDEN MARVELS",
+        "body": "What natural wonders on Earth do you think look most magnificent when seen from space?"
+       },
+       "slide": null,
+       "index": 6,
+       "total": 7,
+       "poll": {
+        "question": "Best way to view the Eye?",
+        "options": [
+         "From Earth orbit",
+         "Walking the ridges"
+        ]
+       }
+      }
+     ],
+     "story_recipes": [
+      {
+       "frame": "story_01_hook.jpg",
+       "renderer": "multi_format.redraw_story_frame",
+       "archetype": null,
+       "photo": "assets/richat_structure_sahara_eye/05_commons.jpg",
+       "photo_next": null,
+       "card": null,
+       "slide": {
+        "kicker": "ORBITAL MYSTERY",
+        "line1": "THE DESERT EYE",
+        "line2": "SEEN FROM SPACE",
+        "body": "A colossal concentric formation marks the vast Mauritanian desert."
+       },
+       "index": 0,
+       "total": 3,
+       "poll": {
+        "question": "Best way to view the Eye?",
+        "options": [
+         "From Earth orbit",
+         "Walking the ridges"
+        ]
+       }
+      },
+      {
+       "frame": "story_02_reveal.jpg",
+       "renderer": "multi_format.redraw_story_frame",
+       "archetype": null,
+       "photo": "assets/richat_structure_sahara_eye/19_commons.jpg",
+       "photo_next": null,
+       "card": null,
+       "slide": {
+        "kicker": "GEOLOGIC ORIGIN",
+        "line1": "ANCIENT DOME",
+        "line2": "EROSION AT WORK",
+        "body": "Subsurface igneous intrusion pushed sedimentary rock upward into concentric rings."
+       },
+       "index": 1,
+       "total": 3,
+       "poll": {
+        "question": "Best way to view the Eye?",
+        "options": [
+         "From Earth orbit",
+         "Walking the ridges"
+        ]
+       }
+      },
+      {
+       "frame": "story_03_question.jpg",
+       "renderer": "multi_format.redraw_story_frame",
+       "archetype": null,
+       "photo": "assets/richat_structure_sahara_eye/06_commons.jpg",
+       "photo_next": null,
+       "card": null,
+       "slide": {
+        "kicker": "SURFACE EXPLORATION",
+        "line1": "ORBIT OR GROUND",
+        "line2": "HOW TO VIEW IT",
+        "body": "Best way to view the Eye?"
+       },
+       "index": 2,
+       "total": 3,
+       "poll": {
+        "question": "Best way to view the Eye?",
+        "options": [
+         "From Earth orbit",
+         "Walking the ridges"
+        ]
+       }
+      }
+     ],
+     "carousel_photos": [
+      "assets/richat_structure_sahara_eye/05_commons.jpg",
+      "assets/richat_structure_sahara_eye/06_commons.jpg",
+      "assets/richat_structure_sahara_eye/14_commons.jpg",
+      "assets/richat_structure_sahara_eye/19_commons.jpg",
+      "cache/upscaled/04_commons_2545f068e11dc8eb.jpg",
+      "assets/richat_structure_sahara_eye/12_commons.jpg",
+      "assets/richat_structure_sahara_eye/10_commons.jpg"
+     ],
+     "scene_stills": [
+      "assets/richat_structure_sahara_eye/02_commons.jpg",
+      "cache/upscaled/03_commons_8553d4052c3cd146.jpg",
+      "cache/upscaled/04_commons_2545f068e11dc8eb.jpg",
+      "assets/richat_structure_sahara_eye/05_commons.jpg",
+      "assets/richat_structure_sahara_eye/06_commons.jpg",
+      "assets/richat_structure_sahara_eye/07_commons.jpg",
+      "assets/richat_structure_sahara_eye/08_commons.jpg",
+      "assets/richat_structure_sahara_eye/09_commons.jpg",
+      "assets/richat_structure_sahara_eye/10_commons.jpg",
+      "assets/richat_structure_sahara_eye/11_commons.jpg",
+      "assets/richat_structure_sahara_eye/12_commons.jpg",
+      "assets/richat_structure_sahara_eye/13_commons.jpg",
+      "assets/richat_structure_sahara_eye/14_commons.jpg",
+      "assets/richat_structure_sahara_eye/15_commons.jpg",
+      "assets/richat_structure_sahara_eye/16_commons.jpg",
+      "assets/richat_structure_sahara_eye/18_commons.jpg",
+      "assets/richat_structure_sahara_eye/19_commons.jpg",
+      "assets/richat_structure_sahara_eye/20_commons.jpg"
+     ],
+     "photo_luma_range": [
+      84.2,
+      150.0
+     ],
+     "delivered": {
+      "carousel": "output/run_richat_structure_sahara_eye_1793272675/carousel",
+      "carousel_fb": "output/run_richat_structure_sahara_eye_1793272675/carousel_fb",
+      "stories": "output/run_richat_structure_sahara_eye_1793272675/stories"
+     },
+     "why": "richat_structure_sahara_eye: per-slide recipes recorded (exact photo + card per slide, IG, FB and Stories); darkest carousel/story photos",
+     "feed": {
+      "how": "per frame: the recorded recipe (multi_format.redraw_carousel_slide / redraw_story_frame take exactly these fields); or the whole set: generate_carousel_sequence(scene_stills, payload, out[, facebook=True]) and generate_story_sequence(hero, payload, out, scene_images=scene_stills)"
+     }
+    },
+    {
+     "run": "output/run_unfinished_obelisk_aswan_1792985912",
+     "topic": "unfinished_obelisk_aswan",
+     "payload": "output/run_unfinished_obelisk_aswan_1792985912/verified_script.json",
+     "exact_recipes": false,
+     "carousel_slides": 7,
+     "story_slides": 3,
+     "carousel_body_chars": [
+      107,
+      190,
+      88,
+      88,
+      86,
+      87,
+      85
+     ],
+     "carousel_heading_chars": [
+      22,
+      13,
+      16,
+      16,
+      18,
+      18,
+      14
+     ],
+     "story_chars": [
+      {
+       "kicker": 12,
+       "line1": 9,
+       "line2": 8,
+       "body": 91
+      },
+      {
+       "kicker": 16,
+       "line1": 11,
+       "line2": 9,
+       "body": 110
+      },
+      {
+       "kicker": 18,
+       "line1": 10,
+       "line2": 6,
+       "body": 88
+      }
+     ],
+     "poll": {
+      "question": "Which was harder for Egyptian builders?",
+      "options": [
+       "Carving the bedrock",
+       "Extracting the stone"
+      ]
+     },
+     "carousel_recipes": [],
+     "carousel_fb_recipes": [],
+     "story_recipes": [],
+     "carousel_photos": [],
+     "scene_stills": [
+      "cache/privacy/01_commons_ecc3d43a3bfa49f0.jpg",
+      "assets/unfinished_obelisk_aswan/01_commons.jpg",
+      "cache/privacy/10_commons_bbb902e1f64f5990.jpg",
+      "assets/unfinished_obelisk_aswan/10_commons.jpg",
+      "assets/unfinished_obelisk_aswan/05_commons.jpg",
+      "assets/unfinished_obelisk_aswan/19_commons.jpg",
+      "cache/privacy/02_commons_28e77827c5a564f4.jpg",
+      "assets/unfinished_obelisk_aswan/02_commons.jpg",
+      "cache/privacy/12_commons_61bd4511691cc042.jpg",
+      "assets/unfinished_obelisk_aswan/12_commons.jpg",
+      "cache/privacy/14_commons_bf7fb1e6b88f1541.jpg",
+      "assets/unfinished_obelisk_aswan/14_commons.jpg",
+      "cache/privacy/15_commons_01eb6f2b9f1034da.jpg",
+      "assets/unfinished_obelisk_aswan/15_commons.jpg",
+      "output/run_unfinished_obelisk_aswan_1792985912/beat_images/beat01_2.jpg"
+     ],
+     "photo_luma_range": null,
+     "delivered": {
+      "carousel": "output/run_unfinished_obelisk_aswan_1792985912/carousel",
+      "carousel_fb": "output/run_unfinished_obelisk_aswan_1792985912/carousel_fb",
+      "stories": "output/run_unfinished_obelisk_aswan_1792985912/stories"
+     },
+     "why": "longest carousel body across all runs; longest Story body across all runs",
+     "feed": {
+      "how": "the run kept no per-slide recipe: payload copy is the run's own; the photos are the run's provenance scene stills in order (the strong-stem filter it applied is not recorded), so the photo per slide may differ from the delivered set",
+      "label": "new: photo-to-slide order reconstructed; this run recorded no carousel recipe"
+     }
+    },
+    {
+     "run": "output/run_wieliczka_salt_mine_1792974672",
+     "topic": "wieliczka_salt_mine",
+     "payload": "output/run_wieliczka_salt_mine_1792974672/verified_script.json",
+     "exact_recipes": false,
+     "carousel_slides": 7,
+     "story_slides": 3,
+     "carousel_body_chars": [
+      58,
+      87,
+      78,
+      77,
+      84,
+      87,
+      80
+     ],
+     "carousel_heading_chars": [
+      18,
+      17,
+      15,
+      20,
+      15,
+      19,
+      17
+     ],
+     "story_chars": [
+      {
+       "kicker": 18,
+       "line1": 14,
+       "line2": 14,
+       "body": 84
+      },
+      {
+       "kicker": 13,
+       "line1": 18,
+       "line2": 14,
+       "body": 71
+      },
+      {
+       "kicker": 12,
+       "line1": 13,
+       "line2": 16,
+       "body": 77
+      }
+     ],
+     "poll": {
+      "question": "Which feature is more impressive?",
+      "options": [
+       "Salt chandeliers",
+       "Underground chapels"
+      ]
+     },
+     "carousel_recipes": [],
+     "carousel_fb_recipes": [],
+     "story_recipes": [],
+     "carousel_photos": [],
+     "scene_stills": [
+      "assets/wieliczka_salt_mine/01_commons.jpg",
+      "assets/wieliczka_salt_mine/02_commons.jpg",
+      "cache/upscaled/05_commons_4429c4d225e94790.jpg",
+      "assets/wieliczka_salt_mine/05_commons.jpg",
+      "cache/privacy/03_commons_e5397b7d72d582b8.jpg",
+      "assets/wieliczka_salt_mine/03_commons.jpg",
+      "output/run_wieliczka_salt_mine_1792974672/beat_images/gap06_1.jpg",
+      "cache/upscaled/beat04_1_2c3f745dafe685e5.jpg",
+      "output/run_wieliczka_salt_mine_1792974672/beat_images/beat04_1.jpg",
+      "output/run_wieliczka_salt_mine_1792974672/beat_images/beat05_1.jpg",
+      "output/run_wieliczka_salt_mine_1792974672/beat_images/beat10_2.jpg"
+     ],
+     "photo_luma_range": null,
+     "delivered": {
+      "carousel": "output/run_wieliczka_salt_mine_1792974672/carousel",
+      "carousel_fb": "output/run_wieliczka_salt_mine_1792974672/carousel_fb",
+      "stories": "output/run_wieliczka_salt_mine_1792974672/stories"
+     },
+     "why": "shortest carousel body across all runs",
+     "feed": {
+      "how": "the run kept no per-slide recipe: payload copy is the run's own; the photos are the run's provenance scene stills in order (the strong-stem filter it applied is not recorded), so the photo per slide may differ from the delivered set",
+      "label": "new: photo-to-slide order reconstructed; this run recorded no carousel recipe"
+     }
+    },
+    {
+     "run": "output/run_amber_room_heist_1792790550",
+     "topic": "amber_room_heist",
+     "payload": "output/run_amber_room_heist_1792790550/verified_script.json",
+     "exact_recipes": false,
+     "carousel_slides": 7,
+     "story_slides": 3,
+     "carousel_body_chars": [
+      102,
+      79,
+      81,
+      81,
+      88,
+      81,
+      85
+     ],
+     "carousel_heading_chars": [
+      19,
+      18,
+      18,
+      20,
+      20,
+      20,
+      16
+     ],
+     "story_chars": [
+      {
+       "kicker": 9,
+       "line1": 19,
+       "line2": 19,
+       "body": 84
+      },
+      {
+       "kicker": 8,
+       "line1": 14,
+       "line2": 18,
+       "body": 88
+      },
+      {
+       "kicker": 11,
+       "line1": 14,
+       "line2": 21,
+       "body": 80
+      }
+     ],
+     "poll": {
+      "question": "What was the room's true fate?",
+      "options": [
+       "Burned in the bombing",
+       "Hidden in secret crates"
+      ]
+     },
+     "carousel_recipes": [],
+     "carousel_fb_recipes": [],
+     "story_recipes": [],
+     "carousel_photos": [],
+     "scene_stills": [
+      "assets/amber_room_heist/07_commons.jpg",
+      "assets/amber_room_heist/01_commons.jpg",
+      "cache/privacy/02_commons_c5529180ea887626.jpg",
+      "assets/amber_room_heist/02_commons.jpg",
+      "cache/privacy/05_commons_f667d00f3d0fea26.jpg",
+      "assets/amber_room_heist/05_commons.jpg",
+      "assets/amber_room_heist/01_commons.jpg",
+      "cache/upscaled/beat02_1_f2154e401507d8a4.jpg",
+      "output/run_amber_room_heist_1792790550/beat_images/beat02_1.jpg",
+      "cache/privacy/08_commons_ea5b1f7419ffa9ee.jpg",
+      "assets/amber_room_heist/08_commons.jpg",
+      "assets/amber_room_heist/04_commons.jpg",
+      "cache/upscaled/11_commons_90c0a60f6429897f.jpg",
+      "assets/amber_room_heist/11_commons.jpg",
+      "output/run_amber_room_heist_1792790550/beat_images/beat10_1.jpg",
+      "cache/privacy/beat10_2_6f06a36292262e1c.jpg",
+      "output/run_amber_room_heist_1792790550/beat_images/beat10_2.jpg"
+     ],
+     "photo_luma_range": null,
+     "delivered": {
+      "carousel": "output/run_amber_room_heist_1792790550/carousel",
+      "carousel_fb": "output/run_amber_room_heist_1792790550/carousel_fb",
+      "stories": "output/run_amber_room_heist_1792790550/stories"
+     },
+     "why": "longest Story title line across all runs",
+     "feed": {
+      "how": "the run kept no per-slide recipe: payload copy is the run's own; the photos are the run's provenance scene stills in order (the strong-stem filter it applied is not recorded), so the photo per slide may differ from the delivered set",
+      "label": "new: photo-to-slide order reconstructed; this run recorded no carousel recipe"
+     }
+    },
+    {
+     "run": "output/run_nazca_lines_runway_paradox_1793251266",
+     "topic": "nazca_lines_runway_paradox",
+     "payload": "output/run_nazca_lines_runway_paradox_1793251266/verified_script.json",
+     "exact_recipes": true,
+     "carousel_slides": 7,
+     "story_slides": 3,
+     "carousel_body_chars": [
+      80,
+      84,
+      87,
+      73,
+      79,
+      85,
+      90
+     ],
+     "carousel_heading_chars": [
+      17,
+      20,
+      18,
+      16,
+      16,
+      18,
+      15
+     ],
+     "story_chars": [
+      {
+       "kicker": 17,
+       "line1": 12,
+       "line2": 8,
+       "body": 62
+      },
+      {
+       "kicker": 12,
+       "line1": 13,
+       "line2": 5,
+       "body": 73
+      },
+      {
+       "kicker": 11,
+       "line1": 12,
+       "line2": 12,
+       "body": 58
+      }
+     ],
+     "poll": {
+      "question": "Why were the lines etched?",
+      "options": [
+       "Ritual ceremonies",
+       "Astronomical maps"
+      ]
+     },
+     "carousel_recipes": [
+      {
+       "frame": "carousel_slide_01.jpg",
+       "renderer": "multi_format.redraw_carousel_slide",
+       "archetype": "cover",
+       "photo": "cache/upscaled/06_commons_6dc822485da090bf.jpg",
+       "photo_next": "assets/nazca_lines_runway_paradox/08_commons.jpg",
+       "card": {
+        "heading": "Lines in the Sand",
+        "body": "How ancient builders etched giant geoglyphs without ever seeing them from above."
+       },
+       "slide": null,
+       "index": 0,
+       "total": 7,
+       "poll": {
+        "question": "Why were the lines etched?",
+        "options": [
+         "Ritual ceremonies",
+         "Astronomical maps"
+        ]
+       }
+      },
+      {
+       "frame": "carousel_slide_02.jpg",
+       "renderer": "multi_format.redraw_carousel_slide",
+       "archetype": "comparison",
+       "photo": "assets/nazca_lines_runway_paradox/08_commons.jpg",
+       "photo_next": "assets/nazca_lines_runway_paradox/02_commons.jpg",
+       "card": {
+        "heading": "Scraping the Pebbles",
+        "body": "Scraping reddish-brown pebbles exposed contrasting light-colored clay earth beneath."
+       },
+       "slide": null,
+       "index": 1,
+       "total": 7,
+       "poll": {
+        "question": "Why were the lines etched?",
+        "options": [
+         "Ritual ceremonies",
+         "Astronomical maps"
+        ]
+       }
+      },
+      {
+       "frame": "carousel_slide_03.jpg",
+       "renderer": "multi_format.redraw_carousel_slide",
+       "archetype": "editorial_split",
+       "photo": "assets/nazca_lines_runway_paradox/02_commons.jpg",
+       "photo_next": "assets/nazca_lines_runway_paradox/10_commons.jpg",
+       "card": {
+        "heading": "Morning Mist Armor",
+        "body": "Morning mist provides moisture that hardens exposed clay into a protective wind shield."
+       },
+       "slide": null,
+       "index": 2,
+       "total": 7,
+       "poll": {
+        "question": "Why were the lines etched?",
+        "options": [
+         "Ritual ceremonies",
+         "Astronomical maps"
+        ]
+       }
+      },
+      {
+       "frame": "carousel_slide_04.jpg",
+       "renderer": "multi_format.redraw_carousel_slide",
+       "archetype": "immersive",
+       "photo": "assets/nazca_lines_runway_paradox/10_commons.jpg",
+       "photo_next": "assets/nazca_lines_runway_paradox/08_commons.jpg",
+       "card": {
+        "heading": "Two Ancient Eras",
+        "body": "Created between 500 BC and 500 AD, spanning the Paracas and Nazca phases."
+       },
+       "slide": null,
+       "index": 3,
+       "total": 7,
+       "poll": {
+        "question": "Why were the lines etched?",
+        "options": [
+         "Ritual ceremonies",
+         "Astronomical maps"
+        ]
+       }
+      },
+      {
+       "frame": "carousel_slide_05.jpg",
+       "renderer": "multi_format.redraw_carousel_slide",
+       "archetype": "editorial_split",
+       "photo": "assets/nazca_lines_runway_paradox/08_commons.jpg",
+       "photo_next": "assets/nazca_lines_runway_paradox/02_commons.jpg",
+       "card": {
+        "heading": "Surveying Stakes",
+        "body": "Wooden stakes found at line ends show builders used simple surveying equipment."
+       },
+       "slide": null,
+       "index": 4,
+       "total": 7,
+       "poll": {
+        "question": "Why were the lines etched?",
+        "options": [
+         "Ritual ceremonies",
+         "Astronomical maps"
+        ]
+       }
+      },
+      {
+       "frame": "carousel_slide_06.jpg",
+       "renderer": "multi_format.redraw_carousel_slide",
+       "archetype": "comparison",
+       "photo": "assets/nazca_lines_runway_paradox/02_commons.jpg",
+       "photo_next": "cache/upscaled/06_commons_6dc822485da090bf.jpg",
+       "card": {
+        "heading": "Modern Drone Views",
+        "body": "Drones identified several hundred previously unrecorded geoglyphs across the plateau."
+       },
+       "slide": null,
+       "index": 5,
+       "total": 7,
+       "poll": {
+        "question": "Why were the lines etched?",
+        "options": [
+         "Ritual ceremonies",
+         "Astronomical maps"
+        ]
+       }
+      },
+      {
+       "frame": "carousel_slide_07.jpg",
+       "renderer": "multi_format.redraw_carousel_slide",
+       "archetype": "debate",
+       "photo": "cache/upscaled/06_commons_6dc822485da090bf.jpg",
+       "photo_next": "cache/upscaled/06_commons_6dc822485da090bf.jpg",
+       "card": {
+        "heading": "Enduring Vision",
+        "body": "What drives human cultures to build monumental works they can never fully view themselves?"
+       },
+       "slide": null,
+       "index": 6,
+       "total": 7,
+       "poll": {
+        "question": "Why were the lines etched?",
+        "options": [
+         "Ritual ceremonies",
+         "Astronomical maps"
+        ]
+       }
+      }
+     ],
+     "carousel_fb_recipes": [
+      {
+       "frame": "carousel_slide_01.jpg",
+       "renderer": "multi_format.redraw_carousel_slide",
+       "archetype": "cover",
+       "photo": "cache/upscaled/06_commons_6dc822485da090bf.jpg",
+       "photo_next": "assets/nazca_lines_runway_paradox/08_commons.jpg",
+       "card": {
+        "heading": "Lines in the Sand",
+        "body": "How ancient builders etched giant geoglyphs without ever seeing them from above."
+       },
+       "slide": null,
+       "index": 0,
+       "total": 7,
+       "poll": {
+        "question": "Why were the lines etched?",
+        "options": [
+         "Ritual ceremonies",
+         "Astronomical maps"
+        ]
+       }
+      },
+      {
+       "frame": "carousel_slide_02.jpg",
+       "renderer": "multi_format.redraw_carousel_slide",
+       "archetype": "comparison",
+       "photo": "assets/nazca_lines_runway_paradox/08_commons.jpg",
+       "photo_next": "assets/nazca_lines_runway_paradox/02_commons.jpg",
+       "card": {
+        "heading": "Scraping the Pebbles",
+        "body": "Scraping reddish-brown pebbles exposed contrasting light-colored clay earth beneath."
+       },
+       "slide": null,
+       "index": 1,
+       "total": 7,
+       "poll": {
+        "question": "Why were the lines etched?",
+        "options": [
+         "Ritual ceremonies",
+         "Astronomical maps"
+        ]
+       }
+      },
+      {
+       "frame": "carousel_slide_03.jpg",
+       "renderer": "multi_format.redraw_carousel_slide",
+       "archetype": "editorial_split",
+       "photo": "assets/nazca_lines_runway_paradox/02_commons.jpg",
+       "photo_next": "assets/nazca_lines_runway_paradox/10_commons.jpg",
+       "card": {
+        "heading": "Morning Mist Armor",
+        "body": "Morning mist provides moisture that hardens exposed clay into a protective wind shield."
+       },
+       "slide": null,
+       "index": 2,
+       "total": 7,
+       "poll": {
+        "question": "Why were the lines etched?",
+        "options": [
+         "Ritual ceremonies",
+         "Astronomical maps"
+        ]
+       }
+      },
+      {
+       "frame": "carousel_slide_04.jpg",
+       "renderer": "multi_format.redraw_carousel_slide",
+       "archetype": "immersive",
+       "photo": "assets/nazca_lines_runway_paradox/10_commons.jpg",
+       "photo_next": "assets/nazca_lines_runway_paradox/08_commons.jpg",
+       "card": {
+        "heading": "Two Ancient Eras",
+        "body": "Created between 500 BC and 500 AD, spanning the Paracas and Nazca phases."
+       },
+       "slide": null,
+       "index": 3,
+       "total": 7,
+       "poll": {
+        "question": "Why were the lines etched?",
+        "options": [
+         "Ritual ceremonies",
+         "Astronomical maps"
+        ]
+       }
+      },
+      {
+       "frame": "carousel_slide_05.jpg",
+       "renderer": "multi_format.redraw_carousel_slide",
+       "archetype": "editorial_split",
+       "photo": "assets/nazca_lines_runway_paradox/08_commons.jpg",
+       "photo_next": "assets/nazca_lines_runway_paradox/02_commons.jpg",
+       "card": {
+        "heading": "Surveying Stakes",
+        "body": "Wooden stakes found at line ends show builders used simple surveying equipment."
+       },
+       "slide": null,
+       "index": 4,
+       "total": 7,
+       "poll": {
+        "question": "Why were the lines etched?",
+        "options": [
+         "Ritual ceremonies",
+         "Astronomical maps"
+        ]
+       }
+      },
+      {
+       "frame": "carousel_slide_06.jpg",
+       "renderer": "multi_format.redraw_carousel_slide",
+       "archetype": "comparison",
+       "photo": "assets/nazca_lines_runway_paradox/02_commons.jpg",
+       "photo_next": "cache/upscaled/06_commons_6dc822485da090bf.jpg",
+       "card": {
+        "heading": "Modern Drone Views",
+        "body": "Drones identified several hundred previously unrecorded geoglyphs across the plateau."
+       },
+       "slide": null,
+       "index": 5,
+       "total": 7,
+       "poll": {
+        "question": "Why were the lines etched?",
+        "options": [
+         "Ritual ceremonies",
+         "Astronomical maps"
+        ]
+       }
+      },
+      {
+       "frame": "carousel_slide_07.jpg",
+       "renderer": "multi_format.redraw_carousel_slide",
+       "archetype": "debate",
+       "photo": "cache/upscaled/06_commons_6dc822485da090bf.jpg",
+       "photo_next": "cache/upscaled/06_commons_6dc822485da090bf.jpg",
+       "card": {
+        "heading": "Enduring Vision",
+        "body": "What drives human cultures to build monumental works they can never fully view themselves?"
+       },
+       "slide": null,
+       "index": 6,
+       "total": 7,
+       "poll": {
+        "question": "Why were the lines etched?",
+        "options": [
+         "Ritual ceremonies",
+         "Astronomical maps"
+        ]
+       }
+      }
+     ],
+     "story_recipes": [
+      {
+       "frame": "story_01_hook.jpg",
+       "renderer": "multi_format.redraw_story_frame",
+       "archetype": null,
+       "photo": "cache/upscaled/06_commons_6dc822485da090bf.jpg",
+       "photo_next": null,
+       "card": null,
+       "slide": {
+        "kicker": "ANCIENT SURVEYING",
+        "line1": "GIANT DESERT",
+        "line2": "DRAWINGS",
+        "body": "Builders etched massive geoglyphs into the Nazca Desert floor."
+       },
+       "index": 0,
+       "total": 3,
+       "poll": {
+        "question": "Why were the lines etched?",
+        "options": [
+         "Ritual ceremonies",
+         "Astronomical maps"
+        ]
+       }
+      },
+      {
+       "frame": "story_02_reveal.jpg",
+       "renderer": "multi_format.redraw_story_frame",
+       "archetype": null,
+       "photo": "assets/nazca_lines_runway_paradox/08_commons.jpg",
+       "photo_next": null,
+       "card": null,
+       "slide": {
+        "kicker": "SIMPLE TOOLS",
+        "line1": "WOODEN STAKES",
+        "line2": "FOUND",
+        "body": "Surveys discovered wooden stakes positioned at the ends of several lines."
+       },
+       "index": 1,
+       "total": 3,
+       "poll": {
+        "question": "Why were the lines etched?",
+        "options": [
+         "Ritual ceremonies",
+         "Astronomical maps"
+        ]
+       }
+      },
+      {
+       "frame": "story_03_question.jpg",
+       "renderer": "multi_format.redraw_story_frame",
+       "archetype": null,
+       "photo": "assets/nazca_lines_runway_paradox/02_commons.jpg",
+       "photo_next": null,
+       "card": null,
+       "slide": {
+        "kicker": "THE VERDICT",
+        "line1": "SACRED PATHS",
+        "line2": "OR ASTRONOMY",
+        "body": "Wooden stakes helped guide surveying on the desert ground."
+       },
+       "index": 2,
+       "total": 3,
+       "poll": {
+        "question": "Why were the lines etched?",
+        "options": [
+         "Ritual ceremonies",
+         "Astronomical maps"
+        ]
+       }
+      }
+     ],
+     "carousel_photos": [
+      "cache/upscaled/06_commons_6dc822485da090bf.jpg",
+      "assets/nazca_lines_runway_paradox/08_commons.jpg",
+      "assets/nazca_lines_runway_paradox/02_commons.jpg",
+      "assets/nazca_lines_runway_paradox/10_commons.jpg",
+      "assets/nazca_lines_runway_paradox/08_commons.jpg",
+      "assets/nazca_lines_runway_paradox/02_commons.jpg",
+      "cache/upscaled/06_commons_6dc822485da090bf.jpg"
+     ],
+     "scene_stills": [
+      "assets/nazca_lines_runway_paradox/08_commons.jpg",
+      "assets/nazca_lines_runway_paradox/02_commons.jpg",
+      "cache/upscaled/06_commons_6dc822485da090bf.jpg",
+      "assets/nazca_lines_runway_paradox/10_commons.jpg"
+     ],
+     "photo_luma_range": [
+      133.9,
+      164.0
+     ],
+     "delivered": {
+      "carousel": "output/run_nazca_lines_runway_paradox_1793251266/carousel",
+      "carousel_fb": "output/run_nazca_lines_runway_paradox_1793251266/carousel_fb",
+      "stories": "output/run_nazca_lines_runway_paradox_1793251266/stories"
+     },
+     "why": "brightest carousel/story photos",
+     "feed": {
+      "how": "per frame: the recorded recipe (multi_format.redraw_carousel_slide / redraw_story_frame take exactly these fields); or the whole set: generate_carousel_sequence(scene_stills, payload, out[, facebook=True]) and generate_story_sequence(hero, payload, out, scene_images=scene_stills)"
+     }
+    }
+   ],
+   "runs_with_social_copy": 31,
+   "longest_carousel_body": 190,
+   "longest_story_body": 110
+  },
+  "endcard": {
+   "cases": [
+    {
+     "run": "output/run_richat_structure_sahara_eye_1792740961_long",
+     "topic": "richat_structure_sahara_eye",
+     "format": "16:9",
+     "master": "output/run_richat_structure_sahara_eye_1792740961_long/richat_structure_sahara_eye_documentary_16x9.mp4",
+     "first_frame": {
+      "from": "output/run_richat_structure_sahara_eye_1792740961_long/richat_structure_sahara_eye_documentary_16x9.mp4",
+      "t_s": 0.0,
+      "note": "the Reel's delivered frame 0 (graded, captioned), as video_composer reads it back for loop_bridge"
+     },
+     "last_frame": {
+      "from": "cache/privacy/20_commons_405b0b5e2991a4b5.jpg",
+      "which": "the last scene's still",
+      "photo": "cache/privacy/20_commons_405b0b5e2991a4b5.jpg",
+      "master_alt": null
+     },
+     "share_line": "",
+     "share_chars": 0,
+     "recorded_end_card": null,
+     "share_source": "none: this payload has no share_line, so end_card_share(payload) returns the code's own SHARE_FALLBACK ('Share this with someone who loves a good mystery, and follow for the next one.'), the line a real 16:9 run of it gets",
+     "last_measured": {
+      "size": [
+       1652,
+       1715
+      ],
+      "mean_luma": 141.7,
+      "p90_luma": 199.0,
+      "mean_saturation": 58.2,
+      "edge_energy": 7.3,
+      "edge_density": 0.033
+     },
+     "first_measured": {
+      "size": [
+       1920,
+       1080
+      ],
+      "mean_luma": 71.1,
+      "p90_luma": 142.0,
+      "mean_saturation": 194.5,
+      "edge_energy": 11.0,
+      "edge_density": 0.087
+     },
+     "why": "16:9 end screen: the only 16:9 run (its own last scene)",
+     "feed": {
+      "call": "end_card.loop_bridge(last, first, share_line, stats) for the Reel; end_card.frames(last, share_line, stats) with a 16:9 `last` for the YouTube end screen"
+     }
+    },
+    {
+     "run": "output/run_wieliczka_salt_mine_1792974672",
+     "topic": "wieliczka_salt_mine",
+     "format": "9:16",
+     "master": "output/run_wieliczka_salt_mine_1792974672/wieliczka_salt_mine_master.mp4",
+     "first_frame": {
+      "from": "output/run_wieliczka_salt_mine_1792974672/wieliczka_salt_mine_master.mp4",
+      "t_s": 0.0,
+      "note": "the Reel's delivered frame 0 (graded, captioned), as video_composer reads it back for loop_bridge"
+     },
+     "last_frame": {
+      "from": "output/run_wieliczka_salt_mine_1792974672/parallax/scene_10.mp4",
+      "which": "last frame of the last scene clip (caption-free, ungraded)",
+      "photo": "output/run_wieliczka_salt_mine_1792974672/beat_images/beat10_2.jpg",
+      "master_alt": null
+     },
+     "share_line": "Share this with a friend who loves underground marvels, and follow for the next story! ⛏️",
+     "share_chars": 89,
+     "recorded_end_card": null,
+     "share_source": "payload.share_line (the composer passes script_engine.end_card_share(payload), which is card_text of it when it passes its checks)",
+     "last_measured": {
+      "size": [
+       1080,
+       1920
+      ],
+      "mean_luma": 42.7,
+      "p90_luma": 111.0,
+      "mean_saturation": 84.5,
+      "edge_energy": 26.0,
+      "edge_density": 0.184
+     },
+     "first_measured": {
+      "size": [
+       1080,
+       1920
+      ],
+      "mean_luma": 36.8,
+      "p90_luma": 87.0,
+      "mean_saturation": 229.1,
+      "edge_energy": 12.6,
+      "edge_density": 0.082
+     },
+     "why": "darkest last frame (9:16 loop bridge); longest real share line",
+     "feed": {
+      "call": "end_card.loop_bridge(last, first, share_line, stats) for the Reel; end_card.frames(last, share_line, stats) with a 16:9 `last` for the YouTube end screen"
+     }
+    },
+    {
+     "run": "output/run_unfinished_obelisk_aswan_1792985912",
+     "topic": "unfinished_obelisk_aswan",
+     "format": "9:16",
+     "master": "output/run_unfinished_obelisk_aswan_1792985912/unfinished_obelisk_aswan_master.mp4",
+     "first_frame": {
+      "from": "output/run_unfinished_obelisk_aswan_1792985912/unfinished_obelisk_aswan_master.mp4",
+      "t_s": 0.0,
+      "note": "the Reel's delivered frame 0 (graded, captioned), as video_composer reads it back for loop_bridge"
+     },
+     "last_frame": {
+      "from": "output/run_unfinished_obelisk_aswan_1792985912/parallax/scene_10.mp4",
+      "which": "last frame of the last scene clip (caption-free, ungraded)",
+      "photo": "output/run_unfinished_obelisk_aswan_1792985912/beat_images/beat01_2.jpg",
+      "master_alt": {
+       "from": "output/run_unfinished_obelisk_aswan_1792985912/unfinished_obelisk_aswan_master.mp4",
+       "t_s": 45.375
+      }
+     },
+     "share_line": "Send this to a friend fascinated by ancient engineering, and follow for the next marvel.",
+     "share_chars": 88,
+     "recorded_end_card": {
+      "variant": "capsule_v3",
+      "start_s": 45.408,
+      "duration_s": 2.9,
+      "text": "Send this to a friend fascinated by ancient engineering.",
+      "fallback": false
+     },
+     "share_source": "payload.share_line (the composer passes script_engine.end_card_share(payload), which is card_text of it when it passes its checks)",
+     "last_measured": {
+      "size": [
+       1080,
+       1920
+      ],
+      "mean_luma": 172.0,
+      "p90_luma": 216.0,
+      "mean_saturation": 76.5,
+      "edge_energy": 24.9,
+      "edge_density": 0.198
+     },
+     "first_measured": {
+      "size": [
+       1080,
+       1920
+      ],
+      "mean_luma": 114.9,
+      "p90_luma": 207.0,
+      "mean_saturation": 113.6,
+      "edge_energy": 22.9,
+      "edge_density": 0.164
+     },
+     "why": "brightest last frame (9:16 loop bridge); largest luma gap between last frame and frame 0 (hardest seam)",
+     "feed": {
+      "call": "end_card.loop_bridge(last, first, share_line, stats) for the Reel; end_card.frames(last, share_line, stats) with a 16:9 `last` for the YouTube end screen"
+     }
+    },
+    {
+     "run": "output/run_nazca_lines_runway_paradox_1793251266",
+     "topic": "nazca_lines_runway_paradox",
+     "format": "9:16",
+     "master": "output/run_nazca_lines_runway_paradox_1793251266/nazca_lines_runway_paradox_master.mp4",
+     "first_frame": {
+      "from": "output/run_nazca_lines_runway_paradox_1793251266/nazca_lines_runway_paradox_master.mp4",
+      "t_s": 0.0,
+      "note": "the Reel's delivered frame 0 (graded, captioned), as video_composer reads it back for loop_bridge"
+     },
+     "last_frame": {
+      "from": "output/run_nazca_lines_runway_paradox_1793251266/parallax/scene_11.mp4",
+      "which": "last frame of the last scene clip (caption-free, ungraded)",
+      "photo": "output/run_nazca_lines_runway_paradox_1793251266/beat_images/beat02_1.jpg",
+      "master_alt": {
+       "from": "output/run_nazca_lines_runway_paradox_1793251266/nazca_lines_runway_paradox_master.mp4",
+       "t_s": 47.167
+      }
+     },
+     "share_line": "Send this to an ancient engineering fan, and follow for the next marvel.",
+     "share_chars": 72,
+     "recorded_end_card": {
+      "variant": "capsule_v3",
+      "start_s": 47.2,
+      "duration_s": 2.9,
+      "text": "Send this to an ancient engineering fan.",
+      "fallback": false
+     },
+     "share_source": "payload.share_line (the composer passes script_engine.end_card_share(payload), which is card_text of it when it passes its checks)",
+     "last_measured": {
+      "size": [
+       1080,
+       1920
+      ],
+      "mean_luma": 137.3,
+      "p90_luma": 161.0,
+      "mean_saturation": 16.0,
+      "edge_energy": 47.4,
+      "edge_density": 0.364
+     },
+     "first_measured": {
+      "size": [
+       1080,
+       1920
+      ],
+      "mean_luma": 141.8,
+      "p90_luma": 182.0,
+      "mean_saturation": 18.8,
+      "edge_energy": 13.8,
+      "edge_density": 0.095
+     },
+     "why": "busiest last frame (9:16 loop bridge)",
+     "feed": {
+      "call": "end_card.loop_bridge(last, first, share_line, stats) for the Reel; end_card.frames(last, share_line, stats) with a 16:9 `last` for the YouTube end screen"
+     }
+    },
+    {
+     "run": "output/run_odessa_catacombs_1792970549",
+     "topic": "odessa_catacombs",
+     "format": "9:16",
+     "master": "output/run_odessa_catacombs_1792970549/odessa_catacombs_master.mp4",
+     "first_frame": {
+      "from": "output/run_odessa_catacombs_1792970549/odessa_catacombs_master.mp4",
+      "t_s": 0.0,
+      "note": "the Reel's delivered frame 0 (graded, captioned), as video_composer reads it back for loop_bridge"
+     },
+     "last_frame": {
+      "from": "output/run_odessa_catacombs_1792970549/parallax/scene_10.mp4",
+      "which": "last frame of the last scene clip (caption-free, ungraded)",
+      "photo": "assets/odessa_catacombs/09_commons.jpg",
+      "master_alt": null
+     },
+     "share_line": "Share this with a friend who loves wartime history, and follow for more stories! ⚓",
+     "share_chars": 82,
+     "recorded_end_card": null,
+     "share_source": "payload.share_line (the composer passes script_engine.end_card_share(payload), which is card_text of it when it passes its checks)",
+     "last_measured": {
+      "size": [
+       1080,
+       1920
+      ],
+      "mean_luma": 111.9,
+      "p90_luma": 173.0,
+      "mean_saturation": 185.5,
+      "edge_energy": 17.2,
+      "edge_density": 0.138
+     },
+     "first_measured": {
+      "size": [
+       1080,
+       1920
+      ],
+      "mean_luma": 69.2,
+      "p90_luma": 113.0,
+      "mean_saturation": 195.9,
+      "edge_energy": 13.8,
+      "edge_density": 0.103
+     },
+     "why": "most colourful last frame (9:16 loop bridge)",
+     "feed": {
+      "call": "end_card.loop_bridge(last, first, share_line, stats) for the Reel; end_card.frames(last, share_line, stats) with a 16:9 `last` for the YouTube end screen"
+     }
+    },
+    {
+     "run": "output/run_nazca_lines_runway_paradox_1793247464",
+     "topic": "nazca_lines_runway_paradox",
+     "format": "9:16",
+     "master": "output/run_nazca_lines_runway_paradox_1793247464/nazca_lines_runway_paradox_master.mp4",
+     "first_frame": {
+      "from": "output/run_nazca_lines_runway_paradox_1793247464/nazca_lines_runway_paradox_master.mp4",
+      "t_s": 0.0,
+      "note": "the Reel's delivered frame 0 (graded, captioned), as video_composer reads it back for loop_bridge"
+     },
+     "last_frame": {
+      "from": "output/run_nazca_lines_runway_paradox_1793247464/parallax/scene_11.mp4",
+      "which": "last frame of the last scene clip (caption-free, ungraded)",
+      "photo": "assets/nazca_lines_runway_paradox/02_commons.jpg",
+      "master_alt": {
+       "from": "output/run_nazca_lines_runway_paradox_1793247464/nazca_lines_runway_paradox_master.mp4",
+       "t_s": 47.167
+      }
+     },
+     "share_line": "Send this to an ancient engineering fan, and follow for the next marvel.",
+     "share_chars": 72,
+     "recorded_end_card": {
+      "variant": "capsule_v3",
+      "start_s": 47.2,
+      "duration_s": 2.9,
+      "text": "Send this to an ancient engineering fan.",
+      "fallback": false
+     },
+     "share_source": "payload.share_line (the composer passes script_engine.end_card_share(payload), which is card_text of it when it passes its checks)",
+     "last_measured": {
+      "size": [
+       1080,
+       1920
+      ],
+      "mean_luma": 142.0,
+      "p90_luma": 162.0,
+      "mean_saturation": 25.6,
+      "edge_energy": 29.8,
+      "edge_density": 0.259
+     },
+     "first_measured": {
+      "size": [
+       1080,
+       1920
+      ],
+      "mean_luma": 138.9,
+      "p90_luma": 183.0,
+      "mean_saturation": 22.3,
+      "edge_energy": 15.0,
+      "edge_density": 0.104
+     },
+     "why": "shortest real share line",
+     "feed": {
+      "call": "end_card.loop_bridge(last, first, share_line, stats) for the Reel; end_card.frames(last, share_line, stats) with a 16:9 `last` for the YouTube end screen"
+     }
+    },
+    {
+     "run": "output/run_wieliczka_salt_mine_1792974672",
+     "topic": "wieliczka_salt_mine",
+     "format": "16:9",
+     "master": "output/run_wieliczka_salt_mine_1792974672/wieliczka_salt_mine_master.mp4",
+     "first_frame": {
+      "from": "output/run_wieliczka_salt_mine_1792974672/wieliczka_salt_mine_master.mp4",
+      "t_s": 0.0,
+      "note": "the Reel's delivered frame 0 (graded, captioned), as video_composer reads it back for loop_bridge"
+     },
+     "last_frame": {
+      "from": "output/run_wieliczka_salt_mine_1792974672/parallax/scene_10.mp4",
+      "which": "last frame of the last scene clip (caption-free, ungraded)",
+      "photo": "output/run_wieliczka_salt_mine_1792974672/beat_images/beat10_2.jpg",
+      "master_alt": null
+     },
+     "share_line": "Share this with a friend who loves underground marvels, and follow for the next story! ⛏️",
+     "share_chars": 89,
+     "recorded_end_card": null,
+     "share_source": "payload.share_line (the composer passes script_engine.end_card_share(payload), which is card_text of it when it passes its checks)",
+     "last_measured": {
+      "size": [
+       2144,
+       1424
+      ],
+      "mean_luma": 20.6,
+      "p90_luma": 69.0,
+      "mean_saturation": 88.0,
+      "edge_energy": 17.2,
+      "edge_density": 0.117
+     },
+     "first_measured": null,
+     "why": "16:9 end screen on a Reel run's last-scene photo (dark, busy, luma 20.6)",
+     "label": "new: 16:9 end screen of a Reel topic; only one 16:9 run exists, so the run's own landscape last-scene photo stands in for a 16:9 narration's last frame",
+     "feed": {
+      "last": "output/run_wieliczka_salt_mine_1792974672/beat_images/beat10_2.jpg",
+      "share_line": "Share this with a friend who loves underground marvels, and follow for the next story! ⛏️",
+      "call": "end_card.frames(last, share_line, stats)"
+     }
+    },
+    {
+     "run": "output/run_unfinished_obelisk_aswan_1792985912",
+     "topic": "unfinished_obelisk_aswan",
+     "format": "16:9",
+     "master": "output/run_unfinished_obelisk_aswan_1792985912/unfinished_obelisk_aswan_master.mp4",
+     "first_frame": {
+      "from": "output/run_unfinished_obelisk_aswan_1792985912/unfinished_obelisk_aswan_master.mp4",
+      "t_s": 0.0,
+      "note": "the Reel's delivered frame 0 (graded, captioned), as video_composer reads it back for loop_bridge"
+     },
+     "last_frame": {
+      "from": "output/run_unfinished_obelisk_aswan_1792985912/parallax/scene_10.mp4",
+      "which": "last frame of the last scene clip (caption-free, ungraded)",
+      "photo": "output/run_unfinished_obelisk_aswan_1792985912/beat_images/beat01_2.jpg",
+      "master_alt": {
+       "from": "output/run_unfinished_obelisk_aswan_1792985912/unfinished_obelisk_aswan_master.mp4",
+       "t_s": 45.375
+      }
+     },
+     "share_line": "Send this to a friend fascinated by ancient engineering, and follow for the next marvel.",
+     "share_chars": 88,
+     "recorded_end_card": {
+      "variant": "capsule_v3",
+      "start_s": 45.408,
+      "duration_s": 2.9,
+      "text": "Send this to a friend fascinated by ancient engineering.",
+      "fallback": false
+     },
+     "share_source": "payload.share_line (the composer passes script_engine.end_card_share(payload), which is card_text of it when it passes its checks)",
+     "last_measured": {
+      "size": [
+       2144,
+       1424
+      ],
+      "mean_luma": 167.3,
+      "p90_luma": 210.0,
+      "mean_saturation": 73.2,
+      "edge_energy": 21.2,
+      "edge_density": 0.166
+     },
+     "first_measured": null,
+     "why": "16:9 end screen on a Reel run's last-scene photo (busy, luma 167.3)",
+     "label": "new: 16:9 end screen of a Reel topic; only one 16:9 run exists, so the run's own landscape last-scene photo stands in for a 16:9 narration's last frame",
+     "feed": {
+      "last": "output/run_unfinished_obelisk_aswan_1792985912/beat_images/beat01_2.jpg",
+      "share_line": "Send this to a friend fascinated by ancient engineering, and follow for the next marvel.",
+      "call": "end_card.frames(last, share_line, stats)"
+     }
+    },
+    {
+     "run": "output/run_roman_self_healing_concrete_1793163918",
+     "topic": "roman_self_healing_concrete",
+     "format": "16:9",
+     "master": "output/run_roman_self_healing_concrete_1793163918/roman_self_healing_concrete_master.mp4",
+     "first_frame": {
+      "from": "output/run_roman_self_healing_concrete_1793163918/roman_self_healing_concrete_master.mp4",
+      "t_s": 0.0,
+      "note": "the Reel's delivered frame 0 (graded, captioned), as video_composer reads it back for loop_bridge"
+     },
+     "last_frame": {
+      "from": "output/run_roman_self_healing_concrete_1793163918/parallax/scene_11.mp4",
+      "which": "last frame of the last scene clip (caption-free, ungraded)",
+      "photo": "cache/privacy/19_commons_2e369ae7f2cb042e.jpg",
+      "master_alt": {
+       "from": "output/run_roman_self_healing_concrete_1793163918/roman_self_healing_concrete_master.mp4",
+       "t_s": 47.607
+      }
+     },
+     "share_line": "Send this to a friend fascinated by ancient engineering, and follow for the next marvel.",
+     "share_chars": 88,
+     "recorded_end_card": {
+      "variant": "capsule_v3",
+      "start_s": 47.64,
+      "duration_s": 2.9,
+      "text": "Send this to a friend fascinated by ancient engineering.",
+      "fallback": false
+     },
+     "share_source": "payload.share_line (the composer passes script_engine.end_card_share(payload), which is card_text of it when it passes its checks)",
+     "last_measured": {
+      "size": [
+       2016,
+       1512
+      ],
+      "mean_luma": 143.0,
+      "p90_luma": 207.0,
+      "mean_saturation": 42.0,
+      "edge_energy": 21.4,
+      "edge_density": 0.144
+     },
+     "first_measured": null,
+     "why": "16:9 end screen on a Reel run's last-scene photo (busy, luma 143.0)",
+     "label": "new: 16:9 end screen of a Reel topic; only one 16:9 run exists, so the run's own landscape last-scene photo stands in for a 16:9 narration's last frame",
+     "feed": {
+      "last": "cache/privacy/19_commons_2e369ae7f2cb042e.jpg",
+      "share_line": "Send this to a friend fascinated by ancient engineering, and follow for the next marvel.",
+      "call": "end_card.frames(last, share_line, stats)"
+     }
+    }
+   ],
+   "runs_with_master_and_timeline": 29
+  },
+  "thennow": {
+   "cases": [
+    {
+     "run": "output/run_roman_self_healing_concrete_1793163918",
+     "topic": "roman_self_healing_concrete",
+     "why": "an accepted then-and-now pair the run rendered (old busy, luma 129.4; recent busy, luma 131.2)",
+     "old": "output/run_roman_self_healing_concrete_1793163918/graphics/then_0.jpg",
+     "old_year": 1934,
+     "new": "output/run_roman_self_healing_concrete_1793163918/graphics/now_0_1.jpg",
+     "new_year": 2018,
+     "old_measured": {
+      "size": [
+       2008,
+       2327
+      ],
+      "mean_luma": 129.4,
+      "p90_luma": 232.0,
+      "mean_saturation": 97.3,
+      "edge_energy": 25.9,
+      "edge_density": 0.179
+     },
+     "new_measured": {
+      "size": [
+       2055,
+       1517
+      ],
+      "mean_luma": 131.2,
+      "p90_luma": 213.0,
+      "mean_saturation": 36.1,
+      "edge_energy": 27.8,
+      "edge_density": 0.209
+     },
+     "recent_match": {
+      "now_0_0.jpg": 0.163,
+      "now_0_1.jpg": 0.998,
+      "now_0_2.jpg": 0.616,
+      "now_0_3.jpg": 0.24,
+      "now_0_4.jpg": 0.541,
+      "now_0_5.jpg": -0.089
+     },
+     "delivered": {
+      "clip": "output/run_roman_self_healing_concrete_1793163918/graphics/graphic_thennow.mp4",
+      "poster": "output/run_roman_self_healing_concrete_1793163918/graphics/graphic_thennow.jpg"
+     },
+     "years_source": "read off the run's own graphic_thennow.mp4 (t=0.5 s shows the old year, the poster the recent year); the run kept no credit record for the pair",
+     "registration": "none recorded: the pair predates then_now.register (no graphics/registered/); render() itself takes the photos as given",
+     "feed": {
+      "call": "then_now.render(old, old_year, new, new_year, out, width, height) at 1080x1920 and 1920x1080"
+     }
+    },
+    {
+     "run": "output/run_singing_colossi_of_memnon_1792952878",
+     "topic": "singing_colossi_of_memnon",
+     "why": "an accepted then-and-now pair the run rendered (old busy, luma 167.7; recent busy, luma 141.1)",
+     "old": "output/run_singing_colossi_of_memnon_1792952878/graphics/then_0.jpg",
+     "old_year": 1876,
+     "new": "output/run_singing_colossi_of_memnon_1792952878/graphics/now_0_1.jpg",
+     "new_year": 2011,
+     "old_measured": {
+      "size": [
+       1422,
+       1099
+      ],
+      "mean_luma": 167.7,
+      "p90_luma": 229.0,
+      "mean_saturation": 38.2,
+      "edge_energy": 26.8,
+      "edge_density": 0.159
+     },
+     "new_measured": {
+      "size": [
+       1634,
+       1342
+      ],
+      "mean_luma": 141.1,
+      "p90_luma": 181.0,
+      "mean_saturation": 96.5,
+      "edge_energy": 18.4,
+      "edge_density": 0.138
+     },
+     "recent_match": {
+      "now_0_0.jpg": 0.091,
+      "now_0_1.jpg": 0.997,
+      "now_0_2.jpg": -0.102,
+      "now_0_3.jpg": -0.183,
+      "now_0_4.jpg": -0.113,
+      "now_0_5.jpg": -0.055
+     },
+     "delivered": {
+      "clip": "output/run_singing_colossi_of_memnon_1792952878/graphics/graphic_thennow.mp4",
+      "poster": "output/run_singing_colossi_of_memnon_1792952878/graphics/graphic_thennow.jpg"
+     },
+     "years_source": "read off the run's own graphic_thennow.mp4 (t=0.5 s shows the old year, the poster the recent year); the run kept no credit record for the pair",
+     "registration": "none recorded: the pair predates then_now.register (no graphics/registered/); render() itself takes the photos as given",
+     "feed": {
+      "call": "then_now.render(old, old_year, new, new_year, out, width, height) at 1080x1920 and 1920x1080"
+     }
+    }
+   ],
+   "rejected_old_photo_candidates_brightest": [
+    {
+     "run": "output/run_odessa_catacombs_1792970549",
+     "topic": "odessa_catacombs",
+     "photo": "output/run_odessa_catacombs_1792970549/graphics/then_2.jpg",
+     "measured": {
+      "size": [
+       1215,
+       1116
+      ],
+      "mean_luma": 206.5,
+      "p90_luma": 239.0,
+      "mean_saturation": 11.1,
+      "edge_energy": 52.6,
+      "edge_density": 0.379
+     },
+     "ground": "near-white, busy"
+    },
+    {
+     "run": "output/run_odessa_catacombs_1793098390",
+     "topic": "odessa_catacombs",
+     "photo": "output/run_odessa_catacombs_1793098390/graphics/then_2.jpg",
+     "measured": {
+      "size": [
+       1215,
+       1116
+      ],
+      "mean_luma": 206.5,
+      "p90_luma": 239.0,
+      "mean_saturation": 11.1,
+      "edge_energy": 52.6,
+      "edge_density": 0.379
+     },
+     "ground": "near-white, busy"
+    },
+    {
+     "run": "output/run_odessa_catacombs_1793100750",
+     "topic": "odessa_catacombs",
+     "photo": "output/run_odessa_catacombs_1793100750/graphics/then_2.jpg",
+     "measured": {
+      "size": [
+       1215,
+       1116
+      ],
+      "mean_luma": 206.5,
+      "p90_luma": 239.0,
+      "mean_saturation": 11.1,
+      "edge_energy": 52.6,
+      "edge_density": 0.379
+     },
+     "ground": "near-white, busy"
+    },
+    {
+     "run": "output/run_gol_gumbaz_whispering_gallery_1793278143",
+     "topic": "gol_gumbaz_whispering_gallery",
+     "photo": "output/run_gol_gumbaz_whispering_gallery_1793278143/graphics/then_2.jpg",
+     "measured": {
+      "size": [
+       1791,
+       1189
+      ],
+      "mean_luma": 204.1,
+      "p90_luma": 229.0,
+      "mean_saturation": 55.9,
+      "edge_energy": 45.3,
+      "edge_density": 0.298
+     },
+     "ground": "bright, busy"
+    },
+    {
+     "run": "output/run_gol_gumbaz_whispering_gallery_1793278143",
+     "topic": "gol_gumbaz_whispering_gallery",
+     "photo": "output/run_gol_gumbaz_whispering_gallery_1793278143/graphics/then_0.jpg",
+     "measured": {
+      "size": [
+       1250,
+       1751
+      ],
+      "mean_luma": 166.0,
+      "p90_luma": 255.0,
+      "mean_saturation": 110.5,
+      "edge_energy": 18.9,
+      "edge_density": 0.163
+     },
+     "ground": "busy, colourful"
+    },
+    {
+     "run": "output/run_gol_gumbaz_whispering_gallery_1793278143",
+     "topic": "gol_gumbaz_whispering_gallery",
+     "photo": "output/run_gol_gumbaz_whispering_gallery_1793278143/graphics/then_1.jpg",
+     "measured": {
+      "size": [
+       1250,
+       1751
+      ],
+      "mean_luma": 166.0,
+      "p90_luma": 255.0,
+      "mean_saturation": 110.5,
+      "edge_energy": 18.9,
+      "edge_density": 0.163
+     },
+     "ground": "busy, colourful"
+    }
+   ],
+   "note": "Two accepted pairs exist in all runs. Every other then_K.jpg / now_K_J.jpg was a candidate the vision check or viewpoint check rejected (run.log: 'no honest match'); a rejected candidate is a real photo of the topic but NOT a verified pair, so pairing it is new and must be labelled."
+  },
+  "cards": {
+   "verdict": {
+    "myth_fields": "none: no fact sheet in data/fact_sheets or data/script_library carries a cards.myths entry (refuting_fact_id appears in no JSON file in the repository). A real myth-vs-fact card cannot be rendered from existing inputs.",
+    "statement_fields": "one: data/fact_sheets/hal_saflieni_hypogeum.json cards.statements S1, check verdict 'needs_check' with no runs and no signature, so card_fields.verify_field refuses it.",
+    "quote_fields": "none.",
+    "gated_titles": "every run's fact_review holds only public_fingerprint / sheet_path / sheet_sha256 / review_rules_fingerprint, with no check record, so design_cards.gated_text refuses Gated('title'|'youtube_title') on every run (fact_evidence.checked_fact_review: no current check record).",
+    "consequence": "Every hook, chapter and myth card needs a checked, signed card field. None exists. The real inputs are the fact sheets' facts, the runs' titles, act titles and hero photos below; the card fields themselves must be produced by fact_sheet.build + card_fields.check_cards (with a checker key) before a card can be rendered honestly. Anything rendered before that is new and must be labelled."
+   },
+   "longest_real_myth": null,
+   "longest_real_correction": null,
+   "sheets": [
+    {
+     "sheet": "data/fact_sheets/amber_room_heist.json",
+     "topic": "amber_room_heist",
+     "facts": 12,
+     "disputed": 1,
+     "card_fields": null,
+     "statements": [],
+     "myths": [],
+     "facts_naming_a_refuted_belief": []
+    },
+    {
+     "sheet": "data/fact_sheets/antikythera_mechanism.json",
+     "topic": "04_antikythera_mechanism",
+     "facts": 15,
+     "disputed": 8,
+     "card_fields": null,
+     "statements": [],
+     "myths": [],
+     "facts_naming_a_refuted_belief": []
+    },
+    {
+     "sheet": "data/fact_sheets/damascus_steel_nanotubes.json",
+     "topic": "damascus_steel_nanotubes",
+     "facts": 13,
+     "disputed": 3,
+     "card_fields": null,
+     "statements": [],
+     "myths": [],
+     "facts_naming_a_refuted_belief": [
+      {
+       "fact_id": "damascus-13",
+       "statement": "The legend that Damascus blades were quenched by thrusting them six times into the body of an enslaved person originated as a prank article published in the Chicago Tribune on November 4, 1894.",
+       "chars": 193,
+       "disputed": false,
+       "verdict": null
+      }
+     ]
+    },
+    {
+     "sheet": "data/fact_sheets/derinkuyu_underground_city.json",
+     "topic": "derinkuyu_underground_city",
+     "facts": 15,
+     "disputed": 2,
+     "card_fields": null,
+     "statements": [],
+     "myths": [],
+     "facts_naming_a_refuted_belief": []
+    },
+    {
+     "sheet": "data/fact_sheets/gobekli_tepe_enclosure_d.json",
+     "topic": "gobekli_tepe_enclosure_d",
+     "facts": 13,
+     "disputed": 3,
+     "card_fields": null,
+     "statements": [],
+     "myths": [],
+     "facts_naming_a_refuted_belief": []
+    },
+    {
+     "sheet": "data/fact_sheets/gol_gumbaz_whispering_gallery.json",
+     "topic": "gol_gumbaz_whispering_gallery",
+     "facts": 15,
+     "disputed": 7,
+     "card_fields": null,
+     "statements": [],
+     "myths": [],
+     "facts_naming_a_refuted_belief": []
+    },
+    {
+     "sheet": "data/fact_sheets/greek_fire_siphon.json",
+     "topic": "greek_fire_siphon",
+     "facts": 11,
+     "disputed": 0,
+     "card_fields": null,
+     "statements": [],
+     "myths": [],
+     "facts_naming_a_refuted_belief": []
+    },
+    {
+     "sheet": "data/fact_sheets/hal_saflieni_hypogeum.json",
+     "topic": "hal_saflieni_hypogeum",
+     "facts": 14,
+     "disputed": 1,
+     "card_fields": {
+      "statements": 1,
+      "myths": 0,
+      "quotes": 0,
+      "dropped": 0
+     },
+     "statements": [
+      {
+       "id": "S1",
+       "text": "UNESCO inscribed the Ħal Saflieni Hypogeum on the World Heritage List in 1980.",
+       "chars": 78,
+       "fact_id": "unesco_listing_1980",
+       "check_verdict": "needs_check",
+       "signed": false
+      }
+     ],
+     "myths": [],
+     "facts_naming_a_refuted_belief": []
+    },
+    {
+     "sheet": "data/fact_sheets/kailasa_temple_monolith.json",
+     "topic": "kailasa_temple_monolith",
+     "facts": 15,
+     "disputed": 2,
+     "card_fields": null,
+     "statements": [],
+     "myths": [],
+     "facts_naming_a_refuted_belief": [
+      {
+       "fact_id": "kailasa-legend-kokasa",
+       "statement": "A medieval Marathi legend recounts that an architect named Kokasa carved the structure from the summit down so the queen could view the completed shikhara within a week's time.",
+       "chars": 176,
+       "disputed": false,
+       "verdict": null
+      }
+     ]
+    },
+    {
+     "sheet": "data/fact_sheets/lycurgus_cup_nanotech.json",
+     "topic": "lycurgus_cup_nanotech",
+     "facts": 13,
+     "disputed": 3,
+     "card_fields": null,
+     "statements": [],
+     "myths": [],
+     "facts_naming_a_refuted_belief": []
+    },
+    {
+     "sheet": "data/fact_sheets/nazca_lines_runway_paradox.json",
+     "topic": "nazca_lines_runway_paradox",
+     "facts": 13,
+     "disputed": 6,
+     "card_fields": null,
+     "statements": [],
+     "myths": [],
+     "facts_naming_a_refuted_belief": []
+    },
+    {
+     "sheet": "data/fact_sheets/odessa_catacombs.json",
+     "topic": "odessa_catacombs",
+     "facts": 11,
+     "disputed": 1,
+     "card_fields": null,
+     "statements": [],
+     "myths": [],
+     "facts_naming_a_refuted_belief": []
+    },
+    {
+     "sheet": "data/fact_sheets/richat_structure_sahara_eye.json",
+     "topic": "richat_structure_sahara_eye",
+     "facts": 13,
+     "disputed": 4,
+     "card_fields": null,
+     "statements": [],
+     "myths": [],
+     "facts_naming_a_refuted_belief": [
+      {
+       "fact_id": "fact-9",
+       "statement": "Initially considered an extraterrestrial impact crater, the impact theory was disproved when suspected shock-metamorphism coesite was identified in 1969 as mislabeled barite.",
+       "chars": 174,
+       "disputed": false,
+       "verdict": null
+      }
+     ]
+    },
+    {
+     "sheet": "data/fact_sheets/roman_self_healing_concrete.json",
+     "topic": "roman_self_healing_concrete",
+     "facts": 12,
+     "disputed": 0,
+     "card_fields": null,
+     "statements": [],
+     "myths": [],
+     "facts_naming_a_refuted_belief": []
+    },
+    {
+     "sheet": "data/fact_sheets/singing_colossi_of_memnon.json",
+     "topic": "singing_colossi_of_memnon",
+     "facts": 14,
+     "disputed": 5,
+     "card_fields": null,
+     "statements": [],
+     "myths": [],
+     "facts_naming_a_refuted_belief": []
+    },
+    {
+     "sheet": "data/fact_sheets/trepanation_miracle.json",
+     "topic": "trepanation_miracle",
+     "facts": 14,
+     "disputed": 3,
+     "card_fields": null,
+     "statements": [],
+     "myths": [],
+     "facts_naming_a_refuted_belief": []
+    },
+    {
+     "sheet": "data/fact_sheets/tunguska_event_1908.json",
+     "topic": "tunguska_event_1908",
+     "facts": 14,
+     "disputed": 7,
+     "card_fields": null,
+     "statements": [],
+     "myths": [],
+     "facts_naming_a_refuted_belief": []
+    },
+    {
+     "sheet": "data/fact_sheets/unfinished_obelisk_aswan.json",
+     "topic": "unfinished_obelisk_aswan",
+     "facts": 13,
+     "disputed": 2,
+     "card_fields": null,
+     "statements": [],
+     "myths": [],
+     "facts_naming_a_refuted_belief": []
+    },
+    {
+     "sheet": "data/fact_sheets/voynich_manuscript.json",
+     "topic": "voynich_manuscript",
+     "facts": 16,
+     "disputed": 6,
+     "card_fields": null,
+     "statements": [],
+     "myths": [],
+     "facts_naming_a_refuted_belief": []
+    },
+    {
+     "sheet": "data/fact_sheets/wieliczka_salt_mine.json",
+     "topic": "wieliczka_salt_mine",
+     "facts": 15,
+     "disputed": 4,
+     "card_fields": null,
+     "statements": [],
+     "myths": [],
+     "facts_naming_a_refuted_belief": []
+    },
+    {
+     "sheet": "data/script_library/lycurgus_cup_nanotech/fact_sheet.json",
+     "topic": "lycurgus_cup_nanotech",
+     "facts": 13,
+     "disputed": 3,
+     "card_fields": null,
+     "statements": [],
+     "myths": [],
+     "facts_naming_a_refuted_belief": []
+    },
+    {
+     "sheet": "data/script_library/odessa_catacombs/fact_sheet.json",
+     "topic": "odessa_catacombs",
+     "facts": 11,
+     "disputed": 1,
+     "card_fields": null,
+     "statements": [],
+     "myths": [],
+     "facts_naming_a_refuted_belief": []
+    },
+    {
+     "sheet": "data/script_library/singing_colossi_of_memnon/fact_sheet.json",
+     "topic": "singing_colossi_of_memnon",
+     "facts": 14,
+     "disputed": 5,
+     "card_fields": null,
+     "statements": [],
+     "myths": [],
+     "facts_naming_a_refuted_belief": []
+    },
+    {
+     "sheet": "data/script_library/unfinished_obelisk_aswan/fact_sheet.json",
+     "topic": "unfinished_obelisk_aswan",
+     "facts": 13,
+     "disputed": 2,
+     "card_fields": null,
+     "statements": [],
+     "myths": [],
+     "facts_naming_a_refuted_belief": []
+    },
+    {
+     "sheet": "data/script_library/wieliczka_salt_mine/fact_sheet.json",
+     "topic": "wieliczka_salt_mine",
+     "facts": 15,
+     "disputed": 4,
+     "card_fields": null,
+     "statements": [],
+     "myths": [],
+     "facts_naming_a_refuted_belief": []
+    }
+   ],
+   "hook_claim_candidates": [
+    {
+     "run": "output/run_amber_room_heist_1792801257",
+     "topic": "amber_room_heist",
+     "path": "title",
+     "text": "The Lost Amber Room Heist",
+     "chars": 25,
+     "words": 5,
+     "fits_claim": true,
+     "fact_review_has_check_record": false
+    },
+    {
+     "run": "output/run_nazca_lines_runway_paradox_1793247464",
+     "topic": "nazca_lines_runway_paradox",
+     "path": "title",
+     "text": "Lines Drawn Without Wings",
+     "chars": 25,
+     "words": 4,
+     "fits_claim": true,
+     "fact_review_has_check_record": false
+    },
+    {
+     "run": "output/run_tunguska_event_1908_1792930600",
+     "topic": "tunguska_event_1908",
+     "path": "title",
+     "text": "Flattened 830 Square Miles",
+     "chars": 26,
+     "words": 4,
+     "fits_claim": true,
+     "fact_review_has_check_record": false
+    },
+    {
+     "run": "output/run_trepanation_miracle_1792995462",
+     "topic": "trepanation_miracle",
+     "path": "title",
+     "text": "Surviving Ancient Skull Surgery",
+     "chars": 31,
+     "words": 4,
+     "fits_claim": false,
+     "fact_review_has_check_record": false
+    },
+    {
+     "run": "output/run_unfinished_obelisk_aswan_1792985912",
+     "topic": "unfinished_obelisk_aswan",
+     "path": "title",
+     "text": "Egypt’s 1,200-Ton Quarry Monster",
+     "chars": 32,
+     "words": 4,
+     "fits_claim": false,
+     "fact_review_has_check_record": false
+    },
+    {
+     "run": "output/run_amber_room_heist_1792805842",
+     "topic": "amber_room_heist",
+     "path": "title",
+     "text": "Vanished: Russia's Lost Amber Room",
+     "chars": 34,
+     "words": 5,
+     "fits_claim": false,
+     "fact_review_has_check_record": false
+    },
+    {
+     "run": "output/run_odessa_catacombs_1792970549",
+     "topic": "odessa_catacombs",
+     "path": "title",
+     "text": "The Secret Labyrinth Beneath Odesa",
+     "chars": 34,
+     "words": 5,
+     "fits_claim": false,
+     "fact_review_has_check_record": false
+    }
+   ],
+   "chapter_title_candidates": [
+    {
+     "run": "output/run_richat_structure_sahara_eye_1792740961_long",
+     "topic": "richat_structure_sahara_eye",
+     "act": 1,
+     "title": "Introduction: A Desert Landmark from Space",
+     "chars": 42,
+     "fits_chapter": false
+    },
+    {
+     "run": "output/run_richat_structure_sahara_eye_1792740961_long",
+     "topic": "richat_structure_sahara_eye",
+     "act": 2,
+     "title": "Documented Physical Architecture",
+     "chars": 32,
+     "fits_chapter": true
+    },
+    {
+     "run": "output/run_richat_structure_sahara_eye_1792740961_long",
+     "topic": "richat_structure_sahara_eye",
+     "act": 3,
+     "title": "Origin Debates and Rock Dating",
+     "chars": 30,
+     "fits_chapter": true
+    },
+    {
+     "run": "output/run_richat_structure_sahara_eye_1792740961_long",
+     "topic": "richat_structure_sahara_eye",
+     "act": 4,
+     "title": "Archaeological Evidence and Refuted Claims",
+     "chars": 42,
+     "fits_chapter": false
+    },
+    {
+     "run": "output/run_richat_structure_sahara_eye_1792740961_long",
+     "topic": "richat_structure_sahara_eye",
+     "act": 5,
+     "title": "International Heritage Recognition",
+     "chars": 34,
+     "fits_chapter": false
+    }
+   ],
+   "hero_photos": [
+    {
+     "run": "output/run_amber_room_heist_1792790550",
+     "topic": "amber_room_heist",
+     "photo": "assets/amber_room_heist/01_commons.jpg",
+     "measured": {
+      "size": [
+       3000,
+       2000
+      ],
+      "mean_luma": 77.6,
+      "p90_luma": 136.0,
+      "mean_saturation": 177.6,
+      "edge_energy": 35.0,
+      "edge_density": 0.275
+     },
+     "ground": "busy, colourful",
+     "sheet": "data/fact_sheets/amber_room_heist.json",
+     "payload": "output/run_amber_room_heist_1792790550/verified_script.json"
+    },
+    {
+     "run": "output/run_gol_gumbaz_whispering_gallery_1793278143",
+     "topic": "gol_gumbaz_whispering_gallery",
+     "photo": "cache/upscaled/22_commons_466e53f5c2d25a35.jpg",
+     "measured": {
+      "size": [
+       4267,
+       1920
+      ],
+      "mean_luma": 114.3,
+      "p90_luma": 172.0,
+      "mean_saturation": 30.8,
+      "edge_energy": 11.0,
+      "edge_density": 0.071
+     },
+     "ground": "mid",
+     "sheet": "data/fact_sheets/gol_gumbaz_whispering_gallery.json",
+     "payload": "output/run_gol_gumbaz_whispering_gallery_1793278143/verified_script.json"
+    },
+    {
+     "run": "output/run_greek_fire_siphon_1792735284_short",
+     "topic": "greek_fire_siphon",
+     "photo": "cache/privacy/01_commons_2cb3dd9c04510a9f_bcf0fcf0364f53e3.jpg",
+     "measured": {
+      "size": [
+       3750,
+       1921
+      ],
+      "mean_luma": 176.1,
+      "p90_luma": 254.0,
+      "mean_saturation": 55.5,
+      "edge_energy": 31.9,
+      "edge_density": 0.217
+     },
+     "ground": "bright, busy",
+     "sheet": "data/fact_sheets/greek_fire_siphon.json",
+     "payload": "output/run_greek_fire_siphon_1792735284_short/verified_script.json"
+    },
+    {
+     "run": "output/run_hal_saflieni_hypogeum_1792949304",
+     "topic": "hal_saflieni_hypogeum",
+     "photo": "assets/hal_saflieni_hypogeum/01_commons.jpg",
+     "measured": {
+      "size": [
+       1500,
+       1064
+      ],
+      "mean_luma": 109.9,
+      "p90_luma": 173.0,
+      "mean_saturation": 95.6,
+      "edge_energy": 11.5,
+      "edge_density": 0.078
+     },
+     "ground": "mid",
+     "sheet": "data/fact_sheets/hal_saflieni_hypogeum.json",
+     "payload": "output/run_hal_saflieni_hypogeum_1792949304/verified_script.json"
+    },
+    {
+     "run": "output/run_nazca_lines_runway_paradox_1792961797",
+     "topic": "nazca_lines_runway_paradox",
+     "photo": "assets/nazca_lines_runway_paradox/08_commons.jpg",
+     "measured": {
+      "size": [
+       1936,
+       1296
+      ],
+      "mean_luma": 141.7,
+      "p90_luma": 184.0,
+      "mean_saturation": 24.1,
+      "edge_energy": 24.4,
+      "edge_density": 0.223
+     },
+     "ground": "busy",
+     "sheet": "data/fact_sheets/nazca_lines_runway_paradox.json",
+     "payload": "output/run_nazca_lines_runway_paradox_1792961797/verified_script.json"
+    },
+    {
+     "run": "output/run_odessa_catacombs_1792970549",
+     "topic": "odessa_catacombs",
+     "photo": "assets/odessa_catacombs/01_commons.jpg",
+     "measured": {
+      "size": [
+       2592,
+       1944
+      ],
+      "mean_luma": 82.5,
+      "p90_luma": 116.0,
+      "mean_saturation": 119.7,
+      "edge_energy": 14.6,
+      "edge_density": 0.112
+     },
+     "ground": "busy, colourful",
+     "sheet": "data/fact_sheets/odessa_catacombs.json",
+     "payload": "output/run_odessa_catacombs_1792970549/verified_script.json"
+    },
+    {
+     "run": "output/run_richat_structure_sahara_eye_1792737039_short",
+     "topic": "richat_structure_sahara_eye",
+     "photo": "assets/richat_structure_sahara_eye/01_commons.jpg",
+     "measured": {
+      "size": [
+       1920,
+       1246
+      ],
+      "mean_luma": 141.5,
+      "p90_luma": 192.0,
+      "mean_saturation": 140.3,
+      "edge_energy": 14.0,
+      "edge_density": 0.113
+     },
+     "ground": "colourful",
+     "sheet": "data/fact_sheets/richat_structure_sahara_eye.json",
+     "payload": "output/run_richat_structure_sahara_eye_1792737039_short/verified_script.json"
+    },
+    {
+     "run": "output/run_roman_self_healing_concrete_1793163918",
+     "topic": "roman_self_healing_concrete",
+     "photo": "assets/roman_self_healing_concrete/04_commons.jpg",
+     "measured": {
+      "size": [
+       1500,
+       1145
+      ],
+      "mean_luma": 101.1,
+      "p90_luma": 172.0,
+      "mean_saturation": 49.0,
+      "edge_energy": 33.0,
+      "edge_density": 0.245
+     },
+     "ground": "busy",
+     "sheet": "data/fact_sheets/roman_self_healing_concrete.json",
+     "payload": "output/run_roman_self_healing_concrete_1793163918/verified_script.json"
+    },
+    {
+     "run": "output/run_singing_colossi_of_memnon_1792952878",
+     "topic": "singing_colossi_of_memnon",
+     "photo": "assets/singing_colossi_of_memnon/01_commons.jpg",
+     "measured": {
+      "size": [
+       1190,
+       1918
+      ],
+      "mean_luma": 139.2,
+      "p90_luma": 183.0,
+      "mean_saturation": 87.2,
+      "edge_energy": 20.4,
+      "edge_density": 0.153
+     },
+     "ground": "busy",
+     "sheet": "data/fact_sheets/singing_colossi_of_memnon.json",
+     "payload": "output/run_singing_colossi_of_memnon_1792952878/verified_script.json"
+    },
+    {
+     "run": "output/run_trepanation_miracle_1792995462",
+     "topic": "trepanation_miracle",
+     "photo": "assets/trepanation_miracle/05_commons.jpg",
+     "measured": {
+      "size": [
+       2546,
+       1769
+      ],
+      "mean_luma": 119.5,
+      "p90_luma": 191.0,
+      "mean_saturation": 51.4,
+      "edge_energy": 25.2,
+      "edge_density": 0.205
+     },
+     "ground": "busy",
+     "sheet": "data/fact_sheets/trepanation_miracle.json",
+     "payload": "output/run_trepanation_miracle_1792995462/verified_script.json"
+    },
+    {
+     "run": "output/run_tunguska_event_1908_1792930600",
+     "topic": "tunguska_event_1908",
+     "photo": "assets/tunguska_event_1908/01_commons.jpg",
+     "measured": {
+      "size": [
+       2609,
+       1772
+      ],
+      "mean_luma": 113.9,
+      "p90_luma": 215.0,
+      "mean_saturation": 0.0,
+      "edge_energy": 43.1,
+      "edge_density": 0.297
+     },
+     "ground": "busy",
+     "sheet": "data/fact_sheets/tunguska_event_1908.json",
+     "payload": "output/run_tunguska_event_1908_1792930600/verified_script.json"
+    },
+    {
+     "run": "output/run_unfinished_obelisk_aswan_1792985912",
+     "topic": "unfinished_obelisk_aswan",
+     "photo": "assets/unfinished_obelisk_aswan/01_commons.jpg",
+     "measured": {
+      "size": [
+       1512,
+       2016
+      ],
+      "mean_luma": 146.4,
+      "p90_luma": 219.0,
+      "mean_saturation": 64.6,
+      "edge_energy": 28.2,
+      "edge_density": 0.223
+     },
+     "ground": "busy",
+     "sheet": "data/fact_sheets/unfinished_obelisk_aswan.json",
+     "payload": "output/run_unfinished_obelisk_aswan_1792985912/verified_script.json"
+    },
+    {
+     "run": "output/run_wieliczka_salt_mine_1792974672",
+     "topic": "wieliczka_salt_mine",
+     "photo": "assets/wieliczka_salt_mine/01_commons.jpg",
+     "measured": {
+      "size": [
+       2592,
+       1728
+      ],
+      "mean_luma": 69.4,
+      "p90_luma": 124.0,
+      "mean_saturation": 121.7,
+      "edge_energy": 15.8,
+      "edge_density": 0.117
+     },
+     "ground": "dark, busy, colourful",
+     "sheet": "data/fact_sheets/wieliczka_salt_mine.json",
+     "payload": "output/run_wieliczka_salt_mine_1792974672/verified_script.json"
+    }
+   ]
+  }
+ }
+}

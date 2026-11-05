@@ -254,7 +254,8 @@ def test_each_label_is_recorded_on_its_worst_delivered_frame(tmp_path, monkeypat
 def test_kickers_have_a_34px_cap_on_916_and_easier_tracking():
     f = get_font(DATA_FONT, then_now.KICKER_PX["portrait"], weight=600)
     assert -f.getbbox("THEN", anchor="ls")[1] >= 34
-    assert then_now.KICKER_PX["landscape"] == 40 and then_now.KICKER_TRACK == pytest.approx(0.15)
+    # freeze panel round 2 (T9): the 16:9 kicker is the smallest size with a 32 px THEN cap (46), tracked 0.118
+    assert then_now.KICKER_PX["landscape"] == 46 and then_now.KICKER_TRACK == {"portrait": 0.15, "landscape": 0.118}
 
 
 def _encode_capture(monkeypatch):
@@ -274,13 +275,13 @@ def test_both_kickers_share_one_colour(tmp_path, monkeypatch):
     # a bright sky on the old photo's top half only: gold fails there, so both kickers go bone
     arr = np.full((2100, 1200, 3), 70, np.uint8)
     arr[:1000] = 250
-    monkeypatch.setattr(then_now, "INK_ON_PAPER", False)   # freeze panel 2026-11-04 step 1: a white ground takes ink type
     Image.fromarray(arr).save(tmp_path / "old.jpg")
     _photo(tmp_path / "new.jpg", lo=40, hi=90)
     then_now.render(tmp_path / "old.jpg", 1925, tmp_path / "new.jpg", 2019, tmp_path / "x.mp4")
     kickers = {name: p for name, p in got["rows"] if name.endswith("kicker")}
     colours = {p.fill for p in kickers.values()}
-    assert colours == {tuple(then_now.WHITE)}, colours          # not one gold and one bone
+    # freeze panel round 2 (T1): the flat 250 sky is paper, so THEN is ink; the other kicker is bone, not gold
+    assert colours == {tuple(then_now.INK), tuple(then_now.WHITE)}, colours
 
 
 def test_markers_stay_inside_the_safe_box_at_the_larger_size(tmp_path, monkeypatch):
@@ -328,7 +329,9 @@ def test_shade_is_a_local_glow_behind_the_marker_not_a_bar(size, which, boxes):
     up = m[:y0 + 1, (x0 + x1) // 2][::-1]
     assert all(x >= y for x, y in pairwise(up))                              # and above it: fades from its top
     assert col[then_now.BAND_PAD + then_now.BAND_FALL // 2] < 0.6 * full     # half-way out: well under full
-    assert max(np.abs(np.diff(m, axis=0)).max(), np.abs(np.diff(m, axis=1)).max()) <= 6   # no step reads as an edge
+    # no step reads as an edge: within the smoothstep's steepest slope over the (round 2, T2: shorter) fall, + 1
+    fall = then_now.band_fall(w, h)
+    assert max(np.abs(np.diff(m, axis=0)).max(), np.abs(np.diff(m, axis=1)).max()) <= math.ceil(1.5 * full / fall) + 1
 
 
 def test_16x9_then_glow_is_kept_to_the_old_photo():
@@ -357,26 +360,37 @@ def test_916_now_glow_hangs_from_the_divider_and_never_reaches_the_old_photo():
 
 
 def test_16x9_then_shade_leaves_the_recent_photo_alone_on_the_split(tmp_path, monkeypatch):
+    monkeypatch.setattr(then_now, "INK_ON_PAPER", False)   # freeze panel round 2 (T1): a bright flat THEN takes ink type
     masks = []
     real = then_now._shade
     monkeypatch.setattr(then_now, "_shade", lambda im, m, a=1.0: masks.append(m) or real(im, m, a))
     _encode_capture(monkeypatch)
-    monkeypatch.setattr(then_now, "INK_ON_PAPER", False)   # freeze panel 2026-11-04 step 1: a white ground takes ink type
-    w = _photo(tmp_path / "w.jpg", size=(2100, 1200), lo=240, hi=256)      # the old photo: bright, needs a shade
-    d = _photo(tmp_path / "d.jpg", size=(2100, 1200), lo=30, hi=70)        # the recent one: dark, needs none
-    then_now.render(w, 1925, d, 2019, tmp_path / "z.mp4", width=1920, height=1080)
+    # Review round 2: since the planned ratio counts and the pair shares one halo, a bright flat ground holds on the
+    # halo alone; the pair is a real one whose THEN needs a glow and whose NOW holds on its halo (the Odessa catacombs
+    # map stress pair of the freeze-panel catalogue, years from its fact sheet).
+    from pathlib import Path
+    # Review round 3: on a bright ground the halo now goes to 1.0 before any glow, so the Odessa pair holds on its
+    # halo; the Gol Gumbaz stress pair (map THEN, years from its fact sheet) with the planner's target raised to 5.2
+    # (the harness's labelled forced-glow variant) still takes a THEN glow. Was Odessa 1941/1942 at PLACE_TARGET.
+    g = Path(__file__).resolve().parents[1] / "output/run_gol_gumbaz_whispering_gallery_1793278143/graphics"
+    w, d = g / "then_2.jpg", g / "now_2_0.jpg"
+    if not (w.exists() and d.exists()):
+        pytest.skip("real run inputs not on this machine")
+    monkeypatch.setattr(then_now, "PLACE_TARGET", 5.2)
+    then_now.render(w, 1656, d, 1937, tmp_path / "z.mp4", width=1920, height=1080)
+    assert then_now.last_meta["glow_depth"]["then"]
     assert masks
-    last = np.asarray(masks[-1]).astype(int)                             # the last frame, the clip at rest
+    last = np.asarray(masks[-1], np.float64)       # the last frame, the clip at rest (T3: a float alpha, not 8-bit)
     split = then_now._split_at(1920, 1080)
     assert last[:, :split - 3].max() > 0 and last[:, split + 3:].max() == 0
 
 
 def test_render_draws_the_band_when_the_halo_falls_short(tmp_path, monkeypatch):
+    monkeypatch.setattr(then_now, "INK_ON_PAPER", False)   # freeze panel 2026-11-04 (S5): a white pair takes ink type
     calls = []
     real = then_now.band_mask
     monkeypatch.setattr(then_now, "band_mask", lambda *a, **k: calls.append(a[0]) or real(*a, **k))
     _encode_capture(monkeypatch)
-    monkeypatch.setattr(then_now, "INK_ON_PAPER", False)   # freeze panel 2026-11-04 step 1: a white ground takes ink type
     w = _photo(tmp_path / "w.jpg", lo=240, hi=256)
     then_now.render(w, 1925, w, 2019, tmp_path / "y.mp4")
     assert calls
@@ -385,7 +399,8 @@ def test_render_draws_the_band_when_the_halo_falls_short(tmp_path, monkeypatch):
 # ---------------------------------------------------------------- then and now: one shared push
 def test_push_is_shared_eased_and_four_percent():
     assert then_now.push_at(0) == 1.0 and then_now.push_at(then_now.CLIP_SECONDS) == pytest.approx(1.04)
-    assert then_now.push_at(0.3) - 1 < 0.04 * 0.3 / then_now.CLIP_SECONDS   # eased in
+    # freeze panel round 2 (T4): linear, equal steps every frame
+    assert then_now.push_at(0.3) - 1 == pytest.approx(0.04 * 0.3 / then_now.CLIP_SECONDS)
     src = Image.fromarray(np.tile(np.arange(1123, dtype=np.uint8)[None, :, None] % 251, (1997, 1, 3)))
     start = then_now.pushed(src, 0.0, (1080, 1920))
     end = then_now.pushed(src, then_now.CLIP_SECONDS, (1080, 1920))
@@ -450,12 +465,12 @@ def test_old_candidates_are_filtered_but_recent_ones_are_not(monkeypatch):
 
 # ---------------------------------------------------------------- then and now: a light glow (review r8, r9)
 def test_band_starts_light_and_stops_at_the_first_depth_that_holds(tmp_path, monkeypatch):
+    monkeypatch.setattr(then_now, "INK_ON_PAPER", False)   # freeze panel round 2 (T1): a bright flat THEN takes ink type
     depths = []
     real = then_now.band_mask
     monkeypatch.setattr(then_now, "band_mask",
                         lambda *a, **k: depths.append(a[4] if len(a) > 4 else k.get("alpha")) or real(*a, **k))
     got = _encode_capture(monkeypatch)
-    monkeypatch.setattr(then_now, "INK_ON_PAPER", False)   # freeze panel 2026-11-04 step 1: a white ground takes ink type
     w = _photo(tmp_path / "w.jpg", size=(2100, 1200), lo=240, hi=256)
     d = _photo(tmp_path / "d.jpg", size=(2100, 1200), lo=30, hi=70)
     then_now.render(w, 1925, d, 2019, tmp_path / "z.mp4", width=1920, height=1080)
@@ -467,11 +482,11 @@ def test_band_starts_light_and_stops_at_the_first_depth_that_holds(tmp_path, mon
 
 
 def test_916_white_pair_draws_both_bands(tmp_path, monkeypatch):
+    monkeypatch.setattr(then_now, "INK_ON_PAPER", False)   # freeze panel 2026-11-04 (S5): a white pair takes ink type
     calls = []
     real = then_now.band_mask
     monkeypatch.setattr(then_now, "band_mask", lambda *a, **k: calls.append(a[0]) or real(*a, **k))
     got = _encode_capture(monkeypatch)
-    monkeypatch.setattr(then_now, "INK_ON_PAPER", False)   # freeze panel 2026-11-04 step 1: a white ground takes ink type
     w = _photo(tmp_path / "w.jpg", lo=244, hi=256)
     v = _photo(tmp_path / "v.jpg", seed=2, lo=244, hi=256)
     then_now.render(w, 1925, v, 2019, tmp_path / "y.mp4")

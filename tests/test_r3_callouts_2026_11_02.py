@@ -207,17 +207,17 @@ def test_render_records_measured_nontext_contrast(tmp_path):
 # ---------------------------------------------------------------- then and now: the registered wipe
 @pytest.mark.parametrize("size", [(1080, 1920), (1920, 1080)])
 def test_divider_holds_then_sweeps_dwells_overshoots_and_settles(size):
+    """Freeze panel round 2 (T4): one landing. THEN alone, a sweep to the far point, a hold there, a settle."""
     w, h = size
     edge, split = max(w, h), then_now._split_at(w, h)
     W = then_now.WIPE
     assert then_now.divider_at(W["then"] - 0.01, w, h) == edge             # THEN alone
-    t_mid = W["then"] + W["to_split"] + W["dwell"] / 2
-    assert then_now.divider_at(t_mid, w, h) == pytest.approx(split)        # the dwell at the split
-    t_far = W["then"] + W["to_split"] + W["dwell"] + W["to_far"]
-    assert then_now.divider_at(t_far, w, h) == pytest.approx(edge * (1 - then_now.SWEEP_TO))
+    t_far = W["then"] + W["to_far"]
+    for t in (t_far, t_far + W["hold_far"] / 2, t_far + W["hold_far"]):    # the hold at the far point
+        assert then_now.divider_at(t, w, h) == pytest.approx(edge * (1 - then_now.SWEEP_TO), abs=0.01)
     assert then_now.divider_at(then_now.CLIP_SECONDS, w, h) == pytest.approx(split)
     assert then_now.CLIP_SECONDS - sum(W.values()) >= 1.2
-    assert W["then"] == 1.2 and W["to_split"] + W["dwell"] + W["to_far"] == pytest.approx(1.4) and W["settle"] == 0.8
+    assert W["then"] == 1.2 and W["to_far"] == 1.0 and W["hold_far"] == 0.25 and W["settle"] == 0.85
 
 
 def test_compose_keeps_each_photo_at_its_own_pixels():
@@ -356,7 +356,7 @@ def test_shade_falls_off_over_shade_fall_screen_pixels_on_both_formats(size, whi
 
 def test_final_hold_is_what_the_comment_says():
     W = then_now.WIPE
-    assert sum(W.values()) == pytest.approx(3.4)
-    assert then_now.CLIP_SECONDS - sum(W.values()) == pytest.approx(2.6)
+    assert sum(W.values()) == pytest.approx(3.3)                 # freeze panel round 2 (T4): was 3.4
+    assert then_now.CLIP_SECONDS - sum(W.values()) == pytest.approx(2.7)
     src = Path(then_now.__file__).read_text()
-    assert ">= 1.2 s" not in src and "= 2.6 s" in src
+    assert ">= 1.2 s" not in src and "= 2.7 s" in src

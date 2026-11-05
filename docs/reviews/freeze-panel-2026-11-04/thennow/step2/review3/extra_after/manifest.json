@@ -1,0 +1,225 @@
+{
+  "code_root": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle",
+  "cases": [
+    {
+      "name": "pantheon_1934_2018",
+      "run": "run_roman_self_healing_concrete_1793163918",
+      "topic": "roman_self_healing_concrete",
+      "old": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\output\\run_roman_self_healing_concrete_1793163918\\graphics\\then_0.jpg",
+      "old_year": 1934,
+      "new": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\output\\run_roman_self_healing_concrete_1793163918\\graphics\\now_0_1.jpg",
+      "new_year": 2018,
+      "label": null,
+      "why": "an accepted then-and-now pair the run rendered (old busy, luma 129.4; recent busy, luma 131.2)",
+      "years_source": "read off the run's own graphic_thennow.mp4 (t=0.5 s shows the old year, the poster the recent year); the run kept no credit record for the pair",
+      "old_measured": {
+        "size": [
+          2008,
+          2327
+        ],
+        "mean_luma": 129.4,
+        "p90_luma": 232.0,
+        "mean_saturation": 97.3,
+        "edge_energy": 25.9,
+        "edge_density": 0.179
+      },
+      "new_measured": {
+        "size": [
+          2055,
+          1517
+        ],
+        "mean_luma": 131.2,
+        "p90_luma": 213.0,
+        "mean_saturation": 36.1,
+        "edge_energy": 27.8,
+        "edge_density": 0.209
+      },
+      "registered": false,
+      "inputs": "unregistered then_0 / now_0_1 (the run kept no registered pair)"
+    },
+    {
+      "name": "colossi_1876_2011",
+      "run": "run_singing_colossi_of_memnon_1792952878",
+      "topic": "singing_colossi_of_memnon",
+      "old": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\output\\run_singing_colossi_of_memnon_1792952878\\graphics\\then_0.jpg",
+      "old_year": 1876,
+      "new": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\output\\run_singing_colossi_of_memnon_1792952878\\graphics\\now_0_1.jpg",
+      "new_year": 2011,
+      "label": null,
+      "why": "an accepted then-and-now pair the run rendered (old busy, luma 167.7; recent busy, luma 141.1)",
+      "years_source": "read off the run's own graphic_thennow.mp4 (t=0.5 s shows the old year, the poster the recent year); the run kept no credit record for the pair",
+      "old_measured": {
+        "size": [
+          1422,
+          1099
+        ],
+        "mean_luma": 167.7,
+        "p90_luma": 229.0,
+        "mean_saturation": 38.2,
+        "edge_energy": 26.8,
+        "edge_density": 0.159
+      },
+      "new_measured": {
+        "size": [
+          1634,
+          1342
+        ],
+        "mean_luma": 141.1,
+        "p90_luma": 181.0,
+        "mean_saturation": 96.5,
+        "edge_energy": 18.4,
+        "edge_density": 0.138
+      },
+      "registered": false,
+      "inputs": "unregistered then_0 / now_0_1 (the run kept no registered pair)"
+    },
+    {
+      "name": "nearwhite_odessa_map",
+      "run": "run_odessa_catacombs_1792970549",
+      "topic": "odessa_catacombs",
+      "old": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\output\\run_odessa_catacombs_1792970549\\graphics\\then_2.jpg",
+      "old_year": 1941,
+      "new": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\output\\run_odessa_catacombs_1792970549\\graphics\\now_0_4.jpg",
+      "new_year": 1942,
+      "label": "new: brightest real photo, not an accepted pair; years from fact sheet fact_7 / fact_11, not capture years",
+      "why": "near-white stress: near-white, busy old photo (mean luma 206.5)",
+      "years_source": {
+        "old": {
+          "year": 1941,
+          "fact": "fact_7: The 1941 Siege of Odesa began on August 5 and lasted for 73 days before the city fell to Axis occupation."
+        },
+        "new": {
+          "year": 1942,
+          "fact": "fact_11: On May 30, 1942, the Central Headquarters of the Partisan Movement was established under Stavka to coordinate guerrilla warfare operations."
+        }
+      },
+      "old_measured": {
+        "size": [
+          1215,
+          1116
+        ],
+        "mean_luma": 206.5,
+        "p90_luma": 239.0,
+        "mean_saturation": 11.1,
+        "edge_energy": 52.6,
+        "edge_density": 0.379
+      },
+      "registered": false,
+      "inputs": "unregistered candidates (rejected pair; no registration exists)"
+    },
+    {
+      "name": "bright_golgumbaz_map",
+      "run": "run_gol_gumbaz_whispering_gallery_1793278143",
+      "topic": "gol_gumbaz_whispering_gallery",
+      "old": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\output\\run_gol_gumbaz_whispering_gallery_1793278143\\graphics\\then_2.jpg",
+      "old_year": 1656,
+      "new": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\output\\run_gol_gumbaz_whispering_gallery_1793278143\\graphics\\now_2_0.jpg",
+      "new_year": 1937,
+      "label": "new: brightest real photo, not an accepted pair; years from fact sheet fact-11 / fact-15, not capture years",
+      "why": "near-white stress: bright, busy old photo (mean luma 204.1)",
+      "years_source": {
+        "old": {
+          "year": 1656,
+          "fact": "fact-11: Construction of the mausoleum began in the early 17th century and ceased in 1656 upon Mohammad Adil Shah's death, leaving several decorative elements unfinished."
+        },
+        "new": {
+          "year": 1937,
+          "fact": "fact-15: Engineers repaired radial cracking in the dome by applying a 6.5-centimeter (2.6-inch) layer of gunite to the exterior in 1937 and to the interior surface in 1949."
+        }
+      },
+      "old_measured": {
+        "size": [
+          1791,
+          1189
+        ],
+        "mean_luma": 204.1,
+        "p90_luma": 229.0,
+        "mean_saturation": 55.9,
+        "edge_energy": 45.3,
+        "edge_density": 0.298
+      },
+      "registered": false,
+      "inputs": "unregistered candidates (rejected pair; no registration exists)"
+    },
+    {
+      "name": "lineart_aswan_diagram",
+      "run": "run_unfinished_obelisk_aswan_1792985912",
+      "topic": "unfinished_obelisk_aswan",
+      "old": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\output\\run_unfinished_obelisk_aswan_1792985912\\graphics\\then_2.jpg",
+      "old_year": 1922,
+      "new": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\output\\run_unfinished_obelisk_aswan_1792985912\\graphics\\now_0_0.jpg",
+      "new_year": 2005,
+      "label": "new: brightest real recent photo (a line-art diagram, luma 237), same-topic, not an accepted pair; years from fact sheet fact-12 / fact-13, not capture years",
+      "why": "line-art ground: the T1 gate must not set ink type over a diagram's own black rules",
+      "years_source": {
+        "old": {
+          "year": 1922,
+          "fact": "fact-12: After lying covered by sand for thousands of years, the unfinished obelisk was uncovered in the early twentieth century and studied in detail by Reginald Engelbach in 1922."
+        },
+        "new": {
+          "year": 2005,
+          "fact": "fact-13: Archaeologists working at the Aswan quarries discovered an unfinished, partly worked obelisk base alongside ancient rock carvings in 2005."
+        }
+      },
+      "registered": false,
+      "inputs": "unregistered candidates (rejected pair; no registration exists)"
+    },
+    {
+      "name": "busy_aswan_rebate",
+      "run": "run_unfinished_obelisk_aswan_1792985912",
+      "topic": "unfinished_obelisk_aswan",
+      "old": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\output\\run_unfinished_obelisk_aswan_1792985912\\graphics\\then_0.jpg",
+      "old_year": 1922,
+      "new": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\output\\run_unfinished_obelisk_aswan_1792985912\\graphics\\now_0_1.jpg",
+      "new_year": 2005,
+      "label": "new: the run's own then_0 / now_0_1 (a scan with a nested film rebate), same-topic, not an accepted pair; years from fact sheet fact-12 / fact-13, not capture years",
+      "why": "nested scan border: the T7 trim must take the film rebate inside the white margin",
+      "years_source": {
+        "old": {
+          "year": 1922,
+          "fact": "fact-12: After lying covered by sand for thousands of years, the unfinished obelisk was uncovered in the early twentieth century and studied in detail by Reginald Engelbach in 1922."
+        },
+        "new": {
+          "year": 2005,
+          "fact": "fact-13: Archaeologists working at the Aswan quarries discovered an unfinished, partly worked obelisk base alongside ancient rock carvings in 2005."
+        }
+      },
+      "registered": false,
+      "inputs": "unregistered candidates (rejected pair; no registration exists)"
+    },
+    {
+      "name": "dark_wieliczka_extra",
+      "run": "run_wieliczka_salt_mine_1792974672",
+      "topic": "wieliczka_salt_mine",
+      "old": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\output\\run_wieliczka_salt_mine_1792974672\\graphics\\then_1.jpg",
+      "old_year": 1978,
+      "new": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\output\\run_wieliczka_salt_mine_1792974672\\graphics\\now_1_2.jpg",
+      "new_year": 1998,
+      "label": "new: darkest real old photo and its run's darkest recent candidate, same-topic, not an accepted pair; years from fact sheet fact-13 / fact-14, not capture years",
+      "why": "line-art ground: the T1 gate must not set ink type over a diagram's own black rules",
+      "years_source": {
+        "old": {
+          "year": 1978,
+          "fact": "fact-13: Wieliczka was designated as one of the original UNESCO World Heritage Sites in 1978."
+        },
+        "new": {
+          "year": 1998,
+          "fact": "fact-14: UNESCO placed the mine on the List of World Heritage in Danger from 1989 to 1998 while dehumidifying equipment was installed to protect the salt art."
+        }
+      },
+      "registered": false,
+      "inputs": "unregistered candidates (rejected pair; no registration exists)"
+    }
+  ],
+  "jobs": [
+    [
+      "dark_wieliczka_extra",
+      "9x16"
+    ],
+    [
+      "dark_wieliczka_extra",
+      "16x9"
+    ]
+  ],
+  "rule": "real run photos and years only; anything new carries its label"
+}

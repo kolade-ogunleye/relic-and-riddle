@@ -101,7 +101,9 @@ def test_paper_markers_are_ink_with_no_halo_and_no_glow(tmp_path, monkeypatch):
         assert p.halo == 0 and p.halo_mask is None, name
         assert p.contrast >= PLACE_TARGET, (name, p.contrast)
         assert p.measure(got["last"]) >= PLACE_TARGET, (name, p.measure(got["last"]))
-    assert rows["then_kicker"].text == "THEN" and rows["now_kicker"].text == "NOW"
+    # Operator decision 2026-11-04: the recent photo's kicker reads LATER when that photo is itself historical
+    # (1942, more than NOW_YEARS before the current UTC year), NOW otherwise; it was "NOW" here.
+    assert rows["then_kicker"].text == "THEN" and rows["now_kicker"].text == "LATER"
 
 
 def test_one_paper_marker_makes_the_other_kicker_bone(tmp_path, monkeypatch):

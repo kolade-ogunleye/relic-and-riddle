@@ -1,0 +1,114 @@
+{
+ "case": "dark_wieliczka_extra",
+ "run": "run_wieliczka_salt_mine_1792974672",
+ "topic": "wieliczka_salt_mine",
+ "label": "new: darkest real old photo and its run's darkest recent candidate, same-topic, not an accepted pair; years from fact sheet fact-13 / fact-14, not capture years",
+ "format": "9x16",
+ "code_root": "C:\\Users\\omokolade\\AppData\\Local\\Temp\\claude\\7686a79b0f64a990\\29ad02b1-356f-4136-9fd7-e5907c322aff\\scratchpad\\head",
+ "tree": "before this round (frames only)",
+ "old": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\output\\run_wieliczka_salt_mine_1792974672\\graphics\\then_1.jpg",
+ "old_year": 1978,
+ "new": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\output\\run_wieliczka_salt_mine_1792974672\\graphics\\now_1_2.jpg",
+ "new_year": 1998,
+ "render_seconds_with_encode": 342.3,
+ "moments": {
+  "then_alone": {
+   "frame": 27,
+   "file": "frame_then_alone.webp (2243 KB)"
+  },
+  "mid_wipe": {
+   "frame": 44,
+   "file": "frame_mid_wipe.webp (2142 KB)"
+  },
+  "now_wide": {
+   "frame": 69,
+   "file": "frame_now_wide.webp (2026 KB)"
+  },
+  "split_hold": {
+   "frame": 165,
+   "file": "frame_split_hold.webp (2026 KB)"
+  },
+  "split": {
+   "frame": 179,
+   "file": "frame_split.webp (2004 KB)"
+  }
+ },
+ "plates": [
+  {
+   "name": "then_kicker",
+   "text": "THEN",
+   "planned": 6.21,
+   "fill": [
+    243,
+    237,
+    226
+   ],
+   "drawn": 6.3,
+   "graded": 8.21,
+   "halo": 0.5,
+   "box": [
+    84,
+    330,
+    218,
+    364
+   ]
+  },
+  {
+   "name": "then_year",
+   "text": "1978",
+   "planned": 6.06,
+   "fill": [
+    243,
+    237,
+    226
+   ],
+   "drawn": 6.27,
+   "graded": 8.16,
+   "halo": 0.35,
+   "box": [
+    80,
+    402,
+    308,
+    514
+   ]
+  },
+  {
+   "name": "now_kicker",
+   "text": "NOW",
+   "planned": 7.6,
+   "fill": [
+    243,
+    237,
+    226
+   ],
+   "drawn": 7.9,
+   "graded": 11.11,
+   "halo": 0.5,
+   "box": [
+    86,
+    816,
+    183,
+    851
+   ]
+  },
+  {
+   "name": "now_year",
+   "text": "1998",
+   "planned": 5.29,
+   "fill": [
+    243,
+    237,
+    226
+   ],
+   "drawn": 5.29,
+   "graded": 6.71,
+   "halo": 0.51,
+   "box": [
+    80,
+    888,
+    308,
+    1000
+   ]
+  }
+ ]
+}

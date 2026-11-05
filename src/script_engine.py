@@ -3103,7 +3103,8 @@ class ScriptEngine:
             passed, confidence, audits, msg = trace_check.check(script_payload, sheet)
             disputed = sum(f["disputed"] for f in sheet["facts"])
             script_payload["fact_sheet_note"] = (f"🧾 Written from a verified fact sheet: {len(sheet['facts'])} facts with quoted "
-                                                 f"evidence ({disputed} disputed, used only with their hedges)")
+                                                 f"evidence ({disputed} disputed, used only with their hedges)"
+                                                 + (f"; {line}" if (line := fact_sheet.sources_line(sheet)) else ""))
         elif free_llm.enabled():
             # No fact sheet and no paid checks: only a human-reviewed curated script (or a dry run) may pass.
             if script_payload.get("origin") == "curated" and (script_payload.get("human_reviewed") or allow_unreviewed_curated):

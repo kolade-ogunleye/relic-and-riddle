@@ -10,9 +10,14 @@ the same verdict every time instead of depending on which pages a fresh search h
 
 Rules (journalism practice):
 - Every fact cites at least one evidence quote, and every number in a fact must appear in its quotes.
-- Numbers need one tier-1 source or two sources on different sites; dates need a tier-1 or tier-2
-  source (an established reference work) or two sites. Otherwise the fact is kept only as
-  disputed, with a source-neutral hedge ("by one estimate", "by one account"), or dropped.
+- Numbers need one tier-1 source or two corroborating sites; dates need a tier-1 or tier-2 source (an
+  established reference work) or two corroborating sites. Otherwise the fact is kept only as disputed,
+  with a source-neutral hedge ("by one estimate", "by one account"), or dropped.
+- Only tier 1-2 (allowlisted or venue-ranked) sites corroborate, each counted once (corroborating_sites).
+  A page reached through a Wikipedia article's links inherits tier 3 and never corroborates: one edit
+  to the article and one page it then cites are one source, not two (QF-40).
+- Every evidence quote keeps its provenance: its host, tier and fetch path (FETCH_*). The provenance
+  is part of the facts, so the signed card records bind it (card_fields: facts_sha256).
 - A DOI link is not a tier by itself: scholarly quotes carry the tier their venue earns.
 - Disagreeing sources make a fact "disputed" and it carries the hedge wording to use.
 - Web pages are untrusted input: quotes are stored and used as data only, never as instructions.
@@ -63,6 +68,13 @@ TIER2_DOMAINS = {"wikipedia.org", "history.com", "bbc.com", "bbc.co.uk", "nytime
 # ancient-origins.net is popular but sensational: listed so it can be demoted, not trusted.
 DEMOTED = {"ancient-origins.net"}
 
+# Fetch paths (evidence provenance): how a quote reached the sheet.
+FETCH_WIKIPEDIA = "wikipedia"              # the topic's Wikipedia article (free_evidence)
+FETCH_WIKIPEDIA_CITED = "wikipedia_cited"  # a page a Wikipedia article links to (free_evidence): tier 3, never corroborates
+FETCH_OPENALEX = "openalex"                # a scholarly abstract, tier by venue (free_evidence)
+FETCH_UNESCO = "unesco_registry"           # the official UNESCO record of the topic's own site
+FETCH_WEB_SEARCH = "web_search"            # the paid research search (llm.research_with_evidence)
+
 SYSTEM = """You build a verified fact sheet for a short history documentary. Focus 100% on the central subject, architectural/engineering marvel, physical anomaly, chemical mechanism, and scientific revelations of the specified topic.
 Write 10-18 facts that a 45-second script could use: the key numbers, dates, names and events, plus the genuine debates.
 CRITICAL NEGATIVE FILTERING:
@@ -97,6 +109,53 @@ def quote_tier(q: Dict[str, Any]) -> int:
     return int(q["tier"]) if q.get("tier") in (1, 2, 3) else tier(q["url"])
 
 
+def site_of(url: str) -> str:
+    """The site a quote counts as when sources are counted: its allowlist entry (any Wikipedia language is
+    wikipedia.org, whc.unesco.org is unesco.org), else its host."""
+    host = _host(url)
+    base = ".".join(host.split(".")[-2:])
+    for name in (base, host):
+        if name in TIER1_DOMAINS or name in TIER2_DOMAINS:
+            return name
+    return host
+
+
+def corroborating_sites(evidence: list[dict[str, Any]]) -> set:
+    """The sites among `evidence` that may corroborate one another: tier 1-2 quotes only, never a page reached
+    through a Wikipedia article's links (it inherits tier 3), each site once."""
+    return {site_of(q["url"]) for q in evidence
+            if q.get("fetch") != FETCH_WIKIPEDIA_CITED and quote_tier(q) <= 2}
+
+
+def strongly_sourced(kind: str, evidence: list[dict[str, Any]]) -> bool:
+    """Whether a fact of `kind` stands without a hedge on `evidence`: a number needs a tier-1 source or two
+    corroborating sites; a date a tier 1-2 source or two corroborating sites; other kinds always stand."""
+    if kind not in ("number", "date"):
+        return True
+    tiers = [3 if q.get("fetch") == FETCH_WIKIPEDIA_CITED else quote_tier(q) for q in evidence]
+    return len(corroborating_sites(evidence)) >= 2 or min(tiers, default=3) <= (2 if kind == "date" else 1)
+
+
+def sources_line(sheet: dict[str, Any]) -> str:
+    """Where the sheet's evidence came from, for the review card: "sources: Wikipedia + 1 site it cites" ("" when
+    it has none). Pages reached through Wikipedia's links are said as such: they are not independent sources."""
+    wiki, cited, other = False, set(), set()
+    for f in (sheet or {}).get("facts") or []:
+        for e in f.get("evidence") or []:
+            s = site_of(str(e.get("url") or ""))
+            if e.get("fetch") == FETCH_WIKIPEDIA_CITED:
+                cited.add(s)
+            elif s == "wikipedia.org":
+                wiki = True
+            elif s:
+                other.add(s)
+    other -= cited
+    parts = (["Wikipedia"] if wiki else []) + (
+        [f"{len(cited)} site{'' if len(cited) == 1 else 's'} it cites"] if cited else []) + (
+        [f"{len(other)} {'other ' if wiki or cited else ''}site{'' if len(other) == 1 else 's'}"] if other else [])
+    return "sources: " + " + ".join(parts) if parts else ""
+
+
 def _neutral_hedge(statement: str, kind: str) -> str:
     """Hedge a weakly sourced fact without crediting anyone the evidence does not name."""
     stmt = statement.rstrip(".")
@@ -113,7 +172,8 @@ def _unesco_evidence(topic: Dict[str, Any]):
         return [], None
     url = site.url or f"https://whc.unesco.org/en/list/{site.id_number}/"
     log.info("Fact sheet: official UNESCO evidence for site #%s (%s)", site.id_number, site.site)
-    return engine.as_evidence(site), Source(title=f"UNESCO World Heritage Centre - {site.site}", url=url)
+    quotes = [{**q, "fetch": FETCH_UNESCO} for q in engine.as_evidence(site)]
+    return quotes, Source(title=f"UNESCO World Heritage Centre - {site.site}", url=url)
 
 
 # Digits that are no figure of the story: web addresses (a Commons page's curid=31074216 was checked as the figure
@@ -174,6 +234,7 @@ def build(topic: Dict[str, Any], web_search_uses: int = 10) -> Dict[str, Any]:
         notes, sources, quotes = research_with_evidence(
             "You are a meticulous researcher for a history documentary. Prefer primary and authoritative sources.",
             prompt, web_search_uses=web_search_uses, effort="high")
+        quotes = [{"fetch": FETCH_WEB_SEARCH, **q} for q in quotes]
 
     # Ingest authoritative UNESCO World Heritage Centre evidence when the topic is an inscribed site
     try:
@@ -205,6 +266,7 @@ def build(topic: Dict[str, Any], web_search_uses: int = 10) -> Dict[str, Any]:
             "You verify specific facts for a documentary. Find authoritative sources and quote their exact wording.",
             "Verify each of these with strong sources (quote them):\n" + "\n".join(f"- {f.statement}" for f in weak),
             web_search_uses=4, effort="medium")
+        more = [{"fetch": FETCH_WEB_SEARCH, **q} for q in more]
         quotes = (quotes + [q for q in more if q not in quotes])[: MAX_QUOTES + 40]
         listing = "\n".join(f"Q{i}: [{_host(q['url'])}, tier {quote_tier(q)}] {q['quote'][:600]}" for i, q in enumerate(quotes, 1))
         retry = structured_call(
@@ -253,14 +315,11 @@ def _apply_rules(draft_facts, quotes: List[dict], auto_hedge: bool = False):
         if named and not any(any(n in _host(q["url"]) for n in named) for q in cited):
             dropped.append((f.id, f"attributes to {sorted(named)} but no cited quote comes from that source"))
             continue
-        tiers = [quote_tier(q) for q in cited]
-        hosts = {_host(q["url"]) for q in cited}
-        two_sites = len(hosts) >= 2
-        # Dates may rest on an established reference work (tier 2: Wikipedia, museums, quality
-        # press) as chronological anchors; numbers need a tier-1 source. Either way, two sites do.
-        strong = two_sites or (min(tiers) <= (2 if f.kind == "date" else 1))
+        # Dates may rest on an established reference work (tier 2: Wikipedia, museums, quality press) as
+        # chronological anchors; numbers need a tier-1 source. Either way, two corroborating sites do: tier 1-2
+        # sites only, never a page reached through Wikipedia's links (QF-40: any two hosts counted before).
         disputed = f.disputed
-        if f.kind in ("number", "date") and not strong:
+        if not strongly_sourced(f.kind, cited):
             if not f.hedge:
                 if auto_hedge:
                     f.hedge = _neutral_hedge(f.statement, f.kind)
@@ -270,8 +329,15 @@ def _apply_rules(draft_facts, quotes: List[dict], auto_hedge: bool = False):
             disputed = True  # usable only with its hedge
         facts.append({"id": f.id, "statement": f.statement, "kind": f.kind, "disputed": disputed,
                       "hedge": f.hedge if disputed else (f.hedge or ""),
-                      "evidence": [{"url": q["url"], "tier": quote_tier(q), "quote": q["quote"][:600]} for q in cited]})
+                      "evidence": [_evidence(q) for q in cited]})
     return facts, dropped
+
+
+def _evidence(q: dict[str, Any]) -> dict[str, Any]:
+    """An evidence quote as the sheet stores it, with its provenance: host, tier and fetch path."""
+    fetch = str(q.get("fetch") or "")
+    return {"url": q["url"], "tier": 3 if fetch == FETCH_WIKIPEDIA_CITED else quote_tier(q), "quote": q["quote"][:600],
+            "host": _host(q["url"]), "fetch": fetch}
 
 
 # Named sources a statement might attribute to, mapped to the site a supporting quote must come from.
@@ -322,13 +388,18 @@ def load(topic_id: str, max_age_days: int = FACT_SHEET_MAX_AGE_DAYS) -> Optional
     if datetime.now(timezone.utc) - built > timedelta(days=max_age_days):
         return None
     # Rules added after a sheet was built still apply: drop facts that attribute to a named source
-    # without evidence from that source.
+    # without evidence from that source, and hedge a number or date no longer strongly sourced (QF-40:
+    # corroboration only among tier 1-2 sites).
     kept = []
     for f in sheet["facts"]:
         named = _named_sources(f["statement"] + " " + f.get("hedge", ""))
         if named and not any(any(n in _host(e["url"]) for n in named) for e in f["evidence"]):
             log.info("Fact sheet %s: ignoring %s (unsupported attribution).", topic_id, f["id"])
             continue
+        if not f.get("disputed") and not strongly_sourced(f.get("kind", ""), f.get("evidence") or []):
+            log.info("Fact sheet %s: %s is a %s without two corroborating sites; used only with its hedge.",
+                     topic_id, f["id"], f.get("kind"))
+            f = {**f, "disputed": True, "hedge": f.get("hedge") or _neutral_hedge(f["statement"], f.get("kind", ""))}
         kept.append(f)
     sheet["facts"] = kept
     return sheet

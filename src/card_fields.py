@@ -194,6 +194,7 @@ def findings(kind: str, field: dict[str, Any], sheet: dict[str, Any]) -> list[st
             out.append(f"a statement is 1-{CARD_TEXT_MAX} characters")
         if t.endswith("?"):
             out.append("a statement is not a question")
+        out += _source_findings(fact, [t])
     elif kind == "myths":
         m, c = (" ".join(str(field.get(k) or "").split()) for k in ("myth", "correction"))
         if not m or len(m) > MYTH_MAX:
@@ -204,6 +205,7 @@ def findings(kind: str, field: dict[str, Any], sheet: dict[str, Any]) -> list[st
             out.append("the myth and its correction say the same")
         if fact.get("disputed"):
             out.append("a disputed fact refutes nothing")
+        out += _source_findings(fact, [c])
         src = (field.get("source") or {}).get("url", "")
         if not any(_url(e.get("url")) == _url(src) and int(e.get("tier", 9)) <= 2 for e in fact.get("evidence") or []):
             out.append("the myth's source is not tier 1-2 evidence of its refuting fact")
@@ -218,6 +220,7 @@ def findings(kind: str, field: dict[str, Any], sheet: dict[str, Any]) -> list[st
             out.append("a quotation needs its speaker")
         if fact.get("disputed"):
             out.append("a disputed fact is not quoted")
+        out += _source_findings(fact, None)
         ev = next((e for e in fact.get("evidence") or [] if _norm(e.get("quote")) == _norm(field.get("evidence"))), None)
         if ev is None:
             out.append("the evidence string is not one of its fact's evidence quotes")
@@ -249,6 +252,50 @@ def findings(kind: str, field: dict[str, Any], sheet: dict[str, Any]) -> list[st
             if field.get("date") and not _nums(field["date"]):
                 out.append(f"the date {field['date']!r} holds no year")
     return out
+
+
+_YEARS = re.compile(r"\b(?:1\d{3}|20\d{2})s?\b|\b\d{1,2}(?:st|nd|rd|th)\s+(?:century|millennium)\b", re.IGNORECASE)
+
+
+_MONTH = (r"(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|june?|july?|aug(?:ust)?|sep(?:t(?:ember)?)?"
+          r"|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\.?")
+_DATE_EXPR = re.compile(
+    r"\b\d{1,2}(?:st|nd|rd|th)?\s+(?:of\s+)?" + _MONTH + r"(?:,?\s+\d{1,4})?\b"     # 30 June 1908
+    r"|\b" + _MONTH + r"\s+\d{1,2}(?:st|nd|rd|th)?\b(?:,?\s+\d{1,4}\b)?"            # July 29, 1941
+    r"|\b\d{1,2}:\d{2}(?:\s*[ap]\.?m\b\.?)?|\b\d{1,2}\.\d{2}\s*[ap]\.?m\b\.?"        # 7:14, 7.14 pm
+    r"|\b\d{1,2}\s*[ap]\.?m\b\.?"                                                   # 7 am
+    r"|\b(?:\d[\d,]*\s*(?:-|\u2013|to|and)\s*)?\d[\d,]*\s*(?:bce|bc|ce|ad|b\.c\.e?\.?|a\.d\.)(?![a-z])"  # 9600 BC
+    r"|\b(?:\d{1,2}(?:st|nd|rd|th)\s*(?:-|\u2013|to|and)\s*)?\d{1,2}(?:st|nd|rd|th)\s+(?:century|millennium)"
+    r"(?:\s*(?:bce|bc|ce|ad|b\.c\.e?\.?|a\.d\.)(?![a-z]))?"                       # 8th to 7th century BC
+    r"|\b(?:\d[\d,]*(?:\.\d+)?\s*(?:-|\u2013|to|and)\s*)?\d[\d,]*(?:\.\d+)?\s*(?:million\s+|thousand\s+)?years\s+ago\b"
+    r"|\b\d{3,4}\s*(?:-|\u2013|to|and)\s*(?:1\d{3}|20\d{2})\b"                   # 780 to 1180
+    r"|\b(?:ad|ce|a\.d\.)\s*\d{1,4}\b",                                              # AD 79
+    re.IGNORECASE)
+
+
+def _figures(s: str, date: bool = False) -> list[str]:
+    """The figures of a card text: its numbers, less years and centuries (a date may rest on a reference work, as
+    the fact-sheet rules allow: fact_sheet.strongly_sourced). On a date fact (`date`) the whole date expression is
+    no figure: a day of the month, a BC/AD year of any size, a time of day."""
+    s = str(s or "")
+    if date:
+        s = _DATE_EXPR.sub(" ", s)
+    return _nums(_YEARS.sub(" ", s))
+
+
+def _source_findings(fact: dict[str, Any], card_texts: Sequence[str] | None) -> list[str]:
+    """A number or a quotation (card_texts None) on a card needs a tier 1-2 site besides Wikipedia among its fact's
+    evidence (QF-40): a Wikipedia article and the pages it links to are one editable source. The evidence's
+    provenance (tier, fetch path) is part of the facts the signed record binds (facts_sha256)."""
+    if card_texts is not None and fact.get("kind") != "number" and not any(
+            _figures(t, fact.get("kind") == "date") for t in card_texts):
+        return []
+    from .fact_sheet import corroborating_sites
+    if corroborating_sites([e for e in fact.get("evidence") or [] if isinstance(e, dict) and e.get("url")]) - {
+            "wikipedia.org"}:
+        return []
+    what = "a quotation" if card_texts is None else "a number"
+    return [f"{what} needs a tier 1-2 source besides Wikipedia and the pages it cites"]
 
 
 # ------------------------------------------------------------------------------------------------ verdicts

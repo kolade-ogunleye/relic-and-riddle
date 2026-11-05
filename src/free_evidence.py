@@ -5,8 +5,9 @@ Evidence for fact sheets at no cost: the topic's Wikipedia article (free MediaWi
 extract) plus a few of the external pages that article cites, fetched directly. Quotes are the
 article's and the pages' own sentences that carry numbers, dates or the topic's key words.
 
-Wikipedia counts as a tier-2 source; the cited pages often add a tier-1 source or a second site,
-which the fact-sheet rules need for numbers and dates.
+Wikipedia counts as a tier-2 source. A page the article cites is evidence a quote can rest on, but it
+inherits tier 3 and never corroborates (QF-40): whoever edits the article chooses its links, so the article
+and a page it cites are one source. Each quote records its fetch path (fact_sheet.FETCH_*).
 Security: pages are untrusted data. HTTPS only, size-capped, text extracted (no scripts run), and the
 text is only ever quoted as evidence, never followed as instructions.
 """
@@ -22,6 +23,11 @@ import requests
 from .commons import HEADERS
 
 log = logging.getLogger(__name__)
+
+# Fetch paths, as the fact sheet records them (fact_sheet.FETCH_*; repeated here so this module stays light).
+FETCH_WIKIPEDIA = "wikipedia"
+FETCH_WIKIPEDIA_CITED = "wikipedia_cited"
+FETCH_OPENALEX = "openalex"
 
 WIKI_API = "https://en.wikipedia.org/w/api.php"
 MAX_PAGE_BYTES = 2_000_000
@@ -114,7 +120,8 @@ def fetch_openalex_scholarly_evidence(query: str, max_works: int = 3) -> Tuple[L
                          else f"Scholarly work: {title}")
                 sents = [s.strip() for s in re.split(r"(?<=[.!?])\s+", abstract_text) if len(s.strip()) >= 30]
                 for s in sents[:3]:
-                    quotes.append({"url": doi, "title": label, "quote": s, "tier": 1 if journal else 3})
+                    quotes.append({"url": doi, "title": label, "quote": s, "tier": 1 if journal else 3,
+                                   "fetch": FETCH_OPENALEX})
                 sources.append({"title": label, "url": doi})
     except Exception as e:
         log.warning("OpenAlex scholarly evidence lookup failed: %s", e)
@@ -142,7 +149,9 @@ def quotes_for(topic: Dict, keywords: List[str], max_quotes: int = 90) -> Tuple[
         for s in sentences(body):
             low = s.lower()
             if re.search(r"\d", s) or any(k in low for k in keys):
-                picked.append({"url": src_url, "title": src_title, "quote": s})
+                # reached through the article's links: tier 3 whatever its host, never a second site
+                picked.append({"url": src_url, "title": src_title, "quote": s, "tier": 3,
+                               "fetch": FETCH_WIKIPEDIA_CITED})
                 n += 1
                 if n >= limit:
                     break
@@ -166,7 +175,7 @@ def quotes_for(topic: Dict, keywords: List[str], max_quotes: int = 90) -> Tuple[
             else:
                 matched = re.search(r"\d", s) or any(k in low for k in keys)
             if matched:
-                picked.append({"url": url, "title": f"Wikipedia: {title}", "quote": s})
+                picked.append({"url": url, "title": f"Wikipedia: {title}", "quote": s, "fetch": FETCH_WIKIPEDIA})
                 n += 1
                 if n >= 45:
                     break

@@ -39,7 +39,7 @@ Posting slots (Reels at 12:00 and 19:00, Stories 45 min later, carousels Tue–T
 
 ## Core design principles
 
-- **Claims trace to evidence.** A fact sheet holds each fact with the quoted passages that support it and a source tier. Dates need a strong source or two independent sites; numbers need a primary source or two sites. Disputed figures carry a neutral hedge ("by one estimate"). The script is written from the sheet, and a trace check rejects any sentence whose claims the sheet doesn't support. If a sheet is too thin, the run skips to the next topic.
+- **Claims trace to evidence.** A fact sheet holds each fact with the quoted passages that support it and a source tier. Dates need a strong source or two independent sites; numbers need a primary source or two sites. Only tier 1-2 sites count as corroboration, and a page reached through a Wikipedia article's links never does (it is the same editable source). Disputed figures carry a neutral hedge ("by one estimate"). The script is written from the sheet, and a trace check rejects any sentence whose claims the sheet doesn't support. If a sheet is too thin, the run skips to the next topic.
 - **Two cost tiers.**
   - **Free (`SCRIPT_ENGINE=free`, `VOICE_PREFER=azure`, `MEDIA_MONTHLY_BUDGET_USD=0`):** Gemini free tier on its own key from a project with billing off (a `gemini-3.8-flash` writer checked by `gemini-3.7-flash`), Azure Speech F0, local parallax and original graphics.
   - **Paid options:** Claude (`claude-opus-5-5`, with `claude-fable-5-1` as the independent second check), ElevenLabs on a paid plan, and Kling motion clips, all under monthly spend caps.

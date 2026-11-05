@@ -32,7 +32,7 @@ from . import audio_engine, config
 from .fact_checker import ClaimFactChecker
 from . import free_llm
 from .llm import LLMError, claude_available, format_sources, research, structured_call, task as llm_task
-from . import fact_sheet, improve, trace_check
+from . import fact_sheet, improve, prompt_fence, trace_check
 from .models import (CarouselSlide, DeepDivePackage, DocumentaryAct, GraphicsPlan, Poll, ScriptCore, ScriptPackage,
                      Source, StorySlide, ThumbnailCopy)
 
@@ -3009,8 +3009,10 @@ class ScriptEngine:
                         seen_q.add(q_text)
                         evidence_listing.append(f"- \"{q_text[:400]}\"")
             evidence_block = "\n".join(evidence_listing[:35])
+            mark = prompt_fence.new_token()   # quoted web text, its tags escaped, inside this call's fence (QF-41)
             raw_evidence_str = (
-                f"\n\n<raw_evidence_quotes>\n{evidence_block}\n</raw_evidence_quotes>\n"
+                "\n\n" + prompt_fence.fence_note(mark) + "\n"
+                + prompt_fence.fence("raw_evidence_quotes", evidence_block, mark) + "\n"
                 if evidence_block else ""
             )
 
@@ -3042,6 +3044,8 @@ class ScriptEngine:
         from .hook_learning import steer_note
         steers = steer_note(topic.get("hook_form")) + engagement_steer(topic.get("engagement_forms"))
         core = _structured(SYSTEM_PROMPT, prompt + steers + length_target_note(), ScriptCore, effort="high")
+        if sheet is not None:
+            prompt_fence.check_reply(core, mark)
         if spoken_length_problems(ScriptPackage(**core.model_dump())):
             # This draft will be sent back for its length: graphics are planned only for one that can be kept.
             return ScriptPackage(**core.model_dump())

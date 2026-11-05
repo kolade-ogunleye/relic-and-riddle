@@ -22,7 +22,7 @@ from typing import Any, Dict, List, Literal, Tuple
 from pydantic import BaseModel
 
 from . import fact_sheet
-from . import free_llm
+from . import free_llm, prompt_fence
 from .llm import task as llm_task
 
 log = logging.getLogger(__name__)
@@ -317,7 +317,9 @@ def evidence_check(payload: Dict[str, Any], sheet: Dict[str, Any]) -> Tuple[str,
     listing = "\n".join(f"Q{i}: [{e['url'].split('/')[2] if '//' in e['url'] else e['url']}] {e['quote']}"
                         for i, e in enumerate(quotes, 1))
     package = "\n".join(f"[{w}] {t}" for w, t in surfaces(payload))
-    prompt = f"<evidence_quotes>\n{listing}\n</evidence_quotes>\n\n<package>\n{package}\n</package>"
+    mark = prompt_fence.new_token()   # quoted web text cannot close its own tag or pose as instructions (QF-41)
+    prompt = (prompt_fence.fence_note(mark) + "\n\n" + prompt_fence.fence("evidence_quotes", listing, mark)
+              + "\n\n" + prompt_fence.fence("package", package, mark))
     try:
         if gemini_checker_available():
             # On Gemini whatever the writer engine: a different model family from a Claude writer, and a
@@ -328,6 +330,10 @@ def evidence_check(payload: Dict[str, Any], sheet: Dict[str, Any]) -> Tuple[str,
             report = free_llm.call(EVIDENCE_SYSTEM, prompt, EvidenceReport, role="checker", effort="medium", max_tokens=8000)
     except free_llm.FreeQuotaUnavailable as e:
         return "unavailable", 0.0, [], f"Evidence check unavailable: {e}"
+    try:
+        prompt_fence.check_reply(report, mark)
+    except prompt_fence.FenceEchoed as e:
+        return "fail", 0.0, [], f"Evidence check rejected: {e}"
     for claim in report.claims:
         if not _is_empirical_claim(claim):
             continue

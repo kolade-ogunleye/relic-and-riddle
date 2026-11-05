@@ -157,9 +157,10 @@ def _detect_faces_cognitive_gemini(img: np.ndarray) -> Optional[List[Tuple[int, 
             "where coordinates are normalized integers in [0, 1000]."
         )
         body = {
+            "system_instruction": {"parts": [{"text": prompt}]},   # the task in its own role (QF-41)
             "contents": [{
+                "role": "user",
                 "parts": [
-                    {"text": prompt},
                     {"inline_data": {"mime_type": "image/jpeg", "data": data}}
                 ]
             }],
@@ -221,9 +222,10 @@ def _is_living_human_candidate(img: np.ndarray, box: Tuple[int, int, int, int]) 
                 "Answer in JSON: {\"is_living_human\": bool, \"explanation\": str}"
             )
             body = {
+                "system_instruction": {"parts": [{"text": prompt_text}]},   # the task in its own role (QF-41)
                 "contents": [{
+                    "role": "user",
                     "parts": [
-                        {"text": prompt_text},
                         {"inline_data": {"mime_type": "image/jpeg", "data": data}}
                     ]
                 }],

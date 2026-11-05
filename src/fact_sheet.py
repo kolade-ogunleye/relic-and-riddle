@@ -33,7 +33,7 @@ from typing import Any, Dict, List, Optional
 from urllib.parse import urlparse
 
 from .config import DATA_DIR
-from . import free_llm
+from . import free_llm, prompt_fence
 from .llm import research_with_evidence, structured_call, task as llm_task
 from .models import FactSheetDraft, Source
 
@@ -254,8 +254,14 @@ def build(topic: Dict[str, Any], web_search_uses: int = 10) -> Dict[str, Any]:
                    + f"Hook: {topic.get('hook', '')}\n"
                    f"Core Key Facts / Thesis: {'; '.join(topic.get('key_facts', []))}\n")
     listing = "\n".join(f"Q{i}: [{_host(q['url'])}, tier {quote_tier(q)}] {q['quote'][:600]}" for i, q in enumerate(quotes, 1))
-    draft = free_llm.call(SYSTEM, f"<topic_focus>\n{topic_focus}</topic_focus>\n\n<research_notes>\n{notes}\n</research_notes>\n\n<evidence_quotes>\n{listing}\n</evidence_quotes>",
+    # Quoted web text is fenced with a mark made for this call, its tags escaped (QF-41).
+    mark = prompt_fence.new_token()
+    draft = free_llm.call(SYSTEM, prompt_fence.fence_note(mark) + "\n\n"
+                          + "\n\n".join((prompt_fence.fence("topic_focus", topic_focus, mark),
+                                      prompt_fence.fence("research_notes", notes, mark),
+                                      prompt_fence.fence("evidence_quotes", listing, mark))),
                           FactSheetDraft, effort="high", max_tokens=12000)
+    prompt_fence.check_reply(draft, mark)
     facts, dropped = _apply_rules(draft.facts, quotes, auto_hedge=True)
     draft_cards = draft.cards
     # Facts dropped only for weak sourcing get one targeted search for a second, stronger source
@@ -269,11 +275,14 @@ def build(topic: Dict[str, Any], web_search_uses: int = 10) -> Dict[str, Any]:
         more = [{"fetch": FETCH_WEB_SEARCH, **q} for q in more]
         quotes = (quotes + [q for q in more if q not in quotes])[: MAX_QUOTES + 40]
         listing = "\n".join(f"Q{i}: [{_host(q['url'])}, tier {quote_tier(q)}] {q['quote'][:600]}" for i, q in enumerate(quotes, 1))
+        mark = prompt_fence.new_token()
         retry = structured_call(
             SYSTEM,
-            f"<research_notes>\n{more_notes}\n</research_notes>\n\n<evidence_quotes>\n{listing}\n</evidence_quotes>\n\n"
+            prompt_fence.fence_note(mark) + "\n\n" + prompt_fence.fence("research_notes", more_notes, mark) + "\n\n"
+            + prompt_fence.fence("evidence_quotes", listing, mark) + "\n\n"
             "Only restate these facts, citing the best quotes:\n" + "\n".join(f"{f.id}: {f.statement}" for f in weak),
             FactSheetDraft, effort="medium", max_tokens=4000)
+        prompt_fence.check_reply(retry, mark)
         recovered, still = _apply_rules([f for f in retry.facts if f.id in {w.id for w in weak}], quotes, auto_hedge=True)
         facts += recovered
         dropped = [d for d in dropped if d[0] not in {f["id"] for f in recovered}]

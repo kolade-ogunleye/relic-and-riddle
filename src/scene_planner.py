@@ -19,7 +19,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-from . import commons, config, free_llm, graphic_match
+from . import commons, config, free_llm, graphic_match, prompt_fence
 from .config import FOOTAGE_MAX_SHARE
 from .llm import LLMError, claude_available, image_block, structured_call, task as llm_task
 from .models import ScenePlan
@@ -168,8 +168,25 @@ def _photo_caption(p: Path) -> str:
     entry = _photo_entry(p)
     if not entry:
         return ""
-    crowded = (entry.get("vision_review") or {}).get("people_prominent")
-    return commons.caption(entry) + ("; prominent visitors, faces blurred: avoid for the hook" if crowded else "")
+    return commons.caption(entry) + _CROWDED_NOTE * _crowded(entry)
+
+
+_CROWDED_NOTE = "; prominent visitors, faces blurred: avoid for the hook"
+
+
+def _crowded(entry: dict[str, Any]) -> bool:
+    return bool((entry.get("vision_review") or {}).get("people_prominent"))
+
+
+def _caption_label(p: Path, mark: str) -> str:
+    """A photo's archive caption for the planner's prompt: a short JSON string inside the call's fence, with the
+    pipeline's own crowd note outside it ("" if the photo has no record)."""
+    entry = _photo_entry(p)
+    cap = commons.caption(entry) if entry else ""
+    if not cap:
+        return _CROWDED_NOTE[2:] if entry and _crowded(entry) else ""
+    label = f'<caption fence="{mark}">{prompt_fence.safe_caption(cap)}</caption fence="{mark}">'
+    return label + _CROWDED_NOTE * _crowded(entry)
 
 
 # The opening shot (Meta's Creator assistant on the operator's Reel, 2026-10-28: "move that top-down aerial shot
@@ -495,13 +512,14 @@ def plan_scenes(beats: List[Dict[str, Any]], media: List[Path], feedback: str = 
     # 2. LLM Multimodal Scene Planning (used when no approved storyboard exists or reviewer requested feedback)
     if notes != STORYBOARD_NOTES and (free_llm.available() if free_llm.enabled() else claude_available()) and stills:
         try:
-            content: List[dict] = []
+            mark = prompt_fence.new_token()   # archive captions are quoted data, never instructions (QF-41)
+            content: List[dict] = [{"type": "text", "text": prompt_fence.fence_note(mark)}]
             for i, p in enumerate(options, 1):
                 if p in graphics:
                     content += [{"type": "text", "text": f"Image {i} ({_clip_label(p)}):"}, image_block(p.with_suffix(".jpg"))]
                 else:
-                    cap = _photo_caption(p)
-                    content += [{"type": "text", "text": f"Image {i}" + (f" ({cap}):" if cap else ":")}, image_block(p)]
+                    label = _caption_label(p, mark)
+                    content += [{"type": "text", "text": f"Image {i}" + (f" ({label}):" if label else ":")}, image_block(p)]
             lines = "\n".join(f"Beat {i}: {b['text']}" for i, b in enumerate(beats, 1))
             fix = f"\n\nA reviewer found these problems with the previous choice; fix them:\n{feedback}" if feedback else ""
             pinned_txt = ""
@@ -521,6 +539,7 @@ def plan_scenes(beats: List[Dict[str, Any]], media: List[Path], feedback: str = 
                 try:
                     plan = (free_llm.call(SYSTEM, content, ScenePlan, effort="low", max_tokens=4000)
                             if free_llm.enabled() else structured_call(SYSTEM, content, ScenePlan, effort="low", max_tokens=4000))
+                    prompt_fence.check_reply(plan, mark)
                 except LLMError as e:
                     failure = f"Scene planning attempt {attempt}/{config.SCENE_PLAN_ATTEMPTS} failed ({e})"
                 else:

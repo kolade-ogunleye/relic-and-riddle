@@ -1,0 +1,85 @@
+{
+  "master_sha256": "632fc4341260542878044683fc9821b1ab8aac2d44eb7e74af12589316373ae2",
+  "encoded_audio": {
+    "measurements": [
+      {
+        "integrated_lufs": -14.1,
+        "true_peak_dbtp": -1.8
+      }
+    ],
+    "attenuation_db": 0.0,
+    "limiter_ceiling_db": null
+  },
+  "scenes": {
+    "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\output\\run_richat_structure_sahara_eye_1793474843\\parallax\\scene_01.mp4": "db5c303d83c23a37c33311af3438f066489ab7ca8cab76b9828de893288268c3",
+    "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\output\\run_richat_structure_sahara_eye_1793474843\\graphics\\graphic_map.mp4": "d2a678944c2ab305ebb0a112794d7f232d0877fd9a98916907a5d8a7b53af2fe",
+    "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\output\\run_richat_structure_sahara_eye_1793474843\\parallax\\scene_03.mp4": "270d6951fc83d9daadc90f79996dd2747c1f9bf27d65803b978e747c502293d8",
+    "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\output\\run_richat_structure_sahara_eye_1793474843\\parallax\\scene_04.mp4": "552f09d276dacd5b492d8b87294cec31bf5f00ab743575cea05f396fdce9d2b9",
+    "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\output\\run_richat_structure_sahara_eye_1793474843\\parallax\\scene_05.mp4": "1c94757aa00d80b0f0d67a38c7601c7f83cd96249eaf5800f70bcde3cd7c677c",
+    "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\12_commons.jpg": "b4cbf829d667aef39d78a0772071afbbb05fe032ae930ca2861971f08b19808d",
+    "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\output\\run_richat_structure_sahara_eye_1793474843\\graphics\\graphic_numbers.mp4": "5edd042b23639d633fdf43870f8e79a8ce6bf63a1eda23005ee078402a67f1ad",
+    "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\output\\run_richat_structure_sahara_eye_1793474843\\parallax\\scene_08.mp4": "7a48af7d9a7bc554090b3dec225a70e76f8c6f6ef9b54f0577bf5d9d7967f624",
+    "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\output\\run_richat_structure_sahara_eye_1793474843\\parallax\\scene_09.mp4": "39ba25a32356fecf32fe0d8dab42bc58d9c9bc27ed47f74a26a42ad533bbba3b",
+    "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\output\\run_richat_structure_sahara_eye_1793474843\\parallax\\scene_10.mp4": "483f3fd6f093a9a191dde179954f2d82554b12821addb4c48127813aadbcd366"
+  },
+  "voiceover": {
+    "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\output\\run_richat_structure_sahara_eye_1793474843\\voiceover.mp3": "d2ebc6e054afa186a9607414d2c79303a7dce932a8d0b1f99745a9bfa4cedea8"
+  },
+  "ambient_bed": {
+    "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\output\\run_richat_structure_sahara_eye_1793474843\\ambient_bed.wav": "839b6fb7b04930ac9642b46b7265c8dae9dfe8daa57a14cd9189bbe71d795d7a"
+  },
+  "fonts": {
+    "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\fonts\\Anton-Regular.ttf": "a4ba3a92350ebb031da0cb47630ac49eb265082ca1bc0450442f4a83ab947cab",
+    "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\fonts\\Montserrat-Variable.ttf": "0f7b311b2f3279e4eef9b2f968bcdbab6e28f4daeb1f049f4f278a902bcd82f7",
+    "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\fonts\\Cinzel-Variable.ttf": "f4d83d34d1f6c741193e4acf4b3dff9531e5a67b6aa65228d00a7db72a4e0f34",
+    "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\fonts\\IBMPlexMono-SemiBold.ttf": "f04d7c488ddf7d1fa99f2574efc3406ea4cbe17bb1af3a1ab960f84d0c96a172"
+  },
+  "captions": {
+    "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\output\\run_richat_structure_sahara_eye_1793474843\\richat_structure_sahara_eye_master_captions.ass": "59aca1a8ef24157b579afb3d59c014164c4c5fce07dd7b7dc9b6966928c81cc7",
+    "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\output\\run_richat_structure_sahara_eye_1793474843\\richat_structure_sahara_eye_master.srt": "e50159d38de22b39ba03a770c7fb296f91bd3fd244b9e05ee5a3a83298459da1",
+    "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\output\\run_richat_structure_sahara_eye_1793474843\\richat_structure_sahara_eye_master.vtt": "170b25eae8c7c0b2516ad89adcb0e2e35896e49275b89e61f0fc959b5aa1c196"
+  },
+  "words_fingerprint": "c124cefcb64214e2a0234b4ef12cdf31c4b2aa9d5e9fbe44ca90f02278098d98",
+  "width": 1080,
+  "height": 1920,
+  "renderer_sha256": "71fbf1abf8f50f563e3ebb347acc13e4d601b8b0a6b9f4d224bb856571602272",
+  "end_card": {
+    "variant": "plain_v4",
+    "start_s": 43.848,
+    "duration_s": 2.9,
+    "text": "Send this to a friend who loves geology.",
+    "dim": {
+      "floor": 0.54,
+      "peak": 0.95,
+      "soften": 0.85,
+      "texture": 46.2,
+      "band": 23.5,
+      "band_std": 5.6,
+      "above": 32.5,
+      "below": 40.0
+    },
+    "box": [
+      206.6,
+      857,
+      873.4,
+      883
+    ],
+    "share_lines": [
+      "Send this to a friend",
+      "who loves geology."
+    ],
+    "share_size": 62,
+    "follow_size": 35,
+    "safe_width": 696,
+    "contrast": {
+      "brand": 9.59,
+      "share": 15.3,
+      "follow": 10.02
+    },
+    "level": {
+      "body_lufs": -13.9,
+      "card_lufs": -22.6,
+      "correction_db": 2.7
+    }
+  }
+}

@@ -573,7 +573,7 @@
      "run": "output/run_richat_structure_sahara_eye_1792740961_long",
      "topic": "richat_structure_sahara_eye",
      "format": "16:9",
-     "words": "output/run_richat_structure_sahara_eye_1792740961_long/words.json",
+     "words": "docs/reviews/freeze-panel-2026-11-04/fixtures/runs/run_richat_structure_sahara_eye_1792740961_long/words.json",
      "n_words": 454,
      "duration_s": 195.93,
      "emphasis_words": [],
@@ -791,7 +791,7 @@
      "timeline_complete": false,
      "why": "the only 16:9 narration (documentary words.json)",
      "feed": {
-      "words": "output/run_richat_structure_sahara_eye_1792740961_long/words.json",
+      "words": "docs/reviews/freeze-panel-2026-11-04/fixtures/runs/run_richat_structure_sahara_eye_1792740961_long/words.json",
       "emphasis": "payload.emphasis_words",
       "call": "composer.build_subtitles(words, ass_path, emphasis=emphasis_words, width, height); background at a burst time t = the scene clip in `timeline` covering t (caption-free parallax/graphic clip or the still itself), see fixtures.background_at"
      }
@@ -800,7 +800,7 @@
      "run": "output/run_gol_gumbaz_whispering_gallery_1793278143",
      "topic": "gol_gumbaz_whispering_gallery",
      "format": "9:16",
-     "words": "output/run_gol_gumbaz_whispering_gallery_1793278143/words.json",
+     "words": "docs/reviews/freeze-panel-2026-11-04/fixtures/runs/run_gol_gumbaz_whispering_gallery_1793278143/words.json",
      "n_words": 100,
      "duration_s": 44.39,
      "emphasis_words": [
@@ -933,7 +933,7 @@
      "timeline_complete": true,
      "why": "most multi-word proper names in one 9:16 narration",
      "feed": {
-      "words": "output/run_gol_gumbaz_whispering_gallery_1793278143/words.json",
+      "words": "docs/reviews/freeze-panel-2026-11-04/fixtures/runs/run_gol_gumbaz_whispering_gallery_1793278143/words.json",
       "emphasis": "payload.emphasis_words",
       "call": "composer.build_subtitles(words, ass_path, emphasis=emphasis_words, width, height); background at a burst time t = the scene clip in `timeline` covering t (caption-free parallax/graphic clip or the still itself), see fixtures.background_at"
      }
@@ -942,7 +942,7 @@
      "run": "output/run_tunguska_event_1908_1792930600",
      "topic": "tunguska_event_1908",
      "format": "9:16",
-     "words": "output/run_tunguska_event_1908_1792930600/words.json",
+     "words": "docs/reviews/freeze-panel-2026-11-04/fixtures/runs/run_tunguska_event_1908_1792930600/words.json",
      "n_words": 98,
      "duration_s": 42.46,
      "emphasis_words": [
@@ -1066,7 +1066,7 @@
      "timeline_complete": true,
      "why": "longest multi-word proper name (characters)",
      "feed": {
-      "words": "output/run_tunguska_event_1908_1792930600/words.json",
+      "words": "docs/reviews/freeze-panel-2026-11-04/fixtures/runs/run_tunguska_event_1908_1792930600/words.json",
       "emphasis": "payload.emphasis_words",
       "call": "composer.build_subtitles(words, ass_path, emphasis=emphasis_words, width, height); background at a burst time t = the scene clip in `timeline` covering t (caption-free parallax/graphic clip or the still itself), see fixtures.background_at"
      }
@@ -1075,7 +1075,7 @@
      "run": "output/run_amber_room_heist_1792790550",
      "topic": "amber_room_heist",
      "format": "9:16",
-     "words": "output/run_amber_room_heist_1792790550/words.json",
+     "words": "docs/reviews/freeze-panel-2026-11-04/fixtures/runs/run_amber_room_heist_1792790550/words.json",
      "n_words": 105,
      "duration_s": 48.86,
      "emphasis_words": [
@@ -1229,7 +1229,7 @@
      "timeline_complete": false,
      "why": "longest single word across all narrations; non-ASCII letters in a proper name (Königsberg)",
      "feed": {
-      "words": "output/run_amber_room_heist_1792790550/words.json",
+      "words": "docs/reviews/freeze-panel-2026-11-04/fixtures/runs/run_amber_room_heist_1792790550/words.json",
       "emphasis": "payload.emphasis_words",
       "call": "composer.build_subtitles(words, ass_path, emphasis=emphasis_words, width, height); background at a burst time t = the scene clip in `timeline` covering t (caption-free parallax/graphic clip or the still itself), see fixtures.background_at"
      }
@@ -1238,7 +1238,7 @@
      "run": "output/run_voynich_manuscript_1792965308",
      "topic": "voynich_manuscript",
      "format": "9:16",
-     "words": "output/run_voynich_manuscript_1792965308/words.json",
+     "words": "docs/reviews/freeze-panel-2026-11-04/fixtures/runs/run_voynich_manuscript_1792965308/words.json",
      "n_words": 115,
      "duration_s": 45.68,
      "emphasis_words": [
@@ -1377,7 +1377,7 @@
      "timeline_complete": true,
      "why": "most words in a 9:16 narration (densest bursts)",
      "feed": {
-      "words": "output/run_voynich_manuscript_1792965308/words.json",
+      "words": "docs/reviews/freeze-panel-2026-11-04/fixtures/runs/run_voynich_manuscript_1792965308/words.json",
       "emphasis": "payload.emphasis_words",
       "call": "composer.build_subtitles(words, ass_path, emphasis=emphasis_words, width, height); background at a burst time t = the scene clip in `timeline` covering t (caption-free parallax/graphic clip or the still itself), see fixtures.background_at"
      }

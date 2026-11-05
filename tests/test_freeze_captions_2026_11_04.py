@@ -438,12 +438,28 @@ def test_reel_ink_pad_is_28_px_on_the_widest_bursts(text, tmp_path):
             assert max(int(x) for x in re.findall(r"-?\d+", path)[0::2]) <= 696, line
 
 
+def require_raqm():
+    """Measured widths are pinned to Pillow's raqm layout (operator decision 2026-11-05: raqm everywhere; on Windows
+    FriBiDi's DLL must be on PATH, see docs/HANDOVER-design.md). A build without it fails here, by name."""
+    from PIL import features
+    assert features.check("raqm"), "Pillow raqm layout is unavailable (FriBiDi missing): measured pins are raqm's"
+
+
+# Pinned to raqm (operator decision 2026-11-05): text -> (fit size, Pillow measure, libass ink width), measured with
+# Pillow 12.3.0 / raqm 0.10.5 / FriBiDi 1.0.18 and ffmpeg's libass (CI's WAVY ink, 552, is the same). raqm applies
+# GPOS kerning, so WAVY Vault (WA, AV) measures 545 against libass's 552; every other sample is within 2 px.
+REEL_MEASURE_RAQM = {
+    "Wait, look here!": (80, 443, 444), "Beneath Odesa": (80, 401, 403), "It was": (80, 170, 172),
+    "an estimated 720 tons": (80, 638, 640), "shore of the Black Sea": (80, 634, 635),
+    "Amenhotep III was": (80, 509, 511), "WAVY Vault 7,000": (80, 545, 552), "COUNTERREVOLUTIONARIES": (77, 634, 635),
+    "Incomprehensibilities": (80, 593, 594), "the mine's rock salt": (80, 558, 560),
+}
+
+
 @pytest.mark.skipif(not HAS_FFMPEG, reason="ffmpeg is not on PATH")
 def test_reel_measure_matches_libass_ink(tmp_path):
-    samples = ["Wait, look here!", "Beneath Odesa", "It was", "an estimated 720 tons", "shore of the Black Sea",
-               "Amenhotep III was", "WAVY Vault 7,000", "COUNTERREVOLUTIONARIES", "Incomprehensibilities",
-               "the mine's rock salt"]
-    for text in samples:
+    require_raqm()
+    for text, (size_pin, measure_pin, ink_pin) in REEL_MEASURE_RAQM.items():
         words = [{"word": w, "start": 0.1 + 0.3 * k, "dur": 0.25} for k, w in enumerate(text.split())]
         phrases = caption_phrases(words)
         assert len(phrases) == 1, text
@@ -451,7 +467,7 @@ def test_reel_measure_matches_libass_ink(tmp_path):
         _, _, il, ir = _plate_and_ink(a)
         size = vc._caption_fit_size(phrases[0])
         measured = vc.measure_caption_phrase(phrases[0], size)[0]
-        assert abs(measured - (ir - il)) <= 4, (text, measured, ir - il)
+        assert (size, measured, ir - il) == (size_pin, measure_pin, ink_pin), (text, size, measured, ir - il)
 
 
 def test_ink_budget_is_the_plate_less_the_pad():
@@ -1104,7 +1120,7 @@ def test_compose_video_draws_the_helper_vignette(tmp_path, monkeypatch):
     monkeypatch.setattr(vc, "_run_ffmpeg", fake_ffmpeg)
     comp = VideoComposer()
     monkeypatch.setattr(comp, "calibrate_gain", lambda *a, **k: 0.0)
-    still = next((ROOT / "assets" / "richat_structure_sahara_eye").glob("*.jpg"))
+    still = _fx.still("richat_structure_sahara_eye_01_commons_960.jpg")   # a real Richat photo, 960 px (committed)
     audio = tmp_path / "vo.wav"
     subprocess.run(["ffmpeg", "-v", "error", "-y", "-f", "lavfi", "-i", "anullsrc=r=48000:cl=mono", "-t", "2",
                     str(audio)], check=True, timeout=60)
@@ -1458,7 +1474,7 @@ def test_square_units_and_hedge_groups_are_bonds():
 # Operator decision 2026-11-04: every adjacent pair HEAD 0036b18 keeps in one 9:16 burst, one 16:9 burst or one sidecar
 # cue stays together, unless a name bond or a hard width or floor limit forces the cut. Replaces the round-3/4 gate
 # against HEAD 5fdb5dc (GATE_ALLOWED, REVIEW_SPLITS), which read only the _dangles ends. The fixture was written from
-# the HEAD 0036b18 worktree (regression/make_head_0036b18_cuts.py).
+# the HEAD 0036b18 worktree (regression/make_head_0036b18_cuts.py), under raqm (operator decision 2026-11-05).
 HEAD_CUTS_FILE = ROOT / "docs/reviews/freeze-panel-2026-11-04/captions/regression/head_0036b18_cuts.json"
 # Every cut the tree makes that HEAD 0036b18 does not, (case, format, left word, right word): (kind, reason). Kinds:
 # "width" (HEAD's burst draws more than 640 px of ink at 74 px and is no bond, or passes the 28 characters: measured
@@ -1466,18 +1482,20 @@ HEAD_CUTS_FILE = ROOT / "docs/reviews/freeze-panel-2026-11-04/captions/regressio
 # decision as written): the "figure" kind is withdrawn. A figure link HEAD cut no longer forces a cut (its 22 entries
 # left: amber COVERED | MORE, tunguska 830 | SQUARE, 10 | AND, MEGATONS | OF, the 16:9 DEVASTATED | MORE, the colossi
 # and aswan conversions, wieliczka 287 | AND and the cue entries); HEAD's own cut stands there.
+# Pinned to raqm (operator decision 2026-11-05; head_0036b18_cuts.json regenerated under raqm, which changes HEAD's
+# 9:16 cuts in two cases: edge gains INCOMPREHENSIBILITIES | REMAIN. (index 18); singing_colossi_of_memnon's one cut
+# REPORTED | CRY (38) becomes EMITTING | A (36) and CRY | AT (39)). So edge's INCOMPREHENSIBILITIES | REMAIN. is
+# HEAD's own cut, no longer a forced one, and its two lone words are HEAD's. Richat's HERITAGE | SITES. went because
+# the tree no longer cuts there under raqm (GEOLOGICAL HERITAGE SITES. fits): HEAD never cut there.
 GATE_FORCED = {
     ("names", "9:16", "pushed", "toward"): ("width", "PUSHED TOWARD LENINGRAD. is 653 px at 74"),
     ("edge", "9:16", "years", "ago,"): ("width", "ROUGHLY 1,200 YEARS AGO, is 646 px at 74; AGO is no bond"),
-    ("edge", "9:16", "Incomprehensibilities", "remain."): ("width", "INCOMPREHENSIBILITIES REMAIN. is 746 px at 74"),
     ("wieliczka_salt_mine", "9:16", "underground", "galleries"): ("width", "OF UNDERGROUND GALLERIES is 654 px at 74"),
     ("run:richat_structure_sahara_eye", "9:16", "dating", "of"): ("width", "DATING OF THE CARBONATITE is 649 px at 74"),
     ("run:richat_structure_sahara_eye", "9:16", "thousands", "of"):
         ("width", "THOUSANDS OF PREHISTORIC is 646 px at 74"),
     ("run:richat_structure_sahara_eye", "9:16", "recognized", "this"):
         ("width", "RECOGNIZED THIS SCIENTIFIC is 645 px at 74"),
-    ("run:richat_structure_sahara_eye", "9:16", "heritage", "sites."):
-        ("width", "GEOLOGICAL HERITAGE SITES. is 641 px at 74"),
     ("run:gol_gumbaz_whispering_gallery", "9:16", "across", "an"): ("article", "HEAD's TRAVEL ACROSS AN"),
     ("run:voynich_manuscript", "9:16", "script", "where"): ("width", "SCRIPT WHERE AN ALPHABET is 653 px at 74"),
     ("edge", "cues", "ago,", "between"): ("article", "HEAD's cue ended on BELOW THE (the next opened on SEA.)"),
@@ -1496,12 +1514,9 @@ GATE_FORCED = {
 # split ends on a function word (a hard defect, as at HEAD) or passes the width.
 LONE_FORCED = {
     ("names", "pushed"): "width: PUSHED TOWARD is a dangling end; PUSHED TOWARD LENINGRAD. 653 px at 74",
-    ("edge", "Incomprehensibilities"): "width: INCOMPREHENSIBILITIES REMAIN. 746 px at 74 (HEAD drew it under 66 px)",
-    ("edge", "remain."): "width: as INCOMPREHENSIBILITIES",
     ("run:richat_structure_sahara_eye", "dating"): "width: DATING OF | THE CARBONATITE ends on OF",
     ("run:richat_structure_sahara_eye", "thousands"): "width: THOUSANDS OF | PREHISTORIC ends on OF",
     ("run:richat_structure_sahara_eye", "recognized"): "width: RECOGNIZED THIS | SCIENTIFIC ends on THIS",
-    ("run:richat_structure_sahara_eye", "sites."): "width: GEOLOGICAL HERITAGE SITES. 641 px at 74",
     # fix round 2 (the decision as written): amber COVERED and colossi INCLUDING were figure-forced and are HEAD's
     # bursts again; wieliczka GALLERIES takes HEAD's lone KILOMETERS. back with it
     ("wieliczka_salt_mine", "galleries"):
@@ -1523,7 +1538,9 @@ def _gate_cases():
 
 
 def test_round4_base_is_head_0036b18():
-    """round4_burst_cuts and round4_cue_ends, the gate's base, reproduce HEAD 0036b18's bursts and cues exactly."""
+    """round4_burst_cuts and round4_cue_ends, the gate's base, reproduce HEAD 0036b18's bursts and cues exactly
+    (pinned to raqm, operator decision 2026-11-05: head_0036b18_cuts.json is HEAD 0036b18's own phrasing under raqm)."""
+    require_raqm()
     for case, words, emph, h in _gate_cases():
         assert sorted(vc.round4_burst_cuts(words, emph)) == h["9:16"], case
         assert sorted(vc.round4_burst_cuts(words, emph, True, 1440)) == h["16:9"], case
@@ -1531,6 +1548,7 @@ def test_round4_base_is_head_0036b18():
 
 
 def test_head_regression_gate():
+    require_raqm()   # the HEAD cuts are raqm's (operator decision 2026-11-05)
     budget = vc._ink_budget()
     new = {}
     for case, words, emph, h in _gate_cases():
@@ -1562,6 +1580,7 @@ def test_head_regression_gate():
 def test_lone_word_bursts_are_head_or_forced():
     """Was test_lone_word_bursts_are_each_forced (against HEAD 5fdb5dc). Every one-word 9:16 burst is one HEAD 0036b18
     forms, or listed in LONE_FORCED with the cut that forces it (operator decision 2026-11-04)."""
+    require_raqm()   # the HEAD cuts are raqm's (operator decision 2026-11-05)
     found = set()
     for case, words, emph, h in _gate_cases():
         raw = [w["word"] for w in words]
@@ -1690,7 +1709,7 @@ def _scene_clips(case):
     if rest:
         t0 = starts[-1] + float(known[-1].get("duration_s") or 0)
         starts += [t0 + i * max(dur - t0, 0) / len(rest) for i in range(len(rest))]
-    clips = [_fx.path(s["clip"]) for s in tl]
+    clips = [_fx.run_path(s["clip"]) for s in tl]   # graphic posters are committed copies (fixtures/runs)
     return clips, [b - a for a, b in zip(starts, starts[1:])] + [dur - starts[-1]]
 
 
@@ -1719,15 +1738,17 @@ def test_richat_reel_graphics_and_the_two_line_plate(tmp_path):
     two-line plate, the one-line plates stay clear of every graphic's text, nothing is flagged and the file is
     byte-identical to the build without the guard (was: one flag, the two-line ON THE / ADRAR PLATEAU OF
     MAURITANIA reaching y 991 over the map's 300 KM scale box)."""
-    run = ROOT / "output" / "run_richat_structure_sahara_eye_1793474843"
-    words = json.loads((run / "words.json").read_text("utf-8"))
-    scenes = [Path(x) for x in json.loads(
-        (run / "richat_structure_sahara_eye_master.composition.json").read_text("utf-8"))["scenes"]]
+    run = Path("output") / "run_richat_structure_sahara_eye_1793474843"   # its committed copy (fixtures/runs)
+    words = json.loads(_fx.run_file(run, "words.json").read_text("utf-8"))
+    scenes = [_fx.run_path(x) for x in json.loads(
+        _fx.run_file(run, "richat_structure_sahara_eye_master.composition.json").read_text("utf-8"))["scenes"]]
     vo = words[-1]["start"] + words[-1]["dur"]
     gclips = vc.caption_graphic_clips(scenes, [(vo + vc.TRANS_DUR) / len(scenes)] * len(scenes))
     comp = VideoComposer()
     a = comp.build_subtitles(words, tmp_path / "a.ass", graphic_clips=gclips).read_text("utf-8")
     flagged = comp.last_caption_graphic_overlap
+    # the committed graphic records are what the guard read (a missing sidecar would also give no flag)
+    assert len(gclips) == 2 and all(Path(str(c) + vc.CAPTION_CONTRAST_SIDECAR).is_file() for _, _, c in gclips), gclips
     assert flagged == []
     assert all(vc.reel_caption_lines(p) is None for p in caption_phrases(words))
     b = VideoComposer().build_subtitles(words, tmp_path / "b.ass").read_text("utf-8")
@@ -1877,15 +1898,12 @@ def test_sidecar_cue_keeps_a_new_clause_and_ago():
 def _aswan_words():
     """The real unfinished-obelisk run 1792985912 (its fixture case in the social section)."""
     case = next(c for c in _fx.load("social") if str(c["run"]).endswith("run_unfinished_obelisk_aswan_1792985912"))
-    return _fx.json_of(Path(case["run"]) / "words.json")
+    return _fx.json_of(_fx.run_file(case["run"], "words.json"))
 
 
 def _nazca_words():
     """The real nazca run 1792961797: not a fixture case (the reviewer's 35-run corpus case), read from its run."""
-    path = ROOT / "output" / "run_nazca_lines_runway_paradox_1792961797" / "words.json"
-    if not path.exists():
-        pytest.skip("the real nazca run 1792961797 is not on this machine")
-    return json.loads(path.read_text("utf-8"))
+    return json.loads(_fx.run_file("output/run_nazca_lines_runway_paradox_1792961797", "words.json").read_text("utf-8"))
 
 
 def _line_and_cue_breaks(cues):

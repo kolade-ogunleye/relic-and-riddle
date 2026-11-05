@@ -170,6 +170,21 @@ def warn_missing_geo_files() -> List[str]:
     return lines
 
 
+def warn_missing_raqm() -> List[str]:
+    """A WARNING at run start when Pillow cannot lay text out with raqm (operator decision 2026-11-05: raqm everywhere,
+    so every machine renders what review measured). Pillow's wheels load FriBiDi at run time: on Linux the libfribidi0
+    package, on Windows libfribidi-0.dll on PATH (docs/HANDOVER-design.md). Without it text falls back to BASIC layout
+    (no shaping, no GPOS kerning) and lines measure wider than reviewed. Returns the warnings logged."""
+    from PIL import features
+    if features.check("raqm"):
+        return []
+    line = ("Pillow raqm text layout is unavailable (FriBiDi not found), so text renders with BASIC layout and "
+            "measures wider than reviewed. Install FriBiDi: Linux libfribidi0; Windows libfribidi-0.dll on PATH "
+            "(docs/HANDOVER-design.md).")
+    log.warning(line)
+    return [line]
+
+
 class PipelineCoordinator:
     def __init__(self, db: Optional[PipelineDatabase] = None, schedule_posts: bool = False):
         # schedule_posts: approved Reels wait for their posting slot (daemon); otherwise post at once (CLI).
@@ -228,6 +243,7 @@ class PipelineCoordinator:
             log.warning("FONT_SIZE=72 is set (a .env from before 2026-11-03?): Reel captions draw at 72 px, not the "
                         "approved 80. Remove the line or set FONT_SIZE=80.")
         warn_missing_geo_files()
+        warn_missing_raqm()
         if not health["all_passed"]:
             # Said in Telegram, not only logged: production's scheduled runs failed this way unnoticed (ffprobe).
             failed = [f"{k}: {v['msg']}" for k, v in health["details"].items() if v["required"] and not v["passed"]]

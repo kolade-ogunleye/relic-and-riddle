@@ -71,6 +71,33 @@ def words(case: dict[str, Any]) -> list[dict[str, Any]]:
     return json_of(case["words"])
 
 
+RUNS_DIR = HERE / "runs"        # committed copies of the run files the tests read (output/ is gitignored)
+STILLS_DIR = HERE / "stills"    # small committed stills cut from real run photos (assets/**/*.jpg is gitignored)
+
+
+def run_file(run: str | Path, rel: str | Path) -> Path:
+    """A run's file inside its committed copy, fixtures/runs/<run folder>/, when that run is copied (CI has no output/;
+    a sibling such as a graphic's poster still resolves there too), else in the run folder itself (output/run_*/)."""
+    name = Path(str(run).replace("\\", "/")).name
+    folder = RUNS_DIR / name
+    return folder / Path(str(rel).replace("\\", "/")) if folder.is_dir() else path(run) / rel
+
+
+def run_path(p: str | Path) -> Path:
+    """A recorded path inside a run folder (output/run_*/..., repo-relative or an absolute path from the machine that
+    made the run), rebased onto the committed copy when there is one."""
+    parts = Path(str(p).replace("\\", "/")).parts
+    k = next((i for i, x in enumerate(parts) if x.startswith("run_")), None)
+    if k is None:
+        return path(p)
+    return run_file(Path("output") / parts[k], Path(*parts[k + 1:]))
+
+
+def still(name: str) -> Path:
+    """A committed small still (fixtures/stills/<name>)."""
+    return STILLS_DIR / name
+
+
 def payload(case: dict[str, Any]) -> dict[str, Any]:
     """The run's own verified script (thumbnail, carousel_slides, story_slides, share_line, emphasis_words, ...)."""
     p = (case.get("feed") or {}).get("payload") or case.get("payload")

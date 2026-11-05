@@ -89,3 +89,14 @@ The ground tags are: dark < 70 luma, bright/near-white > 170, busy edge energy >
 ## Marked new
 
 The three 16:9 end-screen cases and the three recipe-less social cases above. Nothing else in the catalogue is new.
+
+## Committed copies (CI has no output/ or assets photos)
+
+- `runs/<run folder>/`: the run files the tests read (words.json timings, one composition record, graphic
+  `.contrast.json` records and two graphic poster stills), copied unchanged from `output/` (JSON line ends normalised
+  to LF). `fixtures.run_file` / `run_path` read them in place of `output/`.
+- `stills/richat_structure_sahara_eye_01_commons_960.jpg`: photo 1 of the Richat run (`assets/richat_structure_sahara_eye/01_commons.jpg`),
+  downscaled to 960 px. Credit: "Richat Structure, Mauritania" by Monja Šebela / SentinelHub, contains modified
+  Copernicus Sentinel data [2019], processed by Sentinel Hub,
+  https://commons.wikimedia.org/wiki/File:Richat_Structure,_Mauritania.png, licensed CC BY 2.0
+  (https://creativecommons.org/licenses/by/2.0); downscaled to 960 px.

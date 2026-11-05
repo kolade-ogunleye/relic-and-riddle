@@ -29,15 +29,29 @@ name no further gain, two consecutive adversarial rounds find no new defect, and
 
 ## Operator decisions, freeze step 2 (approved 2026-11-05, for the PC session to implement)
 
-- **Text layout engine: raqm everywhere.** Do not force BASIC. Make Pillow's raqm layout (shaping and GPOS kerning)
-  available on every machine that renders: CI (install `libfribidi0` explicitly in `.github/workflows/tests.yml`),
-  the dev PC and the production VM (both Windows: Pillow's wheel loads FriBiDi at run time, so a FriBiDi DLL must be
-  on `PATH` [UNVERIFIED: confirm the DLL name and source against Pillow's install docs]). Add a start-up warning, in
-  the style of `main.warn_missing_geo_files()`, when `PIL.features.check("raqm")` is false. Pin measured test values
-  to raqm. Add the FriBiDi step to the go-live checklist below once confirmed.
+- **Text layout engine: raqm everywhere.** Do not force BASIC. Done:
+  - CI installs `libfribidi0` (`.github/workflows/tests.yml`).
+  - Dev PC (2026-11-05): `libfribidi-0.dll` from MSYS2's UCRT64 package `mingw-w64-ucrt-x86_64-fribidi-1.0.18-1`
+    (repo.msys2.org; package SHA-256 `4837d362...ac920` matches the repository database; DLL SHA-256
+    `4c775e98...746c9`; it imports only the Windows CRT and KERNEL32) in `C:\Users\omokolade\bin\fribidi`, on the
+    user `PATH`. Pillow 12.3.0 then reports raqm 0.10.5 and FriBiDi 1.0.18. Pillow's docs: its wheels load
+    `fribidi.dll`, `fribidi-0.dll` or `libfribidi-0.dll` at run time from the DLL search path; they name no download.
+  - `main.warn_missing_raqm()` warns at run start when `PIL.features.check("raqm")` is false, and
+    `tests/test_raqm_layout_2026_11_05.py` fails a suite run on a build without raqm.
+  - Measured test values are pinned to raqm (the CI fix below). Processes started before the `PATH` change (the dev
+    bot) lay text out with BASIC until they are restarted.
 - **Chapter cards: draw all of them.** A long act title (3 of 5 Richat titles are over 32 characters) wraps to two
   lines; no card is dropped.
 - **Caption small caps: none.** Anton has no true small caps, and faux caps are 18% thinner; keep full caps.
+  **Withdrawn for now (operator, 2026-11-05):** built and measured, full caps make the 9:16 bursts 12-18% wider
+  (one-word bursts 13 -> 71 on the five real runs; names stop fitting at the 66 px floor and end on THE; a third main
+  test, `test_caption_emphasis.py::test_clause_starter_starts_new_burst`, fails). Small caps stay until a font with
+  true small caps or a resized full-caps design is reviewed. The measured patch is kept outside the repo
+  (`C:/tmp/fullcaps-2026-11-05.patch` on the dev PC).
+- **Caption measure without kerning (operator, 2026-11-05):** libass draws the captions unkerned (the ASS header has
+  no `Kerning: yes`), while Pillow's raqm measure kerns, so a kerned pair measures narrower than it draws (WAVY VAULT:
+  545 measured, 552 drawn). Measure each word as the sum of its letters' advances, as libass draws it; nothing on
+  screen changes. To build, review and re-pin.
 
 ## CI on PR #3 (red since 3ac24dd)
 
@@ -46,6 +60,14 @@ name no further gain, two consecutive adversarial rounds find no new defect, and
 Commit the needed `words.json` files and one small still into `docs/reviews/freeze-panel-2026-11-04/fixtures/`, point
 `fixtures.json` at them, and pin the two measurement tests to raqm (decision above). Do not skip tests. Details:
 https://github.com/kolade-ogunleye/relic-and-riddle/pull/3#issuecomment-6652354441
+
+Done (2026-11-05): the run files the tests read are committed under `fixtures/runs/<run folder>/`
+(`fixtures.run_file` and `run_path` rebase recorded run paths onto them), with a 960 px Richat still under
+`fixtures/stills/` (credited in `fixtures/README.md`, CC BY 2.0); `fixtures.json` points its captions `words` at the
+copies. `regression/head_0036b18_cuts.json` is HEAD 0036b18's own phrasing regenerated under raqm
+(`make_head_0036b18_cuts.py`): its 9:16 cuts change in two cases (edge gains index 18; colossi 38 becomes 36 and 39),
+and the gate tables follow. The Reel measure test pins raqm's widths: raqm kerns, so WAVY VAULT measures 545 px against
+the 552 px libass draws (the ASS header does not ask libass to kern); every other sample is within 2 px.
 
 ## Rules (from AGENTS.md and the operator)
 
@@ -70,3 +92,8 @@ https://github.com/kolade-ogunleye/relic-and-riddle/pull/3#issuecomment-66523544
   and remove `FONT_SIZE=72`.
 - On the VM: `python scripts/fetch_geodata.py` and `python scripts/fetch_relief.py`.
 - A Gemini key, and Tesseract (or `IMAGE_GEN_REQUIRE_OCR=false`), for illustrations and for real fact checks.
+- On the VM, FriBiDi for Pillow's raqm layout (operator decision 2026-11-05): put `libfribidi-0.dll` (MSYS2 UCRT64
+  `mingw-w64-ucrt-x86_64-fribidi`, as on the dev PC, its SHA-256 checked against the repository database) in a folder
+  on the service account's `PATH`, restart the bot, then confirm that
+  `python -c "from PIL import features; print(features.check('raqm'))"` prints True and that the run log has no
+  "raqm text layout is unavailable" warning.

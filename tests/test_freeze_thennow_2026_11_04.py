@@ -4,6 +4,7 @@ the NOW marker sits off the divider with every line's first ink on one column, t
 year, ink type on paper, a warm dithered glow, the divider reveals the labels at the exact pixel, symmetric
 keylines, and a sweep that arrives moving."""
 import hashlib
+import sys
 import math
 from pathlib import Path
 
@@ -139,12 +140,16 @@ def test_the_halo_has_faded_out_at_its_crop_edge(size, text, font, halo_px, trac
 
 def test_a_plate_without_halo_pad_is_byte_identical_to_before():
     """Recorded from the code before the change (HEAD 5fdb5dc typography.py, loaded side by side: the same origin,
-    box, crop, halo mask and composite)."""
+    box, crop, halo mask and composite). Pinned to raqm (operator decision 2026-11-05) per platform: CI's Linux raqm
+    rasterises 1925 as the recorded values; Windows raqm (Pillow 12.3.0, FriBiDi 1.0.18) draws its ink 1 px wider."""
+    from PIL import features
+    assert features.check("raqm"), "Pillow raqm layout is unavailable (FriBiDi missing): measured pins are raqm's"
+    box, shape, sha = HALO_DEFAULT_PINS["win32" if sys.platform == "win32" else "linux"]
     f = get_font("Anton", 128)
     p = TextPlate("1925", f, brand.BONE, (84, 392), "lt", 0, 0, INK, 31, False, PORTRAIT)
-    assert p.origin == (38, 345) and p.box == (85, 392, 314, 504)
-    assert p.glyphs.shape == (206, 323)
-    assert hashlib.sha256(p.halo_mask.tobytes()).hexdigest()[:16] == HALO_DEFAULT_SHA
+    assert p.origin == (38, 345) and p.box == box
+    assert p.glyphs.shape == shape
+    assert hashlib.sha256(p.halo_mask.tobytes()).hexdigest()[:16] == sha
     # and the halo alpha is still truncated, not rounded, on the default path
     base = Image.new("RGBA", p.halo_mask.size, (250, 250, 250, 255))
     out = np.asarray(p._layer(base, 0.5))[..., 0].astype(int)
@@ -155,6 +160,9 @@ def test_a_plate_without_halo_pad_is_byte_identical_to_before():
 
 
 HALO_DEFAULT_SHA = "50a9763159c699fa"   # sha256 prefix of the halo mask, from the code before the change
+# raqm per platform: (box, glyph crop shape, halo-mask sha256 prefix)
+HALO_DEFAULT_PINS = {"linux": ((85, 392, 314, 504), (206, 323), HALO_DEFAULT_SHA),
+                     "win32": ((85, 392, 315, 504), (206, 324), "64873fb3a147fc06")}
 
 
 GROUNDS = {

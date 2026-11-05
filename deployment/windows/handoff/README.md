@@ -1,16 +1,19 @@
-# Transitional Windows runtime source
+# Transitional Windows runtime source (record only)
 
-This directory preserves the application-specific source handed back by the lab
+This directory recorded the application-specific source handed back by the lab
 project after its 2026-10-22 ownership correction. `provenance.json` records each
 file's SHA-256 and the source checkout HEAD. The files came from uncommitted
-working-tree changes; HEAD alone does not identify them. Copies are byte-identical,
-except three files whose operator identifiers were replaced (QF-49): those carry
-`local_sha256` beside the lab's `sha256`.
+working-tree changes; HEAD alone does not identify them.
 Nothing was removed from the lab repository or changed on the running VM.
 
-This is migration/recovery source, not an automatic installer or an approved
-deployment. The rc3 candidate at `2f00f7f` predates this handoff. Do not run play 52
-or the registration scripts merely to collect application acceptance evidence.
+**The launcher copies are gone (QF-47, 2026-11-05).** The `tools/` and `tests/`
+copies were obsolete: their adapter still started `daemon --dry-run`, while
+production has posted live since the operator's activation on 2026-10-25, and CI
+tested that copy instead of the one production installs. The maintained launcher
+is `deployment/windows/runtime/` (the files `Install-ContentReleaseDeployer.ps1`
+installs), with its tests in `deployment/windows/runtime/tests/`. Git history keeps
+the deleted bytes; `provenance.json` still names them and the lab's hashes. Play 52
+remains here as a record and references the deleted `tools/`: do not run it.
 
 ## Boundary
 
@@ -26,25 +29,14 @@ and event-source setup. Split those responsibilities before maintaining it as
 application deployment. Its lab inventory, controller credentials and collections
 are not supplied here. Never copy Vault material or production credentials here.
 
-## Tests and migration
+## Tests
 
-From this directory, run the original adapter assertions unchanged:
+From `deployment/windows/runtime`, as CI does:
 
 ```powershell
-python -m unittest discover -s tests/python -p test_content_runtime.py -v
-Invoke-Pester -Path tests/unit/tools/ContentWorkloadProcess.Tests.ps1,tests/unit/tools/ContentRuntimeHealth.Tests.ps1,tests/unit/tools/ContentLegacyStop.Tests.ps1
+python -m unittest discover -s tests -p "test_*.py" -v
+Invoke-Pester -Path tests/unit
 ```
-
-The mixed identity-probe and Ansible tests are retained intact. They still refer
-to lab-owned tools and `site.yml`, so are not standalone application tests. Split
-their application assertions rather than weakening them for an isolated run.
-
-The old adapter retains maintenance-overlay imports and private MSAL coupling.
-The maintained `scripts/service_runtime.py` contract replaces those policies.
-Migrate the launcher while preserving identity checks, process-tree supervision,
-stop semantics, overlap protection, receipts and event integration. Promote only
-after offline tests and managed-account probes; do not overwrite the live launcher
-from this preserved snapshot.
 
 ## Production bindings (moved from lab inventory, 2026-10-22)
 

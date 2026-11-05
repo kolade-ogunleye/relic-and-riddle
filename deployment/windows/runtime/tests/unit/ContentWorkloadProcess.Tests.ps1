@@ -1,5 +1,5 @@
 BeforeAll {
-    . (Join-Path $PSScriptRoot '../../../tools/lib/ContentWorkloadProcess.ps1')
+    . (Join-Path $PSScriptRoot '../../lib/ContentWorkloadProcess.ps1')
 }
 
 Describe 'Logged workload native exit codes' {

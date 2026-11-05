@@ -1,4 +1,6 @@
-"""Offline adapter tests; no actual application or secret store is accessed."""
+"""Offline tests of the maintained launcher adapter (`runtime/content_runtime.py`, the file the release
+deployer installs); no actual application or secret store is accessed. Run from `deployment/windows/runtime`:
+`python -m unittest discover -s tests -p "test_*.py" -v` (CI does)."""
 from contextlib import redirect_stderr, redirect_stdout
 from datetime import datetime, timezone
 from dataclasses import asdict
@@ -10,7 +12,7 @@ from types import ModuleType, SimpleNamespace
 import unittest
 from unittest.mock import Mock, patch
 
-from tools import content_runtime as runtime
+import content_runtime as runtime
 
 
 class ContentRuntimeTests(unittest.TestCase):
@@ -100,12 +102,14 @@ class ContentRuntimeTests(unittest.TestCase):
                 runtime.bootstrap_backup_cache(self.settings)
         importer.assert_not_called()
 
-    def test_pipeline_preserves_dry_run(self) -> None:
+    def test_pipeline_runs_the_daemon_live(self) -> None:
+        # Production was activated by the operator on 2026-10-25: no dry run, every run is a posting
+        # candidate and approval still decides (QF-47: the obsolete handoff copy still said --dry-run).
         with patch.object(runtime, "load_application", return_value=(ModuleType("src"), ModuleType("src.config"))), \
                 patch.object(runtime.os, "chdir"), patch.object(runtime.runpy, "run_path") as runner, \
                 patch.object(runtime.sys, "argv", []):
             self.assertEqual(runtime.execute("pipeline", self.settings), 0)
-            self.assertEqual(runtime.sys.argv[1:], ["daemon", "--dry-run"])
+            self.assertEqual(runtime.sys.argv[1:], ["daemon"])
         runner.assert_called_once_with(str(self.settings.app_root / "main.py"), run_name="__main__")
 
     def test_restore_rejects_traversal_before_loading_application_secrets(self) -> None:

@@ -16,11 +16,12 @@ python scripts/service_runtime.py backup-cycle --settings C:\approved\launch.jso
 python scripts/service_runtime.py backup-restore --settings C:\approved\launch.json --snapshot-id production-YYYYMMDDTHHMMSSZ-0123456789ab
 ```
 
-These are separate processes/identities. `pipeline` retains `daemon --dry-run` and
-does not schedule API backups, load backup credentials or change paid-provider
-flags. The backup process alone reads its custody files. None of these commands
-register tasks, change ACLs, select a Windows account, send operator messages or
-enable live publication.
+These are separate processes/identities. `pipeline` runs `daemon` live (the
+operator activated production on 2026-10-25: every run is a posting candidate and
+approval still decides) and does not schedule API backups, load backup credentials
+or change paid-provider flags. The backup process alone reads its custody files.
+None of these commands register tasks, change ACLs, select a Windows account, send
+operator messages or change the posting mode.
 
 The manifest accepts the existing lab adapter's nine fields:
 `app_root`, `maintenance_root`, `runtime_root`, `backup_key_file`,

@@ -56,8 +56,11 @@ Current deployed adapters remain compatible until a lab-controlled promotion.
    human approval. Archive validation runs before explicit live activation,
    retaining paid usage, publication IDs, unknown outcomes and provenance.
 
-Production remains `daemon --dry-run` until the operator explicitly authorizes
-live posting. This runbook does not implement an automatic merge/deploy pipeline.
+Production posts live: the operator activated it on 2026-10-25, so the launcher runs
+`daemon` with no dry-run flag and every run is a posting candidate (approval still
+decides). Development's bot-started runs stay dry runs (`BOT_RUNS_DRY`). The Telegram
+dashboard masthead names the mode the running process uses: 📡 LIVE posting or 🧪 dry run.
+This runbook does not implement an automatic merge/deploy pipeline.
 
 ### Script library (step-1 work carried between environments)
 
@@ -130,8 +133,8 @@ signals that one. Stage beforehand in `<operator-home>\relic-stage`: the release
 bundle (fetched into `refs/remotes/stage/release`, which does not touch the running tree), the
 model and the new dependency wheels, so the stopped window is short. Production data files
 the release does not change (fact sheets, credits, music usage) keep their local changes. The
-procedure never changes `.env`, identities, ACLs or the backup task, and production stays in
-`--dry-run`. Rollback: the same procedure with the previous tag.
+procedure never changes `.env`, identities, ACLs or the backup task, nor the posting mode:
+production keeps posting live. Rollback: the same procedure with the previous tag.
 
 Map data is not in the release either (`tools/` is gitignored). Fetch it once on the VM, from the app root:
 `python scripts/fetch_geodata.py` (country outlines; without them no maps are made) and
@@ -182,7 +185,7 @@ deployer is doing; `/deploy` includes it in its reply.
 
 **Boundaries.** The deployer's account is denied `.env`, has no administrator membership, cannot
 change its own installed copy, the signer list or the tasks, and never changes identities, ACLs,
-the database or the backup. Production keeps `daemon --dry-run`. A tree that is not at a release
+the database or the backup. Production keeps running `daemon` live. A tree that is not at a release
 tag (a manual change) pauses automatic deployment until a release is installed again.
 
 **Releasing.** Tag a reviewed commit and sign it with the smartcard key:

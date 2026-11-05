@@ -14,6 +14,7 @@ import logging
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 import re
+import sqlite3
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import requests
@@ -1495,6 +1496,28 @@ def post_candidates(db: PipelineDatabase, hours: int = 48, limit: int = 3) -> Li
     return out
 
 
+# Whether the runs this process starts are dry runs, recorded when the bot or the daemon starts (QF-47: the docs
+# said production was a dry run while it posted live; the masthead now says which, from the process itself).
+RUNS_DRY_KEY = "process_runs_dry"
+
+
+def record_run_mode(db: PipelineDatabase, dry_run: bool) -> None:
+    """Keeps the starting process's run mode for the dashboard masthead; never stops a start."""
+    try:
+        db.set_setting(RUNS_DRY_KEY, "true" if dry_run else "false")
+    except (sqlite3.Error, OSError, AttributeError) as e:  # a stand-in database without settings
+        log.debug("Run mode not recorded: %s", e)
+
+
+def run_mode_label(db: PipelineDatabase) -> str:
+    """"📡 LIVE posting" or "🧪 dry run" for the masthead; "" before a bot or daemon recorded its mode."""
+    try:
+        recorded = db.get_setting(RUNS_DRY_KEY)
+    except (sqlite3.Error, OSError, AttributeError):
+        return ""
+    return {"false": "📡 LIVE posting", "true": "🧪 dry run"}.get(recorded or "", "")
+
+
 def dashboard_text_and_buttons(db: PipelineDatabase, next_run: Optional[str] = None, assets_dir: Path = ASSETS_DIR) -> Tuple[str, List[List[Dict[str, str]]]]:
     """What needs you first (reviews, proposals, problems), then the state of production."""
     e = html.escape
@@ -1565,7 +1588,8 @@ def dashboard_text_and_buttons(db: PipelineDatabase, next_run: Optional[str] = N
         release = None
     if release:
         environment += f" ({e(release)})"
-    lines = [f"🏛️ <b><u>RELIC &amp; RIDDLE</u></b> · {environment}", ""]
+    mode = run_mode_label(db)  # whether this process's runs post (QF-47)
+    lines = [f"🏛️ <b><u>RELIC &amp; RIDDLE</u></b> · {environment}" + (f" · <b>{mode}</b>" if mode else ""), ""]
     # A blank line between items: they ran together (operator, 2026-10-25).
     lines += (["<b>Needs you</b>"] + [ln for item in needs for ln in (item, "")]) if needs else ["✅ <b>Nothing needs you right now.</b>", ""]
     outcome = last_review_outcome(db)

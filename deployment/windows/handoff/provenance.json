@@ -3,6 +3,7 @@
   "source_head": "92da50bf10ca55e2a53ffbcf59f2701cc81ba14f",
   "source_state": "Uncommitted working-tree snapshot; hashes identify actual bytes, not source HEAD",
   "captured_at_utc": "2026-10-22T03:31:10.9945638Z",
+  "removed": "QF-47 (2026-11-05): tools/ and tests/ deleted as obsolete copies; the maintained launcher is deployment/windows/runtime/. Git history keeps the bytes these hashes name.",
   "files": [
     {
       "path": "tools/content_runtime.py",

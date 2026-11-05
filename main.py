@@ -39,7 +39,7 @@ from typing import Any, Dict, List, Optional, Tuple
 from src.config import ASSETS_DIR, CURATED_SCRIPTS_DIR, DAILY_RUN_TIME, OUTPUT_DIR, POST_SCHEDULING, TIMEZONE
 from src.credits import caption_credit_line, generate_provenance_ledger, load_credits
 from src.db import PipelineDatabase, QueueEmpty
-from src.control import clip_words, heartbeat_text, is_paused, make_command_handler, ping_healthcheck
+from src.control import clip_words, heartbeat_text, is_paused, make_command_handler, ping_healthcheck, record_run_mode
 from src import beat_images, callouts, colour_balance, config, encoding, footage, graphics, motion, post_schedule, privacy, then_now
 from src.llm import claude_available as llm_available
 from src.scene_planner import degraded_note, documentary_cuts, fit_findings, fit_note, fit_to_lines, plan_scenes, segment_beats
@@ -4494,6 +4494,7 @@ def main(argv=None) -> int:
         coordinator = PipelineCoordinator(db=db, schedule_posts=POST_SCHEDULING)
         bot = coordinator.telegram_bot
         _report_interrupted(coordinator, bot)  # runs left "producing" by a process that ended
+        record_run_mode(db, config.BOT_RUNS_DRY)  # the dashboard masthead says whether these runs post
         if not bot.is_configured():
             print("Telegram is not configured (TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID / TELEGRAM_APPROVER_IDS; "
                   "the chat and approvers must identify people, not the bot).")
@@ -4682,6 +4683,7 @@ def main(argv=None) -> int:
         coordinator = PipelineCoordinator(schedule_posts=True)
         bot = coordinator.telegram_bot
         _report_interrupted(coordinator, bot)  # nothing runs in this process yet: any "producing" run is orphaned
+        record_run_mode(coordinator.db, bool(args.dry_run))  # the masthead: 📡 LIVE posting or 🧪 dry run
         release_note = None  # after an installed release: the notice that opens the one dashboard panel
         try:  # leases left by the previous process; the schedule the release deployer keeps clear of
             clear_busy_leases(coordinator.db)

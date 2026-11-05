@@ -18,6 +18,7 @@ import os
 import re
 import threading
 import time
+from collections import Counter
 from contextvars import ContextVar
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -350,6 +351,41 @@ def _second_check_line(second: Optional[Dict[str, Any]]) -> str:
     if second.get("status") == "pass":
         return f"✅ Second check{html.escape(who)}: passed ({second.get('confidence', 0)}% of {len(second.get('audits', []))} claims)\n"
     return "⚠️ Second check: unavailable (first check only)\n"
+
+
+CREDIT_CARD_CLIP = 60     # a credit that is not a photo's, on a card with no room left (QF-42)
+CREDIT_CARD_TITLE = 32    # a photo credit's title in its short form on a long card (QF-42)
+CREDITS_HEAD = "📷 <b>Credits posted with the captions:</b>"
+CREDITS_UNLISTED = "📷 <b>Credits:</b>"  # the count alone, on a card the findings fill (shortened first)
+CARD_CAPTION_ROOM = 400   # the caption text the credits leave room for before they are shortened
+CAPTION_TOO_LONG = "<i>(too long for this card: see Edit)</i>"
+
+
+def _said_once(card: str) -> str:
+    """Where the rest of a shortened list is, said once: each shortened list repeated it (production review card,
+    2026-10-29). The card's room is measured on this form, the one sent (QF-42)."""
+    first, sep, rest = card.partition(f": {CARD_LIST_MORE}")
+    return first + sep + rest.replace(f": {CARD_LIST_MORE}", "")
+
+
+def _caption_previews(card: str) -> int:
+    """How many captions a review card shows some text of: on it, and not only where to read it (QF-42)."""
+    return sum(f"<b>{label}:</b>" in card for label in ("Caption", "Carousel caption")) - card.count(CAPTION_TOO_LONG)
+
+
+def _credit_card_line(line: str, form: int) -> str:
+    """A caption credit line as a long review card lists it (QF-42): whole (form 0); a photo credit
+    ("📷 author | title | licence | source | licence URL") without its two links (1), as author and title cut to
+    CREDIT_CARD_TITLE (2), or the author alone (3). Any other credit line (music, footage, the share-alike notice)
+    is whole, cut to CREDIT_CARD_CLIP characters in form 3."""
+    from .control import clip_words
+    fields = [f.strip() for f in line.removeprefix("📷").split(" | ")] if line.startswith("📷") else []
+    if len(fields) != 5:
+        return line if form < 3 else clip_words(line, CREDIT_CARD_CLIP)
+    author, title, licence = fields[0], fields[1].removeprefix("File:"), fields[2]
+    return line if not form else "📷 " + " · ".join(
+        [author, title, licence] if form == 1 else [author, clip_words(title, CREDIT_CARD_TITLE)] if form == 2
+        else [author])
 
 
 def _clip_copy(text: str, limit: int) -> str:
@@ -1289,21 +1325,38 @@ class TelegramApprovalBot:
         and the captions come first; when the findings leave them no room, each folded list is shortened
         to its first items and "…and N more" (a long Wieliczka card lost its narration and both captions,
         then was paged as plain text with buttons that failed: review of 2026-10-25)."""
-        card = ""
         limit = CARD_PAGE_LIMIT - max(0, reserve)
-        for cap in (None, 4, 3, 2, 1, 0):
-            card = TelegramApprovalBot._card_text(script_payload, run_id, release, cap, limit)
-            # The narration whole first; the findings are shortened only as far as that needs; the captions
-            # take what is left (the long caption is clipped, "full text: Edit", as before).
-            captions = all(f"<b>{label}:</b>" in card for key, label in (("caption", "Caption"), ("carousel_caption", "Carousel caption"))
-                           if script_payload.get(key))  # at least its first lines, or where to read it
-            if "[shortened:" not in card and captions and _tg_len(card) <= limit:
-                return card
-        return card
+
+        def first_fit(credits: bool, previews: int = 0) -> tuple:
+            card = ""
+            for cap in (None, 4, 3, 2, 1, 0):
+                card = TelegramApprovalBot._card_text(script_payload, run_id, release, cap, limit, credits=credits)
+                # The narration whole first; the findings are shortened only as far as that needs; the captions
+                # take what is left (the long caption is clipped, "full text: Edit", as before). Every caption
+                # credit keeps its own line (QF-42), in the shortest form at worst (_card_text's credits).
+                captions = all(f"<b>{label}:</b>" in card for key, label in (("caption", "Caption"), ("carousel_caption", "Carousel caption"))
+                               if script_payload.get(key))  # at least its first lines, or where to read it
+                if ("[shortened:" not in card and captions and CREDITS_UNLISTED not in card
+                        and _tg_len(card) <= limit and _caption_previews(card) >= previews):
+                    return card, True
+            return card, False
+
+        card, fits = first_fit(True)
+        if not fits or CREDITS_HEAD not in card:
+            return card
+        # The credits list costs no caption the preview the card without it shows (review of QF-42: six cards lost
+        # theirs): the findings are shortened further first, when that gives it back.
+        target = _caption_previews(first_fit(False)[0])
+        if _caption_previews(card) >= target:
+            return card
+        better, fits = first_fit(True, target)
+        return better if fits else card
 
     @staticmethod
     def _card_text(script_payload: Dict[str, Any], run_id: str, release: Optional[Dict[str, Any]], cap: Optional[int],
-                   limit: int = CARD_PAGE_LIMIT) -> str:
+                   limit: int = CARD_PAGE_LIMIT, credits: bool = True) -> str:
+        """The review card at findings cap `cap`. `credits=False`: the card as it was before the credits list
+        (QF-42), each credit line only inside its caption: format_card_text's measure of the captions' room."""
         e = html.escape
         loc = script_payload.get("location") or {}
         place = ", ".join(e(str(v)) for v in (loc.get("name"), loc.get("country")) if v)
@@ -1317,6 +1370,21 @@ class TelegramApprovalBot:
 
         if not audits or conf is None:
             integrity = "⚠️ <b>Integrity:</b> verification not recorded"
+        # Every image credit the captions carry, each on its own line in its own folded list (QF-42): they were only
+        # inside the caption block, which a long caption clips or replaces with "too long for this card".
+        # The list has a length budget (review of QF-42: whole lines, two URLs each, pushed real cards past Telegram's
+        # 4,096): it is filled after the narration, in the longest of _credit_card_line's forms that fits.
+        from .credits import split_attribution
+        credit_lines = list(dict.fromkeys(line.strip() for key in ("caption", "carousel_caption")
+                                          for line in split_attribution(script_payload.get(key) or "")[1])) if credits else []
+        credit_forms = []
+        for form in range(4):
+            shown = [_credit_card_line(x, form) for x in credit_lines]
+            if form >= 2:  # a short form can repeat itself (five photos by one author): each once, with its count
+                counts = Counter(shown)
+                shown = [x if counts[x] == 1 else f"{x} (×{counts[x]})" for x in dict.fromkeys(shown)]
+            credit_forms.append("\n" + listed(f"{CREDITS_HEAD} {len(credit_lines)}", [e(x) for x in shown])
+                                + (f"\n<i>Shortened to fit: {CARD_LIST_MORE}</i>" if shown != credit_lines else "") + "\n")
 
         text = (
             f"🎬 <b>Master review</b>\n\n"
@@ -1337,6 +1405,7 @@ class TelegramApprovalBot:
             + ("\x00CAROUSEL\x00" if script_payload.get("carousel_caption") else "")
             + (f"<b>Hashtags:</b> {e(' '.join(script_payload['hashtags']))}" if script_payload.get("hashtags")
                else f"<b>Tags:</b> {e(', '.join(script_payload.get('tags') or []))}") + "</blockquote>\n"
+            + ("\x00CREDITS\x00" if credit_lines else "")
         )
         poll = script_payload.get("poll") or {}
         if poll.get("question") and poll.get("options") and len(poll["options"]) >= 2:
@@ -1416,35 +1485,92 @@ class TelegramApprovalBot:
         # A card over the page limit is paged as plain text and loses its collapsible script, so a long
         # (documentary) narration is shortened inside it instead; the full script is in the run folder.
         narration = script_payload.get("narration_script", "")
-        bare = full.replace("\x00CAPTION\x00", "").replace("\x00CAROUSEL\x00", "")
-        room = limit - _tg_len(bare.replace("\x00NARRATION\x00", ""))
+        unlisted = f"\n{CREDITS_UNLISTED} {len(credit_lines)}: {CARD_LIST_MORE}\n"  # no form of the list fits
+        bare = full.replace("\x00CAPTION\x00", "").replace("\x00CAROUSEL\x00", "").replace("\x00NARRATION\x00", "")
+        note = f" … [shortened: all {len(narration.split())} words are in the run's script_metadata.json]"
+        # Room is kept for every credit's own line in the shortest form (the author: QF-42); on a card the notes
+        # already fill (no word of the narration fits), for the count alone.
+        room = limit - _tg_len(_said_once(bare.replace("\x00CREDITS\x00", credit_forms[-1] if credit_lines else "")))
+        if credit_lines and room < _tg_len(e(narration)) and room <= _tg_len(e(note)):
+            room = limit - _tg_len(_said_once(bare.replace("\x00CREDITS\x00", unlisted)))
         if _tg_len(e(narration)) > room:
-            note = f" … [shortened: all {len(narration.split())} words are in the run's script_metadata.json]"
             cut = narration
-            while cut and _tg_len(e(cut)) + _tg_len(note) > room:
+            while cut and _tg_len(e(cut)) + _tg_len(e(note)) > room:
                 cut = cut[:-40].rsplit(" ", 1)[0]
             narration = cut + note
         full = full.replace("\x00NARRATION\x00", e(narration), 1)
         # The captions take only the room the narration leaves (adding them in full shortened the narration
         # of real cards: 2026-10-23 UI review); what does not fit says where the whole of it is.
-        for key, label, marker in (("carousel_caption", "Carousel caption", "\x00CAROUSEL\x00"),
-                                   ("caption", "Caption", "\x00CAPTION\x00")):  # the short one first
-            if marker not in full:
-                continue
-            spare = limit - _tg_len(full.replace("\x00CAPTION\x00", "").replace("\x00CAROUSEL\x00", ""))
+        # Without its hashtags: they have their own line on the card (operator, 2026-10-25). Posted as written.
+        captions = [(label, marker, without_hashtags(script_payload.get(key) or "")) for key, label, marker in (
+            ("carousel_caption", "Carousel caption", "\x00CAROUSEL\x00"),
+            ("caption", "Caption", "\x00CAPTION\x00")) if marker in full]  # the short one first
+        if credit_lines:  # shown in the credits list
+            captions = [(label, marker, split_attribution(value)[0]) for label, marker, value in captions]
+
+        def caption_block(label: str, value: str, spare: int) -> tuple:
+            """The caption's block in `spare` (whole, clipped at a word, or where to read it) and how many
+            characters of its text it shows."""
             head = f"\n<b>{label}:</b>\n"
-            # Without its hashtags: they have their own line on the card (operator, 2026-10-25). Posted as written.
-            text_value = without_hashtags(script_payload.get(key) or "")
-            block = head + e(text_value) + "\n"
-            if _tg_len(block) > spare:
-                fit = spare - _tg_len(head) - 30
-                block = head + (e(_clip_copy(text_value, fit)) if fit >= 120 else "<i>(too long for this card: see Edit)</i>") + "\n"
-                if _tg_len(block) > spare:
-                    block = ""
-            full = full.replace(marker, block, 1)
-        # Where the rest is, said once: each shortened list repeated it (production review card, 2026-10-29).
-        first, sep, rest = full.partition(f": {CARD_LIST_MORE}")
-        return first + sep + rest.replace(f": {CARD_LIST_MORE}", "")
+            block = head + e(value) + "\n"
+            if _tg_len(block) <= spare:
+                return block, len(value)
+            fit = spare - _tg_len(head) - 30
+            while fit >= 120:  # clipped at a word to the room (its escaped form can be longer than the clip)
+                clipped = _clip_copy(value, fit)
+                block = head + e(clipped) + "\n"
+                if _tg_len(block) <= spare:
+                    return block, len(clipped.removesuffix(" (full text: Edit)"))
+                fit -= _tg_len(block) - spare
+            block = head + CAPTION_TOO_LONG + "\n"  # else where to read it, when that fits
+            return (block, 0) if _tg_len(block) <= spare else ("", 0)
+
+        def fill(card: str) -> tuple:
+            """`card` with its captions in the room left, and its score: (captions on the card, captions with a
+            preview, characters of their text shown). A caption on the card, if only as where to read it, ranks
+            ahead of another's preview (review of QF-42: Wieliczka dropped its carousel caption for a clipped main
+            caption, though both "see Edit" lines fit)."""
+            spare = limit - _tg_len(_said_once(card.replace("\x00CAPTION\x00", "").replace("\x00CAROUSEL\x00", "")))
+            whole = [_tg_len(f"\n<b>{label}:</b>\n" + e(value) + "\n") for label, _, value in captions]
+            heads = [_tg_len(f"\n<b>{label}:</b>\n") for label, _, _ in captions]
+            # On a card with credits the short caption, filled first, may keep back the room of the main caption's
+            # clipped preview, or of where to read it (review of QF-42: a whole carousel caption took the room, and
+            # the caption read "too long for this card" or was left out): whichever shows the captions best.
+            keeps = [[0] * len(captions)] + ([[min(w, h + 150) for w, h in zip(whole, heads)],
+                                              [min(w, h + _tg_len(CAPTION_TOO_LONG + "\n")) for w, h in zip(whole, heads)]]
+                                             if credit_lines else [])
+            best = None
+            for keep in keeps:
+                out, left, score = card, spare, (0, 0, 0)
+                for i, (label, marker, value) in enumerate(captions):
+                    block, chars = caption_block(label, value, left - sum(keep[i + 1:]))
+                    out, left = out.replace(marker, block, 1), left - _tg_len(block)
+                    score = (score[0] + bool(block), score[1] + bool(block and (chars or not value)), score[2] + chars)
+                if best is None or score > best[0]:
+                    best = (score, out)
+            return best[1], best[0]
+
+        if credit_lines:
+            # The credits next, in the longest form that leaves each caption a preview and the captions their text
+            # (at most CARD_CAPTION_ROOM of it); else the form that shows the most of the captions (a shorter form
+            # before a caption is dropped); the count alone, and where the lines are, only when no form fits (a
+            # card the findings already fill: format_card_text then shortens those first).
+            whole = sum(len(value) for _, _, value in captions)
+            best = None
+            for section in credit_forms:
+                with_credits = full.replace("\x00CREDITS\x00", section, 1)
+                if _tg_len(_said_once(with_credits.replace("\x00CAPTION\x00", "").replace("\x00CAROUSEL\x00", ""))) > limit:
+                    continue
+                card, score = fill(with_credits)
+                if score[1] == len(captions) and score[2] >= min(whole, CARD_CAPTION_ROOM):
+                    best = (score, card)
+                    break
+                if best is None or score > best[0]:
+                    best = (score, card)
+            full = best[1] if best else fill(full.replace("\x00CREDITS\x00", unlisted, 1))[0]
+        else:
+            full = fill(full)[0]
+        return _said_once(full)
 
     def send_approval_request(self, video_path: Path, thumbnail_path: Path, script_payload: Dict[str, Any], run_id: str) -> Optional[int]:
         """Everything one Approve publishes, then the card: an album with the cover, a scene strip and

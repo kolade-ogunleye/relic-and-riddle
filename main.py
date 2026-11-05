@@ -1198,6 +1198,10 @@ class PipelineCoordinator:
             return "Nothing changed: the text you sent matches the current copy."
         old = {f: old[f] for f in changes}
         payload.update(changes)
+        # Credit lines written before QF-42 are rewritten with any edit (caption, description, carousel caption, first
+        # comment), so a run the gate's credit_lines check holds for an old line can be fixed here.
+        from src.credits import rewrite_payload_credits
+        rewrite_payload_credits(payload)
         labels = [f.replace("_", " ") for f in changes]  # "title, carousel caption and caption"
         names = labels[0] if len(labels) == 1 else ", ".join(labels[:-1]) + " and " + labels[-1]
         topic = self.topic_engine.get_topic_by_id(run["topic_id"]) or {"id": run["topic_id"]}

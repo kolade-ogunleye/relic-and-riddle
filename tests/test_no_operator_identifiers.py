@@ -25,9 +25,6 @@ GMAIL = "@" + "gmail.com"   # split so this file does not match itself
 
 # Genuine third-party attribution only, each by file and the exact text of its line (line numbers move).
 ALLOW = {
-    ("assets/derinkuyu_underground_city/credits.json", f'"artist": "belemita{GMAIL}",'):
-        "A Commons photographer's author credit as the file page states it (CC BY 3.0 attribution of a third party, "
-        "a rejected file); sanitising author strings at ingest is QF-42's row.",
     ("src/archive_film.py", 'ASK = {"prelinger": "Prelinger Archives: prelingerclips' + GMAIL + '"}'):
         "Prelinger Archives' published licensing contact, the rights holder the ask card names; a third party's "
         "public address, not the operator's.",

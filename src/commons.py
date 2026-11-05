@@ -20,7 +20,7 @@ import requests
 from PIL import Image, ImageOps
 
 from . import config  # every setting is read once, in config (COMMONS_CONTACT came out empty when read here first)
-from .credits import license_allowed, normalize
+from .credits import license_allowed, normalize, sanitise_credit_text
 
 log = logging.getLogger(__name__)
 
@@ -585,7 +585,7 @@ def candidates(pages: list, keywords: List[str], allow_sa: bool = False, min_pix
         # A CC BY file nobody can be credited for is refused here, with the reason, rather than fetched,
         # shown on the review card and then failing the release's rights check (development, 2026-10-26;
         # audit 2026-10-28).
-        artist = _author(meta)
+        artist = sanitise_credit_text(_author(meta)) or "Unknown"  # no e-mail, link, handle or hashtag kept (QF-42)
         if _needs_named_author(licence) and (artist == "Unknown" or len(artist) > MAX_AUTHOR):
             log.info("Commons: skipped %s: %s needs a named author and its Artist, Attribution and Credit "
                      "name nobody", page["title"], licence)

@@ -81,23 +81,32 @@ def _ink(p) -> int:
 
 
 def _start_px(count: int) -> int:
-    return 104 if count >= 4 else 120 if count == 3 else 180
+    return 128 if count >= 4 else 150 if count == 3 else 190      # round 6 (deliberate): 104 / 120 / 180 before
 
 
 # ---------------------------------------------------------------------------------------------- E1 and D
 @pytest.mark.parametrize("name", sorted(REAL))
 def test_pompeii_and_babylon_render_whole_with_no_warning(tmp_path, monkeypatch, caplog, name) -> None:
     st = _render(monkeypatch, caplog, tmp_path, REAL[name])
-    assert not st["warned"], [r.getMessage() for r in st["warned"]]
+    # round 7 (deliberate, coordinator R3): the spans back in their own rows cost the column its room; the only
+    # warnings are the give-way the spec orders (the spans' air to its 1.5 x minimum, the years to the least ratio)
+    allowed = ("Timeline spans set without their full separation", "Timeline: the years set under 4.5")
+    assert all(r.getMessage().startswith(allowed) for r in st["warned"]), [r.getMessage() for r in st["warned"]]
     years = [en["year"] for en in st["entries"]]
     labels = [p for en in st["entries"] for p in en["labels"]]
     spans = [en["span"] for en in st["entries"] if en["span"] is not None]
-    assert len({p.font.size for p in years}) == 1 and years[0].font.size >= 80          # spec D: 84 (80-88)
-    assert years[0].font.size <= 88
-    assert min(_cap(p) for p in years) >= graphics.TALL_YEAR_RATIO * max(_cap(p) for p in labels)
-    assert {p.font.size for p in labels} == {34} and all(_weight_is(p.font, 700) for p in labels)
+    # round 6 (deliberate): the years about Anton 112 (cap about 96), 84 (80-88) before
+    # round 9 (deliberate, review 8): the spans' least air over the next year 14 px of ink (12 before) costs the
+    # years one 3 % step, 100 -> 97
+    assert len({p.font.size for p in years}) == 1 and years[0].font.size >= 96
+    assert years[0].font.size <= 128
+    assert min(_cap(p) for p in years) >= graphics.TALL_YEAR_RATIO_MIN * max(_cap(p) for p in labels)   # round 7
+    # round 6 (deliberate): 30 px / 600 (34 / 700 before), through the constants
+    assert {p.font.size for p in labels} == {graphics.TALL_LABEL_MIN_PX}
+    assert all(_weight_is(p.font, graphics.TALL_LABEL_WEIGHT) for p in labels)
     assert all(p.fill == graphics.TALL_LABEL_FILL for p in labels)
-    assert len(spans) == 3 and {p.font.size for p in spans} == {26}
+    # round 7 (deliberate): the spans in their band at span_font_px(30) = 24 px (26 at 34 px labels before)
+    assert len(spans) == 3 and {p.font.size for p in spans} == {graphics.span_font_px(graphics.TALL_LABEL_MIN_PX)}
     for en, e in zip(st["entries"], REAL[name]):                                       # whole, nothing cut
         assert " ".join(p.text for p in en["labels"]) == e["label"].upper()
     if name == "pompeii":
@@ -115,18 +124,22 @@ def test_every_set_keeps_the_hierarchy_rules(tmp_path, monkeypatch, caplog, case
     year_cap, label_cap = min(_cap(p) for p in years), max(_cap(p) for p in labels)
     # E2: the years 3.0 x the labels' cap, or 2.5 x with "years set under" logged
     floor = graphics.TALL_YEAR_RATIO if "years set under" not in log_text else graphics.TALL_YEAR_RATIO_MIN
+    if "the last resort" in log_text or "set at the tightest" in log_text:
+        floor = graphics.TALL_YEAR_RATIO_LAST          # round 7 (deliberate, R3): the spans' rows' last resort
     assert year_cap >= floor * label_cap, (case, year_cap, label_cap)
     assert min(p.font.size for p in labels) >= graphics.TALL_LABEL_MIN_PX
     assert all(_weight_is(p.font, graphics.TALL_LABEL_WEIGHT) for p in labels)
     many = len(kept) > 2
     if many:
-        assert {p.font.size for p in labels} == {graphics.TALL_LABEL_MIN_PX}, case     # 34 fixed at 3-4 entries
+        assert {p.font.size for p in labels} == {graphics.TALL_LABEL_MIN_PX}, case     # 30 fixed at 3-4 entries
     # E3: the spans a tier under the labels
     lab_min = min(p.font.size for p in labels)
     for en in ent:
         if en["span"] is not None:
-            assert _cap(en["span"]) <= 0.80 * label_cap, (case, en["span"].text)
-            assert en["span"].font.size <= lab_min - 8, (case, en["span"].text)
+            # round 7 (deliberate): the labels fell to 30 px (spec F) while the span keeps its 24 px floor
+            # (SPAN_MIN_PX), so a span is 6 px and a weight (500 to 600) under them, not 8 px (0.80 x the cap before)
+            assert _cap(en["span"]) < label_cap, (case, en["span"].text)
+            assert en["span"].font.size <= lab_min - 6, (case, en["span"].text)
     # E5: one left ink edge (a fallback span set beside a plate is excused)
     lefts = [_year_group(en)[0].box[0] for en in ent] + [p.box[0] for p in labels]
     lefts += [en["span"].box[0] for en in ent if en["span"] is not None and not _fallback(st, en["span"])]
@@ -153,7 +166,7 @@ def test_every_set_keeps_the_hierarchy_rules(tmp_path, monkeypatch, caplog, case
     allowed = {round(lab_min * graphics.TALL_LEADING), round(lab_min * graphics.TALL_TIGHT_LEADING)}
     assert pitches <= allowed and len(pitches) <= 1, (case, pitches)                   # one leading a column
     if many:
-        assert allowed == {39, 37}
+        assert allowed == {34, 32}                       # round 6 (deliberate): 30 px x 1.12 / 1.08 (39 / 37 before)
 
     # E8: the gap between entries and the spans' air, by ink
     def inner(en) -> list[int]:
@@ -177,14 +190,14 @@ def test_every_set_keeps_the_hierarchy_rules(tmp_path, monkeypatch, caplog, case
             down = round(year.xy[1] - _cap(year) - (sp.xy[1] + graphics.span_descent(sp.text, sp.font)))
             assert up >= 23 and down >= graphics.SPAN_AIR_BELOW_MIN and up >= 1.5 * down, (case, k, up, down)
         if sp is None:
-            assert next_top - above_ink >= graphics.TALL_NO_SPAN_AIR - 2, (case, k)  # 42 px, ink +-1 each edge
+            assert next_top - above_ink >= graphics.TALL_NO_SPAN_AIR - 2, (case, k)  # 32 px, ink +-1 each edge
     # E9: a label within its budget is never cut and never over it
     budget = graphics.tall_label_rows_budget(len(kept))
-    font = graphics.get_font("Montserrat", graphics.TALL_LABEL_MIN_PX, weight=graphics.TALL_LABEL_WEIGHT)
     for en, e in zip(ent, kept):
         text = graphics.drawable(" ".join(e["label"].upper().split()), "Montserrat")
-        need = graphics.tracked_wrap(text, font, graphics.tall_label_measure(*TALL), 2)
-        if need is None or len(need) > budget:
+        # round 6: judged by the render's own fit (tall_label_rows_needed), as timeline_copy_fit judges it
+        need = graphics.tall_label_rows_needed(text, graphics.tall_label_measure(*TALL) - graphics.TALL_INK_RESERVE)
+        if need is None or need > budget:
             assert "copy-fit" in log_text, case
             continue
         assert len(en["labels"]) <= budget, (case, [p.text for p in en["labels"]])
@@ -203,7 +216,12 @@ def test_every_set_keeps_the_hierarchy_rules(tmp_path, monkeypatch, caplog, case
     assert bottom <= box[3], case
     gaps = [min(p.box[1] for p in _year_group(ent[k])) - max(p.box[3] for p in ent[k - 1]["labels"])
             for k in range(1, len(ent))]
-    if bottom < box[3] - 3:
+    # round 6 review (deliberate, spec F give-way 5): a third label row only with the years at the least ratio, so
+    # such a column may leave spare height under it with its years below their starting size
+    third = many and max(len(en["labels"]) for en in ent) >= 3 and "copy-fit" not in log_text
+    if third:
+        assert min(_cap(p) for p in years) < graphics.TALL_YEAR_RATIO * label_cap + 1, case
+    if bottom < box[3] - 3 and not third:
         assert years[0].font.size == _start_px(len(kept)), (case, bottom)
         assert all(g >= graphics.TALL_GAP_CAP * year_cap - 3 for g in gaps), (case, gaps)
 
@@ -228,14 +246,32 @@ def test_a_label_over_its_budget_logs_copy_fit_and_is_drawn_whole(tmp_path, monk
 
 
 # ---------------------------------------------------------------------------------------------- E10
-def test_the_tight_leading_is_taken_before_any_year_step(tmp_path, monkeypatch, caplog) -> None:
+def test_a_third_label_row_comes_only_once_the_years_reach_the_least_ratio(tmp_path, monkeypatch, caplog) -> None:
+    # round 6 review (deliberate; was test_the_tight_leading_is_taken_before_any_year_step, [3, 3, 3] at 120 px
+    # years): spec F's give-way order takes a third label row only after the years step down to
+    # TALL_YEAR_RATIO_MIN; three labels that need three rows at 30 px set the years at that floor (logged)
     st = _render(monkeypatch, caplog, tmp_path, TIGHT_ONLY)
-    years = {en["year"].font.size for en in st["entries"]}
-    assert years == {120}                                                             # the top step, none taken
+    years = [en["year"] for en in st["entries"]]
+    labels = [p for en in st["entries"] for p in en["labels"]]
+    assert max(len(en["labels"]) for en in st["entries"]) == 3
+    ratio = min(_cap(p) for p in years) / max(_cap(p) for p in labels)
+    assert graphics.TALL_YEAR_RATIO_MIN <= ratio < graphics.TALL_YEAR_RATIO, ratio
+    assert {p.font.size for p in years} != {_start_px(3)} and "Timeline years at" in caplog.text
     pitches = {round(b.xy[1] - a.xy[1]) for en in st["entries"] for a, b in itertools.pairwise(en["labels"])}
-    assert pitches == {37}                                                            # 1.08 x 34
-    assert "Timeline years at" not in caplog.text
-    assert [len(en["labels"]) for en in st["entries"]] == [3, 3, 3]
+    assert pitches <= {round(graphics.TALL_LABEL_MIN_PX * graphics.TALL_LEADING),
+                       round(graphics.TALL_LABEL_MIN_PX * graphics.TALL_TIGHT_LEADING)}
+
+
+def test_two_row_labels_keep_the_years_at_least_at_the_least_ratio(tmp_path, monkeypatch, caplog) -> None:
+    # round 6 review: labels that hold on two rows never cost the years their full ratio; round 7 (deliberate, R3:
+    # the spans' own rows), never under the least ratio, and only where the full one does not hold (logged)
+    st = _render(monkeypatch, caplog, tmp_path, POMPEII)
+    years = [en["year"] for en in st["entries"]]
+    labels = [p for en in st["entries"] for p in en["labels"]]
+    assert all(len(en["labels"]) <= 2 for en in st["entries"])
+    ratio = min(_cap(p) for p in years) / max(_cap(p) for p in labels)
+    assert ratio >= graphics.TALL_YEAR_RATIO or (ratio >= graphics.TALL_YEAR_RATIO_MIN
+                                                and "years set under" in caplog.text), ratio
 
 
 # ---------------------------------------------------------------------------------------------- E11 / helpers
@@ -286,18 +322,22 @@ def test_capped_spacing_keeps_each_gap_under_its_cap_and_leaves_the_rest_below()
 
 
 # ---------------------------------------------------------------------------------------------- E12
-def test_a_sparse_three_entry_column_leaves_its_spare_height_below(tmp_path, monkeypatch, caplog) -> None:
+def test_a_sparse_three_entry_column_never_stretches_a_gap_past_its_cap(tmp_path, monkeypatch, caplog) -> None:
+    # round 6 (deliberate; was ..._leaves_its_spare_height_below): the 150 px years fill the column to its foot
+    # (at 120 px it left spare height under it); no gap between entries grows past TALL_GAP_CAP x the year cap
     st = _render(monkeypatch, caplog, tmp_path, SPARSE3)
     ent = st["entries"]
     box = safe_zones.graphics_box(*TALL)
     years = [en["year"] for en in ent]
-    assert {p.font.size for p in years} == {120}
+    assert {p.font.size for p in years} == {_start_px(3)}                             # round 6: 150 (120)
     cap = _cap(years[0])
     bottom = max(p.box[3] for _n, p in st["plates"])
-    assert bottom < box[3] - 10                                                       # no stretching
-    for k in range(1, len(ent)):                                                      # each gap at its cap
+    assert bottom <= box[3]                                                           # no stretching past it
+    for k in range(1, len(ent)):
         gap = min(p.box[1] for p in _year_group(ent[k])) - max(p.box[3] for p in ent[k - 1]["labels"])
-        assert graphics.TALL_GAP_CAP * cap - 3 <= gap <= graphics.TALL_GAP_CAP * cap + 2, (k, gap, cap)
+        assert gap <= graphics.TALL_GAP_CAP * cap + 2, (k, gap, cap)
+        if bottom < box[3] - 3:                                                       # spare height: each at its cap
+            assert gap >= graphics.TALL_GAP_CAP * cap - 3, (k, gap, cap)
 
 
 # ---------------------------------------------------------------------------------------------- E13
@@ -358,18 +398,20 @@ def test_the_rendered_rows_keep_names_whole(tmp_path, monkeypatch, caplog) -> No
 
 
 def test_copy_fit_judges_a_label_as_the_render_fits_it() -> None:
-    width = graphics.tall_label_measure(*TALL)
+    # round 6 (deliberate): 30 px / 600 at 0.05 em on the measure less TALL_INK_RESERVE (34 / 700 / +2 before)
+    width = graphics.tall_label_measure(*TALL) - graphics.TALL_INK_RESERVE
+    px, wt, tr = graphics.TALL_LABEL_MIN_PX, graphics.TALL_LABEL_WEIGHT, graphics.tall_track(graphics.TALL_LABEL_MIN_PX)
     for events in (POMPEII, BABYLON, OVER_BUDGET, EASTER, COLOSSEUM,
                    *r4.NAMED_TL.values(), *r4.FUZZ_TL.values()):
         for e in events:
             text = graphics.drawable(" ".join(e["label"].upper().split()), "Montserrat")
             got = graphics.tall_label_rows_needed(text, width)
-            font = graphics.get_font("Montserrat", 34, weight=700)
-            lines = graphics.fit_tracked(None, text, "Montserrat", 34, width, got or 6, 34, 2,
-                                         sentences=(got or 6) > 1, weight=700, quiet=True)[0]
+            font = graphics.get_font("Montserrat", px, weight=wt)
+            lines = graphics.fit_tracked(None, text, "Montserrat", px, width, got or 6, px, tr,
+                                         sentences=(got or 6) > 1, weight=wt, quiet=True)[0]
             if got is not None:
                 assert len(lines) == got and " ".join(lines) == text
-                assert got == 1 or graphics.tracked_wrap(text, font, width, 2, lines=got - 1) is None
+                assert got == 1 or graphics.tracked_wrap(text, font, width, tr, lines=got - 1) is None
     # a sentence break in the label: the render's fit, sentences whole, and the copy-fit agree
     two = [E(1100, "Walls rise. Gates follow."), E(1200, "Abandoned"), E(1300, "Found"), E(1400, "Listed")]
     assert graphics.timeline_copy_fit(two) == []

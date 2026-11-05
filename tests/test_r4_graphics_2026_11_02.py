@@ -158,7 +158,9 @@ def test_spine_steps_up_to_gold_on_a_ground_too_close_to_gold_dim() -> None:
 
 def test_wide_timeline_secondary_type_is_larger(tmp_path, monkeypatch) -> None:
     st = _render(monkeypatch, lambda: graphics.render_timeline(DERINKUYU, tmp_path / "t.mp4", 1920, 1080))
-    assert min(p.font.size for n, p in st["plates"] if n.startswith("gap")) >= 32
+    # round 13 (coordinator directive 4, spec G): a span that fits on one row at its floor size is set there, not
+    # on two rows at 32 px (was >= 32)
+    assert min(p.font.size for n, p in st["plates"] if n.startswith("gap")) >= graphics.WIDE_SPAN_MIN_PX
     assert min(p.font.size for n, p in st["plates"] if n.startswith("label")) >= 34
 
 
@@ -374,7 +376,8 @@ def test_globe_inset_draws_land_home_and_footprint(monkeypatch) -> None:
     g = graphics.globe_inset(160, 34.7, 38.4, turkey, (30.0, 35.0, 40.0, 42.0))
     arr = np.asarray(g.convert("RGBA")).astype(int)
     seen = lambda c, tol=30: ((np.abs(arr[..., :3] - np.array(c)).max(-1) < tol) & (arr[..., 3] > 200)).sum()
-    assert seen(brand.GOLD_DIM) > 100 and seen(brand.STONE) > 30 and seen(brand.GOLD, 40) > 30
+    # round 6 (deliberate): the home country solid GOLD (GOLD_DIM before), other land GLOBE_LAND (STONE before)
+    assert seen(brand.GOLD) > 100 and seen(graphics.GLOBE_LAND, 40) > 30
     assert arr[0, 0, 3] == 0                                                # nothing outside the disc
     *_xy, vis = geo.orthographic(34.7 + 180, -38.4, 34.7, 38.4)
     assert not vis and geo.orthographic(34.7, 38.4, 34.7, 38.4) == (0.0, 0.0, True)
@@ -383,9 +386,10 @@ def test_globe_inset_draws_land_home_and_footprint(monkeypatch) -> None:
 def test_route_helpers() -> None:
     assert graphics.leader_end((0, 0), (100, -10, 200, 10)) == (92, 0)
     assert graphics.leader_end((150, 100), (100, -10, 200, 10)) == (150, 18)
-    chev = graphics.route_chevrons([(0, 0), (600, 0)], 120)
-    assert [round(t[0][0]) for t in chev] == [60, 180, 300, 420, 540]
-    assert all(t[1][0] > 0 for t in chev)
+    # round 6 (deliberate): the chevrons are gone; one arrowhead per leg at ROUTE_ARROW_AT of its length
+    tip, dirn = graphics.route_arrow([(0, 0), (300, 0), (600, 0)])
+    assert round(tip[0]) == round(600 * graphics.ROUTE_ARROW_AT) and dirn[0] > 0
+    assert not hasattr(graphics, "ROUTE_CHEVRON_EVERY")
     assert graphics.ROUTE_FIT > 0.62 and graphics.ROUTE_STOP_R < 16
 
 
@@ -399,7 +403,7 @@ def test_map_neighbour_name_plates_are_measured() -> None:
     labels = [{"name": "Syria", "sprite": None, "box": (0, 0, 1, 1), "glyph": glyph, "gbox": (100, 80, 220, 120)}]
     plates = graphics._base_name_plates(labels, frame, (0, 0, 400, 200), 400, 200)
     assert len(plates) == 1 and plates[0].text == "SYRIA"
-    assert graphics.MAP_NAME == brand.STONE                                # operator default: the nearest token
+    assert graphics.MAP_NAME == brand.STONE_LT          # round 6 (deliberate): STONE_LT, as spec E (STONE before)
 
 
 def test_scale_bar_carries_the_other_unit_at_its_own_length() -> None:
@@ -422,17 +426,18 @@ def test_scale_bar_carries_the_other_unit_at_its_own_length() -> None:
 
 # ============================================================================ round-4 review fixes (2026-11-02)
 def test_scale_bar_second_label_sits_on_its_own_tick_not_the_bars_end() -> None:
+    # round 6 (deliberate): each label right-aligned to its own end tick (centred on it before)
     for narration in ("", "It is 280 feet deep, 25 miles away."):
         bar = graphics.scale_bar(38.4, 60, narration)
         sec = bar["secondary"]
         im = Image.new("RGB", (900, 200), brand.INK)
         rows = dict(graphics._scale_bar_plates(im, bar, 50, 100))
         main, other = rows["scale"].box, rows["scale_secondary"].box
-        centre = (other[0] + other[2]) / 2
-        assert abs(centre - (50 + sec["px"])) <= 3, (bar["label"], sec["label"], other)   # centred on its tick
-        if sec["px"] < bar["px"] - 20:                               # a shorter length: not set at the bar's end
-            assert centre < main[0] - 20, (bar["label"], sec["label"])
-        assert other[0] >= 50 - 1                                    # never left of the bar's zero end
+        # round 7 (deliberate, R2): the secondary is a shorter tick on the bar; a label wider than its run starts at
+        # the zero end instead of passing it (as test_scale_bar_2026_11_03 allows)
+        assert abs(other[2] - (50 + sec["px"])) <= 1 or abs(other[0] - 50) <= 1, (bar["label"], sec["label"], other)
+        assert abs(main[2] - (50 + bar["px"])) <= 1
+        assert other[0] >= 50 - 1 and main[0] >= 50 - 1              # never left of the bar's zero end
 
 
 def test_circa_mark_keeps_a_legibility_floor_when_the_years_step_down(tmp_path, monkeypatch) -> None:
@@ -482,7 +487,8 @@ def test_wide_spans_keep_later_and_sit_clear_of_the_blocks(tmp_path, monkeypatch
         box = graphics._union([p.box for p in ps])
         for b in blocks.values():
             assert graphics.wide_span_clearance(box, tuple(b)) >= graphics.WIDE_SPAN_CLEAR, (k, box, b)
-    assert graphics.wide_span_lines("40 YEARS LATER", True) == ["40 YEARS", "LATER"]
+    # round 15 (ruling R11, deliberate): two rows only as the count over its unit, never "LATER" alone
+    assert graphics.wide_span_lines("40 YEARS LATER", True) == ["40", "YEARS LATER"]
     assert graphics.wide_span_lines("40 YEARS LATER", False) == ["40 YEARS LATER"]
 
 
@@ -711,7 +717,8 @@ def test_a_label_too_long_for_two_lines_takes_a_third_where_the_column_holds_it(
                                                                                    events) -> None:
     st = _render(monkeypatch, lambda: graphics.render_timeline(events, tmp_path / "t.mp4"))
     rows = [p for n, p in st["plates"] if n == "label1"]
-    assert len(rows) == 3 and "…" not in "".join(p.text for p in rows)   # never cut where it fits
+    # round 6 (deliberate): at 30 px the label holds on 2 or 3 rows (3 at 34 px)
+    assert len(rows) in (2, 3) and "…" not in "".join(p.text for p in rows)   # never cut where it fits
     assert " ".join(p.text for p in rows) == events[1]["label"].upper()
     assert min(p.font.size for n, p in st["plates"] if n.startswith("label")) >= graphics.TALL_LABEL_MIN_PX
     assert {int(n[3:]) for n, _p in st["plates"] if n.startswith("gap")} == set(range(1, len(events)))
@@ -801,14 +808,17 @@ def test_route_names_of_different_stops_keep_more_air_than_a_names_own_line_gap(
 
 
 def test_scale_bar_figures_are_reference_type_under_the_stop_names() -> None:
-    bar = graphics.scale_bar(39.0, 120.0, "", max_px=120)
+    # round 6 (deliberate): Montserrat 600 at SCALE_LABEL_PX (24) replaces the 30 px Plex Mono on the map's bar
+    # round 6 review (deliberate): a bar with both units (at max_px=120 the two ends no longer read apart, and the
+    # numbers may not repeat: that bar is one unit now)
+    bar = graphics.scale_bar(39.0, 60.0, "")
     im = Image.new("RGB", (900, 300), brand.INK)
     rows = dict(graphics._scale_bar_plates(im, bar, 50, 150))
     main, other = rows["scale"], rows["scale_secondary"]
-    assert main.font.size == other.font.size == graphics.SCALE_FIGURE_PX < 34            # under the 34 px names
-    assert graphics.SCALE_FIGURE_PX >= graphics.SPAN_MIN_PX                              # at the tertiary floor
-    assert graphics.SCALE_FIGURE_WEIGHT == 500                                           # Medium, the names 800
-    assert main.box[2] - main.box[0] <= 120                                              # no wider than a 120 px bar
+    assert main.font.size == other.font.size == graphics.SCALE_LABEL_PX < 34            # under the 34 px names
+    assert graphics.SCALE_LABEL_PX >= graphics.SPAN_MIN_PX                              # at the tertiary floor
+    assert graphics.SCALE_LABEL_WEIGHT == 600                                           # the names 800
+    assert main.box[2] - main.box[0] <= 120                                             # no wider than a 120 px bar
 
 
 def test_globe_box_moves_to_the_top_left_and_shrinks_inside_the_safe_areas() -> None:
@@ -1134,7 +1144,8 @@ def test_wide_timeline_labels_wrap_only_where_their_column_ends(tmp_path, monkey
     # review 5: 2 px of tracking per character of the whole label came off every line ("EXPANDED / AGAINST RAIDERS")
     st = _render_fast(monkeypatch, lambda: graphics.render_timeline(DERINKUYU, tmp_path / "t.mp4", 1920, 1080))
     rows = {k: [p.text for n, p in st["plates"] if n == f"label{k}"] for k in range(4)}
-    assert rows[2] == ["ABANDONED AFTER THE", "POPULATION EXCHANGE"], rows          # three lines before
+    # round 6 (deliberate): in the 420 px column, at most three balanced rows (two at the wider measure before)
+    assert len(rows[2]) <= graphics.WIDE_LABEL_ROWS and " ".join(rows[2]) == "ABANDONED AFTER THE POPULATION EXCHANGE"
     assert not any("…" in t for ts in rows.values() for t in ts)
 
 
@@ -1411,15 +1422,22 @@ def _timeline_checks(st: dict[str, Any], events, size: tuple[int, int], log_text
     label_cap = max(graphics.cap_height(p.font) for ps in labels.values() for p in ps)
     if tall:                                                              # review 6 I: the years dominate
         floor = graphics.TALL_YEAR_RATIO if "years set under" not in log_text else graphics.TALL_YEAR_RATIO_MIN
+        if "the last resort" in log_text or "set at the tightest" in log_text:
+            floor = graphics.TALL_YEAR_RATIO_LAST      # round 7 (deliberate, R3): the spans' rows' last resort
         assert year_cap >= floor * label_cap, (year_cap, label_cap)
         assert not cut or "a label cut" in log_text
         bottom = max(p.box[3] for _n, p in plates)
         # 2026-11-03 hierarchy spec: inside the box, and on its foot unless the years are at their starting size
         # and every gap between entries is at its TALL_GAP_CAP x cap limit (the spare height stays under it)
         assert bottom <= box[3], (bottom, box)
-        if bottom < box[3] - 3:
+        third = (len(kept) > 2 and max(len(ps) for ps in labels.values()) >= 3
+                 and "Timeline copy-fit" not in log_text)
+        if third:   # round 6 review (deliberate, spec F give-way 5): a third label row only at the least ratio
+            assert year_cap < graphics.TALL_YEAR_RATIO * label_cap + 1 and "Timeline years at" in log_text
+        if bottom < box[3] - 3 and not third:
             year_px = min(p.font.size for n, p in years.items() if not n.endswith("_circa"))
-            assert year_px == (104 if len(kept) >= 4 else 120 if len(kept) == 3 else 180), (bottom, year_px)
+            # round 6 (deliberate): the starting sizes 128 / 150 / 190 (104 / 120 / 180 before)
+            assert year_px == (128 if len(kept) >= 4 else 150 if len(kept) == 3 else 190), (bottom, year_px)
             for k in range(1, len(kept)):
                 top_k = min(y.box[1] for n, y in years.items() if n.split("_")[0] == f"year{k}")
                 gap = top_k - max(p.box[3] for p in labels[k - 1])
@@ -1704,7 +1722,7 @@ def test_the_context_globe_keeps_clear_of_stops_legs_and_leaders(tmp_path, monke
         x, y = cap["project"](lon, lat)
         pts.append((x / 2, y / 2))
     for k, q in enumerate(pts):
-        rim = 22 if k == len(pts) - 1 else graphics.ROUTE_STOP_R
+        rim = graphics.ROUTE_STOP_R          # round 6 (deliberate): the destination is the same dot (22 before)
         assert math.dist(c, q) - r >= rim + graphics.GLOBE_AIR, (case, k)
     for (la0, lo0), (la1, lo1) in itertools.pairwise([edge_geo[s["place"].lower()] for s in stops]):
         leg = [tuple(v / 2 for v in cap["project"](lo, la)) for lo, la in graphics.great_circle((lo0, la0), (lo1, la1))]
@@ -1712,7 +1730,7 @@ def test_the_context_globe_keeps_clear_of_stops_legs_and_leaders(tmp_path, monke
     for k, q in enumerate(pts):                                           # the leaders the names were given
         boxes = [p.box for n, p in st["plates"] if n == f"stop{k}"]
         if boxes and graphics.box_distance(q, graphics._union(boxes)) > graphics.ROUTE_LEADER_AT:
-            rim = 22 if k == len(pts) - 1 else graphics.ROUTE_STOP_R
+            rim = graphics.ROUTE_STOP_R      # round 6 (deliberate): 22 before for the destination
             a, b = graphics.route_leader(q, graphics._union(boxes), rim + 3)
             assert _seg_dist(c, a, b) - r >= graphics.GLOBE_AIR, (case, k)
 
@@ -1724,8 +1742,9 @@ def test_wide_scale_bar_figures_are_clearly_secondary_to_the_names(tmp_path, mon
                                                                  height=1080))
     figures = [p for n, p in st["plates"] if n.startswith("scale")]
     names = [p for n, p in st["plates"] if n.startswith("stop")]
-    assert figures and {p.font.size for p in figures} == {graphics.SCALE_FIGURE_PX_WIDE}
-    assert 24 <= graphics.SCALE_FIGURE_PX_WIDE <= 26 and graphics.SCALE_FIGURE_PX_WIDE >= graphics.WIDE_TERTIARY_MIN
+    # round 6 (deliberate): the bar's labels are SCALE_LABEL_PX Montserrat 600 (SCALE_FIGURE_PX_WIDE before)
+    assert figures and {p.font.size for p in figures} == {graphics.SCALE_LABEL_PX}
+    assert 24 <= graphics.SCALE_FIGURE_PX_WIDE <= 26 and graphics.SCALE_LABEL_PX >= graphics.WIDE_TERTIARY_MIN
     assert min(graphics.cap_height(p.font) for p in names) >= 1.3 * max(graphics.cap_height(p.font) for p in figures)
     assert graphics.scale_figure_px(1080, 1920) == graphics.SCALE_FIGURE_PX
 
@@ -1739,12 +1758,17 @@ def test_the_globe_is_composited_in_its_own_box_only() -> None:
     box = (100, 120, 160, 180)
     whole = frame.convert("RGBA")
     whole.alpha_composite(globe, box[:2])
-    for t in (0.1, graphics.GLOBE_FADE, 3.0):
+    for t in (0.1, graphics.GLOBE_FADE, graphics.GLOBE_OUT + 0.15, 3.0):
         got = graphics._draw_globe(frame.copy(), globe, box, t)
-        a = graphics._ease(t / graphics.GLOBE_FADE)
+        a = graphics.globe_alpha(t)
         if a >= 0.999:
             assert np.array_equal(np.asarray(got), np.asarray(whole.convert("RGB")))
         diff = np.any(np.asarray(got) != np.asarray(frame), axis=2)
+        if t == 3.0:                       # round 6 (deliberate): faded out by 2.4 s, the frame unchanged
+            assert not diff.any()
+            continue
+        if t == graphics.GLOBE_OUT + 0.15:
+            assert 0 < a < 1
         ys, xs = np.nonzero(diff)
         assert xs.min() >= box[0] and xs.max() < box[2] and ys.min() >= box[1] and ys.max() < box[3]
 
@@ -1785,8 +1809,9 @@ def test_ground_drift_caches_its_steps_and_leaves_a_flat_ground_alone() -> None:
 
 
 def test_wide_span_three_line_break_and_tracked_wrap_options() -> None:
-    assert graphics.wide_span_lines("ABOUT 5,500 YEARS LATER", 3) == ["ABOUT 5,500", "YEARS", "LATER"]
-    assert graphics.wide_span_lines("40 YEARS LATER", 3) == ["40 YEARS", "LATER"]     # too few words: stacked
+    # round 15 (ruling R11, deliberate): no three-row break ("LATER" alone); any stacking is the count over its unit
+    assert graphics.wide_span_lines("ABOUT 5,500 YEARS LATER", 3) == ["ABOUT 5,500", "YEARS LATER"]
+    assert graphics.wide_span_lines("40 YEARS LATER", 3) == ["40", "YEARS LATER"]
     font = graphics.get_font("Montserrat", 34, weight=800)
     text = "MAUSOLEUM FORTIFICATIONS REDISCOVERED BEHIND CHAMBERS BY"
     width = graphics.tracked_width("FORTIFICATIONS", font, 2) + 4
@@ -1819,11 +1844,16 @@ def test_tall_years_drop_to_their_floor_before_a_label_is_cut(tmp_path, monkeypa
     # 2026-11-03 hierarchy spec, a deliberate change: the ratios rose to 3.0 / 2.5 and the labels keep their row
     # budget (2 rows at 4 entries) with copy-fit rows up to 6: nz0 and now nz5 keep more words at the least ratio,
     # nz2 cuts the same words at either (this asserted nz0 alone under the full ratio, nz2 and nz5 at it)
-    if case in ("nz0", "nz5"):
+    # round 6 (deliberate): at 4.5 / 4.0 nz2 too keeps more words at the least ratio (it held the full one before)
+    if case in ("nz0", "nz2", "nz5"):
         assert cut and ratio < graphics.TALL_YEAR_RATIO, (case, ratio, cut)
     else:
         assert ratio >= graphics.TALL_YEAR_RATIO, (case, ratio, cut)
-    assert ratio >= graphics.TALL_YEAR_RATIO_MIN - 0.05
+    # round 7 (deliberate, R3): with the spans back in their own rows these copy-fit sets reach the last resort
+    # (TALL_YEAR_RATIO_LAST, logged), never under it
+    floor = (graphics.TALL_YEAR_RATIO_LAST if "the last resort" in caplog.text or "set at the tightest" in caplog.text
+             else graphics.TALL_YEAR_RATIO_MIN)
+    assert ratio >= floor - 0.05
 
 
 @pytest.mark.parametrize("case", ["nz27", "four_d"])

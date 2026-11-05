@@ -114,7 +114,15 @@ pip install -r requirements.txt
   python scripts/fetch_geodata.py        # country outlines -> tools/geo/ne_50m_admin_0_countries.geojson (~3 MB); without it no maps are made
   python scripts/fetch_relief.py         # shaded relief    -> tools/geo/relief/SR_HR.tif (21600x10800); without it maps render flat
   python scripts/fetch_relief.py --medium  # or the smaller 1:50m SR_50M.tif (10800x5400), used when SR_HR.tif is absent
+  python scripts/fetch_marine.py         # marine polygons  -> tools/geo/ne_10m_geography_marine_polys.geojson (~1.4 MB); without it no water is named
+                                         # and ice shelves  -> tools/geo/ne_50m_antarctic_ice_shelves_polys.geojson (~0.1 MB); without it Antarctica's shelves are drawn as sea
+  python scripts/fetch_geodata.py --10m  # 1:10m map subunits -> tools/geo/ne_10m_admin_0_map_subunits.geojson (~12 MB); every locator close-up is drawn from it, and the site's home is the entity whose polygon holds it (Gibraltar, Tokelau, Ascension)
   ```
+  The last two download zipped shapefiles from naciscdn.org and save them as GeoJSON (parsed by `struct` alone).
+  Without them a run still makes its maps: no sea is named (logged once), the ice shelves read as sea (logged
+  once), and the close-up is drawn from the coarser 1:50m outlines, its home the 1:50m country holding the site (a
+  site more than 50 km from all of that ground is marked on the open sea, no home named, logged). An older
+  `tools/geo/ne_10m_admin_0_countries.geojson` is no longer read: run `--10m` again.
 
 ### 4. Configuration
 ```bash

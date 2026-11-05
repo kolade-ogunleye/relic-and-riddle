@@ -136,6 +136,11 @@ Map data is not in the release either (`tools/` is gitignored). Fetch it once on
 `python scripts/fetch_geodata.py` (country outlines; without them no maps are made) and
 `python scripts/fetch_relief.py` (Natural Earth shaded relief SR_HR.tif; `--medium` for the smaller SR_50M.tif;
 without either, maps render flat). Each run logs a `Map data missing` WARNING naming any file still absent.
+Three more files improve the maps and are fetched the same way: `python scripts/fetch_marine.py` (Natural Earth's
+1:10m marine polygons and 1:50m Antarctic ice shelves; without them no sea is named and the ice shelves are drawn
+as sea, logged) and `python scripts/fetch_geodata.py --10m` (the 1:10m map subunits: every locator close-up is
+drawn from them, and the home a map names is the entity whose polygon holds the site, such as Gibraltar, Tokelau
+or Ascension; without them the close-up falls back to the 1:50m outlines, logged). Both download from naciscdn.org.
 
 ## Automatic release deployment
 

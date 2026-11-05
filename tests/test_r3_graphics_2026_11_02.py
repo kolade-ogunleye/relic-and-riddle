@@ -200,7 +200,8 @@ def test_tall_spans_sit_on_their_own_segment_when_the_column_has_room(tmp_path, 
         below = plates[f"year{k}"].box[1]
         assert above < p.box[1] and p.box[3] < below, (k, p.text)   # between the two entries, not on a baseline
         labels = [q.font.size for n, q in st["plates"] if re.fullmatch(r"label\d", n)]
-        assert p.font.size < min(labels) and p.fill == brand.STONE_LT   # secondary to the events (review fix)
+        # round 7 (deliberate): STONE (STONE_LT before), a tier under the round-6 labels' #BDB6AA
+        assert p.font.size < min(labels) and p.fill == brand.STONE      # secondary to the events (review fix)
 
 
 def test_wide_years_share_one_baseline_per_side(tmp_path, monkeypatch) -> None:
@@ -415,7 +416,10 @@ def test_locator_draws_its_scale_bar_in_both_orientations(tmp_path, monkeypatch,
     assert not graphics.LayoutConstraintSolver.boxes_intersect(rows["scale"].box, (1620, 950, 1920, 1080))
     arr = np.asarray(st["frames"][-1])
     cx = size[0] // 2
-    top, pin = rows["country"].box[3] + 20, size[1] // 2 - 40
+    # round 10 (deliberate): the 9:16 pin stands MAP_PIN_Y_SHARE down the graphics box, not at the frame's centre
+    import json
+    anchor_y = json.loads((tmp_path / "m.mp4.layout.json").read_text(encoding="utf-8"))["anchor"][1]
+    top, pin = rows["country"].box[3] + 20, round(anchor_y) - 40
     if pin - top > 30:                                               # the leader from the label to the pin
         assert _near(arr[top:pin, cx - 1:cx + 2], brand.BONE, 30).any(axis=1).mean() > 0.8
 
@@ -431,15 +435,16 @@ def test_a_region_fallback_is_drawn_as_an_area_and_says_so(tmp_path, monkeypatch
     assert not _near(arr[cy - 4:cy + 5, cx - 4:cx + 5], brand.INK, 12).any()    # no pin's ink centre
 
 
-def test_map_names_and_borders_use_brand_stone(fake_geo, monkeypatch) -> None:
-    assert graphics.MAP_NAME == brand.STONE and graphics.MAP_BORDER == brand.STONE
+def test_map_names_use_stone_lt_and_borders_brand_stone(fake_geo, monkeypatch) -> None:
+    # round 6 (deliberate): the neighbours' names STONE_LT (STONE before); the borders stay STONE
+    assert graphics.MAP_NAME == brand.STONE_LT and graphics.MAP_BORDER == brand.STONE
     fills = []
     monkeypatch.setattr(graphics, "_text", lambda d, xy, text, **k: fills.append(k["fill"]))
     lat0, lon0, bw, bh = 39.0, 35.0, 1620, 2880
     kx, coslat = bw / 40.0, math.cos(math.radians(lat0))
     project = lambda lon, lat: (bw / 2 + (lon - lon0) * kx * coslat, bh / 2 - (lat - lat0) * kx)  # noqa: E731
     graphics.relief_base(lat0, lon0, bw, bh, kx, coslat, fake_geo[0], project, (0, 0, bw, bh))
-    assert fills and set(fills) == {brand.STONE}
+    assert fills and set(fills) == {brand.STONE_LT}
 
 
 @pytest.mark.parametrize("size", FORMATS)

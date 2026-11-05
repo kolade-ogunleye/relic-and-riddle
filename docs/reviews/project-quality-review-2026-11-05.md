@@ -343,3 +343,35 @@ Reviewer measurements on audio files (QF-85) and the LUT (QF-86) were made on th
 ffmpeg and NumPy; the coordinator re-ran the font parse (QF-87) and verified the stop-ship rows in source but did not
 re-measure the SFX. The injection reproduction script is in the cloud scratchpad only; QF-41's acceptance test
 recreates it in the repository. Platform-policy and law statements remain [UNVERIFIED] where marked.
+
+## 10. Multi-niche roadmap (2026-11-05)
+
+Operator direction: the pipeline will serve several content niches. Structure: **one engine repository, one small
+repository per brand, one running instance per brand** (own DB, output, assets, Telegram bot or forum topic, platform
+accounts, Google project and Gemini key). Forking the engine per niche is rejected: ~80% of modules are shared, every
+fix would need porting N times, and the identifier cleanup (QF-49) would have to be repeated per fork. A fork is
+right only for licensing the engine to a third party.
+
+| ID | Finding | Fix | Acceptance |
+|---|---|---|---|
+| QF-92 | The engine and the first brand are one repository; brand strings in 11 modules, niche strings in 20+ (QF-35); the deployer installs one repository. | With QF-35: name the product; the engine repository carries no brand strings, topic banks, music or SFX sets; `brand-<slug>` repositories hold `brand.json` (palette, masthead, voice id, slots, hashtag families, account ids), `prompts/`, `data/topics/`, music and SFX sets with rights records, sensitivity policy and `.env.example`, pinned to an engine tag; the deployer installs engine tag X + brand tag Y as one release; one instance per brand via `RELIC_APP_ROOT`. Rename the GitHub repository in the same pass and update every hard-coded reference (deployer, `allowed_signers`, CI, README, `src/archive_film.py:39` User-Agent, provenance). | A second brand repository with a different name, palette and topic bank renders and posts end-to-end in dry run against the same engine tag with no engine change; `git grep -i "relic"` in the engine returns nothing outside tests' fixture names. |
+
+### Planned brands, in order
+
+1. **Consumer cyber-scam storytelling** (CyberAware Consumers / Go 'n' Verify). Evidence plugins: Canadian Anti-Fraud
+   Centre, FTC consumer alerts and data, FBI IC3, CISA advisories, CanLII; tier remap (these are tier 1; Wikipedia is
+   thin). Beats: hook → the victim's moment → how the scam works → the red flag → what to do (must end on the
+   countermeasure). Graphics: scam-flow diagram, SMS/phone mockup card, red-flag callout, stat cards; maps and
+   timelines reuse. Imagery: original graphics first (no public-domain photos of scams exist); illustrations only for
+   abstract scenes, never a victim; QF-60 to QF-65 are prerequisites. Voice: the operator's own voice is the strongest
+   originality signal. Rules: name only people charged or convicted per a court record; victims never identifiable or
+   blamed; an "educational" framing line in captions. Policy watch: scam/fraud content rules, naming individuals.
+   Effort after QF-35: 3-4 weeks.
+2. **Space and astronomy**: the acceptance test for the split. NASA/ESA/JPL plugins, orbit/scale diagrams, pronunciation
+   map for missions and objects. Effort: ~1 week.
+3. **Finance history and mechanics**: central-bank and regulator plugins, a chart graphic type, a deterministic
+   "no advice" check (not just a prompt rule), living-persons/ongoing-litigation sensitivity, financial-advice policy
+   area. Effort: ~2 weeks. Start only after brand 1 has ~40 published Reels and the advice rule has tests.
+
+Constraints for every brand: separate Google project and Gemini key (the free quota is per project), separate
+platform accounts and Upload-Post profile, and the operator's daily review time (3-5 minutes per brand).

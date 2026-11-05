@@ -4468,6 +4468,9 @@ def main(argv=None) -> int:
         plan = maintenance.check()
         print(re.sub(r"<[^>]+>", "", maintenance.report_text(plan)))
         if args.apply:
+            if not maintenance.apply_allowed():
+                print(maintenance.PRODUCTION_REFUSAL)
+                return 1
             try:
                 print(maintenance.apply(plan))
             except Exception as e:
@@ -4876,7 +4879,7 @@ def main(argv=None) -> int:
             except Exception as e:
                 bot.notify(f"🧰 Weekly update check failed: {html.escape(str(e)[:300])}", group="info")
                 return
-            buttons = [{"text": "🧰 Apply updates", "callback_data": "upd:apply"}] if plan.applicable else None
+            buttons = maintenance.apply_buttons(plan)  # none in production: updates arrive as a signed release
             if buttons:
                 bot._api("sendMessage", data={"chat_id": bot.chat_id, "parse_mode": "HTML",
                                               "text": maintenance.report_text(plan),
@@ -5051,6 +5054,8 @@ def main(argv=None) -> int:
         threading.Thread(target=check_accounts_now, name="account-check", daemon=True).start()
 
         def apply_updates() -> str:
+            if not maintenance.apply_allowed():  # an old Apply button pressed in production
+                return html.escape(maintenance.PRODUCTION_REFUSAL)
             if run_lock.locked():
                 return "A production run is in progress; try again when it finishes."
 

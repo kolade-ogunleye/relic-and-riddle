@@ -27,13 +27,25 @@ name no further gain, two consecutive adversarial rounds find no new defect, and
 | AI illustrations | Built | Needs a Gemini key and Tesseract to judge |
 | Maps, timelines | In progress in the cloud session (round 8) | — |
 
-## Open operator decisions (freeze step 2, 2026-11-04)
+## Operator decisions, freeze step 2 (approved 2026-11-05, for the PC session to implement)
 
-- Text layout engine: the cards rework forced Pillow's BASIC layout on every build ("product choice P1"). It was an
-  agent's spec, not an operator decision, and it would change production text layout, so it is **not** committed.
-  Options: approve BASIC everywhere, add libraqm to dev, or pin test values for both engines.
-- Chapter cards: draw all of a video's chapter cards or none (3 of 5 Richat act titles are over 32 characters).
-- Caption small caps: Anton has no true small caps (faux caps are 18% thinner).
+- **Text layout engine: raqm everywhere.** Do not force BASIC. Make Pillow's raqm layout (shaping and GPOS kerning)
+  available on every machine that renders: CI (install `libfribidi0` explicitly in `.github/workflows/tests.yml`),
+  the dev PC and the production VM (both Windows: Pillow's wheel loads FriBiDi at run time, so a FriBiDi DLL must be
+  on `PATH` [UNVERIFIED: confirm the DLL name and source against Pillow's install docs]). Add a start-up warning, in
+  the style of `main.warn_missing_geo_files()`, when `PIL.features.check("raqm")` is false. Pin measured test values
+  to raqm. Add the FriBiDi step to the go-live checklist below once confirmed.
+- **Chapter cards: draw all of them.** A long act title (3 of 5 Richat titles are over 32 characters) wraps to two
+  lines; no card is dropped.
+- **Caption small caps: none.** Anton has no true small caps, and faux caps are 18% thinner; keep full caps.
+
+## CI on PR #3 (red since 3ac24dd)
+
+`tests/test_freeze_captions_2026_11_04.py` reads gitignored local data (`output/run_*/words.json`,
+`assets/richat_structure_sahara_eye/*.jpg`), so 31 tests fail on CI; two more compare widths measured on the PC.
+Commit the needed `words.json` files and one small still into `docs/reviews/freeze-panel-2026-11-04/fixtures/`, point
+`fixtures.json` at them, and pin the two measurement tests to raqm (decision above). Do not skip tests. Details:
+https://github.com/kolade-ogunleye/relic-and-riddle/pull/3#issuecomment-6652354441
 
 ## Rules (from AGENTS.md and the operator)
 

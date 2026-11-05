@@ -1,0 +1,137 @@
+{
+ "meta": {
+  "code_root": "C:\\Users\\omokolade\\AppData\\Local\\Temp\\claude\\7686a79b0f64a990\\29ad02b1-356f-4136-9fd7-e5907c322aff\\scratchpad\\head",
+  "design_cards": "C:\\Users\\omokolade\\AppData\\Local\\Temp\\claude\\7686a79b0f64a990\\29ad02b1-356f-4136-9fd7-e5907c322aff\\scratchpad\\head\\src\\design_cards.py",
+  "version": "design-cards-1",
+  "seconds": null,
+  "inputs": "real run media and fact-sheet facts via docs/reviews/freeze-panel-2026-11-04/fixtures",
+  "card_fields": "new: real fact, test-signed field: checker verdicts from the test suite's mocked checker, signed under THROWAWAY_KEY (this rig's own constant, assigned over config's key before any card module loads; the deployment key is never read) in a temporary sheet copy",
+  "throwaway_key": "THROWAWAY_KEY (render_evidence.py)",
+  "catalogue_gaps": {
+   "myth_fields": "none: no fact sheet in data/fact_sheets or data/script_library carries a cards.myths entry (refuting_fact_id appears in no JSON file in the repository). A real myth-vs-fact card cannot be rendered from existing inputs.",
+   "statement_fields": "one: data/fact_sheets/hal_saflieni_hypogeum.json cards.statements S1, check verdict 'needs_check' with no runs and no signature, so card_fields.verify_field refuses it.",
+   "quote_fields": "none.",
+   "gated_titles": "every run's fact_review holds only public_fingerprint / sheet_path / sheet_sha256 / review_rules_fingerprint, with no check record, so design_cards.gated_text refuses Gated('title'|'youtube_title') on every run (fact_evidence.checked_fact_review: no current check record).",
+   "consequence": "Every hook, chapter and myth card needs a checked, signed card field. None exists. The real inputs are the fact sheets' facts, the runs' titles, act titles and hero photos below; the card fields themselves must be produced by fact_sheet.build + card_fields.check_cards (with a checker key) before a card can be rendered honestly. Anything rendered before that is new and must be labelled."
+  }
+ },
+ "renders": {
+  "hooknew_petroleum_based_greek_fire_bright": {
+   "name": "hooknew_petroleum_based_greek_fire_bright",
+   "run": "run_greek_fire_siphon_1792735284_short",
+   "topic": "greek_fire_siphon",
+   "ground": "photo",
+   "photo_name": "06_commons_3718157ea16a6a09.jpg",
+   "labels": [
+    "new: real fact, test-signed field adv2"
+   ],
+   "size": [
+    1080,
+    1920
+   ],
+   "seconds": 1.5,
+   "frames": 45,
+   "anchors": {
+    "P": 104,
+    "lines": 2,
+    "baselines": [
+     636,
+     738
+    ],
+    "T": 547,
+    "E": null,
+    "block_top": 547,
+    "L": 738,
+    "position": "plate"
+   },
+   "drawn_text": {
+    "brand": "RELIC & RIDDLE",
+    "title_0": "PETROLEUM-BASED",
+    "title_1": "GREEK FIRE"
+   },
+   "lines": {
+    "title": [
+     "PETROLEUM-BASED",
+     "GREEK FIRE"
+    ]
+   },
+   "stop_end": {
+    "title": false
+   },
+   "accent_gaps": {
+    "title": [
+     12.0
+    ]
+   },
+   "total_mark": null,
+   "quality_notes": null,
+   "source_host_raw": null,
+   "t_s": null,
+   "t_f": null,
+   "pen_total": null,
+   "source_omitted": null,
+   "planned_drawn_contrast_min": null,
+   "elements": [
+    {
+     "name": "brand",
+     "box": [
+      265,
+      462,
+      862,
+      508
+     ],
+     "px": 64
+    },
+    {
+     "name": "brand_mark",
+     "box": [
+      216,
+      472,
+      242,
+      498
+     ],
+     "px": 0
+    },
+    {
+     "name": "title_0",
+     "box": [
+      184,
+      546,
+      897,
+      637
+     ],
+     "px": 104
+    },
+    {
+     "name": "title_1",
+     "box": [
+      334,
+      648,
+      746,
+      739
+     ],
+     "px": 104
+    }
+   ],
+   "renders": {
+    "f00": {
+     "png": "hooknew_petroleum_based_greek_fire_bright__f00.png",
+     "jpg": "hooknew_petroleum_based_greek_fire_bright__f00.jpg",
+     "png_master": "rgb",
+     "frame": 0,
+     "t": 0.0,
+     "drawn_contrast_min": 9.74
+    },
+    "f32": {
+     "png": "hooknew_petroleum_based_greek_fire_bright__f32.png",
+     "jpg": "hooknew_petroleum_based_greek_fire_bright__f32.jpg",
+     "png_master": "rgb",
+     "frame": 32,
+     "t": 1.067,
+     "drawn_contrast_min": 9.74
+    }
+   },
+   "seconds_to_render": 8.1
+  }
+ }
+}

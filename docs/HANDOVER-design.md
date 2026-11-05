@@ -16,16 +16,24 @@ name no further gain, two consecutive adversarial rounds find no new defect, and
 
 | Design | State | Next |
 |---|---|---|
-| Reel covers, grid tiles, YouTube thumbnail | Round-4 work committed | Freeze panel |
-| Captions 9:16 / 16:9 | Proper names kept whole, 16:9 vignette and Montserrat Bold (freeze step 1) | Freeze-panel round |
-| IG carousel, FB gallery, Stories | Committed | Freeze panel |
-| Reel loop bridge, 16:9 end screen | Committed; the audio seam is exact (fcb822e) | Freeze panel |
-| Then-and-now | Ink on paper grounds (freeze step 1) | Freeze-panel round |
+| Reel covers, grid tiles, YouTube thumbnail | Round-4 work committed; freeze step 2 not passed (8 / 8 / 8.5), work kept uncommitted | Step 5 |
+| Captions 9:16 / 16:9 | Freeze step 2 reviewer-passed (9.1 / 9.3 / cues 9); panel 6.5-7.5, not frozen | Step 5: panel findings as spec (`docs/reviews/freeze-panel-2026-11-04/captions/step2`) |
+| IG carousel, FB gallery, Stories | Committed; freeze step 2 not passed (6.5 / 6 / 8), work kept uncommitted | Step 5, after finding why each round scored lower |
+| Reel loop bridge, 16:9 end screen | Committed; freeze step 2 not passed (end screen 7.5, loop bridge 9), work kept uncommitted | Step 5; composer wiring (W1, L1, L2, L4) is a separate task |
+| Then-and-now | Freeze step 2 reviewer-passed (9); panel 7-8.1, not frozen | Step 5: panel findings as spec |
 | Photo callouts | Redesign committed; unattended runs get none until the accuracy audit exists | Needs real photos and an accuracy audit |
-| First frame, chapter card, myth-vs-fact (`src/design_cards.py`) | Long 9:16 myth keeps its source line (freeze step 1) | Freeze-panel round |
+| First frame, chapter card, myth-vs-fact (`src/design_cards.py`) | Freeze step 2 reviewer-passed (9 / 9 / 9); panel 8.1-8.5, not frozen | Step 5: panel findings as spec; operator: chapter cards all-or-none |
 | Quote cards | Held (`QUOTE_CARDS_ENABLED=false`) | Enable only with signed records and a real checker key; speaker, work and date come from the signed check record only |
 | AI illustrations | Built | Needs a Gemini key and Tesseract to judge |
 | Maps, timelines | In progress in the cloud session (round 8) | — |
+
+## Open operator decisions (freeze step 2, 2026-11-04)
+
+- Text layout engine: the cards rework forced Pillow's BASIC layout on every build ("product choice P1"). It was an
+  agent's spec, not an operator decision, and it would change production text layout, so it is **not** committed.
+  Options: approve BASIC everywhere, add libraqm to dev, or pin test values for both engines.
+- Chapter cards: draw all of a video's chapter cards or none (3 of 5 Richat act titles are over 32 characters).
+- Caption small caps: Anton has no true small caps (faux caps are 18% thinner).
 
 ## Rules (from AGENTS.md and the operator)
 

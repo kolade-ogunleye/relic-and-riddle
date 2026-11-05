@@ -1,0 +1,2364 @@
+{
+ "meta": {
+  "code_root": "C:\\Users\\omokolade\\AppData\\Local\\Temp\\claude\\7686a79b0f64a990\\29ad02b1-356f-4136-9fd7-e5907c322aff\\scratchpad\\head",
+  "design_cards": "C:\\Users\\omokolade\\AppData\\Local\\Temp\\claude\\7686a79b0f64a990\\29ad02b1-356f-4136-9fd7-e5907c322aff\\scratchpad\\head\\src\\design_cards.py",
+  "version": "design-cards-1",
+  "seconds": null,
+  "inputs": "real run media and fact-sheet facts via docs/reviews/freeze-panel-2026-11-04/fixtures",
+  "card_fields": "new: real fact, test-signed field: checker verdicts from the test suite's mocked checker, signed under THROWAWAY_KEY (this rig's own constant, assigned over config's key before any card module loads; the deployment key is never read) in a temporary sheet copy",
+  "throwaway_key": "THROWAWAY_KEY (render_evidence.py)",
+  "catalogue_gaps": {
+   "myth_fields": "none: no fact sheet in data/fact_sheets or data/script_library carries a cards.myths entry (refuting_fact_id appears in no JSON file in the repository). A real myth-vs-fact card cannot be rendered from existing inputs.",
+   "statement_fields": "one: data/fact_sheets/hal_saflieni_hypogeum.json cards.statements S1, check verdict 'needs_check' with no runs and no signature, so card_fields.verify_field refuses it.",
+   "quote_fields": "none.",
+   "gated_titles": "every run's fact_review holds only public_fingerprint / sheet_path / sheet_sha256 / review_rules_fingerprint, with no check record, so design_cards.gated_text refuses Gated('title'|'youtube_title') on every run (fact_evidence.checked_fact_review: no current check record).",
+   "consequence": "Every hook, chapter and myth card needs a checked, signed card field. None exists. The real inputs are the fact sheets' facts, the runs' titles, act titles and hero photos below; the card fields themselves must be produced by fact_sheet.build + card_fields.check_cards (with a checker key) before a card can be rendered honestly. Anything rendered before that is new and must be labelled."
+  }
+ },
+ "renders": {
+  "hook_916_the_al_saflieni_hypogeum_dark": {
+   "name": "hook_916_the_al_saflieni_hypogeum_dark",
+   "run": "run_hal_saflieni_hypogeum_1792949304",
+   "topic": "hal_saflieni_hypogeum",
+   "card": "hook",
+   "format": "916",
+   "claim": "The Ħal Saflieni Hypogeum",
+   "claim_chars": 25,
+   "claim_words": 4,
+   "cited_fact": "hal_saflieni_location",
+   "fact_statement": "The Ħal Saflieni Hypogeum is an ancient subterranean monument located in the town of Paola, Malta.",
+   "first_burst": "Beneath the town of Paola,",
+   "claim_source": "statement field",
+   "ground": "dark",
+   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\cache\\upscaled\\03_commons_045234cc612cd80d.jpg",
+   "photo_name": "03_commons_045234cc612cd80d.jpg",
+   "photo_measured": {
+    "mean_luma": 86.4,
+    "edge_energy": 13.7,
+    "mean_saturation": 94.4
+   },
+   "labels": [
+    "new: real fact, test-signed field (statement from hal_saflieni_location)"
+   ],
+   "size": [
+    1080,
+    1920
+   ],
+   "seconds": 1.5,
+   "frames": 45,
+   "anchors": {
+    "P": 120,
+    "lines": 2,
+    "baselines": [
+     650,
+     768
+    ],
+    "T": 547,
+    "E": null,
+    "block_top": 547,
+    "L": 768,
+    "position": "plate"
+   },
+   "drawn_text": {
+    "brand": "RELIC & RIDDLE",
+    "title_0": "THE ĦAL SAFLIENI",
+    "title_1": "HYPOGEUM"
+   },
+   "lines": {
+    "title": [
+     "THE ĦAL SAFLIENI",
+     "HYPOGEUM"
+    ]
+   },
+   "stop_end": {
+    "title": false
+   },
+   "accent_gaps": {
+    "title": [
+     14.0
+    ]
+   },
+   "total_mark": null,
+   "quality_notes": null,
+   "source_host_raw": null,
+   "t_s": null,
+   "t_f": null,
+   "pen_total": null,
+   "source_omitted": null,
+   "planned_drawn_contrast_min": null,
+   "elements": [
+    {
+     "name": "brand",
+     "box": [
+      265,
+      462,
+      862,
+      508
+     ],
+     "px": 64
+    },
+    {
+     "name": "brand_mark",
+     "box": [
+      216,
+      472,
+      242,
+      498
+     ],
+     "px": 0
+    },
+    {
+     "name": "title_0",
+     "box": [
+      166,
+      546,
+      913,
+      651
+     ],
+     "px": 120
+    },
+    {
+     "name": "title_1",
+     "box": [
+      303,
+      664,
+      777,
+      769
+     ],
+     "px": 120
+    }
+   ],
+   "renders": {
+    "f00": {
+     "png": "hook_916_the_al_saflieni_hypogeum_dark__f00.png",
+     "jpg": "hook_916_the_al_saflieni_hypogeum_dark__f00.jpg",
+     "png_master": "quantised-256 (full-colour PNG over 2 MB)",
+     "frame": 0,
+     "t": 0.0,
+     "drawn_contrast_min": 9.92
+    },
+    "f32": {
+     "png": "hook_916_the_al_saflieni_hypogeum_dark__f32.png",
+     "jpg": "hook_916_the_al_saflieni_hypogeum_dark__f32.jpg",
+     "png_master": "quantised-256 (full-colour PNG over 2 MB)",
+     "frame": 32,
+     "t": 1.067,
+     "drawn_contrast_min": 9.92
+    },
+    "f37": {
+     "png": "hook_916_the_al_saflieni_hypogeum_dark__f37.png",
+     "jpg": "hook_916_the_al_saflieni_hypogeum_dark__f37.jpg",
+     "png_master": "quantised-256 (full-colour PNG over 2 MB)",
+     "frame": 37,
+     "t": 1.233
+    }
+   },
+   "seconds_to_render": 18.1
+  },
+  "hook_916_the_al_saflieni_hypogeum_bright": {
+   "name": "hook_916_the_al_saflieni_hypogeum_bright",
+   "run": "run_hal_saflieni_hypogeum_1792949304",
+   "topic": "hal_saflieni_hypogeum",
+   "card": "hook",
+   "format": "916",
+   "claim": "The Ħal Saflieni Hypogeum",
+   "claim_chars": 25,
+   "claim_words": 4,
+   "cited_fact": "hal_saflieni_location",
+   "fact_statement": "The Ħal Saflieni Hypogeum is an ancient subterranean monument located in the town of Paola, Malta.",
+   "first_burst": "Beneath the town of Paola,",
+   "claim_source": "statement field",
+   "ground": "bright",
+   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\cache\\upscaled\\06_commons_e2d248f0becb82ae.jpg",
+   "photo_name": "06_commons_e2d248f0becb82ae.jpg",
+   "photo_measured": {
+    "mean_luma": 125.6,
+    "edge_energy": 21.4,
+    "mean_saturation": 58.6
+   },
+   "labels": [
+    "new: real fact, test-signed field (statement from hal_saflieni_location)"
+   ],
+   "size": [
+    1080,
+    1920
+   ],
+   "seconds": 1.5,
+   "frames": 45,
+   "anchors": {
+    "P": 120,
+    "lines": 2,
+    "baselines": [
+     892,
+     1010
+    ],
+    "T": 789,
+    "E": null,
+    "block_top": 789,
+    "L": 1010,
+    "position": "normal"
+   },
+   "drawn_text": {
+    "brand": "RELIC & RIDDLE",
+    "title_0": "THE ĦAL SAFLIENI",
+    "title_1": "HYPOGEUM"
+   },
+   "lines": {
+    "title": [
+     "THE ĦAL SAFLIENI",
+     "HYPOGEUM"
+    ]
+   },
+   "stop_end": {
+    "title": false
+   },
+   "accent_gaps": {
+    "title": [
+     14.0
+    ]
+   },
+   "total_mark": null,
+   "quality_notes": null,
+   "source_host_raw": null,
+   "t_s": null,
+   "t_f": null,
+   "pen_total": null,
+   "source_omitted": null,
+   "planned_drawn_contrast_min": null,
+   "elements": [
+    {
+     "name": "brand",
+     "box": [
+      265,
+      462,
+      862,
+      508
+     ],
+     "px": 64
+    },
+    {
+     "name": "brand_mark",
+     "box": [
+      216,
+      472,
+      242,
+      498
+     ],
+     "px": 0
+    },
+    {
+     "name": "title_0",
+     "box": [
+      100,
+      788,
+      847,
+      893
+     ],
+     "px": 120
+    },
+    {
+     "name": "title_1",
+     "box": [
+      100,
+      906,
+      574,
+      1011
+     ],
+     "px": 120
+    }
+   ],
+   "renders": {
+    "f00": {
+     "png": "hook_916_the_al_saflieni_hypogeum_bright__f00.png",
+     "jpg": "hook_916_the_al_saflieni_hypogeum_bright__f00.jpg",
+     "png_master": "quantised-256 (full-colour PNG over 2 MB)",
+     "frame": 0,
+     "t": 0.0,
+     "drawn_contrast_min": 5.21
+    },
+    "f32": {
+     "png": "hook_916_the_al_saflieni_hypogeum_bright__f32.png",
+     "jpg": "hook_916_the_al_saflieni_hypogeum_bright__f32.jpg",
+     "png_master": "quantised-256 (full-colour PNG over 2 MB)",
+     "frame": 32,
+     "t": 1.067,
+     "drawn_contrast_min": 5.25
+    },
+    "f37": {
+     "png": "hook_916_the_al_saflieni_hypogeum_bright__f37.png",
+     "jpg": "hook_916_the_al_saflieni_hypogeum_bright__f37.jpg",
+     "png_master": "quantised-256 (full-colour PNG over 2 MB)",
+     "frame": 37,
+     "t": 1.233
+    }
+   },
+   "seconds_to_render": 19.5
+  },
+  "hook_916_the_al_saflieni_hypogeum_busy": {
+   "name": "hook_916_the_al_saflieni_hypogeum_busy",
+   "run": "run_hal_saflieni_hypogeum_1792949304",
+   "topic": "hal_saflieni_hypogeum",
+   "card": "hook",
+   "format": "916",
+   "claim": "The Ħal Saflieni Hypogeum",
+   "claim_chars": 25,
+   "claim_words": 4,
+   "cited_fact": "hal_saflieni_location",
+   "fact_statement": "The Ħal Saflieni Hypogeum is an ancient subterranean monument located in the town of Paola, Malta.",
+   "first_burst": "Beneath the town of Paola,",
+   "claim_source": "statement field",
+   "ground": "busy",
+   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\cache\\upscaled\\04_commons_7080667279489630.jpg",
+   "photo_name": "04_commons_7080667279489630.jpg",
+   "photo_measured": {
+    "mean_luma": 88.9,
+    "edge_energy": 23.5,
+    "mean_saturation": 88.0
+   },
+   "labels": [
+    "new: real fact, test-signed field (statement from hal_saflieni_location)"
+   ],
+   "size": [
+    1080,
+    1920
+   ],
+   "seconds": 1.5,
+   "frames": 45,
+   "anchors": {
+    "P": 120,
+    "lines": 2,
+    "baselines": [
+     892,
+     1010
+    ],
+    "T": 789,
+    "E": null,
+    "block_top": 789,
+    "L": 1010,
+    "position": "normal"
+   },
+   "drawn_text": {
+    "brand": "RELIC & RIDDLE",
+    "title_0": "THE ĦAL SAFLIENI",
+    "title_1": "HYPOGEUM"
+   },
+   "lines": {
+    "title": [
+     "THE ĦAL SAFLIENI",
+     "HYPOGEUM"
+    ]
+   },
+   "stop_end": {
+    "title": false
+   },
+   "accent_gaps": {
+    "title": [
+     14.0
+    ]
+   },
+   "total_mark": null,
+   "quality_notes": null,
+   "source_host_raw": null,
+   "t_s": null,
+   "t_f": null,
+   "pen_total": null,
+   "source_omitted": null,
+   "planned_drawn_contrast_min": null,
+   "elements": [
+    {
+     "name": "brand",
+     "box": [
+      265,
+      462,
+      862,
+      508
+     ],
+     "px": 64
+    },
+    {
+     "name": "brand_mark",
+     "box": [
+      216,
+      472,
+      242,
+      498
+     ],
+     "px": 0
+    },
+    {
+     "name": "title_0",
+     "box": [
+      100,
+      788,
+      847,
+      893
+     ],
+     "px": 120
+    },
+    {
+     "name": "title_1",
+     "box": [
+      100,
+      906,
+      574,
+      1011
+     ],
+     "px": 120
+    }
+   ],
+   "renders": {
+    "f00": {
+     "png": "hook_916_the_al_saflieni_hypogeum_busy__f00.png",
+     "jpg": "hook_916_the_al_saflieni_hypogeum_busy__f00.jpg",
+     "png_master": "quantised-256 (full-colour PNG over 2 MB)",
+     "frame": 0,
+     "t": 0.0,
+     "drawn_contrast_min": 5.29
+    },
+    "f32": {
+     "png": "hook_916_the_al_saflieni_hypogeum_busy__f32.png",
+     "jpg": "hook_916_the_al_saflieni_hypogeum_busy__f32.jpg",
+     "png_master": "rgb",
+     "frame": 32,
+     "t": 1.067,
+     "drawn_contrast_min": 5.32
+    },
+    "f37": {
+     "png": "hook_916_the_al_saflieni_hypogeum_busy__f37.png",
+     "jpg": "hook_916_the_al_saflieni_hypogeum_busy__f37.jpg",
+     "png_master": "quantised-256 (full-colour PNG over 2 MB)",
+     "frame": 37,
+     "t": 1.233
+    }
+   },
+   "seconds_to_render": 19.7
+  },
+  "hook_916_the_al_saflieni_hypogeum_hero": {
+   "name": "hook_916_the_al_saflieni_hypogeum_hero",
+   "run": "run_hal_saflieni_hypogeum_1792949304",
+   "topic": "hal_saflieni_hypogeum",
+   "card": "hook",
+   "format": "916",
+   "claim": "The Ħal Saflieni Hypogeum",
+   "claim_chars": 25,
+   "claim_words": 4,
+   "cited_fact": "hal_saflieni_location",
+   "fact_statement": "The Ħal Saflieni Hypogeum is an ancient subterranean monument located in the town of Paola, Malta.",
+   "first_burst": "Beneath the town of Paola,",
+   "claim_source": "statement field",
+   "ground": "hero",
+   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\hal_saflieni_hypogeum\\01_commons.jpg",
+   "photo_name": "01_commons.jpg",
+   "photo_measured": {
+    "mean_luma": 110.1,
+    "edge_energy": 12.1,
+    "mean_saturation": 95.5
+   },
+   "labels": [
+    "new: real fact, test-signed field (statement from hal_saflieni_location)"
+   ],
+   "size": [
+    1080,
+    1920
+   ],
+   "seconds": 1.5,
+   "frames": 45,
+   "anchors": {
+    "P": 120,
+    "lines": 2,
+    "baselines": [
+     892,
+     1010
+    ],
+    "T": 789,
+    "E": null,
+    "block_top": 789,
+    "L": 1010,
+    "position": "normal"
+   },
+   "drawn_text": {
+    "brand": "RELIC & RIDDLE",
+    "title_0": "THE ĦAL SAFLIENI",
+    "title_1": "HYPOGEUM"
+   },
+   "lines": {
+    "title": [
+     "THE ĦAL SAFLIENI",
+     "HYPOGEUM"
+    ]
+   },
+   "stop_end": {
+    "title": false
+   },
+   "accent_gaps": {
+    "title": [
+     14.0
+    ]
+   },
+   "total_mark": null,
+   "quality_notes": null,
+   "source_host_raw": null,
+   "t_s": null,
+   "t_f": null,
+   "pen_total": null,
+   "source_omitted": null,
+   "planned_drawn_contrast_min": null,
+   "elements": [
+    {
+     "name": "brand",
+     "box": [
+      265,
+      462,
+      862,
+      508
+     ],
+     "px": 64
+    },
+    {
+     "name": "brand_mark",
+     "box": [
+      216,
+      472,
+      242,
+      498
+     ],
+     "px": 0
+    },
+    {
+     "name": "title_0",
+     "box": [
+      100,
+      788,
+      847,
+      893
+     ],
+     "px": 120
+    },
+    {
+     "name": "title_1",
+     "box": [
+      100,
+      906,
+      574,
+      1011
+     ],
+     "px": 120
+    }
+   ],
+   "renders": {
+    "f00": {
+     "png": "hook_916_the_al_saflieni_hypogeum_hero__f00.png",
+     "jpg": "hook_916_the_al_saflieni_hypogeum_hero__f00.jpg",
+     "png_master": "rgb",
+     "frame": 0,
+     "t": 0.0,
+     "drawn_contrast_min": 5.75
+    },
+    "f32": {
+     "png": "hook_916_the_al_saflieni_hypogeum_hero__f32.png",
+     "jpg": "hook_916_the_al_saflieni_hypogeum_hero__f32.jpg",
+     "png_master": "rgb",
+     "frame": 32,
+     "t": 1.067,
+     "drawn_contrast_min": 5.74
+    },
+    "f37": {
+     "png": "hook_916_the_al_saflieni_hypogeum_hero__f37.png",
+     "jpg": "hook_916_the_al_saflieni_hypogeum_hero__f37.jpg",
+     "png_master": "quantised-256 (full-colour PNG over 2 MB)",
+     "frame": 37,
+     "t": 1.233
+    }
+   },
+   "seconds_to_render": 19.8
+  },
+  "hook_916_discovered_by_accident_in_19_dark": {
+   "name": "hook_916_discovered_by_accident_in_19_dark",
+   "run": "run_hal_saflieni_hypogeum_1792949304",
+   "topic": "hal_saflieni_hypogeum",
+   "card": "hook",
+   "format": "916",
+   "claim": "Discovered by accident in 1902",
+   "claim_chars": 30,
+   "claim_words": 5,
+   "cited_fact": "accidental_discovery_1902",
+   "fact_statement": "The underground complex was discovered by accident in 1902 when construction workers cutting cisterns for new housing broke through its ceiling.",
+   "first_burst": "Beneath the town of Paola,",
+   "claim_source": "statement field",
+   "ground": "dark",
+   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\cache\\upscaled\\03_commons_045234cc612cd80d.jpg",
+   "photo_name": "03_commons_045234cc612cd80d.jpg",
+   "photo_measured": {
+    "mean_luma": 86.4,
+    "edge_energy": 13.7,
+    "mean_saturation": 94.4
+   },
+   "labels": [
+    "new: real fact, test-signed field (statement from accidental_discovery_1902)"
+   ],
+   "size": [
+    1080,
+    1920
+   ],
+   "seconds": 1.5,
+   "frames": 45,
+   "anchors": {
+    "P": 112,
+    "lines": 2,
+    "baselines": [
+     643,
+     753
+    ],
+    "T": 547,
+    "E": null,
+    "block_top": 547,
+    "L": 753,
+    "position": "plate"
+   },
+   "drawn_text": {
+    "brand": "RELIC & RIDDLE",
+    "title_0": "DISCOVERED BY",
+    "title_1": "ACCIDENT IN 1902"
+   },
+   "lines": {
+    "title": [
+     "DISCOVERED BY",
+     "ACCIDENT IN 1902"
+    ]
+   },
+   "stop_end": {
+    "title": false
+   },
+   "accent_gaps": {
+    "title": [
+     13.0
+    ]
+   },
+   "total_mark": null,
+   "quality_notes": null,
+   "source_host_raw": null,
+   "t_s": null,
+   "t_f": null,
+   "pen_total": null,
+   "source_omitted": null,
+   "planned_drawn_contrast_min": null,
+   "elements": [
+    {
+     "name": "brand",
+     "box": [
+      265,
+      462,
+      862,
+      508
+     ],
+     "px": 64
+    },
+    {
+     "name": "brand_mark",
+     "box": [
+      216,
+      472,
+      242,
+      498
+     ],
+     "px": 0
+    },
+    {
+     "name": "title_0",
+     "box": [
+      231,
+      546,
+      849,
+      644
+     ],
+     "px": 112
+    },
+    {
+     "name": "title_1",
+     "box": [
+      180,
+      656,
+      899,
+      754
+     ],
+     "px": 112
+    }
+   ],
+   "renders": {
+    "f00": {
+     "png": "hook_916_discovered_by_accident_in_19_dark__f00.png",
+     "jpg": "hook_916_discovered_by_accident_in_19_dark__f00.jpg",
+     "png_master": "quantised-256 (full-colour PNG over 2 MB)",
+     "frame": 0,
+     "t": 0.0,
+     "drawn_contrast_min": 9.84
+    },
+    "f32": {
+     "png": "hook_916_discovered_by_accident_in_19_dark__f32.png",
+     "jpg": "hook_916_discovered_by_accident_in_19_dark__f32.jpg",
+     "png_master": "quantised-256 (full-colour PNG over 2 MB)",
+     "frame": 32,
+     "t": 1.067,
+     "drawn_contrast_min": 9.84
+    },
+    "f37": {
+     "png": "hook_916_discovered_by_accident_in_19_dark__f37.png",
+     "jpg": "hook_916_discovered_by_accident_in_19_dark__f37.jpg",
+     "png_master": "quantised-256 (full-colour PNG over 2 MB)",
+     "frame": 37,
+     "t": 1.233
+    }
+   },
+   "seconds_to_render": 15.5
+  },
+  "hook_916_discovered_by_accident_in_19_bright": {
+   "name": "hook_916_discovered_by_accident_in_19_bright",
+   "run": "run_hal_saflieni_hypogeum_1792949304",
+   "topic": "hal_saflieni_hypogeum",
+   "card": "hook",
+   "format": "916",
+   "claim": "Discovered by accident in 1902",
+   "claim_chars": 30,
+   "claim_words": 5,
+   "cited_fact": "accidental_discovery_1902",
+   "fact_statement": "The underground complex was discovered by accident in 1902 when construction workers cutting cisterns for new housing broke through its ceiling.",
+   "first_burst": "Beneath the town of Paola,",
+   "claim_source": "statement field",
+   "ground": "bright",
+   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\cache\\upscaled\\06_commons_e2d248f0becb82ae.jpg",
+   "photo_name": "06_commons_e2d248f0becb82ae.jpg",
+   "photo_measured": {
+    "mean_luma": 125.6,
+    "edge_energy": 21.4,
+    "mean_saturation": 58.6
+   },
+   "labels": [
+    "new: real fact, test-signed field (statement from accidental_discovery_1902)"
+   ],
+   "size": [
+    1080,
+    1920
+   ],
+   "seconds": 1.5,
+   "frames": 45,
+   "anchors": {
+    "P": 112,
+    "lines": 2,
+    "baselines": [
+     900,
+     1010
+    ],
+    "T": 804,
+    "E": null,
+    "block_top": 804,
+    "L": 1010,
+    "position": "normal"
+   },
+   "drawn_text": {
+    "brand": "RELIC & RIDDLE",
+    "title_0": "DISCOVERED BY",
+    "title_1": "ACCIDENT IN 1902"
+   },
+   "lines": {
+    "title": [
+     "DISCOVERED BY",
+     "ACCIDENT IN 1902"
+    ]
+   },
+   "stop_end": {
+    "title": false
+   },
+   "accent_gaps": {
+    "title": [
+     13.0
+    ]
+   },
+   "total_mark": null,
+   "quality_notes": null,
+   "source_host_raw": null,
+   "t_s": null,
+   "t_f": null,
+   "pen_total": null,
+   "source_omitted": null,
+   "planned_drawn_contrast_min": null,
+   "elements": [
+    {
+     "name": "brand",
+     "box": [
+      265,
+      462,
+      862,
+      508
+     ],
+     "px": 64
+    },
+    {
+     "name": "brand_mark",
+     "box": [
+      216,
+      472,
+      242,
+      498
+     ],
+     "px": 0
+    },
+    {
+     "name": "title_0",
+     "box": [
+      100,
+      803,
+      718,
+      901
+     ],
+     "px": 112
+    },
+    {
+     "name": "title_1",
+     "box": [
+      100,
+      913,
+      819,
+      1011
+     ],
+     "px": 112
+    }
+   ],
+   "renders": {
+    "f00": {
+     "png": "hook_916_discovered_by_accident_in_19_bright__f00.png",
+     "jpg": "hook_916_discovered_by_accident_in_19_bright__f00.jpg",
+     "png_master": "quantised-256 (full-colour PNG over 2 MB)",
+     "frame": 0,
+     "t": 0.0,
+     "drawn_contrast_min": 5.37
+    },
+    "f32": {
+     "png": "hook_916_discovered_by_accident_in_19_bright__f32.png",
+     "jpg": "hook_916_discovered_by_accident_in_19_bright__f32.jpg",
+     "png_master": "quantised-256 (full-colour PNG over 2 MB)",
+     "frame": 32,
+     "t": 1.067,
+     "drawn_contrast_min": 5.4
+    },
+    "f37": {
+     "png": "hook_916_discovered_by_accident_in_19_bright__f37.png",
+     "jpg": "hook_916_discovered_by_accident_in_19_bright__f37.jpg",
+     "png_master": "quantised-256 (full-colour PNG over 2 MB)",
+     "frame": 37,
+     "t": 1.233
+    }
+   },
+   "seconds_to_render": 18.2
+  },
+  "hook_916_discovered_by_accident_in_19_busy": {
+   "name": "hook_916_discovered_by_accident_in_19_busy",
+   "run": "run_hal_saflieni_hypogeum_1792949304",
+   "topic": "hal_saflieni_hypogeum",
+   "card": "hook",
+   "format": "916",
+   "claim": "Discovered by accident in 1902",
+   "claim_chars": 30,
+   "claim_words": 5,
+   "cited_fact": "accidental_discovery_1902",
+   "fact_statement": "The underground complex was discovered by accident in 1902 when construction workers cutting cisterns for new housing broke through its ceiling.",
+   "first_burst": "Beneath the town of Paola,",
+   "claim_source": "statement field",
+   "ground": "busy",
+   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\cache\\upscaled\\04_commons_7080667279489630.jpg",
+   "photo_name": "04_commons_7080667279489630.jpg",
+   "photo_measured": {
+    "mean_luma": 88.9,
+    "edge_energy": 23.5,
+    "mean_saturation": 88.0
+   },
+   "labels": [
+    "new: real fact, test-signed field (statement from accidental_discovery_1902)"
+   ],
+   "size": [
+    1080,
+    1920
+   ],
+   "seconds": 1.5,
+   "frames": 45,
+   "anchors": {
+    "P": 112,
+    "lines": 2,
+    "baselines": [
+     900,
+     1010
+    ],
+    "T": 804,
+    "E": null,
+    "block_top": 804,
+    "L": 1010,
+    "position": "normal"
+   },
+   "drawn_text": {
+    "brand": "RELIC & RIDDLE",
+    "title_0": "DISCOVERED BY",
+    "title_1": "ACCIDENT IN 1902"
+   },
+   "lines": {
+    "title": [
+     "DISCOVERED BY",
+     "ACCIDENT IN 1902"
+    ]
+   },
+   "stop_end": {
+    "title": false
+   },
+   "accent_gaps": {
+    "title": [
+     13.0
+    ]
+   },
+   "total_mark": null,
+   "quality_notes": null,
+   "source_host_raw": null,
+   "t_s": null,
+   "t_f": null,
+   "pen_total": null,
+   "source_omitted": null,
+   "planned_drawn_contrast_min": null,
+   "elements": [
+    {
+     "name": "brand",
+     "box": [
+      265,
+      462,
+      862,
+      508
+     ],
+     "px": 64
+    },
+    {
+     "name": "brand_mark",
+     "box": [
+      216,
+      472,
+      242,
+      498
+     ],
+     "px": 0
+    },
+    {
+     "name": "title_0",
+     "box": [
+      100,
+      803,
+      718,
+      901
+     ],
+     "px": 112
+    },
+    {
+     "name": "title_1",
+     "box": [
+      100,
+      913,
+      819,
+      1011
+     ],
+     "px": 112
+    }
+   ],
+   "renders": {
+    "f00": {
+     "png": "hook_916_discovered_by_accident_in_19_busy__f00.png",
+     "jpg": "hook_916_discovered_by_accident_in_19_busy__f00.jpg",
+     "png_master": "quantised-256 (full-colour PNG over 2 MB)",
+     "frame": 0,
+     "t": 0.0,
+     "drawn_contrast_min": 5.33
+    },
+    "f32": {
+     "png": "hook_916_discovered_by_accident_in_19_busy__f32.png",
+     "jpg": "hook_916_discovered_by_accident_in_19_busy__f32.jpg",
+     "png_master": "rgb",
+     "frame": 32,
+     "t": 1.067,
+     "drawn_contrast_min": 5.45
+    },
+    "f37": {
+     "png": "hook_916_discovered_by_accident_in_19_busy__f37.png",
+     "jpg": "hook_916_discovered_by_accident_in_19_busy__f37.jpg",
+     "png_master": "quantised-256 (full-colour PNG over 2 MB)",
+     "frame": 37,
+     "t": 1.233
+    }
+   },
+   "seconds_to_render": 16.3
+  },
+  "hook_916_discovered_by_accident_in_19_hero": {
+   "name": "hook_916_discovered_by_accident_in_19_hero",
+   "run": "run_hal_saflieni_hypogeum_1792949304",
+   "topic": "hal_saflieni_hypogeum",
+   "card": "hook",
+   "format": "916",
+   "claim": "Discovered by accident in 1902",
+   "claim_chars": 30,
+   "claim_words": 5,
+   "cited_fact": "accidental_discovery_1902",
+   "fact_statement": "The underground complex was discovered by accident in 1902 when construction workers cutting cisterns for new housing broke through its ceiling.",
+   "first_burst": "Beneath the town of Paola,",
+   "claim_source": "statement field",
+   "ground": "hero",
+   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\hal_saflieni_hypogeum\\01_commons.jpg",
+   "photo_name": "01_commons.jpg",
+   "photo_measured": {
+    "mean_luma": 110.1,
+    "edge_energy": 12.1,
+    "mean_saturation": 95.5
+   },
+   "labels": [
+    "new: real fact, test-signed field (statement from accidental_discovery_1902)"
+   ],
+   "size": [
+    1080,
+    1920
+   ],
+   "seconds": 1.5,
+   "frames": 45,
+   "anchors": {
+    "P": 112,
+    "lines": 2,
+    "baselines": [
+     900,
+     1010
+    ],
+    "T": 804,
+    "E": null,
+    "block_top": 804,
+    "L": 1010,
+    "position": "normal"
+   },
+   "drawn_text": {
+    "brand": "RELIC & RIDDLE",
+    "title_0": "DISCOVERED BY",
+    "title_1": "ACCIDENT IN 1902"
+   },
+   "lines": {
+    "title": [
+     "DISCOVERED BY",
+     "ACCIDENT IN 1902"
+    ]
+   },
+   "stop_end": {
+    "title": false
+   },
+   "accent_gaps": {
+    "title": [
+     13.0
+    ]
+   },
+   "total_mark": null,
+   "quality_notes": null,
+   "source_host_raw": null,
+   "t_s": null,
+   "t_f": null,
+   "pen_total": null,
+   "source_omitted": null,
+   "planned_drawn_contrast_min": null,
+   "elements": [
+    {
+     "name": "brand",
+     "box": [
+      265,
+      462,
+      862,
+      508
+     ],
+     "px": 64
+    },
+    {
+     "name": "brand_mark",
+     "box": [
+      216,
+      472,
+      242,
+      498
+     ],
+     "px": 0
+    },
+    {
+     "name": "title_0",
+     "box": [
+      100,
+      803,
+      718,
+      901
+     ],
+     "px": 112
+    },
+    {
+     "name": "title_1",
+     "box": [
+      100,
+      913,
+      819,
+      1011
+     ],
+     "px": 112
+    }
+   ],
+   "renders": {
+    "f00": {
+     "png": "hook_916_discovered_by_accident_in_19_hero__f00.png",
+     "jpg": "hook_916_discovered_by_accident_in_19_hero__f00.jpg",
+     "png_master": "rgb",
+     "frame": 0,
+     "t": 0.0,
+     "drawn_contrast_min": 5.75
+    },
+    "f32": {
+     "png": "hook_916_discovered_by_accident_in_19_hero__f32.png",
+     "jpg": "hook_916_discovered_by_accident_in_19_hero__f32.jpg",
+     "png_master": "rgb",
+     "frame": 32,
+     "t": 1.067,
+     "drawn_contrast_min": 5.74
+    },
+    "f37": {
+     "png": "hook_916_discovered_by_accident_in_19_hero__f37.png",
+     "jpg": "hook_916_discovered_by_accident_in_19_hero__f37.jpg",
+     "png_master": "quantised-256 (full-colour PNG over 2 MB)",
+     "frame": 37,
+     "t": 1.233
+    }
+   },
+   "seconds_to_render": 13.9
+  },
+  "hook_916_carved_entirely_by_hand_dark": {
+   "name": "hook_916_carved_entirely_by_hand_dark",
+   "run": "run_hal_saflieni_hypogeum_1792949304",
+   "topic": "hal_saflieni_hypogeum",
+   "card": "hook",
+   "format": "916",
+   "claim": "Carved entirely by hand",
+   "claim_chars": 23,
+   "claim_words": 4,
+   "cited_fact": "stone_and_antler_tools",
+   "fact_statement": "The underground chambers were carved entirely by hand using antlers and stone tools made of chert, flint, and obsidian.",
+   "first_burst": "Beneath the town of Paola,",
+   "claim_source": "statement field",
+   "ground": "dark",
+   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\cache\\upscaled\\03_commons_045234cc612cd80d.jpg",
+   "photo_name": "03_commons_045234cc612cd80d.jpg",
+   "photo_measured": {
+    "mean_luma": 86.4,
+    "edge_energy": 13.7,
+    "mean_saturation": 94.4
+   },
+   "labels": [
+    "new: real fact, test-signed field (statement from stone_and_antler_tools)"
+   ],
+   "size": [
+    1080,
+    1920
+   ],
+   "seconds": 1.5,
+   "frames": 45,
+   "anchors": {
+    "P": 120,
+    "lines": 2,
+    "baselines": [
+     650,
+     768
+    ],
+    "T": 547,
+    "E": null,
+    "block_top": 547,
+    "L": 768,
+    "position": "plate"
+   },
+   "drawn_text": {
+    "brand": "RELIC & RIDDLE",
+    "title_0": "CARVED ENTIRELY",
+    "title_1": "BY HAND"
+   },
+   "lines": {
+    "title": [
+     "CARVED ENTIRELY",
+     "BY HAND"
+    ]
+   },
+   "stop_end": {
+    "title": false
+   },
+   "accent_gaps": {
+    "title": [
+     15.0
+    ]
+   },
+   "total_mark": null,
+   "quality_notes": null,
+   "source_host_raw": null,
+   "t_s": null,
+   "t_f": null,
+   "pen_total": null,
+   "source_omitted": null,
+   "planned_drawn_contrast_min": null,
+   "elements": [
+    {
+     "name": "brand",
+     "box": [
+      265,
+      462,
+      862,
+      508
+     ],
+     "px": 64
+    },
+    {
+     "name": "brand_mark",
+     "box": [
+      216,
+      472,
+      242,
+      498
+     ],
+     "px": 0
+    },
+    {
+     "name": "title_0",
+     "box": [
+      164,
+      546,
+      915,
+      651
+     ],
+     "px": 120
+    },
+    {
+     "name": "title_1",
+     "box": [
+      356,
+      665,
+      725,
+      768
+     ],
+     "px": 120
+    }
+   ],
+   "renders": {
+    "f00": {
+     "png": "hook_916_carved_entirely_by_hand_dark__f00.png",
+     "jpg": "hook_916_carved_entirely_by_hand_dark__f00.jpg",
+     "png_master": "quantised-256 (full-colour PNG over 2 MB)",
+     "frame": 0,
+     "t": 0.0,
+     "drawn_contrast_min": 9.93
+    },
+    "f32": {
+     "png": "hook_916_carved_entirely_by_hand_dark__f32.png",
+     "jpg": "hook_916_carved_entirely_by_hand_dark__f32.jpg",
+     "png_master": "quantised-256 (full-colour PNG over 2 MB)",
+     "frame": 32,
+     "t": 1.067,
+     "drawn_contrast_min": 9.93
+    },
+    "f37": {
+     "png": "hook_916_carved_entirely_by_hand_dark__f37.png",
+     "jpg": "hook_916_carved_entirely_by_hand_dark__f37.jpg",
+     "png_master": "quantised-256 (full-colour PNG over 2 MB)",
+     "frame": 37,
+     "t": 1.233
+    }
+   },
+   "seconds_to_render": 12.5
+  },
+  "hook_916_carved_entirely_by_hand_bright": {
+   "name": "hook_916_carved_entirely_by_hand_bright",
+   "run": "run_hal_saflieni_hypogeum_1792949304",
+   "topic": "hal_saflieni_hypogeum",
+   "card": "hook",
+   "format": "916",
+   "claim": "Carved entirely by hand",
+   "claim_chars": 23,
+   "claim_words": 4,
+   "cited_fact": "stone_and_antler_tools",
+   "fact_statement": "The underground chambers were carved entirely by hand using antlers and stone tools made of chert, flint, and obsidian.",
+   "first_burst": "Beneath the town of Paola,",
+   "claim_source": "statement field",
+   "ground": "bright",
+   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\cache\\upscaled\\06_commons_e2d248f0becb82ae.jpg",
+   "photo_name": "06_commons_e2d248f0becb82ae.jpg",
+   "photo_measured": {
+    "mean_luma": 125.6,
+    "edge_energy": 21.4,
+    "mean_saturation": 58.6
+   },
+   "labels": [
+    "new: real fact, test-signed field (statement from stone_and_antler_tools)"
+   ],
+   "size": [
+    1080,
+    1920
+   ],
+   "seconds": 1.5,
+   "frames": 45,
+   "anchors": {
+    "P": 120,
+    "lines": 2,
+    "baselines": [
+     892,
+     1010
+    ],
+    "T": 789,
+    "E": null,
+    "block_top": 789,
+    "L": 1010,
+    "position": "normal"
+   },
+   "drawn_text": {
+    "brand": "RELIC & RIDDLE",
+    "title_0": "CARVED ENTIRELY",
+    "title_1": "BY HAND"
+   },
+   "lines": {
+    "title": [
+     "CARVED ENTIRELY",
+     "BY HAND"
+    ]
+   },
+   "stop_end": {
+    "title": false
+   },
+   "accent_gaps": {
+    "title": [
+     15.0
+    ]
+   },
+   "total_mark": null,
+   "quality_notes": null,
+   "source_host_raw": null,
+   "t_s": null,
+   "t_f": null,
+   "pen_total": null,
+   "source_omitted": null,
+   "planned_drawn_contrast_min": null,
+   "elements": [
+    {
+     "name": "brand",
+     "box": [
+      265,
+      462,
+      862,
+      508
+     ],
+     "px": 64
+    },
+    {
+     "name": "brand_mark",
+     "box": [
+      216,
+      472,
+      242,
+      498
+     ],
+     "px": 0
+    },
+    {
+     "name": "title_0",
+     "box": [
+      100,
+      788,
+      851,
+      893
+     ],
+     "px": 120
+    },
+    {
+     "name": "title_1",
+     "box": [
+      100,
+      907,
+      469,
+      1010
+     ],
+     "px": 120
+    }
+   ],
+   "renders": {
+    "f00": {
+     "png": "hook_916_carved_entirely_by_hand_bright__f00.png",
+     "jpg": "hook_916_carved_entirely_by_hand_bright__f00.jpg",
+     "png_master": "quantised-256 (full-colour PNG over 2 MB)",
+     "frame": 0,
+     "t": 0.0,
+     "drawn_contrast_min": 5.41
+    },
+    "f32": {
+     "png": "hook_916_carved_entirely_by_hand_bright__f32.png",
+     "jpg": "hook_916_carved_entirely_by_hand_bright__f32.jpg",
+     "png_master": "quantised-256 (full-colour PNG over 2 MB)",
+     "frame": 32,
+     "t": 1.067,
+     "drawn_contrast_min": 5.42
+    },
+    "f37": {
+     "png": "hook_916_carved_entirely_by_hand_bright__f37.png",
+     "jpg": "hook_916_carved_entirely_by_hand_bright__f37.jpg",
+     "png_master": "quantised-256 (full-colour PNG over 2 MB)",
+     "frame": 37,
+     "t": 1.233
+    }
+   },
+   "seconds_to_render": 16.8
+  },
+  "hook_916_carved_entirely_by_hand_busy": {
+   "name": "hook_916_carved_entirely_by_hand_busy",
+   "run": "run_hal_saflieni_hypogeum_1792949304",
+   "topic": "hal_saflieni_hypogeum",
+   "card": "hook",
+   "format": "916",
+   "claim": "Carved entirely by hand",
+   "claim_chars": 23,
+   "claim_words": 4,
+   "cited_fact": "stone_and_antler_tools",
+   "fact_statement": "The underground chambers were carved entirely by hand using antlers and stone tools made of chert, flint, and obsidian.",
+   "first_burst": "Beneath the town of Paola,",
+   "claim_source": "statement field",
+   "ground": "busy",
+   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\cache\\upscaled\\04_commons_7080667279489630.jpg",
+   "photo_name": "04_commons_7080667279489630.jpg",
+   "photo_measured": {
+    "mean_luma": 88.9,
+    "edge_energy": 23.5,
+    "mean_saturation": 88.0
+   },
+   "labels": [
+    "new: real fact, test-signed field (statement from stone_and_antler_tools)"
+   ],
+   "size": [
+    1080,
+    1920
+   ],
+   "seconds": 1.5,
+   "frames": 45,
+   "anchors": {
+    "P": 120,
+    "lines": 2,
+    "baselines": [
+     892,
+     1010
+    ],
+    "T": 789,
+    "E": null,
+    "block_top": 789,
+    "L": 1010,
+    "position": "normal"
+   },
+   "drawn_text": {
+    "brand": "RELIC & RIDDLE",
+    "title_0": "CARVED ENTIRELY",
+    "title_1": "BY HAND"
+   },
+   "lines": {
+    "title": [
+     "CARVED ENTIRELY",
+     "BY HAND"
+    ]
+   },
+   "stop_end": {
+    "title": false
+   },
+   "accent_gaps": {
+    "title": [
+     15.0
+    ]
+   },
+   "total_mark": null,
+   "quality_notes": null,
+   "source_host_raw": null,
+   "t_s": null,
+   "t_f": null,
+   "pen_total": null,
+   "source_omitted": null,
+   "planned_drawn_contrast_min": null,
+   "elements": [
+    {
+     "name": "brand",
+     "box": [
+      265,
+      462,
+      862,
+      508
+     ],
+     "px": 64
+    },
+    {
+     "name": "brand_mark",
+     "box": [
+      216,
+      472,
+      242,
+      498
+     ],
+     "px": 0
+    },
+    {
+     "name": "title_0",
+     "box": [
+      100,
+      788,
+      851,
+      893
+     ],
+     "px": 120
+    },
+    {
+     "name": "title_1",
+     "box": [
+      100,
+      907,
+      469,
+      1010
+     ],
+     "px": 120
+    }
+   ],
+   "renders": {
+    "f00": {
+     "png": "hook_916_carved_entirely_by_hand_busy__f00.png",
+     "jpg": "hook_916_carved_entirely_by_hand_busy__f00.jpg",
+     "png_master": "quantised-256 (full-colour PNG over 2 MB)",
+     "frame": 0,
+     "t": 0.0,
+     "drawn_contrast_min": 5.19
+    },
+    "f32": {
+     "png": "hook_916_carved_entirely_by_hand_busy__f32.png",
+     "jpg": "hook_916_carved_entirely_by_hand_busy__f32.jpg",
+     "png_master": "rgb",
+     "frame": 32,
+     "t": 1.067,
+     "drawn_contrast_min": 5.24
+    },
+    "f37": {
+     "png": "hook_916_carved_entirely_by_hand_busy__f37.png",
+     "jpg": "hook_916_carved_entirely_by_hand_busy__f37.jpg",
+     "png_master": "quantised-256 (full-colour PNG over 2 MB)",
+     "frame": 37,
+     "t": 1.233
+    }
+   },
+   "seconds_to_render": 20.0
+  },
+  "hook_916_carved_entirely_by_hand_hero": {
+   "name": "hook_916_carved_entirely_by_hand_hero",
+   "run": "run_hal_saflieni_hypogeum_1792949304",
+   "topic": "hal_saflieni_hypogeum",
+   "card": "hook",
+   "format": "916",
+   "claim": "Carved entirely by hand",
+   "claim_chars": 23,
+   "claim_words": 4,
+   "cited_fact": "stone_and_antler_tools",
+   "fact_statement": "The underground chambers were carved entirely by hand using antlers and stone tools made of chert, flint, and obsidian.",
+   "first_burst": "Beneath the town of Paola,",
+   "claim_source": "statement field",
+   "ground": "hero",
+   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\hal_saflieni_hypogeum\\01_commons.jpg",
+   "photo_name": "01_commons.jpg",
+   "photo_measured": {
+    "mean_luma": 110.1,
+    "edge_energy": 12.1,
+    "mean_saturation": 95.5
+   },
+   "labels": [
+    "new: real fact, test-signed field (statement from stone_and_antler_tools)"
+   ],
+   "size": [
+    1080,
+    1920
+   ],
+   "seconds": 1.5,
+   "frames": 45,
+   "anchors": {
+    "P": 120,
+    "lines": 2,
+    "baselines": [
+     892,
+     1010
+    ],
+    "T": 789,
+    "E": null,
+    "block_top": 789,
+    "L": 1010,
+    "position": "normal"
+   },
+   "drawn_text": {
+    "brand": "RELIC & RIDDLE",
+    "title_0": "CARVED ENTIRELY",
+    "title_1": "BY HAND"
+   },
+   "lines": {
+    "title": [
+     "CARVED ENTIRELY",
+     "BY HAND"
+    ]
+   },
+   "stop_end": {
+    "title": false
+   },
+   "accent_gaps": {
+    "title": [
+     15.0
+    ]
+   },
+   "total_mark": null,
+   "quality_notes": null,
+   "source_host_raw": null,
+   "t_s": null,
+   "t_f": null,
+   "pen_total": null,
+   "source_omitted": null,
+   "planned_drawn_contrast_min": null,
+   "elements": [
+    {
+     "name": "brand",
+     "box": [
+      265,
+      462,
+      862,
+      508
+     ],
+     "px": 64
+    },
+    {
+     "name": "brand_mark",
+     "box": [
+      216,
+      472,
+      242,
+      498
+     ],
+     "px": 0
+    },
+    {
+     "name": "title_0",
+     "box": [
+      100,
+      788,
+      851,
+      893
+     ],
+     "px": 120
+    },
+    {
+     "name": "title_1",
+     "box": [
+      100,
+      907,
+      469,
+      1010
+     ],
+     "px": 120
+    }
+   ],
+   "renders": {
+    "f00": {
+     "png": "hook_916_carved_entirely_by_hand_hero__f00.png",
+     "jpg": "hook_916_carved_entirely_by_hand_hero__f00.jpg",
+     "png_master": "rgb",
+     "frame": 0,
+     "t": 0.0,
+     "drawn_contrast_min": 5.74
+    },
+    "f32": {
+     "png": "hook_916_carved_entirely_by_hand_hero__f32.png",
+     "jpg": "hook_916_carved_entirely_by_hand_hero__f32.jpg",
+     "png_master": "rgb",
+     "frame": 32,
+     "t": 1.067,
+     "drawn_contrast_min": 5.71
+    },
+    "f37": {
+     "png": "hook_916_carved_entirely_by_hand_hero__f37.png",
+     "jpg": "hook_916_carved_entirely_by_hand_hero__f37.jpg",
+     "png_master": "quantised-256 (full-colour PNG over 2 MB)",
+     "frame": 37,
+     "t": 1.233
+    }
+   },
+   "seconds_to_render": 28.5
+  },
+  "hook_916_near_krak_w_in_southern_pola_dark": {
+   "name": "hook_916_near_krak_w_in_southern_pola_dark",
+   "run": "run_wieliczka_salt_mine_1792974672",
+   "topic": "wieliczka_salt_mine",
+   "card": "hook",
+   "format": "916",
+   "claim": "Near Kraków in southern Poland",
+   "claim_chars": 30,
+   "claim_words": 5,
+   "cited_fact": "fact-1",
+   "fact_statement": "The Wieliczka Salt Mine is located in the town of Wieliczka, near Kraków in southern Poland.",
+   "first_burst": "Near Kraków in southern Poland,",
+   "claim_source": "statement field",
+   "ground": "dark",
+   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\wieliczka_salt_mine\\02_commons.jpg",
+   "photo_name": "02_commons.jpg",
+   "photo_measured": {
+    "mean_luma": 25.3,
+    "edge_energy": 7.5,
+    "mean_saturation": 188.5
+   },
+   "labels": [
+    "new: real fact, test-signed field (statement from fact-1)"
+   ],
+   "refused": "the claim repeats the first caption burst",
+   "code": "",
+   "png": "hook_916_near_krak_w_in_southern_pola_dark__last.png",
+   "jpg": "hook_916_near_krak_w_in_southern_pola_dark__last.jpg",
+   "png_master": "rgb"
+  },
+  "hook_916_near_krak_w_in_southern_pola_bright+busy": {
+   "name": "hook_916_near_krak_w_in_southern_pola_bright+busy",
+   "run": "run_wieliczka_salt_mine_1792974672",
+   "topic": "wieliczka_salt_mine",
+   "card": "hook",
+   "format": "916",
+   "claim": "Near Kraków in southern Poland",
+   "claim_chars": 30,
+   "claim_words": 5,
+   "cited_fact": "fact-1",
+   "fact_statement": "The Wieliczka Salt Mine is located in the town of Wieliczka, near Kraków in southern Poland.",
+   "first_burst": "Near Kraków in southern Poland,",
+   "claim_source": "statement field",
+   "ground": "bright+busy",
+   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\wieliczka_salt_mine\\01_commons.jpg",
+   "photo_name": "01_commons.jpg",
+   "photo_measured": {
+    "mean_luma": 69.2,
+    "edge_energy": 16.2,
+    "mean_saturation": 122.0
+   },
+   "labels": [
+    "new: real fact, test-signed field (statement from fact-1)"
+   ],
+   "refused": "the claim repeats the first caption burst",
+   "code": "",
+   "png": "hook_916_near_krak_w_in_southern_pola_bright+busy__last.png",
+   "jpg": "hook_916_near_krak_w_in_southern_pola_bright+busy__last.jpg",
+   "png_master": "rgb"
+  },
+  "hook_916_a_maximum_depth_of_327_meter_dark": {
+   "name": "hook_916_a_maximum_depth_of_327_meter_dark",
+   "run": "run_wieliczka_salt_mine_1792974672",
+   "topic": "wieliczka_salt_mine",
+   "card": "hook",
+   "format": "916",
+   "claim": "A maximum depth of 327 meters",
+   "claim_chars": 29,
+   "claim_words": 6,
+   "cited_fact": "fact-6",
+   "fact_statement": "The mine excavations descend to a maximum depth of 327 meters below the surface.",
+   "first_burst": "Near Kraków in southern Poland,",
+   "claim_source": "statement field",
+   "ground": "dark",
+   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\wieliczka_salt_mine\\02_commons.jpg",
+   "photo_name": "02_commons.jpg",
+   "photo_measured": {
+    "mean_luma": 25.3,
+    "edge_energy": 7.5,
+    "mean_saturation": 188.5
+   },
+   "labels": [
+    "new: real fact, test-signed field (statement from fact-6)"
+   ],
+   "refused": "claim: 327 is disputed and the facts give no span",
+   "code": "disputed_no_span",
+   "png": "hook_916_a_maximum_depth_of_327_meter_dark__last.png",
+   "jpg": "hook_916_a_maximum_depth_of_327_meter_dark__last.jpg",
+   "png_master": "rgb"
+  },
+  "hook_916_a_maximum_depth_of_327_meter_bright+busy": {
+   "name": "hook_916_a_maximum_depth_of_327_meter_bright+busy",
+   "run": "run_wieliczka_salt_mine_1792974672",
+   "topic": "wieliczka_salt_mine",
+   "card": "hook",
+   "format": "916",
+   "claim": "A maximum depth of 327 meters",
+   "claim_chars": 29,
+   "claim_words": 6,
+   "cited_fact": "fact-6",
+   "fact_statement": "The mine excavations descend to a maximum depth of 327 meters below the surface.",
+   "first_burst": "Near Kraków in southern Poland,",
+   "claim_source": "statement field",
+   "ground": "bright+busy",
+   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\wieliczka_salt_mine\\01_commons.jpg",
+   "photo_name": "01_commons.jpg",
+   "photo_measured": {
+    "mean_luma": 69.2,
+    "edge_energy": 16.2,
+    "mean_saturation": 122.0
+   },
+   "labels": [
+    "new: real fact, test-signed field (statement from fact-6)"
+   ],
+   "refused": "claim: 327 is disputed and the facts give no span",
+   "code": "disputed_no_span",
+   "png": "hook_916_a_maximum_depth_of_327_meter_bright+busy__last.png",
+   "jpg": "hook_916_a_maximum_depth_of_327_meter_bright+busy__last.jpg",
+   "png_master": "rgb"
+  },
+  "hook_916_without_metal_tension_rings_dark": {
+   "name": "hook_916_without_metal_tension_rings_dark",
+   "run": "run_gol_gumbaz_whispering_gallery_1793278143",
+   "topic": "gol_gumbaz_whispering_gallery",
+   "card": "hook",
+   "format": "916",
+   "claim": "Without metal tension rings",
+   "claim_chars": 27,
+   "claim_words": 4,
+   "cited_fact": "fact-9",
+   "fact_statement": "The engineering design of the central dome achieves its structural integrity without the use of metal tension rings.",
+   "first_burst": "Can a quiet whisper travel across",
+   "claim_source": "statement field",
+   "ground": "dark",
+   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\cache\\upscaled\\24_commons_b3593d8c94b1c5f2.jpg",
+   "photo_name": "24_commons_b3593d8c94b1c5f2.jpg",
+   "photo_measured": {
+    "mean_luma": 64.2,
+    "edge_energy": 9.2,
+    "mean_saturation": 45.8
+   },
+   "labels": [
+    "new: real fact, test-signed field (statement from fact-9)"
+   ],
+   "size": [
+    1080,
+    1920
+   ],
+   "seconds": 1.5,
+   "frames": 45,
+   "anchors": {
+    "P": 128,
+    "lines": 2,
+    "baselines": [
+     885,
+     1010
+    ],
+    "T": 775,
+    "E": null,
+    "block_top": 775,
+    "L": 1010,
+    "position": "normal"
+   },
+   "drawn_text": {
+    "brand": "RELIC & RIDDLE",
+    "title_0": "WITHOUT METAL",
+    "title_1": "TENSION RINGS"
+   },
+   "lines": {
+    "title": [
+     "WITHOUT METAL",
+     "TENSION RINGS"
+    ]
+   },
+   "stop_end": {
+    "title": false
+   },
+   "accent_gaps": {
+    "title": [
+     14.0
+    ]
+   },
+   "total_mark": null,
+   "quality_notes": null,
+   "source_host_raw": null,
+   "t_s": null,
+   "t_f": null,
+   "pen_total": null,
+   "source_omitted": null,
+   "planned_drawn_contrast_min": null,
+   "elements": [
+    {
+     "name": "brand",
+     "box": [
+      265,
+      462,
+      862,
+      508
+     ],
+     "px": 64
+    },
+    {
+     "name": "brand_mark",
+     "box": [
+      216,
+      472,
+      242,
+      498
+     ],
+     "px": 0
+    },
+    {
+     "name": "title_0",
+     "box": [
+      100,
+      774,
+      850,
+      886
+     ],
+     "px": 128
+    },
+    {
+     "name": "title_1",
+     "box": [
+      100,
+      899,
+      784,
+      1011
+     ],
+     "px": 128
+    }
+   ],
+   "renders": {
+    "f00": {
+     "png": "hook_916_without_metal_tension_rings_dark__f00.png",
+     "jpg": "hook_916_without_metal_tension_rings_dark__f00.jpg",
+     "png_master": "rgb",
+     "frame": 0,
+     "t": 0.0,
+     "drawn_contrast_min": 5.6
+    },
+    "f32": {
+     "png": "hook_916_without_metal_tension_rings_dark__f32.png",
+     "jpg": "hook_916_without_metal_tension_rings_dark__f32.jpg",
+     "png_master": "rgb",
+     "frame": 32,
+     "t": 1.067,
+     "drawn_contrast_min": 5.6
+    },
+    "f37": {
+     "png": "hook_916_without_metal_tension_rings_dark__f37.png",
+     "jpg": "hook_916_without_metal_tension_rings_dark__f37.jpg",
+     "png_master": "rgb",
+     "frame": 37,
+     "t": 1.233
+    }
+   },
+   "seconds_to_render": 37.2
+  },
+  "hook_916_without_metal_tension_rings_bright": {
+   "name": "hook_916_without_metal_tension_rings_bright",
+   "run": "run_gol_gumbaz_whispering_gallery_1793278143",
+   "topic": "gol_gumbaz_whispering_gallery",
+   "card": "hook",
+   "format": "916",
+   "claim": "Without metal tension rings",
+   "claim_chars": 27,
+   "claim_words": 4,
+   "cited_fact": "fact-9",
+   "fact_statement": "The engineering design of the central dome achieves its structural integrity without the use of metal tension rings.",
+   "first_burst": "Can a quiet whisper travel across",
+   "claim_source": "statement field",
+   "ground": "bright",
+   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\cache\\privacy\\beat02_2_f623e3971478cf26_3184e209b19dd0de.jpg",
+   "photo_name": "beat02_2_f623e3971478cf26_3184e209b19dd0de.jpg",
+   "photo_measured": {
+    "mean_luma": 133.1,
+    "edge_energy": 19.2,
+    "mean_saturation": 60.0
+   },
+   "labels": [
+    "new: real fact, test-signed field (statement from fact-9)"
+   ],
+   "size": [
+    1080,
+    1920
+   ],
+   "seconds": 1.5,
+   "frames": 45,
+   "anchors": {
+    "P": 128,
+    "lines": 2,
+    "baselines": [
+     885,
+     1010
+    ],
+    "T": 775,
+    "E": null,
+    "block_top": 775,
+    "L": 1010,
+    "position": "normal"
+   },
+   "drawn_text": {
+    "brand": "RELIC & RIDDLE",
+    "title_0": "WITHOUT METAL",
+    "title_1": "TENSION RINGS"
+   },
+   "lines": {
+    "title": [
+     "WITHOUT METAL",
+     "TENSION RINGS"
+    ]
+   },
+   "stop_end": {
+    "title": false
+   },
+   "accent_gaps": {
+    "title": [
+     14.0
+    ]
+   },
+   "total_mark": null,
+   "quality_notes": null,
+   "source_host_raw": null,
+   "t_s": null,
+   "t_f": null,
+   "pen_total": null,
+   "source_omitted": null,
+   "planned_drawn_contrast_min": null,
+   "elements": [
+    {
+     "name": "brand",
+     "box": [
+      265,
+      462,
+      862,
+      508
+     ],
+     "px": 64
+    },
+    {
+     "name": "brand_mark",
+     "box": [
+      216,
+      472,
+      242,
+      498
+     ],
+     "px": 0
+    },
+    {
+     "name": "title_0",
+     "box": [
+      100,
+      774,
+      850,
+      886
+     ],
+     "px": 128
+    },
+    {
+     "name": "title_1",
+     "box": [
+      100,
+      899,
+      784,
+      1011
+     ],
+     "px": 128
+    }
+   ],
+   "renders": {
+    "f00": {
+     "png": "hook_916_without_metal_tension_rings_bright__f00.png",
+     "jpg": "hook_916_without_metal_tension_rings_bright__f00.jpg",
+     "png_master": "rgb",
+     "frame": 0,
+     "t": 0.0,
+     "drawn_contrast_min": 5.78
+    },
+    "f32": {
+     "png": "hook_916_without_metal_tension_rings_bright__f32.png",
+     "jpg": "hook_916_without_metal_tension_rings_bright__f32.jpg",
+     "png_master": "rgb",
+     "frame": 32,
+     "t": 1.067,
+     "drawn_contrast_min": 5.73
+    },
+    "f37": {
+     "png": "hook_916_without_metal_tension_rings_bright__f37.png",
+     "jpg": "hook_916_without_metal_tension_rings_bright__f37.jpg",
+     "png_master": "quantised-256 (full-colour PNG over 2 MB)",
+     "frame": 37,
+     "t": 1.233
+    }
+   },
+   "seconds_to_render": 32.2
+  },
+  "hook_916_without_metal_tension_rings_busy": {
+   "name": "hook_916_without_metal_tension_rings_busy",
+   "run": "run_gol_gumbaz_whispering_gallery_1793278143",
+   "topic": "gol_gumbaz_whispering_gallery",
+   "card": "hook",
+   "format": "916",
+   "claim": "Without metal tension rings",
+   "claim_chars": 27,
+   "claim_words": 4,
+   "cited_fact": "fact-9",
+   "fact_statement": "The engineering design of the central dome achieves its structural integrity without the use of metal tension rings.",
+   "first_burst": "Can a quiet whisper travel across",
+   "claim_source": "statement field",
+   "ground": "busy",
+   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\cache\\upscaled\\04_commons_fad489b1b2468caa.jpg",
+   "photo_name": "04_commons_fad489b1b2468caa.jpg",
+   "photo_measured": {
+    "mean_luma": 131.9,
+    "edge_energy": 23.2,
+    "mean_saturation": 96.1
+   },
+   "labels": [
+    "new: real fact, test-signed field (statement from fact-9)"
+   ],
+   "size": [
+    1080,
+    1920
+   ],
+   "seconds": 1.5,
+   "frames": 45,
+   "anchors": {
+    "P": 128,
+    "lines": 2,
+    "baselines": [
+     885,
+     1010
+    ],
+    "T": 775,
+    "E": null,
+    "block_top": 775,
+    "L": 1010,
+    "position": "normal"
+   },
+   "drawn_text": {
+    "brand": "RELIC & RIDDLE",
+    "title_0": "WITHOUT METAL",
+    "title_1": "TENSION RINGS"
+   },
+   "lines": {
+    "title": [
+     "WITHOUT METAL",
+     "TENSION RINGS"
+    ]
+   },
+   "stop_end": {
+    "title": false
+   },
+   "accent_gaps": {
+    "title": [
+     14.0
+    ]
+   },
+   "total_mark": null,
+   "quality_notes": null,
+   "source_host_raw": null,
+   "t_s": null,
+   "t_f": null,
+   "pen_total": null,
+   "source_omitted": null,
+   "planned_drawn_contrast_min": null,
+   "elements": [
+    {
+     "name": "brand",
+     "box": [
+      265,
+      462,
+      862,
+      508
+     ],
+     "px": 64
+    },
+    {
+     "name": "brand_mark",
+     "box": [
+      216,
+      472,
+      242,
+      498
+     ],
+     "px": 0
+    },
+    {
+     "name": "title_0",
+     "box": [
+      100,
+      774,
+      850,
+      886
+     ],
+     "px": 128
+    },
+    {
+     "name": "title_1",
+     "box": [
+      100,
+      899,
+      784,
+      1011
+     ],
+     "px": 128
+    }
+   ],
+   "renders": {
+    "f00": {
+     "png": "hook_916_without_metal_tension_rings_busy__f00.png",
+     "jpg": "hook_916_without_metal_tension_rings_busy__f00.jpg",
+     "png_master": "rgb",
+     "frame": 0,
+     "t": 0.0,
+     "drawn_contrast_min": 5.57
+    },
+    "f32": {
+     "png": "hook_916_without_metal_tension_rings_busy__f32.png",
+     "jpg": "hook_916_without_metal_tension_rings_busy__f32.jpg",
+     "png_master": "rgb",
+     "frame": 32,
+     "t": 1.067,
+     "drawn_contrast_min": 5.57
+    },
+    "f37": {
+     "png": "hook_916_without_metal_tension_rings_busy__f37.png",
+     "jpg": "hook_916_without_metal_tension_rings_busy__f37.jpg",
+     "png_master": "quantised-256 (full-colour PNG over 2 MB)",
+     "frame": 37,
+     "t": 1.233
+    }
+   },
+   "seconds_to_render": 29.3
+  },
+  "hook_916_without_metal_tension_rings_hero": {
+   "name": "hook_916_without_metal_tension_rings_hero",
+   "run": "run_gol_gumbaz_whispering_gallery_1793278143",
+   "topic": "gol_gumbaz_whispering_gallery",
+   "card": "hook",
+   "format": "916",
+   "claim": "Without metal tension rings",
+   "claim_chars": 27,
+   "claim_words": 4,
+   "cited_fact": "fact-9",
+   "fact_statement": "The engineering design of the central dome achieves its structural integrity without the use of metal tension rings.",
+   "first_burst": "Can a quiet whisper travel across",
+   "claim_source": "statement field",
+   "ground": "hero",
+   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\cache\\upscaled\\22_commons_466e53f5c2d25a35.jpg",
+   "photo_name": "22_commons_466e53f5c2d25a35.jpg",
+   "photo_measured": {
+    "mean_luma": 114.2,
+    "edge_energy": 12.6,
+    "mean_saturation": 30.8
+   },
+   "labels": [
+    "new: real fact, test-signed field (statement from fact-9)"
+   ],
+   "size": [
+    1080,
+    1920
+   ],
+   "seconds": 1.5,
+   "frames": 45,
+   "anchors": {
+    "P": 128,
+    "lines": 2,
+    "baselines": [
+     885,
+     1010
+    ],
+    "T": 775,
+    "E": null,
+    "block_top": 775,
+    "L": 1010,
+    "position": "normal"
+   },
+   "drawn_text": {
+    "brand": "RELIC & RIDDLE",
+    "title_0": "WITHOUT METAL",
+    "title_1": "TENSION RINGS"
+   },
+   "lines": {
+    "title": [
+     "WITHOUT METAL",
+     "TENSION RINGS"
+    ]
+   },
+   "stop_end": {
+    "title": false
+   },
+   "accent_gaps": {
+    "title": [
+     14.0
+    ]
+   },
+   "total_mark": null,
+   "quality_notes": null,
+   "source_host_raw": null,
+   "t_s": null,
+   "t_f": null,
+   "pen_total": null,
+   "source_omitted": null,
+   "planned_drawn_contrast_min": null,
+   "elements": [
+    {
+     "name": "brand",
+     "box": [
+      265,
+      462,
+      862,
+      508
+     ],
+     "px": 64
+    },
+    {
+     "name": "brand_mark",
+     "box": [
+      216,
+      472,
+      242,
+      498
+     ],
+     "px": 0
+    },
+    {
+     "name": "title_0",
+     "box": [
+      100,
+      774,
+      850,
+      886
+     ],
+     "px": 128
+    },
+    {
+     "name": "title_1",
+     "box": [
+      100,
+      899,
+      784,
+      1011
+     ],
+     "px": 128
+    }
+   ],
+   "renders": {
+    "f00": {
+     "png": "hook_916_without_metal_tension_rings_hero__f00.png",
+     "jpg": "hook_916_without_metal_tension_rings_hero__f00.jpg",
+     "png_master": "rgb",
+     "frame": 0,
+     "t": 0.0,
+     "drawn_contrast_min": 5.48
+    },
+    "f32": {
+     "png": "hook_916_without_metal_tension_rings_hero__f32.png",
+     "jpg": "hook_916_without_metal_tension_rings_hero__f32.jpg",
+     "png_master": "rgb",
+     "frame": 32,
+     "t": 1.067,
+     "drawn_contrast_min": 5.47
+    },
+    "f37": {
+     "png": "hook_916_without_metal_tension_rings_hero__f37.png",
+     "jpg": "hook_916_without_metal_tension_rings_hero__f37.jpg",
+     "png_master": "rgb",
+     "frame": 37,
+     "t": 1.233
+    }
+   },
+   "seconds_to_render": 31.6
+  }
+ }
+}

@@ -368,7 +368,14 @@ def test_boxes_16x9(size, photos):
     plans = graphic_plans(w, h, photos["noise"])
     for kind, plan in plans.items():
         for e in plan.elements:
-            assert inside(e.box, safe), (kind, e.name, e.box, safe)
+            box = e.box
+            if e.name.startswith("strike_"):
+                # freeze panel round 2 (M10 (3), deliberate change): the 16:9 strike overhangs both ends of its line
+                # by round(0.06 x Pm), so its left end may stand that far before title-safe's x 153 (the myth's ink
+                # stays inside it)
+                ov = max(1, round(round(dc.STRIKE_OVERHANG * plan.meta["anchors"]["myth_px"]) * g.k))
+                box = (box[0] + ov, *box[1:])
+            assert inside(box, safe), (kind, e.name, e.box, safe)
     m = {e.name: e for e in plans["mythfact"].elements}
     div = m["divider"].box
     for e in plans["mythfact"].elements:
@@ -391,7 +398,8 @@ def test_hook_in_crops(claim, ids, n, photos):
 
 def test_hook_focus_fallback(photos):
     plan = dc.plan_hook_frame(hook(photos["dark"], focus=(0, 800, 1080, 1100)), SHEET)
-    assert plan.meta["anchors"]["block_top"] == 547 and plan.meta["anchors"]["position"] == "top"
+    # freeze panel 2026-11-04 (H3, deliberate change): the moved block starts 56 px under the masthead's foot (was 547)
+    assert plan.meta["anchors"]["block_top"] == 565 and plan.meta["anchors"]["position"] == "top"
     with pytest.raises(dc.CardRefused):
         dc.plan_hook_frame(hook(photos["dark"], focus=(0, 500, 1080, 1050)), SHEET)
     with pytest.raises(dc.CardRefused):
@@ -403,16 +411,27 @@ def test_exact_anchors():
     a = p.meta["anchors"]
     # review 2026-11-03 (second round, 3): the 9:16 chapter title runs to 136 px (it was 104, R 400, Bn 740,
     # baselines [885, 987], kicker rule at y 400)
-    assert (a["title_px"], a["R"], a["Bn"], a["title_baselines"]) == (136, 371, 711, [884, 1017])
+    # freeze panel round 2 (C6, deliberate change): the 9:16 title measure is 788 and three lines are taken when they
+    # set >= 16 px larger than two, the block centred on min(864, 1058 - H / 2): "THE EYE / OF THE GREAT / SAHARA" at
+    # 128 (was 136 in 2 lines, R 371, Bn 711, baselines [884, 1017], rule at 371)
+    assert (a["title_px"], a["R"], a["Bn"], a["title_baselines"]) == (128, 300, 640, [806, 931, 1056])
     els = {e.name: e for e in p.elements}
-    assert els["kicker_rule"].box == (100, 371, 144, 375)
+    assert els["kicker_rule"].box == (100, 300, 144, 304)
     p = dc.plan_chapter_card(chapter(), SHEET, 1920, 1080)
     els = {e.name: e for e in p.elements}
     last = max(n for n in els if n.startswith("title_"))
     assert abs(els[last].xy[1] - els["numeral"].xy[1]) <= 1
     # operator decision C (2026-11-03, deliberate change): the 16:9 title fills its measure ("THE EYE OF THE /
     # GREAT SAHARA" at 176 px, no empty right third), so the taller block centres lower (Bn was 630)
-    assert p.meta["anchors"]["Bn"] == 676 and p.meta["anchors"]["title_px"] == 176
+    # freeze panel 2026-11-04 (C2, deliberate change): two title lines stand no taller than the numeral's measured ink
+    # (311 px, was a fixed 330), so the title's cap top meets the numeral's ink top: 168 px, Bn 668 (were 176, 676);
+    # W1 breaks it "THE EYE OF / THE GREAT SAHARA" (an article no longer ends the line)
+    # freeze panel round 2 (C5 operator decision + W2, deliberate change): the total moves to the kicker line, so the
+    # title keeps its measure (x 459), and no line ends on THE / OF: "THE EYE / OF THE GREAT SAHARA" at 160, Bn 662
+    # (were 168, Bn 668)
+    # freeze panel round 4 (C5 review: two lines at 160 stood 16 px under the numeral's ink top, deliberate change):
+    # the two-line step grows until the first cap top meets the numeral's ink top (173, was 157), so Bn 670 (was 662)
+    assert p.meta["anchors"]["Bn"] == 670 and p.meta["anchors"]["title_px"] == 160
     p = dc.plan_myth_fact(myth(myth_text="Extraterrestrials constructed the circular rings", myth_fact_id="f_et",
                                fact_text="Wind and water slowly eroded the dome over millions of years into "
                                          "concentric rings", fact_id="f_et"), SHEET)
@@ -424,7 +443,10 @@ def test_exact_anchors():
     # review 2026-11-03 (5): the block is composed for the whole graphics box (its top 288, the FACT group set down
     # by up to MYTH_SPREAD) and no smaller size is taken to save a line, so this length sets at 72, not 68
     assert p.meta["anchors"]["R"] == 288 and p.meta["anchors"]["fact_baselines"][-1] == 974   # was 1046
-    assert p.meta["anchors"]["px"] == 72
+    # freeze panel 2026-11-04 (M1, deliberate change; handover: the 76 px floor with the source kept): the myth tries
+    # 0.86, 0.80 and 0.76 of the fact in two lines at each size, so this length sets at 80 (myth 60), not 72 (or 68
+    # without raqm, where P 76 and 72 failed the block height with a 3-line myth at 0.86)
+    assert p.meta["anchors"]["px"] == 80 and p.meta["anchors"]["myth_px"] == 60
     assert p.meta["source_omitted"] is None                                                   # was "no room"
     p = dc.plan_quote_card(quote(text=WALK_EV.split('"')[1], fact_id="f_walk", role="", work="", year=None),
                            SHEET, 1920, 1080)
@@ -438,8 +460,9 @@ def test_exact_anchors():
 
 # ------------------------------------------------------------------------------------------------ type floors
 def test_type_floors(photos):
-    floors = {False: {"running": 46, "display": 46, "kicker": 40, "data": 30, "masthead": 40},
-              True: {"running": 48, "display": 48, "kicker": 28, "data": 22}}
+    # freeze panel 2026-11-04 (M9): the myth card's SOURCE label is design chrome (24 / 26 px, like a caption tag)
+    floors = {False: {"running": 46, "display": 46, "kicker": 40, "data": 30, "masthead": 40, "chrome": 24},
+              True: {"running": 48, "display": 48, "kicker": 28, "data": 22, "chrome": 26}}
     sets = [(graphic_plans(w, h, photos["dark"]), w, h) for w, h in ((1080, 1920), (720, 1280), (1920, 1080),
                                                                      (1280, 720))]
     sets.append(({"hook": dc.plan_hook_frame(hook(photos["dark"], eyebrow="The Richat ring",
@@ -655,7 +678,7 @@ def test_hook_frame0(photos):
     assert plan.frames == 45 and plan.meta["caption_clear_until_s"] == 1.40
     for e in plan.elements:
         assert dc.alpha_at(plan, e.name, 0.0) == 1.0
-        assert dc.alpha_at(plan, e.name, 1.09) == 1.0
+        assert dc.alpha_at(plan, e.name, 32 / 30) == 1.0     # frame 32 (fix round 1, H6 (5): was 1.09 s)
         assert dc.alpha_at(plan, e.name, 1.40) == 0.0
     bg = plan.meta["_r"]["bg"]
     assert mad(dc.frame_at(plan, 44), dc._pushed_in(bg, 1 + 0.0016 * 44)) <= 1
@@ -692,7 +715,8 @@ def test_myth_timing():
     late = dc.plan_myth_fact(myth(fact_at=4.0), SHEET)
     assert late.meta["t_s"] == pytest.approx(4.0 - 0.45)
     early = dc.plan_myth_fact(myth(fact_at=0.5), SHEET)
-    assert early.meta["t_s"] == pytest.approx(rest_m + 1.2)
+    # freeze panel round 2 (M11 (3), deliberate change): the myth's read floor is 1.00 s (was 1.2)
+    assert early.meta["t_s"] == pytest.approx(rest_m + 1.0)
 
 
 def test_quote_alpha_invariants():
@@ -716,7 +740,11 @@ def test_chapter_timing():
         names = [e.name for e in plan.elements]
         assert all(dc.alpha_at(plan, n, 0.09) == 0.0 for n in names)
         assert dc.alpha_at(plan, "kicker_label", 0.55) > 0 and dc.alpha_at(plan, "title_0", 0.55) == 0.0
-        assert all(dc.alpha_at(plan, n, 1.20) == 1.0 for n in names)
+        # freeze panel 2026-11-04 (C4, deliberate change): the 16:9 reveal is paced to its 3.5 s card (titles from
+        # 0.80 s, 0.18 s apart, a 0.28 s alpha ramp), so it is whole by 1.30 s there (9:16 keeps 1.20 s)
+        # freeze panel round 2 (C6, deliberate change): the 9:16 titles start at 0.62 s, 0.18 s apart, and this title
+        # takes 3 lines there, so it is whole by 0.62 + 0.36 + 0.40 = 1.38 s (was 1.20 s)
+        assert all(dc.alpha_at(plan, n, 1.38 if size[1] > size[0] else 1.30) == 1.0 for n in names)
         assert all(dc.alpha_at(plan, n, plan.seconds) == 1.0 for n in names)
         assert 0 < 44 * dc.alpha_at(plan, "kicker_rule", 0.25) < 44
         assert plan.seconds == (2.5 if size[1] > size[0] else 3.5)
@@ -737,7 +765,7 @@ def test_rest_tail(photos):
 
 # ------------------------------------------------------------------------------------------------ refusals
 def _refused(path):
-    d = json.loads(Path(str(path) + ".design.json").read_text())
+    d = _read_json(str(path) + ".design.json")
     assert d["refused"] and d["version"] == "design-cards-1"
     assert not Path(path).exists() and not Path(path).with_suffix(".jpg").exists()
     return d["refused"]
@@ -856,7 +884,10 @@ def test_private_helpers_pinned(tmp_path):
     m = _FIGURE.search("about 40 km across")
     assert m and _unit(m.group("unit"))[3] == "km"
     if HAS_FFMPEG:
-        path = _encode((Image.new("RGB", (64, 64), brand.INK) for _ in range(2)), tmp_path / "pin.mp4", 2, 64, 64)
+        # 256 x 256: the size encoding.get_video_encoder() validates its encoder at (h264_nvenc cannot open 64 x 64,
+        # under its minimum frame size, so a 64 px pin failed with -22 wherever an NVIDIA GPU is present)
+        path = _encode((Image.new("RGB", (256, 256), brand.INK) for _ in range(2)), tmp_path / "pin.mp4", 2, 256,
+                       256)
         assert path.exists() and path.with_suffix(".jpg").exists()
 
 
@@ -927,19 +958,27 @@ def _gold_cols(arr, y0, y1, x1):
 
 @pytest.mark.parametrize("size", [(1920, 1080), (1280, 720)])
 def test_chapter_169_numeral_keeps_the_divider_close(size):
-    """Review 4 (blocking): the divider sits a fixed gap after the numeral's ink, the title the same gap after it."""
+    """Review 4 (blocking): the divider sits a fixed gap after the numeral's ink, the title the same gap after it.
+    Freeze panel 2026-11-04 (C1, C2, deliberate change): the numeral is right-aligned on a column fixed per video and
+    the muted chapter total follows it, so the gap is from the total's ink (the last ink before the divider)."""
     w, h = size
     k = _WideGrid(w, h).k
     gaps = []
     for n in (1, 4, 7, 12):
-        plan = dc.plan_chapter_card(chapter(number=n, total=12), SHEET, w, h)
+        # round 2: the real act 3 title (W2 refuses "The Eye of the Great Sahara" beside a two-digit column: every
+        # break from 176 to 152 ends on OF or THE)
+        plan = dc.plan_chapter_card(chapter(number=n, total=12, title="Origin Debates and Rock Dating"), SHEET, w, h)
         els = {e.name: e for e in plan.elements}
         div = els["divider"].box
         arr = np.asarray(dc.frame_at(plan, plan.frames - 1))
         cols = _gold_cols(arr, div[1], div[3], div[0])
+        # freeze panel round 2 (C5, deliberate change): the total is on the kicker line, so the last ink before the
+        # divider is the numeral's again (was the muted total's)
+        assert els["total"].box[0] > div[2]
         gaps.append(div[0] - (cols.max() + 1))
         assert abs(els["title_0"].box[0] - div[2] - round(dc.CHAPTER_GAP * k)) <= 3, (n, els["title_0"].box, div)
-        assert abs(els["kicker_rule"].box[0] - els["title_0"].xy[0]) <= 2 * k + 1
+        # round 2: the ink left (this title's O has a side bearing the old fixture's T did not)
+        assert abs(els["kicker_rule"].box[0] - els["title_0"].box[0]) <= 2 * k + 1
     assert max(gaps) - min(gaps) <= 3, gaps
     assert all(abs(gp - round(dc.CHAPTER_GAP * k)) <= 3 for gp in gaps), gaps
 
@@ -984,7 +1023,9 @@ def test_myth_169_block_is_centred(size, photos):
                                         "concentric rings", fact_id="f_et")):
         plan = dc.plan_myth_fact(spec, SHEET, w, h)
         a = plan.meta["anchors"]
-        low = max(a["myth_baselines"][-1], a["fact_baselines"][-1] + (56 if not plan.meta["source_omitted"] else 0))
+        # freeze panel round 2 (M10 (4), deliberate change): the 16:9 source drop is max(68, round(0.58 P)) (was 56)
+        low = max(a["myth_baselines"][-1], a["fact_baselines"][-1] + (dc._source_drop(a["px"], True)
+                                                                      if not plan.meta["source_omitted"] else 0))
         assert abs((a["R"] + low + 12) / 2 - 475) <= 1, a
         els = {e.name: e for e in plan.elements}
         assert abs(els["divider"].box[1] - gr.y(a["R"])) <= 1 and abs(els["divider"].box[3] - gr.y(low + 16)) <= 1
@@ -1255,10 +1296,14 @@ def test_hook_scrim_sized_to_the_ground(tmp_path, photos):
             inside_ = g0[y0 + 2:y1 - 2]
             ratio = inside_.mean(axis=(0, 2)) / np.maximum(1, bg[y0 + 2:y1 - 2].mean(axis=(0, 2)))
             assert ratio.max() - ratio.min() <= 0.03, name            # one even plate, edge to edge
-            below = slice(y1 + 3, min(1920, y1 + 300))
+            # freeze panel round 2 (H6 (4), deliberate change): the plate's edges feather over HOOK_PLATE_FEATHER (were
+            # crisp), so the photograph is untouched from there
+            fe = dc.HOOK_PLATE_FEATHER
+            below = slice(y1 + fe + 3, min(1920, y1 + fe + 300))
             assert np.abs(g0[below] - bg[below]).max() <= 2, name    # the photograph below it untouched
             a = np.asarray(plan.meta["_r"]["under"].getchannel("A")).astype(int)[:, 540]
-            assert a[y0 - 3] < 30 < a[y0 + 3] and a[y1 + 3] < 30 < a[y1 - 3], name   # crisp edges
+            assert a[y0 - fe - 3] < 30 < a[y0 + 3] and a[y1 + fe + 3] < 30 < a[y1 - 3], name   # feathered edges
+            assert 30 < a[y0 - fe // 2] < a[y0 + 3] and 30 < a[y1 + fe // 2] < a[y1 - 3], name
     dark = dc.plan_hook_frame(hook(photos["dark"]), SHEET)
     assert dark.meta["scrim"]["mode"] == "wash" and dark.meta["scrim"]["strength"] == 0.0   # no scrim at all
 
@@ -1485,7 +1530,10 @@ def test_hook_halos_drawn_under_every_line(tmp_path, photos):
             jumps -= edges
         assert not jumps, (path, sorted(jumps)[:10])
         frame0 = np.asarray(dc._hook_compose(r, 0)).astype(float)
-        first = next(p for p in r["plates"] if p.text == plan.drawn_text["title_0"])
+        # freeze panel 2026-11-04 (H2, deliberate change): the line with the figure is the GOLD one, so the first BONE
+        # line is measured (it was title_0)
+        titles = {v for k, v in plan.drawn_text.items() if k.startswith("title_")}
+        first = next(p for p in r["plates"] if p.fill == brand.BONE and p.text in titles)
         m = np.zeros(frame0.shape[:2], bool)
         h, w = first.glyphs.shape
         ox, oy = first.origin
@@ -1741,7 +1789,8 @@ def test_myth_card_is_display_type(photos):
         k = size[0] / 1080 if size[0] < size[1] else 1.0
         assert max(f_px) >= 96 * k, f_px
         bar = els["strike_0"].box
-        assert bar[3] - bar[1] >= 0.1 * texts[0].px
+        # freeze panel round 2 (M11 (1), deliberate change): clamp(round(0.08 Pm), 5, 10) (was >= 0.10 x px)
+        assert bar[3] - bar[1] >= min(round(10 * k), round(0.08 * texts[0].px))
         assert all(t.text == t.text.upper() for t in texts)
     for kind in ("sky", "warm", "busy"):
         plan = dc.plan_myth_fact(myth(photo=photos[kind]), SHEET)

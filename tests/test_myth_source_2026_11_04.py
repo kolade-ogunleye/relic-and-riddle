@@ -21,7 +21,7 @@ def test_floors():
 
 @pytest.mark.parametrize("fact", DROPPED)
 def test_long_916_myth_keeps_its_source(fact):
-    P, m_lines, f_lines, host, why, _ = dc._myth_fit(M, fact, "BRITANNICA.COM", TALL)
+    P, m_lines, f_lines, host, why, *_ = dc._myth_fit(M, fact, "BRITANNICA.COM", TALL)   # merge: + myth px, compact
     assert host == "BRITANNICA.COM" and why is None
     assert P >= dc.MYTH_FLOOR_SOURCE
     assert len(f_lines) <= dc.MYTH_LINES[False][1] + dc.MYTH_EXTRA_LINE

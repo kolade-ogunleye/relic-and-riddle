@@ -261,6 +261,33 @@ def listed(heading: str, items: List[str], cap: Optional[int] = None) -> str:
     return head + ("\n<blockquote expandable>" + "\n".join(f"• {x}" for x in body) + "</blockquote>" if body else "")
 
 
+# Freeze panel 2026-11-04 (M12 (3), operator decision): a design card's quality notes (its <graphic>.design.json, written
+# by design_cards) reach the review card, so a myth card whose correction drops every specific is seen before approval
+DESIGN_NOTE_TEXT = {
+    "correction_drops_specifics": "the correction keeps none of its fact's figures, dates or names",
+}
+
+
+def design_card_notes(run_dir: Path) -> List[str]:
+    """Each drawn design card's quality notes in `run_dir` (or one folder under it), as 'graphic_mythfact_01: ...'
+    lines. A refused, unreadable or note-free record gives none."""
+    out: List[str] = []
+    try:
+        found = sorted(set(run_dir.glob("graphic_*.design.json")) | set(run_dir.glob("*/graphic_*.design.json")))
+    except OSError:
+        return out
+    for p in found:
+        try:
+            rec = json.loads(p.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            continue
+        if not isinstance(rec, dict) or rec.get("refused"):
+            continue
+        for n in rec.get("quality_notes") or []:
+            out.append(f"{p.name.split('.', 1)[0]}: {DESIGN_NOTE_TEXT.get(str(n), str(n))}")
+    return out
+
+
 def detail_messages(full_card: str, limit: int = CARD_PAGE_LIMIT) -> List[str]:
     """The card's lists whole, for the message under a card whose lists were shortened: each section with an
     expandable blockquote, in order, packed into as few messages as Telegram's limit allows (a section longer
@@ -1377,6 +1404,12 @@ class TelegramApprovalBot:
             # Each note whole, folded, as the gate's findings are (operator, 2026-10-25: cut mid-word at 160)
             text += "\n" + listed(f"👀 Look at the stills and cover: {len(notes)} note(s)", cap=cap, items=
                                   [f"{e(str(i.get('card') or i.get('type') or ''))}: {e(str(i['issue']))}" for i in notes]) + "\n"
+        from .config import OUTPUT_DIR
+        r_dir = (Path(OUTPUT_DIR) / str(run_id)).resolve() if run_id else None
+        card_notes = (design_card_notes(r_dir) if r_dir is not None and r_dir.parent == Path(OUTPUT_DIR).resolve()
+                      and r_dir.is_dir() else [])
+        if card_notes:     # freeze panel M12 (3): e.g. a myth card whose correction drops every specific
+            text += "\n" + listed(f"🃏 Design cards: {len(card_notes)} note(s)", [e(x) for x in card_notes], cap) + "\n"
         if sources:
             text += "\n📚 " + "\n📚 ".join(e(s.get("url", "")) for s in sources) + "\n"
         full = text + f"\n<i>Run ID (for the command line):</i> <code>{e(run_id)}</code>"  # code: Telegram linked the digits

@@ -36,7 +36,15 @@ log = logging.getLogger(__name__)
 
 SEARCH = "https://archive.org/advancedsearch.php"
 METADATA = "https://archive.org/metadata/"
-UA = {"User-Agent": "RelicAndRiddle/1.0 (archive film for history videos; https://github.com/kolade-ogunleye/relic-and-riddle)"}
+
+
+def user_agent(contact: str = "") -> str:
+    """archive.org's User-Agent for this client: the brand, what it is for, and the operator's contact (BRAND_CONTACT)
+    when one is set. No contact is written into the source (QF-49)."""
+    return "RelicAndRiddle/1.0 (archive film for history videos" + (f"; {contact}" if contact else "") + ")"
+
+
+UA = {"User-Agent": user_agent(config.BRAND_CONTACT)}
 PAUSE = 1.0                     # archive.org asks automated clients to space their requests
 BROADCAST = {"tvarchive", "tvnews"}
 COMMUNITY = {"opensource_movies", "opensource", "community_video", "communityvideos", "folksoundomy"}

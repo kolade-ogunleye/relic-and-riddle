@@ -1,7 +1,7 @@
 {
  "meta": {
-  "code_root": "C:\\Users\\omokolade\\AppData\\Local\\Temp\\claude\\7686a79b0f64a990\\29ad02b1-356f-4136-9fd7-e5907c322aff\\scratchpad\\head",
-  "design_cards": "C:\\Users\\omokolade\\AppData\\Local\\Temp\\claude\\7686a79b0f64a990\\29ad02b1-356f-4136-9fd7-e5907c322aff\\scratchpad\\head\\src\\design_cards.py",
+  "code_root": "<scratchpad>/head",
+  "design_cards": "<scratchpad>/head/src/design_cards.py",
   "version": "design-cards-1",
   "seconds": null,
   "inputs": "real run media and fact-sheet facts via docs/reviews/freeze-panel-2026-11-04/fixtures",
@@ -30,7 +30,7 @@
    "first_burst": "Beneath the town of Paola,",
    "claim_source": "statement field",
    "ground": "dark",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\cache\\upscaled\\03_commons_045234cc612cd80d.jpg",
+   "photo": "cache/upscaled/03_commons_045234cc612cd80d.jpg",
    "photo_name": "03_commons_045234cc612cd80d.jpg",
    "photo_measured": {
     "mean_luma": 86.4,
@@ -169,7 +169,7 @@
    "first_burst": "Beneath the town of Paola,",
    "claim_source": "statement field",
    "ground": "bright",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\cache\\upscaled\\06_commons_e2d248f0becb82ae.jpg",
+   "photo": "cache/upscaled/06_commons_e2d248f0becb82ae.jpg",
    "photo_name": "06_commons_e2d248f0becb82ae.jpg",
    "photo_measured": {
     "mean_luma": 125.6,
@@ -308,7 +308,7 @@
    "first_burst": "Beneath the town of Paola,",
    "claim_source": "statement field",
    "ground": "busy",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\cache\\upscaled\\04_commons_7080667279489630.jpg",
+   "photo": "cache/upscaled/04_commons_7080667279489630.jpg",
    "photo_name": "04_commons_7080667279489630.jpg",
    "photo_measured": {
     "mean_luma": 88.9,
@@ -447,7 +447,7 @@
    "first_burst": "Beneath the town of Paola,",
    "claim_source": "statement field",
    "ground": "hero",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\hal_saflieni_hypogeum\\01_commons.jpg",
+   "photo": "assets/hal_saflieni_hypogeum/01_commons.jpg",
    "photo_name": "01_commons.jpg",
    "photo_measured": {
     "mean_luma": 110.1,
@@ -586,7 +586,7 @@
    "first_burst": "Beneath the town of Paola,",
    "claim_source": "statement field",
    "ground": "dark",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\cache\\upscaled\\03_commons_045234cc612cd80d.jpg",
+   "photo": "cache/upscaled/03_commons_045234cc612cd80d.jpg",
    "photo_name": "03_commons_045234cc612cd80d.jpg",
    "photo_measured": {
     "mean_luma": 86.4,
@@ -725,7 +725,7 @@
    "first_burst": "Beneath the town of Paola,",
    "claim_source": "statement field",
    "ground": "bright",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\cache\\upscaled\\06_commons_e2d248f0becb82ae.jpg",
+   "photo": "cache/upscaled/06_commons_e2d248f0becb82ae.jpg",
    "photo_name": "06_commons_e2d248f0becb82ae.jpg",
    "photo_measured": {
     "mean_luma": 125.6,
@@ -864,7 +864,7 @@
    "first_burst": "Beneath the town of Paola,",
    "claim_source": "statement field",
    "ground": "busy",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\cache\\upscaled\\04_commons_7080667279489630.jpg",
+   "photo": "cache/upscaled/04_commons_7080667279489630.jpg",
    "photo_name": "04_commons_7080667279489630.jpg",
    "photo_measured": {
     "mean_luma": 88.9,
@@ -1003,7 +1003,7 @@
    "first_burst": "Beneath the town of Paola,",
    "claim_source": "statement field",
    "ground": "hero",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\hal_saflieni_hypogeum\\01_commons.jpg",
+   "photo": "assets/hal_saflieni_hypogeum/01_commons.jpg",
    "photo_name": "01_commons.jpg",
    "photo_measured": {
     "mean_luma": 110.1,
@@ -1142,7 +1142,7 @@
    "first_burst": "Beneath the town of Paola,",
    "claim_source": "statement field",
    "ground": "dark",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\cache\\upscaled\\03_commons_045234cc612cd80d.jpg",
+   "photo": "cache/upscaled/03_commons_045234cc612cd80d.jpg",
    "photo_name": "03_commons_045234cc612cd80d.jpg",
    "photo_measured": {
     "mean_luma": 86.4,
@@ -1281,7 +1281,7 @@
    "first_burst": "Beneath the town of Paola,",
    "claim_source": "statement field",
    "ground": "bright",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\cache\\upscaled\\06_commons_e2d248f0becb82ae.jpg",
+   "photo": "cache/upscaled/06_commons_e2d248f0becb82ae.jpg",
    "photo_name": "06_commons_e2d248f0becb82ae.jpg",
    "photo_measured": {
     "mean_luma": 125.6,
@@ -1420,7 +1420,7 @@
    "first_burst": "Beneath the town of Paola,",
    "claim_source": "statement field",
    "ground": "busy",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\cache\\upscaled\\04_commons_7080667279489630.jpg",
+   "photo": "cache/upscaled/04_commons_7080667279489630.jpg",
    "photo_name": "04_commons_7080667279489630.jpg",
    "photo_measured": {
     "mean_luma": 88.9,
@@ -1559,7 +1559,7 @@
    "first_burst": "Beneath the town of Paola,",
    "claim_source": "statement field",
    "ground": "hero",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\hal_saflieni_hypogeum\\01_commons.jpg",
+   "photo": "assets/hal_saflieni_hypogeum/01_commons.jpg",
    "photo_name": "01_commons.jpg",
    "photo_measured": {
     "mean_luma": 110.1,
@@ -1698,7 +1698,7 @@
    "first_burst": "Near Kraków in southern Poland,",
    "claim_source": "statement field",
    "ground": "dark",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\wieliczka_salt_mine\\02_commons.jpg",
+   "photo": "assets/wieliczka_salt_mine/02_commons.jpg",
    "photo_name": "02_commons.jpg",
    "photo_measured": {
     "mean_luma": 25.3,
@@ -1728,7 +1728,7 @@
    "first_burst": "Near Kraków in southern Poland,",
    "claim_source": "statement field",
    "ground": "bright+busy",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\wieliczka_salt_mine\\01_commons.jpg",
+   "photo": "assets/wieliczka_salt_mine/01_commons.jpg",
    "photo_name": "01_commons.jpg",
    "photo_measured": {
     "mean_luma": 69.2,
@@ -1758,7 +1758,7 @@
    "first_burst": "Near Kraków in southern Poland,",
    "claim_source": "statement field",
    "ground": "dark",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\wieliczka_salt_mine\\02_commons.jpg",
+   "photo": "assets/wieliczka_salt_mine/02_commons.jpg",
    "photo_name": "02_commons.jpg",
    "photo_measured": {
     "mean_luma": 25.3,
@@ -1788,7 +1788,7 @@
    "first_burst": "Near Kraków in southern Poland,",
    "claim_source": "statement field",
    "ground": "bright+busy",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\wieliczka_salt_mine\\01_commons.jpg",
+   "photo": "assets/wieliczka_salt_mine/01_commons.jpg",
    "photo_name": "01_commons.jpg",
    "photo_measured": {
     "mean_luma": 69.2,
@@ -1818,7 +1818,7 @@
    "first_burst": "Can a quiet whisper travel across",
    "claim_source": "statement field",
    "ground": "dark",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\cache\\upscaled\\24_commons_b3593d8c94b1c5f2.jpg",
+   "photo": "cache/upscaled/24_commons_b3593d8c94b1c5f2.jpg",
    "photo_name": "24_commons_b3593d8c94b1c5f2.jpg",
    "photo_measured": {
     "mean_luma": 64.2,
@@ -1957,7 +1957,7 @@
    "first_burst": "Can a quiet whisper travel across",
    "claim_source": "statement field",
    "ground": "bright",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\cache\\privacy\\beat02_2_f623e3971478cf26_3184e209b19dd0de.jpg",
+   "photo": "cache/privacy/beat02_2_f623e3971478cf26_3184e209b19dd0de.jpg",
    "photo_name": "beat02_2_f623e3971478cf26_3184e209b19dd0de.jpg",
    "photo_measured": {
     "mean_luma": 133.1,
@@ -2096,7 +2096,7 @@
    "first_burst": "Can a quiet whisper travel across",
    "claim_source": "statement field",
    "ground": "busy",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\cache\\upscaled\\04_commons_fad489b1b2468caa.jpg",
+   "photo": "cache/upscaled/04_commons_fad489b1b2468caa.jpg",
    "photo_name": "04_commons_fad489b1b2468caa.jpg",
    "photo_measured": {
     "mean_luma": 131.9,
@@ -2235,7 +2235,7 @@
    "first_burst": "Can a quiet whisper travel across",
    "claim_source": "statement field",
    "ground": "hero",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\cache\\upscaled\\22_commons_466e53f5c2d25a35.jpg",
+   "photo": "cache/upscaled/22_commons_466e53f5c2d25a35.jpg",
    "photo_name": "22_commons_466e53f5c2d25a35.jpg",
    "photo_measured": {
     "mean_luma": 114.2,

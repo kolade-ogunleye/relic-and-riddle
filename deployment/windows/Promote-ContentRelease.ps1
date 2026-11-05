@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-Promotes a reviewed application release on content-client-win-01 (approved host administration).
+Promotes a reviewed application release on the production VM (approved host administration).
 .DESCRIPTION
 Run once, elevated, on CONTENTCLIENTWI. It implements the documented idle stop/start:
 
@@ -20,7 +20,9 @@ Also synthesize one short licensed voice sample per configured provider (a few d
 #>
 [CmdletBinding(SupportsShouldProcess)]
 param(
-    [string]$HandoffFlag = 'C:\Users\omokolade.LAB\relic-promote.flag',
+    # The hand-off flag in the operator's SSH profile, where Update-ContentReleaseTree.ps1 writes it
+    # (its default, $HOME\relic-promote.flag): this elevated session may run under another account.
+    [Parameter(Mandatory)][string]$HandoffFlag,
     [int]$WaitMinutes = 60,
     [switch]$SkipProbe,
     [switch]$PaidVoice

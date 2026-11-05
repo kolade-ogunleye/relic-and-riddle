@@ -7,9 +7,11 @@ Defaults to inspection. Apply disables legacy schedules and asks the existing
 launcher to stop while holding SQLite's write lock, preventing a new producing
 run from being committed between the idle check and worker exit. No app provider
 or secret file is opened. Original task definitions are retained for rollback.
+LegacyOwner names the account the legacy worker runs as (DOMAIN\user); it is required
+when a legacy worker exists, whose owner must match it.
 #>
 [CmdletBinding(SupportsShouldProcess)]
-param([switch]$Apply, [switch]$StopVerifiedOrphan)
+param([switch]$Apply, [switch]$StopVerifiedOrphan, [string]$LegacyOwner = '')
 $ErrorActionPreference = 'Stop'
 if ($env:COMPUTERNAME -ne 'CONTENTCLIENTWI') { throw 'Legacy cutover is restricted to CONTENTCLIENTWI.' }
 $root = Split-Path $PSScriptRoot -Parent
@@ -25,7 +27,8 @@ $receipt = Get-Content -LiteralPath (Join-Path $appRoot 'logs/runtime-Production
 $worker = Get-Process -Id ([int]$receipt.pid) -ErrorAction SilentlyContinue
 if ($worker) {
     $owner = Invoke-CimMethod -InputObject (Get-CimInstance Win32_Process -Filter ('ProcessId=' + [int]$worker.Id)) -MethodName GetOwnerSid
-    $expectedSid = [Security.Principal.NTAccount]::new('LAB\omokolade').Translate([Security.Principal.SecurityIdentifier]).Value
+    if (-not $LegacyOwner) { throw 'A legacy worker exists; name its account with -LegacyOwner (DOMAIN\user).' }
+    $expectedSid = [Security.Principal.NTAccount]::new($LegacyOwner).Translate([Security.Principal.SecurityIdentifier]).Value
     if ($worker.Path -ine (Join-Path $appRoot '.venv/Scripts/python.exe') -or $owner.Sid -ne $expectedSid -or
         $worker.StartTime.ToUniversalTime() -ne ([datetime]$receipt.started).ToUniversalTime()) {
         throw 'Legacy worker receipt does not match its executable, owner and start time.'

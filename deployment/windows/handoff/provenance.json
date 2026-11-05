@@ -1,5 +1,5 @@
 {
-  "source_repository": "kolade-ogunleye/hybrid-network-security-homelab",
+  "source_repository": "<owner>/hybrid-network-security-homelab",
   "source_head": "92da50bf10ca55e2a53ffbcf59f2701cc81ba14f",
   "source_state": "Uncommitted working-tree snapshot; hashes identify actual bytes, not source HEAD",
   "captured_at_utc": "2026-10-22T03:31:10.9945638Z",
@@ -22,7 +22,9 @@
     },
     {
       "path": "tools/Stop-ContentVmLegacyTasks.ps1",
-      "sha256": "b9f497f00117b8f91a6cb2157cae7a7246d4375ec401a0be3e85b48c87e8eb6f"
+      "sha256": "b9f497f00117b8f91a6cb2157cae7a7246d4375ec401a0be3e85b48c87e8eb6f",
+      "local_sha256": "b7c716120cf1a5c7af80a51ea6984c0beb6927111963ec13cd923c5303172590",
+      "local_change": "QF-49: operator identifiers replaced (an explicit parameter or a placeholder); sha256 is the lab's bytes"
     },
     {
       "path": "tools/Register-ContentVmRuntimeWatch.ps1",
@@ -62,7 +64,9 @@
     },
     {
       "path": "tests/unit/tools/ContentIdentityProbes.Tests.ps1",
-      "sha256": "1504284e9d21f746335fe474c296157e506fa8ca4b74f5ae88722e950350e276"
+      "sha256": "1504284e9d21f746335fe474c296157e506fa8ca4b74f5ae88722e950350e276",
+      "local_sha256": "ca078e058ea41c34ce2edc292b435e1a4e8d2c40081c778129b365b9d1d891e3",
+      "local_change": "QF-49: operator identifiers replaced (an explicit parameter or a placeholder); sha256 is the lab's bytes"
     },
     {
       "path": "tests/unit/ansible/ContentRuntime.Tests.ps1",
@@ -70,7 +74,9 @@
     },
     {
       "path": "ansible/playbooks/52-content-runtime.yml",
-      "sha256": "a721885f94d7a796d595ec738aa255ab1915f8586c4cf257d450917b36064992"
+      "sha256": "a721885f94d7a796d595ec738aa255ab1915f8586c4cf257d450917b36064992",
+      "local_sha256": "42d1a08dcf3b0d38127b0c42bd95d6a74e936e2c3da0ba0415e76850687701f7",
+      "local_change": "QF-49: operator identifiers replaced (an explicit parameter or a placeholder); sha256 is the lab's bytes"
     }
   ]
 }

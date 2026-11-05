@@ -1,7 +1,7 @@
 {
  "meta": {
-  "code_root": "C:\\Users\\omokolade\\AppData\\Local\\Temp\\claude\\7686a79b0f64a990\\29ad02b1-356f-4136-9fd7-e5907c322aff\\scratchpad\\head",
-  "design_cards": "C:\\Users\\omokolade\\AppData\\Local\\Temp\\claude\\7686a79b0f64a990\\29ad02b1-356f-4136-9fd7-e5907c322aff\\scratchpad\\head\\src\\design_cards.py",
+  "code_root": "<scratchpad>/head",
+  "design_cards": "<scratchpad>/head/src/design_cards.py",
   "version": "design-cards-1",
   "seconds": 689.1,
   "inputs": "real run media and fact-sheet facts via docs/reviews/freeze-panel-2026-11-04/fixtures",
@@ -30,7 +30,7 @@
    "first_burst": "In 1941,",
    "claim_source": "statement field",
    "ground": "dark",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\amber_room_heist\\01_commons.jpg",
+   "photo": "assets/amber_room_heist/01_commons.jpg",
    "photo_name": "01_commons.jpg",
    "photo_measured": {
     "mean_luma": 77.5,
@@ -169,7 +169,7 @@
    "first_burst": "In 1941,",
    "claim_source": "statement field",
    "ground": "bright",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\amber_room_heist\\07_commons.jpg",
+   "photo": "assets/amber_room_heist/07_commons.jpg",
    "photo_name": "07_commons.jpg",
    "photo_measured": {
     "mean_luma": 121.0,
@@ -308,7 +308,7 @@
    "first_burst": "In 1941,",
    "claim_source": "statement field",
    "ground": "busy",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\cache\\privacy\\05_commons_f667d00f3d0fea26.jpg",
+   "photo": "cache/privacy/05_commons_f667d00f3d0fea26.jpg",
    "photo_name": "05_commons_f667d00f3d0fea26.jpg",
    "photo_measured": {
     "mean_luma": 110.5,
@@ -447,7 +447,7 @@
    "first_burst": "In 1941,",
    "claim_source": "statement field",
    "ground": "dark",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\amber_room_heist\\01_commons.jpg",
+   "photo": "assets/amber_room_heist/01_commons.jpg",
    "photo_name": "01_commons.jpg",
    "photo_measured": {
     "mean_luma": 77.5,
@@ -600,7 +600,7 @@
    "first_burst": "In 1941,",
    "claim_source": "statement field",
    "ground": "bright",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\amber_room_heist\\07_commons.jpg",
+   "photo": "assets/amber_room_heist/07_commons.jpg",
    "photo_name": "07_commons.jpg",
    "photo_measured": {
     "mean_luma": 121.0,
@@ -753,7 +753,7 @@
    "first_burst": "In 1941,",
    "claim_source": "statement field",
    "ground": "busy",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\cache\\privacy\\05_commons_f667d00f3d0fea26.jpg",
+   "photo": "cache/privacy/05_commons_f667d00f3d0fea26.jpg",
    "photo_name": "05_commons_f667d00f3d0fea26.jpg",
    "photo_measured": {
     "mean_luma": 110.5,
@@ -906,7 +906,7 @@
    "first_burst": "How do you etch massive desert",
    "claim_source": "statement field",
    "ground": "dark",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\nazca_lines_runway_paradox\\04_commons.jpg",
+   "photo": "assets/nazca_lines_runway_paradox/04_commons.jpg",
    "photo_name": "04_commons.jpg",
    "photo_measured": {
     "mean_luma": 79.1,
@@ -936,7 +936,7 @@
    "first_burst": "How do you etch massive desert",
    "claim_source": "statement field",
    "ground": "bright",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\cache\\upscaled\\06_commons_e3cf85989c79a369.jpg",
+   "photo": "cache/upscaled/06_commons_e3cf85989c79a369.jpg",
    "photo_name": "06_commons_e3cf85989c79a369.jpg",
    "photo_measured": {
     "mean_luma": 162.6,
@@ -966,7 +966,7 @@
    "first_burst": "How do you etch massive desert",
    "claim_source": "statement field",
    "ground": "busy",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\nazca_lines_runway_paradox\\10_commons.jpg",
+   "photo": "assets/nazca_lines_runway_paradox/10_commons.jpg",
    "photo_name": "10_commons.jpg",
    "photo_measured": {
     "mean_luma": 140.9,
@@ -996,7 +996,7 @@
    "first_burst": "How do you etch massive desert",
    "claim_source": "statement field",
    "ground": "hero",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\nazca_lines_runway_paradox\\08_commons.jpg",
+   "photo": "assets/nazca_lines_runway_paradox/08_commons.jpg",
    "photo_name": "08_commons.jpg",
    "photo_measured": {
     "mean_luma": 141.6,
@@ -1026,7 +1026,7 @@
    "first_burst": "How do you etch massive desert",
    "claim_source": "statement field",
    "ground": "dark",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\nazca_lines_runway_paradox\\04_commons.jpg",
+   "photo": "assets/nazca_lines_runway_paradox/04_commons.jpg",
    "photo_name": "04_commons.jpg",
    "photo_measured": {
     "mean_luma": 79.1,
@@ -1165,7 +1165,7 @@
    "first_burst": "How do you etch massive desert",
    "claim_source": "statement field",
    "ground": "bright",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\cache\\upscaled\\06_commons_e3cf85989c79a369.jpg",
+   "photo": "cache/upscaled/06_commons_e3cf85989c79a369.jpg",
    "photo_name": "06_commons_e3cf85989c79a369.jpg",
    "photo_measured": {
     "mean_luma": 162.6,
@@ -1304,7 +1304,7 @@
    "first_burst": "How do you etch massive desert",
    "claim_source": "statement field",
    "ground": "busy",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\nazca_lines_runway_paradox\\10_commons.jpg",
+   "photo": "assets/nazca_lines_runway_paradox/10_commons.jpg",
    "photo_name": "10_commons.jpg",
    "photo_measured": {
     "mean_luma": 140.9,
@@ -1443,7 +1443,7 @@
    "first_burst": "How do you etch massive desert",
    "claim_source": "statement field",
    "ground": "hero",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\nazca_lines_runway_paradox\\08_commons.jpg",
+   "photo": "assets/nazca_lines_runway_paradox/08_commons.jpg",
    "photo_name": "08_commons.jpg",
    "photo_measured": {
     "mean_luma": 141.6,
@@ -1582,7 +1582,7 @@
    "first_burst": "On the morning of 30 June",
    "claim_source": "statement field",
    "ground": "dark",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\cache\\upscaled\\03_commons_3cd6454bbc2e9623.jpg",
+   "photo": "cache/upscaled/03_commons_3cd6454bbc2e9623.jpg",
    "photo_name": "03_commons_3cd6454bbc2e9623.jpg",
    "photo_measured": {
     "mean_luma": 92.7,
@@ -1721,7 +1721,7 @@
    "first_burst": "On the morning of 30 June",
    "claim_source": "statement field",
    "ground": "bright",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\cache\\upscaled\\05_commons_8581128e615691de.jpg",
+   "photo": "cache/upscaled/05_commons_8581128e615691de.jpg",
    "photo_name": "05_commons_8581128e615691de.jpg",
    "photo_measured": {
     "mean_luma": 221.3,
@@ -1860,7 +1860,7 @@
    "first_burst": "On the morning of 30 June",
    "claim_source": "statement field",
    "ground": "busy",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\cache\\upscaled\\11_commons_2b49d67ede3770c0.jpg",
+   "photo": "cache/upscaled/11_commons_2b49d67ede3770c0.jpg",
    "photo_name": "11_commons_2b49d67ede3770c0.jpg",
    "photo_measured": {
     "mean_luma": 191.2,
@@ -1999,7 +1999,7 @@
    "first_burst": "On the morning of 30 June",
    "claim_source": "statement field",
    "ground": "hero",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\tunguska_event_1908\\01_commons.jpg",
+   "photo": "assets/tunguska_event_1908/01_commons.jpg",
    "photo_name": "01_commons.jpg",
    "photo_measured": {
     "mean_luma": 113.8,
@@ -2139,7 +2139,7 @@
    "claim_source": "gated title",
    "fits_claim": true,
    "ground": "dark",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\amber_room_heist\\01_commons.jpg",
+   "photo": "assets/amber_room_heist/01_commons.jpg",
    "photo_name": "01_commons.jpg",
    "photo_measured": {
     "mean_luma": 77.5,
@@ -2170,7 +2170,7 @@
    "claim_source": "gated title",
    "fits_claim": true,
    "ground": "dark",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\nazca_lines_runway_paradox\\04_commons.jpg",
+   "photo": "assets/nazca_lines_runway_paradox/04_commons.jpg",
    "photo_name": "04_commons.jpg",
    "photo_measured": {
     "mean_luma": 79.1,
@@ -2201,7 +2201,7 @@
    "claim_source": "gated title",
    "fits_claim": true,
    "ground": "dark",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\cache\\upscaled\\03_commons_3cd6454bbc2e9623.jpg",
+   "photo": "cache/upscaled/03_commons_3cd6454bbc2e9623.jpg",
    "photo_name": "03_commons_3cd6454bbc2e9623.jpg",
    "photo_measured": {
     "mean_luma": 92.7,
@@ -2232,7 +2232,7 @@
    "claim_source": "gated title",
    "fits_claim": false,
    "ground": "dark",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\cache\\upscaled\\beat01_3_240b0a5d72e07c21.jpg",
+   "photo": "cache/upscaled/beat01_3_240b0a5d72e07c21.jpg",
    "photo_name": "beat01_3_240b0a5d72e07c21.jpg",
    "photo_measured": {
     "mean_luma": 57.3,
@@ -2263,7 +2263,7 @@
    "claim_source": "gated title",
    "fits_claim": false,
    "ground": "dark",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\cache\\privacy\\10_commons_bbb902e1f64f5990.jpg",
+   "photo": "cache/privacy/10_commons_bbb902e1f64f5990.jpg",
    "photo_name": "10_commons_bbb902e1f64f5990.jpg",
    "photo_measured": {
     "mean_luma": 138.1,
@@ -2294,7 +2294,7 @@
    "claim_source": "gated title",
    "fits_claim": false,
    "ground": "dark",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\cache\\privacy\\01_commons_c2d2bc550b6ec379.jpg",
+   "photo": "cache/privacy/01_commons_c2d2bc550b6ec379.jpg",
    "photo_name": "01_commons_c2d2bc550b6ec379.jpg",
    "photo_measured": {
     "mean_luma": 77.5,
@@ -2325,7 +2325,7 @@
    "claim_source": "gated title",
    "fits_claim": false,
    "ground": "dark",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\cache\\upscaled\\01_commons_01e7306db9b0e623.jpg",
+   "photo": "cache/upscaled/01_commons_01e7306db9b0e623.jpg",
    "photo_name": "01_commons_01e7306db9b0e623.jpg",
    "photo_measured": {
     "mean_luma": 81.4,
@@ -2353,7 +2353,7 @@
    "title_chars": 42,
    "fits_chapter": false,
    "ground": "dark",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\14_commons.jpg",
+   "photo": "assets/richat_structure_sahara_eye/14_commons.jpg",
    "photo_name": "14_commons.jpg",
    "photo_measured": {
     "mean_luma": 84.2,
@@ -2382,7 +2382,7 @@
    "title_chars": 42,
    "fits_chapter": false,
    "ground": "dark",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\14_commons.jpg",
+   "photo": "assets/richat_structure_sahara_eye/14_commons.jpg",
    "photo_name": "14_commons.jpg",
    "photo_measured": {
     "mean_luma": 84.2,
@@ -2410,7 +2410,7 @@
    "title_chars": 32,
    "fits_chapter": true,
    "ground": "dark",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\14_commons.jpg",
+   "photo": "assets/richat_structure_sahara_eye/14_commons.jpg",
    "photo_name": "14_commons.jpg",
    "photo_measured": {
     "mean_luma": 84.2,
@@ -2547,7 +2547,7 @@
    "title_chars": 32,
    "fits_chapter": true,
    "ground": "bright",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\08_commons.jpg",
+   "photo": "assets/richat_structure_sahara_eye/08_commons.jpg",
    "photo_name": "08_commons.jpg",
    "photo_measured": {
     "mean_luma": 157.8,
@@ -2684,7 +2684,7 @@
    "title_chars": 32,
    "fits_chapter": true,
    "ground": "busy",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\05_commons.jpg",
+   "photo": "assets/richat_structure_sahara_eye/05_commons.jpg",
    "photo_name": "05_commons.jpg",
    "photo_measured": {
     "mean_luma": 124.2,
@@ -2821,7 +2821,7 @@
    "title_chars": 32,
    "fits_chapter": true,
    "ground": "hero",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\01_commons.jpg",
+   "photo": "assets/richat_structure_sahara_eye/01_commons.jpg",
    "photo_name": "01_commons.jpg",
    "photo_measured": {
     "mean_luma": 141.3,
@@ -3091,7 +3091,7 @@
    "title_chars": 32,
    "fits_chapter": true,
    "ground": "dark",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\14_commons.jpg",
+   "photo": "assets/richat_structure_sahara_eye/14_commons.jpg",
    "photo_name": "14_commons.jpg",
    "photo_measured": {
     "mean_luma": 84.2,
@@ -3240,7 +3240,7 @@
    "title_chars": 32,
    "fits_chapter": true,
    "ground": "bright",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\08_commons.jpg",
+   "photo": "assets/richat_structure_sahara_eye/08_commons.jpg",
    "photo_name": "08_commons.jpg",
    "photo_measured": {
     "mean_luma": 157.8,
@@ -3389,7 +3389,7 @@
    "title_chars": 32,
    "fits_chapter": true,
    "ground": "busy",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\05_commons.jpg",
+   "photo": "assets/richat_structure_sahara_eye/05_commons.jpg",
    "photo_name": "05_commons.jpg",
    "photo_measured": {
     "mean_luma": 124.2,
@@ -3538,7 +3538,7 @@
    "title_chars": 32,
    "fits_chapter": true,
    "ground": "hero",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\01_commons.jpg",
+   "photo": "assets/richat_structure_sahara_eye/01_commons.jpg",
    "photo_name": "01_commons.jpg",
    "photo_measured": {
     "mean_luma": 141.3,
@@ -3832,7 +3832,7 @@
    "title_chars": 30,
    "fits_chapter": true,
    "ground": "dark",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\14_commons.jpg",
+   "photo": "assets/richat_structure_sahara_eye/14_commons.jpg",
    "photo_name": "14_commons.jpg",
    "photo_measured": {
     "mean_luma": 84.2,
@@ -3969,7 +3969,7 @@
    "title_chars": 30,
    "fits_chapter": true,
    "ground": "bright",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\08_commons.jpg",
+   "photo": "assets/richat_structure_sahara_eye/08_commons.jpg",
    "photo_name": "08_commons.jpg",
    "photo_measured": {
     "mean_luma": 157.8,
@@ -4106,7 +4106,7 @@
    "title_chars": 30,
    "fits_chapter": true,
    "ground": "busy",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\05_commons.jpg",
+   "photo": "assets/richat_structure_sahara_eye/05_commons.jpg",
    "photo_name": "05_commons.jpg",
    "photo_measured": {
     "mean_luma": 124.2,
@@ -4243,7 +4243,7 @@
    "title_chars": 30,
    "fits_chapter": true,
    "ground": "hero",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\01_commons.jpg",
+   "photo": "assets/richat_structure_sahara_eye/01_commons.jpg",
    "photo_name": "01_commons.jpg",
    "photo_measured": {
     "mean_luma": 141.3,
@@ -4513,7 +4513,7 @@
    "title_chars": 30,
    "fits_chapter": true,
    "ground": "dark",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\14_commons.jpg",
+   "photo": "assets/richat_structure_sahara_eye/14_commons.jpg",
    "photo_name": "14_commons.jpg",
    "photo_measured": {
     "mean_luma": 84.2,
@@ -4662,7 +4662,7 @@
    "title_chars": 30,
    "fits_chapter": true,
    "ground": "bright",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\08_commons.jpg",
+   "photo": "assets/richat_structure_sahara_eye/08_commons.jpg",
    "photo_name": "08_commons.jpg",
    "photo_measured": {
     "mean_luma": 157.8,
@@ -4811,7 +4811,7 @@
    "title_chars": 30,
    "fits_chapter": true,
    "ground": "busy",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\05_commons.jpg",
+   "photo": "assets/richat_structure_sahara_eye/05_commons.jpg",
    "photo_name": "05_commons.jpg",
    "photo_measured": {
     "mean_luma": 124.2,
@@ -4960,7 +4960,7 @@
    "title_chars": 30,
    "fits_chapter": true,
    "ground": "hero",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\01_commons.jpg",
+   "photo": "assets/richat_structure_sahara_eye/01_commons.jpg",
    "photo_name": "01_commons.jpg",
    "photo_measured": {
     "mean_luma": 141.3,
@@ -5254,7 +5254,7 @@
    "title_chars": 42,
    "fits_chapter": false,
    "ground": "dark",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\14_commons.jpg",
+   "photo": "assets/richat_structure_sahara_eye/14_commons.jpg",
    "photo_name": "14_commons.jpg",
    "photo_measured": {
     "mean_luma": 84.2,
@@ -5283,7 +5283,7 @@
    "title_chars": 42,
    "fits_chapter": false,
    "ground": "dark",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\14_commons.jpg",
+   "photo": "assets/richat_structure_sahara_eye/14_commons.jpg",
    "photo_name": "14_commons.jpg",
    "photo_measured": {
     "mean_luma": 84.2,
@@ -5311,7 +5311,7 @@
    "title_chars": 34,
    "fits_chapter": false,
    "ground": "dark",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\14_commons.jpg",
+   "photo": "assets/richat_structure_sahara_eye/14_commons.jpg",
    "photo_name": "14_commons.jpg",
    "photo_measured": {
     "mean_luma": 84.2,
@@ -5340,7 +5340,7 @@
    "title_chars": 34,
    "fits_chapter": false,
    "ground": "dark",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\14_commons.jpg",
+   "photo": "assets/richat_structure_sahara_eye/14_commons.jpg",
    "photo_name": "14_commons.jpg",
    "photo_measured": {
     "mean_luma": 84.2,
@@ -5376,7 +5376,7 @@
    ],
    "derivation": "myth: fact-1's subject + fact-9 'an ... impact crater' ('extraterrestrial' elided); correction (M12): fact-9 'the impact theory was disproved' + 'in 1969' (the clause 'when suspected shock-metamorphism coesite was identified' elided), kept only if ground_text accepts it, else fact-9 'the impact theory was disproved' verbatim (which then carries the quality note correction_drops_specifics)",
    "ground": "dark",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\cache\\upscaled\\03_commons_8553d4052c3cd146.jpg",
+   "photo": "cache/upscaled/03_commons_8553d4052c3cd146.jpg",
    "photo_name": "03_commons_8553d4052c3cd146.jpg",
    "photo_measured": {
     "mean_luma": 91.8,
@@ -5629,7 +5629,7 @@
    ],
    "derivation": "myth: fact-1's subject + fact-9 'an ... impact crater' ('extraterrestrial' elided); correction (M12): fact-9 'the impact theory was disproved' + 'in 1969' (the clause 'when suspected shock-metamorphism coesite was identified' elided), kept only if ground_text accepts it, else fact-9 'the impact theory was disproved' verbatim (which then carries the quality note correction_drops_specifics)",
    "ground": "bright",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\10_commons.jpg",
+   "photo": "assets/richat_structure_sahara_eye/10_commons.jpg",
    "photo_name": "10_commons.jpg",
    "photo_measured": {
     "mean_luma": 149.8,
@@ -5882,7 +5882,7 @@
    ],
    "derivation": "myth: fact-1's subject + fact-9 'an ... impact crater' ('extraterrestrial' elided); correction (M12): fact-9 'the impact theory was disproved' + 'in 1969' (the clause 'when suspected shock-metamorphism coesite was identified' elided), kept only if ground_text accepts it, else fact-9 'the impact theory was disproved' verbatim (which then carries the quality note correction_drops_specifics)",
    "ground": "busy",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\05_commons.jpg",
+   "photo": "assets/richat_structure_sahara_eye/05_commons.jpg",
    "photo_name": "05_commons.jpg",
    "photo_measured": {
     "mean_luma": 124.2,
@@ -6135,7 +6135,7 @@
    ],
    "derivation": "myth: fact-1's subject + fact-9 'an ... impact crater' ('extraterrestrial' elided); correction (M12): fact-9 'the impact theory was disproved' + 'in 1969' (the clause 'when suspected shock-metamorphism coesite was identified' elided), kept only if ground_text accepts it, else fact-9 'the impact theory was disproved' verbatim (which then carries the quality note correction_drops_specifics)",
    "ground": "hero",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\01_commons.jpg",
+   "photo": "assets/richat_structure_sahara_eye/01_commons.jpg",
    "photo_name": "01_commons.jpg",
    "photo_measured": {
     "mean_luma": 141.3,
@@ -6637,7 +6637,7 @@
    ],
    "derivation": "myth: fact-1's subject + fact-9 'an ... impact crater' ('extraterrestrial' elided); correction (M12): fact-9 'the impact theory was disproved' + 'in 1969' (the clause 'when suspected shock-metamorphism coesite was identified' elided), kept only if ground_text accepts it, else fact-9 'the impact theory was disproved' verbatim (which then carries the quality note correction_drops_specifics)",
    "ground": "dark",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\14_commons.jpg",
+   "photo": "assets/richat_structure_sahara_eye/14_commons.jpg",
    "photo_name": "14_commons.jpg",
    "photo_measured": {
     "mean_luma": 84.2,
@@ -6925,7 +6925,7 @@
    ],
    "derivation": "myth: fact-1's subject + fact-9 'an ... impact crater' ('extraterrestrial' elided); correction (M12): fact-9 'the impact theory was disproved' + 'in 1969' (the clause 'when suspected shock-metamorphism coesite was identified' elided), kept only if ground_text accepts it, else fact-9 'the impact theory was disproved' verbatim (which then carries the quality note correction_drops_specifics)",
    "ground": "bright",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\08_commons.jpg",
+   "photo": "assets/richat_structure_sahara_eye/08_commons.jpg",
    "photo_name": "08_commons.jpg",
    "photo_measured": {
     "mean_luma": 157.8,
@@ -7213,7 +7213,7 @@
    ],
    "derivation": "myth: fact-1's subject + fact-9 'an ... impact crater' ('extraterrestrial' elided); correction (M12): fact-9 'the impact theory was disproved' + 'in 1969' (the clause 'when suspected shock-metamorphism coesite was identified' elided), kept only if ground_text accepts it, else fact-9 'the impact theory was disproved' verbatim (which then carries the quality note correction_drops_specifics)",
    "ground": "busy",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\05_commons.jpg",
+   "photo": "assets/richat_structure_sahara_eye/05_commons.jpg",
    "photo_name": "05_commons.jpg",
    "photo_measured": {
     "mean_luma": 124.2,
@@ -7501,7 +7501,7 @@
    ],
    "derivation": "myth: fact-1's subject + fact-9 'an ... impact crater' ('extraterrestrial' elided); correction (M12): fact-9 'the impact theory was disproved' + 'in 1969' (the clause 'when suspected shock-metamorphism coesite was identified' elided), kept only if ground_text accepts it, else fact-9 'the impact theory was disproved' verbatim (which then carries the quality note correction_drops_specifics)",
    "ground": "hero",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\01_commons.jpg",
+   "photo": "assets/richat_structure_sahara_eye/01_commons.jpg",
    "photo_name": "01_commons.jpg",
    "photo_measured": {
     "mean_luma": 141.3,
@@ -8073,7 +8073,7 @@
    ],
    "derivation": "correction (round 4, draws 1969, meaning kept): fact-9's own words in their own order, elisions only: the leading 'the', the main clause's 'was', 'shock-metamorphism' and 'mislabeled' (79 chars). 'suspected' is kept, so the suspected coesite is what proved to be barite, as the source states ('barite had been misidentified as coesite'). It fits 9:16 with its source line (round 3's 83-char 'Impact theory was disproved when ...' did not). ground_text accepts any elision: the meaning is a human check, and the field awaits the operator's approval",
    "ground": "dark",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\cache\\upscaled\\03_commons_8553d4052c3cd146.jpg",
+   "photo": "cache/upscaled/03_commons_8553d4052c3cd146.jpg",
    "photo_name": "03_commons_8553d4052c3cd146.jpg",
    "photo_measured": {
     "mean_luma": 91.8,
@@ -8340,7 +8340,7 @@
    ],
    "derivation": "correction (round 4, draws 1969, meaning kept): fact-9's own words in their own order, elisions only: the leading 'the', the main clause's 'was', 'shock-metamorphism' and 'mislabeled' (79 chars). 'suspected' is kept, so the suspected coesite is what proved to be barite, as the source states ('barite had been misidentified as coesite'). It fits 9:16 with its source line (round 3's 83-char 'Impact theory was disproved when ...' did not). ground_text accepts any elision: the meaning is a human check, and the field awaits the operator's approval",
    "ground": "bright",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\10_commons.jpg",
+   "photo": "assets/richat_structure_sahara_eye/10_commons.jpg",
    "photo_name": "10_commons.jpg",
    "photo_measured": {
     "mean_luma": 149.8,
@@ -8607,7 +8607,7 @@
    ],
    "derivation": "correction (round 4, draws 1969, meaning kept): fact-9's own words in their own order, elisions only: the leading 'the', the main clause's 'was', 'shock-metamorphism' and 'mislabeled' (79 chars). 'suspected' is kept, so the suspected coesite is what proved to be barite, as the source states ('barite had been misidentified as coesite'). It fits 9:16 with its source line (round 3's 83-char 'Impact theory was disproved when ...' did not). ground_text accepts any elision: the meaning is a human check, and the field awaits the operator's approval",
    "ground": "busy",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\05_commons.jpg",
+   "photo": "assets/richat_structure_sahara_eye/05_commons.jpg",
    "photo_name": "05_commons.jpg",
    "photo_measured": {
     "mean_luma": 124.2,
@@ -8874,7 +8874,7 @@
    ],
    "derivation": "correction (round 4, draws 1969, meaning kept): fact-9's own words in their own order, elisions only: the leading 'the', the main clause's 'was', 'shock-metamorphism' and 'mislabeled' (79 chars). 'suspected' is kept, so the suspected coesite is what proved to be barite, as the source states ('barite had been misidentified as coesite'). It fits 9:16 with its source line (round 3's 83-char 'Impact theory was disproved when ...' did not). ground_text accepts any elision: the meaning is a human check, and the field awaits the operator's approval",
    "ground": "hero",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\01_commons.jpg",
+   "photo": "assets/richat_structure_sahara_eye/01_commons.jpg",
    "photo_name": "01_commons.jpg",
    "photo_measured": {
     "mean_luma": 141.3,
@@ -9404,7 +9404,7 @@
    ],
    "derivation": "correction (round 4, draws 1969, meaning kept): fact-9's own words in their own order, elisions only: the leading 'the', the main clause's 'was', 'shock-metamorphism' and 'mislabeled' (79 chars). 'suspected' is kept, so the suspected coesite is what proved to be barite, as the source states ('barite had been misidentified as coesite'). It fits 9:16 with its source line (round 3's 83-char 'Impact theory was disproved when ...' did not). ground_text accepts any elision: the meaning is a human check, and the field awaits the operator's approval",
    "ground": "dark",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\14_commons.jpg",
+   "photo": "assets/richat_structure_sahara_eye/14_commons.jpg",
    "photo_name": "14_commons.jpg",
    "photo_measured": {
     "mean_luma": 84.2,
@@ -9720,7 +9720,7 @@
    ],
    "derivation": "correction (round 4, draws 1969, meaning kept): fact-9's own words in their own order, elisions only: the leading 'the', the main clause's 'was', 'shock-metamorphism' and 'mislabeled' (79 chars). 'suspected' is kept, so the suspected coesite is what proved to be barite, as the source states ('barite had been misidentified as coesite'). It fits 9:16 with its source line (round 3's 83-char 'Impact theory was disproved when ...' did not). ground_text accepts any elision: the meaning is a human check, and the field awaits the operator's approval",
    "ground": "bright",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\08_commons.jpg",
+   "photo": "assets/richat_structure_sahara_eye/08_commons.jpg",
    "photo_name": "08_commons.jpg",
    "photo_measured": {
     "mean_luma": 157.8,
@@ -10036,7 +10036,7 @@
    ],
    "derivation": "correction (round 4, draws 1969, meaning kept): fact-9's own words in their own order, elisions only: the leading 'the', the main clause's 'was', 'shock-metamorphism' and 'mislabeled' (79 chars). 'suspected' is kept, so the suspected coesite is what proved to be barite, as the source states ('barite had been misidentified as coesite'). It fits 9:16 with its source line (round 3's 83-char 'Impact theory was disproved when ...' did not). ground_text accepts any elision: the meaning is a human check, and the field awaits the operator's approval",
    "ground": "busy",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\05_commons.jpg",
+   "photo": "assets/richat_structure_sahara_eye/05_commons.jpg",
    "photo_name": "05_commons.jpg",
    "photo_measured": {
     "mean_luma": 124.2,
@@ -10352,7 +10352,7 @@
    ],
    "derivation": "correction (round 4, draws 1969, meaning kept): fact-9's own words in their own order, elisions only: the leading 'the', the main clause's 'was', 'shock-metamorphism' and 'mislabeled' (79 chars). 'suspected' is kept, so the suspected coesite is what proved to be barite, as the source states ('barite had been misidentified as coesite'). It fits 9:16 with its source line (round 3's 83-char 'Impact theory was disproved when ...' did not). ground_text accepts any elision: the meaning is a human check, and the field awaits the operator's approval",
    "ground": "hero",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\01_commons.jpg",
+   "photo": "assets/richat_structure_sahara_eye/01_commons.jpg",
    "photo_name": "01_commons.jpg",
    "photo_measured": {
     "mean_luma": 141.3,
@@ -10980,7 +10980,7 @@
    ],
    "derivation": "round 3's richat_long, kept for M10's 4-line 16:9 measurement: fact-9 with 'shock-metamorphism', 'in 1969' and 'mislabeled' elided (79 chars), 'suspected' kept; it drops the date, so it carries the quality note correction_drops_specifics",
    "ground": "dark",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\cache\\upscaled\\03_commons_8553d4052c3cd146.jpg",
+   "photo": "cache/upscaled/03_commons_8553d4052c3cd146.jpg",
    "photo_name": "03_commons_8553d4052c3cd146.jpg",
    "photo_measured": {
     "mean_luma": 91.8,
@@ -11247,7 +11247,7 @@
    ],
    "derivation": "round 3's richat_long, kept for M10's 4-line 16:9 measurement: fact-9 with 'shock-metamorphism', 'in 1969' and 'mislabeled' elided (79 chars), 'suspected' kept; it drops the date, so it carries the quality note correction_drops_specifics",
    "ground": "bright",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\10_commons.jpg",
+   "photo": "assets/richat_structure_sahara_eye/10_commons.jpg",
    "photo_name": "10_commons.jpg",
    "photo_measured": {
     "mean_luma": 149.8,
@@ -11514,7 +11514,7 @@
    ],
    "derivation": "round 3's richat_long, kept for M10's 4-line 16:9 measurement: fact-9 with 'shock-metamorphism', 'in 1969' and 'mislabeled' elided (79 chars), 'suspected' kept; it drops the date, so it carries the quality note correction_drops_specifics",
    "ground": "busy",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\05_commons.jpg",
+   "photo": "assets/richat_structure_sahara_eye/05_commons.jpg",
    "photo_name": "05_commons.jpg",
    "photo_measured": {
     "mean_luma": 124.2,
@@ -11781,7 +11781,7 @@
    ],
    "derivation": "round 3's richat_long, kept for M10's 4-line 16:9 measurement: fact-9 with 'shock-metamorphism', 'in 1969' and 'mislabeled' elided (79 chars), 'suspected' kept; it drops the date, so it carries the quality note correction_drops_specifics",
    "ground": "hero",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\01_commons.jpg",
+   "photo": "assets/richat_structure_sahara_eye/01_commons.jpg",
    "photo_name": "01_commons.jpg",
    "photo_measured": {
     "mean_luma": 141.3,
@@ -12311,7 +12311,7 @@
    ],
    "derivation": "round 3's richat_long, kept for M10's 4-line 16:9 measurement: fact-9 with 'shock-metamorphism', 'in 1969' and 'mislabeled' elided (79 chars), 'suspected' kept; it drops the date, so it carries the quality note correction_drops_specifics",
    "ground": "dark",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\14_commons.jpg",
+   "photo": "assets/richat_structure_sahara_eye/14_commons.jpg",
    "photo_name": "14_commons.jpg",
    "photo_measured": {
     "mean_luma": 84.2,
@@ -12627,7 +12627,7 @@
    ],
    "derivation": "round 3's richat_long, kept for M10's 4-line 16:9 measurement: fact-9 with 'shock-metamorphism', 'in 1969' and 'mislabeled' elided (79 chars), 'suspected' kept; it drops the date, so it carries the quality note correction_drops_specifics",
    "ground": "bright",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\08_commons.jpg",
+   "photo": "assets/richat_structure_sahara_eye/08_commons.jpg",
    "photo_name": "08_commons.jpg",
    "photo_measured": {
     "mean_luma": 157.8,
@@ -12943,7 +12943,7 @@
    ],
    "derivation": "round 3's richat_long, kept for M10's 4-line 16:9 measurement: fact-9 with 'shock-metamorphism', 'in 1969' and 'mislabeled' elided (79 chars), 'suspected' kept; it drops the date, so it carries the quality note correction_drops_specifics",
    "ground": "busy",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\05_commons.jpg",
+   "photo": "assets/richat_structure_sahara_eye/05_commons.jpg",
    "photo_name": "05_commons.jpg",
    "photo_measured": {
     "mean_luma": 124.2,
@@ -13259,7 +13259,7 @@
    ],
    "derivation": "round 3's richat_long, kept for M10's 4-line 16:9 measurement: fact-9 with 'shock-metamorphism', 'in 1969' and 'mislabeled' elided (79 chars), 'suspected' kept; it drops the date, so it carries the quality note correction_drops_specifics",
    "ground": "hero",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\01_commons.jpg",
+   "photo": "assets/richat_structure_sahara_eye/01_commons.jpg",
    "photo_name": "01_commons.jpg",
    "photo_measured": {
     "mean_luma": 141.3,
@@ -13887,7 +13887,7 @@
    ],
    "derivation": "the longest fact-9 myth (57 chars: fact-1's subject + fact-9 'an extraterrestrial impact crater') with richat_long's 1969 correction (79). 9:16 refuses the myth (limit 56), as it should; 16:9 plans it. Awaits the operator's approval",
    "ground": "dark",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\cache\\upscaled\\03_commons_8553d4052c3cd146.jpg",
+   "photo": "cache/upscaled/03_commons_8553d4052c3cd146.jpg",
    "photo_name": "03_commons_8553d4052c3cd146.jpg",
    "photo_measured": {
     "mean_luma": 91.8,
@@ -13924,7 +13924,7 @@
    ],
    "derivation": "the longest fact-9 myth (57 chars: fact-1's subject + fact-9 'an extraterrestrial impact crater') with richat_long's 1969 correction (79). 9:16 refuses the myth (limit 56), as it should; 16:9 plans it. Awaits the operator's approval",
    "ground": "bright",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\10_commons.jpg",
+   "photo": "assets/richat_structure_sahara_eye/10_commons.jpg",
    "photo_name": "10_commons.jpg",
    "photo_measured": {
     "mean_luma": 149.8,
@@ -13961,7 +13961,7 @@
    ],
    "derivation": "the longest fact-9 myth (57 chars: fact-1's subject + fact-9 'an extraterrestrial impact crater') with richat_long's 1969 correction (79). 9:16 refuses the myth (limit 56), as it should; 16:9 plans it. Awaits the operator's approval",
    "ground": "busy",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\05_commons.jpg",
+   "photo": "assets/richat_structure_sahara_eye/05_commons.jpg",
    "photo_name": "05_commons.jpg",
    "photo_measured": {
     "mean_luma": 124.2,
@@ -13998,7 +13998,7 @@
    ],
    "derivation": "the longest fact-9 myth (57 chars: fact-1's subject + fact-9 'an extraterrestrial impact crater') with richat_long's 1969 correction (79). 9:16 refuses the myth (limit 56), as it should; 16:9 plans it. Awaits the operator's approval",
    "ground": "hero",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\01_commons.jpg",
+   "photo": "assets/richat_structure_sahara_eye/01_commons.jpg",
    "photo_name": "01_commons.jpg",
    "photo_measured": {
     "mean_luma": 141.3,
@@ -14068,7 +14068,7 @@
    ],
    "derivation": "the longest fact-9 myth (57 chars: fact-1's subject + fact-9 'an extraterrestrial impact crater') with richat_long's 1969 correction (79). 9:16 refuses the myth (limit 56), as it should; 16:9 plans it. Awaits the operator's approval",
    "ground": "dark",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\14_commons.jpg",
+   "photo": "assets/richat_structure_sahara_eye/14_commons.jpg",
    "photo_name": "14_commons.jpg",
    "photo_measured": {
     "mean_luma": 84.2,
@@ -14408,7 +14408,7 @@
    ],
    "derivation": "the longest fact-9 myth (57 chars: fact-1's subject + fact-9 'an extraterrestrial impact crater') with richat_long's 1969 correction (79). 9:16 refuses the myth (limit 56), as it should; 16:9 plans it. Awaits the operator's approval",
    "ground": "bright",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\08_commons.jpg",
+   "photo": "assets/richat_structure_sahara_eye/08_commons.jpg",
    "photo_name": "08_commons.jpg",
    "photo_measured": {
     "mean_luma": 157.8,
@@ -14748,7 +14748,7 @@
    ],
    "derivation": "the longest fact-9 myth (57 chars: fact-1's subject + fact-9 'an extraterrestrial impact crater') with richat_long's 1969 correction (79). 9:16 refuses the myth (limit 56), as it should; 16:9 plans it. Awaits the operator's approval",
    "ground": "busy",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\05_commons.jpg",
+   "photo": "assets/richat_structure_sahara_eye/05_commons.jpg",
    "photo_name": "05_commons.jpg",
    "photo_measured": {
     "mean_luma": 124.2,
@@ -15088,7 +15088,7 @@
    ],
    "derivation": "the longest fact-9 myth (57 chars: fact-1's subject + fact-9 'an extraterrestrial impact crater') with richat_long's 1969 correction (79). 9:16 refuses the myth (limit 56), as it should; 16:9 plans it. Awaits the operator's approval",
    "ground": "hero",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\01_commons.jpg",
+   "photo": "assets/richat_structure_sahara_eye/01_commons.jpg",
    "photo_name": "01_commons.jpg",
    "photo_measured": {
     "mean_luma": 141.3,
@@ -15764,7 +15764,7 @@
    ],
    "derivation": "myth: damascus-13 with 'by thrusting them six times into' shortened to 'in'; correction: damascus-13 with the quench clause elided",
    "ground": "dark",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\cache\\upscaled\\17_commons_20883a1e45e7bea1.jpg",
+   "photo": "cache/upscaled/17_commons_20883a1e45e7bea1.jpg",
    "photo_name": "17_commons_20883a1e45e7bea1.jpg",
    "photo_measured": {
     "mean_luma": 150.7,
@@ -15800,7 +15800,7 @@
    ],
    "derivation": "myth: damascus-13 with 'by thrusting them six times into' shortened to 'in'; correction: damascus-13 with the quench clause elided",
    "ground": "bright+busy",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\damascus_steel_nanotubes\\11_commons.jpg",
+   "photo": "assets/damascus_steel_nanotubes/11_commons.jpg",
    "photo_name": "11_commons.jpg",
    "photo_measured": {
     "mean_luma": 212.8,
@@ -15868,7 +15868,7 @@
    ],
    "derivation": "myth: damascus-13 with 'by thrusting them six times into' shortened to 'in'; correction: damascus-13 with the quench clause elided",
    "ground": "dark",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\cache\\upscaled\\17_commons_20883a1e45e7bea1.jpg",
+   "photo": "cache/upscaled/17_commons_20883a1e45e7bea1.jpg",
    "photo_name": "17_commons_20883a1e45e7bea1.jpg",
    "photo_measured": {
     "mean_luma": 150.7,
@@ -15905,7 +15905,7 @@
    ],
    "derivation": "myth: damascus-13 with 'by thrusting them six times into' shortened to 'in'; correction: damascus-13 with the quench clause elided",
    "ground": "bright+busy",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\damascus_steel_nanotubes\\11_commons.jpg",
+   "photo": "assets/damascus_steel_nanotubes/11_commons.jpg",
    "photo_name": "11_commons.jpg",
    "photo_measured": {
     "mean_luma": 212.8,
@@ -15975,7 +15975,7 @@
    ],
    "derivation": "myth and correction: kailasa-legend-kokasa's own words, 'an architect named' and 'from the summit down so the queen could view the completed shikhara' elided (the fact reports the legend; it states no refutation)",
    "ground": "dark",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\cache\\privacy\\03_commons_53a393e1ef79bba8_389d98098bf1bae1.jpg",
+   "photo": "cache/privacy/03_commons_53a393e1ef79bba8_389d98098bf1bae1.jpg",
    "photo_name": "03_commons_53a393e1ef79bba8_389d98098bf1bae1.jpg",
    "photo_measured": {
     "mean_luma": 86.1,
@@ -16011,7 +16011,7 @@
    ],
    "derivation": "myth and correction: kailasa-legend-kokasa's own words, 'an architect named' and 'from the summit down so the queen could view the completed shikhara' elided (the fact reports the legend; it states no refutation)",
    "ground": "bright+busy",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\cache\\privacy\\13_commons_d273f97fafde1bbf_35c8179029686486.jpg",
+   "photo": "cache/privacy/13_commons_d273f97fafde1bbf_35c8179029686486.jpg",
    "photo_name": "13_commons_d273f97fafde1bbf_35c8179029686486.jpg",
    "photo_measured": {
     "mean_luma": 127.6,
@@ -16079,7 +16079,7 @@
    ],
    "derivation": "myth and correction: kailasa-legend-kokasa's own words, 'an architect named' and 'from the summit down so the queen could view the completed shikhara' elided (the fact reports the legend; it states no refutation)",
    "ground": "dark",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\cache\\privacy\\03_commons_53a393e1ef79bba8_389d98098bf1bae1.jpg",
+   "photo": "cache/privacy/03_commons_53a393e1ef79bba8_389d98098bf1bae1.jpg",
    "photo_name": "03_commons_53a393e1ef79bba8_389d98098bf1bae1.jpg",
    "photo_measured": {
     "mean_luma": 86.1,
@@ -16116,7 +16116,7 @@
    ],
    "derivation": "myth and correction: kailasa-legend-kokasa's own words, 'an architect named' and 'from the summit down so the queen could view the completed shikhara' elided (the fact reports the legend; it states no refutation)",
    "ground": "bright+busy",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\cache\\privacy\\13_commons_d273f97fafde1bbf_35c8179029686486.jpg",
+   "photo": "cache/privacy/13_commons_d273f97fafde1bbf_35c8179029686486.jpg",
    "photo_name": "13_commons_d273f97fafde1bbf_35c8179029686486.jpg",
    "photo_measured": {
     "mean_luma": 127.6,

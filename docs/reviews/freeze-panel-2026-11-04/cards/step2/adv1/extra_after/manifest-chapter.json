@@ -1,7 +1,7 @@
 {
  "meta": {
-  "code_root": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle",
-  "design_cards": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\src\\design_cards.py",
+  "code_root": ".",
+  "design_cards": "src/design_cards.py",
   "version": "design-cards-1",
   "seconds": 0,
   "inputs": "real run media and fact-sheet facts via docs/reviews/freeze-panel-2026-11-04/fixtures",
@@ -28,7 +28,7 @@
    "title_chars": 32,
    "fits_chapter": true,
    "ground": "4843dark+busy",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\19_commons.jpg",
+   "photo": "assets/richat_structure_sahara_eye/19_commons.jpg",
    "photo_name": "19_commons.jpg",
    "photo_measured": {
     "mean_luma": 119.4,
@@ -216,7 +216,7 @@
    "title_chars": 32,
    "fits_chapter": true,
    "ground": "4843bright",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\cache\\text_crop\\57094acd9a01b378\\08_commons.jpg",
+   "photo": "cache/text_crop/57094acd9a01b378/08_commons.jpg",
    "photo_name": "08_commons.jpg",
    "photo_measured": {
     "mean_luma": 159.5,
@@ -404,7 +404,7 @@
    "title_chars": 32,
    "fits_chapter": true,
    "ground": "4843hero",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\01_commons.jpg",
+   "photo": "assets/richat_structure_sahara_eye/01_commons.jpg",
    "photo_name": "01_commons.jpg",
    "photo_measured": {
     "mean_luma": 141.3,
@@ -592,7 +592,7 @@
    "title_chars": 32,
    "fits_chapter": true,
    "ground": "8206dark",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\cache\\upscaled\\03_commons_8553d4052c3cd146.jpg",
+   "photo": "cache/upscaled/03_commons_8553d4052c3cd146.jpg",
    "photo_name": "03_commons_8553d4052c3cd146.jpg",
    "photo_measured": {
     "mean_luma": 91.8,
@@ -780,7 +780,7 @@
    "title_chars": 32,
    "fits_chapter": true,
    "ground": "8206bright",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\11_commons.jpg",
+   "photo": "assets/richat_structure_sahara_eye/11_commons.jpg",
    "photo_name": "11_commons.jpg",
    "photo_measured": {
     "mean_luma": 153.9,
@@ -968,7 +968,7 @@
    "title_chars": 32,
    "fits_chapter": true,
    "ground": "8206busy",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\13_commons.jpg",
+   "photo": "assets/richat_structure_sahara_eye/13_commons.jpg",
    "photo_name": "13_commons.jpg",
    "photo_measured": {
     "mean_luma": 119.7,
@@ -1156,7 +1156,7 @@
    "title_chars": 32,
    "fits_chapter": true,
    "ground": "8206hero",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\01_commons.jpg",
+   "photo": "assets/richat_structure_sahara_eye/01_commons.jpg",
    "photo_name": "01_commons.jpg",
    "photo_measured": {
     "mean_luma": 141.3,
@@ -1344,7 +1344,7 @@
    "title_chars": 32,
    "fits_chapter": true,
    "ground": "4843dark+busy",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\19_commons.jpg",
+   "photo": "assets/richat_structure_sahara_eye/19_commons.jpg",
    "photo_name": "19_commons.jpg",
    "photo_measured": {
     "mean_luma": 119.4,
@@ -1528,7 +1528,7 @@
    "title_chars": 32,
    "fits_chapter": true,
    "ground": "4843bright",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\cache\\text_crop\\57094acd9a01b378\\08_commons.jpg",
+   "photo": "cache/text_crop/57094acd9a01b378/08_commons.jpg",
    "photo_name": "08_commons.jpg",
    "photo_measured": {
     "mean_luma": 159.5,
@@ -1712,7 +1712,7 @@
    "title_chars": 32,
    "fits_chapter": true,
    "ground": "4843hero",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\01_commons.jpg",
+   "photo": "assets/richat_structure_sahara_eye/01_commons.jpg",
    "photo_name": "01_commons.jpg",
    "photo_measured": {
     "mean_luma": 141.3,
@@ -1896,7 +1896,7 @@
    "title_chars": 32,
    "fits_chapter": true,
    "ground": "8206dark",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\cache\\upscaled\\03_commons_8553d4052c3cd146.jpg",
+   "photo": "cache/upscaled/03_commons_8553d4052c3cd146.jpg",
    "photo_name": "03_commons_8553d4052c3cd146.jpg",
    "photo_measured": {
     "mean_luma": 91.8,
@@ -2080,7 +2080,7 @@
    "title_chars": 32,
    "fits_chapter": true,
    "ground": "8206bright",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\11_commons.jpg",
+   "photo": "assets/richat_structure_sahara_eye/11_commons.jpg",
    "photo_name": "11_commons.jpg",
    "photo_measured": {
     "mean_luma": 153.9,
@@ -2264,7 +2264,7 @@
    "title_chars": 32,
    "fits_chapter": true,
    "ground": "8206busy",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\13_commons.jpg",
+   "photo": "assets/richat_structure_sahara_eye/13_commons.jpg",
    "photo_name": "13_commons.jpg",
    "photo_measured": {
     "mean_luma": 119.7,
@@ -2448,7 +2448,7 @@
    "title_chars": 32,
    "fits_chapter": true,
    "ground": "8206hero",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\01_commons.jpg",
+   "photo": "assets/richat_structure_sahara_eye/01_commons.jpg",
    "photo_name": "01_commons.jpg",
    "photo_measured": {
     "mean_luma": 141.3,
@@ -2632,7 +2632,7 @@
    "title_chars": 30,
    "fits_chapter": true,
    "ground": "4843dark+busy",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\19_commons.jpg",
+   "photo": "assets/richat_structure_sahara_eye/19_commons.jpg",
    "photo_name": "19_commons.jpg",
    "photo_measured": {
     "mean_luma": 119.4,
@@ -2805,7 +2805,7 @@
    "title_chars": 30,
    "fits_chapter": true,
    "ground": "4843bright",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\cache\\text_crop\\57094acd9a01b378\\08_commons.jpg",
+   "photo": "cache/text_crop/57094acd9a01b378/08_commons.jpg",
    "photo_name": "08_commons.jpg",
    "photo_measured": {
     "mean_luma": 159.5,
@@ -2978,7 +2978,7 @@
    "title_chars": 30,
    "fits_chapter": true,
    "ground": "4843hero",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\01_commons.jpg",
+   "photo": "assets/richat_structure_sahara_eye/01_commons.jpg",
    "photo_name": "01_commons.jpg",
    "photo_measured": {
     "mean_luma": 141.3,
@@ -3151,7 +3151,7 @@
    "title_chars": 30,
    "fits_chapter": true,
    "ground": "8206dark",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\cache\\upscaled\\03_commons_8553d4052c3cd146.jpg",
+   "photo": "cache/upscaled/03_commons_8553d4052c3cd146.jpg",
    "photo_name": "03_commons_8553d4052c3cd146.jpg",
    "photo_measured": {
     "mean_luma": 91.8,
@@ -3324,7 +3324,7 @@
    "title_chars": 30,
    "fits_chapter": true,
    "ground": "8206bright",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\11_commons.jpg",
+   "photo": "assets/richat_structure_sahara_eye/11_commons.jpg",
    "photo_name": "11_commons.jpg",
    "photo_measured": {
     "mean_luma": 153.9,
@@ -3497,7 +3497,7 @@
    "title_chars": 30,
    "fits_chapter": true,
    "ground": "8206busy",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\13_commons.jpg",
+   "photo": "assets/richat_structure_sahara_eye/13_commons.jpg",
    "photo_name": "13_commons.jpg",
    "photo_measured": {
     "mean_luma": 119.7,
@@ -3670,7 +3670,7 @@
    "title_chars": 30,
    "fits_chapter": true,
    "ground": "8206hero",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\01_commons.jpg",
+   "photo": "assets/richat_structure_sahara_eye/01_commons.jpg",
    "photo_name": "01_commons.jpg",
    "photo_measured": {
     "mean_luma": 141.3,
@@ -3843,7 +3843,7 @@
    "title_chars": 30,
    "fits_chapter": true,
    "ground": "4843dark+busy",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\19_commons.jpg",
+   "photo": "assets/richat_structure_sahara_eye/19_commons.jpg",
    "photo_name": "19_commons.jpg",
    "photo_measured": {
     "mean_luma": 119.4,
@@ -4027,7 +4027,7 @@
    "title_chars": 30,
    "fits_chapter": true,
    "ground": "4843bright",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\cache\\text_crop\\57094acd9a01b378\\08_commons.jpg",
+   "photo": "cache/text_crop/57094acd9a01b378/08_commons.jpg",
    "photo_name": "08_commons.jpg",
    "photo_measured": {
     "mean_luma": 159.5,
@@ -4211,7 +4211,7 @@
    "title_chars": 30,
    "fits_chapter": true,
    "ground": "4843hero",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\01_commons.jpg",
+   "photo": "assets/richat_structure_sahara_eye/01_commons.jpg",
    "photo_name": "01_commons.jpg",
    "photo_measured": {
     "mean_luma": 141.3,
@@ -4395,7 +4395,7 @@
    "title_chars": 30,
    "fits_chapter": true,
    "ground": "8206dark",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\cache\\upscaled\\03_commons_8553d4052c3cd146.jpg",
+   "photo": "cache/upscaled/03_commons_8553d4052c3cd146.jpg",
    "photo_name": "03_commons_8553d4052c3cd146.jpg",
    "photo_measured": {
     "mean_luma": 91.8,
@@ -4579,7 +4579,7 @@
    "title_chars": 30,
    "fits_chapter": true,
    "ground": "8206bright",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\11_commons.jpg",
+   "photo": "assets/richat_structure_sahara_eye/11_commons.jpg",
    "photo_name": "11_commons.jpg",
    "photo_measured": {
     "mean_luma": 153.9,
@@ -4763,7 +4763,7 @@
    "title_chars": 30,
    "fits_chapter": true,
    "ground": "8206busy",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\13_commons.jpg",
+   "photo": "assets/richat_structure_sahara_eye/13_commons.jpg",
    "photo_name": "13_commons.jpg",
    "photo_measured": {
     "mean_luma": 119.7,
@@ -4947,7 +4947,7 @@
    "title_chars": 30,
    "fits_chapter": true,
    "ground": "8206hero",
-   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\01_commons.jpg",
+   "photo": "assets/richat_structure_sahara_eye/01_commons.jpg",
    "photo_name": "01_commons.jpg",
    "photo_measured": {
     "mean_luma": 141.3,

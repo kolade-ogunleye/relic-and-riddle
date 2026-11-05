@@ -9,7 +9,7 @@
   1080,
   1920
  ],
- "code_root": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle",
+ "code_root": ".",
  "inputs": "unregistered candidates (rejected pair; no registration exists)",
  "registered": false,
  "ink_on_paper": true,
@@ -117,9 +117,9 @@
    }
   }
  },
- "old": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\output\\run_wieliczka_salt_mine_1792974672\\graphics\\then_1.jpg",
+ "old": "output/run_wieliczka_salt_mine_1792974672/graphics/then_1.jpg",
  "old_year": 1978,
- "new": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\output\\run_wieliczka_salt_mine_1792974672\\graphics\\now_1_2.jpg",
+ "new": "output/run_wieliczka_salt_mine_1792974672/graphics/now_1_2.jpg",
  "new_year": 1998,
  "years_source": {
   "old": {

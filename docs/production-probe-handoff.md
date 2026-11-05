@@ -13,7 +13,7 @@ Example command for that identity runner (stage the script from the reviewed
 application artifact first):
 
 ```powershell
-C:\Users\omokolade.LAB\relic-and-riddle\.venv\Scripts\python.exe C:\approved-artifact\scripts\runtime_probe.py --app-root C:\Users\omokolade.LAB\relic-and-riddle --report C:\ProgramData\HNSHL\ContentRuntime\logs\Pipeline\app-probe-UNIQUE-UTC.json --providers
+<operator-home>\relic-and-riddle\.venv\Scripts\python.exe C:\approved-artifact\scripts\runtime_probe.py --app-root <operator-home>\relic-and-riddle --report C:\ProgramData\HNSHL\ContentRuntime\logs\Pipeline\app-probe-UNIQUE-UTC.json --providers
 ```
 
 Use a new report filename for each attempt; previous receipts are never replaced.

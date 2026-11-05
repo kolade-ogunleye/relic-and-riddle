@@ -97,7 +97,7 @@ Posting slots (Reels at 12:00 and 19:00, Stories 45 min later, carousels Tue–T
 
 ### 2. Environment
 ```bash
-git clone https://github.com/kolade-ogunleye/relic-and-riddle.git
+git clone https://github.com/<owner>/relic-and-riddle.git
 cd relic-and-riddle
 python -m venv .venv
 .venv\Scripts\activate      # Windows

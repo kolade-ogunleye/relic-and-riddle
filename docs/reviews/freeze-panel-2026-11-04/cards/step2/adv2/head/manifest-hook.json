@@ -1,7 +1,7 @@
 {
  "meta": {
-  "code_root": "C:\\Users\\omokolade\\AppData\\Local\\Temp\\claude\\7686a79b0f64a990\\29ad02b1-356f-4136-9fd7-e5907c322aff\\scratchpad\\head",
-  "design_cards": "C:\\Users\\omokolade\\AppData\\Local\\Temp\\claude\\7686a79b0f64a990\\29ad02b1-356f-4136-9fd7-e5907c322aff\\scratchpad\\head\\src\\design_cards.py",
+  "code_root": "<scratchpad>/head",
+  "design_cards": "<scratchpad>/head/src/design_cards.py",
   "version": "design-cards-1",
   "seconds": null,
   "inputs": "real run media and fact-sheet facts via docs/reviews/freeze-panel-2026-11-04/fixtures",

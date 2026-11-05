@@ -41,7 +41,7 @@ import unicodedata
 import sys
 from pathlib import Path
 
-MAIN = Path(r"C:/Users/omokolade/GitHub/relic-and-riddle")
+MAIN = Path(os.environ.get("RR_FIXTURE_REPO") or Path(__file__).resolve().parents[4])
 LUT = MAIN / "assets" / "luts" / "kodak_2383.cube"
 FONTS = MAIN / "fonts"
 FIXTURES = MAIN / "docs" / "reviews" / "freeze-panel-2026-11-04" / "fixtures" / "fixtures.py"

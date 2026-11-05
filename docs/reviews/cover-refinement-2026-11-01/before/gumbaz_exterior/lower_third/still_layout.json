@@ -129,7 +129,7 @@
   "attempts": 1,
   "recipe": {
    "renderer": "visual_engine.redraw_cover",
-   "hero": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\gol_gumbaz_whispering_gallery\\03_commons.jpg",
+   "hero": "assets/gol_gumbaz_whispering_gallery/03_commons.jpg",
    "copy": {
     "eyebrow": "ANCIENT ACOUSTICS",
     "line1": "THE 144-FOOT",

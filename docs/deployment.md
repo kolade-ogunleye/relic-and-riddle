@@ -117,15 +117,16 @@ human acceptance are separate gates. See the reconciliation register for status.
 With the lab handoff complete (lab PR #60), release promotion is the application's procedure.
 `deployment/windows/Promote-ContentRelease.ps1` runs once, elevated, on the VM and performs the
 idle stop/start: it refuses while a run is producing, stops the pipeline through its launcher's
-stop file, waits for the operator's SSH session to update the tree (`ready <commit>` in
-`C:\Users\omokolade.LAB\relic-promote.flag`), restarts the managed task, retires the disabled
+stop file, waits for the operator's SSH session to update the tree (`ready <commit>` in the flag named by
+`-HandoffFlag`, the SSH profile's
+`<operator-home>\relic-promote.flag`), restarts the managed task, retires the disabled
 legacy tasks after exporting their definitions, and runs the focused probe under
 `LAB\rr-pipeline$` (`-PaidVoice` adds one short licensed voice sample per provider). During
 the wait the SSH session runs `deployment/windows/Update-ContentReleaseTree.ps1 -Commit <tag>`:
 it checks out the release, installs pinned requirements, places
 `tools/models/realesrgan_x4plus.onnx` (verified SHA-256, see [upscaler](upscaler.md)), runs the
 offline suite and writes `ready <commit>`; on any failure it returns to the previous commit and
-signals that one. Stage beforehand in `C:\Users\omokolade.LAB\relic-stage`: the release git
+signals that one. Stage beforehand in `<operator-home>\relic-stage`: the release git
 bundle (fetched into `refs/remotes/stage/release`, which does not touch the running tree), the
 model and the new dependency wheels, so the stopped window is short. Production data files
 the release does not change (fact sheets, credits, music usage) keep their local changes. The
@@ -194,8 +195,9 @@ new tag on the previous good commit; for an emergency, the elevated procedure ab
 1. Apply lab plays 50, 51 and 54. They provide `LAB\rr-deploy$` and its rights; play 54 also grants it git, the operator's MinGit winget package.
 2. During a promotion, while `Promote-ContentRelease.ps1` waits for `ready <commit>` and the pipeline is stopped, open a second **elevated** window on the VM in the release checkout and run:
    ```powershell
-   .\deployment\windows\Install-ContentReleaseDeployer.ps1 -WhatIf   # review what it would change
-   .\deployment\windows\Install-ContentReleaseDeployer.ps1
+   $repo = 'git@github.com:<owner>/relic-and-riddle.git'               # the release repository
+   .\deployment\windows\Install-ContentReleaseDeployer.ps1 -Repository $repo -WhatIf   # review what it would change
+   .\deployment\windows\Install-ContentReleaseDeployer.ps1 -Repository $repo
    ```
 
 The installer first checks every prerequisite and changes nothing if one fails:
@@ -229,12 +231,13 @@ promotion stops it (when the release gate is idle and the deployer has nothing i
 
 ```powershell
 $root = 'C:\ProgramData\HNSHL\ContentRuntime'
-Set-Location C:\Users\omokolade.LAB\relic-and-riddle                       # at the release tag
+Set-Location <operator-home>\relic-and-riddle                       # at the release tag
 New-Item -ItemType File -Path "$root\control\Pipeline.stop" -Force | Out-Null
 while ((Get-ScheduledTask RelicAndRiddle-Production-Unattended).State -eq 'Running') { Start-Sleep 3 }
 (Get-ScheduledTask RelicAndRiddle-ProductionBackup-Unattended).State       # must not be Running
-.\deployment\windows\Install-ContentReleaseDeployer.ps1 -WhatIf             # lists only what differs
-.\deployment\windows\Install-ContentReleaseDeployer.ps1
+$repo = 'git@github.com:<owner>/relic-and-riddle.git'                     # the release repository
+.\deployment\windows\Install-ContentReleaseDeployer.ps1 -Repository $repo -WhatIf  # lists only what differs
+.\deployment\windows\Install-ContentReleaseDeployer.ps1 -Repository $repo
 Remove-Item "$root\control\Pipeline.stop" -Force
 Start-ScheduledTask RelicAndRiddle-Production-Unattended
 ```

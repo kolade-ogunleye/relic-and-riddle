@@ -80,7 +80,7 @@ Describe 'Content identity probe task registration' {
 
     It 'refuses to replace a probe owned by another identity' {
         $null = & $script:probeRegistrationPath
-        $script:probeFolderFixture.Tasks[0].Definition.Principal.UserId = 'LAB\omokolade'
+        $script:probeFolderFixture.Tasks[0].Definition.Principal.UserId = 'LAB\operator'
         { & $script:probeRegistrationPath } | Should -Throw '*unexpected identity*'
         $script:probeFolderFixture.Writes | Should -Be 2
     }

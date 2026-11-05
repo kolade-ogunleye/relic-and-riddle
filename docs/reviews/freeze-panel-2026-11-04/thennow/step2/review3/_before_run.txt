@@ -18,9 +18,9 @@ ok  9x16 pantheon_1934_2018__timing
 ok  16x9 pantheon_1934_2018__noblur
 ok  16x9 pantheon_1934_2018__timing
 Traceback (most recent call last):
-  File "C:\Users\omokolade\GitHub\relic-and-riddle\docs\reviews\freeze-panel-2026-11-04\thennow\render_evidence.py", line 764, in <module>
+  File "docs/reviews/freeze-panel-2026-11-04/thennow/render_evidence.py", line 764, in <module>
     main()
-  File "C:\Users\omokolade\GitHub\relic-and-riddle\docs\reviews\freeze-panel-2026-11-04\thennow\render_evidence.py", line 746, in main
+  File "docs/reviews/freeze-panel-2026-11-04/thennow/render_evidence.py", line 746, in main
     same = [i for i in range(len(a["frame_sha"])) if i not in fast]
                                  ~^^^^^^^^^^^^^
 KeyError: 'frame_sha'

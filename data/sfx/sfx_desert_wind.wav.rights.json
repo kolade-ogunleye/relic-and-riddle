@@ -1,5 +1,5 @@
 {
-  "path": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\data\\sfx\\sfx_desert_wind.wav",
+  "path": "data/sfx/sfx_desert_wind.wav",
   "sha256": "f09debbfa5faff6bbfe863ecd38c56dcde31294076ac4dd7f00c15734acb2b4d",
   "provider": "elevenlabs-sound-effects",
   "plan": "creator",

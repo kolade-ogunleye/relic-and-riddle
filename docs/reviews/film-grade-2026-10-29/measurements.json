@@ -2,7 +2,7 @@
  "date": "2026-10-29",
  "method": "see README.md",
  "chains": {
-  "old": "curves=master='0/0.02 0.5/0.50 1/0.98',lut3d='C\\:/Users/omokolade/GitHub/relic-and-riddle/assets/luts/kodak_2383.cube'",
+  "old": "curves=master='0/0.02 0.5/0.50 1/0.98',lut3d='assets/luts/kodak_2383.cube'",
   "new": "curves=master='0/0.02 0.5/0.50 1/0.98',lut3d='C\\:/tmp/fg/luts/kodak_2383_tone_9fdb5a3d3e7a.cube'"
  },
  "summary": {

@@ -33,7 +33,7 @@ name no further gain, two consecutive adversarial rounds find no new defect, and
   - CI installs `libfribidi0` (`.github/workflows/tests.yml`).
   - Dev PC (2026-11-05): `libfribidi-0.dll` from MSYS2's UCRT64 package `mingw-w64-ucrt-x86_64-fribidi-1.0.18-1`
     (repo.msys2.org; package SHA-256 `4837d362...ac920` matches the repository database; DLL SHA-256
-    `4c775e98...746c9`; it imports only the Windows CRT and KERNEL32) in `C:\Users\omokolade\bin\fribidi`, on the
+    `4c775e98...746c9`; it imports only the Windows CRT and KERNEL32) in `%USERPROFILE%\bin\fribidi`, on the
     user `PATH`. Pillow 12.3.0 then reports raqm 0.10.5 and FriBiDi 1.0.18. Pillow's docs: its wheels load
     `fribidi.dll`, `fribidi-0.dll` or `libfribidi-0.dll` at run time from the DLL search path; they name no download.
   - `main.warn_missing_raqm()` warns at run start when `PIL.features.check("raqm")` is false, and
@@ -68,7 +68,7 @@ name no further gain, two consecutive adversarial rounds find no new defect, and
 `assets/richat_structure_sahara_eye/*.jpg`), so 31 tests fail on CI; two more compare widths measured on the PC.
 Commit the needed `words.json` files and one small still into `docs/reviews/freeze-panel-2026-11-04/fixtures/`, point
 `fixtures.json` at them, and pin the two measurement tests to raqm (decision above). Do not skip tests. Details:
-https://github.com/kolade-ogunleye/relic-and-riddle/pull/3#issuecomment-6652354441
+https://github.com/<owner>/relic-and-riddle/pull/3#issuecomment-6652354441
 
 Done (2026-11-05): the run files the tests read are committed under `fixtures/runs/<run folder>/`
 (`fixtures.run_file` and `run_path` rebase recorded run paths onto them), with a 960 px Richat still under

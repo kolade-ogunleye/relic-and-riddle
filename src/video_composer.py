@@ -1239,6 +1239,20 @@ def _phrase_words(phrase: Any) -> list[str]:
 _LIBASS_REF_PX = 1000   # the em the drawn measure reads glyph metrics at, scaled linearly as libass scales outlines
 
 
+def unkerned_length(font: Any, text: str) -> float:
+    """The advance of `text` as libass draws the captions: the sum of its single letters' advances (operator decision
+    2026-11-05, "measure without kerning"). The ASS header sets no "Kerning: yes", so libass draws the captions
+    unkerned, while Pillow's raqm layout applies the font's GPOS kerning: WAVY VAULT 7,000 measured 545 px kerned
+    against the 552 px libass draws. Every caption width measure sums the letters instead (a space is a letter)."""
+    return sum(_glyph_advance(font, ch) for ch in text)
+
+
+@lru_cache(maxsize=4096)
+def _glyph_advance(font: Any, ch: str) -> float:
+    """One letter's advance in `font` (cached per font and letter: the fit loops measure the same letters often)."""
+    return font.getlength(ch)
+
+
 def _reel_ass_size(size: float) -> float:
     """The ASS Fontsize build_subtitles writes for a 9:16 caption at nominal size `size`."""
     return FONT_SIZE_ASS if size >= FONT_SIZE else round(size / 0.5625)
@@ -1256,13 +1270,14 @@ def _libass_line(words: tuple[str, ...], size: float, sc_scale: int = CAPTION_SC
     """(advance, ink left, ink right) in px of a 9:16 caption line as libass draws it (freeze pass C5, 2026-11-04):
     the em of its ASS size, each run's small-capital fscx (format_word_caption), the CapText Spacing after every
     glyph at that run's fscx, each space at the fscx of the word before it (the tags carry over), and the first and
-    last glyphs' side bearings. Unhinted: glyph metrics at a large em, scaled linearly. Measured against libass
-    renders within about 2 px (tests/test_freeze_captions_2026_11_04.py)."""
+    last glyphs' side bearings. Unhinted: glyph metrics at a large em, scaled linearly. Each run's advance is the sum
+    of its single letters' (unkerned_length: libass draws the captions unkerned; operator decision 2026-11-05).
+    Measured against libass renders within 2 px (tests/test_freeze_captions_2026_11_04.py)."""
     from .typography import get_font
     upm, asc, desc = _font_vmetrics(FONT_NAME)
     k = _reel_ass_size(size) * upm / (asc + desc) / _LIBASS_REF_PX
     font = get_font(FONT_NAME, _LIBASS_REF_PX)
-    space = font.getlength(" ")
+    space = unkerned_length(font, " ")
     pen, left, right, prev = 0.0, None, 0.0, 1.0
     for wi, word in enumerate(words):
         if wi:
@@ -1276,10 +1291,10 @@ def _libass_line(words: tuple[str, ...], size: float, sc_scale: int = CAPTION_SC
             if left is None:
                 box = _glyph_box(text[0])
                 left = pen + (box[0] if box else 0) * k * s
-            last_at = pen + (font.getlength(text[:-1]) * k + REEL_LETTER_SPACING * (len(text) - 1)) * s
+            last_at = pen + (unkerned_length(font, text[:-1]) * k + REEL_LETTER_SPACING * (len(text) - 1)) * s
             box = _glyph_box(text[-1])
-            right = last_at + (box[2] if box else font.getlength(text[-1])) * k * s
-            pen += (font.getlength(text) * k + REEL_LETTER_SPACING * len(text)) * s
+            right = last_at + (box[2] if box else unkerned_length(font, text[-1])) * k * s
+            pen += (unkerned_length(font, text) * k + REEL_LETTER_SPACING * len(text)) * s
             prev = s
     return pen, (left or 0.0), right
 
@@ -1308,7 +1323,8 @@ def _caption_text_width(words: list[str], size: int, sc_scale: int = CAPTION_SC_
 
     Without `drawn`, the round-2 type measure at `size` (PIL at that size). With `drawn` it is the ink width libass
     actually draws (freeze pass C5: per-run fscx, the style Spacing, side bearings; _libass_line), which the burst
-    builder fits and the plate is sized from."""
+    builder fits and the plate is sized from. Each run measures unkerned, as libass draws it (unkerned_length,
+    operator decision 2026-11-05)."""
     if drawn:
         return _caption_ink_width(list(words), size, sc_scale)
     from .typography import get_font
@@ -1317,12 +1333,12 @@ def _caption_text_width(words: list[str], size: int, sc_scale: int = CAPTION_SC_
     total = 0.0
     for wi, word in enumerate(words):
         if wi > 0:
-            total += f_base.getlength(" ")
+            total += unkerned_length(f_base, " ")
         if not CAPTION_SMALL_CAPS:
-            total += f_base.getlength(_ass_escape(word).upper())
+            total += unkerned_length(f_base, _ass_escape(word).upper())
             continue
         for text, full in caption_runs(_ass_escape(word), sc_scale):
-            total += (f_base if full else f_sc).getlength(text)
+            total += unkerned_length(f_base if full else f_sc, text)
     return total
 
 
@@ -1740,7 +1756,9 @@ def emphasis_bonds(words: list[dict[str, Any]], emphasis: list[str] | None) -> s
 # one sidecar cue stays together, unless a bond (a proper name, a figure group), the article rule (no burst ends on
 # THE, A or AN), the 66 px floor or the width and character limits force the cut. The freeze-pass builders take the
 # fewest cuts the base does not have (partition_words_grammatical, partition_sidecar_cues) and rejoin what the base
-# kept (_rejoin_base). These copies measure as round 4 measured; they decide no burst on their own.
+# kept (_rejoin_base). These copies measure as round 4 measured, but unkerned (operator decision 2026-11-05: HEAD's
+# raqm measure kerned; the unkerned measure reproduces HEAD's own phrasing on every gate case, so the base is
+# unchanged: test_round4_base_is_head_0036b18); they decide no burst on their own.
 _R4_MEASURE_UNITS = frozenset(MEASURE_UNITS - {
     "tonne", "tonnes", "kilometer", "kilometers", "metric", "acres", "acre", "hectares", "hectare",
     "megaton", "megatons", "kiloton", "kilotons", "gigaton", "gigatons", "metric-ton", "metric-tons",
@@ -3081,12 +3099,13 @@ def graphic_caption_intrusion(clip: Path, rect: tuple[int, int, int, int], width
 def _fits_wide(phrase: Any, max_width: int, max_chars: int | None = CAPTION_WIDE_MAX_CHARS) -> bool:
     """A 16:9 burst fits one line: at most `max_chars` characters (CAPTION_WIDE_MAX_CHARS; None for a bonded name,
     freeze pass N2) and inside `max_width` (its plate included) in Montserrat Bold at CAPTION_WIDE_SIZE, so it is
-    drawn unshrunk."""
+    drawn unshrunk. Measured unkerned, as libass draws it (unkerned_length, operator decision 2026-11-05)."""
     from .typography import get_font
     text = " ".join(_phrase_words(phrase))
     if max_chars is not None and len(text) > max_chars:
         return False
-    return get_font(CAPTION_WIDE_FONT, CAPTION_WIDE_SIZE, weight=700).getlength(text) + 2 * CAPTION_PAD_X <= max_width
+    font = get_font(CAPTION_WIDE_FONT, CAPTION_WIDE_SIZE, weight=700)
+    return unkerned_length(font, text) + 2 * CAPTION_PAD_X <= max_width
 
 
 _ARTICLES = {"the", "a", "an"}
@@ -3689,7 +3708,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             shown = _phrase_words(phrase)
             if is_widescreen:
                 font = get_font(CAPTION_WIDE_FONT, wide_px, weight=700)
-                text_w = font.getlength(" ".join(_ass_escape(w) for w in shown))
+                text_w = unkerned_length(font, " ".join(_ass_escape(w) for w in shown))   # as libass draws it
                 shrink = min(1.0, (max_caption_width - 2 * CAPTION_PAD_X) / max(1.0, text_w))
                 size_tag = f"{{\\fs{int(wide_fs * shrink)}}}" if shrink < 1.0 else ""
                 cap_top, desc_bottom = (v * shrink for v in _ink_band(CAPTION_WIDE_FONT, wide_px, wide_fs, 700))

@@ -446,14 +446,21 @@ def require_raqm():
 
 
 # Pinned to raqm (operator decision 2026-11-05): text -> (fit size, Pillow measure, libass ink width), measured with
-# Pillow 12.3.0 / raqm 0.10.5 / FriBiDi 1.0.18 and ffmpeg's libass (CI's WAVY ink, 552, is the same). raqm applies
-# GPOS kerning, so WAVY Vault (WA, AV) measures 545 against libass's 552; every other sample is within 2 px.
+# Pillow 12.3.0 / raqm 0.10.5 / FriBiDi 1.0.18 and ffmpeg's libass (CI's WAVY ink, 552, is the same). Operator
+# decision 2026-11-05, "measure without kerning": libass draws the captions unkerned (the ASS header has no
+# "Kerning: yes") while raqm kerns, so the measure sums single-letter advances (vc.unkerned_length). WAVY Vault (WA,
+# AV) measured 545 kerned against libass's 552 and measures 550 now; Beneath, It was, an estimated, Amenhotep gain
+# 1 px each. Every sample is now 1 to 2 px under the ink (REEL_INK_OVER_MEASURE).
 REEL_MEASURE_RAQM = {
-    "Wait, look here!": (80, 443, 444), "Beneath Odesa": (80, 401, 403), "It was": (80, 170, 172),
-    "an estimated 720 tons": (80, 638, 640), "shore of the Black Sea": (80, 634, 635),
-    "Amenhotep III was": (80, 509, 511), "WAVY Vault 7,000": (80, 545, 552), "COUNTERREVOLUTIONARIES": (77, 634, 635),
+    "Wait, look here!": (80, 443, 444), "Beneath Odesa": (80, 402, 403), "It was": (80, 171, 172),
+    "an estimated 720 tons": (80, 639, 640), "shore of the Black Sea": (80, 634, 635),
+    "Amenhotep III was": (80, 510, 511), "WAVY Vault 7,000": (80, 550, 552), "COUNTERREVOLUTIONARIES": (77, 634, 635),
     "Incomprehensibilities": (80, 593, 594), "the mine's rock salt": (80, 558, 560),
 }
+# libass's ink less the unkerned measure, in px: measured 0 to 2 on all 329 one-line 9:16 bursts of the five fixture
+# runs (8 at 0, 224 at 1, 97 at 2; the kerned measure was off by up to 5, 55 bursts over 2) and on the ten samples
+# (docs/reviews/freeze-panel-2026-11-04/captions/decision-nokern-measure-2026-11-05/README.md).
+REEL_INK_OVER_MEASURE = (0, 2)
 
 
 @pytest.mark.skipif(not HAS_FFMPEG, reason="ffmpeg is not on PATH")
@@ -468,6 +475,71 @@ def test_reel_measure_matches_libass_ink(tmp_path):
         size = vc._caption_fit_size(phrases[0])
         measured = vc.measure_caption_phrase(phrases[0], size)[0]
         assert (size, measured, ir - il) == (size_pin, measure_pin, ink_pin), (text, size, measured, ir - il)
+        lo, hi = REEL_INK_OVER_MEASURE
+        assert lo <= (ir - il) - measured <= hi, (text, measured, ir - il)
+
+
+def test_caption_measure_is_unkerned(tmp_path):
+    """Operator decision 2026-11-05: every caption width measure is the sum of single-letter advances (libass draws
+    the captions unkerned), not raqm's kerned layout. WAVY kerns under raqm (WA, AV), so the two differ there."""
+    require_raqm()
+    from src.typography import get_font
+    anton = get_font(vc.FONT_NAME, vc._LIBASS_REF_PX)
+    wide = get_font(config.CAPTION_WIDE_FONT, config.CAPTION_WIDE_SIZE, weight=700)
+    for font in (anton, wide):
+        for text in ("WAVY VAULT 7,000", "Wavy Vault", "AVOWAL TYPE", " "):
+            assert vc.unkerned_length(font, text) == sum(font.getlength(ch) for ch in text), text
+    assert anton.getlength("WAVY") < vc.unkerned_length(anton, "WAVY") - 10   # raqm kerns: the reason for the decision
+    for w, h in ((1080, 1920), (1920, 1080)):   # libass draws unkerned: no "Kerning: yes" in either header
+        ass = VideoComposer().build_subtitles(_even("Wavy Vault"), tmp_path / f"k{w}.ass", width=w, height=h)
+        assert "kerning" not in ass.read_text("utf-8").lower()
+    # a 9:16 run's advance is its letters' advances (plus the CapText Spacing after each), at the drawn em
+    upm, asc, desc = vc._font_vmetrics(vc.FONT_NAME)
+    k = vc.FONT_SIZE_ASS * upm / (asc + desc) / vc._LIBASS_REF_PX
+    adv, _, _ = vc._libass_line(("WAVY",), float(FONT_SIZE))
+    assert adv == pytest.approx(sum(anton.getlength(ch) * k + vc.REEL_LETTER_SPACING for ch in "WAVY"))
+    # the round-2 type measure and the 16:9 fit measure sum the letters too
+    f80 = get_font("Anton", FONT_SIZE)
+    assert vc._caption_text_width(["WAVY"], FONT_SIZE) == pytest.approx(sum(f80.getlength(ch) for ch in "WAVY"))
+    text = "Wavy Vault"
+    width = vc.unkerned_length(wide, text) + 2 * config.CAPTION_PAD_X
+    assert vc._fits_wide(text.split(), int(width) + 1) and not vc._fits_wide(text.split(), int(width) - 1)
+
+
+# Real one-line 9:16 bursts of the fixture runs where the kerned measure fell 3 to 5 px short of libass's ink (the
+# worst five of 329; decision-nokern-measure-2026-11-05/README.md): (run, burst) -> libass ink width at its fit.
+KERN_WORST = {
+    ("richat_structure_sahara_eye", "WAS INITIALLY CONSIDERED"): 624,
+    ("richat_structure_sahara_eye", "BUILT IN VARIOUS"): 423,
+    ("richat_structure_sahara_eye", "ALTERNATIVE SPECULATION"): 611,
+    ("gol_gumbaz_whispering_gallery", "GRAY BASALT MAUSOLEUM"): 614,
+    ("tunguska_event_1908", "A CATACLYSM STRUCK"): 550,
+}
+
+
+@pytest.mark.skipif(not HAS_FFMPEG, reason="ffmpeg is not on PATH")
+@pytest.mark.parametrize("run,text", list(KERN_WORST))
+def test_unkerned_measure_matches_libass_ink_on_real_bursts(run, text, tmp_path, monkeypatch):
+    """The unkerned measure is within REEL_INK_OVER_MEASURE of the ink libass draws on the real bursts the kerned
+    measure got most wrong; the kerned measure (raqm's layout, as before the decision) is more than 2 px short."""
+    require_raqm()
+    _, phrases = run_layout(run, False)
+    phrase = next(p for p in phrases if " ".join(vc._phrase_words(p)).upper() == text)
+    words = [{"word": w["word"], "start": 0.1 + 0.3 * k, "dur": 0.25} for k, w in enumerate(phrase)]
+    assert len(caption_phrases(words)) == 1, text
+    size = vc._caption_fit_size(phrase)
+    a = _render_reel(words, tmp_path, words[-1]["start"] + 0.2)
+    _, _, il, ir = _plate_and_ink(a)
+    ink, measured = ir - il, vc.measure_caption_phrase(phrase, size)[0]
+    assert ink == KERN_WORST[(run, text)], (text, ink)
+    lo, hi = REEL_INK_OVER_MEASURE
+    assert lo <= ink - measured <= hi, (text, measured, ink)
+    vc._libass_line.cache_clear()
+    monkeypatch.setattr(vc, "unkerned_length", lambda font, t: font.getlength(t))
+    try:
+        assert ink - vc.measure_caption_phrase(phrase, size)[0] > 2, text
+    finally:
+        vc._libass_line.cache_clear()
 
 
 def test_ink_budget_is_the_plate_less_the_pad():
@@ -1485,8 +1557,10 @@ HEAD_CUTS_FILE = ROOT / "docs/reviews/freeze-panel-2026-11-04/captions/regressio
 # Pinned to raqm (operator decision 2026-11-05; head_0036b18_cuts.json regenerated under raqm, which changes HEAD's
 # 9:16 cuts in two cases: edge gains INCOMPREHENSIBILITIES | REMAIN. (index 18); singing_colossi_of_memnon's one cut
 # REPORTED | CRY (38) becomes EMITTING | A (36) and CRY | AT (39)). So edge's INCOMPREHENSIBILITIES | REMAIN. is
-# HEAD's own cut, no longer a forced one, and its two lone words are HEAD's. Richat's HERITAGE | SITES. went because
-# the tree no longer cuts there under raqm (GEOLOGICAL HERITAGE SITES. fits): HEAD never cut there.
+# HEAD's own cut, no longer a forced one, and its two lone words are HEAD's. Richat's HERITAGE | SITES. went under
+# raqm's kerned measure (GEOLOGICAL HERITAGE SITES. measured 639.9 px at 74) and is back with the unkerned measure
+# (operator decision 2026-11-05, "measure without kerning"): 640.6 px at 74, and libass draws 642 px of ink there, so
+# the burst passes the 640 px ink budget (measured in test_head_regression_gate). HEAD never cut there.
 GATE_FORCED = {
     ("names", "9:16", "pushed", "toward"): ("width", "PUSHED TOWARD LENINGRAD. is 653 px at 74"),
     ("edge", "9:16", "years", "ago,"): ("width", "ROUGHLY 1,200 YEARS AGO, is 646 px at 74; AGO is no bond"),
@@ -1496,6 +1570,9 @@ GATE_FORCED = {
         ("width", "THOUSANDS OF PREHISTORIC is 646 px at 74"),
     ("run:richat_structure_sahara_eye", "9:16", "recognized", "this"):
         ("width", "RECOGNIZED THIS SCIENTIFIC is 645 px at 74"),
+    # operator decision 2026-11-05 (measure without kerning): libass draws 642 px of ink, the kerned measure said 639.9
+    ("run:richat_structure_sahara_eye", "9:16", "heritage", "sites."):
+        ("width", "GEOLOGICAL HERITAGE SITES. is 640.6 px at 74 unkerned (libass draws 642)"),
     ("run:gol_gumbaz_whispering_gallery", "9:16", "across", "an"): ("article", "HEAD's TRAVEL ACROSS AN"),
     ("run:voynich_manuscript", "9:16", "script", "where"): ("width", "SCRIPT WHERE AN ALPHABET is 653 px at 74"),
     ("edge", "cues", "ago,", "between"): ("article", "HEAD's cue ended on BELOW THE (the next opened on SEA.)"),
@@ -1521,6 +1598,10 @@ LONE_FORCED = {
     # bursts again; wieliczka GALLERIES takes HEAD's lone KILOMETERS. back with it
     ("wieliczka_salt_mine", "galleries"):
         "width: OF UNDERGROUND GALLERIES 654 px at 74; OF UNDERGROUND | GALLERIES BETWEEN ... passes the width too",
+    # operator decision 2026-11-05 (measure without kerning): HEAD's OFFICIAL | GEOLOGICAL HERITAGE SITES. stands, and
+    # its last burst passes the width, so one word of it goes alone (GEOLOGICAL | HERITAGE SITES. would leave GEOLOGICAL)
+    ("run:richat_structure_sahara_eye", "sites."):
+        "width: GEOLOGICAL HERITAGE SITES. 640.6 px at 74 (libass draws 642); either cut leaves one word alone",
 }
 
 

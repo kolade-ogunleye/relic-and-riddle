@@ -57,7 +57,10 @@ name no further gain, two consecutive adversarial rounds find no new defect, and
 - **Caption measure without kerning (operator, 2026-11-05):** libass draws the captions unkerned (the ASS header has
   no `Kerning: yes`), while Pillow's raqm measure kerns, so a kerned pair measures narrower than it draws (WAVY VAULT:
   545 measured, 552 drawn). Measure each word as the sum of its letters' advances, as libass draws it; nothing on
-  screen changes. To build, review and re-pin.
+  screen changes. Done (2026-11-05, reviewer 9.3): `video_composer.unkerned_length`; every 9:16 burst of the five
+  real runs now measures 0-2 px under its drawn ink (was up to 5 px), 16:9 within 1 px (was up to 11). One phrasing
+  change: Richat as a Reel, GEOLOGICAL HERITAGE SITES. (640.6 px against the 640 px budget) splits before SITES.
+  Plates grow 1-4 px on 9:16 and -2..+10 px on 16:9; caption builds got faster (Richat 9:16 2.85 s -> 1.0 s).
 
 ## CI on PR #3 (red since 3ac24dd)
 

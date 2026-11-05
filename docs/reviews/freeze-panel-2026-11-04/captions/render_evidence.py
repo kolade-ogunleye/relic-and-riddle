@@ -49,6 +49,8 @@ FORMATS = {"9:16": (1080, 1920), "16:9": (1920, 1080)}
 ARTICLES = {"THE", "A", "AN"}
 BOND_FLOOR_PX = 66          # the operator's floor: no burst shrinks below it to hold a name
 PINNED = ("FONT_NAME", "FONT_SIZE")
+ONLY: list[tuple[str, str]] = []                # --case TOPIC:FMT: only these real cases, each in that format
+EXTRA_WORDS: dict[tuple[str, str], list[int]] = {}   # --word TOPIC:FMT:INDEX: more word indices to sample
 
 # The new case (see the module docstring). Text is the fact sheet's statement verbatim.
 NEW_CASE = {
@@ -323,6 +325,8 @@ def pick_samples(case, words, spans) -> dict[str, int]:
     for frac, tag in ((0.5, "mid"), (0.85, "late")):
         k = int(len(words) * frac)
         picks.setdefault(tag, k)
+    for k in EXTRA_WORDS.get((case["topic"], case["format"]), []):
+        picks.setdefault(f"word-{k}", k)
     return {f"w{k:03d}_{tag.split('-')[0] if tag.startswith('longword') else tag}": k for tag, k in picks.items()}
 
 
@@ -452,7 +456,10 @@ def render(code_root: Path, out: Path) -> dict:
                "inputs_rule": "fixtures.load('captions'): real words.json, emphasis_words, scene timeline; "
                               "one case labelled new", "cases": {}}
     all_txt = []
-    for case in cases(fx):
+    todo = cases(fx)
+    if ONLY:   # a real case in a format of the operator's choosing (a 16:9 run's words as a Reel, say)
+        todo = [dict(c, format=f) for t, f in ONLY for c in todo if c["topic"] == t and not c.get("label")]
+    for case in todo:
         fmt = case["format"]
         W, H = FORMATS[fmt]
         words = case["words_list"]
@@ -713,7 +720,16 @@ def main() -> None:
     ap.add_argument("--out", type=Path, required=True)
     ap.add_argument("--before", type=Path)
     ap.add_argument("--compare", type=Path)
+    ap.add_argument("--case", action="append", default=[], help="TOPIC:FMT (repeatable): only these real cases")
+    ap.add_argument("--word", action="append", default=[], help="TOPIC:FMT:INDEX (repeatable): sample this word too")
     a = ap.parse_args()
+    for c in a.case:
+        topic, fmt = c.rsplit(":", 2)[0], ":".join(c.rsplit(":", 2)[1:])
+        ONLY.append((topic, fmt))
+    for w in a.word:
+        topic, rest = w.split(":", 1)
+        fmt, idx = rest.rsplit(":", 1)
+        EXTRA_WORDS.setdefault((topic, fmt), []).append(int(idx))
     render(a.code_root, a.out)
     if a.before and a.compare:
         print(f"compare: {len(compare(a.before, a.out, a.compare))} images -> {a.compare}")

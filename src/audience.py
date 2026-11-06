@@ -387,8 +387,11 @@ def due_snapshots(db, now: Optional[datetime] = None) -> List[Dict[str, Any]]:
         taken = {(r["run_id"], r["platform"], r["snapshot"])
                  for r in conn.execute("SELECT run_id, platform, snapshot FROM audience_metrics")}
     due = []
+    keep = timedelta(days=getattr(db, "RETENTION_DAYS", {}).get("audience_metrics", 730))
     for p in pubs:
         posted = _posted_at(p["created_at"])
+        if now - posted >= keep:
+            continue  # past the metrics' retention (db.prune_history): its pruned rows are not measured again
         pub = {"run_id": p["run_id"], "channel": p["channel"], "response": json.loads(p["response_payload_json"] or "{}"),
                "posted_at": posted.isoformat()}
         wanted = targets(pub, db.get_run(p["run_id"]) or {})

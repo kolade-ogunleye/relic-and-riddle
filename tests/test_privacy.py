@@ -60,10 +60,18 @@ def test_anonymize_media_non_image(tmp_path):
     assert out == test_file
 
 
-def test_kailasa_stone_carving_not_blurred():
-    # If 03_commons.jpg exists, test that stone carving faces are not flagged as living humans
+def test_kailasa_stone_carving_not_blurred(monkeypatch):
+    # If 03_commons.jpg exists, test that stone carving faces are not flagged as living humans. The photo also
+    # shows two living visitors (16 and 13 px face boxes): since QF-50 (operator decision 2026-11-05) they are
+    # blurred, and nothing on the carving is.
+    monkeypatch.setattr("src.config.FACE_VERIFY_CLOUD", False)
+    monkeypatch.setattr("src.config.FACE_VERIFY_CLOUD_AMBIGUOUS", False)
     kailasa_stone = BASE_DIR / "assets" / "kailasa_temple_monolith" / "03_commons.jpg"
     if kailasa_stone.exists():
         img = cv2.imread(str(kailasa_stone))
         faces = privacy.detect_human_faces(img)
-        assert len(faces) == 0, f"Expected 0 human faces in stone carvings, found {len(faces)}"
+        visitors = [(1333, 1274, 16, 20), (1439, 1272, 13, 18)]
+        assert len(faces) == len(visitors), f"Expected the 2 visitors only, found {len(faces)} faces"
+        for vx, vy, vw, vh in visitors:
+            assert any(fx <= vx + vw // 2 <= fx + fw and fy <= vy + vh // 2 <= fy + fh
+                       for fx, fy, fw, fh in faces), (vx, vy)

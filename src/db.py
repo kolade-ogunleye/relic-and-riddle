@@ -20,7 +20,7 @@ from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 import time
-from typing import Dict, Any, Iterator, List, Optional
+from typing import Dict, Any, ClassVar, Iterator, List, Optional
 
 from .config import DATA_DIR, TOPICS_DIR
 
@@ -685,12 +685,18 @@ class PipelineDatabase:
         except Exception:
             return None
 
-    RETENTION_DAYS = {"audit_log": 90, "alerts": 90, "telegram_media_cache": 30, "findings": 365}
+    # Retention per table, as published in docs/privacy.md (keep the two in step). audience_*: per-post platform
+    # metrics kept two years (the channel's own medians), the media ids they were read by as long, and each
+    # source's outcome (API messages, redacted) 90 days.
+    RETENTION_DAYS = {"audit_log": 90, "alerts": 90, "telegram_media_cache": 30, "findings": 365,
+                      "audience_metrics": 730, "audience_media_ids": 730, "audience_sources": 90}
+    RETENTION_COLUMN: ClassVar[dict[str, str]] = {"telegram_media_cache": "updated_at", "audience_metrics": "fetched_at",
+                                                   "audience_media_ids": "found_at", "audience_sources": "collected_at"}
 
     def prune_history(self) -> Dict[str, int]:
         """Deletes old rows from the tables that only grow (activity log, alerts, Telegram media cache,
-        improvement findings). Runs, approvals, issues, spend and publications are the audit trail and
-        are never pruned. Returns rows deleted per table."""
+        improvement findings, audience metrics). Runs, approvals, issues, spend and publications are the
+        audit trail and are never pruned. Returns rows deleted per table."""
         from datetime import timedelta
         deleted = {}
         with self._conn() as conn:
@@ -698,7 +704,7 @@ class PipelineDatabase:
             for table, days in self.RETENTION_DAYS.items():
                 if table not in tables:
                     continue
-                column = "updated_at" if table == "telegram_media_cache" else "created_at"
+                column = self.RETENTION_COLUMN.get(table, "created_at")
                 cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
                 deleted[table] = conn.execute(f"DELETE FROM {table} WHERE {column} < ?", (cutoff,)).rowcount
         return deleted

@@ -359,6 +359,18 @@ BEAT_IMAGES_ALLOW_SHARE_ALIKE = IMAGES_ALLOW_SHARE_ALIKE  # earlier name
 CALLOUTS_ENABLED = (os.getenv("CALLOUTS_ENABLED") or "false").lower() in ("true", "1", "yes")
 FACE_PRIVACY_ENABLED = (os.getenv("FACE_PRIVACY_ENABLED") or "true").lower() in ("true", "1", "yes")
 FACE_PRIVACY_SKIN_THRESHOLD = float(os.getenv("FACE_PRIVACY_SKIN_THRESHOLD") or 0.35)
+# Face verification runs on this machine by default: YuNet proposes faces, face geometry trims them, and
+# YuNet's score, the face's size in the photo and a printed-letter check decide (privacy._local_verdict);
+# archival photos are blurred like colour ones. true sends whole photos and face crops to the billed GEMINI_API_KEY (paid tier, under
+# Google's data processing terms) and, as a fallback, to Anthropic: both are named processors in
+# docs/privacy.md. Never the free-tier key.
+FACE_VERIFY_CLOUD = (os.getenv("FACE_VERIFY_CLOUD") or "false").strip().lower() in ("true", "1", "yes")
+# With FACE_VERIFY_CLOUD off, the faces the local check keeps in an art-like photo (its source record names a relief,
+# carving, statue, stained glass, gilding...) cannot be told from carved or painted ones on this machine. true sends
+# only those face crops (never the whole photo) to Gemini on the billed GEMINI_API_KEY, which must be on Google's paid
+# tier (the operator confirms the billing; Google is the processor, docs/privacy.md); each call is recorded in llm_usage.
+# Off, or when the call fails, they are blurred and no crop is sent. Never the free-tier key. Off by default.
+FACE_VERIFY_CLOUD_AMBIGUOUS = (os.getenv("FACE_VERIFY_CLOUD_AMBIGUOUS") or "false").strip().lower() in ("true", "1", "yes")
 
 # Narration & Voiceover (edge-tts and Azure Speech)
 VOICE_PREFER = (os.getenv("VOICE_PREFER") or "elevenlabs").strip().lower()  # "elevenlabs" or "azure"

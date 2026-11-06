@@ -4,7 +4,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from src import audience, hook_learning, youtube_analytics
+from src import audience, config, hook_learning, youtube_analytics
 
 QUESTION_HOOK = "How did a whole city stay hidden under Cappadocia?"
 
@@ -103,7 +103,7 @@ class _Resp:
 def yt_env(monkeypatch):
     for k, v in (("YOUTUBE_ANALYTICS_CLIENT_ID", "cid.apps"), ("YOUTUBE_ANALYTICS_CLIENT_SECRET", "secret-xyz"),
                  ("YOUTUBE_ANALYTICS_REFRESH_TOKEN", "refresh-abc")):
-        monkeypatch.setenv(k, v)
+        monkeypatch.setattr(config, k, v)  # read from src/config since QF-51, not from os.environ
     youtube_analytics._token.update(value="", expires=0.0)
 
 
@@ -139,7 +139,7 @@ def test_video_ids_from_the_short_link() -> None:
 
 def test_not_configured_does_nothing(monkeypatch) -> None:
     for k in ("YOUTUBE_ANALYTICS_CLIENT_ID", "YOUTUBE_ANALYTICS_CLIENT_SECRET", "YOUTUBE_ANALYTICS_REFRESH_TOKEN"):
-        monkeypatch.delenv(k, raising=False)
+        monkeypatch.setattr(config, k, "")
     data, outcomes = {"views": 5}, []
     audience._add_youtube_retention(data, {}, {}, outcomes, "youtube", "r", "1d")
     assert data == {"views": 5} and outcomes == []

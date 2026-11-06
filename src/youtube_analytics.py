@@ -13,13 +13,14 @@ Without them nothing here runs and YouTube keeps its counts only.
 from __future__ import annotations
 
 import logging
-import os
 import re
 import time
 from datetime import UTC, date, datetime, timedelta
 from typing import Any
 
 import requests
+
+from . import config
 
 log = logging.getLogger(__name__)
 
@@ -30,18 +31,19 @@ TIMEOUT = 30
 _token: dict[str, Any] = {"value": "", "expires": 0.0}
 
 
-def _env(name: str) -> str:
-    return (os.getenv(name) or "").strip()
+def _setting(name: str) -> str:
+    """One of the three YOUTUBE_ANALYTICS_* settings, read from src/config at each use (never copied at import)."""
+    return str(getattr(config, name, "") or "").strip()
 
 
 def configured() -> bool:
-    return all(_env(n) for n in ("YOUTUBE_ANALYTICS_CLIENT_ID", "YOUTUBE_ANALYTICS_CLIENT_SECRET",
+    return all(_setting(n) for n in ("YOUTUBE_ANALYTICS_CLIENT_ID", "YOUTUBE_ANALYTICS_CLIENT_SECRET",
                                  "YOUTUBE_ANALYTICS_REFRESH_TOKEN"))
 
 
 def secrets() -> list[str]:
     """The values a log line must never show."""
-    return [v for v in (_env("YOUTUBE_ANALYTICS_CLIENT_SECRET"), _env("YOUTUBE_ANALYTICS_REFRESH_TOKEN"),
+    return [v for v in (_setting("YOUTUBE_ANALYTICS_CLIENT_SECRET"), _setting("YOUTUBE_ANALYTICS_REFRESH_TOKEN"),
                         _token["value"]) if v and len(v) >= 6]
 
 
@@ -49,9 +51,9 @@ def access_token() -> str:
     """A current access token from the refresh token (kept until a minute before it expires)."""
     if _token["value"] and time.time() < _token["expires"] - 60:
         return _token["value"]
-    r = requests.post(TOKEN_URL, data={"client_id": _env("YOUTUBE_ANALYTICS_CLIENT_ID"),
-                                       "client_secret": _env("YOUTUBE_ANALYTICS_CLIENT_SECRET"),
-                                       "refresh_token": _env("YOUTUBE_ANALYTICS_REFRESH_TOKEN"),
+    r = requests.post(TOKEN_URL, data={"client_id": _setting("YOUTUBE_ANALYTICS_CLIENT_ID"),
+                                       "client_secret": _setting("YOUTUBE_ANALYTICS_CLIENT_SECRET"),
+                                       "refresh_token": _setting("YOUTUBE_ANALYTICS_REFRESH_TOKEN"),
                                        "grant_type": "refresh_token"}, timeout=TIMEOUT)
     if r.status_code >= 400:
         raise RuntimeError(f"Google token refresh refused (HTTP {r.status_code}): {r.text[:200]}")

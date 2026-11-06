@@ -50,6 +50,9 @@ class SecretMasker:
         "EUROPEANA_API_KEY",
         "GEMINI_FREE_API_KEY_SPARE",  # were missing: an error carrying either was shown unmasked
         "GROQ_API_KEY",
+        "YOUTUBE_ANALYTICS_CLIENT_ID",  # the three YouTube Analytics credentials (src/youtube_analytics.py)
+        "YOUTUBE_ANALYTICS_CLIENT_SECRET",
+        "YOUTUBE_ANALYTICS_REFRESH_TOKEN",
         "FACT_RECORD_KEY",  # signs fact-check records (src/record_signing.py): never shown, even in part
     )
 

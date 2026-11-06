@@ -148,6 +148,12 @@ YOUTUBE_SHORTS = os.getenv("YOUTUBE_SHORTS", "false").strip().lower() in ("true"
 YOUTUBE_SHORTS_PRIVACY = (os.getenv("YOUTUBE_SHORTS_PRIVACY") or YOUTUBE_PRIVACY).strip().lower()
 if YOUTUBE_SHORTS_PRIVACY not in ("public", "unlisted", "private"):
     YOUTUBE_SHORTS_PRIVACY = YOUTUBE_PRIVACY
+# YouTube's audience-retention curve per Short (src/youtube_analytics.py, read-only consent from the channel
+# owner via scripts/youtube_analytics_auth.py). All three empty = YouTube keeps its counts only. The secret
+# and refresh token are masked in every log line (src/ops.SecretMasker).
+YOUTUBE_ANALYTICS_CLIENT_ID = (os.getenv("YOUTUBE_ANALYTICS_CLIENT_ID") or "").strip()
+YOUTUBE_ANALYTICS_CLIENT_SECRET = (os.getenv("YOUTUBE_ANALYTICS_CLIENT_SECRET") or "").strip()
+YOUTUBE_ANALYTICS_REFRESH_TOKEN = (os.getenv("YOUTUBE_ANALYTICS_REFRESH_TOKEN") or "").strip()
 # Cap on pay-per-use media APIs (AI motion clips and AI illustrations together), USD per month;
 # 0 = paid media APIs disabled (no AI motion and no illustration request).
 MEDIA_MONTHLY_BUDGET_USD = float(os.getenv("MEDIA_MONTHLY_BUDGET_USD") or 0)

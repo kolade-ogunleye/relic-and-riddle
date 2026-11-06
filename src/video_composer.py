@@ -18,6 +18,7 @@ FFmpeg assembly embodying the locked production standards:
 
 import json
 import logging
+import math
 import os
 import re
 import subprocess
@@ -103,7 +104,6 @@ from .config import (
     VIDEO_FPS,
 )
 from .typography import is_video
-from .parallax import preset_for
 from . import brand as _brand
 
 # Caption colours from the brand tokens (visual overhaul, 2026-10-29): spoken words in bone, the script's key words
@@ -121,18 +121,6 @@ CAPTION_HIDDEN = r"{\alpha&HFF&}"
 
 log = logging.getLogger(__name__)
 
-TRANSITIONS = [
-    "zoomin", "dissolve", "smoothleft", "fadeblack",
-    "zoomin", "dissolve", "smoothright", "fade",
-    "zoomin", "dissolve", "smoothleft", "fadeblack",
-]
-PARALLAX_TO_TRANSITION = {
-    "push": "zoomin",
-    "drift_left": "smoothleft",
-    "drift_right": "smoothright",
-    "rise": "smoothup",
-    "pull": "dissolve",
-}
 TRANS_DUR = 0.40
 # The on-screen disclosure over a generated illustration, in one place (2026-11-02): it says plainly what the picture
 # is (operator decision 2026-11-03; "[ HISTORICAL RECONSTRUCTION ]" until then, the same 29 monospaced characters, so
@@ -229,7 +217,8 @@ def video_colorspace(path: Path) -> str:
 
 
 def loop_motion(scene_images: List[Any], durations: List[float], vo_dur: float, macro_indices: Set[int],
-                width: int = VIDEO_WIDTH, height: int = VIDEO_HEIGHT) -> Dict[str, float]:
+                width: int = VIDEO_WIDTH, height: int = VIDEO_HEIGHT,
+                closing_transition: float = TRANS_DUR) -> Dict[str, float]:
     """The push the loop bridge carries through the seam (end_card.loop_bridge's close_zoom, close_push and
     open_push), read from how compose_video moves the closing and opening shots: a still's capped forward drift
     (end_card.LOOP_PUSH to LOOP_PUSH_CAP, end_card.shot_drift), a macro drift (0.0025 a frame to 1.35), the AI
@@ -240,7 +229,7 @@ def loop_motion(scene_images: List[Any], durations: List[float], vo_dur: float, 
     if not n:
         return {"close_zoom": 1.0, "close_push": 0.0, "open_push": 0.0}
     boundaries = [sum(durations[:k + 1]) for k in range(n - 1)]
-    start = max(0.0, boundaries[-1] - TRANS_DUR / 2) if n > 1 else 0.0
+    start = max(0.0, boundaries[-1] - closing_transition / 2) if n > 1 else 0.0
     frames = max(1, round((vo_dur - start) * VIDEO_FPS))
 
     def rate(i: int) -> tuple[float, float]:
@@ -4107,6 +4096,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         grade_bias: float = 0.0,
         end_card: str = "",
         macro_drifts: Optional[List[int]] = None,
+        act_cuts: list[float] | None = None,
     ) -> Path:
         """
         end_card: non-empty ends a Reel on the loop bridge after the narration (src/end_card.py loop_bridge,
@@ -4115,9 +4105,9 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         run on for end_card.LOOP_SECONDS more (generate_ambient_bed(end_card_at=vo_dur)). Empty, or 16:9: no tail.
         grade_bias: a bounded warm (+) / cool (-) shift measured from the topic's hero photograph
         (art direction, 2026-10-24), applied after the film LUT; 0 leaves the grade as it was.
-        durations: seconds on screen per scene (e.g. from scene_planner beats). Each cut is
-        a short cross-fade centred on the beat boundary. Without durations, scenes share
-        the narration equally.
+        durations: seconds on screen per scene (e.g. from scene_planner beats). Hard cuts land
+        on these boundaries, rounded to the nearest video frame. Only boundaries explicitly
+        listed in act_cuts get an eight-frame dissolve. Without durations, scenes share the narration equally.
         Supports both 9:16 vertical (Reels) and 16:9 widescreen (Documentaries) with BBC intelligent compositing.
         """
         from .delivery_profiles import get_delivery_profile
@@ -4133,7 +4123,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 
         n = len(scene_images)
         if not durations or len(durations) != n:
-            durations = [(vo_dur + TRANS_DUR) / n] * n
+            durations = [vo_dur / n] * n
 
         # Historical reconstruction badge intervals (crossfades included: reconstruction_badge_intervals)
         recon_intervals = reconstruction_badge_intervals(scene_images, durations, vo_dur)
@@ -4163,11 +4153,17 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         self.export_subtitles_srt(words, srt_path)
         self.export_subtitles_vtt(words, vtt_path)
 
-        # Transition k starts half a fade before boundary k so the cut lands on the beat.
-        boundaries = [sum(durations[:k + 1]) for k in range(n - 1)]
-        offsets = [max(0.0, b - TRANS_DUR / 2) for b in boundaries]
-        clip_durs = [d + TRANS_DUR for d in durations]
-        clip_durs[-1] += TRANS_DUR  # tail headroom; the output is cut to the narration length
+        # A cut consumes no overlap. Only an actual act boundary gets a dissolve;
+        # each adjacent clip supplies half its overlap so later boundaries never drift.
+        boundaries = [round(sum(durations[:k + 1]) * VIDEO_FPS) / VIDEO_FPS for k in range(n - 1)]
+        fades = [8 / VIDEO_FPS if any(abs(b - a) <= 0.5 / VIDEO_FPS + 1e-6 for a in (act_cuts or []))
+                 else 0.0 for b in boundaries]
+        starts = [0.0, *[b - fade / 2 for b, fade in zip(boundaries, fades)]]
+        ends = [*[b + fade / 2 for b, fade in zip(boundaries, fades)],
+                math.ceil(vo_dur * VIDEO_FPS) / VIDEO_FPS]
+        clip_durs = [end - start for start, end in zip(starts, ends)]
+        if any(d <= 0 for d in clip_durs):
+            raise RenderError("Scene boundaries must increase and fit inside the narration")
         w2, h2 = width * 2, height * 2
         macro_indices = set(macro_drifts or [])
 
@@ -4240,21 +4236,20 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                     f"setsar=1,{RGB_TO_BT709}[v{i}]"
                 )
 
-        curr = "[v0]"
+        # Explicit trim/setpts also makes concat safe for footage with nonzero timestamps.
+        for i, clip_dur in enumerate(clip_durs):
+            filter_parts.append(f"[v{i}]trim=duration={clip_dur:.9f},setpts=PTS-STARTPTS,settb=AVTB[c{i}]")
+        curr = "[c0]"
         for k in range(n - 1):
             out = f"[x{k}]" if k < n - 2 else "[video_raw]"
-            off = round(offsets[k], 3)
-            preset_k = preset_for(k, n)
-            trans_k = PARALLAX_TO_TRANSITION.get(preset_k, "dissolve")
-            # Narrative punctuation: elevate the primary revelation cut (beat 2) to a dramatic punch
-            if k == 1 and n >= 4:
-                trans_k = "zoomin"
-            elif (k + 1) % 4 == 0:
-                trans_k = "fadeblack"
-            filter_parts.append(f"{curr}[v{k + 1}]xfade=transition={trans_k}:duration={TRANS_DUR}:offset={off}{out}")
+            if fades[k]:
+                off = boundaries[k] - fades[k] / 2
+                filter_parts.append(f"{curr}[c{k + 1}]xfade=transition=dissolve:duration={fades[k]:.9f}:offset={off:.9f}{out}")
+            else:
+                filter_parts.append(f"{curr}[c{k + 1}]concat=n=2:v=1:a=0,fps={VIDEO_FPS},settb=AVTB{out}")
             curr = out
         if n == 1:
-            filter_parts.append("[v0]null[video_raw]")
+            filter_parts.append("[c0]null[video_raw]")
 
         input_args += ["-i", str(vo_path), "-i", str(bed_path)]
         if card:  # the bridge's sound is the bed running on: a bed made for the narration alone would cut out
@@ -4330,7 +4325,9 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             _run_ffmpeg([*head, "-map", "[v_final]", "-map", "[a_final]", *delivery_args,
                          "-t", f"{vo_dur:.2f}", str(output_mp4_path)])
         else:
-            motion = loop_motion(scene_images, durations, vo_dur, macro_indices, width, height)
+            motion_durations = [b - a for a, b in zip([0.0, *boundaries], [*boundaries, vo_dur])]
+            motion = loop_motion(scene_images, motion_durations, vo_dur, macro_indices, width, height,
+                                 closing_transition=fades[-1] if fades else 0.0)
             self.last_end_card = self._render_with_loop_bridge(head, delivery_args, end_card, vo_dur, output_mp4_path,
                                                                motion, target_lufs=profile.target_lufs)
             self.last_end_card["level"] = card_level
@@ -4463,6 +4460,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         output_mp4_path: Path,
         durations: Optional[List[float]] = None,
         emphasis: Optional[List[str]] = None,
+        act_cuts: list[float] | None = None,
     ) -> Path:
         """Compose a 16:9 widescreen broadcast documentary with BBC blurred-backdrop compositing."""
         return self.compose_video(
@@ -4474,6 +4472,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             output_mp4_path=output_mp4_path,
             durations=durations,
             emphasis=emphasis,
+            act_cuts=act_cuts,
             width=1920,
             height=1080,
             aspect_ratio="16:9",

@@ -958,7 +958,7 @@ class PipelineCoordinator:
                 result = self._render_and_certify_deep_dive(
                     topic, tid, run_id, run_dir, parent_run_id, payload, words, vo_dur, vo_path, bed_path, words_path,
                     extended_scenes, durations, cuts, master_mp4, checkpoints, file_inputs, cached_artifacts,
-                    fut_thumbs, auto_approve, dry_run)
+                    fut_thumbs, auto_approve, dry_run, act_cuts=cue_timestamps)
             finally:
                 concurrent.futures.wait([fut_thumbs])  # never leave a writer running past the run
             finish(result.get("status") not in ("failed", "blocked"), result.get("error", ""))  # blocked at the gate is no success
@@ -981,7 +981,8 @@ class PipelineCoordinator:
 
     def _render_and_certify_deep_dive(self, topic, tid, run_id, run_dir, parent_run_id, payload, words, vo_dur,
                                       vo_path, bed_path, words_path, extended_scenes, durations, cuts, master_mp4,
-                                      checkpoints, file_inputs, cached_artifacts, fut_thumbs, auto_approve, dry_run):
+                                      checkpoints, file_inputs, cached_artifacts, fut_thumbs, auto_approve, dry_run,
+                                      act_cuts=None):
         timer = StageTimer(run_dir)
         t0 = time.perf_counter()
         cached_artifacts(run_dir, "caption_exports", {"words": words, "rules": file_inputs([Path("src/video_composer.py")])},
@@ -989,7 +990,8 @@ class PipelineCoordinator:
                      self.video_composer.export_subtitles_vtt(words, master_mp4.with_suffix(".vtt"))])
         render_inputs = {"sources": file_inputs([*extended_scenes, vo_path, bed_path, words_path,
                          Path("src/video_composer.py"), Path("src/encoded_audio.py"), Path("src/encoding.py")]),
-                         "durations": durations, "emphasis": topic.get("key_facts", [])[:5]}
+                         "durations": durations, "emphasis": topic.get("key_facts", [])[:5],
+                         "act_cuts": act_cuts or []}
         if checkpoints.reusable("deep_render", render_inputs):
             log.info("Master documentary video already rendered: %s", master_mp4.name)
         else:
@@ -1003,6 +1005,7 @@ class PipelineCoordinator:
                 output_mp4_path=master_mp4,
                 durations=durations,
                 emphasis=topic.get("key_facts", [])[:5],
+                act_cuts=act_cuts,
             )
 
             checkpoints.complete("deep_render", render_inputs, [master_mp4,

@@ -242,13 +242,15 @@ class LayoutConstraintSolver:
 def _encode(frames: Iterable[Image.Image], out: Path, n: int, width: int = VIDEO_WIDTH, height: int = VIDEO_HEIGHT) -> Path:
     """Raw RGB frames piped to ffmpeg (local only) -> H.264 MP4 + poster JPEG of the last frame."""
     out.parent.mkdir(parents=True, exist_ok=True)
+    from .encoding import BT709_FLAGS, RGB_TO_BT709
     try:
         from .encoding import get_video_encoder
         enc_args = get_video_encoder()
     except Exception:  # noqa: BLE001  any encoder probe failure falls back to software x264
         enc_args = ["-c:v", "libx264", "-preset", "medium", "-crf", "17"]
+    # BT.709 limited range, tagged (QF-01): swscale's default matrix is BT.601 and the master is BT.709.
     cmd = ["ffmpeg", "-y", "-v", "error", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{width}x{height}", "-r", str(VIDEO_FPS),
-           "-i", "-", "-frames:v", str(n), *enc_args, "-pix_fmt", "yuv420p", str(out)]
+           "-i", "-", "-frames:v", str(n), "-vf", RGB_TO_BT709, *enc_args, *BT709_FLAGS, "-pix_fmt", "yuv420p", str(out)]
     proc = subprocess.Popen(cmd, stdin=subprocess.PIPE, stderr=subprocess.PIPE)
     last = None
     try:
@@ -280,15 +282,19 @@ def graded_frame(frame: Image.Image, work: Path, vignette: bool = False) -> Imag
     vignette, which the master lifts under graphic clips); None when ffmpeg cannot run here (the planned ratios
     are still recorded)."""
     try:
-        from .video_composer import film_grade_filter
+        from .encoding import BT709_TO_RGB, RGB_TO_BT709
+        from .video_composer import film_grade_filter, graded_in_bt709
         work.mkdir(parents=True, exist_ok=True)
         # round 8 (review): a name of its own per call: two renders sharing a stage_cache read each other's frame
         tag = f"{os.getpid()}_{uuid.uuid4().hex[:12]}"
         src, dst = work / f"_contrast_in_{tag}.png", work / f"_contrast_out_{tag}.png"
         frame.convert("RGB").save(src)
         aspect = "16/9" if frame.width > frame.height else "9/16"
-        vf = (f"format=yuv420p,{film_grade_filter(0.0, out_dir=work)},format=yuv420p,"
-              f"noise=alls=8:allf=t+u:all_seed=7,{f'vignette=PI/4.2:aspect={aspect},' if vignette else ''}format=rgb24")
+        # BT.709 in and out, as the master converts and tags its pictures (QF-01)
+        grade = graded_in_bt709(film_grade_filter(0.0, out_dir=work))
+        vf = (f"{RGB_TO_BT709},format=yuv420p,{grade},format=yuv420p,"
+              f"noise=alls=8:allf=t+u:all_seed=7,{f'vignette=PI/4.2:aspect={aspect},' if vignette else ''}"
+              f"{BT709_TO_RGB},format=rgb24")
         subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", str(src), "-vf", vf, "-frames:v", "1", str(dst)],
                        check=True, timeout=120, capture_output=True)
         with Image.open(dst) as im:

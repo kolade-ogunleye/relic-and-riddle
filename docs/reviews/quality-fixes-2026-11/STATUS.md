@@ -43,7 +43,7 @@ QF-45 after it.
 
 | ID | Finding | Status | Commit | Acceptance metric before -> after | Evidence path | Regression test |
 |---|---|---|---|---|---|---|
-| QF-01 | Colour matrix (BT.709 end to end) | todo | | pure #FF0000: Y/U/V in master; bt709 tags on every intermediate | QF-01/ | |
+| QF-01 | Colour matrix (BT.709 end to end) | done | this commit | clips red Y81 U90 V240 untagged -> Y63 U102 V240 bt709/tv; masters and caption gold within tolerance; non-BT.709 conversions 1-3 -> 0 | QF-01/ | tests/test_qf01_colour_matrix.py |
 | QF-02 | 16-bit grade | todo | | distinct levels of a 0-64 luma ramp after the grade chain; black lift | QF-02/ | |
 | QF-03 | Grain removed from the delivery master | todo | | master bitrate at the same CRF; two renders byte-identical | QF-03/ | |
 | QF-04 | Transitions: hard cuts, dissolve only on act changes | todo | | fadeblack / zoomin in Reel graphs; seam tests | QF-04/ | |

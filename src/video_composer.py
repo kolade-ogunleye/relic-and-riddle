@@ -206,12 +206,26 @@ def is_ai_motion_clip(path: Path) -> bool:
     return is_video(path) and Path(path).stem.startswith("motion_")
 
 
-def hook_clip_filter(i: int, width: int, height: int) -> str:
+def hook_clip_filter(i: int, width: int, height: int, colorspace: str = "") -> str:
     """The filter for an AI motion clip opening a vertical video: the same push-in as the opening still,
-    rendered at twice the size (as the stills are, against zoompan's jitter), from its first frame."""
+    rendered at twice the size (as the stills are, against zoompan's jitter), from its first frame.
+    `colorspace`: the clip's matrix tag (video_colorspace); it leaves as BT.709 (QF-01)."""
     return (f"[{i}:v]tpad=stop_mode=clone:stop=-1,scale={width * 2}:{height * 2}:force_original_aspect_ratio=increase,"
             f"crop={width * 2}:{height * 2},zoompan=z='{HOOK_CLIP_ZOOM}':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':"
-            f"d=1:s={width}x{height}:fps={VIDEO_FPS},setsar=1,scale=out_range=tv,format=yuv420p[v{i}]")
+            f"d=1:s={width}x{height}:fps={VIDEO_FPS},setsar=1,{to_bt709(colorspace)}[v{i}]")
+
+
+def video_colorspace(path: Path) -> str:
+    """A clip's YCbCr matrix tag as ffprobe reads it ("" untagged or unreadable: encoding.source_matrix then
+    takes BT.709, as players do for HD)."""
+    try:
+        out = subprocess.run(["ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries",
+                              "stream=color_space", "-of", "default=noprint_wrappers=1:nokey=1", str(path)],
+                             capture_output=True, text=True, timeout=10, check=False)
+        tag = out.stdout.strip() if out.returncode == 0 else ""
+        return "" if tag in ("unknown", "N/A") else tag
+    except Exception:  # noqa: BLE001  a missing tag is read as BT.709
+        return ""
 
 
 def loop_motion(scene_images: List[Any], durations: List[float], vo_dur: float, macro_indices: Set[int],
@@ -263,6 +277,7 @@ def _run_ffmpeg(cmd: List[str]) -> subprocess.CompletedProcess:
 
 
 from .encoding import bounded_encode, get_video_encoder as _get_video_encoder, get_intermediate_video_encoder as _get_intermediate_video_encoder
+from .encoding import BT709_FLAGS, BT709_TO_RGB, RGB_TO_BT709, to_bt709
 
 
 def _ass_escape(text: str) -> str:
@@ -2957,6 +2972,17 @@ def film_grade_filter(grade_bias: float = 0.0, source: Path = FILM_PRINT_LUT, ou
     return grade
 
 
+def graded_in_bt709(grade: str) -> str:
+    """A film_grade_filter chain on the master's BT.709 YUV picture (QF-01): its RGB filters (curves, the print
+    LUT, the colour balance) read the picture with the BT.709 matrix and hand it back in BT.709, tagged. Left to
+    ffmpeg's inserted converters, the round trip used BT.601 (on ffmpeg 6, whatever the frames' tags implied)."""
+    yuv = ""
+    if grade.startswith("eq="):   # the fallback grade's eq works on YUV, before the RGB curves
+        yuv, grade = grade.split(",", 1)
+        yuv += ","
+    return f"{yuv}{BT709_TO_RGB},{grade},{RGB_TO_BT709}"
+
+
 def ass_font_size(name: str, px: float, weight: int | None = None) -> int:
     """The ASS Fontsize that renders a `px` em of this bundled font under libass."""
     upm, asc, desc = _font_vmetrics(name, weight)
@@ -3673,6 +3699,7 @@ ScriptType: v4.00+
 PlayResX: {width}
 PlayResY: {height}
 ScaledBorderAndShadow: yes
+YCbCr Matrix: TV.709
 
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
@@ -4112,20 +4139,22 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             frames = int(clip_dur * VIDEO_FPS) + 1
             if is_video(item):
                 input_args += ["-t", f"{clip_dur:.3f}", "-i", str(item)]
+                # Each clip is read with the matrix it was made with and enters the graph as BT.709 (QF-01)
+                colorspace = video_colorspace(item)
                 if width > height and self._is_portrait_video(item):
                     fg_h = int(round(height * 0.94)) // 2 * 2
                     filter_parts.append(
                         f"[{i}:v]tpad=stop_mode=clone:stop=-1,split[bg_in{i}][fg_in{i}];"
                         f"[bg_in{i}]scale={width}:{height}:force_original_aspect_ratio=increase,crop={width}:{height},boxblur=25:5,eq=brightness=-0.15[bg{i}];"
                         f"[fg_in{i}]scale=-2:{fg_h}[fg{i}];"
-                        f"[bg{i}][fg{i}]overlay=(W-w)/2:(H-h)/2,fps={VIDEO_FPS},setsar=1,scale=out_range=tv,format=yuv420p[v{i}]"
+                        f"[bg{i}][fg{i}]overlay=(W-w)/2:(H-h)/2,fps={VIDEO_FPS},setsar=1,{to_bt709(colorspace)}[v{i}]"
                     )
                 elif i == 0 and width < height and is_ai_motion_clip(item):
-                    filter_parts.append(hook_clip_filter(i, width, height))
+                    filter_parts.append(hook_clip_filter(i, width, height, colorspace))
                 else:
                     filter_parts.append(
                         f"[{i}:v]tpad=stop_mode=clone:stop=-1,scale={width}:{height}:force_original_aspect_ratio=increase,"
-                        f"crop={width}:{height},fps={VIDEO_FPS},setsar=1,scale=out_range=tv,format=yuv420p[v{i}]"
+                        f"crop={width}:{height},fps={VIDEO_FPS},setsar=1,{to_bt709(colorspace)}[v{i}]"
                     )
                 continue
 
@@ -4158,7 +4187,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                 filter_parts.append(
                     f"[{i}:v]scale={width}:-2,"
                     f"crop={width}:{height}:0:'max(0,min(in_h-out_h,(in_h-out_h)*{tilt_dir}))',"
-                    f"fps={VIDEO_FPS},setsar=1,scale=out_range=tv,format=yuv420p[v{i}]"
+                    f"fps={VIDEO_FPS},setsar=1,{RGB_TO_BT709}[v{i}]"
                 )
             else:
                 cx, cy = self.compute_focal_point(item)
@@ -4168,7 +4197,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                     f"[{i}:v]scale={w2}:{h2}:force_original_aspect_ratio=increase,crop={w2}:{h2}:{crop_x}:{crop_y},"
                     f"curves=master='0/0.02 0.1/0.11 0.5/0.50 0.9/0.89 1/0.97',"
                     f"zoompan=z='{z}':x='{x}':y='{y}':d={frames}:s={width}x{height}:fps={VIDEO_FPS},"
-                    f"setsar=1,scale=out_range=tv,format=yuv420p[v{i}]"
+                    f"setsar=1,{RGB_TO_BT709}[v{i}]"
                 )
 
         curr = "[v0]"
@@ -4227,6 +4256,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         # The Kodak 2383 print's tone with the picture's own hue (2026-10-29: the full LUT turned a balanced
         # lamp-lit door neon lime); film_grade_filter, above, has the why and the measurements.
         film_grade = film_grade_filter(grade_bias)
+        film_grade = graded_in_bt709(film_grade)  # QF-01: the grade's RGB round trip is BT.709 both ways
         # The graded picture before the captions, split off for the end card's background (its last frame).
         card_split = "split[v_graded][v_card_src];[v_graded]" if card else ""
         # The lens vignette (picture_vignette, freeze pass V1): ffmpeg reads its aspect as the pixel aspect, so the
@@ -4234,7 +4264,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         filter_parts.append(
             f"[video_raw]format=yuv420p,{film_grade},format=yuv420p,"
             f"noise=alls=8:allf=t+u,{picture_vignette(width, height)}{vignette_enable},{card_split}"
-            f"subtitles='{ass_str}':fontsdir='{fonts_str}',scale=out_range=tv,format=yuv420p[v_final]"
+            f"subtitles='{ass_str}':fontsdir='{fonts_str}',{to_bt709('bt709')}[v_final]"
         )
         if card:
             filter_parts.append(f"[v_card_src]trim=start={max(0.0, vo_dur - 0.2):.3f}:end={vo_dur:.3f}[v_last]")
@@ -4353,7 +4383,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             cmd = ["ffmpeg", "-y", "-hide_banner", "-nostats", "-v", "error",
                    "-i", str(body), "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{w}x{h}", "-r", str(card_mod.FPS),
                    "-i", "-", "-i", str(audio),
-                   "-filter_complex", "[0:v]setsar=1[b];[1:v]scale=out_range=tv,format=yuv420p,setsar=1[c];"
+                   "-filter_complex", f"[0:v]setsar=1[b];[1:v]{RGB_TO_BT709},setsar=1[c];"
                                       "[b][c]concat=n=2:v=1:a=0[v]",
                    "-map", "[v]", "-map", "2:a", *delivery_args, "-t", f"{total:.3f}", str(output_mp4_path)]
             with open(errors, "wb") as err:
@@ -4436,7 +4466,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         encoder_args = _get_video_encoder()
         delivery_args = [
             *encoder_args,
-            "-pix_fmt", "yuv420p",
+            "-pix_fmt", "yuv420p", *BT709_FLAGS,
             "-r", str(VIDEO_FPS),
             "-c:a", "copy",
             "-movflags", "+faststart",
@@ -4450,7 +4480,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             input_args += ["-t", f"{beat_dur:.3f}", "-i", str(replacement_asset)]
             filter_parts.append(
                 f"[1:v]scale={width}:{height}:force_original_aspect_ratio=increase,"
-                f"crop={width}:{height},fps={VIDEO_FPS},setsar=1,scale=out_range=tv,format=yuv420p[v_mid]"
+                f"crop={width}:{height},fps={VIDEO_FPS},setsar=1,{to_bt709(video_colorspace(replacement_asset))}[v_mid]"
             )
         else:
             w2, h2 = width * 2, height * 2
@@ -4460,7 +4490,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             filter_parts.append(
                 f"[1:v]scale={w2}:{h2}:force_original_aspect_ratio=increase,crop={w2}:{h2},"
                 f"zoompan=z='{z}':x='{x}':y='{y}':d={frames}:s={width}x{height}:fps={VIDEO_FPS},"
-                f"setsar=1,scale=out_range=tv,format=yuv420p[v_mid]"
+                f"setsar=1,{RGB_TO_BT709}[v_mid]"
             )
 
         if beat_index == 0:

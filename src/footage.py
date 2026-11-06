@@ -27,6 +27,7 @@ from urllib.parse import urljoin, urlparse
 import requests
 
 from . import commons, config, url_guard
+from .encoding import BT709_FLAGS, to_bt709
 
 log = logging.getLogger(__name__)
 
@@ -108,7 +109,7 @@ def download(url: str, provider: str, dest: Path, extra_headers: Optional[dict] 
 def probe(path: Path) -> Dict[str, Any]:
     """Local-only ffprobe of the first video stream."""
     out = subprocess.run(["ffprobe", "-v", "error", "-protocol_whitelist", "file", "-select_streams", "v:0",
-                          "-show_entries", "stream=width,height:format=duration,format_name", "-of", "json", str(path)],
+                          "-show_entries", "stream=width,height,color_space:format=duration,format_name", "-of", "json", str(path)],
                          capture_output=True, text=True, timeout=60)
     if out.returncode != 0:
         raise ValueError(f"not a readable video: {out.stderr[-200:]}")
@@ -118,7 +119,8 @@ def probe(path: Path) -> Dict[str, Any]:
         raise ValueError(f"refusing container format {fmt}")
     s = (data.get("streams") or [{}])[0]
     return {"width": int(s.get("width") or 0), "height": int(s.get("height") or 0),
-            "duration": float(data.get("format", {}).get("duration") or 0)}
+            "duration": float(data.get("format", {}).get("duration") or 0),
+            "color_space": s.get("color_space") or ""}
 
 
 FILL = "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,fps=30"
@@ -137,6 +139,12 @@ def frame_filter(info: Dict[str, Any]) -> List[str]:
     return ["-vf", FILL]
 
 
+def frame_filter_bt709(info: dict[str, Any]) -> list[str]:
+    """frame_filter, then BT.709 limited range, tagged, read with the source's own matrix (QF-01)."""
+    kind, graph = frame_filter(info)
+    return [kind, f"{graph},{to_bt709(info.get('color_space'), info.get('height') or 0)}"]
+
+
 def make_segment(src: Path, info: Dict[str, Any], out: Path) -> Path:
     """A muted 1080x1920 H.264 segment from the core b-roll part of the video, plus a poster frame."""
     dur = info["duration"]
@@ -150,8 +158,8 @@ def make_segment(src: Path, info: Dict[str, Any], out: Path) -> Path:
     else:
         start = max(0.0, (dur - SEGMENT_SECONDS) / 2)
     subprocess.run(["ffmpeg", "-y", "-v", "error", "-protocol_whitelist", "file", "-ss", f"{start:.2f}", "-t", f"{SEGMENT_SECONDS:.2f}",
-                    "-i", str(src), "-an", *frame_filter(info),
-                    "-c:v", "libx264", "-preset", "medium", "-crf", "17", "-pix_fmt", "yuv420p", str(out)],
+                    "-i", str(src), "-an", *frame_filter_bt709(info),
+                    "-c:v", "libx264", "-preset", "medium", "-crf", "17", *BT709_FLAGS, "-pix_fmt", "yuv420p", str(out)],
                    check=True, timeout=600, capture_output=True)
     subprocess.run(["ffmpeg", "-y", "-v", "error", "-protocol_whitelist", "file", "-ss", f"{SEGMENT_SECONDS / 2:.2f}", "-i", str(out),
                     "-frames:v", "1", str(out.with_suffix(".jpg"))], check=True, timeout=60, capture_output=True)

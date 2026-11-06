@@ -1,0 +1,124 @@
+{
+  "elevenlabs": {
+    "provider_used": "elevenlabs",
+    "output_format_requested": "pcm_48000",
+    "output_format_served": "pcm_48000",
+    "seed": 1,
+    "stability": 0.65,
+    "voiceover": {
+      "name": "voiceover.wav",
+      "container": "wav",
+      "codec": "pcm_s16le",
+      "sample_rate": 48000,
+      "lossy_codec_steps": 0,
+      "resample_steps": 0,
+      "lossy_steps_before_aac": 0
+    },
+    "rights_record": "voiceover.wav.rights.json",
+    "rights_sha256_is_file_hash": true
+  },
+  "azure": {
+    "output_format_requested": "Riff48Khz16BitMonoPcm",
+    "voiceover": {
+      "name": "voiceover.wav",
+      "container": "wav",
+      "codec": "pcm_s16le",
+      "sample_rate": 48000,
+      "lossy_codec_steps": 0,
+      "resample_steps": 0,
+      "lossy_steps_before_aac": 0
+    },
+    "rights_sha256_is_file_hash": true
+  },
+  "elevenlabs_by_plan": {
+    "creator": {
+      "tier": "creator",
+      "formats_not_offered": [
+        "pcm_44100",
+        "pcm_48000"
+      ],
+      "requests": [
+        "pcm_48000 eleven_v4 -> HTTP 403"
+      ],
+      "provider_used": "azure",
+      "voiceover": {
+        "name": "voiceover.wav",
+        "container": "wav",
+        "codec": "pcm_s16le",
+        "sample_rate": 48000,
+        "lossy_codec_steps": 0,
+        "resample_steps": 0,
+        "lossy_steps_before_aac": 0
+      }
+    },
+    "unknown_plan_on_creator_formats": {
+      "tier": null,
+      "formats_not_offered": [
+        "pcm_44100",
+        "pcm_48000"
+      ],
+      "requests": [
+        "pcm_48000 eleven_v4 -> HTTP 403"
+      ],
+      "provider_used": "azure",
+      "voiceover": {
+        "name": "voiceover.wav",
+        "container": "wav",
+        "codec": "pcm_s16le",
+        "sample_rate": 48000,
+        "lossy_codec_steps": 0,
+        "resample_steps": 0,
+        "lossy_steps_before_aac": 0
+      }
+    },
+    "pro": {
+      "tier": "pro",
+      "formats_not_offered": [],
+      "requests": [
+        "pcm_48000 eleven_v4 -> HTTP 200"
+      ],
+      "provider_used": "elevenlabs",
+      "voiceover": {
+        "name": "voiceover.wav",
+        "container": "wav",
+        "codec": "pcm_s16le",
+        "sample_rate": 48000,
+        "lossy_codec_steps": 0,
+        "resample_steps": 0,
+        "lossy_steps_before_aac": 0
+      }
+    }
+  },
+  "captions": {
+    "sent_to_elevenlabs": "... No one knows why. The city was hidden under the plain for centuries.",
+    "timed_words": 13,
+    "punctuation_only_timed_words": [],
+    "punctuation_only_bursts_9x16": 0,
+    "punctuation_only_bursts_16x9": 0,
+    "punctuation_only_sidecar_cues": 0,
+    "bursts_9x16": [
+      "No one knows why.",
+      "The city was hidden",
+      "under the plain",
+      "for centuries."
+    ],
+    "sidecar_cues": [
+      "No one knows why. The city\nwas hidden under the plain for centuries."
+    ]
+  },
+  "acceptance": {
+    "azure_riff48k_pcm": true,
+    "elevenlabs_pcm_48000": true,
+    "elevenlabs_seed_set": true,
+    "elevenlabs_stability_0_65": true,
+    "voiceover_is_wav": true,
+    "lossy_steps_before_aac": 0,
+    "rights_keyed_on_wav": true,
+    "punctuation_only_in_captions": 0,
+    "below_pro_plans_keep_elevenlabs": false,
+    "below_pro_lossy_codec_steps": 0,
+    "creator_requests": 1,
+    "pro_plan_pcm_48000": true,
+    "met": false
+  }
+}

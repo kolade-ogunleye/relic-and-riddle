@@ -8,7 +8,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 from src import graphics
-from src.audio_engine import AudioEngine
+from src.audio_engine import AudioEngine, voiceover_file
 from src.config import DATA_DIR
 from src.credits import add_provenance_attributions, generate_provenance_ledger
 from src.fact_evidence import current_fact_review, stamp_checked_review
@@ -60,7 +60,7 @@ def main():
     made = graphics.make_all(payload, topic, root / "graphics", width=1920, height=1080)
     by_name = {p.stem: p for p in made}
     words = json.loads((root / "words.json").read_text(encoding="utf-8"))
-    duration = AudioEngine.get_duration(root / "voiceover.mp3")
+    duration = AudioEngine.get_duration(voiceover_file(root))
     cues = {0.0: by_name["graphic_map"]} if "graphic_map" in by_name else {}
     boundaries = [float(t) for t in range(0, int(duration), 8)
                   if t == 0 or all(abs(t - cue) >= 3 for cue in cues)]
@@ -81,7 +81,7 @@ def main():
     master = root / "documentary_master.mp4"
     print(f"Rendering {len(scenes)} cuts, {duration:.3f} seconds", flush=True)
     composer = VideoComposer()
-    composer.compose_deep_dive(scenes, root / "voiceover.mp3", root / "ambient_bed.wav",
+    composer.compose_deep_dive(scenes, voiceover_file(root), root / "ambient_bed.wav",
                               words, duration, master, durations=durations)
     print("Render complete; auditing", flush=True)
     audit = QualityAuditor().audit_rendered_timeline(master, timeline, words,
@@ -92,7 +92,7 @@ def main():
     cover, grid = visual.generate_thumbnails(hero, payload, root)
     thumbnail = visual.generate_youtube_thumbnail(hero, payload, root / "thumbnail_youtube_16x9.jpg")
     payload["thumbnail_youtube"] = str(thumbnail)
-    ledger = generate_provenance_ledger(root, topic, payload, master, root / "voiceover.mp3",
+    ledger = generate_provenance_ledger(root, topic, payload, master, voiceover_file(root),
         root / "ambient_bed.wav", scenes, audit)
     add_provenance_attributions(payload, ledger)
     (root / "script_metadata.json").write_text(json.dumps(payload, indent=2), encoding="utf-8")

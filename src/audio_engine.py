@@ -39,8 +39,13 @@ from .config import (
     NARRATOR_PITCH,
     DATA_DIR,
     ELEVENLABS_API_KEY,
+    ELEVENLABS_FALLBACK_FORMAT,
+    ELEVENLABS_BASIC_FALLBACK_FORMAT,
+    ELEVENLABS_FALLBACK_FORMAT_TIERS,
     ELEVENLABS_FALLBACK_MODEL,
     ELEVENLABS_MODEL,
+    ELEVENLABS_OUTPUT_FORMAT,
+    ELEVENLABS_SEED,
     ELEVENLABS_SPEED,
     ELEVENLABS_VOICE_ID,
     VOICE_PREFER,
@@ -160,6 +165,68 @@ def measure_spoken_seconds(text: str, speed: float = 1.0) -> Optional[float]:
 
 
 PACE_FILE = DATA_DIR / "voice_pace.json"
+
+# QF-08: the voiceover is PCM in a WAV file, so the voice is encoded once (AAC in the master). Runs made before keep
+# their MP3 take (a paid take is never thrown away); a new take is always the WAV.
+VOICEOVER_FILE = "voiceover.wav"
+LEGACY_VOICEOVER_FILES = ("voiceover.mp3",)
+
+
+def voiceover_file(run_dir) -> Path:
+    """The run's voiceover: the WAV, else a take made before QF-08 (MP3), else where a new take is written."""
+    run_dir = Path(run_dir)
+    for name in (VOICEOVER_FILE, *LEGACY_VOICEOVER_FILES):
+        if (run_dir / name).is_file():
+            return run_dir / name
+    return run_dir / VOICEOVER_FILE
+
+
+def rights_file(audio_path) -> Path:
+    """The rights record beside an audio file (audio_provenance names it so)."""
+    audio_path = Path(audio_path)
+    return audio_path.with_name(audio_path.name + ".rights.json")
+
+
+def write_pcm_wav(path, pcm: bytes, rate: int, channels: int = 1) -> None:
+    """Raw 16-bit little-endian PCM (what ElevenLabs' pcm_* formats return) written as a WAV file, as it is."""
+    import wave
+    whole = len(pcm) - len(pcm) % (2 * channels)
+    with wave.open(str(path), "wb") as out:
+        out.setnchannels(channels)
+        out.setsampwidth(2)
+        out.setframerate(rate)
+        out.writeframes(pcm[:whole])
+
+
+def decode_to_wav(source, path) -> None:
+    """An encoded take (an MP3 fallback format, or edge-tts in dry runs) decoded once to 16-bit PCM WAV at its own rate."""
+    subprocess.run(["ffmpeg", "-y", "-v", "error", "-i", str(source), "-map", "0:a:0", "-c:a", "pcm_s16le", "-ac", "1",
+                    str(path)], check=True, timeout=120)
+
+
+def write_voice_wav(path, audio: bytes, fmt: str) -> None:
+    """A provider's audio written as the WAV voiceover: PCM as it came (pcm_<rate>), a RIFF file as it is, anything
+    encoded decoded once."""
+    path = Path(path)
+    if audio[:4] == b"RIFF":
+        path.write_bytes(audio)
+        return
+    m = re.fullmatch(r"pcm_(\d+)", fmt or "")
+    if m:
+        write_pcm_wav(path, audio, int(m.group(1)))
+        return
+    source = path.with_name(path.name + ".src")
+    try:
+        source.write_bytes(audio)
+        decode_to_wav(source, path)
+    finally:
+        source.unlink(missing_ok=True)
+
+
+def spoken_only(words: Words) -> Words:
+    """Timed words with something to say: a punctuation-only token ("...", "—" from a pacing cue or the provider's
+    alignment) never becomes a caption burst or cue (QF-08)."""
+    return [w for w in words if re.search(r"\w", str(w.get("word", "")))]
 
 
 def voice_key(provider: str, voice: str, model: str = "") -> str:
@@ -370,22 +437,53 @@ class AudioEngine:
     def eleven_payload(text: str, model: str, speed: float = 1.0) -> Dict[str, Any]:
         """Request body for one model: style and speaker boost exist only on the v2 models."""
         # ElevenLabs accepts speed 0.7-1.2.
-        settings: Dict[str, Any] = {"stability": 0.50, "similarity_boost": 0.85,
+        # QF-08: stability 0.65 (steadier narration from take to take) and a fixed seed.
+        settings: Dict[str, Any] = {"stability": 0.65, "similarity_boost": 0.85,
                                     "speed": round(min(1.2, ELEVENLABS_SPEED * speed), 3)}
         if model.startswith(("eleven_multilingual_v2", "eleven_monolingual")):
             settings.update(style=0.35, use_speaker_boost=True)
-        return {"text": text, "model_id": model, "voice_settings": settings}
+        return {"text": text, "model_id": model, "voice_settings": settings, "seed": ELEVENLABS_SEED}
+
+    eleven_tier: str | None = None   # the subscription's tier, read by generate_narration before a take
+    last_output_format: str = ""       # the format the last ElevenLabs take came in
+
+    def eleven_formats(self) -> list[str]:
+        """The output formats to ask ElevenLabs for, in order (QF-08). A plan known not to offer
+        ELEVENLABS_OUTPUT_FORMAT (ELEVENLABS_FALLBACK_FORMAT_TIERS, e.g. Creator: 44.1 kHz PCM and above is Pro) gets
+        the plan-safe ELEVENLABS_FALLBACK_FORMAT only. Free/Starter use the basic
+        fallback; any other or unknown plan tries preferred, Creator, then basic."""
+        tier = str(self.eleven_tier or "").strip().lower()
+        if tier in {"free", "starter"}:
+            return [ELEVENLABS_BASIC_FALLBACK_FORMAT]
+        if tier and tier in ELEVENLABS_FALLBACK_FORMAT_TIERS:
+            return [ELEVENLABS_FALLBACK_FORMAT]
+        return list(dict.fromkeys([ELEVENLABS_OUTPUT_FORMAT, ELEVENLABS_FALLBACK_FORMAT,
+                                   ELEVENLABS_BASIC_FALLBACK_FORMAT]))
 
     def _generate_elevenlabs(self, text: str, output_path: Path) -> Words:
-        url = f"https://api.elevenlabs.io/v1/text-to-speech/{self.eleven_voice}/with-timestamps"
-        resp = requests.post(url, headers={"xi-api-key": self.eleven_key},
-                             json=self.eleven_payload(text, ELEVENLABS_MODEL, self.speed), timeout=120)
-        if resp.status_code in (400, 422) and ELEVENLABS_FALLBACK_MODEL and ELEVENLABS_FALLBACK_MODEL != ELEVENLABS_MODEL:
-            # The model may not support timestamped output (or these settings); a rejected request is not billed.
-            log.warning("ElevenLabs %s rejected the request (HTTP %d); using %s.", ELEVENLABS_MODEL,
-                        resp.status_code, ELEVENLABS_FALLBACK_MODEL)
+        # QF-08: PCM where the plan allows (ELEVENLABS_OUTPUT_FORMAT), else the plan-safe ELEVENLABS_FALLBACK_FORMAT;
+        # basic plans retain 128 kbps MP3 rather than losing voice bandwidth.
+        base = f"https://api.elevenlabs.io/v1/text-to-speech/{self.eleven_voice}/with-timestamps"
+        has_fallback_model = bool(ELEVENLABS_FALLBACK_MODEL and ELEVENLABS_FALLBACK_MODEL != ELEVENLABS_MODEL)
+        resp, fmt = None, ELEVENLABS_OUTPUT_FORMAT
+        previous_format = fmt
+        for fmt in self.eleven_formats():
+            if resp is not None:
+                log.warning("ElevenLabs rejected output_format %s (HTTP %d; the plan may not offer it); using %s.",
+                            previous_format, resp.status_code, fmt)
+            previous_format = fmt
+            url = f"{base}?output_format={fmt}"
             resp = requests.post(url, headers={"xi-api-key": self.eleven_key},
-                                 json=self.eleven_payload(text, ELEVENLABS_FALLBACK_MODEL, self.speed), timeout=120)
+                                 json=self.eleven_payload(text, ELEVENLABS_MODEL, self.speed), timeout=120)
+            if resp.status_code in (400, 422) and has_fallback_model:
+                # The model may not support timestamped output (or these settings).
+                log.warning("ElevenLabs %s rejected the request (HTTP %d); using %s.", ELEVENLABS_MODEL,
+                            resp.status_code, ELEVENLABS_FALLBACK_MODEL)
+                resp = requests.post(url, headers={"xi-api-key": self.eleven_key},
+                                     json=self.eleven_payload(text, ELEVENLABS_FALLBACK_MODEL, self.speed), timeout=120)
+            if resp.status_code not in (400, 403, 422):
+                break
+        self.last_output_format = fmt
         resp.raise_for_status()
         data = resp.json()
 
@@ -396,7 +494,7 @@ class AudioEngine:
         if not chars or len(chars) != len(starts) or len(chars) != len(ends):
             raise ValueError("ElevenLabs response is missing usable character alignment.")
 
-        Path(output_path).write_bytes(base64.b64decode(data["audio_base64"]))
+        write_voice_wav(output_path, base64.b64decode(data["audio_base64"]), fmt)
 
         words: Words = []
         cur: List[str] = []
@@ -412,6 +510,16 @@ class AudioEngine:
         return words
 
     async def _generate_edge_tts(self, text: str, output_path: Path) -> Words:
+        """edge-tts streams MP3 only: the stream is saved beside the voiceover, decoded once to the WAV (dry runs)."""
+        output_path = Path(output_path)
+        stream_path = output_path.with_name(output_path.name + ".edge.mp3")
+        try:
+            return await self._edge_tts_take(text, stream_path, output_path)
+        finally:
+            stream_path.unlink(missing_ok=True)
+
+    async def _edge_tts_take(self, text: str, stream_path: Path, wav_path: Path) -> Words:
+        output_path = stream_path
         last_err = None
         for attempt in range(1, 6):
             try:
@@ -435,6 +543,7 @@ class AudioEngine:
                             ))
                 if words and output_path.exists() and os.path.getsize(output_path) > 500:
                     words.sort(key=lambda w: w["start"])
+                    decode_to_wav(output_path, wav_path)
                     return words
             except Exception as e:
                 last_err = e
@@ -449,7 +558,7 @@ class AudioEngine:
         import azure.cognitiveservices.speech as speechsdk
 
         cfg = speechsdk.SpeechConfig(subscription=self.azure_key, region=self.azure_region)
-        cfg.set_speech_synthesis_output_format(speechsdk.SpeechSynthesisOutputFormat.Audio48Khz192KBitRateMonoMp3)
+        cfg.set_speech_synthesis_output_format(speechsdk.SpeechSynthesisOutputFormat.Riff48Khz16BitMonoPcm)  # QF-08: PCM
         cfg.set_property(speechsdk.PropertyId.SpeechServiceResponse_RequestWordBoundary, "true")
         synth = speechsdk.SpeechSynthesizer(speech_config=cfg, audio_config=None)
         words: Words = []
@@ -467,7 +576,7 @@ class AudioEngine:
         if result.reason != speechsdk.ResultReason.SynthesizingAudioCompleted:
             details = getattr(result, "cancellation_details", None)
             raise RuntimeError(f"Azure Speech failed: {result.reason} {getattr(details, 'error_details', '')}")
-        Path(output_path).write_bytes(result.audio_data)
+        write_voice_wav(output_path, bytes(result.audio_data), "pcm_48000")  # a RIFF file already: written as it is
         words.sort(key=lambda w: w["start"])
         return words
 
@@ -509,6 +618,7 @@ class AudioEngine:
                 return None
             quota = self.voice_quota()
             licensed = bool(quota and quota.get("tier") and quota["tier"] != "free")
+            self.eleven_tier = (quota or {}).get("tier")   # picks the output format the plan offers (QF-08)
             has_quota_nums = bool(quota and "limit" in quota and "used" in quota)
             remaining = (quota["limit"] - quota["used"]) if has_quota_nums else None
             if licensed_only and not licensed:
@@ -523,7 +633,7 @@ class AudioEngine:
                 eleven_text = VoiceProsody.apply_prosody_elevenlabs(text)
                 words = self._generate_elevenlabs(eleven_text, output_path)
                 self.last_provider, self.last_licensed = "elevenlabs", licensed
-                return align_words_with_script(orig_text, words)
+                return spoken_only(align_words_with_script(orig_text, words))
             except Exception as e:
                 status = getattr(getattr(e, "response", None), "status_code", None)
                 reasons.append(f"ElevenLabs failed (HTTP {status})" if status else f"ElevenLabs failed ({type(e).__name__})")
@@ -541,7 +651,7 @@ class AudioEngine:
                     raise RuntimeError("Azure Speech returned no word boundaries")
                 self.last_provider, self.last_licensed = "azure", True
                 self.fallback_reason = "; ".join(reasons)
-                return align_words_with_script(orig_text, words)
+                return spoken_only(align_words_with_script(orig_text, words))
             except Exception as e:
                 reasons.append(f"Azure Speech failed ({e})"[:200])
                 log.warning("Azure Speech failed (%s); trying the next voice.", e)
@@ -565,7 +675,7 @@ class AudioEngine:
         if not words:
             raise RuntimeError("edge-tts returned no word boundaries; captions cannot be timed.")
         self.last_provider, self.last_licensed = "edge-tts", False
-        return align_words_with_script(orig_text, words)
+        return spoken_only(align_words_with_script(orig_text, words))
 
     def voice_quota(self) -> Optional[Dict[str, Any]]:
         """ElevenLabs character quota for this billing period, or None if unavailable."""

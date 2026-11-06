@@ -6,6 +6,7 @@ Handles environment variables, directory paths, and locked video/thumbnail specs
 """
 
 import os
+import re
 import sys
 from pathlib import Path
 from typing import Dict, Optional
@@ -224,6 +225,31 @@ ELEVENLABS_VOICE_ID = os.getenv("ELEVENLABS_VOICE_ID", "pNInz6obpgDQGcFmaJgB")
 ELEVENLABS_MODEL = (os.getenv("ELEVENLABS_MODEL") or "eleven_v4").strip()
 ELEVENLABS_FALLBACK_MODEL = (os.getenv("ELEVENLABS_FALLBACK_MODEL") or "eleven_multilingual_v2").strip()
 ELEVENLABS_SPEED = float(os.getenv("ELEVENLABS_SPEED") or 1.0)
+# QF-08: the voice is requested lossless, so it is encoded once (AAC in the master), not MP3 first. pcm_48000 is 48 kHz
+# 16-bit PCM at the master's own rate (no resample). A plan that does not offer it: pcm_44100, pcm_24000 (PCM at that
+# rate, resampled once in the mix) or, last, mp3_44100_192 (decoded to WAV on arrival). Anything else -> pcm_48000.
+_ELEVEN_FORMAT = (os.getenv("ELEVENLABS_OUTPUT_FORMAT") or "pcm_48000").strip().lower()
+ELEVENLABS_OUTPUT_FORMAT = _ELEVEN_FORMAT if re.fullmatch(r"pcm_\d+|mp3_\d+_\d+", _ELEVEN_FORMAT) else "pcm_48000"
+# Creator's default preserves the former 44.1 kHz bandwidth at a higher MP3 bitrate,
+# decoded once to WAV. pcm_24000 remains an explicit choice with a 12 kHz ceiling.
+_ELEVEN_FALLBACK_FORMAT = (os.getenv("ELEVENLABS_FALLBACK_FORMAT") or "mp3_44100_192").strip().lower()
+ELEVENLABS_FALLBACK_FORMAT = (_ELEVEN_FALLBACK_FORMAT if re.fullmatch(r"pcm_\d+|mp3_\d+_\d+", _ELEVEN_FALLBACK_FORMAT)
+                              else "mp3_44100_192")
+# Free/Starter cannot request 192 kbps MP3. Keep their former format by default;
+# an operator may explicitly choose lower-rate PCM instead.
+_ELEVEN_BASIC_FORMAT = (os.getenv("ELEVENLABS_BASIC_FALLBACK_FORMAT") or "mp3_44100_128").strip().lower()
+ELEVENLABS_BASIC_FALLBACK_FORMAT = (_ELEVEN_BASIC_FORMAT if re.fullmatch(r"pcm_\d+|mp3_\d+_\d+", _ELEVEN_BASIC_FORMAT)
+                                    else "mp3_44100_128")
+# Plans asked for ELEVENLABS_FALLBACK_FORMAT directly. Free/Starter use the basic
+# setting; other/unknown plans try preferred, Creator fallback, then basic fallback.
+ELEVENLABS_FALLBACK_FORMAT_TIERS = frozenset(
+    t.strip().lower() for t in (os.getenv("ELEVENLABS_FALLBACK_FORMAT_TIERS") or "creator").split(",")
+    if t.strip())
+# The take's seed (0-4294967295): the same text and settings read the same way again (ElevenLabs: best effort).
+try:
+    ELEVENLABS_SEED = max(0, min(4294967295, int(os.getenv("ELEVENLABS_SEED") or 1)))
+except ValueError:
+    ELEVENLABS_SEED = 1
 # A narration a little over the time limit is spoken up to this much faster instead of being rewritten
 # (each rewrite is a full model call and can overshoot both ways). 1.08 = at most 8% faster.
 SPEECH_SPEEDUP_MAX = max(1.0, min(1.15, float(os.getenv("SPEECH_SPEEDUP_MAX") or 1.08)))

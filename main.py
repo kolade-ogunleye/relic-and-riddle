@@ -597,7 +597,8 @@ class PipelineCoordinator:
         from src.checkpoints import Checkpoints
         from src.credits import sha256_file
         try:
-            same_voice = vo_path.is_file() and sha256_file(vo_path) == sha256_file(previous / "voiceover.mp3")
+            from src.audio_engine import voiceover_file
+            same_voice = vo_path.is_file() and sha256_file(vo_path) == sha256_file(voiceover_file(previous))
             record = Checkpoints(previous).read().get("bed") or {}
         except OSError:
             return
@@ -627,7 +628,8 @@ class PipelineCoordinator:
         `wanted` is the provider this run would use first, and a voice from another one is not carried."""
         from src.script_library import reuses
         previous = self._previous_run_dir()
-        if previous is None or not reuses("voice") or (run_dir / "voiceover.mp3").exists():
+        from src.audio_engine import rights_file, voiceover_file
+        if previous is None or not reuses("voice") or voiceover_file(run_dir).exists():
             return
         from src.checkpoints import Checkpoints
         try:
@@ -635,7 +637,8 @@ class PipelineCoordinator:
             record = Checkpoints(previous).read().get("voice") or {}
         except (OSError, ValueError):
             return
-        names = ["voiceover.mp3", "words.json", "voice.json"]
+        take = voiceover_file(previous).name  # the WAV, or a take made before QF-08 (MP3)
+        names = [take, "words.json", "voice.json"]
         if meta.get("narration_script") != narration or not record.get("inputs") or not all((previous / n).is_file() for n in names):
             return
         try:
@@ -645,14 +648,14 @@ class PipelineCoordinator:
         if wanted and made_by and made_by != wanted:
             log.info("Voiceover not carried over from %s: it was made by %s and this run uses %s.", previous.name, made_by, wanted)
             return
-        for extra in ("voiceover.mp3.rights.json",):
+        for extra in (rights_file(take).name,):
             if (previous / extra).is_file():
                 names.append(extra)
         try:
             from src.audio_provenance import rebind_rights
             for n in names:
                 shutil.copy2(previous / n, run_dir / n)
-            rebind_rights(run_dir / "voiceover.mp3")  # its rights record named the previous run's folder
+            rebind_rights(run_dir / take)  # its rights record named the previous run's folder
             Checkpoints(run_dir).adopt("voice", record["inputs"], [run_dir / n for n in names[:3]])
         except (OSError, ValueError) as e:
             log.warning("Could not carry the voiceover over from %s: %s", previous.name, e)
@@ -808,7 +811,8 @@ class PipelineCoordinator:
             self.db.update_run(run_id, "producing", script_payload=payload)
 
             # 3. Audio generation
-            vo_path = run_dir / "voiceover.mp3"
+            from src.audio_engine import VOICEOVER_FILE, rights_file, voiceover_file
+            vo_path = voiceover_file(run_dir)
             words_path = run_dir / "words.json"
             voice_inputs = self.voice_inputs(raw_narration, dry_run)
             licensed_req, allow_paid = voice_inputs["licensed_only"], voice_inputs["allow_paid"]
@@ -818,6 +822,7 @@ class PipelineCoordinator:
                 log.info("Deep-Dive Voiceover: reusing existing audio (%.2fs, %d words timed)", vo_dur, len(words))
             else:
                 self._check_cancel(run_id)
+                vo_path = run_dir / VOICEOVER_FILE  # a new take is always the WAV (QF-08)
                 words = self.audio_engine.generate_narration(raw_narration, vo_path, licensed_only=licensed_req,
                                                              allow_paid=allow_paid)
                 words_path.write_text(json.dumps(words), encoding="utf-8")
@@ -826,7 +831,7 @@ class PipelineCoordinator:
                 from src.audio_provenance import record_voice
                 record_voice(vo_path, self.audio_engine.last_provider, self.audio_engine.last_licensed, raw_narration)
                 checkpoints.complete("deep_voice", voice_inputs,
-                                     [vo_path, words_path, vo_path.with_suffix(".mp3.rights.json")])
+                                     [vo_path, words_path, rights_file(vo_path)])
 
             step(2, f"Voiceover mastered ({vo_dur:.0f}s)")
             # Compute precise chapter timestamps for description, metadata, and cinematic act-transition cues
@@ -2036,13 +2041,14 @@ class PipelineCoordinator:
 
         # 4-5. Audio (reused when resuming)
         self._check_cancel(run_id)
-        vo_path = run_dir / "voiceover.mp3"
+        from src.audio_engine import VOICEOVER_FILE, voiceover_file
         words_path = run_dir / "words.json"
         voice_path = run_dir / "voice.json"  # which provider made it, and whether it's licensed
         voice_inputs = self.voice_inputs(payload["narration_script"], dry_run)
         # A regeneration keeps its paid voice, unless this run would be voiced by another provider now.
         self._seed_voice_from_previous(run_dir, payload["narration_script"],
                                        wanted=self.audio_engine.preferred_provider(voice_inputs["allow_paid"]))
+        vo_path = voiceover_file(run_dir)  # after the carry-over: the WAV, or a take made before QF-08
         saved_voice = json.loads(voice_path.read_text(encoding="utf-8")) if voice_path.exists() else {}
         # A real run never reuses an unlicensed (test) voiceover. Older runs without voice.json
         # predate this record, so they are re-voiced too.
@@ -2069,6 +2075,7 @@ class PipelineCoordinator:
         else:
             from src.audio_engine import calibrate_pace
             from src.script_engine import refit_speed
+            vo_path = run_dir / VOICEOVER_FILE  # a new take is always the WAV (QF-08)
 
             def voice_at(speed):
                 made = self.audio_engine.generate_narration(payload["narration_script"], vo_path, licensed_only=licensed_req,
@@ -2476,11 +2483,12 @@ class PipelineCoordinator:
         for_pictures = bool(kept_words) and pl.rewords_for(self._feedback())
         if not pl.enabled() or (kept_words and not for_pictures) or not payload.get("narration_script"):
             return payload
-        if (run_dir / "voiceover.mp3").is_file() and (run_dir / "words.json").is_file():
+        from src.audio_engine import voiceover_file
+        if voiceover_file(run_dir).is_file() and (run_dir / "words.json").is_file():
             return payload  # a take this run already paid for is never thrown away by this check
         try:  # a regeneration resumed before its voice was copied still keeps the words (review, 2026-10-28)
             previous = self._previous_run_dir()
-            if not for_pictures and previous is not None and (previous / "voiceover.mp3").is_file() and json.loads(
+            if not for_pictures and previous is not None and voiceover_file(previous).is_file() and json.loads(
                     (previous / "script_metadata.json").read_text(encoding="utf-8")).get("narration_script") == payload["narration_script"]:
                 return payload  # the previous run's paid take is for these exact words: never reworded here
         except (OSError, ValueError, AttributeError):

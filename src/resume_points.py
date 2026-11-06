@@ -41,9 +41,11 @@ def reached(run_dir: Path, run: Optional[Dict[str, Any]] = None) -> List[str]:
     except (OSError, ValueError):
         stages = {}
     run_dir = Path(run_dir)
+    from .audio_engine import voiceover_file  # the WAV, or a take made before QF-08
+
     done = {
         "script": "script" in stages and (run_dir / "verified_script.json").is_file(),
-        "voiceover": "voice" in stages and (run_dir / "voiceover.mp3").is_file(),
+        "voiceover": "voice" in stages and voiceover_file(run_dir).is_file(),
         "sound": "bed" in stages and (run_dir / "ambient_bed.wav").is_file(),
         "pictures": _has_files(run_dir / "motion", "*.mp4") or _has_files(run_dir / "graphics", "*.mp4")
                     or _has_files(run_dir / "parallax", "*.mp4"),

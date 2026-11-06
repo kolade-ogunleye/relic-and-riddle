@@ -6,26 +6,24 @@ name no further gain, two consecutive adversarial rounds find no new defect, and
 
 ## Work split (avoid file conflicts)
 
-- **Cloud session (maps):** owns `src/graphics.py` map code, `src/geo.py` and the map/timeline tests
-  (`tests/test_r3_graphics_*`, `test_r4_graphics_*`, `test_timeline_hierarchy_*`, `test_round6/7/8_review_*`,
-  `test_scale_bar_*`, `test_map_marker_*`, `test_geo_polylabel_*`, `test_globe_relief_*`, `test_timeline_ink_*`).
-  Do **not** edit these files from another session until the maps land.
-- **PC session:** everything else (the list below).
+- The workstation builder owns implementation and landing in isolated worktrees, including maps at QF-20.
+- The independent reviewer checks each candidate in separate worktrees and exchanges review files with the builder.
+- The operator's development checkout stays untouched. The cloud session audits the completed programme afterwards.
 
 ## State by design
 
 | Design | State | Next |
 |---|---|---|
-| Reel covers, grid tiles, YouTube thumbnail | Round-4 work committed; freeze step 2 not passed (8 / 8 / 8.5), work kept uncommitted | Step 5 |
-| Captions 9:16 / 16:9 | Freeze step 2 reviewer-passed (9.1 / 9.3 / cues 9); panel 6.5-7.5, not frozen | Step 5: panel findings as spec (`docs/reviews/freeze-panel-2026-11-04/captions/step2`) |
-| IG carousel, FB gallery, Stories | Committed; freeze step 2 not passed (6.5 / 6 / 8), work kept uncommitted | Step 5, after finding why each round scored lower |
-| Reel loop bridge, 16:9 end screen | Committed; freeze step 2 not passed (end screen 7.5, loop bridge 9), work kept uncommitted | Step 5; composer wiring (W1, L1, L2, L4) is a separate task |
-| Then-and-now | Freeze step 2 reviewer-passed (9); panel 7-8.1, not frozen | Step 5: panel findings as spec |
+| Reel covers, grid tiles, YouTube thumbnail | Freeze step 2 not passed (8 / 8 / 8.5); the work is parked in the named stash `qf-park-2026-11-05` | Freeze loop resumes after QF Phase 4b on the post-QF code (rebase the stash) |
+| Captions 9:16 / 16:9 | Reviewer-passed (9.1 / 9.3 / 9); caption measure without kerning landed (5cce25e); panel 6.5-7.5, not frozen | QF-21/QF-87 (true smcp or a derived font: faux caps are forbidden), then the freeze loop after Phase 4b |
+| IG carousel, FB gallery, Stories | Freeze step 2 not passed (6.5 / 6 / 8); parked in the same stash | QF-80/QF-81 (operator decisions), then the freeze loop after Phase 4b |
+| Reel loop bridge, 16:9 end screen | Freeze step 2 not passed (end screen 7.5, loop bridge 9); parked in the same stash | Freeze loop after Phase 4b; composer wiring (W1, L1, L2, L4) is a separate task |
+| Then-and-now | Reviewer-passed (9); panel 7-8.1, not frozen | Freeze loop after Phase 4b |
 | Photo callouts | Redesign committed; unattended runs get none until the accuracy audit exists | Needs real photos and an accuracy audit |
-| First frame, chapter card, myth-vs-fact (`src/design_cards.py`) | Freeze step 2 reviewer-passed (9 / 9 / 9); panel 8.1-8.5, not frozen | Step 5: panel findings as spec; operator: chapter cards all-or-none |
+| First frame, chapter card, myth-vs-fact (`src/design_cards.py`) | Reviewer-passed (9 / 9 / 9); every chapter card drawn (9d3e051); panel 8.1-8.5, not frozen | QF-25 wires the cards into the composer; freeze loop after Phase 4b |
 | Quote cards | Held (`QUOTE_CARDS_ENABLED=false`) | Enable only with signed records and a real checker key; speaker, work and date come from the signed check record only |
 | AI illustrations | Built | Needs a Gemini key and Tesseract to judge |
-| Maps, timelines | In progress in the cloud session (round 8) | — |
+| Maps, timelines | Handed to the PC session (581a866, WIP); independent review of fix2 on 52 new places: NOT OK (0 wrong names, 79/104 renders < 9) | QF-20 (Shapely + pyproj): 200-site sweep and independent 30-new-place review >= 9 on every design; the design freeze criteria remain separate |
 
 ## Operator decisions, freeze step 2 (approved 2026-11-05, for the PC session to implement)
 
@@ -77,6 +75,52 @@ copies. `regression/head_0036b18_cuts.json` is HEAD 0036b18's own phrasing regen
 (`make_head_0036b18_cuts.py`): its 9:16 cuts change in two cases (edge gains index 18; colossi 38 becomes 36 and 39),
 and the gate tables follow. The Reel measure test pins raqm's widths: raqm kerns, so WAVY VAULT measures 545 px against
 the 552 px libass draws (the ASS header does not ask libass to kern); every other sample is within 2 px.
+
+## Quality-fixes programme (2026-11-05 on)
+
+The project quality review (`docs/reviews/project-quality-review-2026-11-05.md`) is worked row by row; the ledger is
+`docs/reviews/quality-fixes-2026-11/STATUS.md` (one commit per row, a regression test that fails on the old code, a
+reproducible `measure.py`, an independent review, the full suite before every push). Phase 0 (stop-ship, 12 rows) is
+complete: QF-49 identifier scrub, QF-46 illustration spend cap, QF-47 docs live vs dry run, QF-48 no self-update in
+production, QF-40 tier-gated corroboration, QF-41 Gemini roles and the injection corpus, QF-42 credit lines, QF-43
+publishable-field allowlist, QF-44 SSRF guard, QF-50 local face verification, QF-51 config drift, QF-45 learned-rule
+grammar. Phase 1 (output defects) is built in part and lands next. The design freeze loop (panel >= 9.5, no further
+gain, two clean adversarial rounds) resumes after Phase 4b, on the post-QF code.
+
+## Operator decisions, 2026-11-05 and 2026-11-06
+
+- Text: raqm layout everywhere (FriBiDi on the dev PC and CI; a go-live step for the VM). Caption small caps stay for
+  now; faux caps are forbidden by the review addendum, so QF-21/QF-87 must use true OpenType `smcp` or a derived font.
+  Caption widths are measured without kerning (as libass draws them).
+- Chapter cards: all drawn; long titles wrap.
+- Delivery: remove grain from the master; hard cuts inside a Reel, with a short dissolve only at act changes.
+- Surfaces (QF-80..83): remove the Story poll frame; pause frames 1-2 until followers reach 1,000 and Story reach
+  reaches 20% of Reel one-day reach for 10 episodes. Render carousels only for booked slots and collect insights;
+  keep the Facebook gallery off until Facebook Reel reach reaches 50% of Instagram. Render final and grid covers
+  only; freeze the cover bandit until a cover-specific signal exists. Default Shorts on, drop the dead thumbnail
+  call, and provide the optional one-second FOLLOW overlay on the loop bridge.
+- Voice (QF-78): use the designed narrator in `data/voice/voices.json`, validate the configured identity, and record
+  the three-script blind listening review and approved sample hash. This does not authorise live provider calls.
+- Grade and fonts (QF-86/QF-87): remove the formula LUT and its generator; grade photos only in 16-bit, with black
+  at zero; remove broadcaster names used as standards. Remove unused Bebas and duplicate Montserrat; omit the
+  grid masthead or keep its cap height at least 9 px. Use actual OpenType features with accents preserved.
+- Topics (QF-73): require sources, lint hooks, remove the duplicate corrections file and viral hashtag, add
+  underrepresented regions, and mark sensitive topics so they cannot run on consecutive days.
+- Operations (QF-48): production self-update stays refused; dependency checks are report-only there and releases
+  follow the approved signed-tag deployment path.
+- Maps: SITE_HINT_KM stays 2 km (marker snaps onto the topic country); a proper name stays whole on a timeline and the
+  span adapts (no over-spine placement); disputed territories get neutral styling (no name or highlight); an enclave
+  missing from Natural Earth beyond 2 km gets no home name (logged); the dot-on-leader marker is allowed but each
+  place uses one marker at both sizes; a home name that partly repeats the title switches to the sovereign's name.
+- Dependencies approved: Shapely, pyproj, fontTools and the addendum list; ruff 0.17.3 as a dev tool. QF-09: edge-tts
+  and pip-audit stay runtime dependencies; requirements.txt stays the production install source and must match a
+  hashed uv.lock checked in CI; only ruff goes in a dev group; the deployer is unchanged.
+- Privacy (QF-50): local face verification by default; ambiguous art crops go to the Gemini paid tier only with
+  `FACE_VERIFY_CLOUD_AMBIGUOUS=true` (off until the operator confirms paid billing and Google's data-processing terms;
+  fails closed); the origin/main test `test_kailasa_stone_carving_not_blurred` was changed with written approval (the
+  photo's two living visitors are blurred).
+- Process: landing one row at a time with the full suite (no batching), at `-n 12 --dist worksteal`; later phases may
+  build while earlier rows land, landing in ledger order. No Defender exclusion (measured 2-3% of CPU).
 
 ## Rules (from AGENTS.md and the operator)
 

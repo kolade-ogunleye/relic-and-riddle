@@ -17,8 +17,10 @@ Parked before step 1 (2026-11-05):
   `qf-park/QF-09` (built, not reviewed); QF-07 partial (measure.py only) in its worktree. They land after Phase 0,
   with the identifier rule of QF-49 applied to their evidence.
 
-Rows are listed in the order they are done (operator, 2026-11-05: Phase 0 first). QF-92 is the
-operator-approved DirectML pin, done after Phase 1.
+Rows are listed in the order they are done (operator, 2026-11-05: Phase 0 first). QF-93 is the
+operator-approved DirectML pin, done after Phase 1 (first ledgered as QF-92; renumbered because the review defines
+QF-92 as the engine/brand repository split, scheduled with QF-35). QF-50 landed after QF-44 as listed; QF-51 and
+QF-45 after it.
 
 ### Phase 0 - stop-ship (before any further output-quality work)
 
@@ -35,7 +37,7 @@ operator-approved DirectML pin, done after Phase 1.
 | QF-44 | SSRF hardening (STOP-SHIP) | done | 7ca0c28 | SSRF attempts refused before the forbidden request 0/37; redirect to 127.0.0.1 not refused; 3 museum providers without allowlist -> 37/37 refused with 0 internal/off-host requests; redirect refused; off-host museum download raises; 0 providers without allowlist | QF-44/ | tests/test_qf44_ssrf_guard.py |
 | QF-50 | Local face verification by default, privacy data map (STOP-SHIP) | done | e6d31e3 | 3 outbound face requests per photo; real faces blurred 167/319; non-faces blurred 591/950; no privacy map -> 0 outbound by default; faces 305/319; non-faces 405/950; privacy.md 4 tables; 3 audience prune rules; ambiguous art crops to the paid tier only when FACE_VERIFY_CLOUD_AMBIGUOUS is on (fails closed) | QF-50/ | tests/test_qf50_local_face_verify.py |
 | QF-51 | Config drift: YouTube vars, RELIC_* vars, inventory regex | done | 7f6f6d3 | inventory drift 8; YouTube names in SECRET_NAMES 0/3; YouTube values shown in a masked log 3/3 -> drift 0; 3/3 masked; values shown 0 | QF-51/ | tests/test_qf51_config_drift.py |
-| QF-45 | Learned-rule grammar and provenance | done | this commit | drafted rules with # or http kept 5/5; other grammar breaks kept 6/6; no provenance on the Adopt card -> 0/5; 0/6; in-grammar kept 4/4; examples fenced; provenance shown | QF-45/ | tests/test_qf45_rule_grammar.py |
+| QF-45 | Learned-rule grammar and provenance | done | efc88ee | drafted rules with # or http kept 5/5; other grammar breaks kept 6/6; no provenance on the Adopt card -> 0/5; 0/6; in-grammar kept 4/4; examples fenced; provenance shown | QF-45/ | tests/test_qf45_rule_grammar.py |
 
 ### Phase 1 - output defects on every upload
 
@@ -50,7 +52,7 @@ operator-approved DirectML pin, done after Phase 1.
 | QF-07 | Ducking | todo | | bed recovery in 0.1-0.5 s word gaps (median dB) | QF-07/ | |
 | QF-08 | Voice PCM + seed | todo | | provider output formats, WAV voiceover, seed, punctuation-only words | QF-08/ | |
 | QF-09 | Pillow 13 + lockfile | todo | | pillow version, uv.lock with hashes, pip-audit in CI, download byte cap | QF-09/ | |
-| QF-92 | Pin ONNX DirectML to the dedicated GPU (operator-approved extra) | todo | | chosen adapter logged; integrated adapter refused under auto | QF-92/ | |
+| QF-93 | Pin ONNX DirectML to the dedicated GPU (operator-approved extra) | todo | | chosen adapter logged; integrated adapter refused under auto | QF-93/ | |
 
 ### Phase 1b - photos
 
@@ -167,6 +169,7 @@ operator-approved DirectML pin, done after Phase 1.
 | QF-33 | Content-ID-safe music | todo | | content_id_safe flag enforced; CC BY credit lines | QF-33/ | |
 | QF-34 | Compliance nits | todo | | AI flag on photos; token expiry watch; masker | QF-34/ | |
 | QF-35 | BrandProfile / Niche config | todo | | a second brand renders end to end in dry-run | QF-35/ | |
+| QF-92 | Engine/brand repository split (review section 9.2, with QF-35) | todo | | a second brand repository renders and posts end to end in dry run against the same engine tag; no brand strings in the engine | QF-92/ | |
 
 ### Phase 6b - accessibility, legal, docs
 

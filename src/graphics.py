@@ -271,14 +271,14 @@ def _encode(frames: Iterable[Image.Image], out: Path, n: int, width: int = VIDEO
 
 # ------------------------------------------------------- contrast on the graded frame (2026-10-29)
 # A graphic's text is measured where the viewer reads it: on its last frame after the master's film grade
-# (video_composer.film_grade_filter and noise; the lens vignette is lifted while a graphic is on screen,
+# (video_composer.picture_chain: the film grade, no grain since QF-03; the lens vignette is lifted while a graphic is on screen,
 # video_composer.graphic_vignette_enable, 2026-11-02), with the glyph masks it was drawn with. The planned and
 # graded ratios of each element are kept beside the clip (<clip>.contrast.json) for video_qa.graphic_contrast_problems.
 CONTRAST_SIDECAR = ".contrast.json"
 
 
 def graded_frame(frame: Image.Image, work: Path, vignette: bool = False) -> Image.Image | None:
-    """`frame` through the master's picture chain (format, hue-safe film print, noise; `vignette` adds the lens
+    """`frame` through the master's picture chain (format, hue-safe film print; `vignette` adds the lens
     vignette, which the master lifts under graphic clips); None when ffmpeg cannot run here (the planned ratios
     are still recorded)."""
     try:
@@ -290,10 +290,10 @@ def graded_frame(frame: Image.Image, work: Path, vignette: bool = False) -> Imag
         src, dst = work / f"_contrast_in_{tag}.png", work / f"_contrast_out_{tag}.png"
         frame.convert("RGB").save(src)
         aspect = "16/9" if frame.width > frame.height else "9/16"
-        # BT.709 in and out, as the master converts and tags its pictures (QF-01); the grade, grain and vignette in
+        # BT.709 in and out, as the master converts and tags its pictures (QF-01); the grade and vignette in
         # 16-bit RGB, as the master's picture_chain (QF-02)
         chain = picture_chain(film_grade_filter(0.0, out_dir=work), frame.width, frame.height,
-                              grain="noise=alls=8:allf=t+u:all_seed=7", vignette=vignette,
+                              vignette=vignette,
                               lens_filter=f"vignette=PI/4.2:aspect={aspect}")
         graph = f"[0:v]{RGB_TO_BT709},format=yuv420p,{chain},format=yuv420p,{BT709_TO_RGB},format=rgb24[out]"
         subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", str(src), "-filter_complex", graph, "-map", "[out]",

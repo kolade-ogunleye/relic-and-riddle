@@ -129,6 +129,9 @@ def test_the_chain_cuts_by_sample_count_with_no_eof_inside_the_mix():
 
 def test_the_reel_master_and_the_card_level_use_the_exact_cut():
     src = (Path(__file__).resolve().parent.parent / "src" / "video_composer.py").read_text(encoding="utf-8")
-    assert "end=vo_dur + card_seconds if card else None" in src
+    # QF-03: deterministic complete masters require the exact cut for every
+    # programme, including those without a loop tail, and for calibration too.
+    assert "end=vo_dur + card_seconds)" in src
+    assert "end=vo_dur + card_seconds if card else None" not in src
     assert "seam_fade = _seam_tail(vo_dur + card_seconds, edge)" in src
     assert "_audio_chain(0, 1, pad, end=card_at + pad if pad > 0 else None)" in src

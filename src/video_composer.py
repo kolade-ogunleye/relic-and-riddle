@@ -2894,8 +2894,8 @@ FILM_TONE_NORM_MIX = 0.5     # 0 = luminance (washes bright warm colours out), 1
 FILM_TONE_CHROMA = 1.03      # the print's richness, bounded: more than this grows a warm material into a cast
 # The pre-LUT white headroom. The stacked black lifts are gone (QF-02, 2026-11-06): a still's branch curve (0/0.02),
 # this curve (0/0.02) and the print table's own black (5.4/255) stacked to Y22 for a black still. Black is set once,
-# by the print table, at video black (Y16; the master's RGB grain, clipped at 0, adds about 0.6). One lift of 0.01
-# kept here measured Y16.9 without the grain and Y17.1-17.3 with it, outside Y16 +-1, so none is kept.
+# by the print table, at video black (Y16). One lift of 0.01 kept here measured Y16.9 (QF-02, with the grain the
+# master then carried: Y17.1-17.3), so none is kept.
 FILM_PRE_CURVE = "curves=master='0/0 0.5/0.50 1/0.98'"
 _LUMA_709 = (0.2126, 0.7152, 0.0722)
 
@@ -2984,18 +2984,19 @@ def film_grade_filter(grade_bias: float = 0.0, source: Path = FILM_PRINT_LUT, ou
 # The picture chain in 16-bit RGB (QF-02, 2026-11-06). curves and lut3d are RGB filters; on the yuv420p stream
 # ffmpeg converted to 8-bit RGB and back around each: a 0-64 shadow ramp (56 luma levels) kept 29 in the master.
 # The graded picture is now read once into 16-bit planar RGB (gbrp16le) with the BT.709 matrix; the grade, the print
-# LUT, the grain, the lens vignette and the captions all work there, and it is converted once, at the end, to BT.709
-# yuv420p (swscale dithers 16-bit RGB down to 8-bit YUV). ffmpeg's vignette has no 16-bit path, so the lens is drawn
-# on a white frame (the same picture_vignette filter) and multiplied into the 16-bit picture.
+# LUT, the lens vignette and the captions all work there, and it is converted once, at the end, to BT.709 yuv420p
+# (swscale dithers 16-bit RGB down to 8-bit YUV). ffmpeg's vignette has no 16-bit path, so the lens is drawn on a
+# white frame (the same picture_vignette filter) and multiplied into the 16-bit picture.
+# No grain (QF-03, 2026-11-06, operator decision): the unseeded noise=alls=8:allf=t+u made every render differ and
+# took most of the master's bitrate at the same CRF, and the platforms' re-encodes strip it.
 PICTURE_RGB16 = "gbrp16le"
-MASTER_GRAIN = "noise=alls=8:allf=t+u"
 
 
-def picture_chain(grade: str, width: int, height: int, *, grain: str = MASTER_GRAIN, vignette: bool = True,
+def picture_chain(grade: str, width: int, height: int, *, vignette: bool = True,
                   vignette_enable: str = "", card_split: str = "", captions: str = "", tag: str = "pc",
                   lens_filter: str | None = None) -> str:
     """The master's picture chain, for one filter_complex chain on BT.709 yuv420p: `grade` (film_grade_filter),
-    `grain`, the lens vignette (`vignette_enable`: graphic_vignette_enable), `card_split` (a split whose second
+    the lens vignette (`vignette_enable`: graphic_vignette_enable), `card_split` (a split whose second
     branch the caller labels, before the captions) and `captions` (the subtitles filter), all in 16-bit RGB, then
     one conversion back to BT.709 yuv420p, tagged. `tag` keeps the chain's two inner labels unique in a graph;
     `lens_filter`: the vignette filter drawn on the lens frame (default picture_vignette(width, height))."""
@@ -3004,8 +3005,6 @@ def picture_chain(grade: str, width: int, height: int, *, grain: str = MASTER_GR
         yuv, grade = grade.split(",", 1)
         yuv += ","
     chain = f"{yuv}{BT709_TO_RGB},format={PICTURE_RGB16},{grade}"
-    if grain:
-        chain += f",{grain}"
     if vignette:
         lens = (f"color=c=white:s={width}x{height}:r={VIDEO_FPS},format=rgb24,{lens_filter or picture_vignette(width, height)},"
                 f"format={PICTURE_RGB16}")
@@ -3984,7 +3983,8 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
     def calibrate_gain(self, vo_path: Path, bed_path: Path, tolerance: float = 0.5, accept: float = 1.0,
                        max_iter: int = 6, target_lufs: float = TARGET_LUFS,
                        target_true_peak: float = TARGET_TRUE_PEAK, pad: float = 0.0,
-                       card_at: Optional[float] = None, card_db: float = 0.0) -> float:
+                       card_at: Optional[float] = None, card_db: float = 0.0,
+                       end: float | None = None) -> float:
         """
         Finds the gain that lands the limited mix on target_lufs (within `tolerance` LU,
         the usual delivery tolerance). The limiter absorbs part of each gain step, so steps
@@ -3995,13 +3995,13 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         # Same voice + bed + targets always converge to the same gain (each pass decodes the full
         # mix), so a re-render (QA re-plan, deep-dive) reuses it instead of re-measuring.
         key = (sha256_file(vo_path), sha256_file(bed_path), tolerance, accept, max_iter, target_lufs, target_true_peak, round(pad, 3),
-               card_at, round(card_db, 2))
+               card_at, round(card_db, 2), end)
         cache = self.__dict__.setdefault("_gain_cache", {})
         if all(key[:2]) and key in cache:
             log.info("Mastering: reusing calibrated gain %+.2f dB for unchanged audio", cache[key])
             return cache[key]
         gain = self._calibrate_gain(vo_path, bed_path, tolerance, accept, max_iter, target_lufs, target_true_peak, pad,
-                                    card_at, card_db)
+                                    card_at, card_db, end)
         if all(key[:2]):
             cache[key] = gain
         return gain
@@ -4019,8 +4019,11 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 
     def _calibrate_gain(self, vo_path: Path, bed_path: Path, tolerance: float, accept: float,
                         max_iter: int, target_lufs: float, target_true_peak: float, pad: float = 0.0,
-                        card_at: Optional[float] = None, card_db: float = 0.0) -> float:
-        base = _audio_chain(0, 1, pad, card_at, card_db)
+                        card_at: Optional[float] = None, card_db: float = 0.0,
+                        end: float | None = None) -> float:
+        # Measure the same sample-bounded programme as delivery. A finite sidechain
+        # can forward either input's EOF first under load, changing the measured gain.
+        base = _audio_chain(0, 1, pad, card_at, card_db, end=end)
         integrated, _ = self._measure(vo_path, bed_path, base)
         gain = target_lufs - integrated
         best_gain, best_err = gain, float("inf")
@@ -4262,7 +4265,8 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                                   f"{vo_dur + card_seconds:.2f}s (make it with end_card_at).")
         # The whole programme is mastered together: narration, and the card after it with the bed alone.
         gain = self.calibrate_gain(vo_path, bed_path, target_lufs=profile.target_lufs,
-                                   target_true_peak=profile.target_true_peak, pad=card_seconds)
+                                   target_true_peak=profile.target_true_peak, pad=card_seconds,
+                                   end=vo_dur + card_seconds)
         card_at, card_db, card_level = (vo_dur if card else None), 0.0, None
         if card:  # the card's own level, measured in the mastered programme, then the whole mastered again
             card_level = self.end_card_level(vo_path, bed_path, vo_dur, card_seconds, gain)
@@ -4270,7 +4274,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             if card_db:
                 gain = self.calibrate_gain(vo_path, bed_path, target_lufs=profile.target_lufs,
                                            target_true_peak=profile.target_true_peak, pad=card_seconds,
-                                           card_at=card_at, card_db=card_db)
+                                           card_at=card_at, card_db=card_db, end=vo_dur + card_seconds)
         # The loop seam (review, 2026-11-03): the programme is cut at the bridge's end (vo_dur + card_seconds), and
         # the bed's LOOP_BRIDGE_EDGE fade-out ends exactly there. The bed file keeps 50 ms of headroom past the cut
         # (end_card.bed_tail), where its own fade used to fall: the delivered file then ended at the bridge's held
@@ -4282,7 +4286,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             edge = AudioEngine.LOOP_BRIDGE_EDGE
             seam_fade = _seam_tail(vo_dur + card_seconds, edge)
         filter_parts.append(_audio_chain(n, n + 1, card_seconds, card_at, card_db,
-                                         end=vo_dur + card_seconds if card else None)
+                                         end=vo_dur + card_seconds)
                             + _master_chain(gain) + seam_fade + "[a_final]")
 
         ass_str = str(ass_path.resolve()).replace("\\", "/").replace(":", "\\:")
@@ -4296,7 +4300,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         # The graded picture before the captions, split off for the end card's background (its last frame).
         card_split = "split[v_graded][v_card_src];[v_graded]" if card else ""
         # QF-02: from here `film_grade` is the whole picture chain in 16-bit RGB (picture_chain): the grade, the
-        # grain, the lens vignette (picture_vignette, freeze pass V1: ffmpeg reads its aspect as the pixel aspect,
+        # lens vignette (picture_vignette, freeze pass V1: ffmpeg reads its aspect as the pixel aspect,
         # so the 16:9 master draws at aspect 1), the card split and the captions, then one dithered conversion to
         # BT.709 yuv420p. The yuv420p guards around it stay (the planar-RGB right-edge bar is measured in QF-02).
         film_grade = picture_chain(film_grade, width, height, vignette_enable=vignette_enable, card_split=card_split,

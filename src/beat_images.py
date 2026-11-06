@@ -23,6 +23,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from . import commons
 from . import config
 from . import museum_sources
+from . import url_guard
 from .llm import LLMError, degenerate_reason, structured_call, task as llm_task, verdict_reason
 from .models import BeatQueries
 
@@ -548,7 +549,12 @@ def _download(items, topic: Dict[str, Any], work_dir: Path, seen: set, prefix: s
                         continue
                     verified += 1
                     dest = work_dir / f"{prefix}{item.beat:02d}_{found + 1}.jpg"
-                    commons.download_jpeg(cand["download_url"], dest, max_wait=wait)
+                    try:
+                        hosts = {"provider": cand["provider"]} if cand.get("provider") else {}  # its provider's hosts
+                        commons.download_jpeg(cand["download_url"], dest, max_wait=wait, **hosts)
+                    except url_guard.RefusedURL as e:  # not on its provider's hosts, or a hop inside (QF-44)
+                        log.warning("Beat %d: %s not downloaded (%s).", item.beat, cand["title"][:80], e)
+                        continue
                     # The pool screen's look (1024 px, an edge band of text cropped away and looked at again): a found
                     # photo with a label strip was set aside at 512 px, uncropped (audit 2026-10-28).
                     shows, why, use = screened_picture(dest, item.query)

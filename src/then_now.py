@@ -22,7 +22,7 @@ import requests
 from PIL import Image, ImageDraw
 from pydantic import BaseModel
 
-from . import commons, config, safe_zones
+from . import commons, config, safe_zones, url_guard
 from .brand import BONE, DATA_FONT, INK, PLACE_TARGET, rgba
 from .config import VIDEO_FPS, VIDEO_HEIGHT, VIDEO_WIDTH
 from .credits import normalize
@@ -332,7 +332,7 @@ def source(topic: dict[str, Any], work_dir: Path) -> tuple[Path, dict[str, Any],
                     commons.download_jpeg(new["download_url"], path)
                 seen_recent[new["title"]] = path
                 out.append((path, new))
-            except (requests.RequestException, OSError) as e:
+            except (requests.RequestException, OSError, url_guard.RefusedURL) as e:
                 log.info("Recent photo skipped: %s", e)
         return out
 
@@ -345,7 +345,7 @@ def source(topic: dict[str, Any], work_dir: Path) -> tuple[Path, dict[str, Any],
             if not op.exists():
                 commons.download_jpeg(old["download_url"], op)
             pick = _pick(op, [r[0] for r in recents], place)
-        except (requests.RequestException, OSError, LLMError) as e:
+        except (requests.RequestException, OSError, LLMError, url_guard.RefusedURL) as e:
             log.info("Then-and-now candidate skipped: %s", e)
             continue
         if (pick.old_is_photograph and not pick.graphic_or_sensitive and 1 <= pick.best_match <= len(recents)

@@ -73,7 +73,7 @@ def put_upright(topic_dir: Path) -> Tuple[List[str], Set[str]]:
         try:
             if not url:
                 raise ValueError("no download link recorded")
-            commons.download_jpeg(url, fresh)
+            commons.download_jpeg(url, fresh, provider=item.get("provider") or None)  # its provider's hosts (QF-44)
             if turned(fresh, item.get("width"), item.get("height")):
                 raise ValueError("Commons gave it turned over again")
             (topic_dir / BACKUP_DIR).mkdir(exist_ok=True)

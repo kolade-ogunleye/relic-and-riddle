@@ -22,11 +22,11 @@ import subprocess
 import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
-from urllib.parse import urlparse
+from urllib.parse import urljoin, urlparse
 
 import requests
 
-from . import commons, config
+from . import commons, config, url_guard
 
 log = logging.getLogger(__name__)
 
@@ -46,7 +46,14 @@ ALLOWED_HOSTS = {
     "openverse": {".staticflickr.com", "upload.wikimedia.org"},
     "loc": {"tile.loc.gov", "www.loc.gov", "cdn.loc.gov"},
     "artic": {"www.artic.edu"},
+    # The museum still-image searches (src/museum_sources.py): each serves its files from its own image host (QF-44).
+    "met": {"images.metmuseum.org"},
+    "nasa": {"images-assets.nasa.gov"},
+    "smithsonian": {"ids.si.edu"},
 }
+# Still-image providers: a picture whose provider is not recorded (a Commons search result, a credits.json entry)
+# may come from any of their fixed hosts, never from a wildcard one.
+IMAGE_PROVIDERS = ("commons", "openverse", "loc", "artic", "met", "nasa", "smithsonian", "europeana")
 CREDIT_PREFIX = "🎥 Footage:"
 
 
@@ -54,21 +61,33 @@ def _host_allowed(host: str, provider: str) -> bool:
     return bool(host) and any(h == "*" or host == h or (h.startswith(".") and host.endswith(h)) for h in ALLOWED_HOSTS[provider])
 
 
+def url_allowed(url: str, provider: str | None) -> bool:
+    """An https URL on the provider's hosts (any image provider's fixed hosts when `provider` is None) whose host is
+    public (src/url_guard: no private, loopback or link-local address, no local name). A wildcard provider's host is
+    also resolved and refused when it points inside (QF-44)."""
+    if provider is None:
+        return url_guard.checked(url, lambda h: any(_host_allowed(h, p) and "*" not in ALLOWED_HOSTS[p]
+                                                    for p in IMAGE_PROVIDERS), resolve=False)
+    if provider not in ALLOWED_HOSTS:
+        return False
+    return url_guard.checked(url, lambda h: _host_allowed(h, provider), resolve="*" in ALLOWED_HOSTS[provider])
+
+
 # ----------------------------------------------------------- download & clip
 def download(url: str, provider: str, dest: Path, extra_headers: Optional[dict] = None, max_bytes: Optional[int] = None) -> Path:
     """HTTPS from the provider's media hosts only, streamed with a size cap (archive film has its own, larger one)."""
     cap = max_bytes or MAX_BYTES
     parsed = urlparse(url)
-    if parsed.scheme != "https" or not _host_allowed(parsed.hostname or "", provider):
+    if not url_allowed(url, provider):
         raise ValueError(f"refusing to download from {parsed.scheme}://{parsed.hostname}")
     headers = commons.HEADERS if provider == "commons" else {"User-Agent": commons.HEADERS["User-Agent"]}
     headers = {**headers, **(extra_headers or {})}
     with requests.get(url, stream=True, timeout=(15, 120), headers=headers, allow_redirects=False) as resp:
         if resp.is_redirect:
-            target = urlparse(resp.headers.get("Location", ""))
-            if target.scheme != "https" or not _host_allowed(target.hostname or "", provider):
-                raise ValueError(f"refusing redirect to {target.hostname}")
-            return download(resp.headers["Location"], provider, dest, max_bytes=cap)  # credentials are not forwarded
+            location = urljoin(url, resp.headers.get("Location", ""))
+            if not url_allowed(location, provider):
+                raise ValueError(f"refusing redirect to {urlparse(location).hostname}")
+            return download(location, provider, dest, max_bytes=cap)  # credentials are not forwarded
         resp.raise_for_status()
         declared = int(resp.headers.get("Content-Length") or 0)
         if declared > cap:  # don't start a download that would only hit the cap

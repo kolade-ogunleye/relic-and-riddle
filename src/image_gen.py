@@ -741,12 +741,15 @@ def _readable_image(path: Path) -> bool:
 
 def _download_reference(cand: dict[str, Any], work_dir: Path) -> Path | None:
     """The candidate's file in work_dir/REFERENCE_DIR (https only, at most REFERENCE_MAX_BYTES, readable, at least
-    REFERENCE_MIN_SIDE px), or None. Never raises."""
-    from urllib.parse import urlparse
-
+    REFERENCE_MIN_SIDE px), or None. Never raises. The URL and every redirect hop must be on the candidate's provider
+    hosts (footage.ALLOWED_HOSTS; any still-image provider's fixed hosts when it records none) and public (QF-44)."""
+    from . import url_guard
     from .commons import HEADERS
+    from .footage import url_allowed
     url = str(cand.get("download_url") or "")
-    if urlparse(url).scheme != "https":
+    provider = str(cand.get("provider") or "") or None
+    if not url_allowed(url, provider):
+        log.info("Reference %s not fetched (not on %s's hosts).", url[:80], provider or "an image provider")
         return None
     import io
 
@@ -755,7 +758,8 @@ def _download_reference(cand: dict[str, Any], work_dir: Path) -> Path | None:
     if out.is_file() and _readable_image(out):
         return out
     try:
-        with requests.get(url, headers=HEADERS, timeout=30, stream=True) as r:
+        with url_guard.follow(url, requests.get, allowed=lambda u: url_allowed(u, provider),
+                              headers=HEADERS, timeout=30, stream=True) as r:
             if r.status_code != 200:
                 return None
             size, chunks = 0, []

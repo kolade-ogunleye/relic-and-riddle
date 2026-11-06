@@ -20,6 +20,7 @@ from urllib.parse import urlparse
 
 import requests
 
+from . import url_guard
 from .commons import HEADERS
 
 log = logging.getLogger(__name__)
@@ -58,19 +59,32 @@ def article(title: str) -> Tuple[str, str, List[str]]:
     return url, page.get("extract", ""), links
 
 
+def _html(ctype: str) -> bool:
+    return "html" in (ctype or "").lower()
+
+
 def page_text(url: str) -> Optional[str]:
-    """Visible text of a page (HTTPS only, size-capped). None if it can't be fetched as HTML."""
-    if urlparse(url).scheme != "https":
-        return None
+    """Visible text of a page (HTTPS only, size-capped). None if it can't be fetched as HTML.
+
+    The URL comes from an article's external links, i.e. from whoever edited it (QF-44): redirects are followed by
+    hand and every hop must be HTTPS to a public host (src/url_guard: no private, loopback or link-local address, no
+    local name). A HEAD first turns away what says it is not a page before its body is asked for."""
+    headers = {"User-Agent": HEADERS["User-Agent"]}
     try:
-        with requests.get(url, headers={"User-Agent": HEADERS["User-Agent"]}, timeout=20, stream=True) as r:
-            if r.status_code != 200 or "html" not in r.headers.get("Content-Type", ""):
+        head = url_guard.follow(url, requests.head, headers=headers, timeout=20)
+        if head.status_code == 200 and head.headers.get("Content-Type") and not _html(head.headers["Content-Type"]):
+            return None
+        with url_guard.follow(url, requests.get, headers=headers, timeout=20, stream=True) as r:
+            if r.status_code != 200 or not _html(r.headers.get("Content-Type", "")):
                 return None
             body = b""
             for chunk in r.iter_content(65536):
                 body += chunk
                 if len(body) > MAX_PAGE_BYTES:
                     break
+    except url_guard.RefusedURL as e:
+        log.info("Cited page not fetched: %s", e)
+        return None
     except requests.RequestException:
         return None
     text = body.decode("utf-8", errors="replace")

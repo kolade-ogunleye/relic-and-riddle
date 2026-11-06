@@ -13,7 +13,7 @@ import pytest
 import requests
 
 from src import card_fields as cf
-from src import fact_sheet, free_evidence
+from src import fact_sheet, free_evidence, url_guard
 from src.models import DraftFact
 
 FIGURE = "4,700 tonnes"
@@ -39,7 +39,7 @@ class _Page:
 def _network(monkeypatch, extlinks):
     seen = []
 
-    def get(url, params=None, headers=None, timeout=None, stream=False):
+    def get(url, params=None, headers=None, timeout=None, stream=False, allow_redirects=True):
         seen.append((url, dict(params or {}), stream))
         if url == free_evidence.WIKI_API and (params or {}).get("list") == "search":
             return SimpleNamespace(json=lambda: {"query": {"search": [{"title": "Old Mint Vault"}]}})
@@ -51,6 +51,9 @@ def _network(monkeypatch, extlinks):
         assert url in extlinks, url
         return _Page()
     monkeypatch.setattr(requests, "get", get)
+    # QF-44: page_text asks HEAD first and resolves the cited host; both answer from the fixture.
+    monkeypatch.setattr(requests, "head", lambda url, **k: SimpleNamespace(status_code=405, headers={}, is_redirect=False))
+    monkeypatch.setattr(url_guard, "_addresses", lambda host: ["93.184.216.34"])
     return seen
 
 

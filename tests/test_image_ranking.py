@@ -111,8 +111,11 @@ def test_planner_sees_each_photos_archive_caption(tmp_path):
 
 
 def _downloaded(url, dest, **kwargs):
-    dest.write_bytes(b"jpg")
-    return 3000, 2500  # decoded dimensions returned by the downloader (native crop)
+    import numpy as np
+    from PIL import Image
+    pixels = np.random.default_rng(int(dest.stem.split("_")[0])).integers(0, 256, (32, 32, 3), dtype=np.uint8)
+    Image.fromarray(pixels).resize((3000, 2500)).save(dest)
+    return 3000, 2500
 
 
 def test_namesakes_and_off_topic_fallbacks_are_refused(monkeypatch, tmp_path):
@@ -140,6 +143,7 @@ def test_share_alike_only_fills_what_open_licences_cannot(monkeypatch, tmp_path)
     monkeypatch.setattr(config, "IMAGES_ALLOW_SHARE_ALIKE", True)
     sa = page("Zhang Heng seismoscope share alike", 4000, 3000)
     sa["imageinfo"][0]["extmetadata"]["LicenseShortName"]["value"] = "CC BY-SA 4.0"
+    sa["imageinfo"][0]["extmetadata"]["Artist"]["value"] = "Another Photographer"
     open_ = page("Zhang Heng seismoscope open", 3000, 2500)
     monkeypatch.setattr(fetch, "search", lambda q, **k: [sa, open_])   # the BY-SA one ranks higher (bigger)
     monkeypatch.setattr(fetch, "search_graded", lambda q, **k: [])

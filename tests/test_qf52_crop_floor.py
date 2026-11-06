@@ -87,6 +87,8 @@ def test_download_records_upright_dimensions(monkeypatch, tmp_path):
 def pool(monkeypatch, tmp_path):
     records = [page(f"native{i}", 4000, 3000) for i in range(9)]
     records += [page(f"low{i}", 2200, 2100) for i in range(9)]
+    for index, record in enumerate(records):
+        record["imageinfo"][0]["extmetadata"]["Artist"]["value"] = f"Photographer {index}"
     dimensions = {p["imageinfo"][0]["url"]: (p["imageinfo"][0]["width"], p["imageinfo"][0]["height"])
                   for p in records}
 
@@ -94,7 +96,10 @@ def pool(monkeypatch, tmp_path):
         width, height = dimensions[url]
         if min(width, height * 9 / 16) < kwargs.get("min_crop_width", 0):
             raise ValueError("decoded crop below requested floor")
-        dest.write_bytes(b"mock JPEG")
+        import numpy as np
+        seed = next(index for index, source in enumerate(dimensions) if source == url)
+        pixels = np.random.default_rng(seed + 520).integers(0, 256, (32, 32, 3), dtype=np.uint8)
+        Image.fromarray(pixels).resize((width, height)).save(dest)
         return width, height
 
     monkeypatch.setattr(fetch, "search", lambda *a, **k: records)

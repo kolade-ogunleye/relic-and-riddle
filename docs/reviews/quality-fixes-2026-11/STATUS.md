@@ -58,8 +58,8 @@ QF-45 after it.
 
 | ID | Finding | Status | Commit | Acceptance metric before -> after | Evidence path | Regression test |
 |---|---|---|---|---|---|---|
-| QF-52 | 9:16 crop floor and aspect-aware ranking | done | this commit | synthetic48:automatic47/22under1080/80.85%under1350->10/0/10%; explicitessential archive preserved and whole-image native-or-smaller; all old assertions unchanged | QF-52/ | tests/test_qf52_crop_floor.py tests/test_qf52_essential_images.py |
-| QF-53 | pHash dedup, author share cap, shot-class quota | todo | | no pair within 10 bits; author share <= 35%; >= 3 shot classes | QF-53/ | |
+| QF-52 | 9:16 crop floor and aspect-aware ranking | done | 4792d55 | synthetic48:automatic47/22under1080/80.85%under1350->10/0/10%; explicitessential archive preserved and whole-image native-or-smaller; all old assertions unchanged | QF-52/ | tests/test_qf52_crop_floor.py tests/test_qf52_essential_images.py |
+| QF-53 | pHash dedup, author share cap, shot-class quota | done | this commit | 24-photo fixture:duplicatepairs10->0,minhashdistance0->21,maxauthor83.33%->33.33%;3classes;12reserves preserved | QF-53/ | tests/test_qf53_pool_diversity.py |
 | QF-54 | Structured per-topic queries, SDC depicts, aliases | todo | | >= 2x candidates on 5 topics, no rise in off-topic | QF-54/ | |
 | QF-55 | Category fallback through topic_anchor | todo | | 0 off-topic among fallback files over 10 fetches | QF-55/ | |
 | QF-56 | Deterministic photo pre-checks, quality and depiction | todo | | every record has quality + depiction; originals outrank reconstructions | QF-56/ | |

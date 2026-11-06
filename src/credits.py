@@ -704,6 +704,12 @@ def approve_set(topic_dir: Path, min_images: int) -> str:
     credits = load_credits(topic_dir)
     if len(credits["images"]) < min_images:
         raise ValueError(f"Only {len(credits['images'])} images; need {min_images}. Re-run the fetcher to refill.")
+    from . import photo_pool
+    photo_pool.refresh(topic_dir, credits["images"])
+    diversity = photo_pool.assess(credits["images"])
+    if not diversity["ok"]:
+        raise ValueError("Photo pool needs more variety before approval: " + "; ".join(diversity["problems"]))
+    credits["pool_diversity"] = diversity
     credits["reviewed"] = True
     credits["reviewed_by"] = "operator"  # a human decision: automatic review never overrides it
     save_credits(topic_dir, credits)

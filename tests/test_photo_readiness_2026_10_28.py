@@ -6,6 +6,7 @@ import importlib
 import json
 import random
 
+import numpy as np
 import pytest
 from PIL import Image
 
@@ -30,8 +31,11 @@ def _pool(d, tiers, start=1, **extra):
     cr = load_credits(d) if (d / "credits.json").is_file() else {"images": []}
     for i, t in enumerate(tiers, start):
         f = f"{i:02d}_commons.jpg"
-        Image.new("RGB", (64, 48), (i % 255, 0, 0)).save(d / f)
-        im = {"file": f, "title": f"File:Photo {i}.jpg", "license": "CC0", "relevance": i}
+        # Source diversity is valid; these tests isolate topic/context readiness.
+        pixels = np.random.default_rng(i).integers(0, 256, (48, 64, 3), dtype=np.uint8)
+        Image.fromarray(pixels).save(d / f)
+        im = {"file": f, "title": f"File:Photo {i}.jpg", "license": "CC0", "relevance": i,
+              "artist": f"Photographer {i}", "shot_class": ("wide", "interior", "detail")[i % 3]}
         if t in VERDICT:
             im["vision_review"] = dict(VERDICT[t])
         elif t == "kept":
@@ -43,7 +47,8 @@ def _pool(d, tiers, start=1, **extra):
 
 
 def _verdicts(tiers):
-    return image_review.PoolReview(verdicts=[image_review.PhotoVerdict(index=i, reason="r", **VERDICT[t])
+    return image_review.PoolReview(verdicts=[image_review.PhotoVerdict(index=i, reason="r",
+                                             shot_class=("wide", "interior", "detail")[i % 3], **VERDICT[t])
                                              for i, t in enumerate(tiers, 1)])
 
 

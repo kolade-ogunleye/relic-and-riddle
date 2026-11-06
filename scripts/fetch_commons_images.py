@@ -128,8 +128,23 @@ def _fetch_pass(topic: dict, spec: dict, allow_sa: bool, target_images: int = TA
                 record.update(presentation="full_image", essential_reason=essential_titles[record["title"]])
                 credits["reviewed"] = False
                 save_credits(topic_dir, credits)
+    from src import photo_pool
+    photo_pool.refresh(topic_dir, images)
+    if credits.get("reviewed_by") != "operator":
+        old_reserve = credits.get("diversity_reserve", [])
+        rejected_titles = {c.get("title") for c in credits.get("rejected_by_review", [])}
+        known_files = {c["file"] for c in images}
+        reusable = [c for c in old_reserve if c.get("reserve_reason") != "near duplicate"
+                    and c.get("title") not in rejected_titles and c.get("file") not in known_files
+                    and (topic_dir / c.get("file", "")).is_file()]
+        photo_pool.refresh(topic_dir, reusable)
+        selected, reserve = photo_pool.fetch_subset(images + reusable, target_images)
+        images[:] = selected
+        credits["diversity_reserve"] = [c for c in old_reserve if c not in reusable] + reserve
     missing_essential = set(essential_titles) - {record.get("title") for record in images}
     if len(images) >= target_images and not missing_essential:
+        credits["pool_diversity"] = photo_pool.assess(images)
+        save_credits(topic_dir, credits)
         print(f"  {topic['id']}: already has {len(images)} images")
         return len(images)
 
@@ -145,6 +160,7 @@ def _fetch_pass(topic: dict, spec: dict, allow_sa: bool, target_images: int = TA
              if loc.get("latitude") and loc.get("longitude") else None)  # 0,0 means unknown
     # Photos a review already rejected are never fetched again.
     have = {c["title"] for c in images} | {c.get("title") for c in credits.get("rejected_by_review", [])}
+    have |= {c.get("title") for c in credits.get("diversity_reserve", [])}
     added = 0
     candidate_options = {"essential_titles": essential_titles} if essential_titles else {}
 
@@ -168,6 +184,22 @@ def _fetch_pass(topic: dict, spec: dict, allow_sa: bool, target_images: int = TA
         w, h = download_jpeg(cand["download_url"], dest, min_pixels=MIN_PIXELS,
                              min_height=MIN_HEIGHT, min_crop_width=floor)
         cand.update(width=w, height=h, vertical_crop_width=vertical_crop_width(w, h))
+
+    def diverse_candidate(cand, dest):
+        cand.update(photo_pool.signature(dest))
+        cand["shot_class"] = photo_pool.provisional_shot_class(cand)
+        duplicate = photo_pool.duplicate_of(cand, images)
+        author_count = sum(photo_pool.author_key(c) == photo_pool.author_key(cand) for c in images)
+        class_count = sum(photo_pool.shot_class(c) == cand["shot_class"] for c in images)
+        reason = ("near duplicate" if duplicate else
+                  "author quota" if author_count >= max(1, int(target_images * 0.35)) else
+                  "shot class quota" if cand["shot_class"] != "unknown" and class_count >= max(1, (target_images + 1) // 2)
+                  else "")
+        if reason and not photo_pool.protected(cand):
+            credits.setdefault("diversity_reserve", []).append({**cand, "file": dest.name, "reserve_reason": reason})
+            have.add(cand["title"])
+            return False
+        return True
 
     # 1. Primary: the curated shot searches (wide, detail, interior...). Each query's results are
     # ranked best first (Commons grade, then resolution) and the queries take turns, so the set
@@ -204,6 +236,8 @@ def _fetch_pass(topic: dict, spec: dict, allow_sa: bool, target_images: int = TA
         dest = topic_dir / f"{n:02d}_commons.jpg"
         try:
             fetch_picture(cand, dest)
+            if not diverse_candidate(cand, dest):
+                continue
         except Exception as e:
             print(f"    skip {cand['title']}: {e}")
             continue
@@ -239,6 +273,8 @@ def _fetch_pass(topic: dict, spec: dict, allow_sa: bool, target_images: int = TA
                     dest = topic_dir / f"{n:02d}_commons.jpg"
                     try:
                         fetch_picture(cand, dest)
+                        if not diverse_candidate(cand, dest):
+                            continue
                     except Exception:
                         continue
                     cand["file"] = dest.name
@@ -267,6 +303,8 @@ def _fetch_pass(topic: dict, spec: dict, allow_sa: bool, target_images: int = TA
                 dest = topic_dir / f"{n:02d}_commons.jpg"
                 try:
                     fetch_picture(cand, dest)
+                    if not diverse_candidate(cand, dest):
+                        continue
                 except Exception:
                     # Skips low-res museum thumbnails or unreachable endpoints
                     continue
@@ -281,6 +319,10 @@ def _fetch_pass(topic: dict, spec: dict, allow_sa: bool, target_images: int = TA
 
     if added:
         credits["reviewed"] = False  # new images always need a fresh look
+    selected, reserve = photo_pool.balanced(images)
+    images[:] = selected
+    credits.setdefault("diversity_reserve", []).extend(reserve)
+    credits["pool_diversity"] = photo_pool.assess(images)
     images.sort(key=lambda c: c["file"])
     save_credits(topic_dir, credits)
 

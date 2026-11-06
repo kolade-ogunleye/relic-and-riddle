@@ -1,0 +1,12 @@
+{
+  "fixture_candidates": 48,
+  "automatic_images": 47,
+  "automatic_under_1080": 22,
+  "automatic_under_1350": 38,
+  "automatic_upscale_fraction": 0.8085106382978723,
+  "minimum_automatic_crop": 843,
+  "essential_exceptions": 0,
+  "essential_source_bytes_preserved": false,
+  "essential_presentation": "unsupported",
+  "source_commit": "01ad8cac0e354aa1c9174f68778d7049b5e57570"
+}

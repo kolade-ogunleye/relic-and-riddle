@@ -995,7 +995,9 @@ class PipelineCoordinator:
         cached_artifacts(run_dir, "caption_exports", {"words": words, "rules": file_inputs([Path("src/video_composer.py")])},
             lambda: [self.video_composer.export_subtitles_srt(words, master_mp4.with_suffix(".srt")),
                      self.video_composer.export_subtitles_vtt(words, master_mp4.with_suffix(".vtt"))])
-        render_inputs = {"sources": file_inputs([*extended_scenes, vo_path, bed_path, words_path,
+        from src.image_presentation import policy_inputs
+        render_inputs = {"presentation": policy_inputs(extended_scenes),
+                         "sources": file_inputs([*extended_scenes, vo_path, bed_path, words_path,
                          Path("src/video_composer.py"), Path("src/encoded_audio.py"), Path("src/encoding.py")]),
                          "durations": durations, "emphasis": topic.get("key_facts", [])[:5],
                          "act_cuts": act_cuts or []}
@@ -2904,8 +2906,10 @@ class PipelineCoordinator:
                 log.warning("Beat query planning failed (%s); no beat images or footage this run.", e)
 
         from src.checkpoints import Checkpoints, cached_artifacts, file_inputs
+        from src.image_presentation import policy_inputs
         from src.typography import FONT_FILES, FONTS_DIR
-        packaging_inputs = {"photos": file_inputs([hero_img, *scene_media]), "style": style,
+        packaging_inputs = {"presentation": policy_inputs([hero_img, *scene_media]),
+                            "photos": file_inputs([hero_img, *scene_media]), "style": style,
                             "strong": sorted(getattr(self, "_strong_stems", None) or []),  # which may face out
                             "picks": file_inputs([Path("src/image_review.py")]),
                             "copy": {key: payload.get(key) for key in ("title", "thumbnail", "story_slides", "carousel_slides", "poll", "share_line")},
@@ -3147,7 +3151,8 @@ class PipelineCoordinator:
             card_key = card_share if LOOP_LINE else bool((card_share or "").strip())
             if bed_for_cuts is not None:
                 bed_for_cuts(durations)
-            render_inputs = {"media": file_inputs([*scenes, vo_path, bed_path]), "words": words,
+            render_inputs = {"presentation": policy_inputs(scenes),
+                             "media": file_inputs([*scenes, vo_path, bed_path]), "words": words,
                              "durations": durations, "emphasis": payload.get("emphasis_words"), "end_card": card_key,
                              "grade_bias": (payload.get("art_direction") or {}).get("grade_bias") or 0.0,  # part of the master
                              "rules": file_inputs([Path("src/video_composer.py"), Path("src/end_card.py"), Path("src/config.py"),

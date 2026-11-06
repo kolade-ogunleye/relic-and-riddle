@@ -62,6 +62,8 @@ def redraw_cover(path: Path, recipe: Dict[str, Any]) -> Dict[str, Any]:
     engine._text_cy = int(recipe.get("text_cy") or VIDEO_HEIGHT // 2)
     with Image.open(recipe["hero"]) as source:
         engine._hero_source = ImageOps.exif_transpose(source).convert("RGBA")
+    from .image_presentation import full_image
+    engine._hero_source.info["essential_full_image"] = full_image(Path(recipe["hero"]))
     from .cover_design import reviewed_focus
     from .photo_hygiene import clean_hero
     engine._hero_focus_reviewed = reviewed_focus(Path(recipe["hero"]), recipe.get("focus"))
@@ -275,6 +277,8 @@ class VisualEngine:
 
         with Image.open(hero_image_path) as source:
             self._hero_source = ImageOps.exif_transpose(source).convert("RGBA")
+        from .image_presentation import full_image
+        self._hero_source.info["essential_full_image"] = full_image(Path(hero_image_path))
         from .cover_design import reviewed_focus
         from .photo_hygiene import clean_hero
         self._hero_focus_reviewed = reviewed_focus(Path(hero_image_path))
@@ -546,6 +550,8 @@ class VisualEngine:
         from .photo_hygiene import clean_hero
         with Image.open(hero_image_path) as source:
             src = ImageOps.exif_transpose(source).convert("RGBA")
+        from .image_presentation import full_image
+        src.info["essential_full_image"] = full_image(Path(hero_image_path))
         src, focus = clean_hero(src, reviewed_focus(Path(hero_image_path)))
         copy = _in_spoken_units(documentary_cover_copy(script_payload), script_payload)
         # The badge is not drawn here; it is read for the qualifier the covers' copy sets on the figure ("EST.").

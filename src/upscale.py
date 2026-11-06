@@ -232,6 +232,9 @@ def _upscale_cpu_polish(path: Path) -> Image.Image:
 def ensure_resolution(path: Path) -> Path:
     """Returns a version of `path` sharp enough for the video (cached), or `path` itself."""
     path = Path(path)
+    from .image_presentation import full_image, prepared_source
+    if full_image(path):
+        return prepared_source(path)
     if not needs_upscale(path):
         return path
 

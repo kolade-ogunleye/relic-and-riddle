@@ -102,6 +102,8 @@ def remap_focus(focus_box, kept_box, size) -> list | None:
 def clean_hero(source: Image.Image, focus: dict | None) -> tuple[Image.Image, dict | None]:
     """A cover's hero without its caption strip, and its reviewed focus re-expressed on the cropped picture (a
     focus that no longer fits is dropped: the cover keeps the whole-photo layout)."""
+    if source.info.get("essential_full_image"):
+        return source, None
     clean, box = without_caption_strip(source)
     if focus is None or box == (0, 0) + source.size:
         return clean, focus

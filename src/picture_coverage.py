@@ -133,7 +133,10 @@ def detail_crop(photo: Path, out_dir: Path, used: Sequence[Box], aspect: float,
     back to it (operation DETAIL_OPERATION). (path, box), or None when no region qualifies or the photo can't be read."""
     from PIL import Image, ImageOps
 
+    from .image_presentation import full_image
     from .lineage import record_derived
+    if full_image(photo):
+        return None
     try:
         with Image.open(photo) as raw:
             im = ImageOps.exif_transpose(raw).convert("RGB")
@@ -251,6 +254,9 @@ def located_crop(photo: Path, out_dir: Path, used: Sequence[Box], aspect: float,
     from PIL import Image, ImageOps
     locate = locate or locate_feature
     confirm = confirm or crop_shows
+    from .image_presentation import full_image
+    if full_image(photo):
+        return None
     try:
         with Image.open(photo) as raw:
             im = ImageOps.exif_transpose(raw).convert("RGB")

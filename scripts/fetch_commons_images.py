@@ -31,6 +31,9 @@ from src.config import ASSETS_DIR, MIN_SCENE_IMAGES, TOPICS_DIR  # noqa: E402
 from src.commons import (  # noqa: E402
     MIN_HEIGHT,
     MIN_PIXELS,
+    MIN_VERTICAL_CROP,
+    NATIVE_VERTICAL_CROP,
+    vertical_crop_width,
     best_first,
     candidates,
     search_graded,
@@ -111,7 +114,22 @@ def _fetch_pass(topic: dict, spec: dict, allow_sa: bool, target_images: int = TA
     topic_dir.mkdir(parents=True, exist_ok=True)
     credits = load_credits(topic_dir)
     images = credits["images"]
-    if len(images) >= target_images:
+    essential_titles = spec.get("essential_images") or {}
+    if not isinstance(essential_titles, dict):
+        raise TypeError("essential_images must map exact source titles to reasons")
+    if any(not isinstance(reason, str) or not reason.strip() for reason in essential_titles.values()):
+        raise ValueError("Every essential image needs an explicit reason")
+    for record in images:
+        if record.get("title") in essential_titles:
+            from src.image_presentation import designate, full_image
+            path = topic_dir / record["file"]
+            if not full_image(path):
+                designate(path, essential_titles[record["title"]])
+                record.update(presentation="full_image", essential_reason=essential_titles[record["title"]])
+                credits["reviewed"] = False
+                save_credits(topic_dir, credits)
+    missing_essential = set(essential_titles) - {record.get("title") for record in images}
+    if len(images) >= target_images and not missing_essential:
         print(f"  {topic['id']}: already has {len(images)} images")
         return len(images)
 
@@ -128,6 +146,28 @@ def _fetch_pass(topic: dict, spec: dict, allow_sa: bool, target_images: int = TA
     # Photos a review already rejected are never fetched again.
     have = {c["title"] for c in images} | {c.get("title") for c in credits.get("rejected_by_review", [])}
     added = 0
+    candidate_options = {"essential_titles": essential_titles} if essential_titles else {}
+
+    def fetch_picture(cand, dest):
+        # An undersized legacy/unknown record consumes the quota until refreshed.
+        # Admit one sub-1350 crop only after nine native crops; every prefix of a
+        # new pool therefore stays at <=10%, even if a later query fails.
+        reason = essential_titles.get(cand["title"], "")
+        if isinstance(reason, str) and reason.strip():
+            from src.image_presentation import designate
+            w, h = download_jpeg(cand["download_url"], dest, preserve_source=True)
+            designate(dest, reason)
+            cand.update(width=w, height=h, vertical_crop_width=vertical_crop_width(w, h),
+                        essential_reason=reason.strip(), presentation="full_image",
+                        preserved_source=dest.name + ".source")
+            return
+        automatic = [c for c in images if c.get("presentation") != "full_image"]
+        low = sum(vertical_crop_width(c.get("width", 0), c.get("height", 0)) < NATIVE_VERTICAL_CROP
+                  for c in automatic)
+        floor = MIN_VERTICAL_CROP if (low + 1) * 10 <= len(automatic) + 1 else NATIVE_VERTICAL_CROP
+        w, h = download_jpeg(cand["download_url"], dest, min_pixels=MIN_PIXELS,
+                             min_height=MIN_HEIGHT, min_crop_width=floor)
+        cand.update(width=w, height=h, vertical_crop_width=vertical_crop_width(w, h))
 
     # 1. Primary: the curated shot searches (wide, detail, interior...). Each query's results are
     # ranked best first (Commons grade, then resolution) and the queries take turns, so the set
@@ -143,17 +183,19 @@ def _fetch_pass(topic: dict, spec: dict, allow_sa: bool, target_images: int = TA
     # Museum and agency archives (The Met, NASA, Smithsonian) alongside Commons for each search.
     from src.museum_sources import search_all
     ranked_lists = []
-    for q in spec["queries"]:
+    for q in [*sorted(missing_essential), *spec["queries"]]:
         checkpoint()
-        ranked_lists.append(best_first(list(candidates(query_pages(q), keywords, allow_sa)), keywords, place))
+        ranked_lists.append(best_first(list(candidates(query_pages(q), keywords, allow_sa, **candidate_options)), keywords, place))
         if spec.get("museums", True):
             ranked_lists.append(best_first(search_all(q, keywords), keywords, place))
-    for cand in interleave(ranked_lists):
+    ordered = interleave(ranked_lists)
+    ordered.sort(key=lambda cand: cand["title"] not in essential_titles)
+    for cand in ordered:
         checkpoint()
         if cand["relevance"] <= 0 or namesake(cand):
             continue  # metadata says off-subject, nowhere near the site, or a namesake
-        if len(images) >= target_images:
-            break
+        if len(images) >= target_images and cand["title"] not in missing_essential:
+            continue
         if cand["title"] in have:
             continue
         n = 1
@@ -161,7 +203,7 @@ def _fetch_pass(topic: dict, spec: dict, allow_sa: bool, target_images: int = TA
             n += 1
         dest = topic_dir / f"{n:02d}_commons.jpg"
         try:
-            download_jpeg(cand["download_url"], dest, min_pixels=MIN_PIXELS, min_height=MIN_HEIGHT)
+            fetch_picture(cand, dest)
         except Exception as e:
             print(f"    skip {cand['title']}: {e}")
             continue
@@ -183,7 +225,7 @@ def _fetch_pass(topic: dict, spec: dict, allow_sa: bool, target_images: int = TA
             for cat in cats:
                 cat_clean = cat.replace("Category:", "").strip()
                 cat_q = f'incategory:"{cat_clean}"'
-                for cand in best_first(list(candidates(search(cat_q), keywords, allow_sa)), keywords, place):
+                for cand in best_first(list(candidates(search(cat_q), keywords, allow_sa, **candidate_options)), keywords, place):
                     checkpoint()
                     if len(images) >= target_images:
                         break
@@ -196,7 +238,7 @@ def _fetch_pass(topic: dict, spec: dict, allow_sa: bool, target_images: int = TA
                         n += 1
                     dest = topic_dir / f"{n:02d}_commons.jpg"
                     try:
-                        download_jpeg(cand["download_url"], dest, min_pixels=MIN_PIXELS, min_height=MIN_HEIGHT)
+                        fetch_picture(cand, dest)
                     except Exception:
                         continue
                     cand["file"] = dest.name
@@ -224,7 +266,7 @@ def _fetch_pass(topic: dict, spec: dict, allow_sa: bool, target_images: int = TA
                     n += 1
                 dest = topic_dir / f"{n:02d}_commons.jpg"
                 try:
-                    download_jpeg(cand["download_url"], dest, min_pixels=MIN_PIXELS, min_height=MIN_HEIGHT)
+                    fetch_picture(cand, dest)
                 except Exception:
                     # Skips low-res museum thumbnails or unreachable endpoints
                     continue

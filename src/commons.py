@@ -34,6 +34,20 @@ HEADERS = {"User-Agent": "RelicAndRiddleBot/1.0 (" + (f"{_CONTACT}; " if _CONTAC
 MAXLAG = 5
 MIN_PIXELS = 1_500_000
 MIN_HEIGHT = 1000
+MIN_VERTICAL_CROP = 1080
+NATIVE_VERTICAL_CROP = 1350
+
+
+def vertical_crop_width(width: int, height: int) -> int:
+    """Usable source pixels across a 9:16 crop, before any upscaling."""
+    return max(0, int(min(width, height * 9 / 16)))
+
+
+def crop_rank(cand: dict) -> float:
+    w, h = cand.get("width", 0), cand.get("height", 0)
+    aspect = w / h if h else 0
+    bonus = 1.10 if any(abs(aspect - ratio) <= 0.03 for ratio in (3 / 4, 4 / 5, 1)) else 1.0
+    return vertical_crop_width(w, h) * bonus
 
 
 def _maxlagged(resp: requests.Response) -> bool:
@@ -570,7 +584,7 @@ def photo_year(raw: str) -> Optional[int]:
 
 
 def candidates(pages: list, keywords: List[str], allow_sa: bool = False, min_pixels: int = MIN_PIXELS,
-               min_height: int = MIN_HEIGHT) -> Iterator[dict]:
+               min_height: int = MIN_HEIGHT, essential_titles: dict | None = None) -> Iterator[dict]:
     """Relevant (title contains a keyword), openly licensed, high-enough-resolution images.
     Prioritizes the original full-resolution master file up to 35MB, falling back to 4K preview."""
     keywords = [normalize(k) for k in keywords]
@@ -585,7 +599,14 @@ def candidates(pages: list, keywords: List[str], allow_sa: bool = False, min_pix
         if not license_allowed(licence, allow_sa):
             continue
         w, h = info.get("width", 0), info.get("height", 0)
-        if w * h < min_pixels or (h < min_height and w < min_height):
+        essential = (essential_titles or {}).get(page["title"], "")
+        if not isinstance(essential, str):
+            essential = ""
+        essential = essential.strip()
+        if w <= 0 or h <= 0:
+            continue
+        if not essential and (w * h < min_pixels or (h < min_height and w < min_height)
+                              or vertical_crop_width(w, h) < MIN_VERTICAL_CROP):
             continue
 
         # The original file: Wikimedia's cached 2880-px rendition measured 32-37 dB PSNR against it at
@@ -593,6 +614,18 @@ def candidates(pages: list, keywords: List[str], allow_sa: bool = False, min_pix
         # at a time with a pause between; only files over 35 MB use the rendition.
         orig_url = info.get("url")
         target_url = orig_url if orig_url and 0 < info.get("size", 0) <= 35_000_000 else (info.get("thumburl") or orig_url)
+        # A width-limited rendition can discard the height a portrait crop needs.
+        # Prefer the original when it improves crop headroom and fits the byte cap.
+        if target_url != orig_url:
+            th = info.get("thumbheight") or min(h, 2880)  # search requests iiurlheight=2880
+            tw = info.get("thumbwidth") or int(w * th / h)
+            if (vertical_crop_width(tw, th) < NATIVE_VERTICAL_CROP
+                    and orig_url and 0 < info.get("size", 0) <= config.COMMONS_DOWNLOAD_MAX_MB * 1024 * 1024):
+                target_url = orig_url
+            else:
+                w, h = tw, th
+        if not essential and vertical_crop_width(w, h) < MIN_VERTICAL_CROP:
+            continue
 
         # A CC BY file nobody can be credited for is refused here, with the reason, rather than fetched,
         # shown on the review card and then failing the release's rights check (development, 2026-10-26;
@@ -615,6 +648,7 @@ def candidates(pages: list, keywords: List[str], allow_sa: bool = False, min_pix
             "width": w,
             "height": h,
             "grade": grade(page),
+            **({"essential_reason": essential, "presentation": "full_image"} if essential else {}),
             # What the file says it shows: used to rank relevance and to caption it for the planner.
             "description": _plain(meta.get("ImageDescription", {}).get("value", ""))[:400],
             "categories": [c for c in _plain(meta.get("Categories", {}).get("value", "")).split("|") if c][:15],
@@ -677,12 +711,12 @@ def caption(cand: dict, max_len: int = 160) -> str:
 
 def best_first(cands: List[dict], keywords: Optional[List[str]] = None, place: Optional[dict] = None) -> List[dict]:
     """Openly licensed before CC BY-SA (a video using a BY-SA image must itself be BY-SA), then most relevant
-    (metadata, see relevance()), then resolution; ties keep search order."""
+    (metadata, see relevance()), then usable 9:16 crop with a portrait/square bonus; ties keep search order."""
     from .credits import is_share_alike
     for c in cands:
         c["relevance"] = round(relevance(c, keywords or [], place), 2)
     return sorted(cands, key=lambda c: (is_share_alike(c.get("license", "")), -c["relevance"],
-                                        -(c.get("width", 0) * c.get("height", 0))))
+                                        -crop_rank(c)))
 
 
 def _capped_body(resp, cap: int) -> bytes:
@@ -719,7 +753,9 @@ def download_jpeg(
     min_pixels: Optional[int] = None,
     min_height: Optional[int] = None,
     provider: str | None = None,
-) -> None:
+    min_crop_width: int | None = None,
+    preserve_source: bool = False,
+) -> tuple[int, int]:
     """The picture at `url` saved as a JPEG at `dest`. The URL comes from a search answer (QF-44): it and every
     redirect hop must be HTTPS on `provider`'s hosts (footage.ALLOWED_HOSTS; any still-image provider's fixed hosts
     when None) and public (src/url_guard). Raises ValueError (url_guard.RefusedURL) for any other URL."""
@@ -740,4 +776,10 @@ def download_jpeg(
             raise ValueError(f"Resolution too low: {w}x{h} ({w*h:,} px < {min_pixels:,})")
         if min_height and (h < min_height and w < min_height):
             raise ValueError(f"Dimensions too small: {w}x{h} (both edges < {min_height})")
+        if min_crop_width and vertical_crop_width(w, h) < min_crop_width:
+            raise ValueError(f"9:16 crop too small: {vertical_crop_width(w, h)} px < {min_crop_width}")
         im.convert("RGB").save(dest, "JPEG", quality=92)  # re-encode: strips metadata and odd formats
+        if preserve_source:
+            # Archive accepted original bytes separately; only the upright JPEG enters the pool.
+            Path(str(dest) + ".source").write_bytes(data)
+        return w, h

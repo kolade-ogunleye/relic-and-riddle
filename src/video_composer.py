@@ -234,6 +234,9 @@ def loop_motion(scene_images: List[Any], durations: List[float], vo_dur: float, 
 
     def rate(i: int) -> tuple[float, float]:
         item = Path(scene_images[i])
+        from .image_presentation import full_image
+        if not is_video(item) and full_image(item):
+            return 0.0, 1.0
         if is_video(item):
             hook = i == 0 and width < height and is_ai_motion_clip(item)
             return (card_mod.LOOP_PUSH, card_mod.LOOP_PUSH_CAP) if hook else (0.0, 1.0)
@@ -4254,6 +4257,13 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                 continue
 
             input_args += ["-loop", "1", "-t", f"{clip_dur:.3f}", "-i", str(item)]
+            from .image_presentation import fit_filter, full_image
+            if full_image(item):
+                filter_parts.append(
+                    f"[{i}:v]{fit_filter(item, width, height)},fps={VIDEO_FPS},"
+                    f"setsar=1,{RGB_TO_BT709}[v{i}]"
+                )
+                continue
             if i in macro_indices:
                 # Tier 3 Intentional Relic Macro Drift: intimate optical push-in (1.00x -> 1.35x dynamic zoom)
                 # into the microscopic craftsmanship and material texture of the relic over an unphotographed beat.

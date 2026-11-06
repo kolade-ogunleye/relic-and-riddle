@@ -79,6 +79,11 @@ def _photo(source: Image.Image, focus: dict | None, meta: dict | None = None) ->
     """The photograph filling the frame, its reviewed feature (else its centre) placed at x FOCUS_X. When the
     crop clamps at the photo's edge and leaves the feature left of FOCUS_MIN_X, it is enlarged (at most
     MAX_ZOOM) until the feature lands in FOCUS_LAND: on the ink side it sat under the headline."""
+    if source.info.get("essential_full_image"):
+        from .image_presentation import fit_image
+        if meta is not None:
+            meta["presentation"] = "essential_full_image"
+        return fit_image(source, (W, H)).convert("RGB")
     src = ImageOps.exif_transpose(source).convert("RGB")
     sw, sh = src.size
     fill = max(W / sw, H / sh)

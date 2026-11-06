@@ -301,6 +301,9 @@ def cover_crop(path: Path, size: Tuple[int, int]) -> Image.Image:
     """Scales and center-crops an image to fill `size` without distorting it."""
     from .photo_hygiene import without_caption_strip
     with Image.open(path) as im:
+        from .image_presentation import fit_image, full_image
+        if full_image(path):
+            return fit_image(im, size)
         clean, _ = without_caption_strip(ImageOps.exif_transpose(im).convert("RGBA"))
         return ImageOps.fit(clean, size, Image.LANCZOS)
 

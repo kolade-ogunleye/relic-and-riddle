@@ -473,6 +473,8 @@ def _immersive(source, aperture, focus, lay, full_width=False):
     The protected feature remains unshaded. Type may sit on surrounding context,
     but never on the reviewed feature itself. No segmentation or synthesis.
     """
+    if source.info.get("essential_full_image"):
+        return _photograph(Image.new("RGBA", (1080, 1920), (0, 0, 0, 255)), source, aperture, lay)
     import math
     source = ImageOps.exif_transpose(source).convert("RGBA")
     sw, sh = source.size
@@ -585,7 +587,11 @@ def _photograph(im, source, aperture, lay, bottom=False):
     """
     x0, y0, x1, y1 = map(int, aperture)
     source = ImageOps.exif_transpose(source).convert("RGBA")
-    photo = ImageOps.contain(source, (x1 - x0, y1 - y0), Image.Resampling.LANCZOS)
+    if source.info.get("essential_full_image"):
+        photo = source.copy()
+        photo.thumbnail((x1 - x0, y1 - y0), Image.Resampling.LANCZOS)
+    else:
+        photo = ImageOps.contain(source, (x1 - x0, y1 - y0), Image.Resampling.LANCZOS)
     x = x0 + (x1 - x0 - photo.width) // 2
     # Bottom-aligned on the paper card (round 3), so the window's foot keeps its set gap to the kicker.
     y = y1 - photo.height if bottom else y0 + (y1 - y0 - photo.height) // 2
@@ -1137,6 +1143,10 @@ def _gold_ground(im, box, lay):
 def _full_bleed(source, focus, cy, lay):
     """The photograph filling the 9:16 canvas, its reviewed feature (else its centre) placed at x 540, y `cy`
     as far as the canvas allows: the monument cover is photograph-first behind its type, not an inset."""
+    if source.info.get("essential_full_image"):
+        # Keep the entire photo in the central profile-grid region as well.
+        return _photograph(Image.new("RGBA", (1080, 1920), (0, 0, 0, 255)), source,
+                           (0, 420, 1080, 1500), lay)
     src = ImageOps.exif_transpose(source).convert("RGBA")
     sw, sh = src.size
     scale = max(1080 / sw, 1920 / sh)
@@ -1322,6 +1332,8 @@ def _window(im, source, aperture, focus, lay):
     2x), the feature centred across and the photograph's foot on the aperture's foot (the kicker gap). Where the
     feature needs a smaller scale the window is the photograph's own extent, bottom-aligned. Unreviewed photographs
     keep the complete-photograph containment (_photograph)."""
+    if source.info.get("essential_full_image"):
+        return _photograph(im, source, aperture, lay, bottom=True)
     import math
     x0, y0, x1, y1 = map(int, aperture)
     src = ImageOps.exif_transpose(source).convert("RGBA")

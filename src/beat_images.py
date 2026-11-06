@@ -780,6 +780,9 @@ def crop_text_band(path: Path, edge: str, box: List[int], operation: str = "text
     from .lineage import record_derived, source_chain
     import hashlib
     path = Path(path)
+    from .image_presentation import full_image
+    if full_image(path):
+        return None
     if edge not in ("top", "bottom", "left", "right") or len(box) != 4:
         return None
     cut = round(_crop_band(edge, box), 4)  # 0.135 + 0.015 is a hair over 0.15 in floating point

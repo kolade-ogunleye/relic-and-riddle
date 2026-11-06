@@ -206,6 +206,7 @@ def render_scenes(scenes, durations, work_dir: Path, transition: float,
         log.info("Parallax unavailable (model or libraries missing); using flat camera moves.")
         return None
     from .typography import is_video
+    from .image_presentation import full_image
     from concurrent.futures import ThreadPoolExecutor
 
     from .checkpoints import Checkpoints, file_inputs
@@ -240,7 +241,7 @@ def render_scenes(scenes, durations, work_dir: Path, transition: float,
             p = Path(scene)
             is_reconstruction = p.stem.startswith(("gap_gen_", "gen_"))
             is_macro = i in exempt_set
-            if not is_video(p) and not is_reconstruction and not is_macro:
+            if not is_video(p) and not is_reconstruction and not is_macro and not full_image(p):
                 # A photo shown again gets another frame and a move it has not had, never the same shot twice
                 # (Nazca, 2026-10-25: the repeat was reframed but rose as before).
                 variant = shown.get(str(scene), 0)

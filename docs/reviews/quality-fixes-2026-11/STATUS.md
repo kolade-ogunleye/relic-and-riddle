@@ -47,8 +47,8 @@ QF-45 after it.
 | QF-02 | 16-bit grade | done | 7e6e4af | shadow levels 29/56 -> 54 lossless, 52 delivery; black Y21.4-22.5 -> Y16.61-17.00; YUV-to-8-bit RGB round trips -> 0; right-edge ratio 0.993 unchanged | QF-02/ | tests/test_qf02_16bit_grade.py |
 | QF-03 | Grain removed from the delivery master | done | b948d53 | grain removed; bitrate vs review581a866 drops 89.2/60.1/87.3/85.0% (generated/photo x reel/wide); all four pairs whole-file byte-identical; concurrent renders deterministic | QF-03/ | tests/test_qf03_grain_removed.py |
 | QF-04 | Transitions: hard cuts, dissolve only on act changes | done | d963b42 | ordinary boundaries: 4 arbitrary xfades -> 4 hard cuts at frames 30/60/90/120; explicit act: 1 eight-frame dissolve; zoomin/fadeblack -> 0; programme remains 150 frames; loop seams pass | QF-04/ | tests/test_qf04_beat_cuts.py |
-| QF-05 | Whoosh placement | done | this commit | Reel whooshes 5-7 -> 1-2; off-cut/reveal 19 -> 0; level -36.03 -> -42.03 dBFS; 16:9 without act cues 30 -> 0; held/repaired final cuts remix locally | QF-05/ | tests/test_qf05_whoosh_placement.py |
-| QF-06 | SFX body and headroom | todo | | f0 of hits; limiter gain reduction at SFX cues; narration LUFS per cue | QF-06/ | |
+| QF-05 | Whoosh placement | done | be399c3 | Reel whooshes 5-7 -> 1-2; off-cut/reveal 19 -> 0; level -36.03 -> -42.03 dBFS; 16:9 without act cues 30 -> 0; held/repaired final cuts remix locally | QF-05/ | tests/test_qf05_whoosh_placement.py |
+| QF-06 | SFX body and headroom | done | this commit | hit f0 45.3 -> 110 Hz; effect peaks -17.28..+2.95 -> all -17 dBFS; max limiter reduction 0.89 -> 0.13 dB; narration delta 0.16 -> 0.01 LU (8 generated signals with fixture timings) | QF-06/ | tests/test_qf06_sfx_body_headroom.py |
 | QF-07 | Ducking | todo | | bed recovery in 0.1-0.5 s word gaps (median dB) | QF-07/ | |
 | QF-08 | Voice PCM + seed | todo | | provider output formats, WAV voiceover, seed, punctuation-only words | QF-08/ | |
 | QF-09 | Pillow 13 + lockfile | todo | | pillow version, uv.lock with hashes, pip-audit in CI, download byte cap | QF-09/ | |

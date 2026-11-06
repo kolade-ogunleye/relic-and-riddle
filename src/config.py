@@ -322,6 +322,13 @@ VIDEO_PRESET = "slow"
 AUDIO_SAMPLE_RATE = 48000
 TARGET_LUFS = -14.0
 TARGET_TRUE_PEAK = -1.5
+# Sound-effect headroom (QF-06, 2026-11-05): every one-shot effect enters the music bed at SFX_PEAK_DBFS peak before
+# its cue gain (it was set to the RMS of the synthesized stand-in it replaces, so its peak went wherever the
+# recording's crest factor took it), and the bed bus (music, setting layer and effects together) is peak-limited at
+# SFX_BUS_CEILING_DBFS before it is mixed with the narration, so no effect peak reaches the narration through the
+# master limiter.
+SFX_PEAK_DBFS = float(os.getenv("SFX_PEAK_DBFS") or -17.0)
+SFX_BUS_CEILING_DBFS = float(os.getenv("SFX_BUS_CEILING_DBFS") or -6.0)
 
 TARGET_DURATION_MIN = 42.0
 TARGET_DURATION_MAX = 48.0

@@ -1,0 +1,3 @@
+FAILED tests/test_qf45_rule_grammar.py::test_the_adopt_card_shows_provenance
+FAILED tests/test_qf45_rule_grammar.py::test_an_old_card_without_provenance_says_so
+12 failed, 2 passed in 10.13s

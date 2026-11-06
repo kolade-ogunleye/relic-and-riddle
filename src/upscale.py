@@ -143,12 +143,8 @@ def _onnx_session():
     with _session_lock:
         if _session is not None:
             return _session
-        import onnxruntime as ort
-        available = ort.get_available_providers()
-        providers = [p for p in ("DmlExecutionProvider", "CPUExecutionProvider") if p in available]
-        options = ort.SessionOptions()
-        options.log_severity_level = 3
-        _session = ort.InferenceSession(str(ONNX_MODEL), sess_options=options, providers=providers)
+        from .onnx_session import create_session
+        _session = create_session(ONNX_MODEL)
         log.info("Real-ESRGAN ONNX session on %s", _session.get_providers()[0])
     return _session
 

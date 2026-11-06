@@ -64,9 +64,8 @@ def available() -> bool:
 
 @lru_cache(maxsize=1)
 def _session():
-    import onnxruntime as ort
-    providers = [p for p in ("DmlExecutionProvider", "CPUExecutionProvider") if p in ort.get_available_providers()]
-    return ort.InferenceSession(str(MODEL_PATH), providers=providers)
+    from .onnx_session import create_session
+    return create_session(MODEL_PATH)
 
 
 def depth_map(rgb):

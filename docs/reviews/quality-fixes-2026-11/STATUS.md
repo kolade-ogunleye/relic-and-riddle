@@ -51,8 +51,8 @@ QF-45 after it.
 | QF-06 | SFX body and headroom | done | 72d4e1b | hit f0 45.3 -> 110 Hz; effect peaks -17.28..+2.95 -> all -17 dBFS; max limiter reduction 0.89 -> 0.13 dB; narration delta 0.16 -> 0.01 LU (8 generated signals with fixture timings) | QF-06/ | tests/test_qf06_sfx_body_headroom.py |
 | QF-07 | Ducking | done | 66d1c02 | median word-gap bed recovery 7.25 -> 0.08 dB; p90 7.52 -> 0.30 dB; key 200-4000 Hz with 0.5s hold; bridge end 0.0 dB across all 8 fixtures; whole-file determinism and seams pass | QF-07/ | tests/test_qf07_ducking.py |
 | QF-08 | Voice PCM + seed | done | 2325cc7 | Azure/Pro voice: 2 MP3 generations and 44.1->48k resample -> 48k PCM WAV with byte-keyed rights; ElevenLabs seed1/stability0.65; Creator192k fallback preserves high band, Free/Starter128k; punctuation cues4->0; provider mocks only | QF-08/ | tests/test_qf08_voice_pcm_seed.py |
-| QF-09 | Pillow 13 + lockfile | done | this commit | Pillow12.3->13; advisories39->0; hashed lock83packages/479hashes checked in CI; global pixel-limit changes12->0;120MiB response retained->50MiB+64KiB refused;2652 covering passes with raqm | QF-09/ | tests/test_qf09_image_limits.py tests/test_qf09_lockfile.py |
-| QF-93 | Pin ONNX DirectML to the dedicated GPU (operator-approved extra) | todo | | chosen adapter logged; integrated adapter refused under auto | QF-93/ | |
+| QF-09 | Pillow 13 + lockfile | done | 303b1d7 | Pillow12.3->13; advisories39->0; hashed lock83packages/479hashes checked in CI; global pixel-limit changes12->0;120MiB response retained->50MiB+64KiB refused;2652 covering passes with raqm | QF-09/ | tests/test_qf09_image_limits.py tests/test_qf09_lockfile.py |
+| QF-93 | Pin ONNX DirectML to the dedicated GPU (operator-approved extra) | done | this commit | implicitDMLadapter0->sharedDXGIauto discreteadapter1; integrated-first mocks select1, numericindicesexact, softwareexcluded, CPU/integratedwarn; generatedMatMul diagnostics0:78.422ms/1:7.718ms/2:16.994ms (machine-specific) | QF-93/ | tests/test_qf93_directml_device.py |
 
 ### Phase 1b - photos
 

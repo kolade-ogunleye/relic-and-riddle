@@ -1,0 +1,499 @@
+{
+ "metric": "median bed recovery inside 0.1-0.5 s word gaps (dB; acceptance <= 2)",
+ "median_recovery_db": 1.03,
+ "p90_recovery_db": 2.29,
+ "gaps": 76,
+ "median_duck_db": -7.01,
+ "max_tail_1db_s": 0.59,
+ "tail_beyond_bed": 0,
+ "min_bridge_end_db": 0.0,
+ "max_bridge_end_db": 0.0,
+ "sidechain": "[bg_carved][v_key]sidechaincompress=threshold=0.06:ratio=4:attack=15:release=400[bg_ducked]",
+ "key_filters": "[v_sc]pan=mono|c0=0.5*c0+0.5*c1,highpass=f=200,lowpass=f=4000,asplit[v_key_a][v_key_b];[v_key_a][v_key_b]amultiply,lowpass=f=12,aresample=1000,aformat=sample_fmts=dbl:sample_rates=1000:channel_layouts=mono,asplit=11[v_key_t0][v_key_t1][v_key_t2][v_key_t3][v_key_t4][v_key_t5][v_key_t6][v_key_t7][v_key_t8][v_key_t9][v_key_t10];[v_key_t1]adelay=delays=50:all=1[v_key_t1d];[v_key_t2]adelay=delays=100:all=1[v_key_t2d];[v_key_t3]adelay=delays=150:all=1[v_key_t3d];[v_key_t4]adelay=delays=200:all=1[v_key_t4d];[v_key_t5]adelay=delays=250:all=1[v_key_t5d];[v_key_t6]adelay=delays=300:all=1[v_key_t6d];[v_key_t7]adelay=delays=350:all=1[v_key_t7d];[v_key_t8]adelay=delays=400:all=1[v_key_t8d];[v_key_t9]adelay=delays=450:all=1[v_key_t9d];[v_key_t10]adelay=delays=500:all=1[v_key_t10d];[v_key_t0][v_key_t1d][v_key_t2d][v_key_t3d][v_key_t4d][v_key_t5d][v_key_t6d][v_key_t7d][v_key_t8d][v_key_t9d][v_key_t10d]amerge=inputs=11,aeval=exprs='sqrt(max(max(max(max(max(max(max(max(max(max(max(val(0),val(1)),val(2)),val(3)),val(4)),val(5)),val(6)),val(7)),val(8)),val(9)),val(10)),0))':channel_layout=mono,compand=attacks=0.001:decays=0.05:delay=0.002:points=-90/-90|-55/-55|-45/-15|0/-15,aresample=48000,apad=pad_dur=2.000[v_key]",
+ "key_band_limited": true,
+ "key_band_hz": [
+  200,
+  4000
+ ],
+ "key_hold_s": 0.5,
+ "runs": [
+  {
+   "run": "run_amber_room_heist_1792790550",
+   "audio": "real voiceover and ambient bed",
+   "gaps": 10,
+   "median_recovery_db": 0.65,
+   "p90_recovery_db": 1.85,
+   "duck_db": -7.0,
+   "tail_1db_s": 0.59,
+   "bridge_end_db": 0.0
+  },
+  {
+   "run": "run_gol_gumbaz_whispering_gallery_1793278143",
+   "audio": "real voiceover and ambient bed",
+   "gaps": 4,
+   "median_recovery_db": 0.86,
+   "p90_recovery_db": 2.34,
+   "duck_db": -7.01,
+   "tail_1db_s": 0.56,
+   "bridge_end_db": 0.0
+  },
+  {
+   "run": "run_nazca_lines_runway_paradox_1792961797",
+   "audio": "real voiceover and ambient bed",
+   "gaps": 7,
+   "median_recovery_db": 1.31,
+   "p90_recovery_db": 1.86,
+   "duck_db": -7.0,
+   "tail_1db_s": 0.55,
+   "bridge_end_db": 0.0
+  },
+  {
+   "run": "run_richat_structure_sahara_eye_1792740961_long",
+   "audio": "real voiceover and ambient bed",
+   "gaps": 32,
+   "median_recovery_db": 0.79,
+   "p90_recovery_db": 2.26,
+   "duck_db": -7.01,
+   "tail_1db_s": 0.56,
+   "bridge_end_db": 0.0
+  },
+  {
+   "run": "run_richat_structure_sahara_eye_1793474843",
+   "audio": "real voiceover and ambient bed",
+   "gaps": 5,
+   "median_recovery_db": 2.05,
+   "p90_recovery_db": 2.65,
+   "duck_db": -7.01,
+   "tail_1db_s": 0.57,
+   "bridge_end_db": 0.0
+  },
+  {
+   "run": "run_tunguska_event_1908_1792930600",
+   "audio": "real voiceover and ambient bed",
+   "gaps": 6,
+   "median_recovery_db": 0.87,
+   "p90_recovery_db": 1.75,
+   "duck_db": -7.01,
+   "tail_1db_s": 0.56,
+   "bridge_end_db": 0.0
+  },
+  {
+   "run": "run_unfinished_obelisk_aswan_1792985912",
+   "audio": "real voiceover and ambient bed",
+   "gaps": 4,
+   "median_recovery_db": 1.4,
+   "p90_recovery_db": 2.01,
+   "duck_db": -7.01,
+   "tail_1db_s": 0.57,
+   "bridge_end_db": 0.0
+  },
+  {
+   "run": "run_voynich_manuscript_1792965308",
+   "audio": "real voiceover and ambient bed",
+   "gaps": 8,
+   "median_recovery_db": 1.64,
+   "p90_recovery_db": 2.99,
+   "duck_db": -7.01,
+   "tail_1db_s": 0.54,
+   "bridge_end_db": 0.0
+  }
+ ],
+ "gap_rows": {
+  "run_amber_room_heist_1792790550": [
+   {
+    "start": 1.327,
+    "gap_s": 0.306,
+    "recovery_db": 0.59
+   },
+   {
+    "start": 7.972,
+    "gap_s": 0.421,
+    "recovery_db": 3.32
+   },
+   {
+    "start": 9.439,
+    "gap_s": 0.37,
+    "recovery_db": 0.57
+   },
+   {
+    "start": 15.74,
+    "gap_s": 0.191,
+    "recovery_db": 0.71
+   },
+   {
+    "start": 18.546,
+    "gap_s": 0.37,
+    "recovery_db": 0.49
+   },
+   {
+    "start": 20.574,
+    "gap_s": 0.23,
+    "recovery_db": 0.2
+   },
+   {
+    "start": 23.648,
+    "gap_s": 0.421,
+    "recovery_db": 1.69
+   },
+   {
+    "start": 28.15,
+    "gap_s": 0.357,
+    "recovery_db": 0.53
+   },
+   {
+    "start": 31.454,
+    "gap_s": 0.421,
+    "recovery_db": 1.26
+   },
+   {
+    "start": 40.038,
+    "gap_s": 0.408,
+    "recovery_db": 1.57
+   }
+  ],
+  "run_gol_gumbaz_whispering_gallery_1793278143": [
+   {
+    "start": 5.497,
+    "gap_s": 0.408,
+    "recovery_db": 0.79
+   },
+   {
+    "start": 16.327,
+    "gap_s": 0.408,
+    "recovery_db": 0.68
+   },
+   {
+    "start": 27.232,
+    "gap_s": 0.408,
+    "recovery_db": 2.94
+   },
+   {
+    "start": 37.041,
+    "gap_s": 0.421,
+    "recovery_db": 0.94
+   }
+  ],
+  "run_nazca_lines_runway_paradox_1792961797": [
+   {
+    "start": 7.066,
+    "gap_s": 0.408,
+    "recovery_db": 0.74
+   },
+   {
+    "start": 18.176,
+    "gap_s": 0.395,
+    "recovery_db": 2.03
+   },
+   {
+    "start": 25.982,
+    "gap_s": 0.408,
+    "recovery_db": 1.75
+   },
+   {
+    "start": 29.592,
+    "gap_s": 0.408,
+    "recovery_db": 0.31
+   },
+   {
+    "start": 31.122,
+    "gap_s": 0.383,
+    "recovery_db": 0.81
+   },
+   {
+    "start": 34.515,
+    "gap_s": 0.408,
+    "recovery_db": 1.45
+   },
+   {
+    "start": 42.207,
+    "gap_s": 0.408,
+    "recovery_db": 1.31
+   }
+  ],
+  "run_richat_structure_sahara_eye_1792740961_long": [
+   {
+    "start": 6.301,
+    "gap_s": 0.395,
+    "recovery_db": 0.88
+   },
+   {
+    "start": 14.668,
+    "gap_s": 0.408,
+    "recovery_db": 2.21
+   },
+   {
+    "start": 27.321,
+    "gap_s": 0.408,
+    "recovery_db": 0.7
+   },
+   {
+    "start": 32.73,
+    "gap_s": 0.408,
+    "recovery_db": 1.19
+   },
+   {
+    "start": 42.474,
+    "gap_s": 0.408,
+    "recovery_db": 2.19
+   },
+   {
+    "start": 47.474,
+    "gap_s": 0.421,
+    "recovery_db": 2.47
+   },
+   {
+    "start": 48.967,
+    "gap_s": 0.293,
+    "recovery_db": 0.74
+   },
+   {
+    "start": 55.816,
+    "gap_s": 0.408,
+    "recovery_db": 2.31
+   },
+   {
+    "start": 59.515,
+    "gap_s": 0.497,
+    "recovery_db": 2.32
+   },
+   {
+    "start": 62.87,
+    "gap_s": 0.115,
+    "recovery_db": 0.05
+   },
+   {
+    "start": 65.383,
+    "gap_s": 0.408,
+    "recovery_db": 1.5
+   },
+   {
+    "start": 66.492,
+    "gap_s": 0.166,
+    "recovery_db": 0.08
+   },
+   {
+    "start": 67.666,
+    "gap_s": 0.332,
+    "recovery_db": 0.85
+   },
+   {
+    "start": 77.232,
+    "gap_s": 0.421,
+    "recovery_db": 0.37
+   },
+   {
+    "start": 82.908,
+    "gap_s": 0.395,
+    "recovery_db": 2.21
+   },
+   {
+    "start": 87.551,
+    "gap_s": 0.408,
+    "recovery_db": 1.89
+   },
+   {
+    "start": 88.661,
+    "gap_s": 0.255,
+    "recovery_db": 0.15
+   },
+   {
+    "start": 96.569,
+    "gap_s": 0.408,
+    "recovery_db": 1.83
+   },
+   {
+    "start": 111.237,
+    "gap_s": 0.408,
+    "recovery_db": 0.61
+   },
+   {
+    "start": 116.964,
+    "gap_s": 0.421,
+    "recovery_db": 2.27
+   },
+   {
+    "start": 128.865,
+    "gap_s": 0.408,
+    "recovery_db": 0.55
+   },
+   {
+    "start": 133.941,
+    "gap_s": 0.485,
+    "recovery_db": 0.44
+   },
+   {
+    "start": 141.875,
+    "gap_s": 0.421,
+    "recovery_db": 0.06
+   },
+   {
+    "start": 145.242,
+    "gap_s": 0.344,
+    "recovery_db": 0.55
+   },
+   {
+    "start": 149.145,
+    "gap_s": 0.408,
+    "recovery_db": 0.62
+   },
+   {
+    "start": 157.538,
+    "gap_s": 0.37,
+    "recovery_db": 0.04
+   },
+   {
+    "start": 161.173,
+    "gap_s": 0.408,
+    "recovery_db": 1.54
+   },
+   {
+    "start": 172.946,
+    "gap_s": 0.408,
+    "recovery_db": 0.13
+   },
+   {
+    "start": 178.023,
+    "gap_s": 0.319,
+    "recovery_db": 0.04
+   },
+   {
+    "start": 181.747,
+    "gap_s": 0.395,
+    "recovery_db": 0.02
+   },
+   {
+    "start": 186.097,
+    "gap_s": 0.421,
+    "recovery_db": 1.57
+   },
+   {
+    "start": 189.758,
+    "gap_s": 0.344,
+    "recovery_db": 0.87
+   }
+  ],
+  "run_richat_structure_sahara_eye_1793474843": [
+   {
+    "start": 5.191,
+    "gap_s": 0.408,
+    "recovery_db": 2.12
+   },
+   {
+    "start": 16.327,
+    "gap_s": 0.408,
+    "recovery_db": 2.05
+   },
+   {
+    "start": 20.574,
+    "gap_s": 0.357,
+    "recovery_db": 1.12
+   },
+   {
+    "start": 26.148,
+    "gap_s": 0.408,
+    "recovery_db": 3.01
+   },
+   {
+    "start": 37.181,
+    "gap_s": 0.408,
+    "recovery_db": 1.63
+   }
+  ],
+  "run_tunguska_event_1908_1792930600": [
+   {
+    "start": 10.102,
+    "gap_s": 0.408,
+    "recovery_db": 1.58
+   },
+   {
+    "start": 11.518,
+    "gap_s": 0.459,
+    "recovery_db": 0.89
+   },
+   {
+    "start": 19.554,
+    "gap_s": 0.408,
+    "recovery_db": 0.85
+   },
+   {
+    "start": 25.166,
+    "gap_s": 0.408,
+    "recovery_db": 0.63
+   },
+   {
+    "start": 29.949,
+    "gap_s": 0.166,
+    "recovery_db": 0.05
+   },
+   {
+    "start": 32.474,
+    "gap_s": 0.408,
+    "recovery_db": 1.92
+   }
+  ],
+  "run_unfinished_obelisk_aswan_1792985912": [
+   {
+    "start": 7.372,
+    "gap_s": 0.408,
+    "recovery_db": 1.12
+   },
+   {
+    "start": 15.727,
+    "gap_s": 0.408,
+    "recovery_db": 0.01
+   },
+   {
+    "start": 30.357,
+    "gap_s": 0.408,
+    "recovery_db": 2.15
+   },
+   {
+    "start": 39.107,
+    "gap_s": 0.408,
+    "recovery_db": 1.68
+   }
+  ],
+  "run_voynich_manuscript_1792965308": [
+   {
+    "start": 5.638,
+    "gap_s": 0.421,
+    "recovery_db": 1.55
+   },
+   {
+    "start": 12.347,
+    "gap_s": 0.395,
+    "recovery_db": 2.27
+   },
+   {
+    "start": 13.75,
+    "gap_s": 0.23,
+    "recovery_db": 0.73
+   },
+   {
+    "start": 21.735,
+    "gap_s": 0.395,
+    "recovery_db": 3.59
+   },
+   {
+    "start": 25.102,
+    "gap_s": 0.319,
+    "recovery_db": 1.31
+   },
+   {
+    "start": 31.518,
+    "gap_s": 0.395,
+    "recovery_db": 1.72
+   },
+   {
+    "start": 35.587,
+    "gap_s": 0.293,
+    "recovery_db": 0.28
+   },
+   {
+    "start": 37.832,
+    "gap_s": 0.408,
+    "recovery_db": 2.73
+   }
+  ]
+ }
+}

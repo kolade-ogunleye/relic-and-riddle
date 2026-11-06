@@ -2802,6 +2802,60 @@ def name_bonds(raw: list[str]) -> set[int]:
         i = j + 1
     return bonds
 
+
+# The bed's duck under the narration (QF-07, review 2026-11-05 #9). A 220 ms release, no hold and a full-band key let
+# the bed swell a median 7.4 dB back up inside every 0.1-0.5 s gap between two words (pumping). The key now hears the
+# voice's speech band only (200 Hz-4 kHz: no rumble, breath or sibilance), as a smooth envelope that holds each word
+# for DUCK_HOLD_S and is levelled wherever it is speech, so the bed sits at one depth under the whole narration (a
+# median 7 dB, as before) and comes back up only in real pauses, over DUCK_RELEASE_MS after the hold. The hold covers
+# the review's whole 0.1-0.5 s word gap: most gaps in the fixture runs are 0.4 s (a 0.3 s hold measured 3.5 dB in
+# development). The hold ends with the voice, so the loop bridge is the bed's own. The release is 400 ms, not the
+# review's ~700: with a hold, a 700 ms release left the bed 0.8 dB down at the end of the Reel's loop bridge (a step
+# at the loop seam); at 400 ms it is back within 1 dB at most 0.6 s after the recorded voiceovers end
+# (docs/reviews/quality-fixes-2026-11/QF-07).
+DUCK_KEY_BAND = (200, 4000)   # Hz: the sidechain key's high-pass and low-pass
+DUCK_KEY_SMOOTH_HZ = 12       # Hz: the key's envelope (the speech band's power, low-passed)
+DUCK_KEY_SPEECH_DB = -45      # dBFS: an envelope from here up is speech, and keys the duck at one level ...
+DUCK_KEY_LEVEL_DB = -15       # dBFS: ... this one, so a quiet word ducks the bed as deep as a loud one
+DUCK_HOLD_S = 0.5             # s: the key holds a word's envelope this long after it ends
+DUCK_HOLD_STEP_S = 0.05       # s: the hold's taps (the max of the envelope and its copies 0.05 ... 0.5 s late)
+DUCK_KEY_RATE = 1000          # Hz: the envelope is held and levelled at this rate (it is smooth below 12 Hz), then
+                              # resampled back for the detector: the hold costs a 48th of what it would at full rate
+DUCK_THRESHOLD = 0.06         # -24.4 dBFS: a median 7 dB duck under the levelled key at DUCK_RATIO (measured)
+DUCK_RATIO = 4
+DUCK_ATTACK_MS = 15
+DUCK_RELEASE_MS = 400
+
+
+def _duck_key(src: str, out: str, pad: str = "") -> str:
+    """The sidechain key: the voice's speech band (DUCK_KEY_BAND) as an RMS envelope (the band squared and low-passed
+    below DUCK_KEY_SMOOTH_HZ), held for DUCK_HOLD_S after each word and levelled to DUCK_KEY_LEVEL_DB wherever it is
+    speech. The hold is the sample-wise max of the envelope and its copies delayed in DUCK_HOLD_STEP_S steps up to
+    DUCK_HOLD_S, so a 0.1-0.5 s gap between two words still keys the duck and the bed does not swell inside it, while
+    the attack follows the undelayed voice. The key only drives the detector: none of it reaches the mix (the voice's
+    own filters are unchanged; _audio_chain pads it after the split). The hold's delayed copies end with the voice (amerge stops on its shortest input), so
+    the hold does not run on past the narration's end; `pad` (the voice's apad, with its leading comma) then pads
+    the key with silence, so it never ends before the bed."""
+    taps = round(DUCK_HOLD_S / DUCK_HOLD_STEP_S) + 1
+    lo, hi = DUCK_KEY_BAND
+    floor = DUCK_KEY_SPEECH_DB - 10
+    level = (f"compand=attacks=0.001:decays=0.05:delay=0.002:points=-90/-90|{floor}/{floor}|{DUCK_KEY_SPEECH_DB}/"
+             f"{DUCK_KEY_LEVEL_DB}|0/{DUCK_KEY_LEVEL_DB}")
+    labels = [f"{out}_t{k}" for k in range(taps)]
+    delayed = "".join(f"[{lab}]adelay=delays={round(k * DUCK_HOLD_STEP_S * 1000)}:all=1[{lab}d];"
+                      for k, lab in enumerate(labels) if k)
+    merged = "".join(f"[{lab}{'d' if k else ''}]" for k, lab in enumerate(labels))
+    held = "val(0)"
+    for k in range(1, taps):
+        held = f"max({held},val({k}))"
+    return (f"[{src}]pan=mono|c0=0.5*c0+0.5*c1,highpass=f={lo},lowpass=f={hi},"
+            f"asplit[{out}_a][{out}_b];[{out}_a][{out}_b]amultiply,lowpass=f={DUCK_KEY_SMOOTH_HZ},"
+            f"aresample={DUCK_KEY_RATE},aformat=sample_fmts=dbl:sample_rates={DUCK_KEY_RATE}:channel_layouts=mono,"
+            f"asplit={taps}{''.join(f'[{lab}]' for lab in labels)};{delayed}"
+            f"{merged}amerge=inputs={taps},aeval=exprs='sqrt(max({held},0))':channel_layout=mono,{level},"
+            f"aresample={AUDIO_SAMPLE_RATE}{pad}[{out}]")
+
+
 SEAM_RETURN_S = 0.3   # s: the loop bridge's level returns to the bed's own over its last 0.3 s (_audio_chain)
 
 
@@ -2821,6 +2875,9 @@ def _audio_chain(vo_idx: int, bg_idx: int, pad: float = 0.0, card_at: Optional[f
     exact = None if end is None else round(end * AUDIO_SAMPLE_RATE)
     pad_filter = "apad," if exact is not None else (f"apad=pad_dur={pad:.3f}," if pad > 0 else "")
     bed_pad = ",apad" if exact is not None else ""
+    # the key is padded after its hold, not before: the hold ends with the narration, so the bed comes back up as the
+    # voice ends (the loop bridge is the bed's own) instead of DUCK_HOLD_S later
+    key_pad = f",{pad_filter[:-1]}" if pad_filter else ""
     cut = f",atrim=end_sample={exact}" if exact is not None else ""
     card_filter = ""
     if card_at is not None and card_db:
@@ -2832,14 +2889,16 @@ def _audio_chain(vo_idx: int, bg_idx: int, pad: float = 0.0, card_at: Optional[f
             ramp = f"min({ramp},min(max(({seam:.4f}-t)/{back:.3f},0),1))"
         card_filter = f",volume='1+({lin:.5f}-1)*{ramp}':eval=frame"
     return (
-        f"[{vo_idx}:a]aresample={AUDIO_SAMPLE_RATE},aformat=channel_layouts=stereo,{pad_filter}"
+        f"[{vo_idx}:a]aresample={AUDIO_SAMPLE_RATE},aformat=channel_layouts=stereo,"
         f"highpass=f=85,compand=attacks=0.02:decays=0.15:points=-80/-80|-40/-35|-20/-16|0/-10,"
-        f"equalizer=f=3500:width_type=q:w=1.2:g=1.8,equalizer=f=7000:width_type=q:w=2.0:g=-2.2,"
-        f"asplit[v_main][v_sc];"
+        f"equalizer=f=3500:width_type=q:w=1.2:g=1.8,asplit[v_main][v_sc];"
+        f"[v_main]{pad_filter}equalizer=f=7000:width_type=q:w=2.0:g=-2.2[v_voice];"
+        f"{_duck_key('v_sc', 'v_key', key_pad)};"
         f"[{bg_idx}:a]aresample={AUDIO_SAMPLE_RATE},aformat=channel_layouts=stereo,"
         f"equalizer=f=3200:width_type=q:w=1.5:g=-3.0{bed_pad}[bg_carved];"
-        f"[bg_carved][v_sc]sidechaincompress=threshold=0.08:ratio=7:attack=15:release=220[bg_ducked];"
-        f"[v_main][bg_ducked]amix=inputs=2:duration=first:dropout_transition=2:normalize=0{cut},aformat=channel_layouts=stereo{card_filter}"
+        f"[bg_carved][v_key]sidechaincompress=threshold={DUCK_THRESHOLD}:ratio={DUCK_RATIO}"
+        f":attack={DUCK_ATTACK_MS}:release={DUCK_RELEASE_MS}[bg_ducked];"
+        f"[v_voice][bg_ducked]amix=inputs=2:duration=first:dropout_transition=2:normalize=0{cut},aformat=channel_layouts=stereo{card_filter}"
     )
 
 

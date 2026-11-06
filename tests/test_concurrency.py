@@ -188,7 +188,8 @@ def test_background_image_prep_reaches_the_render(db, monkeypatch, tmp_path, cur
     seen = {}
 
     def render(*args):
-        seen["prepared"] = args[-1].result()
+        # QF-05 appends the final-cut bed callback after the prepared-image future.
+        seen["prepared"] = args[-2].result()
         return {"status": "simulated"}
     monkeypatch.setattr(coord, "_render_approve_publish", render)
     assert coord.resume_run("r5", dry_run=True)["status"] == "simulated"

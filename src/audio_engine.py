@@ -355,6 +355,7 @@ class AudioEngine:
     ):
         self.voice = voice
         self.last_sfx_sources: List[Dict[str, Any]] = []
+        self.last_whoosh_times: list[float] = []   # the transition whooshes of the last bed (s)
         self.rate = rate
         self.speed = 1.0  # set per narration (generate_narration): a long one is spoken slightly faster
         self.pitch = pitch
@@ -683,6 +684,54 @@ class AudioEngine:
     @classmethod
     def revelation_time(cls, words: Optional[Words]) -> Optional[float]:
         return next((float(w.get("start", 0.0)) for w in words or [] if cls._spoken(w) & cls.REVELATION_WORDS), None)
+
+    # Transition whooshes (QF-05, 2026-11-05): one fired at every pause or sentence end 3.5 s apart, 5-7 in a Reel
+    # and about 30 in a 16:9 programme with no act cues, where the picture did not cut. Now a whoosh lands only on a
+    # scene cut, the cut nearest an act transition or a planned reveal, at most TRANSITION_WHOOSH_MAX in a programme
+    # (one per act transition where there are more), TRANSITION_WHOOSH_DB under the level it had.
+    TRANSITION_WHOOSH_MAX = 2
+    TRANSITION_WHOOSH_DB = -6.0
+    TRANSITION_WHOOSH_SNAP = 1.0      # s: an act start or a reveal takes the scene cut at most this far from it
+    TRANSITION_WHOOSH_MIN_GAP = 2.5   # s between two whooshes (sound_plan.MIN_GAP_SECONDS for effects)
+    TRANSITION_WHOOSH_EDGE = 0.5      # s: none this close to the start, the end or the end card (it has its own)
+
+    @classmethod
+    def transition_whoosh_times(cls, duration: float, scene_cuts: list[float] | None = None,
+                                sound_plan: dict[str, Any] | None = None, words: Words | None = None,
+                                act_cues: list[float] | None = None,
+                                end_card_at: float | None = None) -> list[float]:
+        """Where the bed's transition whooshes go (s, ascending). The anchors, in priority: the act transitions
+        (`act_cues`), then the reveals (the sound plan's; with no plan, the narration's first revelation word,
+        revelation_time). With `scene_cuts` each anchor takes the cut nearest it within TRANSITION_WHOOSH_SNAP,
+        and an anchor with no cut that close gets no whoosh; with scene_cuts None (the cuts are not known) an act
+        cue or a planned reveal is used as it is and a word-list revelation is not. At most TRANSITION_WHOOSH_MAX
+        (or one per act cue, where there are more), TRANSITION_WHOOSH_MIN_GAP apart."""
+        if sound_plan:
+            reveals = [float(m["t"]) for m in sound_plan.get("moments", []) if m.get("kind") == "reveal"]
+        else:
+            first = cls.revelation_time(words)
+            reveals = [first] if first is not None and scene_cuts is not None else []
+        acts = sorted(float(t) for t in act_cues or [])
+        anchors = acts + sorted(reveals)
+        cuts = None if scene_cuts is None else sorted(float(c) for c in scene_cuts)
+        limit = max(cls.TRANSITION_WHOOSH_MAX, len(acts))
+        last = min(float(duration), float(end_card_at) if end_card_at is not None else float(duration))
+        chosen: list[float] = []
+        for a in anchors:
+            if len(chosen) >= limit:
+                break
+            if cuts is not None:
+                near = min(cuts, key=lambda c: abs(c - a), default=None)
+                if near is None or abs(near - a) > cls.TRANSITION_WHOOSH_SNAP:
+                    continue
+                a = near
+            if not cls.TRANSITION_WHOOSH_EDGE <= a <= last - cls.TRANSITION_WHOOSH_EDGE:
+                continue
+            if any(abs(a - c) < cls.TRANSITION_WHOOSH_MIN_GAP for c in chosen):
+                continue
+            chosen.append(round(a, 3))
+        return sorted(chosen)
+
     MUSIC_RMS = 0.05  # bed level for music (about -26 dBFS); the mix ducks it further under speech
     # The end card's sound (src/end_card.py), relative to the music bed. With no narration to duck it the music
     # would come up to its full bed level, louder than it sat under the voice; END_CARD_MUSIC_DB is the starting
@@ -924,8 +973,12 @@ class AudioEngine:
     def generate_ambient_bed(self, duration: float, output_path: Path, words: Optional[Words] = None, sr: int = 48000,
                              music_path: Optional[Path] = None, music_paths: Optional[List[Path]] = None,
                              cue_timestamps: Optional[List[float]] = None, loop_seamless: bool = False,
-                             sound_plan: Optional[Dict[str, Any]] = None, end_card_at: Optional[float] = None) -> Path:
+                             sound_plan: Optional[Dict[str, Any]] = None, end_card_at: Optional[float] = None,
+                             scene_cuts: list[float] | None = None) -> Path:
         """Music (if given, with seamless crossfades/movements) or a synthesized drone, plus narration SFX and act boundary risers.
+        scene_cuts: the picture's cut times (s), from the scene plan the render uses; the transition whooshes land
+        only on them (transition_whoosh_times). None: not known, so a whoosh falls only on an act cue or a planned
+        reveal itself.
         end_card_at: where the Reel's end card starts (src/end_card.py); the bed then runs on under the card and
         carries its sound. A tail shorter than the card is the Reel's loop bridge (ends_on_loop_bridge, 2026-11-03):
         the bed then has loop_seamless edges, so the music runs through the seam instead of fading out."""
@@ -1012,28 +1065,17 @@ class AudioEngine:
                     if n_b > 0:
                         bed[cue_idx:cue_idx + n_b] += braam[:n_b]
 
-        # Procedural Foley: Layer transition whooshes on scene cuts or sentence pauses
-        transition_times = list(cue_timestamps) if cue_timestamps else []
-        if not transition_times and words:
-            last_t = 0.0
-            for i in range(len(words) - 1):
-                w_curr = words[i]
-                w_next = words[i + 1]
-                end_curr = w_curr.get("start", 0.0) + w_curr.get("dur", 0.0)
-                start_next = w_next.get("start", 0.0)
-                gap = start_next - end_curr
-                has_punct = any(w_curr.get("word", "").endswith(p) for p in [".", "!", "?", ":", ";"])
-                if (gap >= 0.20 or has_punct) and (start_next - last_t >= 3.5):
-                    transition_times.append(start_next)
-                    last_t = start_next
-
-        for t_trans in transition_times:
-            if 0.5 <= t_trans <= duration - 0.5:
-                w_start = max(0, int((t_trans - 0.15) * sr))
-                whoosh = self._effect("sfx_whoosh.wav", self._synth_transition_whoosh(duration_sec=0.45, sr=sr), sr)
-                n_w = min(len(whoosh), total - w_start)
-                if n_w > 0:
-                    bed[w_start:w_start + n_w] += whoosh[:n_w]
+        # Transition whooshes: only on a scene cut, for an act transition or a planned reveal (transition_whoosh_times)
+        self.last_whoosh_times = self.transition_whoosh_times(duration, scene_cuts=scene_cuts, sound_plan=sound_plan,
+                                                              words=words, act_cues=cue_timestamps,
+                                                              end_card_at=end_card_at)
+        whoosh_gain = 10 ** (self.TRANSITION_WHOOSH_DB / 20)
+        for t_trans in self.last_whoosh_times:
+            w_start = max(0, int((t_trans - 0.15) * sr))
+            whoosh = self._effect("sfx_whoosh.wav", self._synth_transition_whoosh(duration_sec=0.45, sr=sr), sr)
+            n_w = min(len(whoosh), total - w_start)
+            if n_w > 0:
+                bed[w_start:w_start + n_w] += whoosh[:n_w] * whoosh_gain
 
         # Triple-stem foley: one sub-bass hit on the story's first real revelation
         if sound_plan:  # the planned reveal (None if the plan has none: no hit is better than a wrong one)

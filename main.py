@@ -47,7 +47,7 @@ from src.topic_proposer import origin_note as topic_origin_note
 from src.upscale import ensure_all, ensure_resolution
 from src.music import music_for
 from src.parallax import render_scenes as render_parallax
-from src.video_composer import TRANS_DUR
+from src.video_composer import TRANS_DUR, caption_cut_times
 from src.video_qa import QualityAuditor, audit_scene_feedback, qa_summary_html, review_render
 from src.control import failed_heading
 from src.ops import AssetLifecycleManager, PreFlightHealthChecker, setup_logging
@@ -843,8 +843,10 @@ class PipelineCoordinator:
             from src.config import MUSIC_PREFER
             library_tracks = load_library()
             from src.audio_provenance import audio_source_inputs
+            # The documentary's picture cuts (documentary_cuts, as the render below plans them): its whooshes land on them
+            doc_scene_cuts = caption_cut_times([c["end"] - c["start"] for c in documentary_cuts(words, vo_dur)])
             bed_inputs = {"voice_and_rules": file_inputs([vo_path, words_path, Path("src/audio_engine.py")]),
-                          "cues": cue_timestamps, "music_preference": MUSIC_PREFER,
+                          "cues": cue_timestamps, "scene_cuts": doc_scene_cuts, "music_preference": MUSIC_PREFER,
                           "selected_sources": audio_source_inputs(bed_path),
                           "library": [{k: v for k, v in t.items() if k != "uses"} for t in library_tracks],
                           "library_files": file_inputs([MUSIC_DIR / t["file"] for t in library_tracks])}
@@ -862,7 +864,7 @@ class PipelineCoordinator:
                 self.audio_engine.generate_ambient_bed(
                     vo_dur + 0.5, bed_path, words=words,
                     music_path=music.get("path"), music_paths=music.get("paths"),
-                    cue_timestamps=cue_timestamps, sound_plan=plan
+                    cue_timestamps=cue_timestamps, sound_plan=plan, scene_cuts=doc_scene_cuts
                 )
                 from src.audio_provenance import record_bed
                 record_bed(bed_path, music, sfx=self.audio_engine.last_sfx_sources)
@@ -2211,13 +2213,16 @@ class PipelineCoordinator:
         # the bed carries: the bed is sized to the bridge.
         card = profile.width < profile.height
         bed_seconds = vo_dur + end_card.bed_tail(card)
+        # The picture's cuts: the narration's beat boundaries (segment_beats, the grid the scene plan cuts on), for the
+        # transition whooshes (QF-05: only on a cut, at most two).
+        scene_cuts = caption_cut_times([b["end"] - b["start"] for b in segment_beats(words, vo_dur)])
         bed_inputs = {"voice_and_rules": portable_inputs(run_dir, [vo_path, words_path, Path("src/audio_engine.py"),
                                                                     Path("src/end_card.py")]),
                       "end_card": end_card.LOOP_VARIANT if card else None,
                       "profile": profile.model_dump(),
                       "library": [{k: v for k, v in t.items() if k != "uses"} for t in library_tracks],
                       "library_files": file_inputs([MUSIC_DIR / t["file"] for t in library_tracks]),
-                      "selected_sources": audio_source_inputs(bed_path)}
+                      "selected_sources": audio_source_inputs(bed_path), "scene_cuts": scene_cuts}
         if checkpoints.reusable("bed", bed_inputs):
             music = json.loads(music_path.read_text(encoding="utf-8"))
         else:
@@ -2237,7 +2242,7 @@ class PipelineCoordinator:
             self.audio_engine.generate_ambient_bed(bed_seconds, bed_path, words=words,
                                                   music_path=music["path"], sr=profile.audio_sample_rate,
                                                   loop_seamless=profile.loop_seamless, sound_plan=plan,
-                                                  end_card_at=vo_dur if card else None)
+                                                  end_card_at=vo_dur if card else None, scene_cuts=scene_cuts)
             if bed_path.is_file():
                 record_bed(bed_path, music, sfx=self.audio_engine.last_sfx_sources)
                 music_path.write_text(json.dumps(music, default=str, indent=2), encoding="utf-8")
@@ -2251,9 +2256,31 @@ class PipelineCoordinator:
             payload["caption"] = f"{payload['caption']}\n{music['credit']}"
         # music_for() counts the track's use when it picks it (a reused bed is not a new use)
         StageTimer(run_dir).record("music_and_bed", time.perf_counter() - t0)
+
+        def bed_for_cuts(durations):
+            # Picture holds/repairs can remove planned cuts after the first bed was made.
+            # Re-mix locally from the selected music and saved plan, without selecting
+            # or generating another score, before the master hashes its audio input.
+            nonlocal scene_cuts
+            actual_cuts = caption_cut_times(durations)
+            if actual_cuts == scene_cuts:
+                return
+            saved_plan = json.loads((run_dir / "sound_plan.json").read_text(encoding="utf-8"))
+            self.audio_engine.generate_ambient_bed(
+                bed_seconds, bed_path, words=words, music_path=music["path"],
+                sr=profile.audio_sample_rate, loop_seamless=profile.loop_seamless,
+                sound_plan=saved_plan, end_card_at=vo_dur if card else None,
+                scene_cuts=actual_cuts)
+            record_bed(bed_path, music, sfx=self.audio_engine.last_sfx_sources)
+            scene_cuts = actual_cuts
+            bed_inputs["scene_cuts"] = actual_cuts
+            bed_inputs["selected_sources"] = audio_source_inputs(bed_path)
+            checkpoints.complete("bed", bed_inputs, [bed_path, music_path, run_dir / "sound_plan.json",
+                                                     bed_path.with_suffix(".wav.rights.json")])
+
         return self._render_approve_publish(topic, run_id, run_dir, payload, scene_media, hero_img,
                                             vo_path, bed_path, words, vo_dur, auto_approve, dry_run, previous_status,
-                                            prepared)
+                                            prepared, bed_for_cuts)
 
     def _write_and_check_script(self, topic, run_id, run_dir, dry_run,
                                 initial_payload=None, initial_notes="") -> Dict[str, Any]:
@@ -2830,7 +2857,7 @@ class PipelineCoordinator:
 
     def _render_approve_publish(self, topic, run_id, run_dir, payload, scene_media, hero_img,
                                 vo_path, bed_path, words, vo_dur, auto_approve, dry_run, previous_status,
-                                prepared=None):
+                                prepared=None, bed_for_cuts=None):
         tid = topic["id"]
         # 6. Source quality: upscale stills too small for a sharp 1080x1920 crop (local Real-ESRGAN),
         # then de-identify living human faces before rendering. Usually already done in the
@@ -3110,6 +3137,8 @@ class PipelineCoordinator:
             # with LOOP_LINE off a reworded share line changes nothing in the master, only whether a bridge is there.
             # The 16:9 end screen still draws the line and keys on it in its own render.
             card_key = card_share if LOOP_LINE else bool((card_share or "").strip())
+            if bed_for_cuts is not None:
+                bed_for_cuts(durations)
             render_inputs = {"media": file_inputs([*scenes, vo_path, bed_path]), "words": words,
                              "durations": durations, "emphasis": payload.get("emphasis_words"), "end_card": card_key,
                              "grade_bias": (payload.get("art_direction") or {}).get("grade_bias") or 0.0,  # part of the master

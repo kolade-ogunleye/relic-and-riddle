@@ -215,6 +215,8 @@ class PipelineCoordinator:
         self.video_composer = VideoComposer()
         self.multiformat_gen = MultiFormatGenerator()
         self.telegram_bot = TelegramApprovalBot(db=self.db)
+        self.telegram_bot.approval_window = self._approval_window  # the review card says when it closes (QF-43)
+        self.telegram_bot.approve_posting = self._approve_posting  # ...and whether Approve books a slot
         self.publisher = MetaPublisher(db=self.db)
 
     def run_cycle(
@@ -1595,8 +1597,11 @@ class PipelineCoordinator:
         if not frames:
             return "🔁 The frame to retry is no longer on disk."
         run = self.db.get_run(post["run_id"]) or {}
-        caption, comment = (self._carousel_post(run.get("script_payload") or {}, frames) if post["kind"] == "carousel"
-                            else ("", ""))
+        try:
+            caption, comment = (self._carousel_request(post["run_id"], run.get("script_payload") or {}, frames)
+                                if post["kind"] == "carousel" else ("", ""))
+        except ValueError as e:   # its caption is not the one the review card showed (QF-43)
+            return f"🔁 Not retried: {html.escape(str(e))}"
         attempt = int(detail.get("retries") or 0) + 1
         platforms = sorted(failed)
         res = self.publisher.publish_photos(post["run_id"], run.get("topic_id"), post["kind"], frames, caption=caption,
@@ -3330,9 +3335,19 @@ class PipelineCoordinator:
                     backup_run(Path(run["master_video_path"]).parent, db_path=getattr(self.db, "db_path", None))
             except Exception as e:
                 log.warning("Tier 2 Gold Backup skipped: %s", e)
-        if self.schedule_posts and POST_SCHEDULING and not dry_run and (self.db.get_run(run_id) or {}).get("content_format") != "deep_dive":
+        if self._approve_posting(run_id, dry_run) == "slot":
             return self.schedule_run(run_id)
         return self.publish_run(run_id, dry_run=dry_run, previous_status=previous_status)
+
+    def _approve_posting(self, run_id: str, dry_run: bool = False) -> str:
+        """What Approve does with the run (_after_approval): "dry_run" (a simulated publish, nothing posted),
+        "slot" (schedule_run books its Reel a posting slot) or "now" (publish_run posts it at once: no scheduled
+        posting, or a documentary, which goes to YouTube at once). The review card says which (QF-43)."""
+        if dry_run or self.db.get_setting("run_mode:" + run_id) == "dry_run":
+            return "dry_run"
+        if self.schedule_posts and POST_SCHEDULING and (self.db.get_run(run_id) or {}).get("content_format") != "deep_dive":
+            return "slot"
+        return "now"
 
     # ------------------------------------------------------------ posting slots
     def schedule_run(self, run_id: str, now: Optional[datetime] = None) -> Dict[str, Any]:
@@ -3462,18 +3477,32 @@ class PipelineCoordinator:
         """The carousel's caption (see _carousel_post)."""
         return PipelineCoordinator._carousel_post(payload, slides)[0]
 
+    def _carousel_request(self, run_id: str, payload: dict[str, Any], slides: list[str]) -> tuple[str, str]:
+        """(caption, first comment) the carousel posts: its caption as the run's review card showed it (the
+        hashtags from the topic's list; publishable.carousel_post_base raises ValueError when the card showed
+        another), then the photo credits (_carousel_post). QF-43."""
+        from src import publishable
+        _, final = publishable.carousel_post_base(payload, self.db, run_id,
+                                                  (self.db.get_run(run_id) or {}).get("topic_id", ""))
+        return self._carousel_post(payload, slides, hashtags=final)
+
     @staticmethod
-    def _carousel_post(payload: Dict[str, Any], slides: Optional[List[str]] = None) -> Tuple[str, str]:
+    def _carousel_post(payload: Dict[str, Any], slides: Optional[List[str]] = None,
+                       hashtags: list[str] | None = None) -> Tuple[str, str]:
         """(caption, first comment) for a carousel. The caption is the carousel's own text (Meta and Upload-Post
-        flag duplicate captions; older scripts without one fall back to the Reel caption), then a credit line
+        flag duplicate captions; older scripts without one fall back to the Reel caption), with no hashtag outside
+        `hashtags` when given (publishable.carousel_base: the topic's list, as the review card shows), then a credit line
         for every photo the slides show whose licence asks for one (credits.asset_attribution, read from each
         slide's record): the Reel caption's first credit line covered neither every photo nor only these
         (platform audit, 2026-10-28). Credits that would take the caption over Instagram's 2,200 characters go
         in the first comment instead. A slide without a record (drawn before records were kept) adds the Reel
         caption's summary credit line, as before."""
         from src.multi_format import carousel_credits
-        own = (payload.get("carousel_caption") or "").strip()
-        base = own or payload.get("caption", "")
+        if hashtags is not None:
+            from src.publishable import carousel_base
+            base = carousel_base(payload, hashtags)
+        else:
+            base = (payload.get("carousel_caption") or "").strip() or payload.get("caption", "")
         slides = [Path(s) for s in slides or []]
         if slides and (slides[0].parent.parent / "carousel_fb").is_dir():  # one caption goes to both platforms:
             # credit what Facebook's copy shows as well (a carousel packaged before rc68 matched its photos apart)
@@ -3514,7 +3543,14 @@ class PipelineCoordinator:
                 self._alert(f"❌ Stories not posted for {html.escape(self.db.run_label(post['run_id']))}: "
                             + html.escape("; ".join(problems)[:300]))
                 return "failed"
-        caption, comment = self._carousel_post(run["script_payload"], files) if kind == "carousel" else ("", "")
+        try:
+            caption, comment = (self._carousel_request(post["run_id"], run["script_payload"], files) if kind == "carousel"
+                                else ("", ""))
+        except ValueError as e:   # its caption is not the one the review card showed (QF-43)
+            self.db.update_scheduled_post(post["id"], "failed", detail={"error": str(e)})
+            self._alert(f"❌ Carousel not posted for {html.escape(self.db.run_label(post['run_id']))}: "
+                        + html.escape(str(e)[:300]))
+            return "failed"
         res = self.publisher.publish_photos(post["run_id"], run["topic_id"], kind, files, caption=caption,
                                             **({"first_comment": comment} if comment else {}))
         self.db.update_scheduled_post(post["id"], res["status"], detail=res)
@@ -3691,9 +3727,12 @@ class PipelineCoordinator:
             if stories:
                 pub["stories"] = self.publisher.publish_photos(run_id, tid, "story", stories, dry_run=True)
             if slides:
-                caption, comment = self._carousel_post(payload, slides)
-                pub["carousel"] = self.publisher.publish_photos(run_id, tid, "carousel", slides, caption=caption,
-                                                                dry_run=True, **({"first_comment": comment} if comment else {}))
+                try:
+                    caption, comment = self._carousel_request(run_id, payload, slides)
+                    pub["carousel"] = self.publisher.publish_photos(run_id, tid, "carousel", slides, caption=caption,
+                                                                    dry_run=True, **({"first_comment": comment} if comment else {}))
+                except ValueError as e:   # its caption is not the one the review card showed (QF-43)
+                    pub["carousel"] = {"status": "failed", "error": str(e)}
         self._stamp_review(run_id, status, pub)
         return {"status": status, "publish_result": pub}
 

@@ -29,7 +29,7 @@ from typing import Dict, Any, List, Optional, Tuple
 import requests
 
 from . import config
-from .config import META_IS_AI_GENERATED, is_configured
+from .config import is_configured
 from .db import PipelineDatabase
 
 log = logging.getLogger(__name__)
@@ -103,11 +103,11 @@ class UploadPostPublisher:
             # docs.upload-post.com/api/upload-video: Instagram's caption is instagram_title (falls back
             # to title); Facebook's Reel title is facebook_title (falls back to title; max 255 chars,
             # docs .../resources/character-limits) and its text is facebook_description.
-            ("title", meta["title"][:255]),
-            ("instagram_title", meta["caption"]),
-            ("facebook_title", meta["title"][:255]),
-            ("facebook_description", meta["caption"]),
-            ("first_comment", meta["first_comment"]),
+            ("title", reel_fields(meta)["title"]),
+            ("instagram_title", reel_fields(meta)["caption"]),
+            ("facebook_title", reel_fields(meta)["title"]),
+            ("facebook_description", reel_fields(meta)["caption"]),
+            ("first_comment", reel_fields(meta)["first_comment"]),
             ("media_type", "REELS"),
             ("share_to_feed", "true"),
             ("facebook_media_type", "REELS"),
@@ -157,12 +157,13 @@ class UploadPostPublisher:
         YouTube title (100 characters), description, tags, Education category, the AI-content disclosure,
         not made for kids, and the 16:9 thumbnail as a file (2 MB maximum; needs a verified channel)."""
         meta, media = envelope["metadata"], envelope["media"]
+        yt = youtube_fields(meta)
         data: List[Tuple[str, str]] = [
             ("user", self.user), ("platform[]", "youtube"),
-            ("title", (meta.get("youtube_title") or meta["title"])[:100]),
-            ("youtube_title", (meta.get("youtube_title") or meta["title"])[:100]),
-            ("youtube_description", (meta.get("description") or meta["caption"])[:5000]),
-            *[("tags[]", tag) for tag in (meta.get("tags") or [])[:30]],
+            ("title", yt["title"]),
+            ("youtube_title", yt["title"]),
+            ("youtube_description", yt["description"]),
+            *[("tags[]", tag) for tag in yt["tags"]],
             ("categoryId", "27"),  # Education
             ("privacyStatus", config.YOUTUBE_PRIVACY),
             ("selfDeclaredMadeForKids", "false"),
@@ -210,12 +211,12 @@ class UploadPostPublisher:
             raise NotConfigured("UPLOAD_POST_API_KEY / UPLOAD_POST_USER not set")
         meta, media = envelope["metadata"], envelope["media"]
         key = envelope["run_id"] + ":youtube-short"
-        tags = " ".join(meta.get("hashtags") or [])
+        short = youtube_short_fields(meta)
         data: List[Tuple[str, str]] = [
             ("user", self.user), ("platform[]", "youtube"),
-            ("title", meta["title"][:100]), ("youtube_title", meta["title"][:100]),
-            ("youtube_description", (meta["caption"] + ("\n\n" + tags if tags and tags not in meta["caption"] else ""))[:5000]),
-            *[("tags[]", t.lstrip("#")) for t in (meta.get("hashtags") or [])[:30]],
+            ("title", short["title"]), ("youtube_title", short["title"]),
+            ("youtube_description", short["description"]),
+            *[("tags[]", t) for t in short["tags"]],
             ("categoryId", "27"),  # Education
             ("privacyStatus", config.YOUTUBE_SHORTS_PRIVACY),
             ("selfDeclaredMadeForKids", "false"),
@@ -596,6 +597,27 @@ class FacebookPageReelsPublisher:
         raise PublishFailed("Facebook video not ready in time; nothing was published.")
 
 
+def reel_fields(meta: dict[str, Any]) -> dict[str, str]:
+    """The Reel's text as it is sent (Facebook's title at most 255 characters; the caption is Instagram's and
+    Facebook's text). The review card shows these strings (publishable.card_copy)."""
+    return {"title": meta["title"][:255], "caption": meta["caption"], "first_comment": meta.get("first_comment", "")}
+
+
+def youtube_fields(meta: dict[str, Any]) -> dict[str, Any]:
+    """The documentary's YouTube title (100 characters), description (5,000) and tags (30)."""
+    return {"title": (meta.get("youtube_title") or meta["title"])[:100],
+            "description": (meta.get("description") or meta["caption"])[:5000],
+            "tags": list((meta.get("tags") or [])[:30])}
+
+
+def youtube_short_fields(meta: dict[str, Any]) -> dict[str, Any]:
+    """The Short's title, description (the caption, with the hashtags when it does not carry them) and tags."""
+    tags = " ".join(meta.get("hashtags") or [])
+    return {"title": meta["title"][:100],
+            "description": (meta["caption"] + ("\n\n" + tags if tags and tags not in meta["caption"] else ""))[:5000],
+            "tags": [t.lstrip("#") for t in (meta.get("hashtags") or [])[:30]]}
+
+
 def _caption_for(kind: str, caption: str, platforms: List[str]) -> str:
     """The caption a carousel request carries (operator, 2026-10-28: a posted Facebook carousel's pointing hand
     pointed right while its caption sat above the photos). No request carries a direction cue (neutral_cues:
@@ -642,6 +664,14 @@ class MetaPublisher:
 
     def build_envelope(self, run_id: str, video_path: Path, thumbnail_916_path: Path, thumbnail_1x1_path: Path,
                        script_payload: Dict[str, Any], platforms: Optional[List[str]] = None) -> Dict[str, Any]:
+        """The Reel's (or the documentary's) request. Its text comes from the allowlisted fields only
+        (publishable.ENVELOPE_FIELDS) and must be what the run's review card showed word for word: a field
+        outside the allowlist, or a string the card did not show, raises ValueError (QF-43)."""
+        from . import publishable
+        metadata = publishable.envelope_metadata(script_payload,
+                                                 publishable.topic_for(self.db, script_payload["topic_id"]))
+        publishable.check_envelope(metadata, publishable.load_record(self.db, run_id),
+                                   youtube=(platforms or []) == ["youtube"])
         return {
             "run_id": run_id,
             "topic_id": script_payload["topic_id"],
@@ -652,19 +682,7 @@ class MetaPublisher:
                 "thumbnail_1x1_path": str(thumbnail_1x1_path.resolve()),
                 "video_size_mb": round(os.path.getsize(video_path) / (1024 * 1024), 2),
             },
-            "metadata": {
-                "title": script_payload["title"],
-                "caption": with_disclosure(script_payload["caption"], script_payload),
-                "location": script_payload.get("location", {}),
-                "hashtags": script_payload.get("hashtags", []),
-                "meta_topic_categories": script_payload.get("meta_topic_categories", []),
-                "first_comment": script_payload.get("first_comment", ""),
-                "is_ai_generated": META_IS_AI_GENERATED,
-                "youtube_title": script_payload.get("youtube_title", ""),
-                "description": (with_disclosure(script_payload.get("description", ""), script_payload)
-                                if script_payload.get("description") else ""),
-                "tags": script_payload.get("tags", []),
-            },
+            "metadata": metadata,
             "created_at": _now(),
         }
 

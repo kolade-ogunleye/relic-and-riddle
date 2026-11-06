@@ -43,8 +43,8 @@ QF-45 after it.
 
 | ID | Finding | Status | Commit | Acceptance metric before -> after | Evidence path | Regression test |
 |---|---|---|---|---|---|---|
-| QF-01 | Colour matrix (BT.709 end to end) | done | this commit | clips red Y81 U90 V240 untagged -> Y63 U102 V240 bt709/tv; masters and caption gold within tolerance; non-BT.709 conversions 1-3 -> 0 | QF-01/ | tests/test_qf01_colour_matrix.py |
-| QF-02 | 16-bit grade | todo | | distinct levels of a 0-64 luma ramp after the grade chain; black lift | QF-02/ | |
+| QF-01 | Colour matrix (BT.709 end to end) | done | 3b824f5 | clips red Y81 U90 V240 untagged -> Y63 U102 V240 bt709/tv; masters and caption gold within tolerance; non-BT.709 conversions 1-3 -> 0 | QF-01/ | tests/test_qf01_colour_matrix.py |
+| QF-02 | 16-bit grade | done | this commit | shadow levels 29/56 -> 54 lossless, 52 delivery; black Y21.4-22.5 -> Y16.61-17.00; YUV-to-8-bit RGB round trips -> 0; right-edge ratio 0.993 unchanged | QF-02/ | tests/test_qf02_16bit_grade.py |
 | QF-03 | Grain removed from the delivery master | todo | | master bitrate at the same CRF; two renders byte-identical | QF-03/ | |
 | QF-04 | Transitions: hard cuts, dissolve only on act changes | todo | | fadeblack / zoomin in Reel graphs; seam tests | QF-04/ | |
 | QF-05 | Whoosh placement | todo | | whooshes per Reel on the fixture runs; level | QF-05/ | |

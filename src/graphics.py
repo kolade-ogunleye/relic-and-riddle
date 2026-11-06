@@ -283,20 +283,21 @@ def graded_frame(frame: Image.Image, work: Path, vignette: bool = False) -> Imag
     are still recorded)."""
     try:
         from .encoding import BT709_TO_RGB, RGB_TO_BT709
-        from .video_composer import film_grade_filter, graded_in_bt709
+        from .video_composer import film_grade_filter, picture_chain
         work.mkdir(parents=True, exist_ok=True)
         # round 8 (review): a name of its own per call: two renders sharing a stage_cache read each other's frame
         tag = f"{os.getpid()}_{uuid.uuid4().hex[:12]}"
         src, dst = work / f"_contrast_in_{tag}.png", work / f"_contrast_out_{tag}.png"
         frame.convert("RGB").save(src)
         aspect = "16/9" if frame.width > frame.height else "9/16"
-        # BT.709 in and out, as the master converts and tags its pictures (QF-01)
-        grade = graded_in_bt709(film_grade_filter(0.0, out_dir=work))
-        vf = (f"{RGB_TO_BT709},format=yuv420p,{grade},format=yuv420p,"
-              f"noise=alls=8:allf=t+u:all_seed=7,{f'vignette=PI/4.2:aspect={aspect},' if vignette else ''}"
-              f"{BT709_TO_RGB},format=rgb24")
-        subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", str(src), "-vf", vf, "-frames:v", "1", str(dst)],
-                       check=True, timeout=120, capture_output=True)
+        # BT.709 in and out, as the master converts and tags its pictures (QF-01); the grade, grain and vignette in
+        # 16-bit RGB, as the master's picture_chain (QF-02)
+        chain = picture_chain(film_grade_filter(0.0, out_dir=work), frame.width, frame.height,
+                              grain="noise=alls=8:allf=t+u:all_seed=7", vignette=vignette,
+                              lens_filter=f"vignette=PI/4.2:aspect={aspect}")
+        graph = f"[0:v]{RGB_TO_BT709},format=yuv420p,{chain},format=yuv420p,{BT709_TO_RGB},format=rgb24[out]"
+        subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", str(src), "-filter_complex", graph, "-map", "[out]",
+                        "-frames:v", "1", str(dst)], check=True, timeout=120, capture_output=True)
         with Image.open(dst) as im:
             out = im.convert("RGB")
         src.unlink(missing_ok=True)

@@ -2889,10 +2889,14 @@ def _master_chain(gain_db: float) -> str:
 # Measured on 40 stills of 10 topics: docs/reviews/film-grade-2026-10-29.
 FILM_PRINT_LUT = BASE_DIR / "assets" / "luts" / "kodak_2383.cube"
 FILM_LUT_DIR = BASE_DIR / "cache" / "luts"
-FILM_TONE_VERSION = 1
+FILM_TONE_VERSION = 2       # 2 (QF-02): the table's black is video black (the print's black lift dropped)
 FILM_TONE_NORM_MIX = 0.5     # 0 = luminance (washes bright warm colours out), 1 = brightest channel (flatter)
 FILM_TONE_CHROMA = 1.03      # the print's richness, bounded: more than this grows a warm material into a cast
-FILM_PRE_CURVE = "curves=master='0/0.02 0.5/0.50 1/0.98'"   # the pre-LUT black lift and white headroom (unchanged)
+# The pre-LUT white headroom. The stacked black lifts are gone (QF-02, 2026-11-06): a still's branch curve (0/0.02),
+# this curve (0/0.02) and the print table's own black (5.4/255) stacked to Y22 for a black still. Black is set once,
+# by the print table, at video black (Y16; the master's RGB grain, clipped at 0, adds about 0.6). One lift of 0.01
+# kept here measured Y16.9 without the grain and Y17.1-17.3 with it, outside Y16 +-1, so none is kept.
+FILM_PRE_CURVE = "curves=master='0/0 0.5/0.50 1/0.98'"
 _LUMA_709 = (0.2126, 0.7152, 0.0722)
 
 
@@ -2911,15 +2915,19 @@ def _read_cube(path: Path):
     return a.reshape(n, n, n, 3)
 
 
-def hue_safe_print_table(lut, mix: float = FILM_TONE_NORM_MIX, chroma: float = FILM_TONE_CHROMA):
+def hue_safe_print_table(lut, mix: float = FILM_TONE_NORM_MIX, chroma: float = FILM_TONE_CHROMA,
+                         black: float | None = None):
     """The print LUT's tone without its colour: a table of the same size whose greys stay grey (at the print's
-    mean grey response) and whose colours keep their hue, with relative chroma changed by at most `chroma`."""
+    mean grey response) and whose colours keep their hue, with relative chroma changed by at most `chroma`.
+    `black`: the table's black (None: the print's own); the difference fades out linearly to white, which stays."""
     import numpy as np
     n = lut.shape[0]
     v = np.linspace(0.0, 1.0, n)
     b, g, r = np.meshgrid(v, v, v, indexing="ij")
     x = np.stack([r, g, b], axis=-1)
     tone = np.array([lut[i, i, i] for i in range(n)]).mean(axis=1)   # the grey axis, neutralised
+    if black is not None:
+        tone = tone + (float(black) - tone[0]) * (1.0 - v)
     w = np.asarray(_LUMA_709)
     norm = mix * x.max(axis=-1) + (1 - mix) * (x @ w)
     gain = np.where(norm > 1e-6, np.interp(norm, v, tone) / np.maximum(norm, 1e-6), 1.0)
@@ -2943,7 +2951,7 @@ def hue_safe_print_lut(source: Path = FILM_PRINT_LUT, out_dir: Optional[Path] = 
     out = Path(out_dir or FILM_LUT_DIR) / f"{Path(source).stem}_tone_{key}.cube"
     if out.is_file():
         return out
-    table = hue_safe_print_table(_read_cube(source))
+    table = hue_safe_print_table(_read_cube(source), black=0.0)   # QF-02: black is video black
     n = table.shape[0]
     body = "\n".join(f"{r:.6f} {g:.6f} {b:.6f}" for r, g, b in table.reshape(-1, 3))
     text = (f'TITLE "{Path(source).stem} tone only (hue kept)"\nLUT_3D_SIZE {n}\n'
@@ -2958,7 +2966,8 @@ def hue_safe_print_lut(source: Path = FILM_PRINT_LUT, out_dir: Optional[Path] = 
 def film_grade_filter(grade_bias: float = 0.0, source: Path = FILM_PRINT_LUT, out_dir: Optional[Path] = None) -> str:
     """The master's film grade: the pre-curve and the hue-safe print LUT (a gentle neutral contrast when the LUT
     is missing or unreadable), then the topic's bounded warm/cool bias."""
-    grade = "eq=contrast=1.07:brightness=0.008:saturation=1.03,curves=master='0/0.02 0.2/0.19 0.5/0.51 0.8/0.82 1/0.98'"
+    # no black lift (QF-02): the brightness offset and the curve's 0/0.02 are gone
+    grade = "eq=contrast=1.07:saturation=1.03,curves=master='0/0 0.2/0.19 0.5/0.51 0.8/0.82 1/0.98'"
     if Path(source).exists():
         try:
             lut = hue_safe_print_lut(source, out_dir)
@@ -2972,15 +2981,40 @@ def film_grade_filter(grade_bias: float = 0.0, source: Path = FILM_PRINT_LUT, ou
     return grade
 
 
-def graded_in_bt709(grade: str) -> str:
-    """A film_grade_filter chain on the master's BT.709 YUV picture (QF-01): its RGB filters (curves, the print
-    LUT, the colour balance) read the picture with the BT.709 matrix and hand it back in BT.709, tagged. Left to
-    ffmpeg's inserted converters, the round trip used BT.601 (on ffmpeg 6, whatever the frames' tags implied)."""
+# The picture chain in 16-bit RGB (QF-02, 2026-11-06). curves and lut3d are RGB filters; on the yuv420p stream
+# ffmpeg converted to 8-bit RGB and back around each: a 0-64 shadow ramp (56 luma levels) kept 29 in the master.
+# The graded picture is now read once into 16-bit planar RGB (gbrp16le) with the BT.709 matrix; the grade, the print
+# LUT, the grain, the lens vignette and the captions all work there, and it is converted once, at the end, to BT.709
+# yuv420p (swscale dithers 16-bit RGB down to 8-bit YUV). ffmpeg's vignette has no 16-bit path, so the lens is drawn
+# on a white frame (the same picture_vignette filter) and multiplied into the 16-bit picture.
+PICTURE_RGB16 = "gbrp16le"
+MASTER_GRAIN = "noise=alls=8:allf=t+u"
+
+
+def picture_chain(grade: str, width: int, height: int, *, grain: str = MASTER_GRAIN, vignette: bool = True,
+                  vignette_enable: str = "", card_split: str = "", captions: str = "", tag: str = "pc",
+                  lens_filter: str | None = None) -> str:
+    """The master's picture chain, for one filter_complex chain on BT.709 yuv420p: `grade` (film_grade_filter),
+    `grain`, the lens vignette (`vignette_enable`: graphic_vignette_enable), `card_split` (a split whose second
+    branch the caller labels, before the captions) and `captions` (the subtitles filter), all in 16-bit RGB, then
+    one conversion back to BT.709 yuv420p, tagged. `tag` keeps the chain's two inner labels unique in a graph;
+    `lens_filter`: the vignette filter drawn on the lens frame (default picture_vignette(width, height))."""
     yuv = ""
     if grade.startswith("eq="):   # the fallback grade's eq works on YUV, before the RGB curves
         yuv, grade = grade.split(",", 1)
         yuv += ","
-    return f"{yuv}{BT709_TO_RGB},{grade},{RGB_TO_BT709}"
+    chain = f"{yuv}{BT709_TO_RGB},format={PICTURE_RGB16},{grade}"
+    if grain:
+        chain += f",{grain}"
+    if vignette:
+        lens = (f"color=c=white:s={width}x{height}:r={VIDEO_FPS},format=rgb24,{lens_filter or picture_vignette(width, height)},"
+                f"format={PICTURE_RGB16}")
+        chain += (f"[{tag}_pic];{lens}[{tag}_lens];"
+                  f"[{tag}_pic][{tag}_lens]blend=all_mode=multiply:shortest=1{vignette_enable}")
+    chain += f",{card_split}" if card_split else ","
+    if captions:
+        chain += f"{captions},"
+    return chain + RGB_TO_BT709
 
 
 def ass_font_size(name: str, px: float, weight: int | None = None) -> int:
@@ -3694,12 +3728,15 @@ class VideoComposer:
                 f"Style: ReconBadge,{RECON_FONT},{badge_fs},{COL_ACTIVE},&H000000FF,&H00000000,&H00000000,-1,0,0,0,100,100,1.5,0,1,0,0,7,0,0,0,1\n"
                 f"Style: ReconPlate,{RECON_FONT},{badge_fs},{recon_plate},&H000000FF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,7,0,0,0,1\n"
             )
+        # YCbCr Matrix: None (QF-02): the captions are drawn on the 16-bit RGB picture, so libass writes the colours as
+        # they are and the master's one BT.709 conversion encodes them; a TV.709 header (QF-01, drawn on BT.709 YUV)
+        # squeezed them into TV range on RGB (brand gold 242/182/48 came out about 223/172/56).
         header = f"""[Script Info]
 ScriptType: v4.00+
 PlayResX: {width}
 PlayResY: {height}
 ScaledBorderAndShadow: yes
-YCbCr Matrix: TV.709
+YCbCr Matrix: None
 
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
@@ -4195,7 +4232,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                 crop_y = f"(in_h-out_h)*{cy:.3f}"
                 filter_parts.append(
                     f"[{i}:v]scale={w2}:{h2}:force_original_aspect_ratio=increase,crop={w2}:{h2}:{crop_x}:{crop_y},"
-                    f"curves=master='0/0.02 0.1/0.11 0.5/0.50 0.9/0.89 1/0.97',"
+                    f"curves=master='0/0 0.1/0.11 0.5/0.50 0.9/0.89 1/0.97',"   # no black lift (QF-02)
                     f"zoompan=z='{z}':x='{x}':y='{y}':d={frames}:s={width}x{height}:fps={VIDEO_FPS},"
                     f"setsar=1,{RGB_TO_BT709}[v{i}]"
                 )
@@ -4256,18 +4293,18 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         # The Kodak 2383 print's tone with the picture's own hue (2026-10-29: the full LUT turned a balanced
         # lamp-lit door neon lime); film_grade_filter, above, has the why and the measurements.
         film_grade = film_grade_filter(grade_bias)
-        film_grade = graded_in_bt709(film_grade)  # QF-01: the grade's RGB round trip is BT.709 both ways
         # The graded picture before the captions, split off for the end card's background (its last frame).
         card_split = "split[v_graded][v_card_src];[v_graded]" if card else ""
-        # The lens vignette (picture_vignette, freeze pass V1): ffmpeg reads its aspect as the pixel aspect, so the
-        # 16:9 master draws at aspect 1 (square pixels), not 16/9, which crushed its corners to black.
-        filter_parts.append(
-            f"[video_raw]format=yuv420p,{film_grade},format=yuv420p,"
-            f"noise=alls=8:allf=t+u,{picture_vignette(width, height)}{vignette_enable},{card_split}"
-            f"subtitles='{ass_str}':fontsdir='{fonts_str}',{to_bt709('bt709')}[v_final]"
-        )
-        if card:
-            filter_parts.append(f"[v_card_src]trim=start={max(0.0, vo_dur - 0.2):.3f}:end={vo_dur:.3f}[v_last]")
+        # QF-02: from here `film_grade` is the whole picture chain in 16-bit RGB (picture_chain): the grade, the
+        # grain, the lens vignette (picture_vignette, freeze pass V1: ffmpeg reads its aspect as the pixel aspect,
+        # so the 16:9 master draws at aspect 1), the card split and the captions, then one dithered conversion to
+        # BT.709 yuv420p. The yuv420p guards around it stay (the planar-RGB right-edge bar is measured in QF-02).
+        film_grade = picture_chain(film_grade, width, height, vignette_enable=vignette_enable, card_split=card_split,
+                                   captions=f"subtitles='{ass_str}':fontsdir='{fonts_str}'")
+        filter_parts.append(f"[video_raw]format=yuv420p,{film_grade},format=yuv420p,{to_bt709('bt709')}[v_final]")
+        if card:   # the end card's background frame: straight from the 16-bit RGB picture to 8-bit RGB
+            filter_parts.append(f"[v_card_src]trim=start={max(0.0, vo_dur - 0.2):.3f}:end={vo_dur:.3f},"
+                                "format=rgb24[v_last]")
 
         encoder_args = _get_video_encoder()
         delivery_args = [

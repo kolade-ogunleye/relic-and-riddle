@@ -210,6 +210,11 @@ COMMONS_CONTACT = (os.getenv("COMMONS_CONTACT") or "").strip()
 # The brand's public contact (a URL or email) named in the User-Agent of other open-archive clients (archive.org).
 # Unset: the User-Agent names the brand and purpose only. Kept out of the source (QF-49).
 BRAND_CONTACT = (os.getenv("BRAND_CONTACT") or "").strip()
+# Largest picture download read (MB) before it is refused undecoded; originals over 35 MB are fetched as thumbnails
+try:
+    COMMONS_DOWNLOAD_MAX_MB = max(1, int(os.getenv("COMMONS_DOWNLOAD_MAX_MB") or 50))
+except ValueError:
+    COMMONS_DOWNLOAD_MAX_MB = 50
 # Parallel ffmpeg encodes (1-8): more renders at once on a stronger GPU, fewer on a shared one.
 try:
     RENDER_ENCODING_SLOTS = max(1, min(8, int(os.getenv("RENDER_ENCODING_SLOTS") or 2)))

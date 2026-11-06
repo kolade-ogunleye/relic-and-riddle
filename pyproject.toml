@@ -1,0 +1,38 @@
+# Only what uv needs to lock the dependencies (uv.lock, with hashes); the tool configuration is QF-27.
+# requirements.txt stays the production install source: its pins, markers included, are the dependencies below
+# and must agree with uv.lock (scripts/check_lock.py, run in CI).
+[project]
+name = "relic-and-riddle"
+version = "0.0.0"
+requires-python = ">=3.11,<3.12"
+dependencies = [
+    "anthropic==1.13.0",
+    "pydantic==2.14.1",
+    "APScheduler==3.11.3",
+    "edge-tts==7.3.1",
+    "azure-cognitiveservices-speech==1.51.2",
+    "numpy==2.4.6",
+    "pillow==13.0.0",
+    "requests==2.34.2",
+    "msal==1.39.0",
+    "cryptography==50.0.2",
+    "soundfile==0.13.1",
+    "scipy==1.17.1",
+    "pip-audit==2.10.1",
+    "onnxruntime-directml==1.24.4; sys_platform == 'win32'",
+    "onnxruntime==1.24.4; sys_platform != 'win32'",
+    "opencv-python-headless==4.14.0.94",
+    "pytest==9.0.3",
+    "pytest-xdist==3.8.0",
+    "httpx==0.28.1",
+]
+
+# Tools production never runs; CI installs them from the lock
+[dependency-groups]
+dev = [
+    "ruff==0.17.3",
+]
+
+[tool.uv]
+package = false
+required-version = "==0.13.7"

@@ -47,10 +47,11 @@ def _maxlagged(resp: requests.Response) -> bool:
 
 
 def _get(url: str, params: Optional[dict] = None, timeout: float = 60, max_wait: int = 60,
-         allow_redirects: bool = True) -> requests.Response:
+         allow_redirects: bool = True, stream: bool = False) -> requests.Response:
     """GET following Wikimedia's API etiquette: one request at a time with a pause between,
     maxlag on API calls, and backoff that honours Retry-After on 429/503 and maxlag refusals.
-    `allow_redirects=False` hands a redirect back unfollowed (download_jpeg checks each hop itself)."""
+    `allow_redirects=False` hands a redirect back unfollowed (download_jpeg checks each hop itself).
+    Streamed download bodies are left unread for _capped_body, including JSON responses."""
     hops = {} if allow_redirects else {"allow_redirects": False}
     resp = None
     started = time.monotonic()
@@ -58,17 +59,25 @@ def _get(url: str, params: Optional[dict] = None, timeout: float = 60, max_wait:
         params = {**(params or {}), "maxlag": MAXLAG}
     for attempt in range(5):
         time.sleep(1.0)
-        resp = requests.get(url, params=params, headers=HEADERS, timeout=timeout, **hops)
-        if resp.status_code not in (429, 503) and not _maxlagged(resp):
-            resp.raise_for_status()
+        resp = requests.get(url, params=params, headers=HEADERS, timeout=timeout, **hops,
+                            **({"stream": True} if stream else {}))
+        if resp.status_code not in (429, 503) and (stream or not _maxlagged(resp)):
+            try:
+                resp.raise_for_status()
+            except requests.RequestException:
+                if stream:
+                    resp.close()
+                raise
             return resp
         retry_after = resp.headers.get("Retry-After", "")
+        if stream:
+            resp.close()
         wait = int(retry_after) if retry_after.isdigit() else 15 * 2 ** attempt
         if wait + (time.monotonic() - started) > max_wait:
             break  # don't hang for hours; re-run later (or set COMMONS_CONTACT)
         log.info("Commons rate limited; waiting %ss as requested", wait)
         time.sleep(wait + 1)  # retrying before Retry-After expires only extends the block
-    if _maxlagged(resp):
+    if not stream and _maxlagged(resp):
         raise requests.RequestException("Commons asked automated clients to wait (maxlag); try again later.")
     resp.raise_for_status()
     return resp
@@ -676,6 +685,33 @@ def best_first(cands: List[dict], keywords: Optional[List[str]] = None, place: O
                                         -(c.get("width", 0) * c.get("height", 0))))
 
 
+def _capped_body(resp, cap: int) -> bytes:
+    """A downloaded body of at most cap bytes, read no further than cap + one 64 KiB chunk: ValueError past it (or when the
+    server declares more). A response already read (no iter_content) is measured as it is."""
+    declared = str((getattr(resp, "headers", None) or {}).get("Content-Length", "")).strip()
+    if declared.isdigit() and int(declared) > cap:
+        close = getattr(resp, "close", None)
+        if callable(close):
+            close()
+        raise ValueError(f"Download too large: {int(declared):,} bytes declared (cap {cap:,})")
+    if not hasattr(resp, "iter_content"):
+        body = resp.content
+    else:
+        parts, size = [], 0
+        try:
+            for chunk in resp.iter_content(1 << 16):
+                parts.append(chunk)
+                size += len(chunk)
+                if size > cap:
+                    break
+        finally:
+            resp.close()
+        body = b"".join(parts)
+    if len(body) > cap:
+        raise ValueError(f"Download too large: over {cap:,} bytes (cap)")
+    return body
+
+
 def download_jpeg(
     url: str,
     dest: Path,
@@ -689,11 +725,13 @@ def download_jpeg(
     when None) and public (src/url_guard). Raises ValueError (url_guard.RefusedURL) for any other URL."""
     from . import url_guard
     from .footage import url_allowed
-    resp = url_guard.follow(url, lambda u, **kw: _get(u, timeout=30, max_wait=max_wait, **kw),
+    resp = url_guard.follow(url, lambda u, **kw: _get(u, timeout=30, max_wait=max_wait, stream=True, **kw),
                             allowed=lambda u: url_allowed(u, provider))
-    with Image.open(io.BytesIO(resp.content)) as im:
+    # Untrusted bodies above the cap are refused; accepted bytes keep Pillow's own pixel limit.
+    data = _capped_body(resp, config.COMMONS_DOWNLOAD_MAX_MB * 1024 * 1024)
+    with Image.open(io.BytesIO(data)) as im:
         im.verify()  # reject corrupt / non-image payloads
-    with Image.open(io.BytesIO(resp.content)) as raw:
+    with Image.open(io.BytesIO(data)) as raw:
         # Upright first: re-encoding drops the EXIF orientation, and a portrait photo stored sideways with a
         # rotate flag reached a video turned over (Unfinished Obelisk, beat 10, 2026-10-25).
         im = ImageOps.exif_transpose(raw)

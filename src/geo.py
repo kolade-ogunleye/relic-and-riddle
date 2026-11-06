@@ -51,6 +51,7 @@ def _relief_file() -> Path:
 
 
 RELIEF_FILE = _relief_file()
+RELIEF_MAX_PIXELS = 21600 * 10800  # SR_HR.tif, the largest relief raster (SR_50M.tif is 10800x5400)
 CACHE_FILE = DATA_DIR / "geo_cache.json"
 WIKIDATA_API = "https://www.wikidata.org/w/api.php"
 NAME_FIELDS = ("NAME", "NAME_LONG", "ADMIN", "FORMAL_EN", "NAME_EN", "GEOUNIT")

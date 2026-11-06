@@ -34,6 +34,7 @@ from . import geo
 from .art_direction import MOTION, accent, count_start, push_in
 from .config import VIDEO_FPS, VIDEO_HEIGHT, VIDEO_WIDTH
 from .encoding import bounded_encode
+from .trusted_image import open_trusted
 from .typography import (
     TextPlate,
     cap_height,
@@ -1083,13 +1084,9 @@ def _relief() -> Image.Image | None:
     """Natural Earth shaded relief (21600x10800, public domain), loaded once."""
     if not geo.RELIEF_FILE.exists():
         return None
-    limit, Image.MAX_IMAGE_PIXELS = Image.MAX_IMAGE_PIXELS, None  # our own trusted 233 MP raster
-    try:
-        im = Image.open(geo.RELIEF_FILE)
-        im.load()
+    # Our own trusted 233 MP raster, decoded under its own limit (the process-wide one stays for downloads)
+    with open_trusted(geo.RELIEF_FILE, geo.RELIEF_MAX_PIXELS, formats=("TIFF",)) as im:
         return im.convert("L")
-    finally:
-        Image.MAX_IMAGE_PIXELS = limit
 
 
 # Round 6 (2026-11-03): the relief inside the home fill only darkens, in a narrow band ([RELIEF_HOME_FLOOR, 1.00] of

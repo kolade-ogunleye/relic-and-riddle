@@ -31,6 +31,7 @@ from typing import List, Optional, Tuple, Union
 from PIL import Image
 
 from .config import BASE_DIR, REALESRGAN_BIN, VIDEO_WIDTH, VIDEO_HEIGHT
+from .trusted_image import open_trusted
 from .typography import is_video
 
 log = logging.getLogger(__name__)
@@ -206,14 +207,9 @@ def _upscale_ncnn(path: Path, tmp: Path) -> Image.Image:
     finally:
         if in_file is not None:
             in_file.unlink(missing_ok=True)
-    # Our own 4x output of a wide still can exceed Pillow's decompression-bomb limit
-    limit, Image.MAX_IMAGE_PIXELS = Image.MAX_IMAGE_PIXELS, None
-    try:
-        im = Image.open(tmp)
-        im.load()
-    finally:
-        Image.MAX_IMAGE_PIXELS = limit
-    return im
+    # Our own 4x output of a wide still can exceed Pillow's decompression-bomb limit: decoded under its own limit
+    # (at most the source still, scaled: a clamped input is smaller), never by lifting the process-wide one
+    return open_trusted(tmp, w * h * SCALE * SCALE)
 
 
 def _upscale_cpu_polish(path: Path) -> Image.Image:

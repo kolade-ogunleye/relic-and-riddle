@@ -92,19 +92,16 @@ def extract_member(archive: Path, member: str, dest: Path, max_bytes: int = MAX_
 
 def valid_relief(path: Path, size: tuple[int, int]) -> bool:
     """Decodes the raster (our own trusted Natural Earth file once its size checks out) and checks its shape."""
-    limit, Image.MAX_IMAGE_PIXELS = Image.MAX_IMAGE_PIXELS, size[0] * size[1] + 1
+    from src.trusted_image import open_trusted
     try:
-        with Image.open(path) as im:
-            if im.format != "TIFF" or im.size != size:
+        with open_trusted(path, size[0] * size[1], formats=("TIFF",)) as im:   # its own limit, not the global one
+            if im.size != size:
                 print(f"Unexpected raster ({im.format}, {im.size}; expected TIFF {size}); not saved.")
                 return False
-            im.load()
             lo, hi = im.convert("L").getextrema()
     except (OSError, Image.DecompressionBombError) as e:
         print(f"Could not read the raster: {e}; not saved.")
         return False
-    finally:
-        Image.MAX_IMAGE_PIXELS = limit
     if hi - lo < 64:   # a shaded relief spans dark slopes to bright ones; a blank raster does not
         print(f"Raster has almost no contrast ({lo}..{hi}); not saved.")
         return False

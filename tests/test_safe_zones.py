@@ -76,8 +76,6 @@ GRAPHICS = {
     "scale_height": lambda out: graphics.render_scale({"value": 32.0, "unit": "m", "dimension": "height",
                                                        "subject": "Kailasa temple monolith height", "approximate": True}, out),
     "section": lambda out: graphics.render_cross_section(SECTION, out),
-    "defense": lambda out: graphics.render_rolling_stone_defense({"title": "Rolling Stone Door Defense Mechanism"}, out),
-    "ventilation": lambda out: graphics.render_ventilation_airflow({"title": "Subterranean Ventilation & Convection Dynamics"}, out),
 }
 
 

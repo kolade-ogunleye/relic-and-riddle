@@ -1,5 +1,5 @@
 {
-  "path": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\data\\sfx\\sfx_impact_braam.wav",
+  "path": "data/sfx/sfx_impact_braam.wav",
   "sha256": "943b3930b265413bee2e527626231b0248b1480d158fddcc57c385097fb5f16a",
   "provider": "elevenlabs-sound-effects",
   "plan": "creator",

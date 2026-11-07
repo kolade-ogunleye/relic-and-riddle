@@ -1,0 +1,193 @@
+{
+ "clip": "captions",
+ "ground": "white",
+ "plate": [
+  42,
+  44,
+  48
+ ],
+ "bone": 12.0,
+ "gold": 7.67,
+ "elements": [
+  {
+   "name": "caption 0 bone",
+   "text": "On the morning",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 1 bone",
+   "text": "of 30 June 1908",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 2 bone",
+   "text": "at around 7:14",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 3 bone",
+   "text": "local time",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 4 bone",
+   "text": "near the Podkamennaya",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 5 bone",
+   "text": "Tunguska River",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 6 bone",
+   "text": "in Central Siberia",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 7 bone",
+   "text": "a cataclysm struck",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 8 bone",
+   "text": "By one estimate",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 9 bone",
+   "text": "the blast devastated",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 10 bone",
+   "text": "more than 830 square",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 11 bone",
+   "text": "miles of taiga forest",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 12 bone",
+   "text": "flattening trees",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 13 bone",
+   "text": "in a distinctive",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 14 bone",
+   "text": "radial pattern",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 15 bone",
+   "text": "Scientists calculate",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 16 bone",
+   "text": "the airburst released",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 17 bone",
+   "text": "between 10 and 15",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 18 bone",
+   "text": "megatons of TNT",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 19 bone",
+   "text": "Atmospheric pressure",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 20 bone",
+   "text": "waves generated",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 21 bone",
+   "text": "by the explosion",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 22 bone",
+   "text": "rippled across the globe",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 23 bone",
+   "text": "and were detected",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 24 bone",
+   "text": "by barographs",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 25 bone",
+   "text": "worldwide",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 26 bone",
+   "text": "Scientific consensus",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 27 bone",
+   "text": "attributes the event",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 28 bone",
+   "text": "to an atmospheric",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 29 bone",
+   "text": "meteor air burst",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 29 gold",
+   "text": "meteor air burst",
+   "drawn": 7.67
+  },
+  {
+   "name": "caption 30 bone",
+   "text": "though no celestial",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 31 bone",
+   "text": "fragment has ever",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 32 bone",
+   "text": "been formally identified",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 33 bone",
+   "text": "from that sudden",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 34 bone",
+   "text": "Siberian morning",
+   "drawn": 12.0
+  }
+ ]
+}

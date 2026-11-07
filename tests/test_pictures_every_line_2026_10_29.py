@@ -222,7 +222,8 @@ def test_a_failed_museum_is_not_cached_and_rests(tmp_path, monkeypatch):
 def test_line_sources_need_their_keys(monkeypatch):
     monkeypatch.setattr(config, "SMITHSONIAN_API_KEY", "")
     monkeypatch.setattr(config, "EUROPEANA_API_KEY", "k")
-    assert museum_sources.line_sources() == ("met", "nasa", "europeana")   # no DEMO_KEY in a pipeline
+    # item 5 (2026-11-03): the Library of Congress is on by default (was ("met", "nasa", "europeana"))
+    assert museum_sources.line_sources() == ("met", "nasa", "europeana", "loc")   # no DEMO_KEY in a pipeline
 
 
 def _search_world(tmp_path, monkeypatch, commons_found):

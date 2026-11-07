@@ -11,12 +11,12 @@ import subprocess
 import sys
 from pathlib import Path
 
-MAIN = Path(r"C:\Users\omokolade\GitHub\relic-and-riddle")
+MAIN = Path(os.environ.get("RR_FIXTURE_REPO") or Path(__file__).resolve().parents[3])  # the checkout holding output/
 os.environ["RELIC_APP_ROOT"] = str(MAIN)
 CODE, OUT = Path(sys.argv[1]), Path(sys.argv[2])
 ONLY = set(sys.argv[3:])
 sys.path.insert(0, str(CODE))
-FF = Path(r"C:\Users\omokolade\AppData\Local\Microsoft\WinGet\Packages\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\ffmpeg-8.1-full_build\bin")
+FF = Path(os.environ.get("FFMPEG_BIN") or Path(shutil.which("ffmpeg") or "ffmpeg.exe").resolve().parent)  # ffmpeg's folder
 os.environ["PATH"] = str(FF) + os.pathsep + os.environ["PATH"]
 
 from PIL import Image  # noqa: E402

@@ -1,0 +1,54 @@
+posted_strings_shown_on_card: 3/8
+card_shows_illustration_disclosure: False
+card_shows_youtube_title: False
+card_shows_youtube_description: False
+slot_line_equals_next_reel_slot: False
+card_shows_review_close_time: False
+off_list_hashtag_posted: True
+build_envelope_raises_on_copy_not_on_card: False
+carousel_status: published
+carousel_caption_shown_on_card: {'instagram': False, 'facebook': False}
+carousel_off_list_hashtag_posted: True
+carousel_posted_hashtags: ['#BuyFollowersNow', '#StoneCity']
+carousel_refused_when_card_showed_another: False
+documentary_approve_posts: True
+documentary_approve_refused: (none)
+slot_lines_truthful: 0/4
+  slot line, reel, slots booked: approve books a slot True, truthful False: (no slot line)
+  slot line, documentary: approve books a slot False, truthful False: (no slot line)
+  slot line, reel, no slots (command line): approve books a slot False, truthful False: (no slot line)
+  slot line, reel, dry run: approve books a slot False, truthful False: (no slot line)
+acceptance_met: False
+
+real cards: measured True, cards 30, over_card_page_limit 2, over_page_above_4000 2, over_telegram_4096 2, longest 4211, narration_shortened 6, caption_see_edit_or_absent 9, carousel_caption_see_edit_or_absent 9, caption_characters_shown 10664, credits_list 25, with_slot_line 0, with_also_posted_list {'whole': 0, 'part': 0, 'count': 0, 'absent': 30}
+run | length | caption | carousel caption | narration chars | narration shortened | findings lists first items / count only | slot line | also-posted list | regressions vs QF-42 card | Approve | slot line truthful | envelope refused
+run_amber_room_heist_1792790550 | 3863 | clipped 260 | full 276 | 715 | False | 0/0 | False | absent | - | - | - | -
+run_amber_room_heist_1792801257 | 3833 | full 413 | full 255 | 705 | False | 0/0 | False | absent | - | - | - | -
+run_amber_room_heist_1792805842 | 3867 | clipped 182 | full 292 | 714 | False | 0/0 | False | absent | - | - | - | -
+run_damascus_steel_nanotubes_1792732472_short | 3282 | full 574 | full 228 | 769 | False | 0/0 | False | absent | - | - | - | -
+run_gol_gumbaz_whispering_gallery_1793278143 | 3864 | clipped 124 | clipped 248 | 697 | False | 1/0 | False | absent | - | - | - | -
+run_greek_fire_siphon_1792735284_short | 3866 | clipped 131 | clipped 164 | 764 | False | 0/0 | False | absent | - | - | - | -
+run_hal_saflieni_hypogeum_1792949304 | 3869 | clipped 154 | full 307 | 760 | False | 0/0 | False | absent | - | - | - | -
+run_kailasa_temple_monolith_1792524470 | 3865 | clipped 163 | full 346 | 666 | False | 0/0 | False | absent | - | - | - | -
+run_nazca_lines_runway_paradox_1792961797 | 3863 | clipped 341 | full 289 | 719 | False | 0/2 | False | absent | - | - | - | -
+run_nazca_lines_runway_paradox_1793247464 | 4180 | absent 0 | absent 0 | 67 | True | 0/1 | False | absent | - | - | - | -
+run_nazca_lines_runway_paradox_1793251266 | 4211 | absent 0 | absent 0 | 67 | True | 0/1 | False | absent | - | - | - | -
+run_nazca_lines_runway_paradox_1793262388 | 3869 | absent 0 | absent 0 | 188 | True | 0/2 | False | absent | - | - | - | -
+run_nazca_lines_runway_paradox_1793267092 | 3864 | absent 0 | absent 0 | 278 | True | 0/2 | False | absent | - | - | - | -
+run_odessa_catacombs_1792970549 | 3864 | clipped 136 | clipped 122 | 666 | False | 0/0 | False | absent | - | - | - | -
+run_odessa_catacombs_1793098390 | 3867 | clipped 132 | clipped 270 | 666 | False | 1/0 | False | absent | - | - | - | -
+run_odessa_catacombs_1793100750 | 3860 | clipped 253 | full 334 | 666 | False | 0/0 | False | absent | - | - | - | -
+run_richat_structure_sahara_eye_1792737039_short | 3864 | clipped 195 | full 302 | 706 | False | 0/0 | False | absent | - | - | - | -
+run_richat_structure_sahara_eye_1792740961_long | 3841 | absent 0 | absent 0 | 2420 | True | 1/0 | False | absent | - | - | - | -
+run_richat_structure_sahara_eye_1792778206 | 3866 | clipped 131 | clipped 300 | 674 | False | 0/0 | False | absent | - | - | - | -
+run_richat_structure_sahara_eye_1793272675 | 3841 | too_long 0 | too_long 0 | 718 | False | 0/0 | False | absent | - | - | - | -
+run_richat_structure_sahara_eye_1793474843 | 3865 | clipped 122 | clipped 223 | 669 | False | 0/0 | False | absent | - | - | - | -
+run_roman_self_healing_concrete_1793163918 | 3879 | absent 0 | absent 0 | 368 | True | 0/0 | False | absent | - | - | - | -
+run_singing_colossi_of_memnon_1792952878 | 3874 | clipped 133 | clipped 206 | 694 | False | 0/0 | False | absent | - | - | - | -
+run_trepanation_miracle_1792995462 | 3867 | clipped 134 | clipped 356 | 776 | False | 1/2 | False | absent | - | - | - | -
+run_tunguska_event_1908_1792930600 | 3865 | clipped 127 | clipped 265 | 661 | False | 0/0 | False | absent | - | - | - | -
+run_unfinished_obelisk_aswan_1792985912 | 3837 | absent 0 | too_long 0 | 703 | False | 0/0 | False | absent | - | - | - | -
+run_unfinished_obelisk_aswan_1792993374 | 3870 | clipped 466 | full 385 | 683 | False | 0/0 | False | absent | - | - | - | -
+run_unfinished_obelisk_aswan_1793056896 | 3866 | clipped 129 | clipped 283 | 696 | False | 0/0 | False | absent | - | - | - | -
+run_voynich_manuscript_1792965308 | 3620 | full 524 | full 389 | 734 | False | 0/0 | False | absent | - | - | - | -
+run_wieliczka_salt_mine_1792974672 | 3827 | too_long 0 | too_long 0 | 722 | False | 1/2 | False | absent | - | - | - | -

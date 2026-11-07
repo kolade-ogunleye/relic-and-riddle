@@ -72,8 +72,11 @@ def load_library(available_only: bool = True) -> List[Dict[str, Any]]:
 
 def save_library(tracks: List[Dict[str, Any]]) -> None:
     MUSIC_DIR.mkdir(parents=True, exist_ok=True)
+    LIBRARY.parent.mkdir(parents=True, exist_ok=True)
     import tempfile
-    with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", dir=MUSIC_DIR, delete=False) as stream:
+    # The temporary file sits beside the library it replaces: a rename cannot cross filesystems
+    # (CI, 2026-11-02: data/music on the work disk, a test's library under /tmp -> EXDEV).
+    with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", dir=LIBRARY.parent, delete=False) as stream:
         stream.write(json.dumps(tracks, indent=2, ensure_ascii=False))
         temporary = Path(stream.name)
     try:

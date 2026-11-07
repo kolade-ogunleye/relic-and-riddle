@@ -68,17 +68,20 @@ def test_substrate_compositor_all_eras(tmp_path):
 # 3. Image Generator & Modern Scientific Override
 # ---------------------------------------------------------------------------
 
-def test_image_gen_modern_scientific_override():
+def test_image_gen_modern_scientific_override(tmp_path):
     """Verifies that modern scientific lines route to technical blueprint prompts rather than antiquity etchings."""
-    with patch("src.image_gen.generate_raw_linework") as mock_gen, \
+    # Isolation (2026-11-01): without a GEMINI_API_KEY in the environment is_available() is False and
+    # synthesize_gap_asset returns before prompting, so this only passed where a real key was configured.
+    with patch("src.image_gen.is_available", return_value=True), \
+         patch("src.image_gen.generate_raw_linework") as mock_gen, \
          patch("src.substrate_compositor.composite_linework_onto_substrate") as mock_comp:
         
         mock_gen.return_value = b"fake_jpeg_bytes"
         mock_comp.return_value = Image.new("RGB", (100, 100))
         
         topic = {"title": "The Lycurgus Cup", "era": "classical_antiquity"}
-        work_dir = Path("tmp_test_dir")
-        
+        work_dir = tmp_path / "tmp_test_dir"  # was the repository root's tmp_test_dir
+
         # Test 1: Historical scene in classical antiquity
         image_gen.synthesize_gap_asset(
             beat_index=8,
@@ -157,7 +160,7 @@ def test_precision_map_card_urban_targeting():
 # ---------------------------------------------------------------------------
 
 def test_video_composer_reconstruction_badge(tmp_path):
-    """Verifies that build_subtitles emits a [ HISTORICAL RECONSTRUCTION ] badge event for designated intervals."""
+    """Verifies that build_subtitles emits the AI ILLUSTRATION · NOT A PHOTO badge event for designated intervals."""
     composer = VideoComposer(tmp_path)
     ass_file = tmp_path / "test_captions.ass"
     words = [
@@ -179,7 +182,7 @@ def test_video_composer_reconstruction_badge(tmp_path):
     assert ass_file.exists()
     content = ass_file.read_text(encoding="utf-8")
     assert "Style: ReconBadge" in content
-    assert "[ HISTORICAL RECONSTRUCTION ]" in content
+    assert "AI ILLUSTRATION · NOT A PHOTO" in content   # item 4 (2026-11-03): was "[ HISTORICAL RECONSTRUCTION ]"
     assert "ReconBadge" in content
 
 
@@ -394,10 +397,12 @@ def test_recon_badge_upper_third_and_lineage_derivation(tmp_path):
     )
     
     content = ass_file.read_text(encoding="utf-8")
-    # Verify upper-third style: Alignment=8 (\an8) and MarginV=310
+    # The badge sits top-left on a plate inside the Meta inset (x 84, y 300) at 30px; it was a 22px centred
+    # upper-third label (\an8, MarginV 310) until the operator approved the move (caption review, 2026-11-02).
     assert "Style: ReconBadge" in content
-    assert ",8,0,0,310,1" in content
-    assert r"{\an8\fs22\c&HE2DAC8&\alpha&H40&\b1}[ HISTORICAL RECONSTRUCTION ]" in content
+    assert "Style: ReconPlate" in content
+    assert r"\an7\pos(98," in content and "}AI ILLUSTRATION · NOT A PHOTO" in content
+    assert r"{\pos(84,300)\p1}" in content
 
 
 # ---------------------------------------------------------------------------

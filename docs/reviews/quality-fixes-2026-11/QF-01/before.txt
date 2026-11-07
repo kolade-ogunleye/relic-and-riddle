@@ -1,0 +1,455 @@
+{
+  "repo": "<repo root argument>",
+  "target_bt709_red": {
+    "Y": 63,
+    "U": 102,
+    "V": 240
+  },
+  "tolerance": 2,
+  "bt709_red_formula": {
+    "Y": 62.6,
+    "U": 102.3,
+    "V": 240.0
+  },
+  "bt601_red_formula_note": "BT.601 limited red is Y81 U90 V240",
+  "clips": {
+    "graphics._encode": {
+      "tags": {
+        "pix_fmt": "yuv420p",
+        "color_space": "unknown",
+        "color_primaries": "unknown",
+        "color_transfer": "unknown",
+        "color_range": "unknown"
+      },
+      "yuv": {
+        "Y": 81.0,
+        "U": 90.0,
+        "V": 240.0
+      },
+      "bt709_tagged": false,
+      "yuv_ok": false
+    },
+    "parallax.render_clip": {
+      "tags": {
+        "pix_fmt": "yuv420p",
+        "color_space": "unknown",
+        "color_primaries": "unknown",
+        "color_transfer": "unknown",
+        "color_range": "unknown"
+      },
+      "yuv": {
+        "Y": 81.0,
+        "U": 90.0,
+        "V": 240.0
+      },
+      "bt709_tagged": false,
+      "yuv_ok": false
+    },
+    "footage.make_segment": {
+      "tags": {
+        "pix_fmt": "yuv420p",
+        "color_space": "bt709",
+        "color_primaries": "bt709",
+        "color_transfer": "bt709",
+        "color_range": "tv"
+      },
+      "yuv": {
+        "Y": 62.0,
+        "U": 102.0,
+        "V": 239.0
+      },
+      "bt709_tagged": true,
+      "yuv_ok": true
+    },
+    "footage.make_segment (untagged SD BT.601 source)": {
+      "tags": {
+        "pix_fmt": "yuv420p",
+        "color_space": "bt470bg",
+        "color_primaries": "unknown",
+        "color_transfer": "unknown",
+        "color_range": "tv"
+      },
+      "yuv": {
+        "Y": 81.0,
+        "U": 90.0,
+        "V": 239.0
+      },
+      "bt709_tagged": false,
+      "yuv_ok": false
+    },
+    "motion._finish": {
+      "tags": {
+        "pix_fmt": "yuv420p",
+        "color_space": "bt709",
+        "color_primaries": "bt709",
+        "color_transfer": "bt709",
+        "color_range": "tv"
+      },
+      "yuv": {
+        "Y": 62.0,
+        "U": 102.0,
+        "V": 239.0
+      },
+      "bt709_tagged": true,
+      "yuv_ok": true
+    }
+  },
+  "master_conversion": {
+    "9:16 graphics clip": {
+      "tags": {
+        "pix_fmt": "yuv420p",
+        "color_space": "bt709",
+        "color_primaries": "unknown",
+        "color_transfer": "unknown",
+        "color_range": "tv"
+      },
+      "bt709_tagged": false,
+      "segments": {
+        "graphics clip": {
+          "t": 0.5,
+          "yuv": {
+            "Y": 62.0,
+            "U": 102.5,
+            "V": 237.6
+          },
+          "yuv_ok": false
+        }
+      }
+    },
+    "16:9 still + graphics clip": {
+      "tags": {
+        "pix_fmt": "yuv420p",
+        "color_space": "bt709",
+        "color_primaries": "unknown",
+        "color_transfer": "unknown",
+        "color_range": "tv"
+      },
+      "bt709_tagged": false,
+      "segments": {
+        "still (tilt branch)": {
+          "t": 0.45,
+          "yuv": {
+            "Y": 62.0,
+            "U": 102.3,
+            "V": 237.6
+          },
+          "yuv_ok": false
+        },
+        "graphics clip": {
+          "t": 2.6,
+          "yuv": {
+            "Y": 62.0,
+            "U": 102.5,
+            "V": 237.6
+          },
+          "yuv_ok": false
+        }
+      }
+    }
+  },
+  "master_graded": {
+    "tags": {
+      "pix_fmt": "yuv420p",
+      "color_space": "bt709",
+      "color_primaries": "unknown",
+      "color_transfer": "unknown",
+      "color_range": "tv"
+    },
+    "graded_red_rgb_reference": [
+      255,
+      5,
+      5
+    ],
+    "expected_yuv_bt709": {
+      "Y": 65.9,
+      "U": 102.8,
+      "V": 237.8
+    },
+    "yuv": {
+      "Y": 63.7,
+      "U": 102.8,
+      "V": 236.6
+    },
+    "yuv_ok": false
+  },
+  "commit": "7d063bd",
+  "caption_gold": {
+    "brand_gold_rgb": [
+      242,
+      182,
+      48
+    ],
+    "expected_yuv_bt709": {
+      "Y": 175.0,
+      "U": 63.1,
+      "V": 159.7
+    },
+    "bt601_values_note": "BT.601 values for brand gold are about Y175 U60 V164",
+    "masters": {
+      "9:16": {
+        "t": 0.8,
+        "ass_ycbcr_matrix": "(none: libass reads TV.601)",
+        "gold_pixels": 1906,
+        "yuv_median": {
+          "Y": 174.0,
+          "U": 63.0,
+          "V": 160.0
+        },
+        "yuv_ok": true
+      },
+      "16:9": {
+        "t": 0.8,
+        "ass_ycbcr_matrix": "(none: libass reads TV.601)",
+        "gold_pixels": 845,
+        "yuv_median": {
+          "Y": 174.0,
+          "U": 64.0,
+          "V": 159.0
+        },
+        "yuv_ok": true
+      }
+    }
+  },
+  "conversions": {
+    "9:16 identity grade": {
+      "all": [
+        {
+          "filter": "Parsed_scale_1",
+          "kind": "yuv->yuv",
+          "from": "yuv420p csp:unknown range:unknown",
+          "to": "yuv420p csp:unknown range:unknown",
+          "to_csp": "unknown",
+          "from_csp": "unknown"
+        },
+        {
+          "filter": "Parsed_scale_5",
+          "kind": "yuv->yuv",
+          "from": "yuv420p csp:unknown range:unknown",
+          "to": "yuv420p csp:unknown range:tv",
+          "to_csp": "unknown",
+          "from_csp": "unknown"
+        },
+        {
+          "filter": "auto_scale_0",
+          "kind": "yuv->yuv",
+          "from": "yuv420p csp:unknown range:tv",
+          "to": "yuv444p csp:unknown range:tv",
+          "to_csp": "unknown",
+          "from_csp": "unknown"
+        },
+        {
+          "filter": "Parsed_scale_8",
+          "kind": "yuv->yuv",
+          "from": "yuv420p csp:unknown range:unknown",
+          "to": "yuv420p csp:unknown range:unknown",
+          "to_csp": "unknown",
+          "from_csp": "unknown"
+        },
+        {
+          "filter": "Parsed_scale_12",
+          "kind": "yuv->yuv",
+          "from": "yuv420p csp:unknown range:unknown",
+          "to": "yuv420p csp:unknown range:tv",
+          "to_csp": "unknown",
+          "from_csp": "unknown"
+        },
+        {
+          "filter": "auto_scale_1",
+          "kind": "yuv->yuv",
+          "from": "yuv420p csp:unknown range:tv",
+          "to": "yuv444p csp:unknown range:tv",
+          "to_csp": "unknown",
+          "from_csp": "unknown"
+        },
+        {
+          "filter": "auto_scale_6",
+          "kind": "yuv->yuv",
+          "from": "yuv444p csp:unknown range:tv",
+          "to": "yuv420p csp:unknown range:tv",
+          "to_csp": "unknown",
+          "from_csp": "unknown"
+        },
+        {
+          "filter": "Parsed_scale_40",
+          "kind": "yuv->yuv",
+          "from": "yuv420p csp:unknown range:tv",
+          "to": "yuv420p csp:bt709 range:tv",
+          "to_csp": "bt709",
+          "from_csp": "unknown"
+        }
+      ],
+      "rgb_to_yuv": 0,
+      "rgb_to_yuv_not_bt709": 0,
+      "yuv_to_rgb_not_bt709": 0,
+      "yuv_to_yuv_matrix_change": 1
+    },
+    "16:9 identity grade": {
+      "all": [
+        {
+          "filter": "Parsed_scale_0",
+          "kind": "rgb->rgb",
+          "from": "rgb24 csp:gbr range:pc",
+          "to": "rgb24 csp:gbr range:pc",
+          "to_csp": "gbr",
+          "from_csp": "gbr"
+        },
+        {
+          "filter": "Parsed_scale_4",
+          "kind": "rgb->yuv",
+          "from": "rgb24 csp:gbr range:pc",
+          "to": "yuv420p csp:unknown range:tv",
+          "to_csp": "unknown",
+          "from_csp": "gbr"
+        },
+        {
+          "filter": "auto_scale_0",
+          "kind": "yuv->yuv",
+          "from": "yuv420p csp:unknown range:tv",
+          "to": "yuv444p csp:unknown range:tv",
+          "to_csp": "unknown",
+          "from_csp": "unknown"
+        },
+        {
+          "filter": "Parsed_scale_7",
+          "kind": "yuv->yuv",
+          "from": "yuv420p csp:unknown range:unknown",
+          "to": "yuv420p csp:unknown range:unknown",
+          "to_csp": "unknown",
+          "from_csp": "unknown"
+        },
+        {
+          "filter": "Parsed_scale_11",
+          "kind": "yuv->yuv",
+          "from": "yuv420p csp:unknown range:unknown",
+          "to": "yuv420p csp:unknown range:tv",
+          "to_csp": "unknown",
+          "from_csp": "unknown"
+        },
+        {
+          "filter": "auto_scale_1",
+          "kind": "yuv->yuv",
+          "from": "yuv420p csp:unknown range:tv",
+          "to": "yuv444p csp:unknown range:tv",
+          "to_csp": "unknown",
+          "from_csp": "unknown"
+        },
+        {
+          "filter": "auto_scale_6",
+          "kind": "yuv->yuv",
+          "from": "yuv444p csp:unknown range:tv",
+          "to": "yuv420p csp:unknown range:tv",
+          "to_csp": "unknown",
+          "from_csp": "unknown"
+        },
+        {
+          "filter": "Parsed_scale_39",
+          "kind": "yuv->yuv",
+          "from": "yuv420p csp:unknown range:tv",
+          "to": "yuv420p csp:bt709 range:tv",
+          "to_csp": "bt709",
+          "from_csp": "unknown"
+        }
+      ],
+      "rgb_to_yuv": 1,
+      "rgb_to_yuv_not_bt709": 1,
+      "yuv_to_rgb_not_bt709": 0,
+      "yuv_to_yuv_matrix_change": 1
+    },
+    "9:16 real grade": {
+      "all": [
+        {
+          "filter": "Parsed_scale_1",
+          "kind": "yuv->yuv",
+          "from": "yuv420p csp:unknown range:unknown",
+          "to": "yuv420p csp:unknown range:unknown",
+          "to_csp": "unknown",
+          "from_csp": "unknown"
+        },
+        {
+          "filter": "Parsed_scale_5",
+          "kind": "yuv->yuv",
+          "from": "yuv420p csp:unknown range:unknown",
+          "to": "yuv420p csp:unknown range:tv",
+          "to_csp": "unknown",
+          "from_csp": "unknown"
+        },
+        {
+          "filter": "auto_scale_0",
+          "kind": "yuv->yuv",
+          "from": "yuv420p csp:unknown range:tv",
+          "to": "yuv444p csp:unknown range:tv",
+          "to_csp": "unknown",
+          "from_csp": "unknown"
+        },
+        {
+          "filter": "Parsed_scale_8",
+          "kind": "yuv->yuv",
+          "from": "yuv420p csp:unknown range:unknown",
+          "to": "yuv420p csp:unknown range:unknown",
+          "to_csp": "unknown",
+          "from_csp": "unknown"
+        },
+        {
+          "filter": "Parsed_scale_12",
+          "kind": "yuv->yuv",
+          "from": "yuv420p csp:unknown range:unknown",
+          "to": "yuv420p csp:unknown range:tv",
+          "to_csp": "unknown",
+          "from_csp": "unknown"
+        },
+        {
+          "filter": "auto_scale_1",
+          "kind": "yuv->yuv",
+          "from": "yuv420p csp:unknown range:tv",
+          "to": "yuv444p csp:unknown range:tv",
+          "to_csp": "unknown",
+          "from_csp": "unknown"
+        },
+        {
+          "filter": "auto_scale_6",
+          "kind": "yuv->yuv",
+          "from": "yuv444p csp:unknown range:tv",
+          "to": "yuv420p csp:unknown range:tv",
+          "to_csp": "unknown",
+          "from_csp": "unknown"
+        },
+        {
+          "filter": "auto_scale_7",
+          "kind": "yuv->rgb",
+          "from": "yuv420p csp:unknown range:tv",
+          "to": "rgb24 csp:gbr range:pc",
+          "to_csp": "gbr",
+          "from_csp": "unknown"
+        },
+        {
+          "filter": "Parsed_curves_35",
+          "kind": "rgb->yuv",
+          "from": "rgb24 csp:gbr range:pc",
+          "to": "yuv420p csp:unknown range:tv",
+          "to_csp": "unknown",
+          "from_csp": "gbr"
+        },
+        {
+          "filter": "Parsed_scale_41",
+          "kind": "yuv->yuv",
+          "from": "yuv420p csp:unknown range:tv",
+          "to": "yuv420p csp:bt709 range:tv",
+          "to_csp": "bt709",
+          "from_csp": "unknown"
+        }
+      ],
+      "rgb_to_yuv": 1,
+      "rgb_to_yuv_not_bt709": 1,
+      "yuv_to_rgb_not_bt709": 1,
+      "yuv_to_yuv_matrix_change": 1
+    }
+  },
+  "acceptance": {
+    "clips_bt709_and_red": false,
+    "master_bt709_and_red": false,
+    "graded_master_matches_bt709_reference": false,
+    "caption_gold_bt709": true,
+    "no_non_bt709_conversion": false,
+    "met": false
+  }
+}

@@ -1,0 +1,50 @@
+{
+ "clip": "graphic_map.mp4",
+ "target": 4.5,
+ "graded": true,
+ "min": 5.14,
+ "elements": [
+  {
+   "name": "place",
+   "text": "OUADANE",
+   "planned": 7.77,
+   "drawn": 7.92,
+   "graded": 10.58,
+   "halo": 0.8,
+   "box": [
+    343,
+    646,
+    738,
+    751
+   ]
+  },
+  {
+   "name": "country",
+   "text": "ADRAR PLATEAU, MAURITANIA",
+   "planned": 4.81,
+   "drawn": 5.04,
+   "graded": 7.45,
+   "halo": 0.88,
+   "box": [
+    214,
+    786,
+    866,
+    815
+   ]
+  },
+  {
+   "name": "scale",
+   "text": "300 KM",
+   "planned": 4.84,
+   "drawn": 4.84,
+   "graded": 5.14,
+   "halo": 0.68,
+   "box": [
+    270,
+    1022,
+    410,
+    1049
+   ]
+  }
+ ]
+}

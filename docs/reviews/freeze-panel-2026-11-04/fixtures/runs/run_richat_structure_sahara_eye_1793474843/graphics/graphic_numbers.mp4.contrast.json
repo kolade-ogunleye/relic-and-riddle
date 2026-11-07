@@ -1,0 +1,134 @@
+{
+ "clip": "graphic_numbers.mp4",
+ "target": 4.5,
+ "graded": true,
+ "min": 6.52,
+ "elements": [
+  {
+   "name": "figure",
+   "text": "9",
+   "planned": 6.0,
+   "drawn": 5.92,
+   "graded": 6.52,
+   "halo": 0.0,
+   "box": [
+    89,
+    542,
+    176,
+    708
+   ]
+  },
+  {
+   "name": "figure",
+   "text": "4",
+   "planned": 5.58,
+   "drawn": 5.33,
+   "graded": 6.72,
+   "halo": 0.0,
+   "box": [
+    179,
+    543,
+    271,
+    707
+   ]
+  },
+  {
+   "name": "figure",
+   "text": "-",
+   "planned": 5.52,
+   "drawn": 5.47,
+   "graded": 7.44,
+   "halo": 0.0,
+   "box": [
+    277,
+    638,
+    326,
+    660
+   ]
+  },
+  {
+   "name": "figure",
+   "text": "1",
+   "planned": 5.51,
+   "drawn": 5.51,
+   "graded": 7.76,
+   "halo": 0.0,
+   "box": [
+    348,
+    543,
+    404,
+    707
+   ]
+  },
+  {
+   "name": "figure",
+   "text": "0",
+   "planned": 5.33,
+   "drawn": 5.18,
+   "graded": 7.51,
+   "halo": 0.0,
+   "box": [
+    428,
+    542,
+    516,
+    708
+   ]
+  },
+  {
+   "name": "figure",
+   "text": "4",
+   "planned": 5.56,
+   "drawn": 5.43,
+   "graded": 7.8,
+   "halo": 0.0,
+   "box": [
+    520,
+    543,
+    612,
+    707
+   ]
+  },
+  {
+   "name": "unit",
+   "text": "M YEARS",
+   "planned": 8.35,
+   "drawn": 8.35,
+   "graded": 10.38,
+   "halo": 0.0,
+   "box": [
+    639,
+    646,
+    863,
+    708
+   ]
+  },
+  {
+   "name": "label",
+   "text": "COOLING OF",
+   "planned": 8.08,
+   "drawn": 8.08,
+   "graded": 9.56,
+   "halo": 0.0,
+   "box": [
+    85,
+    754,
+    420,
+    788
+   ]
+  },
+  {
+   "name": "label",
+   "text": "CARBONATITE ROCKS",
+   "planned": 8.37,
+   "drawn": 8.37,
+   "graded": 10.88,
+   "halo": 0.0,
+   "box": [
+    85,
+    812,
+    672,
+    846
+   ]
+  }
+ ]
+}

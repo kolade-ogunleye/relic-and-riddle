@@ -21,7 +21,7 @@ NUMBER_WEIGHT, NAME_WEIGHT, WORD_WEIGHT = 2, 2, 1
 
 # Payload field each builder draws from (src/graphics.py make_all).
 SPEC_KEYS = {"numbers": "stat_cards", "cross-section": "cross_section", "route": "route", "timeline": "timeline",
-             "scale": "scale_fact", "defense": "rolling_stone_defense", "ventilation": "ventilation_airflow"}
+             "scale": "scale_fact"}
 _STEM_KINDS = {"section": "cross-section"}
 
 STOPWORDS = {
@@ -96,10 +96,6 @@ def terms(path: Path) -> Dict[str, int]:
         return weighted
     spec = (inputs.get("payload") or {}).get(SPEC_KEYS[kind])
     texts = list(_leaves(spec)) if spec else []
-    if kind in ("defense", "ventilation"):  # these diagrams show default wording when the spec gives none
-        from .graphics import diagram_labels, diagram_title
-        spec = spec if isinstance(spec, dict) else {}
-        texts += [kind, diagram_title(kind, spec), *diagram_labels(kind, spec).values()]
     if kind == "scale" and isinstance(spec, dict) and isinstance(spec.get("value"), (int, float)):
         factor = 0.3048 if spec.get("unit") == "ft" else 1 / 0.3048 if spec.get("unit") == "m" else None
         if factor:  # the narration may give the other unit ("280 feet (85 m)")

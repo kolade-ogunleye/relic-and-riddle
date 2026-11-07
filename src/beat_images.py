@@ -23,6 +23,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from . import commons
 from . import config
 from . import museum_sources
+from . import url_guard
 from .llm import LLMError, degenerate_reason, structured_call, task as llm_task, verdict_reason
 from .models import BeatQueries
 
@@ -548,7 +549,12 @@ def _download(items, topic: Dict[str, Any], work_dir: Path, seen: set, prefix: s
                         continue
                     verified += 1
                     dest = work_dir / f"{prefix}{item.beat:02d}_{found + 1}.jpg"
-                    commons.download_jpeg(cand["download_url"], dest, max_wait=wait)
+                    try:
+                        hosts = {"provider": cand["provider"]} if cand.get("provider") else {}  # its provider's hosts
+                        commons.download_jpeg(cand["download_url"], dest, max_wait=wait, **hosts)
+                    except url_guard.RefusedURL as e:  # not on its provider's hosts, or a hop inside (QF-44)
+                        log.warning("Beat %d: %s not downloaded (%s).", item.beat, cand["title"][:80], e)
+                        continue
                     # The pool screen's look (1024 px, an edge band of text cropped away and looked at again): a found
                     # photo with a label strip was set aside at 512 px, uncropped (audit 2026-10-28).
                     shows, why, use = screened_picture(dest, item.query)
@@ -905,6 +911,40 @@ def clear_edges(path: Path, verdict: Dict[str, Any], look_again) -> Tuple[Option
     return use, verdict, ""
 
 
+CAPTION_STRIP_CROP = "caption_strip_crop"
+
+
+def without_caption_strips(photos: list[Path]) -> list[Path]:
+    """`photos` with each provider caption bar printed along a top or bottom edge cropped away (photo_hygiene: no
+    model, so it holds when the picture screen is off or cannot run; Richat's "Copernicus Sentinel data" bar went
+    out on two Stories, 2026-11-01). The copy is crop_text_band's (lineage, credit and resolution rules kept);
+    a photo whose strip cannot be cut within those rules stays as it is. Videos and unreadable files are kept."""
+    from .photo_hygiene import caption_strip
+    out = []
+    for p in photos:
+        p = Path(p)
+        if p.suffix.lower() not in (".jpg", ".jpeg", ".png", ".webp") or not p.is_file():
+            out.append(p)
+            continue
+        try:
+            with Image.open(p) as im:
+                found = caption_strip(im)  # stored orientation: crop_text_band cuts the stored pixels
+                h = im.size[1] if found else 1
+        except OSError:
+            found = None
+        if not found:
+            out.append(p)
+            continue
+        edge, px = found
+        depth = round(1000 * px / h)
+        box = [0, 0, depth, 1000] if edge == "top" else [1000 - depth, 0, 1000, 1000]
+        crop = crop_text_band(p, edge, box, CAPTION_STRIP_CROP, "provider caption strip")
+        if crop is not None:
+            log.info("Photo %s: a caption strip along its %s edge (%d px) was cropped away.", p.name, edge, px)
+        out.append(crop or p)
+    return out
+
+
 def without_burned_in_text(photos: List[Path], subject: str, minimum: int) -> List[Path]:
     """The topic's reviewed photos without those that carry text printed into the picture (a museum placard,
     a caption strip, a scale bar): cropped on screen, the text shows cut off or under the captions (the
@@ -916,9 +956,12 @@ def without_burned_in_text(photos: List[Path], subject: str, minimum: int) -> Li
     the run log says which carry text or an intrusion."""
     from .credits import sha256_file
     import json as _json
+    # The screen cache stays beside the topic's own photos: a caption-strip copy lives under cache/text_crop
+    # (PR review, 2026-11-02: the whole pool's cache followed the first photo there).
+    folder = Path(photos[0]).parent if photos else None
+    photos = without_caption_strips(photos)
     if not config.PICTURE_VISION_CHECK or not photos:
         return list(photos)
-    folder = Path(photos[0]).parent
     cache_path = folder / TEXT_SCREEN_FILE
     try:
         cache = _json.loads(cache_path.read_text(encoding="utf-8")) if cache_path.exists() else {}

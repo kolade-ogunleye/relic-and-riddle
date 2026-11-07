@@ -10,7 +10,10 @@ approved updates safely.
                 major     newer major version: listed for manual review, never auto-applied
   apply()  -> on a git branch: bump the safe and security pins, install, run the test
               suite, and fast-forward main only if everything passes. Otherwise the branch
-              is deleted and the previous versions are reinstalled.
+              is deleted and the previous versions are reinstalled. Development only: in
+              production (RELIC_ENVIRONMENT=production) it raises before touching git or pip,
+              because moving the checkout off its signed release tag pauses the release
+              deployer; there, updates arrive as a pull request and a signed release tag.
 """
 
 import json
@@ -23,6 +26,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional
 
+from . import config
 from .config import BASE_DIR
 
 log = logging.getLogger(__name__)
@@ -75,6 +79,22 @@ def read_pins(path: Path = REQUIREMENTS) -> Dict[str, str]:
 def _run(args: List[str], timeout: int = 900) -> subprocess.CompletedProcess:
     return subprocess.run(args, cwd=str(BASE_DIR), capture_output=True, text=True, timeout=timeout,
                           encoding="utf-8", errors="replace")
+
+
+PRODUCTION_REFUSAL = ("Updates are not applied in production: they arrive as a pull request and a signed "
+                      "release tag, which the release deployer installs.")
+
+
+def apply_allowed() -> bool:
+    """False in production: there apply() raises and no Apply button is offered (check() stays a report)."""
+    return str(getattr(config, "RELIC_ENVIRONMENT", "") or "").strip().lower() != "production"
+
+
+def apply_buttons(plan: "UpdatePlan") -> "list[dict] | None":
+    """The weekly report's button row: Apply updates when there is something to apply, outside production."""
+    if plan.applicable and apply_allowed():
+        return [{"text": "🧰 Apply updates", "callback_data": "upd:apply"}]
+    return None
 
 
 def _latest_versions() -> Dict[str, str]:
@@ -138,7 +158,9 @@ def report_text(plan: UpdatePlan) -> str:
         icon = {"security": "🔴", "safe": "🟢", "major": "🟡"}[u.reason]
         extra = f" — {len(u.advisories)} advisor{'y' if len(u.advisories) == 1 else 'ies'}" if u.advisories else ""
         lines.append(f"{icon} {html.escape(u.name)} {html.escape(u.current)} → {html.escape(u.target)} ({u.reason}){extra}")
-    if plan.applicable:
+    if plan.applicable and not apply_allowed():
+        lines.append("🔴/🟢 arrive as a pull request and a signed release tag; nothing is applied here.")
+    elif plan.applicable:
         lines.append("Approve to apply 🔴/🟢 on a branch; it merges only if all tests pass.")
     if plan.manual:
         lines.append("🟡 major versions are left for manual review.")
@@ -158,7 +180,11 @@ def _write_pins(updates: List[Update], path: Path = REQUIREMENTS) -> None:
 
 
 def apply(plan: UpdatePlan, include: Optional[List[str]] = None) -> str:
-    """Applies the plan's safe/security updates (or the named ones) with test-gated rollback."""
+    """Applies the plan's safe/security updates (or the named ones) with test-gated rollback.
+
+    Raises in production before any git or pip command (see apply_allowed)."""
+    if not apply_allowed():
+        raise RuntimeError(PRODUCTION_REFUSAL)
     updates = [u for u in plan.updates if u.name in include] if include else plan.applicable
     if not updates:
         return "Nothing to apply."

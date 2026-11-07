@@ -18,6 +18,7 @@ import os
 import re
 import threading
 import time
+from collections import Counter
 from contextvars import ContextVar
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -261,6 +262,33 @@ def listed(heading: str, items: List[str], cap: Optional[int] = None) -> str:
     return head + ("\n<blockquote expandable>" + "\n".join(f"• {x}" for x in body) + "</blockquote>" if body else "")
 
 
+# Freeze panel 2026-11-04 (M12 (3), operator decision): a design card's quality notes (its <graphic>.design.json, written
+# by design_cards) reach the review card, so a myth card whose correction drops every specific is seen before approval
+DESIGN_NOTE_TEXT = {
+    "correction_drops_specifics": "the correction keeps none of its fact's figures, dates or names",
+}
+
+
+def design_card_notes(run_dir: Path) -> List[str]:
+    """Each drawn design card's quality notes in `run_dir` (or one folder under it), as 'graphic_mythfact_01: ...'
+    lines. A refused, unreadable or note-free record gives none."""
+    out: List[str] = []
+    try:
+        found = sorted(set(run_dir.glob("graphic_*.design.json")) | set(run_dir.glob("*/graphic_*.design.json")))
+    except OSError:
+        return out
+    for p in found:
+        try:
+            rec = json.loads(p.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            continue
+        if not isinstance(rec, dict) or rec.get("refused"):
+            continue
+        for n in rec.get("quality_notes") or []:
+            out.append(f"{p.name.split('.', 1)[0]}: {DESIGN_NOTE_TEXT.get(str(n), str(n))}")
+    return out
+
+
 def detail_messages(full_card: str, limit: int = CARD_PAGE_LIMIT) -> List[str]:
     """The card's lists whole, for the message under a card whose lists were shortened: each section with an
     expandable blockquote, in order, packed into as few messages as Telegram's limit allows (a section longer
@@ -294,6 +322,107 @@ def without_hashtags(text: str) -> str:
     return _TRAILING_HASHTAGS.sub("", "\n".join(lines).strip()).strip()
 
 
+def _one_line(text: str) -> str:
+    """A posted string as one card list item, HTML-escaped: each line break shown as ⏎ (a list item is one line)."""
+    return html.escape(str(text or "")).replace("\r\n", "\n").replace("\n", " ⏎ ")
+
+
+def _schedule_line(posted: dict[str, Any]) -> str:
+    """'🗓 Slot: Tue 27 Oct 17:00 MDT · review closes Tue 27 Oct 16:40 MDT': the Reel slot an Approve books now
+    (post_schedule.next_reel_slot), only when it books one (otherwise that it posts at once, or nothing on a dry
+    run), and when this review closes (QF-43)."""
+    from . import post_schedule
+    if posted.get("error"):   # nothing was worked out: Approve posts nothing (the "Also posted" list says why)
+        return ""
+
+    def when(iso: str | None) -> str:
+        try:
+            return post_schedule.fmt(datetime.fromisoformat(str(iso)))
+        except (TypeError, ValueError):
+            return ""
+    slot = when(posted.get("slot"))
+    closes = when(posted.get("closes"))
+    if slot and closes and slot[:10] == closes[:10]:   # the same day: its time alone ("Tue 27 Oct 16:40 MDT" -> "16:40 MDT")
+        closes = closes[11:]
+    line = "🗓 <b>Slot:</b> " + (html.escape(slot) if slot else "none, a dry run posts nothing"
+                                 if posted.get("posting") == "dry_run" else "posted as soon as you approve")
+    return line + (f" · <b>review closes</b> {html.escape(closes)}" if closes else "") + "\n"
+
+
+def _posted_hashtags_line(posted: dict[str, Any]) -> str:
+    """The hashtags posted (the topic's candidate list decides)."""
+    tags = posted.get("hashtags") or []
+    line = f"<b>Hashtags:</b> {html.escape(' '.join(tags))}" if tags else "<b>Hashtags:</b> none (none is on this topic's list)"
+    return line   # the written ones left out are in the "Also posted" list (_also_posted)
+
+
+def _changed_lines(shown: str, posted: str) -> str:
+    """`posted` said as its changes to `shown` ("“old” → “new”" per changed line), or "" when that is not shorter
+    than `posted` itself. Exact: every other line of `posted` is the same line of `shown`."""
+    import difflib
+    a, b = shown.splitlines(), posted.splitlines()
+    parts: list[str] = []
+    for op, i1, i2, j1, j2 in difflib.SequenceMatcher(a=a, b=b, autojunk=False).get_opcodes():
+        if op == "equal":
+            continue
+        old, new = " ⏎ ".join(a[i1:i2]), " ⏎ ".join(b[j1:j2])
+        parts.append(f"“{old}” → “{new}”" if old and new else f"without “{old}”" if old else f"with “{new}” added")
+    said = "; ".join(parts)
+    return said if parts and len(said) < len(posted) else ""
+
+
+def _also_posted(posted: dict[str, Any], copy: dict[str, str]) -> list[str]:
+    """Every other string Approve posts, word for word, as card list items (QF-43): the Facebook Reel title, the
+    YouTube Short's title, description and tags (a documentary: its YouTube title, description and tags), the
+    carousel caption as Facebook's photo grid carries it, and each slide's alt text. A string the card already shows
+    (the title, the caption, the carousel caption) is named, not repeated; one that differs from it only in a few
+    lines is said as those lines' changes."""
+    e = html.escape
+    if posted.get("error"):
+        return [f"<i>could not be worked out ({e(str(posted['error'])[:200])}): Approve will not post</i>"]
+    if posted.get("documentary"):
+        return [f"YouTube title: {_one_line(copy.get('youtube.title'))}",
+                f"YouTube description: {_one_line(copy.get('youtube.description'))}",
+                f"YouTube tags: {_one_line(copy.get('youtube.tags') or 'none')}"]
+    title, caption = copy.get("reel.title", ""), copy.get("reel.caption", "")
+    tags = ", ".join(t.lstrip("#") for t in posted.get("hashtags") or [])
+    short = []
+    short.append("the title above" if copy.get("short.title") == title else f"title {_one_line(copy.get('short.title'))}")
+    description = copy.get("short.description", "")
+    short.append("the caption above" if description == caption
+                 else f"description {_one_line(description)}")
+    short.append("the hashtags as tags" if copy.get("short.tags", "") == tags
+                 else f"tags {_one_line(copy.get('short.tags') or 'none')}")
+    off = "" if posted.get("shorts") else " (not posted: YOUTUBE_SHORTS is off)"
+    # The first item is the one the card keeps when its room is short (_card_text): the YouTube Short when it is
+    # posted; while YOUTUBE_SHORTS is off it is not, and goes last.
+    items = ["Facebook Reel: the title and the caption above"]   # the card's title and caption are these (_card_text)
+    items.insert(0 if posted.get("shorts") else 1, f"YouTube Short{off}: " + ", ".join(short))
+    if "carousel.facebook" in copy:
+        ig, fb = copy.get("carousel.instagram", ""), copy["carousel.facebook"]
+        above = "the carousel caption above"
+        if not posted.get("carousel_own", True):   # no carousel caption of its own: the card shows none (_card_text)
+            changes = _changed_lines(caption, ig)
+            items.append("Instagram carousel caption: " + (
+                "the caption above" if ig == caption else f"the caption above with {e(changes)}" if changes
+                else _one_line(ig)) + ", then the photo credit lines")
+            above = "the Instagram carousel caption"
+        changes = _changed_lines(ig, fb)
+        items.append("Facebook carousel caption: " + (
+            above if fb == ig else f"{above} with {e(changes)}" if changes
+            else _one_line(fb)) + ", then the photo credit lines")
+    for label in sorted((k for k in copy if k.startswith("alt.")), key=lambda k: (k.split(".")[1] != "instagram",
+                                                                                  int(k.rsplit(".", 1)[1]))):
+        _, platform, n = label.split(".")
+        twin = copy.get(f"alt.instagram.{n}")
+        if platform == "facebook" and copy[label] == twin:
+            continue
+        items.append(f"Alt text, slide {n} ({platform.capitalize()}): {_one_line(copy[label])}")
+    if posted.get("dropped"):
+        items.append(f"Hashtags not posted (not on this topic's list): {e(' '.join(posted['dropped']))}")
+    return items
+
+
 def _tg_len(text: str) -> int:
     """Length as Telegram counts it (UTF-16 code units)."""
     return len(text.encode("utf-16-le")) // 2
@@ -323,6 +452,100 @@ def _second_check_line(second: Optional[Dict[str, Any]]) -> str:
     if second.get("status") == "pass":
         return f"✅ Second check{html.escape(who)}: passed ({second.get('confidence', 0)}% of {len(second.get('audits', []))} claims)\n"
     return "⚠️ Second check: unavailable (first check only)\n"
+
+
+CREDIT_CARD_CLIP = 60     # a credit that is not a photo's, on a card with no room left (QF-42)
+CREDIT_CARD_TITLE = 32    # a photo credit's title in its short form on a long card (QF-42)
+CREDITS_HEAD = "📷 <b>Credits posted with the captions:</b>"
+CREDITS_UNLISTED = "📷 <b>Credits:</b>"  # the count alone, on a card the findings fill (shortened first)
+CARD_CAPTION_ROOM = 400   # the caption text the credits leave room for before they are shortened
+CAPTION_TOO_LONG = "<i>(too long for this card: see Edit)</i>"
+ALSO_HEAD = "📤 <b>Also posted, word for word</b>"   # what else Approve posts (QF-43)
+ALSO_SHORT = "📤 <b>Also posted:</b>"                # its one-line count, in the room a decision's badge keeps
+_CARD_BLOCK_END = "</blockquote>\n"
+
+
+def _said_once(card: str) -> str:
+    """Where the rest of a shortened list is, said once: each shortened list repeated it (production review card,
+    2026-10-29). The card's room is measured on this form, the one sent (QF-42)."""
+    first, sep, rest = card.partition(f": {CARD_LIST_MORE}")
+    return first + sep + rest.replace(f": {CARD_LIST_MORE}", "")
+
+
+def _with_publish_lines(card: str, posted: dict[str, Any], limit: int, reserve: int) -> str:
+    """The fitted review card (QF-42's fit, unchanged) with what else Approve posts and when (QF-43), each only in
+    room the card leaves, so neither costs the narration, a caption or a finding anything (review of QF-43 on 30
+    real cards: laid out with the card, they cut narration and dropped captions' "see Edit" lines):
+    - the "Also posted, word for word" list after the copy's folded section, in the longest form within `limit`
+      (whole; its first items and "…and N more"; its count): the reply under the card has it whole
+      (needs_publish_reply);
+    - on the card waiting for a decision only (`reserve` 0), in the room CARD_PAGE_LIMIT keeps for a decision's
+      badge: the slot line under the title, then (when no form of the list fit) the list's count. The card stays
+      one message under telegram_pages.PAGE_ABOVE; the decided card, rebuilt with its badge, has neither (its
+      receipt says what was booked). A card the findings already push past that keeps them in the reply."""
+    from .telegram_pages import PAGE_ABOVE
+    also = _also_posted(posted, posted.get("copy") or {})
+
+    def with_list(text: str, cap: int | None) -> str:
+        head = text.find("<b>Narration and timings:</b>")
+        at = text.find(_CARD_BLOCK_END, head) if head >= 0 else -1
+        if not also or at < 0:
+            return text
+        at += len(_CARD_BLOCK_END)
+        section = (listed(ALSO_HEAD, also, cap) if cap is None or cap >= 0   # -1: its count on one line
+                   else f"{ALSO_SHORT} <i>{len(also)} item{'s' if len(also) != 1 else ''} in the reply</i>")
+        return _said_once(text[:at] + "\n" + section + "\n" + text[at:])
+
+    listed_ = False
+    for k in (None, *range(len(also) - 2, -1, -1)):
+        trial = with_list(card, k)
+        if trial != card and _tg_len(trial) <= limit:
+            card, listed_ = trial, True
+            break
+    if reserve > 0:
+        return card
+    pin = card.find("📌 <b>")
+    title = card.find("\n", pin) if pin >= 0 else -1
+    if title >= 0 and _schedule_line(posted):
+        trial = card[:title + 1] + _schedule_line(posted) + card[title + 1:]
+        if _tg_len(trial) <= PAGE_ABOVE:
+            card = trial
+    if not listed_ and also:
+        for trial in (with_list(card, 0), with_list(card, -1)):
+            if trial != card and _tg_len(trial) <= PAGE_ABOVE:
+                card = trial
+                break
+    return card
+
+
+def needs_publish_reply(card: str, posted: Any) -> bool:
+    """Whether the reply under the card must carry what Approve posts: the card shows the "Also posted" list only in
+    part, or not at all, or has no slot line (_with_publish_lines)."""
+    if not isinstance(posted, dict):
+        return False
+    also = _also_posted(posted, posted.get("copy") or {})
+    slot = _schedule_line(posted)
+    return bool(also and listed(ALSO_HEAD, also) not in card) or bool(slot and slot not in card)
+
+
+def _caption_previews(card: str) -> int:
+    """How many captions a review card shows some text of: on it, and not only where to read it (QF-42)."""
+    return sum(f"<b>{label}:</b>" in card for label in ("Caption", "Carousel caption")) - card.count(CAPTION_TOO_LONG)
+
+
+def _credit_card_line(line: str, form: int) -> str:
+    """A caption credit line as a long review card lists it (QF-42): whole (form 0); a photo credit
+    ("📷 author | title | licence | source | licence URL") without its two links (1), as author and title cut to
+    CREDIT_CARD_TITLE (2), or the author alone (3). Any other credit line (music, footage, the share-alike notice)
+    is whole, cut to CREDIT_CARD_CLIP characters in form 3."""
+    from .control import clip_words
+    fields = [f.strip() for f in line.removeprefix("📷").split(" | ")] if line.startswith("📷") else []
+    if len(fields) != 5:
+        return line if form < 3 else clip_words(line, CREDIT_CARD_CLIP)
+    author, title, licence = fields[0], fields[1].removeprefix("File:"), fields[2]
+    return line if not form else "📷 " + " · ".join(
+        [author, title, licence] if form == 1 else [author, clip_words(title, CREDIT_CARD_TITLE)] if form == 2
+        else [author])
 
 
 def _clip_copy(text: str, limit: int) -> str:
@@ -640,6 +863,29 @@ def origin_label(origin: str) -> str:
         return "Gemini, billed key" if not config.FREE_TIER_HEAVY else "Gemini, free tier first (billed key if it is busy)"
     return {"curated": "curated script", "claude": "Claude"}.get(origin, origin)
 
+
+
+def illustration_review_items(payload: dict[str, Any], run_dir: Path) -> list[list[dict[str, Any]]]:
+    """Albums (at most 10 photos each) showing each illustrated beat of the run (payload["picture_fit"]["generated"])
+    followed by its reference image(s), captioned with the beat's narrated line and each reference's title and
+    licence. Files that are missing are left out; [] when the run has no illustration."""
+    e = html.escape
+    items: list[dict[str, Any]] = []
+    for g in (payload.get("picture_fit") or {}).get("generated") or []:
+        if not isinstance(g, dict):
+            continue
+        art = Path(str(g.get("path") or "")) if g.get("path") else Path(run_dir) / str(g.get("to") or "")
+        if not art.is_file():
+            continue
+        refs = [r for r in g.get("references") or [] if isinstance(r, dict) and Path(str(r.get("path") or "")).is_file()]
+        items.append({"type": "photo", "path": art, "caption": (
+            f"🏛 Beat {e(str(g.get('beat')))} illustration (needs your approval) · “{e(str(g.get('line') or '')[:600])}”"
+            + ("" if refs else " · no reference: a kind of thing, drawn from the facts"))})
+        for r in refs:
+            items.append({"type": "photo", "path": Path(str(r["path"])), "caption": (
+                f"Reference for beat {e(str(g.get('beat')))}: {e(str(r.get('title') or '')[:300])} "
+                f"({e(str(r.get('licence') or '?'))}" + (f", {e(str(r['url'])[:300])}" if r.get("url") else "") + ")")})
+    return [items[i:i + 10] for i in range(0, len(items), 10)]
 
 class TelegramApprovalBot:
     def __init__(
@@ -1239,22 +1485,59 @@ class TelegramApprovalBot:
         and the captions come first; when the findings leave them no room, each folded list is shortened
         to its first items and "…and N more" (a long Wieliczka card lost its narration and both captions,
         then was paged as plain text with buttons that failed: review of 2026-10-25)."""
-        card = ""
         limit = CARD_PAGE_LIMIT - max(0, reserve)
-        for cap in (None, 4, 3, 2, 1, 0):
-            card = TelegramApprovalBot._card_text(script_payload, run_id, release, cap, limit)
-            # The narration whole first; the findings are shortened only as far as that needs; the captions
-            # take what is left (the long caption is clipped, "full text: Edit", as before).
-            captions = all(f"<b>{label}:</b>" in card for key, label in (("caption", "Caption"), ("carousel_caption", "Carousel caption"))
-                           if script_payload.get(key))  # at least its first lines, or where to read it
-            if "[shortened:" not in card and captions and _tg_len(card) <= limit:
-                return card
-        return card
+        card = TelegramApprovalBot._fitted_card(script_payload, run_id, release, limit)
+        posted = script_payload.get("_publish_copy")
+        return _with_publish_lines(card, posted, limit, reserve) if isinstance(posted, dict) else card
+
+    @staticmethod
+    def _fitted_card(script_payload: dict[str, Any], run_id: str, release: dict[str, Any] | None, limit: int) -> str:
+        """The card in `limit`, fitted as QF-42 fits it. What else Approve posts and the slot it books are laid out
+        afterwards, in the room this leaves (_with_publish_lines), so they cost the narration, the captions and the
+        findings nothing (review of QF-43 on 30 real cards)."""
+
+        def first_fit(credits: bool, previews: int = 0) -> tuple:
+            card = ""
+            for cap in (None, 4, 3, 2, 1, 0):
+                card = TelegramApprovalBot._card_text(script_payload, run_id, release, cap, limit, credits=credits)
+                # The narration whole first; the findings are shortened only as far as that needs; the captions
+                # take what is left (the long caption is clipped, "full text: Edit", as before). Every caption
+                # credit keeps its own line (QF-42), in the shortest form at worst (_card_text's credits).
+                captions = all(f"<b>{label}:</b>" in card for key, label in (("caption", "Caption"), ("carousel_caption", "Carousel caption"))
+                               if script_payload.get(key))  # at least its first lines, or where to read it
+                if ("[shortened:" not in card and captions and CREDITS_UNLISTED not in card
+                        and _tg_len(card) <= limit and _caption_previews(card) >= previews):
+                    return card, True
+            return card, False
+
+        card, fits = first_fit(True)
+        if not fits or CREDITS_HEAD not in card:
+            return card
+        # The credits list costs no caption the preview the card without it shows (review of QF-42: six cards lost
+        # theirs): the findings are shortened further first, when that gives it back.
+        target = _caption_previews(first_fit(False)[0])
+        if _caption_previews(card) >= target:
+            return card
+        better, fits = first_fit(True, target)
+        return better if fits else card
 
     @staticmethod
     def _card_text(script_payload: Dict[str, Any], run_id: str, release: Optional[Dict[str, Any]], cap: Optional[int],
-                   limit: int = CARD_PAGE_LIMIT) -> str:
+                   limit: int = CARD_PAGE_LIMIT, credits: bool = True, extras: bool = False) -> str:
+        """The review card at findings cap `cap`. `credits=False`: the card as it was before the credits list
+        (QF-42), each credit line only inside its caption: format_card_text's measure of the captions' room.
+        `extras`: with the whole "Also posted" list (QF-43), as the reply under the card has it."""
         e = html.escape
+        # What Approve posts, as each platform receives it (QF-43: publishable.card_record, added by
+        # send_review_card): the caption after the illustration disclosure, the hashtags from the topic's list. A
+        # carousel posting the Reel caption (a script without its own) is in the "Also posted" list, not repeated.
+        posted = script_payload.get("_publish_copy")
+        copy = (posted or {}).get("copy") or {} if isinstance(posted, dict) else {}
+        if isinstance(posted, dict):
+            script_payload = {**script_payload, **{key: copy[label] for key, label in (
+                ("title", "reel.title"), ("caption", "reel.caption"), ("carousel_caption", "carousel.instagram"),
+                ("first_comment", "reel.first_comment")) if label in copy and (key != "carousel_caption"
+                                                                               or script_payload.get(key))}}
         loc = script_payload.get("location") or {}
         place = ", ".join(e(str(v)) for v in (loc.get("name"), loc.get("country")) if v)
         regen = script_payload.get("_regeneration_note")  # added by send_review_card for a regenerated run
@@ -1267,6 +1550,21 @@ class TelegramApprovalBot:
 
         if not audits or conf is None:
             integrity = "⚠️ <b>Integrity:</b> verification not recorded"
+        # Every image credit the captions carry, each on its own line in its own folded list (QF-42): they were only
+        # inside the caption block, which a long caption clips or replaces with "too long for this card".
+        # The list has a length budget (review of QF-42: whole lines, two URLs each, pushed real cards past Telegram's
+        # 4,096): it is filled after the narration, in the longest of _credit_card_line's forms that fits.
+        from .credits import split_attribution
+        credit_lines = list(dict.fromkeys(line.strip() for key in ("caption", "carousel_caption")
+                                          for line in split_attribution(script_payload.get(key) or "")[1])) if credits else []
+        credit_forms = []
+        for form in range(4):
+            shown = [_credit_card_line(x, form) for x in credit_lines]
+            if form >= 2:  # a short form can repeat itself (five photos by one author): each once, with its count
+                counts = Counter(shown)
+                shown = [x if counts[x] == 1 else f"{x} (×{counts[x]})" for x in dict.fromkeys(shown)]
+            credit_forms.append("\n" + listed(f"{CREDITS_HEAD} {len(credit_lines)}", [e(x) for x in shown])
+                                + (f"\n<i>Shortened to fit: {CARD_LIST_MORE}</i>" if shown != credit_lines else "") + "\n")
 
         text = (
             f"🎬 <b>Master review</b>\n\n"
@@ -1285,9 +1583,15 @@ class TelegramApprovalBot:
             # has the whole text.
             + ("\x00CAPTION\x00" if script_payload.get("caption") else "")
             + ("\x00CAROUSEL\x00" if script_payload.get("carousel_caption") else "")
-            + (f"<b>Hashtags:</b> {e(' '.join(script_payload['hashtags']))}" if script_payload.get("hashtags")
+            + (_posted_hashtags_line(posted) if isinstance(posted, dict) and not posted.get("documentary")
+               else f"<b>Hashtags:</b> {e(' '.join(script_payload['hashtags']))}" if script_payload.get("hashtags")
                else f"<b>Tags:</b> {e(', '.join(script_payload.get('tags') or []))}") + "</blockquote>\n"
+            + ("\x00CREDITS\x00" if credit_lines else "")
         )
+        if extras and isinstance(posted, dict) and _also_posted(posted, copy):
+            # Its own section (detail_messages' sections are split at a blank line). On the card it takes only the
+            # room the fitted card leaves (_with_publish_lines); the reply under the card has it whole.
+            text += "\n" + listed(ALSO_HEAD, _also_posted(posted, copy)) + "\n"
         poll = script_payload.get("poll") or {}
         if poll.get("question") and poll.get("options") and len(poll["options"]) >= 2:
             opts = [e(str(o)) for o in poll["options"]]
@@ -1354,41 +1658,104 @@ class TelegramApprovalBot:
             # Each note whole, folded, as the gate's findings are (operator, 2026-10-25: cut mid-word at 160)
             text += "\n" + listed(f"👀 Look at the stills and cover: {len(notes)} note(s)", cap=cap, items=
                                   [f"{e(str(i.get('card') or i.get('type') or ''))}: {e(str(i['issue']))}" for i in notes]) + "\n"
+        from .config import OUTPUT_DIR
+        r_dir = (Path(OUTPUT_DIR) / str(run_id)).resolve() if run_id else None
+        card_notes = (design_card_notes(r_dir) if r_dir is not None and r_dir.parent == Path(OUTPUT_DIR).resolve()
+                      and r_dir.is_dir() else [])
+        if card_notes:     # freeze panel M12 (3): e.g. a myth card whose correction drops every specific
+            text += "\n" + listed(f"🃏 Design cards: {len(card_notes)} note(s)", [e(x) for x in card_notes], cap) + "\n"
         if sources:
             text += "\n📚 " + "\n📚 ".join(e(s.get("url", "")) for s in sources) + "\n"
         full = text + f"\n<i>Run ID (for the command line):</i> <code>{e(run_id)}</code>"  # code: Telegram linked the digits
         # A card over the page limit is paged as plain text and loses its collapsible script, so a long
         # (documentary) narration is shortened inside it instead; the full script is in the run folder.
         narration = script_payload.get("narration_script", "")
-        bare = full.replace("\x00CAPTION\x00", "").replace("\x00CAROUSEL\x00", "")
-        room = limit - _tg_len(bare.replace("\x00NARRATION\x00", ""))
+        unlisted = f"\n{CREDITS_UNLISTED} {len(credit_lines)}: {CARD_LIST_MORE}\n"  # no form of the list fits
+        bare = full.replace("\x00CAPTION\x00", "").replace("\x00CAROUSEL\x00", "").replace("\x00NARRATION\x00", "")
+        note = f" … [shortened: all {len(narration.split())} words are in the run's script_metadata.json]"
+        # Room is kept for every credit's own line in the shortest form (the author: QF-42); on a card the notes
+        # already fill (no word of the narration fits), for the count alone.
+        room = limit - _tg_len(_said_once(bare.replace("\x00CREDITS\x00", credit_forms[-1] if credit_lines else "")))
+        if credit_lines and room < _tg_len(e(narration)) and room <= _tg_len(e(note)):
+            room = limit - _tg_len(_said_once(bare.replace("\x00CREDITS\x00", unlisted)))
         if _tg_len(e(narration)) > room:
-            note = f" … [shortened: all {len(narration.split())} words are in the run's script_metadata.json]"
             cut = narration
-            while cut and _tg_len(e(cut)) + _tg_len(note) > room:
+            while cut and _tg_len(e(cut)) + _tg_len(e(note)) > room:
                 cut = cut[:-40].rsplit(" ", 1)[0]
             narration = cut + note
         full = full.replace("\x00NARRATION\x00", e(narration), 1)
         # The captions take only the room the narration leaves (adding them in full shortened the narration
         # of real cards: 2026-10-23 UI review); what does not fit says where the whole of it is.
-        for key, label, marker in (("carousel_caption", "Carousel caption", "\x00CAROUSEL\x00"),
-                                   ("caption", "Caption", "\x00CAPTION\x00")):  # the short one first
-            if marker not in full:
-                continue
-            spare = limit - _tg_len(full.replace("\x00CAPTION\x00", "").replace("\x00CAROUSEL\x00", ""))
+        # Without its hashtags: they have their own line on the card (operator, 2026-10-25). Posted as written.
+        captions = [(label, marker, without_hashtags(script_payload.get(key) or "")) for key, label, marker in (
+            ("carousel_caption", "Carousel caption", "\x00CAROUSEL\x00"),
+            ("caption", "Caption", "\x00CAPTION\x00")) if marker in full]  # the short one first
+        if credit_lines:  # shown in the credits list
+            captions = [(label, marker, split_attribution(value)[0]) for label, marker, value in captions]
+
+        def caption_block(label: str, value: str, spare: int) -> tuple:
+            """The caption's block in `spare` (whole, clipped at a word, or where to read it) and how many
+            characters of its text it shows."""
             head = f"\n<b>{label}:</b>\n"
-            # Without its hashtags: they have their own line on the card (operator, 2026-10-25). Posted as written.
-            text_value = without_hashtags(script_payload.get(key) or "")
-            block = head + e(text_value) + "\n"
-            if _tg_len(block) > spare:
-                fit = spare - _tg_len(head) - 30
-                block = head + (e(_clip_copy(text_value, fit)) if fit >= 120 else "<i>(too long for this card: see Edit)</i>") + "\n"
-                if _tg_len(block) > spare:
-                    block = ""
-            full = full.replace(marker, block, 1)
-        # Where the rest is, said once: each shortened list repeated it (production review card, 2026-10-29).
-        first, sep, rest = full.partition(f": {CARD_LIST_MORE}")
-        return first + sep + rest.replace(f": {CARD_LIST_MORE}", "")
+            block = head + e(value) + "\n"
+            if _tg_len(block) <= spare:
+                return block, len(value)
+            fit = spare - _tg_len(head) - 30
+            while fit >= 120:  # clipped at a word to the room (its escaped form can be longer than the clip)
+                clipped = _clip_copy(value, fit)
+                block = head + e(clipped) + "\n"
+                if _tg_len(block) <= spare:
+                    return block, len(clipped.removesuffix(" (full text: Edit)"))
+                fit -= _tg_len(block) - spare
+            block = head + CAPTION_TOO_LONG + "\n"  # else where to read it, when that fits
+            return (block, 0) if _tg_len(block) <= spare else ("", 0)
+
+        def fill(card: str) -> tuple:
+            """`card` with its captions in the room left, and its score: (captions on the card, captions with a
+            preview, characters of their text shown). A caption on the card, if only as where to read it, ranks
+            ahead of another's preview (review of QF-42: Wieliczka dropped its carousel caption for a clipped main
+            caption, though both "see Edit" lines fit)."""
+            spare = limit - _tg_len(_said_once(card.replace("\x00CAPTION\x00", "").replace("\x00CAROUSEL\x00", "")))
+            whole = [_tg_len(f"\n<b>{label}:</b>\n" + e(value) + "\n") for label, _, value in captions]
+            heads = [_tg_len(f"\n<b>{label}:</b>\n") for label, _, _ in captions]
+            # On a card with credits the short caption, filled first, may keep back the room of the main caption's
+            # clipped preview, or of where to read it (review of QF-42: a whole carousel caption took the room, and
+            # the caption read "too long for this card" or was left out): whichever shows the captions best.
+            keeps = [[0] * len(captions)] + ([[min(w, h + 150) for w, h in zip(whole, heads)],
+                                              [min(w, h + _tg_len(CAPTION_TOO_LONG + "\n")) for w, h in zip(whole, heads)]]
+                                             if credit_lines else [])
+            best = None
+            for keep in keeps:
+                out, left, score = card, spare, (0, 0, 0)
+                for i, (label, marker, value) in enumerate(captions):
+                    block, chars = caption_block(label, value, left - sum(keep[i + 1:]))
+                    out, left = out.replace(marker, block, 1), left - _tg_len(block)
+                    score = (score[0] + bool(block), score[1] + bool(block and (chars or not value)), score[2] + chars)
+                if best is None or score > best[0]:
+                    best = (score, out)
+            return best[1], best[0]
+
+        if credit_lines:
+            # The credits next, in the longest form that leaves each caption a preview and the captions their text
+            # (at most CARD_CAPTION_ROOM of it); else the form that shows the most of the captions (a shorter form
+            # before a caption is dropped); the count alone, and where the lines are, only when no form fits (a
+            # card the findings already fill: format_card_text then shortens those first).
+            whole = sum(len(value) for _, _, value in captions)
+            best = None
+            for section in credit_forms:
+                with_credits = full.replace("\x00CREDITS\x00", section, 1)
+                if _tg_len(_said_once(with_credits.replace("\x00CAPTION\x00", "").replace("\x00CAROUSEL\x00", ""))) > limit:
+                    continue
+                card, score = fill(with_credits)
+                if score[1] == len(captions) and score[2] >= min(whole, CARD_CAPTION_ROOM):
+                    best = (score, card)
+                    break
+                if best is None or score > best[0]:
+                    best = (score, card)
+            full = best[1] if best else fill(full.replace("\x00CREDITS\x00", unlisted, 1))[0]
+        else:
+            full = fill(full)[0]
+        return _said_once(full)
 
     def send_approval_request(self, video_path: Path, thumbnail_path: Path, script_payload: Dict[str, Any], run_id: str) -> Optional[int]:
         """Everything one Approve publishes, then the card: an album with the cover, a scene strip and
@@ -1638,6 +2005,10 @@ class TelegramApprovalBot:
             "cells": rows,
         })
 
+        illustrated = [g for g in (payload.get("picture_fit") or {}).get("generated") or [] if isinstance(g, dict)]
+        if illustrated:
+            from .image_gen import review_note
+            blocks.append({"type": "paragraph", "text": review_note(illustrated)})
         script_text = payload.get("narration_script", "")
         lines = [s.strip() + "." for s in script_text.split(". ") if s.strip()][:4]
         if lines:
@@ -1832,6 +2203,10 @@ class TelegramApprovalBot:
             log.warning("Video is %.1f MB, over Telegram's bot upload limit; review it locally: %s", size_mb, video_path)
         if first:
             sent += self._album(first) or []
+        # Every illustrated beat beside its reference(s) and its narrated line (reliable depiction, 2026-11-02): the
+        # operator approves each illustration on the review itself.
+        for batch in illustration_review_items(payload, run_dir):
+            sent += self._album(batch) or []
         stills = sorted((run_dir / "stories").glob("story_*.jpg")) + sorted((run_dir / "carousel").glob("carousel_slide_*.jpg"))
         n_story = len(list((run_dir / "stories").glob("story_*.jpg")))
         for start in range(0, len(stills), 10):
@@ -1850,6 +2225,24 @@ class TelegramApprovalBot:
             raise ValueError("Review media must be delivered for this exact copy before approval")
         key = self.db.run_key(run_id)  # short: Telegram limits button data to 64 bytes
         regen = self.db.get_setting("regenerating:" + run_id) if hasattr(self.db, "get_setting") else None
+        # What Approve posts, word for word per platform, with the slot it books and when the review closes; kept
+        # as the card's record, which the envelope must match (publisher.build_envelope; QF-43).
+        from . import publishable
+        from .config import OUTPUT_DIR
+        run = self.db.get_run(run_id) if hasattr(self.db, "get_run") else None
+        run_dir = Path((run or {}).get("master_video_path") or Path(OUTPUT_DIR) / str(run_id) / "x").parent
+        try:
+            sizer = getattr(self, "approval_window", None)
+            decider = getattr(self, "approve_posting", None)   # the coordinator's; a bot alone posts at once
+            mode = self.db.get_setting("run_mode:" + run_id) if hasattr(self.db, "get_setting") else None
+            posting = decider(run_id) if callable(decider) else ("dry_run" if mode == "dry_run" else "now")
+            posted = publishable.card_record(script_payload, self.db, run_dir=run_dir if run_dir.is_dir() else None,
+                                             window_seconds=sizer() if callable(sizer) else None,
+                                             topic_id=(run or {}).get("topic_id") or "", posting=posting)
+        except Exception as e:  # noqa: BLE001  shown on the card; with no copy recorded, the envelope check refuses to post
+            log.warning("Could not work out what Approve posts for %s: %s", run_id, e)
+            posted = {"error": f"{type(e).__name__}: {e}"}
+        script_payload = {**script_payload, "_publish_copy": posted}
         card_text = self.format_card_text({**script_payload, "_regeneration_note": regen} if regen else script_payload,
                                           run_id, release=release)
         # A version the release gate blocks is not offered for approval: Approve could only end in
@@ -1882,13 +2275,22 @@ class TelegramApprovalBot:
                 send_card_data["message_thread_id"] = rev_tid
             msg = self._api("sendMessage", data=send_card_data)
         message_id = msg["message_id"]
-        if CARD_LIST_MORE in card_text:  # the lists the card had to shorten, whole, in the reply under it
+        # The lists the card had to shorten, whole, in the reply under it; and what else Approve posts, and the slot,
+        # when the card had no room for them (QF-43: _with_publish_lines).
+        if CARD_LIST_MORE in card_text or needs_publish_reply(card_text, posted):
             try:
-                full = self._card_text({**script_payload, "_regeneration_note": regen} if regen else script_payload,
-                                       run_id, release, None, 10 ** 6)
-                for n, text in enumerate(detail_messages(full), 1):
+                if CARD_LIST_MORE in card_text:
+                    full = self._card_text({**script_payload, "_regeneration_note": regen} if regen else script_payload,
+                                           run_id, release, None, 10 ** 6, extras=True)
+                else:
+                    also = _also_posted(posted, posted.get("copy") or {})
+                    full = "\n\n" + listed(ALSO_HEAD, also) + "\n" if also else ""
+                slot = _schedule_line(posted) if isinstance(posted, dict) else ""
+                slot = "" if slot in card_text else slot
+                for n, text in enumerate(detail_messages(full) or ([""] if slot else []), 1):
                     detail_data = {"chat_id": self.chat_id, "parse_mode": "HTML",
-                                   "text": ("📋 <b>In full</b>\n\n" if n == 1 else "") + text,
+                                   "text": ("📋 <b>In full</b>\n\n" + slot + ("\n" if slot and text else "")
+                                            if n == 1 else "") + text,
                                    "reply_to_message_id": message_id,
                                    "disable_web_page_preview": "true"}
                     if rev_tid:
@@ -1899,6 +2301,7 @@ class TelegramApprovalBot:
                 log.warning("Could not send the review card's lists in full: %s", e)
         from .card_ledger import record as record_card
         record_card(run_id, "review", card_text, markup["inline_keyboard"], message_id)
+        publishable.save_record(self.db, run_id, posted)   # before the card's buttons can decide
         self.db.record_approval(run_id, script_payload.get("topic_id", ""), message_id)
         put(self.db, "message-run", f"{self.chat_id}:{message_id}", run_id)
         put(self.db, "review-card", f"{run_id}:{message_id}", fingerprint)
@@ -2158,7 +2561,10 @@ class TelegramApprovalBot:
         run = self.db.get_run(run_id) if hasattr(self.db, "get_run") else None
         if run and run.get("script_payload"):
             # With the gate's report, as on the card that was tapped (it said "Release gate: not run yet")
-            updated_text = self.format_card_text(run["script_payload"], run_id, release=self._release_report(run),
+            from .publishable import load_record
+            shown = load_record(self.db, run_id)   # what the tapped card showed would be posted
+            updated_text = self.format_card_text({**run["script_payload"], **({"_publish_copy": shown} if shown else {})},
+                                                 run_id, release=self._release_report(run),
                                                  reserve=_tg_len(badge)) + badge   # the badge fits: never paged
         elif orig_text:
             updated_text = html.escape(orig_text) + badge

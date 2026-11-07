@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-Updates the application tree on content-client-win-01 inside the promotion window.
+Updates the application tree on the production VM inside the promotion window.
 .DESCRIPTION
 Run from the operator's SSH session (no elevation) after Promote-ContentRelease.ps1 has written
 "stopped" to the hand-off flag. Expects the release staged beforehand in $Stage:

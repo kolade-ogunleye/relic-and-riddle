@@ -66,3 +66,16 @@ def test_cover_brand_on_paper_stays_ink_without_halo() -> None:
     _brand(_flat(brand.BONE), lay, paper=True)
     plate = lay.meta["plates"]["brand"][0]
     assert plate.fill == brand.INK and plate.halo == 0.0
+
+
+@pytest.mark.parametrize("centered", [False, True], ids=["left", "centered"])
+def test_brand_mark_sits_before_the_name_and_group_is_placed(centered: bool) -> None:
+    lay = _lay()
+    out = _brand(_flat((120, 140, 160)), lay, centered=centered).convert("RGB")
+    boxes = {e["name"]: e["box"] for e in lay.elements}
+    mark, name = boxes["brand_mark"], boxes["brand"]
+    assert mark[2] < name[0]                                   # the diamond, then a gap, then the name
+    assert out.getpixel(((mark[0] + mark[2]) // 2, (mark[1] + mark[3]) // 2)) == brand.GOLD
+    assert mark[1] < (name[1] + name[3]) / 2 < mark[3]         # on the name's centre line
+    # One place on every style since the 2026-11-02 design review: the mark-and-name group is centred.
+    assert abs((mark[0] + name[2]) / 2 - W / 2) <= 6

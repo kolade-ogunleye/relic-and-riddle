@@ -1,0 +1,685 @@
+{
+ "code_commit": "b97dcea",
+ "takes_scene_cuts": false,
+ "main_passes_scene_cuts": false,
+ "summary": {
+  "reels": 7,
+  "reel_whooshes": [
+   7,
+   6,
+   7,
+   6,
+   6,
+   5,
+   5
+  ],
+  "reel_max_whooshes": 7,
+  "reel_whooshes_off_cut_and_reveal": 19,
+  "reel_mean_whoosh_rms_dbfs": -36.03,
+  "other_16x9": {
+   "deep_dive_16x9 (act cues)": 4,
+   "16x9 render path (no act cues)": 30
+  },
+  "acceptance": "every Reel <= 2 whooshes, each on a scene cut or a sound-plan reveal; level -6 dB vs before"
+ },
+ "rows": [
+  {
+   "run": "run_amber_room_heist_1792790550",
+   "path": "reel_9x16",
+   "seconds": 50.298,
+   "scene_cuts": 11,
+   "composition_scenes": 12,
+   "picture_hold_merged": null,
+   "scene_cuts_passed": false,
+   "whooshes": 7,
+   "on_cut_or_reveal": 6,
+   "mean_rms_dbfs": -36.03,
+   "times": [
+    {
+     "t": 8.393,
+     "rms_dbfs": -36.03,
+     "peak_dbfs": -17.06,
+     "on_cut": true,
+     "on_reveal": false
+    },
+    {
+     "t": 12.462,
+     "rms_dbfs": -36.03,
+     "peak_dbfs": -17.06,
+     "on_cut": true,
+     "on_reveal": false
+    },
+    {
+     "t": 18.916,
+     "rms_dbfs": -36.03,
+     "peak_dbfs": -17.06,
+     "on_cut": false,
+     "on_reveal": false
+    },
+    {
+     "t": 24.069,
+     "rms_dbfs": -36.03,
+     "peak_dbfs": -17.06,
+     "on_cut": true,
+     "on_reveal": false
+    },
+    {
+     "t": 28.508,
+     "rms_dbfs": -36.03,
+     "peak_dbfs": -17.06,
+     "on_cut": true,
+     "on_reveal": false
+    },
+    {
+     "t": 40.446,
+     "rms_dbfs": -36.03,
+     "peak_dbfs": -17.06,
+     "on_cut": true,
+     "on_reveal": false
+    },
+    {
+     "t": 45.791,
+     "rms_dbfs": -36.03,
+     "peak_dbfs": -17.06,
+     "on_cut": true,
+     "on_reveal": false
+    }
+   ]
+  },
+  {
+   "run": "run_gol_gumbaz_whispering_gallery_1793278143",
+   "path": "reel_9x16",
+   "seconds": 45.81,
+   "scene_cuts": 8,
+   "composition_scenes": 9,
+   "picture_hold_merged": [],
+   "scene_cuts_passed": false,
+   "whooshes": 6,
+   "on_cut_or_reveal": 3,
+   "mean_rms_dbfs": -36.03,
+   "times": [
+    {
+     "t": 5.906,
+     "rms_dbfs": -36.03,
+     "peak_dbfs": -17.06,
+     "on_cut": false,
+     "on_reveal": false
+    },
+    {
+     "t": 10.944,
+     "rms_dbfs": -36.03,
+     "peak_dbfs": -17.06,
+     "on_cut": true,
+     "on_reveal": false
+    },
+    {
+     "t": 16.735,
+     "rms_dbfs": -36.03,
+     "peak_dbfs": -17.06,
+     "on_cut": false,
+     "on_reveal": false
+    },
+    {
+     "t": 21.212,
+     "rms_dbfs": -36.03,
+     "peak_dbfs": -17.06,
+     "on_cut": true,
+     "on_reveal": false
+    },
+    {
+     "t": 27.64,
+     "rms_dbfs": -36.03,
+     "peak_dbfs": -17.06,
+     "on_cut": false,
+     "on_reveal": false
+    },
+    {
+     "t": 34.605,
+     "rms_dbfs": -36.03,
+     "peak_dbfs": -17.06,
+     "on_cut": true,
+     "on_reveal": false
+    }
+   ]
+  },
+  {
+   "run": "run_nazca_lines_runway_paradox_1792961797",
+   "path": "reel_9x16",
+   "seconds": 48.762,
+   "scene_cuts": 10,
+   "composition_scenes": 11,
+   "picture_hold_merged": null,
+   "scene_cuts_passed": false,
+   "whooshes": 7,
+   "on_cut_or_reveal": 2,
+   "mean_rms_dbfs": -36.03,
+   "times": [
+    {
+     "t": 7.474,
+     "rms_dbfs": -36.03,
+     "peak_dbfs": -17.06,
+     "on_cut": false,
+     "on_reveal": false
+    },
+    {
+     "t": 11.033,
+     "rms_dbfs": -36.03,
+     "peak_dbfs": -17.06,
+     "on_cut": false,
+     "on_reveal": false
+    },
+    {
+     "t": 15.791,
+     "rms_dbfs": -36.03,
+     "peak_dbfs": -17.06,
+     "on_cut": false,
+     "on_reveal": false
+    },
+    {
+     "t": 23.852,
+     "rms_dbfs": -36.03,
+     "peak_dbfs": -17.06,
+     "on_cut": true,
+     "on_reveal": false
+    },
+    {
+     "t": 30.0,
+     "rms_dbfs": -36.03,
+     "peak_dbfs": -17.06,
+     "on_cut": false,
+     "on_reveal": false
+    },
+    {
+     "t": 34.923,
+     "rms_dbfs": -36.03,
+     "peak_dbfs": -17.06,
+     "on_cut": true,
+     "on_reveal": false
+    },
+    {
+     "t": 42.615,
+     "rms_dbfs": -36.03,
+     "peak_dbfs": -17.06,
+     "on_cut": false,
+     "on_reveal": false
+    }
+   ]
+  },
+  {
+   "run": "run_richat_structure_sahara_eye_1792740961_long",
+   "path": "deep_dive_16x9 (act cues)",
+   "seconds": 196.868,
+   "scene_cuts": 20,
+   "composition_scenes": 19,
+   "picture_hold_merged": null,
+   "scene_cuts_passed": false,
+   "whooshes": 4,
+   "on_cut_or_reveal": 4,
+   "mean_rms_dbfs": -36.03,
+   "times": [
+    {
+     "t": 33.14,
+     "rms_dbfs": -36.03,
+     "peak_dbfs": -17.06,
+     "on_cut": true,
+     "on_reveal": false
+    },
+    {
+     "t": 77.65,
+     "rms_dbfs": -36.03,
+     "peak_dbfs": -17.06,
+     "on_cut": true,
+     "on_reveal": false
+    },
+    {
+     "t": 111.65,
+     "rms_dbfs": -36.03,
+     "peak_dbfs": -17.06,
+     "on_cut": true,
+     "on_reveal": false
+    },
+    {
+     "t": 161.58,
+     "rms_dbfs": -36.03,
+     "peak_dbfs": -17.06,
+     "on_cut": true,
+     "on_reveal": false
+    }
+   ]
+  },
+  {
+   "run": "run_richat_structure_sahara_eye_1792740961_long",
+   "path": "16x9 render path (no act cues)",
+   "seconds": 196.868,
+   "scene_cuts": 43,
+   "composition_scenes": 19,
+   "picture_hold_merged": null,
+   "scene_cuts_passed": false,
+   "whooshes": 30,
+   "on_cut_or_reveal": 17,
+   "mean_rms_dbfs": -36.03,
+   "times": [
+    {
+     "t": 6.696,
+     "rms_dbfs": -36.03,
+     "peak_dbfs": -17.06,
+     "on_cut": false,
+     "on_reveal": false
+    },
+    {
+     "t": 15.077,
+     "rms_dbfs": -36.03,
+     "peak_dbfs": -17.06,
+     "on_cut": true,
+     "on_reveal": false
+    },
+    {
+     "t": 23.214,
+     "rms_dbfs": -36.03,
+     "peak_dbfs": -17.06,
+     "on_cut": true,
+     "on_reveal": false
+    },
+    {
+     "t": 27.73,
+     "rms_dbfs": -36.03,
+     "peak_dbfs": -17.06,
+     "on_cut": true,
+     "on_reveal": false
+    },
+    {
+     "t": 33.138,
+     "rms_dbfs": -36.03,
+     "peak_dbfs": -17.06,
+     "on_cut": true,
+     "on_reveal": false
+    },
+    {
+     "t": 42.883,
+     "rms_dbfs": -36.03,
+     "peak_dbfs": -17.06,
+     "on_cut": true,
+     "on_reveal": false
+    },
+    {
+     "t": 47.895,
+     "rms_dbfs": -36.03,
+     "peak_dbfs": -17.06,
+     "on_cut": true,
+     "on_reveal": false
+    },
+    {
+     "t": 56.224,
+     "rms_dbfs": -36.03,
+     "peak_dbfs": -17.06,
+     "on_cut": true,
+     "on_reveal": false
+    },
+    {
+     "t": 60.013,
+     "rms_dbfs": -36.03,
+     "peak_dbfs": -17.06,
+     "on_cut": true,
+     "on_reveal": false
+    },
+    {
+     "t": 65.791,
+     "rms_dbfs": -36.03,
+     "peak_dbfs": -17.06,
+     "on_cut": false,
+     "on_reveal": false
+    },
+    {
+     "t": 74.247,
+     "rms_dbfs": -36.03,
+     "peak_dbfs": -17.06,
+     "on_cut": false,
+     "on_reveal": false
+    },
+    {
+     "t": 83.304,
+     "rms_dbfs": -36.03,
+     "peak_dbfs": -17.06,
+     "on_cut": false,
+     "on_reveal": false
+    },
+    {
+     "t": 87.959,
+     "rms_dbfs": -36.03,
+     "peak_dbfs": -17.06,
+     "on_cut": false,
+     "on_reveal": false
+    },
+    {
+     "t": 96.977,
+     "rms_dbfs": -36.03,
+     "peak_dbfs": -17.06,
+     "on_cut": true,
+     "on_reveal": false
+    },
+    {
+     "t": 101.518,
+     "rms_dbfs": -36.03,
+     "peak_dbfs": -17.06,
+     "on_cut": true,
+     "on_reveal": false
+    },
+    {
+     "t": 107.602,
+     "rms_dbfs": -36.03,
+     "peak_dbfs": -17.06,
+     "on_cut": false,
+     "on_reveal": false
+    },
+    {
+     "t": 111.645,
+     "rms_dbfs": -36.03,
+     "peak_dbfs": -17.06,
+     "on_cut": false,
+     "on_reveal": false
+    },
+    {
+     "t": 117.385,
+     "rms_dbfs": -36.03,
+     "peak_dbfs": -17.06,
+     "on_cut": false,
+     "on_reveal": false
+    },
+    {
+     "t": 129.273,
+     "rms_dbfs": -36.03,
+     "peak_dbfs": -17.06,
+     "on_cut": true,
+     "on_reveal": false
+    },
+    {
+     "t": 132.959,
+     "rms_dbfs": -36.03,
+     "peak_dbfs": -17.06,
+     "on_cut": true,
+     "on_reveal": false
+    },
+    {
+     "t": 142.296,
+     "rms_dbfs": -36.03,
+     "peak_dbfs": -17.06,
+     "on_cut": true,
+     "on_reveal": false
+    },
+    {
+     "t": 149.554,
+     "rms_dbfs": -36.03,
+     "peak_dbfs": -17.06,
+     "on_cut": true,
+     "on_reveal": false
+    },
+    {
+     "t": 156.071,
+     "rms_dbfs": -36.03,
+     "peak_dbfs": -17.06,
+     "on_cut": false,
+     "on_reveal": false
+    },
+    {
+     "t": 161.582,
+     "rms_dbfs": -36.03,
+     "peak_dbfs": -17.06,
+     "on_cut": true,
+     "on_reveal": false
+    },
+    {
+     "t": 165.485,
+     "rms_dbfs": -36.03,
+     "peak_dbfs": -17.06,
+     "on_cut": true,
+     "on_reveal": false
+    },
+    {
+     "t": 173.355,
+     "rms_dbfs": -36.03,
+     "peak_dbfs": -17.06,
+     "on_cut": false,
+     "on_reveal": false
+    },
+    {
+     "t": 178.342,
+     "rms_dbfs": -36.03,
+     "peak_dbfs": -17.06,
+     "on_cut": false,
+     "on_reveal": false
+    },
+    {
+     "t": 182.143,
+     "rms_dbfs": -36.03,
+     "peak_dbfs": -17.06,
+     "on_cut": false,
+     "on_reveal": false
+    },
+    {
+     "t": 186.518,
+     "rms_dbfs": -36.03,
+     "peak_dbfs": -17.06,
+     "on_cut": false,
+     "on_reveal": false
+    },
+    {
+     "t": 190.102,
+     "rms_dbfs": -36.03,
+     "peak_dbfs": -17.06,
+     "on_cut": true,
+     "on_reveal": false
+    }
+   ]
+  },
+  {
+   "run": "run_richat_structure_sahara_eye_1793474843",
+   "path": "reel_9x16",
+   "seconds": 44.898,
+   "scene_cuts": 9,
+   "composition_scenes": 10,
+   "picture_hold_merged": [],
+   "scene_cuts_passed": false,
+   "whooshes": 6,
+   "on_cut_or_reveal": 2,
+   "mean_rms_dbfs": -36.03,
+   "times": [
+    {
+     "t": 5.599,
+     "rms_dbfs": -36.03,
+     "peak_dbfs": -17.06,
+     "on_cut": false,
+     "on_reveal": false
+    },
+    {
+     "t": 16.735,
+     "rms_dbfs": -36.03,
+     "peak_dbfs": -17.06,
+     "on_cut": true,
+     "on_reveal": false
+    },
+    {
+     "t": 20.931,
+     "rms_dbfs": -36.03,
+     "peak_dbfs": -17.06,
+     "on_cut": true,
+     "on_reveal": false
+    },
+    {
+     "t": 26.556,
+     "rms_dbfs": -36.03,
+     "peak_dbfs": -17.06,
+     "on_cut": false,
+     "on_reveal": false
+    },
+    {
+     "t": 32.207,
+     "rms_dbfs": -36.03,
+     "peak_dbfs": -17.06,
+     "on_cut": false,
+     "on_reveal": false
+    },
+    {
+     "t": 37.589,
+     "rms_dbfs": -36.03,
+     "peak_dbfs": -17.06,
+     "on_cut": false,
+     "on_reveal": false
+    }
+   ]
+  },
+  {
+   "run": "run_tunguska_event_1908_1792930600",
+   "path": "reel_9x16",
+   "seconds": 43.89,
+   "scene_cuts": 9,
+   "composition_scenes": 10,
+   "picture_hold_merged": null,
+   "scene_cuts_passed": false,
+   "whooshes": 6,
+   "on_cut_or_reveal": 5,
+   "mean_rms_dbfs": -36.03,
+   "times": [
+    {
+     "t": 5.23,
+     "rms_dbfs": -36.03,
+     "peak_dbfs": -17.06,
+     "on_cut": true,
+     "on_reveal": false
+    },
+    {
+     "t": 9.056,
+     "rms_dbfs": -36.03,
+     "peak_dbfs": -17.06,
+     "on_cut": true,
+     "on_reveal": false
+    },
+    {
+     "t": 16.913,
+     "rms_dbfs": -36.03,
+     "peak_dbfs": -17.06,
+     "on_cut": true,
+     "on_reveal": false
+    },
+    {
+     "t": 25.574,
+     "rms_dbfs": -36.03,
+     "peak_dbfs": -17.06,
+     "on_cut": false,
+     "on_reveal": false
+    },
+    {
+     "t": 32.883,
+     "rms_dbfs": -36.03,
+     "peak_dbfs": -17.06,
+     "on_cut": true,
+     "on_reveal": false
+    },
+    {
+     "t": 37.717,
+     "rms_dbfs": -36.03,
+     "peak_dbfs": -17.06,
+     "on_cut": true,
+     "on_reveal": false
+    }
+   ]
+  },
+  {
+   "run": "run_unfinished_obelisk_aswan_1792985912",
+   "path": "reel_9x16",
+   "seconds": 46.458,
+   "scene_cuts": 9,
+   "composition_scenes": 10,
+   "picture_hold_merged": null,
+   "scene_cuts_passed": false,
+   "whooshes": 5,
+   "on_cut_or_reveal": 3,
+   "mean_rms_dbfs": -36.03,
+   "times": [
+    {
+     "t": 7.781,
+     "rms_dbfs": -36.03,
+     "peak_dbfs": -17.06,
+     "on_cut": false,
+     "on_reveal": false
+    },
+    {
+     "t": 16.135,
+     "rms_dbfs": -36.03,
+     "peak_dbfs": -17.06,
+     "on_cut": false,
+     "on_reveal": false
+    },
+    {
+     "t": 22.959,
+     "rms_dbfs": -36.03,
+     "peak_dbfs": -17.06,
+     "on_cut": true,
+     "on_reveal": false
+    },
+    {
+     "t": 30.765,
+     "rms_dbfs": -36.03,
+     "peak_dbfs": -17.06,
+     "on_cut": true,
+     "on_reveal": false
+    },
+    {
+     "t": 39.515,
+     "rms_dbfs": -36.03,
+     "peak_dbfs": -17.06,
+     "on_cut": true,
+     "on_reveal": false
+    }
+   ]
+  },
+  {
+   "run": "run_voynich_manuscript_1792965308",
+   "path": "reel_9x16",
+   "seconds": 47.106,
+   "scene_cuts": 10,
+   "composition_scenes": 11,
+   "picture_hold_merged": null,
+   "scene_cuts_passed": false,
+   "whooshes": 5,
+   "on_cut_or_reveal": 2,
+   "mean_rms_dbfs": -36.03,
+   "times": [
+    {
+     "t": 6.059,
+     "rms_dbfs": -36.03,
+     "peak_dbfs": -17.06,
+     "on_cut": false,
+     "on_reveal": false
+    },
+    {
+     "t": 12.742,
+     "rms_dbfs": -36.03,
+     "peak_dbfs": -17.06,
+     "on_cut": true,
+     "on_reveal": false
+    },
+    {
+     "t": 22.13,
+     "rms_dbfs": -36.03,
+     "peak_dbfs": -17.06,
+     "on_cut": true,
+     "on_reveal": false
+    },
+    {
+     "t": 31.913,
+     "rms_dbfs": -36.03,
+     "peak_dbfs": -17.06,
+     "on_cut": false,
+     "on_reveal": false
+    },
+    {
+     "t": 35.88,
+     "rms_dbfs": -36.03,
+     "peak_dbfs": -17.06,
+     "on_cut": false,
+     "on_reveal": false
+    }
+   ]
+  }
+ ]
+}

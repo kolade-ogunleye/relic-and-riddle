@@ -14,6 +14,7 @@ import logging
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 import re
+import sqlite3
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import requests
@@ -590,8 +591,12 @@ def spend_lines(db: PipelineDatabase) -> List[str]:
     claude = sum(c for task, c in by_task.items() if not task.startswith(("paid-fallback", "groq")))
     if claude or config.SCRIPT_ENGINE == "claude":
         lines.append(f"Claude this month: ${claude:.2f}" + (f" of ${CLAUDE_MONTHLY_BUDGET_USD:.2f}" if CLAUDE_MONTHLY_BUDGET_USD > 0 else ""))
-    media = db.media_spend(month)
+    from .media_budget import AI_IMAGES
+    images = db.media_spend(month, AI_IMAGES)
+    media = db.media_spend(month) - images
     lines.append(f"AI motion this month: ${media:.2f} of ${MEDIA_MONTHLY_BUDGET_USD:.2f}")
+    # Illustrations share the media cap with motion (QF-46): their own line, so the bill is legible.
+    lines.append(f"AI images this month: ${images:.2f} (same ${MEDIA_MONTHLY_BUDGET_USD:.2f} media cap)")
     return lines
 
 
@@ -1440,21 +1445,6 @@ def _when(iso: Optional[str], ahead: bool = True) -> str:
     return fmt_ahead(moment) if ahead else fmt(moment)
 
 
-def carousel_slot_for(db: PipelineDatabase, post: Dict[str, Any]) -> Optional[datetime]:
-    """When a waiting carousel is expected to go out: the first carousel slot 48 hours after its Reel posted
-    (and not before now). None while its Reel has not posted. Only the newest waiting carousel posts in a slot."""
-    from . import post_schedule
-    reel = next((p for p in db.list_scheduled_posts(("published",), run_id=post["run_id"]) if p["kind"] == "reel"), None)
-    posted = ((reel or {}).get("detail") or {}).get("posted_at") or (reel or {}).get("due_at")
-    if not posted:
-        return None
-    earliest = max(datetime.now(timezone.utc), datetime.fromisoformat(posted) + timedelta(hours=48))
-    try:
-        return post_schedule.next_carousel_slot(earliest)
-    except ValueError:
-        return None
-
-
 def _episode_bookings(db: PipelineDatabase) -> List[Tuple[str, List[Dict[str, Any]]]]:
     """Every run with bookings, those with something still to post first (soonest first), then the rest
     (newest first); each run's bookings in posting order: Reel, Stories, carousel."""
@@ -1504,6 +1494,28 @@ def post_candidates(db: PipelineDatabase, hours: int = 48, limit: int = 3) -> Li
         if len(out) >= limit:
             break
     return out
+
+
+# Whether the runs this process starts are dry runs, recorded when the bot or the daemon starts (QF-47: the docs
+# said production was a dry run while it posted live; the masthead now says which, from the process itself).
+RUNS_DRY_KEY = "process_runs_dry"
+
+
+def record_run_mode(db: PipelineDatabase, dry_run: bool) -> None:
+    """Keeps the starting process's run mode for the dashboard masthead; never stops a start."""
+    try:
+        db.set_setting(RUNS_DRY_KEY, "true" if dry_run else "false")
+    except (sqlite3.Error, OSError, AttributeError) as e:  # a stand-in database without settings
+        log.debug("Run mode not recorded: %s", e)
+
+
+def run_mode_label(db: PipelineDatabase) -> str:
+    """"📡 LIVE posting" or "🧪 dry run" for the masthead; "" before a bot or daemon recorded its mode."""
+    try:
+        recorded = db.get_setting(RUNS_DRY_KEY)
+    except (sqlite3.Error, OSError, AttributeError):
+        return ""
+    return {"false": "📡 LIVE posting", "true": "🧪 dry run"}.get(recorded or "", "")
 
 
 def dashboard_text_and_buttons(db: PipelineDatabase, next_run: Optional[str] = None, assets_dir: Path = ASSETS_DIR) -> Tuple[str, List[List[Dict[str, str]]]]:
@@ -1576,7 +1588,8 @@ def dashboard_text_and_buttons(db: PipelineDatabase, next_run: Optional[str] = N
         release = None
     if release:
         environment += f" ({e(release)})"
-    lines = [f"🏛️ <b><u>RELIC &amp; RIDDLE</u></b> · {environment}", ""]
+    mode = run_mode_label(db)  # whether this process's runs post (QF-47)
+    lines = [f"🏛️ <b><u>RELIC &amp; RIDDLE</u></b> · {environment}" + (f" · <b>{mode}</b>" if mode else ""), ""]
     # A blank line between items: they ran together (operator, 2026-10-25).
     lines += (["<b>Needs you</b>"] + [ln for item in needs for ln in (item, "")]) if needs else ["✅ <b>Nothing needs you right now.</b>", ""]
     outcome = last_review_outcome(db)

@@ -7,8 +7,9 @@ import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
 
-from .credits import SHARE_ALIKE_NOTICE, asset_attribution, is_share_alike, sha256_file
-from .fact_evidence import current_fact_review
+from .credits import (SHARE_ALIKE_NOTICE, asset_attribution, credit_line_problems, credit_present, is_share_alike,
+                      sha256_file)
+from .fact_evidence import fact_review_problem, fact_review_shown, human_review_shown, human_review_text
 from .delivery_profiles import get_delivery_profile
 from .video_qa import measure_program_loudness, verify_provenance_integrity
 
@@ -26,8 +27,16 @@ def write_release_report(run, dry_run=False):
 
     add("caption_length", len(payload.get("caption", "")) <= 2200,
         "Caption and attribution must fit the supported Instagram publication limit.")
-    add("facts", current_fact_review(payload),
-        "Factual review must match the public copy and current research file.")
+    # the review stamp must also carry a valid FACT_RECORD_KEY signature (operator decision A, 2026-11-03): an
+    # unsigned, edited or other-key record fails here, and so does every record when the key is unset
+    # ... and carry the automated checkers' own signed record of their passing runs on this copy (operator decision
+    # 2026-11-04). A person's review of a curated script is shown beside it and never decides it.
+    facts_problem = fact_review_problem(payload)
+    human = human_review_shown(payload)
+    add("facts", not facts_problem,
+        " ".join(t for t in (facts_problem or fact_review_shown(payload), human_review_text(human)) if t))
+    if human:
+        checks[-1]["human_review"] = human
     try:
         result = subprocess.run(["ffprobe", "-v", "error", "-show_streams", "-show_format",
                                  "-of", "json", str(master)], capture_output=True, text=True,
@@ -60,10 +69,24 @@ def write_release_report(run, dry_run=False):
         data = json.loads(ledger.read_text(encoding="utf-8"))
         unresolved = [a["path"] for a in data["assets"] if a.get("rights_status") != "verified"]
         add("asset_rights", not unresolved, unresolved, review=True)
+        # A line written before QF-42 that rewrites to the asset's line counts (credit_present): a run waiting for
+        # approval at deploy keeps Approve; credit_lines below still fails one with a link, address or handle.
         missing_credits = [asset_attribution(a) for a in data["assets"]
-                           if asset_attribution(a) and asset_attribution(a) not in payload.get("caption", "")
-                           and asset_attribution(a) not in payload.get("description", "")]
+                           if not credit_present(a, payload.get("caption", ""))
+                           and not credit_present(a, payload.get("description", ""))]
         add("image_attribution", not missing_credits, missing_credits)
+        # The credit lines are checked as public text (QF-42): the fact and phrase checks skip them as the pipeline's
+        # own, so a link, address, handle or hashtag in one (an edit, a line written before the sanitising) fails
+        # here, and a banned phrase in a quoted file title is the operator's call.
+        problems = [p for line in dict.fromkeys(ln.strip() for f in ("caption", "description", "carousel_caption",
+                                                                    "first_comment")
+                                                for ln in str(payload.get(f) or "").splitlines())
+                    for p in credit_line_problems(line)]
+        unsafe = [p for p in problems if not p.startswith("banned phrase")]
+        add("credit_lines", not unsafe, (unsafe + ["Edit the text or Regenerate: either rewrites the credit lines."]
+                                         if unsafe else "No link, address, handle or hashtag in the image credits."))
+        if len(unsafe) < len(problems):
+            add("credit_phrases", False, [p for p in problems if p.startswith("banned phrase")], review=True)
         if any(is_share_alike(a.get("license", "")) for a in data["assets"]):
             # ShareAlike: the adaptation (this video) must be offered under CC BY-SA 4.0, in the post itself.
             add("share_alike_licence", SHARE_ALIKE_NOTICE in payload.get("caption", "") and
@@ -71,7 +94,7 @@ def write_release_report(run, dry_run=False):
                 "A CC BY-SA image is used, so the post must state: " + SHARE_ALIKE_NOTICE)
         if profile.requires_youtube_thumbnail:
             missing_description = [asset_attribution(a) for a in data["assets"]
-                if asset_attribution(a) and asset_attribution(a) not in payload.get("description", "")]
+                if not credit_present(a, payload.get("description", ""))]
             add("description_attribution", not missing_description, missing_description)
         from .audio_provenance import inspect_audio_rights, rebind_rights
         for key, kind in (("voiceover", "voice"), ("ambient_bed", "music")):

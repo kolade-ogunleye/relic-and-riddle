@@ -13,9 +13,9 @@ jobs:
         with:
           python-version: "3.11"
           cache: pip
-      - run: sudo apt-get update && sudo apt-get install -y libsndfile1 ffmpeg
+      - run: sudo apt-get update && sudo apt-get install -y libsndfile1 ffmpeg libfribidi0
       - run: pip install -r requirements.txt
       - run: python -m pytest -q -n 4
-      - name: Preserved Windows adapter tests
-        working-directory: deployment/windows/handoff
-        run: python -m unittest discover -s tests/python -p test_content_runtime.py -v
+      - name: Windows launcher adapter tests (the installed runtime/ copy)
+        working-directory: deployment/windows/runtime
+        run: python -m unittest discover -s tests -p "test_*.py" -v

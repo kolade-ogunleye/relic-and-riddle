@@ -43,6 +43,65 @@ ERA_BASE_TONES: Dict[str, Tuple[int, int, int]] = {
 SUBSTRATES_DIR = Path(__file__).resolve().parent.parent / "assets" / "substrates"
 
 
+def upscale_factor(size: tuple[int, int], target_size: tuple[int, int]) -> float:
+    """How much a cover-fit of `size` into `target_size` enlarges the image (1.0 or less: no upscale)."""
+    w, h = size
+    tw, th = target_size
+    if w <= 0 or h <= 0:
+        return float("inf")
+    return max(tw / w, th / h)
+
+
+def fit_crop(image: Image.Image, target_size: tuple[int, int]) -> Image.Image:
+    """`image` scaled uniformly to cover `target_size` and centre-cropped to it: the shape is never distorted
+    (the old resize stretched a 16:9 frame into 9:16)."""
+    tw, th = target_size
+    scale = upscale_factor(image.size, target_size)
+    w, h = max(tw, round(image.size[0] * scale)), max(th, round(image.size[1] * scale))
+    resized = image.resize((w, h), Image.Resampling.LANCZOS) if (w, h) != image.size else image
+    x0, y0 = (w - tw) // 2, (h - th) // 2
+    return resized.crop((x0, y0, x0 + tw, y0 + th))
+
+
+# ------------------------------------------------------------------ the house style (2026-11-02)
+# Generated illustrations are one scratchboard-engraving system: fine BONE linework on the brand's deep INK ground,
+# two to three values, never coloured. The model is asked for a dark ground directly; here its luminance is mapped to
+# BONE over INK2 (the light-paper multiply above stays for the legacy linework path only). Any GOLD figure or leader
+# is drawn by code elsewhere, never by the model.
+ENGRAVING_LEVELS = (0.0, 0.55, 1.0)   # ground, mid hatching, full line
+
+
+def engraving_mask(raw: Image.Image) -> Image.Image:
+    """The bright strokes of a dark-ground engraving as a mask (0 ground .. 255 full line), quantized to
+    ENGRAVING_LEVELS so the frame keeps two to three values; colour is discarded."""
+    arr = np.asarray(raw.convert("L"), dtype=np.float32) / 255.0
+    lifted = np.clip((arr - 0.12) / 0.70, 0.0, 1.0)
+    levels = np.asarray(ENGRAVING_LEVELS, dtype=np.float32)
+    idx = np.abs(lifted[..., None] - levels[None, None, :]).argmin(axis=2)
+    return Image.fromarray((levels[idx] * 255.0).astype(np.uint8), mode="L")
+
+
+def composite_engraving_on_ink(
+    raw_input: Path | str | Image.Image,
+    output_path: Path | str | None = None,
+    target_size: tuple[int, int] = DEFAULT_SIZE,
+) -> Image.Image:
+    """A generated dark-ground engraving in the house style: cover-fit to target_size (never stretched), its
+    luminance mapped to BONE line over the INK2 ground. Raises on an unreadable input (the caller rejects it)."""
+    from .brand import BONE, INK2
+    raw = Image.open(raw_input) if isinstance(raw_input, (str, Path)) else raw_input
+    raw = raw.convert("RGB")
+    if raw.size != target_size:
+        raw = fit_crop(raw, target_size)
+    mask = engraving_mask(raw)
+    out = Image.composite(Image.new("RGB", target_size, BONE), Image.new("RGB", target_size, INK2), mask)
+    if output_path:
+        out_p = Path(output_path)
+        out_p.parent.mkdir(parents=True, exist_ok=True)
+        out.save(out_p, "JPEG", quality=95)
+    return out
+
+
 def generate_procedural_substrate(era: str, size: Tuple[int, int] = DEFAULT_SIZE) -> Image.Image:
     """Generates an authentic physical paper substrate procedurally with natural paper tooth,
     fiber grain, and subtle edge darkening (used when no physical scan is bundled on disk)."""
@@ -97,7 +156,7 @@ def load_substrate(era: str, size: Tuple[int, int] = DEFAULT_SIZE) -> Image.Imag
         try:
             img = Image.open(scan_file).convert("RGB")
             if img.size != size:
-                img = img.resize(size, Image.Resampling.LANCZOS)
+                img = fit_crop(img, size)
             return img
         except Exception:
             pass
@@ -142,11 +201,11 @@ def composite_linework_onto_substrate(
         linework = Image.open(linework_input)
     else:
         linework = linework_input
-        
+
     if linework.size != target_size:
-        # Fit inside or resize
-        linework = linework.resize(target_size, Image.Resampling.LANCZOS)
-        
+        # Cover-fit and centre-crop: never stretched to another shape (2026-11-02)
+        linework = fit_crop(linework, target_size)
+
     # 1. Extract clean ink mask
     ink_mask = extract_ink_mask(linework)
     
@@ -183,8 +242,8 @@ def extract_parallax_layers(
         linework = linework_input
         
     if linework.size != target_size:
-        linework = linework.resize(target_size, Image.Resampling.LANCZOS)
-        
+        linework = fit_crop(linework, target_size)
+
     ink_mask = extract_ink_mask(linework)
     ink_rgb = ERA_INK_COLORS.get(era, ERA_INK_COLORS["classical_antiquity"])
     

@@ -1,0 +1,19 @@
+{
+  "inventory": {
+    "settings_read": 154,
+    "read_outside_config": {},
+    "unnamed_reads_outside_config": {},
+    "undocumented_in_env_example": []
+  },
+  "inventory_drift": 0,
+  "own_tests/test_settings_inventory.py": "4 passed",
+  "masker": {
+    "in_secret_names": [
+      "YOUTUBE_ANALYTICS_CLIENT_ID",
+      "YOUTUBE_ANALYTICS_CLIENT_SECRET",
+      "YOUTUBE_ANALYTICS_REFRESH_TOKEN"
+    ],
+    "shown_in_log_line": []
+  },
+  "acceptance_met": true
+}

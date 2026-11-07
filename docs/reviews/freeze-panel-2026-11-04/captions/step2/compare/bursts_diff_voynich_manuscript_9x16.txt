@@ -1,0 +1,86 @@
+--- before (HEAD)
++++ after (working tree)
+@@ -3,44 +3,44 @@
+ 115 words, 42 bursts, emphasis ['Wilfrid Voynich', "Zipf's law"]; vignette vignette=PI/4.2:aspect=9/16 (src.video_composer.picture_vignette)
+-  0    0.00-   1.06   80px  plate  680x121   AN UNREAD MEDIEVAL
+-  1    1.06-   2.10   80px  plate  444x121   BOOK DISPLAYS
+-  2    2.10-   3.35   80px  plate  680x121   LINGUISTIC PRECISION
+-  3    3.35-   4.14   80px  plate  444x121   THAT DEFEATS
+-  4    4.14-   5.99   80px  plate  680x121   MODERN CRYPTANALYSIS
+-  5    5.99-   7.08   80px  plate  696x121   RADIOCARBON DATING
+-  6    7.08-   7.83   80px  plate  380x121   ESTABLISHED
+-  7    7.83-   8.77   80px  plate  696x121   THAT THE MANUSCRIPT'S
+-  8    8.77-   9.59   80px  plate  534x121   PARCHMENT DATES
+-  9    9.59-  12.68   76px* plate  696x121   BETWEEN 1404 AND 1438
+- 10   12.68-  13.91   80px  plate  580x121   BY ONE ESTIMATE
+- 11   13.91-  14.87   80px  plate  580x121   THE TEXT IS WRITTEN
+- 12   14.87-  15.84   80px  plate  580x121   FROM LEFT TO RIGHT
+- 13   15.84-  16.80   80px  plate  580x121   IN AN UNIDENTIFIED
+- 14   16.80-  18.07   74px* plate  696x121   SCRIPT WHERE AN ALPHABET
+- 15   18.07-  19.12   80px  plate  428x121   OF 20 TO 25
+- 16   19.12-  20.02   80px  plate  696x121   CHARACTERS ACCOUNTS
+- 17   20.02-  20.66   80px  plate  428x121   FOR VIRTUALLY
+- 18   20.66-  22.06   80px  plate  580x121   THE ENTIRE WORK
+- 19   22.06-  22.97   80px  plate  522x121   BESIDE BOTANICAL
+- 20   22.97-  24.51   77px* plate  696x121   DIAGRAMS OF UNIDENTIFIED
+- 21   24.51-  25.83   80px  plate  522x121   PLANTS, THE TEXT
+- 22   25.83-  27.14   80px  plate  696x121   CONFORMS TO ZIPF'S LAW
+- 23   27.14-  27.69   80px  plate  522x121   WHERE THE MOST
+- 24   27.69-  28.71   80px  plate  696x121   COMMON WORD APPEARS
+- 25   28.71-  30.11   80px  plate  696x121   ROUGHLY TWICE AS OFTEN
+- 26   30.11-  30.78   80px  plate  522x121   AS THE SECOND
+- 27   30.78-  31.85   80px  plate  522x121   MOST COMMON
+- 28   31.85-  32.59   80px  plate  504x121   THE MANUSCRIPT
+- 29   32.59-  33.91   80px  plate  672x121   IS NAMED AFTER POLISH
+- 30   33.91-  34.53   80px  plate  392x121   BOOK DEALER
+- 31   34.53-  35.80   80px  plate  504x121   WILFRID VOYNICH
+- 32   35.80-  36.69   80px  plate  504x121   WHO ACQUIRED IT
+- 33   36.69-  38.17   80px  plate  392x121   IN 1912
++  0    0.00-   1.06   80px  plate  668x121   AN UNREAD MEDIEVAL
++  1    1.06-   2.10   80px  plate  432x121   BOOK DISPLAYS
++  2    2.10-   3.35   80px  plate  670x121   LINGUISTIC PRECISION
++  3    3.35-   4.14   80px  plate  434x121   THAT DEFEATS
++  4    4.14-   5.99   80px  plate  668x121   MODERN CRYPTANALYSIS
++  5    5.99-   7.08   80px  plate  684x121   RADIOCARBON DATING
++  6    7.08-   7.83   80px  plate  374x121   ESTABLISHED
++  7    7.83-   8.77   80px  plate  686x121   THAT THE MANUSCRIPT'S
++  8    8.77-   9.59   80px  plate  524x121   PARCHMENT DATES
++  9    9.59-  12.68   74px* plate  684x121   BETWEEN 1404 AND 1438
++ 10   12.68-  13.91   80px  plate  562x121   BY ONE ESTIMATE
++ 11   13.91-  14.87   80px  plate  566x121   THE TEXT IS WRITTEN
++ 12   14.87-  15.84   80px  plate  562x121   FROM LEFT TO RIGHT
++ 13   15.84-  17.28   74px* plate  666x121   IN AN UNIDENTIFIED SCRIPT
++ 14   17.28-  18.07   80px  plate  668x121   WHERE AN ALPHABET
++ 15   18.07-  19.12   80px  plate  418x121   OF 20 TO 25
++ 16   19.12-  20.02   80px  plate  666x121   CHARACTERS ACCOUNTS
++ 17   20.02-  20.68   80px  plate  416x121   FOR VIRTUALLY
++ 18   20.68-  22.06   80px  plate  564x121   THE ENTIRE WORK
++ 19   22.06-  22.97   80px  plate  510x121   BESIDE BOTANICAL
++ 20   22.97-  24.51   74px* plate  688x121   DIAGRAMS OF UNIDENTIFIED
++ 21   24.51-  25.83   80px  plate  510x121   PLANTS, THE TEXT
++ 22   25.83-  27.14   74px* plate  686x121   CONFORMS TO ZIPF'S LAW
++ 23   27.14-  27.69   80px  plate  512x121   WHERE THE MOST
++ 24   27.69-  28.71   80px  plate  686x121   COMMON WORD APPEARS
++ 25   28.71-  30.04   80px  plate  688x121   ROUGHLY TWICE AS OFTEN
++ 26   30.04-  30.78   80px  plate  514x121   AS THE SECOND
++ 27   30.78-  31.85   80px  plate  512x121   MOST COMMON
++ 28   31.85-  32.59   80px  plate  498x121   THE MANUSCRIPT
++ 29   32.59-  33.91   80px  plate  654x121   IS NAMED AFTER POLISH
++ 30   33.91-  34.53   80px  plate  380x121   BOOK DEALER
++ 31   34.53-  35.80   80px  plate  498x121   WILFRID VOYNICH
++ 32   35.80-  36.69   80px  plate  498x121   WHO ACQUIRED IT
++ 33   36.69-  38.17   80px  plate  380x121   IN 1912
+  34   38.17-  39.35   80px  plate  696x121   AMERICAN AND BRITISH
+- 35   39.35-  40.58   76px* plate  696x121   MILITARY CRYPTOGRAPHERS
+- 36   40.58-  41.11   80px  plate  346x121   FROM BOTH
+- 37   41.11-  42.01   80px  plate  514x121   WORLD WAR ONE
++ 35   39.35-  40.58   74px* plate  696x121   MILITARY CRYPTOGRAPHERS
++ 36   40.58-  41.11   80px  plate  336x121   FROM BOTH
++ 37   41.11-  42.01   80px  plate  506x121   WORLD WAR ONE
+  38   42.01-  42.98   80px  plate  696x121   AND WORLD WAR TWO
+  39   42.98-  44.13   80px  plate  696x121   ATTEMPTED TO DECIPHER
+- 40   44.13-  44.70   80px  plate  346x121   THE CODEX
+- 41   44.70-  45.78   80px  plate  514x121   WITHOUT SUCCESS
++ 40   44.13-  44.70   80px  plate  336x121   THE CODEX
++ 41   44.70-  45.78   80px  plate  506x121   WITHOUT SUCCESS
+   names:

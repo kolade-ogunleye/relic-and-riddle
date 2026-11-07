@@ -20,7 +20,7 @@ import requests
 from PIL import Image, ImageOps
 
 from . import config  # every setting is read once, in config (COMMONS_CONTACT came out empty when read here first)
-from .credits import license_allowed, normalize
+from .credits import license_allowed, normalize, sanitise_credit_text
 
 log = logging.getLogger(__name__)
 
@@ -46,16 +46,19 @@ def _maxlagged(resp: requests.Response) -> bool:
         return False
 
 
-def _get(url: str, params: Optional[dict] = None, timeout: float = 60, max_wait: int = 60) -> requests.Response:
+def _get(url: str, params: Optional[dict] = None, timeout: float = 60, max_wait: int = 60,
+         allow_redirects: bool = True) -> requests.Response:
     """GET following Wikimedia's API etiquette: one request at a time with a pause between,
-    maxlag on API calls, and backoff that honours Retry-After on 429/503 and maxlag refusals."""
+    maxlag on API calls, and backoff that honours Retry-After on 429/503 and maxlag refusals.
+    `allow_redirects=False` hands a redirect back unfollowed (download_jpeg checks each hop itself)."""
+    hops = {} if allow_redirects else {"allow_redirects": False}
     resp = None
     started = time.monotonic()
     if url == API:
         params = {**(params or {}), "maxlag": MAXLAG}
     for attempt in range(5):
         time.sleep(1.0)
-        resp = requests.get(url, params=params, headers=HEADERS, timeout=timeout)
+        resp = requests.get(url, params=params, headers=HEADERS, timeout=timeout, **hops)
         if resp.status_code not in (429, 503) and not _maxlagged(resp):
             resp.raise_for_status()
             return resp
@@ -585,7 +588,7 @@ def candidates(pages: list, keywords: List[str], allow_sa: bool = False, min_pix
         # A CC BY file nobody can be credited for is refused here, with the reason, rather than fetched,
         # shown on the review card and then failing the release's rights check (development, 2026-10-26;
         # audit 2026-10-28).
-        artist = _author(meta)
+        artist = sanitise_credit_text(_author(meta)) or "Unknown"  # no e-mail, link, handle or hashtag kept (QF-42)
         if _needs_named_author(licence) and (artist == "Unknown" or len(artist) > MAX_AUTHOR):
             log.info("Commons: skipped %s: %s needs a named author and its Artist, Attribution and Credit "
                      "name nobody", page["title"], licence)
@@ -679,8 +682,15 @@ def download_jpeg(
     max_wait: int = 30,
     min_pixels: Optional[int] = None,
     min_height: Optional[int] = None,
+    provider: str | None = None,
 ) -> None:
-    resp = _get(url, timeout=30, max_wait=max_wait)
+    """The picture at `url` saved as a JPEG at `dest`. The URL comes from a search answer (QF-44): it and every
+    redirect hop must be HTTPS on `provider`'s hosts (footage.ALLOWED_HOSTS; any still-image provider's fixed hosts
+    when None) and public (src/url_guard). Raises ValueError (url_guard.RefusedURL) for any other URL."""
+    from . import url_guard
+    from .footage import url_allowed
+    resp = url_guard.follow(url, lambda u, **kw: _get(u, timeout=30, max_wait=max_wait, **kw),
+                            allowed=lambda u: url_allowed(u, provider))
     with Image.open(io.BytesIO(resp.content)) as im:
         im.verify()  # reject corrupt / non-image payloads
     with Image.open(io.BytesIO(resp.content)) as raw:

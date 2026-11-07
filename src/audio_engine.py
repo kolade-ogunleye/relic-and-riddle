@@ -44,7 +44,9 @@ from .config import (
     ELEVENLABS_SPEED,
     ELEVENLABS_VOICE_ID,
     VOICE_PREFER,
+    SFX_BUS_CEILING_DBFS,
     SFX_DIR,
+    SFX_PEAK_DBFS,
     is_configured,
 )
 
@@ -355,6 +357,7 @@ class AudioEngine:
     ):
         self.voice = voice
         self.last_sfx_sources: List[Dict[str, Any]] = []
+        self.last_whoosh_times: list[float] = []   # the transition whooshes of the last bed (s)
         self.rate = rate
         self.speed = 1.0  # set per narration (generate_narration): a long one is spoken slightly faster
         self.pitch = pitch
@@ -683,40 +686,108 @@ class AudioEngine:
     @classmethod
     def revelation_time(cls, words: Optional[Words]) -> Optional[float]:
         return next((float(w.get("start", 0.0)) for w in words or [] if cls._spoken(w) & cls.REVELATION_WORDS), None)
+
+    # Transition whooshes (QF-05, 2026-11-05): one fired at every pause or sentence end 3.5 s apart, 5-7 in a Reel
+    # and about 30 in a 16:9 programme with no act cues, where the picture did not cut. Now a whoosh lands only on a
+    # scene cut, the cut nearest an act transition or a planned reveal, at most TRANSITION_WHOOSH_MAX in a programme
+    # (one per act transition where there are more), TRANSITION_WHOOSH_DB under the level it had.
+    TRANSITION_WHOOSH_MAX = 2
+    TRANSITION_WHOOSH_DB = -6.0
+    TRANSITION_WHOOSH_SNAP = 1.0      # s: an act start or a reveal takes the scene cut at most this far from it
+    TRANSITION_WHOOSH_MIN_GAP = 2.5   # s between two whooshes (sound_plan.MIN_GAP_SECONDS for effects)
+    TRANSITION_WHOOSH_EDGE = 0.5      # s: none this close to the start, the end or the end card (it has its own)
+
+    @classmethod
+    def transition_whoosh_times(cls, duration: float, scene_cuts: list[float] | None = None,
+                                sound_plan: dict[str, Any] | None = None, words: Words | None = None,
+                                act_cues: list[float] | None = None,
+                                end_card_at: float | None = None) -> list[float]:
+        """Where the bed's transition whooshes go (s, ascending). The anchors, in priority: the act transitions
+        (`act_cues`), then the reveals (the sound plan's; with no plan, the narration's first revelation word,
+        revelation_time). With `scene_cuts` each anchor takes the cut nearest it within TRANSITION_WHOOSH_SNAP,
+        and an anchor with no cut that close gets no whoosh; with scene_cuts None (the cuts are not known) an act
+        cue or a planned reveal is used as it is and a word-list revelation is not. At most TRANSITION_WHOOSH_MAX
+        (or one per act cue, where there are more), TRANSITION_WHOOSH_MIN_GAP apart."""
+        if sound_plan:
+            reveals = [float(m["t"]) for m in sound_plan.get("moments", []) if m.get("kind") == "reveal"]
+        else:
+            first = cls.revelation_time(words)
+            reveals = [first] if first is not None and scene_cuts is not None else []
+        acts = sorted(float(t) for t in act_cues or [])
+        anchors = acts + sorted(reveals)
+        cuts = None if scene_cuts is None else sorted(float(c) for c in scene_cuts)
+        limit = max(cls.TRANSITION_WHOOSH_MAX, len(acts))
+        last = min(float(duration), float(end_card_at) if end_card_at is not None else float(duration))
+        chosen: list[float] = []
+        for a in anchors:
+            if len(chosen) >= limit:
+                break
+            if cuts is not None:
+                near = min(cuts, key=lambda c: abs(c - a), default=None)
+                if near is None or abs(near - a) > cls.TRANSITION_WHOOSH_SNAP:
+                    continue
+                a = near
+            if not cls.TRANSITION_WHOOSH_EDGE <= a <= last - cls.TRANSITION_WHOOSH_EDGE:
+                continue
+            if any(abs(a - c) < cls.TRANSITION_WHOOSH_MIN_GAP for c in chosen):
+                continue
+            chosen.append(round(a, 3))
+        return sorted(chosen)
+
     MUSIC_RMS = 0.05  # bed level for music (about -26 dBFS); the mix ducks it further under speech
     # The end card's sound (src/end_card.py), relative to the music bed. With no narration to duck it the music
     # would come up to its full bed level, louder than it sat under the voice; END_CARD_MUSIC_DB is the starting
     # level, and the composer then measures the card in the mastered programme and sets it 6 LU under the narrated
     # body (VideoComposer.end_card_level). The whoosh opens the card and the bell lands with the sheen.
     END_CARD_MUSIC_DB = -7.5
-    END_CARD_WHOOSH_DB = -2.5
-    END_CARD_BELL_DB = 2.0
+    # The whoosh's and the bell's peaks against SFX_PEAK_DBFS, moved with END_CARD_MUSIC_DB (QF-06, 2026-11-05: they
+    # were set by RMS, 2.5 dB under and 2 dB over the held music; these are the same levels for the licensed
+    # recordings, now set by peak like every other effect).
+    END_CARD_WHOOSH_DB = 7.5
+    END_CARD_BELL_DB = 12.3
     END_CARD_FADE_OUT = 1.2   # s: the music resolves over the card's last moments
+    LOOP_BRIDGE_EDGE = 0.05   # s: the micro-fade at each end of a bed that ends on the Reel's loop bridge (no click)
+    # The loop bridge's starting music level: the bed as it was, no drop (the -7.5 dB card drop left a 1 s bridge
+    # 12.8 dB under its target, past the composer's +/-12 dB correction, 2026-11-03 review). The composer still
+    # measures the bridge and sets it END_CARD_BELOW_BODY_LU under the body.
+    LOOP_BRIDGE_MUSIC_DB = 0.0
 
-    def _end_card_sound(self, bed: np.ndarray, at: float, sr: int) -> None:
+    @staticmethod
+    def ends_on_loop_bridge(duration: float, end_card_at: Optional[float]) -> bool:
+        """Whether a bed of `duration` seconds with its tail from `end_card_at` is a Reel's loop bridge (2026-11-03:
+        the Reel's ending, end_card.LOOP_SECONDS) rather than the full end card (end_card.SECONDS, the 16:9 end
+        screen's length): a tail shorter than the card."""
+        from .end_card import SECONDS
+        return end_card_at is not None and duration - float(end_card_at) < SECONDS
+
+    def _end_card_sound(self, bed: np.ndarray, at: float, sr: int, bridge: bool = False) -> None:
         """The end card's sound mixed into `bed` in place: the music held under the programme from `at`, a soft
         whoosh as the card opens, the bell as its sheen crosses, and a short fade so the ring ends with the card.
-        The bell is a recording with rights evidence or nothing (no synthesized stand-in)."""
+        The bell is a recording with rights evidence or nothing (no synthesized stand-in).
+        `bridge` (the Reel's loop bridge, 2026-11-03): the music is held at LOOP_BRIDGE_MUSIC_DB and runs to the seam with
+        only a LOOP_BRIDGE_EDGE micro-fade, so the sound loops with the picture; no whoosh and no bell (both were
+        timed for the 2.9 s card: the bell at BELL_AT falls after a 1 s bridge has ended)."""
         from .end_card import BELL_AT, WHOOSH_AT
         total = len(bed)
         i0 = int(at * sr)
         if i0 >= total:
             return
         ramp = min(int(0.3 * sr), total - i0)
-        level = 10 ** (self.END_CARD_MUSIC_DB / 20)
+        level = 10 ** ((self.LOOP_BRIDGE_MUSIC_DB if bridge else self.END_CARD_MUSIC_DB) / 20)
         bed[i0:i0 + ramp] *= np.linspace(1.0, level, ramp)[:, None]
         bed[i0 + ramp:] *= level
-        music_level = self.MUSIC_RMS * level
-
-        def at_level(audio: np.ndarray, db: float) -> np.ndarray:
-            return audio * (music_level * 10 ** (db / 20) / (float(np.sqrt(np.mean(np.square(audio)))) or 1.0))
-        whoosh = at_level(self._effect("sfx_whoosh.wav", self._synth_transition_whoosh(duration_sec=0.45, sr=sr), sr),
+        if bridge:
+            return   # the bed's own LOOP_BRIDGE_EDGE micro-fade ends it (generate_ambient_bed)
+        def at_level(audio: np.ndarray, db: float) -> np.ndarray:   # db: its peak against SFX_PEAK_DBFS, with the drop
+            return audio * (level * 10 ** (db / 20))
+        whoosh = at_level(self._mix_effect("sfx_whoosh.wav", self._synth_transition_whoosh(duration_sec=0.45, sr=sr), sr),
                           self.END_CARD_WHOOSH_DB)
         w0 = max(0, int((at + WHOOSH_AT - 0.15) * sr))
         n = max(0, min(len(whoosh), total - w0))
         bed[w0:w0 + n] += whoosh[:n]
         if self.licensed("sfx_bell_toll.wav"):
-            bell = at_level(self._effect("sfx_bell_toll.wav", np.full((1, 2), 0.1, dtype=np.float32), sr), self.END_CARD_BELL_DB)
+            bell = at_level(self._mix_effect("sfx_bell_toll.wav", np.full((1, 2), 0.1, dtype=np.float32), sr),
+                            self.END_CARD_BELL_DB)
             b0 = int((at + BELL_AT) * sr)
             n = max(0, min(len(bell), total - b0))
             bed[b0:b0 + n] += bell[:n]
@@ -779,15 +850,35 @@ class AudioEngine:
         chisel = impact + ring
         return np.column_stack((chisel, chisel)).astype(np.float32)
 
-    @staticmethod
-    def _synth_sub_bass_braam(duration_sec: float = 2.0, sr: int = 48000, f0: float = 46.0) -> np.ndarray:
-        """Triple-stem foley stem 1: Cinematic revelation sub-bass impact / braam."""
+    # The impact (QF-06, 2026-11-05): a 45-46 Hz tone until then, which a phone speaker cannot play. Its body is now
+    # IMPACT_BODY_HZ (falling to it from IMPACT_BODY_DROP above), with a 1-3 kHz transient on the attack; the licensed
+    # braam recording, all of it under 80 Hz, stays under the body as its sub-bass weight, IMPACT_SUB_DB down.
+    IMPACT_BODY_HZ = 110.0
+    IMPACT_BODY_DROP = 1.35
+    IMPACT_TRANSIENT_HZ = (1000.0, 3000.0)
+    IMPACT_TRANSIENT_LEVEL = 0.8   # the transient's peak against the body's
+    IMPACT_SUB_DB = -15.0          # dB: the recording's peak under the body's
+    IMPACT_EFFECTS = frozenset({"sfx_impact_braam.wav"})   # the hits layered on the synthesized body (_impact)
+
+    @classmethod
+    def _synth_sub_bass_braam(cls, duration_sec: float = 2.0, sr: int = 48000, f0: float | None = None) -> np.ndarray:
+        """Triple-stem foley stem 1: the opening, revelation and act-transition impact. A body at f0 (IMPACT_BODY_HZ),
+        falling to it from IMPACT_BODY_DROP x f0 over the first 0.1 s, saturated for its upper harmonics, and a
+        band-limited noise transient (IMPACT_TRANSIENT_HZ) on the attack."""
+        f0 = cls.IMPACT_BODY_HZ if f0 is None else float(f0)
         n = int(duration_sec * sr)
         t = np.arange(n) / sr
-        pitch_env = f0 * (1.0 + 0.35 * np.exp(-t / 0.15))
+        pitch_env = f0 * (1.0 + (cls.IMPACT_BODY_DROP - 1.0) * np.exp(-t / 0.08))
         phase = 2 * np.pi * np.cumsum(pitch_env) / sr
-        amp_env = (1.0 - np.exp(-t / 0.04)) * np.exp(-t / 0.8)
-        braam = np.tanh(1.8 * np.sin(phase)) * amp_env * 0.16
+        amp_env = (1.0 - np.exp(-t / 0.004)) * np.exp(-t / 0.45)
+        body = np.tanh(1.6 * np.sin(phase)) * amp_env
+        lo, hi = cls.IMPACT_TRANSIENT_HZ
+        spectrum = np.fft.rfft(np.random.default_rng(707).standard_normal(n))
+        freq = np.fft.rfftfreq(n, 1 / sr)
+        spectrum[(freq < lo) | (freq > hi)] = 0.0
+        crack = np.fft.irfft(spectrum, n) * (1.0 - np.exp(-t / 0.0007)) * np.exp(-t / 0.018)
+        crack *= cls.IMPACT_TRANSIENT_LEVEL / (float(np.max(np.abs(crack))) or 1.0)
+        braam = (body + crack) * 0.16
         shift = int(0.002 * sr)
         left = braam
         right = np.roll(braam, shift)
@@ -864,6 +955,65 @@ class AudioEngine:
         return audio * (target / level)
 
     @staticmethod
+    def peak_normalised(audio: np.ndarray, peak_db: float) -> np.ndarray:
+        """`audio` scaled so that its peak is `peak_db` dBFS (silence unchanged)."""
+        peak = float(np.max(np.abs(audio))) if audio.size else 0.0
+        return audio * (10 ** (peak_db / 20) / peak) if peak > 0 else audio
+
+    def _impact(self, name: str, synth: np.ndarray, sr: int) -> np.ndarray:
+        """The hit: the synthesized body and transient `synth`, with the licensed recording `name` (when its
+        evidence checks out) IMPACT_SUB_DB under it as the sub-bass weight, the shorter padded to the longer."""
+        recording = self._effect(name, synth, sr)
+        if recording is synth:
+            return synth
+        hit = np.zeros((max(len(synth), len(recording)), 2))
+        hit[:len(synth)] += self.peak_normalised(synth, 0.0)
+        hit[:len(recording)] += self.peak_normalised(recording, self.IMPACT_SUB_DB)
+        return hit
+
+    def _mix_effect(self, name: str, synth: np.ndarray, sr: int, room: str | None = None) -> np.ndarray:
+        """The one-shot effect `name` as it enters the bed, before its cue gain: the licensed recording or its
+        stand-in (_effect; an impact on its synthesized body, _impact), through the category's filter and the
+        `room`'s reverb when one is given, at SFX_PEAK_DBFS peak."""
+        effect = self._impact(name, synth, sr) if name in self.IMPACT_EFFECTS else self._effect(name, synth, sr)
+        if room is not None:
+            category = FoleyEngine.get_category(name)
+            effect = FoleyEngine.apply_environment_reverb(FoleyEngine.apply_spectral_filter(effect, category, sr=sr),
+                                                          room, wet=0.20, sr=sr)
+        return self.peak_normalised(effect, SFX_PEAK_DBFS)
+
+    BUS_LOOKAHEAD = 0.005   # s: the bed bus limiter reaches each peak's gain over this before it
+    BUS_RELEASE = 0.12      # s: and recovers with this time constant after it
+
+    @classmethod
+    def limit_bus(cls, bed: np.ndarray, sr: int, ceiling_db: float = SFX_BUS_CEILING_DBFS) -> np.ndarray:
+        """The bed bus through a look-ahead peak limiter: no sample over `ceiling_db` dBFS. The gain is worked out on
+        1 ms blocks (each block takes the lowest gain of itself and its neighbours, so the gain interpolated between
+        block centres never exceeds what a sample needs), reaches each block's gain linearly over BUS_LOOKAHEAD
+        before it and recovers exponentially over BUS_RELEASE. A bed under the ceiling is returned unchanged."""
+        ceiling = 10 ** (ceiling_db / 20)
+        level = np.max(np.abs(bed), axis=1) if bed.ndim == 2 else np.abs(bed)
+        if not level.size or float(level.max()) <= ceiling:
+            return bed
+        blk = max(1, int(0.001 * sr))
+        nb = -(-len(level) // blk)
+        padded = np.zeros(nb * blk)
+        padded[:len(level)] = level
+        need = np.minimum(1.0, ceiling / np.maximum(padded.reshape(nb, blk).max(axis=1), 1e-12))
+        need = np.minimum(need, np.minimum(np.r_[need[1:], 1.0], np.r_[1.0, need[:-1]]))
+        look = max(1, round(cls.BUS_LOOKAHEAD * sr / blk))
+        ahead = np.lib.stride_tricks.sliding_window_view(np.r_[need, np.ones(look)], look + 1).min(axis=1)[:nb]
+        ramp = np.convolve(np.r_[np.full(look, ahead[0]), ahead], np.ones(look + 1) / (look + 1), mode="valid")[:nb]
+        keep = float(np.exp(-1.0 / max(1.0, cls.BUS_RELEASE * sr / blk)))
+        gain = np.empty(nb)
+        g = 1.0
+        for k in range(nb):
+            g = min(float(ramp[k]), 1.0 - (1.0 - g) * keep)
+            gain[k] = g
+        per_sample = np.interp(np.arange(len(level)), (np.arange(nb) + 0.5) * blk, gain)
+        return bed * (per_sample[:, None] if bed.ndim == 2 else per_sample)
+
+    @staticmethod
     def _loop_with_crossfade(audio: np.ndarray, target_samples: int, xfade_samples: int = 48000 * 3) -> np.ndarray:
         """Seamlessly loops audio to target_samples with overlap-add crossfade, eliminating hard seams."""
         if len(audio) >= target_samples:
@@ -906,12 +1056,20 @@ class AudioEngine:
     def generate_ambient_bed(self, duration: float, output_path: Path, words: Optional[Words] = None, sr: int = 48000,
                              music_path: Optional[Path] = None, music_paths: Optional[List[Path]] = None,
                              cue_timestamps: Optional[List[float]] = None, loop_seamless: bool = False,
-                             sound_plan: Optional[Dict[str, Any]] = None, end_card_at: Optional[float] = None) -> Path:
+                             sound_plan: Optional[Dict[str, Any]] = None, end_card_at: Optional[float] = None,
+                             scene_cuts: list[float] | None = None) -> Path:
         """Music (if given, with seamless crossfades/movements) or a synthesized drone, plus narration SFX and act boundary risers.
+        scene_cuts: the picture's cut times (s), from the scene plan the render uses; the transition whooshes land
+        only on them (transition_whoosh_times). None: not known, so a whoosh falls only on an act cue or a planned
+        reveal itself.
         end_card_at: where the Reel's end card starts (src/end_card.py); the bed then runs on under the card and
-        carries its sound."""
+        carries its sound. A tail shorter than the card is the Reel's loop bridge (ends_on_loop_bridge, 2026-11-03):
+        the bed then has loop_seamless edges, so the music runs through the seam instead of fading out."""
         total = int(sr * duration)
         self.last_sfx_sources = []  # licensed effect recordings mixed into this bed
+        # A Reel that ends on the loop bridge loops its sound too: the seamless edges below, not a fade to silence.
+        bridge = self.ends_on_loop_bridge(duration, end_card_at)
+        loop_seamless = loop_seamless or bridge
         valid_paths = [Path(p) for p in (music_paths or []) if Path(p).exists()]
         if not valid_paths and music_path is not None and Path(music_path).exists():
             valid_paths = [Path(music_path)]
@@ -924,7 +1082,7 @@ class AudioEngine:
             if loop_seamless:
                 # Seamless loop: maintain audio energy without a 2.5s fade to silence at the tail.
                 # A 50ms micro-fade prevents boundary clicks while keeping audio momentum continuous.
-                micro = min(int(0.05 * sr), total // 4)
+                micro = min(int(self.LOOP_BRIDGE_EDGE * sr), total // 4)
                 if micro:
                     bed[:micro] *= np.linspace(0.0, 1.0, micro)[:, None]
                     bed[-micro:] *= np.linspace(1.0, 0.0, micro)[:, None]
@@ -965,7 +1123,7 @@ class AudioEngine:
 
         # Procedural Foley: Opening hook reveal impact at ~0.15s
         if total > int(0.20 * sr):
-            hook_braam = self._effect("sfx_impact_braam.wav", self._synth_sub_bass_braam(duration_sec=1.5, sr=sr, f0=45.0), sr)
+            hook_braam = self._mix_effect("sfx_impact_braam.wav", self._synth_sub_bass_braam(duration_sec=1.5, sr=sr), sr)
             hook_start = int(0.15 * sr)
             n_h = min(len(hook_braam), total - hook_start)
             if n_h > 0:
@@ -985,33 +1143,22 @@ class AudioEngine:
                         bed[cue_idx:cue_idx + n, 0] += riser
                         bed[cue_idx:cue_idx + n, 1] += riser
                     # Triple-stem foley stem 1: Cinematic revelation sub-bass braam impact
-                    braam = self._effect("sfx_impact_braam.wav", self._synth_sub_bass_braam(duration_sec=2.0, sr=sr), sr)
+                    braam = self._mix_effect("sfx_impact_braam.wav", self._synth_sub_bass_braam(duration_sec=2.0, sr=sr), sr)
                     n_b = min(len(braam), total - cue_idx)
                     if n_b > 0:
                         bed[cue_idx:cue_idx + n_b] += braam[:n_b]
 
-        # Procedural Foley: Layer transition whooshes on scene cuts or sentence pauses
-        transition_times = list(cue_timestamps) if cue_timestamps else []
-        if not transition_times and words:
-            last_t = 0.0
-            for i in range(len(words) - 1):
-                w_curr = words[i]
-                w_next = words[i + 1]
-                end_curr = w_curr.get("start", 0.0) + w_curr.get("dur", 0.0)
-                start_next = w_next.get("start", 0.0)
-                gap = start_next - end_curr
-                has_punct = any(w_curr.get("word", "").endswith(p) for p in [".", "!", "?", ":", ";"])
-                if (gap >= 0.20 or has_punct) and (start_next - last_t >= 3.5):
-                    transition_times.append(start_next)
-                    last_t = start_next
-
-        for t_trans in transition_times:
-            if 0.5 <= t_trans <= duration - 0.5:
-                w_start = max(0, int((t_trans - 0.15) * sr))
-                whoosh = self._effect("sfx_whoosh.wav", self._synth_transition_whoosh(duration_sec=0.45, sr=sr), sr)
-                n_w = min(len(whoosh), total - w_start)
-                if n_w > 0:
-                    bed[w_start:w_start + n_w] += whoosh[:n_w]
+        # Transition whooshes: only on a scene cut, for an act transition or a planned reveal (transition_whoosh_times)
+        self.last_whoosh_times = self.transition_whoosh_times(duration, scene_cuts=scene_cuts, sound_plan=sound_plan,
+                                                              words=words, act_cues=cue_timestamps,
+                                                              end_card_at=end_card_at)
+        whoosh_gain = 10 ** (self.TRANSITION_WHOOSH_DB / 20)
+        for t_trans in self.last_whoosh_times:
+            w_start = max(0, int((t_trans - 0.15) * sr))
+            whoosh = self._mix_effect("sfx_whoosh.wav", self._synth_transition_whoosh(duration_sec=0.45, sr=sr), sr)
+            n_w = min(len(whoosh), total - w_start)
+            if n_w > 0:
+                bed[w_start:w_start + n_w] += whoosh[:n_w] * whoosh_gain
 
         # Triple-stem foley: one sub-bass hit on the story's first real revelation
         if sound_plan:  # the planned reveal (None if the plan has none: no hit is better than a wrong one)
@@ -1020,7 +1167,7 @@ class AudioEngine:
             cue_t = self.revelation_time(words)
         if cue_t is not None and 0 < cue_t < duration - 1.0:
             cue_idx = int(cue_t * sr)
-            braam = self._effect("sfx_impact_braam.wav", self._synth_sub_bass_braam(duration_sec=1.8, sr=sr), sr)
+            braam = self._mix_effect("sfx_impact_braam.wav", self._synth_sub_bass_braam(duration_sec=1.8, sr=sr), sr)
             n_b = min(len(braam), total - cue_idx)
             if n_b > 0:
                 bed[cue_idx:cue_idx + n_b] += braam[:n_b] * 0.75
@@ -1047,20 +1194,17 @@ class AudioEngine:
             synth_sfx = getattr(self, synth_func, self._synth_stone_grind)(sr=sr)
             if synth_sfx.ndim == 1:
                 synth_sfx = np.column_stack((synth_sfx, synth_sfx))
-            effect = self._effect(name, synth_sfx, sr)  # licensed recording if present, else synthesized
-
-            # Apply category spectral filter and room impulse convolution
-            category = FoleyEngine.get_category(name)
-            effect_cond = FoleyEngine.apply_spectral_filter(effect, category, sr=sr)
-            effect_conv = FoleyEngine.apply_environment_reverb(effect_cond, env_name, wet=0.20, sr=sr)
+            # The licensed recording if present, else synthesized; the category's filter and the room's reverb; by peak
+            effect_conv = self._mix_effect(name, synth_sfx, sr, room=env_name)
 
             i0 = int(cue * sr)
             n = max(0, min(len(effect_conv), total - i0))
             bed[i0:i0 + n] += effect_conv[:n] * (gain * 0.40)
 
         if end_card_at is not None:
-            self._end_card_sound(bed, float(end_card_at), sr)
+            self._end_card_sound(bed, float(end_card_at), sr, bridge=bridge)
 
+        bed = self.limit_bus(bed, sr)   # the bed bus limited on its own, before the narration is mixed in (QF-06)
         Path(output_path).parent.mkdir(parents=True, exist_ok=True)
         sf.write(str(output_path), np.clip(bed, -1.0, 1.0), sr)
         log.info("Ambient bed (%.2fs, %s) -> %s", duration,

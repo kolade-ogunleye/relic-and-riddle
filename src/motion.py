@@ -33,6 +33,7 @@ import requests
 from PIL import Image
 
 from . import config, media_budget
+from .encoding import BT709_FLAGS, to_bt709
 from .footage import download, probe
 from .typography import cover_crop
 from .video_qa import verify_motion_hook_integrity
@@ -306,8 +307,10 @@ def _finish(raw: Path, out: Path, archetype: str = "megastructure") -> Path:
         [
             "ffmpeg", "-y", "-v", "error", "-protocol_whitelist", "file", "-i", str(raw),
             "-t", f"{SECONDS_OUT:.2f}", "-an",
-            "-vf", "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,fps=30",
-            "-c:v", "libx264", "-preset", "medium", "-crf", "17", "-pix_fmt", "yuv420p", str(out)
+            # BT.709 limited range, tagged, read with the clip's own matrix (QF-01)
+            "-vf", ("scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,fps=30,"
+                    f"{to_bt709(info.get('color_space'), info.get('height') or 0)}"),
+            "-c:v", "libx264", "-preset", "medium", "-crf", "17", *BT709_FLAGS, "-pix_fmt", "yuv420p", str(out)
         ],
         check=True, timeout=300, capture_output=True
     )

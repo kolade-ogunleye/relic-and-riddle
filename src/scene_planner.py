@@ -19,7 +19,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-from . import commons, config, free_llm, graphic_match
+from . import commons, config, free_llm, graphic_match, prompt_fence
 from .config import FOOTAGE_MAX_SHARE
 from .llm import LLMError, claude_available, image_block, structured_call, task as llm_task
 from .models import ScenePlan
@@ -168,8 +168,25 @@ def _photo_caption(p: Path) -> str:
     entry = _photo_entry(p)
     if not entry:
         return ""
-    crowded = (entry.get("vision_review") or {}).get("people_prominent")
-    return commons.caption(entry) + ("; prominent visitors, faces blurred: avoid for the hook" if crowded else "")
+    return commons.caption(entry) + _CROWDED_NOTE * _crowded(entry)
+
+
+_CROWDED_NOTE = "; prominent visitors, faces blurred: avoid for the hook"
+
+
+def _crowded(entry: dict[str, Any]) -> bool:
+    return bool((entry.get("vision_review") or {}).get("people_prominent"))
+
+
+def _caption_label(p: Path, mark: str) -> str:
+    """A photo's archive caption for the planner's prompt: a short JSON string inside the call's fence, with the
+    pipeline's own crowd note outside it ("" if the photo has no record)."""
+    entry = _photo_entry(p)
+    cap = commons.caption(entry) if entry else ""
+    if not cap:
+        return _CROWDED_NOTE[2:] if entry and _crowded(entry) else ""
+    label = f'<caption fence="{mark}">{prompt_fence.safe_caption(cap)}</caption fence="{mark}">'
+    return label + _CROWDED_NOTE * _crowded(entry)
 
 
 # The opening shot (Meta's Creator assistant on the operator's Reel, 2026-10-28: "move that top-down aerial shot
@@ -495,13 +512,14 @@ def plan_scenes(beats: List[Dict[str, Any]], media: List[Path], feedback: str = 
     # 2. LLM Multimodal Scene Planning (used when no approved storyboard exists or reviewer requested feedback)
     if notes != STORYBOARD_NOTES and (free_llm.available() if free_llm.enabled() else claude_available()) and stills:
         try:
-            content: List[dict] = []
+            mark = prompt_fence.new_token()   # archive captions are quoted data, never instructions (QF-41)
+            content: List[dict] = [{"type": "text", "text": prompt_fence.fence_note(mark)}]
             for i, p in enumerate(options, 1):
                 if p in graphics:
                     content += [{"type": "text", "text": f"Image {i} ({_clip_label(p)}):"}, image_block(p.with_suffix(".jpg"))]
                 else:
-                    cap = _photo_caption(p)
-                    content += [{"type": "text", "text": f"Image {i}" + (f" ({cap}):" if cap else ":")}, image_block(p)]
+                    label = _caption_label(p, mark)
+                    content += [{"type": "text", "text": f"Image {i}" + (f" ({label}):" if label else ":")}, image_block(p)]
             lines = "\n".join(f"Beat {i}: {b['text']}" for i, b in enumerate(beats, 1))
             fix = f"\n\nA reviewer found these problems with the previous choice; fix them:\n{feedback}" if feedback else ""
             pinned_txt = ""
@@ -521,6 +539,7 @@ def plan_scenes(beats: List[Dict[str, Any]], media: List[Path], feedback: str = 
                 try:
                     plan = (free_llm.call(SYSTEM, content, ScenePlan, effort="low", max_tokens=4000)
                             if free_llm.enabled() else structured_call(SYSTEM, content, ScenePlan, effort="low", max_tokens=4000))
+                    prompt_fence.check_reply(plan, mark)
                 except LLMError as e:
                     failure = f"Scene planning attempt {attempt}/{config.SCENE_PLAN_ATTEMPTS} failed ({e})"
                 else:
@@ -652,7 +671,13 @@ def fit_to_lines(beats: List[Dict[str, Any]], scenes: List[Path], pool: List[Pat
       3.5 [Phase 2.5]: era-matched generative gap art, synthesized and quarantined pre-render;
       4. the previous beat's still, held (it was judged right for its own line, and is not itself held),
          so the shot carries on rather than a picture of something else being asserted under the line;
-    otherwise the pick stays. Every beat repaired by 3 or not at all is listed in report["unshown"], for the
+    otherwise the pick stays.
+
+    With config.PICTURE_CASCADE (2026-11-02, src/picture_coverage.py) the steps follow the fixed cascade: after the
+    related (same-kind) photo and the reserve, a detail crop of one of the topic's strongest approved photos on a
+    region not yet shown, then archive film whose record names what the line names, then the locator map when the
+    line names its place, then one of our graphics (whether or not the previous shot could be held), then the
+    reconstruction, and only then a held shot. report["tiers"] records, per repaired beat, the tier that filled it. Every beat repaired by 3 or not at all is listed in report["unshown"], for the
     review card and the findings. The judge after the render stays the final gate.
 
     Verdicts are cached by photo hash and line (src/beat_images.py): a resumed or re-rendered run makes no new
@@ -661,7 +686,7 @@ def fit_to_lines(beats: List[Dict[str, Any]], scenes: List[Path], pool: List[Pat
     from . import beat_images
     out = [Path(p) for p in scenes]
     report: Dict[str, Any] = {"judged": 0, "cached": 0, "swapped": [], "graphic": [], "held": [], "related": [],
-                              "generated": [], "unshown": [], "stopped": ""}
+                              "generated": [], "unshown": [], "stopped": "", "tiers": []}
     if not config.PICTURE_VISION_CHECK or not getattr(config, "PRE_RENDER_PICTURE_FIT", True):
         report["stopped"] = "off"
         return out, report
@@ -672,6 +697,22 @@ def fit_to_lines(beats: List[Dict[str, Any]], scenes: List[Path], pool: List[Pat
     cache = beat_images.load_fit_cache()
     fits_at: Dict[int, bool] = {}   # beat index -> its final picture was judged right for its line
     held: set = set()
+    cascade_on = bool(getattr(config, "PICTURE_CASCADE", True))
+    crop_regions: dict[str, list] = {}   # picture_id -> the detail-crop regions already cut from it
+    # The illustration tier and the per-line plan (2026-11-02): each beat's planned visual class and protected flag
+    # from the check before the voice, the run's fact sheet and its per-run call budget.
+    ictx = _illustration_context(beats, topic, work_dir, durations, pool)
+    from .picture_coverage import ABSTRACT, NAMED_SUBJECT
+    visual_of = [((v or {}).get("visual") or (b.get("visual") if isinstance(b, dict) else None))
+                 for v, b in zip(ictx["verdicts"], beats)]
+
+    def tiered(k: int, tier: str, to: Path, cascade: bool = True) -> None:
+        report["tiers"] = [r for r in report["tiers"] if r.get("beat") != k + 1] + [
+            {"beat": k + 1, "tier": tier, "to": Path(to).name, "cascade": cascade}]
+
+    def graphic_tier(g: Path) -> str:
+        from .picture_coverage import GRAPHIC, MAP
+        return MAP if _is_map(Path(g)) else GRAPHIC
 
     def still(p: Path) -> bool:
         return not is_video(p) and Path(p).is_file()
@@ -729,10 +770,25 @@ def fit_to_lines(beats: List[Dict[str, Any]], scenes: List[Path], pool: List[Pat
             if swapped is not None:
                 out[k], fits_at[k] = swapped, True
                 report["swapped"].append({"beat": k + 1, "from": pick.name, "to": swapped.name})
+                tiered(k, "exact", swapped, cascade=False)
                 log.info("Beat %d: %s swapped in, it shows the line.", k + 1, swapped.name)
                 continue
             if report["stopped"]:
                 break
+            named = visual_of[k] == NAMED_SUBJECT
+            # 1.5 (named subject, operator refinement 2026-11-02) an openly licensed reference image of that very
+            # thing that is fit to show (size, no text or watermark, it shows what the line says) is SHOWN, as the
+            # exact tier: a reference fit for the screen is never redrawn.
+            if named and work_dir is not None:
+                shown = _show_reference(k, line, out, pool, topic, ictx, report, verdict, in_use, Path(work_dir))
+                if shown is not None:
+                    out[k], fits_at[k] = shown, True
+                    report["swapped"].append({"beat": k + 1, "from": pick.name, "to": shown.name, "reference": True})
+                    tiered(k, "exact", shown, cascade=False)
+                    log.info("Beat %d: reference %s shown, it shows the line.", k + 1, shown.name)
+                    continue
+                if report["stopped"]:
+                    break
             # 2. one of our own graphics that says what the line says, if the caps allow it
             graphic = next((g for g in pool if _is_graphic(Path(g)) and Path(g).stem.startswith("graphic_")
                             and picture_id(Path(g)) not in in_use
@@ -744,6 +800,7 @@ def fit_to_lines(beats: List[Dict[str, Any]], scenes: List[Path], pool: List[Pat
                 if _graphics_count(trial) <= MAX_GRAPHICS and _graphics_share(trial, durations) <= GRAPHICS_MAX_SHARE:
                     out[k] = Path(graphic)
                     report["graphic"].append({"beat": k + 1, "from": pick.name, "to": Path(graphic).name})
+                    tiered(k, graphic_tier(Path(graphic)), Path(graphic))
                     log.info("Beat %d: our %s graphic placed, it says what the line says.", k + 1, Path(graphic).stem)
                     continue
             entry = {"beat": k + 1, "line": line, "picture": pick.name, "reason": first["reason"], "fallback": "kept"}
@@ -753,10 +810,13 @@ def fit_to_lines(beats: List[Dict[str, Any]], scenes: List[Path], pool: List[Pat
             # from what is already known, with no new call; one already judged wrong for this line never.
             spare_all = [Path(p) for p in list(pool) + list(reserve or []) if still(Path(p))
                          and picture_id(Path(p)) not in in_use]
-            related = related_shot(line, spare_all, cache)
+            # A same-kind photo under a named subject would need an on-screen "COMPARABLE EXAMPLE" label, which the
+            # composer does not draw: not used for a named subject (2026-11-02, illustration panel).
+            related = related_shot(line, spare_all, cache) if visual_of[k] != NAMED_SUBJECT else None
             if related is not None:
                 out[k], entry["fallback"], entry["related"] = related, "related", related.name
                 report["related"].append({"beat": k + 1, "from": pick.name, "to": related.name})
+                tiered(k, "same_kind", related)
                 log.info("Beat %d: no photo shows its line; %s, which shows what it names, instead of %s.",
                          k + 1, related.name, pick.name)
                 report["unshown"].append(entry)
@@ -781,8 +841,34 @@ def fit_to_lines(beats: List[Dict[str, Any]], scenes: List[Path], pool: List[Pat
                 if found is not None:
                     out[k], fits_at[k] = found, True
                     report["swapped"].append({"beat": k + 1, "from": pick.name, "to": found.name, "reserve": True})
+                    tiered(k, "exact", found, cascade=False)
                     log.info("Beat %d: reserve photo %s swapped in, it shows the line.", k + 1, found.name)
                     continue
+            if cascade_on:
+                # The cascade's middle tiers (src/picture_coverage.py): a detail crop, archive film, the map. For a
+                # named subject the illustration of that subject comes before the map (2026-11-02), and its crop is
+                # one located on the named feature and confirmed (operator refinement): never one chosen by detail.
+                filled = _cascade_fill(k, line, out, pool, durations, crop_regions, work_dir, report["stopped"],
+                                       only=("located_crop", "archive_film") if named else None,
+                                       subject=" ".join(_subject_terms(line, topic)))
+                if filled is None and named:
+                    if _illustrate(k, line, out, durations, report, ictx, pick, entry, visual_of, tiered):
+                        continue
+                    filled = _cascade_fill(k, line, out, pool, durations, crop_regions, work_dir, report["stopped"],
+                                           only=("map",))
+                if filled is not None:
+                    tier, asset = filled
+                    out[k], entry["fallback"] = asset, tier
+                    entry["filled_by"] = asset.name
+                    tiered(k, tier, asset)
+                    if tier == "map":
+                        report["graphic"].append({"beat": k + 1, "from": pick.name, "to": asset.name, "filler": True})
+                    log.info("Beat %d: no photo shows its line; filled by the %s tier (%s).", k + 1, tier, asset.name)
+                    report["unshown"].append(entry)
+                    continue
+            # A named subject goes map, then held shot (follow-up review, 2026-11-02): a graphic not matched to that
+            # very thing is never put between them.
+            if (holds or cascade_on) and not named:
                 filler = None
                 # Never once the checks stopped (their budget, or the model down): what the graphic says would go
                 # unjudged against the line; the shot is held, as before.
@@ -798,41 +884,16 @@ def fit_to_lines(beats: List[Dict[str, Any]], scenes: List[Path], pool: List[Pat
                 if filler is not None:
                     out[k], entry["fallback"] = filler, "graphic"
                     report["graphic"].append({"beat": k + 1, "from": pick.name, "to": filler.name, "filler": True})
+                    tiered(k, graphic_tier(filler), filler)
                     log.info("Beat %d: no photo shows its line; our %s graphic instead of holding the previous shot.",
                              k + 1, filler.stem)
                     report["unshown"].append(entry)
                     continue
-            # 3.5 [Phase 2.5] Generative Gap-Filling Subsystem
-            gen_limit = getattr(config, "MAX_GAP_IMAGES_PER_RUN", 2)
-            gen_count = len(report.get("generated", []))
-            target_work_dir = work_dir or (pool[0].parent if pool else None)
-            if getattr(config, "GENERATIVE_GAP_FILLING", True) and gen_count < gen_limit and target_work_dir is not None:
-                from . import image_gen, image_quarantine
-                era = (topic or {}).get("era") or "classical_antiquity"
-                modality = beats[k].get("modality") if isinstance(beats[k], dict) else None
-                cand_art = image_gen.synthesize_gap_asset(
-                    beat_index=k + 1,
-                    line_text=line,
-                    era=era,
-                    topic=topic or {"title": subject},
-                    work_dir=target_work_dir,
-                    modality=modality or "historical_scene"
-                )
-                if cand_art and cand_art.exists():
-                    ok, q_reason = image_quarantine.verify_gap_asset(cand_art, line, era)
-                    if ok:
-                        out[k], entry["fallback"] = cand_art, "generated_art"
-                        report.setdefault("generated", []).append({
-                            "beat": k + 1,
-                            "from": pick.name,
-                            "to": cand_art.name,
-                            "line": line
-                        })
-                        fits_at[k] = True
-                        log.info("Beat %d: synthesized and verified era-matched gap art -> %s", k + 1, cand_art.name)
-                        continue
-                    else:
-                        log.info("Beat %d: gap art quarantined (%s); degrading to Tier 2/3.", k + 1, q_reason)
+            # 3.5 the illustration tier (src/image_gen.py): never on an abstract line, never once the checks stopped,
+            # within the caps; a generated beat is never "judged right" (it is not held over the next beat as exact).
+            if not named and visual_of[k] != ABSTRACT and _illustrate(k, line, out, durations, report, ictx, pick,
+                                                                       entry, visual_of, tiered):
+                continue
             # 4. the previous beat's still held, when it was right for its own line and is not itself held
             if holds:
                 out[k], entry["fallback"] = prev, "held"
@@ -872,6 +933,321 @@ def fit_to_lines(beats: List[Dict[str, Any]], scenes: List[Path], pool: List[Pat
         if report["judged"]:
             beat_images.save_fit_cache(cache)
     return out, report
+
+
+# ------------------------------------------------------------------ the illustration tier (2026-11-02)
+def _illustration_context(beats: list[dict[str, Any]], topic: dict[str, Any] | None, work_dir: Path | None,
+                          durations: list[float], pool: list[Path]) -> dict[str, Any]:
+    """What the illustration step needs, read once a planner call: each beat's verdict from the check before the
+    voice (visual class, protected), the script record and fact sheet (the spec's source), the per-run budget (run
+    folder only: never a shared topic folder), the cap on illustrated beats and the frame's shape."""
+    from .picture_coverage import beat_verdicts
+    verdicts = beat_verdicts(work_dir, beats)
+    ctx: dict[str, Any] = {"verdicts": verdicts, "enabled": False}
+    if not getattr(config, "GENERATIVE_GAP_FILLING", True) or work_dir is None:
+        return ctx
+    from . import image_gen
+    payload: dict[str, Any] = {}
+    try:
+        payload = json.loads((Path(work_dir) / "script_metadata.json").read_text(encoding="utf-8"))
+        payload = payload if isinstance(payload, dict) else {}
+    except (OSError, ValueError):
+        payload = {}
+    total = float(sum(durations or [])) or 0.0
+    long_form = total > float(getattr(config, "IMAGE_GEN_LONGFORM_SECONDS", 180))
+    cap = int(getattr(config, "IMAGE_GEN_MAX_LONGFORM", 4) if long_form else getattr(config, "MAX_GAP_IMAGES_PER_RUN", 2))
+    ctx.update({"enabled": True, "topic": topic or {}, "payload": payload,
+                "budget": image_gen.Budget(Path(work_dir)), "work_dir": Path(work_dir), "cap": cap,
+                "long_form": long_form, "total": total, "pool": list(pool or []),
+                "aspect": "16:9" if config.VIDEO_WIDTH > config.VIDEO_HEIGHT else "9:16",
+                "protected": [bool((v or {}).get("protected")) for v in verdicts]})
+    return ctx
+
+
+def _fact_sheet_for(topic: dict[str, Any] | None, payload: dict[str, Any]) -> dict[str, Any] | None:
+    """The topic's fact sheet (the illustration's only source of descriptors), or None."""
+    tid = (topic or {}).get("id") or payload.get("topic_id")
+    if not tid:
+        return None
+    try:
+        from . import fact_sheet
+        return fact_sheet.load(str(tid), max_age_days=3650)
+    except (OSError, ValueError, KeyError, TypeError) as e:
+        log.info("Illustration: no fact sheet for %s (%s).", tid, e)
+        return None
+
+
+def is_illustration(p: Path) -> bool:
+    return Path(p).stem.startswith("gap_gen_")
+
+
+def illustration_allowed(k: int, out: list[Path], durations: list[float], ctx: dict[str, Any],
+                         stopped: str = "") -> str:
+    """"" when beat k (0-based) may take an illustration, else why not: never the hook, never once the checks
+    stopped, never on a shot under config.IMAGE_GEN_MIN_SHOT_SECONDS, never next to another illustrated beat,
+    within the cap on illustrated beats (Reels/Shorts MAX_GAP_IMAGES_PER_RUN and IMAGE_GEN_MAX_RUNTIME_SHARE of
+    the runtime; long-form IMAGE_GEN_MAX_LONGFORM), protected lines served first (their slots are held back)."""
+    if not ctx.get("enabled"):
+        return "off"
+    if k <= 0:
+        return "never on the hook"
+    if stopped:
+        return f"the checks stopped ({stopped})"
+    dur = durations[k] if k < len(durations) else 0.0
+    if dur < float(getattr(config, "IMAGE_GEN_MIN_SHOT_SECONDS", 1.5)):
+        return f"the shot is {dur:.1f}s, too short for an illustration"
+    if (k > 0 and is_illustration(out[k - 1])) or (k + 1 < len(out) and is_illustration(out[k + 1])):
+        return "the next or previous beat is already illustrated"
+    used = [j for j, p in enumerate(out) if is_illustration(p) and j != k]
+    protected = ctx.get("protected") or []
+    pending = sum(1 for j in range(k + 1, len(out)) if j < len(protected) and protected[j] and not is_illustration(out[j]))
+    mine = k < len(protected) and protected[k]
+    if len(used) + 1 + (0 if mine else pending) > int(ctx.get("cap", 0)):
+        return "the cap on illustrated beats is reached" + ("" if mine or not pending else " (held for protected lines)")
+    if not ctx.get("long_form") and ctx.get("total"):
+        share = (sum(durations[j] for j in used if j < len(durations)) + dur) / ctx["total"]
+        if share > float(getattr(config, "IMAGE_GEN_MAX_RUNTIME_SHARE", 0.15)) + 1e-9:
+            return f"illustrations would hold {share:.0%} of the runtime"
+    return ""
+
+
+def _illustrate(k: int, line: str, out: list[Path], durations: list[float], report: dict[str, Any],
+                ctx: dict[str, Any], pick: Path, entry: dict[str, Any], visual_of: list[str | None], tiered) -> bool:
+    """Fills beat k with a labelled illustration when allowed (illustration_allowed) and the fact sheet gives the
+    line's subject physical descriptors (image_gen.spec_from_facts); True when filled. The beat is recorded as
+    unshown (fallback "generated_art") and in report["generated"], never as judged right for its line."""
+    from .picture_coverage import ABSTRACT, RECONSTRUCTION
+    if visual_of[k] == ABSTRACT:
+        return False
+    why = illustration_allowed(k, out, durations, ctx, report.get("stopped") or "")
+    if why:
+        if why != "off":
+            report.setdefault("illustration_skipped", []).append({"beat": k + 1, "why": why})
+        return False
+    from . import image_gen
+    if "sheet" not in ctx:   # read once, and only when a beat may take an illustration
+        ctx["sheet"] = _fact_sheet_for(ctx.get("topic"), ctx.get("payload") or {})
+    spec, why = image_gen.spec_from_facts(line, ctx.get("topic"), ctx.get("sheet"), ctx.get("payload"))
+    if spec is None:
+        report.setdefault("illustration_skipped", []).append({"beat": k + 1, "why": why})
+        log.info("Beat %d: no illustration (%s).", k + 1, why)
+        return False
+    others = [Path(p) for p in list(out) + list(ctx.get("pool") or [])
+              if not is_video(Path(p)) and Path(p).is_file() and not is_illustration(Path(p)) and Path(p) != Path(pick)][:40]
+    others += [Path(p) for p in out if is_illustration(Path(p)) and Path(p).is_file()]
+    # Reliable depiction (operator, 2026-11-02): a named subject is drawn only from an openly licensed reference
+    # image of that very thing (image_gen.find_references); illustrate_beat requests nothing without one, and the
+    # beat falls to the next tier with the reason recorded. A kind of thing is drawn from its descriptors alone.
+    from .picture_coverage import NAMED_SUBJECT
+    refs: list[dict[str, Any]] = []
+    why_none, reason = "", ""
+    if visual_of[k] == NAMED_SUBJECT:
+        known = (ctx.get("references") or {}).get(k)   # what the reference step (_show_reference) found and judged
+        if known is not None:
+            refs, why_none, unfit = list(known["refs"]), known["why"], list(known["unfit"])
+        else:
+            refs, why_none = image_gen.find_references(line, ctx.get("topic"), _reference_photos(ctx.get("pool") or []),
+                                                       ctx["work_dir"])
+            unfit = []
+        if not refs:
+            log.info("Beat %d: %s.", k + 1, why_none)
+        # Why a named subject may be drawn at all: a reconstruction, or every reference unfit for the screen.
+        reason = image_gen.illustration_reason(line, unfit, len(refs))
+    art, info = image_gen.illustrate_beat(line, spec, ctx["work_dir"], aspect=ctx.get("aspect", "9:16"),
+                                          budget=ctx.get("budget"), others=others, references=refs,
+                                          visual=visual_of[k], reason=reason)
+    if art is None:
+        why = info.get("reason") or "rejected"
+        if visual_of[k] == NAMED_SUBJECT and not refs:
+            why = f"{why} ({why_none})"
+        report.setdefault("illustration_skipped", []).append({"beat": k + 1, "why": why,
+                                                              "calls": info.get("calls", 0)})
+        log.info("Beat %d: no illustration passed (%s).", k + 1, why)
+        return False
+    out[k] = art
+    entry["fallback"], entry["filled_by"] = "generated_art", art.name
+    used_refs = [r for r in info.get("references") or refs if isinstance(r, dict)]
+    report.setdefault("generated", []).append({"beat": k + 1, "from": Path(pick).name, "to": art.name, "line": line,
+                                               "model": info.get("model"), "descriptors": spec.get("required"),
+                                               "protected": k < len(ctx.get("protected") or []) and ctx["protected"][k],
+                                               "path": str(art), "visual": visual_of[k], "why_illustrated": reason,
+                                               "references": [{key: r.get(key) for key in
+                                                               ("path", "url", "title", "licence", "source")}
+                                                              for r in used_refs]})
+    tiered(k, RECONSTRUCTION, art)
+    report["unshown"].append(entry)   # an illustration is honest cover, never a photo of the line
+    log.info("Beat %d: labelled illustration %s (no photo shows the line).", k + 1, art.name)
+    return True
+
+
+def _show_reference(k: int, line: str, out: list[Path], pool: list[Path], topic: dict[str, Any] | None,
+                    ctx: dict[str, Any], report: dict[str, Any], verdict, in_use: set, work_dir: Path) -> Path | None:
+    """A reference image of the named subject (image_gen.find_references) fit to show under beat k's line, or
+    None. Fit to show: its short side at least image_gen.SHOW_MIN_SIDE, the picture-line check says it shows what
+    the line says, and a look sees no burned-in text, watermark or intruding object. A check that cannot run fails
+    closed. What was found and why each reference was not shown (its kind: "screen", "line" or "unknown") is kept
+    in ctx["references"][k] for the illustration step; a shown museum reference's credit goes to
+    report["reference_credits"]."""
+    from . import beat_images, image_gen
+    refs, why = image_gen.find_references(line, topic, _reference_photos(pool), work_dir)
+    unfit: list[str] = []
+    notes: list[str] = []
+    for ref in refs:
+        path = Path(str(ref["path"]))
+        if picture_id(path) in in_use:
+            unfit.append("unknown")   # shown elsewhere already: displayable, not unfit; never redrawn for that
+            notes.append(f"{path.name}: already on screen")
+            continue
+        small = image_gen.screen_unfit(path)
+        if small:
+            unfit.append("screen")
+            notes.append(f"{path.name}: {small}")
+            continue
+        v = verdict(path, line)
+        if v is None:
+            unfit.append("unknown")
+            notes.append(f"{path.name}: the picture check could not run")
+            if report["stopped"]:
+                break
+            continue
+        if not v["fits"]:
+            unfit.append("line")
+            notes.append(f"{path.name}: does not show what the line says ({clip(v.get('reason', ''), 80)})")
+            continue
+        try:
+            look = beat_images.picture_look(path, str(ref.get("title") or line))
+        except (OSError, ValueError):
+            look = {"checked": False}
+        if not look.get("checked"):
+            unfit.append("unknown")
+            notes.append(f"{path.name}: the text and watermark look could not run")
+            continue
+        if look.get("burned_in_text") or look.get("edge_object"):
+            unfit.append("screen")
+            notes.append(f"{path.name}: " + ("text or a watermark burned in" if look.get("burned_in_text")
+                                             else "cluttered by an intruding object"))
+            continue
+        if ref.get("source") != "topic_photo":
+            report.setdefault("reference_credits", []).append(image_gen.reference_credit(ref))
+        ctx.setdefault("references", {})[k] = {"refs": refs, "why": why, "unfit": unfit, "notes": notes, "shown": str(path)}
+        return path
+    ctx.setdefault("references", {})[k] = {"refs": refs, "why": why, "unfit": unfit, "notes": notes}
+    if refs:
+        report.setdefault("references_not_shown", []).append({"beat": k + 1, "why": notes})
+    return None
+
+
+def _reference_photos(pool: list[Path]) -> list[dict[str, Any]]:
+    """The topic's approved photos (Topic or Kept by their own credits.json record, never a context shot, one
+    found for a single line, or one never looked at) as reference candidates for image_gen.find_references, with
+    their title, licence and source. Derived copies (crops, upscales) are read back to their original record."""
+    from .image_review import tier
+    out: list[dict[str, Any]] = []
+    seen: set = set()
+    for p in pool:
+        p = Path(p)
+        if is_video(p) or not p.is_file() or is_illustration(p) or _is_graphic(p):
+            continue
+        entry = _photo_entry(p)
+        if not entry or tier(entry) not in ("topic", "kept"):
+            continue
+        pid = picture_id(p)
+        if pid in seen:
+            continue
+        seen.add(pid)
+        out.append({"path": str(p), "title": str(entry.get("title") or ""), "description": str(entry.get("description") or ""),
+                    "license": str(entry.get("license") or ""), "license_url": str(entry.get("license_url") or ""),
+                    "source_url": str(entry.get("source_url") or ""), "artist": str(entry.get("artist") or "")})
+    return out
+
+
+DETAIL_TRIES = 4   # strong photos tried for a detail crop per beat (each is a local crop, no call)
+
+
+def _approved_strong(p: Path) -> bool:
+    """One of the topic's strongest approved photos: a Topic or Kept photo by its own credit record (a photo with no
+    record is not "approved" for a punch-in), with no intrusion the screen could not crop away."""
+    from .beat_images import intrusion_noted
+    from .image_review import tier
+    entry = _photo_entry(p)
+    return bool(entry) and tier(entry) in ("topic", "kept") and not intrusion_noted(p)
+
+
+def _clip_words(p: Path) -> set:
+    """What a footage clip's record says it shows, as words (its title, description and place)."""
+    try:
+        meta = json.loads(Path(p).with_suffix(".json").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return set()
+    meta = meta if isinstance(meta, dict) else {}
+    return graphic_match.tokens(" ".join(str(meta.get(k) or "") for k in ("title", "description", "place", "query")))
+
+
+LOCATE_TRIES = 2   # approved photos the named feature is looked for in, per beat (two vision calls each)
+
+
+def _subject_terms(line: str, topic: dict[str, Any] | None) -> list[str]:
+    from .image_gen import subject_terms
+    return subject_terms(line, topic)
+
+
+def _cascade_fill(k: int, line: str, out: list[Path], pool: list[Path], durations: list[float],
+                  crop_regions: dict[str, list], work_dir: Path | None, stopped: str,
+                  only: tuple[str, ...] | None = None, subject: str = "") -> tuple[str, Path] | None:
+    """The cascade's middle tiers for beat k (0-based) whose line no photo shows (src/picture_coverage.py), in
+    order: a detail crop of one of the topic's strongest approved photos on a region not yet shown (unused photos
+    first), archive film whose record names what the line names (within FOOTAGE_MAX_SHARE), the locator map when the
+    line names its place (within the graphics caps). `only`: just these tiers; "located_crop" (a named subject's):
+    a crop around the named feature `subject`, located and confirmed by two vision checks (picture_coverage.
+    located_crop), never once the checks stopped. (tier, asset) or None; no model call but the located crop's."""
+    from . import picture_coverage as pc
+    in_use = {picture_id(p) for p in out}
+    tiers = set(only) if only is not None else {pc.DETAIL_CROP, pc.ARCHIVE_FILM, pc.MAP}
+    if work_dir is not None and "located_crop" in tiers and subject and not stopped:
+        strong = [Path(p) for p in pool if not is_video(Path(p)) and Path(p).is_file()
+                  and not pc.is_detail_crop(Path(p)) and _approved_strong(Path(p))]
+        strong.sort(key=lambda p: (picture_id(p) in in_use, len(crop_regions.get(picture_id(p), []))))
+        aspect = config.VIDEO_WIDTH / config.VIDEO_HEIGHT
+        for src in strong[:LOCATE_TRIES]:
+            pid = picture_id(src)
+            got = pc.located_crop(src, Path(work_dir), crop_regions.get(pid, []), aspect, subject, line,
+                                  min_width=int(getattr(config, "DETAIL_CROP_MIN_WIDTH", 600)))
+            if got is not None:
+                crop_regions.setdefault(pid, []).append(got[1])
+                return pc.DETAIL_CROP, got[0]
+    if work_dir is not None and pc.DETAIL_CROP in tiers:
+        strong = [Path(p) for p in pool if not is_video(Path(p)) and Path(p).is_file()
+                  and not pc.is_detail_crop(Path(p)) and _approved_strong(Path(p))]
+        strong.sort(key=lambda p: (picture_id(p) in in_use, len(crop_regions.get(picture_id(p), []))))
+        aspect = config.VIDEO_WIDTH / config.VIDEO_HEIGHT
+        for src in strong[:DETAIL_TRIES]:
+            pid = picture_id(src)
+            got = pc.detail_crop(src, Path(work_dir), crop_regions.get(pid, []), aspect,
+                                 min_width=int(getattr(config, "DETAIL_CROP_MIN_WIDTH", 600)))
+            if got is not None:
+                crop_regions.setdefault(pid, []).append(got[1])
+                return pc.DETAIL_CROP, got[0]
+    words = subject_words(line) if pc.ARCHIVE_FILM in tiers else set()
+    if words:
+        for clip in pool:
+            c = Path(clip)
+            if not (c.stem.startswith("footage_") and is_video(c)) or picture_id(c) in in_use:
+                continue
+            if not words & _clip_words(c):
+                continue
+            trial = list(out)
+            trial[k] = c
+            if _footage_share(trial, durations) <= FOOTAGE_MAX_SHARE:
+                return pc.ARCHIVE_FILM, c
+    for g in (pool if pc.MAP in tiers else []):
+        gp = Path(g)
+        if not _is_map(gp) or picture_id(gp) in in_use or graphic_match.score(gp, line) < graphic_match.THRESHOLD:
+            continue
+        trial = list(out)
+        trial[k] = gp
+        if _graphics_count(trial) <= MAX_GRAPHICS and _graphics_share(trial, durations) <= GRAPHICS_MAX_SHARE:
+            return pc.MAP, gp
+    return None
 
 
 def _digest(p: Path) -> str:
@@ -972,7 +1348,9 @@ def no_picture_issues(fit: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
             continue
         seen.add(line)
         how = {"held": "the previous related shot is held", "held_over": "the previous related shot is held",
-               "graphic": "one of our graphics is shown", "related": "a related photo of what it names is shown"}.get(
+               "graphic": "one of our graphics is shown", "related": "a related photo of what it names is shown",
+               "detail_crop": "a detail of one of the topic's photos is shown", "archive_film": "archive film is shown",
+               "map": "the locator map is shown", "generated_art": "a labelled reconstruction is shown"}.get(
             u.get("fallback"), "its planned photo stayed")
         rows.append({"type": "picture_line", "card": "Pictures", "severity": "info", "beat": u.get("beat"),
                      "line": line, "issue": f"{NO_PICTURE_ISSUE}{line} (beat {u.get('beat', '?')}: {how})"})
@@ -993,7 +1371,11 @@ def fit_note(report: Dict[str, Any]) -> str:
     for u in unshown[:FIT_NOTE_MAX_BEATS]:
         how = {"held": "the previous shot is repeated, reframed", "held_over": "the previous shot is held over it",
                "graphic": "one of our graphics is shown instead",
-               "related": f"a related photo of what it names is shown instead ({u.get('related', 'a photo')})"}.get(
+               "related": f"a related photo of what it names is shown instead ({u.get('related', 'a photo')})",
+               "detail_crop": f"a detail of one of the topic's photos is shown instead ({u.get('filled_by', 'a crop')})",
+               "archive_film": f"archive film is shown instead ({u.get('filled_by', 'a clip')})",
+               "map": "the locator map is shown instead",
+               "generated_art": "a labelled illustration is shown instead"}.get(
             u.get("fallback"), f"{u.get('picture', 'its photo')} kept")
         said.append(f"beat {u['beat']}: “{clip(u.get('line', ''), 70)}”: no licensed photo shows it ({how})")
     more = len(unshown) - FIT_NOTE_MAX_BEATS
@@ -1008,6 +1390,8 @@ def fit_findings(report: Dict[str, Any]) -> List[str]:
             return "previous shot held"
         if u.get("fallback") == "related":
             return f"related photo {u.get('related', '')} shown"
+        if u.get("fallback") == "generated_art":
+            return f"labelled illustration {u.get('filled_by', '')} shown"
         return u.get("picture", "") + " kept"
     return [f"beat {u['beat']}: '{clip(u.get('line', ''), 120)}': no licensed photo shows it "
             f"({how(u)}; {clip(u.get('reason', ''), 160)})" for u in (report or {}).get("unshown") or []]
@@ -1271,7 +1655,8 @@ def hold_note(report: Dict[str, Any], reserve_used: Optional[List[str]] = None,
 
 
 def remap_beats(report: Dict[str, Any], where: List[int], scenes: Optional[List[Path]] = None,
-                shown: Optional[List[int]] = None, keys=("swapped", "graphic", "held", "related", "unshown")) -> Dict[str, Any]:
+                shown: list[int] | None = None,
+                keys=("swapped", "graphic", "held", "related", "unshown", "tiers")) -> dict[str, Any]:
     """A fit_to_lines report in the beat numbering after hold_for_short_pool (1-based old -> new). A line that now
     shows a picture judged right for it (`shown`, old numbering) leaves "unshown"; a row names the picture its beat
     now has (`scenes`, after the hold); a held line joined to the shot it held is said as held over, not repeated."""

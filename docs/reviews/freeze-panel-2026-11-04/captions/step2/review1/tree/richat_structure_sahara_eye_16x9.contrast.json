@@ -1,0 +1,513 @@
+{
+ "clip": "captions",
+ "ground": "white",
+ "plate": [
+  42,
+  44,
+  48
+ ],
+ "bone": 12.0,
+ "gold": 7.67,
+ "elements": [
+  {
+   "name": "caption 0 bone",
+   "text": "The Richat Structure is situated near",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 1 bone",
+   "text": "Ouadane on the Adrar Plateau",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 2 bone",
+   "text": "within the Adrar Region of Mauritania",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 3 bone",
+   "text": "Visible from space as a massive",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 4 bone",
+   "text": "desert landmark, the concentric",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 5 bone",
+   "text": "formation has served as a visual",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 6 bone",
+   "text": "reference point for space shuttle crews",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 7 bone",
+   "text": "Its documented scale depends",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 8 bone",
+   "text": "on the observational method:",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 9 bone",
+   "text": "geological field surveys",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 10 bone",
+   "text": "record the feature at 40 kilometres",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 10 gold",
+   "text": "record the feature at 40 kilometres",
+   "drawn": 7.67
+  },
+  {
+   "name": "caption 11 bone",
+   "text": "across, though satellite observations",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 12 bone",
+   "text": "describe it as spanning",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 13 bone",
+   "text": "almost 50 kilometres",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 13 gold",
+   "text": "almost 50 kilometres",
+   "drawn": 7.67
+  },
+  {
+   "name": "caption 14 bone",
+   "text": "What physical processes formed",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 15 bone",
+   "text": "this circular geological",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 16 bone",
+   "text": "formation in the Sahara?",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 17 bone",
+   "text": "Geologists identify the structure",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 18 bone",
+   "text": "as an eroded dome created",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 19 bone",
+   "text": "when a subsurface igneous",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 20 bone",
+   "text": "intrusion deformed the overlying",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 21 bone",
+   "text": "sedimentary rock into concentric rings",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 22 bone",
+   "text": "The structural characteristics",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 23 bone",
+   "text": "display distinct layering",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 24 bone",
+   "text": "and magmatic features",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 25 bone",
+   "text": "By one estimate",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 26 bone",
+   "text": "the sedimentary rock layers that form",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 27 bone",
+   "text": "the outer rings of the structure",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 28 bone",
+   "text": "dip outward at angles",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 29 bone",
+   "text": "between 10 and 20 degrees",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 30 bone",
+   "text": "Framing the complex are concentric",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 31 bone",
+   "text": "gabbroic ring dikes",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 32 bone",
+   "text": "consisting of an inner ring",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 33 bone",
+   "text": "about 30 metres wide and an outer",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 34 bone",
+   "text": "ring about 70 metres wide",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 35 bone",
+   "text": "At the core, by one estimate",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 36 bone",
+   "text": "the heart of the structure features",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 37 bone",
+   "text": "a siliceous breccia covering an area",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 38 bone",
+   "text": "at least 30 kilometres in diameter",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 39 bone",
+   "text": "reaching a thickness of at least 40 metres",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 40 bone",
+   "text": "at its center",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 41 bone",
+   "text": "The geological origins",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 42 bone",
+   "text": "of the Richat Structure were once",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 43 bone",
+   "text": "a matter of scientific debate",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 44 bone",
+   "text": "The feature was initially considered",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 45 bone",
+   "text": "an extraterrestrial impact crater",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 46 bone",
+   "text": "However, the impact theory was disproved",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 47 bone",
+   "text": "when suspected shock-metamorphism",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 48 bone",
+   "text": "coesite was identified in 1969",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 49 bone",
+   "text": "as mislabeled barite",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 50 bone",
+   "text": "Subsequent geochemical analyses",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 51 bone",
+   "text": "established a terrestrial",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 52 bone",
+   "text": "timeline: dating of the carbonatite rocks",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 53 bone",
+   "text": "shows they cooled",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 54 bone",
+   "text": "between 94 and 104 million years ago",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 55 bone",
+   "text": "closely matching the hydrothermal",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 56 bone",
+   "text": "event that produced the central breccia",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 57 bone",
+   "text": "Physical evidence across the terrain",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 58 bone",
+   "text": "establishes a prolonged record",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 59 bone",
+   "text": "of human presence",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 60 bone",
+   "text": "Prehistoric human habitation",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 61 bone",
+   "text": "is evidenced by exceptional accumulations",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 62 bone",
+   "text": "of Acheulean artifacts alongside",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 63 bone",
+   "text": "Middle Stone Age Aterian tools dating",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 64 bone",
+   "text": "from roughly 145,000 to 29,000 years ago",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 65 bone",
+   "text": "Later mortuary traditions",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 66 bone",
+   "text": "also appear across the site",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 67 bone",
+   "text": "by one estimate",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 68 bone",
+   "text": "thousands of prehistoric",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 69 bone",
+   "text": "stone burial mounds built in various",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 70 bone",
+   "text": "distinct architectural styles",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 71 bone",
+   "text": "line the protruding dikes of the formation",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 72 bone",
+   "text": "While these material finds document human",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 73 bone",
+   "text": "activity, the physical record",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 74 bone",
+   "text": "also refutes alternative speculation",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 75 bone",
+   "text": "Fringe theories proposing",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 76 bone",
+   "text": "the formation as Plato's lost city",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 77 bone",
+   "text": "of Atlantis are refuted by geological",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 78 bone",
+   "text": "reality, as the feature is an ancient",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 79 bone",
+   "text": "natural inland terrestrial",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 80 bone",
+   "text": "dome rather than a sunken island",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 81 bone",
+   "text": "Through decades of field",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 82 bone",
+   "text": "surveys and geochemical analyses",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 83 bone",
+   "text": "the Richat Structure has been established",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 84 bone",
+   "text": "as an eroded geological dome shaped",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 85 bone",
+   "text": "by deep-seated igneous processes",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 86 bone",
+   "text": "and prolonged erosion",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 87 bone",
+   "text": "In October 2022",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 88 bone",
+   "text": "the International Union of Geological",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 89 bone",
+   "text": "Sciences recognized this scientific",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 90 bone",
+   "text": "value by designating the formation",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 91 bone",
+   "text": "as one of the world's first",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 92 bone",
+   "text": "100 official geological heritage sites",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 93 bone",
+   "text": "With its origin grounded in verified",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 94 bone",
+   "text": "terrestrial processes, what",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 95 bone",
+   "text": "questions remain for field",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 96 bone",
+   "text": "researchers studying the formation",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 97 bone",
+   "text": "and its prehistoric human occupations?",
+   "drawn": 12.0
+  }
+ ]
+}

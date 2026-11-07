@@ -39,7 +39,7 @@ from typing import Any, Dict, List, Optional, Tuple
 from src.config import ASSETS_DIR, CURATED_SCRIPTS_DIR, DAILY_RUN_TIME, OUTPUT_DIR, POST_SCHEDULING, TIMEZONE
 from src.credits import caption_credit_line, generate_provenance_ledger, load_credits
 from src.db import PipelineDatabase, QueueEmpty
-from src.control import clip_words, heartbeat_text, is_paused, make_command_handler, ping_healthcheck
+from src.control import clip_words, heartbeat_text, is_paused, make_command_handler, ping_healthcheck, record_run_mode
 from src import beat_images, callouts, colour_balance, config, encoding, footage, graphics, motion, post_schedule, privacy, then_now
 from src.llm import claude_available as llm_available
 from src.scene_planner import degraded_note, documentary_cuts, fit_findings, fit_note, fit_to_lines, plan_scenes, segment_beats
@@ -47,10 +47,9 @@ from src.topic_proposer import origin_note as topic_origin_note
 from src.upscale import ensure_all, ensure_resolution
 from src.music import music_for
 from src.parallax import render_scenes as render_parallax
-from src.video_composer import TRANS_DUR
+from src.video_composer import TRANS_DUR, caption_cut_times
 from src.video_qa import QualityAuditor, audit_scene_feedback, qa_summary_html, review_render
 from src.control import failed_heading
-from src.visual_engine import COVER_STYLES
 from src.ops import AssetLifecycleManager, PreFlightHealthChecker, setup_logging
 from src.fact_sheet import FactStarvedTopicError
 from src.stage_timer import StageTimer
@@ -71,7 +70,6 @@ MAX_FACT_REVISIONS = 2  # rewrites of a Claude script that failed fact-checking,
 
 MISSED_SLOT_GRACE = timedelta(hours=3)
 SCHEDULED_POSTING_LOCK = "scheduled-posting"  # one post_due pass at a time across processes
-CAROUSEL_GAP = timedelta(hours=48)  # Upload-Post flags similar content within 48h (docs/sources.md)
 
 
 def compute_act_chapters(acts: List[Any], words: List[Dict[str, Any]], total_dur: float) -> Tuple[List[Dict[str, Any]], str, List[float]]:
@@ -155,6 +153,38 @@ def documentary_cover(title: str, max_line: int = 22) -> Dict[str, str]:
     return {"eyebrow": "DOCUMENTARY", "line1": lines[0], "line2": lines[1], "tagline": "EXPLORE THE EVIDENCE"}
 
 
+def warn_missing_geo_files() -> List[str]:
+    """A WARNING at run start for each map data file not on disk (tools/ is gitignored, so a deploy from GitHub
+    has neither until they are fetched): without the country outlines no locator or route map is made, without the
+    shaded relief they render flat. Returns the warnings logged."""
+    from src import geo
+    lines = []
+    for path, command in geo.missing_files():
+        try:
+            shown = path.relative_to(config.BASE_DIR)
+        except ValueError:
+            shown = path
+        effect = "maps render flat (no shaded relief)" if "relief" in path.parts else "no map graphics are made"
+        lines.append(f"Map data missing: {shown} is not on disk, so {effect}. Fetch it with: {command}")
+        log.warning(lines[-1])
+    return lines
+
+
+def warn_missing_raqm() -> List[str]:
+    """A WARNING at run start when Pillow cannot lay text out with raqm (operator decision 2026-11-05: raqm everywhere,
+    so every machine renders what review measured). Pillow's wheels load FriBiDi at run time: on Linux the libfribidi0
+    package, on Windows libfribidi-0.dll on PATH (docs/HANDOVER-design.md). Without it text falls back to BASIC layout
+    (no shaping, no GPOS kerning) and lines measure wider than reviewed. Returns the warnings logged."""
+    from PIL import features
+    if features.check("raqm"):
+        return []
+    line = ("Pillow raqm text layout is unavailable (FriBiDi not found), so text renders with BASIC layout and "
+            "measures wider than reviewed. Install FriBiDi: Linux libfribidi0; Windows libfribidi-0.dll on PATH "
+            "(docs/HANDOVER-design.md).")
+    log.warning(line)
+    return [line]
+
+
 class PipelineCoordinator:
     def __init__(self, db: Optional[PipelineDatabase] = None, schedule_posts: bool = False):
         # schedule_posts: approved Reels wait for their posting slot (daemon); otherwise post at once (CLI).
@@ -185,6 +215,8 @@ class PipelineCoordinator:
         self.video_composer = VideoComposer()
         self.multiformat_gen = MultiFormatGenerator()
         self.telegram_bot = TelegramApprovalBot(db=self.db)
+        self.telegram_bot.approval_window = self._approval_window  # the review card says when it closes (QF-43)
+        self.telegram_bot.approve_posting = self._approve_posting  # ...and whether Approve books a slot
         self.publisher = MetaPublisher(db=self.db)
 
     def run_cycle(
@@ -209,6 +241,11 @@ class PipelineCoordinator:
         health = self.health_checker.run_all(require_live=require_live)
         for k, v in health["details"].items():
             log.info("Health %-11s %s %s", k, "OK " if v["passed"] else ("FAIL" if v["required"] else "warn"), v["msg"])
+        if config.FONT_SIZE == 72:   # the caption size before 2026-11-03, most likely an old .env line
+            log.warning("FONT_SIZE=72 is set (a .env from before 2026-11-03?): Reel captions draw at 72 px, not the "
+                        "approved 80. Remove the line or set FONT_SIZE=80.")
+        warn_missing_geo_files()
+        warn_missing_raqm()
         if not health["all_passed"]:
             # Said in Telegram, not only logged: production's scheduled runs failed this way unnoticed (ffprobe).
             failed = [f"{k}: {v['msg']}" for k, v in health["details"].items() if v["required"] and not v["passed"]]
@@ -231,7 +268,26 @@ class PipelineCoordinator:
             # (fetched and reviewed on merit); topics without usable photos are skipped, not failed.
             from src.asset_pipeline import first_ready
             skipped = []
-            topic = first_ready(self.db.ranked_topics(), skipped=skipped)
+            # Topics whose approved pool has too few distinct authoritative photos go behind the others, said with
+            # their reason when one would otherwise have been made first (src/topic_engine.demote_thin, 2026-11-02).
+            ranked = self.db.ranked_topics()
+            order = {t["id"]: i for i, t in enumerate(ranked)}
+            try:
+                from src.topic_engine import demote_thin
+                ranked, thin = demote_thin(ranked)
+            except (OSError, ValueError, TypeError, KeyError) as e:
+                log.warning("Topic image gate could not run (%s); production order unchanged.", e)
+                thin = []
+            topic = first_ready(ranked, skipped=skipped)
+            passed_over = [(t, why) for t, why in thin if topic is not None and t["id"] != topic["id"]
+                           and order.get(t["id"], 0) < order.get(topic["id"], 0)]
+            if passed_over:
+                try:
+                    self._alert("🖼 <b>Topics moved back: too few photos for every line</b>\n\n"
+                                + "\n".join(f"• {html.escape(t.get('title') or t['id'])}: {html.escape(why)}"
+                                            for t, why in passed_over[:8]))
+                except (OSError, RuntimeError, ValueError) as e:   # requests' errors are OSErrors
+                    log.warning("Could not send the topic image gate alert: %s", e)
             if skipped:  # said, with the video's own count: an approved set it could not use failed at start (audit 2026-10-28)
                 try:
                     self._alert("🖼 <b>Topics skipped: not enough photos a video can use</b>\n\n"
@@ -787,8 +843,10 @@ class PipelineCoordinator:
             from src.config import MUSIC_PREFER
             library_tracks = load_library()
             from src.audio_provenance import audio_source_inputs
+            # The documentary's picture cuts (documentary_cuts, as the render below plans them): its whooshes land on them
+            doc_scene_cuts = caption_cut_times([c["end"] - c["start"] for c in documentary_cuts(words, vo_dur)])
             bed_inputs = {"voice_and_rules": file_inputs([vo_path, words_path, Path("src/audio_engine.py")]),
-                          "cues": cue_timestamps, "music_preference": MUSIC_PREFER,
+                          "cues": cue_timestamps, "scene_cuts": doc_scene_cuts, "music_preference": MUSIC_PREFER,
                           "selected_sources": audio_source_inputs(bed_path),
                           "library": [{k: v for k, v in t.items() if k != "uses"} for t in library_tracks],
                           "library_files": file_inputs([MUSIC_DIR / t["file"] for t in library_tracks])}
@@ -806,7 +864,7 @@ class PipelineCoordinator:
                 self.audio_engine.generate_ambient_bed(
                     vo_dur + 0.5, bed_path, words=words,
                     music_path=music.get("path"), music_paths=music.get("paths"),
-                    cue_timestamps=cue_timestamps, sound_plan=plan
+                    cue_timestamps=cue_timestamps, sound_plan=plan, scene_cuts=doc_scene_cuts
                 )
                 from src.audio_provenance import record_bed
                 record_bed(bed_path, music, sfx=self.audio_engine.last_sfx_sources)
@@ -856,7 +914,8 @@ class PipelineCoordinator:
                 doc_art = art_direction.record(run_dir, hero_img)
                 payload["art_direction"] = doc_art
                 fut_graphics = pool.submit(graphics.make_all, payload, topic, graphics_dir, photo=hero_img, width=1920, height=1080, palette=doc_art)
-                fut_callouts = pool.submit(callouts.make, payload, topic, scene_media, graphics_dir, width=1920, height=1080)
+                fut_callouts = pool.submit(callouts.make, payload, topic, scene_media, graphics_dir, width=1920, height=1080,
+                                           words=words, auto_approve=auto_approve)
                 fut_then_now = pool.submit(then_now.make, topic, graphics_dir, width=1920, height=1080)
 
                 own_graphics = fut_graphics.result()
@@ -901,7 +960,7 @@ class PipelineCoordinator:
                 result = self._render_and_certify_deep_dive(
                     topic, tid, run_id, run_dir, parent_run_id, payload, words, vo_dur, vo_path, bed_path, words_path,
                     extended_scenes, durations, cuts, master_mp4, checkpoints, file_inputs, cached_artifacts,
-                    fut_thumbs, auto_approve, dry_run)
+                    fut_thumbs, auto_approve, dry_run, act_cuts=cue_timestamps)
             finally:
                 concurrent.futures.wait([fut_thumbs])  # never leave a writer running past the run
             finish(result.get("status") not in ("failed", "blocked"), result.get("error", ""))  # blocked at the gate is no success
@@ -924,7 +983,8 @@ class PipelineCoordinator:
 
     def _render_and_certify_deep_dive(self, topic, tid, run_id, run_dir, parent_run_id, payload, words, vo_dur,
                                       vo_path, bed_path, words_path, extended_scenes, durations, cuts, master_mp4,
-                                      checkpoints, file_inputs, cached_artifacts, fut_thumbs, auto_approve, dry_run):
+                                      checkpoints, file_inputs, cached_artifacts, fut_thumbs, auto_approve, dry_run,
+                                      act_cuts=None):
         timer = StageTimer(run_dir)
         t0 = time.perf_counter()
         cached_artifacts(run_dir, "caption_exports", {"words": words, "rules": file_inputs([Path("src/video_composer.py")])},
@@ -932,7 +992,8 @@ class PipelineCoordinator:
                      self.video_composer.export_subtitles_vtt(words, master_mp4.with_suffix(".vtt"))])
         render_inputs = {"sources": file_inputs([*extended_scenes, vo_path, bed_path, words_path,
                          Path("src/video_composer.py"), Path("src/encoded_audio.py"), Path("src/encoding.py")]),
-                         "durations": durations, "emphasis": topic.get("key_facts", [])[:5]}
+                         "durations": durations, "emphasis": topic.get("key_facts", [])[:5],
+                         "act_cuts": act_cuts or []}
         if checkpoints.reusable("deep_render", render_inputs):
             log.info("Master documentary video already rendered: %s", master_mp4.name)
         else:
@@ -946,6 +1007,7 @@ class PipelineCoordinator:
                 output_mp4_path=master_mp4,
                 durations=durations,
                 emphasis=topic.get("key_facts", [])[:5],
+                act_cuts=act_cuts,
             )
 
             checkpoints.complete("deep_render", render_inputs, [master_mp4,
@@ -1026,6 +1088,7 @@ class PipelineCoordinator:
 
         from src.release import write_release_report
         release = write_release_report(self.db.get_run(run_id), dry_run=dry_run)
+        auto_approve = self._auto_approve_allowed(run_id, payload, auto_approve, scenes=extended_scenes)
         blocked = self._blocked_at_gate(run_id, release, dry_run, "auto-approve flag") if auto_approve else None
         if blocked:
             return {"run_id": run_id, "parent_run_id": parent_run_id, "topic_id": tid, "status": "blocked",
@@ -1142,6 +1205,10 @@ class PipelineCoordinator:
             return "Nothing changed: the text you sent matches the current copy."
         old = {f: old[f] for f in changes}
         payload.update(changes)
+        # Credit lines written before QF-42 are rewritten with any edit (caption, description, carousel caption, first
+        # comment), so a run the gate's credit_lines check holds for an old line can be fixed here.
+        from src.credits import rewrite_payload_credits
+        rewrite_payload_credits(payload)
         labels = [f.replace("_", " ") for f in changes]  # "title, carousel caption and caption"
         names = labels[0] if len(labels) == 1 else ", ".join(labels[:-1]) + " and " + labels[-1]
         topic = self.topic_engine.get_topic_by_id(run["topic_id"]) or {"id": run["topic_id"]}
@@ -1251,6 +1318,26 @@ class PipelineCoordinator:
                 else:
                     self.db.set_setting(key, "")  # a passing failure: a later wait (or a resend) acts on it again
                 raise
+
+    def _auto_approve_allowed(self, run_id: str, payload: dict[str, Any] | None, auto_approve: bool,
+                              scenes: list[Any] | tuple[Any, ...] = ()) -> bool:
+        """Whether the auto-approve flag may decide this run: never when it shows an AI illustration (operator,
+        2026-11-02: an illustration must reliably depict its subject, and the operator approves each one on the review
+        card), read from payload["picture_fit"] and from the rendered `scenes` themselves (the deep dive records no
+        picture_fit). A refused flag sends the run to review instead, with the reason logged and alerted."""
+        if not auto_approve:
+            return False
+        from src.image_gen import auto_approve_refusal
+        why = auto_approve_refusal(payload, scenes)
+        if not why:
+            return True
+        log.warning("%s: %s; sent for review instead.", run_id, why)
+        try:
+            self._alert(f"🏛 <b>Auto-approve refused</b>\n\n<b>{html.escape(self.db.run_label(run_id))}</b>\n"
+                        + html.escape(why) + "\nThe review card lists each illustration with its reference(s).")
+        except Exception as e:  # noqa: BLE001 - the refusal stands whether or not the alert is delivered
+            log.warning("Auto-approve refusal alert not sent (%s).", e)
+        return False
 
     def _blocked_at_gate(self, run_id: str, report: Optional[Dict[str, Any]], dry_run: bool, by: str) -> Optional[str]:
         """An approval that does not come from the Telegram card (the auto-approve flag, the CLI) meets the
@@ -1444,8 +1531,15 @@ class PipelineCoordinator:
             if story["kind"] == "story":
                 self.db.update_scheduled_post(story["id"], "pending",
                                               due_at=post_schedule.story_time(now).astimezone(timezone.utc).isoformat())
+        # Its carousel's slot counts from now, when the Reel really posted (post_schedule.carousel_reel): the
+        # booking's confirmation named one counted from the Reel's slot (operator, 2026-11-03)
+        carousels = [p for p in self.db.list_scheduled_posts(("waiting",), run_id=run_id) if p["kind"] == "carousel"]
+        car = (post_schedule.first_carousel_slot(post_schedule.carousel_reel(self.db, carousels[-1])[1], now=now)
+               if carousels else None)
+        then = (f", the carousel {html.escape(post_schedule.fmt(car))}" if car else
+                ", its carousel has no carousel slot left, so it won't post" if carousels else "")
         return (f"⚡ <b>{html.escape(self.db.run_label(run_id))}</b> is posted; its Stories follow in "
-                f"{config.STORY_DELAY_MINUTES} minutes, the carousel in its next slot.")
+                f"{config.STORY_DELAY_MINUTES} minutes{then}.")
 
     def cancel_post(self, post_id: int) -> str:
         """Cancels a booking (operator, 2026-10-24). A Reel's Stories and carousel go with it, and the run
@@ -1508,8 +1602,11 @@ class PipelineCoordinator:
         if not frames:
             return "🔁 The frame to retry is no longer on disk."
         run = self.db.get_run(post["run_id"]) or {}
-        caption, comment = (self._carousel_post(run.get("script_payload") or {}, frames) if post["kind"] == "carousel"
-                            else ("", ""))
+        try:
+            caption, comment = (self._carousel_request(post["run_id"], run.get("script_payload") or {}, frames)
+                                if post["kind"] == "carousel" else ("", ""))
+        except ValueError as e:   # its caption is not the one the review card showed (QF-43)
+            return f"🔁 Not retried: {html.escape(str(e))}"
         attempt = int(detail.get("retries") or 0) + 1
         platforms = sorted(failed)
         res = self.publisher.publish_photos(post["run_id"], run.get("topic_id"), post["kind"], frames, caption=caption,
@@ -2112,15 +2209,20 @@ class PipelineCoordinator:
         self._seed_bed_from_previous(run_dir, vo_path)  # a regeneration keeps the bed made for its voiceover
         from src.checkpoints import portable_inputs
         from src import end_card
-        card = profile.width < profile.height  # a Reel ends on the end card, whose sound the bed carries
-        bed_seconds = vo_dur + (end_card.SECONDS + 0.05 if card else 0.5)
+        # A Reel ends on the loop bridge (end_card.LOOP_SECONDS; the 2.9 s end card until 2026-11-03), whose sound
+        # the bed carries: the bed is sized to the bridge.
+        card = profile.width < profile.height
+        bed_seconds = vo_dur + end_card.bed_tail(card)
+        # The picture's cuts: the narration's beat boundaries (segment_beats, the grid the scene plan cuts on), for the
+        # transition whooshes (QF-05: only on a cut, at most two).
+        scene_cuts = caption_cut_times([b["end"] - b["start"] for b in segment_beats(words, vo_dur)])
         bed_inputs = {"voice_and_rules": portable_inputs(run_dir, [vo_path, words_path, Path("src/audio_engine.py"),
                                                                     Path("src/end_card.py")]),
-                      "end_card": end_card.VARIANT if card else None,
+                      "end_card": end_card.LOOP_VARIANT if card else None,
                       "profile": profile.model_dump(),
                       "library": [{k: v for k, v in t.items() if k != "uses"} for t in library_tracks],
                       "library_files": file_inputs([MUSIC_DIR / t["file"] for t in library_tracks]),
-                      "selected_sources": audio_source_inputs(bed_path)}
+                      "selected_sources": audio_source_inputs(bed_path), "scene_cuts": scene_cuts}
         if checkpoints.reusable("bed", bed_inputs):
             music = json.loads(music_path.read_text(encoding="utf-8"))
         else:
@@ -2140,7 +2242,7 @@ class PipelineCoordinator:
             self.audio_engine.generate_ambient_bed(bed_seconds, bed_path, words=words,
                                                   music_path=music["path"], sr=profile.audio_sample_rate,
                                                   loop_seamless=profile.loop_seamless, sound_plan=plan,
-                                                  end_card_at=vo_dur if card else None)
+                                                  end_card_at=vo_dur if card else None, scene_cuts=scene_cuts)
             if bed_path.is_file():
                 record_bed(bed_path, music, sfx=self.audio_engine.last_sfx_sources)
                 music_path.write_text(json.dumps(music, default=str, indent=2), encoding="utf-8")
@@ -2154,14 +2256,43 @@ class PipelineCoordinator:
             payload["caption"] = f"{payload['caption']}\n{music['credit']}"
         # music_for() counts the track's use when it picks it (a reused bed is not a new use)
         StageTimer(run_dir).record("music_and_bed", time.perf_counter() - t0)
+
+        def bed_for_cuts(durations):
+            # Picture holds/repairs can remove planned cuts after the first bed was made.
+            # Re-mix locally from the selected music and saved plan, without selecting
+            # or generating another score, before the master hashes its audio input.
+            nonlocal scene_cuts
+            actual_cuts = caption_cut_times(durations)
+            if actual_cuts == scene_cuts:
+                return
+            saved_plan = json.loads((run_dir / "sound_plan.json").read_text(encoding="utf-8"))
+            self.audio_engine.generate_ambient_bed(
+                bed_seconds, bed_path, words=words, music_path=music["path"],
+                sr=profile.audio_sample_rate, loop_seamless=profile.loop_seamless,
+                sound_plan=saved_plan, end_card_at=vo_dur if card else None,
+                scene_cuts=actual_cuts)
+            record_bed(bed_path, music, sfx=self.audio_engine.last_sfx_sources)
+            scene_cuts = actual_cuts
+            bed_inputs["scene_cuts"] = actual_cuts
+            bed_inputs["selected_sources"] = audio_source_inputs(bed_path)
+            checkpoints.complete("bed", bed_inputs, [bed_path, music_path, run_dir / "sound_plan.json",
+                                                     bed_path.with_suffix(".wav.rights.json")])
+
         return self._render_approve_publish(topic, run_id, run_dir, payload, scene_media, hero_img,
                                             vo_path, bed_path, words, vo_dur, auto_approve, dry_run, previous_status,
-                                            prepared)
+                                            prepared, bed_for_cuts)
 
     def _write_and_check_script(self, topic, run_id, run_dir, dry_run,
                                 initial_payload=None, initial_notes="") -> Dict[str, Any]:
         tid = topic["id"]
         revision_notes, payload = initial_notes, initial_payload
+        # The hook's form, learned from how earlier Reels' first three seconds did (src/hook_learning.py). The
+        # writer is steered; the form it actually wrote is what is measured.
+        from src import hook_learning
+        hook_form, hook_why = hook_learning.for_run(self.db, run_id, topic)
+        from src import engagement_learning
+        asks, asks_why = engagement_learning.for_run(self.db, run_id)   # share line and caption question forms
+        topic = {**topic, "hook_form": hook_form, "engagement_forms": asks}
 
         def show(text: str) -> None:  # step 1 is long; the card says which draft it is on
             if getattr(self, "progress_msg_id", None):
@@ -2206,8 +2337,33 @@ class PipelineCoordinator:
                     log.info("Claude script revisions rejected by guardrail; falling back to curated script for '%s'.", tid)
                     payload = self.script_engine._finalize(pkg, topic, origin="curated")
                     payload["human_reviewed"] = reviewed
+                    from src.script_engine import curated_human_review
+                    review = curated_human_review(tid) if reviewed else None
+                    if review:   # who reviewed it and when, signed apart; never counted as a fact check
+                        payload["human_review"] = review
                     passed, payload, notes = self.script_engine.verify_claims(payload, topic=topic, allow_unreviewed_curated=dry_run)
 
+        # Soft check on the hook's form: a passed draft that opens in another form than asked is revised once,
+        # its first sentence only, and the revision is kept only if it passes the fact checks again and is in
+        # the asked form. Accuracy outranks the form: otherwise the passed draft stands. It runs before the
+        # share line, the credits and the guardrail record, so an accepted revision gets all of them as any
+        # passed draft does (PR review, 2026-11-02: it lost guardrail_passed and failed the fact record).
+        written = hook_learning.classify(payload.get("hook_sentence", ""))
+        revised = None
+        if (passed and hook_form and written and written != hook_form
+                and payload.get("origin") in ("claude", "gemini-free")):
+            revised = False
+            try:
+                retry = self.script_engine.generate_script(
+                    topic, revision_notes=hook_learning.revision_note(hook_form, payload.get("hook_sentence", "")),
+                    previous=payload)
+                r_passed, retry, r_notes = self.script_engine.verify_claims(retry, topic=topic,
+                                                                           allow_unreviewed_curated=dry_run)
+                if r_passed and hook_learning.classify(retry.get("hook_sentence", "")) == hook_form:
+                    payload, notes, written, revised = retry, r_notes, hook_form, True
+                    drafts += 1
+            except Exception as e:  # noqa: BLE001 - the passed draft stands whatever the revision does
+                log.warning("Hook form revision not used (%s); the passed draft stands.", e)
         if passed:
             # Meta's creator tips (2026-10-25): ask viewers to share, invite them to follow. One line, the
             # writer's when it passes its checks, before the hashtags of both captions; the same line closes
@@ -2233,13 +2389,26 @@ class PipelineCoordinator:
         # Every draft the writer produced, not only the fact-check rounds (the record read "1 round" for a run
         # whose log showed two drafts rejected inside the engine: Memnon, 2026-10-25).
         payload["script_rounds"] = max(drafts, revision + 1)
-        payload["fact_rounds"] = revision + 1
+        payload["fact_rounds"] = revision + 1 + (1 if revised else 0)
         payload["script_round_reasons"] = [r[:200] for r in structural + earlier]
-        from src.config import DATA_DIR
-        sheet_file = DATA_DIR / "fact_sheets" / f"{tid}.json"
-        if passed and sheet_file.is_file():
-            from src.fact_evidence import record_fact_review
-            record_fact_review(payload, sheet_file)
+        payload["hook_plan"] = {"asked": hook_form, "written": written, "revised": revised, "why": hook_why}
+        payload["engagement_plan"] = {
+            "asked": list(asks) if asks else None, "why": asks_why,
+            "written": [engagement_learning.classify_share(payload.get("share_line", "")),
+                        engagement_learning.classify_question(
+                            engagement_learning.caption_question(payload.get("caption", "")))]}
+        from src.fact_evidence import current_fact_review, unchecked_pass
+        if passed and not current_fact_review(payload):
+            # Operator decision 2026-11-04: a stamp exists only where the automated checkers ran and passed on this
+            # copy. No script-stage pass is one (a human-reviewed curated script, an unreviewed one in a dry run,
+            # or a draft checked before its share line and credits were added), so nothing is stamped here: the
+            # final copy goes through trace_check and evidence_check (_verify_final_copy), the same path for every
+            # script, and is stamped there with their signed record.
+            payload.pop("fact_review", None)
+            log.info("Script passed its stage%s; its final copy is fact-checked before any fact review is recorded.",
+                     " without a fact checker (unreviewed curated, dry run)" if unchecked_pass(payload)
+                     else " (human reviewed: the review is recorded, not counted as a fact check)"
+                     if payload.get("human_reviewed") else "")
         (run_dir / "script_metadata.json").write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
         self.db.update_run(run_id, "producing", script_payload=payload)
         if not passed:
@@ -2247,26 +2416,45 @@ class PipelineCoordinator:
         return payload
 
     def _verify_final_copy(self, payload, topic):
-        from src.fact_evidence import current_fact_review, record_fact_review
+        from src.fact_evidence import current_fact_review
         from src import trace_check, config as pipeline_config
         if current_fact_review(payload):
             return
+        # production with no FACT_RECORD_KEY stops before a checker call: nothing could be signed (decision A)
+        from src.fact_evidence import require_signing_key
+        require_signing_key()
         sheet_path = pipeline_config.DATA_DIR / "fact_sheets" / f"{topic['id']}.json"
         if not sheet_path.is_file():
             raise ValueError("Final package verification requires a fact sheet")
         sheet = json.loads(sheet_path.read_text(encoding="utf-8"))
-        passed, _, audits, notes = trace_check.check(payload, sheet)
+        # the models that ANSWERED go on the gate record, not the configured ones
+        from src.llm import watch_served
+        with watch_served() as t_served:
+            passed, _, audits, notes = trace_check.check(payload, sheet)
         payload["guardrail_passed"] = passed
         payload["final_fact_audits"] = audits
         if not passed:
             raise ValueError("Final public copy failed fact verification: " + notes)
-        status, confidence, evidence_audits, evidence_notes = trace_check.evidence_check(payload, sheet)
+        with watch_served() as e_served:
+            status, confidence, evidence_audits, evidence_notes = trace_check.evidence_check(payload, sheet)
         payload["second_check"] = {"status": status, "confidence": confidence,
                                     "audits": evidence_audits, "summary": evidence_notes}
         if status != "pass":
             payload["guardrail_passed"] = False
             raise ValueError("Final public copy failed evidence verification: " + evidence_notes)
-        record_fact_review(payload, sheet_path)
+        from src.fact_evidence import stamp_checked_review
+        from src.record_signing import key_problem
+        models = trace_check.checker_models()
+        served = {"trace_check": t_served, "evidence_check": e_served}
+        models = {k: " + ".join(dict.fromkeys(served[k])) if served[k] else v for k, v in models.items()}
+        if key_problem():
+            # development with no FACT_RECORD_KEY (production stopped above): no record can be signed, so none is
+            # stamped; the release gate says why and nothing publishes, as with an unsigned record before
+            payload.pop("fact_review", None)
+            return
+        # each run signed as the checkers returned it (FACT_RECORD_KEY), then the gate record and the stamp
+        stamp_checked_review(payload, sheet_path, (passed, None, audits, notes),
+                             (status, confidence, evidence_audits, evidence_notes), models)
 
     def _lines_against_pictures(self, topic, run_id, run_dir, dry_run, payload, scene_media, checkpoints,
                                 kept_words=False) -> Dict[str, Any]:
@@ -2321,48 +2509,69 @@ class PipelineCoordinator:
         verdicts = pl.judge(payload["narration_script"], photos, title)
         if verdicts is None:  # not stamped: asked again on the next run of this script
             return payload
-        missing = pl.unshown(verdicts)
+        # Only a line naming a particular thing goes back (prevoice_lines.needs_rewrite); an unshown kind-of-thing line
+        # is left to the render's fallback cascade (src/picture_coverage.py).
+        # With the payload, protected "marvel" lines the fact check supports with a source are kept from the writer and
+        # routed to the render's cascade (illustration panel, 2026-11-02).
+        missing = pl.needs_rewrite(verdicts, payload)
         side_report: Dict[str, Any] = {}
         if missing:  # the picture side first: the reserve photos, then a bounded search for just these lines
             missing, verdicts, photos, side_report = self._picture_side(topic, run_id, run_dir, payload["narration_script"],
                                                                         verdicts, missing, photos)
+            missing = pl.needs_rewrite(verdicts, payload) if missing else missing
+        protected = pl.protected_sentences(payload)
         final, final_verdicts, rewritten, left, why_left = payload, verdicts, [], [], ""
         if missing:
-            log.info("Before the voice, %d line(s) name something no photo shows; sent back to the writer once: %s",
-                     len(missing), " | ".join(v["sentence"] for v in missing)[:300])
+            log.info("Before the voice, %d line(s) name something no photo shows; sent back to the writer (at most %d "
+                     "round(s)): %s", len(missing), pl.rounds(), " | ".join(v["sentence"] for v in missing)[:300])
             import copy
             revised = None
-            draft = copy.deepcopy(payload)
-            # The writer revises the copy as it wrote it: the image credit block is added again after its checks,
-            # never twice (production Derinkuyu, 2026-10-29).
-            draft["caption"] = beat_images.credit_caption(draft.get("caption") or "", {"images": []}, [])
-            try:
-                revised = self._write_and_check_script(topic, run_id, run_dir, dry_run, initial_payload=draft,
-                                                       initial_notes=pl.revision_note(missing, photos, minimal=for_pictures))
-                from src.fact_evidence import current_fact_review
-                if not current_fact_review(revised):
-                    self._verify_final_copy(revised, topic)
-            except JobCancelled:
-                raise
-            except Exception as e:  # never lose a verified script: the rewording is a saving, not a new way to fail
-                revised, why_left = None, f"the rewording did not pass its checks: {pl.clip(str(e), 120)}"
-            if revised is not None and revised.get("origin") != payload.get("origin"):
-                # The revision fell back to another script (the curated one): not a rewording of these lines, so
-                # the card would name sentences it never changed (review, 2026-10-28)
-                revised, why_left = None, "the rewording fell back to another script"
-            if revised is not None and for_pictures:
-                changed = pl.other_lines_changed(payload["narration_script"], revised["narration_script"],
-                                                 [v["sentence"] for v in missing])
-                if changed:   # a pictures regeneration keeps every other line word for word, or nothing changes
-                    revised, why_left = None, f"the rewording changed other lines too (“{pl.clip(changed[0], 60)}”)"
-            if revised is not None:
+            # Up to pl.rounds() rewordings (2026-11-02): each from the last one that passed its checks, for the lines
+            # it still left unshown; a further round only while the previous one left fewer such lines. Every round
+            # goes through the writer and both fact checks; only a rewording that leaves no such line is voiced.
+            current, asked = payload, missing
+            for round_no in range(1, pl.rounds() + 1):
+                revised = None
+                draft = copy.deepcopy(current)
+                # The writer revises the copy as it wrote it: the image credit block is added again after its checks,
+                # never twice (production Derinkuyu, 2026-10-29).
+                draft["caption"] = beat_images.credit_caption(draft.get("caption") or "", {"images": []}, [])
+                try:
+                    revised = self._write_and_check_script(topic, run_id, run_dir, dry_run, initial_payload=draft,
+                                                           initial_notes=pl.revision_note(asked, photos, minimal=for_pictures))
+                    from src.fact_evidence import current_fact_review
+                    if not current_fact_review(revised):
+                        self._verify_final_copy(revised, topic)
+                except JobCancelled:
+                    raise
+                except Exception as e:  # never lose a verified script: the rewording is a saving, not a new way to fail
+                    revised, why_left = None, f"the rewording did not pass its checks: {pl.clip(str(e), 120)}"
+                if revised is not None and revised.get("origin") != payload.get("origin"):
+                    # The revision fell back to another script (the curated one): not a rewording of these lines, so
+                    # the card would name sentences it never changed (review, 2026-10-28)
+                    revised, why_left = None, "the rewording fell back to another script"
+                if revised is not None and for_pictures:
+                    changed = pl.other_lines_changed(payload["narration_script"], revised["narration_script"],
+                                                     [v["sentence"] for v in missing])
+                    if changed:   # a pictures regeneration keeps every other line word for word, or nothing changes
+                        revised, why_left = None, f"the rewording changed other lines too (“{pl.clip(changed[0], 60)}”)"
+                if revised is not None:
+                    lost = pl.protected_rewrite_problem(payload["narration_script"], revised["narration_script"], protected)
+                    if lost:  # a protected line keeps its numbers and names, or the rewording is refused
+                        revised, why_left = None, lost
+                if revised is None:
+                    break
                 again = pl.judge(revised["narration_script"], photos, title)
                 now = pl.sentences(revised["narration_script"])
-                still = pl.unshown(again) if again is not None else [v for v in missing if v["sentence"] in now]
-                if still:
-                    revised, why_left = None, "the rewording still names something no photo shows"
-                else:
+                still = pl.needs_rewrite(again, revised) if again is not None else [v for v in asked if v["sentence"] in now]
+                if not still:
                     final, final_verdicts, rewritten = revised, again or [], missing
+                    break
+                closer, why_left, revised = revised, "the rewording still names something no photo shows", None
+                if round_no >= pl.rounds() or len(still) >= len(asked) or again is None:
+                    break
+                log.info("Before the voice, round %d left %d line(s) no photo shows; asking once more.", round_no, len(still))
+                current, asked = closer, still
             if revised is None:
                 left = missing
                 log.info("Line-picture check: the verified script stands (%s).", why_left)
@@ -2418,7 +2627,7 @@ class PipelineCoordinator:
             again = pl.judge(" ".join(v["sentence"] for v in lines), pool, title)
             if again is None:
                 return lines, None
-            return pl.unshown(again), again
+            return pl.needs_rewrite(again), again
 
         merged = {v["sentence"]: v for v in verdicts}
         still = missing
@@ -2648,7 +2857,7 @@ class PipelineCoordinator:
 
     def _render_approve_publish(self, topic, run_id, run_dir, payload, scene_media, hero_img,
                                 vo_path, bed_path, words, vo_dur, auto_approve, dry_run, previous_status,
-                                prepared=None):
+                                prepared=None, bed_for_cuts=None):
         tid = topic["id"]
         # 6. Source quality: upscale stills too small for a sharp 1080x1920 crop (local Real-ESRGAN),
         # then de-identify living human faces before rendering. Usually already done in the
@@ -2665,13 +2874,18 @@ class PipelineCoordinator:
             log.info(payload["source_note"])
 
         # Stills setup
-        key = self.db.run_key(run_id)  # rotate cover layouts so neighbouring grid posts differ
-        style = COVER_STYLES[int(key) % len(COVER_STYLES)] if key.isdigit() else COVER_STYLES[0]
+        # The cover style: those the copy fits, never the previous run's, the audience's numbers deciding once
+        # each has been tried (src/cover_selector.py; a per-run rotation until 2026-11-01). The hero as prepared
+        # above (upscaled, privacy-checked: the refit), so the paper card's fill rule reads its reviewed focus.
+        from src import cover_selector
+        style, _style_why = cover_selector.for_run(self.db, run_id, payload, hero=hero_img)
 
         # 7. Master render
         self._check_cancel(run_id)
         # Match pictures to narration beats; cuts land on the beat boundaries.
         beats = segment_beats(words, vo_dur)
+        # Kept with the run: the audience's retention curve is read beat by beat later (audience.beat_drops).
+        payload["beat_times"] = [{"start": round(float(b["start"]), 2), "text": str(b.get("text") or "")} for b in beats]
         # Extra candidates searched for the concrete subject of individual beats (openly licensed).
         # One query plan (picture subjects per beat) serves both beat images and real footage.
         query_plan = None
@@ -2709,19 +2923,27 @@ class PipelineCoordinator:
                                     lambda: self.visual_engine.generate_thumbnails(hero_img, payload, run_dir, style=style))
             fut_story = pool.submit(cached_artifacts, run_dir, "stories", packaging_inputs,
                                     lambda: self.multiformat_gen.generate_story_sequence(hero_img, payload, run_dir, scene_images=strong_media))
-            fut_carousel = pool.submit(cached_artifacts, run_dir, "carousel", packaging_inputs,
-                                       lambda: self.multiformat_gen.generate_carousel_sequence(strong_media, payload, run_dir))
-            # Facebook's copy of the slides, without swipe cues (it shows a multi-photo post as a grid).
-            fut_carousel_fb = pool.submit(cached_artifacts, run_dir, "carousel_fb", packaging_inputs,
-                                          lambda: self.multiformat_gen.generate_carousel_sequence(strong_media, payload, run_dir, facebook=True))
-
-            fut_beats = pool.submit(beat_images.source, beats, topic, run_dir / "beat_images", plan=query_plan) if query_plan else None
-            fut_footage = pool.submit(footage.source, beats, topic, run_dir / "footage", plan=query_plan) if query_plan else None
             from src import art_direction
             art = art_direction.record(run_dir, hero_img)  # the topic's accent and grade bias, recorded in palette.json
             payload["art_direction"] = art
             fut_graphics = pool.submit(graphics.make_all, payload, topic, run_dir / "graphics", photo=hero_img, palette=art)
-            fut_callouts = pool.submit(callouts.make, payload, topic, scene_media, run_dir / "graphics")
+            # The carousel's diagram slide re-lays a graphic's poster (found in run_dir/graphics), so the slides
+            # wait for the graphics (submitted first, so it always holds a worker while they wait; 2026-11-02).
+            def _after_graphics(make):
+                def run():
+                    fut_graphics.result()
+                    return make()
+                return run
+            fut_carousel = pool.submit(cached_artifacts, run_dir, "carousel", packaging_inputs, _after_graphics(
+                lambda: self.multiformat_gen.generate_carousel_sequence(strong_media, payload, run_dir)))
+            # Facebook's copy of the slides, without swipe cues (it shows a multi-photo post as a grid).
+            fut_carousel_fb = pool.submit(cached_artifacts, run_dir, "carousel_fb", packaging_inputs, _after_graphics(
+                lambda: self.multiformat_gen.generate_carousel_sequence(strong_media, payload, run_dir, facebook=True)))
+
+            fut_beats = pool.submit(beat_images.source, beats, topic, run_dir / "beat_images", plan=query_plan) if query_plan else None
+            fut_footage = pool.submit(footage.source, beats, topic, run_dir / "footage", plan=query_plan) if query_plan else None
+            fut_callouts = pool.submit(callouts.make, payload, topic, scene_media, run_dir / "graphics", words=words,
+                                       auto_approve=auto_approve)
             fut_then_now = pool.submit(then_now.make, topic, run_dir / "graphics")
 
             thumb_916, thumb_1x1 = fut_thumb.result()
@@ -2832,14 +3054,19 @@ class PipelineCoordinator:
                              f"{len(reserve_used)} reserve context photo(s) used", source="scene_plan")
             payload["picture_fit"] = {k: fit_report.get(k) for k in ("judged", "cached", "swapped", "graphic", "generated", "held",
                                                                       "unshown", "stopped")}
+            # Which cascade tier filled each beat (src/picture_coverage.py), in the run folder for the video check and
+            # the operator; a beat a lower tier covered is a warning there, not a blocker (video_qa.coverage_severity).
+            from src import picture_coverage
+            coverage = picture_coverage.write(run_dir, beats, scenes, fit_report)
+            payload["beat_coverage"] = {"file": picture_coverage.COVERAGE_FILE, "summary": coverage["summary"]}
             used_graphics = [p.stem.replace("graphic_", "") for p in own_graphics if p in scenes]
             payload["graphics_note"] = ("🗺 Original graphics in this video: " + ", ".join(used_graphics)) if used_graphics else ""
             generated_list = fit_report.get("generated", [])
             if generated_list:
-                payload["reconstruction_note"] = (
-                    f"🏛 Archival Reconstructions ({len(generated_list)}): "
-                    + "; ".join(f"Beat {g['beat']} ({clip_words(g.get('line', ''), 80)})" for g in generated_list)
-                )
+                # Every illustrated beat on the review card with its narrated line, the illustration and its
+                # reference(s) (reliable depiction, 2026-11-02); the run waits for the operator (never auto-approved).
+                from src.image_gen import review_note
+                payload["reconstruction_note"] = review_note(generated_list)
                 from src import improve
                 for g in generated_list:
                     improve.note(
@@ -2851,6 +3078,11 @@ class PipelineCoordinator:
             payload["footage_note"] = (f"🎥 {len(used_footage)} real footage clip(s) "
                                        f"({sum(c['place_specific'] for c in used_footage)} of the actual site): "
                                        + "; ".join(f"{c['provider']}: {c['source_url']}" for c in used_footage)) if used_footage else ""
+            # A reference image of a named subject shown as its exact photo (src/scene_planner._show_reference) is
+            # credited like any beat image (reliable depiction, 2026-11-02).
+            on_screen = {str(Path(p)) for p in scenes}
+            used = list(used) + [c for c in fit_report.get("reference_credits") or []
+                                 if isinstance(c, dict) and str(Path(str(c.get("file") or ""))) in on_screen]
             payload["beat_image_credits"] = used
             # What each one is and which line it is for: the card said only "check they show the right thing",
             # and a Wells Cathedral clock came into an Antikythera video unnoticed (2026-10-25).
@@ -2874,6 +3106,8 @@ class PipelineCoordinator:
                                                durations=durations)
             payload["motion_note"] = (f"🤖 AI motion ({', '.join(motion_used)}) animates {len(motion_used)} real photo(s); "
                                       "the Reel carries the AI label") if motion_used else ""
+            from src import hook_learning
+            payload["opening"] = {"shot": hook_learning.opening_shot(scenes, run_dir / "motion")}
             if not motion_used and config.MOTION_MAX_CLIPS > 0:  # a paid provider out of credit: said on the card
                 try:
                     payload["motion_note"] = motion.fallback_note(motion_used, paid_motion)
@@ -2895,10 +3129,18 @@ class PipelineCoordinator:
                          self.video_composer.export_subtitles_vtt(words, master_mp4.with_suffix(".vtt"))])
             render_checkpoint = Checkpoints(run_dir / "stage_cache" / "render")
             from src.script_engine import end_card_share
-            from src.end_card import end_card_note, end_card_record
-            card_share, card_fallback = end_card_share(payload)  # the end card's share line (it says FOLLOW itself)
+            from src.end_card import LOOP_LINE, end_card_note, end_card_record
+            # The share line (end_card.LOOP_LINE draws it on the loop bridge; off since 2026-11-03): non-empty, it
+            # also tells the composer to end the Reel on the bridge.
+            card_share, card_fallback = end_card_share(payload)
+            # This 9:16 master's cache keys on the share line only while the bridge draws it (review, 2026-11-03):
+            # with LOOP_LINE off a reworded share line changes nothing in the master, only whether a bridge is there.
+            # The 16:9 end screen still draws the line and keys on it in its own render.
+            card_key = card_share if LOOP_LINE else bool((card_share or "").strip())
+            if bed_for_cuts is not None:
+                bed_for_cuts(durations)
             render_inputs = {"media": file_inputs([*scenes, vo_path, bed_path]), "words": words,
-                             "durations": durations, "emphasis": payload.get("emphasis_words"), "end_card": card_share,
+                             "durations": durations, "emphasis": payload.get("emphasis_words"), "end_card": card_key,
                              "grade_bias": (payload.get("art_direction") or {}).get("grade_bias") or 0.0,  # part of the master
                              "rules": file_inputs([Path("src/video_composer.py"), Path("src/end_card.py"), Path("src/config.py"),
                                                    Path("src/encoding.py"), Path("src/encoded_audio.py"), Path("src/delivery_profiles.py")]),
@@ -3048,6 +3290,18 @@ class PipelineCoordinator:
                                   "issues": [{"beat": i.beat, "severity": str(i.severity).lower(), "issue": i.issue,
                                               "where": beat_where(i.beat, beats)}
                                              for i in (qa.issues if qa is not None else [])]}
+        # A beat the fallback cascade covered honestly (a same-kind photo, a detail, film, map, graphic or labelled
+        # reconstruction) is a warning when the look says only that the very thing named is not shown; a wrong or
+        # invented subject still blocks (src/video_qa.coverage_severity, src/picture_coverage.py).
+        try:
+            from src import picture_coverage
+            from src.video_qa import coverage_severity
+            payload["video_check"]["issues"] = coverage_severity(payload["video_check"]["issues"],
+                                                                 picture_coverage.load(run_dir))
+            payload["video_check"]["coverage_warnings"] = sum(
+                1 for i in payload["video_check"]["issues"] if isinstance(i, dict) and i.get("warning"))
+        except (OSError, ValueError, TypeError, KeyError, AttributeError) as e:  # the findings stand as they were
+            log.warning("Picture coverage could not grade the video check (%s); its findings stand.", e)
         (run_dir / "qa_report.json").write_text(qa.model_dump_json(indent=2) if qa else "null", encoding="utf-8")
         log.info("%s", re.sub(r"<[^>]+>", "", payload["qa_summary"]).replace("\n", " | "))
         self._verify_final_copy(payload, topic)
@@ -3069,6 +3323,7 @@ class PipelineCoordinator:
         # 8-9. Human approval (never implicit). The production card is finished either way.
         self._finish_progress(topic.get("title", tid), run_id, success=True)
         decision = None
+        auto_approve = self._auto_approve_allowed(run_id, payload, auto_approve, scenes=scenes)
         blocked = self._blocked_at_gate(run_id, release, dry_run, "auto-approve flag") if auto_approve else None
         if blocked:
             return {"run_id": run_id, "topic_id": tid, "decision": None, "status": "blocked", "error": blocked,
@@ -3112,9 +3367,19 @@ class PipelineCoordinator:
                     backup_run(Path(run["master_video_path"]).parent, db_path=getattr(self.db, "db_path", None))
             except Exception as e:
                 log.warning("Tier 2 Gold Backup skipped: %s", e)
-        if self.schedule_posts and POST_SCHEDULING and not dry_run and (self.db.get_run(run_id) or {}).get("content_format") != "deep_dive":
+        if self._approve_posting(run_id, dry_run) == "slot":
             return self.schedule_run(run_id)
         return self.publish_run(run_id, dry_run=dry_run, previous_status=previous_status)
+
+    def _approve_posting(self, run_id: str, dry_run: bool = False) -> str:
+        """What Approve does with the run (_after_approval): "dry_run" (a simulated publish, nothing posted),
+        "slot" (schedule_run books its Reel a posting slot) or "now" (publish_run posts it at once: no scheduled
+        posting, or a documentary, which goes to YouTube at once). The review card says which (QF-43)."""
+        if dry_run or self.db.get_setting("run_mode:" + run_id) == "dry_run":
+            return "dry_run"
+        if self.schedule_posts and POST_SCHEDULING and (self.db.get_run(run_id) or {}).get("content_format") != "deep_dive":
+            return "slot"
+        return "now"
 
     # ------------------------------------------------------------ posting slots
     def schedule_run(self, run_id: str, now: Optional[datetime] = None) -> Dict[str, Any]:
@@ -3157,8 +3422,10 @@ class PipelineCoordinator:
         return {"status": "scheduled", "scheduled_for": slot.isoformat()}
 
     def _book_followers(self, run_id: str, run_dir: Path, reel_slot: datetime) -> List[str]:
-        """Books a Reel's Stories (STORY_DELAY_MINUTES after it) and its carousel (the next carousel slot);
-        the daemon's post_due() publishes them when due. Shared by slot booking and Post now."""
+        """Books a Reel's Stories (STORY_DELAY_MINUTES after it) and its carousel (its first carousel slot 48 h
+        after the Reel, before its deadline: post_schedule.first_carousel_slot, the rule the daemon and Posting use);
+        the daemon's post_due() publishes them when due. Shared by slot booking and Post now. reel_slot is the
+        Reel's slot, or now when the Reel has posted."""
         lines: List[str] = []
         stories = sorted(str(p) for p in (run_dir / "stories").glob("story_*.jpg"))
         if stories:
@@ -3167,8 +3434,16 @@ class PipelineCoordinator:
             lines.append(f"📱 {len(stories)} Story frames: {post_schedule.fmt(when)}")
         carousel = sorted(str(p) for p in (run_dir / "carousel").glob("carousel_slide_*.jpg"))
         if carousel:
-            self.db.add_scheduled_post(run_id, "carousel", None, carousel, status="waiting")
-            lines.append(f"🖼 Carousel: queued for the next carousel slot (from {post_schedule.fmt(post_schedule.next_carousel_slot(reel_slot))})")
+            post_id = self.db.add_scheduled_post(run_id, "carousel", None, carousel, status="waiting")
+            post = next(p for p in self.db.list_scheduled_posts(("waiting",), run_id=run_id) if p["id"] == post_id)
+            # The slot it will take, as the daemon will see it (it named the next carousel slot, which the 48 h gap
+            # and the 7-day expiry could rule out: operator, 2026-11-03); a newer episode's carousel goes first.
+            # None only when booked again too late (its Reel posted days ago and its last carousel slot has passed)
+            car = post_schedule.first_carousel_slot(post_schedule.carousel_reel(self.db, post)[1], now=reel_slot)
+            gap = f"{config.CAROUSEL_GAP_HOURS:g} h"
+            lines.append(f"🖼 Carousel: {post_schedule.fmt(car)} (its first carousel slot {gap} after the Reel)" if car else
+                         f"🖼 Carousel: its last carousel slot ({config.CAROUSEL_MAX_AGE_DAYS:g} days after the Reel, "
+                         f"or its first slot {gap} after it) has passed, so it won't post")
         return lines
 
     def _booked_reel_days(self, exclude_id: Optional[int] = None) -> set:
@@ -3234,18 +3509,32 @@ class PipelineCoordinator:
         """The carousel's caption (see _carousel_post)."""
         return PipelineCoordinator._carousel_post(payload, slides)[0]
 
+    def _carousel_request(self, run_id: str, payload: dict[str, Any], slides: list[str]) -> tuple[str, str]:
+        """(caption, first comment) the carousel posts: its caption as the run's review card showed it (the
+        hashtags from the topic's list; publishable.carousel_post_base raises ValueError when the card showed
+        another), then the photo credits (_carousel_post). QF-43."""
+        from src import publishable
+        _, final = publishable.carousel_post_base(payload, self.db, run_id,
+                                                  (self.db.get_run(run_id) or {}).get("topic_id", ""))
+        return self._carousel_post(payload, slides, hashtags=final)
+
     @staticmethod
-    def _carousel_post(payload: Dict[str, Any], slides: Optional[List[str]] = None) -> Tuple[str, str]:
+    def _carousel_post(payload: Dict[str, Any], slides: Optional[List[str]] = None,
+                       hashtags: list[str] | None = None) -> Tuple[str, str]:
         """(caption, first comment) for a carousel. The caption is the carousel's own text (Meta and Upload-Post
-        flag duplicate captions; older scripts without one fall back to the Reel caption), then a credit line
+        flag duplicate captions; older scripts without one fall back to the Reel caption), with no hashtag outside
+        `hashtags` when given (publishable.carousel_base: the topic's list, as the review card shows), then a credit line
         for every photo the slides show whose licence asks for one (credits.asset_attribution, read from each
         slide's record): the Reel caption's first credit line covered neither every photo nor only these
         (platform audit, 2026-10-28). Credits that would take the caption over Instagram's 2,200 characters go
         in the first comment instead. A slide without a record (drawn before records were kept) adds the Reel
         caption's summary credit line, as before."""
         from src.multi_format import carousel_credits
-        own = (payload.get("carousel_caption") or "").strip()
-        base = own or payload.get("caption", "")
+        if hashtags is not None:
+            from src.publishable import carousel_base
+            base = carousel_base(payload, hashtags)
+        else:
+            base = (payload.get("carousel_caption") or "").strip() or payload.get("caption", "")
         slides = [Path(s) for s in slides or []]
         if slides and (slides[0].parent.parent / "carousel_fb").is_dir():  # one caption goes to both platforms:
             # credit what Facebook's copy shows as well (a carousel packaged before rc68 matched its photos apart)
@@ -3286,7 +3575,14 @@ class PipelineCoordinator:
                 self._alert(f"❌ Stories not posted for {html.escape(self.db.run_label(post['run_id']))}: "
                             + html.escape("; ".join(problems)[:300]))
                 return "failed"
-        caption, comment = self._carousel_post(run["script_payload"], files) if kind == "carousel" else ("", "")
+        try:
+            caption, comment = (self._carousel_request(post["run_id"], run["script_payload"], files) if kind == "carousel"
+                                else ("", ""))
+        except ValueError as e:   # its caption is not the one the review card showed (QF-43)
+            self.db.update_scheduled_post(post["id"], "failed", detail={"error": str(e)})
+            self._alert(f"❌ Carousel not posted for {html.escape(self.db.run_label(post['run_id']))}: "
+                        + html.escape(str(e)[:300]))
+            return "failed"
         res = self.publisher.publish_photos(post["run_id"], run["topic_id"], kind, files, caption=caption,
                                             **({"first_comment": comment} if comment else {}))
         self.db.update_scheduled_post(post["id"], res["status"], detail=res)
@@ -3301,13 +3597,6 @@ class PipelineCoordinator:
             self._alert(f"❌ {name} not posted for {label}: {html.escape(str(res.get('error', ''))[:300])}")
         return res["status"]
 
-    def _reel_posted_before(self, run_id: str, cutoff: datetime) -> bool:
-        """Upload-Post flags similar content within 48h per account, so a topic's carousel waits."""
-        for p in self.db.list_scheduled_posts(("published",), run_id=run_id):
-            if p["kind"] == "reel":
-                return datetime.fromisoformat(p["detail"].get("posted_at") or p["updated_at"]) <= cutoff
-        return True  # posted outside the scheduler (CLI): no slot record to wait on
-
     def _post_carousel_if_due(self, now: datetime) -> None:
         local = now.astimezone(post_schedule.tz())
         slot = post_schedule.carousel_time(local.date())
@@ -3316,13 +3605,18 @@ class PipelineCoordinator:
         if self.db.get_setting("carousel_posted_on") == local.date().isoformat():
             return
         waiting = [p for p in self.db.list_scheduled_posts(("waiting",)) if self._may_post(p["run_id"])]
-        for post in waiting:  # a week-old carousel is stale next to newer Reels
-            if now - datetime.fromisoformat(post["created_at"]) > timedelta(days=7):
+        ready = []
+        # One rule with Posting and the booking's confirmation (post_schedule.carousel_may_take), measured at the
+        # slot: from 48 h after its Reel posted (or its slot, while it hasn't) to its deadline, 7 days after it or its
+        # first carousel slot when later
+        for post in waiting:
+            state, reel_at = post_schedule.carousel_reel(self.db, post)
+            if post_schedule.carousel_expired(slot, reel_at):  # a week-old carousel is stale next to newer Reels
                 self.db.update_scheduled_post(post["id"], "expired")
-        ready = [(p, self.db.get_run(p["run_id"])) for p in waiting
-                 if now - datetime.fromisoformat(p["created_at"]) <= timedelta(days=7)]
-        ready = [(p, r) for p, r in ready if r and r["status"] == "published"
-                 and self._reel_posted_before(p["run_id"], now - CAROUSEL_GAP)]
+            elif state == "posted" and post_schedule.carousel_may_take(slot, reel_at):
+                run = self.db.get_run(post["run_id"])
+                if run and run["status"] == "published":
+                    ready.append((post, run))
         if not ready:
             return
         post, run = max(ready, key=lambda pr: pr[0]["id"])  # the newest topic
@@ -3465,9 +3759,12 @@ class PipelineCoordinator:
             if stories:
                 pub["stories"] = self.publisher.publish_photos(run_id, tid, "story", stories, dry_run=True)
             if slides:
-                caption, comment = self._carousel_post(payload, slides)
-                pub["carousel"] = self.publisher.publish_photos(run_id, tid, "carousel", slides, caption=caption,
-                                                                dry_run=True, **({"first_comment": comment} if comment else {}))
+                try:
+                    caption, comment = self._carousel_request(run_id, payload, slides)
+                    pub["carousel"] = self.publisher.publish_photos(run_id, tid, "carousel", slides, caption=caption,
+                                                                    dry_run=True, **({"first_comment": comment} if comment else {}))
+                except ValueError as e:   # its caption is not the one the review card showed (QF-43)
+                    pub["carousel"] = {"status": "failed", "error": str(e)}
         self._stamp_review(run_id, status, pub)
         return {"status": status, "publish_result": pub}
 
@@ -4246,6 +4543,9 @@ def main(argv=None) -> int:
         plan = maintenance.check()
         print(re.sub(r"<[^>]+>", "", maintenance.report_text(plan)))
         if args.apply:
+            if not maintenance.apply_allowed():
+                print(maintenance.PRODUCTION_REFUSAL)
+                return 1
             try:
                 print(maintenance.apply(plan))
             except Exception as e:
@@ -4272,6 +4572,7 @@ def main(argv=None) -> int:
         coordinator = PipelineCoordinator(db=db, schedule_posts=POST_SCHEDULING)
         bot = coordinator.telegram_bot
         _report_interrupted(coordinator, bot)  # runs left "producing" by a process that ended
+        record_run_mode(db, config.BOT_RUNS_DRY)  # the dashboard masthead says whether these runs post
         if not bot.is_configured():
             print("Telegram is not configured (TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID / TELEGRAM_APPROVER_IDS; "
                   "the chat and approvers must identify people, not the bot).")
@@ -4460,6 +4761,7 @@ def main(argv=None) -> int:
         coordinator = PipelineCoordinator(schedule_posts=True)
         bot = coordinator.telegram_bot
         _report_interrupted(coordinator, bot)  # nothing runs in this process yet: any "producing" run is orphaned
+        record_run_mode(coordinator.db, bool(args.dry_run))  # the masthead: 📡 LIVE posting or 🧪 dry run
         release_note = None  # after an installed release: the notice that opens the one dashboard panel
         try:  # leases left by the previous process; the schedule the release deployer keeps clear of
             clear_busy_leases(coordinator.db)
@@ -4652,7 +4954,7 @@ def main(argv=None) -> int:
             except Exception as e:
                 bot.notify(f"🧰 Weekly update check failed: {html.escape(str(e)[:300])}", group="info")
                 return
-            buttons = [{"text": "🧰 Apply updates", "callback_data": "upd:apply"}] if plan.applicable else None
+            buttons = maintenance.apply_buttons(plan)  # none in production: updates arrive as a signed release
             if buttons:
                 bot._api("sendMessage", data={"chat_id": bot.chat_id, "parse_mode": "HTML",
                                               "text": maintenance.report_text(plan),
@@ -4827,6 +5129,8 @@ def main(argv=None) -> int:
         threading.Thread(target=check_accounts_now, name="account-check", daemon=True).start()
 
         def apply_updates() -> str:
+            if not maintenance.apply_allowed():  # an old Apply button pressed in production
+                return html.escape(maintenance.PRODUCTION_REFUSAL)
             if run_lock.locked():
                 return "A production run is in progress; try again when it finishes."
 
@@ -5046,6 +5350,11 @@ def main(argv=None) -> int:
         elif args.assets_action == "approve":
             try:
                 print(approve_set(ASSETS_DIR / args.topic_id, MIN_SCENE_IMAGES))
+                # Said at approval: a thin topic is demoted at selection (src/topic_engine.image_gate).
+                from src.topic_engine import image_gate
+                gate = image_gate({"id": args.topic_id})
+                if gate:
+                    print(f"Note: {args.topic_id} will be made after better-stocked topics: {gate}.")
             except ValueError as e:
                 print(e)
                 return 1

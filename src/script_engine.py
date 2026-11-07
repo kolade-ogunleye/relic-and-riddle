@@ -32,7 +32,7 @@ from . import audio_engine, config
 from .fact_checker import ClaimFactChecker
 from . import free_llm
 from .llm import LLMError, claude_available, format_sources, research, structured_call, task as llm_task
-from . import fact_sheet, improve, trace_check
+from . import fact_sheet, improve, prompt_fence, trace_check
 from .models import (CarouselSlide, DeepDivePackage, DocumentaryAct, GraphicsPlan, Poll, ScriptCore, ScriptPackage,
                      Source, StorySlide, ThumbnailCopy)
 
@@ -101,6 +101,7 @@ Topic notes (unverified): {key_facts}
 
 Requirements:
 - narration: open on the verified facts' most surprising discovery or human-stakes fact (the mystery first: viewers decide in under two seconds), never on a list of measurements; the first sentence at most 14 words. Place the site for the viewer ({location}: its region or country, not only its own name) within the first 3 sentences. Never put a unit conversion or an aside in brackets: the voice does not say it. The title, the caption and the narration tell the same story: a figure, year or discovery the title or caption leads with is told in the narration too. Word budget by role: the hook (at most 14 words) carries the discovery or mystery and, ideally, the place; the place is named inside an existing sentence ("Beneath a house in <place>, <country>, ..."), never as a sentence added for it; then 3-4 fact sentences; then the closing sentence; the total inside the Length range below. The discovery-first opening replaces measurement sentences, it is not added to them; one hedge may cover two related figures.
+- thumbnail: the cover's words, shared by every cover style, the carousel and the YouTube thumbnail: eyebrow (a short kicker), line1 and line2 (the headline) and tagline (the deck under it), each at most 22 characters. A figure in them follows the headline rule: an undisputed figure as the facts give it; a disputed one never as one number taken from its range: as the facts' own span in the same unit (both ends stated), as a floor at or below the lowest figure ("1,000+"), or not at all (a headline without the figure); none that only one estimate gives. A size says what it measures, in the facts' own word ("144 FT ACROSS" for a diameter, "280 FT DEEP"), never a bare "144-FOOT". A line that shortens a fact keeps every word that limits it: "NO IRON CLAMPS" where the fact says "without the use of iron clamps", never "BUILT WITHOUT CLAMPS"; a superlative keeps its place and time ("ONCE THE REGION'S LARGEST"). A year says what happened in it, in the facts' word for that year ("FOUND 1963" where the facts say "rediscovered in 1963"), never bare beside a place (a city's name and a bare year read as its founding date). The deck poses the open question or the stake from a verified fact, never gives away the answer the video builds to ("CARVED BY NATURE" ends the riddle before it starts); leave the tagline empty rather than restate the headline.
 - title: the Facebook Reel title shown under the video: at most 60 characters, specific and intriguing (a name, a number or a tension, not a label like "The History of X"); at most one relevant emoji.
 - caption: written like a magazine editor, not a template. First line: a curiosity-driven line of at most 110 characters (a hard limit of 125 is shown before "more"; stay well under it) that is NOT the narration's hook sentence. Then 2-3 short sentences that add context the video doesn't say (a detail, a consequence, a name), with the place worked naturally into the prose. Then one genuine question to the audience. Then the hashtags on the last line. Use 1-3 relevant emoji where they add warmth or meaning (for example one at the end of the first line and one on the question), never as labels or bullet markers, and no "📍" lines. Under 1,600 characters.
 - carousel_caption: a separate caption for the 7-slide carousel of the same topic, different wording from the Reel caption (not a rephrase of its first line): a short invitation to look through the slides ("Swipe through ..." is fine; never say which way), one fresh detail, one question, then the same hashtags. Use 1-3 relevant emoji where they add warmth or meaning, as in the caption (never a pointing hand or an arrow). Under 800 characters. It is posted as Instagram's carousel and as Facebook's photo grid, which place the caption and the photos differently.
@@ -123,6 +124,7 @@ Location: {location}
 Requirements:
 - narration: open on the verified facts' most surprising discovery, central anomaly, or human-stakes tension (the mystery first: viewers decide in under two seconds), never on a list of measurements; the first sentence at most 14 words. Build the opening hook strictly from verified facts or genuine open debates; never invent unverified framing. Place the site for the viewer ({location}: its region or country, not only its own name) within the first 3 sentences. Never put a unit conversion or an aside in brackets: the voice does not say it. The title, the caption and the narration tell the same story: a figure, year or discovery the title or caption leads with is told in the narration too. Word budget by role: the hook (at most 14 words) carries the discovery or mystery and, ideally, the place; the place is named inside an existing sentence ("Beneath a house in <place>, <country>, ..."), never as a sentence added for it; then 3-4 fact sentences; then the closing sentence; the total inside the Length range below. The discovery-first opening replaces measurement sentences, it is not added to them; one hedge may cover two related figures.
 - sentence_trace: For every single sentence in the narration_script, provide an entry in sentence_trace: the exact sentence text, the supporting fact_ids from <verified_facts> (e.g. ["F1"], ["F3"]), and trace_type ("domain_fact", "open_historical_debate", "epistemic_negation", or "rhetorical_framing"). If a sentence expresses an open debate or rhetorical question without a specific fact, set fact_ids=[] and set trace_type accordingly.
+- thumbnail: the cover's words, shared by every cover style, the carousel and the YouTube thumbnail: eyebrow (a short kicker), line1 and line2 (the headline) and tagline (the deck under it), each at most 22 characters. A figure in them follows the headline rule: an undisputed figure as the facts give it; a disputed one never as one number taken from its range: as the facts' own span in the same unit (both ends stated), as a floor at or below the lowest figure ("1,000+"), or not at all (a headline without the figure); none that only one estimate gives. A size says what it measures, in the facts' own word ("144 FT ACROSS" for a diameter, "280 FT DEEP"), never a bare "144-FOOT". A line that shortens a fact keeps every word that limits it: "NO IRON CLAMPS" where the fact says "without the use of iron clamps", never "BUILT WITHOUT CLAMPS"; a superlative keeps its place and time ("ONCE THE REGION'S LARGEST"). A year says what happened in it, in the facts' word for that year ("FOUND 1963" where the facts say "rediscovered in 1963"), never bare beside a place (a city's name and a bare year read as its founding date). The deck poses the open question or the stake from a verified fact, never gives away the answer the video builds to ("CARVED BY NATURE" ends the riddle before it starts); leave the tagline empty rather than restate the headline.
 - title: the Facebook Reel title shown under the video: at most 60 characters, specific and intriguing (a name, a number or a tension, not a label like "The History of X"); at most one relevant emoji.
 - caption: written like a magazine editor, not a template. First line: a curiosity-driven line of at most 110 characters (a hard limit of 125 is shown before "more"; stay well under it) that is NOT the narration's hook sentence. Then 2-3 short sentences that add context the video doesn't say (a detail, a consequence, a name), with the place worked naturally into the prose. Then one genuine question to the audience. Then the hashtags on the last line. Use 1-3 relevant emoji where they add warmth or meaning (for example one at the end of the first line and one on the question), never as labels or bullet markers, and no "📍" lines. Under 1,600 characters.
 - carousel_caption: a separate caption for the 7-slide carousel of the same topic, different wording from the Reel caption (not a rephrase of its first line): a short invitation to look through the slides ("Swipe through ..." is fine; never say which way), one fresh detail, one question, then the same hashtags. Use 1-3 relevant emoji where they add warmth or meaning, as in the caption (never a pointing hand or an arrow). Under 800 characters. It is posted as Instagram's carousel and as Facebook's photo grid, which place the caption and the photos differently.
@@ -1627,6 +1629,33 @@ def _ages(fact: Dict[str, Any], year: int) -> List[float]:
     return ages
 
 
+def _stated_spans(text: str, facts: list[dict[str, Any]]) -> set:
+    """The indices (in _figures(text)'s order) of the two ends of each span ("40-50 KM", "94 to 104 million years")
+    that one disputed fact states end for end in the same unit: a disputed figure may stand in a headline as the
+    sheet's own span (round-3 panel, 2026-11-02), never as one number taken from it. A span with an end the sheet
+    gives only in another unit ("25-31 MILES" over "40 km (25 mi)" and "almost 50 km") is not stated; nor is one
+    from a fact only one estimate gives."""
+    marks = list(_FIGURE.finditer(text or ""))
+    figs = _figures(text)
+    if len(marks) != len(figs):
+        return set()
+    stated = set()
+    for i in range(len(figs) - 1):
+        a, b = figs[i], figs[i + 1]
+        if not (a.kind and a.kind == b.kind and _RANGE_JOIN.fullmatch(text[marks[i].end():marks[i + 1].start()])):
+            continue
+        size = _UNIT_SIZES.get(a.unit or "", (None, None))[1]
+        for f in facts:
+            if not f.get("disputed") or _SINGLE_ESTIMATE.search(f.get("hedge") or ""):
+                continue
+            vs = [v for v in _figures(f"{f.get('statement', '')} {f.get('hedge', '')}")
+                  if v.kind == a.kind and _UNIT_SIZES.get(v.unit or "", (None, None))[1] == size]
+            if all(any(abs(n.value - v.value) <= 1e-9 * max(1.0, v.value) for v in vs) for n in (a, b)):
+                stated |= {i, i + 1}
+                break
+    return stated
+
+
 def headline_problems(pkg: ScriptPackage, sheet: Optional[Dict[str, Any]] = None) -> List[str]:
     """Each headline field whose figures the verified sheet does not support as stated (see above)."""
     if sheet is None:
@@ -1640,7 +1669,8 @@ def headline_problems(pkg: ScriptPackage, sheet: Optional[Dict[str, Any]] = None
     problems = []
     for field, text in _headline_texts(pkg).items():
         wrong = []
-        for n in _figures(text):
+        spans = _stated_spans(text, facts)
+        for i, n in enumerate(_figures(text)):
             if n.value < HEADLINE_MIN or n.bare_name:
                 continue
             related = [f for f, vs in figures if any(_related(n, v) for v in vs)]
@@ -1651,6 +1681,8 @@ def headline_problems(pkg: ScriptPackage, sheet: Optional[Dict[str, Any]] = None
                 continue
             if any(_same(n, v) for f, vs in figures if f in related and not f.get("disputed") for v in vs):
                 continue   # an undisputed, verified figure, said as it is
+            if i in spans:
+                continue   # a disputed figure said as the sheet's own span, in the unit the sheet gives it
             # An age worked out from an undisputed date ("2,000-year-old" for 100 BC), never more than it
             if n.kind == "years" and any(0.8 * age <= n.value <= age * 1.0001 for f in facts
                                          if not f.get("disputed") for age in _ages(f, year)):
@@ -1664,11 +1696,12 @@ def headline_problems(pkg: ScriptPackage, sheet: Optional[Dict[str, Any]] = None
                 wrong.append(f"{_said(n.value)}+ (above the sourced minimum {lowest:,.0f})")
                 continue
             disputed = any(f.get("disputed") for f in related)
-            wrong.append(f"{_said(n.value)} ({'disputed: say it as a floor at or below the sourced minimum, e.g. a round number with +' if disputed else 'not in the verified facts'})")
+            wrong.append(f"{_said(n.value)} ({'disputed: never one number; say the span the sheet states, in its unit, or a floor at or below the sourced minimum, e.g. a round number with +, or leave the figure out' if disputed else 'not in the verified facts'})")
         if wrong:
             problems.append(f"{HEADLINE_PROBLEM}{field}: " + "; ".join(wrong) + ". A headline states only verified "
-                            "figures: an undisputed one as it is, a disputed one as a floor at or below its range's "
-                            "minimum (\"1,000+\"), none that only one estimate gives.")
+                            "figures: an undisputed one as it is, a disputed one as the sheet's own span in the same "
+                            "unit or as a floor at or below its range's minimum (\"1,000+\"), none that only one "
+                            "estimate gives.")
     return problems
 
 
@@ -2160,6 +2193,7 @@ _COPY_PREFIXES = (
     ("The poll", ("poll",)), ("Poll options", ("poll",)),
     (HEADLINE_PROBLEM + "title", ("title",)), (HEADLINE_PROBLEM + "thumbnail", ("thumbnail",)),
     (HEADLINE_PROBLEM + "caption", ("caption",)),
+    (trace_check.COVER_PROBLEM, ("thumbnail",)),   # a cover line that drops a limit or a size's measure
 )
 _BAIT_FIELD = re.compile(r"^Engagement bait in the (title|caption|carousel_caption|first_comment|share_line|poll"
                          r"|story slide \d+|carousel slide \d+) \(")
@@ -2220,7 +2254,10 @@ without its hedge. Each field you return replaces the old one whole and must fol
 only the fields you were given; the narration is shown for context and is not yours to change. A title or caption
 leads with the story the narration tells (its discovery, figures and place), never one it does not. A headline
 (title, cover, the caption's first line) states only verified figures: an undisputed one as it is, a disputed one as a
-floor at or below its range's minimum ("1,000+"), none that only one estimate gives (reword it without the figure)."""
+floor at or below its range's minimum ("1,000+") or the sheet's own span in the same unit, none that only one estimate gives
+(reword it without the figure). On the cover, a size says what it measures in the facts' word ("144 FT ACROSS"), and a
+shortened line keeps every word that limits the claim ("NO IRON CLAMPS", never "BUILT WITHOUT CLAMPS" for "without iron clamps");
+a year says what happened in it in the facts' word ("FOUND 1963" for "rediscovered in 1963"), never bare beside a place."""
 
 
 class _CopyEdit(BaseModel):
@@ -2315,7 +2352,19 @@ def draft_problems(pkg: ScriptPackage) -> List[str]:
     structure passed, a draft sent back for its structure came back the wrong length, and that cost the next
     attempt too (production, Hal Saflieni 2026-10-27)."""
     return (validate_structure(pkg) + spoken_length_problems(pkg) + hook_problems(pkg.narration_script)
-            + story_problems(pkg) + headline_problems(pkg))
+            + story_problems(pkg) + headline_problems(pkg) + cover_problems(pkg))
+
+
+def cover_problems(pkg: ScriptPackage, sheet: dict[str, Any] | None = None) -> list[str]:
+    """The cover's words held to the run's verified sheet (trace_check.cover_copy_problems: a shortened line keeps every
+    word that limits its fact; a size says what it measures), at draft time so the copy edit fixes them; the
+    finished payload meets the same rule in the fact check (trace_check.headline_gate). Round-3 panel, 2026-11-02."""
+    if sheet is None:
+        sheet = _draft_sheet.get()
+        sheet = sheet() if callable(sheet) else sheet
+    if not (sheet or {}).get("facts") or pkg.thumbnail is None:
+        return []
+    return trace_check.cover_copy_problems({"thumbnail": pkg.thumbnail}, sheet)
 
 
 def blocking_problems(problems: List[str]) -> List[str]:
@@ -2353,6 +2402,10 @@ class ScriptEngine:
                         previous: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """The run's script (see _generate_script), with the length window kept over its drafts: started afresh
         by a run's first call, carried on by its revisions (`previous`)."""
+        # production with no usable FACT_RECORD_KEY stops before the writer's call is spent: no fact review could be
+        # signed, so nothing would publish (operator decision A; review 2026-11-03, round 4)
+        from .fact_evidence import require_signing_key
+        require_signing_key()
         key = (topic.get("id"), getattr(self, "length_run", None))
         if previous is None or _length_history["key"] != key:
             begin_length_history(key)
@@ -2487,6 +2540,9 @@ class ScriptEngine:
             log.info("Using curated script for '%s' (human reviewed: %s).", topic["id"], reviewed)
             payload = self._finalize(pkg, topic, origin="curated")
             payload["human_reviewed"] = reviewed
+            review = curated_human_review(topic["id"]) if reviewed else None
+            if review:   # who reviewed it and when, signed apart; never counted as a fact check
+                payload["human_review"] = review
             if last_problems or writer_error:  # why the writer's drafts were not used, for the run's record
                 payload["writer_failure"] = (
                     f"The script writer ({writer_origin()}) could not be reached: {writer_error[:300]}" if writer_error
@@ -2809,6 +2865,8 @@ class ScriptEngine:
         for p in copy:
             if p.startswith(HEADLINE_PROBLEM):   # a figure the sheet does not support: a finding, then the copy edit
                 improve.note("script.headline_figure", p[:300], "structure")
+            elif p.startswith(trace_check.COVER_PROBLEM):   # a dropped limit or an unmeasured size, likewise
+                improve.note("script.cover_copy", p[:300], "structure")
         if copy and sheet is not None and all(narrow(p) for p in blocking()):
             edited = self._edit_copy(pkg, copy, sheet)
             if edited is not None:
@@ -2951,8 +3009,10 @@ class ScriptEngine:
                         seen_q.add(q_text)
                         evidence_listing.append(f"- \"{q_text[:400]}\"")
             evidence_block = "\n".join(evidence_listing[:35])
+            mark = prompt_fence.new_token()   # quoted web text, its tags escaped, inside this call's fence (QF-41)
             raw_evidence_str = (
-                f"\n\n<raw_evidence_quotes>\n{evidence_block}\n</raw_evidence_quotes>\n"
+                "\n\n" + prompt_fence.fence_note(mark) + "\n"
+                + prompt_fence.fence("raw_evidence_quotes", evidence_block, mark) + "\n"
                 if evidence_block else ""
             )
 
@@ -2980,7 +3040,12 @@ class ScriptEngine:
                 + "Use only facts supported by the research notes. List sources only from retrieved_sources."
                 + feedback
             )
-        core = _structured(SYSTEM_PROMPT, prompt + length_target_note(), ScriptCore, effort="high")
+        from .engagement_learning import steer_note as engagement_steer
+        from .hook_learning import steer_note
+        steers = steer_note(topic.get("hook_form")) + engagement_steer(topic.get("engagement_forms"))
+        core = _structured(SYSTEM_PROMPT, prompt + steers + length_target_note(), ScriptCore, effort="high")
+        if sheet is not None:
+            prompt_fence.check_reply(core, mark)
         if spoken_length_problems(ScriptPackage(**core.model_dump())):
             # This draft will be sent back for its length: graphics are planned only for one that can be kept.
             return ScriptPackage(**core.model_dump())
@@ -3042,12 +3107,16 @@ class ScriptEngine:
             passed, confidence, audits, msg = trace_check.check(script_payload, sheet)
             disputed = sum(f["disputed"] for f in sheet["facts"])
             script_payload["fact_sheet_note"] = (f"🧾 Written from a verified fact sheet: {len(sheet['facts'])} facts with quoted "
-                                                 f"evidence ({disputed} disputed, used only with their hedges)")
+                                                 f"evidence ({disputed} disputed, used only with their hedges)"
+                                                 + (f"; {line}" if (line := fact_sheet.sources_line(sheet)) else ""))
         elif free_llm.enabled():
             # No fact sheet and no paid checks: only a human-reviewed curated script (or a dry run) may pass.
             if script_payload.get("origin") == "curated" and (script_payload.get("human_reviewed") or allow_unreviewed_curated):
+                # A pass of this stage only, never a fact check (operator decision 2026-11-04): no fact review is
+                # recorded for it, and its final copy goes through trace_check and evidence_check like every
+                # script's (main._verify_final_copy) before one is.
                 passed, confidence, audits = True, 0.0, []
-                msg = "Curated script (" + ("human reviewed" if script_payload.get("human_reviewed") else "UNREVIEWED; dry run only") + ")."
+                msg = "Curated script (" + ("human reviewed" if script_payload.get("human_reviewed") else "UNREVIEWED; dry run only") + "); the automated fact check runs on its final copy."
             else:
                 why = ("The curated script is not human-reviewed, so only a dry run may use it"
                        if script_payload.get("origin") == "curated" else "No verified fact sheet; the free engine fails closed")
@@ -3225,3 +3294,22 @@ For each act, include claim_fact_ids identifying the facts it uses.
 Apply the same factual standard to the YouTube title, description, tags, and debate question.
 Descriptions may contain chapter labels, but timestamps must be derived from actual audio later rather than presented as measured timings.
 Return the requested structured documentary package."""
+
+
+def curated_human_review(topic_id: str) -> Optional[Dict[str, Any]]:
+    """The signed record of a person's review of the topic's curated script (fact_evidence.human_review_record):
+    who (_reviewed_by) and when (_reviewed_at), as the script file states them, bound to that file's content. None
+    when the file is missing, unreadable or not marked _reviewed_by_human. The record is shown by the release gate
+    and never stands in for the automated fact check (operator decision, 2026-11-04)."""
+    import hashlib
+    from .fact_evidence import human_review_record
+    path = CURATED_SCRIPTS_DIR / f"{topic_id}.json"
+    try:
+        raw = path.read_bytes()
+        data = json.loads(raw)
+    except (OSError, ValueError):
+        return None
+    if not isinstance(data, dict) or data.get("_reviewed_by_human") is not True:
+        return None
+    return human_review_record(topic_id, data.get("_reviewed_by") or "", data.get("_reviewed_at") or "",
+                               hashlib.sha256(raw.replace(b"\r\n", b"\n")).hexdigest())

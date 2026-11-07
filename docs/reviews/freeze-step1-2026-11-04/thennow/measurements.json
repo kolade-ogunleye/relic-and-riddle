@@ -1,0 +1,1352 @@
+{
+ "9x16/bright_golgumbaz_map": {
+  "gate": {
+   "then": {
+    "ok": false,
+    "split": {
+     "mean": 207.75,
+     "p10": 155.28,
+     "edge": 0.119,
+     "dark": 0.0405
+    },
+    "alone": {
+     "mean": 208.97,
+     "p10": 158.73,
+     "edge": 0.1166,
+     "dark": 0.0364
+    },
+    "mode": "bone/gold"
+   },
+   "now": {
+    "ok": false,
+    "split": {
+     "mean": 146.07,
+     "p10": 39.78,
+     "edge": 0.1264,
+     "dark": 0.4003
+    },
+    "alone": {
+     "mean": 144.65,
+     "p10": 39.19,
+     "edge": 0.1288,
+     "dark": 0.4021
+    },
+    "mode": "bone/gold"
+   }
+  },
+  "after": {
+   "then_kicker": {
+    "fill": [
+     243,
+     237,
+     226
+    ],
+    "halo": 1.0,
+    "planned": 5.22,
+    "drawn": 5.54,
+    "graded": 7.26
+   },
+   "then_year": {
+    "fill": [
+     243,
+     237,
+     226
+    ],
+    "halo": 0.99,
+    "planned": 5.5,
+    "drawn": 5.73,
+    "graded": 7.69
+   },
+   "now_kicker": {
+    "fill": [
+     243,
+     237,
+     226
+    ],
+    "halo": 1.0,
+    "planned": 5.21,
+    "drawn": 5.47,
+    "graded": 6.95
+   },
+   "now_year": {
+    "fill": [
+     243,
+     237,
+     226
+    ],
+    "halo": 0.91,
+    "planned": 5.34,
+    "drawn": 5.36,
+    "graded": 6.71
+   }
+  },
+  "before": {
+   "then_kicker": {
+    "fill": [
+     243,
+     237,
+     226
+    ],
+    "halo": 1.0,
+    "planned": 5.22,
+    "drawn": 5.54,
+    "graded": 7.26
+   },
+   "then_year": {
+    "fill": [
+     243,
+     237,
+     226
+    ],
+    "halo": 0.99,
+    "planned": 5.5,
+    "drawn": 5.73,
+    "graded": 7.69
+   },
+   "now_kicker": {
+    "fill": [
+     243,
+     237,
+     226
+    ],
+    "halo": 1.0,
+    "planned": 5.21,
+    "drawn": 5.47,
+    "graded": 6.95
+   },
+   "now_year": {
+    "fill": [
+     243,
+     237,
+     226
+    ],
+    "halo": 0.91,
+    "planned": 5.34,
+    "drawn": 5.36,
+    "graded": 6.71
+   }
+  },
+  "frames_identical": {
+   "frame_mid_wipe": true,
+   "frame_now_wide": true,
+   "frame_split": true,
+   "frame_split_hold": true,
+   "frame_then_alone": true
+  }
+ },
+ "9x16/colossi_1876_2011": {
+  "gate": {
+   "then": {
+    "ok": false,
+    "split": {
+     "mean": 218.13,
+     "p10": 227.65,
+     "edge": 0.0102,
+     "dark": 0.063
+    },
+    "alone": {
+     "mean": 218.61,
+     "p10": 227.94,
+     "edge": 0.008,
+     "dark": 0.0605
+    },
+    "mode": "bone/gold"
+   },
+   "now": {
+    "ok": false,
+    "split": {
+     "mean": 146.28,
+     "p10": 61.62,
+     "edge": 0.1683,
+     "dark": 0.1239
+    },
+    "alone": {
+     "mean": 144.92,
+     "p10": 57.23,
+     "edge": 0.1743,
+     "dark": 0.1292
+    },
+    "mode": "bone/gold"
+   }
+  },
+  "after": {
+   "then_kicker": {
+    "fill": [
+     243,
+     237,
+     226
+    ],
+    "halo": 1.0,
+    "planned": 4.86,
+    "drawn": 5.16,
+    "graded": 6.49
+   },
+   "then_year": {
+    "fill": [
+     243,
+     237,
+     226
+    ],
+    "halo": 0.99,
+    "planned": 5.34,
+    "drawn": 5.57,
+    "graded": 7.44
+   },
+   "now_kicker": {
+    "fill": [
+     243,
+     237,
+     226
+    ],
+    "halo": 0.82,
+    "planned": 5.81,
+    "drawn": 5.81,
+    "graded": 7.73
+   },
+   "now_year": {
+    "fill": [
+     243,
+     237,
+     226
+    ],
+    "halo": 0.75,
+    "planned": 5.25,
+    "drawn": 5.32,
+    "graded": 6.7
+   }
+  },
+  "before": {
+   "then_kicker": {
+    "fill": [
+     243,
+     237,
+     226
+    ],
+    "halo": 1.0,
+    "planned": 4.86,
+    "drawn": 5.16,
+    "graded": 6.49
+   },
+   "then_year": {
+    "fill": [
+     243,
+     237,
+     226
+    ],
+    "halo": 0.99,
+    "planned": 5.34,
+    "drawn": 5.57,
+    "graded": 7.44
+   },
+   "now_kicker": {
+    "fill": [
+     243,
+     237,
+     226
+    ],
+    "halo": 0.82,
+    "planned": 5.81,
+    "drawn": 5.81,
+    "graded": 7.73
+   },
+   "now_year": {
+    "fill": [
+     243,
+     237,
+     226
+    ],
+    "halo": 0.75,
+    "planned": 5.25,
+    "drawn": 5.32,
+    "graded": 6.7
+   }
+  },
+  "frames_identical": {
+   "frame_mid_wipe": true,
+   "frame_now_wide": true,
+   "frame_split": true,
+   "frame_split_hold": true,
+   "frame_then_alone": true
+  }
+ },
+ "9x16/lineart_aswan_diagram": {
+  "gate": {
+   "then": {
+    "ok": true,
+    "split": {
+     "mean": 252.51,
+     "p10": 253.0,
+     "edge": 0.0073,
+     "dark": 0.0021
+    },
+    "alone": {
+     "mean": 253.42,
+     "p10": 253.0,
+     "edge": 0.0002,
+     "dark": 0.0
+    },
+    "mode": "ink"
+   },
+   "now": {
+    "ok": false,
+    "split": {
+     "mean": 203.73,
+     "p10": 147.06,
+     "edge": 0.076,
+     "dark": 0.0872
+    },
+    "alone": {
+     "mean": 203.69,
+     "p10": 146.95,
+     "edge": 0.0788,
+     "dark": 0.0894
+    },
+    "mode": "bone/gold"
+   }
+  },
+  "after": {
+   "then_kicker": {
+    "fill": [
+     11,
+     14,
+     18
+    ],
+    "halo": 0.0,
+    "planned": 19.01,
+    "drawn": 19.01,
+    "graded": 16.61
+   },
+   "then_year": {
+    "fill": [
+     11,
+     14,
+     18
+    ],
+    "halo": 0.0,
+    "planned": 19.01,
+    "drawn": 19.01,
+    "graded": 16.61
+   },
+   "now_kicker": {
+    "fill": [
+     243,
+     237,
+     226
+    ],
+    "halo": 1.0,
+    "planned": 4.8,
+    "drawn": 5.09,
+    "graded": 6.21
+   },
+   "now_year": {
+    "fill": [
+     243,
+     237,
+     226
+    ],
+    "halo": 0.91,
+    "planned": 4.8,
+    "drawn": 4.95,
+    "graded": 6.04
+   }
+  },
+  "before": {
+   "then_kicker": {
+    "fill": [
+     243,
+     237,
+     226
+    ],
+    "halo": 0.98,
+    "planned": 5.5,
+    "drawn": 5.68,
+    "graded": 7.58
+   },
+   "then_year": {
+    "fill": [
+     243,
+     237,
+     226
+    ],
+    "halo": 0.91,
+    "planned": 5.17,
+    "drawn": 5.25,
+    "graded": 6.75
+   },
+   "now_kicker": {
+    "fill": [
+     243,
+     237,
+     226
+    ],
+    "halo": 1.0,
+    "planned": 4.8,
+    "drawn": 5.09,
+    "graded": 6.21
+   },
+   "now_year": {
+    "fill": [
+     243,
+     237,
+     226
+    ],
+    "halo": 0.91,
+    "planned": 4.8,
+    "drawn": 4.95,
+    "graded": 6.04
+   }
+  },
+  "frames_identical": {
+   "frame_mid_wipe": false,
+   "frame_now_wide": false,
+   "frame_split": false,
+   "frame_split_hold": false,
+   "frame_then_alone": false
+  }
+ },
+ "9x16/nearwhite_odessa_map": {
+  "gate": {
+   "then": {
+    "ok": false,
+    "split": {
+     "mean": 187.29,
+     "p10": 86.73,
+     "edge": 0.3154,
+     "dark": 0.1512
+    },
+    "alone": {
+     "mean": 190.81,
+     "p10": 93.92,
+     "edge": 0.3129,
+     "dark": 0.1376
+    },
+    "mode": "bone/gold"
+   },
+   "now": {
+    "ok": true,
+    "split": {
+     "mean": 254.0,
+     "p10": 254.0,
+     "edge": 0.0,
+     "dark": 0.0
+    },
+    "alone": {
+     "mean": 254.0,
+     "p10": 254.0,
+     "edge": 0.0,
+     "dark": 0.0
+    },
+    "mode": "ink"
+   }
+  },
+  "after": {
+   "then_kicker": {
+    "fill": [
+     243,
+     237,
+     226
+    ],
+    "halo": 1.0,
+    "planned": 4.94,
+    "drawn": 5.21,
+    "graded": 6.69
+   },
+   "then_year": {
+    "fill": [
+     243,
+     237,
+     226
+    ],
+    "halo": 0.99,
+    "planned": 5.28,
+    "drawn": 5.45,
+    "graded": 7.24
+   },
+   "now_kicker": {
+    "fill": [
+     11,
+     14,
+     18
+    ],
+    "halo": 0.0,
+    "planned": 19.18,
+    "drawn": 19.18,
+    "graded": 16.6
+   },
+   "now_year": {
+    "fill": [
+     11,
+     14,
+     18
+    ],
+    "halo": 0.0,
+    "planned": 19.18,
+    "drawn": 19.18,
+    "graded": 16.61
+   }
+  },
+  "before": {
+   "then_kicker": {
+    "fill": [
+     243,
+     237,
+     226
+    ],
+    "halo": 1.0,
+    "planned": 4.94,
+    "drawn": 5.21,
+    "graded": 6.69
+   },
+   "then_year": {
+    "fill": [
+     243,
+     237,
+     226
+    ],
+    "halo": 0.99,
+    "planned": 5.28,
+    "drawn": 5.45,
+    "graded": 7.24
+   },
+   "now_kicker": {
+    "fill": [
+     243,
+     237,
+     226
+    ],
+    "halo": 1.0,
+    "planned": 5.33,
+    "drawn": 5.63,
+    "graded": 7.44
+   },
+   "now_year": {
+    "fill": [
+     243,
+     237,
+     226
+    ],
+    "halo": 0.91,
+    "planned": 5.1,
+    "drawn": 5.17,
+    "graded": 6.53
+   }
+  },
+  "frames_identical": {
+   "frame_mid_wipe": true,
+   "frame_now_wide": false,
+   "frame_split": false,
+   "frame_split_hold": false,
+   "frame_then_alone": true
+  }
+ },
+ "9x16/pantheon_1934_2018": {
+  "gate": {
+   "then": {
+    "ok": false,
+    "split": {
+     "mean": 161.39,
+     "p10": 72.15,
+     "edge": 0.1811,
+     "dark": 0.2185
+    },
+    "alone": {
+     "mean": 175.25,
+     "p10": 81.29,
+     "edge": 0.157,
+     "dark": 0.2075
+    },
+    "mode": "bone/gold"
+   },
+   "now": {
+    "ok": false,
+    "split": {
+     "mean": 82.74,
+     "p10": 23.94,
+     "edge": 0.2647,
+     "dark": 0.378
+    },
+    "alone": {
+     "mean": 83.17,
+     "p10": 24.08,
+     "edge": 0.2624,
+     "dark": 0.3838
+    },
+    "mode": "bone/gold"
+   }
+  },
+  "after": {
+   "then_kicker": {
+    "fill": [
+     243,
+     237,
+     226
+    ],
+    "halo": 1.0,
+    "planned": 4.94,
+    "drawn": 5.18,
+    "graded": 6.56
+   },
+   "then_year": {
+    "fill": [
+     243,
+     237,
+     226
+    ],
+    "halo": 0.91,
+    "planned": 5.41,
+    "drawn": 6.66,
+    "graded": 9.28
+   },
+   "now_kicker": {
+    "fill": [
+     243,
+     237,
+     226
+    ],
+    "halo": 0.74,
+    "planned": 5.43,
+    "drawn": 5.57,
+    "graded": 7.38
+   },
+   "now_year": {
+    "fill": [
+     243,
+     237,
+     226
+    ],
+    "halo": 0.35,
+    "planned": 5.41,
+    "drawn": 5.49,
+    "graded": 7.12
+   }
+  },
+  "before": {
+   "then_kicker": {
+    "fill": [
+     243,
+     237,
+     226
+    ],
+    "halo": 1.0,
+    "planned": 4.94,
+    "drawn": 5.18,
+    "graded": 6.56
+   },
+   "then_year": {
+    "fill": [
+     243,
+     237,
+     226
+    ],
+    "halo": 0.91,
+    "planned": 5.41,
+    "drawn": 6.66,
+    "graded": 9.28
+   },
+   "now_kicker": {
+    "fill": [
+     243,
+     237,
+     226
+    ],
+    "halo": 0.74,
+    "planned": 5.43,
+    "drawn": 5.57,
+    "graded": 7.38
+   },
+   "now_year": {
+    "fill": [
+     243,
+     237,
+     226
+    ],
+    "halo": 0.35,
+    "planned": 5.41,
+    "drawn": 5.49,
+    "graded": 7.12
+   }
+  },
+  "frames_identical": {
+   "frame_mid_wipe": true,
+   "frame_now_wide": true,
+   "frame_split": true,
+   "frame_split_hold": true,
+   "frame_then_alone": true
+  }
+ },
+ "16x9/bright_golgumbaz_map": {
+  "gate": {
+   "then": {
+    "ok": false,
+    "split": {
+     "mean": 209.87,
+     "p10": 156.87,
+     "edge": 0.175,
+     "dark": 0.0307
+    },
+    "alone": {
+     "mean": 209.92,
+     "p10": 157.73,
+     "edge": 0.1731,
+     "dark": 0.0323
+    },
+    "mode": "bone/gold"
+   },
+   "now": {
+    "ok": false,
+    "split": {
+     "mean": 221.87,
+     "p10": 220.49,
+     "edge": 0.0192,
+     "dark": 0.0488
+    },
+    "alone": {
+     "mean": 221.1,
+     "p10": 220.13,
+     "edge": 0.0203,
+     "dark": 0.051
+    },
+    "mode": "bone/gold"
+   }
+  },
+  "after": {
+   "then_kicker": {
+    "fill": [
+     243,
+     237,
+     226
+    ],
+    "halo": 1.0,
+    "planned": 4.81,
+    "drawn": 5.08,
+    "graded": 6.62
+   },
+   "then_year": {
+    "fill": [
+     243,
+     237,
+     226
+    ],
+    "halo": 0.99,
+    "planned": 5.4,
+    "drawn": 5.65,
+    "graded": 7.5
+   },
+   "now_kicker": {
+    "fill": [
+     243,
+     237,
+     226
+    ],
+    "halo": 0.98,
+    "planned": 5.76,
+    "drawn": 5.94,
+    "graded": 7.99
+   },
+   "now_year": {
+    "fill": [
+     243,
+     237,
+     226
+    ],
+    "halo": 0.83,
+    "planned": 5.03,
+    "drawn": 5.13,
+    "graded": 6.21
+   }
+  },
+  "before": {
+   "then_kicker": {
+    "fill": [
+     243,
+     237,
+     226
+    ],
+    "halo": 1.0,
+    "planned": 4.81,
+    "drawn": 5.08,
+    "graded": 6.62
+   },
+   "then_year": {
+    "fill": [
+     243,
+     237,
+     226
+    ],
+    "halo": 0.99,
+    "planned": 5.4,
+    "drawn": 5.65,
+    "graded": 7.5
+   },
+   "now_kicker": {
+    "fill": [
+     243,
+     237,
+     226
+    ],
+    "halo": 0.98,
+    "planned": 5.76,
+    "drawn": 5.94,
+    "graded": 7.99
+   },
+   "now_year": {
+    "fill": [
+     243,
+     237,
+     226
+    ],
+    "halo": 0.83,
+    "planned": 5.03,
+    "drawn": 5.13,
+    "graded": 6.21
+   }
+  },
+  "frames_identical": {
+   "frame_mid_wipe": true,
+   "frame_now_wide": true,
+   "frame_split": true,
+   "frame_split_hold": true,
+   "frame_then_alone": true
+  }
+ },
+ "16x9/colossi_1876_2011": {
+  "gate": {
+   "then": {
+    "ok": true,
+    "split": {
+     "mean": 229.04,
+     "p10": 227.94,
+     "edge": 0.0,
+     "dark": 0.0
+    },
+    "alone": {
+     "mean": 228.77,
+     "p10": 227.94,
+     "edge": 0.0007,
+     "dark": 0.0017
+    },
+    "mode": "ink"
+   },
+   "now": {
+    "ok": false,
+    "split": {
+     "mean": 151.08,
+     "p10": 144.11,
+     "edge": 0.002,
+     "dark": 0.0008
+    },
+    "alone": {
+     "mean": 150.47,
+     "p10": 143.3,
+     "edge": 0.0031,
+     "dark": 0.0005
+    },
+    "mode": "bone/gold"
+   }
+  },
+  "after": {
+   "then_kicker": {
+    "fill": [
+     11,
+     14,
+     18
+    ],
+    "halo": 0.0,
+    "planned": 15.1,
+    "drawn": 15.1,
+    "graded": 15.02
+   },
+   "then_year": {
+    "fill": [
+     11,
+     14,
+     18
+    ],
+    "halo": 0.0,
+    "planned": 15.22,
+    "drawn": 15.22,
+    "graded": 15.04
+   },
+   "now_kicker": {
+    "fill": [
+     243,
+     237,
+     226
+    ],
+    "halo": 0.74,
+    "planned": 5.53,
+    "drawn": 5.6,
+    "graded": 6.47
+   },
+   "now_year": {
+    "fill": [
+     243,
+     237,
+     226
+    ],
+    "halo": 0.67,
+    "planned": 5.06,
+    "drawn": 5.09,
+    "graded": 5.37
+   }
+  },
+  "before": {
+   "then_kicker": {
+    "fill": [
+     243,
+     237,
+     226
+    ],
+    "halo": 0.98,
+    "planned": 5.95,
+    "drawn": 6.06,
+    "graded": 8.4
+   },
+   "then_year": {
+    "fill": [
+     243,
+     237,
+     226
+    ],
+    "halo": 0.83,
+    "planned": 5.16,
+    "drawn": 5.25,
+    "graded": 6.74
+   },
+   "now_kicker": {
+    "fill": [
+     243,
+     237,
+     226
+    ],
+    "halo": 0.74,
+    "planned": 5.53,
+    "drawn": 5.6,
+    "graded": 6.47
+   },
+   "now_year": {
+    "fill": [
+     243,
+     237,
+     226
+    ],
+    "halo": 0.67,
+    "planned": 5.06,
+    "drawn": 5.09,
+    "graded": 5.37
+   }
+  },
+  "frames_identical": {
+   "frame_mid_wipe": false,
+   "frame_now_wide": true,
+   "frame_split": false,
+   "frame_split_hold": false,
+   "frame_then_alone": false
+  }
+ },
+ "16x9/lineart_aswan_diagram": {
+  "gate": {
+   "then": {
+    "ok": false,
+    "split": {
+     "mean": 202.22,
+     "p10": 89.0,
+     "edge": 0.1844,
+     "dark": 0.142
+    },
+    "alone": {
+     "mean": 208.05,
+     "p10": 97.0,
+     "edge": 0.1641,
+     "dark": 0.1317
+    },
+    "mode": "bone/gold"
+   },
+   "now": {
+    "ok": false,
+    "split": {
+     "mean": 170.7,
+     "p10": 89.79,
+     "edge": 0.0462,
+     "dark": 0.3432
+    },
+    "alone": {
+     "mean": 172.09,
+     "p10": 90.22,
+     "edge": 0.0418,
+     "dark": 0.333
+    },
+    "mode": "bone/gold"
+   }
+  },
+  "after": {
+   "then_kicker": {
+    "fill": [
+     243,
+     237,
+     226
+    ],
+    "halo": 1.0,
+    "planned": 5.33,
+    "drawn": 5.54,
+    "graded": 7.32
+   },
+   "then_year": {
+    "fill": [
+     243,
+     237,
+     226
+    ],
+    "halo": 0.83,
+    "planned": 5.02,
+    "drawn": 5.85,
+    "graded": 7.85
+   },
+   "now_kicker": {
+    "fill": [
+     243,
+     237,
+     226
+    ],
+    "halo": 1.0,
+    "planned": 5.41,
+    "drawn": 5.71,
+    "graded": 7.89
+   },
+   "now_year": {
+    "fill": [
+     243,
+     237,
+     226
+    ],
+    "halo": 0.91,
+    "planned": 5.02,
+    "drawn": 5.02,
+    "graded": 6.19
+   }
+  },
+  "before": {
+   "then_kicker": {
+    "fill": [
+     243,
+     237,
+     226
+    ],
+    "halo": 1.0,
+    "planned": 5.33,
+    "drawn": 5.54,
+    "graded": 7.32
+   },
+   "then_year": {
+    "fill": [
+     243,
+     237,
+     226
+    ],
+    "halo": 0.83,
+    "planned": 5.02,
+    "drawn": 5.85,
+    "graded": 7.85
+   },
+   "now_kicker": {
+    "fill": [
+     243,
+     237,
+     226
+    ],
+    "halo": 1.0,
+    "planned": 5.41,
+    "drawn": 5.71,
+    "graded": 7.89
+   },
+   "now_year": {
+    "fill": [
+     243,
+     237,
+     226
+    ],
+    "halo": 0.91,
+    "planned": 5.02,
+    "drawn": 5.02,
+    "graded": 6.19
+   }
+  },
+  "frames_identical": {
+   "frame_mid_wipe": true,
+   "frame_now_wide": true,
+   "frame_split": true,
+   "frame_split_hold": true,
+   "frame_then_alone": true
+  }
+ },
+ "16x9/nearwhite_odessa_map": {
+  "gate": {
+   "then": {
+    "ok": false,
+    "split": {
+     "mean": 207.17,
+     "p10": 134.82,
+     "edge": 0.2925,
+     "dark": 0.0768
+    },
+    "alone": {
+     "mean": 206.21,
+     "p10": 130.79,
+     "edge": 0.2968,
+     "dark": 0.0829
+    },
+    "mode": "bone/gold"
+   },
+   "now": {
+    "ok": false,
+    "split": {
+     "mean": 111.93,
+     "p10": 81.79,
+     "edge": 0.1674,
+     "dark": 0.0063
+    },
+    "alone": {
+     "mean": 112.36,
+     "p10": 81.15,
+     "edge": 0.1721,
+     "dark": 0.0066
+    },
+    "mode": "bone/gold"
+   }
+  },
+  "after": {
+   "then_kicker": {
+    "fill": [
+     243,
+     237,
+     226
+    ],
+    "halo": 0.98,
+    "planned": 5.96,
+    "drawn": 6.01,
+    "graded": 8.4
+   },
+   "then_year": {
+    "fill": [
+     243,
+     237,
+     226
+    ],
+    "halo": 0.83,
+    "planned": 4.96,
+    "drawn": 5.12,
+    "graded": 6.59
+   },
+   "now_kicker": {
+    "fill": [
+     243,
+     237,
+     226
+    ],
+    "halo": 0.58,
+    "planned": 5.42,
+    "drawn": 5.57,
+    "graded": 7.54
+   },
+   "now_year": {
+    "fill": [
+     243,
+     237,
+     226
+    ],
+    "halo": 0.51,
+    "planned": 5.02,
+    "drawn": 5.07,
+    "graded": 6.24
+   }
+  },
+  "before": {
+   "then_kicker": {
+    "fill": [
+     243,
+     237,
+     226
+    ],
+    "halo": 0.98,
+    "planned": 5.96,
+    "drawn": 6.01,
+    "graded": 8.4
+   },
+   "then_year": {
+    "fill": [
+     243,
+     237,
+     226
+    ],
+    "halo": 0.83,
+    "planned": 4.96,
+    "drawn": 5.12,
+    "graded": 6.59
+   },
+   "now_kicker": {
+    "fill": [
+     243,
+     237,
+     226
+    ],
+    "halo": 0.58,
+    "planned": 5.42,
+    "drawn": 5.57,
+    "graded": 7.54
+   },
+   "now_year": {
+    "fill": [
+     243,
+     237,
+     226
+    ],
+    "halo": 0.51,
+    "planned": 5.02,
+    "drawn": 5.07,
+    "graded": 6.24
+   }
+  },
+  "frames_identical": {
+   "frame_mid_wipe": true,
+   "frame_now_wide": true,
+   "frame_split": true,
+   "frame_split_hold": true,
+   "frame_then_alone": true
+  }
+ },
+ "16x9/pantheon_1934_2018": {
+  "gate": {
+   "then": {
+    "ok": false,
+    "split": {
+     "mean": 154.28,
+     "p10": 57.85,
+     "edge": 0.2364,
+     "dark": 0.1731
+    },
+    "alone": {
+     "mean": 158.32,
+     "p10": 76.35,
+     "edge": 0.2548,
+     "dark": 0.1395
+    },
+    "mode": "bone/gold"
+   },
+   "now": {
+    "ok": false,
+    "split": {
+     "mean": 134.79,
+     "p10": 79.69,
+     "edge": 0.2719,
+     "dark": 0.1044
+    },
+    "alone": {
+     "mean": 132.2,
+     "p10": 75.18,
+     "edge": 0.2824,
+     "dark": 0.1185
+    },
+    "mode": "bone/gold"
+   }
+  },
+  "after": {
+   "then_kicker": {
+    "fill": [
+     243,
+     237,
+     226
+    ],
+    "halo": 0.82,
+    "planned": 6.16,
+    "drawn": 6.36,
+    "graded": 8.46
+   },
+   "then_year": {
+    "fill": [
+     243,
+     237,
+     226
+    ],
+    "halo": 0.83,
+    "planned": 5.09,
+    "drawn": 5.37,
+    "graded": 6.83
+   },
+   "now_kicker": {
+    "fill": [
+     243,
+     237,
+     226
+    ],
+    "halo": 0.82,
+    "planned": 5.75,
+    "drawn": 6.0,
+    "graded": 8.58
+   },
+   "now_year": {
+    "fill": [
+     243,
+     237,
+     226
+    ],
+    "halo": 0.75,
+    "planned": 5.26,
+    "drawn": 5.44,
+    "graded": 7.17
+   }
+  },
+  "before": {
+   "then_kicker": {
+    "fill": [
+     243,
+     237,
+     226
+    ],
+    "halo": 0.82,
+    "planned": 6.16,
+    "drawn": 6.36,
+    "graded": 8.46
+   },
+   "then_year": {
+    "fill": [
+     243,
+     237,
+     226
+    ],
+    "halo": 0.83,
+    "planned": 5.09,
+    "drawn": 5.37,
+    "graded": 6.83
+   },
+   "now_kicker": {
+    "fill": [
+     243,
+     237,
+     226
+    ],
+    "halo": 0.82,
+    "planned": 5.75,
+    "drawn": 6.0,
+    "graded": 8.58
+   },
+   "now_year": {
+    "fill": [
+     243,
+     237,
+     226
+    ],
+    "halo": 0.75,
+    "planned": 5.26,
+    "drawn": 5.44,
+    "graded": 7.17
+   }
+  },
+  "frames_identical": {
+   "frame_mid_wipe": true,
+   "frame_now_wide": true,
+   "frame_split": true,
+   "frame_split_hold": true,
+   "frame_then_alone": true
+  }
+ }
+}

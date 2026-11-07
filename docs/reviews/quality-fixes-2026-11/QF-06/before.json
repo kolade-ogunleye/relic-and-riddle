@@ -1,0 +1,1097 @@
+{
+ "code": "src tree e71eb10",
+ "real_audio": false,
+ "summary": {
+  "runs": 8,
+  "max_gr_db_at_any_cue": 0.89,
+  "max_abs_narration_delta_lu_at_any_cue": 0.16,
+  "hit_f0_hz_min": 45.3,
+  "hit_synth_f0_hz": {
+   "_synth_sub_bass_braam": 46.0,
+   "_synth_chisel_strike": 1450.0
+  },
+  "effect_peak_dbfs_range": [
+   -17.28,
+   2.95
+  ],
+  "acceptance": "no synthesized hit f0 < 80 Hz; every effect peak-normalised; master limiter GR <= 3 dB at every SFX cue; narration within 1 LU of its no-SFX level at every cue"
+ },
+ "hit_synths": {
+  "_synth_sub_bass_braam": {
+   "f0_hz": 46.0,
+   "strongest_hz": 46.0,
+   "below_80_pct": 99.0,
+   "body_90_200_pct": 1.0,
+   "transient_1k_3k_pct": 0.0,
+   "attack_50ms_1k_3k_pct": 0.0,
+   "peak_dbfs": -18.25
+  },
+  "_synth_chisel_strike": {
+   "f0_hz": 1450.0,
+   "strongest_hz": 1450.0,
+   "below_80_pct": 0.0,
+   "body_90_200_pct": 0.0,
+   "transient_1k_3k_pct": 100.0,
+   "attack_50ms_1k_3k_pct": 57.8,
+   "peak_dbfs": -9.6
+  }
+ },
+ "effect_levels": {
+  "sfx_hammer.wav": {
+   "rms_dbfs": -50.1,
+   "peak_dbfs": -24.8
+  },
+  "sfx_stone_door.wav": {
+   "rms_dbfs": -45.8,
+   "peak_dbfs": -32.2
+  },
+  "sfx_gear_ratchet.wav": {
+   "rms_dbfs": -58.8,
+   "peak_dbfs": -32.4
+  },
+  "sfx_water_surge.wav": {
+   "rms_dbfs": -44.7,
+   "peak_dbfs": -28.7
+  },
+  "sfx_chisel.wav": {
+   "rms_dbfs": -49.5,
+   "peak_dbfs": -22.0
+  },
+  "sfx_desert_wind.wav": {
+   "rms_dbfs": -56.0,
+   "peak_dbfs": -39.7
+  },
+  "sfx_sea_waves.wav": {
+   "rms_dbfs": -45.0,
+   "peak_dbfs": -30.0
+  },
+  "sfx_mountain_wind.wav": {
+   "rms_dbfs": -45.8,
+   "peak_dbfs": -32.6
+  },
+  "sfx_fire_crackle.wav": {
+   "rms_dbfs": -56.3,
+   "peak_dbfs": -17.7
+  },
+  "sfx_thunder.wav": {
+   "rms_dbfs": -44.2,
+   "peak_dbfs": -23.0
+  },
+  "sfx_footsteps_stone.wav": {
+   "rms_dbfs": -50.3,
+   "peak_dbfs": -21.0
+  },
+  "sfx_anvil_forge.wav": {
+   "rms_dbfs": -48.4,
+   "peak_dbfs": -24.5
+  },
+  "sfx_parchment.wav": {
+   "rms_dbfs": -61.5,
+   "peak_dbfs": -36.1
+  },
+  "sfx_crowd_murmur.wav": {
+   "rms_dbfs": -45.6,
+   "peak_dbfs": -27.6
+  },
+  "sfx_horse_hooves.wav": {
+   "rms_dbfs": -49.3,
+   "peak_dbfs": -19.1
+  },
+  "sfx_bell_toll.wav": {
+   "rms_dbfs": -48.4,
+   "peak_dbfs": -29.1
+  },
+  "sfx_water_drip.wav": {
+   "rms_dbfs": -58.8,
+   "peak_dbfs": -28.0
+  },
+  "sfx_rockfall.wav": {
+   "rms_dbfs": -48.0,
+   "peak_dbfs": -19.0
+  },
+  "sfx_sailing_ship.wav": {
+   "rms_dbfs": -46.7,
+   "peak_dbfs": -27.5
+  },
+  "sfx_sword_clash.wav": {
+   "rms_dbfs": -48.9,
+   "peak_dbfs": -23.3
+  },
+  "sfx_explosion_distant.wav": {
+   "rms_dbfs": -41.3,
+   "peak_dbfs": -24.9
+  },
+  "sfx_trees_falling.wav": {
+   "rms_dbfs": -48.9,
+   "peak_dbfs": -22.8
+  },
+  "sfx_whoosh.wav": {
+   "rms_dbfs": -36.0,
+   "peak_dbfs": -17.1
+  },
+  "sfx_impact_braam.wav": {
+   "rms_dbfs": -25.3,
+   "peak_dbfs": -16.8
+  }
+ },
+ "rows": [
+  {
+   "run": "run_amber_room_heist_1792790550",
+   "path": "reel_9x16",
+   "audio": "generated narration and music stand-ins",
+   "seconds": 50.298,
+   "gain_db": 4.6,
+   "gain_no_sfx_db": 4.6,
+   "lufs": -13.98,
+   "peak_dbfs": -2.01,
+   "limiter_lag_samples": 120,
+   "max_gr_db": 0.11,
+   "max_abs_narration_delta_lu": 0.0,
+   "cues": [
+    {
+     "t": 0.15,
+     "end": 2.15,
+     "what": "opening hit",
+     "gr_db": 0.11,
+     "gr_no_sfx_db": 0.09,
+     "narration_delta_lu": 0.0,
+     "bed_peak_dbfs": -12.3
+    },
+    {
+     "t": 17.261,
+     "end": 17.62,
+     "what": "transition whoosh",
+     "gr_db": 0.06,
+     "gr_no_sfx_db": 0.07,
+     "narration_delta_lu": 0.0,
+     "bed_peak_dbfs": -15.83
+    },
+    {
+     "t": 18.125,
+     "end": 20.125,
+     "what": "reveal hit",
+     "gr_db": 0.1,
+     "gr_no_sfx_db": 0.12,
+     "narration_delta_lu": 0.0,
+     "bed_peak_dbfs": -12.83
+    }
+   ],
+   "effects_mixed": [
+    {
+     "name": "sfx_impact_braam.wav",
+     "peak_dbfs": -16.11
+    },
+    {
+     "name": "sfx_whoosh.wav",
+     "peak_dbfs": -17.06
+    },
+    {
+     "name": "sfx_impact_braam.wav",
+     "peak_dbfs": -16.84
+    }
+   ],
+   "hits": [
+    {
+     "name": "sfx_impact_braam.wav",
+     "f0_hz": 45.3,
+     "strongest_hz": 45.3,
+     "below_80_pct": 99.0,
+     "body_90_200_pct": 1.0,
+     "transient_1k_3k_pct": 0.0,
+     "attack_50ms_1k_3k_pct": 0.0,
+     "peak_dbfs": -18.24
+    },
+    {
+     "name": "sfx_impact_braam.wav",
+     "f0_hz": 46.1,
+     "strongest_hz": 46.1,
+     "below_80_pct": 99.0,
+     "body_90_200_pct": 1.0,
+     "transient_1k_3k_pct": 0.0,
+     "attack_50ms_1k_3k_pct": 0.0,
+     "peak_dbfs": -18.25
+    }
+   ],
+   "impacts_mixed": [
+    {
+     "name": "sfx_impact_braam.wav",
+     "f0_hz": 50.5,
+     "strongest_hz": 61.5,
+     "below_80_pct": 99.9,
+     "body_90_200_pct": 0.1,
+     "transient_1k_3k_pct": 0.0,
+     "attack_50ms_1k_3k_pct": 0.0,
+     "peak_dbfs": -16.74
+    },
+    {
+     "name": "sfx_impact_braam.wav",
+     "f0_hz": 50.5,
+     "strongest_hz": 61.5,
+     "below_80_pct": 99.9,
+     "body_90_200_pct": 0.1,
+     "transient_1k_3k_pct": 0.0,
+     "attack_50ms_1k_3k_pct": 0.0,
+     "peak_dbfs": -17.46
+    }
+   ],
+   "bed_bus": null
+  },
+  {
+   "run": "run_gol_gumbaz_whispering_gallery_1793278143",
+   "path": "reel_9x16",
+   "audio": "generated narration and music stand-ins",
+   "seconds": 45.81,
+   "gain_db": 4.6,
+   "gain_no_sfx_db": 4.6,
+   "lufs": -13.98,
+   "peak_dbfs": -1.96,
+   "limiter_lag_samples": 120,
+   "max_gr_db": 0.12,
+   "max_abs_narration_delta_lu": 0.0,
+   "cues": [
+    {
+     "t": 0.15,
+     "end": 2.15,
+     "what": "opening hit",
+     "gr_db": 0.1,
+     "gr_no_sfx_db": 0.1,
+     "narration_delta_lu": -0.0,
+     "bed_peak_dbfs": -12.07
+    },
+    {
+     "t": 15.654,
+     "end": 17.804,
+     "what": "transition whoosh",
+     "gr_db": 0.12,
+     "gr_no_sfx_db": 0.11,
+     "narration_delta_lu": 0.0,
+     "bed_peak_dbfs": -12.92
+    }
+   ],
+   "effects_mixed": [
+    {
+     "name": "sfx_impact_braam.wav",
+     "peak_dbfs": -16.11
+    },
+    {
+     "name": "sfx_whoosh.wav",
+     "peak_dbfs": -17.06
+    },
+    {
+     "name": "sfx_impact_braam.wav",
+     "peak_dbfs": -16.84
+    }
+   ],
+   "hits": [
+    {
+     "name": "sfx_impact_braam.wav",
+     "f0_hz": 45.3,
+     "strongest_hz": 45.3,
+     "below_80_pct": 99.0,
+     "body_90_200_pct": 1.0,
+     "transient_1k_3k_pct": 0.0,
+     "attack_50ms_1k_3k_pct": 0.0,
+     "peak_dbfs": -18.24
+    },
+    {
+     "name": "sfx_impact_braam.wav",
+     "f0_hz": 46.1,
+     "strongest_hz": 46.1,
+     "below_80_pct": 99.0,
+     "body_90_200_pct": 1.0,
+     "transient_1k_3k_pct": 0.0,
+     "attack_50ms_1k_3k_pct": 0.0,
+     "peak_dbfs": -18.25
+    }
+   ],
+   "impacts_mixed": [
+    {
+     "name": "sfx_impact_braam.wav",
+     "f0_hz": 50.5,
+     "strongest_hz": 61.5,
+     "below_80_pct": 99.9,
+     "body_90_200_pct": 0.1,
+     "transient_1k_3k_pct": 0.0,
+     "attack_50ms_1k_3k_pct": 0.0,
+     "peak_dbfs": -16.74
+    },
+    {
+     "name": "sfx_impact_braam.wav",
+     "f0_hz": 50.5,
+     "strongest_hz": 61.5,
+     "below_80_pct": 99.9,
+     "body_90_200_pct": 0.1,
+     "transient_1k_3k_pct": 0.0,
+     "attack_50ms_1k_3k_pct": 0.0,
+     "peak_dbfs": -17.46
+    }
+   ],
+   "bed_bus": null
+  },
+  {
+   "run": "run_nazca_lines_runway_paradox_1792961797",
+   "path": "reel_9x16",
+   "audio": "generated narration and music stand-ins",
+   "seconds": 48.762,
+   "gain_db": 4.7,
+   "gain_no_sfx_db": 4.7,
+   "lufs": -13.95,
+   "peak_dbfs": -1.94,
+   "limiter_lag_samples": 120,
+   "max_gr_db": 0.12,
+   "max_abs_narration_delta_lu": 0.01,
+   "cues": [
+    {
+     "t": 0.15,
+     "end": 5.76,
+     "what": "opening hit",
+     "gr_db": 0.11,
+     "gr_no_sfx_db": 0.1,
+     "narration_delta_lu": -0.0,
+     "bed_peak_dbfs": -12.1
+    },
+    {
+     "t": 31.355,
+     "end": 33.735,
+     "what": "transition whoosh",
+     "gr_db": 0.12,
+     "gr_no_sfx_db": 0.09,
+     "narration_delta_lu": -0.01,
+     "bed_peak_dbfs": -11.33
+    }
+   ],
+   "effects_mixed": [
+    {
+     "name": "sfx_impact_braam.wav",
+     "peak_dbfs": -16.11
+    },
+    {
+     "name": "sfx_whoosh.wav",
+     "peak_dbfs": -17.06
+    },
+    {
+     "name": "sfx_impact_braam.wav",
+     "peak_dbfs": -16.84
+    },
+    {
+     "name": "sfx_desert_wind.wav",
+     "peak_dbfs": -9.57
+    }
+   ],
+   "hits": [
+    {
+     "name": "sfx_impact_braam.wav",
+     "f0_hz": 45.3,
+     "strongest_hz": 45.3,
+     "below_80_pct": 99.0,
+     "body_90_200_pct": 1.0,
+     "transient_1k_3k_pct": 0.0,
+     "attack_50ms_1k_3k_pct": 0.0,
+     "peak_dbfs": -18.24
+    },
+    {
+     "name": "sfx_impact_braam.wav",
+     "f0_hz": 46.1,
+     "strongest_hz": 46.1,
+     "below_80_pct": 99.0,
+     "body_90_200_pct": 1.0,
+     "transient_1k_3k_pct": 0.0,
+     "attack_50ms_1k_3k_pct": 0.0,
+     "peak_dbfs": -18.25
+    }
+   ],
+   "impacts_mixed": [
+    {
+     "name": "sfx_impact_braam.wav",
+     "f0_hz": 50.5,
+     "strongest_hz": 61.5,
+     "below_80_pct": 99.9,
+     "body_90_200_pct": 0.1,
+     "transient_1k_3k_pct": 0.0,
+     "attack_50ms_1k_3k_pct": 0.0,
+     "peak_dbfs": -16.74
+    },
+    {
+     "name": "sfx_impact_braam.wav",
+     "f0_hz": 50.5,
+     "strongest_hz": 61.5,
+     "below_80_pct": 99.9,
+     "body_90_200_pct": 0.1,
+     "transient_1k_3k_pct": 0.0,
+     "attack_50ms_1k_3k_pct": 0.0,
+     "peak_dbfs": -17.46
+    }
+   ],
+   "bed_bus": null
+  },
+  {
+   "run": "run_richat_structure_sahara_eye_1792740961_long",
+   "path": "deep_dive_16x9 (act cues)",
+   "audio": "generated narration and music stand-ins",
+   "seconds": 196.868,
+   "gain_db": 4.5,
+   "gain_no_sfx_db": 4.5,
+   "lufs": -13.96,
+   "peak_dbfs": -1.94,
+   "limiter_lag_samples": 120,
+   "max_gr_db": 0.89,
+   "max_abs_narration_delta_lu": 0.16,
+   "cues": [
+    {
+     "t": 0.15,
+     "end": 2.15,
+     "what": "opening hit",
+     "gr_db": 0.11,
+     "gr_no_sfx_db": 0.09,
+     "narration_delta_lu": -0.0,
+     "bed_peak_dbfs": -13.76
+    },
+    {
+     "t": 32.988,
+     "end": 35.14,
+     "what": "transition whoosh",
+     "gr_db": 0.44,
+     "gr_no_sfx_db": 0.1,
+     "narration_delta_lu": -0.09,
+     "bed_peak_dbfs": -10.49
+    },
+    {
+     "t": 35.957,
+     "end": 37.957,
+     "what": "reveal hit",
+     "gr_db": 0.12,
+     "gr_no_sfx_db": 0.13,
+     "narration_delta_lu": 0.0,
+     "bed_peak_dbfs": -13.06
+    },
+    {
+     "t": 77.503,
+     "end": 79.65,
+     "what": "transition whoosh",
+     "gr_db": 0.89,
+     "gr_no_sfx_db": 0.08,
+     "narration_delta_lu": -0.16,
+     "bed_peak_dbfs": -11.06
+    },
+    {
+     "t": 111.495,
+     "end": 113.65,
+     "what": "transition whoosh",
+     "gr_db": 0.11,
+     "gr_no_sfx_db": 0.1,
+     "narration_delta_lu": -0.01,
+     "bed_peak_dbfs": -9.08
+    },
+    {
+     "t": 161.432,
+     "end": 163.58,
+     "what": "transition whoosh",
+     "gr_db": 0.09,
+     "gr_no_sfx_db": 0.1,
+     "narration_delta_lu": 0.0,
+     "bed_peak_dbfs": -10.09
+    }
+   ],
+   "effects_mixed": [
+    {
+     "name": "sfx_impact_braam.wav",
+     "peak_dbfs": -16.11
+    },
+    {
+     "name": "sfx_impact_braam.wav",
+     "peak_dbfs": -17.28
+    },
+    {
+     "name": "sfx_impact_braam.wav",
+     "peak_dbfs": -17.28
+    },
+    {
+     "name": "sfx_impact_braam.wav",
+     "peak_dbfs": -17.28
+    },
+    {
+     "name": "sfx_impact_braam.wav",
+     "peak_dbfs": -17.28
+    },
+    {
+     "name": "sfx_whoosh.wav",
+     "peak_dbfs": -17.06
+    },
+    {
+     "name": "sfx_whoosh.wav",
+     "peak_dbfs": -17.06
+    },
+    {
+     "name": "sfx_whoosh.wav",
+     "peak_dbfs": -17.06
+    },
+    {
+     "name": "sfx_whoosh.wav",
+     "peak_dbfs": -17.06
+    },
+    {
+     "name": "sfx_impact_braam.wav",
+     "peak_dbfs": -16.84
+    }
+   ],
+   "hits": [
+    {
+     "name": "sfx_impact_braam.wav",
+     "f0_hz": 45.3,
+     "strongest_hz": 45.3,
+     "below_80_pct": 99.0,
+     "body_90_200_pct": 1.0,
+     "transient_1k_3k_pct": 0.0,
+     "attack_50ms_1k_3k_pct": 0.0,
+     "peak_dbfs": -18.24
+    },
+    {
+     "name": "sfx_impact_braam.wav",
+     "f0_hz": 46.0,
+     "strongest_hz": 46.0,
+     "below_80_pct": 99.0,
+     "body_90_200_pct": 1.0,
+     "transient_1k_3k_pct": 0.0,
+     "attack_50ms_1k_3k_pct": 0.0,
+     "peak_dbfs": -18.25
+    },
+    {
+     "name": "sfx_impact_braam.wav",
+     "f0_hz": 46.0,
+     "strongest_hz": 46.0,
+     "below_80_pct": 99.0,
+     "body_90_200_pct": 1.0,
+     "transient_1k_3k_pct": 0.0,
+     "attack_50ms_1k_3k_pct": 0.0,
+     "peak_dbfs": -18.25
+    },
+    {
+     "name": "sfx_impact_braam.wav",
+     "f0_hz": 46.0,
+     "strongest_hz": 46.0,
+     "below_80_pct": 99.0,
+     "body_90_200_pct": 1.0,
+     "transient_1k_3k_pct": 0.0,
+     "attack_50ms_1k_3k_pct": 0.0,
+     "peak_dbfs": -18.25
+    },
+    {
+     "name": "sfx_impact_braam.wav",
+     "f0_hz": 46.0,
+     "strongest_hz": 46.0,
+     "below_80_pct": 99.0,
+     "body_90_200_pct": 1.0,
+     "transient_1k_3k_pct": 0.0,
+     "attack_50ms_1k_3k_pct": 0.0,
+     "peak_dbfs": -18.25
+    },
+    {
+     "name": "sfx_impact_braam.wav",
+     "f0_hz": 46.1,
+     "strongest_hz": 46.1,
+     "below_80_pct": 99.0,
+     "body_90_200_pct": 1.0,
+     "transient_1k_3k_pct": 0.0,
+     "attack_50ms_1k_3k_pct": 0.0,
+     "peak_dbfs": -18.25
+    }
+   ],
+   "impacts_mixed": [
+    {
+     "name": "sfx_impact_braam.wav",
+     "f0_hz": 50.5,
+     "strongest_hz": 61.5,
+     "below_80_pct": 99.9,
+     "body_90_200_pct": 0.1,
+     "transient_1k_3k_pct": 0.0,
+     "attack_50ms_1k_3k_pct": 0.0,
+     "peak_dbfs": -16.74
+    },
+    {
+     "name": "sfx_impact_braam.wav",
+     "f0_hz": 50.5,
+     "strongest_hz": 61.5,
+     "below_80_pct": 99.9,
+     "body_90_200_pct": 0.1,
+     "transient_1k_3k_pct": 0.0,
+     "attack_50ms_1k_3k_pct": 0.0,
+     "peak_dbfs": -17.9
+    },
+    {
+     "name": "sfx_impact_braam.wav",
+     "f0_hz": 50.5,
+     "strongest_hz": 61.5,
+     "below_80_pct": 99.9,
+     "body_90_200_pct": 0.1,
+     "transient_1k_3k_pct": 0.0,
+     "attack_50ms_1k_3k_pct": 0.0,
+     "peak_dbfs": -17.9
+    },
+    {
+     "name": "sfx_impact_braam.wav",
+     "f0_hz": 50.5,
+     "strongest_hz": 61.5,
+     "below_80_pct": 99.9,
+     "body_90_200_pct": 0.1,
+     "transient_1k_3k_pct": 0.0,
+     "attack_50ms_1k_3k_pct": 0.0,
+     "peak_dbfs": -17.9
+    },
+    {
+     "name": "sfx_impact_braam.wav",
+     "f0_hz": 50.5,
+     "strongest_hz": 61.5,
+     "below_80_pct": 99.9,
+     "body_90_200_pct": 0.1,
+     "transient_1k_3k_pct": 0.0,
+     "attack_50ms_1k_3k_pct": 0.0,
+     "peak_dbfs": -17.9
+    },
+    {
+     "name": "sfx_impact_braam.wav",
+     "f0_hz": 50.5,
+     "strongest_hz": 61.5,
+     "below_80_pct": 99.9,
+     "body_90_200_pct": 0.1,
+     "transient_1k_3k_pct": 0.0,
+     "attack_50ms_1k_3k_pct": 0.0,
+     "peak_dbfs": -17.46
+    }
+   ],
+   "bed_bus": null
+  },
+  {
+   "run": "run_richat_structure_sahara_eye_1793474843",
+   "path": "reel_9x16",
+   "audio": "generated narration and music stand-ins",
+   "seconds": 44.898,
+   "gain_db": 4.6,
+   "gain_no_sfx_db": 4.6,
+   "lufs": -13.97,
+   "peak_dbfs": -1.94,
+   "limiter_lag_samples": 120,
+   "max_gr_db": 0.49,
+   "max_abs_narration_delta_lu": 0.11,
+   "cues": [
+    {
+     "t": 0.15,
+     "end": 5.148,
+     "what": "opening hit",
+     "gr_db": 0.11,
+     "gr_no_sfx_db": 0.09,
+     "narration_delta_lu": 0.0,
+     "bed_peak_dbfs": -12.12
+    },
+    {
+     "t": 25.038,
+     "end": 27.038,
+     "what": "reveal hit",
+     "gr_db": 0.49,
+     "gr_no_sfx_db": 0.1,
+     "narration_delta_lu": -0.11,
+     "bed_peak_dbfs": -10.54
+    }
+   ],
+   "effects_mixed": [
+    {
+     "name": "sfx_impact_braam.wav",
+     "peak_dbfs": -16.11
+    },
+    {
+     "name": "sfx_whoosh.wav",
+     "peak_dbfs": -17.06
+    },
+    {
+     "name": "sfx_impact_braam.wav",
+     "peak_dbfs": -16.84
+    },
+    {
+     "name": "sfx_desert_wind.wav",
+     "peak_dbfs": -9.57
+    }
+   ],
+   "hits": [
+    {
+     "name": "sfx_impact_braam.wav",
+     "f0_hz": 45.3,
+     "strongest_hz": 45.3,
+     "below_80_pct": 99.0,
+     "body_90_200_pct": 1.0,
+     "transient_1k_3k_pct": 0.0,
+     "attack_50ms_1k_3k_pct": 0.0,
+     "peak_dbfs": -18.24
+    },
+    {
+     "name": "sfx_impact_braam.wav",
+     "f0_hz": 46.1,
+     "strongest_hz": 46.1,
+     "below_80_pct": 99.0,
+     "body_90_200_pct": 1.0,
+     "transient_1k_3k_pct": 0.0,
+     "attack_50ms_1k_3k_pct": 0.0,
+     "peak_dbfs": -18.25
+    }
+   ],
+   "impacts_mixed": [
+    {
+     "name": "sfx_impact_braam.wav",
+     "f0_hz": 50.5,
+     "strongest_hz": 61.5,
+     "below_80_pct": 99.9,
+     "body_90_200_pct": 0.1,
+     "transient_1k_3k_pct": 0.0,
+     "attack_50ms_1k_3k_pct": 0.0,
+     "peak_dbfs": -16.74
+    },
+    {
+     "name": "sfx_impact_braam.wav",
+     "f0_hz": 50.5,
+     "strongest_hz": 61.5,
+     "below_80_pct": 99.9,
+     "body_90_200_pct": 0.1,
+     "transient_1k_3k_pct": 0.0,
+     "attack_50ms_1k_3k_pct": 0.0,
+     "peak_dbfs": -17.46
+    }
+   ],
+   "bed_bus": null
+  },
+  {
+   "run": "run_tunguska_event_1908_1792930600",
+   "path": "reel_9x16",
+   "audio": "generated narration and music stand-ins",
+   "seconds": 43.89,
+   "gain_db": 4.6,
+   "gain_no_sfx_db": 4.6,
+   "lufs": -14.0,
+   "peak_dbfs": -1.95,
+   "limiter_lag_samples": 120,
+   "max_gr_db": 0.1,
+   "max_abs_narration_delta_lu": 0.0,
+   "cues": [
+    {
+     "t": 0.15,
+     "end": 2.15,
+     "what": "opening hit",
+     "gr_db": 0.1,
+     "gr_no_sfx_db": 0.1,
+     "narration_delta_lu": -0.0,
+     "bed_peak_dbfs": -11.9
+    },
+    {
+     "t": 8.906,
+     "end": 11.707,
+     "what": "transition whoosh",
+     "gr_db": 0.09,
+     "gr_no_sfx_db": 0.08,
+     "narration_delta_lu": 0.0,
+     "bed_peak_dbfs": -11.82
+    },
+    {
+     "t": 24.391,
+     "end": 24.75,
+     "what": "transition whoosh",
+     "gr_db": 0.05,
+     "gr_no_sfx_db": 0.05,
+     "narration_delta_lu": -0.0,
+     "bed_peak_dbfs": -13.98
+    }
+   ],
+   "effects_mixed": [
+    {
+     "name": "sfx_impact_braam.wav",
+     "peak_dbfs": -16.11
+    },
+    {
+     "name": "sfx_whoosh.wav",
+     "peak_dbfs": -17.06
+    },
+    {
+     "name": "sfx_whoosh.wav",
+     "peak_dbfs": -17.06
+    },
+    {
+     "name": "sfx_impact_braam.wav",
+     "peak_dbfs": -16.84
+    }
+   ],
+   "hits": [
+    {
+     "name": "sfx_impact_braam.wav",
+     "f0_hz": 45.3,
+     "strongest_hz": 45.3,
+     "below_80_pct": 99.0,
+     "body_90_200_pct": 1.0,
+     "transient_1k_3k_pct": 0.0,
+     "attack_50ms_1k_3k_pct": 0.0,
+     "peak_dbfs": -18.24
+    },
+    {
+     "name": "sfx_impact_braam.wav",
+     "f0_hz": 46.1,
+     "strongest_hz": 46.1,
+     "below_80_pct": 99.0,
+     "body_90_200_pct": 1.0,
+     "transient_1k_3k_pct": 0.0,
+     "attack_50ms_1k_3k_pct": 0.0,
+     "peak_dbfs": -18.25
+    }
+   ],
+   "impacts_mixed": [
+    {
+     "name": "sfx_impact_braam.wav",
+     "f0_hz": 50.5,
+     "strongest_hz": 61.5,
+     "below_80_pct": 99.9,
+     "body_90_200_pct": 0.1,
+     "transient_1k_3k_pct": 0.0,
+     "attack_50ms_1k_3k_pct": 0.0,
+     "peak_dbfs": -16.74
+    },
+    {
+     "name": "sfx_impact_braam.wav",
+     "f0_hz": 50.5,
+     "strongest_hz": 61.5,
+     "below_80_pct": 99.9,
+     "body_90_200_pct": 0.1,
+     "transient_1k_3k_pct": 0.0,
+     "attack_50ms_1k_3k_pct": 0.0,
+     "peak_dbfs": -17.46
+    }
+   ],
+   "bed_bus": null
+  },
+  {
+   "run": "run_unfinished_obelisk_aswan_1792985912",
+   "path": "reel_9x16",
+   "audio": "generated narration and music stand-ins",
+   "seconds": 46.458,
+   "gain_db": 4.6,
+   "gain_no_sfx_db": 4.6,
+   "lufs": -13.97,
+   "peak_dbfs": -1.94,
+   "limiter_lag_samples": 120,
+   "max_gr_db": 0.33,
+   "max_abs_narration_delta_lu": 0.05,
+   "cues": [
+    {
+     "t": 0.15,
+     "end": 2.15,
+     "what": "opening hit",
+     "gr_db": 0.33,
+     "gr_no_sfx_db": 0.09,
+     "narration_delta_lu": -0.05,
+     "bed_peak_dbfs": -12.01
+    },
+    {
+     "t": 4.773,
+     "end": 6.923,
+     "what": "transition whoosh",
+     "gr_db": 0.1,
+     "gr_no_sfx_db": 0.09,
+     "narration_delta_lu": -0.01,
+     "bed_peak_dbfs": -11.29
+    },
+    {
+     "t": 8.611,
+     "end": 12.556,
+     "what": "sfx_fire_crackle.wav",
+     "gr_db": 0.08,
+     "gr_no_sfx_db": 0.08,
+     "narration_delta_lu": -0.0,
+     "bed_peak_dbfs": -16.02
+    },
+    {
+     "t": 27.35,
+     "end": 27.709,
+     "what": "transition whoosh",
+     "gr_db": 0.09,
+     "gr_no_sfx_db": 0.09,
+     "narration_delta_lu": 0.0,
+     "bed_peak_dbfs": -15.08
+    }
+   ],
+   "effects_mixed": [
+    {
+     "name": "sfx_impact_braam.wav",
+     "peak_dbfs": -16.11
+    },
+    {
+     "name": "sfx_whoosh.wav",
+     "peak_dbfs": -17.06
+    },
+    {
+     "name": "sfx_whoosh.wav",
+     "peak_dbfs": -17.06
+    },
+    {
+     "name": "sfx_impact_braam.wav",
+     "peak_dbfs": -16.84
+    },
+    {
+     "name": "sfx_fire_crackle.wav",
+     "peak_dbfs": 2.95
+    }
+   ],
+   "hits": [
+    {
+     "name": "sfx_impact_braam.wav",
+     "f0_hz": 45.3,
+     "strongest_hz": 45.3,
+     "below_80_pct": 99.0,
+     "body_90_200_pct": 1.0,
+     "transient_1k_3k_pct": 0.0,
+     "attack_50ms_1k_3k_pct": 0.0,
+     "peak_dbfs": -18.24
+    },
+    {
+     "name": "sfx_impact_braam.wav",
+     "f0_hz": 46.1,
+     "strongest_hz": 46.1,
+     "below_80_pct": 99.0,
+     "body_90_200_pct": 1.0,
+     "transient_1k_3k_pct": 0.0,
+     "attack_50ms_1k_3k_pct": 0.0,
+     "peak_dbfs": -18.25
+    }
+   ],
+   "impacts_mixed": [
+    {
+     "name": "sfx_impact_braam.wav",
+     "f0_hz": 50.5,
+     "strongest_hz": 61.5,
+     "below_80_pct": 99.9,
+     "body_90_200_pct": 0.1,
+     "transient_1k_3k_pct": 0.0,
+     "attack_50ms_1k_3k_pct": 0.0,
+     "peak_dbfs": -16.74
+    },
+    {
+     "name": "sfx_impact_braam.wav",
+     "f0_hz": 50.5,
+     "strongest_hz": 61.5,
+     "below_80_pct": 99.9,
+     "body_90_200_pct": 0.1,
+     "transient_1k_3k_pct": 0.0,
+     "attack_50ms_1k_3k_pct": 0.0,
+     "peak_dbfs": -17.46
+    }
+   ],
+   "bed_bus": null
+  },
+  {
+   "run": "run_voynich_manuscript_1792965308",
+   "path": "reel_9x16",
+   "audio": "generated narration and music stand-ins",
+   "seconds": 47.106,
+   "gain_db": 4.5,
+   "gain_no_sfx_db": 4.5,
+   "lufs": -14.03,
+   "peak_dbfs": -1.94,
+   "limiter_lag_samples": 120,
+   "max_gr_db": 0.11,
+   "max_abs_narration_delta_lu": 0.01,
+   "cues": [
+    {
+     "t": 0.15,
+     "end": 2.15,
+     "what": "opening hit",
+     "gr_db": 0.11,
+     "gr_no_sfx_db": 0.1,
+     "narration_delta_lu": -0.0,
+     "bed_peak_dbfs": -12.04
+    },
+    {
+     "t": 3.648,
+     "end": 5.648,
+     "what": "reveal hit",
+     "gr_db": 0.1,
+     "gr_no_sfx_db": 0.09,
+     "narration_delta_lu": -0.01,
+     "bed_peak_dbfs": -12.25
+    },
+    {
+     "t": 9.392,
+     "end": 10.418,
+     "what": "sfx_parchment.wav",
+     "gr_db": 0.07,
+     "gr_no_sfx_db": 0.07,
+     "narration_delta_lu": -0.0,
+     "bed_peak_dbfs": -16.5
+    },
+    {
+     "t": 25.271,
+     "end": 25.63,
+     "what": "transition whoosh",
+     "gr_db": 0.07,
+     "gr_no_sfx_db": 0.08,
+     "narration_delta_lu": -0.0,
+     "bed_peak_dbfs": -13.58
+    }
+   ],
+   "effects_mixed": [
+    {
+     "name": "sfx_impact_braam.wav",
+     "peak_dbfs": -16.11
+    },
+    {
+     "name": "sfx_whoosh.wav",
+     "peak_dbfs": -17.06
+    },
+    {
+     "name": "sfx_impact_braam.wav",
+     "peak_dbfs": -16.84
+    },
+    {
+     "name": "sfx_parchment.wav",
+     "peak_dbfs": -15.88
+    }
+   ],
+   "hits": [
+    {
+     "name": "sfx_impact_braam.wav",
+     "f0_hz": 45.3,
+     "strongest_hz": 45.3,
+     "below_80_pct": 99.0,
+     "body_90_200_pct": 1.0,
+     "transient_1k_3k_pct": 0.0,
+     "attack_50ms_1k_3k_pct": 0.0,
+     "peak_dbfs": -18.24
+    },
+    {
+     "name": "sfx_impact_braam.wav",
+     "f0_hz": 46.1,
+     "strongest_hz": 46.1,
+     "below_80_pct": 99.0,
+     "body_90_200_pct": 1.0,
+     "transient_1k_3k_pct": 0.0,
+     "attack_50ms_1k_3k_pct": 0.0,
+     "peak_dbfs": -18.25
+    }
+   ],
+   "impacts_mixed": [
+    {
+     "name": "sfx_impact_braam.wav",
+     "f0_hz": 50.5,
+     "strongest_hz": 61.5,
+     "below_80_pct": 99.9,
+     "body_90_200_pct": 0.1,
+     "transient_1k_3k_pct": 0.0,
+     "attack_50ms_1k_3k_pct": 0.0,
+     "peak_dbfs": -16.74
+    },
+    {
+     "name": "sfx_impact_braam.wav",
+     "f0_hz": 50.5,
+     "strongest_hz": 61.5,
+     "below_80_pct": 99.9,
+     "body_90_200_pct": 0.1,
+     "transient_1k_3k_pct": 0.0,
+     "attack_50ms_1k_3k_pct": 0.0,
+     "peak_dbfs": -17.46
+    }
+   ],
+   "bed_bus": null
+  }
+ ]
+}

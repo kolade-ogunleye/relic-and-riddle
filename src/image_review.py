@@ -23,7 +23,7 @@ from typing import Any, Dict, List, Literal, Optional
 
 from pydantic import BaseModel
 
-from . import commons, free_llm
+from . import commons, free_llm, prompt_fence
 from .config import MIN_SCENE_IMAGES
 from .credits import load_credits, save_credits
 from .llm import LLMError, image_block, verdict_reason
@@ -69,16 +69,20 @@ def _human_decided(credits: Dict[str, Any]) -> bool:
 def _verdicts(topic: Dict[str, Any], topic_dir: Path, images: List[Dict[str, Any]]) -> Optional[Dict[int, PhotoVerdict]]:
     """The vision model's verdict per photo (1-based), or None when no model could look."""
     loc = topic.get("location") or {}
+    mark = prompt_fence.new_token()
     content: List[dict] = [{"type": "text", "text": (
         f"Topic: {topic.get('title', topic['id'])}\nPlace: {loc.get('name', '')}, {loc.get('country', '')}\n"
-        f"Key facts: {'; '.join(topic.get('key_facts', [])[:5])}\n\nPhotos:")}]
-    for i, img in enumerate(images, 1):
-        content += [{"type": "text", "text": f"Photo {i}: {commons.caption(img)}"}, image_block(topic_dir / img["file"])]
+        f"Key facts: {'; '.join(topic.get('key_facts', [])[:5])}\n\n"
+        + prompt_fence.fence_note(mark) + "\n\nPhotos:")}]
+    for i, img in enumerate(images, 1):   # each archive caption a short JSON string inside the call's fence (QF-41)
+        label = f'<caption fence="{mark}">{prompt_fence.safe_caption(commons.caption(img))}</caption fence="{mark}">'
+        content += [{"type": "text", "text": f"Photo {i}: {label}"}, image_block(topic_dir / img["file"])]
     content.append({"type": "text", "text": f"Return one verdict for each of the {len(images)} photos."})
     for role in ("checker", "writer"):  # either free model will do; one is often overloaded
         try:
             review = free_llm.call(SYSTEM, content, PoolReview, role=role, task_class="light",
                                     effort="medium", max_tokens=6000)
+            prompt_fence.check_reply(review, mark)
             # A reason keeps no stray working notes of the model's (llm.verdict_reason); the verdict is its own.
             return {v.index: v.model_copy(update={"reason": verdict_reason(v.reason)}) for v in review.verdicts}
         except (LLMError, OSError) as e:

@@ -8,9 +8,9 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 from src.config import DATA_DIR
-from src.fact_evidence import record_fact_review
+from src.fact_evidence import stamp_checked_review
 from src.script_engine import ScriptEngine
-from src.trace_check import check, evidence_check
+from src.trace_check import check, checker_models, evidence_check
 
 
 def main():
@@ -39,15 +39,17 @@ def main():
                "delivery_profile": "deep_dive_16x9", "origin": "validation_documentary",
                "guardrail_passed": passed, "verification_issues": issues}
     if passed:
-        passed, confidence, audits, notes = check(payload, sheet)
+        traced = check(payload, sheet)
+        passed, confidence, audits, notes = traced
         payload.update(guardrail_passed=passed, final_fact_audits=audits,
                        verification_confidence=confidence, verification_summary=notes)
         if passed:
-            status, confidence, audits, notes = evidence_check(payload, sheet)
+            evidence = evidence_check(payload, sheet)
+            status, confidence, audits, notes = evidence
             passed = status == "pass"
             payload.update(guardrail_passed=passed, second_check={"status": status, "confidence": confidence, "audits": audits, "summary": notes})
-            if passed:
-                record_fact_review(payload, sheet_path)
+            if passed:   # stamped with both checkers' signed runs (fact_evidence.record_fact_review refuses otherwise)
+                stamp_checked_review(payload, sheet_path, traced, evidence, checker_models())
     (args.output / "script_metadata.json").write_text(json.dumps(payload, indent=2), encoding="utf-8")
     print(json.dumps({"passed": passed, "issues": issues, "words": len(payload["narration_script"].split()),
                       "output": str(args.output.resolve())}), flush=True)

@@ -105,7 +105,8 @@ def test_richat_cover_draws_its_tagline_inside_the_square_in_every_style(tmp_pat
         entry = _records(tmp_path / style)["thumbnail_cover.jpg"]
         _assert_clean(entry, cover_text_zone())
         assert {"eyebrow", "title_1", "title_2", "tagline"} <= {e["name"] for e in entry["elements"]}, style
-        assert "MAURITANIA'S BULLSEYE" in drawn, style                     # lower_third used to leave it out
+        # lower_third used to leave it out; round 4: the deck is tracked (a letter at a time) and typeset (\u2019)
+        assert "MAURITANIA\u2019SBULLSEYE" in "".join(drawn).replace(" ", ""), style
         assert entry["shortened"] == [] and entry["recipe"]["style"] == style
         assert Image.open(grid).size == (1080, 1080)
 

@@ -1,5 +1,5 @@
 {
-  "path": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\data\\sfx\\sfx_water_surge.wav",
+  "path": "data/sfx/sfx_water_surge.wav",
   "sha256": "e7c73b675bacadb6861e1b5cc9c0c683d9230a0cde02cbc361b291c7dd78687f",
   "provider": "elevenlabs-sound-effects",
   "plan": "creator",

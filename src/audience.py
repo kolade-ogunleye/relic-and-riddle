@@ -97,8 +97,9 @@ def ensure_schema(db) -> None:
 
 
 def _secrets() -> List[str]:
-    return [s for s in (config.META_ACCESS_TOKEN, config.META_PAGE_ACCESS_TOKEN, config.UPLOAD_POST_API_KEY)
-            if s and len(s) >= 6]
+    from . import youtube_analytics
+    return [s for s in (config.META_ACCESS_TOKEN, config.META_PAGE_ACCESS_TOKEN, config.UPLOAD_POST_API_KEY,
+                        *youtube_analytics.secrets()) if s and len(s) >= 6]
 
 
 def _redact(text: Any) -> str:
@@ -386,8 +387,11 @@ def due_snapshots(db, now: Optional[datetime] = None) -> List[Dict[str, Any]]:
         taken = {(r["run_id"], r["platform"], r["snapshot"])
                  for r in conn.execute("SELECT run_id, platform, snapshot FROM audience_metrics")}
     due = []
+    keep = timedelta(days=getattr(db, "RETENTION_DAYS", {}).get("audience_metrics", 730))
     for p in pubs:
         posted = _posted_at(p["created_at"])
+        if now - posted >= keep:
+            continue  # past the metrics' retention (db.prune_history): its pruned rows are not measured again
         pub = {"run_id": p["run_id"], "channel": p["channel"], "response": json.loads(p["response_payload_json"] or "{}"),
                "posted_at": posted.isoformat()}
         wanted = targets(pub, db.get_run(p["run_id"]) or {})
@@ -482,6 +486,32 @@ def _record_sources(db, collected_at: str, run_id: str, snapshot: str, outcomes:
                           for label, source, outcome, detail in outcomes])
 
 
+def _add_youtube_retention(data: dict[str, Any], res: dict[str, Any], item: dict[str, Any], outcomes: list,
+                           label: str, run_id: str, snapshot: str) -> None:
+    """A Short's retention curve from YouTube Analytics (src/youtube_analytics.py), into its metrics as
+    yt_retention_graph, when the owner's consent is configured; its outcome is logged and kept like any
+    source's, and a failure never costs the counts already measured."""
+    from . import youtube_analytics
+    if not youtube_analytics.configured():
+        return
+    vid = youtube_analytics.video_id(res)
+    if not vid:
+        outcomes.append((label, "youtube-analytics", "skipped", "no video id recorded"))
+        return
+    posted = _when(item.get("posted_at"))
+    try:
+        curve = youtube_analytics.retention(vid, posted.date() if posted else None)
+    except (RuntimeError, requests.RequestException, KeyError, ValueError) as e:
+        outcomes.append((label, "youtube-analytics", "failed", _redact(e)))
+        log.warning("Audience %s %s %s: YouTube Analytics failed: %s", run_id, snapshot, label, _redact(e))
+        return
+    if curve:
+        data["yt_retention_graph"] = curve
+        outcomes.append((label, "youtube-analytics", "ok", f"retention curve ({len(curve)} points)"))
+    else:
+        outcomes.append((label, "youtube-analytics", "skipped", "no retention rows yet"))
+
+
 def collect(db, now: Optional[datetime] = None) -> int:
     """Takes every due snapshot; returns how many rows were stored. Meta's Graph first, Upload-Post when
     the Graph cannot answer. A platform that cannot be measured is stored as unavailable (so it never
@@ -543,6 +573,8 @@ def collect(db, now: Optional[datetime] = None) -> int:
                         data = {"source": "upload-post", "unavailable": reason[:300]}
                         outcomes.append((label, "upload-post", "failed", (found or {}).get("unavailable") or "no metrics"))
                         log.warning("Audience %s %s %s: no source answered: %s", run_id, snapshot, label, reason)
+                if base == "youtube" and not data.get("unavailable"):
+                    _add_youtube_retention(data, res, item, outcomes, label, run_id, snapshot)
                 rows[label] = data
         except (RuntimeError, requests.RequestException) as e:
             log.warning("Audience metrics for %s (%s) unavailable: %s", run_id, snapshot, _redact(e))
@@ -654,6 +686,112 @@ def measured_duration(run: Dict[str, Any]) -> Optional[float]:
     return float(m.group(1)) if m else None
 
 
+LEGACY_ROTATION = ("badge", "lower_third", "minimal", "depth_sandwich")   # main.py's rotation until 2026-11-01
+
+
+def cover_style(db, run_id: str, run: dict[str, Any]) -> str | None:
+    """The cover style a run's Reel went out with: the style recorded beside its cover (still_layout recipe),
+    else the per-run rotation that chose it before cover_selector (LEGACY_ROTATION by run key). None when neither
+    is known."""
+    import sqlite3
+    from pathlib import Path
+
+    from . import still_layout
+    from .visual_engine import RENDERABLE_STYLES
+    if run.get("master_video_path"):
+        entry = still_layout.load(Path(run["master_video_path"]).parent / "thumbnail_cover.jpg") or {}
+        style = (entry.get("recipe") or {}).get("style")
+        if style in RENDERABLE_STYLES:
+            return style
+    try:
+        key = db.run_key(run_id)
+    except (sqlite3.Error, ValueError, TypeError):  # no run row: no rotation to recover
+        return None
+    # Runs without a record predate cover_selector: they were rotated through the order in use then.
+    return LEGACY_ROTATION[int(key) % len(LEGACY_ROTATION)] if str(key).isdigit() else None
+
+
+def _curve(metrics: dict[str, Any]) -> dict[int, float] | None:
+    """A video's retention curve as {point: share watching}, the last point being the video's end: Facebook's
+    graph (fortieths) or YouTube's (hundredths, audienceWatchRatio: above 1 where Shorts loop); None without one."""
+    for key in ("post_video_retention_graph", "yt_retention_graph"):
+        graph = metrics.get(key)
+        if isinstance(graph, dict) and graph:
+            try:
+                return {int(k): float(v) for k, v in graph.items()}
+            except (TypeError, ValueError):
+                return None
+    return None
+
+
+def hold_at(metrics: dict[str, Any], duration_s: float | None, seconds: float = 3.0) -> float | None:
+    """The share of viewers still watching `seconds` in, from the video's retention curve (Facebook's or
+    YouTube's), at most 1 (a Short's loops count once); None without a curve or a length."""
+    points = _curve(metrics)
+    if not points or not duration_s:
+        return None
+    last = max(points)
+    at = min(last, max(0, round(seconds / duration_s * last)))
+    value = points.get(at, points[min(points, key=lambda k: abs(k - at))])
+    return round(min(1.0, value), 3)
+
+
+BEAT_DROP_FLAG = 0.15   # a beat that loses this share of the viewers it started with is filed as a finding
+HOOK_SECONDS = 3.0      # the opening is the hook's (hook_learning); beats are read after it
+
+
+def _retention_at(points: dict[int, float], duration_s: float, t: float) -> float:
+    """The share still watching at `t` seconds, linearly between the graph's fortieths."""
+    last = max(points)
+    x = min(last, max(0.0, t / duration_s * last))
+    lo, hi = int(x), min(last, int(x) + 1)
+    a = points.get(lo, points[min(points, key=lambda k: abs(k - lo))])
+    b = points.get(hi, points[min(points, key=lambda k: abs(k - hi))])
+    return a + (b - a) * (x - lo)
+
+
+def beat_drops(metrics: dict[str, Any], duration_s: float | None, beats: list[dict[str, Any]],
+               end_s: float | None = None) -> list[dict[str, Any]]:
+    """Each narration beat after the hook with the share of its starting viewers it lost, from the video's
+    retention curve (Facebook's or YouTube's): [{"text", "start", "end", "lost"}], in order; [] without a curve,
+    a length or beats. A beat runs to the next one's start (the last to `end_s`, the end card's start, else the
+    video's end)."""
+    points = _curve(metrics)
+    if not points or not duration_s or not beats:
+        return []
+    out = []
+    starts = [float(b.get("start") or 0.0) for b in beats]
+    for i, b in enumerate(beats):
+        start = max(starts[i], HOOK_SECONDS)
+        end = starts[i + 1] if i + 1 < len(beats) else float(end_s or duration_s)
+        if end <= start:
+            continue
+        before, after = _retention_at(points, duration_s, start), _retention_at(points, duration_s, end)
+        if before <= 0:
+            continue
+        out.append({"text": str(b.get("text") or ""), "start": round(start, 1), "end": round(end, 1),
+                    "lost": round(max(0.0, (before - after) / before), 3)})
+    return out
+
+
+def opening_fields(run: dict[str, Any], metrics: dict[str, Any], duration_s: float | None) -> dict[str, Any]:
+    """How a Reel opened and how its first three seconds did: the hook's form as written (hook_learning.classify:
+    read from the sentence itself, so earlier runs are measured too), the opening shot recorded at render, and
+    the share still watching at 3 s."""
+    from .hook_learning import classify
+    payload = run.get("script_payload") or {}
+    opening = payload.get("opening") if isinstance(payload.get("opening"), dict) else {}
+    card = payload.get("end_card") if isinstance(payload.get("end_card"), dict) else {}
+    drops = beat_drops(metrics, duration_s, payload.get("beat_times") or [], card.get("start_s"))
+    from .engagement_learning import caption_question, classify_question, classify_share
+    return {"hook_form": classify(str(payload.get("hook_sentence") or "")), "opening_shot": opening.get("shot"),
+            "hold_3s": hold_at(metrics, duration_s),
+            "worst_beat": max(drops, key=lambda d: d["lost"]) if drops else None,
+            "hook_plan": payload.get("hook_plan") if isinstance(payload.get("hook_plan"), dict) else None,
+            "share_form": classify_share(str(payload.get("share_line") or "")),
+            "question_form": classify_question(caption_question(str(payload.get("caption") or "")))}
+
+
 def table(db) -> List[Dict[str, Any]]:
     """Latest snapshot per published run and platform, with derived rates."""
     ensure_schema(db)
@@ -672,7 +810,8 @@ def table(db) -> List[Dict[str, Any]]:
         out.append({"run_id": run_id, "platform": platform, "snapshot": r["snapshot"], "fetched_at": r["fetched_at"],
                     "title": (run.get("script_payload") or {}).get("title", run_id),
                     "unavailable": metrics.get("unavailable"), **derived(metrics, duration),
-                    "end_card": card.get("variant") if card else None, **card_retention(metrics, duration, card)})
+                    "end_card": card.get("variant") if card else None, **card_retention(metrics, duration, card),
+                    "cover_style": cover_style(db, run_id, run), **opening_fields(run, metrics, duration)})
     return out
 
 
@@ -694,6 +833,122 @@ def end_card_comparison(rows: List[Dict[str, Any]]) -> Optional[str]:
     drops = [r["card_drop"] for r in with_card if r.get("card_drop") is not None]
     drop = f"; the card loses {sum(drops) / len(drops):.0%} of viewers" if drops else ""
     return f"• End card: with it {describe(with_card)}; without {describe(without)}{drop}."
+
+
+MIN_PER_STYLE = 8   # videos per cover style on a platform before its comparison is more than an early signal
+
+
+def cover_style_comparison(rows: list[dict[str, Any]]) -> list[str]:
+    """Digest lines comparing the cover styles, one per video platform (Instagram, Facebook, YouTube) on which two
+    styles have been measured, by the rates that do not depend on a topic's reach: 3-second skip rate where
+    Instagram reports it (lowest first), shares and saves per account reached, and watch ratio. Each style's
+    median, so one viral topic does not decide it; an early signal until each has MIN_PER_STYLE videos there."""
+    from statistics import median
+
+    def med(group, key):
+        vals = [r[key] for r in group if r.get(key) is not None]
+        return median(vals) if vals else None
+
+    def describe(style, group):
+        skip, share, save, watch = (med(group, k) for k in ("skip_rate", "share_rate", "save_rate", "watch_ratio"))
+        bits = [f"skip {skip:.0f}%" if skip is not None else None,
+                f"shares {share:.1%}" if share is not None else None,
+                f"saves {save:.1%}" if save is not None else None,
+                f"watched {watch:.0%}" if watch is not None else None]
+        return f"{style} ({len(group)}): " + (", ".join(b for b in bits if b) or "no rates yet")
+
+    def order(item):
+        skip, watch = med(item[1], "skip_rate"), med(item[1], "watch_ratio")
+        return (skip is None, skip if skip is not None else -(watch or 0.0))
+
+    lines = []
+    for platform in VIDEO_PLATFORMS:
+        groups: dict[str, list[dict[str, Any]]] = {}
+        for r in rows:
+            if r["platform"] == platform and not r.get("unavailable") and r.get("cover_style"):
+                groups.setdefault(r["cover_style"], []).append(r)
+        if len(groups) < 2:
+            continue
+        parts = [describe(style, group) for style, group in sorted(groups.items(), key=order)]
+        early = min(len(g) for g in groups.values()) < MIN_PER_STYLE
+        note = f" <i>Early signal: fewer than {MIN_PER_STYLE} videos per style.</i>" if early else ""
+        lines.append(f"• Cover styles · {PLATFORM_NAMES.get(platform, platform)} (median, best first): "
+                     + "; ".join(parts) + "." + note)
+    return lines
+
+
+def opening_comparison(rows: list[dict[str, Any]]) -> list[str]:
+    """Digest lines comparing how Reels opened, per video platform, by their first three seconds only: the skip
+    rate where Instagram reports it (lowest first) and the share still watching at 3 s where Facebook's
+    retention curve gives it. One line for the hook's form, one for the opening shot, each once two kinds are
+    measured on that platform; an early signal until each has MIN_PER_STYLE videos there."""
+    from statistics import median
+
+    def med(group, key):
+        vals = [r[key] for r in group if r.get(key) is not None]
+        return median(vals) if vals else None
+
+    lines = []
+    for field, title in (("hook_form", "Hook forms"), ("opening_shot", "Opening shots")):
+        for platform in VIDEO_PLATFORMS:
+            groups: dict[str, list[dict[str, Any]]] = {}
+            for r in rows:
+                if r["platform"] == platform and not r.get("unavailable") and r.get(field):
+                    if r.get("skip_rate") is not None or r.get("hold_3s") is not None:
+                        groups.setdefault(r[field], []).append(r)
+            if len(groups) < 2:
+                continue
+
+            def order(item):
+                skip, hold = med(item[1], "skip_rate"), med(item[1], "hold_3s")
+                return (skip is None, skip if skip is not None else -(hold or 0.0))
+
+            parts = []
+            for kind, group in sorted(groups.items(), key=order):
+                skip, hold = med(group, "skip_rate"), med(group, "hold_3s")
+                bits = [f"skip {skip:.0f}%" if skip is not None else None,
+                        f"{hold:.0%} still watching at 3 s" if hold is not None else None]
+                parts.append(f"{kind} ({len(group)}): " + ", ".join(b for b in bits if b))
+            early = min(len(g) for g in groups.values()) < MIN_PER_STYLE
+            note = f" <i>Early signal: fewer than {MIN_PER_STYLE} videos per kind.</i>" if early else ""
+            lines.append(f"• {title} · {PLATFORM_NAMES.get(platform, platform)} (first 3 s, best first): "
+                         + "; ".join(parts) + "." + note)
+    return lines
+
+
+def asks_comparison(rows: list[dict[str, Any]]) -> list[str]:
+    """Digest lines comparing how Reels asked, per video platform: the share line's form by shares plus saves per
+    account reached, the caption question's form by comments per account reached (each kind's median, best
+    first), once two kinds are measured there; an early signal until each has MIN_PER_STYLE videos."""
+    from statistics import median
+
+    def rate(r, kind):
+        reach = r.get("reach")
+        if kind == "share":
+            if r.get("share_rate") is None and r.get("save_rate") is None:
+                return None
+            return (r.get("share_rate") or 0.0) + (r.get("save_rate") or 0.0)
+        return r["comments"] / reach if r.get("comments") is not None and reach else None
+
+    lines = []
+    for field, kind, title, unit in (("share_form", "share", "Share asks", "shared or saved"),
+                                     ("question_form", "comment", "Caption questions", "commented")):
+        for platform in VIDEO_PLATFORMS:
+            groups: dict[str, list[float]] = {}
+            for r in rows:
+                if r["platform"] == platform and not r.get("unavailable") and r.get(field):
+                    v = rate(r, kind)
+                    if v is not None:
+                        groups.setdefault(r[field], []).append(v)
+            if len(groups) < 2:
+                continue
+            ranked = sorted(groups.items(), key=lambda kv: -median(kv[1]))
+            parts = [f"{k} ({len(v)}): {median(v):.2%} {unit}" for k, v in ranked]
+            early = min(len(v) for v in groups.values()) < MIN_PER_STYLE
+            note = f" <i>Early signal: fewer than {MIN_PER_STYLE} videos per kind.</i>" if early else ""
+            lines.append(f"• {title} · {PLATFORM_NAMES.get(platform, platform)} (per account reached, best first): "
+                         + "; ".join(parts) + "." + note)
+    return lines
 
 
 PLATFORM_NAMES = {"instagram": "Instagram", "facebook": "Facebook", "youtube": "YouTube"}
@@ -719,9 +974,11 @@ def digest_lines(db) -> List[str]:
         mine = sorted((r for r in rows if r["platform"] == platform), key=lambda r: -(r["views"] or 0))[:4]
         for r in mine:
             lines.append(f"• {PLATFORM_NAMES[platform]} · {html.escape(r['title'][:40])} ({r['snapshot']}): {_parts(r)}")
-    comparison = end_card_comparison(rows)
-    if comparison:
-        lines.append(comparison)
+    from .hook_learning import follow_rate
+    for comparison in (end_card_comparison(rows), *opening_comparison(rows), follow_rate(rows),
+                       *asks_comparison(rows), *cover_style_comparison(rows)):
+        if comparison:
+            lines.append(comparison)
     if len({r["run_id"] for r in rows}) < MIN_FOR_PATTERNS:
         lines.append(f"<i>Fewer than {MIN_FOR_PATTERNS} videos: read these as descriptions, not patterns.</i>")
     return lines
@@ -881,6 +1138,19 @@ def file_findings(db) -> int:
               ("watch_ratio", "audience.retention", lambda v, m: v < m * 0.8, "watched {v:.0%} (channel median {m:.0%})"),
               ("share_rate", "audience.shares", lambda v, m: v < m * 0.5, "shares {v:.2%} (channel median {m:.2%})"))
     n = 0
+    # The beat that lost the most viewers, on its own measure (not against the channel's median): a beat that
+    # loses BEAT_DROP_FLAG of the viewers it started with is where the script or the edit lets them go.
+    for r in rows:
+        beat = r.get("worst_beat")
+        if beat and beat["lost"] >= BEAT_DROP_FLAG and (r["run_id"], "audience.beat_drop") not in filed:
+            run = db.get_run(r["run_id"]) or {}
+            words = beat["text"] if len(beat["text"]) <= 90 else beat["text"][:87] + "..."
+            improve.record(db, "audience.beat_drop",
+                           f"{PLATFORM_NAMES[r['platform']]}: lost {beat['lost']:.0%} of viewers during "
+                           f"\"{words}\" ({beat['start']:.1f}-{beat['end']:.1f} s)",
+                           "audience", run_id=r["run_id"], topic_id=run.get("topic_id"))
+            filed.add((r["run_id"], "audience.beat_drop"))
+            n += 1
     for metric, klass, weak, detail in checks:
         for platform in ("instagram", "facebook", "youtube"):
             values = [r for r in rows if r["platform"] == platform and r.get(metric) is not None]

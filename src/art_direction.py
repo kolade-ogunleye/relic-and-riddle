@@ -27,7 +27,11 @@ from PIL import Image
 log = logging.getLogger(__name__)
 
 from .brand import GOLD  # the brand's one gold (src/brand.py, 2026-10-29); #FFD700 until then
-DEFAULT_PALETTE: Dict[str, Any] = {"accent": (120, 190, 255), "accent_hex": "#78BEFF", "source": "default (cool complement to gold)"}
+# The fallback accent is the brand's TEAL (src/brand.py; 2026-11-01 design review: the old #78BEFF sky blue was
+# no brand token): a cool complement to gold, 8.6:1 on the ink ground.
+from .brand import TEAL
+DEFAULT_PALETTE: Dict[str, Any] = {"accent": TEAL, "accent_hex": "#{:02X}{:02X}{:02X}".format(*TEAL),
+                                   "source": "default (cool complement to gold)"}
 READABLE_FRACTION = 0.022          # the smallest text, as a fraction of the frame height
 MIN_CONTRAST = 4.5                 # accent against the dark backdrop (WCAG AA for text)
 GOLD_HUE_CLEARANCE = 35.0          # degrees of hue the accent keeps from gold

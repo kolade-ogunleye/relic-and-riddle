@@ -1,0 +1,308 @@
+{
+ "run_amber_room_heist_1792790550": {
+  "vo_dur": 49.248,
+  "delivery_profile": "reel_9x16",
+  "deep_dive": false,
+  "act_cues": [],
+  "sound_plan": {
+   "moments": [
+    {
+     "t": 3.865,
+     "kind": "action",
+     "effect": null
+    },
+    {
+     "t": 18.125,
+     "kind": "reveal",
+     "effect": null
+    },
+    {
+     "t": 26.084,
+     "kind": "tension",
+     "effect": null
+    },
+    {
+     "t": 34.49,
+     "kind": "calm",
+     "effect": null
+    },
+    {
+     "t": 40.446,
+     "kind": "tension",
+     "effect": null
+    },
+    {
+     "t": 44.069,
+     "kind": "reveal",
+     "effect": null
+    }
+   ]
+  },
+  "composition_scenes": 12,
+  "picture_hold_merged": null
+ },
+ "run_gol_gumbaz_whispering_gallery_1793278143": {
+  "vo_dur": 44.76,
+  "delivery_profile": "reel_9x16",
+  "deep_dive": false,
+  "act_cues": [],
+  "sound_plan": {
+   "moments": [
+    {
+     "t": 5.089,
+     "kind": "tension",
+     "effect": null
+    },
+    {
+     "t": 15.804,
+     "kind": "reveal",
+     "effect": null
+    },
+    {
+     "t": 33.571,
+     "kind": "calm",
+     "effect": null
+    },
+    {
+     "t": 42.959,
+     "kind": "reveal",
+     "effect": null
+    }
+   ]
+  },
+  "composition_scenes": 9,
+  "picture_hold_merged": []
+ },
+ "run_nazca_lines_runway_paradox_1792961797": {
+  "vo_dur": 47.712,
+  "delivery_profile": "reel_9x16",
+  "deep_dive": false,
+  "act_cues": [],
+  "sound_plan": {
+   "moments": [
+    {
+     "t": 1.76,
+     "kind": "action",
+     "effect": "sfx_desert_wind.wav"
+    },
+    {
+     "t": 18.571,
+     "kind": "calm",
+     "effect": null
+    },
+    {
+     "t": 31.735,
+     "kind": "reveal",
+     "effect": null
+    },
+    {
+     "t": 36.888,
+     "kind": "tension",
+     "effect": null
+    },
+    {
+     "t": 38.686,
+     "kind": "reveal",
+     "effect": null
+    },
+    {
+     "t": 46.097,
+     "kind": "calm",
+     "effect": null
+    }
+   ]
+  },
+  "composition_scenes": 11,
+  "picture_hold_merged": null
+ },
+ "run_richat_structure_sahara_eye_1792740961_long": {
+  "vo_dur": 196.368,
+  "delivery_profile": "deep_dive_16x9",
+  "deep_dive": true,
+  "act_cues": [
+   33.14,
+   77.65,
+   111.65,
+   161.58
+  ],
+  "sound_plan": {
+   "moments": [
+    {
+     "t": 27.73,
+     "kind": "tension",
+     "effect": null
+    },
+    {
+     "t": 35.957,
+     "kind": "reveal",
+     "effect": null
+    },
+    {
+     "t": 87.959,
+     "kind": "tension",
+     "effect": null
+    },
+    {
+     "t": 90.051,
+     "kind": "reveal",
+     "effect": null
+    },
+    {
+     "t": 183.508,
+     "kind": "reveal",
+     "effect": null
+    },
+    {
+     "t": 186.518,
+     "kind": "calm",
+     "effect": null
+    }
+   ]
+  },
+  "composition_scenes": 19,
+  "picture_hold_merged": null
+ },
+ "run_richat_structure_sahara_eye_1793474843": {
+  "vo_dur": 43.848,
+  "delivery_profile": "reel_9x16",
+  "deep_dive": false,
+  "act_cues": [],
+  "sound_plan": {
+   "moments": [
+    {
+     "t": 1.148,
+     "kind": "action",
+     "effect": "sfx_desert_wind.wav"
+    },
+    {
+     "t": 19.643,
+     "kind": "tension",
+     "effect": null
+    },
+    {
+     "t": 25.038,
+     "kind": "reveal",
+     "effect": null
+    },
+    {
+     "t": 31.301,
+     "kind": "calm",
+     "effect": null
+    },
+    {
+     "t": 42.36,
+     "kind": "reveal",
+     "effect": null
+    }
+   ]
+  },
+  "composition_scenes": 10,
+  "picture_hold_merged": []
+ },
+ "run_tunguska_event_1908_1792930600": {
+  "vo_dur": 42.84,
+  "delivery_profile": "reel_9x16",
+  "deep_dive": false,
+  "act_cues": [],
+  "sound_plan": {
+   "moments": [
+    {
+     "t": 9.707,
+     "kind": "reveal",
+     "effect": null
+    },
+    {
+     "t": 23.878,
+     "kind": "reveal",
+     "effect": null
+    },
+    {
+     "t": 37.87,
+     "kind": "calm",
+     "effect": null
+    }
+   ]
+  },
+  "composition_scenes": 10,
+  "picture_hold_merged": null
+ },
+ "run_unfinished_obelisk_aswan_1792985912": {
+  "vo_dur": 45.408,
+  "delivery_profile": "reel_9x16",
+  "deep_dive": false,
+  "act_cues": [],
+  "sound_plan": {
+   "moments": [
+    {
+     "t": 4.923,
+     "kind": "reveal",
+     "effect": null
+    },
+    {
+     "t": 8.597,
+     "kind": "action",
+     "effect": "sfx_fire_crackle.wav"
+    },
+    {
+     "t": 27.5,
+     "kind": "reveal",
+     "effect": null
+    },
+    {
+     "t": 33.355,
+     "kind": "tension",
+     "effect": null
+    },
+    {
+     "t": 41.543,
+     "kind": "calm",
+     "effect": null
+    }
+   ]
+  },
+  "composition_scenes": 10,
+  "picture_hold_merged": null
+ },
+ "run_voynich_manuscript_1792965308": {
+  "vo_dur": 46.056,
+  "delivery_profile": "reel_9x16",
+  "deep_dive": false,
+  "act_cues": [],
+  "sound_plan": {
+   "moments": [
+    {
+     "t": 3.648,
+     "kind": "reveal",
+     "effect": null
+    },
+    {
+     "t": 8.839,
+     "kind": "action",
+     "effect": "sfx_parchment.wav"
+    },
+    {
+     "t": 25.893,
+     "kind": "reveal",
+     "effect": null
+    },
+    {
+     "t": 34.592,
+     "kind": "calm",
+     "effect": null
+    },
+    {
+     "t": 43.048,
+     "kind": "tension",
+     "effect": null
+    },
+    {
+     "t": 45.089,
+     "kind": "reveal",
+     "effect": null
+    }
+   ]
+  },
+  "composition_scenes": 11,
+  "picture_hold_merged": null
+ }
+}

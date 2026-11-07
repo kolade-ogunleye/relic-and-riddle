@@ -299,8 +299,10 @@ def fit_line(draw: ImageDraw.ImageDraw, text: str, name: str, size: int, max_wid
 
 def cover_crop(path: Path, size: Tuple[int, int]) -> Image.Image:
     """Scales and center-crops an image to fill `size` without distorting it."""
+    from .photo_hygiene import without_caption_strip
     with Image.open(path) as im:
-        return ImageOps.fit(im.convert("RGBA"), size, Image.LANCZOS)
+        clean, _ = without_caption_strip(ImageOps.exif_transpose(im).convert("RGBA"))
+        return ImageOps.fit(clean, size, Image.LANCZOS)
 
 
 def is_video(path: Path) -> bool:
@@ -522,17 +524,30 @@ def cap_height(font) -> int:
     return -font.getbbox("H", anchor="ls")[1]
 
 
+def full_halo_pad(halo_px) -> int:
+    """The crop pad that holds a whole halo of spread `halo_px`: the halo is a dilation by halo_px | 1, then a
+    Gaussian blur of sigma 0.55 * halo_px, so its tail runs to about k / 2 + 3.5 sigma = 2.425 * halo_px past the
+    glyphs (freeze panel 2026-11-04: the default pad, halo_px + 16, cut it at about 1.8 sigma, still 4-5% of full,
+    and that cut read as a stepped rectangle round a label on a near-white photo). 4 px more for the rounding."""
+    import math
+    return math.ceil(2.425 * float(halo_px or 0)) + 4
+
+
 class TextPlate:
     """One text element planned on its background: glyph masks, the ink halo it needs and the ratio measured on
     the composed pixels. `draw(im)` composites it (also at a partial `alpha` or shifted `dy`, for animation);
-    `measure(im)` re-measures it on the delivered pixels."""
+    `measure(im)` re-measures it on the delivered pixels. `halo_pad` (opt-in, full_halo_pad): crop the plate wide
+    enough for the whole halo and round its alpha, so no rectangle shows where the crop ends; None keeps the
+    original crop (halo_px + 16) and truncation, byte for byte."""
 
-    def __init__(self, text, font, fill, xy, anchor, track, stroke, stroke_fill, halo_px, shadow, size):
+    def __init__(self, text, font, fill, xy, anchor, track, stroke, stroke_fill, halo_px, shadow, size,
+                 halo_pad=None):
         import numpy as np
         self.text, self.font, self.fill, self.xy, self.anchor = text, font, tuple(fill[:3]), xy, anchor
         self.track, self.stroke, self.stroke_fill, self.shadow = track, stroke, stroke_fill, shadow
         self.light = rel_luminance(self.fill) > 0.3
         self.halo, self.contrast, self.contrast_unaided, self.halo_mask = 0.0, None, None, None
+        self._halo_q = round if halo_pad is not None else int    # how the halo's alpha is quantised
         m = Image.new("L", size, 0)
         _draw_tracked(ImageDraw.Draw(m), xy, text, font, 255, anchor, track)
         full = m
@@ -544,7 +559,7 @@ class TextPlate:
         if self.empty:
             self.origin, self.box, self.glyphs, self.full = (0, 0), (0, 0, 0, 0), None, None
             return
-        pad = int(halo_px or 0) + 16
+        pad = int(halo_pad) if halo_pad is not None else int(halo_px or 0) + 16
         x0, y0 = max(0, bb[0] - pad), max(0, bb[1] - pad)
         x1, y1 = min(size[0], bb[2] + pad), min(size[1], bb[3] + pad)
         self.origin, self.box = (x0, y0), tuple(int(v) for v in bb)
@@ -564,7 +579,8 @@ class TextPlate:
         if halo > 0 and self.halo_mask is not None:
             from .brand import INK
             ink = Image.new("RGBA", base.size, INK + (255,))
-            ink.putalpha(self.halo_mask.point(lambda v: int(v * halo * alpha)))
+            q = self._halo_q
+            ink.putalpha(self.halo_mask.point(lambda v: q(v * halo * alpha)))
             out = Image.alpha_composite(out, ink)
         loc = (self.xy[0] - self.origin[0], self.xy[1] - self.origin[1])
         if self.shadow:
@@ -627,7 +643,8 @@ class TextPlate:
         rgba = im.convert("RGBA")
         base = self._crop(rgba, int(dy))
         ink = Image.new("RGBA", base.size, INK + (255,))
-        ink.putalpha(self.halo_mask.point(lambda v: int(v * self.halo * alpha)))
+        q = self._halo_q
+        ink.putalpha(self.halo_mask.point(lambda v: q(v * self.halo * alpha)))
         rgba.paste(Image.alpha_composite(base, ink), (self.origin[0], self.origin[1] + int(dy)))
         return rgba if mode == "RGBA" else rgba.convert(mode)
 
@@ -648,15 +665,16 @@ class TextPlate:
 
 def plan_text(im: Image.Image, xy, text: str, font, fill, anchor: str = "la", track: float = 0, stroke: int = 0,
               stroke_fill=None, target: Optional[float] = None, halo_px: Optional[int] = None, min_halo: float = 0.0,
-              shadow: bool = False, max_halo: float = 0.95) -> TextPlate:
+              shadow: bool = False, max_halo: float = 0.95, halo_pad: Optional[int] = None) -> TextPlate:
     """A TextPlate for `text` at `xy` on `im`, its halo solved for `target` (brand.PLACE_TARGET by default).
     `halo_px`: the halo's spread (default: a third of the font size, 21-31 px: under 21 the halo does not reach the
-    outer edge of the 10 px ring it is measured on, and a thin face on a bright photo stayed under 3:1)."""
+    outer edge of the 10 px ring it is measured on, and a thin face on a bright photo stayed under 3:1).
+    `halo_pad`: opt-in crop pad for the whole halo (full_halo_pad; TextPlate)."""
     from .brand import INK, PLACE_TARGET
     text = drawable(text, font)
     halo_px = halo_px if halo_px is not None else int(min(31, max(21, font.size // 3)))
     plate = TextPlate(text, font, fill, xy, anchor, track, stroke, stroke_fill if stroke_fill is not None else INK,
-                      halo_px, shadow, im.size)
+                      halo_px, shadow, im.size, halo_pad=halo_pad)
     return plate.solve(im, PLACE_TARGET if target is None else target, min_halo, max_halo)
 
 

@@ -1,0 +1,208 @@
+{
+  "repo": "<repo root argument>",
+  "ramp_levels_in": 56,
+  "step_threshold_code": 0.15,
+  "commit": "ea92e22 (src modified)",
+  "shadow_ramp": {
+    "graph (lossless encode)": {
+      "encoder": "-c:v libx264 -preset ultrafast -qp 0",
+      "levels_in": 56,
+      "levels_kept": 54,
+      "merged_steps": 2,
+      "mean_y_per_level": [
+        16.62,
+        17.03,
+        17.45,
+        17.44,
+        17.86,
+        17.95,
+        18.36,
+        18.57,
+        19.02,
+        19.34,
+        19.77,
+        20.21,
+        20.66,
+        21.1,
+        21.54,
+        22.02,
+        22.49,
+        22.96,
+        23.43,
+        23.9,
+        24.36,
+        24.85,
+        25.35,
+        25.86,
+        26.37,
+        26.87,
+        27.39,
+        27.89,
+        28.43,
+        28.99,
+        29.55,
+        30.09,
+        30.65,
+        31.21,
+        31.75,
+        32.37,
+        32.99,
+        33.61,
+        34.23,
+        34.85,
+        35.47,
+        36.1,
+        36.8,
+        37.51,
+        38.2,
+        38.91,
+        39.62,
+        40.31,
+        41.05,
+        41.85,
+        42.66,
+        43.47,
+        44.27,
+        45.08,
+        45.89,
+        46.76
+      ],
+      "distinct_8bit_codes_in_boxes": 35,
+      "conversions": [
+        "gbrp16le->yuv420p",
+        "rgb24->gbrp16le",
+        "yuv420p->gbrp16le",
+        "yuv420p->yuv420p"
+      ],
+      "yuv_to_8bit_rgb_conversions": []
+    },
+    "delivery (libx264 fallback encoder)": {
+      "encoder": "-c:v libx264 -preset slow -crf 18",
+      "levels_in": 56,
+      "levels_kept": 52,
+      "merged_steps": 4,
+      "mean_y_per_level": [
+        17.0,
+        17.0,
+        17.04,
+        17.16,
+        17.98,
+        18.0,
+        18.26,
+        18.62,
+        19.03,
+        19.3,
+        19.81,
+        20.21,
+        20.66,
+        21.09,
+        21.52,
+        22.16,
+        22.51,
+        22.95,
+        23.38,
+        23.87,
+        24.33,
+        24.85,
+        25.32,
+        25.87,
+        26.35,
+        26.87,
+        27.37,
+        27.88,
+        28.42,
+        28.99,
+        29.69,
+        30.09,
+        30.62,
+        31.22,
+        31.71,
+        32.37,
+        33.0,
+        33.59,
+        34.26,
+        34.86,
+        35.48,
+        36.09,
+        36.83,
+        37.52,
+        38.22,
+        39.04,
+        39.6,
+        40.33,
+        41.07,
+        41.9,
+        42.7,
+        43.52,
+        44.3,
+        45.13,
+        45.9,
+        46.81
+      ],
+      "distinct_8bit_codes_in_boxes": 36,
+      "conversions": [
+        "gbrp16le->yuv420p",
+        "rgb24->gbrp16le",
+        "yuv420p->gbrp16le",
+        "yuv420p->yuv420p"
+      ],
+      "yuv_to_8bit_rgb_conversions": []
+    }
+  },
+  "blacks": {
+    "graph (lossless encode)": {
+      "9:16 still (zoompan branch, its tone curve)": {
+        "mean_y": 16.62,
+        "ok": true
+      },
+      "16:9 still (zoompan branch)": {
+        "mean_y": 16.61,
+        "ok": true
+      },
+      "16:9 portrait still (tilt branch)": {
+        "mean_y": 16.61,
+        "ok": true
+      },
+      "9:16 black clip (Y16)": {
+        "mean_y": 16.62,
+        "ok": true
+      }
+    },
+    "delivery (libx264 fallback encoder)": {
+      "9:16 still (zoompan branch, its tone curve)": {
+        "mean_y": 16.99,
+        "ok": true
+      },
+      "16:9 still (zoompan branch)": {
+        "mean_y": 17.0,
+        "ok": true
+      },
+      "16:9 portrait still (tilt branch)": {
+        "mean_y": 17.0,
+        "ok": true
+      },
+      "9:16 black clip (Y16)": {
+        "mean_y": 16.99,
+        "ok": true
+      }
+    }
+  },
+  "right_edge": {
+    "centre_y": 128.29,
+    "last_8_columns_y": 101.76,
+    "the_8_columns_before_y": 102.45,
+    "first_8_columns_y": 101.68,
+    "ratio_last_to_before": 0.993
+  },
+  "vignette_corner": {
+    "centre_y_above_black": 112.29,
+    "min_corner_ratio": 0.602
+  },
+  "acceptance": {
+    "ramp_levels_kept_ge_50": true,
+    "blacks_at_16_pm_1": true,
+    "no_yuv_to_8bit_rgb_round_trip": true,
+    "no_right_edge_bar": true,
+    "met": true
+  }
+}

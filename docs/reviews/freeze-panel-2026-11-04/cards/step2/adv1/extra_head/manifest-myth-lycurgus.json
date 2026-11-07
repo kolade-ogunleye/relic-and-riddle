@@ -1,0 +1,85 @@
+{
+ "meta": {
+  "code_root": "<scratchpad>/head",
+  "design_cards": "<scratchpad>/head/src/design_cards.py",
+  "version": "design-cards-1",
+  "seconds": 0,
+  "inputs": "real run media and fact-sheet facts via docs/reviews/freeze-panel-2026-11-04/fixtures",
+  "card_fields": "new: real fact, test-signed field: checker verdicts from the test suite's mocked checker, signed under THROWAWAY_KEY (this rig's own constant, assigned over config's key before any card module loads; the deployment key is never read) in a temporary sheet copy",
+  "throwaway_key": "THROWAWAY_KEY (render_evidence.py)",
+  "catalogue_gaps": {
+   "myth_fields": "none: no fact sheet in data/fact_sheets or data/script_library carries a cards.myths entry (refuting_fact_id appears in no JSON file in the repository). A real myth-vs-fact card cannot be rendered from existing inputs.",
+   "statement_fields": "one: data/fact_sheets/hal_saflieni_hypogeum.json cards.statements S1, check verdict 'needs_check' with no runs and no signature, so card_fields.verify_field refuses it.",
+   "quote_fields": "none.",
+   "gated_titles": "every run's fact_review holds only public_fingerprint / sheet_path / sheet_sha256 / review_rules_fingerprint, with no check record, so design_cards.gated_text refuses Gated('title'|'youtube_title') on every run (fact_evidence.checked_fact_review: no current check record).",
+   "consequence": "Every hook, chapter and myth card needs a checked, signed card field. None exists. The real inputs are the fact sheets' facts, the runs' titles, act titles and hero photos below; the card fields themselves must be produced by fact_sheet.build + card_fields.check_cards (with a checker key) before a card can be rendered honestly. Anything rendered before that is new and must be labelled."
+  }
+ },
+ "renders": {
+  "myth_916_lycurgus_plain": {
+   "name": "myth_916_lycurgus_plain",
+   "run": "run_lycurgus_cup_nanotech_1792968921",
+   "topic": "lycurgus_cup_nanotech",
+   "card": "myth",
+   "format": "916",
+   "refuting_fact": "fact-8",
+   "fact_statement": "Before analytical studies in 1950 established for certain that the material was glass, researchers had actively questioned whether the cup was carved from a gemstone.",
+   "myth": "The cup was carved from a gemstone",
+   "myth_chars": 34,
+   "correction": "Analytical studies in 1950 established that the material was glass",
+   "correction_chars": 66,
+   "correction_tried": [
+    {
+     "correction": "Analytical studies in 1950 established that the material was glass",
+     "ground_text": "accepted"
+    }
+   ],
+   "derivation": "fact-8 own words",
+   "ground": "plain",
+   "photo": null,
+   "photo_name": "(no photo)",
+   "photo_measured": {},
+   "labels": [
+    "new: real fact, test-signed field (myth field from fact-8)"
+   ],
+   "refused": "the fact 'fact-8' states the myth's words as true: the card would strike out a fact",
+   "code": "affirmed_myth",
+   "png": "myth_916_lycurgus_plain__last.png",
+   "jpg": "myth_916_lycurgus_plain__last.jpg",
+   "png_master": "rgb"
+  },
+  "myth_169_lycurgus_plain": {
+   "name": "myth_169_lycurgus_plain",
+   "run": "run_lycurgus_cup_nanotech_1792968921",
+   "topic": "lycurgus_cup_nanotech",
+   "card": "myth",
+   "format": "169",
+   "refuting_fact": "fact-8",
+   "fact_statement": "Before analytical studies in 1950 established for certain that the material was glass, researchers had actively questioned whether the cup was carved from a gemstone.",
+   "myth": "The cup was carved from a gemstone",
+   "myth_chars": 34,
+   "correction": "Analytical studies in 1950 established that the material was glass",
+   "correction_chars": 66,
+   "correction_tried": [
+    {
+     "correction": "Analytical studies in 1950 established that the material was glass",
+     "ground_text": "accepted"
+    }
+   ],
+   "derivation": "fact-8 own words",
+   "ground": "plain",
+   "photo": null,
+   "photo_name": "(no photo)",
+   "photo_measured": {},
+   "labels": [
+    "new: real fact, test-signed field (myth field from fact-8)",
+    "new: 16:9 myth of a Reel topic"
+   ],
+   "refused": "the fact 'fact-8' states the myth's words as true: the card would strike out a fact",
+   "code": "affirmed_myth",
+   "png": "myth_169_lycurgus_plain__last.png",
+   "jpg": "myth_169_lycurgus_plain__last.jpg",
+   "png_master": "rgb"
+  }
+ }
+}

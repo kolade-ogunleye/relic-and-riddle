@@ -23,7 +23,7 @@ name no further gain, two consecutive adversarial rounds find no new defect, and
 | First frame, chapter card, myth-vs-fact (`src/design_cards.py`) | Reviewer-passed (9 / 9 / 9); every chapter card drawn (9d3e051); panel 8.1-8.5, not frozen | QF-25 wires the cards into the composer; freeze loop after Phase 4b |
 | Quote cards | Held (`QUOTE_CARDS_ENABLED=false`) | Enable only with signed records and a real checker key; speaker, work and date come from the signed check record only |
 | AI illustrations | Built | Needs a Gemini key and Tesseract to judge |
-| Maps, timelines | Handed to the PC session (581a866, WIP); independent review of fix2 on 52 new places: NOT OK (0 wrong names, 79/104 renders < 9) | QF-20 (Shapely + pyproj): 200-site sweep and independent 30-new-place review >= 9 on every design; the design freeze criteria remain separate |
+| Maps, timelines | QF-20 builder work remains unlanded: latest 200-site, two-format sweep passes 396/400; broader tests pass 702 with 3 timeline failures. The earlier independent visual review failed (79/104 renders below 9); no replacement visual approval yet | Resolve four geography failures and three timeline failures, then independent 30-new-place review >= 9 on every design; the design freeze criteria remain separate |
 
 ## Operator decisions, freeze step 2 (approved 2026-11-05, for the PC session to implement)
 
@@ -60,7 +60,7 @@ name no further gain, two consecutive adversarial rounds find no new defect, and
   change: Richat as a Reel, GEOLOGICAL HERITAGE SITES. (640.6 px against the 640 px budget) splits before SITES.
   Plates grow 1-4 px on 9:16 and -2..+10 px on 16:9; caption builds got faster (Richat 9:16 2.85 s -> 1.0 s).
 
-## CI on PR #3 (red since 3ac24dd)
+## Historical CI repair on PR #3 (red at 3ac24dd)
 
 `tests/test_freeze_captions_2026_11_04.py` reads gitignored local data (`output/run_*/words.json`,
 `assets/richat_structure_sahara_eye/*.jpg`), so 31 tests fail on CI; two more compare widths measured on the PC.
@@ -84,8 +84,33 @@ reproducible `measure.py`, an independent review, the full suite before every pu
 complete: QF-49 identifier scrub, QF-46 illustration spend cap, QF-47 docs live vs dry run, QF-48 no self-update in
 production, QF-40 tier-gated corroboration, QF-41 Gemini roles and the injection corpus, QF-42 credit lines, QF-43
 publishable-field allowlist, QF-44 SSRF guard, QF-50 local face verification, QF-51 config drift, QF-45 learned-rule
-grammar. Phase 1 (output defects) is built in part and lands next. The design freeze loop (panel >= 9.5, no further
-gain, two clean adversarial rounds) resumes after Phase 4b, on the post-QF code.
+grammar. Phase 1's ten implementation rows (QF-01..09 and QF-93) are now independently reviewed,
+full-suite tested and pushed. The final row, QF-93 (`e10a070`), passed 7,273 tests with 46 existing skips
+and 48 warnings; hosted CI run 42442853501 succeeded. Phase 1b photos follows in ledger order.
+No production deployment is implied.
+The design freeze loop (panel >= 9.5, no further gain, two clean adversarial rounds and operator agreement)
+resumes after Phase 4b, on the post-QF code. No design is frozen.
+
+### Phase 1 results and decisions (2026-11-08)
+
+- Picture: BT.709 throughout; 16-bit grading restores shadow levels (29/56 to 54 lossless, 52 delivery)
+  with no 8-bit RGB round trip. Grain is removed and repeated renders are byte-identical.
+- The operator chose the original review build as QF-03's bitrate baseline, across all four samples.
+  Savings are 60.1-89.2%; this is not a claim of that saving over QF-02 alone.
+- Editing: ordinary beat boundaries use hard cuts; only explicit act changes use a short dissolve.
+  Reel whooshes fall from 5-7 to 1-2, with none away from a cut or reveal.
+- Audio: effects peak at -17 dBFS; maximum measured limiter reduction falls from 0.89 to 0.13 dB.
+  Median music recovery in word gaps falls from 7.25 to 0.08 dB, with loop/bridge behavior preserved.
+- Voice: Azure and eligible ElevenLabs tiers use the reviewed PCM path. Creator retains the 192 kbps
+  fallback; lower tiers retain their supported format. Seed 1 and stability 0.65 are explicit defaults.
+  QF-08 qualification used provider mocks; existing production settings remain authoritative.
+- Dependencies: Pillow 13 is qualified with raqm; requirements and the hashed lock agree, and CI
+  audits that lock. The qualification audit fell from 39 advisories to zero. Trusted-image decoding
+  no longer changes the global pixel limit; untrusted downloads retain bounded reads and decoding.
+- DirectML: both image models share adapter selection; auto prefers a dedicated GPU, explicit numeric
+  indices remain exact, and CPU/integrated fallbacks warn. Timing evidence is machine-specific.
+- Next: Phase 1b photos in ledger order. Later builder/reviewer approvals are not landed results.
+  QF-20 remains incomplete and does not establish the separate design-freeze quality ceiling.
 
 ## Operator decisions, 2026-11-05 and 2026-11-06
 

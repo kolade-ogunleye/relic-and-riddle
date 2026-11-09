@@ -52,7 +52,7 @@ def test_a_re_review_keeps_the_photos_you_kept(tmp_path, monkeypatch):
     from src.credits import load_credits
     imgs = []
     for i in (1, 2):
-        Image.new("RGB", (64, 48)).save(tmp_path / f"{i:02d}_commons.jpg")
+        Image.new("RGB", (64, 48), (40 * i, 0, 0)).save(tmp_path / f"{i:02d}_commons.jpg")  # two different photos
         imgs.append({"file": f"{i:02d}_commons.jpg", "title": f"File:{i}.jpg", "license": "CC0"})
     imgs[1]["operator_keep"] = True
     (tmp_path / "credits.json").write_text(json.dumps({"reviewed": False, "images": imgs}), encoding="utf-8")

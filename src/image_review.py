@@ -222,10 +222,23 @@ def screen_unchecked(topic: Dict[str, Any], topic_dir: Path) -> int:
     return len(pending)
 
 
+def legacy_fingerprint(images: list[dict[str, Any]]) -> str:
+    """The pre-QF-53 fingerprint: the sorted file names, comma-separated."""
+    return ",".join(sorted(str(i.get("file", "")) for i in images))
+
+
 def pool_fingerprint(images: List[Dict[str, Any]]) -> str:
     records = sorted((str(i.get("file", "")), i.get("source_sha256", ""),
                       str(i.get("artist", ""))) for i in images)
     return hashlib.sha256(json.dumps(records, ensure_ascii=False).encode()).hexdigest()
+
+
+def fingerprint_matches(recorded: str, images: list[dict[str, Any]]) -> bool:
+    """A pool recorded under either fingerprint format, with every file still hashing, is unchanged."""
+    if not recorded:
+        return False
+    return recorded == pool_fingerprint(images) or (
+        recorded == legacy_fingerprint(images) and not any(i.get("hash_error") for i in images))
 
 
 def review_pool(topic: Dict[str, Any], topic_dir: Path, apply: bool = True, force: bool = False) -> Dict[str, Any]:
@@ -238,10 +251,9 @@ def review_pool(topic: Dict[str, Any], topic_dir: Path, apply: bool = True, forc
         return {"topic": topic["id"], "status": "operator decision stands", "kept": len(credits["images"])}
     photo_pool.refresh(topic_dir, credits["images"])
     if not force and credits.get("review_fingerprint") and \
-            credits["review_fingerprint"] == pool_fingerprint(credits.get("images", [])):
+            fingerprint_matches(credits["review_fingerprint"], credits.get("images", [])):
         # An approval made before 2026-10-28 counted yes + partly; the video's rule decides what is said now.
-        status = "approved" if (video_ready(credits.get("images", []), credits.get("reviewed"))
-                                and photo_pool.assess(credits["images"])["ok"]) else "held"
+        status = "approved" if video_ready(credits.get("images", []), credits.get("reviewed")) else "held"
         return {"topic": topic["id"], "status": f"{status} (unchanged since last review)", "kept": len(credits.get("images", [])),
                 "readiness": readiness_text(credits.get("images", []))}
     images = credits["images"][:MAX_PHOTOS]
@@ -264,9 +276,12 @@ def review_pool(topic: Dict[str, Any], topic_dir: Path, apply: bool = True, forc
                               0 if im["vision_review"].get("shows_topic") == "yes" else 1))
     # Approved only when the video could use the kept photos (Topic + Kept + at most CONTEXT_SHOTS_MAX
     # Context): yes + partly >= 5 approved pools the video then refused (production 2026-10-28).
-    kept, reserve = photo_pool.balanced(kept)
+    # Near duplicates leave the pool; no photo leaves it for an author or shot-class quota (those are fetch quotas,
+    # reported here: operator decision QF-53b-author-cap).
+    kept, reserve = photo_pool.deduplicated(kept)
     diversity = photo_pool.assess(kept)
-    approved = video_ready(kept) and diversity["ok"]
+    approved = video_ready(kept) and not diversity["holds"]
+    notices = [p for p in diversity["problems"] if p not in diversity["holds"]]
     usable_note = readiness_text(kept)
     summary = {"topic": topic["id"], "status": "approved" if approved else "held", "kept": len(kept),
                "readiness": usable_note,
@@ -280,7 +295,8 @@ def review_pool(topic: Dict[str, Any], topic_dir: Path, apply: bool = True, forc
                        review_note=(f"Vision review {datetime.now(timezone.utc):%Y-%m-%d}: kept {len(kept)} of "
                                     f"{len(images)} ({usable_note})"
                                     + ("" if approved else "; held: " + "; ".join(
-                                        diversity["problems"] + ([] if video_ready(kept) else [f"fewer than {MIN_SCENE_IMAGES} usable for the video"])))),
+                                        diversity["holds"] + ([] if video_ready(kept) else [f"fewer than {MIN_SCENE_IMAGES} usable for the video"])))
+                                    + ("; diversity notice: " + "; ".join(notices) if notices else "")),
                        rejected_by_review=credits.get("rejected_by_review", []) + dropped)
         save_credits(topic_dir, credits)
     return summary

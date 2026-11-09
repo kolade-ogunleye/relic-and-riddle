@@ -13,6 +13,9 @@ from PIL import Image, ImageOps
 from .image_quarantine import phash
 
 SHOT_CLASSES = ("wide", "interior", "detail", "people-scale", "archival")
+# Attribution that names nobody ("Unknown author", "Anonymous Italian, 16th century"): unverified, so it is
+# neither one shared author nor a source of diversity.
+UNKNOWN_AUTHOR = re.compile(r"\bunknown|\banonym")
 
 
 def protected(image: dict) -> bool:
@@ -21,10 +24,10 @@ def protected(image: dict) -> bool:
 
 def crop_budget(images: list[dict]) -> bool:
     """Diversity selection must preserve QF-52's new-pool resolution budget."""
-    automatic = [image for image in images if image.get("presentation") != "full_image"]
-    if not any("vertical_crop_width" in image for image in automatic):
+    automatic = [image for image in images if image.get("presentation") != "full_image" and "vertical_crop_width" in image]
+    if not automatic:
         return True  # legacy pools are not retroactively treated as new fetches
-    crops = [image.get("vertical_crop_width", 0) for image in automatic]
+    crops = [image["vertical_crop_width"] for image in automatic]
     return all(width >= 1080 for width in crops) and sum(width < 1350 for width in crops) * 10 <= len(crops)
 
 
@@ -37,26 +40,57 @@ def signature(path: Path) -> dict:
         bits = 0
         for bit in (small[:, 1:] > small[:, :-1]).flat:
             bits = (bits << 1) | int(bit)
-        return {"source_sha256": hashlib.sha256(data).hexdigest(),
-                "phash": f"{phash(image):016x}", "dhash": f"{bits:016x}"}
+        result = {"source_sha256": hashlib.sha256(data).hexdigest(),
+                  "phash": f"{phash(image):016x}", "dhash": f"{bits:016x}"}
+        if small.max() == small.min():
+            # A flat frame has no structure: its perceptual hashes say nothing about what it shows.
+            result["hash_flat"] = True
+        return result
+
+
+# Near duplicates: the pHash and dHash distances (bits of 64 each) added together. Calibrated on every
+# within-pool pair of the real development pools and the production sample (QF-53b evidence): re-edits and
+# re-exposures of one photo sum to 14 or less (Derinkuyu 08/20 is 8 + 6); different objects start at 17
+# (The Met swords 30975/30903 are 10 + 7). Pairs beyond this (two scans of one engraving at 21) are a known
+# limit of hashing, reported in the evidence, not tuned for.
+DUPLICATE_DISTANCE = 15
+
+
+def _hash_bits(image: dict) -> tuple[int, int] | None:
+    values = image.get("phash"), image.get("dhash")
+    if not all(isinstance(v, str) and re.fullmatch(r"[0-9a-fA-F]{16}", v) for v in values):
+        return None
+    return int(values[0], 16), int(values[1], 16)
 
 
 def duplicate_of(candidate: dict, images: list[dict]) -> dict | None:
+    bits = _hash_bits(candidate)
+    if bits is None:
+        return None
     for other in images:
-        for field in ("phash", "dhash"):
-            left, right = candidate.get(field), other.get(field)
-            if not isinstance(left, str) or not isinstance(right, str):
-                continue
-            if not re.fullmatch(r"[0-9a-fA-F]{16}", left) or not re.fullmatch(r"[0-9a-fA-F]{16}", right):
-                continue
-            if (int(left, 16) ^ int(right, 16)).bit_count() <= 10:
+        other_bits = _hash_bits(other)
+        if other_bits is None:
+            continue
+        if candidate.get("hash_flat") and other.get("hash_flat"):
+            # Two flat frames hash alike whatever their colour (the hashes are greyscale structure):
+            # only identical bytes make them duplicates.
+            if candidate.get("source_sha256") and candidate.get("source_sha256") == other.get("source_sha256"):
                 return other
+            continue
+        distance = (bits[0] ^ other_bits[0]).bit_count() + (bits[1] ^ other_bits[1]).bit_count()
+        if distance <= DUPLICATE_DISTANCE:
+            return other
     return None
 
 
 def author_key(image: dict) -> str:
-    # Unknown authors form one group: missing attribution cannot manufacture diversity.
+    """Normalised author; "unknown" when the record names none (unverified, never one shared author)."""
     return re.sub(r"[^\w]+", " ", str(image.get("artist") or "unknown").casefold()).strip() or "unknown"
+
+
+def known_author(image: dict) -> str | None:
+    key = author_key(image)
+    return None if UNKNOWN_AUTHOR.search(key) else key
 
 
 def shot_class(image: dict) -> str:
@@ -83,6 +117,7 @@ def refresh(topic_dir: Path, images: list[dict]) -> None:
     """Recompute hashes from the current files before fetch/approval decisions."""
     for image in images:
         try:
+            image.pop("hash_flat", None)
             image.update(signature(topic_dir / image["file"]))
             image.pop("hash_error", None)
         except (OSError, ValueError, KeyError) as exc:
@@ -93,15 +128,25 @@ def refresh(topic_dir: Path, images: list[dict]) -> None:
             image["shot_class"] = provisional_shot_class(image)
 
 
-def fetch_subset(images: list[dict], target: int) -> tuple[list[dict], list[dict]]:
-    """Leave room for other photographers/classes even when an old pool was full."""
+def author_quota_applies(target: int) -> bool:
+    """No pool of fewer than three photos can keep every author at or under 35% (two are 50% each)."""
+    return target >= 3
+
+
+def fetch_subset(images: list[dict], target: int, retained: int = 0) -> tuple[list[dict], list[dict]]:
+    """Choose which photos a refill keeps. The first `retained` are the pool's own photos: only a near duplicate
+    of an earlier one is moved out. The rest (reserves offered back) must also fit the author and shot-class
+    quotas, counted with the pool's own photos."""
     kept, reserve = [], []
     authors, classes = Counter(), Counter()
-    for image in images:
-        author, kind = author_key(image), shot_class(image)
+    for index, image in enumerate(images):
+        author, kind = known_author(image), shot_class(image)
+        offered = index >= retained
         reason = ("near duplicate" if duplicate_of(image, kept) else
-                  "author quota" if authors[author] >= max(1, int(target * 0.35)) else
-                  "shot class quota" if kind != "unknown" and classes[kind] >= max(1, math.ceil(target / 2)) else "")
+                  "author quota" if offered and author_quota_applies(target) and author
+                  and authors[author] >= max(1, int(target * 0.35)) else
+                  "shot class quota" if offered and kind != "unknown"
+                  and classes[kind] >= max(1, math.ceil(target / 2)) else "")
         if reason and not protected(image):
             reserve.append({**image, "reserve_reason": reason})
             continue
@@ -111,8 +156,14 @@ def fetch_subset(images: list[dict], target: int) -> tuple[list[dict], list[dict
     return kept, reserve
 
 
+_HOLDING = {"Photos lack verified perceptual hashes",
+            "Automatic photo crop budget no longer meets the resolution floor"}
+
+
 def assess(images: list[dict]) -> dict:
-    authors = Counter(author_key(image) for image in images)
+    # The author share counts named authors only; unnamed ones are reported as unverified (like shot classes).
+    named = [known_author(image) for image in images]
+    authors = Counter(author for author in named if author)
     classes = Counter(shot_class(image) for image in images)
     pairs = []
     missing = []
@@ -124,65 +175,48 @@ def assess(images: list[dict]) -> dict:
             pairs.append([other.get("file", ""), image.get("file", "")])
     share = max(authors.values(), default=0) / len(images) if images else 1.0
     known = {key: value for key, value in classes.items() if key in SHOT_CLASSES}
+    unverified = classes.get("unknown", 0)
     problems = []
     if missing:
         problems.append("Photos lack verified perceptual hashes")
     if pairs:
-        problems.append("Near-duplicate photos within 10 hash bits")
+        problems.append(f"Near-duplicate photos (hash distance {DUPLICATE_DISTANCE} or less)")
     if share > 0.35:
         problems.append("An author supplies more than 35% of the pool")
-    if len(known) < 3:
+    if len(known) < 3 and not unverified:
         problems.append("Fewer than three verified shot classes")
-    if any(count > math.ceil(len(images) / 2) for count in classes.values()):
+    if any(count > math.ceil(len(images) / 2) for kind, count in known.items()):
         problems.append("One shot class exceeds its half-pool quota")
     if not crop_budget(images):
         problems.append("Automatic photo crop budget no longer meets the resolution floor")
-    return {"ok": not problems, "problems": problems, "duplicate_pairs": pairs,
-            "max_author_share": share, "shot_classes": known, "missing_hashes": missing}
+    # Duplicates, missing hashes and the crop budget hold an automatic approval. Author share and shot-class
+    # balance are quotas on what the fetcher adds (operator decision QF-53b-author-cap, 2026-11-09): a pool's
+    # existing photos are never trimmed for them; they are reported.
+    holds = [p for p in problems if p in _HOLDING or p.startswith("Near-duplicate")]
+    return {"ok": not problems, "problems": problems, "holds": holds, "duplicate_pairs": pairs,
+            "max_author_share": share, "shot_classes": known,
+            "unverified_shot_classes": unverified, "unverified_authors": named.count(None),
+            "missing_hashes": missing}
 
 
-def balanced(images: list[dict]) -> tuple[list[dict], list[dict]]:
-    """Choose a diverse subset in existing quality order; retain exclusions as reserves.
+def deduplicated(images: list[dict]) -> tuple[list[dict], list[dict]]:
+    """The pool without its near-duplicates, in its existing order; the duplicates become reserves.
 
-    Human keeps are never silently discarded: an incompatible set stays intact and
-    assess() explains why it cannot newly pass automatic diversity approval.
+    No photo is moved out for an author or shot-class quota (operator decision QF-53b-author-cap). A protected
+    photo (an operator keep or an essential full image) is never the one reserved: when it repeats an unprotected
+    photo, the unprotected one goes.
     """
-    unique = []
+    kept: list[dict] = []
+    reserves: list[dict] = []
     for image in images:
-        if duplicate_of(image, unique) is None:
-            unique.append(image)
-    for size in range(len(unique), 2, -1):
-        author_cap = int(size * 0.35)
-        class_cap = math.ceil(size / 2)
-        authors, classes = Counter(), Counter()
-        selected = []
-        remaining = list(unique)
-        resolution_budget = any("vertical_crop_width" in image for image in unique
-                                if image.get("presentation") != "full_image")
-        essential_count = sum(image.get("presentation") == "full_image" for image in unique)
-        low_cap = max(0, (size - essential_count) // 10)
-        while remaining and len(selected) < size:
-            eligible = [image for image in remaining if authors[author_key(image)] < author_cap
-                        and classes[shot_class(image)] < class_cap]
-            if resolution_budget:
-                low_used = sum(image.get("presentation") != "full_image" and image.get("vertical_crop_width", 0) < 1350
-                               for image in selected)
-                eligible = [image for image in eligible if image.get("presentation") == "full_image"
-                            or (image.get("vertical_crop_width", 0) >= 1080
-                                and (image["vertical_crop_width"] >= 1350 or low_used < low_cap))]
-            if not eligible:
-                break
-            chosen = min(eligible, key=lambda image: (shot_class(image) == "unknown",
-                                                     classes[shot_class(image)], authors[author_key(image)]))
-            selected.append(chosen)
-            remaining.remove(chosen)
-            authors[author_key(chosen)] += 1
-            classes[shot_class(chosen)] += 1
-        if len(selected) == size and assess(selected)["ok"]:
-            identities = {id(image) for image in selected}
-            reserves = [image for image in images if id(image) not in identities]
-            if any(protected(image) for image in reserves):
-                return images, []
-            # Preserve the relevance/merit order consumed by the planner.
-            return [image for image in unique if id(image) in identities], reserves
-    return images, []  # retain evidence; approval stays held with explicit reasons
+        other = duplicate_of(image, kept)
+        if other is None:
+            kept.append(image)
+        elif protected(image) and not protected(other):
+            kept[kept.index(other)] = image
+            reserves.append({**other, "reserve_reason": "near duplicate"})
+        elif protected(image):
+            kept.append(image)  # two protected photos: both stay; assess() reports the pair
+        else:
+            reserves.append({**image, "reserve_reason": "near duplicate"})
+    return kept, reserves

@@ -117,10 +117,8 @@ def _image_set(tmp_path, name="03_kailasa_temple", n=6, reviewed=False):
     d.mkdir()
     files = []
     for i in range(n):
-        import numpy as np
-        Image.fromarray(np.random.default_rng(i + 530).integers(0, 256, (40, 60, 3), dtype=np.uint8)).save(d / f"{i:02d}_commons.jpg")
-        files.append({"file": f"{i:02d}_commons.jpg", "title": f"File:Img {i}.jpg", "license": "CC BY 4.0",
-                      "artist": f"Photographer {i}", "shot_class": ("wide", "interior", "detail")[i % 3]})
+        Image.new("RGB", (60, 40)).save(d / f"{i:02d}_commons.jpg")
+        files.append({"file": f"{i:02d}_commons.jpg", "title": f"File:Img {i}.jpg", "license": "CC BY 4.0"})
     save_credits(d, {"reviewed": reviewed, "images": files})
     return d
 
@@ -447,10 +445,8 @@ def test_music_mnext_and_duplicate_imgok(tmp_path):
     d1.mkdir(parents=True)
     files = []
     for i in range(5):
-        import numpy as np
-        Image.fromarray(np.random.default_rng(i + 530).integers(0, 256, (50, 50, 3), dtype=np.uint8)).save(d1 / f"{i:02d}.jpg")
-        files.append({"file": f"{i:02d}.jpg", "title": f"Img {i}", "license": "PD",
-                      "artist": f"Photographer {i}", "shot_class": ("wide", "interior", "detail")[i % 3]})
+        Image.new("RGB", (50, 50)).save(d1 / f"{i:02d}.jpg")
+        files.append({"file": f"{i:02d}.jpg", "title": f"Img {i}", "license": "PD"})
     save_credits(d1, {"reviewed": False, "images": files})
 
     h = make_command_handler(db, lambda: None, lambda: "", assets_dir=assets_dir)

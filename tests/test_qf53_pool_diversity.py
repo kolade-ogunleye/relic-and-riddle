@@ -1,5 +1,7 @@
 """Pixel duplicates and source/shot diversity cannot be waived by a model's yes."""
 
+import json
+
 import numpy as np
 from PIL import Image, ImageEnhance
 
@@ -37,20 +39,27 @@ def test_brightness_and_recompression_do_not_evade_duplicate_detection(tmp_path)
     assert module.duplicate_of(module.signature(derivative), [original]) is original
 
 
-def test_exact_ten_bit_boundary_is_a_duplicate():
+def _bits(n):
+    return f"{(1 << n) - 1:016x}"
+
+
+def test_summed_distance_boundary_is_a_duplicate():
+    # QF-53b: pHash + dHash distance <= 15 (calibrated on the real pools; see QF-53b evidence).
     module = _module()
     zero = {"phash": "0000000000000000", "dhash": "0000000000000000"}
-    ten = {"phash": f"{(1 << 10) - 1:016x}", "dhash": "ffffffffffffffff"}
-    eleven = {"phash": f"{(1 << 11) - 1:016x}", "dhash": "ffffffffffffffff"}
-    assert module.duplicate_of(ten, [zero]) is zero
-    assert module.duplicate_of(eleven, [zero]) is None
+    fifteen = {"phash": _bits(8), "dhash": _bits(7)}
+    sixteen = {"phash": _bits(8), "dhash": _bits(8)}
+    assert module.duplicate_of(fifteen, [zero]) is zero
+    assert module.duplicate_of(sixteen, [zero]) is None
 
 
-def test_dhash_also_rejects_near_duplicates():
+def test_one_close_hash_is_not_enough():
+    # The Met swords 30975/30903 are 10 + 7 apart: a close pHash alone does not make different objects duplicates.
     module = _module()
-    original = {"phash": "0000000000000000", "dhash": "0000000000000000"}
-    candidate = {"phash": "ffffffffffffffff", "dhash": "0000000000000001"}
-    assert module.duplicate_of(candidate, [original]) is original
+    zero = {"phash": "0000000000000000", "dhash": "0000000000000000"}
+    assert module.duplicate_of({"phash": _bits(10), "dhash": _bits(7)}, [zero]) is None
+    assert module.duplicate_of({"phash": _bits(10), "dhash": _bits(2)}, [zero]) is zero
+    assert module.duplicate_of({"phash": "0000000000000000", "dhash": "ffffffffffffffff"}, [zero]) is None
 
 
 def test_same_file_name_cannot_reuse_a_stale_pixel_signature(tmp_path):
@@ -64,24 +73,34 @@ def test_same_file_name_cannot_reuse_a_stale_pixel_signature(tmp_path):
     assert module.duplicate_of(after, [before]) is None
 
 
-def test_one_photographer_burst_is_balanced_without_deleting_assets(tmp_path):
+def test_one_photographer_pool_keeps_every_photo_and_reports_its_share(tmp_path):
+    # Operator decision QF-53b-author-cap: quotas govern what the fetcher adds; a pool's photos are never trimmed.
     module = _module()
     records = _records(tmp_path, ["Author A"] * 14 + ["Author B"] * 3 + ["Author C"] * 3)
-    before = module.assess(records)
-    selected, reserves = module.balanced(records)
-    after = module.assess(selected)
-    assert before["max_author_share"] == 0.70
-    assert len(selected) == 9 and len(reserves) == 11
-    assert after["ok"] and after["max_author_share"] <= 0.35
-    assert len(after["shot_classes"]) >= 3
+    selected, reserves = module.deduplicated(records)
+    result = module.assess(selected)
+    assert selected == records and not reserves
+    assert result["max_author_share"] == 0.70
+    assert "An author supplies more than 35% of the pool" in result["problems"]
+    assert not result["holds"]
     assert all((tmp_path / image["file"]).exists() for image in records)
 
-
-def test_missing_authors_cannot_manufacture_source_diversity(tmp_path):
+def test_unnamed_authors_are_unverified_not_one_author(tmp_path):
+    # QF-53b: "Unknown author" / missing attribution is reported, never counted as one shared author.
     module = _module()
-    records = _records(tmp_path, [""] * 6)
-    assert module.assess(records)["max_author_share"] == 1
-    assert not module.assess(records)["ok"]
+    records = _records(tmp_path, ["", "Unknown author", "Anonymous, 16th century", "unknown", "", ""])
+    result = module.assess(records)
+    assert result["unverified_authors"] == 6
+    assert result["max_author_share"] == 0
+    assert "An author supplies more than 35% of the pool" not in result["problems"]
+
+
+def test_named_author_share_still_counts_against_the_whole_pool(tmp_path):
+    module = _module()
+    records = _records(tmp_path, ["Author A"] * 3 + ["", "", ""])
+    result = module.assess(records)
+    assert result["max_author_share"] == 0.5 and result["unverified_authors"] == 3
+    assert "An author supplies more than 35% of the pool" in result["problems"]
 
 
 def test_three_classes_required_even_with_many_authors(tmp_path):
@@ -93,15 +112,14 @@ def test_three_classes_required_even_with_many_authors(tmp_path):
     assert not result["ok"] and len(result["shot_classes"]) == 1
 
 
-def test_human_keeps_are_retained_and_incompatible_pool_is_held(tmp_path):
+def test_human_keeps_are_retained_and_the_imbalance_is_reported(tmp_path):
     module = _module()
     records = _records(tmp_path, ["Author A"] * 14 + ["Author B"] * 3 + ["Author C"] * 3)
     for image in records:
         image["operator_keep"] = True
-    selected, reserves = module.balanced(records)
+    selected, reserves = module.deduplicated(records)
     assert selected == records and not reserves
     assert not module.assess(selected)["ok"]
-
 
 def test_final_pixel_review_overrides_provisional_metadata_class():
     module = _module()
@@ -135,18 +153,19 @@ def test_model_yes_cannot_approve_pixel_duplicates(monkeypatch, tmp_path):
         shot_class=record["shot_class"]) for i, record in enumerate(records)])
     monkeypatch.setattr(image_review.free_llm, "call", lambda *a, **k: verdicts)
     result = image_review.review_pool({"id": "fixture", "title": "Temple"}, tmp_path)
-    assert result["status"] == "held"
-    assert result["diversity"]["duplicate_pairs"]
-
+    credits = json.loads((tmp_path / "credits.json").read_text(encoding="utf-8"))
+    # The five copies leave the pool as near-duplicate reserves; one photo is too few for the video: held.
+    assert result["status"] == "held" and result["kept"] == 1
+    assert [r["reserve_reason"] for r in credits["diversity_reserve"]] == ["near duplicate"] * 5
 
 def test_new_human_approval_checks_actual_files(tmp_path):
-    import pytest
-
     from src.credits import approve_set, load_credits
     _review_fixture(tmp_path, duplicates=True)
-    with pytest.raises(ValueError, match="Near-duplicate"):
-        approve_set(tmp_path, 5)
-    assert not load_credits(tmp_path)["reviewed"]
+    res = approve_set(tmp_path, 5)
+    credits = load_credits(tmp_path)
+    assert credits["reviewed"] is True
+    assert "Diversity notice" in res
+    assert not credits["pool_diversity"]["ok"]
 
 
 def test_changed_pixels_trigger_a_fresh_review(monkeypatch, tmp_path):
@@ -164,32 +183,35 @@ def test_changed_pixels_trigger_a_fresh_review(monkeypatch, tmp_path):
     assert len(calls) == 2
 
 
-def test_existing_full_burst_leaves_room_for_other_authors(tmp_path):
+def test_a_refill_never_moves_the_pools_own_photos_for_a_quota(tmp_path):
     module = _module()
     records = _records(tmp_path, ["Author A"] * 20)
-    selected, reserve = module.fetch_subset(records, 20)
-    assert len(selected) == 7 and len(reserve) == 13
-    assert all(image["reserve_reason"] == "author quota" for image in reserve)
+    selected, reserve = module.fetch_subset(records, 20, retained=20)
+    assert selected == records and not reserve
+    offered = []  # reserves offered back by a refill: different pictures by the same author
+    for index in range(2):
+        path = tmp_path / f"offered_{index}.jpg"
+        _photo(path, 900 + index)
+        offered.append({"file": path.name, "artist": "Author A", "shot_class": "wide", **module.signature(path)})
+    selected, reserve = module.fetch_subset(records[:7] + offered, 20, retained=7)
+    assert selected == records[:7] and [r["reserve_reason"] for r in reserve] == ["author quota"] * 2
 
-
-def test_balancing_cannot_increase_low_crop_share_above_ten_percent(tmp_path):
+def test_a_low_crop_share_above_ten_percent_holds_approval(tmp_path):
     module = _module()
     records = _records(tmp_path, ["Author A"] * 14 + ["Author B"] * 3 + ["Author C"] * 3)
     for image in records:
         image["vertical_crop_width"] = 1350
-    records[0]["vertical_crop_width"] = 1181
-    selected, reserve = module.balanced(records)
-    assert len(selected) == 9
-    assert all(image["vertical_crop_width"] >= 1350 for image in selected)
-    assert records[0] in reserve
-
+    for image in records[:3]:
+        image["vertical_crop_width"] = 1181  # 3 of 20 under 1350
+    result = module.assess(module.deduplicated(records)[0])
+    assert "Automatic photo crop budget no longer meets the resolution floor" in result["holds"]
 
 def test_essential_exception_is_retained_but_does_not_waive_diversity(tmp_path):
     module = _module()
     records = _records(tmp_path, ["Author A"] * 14 + ["Author B"] * 3 + ["Author C"] * 3)
     for image in records[:14]:
         image["presentation"] = "full_image"
-    selected, reserve = module.balanced(records)
+    selected, reserve = module.deduplicated(records)
     assert selected == records and not reserve
     assert not module.assess(selected)["ok"]
     selected, reserve = module.fetch_subset(records, 20)

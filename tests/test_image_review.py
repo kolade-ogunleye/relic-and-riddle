@@ -2,7 +2,6 @@
 own decision always stands, and no model means no approval."""
 import json
 
-import numpy as np
 import pytest
 from PIL import Image
 
@@ -17,18 +16,14 @@ def _pool(tmp_path, n, **extra):
     imgs = []
     for i in range(1, n + 1):
         f = f"{i:02d}_commons.jpg"
-        # Distinct valid source fixtures: this suite isolates the model's decisions.
-        pixels = np.random.default_rng(i).integers(0, 256, (48, 64, 3), dtype=np.uint8)
-        Image.fromarray(pixels).save(tmp_path / f)
-        imgs.append({"file": f, "title": f"File:Kailasa {i}.jpg", "license": "CC0",
-                     "artist": f"Photographer {i}", "shot_class": ("wide", "interior", "detail")[i % 3]})
+        Image.new("RGB", (64, 48), (i * 10, 0, 0)).save(tmp_path / f)
+        imgs.append({"file": f, "title": f"File:Kailasa {i}.jpg", "license": "CC0"})
     (tmp_path / "credits.json").write_text(json.dumps({"reviewed": False, "images": imgs, **extra}), encoding="utf-8")
     return imgs
 
 
 def _verdicts(spec):
-    return image_review.PoolReview(verdicts=[image_review.PhotoVerdict(
-        index=i, reason="r", shot_class=("wide", "interior", "detail")[i % 3], **v) for i, v in spec.items()])
+    return image_review.PoolReview(verdicts=[image_review.PhotoVerdict(index=i, reason="r", **v) for i, v in spec.items()])
 
 
 def test_pool_approved_on_merit_and_failures_dropped(monkeypatch, tmp_path):

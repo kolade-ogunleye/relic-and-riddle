@@ -707,8 +707,6 @@ def approve_set(topic_dir: Path, min_images: int) -> str:
     from . import photo_pool
     photo_pool.refresh(topic_dir, credits["images"])
     diversity = photo_pool.assess(credits["images"])
-    if not diversity["ok"]:
-        raise ValueError("Photo pool needs more variety before approval: " + "; ".join(diversity["problems"]))
     credits["pool_diversity"] = diversity
     credits["reviewed"] = True
     credits["reviewed_by"] = "operator"  # a human decision: automatic review never overrides it
@@ -722,6 +720,8 @@ def approve_set(topic_dir: Path, min_images: int) -> str:
         if r["pending"] else
         f" A video cannot use it yet: {readiness_text(credits['images'], min_images)}. Keep a photo with "
         f"/photos N keep or add photos that show the topic itself.")
+    if not diversity["ok"]:
+        note += " Diversity notice: " + "; ".join(diversity["problems"]) + "."
     return f"Approved {len(credits['images'])} images for {topic_dir.name}." + note
 
 

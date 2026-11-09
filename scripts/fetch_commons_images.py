@@ -138,7 +138,7 @@ def _fetch_pass(topic: dict, spec: dict, allow_sa: bool, target_images: int = TA
                     and c.get("title") not in rejected_titles and c.get("file") not in known_files
                     and (topic_dir / c.get("file", "")).is_file()]
         photo_pool.refresh(topic_dir, reusable)
-        selected, reserve = photo_pool.fetch_subset(images + reusable, target_images)
+        selected, reserve = photo_pool.fetch_subset(images + reusable, target_images, retained=len(images))
         images[:] = selected
         credits["diversity_reserve"] = [c for c in old_reserve if c not in reusable] + reserve
     missing_essential = set(essential_titles) - {record.get("title") for record in images}
@@ -186,13 +186,19 @@ def _fetch_pass(topic: dict, spec: dict, allow_sa: bool, target_images: int = TA
         cand.update(width=w, height=h, vertical_crop_width=vertical_crop_width(w, h))
 
     def diverse_candidate(cand, dest):
-        cand.update(photo_pool.signature(dest))
+        try:
+            cand.update(photo_pool.signature(dest))
+        except (OSError, ValueError) as exc:
+            # As refresh() does: no hashes, recorded, so assess() reports "lack verified perceptual hashes".
+            cand["hash_error"] = type(exc).__name__
         cand["shot_class"] = photo_pool.provisional_shot_class(cand)
         duplicate = photo_pool.duplicate_of(cand, images)
-        author_count = sum(photo_pool.author_key(c) == photo_pool.author_key(cand) for c in images)
+        cand_author = photo_pool.known_author(cand)
+        author_count = sum(photo_pool.known_author(c) == cand_author for c in images) if cand_author else 0
         class_count = sum(photo_pool.shot_class(c) == cand["shot_class"] for c in images)
         reason = ("near duplicate" if duplicate else
-                  "author quota" if author_count >= max(1, int(target_images * 0.35)) else
+                  "author quota" if photo_pool.author_quota_applies(target_images) and cand_author
+                  and author_count >= max(1, int(target_images * 0.35)) else
                   "shot class quota" if cand["shot_class"] != "unknown" and class_count >= max(1, (target_images + 1) // 2)
                   else "")
         if reason and not photo_pool.protected(cand):
@@ -319,7 +325,7 @@ def _fetch_pass(topic: dict, spec: dict, allow_sa: bool, target_images: int = TA
 
     if added:
         credits["reviewed"] = False  # new images always need a fresh look
-    selected, reserve = photo_pool.balanced(images)
+    selected, reserve = photo_pool.deduplicated(images)  # new photos met the quotas as they were fetched
     images[:] = selected
     credits.setdefault("diversity_reserve", []).extend(reserve)
     credits["pool_diversity"] = photo_pool.assess(images)

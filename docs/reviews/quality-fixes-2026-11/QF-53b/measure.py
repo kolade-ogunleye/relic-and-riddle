@@ -120,7 +120,7 @@ def replay_pools(assets: Path) -> dict:
     except ImportError:  # code before QF-53
         photo_pool = None
 
-    def recorded(topic, topic_dir, images):
+    def recorded(topic, topic_dir, images, **kwargs):
         verdicts = {}
         for i, im in enumerate(images, 1):
             v = im.get("vision_review") or {}
@@ -130,6 +130,9 @@ def replay_pools(assets: Path) -> dict:
                                          "can_move", "shot_class") if v.get(k) is not None}
             if fields.get("shot_class") not in ("wide", "interior", "detail", "people-scale", "archival", "unknown"):
                 fields.pop("shot_class", None)
+            if "quality" in image_review.PhotoVerdict.model_fields:  # QF-56 requires merit fields; a recorded
+                fields["quality"] = v.get("quality") or 3            # verdict without them gets neutral ones
+                fields["depiction"] = v.get("depiction") or "original"
             verdicts[i] = image_review.PhotoVerdict(index=i, reason=v.get("reason") or "r", **fields)
         return verdicts
 
@@ -166,7 +169,7 @@ def replay_pools(assets: Path) -> dict:
             if cr.get("reviewed_by") != "operator":
                 calls = []
 
-                def fake(topic, topic_dir, images, _calls=calls):
+                def fake(topic, topic_dir, images, _calls=calls, **kwargs):
                     _calls.append(len(images))
                     return recorded(topic, topic_dir, images)
 

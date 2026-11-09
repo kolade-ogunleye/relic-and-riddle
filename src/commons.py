@@ -786,6 +786,8 @@ def download_jpeg(
         if min_crop_width and vertical_crop_width(w, h) < min_crop_width:
             raise ValueError(f"9:16 crop too small: {vertical_crop_width(w, h)} px < {min_crop_width}")
         im.convert("RGB").save(dest, "JPEG", quality=92)  # re-encode: strips metadata and odd formats
+        from .photo_quality import record_source
+        record_source(dest, data)
         if preserve_source:
             # Archive accepted original bytes separately; only the upright JPEG enters the pool.
             Path(str(dest) + ".source").write_bytes(data)

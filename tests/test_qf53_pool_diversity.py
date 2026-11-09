@@ -148,7 +148,7 @@ def _review_fixture(tmp_path, *, duplicates=False):
 def test_model_yes_cannot_approve_pixel_duplicates(monkeypatch, tmp_path):
     from src import image_review
     records = _review_fixture(tmp_path, duplicates=True)
-    verdicts = image_review.PoolReview(verdicts=[image_review.PhotoVerdict(
+    verdicts = image_review.PoolReview(verdicts=[image_review.PhotoVerdict(quality=3, depiction="original", 
         index=i + 1, shows_topic="yes", usable=True, safe=True, reason="Looks good",
         shot_class=record["shot_class"]) for i, record in enumerate(records)])
     monkeypatch.setattr(image_review.free_llm, "call", lambda *a, **k: verdicts)
@@ -172,7 +172,7 @@ def test_changed_pixels_trigger_a_fresh_review(monkeypatch, tmp_path):
     from src import image_review
     records = _review_fixture(tmp_path)
     calls = []
-    verdicts = image_review.PoolReview(verdicts=[image_review.PhotoVerdict(
+    verdicts = image_review.PoolReview(verdicts=[image_review.PhotoVerdict(quality=3, depiction="original", 
         index=i + 1, shows_topic="yes", usable=True, safe=True, reason="Looks good",
         shot_class=record["shot_class"]) for i, record in enumerate(records)])
     monkeypatch.setattr(image_review.free_llm, "call", lambda *a, **k: calls.append(1) or verdicts)

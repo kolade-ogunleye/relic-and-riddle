@@ -231,7 +231,7 @@ def test_photo_review_fences_every_caption(monkeypatch, tmp_path):
     def call(system, content, schema, **k):
         seen.append(content)
         return image_review.PoolReview.model_validate({"verdicts": [
-            {"index": 1, "shows_topic": "yes", "usable": True, "safe": True, "reason": "A stone gate."}]})
+            {"index": 1, "shows_topic": "yes", "usable": True, "safe": True, "quality": 3, "depiction": "original", "reason": "A stone gate."}]})
     monkeypatch.setattr(free_llm, "call", call)
     payload = CORPUS[4]
     images = [{"file": "a.jpg", "title": "File:Stone gate.jpg", "description": f"The lower gate. {payload}"}]
@@ -252,7 +252,7 @@ def test_photo_review_rejects_a_reply_that_echoes_the_fence(monkeypatch, tmp_pat
     def call(system, content, schema, **k):
         mark = re.search(r'fence="(F[0-9a-f]{16})"', content[0]["text"]).group(1)
         return image_review.PoolReview.model_validate({"verdicts": [
-            {"index": 1, "shows_topic": "yes", "usable": True, "safe": True, "reason": f"as told by {mark}"}]})
+            {"index": 1, "shows_topic": "yes", "usable": True, "safe": True, "quality": 3, "depiction": "original", "reason": f"as told by {mark}"}]})
     monkeypatch.setattr(free_llm, "call", call)
     images = [{"file": "a.jpg", "title": "File:Gate.jpg", "description": "Gate"}]
     assert image_review._verdicts({"id": "t", "title": "T"}, tmp_path, images) is None

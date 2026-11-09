@@ -2,7 +2,6 @@
 named by what went wrong, so the regression is plain."""
 import json
 from pathlib import Path
-from types import SimpleNamespace
 
 from src import config, release
 
@@ -56,7 +55,8 @@ def test_a_re_review_keeps_the_photos_you_kept(tmp_path, monkeypatch):
         imgs.append({"file": f"{i:02d}_commons.jpg", "title": f"File:{i}.jpg", "license": "CC0"})
     imgs[1]["operator_keep"] = True
     (tmp_path / "credits.json").write_text(json.dumps({"reviewed": False, "images": imgs}), encoding="utf-8")
-    verdict = lambda i, shows: image_review.PhotoVerdict(index=i, shows_topic=shows, usable=True, safe=True, reason="r")
+    def verdict(i, shows):
+        return image_review.PhotoVerdict(quality=3, depiction="original", index=i, shows_topic=shows, usable=True, safe=True, reason="r")
     monkeypatch.setattr(image_review.free_llm, "call", lambda *a, **k: image_review.PoolReview(verdicts=[verdict(1, "yes"), verdict(2, "no")]))
     monkeypatch.setattr(image_review, "image_block", lambda p, *a: {"type": "image"})
     monkeypatch.setattr(image_review, "MIN_SCENE_IMAGES", 1)

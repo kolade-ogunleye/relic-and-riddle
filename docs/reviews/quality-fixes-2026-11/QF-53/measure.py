@@ -93,8 +93,9 @@ def main():
         topic = {"id": "fixture", "title": "Temple"}
 
         def all_yes(*args, **kwargs):
-            records = load_credits(folder)["images"][:image_review.MAX_PHOTOS]
-            return image_review.PoolReview(verdicts=[image_review.PhotoVerdict(
+            by_file = {record["file"]: record for record in load_credits(folder)["images"]}
+            records = [by_file[Path(item["path"]).name] for item in args[1] if item.get("type") == "image"]
+            return image_review.PoolReview(verdicts=[image_review.PhotoVerdict(quality=3, depiction="original", 
                 index=i + 1, shows_topic="yes", usable=True, safe=True, reason="Mock accepts every image",
                 shot_class=classes[record["title"]]) for i, record in enumerate(records)])
 
@@ -105,7 +106,7 @@ def main():
                 ("scripts.fetch_commons_images.find_categories", lambda *a, **k: []),
                 ("scripts.fetch_commons_images.search_openverse", lambda *a, **k: []),
                 ("src.storyboard.generate_storyboard", lambda *a, **k: None),
-                ("src.image_review.image_block", lambda *a, **k: {"type": "image"}),
+                ("src.image_review.image_block", lambda path, *a, **k: {"type": "image", "path": str(path)}),
                 ("src.image_review.free_llm.call", all_yes),
             ):
                 stack.enter_context(patch(target, replacement))

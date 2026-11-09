@@ -3,7 +3,6 @@ most CONTEXT_SHOTS_MAX Context, as get_scene_sequence does. Production 2026-10-2
 (run_greek_fire_siphon_1793038718, run_tunguska_event_1908_1793057943) failed at run start on pools that were
 approved and shown as ready: "Only 4 of the 6 approved photos ... (need 5): 2 Topic, 4 Context"."""
 import importlib
-import json
 import random
 
 import numpy as np
@@ -47,7 +46,7 @@ def _pool(d, tiers, start=1, **extra):
 
 
 def _verdicts(tiers):
-    return image_review.PoolReview(verdicts=[image_review.PhotoVerdict(index=i, reason="r",
+    return image_review.PoolReview(verdicts=[image_review.PhotoVerdict(quality=3, depiction="original", index=i, reason="r",
                                              shot_class=("wide", "interior", "detail")[i % 3], **VERDICT[t])
                                              for i, t in enumerate(tiers, 1)])
 

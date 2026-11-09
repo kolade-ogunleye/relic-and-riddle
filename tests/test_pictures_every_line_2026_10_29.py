@@ -362,7 +362,7 @@ def _recorded(tmp_path, title, review):
 
 def test_the_photo_review_says_what_can_move_and_can_move_reads_it_first(tmp_path):
     assert "can_move" in image_review.PhotoVerdict.model_fields and "can_move" in image_review.SYSTEM
-    assert image_review.PhotoVerdict(index=1, shows_topic="yes", usable=True, safe=True, reason="r").can_move is None
+    assert image_review.PhotoVerdict(quality=3, depiction="original", index=1, shows_topic="yes", usable=True, safe=True, reason="r").can_move is None
     base = {"shows_topic": "yes", "usable": True, "safe": True, "reason": "a view"}
     assert motion.can_move(_recorded(tmp_path, "lake water", {**base, "can_move": False})) is False
     assert motion.can_move(_recorded(tmp_path, "stone wall", {**base, "can_move": True})) is True

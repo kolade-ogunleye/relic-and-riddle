@@ -23,7 +23,8 @@ def _pool(tmp_path, n, **extra):
 
 
 def _verdicts(spec):
-    return image_review.PoolReview(verdicts=[image_review.PhotoVerdict(index=i, reason="r", **v) for i, v in spec.items()])
+    return image_review.PoolReview(verdicts=[image_review.PhotoVerdict(quality=3, depiction="original", 
+        index=i, reason="r", shot_class=("wide", "interior", "detail")[i % 3], **v) for i, v in spec.items()])
 
 
 def test_pool_approved_on_merit_and_failures_dropped(monkeypatch, tmp_path):
@@ -97,7 +98,11 @@ def test_an_unchanged_pool_is_not_sent_again(monkeypatch, tmp_path):
     _pool(tmp_path, 5)
     calls = []
     spec = {i: {"shows_topic": "no" if i == 5 else "yes", "usable": True, "safe": True} for i in range(1, 6)}
-    monkeypatch.setattr(image_review.free_llm, "call", lambda *a, **k: calls.append(1) or _verdicts(spec))
+    def review(system, content, schema, **kwargs):
+        calls.append(1)
+        count = sum(item.get("type") == "image" for item in content)
+        return _verdicts({index: verdict for index, verdict in spec.items() if index <= count})
+    monkeypatch.setattr(image_review.free_llm, "call", review)
     assert image_review.review_pool(TOPIC, tmp_path)["status"] == "held"           # 4 kept: too few
     assert image_review.review_pool(TOPIC, tmp_path)["status"].startswith("held (unchanged")
     assert len(calls) == 1                                                          # no second vision call

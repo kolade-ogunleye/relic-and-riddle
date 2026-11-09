@@ -107,7 +107,8 @@ def _pool(topic_dir: Path, fingerprint: str) -> None:
     for i in range(6):
         _textured(topic_dir / f"{i:02d}_commons.jpg", 600 + i)
         images.append({"file": f"{i:02d}_commons.jpg", "artist": f"Author {i}", "title": f"File:{i}.jpg",
-                       "vision_review": {"shows_topic": "yes", "usable": True, "safe": True, "kept": True}})
+                       "vision_review": {"shows_topic": "yes", "usable": True, "safe": True, "kept": True,
+                                                         "quality": 3, "depiction": "original"}})
     (topic_dir / "credits.json").write_text(json.dumps(
         {"images": images, "reviewed": True, "reviewed_by": "vision", "review_fingerprint": fingerprint}),
         encoding="utf-8")

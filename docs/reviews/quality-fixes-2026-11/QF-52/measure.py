@@ -64,6 +64,7 @@ def main(root: Path) -> dict:
             with contextlib.redirect_stdout(io.StringIO()):
                 fetch.fetch_topic({"id": "crop-fixture", "title": "Temple"}, {
                     "queries": ["Temple"], "keywords": ["temple"], "museums": False,
+                    "exclude": ["unrelated fixture"],
                     "essential_images": {title: "Only surviving inscription view"}},
                     False, target_images=60, assets_dir=assets)
         topic = assets / "crop-fixture"

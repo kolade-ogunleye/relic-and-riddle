@@ -109,7 +109,7 @@ def pool(monkeypatch, tmp_path):
     monkeypatch.setattr(fetch, "download_jpeg", download)
     monkeypatch.setattr("src.storyboard.generate_storyboard", lambda *a, **k: None)
     fetch.fetch_topic({"id": "crop-fixture", "title": "Temple"},
-                      {"queries": ["Temple"], "keywords": ["temple"], "museums": False},
+                      {"queries": ["Temple"], "keywords": ["temple"], "exclude": ["unrelated fixture"], "museums": False},
                       allow_sa=False, target_images=20, assets_dir=tmp_path)
     return json.loads((tmp_path / "crop-fixture" / "credits.json").read_text())["images"]
 

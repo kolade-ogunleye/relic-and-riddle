@@ -113,7 +113,8 @@ def main():
             stack.enter_context(patch.object(commons.requests, "get", side_effect=lambda url, **k: Response(bodies[url])))
             stack.enter_context(patch.object(commons.time, "sleep", return_value=None))
             with contextlib.redirect_stdout(io.StringIO()):
-                fetch.fetch_topic(topic, {"queries": ["Temple"], "keywords": ["temple"], "museums": False},
+                fetch.fetch_topic(topic, {"queries": ["Temple"], "keywords": ["temple"], "museums": False,
+                                         "exclude": ["unrelated fixture"]},
                                   allow_sa=False, target_images=24, assets_dir=root)
             fetched = load_credits(folder)
             before_review = independent_metrics(folder, fetched["images"], classes)

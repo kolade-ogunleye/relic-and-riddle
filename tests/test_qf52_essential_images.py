@@ -152,6 +152,7 @@ def test_fetch_preserves_exception_bytes_and_separate_credit(monkeypatch, tmp_pa
     monkeypatch.setattr("src.storyboard.generate_storyboard", lambda *a, **k: None)
     assert fetch.fetch_topic({"id": "essential", "title": "Temple"}, {
         "queries": ["Temple"], "keywords": ["temple"], "museums": False,
+        "exclude": ["unrelated fixture"],
         "essential_images": {record["title"]: "Only surviving source"}},
         False, target_images=1, assets_dir=tmp_path) == 1 + int(already_full)
     records = json.loads((tmp_path / "essential" / "credits.json").read_text())["images"]

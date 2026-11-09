@@ -342,7 +342,8 @@ def _fullness(category: str, words: List[str]) -> int:
 
 
 def topic_anchor(topic: dict, place: str = "", photos: Optional[List[dict]] = None,
-                 aliases: Optional[List[str]] = None, max_wait: int = 30) -> Optional[dict]:
+                 aliases: Optional[List[str]] = None, max_wait: int = 30,
+                 subject_anchor: dict | None = None, category_search=None) -> Optional[dict]:
     """What widened searches are restricted to, for `topic` (or a beat about `place`, another site): {"kind":
     "category", "name", "deep"}, a Commons category with files whose words the topic's title, id, other names
     (`aliases`, e.g. its image queries) and place name together; else {"kind": "near", "lat", "lon"} from the
@@ -361,6 +362,12 @@ def topic_anchor(topic: dict, place: str = "", photos: Optional[List[dict]] = No
         other name), then the order found.
     Kept in this process's memory for up to a day (lost on a restart; an empty answer is asked again within the
     hour, it may have been a failed search)."""
+    if subject_anchor and not place:
+        qid, category = subject_anchor.get("qid", ""), subject_anchor.get("category", "")
+        if re.fullmatch(r"Q[1-9][0-9]*", str(qid)) and isinstance(category, str) and category.strip():
+            return {"kind": "category", "name": category.removeprefix("Category:").strip(),
+                    "deep": False, "qid": qid}
+    category_search = category_search or find_categories
     loc = topic.get("location") or {}
     place = (place or "").strip()
     key = (topic.get("id"), place)
@@ -390,7 +397,7 @@ def topic_anchor(topic: dict, place: str = "", photos: Optional[List[dict]] = No
     try:
         order = 0
         for rank, q in enumerate(dict.fromkeys(q.strip() for q in queries if q.strip())):
-            for cat in find_categories(q, limit=5, max_wait=max_wait):
+            for cat in category_search(q, limit=5, max_wait=max_wait):
                 order += 1
                 if cat in scored:
                     continue

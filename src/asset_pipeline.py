@@ -35,6 +35,8 @@ def not_ready_reason(topic_id: str, assets_dir: Optional[Path] = None) -> str:
     from .image_review import readiness, readiness_text
     credits = load_credits((assets_dir or ASSETS_DIR) / topic_id)
     images = credits.get("images", [])
+    if not images and credits.get("fetch_held"):
+        return "no photos: the photo search is held. " + credits["fetch_held"]
     if not images:
         rejected = len(credits.get("rejected_by_review", []))
         return ("no photos: the fetch found nothing new" + (f" ({rejected} earlier ones were rejected)" if rejected else "")

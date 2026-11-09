@@ -183,6 +183,19 @@ def origin_note(topic: Dict) -> str:
     return f"🗂 Topic origin: {added.get('by', '?')}, {added.get('via', '?')}, {added.get('at', '?')}"
 
 
+def _wikipedia_title(p: TopicProposal) -> str:
+    """The English Wikipedia page a proposal cites, else its title: the exact sitelink its photo subject is verified
+    by (photo_queries.require_identity), never a search hit."""
+    from urllib.parse import unquote, urlparse
+    for source in p.sources:
+        url = urlparse(str(source.url))
+        if url.netloc.lower() in {"en.wikipedia.org", "en.m.wikipedia.org"} and url.path.startswith("/wiki/"):
+            page = unquote(url.path.removeprefix("/wiki/")).replace("_", " ").strip()
+            if page and ":" not in page:
+                return page
+    return p.title
+
+
 @serialized
 def add(db: PipelineDatabase, slug: str) -> str:
     """Appends an approved proposal to the bank and its image searches."""
@@ -217,7 +230,7 @@ def add(db: PipelineDatabase, slug: str) -> str:
             "archetypes": decomp.get("archetypes", {}),
         }
     from .photo_queries import structured_spec
-    queries[topic_id] = structured_spec(queries[topic_id])
+    queries[topic_id] = structured_spec(queries[topic_id], wikipedia_title=_wikipedia_title(p))
     from .topic_store import commit
     commit(BANK, QUERIES, bank, queries)
     db.set_setting(PENDING_KEY, json.dumps(store))

@@ -16,9 +16,14 @@ def quoted(value: str) -> str:
     return '"' + " ".join(str(value).replace('"', " ").replace("\\", " ").split())[:200] + '"'
 
 
-def structured_spec(spec: dict) -> dict:
+def structured_spec(spec: dict, wikipedia_title: str = "") -> dict:
     """Give newly proposed topics a shot plan too. Their searches, keywords and exclusions are kept as supplied:
-    the shot plan is a separate field, so nothing that reads `queries` (the anchor-category search) changes."""
+    the shot plan is a separate field, so nothing that reads `queries` (the anchor-category search) changes.
+    `wikipedia_title` (an English Wikipedia page title) becomes the topic's exact sitelink when it has no curated
+    QID, so a fetch can verify its subject (require_identity) without a first-search-hit guess."""
+    title = " ".join(str(wikipedia_title or "").split())[:200]
+    if title and not spec.get("qid") and not spec.get("wikidata_title"):
+        spec = {**spec, "wikidata_title": title}
     if spec.get("shot_queries"):
         return spec
     queries = list(dict.fromkeys(q.strip() for q in spec.get("queries", []) if q.strip()))
@@ -56,6 +61,9 @@ def entity_request(spec: dict) -> dict:
             **({"ids": qid} if qid else {"sites": "enwiki", "titles": title})}
 
 
+DISAMBIGUATION = "Q4167410"
+
+
 def anchor_from_entities(entities: dict, spec: dict) -> dict:
     """The anchor in a wbgetentities answer: exactly one entity, else none (never a first hit). Live answers and
     the recorded snapshot (data/topics/wikidata_snapshot.json) both go through here."""
@@ -64,6 +72,11 @@ def anchor_from_entities(entities: dict, spec: dict) -> dict:
     if len(found) != 1:
         return {}
     entity = found[0]
+    # A title that lands on a disambiguation page names no subject (P31 Q4167410: Wikimedia disambiguation page).
+    kinds = [claim.get("mainsnak", {}).get("datavalue", {}).get("value", {})
+             for claim in entity.get("claims", {}).get("P31", [])]
+    if any(isinstance(kind, dict) and kind.get("id") == DISAMBIGUATION for kind in kinds):
+        return {}
 
     def label(language: str) -> str:
         value = (entity.get("labels", {}).get(language) or {}).get("value")
@@ -138,3 +151,18 @@ def query_plan(spec: dict, anchor: dict | None = None) -> tuple[list[str], list[
     # The topic's own searches keep their place first; the new ones follow.
     queries = list(dict.fromkeys([*spec["queries"], *anchored, *curated_queries(spec)]))
     return queries, list(spec["keywords"]), anchor
+
+
+def require_identity(spec: dict, anchor: dict) -> None:
+    """Do not start a new fetch with neither namesake rules nor an exact subject."""
+    qid = str(spec.get("qid") or anchor.get("qid") or "")
+    exclusions = spec.get("exclude") or []
+    if not isinstance(exclusions, list) or any(not isinstance(term, str) or not term.strip() for term in exclusions):
+        raise ValueError("Photo namesake exclusions must be a list of nonempty phrases")
+    if not re.fullmatch(r"Q[1-9][0-9]*", qid) and not any(
+            isinstance(term, str) and term.strip() for term in exclusions):
+        title = str(spec.get("wikidata_title") or "").strip()
+        named = (f'"{title}" is not an exact English Wikipedia page title, or Wikidata did not answer' if title
+                 else "it has no Wikidata item or Wikipedia page title")
+        raise ValueError(f"Photo search needs a verified subject identity or explicit namesake exclusions: {named}. "
+                         "Use /photos N upload to supply photos")

@@ -148,7 +148,7 @@ def test_share_alike_only_fills_what_open_licences_cannot(monkeypatch, tmp_path)
     monkeypatch.setattr(fetch, "search_openverse", lambda q, limit=15: [])
     monkeypatch.setattr(fetch, "download_jpeg", _downloaded)
     monkeypatch.setattr("src.storyboard.generate_storyboard", lambda *a, **k: None)
-    spec = {"queries": ["Zhang Heng"], "keywords": ["zhang heng", "seismoscope"]}
+    spec = {"queries": ["Zhang Heng"], "keywords": ["zhang heng", "seismoscope"], "exclude": ["boatman"]}
     import json
     fetch.fetch_topic({"id": "z1", "title": "Zhang Heng"}, spec, allow_sa=True, target_images=1, assets_dir=tmp_path)
     one = [i["license"] for i in json.loads((tmp_path / "z1" / "credits.json").read_text())["images"]]

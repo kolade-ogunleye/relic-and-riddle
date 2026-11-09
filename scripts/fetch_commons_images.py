@@ -148,8 +148,16 @@ def _fetch_pass(topic: dict, spec: dict, allow_sa: bool, target_images: int = TA
         print(f"  {topic['id']}: already has {len(images)} images")
         return len(images)
 
-    from src.photo_queries import curated_queries, query_plan
-    queries, keyword_names, _anchor = query_plan(spec)
+    from src.photo_queries import curated_queries, query_plan, require_identity
+    queries, keyword_names, subject_anchor = query_plan(spec)
+    try:
+        require_identity(spec, subject_anchor)
+    except ValueError as held:
+        credits["fetch_held"] = str(held)  # shown by asset_pipeline.not_ready_reason on the automatic path
+        save_credits(topic_dir, credits)
+        raise
+    if credits.pop("fetch_held", None):
+        save_credits(topic_dir, credits)
     curated = set(curated_queries(spec))
     keywords = [normalize(k) for k in keyword_names]
     exclude = [normalize(x) for x in spec.get("exclude", [])]
@@ -258,43 +266,42 @@ def _fetch_pass(topic: dict, spec: dict, allow_sa: bool, target_images: int = TA
         have.add(cand["title"])
         added += 1
 
-    # 2. Cascading Commons Fallback: Direct Category Discovery
+    # 2. Category fallback shares the beat search's namesake and place guards.
     if len(images) < target_images:
-        cat_search_terms = [topic.get("title", ""), spec.get("keywords", [""])[0]]
-        for term in cat_search_terms:
-            checkpoint()
-            if not term or len(images) >= target_images:
-                break
-            cats = find_categories(term, limit=3)
-            for cat in cats:
-                cat_clean = cat.replace("Category:", "").strip()
-                cat_q = f'incategory:"{cat_clean}"'
-                for cand in best_first(list(candidates(search(cat_q), keywords, allow_sa, **candidate_options)), keywords, place):
-                    checkpoint()
-                    if len(images) >= target_images:
-                        break
-                    if cand["relevance"] <= 0 or namesake(cand):
-                        continue
-                    if cand["title"] in have:
-                        continue
-                    n = 1
-                    while (topic_dir / f"{n:02d}_commons.jpg").exists():
-                        n += 1
-                    dest = topic_dir / f"{n:02d}_commons.jpg"
-                    try:
-                        fetch_picture(cand, dest)
-                        if not diverse_candidate(cand, dest):
-                            continue
-                    except Exception:
-                        continue
-                    cand["file"] = dest.name
-                    images.append(cand)
-                    credits["reviewed"] = False
-                    save_credits(topic_dir, credits)
-                    have.add(cand["title"])
-                    added += 1
+        from src.commons import topic_anchor
+        anchor = topic_anchor(topic, photos=images, aliases=spec["queries"], subject_anchor=subject_anchor,
+                              category_search=find_categories)
+        cats = [anchor["name"]] if anchor and anchor.get("kind") == "category" else []
+        for cat in cats:
+            from src.photo_queries import quoted
+            cat_clean = cat.removeprefix("Category:").strip()
+            cat_q = f"incategory:{quoted(cat_clean)}"
+            for cand in best_first(list(candidates(search(cat_q), keywords, allow_sa, **candidate_options)), keywords, place):
+                checkpoint()
                 if len(images) >= target_images:
                     break
+                if cand["relevance"] <= 0 or namesake(cand):
+                    continue
+                if cand["title"] in have:
+                    continue
+                n = 1
+                while (topic_dir / f"{n:02d}_commons.jpg").exists():
+                    n += 1
+                dest = topic_dir / f"{n:02d}_commons.jpg"
+                try:
+                    fetch_picture(cand, dest)
+                    if not diverse_candidate(cand, dest):
+                        continue
+                except Exception:
+                    continue
+                cand["file"] = dest.name
+                images.append(cand)
+                credits["reviewed"] = False
+                save_credits(topic_dir, credits)
+                have.add(cand["title"])
+                added += 1
+            if len(images) >= target_images:
+                break
 
     # 3. Museum Fallback: Openverse (Commercial CC Only, with Strict Dimension Gating)
     if len(images) < target_images:
@@ -377,6 +384,9 @@ def main() -> int:
                 short.append(t["id"])
         except requests.RequestException as e:
             print(f"  {t['id']}: Commons request failed: {e}")
+            short.append(t["id"])
+        except ValueError as e:  # a held topic (no verified subject) must not stop the topics after it
+            print(f"  {t['id']}: held: {e}")
             short.append(t["id"])
     print(f"Done. Short of images ({len(short)}): {', '.join(short) or 'none'}")
     print("Review each contact_sheet.jpg, delete wrong images, then: python main.py assets approve <topic_id>")

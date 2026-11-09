@@ -309,7 +309,7 @@ def _add_topic_to_bank(db: PipelineDatabase, title: str, u_site=None) -> Tuple[s
         "archetypes": decomp.get("archetypes", {})
     }
     from .photo_queries import structured_spec
-    queries[topic_id] = structured_spec(queries[topic_id])
+    queries[topic_id] = structured_spec(queries[topic_id], wikipedia_title=title)
     from .topic_store import commit
     commit(topic_proposer.BANK, topic_proposer.QUERIES, bank, queries)
     db._seed_topics_from_json()

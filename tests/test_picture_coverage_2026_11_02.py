@@ -362,6 +362,11 @@ def _replies(monkeypatch, mapping, seen=None):
 
 
 def test_openverse_takes_open_licences_on_allowed_hosts_only(monkeypatch):
+    monkeypatch.setattr(config, "MUSEUM_OPENVERSE_ENABLED", True)
+    monkeypatch.setattr(ms, "_verify_openverse_source", lambda item: {
+        "license": ms.openverse_licence(item["license"], item["license_version"])[0],
+        "license_url": ms.openverse_licence(item["license"], item["license_version"])[1],
+        "license_verified_at": "2026-11-06T00:00:00+00:00", "license_verification_source": item["foreign_landing_url"]})
     item = lambda lic, url, v="4.0": {"title": "Pont du Gard", "url": url, "license": lic, "license_version": v,
                                       "creator": "A. Photographer", "foreign_landing_url": "https://flickr.com/p/1",
                                       "provider": "flickr", "tags": [{"name": "aqueduct"}]}
@@ -418,9 +423,11 @@ def test_the_further_sources_are_off_until_enabled(monkeypatch):
 
 
 def test_cached_search_runs_new_sources_through_the_licence_and_keyword_filters(monkeypatch, tmp_path):
+    monkeypatch.setattr(config, "MUSEUM_OPENVERSE_ENABLED", True)
     monkeypatch.setattr(ms, "CACHE_FILE", tmp_path / "museum.json")
     monkeypatch.setitem(ms.SOURCES, "openverse", lambda q, limit=6: [
-        ms._candidate(title="Pont du Gard aqueduct", download_url="https://upload.wikimedia.org/a.jpg", license="CC BY 4.0"),
+        ms._candidate(title="Pont du Gard aqueduct", download_url="https://upload.wikimedia.org/a.jpg", license="CC BY 4.0",
+                      license_verified_at="2026-11-06T00:00:00+00:00"),
         ms._candidate(title="Pont du Gard", download_url="https://upload.wikimedia.org/b.jpg", license="CC BY-SA 4.0"),
         ms._candidate(title="A cat", download_url="https://upload.wikimedia.org/c.jpg", license="CC0")])
     got = ms.cached_search("pont du gard", ["gard"], sources=("openverse",))

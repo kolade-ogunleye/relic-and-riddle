@@ -228,7 +228,9 @@ def search(query: str, limit: int = 50, max_wait: int = 60) -> list:
     params = {
         "action": "query", "format": "json", "generator": "search",
         "gsrsearch": f"{query} filetype:bitmap", "gsrnamespace": 6, "gsrlimit": limit,
-        "prop": "imageinfo|categories", "iiprop": "url|size|mime|extmetadata", "iiurlheight": 2880,
+        "prop": "imageinfo|categories|templates", "iiprop": "url|size|mime|extmetadata", "iiurlheight": 2880,
+        "tllimit": "max", "tltemplates": "Template:PD-old-70|Template:PD-old-80|Template:PD-old-90|Template:PD-old-100|"
+            "Template:PD-old-70-expired|Template:PD-old-100-expired|Template:PD-US-expired|Template:PD-Art|Template:PD-old-auto-expired",
         "clcategories": "|".join(GRADE_CATEGORIES), "cllimit": "max",
         # Credit and Attribution name the author when Artist does not (Wellcome Collection files, see _author).
         "iiextmetadatafilter": "LicenseShortName|Artist|Credit|Attribution|LicenseUrl|AttributionRequired|DateTimeOriginal|"
@@ -605,6 +607,10 @@ def candidates(pages: list, keywords: List[str], allow_sa: bool = False, min_pix
             continue
         if not license_allowed(licence, allow_sa):
             continue
+        from .image_rights import commons_basis, public_domain
+        rights_basis = commons_basis(page, meta, info.get("descriptionurl", ""))
+        if public_domain(licence) and not rights_basis:
+            continue
         w, h = info.get("width", 0), info.get("height", 0)
         essential = (essential_titles or {}).get(page["title"], "")
         if not isinstance(essential, str):
@@ -650,6 +656,7 @@ def candidates(pages: list, keywords: List[str], allow_sa: bool = False, min_pix
             "artist": artist,
             "license": licence,
             "license_url": meta.get("LicenseUrl", {}).get("value", ""),
+            **({"worldwide_basis": rights_basis} if rights_basis else {}),
             "attribution_required": meta.get("AttributionRequired", {}).get("value", "true") != "false",
             "year": photo_year(meta.get("DateTimeOriginal", {}).get("value", "")),
             "width": w,

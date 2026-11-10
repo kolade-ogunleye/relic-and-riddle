@@ -1250,7 +1250,9 @@ class TelegramApprovalBot:
             from . import config
             from .image_upload import OWN_WORK_LICENCES
             licences = (list(OWN_WORK_LICENCES) if state["rights"].get("own_work") else
-                        ["CC0", "CC BY 4.0", "Public domain"] + (["CC BY-SA 4.0"] if config.IMAGES_ALLOW_SHARE_ALIKE else []))
+                        # No "Public domain" button (QF-57): an upload carries no recorded worldwide basis, so a
+                        # public-domain upload would be held and never used. CC0 covers a worldwide waiver.
+                        ["CC0", "CC BY 4.0"] + (["CC BY-SA 4.0"] if config.IMAGES_ALLOW_SHARE_ALIKE else []))
             buttons.insert(0, [{"text": licence, "callback_data": f"uploadlic:{state['id']}:{licence}"} for licence in licences])
         text = f"🖼 <b>Upload: {html.escape(state.get('title', state['topic']))}</b>\n\n{html.escape(PROMPTS[stage])}"
         if note:

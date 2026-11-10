@@ -28,7 +28,9 @@ def test_queries_take_turns_so_every_shot_type_is_covered():
 
 
 def test_openverse_licences_pass_the_same_filter(monkeypatch):
-    results = [{"license": lic, "license_version": ver, "url": f"u{i}", "title": lic}
+    from src import config, museum_sources
+    monkeypatch.setattr(config, "MUSEUM_OPENVERSE_ENABLED", True)
+    results = [{"license": lic, "license_version": ver, "url": f"https://upload.wikimedia.org/{i}.jpg", "title": lic}
                for i, (lic, ver) in enumerate([("by", "4.0"), ("by-nd", "4.0"), ("by-sa", "4.0"), ("cc0", "1.0"), ("pdm", "")])]
 
     class R:
@@ -36,7 +38,13 @@ def test_openverse_licences_pass_the_same_filter(monkeypatch):
 
         def json(self):
             return {"results": results}
-    monkeypatch.setattr(fetch.requests, "get", lambda *a, **k: R())
+    monkeypatch.setattr(museum_sources, "_get", lambda *a, **k: R().json())
+    monkeypatch.setattr(museum_sources, "_verify_openverse_source", lambda item: {
+        "license": museum_sources.openverse_licence(item["license"], item["license_version"])[0],
+        "license_url": museum_sources.openverse_licence(item["license"], item["license_version"])[1],
+        "worldwide_basis": {"kind": "commons-pd-old", "evidence": "https://commons.wikimedia.org/wiki/File:Fixture.jpg",
+                            "checked_at": "2026-11-06T00:00:00+00:00", "source_life_term": "PD-old-100", "us_basis": "PD-US-expired"},
+        "license_verified_at": "2026-11-06T00:00:00+00:00", "license_verification_source": "https://commons.wikimedia.org/wiki/File:Fixture.jpg"})
     assert [c["license"] for c in fetch.search_openverse("x")] == ["CC BY 4.0", "CC0", "Public domain"]
 
 

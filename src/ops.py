@@ -48,6 +48,7 @@ class SecretMasker:
         "HEALTHCHECK_PING_URL",  # the ping URL itself is the credential
         "SMITHSONIAN_API_KEY",
         "EUROPEANA_API_KEY",
+        "FLICKR_API_KEY",
         "GEMINI_FREE_API_KEY_SPARE",  # were missing: an error carrying either was shown unmasked
         "GROQ_API_KEY",
         "YOUTUBE_ANALYTICS_CLIENT_ID",  # the three YouTube Analytics credentials (src/youtube_analytics.py)

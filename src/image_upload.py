@@ -13,7 +13,9 @@ STEPS = ("file", "source", "licence", "licence_url", "author")
 PROMPTS = {
     "file": "Send the image as a photo or image document. Documents preserve resolution.",
     "source": "Send the public source page URL for this image, or tap I took this photo if it is your own.",
-    "licence": "Choose the image's licence below. It must match the source; use Cancel if rights are uncertain.",
+    "licence": ("Choose the image's licence below. It must match the source; use Cancel if rights are uncertain. "
+                "A photo marked only public domain is not used: a video needs proof it is free worldwide, so choose "
+                "CC0 when the source waives its rights."),
     "licence_url": "Send the public URL that documents this image's licence.",
     "author": "Send the photographer/creator's name for attribution.",
 }

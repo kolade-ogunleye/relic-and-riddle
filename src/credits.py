@@ -423,6 +423,8 @@ def generate_provenance_ledger(
                        "artist": rec.get("artist") or (illustration_credit if in_house_gap_art else None),
                        "license": rec.get("license") or ("AI-generated illustration, not a photograph" if in_house_gap_art else None),
                        "license_url": rec.get("license_url"), "source_url": rec.get("source_url"),
+                       "worldwide_basis": _effective_basis(rec),
+                       "license_verified_at": rec.get("license_verified_at"),
                        "attribution_required": False if in_house_gap_art else requires_attribution,
                        "rights_status": "verified" if rights_known or original_drawing or embedded_rights_verified or in_house_gap_art else "unverified"})
         assets.append(record)
@@ -561,12 +563,22 @@ def is_share_alike(short_name: str) -> bool:
 _PUBLIC_DOMAIN = re.compile(r"^(public domain|pd\b|pd-|cc0)", re.IGNORECASE)
 
 
+def _effective_basis(rec: dict[str, Any]) -> dict[str, Any] | None:
+    from .image_rights import effective_basis
+    return effective_basis(rec) or rec.get("worldwide_basis")
+
+
 def rights_evidence_ok(rec: Dict[str, Any]) -> bool:
     """An allowed licence with its evidence: the source page, and the licence's URL. Public domain and CC0
     have no licence to link to, so their source page (where the status is documented) is the evidence;
     three public-domain Commons images were held for review for lacking a URL (production, 2026-10-23)."""
     licence = str(rec.get("license", "") or "")
     if not (license_allowed(licence) and rec.get("source_url")):
+        return False
+    from .image_rights import rights_held
+    if rights_held(rec):  # public domain needs a worldwide basis: stored, or read from the record's own evidence
+        return False
+    if rec.get("provider") == "openverse" and not rec.get("license_verified_at"):
         return False
     return bool(rec.get("license_url")) or bool(_PUBLIC_DOMAIN.match(licence.strip()))
 

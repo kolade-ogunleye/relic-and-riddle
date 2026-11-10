@@ -155,7 +155,11 @@ TIER_LABELS = {"topic": "Topic", "kept": "Kept by you", "context": "Context", "u
 
 
 def tier(img: Dict[str, Any]) -> str:
-    """topic | kept | context | unchecked | weak, from the photo's vision verdict and the operator's keep."""
+    """topic | kept | context | unchecked | weak, from the photo's vision verdict and the operator's keep. A
+    public-domain photo with no worldwide basis is weak whatever was decided: a video may not use it (QF-57)."""
+    from .image_rights import rights_held
+    if rights_held(img):
+        return "weak"
     if img.get("operator_keep"):
         return "kept"
     v = img.get("vision_review") or {}

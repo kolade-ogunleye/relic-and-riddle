@@ -179,16 +179,8 @@ def get_curated_footage(topic_id: str, work_dir: Path) -> Tuple[List[Path], List
 
     work_dir.mkdir(parents=True, exist_ok=True)
     clips, credits = [], []
+    from .image_rights import effective_basis, rights_held
     for idx, p in enumerate(video_files):
-        n = len(clips) + 1
-        final_clip = work_dir / f"footage_{n:02d}.mp4"
-        try:
-            info = probe(p)
-            make_segment(p, info, final_clip)
-        except Exception as e:
-            log.warning("Failed to prepare curated footage %s: %s", p.name, e)
-            continue
-
         meta_file = p.with_suffix(".json")
         if meta_file.exists():
             try:
@@ -197,6 +189,23 @@ def get_curated_footage(topic_id: str, work_dir: Path) -> Tuple[List[Path], List
                 cand = {}
         else:
             cand = {}
+        # QF-57: a public-domain film with no worldwide basis may not be released, so it is not used either (no
+        # render that the release gate would then block). The basis is read from the asset record (its stored basis,
+        # or the operator's recorded approval) before the run-time note below replaces that record's check_note.
+        if rights_held(cand):
+            log.warning("Curated footage %s skipped: public domain without a worldwide basis.", p.name)
+            continue
+        derived = effective_basis(cand)
+        if derived:
+            cand["worldwide_basis"] = derived
+        n = len(clips) + 1
+        final_clip = work_dir / f"footage_{n:02d}.mp4"
+        try:
+            info = probe(p)
+            make_segment(p, info, final_clip)
+        except Exception as e:
+            log.warning("Failed to prepare curated footage %s: %s", p.name, e)
+            continue
 
         cand.setdefault("provider", "curated")
         cand.setdefault("title", p.stem.replace("_", " ").title())

@@ -43,48 +43,11 @@ from src.commons import (  # noqa: E402
 )
 from src.credits import license_allowed, load_credits, normalize, save_credits, write_contact_sheet  # noqa: E402
 from src.db import PipelineDatabase  # noqa: E402
+from src.museum_sources import openverse_search as search_openverse  # noqa: E402
 
 # A ranked pool, not a fixed handful: the scene planner picks per beat from all of them, using
 # each image's caption (title, description, date) and the picture itself.
 TARGET_IMAGES = 20
-
-
-def openverse_licence(code: str, version: str) -> str:
-    """Openverse codes ("by", "by-nd", "cc0", "pdm") as Commons-style names the licence filter reads."""
-    code = (code or "").strip().lower()
-    if code == "pdm":
-        return "Public domain"
-    if code == "cc0":
-        return "CC0"
-    return f"CC {code.upper()} {version}".strip()
-
-
-def search_openverse(query: str, limit: int = 15) -> list:
-    url = "https://api.openverse.org/v1/images/"
-    params = {"q": query, "page_size": limit, "license_type": "commercial"}
-    try:
-        r = requests.get(url, params=params, timeout=12)
-        if r.status_code == 200:
-            results = r.json().get("results", [])
-            out = []
-            for item in results:
-                licence = openverse_licence(item.get("license", ""), item.get("license_version", ""))
-                if not license_allowed(licence):  # e.g. NoDerivatives forbids our crops and upscaling
-                    continue
-                out.append({
-                    "title": item.get("title") or query,
-                    "download_url": item.get("url"),
-                    "source_url": item.get("foreign_landing_url") or item.get("url"),
-                    "artist": item.get("creator") or "Unknown",
-                    "license": licence,
-                    "license_url": item.get("license_url", ""),
-                    "provider": "openverse",
-                    "year": None,
-                })
-            return out
-    except Exception:
-        pass
-    return []
 
 
 def interleave(ranked_lists: list) -> list:

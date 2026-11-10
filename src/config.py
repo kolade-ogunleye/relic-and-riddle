@@ -540,6 +540,7 @@ TOPIC_MIN_AUTHORITATIVE_IMAGES = int(os.getenv("TOPIC_MIN_AUTHORITATIVE_IMAGES",
 # parameters could not be checked against the official documentation from the development container (2026-11-02);
 # enable after a live check. The Library of Congress is on by default (operator decision 2026-11-03; off until then).
 MUSEUM_OPENVERSE_ENABLED = os.getenv("MUSEUM_OPENVERSE_ENABLED", "false").lower() in ("true", "1", "yes")
+FLICKR_API_KEY = os.getenv("FLICKR_API_KEY", "")  # optional; verifies Openverse Flickr results at their source
 MUSEUM_LOC_ENABLED = os.getenv("MUSEUM_LOC_ENABLED", "true").lower() in ("true", "1", "yes")
 MUSEUM_ARTIC_ENABLED = os.getenv("MUSEUM_ARTIC_ENABLED", "false").lower() in ("true", "1", "yes")
 # <<< Picture coverage ------------------------------------------------------------------------------------------

@@ -1,6 +1,7 @@
 """A traced claim is a passed claim, and a public-domain work is evidenced by its source page."""
 from src import improve
 from src.credits import rights_evidence_ok
+from src.image_rights import basis
 from src.telegram_bot import TelegramApprovalBot
 
 
@@ -17,6 +18,7 @@ def test_traced_claims_are_not_an_integrity_alert_or_a_finding(db):
 
 def test_public_domain_needs_its_source_page_not_a_licence_url():
     pd = {"license": "Public domain", "source_url": "https://commons.wikimedia.org/wiki/File:Vitruvius.jpg"}
+    pd["worldwide_basis"] = basis("commons-pd-old", pd["source_url"], source_life_term="PD-old-100", us_basis="PD-US-expired")
     assert rights_evidence_ok(pd)
     assert not rights_evidence_ok({**pd, "source_url": ""})  # still needs its evidence
     assert rights_evidence_ok({"license": "CC0", "source_url": "https://x"})
@@ -25,8 +27,16 @@ def test_public_domain_needs_its_source_page_not_a_licence_url():
     assert not rights_evidence_ok({"license": "PDF scan", "source_url": "https://x"})
 
 
-def test_a_bare_pd_licence_counts_as_public_domain():
-    assert rights_evidence_ok({"license": "PD", "source_url": "https://x"})
+def test_a_bare_pd_licence_without_evidence_is_refused():
+    assert not rights_evidence_ok({"license": "PD", "source_url": "https://x"})
+    assert not rights_evidence_ok({"license": "Public domain", "source_url": "https://x"})
+
+
+def test_a_pd_licence_with_verified_commons_basis_is_accepted():
+    valid = {"license": "Public domain", "source_url": "https://commons.wikimedia.org/wiki/File:Example.jpg",
+             "worldwide_basis": basis("commons-pd-art", "https://commons.wikimedia.org/wiki/File:Example.jpg",
+                                      source_life_term="pd-old-100-expired", us_basis="pd-us-expired")}
+    assert rights_evidence_ok(valid)
 
 
 def test_a_video_check_issue_says_where_it_is_in_the_video():

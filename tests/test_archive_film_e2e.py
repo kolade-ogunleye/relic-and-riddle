@@ -11,8 +11,6 @@ import subprocess
 import time
 from pathlib import Path
 
-import pytest
-
 from src import archive_film, config, footage
 from src.credits import rights_evidence_ok
 

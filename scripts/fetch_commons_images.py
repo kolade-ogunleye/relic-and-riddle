@@ -148,7 +148,10 @@ def _fetch_pass(topic: dict, spec: dict, allow_sa: bool, target_images: int = TA
         print(f"  {topic['id']}: already has {len(images)} images")
         return len(images)
 
-    keywords = [normalize(k) for k in spec["keywords"]]
+    from src.photo_queries import curated_queries, query_plan
+    queries, keyword_names, _anchor = query_plan(spec)
+    curated = set(curated_queries(spec))
+    keywords = [normalize(k) for k in keyword_names]
     exclude = [normalize(x) for x in spec.get("exclude", [])]
 
     def namesake(cand: dict) -> bool:
@@ -221,10 +224,11 @@ def _fetch_pass(topic: dict, spec: dict, allow_sa: bool, target_images: int = TA
     # Museum and agency archives (The Met, NASA, Smithsonian) alongside Commons for each search.
     from src.museum_sources import search_all
     ranked_lists = []
-    for q in [*sorted(missing_essential), *spec["queries"]]:
+    for q in [*sorted(missing_essential), *queries]:
         checkpoint()
         ranked_lists.append(best_first(list(candidates(query_pages(q), keywords, allow_sa, **candidate_options)), keywords, place))
-        if spec.get("museums", True):
+        # Museums get the hand-written searches, not the Wikidata identity searches.
+        if spec.get("museums", True) and (q in missing_essential or q in curated):
             ranked_lists.append(best_first(search_all(q, keywords), keywords, place))
     ordered = interleave(ranked_lists)
     ordered.sort(key=lambda cand: cand["title"] not in essential_titles)

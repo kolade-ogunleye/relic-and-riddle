@@ -1,0 +1,1923 @@
+{
+ "_doc": "wbgetentities answers for each topic's curated QID, in the topic's own request languages (claims cut to P373), recorded by docs/reviews/quality-fixes-2026-11/QF-54a/record_wikidata_snapshot.py. src/photo_queries.py reads it for a curated QID (live Wikidata only for an item not recorded here) through anchor_from_entities, the parser of a live answer.",
+ "recorded_utc": "2026-11-10T02:42Z",
+ "topics": {
+  "derinkuyu_underground_city": {
+   "request": {
+    "ids": "Q1328958",
+    "languages": "en|tr"
+   },
+   "entities": {
+    "Q1328958": {
+     "type": "item",
+     "id": "Q1328958",
+     "labels": {
+      "en": {
+       "language": "en",
+       "value": "Derinkuyu underground city"
+      },
+      "tr": {
+       "language": "tr",
+       "value": "Derinkuyu Yeraltı Şehri"
+      }
+     },
+     "aliases": {},
+     "claims": {
+      "P373": [
+       {
+        "mainsnak": {
+         "snaktype": "value",
+         "property": "P373",
+         "hash": "4d7dcb05328b3e283d946929196d6aa9321c91b7",
+         "datavalue": {
+          "value": "Underground City of Derinkuyu",
+          "type": "string"
+         },
+         "datatype": "string"
+        },
+        "type": "statement",
+        "id": "q1328958$4FB8EB43-B9E2-4C63-8CCE-D1AF0A6FA48A",
+        "rank": "normal"
+       }
+      ]
+     }
+    }
+   }
+  },
+  "roman_self_healing_concrete": {
+   "request": {
+    "ids": "Q610076",
+    "languages": "en|it"
+   },
+   "entities": {
+    "Q610076": {
+     "type": "item",
+     "id": "Q610076",
+     "labels": {
+      "en": {
+       "language": "en",
+       "value": "Roman concrete"
+      },
+      "it": {
+       "language": "it",
+       "value": "Opera cementizia"
+      }
+     },
+     "aliases": {
+      "it": [
+       {
+        "language": "it",
+        "value": "Opus caementiceum"
+       },
+       {
+        "language": "it",
+        "value": "Opus caementicium"
+       },
+       {
+        "language": "it",
+        "value": "Opus caementicum"
+       },
+       {
+        "language": "it",
+        "value": "Opus coementicium"
+       }
+      ],
+      "en": [
+       {
+        "language": "en",
+        "value": "opus caementicium"
+       }
+      ]
+     },
+     "claims": {
+      "P373": [
+       {
+        "mainsnak": {
+         "snaktype": "value",
+         "property": "P373",
+         "hash": "7c90ad7df42c4b2e868d6f461daa65f9234d3bca",
+         "datavalue": {
+          "value": "Opus caementicium",
+          "type": "string"
+         },
+         "datatype": "string"
+        },
+        "type": "statement",
+        "id": "Q610076$821F08DF-078B-4422-A061-E14ABEBA2AB7",
+        "rank": "normal"
+       }
+      ]
+     }
+    }
+   }
+  },
+  "kailasa_temple_monolith": {
+   "request": {
+    "ids": "Q1268562",
+    "languages": "en|hi"
+   },
+   "entities": {
+    "Q1268562": {
+     "type": "item",
+     "id": "Q1268562",
+     "labels": {
+      "hi": {
+       "language": "hi",
+       "value": "कैलाश मन्दिर, एलोरा"
+      },
+      "en": {
+       "language": "en",
+       "value": "Kailasa Temple, Ellora"
+      }
+     },
+     "aliases": {
+      "hi": [
+       {
+        "language": "hi",
+        "value": "कैलाश मन्दिर"
+       }
+      ],
+      "en": [
+       {
+        "language": "en",
+        "value": "Kailasanatha temple, Ellora"
+       }
+      ]
+     },
+     "claims": {
+      "P373": [
+       {
+        "mainsnak": {
+         "snaktype": "value",
+         "property": "P373",
+         "hash": "9b37a914fcd45abc512818ca0655fd6a1f3daf23",
+         "datavalue": {
+          "value": "Kailasa Temple, Ellora",
+          "type": "string"
+         },
+         "datatype": "string"
+        },
+        "type": "statement",
+        "id": "q1268562$09D6C09C-B192-45CF-B11F-4BD54AAAEBDA",
+        "rank": "normal",
+        "references": [
+         {
+          "hash": "fa278ebfc458360e5aed63d5058cca83c46134f1",
+          "snaks": {
+           "P143": [
+            {
+             "snaktype": "value",
+             "property": "P143",
+             "hash": "e4f6d9441d0600513c4533c672b5ab472dc73694",
+             "datavalue": {
+              "value": {
+               "entity-type": "item",
+               "numeric-id": 328,
+               "id": "Q328"
+              },
+              "type": "wikibase-entityid"
+             },
+             "datatype": "wikibase-item"
+            }
+           ]
+          },
+          "snaks-order": [
+           "P143"
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    }
+   }
+  },
+  "antikythera_mechanism": {
+   "request": {
+    "ids": "Q182324",
+    "languages": "en|el"
+   },
+   "entities": {
+    "Q182324": {
+     "type": "item",
+     "id": "Q182324",
+     "labels": {
+      "el": {
+       "language": "el",
+       "value": "Μηχανισμός των Αντικυθήρων"
+      },
+      "en": {
+       "language": "en",
+       "value": "Antikythera mechanism"
+      }
+     },
+     "aliases": {
+      "el": [
+       {
+        "language": "el",
+        "value": "Υπολογιστής των Αντικυθήρων"
+       }
+      ]
+     },
+     "claims": {
+      "P373": [
+       {
+        "mainsnak": {
+         "snaktype": "value",
+         "property": "P373",
+         "hash": "34e282f41d640f11779bc25507a82107839782bd",
+         "datavalue": {
+          "value": "Antikythera Mechanism",
+          "type": "string"
+         },
+         "datatype": "string"
+        },
+        "type": "statement",
+        "id": "q182324$0B67516F-2233-489D-9AD8-4A105B66E7B8",
+        "rank": "normal"
+       }
+      ]
+     }
+    }
+   }
+  },
+  "gobekli_tepe_enclosure_d": {
+   "request": {
+    "ids": "Q214944",
+    "languages": "en|tr"
+   },
+   "entities": {
+    "Q214944": {
+     "type": "item",
+     "id": "Q214944",
+     "labels": {
+      "en": {
+       "language": "en",
+       "value": "Göbekli Tepe"
+      },
+      "tr": {
+       "language": "tr",
+       "value": "Göbeklitepe"
+      }
+     },
+     "aliases": {
+      "tr": [
+       {
+        "language": "tr",
+        "value": "Göbekli Tepe"
+       }
+      ],
+      "en": [
+       {
+        "language": "en",
+        "value": "Potbelly Hill"
+       },
+       {
+        "language": "en",
+        "value": "Portasar"
+       }
+      ]
+     },
+     "claims": {
+      "P373": [
+       {
+        "mainsnak": {
+         "snaktype": "value",
+         "property": "P373",
+         "hash": "46eee5e99dd0733e75f10a84ac795fcb73501cc4",
+         "datavalue": {
+          "value": "Göbekli Tepe",
+          "type": "string"
+         },
+         "datatype": "string"
+        },
+        "type": "statement",
+        "id": "q214944$57117A2F-C6BF-4D32-943E-96A04CACD418",
+        "rank": "normal"
+       }
+      ]
+     }
+    }
+   }
+  },
+  "damascus_steel_nanotubes": {
+   "request": {
+    "ids": "Q475736",
+    "languages": "en|fa"
+   },
+   "entities": {
+    "Q475736": {
+     "type": "item",
+     "id": "Q475736",
+     "labels": {
+      "en": {
+       "language": "en",
+       "value": "Damascus steel"
+      },
+      "fa": {
+       "language": "fa",
+       "value": "فولاد دمشق"
+      }
+     },
+     "aliases": {},
+     "claims": {
+      "P373": [
+       {
+        "mainsnak": {
+         "snaktype": "value",
+         "property": "P373",
+         "hash": "44a865ee60ce383d70516b4c8775bf8c3ccbc5ad",
+         "datavalue": {
+          "value": "Damascus steel",
+          "type": "string"
+         },
+         "datatype": "string"
+        },
+        "type": "statement",
+        "id": "q475736$2488D202-C0FF-47B4-A940-0BEC9AA1162F",
+        "rank": "normal"
+       }
+      ]
+     }
+    }
+   }
+  },
+  "camp_century_nuclear_ice_city": {
+   "request": {
+    "ids": "Q2512856",
+    "languages": "en|da"
+   },
+   "entities": {
+    "Q2512856": {
+     "type": "item",
+     "id": "Q2512856",
+     "labels": {
+      "en": {
+       "language": "en",
+       "value": "Camp Century"
+      },
+      "da": {
+       "language": "da",
+       "value": "Camp Century"
+      }
+     },
+     "aliases": {},
+     "claims": {
+      "P373": [
+       {
+        "mainsnak": {
+         "snaktype": "value",
+         "property": "P373",
+         "hash": "dd313d5e657dae0b016be9db2bb15b3bc0e30247",
+         "datavalue": {
+          "value": "Camp Century",
+          "type": "string"
+         },
+         "datatype": "string"
+        },
+        "type": "statement",
+        "id": "Q2512856$C0495EFE-95DC-4869-9840-FDFBEB976ECF",
+        "rank": "normal",
+        "references": [
+         {
+          "hash": "fa278ebfc458360e5aed63d5058cca83c46134f1",
+          "snaks": {
+           "P143": [
+            {
+             "snaktype": "value",
+             "property": "P143",
+             "hash": "e4f6d9441d0600513c4533c672b5ab472dc73694",
+             "datavalue": {
+              "value": {
+               "entity-type": "item",
+               "numeric-id": 328,
+               "id": "Q328"
+              },
+              "type": "wikibase-entityid"
+             },
+             "datatype": "wikibase-item"
+            }
+           ]
+          },
+          "snaks-order": [
+           "P143"
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    }
+   }
+  },
+  "hal_saflieni_hypogeum": {
+   "request": {
+    "ids": "Q755514",
+    "languages": "en|mt"
+   },
+   "entities": {
+    "Q755514": {
+     "type": "item",
+     "id": "Q755514",
+     "labels": {
+      "en": {
+       "language": "en",
+       "value": "Hypogeum of Ħal Saflieni"
+      },
+      "mt": {
+       "language": "mt",
+       "value": "L-Ipogew ta’ Ħal Saflieni"
+      }
+     },
+     "aliases": {
+      "en": [
+       {
+        "language": "en",
+        "value": "Saflieni Hypogeum"
+       }
+      ],
+      "mt": [
+       {
+        "language": "mt",
+        "value": "Saflieni Hypogeum"
+       }
+      ]
+     },
+     "claims": {
+      "P373": [
+       {
+        "mainsnak": {
+         "snaktype": "value",
+         "property": "P373",
+         "hash": "bca4a5ac2d761d8c6672e19f1375988ea718158b",
+         "datavalue": {
+          "value": "Hypogeum of Ħal-Saflieni",
+          "type": "string"
+         },
+         "datatype": "string"
+        },
+        "type": "statement",
+        "id": "q755514$D81F45CF-6661-4F4C-9B77-F9A3BB835773",
+        "rank": "normal"
+       }
+      ]
+     }
+    }
+   }
+  },
+  "greek_fire_siphon": {
+   "request": {
+    "ids": "Q179537",
+    "languages": "en|el"
+   },
+   "entities": {
+    "Q179537": {
+     "type": "item",
+     "id": "Q179537",
+     "labels": {
+      "el": {
+       "language": "el",
+       "value": "Υγρό πυρ"
+      },
+      "en": {
+       "language": "en",
+       "value": "Greek fire"
+      }
+     },
+     "aliases": {
+      "el": [
+       {
+        "language": "el",
+        "value": "Υγρόν πυρ"
+       },
+       {
+        "language": "el",
+        "value": "πυρ θαλάσσιον"
+       }
+      ]
+     },
+     "claims": {
+      "P373": [
+       {
+        "mainsnak": {
+         "snaktype": "value",
+         "property": "P373",
+         "hash": "b9c16ba38cd4d61df39dc984e38f9792931d1eaf",
+         "datavalue": {
+          "value": "Greek fire",
+          "type": "string"
+         },
+         "datatype": "string"
+        },
+        "type": "statement",
+        "id": "q179537$1BADBB1A-1094-4640-B172-850ECAADB332",
+        "rank": "normal"
+       }
+      ]
+     }
+    }
+   }
+  },
+  "unfinished_obelisk_aswan": {
+   "request": {
+    "ids": "Q735438",
+    "languages": "en|ar"
+   },
+   "entities": {
+    "Q735438": {
+     "type": "item",
+     "id": "Q735438",
+     "labels": {
+      "en": {
+       "language": "en",
+       "value": "unfinished obelisk"
+      },
+      "ar": {
+       "language": "ar",
+       "value": "المسلة الناقصة"
+      }
+     },
+     "aliases": {},
+     "claims": {
+      "P373": [
+       {
+        "mainsnak": {
+         "snaktype": "value",
+         "property": "P373",
+         "hash": "37255260ef8ca1c2248261bc2277b2d07556d6fa",
+         "datavalue": {
+          "value": "Unfinished obelisk in Aswan",
+          "type": "string"
+         },
+         "datatype": "string"
+        },
+        "type": "statement",
+        "id": "q735438$765D96E7-935E-4597-97D7-F31FFDAF97EF",
+        "rank": "normal"
+       }
+      ]
+     }
+    }
+   }
+  },
+  "piri_reis_1513_map": {
+   "request": {
+    "ids": "Q1128599",
+    "languages": "en|tr"
+   },
+   "entities": {
+    "Q1128599": {
+     "type": "item",
+     "id": "Q1128599",
+     "labels": {
+      "en": {
+       "language": "en",
+       "value": "Piri Reis map"
+      },
+      "tr": {
+       "language": "tr",
+       "value": "Pîrî Reis Haritası"
+      }
+     },
+     "aliases": {
+      "tr": [
+       {
+        "language": "tr",
+        "value": "Piri Reis Haritası"
+       },
+       {
+        "language": "tr",
+        "value": "Piri Reis'in Haritası"
+       }
+      ]
+     },
+     "claims": {
+      "P373": [
+       {
+        "mainsnak": {
+         "snaktype": "value",
+         "property": "P373",
+         "hash": "f2a1da19d1fd3aeb54df0fdeebcd253660876fbb",
+         "datavalue": {
+          "value": "Maps by Piri Reis",
+          "type": "string"
+         },
+         "datatype": "string"
+        },
+        "type": "statement",
+        "id": "q1128599$4650E891-AAEF-4CF6-A38B-84D69A3DE9E4",
+        "rank": "normal"
+       }
+      ]
+     }
+    }
+   }
+  },
+  "flannan_isle_lighthouse_disappearance": {
+   "request": {
+    "ids": "Q15217844",
+    "languages": "en|gd"
+   },
+   "entities": {
+    "Q15217844": {
+     "type": "item",
+     "id": "Q15217844",
+     "labels": {
+      "en": {
+       "language": "en",
+       "value": "Flannan Isles Lighthouse"
+      }
+     },
+     "aliases": {
+      "en": [
+       {
+        "language": "en",
+        "value": "Flannan Isles, Eilean Mor, Lighthouse"
+       },
+       {
+        "language": "en",
+        "value": "Disappearance of Flannan Isles Lighthouse keepers"
+       },
+       {
+        "language": "en",
+        "value": "Disappearance on Eilean Mòr"
+       },
+       {
+        "language": "en",
+        "value": "Eilean Mòr disappearance"
+       }
+      ]
+     },
+     "claims": {
+      "P373": [
+       {
+        "mainsnak": {
+         "snaktype": "value",
+         "property": "P373",
+         "hash": "b7225f8a3129f1e4dba4656304575227c468a070",
+         "datavalue": {
+          "value": "Flannan Isles Lighthouse",
+          "type": "string"
+         },
+         "datatype": "string"
+        },
+        "type": "statement",
+        "id": "Q15217844$BA7921B1-1E66-4ABB-BA22-4452B40273C0",
+        "rank": "normal",
+        "references": [
+         {
+          "hash": "fa278ebfc458360e5aed63d5058cca83c46134f1",
+          "snaks": {
+           "P143": [
+            {
+             "snaktype": "value",
+             "property": "P143",
+             "hash": "e4f6d9441d0600513c4533c672b5ab472dc73694",
+             "datavalue": {
+              "value": {
+               "entity-type": "item",
+               "numeric-id": 328,
+               "id": "Q328"
+              },
+              "type": "wikibase-entityid"
+             },
+             "datatype": "wikibase-item"
+            }
+           ]
+          },
+          "snaks-order": [
+           "P143"
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    }
+   }
+  },
+  "trepanation_miracle": {
+   "request": {
+    "ids": "Q472953",
+    "languages": "en|es"
+   },
+   "entities": {
+    "Q472953": {
+     "type": "item",
+     "id": "Q472953",
+     "labels": {
+      "es": {
+       "language": "es",
+       "value": "trepanación"
+      },
+      "en": {
+       "language": "en",
+       "value": "trepanning"
+      }
+     },
+     "aliases": {
+      "es": [
+       {
+        "language": "es",
+        "value": "trepanación craneana"
+       },
+       {
+        "language": "es",
+        "value": "trepanacion"
+       },
+       {
+        "language": "es",
+        "value": "trepanacion craneana"
+       }
+      ],
+      "en": [
+       {
+        "language": "en",
+        "value": "trepanation"
+       },
+       {
+        "language": "en",
+        "value": "trephination"
+       },
+       {
+        "language": "en",
+        "value": "trephining"
+       },
+       {
+        "language": "en",
+        "value": "Burr hole"
+       }
+      ]
+     },
+     "claims": {
+      "P373": [
+       {
+        "mainsnak": {
+         "snaktype": "value",
+         "property": "P373",
+         "hash": "15e2f243b0152f9684d4ae4971b109a5842749c6",
+         "datavalue": {
+          "value": "Trepanation",
+          "type": "string"
+         },
+         "datatype": "string"
+        },
+        "type": "statement",
+        "id": "q472953$147F1C4D-D5D4-4964-AD6B-D55A1D405A3B",
+        "rank": "normal",
+        "references": [
+         {
+          "hash": "9a24f7c0208b05d6be97077d855671d1dfdbc0dd",
+          "snaks": {
+           "P143": [
+            {
+             "snaktype": "value",
+             "property": "P143",
+             "hash": "d38375ffe6fe142663ff55cd783aa4df4301d83d",
+             "datavalue": {
+              "value": {
+               "entity-type": "item",
+               "numeric-id": 48183,
+               "id": "Q48183"
+              },
+              "type": "wikibase-entityid"
+             },
+             "datatype": "wikibase-item"
+            }
+           ]
+          },
+          "snaks-order": [
+           "P143"
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    }
+   }
+  },
+  "nazca_lines_runway_paradox": {
+   "request": {
+    "ids": "Q2620036",
+    "languages": "en|es"
+   },
+   "entities": {
+    "Q2620036": {
+     "type": "item",
+     "id": "Q2620036",
+     "labels": {
+      "en": {
+       "language": "en",
+       "value": "Nazca Lines"
+      },
+      "es": {
+       "language": "es",
+       "value": "Líneas de Nazca"
+      }
+     },
+     "aliases": {
+      "es": [
+       {
+        "language": "es",
+        "value": "Lineas de Nazca"
+       },
+       {
+        "language": "es",
+        "value": "líneas de Nasca"
+       },
+       {
+        "language": "es",
+        "value": "Las líneas y geoglifos de Nazca y de Pampas de Jumana"
+       }
+      ],
+      "en": [
+       {
+        "language": "en",
+        "value": "Nasca lines"
+       },
+       {
+        "language": "en",
+        "value": "ray roads (Nazca)"
+       }
+      ]
+     },
+     "claims": {
+      "P373": [
+       {
+        "mainsnak": {
+         "snaktype": "value",
+         "property": "P373",
+         "hash": "73f725a9359f4412249925f43301858f2f265535",
+         "datavalue": {
+          "value": "Nazca lines",
+          "type": "string"
+         },
+         "datatype": "string"
+        },
+        "type": "statement",
+        "id": "q2620036$ACFECA05-03BF-4BC6-9634-EB6732E9117C",
+        "rank": "normal"
+       }
+      ]
+     }
+    }
+   }
+  },
+  "sunken_city_of_heracleion": {
+   "request": {
+    "ids": "Q1607758",
+    "languages": "en|ar"
+   },
+   "entities": {
+    "Q1607758": {
+     "type": "item",
+     "id": "Q1607758",
+     "labels": {
+      "en": {
+       "language": "en",
+       "value": "Heracleion"
+      },
+      "ar": {
+       "language": "ar",
+       "value": "مدينة هرقليون"
+      }
+     },
+     "aliases": {
+      "en": [
+       {
+        "language": "en",
+        "value": "Thonis"
+       },
+       {
+        "language": "en",
+        "value": "Heracleum"
+       },
+       {
+        "language": "en",
+        "value": "Herakleion"
+       }
+      ]
+     },
+     "claims": {
+      "P373": [
+       {
+        "mainsnak": {
+         "snaktype": "value",
+         "property": "P373",
+         "hash": "748416050d47441630eb8e6278ba20fdf71fea12",
+         "datavalue": {
+          "value": "Heracleion (Thonis)",
+          "type": "string"
+         },
+         "datatype": "string"
+        },
+        "type": "statement",
+        "id": "Q1607758$DA74FD72-A456-4DE0-8443-6CAEF3EB7D33",
+        "rank": "normal",
+        "references": [
+         {
+          "hash": "fa278ebfc458360e5aed63d5058cca83c46134f1",
+          "snaks": {
+           "P143": [
+            {
+             "snaktype": "value",
+             "property": "P143",
+             "hash": "e4f6d9441d0600513c4533c672b5ab472dc73694",
+             "datavalue": {
+              "value": {
+               "entity-type": "item",
+               "numeric-id": 328,
+               "id": "Q328"
+              },
+              "type": "wikibase-entityid"
+             },
+             "datatype": "wikibase-item"
+            }
+           ]
+          },
+          "snaks-order": [
+           "P143"
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    }
+   }
+  },
+  "zhang_heng_seismoscope": {
+   "request": {
+    "ids": "Q15391579",
+    "languages": "en|zh"
+   },
+   "entities": {
+    "Q15391579": {
+     "type": "item",
+     "id": "Q15391579",
+     "labels": {
+      "zh": {
+       "language": "zh",
+       "value": "候風地動儀"
+      },
+      "en": {
+       "language": "en",
+       "value": "Houfeng Didong Yi"
+      }
+     },
+     "aliases": {
+      "en": [
+       {
+        "language": "en",
+        "value": "Houfeng Seismoscope"
+       },
+       {
+        "language": "en",
+        "value": "Seismoscope of Zhang Heng"
+       },
+       {
+        "language": "en",
+        "value": "Zhang Heng's Seismoscope"
+       },
+       {
+        "language": "en",
+        "value": "Ancient Chinese Seismoscope"
+       }
+      ],
+      "zh": [
+       {
+        "language": "zh",
+        "value": "地动仪"
+       },
+       {
+        "language": "zh",
+        "value": "候风地动仪"
+       },
+       {
+        "language": "zh",
+        "value": "张衡地动仪"
+       }
+      ]
+     },
+     "claims": {
+      "P373": [
+       {
+        "mainsnak": {
+         "snaktype": "value",
+         "property": "P373",
+         "hash": "053e82ff70bfe3bed2226b8985c2f8835dbcaa63",
+         "datavalue": {
+          "value": "Houfeng Didong Yi",
+          "type": "string"
+         },
+         "datatype": "string"
+        },
+        "type": "statement",
+        "id": "Q15391579$af654fd2-43d0-1552-bf29-fc436588c072",
+        "rank": "normal"
+       }
+      ]
+     }
+    }
+   }
+  },
+  "voynich_manuscript": {
+   "request": {
+    "ids": "Q179492",
+    "languages": "en|it"
+   },
+   "entities": {
+    "Q179492": {
+     "type": "item",
+     "id": "Q179492",
+     "labels": {
+      "it": {
+       "language": "it",
+       "value": "Manoscritto Voynich"
+      },
+      "en": {
+       "language": "en",
+       "value": "Voynich manuscript"
+      }
+     },
+     "aliases": {
+      "it": [
+       {
+        "language": "it",
+        "value": "codice Voynich"
+       },
+       {
+        "language": "it",
+        "value": "MS 408"
+       }
+      ],
+      "en": [
+       {
+        "language": "en",
+        "value": "MS 408"
+       }
+      ]
+     },
+     "claims": {
+      "P373": [
+       {
+        "mainsnak": {
+         "snaktype": "value",
+         "property": "P373",
+         "hash": "0324b2eaad299b83f6ebbc150221cdec54b2f4f6",
+         "datavalue": {
+          "value": "Voynich manuscript",
+          "type": "string"
+         },
+         "datatype": "string"
+        },
+        "type": "statement",
+        "id": "q179492$6523F3F1-77B3-49E3-9D89-785C50AF8082",
+        "rank": "normal"
+       }
+      ]
+     }
+    }
+   }
+  },
+  "odessa_catacombs": {
+   "request": {
+    "ids": "Q375856",
+    "languages": "en|uk"
+   },
+   "entities": {
+    "Q375856": {
+     "type": "item",
+     "id": "Q375856",
+     "labels": {
+      "en": {
+       "language": "en",
+       "value": "Odesa Catacombs"
+      },
+      "uk": {
+       "language": "uk",
+       "value": "Одеські катакомби"
+      }
+     },
+     "aliases": {},
+     "claims": {
+      "P373": [
+       {
+        "mainsnak": {
+         "snaktype": "value",
+         "property": "P373",
+         "hash": "c8809f90d1fbeb94656ce6e5d1d7c7cf3891d11a",
+         "datavalue": {
+          "value": "Odesa catacombs",
+          "type": "string"
+         },
+         "datatype": "string"
+        },
+        "type": "statement",
+        "id": "q375856$551F9229-1B88-43DF-8049-979A9BA33E73",
+        "rank": "normal",
+        "references": [
+         {
+          "hash": "c456dc5cd2117249948c288206ff3f8b1bf574f0",
+          "snaks": {
+           "P143": [
+            {
+             "snaktype": "value",
+             "property": "P143",
+             "hash": "e17507043402fe54ae6c4d65cc51f46cec987de9",
+             "datavalue": {
+              "value": {
+               "entity-type": "item",
+               "numeric-id": 8449,
+               "id": "Q8449"
+              },
+              "type": "wikibase-entityid"
+             },
+             "datatype": "wikibase-item"
+            }
+           ]
+          },
+          "snaks-order": [
+           "P143"
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    }
+   }
+  },
+  "richat_structure_sahara_eye": {
+   "request": {
+    "ids": "Q744591",
+    "languages": "en|ar"
+   },
+   "entities": {
+    "Q744591": {
+     "type": "item",
+     "id": "Q744591",
+     "labels": {
+      "en": {
+       "language": "en",
+       "value": "Richat Structure"
+      },
+      "ar": {
+       "language": "ar",
+       "value": "تكوين الريشات"
+      }
+     },
+     "aliases": {
+      "ar": [
+       {
+        "language": "ar",
+        "value": "حفرة الريشات"
+       },
+       {
+        "language": "ar",
+        "value": "قلب الريشات"
+       },
+       {
+        "language": "ar",
+        "value": "عين الصحراء"
+       }
+      ],
+      "en": [
+       {
+        "language": "en",
+        "value": "Guelb er Richât"
+       },
+       {
+        "language": "en",
+        "value": "Eye of Africa"
+       },
+       {
+        "language": "en",
+        "value": "The Eye of Africa"
+       },
+       {
+        "language": "en",
+        "value": "Eye of the Sahara"
+       }
+      ]
+     },
+     "claims": {
+      "P373": [
+       {
+        "mainsnak": {
+         "snaktype": "value",
+         "property": "P373",
+         "hash": "aef06887f4e77cc547002371935ad7db1bbb936d",
+         "datavalue": {
+          "value": "Richat Structure",
+          "type": "string"
+         },
+         "datatype": "string"
+        },
+        "type": "statement",
+        "id": "q744591$53B22921-939C-45D5-BC00-BCBC142FBFBE",
+        "rank": "normal"
+       }
+      ]
+     }
+    }
+   }
+  },
+  "amber_room_heist": {
+   "request": {
+    "ids": "Q157012",
+    "languages": "en|ru"
+   },
+   "entities": {
+    "Q157012": {
+     "type": "item",
+     "id": "Q157012",
+     "labels": {
+      "ru": {
+       "language": "ru",
+       "value": "Янтарная комната"
+      },
+      "en": {
+       "language": "en",
+       "value": "Amber Room"
+      }
+     },
+     "aliases": {
+      "ru": [
+       {
+        "language": "ru",
+        "value": "Янтарный кабинет"
+       }
+      ],
+      "en": [
+       {
+        "language": "en",
+        "value": "The Amber Room"
+       },
+       {
+        "language": "en",
+        "value": "Pushkin"
+       }
+      ]
+     },
+     "claims": {
+      "P373": [
+       {
+        "mainsnak": {
+         "snaktype": "value",
+         "property": "P373",
+         "hash": "19b5a9efecd4bda23345d437200c9258868a8058",
+         "datavalue": {
+          "value": "Amber room",
+          "type": "string"
+         },
+         "datatype": "string"
+        },
+        "type": "statement",
+        "id": "q157012$AD215380-4452-4F21-8E2A-88DB74349E21",
+        "rank": "normal"
+       }
+      ]
+     }
+    }
+   }
+  },
+  "gol_gumbaz_whispering_gallery": {
+   "request": {
+    "ids": "Q192295",
+    "languages": "en|kn"
+   },
+   "entities": {
+    "Q192295": {
+     "type": "item",
+     "id": "Q192295",
+     "labels": {
+      "en": {
+       "language": "en",
+       "value": "Gol Gumbaz"
+      },
+      "kn": {
+       "language": "kn",
+       "value": "ಗೋಲ ಗುಮ್ಮಟ"
+      }
+     },
+     "aliases": {
+      "kn": [
+       {
+        "language": "kn",
+        "value": "ಗೋಲ್ ಗುಂಬಜ್"
+       },
+       {
+        "language": "kn",
+        "value": "ಗೊಲ ಗುಂಬಜ್"
+       },
+       {
+        "language": "kn",
+        "value": "ಗೋಲಗುಮ್ಮಟ"
+       }
+      ],
+      "en": [
+       {
+        "language": "en",
+        "value": "Gol Gumbadh"
+       }
+      ]
+     },
+     "claims": {
+      "P373": [
+       {
+        "mainsnak": {
+         "snaktype": "value",
+         "property": "P373",
+         "hash": "ada71f6a9296849eae7959241cc1aac1a4470b6b",
+         "datavalue": {
+          "value": "Gol Gumbaz",
+          "type": "string"
+         },
+         "datatype": "string"
+        },
+        "type": "statement",
+        "id": "q192295$CC3893F7-DA1C-4018-9C09-85D731BDFD57",
+        "rank": "normal"
+       }
+      ]
+     }
+    }
+   }
+  },
+  "tunguska_event_1908": {
+   "request": {
+    "ids": "Q125953",
+    "languages": "en|ru"
+   },
+   "entities": {
+    "Q125953": {
+     "type": "item",
+     "id": "Q125953",
+     "labels": {
+      "ru": {
+       "language": "ru",
+       "value": "Тунгусский метеорит"
+      },
+      "en": {
+       "language": "en",
+       "value": "Tunguska event"
+      }
+     },
+     "aliases": {
+      "ru": [
+       {
+        "language": "ru",
+        "value": "Тунгусский феномен"
+       },
+       {
+        "language": "ru",
+        "value": "Тунгусский болид"
+       },
+       {
+        "language": "ru",
+        "value": "Тунгусский метеороид"
+       },
+       {
+        "language": "ru",
+        "value": "Тунгусская катастрофа"
+       },
+       {
+        "language": "ru",
+        "value": "Тунгусский взрыв"
+       }
+      ],
+      "en": [
+       {
+        "language": "en",
+        "value": "Tunguska case"
+       },
+       {
+        "language": "en",
+        "value": "Tunguska incident"
+       },
+       {
+        "language": "en",
+        "value": "Tunguska explosion"
+       },
+       {
+        "language": "en",
+        "value": "Tunguska impact"
+       }
+      ]
+     },
+     "claims": {
+      "P373": [
+       {
+        "mainsnak": {
+         "snaktype": "value",
+         "property": "P373",
+         "hash": "e1c1bb2a02a8ddc7dcd152091624d23676bb3b6a",
+         "datavalue": {
+          "value": "Tunguska event",
+          "type": "string"
+         },
+         "datatype": "string"
+        },
+        "type": "statement",
+        "id": "q125953$B96AADC6-29B9-4146-82DF-AF93071E95F7",
+        "rank": "normal",
+        "references": [
+         {
+          "hash": "fa278ebfc458360e5aed63d5058cca83c46134f1",
+          "snaks": {
+           "P143": [
+            {
+             "snaktype": "value",
+             "property": "P143",
+             "hash": "e4f6d9441d0600513c4533c672b5ab472dc73694",
+             "datavalue": {
+              "value": {
+               "entity-type": "item",
+               "numeric-id": 328,
+               "id": "Q328"
+              },
+              "type": "wikibase-entityid"
+             },
+             "datatype": "wikibase-item"
+            }
+           ]
+          },
+          "snaks-order": [
+           "P143"
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    }
+   }
+  },
+  "claw_of_archimedes": {
+   "request": {
+    "ids": "Q146938",
+    "languages": "en|it"
+   },
+   "entities": {
+    "Q146938": {
+     "type": "item",
+     "id": "Q146938",
+     "labels": {
+      "en": {
+       "language": "en",
+       "value": "claw of Archimedes"
+      },
+      "it": {
+       "language": "it",
+       "value": "artiglio di Archimede"
+      }
+     },
+     "aliases": {
+      "it": [
+       {
+        "language": "it",
+        "value": "Manus ferrea"
+       },
+       {
+        "language": "it",
+        "value": "mano di ferro"
+       }
+      ],
+      "en": [
+       {
+        "language": "en",
+        "value": "Archimedes Claw"
+       },
+       {
+        "language": "en",
+        "value": "iron hand"
+       }
+      ]
+     },
+     "claims": {
+      "P373": []
+     }
+    }
+   }
+  },
+  "dyatlov_pass_incident": {
+   "request": {
+    "ids": "Q814484",
+    "languages": "en|ru"
+   },
+   "entities": {
+    "Q814484": {
+     "type": "item",
+     "id": "Q814484",
+     "labels": {
+      "en": {
+       "language": "en",
+       "value": "Dyatlov Pass incident"
+      },
+      "ru": {
+       "language": "ru",
+       "value": "гибель тургруппы Дятлова"
+      }
+     },
+     "aliases": {
+      "ru": [
+       {
+        "language": "ru",
+        "value": "гибель группы Дятлова"
+       }
+      ]
+     },
+     "claims": {
+      "P373": [
+       {
+        "mainsnak": {
+         "snaktype": "value",
+         "property": "P373",
+         "hash": "fa1fce4f50550a5e2d9b168ea3ef4e4ac6ea5a02",
+         "datavalue": {
+          "value": "Dyatlov Pass incident",
+          "type": "string"
+         },
+         "datatype": "string"
+        },
+        "type": "statement",
+        "id": "q814484$C2DAA571-FB2E-4FC3-BFE1-8C0DFFBA7A2D",
+        "rank": "normal"
+       }
+      ]
+     }
+    }
+   }
+  },
+  "lycurgus_cup_nanotech": {
+   "request": {
+    "ids": "Q3000066",
+    "languages": "en"
+   },
+   "entities": {
+    "Q3000066": {
+     "type": "item",
+     "id": "Q3000066",
+     "labels": {
+      "en": {
+       "language": "en",
+       "value": "Lycurgus Cup"
+      }
+     },
+     "aliases": {},
+     "claims": {
+      "P373": [
+       {
+        "mainsnak": {
+         "snaktype": "value",
+         "property": "P373",
+         "hash": "a6d03c5dc2042ddcb734d3405ce9caf5f1b547d5",
+         "datavalue": {
+          "value": "Lycurgus cup, British Museum",
+          "type": "string"
+         },
+         "datatype": "string"
+        },
+        "type": "statement",
+        "id": "Q3000066$A629D0F4-3AAC-4134-A97F-2951EBE44EFD",
+        "rank": "normal",
+        "references": [
+         {
+          "hash": "fa278ebfc458360e5aed63d5058cca83c46134f1",
+          "snaks": {
+           "P143": [
+            {
+             "snaktype": "value",
+             "property": "P143",
+             "hash": "e4f6d9441d0600513c4533c672b5ab472dc73694",
+             "datavalue": {
+              "value": {
+               "entity-type": "item",
+               "numeric-id": 328,
+               "id": "Q328"
+              },
+              "type": "wikibase-entityid"
+             },
+             "datatype": "wikibase-item"
+            }
+           ]
+          },
+          "snaks-order": [
+           "P143"
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    }
+   }
+  },
+  "wieliczka_salt_mine": {
+   "request": {
+    "ids": "Q454019",
+    "languages": "en|pl"
+   },
+   "entities": {
+    "Q454019": {
+     "type": "item",
+     "id": "Q454019",
+     "labels": {
+      "pl": {
+       "language": "pl",
+       "value": "Kopalnia soli Wieliczka"
+      },
+      "en": {
+       "language": "en",
+       "value": "Wieliczka Salt Mine"
+      }
+     },
+     "aliases": {
+      "pl": [
+       {
+        "language": "pl",
+        "value": "Kopalnia soli w Wieliczce"
+       },
+       {
+        "language": "pl",
+        "value": "Kopalnia soli (Wieliczka)"
+       },
+       {
+        "language": "pl",
+        "value": "Miniera di Sale Wieliczka"
+       },
+       {
+        "language": "pl",
+        "value": "Królewska Kopalnia Soli „Wieliczka”"
+       },
+       {
+        "language": "pl",
+        "value": "Wieliczka, Państwowa Żupa Solna"
+       },
+       {
+        "language": "pl",
+        "value": "Kopalnia Soli „Wieliczka” S.A."
+       }
+      ],
+      "en": [
+       {
+        "language": "en",
+        "value": "Salt Mine Museum"
+       },
+       {
+        "language": "en",
+        "value": "Wieliczka Salt Mine Museum"
+       },
+       {
+        "language": "en",
+        "value": "Kopalnia soli Wieliczka"
+       },
+       {
+        "language": "en",
+        "value": "Kopalnia soli (Wieliczka)"
+       },
+       {
+        "language": "en",
+        "value": "Miniera di Sale Wieliczka"
+       }
+      ]
+     },
+     "claims": {
+      "P373": [
+       {
+        "mainsnak": {
+         "snaktype": "value",
+         "property": "P373",
+         "hash": "f9aafaa5c1f9176ad21ea0b1d3b4f98390d02e8c",
+         "datavalue": {
+          "value": "Wieliczka salt mine",
+          "type": "string"
+         },
+         "datatype": "string"
+        },
+        "type": "statement",
+        "id": "q454019$a51328b9-4b59-28bb-dde5-1dd8690d5b1c",
+        "rank": "normal"
+       }
+      ]
+     }
+    }
+   }
+  },
+  "great_wall_of_gorgan": {
+   "request": {
+    "ids": "Q739507",
+    "languages": "en|fa"
+   },
+   "entities": {
+    "Q739507": {
+     "type": "item",
+     "id": "Q739507",
+     "labels": {
+      "en": {
+       "language": "en",
+       "value": "Great Wall of Gorgan"
+      },
+      "fa": {
+       "language": "fa",
+       "value": "دیوار بزرگ گرگان"
+      }
+     },
+     "aliases": {
+      "en": [
+       {
+        "language": "en",
+        "value": "Wall of Gorgan"
+       },
+       {
+        "language": "en",
+        "value": "Red Snake"
+       },
+       {
+        "language": "en",
+        "value": "The Red Snake"
+       },
+       {
+        "language": "en",
+        "value": "Gorgan Wall"
+       },
+       {
+        "language": "en",
+        "value": "Qizil Alan wall"
+       },
+       {
+        "language": "en",
+        "value": "Qizil Alan"
+       },
+       {
+        "language": "en",
+        "value": "Tamishe Difar"
+       }
+      ],
+      "fa": [
+       {
+        "language": "fa",
+        "value": "دیوار گرگان"
+       }
+      ]
+     },
+     "claims": {
+      "P373": [
+       {
+        "mainsnak": {
+         "snaktype": "value",
+         "property": "P373",
+         "hash": "40f0b637db5d641a8248e9e125844d81769e9165",
+         "datavalue": {
+          "value": "Great Wall of Gorgan",
+          "type": "string"
+         },
+         "datatype": "string"
+        },
+        "type": "statement",
+        "id": "Q739507$6C65FCFE-71CC-4698-8CB9-AD1C1D09FD58",
+        "rank": "normal"
+       }
+      ]
+     }
+    }
+   }
+  },
+  "dancing_plague_1518": {
+   "request": {
+    "ids": "Q3295141",
+    "languages": "en|fr"
+   },
+   "entities": {
+    "Q3295141": {
+     "type": "item",
+     "id": "Q3295141",
+     "labels": {
+      "en": {
+       "language": "en",
+       "value": "Dancing Plague of 1518"
+      },
+      "fr": {
+       "language": "fr",
+       "value": "épidémie dansante de 1518"
+      }
+     },
+     "aliases": {
+      "en": [
+       {
+        "language": "en",
+        "value": "Dance Epidemic of 1518"
+       }
+      ]
+     },
+     "claims": {
+      "P373": []
+     }
+    }
+   }
+  },
+  "baltic_sea_anomaly": {
+   "request": {
+    "ids": "Q3875080",
+    "languages": "en|sv"
+   },
+   "entities": {
+    "Q3875080": {
+     "type": "item",
+     "id": "Q3875080",
+     "labels": {
+      "en": {
+       "language": "en",
+       "value": "Baltic Sea anomaly"
+      },
+      "sv": {
+       "language": "sv",
+       "value": "Cirkeln på Östersjöns botten"
+      }
+     },
+     "aliases": {},
+     "claims": {
+      "P373": []
+     }
+    }
+   }
+  },
+  "acoustic_kitty_cia": {
+   "request": {
+    "ids": "Q2739742",
+    "languages": "en"
+   },
+   "entities": {
+    "Q2739742": {
+     "type": "item",
+     "id": "Q2739742",
+     "labels": {
+      "en": {
+       "language": "en",
+       "value": "Acoustic Kitty"
+      }
+     },
+     "aliases": {},
+     "claims": {
+      "P373": []
+     }
+    }
+   }
+  },
+  "singing_colossi_of_memnon": {
+   "request": {
+    "ids": "Q750209",
+    "languages": "en|ar"
+   },
+   "entities": {
+    "Q750209": {
+     "type": "item",
+     "id": "Q750209",
+     "labels": {
+      "en": {
+       "language": "en",
+       "value": "Colossi of Memnon"
+      },
+      "ar": {
+       "language": "ar",
+       "value": "تمثالا ممنون"
+      }
+     },
+     "aliases": {
+      "en": [
+       {
+        "language": "en",
+        "value": "Colossus of Memnon"
+       },
+       {
+        "language": "en",
+        "value": "Colossi of Memnon at Theban necropolis"
+       }
+      ]
+     },
+     "claims": {
+      "P373": [
+       {
+        "mainsnak": {
+         "snaktype": "value",
+         "property": "P373",
+         "hash": "f9b7883784730355a304ca44ff86f9ab390672d8",
+         "datavalue": {
+          "value": "Colossi of Memnon",
+          "type": "string"
+         },
+         "datatype": "string"
+        },
+        "type": "statement",
+        "id": "q750209$827E2895-7344-4CD0-8C85-9BF31B907A9D",
+        "rank": "normal"
+       }
+      ]
+     }
+    }
+   }
+  }
+ }
+}

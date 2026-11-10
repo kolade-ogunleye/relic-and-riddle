@@ -216,6 +216,8 @@ def add(db: PipelineDatabase, slug: str) -> str:
             "keywords": decomp["keywords"],
             "archetypes": decomp.get("archetypes", {}),
         }
+    from .photo_queries import structured_spec
+    queries[topic_id] = structured_spec(queries[topic_id])
     from .topic_store import commit
     commit(BANK, QUERIES, bank, queries)
     db.set_setting(PENDING_KEY, json.dumps(store))

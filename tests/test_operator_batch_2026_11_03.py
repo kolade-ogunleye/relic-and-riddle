@@ -66,15 +66,20 @@ def test_the_loop_motion_follows_the_closing_and_opening_shots(tmp_path):
     stills = [tmp_path / "a.jpg", tmp_path / "b.jpg"]
     got = loop_motion(stills, [2.0, 2.0], 4.0, set())
     frames = round((4.0 - (2.0 - TRANS_DUR / 2)) * VIDEO_FPS)
-    zoom, push = end_card.shot_drift(frames)
-    assert got == {"close_zoom": round(zoom, 6), "close_push": round(push, 6), "open_push": end_card.LOOP_PUSH}
+    # QF-22: a still eases into the extent the old capped push reached (end_card.shot_drift, removed with zoompan)
+    # and ends at rest; the opening still starts at rest: no push through the seam (was 0.0016 each)
+    zoom = min(1 + end_card.LOOP_PUSH * frames, end_card.LOOP_PUSH_CAP)
+    assert got == {"close_zoom": round(zoom, 6), "close_push": 0.0, "open_push": 0.0}
     # a long closing shot has reached its cap: no push it did not have
     long = loop_motion(stills, [2.0, 20.0], 22.0, set())
     assert long["close_zoom"] == pytest.approx(end_card.LOOP_PUSH_CAP) and long["close_push"] == 0.0
     # a closing video clip (parallax, footage) moves by itself: the bridge adds none; a macro drift pushes faster
     clips = [tmp_path / "a.jpg", tmp_path / "b.mp4"]
     assert loop_motion(clips, [2.0, 2.0], 4.0, set())["close_push"] == 0.0
-    assert loop_motion(stills, [2.0, 2.0], 4.0, {1})["close_push"] == pytest.approx(0.0025)
+    assert loop_motion(stills, [2.0, 2.0], 4.0, {1})["close_push"] == 0.0     # QF-22: was 0.0025, at rest now
+    # the AI hook clip keeps its push from frame 0, which the bridge pre-rolls frame 0 at
+    hook = [tmp_path / "motion_01.mp4", tmp_path / "b.jpg"]
+    assert loop_motion(hook, [2.0, 2.0], 4.0, set())["open_push"] == pytest.approx(end_card.LOOP_PUSH)
     assert loop_motion([tmp_path / "a.mp4", tmp_path / "b.jpg"], [2.0, 2.0], 4.0, set())["open_push"] == 0.0
 
 
@@ -131,6 +136,9 @@ def _render(tmp_path, monkeypatch=None, fail_gate=False, fail_push=False):
             return {**out, "ok": False, "problems": ["test hitch"], "note": note}
         monkeypatch.setattr(end_card, "check_loop_bridge", failing)
     if fail_push:   # the bridge hitches only with its push through the seam
+        # QF-22: stills now ease to rest at the seam (no push), so the test supplies a pushed seam itself
+        monkeypatch.setattr("src.video_composer.seam_from_cameras", lambda *_a, **_k: {
+            "close_zoom": 1.08, "close_push": end_card.LOOP_PUSH, "open_push": end_card.LOOP_PUSH})
         real_gate = end_card.check_loop_bridge
 
         def push_fails(*a, **kw):
@@ -172,7 +180,7 @@ def test_a_reel_master_ends_on_the_bridge_and_loops_into_its_first_frame(tmp_pat
     # the last delivered frame is one step short of frame 0: the loop closes
     mad = np.abs(_frame(master, "last") - _frame(master, "first")).mean()
     assert mad < end_card.LOOP_MAX_MAD + 4      # the gate's bound, plus the delivery encode
-    assert "still_fallback" not in rec and rec["open_push"] == end_card.LOOP_PUSH
+    assert "still_fallback" not in rec and rec["open_push"] == 0.0     # QF-22: the opening still starts at rest
     # the bridge's level is set per run with room to spare: the bed no longer fades out under it (review: 12.8 dB
     # asked of a +/-12 dB clamp)
     assert abs(rec["level"]["correction_db"]) < 6.0

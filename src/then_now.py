@@ -24,6 +24,7 @@ from pydantic import BaseModel
 
 from . import commons, config, safe_zones, url_guard
 from .brand import BONE, DATA_FONT, INK, PLACE_TARGET, rgba
+from .camera_motion import kenburns
 from .config import VIDEO_FPS, VIDEO_HEIGHT, VIDEO_WIDTH
 from .credits import normalize
 from .graphics import (
@@ -478,10 +479,7 @@ def push_at(t: float) -> float:
 def pushed(src: Image.Image, t: float, size: tuple[int, int]) -> Image.Image:
     """`src` (cover-cropped at (1 + PUSH) x the frame, so the push shows the photo's own detail) at the push's zoom
     for `t`, centred, at frame `size`: at zoom 1 the whole of `src`, at 1 + PUSH its centre 1 / (1 + PUSH)."""
-    z = push_at(t)
-    cw, ch = src.width / z, src.height / z
-    x0, y0 = (src.width - cw) / 2, (src.height - ch) / 2
-    return src.resize(size, Image.LANCZOS, box=(x0, y0, x0 + cw, y0 + ch))
+    return kenburns(src, size, zoom=push_at(t), resample=Image.LANCZOS)   # the shared camera (QF-22)
 
 
 # ---------------------------------------------------------------- framing (freeze panel 2026-11-04, T7)

@@ -7,8 +7,8 @@ FFmpeg assembly embodying the locked production standards:
    text, gold for the script's key terms only; zero-overlap ASS events inside the Reel safe box
    (safe_zones.REEL: the plate ends above y 1248). 16:9 burns in one still Montserrat Bold line per burst on the
    same plate (shown whole, not word by word).
-2. Varied Ken Burns motion (rendered at 2x then downscaled to avoid zoompan jitter)
-   with matching forward drift on the opening and closing shots for the loop.
+2. Varied Ken Burns motion sampled at fractional source positions (one shared camera,
+   src/camera_motion.py) on eased curves, through lossless intermediates (src/still_camera.py).
 3. Voice cleanup, sidechain ducking of the ambient bed under speech, then measured
    gain + 4x-oversampled brickwall limiting to hit -14 LUFS (EBU R128) with true peak
    below -1.5 dBTP. (Single-filter loudnorm undershoots when the hammer transient makes
@@ -21,6 +21,7 @@ import logging
 import math
 import os
 import re
+import shutil
 import subprocess
 from functools import lru_cache
 from pathlib import Path
@@ -158,9 +159,8 @@ def reconstruction_badge_intervals(scene_images, durations, vo_dur: float) -> li
     return out
 # An AI motion clip keeps a locked camera (motion.build_motion_prompt: camera moves warped the architecture), so
 # an opening that is one held still for its first seconds (Meta's Creator assistant, 2026-10-28: "viewers decide
-# in under two seconds"). The opening clip gets the stills' push on top, a crop zoom that starts at frame 0 and
-# changes nothing in the picture.
-HOOK_CLIP_ZOOM = "min(1+0.0016*on,1.24)"
+# in under two seconds"). The opening clip gets the stills' push on top (still_camera's "hook" preset, moving from
+# frame 0: lead), a crop zoom that changes nothing in the picture.
 
 
 def graphic_vignette_enable(scene_images: List[Path], durations: List[float]) -> str:
@@ -194,15 +194,6 @@ def is_ai_motion_clip(path: Path) -> bool:
     return is_video(path) and Path(path).stem.startswith("motion_")
 
 
-def hook_clip_filter(i: int, width: int, height: int, colorspace: str = "") -> str:
-    """The filter for an AI motion clip opening a vertical video: the same push-in as the opening still,
-    rendered at twice the size (as the stills are, against zoompan's jitter), from its first frame.
-    `colorspace`: the clip's matrix tag (video_colorspace); it leaves as BT.709 (QF-01)."""
-    return (f"[{i}:v]tpad=stop_mode=clone:stop=-1,scale={width * 2}:{height * 2}:force_original_aspect_ratio=increase,"
-            f"crop={width * 2}:{height * 2},zoompan=z='{HOOK_CLIP_ZOOM}':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':"
-            f"d=1:s={width}x{height}:fps={VIDEO_FPS},setsar=1,{to_bt709(colorspace)}[v{i}]")
-
-
 def video_colorspace(path: Path) -> str:
     """A clip's YCbCr matrix tag as ffprobe reads it ("" untagged or unreadable: encoding.source_matrix then
     takes BT.709, as players do for HD)."""
@@ -216,37 +207,71 @@ def video_colorspace(path: Path) -> str:
         return ""
 
 
+def _camera_kind(item: Any, i: int, n: int, macro_indices: set[int], width: int, height: int) -> str | None:
+    """The still_camera preset compose_video moves scene `i` with, None when it is not camera-moved (footage, a
+    parallax or graphic clip, an essential full image)."""
+    item = Path(item)
+    from .image_presentation import full_image
+    from .still_camera import preset_for
+    if is_video(item):
+        return "hook" if i == 0 and width < height and is_ai_motion_clip(item) else None
+    if full_image(item):
+        return None
+    return preset_for(i, n, i in macro_indices)
+
+
 def loop_motion(scene_images: List[Any], durations: List[float], vo_dur: float, macro_indices: Set[int],
                 width: int = VIDEO_WIDTH, height: int = VIDEO_HEIGHT,
-                closing_transition: float = TRANS_DUR) -> Dict[str, float]:
-    """The push the loop bridge carries through the seam (end_card.loop_bridge's close_zoom, close_push and
-    open_push), read from how compose_video moves the closing and opening shots: a still's capped forward drift
-    (end_card.LOOP_PUSH to LOOP_PUSH_CAP, end_card.shot_drift), a macro drift (0.0025 a frame to 1.35), the AI
-    hook clip's push (LOOP_PUSH), or none for a video (a parallax or footage clip moves by itself). The closing
-    shot's zoom is taken at the narration's end, its frame count from where its clip starts (its crossfade)."""
-    from . import end_card as card_mod
+                closing_transition: float = TRANS_DUR, opening_transition: float | None = None) -> Dict[str, float]:
+    """The motion the loop bridge carries through the seam (end_card.loop_bridge's close_zoom, close_push and
+    open_push), read from how compose_video moves the closing and opening shots (QF-22, still_camera): a still eases
+    in and out of its push (at rest at both ends: no push through the seam, close_zoom its zoom on the last frame);
+    the AI hook clip's push starts at the old rate from its first frame (`lead`), so the bridge pre-rolls frame 0 at
+    it; a video that moves by itself, or an essential full image, has none. The pushes are zoom per frame. Frame
+    counts are compose_video's: `durations` end on its frame-rounded boundaries, each clip gets half its
+    transition's overlap, and the closing clip runs to the narration's last frame."""
+    from .still_camera import frame_count, motion_for
     n = len(scene_images)
     if not n:
         return {"close_zoom": 1.0, "close_push": 0.0, "open_push": 0.0}
+    opening_transition = closing_transition if opening_transition is None else opening_transition
     boundaries = [sum(durations[:k + 1]) for k in range(n - 1)]
-    start = max(0.0, boundaries[-1] - closing_transition / 2) if n > 1 else 0.0
-    frames = max(1, round((vo_dur - start) * VIDEO_FPS))
+    end = math.ceil(vo_dur * VIDEO_FPS) / VIDEO_FPS
+    close_frames = frame_count(end - (boundaries[-1] - closing_transition / 2 if n > 1 else 0.0), VIDEO_FPS)
+    open_frames = frame_count(boundaries[0] + opening_transition / 2 if n > 1 else end, VIDEO_FPS)
+    out = {"close_zoom": 1.0, "close_push": 0.0, "open_push": 0.0}
+    close_kind = _camera_kind(scene_images[-1], n - 1, n, macro_indices, width, height)
+    if close_kind:
+        m = motion_for(close_kind, close_frames, lead=close_kind == "hook")
+        out.update(close_zoom=m.end_zoom, close_push=m.end_velocity)
+    open_kind = _camera_kind(scene_images[0], 0, n, macro_indices, width, height)
+    if open_kind:
+        out["open_push"] = motion_for(open_kind, open_frames, lead=open_kind == "hook").start_velocity
+    return {key: round(value, 6) for key, value in out.items()}
 
-    def rate(i: int) -> tuple[float, float]:
-        item = Path(scene_images[i])
-        from .image_presentation import full_image
-        if not is_video(item) and full_image(item):
-            return 0.0, 1.0
-        if is_video(item):
-            hook = i == 0 and width < height and is_ai_motion_clip(item)
-            return (card_mod.LOOP_PUSH, card_mod.LOOP_PUSH_CAP) if hook else (0.0, 1.0)
-        if i in macro_indices:
-            return 0.0025, 1.35
-        return card_mod.LOOP_PUSH, card_mod.LOOP_PUSH_CAP
 
-    close_rate, close_cap = rate(n - 1)
-    close_zoom, close_push = (card_mod.shot_drift(frames, close_rate, close_cap) if close_rate else (1.0, 0.0))
-    return {"close_zoom": round(close_zoom, 6), "close_push": round(close_push, 6), "open_push": rate(0)[0]}
+def render_cameras(cameras: list[tuple[int, Path, Path, float, dict[str, Any]]],
+                   size: tuple[int, int]) -> dict[int, Any]:
+    """Render compose_video's camera clips ((scene, source, clip, seconds, still_camera options)); {scene: Motion}.
+    Refused (RenderError) when the clips would not fit on the disk."""
+    from .still_camera import ensure_disk, frame_count, render_clip
+    if cameras:
+        try:
+            ensure_disk(cameras[0][2].parent, sum(frame_count(c[3], VIDEO_FPS) for c in cameras), size)
+        except RuntimeError as exc:
+            raise RenderError(str(exc)) from exc
+    return {i: render_clip(source, clip, seconds, size, VIDEO_FPS, **options)
+            for i, source, clip, seconds, options in cameras}
+
+
+def seam_from_cameras(motions: dict[int, Any], n: int) -> dict[str, float]:
+    """The seam motion the rendered cameras really have (loop_motion predicts the same from the frame counts)."""
+    out: dict[str, float] = {}
+    if n - 1 in motions:
+        out.update(close_zoom=round(motions[n - 1].end_zoom, 6), close_push=round(motions[n - 1].end_velocity, 6))
+    if 0 in motions:
+        out["open_push"] = round(motions[0].start_velocity, 6)
+    return out
 
 
 class RenderError(RuntimeError):
@@ -269,7 +294,7 @@ def _run_ffmpeg(cmd: List[str]) -> subprocess.CompletedProcess:
 
 
 from .encoding import bounded_encode, get_video_encoder as _get_video_encoder, get_intermediate_video_encoder as _get_intermediate_video_encoder
-from .encoding import BT709_FLAGS, BT709_TO_RGB, RGB_TO_BT709, to_bt709
+from .encoding import BT709_FLAGS, BT709_TAGS, BT709_TO_RGB, RGB_TO_BT709, to_bt709
 
 
 def _ass_escape(text: str) -> str:
@@ -4205,19 +4230,33 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         clip_durs = [end - start for start, end in zip(starts, ends)]
         if any(d <= 0 for d in clip_durs):
             raise RenderError("Scene boundaries must increase and fit inside the narration")
-        w2, h2 = width * 2, height * 2
         macro_indices = set(macro_drifts or [])
 
         input_args: List[str] = []
         filter_parts: List[str] = []
+        # QF-22: stills and the AI hook clip move through the shared camera (src/still_camera.py), rendered to
+        # lossless clips just before the graph runs (cameras) and removed after it.
+        import uuid
+
+        from .still_camera import sweep_stale
+        sweep_stale(output_mp4_path.parent)          # what a killed render left behind
+        camera_dir = output_mp4_path.parent / f"{output_mp4_path.stem}.camera-{uuid.uuid4().hex[:12]}"
+        cameras: list[tuple[int, Path, Path, float, dict[str, Any]]] = []
         for i, item in enumerate(scene_images):
             item = Path(item)
             clip_dur = clip_durs[i]
-            frames = int(clip_dur * VIDEO_FPS) + 1
             if is_video(item):
-                input_args += ["-t", f"{clip_dur:.3f}", "-i", str(item)]
                 # Each clip is read with the matrix it was made with and enters the graph as BT.709 (QF-01)
                 colorspace = video_colorspace(item)
+                if i == 0 and width < height and is_ai_motion_clip(item):
+                    # the AI hook clip gets the opening still's push, from its first frame (lead)
+                    clip = camera_dir / f"{i}.mkv"
+                    cameras.append((i, item, clip, clip_dur, {"preset": "hook", "lead": True,
+                                                              "colorspace": colorspace}))
+                    input_args += ["-t", f"{clip_dur:.3f}", "-i", str(clip)]
+                    filter_parts.append(f"[{i}:v]fps={VIDEO_FPS},setsar=1,{BT709_TAGS}[v{i}]")
+                    continue
+                input_args += ["-t", f"{clip_dur:.3f}", "-i", str(item)]
                 if width > height and self._is_portrait_video(item):
                     fg_h = int(round(height * 0.94)) // 2 * 2
                     filter_parts.append(
@@ -4226,8 +4265,6 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                         f"[fg_in{i}]scale=-2:{fg_h}[fg{i}];"
                         f"[bg{i}][fg{i}]overlay=(W-w)/2:(H-h)/2,fps={VIDEO_FPS},setsar=1,{to_bt709(colorspace)}[v{i}]"
                     )
-                elif i == 0 and width < height and is_ai_motion_clip(item):
-                    filter_parts.append(hook_clip_filter(i, width, height, colorspace))
                 else:
                     filter_parts.append(
                         f"[{i}:v]tpad=stop_mode=clone:stop=-1,scale={width}:{height}:force_original_aspect_ratio=increase,"
@@ -4235,54 +4272,30 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                     )
                 continue
 
-            input_args += ["-loop", "1", "-t", f"{clip_dur:.3f}", "-i", str(item)]
             from .image_presentation import fit_filter, full_image
             if full_image(item):
+                input_args += ["-loop", "1", "-t", f"{clip_dur:.3f}", "-i", str(item)]
                 filter_parts.append(
                     f"[{i}:v]{fit_filter(item, width, height)},fps={VIDEO_FPS},"
                     f"setsar=1,{RGB_TO_BT709}[v{i}]"
                 )
                 continue
-            if i in macro_indices:
-                # Tier 3 Intentional Relic Macro Drift: intimate optical push-in (1.00x -> 1.35x dynamic zoom)
-                # into the microscopic craftsmanship and material texture of the relic over an unphotographed beat.
-                z, x, y = "min(1.0+0.0025*on,1.35)", "iw/2-(iw/zoom/2)", "ih/2-(ih/zoom/2)"
-            elif i == 0 or i == n - 1:  # matching forward drift for the loop seam
-                z, x, y = "min(pzoom+0.0016,1.24)", "iw/2-(iw/zoom/2)", "ih/2-(ih/zoom/2)"
-            elif i % 2 == 1:
-                z, x, y = "max(1.20-0.0014*on,1.0)", "iw/2-(iw/zoom/2)+sin(on/35)*32", "ih/2-(ih/zoom/2)"
-            else:
-                z, x, y = "min(pzoom+0.0013,1.18)", "iw/2-(iw/zoom/2)-sin(on/35)*28", "ih/2-(ih/zoom/2)+sin(on/45)*16"
-
-            is_portrait_on_widescreen = False
+            from .still_camera import preset_for
+            tilt = None
             if width > height:
                 try:
                     with Image.open(item) as im:
-                        img_w, img_h = im.size
-                        if (img_w / img_h) < 1.3:
-                            is_portrait_on_widescreen = True
-                except Exception:
+                        if im.width / im.height < 1.3:
+                            # Cinematic vertical reveal: the tall picture at full width, eased over its height
+                            tilt = "up" if i % 2 else "down"
+                except Exception:  # an unreadable size takes the ordinary move, as before
                     pass
-
-            if is_portrait_on_widescreen:
-                # Cinematic vertical tilt/pan: scale width to 1920 so the tall image fills the screen horizontally,
-                # then smoothly pan vertically across the full height with a cinematic cosine ease, revealing 100% of the asset.
-                tilt_dir = f"(0.5-0.5*cos(PI*t/{clip_dur:.3f}))" if (i % 2 == 0) else f"(0.5+0.5*cos(PI*t/{clip_dur:.3f}))"
-                filter_parts.append(
-                    f"[{i}:v]scale={width}:-2,"
-                    f"crop={width}:{height}:0:'max(0,min(in_h-out_h,(in_h-out_h)*{tilt_dir}))',"
-                    f"fps={VIDEO_FPS},setsar=1,{RGB_TO_BT709}[v{i}]"
-                )
-            else:
-                cx, cy = self.compute_focal_point(item)
-                crop_x = f"(in_w-out_w)*{cx:.3f}"
-                crop_y = f"(in_h-out_h)*{cy:.3f}"
-                filter_parts.append(
-                    f"[{i}:v]scale={w2}:{h2}:force_original_aspect_ratio=increase,crop={w2}:{h2}:{crop_x}:{crop_y},"
-                    f"curves=master='0/0 0.1/0.11 0.5/0.50 0.9/0.89 1/0.97',"   # no black lift (QF-02)
-                    f"zoompan=z='{z}':x='{x}':y='{y}':d={frames}:s={width}x{height}:fps={VIDEO_FPS},"
-                    f"setsar=1,{RGB_TO_BT709}[v{i}]"
-                )
+            clip = camera_dir / f"{i}.mkv"
+            cameras.append((i, item, clip, clip_dur, {
+                "preset": preset_for(i, n, i in macro_indices), "focal": self.compute_focal_point(item),
+                "tilt": tilt, "curve": tilt is None}))
+            input_args += ["-t", f"{clip_dur:.3f}", "-i", str(clip)]
+            filter_parts.append(f"[{i}:v]fps={VIDEO_FPS},setsar=1,{BT709_TAGS}[v{i}]")
 
         # Explicit trim/setpts also makes concat safe for footage with nonzero timestamps.
         for i, clip_dur in enumerate(clip_durs):
@@ -4369,16 +4382,23 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         head = ["ffmpeg", "-y", "-hide_banner", "-nostats", "-threads", str(os.cpu_count() or 0),
                 *input_args, "-filter_complex", ";".join(filter_parts)]
         log.info("Rendering master -> %s", output_mp4_path.name)
-        if not card:
-            _run_ffmpeg([*head, "-map", "[v_final]", "-map", "[a_final]", *delivery_args,
-                         "-t", f"{vo_dur:.2f}", str(output_mp4_path)])
-        else:
-            motion_durations = [b - a for a, b in zip([0.0, *boundaries], [*boundaries, vo_dur])]
-            motion = loop_motion(scene_images, motion_durations, vo_dur, macro_indices, width, height,
-                                 closing_transition=fades[-1] if fades else 0.0)
-            self.last_end_card = self._render_with_loop_bridge(head, delivery_args, end_card, vo_dur, output_mp4_path,
-                                                               motion, target_lufs=profile.target_lufs)
-            self.last_end_card["level"] = card_level
+        try:
+            motions = render_cameras(cameras, (width, height))
+            if not card:
+                _run_ffmpeg([*head, "-map", "[v_final]", "-map", "[a_final]", *delivery_args,
+                             "-t", f"{vo_dur:.2f}", str(output_mp4_path)])
+            else:
+                motion_durations = [b - a for a, b in zip([0.0, *boundaries], [*boundaries, vo_dur])]
+                motion = loop_motion(scene_images, motion_durations, vo_dur, macro_indices, width, height,
+                                     closing_transition=fades[-1] if fades else 0.0,
+                                     opening_transition=fades[0] if fades else 0.0)
+                motion = {**motion, **seam_from_cameras(motions, n)}   # what the cameras really did
+                self.last_end_card = self._render_with_loop_bridge(head, delivery_args, end_card, vo_dur,
+                                                                   output_mp4_path, motion,
+                                                                   target_lufs=profile.target_lufs)
+                self.last_end_card["level"] = card_level
+        finally:
+            shutil.rmtree(camera_dir, ignore_errors=True)
         from .encoded_audio import finalize_encoded_audio
         encoded_audio = finalize_encoded_audio(output_mp4_path, profile.target_lufs, profile.target_true_peak)
         if source_inputs != file_inputs([*scene_images, vo_path, bed_path]):
@@ -4563,6 +4583,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         replacement_asset = Path(replacement_asset)
         input_args = ["-i", str(master_mp4)]
         filter_parts = []
+        cameras: list[tuple[Path, Path, float]] = []
 
         if is_video(replacement_asset):
             input_args += ["-t", f"{beat_dur:.3f}", "-i", str(replacement_asset)]
@@ -4571,15 +4592,11 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                 f"crop={width}:{height},fps={VIDEO_FPS},setsar=1,{to_bt709(video_colorspace(replacement_asset))}[v_mid]"
             )
         else:
-            w2, h2 = width * 2, height * 2
-            frames = int(beat_dur * VIDEO_FPS) + 1
-            z, x, y = "min(pzoom+0.0014,1.20)", "iw/2-(iw/zoom/2)", "ih/2-(ih/zoom/2)"
-            input_args += ["-loop", "1", "-t", f"{beat_dur:.3f}", "-i", str(replacement_asset)]
-            filter_parts.append(
-                f"[1:v]scale={w2}:{h2}:force_original_aspect_ratio=increase,crop={w2}:{h2},"
-                f"zoompan=z='{z}':x='{x}':y='{y}':d={frames}:s={width}x{height}:fps={VIDEO_FPS},"
-                f"setsar=1,{RGB_TO_BT709}[v_mid]"
-            )
+            # QF-22: the micro-patch's push through the shared camera (still_camera "splice", centred as before)
+            camera = output_mp4_path.parent / f"{output_mp4_path.stem}.camera-{beat_index}.mkv"
+            cameras.append((camera, replacement_asset, beat_dur))
+            input_args += ["-t", f"{beat_dur:.3f}", "-i", str(camera)]
+            filter_parts.append(f"[1:v]fps={VIDEO_FPS},setsar=1,{BT709_TAGS}[v_mid]")
 
         if beat_index == 0:
             filter_parts.append(f"[0:v]trim=start={t_end:.3f},setpts=PTS-STARTPTS[v_post]")
@@ -4603,7 +4620,19 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             str(output_mp4_path),
         ]
         log.info("Splicing beat %d into master -> %s", beat_index + 1, output_mp4_path.name)
-        _run_ffmpeg(cmd)
+        try:
+            from .still_camera import ensure_disk, frame_count, render_clip, sweep_stale
+            sweep_stale(output_mp4_path.parent)
+            for camera, source, seconds in cameras:
+                try:
+                    ensure_disk(camera.parent, frame_count(seconds, VIDEO_FPS), (width, height))
+                except RuntimeError as exc:
+                    raise RenderError(str(exc)) from exc
+                render_clip(source, camera, seconds, (width, height), VIDEO_FPS, preset="splice")
+            _run_ffmpeg(cmd)
+        finally:
+            for camera, _, _ in cameras:
+                camera.unlink(missing_ok=True)
         return output_mp4_path
 
     @staticmethod

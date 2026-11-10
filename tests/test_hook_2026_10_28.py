@@ -309,10 +309,14 @@ def test_an_ai_motion_clip_opening_gets_a_push_from_frame_zero():
     from src import video_composer as vc
     assert vc.is_ai_motion_clip(Path("motion_01.mp4"))
     assert not vc.is_ai_motion_clip(Path("hook_motion.mp4")) and not vc.is_ai_motion_clip(Path("footage_01.mp4"))
-    zoom = lambda on: eval(vc.HOOK_CLIP_ZOOM, {"min": min}, {"on": on})  # noqa: E731
-    assert zoom(0) == 1.0 and zoom(1) > 1.0 and zoom(10_000) == 1.24
-    f = vc.hook_clip_filter(0, 1080, 1920)
-    assert "zoompan=z='" + vc.HOOK_CLIP_ZOOM + "'" in f and ":d=1:" in f and f.endswith("[v0]")
+    # QF-22: the push is still_camera's "hook" preset (zoompan's min(1+0.0016*on,1.24) until then), moving from
+    # frame 0 at the stills' rate (lead) and easing to the same 1.24 extent
+    from src import still_camera
+    assert vc._camera_kind(Path("motion_01.mp4"), 0, 3, set(), 1080, 1920) == "hook"
+    assert vc._camera_kind(Path("motion_01.mp4"), 0, 3, set(), 1920, 1080) is None       # a 9:16 opening only
+    m = still_camera.motion_for("hook", 300, lead=True)
+    zoom = [m.zoom(m.progress(i)) for i in range(300)]
+    assert zoom[0] == 1.0 and zoom[1] > 1.0 and zoom[-1] == 1.24
 
 
 

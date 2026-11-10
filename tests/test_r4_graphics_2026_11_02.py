@@ -1788,7 +1788,7 @@ def test_draw_plate_composites_the_plates_box_only_with_the_same_pixels() -> Non
 
 
 def test_ground_drift_caches_its_steps_and_leaves_a_flat_ground_alone() -> None:
-    # review 7: the per-frame resize (~18 ms) ran for every frame; the drift moves in DRIFT_STEP_PX steps, cached
+    # QF-22: sample every distinct camera position; cache only an exact repeat.
     rng = np.random.default_rng(2)
     g = Image.fromarray(rng.integers(0, 255, (640, 360, 3), dtype=np.uint8))
     drift = graphics.GroundDrift(g)
@@ -1799,8 +1799,10 @@ def test_ground_drift_caches_its_steps_and_leaves_a_flat_ground_alone() -> None:
         frames = [drift(i / 30) for i in range(int(graphics.CLIP_SECONDS * 30))]
     finally:
         graphics._pushed_in = real
-    steps = round(max(g.size) * graphics.BACKDROP_DRIFT / 2 / graphics.DRIFT_STEP_PX)
-    assert len(calls) <= steps + 1 < len(frames)
+    assert len(calls) == len(frames) - 1  # frame zero is the unchanged source
+    count = len(calls)
+    repeated = drift((len(frames) - 1) / 30)
+    assert len(calls) == count and repeated.tobytes() == frames[-1].tobytes()
     assert frames[0].tobytes() == g.tobytes() and frames[-1].tobytes() != frames[-40].tobytes()
     frames[5].paste((0, 0, 0), (0, 0, 10, 10))                           # each call is the caller's own copy
     assert drift(5 / 30).getpixel((0, 0)) != (0, 0, 0) or g.getpixel((0, 0)) == (0, 0, 0)

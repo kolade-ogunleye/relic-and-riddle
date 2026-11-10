@@ -32,6 +32,7 @@ from PIL.ImageFont import FreeTypeFont
 
 from . import geo
 from .art_direction import MOTION, accent, count_start, push_in
+from .camera_motion import kenburns
 from .config import VIDEO_FPS, VIDEO_HEIGHT, VIDEO_WIDTH
 from .encoding import bounded_encode
 from .trusted_image import open_trusted
@@ -5541,37 +5542,36 @@ def reveal_schedule(count: int, clip: float) -> RevealSchedule:
     return RevealSchedule([REVEAL_FIRST * clip + step * k for k in range(count)], 0.76 * clip)
 
 
-DRIFT_STEP_PX = 0.5    # round 4 review 7: the drift moves the ground's long edge in steps of this many px
+def drift_scale(t: float) -> float:
+    """The timeline ground's scale at `t`: 1.0 -> 1 + BACKDROP_DRIFT, linear over the clip (no frame is frozen)."""
+    return 1.0 + BACKDROP_DRIFT * max(0.0, min(1.0, t / CLIP_SECONDS))
 
 
 def drifted(ground: Image.Image, t: float) -> Image.Image:
     """The timeline's ground at time `t`: a slow scale drift about its centre (BACKDROP_DRIFT over the clip)."""
-    return _pushed_in(ground, 1.0 + BACKDROP_DRIFT * max(0.0, min(1.0, t / CLIP_SECONDS)))
+    return _pushed_in(ground, drift_scale(t))
 
 
 class GroundDrift:
-    """drifted() for one render, cached (round 4 review 7, 2026-11-03: the per-frame resize cost ~18 ms a frame):
-    the scale moves the ground's long edge in DRIFT_STEP_PX steps (half a pixel on a ground blurred 34 px, so no
-    step shows) and the last step's image is kept, so a 30 fps clip resizes about 30-60 times instead of 180; a
-    flat ground (no photo) is not resized at all. Each call returns a copy the caller may draw on."""
+    """drifted() for one render. QF-22: every frame is sampled at its exact scale through the shared camera (the
+    half-pixel steps of round 4 review 7 are gone); only a repeated scale reuses the last image, and a flat ground
+    (no photo) is not resampled at all. Each call returns a copy the caller may draw on."""
 
     def __init__(self, ground: Image.Image) -> None:
         ex = ground.getextrema()
         ex = ex if isinstance(ex[0], tuple) else (ex,)
         self.ground, self.flat = ground, all(lo == hi for lo, hi in ex)
-        self.q: int | None = None
+        self.q: float | None = None
         self.img = ground
 
-    def step(self, t: float) -> int:
-        scale = 1.0 + BACKDROP_DRIFT * max(0.0, min(1.0, t / CLIP_SECONDS))
-        return round(max(self.ground.size) * (scale - 1.0) / 2 / DRIFT_STEP_PX)
+    def step(self, t: float) -> float:
+        return drift_scale(t)
 
     def __call__(self, t: float) -> Image.Image:
-        q = 0 if self.flat else self.step(t)
+        q = 1.0 if self.flat else self.step(t)
         if q != self.q:
             self.q = q
-            self.img = (_pushed_in(self.ground, 1.0 + 2 * q * DRIFT_STEP_PX / max(self.ground.size)) if q
-                        else self.ground)
+            self.img = _pushed_in(self.ground, q) if q != 1.0 else self.ground
         return self.img.copy()
 
 
@@ -7733,17 +7733,8 @@ def height_ruler(top_ft: float) -> list[tuple[float, str]]:
 
 def _push_about(im: Image.Image, scale: float, centre: tuple[float, float], fill=None) -> Image.Image:
     """`im` scaled by `scale` about `centre`, back on a frame of its size (the hold's push on a drawing); below 1
-    the uncovered edge takes `fill` (the plain ground)."""
-    if abs(scale - 1.0) <= 0.0005:
-        return im
-    w, h = im.size
-    big = im.resize((max(1, round(w * scale)), max(1, round(h * scale))), Image.Resampling.BICUBIC)
-    x0, y0 = round(centre[0] * scale - centre[0]), round(centre[1] * scale - centre[1])
-    if scale > 1.0:
-        return big.crop((x0, y0, x0 + w, y0 + h))
-    out = Image.new(im.mode, (w, h), fill if fill is not None else im.getpixel((0, 0)))
-    out.paste(big, (-x0, -y0))
-    return out
+    the uncovered edge takes `fill` (the plain ground). Through the shared camera (QF-22): never rounded to a pixel."""
+    return kenburns(im, zoom=scale, centre=centre, fill=fill if fill is not None else im.getpixel((0, 0)))
 
 
 def hold_push(t: float) -> float:
@@ -8371,13 +8362,10 @@ def _backdrop(photo: Path | None, width: int = VIDEO_WIDTH, height: int = VIDEO_
 
 # ------------------------------------------------------------- number cards
 def _pushed_in(bg: Image.Image, scale: float) -> Image.Image:
-    """The backdrop scaled by `scale` about its centre and cropped back to size (the push-in)."""
-    if scale <= 1.0:
-        return bg.copy()
-    w, h = bg.size
-    big = bg.resize((int(w * scale) + 1, int(h * scale) + 1), Image.Resampling.BILINEAR)
-    x0, y0 = (big.width - w) // 2, (big.height - h) // 2
-    return big.crop((x0, y0, x0 + w, y0 + h))
+    """The backdrop scaled by `scale` about its centre and cropped back to size (the push-in), through the shared
+    camera (QF-22: a fractional window, so a slow push moves every frame). Bilinear, as before: these grounds are
+    soft photographs under cards, and it is twice as fast per frame as bicubic (GroundDrift resamples every frame)."""
+    return kenburns(bg, zoom=max(1.0, scale), resample=Image.Resampling.BILINEAR)
 
 
 def _split_number(value: str) -> tuple[str, float | None, str]:
@@ -10801,7 +10789,7 @@ def make_all(payload: dict[str, Any], topic: dict[str, Any], work_dir: Path, pho
         from .lineage import sidecar
         from .typography import FONTS_DIR, bundled_font_files
         source_files = [Path(__file__), Path(__file__).with_name("typography.py"),
-                        Path(__file__).with_name("brand.py"),
+                        Path(__file__).with_name("brand.py"), Path(__file__).with_name("camera_motion.py"),
                         *[FONTS_DIR / filename for filename in bundled_font_files()]]
         if photo and name in PHOTO_BUILDERS:  # timeline also draws the photo (2026-11-02)
             source_files.append(Path(photo))

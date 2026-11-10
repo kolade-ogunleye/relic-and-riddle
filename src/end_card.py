@@ -33,6 +33,7 @@ import numpy as np
 from PIL import Image, ImageDraw, ImageFilter
 
 from . import brand
+from .camera_motion import kenburns
 from .safe_zones import REEL
 from .typography import get_font, tracked_width
 
@@ -95,8 +96,8 @@ LOOP_DIM = 0.4                          # of the end card's measured dim (panel 
                                         # flashed on every loop)
 LOOP_CROSSFADE = (0.5, 0.7)             # the crossfade's length: with the share line, without (the purely visual bridge)
 LOOP_PUSH = 0.0016                      # zoom per frame: the composer's forward drift on the closing and opening shots
-                                        # (its stills' "min(pzoom+0.0016,1.24)", its hook clip's "min(1+0.0016*on,1.24)")
-LOOP_PUSH_CAP = 1.24                    # where the composer's push stops: a shot longer than ~5 s is static at its end
+                                        # (still_camera "push"/"hook": the speed they keep at the loop seam, QF-22)
+LOOP_PUSH_CAP = 1.24                    # the furthest the composer's push goes (still_camera.endpoint_for)
 LOOP_MAX_STEP_L = 25.0                  # the largest mean-L* change allowed between consecutive frames of the seam
 LOOP_MAX_MAD = 8.0                      # the bridge's last frame against frame 0: mean absolute difference, 0-255
 LOOP_CENTRE = 0.40                      # the line's vertical centre, as a share of the height (y 768: the Reel box)
@@ -331,10 +332,8 @@ def fit_dim(base: Image.Image) -> Tuple[np.ndarray, np.ndarray, Dict[str, float]
 
 
 def _pushed(arr: Image.Image, z: float, width: int, height: int) -> np.ndarray:
-    w, h = arr.size
-    cw, ch = w / z, h / z
-    return np.asarray(arr.resize((width, height), Image.LANCZOS, box=((w - cw) / 2, (h - ch) / 2, (w + cw) / 2, (h + ch) / 2)),
-                      dtype=np.float32)
+    """`arr` zoomed by z about its centre at width x height, through the shared camera (QF-22; Lanczos, as before)."""
+    return np.asarray(kenburns(arr, (width, height), zoom=z, resample=Image.LANCZOS), dtype=np.float32)
 
 
 def zoom_at(t: float) -> float:
@@ -577,15 +576,6 @@ def _smoother(t: float) -> float:
     return t * t * t * (t * (6 * t - 15) + 10)
 
 
-def shot_drift(n_frames: int, rate: float = LOOP_PUSH, cap: float = LOOP_PUSH_CAP,
-               start: float = 1.0) -> tuple[float, float]:
-    """(zoom at the last frame, zoom per frame there) of a shot of `n_frames` pushed as the composer pushes
-    (zoompan z='min(pzoom+rate,cap)', its first frame at start+rate). A shot that has reached its cap is static
-    at its end (velocity 0), so the bridge must not start a push it did not have: pass both to loop_bridge."""
-    end = min(start + rate * max(1, n_frames), cap)
-    return end, max(0.0, min(end + rate, cap) - end)
-
-
 def _seam_curve(n: int, last: float) -> Callable[[float], float]:
     """The crossfade's mix over its progress u (0 at its start, 1 at the Reel's frame 0): a cubic Hermite that
     starts at rest (no step into the crossfade) and ends still moving, its end slope solved so that the bridge's
@@ -614,7 +604,7 @@ def _pulled(im: Image.Image, z: float, width: int, height: int) -> np.ndarray:
     pad = Image.fromarray(np.pad(np.asarray(im.convert("RGB")), ((my, my), (mx, mx), (0, 0)), mode="symmetric"))
     cw, ch = w / z, h / z
     box = (mx + (w - cw) / 2, my + (h - ch) / 2, mx + (w + cw) / 2, my + (h + ch) / 2)
-    return np.asarray(pad.resize((width, height), Image.LANCZOS, box=box), dtype=np.float32)
+    return np.asarray(kenburns(pad, (width, height), source_box=box, resample=Image.LANCZOS), dtype=np.float32)
 
 
 def loop_bridge(last: Image.Image, first: Image.Image, share: str,
@@ -632,8 +622,9 @@ def loop_bridge(last: Image.Image, first: Image.Image, share: str,
     more than LOOP_MAX_STEP_L in mean L*. The bridge's last frame is at mix 29/30 exactly: one ordinary step short
     of frame 0, so frame 0 plays once when the Reel loops and the fade does not stall on it.
     Motion through the seam: the outgoing shot continues the closing shot's own push, `close_push` (absolute zoom
-    per frame at its end) over `close_zoom` (its absolute zoom on `last`), as shot_drift(n_frames) gives them for
-    the composer's capped push (0 when the shot ended at LOOP_PUSH_CAP: no push it did not have). The incoming
+    per frame at its end) over `close_zoom` (its absolute zoom on `last`), as video_composer.loop_motion gives them
+    from the composer's camera (still_camera: a closing still ends moving at LOOP_PUSH; 0 for a clip that moves by
+    itself or a held full image: no push it did not have). The incoming
     picture is frame 0 at the opening shot's push run backwards (1 + open_push * (i - 30): wider than frame 0,
     its edge mirrored for the <= 2 % outside it), so it arrives at frame 0 already moving at the opening shot's
     rate and the Reel's frames 1.. carry on from there. `line` (the operator's 2026-11-02 spec): the share line

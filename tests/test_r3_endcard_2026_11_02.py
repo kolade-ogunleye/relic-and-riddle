@@ -329,18 +329,19 @@ def test_frames_before_frame_zero_are_wider_with_the_edge_mirrored():
     assert red.size and red.min() > 15 and red.max() < 60                  # the red edge, mirrored about itself
 
 
-def test_shot_drift_follows_the_composers_capped_push():
-    end, v = end_card.shot_drift(60)
-    assert abs(end - (1 + 0.0016 * 60)) < 1e-12 and abs(v - 0.0016) < 1e-12
-    end, v = end_card.shot_drift(200)                                      # > ~5 s: at the cap, static
-    assert end == end_card.LOOP_PUSH_CAP == 1.24 and v == 0.0
-    end, v = end_card.shot_drift(141, rate=0.0017)                         # a part step left to the cap
-    assert abs(end - 1.2397) < 1e-9 and abs(v - 0.0003) < 1e-9
+def test_the_closing_push_keeps_the_composers_extent_and_ends_at_rest():
+    # QF-22: end_card.shot_drift modelled zoompan's capped push (moving at 0.0016 until the cap, static after ~5 s);
+    # the composer's camera (still_camera) keeps that extent and eases into it, so a closing still ends at rest.
+    from src import still_camera
+    m = still_camera.motion_for("push", 60)
+    assert abs(m.end_zoom - (1 + 0.0016 * 60)) < 1e-12 and m.end_velocity == 0.0
+    m = still_camera.motion_for("push", 200)                               # > ~5 s: at the cap
+    assert m.end_zoom == end_card.LOOP_PUSH_CAP == 1.24 and m.end_velocity == 0.0
 
 
 def test_the_bridge_starts_no_push_the_closing_shot_did_not_have():
     sq = _square()
-    end, v = end_card.shot_drift(200)
+    end, v = end_card.LOOP_PUSH_CAP, 0.0                                   # a closing shot at rest
     frames, st = _bridge(sq, sq.copy(), line=False, close_zoom=end, close_push=v)
     assert st["push"] == 0.0 and st["close_zoom"] == 1.24
     widths = [_ink_width(f) for f in frames[:8]]

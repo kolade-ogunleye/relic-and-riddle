@@ -1013,7 +1013,8 @@ class PipelineCoordinator:
         from src.image_presentation import policy_inputs
         render_inputs = {"presentation": policy_inputs(extended_scenes),
                          "sources": file_inputs([*extended_scenes, vo_path, bed_path, words_path,
-                         Path("src/video_composer.py"), Path("src/encoded_audio.py"), Path("src/encoding.py")]),
+                         Path("src/video_composer.py"), Path("src/encoded_audio.py"), Path("src/encoding.py"),
+                         Path("src/still_camera.py"), Path("src/camera_motion.py")]),
                          "durations": durations, "emphasis": topic.get("key_facts", [])[:5],
                          "act_cuts": act_cuts or []}
         if checkpoints.reusable("deep_render", render_inputs):
@@ -3267,7 +3268,8 @@ class PipelineCoordinator:
                              "durations": durations, "emphasis": payload.get("emphasis_words"), "end_card": card_key,
                              "grade_bias": (payload.get("art_direction") or {}).get("grade_bias") or 0.0,  # part of the master
                              "rules": file_inputs([Path("src/video_composer.py"), Path("src/end_card.py"), Path("src/config.py"),
-                                                   Path("src/encoding.py"), Path("src/encoded_audio.py"), Path("src/delivery_profiles.py")]),
+                                                   Path("src/encoding.py"), Path("src/encoded_audio.py"), Path("src/delivery_profiles.py"),
+                                                   Path("src/still_camera.py"), Path("src/camera_motion.py")]),
                              "fonts": packaging_inputs["fonts"]}
             self._check_cancel(run_id)
             if not render_checkpoint.reusable("master", render_inputs):

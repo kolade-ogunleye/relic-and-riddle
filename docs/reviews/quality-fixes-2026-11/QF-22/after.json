@@ -1,0 +1,129 @@
+{
+  "schema_version": 2,
+  "source_sha256": {
+    "src/camera_motion.py": "93fed12542e1493f805181c007a1c3ed657fea6e54f798dbd7c345c24061cc59",
+    "src/still_camera.py": "bc5f59de8a6999654bdb33aa21070f7ad35ef8025d351a86855ca99556e8f2c7",
+    "src/video_composer.py": "045a9ee5ee7df5c3adbfbd75cd5b169a90053da90620351e52094bc2c3d5e6d2",
+    "src/graphics.py": "07ef8e6863aeee35b055869b4283ff05ce477262e90f155d12da0d5e7af6ee9d",
+    "src/end_card.py": "d25f36574fe2c66dc6cbc8871105cf3fd03a42872ab1324d96c925127dd7528c",
+    "src/then_now.py": "b7716a399f3407dea447e9ee3314561015aba700c68937eb22bd5e57013fa047",
+    "src/callouts.py": "87e1cf87373b19967ee81c4cd8e41e9c6fa086c46ee323bc306cd2e1e97e67d9",
+    "src/design_cards.py": "931495327446e99b12397de2865acc354d559bc157166977166118b939a284fa"
+  },
+  "paths": {
+    "stat_card_photo_push": {
+      "samples": 181,
+      "travel_px": 6.348,
+      "repeated_steps": 0,
+      "reverse_steps": 0,
+      "max_step_px": 0.0449,
+      "max_jerk_px": 0.0082
+    },
+    "hook_card_push": {
+      "samples": 181,
+      "travel_px": 14.224,
+      "repeated_steps": 0,
+      "reverse_steps": 0,
+      "max_step_px": 0.0932,
+      "max_jerk_px": 0.0133
+    },
+    "scale_hold_push": {
+      "samples": 181,
+      "travel_px": 9.745,
+      "repeated_steps": 0,
+      "reverse_steps": 0,
+      "max_step_px": 0.0843,
+      "max_jerk_px": 0.005
+    },
+    "timeline_ground_drift": {
+      "samples": 181,
+      "travel_px": 3.177,
+      "repeated_steps": 0,
+      "reverse_steps": 0,
+      "max_step_px": 0.0248,
+      "max_jerk_px": 0.0061
+    },
+    "end_card_push": {
+      "samples": 181,
+      "travel_px": 7.392,
+      "repeated_steps": 0,
+      "reverse_steps": 0,
+      "max_step_px": 0.0879,
+      "max_jerk_px": 0.0054
+    },
+    "loop_bridge_preroll": {
+      "samples": 181,
+      "travel_px": 10.149,
+      "repeated_steps": 0,
+      "reverse_steps": 0,
+      "max_step_px": 0.0745,
+      "max_jerk_px": 0.0275
+    },
+    "then_now_push": {
+      "samples": 181,
+      "travel_px": 8.455,
+      "repeated_steps": 0,
+      "reverse_steps": 0,
+      "max_step_px": 0.0521,
+      "max_jerk_px": 0.0052
+    },
+    "callouts_push": {
+      "samples": 181,
+      "travel_px": 12.697,
+      "repeated_steps": 0,
+      "reverse_steps": 0,
+      "max_step_px": 0.078,
+      "max_jerk_px": 0.006
+    },
+    "composer_still_0_push": {
+      "samples": 59,
+      "travel_px": 24.198,
+      "repeated_steps": 0,
+      "reverse_steps": 0,
+      "max_step_px": 0.575,
+      "max_jerk_px": 0.1031
+    },
+    "composer_still_1_pull": {
+      "samples": 59,
+      "travel_px": 35.939,
+      "repeated_steps": 0,
+      "reverse_steps": 0,
+      "max_step_px": 0.803,
+      "max_jerk_px": 0.1061
+    },
+    "composer_still_2_drift": {
+      "samples": 59,
+      "travel_px": 32.832,
+      "repeated_steps": 0,
+      "reverse_steps": 0,
+      "max_step_px": 0.754,
+      "max_jerk_px": 0.1549
+    },
+    "composer_still_3_push": {
+      "samples": 59,
+      "travel_px": 24.175,
+      "repeated_steps": 0,
+      "reverse_steps": 0,
+      "max_step_px": 0.6062,
+      "max_jerk_px": 0.1918
+    },
+    "composer_hook_clip_push": {
+      "samples": 59,
+      "travel_px": 21.91,
+      "repeated_steps": 0,
+      "reverse_steps": 0,
+      "max_step_px": 0.5327,
+      "max_jerk_px": 0.167
+    }
+  },
+  "loop_seam_record": {
+    "variant": "loop_bridge_v1",
+    "push": 0.0,
+    "close_zoom": 1.12,
+    "open_push": 0.0,
+    "max_step_L": 7.97,
+    "mad_last": 0.9
+  },
+  "failing_paths": [],
+  "acceptance_met": true
+}

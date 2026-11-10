@@ -31,6 +31,7 @@ from pydantic import BaseModel, Field
 
 from . import safe_zones
 from .brand import BONE, INK
+from .camera_motion import sample as camera_sample
 from .config import VIDEO_FPS, VIDEO_HEIGHT, VIDEO_WIDTH
 from .graphics import (
     CLIP_SECONDS,
@@ -2295,7 +2296,7 @@ def render(photo: Path, points: list[tuple], out: Path, width: int = VIDEO_WIDTH
     guard = [0] * len(points)
 
     def background(t: float) -> Image.Image:
-        im = base.resize((width, height), Image.LANCZOS, box=push.crop(t)).convert("RGB")
+        im = camera_sample(base, (width, height), push.crop(t), resample=Image.LANCZOS)   # the shared camera
         d = ImageDraw.Draw(im, "RGBA")
         d.rectangle([0, 0, width, height], fill=(0, 0, 0, int(70 * _ease(t / 0.8))))
         return spotlight(im, t, points, starts, push)

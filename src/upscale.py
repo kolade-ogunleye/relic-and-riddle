@@ -131,7 +131,7 @@ def _cache_path(path: Path, name: str) -> Path:
     model_name = "realesrgan-x4plus" if name in ("onnx", "ncnn") else "lanczos3-unsharp-polish"
     digest = fingerprint({"source": file_inputs([path]), "tool": file_inputs(tool_files),
                           "target_crop_width": TARGET_CROP_WIDTH, "model": model_name, "backend": name})[:16]
-    return CACHE_DIR / f"{path.stem}_{digest}.jpg"
+    return CACHE_DIR / f"{path.stem}_{digest}.png"
 
 
 def _onnx_session():
@@ -268,7 +268,7 @@ def ensure_resolution(path: Path) -> Path:
 
 def _try_backend(name: str, path: Path, out: Path) -> Optional[Path]:
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
-    tmp = out.with_suffix(".png")
+    tmp = out.with_name(out.stem + ".backend.png")
     try:
         if name == "cpu_lanczos_polish":
             im = _upscale_cpu_polish(path)
@@ -283,7 +283,7 @@ def _try_backend(name: str, path: Path, out: Path) -> Optional[Path]:
             scale = min(1.0, TARGET_CROP_WIDTH / max(1, vertical_crop_width(im.size)))
             if scale < 1.0:
                 im = im.resize((round(im.width * scale), round(im.height * scale)), Image.LANCZOS)
-            im.save(out, "JPEG", quality=95)
+            im.save(out, "PNG")
         log.info("Upscaled %s -> %s (%s)", path.name, out.name, name)
         from .lineage import record_derived
         model_name = "lanczos-3-unsharp-polish" if name == "cpu_lanczos_polish" else "realesrgan-x4plus"

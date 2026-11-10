@@ -45,7 +45,7 @@ def inspect_bytes(data: bytes) -> dict:
 
 
 def record_source(path: Path, data: bytes) -> None:
-    """Preserve source compression evidence before the pool's metadata-stripping JPEG."""
+    """Preserve source compression evidence before the pool's upright, metadata-stripping derivative."""
     result = inspect_bytes(data)
     result["pool_sha256"] = hashlib.sha256(Path(path).read_bytes()).hexdigest()
     Path(str(path) + ".quality.json").write_text(json.dumps(result), encoding="utf-8")

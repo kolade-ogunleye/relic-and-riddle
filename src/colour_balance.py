@@ -26,7 +26,7 @@ prepared still gets two capped, deterministic corrections:
 
 Never touched: black-and-white and toned (sepia) archival photos (every channel follows the luminance), our own
 graphics and maps, clips, and anything already balanced (a copy this module made, or a photo whose cast and
-exposure are inside the thresholds: returned as it is, no copy). A corrected copy keeps its file name in its own
+exposure are inside the thresholds: returned as it is, no copy). A corrected copy keeps its stem as a PNG in its own
 folder under cache/colour_balance (keyed by the source's hash and VERSION, so a resume or re-render pays nothing)
 and records its source and settings (src/lineage.py, operation "colour_balance"), so its credit and rights resolve
 to the original. Never raises: on any failure the photo is used as it is.
@@ -260,7 +260,7 @@ def balanced(path: Path) -> Path:
         from .credits import sha256_file
         from .lineage import record_derived, source_chain
         key = hashlib.sha256(f"{sha256_file(path)}|v{VERSION}".encode()).hexdigest()[:16]
-        out = CACHE_DIR / key / path.name
+        out = CACHE_DIR / key / path.with_suffix(".png").name
         if out.is_file():
             try:
                 if source_chain(out):
@@ -274,10 +274,7 @@ def balanced(path: Path) -> Path:
             fixed = apply(im, settings)
             extra = {k: im.info[k] for k in ("exif",) if im.info.get(k)}   # same orientation
         out.parent.mkdir(parents=True, exist_ok=True)
-        if out.suffix.lower() in (".jpg", ".jpeg"):
-            fixed.save(out, "JPEG", quality=95, **extra)
-        else:
-            fixed.save(out, **extra)
+        fixed.save(out, "PNG", **extra)
         record_derived(out, [path], OPERATION, {"version": VERSION, **settings})
         log.info("Colour balance: %s (cast %.2f, gains %s, gamma %.2f).", path.name, settings["cast"],
                  settings["gains"], settings["gamma"])

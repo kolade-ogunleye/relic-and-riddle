@@ -438,7 +438,7 @@ def test_a_wing_along_the_top_edge_is_cropped_away(screen, monkeypatch, tmp_path
     looks = _looks(monkeypatch, [0, 0, 90, 1000])
     kept = beat_images.without_burned_in_text(photos, "Nazca Lines", minimum=1)
     crop = kept[0]
-    assert crop != photos[0] and crop.name == "06_commons.jpg" and kept[1] == photos[1]
+    assert crop != photos[0] and crop.name == "06_commons.png" and kept[1] == photos[1]   # QF-13: lossless crop
     with Image.open(crop) as im:
         assert im.height == 2400 - round(2400 * 0.105)
         r, g, b = im.convert("RGB").getpixel((800, 2))
@@ -447,7 +447,7 @@ def test_a_wing_along_the_top_edge_is_cropped_away(screen, monkeypatch, tmp_path
     assert record["operation"] == beat_images.EDGE_OBJECT_CROP
     assert record["settings"]["edge"] == "top" and record["settings"]["object"] == "an aircraft wing"
     assert Path(record["sources"][0]["path"]) == photos[0].resolve()
-    assert ("06_commons.jpg", 2148) in looks                           # the copy was looked at again
+    assert ("06_commons.png", 2148) in looks                           # the copy was looked at again
     cache = json.loads((tmp_path / beat_images.TEXT_SCREEN_FILE).read_text(encoding="utf-8"))
     entry = next(v for v in cache.values() if v.get("object"))
     assert entry["object_edge"] == "top" and entry["screen"] == beat_images.TEXT_SCREEN_VERSION == 3
@@ -459,7 +459,7 @@ def test_an_intrusion_larger_than_the_band_sets_the_photo_aside(screen, monkeypa
     photos = [_with_wing(tmp_path / "06_commons.jpg", band=0.3), _jpg(tmp_path / "08_commons.jpg", size=(1600, 1200))]
     _looks(monkeypatch, [0, 0, 300, 1000])
     assert beat_images.without_burned_in_text(photos, "Nazca Lines", minimum=1) == [photos[1]]
-    assert not beat_images.TEXT_CROP_DIR.exists() or not any(beat_images.TEXT_CROP_DIR.rglob("*.jpg"))
+    assert not beat_images.TEXT_CROP_DIR.exists() or not any(p.suffix in (".jpg", ".png") for p in beat_images.TEXT_CROP_DIR.rglob("*"))
     # Never fewer than the minimum: then it stays, as a photo with text does.
     assert beat_images.without_burned_in_text(photos, "Nazca Lines", minimum=2) == photos
 
@@ -468,7 +468,7 @@ def test_a_found_picture_with_a_wing_is_kept_cropped(screen, monkeypatch, tmp_pa
     p = _with_wing(tmp_path / "beat_images" / "beat05_1.jpg")
     _looks(monkeypatch, [0, 0, 90, 1000])
     shows, why, use = beat_images.screened_picture(p, "Nazca lines aerial")
-    assert shows and use != p and use.name == p.name and why == "aerial view of the geoglyphs"
+    assert shows and use != p and use.name == p.with_suffix(".png").name and why == "aerial view of the geoglyphs"
     _looks(monkeypatch, [0, 0, 400, 1000])
     shows, why, use = beat_images.screened_picture(p, "Nazca lines aerial")
     assert not shows and use == p and why == beat_images.OBJECT_PREFIX + "an aircraft wing"

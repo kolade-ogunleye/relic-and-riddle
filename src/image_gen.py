@@ -754,7 +754,7 @@ def _download_reference(cand: dict[str, Any], work_dir: Path) -> Path | None:
     import io
 
     from PIL import Image, ImageOps
-    out = Path(work_dir) / REFERENCE_DIR / (hashlib.sha256(url.encode("utf-8")).hexdigest()[:16] + ".jpg")
+    out = Path(work_dir) / REFERENCE_DIR / (hashlib.sha256(url.encode("utf-8")).hexdigest()[:16] + ".png")
     if out.is_file() and _readable_image(out):
         return out
     try:
@@ -768,13 +768,13 @@ def _download_reference(cand: dict[str, Any], work_dir: Path) -> Path | None:
                 if size > REFERENCE_MAX_BYTES:
                     return None
                 chunks.append(chunk)
-        # Saved as a JPEG whatever was served (a TIFF or PNG): the request, the checks and the review card read it.
+        # Lossless decoded reference: the request, checks and review card read the same pixels.
         with Image.open(io.BytesIO(b"".join(chunks))) as im:
             im = ImageOps.exif_transpose(im).convert("RGB")
             if min(im.size) < REFERENCE_MIN_SIDE:
                 return None
             out.parent.mkdir(parents=True, exist_ok=True)
-            im.save(out, "JPEG", quality=92)
+            im.save(out, "PNG")
     except (requests.RequestException, OSError, ValueError, Image.DecompressionBombError) as e:
         log.info("Reference %s not fetched (%s).", url[:80], type(e).__name__)
         return None
@@ -948,7 +948,7 @@ def illustrate_beat(line: str, spec: dict[str, Any], work_dir: Path, aspect: str
                     surface: str = "beat", references: Sequence[dict[str, Any]] = (),
                     visual: str | None = None, reason: str = "") -> tuple[Path | None, dict[str, Any]]:
     """The best passing candidate for `line` (src/image_quarantine.score_candidate), composited in the house style
-    and saved as run_dir/gap_gen_<key>.jpg with its lineage (line, era, model, prompt version, descriptors,
+    and saved as run_dir/gap_gen_<key>.png with its lineage (line, era, model, prompt version, descriptors,
     references); or None. A file already made for this key is reused only after it passes the rubric again.
 
     `visual` NAMED_SUBJECT: drawn only from `references` (find_references), which go into the request and into the
@@ -986,7 +986,7 @@ def illustrate_beat(line: str, spec: dict[str, Any], work_dir: Path, aspect: str
     # The rubric knows a named subject needs its reference comparison, and why it is drawn: a reconstruction may
     # add only what the narrated line and its descriptors describe (image_quarantine.reference_check).
     checked = dict(spec, visual=visual, why_illustrated=reason, line=spec.get("line") or line)
-    out = work / f"gap_gen_{key}.jpg"
+    out = work / f"gap_gen_{key}.png"
     cand_dir = work / CANDIDATE_DIR
     best_raw = cand_dir / f"{key}_best.png"
     ready, why = checkers_ready()
@@ -1015,7 +1015,7 @@ def illustrate_beat(line: str, spec: dict[str, Any], work_dir: Path, aspect: str
             info["rejected"].append({"candidate": i, "why": ["no image returned"]})
             continue
         raw_path = cand_dir / f"{key}_{i}.png"
-        final_path = cand_dir / f"{key}_{i}_final.jpg"
+        final_path = cand_dir / f"{key}_{i}_final.png"
         try:
             raw_path.write_bytes(raw_bytes)
             substrate_compositor.composite_engraving_on_ink(raw_path, final_path, size)
@@ -1090,7 +1090,7 @@ def synthesize_gap_asset(
         era_key = "modern_cold_war"
 
     key = cache_key(line_text, era_key, aspect, prompt_version="legacy-" + PROMPT_VERSION)
-    out_path = work_p / f"gap_gen_{key}.jpg"
+    out_path = work_p / f"gap_gen_{key}.png"
     legacy = work_p / f"gap_gen_beat_{beat_index}.jpg"
     for cached in (out_path, legacy):
         if not (cached.is_file() and cached.stat().st_size > 0):

@@ -178,7 +178,7 @@ def test_a_detail_crop_of_a_strong_approved_photo_fills_the_beat_before_a_held_s
     out, report = scene_planner.fit_to_lines(beats, [hook, pantheon, lime, pantheon], [hook, pantheon, lime],
                                              "Roman concrete", work_dir=run)
     crop = out[3]
-    assert crop.parent.parent.name == pc.DETAIL_DIR and crop.name == hook.name    # its credit is found by name
+    assert crop.parent.parent.name == pc.DETAIL_DIR and crop.name == hook.with_suffix(".png").name
     assert pc.is_detail_crop(crop) and scene_planner.picture_id(crop) == scene_planner.picture_id(hook)
     assert report["tiers"] == [{"beat": 4, "tier": pc.DETAIL_CROP, "to": crop.name, "cascade": True}]
     assert report["held"] == [] and report["unshown"][0]["fallback"] == pc.DETAIL_CROP

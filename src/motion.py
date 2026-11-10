@@ -152,7 +152,7 @@ def pre_condition_anchor_frame(image: Path, out_path: Optional[Path] = None, arc
     """Pre-conditions the authentic archival photo: crops to vertical 9:16 centering salient features."""
     if not Path(image).exists():
         return image
-    target_out = out_path or image.with_name(f"{image.stem}_anchor.jpg")
+    target_out = Path(out_path).with_suffix(".png") if out_path else image.with_name(f"{image.stem}_anchor.png")
     try:
         im = Image.open(image).convert("RGB")
     except Exception:
@@ -180,7 +180,7 @@ def pre_condition_anchor_frame(image: Path, out_path: Optional[Path] = None, arc
         im = im.crop((0, top, w, top + new_h))
 
     im = im.resize((1080, 1920), Image.Resampling.LANCZOS)
-    im.save(target_out, "JPEG", quality=95)
+    im.save(target_out, "PNG")
     return target_out
 
 
@@ -529,7 +529,7 @@ def animate(
     """(clip, provider) from the first provider that is configured, within budget and succeeds;
     None means the still stays a still (and gets the free 2.5D parallax treatment)."""
     archetype = classify_archetype(topic, fact_sheet)
-    anchor_img = pre_condition_anchor_frame(image, out.with_name(f"{out.stem}_anchor.jpg"), archetype=archetype)
+    anchor_img = pre_condition_anchor_frame(image, out.with_name(f"{out.stem}_anchor.png"), archetype=archetype)
 
     try:
         prov_list = providers(topic, fact_sheet)

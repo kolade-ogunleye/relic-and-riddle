@@ -84,6 +84,6 @@ def test_scene_pool_gets_a_cropped_copy_with_lineage(tmp_path: Path, monkeypatch
     _photo(2).save(plain, quality=95)
     out = beat_images.without_burned_in_text([barred, plain], "subject", minimum=1)
     assert out[1] == plain
-    assert out[0] != barred and out[0].name == barred.name and out[0].is_file()
+    assert out[0] != barred and out[0].name == barred.with_suffix(".png").name and out[0].is_file()
     with Image.open(out[0]) as im:
         assert im.size[1] < H and caption_strip(im) is None

@@ -74,7 +74,7 @@ def sentences(narration: str) -> List[str]:
 def pool_descriptions(topic_dir: Path, media: List[Path]) -> List[Dict[str, str]]:
     """[{"file", "text"}] for each photo the video can use that has a record in the topic's credits.json: its
     archive caption and the photo review's reason. Photos without a record (the shared suite, a clip) have
-    nothing to say and are left out; a cropped copy (cache/text_crop) keeps its original's name."""
+    nothing to say and are left out; a prepared copy is resolved through checked source lineage."""
     from .credits import load_credits
     from .llm import verdict_reason
     try:
@@ -84,6 +84,16 @@ def pool_descriptions(topic_dir: Path, media: List[Path]) -> List[Dict[str, str]
     out, seen = [], set()
     for p in media:
         rec = records.get(Path(str(p)).name)
+        if rec is None:
+            from .lineage import source_chain
+            try:
+                originals = {Path(row["path"]).resolve() for row in source_chain(p)
+                             if row.get("kind") != "lineage"}
+                matches = [row for name, row in records.items()
+                           if name and (Path(topic_dir) / name).resolve() in originals]
+                rec = matches[0] if len(matches) == 1 else None
+            except (OSError, ValueError, KeyError):
+                rec = None
         if not rec or rec["file"] in seen:
             continue
         seen.add(rec["file"])

@@ -242,11 +242,11 @@ def register(old: Path, new: Path, matrix: Any, work_dir: Path, stats: dict[str,
         log.info("Then-and-now: the registered photos share too little of the frame.")
         return None
     work_dir.mkdir(parents=True, exist_ok=True)
-    op, np_ = work_dir / f"{Path(old).stem}_reg.jpg", work_dir / f"{Path(new).stem}_reg.jpg"
+    op, np_ = work_dir / f"{Path(old).stem}_reg.png", work_dir / f"{Path(new).stem}_reg.png"
     old_crop = a[y0:y1, x0:x1]
     new_crop, gamma = match_exposure(old_crop, warped[y0:y1, x0:x1])
-    Image.fromarray(old_crop).save(op, quality=94)
-    Image.fromarray(new_crop).save(np_, quality=94)
+    Image.fromarray(old_crop).save(op, "PNG")
+    Image.fromarray(new_crop).save(np_, "PNG")
     import json
     rec = {k: v for k, v in (stats or {}).items() if k != "matrix"}
     rec.update({"shared": [x0, y0, x1, y1], "shared_share": round((x1 - x0) * (y1 - y0) / (w * h), 3),
@@ -327,10 +327,11 @@ def source(topic: dict[str, Any], work_dir: Path) -> tuple[Path, dict[str, Any],
             except requests.RequestException:
                 continue
         for j, new in enumerate(pool[:6]):
-            path = seen_recent.get(new["title"]) or work_dir / f"now_{k}_{j}.jpg"
+            path = seen_recent.get(new["title"]) or commons.stored(work_dir / f"now_{k}_{j}.png")
             try:
                 if not path.exists():
                     commons.download_jpeg(new["download_url"], path)
+                    path = commons.stored(path)   # the kept source JPEG, or the decoded PNG (QF-13)
                 seen_recent[new["title"]] = path
                 out.append((path, new))
             except (requests.RequestException, OSError, url_guard.RefusedURL) as e:
@@ -338,13 +339,14 @@ def source(topic: dict[str, Any], work_dir: Path) -> tuple[Path, dict[str, Any],
         return out
 
     for k, old in enumerate(olds[:4]):  # one vision call per old photo, against recent photos of its subject
-        op = work_dir / f"then_{k}.jpg"
+        op = commons.stored(work_dir / f"then_{k}.png")
         recents = recent_for(old, k)
         if not recents:
             continue
         try:
             if not op.exists():
                 commons.download_jpeg(old["download_url"], op)
+                op = commons.stored(op)   # the kept source JPEG, or the decoded PNG (QF-13)
             pick = _pick(op, [r[0] for r in recents], place)
         except (requests.RequestException, OSError, LLMError, url_guard.RefusedURL) as e:
             log.info("Then-and-now candidate skipped: %s", e)

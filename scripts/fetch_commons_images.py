@@ -3,7 +3,7 @@ Fetch licensed scene images for topics from Wikimedia Commons.
 
 For each topic short of images, runs the curated searches in data/topics/image_queries.json,
 keeps only files whose title contains a topic keyword, whose licence is acceptable and whose
-resolution is sufficient, re-encodes them as JPEG into assets/<topic_id>/, records
+resolution is sufficient, decodes them to lossless PNG in assets/<topic_id>/, records
 author/licence/source in credits.json, and writes contact_sheet.jpg for review.
 
 Fetched sets are UNREVIEWED: the pipeline will not use them until you look at the contact
@@ -38,6 +38,7 @@ from src.commons import (  # noqa: E402
     candidates,
     search_graded,
     download_jpeg,
+    stored,
     find_categories,
     search,
 )
@@ -146,11 +147,12 @@ def _fetch_pass(topic: dict, spec: dict, allow_sa: bool, target_images: int = TA
         if isinstance(reason, str) and reason.strip():
             from src.image_presentation import designate
             w, h = download_jpeg(cand["download_url"], dest, preserve_source=True)
+            dest = stored(dest)   # the kept source JPEG, or the decoded PNG (QF-13)
             designate(dest, reason)
             cand.update(width=w, height=h, vertical_crop_width=vertical_crop_width(w, h),
                         essential_reason=reason.strip(), presentation="full_image",
                         preserved_source=dest.name + ".source")
-            return
+            return dest
         automatic = [c for c in images if c.get("presentation") != "full_image"]
         low = sum(vertical_crop_width(c.get("width", 0), c.get("height", 0)) < NATIVE_VERTICAL_CROP
                   for c in automatic)
@@ -158,6 +160,7 @@ def _fetch_pass(topic: dict, spec: dict, allow_sa: bool, target_images: int = TA
         w, h = download_jpeg(cand["download_url"], dest, min_pixels=MIN_PIXELS,
                              min_height=MIN_HEIGHT, min_crop_width=floor)
         cand.update(width=w, height=h, vertical_crop_width=vertical_crop_width(w, h))
+        return stored(dest)   # the kept source JPEG, or the decoded PNG (QF-13)
 
     def diverse_candidate(cand, dest):
         try:
@@ -212,11 +215,11 @@ def _fetch_pass(topic: dict, spec: dict, allow_sa: bool, target_images: int = TA
         if cand["title"] in have:
             continue
         n = 1
-        while (topic_dir / f"{n:02d}_commons.jpg").exists():
+        while any((topic_dir / f"{n:02d}_commons{suffix}").exists() for suffix in (".jpg", ".png")):
             n += 1
-        dest = topic_dir / f"{n:02d}_commons.jpg"
+        dest = topic_dir / f"{n:02d}_commons.png"
         try:
-            fetch_picture(cand, dest)
+            dest = fetch_picture(cand, dest)
             if not diverse_candidate(cand, dest):
                 continue
         except Exception as e:
@@ -248,11 +251,11 @@ def _fetch_pass(topic: dict, spec: dict, allow_sa: bool, target_images: int = TA
                 if cand["title"] in have:
                     continue
                 n = 1
-                while (topic_dir / f"{n:02d}_commons.jpg").exists():
+                while any((topic_dir / f"{n:02d}_commons{suffix}").exists() for suffix in (".jpg", ".png")):
                     n += 1
-                dest = topic_dir / f"{n:02d}_commons.jpg"
+                dest = topic_dir / f"{n:02d}_commons.png"
                 try:
-                    fetch_picture(cand, dest)
+                    dest = fetch_picture(cand, dest)
                     if not diverse_candidate(cand, dest):
                         continue
                 except Exception:
@@ -278,11 +281,11 @@ def _fetch_pass(topic: dict, spec: dict, allow_sa: bool, target_images: int = TA
                 if cand["title"] in have or not any(k in normalize(cand["title"]) for k in keywords) or namesake(cand):
                     continue
                 n = 1
-                while (topic_dir / f"{n:02d}_commons.jpg").exists():
+                while any((topic_dir / f"{n:02d}_commons{suffix}").exists() for suffix in (".jpg", ".png")):
                     n += 1
-                dest = topic_dir / f"{n:02d}_commons.jpg"
+                dest = topic_dir / f"{n:02d}_commons.png"
                 try:
-                    fetch_picture(cand, dest)
+                    dest = fetch_picture(cand, dest)
                     if not diverse_candidate(cand, dest):
                         continue
                 except Exception:

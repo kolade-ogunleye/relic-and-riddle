@@ -49,13 +49,18 @@ def add_image(db, assets_dir, ref, rights, content, uploaded_by):
         if not acquired:
             raise ValueError("An image job is already running for this topic")
         topic_for(db, topic["id"])
+        from .commons import kept_jpeg
         with Image.open(io.BytesIO(content)) as original:
             original.load()
+            kept = kept_jpeg(content, original)   # an upright JPEG keeps its own bytes, metadata (GPS) stripped
             image = ImageOps.exif_transpose(original).convert("RGB")  # upright: a phone photo sent as a file
         directory = Path(assets_dir) / topic["id"]
         directory.mkdir(parents=True, exist_ok=True)
-        name = "telegram_" + uuid4().hex + ".jpg"
-        image.save(directory / name, "JPEG", quality=95)
+        name = "telegram_" + uuid4().hex + (".jpg" if kept is not None else ".png")
+        if kept is not None:
+            (directory / name).write_bytes(kept)
+        else:
+            image.save(directory / name, "PNG")   # decoded once (rotated, CMYK, not a JPEG): lossless (QF-13)
         credits = load_credits(directory)
         credits["reviewed"] = False
         credits["images"].append({"file": name, "title": "Operator-supplied image", "artist": rights["author"],

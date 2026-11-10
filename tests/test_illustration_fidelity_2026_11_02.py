@@ -586,7 +586,7 @@ def test_a_located_crop_is_cut_around_the_feature_and_confirmed(tmp_path):
     # the second look says no: no crop, nothing left behind
     none = pc.located_crop(photo, tmp_path / "run2", [], 1080 / 1920, "Pharos", locate=lambda p, s, l: feature,
                            confirm=lambda c, s: False, min_width=600)
-    assert none is None and not list((tmp_path / "run2").rglob("*.jpg"))
+    assert none is None and not any(p.suffix in (".jpg", ".png") for p in (tmp_path / "run2").rglob("*"))
     # nothing located (low confidence or the locator down): no crop
     assert pc.located_crop(photo, tmp_path / "run3", [], 1080 / 1920, "Pharos", locate=lambda p, s, l: None,
                            confirm=lambda c, s: True) is None

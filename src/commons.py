@@ -760,6 +760,79 @@ def _capped_body(resp, cap: int) -> bytes:
     return body
 
 
+# A kept JPEG source (QF-13) keeps only the segments that decode it: JFIF (APP0), the ICC profile (APP2) and Adobe's
+# colour transform (APP14). EXIF, XMP, IPTC, comments and every other APPn are dropped, as the re-encode dropped them.
+JPEG_KEPT_SEGMENTS = {0xE0, 0xE2, 0xEE}
+
+
+def strip_jpeg_metadata(data: bytes) -> bytes:
+    """`data` (a JPEG) without its metadata segments and without anything after its end-of-image marker (a
+    motion-photo video, a vendor trailer): the coded image (tables, frame, every scan of a progressive file) byte
+    for byte, ending at EOI. ValueError when the marker structure cannot be read."""
+    if data[:2] != b"\xff\xd8":
+        raise ValueError("not a JPEG")
+    out, i, n, scanned = bytearray(data[:2]), 2, len(data), False
+    while i + 1 < n:
+        if data[i] != 0xFF:
+            raise ValueError("bad JPEG marker")
+        marker = data[i + 1]
+        if marker == 0xFF:      # fill byte
+            i += 1
+            continue
+        if marker == 0xD9:      # end of image: whatever follows is not the picture
+            if not scanned:
+                raise ValueError("no scan in JPEG")
+            out += data[i:i + 2]
+            return bytes(out)
+        length = int.from_bytes(data[i + 2:i + 4], "big")
+        if length < 2 or i + 2 + length > n:
+            raise ValueError("truncated JPEG segment")
+        if not (0xE0 <= marker <= 0xEF or marker == 0xFE) or marker in JPEG_KEPT_SEGMENTS:
+            out += data[i:i + 2 + length]
+        i += 2 + length
+        if marker == 0xDA:      # start of scan: its entropy-coded data runs to the next real marker
+            scanned, j = True, i
+            while True:
+                j = data.find(b"\xff", j)
+                if j < 0 or j + 1 >= n:
+                    raise ValueError("unterminated JPEG scan")
+                following = data[j + 1]
+                if following == 0x00 or 0xD0 <= following <= 0xD7:   # a stuffed byte or a restart marker
+                    j += 2
+                elif following == 0xFF:                               # fill before a marker
+                    j += 1
+                else:
+                    break
+            out += data[i:j]
+            i = j
+    raise ValueError("no end of image in JPEG")
+
+
+def kept_jpeg(data: bytes, raw: Image.Image) -> bytes | None:
+    """The stripped source bytes when the download can be kept as it was served (an RGB or greyscale JPEG that
+    needs no rotation and decodes to exactly the same pixels once stripped), else None (it is decoded to PNG)."""
+    if raw.format != "JPEG" or raw.mode not in ("RGB", "L") or raw.getexif().get(0x0112, 1) != 1:
+        return None
+    try:
+        stripped = strip_jpeg_metadata(data)
+        with Image.open(io.BytesIO(data)) as a, Image.open(io.BytesIO(stripped)) as b:
+            if a.mode != b.mode or a.size != b.size or a.tobytes() != b.tobytes():
+                return None
+    except (ValueError, OSError):
+        return None
+    return stripped
+
+
+def stored(dest: Path) -> Path:
+    """The file download_jpeg wrote for `dest`: for a lossless (.png) destination, the kept JPEG beside it when the
+    source was kept, else `dest` itself."""
+    dest = Path(dest)
+    if dest.suffix.lower() != ".png" or dest.is_file():
+        return dest
+    kept = dest.with_suffix(".jpg")
+    return kept if kept.is_file() else dest
+
+
 def download_jpeg(
     url: str,
     dest: Path,
@@ -770,7 +843,11 @@ def download_jpeg(
     min_crop_width: int | None = None,
     preserve_source: bool = False,
 ) -> tuple[int, int]:
-    """The picture at `url` saved as a JPEG at `dest`. The URL comes from a search answer (QF-44): it and every
+    """The picture at `url` saved at `dest`. A `.png` destination is lossless (QF-13): an upright baseline or
+    progressive RGB/greyscale JPEG keeps its own bytes, metadata stripped (JPEG_KEPT_SEGMENTS), at
+    dest.with_suffix(".jpg"); anything that must be decoded (an EXIF rotation, CMYK, a palette, a TIFF/PNG/WebP
+    source) is written as PNG at `dest`. stored(dest) is the file written. A `.jpg` destination (a legacy caller)
+    is re-encoded as before. The URL comes from a search answer (QF-44): it and every
     redirect hop must be HTTPS on `provider`'s hosts (footage.ALLOWED_HOSTS; any still-image provider's fixed hosts
     when None) and public (src/url_guard). Raises ValueError (url_guard.RefusedURL) for any other URL."""
     from . import url_guard
@@ -792,10 +869,21 @@ def download_jpeg(
             raise ValueError(f"Dimensions too small: {w}x{h} (both edges < {min_height})")
         if min_crop_width and vertical_crop_width(w, h) < min_crop_width:
             raise ValueError(f"9:16 crop too small: {vertical_crop_width(w, h)} px < {min_crop_width}")
-        im.convert("RGB").save(dest, "JPEG", quality=92)  # re-encode: strips metadata and odd formats
+        if Path(dest).suffix.lower() == ".png":
+            kept = Path(dest).with_suffix(".jpg")
+            stripped = kept_jpeg(data, raw)
+            for stale in (Path(dest), kept):
+                stale.unlink(missing_ok=True)   # exactly one of the two names is the download
+            if stripped is not None:
+                kept.write_bytes(stripped)      # the source's own coded pixels: no decode, no new generation
+                dest = kept
+            else:
+                im.convert("RGB").save(dest, "PNG")  # decoded once, stored without quantization or subsampling
+        else:
+            im.convert("RGB").save(dest, "JPEG", quality=92)  # re-encode: strips metadata and odd formats
         from .photo_quality import record_source
         record_source(dest, data)
         if preserve_source:
-            # Archive accepted original bytes separately; only the upright JPEG enters the pool.
+            # Archive accepted original bytes separately; the upright derivative enters the pool.
             Path(str(dest) + ".source").write_bytes(data)
         return w, h

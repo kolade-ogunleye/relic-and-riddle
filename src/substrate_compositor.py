@@ -98,7 +98,10 @@ def composite_engraving_on_ink(
     if output_path:
         out_p = Path(output_path)
         out_p.parent.mkdir(parents=True, exist_ok=True)
-        out.save(out_p, "JPEG", quality=95)
+        if out_p.suffix.lower() == ".png":
+            out.save(out_p, "PNG")
+        else:
+            out.save(out_p, "JPEG", quality=95)
     return out
 
 
@@ -224,7 +227,10 @@ def composite_linework_onto_substrate(
     if output_path:
         out_p = Path(output_path)
         out_p.parent.mkdir(parents=True, exist_ok=True)
-        composited.save(out_p, "JPEG", quality=95)
+        if out_p.suffix.lower() == ".png":
+            composited.save(out_p, "PNG")
+        else:
+            composited.save(out_p, "JPEG", quality=95)
         
     return composited
 

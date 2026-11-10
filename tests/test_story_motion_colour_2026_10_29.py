@@ -271,7 +271,7 @@ def test_a_yellow_green_cast_is_reduced_within_its_cap(tmp_path):
     a = _wall() * np.array([1.15, 1.2, 0.7])         # Derinkuyu's yellow-green lamp on grey stone
     src = _img(tmp_path, "03_commons.jpg", a)
     out = cb.balanced(src)
-    assert out != src and out.name == src.name                                  # its own folder, same name
+    assert out != src and out.name == src.with_suffix(".png").name              # its own folder, lossless copy
     before, after = (np.asarray(Image.open(p).convert("RGB"), dtype=float) for p in (src, out))
     assert _cast(after) < _cast(before) * 0.75                                   # reduced, toward grey
     record = source_chain(out)

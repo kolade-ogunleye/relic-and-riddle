@@ -1,0 +1,22 @@
+{
+ "fixture": {
+  "hero_format": "JPEG",
+  "against_drawn_hero": {
+   "hue_deg": 0.57,
+   "saturation_ratio": 1.0588
+  },
+  "against_lossless_hero": {
+   "hue_deg": 3.96,
+   "saturation_ratio": 1.0312
+  }
+ },
+ "real": {
+  "covers": 34,
+  "patch_hue_deg_median": 0.44,
+  "patch_hue_deg_max": 4.0,
+  "frame_hue_deg_median": 11.71,
+  "frame_hue_deg_max": 178.04,
+  "hero_from_recipe": 16,
+  "covers_over_2_mib": 0
+ }
+}

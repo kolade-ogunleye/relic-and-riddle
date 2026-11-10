@@ -1,0 +1,353 @@
+{
+  "scope": "8-bit RGB serialization of prepared photo layers; no recovery of source JPEG detail and no model-quality claim",
+  "source_commit": "852140864f6c89ba9d2b9137fbae8ed040c457ac",
+  "source_hashes": {
+    "src/commons.py": "11bd4253efe56f8a",
+    "src/colour_balance.py": "7ea763b99da81e58",
+    "src/beat_images.py": "5f14812a1f55e700",
+    "src/upscale.py": "f4a7acfde0f59178",
+    "src/privacy.py": "e6a56fe72e6a11f2",
+    "src/substrate_compositor.py": "4b9a75462a29c515",
+    "src/picture_coverage.py": "2ac633ea33fbbf6b",
+    "src/then_now.py": "6b4486e10d4b1b17",
+    "src/parallax.py": "03fe3db829d34be7",
+    "src/visual_engine.py": "4de627bc0aa69976",
+    "scripts/fetch_commons_images.py": "5943adbdab6036e2"
+  },
+  "fixture": {
+    "stages": {
+      "download": {
+        "format": "PNG",
+        "jpeg_sampling": null,
+        "maximum_channel_error": 0,
+        "mean_channel_error": 0.0,
+        "changed_pixels": 0,
+        "pixels": 36864
+      },
+      "balance": {
+        "format": "PNG",
+        "jpeg_sampling": null,
+        "maximum_channel_error": 0,
+        "mean_channel_error": 0.0,
+        "changed_pixels": 0,
+        "pixels": 36864
+      },
+      "crop": {
+        "format": "PNG",
+        "jpeg_sampling": null,
+        "maximum_channel_error": 0,
+        "mean_channel_error": 0.0,
+        "changed_pixels": 0,
+        "pixels": 32640
+      },
+      "upscale_serialization": {
+        "format": "PNG",
+        "jpeg_sampling": null,
+        "maximum_channel_error": 0,
+        "mean_channel_error": 0.0,
+        "changed_pixels": 0,
+        "pixels": 36864
+      },
+      "privacy": {
+        "format": "PNG",
+        "jpeg_sampling": null,
+        "maximum_channel_error": 0,
+        "mean_channel_error": 0.0,
+        "changed_pixels": 0,
+        "pixels": 36864
+      },
+      "illustration": {
+        "format": "PNG",
+        "jpeg_sampling": null,
+        "maximum_channel_error": 0,
+        "mean_channel_error": 0.0,
+        "changed_pixels": 0,
+        "pixels": 36864
+      },
+      "detail_crop": {
+        "format": "PNG",
+        "jpeg_sampling": null,
+        "maximum_channel_error": 0,
+        "mean_channel_error": 0.0,
+        "changed_pixels": 0,
+        "pixels": 9216
+      }
+    },
+    "jpeg_420_stages": 0,
+    "lossless_stages": 7,
+    "acceptance_met": true
+  },
+  "real_runs": {
+    "stills": 18,
+    "then_now_pairs": 6,
+    "then_now_pairs_registered": 0,
+    "layer_formats": {
+      "{\"format\": \"JPEG\", \"sampling\": 2}": 11,
+      "{\"format\": \"PNG\", \"sampling\": null}": 7
+    },
+    "reel_clip_colour_tags": [
+      {
+        "color_primaries": "bt709",
+        "color_range": "tv",
+        "color_space": "bt709",
+        "color_transfer": "bt709",
+        "pix_fmt": "yuv420p"
+      }
+    ],
+    "surfaces": {
+      "reel_still": {
+        "n": 18,
+        "mean_channel_error": {
+          "median": 0.0,
+          "max": 0.0,
+          "min": 0.0
+        },
+        "p99_channel_error": {
+          "median": 0.0,
+          "max": 0,
+          "min": 0
+        },
+        "maximum_channel_error": {
+          "median": 0.0,
+          "max": 0,
+          "min": 0
+        },
+        "changed_pixel_share": {
+          "median": 0.0,
+          "max": 0.0,
+          "min": 0.0
+        },
+        "pixels_off_by_3_or_more_share": {
+          "median": 0.0,
+          "max": 0.0,
+          "min": 0.0
+        },
+        "mean_chroma_error_8bit": {
+          "median": 0.0,
+          "max": 0.0,
+          "min": 0.0
+        }
+      },
+      "photo_ground": {
+        "n": 18,
+        "mean_channel_error": {
+          "median": 0.0,
+          "max": 0.0,
+          "min": 0.0
+        },
+        "p99_channel_error": {
+          "median": 0.0,
+          "max": 0,
+          "min": 0
+        },
+        "maximum_channel_error": {
+          "median": 0.0,
+          "max": 0,
+          "min": 0
+        },
+        "changed_pixel_share": {
+          "median": 0.0,
+          "max": 0.0,
+          "min": 0.0
+        },
+        "pixels_off_by_3_or_more_share": {
+          "median": 0.0,
+          "max": 0.0,
+          "min": 0.0
+        },
+        "mean_chroma_error_8bit": {
+          "median": 0.0,
+          "max": 0.0,
+          "min": 0.0
+        }
+      },
+      "stat_ground_wide": {
+        "n": 18,
+        "mean_channel_error": {
+          "median": 0.0,
+          "max": 0.0,
+          "min": 0.0
+        },
+        "p99_channel_error": {
+          "median": 0.0,
+          "max": 0,
+          "min": 0
+        },
+        "maximum_channel_error": {
+          "median": 0.0,
+          "max": 0,
+          "min": 0
+        },
+        "changed_pixel_share": {
+          "median": 0.0,
+          "max": 0.0,
+          "min": 0.0
+        },
+        "pixels_off_by_3_or_more_share": {
+          "median": 0.0,
+          "max": 0.0,
+          "min": 0.0
+        },
+        "mean_chroma_error_8bit": {
+          "median": 0.0,
+          "max": 0.0,
+          "min": 0.0
+        }
+      },
+      "then_now": {
+        "n": 6,
+        "mean_channel_error": {
+          "median": 0.0,
+          "max": 0.0,
+          "min": 0.0
+        },
+        "p99_channel_error": {
+          "median": 0.0,
+          "max": 0,
+          "min": 0
+        },
+        "maximum_channel_error": {
+          "median": 0.0,
+          "max": 0,
+          "min": 0
+        },
+        "changed_pixel_share": {
+          "median": 0.0,
+          "max": 0.0,
+          "min": 0.0
+        },
+        "pixels_off_by_3_or_more_share": {
+          "median": 0.0,
+          "max": 0.0,
+          "min": 0.0
+        },
+        "mean_chroma_error_8bit": {
+          "median": 0.0,
+          "max": 0.0,
+          "min": 0.0
+        }
+      }
+    },
+    "surfaces_changed": {
+      "reel_still": 0,
+      "photo_ground": 0,
+      "stat_ground_wide": 0,
+      "then_now": 0
+    },
+    "prepared_files": {
+      "committed": {
+        "files_written": 10,
+        "formats": {
+          "PNG": 10
+        },
+        "megabytes": 137.8,
+        "save_seconds": 89.49,
+        "disk_megabytes_by_stage": {
+          "colour_balance": 79.13,
+          "download": 59.83,
+          "then_now_download": 20.91,
+          "then_now_upscaled": 11.49,
+          "upscaled": 47.17
+        },
+        "disk_megabytes": 218.53
+      },
+      "lossless_reference": {
+        "files_written": 10,
+        "formats": {
+          "PNG": 10
+        },
+        "megabytes": 137.8,
+        "save_seconds": 85.75,
+        "disk_megabytes_by_stage": {
+          "colour_balance": 79.13,
+          "download": 59.83,
+          "then_now_download": 20.91,
+          "then_now_upscaled": 11.49,
+          "upscaled": 47.17
+        },
+        "disk_megabytes": 218.53
+      }
+    },
+    "acceptance_met": true,
+    "runs": {
+      "runs": 6,
+      "stills": 18,
+      "with_privacy_copy": 0
+    },
+    "counts_only": true
+  },
+  "pool_cost": {
+    "pool_photos": 258,
+    "pool_megabytes": 741.5,
+    "sample": 24,
+    "sample_totals": {
+      "source_mb": 71.12,
+      "megapixels": 326.28,
+      "stored_kept_source": 24,
+      "stored_mb": 71.12,
+      "jpeg_q92_save_s": 7.81,
+      "jpeg_q92_mb": 71.1,
+      "jpeg_q92_read_s": 9.68,
+      "png_default_save_s": 230.71,
+      "png_default_mb": 371.25,
+      "png_default_read_s": 41.14,
+      "png_level1_save_s": 89.12,
+      "png_level1_mb": 580.32,
+      "png_level1_read_s": 43.73
+    },
+    "per_photo": {
+      "source_mb": {
+        "median": 2.451,
+        "max": 7.801
+      },
+      "megapixels": {
+        "median": 12.096,
+        "max": 24.786
+      },
+      "stored_kept_source": {
+        "median": 1.0,
+        "max": 1
+      },
+      "stored_mb": {
+        "median": 2.451,
+        "max": 7.801
+      },
+      "jpeg_q92_save_s": {
+        "median": 0.267,
+        "max": 0.765
+      },
+      "jpeg_q92_mb": {
+        "median": 2.451,
+        "max": 7.799
+      },
+      "jpeg_q92_read_s": {
+        "median": 0.361,
+        "max": 0.8
+      },
+      "png_default_save_s": {
+        "median": 9.385,
+        "max": 20.096
+      },
+      "png_default_mb": {
+        "median": 13.224,
+        "max": 36.737
+      },
+      "png_default_read_s": {
+        "median": 1.394,
+        "max": 3.811
+      },
+      "png_level1_save_s": {
+        "median": 3.344,
+        "max": 8.37
+      },
+      "png_level1_mb": {
+        "median": 20.788,
+        "max": 54.196
+      },
+      "png_level1_read_s": {
+        "median": 1.478,
+        "max": 4.236
+      }
+    }
+  }
+}

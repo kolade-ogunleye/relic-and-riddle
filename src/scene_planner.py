@@ -413,11 +413,45 @@ STORYBOARD_NOTES = "approved storyboard (matched by narration)"
 STORYBOARD_MIN_OVERLAP, STORYBOARD_MIN_BEATS = 0.6, 0.6
 
 
+def photo_names(p: Path) -> list[str]:
+    """The names a still answers to in name-keyed records (an approved storyboard, the fit cache): its own name
+    first, then the names of the originals its checked lineage resolves to (a text-band or detail crop, a balanced
+    or upscaled copy, saved as PNG since QF-13), then its stem as a JPEG (a copy whose lineage cannot be read)."""
+    p = Path(p)
+    try:
+        st = p.stat()
+        stamp = (st.st_size, st.st_mtime_ns)
+    except OSError:
+        stamp = None
+    return list(_photo_names(str(p), stamp))
+
+
+@lru_cache(maxsize=4096)
+def _photo_names(path: str, stamp: tuple[int, int] | None) -> tuple[str, ...]:
+    p = Path(path)
+    names = [p.name]
+    if stamp is not None:
+        try:
+            from .lineage import source_chain
+            names += [Path(r["path"]).name for r in source_chain(p) if r.get("kind") != "lineage"]
+        except (OSError, ValueError, KeyError):
+            pass
+    if p.suffix.lower() == ".png":
+        names.append(p.with_suffix(".jpg").name)
+    return tuple(dict.fromkeys(names))
+
+
 def storyboard_order(storyboard: List[Dict[str, Any]], beats: List[Dict[str, Any]], options: List[Path]) -> Optional[List[int]]:
     """Option index per beat from the approved storyboard, matched by what each beat says (the
     storyboard's lines are sentences; the planner's beats are timed segments, and a revision can
-    reorder them). Beats sharing no words get unused options in order. None if it doesn't fit."""
-    by_name = {p.name: i for i, p in enumerate(options)}
+    reorder them). Beats sharing no words get unused options in order. None if it doesn't fit.
+    A storyboard file matches an option by its own name first, then through photo_names (a cropped copy)."""
+    by_name: dict[str, int] = {}
+    for i, p in enumerate(options):
+        by_name.setdefault(Path(p).name, i)
+    for i, p in enumerate(options):
+        for name in photo_names(p)[1:]:
+            by_name.setdefault(name, i)
     lines = [(graphic_match.tokens(item.get("text", "")), by_name[item["file"]])
              for item in storyboard if item.get("file") in by_name]
     picks: List[Optional[int]] = []
@@ -1354,9 +1388,9 @@ def _known_text(p: Path, cache: Optional[Dict[str, Any]] = None) -> str:
     (beat_images' fit cache, by file name). No call."""
     entry = _photo_entry(p) or {}
     parts = [_photo_caption(p), str((entry.get("vision_review") or {}).get("reason") or ""), str(entry.get("looked") or "")]
-    name = Path(p).name
+    names = set(photo_names(p))   # a crop saved as PNG keeps its original's fit reasons (QF-13)
     for hit in (cache or {}).values():
-        if isinstance(hit, dict) and hit.get("fits") and hit.get("file") == name:
+        if isinstance(hit, dict) and hit.get("fits") and hit.get("file") in names:
             parts.append(str(hit.get("reason") or ""))
     return " ".join(x for x in parts if x)
 

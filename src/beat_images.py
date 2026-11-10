@@ -548,10 +548,11 @@ def _download(items, topic: Dict[str, Any], work_dir: Path, seen: set, prefix: s
                     if not verify_visual_relevance(cand["title"], item.query):
                         continue
                     verified += 1
-                    dest = work_dir / f"{prefix}{item.beat:02d}_{found + 1}.jpg"
+                    dest = work_dir / f"{prefix}{item.beat:02d}_{found + 1}.png"
                     try:
                         hosts = {"provider": cand["provider"]} if cand.get("provider") else {}  # its provider's hosts
                         commons.download_jpeg(cand["download_url"], dest, max_wait=wait, **hosts)
+                        dest = commons.stored(dest)   # the kept source JPEG, or the decoded PNG (QF-13)
                     except url_guard.RefusedURL as e:  # not on its provider's hosts, or a hop inside (QF-44)
                         log.warning("Beat %d: %s not downloaded (%s).", item.beat, cand["title"][:80], e)
                         continue
@@ -617,7 +618,9 @@ def _download(items, topic: Dict[str, Any], work_dir: Path, seen: set, prefix: s
         except (OSError, ValueError):
             earlier = []
         record.write_text(json.dumps(
-            {"reviewed": False, "images": earlier + [{**c, "file": Path(c["file"]).name} for c in credits]},
+            # a cropped copy's record names its original, which sits beside this file (QF-13: the copy is .png)
+            {"reviewed": False, "images": earlier + [{**c, "file": Path(c.get("cropped_from") or c["file"]).name}
+                                                     for c in credits]},
             indent=2, ensure_ascii=False), encoding="utf-8")
         from .scene_planner import _folder_credits
         _folder_credits.cache_clear()  # the planner reads captions through a cache: show it the new ones
@@ -626,8 +629,13 @@ def _download(items, topic: Dict[str, Any], work_dir: Path, seen: set, prefix: s
 
 def used_credits(scenes: List[Path], credits: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """Credit records for the beat images the scene plan actually put in the video."""
-    chosen = {Path(p) for p in scenes}
-    return [c for c in credits if Path(c["file"]) in chosen or Path(c.get("upscaled") or c["file"]) in chosen]
+    from .lineage import source_chain
+    chosen = {Path(p).resolve() for p in scenes}
+    for scene in scenes:
+        chosen.update(Path(item["path"]).resolve() for item in source_chain(scene)
+                      if item.get("kind") != "lineage")
+    return [c for c in credits if Path(c["file"]).resolve() in chosen
+            or Path(c.get("upscaled") or c["file"]).resolve() in chosen]
 
 
 def credit_caption(caption: str, topic_credits: Dict[str, Any], extra: List[Dict[str, Any]]) -> str:
@@ -771,7 +779,7 @@ def crop_text_band(path: Path, edge: str, box: List[int], operation: str = "text
                    why: str = "") -> Optional[Path]:
     """A copy of `path` without the band along `edge` that holds the text in `box`, or None when the text is not
     in an edge band of at most TEXT_CROP_MAX, or the copy would fall below the resolution a found photo needs
-    (src/commons.py) while the original met it. The copy keeps its file name (an approved storyboard and the
+    (src/commons.py) while the original met it. The PNG copy keeps its file stem (an approved storyboard and the
     strong-photo list match by name and stem), sits in its own folder under cache/text_crop, and records its
     source (src/lineage.py), so its credit and rights evidence resolve to the original. `operation` names the cut
     in that record (EDGE_OBJECT_CROP for a foreign object along the edge, `why` saying what it is)."""
@@ -802,7 +810,7 @@ def crop_text_band(path: Path, edge: str, box: List[int], operation: str = "text
         # A text crop keeps the key it always had (copies made before stay valid); another cut is its own copy.
         key = hashlib.sha256((f"{sha256_file(path)}|{edge}|{k}" + ("" if operation == "text_crop" else f"|{operation}")
                               ).encode()).hexdigest()[:16]
-        out = TEXT_CROP_DIR / key / path.name
+        out = TEXT_CROP_DIR / key / path.with_suffix(".png").name
         if out.is_file():
             try:
                 if source_chain(out):
@@ -812,10 +820,7 @@ def crop_text_band(path: Path, edge: str, box: List[int], operation: str = "text
         out.parent.mkdir(parents=True, exist_ok=True)
         cropped = im.crop(area)
         extra = {k2: im.info[k2] for k2 in ("exif", "icc_profile") if im.info.get(k2)}  # same orientation, colours
-        if path.suffix.lower() in (".jpg", ".jpeg"):
-            cropped.convert("RGB").save(out, "JPEG", quality=95, **extra)
-        else:
-            cropped.save(out, **extra)
+        cropped.convert("RGB").save(out, "PNG", **extra)
     record_derived(out, [path], operation, settings)
     return out
 

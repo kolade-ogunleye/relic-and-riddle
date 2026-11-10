@@ -253,7 +253,7 @@ def _search_world(tmp_path, monkeypatch, commons_found):
     monkeypatch.setattr(beat_images.commons, "candidates", lambda results, kws, sa: iter(list(commons_found)))
 
     def fetch(url, dest, **k):
-        Image.new("RGB", (40, 40), (90, 80, 70)).save(dest, "JPEG")
+        Image.new("RGB", (40, 40), (90, 80, 70)).save(Path(dest).with_suffix(".jpg"), "JPEG")   # a JPEG source is kept (QF-13)
     monkeypatch.setattr(beat_images.commons, "download_jpeg", fetch)
     looked = []
 

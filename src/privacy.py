@@ -122,7 +122,7 @@ def _cache_path(path: Path) -> Path:
     verifier = GEMINI_MODEL if cloud_verify() else f"local+ambiguous:{GEMINI_MODEL}" if ambiguous_cloud() else "local"
     key = f"{path.resolve()}|{stat.st_size}|{stat.st_mtime_ns}|{ALGORITHM_VERSION}|{verifier}"
     digest = hashlib.sha1(key.encode()).hexdigest()[:16]
-    return CACHE_DIR / f"{path.stem}_{digest}.jpg"
+    return CACHE_DIR / f"{path.stem}_{digest}.png"
 
 
 # Face geometry for a proposed box (audit 2026-10-28, dev Roman photo 19): Gemini returned head-and-body boxes
@@ -703,7 +703,7 @@ def blur_human_faces(
         return image_path
 
     # Check cache if output_path not explicitly specified
-    cache_file = _cache_path(image_path) if output_path is None else Path(output_path)
+    cache_file = _cache_path(image_path) if output_path is None else Path(output_path).with_suffix(".png")
     if cache_file.exists():
         return cache_file
 
@@ -726,10 +726,11 @@ def blur_human_faces(
     if not status["complete"] and output_path is None:
         # A detector failed (a Gemini timeout): this copy serves this run only, and the photo is looked at
         # again next time. Cached, a timeout's detector-only answer was reused for good (audit 2026-10-28).
-        cache_file = cache_file.with_name(f"{cache_file.stem}_partial.jpg")  # never read back as a cache
+        cache_file = cache_file.with_name(f"{cache_file.stem}_partial.png")  # never read back as a cache
         log.info("Face privacy for %s ran without every detector; its copy is not cached.", image_path.name)
     cache_file.parent.mkdir(parents=True, exist_ok=True)
-    cv2.imwrite(str(cache_file), blurred, [cv2.IMWRITE_JPEG_QUALITY, 95])
+    if not cv2.imwrite(str(cache_file), blurred):
+        raise OSError("Could not save the lossless privacy derivative")
     return cache_file
 
 

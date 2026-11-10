@@ -129,7 +129,7 @@ def choose_region(size: tuple[int, int], aspect: float, used: Sequence[Box], gra
 def detail_crop(photo: Path, out_dir: Path, used: Sequence[Box], aspect: float,
                 min_width: int = 0) -> tuple[Path, Box] | None:
     """A punch-in of `photo` on a region not already shown (choose_region), saved under out_dir/DETAIL_DIR/<n>/
-    with the photo's own name (its credit record is found by name, as a text-band crop's is) and a lineage record
+    with the photo's stem and a PNG extension, and a checked lineage record
     back to it (operation DETAIL_OPERATION). (path, box), or None when no region qualifies or the photo can't be read."""
     from PIL import Image, ImageOps
 
@@ -151,12 +151,12 @@ def detail_crop(photo: Path, out_dir: Path, used: Sequence[Box], aspect: float,
         return None
     px = (round(box[0] * im.size[0]), round(box[1] * im.size[1]), round(box[2] * im.size[0]), round(box[3] * im.size[1]))
     n = 1
-    while (Path(out_dir) / DETAIL_DIR / str(n) / Path(photo).name).exists():
+    while (Path(out_dir) / DETAIL_DIR / str(n) / Path(photo).with_suffix(".png").name).exists():
         n += 1
-    out = Path(out_dir) / DETAIL_DIR / str(n) / Path(photo).name
+    out = Path(out_dir) / DETAIL_DIR / str(n) / Path(photo).with_suffix(".png").name
     try:
         out.parent.mkdir(parents=True, exist_ok=True)
-        im.crop(px).save(out, "JPEG", quality=95)
+        im.crop(px).save(out, "PNG")
         record_derived(out, [photo], DETAIL_OPERATION, {"box": [round(x, 4) for x in box]})
     except (OSError, ValueError) as e:
         log.debug("Detail crop of %s not saved (%s).", Path(photo).name, e)
@@ -233,12 +233,12 @@ def _save_crop(photo: Path, im, box: Box, out_dir: Path, settings: dict[str, Any
     from .lineage import record_derived
     px = (round(box[0] * im.size[0]), round(box[1] * im.size[1]), round(box[2] * im.size[0]), round(box[3] * im.size[1]))
     n = 1
-    while (Path(out_dir) / DETAIL_DIR / str(n) / Path(photo).name).exists():
+    while (Path(out_dir) / DETAIL_DIR / str(n) / Path(photo).with_suffix(".png").name).exists():
         n += 1
-    out = Path(out_dir) / DETAIL_DIR / str(n) / Path(photo).name
+    out = Path(out_dir) / DETAIL_DIR / str(n) / Path(photo).with_suffix(".png").name
     try:
         out.parent.mkdir(parents=True, exist_ok=True)
-        im.crop(px).save(out, "JPEG", quality=95)
+        im.crop(px).save(out, "PNG")
         record_derived(out, [photo], DETAIL_OPERATION, {"box": [round(x, 4) for x in box], **settings})
     except (OSError, ValueError) as e:
         log.debug("Crop of %s not saved (%s).", Path(photo).name, e)

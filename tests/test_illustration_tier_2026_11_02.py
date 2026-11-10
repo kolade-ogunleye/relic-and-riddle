@@ -454,7 +454,7 @@ def test_the_best_passing_candidate_is_kept_and_a_line_change_invalidates_the_ca
     spec, _ = image_gen.spec_from_facts(GEARS, {}, SHEET)
     art, info = image_gen.illustrate_beat(GEARS, spec, tmp_path)
     assert art is not None and info["calls"] == 4 and len(info["rejected"]) == 1
-    best = tmp_path / image_gen.CANDIDATE_DIR / f"{info['key']}_2_final.jpg"
+    best = tmp_path / image_gen.CANDIDATE_DIR / f"{info['key']}_2_final.png"
     assert art.read_bytes() == best.read_bytes()
     rec = json.loads(lineage.sidecar(art).read_text(encoding="utf-8"))["settings"]["inputs"]
     assert rec["line"] == GEARS and rec["descriptors"] == spec["required"] and rec["origin"] == "ai_illustration"

@@ -53,6 +53,7 @@ QF-45 after it.
 | QF-08 | Voice PCM + seed | done | 2325cc7 | Azure/Pro voice: 2 MP3 generations and 44.1->48k resample -> 48k PCM WAV with byte-keyed rights; ElevenLabs seed1/stability0.65; Creator192k fallback preserves high band, Free/Starter128k; punctuation cues4->0; provider mocks only | QF-08/ | tests/test_qf08_voice_pcm_seed.py |
 | QF-09 | Pillow 13 + lockfile | done | 303b1d7 | Pillow12.3->13; advisories39->0; hashed lock83packages/479hashes checked in CI; global pixel-limit changes12->0;120MiB response retained->50MiB+64KiB refused;2652 covering passes with raqm | QF-09/ | tests/test_qf09_image_limits.py tests/test_qf09_lockfile.py |
 | QF-93 | Pin ONNX DirectML to the dedicated GPU (operator-approved extra) | done | e10a070 | implicitDMLadapter0->sharedDXGIauto discreteadapter1; integrated-first mocks select1, numericindicesexact, softwareexcluded, CPU/integratedwarn; generatedMatMul diagnostics0:78.422ms/1:7.718ms/2:16.994ms (machine-specific) | QF-93/ | tests/test_qf93_directml_device.py |
+| QF-96 | Tests leave the root logger as they found it (operator-approved test-setup fix) | done | this commit | integrity log test after test_script_library / test_regenerate_reason: failed -> passed; no expected value changed | QF-96/ | tests/test_qf96_root_logging.py |
 
 ### Phase 1b - photos
 

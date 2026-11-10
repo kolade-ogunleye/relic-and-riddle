@@ -44,6 +44,26 @@ def no_claude(monkeypatch):
 
 
 @pytest.fixture(autouse=True)
+def root_logging_restored():
+    """Each test leaves the root logger as it found it (its handlers, level and the _pipeline_configured flag; the
+    levels setup_logging sets on noisy library loggers are not restored and need not be). ops.setup_logging() (run by main.main) adds a
+    StreamHandler bound to the sys.stderr of the moment, which under pytest is the test's capture; once pytest
+    closes it, a later test on the same worker that logs or flushes root handlers raised "I/O operation on closed
+    file" (test_integrity_gates, after test_script_library or test_regenerate_reason; QF-96, 2026-11-10)."""
+    import logging
+    root = logging.getLogger()
+    handlers, level = list(root.handlers), root.level
+    configured = getattr(root, "_pipeline_configured", None)
+    yield
+    for handler in [h for h in root.handlers if h not in handlers]:
+        root.removeHandler(handler)
+        handler.close()
+    root.setLevel(level)
+    # False, not deleted: setup_logging reads it with a False default, and a test's monkeypatch may still undo it.
+    root._pipeline_configured = bool(configured)
+
+
+@pytest.fixture(autouse=True)
 def no_real_services(monkeypatch):
     """
     Tests must never reach a real service. Credentials read from the developer's .env are

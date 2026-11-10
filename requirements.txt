@@ -6,6 +6,8 @@ edge-tts==7.3.1  # test runs only (no commercial licence); 7.2.8 is now refused 
 azure-cognitiveservices-speech==1.51.2
 numpy==2.4.6
 pillow==13.0.0
+fonttools==4.67.0  # OpenType tables, coverage and font instancing
+uharfbuzz==0.57.0  # one glyph run for tracked text measurement and drawing
 requests==2.34.2
 msal==1.39.0  # personal OneDrive device sign-in and silent token refresh
 cryptography==50.0.2  # encrypted backup archives and token cache

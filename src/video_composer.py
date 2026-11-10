@@ -285,16 +285,10 @@ def _font_vmetrics(name: str, weight: int | None = None) -> tuple[int, int, int]
     """(unitsPerEm, usWinAscent, usWinDescent) of a bundled font, read from its head and OS/2 tables. libass sizes
     a font so that its Windows ascent plus descent equal the ASS Fontsize (Anton: Fontsize 128 is a 73.8 px em,
     which is why FONT_SIZE_ASS 128 rendered the 72 px caption and 142 renders the 80 px one)."""
-    import struct
+    from .font_engine import inspect_font
     from .typography import font_file
-    data = (FONTS_DIR / font_file(name, weight)).read_bytes()
-    tables = {}
-    for i in range(struct.unpack(">H", data[4:6])[0]):
-        tag, _, offset, _ = struct.unpack(">4sIII", data[12 + 16 * i:28 + 16 * i])
-        tables[tag] = offset
-    upm = struct.unpack(">H", data[tables[b"head"] + 18:tables[b"head"] + 20])[0]
-    win_ascent, win_descent = struct.unpack(">HH", data[tables[b"OS/2"] + 74:tables[b"OS/2"] + 78])
-    return upm, win_ascent, win_descent
+
+    return inspect_font(str(FONTS_DIR / font_file(name, weight))).metrics
 
 
 @lru_cache(maxsize=32)
@@ -304,28 +298,15 @@ def _libass_face(path: Path) -> tuple[frozenset[str], int] | None:
     0. libass reads only face 0 of a file and sets no variation axes, so a variable font is its default instance:
     Montserrat-Variable.ttf is "Montserrat Thin" at weight 100, and "Montserrat" is not one of its names (round 3:
     the 16:9 captions drew in the system fallback, Inter). None for a file that is not a font."""
-    import struct
+    from fontTools.ttLib import TTLibError
+
+    from .font_engine import inspect_font
+
     try:
-        data = path.read_bytes()
-        tables = {}
-        for i in range(struct.unpack(">H", data[4:6])[0]):
-            tag, _, offset, _ = struct.unpack(">4sIII", data[12 + 16 * i:28 + 16 * i])
-            tables[tag] = offset
-        name_at, os2_at = tables[b"name"], tables[b"OS/2"]
-    except (OSError, struct.error, KeyError):
+        info = inspect_font(str(path))
+    except (OSError, TTLibError, KeyError):
         return None
-    count, strings = struct.unpack(">HH", data[name_at + 2:name_at + 6])
-    names: set[str] = set()
-    for r in range(count):
-        platform, _, _, name_id, length, offset = struct.unpack(
-            ">HHHHHH", data[name_at + 6 + 12 * r:name_at + 18 + 12 * r])
-        if name_id not in (1, 4, 6):
-            continue
-        raw = data[name_at + strings + offset:name_at + strings + offset + length]
-        text = raw.decode("utf-16-be", "replace") if platform in (0, 3) else raw.decode("latin-1")
-        names.add(text.strip().lower())
-    weight = struct.unpack(">H", data[os2_at + 4:os2_at + 6])[0]
-    return frozenset(names), weight
+    return info.names, info.weight
 
 
 def libass_font_problems(fonts_dir: Path, requests: list[tuple[str, int]]) -> list[str]:
@@ -1247,17 +1228,14 @@ _LIBASS_REF_PX = 1000   # the em the drawn measure reads glyph metrics at, scale
 
 
 def unkerned_length(font: Any, text: str) -> float:
-    """The advance of `text` as libass draws the captions: the sum of its single letters' advances (operator decision
-    2026-11-05, "measure without kerning"). The ASS header sets no "Kerning: yes", so libass draws the captions
-    unkerned, while Pillow's raqm layout applies the font's GPOS kerning: WAVY VAULT 7,000 measured 545 px kerned
-    against the 552 px libass draws. Every caption width measure sums the letters instead (a space is a letter)."""
-    return sum(_glyph_advance(font, ch) for ch in text)
-
-
-@lru_cache(maxsize=4096)
-def _glyph_advance(font: Any, ch: str) -> float:
-    """One letter's advance in `font` (cached per font and letter: the fit loops measure the same letters often)."""
-    return font.getlength(ch)
+    """The advance of `text` as libass draws the captions (operator decision 2026-11-05, "measure without
+    kerning"): the ASS header sets no "Kerning: yes", so libass shapes the captions unkerned, while Pillow's raqm
+    layout applies the font's GPOS kerning (WAVY VAULT 7,000 measured 545 px kerned against the 552 px libass
+    draws). QF-21: the whole run is shaped once with the features libass draws it with (font_engine.LIBASS_FEATURES:
+    no kern, no optional ligatures, no case forms) instead of summing single letters, so a combining mark stays on
+    its letter."""
+    from .font_engine import LIBASS_FEATURES, shape
+    return shape(text, font, features=LIBASS_FEATURES).advance
 
 
 def _reel_ass_size(size: float) -> float:
@@ -1268,8 +1246,9 @@ def _reel_ass_size(size: float) -> float:
 @lru_cache(maxsize=512)
 def _glyph_box(ch: str) -> tuple[int, int, int, int] | None:
     """The ink box of one caption glyph at _LIBASS_REF_PX (cached: rendering it is the measure's slow part)."""
+    from .font_engine import LIBASS_FEATURES
     from .typography import get_font
-    return get_font(FONT_NAME, _LIBASS_REF_PX).getmask(ch).getbbox()
+    return get_font(FONT_NAME, _LIBASS_REF_PX).getmask(ch, features=list(LIBASS_FEATURES)).getbbox()
 
 
 @lru_cache(maxsize=8192)
@@ -1277,8 +1256,8 @@ def _libass_line(words: tuple[str, ...], size: float, sc_scale: int = CAPTION_SC
     """(advance, ink left, ink right) in px of a 9:16 caption line as libass draws it (freeze pass C5, 2026-11-04):
     the em of its ASS size, each run's small-capital fscx (format_word_caption), the CapText Spacing after every
     glyph at that run's fscx, each space at the fscx of the word before it (the tags carry over), and the first and
-    last glyphs' side bearings. Unhinted: glyph metrics at a large em, scaled linearly. Each run's advance is the sum
-    of its single letters' (unkerned_length: libass draws the captions unkerned; operator decision 2026-11-05).
+    last glyphs' side bearings. Unhinted: glyph metrics at a large em, scaled linearly. Each run's advance is shaped
+    unkerned (unkerned_length: libass draws the captions unkerned; operator decision 2026-11-05).
     Measured against libass renders within 2 px (tests/test_freeze_captions_2026_11_04.py)."""
     from .typography import get_font
     upm, asc, desc = _font_vmetrics(FONT_NAME)
@@ -3995,7 +3974,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             scale = height / 1080 if is_widescreen else 1
             pad_x, pad_y = round(14 * scale), round(8 * scale)
             b_top, b_bottom = _ink_band(RECON_FONT, badge_px, badge_fs, 600)
-            tw = get_font(RECON_FONT, badge_px, weight=600).getlength(label) + 1.5 * len(label)
+            tw = unkerned_length(get_font(RECON_FONT, badge_px, weight=600), label) + 1.5 * len(label)
             x0, y0 = (round(0.05 * width), round(0.05 * height)) if is_widescreen else (84, 300)
             text_pos = (x0 + pad_x, round(y0 + pad_y - b_top))
             badge_text = f"{{\\an7\\pos({text_pos[0]},{text_pos[1]})}}{label}"

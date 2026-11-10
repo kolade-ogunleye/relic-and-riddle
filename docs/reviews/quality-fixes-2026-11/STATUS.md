@@ -118,14 +118,14 @@ QF-45 after it.
 | QF-73 | Topic bank: hooks, sensitivity, proposals, regions, lint | todo | | hook_problems empty; no region > 40%; lint fails without sources | QF-73/ | |
 | QF-78 | Voice default from voices.json, listening record | todo | | health --live fails when the id is not in voices.json | QF-78/ | |
 | QF-79 | Classify and archive scripts; eval harness base | todo | | scripts/README.md lists every script with its class | QF-79/ | |
-| QF-98 | Free-writer overload handling (WRITER-TIMEOUT diagnosis, 2026-11-10) | done | this commit | 503 x4 replay: free x4 + 214 s -> free x2 + 120 s to the capped billed key; 503-then-timeout: reason "(2 attempts)" -> "(2 attempts): 1 busy (HTTP 503), 1 timed out"; attempts logged 0 -> 3 of 3; 300 s timeout kept (180 s would cut 3 good single answers, a 212 s draft among them) | QF-98/ | tests/test_qf98_free_writer_overload.py |
+| QF-98 | Free-writer overload handling (WRITER-TIMEOUT diagnosis, 2026-11-10) | done | 5f3cc4a | 503 x4 replay: free x4 + 214 s -> free x2 + 120 s to the capped billed key; 503-then-timeout: reason "(2 attempts)" -> "(2 attempts): 1 busy (HTTP 503), 1 timed out"; attempts logged 0 -> 3 of 3; 300 s timeout kept (180 s would cut 3 good single answers, a 212 s draft among them) | QF-98/ | tests/test_qf98_free_writer_overload.py |
 
 ### Phase 4 - geometry and type on real libraries
 
 | ID | Finding | Status | Commit | Acceptance metric before -> after | Evidence path | Regression test |
 |---|---|---|---|---|---|---|
 | QF-20 | Shapely + pyproj under the maps | todo | | 200-site sweep; 30-new-place review >= 9 on every design | QF-20/ | |
-| QF-21 | fontTools + uharfbuzz + OpenType features | todo | | kerning-pair, per-font feature and caption width parity tests | QF-21/ | |
+| QF-21 | fontTools + uharfbuzz + OpenType features | done | this commit | real tracked copy drawn as the kerned run 225 -> 394 of 394 lines (147 drawn up to 10 px wider than measured -> 0); capitals take case forms by default (Anton, Montserrat no -> yes); true smcp/tnum on request; caption ASS output of the 5 fixture runs in both formats byte-identical to the base (libass draws no fi/fl ligature: measure without kern or ligatures), a decomposed accent 87.25 -> 0 px over the composed spelling; fontTools replaces the hand table parser | QF-21/ | tests/test_qf21_opentype.py |
 | QF-22 | One shared kenburns() | todo | | edge-position trace monotone, no integer steps | QF-22/ | |
 | QF-23 | Checked copy never truncated | todo | | fit_text raises instead of an ellipsis | QF-23/ | |
 | QF-24 | 9:16 figures use the full frame | todo | | optical weight height; text out of platform bands | QF-24/ | |

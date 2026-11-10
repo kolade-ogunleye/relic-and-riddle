@@ -93,6 +93,7 @@ from .typography import (
     drawable,
     get_font,
     plan_text,
+    tracked_width,
 )
 from .video_composer import TRANS_DUR
 
@@ -373,7 +374,8 @@ def _width(text: str, font: Any) -> int:
 
 
 def _tracked_width(text: str, font: Any, track: float) -> float:
-    return font.getlength(text) + track * max(0, len(text) - 1)
+    """The width plan_text draws `text` at with `track` px tracking (typography.tracked_width: one shaped run)."""
+    return tracked_width(text, font, track)
 
 
 WEAK_LINE_END = frozenset((

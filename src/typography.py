@@ -14,6 +14,7 @@ from typing import Any, Dict, List, Optional, Tuple
 from PIL import Image, ImageDraw, ImageFont, ImageOps
 
 from .config import FONTS_DIR
+from .font_engine import FeaturedFont, draw_run, inspect_font, resolve_features, shape
 
 FONT_FILES = {"Anton": "Anton-Regular.ttf", "Montserrat": "Montserrat-Variable.ttf", "Cinzel": "Cinzel-Variable.ttf",
               "IBM Plex Mono": "IBMPlexMono-SemiBold.ttf"}
@@ -47,10 +48,19 @@ def get_font(name: str, size: int, fonts_dir: Path = FONTS_DIR, weight: Optional
     path = fonts_dir / font_file(name, weight)
     if not path.exists():
         raise FileNotFoundError(f"Required font missing: {path}")
-    font = ImageFont.truetype(str(path), size)
+    font = FeaturedFont(str(path), size)   # default OpenType features on every measure and mask (font_engine)
     if name in VARIABLE_WEIGHTS:
         # Variable fonts default to their lightest instance; pin a legible weight.
-        font.set_variation_by_axes([weight or VARIABLE_WEIGHTS[name]])
+        axes = inspect_font(str(path)).axes
+        chosen = {"wght": weight or VARIABLE_WEIGHTS[name]}
+        values = []
+        for tag, minimum, default, maximum in axes:
+            value = chosen.get(tag, default)
+            if not minimum <= value <= maximum:
+                raise ValueError(f"Font axis {tag} value {value} is outside {minimum}..{maximum}")
+            values.append(value)
+        font.set_variation_by_axes(values)
+        font._rr_variations = tuple((axis[0], value) for axis, value in zip(axes, values))
     return font
 
 
@@ -62,18 +72,9 @@ def get_font(name: str, size: int, fonts_dir: Path = FONTS_DIR, weight: Optional
 ART_EMOJI = _re_mod.compile("[\U0001F000-\U0001FAFF\u2600-\u27BF\u2B00-\u2BFF\u200D\uFE0E\uFE0F\u20E3]")
 
 
-@lru_cache(maxsize=16)
-def _notdef(path: str) -> Tuple[Tuple[int, int], bytes]:
-    font = ImageFont.truetype(path, 40)
-    mask = font.getmask("\U0010FFFD")                    # a private-use code point no bundled font maps
-    return mask.size, bytes(mask)
-
-
 @lru_cache(maxsize=4096)
 def _has_glyph(path: str, ch: str) -> bool:
-    font = ImageFont.truetype(path, 40)
-    mask = font.getmask(ch)
-    return (mask.size, bytes(mask)) != _notdef(path)
+    return ord(ch) in inspect_font(path).coverage
 
 
 def drawable(text: str, font) -> str:
@@ -500,26 +501,15 @@ def ring_contrast(rgb, mask, origin=(0, 0), fill=None, light: bool = True) -> Op
 
 
 def _draw_tracked(d: ImageDraw.ImageDraw, xy, text: str, font, fill, anchor: str = "la", track: float = 0,
-                  stroke: int = 0, stroke_fill=None) -> Tuple[int, int, int, int]:
-    """d.text with letter spacing `track` (px between letters); returns the drawn box (stroke included)."""
-    kw = {"stroke_width": stroke, "stroke_fill": stroke_fill} if stroke else {}
-    if not track:
-        d.text(xy, text, font=font, fill=fill, anchor=anchor, **kw)
-        return tuple(int(round(v)) for v in d.textbbox(xy, text, font=font, anchor=anchor, stroke_width=stroke))
-    widths = [d.textlength(c, font=font) for c in text]
-    total = sum(widths) + track * (len(text) - 1)
-    x0 = xy[0] - (total / 2 if anchor[0] == "m" else total if anchor[0] == "r" else 0)
-    x, v = x0, anchor[1]
-    for c, cw in zip(text, widths):
-        d.text((x, xy[1]), c, font=font, fill=fill, anchor="l" + v, **kw)
-        x += cw + track
-    b = d.textbbox((x0, xy[1]), text, font=font, anchor="l" + v, stroke_width=stroke)
-    return int(round(x0)) - stroke, int(b[1]), int(round(x0 + total)) + stroke, int(b[3])
+                  stroke: int = 0, stroke_fill=None, features=None) -> Tuple[int, int, int, int]:
+    """d.text with letter spacing `track` (px between letters, kerning kept: one shaped run, font_engine.draw_run)
+    and OpenType `features` (None: font_engine.default_features); returns the drawn box (stroke included)."""
+    return draw_run(d, xy, text, font, fill, anchor, track, stroke, stroke_fill, features)
 
 
-def tracked_width(text: str, font, track: float = 0) -> float:
-    d = ImageDraw.Draw(Image.new("L", (8, 8)))
-    return d.textlength(text, font=font) + track * max(0, len(text) - 1)
+def tracked_width(text: str, font, track: float = 0, features=None) -> float:
+    """The advance _draw_tracked draws `text` at: the shaped run, kerned, plus `track` between its letters."""
+    return shape(text, font, track, features).advance
 
 
 def cap_height(font) -> int:
@@ -544,19 +534,20 @@ class TextPlate:
     original crop (halo_px + 16) and truncation, byte for byte."""
 
     def __init__(self, text, font, fill, xy, anchor, track, stroke, stroke_fill, halo_px, shadow, size,
-                 halo_pad=None):
+                 halo_pad=None, features=None):
         import numpy as np
         self.text, self.font, self.fill, self.xy, self.anchor = text, font, tuple(fill[:3]), xy, anchor
+        self.features = resolve_features(text, features)   # the run's features, resolved once for every pass
         self.track, self.stroke, self.stroke_fill, self.shadow = track, stroke, stroke_fill, shadow
         self.light = rel_luminance(self.fill) > 0.3
         self.halo, self.contrast, self.contrast_unaided, self.halo_mask = 0.0, None, None, None
         self._halo_q = round if halo_pad is not None else int    # how the halo's alpha is quantised
         m = Image.new("L", size, 0)
-        _draw_tracked(ImageDraw.Draw(m), xy, text, font, 255, anchor, track)
+        _draw_tracked(ImageDraw.Draw(m), xy, text, font, 255, anchor, track, features=self.features)
         full = m
         if stroke:
             full = Image.new("L", size, 0)
-            _draw_tracked(ImageDraw.Draw(full), xy, text, font, 255, anchor, track, stroke, 255)
+            _draw_tracked(ImageDraw.Draw(full), xy, text, font, 255, anchor, track, stroke, 255, self.features)
         bb = full.getbbox()
         self.empty = bb is None
         if self.empty:
@@ -595,14 +586,14 @@ class TextPlate:
                 shadow_col = (255, 255, 255, int(140 * alpha))
                 s_dy, s_blur = 1, 2
             _draw_tracked(ImageDraw.Draw(sl), (loc[0], loc[1] + s_dy), self.text, self.font, shadow_col,
-                          self.anchor, self.track, self.stroke, shadow_col)
+                          self.anchor, self.track, self.stroke, shadow_col, self.features)
             out = Image.alpha_composite(out, sl.filter(ImageFilter.GaussianBlur(s_blur)))
         txt = Image.new("RGBA", base.size, (0, 0, 0, 0))
         sf = self.stroke_fill
         if sf is not None and len(sf) == 3:
             sf = tuple(sf) + (255,)
         _draw_tracked(ImageDraw.Draw(txt), loc, self.text, self.font, self.fill + (255,), self.anchor, self.track,
-                      self.stroke, sf)
+                      self.stroke, sf, self.features)
         if alpha < 1.0:
             txt.putalpha(txt.getchannel("A").point(lambda v: int(v * alpha)))
         return Image.alpha_composite(out, txt)
@@ -668,7 +659,8 @@ class TextPlate:
 
 def plan_text(im: Image.Image, xy, text: str, font, fill, anchor: str = "la", track: float = 0, stroke: int = 0,
               stroke_fill=None, target: Optional[float] = None, halo_px: Optional[int] = None, min_halo: float = 0.0,
-              shadow: bool = False, max_halo: float = 0.95, halo_pad: Optional[int] = None) -> TextPlate:
+              shadow: bool = False, max_halo: float = 0.95, halo_pad: Optional[int] = None,
+              features=None) -> TextPlate:
     """A TextPlate for `text` at `xy` on `im`, its halo solved for `target` (brand.PLACE_TARGET by default).
     `halo_px`: the halo's spread (default: a third of the font size, 21-31 px: under 21 the halo does not reach the
     outer edge of the 10 px ring it is measured on, and a thin face on a bright photo stayed under 3:1).
@@ -677,17 +669,19 @@ def plan_text(im: Image.Image, xy, text: str, font, fill, anchor: str = "la", tr
     text = drawable(text, font)
     halo_px = halo_px if halo_px is not None else int(min(31, max(21, font.size // 3)))
     plate = TextPlate(text, font, fill, xy, anchor, track, stroke, stroke_fill if stroke_fill is not None else INK,
-                      halo_px, shadow, im.size, halo_pad=halo_pad)
+                      halo_px, shadow, im.size, halo_pad=halo_pad, features=features)
     return plate.solve(im, PLACE_TARGET if target is None else target, min_halo, max_halo)
 
 
 def place_text(im: Image.Image, xy, text: str, font, fill, anchor: str = "la", track: float = 0, stroke: int = 0,
                stroke_fill=None, target: Optional[float] = None, halo_px: Optional[int] = None, min_halo: float = 0.0,
-               shadow: bool = False, layout=None, name: str = "", zone=None, record: bool = True):
+               shadow: bool = False, layout=None, name: str = "", zone=None, record: bool = True,
+               features=None):
     """Draws one text element at a measured contrast (see above): returns (image, plate). With `layout` (a
     still_layout.Layout) the element's box is recorded under `name` with its measured ratio, so the still's
     record says how legible each line is, not only where it is."""
-    plate = plan_text(im, xy, text, font, fill, anchor, track, stroke, stroke_fill, target, halo_px, min_halo, shadow)
+    plate = plan_text(im, xy, text, font, fill, anchor, track, stroke, stroke_fill, target, halo_px, min_halo, shadow,
+                       features=features)
     out = plate.draw(im)
     if layout is not None and record and not plate.empty:
         layout.add(name, plate.box, zone)

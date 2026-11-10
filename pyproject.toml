@@ -13,6 +13,8 @@ dependencies = [
     "azure-cognitiveservices-speech==1.51.2",
     "numpy==2.4.6",
     "pillow==13.0.0",
+    "fonttools==4.67.0",
+    "uharfbuzz==0.57.0",
     "requests==2.34.2",
     "msal==1.39.0",
     "cryptography==50.0.2",

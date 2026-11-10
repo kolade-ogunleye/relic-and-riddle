@@ -34,7 +34,7 @@ from PIL import Image, ImageDraw, ImageFilter
 
 from . import brand
 from .safe_zones import REEL
-from .typography import get_font
+from .typography import get_font, tracked_width
 
 VARIANT = "plain_v4"     # capsule_v3 until 2026-10-29
 SECONDS = 2.9            # the card's length after the narration
@@ -158,18 +158,9 @@ def ease_io(t: float) -> float:
 
 
 def _tracked_width(font, text: str, spacing: float) -> float:
-    probe = ImageDraw.Draw(Image.new("RGB", (8, 8)))
-    return sum(probe.textlength(c, font=font) for c in text) + spacing * (len(text) - 1)
-
-
-def _tracked(d: ImageDraw.ImageDraw, cx: float, y: float, text: str, font, fill, spacing: float) -> float:
-    widths = [d.textlength(c, font=font) for c in text]
-    total = sum(widths) + spacing * (len(text) - 1)
-    x = cx - total / 2
-    for c, w in zip(text, widths):
-        d.text((x, y), c, font=font, fill=fill)
-        x += w + spacing
-    return total
+    """The width plan_text draws `text` at with `spacing` px tracking: the shaped, kerned run (QF-21; the sum of
+    single letters it was dropped the kerning the plate is drawn with)."""
+    return tracked_width(text, font, spacing)
 
 
 def _balanced(words: List[str], font, width: float, max_lines: int) -> Optional[List[List[str]]]:
@@ -199,7 +190,6 @@ def _masthead(max_w: int) -> dict[str, Any]:
     """The cover's masthead (src/cover_design.py _brand: the gold diamond, then RELIC & RIDDLE in tracked Cinzel
     Bold bone), scaled up from the cover's 64 px to the largest size whose group fits MASTHEAD_W and `max_w`."""
     from .cover_design import BRAND_PX, BRAND_TEXT, BRAND_TRACK, MARK_GAP, MARK_R
-    probe = ImageDraw.Draw(Image.new("RGB", (8, 8)))
     goal = min(MASTHEAD_W, max_w)
     best = None
     for size in range(BRAND_PX, 140):
@@ -207,7 +197,7 @@ def _masthead(max_w: int) -> dict[str, Any]:
         font = get_font("Cinzel", size, weight=700)
         track = BRAND_TRACK * k
         r, gap = round(MARK_R * k), round(MARK_GAP * k)
-        name_w = probe.textlength(BRAND_TEXT, font=font) + track * (len(BRAND_TEXT) - 1)
+        name_w = tracked_width(BRAND_TEXT, font, track)
         group = 2 * r + gap + name_w
         if group > goal and best is not None:
             break

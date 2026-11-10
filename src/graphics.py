@@ -4860,19 +4860,9 @@ _INK_BOXES: "weakref.WeakKeyDictionary[Any, dict[tuple, tuple[int, int, int, int
 _TRACK_PROBE = ImageDraw.Draw(Image.new("L", (8, 8)))   # typography.tracked_width's own probe, made once
 
 
-_LENGTHS: "weakref.WeakKeyDictionary[Any, dict[str, float]]" = weakref.WeakKeyDictionary()
-
-
 def _tracked_w(text: str, font, track: float) -> float:
-    """typography.tracked_width without a new probe image per call, each font's advances memoised (a 16:9 layout
-    wraps the same labels at the same sizes for every measure it tries)."""
-    lengths = _LENGTHS.setdefault(font, {})
-    w = lengths.get(text)
-    if w is None:
-        if len(lengths) > 50_000:
-            lengths.clear()
-        w = lengths[text] = _TRACK_PROBE.textlength(text, font=font)
-    return w + track * max(0, len(text) - 1)
+    """Use the same cached OpenType run as the eventual text plate."""
+    return tracked_width(text, font, track)
 
 
 def tracked_wrap(text: str, font, width: float, track: float, lines: int | None = None,
@@ -5690,7 +5680,8 @@ def _focused(im: Image.Image, bright: list[Any], dim: list[Any], a: float, back:
 def _twin(ground: Image.Image, plate: Any, fill) -> Any:
     """A plate's stepped-back twin: the same words, font and place in `fill` (an earlier event while a later one is
     current), planned on the same ground so its contrast is measured too."""
-    return plan_text(ground, plate.xy, plate.text, plate.font, fill, plate.anchor, track=plate.track)
+    return plan_text(ground, plate.xy, plate.text, plate.font, fill, plate.anchor, track=plate.track,
+                     features=plate.features)
 
 
 def year_parts(year: int, approximate: bool) -> tuple[str, str]:

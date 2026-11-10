@@ -53,6 +53,7 @@ from .typography import (
     get_font,
     is_video,
     plan_text,
+    tracked_width,
 )
 
 log = logging.getLogger(__name__)
@@ -608,12 +609,11 @@ def _fillet(path: list[tuple[float, float]], r: float, n: int = FILLET_PTS) -> l
 
 
 def _tracked(measure: ImageDraw.ImageDraw, text: str, font: Any, track: float) -> float:
-    """The width _draw_tracked draws `text` at: its letters plus `track` between them (none after the last)."""
+    """The width _draw_tracked draws `text` at: the shaped, kerned run plus `track` between its letters
+    (typography.tracked_width; summing single letters dropped the kerning the plate is drawn with, QF-21)."""
     if not text:
         return 0.0
-    if not track:
-        return float(measure.textlength(text, font=font))
-    return sum(measure.textlength(c, font=font) for c in text) + track * (len(text) - 1)
+    return float(tracked_width(text, font, track))
 
 
 class _Shape:

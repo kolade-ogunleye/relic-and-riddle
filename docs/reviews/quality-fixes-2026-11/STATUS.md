@@ -97,7 +97,7 @@ QF-45 after it.
 
 | ID | Finding | Status | Commit | Acceptance metric before -> after | Evidence path | Regression test |
 |---|---|---|---|---|---|---|
-| QF-14 | Hook enforcement | done | this commit | hook cap 14 advisory -> 12 blocking; no signal in the first 8 words: one opening edit, then ships flagged on the review card (operator ruling 2026-11-10); 52 real scripts blocked/flagged/clean 0/29 (advisory, no flag)/23 -> 38/3/11, 0 false rejects (in-sample); held-out strong openings blocked 0 -> 0 (reviewer) and 1 (builder, 13 words), shipping flagged 12 and 10; library scripts used as is with a hook fault 4 -> 0; heavy calls per run when the edit works: dev 2.0 -> 2.0, production sample 2.69 -> 2.35; dev run: free model timed out, inconclusive | QF-14/ | tests/test_qf14_hook_enforcement.py |
+| QF-14 | Hook enforcement | done | 2197350 | hook cap 14 advisory -> 12 blocking; no signal in the first 8 words: one opening edit, then ships flagged on the review card (operator ruling 2026-11-10); 52 real scripts blocked/flagged/clean 0/29 (advisory, no flag)/23 -> 38/3/11, 0 false rejects (in-sample); held-out strong openings blocked 0 -> 0 (reviewer) and 1 (builder, 13 words), shipping flagged 12 and 10; library scripts used as is with a hook fault 4 -> 0; heavy calls per run when the edit works: dev 2.0 -> 2.0, production sample 2.69 -> 2.35; dev run: free model timed out, inconclusive | QF-14/ | tests/test_qf14_hook_enforcement.py |
 | QF-15 | Beat restructure | todo | | payoff_sentence shares a noun with the hook; beat 4 removed | QF-15/ | |
 | QF-16 | Hedge rule | todo | | hedges only on numbers/dates, never in hook/close | QF-16/ | |
 | QF-17 | Narration on a stronger model + evals harness | todo | | evals baseline vs after | QF-17/ | |
@@ -118,6 +118,7 @@ QF-45 after it.
 | QF-73 | Topic bank: hooks, sensitivity, proposals, regions, lint | todo | | hook_problems empty; no region > 40%; lint fails without sources | QF-73/ | |
 | QF-78 | Voice default from voices.json, listening record | todo | | health --live fails when the id is not in voices.json | QF-78/ | |
 | QF-79 | Classify and archive scripts; eval harness base | todo | | scripts/README.md lists every script with its class | QF-79/ | |
+| QF-98 | Free-writer overload handling (WRITER-TIMEOUT diagnosis, 2026-11-10) | done | this commit | 503 x4 replay: free x4 + 214 s -> free x2 + 120 s to the capped billed key; 503-then-timeout: reason "(2 attempts)" -> "(2 attempts): 1 busy (HTTP 503), 1 timed out"; attempts logged 0 -> 3 of 3; 300 s timeout kept (180 s would cut 3 good single answers, a 212 s draft among them) | QF-98/ | tests/test_qf98_free_writer_overload.py |
 
 ### Phase 4 - geometry and type on real libraries
 

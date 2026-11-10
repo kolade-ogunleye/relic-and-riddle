@@ -78,8 +78,11 @@ def test_the_writer_is_told_the_rule():
 def _pkg(curated_payload, first: str, **extra) -> ScriptPackage:
     narration = curated_payload["narration_script"]
     rest = narration.split(". ", 1)[1]
+    payoff = ("The hikers left their tent in the snow." if "hikers" in first
+              else "The temple was cut from solid rock.")
+    rest = rest.replace(curated_payload["payoff_sentence"], payoff)
     return ScriptPackage.model_validate(dict(curated_payload, narration_script=f"{first} {rest}",
-                                             hook_sentence=first, **extra))
+                                             hook_sentence=first, payoff_sentence=payoff, **extra))
 
 
 def test_hook_quality_is_separate_from_basic_structure_validation(monkeypatch, curated_payload):

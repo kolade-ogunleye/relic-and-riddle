@@ -319,6 +319,8 @@ def test_a_short_draft_is_extended_not_rewritten_from_scratch(curated_payload, m
     seen = []
     # Alphabetic suffixes stay distinct under the repeat check's word tokenizer.
     base = ["200"] + ["word" + chr(97 + i // 26) + chr(97 + i % 26) for i in range(399)]
+    base[1] = "builders"
+    payoff = "Builders finished the structure."
     short = " ".join(base[:70])  # with the closing sentence, well under 42 s at 0.4 s a word
 
     def write(topic, feedback):
@@ -327,8 +329,9 @@ def test_a_short_draft_is_extended_not_rewritten_from_scratch(curated_payload, m
         found = re.search(r"extend the narration to (\d+)-(\d+) words", feedback)
         words = base[: int(found.group(1)) + 1] if found else short.split()
         closing = curated_payload["closing_sentence"]
-        text = " ".join(words[:8]).rstrip(".") + ". " + " ".join(words[8:]).rstrip(".") + ". " + closing
-        return ScriptPackage.model_validate(dict(curated_payload, narration_script=text))
+        text = (" ".join(words[:8]).rstrip(".") + ". "
+                + " ".join(words[8:-len(payoff.split())]).rstrip(".") + ". " + payoff + " " + closing)
+        return ScriptPackage.model_validate(dict(curated_payload, narration_script=text, payoff_sentence=payoff))
     monkeypatch.setattr(engine, "_generate_with_claude", write)
     monkeypatch.setattr(engine, "_finalize", lambda pkg, topic, **k: {"narration_script": pkg.narration_script})
     out = engine.generate_script({"id": "t", "title": "T"})

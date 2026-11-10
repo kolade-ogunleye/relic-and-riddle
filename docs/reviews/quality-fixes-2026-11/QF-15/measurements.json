@@ -1,0 +1,479 @@
+{
+ "rule": {
+  "has_payoff_check": true,
+  "a_payoff_fault_blocks": true,
+  "modern_relevance_beat_in_prompt": false,
+  "story_order_in_prompt": true
+ },
+ "synthetic": {
+  "bad_admitted": {
+   "missing": false,
+   "not_penultimate": false,
+   "repeats_the_hook": false,
+   "shared_verb_only": false,
+   "shared_adjective_only": false,
+   "shared_number_only": false
+  },
+  "bad_admitted_count": 0,
+  "bad_outcome": {
+   "missing": "blocked",
+   "not_penultimate": "blocked",
+   "repeats_the_hook": "blocked",
+   "shared_verb_only": "ships_flagged",
+   "shared_adjective_only": "ships_flagged",
+   "shared_number_only": "ships_flagged"
+  },
+  "controls_admitted": {
+   "same_noun": true,
+   "plural_inflection": true,
+   "noun_tagged_as_adjective_in_the_hook": true
+  },
+  "controls_admitted_count": 3
+ },
+ "corpus": {
+  "script_library": {
+   "scripts": 4,
+   "admitted": 3,
+   "confusion": {
+    "payoff_admitted": 1,
+    "payoff_refused": 0,
+    "not_admitted": 2,
+    "not_refused": 1,
+    "unjudged": 0
+   },
+   "outcomes": {
+    "blocked": 0,
+    "ships_flagged": 1,
+    "ships_clean": 3
+   },
+   "outcomes_judged_payoff": {
+    "blocked": 0,
+    "ships_flagged": 0,
+    "ships_clean": 1
+   },
+   "outcomes_judged_not": {
+    "blocked": 0,
+    "ships_flagged": 1,
+    "ships_clean": 2
+   },
+   "outcomes_with_the_hook_rule": {
+    "blocked": 4,
+    "ships_flagged": 0,
+    "ships_clean": 0
+   },
+   "false_rejects": [],
+   "false_accepts": [
+    {
+     "run": "singing_colossi_of_memnon",
+     "sha": "5a8c01d6c651",
+     "mark": "not",
+     "admitted": true,
+     "outcome": "ships_clean",
+     "outcome_with_the_hook_rule": "blocked",
+     "hook": "In 27 BC, a major earthquake shattered the northern colossus, collapsing the statue from the waist up and cracking its lower half.",
+     "payoff": "Local tradition dates the reconstruction of the statue's upper tiers to around 199 AD."
+    },
+    {
+     "run": "wieliczka_salt_mine",
+     "sha": "2c13932c73e4",
+     "mark": "not",
+     "admitted": true,
+     "outcome": "ships_clean",
+     "outcome_with_the_hook_rule": "blocked",
+     "hook": "Near Kraków in southern Poland, the mine's rock salt naturally displays various shades of grey, resembling unpolished granite rather than white crystalline salt.",
+     "payoff": "Artificial ventilation introduced in the late nineteenth century brought humidity into the mine, threatening severe damage to the carved salt sculptures."
+    }
+   ],
+   "confusion_round2_strict_nouns": {
+    "payoff_admitted": 1,
+    "payoff_refused": 0,
+    "not_admitted": 2,
+    "not_refused": 1,
+    "unjudged": 0
+   }
+  },
+  "runs_1": {
+   "scripts": 28,
+   "admitted": 10,
+   "confusion": {
+    "payoff_admitted": 4,
+    "payoff_refused": 5,
+    "not_admitted": 6,
+    "not_refused": 13,
+    "unjudged": 0
+   },
+   "outcomes": {
+    "blocked": 0,
+    "ships_flagged": 18,
+    "ships_clean": 10
+   },
+   "outcomes_judged_payoff": {
+    "blocked": 0,
+    "ships_flagged": 5,
+    "ships_clean": 4
+   },
+   "outcomes_judged_not": {
+    "blocked": 0,
+    "ships_flagged": 13,
+    "ships_clean": 6
+   },
+   "outcomes_with_the_hook_rule": {
+    "blocked": 24,
+    "ships_flagged": 3,
+    "ships_clean": 1
+   },
+   "false_rejects": [
+    {
+     "run": "run_amber_room_heist_1792781224",
+     "sha": "b026614067ec",
+     "mark": "payoff",
+     "admitted": false,
+     "outcome": "ships_flagged",
+     "outcome_with_the_hook_rule": "ships_flagged"
+    },
+    {
+     "run": "run_amber_room_heist_1792801257",
+     "sha": "114b4c921504",
+     "mark": "payoff",
+     "admitted": false,
+     "outcome": "ships_flagged",
+     "outcome_with_the_hook_rule": "ships_flagged"
+    },
+    {
+     "run": "run_amber_room_heist_1792805842",
+     "sha": "f64378ef9147",
+     "mark": "payoff",
+     "admitted": false,
+     "outcome": "ships_flagged",
+     "outcome_with_the_hook_rule": "blocked"
+    },
+    {
+     "run": "run_richat_structure_sahara_eye_1792737039_short",
+     "sha": "788665c2fd5a",
+     "mark": "payoff",
+     "admitted": false,
+     "outcome": "ships_flagged",
+     "outcome_with_the_hook_rule": "blocked"
+    },
+    {
+     "run": "run_unfinished_obelisk_aswan_1792993374",
+     "sha": "4e7dd922d35a",
+     "mark": "payoff",
+     "admitted": false,
+     "outcome": "ships_flagged",
+     "outcome_with_the_hook_rule": "blocked"
+    }
+   ],
+   "false_accepts": [
+    {
+     "run": "run_damascus_steel_nanotubes_1792732472_short",
+     "sha": "0b43c8ee6dcd",
+     "mark": "not",
+     "admitted": true,
+     "outcome": "ships_clean",
+     "outcome_with_the_hook_rule": "blocked"
+    },
+    {
+     "run": "run_damascus_steel_nanotubes_1792733974_short",
+     "sha": "7bca48eec1a0",
+     "mark": "not",
+     "admitted": true,
+     "outcome": "ships_clean",
+     "outcome_with_the_hook_rule": "blocked"
+    },
+    {
+     "run": "run_roman_self_healing_concrete_1793161347",
+     "sha": "9ce6641bae74",
+     "mark": "not",
+     "admitted": true,
+     "outcome": "ships_clean",
+     "outcome_with_the_hook_rule": "blocked"
+    },
+    {
+     "run": "run_singing_colossi_of_memnon_1792952878",
+     "sha": "5a8c01d6c651",
+     "mark": "not",
+     "admitted": true,
+     "outcome": "ships_clean",
+     "outcome_with_the_hook_rule": "blocked"
+    },
+    {
+     "run": "run_voynich_manuscript_1792965308",
+     "sha": "2629ed04cc71",
+     "mark": "not",
+     "admitted": true,
+     "outcome": "ships_clean",
+     "outcome_with_the_hook_rule": "ships_clean"
+    },
+    {
+     "run": "run_wieliczka_salt_mine_1792974672",
+     "sha": "2c13932c73e4",
+     "mark": "not",
+     "admitted": true,
+     "outcome": "ships_clean",
+     "outcome_with_the_hook_rule": "blocked"
+    }
+   ],
+   "confusion_round2_strict_nouns": {
+    "payoff_admitted": 4,
+    "payoff_refused": 5,
+    "not_admitted": 5,
+    "not_refused": 14,
+    "unjudged": 0
+   }
+  },
+  "runs_2": {
+   "scripts": 26,
+   "admitted": 8,
+   "confusion": {
+    "payoff_admitted": 3,
+    "payoff_refused": 7,
+    "not_admitted": 5,
+    "not_refused": 11,
+    "unjudged": 0
+   },
+   "outcomes": {
+    "blocked": 0,
+    "ships_flagged": 18,
+    "ships_clean": 8
+   },
+   "outcomes_judged_payoff": {
+    "blocked": 0,
+    "ships_flagged": 7,
+    "ships_clean": 3
+   },
+   "outcomes_judged_not": {
+    "blocked": 0,
+    "ships_flagged": 11,
+    "ships_clean": 5
+   },
+   "outcomes_with_the_hook_rule": {
+    "blocked": 16,
+    "ships_flagged": 9,
+    "ships_clean": 1
+   },
+   "false_rejects": 7,
+   "false_accepts": 5,
+   "per_item": "omitted: counts only (production sample)",
+   "confusion_round2_strict_nouns": {
+    "payoff_admitted": 1,
+    "payoff_refused": 9,
+    "not_admitted": 5,
+    "not_refused": 11,
+    "unjudged": 0
+   }
+  }
+ },
+ "corpus_pooled": {
+  "scripts": 52,
+  "admitted": 17,
+  "outcomes": {
+   "blocked": 0,
+   "ships_flagged": 35,
+   "ships_clean": 17
+  },
+  "outcomes_judged_payoff": {
+   "blocked": 0,
+   "ships_flagged": 12,
+   "ships_clean": 7
+  },
+  "outcomes_judged_not": {
+   "blocked": 0,
+   "ships_flagged": 23,
+   "ships_clean": 10
+  },
+  "outcomes_with_the_hook_rule": {
+   "blocked": 38,
+   "ships_flagged": 12,
+   "ships_clean": 2
+  },
+  "confusion": {
+   "payoff_admitted": 7,
+   "payoff_refused": 12,
+   "not_admitted": 10,
+   "not_refused": 23,
+   "unjudged": 0
+  },
+  "rates": {
+   "recall_of_judged_payoffs": 0.37,
+   "refusal_of_judged_non_payoffs": 0.7,
+   "precision_of_what_is_admitted": 0.41
+  },
+  "false_rejects": 12,
+  "false_accepts": 10,
+  "confusion_round2_strict_nouns": {
+   "payoff_admitted": 5,
+   "payoff_refused": 14,
+   "not_admitted": 9,
+   "not_refused": 24,
+   "unjudged": 0
+  },
+  "rates_round2_strict_nouns": {
+   "recall_of_judged_payoffs": 0.26,
+   "refusal_of_judged_non_payoffs": 0.73,
+   "precision_of_what_is_admitted": 0.36
+  }
+ },
+ "beats": {
+  "scripts": 52,
+  "sentences_per_script": {
+   "min": 5,
+   "median": 6.0,
+   "max": 21
+  },
+  "composed_scenes_per_run": {
+   "runs": 40,
+   "min": 9,
+   "median": 11.0,
+   "max": 12
+  },
+  "scripts_with_a_modern_relevance_sentence": 10,
+  "where": [
+   {
+    "run": "run_gol_gumbaz_whispering_gallery_1793278143",
+    "sentence_index": [
+     4
+    ],
+    "of": 5
+   },
+   {
+    "run": "run_greek_fire_siphon_1792735284_short",
+    "sentence_index": [
+     4
+    ],
+    "of": 6
+   },
+   {
+    "run": "run_roman_self_healing_concrete_1793161347",
+    "sentence_index": [
+     3
+    ],
+    "of": 5
+   }
+  ],
+  "where_in_sample": 7,
+  "modern_relevance_spoken_s": {
+   "timed": 9,
+   "median": 7.88,
+   "max": 9.6
+  },
+  "modern_relevance_share_of_the_voice": {
+   "median": 0.17,
+   "max": 0.212
+  }
+ },
+ "library_path": {
+  "entries": 4,
+  "with_a_payoff_fault": 4,
+  "with_payoff_sentence": 0,
+  "routed_to_the_payoff_edit": 4,
+  "with_a_payoff_fault_and_no_payoff_edit": 0,
+  "edited_before_use": 4
+ },
+ "routing_replay": {
+  "script_library": {
+   "edit_fixes": {
+    "calls": {
+     "writer": 4,
+     "opening_or_payoff_edit": 4,
+     "length_edit": 0,
+     "other_edit": 0
+    },
+    "outcomes": {
+     "accepted": 4
+    },
+    "heavy_calls_per_run_mean": 2.0,
+    "heavy_calls_per_run_max": 2
+   },
+   "edit_fails": {
+    "calls": {
+     "writer": 12,
+     "opening_or_payoff_edit": 4,
+     "length_edit": 0,
+     "other_edit": 0
+    },
+    "outcomes": {
+     "no_script": 4
+    },
+    "heavy_calls_per_run_mean": 4.0,
+    "heavy_calls_per_run_max": 4
+   }
+  },
+  "runs_1": {
+   "edit_fixes": {
+    "calls": {
+     "writer": 29,
+     "opening_or_payoff_edit": 26,
+     "length_edit": 0,
+     "other_edit": 2
+    },
+    "outcomes": {
+     "accepted": 26,
+     "not_a_script_package": 1,
+     "no_script": 1
+    },
+    "heavy_calls_per_run_mean": 2.11,
+    "heavy_calls_per_run_max": 6
+   },
+   "edit_fails": {
+    "calls": {
+     "writer": 73,
+     "opening_or_payoff_edit": 26,
+     "length_edit": 0,
+     "other_edit": 0
+    },
+    "outcomes": {
+     "accepted": 4,
+     "no_script": 23,
+     "not_a_script_package": 1
+    },
+    "heavy_calls_per_run_mean": 3.67,
+    "heavy_calls_per_run_max": 4
+   }
+  },
+  "runs_2": {
+   "edit_fixes": {
+    "calls": {
+     "writer": 34,
+     "opening_or_payoff_edit": 25,
+     "length_edit": 0,
+     "other_edit": 8
+    },
+    "outcomes": {
+     "accepted": 22,
+     "no_script": 4
+    },
+    "heavy_calls_per_run_mean": 2.58,
+    "heavy_calls_per_run_max": 6
+   },
+   "edit_fails": {
+    "calls": {
+     "writer": 58,
+     "opening_or_payoff_edit": 25,
+     "length_edit": 0,
+     "other_edit": 0
+    },
+    "outcomes": {
+     "no_script": 16,
+     "accepted": 10
+    },
+    "heavy_calls_per_run_mean": 3.19,
+    "heavy_calls_per_run_max": 4
+   }
+  }
+ },
+ "real_writer_call_size": {
+  "calls": 100,
+  "tokens_in_median": 3054.0,
+  "tokens_out_median": 215.5,
+  "seconds_median": 44.29
+ },
+ "prompt_size": {
+  "system_prompt_chars": 6866,
+  "verified_user_template_chars": 7304,
+  "revise_system_chars": 4263,
+  "writer_schema_chars": 3326,
+  "writer_schema_requires_payoff": true
+ },
+ "acceptance_met": true
+}

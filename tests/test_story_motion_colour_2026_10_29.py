@@ -62,6 +62,7 @@ def test_story_problems_need_the_topic_being_written(curated_payload):
 
 
 def _engine(monkeypatch, curated_payload, narration, revise):
+    curated_payload["payoff_sentence"] = "Derinkuyu's upper floors held stables."
     engine = script_engine.ScriptEngine()
     monkeypatch.setattr(script_engine, "_ready", lambda: True)
     monkeypatch.setattr(engine, "_sheet", lambda topic: SHEET)
@@ -86,7 +87,7 @@ def _engine(monkeypatch, curated_payload, narration, revise):
 
 
 LONG_HOOK = "Derinkuyu reaches far down into the soft volcanic rock where thousands of people once hid together."
-BODY = " Its shafts carry air. Stables fill the upper floors. Who dug it?"
+BODY = " Its shafts carry air. Derinkuyu's upper floors held stables. Who dug it?"
 
 
 def test_an_unplaced_site_and_a_long_hook_get_one_opening_edit_not_a_rewrite(monkeypatch, curated_payload):

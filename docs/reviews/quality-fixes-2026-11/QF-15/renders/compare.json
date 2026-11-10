@@ -1,0 +1,10 @@
+{
+ "command": "docs/reviews/freeze-panel-2026-11-04/cards/render_evidence.py --only chapter,myth --match _dark, on f3abcbe0 and on this row, real run inputs",
+ "frames_this_row": 53,
+ "frames_parent": 53,
+ "pixel_identical": 53,
+ "same_names": true,
+ "refused_this_row": 5,
+ "refused_parent": 5,
+ "same_refusals": true
+}

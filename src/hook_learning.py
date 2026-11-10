@@ -124,7 +124,8 @@ def revision_note(form: str, hook: str) -> str:
     return (f"Hook form: the first sentence (also hook_sentence) \"{hook}\" is not in the asked form "
             f"({form}). {STEERS[form]} Rewrite only that sentence (and hook_sentence to match), keeping the same "
             f"verified fact, its hedge if it has one, and at most {config.HOOK_MAX_WORDS} words, with its figure, "
-            f"contrast or question within the first {config.HOOK_SIGNAL_WITHIN}. {HOOK_FORMS} Change nothing else.")
+            f"contrast or question within the first {config.HOOK_SIGNAL_WITHIN}. {HOOK_FORMS} Keep the noun the "
+            "payoff (payoff_sentence) names again, so the payoff still answers it (QF-15). Change nothing else.")
 
 
 def follow_rate(rows: list[dict[str, Any]]) -> str | None:

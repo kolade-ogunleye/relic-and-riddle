@@ -61,17 +61,19 @@ SYSTEM_PROMPT = """You are a documentary scriptwriter producing short vertical R
 
 Editorial rules:
 - Narration is {WORDS_MIN}-{WORDS_MAX} spoken words (about {SECONDS_MIN}-{SECONDS_MAX} seconds spoken). Hard maximum {WORDS_MAX}. Long words take longer to say: prefer plain, short words, or the script runs long even inside the word range.
-- Exactly five beats, tailored to the topic archetype (Knowledge Bomb & Forensic Reality schema):
+- Story order, tailored to the topic archetype: hook -> stake -> two or three concrete reveals -> payoff -> loop.
+  Every sentence serves one of these roles; never add a generic modern-relevance paragraph (why it matters to modern
+  science, engineering or the planet today).
   (1) Category-Aware Cinematic Hook in the first 3 seconds (Beat 1):
       - Megastructures: Impossible Architectural Contrast or Subterranean Paradox (e.g. ancient structures enduring while modern ones crumble, or whole communities living deep underground).
       - Relic Artifacts: Precision Beyond Its Era (micro-mechanics, astronomical gear trains, or metallurgy more refined than its period is known for), stated as documented fact, never as "lost" or impossible technology.
       - Riddle Events & Cataclysms: Sudden Forensic Anomaly (stark physical devastation, colossal atmospheric shockwave, zero impact crater, or vanished expeditions).
       NEVER start Beat 1 with greetings ('Hey guys'), generic rhetorical questions ('Have you ever wondered'), or robotic hedge words ('Estimated,', 'Approximately,'). Hook the audience immediately with an arresting, tangible reality.
       Lead with the mystery: viewers decide in under two seconds. The first sentence is at most {HOOK_WORDS} words and delivers the impossible fact, or poses the riddle, within its first 8 words ({HOOK_FORMS}): a stark claim carrying a number or a scale (e.g. "They carved a 100-foot temple from one rock, starting at the top.") or a visual-challenge question the opening picture poses (e.g. "How do you carve a temple from the top down?"). Never open on a label that names the subject before the mystery ("This massive X was...", "This is the...", "Meet the...", "Here is...", "X is a..."). The hook is a verified fact like every other sentence.
-  (2) Forensic Evidence & Underlying Mechanism (Beat 2): Concrete physical evidence, exact metrics, tree rings, seismic data, metallurgy, materials, or gears.
-  (3) Epistemic Integrity & Leading Hypotheses (Beat 3): Where figures or causes are debated, present the leading scientific hypotheses with fluent, natural phrasing (e.g. 'physicists calculate that...', 'physical models suggest roughly...', 'ranging between X and Y').
-  (4) Civilizational / Modern Relevance & High Stakes (Beat 4): Why this anomaly matters to modern science, engineering, or planetary resilience.
-  (5) Standalone Loop Takeaway (Beat 5): An impactful concluding sentence leading back naturally into the opening hook so the video loops seamlessly.
+  (2) Stake: the concrete human or physical consequence behind the hook, from verified facts (what was built, lost, risked or survived).
+  (3) Two or three reveals: concrete physical evidence or mechanisms (exact metrics, materials, gears, seismic data) that progressively answer the opening. Where a figure or cause is debated, keep its verified range or hedge inside the reveal with fluent, natural phrasing (e.g. 'physical models suggest roughly...', 'ranging between X and Y'), never as a separate academic-debate paragraph.
+  (4) Payoff: the penultimate sentence answers the opening's question or resolves its tension. Return it word for word as payoff_sentence. It names again at least one noun the first sentence names, the same word ("the dome" again, not "the structure"); a shared verb, adjective or number does not count, and repeating the first sentence is not its answer.
+  (5) Loop: closing_sentence, the final sentence, follows the payoff and leads back naturally into the opening hook so the video loops seamlessly.
 - Hard ban on robotic sentence prefixes: NEVER start sentences with 'Estimated,' or 'Approximately,'. Integrate hedges naturally into the narrative flow.
 - Hard ban on academic paper citation chaff: do NOT use phrases like "A study in [year] reported...", "Researchers drilled...", "Geologist [Name] stated...", or "According to historians...". Present verified physical, chemical, and historical facts directly and authoritatively.
 - Hard ban on research meta-commentary: NEVER discuss the state of records, studies, or sources in the narration (e.g. do NOT say "popular sources give shallower figures", "there is no official figure for...", "records do not specify", or "sources disagree"). Instead, present the physical and historical realities directly with natural in-situ hedges (e.g. "carved roughly X feet (Y m) down", "an estimated N residents", or "ranging between A and B meters", using the sourced figures).
@@ -112,7 +114,7 @@ Location: {location}
 Topic notes (unverified): {key_facts}
 
 Requirements:
-- narration: open on the verified facts' most surprising discovery or human-stakes fact (the mystery first: viewers decide in under two seconds), never on a list of measurements; the first sentence at most 12 words. Place the site for the viewer ({location}: its region or country, not only its own name) within the first 3 sentences. Never put a unit conversion or an aside in brackets: the voice does not say it. The title, the caption and the narration tell the same story: a figure, year or discovery the title or caption leads with is told in the narration too. Word budget by role: the hook (at most 12 words) carries the discovery or mystery and, ideally, the place; the place is named inside an existing sentence ("Beneath a house in <place>, <country>, ..."), never as a sentence added for it; then 3-4 fact sentences; then the closing sentence; the total inside the Length range below. The discovery-first opening replaces measurement sentences, it is not added to them; one hedge may cover two related figures.
+- narration: open on the verified facts' most surprising discovery or human-stakes fact (the mystery first: viewers decide in under two seconds), never on a list of measurements; the first sentence at most 12 words. Place the site for the viewer ({location}: its region or country, not only its own name) within the first 3 sentences. Never put a unit conversion or an aside in brackets: the voice does not say it. The title, the caption and the narration tell the same story: a figure, year or discovery the title or caption leads with is told in the narration too. Word budget by role: the hook (at most 12 words) carries the discovery or mystery and, ideally, the place; the place is named inside an existing sentence ("Beneath a house in <place>, <country>, ..."), never as a sentence added for it; then the stake and 2-3 concrete reveals; then the payoff (payoff_sentence) answering the hook with one of its nouns; then the closing loop sentence; the total inside the Length range below. The discovery-first opening replaces measurement sentences, it is not added to them; one hedge may cover two related figures.
 - thumbnail: the cover's words, shared by every cover style, the carousel and the YouTube thumbnail: eyebrow (a short kicker), line1 and line2 (the headline) and tagline (the deck under it), each at most 22 characters. A figure in them follows the headline rule: an undisputed figure as the facts give it; a disputed one never as one number taken from its range: as the facts' own span in the same unit (both ends stated), as a floor at or below the lowest figure ("1,000+"), or not at all (a headline without the figure); none that only one estimate gives. A size says what it measures, in the facts' own word ("144 FT ACROSS" for a diameter, "280 FT DEEP"), never a bare "144-FOOT". A line that shortens a fact keeps every word that limits it: "NO IRON CLAMPS" where the fact says "without the use of iron clamps", never "BUILT WITHOUT CLAMPS"; a superlative keeps its place and time ("ONCE THE REGION'S LARGEST"). A year says what happened in it, in the facts' word for that year ("FOUND 1963" where the facts say "rediscovered in 1963"), never bare beside a place (a city's name and a bare year read as its founding date). The deck poses the open question or the stake from a verified fact, never gives away the answer the video builds to ("CARVED BY NATURE" ends the riddle before it starts); leave the tagline empty rather than restate the headline.
 - title: the Facebook Reel title shown under the video: at most 60 characters, specific and intriguing (a name, a number or a tension, not a label like "The History of X"); at most one relevant emoji.
 - caption: written like a magazine editor, not a template. First line: a curiosity-driven line of at most 110 characters (a hard limit of 125 is shown before "more"; stay well under it) that is NOT the narration's hook sentence. Then 2-3 short sentences that add context the video doesn't say (a detail, a consequence, a name), with the place worked naturally into the prose. Then one genuine question to the audience. Then the hashtags on the last line. Use 1-3 relevant emoji where they add warmth or meaning (for example one at the end of the first line and one on the question), never as labels or bullet markers, and no "📍" lines. Under 1,600 characters.
@@ -134,7 +136,7 @@ Sub-theme: {sub_theme}
 Location: {location}
 
 Requirements:
-- narration: open on the verified facts' most surprising discovery, central anomaly, or human-stakes tension (the mystery first: viewers decide in under two seconds), never on a list of measurements; the first sentence at most 12 words. Build the opening hook strictly from verified facts or genuine open debates; never invent unverified framing. Place the site for the viewer ({location}: its region or country, not only its own name) within the first 3 sentences. Never put a unit conversion or an aside in brackets: the voice does not say it. The title, the caption and the narration tell the same story: a figure, year or discovery the title or caption leads with is told in the narration too. Word budget by role: the hook (at most 12 words) carries the discovery or mystery and, ideally, the place; the place is named inside an existing sentence ("Beneath a house in <place>, <country>, ..."), never as a sentence added for it; then 3-4 fact sentences; then the closing sentence; the total inside the Length range below. The discovery-first opening replaces measurement sentences, it is not added to them; one hedge may cover two related figures.
+- narration: open on the verified facts' most surprising discovery, central anomaly, or human-stakes tension (the mystery first: viewers decide in under two seconds), never on a list of measurements; the first sentence at most 12 words. Build the opening hook strictly from verified facts or genuine open debates; never invent unverified framing. Place the site for the viewer ({location}: its region or country, not only its own name) within the first 3 sentences. Never put a unit conversion or an aside in brackets: the voice does not say it. The title, the caption and the narration tell the same story: a figure, year or discovery the title or caption leads with is told in the narration too. Word budget by role: the hook (at most 12 words) carries the discovery or mystery and, ideally, the place; the place is named inside an existing sentence ("Beneath a house in <place>, <country>, ..."), never as a sentence added for it; then the stake and 2-3 concrete reveals; then the payoff (payoff_sentence) answering the hook with one of its nouns; then the closing loop sentence; the total inside the Length range below. The discovery-first opening replaces measurement sentences, it is not added to them; one hedge may cover two related figures.
 - sentence_trace: For every single sentence in the narration_script, provide an entry in sentence_trace: the exact sentence text, the supporting fact_ids from <verified_facts> (e.g. ["F1"], ["F3"]), and trace_type ("domain_fact", "open_historical_debate", "epistemic_negation", or "rhetorical_framing"). If a sentence expresses an open debate or rhetorical question without a specific fact, set fact_ids=[] and set trace_type accordingly.
 - thumbnail: the cover's words, shared by every cover style, the carousel and the YouTube thumbnail: eyebrow (a short kicker), line1 and line2 (the headline) and tagline (the deck under it), each at most 22 characters. A figure in them follows the headline rule: an undisputed figure as the facts give it; a disputed one never as one number taken from its range: as the facts' own span in the same unit (both ends stated), as a floor at or below the lowest figure ("1,000+"), or not at all (a headline without the figure); none that only one estimate gives. A size says what it measures, in the facts' own word ("144 FT ACROSS" for a diameter, "280 FT DEEP"), never a bare "144-FOOT". A line that shortens a fact keeps every word that limits it: "NO IRON CLAMPS" where the fact says "without the use of iron clamps", never "BUILT WITHOUT CLAMPS"; a superlative keeps its place and time ("ONCE THE REGION'S LARGEST"). A year says what happened in it, in the facts' word for that year ("FOUND 1963" where the facts say "rediscovered in 1963"), never bare beside a place (a city's name and a bare year read as its founding date). The deck poses the open question or the stake from a verified fact, never gives away the answer the video builds to ("CARVED BY NATURE" ends the riddle before it starts); leave the tagline empty rather than restate the headline.
 - title: the Facebook Reel title shown under the video: at most 60 characters, specific and intriguing (a name, a number or a tension, not a label like "The History of X"); at most one relevant emoji.
@@ -202,11 +204,13 @@ Titles and on-screen covers are intrigue headlines and must NEVER be hedged with
 Return exact find/replace edits: "find" must be copied character-for-character from the draft
 (a whole sentence or phrase), "replace" is its new text ("" to delete). Fix every place the claim appears
 (narration, caption, title, on-screen text, slides, stories, graphics). Never add facts that are not verified.
-If you change the narration's last sentence, apply the same edit to closing_sentence.
+If you change the narration's last sentence, apply the same edit to closing_sentence. payoff_sentence is the
+narration's penultimate sentence word for word: an edit of that sentence changes payoff_sentence with it.
 A LENGTH finding names a word window for the narration. Too short: add one or two sentences made only of
-verified facts, placed before the closing sentence ("find" = the sentence before it, "replace" = that sentence
-followed by the new ones). Too long: remove or condense sentences until the narration is inside the window.
-Keep the closing sentence and every other field as they are.
+verified facts, placed before the payoff ("target" = "narration_script", "find" = the payoff sentence, "replace" =
+the new sentences followed by that same payoff sentence; payoff_sentence stays as it is). Too long: remove or
+condense sentences until the narration is inside the window. Keep the payoff, the closing sentence and every other
+field as they are.
 A REPEAT finding names a phrase the narration says twice: reword the later sentence ("find" = that whole sentence) so
 the phrase is said once, keeping its facts and its hedge (one hedge can cover two related figures). Never let an edit
 say again a phrase the narration already says (the REPEATS list), and keep every disputed figure's hedge wherever the
@@ -216,8 +220,13 @@ sentences, open on the story the title and caption tell, or cut the first senten
 each with verified facts only and every hedge kept. Never add a sentence for it: name the place inside an existing
 sentence ("Beneath a house in <place>, <country>, ..."), and let the discovery replace a measurement sentence. If the
 first sentence changes, apply the same edit to hook_sentence.
-WORD BUDGET (every edit keeps it): the hook at most 12 words, 3-4 fact sentences, the closing sentence, the total
-inside the word window a LENGTH finding names.
+A PAYOFF finding is about the narration's penultimate sentence: it answers the opening (its question or its tension)
+with verified facts and names again one of the first sentence's nouns, the same word. Edit that sentence ("find" = the
+whole sentence), keeping it the penultimate one; never add a sentence for it. When the penultimate sentence already
+does this and only payoff_sentence is missing or wrong, set it: "target" = "payoff_sentence", "find" = "", "replace" =
+that sentence word for word.
+WORD BUDGET (every edit keeps it): the hook at most 12 words, the stake and 2-3 reveals, the payoff, the closing loop
+sentence, the total inside the word window a LENGTH finding names.
 GRAPHICS (stat cards, timeline, scale, cross-section, route, photo labels, emphasis words) are listed under <graphics>,
 one field per line by its path. To change one, set "target" to that path ("stat_cards[2].value") with "find" = the
 text in that field and "replace" = its new text; to remove a whole entry, set "target" to the entry ("stat_cards[2]")
@@ -229,7 +238,9 @@ must be words the narration says: if an edit takes one out of the narration, cha
 class Edit(BaseModel):
     find: str
     replace: str
-    target: Optional[str] = None   # a graphic field or entry by its <graphics> path ("stat_cards[2].value")
+    # a graphic field or entry by its <graphics> path ("stat_cards[2].value"); "narration_script" for a sentence
+    # inserted before the payoff; "payoff_sentence" to mark the payoff
+    target: Optional[str] = None
 
 
 class Edits(BaseModel):
@@ -1030,7 +1041,7 @@ def without_blocked_sentences(payload: Dict[str, Any], notes: str) -> Optional[D
     story or carousel slide's body; a graphic's entry is dropped (a claim outside the narration still rejected the
     script: dev, Paracas, 2026-10-26). Nothing is written, so nothing new can be claimed. Headlines (title, cover,
     slide headings, poll) and set pieces (the hook, the closing sentence, each caption's first line, a body's only
-    sentence) are never removed: a blocked claim there means no trim. The result must pass every check again
+    sentence, the payoff) are never removed: a blocked claim there means no trim. The result must pass every check again
     (structure, spoken length and both fact checkers), so a gap that leaves it too short, or a claim repeated in
     other words, still fails."""
     quoted = f" {_norm_words(notes)} "  # whole words: a sentence must appear in the notes word for word
@@ -1082,6 +1093,7 @@ def without_blocked_sentences(payload: Dict[str, Any], notes: str) -> Optional[D
     thumb = payload.get("thumbnail") or {}
     fixed = [("the title", payload.get("title")), ("the hook", payload.get("hook_sentence")),
              ("the closing sentence", payload.get("closing_sentence")),
+             ("the payoff", payload.get("payoff_sentence")),   # QF-15: a trim never takes the payoff
              ("the cover", " ".join(str(thumb.get(k) or "") for k in ("eyebrow", "line1", "line2", "tagline"))),
              ("the poll", (payload.get("poll") or {}).get("question"))]
     # A heading as each checker reads it: "line1 line2" (the first checker), and after the kicker (the second).
@@ -1772,8 +1784,8 @@ def headline_problems(pkg: ScriptPackage, sheet: Optional[Dict[str, Any]] = None
 
 
 def _opening_faults(problems: List[str]) -> List[str]:
-    """All hook faults and the opening's existing story faults share one edit."""
-    return [p for p in problems or [] if p.startswith((STORY_PROBLEM, HOOK_PROBLEM))]
+    """All hook faults, the opening's existing story faults and the payoff's faults (QF-15) share one edit."""
+    return [p for p in problems or [] if p.startswith((STORY_PROBLEM, HOOK_PROBLEM, PAYOFF_PROBLEM))]
 
 
 def story_problems(pkg: ScriptPackage, topic: Optional[Dict[str, Any]] = None) -> List[str]:
@@ -1829,6 +1841,45 @@ def hook_problems(narration: str) -> List[str]:
         problems.append(f"{HOOK_SIGNAL_PROBLEM}the first {config.HOOK_SIGNAL_WITHIN} spoken tokens of the first sentence "
                         f"('{' '.join(words[:config.HOOK_SIGNAL_WITHIN])} ...') carry no accepted signal. {HOOK_FORMS}")
     return problems
+
+
+PAYOFF_PROBLEM = "Payoff: "   # every payoff problem starts so
+# Operator ruling 2026-11-10 (decisions/QF-15-payoff-rule.md, option C): a missing, misplaced or hook-repeating payoff
+# blocks after its one repair edit; a payoff that names none of the opening's nouns gets that one edit and then ships,
+# flagged on the review card (payoff_note), until a semantic judge exists (QF-17). Its finding starts so.
+PAYOFF_NOUN_PROBLEM = PAYOFF_PROBLEM + "weak link: "
+
+
+def payoff_problems(narration: str, payoff: str) -> list[str]:
+    """Why the narration has no payoff the rule accepts (QF-15): payoff_sentence missing, not the narration's
+    penultimate sentence word for word, the opening said again, or no noun shared with the narration's own first
+    sentence (narrative_payoff.shared_nouns: a noun in one, a noun or an adjective in the other). A structural floor:
+    whether the sentence really answers the opening is not judged here (measured on the real corpus in
+    docs/reviews/quality-fixes-2026-11/QF-15). The one edit that takes the opening's faults takes these too
+    (_opening_faults), before any rewrite. Each structural fault blocks, and so does an unavailable offline model
+    (fails closed); a missing shared noun alone does not (PAYOFF_NOUN_PROBLEM: flagged on the card, payoff_note)."""
+    payoff = " ".join((payoff or "").split())
+    if not payoff:
+        return [(f"{PAYOFF_PROBLEM}payoff_sentence is missing. The penultimate sentence is the payoff: it answers the "
+                 "opening (its question or its tension) and names one of the first sentence's nouns again; "
+                 "payoff_sentence holds it word for word.")]
+    sentences = _split_sentences(narration)
+    if len(sentences) < 3 or payoff != " ".join(sentences[-2].split()):
+        return [(f"{PAYOFF_PROBLEM}payoff_sentence is not the narration's penultimate sentence word for word. The "
+                 "payoff comes right before the final loop sentence, and payoff_sentence holds it as spoken.")]
+    hook = sentences[0]
+    if _norm_words(payoff) == _norm_words(hook):
+        return [f"{PAYOFF_PROBLEM}the payoff says the opening again; it answers the opening with verified evidence."]
+    try:
+        from .narrative_payoff import shared_nouns
+        if shared_nouns(hook, payoff):
+            return []
+    except (ImportError, OSError, ValueError, KeyError, RuntimeError) as e:
+        log.warning("The offline noun model is unavailable (%s); the payoff is held.", e)
+        return [f"{PAYOFF_PROBLEM}the offline noun check is unavailable, so the payoff cannot be checked; held."]
+    return [(f"{PAYOFF_NOUN_PROBLEM}the payoff (\"{payoff[:80]}\") names none of the first sentence's nouns. Name the "
+             "opening's subject again, the same word (\"the dome\" again, not \"the structure\"), in a sentence that "
+             "answers the opening; a shared verb, adjective or number does not count.")]
 
 
 # ---------------------------------------------------------------- engagement bait
@@ -2440,6 +2491,7 @@ def draft_problems(pkg: ScriptPackage) -> List[str]:
     structure passed, a draft sent back for its structure came back the wrong length, and that cost the next
     attempt too (production, Hal Saflieni 2026-10-27)."""
     return (validate_structure(pkg) + spoken_length_problems(pkg) + hook_problems(pkg.narration_script)
+            + payoff_problems(pkg.narration_script, pkg.payoff_sentence)
             + story_problems(pkg) + headline_problems(pkg) + cover_problems(pkg))
 
 
@@ -2458,8 +2510,10 @@ def cover_problems(pkg: ScriptPackage, sheet: dict[str, Any] | None = None) -> l
 def blocking_problems(problems: List[str]) -> List[str]:
     """The problems that send a draft back: all of them but the story findings and a weak hook signal, which get the
     one opening edit (_edit_story) and are then recorded (_note_kept_hook; the signal on the review card,
-    hook_signal_note). The hook's cap and a label opening block (QF-14, operator ruling 2026-11-10)."""
-    return [p for p in problems if not p.startswith((STORY_PROBLEM, HOOK_SIGNAL_PROBLEM))]
+    hook_signal_note). The hook's cap and a label opening block (QF-14, operator ruling 2026-11-10), and so does a
+    missing, misplaced or hook-repeating payoff (QF-15, operator ruling 2026-11-10), after the same one edit; a payoff
+    that names none of the opening's nouns ships flagged (payoff_note)."""
+    return [p for p in problems if not p.startswith((STORY_PROBLEM, HOOK_SIGNAL_PROBLEM, PAYOFF_NOUN_PROBLEM))]
 
 
 def hook_signal_note(narration: str) -> str:
@@ -2472,32 +2526,62 @@ def hook_signal_note(narration: str) -> str:
             "Judge whether the opening holds.")
 
 
+def payoff_note(narration: str, payoff: str) -> str:
+    """The review card's flag for a payoff that ships naming none of the opening's nouns (after its one repair edit),
+    or "": the payoff and why, for the operator to judge (QF-15, operator ruling 2026-11-10; not a publishable
+    field)."""
+    if not any(p.startswith(PAYOFF_NOUN_PROBLEM) for p in payoff_problems(narration, payoff)):
+        return ""
+    return (f"⚠️ Weak payoff: “{' '.join((payoff or '').split())}” names none of the opening's nouns, and the one payoff "
+            "edit did not add one. Judge whether it answers the opening.")
+
+
+def _payoff_key(narration: str) -> str:
+    """The narration's penultimate sentence, normalised: what "the same payoff" means for the one repair edit."""
+    parts = _split_sentences(narration)
+    return " ".join(parts[-2].lower().split()) if len(parts) >= 3 else ""
+
+
 def _opening_key(narration: str) -> str:
     """The narration's first sentence, normalised: what "the same opening" means for the one repair edit."""
     return " ".join(_first_sentence(narration).lower().split())
 
 
 def opening_edit_findings(faults: list[str]) -> str:
-    """The findings the one opening edit is given (_edit_story; a library script's hook, main.py)."""
+    """The findings the one opening edit is given (_edit_story; a library script's hook, main.py). Payoff faults
+    (QF-15) ride in the same call, after the opening's, with the penultimate sentence as the one more sentence it may
+    change; without any, the text is the opening edit's alone."""
+    payoff = [f for f in faults if f.startswith(PAYOFF_PROBLEM)]
+    faults = [f for f in faults if not f.startswith(PAYOFF_PROBLEM)]
     hook = (" " + HOOK_FORMS) if any(f.startswith(HOOK_PROBLEM) for f in faults) and HOOK_FORMS not in " ".join(faults) else ""
-    return ("OPENING: " + " ".join(faults) + hook + f" Edit only what these need: the narration's first "
-            f"{PLACE_WITHIN} sentences (a new first sentence of at most {HOOK_MAX_WORDS} words keeps its facts "
-            "and hedges), and for a story the title and caption tell, the narration's opening or else the title "
-            "and the caption's first line. Keep the length and every other sentence.")
+    opening = ("OPENING: " + " ".join(faults) + hook + f" Edit only what these need: the narration's first "
+               f"{PLACE_WITHIN} sentences (a new first sentence of at most {HOOK_MAX_WORDS} words keeps its facts "
+               "and hedges), and for a story the title and caption tell, the narration's opening or else the title "
+               "and the caption's first line. Keep the length and every other sentence"
+               + (", but for the payoff below." if payoff else ".")) if faults else ""
+    if not payoff:
+        return opening
+    return ((opening + " " if opening else "") + "PAYOFF: " + " ".join(payoff) + " Edit only the "
+            "narration's penultimate sentence for these (or, when it already answers the opening with one of the "
+            "first sentence's nouns, only payoff_sentence), with verified facts and every hedge kept; payoff_sentence "
+            "is that sentence word for word. If the first sentence changes, the payoff still names one of its "
+            "nouns. Never add a sentence, and keep the length.")
 
 
 def _length_edit_fixes(problem: str) -> bool:
     """A fault the length edit path fixes without a rewrite: the spoken length, a repeated phrase (the same edit
-    rewords it) or the hook (the opening edit after it, _fit_length_by_editing). Before QF-14 the hook was advisory
-    here; counted as blocking without this, a long draft with a long first sentence cost a full rewrite."""
-    return "when spoken" in problem or problem.startswith((REPEAT_PROBLEM, HOOK_PROBLEM))
+    rewords it), the hook or the payoff (the opening edit after it, _fit_length_by_editing). Before QF-14 the hook was
+    advisory here; counted as blocking without this, a long draft with a long first sentence cost a full rewrite, and
+    so would a long draft with a payoff fault (QF-15)."""
+    return "when spoken" in problem or problem.startswith((REPEAT_PROBLEM, HOOK_PROBLEM, PAYOFF_PROBLEM))
 
 
 def _note_kept_hook(problems: List[str]) -> None:
     """A draft kept with a story finding or a weak hook signal on its opening (after its one opening edit): said in
-    the log and the findings ledger (script.hook); the signal is also flagged on the review card (hook_signal_note).
-    The hook's cap and a label block, so neither is ever kept."""
-    weak = [p for p in problems if p.startswith((HOOK_PROBLEM, STORY_PROBLEM))]
+    the log and the findings ledger (script.hook); the signal is also flagged on the review card (hook_signal_note),
+    and so is a payoff naming none of the opening's nouns (payoff_note, QF-15). The hook's cap and a label block, so
+    neither is ever kept."""
+    weak = [p for p in problems if p.startswith((HOOK_PROBLEM, STORY_PROBLEM, PAYOFF_NOUN_PROBLEM))]
     if weak:
         log.info("Draft kept with an opening the hook rule would rewrite: %s", " ".join(weak)[:300])
         improve.note_problems(weak, "structure")
@@ -2564,9 +2648,12 @@ class ScriptEngine:
                     # that keeps it sends no new signal-only opening edit (_edit_story).
                     self.__dict__.setdefault("_openings_tried", set()).add(
                         _opening_key(previous.get("narration_script") or ""))
+                    # likewise its payoff (QF-15): a revision that keeps it sends no new noun-only payoff edit
+                    self.__dict__.setdefault("_payoffs_tried", set()).add(
+                        _payoff_key(previous.get("narration_script") or ""))
                     pkg = self._revise_surgically(previous, revision_notes, sheet)
-                    if pkg is not None and "OPENING:" in revision_notes:
-                        # this revision was the one opening edit (a library script's hook): not asked again
+                    if pkg is not None and ("OPENING:" in revision_notes or "PAYOFF:" in revision_notes):
+                        # this revision was the one opening edit (a library script's hook or payoff): not asked again
                         self.__dict__.setdefault("_story_tried", set()).add(pkg.narration_script)
                 except LLMError as e:
                     log.warning("Surgical revision failed (%s); rewriting the draft.", e)
@@ -2725,6 +2812,24 @@ class ScriptEngine:
             find_str = e.find.strip()
             replace_str = e.replace.strip()
             target = (getattr(e, "target", None) or "").strip()
+            if target == "narration_script":
+                # QF-15: a sentence inserted before the payoff (a LENGTH edit), in the narration alone: a search of the
+                # whole draft would also rewrite payoff_sentence, which holds the same words.
+                narration = draft.get(target) or ""
+                if not find_str or narration.count(find_str) != 1:
+                    log.warning("Narration edit has no unique match in the narration; rewriting instead.")
+                    return None
+                draft[target] = narration.replace(find_str, replace_str, 1)
+                text = json.dumps(draft, ensure_ascii=False)
+                continue
+            if target == "payoff_sentence":
+                # QF-15: the payoff marked as the sentence it is, its words unchanged (payoff_problems checks them)
+                if find_str and find_str != (draft.get(target) or "").strip():
+                    log.warning("Payoff edit does not match payoff_sentence; rewriting instead.")
+                    return None
+                draft[target] = replace_str
+                text = json.dumps(draft, ensure_ascii=False)
+                continue
             # A graphic is edited by its fields (graphic_edit): by the path the edit names, or the entry a JSON
             # fragment in "find" quotes; a text search of the serialized draft cannot find a field's JSON.
             if target or _JSON_PAIR.search(find_str):
@@ -2836,8 +2941,8 @@ class ScriptEngine:
         if sheet is None:
             return None
         try:
-            # the hook is left to the opening edit below, on the fitted words (_narrow_edits)
-            length = [p for p in problems if not p.startswith((REPEAT_PROBLEM, HOOK_PROBLEM))]
+            # the hook and the payoff are left to the opening edit below, on the fitted words (_narrow_edits)
+            length = [p for p in problems if not p.startswith((REPEAT_PROBLEM, HOOK_PROBLEM, PAYOFF_PROBLEM))]
             repeats = [p for p in problems if p.startswith(REPEAT_PROBLEM)]
             fitted = self._revise_surgically(pkg.model_dump(), "LENGTH: " + " ".join(length)
                                              + (" REPEAT: " + " ".join(repeats) if repeats else ""), sheet)
@@ -2948,7 +3053,7 @@ class ScriptEngine:
         except ValidationError as e:
             log.warning("Copy edit broke the draft (%s); rewriting.", e)
             return None
-        kept = ("narration_script", "hook_sentence", "closing_sentence", "sources", *GRAPHICS_FIELDS)
+        kept = ("narration_script", "hook_sentence", "closing_sentence", "payoff_sentence", "sources", *GRAPHICS_FIELDS)
         if any(getattr(fixed, k) != getattr(pkg, k) for k in kept):  # never: the edit holds none of them
             log.warning("Copy edit changed the narration or graphics; rewriting the draft.")
             return None
@@ -2972,18 +3077,19 @@ class ScriptEngine:
             return blocking_problems(problems)
 
         def narrow(p: str) -> bool:
-            return ("when spoken" in p or p.startswith((REPEAT_PROBLEM, HOOK_PROBLEM))
+            return ("when spoken" in p or p.startswith((REPEAT_PROBLEM, HOOK_PROBLEM, PAYOFF_PROBLEM))
                     or copy_problem_fields(p, pkg) is not None)
 
         if (sheet is not None and _opening_faults(problems) and all(narrow(p) for p in blocking())
                 and not any("when spoken" in p for p in blocking())):   # after a length edit, on its words
-            # The site unplaced, a story the narration does not tell, a hook over its length: one short edit of the
-            # opening (production Derinkuyu 2026-10-29: these were only warned about), not a rewrite.
+            # The site unplaced, a story the narration does not tell, a hook over its length, a payoff that does not
+            # name the opening's noun (QF-15): one short edit of the opening and the payoff (production Derinkuyu
+            # 2026-10-29: these were only warned about), not a rewrite.
             edited = self._edit_story(pkg, problems, sheet)
             if edited is not None:
                 pkg, problems = edited, draft_problems(edited)
-            elif any(p.startswith(HOOK_PROBLEM) for p in blocking()):
-                return pkg, problems   # the hook the edit could not fix sends the draft back: no further edit is spent
+            elif any(p.startswith((HOOK_PROBLEM, PAYOFF_PROBLEM)) for p in blocking()):
+                return pkg, problems   # a fault the edit could not fix sends the draft back: no further edit is spent
         if not blocking() or not all(narrow(p) for p in blocking()):
             return pkg, problems
         if any(STORY_OVERFLOW.match(p) for p in blocking()):
@@ -3009,23 +3115,30 @@ class ScriptEngine:
 
     def _edit_story(self, pkg: ScriptPackage, problems: List[str], sheet: Dict[str, Any]) -> Optional[ScriptPackage]:
         """The opening's faults (_opening_faults: the site not placed in the first sentences, a story the title and
-        caption tell that the narration does not, a first sentence over HOOK_MAX_WORDS) fixed by one surgical edit
+        caption tell that the narration does not, a first sentence over HOOK_MAX_WORDS) and the payoff's (QF-15: the
+        penultimate sentence is the one more it may change) fixed by one surgical edit
         with the verified facts and the mandatory hedges, or None when the edit fails, fixes none of them or brings
         a new blocking fault (other than the length, which the caller edits as it would any other draft's). Asked
         once per narration. A weak hook signal alone is asked once per opening (QF-14, operator ruling: one repair edit):
         a later revision whose first sentence is unchanged (a fact-check round, a line-picture rewording, the final
-        copy's revision) sends no new opening edit; a new first sentence may get its own. The result is fact-checked
-        in full like any draft."""
+        copy's revision) sends no new opening edit; a new first sentence may get its own. A payoff naming none of the
+        opening's nouns is likewise asked once per payoff sentence (QF-15). The result is fact-checked in full like any
+        draft."""
         faults = _opening_faults(problems)
         tried = self.__dict__.setdefault("_story_tried", set())
         if not faults or pkg.narration_script in tried:
             return None
-        opening = _opening_key(pkg.narration_script)
+        opening, payoff = _opening_key(pkg.narration_script), _payoff_key(pkg.narration_script)
         openings = self.__dict__.setdefault("_openings_tried", set())
-        if all(f.startswith(HOOK_SIGNAL_PROBLEM) for f in faults) and opening in openings:
+        payoffs = self.__dict__.setdefault("_payoffs_tried", set())
+        # The faults that ship flagged (a weak signal, a payoff naming no opening noun) get one edit per opening and
+        # per payoff sentence: none when each one's sentence already had it (QF-14; QF-15 operator ruling).
+        if all((f.startswith(HOOK_SIGNAL_PROBLEM) and opening in openings)
+               or (f.startswith(PAYOFF_NOUN_PROBLEM) and payoff in payoffs) for f in faults):
             return None
         tried.add(pkg.narration_script)
         openings.add(opening)
+        payoffs.add(payoff)
         try:
             edited = self._revise_surgically(pkg.model_dump(), opening_edit_findings(faults), sheet)
         except LLMError as e:
@@ -3203,9 +3316,10 @@ class ScriptEngine:
         payload = pkg.model_dump()
         # A surgical edit can leave a space before a full stop ("a cataclysm struck ." was voiced and captioned
         # on the Tunguska development run, 2026-10-25): tidied in every public text before the checks.
-        for key in ("narration_script", "hook_sentence", "closing_sentence", "caption", "carousel_caption", "first_comment"):
+        for key in ("narration_script", "hook_sentence", "closing_sentence", "payoff_sentence", "caption",
+                    "carousel_caption", "first_comment"):
             if isinstance(payload.get(key), str):
-                if key in ("narration_script", "hook_sentence", "closing_sentence"):
+                if key in ("narration_script", "hook_sentence", "closing_sentence", "payoff_sentence"):
                     payload[key] = spoken_narration(payload[key])   # its words are what the voice says
                 payload[key] = re.sub(r"[ \t]+([.,;:!?])", r"\1", payload[key])
         payload.update({
@@ -3233,7 +3347,8 @@ class ScriptEngine:
             return False, script_payload, f"REJECTED: payload does not match schema: {e.error_count()} errors."
 
         problems = (validate_structure(pkg) or spoken_length_problems(pkg)
-                    or blocking_problems(hook_problems(pkg.narration_script)))
+                    or blocking_problems(hook_problems(pkg.narration_script)
+                                         + payoff_problems(pkg.narration_script, pkg.payoff_sentence)))
         if problems:
             return False, script_payload, "REJECTED: " + " ".join(problems)
 

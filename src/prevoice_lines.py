@@ -205,10 +205,12 @@ def packaging_figures(payload: dict[str, Any]) -> set:
 
 
 def protected_sentences(payload: dict[str, Any]) -> list[str]:
-    """The narration's protected sentences: the hook, the closing sentence, and any sentence carrying a figure the
-    packaging shows (packaging_figures)."""
+    """The narration's protected sentences: the hook, the payoff (QF-15: reworded, it could lose the noun it shares
+    with the hook), the closing sentence, and any sentence carrying a figure the packaging shows
+    (packaging_figures)."""
     lines = sentences(payload.get("narration_script") or "")
-    ends = [_norm_sentence(payload.get(k)) for k in ("hook_sentence", "closing_sentence") if payload.get(k)]
+    ends = [_norm_sentence(payload.get(k)) for k in ("hook_sentence", "payoff_sentence", "closing_sentence")
+            if payload.get(k)]
     figures = packaging_figures(payload)
     out = []
     for s in lines:

@@ -244,6 +244,8 @@ def curated_payload():
     opening = "In Cappadocia, a house renovation in 1963 revealed an underground tunnel."
     payload["narration_script"] = opening + " " + payload["narration_script"].split(". ", 1)[1]
     payload["hook_sentence"] = opening
+    # QF-15: the penultimate sentence ("Its earliest tunnels ...") is the payoff; it names the opening's "tunnel".
+    payload["payoff_sentence"] = payload["narration_script"].split(". ")[-2] + "."
     payload.update({"topic_id": "derinkuyu_underground_city", "origin": "curated",
                     "location": {"name": "Derinkuyu", "country": "Turkey"}})
     return payload

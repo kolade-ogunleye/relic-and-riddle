@@ -68,6 +68,7 @@ REGENERATE_EFFECT = {**{r: "the script is revised for it" for r in SCRIPT_REASON
 # words") and "emphasis_words needs 1-3 entries" as script.length, and "Narration ends on trailing word"
 # fell to script.other. The specific checks come first; length and facts last, by whole words.
 CLASS_PATTERNS: List[Tuple[str, str]] = [
+    (r"^Payoff:", "script.payoff"),   # QF-15: before "hook" and "word", which its findings also say
     (r"\bpoll\b", "script.poll"),
     (r"repeats the phrase|repeated phrase", "script.repetition"),
     (r"trailing word", "script.trailing_word"),

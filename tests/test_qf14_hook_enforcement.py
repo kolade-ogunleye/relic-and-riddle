@@ -18,8 +18,12 @@ from src.models import ScriptPackage
 
 def package(payload, opening, **extra):
     body = payload["narration_script"].split(". ", 1)[1]
+    # QF-15: a payoff that names a noun of every opening here (rock, stone), so these tests isolate the hook rule;
+    # the payoff rule has its own tests (tests/test_qf15_narrative_payoff.py)
+    payoff = "The rock itself holds the stones in place."
+    body = body.replace(payload["payoff_sentence"], payoff)
     return ScriptPackage.model_validate({**payload, "narration_script": opening + " " + body,
-                                         "hook_sentence": opening, **extra})
+                                         "hook_sentence": opening, "payoff_sentence": payoff, **extra})
 
 
 @pytest.mark.parametrize("opening", [
@@ -131,8 +135,8 @@ def test_a_long_draft_with_a_long_hook_is_edited_not_rewritten(monkeypatch, cura
     good_hook = "No mortar holds these stones together."
     closing = curated_payload["closing_sentence"]
 
-    def narration(first, words):
-        return first + " " + " ".join(["word"] * words) + ". " + closing
+    def narration(first, words):   # QF-15: the payoff package() marks stays the penultimate sentence
+        return first + " " + " ".join(["word"] * words) + ". The rock itself holds the stones in place. " + closing
 
     long_draft = package(curated_payload, long_hook).model_copy(update={"narration_script": narration(long_hook, 120)})
     monkeypatch.setattr(engine, "spoken_length_problems", lambda pkg: [] if len(pkg.narration_script.split()) < 140 else [

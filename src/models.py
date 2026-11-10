@@ -7,7 +7,7 @@ The same schema constrains Claude's structured output and validates curated scri
 
 from typing import Annotated, List, Literal, Optional
 
-from pydantic import BaseModel, BeforeValidator, Field
+from pydantic import BaseModel, BeforeValidator, ConfigDict, Field
 
 
 class ThumbnailCopy(BaseModel):
@@ -201,12 +201,24 @@ class SentenceTrace(BaseModel):
     trace_type: Literal["domain_fact", "open_historical_debate", "epistemic_negation", "rhetorical_framing"] = "domain_fact"
 
 
+def _payoff_required(schema: dict) -> None:
+    """The writer's schema asks for payoff_sentence (QF-15), though a payload saved without it still parses."""
+    required = schema.setdefault("required", [])
+    if "payoff_sentence" not in required:
+        required.append("payoff_sentence")
+
+
 class ScriptCore(BaseModel):
     """What the script writer produces in one structured call."""
+    model_config = ConfigDict(json_schema_extra=_payoff_required)
     title: str
     hook_sentence: str
     narration_script: str
     closing_sentence: str
+    # QF-15: the narration's penultimate sentence, word for word, which answers the hook and names one of its nouns
+    # (script_engine.payoff_problems). Required of the writer (_payoff_required); a payload saved before the rule
+    # parses with "" (or a None) so it can be repaired, and the missing payoff is a blocking finding, never filled in.
+    payoff_sentence: Annotated[str, BeforeValidator(lambda v: "" if v is None else v)] = ""
     caption: str
     first_comment: str
     hashtags: List[str]

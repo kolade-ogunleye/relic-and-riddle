@@ -8,6 +8,7 @@ numpy==2.4.6
 pillow==13.0.0
 fonttools==4.67.0  # OpenType tables, coverage and font instancing
 uharfbuzz==0.57.0  # one glyph run for tracked text measurement and drawing
+spacy==3.8.18  # offline noun agreement; the pinned English model is committed in data/nlp
 requests==2.34.2
 msal==1.39.0  # personal OneDrive device sign-in and silent token refresh
 cryptography==50.0.2  # encrypted backup archives and token cache

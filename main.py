@@ -572,8 +572,14 @@ class PipelineCoordinator:
         saved["_too_long_here"] = self._spoken_length_now(saved)
         # QF-14: a hook fault blocks. A library script written before the rule gets the one opening edit, fact-checked
         # again as any revision is, the same way (all four shipped entries open on 17-26 words, 2026-11-10).
-        from src.script_engine import hook_problems, opening_edit_findings
-        hook = hook_problems(saved.get("narration_script") or "")
+        # QF-15: so does a payoff fault, in the same one edit (no shipped entry has a payoff_sentence).
+        from src.script_engine import (
+            hook_problems,
+            opening_edit_findings,
+            payoff_problems,
+        )
+        hook = (hook_problems(saved.get("narration_script") or "")
+                + payoff_problems(saved.get("narration_script") or "", saved.get("payoff_sentence") or ""))
         saved["_weak_hook_here"] = opening_edit_findings(hook) if hook else ""
         return saved
 
@@ -2040,10 +2046,13 @@ class PipelineCoordinator:
                                                checkpoints, kept_words)
         # QF-14 (operator ruling 2026-11-10): an opening that ships without an early signal is flagged on the review
         # card for the operator to judge; the flag follows the words the run will voice.
-        from src.script_engine import hook_signal_note
-        flag = hook_signal_note(checked.get("narration_script") or "")
-        if flag != (checked.get("hook_signal_note") or ""):
-            checked = {k: v for k, v in checked.items() if k != "hook_signal_note"} | ({"hook_signal_note": flag} if flag else {})
+        # QF-15 (operator ruling 2026-11-10): likewise a payoff that names none of the opening's nouns.
+        from src.script_engine import hook_signal_note, payoff_note
+        for key, flag in (("hook_signal_note", hook_signal_note(checked.get("narration_script") or "")),
+                          ("payoff_note", payoff_note(checked.get("narration_script") or "",
+                                                      checked.get("payoff_sentence") or ""))):
+            if flag != (checked.get(key) or ""):
+                checked = {k: v for k, v in checked.items() if k != key} | ({key: flag} if flag else {})
         if checked is not payload:
             payload = checked
             saved_script.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
@@ -2570,15 +2579,26 @@ class PipelineCoordinator:
             # first sentence is itself an asked line, its words are kept and no call is made. A weak signal alone does
             # not block (operator ruling 2026-11-10): that script is reworded as before, and its opening is not
             # edited again (script_engine._edit_story, once per opening).
+            # QF-15: likewise a kept script with a blocking payoff fault (every script written before the rule has no
+            # payoff_sentence): its edit would change the penultimate sentence, unless that is itself an asked line. A
+            # payoff that only names no opening noun is reworded as before and not edited again (once per payoff).
             from src.script_engine import (
                 _first_sentence,
+                _split_sentences,
                 blocking_problems,
                 hook_problems,
+                payoff_problems,
             )
-            if (blocking_problems(hook_problems(payload["narration_script"]))
-                    and _first_sentence(payload["narration_script"]) not in [v["sentence"] for v in missing]):
+            narration, asked = payload["narration_script"], [v["sentence"] for v in missing]
+            penultimate = (_split_sentences(narration)[-2:-1] or [""])[0]
+            if (blocking_problems(hook_problems(narration)) and _first_sentence(narration) not in asked):
                 left, missing = missing, []
                 why_left = "the kept script's opening fails the hook rule's cap or label; a rewording would be refused"
+                log.info("Line-picture check: the kept script stands (%s).", why_left)
+            elif (blocking_problems(payoff_problems(narration, payload.get("payoff_sentence") or ""))
+                  and penultimate not in asked):
+                left, missing = missing, []
+                why_left = "the kept script has no payoff the payoff rule accepts; a rewording would be refused"
                 log.info("Line-picture check: the kept script stands (%s).", why_left)
         if missing:
             log.info("Before the voice, %d line(s) name something no photo shows; sent back to the writer (at most %d "

@@ -13,17 +13,19 @@ from src.models import ScriptPackage
 from src.script_engine import ScriptEngine
 
 SHEET = {"topic_id": "t1", "facts": [], "sources": [{"title": "X", "url": "https://en.wikipedia.org/wiki/X", "tier": 2}]}
+LENGTH_PAYOFF = "That city sheltered families."
 
 
 def length_fixture(words, closing):
     # Isolate length repair with a valid opening; dedicated QF14 tests exercise
     # the independent hook repair and its failure behavior.
     opening = "In 1963, a renovation revealed an underground city."
-    rest = words - len(opening.split())
-    return opening + " " + " ".join(["word"] * rest) + ". " + closing
+    rest = words - len(opening.split()) - len(LENGTH_PAYOFF.split())
+    return opening + " " + " ".join(["word"] * rest) + ". " + LENGTH_PAYOFF + " " + closing
 
 
 def _engine(monkeypatch, curated_payload):
+    curated_payload["payoff_sentence"] = LENGTH_PAYOFF
     engine = ScriptEngine()
     monkeypatch.setattr(script_engine, "_ready", lambda: True)
     monkeypatch.setattr(engine, "_sheet", lambda topic: SHEET)

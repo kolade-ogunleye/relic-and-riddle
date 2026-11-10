@@ -26,6 +26,8 @@ BASE_DIR = Path(os.getenv("RELIC_APP_ROOT") or Path(__file__).resolve().parent.p
 DATA_DIR = BASE_DIR / "data"
 TOPICS_DIR = DATA_DIR / "topics"
 CURATED_SCRIPTS_DIR = DATA_DIR / "scripts"
+# QF-15: the offline English tagger for the payoff rule, shipped with the code (not the app root's data), hash-verified
+PAYOFF_NLP_DIR = Path(__file__).resolve().parent.parent / "data/nlp/en_core_web_sm"
 SFX_DIR = DATA_DIR / "sfx"
 ASSETS_DIR = BASE_DIR / "assets"
 FONTS_DIR = BASE_DIR / "fonts"

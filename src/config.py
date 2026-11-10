@@ -377,6 +377,12 @@ TARGET_WORD_COUNT_MAX = 115
 # pace 105 words ran 52.9 s, so a fixed 105-115 window and the 51.5 s limit left no valid draft).
 WORD_COUNT_FLOOR = 85
 WORD_COUNT_CEILING = 130
+# The hook (QF-14, fixed rules, not settings): the narration's first sentence, which is the first caption burst's
+# sentence, is at most HOOK_MAX_WORDS spoken words, and a number, scale, contrast or question arrives within its first
+# HOOK_SIGNAL_WITHIN. Both get the one targeted opening edit; the cap then blocks, a missing signal ships flagged on
+# the review card (operator ruling 2026-11-10; script_engine.hook_problems).
+HOOK_MAX_WORDS = 12
+HOOK_SIGNAL_WITHIN = 8
 MIN_SCENE_IMAGES = 9
 PHOTO_POOL_REFRESH_DAYS = 90
 PHOTO_POOL_REFRESH_BELOW = 12

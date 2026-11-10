@@ -18,7 +18,7 @@ import main
 from src import beat_images, config, image_review, improve, motion, museum_sources, prevoice_lines, scene_planner
 from src.models import BeatQuery
 
-HOOK = "Deep under the plain lies a city carved into soft rock."
+HOOK = "Under the plain, a city descends eight levels into soft rock."
 SHAFT = "Ventilation shafts carried fresh air down eight levels."
 STORES = "Families kept their livestock and food supplies far below."
 WARS = "During the long wars, whole sections were sealed off."
@@ -123,6 +123,28 @@ def test_a_pictures_rewording_that_touches_another_line_is_refused(world):
     out = world.check(_payload(), kept_words=True)
     assert out["narration_script"] == SCRIPT                            # the approved script stands
     assert "changed other lines too" in out["picture_lines_note"]
+
+
+def test_a_kept_pre_rule_opening_over_the_cap_is_not_reworded_for_its_pictures(world):
+    """QF-14: a kept script written before the hook rule opens over its 12-word cap (a blocking fault). Its rewording
+    would be refused at its opening, and a pictures regeneration refuses any change outside the asked lines: no call
+    is spent."""
+    world.coord._operator_feedback = {"reason": "pictures"}
+    pre_rule = "Deep under the quiet plain of the region lies an old city carved into soft rock."   # 16 words
+    original = _payload(SCRIPT.replace(HOOK, pre_rule))
+    out = world.check(original, kept_words=True)
+    assert world.revisions == [] and out["narration_script"] == original["narration_script"]
+    assert set(out[prevoice_lines.STAGE]["left"]) == {STORES, WARS}
+
+
+def test_a_kept_opening_with_only_a_weak_signal_is_still_reworded_for_its_pictures(world):
+    """A weak signal alone does not block (operator ruling 2026-11-10): the kept script gets its pictures rewording as
+    before QF-14, and its opening stays word for word."""
+    world.coord._operator_feedback = {"reason": "pictures"}
+    signal_only = "Deep under the plain lies a city carved into soft rock."   # no signal in its first 8 tokens
+    out = world.check(_payload(SCRIPT.replace(HOOK, signal_only)), kept_words=True)
+    assert len(world.revisions) == 1 and out["narration_script"].startswith(signal_only)
+    assert STORES_REWORDED in out["narration_script"]
 
 
 @pytest.mark.parametrize("reason", ["sound", "voice", "cover_kept"])

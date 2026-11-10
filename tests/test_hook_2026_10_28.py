@@ -29,14 +29,14 @@ LABEL_FIRST = [
 
 # Openings for real topics in data/topics/topic_bank.json (title -> first sentence): the fact or the riddle first.
 GOOD_HOOKS = {
-    "The Kailasa Temple Monolith": "They carved this 100-foot temple out of a single rock—starting from the top.",
+    "The Kailasa Temple Monolith": "They carved this 100-foot temple from one rock—starting at the top.",
     "The Kailasa Temple Monolith (question)": "How do you carve a temple from the top down?",
     "The Kailasa Temple Monolith (scale first)": "This 100-foot temple was carved from one rock.",
     "The Unsolved Voynich Manuscript": "A 600-year-old book has defeated every attempt to read it.",
     "The Tunguska Event of 1908": "In 1908, something flattened 80 million trees and left no crater.",
     "The Dyatlov Pass Mystery": "In 1959, nine hikers cut their way out of their tent.",
     "The 4th-Century Lycurgus Cup": "A 1,600-year-old Roman cup glows green, then turns red.",
-    "Operation Acoustic Kitty": "In the 1960s, the CIA reportedly tried to turn a cat into a microphone.",
+    "Operation Acoustic Kitty": "In the 1960s, the CIA reportedly tried turning cats into microphones.",
     "The Flannan Isle Lighthouse Vanishing": "In December 1900, three lighthouse keepers vanished without a trace.",
     "The Richat Structure: The Eye of the Sahara": "Why does a 40-kilometre bullseye stare up from the Sahara?",
 }
@@ -59,7 +59,7 @@ def test_a_long_first_sentence_is_sent_back_even_without_a_label():
             "It led down.")
     problems = hook_problems(long)
     assert len(problems) == 1 and "17-word" in problems[0]
-    # A dash joins no words: "rock—starting" is two of the fourteen, and fourteen is the limit.
+    # A dash joins no words: "rock—starting" is two of the twelve.
     assert len(script_engine._spoken_words(GOOD_HOOKS["The Kailasa Temple Monolith"])) == script_engine.HOOK_MAX_WORDS
 
 
@@ -82,10 +82,10 @@ def _pkg(curated_payload, first: str, **extra) -> ScriptPackage:
                                              hook_sentence=first, **extra))
 
 
-def test_a_new_draft_is_held_to_the_hook_but_a_kept_script_is_not(monkeypatch, curated_payload):
+def test_hook_quality_is_separate_from_basic_structure_validation(monkeypatch, curated_payload):
     monkeypatch.setattr(script_engine, "spoken_length_problems", lambda pkg: [])
     weak = _pkg(curated_payload, LABEL_FIRST[0])
-    assert not validate_structure(weak)                                  # kept and library scripts stay usable
+    assert not validate_structure(weak)  # final verification separately enforces hook quality
     assert any(p.startswith(script_engine.HOOK_PROBLEM) for p in draft_problems(weak))
     assert draft_problems(_pkg(curated_payload, GOOD_HOOKS["The Dyatlov Pass Mystery"])) == []
 
@@ -103,11 +103,12 @@ def _engine(monkeypatch, drafts):
     return engine, feedbacks
 
 
-def test_a_weak_opening_alone_costs_no_rewrite(monkeypatch, curated_payload):
+def test_a_weak_opening_alone_requires_a_corrected_draft(monkeypatch, curated_payload):
     weak = _pkg(curated_payload, LABEL_FIRST[0])
-    engine, feedbacks = _engine(monkeypatch, [weak])
+    good = _pkg(curated_payload, GOOD_HOOKS["The Dyatlov Pass Mystery"])
+    engine, feedbacks = _engine(monkeypatch, [weak, good])
     out = engine.generate_script({"id": "t", "title": "T"})
-    assert len(feedbacks) == 1 and out["narration_script"].startswith(LABEL_FIRST[0])
+    assert len(feedbacks) == 2 and out["narration_script"].startswith(GOOD_HOOKS["The Dyatlov Pass Mystery"])
 
 
 def test_a_rewrite_for_another_fault_is_told_to_fix_the_opening_too(monkeypatch, curated_payload):

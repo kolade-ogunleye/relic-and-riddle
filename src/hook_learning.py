@@ -4,7 +4,7 @@
 The feed autoplays: a new viewer meets the Reel's first frame and first sentence, not its cover. Whether they
 stay past three seconds is measured (Instagram's 3-second skip rate; on Facebook, the share of viewers still
 watching at 3 s on its retention curve), but nothing tied it back to how the Reel opened. Every hook stays
-inside the writer's rules (VERIFIED_USER_PROMPT_TEMPLATE: the most surprising verified fact, at most 14 words);
+inside the writer's rules (VERIFIED_USER_PROMPT_TEMPLATE: the most surprising verified fact, at most config.HOOK_MAX_WORDS words, QF-14);
 the form is how that fact is delivered:
 
 - discovery: what was found, stated plainly ("Beneath a house in Cappadocia, a city lay hidden.");
@@ -22,6 +22,8 @@ from __future__ import annotations
 import logging
 import re
 from typing import Any
+
+from . import config
 
 log = logging.getLogger(__name__)
 
@@ -116,10 +118,13 @@ def steer_note(form: str | None) -> str:
 
 def revision_note(form: str, hook: str) -> str:
     """The findings for the soft check's one revision: recast the first sentence in `form`, same fact, nothing
-    else changed (read by the surgical reviser, which edits only the sentences named)."""
+    else changed (read by the surgical reviser, which edits only the sentences named). It names what the hook rule
+    accepts (script_engine.HOOK_FORMS), so the revision can pass it."""
+    from .script_engine import HOOK_FORMS
     return (f"Hook form: the first sentence (also hook_sentence) \"{hook}\" is not in the asked form "
             f"({form}). {STEERS[form]} Rewrite only that sentence (and hook_sentence to match), keeping the same "
-            "verified fact, its hedge if it has one, and at most 14 words. Change nothing else.")
+            f"verified fact, its hedge if it has one, and at most {config.HOOK_MAX_WORDS} words, with its figure, "
+            f"contrast or question within the first {config.HOOK_SIGNAL_WITHIN}. {HOOK_FORMS} Change nothing else.")
 
 
 def follow_rate(rows: list[dict[str, Any]]) -> str | None:

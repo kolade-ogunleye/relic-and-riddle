@@ -44,7 +44,18 @@ class ScriptUnavailableError(RuntimeError):
     pass
 
 
-HOOK_MAX_WORDS = 14  # the first sentence lands inside the two seconds viewers decide in (hook_problems)
+HOOK_MAX_WORDS = config.HOOK_MAX_WORDS
+# What the hook rule accepts, said to the writer, the opening edit and every rewrite (QF-14 round 4: a refusal names
+# what passes, so one edit can comply). Each example passes hook_signal (tests/test_qf14_hook_enforcement.py). Worded
+# without the plural "words", which improve.classify files under script.length.
+HOOK_FORMS = (f"A hook passes with one of these among its first {config.HOOK_SIGNAL_WITHIN} spoken tokens, in a first "
+              f"sentence of at most {config.HOOK_MAX_WORDS}: a number ('80 million trees', 'thirty-six hours', "
+              "'a single cliff', 'the first'); a superlative ('the largest obelisk', 'the most precise gears', 'the only "
+              "map', \"the world's oldest\"); a comparison ('older than Stonehenge', 'more than 600 entrances', "
+              "'predates writing'); a contrast ('no crater', 'never read', 'without mortar', 'couldn't', 'yet', 'but', "
+              "'despite', 'before farming', 'still stands', 'vanished', 'unknown'); a span of time ('for centuries', "
+              "'two millennia'); or a question that starts on its question word ('How did...?', 'Why does...?'). "
+              "Vague size ('massive', 'immense', 'colossal') does not count. Keep it a verified fact.")
 
 SYSTEM_PROMPT = """You are a documentary scriptwriter producing short vertical Reels (1080x1920) for Facebook and Instagram in the "Historical Curiosities & Ancient Marvels" niche. Accuracy is the brand: viewers and Meta's integrity systems punish fabricated or exaggerated history, so every factual statement you write must be something you have confirmed with web search.
 
@@ -56,7 +67,7 @@ Editorial rules:
       - Relic Artifacts: Precision Beyond Its Era (micro-mechanics, astronomical gear trains, or metallurgy more refined than its period is known for), stated as documented fact, never as "lost" or impossible technology.
       - Riddle Events & Cataclysms: Sudden Forensic Anomaly (stark physical devastation, colossal atmospheric shockwave, zero impact crater, or vanished expeditions).
       NEVER start Beat 1 with greetings ('Hey guys'), generic rhetorical questions ('Have you ever wondered'), or robotic hedge words ('Estimated,', 'Approximately,'). Hook the audience immediately with an arresting, tangible reality.
-      Lead with the mystery: viewers decide in under two seconds. The first sentence is at most {HOOK_WORDS} words and delivers the impossible fact, or poses the riddle, within its first 8 words: a stark claim carrying a number or a scale (e.g. "They carved a 100-foot temple out of a single rock, starting from the top.") or a visual-challenge question the opening picture poses (e.g. "How do you carve a temple from the top down?"). Never open on a label that names the subject before the mystery ("This massive X was...", "This is the...", "Meet the...", "Here is...", "X is a..."). The hook is a verified fact like every other sentence.
+      Lead with the mystery: viewers decide in under two seconds. The first sentence is at most {HOOK_WORDS} words and delivers the impossible fact, or poses the riddle, within its first 8 words ({HOOK_FORMS}): a stark claim carrying a number or a scale (e.g. "They carved a 100-foot temple from one rock, starting at the top.") or a visual-challenge question the opening picture poses (e.g. "How do you carve a temple from the top down?"). Never open on a label that names the subject before the mystery ("This massive X was...", "This is the...", "Meet the...", "Here is...", "X is a..."). The hook is a verified fact like every other sentence.
   (2) Forensic Evidence & Underlying Mechanism (Beat 2): Concrete physical evidence, exact metrics, tree rings, seismic data, metallurgy, materials, or gears.
   (3) Epistemic Integrity & Leading Hypotheses (Beat 3): Where figures or causes are debated, present the leading scientific hypotheses with fluent, natural phrasing (e.g. 'physicists calculate that...', 'physical models suggest roughly...', 'ranging between X and Y').
   (4) Civilizational / Modern Relevance & High Stakes (Beat 4): Why this anomaly matters to modern science, engineering, or planetary resilience.
@@ -80,7 +91,8 @@ SYSTEM_PROMPT = (SYSTEM_PROMPT.replace("{WORDS_MIN}", str(TARGET_WORD_COUNT_MIN)
                  .replace("{WORDS_MAX}", str(TARGET_WORD_COUNT_MAX))
                  .replace("{SECONDS_MIN}", f"{TARGET_DURATION_MIN:g}")
                  .replace("{SECONDS_MAX}", f"{TARGET_DURATION_MAX:g}")
-                 .replace("{HOOK_WORDS}", str(HOOK_MAX_WORDS)))
+                 .replace("{HOOK_WORDS}", str(HOOK_MAX_WORDS))
+                 .replace("{HOOK_FORMS}", HOOK_FORMS))
 
 RESEARCH_SYSTEM = """You are a research assistant for a history documentary team. Use web search to establish what reliable sources (scholarship, museums, heritage bodies, reputable encyclopedias and press) say about the topic. Report concrete, citable facts with numbers and dates, note where sources disagree and give the range, flag popular claims that are myths or exaggerations, and identify the genuine open questions. Be concise and factual."""
 
@@ -100,7 +112,7 @@ Location: {location}
 Topic notes (unverified): {key_facts}
 
 Requirements:
-- narration: open on the verified facts' most surprising discovery or human-stakes fact (the mystery first: viewers decide in under two seconds), never on a list of measurements; the first sentence at most 14 words. Place the site for the viewer ({location}: its region or country, not only its own name) within the first 3 sentences. Never put a unit conversion or an aside in brackets: the voice does not say it. The title, the caption and the narration tell the same story: a figure, year or discovery the title or caption leads with is told in the narration too. Word budget by role: the hook (at most 14 words) carries the discovery or mystery and, ideally, the place; the place is named inside an existing sentence ("Beneath a house in <place>, <country>, ..."), never as a sentence added for it; then 3-4 fact sentences; then the closing sentence; the total inside the Length range below. The discovery-first opening replaces measurement sentences, it is not added to them; one hedge may cover two related figures.
+- narration: open on the verified facts' most surprising discovery or human-stakes fact (the mystery first: viewers decide in under two seconds), never on a list of measurements; the first sentence at most 12 words. Place the site for the viewer ({location}: its region or country, not only its own name) within the first 3 sentences. Never put a unit conversion or an aside in brackets: the voice does not say it. The title, the caption and the narration tell the same story: a figure, year or discovery the title or caption leads with is told in the narration too. Word budget by role: the hook (at most 12 words) carries the discovery or mystery and, ideally, the place; the place is named inside an existing sentence ("Beneath a house in <place>, <country>, ..."), never as a sentence added for it; then 3-4 fact sentences; then the closing sentence; the total inside the Length range below. The discovery-first opening replaces measurement sentences, it is not added to them; one hedge may cover two related figures.
 - thumbnail: the cover's words, shared by every cover style, the carousel and the YouTube thumbnail: eyebrow (a short kicker), line1 and line2 (the headline) and tagline (the deck under it), each at most 22 characters. A figure in them follows the headline rule: an undisputed figure as the facts give it; a disputed one never as one number taken from its range: as the facts' own span in the same unit (both ends stated), as a floor at or below the lowest figure ("1,000+"), or not at all (a headline without the figure); none that only one estimate gives. A size says what it measures, in the facts' own word ("144 FT ACROSS" for a diameter, "280 FT DEEP"), never a bare "144-FOOT". A line that shortens a fact keeps every word that limits it: "NO IRON CLAMPS" where the fact says "without the use of iron clamps", never "BUILT WITHOUT CLAMPS"; a superlative keeps its place and time ("ONCE THE REGION'S LARGEST"). A year says what happened in it, in the facts' word for that year ("FOUND 1963" where the facts say "rediscovered in 1963"), never bare beside a place (a city's name and a bare year read as its founding date). The deck poses the open question or the stake from a verified fact, never gives away the answer the video builds to ("CARVED BY NATURE" ends the riddle before it starts); leave the tagline empty rather than restate the headline.
 - title: the Facebook Reel title shown under the video: at most 60 characters, specific and intriguing (a name, a number or a tension, not a label like "The History of X"); at most one relevant emoji.
 - caption: written like a magazine editor, not a template. First line: a curiosity-driven line of at most 110 characters (a hard limit of 125 is shown before "more"; stay well under it) that is NOT the narration's hook sentence. Then 2-3 short sentences that add context the video doesn't say (a detail, a consequence, a name), with the place worked naturally into the prose. Then one genuine question to the audience. Then the hashtags on the last line. Use 1-3 relevant emoji where they add warmth or meaning (for example one at the end of the first line and one on the question), never as labels or bullet markers, and no "📍" lines. Under 1,600 characters.
@@ -122,7 +134,7 @@ Sub-theme: {sub_theme}
 Location: {location}
 
 Requirements:
-- narration: open on the verified facts' most surprising discovery, central anomaly, or human-stakes tension (the mystery first: viewers decide in under two seconds), never on a list of measurements; the first sentence at most 14 words. Build the opening hook strictly from verified facts or genuine open debates; never invent unverified framing. Place the site for the viewer ({location}: its region or country, not only its own name) within the first 3 sentences. Never put a unit conversion or an aside in brackets: the voice does not say it. The title, the caption and the narration tell the same story: a figure, year or discovery the title or caption leads with is told in the narration too. Word budget by role: the hook (at most 14 words) carries the discovery or mystery and, ideally, the place; the place is named inside an existing sentence ("Beneath a house in <place>, <country>, ..."), never as a sentence added for it; then 3-4 fact sentences; then the closing sentence; the total inside the Length range below. The discovery-first opening replaces measurement sentences, it is not added to them; one hedge may cover two related figures.
+- narration: open on the verified facts' most surprising discovery, central anomaly, or human-stakes tension (the mystery first: viewers decide in under two seconds), never on a list of measurements; the first sentence at most 12 words. Build the opening hook strictly from verified facts or genuine open debates; never invent unverified framing. Place the site for the viewer ({location}: its region or country, not only its own name) within the first 3 sentences. Never put a unit conversion or an aside in brackets: the voice does not say it. The title, the caption and the narration tell the same story: a figure, year or discovery the title or caption leads with is told in the narration too. Word budget by role: the hook (at most 12 words) carries the discovery or mystery and, ideally, the place; the place is named inside an existing sentence ("Beneath a house in <place>, <country>, ..."), never as a sentence added for it; then 3-4 fact sentences; then the closing sentence; the total inside the Length range below. The discovery-first opening replaces measurement sentences, it is not added to them; one hedge may cover two related figures.
 - sentence_trace: For every single sentence in the narration_script, provide an entry in sentence_trace: the exact sentence text, the supporting fact_ids from <verified_facts> (e.g. ["F1"], ["F3"]), and trace_type ("domain_fact", "open_historical_debate", "epistemic_negation", or "rhetorical_framing"). If a sentence expresses an open debate or rhetorical question without a specific fact, set fact_ids=[] and set trace_type accordingly.
 - thumbnail: the cover's words, shared by every cover style, the carousel and the YouTube thumbnail: eyebrow (a short kicker), line1 and line2 (the headline) and tagline (the deck under it), each at most 22 characters. A figure in them follows the headline rule: an undisputed figure as the facts give it; a disputed one never as one number taken from its range: as the facts' own span in the same unit (both ends stated), as a floor at or below the lowest figure ("1,000+"), or not at all (a headline without the figure); none that only one estimate gives. A size says what it measures, in the facts' own word ("144 FT ACROSS" for a diameter, "280 FT DEEP"), never a bare "144-FOOT". A line that shortens a fact keeps every word that limits it: "NO IRON CLAMPS" where the fact says "without the use of iron clamps", never "BUILT WITHOUT CLAMPS"; a superlative keeps its place and time ("ONCE THE REGION'S LARGEST"). A year says what happened in it, in the facts' word for that year ("FOUND 1963" where the facts say "rediscovered in 1963"), never bare beside a place (a city's name and a bare year read as its founding date). The deck poses the open question or the stake from a verified fact, never gives away the answer the video builds to ("CARVED BY NATURE" ends the riddle before it starts); leave the tagline empty rather than restate the headline.
 - title: the Facebook Reel title shown under the video: at most 60 characters, specific and intriguing (a name, a number or a tension, not a label like "The History of X"); at most one relevant emoji.
@@ -204,7 +216,7 @@ sentences, open on the story the title and caption tell, or cut the first senten
 each with verified facts only and every hedge kept. Never add a sentence for it: name the place inside an existing
 sentence ("Beneath a house in <place>, <country>, ..."), and let the discovery replace a measurement sentence. If the
 first sentence changes, apply the same edit to hook_sentence.
-WORD BUDGET (every edit keeps it): the hook at most 14 words, 3-4 fact sentences, the closing sentence, the total
+WORD BUDGET (every edit keeps it): the hook at most 12 words, 3-4 fact sentences, the closing sentence, the total
 inside the word window a LENGTH finding names.
 GRAPHICS (stat cards, timeline, scale, cross-section, route, photo labels, emphasis words) are listed under <graphics>,
 one field per line by its path. To change one, set "target" to that path ("stat_cards[2].value") with "find" = the
@@ -1364,15 +1376,69 @@ def repair_poll(question: str, options: List[str], narration: str = "") -> Optio
 # On the operator's Reel: "Lead with the mystery ... the initial phrase 'This Massive Hindu' doesn't immediately
 # reveal the mystery"; viewers decide in under two seconds and about 71% had scrolled away by the fourth. The
 # first caption burst is the first two to five words of the first sentence (video_composer's partition), so the
-# sentence itself has to open on the fact or the riddle. Checked on a writer's new drafts (draft_problems), and
-# sent back with whatever else a rewrite fixes, at no extra call: a draft whose only fault is its opening is
-# kept and the finding recorded (HOOK_FORCES_REWRITE), and kept and library scripts written before the rule
-# stay usable (validate_structure leaves the opening alone) rather than being paid for again.
+# sentence itself has to open on the fact or the riddle. QF-14: every hook fault blocks. A writer's draft gets the one
+# targeted opening edit (_edit_story) and a rewrite only when that fails; verify_claims refuses a curated or cached
+# script with one, and a library script is edited before use (main.py _script_from_library). It is a lexical floor
+# (form and position), not a judge of how interesting the fact is.
 HOOK_PROBLEM = "Hook: "         # every hook problem starts so; the writer loop recognises them
-HOOK_FORCES_REWRITE = False     # True: a weak opening alone costs a writer rewrite
+# Operator ruling 2026-11-10 (decisions/QF-14-hook-rule.md): the 12-word cap and a label opening block; a missing
+# signal in the first 8 tokens gets the one opening edit and then ships, flagged on the review card
+# (hook_signal_note), until a semantic hook judge exists (QF-17). Its finding starts so (a hook problem too).
+HOOK_SIGNAL_PROBLEM = HOOK_PROBLEM + "weak signal: "
 HOOK_NUMBER_WITHIN = 4          # a "This X was" opening is a stark claim when its number comes this early
 _NUMBER_WORDS = set("""two three four five six seven eight nine ten eleven twelve twenty thirty forty fifty sixty
 hundred hundreds thousand thousands million millions billion billions dozen dozens half""".split())
+# The signal a hook carries within its first HOOK_SIGNAL_WITHIN words (config), by grammatical category, never a
+# topic's words (QF-14 round 4: each category covers its grammar, not the examples a corpus happened to hold):
+# - number: a digit, a number word (hyphenated parts count: "thirty-six"), a singular count ("one", "single", "sole",
+#   "lone") or an ordinal of rank ("first");
+# - scale: a superlative (an -est form of a dimension or age adjective, an irregular one, "most"/"least" before a
+#   word, "only", "world's"), a comparison ("<comparative> than", "more/less/fewer than", "predates", "outlasted"), or
+#   a span of time too long to picture ("decades", "centuries", "millennia");
+# - contrast: a negation ("no", "never", "without", any "n't"), an adversative ("yet", "but", "despite", "although"),
+#   an earlier-than marker ("before", "until"), persistence ("still"), a vanishing or surviving verb, or the unknown
+#   ("unknown", "unsolved", "unread");
+# - question: a sentence that starts on its question word.
+# Left out on purpose: vague size adjectives ("massive", "immense", "colossal"; "This massive Hindu temple" is the
+# opening the rule was made for), and "after", which orders events forward and opens the scene-setting lead-in
+# ("After the war, ...") that QF-73 found on the topic bank's date-first hooks.
+_DIMENSIONS = ("old", "young", "large", "small", "big", "long", "short", "tall", "deep", "high", "low", "heavy",
+               "light", "strong", "weak", "hard", "soft", "fast", "slow", "early", "late", "wide", "narrow", "thick",
+               "thin", "bright", "dark", "hot", "cold", "great", "rare", "fine", "dense", "far", "near", "steep",
+               "vast")
+
+
+def _degree(base: str, suffix: str) -> str:
+    """The comparative (suffix "er") or superlative ("est") of a one- or two-syllable adjective."""
+    if base.endswith("e"):
+        return base + suffix[1:]
+    if base.endswith("y") and base[-2] not in "aeiou":
+        return base[:-1] + "i" + suffix
+    if base in ("big", "hot", "thin", "fat", "wet", "sad"):
+        return base + base[-1] + suffix
+    return base + suffix
+
+
+_SUPERLATIVES = {_degree(b, "est") for b in _DIMENSIONS} | {"best", "worst", "least", "most", "only", "first"}
+_COMPARATIVES = {_degree(b, "er") for b in _DIMENSIONS} | {"more", "less", "fewer", "better", "worse", "further",
+                                                          "farther", "rather"}
+# "most"/"least" before these is a quantity ("most of the city"), not a superlative
+_NOT_DEGREE = {"of", "the", "a", "an", "is", "are", "was", "were", "have", "had", "people", "visitors", "scholars"}
+_HOOK_SIGNALS = {
+    "number": _NUMBER_WORDS | {"one", "zero", "seventy", "eighty", "ninety", "thirteen", "fourteen", "fifteen",
+                               "sixteen", "seventeen", "eighteen", "nineteen", "first", "twice", "single", "sole",
+                               "lone"},
+    "contrast": {"no", "not", "never", "nothing", "nobody", "none", "nor", "neither", "nowhere", "without", "cannot",
+                 "yet", "but", "despite", "although", "though", "instead", "unlike", "before", "until", "still",
+                 "vanished", "vanish", "vanishes", "disappeared", "survived", "survives", "survive", "outlasted",
+                 "outlived", "defied", "defies", "unknown", "unsolved", "unexplained", "unread", "undeciphered",
+                 "unidentified", "impossible"},
+    # comparative verbs: a comparison stated as a verb
+    "scale": _SUPERLATIVES - {"most", "least", "first"} | {"predates", "predated", "predate", "outlasts", "decades",
+                                                         "centuries", "millennia", "millennium"},
+}
+_HOOK_QUESTION = re.compile(r"^(?:how|why|what|who|whom|whose|where|when|which|can|could|did|does|do|is|are|was"
+                            r"|were|would|will|should|has|have|had)\b", re.IGNORECASE)
 # Openings that name or introduce before they say anything: never a hook, whatever follows.
 _LABEL_OPENERS = re.compile(
     r"^(?:this\s+is|these\s+are|that\s+is|those\s+are|here(?:'s|’s|\s+is|\s+are)|meet|welcome\s+to|introducing"
@@ -1706,9 +1772,8 @@ def headline_problems(pkg: ScriptPackage, sheet: Optional[Dict[str, Any]] = None
 
 
 def _opening_faults(problems: List[str]) -> List[str]:
-    """The faults one edit of the opening fixes: the story problems and a first sentence over HOOK_MAX_WORDS."""
-    return [p for p in problems or [] if p.startswith(STORY_PROBLEM)
-            or (p.startswith(HOOK_PROBLEM) and "-word sentence" in p)]
+    """All hook faults and the opening's existing story faults share one edit."""
+    return [p for p in problems or [] if p.startswith((STORY_PROBLEM, HOOK_PROBLEM))]
 
 
 def story_problems(pkg: ScriptPackage, topic: Optional[Dict[str, Any]] = None) -> List[str]:
@@ -1718,12 +1783,31 @@ def story_problems(pkg: ScriptPackage, topic: Optional[Dict[str, Any]] = None) -
     return place_problems(pkg.narration_script, topic) + told_story_problems(pkg)
 
 
+def hook_signal(first: str) -> str | None:
+    """The kind of signal ("number", "contrast", "scale" or "question") the sentence carries within its first
+    HOOK_SIGNAL_WITHIN spoken words, or None (the categories above _HOOK_SIGNALS). A question is one that starts on
+    its question word; "most"/"least" count before a word, a comparative before "than" inside the same span."""
+    if "?" in first and _HOOK_QUESTION.match(first.lstrip("\"'“‘¿¡")):
+        return "question"
+    words = [w.strip(".,;:!?\"'“”‘’()").lower().replace("’", "'") for w in _spoken_words(first)[:config.HOOK_SIGNAL_WITHIN]]
+    for i, bare in enumerate(words):
+        if re.search(r"\d", bare) or any(part in _HOOK_SIGNALS["number"] for part in bare.split("-")):
+            return "number"
+        if bare in _HOOK_SIGNALS["contrast"] or bare.endswith("n't"):
+            return "contrast"
+        if (bare in _HOOK_SIGNALS["scale"] or bare == "world's" or (bare in ("most", "least") and i + 1 < len(words) and words[i + 1] not in _NOT_DEGREE)
+                or (bare in _COMPARATIVES and "than" in words[i + 1:i + 3])):
+            return "scale"
+    return None
+
+
 def hook_problems(narration: str) -> List[str]:
-    """Why the narration's first sentence is not a hook: it opens on a label rather than the fact or the riddle,
-    or it runs past HOOK_MAX_WORDS. A question or a stark claim with an early number passes."""
+    """Why the narration's first sentence is not a hook: it opens on a label rather than the fact or the riddle, it
+    runs past HOOK_MAX_WORDS, or no number, scale, contrast or question arrives within its first HOOK_SIGNAL_WITHIN
+    words. Each is blocking (blocking_problems) and fixed by the one opening edit (_opening_faults)."""
     first = _first_sentence(narration)
     if not first:
-        return []
+        return [f"{HOOK_PROBLEM}the narration has no opening sentence."]
     words = _spoken_words(first)
     head = " ".join(words[:5])
     early_number = any(re.search(r"\d", w) or w.strip(".,;:!?\"'“”‘’").lower() in _NUMBER_WORDS
@@ -1739,7 +1823,11 @@ def hook_problems(narration: str) -> List[str]:
         # Worded without "words" or "seconds", which improve.classify files under script.length.
         problems.append(f"{HOOK_PROBLEM}the first sentence is a {len(words)}-word sentence; a hook lands in "
                         f"{HOOK_MAX_WORDS} or fewer, since viewers decide almost at once. Cut or split it, keeping "
-                        "the fact or the riddle at its start.")
+                        f"the fact or the riddle at its start and a signal in its first {config.HOOK_SIGNAL_WITHIN}.")
+    if hook_signal(first) is None:
+        # Worded without "words" as well (improve.classify).
+        problems.append(f"{HOOK_SIGNAL_PROBLEM}the first {config.HOOK_SIGNAL_WITHIN} spoken tokens of the first sentence "
+                        f"('{' '.join(words[:config.HOOK_SIGNAL_WITHIN])} ...') carry no accepted signal. {HOOK_FORMS}")
     return problems
 
 
@@ -1864,7 +1952,7 @@ STORY_OVERFLOW = re.compile(r"^Story slide (\d)'s body takes \d+ lines on the fr
 
 def validate_structure(pkg: ScriptPackage) -> List[str]:
     """Returns a list of problems; empty means the package is structurally publishable. The opening's hook rule
-    is a new draft's (draft_problems)."""
+    is separate: a new draft's (draft_problems) and verify_claims's, for a curated or cached script."""
     problems = []
     for field, text in _bait_fields(pkg):
         bait = engagement_bait(text)
@@ -2368,14 +2456,47 @@ def cover_problems(pkg: ScriptPackage, sheet: dict[str, Any] | None = None) -> l
 
 
 def blocking_problems(problems: List[str]) -> List[str]:
-    """The problems that send a draft back: all of them, less the hook rule's unless HOOK_FORCES_REWRITE (those
-    ride along with a rewrite that happens anyway)."""
-    kept = (STORY_PROBLEM,) if HOOK_FORCES_REWRITE else (HOOK_PROBLEM, STORY_PROBLEM)
-    return [p for p in problems if not p.startswith(kept)]
+    """The problems that send a draft back: all of them but the story findings and a weak hook signal, which get the
+    one opening edit (_edit_story) and are then recorded (_note_kept_hook; the signal on the review card,
+    hook_signal_note). The hook's cap and a label opening block (QF-14, operator ruling 2026-11-10)."""
+    return [p for p in problems if not p.startswith((STORY_PROBLEM, HOOK_SIGNAL_PROBLEM))]
+
+
+def hook_signal_note(narration: str) -> str:
+    """The review card's flag for an opening that ships without a signal in its first HOOK_SIGNAL_WITHIN tokens (after
+    its one opening edit), or "": the opening and why, for the operator to judge (not a publishable field)."""
+    if not any(p.startswith(HOOK_SIGNAL_PROBLEM) for p in hook_problems(narration)):
+        return ""
+    return (f"⚠️ Weak hook signal: “{_first_sentence(narration)}” has no number, superlative, comparison, contrast or "
+            f"question in its first {config.HOOK_SIGNAL_WITHIN} spoken tokens, and the one opening edit did not add one. "
+            "Judge whether the opening holds.")
+
+
+def _opening_key(narration: str) -> str:
+    """The narration's first sentence, normalised: what "the same opening" means for the one repair edit."""
+    return " ".join(_first_sentence(narration).lower().split())
+
+
+def opening_edit_findings(faults: list[str]) -> str:
+    """The findings the one opening edit is given (_edit_story; a library script's hook, main.py)."""
+    hook = (" " + HOOK_FORMS) if any(f.startswith(HOOK_PROBLEM) for f in faults) and HOOK_FORMS not in " ".join(faults) else ""
+    return ("OPENING: " + " ".join(faults) + hook + f" Edit only what these need: the narration's first "
+            f"{PLACE_WITHIN} sentences (a new first sentence of at most {HOOK_MAX_WORDS} words keeps its facts "
+            "and hedges), and for a story the title and caption tell, the narration's opening or else the title "
+            "and the caption's first line. Keep the length and every other sentence.")
+
+
+def _length_edit_fixes(problem: str) -> bool:
+    """A fault the length edit path fixes without a rewrite: the spoken length, a repeated phrase (the same edit
+    rewords it) or the hook (the opening edit after it, _fit_length_by_editing). Before QF-14 the hook was advisory
+    here; counted as blocking without this, a long draft with a long first sentence cost a full rewrite."""
+    return "when spoken" in problem or problem.startswith((REPEAT_PROBLEM, HOOK_PROBLEM))
 
 
 def _note_kept_hook(problems: List[str]) -> None:
-    """A draft kept with a weak opening: said in the log and the findings ledger (script.hook)."""
+    """A draft kept with a story finding or a weak hook signal on its opening (after its one opening edit): said in
+    the log and the findings ledger (script.hook); the signal is also flagged on the review card (hook_signal_note).
+    The hook's cap and a label block, so neither is ever kept."""
     weak = [p for p in problems if p.startswith((HOOK_PROBLEM, STORY_PROBLEM))]
     if weak:
         log.info("Draft kept with an opening the hook rule would rewrite: %s", " ".join(weak)[:300])
@@ -2439,7 +2560,14 @@ class ScriptEngine:
             sheet = self._sheet(topic) if previous is not None and previous.get("fact_sheet") else None
             if revision_notes and previous and sheet:
                 try:
+                    # The revised script's opening already had its one repair edit, or never needed one: a revision
+                    # that keeps it sends no new signal-only opening edit (_edit_story).
+                    self.__dict__.setdefault("_openings_tried", set()).add(
+                        _opening_key(previous.get("narration_script") or ""))
                     pkg = self._revise_surgically(previous, revision_notes, sheet)
+                    if pkg is not None and "OPENING:" in revision_notes:
+                        # this revision was the one opening edit (a library script's hook): not asked again
+                        self.__dict__.setdefault("_story_tried", set()).add(pkg.narration_script)
                 except LLMError as e:
                     log.warning("Surgical revision failed (%s); rewriting the draft.", e)
                     pkg = None
@@ -2450,8 +2578,7 @@ class ScriptEngine:
                     # lines"; 2026-10-29: a caption line and a poll).
                     pkg, problems = self._narrow_edits(pkg, draft_problems(pkg), sheet)
                     problems = blocking_problems(problems)
-                    if (problems and any("when spoken" in p for p in problems)
-                            and all("when spoken" in p or p.startswith(REPEAT_PROBLEM) for p in problems)):
+                    if problems and any("when spoken" in p for p in problems) and all(map(_length_edit_fixes, problems)):
                         # The revision changed the length (production, Derinkuyu 2026-10-29: 112 words, 53.8 s):
                         # edited to the window, not the whole fact-checked draft rewritten.
                         fitted = self._fit_length_by_editing(pkg, problems, topic, "")
@@ -2508,8 +2635,7 @@ class ScriptEngine:
                 self.last_draft_problems.append(f"draft {attempt}: {_short_reason(problems)}")
                 last_problems = problems
                 improve.note_problems(problems, "structure")
-                if (any("when spoken" in p for p in blocking)
-                        and all("when spoken" in p or p.startswith(REPEAT_PROBLEM) for p in blocking)):
+                if any("when spoken" in p for p in blocking) and all(map(_length_edit_fixes, blocking)):
                     # Only the length is off (with, at most, a repeated phrase the same edit rewords): the draft is edited to the window (one short call), not written
                     # again from scratch (a rewrite took 2 min 46 s and came out at the writer's usual length
                     # again; production, 2026-10-24).
@@ -2710,7 +2836,8 @@ class ScriptEngine:
         if sheet is None:
             return None
         try:
-            length = [p for p in problems if not p.startswith(REPEAT_PROBLEM)]
+            # the hook is left to the opening edit below, on the fitted words (_narrow_edits)
+            length = [p for p in problems if not p.startswith((REPEAT_PROBLEM, HOOK_PROBLEM))]
             repeats = [p for p in problems if p.startswith(REPEAT_PROBLEM)]
             fitted = self._revise_surgically(pkg.model_dump(), "LENGTH: " + " ".join(length)
                                              + (" REPEAT: " + " ".join(repeats) if repeats else ""), sheet)
@@ -2845,7 +2972,8 @@ class ScriptEngine:
             return blocking_problems(problems)
 
         def narrow(p: str) -> bool:
-            return "when spoken" in p or p.startswith(REPEAT_PROBLEM) or copy_problem_fields(p, pkg) is not None
+            return ("when spoken" in p or p.startswith((REPEAT_PROBLEM, HOOK_PROBLEM))
+                    or copy_problem_fields(p, pkg) is not None)
 
         if (sheet is not None and _opening_faults(problems) and all(narrow(p) for p in blocking())
                 and not any("when spoken" in p for p in blocking())):   # after a length edit, on its words
@@ -2854,6 +2982,8 @@ class ScriptEngine:
             edited = self._edit_story(pkg, problems, sheet)
             if edited is not None:
                 pkg, problems = edited, draft_problems(edited)
+            elif any(p.startswith(HOOK_PROBLEM) for p in blocking()):
+                return pkg, problems   # the hook the edit could not fix sends the draft back: no further edit is spent
         if not blocking() or not all(narrow(p) for p in blocking()):
             return pkg, problems
         if any(STORY_OVERFLOW.match(p) for p in blocking()):
@@ -2882,18 +3012,22 @@ class ScriptEngine:
         caption tell that the narration does not, a first sentence over HOOK_MAX_WORDS) fixed by one surgical edit
         with the verified facts and the mandatory hedges, or None when the edit fails, fixes none of them or brings
         a new blocking fault (other than the length, which the caller edits as it would any other draft's). Asked
-        once per narration. The result is fact-checked in full like any draft."""
+        once per narration. A weak hook signal alone is asked once per opening (QF-14, operator ruling: one repair edit):
+        a later revision whose first sentence is unchanged (a fact-check round, a line-picture rewording, the final
+        copy's revision) sends no new opening edit; a new first sentence may get its own. The result is fact-checked
+        in full like any draft."""
         faults = _opening_faults(problems)
         tried = self.__dict__.setdefault("_story_tried", set())
         if not faults or pkg.narration_script in tried:
             return None
+        opening = _opening_key(pkg.narration_script)
+        openings = self.__dict__.setdefault("_openings_tried", set())
+        if all(f.startswith(HOOK_SIGNAL_PROBLEM) for f in faults) and opening in openings:
+            return None
         tried.add(pkg.narration_script)
-        findings = ("OPENING: " + " ".join(faults) + f" Edit only what these need: the narration's first "
-                    f"{PLACE_WITHIN} sentences (a new first sentence of at most {HOOK_MAX_WORDS} words keeps its facts "
-                    "and hedges), and for a story the title and caption tell, the narration's opening or else the title "
-                    "and the caption's first line. Keep the length and every other sentence.")
+        openings.add(opening)
         try:
-            edited = self._revise_surgically(pkg.model_dump(), findings, sheet)
+            edited = self._revise_surgically(pkg.model_dump(), opening_edit_findings(faults), sheet)
         except LLMError as e:
             log.warning("Opening edit failed (%s); the draft goes on as it was.", e)
             return None
@@ -3098,7 +3232,8 @@ class ScriptEngine:
         except ValidationError as e:
             return False, script_payload, f"REJECTED: payload does not match schema: {e.error_count()} errors."
 
-        problems = validate_structure(pkg) or spoken_length_problems(pkg)
+        problems = (validate_structure(pkg) or spoken_length_problems(pkg)
+                    or blocking_problems(hook_problems(pkg.narration_script)))
         if problems:
             return False, script_payload, "REJECTED: " + " ".join(problems)
 

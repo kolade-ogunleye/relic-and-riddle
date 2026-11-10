@@ -99,11 +99,13 @@ def test_an_unplaced_site_and_a_long_hook_get_one_opening_edit_not_a_rewrite(mon
     assert out["narration_script"].startswith(fixed) and out["hook_sentence"] == fixed   # the hook follows
 
 
-def test_an_opening_edit_that_fixes_nothing_keeps_the_draft(monkeypatch, curated_payload):
+def test_an_opening_edit_that_fixes_nothing_cannot_keep_the_draft(monkeypatch, curated_payload):
     engine, written, edits = _engine(monkeypatch, curated_payload, LONG_HOOK + BODY,
                                      lambda prev: ScriptPackage.model_validate(prev))
-    out = engine.generate_script(TOPIC)
-    assert written == [1] and len(edits) == 1 and out["narration_script"] == LONG_HOOK + BODY
+    monkeypatch.setattr(engine, "_load_curated", lambda topic_id: None)
+    with pytest.raises(script_engine.ScriptUnavailableError):
+        engine.generate_script(TOPIC)
+    assert written == [1, 1, 1] and len(edits) == 1
 
 
 def test_the_writer_is_told_the_story_rules():

@@ -239,6 +239,11 @@ def db(tmp_path):
 def curated_payload():
     data = json.loads(CURATED.read_text(encoding="utf-8"))
     payload = {k: v for k, v in data.items() if not k.startswith("_")}
+    # Positive guardrail fixture: keep the curated facts with an admissible hook.
+    # The repository's older curated file itself is still checked as supplied.
+    opening = "In Cappadocia, a house renovation in 1963 revealed an underground tunnel."
+    payload["narration_script"] = opening + " " + payload["narration_script"].split(". ", 1)[1]
+    payload["hook_sentence"] = opening
     payload.update({"topic_id": "derinkuyu_underground_city", "origin": "curated",
                     "location": {"name": "Derinkuyu", "country": "Turkey"}})
     return payload

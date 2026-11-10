@@ -570,16 +570,25 @@ class PipelineCoordinator:
         # measurement: three library scripts ran 51.8-53.7 s for a 51.5 s limit, 2026-10-27): the caller shortens
         # it to the measured word count and fact-checks the revision, instead of paying for a new script.
         saved["_too_long_here"] = self._spoken_length_now(saved)
+        # QF-14: a hook fault blocks. A library script written before the rule gets the one opening edit, fact-checked
+        # again as any revision is, the same way (all four shipped entries open on 17-26 words, 2026-11-10).
+        from src.script_engine import hook_problems, opening_edit_findings
+        hook = hook_problems(saved.get("narration_script") or "")
+        saved["_weak_hook_here"] = opening_edit_findings(hook) if hook else ""
         return saved
 
     def _library_payload(self, topic, run_id, run_dir, dry_run, library: Dict[str, Any]) -> Dict[str, Any]:
-        """The library script as this run's script: as it is when it fits this narrator, else shortened to the
-        measured word count and fact-checked again, as any revision is (never thrown away for a new one)."""
+        """The library script as this run's script: as it is when it fits this narrator and passes the hook rule, else
+        shortened to the measured word count and/or given the opening edit, and fact-checked again, as any revision
+        is (never thrown away for a new one)."""
         too_long = library.pop("_too_long_here", "")
+        weak_hook = library.pop("_weak_hook_here", "")
         source = (library.get("from_library") or {}).get("run_id", "another environment")
-        if too_long:
-            log.info("Library script (from %s) runs long for this voice; shortening it: %s", source, too_long[:160])
-            return self._write_and_check_script(topic, run_id, run_dir, dry_run, initial_payload=library, initial_notes=too_long)
+        if too_long or weak_hook:
+            notes = " ".join(n for n in (too_long, weak_hook) if n)
+            log.info("Library script (from %s) is edited before use (too long for this voice: %s; hook fault: %s): %s",
+                     source, bool(too_long), bool(weak_hook), notes[:160])
+            return self._write_and_check_script(topic, run_id, run_dir, dry_run, initial_payload=library, initial_notes=notes)
         log.info("Script taken from the script library (checked against this same fact sheet, from %s).", source)
         return library
 
@@ -2029,6 +2038,12 @@ class PipelineCoordinator:
         # concrete line no photo shows goes back to the writer once, while it is still only words.
         checked = self._lines_against_pictures(topic, run_id, run_dir, dry_run, payload, scene_media,
                                                checkpoints, kept_words)
+        # QF-14 (operator ruling 2026-11-10): an opening that ships without an early signal is flagged on the review
+        # card for the operator to judge; the flag follows the words the run will voice.
+        from src.script_engine import hook_signal_note
+        flag = hook_signal_note(checked.get("narration_script") or "")
+        if flag != (checked.get("hook_signal_note") or ""):
+            checked = {k: v for k, v in checked.items() if k != "hook_signal_note"} | ({"hook_signal_note": flag} if flag else {})
         if checked is not payload:
             payload = checked
             saved_script.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
@@ -2548,6 +2563,23 @@ class PipelineCoordinator:
             missing = pl.needs_rewrite(verdicts, payload) if missing else missing
         protected = pl.protected_sentences(payload)
         final, final_verdicts, rewritten, left, why_left = payload, verdicts, [], [], ""
+        if missing and for_pictures:
+            # QF-14: a kept script written before the hook rule may open over the cap or on a label (blocking faults).
+            # Its rewording would be refused at its opening and rewritten, and a pictures regeneration refuses any
+            # change outside the asked lines: every call would be spent on a result that is always refused. Unless the
+            # first sentence is itself an asked line, its words are kept and no call is made. A weak signal alone does
+            # not block (operator ruling 2026-11-10): that script is reworded as before, and its opening is not
+            # edited again (script_engine._edit_story, once per opening).
+            from src.script_engine import (
+                _first_sentence,
+                blocking_problems,
+                hook_problems,
+            )
+            if (blocking_problems(hook_problems(payload["narration_script"]))
+                    and _first_sentence(payload["narration_script"]) not in [v["sentence"] for v in missing]):
+                left, missing = missing, []
+                why_left = "the kept script's opening fails the hook rule's cap or label; a rewording would be refused"
+                log.info("Line-picture check: the kept script stands (%s).", why_left)
         if missing:
             log.info("Before the voice, %d line(s) name something no photo shows; sent back to the writer (at most %d "
                      "round(s)): %s", len(missing), pl.rounds(), " | ".join(v["sentence"] for v in missing)[:300])

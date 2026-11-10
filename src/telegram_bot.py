@@ -1618,6 +1618,8 @@ class TelegramApprovalBot:
             text += "\n" + _format_note(script_payload["topic_origin_note"])
         if script_payload.get("fact_sheet_note"):
             text += "\n" + _format_note(script_payload["fact_sheet_note"])
+        if script_payload.get("hook_signal_note"):  # an opening shipped without an early signal (QF-14): judge it
+            text += "\n" + _format_note(script_payload["hook_signal_note"])
         if script_payload.get("trimmed_sentences"):  # said, so the reviewer can judge the flow without them
             where = list(script_payload.get("trimmed_from") or [])  # where each was read, beyond the narration
             where += [""] * (len(script_payload["trimmed_sentences"]) - len(where))

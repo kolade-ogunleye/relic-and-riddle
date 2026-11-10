@@ -317,7 +317,8 @@ def test_a_short_draft_is_extended_not_rewritten_from_scratch(curated_payload, m
     monkeypatch.setattr(engine, "_load_curated", lambda topic_id: None)
     monkeypatch.setattr(engine, "_sheet", lambda topic: None)
     seen = []
-    base = [f"word{i}" for i in range(400)]  # distinct words: a repeated phrase is itself sent back (2026-10-25)
+    # Alphabetic suffixes stay distinct under the repeat check's word tokenizer.
+    base = ["200"] + ["word" + chr(97 + i // 26) + chr(97 + i % 26) for i in range(399)]
     short = " ".join(base[:70])  # with the closing sentence, well under 42 s at 0.4 s a word
 
     def write(topic, feedback):
@@ -326,7 +327,7 @@ def test_a_short_draft_is_extended_not_rewritten_from_scratch(curated_payload, m
         found = re.search(r"extend the narration to (\d+)-(\d+) words", feedback)
         words = base[: int(found.group(1)) + 1] if found else short.split()
         closing = curated_payload["closing_sentence"]
-        text = " ".join(words).rstrip(".") + ". " + closing
+        text = " ".join(words[:8]).rstrip(".") + ". " + " ".join(words[8:]).rstrip(".") + ". " + closing
         return ScriptPackage.model_validate(dict(curated_payload, narration_script=text))
     monkeypatch.setattr(engine, "_generate_with_claude", write)
     monkeypatch.setattr(engine, "_finalize", lambda pkg, topic, **k: {"narration_script": pkg.narration_script})

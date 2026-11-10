@@ -1,0 +1,1323 @@
+{
+ "code": "the commit at <repo root>",
+ "video": "1080x1920",
+ "synthetic": {
+  "gate_admitted": {
+   "graphic_5_photos_4_crops_of_them": {
+    "ok": true,
+    "distinct": 5,
+    "required": "n/a"
+   },
+   "graphic_6_photos_3_crops_of_unshown": {
+    "ok": true,
+    "distinct": 6,
+    "required": "n/a"
+   },
+   "graphic_8_photos_1_crop": {
+    "ok": true,
+    "distinct": 8,
+    "required": "n/a"
+   },
+   "graphic_9_photos_1_crop": {
+    "ok": true,
+    "distinct": 9,
+    "required": "n/a"
+   },
+   "graphic_8_photos": {
+    "ok": true,
+    "distinct": 8,
+    "required": "n/a"
+   },
+   "photos_only_9_photos_1_crop": {
+    "ok": true,
+    "distinct": 9,
+    "required": "n/a"
+   },
+   "photos_only_8_photos_1_crop": {
+    "ok": false,
+    "distinct": 8,
+    "required": "n/a"
+   }
+  },
+  "cascade_beat_2_after_the_opening": {
+   "4.5s_beats": {
+    "crop_of": "02_commons.jpg",
+    "beside_its_photograph": false,
+    "long_holds": []
+   },
+   "3s_beats": {
+    "crop_of": "01_commons.jpg",
+    "beside_its_photograph": true,
+    "long_holds": []
+   }
+  }
+ },
+ "assets": "dev assets copy",
+ "full_pools": {
+  "totals": {
+   "ready_pools": 11,
+   "beats_tried": 33,
+   "crop_plans": 29,
+   "crop_plans_beside_own_photograph": 0,
+   "crop_plans_admitted": 29,
+   "crop_plans_refused_after_the_voice": 0,
+   "pools_under_ten_stills": 4
+  },
+  "refusal_reasons": {},
+  "pools": {
+   "amber_room_heist": [
+    {
+     "beat": 2,
+     "crop_of": "02_commons.jpg",
+     "beside": false,
+     "ok": true,
+     "problems": []
+    },
+    {
+     "beat": 6,
+     "crop_of": "01_commons.jpg",
+     "beside": false,
+     "ok": true,
+     "problems": []
+    },
+    {
+     "beat": 9,
+     "crop_of": "01_commons.jpg",
+     "beside": false,
+     "ok": true,
+     "problems": []
+    }
+   ],
+   "gol_gumbaz_whispering_gallery": [
+    {
+     "beat": 2,
+     "crop_of": null
+    },
+    {
+     "beat": 6,
+     "crop_of": null
+    },
+    {
+     "beat": 9,
+     "crop_of": null
+    }
+   ],
+   "hal_saflieni_hypogeum": [
+    {
+     "beat": 2,
+     "crop_of": "02_commons.jpg",
+     "beside": false,
+     "ok": true,
+     "problems": []
+    },
+    {
+     "beat": 6,
+     "crop_of": "01_commons.jpg",
+     "beside": false,
+     "ok": true,
+     "problems": []
+    },
+    {
+     "beat": 9,
+     "crop_of": "01_commons.jpg",
+     "beside": false,
+     "ok": true,
+     "problems": []
+    }
+   ],
+   "kailasa_temple_monolith": [
+    {
+     "beat": 2,
+     "crop_of": "02_commons.jpg",
+     "beside": false,
+     "ok": true,
+     "problems": []
+    },
+    {
+     "beat": 6,
+     "crop_of": "01_commons.jpg",
+     "beside": false,
+     "ok": true,
+     "problems": []
+    },
+    {
+     "beat": 9,
+     "crop_of": "01_commons.jpg",
+     "beside": false,
+     "ok": true,
+     "problems": []
+    }
+   ],
+   "lycurgus_cup_nanotech": [
+    {
+     "beat": 2,
+     "crop_of": "04_commons.jpg",
+     "beside": false,
+     "ok": true,
+     "problems": []
+    },
+    {
+     "beat": 6,
+     "crop_of": "01_commons.jpg",
+     "beside": false,
+     "ok": true,
+     "problems": []
+    },
+    {
+     "beat": 9,
+     "crop_of": "01_commons.jpg",
+     "beside": false,
+     "ok": true,
+     "problems": []
+    }
+   ],
+   "odessa_catacombs": [
+    {
+     "beat": 2,
+     "crop_of": "08_commons.jpg",
+     "beside": false,
+     "ok": true,
+     "problems": []
+    },
+    {
+     "beat": 6,
+     "crop_of": "01_commons.jpg",
+     "beside": false,
+     "ok": true,
+     "problems": []
+    },
+    {
+     "beat": 9,
+     "crop_of": "01_commons.jpg",
+     "beside": false,
+     "ok": true,
+     "problems": []
+    }
+   ],
+   "richat_structure_sahara_eye": [
+    {
+     "beat": 2,
+     "crop_of": "02_commons.jpg",
+     "beside": false,
+     "ok": true,
+     "problems": []
+    },
+    {
+     "beat": 6,
+     "crop_of": "01_commons.jpg",
+     "beside": false,
+     "ok": true,
+     "problems": []
+    },
+    {
+     "beat": 9,
+     "crop_of": "01_commons.jpg",
+     "beside": false,
+     "ok": true,
+     "problems": []
+    }
+   ],
+   "roman_self_healing_concrete": [
+    {
+     "beat": 2,
+     "crop_of": "19_commons.jpg",
+     "beside": false,
+     "ok": true,
+     "problems": []
+    },
+    {
+     "beat": 6,
+     "crop_of": "04_commons.jpg",
+     "beside": false,
+     "ok": true,
+     "problems": []
+    },
+    {
+     "beat": 9,
+     "crop_of": "04_commons.jpg",
+     "beside": false,
+     "ok": true,
+     "problems": []
+    }
+   ],
+   "singing_colossi_of_memnon": [
+    {
+     "beat": 2,
+     "crop_of": "04_commons.jpg",
+     "beside": false,
+     "ok": true,
+     "problems": []
+    },
+    {
+     "beat": 6,
+     "crop_of": "01_commons.jpg",
+     "beside": false,
+     "ok": true,
+     "problems": []
+    },
+    {
+     "beat": 9,
+     "crop_of": "01_commons.jpg",
+     "beside": false,
+     "ok": true,
+     "problems": []
+    }
+   ],
+   "trepanation_miracle": [
+    {
+     "beat": 2,
+     "crop_of": "05_commons.jpg",
+     "beside": false,
+     "ok": true,
+     "problems": []
+    },
+    {
+     "beat": 6,
+     "crop_of": "04_commons.jpg",
+     "beside": false,
+     "ok": true,
+     "problems": []
+    },
+    {
+     "beat": 9,
+     "crop_of": "04_commons.jpg",
+     "beside": false,
+     "ok": true,
+     "problems": []
+    }
+   ],
+   "voynich_manuscript": [
+    {
+     "beat": 2,
+     "crop_of": null
+    },
+    {
+     "beat": 6,
+     "crop_of": "01_commons.jpg",
+     "beside": false,
+     "ok": true,
+     "problems": []
+    },
+    {
+     "beat": 9,
+     "crop_of": "01_commons.jpg",
+     "beside": false,
+     "ok": true,
+     "problems": []
+    }
+   ]
+  }
+ },
+ "real_plans": {
+  "totals": {
+   "plans": 20,
+   "plans_admitted_as_they_are": 17,
+   "photo_beats_tried": 125,
+   "crop_plans": 110,
+   "crop_plans_beside_own_photograph": 0,
+   "crop_plans_admitted": 110,
+   "no_crop_planned": 15,
+   "plans_skipped_pool_not_ready_or_beats_differ": 8
+  },
+  "refusal_reasons": {},
+  "refusal_reasons_beside_own_photograph": {},
+  "pools_ready": [
+   "amber_room_heist",
+   "damascus_steel_nanotubes",
+   "gol_gumbaz_whispering_gallery",
+   "hal_saflieni_hypogeum",
+   "odessa_catacombs",
+   "richat_structure_sahara_eye",
+   "roman_self_healing_concrete",
+   "singing_colossi_of_memnon",
+   "trepanation_miracle",
+   "unfinished_obelisk_aswan",
+   "voynich_manuscript"
+  ],
+  "pools_not_ready": [
+   "greek_fire_siphon",
+   "nazca_lines_runway_paradox",
+   "tunguska_event_1908",
+   "wieliczka_salt_mine"
+  ],
+  "runs": [
+   {
+    "run": "run_amber_room_heist_1792790550",
+    "topic": "amber_room_heist",
+    "beats": 12,
+    "admitted": true,
+    "crops": [
+     {
+      "beat": 3,
+      "crop_of": "06_commons.jpg",
+      "beside": false,
+      "ok": true,
+      "problems": []
+     },
+     {
+      "beat": 4,
+      "crop_of": "06_commons.jpg",
+      "beside": false,
+      "ok": true,
+      "problems": []
+     },
+     {
+      "beat": 5,
+      "crop_of": "06_commons.jpg",
+      "beside": false,
+      "ok": true,
+      "problems": []
+     },
+     {
+      "beat": 6,
+      "crop_of": "06_commons.jpg",
+      "beside": false,
+      "ok": true,
+      "problems": []
+     },
+     {
+      "beat": 7,
+      "crop_of": "06_commons.jpg",
+      "beside": false,
+      "ok": true,
+      "problems": []
+     },
+     {
+      "beat": 8,
+      "crop_of": "06_commons.jpg",
+      "beside": false,
+      "ok": true,
+      "problems": []
+     },
+     {
+      "beat": 9,
+      "crop_of": "06_commons.jpg",
+      "beside": false,
+      "ok": true,
+      "problems": []
+     },
+     {
+      "beat": 10,
+      "crop_of": "06_commons.jpg",
+      "beside": false,
+      "ok": true,
+      "problems": []
+     },
+     {
+      "beat": 12,
+      "crop_of": "06_commons.jpg",
+      "beside": false,
+      "ok": true,
+      "problems": []
+     }
+    ]
+   },
+   {
+    "run": "run_amber_room_heist_1792801257",
+    "topic": "amber_room_heist",
+    "beats": 11,
+    "admitted": true,
+    "crops": [
+     {
+      "beat": 3,
+      "crop_of": "01_commons.jpg",
+      "beside": false,
+      "ok": true,
+      "problems": []
+     },
+     {
+      "beat": 5,
+      "crop_of": "01_commons.jpg",
+      "beside": false,
+      "ok": true,
+      "problems": []
+     },
+     {
+      "beat": 6,
+      "crop_of": "01_commons.jpg",
+      "beside": false,
+      "ok": true,
+      "problems": []
+     },
+     {
+      "beat": 8,
+      "crop_of": "01_commons.jpg",
+      "beside": false,
+      "ok": true,
+      "problems": []
+     },
+     {
+      "beat": 9,
+      "crop_of": "01_commons.jpg",
+      "beside": false,
+      "ok": true,
+      "problems": []
+     },
+     {
+      "beat": 10,
+      "crop_of": "01_commons.jpg",
+      "beside": false,
+      "ok": true,
+      "problems": []
+     },
+     {
+      "beat": 11,
+      "crop_of": "01_commons.jpg",
+      "beside": false,
+      "ok": true,
+      "problems": []
+     }
+    ]
+   },
+   {
+    "run": "run_amber_room_heist_1792805842",
+    "topic": "amber_room_heist",
+    "beats": 11,
+    "admitted": true,
+    "crops": [
+     {
+      "beat": 2,
+      "crop_of": "06_commons.jpg",
+      "beside": false,
+      "ok": true,
+      "problems": []
+     },
+     {
+      "beat": 3,
+      "crop_of": "06_commons.jpg",
+      "beside": false,
+      "ok": true,
+      "problems": []
+     },
+     {
+      "beat": 4,
+      "crop_of": "06_commons.jpg",
+      "beside": false,
+      "ok": true,
+      "problems": []
+     },
+     {
+      "beat": 5,
+      "crop_of": "06_commons.jpg",
+      "beside": false,
+      "ok": true,
+      "problems": []
+     },
+     {
+      "beat": 7,
+      "crop_of": "06_commons.jpg",
+      "beside": false,
+      "ok": true,
+      "problems": []
+     },
+     {
+      "beat": 9,
+      "crop_of": "06_commons.jpg",
+      "beside": false,
+      "ok": true,
+      "problems": []
+     },
+     {
+      "beat": 10,
+      "crop_of": "06_commons.jpg",
+      "beside": false,
+      "ok": true,
+      "problems": []
+     }
+    ]
+   },
+   {
+    "run": "run_damascus_steel_nanotubes_1792732472_short",
+    "topic": "damascus_steel_nanotubes",
+    "beats": 11,
+    "admitted": true,
+    "crops": [
+     {
+      "beat": 2,
+      "crop_of": "12_commons.jpg",
+      "beside": false,
+      "ok": true,
+      "problems": []
+     },
+     {
+      "beat": 3,
+      "crop_of": "11_commons.jpg",
+      "beside": false,
+      "ok": true,
+      "problems": []
+     },
+     {
+      "beat": 4,
+      "crop_of": "11_commons.jpg",
+      "beside": false,
+      "ok": true,
+      "problems": []
+     },
+     {
+      "beat": 5,
+      "crop_of": "11_commons.jpg",
+      "beside": false,
+      "ok": true,
+      "problems": []
+     },
+     {
+      "beat": 6,
+      "crop_of": "11_commons.jpg",
+      "beside": false,
+      "ok": true,
+      "problems": []
+     },
+     {
+      "beat": 7,
+      "crop_of": "11_commons.jpg",
+      "beside": false,
+      "ok": true,
+      "problems": []
+     },
+     {
+      "beat": 9,
+      "crop_of": "11_commons.jpg",
+      "beside": false,
+      "ok": true,
+      "problems": []
+     },
+     {
+      "beat": 10,
+      "crop_of": "11_commons.jpg",
+      "beside": false,
+      "ok": true,
+      "problems": []
+     }
+    ]
+   },
+   {
+    "run": "run_gol_gumbaz_whispering_gallery_1793278143",
+    "topic": "gol_gumbaz_whispering_gallery",
+    "beats": 9,
+    "admitted": true,
+    "crops": []
+   },
+   {
+    "run": "run_hal_saflieni_hypogeum_1792949304",
+    "topic": "hal_saflieni_hypogeum",
+    "beats": 11,
+    "admitted": false,
+    "crops": []
+   },
+   {
+    "run": "run_odessa_catacombs_1792970549",
+    "topic": "odessa_catacombs",
+    "beats": 10,
+    "admitted": true,
+    "crops": [
+     {
+      "beat": 3,
+      "crop_of": "11_commons.jpg",
+      "beside": false,
+      "ok": true,
+      "problems": []
+     },
+     {
+      "beat": 4,
+      "crop_of": "11_commons.jpg",
+      "beside": false,
+      "ok": true,
+      "problems": []
+     },
+     {
+      "beat": 5,
+      "crop_of": "11_commons.jpg",
+      "beside": false,
+      "ok": true,
+      "problems": []
+     },
+     {
+      "beat": 7,
+      "crop_of": "11_commons.jpg",
+      "beside": false,
+      "ok": true,
+      "problems": []
+     },
+     {
+      "beat": 8,
+      "crop_of": "11_commons.jpg",
+      "beside": false,
+      "ok": true,
+      "problems": []
+     },
+     {
+      "beat": 9,
+      "crop_of": "11_commons.jpg",
+      "beside": false,
+      "ok": true,
+      "problems": []
+     },
+     {
+      "beat": 10,
+      "crop_of": "11_commons.jpg",
+      "beside": false,
+      "ok": true,
+      "problems": []
+     }
+    ]
+   },
+   {
+    "run": "run_odessa_catacombs_1793098390",
+    "topic": "odessa_catacombs",
+    "beats": 10,
+    "admitted": true,
+    "crops": [
+     {
+      "beat": 3,
+      "crop_of": "10_commons.jpg",
+      "beside": false,
+      "ok": true,
+      "problems": []
+     },
+     {
+      "beat": 4,
+      "crop_of": "10_commons.jpg",
+      "beside": false,
+      "ok": true,
+      "problems": []
+     },
+     {
+      "beat": 5,
+      "crop_of": "10_commons.jpg",
+      "beside": false,
+      "ok": true,
+      "problems": []
+     },
+     {
+      "beat": 7,
+      "crop_of": "10_commons.jpg",
+      "beside": false,
+      "ok": true,
+      "problems": []
+     },
+     {
+      "beat": 8,
+      "crop_of": "10_commons.jpg",
+      "beside": false,
+      "ok": true,
+      "problems": []
+     },
+     {
+      "beat": 9,
+      "crop_of": "10_commons.jpg",
+      "beside": false,
+      "ok": true,
+      "problems": []
+     },
+     {
+      "beat": 10,
+      "crop_of": "10_commons.jpg",
+      "beside": false,
+      "ok": true,
+      "problems": []
+     }
+    ]
+   },
+   {
+    "run": "run_odessa_catacombs_1793100750",
+    "topic": "odessa_catacombs",
+    "beats": 10,
+    "admitted": true,
+    "crops": [
+     {
+      "beat": 3,
+      "crop_of": "10_commons.jpg",
+      "beside": false,
+      "ok": true,
+      "problems": []
+     },
+     {
+      "beat": 4,
+      "crop_of": "10_commons.jpg",
+      "beside": false,
+      "ok": true,
+      "problems": []
+     },
+     {
+      "beat": 5,
+      "crop_of": "10_commons.jpg",
+      "beside": false,
+      "ok": true,
+      "problems": []
+     },
+     {
+      "beat": 7,
+      "crop_of": "10_commons.jpg",
+      "beside": false,
+      "ok": true,
+      "problems": []
+     },
+     {
+      "beat": 8,
+      "crop_of": "10_commons.jpg",
+      "beside": false,
+      "ok": true,
+      "problems": []
+     },
+     {
+      "beat": 9,
+      "crop_of": "10_commons.jpg",
+      "beside": false,
+      "ok": true,
+      "problems": []
+     },
+     {
+      "beat": 10,
+      "crop_of": "10_commons.jpg",
+      "beside": false,
+      "ok": true,
+      "problems": []
+     }
+    ]
+   },
+   {
+    "run": "run_richat_structure_sahara_eye_1792737039_short",
+    "topic": "richat_structure_sahara_eye",
+    "beats": 10,
+    "admitted": false,
+    "crops": []
+   },
+   {
+    "run": "run_richat_structure_sahara_eye_1792778206",
+    "topic": "richat_structure_sahara_eye",
+    "beats": 9,
+    "admitted": true,
+    "crops": [
+     {
+      "beat": 3,
+      "crop_of": "01_commons.jpg",
+      "beside": false,
+      "ok": true,
+      "problems": []
+     },
+     {
+      "beat": 4,
+      "crop_of": "01_commons.jpg",
+      "beside": false,
+      "ok": true,
+      "problems": []
+     },
+     {
+      "beat": 5,
+      "crop_of": "01_commons.jpg",
+      "beside": false,
+      "ok": true,
+      "problems": []
+     },
+     {
+      "beat": 6,
+      "crop_of": "01_commons.jpg",
+      "beside": false,
+      "ok": true,
+      "problems": []
+     },
+     {
+      "beat": 8,
+      "crop_of": "01_commons.jpg",
+      "beside": false,
+      "ok": true,
+      "problems": []
+     },
+     {
+      "beat": 9,
+      "crop_of": "01_commons.jpg",
+      "beside": false,
+      "ok": true,
+      "problems": []
+     }
+    ]
+   },
+   {
+    "run": "run_richat_structure_sahara_eye_1793272675",
+    "topic": "richat_structure_sahara_eye",
+    "beats": 11,
+    "admitted": false,
+    "crops": []
+   },
+   {
+    "run": "run_richat_structure_sahara_eye_1793474843",
+    "topic": "richat_structure_sahara_eye",
+    "beats": 10,
+    "admitted": true,
+    "crops": [
+     {
+      "beat": 3,
+      "crop_of": "02_commons.jpg",
+      "beside": false,
+      "ok": true,
+      "problems": []
+     },
+     {
+      "beat": 4,
+      "crop_of": "02_commons.jpg",
+      "beside": false,
+      "ok": true,
+      "problems": []
+     },
+     {
+      "beat": 5,
+      "crop_of": "02_commons.jpg",
+      "beside": false,
+      "ok": true,
+      "problems": []
+     },
+     {
+      "beat": 8,
+      "crop_of": "02_commons.jpg",
+      "beside": false,
+      "ok": true,
+      "problems": []
+     },
+     {
+      "beat": 9,
+      "crop_of": "02_commons.jpg",
+      "beside": false,
+      "ok": true,
+      "problems": []
+     },
+     {
+      "beat": 10,
+      "crop_of": "02_commons.jpg",
+      "beside": false,
+      "ok": true,
+      "problems": []
+     }
+    ]
+   },
+   {
+    "run": "run_roman_self_healing_concrete_1793163918",
+    "topic": "roman_self_healing_concrete",
+    "beats": 11,
+    "admitted": true,
+    "crops": [
+     {
+      "beat": 3,
+      "crop_of": "25_commons.jpg",
+      "beside": false,
+      "ok": true,
+      "problems": []
+     },
+     {
+      "beat": 4,
+      "crop_of": "25_commons.jpg",
+      "beside": false,
+      "ok": true,
+      "problems": []
+     },
+     {
+      "beat": 5,
+      "crop_of": "25_commons.jpg",
+      "beside": false,
+      "ok": true,
+      "problems": []
+     },
+     {
+      "beat": 6,
+      "crop_of": "25_commons.jpg",
+      "beside": false,
+      "ok": true,
+      "problems": []
+     },
+     {
+      "beat": 7,
+      "crop_of": "25_commons.jpg",
+      "beside": false,
+      "ok": true,
+      "problems": []
+     },
+     {
+      "beat": 9,
+      "crop_of": "25_commons.jpg",
+      "beside": false,
+      "ok": true,
+      "problems": []
+     },
+     {
+      "beat": 10,
+      "crop_of": "25_commons.jpg",
+      "beside": false,
+      "ok": true,
+      "problems": []
+     },
+     {
+      "beat": 11,
+      "crop_of": "25_commons.jpg",
+      "beside": false,
+      "ok": true,
+      "problems": []
+     }
+    ]
+   },
+   {
+    "run": "run_singing_colossi_of_memnon_1792952878",
+    "topic": "singing_colossi_of_memnon",
+    "beats": 10,
+    "admitted": true,
+    "crops": [
+     {
+      "beat": 2,
+      "crop_of": "02_commons.jpg",
+      "beside": false,
+      "ok": true,
+      "problems": []
+     },
+     {
+      "beat": 3,
+      "crop_of": "02_commons.jpg",
+      "beside": false,
+      "ok": true,
+      "problems": []
+     },
+     {
+      "beat": 4,
+      "crop_of": "02_commons.jpg",
+      "beside": false,
+      "ok": true,
+      "problems": []
+     },
+     {
+      "beat": 5,
+      "crop_of": "02_commons.jpg",
+      "beside": false,
+      "ok": true,
+      "problems": []
+     },
+     {
+      "beat": 6,
+      "crop_of": "02_commons.jpg",
+      "beside": false,
+      "ok": true,
+      "problems": []
+     },
+     {
+      "beat": 7,
+      "crop_of": "02_commons.jpg",
+      "beside": false,
+      "ok": true,
+      "problems": []
+     },
+     {
+      "beat": 10,
+      "crop_of": "02_commons.jpg",
+      "beside": false,
+      "ok": true,
+      "problems": []
+     }
+    ]
+   },
+   {
+    "run": "run_trepanation_miracle_1792995462",
+    "topic": "trepanation_miracle",
+    "beats": 11,
+    "admitted": true,
+    "crops": [
+     {
+      "beat": 2,
+      "crop_of": "04_commons.jpg",
+      "beside": false,
+      "ok": true,
+      "problems": []
+     },
+     {
+      "beat": 3,
+      "crop_of": "04_commons.jpg",
+      "beside": false,
+      "ok": true,
+      "problems": []
+     },
+     {
+      "beat": 4,
+      "crop_of": "04_commons.jpg",
+      "beside": false,
+      "ok": true,
+      "problems": []
+     },
+     {
+      "beat": 5,
+      "crop_of": "04_commons.jpg",
+      "beside": false,
+      "ok": true,
+      "problems": []
+     },
+     {
+      "beat": 6,
+      "crop_of": "04_commons.jpg",
+      "beside": false,
+      "ok": true,
+      "problems": []
+     },
+     {
+      "beat": 7,
+      "crop_of": "04_commons.jpg",
+      "beside": false,
+      "ok": true,
+      "problems": []
+     },
+     {
+      "beat": 8,
+      "crop_of": "04_commons.jpg",
+      "beside": false,
+      "ok": true,
+      "problems": []
+     },
+     {
+      "beat": 10,
+      "crop_of": "04_commons.jpg",
+      "beside": false,
+      "ok": true,
+      "problems": []
+     },
+     {
+      "beat": 11,
+      "crop_of": "04_commons.jpg",
+      "beside": false,
+      "ok": true,
+      "problems": []
+     }
+    ]
+   },
+   {
+    "run": "run_unfinished_obelisk_aswan_1792985912",
+    "topic": "unfinished_obelisk_aswan",
+    "beats": 10,
+    "admitted": true,
+    "crops": [
+     {
+      "beat": 2,
+      "crop_of": "02_commons.jpg",
+      "beside": false,
+      "ok": true,
+      "problems": []
+     },
+     {
+      "beat": 3,
+      "crop_of": "01_commons.jpg",
+      "beside": false,
+      "ok": true,
+      "problems": []
+     },
+     {
+      "beat": 4,
+      "crop_of": "01_commons.jpg",
+      "beside": false,
+      "ok": true,
+      "problems": []
+     },
+     {
+      "beat": 5,
+      "crop_of": "01_commons.jpg",
+      "beside": false,
+      "ok": true,
+      "problems": []
+     },
+     {
+      "beat": 6,
+      "crop_of": "01_commons.jpg",
+      "beside": false,
+      "ok": true,
+      "problems": []
+     },
+     {
+      "beat": 7,
+      "crop_of": "01_commons.jpg",
+      "beside": false,
+      "ok": true,
+      "problems": []
+     },
+     {
+      "beat": 8,
+      "crop_of": "01_commons.jpg",
+      "beside": false,
+      "ok": true,
+      "problems": []
+     },
+     {
+      "beat": 10,
+      "crop_of": "01_commons.jpg",
+      "beside": false,
+      "ok": true,
+      "problems": []
+     }
+    ]
+   },
+   {
+    "run": "run_unfinished_obelisk_aswan_1792993374",
+    "topic": "unfinished_obelisk_aswan",
+    "beats": 10,
+    "admitted": true,
+    "crops": [
+     {
+      "beat": 3,
+      "crop_of": "15_commons.jpg",
+      "beside": false,
+      "ok": true,
+      "problems": []
+     },
+     {
+      "beat": 4,
+      "crop_of": "15_commons.jpg",
+      "beside": false,
+      "ok": true,
+      "problems": []
+     },
+     {
+      "beat": 5,
+      "crop_of": "15_commons.jpg",
+      "beside": false,
+      "ok": true,
+      "problems": []
+     },
+     {
+      "beat": 7,
+      "crop_of": "15_commons.jpg",
+      "beside": false,
+      "ok": true,
+      "problems": []
+     },
+     {
+      "beat": 8,
+      "crop_of": "15_commons.jpg",
+      "beside": false,
+      "ok": true,
+      "problems": []
+     },
+     {
+      "beat": 9,
+      "crop_of": "15_commons.jpg",
+      "beside": false,
+      "ok": true,
+      "problems": []
+     },
+     {
+      "beat": 10,
+      "crop_of": "15_commons.jpg",
+      "beside": false,
+      "ok": true,
+      "problems": []
+     }
+    ]
+   },
+   {
+    "run": "run_unfinished_obelisk_aswan_1793056896",
+    "topic": "unfinished_obelisk_aswan",
+    "beats": 10,
+    "admitted": true,
+    "crops": [
+     {
+      "beat": 3,
+      "crop_of": "15_commons.jpg",
+      "beside": false,
+      "ok": true,
+      "problems": []
+     },
+     {
+      "beat": 4,
+      "crop_of": "15_commons.jpg",
+      "beside": false,
+      "ok": true,
+      "problems": []
+     },
+     {
+      "beat": 5,
+      "crop_of": "15_commons.jpg",
+      "beside": false,
+      "ok": true,
+      "problems": []
+     },
+     {
+      "beat": 7,
+      "crop_of": "15_commons.jpg",
+      "beside": false,
+      "ok": true,
+      "problems": []
+     },
+     {
+      "beat": 8,
+      "crop_of": "15_commons.jpg",
+      "beside": false,
+      "ok": true,
+      "problems": []
+     },
+     {
+      "beat": 9,
+      "crop_of": "15_commons.jpg",
+      "beside": false,
+      "ok": true,
+      "problems": []
+     },
+     {
+      "beat": 10,
+      "crop_of": "15_commons.jpg",
+      "beside": false,
+      "ok": true,
+      "problems": []
+     }
+    ]
+   },
+   {
+    "run": "run_voynich_manuscript_1792965308",
+    "topic": "voynich_manuscript",
+    "beats": 11,
+    "admitted": true,
+    "crops": []
+   }
+  ]
+ },
+ "planner_with_illustration": {
+  "outcomes": {
+   "own_photo_kept_repeated_elsewhere": 0,
+   "beats_whose_photo_is_matched_to_their_line": 14,
+   "plans": 125,
+   "admitted": 125
+  },
+  "filled_by": {
+   "detail_crop": 110,
+   "reconstruction": 15
+  },
+  "refusal_reasons": {},
+  "by_tier": {
+   "detail_crop": {
+    "admitted": 110
+   },
+   "reconstruction": {
+    "admitted": 15
+   }
+  }
+ },
+ "planner_without_illustration": {
+  "outcomes": {
+   "own_photo_kept_repeated_elsewhere": 0,
+   "beats_whose_photo_is_matched_to_their_line": 14,
+   "plans": 125,
+   "admitted": 112,
+   "stopped_after_the_voice": 13
+  },
+  "filled_by": {
+   "detail_crop": 110,
+   "held": 13,
+   "own matched photo kept (held shot refused)": 2
+  },
+  "refusal_reasons": {
+   "repeat": 13,
+   "hold over 6 s": 10
+  },
+  "by_tier": {
+   "detail_crop": {
+    "admitted": 110
+   },
+   "held": {
+    "stopped": 13,
+    "repeat": 13,
+    "hold over 6 s": 10
+   },
+   "own matched photo kept (held shot refused)": {
+    "admitted": 2
+   }
+  }
+ }
+}

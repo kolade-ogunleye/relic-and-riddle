@@ -34,8 +34,8 @@ QF-97, queue/QF-97.proposed.md), and the refill decision before the voice.
    6 s at a time. A detail crop counts toward neither side: it is never a distinct photo, so it cannot fill the
    floor or a photo beat; at most one crop per photograph in a Reel (`DETAIL_CROPS_PER_PHOTO = 1`: the ruling
    counts photographs, and a crop adds none); a photograph and its crops on consecutive beats are one hold for the
-   6 s cap. The cascade (`_cascade_fill`) respects the same one-crop cap in a Reel, so it does not plan what the
-   gate refuses. Round 6 admitted 1 photo + 8 crops and 18 s of one photograph through its crops (review 5); both
+   6 s cap. The cascade (`_cascade_fill`) respects the same one-crop cap in a Reel; it did not check the 6 s hold
+   beside the crop's own photograph (review 6, finding 1), which QF-58b adds (QF-58b/README.md). Round 6 admitted 1 photo + 8 crops and 18 s of one photograph through its crops (review 5); both
    are refused now and tested.
 4. **Pause fit** (`scene_planner.fit_holds`, new): a beat lasts until the next one starts, so a pause can keep a
    photo past 6 s (production sample: 3 of 341 beats, up to 6.32 s). The cut moves into that pause (earlier at the

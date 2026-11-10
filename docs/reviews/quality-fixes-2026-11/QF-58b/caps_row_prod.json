@@ -1,0 +1,126 @@
+{
+ "env": "production_sample",
+ "results": {
+  "off/recorded": {
+   "plans": 11,
+   "unshown_beats": 7,
+   "stopped_after_the_voice": 0,
+   "reasons": {},
+   "filled_by": {
+    "detail_crop": 7
+   },
+   "distinct_min": 5,
+   "distinct_median": 8,
+   "crops_per_reel": {
+    "0": 7,
+    "1": 1,
+    "2": 3
+   },
+   "illustrated_per_reel": {
+    "0": 11
+   }
+  },
+  "off/each_beat": {
+   "plans": 140,
+   "unshown_beats": 140,
+   "stopped_after_the_voice": 3,
+   "reasons": {
+    "repeat": 3,
+    "hold over 6 s": 2
+   },
+   "filled_by": {
+    "detail_crop": 132,
+    "held": 3,
+    "own matched photo kept": 5
+   },
+   "distinct_min": 6,
+   "distinct_median": 8.0,
+   "crops_per_reel": {
+    "0": 8,
+    "1": 132
+   },
+   "illustrated_per_reel": {
+    "0": 140
+   }
+  },
+  "on_p0.5/recorded": {
+   "plans": 11,
+   "unshown_beats": 7,
+   "stopped_after_the_voice": 0,
+   "reasons": {},
+   "filled_by": {
+    "detail_crop": 7
+   },
+   "distinct_min": 5,
+   "distinct_median": 8,
+   "crops_per_reel": {
+    "0": 7,
+    "1": 1,
+    "2": 3
+   },
+   "illustrated_per_reel": {
+    "0": 11
+   }
+  },
+  "on_p0.5/each_beat": {
+   "plans": 140,
+   "unshown_beats": 140,
+   "stopped_after_the_voice": 0,
+   "reasons": {},
+   "filled_by": {
+    "detail_crop": 132,
+    "reconstruction": 4,
+    "own matched photo kept": 4
+   },
+   "distinct_min": 6,
+   "distinct_median": 8.0,
+   "crops_per_reel": {
+    "0": 8,
+    "1": 132
+   },
+   "illustrated_per_reel": {
+    "0": 136,
+    "1": 4
+   }
+  },
+  "on_p1.0/recorded": {
+   "plans": 11,
+   "unshown_beats": 7,
+   "stopped_after_the_voice": 0,
+   "reasons": {},
+   "filled_by": {
+    "detail_crop": 7
+   },
+   "distinct_min": 5,
+   "distinct_median": 8,
+   "crops_per_reel": {
+    "0": 7,
+    "1": 1,
+    "2": 3
+   },
+   "illustrated_per_reel": {
+    "0": 11
+   }
+  },
+  "on_p1.0/each_beat": {
+   "plans": 140,
+   "unshown_beats": 140,
+   "stopped_after_the_voice": 0,
+   "reasons": {},
+   "filled_by": {
+    "detail_crop": 132,
+    "reconstruction": 8
+   },
+   "distinct_min": 6,
+   "distinct_median": 8.0,
+   "crops_per_reel": {
+    "0": 8,
+    "1": 132
+   },
+   "illustrated_per_reel": {
+    "0": 132,
+    "1": 8
+   }
+  }
+ }
+}

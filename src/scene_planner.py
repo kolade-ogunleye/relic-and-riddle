@@ -895,8 +895,23 @@ def fit_to_lines(beats: List[Dict[str, Any]], scenes: List[Path], pool: List[Pat
             if not named and visual_of[k] != ABSTRACT and _illustrate(k, line, out, durations, report, ictx, pick,
                                                                        entry, visual_of, tiered):
                 continue
+            # QF-58b (operator, 2026-11-10, "matched photo only"): in a Reel, a held shot the gate would refuse (a
+            # repeat, or a hold over 6 s) gives way to the beat's own photo only when the planner matched that photo
+            # to this very line (`line_beat`: it was found for this beat) and no other beat shows it; otherwise the
+            # 2026-10-29 rule stands (the shot is held) and the gate may stop the run.
+            if holds or (still(prev) and related_before(k, out, fits_at, report)):
+                target = prev
+            else:
+                target = out[0] if still(out[0]) else None
+            if (target is not None and line_beat.get(Path(pick)) == k + 1
+                    and _hold_refused(out, durations, k, Path(target), pool, reserve) and _distinct_pick(out, k)):
+                entry["fallback"] = "kept"
+                report.setdefault("kept", []).append({"beat": k + 1, "picture": pick.name,
+                                                      "instead_of": Path(target).name})
+                log.info("Beat %d: no picture shows its line; %s stays (holding %s would be refused by the Reel gate).",
+                         k + 1, pick.name, Path(target).name)
             # 4. the previous beat's still held, when it was right for its own line and is not itself held
-            if holds:
+            elif holds:
                 out[k], entry["fallback"] = prev, "held"
                 held.add(k)
                 report["held"].append({"beat": k + 1, "from": pick.name, "to": prev.name})
@@ -934,6 +949,32 @@ def fit_to_lines(beats: List[Dict[str, Any]], scenes: List[Path], pool: List[Pat
         if report["judged"]:
             beat_images.save_fit_cache(cache)
     return out, report
+
+
+def _hold_refused(out: list[Path], durations: list[float], k: int, target: Path, pool: list[Path],
+                  reserve: list[Path] | None = None) -> bool:
+    """Whether holding `target` on beat k (0-based) makes a Reel the plan gate (reel_photo_coverage) refuses: a
+    picture shown again away from its own beat, a hold over REEL_PHOTO_HOLD_MAX, or a picture on two beats in a
+    pool that is not short (hold_for_short_pool joins beats only when the pool is short, so the gate sees a
+    repeat). Always False in 16:9 (no such gate)."""
+    if config.VIDEO_WIDTH >= config.VIDEO_HEIGHT:
+        return False
+    if k < 1 or picture_id(Path(target)) != picture_id(Path(out[k - 1])):
+        return True
+    if _held_run(out, durations, k) > config.REEL_PHOTO_HOLD_MAX + 1e-6:
+        return True
+    stills = [p for p in out if _shot_kind(Path(p)) is not None]
+    available = {picture_id(Path(p)) for p in list(pool) + list(reserve or [])
+                 if not is_video(Path(p)) and _shot_kind(Path(p)) is not None}
+    return len(available) >= len(stills)
+
+
+def _distinct_pick(out: list[Path], k: int) -> bool:
+    """Whether beat k's own picture is a photo no other beat shows (keeping it repeats nothing)."""
+    if _shot_kind(Path(out[k])) != "photo":
+        return False
+    source = picture_id(Path(out[k]))
+    return all(picture_id(Path(p)) != source for j, p in enumerate(out) if j != k)
 
 
 # ------------------------------------------------------------------ the illustration tier (2026-11-02)
@@ -1199,22 +1240,43 @@ def _crop_allowed(crop_regions: dict[str, list], photo: Path) -> bool:
     return len(crop_regions.get(picture_id(photo), [])) < DETAIL_CROPS_PER_PHOTO
 
 
+def _crop_hold_ok(out: list[Path], durations: list[float], k: int, photo: Path) -> bool:
+    """Whether a crop of `photo` on beat k (0-based) keeps that photograph within config.REEL_PHOTO_HOLD_MAX on
+    screen: the gate (reel_photo_coverage) joins a photo and its crops on consecutive beats into one hold, so a crop
+    beside its own photograph (beat k-1 or k+1, the photo itself or another crop of it) is planned only while the
+    joined hold stays within the limit (QF-58b: a beat-2 crop of the opening photo made a 9 s hold)."""
+    if config.VIDEO_WIDTH >= config.VIDEO_HEIGHT:
+        return True
+    source = picture_id(photo)
+
+    def seconds(i: int) -> float:
+        return float(durations[i]) if i < len(durations) else MAX_BEAT
+
+    total, lo, hi = seconds(k), k - 1, k + 1
+    while lo >= 0 and _shot_key(Path(out[lo])) == source:
+        total, lo = total + seconds(lo), lo - 1
+    while hi < len(out) and _shot_key(Path(out[hi])) == source:
+        total, hi = total + seconds(hi), hi + 1
+    return (lo == k - 1 and hi == k + 1) or total <= config.REEL_PHOTO_HOLD_MAX + 1e-6
+
+
 def _cascade_fill(k: int, line: str, out: list[Path], pool: list[Path], durations: list[float],
                   crop_regions: dict[str, list], work_dir: Path | None, stopped: str,
                   only: tuple[str, ...] | None = None, subject: str = "") -> tuple[str, Path] | None:
     """The cascade's middle tiers for beat k (0-based) whose line no photo shows (src/picture_coverage.py), in
     order: a detail crop of one of the topic's strongest approved photos on a region not yet shown (unused photos
-    first), archive film whose record names what the line names (within FOOTAGE_MAX_SHARE), the locator map when the
-    line names its place (within the graphics caps). `only`: just these tiers; "located_crop" (a named subject's):
-    a crop around the named feature `subject`, located and confirmed by two vision checks (picture_coverage.
-    located_crop), never once the checks stopped. (tier, asset) or None; no model call but the located crop's."""
+    first; in a Reel never past the hold limit beside its own photograph, _crop_hold_ok), archive film whose record
+    names what the line names (within FOOTAGE_MAX_SHARE), the locator map when the line names its place (within the
+    graphics caps). `only`: just these tiers; "located_crop" (a named subject's): a crop around the named feature
+    `subject`, located and confirmed by two vision checks (picture_coverage.located_crop), never once the checks
+    stopped. (tier, asset) or None; no model call but the located crop's."""
     from . import picture_coverage as pc
     in_use = {picture_id(p) for p in out}
     tiers = set(only) if only is not None else {pc.DETAIL_CROP, pc.ARCHIVE_FILM, pc.MAP}
     if work_dir is not None and "located_crop" in tiers and subject and not stopped:
         strong = [Path(p) for p in pool if not is_video(Path(p)) and Path(p).is_file()
                   and not pc.is_detail_crop(Path(p)) and _approved_strong(Path(p))
-                  and _crop_allowed(crop_regions, Path(p))]
+                  and _crop_allowed(crop_regions, Path(p)) and _crop_hold_ok(out, durations, k, Path(p))]
         strong.sort(key=lambda p: (picture_id(p) in in_use, len(crop_regions.get(picture_id(p), []))))
         aspect = config.VIDEO_WIDTH / config.VIDEO_HEIGHT
         for src in strong[:LOCATE_TRIES]:
@@ -1227,7 +1289,7 @@ def _cascade_fill(k: int, line: str, out: list[Path], pool: list[Path], duration
     if work_dir is not None and pc.DETAIL_CROP in tiers:
         strong = [Path(p) for p in pool if not is_video(Path(p)) and Path(p).is_file()
                   and not pc.is_detail_crop(Path(p)) and _approved_strong(Path(p))
-                  and _crop_allowed(crop_regions, Path(p))]
+                  and _crop_allowed(crop_regions, Path(p)) and _crop_hold_ok(out, durations, k, Path(p))]
         strong.sort(key=lambda p: (picture_id(p) in in_use, len(crop_regions.get(picture_id(p), []))))
         aspect = config.VIDEO_WIDTH / config.VIDEO_HEIGHT
         for src in strong[:DETAIL_TRIES]:
@@ -1589,7 +1651,7 @@ def reel_photo_coverage(scenes: list[Path], durations: list[float]) -> dict[str,
             "other_beats": other, "repeats": repeats, "long_holds": long_holds, "problems": problems}
 
 
-DETAIL_CROPS_PER_PHOTO = 1  # the ruling counts photographs, not frames: a crop adds no photo, so one per photo at most
+DETAIL_CROPS_PER_PHOTO = 1  # at most one crop per photograph in a Reel: the round-6 scope (decisions/QF-58.md, item 1)
 
 
 HOLD_CUT_MARGIN = 0.12  # a cut moved into a pause stays this far from the words on either side (seconds)

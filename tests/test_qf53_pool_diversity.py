@@ -128,11 +128,11 @@ def test_final_pixel_review_overrides_provisional_metadata_class():
     assert module.provisional_shot_class({"title": "Temple interior chamber"}) == "interior"
 
 
-def _review_fixture(tmp_path, *, duplicates=False):
+def _review_fixture(tmp_path, *, duplicates=False, count=6):
     from src.credits import save_credits
     # Exercise the old approval paths on the parent too, without importing the new helper.
     records = []
-    for index in range(6):
+    for index in range(count):
         path = tmp_path / f"{index}.jpg"
         _photo(path, index + 53)
         records.append({"file": path.name, "artist": f"Author {index}",
@@ -170,7 +170,7 @@ def test_new_human_approval_checks_actual_files(tmp_path):
 
 def test_changed_pixels_trigger_a_fresh_review(monkeypatch, tmp_path):
     from src import image_review
-    records = _review_fixture(tmp_path)
+    records = _review_fixture(tmp_path, count=9)   # QF-58: an approval needs nine distinct photos
     calls = []
     verdicts = image_review.PoolReview(verdicts=[image_review.PhotoVerdict(quality=3, depiction="original", 
         index=i + 1, shows_topic="yes", usable=True, safe=True, reason="Looks good",

@@ -95,13 +95,18 @@ def test_queue_readiness_badges_and_render_button(tmp_path):
     assets_dir = tmp_path / "assets"
     assets_dir.mkdir()
 
-    # Topic 1: Ready to Render (reviewed=True, >=6 images)
+    # Topic 1: Ready to Render (reviewed=True, enough distinct usable photos: QF-58's floor is
+    # config.MIN_SCENE_IMAGES distinct photos that show the topic)
+    from src import config
     d1 = assets_dir / "01_ready"
     d1.mkdir()
     from src.credits import save_credits
-    imgs1 = [{"file": f"img{i}.jpg", "title": f"T{i}", "license": "CC"} for i in range(6)]
-    for i in range(6):
-        (d1 / f"img{i}.jpg").write_text("dummy")
+    n_ready = max(6, config.MIN_SCENE_IMAGES)
+    ok = {"shows_topic": "yes", "usable": True, "safe": True, "quality": 3, "depiction": "original"}
+    imgs1 = [{"file": f"img{i}.jpg", "title": f"T{i}", "license": "CC", "vision_review": dict(ok)}
+             for i in range(n_ready)]
+    for i in range(n_ready):
+        (d1 / f"img{i}.jpg").write_text(f"dummy {i}")
     save_credits(d1, {"reviewed": True, "images": imgs1})
 
     # Topic 2: Needs Image Review (reviewed=False, 6 images)

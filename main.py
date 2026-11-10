@@ -2041,6 +2041,23 @@ class PipelineCoordinator:
             except Exception:
                 pass
 
+        # Before the paid voice (decisions/QF-58-gate.md, Option A): the pool is refilled for the photo beats the
+        # checked script will have (scene_planner.estimated_photo_beats; one bounded search, not repeated within
+        # the refresh period), and a Reel whose pool is no longer ready at the floor (photos removed or replaced
+        # since the run started) stops here, with its checked script saved, before any voice is paid for.
+        tid = topic["id"]
+        if config.VIDEO_HEIGHT > config.VIDEO_WIDTH and (ASSETS_DIR / tid / "credits.json").is_file():
+            from src.asset_pipeline import ensure_pool, not_ready_reason, pool_ready
+            from src.scene_planner import (
+                estimated_photo_beats,
+                script_asks_for_graphics,
+            )
+            from src.visual_engine import MissingAssetsError
+            expected = estimated_photo_beats(payload.get("narration_script") or "", script_asks_for_graphics(payload))
+            if not ensure_pool(topic, ASSETS_DIR, beats=[{}] * expected) and not pool_ready(tid, ASSETS_DIR):
+                self.db.update_run(run_id, "producing", script_payload=payload)
+                raise MissingAssetsError(f"Photo pool for {tid} not ready before the voice: {not_ready_reason(tid, ASSETS_DIR)}")
+
         # 4-5. Audio (reused when resuming)
         self._check_cancel(run_id)
         from src.audio_engine import VOICEOVER_FILE, voiceover_file
@@ -2878,6 +2895,38 @@ class PipelineCoordinator:
             timer.record("image_prep_wait", time.perf_counter() - t0)  # what was left after the bed
         else:
             scene_media, hero_img, low_res = self._prepare_images(scene_media, hero_img, run_dir)
+        beats = segment_beats(words, vo_dur)
+        if config.VIDEO_HEIGHT > config.VIDEO_WIDTH:
+            from src.image_review import required_photos
+            from src.scene_planner import picture_id, script_asks_for_graphics
+            from src.typography import is_video
+            distinct = {picture_id(path) for path in scene_media if not is_video(Path(path))}
+            # Photo beats: the narration's beats less the one a graphic takes when the script asks for one.
+            photo_beats = [{}] * max(0, len(beats) - (1 if script_asks_for_graphics(payload) else 0))
+            if len(distinct) < required_photos(photo_beats) and (ASSETS_DIR / tid / "credits.json").is_file():
+                # Fewer distinct photos than photo beats: one bounded refill (asset_pipeline.ensure_pool; not
+                # repeated within the refresh period, so after the refill before the voice it only re-reads the
+                # pool), and the pool's sequence again when it gained photos, with
+                # the same selection as at run start (turned and text-bearing photos out, strong photos for the
+                # Stories and carousel, the cover's photograph by hero_photo).
+                from src.asset_pipeline import ensure_pool
+                from src.image_review import strong_stems
+                from src.visual_engine import MissingAssetsError, VisualEngine
+                self._check_cancel(run_id)
+                ensure_pool(topic, ASSETS_DIR, beats=photo_beats)
+                engine = VisualEngine(ASSETS_DIR)
+                try:
+                    refreshed = [m for m in engine.get_scene_sequence(topic)
+                                 if Path(str(m)).name not in getattr(self, "_still_turned", set())]
+                except MissingAssetsError:
+                    refreshed = []
+                if len({picture_id(path) for path in refreshed if not is_video(Path(path))}) > len(distinct):
+                    refreshed = beat_images.without_burned_in_text(refreshed, topic.get("title", ""),
+                                                                   config.MIN_SCENE_IMAGES)
+                    log.info("Photo pool refilled for %d beats: %d distinct photos, was %d.", len(beats),
+                             len({picture_id(path) for path in refreshed if not is_video(Path(path))}), len(distinct))
+                    self._strong_stems = strong_stems(ASSETS_DIR / tid)
+                    scene_media, hero_img, low_res = self._prepare_images(refreshed, engine.hero_image(refreshed), run_dir)
         if low_res:
             payload["source_note"] = (f"🖼 {low_res} of {len(scene_media)} source images were below video resolution "
                                       "and were AI-upscaled; sharper originals would look better.")
@@ -2893,7 +2942,6 @@ class PipelineCoordinator:
         # 7. Master render
         self._check_cancel(run_id)
         # Match pictures to narration beats; cuts land on the beat boundaries.
-        beats = segment_beats(words, vo_dur)
         # Kept with the run: the audience's retention curve is read beat by beat later (audience.beat_drops).
         payload["beat_times"] = [{"start": round(float(b["start"]), 2), "text": str(b.get("text") or "")} for b in beats]
         # Extra candidates searched for the concrete subject of individual beats (openly licensed).
@@ -3052,6 +3100,17 @@ class PipelineCoordinator:
                 beats, scenes, durations, fit_report, held, where = self._hold_short_pool(
                     run_id, topic, beats, scenes, durations, fit_report, available, storyboard=plan_notes == STORYBOARD_NOTES)
                 planned = list(scenes)  # the plan the repair pass judges (the overflow re-plan replaced the first)
+            if config.VIDEO_HEIGHT > config.VIDEO_WIDTH:
+                from src.scene_planner import fit_holds, reel_photo_coverage
+                from src.visual_engine import MissingAssetsError
+                # A still kept past the hold limit only by a pause gets its cut moved into that pause.
+                beats, durations, hold_moves = fit_holds(beats, scenes, durations, words)
+                coverage_gate = reel_photo_coverage(scenes, durations)
+                payload["photo_coverage_gate"] = {**coverage_gate, "cuts_moved": hold_moves}
+                if not coverage_gate["ok"]:
+                    self.db.update_run(run_id, "producing", script_payload=payload)
+                    raise MissingAssetsError("Reel photo coverage: " + "; ".join(coverage_gate["problems"])
+                                             + ". Add distinct photos or revise the storyboard before rendering.")
             payload["caption"] = caption
             from src.scene_planner import hold_note, storyboard_opening_note
             reserve_used = sorted({Path(r).name for r in reserve if picture_id(r) in {picture_id(s) for s in scenes}})

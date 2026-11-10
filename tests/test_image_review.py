@@ -28,16 +28,16 @@ def _verdicts(spec):
 
 
 def test_pool_approved_on_merit_and_failures_dropped(monkeypatch, tmp_path):
-    _pool(tmp_path, 7)
+    _pool(tmp_path, 11)
     good = {"shows_topic": "yes", "usable": True, "safe": True}
-    spec = {i: dict(good) for i in range(1, 8)}
+    spec = {i: dict(good) for i in range(1, 12)}
     spec[2] = {**good, "shows_topic": "no"}          # a namesake town
     spec[4] = {**good, "duplicate_of": 3}            # near-duplicate
     monkeypatch.setattr(image_review.free_llm, "call", lambda *a, **k: _verdicts(spec))
     summary = image_review.review_pool(TOPIC, tmp_path)
     credits = load_credits(tmp_path)
     assert summary["status"] == "approved" and credits["reviewed"] and credits["reviewed_by"] == "vision"
-    assert [i["file"][:2] for i in credits["images"]] == ["01", "03", "05", "06", "07"]
+    assert [i["file"][:2] for i in credits["images"]] == ["01", "03", "05", "06", "07", "08", "09", "10", "11"]
 
 
 def test_too_few_good_photos_means_held(monkeypatch, tmp_path):
@@ -153,7 +153,7 @@ def test_a_kept_photo_is_used_and_stories_use_only_strong_ones(tmp_path):
 
 
 def test_removing_photos_keeps_an_approved_set_approved(tmp_path):
-    imgs = _pool(tmp_path, 7)
+    imgs = _pool(tmp_path, 11)
     (tmp_path / "credits.json").write_text(json.dumps({"reviewed": True, "images": imgs}), encoding="utf-8")
     write_contact_sheet(tmp_path, imgs)
     assert "stays approved" in drop_images(tmp_path, [1])

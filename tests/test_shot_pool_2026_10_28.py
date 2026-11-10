@@ -132,22 +132,22 @@ def test_a_verified_first_copy_keeps_its_line(tmp_path):
 
 def test_a_line_takes_a_neighbours_picture_only_when_it_is_judged_to_show_it(tmp_path):
     a, b, c = (_jpg(tmp_path / f"{n}.jpg", (i * 40, 0, 0)) for i, n in enumerate("abc"))
-    beats = _beats(5, 3.0)
+    beats = _beats(5, 2.0)
     fits = {i: True for i in range(1, 5)}
     # Nobody can look (or nothing fits): the repeats stay, and the card says so.
     for check in (None, _line_check(set())[0]):
-        out, scenes, durations, where, report = sp.hold_for_short_pool(beats, [a, b, c, a, b], [3.0] * 5, fits=fits,
+        out, scenes, durations, where, report = sp.hold_for_short_pool(beats, [a, b, c, a, b], [2.0] * 5, fits=fits,
                                                                        check=check, available=3)
         assert scenes == [a, b, c, a, b] and where == [0, 1, 2, 3, 4] and report["merged"] == []
         assert [r["beat"] for r in report["repeats"]] == [4, 5] and report["short"]
         assert "beat 4 repeats beat 1's picture (a.jpg)" in sp.hold_note(report)
     # c is judged to show lines 4 and 5 (a not line 5): both later copies go, the first copies keep their lines.
     check, asked = _line_check({("c.jpg", "Line 4."), ("c.jpg", "Line 5.")})
-    out, scenes, durations, where, report = sp.hold_for_short_pool(beats, [a, b, c, a, b], [3.0] * 5, fits=fits,
+    out, scenes, durations, where, report = sp.hold_for_short_pool(beats, [a, b, c, a, b], [2.0] * 5, fits=fits,
                                                                    check=check, available=3)
-    assert scenes == [a, b, c] and durations == [3.0, 3.0, 9.0] and report["repeats"] == []
-    assert sum(durations) == 15.0 and max(durations) <= sp.HELD_SHOT_MAX
-    assert [x["start"] for x in out] == [0.0, 3.0, 6.0] and out[-1]["end"] == 15.0   # on the narration's beat starts
+    assert scenes == [a, b, c] and durations == [2.0, 2.0, 6.0] and report["repeats"] == []
+    assert sum(durations) == 10.0 and max(durations) <= sp.HELD_SHOT_MAX
+    assert [x["start"] for x in out] == [0.0, 2.0, 4.0] and out[-1]["end"] == 10.0   # on the narration's beat starts
     assert where == [0, 1, 2, 2, 2] and report["shown"] == [4, 5] and report["merged"] == [3]
     note = sp.hold_note(report)
     assert note.startswith("🔁 Pictures: 3 distinct for 5 photo beats") and "beat 3 holds one picture" in note
@@ -178,7 +178,7 @@ def test_a_held_over_beat_is_said_once_on_the_card(tmp_path):
     a, b, c = (_jpg(tmp_path / f"{n}.jpg", (i * 40, 0, 0)) for i, n in enumerate("abc"))
     fit = {"fits": [2], "held": [{"beat": 3, "from": "x.jpg", "to": "b.jpg"}],
            "unshown": [{"beat": 3, "fallback": "held", "line": "Line 3.", "picture": "x.jpg", "reason": "r"}]}
-    _, scenes, _, where, report = sp.hold_for_short_pool(_beats(4), [a, b, b, c], [3.2] * 4, fits={1: True, 2: False},
+    _, scenes, _, where, report = sp.hold_for_short_pool(_beats(4, 3.0), [a, b, b, c], [3.0] * 4, fits={1: True, 2: False},
                                                          available=3)
     remapped = sp.remap_beats(fit, where, scenes, report["shown"])
     assert scenes == [a, b, c] and "held over it" in sp.fit_note(remapped)
@@ -309,16 +309,17 @@ def test_nazca_pool_uses_its_fifth_context_photo_and_says_what_is_short(tmp_path
     assert note.startswith("🔁 Pictures: 7 distinct for 9 photo beats")
     assert "1 context photo(s) beyond the usual cap used rather than repeat a picture (04_commons.jpg)" in note
     assert "beat 10 repeats beat 5's picture (03_commons.jpg)" in note
-    # Where the neighbour's picture is judged to show the repeat's line, the line joins it: 03's second copy joins
-    # 09. The last line repeats the opening's picture and could join only that held shot, past HELD_SHOT_MAX: said.
+    # Each merge would hold for 6.4 seconds: even a positive relevance check cannot exceed the six-second cap.
     beats2, held, durations2, where, report = sp.hold_for_short_pool(beats, scenes, durations, fits=fits,
                                                                      check=lambda p, line: True, available=available)
-    assert [p.name for p in held][-2:] == ["09_commons.jpg", "06_commons.jpg"] and len(held) == 10
-    assert report["merged"] == [9] and report["shown"] == [10]
-    assert report["repeats"] == [{"beat": 10, "first": 1, "picture": "06_commons.jpg"}]
+    assert held == scenes and len(held) == 11
+    assert report["merged"] == [] and report["shown"] == []
+    assert report["repeats"] == [{"beat": 10, "first": 5, "picture": "03_commons.jpg"},
+                                  {"beat": 11, "first": 1, "picture": "06_commons.jpg"}]
     assert abs(sum(durations2) - sum(durations)) < 1e-6 and all(d <= sp.HELD_SHOT_MAX for d in durations2)
     note = sp.hold_note(report, ["04_commons.jpg"])
-    assert "beat 9 holds one picture over two or more lines" in note and "beat 10 repeats beat 1's picture" in note
+    assert "holds one picture" not in note and "beat 11 repeats beat 1's picture" in note
+    assert not sp.reel_photo_coverage(held, durations2)["ok"]
 
 
 # ------------------------------------------------------------------ 2. context shots never open or move
@@ -609,7 +610,7 @@ def test_the_render_stage_asks_the_line_check_within_a_run_budget(db, monkeypatc
     fit = {"fits": [2, 3, 5], "unshown": [{"beat": 4, "fallback": "kept", "line": "Line 4.", "picture": "a.jpg",
                                            "reason": "r"}]}
     beats, scenes, durations, fit2, held, where = coord._hold_short_pool(
-        "r1", {"id": "t", "title": "T"}, _beats(5, 3.0), [a, b, c, a, b], [3.0] * 5, fit, 3)
+        "r1", {"id": "t", "title": "T"}, _beats(5, 2.0), [a, b, c, a, b], [2.0] * 5, fit, 3)
     assert scenes == [a, b, c] and where == [0, 1, 2, 2, 2] and fit2["fits"] == [2, 3] and saved
     assert ("c.jpg", "Line 4.") in asked and ("c.jpg", "Line 5.") in asked
     assert hashed.count("c.jpg") == 1                    # one hash per photo, not per photo and line
@@ -619,18 +620,18 @@ def test_the_render_stage_asks_the_line_check_within_a_run_budget(db, monkeypatc
     # The budget is the run's: a second hold in the same run spends what is left, then asks nothing.
     coord._held_looks = 0
     asked.clear()
-    _, scenes, _, _, held, _ = coord._hold_short_pool("r1", {"id": "t"}, _beats(5, 3.0), [a, b, c, a, b], [3.0] * 5,
+    _, scenes, _, _, held, _ = coord._hold_short_pool("r1", {"id": "t"}, _beats(5, 2.0), [a, b, c, a, b], [2.0] * 5,
                                                       fit, 3)
     assert asked == [] and scenes == [a, b, c, a, b] and len(held["repeats"]) == 2
     assert [i["klass"] for i in improve._buffer if i["source"] == "picture_fit"] == ["video.picture_relevance"]
     # A look that cannot run ends the looks for the run (each further one would wait out its retry).
     coord._held_looks = None
     monkeypatch.setattr(main.beat_images, "line_fit", lambda *a, **k: asked.append(1))
-    coord._hold_short_pool("r1", {"id": "t"}, _beats(5, 3.0), [a, b, c, a, b], [3.0] * 5, fit, 3)
+    coord._hold_short_pool("r1", {"id": "t"}, _beats(5, 2.0), [a, b, c, a, b], [2.0] * 5, fit, 3)
     assert asked == [1] and coord._held_looks == 0
     # The fit check found the model down: no look at all.
     coord._held_looks, asked[:] = None, []
-    coord._hold_short_pool("r1", {"id": "t"}, _beats(5, 3.0), [a, b, c, a, b], [3.0] * 5,
+    coord._hold_short_pool("r1", {"id": "t"}, _beats(5, 2.0), [a, b, c, a, b], [2.0] * 5,
                            dict(fit, stopped="the picture check could not run"), 3)
     assert asked == []
 

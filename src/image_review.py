@@ -187,7 +187,31 @@ def usable_photos(images: List[Dict[str, Any]], context_max: int = CONTEXT_SHOTS
     most `context_max` context shots. Unchecked and weak photos are left out."""
     by = {t: sorted((im for im in images if tier(im) == t), key=_merit, reverse=True)
           for t in ("topic", "kept", "context")}
-    return by["topic"] + by["kept"] + by["context"][:context_max]
+    return distinct_photos(by["topic"] + by["kept"] + by["context"][:context_max])
+
+
+def distinct_photos(images: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """One source per count: renamed bytes and perceptually duplicate photos add no coverage."""
+    from .photo_pool import duplicate_of
+    out, digests, files = [], set(), set()
+    for image in images:
+        if image.get("hash_error"):
+            continue
+        digest, name = image.get("source_sha256"), image.get("file")
+        if (digest and digest in digests) or (name and name in files) or duplicate_of(image, out):
+            continue
+        out.append(image)
+        if digest:
+            digests.add(digest)
+        if name:
+            files.add(name)
+    return out
+
+
+def required_photos(beats=None) -> int:
+    """Reserve one distinct photo for each planned photo beat, with a nine-photo floor."""
+    count = sum(1 for beat in (beats or []) if beat.get("media_type", "photo") == "photo")
+    return max(MIN_SCENE_IMAGES, count)
 
 
 def reserve_photos(images: List[Dict[str, Any]], context_max: int = CONTEXT_SHOTS_MAX) -> List[Dict[str, Any]]:

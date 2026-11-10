@@ -200,6 +200,8 @@ class VisualEngine:
             # The same counting as approval and readiness (image_review.readiness, 2026-10-28), so a pool this
             # refuses is one the scheduler already reported as not ready.
             from .image_review import readiness_text, usable_photos
+            from .photo_pool import refresh
+            refresh(topic_dir, credits["images"])
             chosen = usable_photos(credits["images"])
             resolved = [topic_dir / c["file"] for c in chosen]
             if len(resolved) < MIN_SCENE_IMAGES:
@@ -212,6 +214,11 @@ class VisualEngine:
                 p for p in topic_dir.iterdir()
                 if p.suffix.lower() in (".jpg", ".jpeg", ".png") and p.name != CONTACT_SHEET
             )
+            from .image_review import distinct_photos
+            from .photo_pool import refresh
+            records = [{"file": path.name} for path in resolved]
+            refresh(topic_dir, records)
+            resolved = [topic_dir / record["file"] for record in distinct_photos(records)]
 
         if len(resolved) < MIN_SCENE_IMAGES:
             raise MissingAssetsError(

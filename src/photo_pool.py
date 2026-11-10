@@ -113,12 +113,25 @@ def provisional_shot_class(image: dict) -> str:
     return next((kind for kind, pattern in groups if re.search(pattern, text)), "unknown")
 
 
+_SIGNATURES: dict[tuple[str, int, int], dict] = {}
+
+
+def _current_signature(path: Path) -> dict:
+    """signature() of the file as it is now, remembered while its size and modification time stay the same:
+    readiness rechecks every photo of a pool on each screen and at each run start (QF-58)."""
+    stat = Path(path).stat()
+    key = (str(Path(path).resolve()), stat.st_size, stat.st_mtime_ns)
+    if key not in _SIGNATURES:
+        _SIGNATURES[key] = signature(path)
+    return dict(_SIGNATURES[key])
+
+
 def refresh(topic_dir: Path, images: list[dict]) -> None:
     """Recompute hashes from the current files before fetch/approval decisions."""
     for image in images:
         try:
             image.pop("hash_flat", None)
-            image.update(signature(topic_dir / image["file"]))
+            image.update(_current_signature(topic_dir / image["file"]))
             image.pop("hash_error", None)
         except (OSError, ValueError, KeyError) as exc:
             for field in ("source_sha256", "phash", "dhash"):

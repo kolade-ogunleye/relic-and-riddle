@@ -1192,6 +1192,13 @@ def _subject_terms(line: str, topic: dict[str, Any] | None) -> list[str]:
     return subject_terms(line, topic)
 
 
+def _crop_allowed(crop_regions: dict[str, list], photo: Path) -> bool:
+    """A Reel takes at most DETAIL_CROPS_PER_PHOTO crops of one photograph (its plan gate, reel_photo_coverage)."""
+    if config.VIDEO_WIDTH >= config.VIDEO_HEIGHT:
+        return True
+    return len(crop_regions.get(picture_id(photo), [])) < DETAIL_CROPS_PER_PHOTO
+
+
 def _cascade_fill(k: int, line: str, out: list[Path], pool: list[Path], durations: list[float],
                   crop_regions: dict[str, list], work_dir: Path | None, stopped: str,
                   only: tuple[str, ...] | None = None, subject: str = "") -> tuple[str, Path] | None:
@@ -1206,7 +1213,8 @@ def _cascade_fill(k: int, line: str, out: list[Path], pool: list[Path], duration
     tiers = set(only) if only is not None else {pc.DETAIL_CROP, pc.ARCHIVE_FILM, pc.MAP}
     if work_dir is not None and "located_crop" in tiers and subject and not stopped:
         strong = [Path(p) for p in pool if not is_video(Path(p)) and Path(p).is_file()
-                  and not pc.is_detail_crop(Path(p)) and _approved_strong(Path(p))]
+                  and not pc.is_detail_crop(Path(p)) and _approved_strong(Path(p))
+                  and _crop_allowed(crop_regions, Path(p))]
         strong.sort(key=lambda p: (picture_id(p) in in_use, len(crop_regions.get(picture_id(p), []))))
         aspect = config.VIDEO_WIDTH / config.VIDEO_HEIGHT
         for src in strong[:LOCATE_TRIES]:
@@ -1218,7 +1226,8 @@ def _cascade_fill(k: int, line: str, out: list[Path], pool: list[Path], duration
                 return pc.DETAIL_CROP, got[0]
     if work_dir is not None and pc.DETAIL_CROP in tiers:
         strong = [Path(p) for p in pool if not is_video(Path(p)) and Path(p).is_file()
-                  and not pc.is_detail_crop(Path(p)) and _approved_strong(Path(p))]
+                  and not pc.is_detail_crop(Path(p)) and _approved_strong(Path(p))
+                  and _crop_allowed(crop_regions, Path(p))]
         strong.sort(key=lambda p: (picture_id(p) in in_use, len(crop_regions.get(picture_id(p), []))))
         aspect = config.VIDEO_WIDTH / config.VIDEO_HEIGHT
         for src in strong[:DETAIL_TRIES]:
@@ -1451,7 +1460,200 @@ def _id_memo():
 # judged right for it (fit_to_lines): only a later copy, or a copy whose line no picture was found to show, may be
 # joined to a neighbour, and only to one showing the same picture or one judged to show that line too (`check`).
 # Otherwise the repeat stays, and the review card says so.
-HELD_SHOT_MAX = 2 * MAX_BEAT
+HELD_SHOT_MAX = config.REEL_PHOTO_HOLD_MAX
+
+
+def _shot_kind(path: Path) -> str | None:
+    """"photo", "detail" (a punch-in made by src/picture_coverage.detail_crop) or None (a graphic, a film clip or a
+    labelled illustration: not a photo)."""
+    path = Path(path)
+    if is_video(path) or is_illustration(path) or path.stem.startswith("graphic_"):
+        return None
+    from .picture_coverage import is_detail_crop
+    return "detail" if is_detail_crop(path) else "photo"
+
+
+def _shot_key(path: Path) -> str | None:
+    """The photograph a still shows (a detail crop by its lineage, as picture_id resolves it); None otherwise."""
+    return None if _shot_kind(path) is None else picture_id(path)
+
+
+# Words per narration beat, measured on the 61 real Reels of QF-58's evidence (6,125 words, 635 beats: 9.6); the
+# estimate is within two beats of segment_beats on every one of them.
+WORDS_PER_BEAT = 9.6
+
+
+def estimated_photo_beats(narration: str, graphics: bool) -> int:
+    """The photo beats a narration will have before its voice exists: its words over WORDS_PER_BEAT, less one beat
+    for a graphic when the script asks for one (every real Reel placed at least one, at most MAX_GRAPHICS)."""
+    words = len(str(narration or "").split())
+    beats = round(words / WORDS_PER_BEAT) if words else 0
+    return max(0, beats - (1 if graphics and beats else 0))
+
+
+GRAPHIC_FIELDS = ("stat_cards", "cross_section", "route", "timeline", "scale_fact", "location")
+
+
+def script_asks_for_graphics(payload: dict[str, Any]) -> bool:
+    """Whether the checked script carries a field one of our graphics is drawn from (src/graphics.make_all; the
+    locator map from its location)."""
+    return any((payload or {}).get(field) for field in GRAPHIC_FIELDS)
+
+
+def reel_photo_coverage(scenes: list[Path], durations: list[float]) -> dict[str, Any]:
+    """The final plan gate, as the operator ruled it (decisions/QF-58-gate.md, Option A), after fitting, holds and
+    the caption re-plan and before motion and the render.
+
+    - Every photo beat shows a different photo (distinct == photo_beats): the same photograph on a second beat,
+      next to the first or later, found by lineage, by its bytes or as a near duplicate (photo_pool), is a repeat.
+      A picture held over two lines is one beat only when the hold joined them (hold_for_short_pool).
+    - A Reel of photos only (no graphic, film or illustration) shows at least config.MIN_SCENE_IMAGES distinct
+      photos; graphics, film and illustrations take beats of their own.
+    - A detail crop (src/picture_coverage.py) counts toward neither side: it is never a distinct photo, so it
+      cannot fill the floor or a photo beat; at most one crop of each photograph (DETAIL_CROPS_PER_PHOTO).
+    - A photograph stays on screen at most config.REEL_PHOTO_HOLD_MAX seconds at a time: consecutive beats on one
+      photograph, itself or a crop of it, are one hold."""
+    import math
+
+    from .photo_pool import duplicate_of, signature
+    problems, invalid = [], []
+    if len(scenes) != len(durations):
+        problems.append("scene and duration counts differ")
+    holds: list[dict[str, Any]] = []
+    photos: list[tuple[int, str]] = []      # (beat, photograph) of each photo beat
+    crops: dict[str, list[int]] = {}        # photograph -> beats of its crops
+    previous, other = None, 0
+    for index, (scene, duration) in enumerate(zip(scenes, durations)):
+        seconds = float(duration) if isinstance(duration, (int, float)) else float("nan")
+        if not math.isfinite(seconds) or seconds <= 0:
+            invalid.append(index + 1)
+            seconds = 0.0
+        kind = _shot_kind(Path(scene))
+        if kind is None:
+            previous, other = None, other + 1
+            continue
+        source = picture_id(Path(scene))
+        if kind == "photo":
+            photos.append((index + 1, source))
+        else:
+            crops.setdefault(source, []).append(index + 1)
+        if source == previous:
+            holds[-1]["beats"].append(index + 1)
+            holds[-1]["seconds"] += seconds
+        else:
+            holds.append({"beats": [index + 1], "seconds": seconds})
+        previous = source
+    signatures: dict[str, dict] = {}
+    seen, digests, placed, repeats, unreadable = {}, {}, [], [], []
+    for beat, source in photos:
+        try:
+            if source not in signatures:
+                signatures[source] = signature(Path(source))
+            fingerprint = signatures[source]
+        except (OSError, ValueError):
+            unreadable.append(beat)
+            fingerprint = {}
+        digest = fingerprint.get("source_sha256", "")
+        first = seen.get(source) or (digests.get(digest) if digest else None) or \
+            (duplicate_of(fingerprint, placed) or {}).get("beat")
+        if first:
+            repeats.append({"beat": beat, "first": first})
+            continue
+        seen[source] = beat
+        if digest:
+            digests[digest] = beat
+        placed.append({**fingerprint, "beat": beat})
+    distinct = len(photos) - len(repeats)
+    crop_beats = sum(len(b) for b in crops.values())
+    extra_crops = {s: b for s, b in crops.items() if len(b) > DETAIL_CROPS_PER_PHOTO}
+    long_holds = [{"beats": h["beats"], "seconds": round(h["seconds"], 2)} for h in holds
+                  if h["seconds"] > config.REEL_PHOTO_HOLD_MAX + 1e-6]
+    if not other and distinct < config.MIN_SCENE_IMAGES:
+        problems.append(f"only {distinct} distinct photos in a Reel of photos only; it needs {config.MIN_SCENE_IMAGES}"
+                        + (f" (its {crop_beats} detail crop{'s' if crop_beats != 1 else ''} do not count)"
+                           if crop_beats else ""))
+    if repeats:
+        problems.append("a photo shown again: " + ", ".join(f"beat {r['beat']} repeats beat {r['first']}" for r in repeats))
+    if extra_crops:
+        problems.append("more than one detail crop of a photo: " + ", ".join(
+            "beats " + ", ".join(map(str, b)) for b in extra_crops.values()))
+    if long_holds:
+        problems.append(f"a photograph on screen over {config.REEL_PHOTO_HOLD_MAX:g} s: " + ", ".join(
+            "beat" + ("s " + f"{h['beats'][0]}-{h['beats'][-1]}" if len(h["beats"]) > 1 else f" {h['beats'][0]}")
+            + f" {h['seconds']:.1f} s" for h in long_holds))
+    if invalid:
+        problems.append("invalid beat durations: " + ", ".join(map(str, invalid)))
+    if unreadable:
+        problems.append("unreadable photo sources: " + ", ".join(map(str, unreadable)))
+    return {"ok": not problems, "distinct": distinct, "photo_beats": len(photos), "detail_crops": crop_beats,
+            "other_beats": other, "repeats": repeats, "long_holds": long_holds, "problems": problems}
+
+
+DETAIL_CROPS_PER_PHOTO = 1  # the ruling counts photographs, not frames: a crop adds no photo, so one per photo at most
+
+
+HOLD_CUT_MARGIN = 0.12  # a cut moved into a pause stays this far from the words on either side (seconds)
+
+
+def fit_holds(beats: list[dict[str, Any]], scenes: list[Path], durations: list[float],
+              words: list[dict[str, Any]], limit: float | None = None
+              ) -> tuple[list[dict[str, Any]], list[float], list[dict[str, Any]]]:
+    """A narration beat runs until the next one starts, so a pause can keep a still on screen past the hold limit
+    (production sample: 3 of 341 Reel beats, up to 6.32 s). Such a still's cut moves into that pause: the cut after
+    it earlier, else the cut before it later, only while every word stays on its own shot at least HOLD_CUT_MARGIN
+    from the cut and a still on the other side stays within the limit. Cuts still land between words. Returns
+    (beats, durations, moves); a shot whose words alone run past the limit is left for reel_photo_coverage."""
+    limit = config.REEL_PHOTO_HOLD_MAX if limit is None else limit
+    n = len(scenes)
+    if not words or len(beats) != n or len(durations) != n:
+        return beats, durations, []
+    beats, durations = [dict(b) for b in beats], [float(d) for d in durations]
+    keys = [_shot_key(Path(s)) for s in scenes]
+
+    def run(k: int) -> list[int]:
+        lo = hi = k
+        while lo > 0 and keys[lo - 1] == keys[k]:
+            lo -= 1
+        while hi < n - 1 and keys[hi + 1] == keys[k]:
+            hi += 1
+        return list(range(lo, hi + 1))
+
+    def seconds(k: int) -> float:
+        return sum(durations[i] for i in run(k)) if keys[k] is not None else 0.0
+
+    def spoken(k: int) -> tuple[float, float] | None:
+        start, end = float(beats[k].get("start", 0.0)), float(beats[k].get("end", 0.0))
+        inside = [w for w in words if start - 1e-6 <= float(w["start"]) < end - 1e-6]
+        if not inside:
+            return None
+        return float(inside[0]["start"]), max(float(w["start"]) + float(w.get("dur", 0.0)) for w in inside)
+
+    moves, k = [], 0
+    while k < n:
+        if keys[k] is None:
+            k += 1
+            continue
+        shot = run(k)
+        a, b = shot[0], shot[-1]
+        excess = seconds(k) - limit
+        if excess > 1e-6:
+            said_end, said_start = spoken(b), spoken(a)
+            if (b + 1 < n and said_end and float(beats[b]["end"]) - excess >= said_end[1] + HOLD_CUT_MARGIN
+                    and seconds(b + 1) + excess <= limit + 1e-6 and durations[b] - excess > 0):
+                durations[b] -= excess
+                durations[b + 1] += excess
+                beats[b]["end"] = float(beats[b]["end"]) - excess
+                beats[b + 1]["start"] = float(beats[b + 1]["start"]) - excess
+                moves.append({"beat": b + 1, "cut": "earlier", "seconds": round(excess, 3)})
+            elif (a > 0 and said_start and float(beats[a]["start"]) + excess <= said_start[0] - HOLD_CUT_MARGIN
+                  and seconds(a - 1) + excess <= limit + 1e-6 and durations[a] - excess > 0):
+                durations[a] -= excess
+                durations[a - 1] += excess
+                beats[a]["start"] = float(beats[a]["start"]) + excess
+                beats[a - 1]["end"] = float(beats[a - 1]["end"]) + excess
+                moves.append({"beat": a + 1, "cut": "later", "seconds": round(excess, 3)})
+        k = b + 1
+    return beats, durations, moves
 
 
 def still_shortfall(n_beats: int, media: List[Path]) -> int:

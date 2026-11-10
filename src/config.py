@@ -377,7 +377,11 @@ TARGET_WORD_COUNT_MAX = 115
 # pace 105 words ran 52.9 s, so a fixed 105-115 window and the 51.5 s limit left no valid draft).
 WORD_COUNT_FLOOR = 85
 WORD_COUNT_CEILING = 130
-MIN_SCENE_IMAGES = 5
+MIN_SCENE_IMAGES = 9
+PHOTO_POOL_REFRESH_DAYS = 90
+PHOTO_POOL_REFRESH_BELOW = 12
+PHOTO_POOL_FETCH_PASSES = 3
+REEL_PHOTO_HOLD_MAX = 6.0
 # Local AI upscaler for low-resolution stills (https://github.com/xinntao/Real-ESRGAN, portable Vulkan build).
 REALESRGAN_BIN = os.getenv("REALESRGAN_BIN", str(BASE_DIR / "tools" / "realesrgan" / "realesrgan-ncnn-vulkan.exe"))
 # Per-beat images searched on Wikimedia Commons during a run. CC BY-SA images are excluded by

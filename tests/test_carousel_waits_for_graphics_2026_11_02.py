@@ -12,6 +12,8 @@ def test_the_carousel_waits_for_the_graphics_posters(db, monkeypatch, tmp_path, 
     from src.models import QAIssue, QAReport
     coord = PipelineCoordinator(db)
     monkeypatch.setattr(coord, "_verify_final_copy", lambda *a: None)  # This test isolates scene planning.
+    # One synthetic beat isolates graphics/carousel ordering, not photo coverage.
+    monkeypatch.setattr("src.scene_planner.reel_photo_coverage", lambda *a: {"ok": True, "problems": []})
     topic_img, beat_img = tmp_path / "t.jpg", tmp_path / "b.jpg"
     monkeypatch.setattr(main, "ensure_all", lambda paths: (paths, 0))
     monkeypatch.setattr(main, "ensure_resolution", lambda p: p)

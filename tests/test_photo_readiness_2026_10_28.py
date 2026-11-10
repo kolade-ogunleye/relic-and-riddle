@@ -4,6 +4,8 @@ most CONTEXT_SHOTS_MAX Context, as get_scene_sequence does. Production 2026-10-2
 approved and shown as ready: "Only 4 of the 6 approved photos ... (need 5): 2 Topic, 4 Context"."""
 import importlib
 import random
+from datetime import UTC, datetime
+from types import SimpleNamespace
 
 import numpy as np
 import pytest
@@ -40,6 +42,7 @@ def _pool(d, tiers, start=1, **extra):
         elif t == "kept":
             im["operator_keep"] = True
         cr["images"].append(im)
+    cr["pool_fetched_at"] = datetime.now(UTC).isoformat()
     cr.update(extra)
     save_credits(d, cr)
     return cr["images"]
@@ -58,8 +61,8 @@ def test_two_topic_four_context_is_held_and_not_ready(monkeypatch, tmp_path):
     summary = image_review.review_pool(TOPIC, tmp_path / "t1")
     cr = load_credits(tmp_path / "t1")
     assert summary["status"] == "held" and cr["reviewed"] is False and len(cr["images"]) == 6
-    assert "4 of 5 usable" in cr["review_note"]
-    assert image_review.readiness_text(cr["images"]) == "2 topic photos, 4 context, at most 2 context count: 4 of 5 usable"
+    assert "4 of 9 usable" in cr["review_note"]
+    assert image_review.readiness_text(cr["images"]) == "2 topic photos, 4 context, at most 2 context count: 4 of 9 usable"
     assert not _real_pipeline().pool_ready("t1", tmp_path)
 
 
@@ -68,11 +71,11 @@ def test_an_approval_made_under_the_old_rule_is_not_ready(tmp_path):
           reviewed=True, reviewed_by="vision")
     ap = _real_pipeline()
     assert not ap.pool_ready("t1", tmp_path)
-    assert "4 of 5 usable" in ap.not_ready_reason("t1", tmp_path)
+    assert "4 of 9 usable" in ap.not_ready_reason("t1", tmp_path)
 
 
-def test_five_topic_photos_are_approved_and_ready(monkeypatch, tmp_path):
-    tiers = ["topic"] * 5
+def test_nine_topic_photos_are_approved_and_ready(monkeypatch, tmp_path):
+    tiers = ["topic"] * 9
     _pool(tmp_path / "t1", tiers)
     monkeypatch.setattr(image_review.free_llm, "call", lambda *a, **k: _verdicts(tiers))
     assert image_review.review_pool(TOPIC, tmp_path / "t1")["status"] == "approved"
@@ -105,6 +108,7 @@ def _fake_fetch(tmp_path, tiers, seen):
         d = tmp_path / cmd[cmd.index("--topic-id") + 1]
         n = len(load_credits(d)["images"])
         _pool(d, tiers, start=n + 1, reviewed=False)
+        return SimpleNamespace(returncode=0)
     return run
 
 
@@ -122,7 +126,7 @@ def test_a_small_pool_short_of_usable_photos_is_refilled(monkeypatch, tmp_path):
     ap = _real_pipeline()
     _pool(tmp_path / "t1", ["topic", "topic", "context", "context", "context", "context"], reviewed=True, reviewed_by="vision")
     seen = []
-    monkeypatch.setattr(ap.subprocess, "run", _fake_fetch(tmp_path, ["topic", "topic"], seen))
+    monkeypatch.setattr(ap.subprocess, "run", _fake_fetch(tmp_path, ["topic"] * 7, seen))
     _fake_review(monkeypatch)
     assert ap.ensure_pool(TOPIC, tmp_path)
     assert len(seen) == 1 and "--target-images" not in seen[0]       # under the pool size: the usual refill
@@ -132,7 +136,7 @@ def test_a_full_pool_of_context_shots_is_topped_up(monkeypatch, tmp_path):
     ap = _real_pipeline()
     _pool(tmp_path / "t1", ["topic"] + ["context"] * 19, reviewed=True, reviewed_by="vision")
     seen = []
-    monkeypatch.setattr(ap.subprocess, "run", _fake_fetch(tmp_path, ["topic", "topic"], seen))
+    monkeypatch.setattr(ap.subprocess, "run", _fake_fetch(tmp_path, ["topic"] * 7, seen))
     _fake_review(monkeypatch)
     assert ap.ensure_pool(TOPIC, tmp_path)
     target = int(seen[0][seen[0].index("--target-images") + 1])
@@ -142,17 +146,17 @@ def test_a_full_pool_of_context_shots_is_topped_up(monkeypatch, tmp_path):
 def test_a_skipped_topic_is_reported_with_its_count(monkeypatch, tmp_path):
     ap = _real_pipeline()
     _pool(tmp_path / "thin", ["topic"] + ["context"] * 23, reviewed=True, reviewed_by="vision")   # full: no fetch
-    _pool(tmp_path / "good", ["topic"] * 5, reviewed=True, reviewed_by="vision")
-    monkeypatch.setattr(ap.subprocess, "run", lambda *a, **k: (_ for _ in ()).throw(AssertionError("fetched")))
+    _pool(tmp_path / "good", ["topic"] * 12, reviewed=True, reviewed_by="vision")
+    monkeypatch.setattr(ap.subprocess, "run", lambda *a, **k: SimpleNamespace(returncode=0))
     _fake_review(monkeypatch)
     skipped = []
     assert ap.first_ready([{"id": "thin"}, {"id": "good"}], tmp_path, skipped=skipped) == {"id": "good"}
-    assert [t["id"] for t, _ in skipped] == ["thin"] and "3 of 5 usable" in skipped[0][1]
+    assert [t["id"] for t, _ in skipped] == ["thin"] and "3 of 9 usable" in skipped[0][1]
 
 
 def test_an_approved_pool_with_unchecked_photos_is_screened_before_it_is_judged(monkeypatch, tmp_path):
     ap = _real_pipeline()
-    _pool(tmp_path / "t1", ["unchecked"] * 6, reviewed=True, reviewed_by="operator")
+    _pool(tmp_path / "t1", ["unchecked"] * 9, reviewed=True, reviewed_by="operator")
     assert not ap.pool_ready("t1", tmp_path)
     screened = []
 
@@ -169,15 +173,15 @@ def test_an_approved_pool_with_unchecked_photos_is_screened_before_it_is_judged(
 
 
 def test_an_operator_approval_says_when_the_video_cannot_use_the_set(tmp_path):
-    _pool(tmp_path, ["topic", "topic", "context", "context", "context", "context"])
+    _pool(tmp_path, ["topic", "topic", "context", "context", "context", "context"] + ["weak"] * 3)
     msg = approve_set(tmp_path, MIN_SCENE_IMAGES)
-    assert "A video cannot use it yet" in msg and "4 of 5 usable" in msg
+    assert "A video cannot use it yet" in msg and "4 of 9 usable" in msg
 
 
 def test_the_screens_count_as_the_video_counts(db, tmp_path):
     from src.control import make_command_handler, review_caption
     _pool(tmp_path / "t1", ["topic", "topic", "context", "context", "context", "context"], reviewed=True)
     caption = review_caption(tmp_path / "t1")
-    assert "short for a video" in caption and "4 of 5 usable" in caption
+    assert "short for a video" in caption and "4 of 9 usable" in caption
     listing = make_command_handler(db, lambda: None, lambda: "", assets_dir=tmp_path)("images", "")
-    assert "0 approved" in listing and "4 of 5 usable" in listing
+    assert "0 approved" in listing and "4 of 9 usable" in listing

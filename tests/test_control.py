@@ -125,13 +125,13 @@ def _image_set(tmp_path, name="03_kailasa_temple", n=6, reviewed=False):
 
 def test_images_review_drop_approve_flow(db, tmp_path):
     from src.credits import load_credits
-    d = _image_set(tmp_path)
+    d = _image_set(tmp_path, n=10)
     _image_set(tmp_path, "baltic_sea_anomaly", n=2)
     sent = []
     h = make_command_handler(db, lambda: None, lambda: "", send_photo=lambda p, cap, btns: sent.append((p.name, cap, btns)) or True,
                              assets_dir=tmp_path)
     listing = h("images", "")
-    assert "1 to review" in listing and "1 short" in listing and "03 — kailasa temple (6)" in listing
+    assert "1 to review" in listing and "1 short" in listing and "03 — kailasa temple (10)" in listing
 
     assert h("review", "03_kailasa_temple") == ""
     name, caption, buttons = sent[-1]
@@ -140,18 +140,18 @@ def test_images_review_drop_approve_flow(db, tmp_path):
     assert buttons[0][0]["callback_data"].startswith("imgok:03_kailasa_temple@")
     assert not (d / "storyboard.json").exists()  # no keyword-picked pre-script storyboard (2026-10-25)
 
-    assert "Removed 1; 5 images remain" in h("drop", "03_kailasa_temple 2")
-    assert len(load_credits(d)["images"]) == 5
+    assert "Removed 1; 9 images remain" in h("drop", "03_kailasa_temple 2")
+    assert len(load_credits(d)["images"]) == 9
     text, back = h("imgok", "03_kailasa_temple@" + __import__("src.telegram_images", fromlist=["review_digest"]).review_digest(d))
-    assert "Approved 5 images" in text and back[0][0]["callback_data"] == "imagehelp:03_kailasa_temple"
+    assert "Approved 9 images" in text and back[0][0]["callback_data"] == "imagehelp:03_kailasa_temple"
     assert load_credits(d)["reviewed"] is True
 
 
 def test_drop_below_minimum_then_approve_refused(db, tmp_path):
-    d = _image_set(tmp_path, n=5)
+    d = _image_set(tmp_path, n=9)
     h = make_command_handler(db, lambda: None, lambda: "", assets_dir=tmp_path)
     h("drop", "03_kailasa_temple 1")
-    with pytest.raises(ValueError, match="need 5"):
+    with pytest.raises(ValueError, match="need 9"):
         h("imgok", "03_kailasa_temple@" + __import__("src.telegram_images", fromlist=["review_digest"]).review_digest(d))
 
 
@@ -444,9 +444,11 @@ def test_music_mnext_and_duplicate_imgok(tmp_path):
     d1 = assets_dir / "t1"
     d1.mkdir(parents=True)
     files = []
-    for i in range(5):
-        Image.new("RGB", (50, 50)).save(d1 / f"{i:02d}.jpg")
-        files.append({"file": f"{i:02d}.jpg", "title": f"Img {i}", "license": "PD"})
+    for i in range(9):
+        import numpy as np
+        Image.fromarray(np.random.default_rng(i + 530).integers(0, 256, (50, 50, 3), dtype=np.uint8)).save(d1 / f"{i:02d}.jpg")
+        files.append({"file": f"{i:02d}.jpg", "title": f"Img {i}", "license": "PD",
+                      "artist": f"Photographer {i}", "shot_class": ("wide", "interior", "detail")[i % 3]})
     save_credits(d1, {"reviewed": False, "images": files})
 
     h = make_command_handler(db, lambda: None, lambda: "", assets_dir=assets_dir)

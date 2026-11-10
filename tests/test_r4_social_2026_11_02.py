@@ -326,7 +326,8 @@ def test_poll_problems_names_a_yes_no_poll() -> None:
     assert poll_problems({"question": "Was it impact or uplift?", "options": ["Impact", "Uplift"]}) == []
 
 
-def test_a_yes_no_poll_is_recorded_for_the_operator(tmp_path) -> None:
+def test_a_yes_no_poll_draws_no_story_frame(tmp_path) -> None:
+    # Until QF-80 a yes/no poll was recorded beside the poll frame for the operator; the frame is no longer made.
     photos = [_photo(tmp_path / f"p{i}.jpg", (90, 80, 70), (1080, 1920)) for i in range(3)]
     payload = {"story_slides": [
         {"kicker": "K", "line1": "ONE MAN", "line2": "KNOCKED", "body": "Short."},
@@ -335,7 +336,7 @@ def test_a_yes_no_poll_is_recorded_for_the_operator(tmp_path) -> None:
         "poll": {"question": "Would you hide?", "options": ["Yes", "No"]}}
     M().generate_story_sequence(photos[0], payload, tmp_path / "run", scene_images=photos)
     manifest = json.loads((tmp_path / "run" / "companion_posting.json").read_text(encoding="utf-8"))
-    assert manifest["story_poll_sticker"]["problems"]
+    assert "story_poll_sticker" not in manifest and len(manifest["story_frames"]) == 2
 
 
 def test_a_span_is_the_reveals_hero_whole() -> None:

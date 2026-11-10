@@ -2213,8 +2213,11 @@ class TelegramApprovalBot:
         # operator approves each illustration on the review itself.
         for batch in illustration_review_items(payload, run_dir):
             sent += self._album(batch) or []
-        stills = sorted((run_dir / "stories").glob("story_*.jpg")) + sorted((run_dir / "carousel").glob("carousel_slide_*.jpg"))
-        n_story = len(list((run_dir / "stories").glob("story_*.jpg")))
+        from .multi_format import RETIRED_STORY_FRAMES
+        story = [p for p in sorted((run_dir / "stories").glob("story_*.jpg"))
+                 if p.name not in RETIRED_STORY_FRAMES]  # an older run's poll frame is not posted (QF-80)
+        stills = story + sorted((run_dir / "carousel").glob("carousel_slide_*.jpg"))
+        n_story = len(story)
         for start in range(0, len(stills), 10):
             batch = stills[start:start + 10]
             items = [{"type": "photo", "path": p} for p in batch]

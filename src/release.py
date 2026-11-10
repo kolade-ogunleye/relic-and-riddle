@@ -175,8 +175,10 @@ def write_release_report(run, dry_run=False):
 
 
 def story_frames(run_dir: Path) -> list:
-    """The run's Story frames, as main.py books and posts them (run_dir/stories/story_*.jpg)."""
-    return sorted((Path(run_dir) / "stories").glob("story_*.jpg"))
+    """The run's Story frames, as main.py books and posts them (run_dir/stories/story_*.jpg): the sequence's
+    frames only, never a retired poll frame an older run left (multi_format.story_posting_frames, QF-80)."""
+    from .multi_format import story_posting_frames
+    return [Path(p) for _, p in story_posting_frames(sorted((Path(run_dir) / "stories").glob("story_*.jpg")))]
 
 
 def _plain_story_problem(text: str) -> str:

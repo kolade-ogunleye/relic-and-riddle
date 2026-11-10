@@ -113,7 +113,7 @@ def test_story_text_blocks_stay_inside_the_story_box(tmp_path):
     slides = MultiFormatGenerator().generate_story_sequence(hero, payload, tmp_path)
     layout = json.loads((tmp_path / "stories" / "layout.json").read_text(encoding="utf-8"))
     box = safe_zones.safe_box("story")
-    assert [e["frame"] for e in layout] == [p.name for p in slides] and len(layout) == 3
+    assert [e["frame"] for e in layout] == [p.name for p in slides] and len(layout) == 2  # hook, reveal (QF-80)
     for entry, slide in zip(layout, slides):
         assert safe_zones.inside(tuple(entry["text_box"]), box), (entry["frame"], entry["text_box"])
         # the recorded block is honest: nothing bright is drawn outside it (the photo is flat grey)

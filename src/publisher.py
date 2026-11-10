@@ -821,8 +821,18 @@ class MetaPublisher:
         stops there so nothing is posted twice. `retry_tag` names a deliberate re-send of a failed
         platform (operator, 2026-10-24) so its idempotency keys differ from the first attempt's.
         A carousel's slides carry alt text built from what each shows (multi_format.slide_alt_text);
-        `first_comment` (the credits, when they do not fit the caption) is posted under it on each platform."""
+        `first_comment` (the credits, when they do not fit the caption) is posted under it on each platform.
+        Stories post the sequence's frames only (multi_format.story_posting_frames, QF-80): a retired poll frame
+        booked by an older run is not sent, and each request keeps its frame's number in the sequence."""
         platforms = platforms or ["facebook", "instagram"]
+        parts: list[int] = []
+        if kind == "story":
+            from .multi_format import story_posting_frames
+            numbered = story_posting_frames(photos)
+            parts, photos = [n for n, _ in numbered], [p for _, p in numbered]
+            if not photos:
+                return {"status": "failed", "error": "no Story frame to post (the poll frame is no longer posted)",
+                        "posted_parts": 0}
         if not dry_run:
             _assert_recovery_unlocked()
         channel = f"upload-post:{kind}"
@@ -833,7 +843,7 @@ class MetaPublisher:
         # fourth of seven, hiding the closing slide (multi_format.facebook_pick; audit 2026-10-28; 4 until 2026-11-03).
         # Upload-Post puts a Facebook multi-photo post's caption on its first photo, which is the cover.
         if kind == "story":
-            batches = [([p], platforms, f"{run_id}-{kind}-{i}{tag}") for i, p in enumerate(photos, 1)]
+            batches = [([p], platforms, f"{run_id}-{kind}-{n}{tag}") for n, p in zip(parts, photos)]
         else:
             from .multi_format import facebook_pick
             slides = photos[:10]  # Instagram carousels: max 10
@@ -851,8 +861,9 @@ class MetaPublisher:
         if kind != "story":  # Stories take no alt text through Upload-Post
             from .multi_format import slide_alt_text
             alt_texts = {key: [slide_alt_text(Path(p)) for p in batch] for batch, _, key in batches}
+        parts = parts or list(range(1, len(batches) + 1))  # a Story request's part is its frame's number
         if dry_run:  # the real plan, each request recorded as it would be sent, nothing sent
-            for i, (batch, batch_platforms, key) in enumerate(batches, 1):
+            for i, (batch, batch_platforms, key) in zip(parts, batches):
                 self.db.record_publication(topic_id, run_id, channel, "simulated",
                                            {"part": i, "platforms": batch_platforms, "request_id": key, "photos": batch,
                                             "caption": _caption_for(kind, caption, batch_platforms),
@@ -864,7 +875,7 @@ class MetaPublisher:
         if up is None or not up.configured():
             return {"status": "failed", "error": "Upload-Post is not configured (needed for Stories and carousels)"}
         done = []
-        for i, (batch, batch_platforms, key) in enumerate(batches, 1):
+        for i, (batch, batch_platforms, key) in zip(parts, batches):
             try:
                 res = up.publish_photos(kind, batch, _caption_for(kind, caption, batch_platforms), batch_platforms, key,
                                         alt_texts=alt_texts.get(key),
@@ -872,7 +883,8 @@ class MetaPublisher:
             except PublishFailed as e:
                 self.db.record_publication(topic_id, run_id, channel, "failed", {"error": str(e), "part": i})
                 status = "unknown" if done else "failed"  # earlier frames already went out
-                return {"status": status, "error": str(e), "posted_parts": len(done)}
+                return {"status": status, "error": str(e), "posted_parts": len(done),
+                        **({"part": i} if kind == "story" else {})}
             except PublishUnknown as e:
                 failed, ok = getattr(e, "failed", {}) or {}, getattr(e, "ok", {}) or {}
                 self.db.record_publication(topic_id, run_id, channel, "unknown",

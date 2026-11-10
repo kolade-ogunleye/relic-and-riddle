@@ -2,10 +2,9 @@
 src/multi_format.py
 ===================
 Companion assets derived from the Reel's script package, for manual posting:
-1. 3-frame Story sequence (1080x1920): hook, revelation, question. The poll itself is
-   added as a native Instagram poll sticker when posting; frame 3 asks the question, draws no
-   options or reply instruction, leaves POLL_STICKER_ROOM empty for the sticker, and the
-   question/options are saved in companion_posting.json.
+1. 2-frame Story sequence (1080x1920): hook and revelation (QF-80). The third frame, the poll's
+   question, is no longer made or posted: its native poll sticker cannot be posted through the API,
+   so the frame went out as a question with nothing to answer it (STORY_FRAMES, RETIRED_STORY_FRAMES).
 2. 7-slide carousel (1440x1800, 4:5): cover, matched-photo fact slides, closing question.
 Stories and carousels are posted on their own schedule (src/post_schedule.py).
 """
@@ -38,6 +37,24 @@ INK = brand.INK
 # own A and B option boxes and "REPLY WITH A OR B" until 2026-10-29: fake poll controls and a set-reply ask,
 # which the engagement-bait check itself flags ("Reply A").
 POLL_STICKER_ROOM = (1300, 1560)
+
+# The Story sequence that is made, booked and posted (QF-80, 2026-11-09: option 1 of
+# decisions/QF-80-stories-threshold.md): hook and reveal, numbered by their place in the sequence. The poll frame is
+# retired: a frame of that name left by an older run is never booked or posted. Its rendering path (asks_poll below)
+# stays for redrawing an older run's recorded recipe only.
+STORY_FRAMES = ("story_01_hook.jpg", "story_02_reveal.jpg")
+RETIRED_STORY_FRAMES = ("story_03_question.jpg",)
+
+
+def story_posting_frames(paths) -> list[tuple[int, str]]:
+    """The Story frames to post from `paths`, in order, as (part, path): a retired frame is dropped and at most
+    len(STORY_FRAMES) frames remain. Each part is the frame's place in STORY_FRAMES when every frame carries its
+    sequence name (a retried reveal stays part 2, so its idempotency key and its reach, audience <platform>_story2,
+    keep the reveal's number); otherwise the frames are numbered in order."""
+    kept = [str(p) for p in paths if Path(p).name not in RETIRED_STORY_FRAMES][:len(STORY_FRAMES)]
+    if all(Path(p).name in STORY_FRAMES for p in kept):
+        return [(STORY_FRAMES.index(Path(p).name) + 1, p) for p in kept]
+    return list(enumerate(kept, 1))
 
 STORY_BODY_PX = 46      # the Story body's size; never shrunk below it (2026-10-25: 30 px read as ~11 pt; 40 until
                         # the overhaul of 2026-10-29, which sets it at the critic's measured 46-48 px, ~16 pt)
@@ -514,25 +531,24 @@ _render_state = threading.local()   # the slide being drawn on this thread: its 
 class MultiFormatGenerator:
     def generate_story_sequence(self, hero_img_path: Path, script_payload: Dict[str, Any], output_dir: Path,
                                 scene_images: List[Path] = None) -> List[Path]:
-        """Three Story frames, each on its own matched photo: hook, reveal, and the poll's question
-        (the native poll sticker can't be posted through the API: the operator adds it in POLL_STICKER_ROOM,
-        which the frame keeps empty; the frame draws no options of its own and asks for no set reply).
+        """Two Story frames, each on its own matched photo: hook and reveal (STORY_FRAMES; QF-80). The script's
+        third slide, the poll's question, is not drawn: the native poll sticker can't be posted through the API.
         Text sits on the calmest band of the photo inside Story-safe zones (clear of the profile bar
         at the top and the reply bar at the bottom), over a soft gradient rather than a box."""
         out_dir = output_dir / "stories"
         out_dir.mkdir(parents=True, exist_ok=True)
         stills = [p for p in (scene_images or []) if not is_video(p)] or [hero_img_path]
-        slides_data = script_payload["story_slides"]
+        slides_data = script_payload["story_slides"][:len(STORY_FRAMES)]
         cards = [{"heading": f"{s['line1']} {s['line2']}", "body": s["body"]} for s in slides_data]
         photos = self._match_photos(cards, stills) if len(stills) > 1 else [hero_img_path] * len(cards)
-        names = ["story_01_hook.jpg", "story_02_reveal.jpg", "story_03_question.jpg"]
-        poll = script_payload.get("poll") or {}
+        names = list(STORY_FRAMES)
+        for name in RETIRED_STORY_FRAMES:  # an earlier render's poll frame in this folder is not left beside them
+            (out_dir / name).unlink(missing_ok=True)
+        poll: dict[str, Any] = {}  # no frame asks the poll: it would turn the reveal into a question frame
         # One unit per run: figures in the unit the narration speaks (2026-10-29); matched to photos as written.
         narration = script_payload.get("narration_script") or ""
         slides_data = [{k: (spoken_units(v, narration) if isinstance(v, str) else v) for k, v in s.items()}
                        for s in slides_data]
-        if poll.get("question"):
-            poll = dict(poll, question=spoken_units(poll["question"], narration))
         layout = []  # each frame's text block, for the audit and the evidence renders
 
         from . import still_layout
@@ -564,17 +580,8 @@ class MultiFormatGenerator:
         yt_desc = f"{title}\n\n{script_payload.get('narration_script', '')}\n\n{first_comment}\n\n{hashtags_str}"
         yt_tags = [h.lstrip("#").lower() for h in hashtags_list] + ["archaeology", "ancient history", "documentary", "history mysteries"]
 
-        sticker_spec = dict(script_payload.get("poll") or {})
-        if sticker_spec and poll_problems(sticker_spec):
-            # Recorded for the operator (round 4): the script's rule is "never a yes/no question". Not yet a gate here.
-            sticker_spec["problems"] = poll_problems(sticker_spec)
-        room = next(((e["frame"], e.get("poll_sticker_room")) for e in layout if e.get("poll_sticker_room")), None)
-        if sticker_spec and room:
-            # Where the operator places the native sticker: the room the frame keeps for it (round 3, 2026-11-02).
-            sticker_spec["position"] = {"frame": room[0], "box": room[1], "frame_size": [VIDEO_WIDTH, VIDEO_HEIGHT]}
         companion_manifest = {
-            "story_poll_sticker": sticker_spec,
-            "story_frames": [p.name for p in slides],
+            "story_frames": [p.name for p in slides],  # no story_poll_sticker: no frame keeps a room for one (QF-80)
             # What each frame credits on itself (Stories carry no caption; story_credit, 2026-10-29)
             "story_credits": {e["frame"]: e["photo_credit"].get("lines", []) for e in layout},
             "first_comment": first_comment,
@@ -597,7 +604,7 @@ class MultiFormatGenerator:
                     "pinned_comment": first_comment,
                 },
             },
-            "note": "Multi-platform publishing manifest: native Instagram poll sticker specs, Facebook MSI discussion copy, and YouTube Shorts SEO metadata.",
+            "note": "Multi-platform publishing manifest: the Story frames and their credits, Facebook MSI discussion copy, and YouTube Shorts SEO metadata.",
         }
 
         with open(output_dir / "companion_posting.json", "w", encoding="utf-8") as f:

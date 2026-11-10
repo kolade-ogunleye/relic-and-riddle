@@ -1621,7 +1621,14 @@ class PipelineCoordinator:
             return "🔁 This booking has been retried twice; it is not retried again automatically."
         files = [f for f in post["files"] if Path(f).exists()]
         part = int(detail.get("part") or (int(detail.get("posted_parts") or 0) + 1))
-        frames = files if post["kind"] == "carousel" else (files[part - 1:part] if 0 < part <= len(files) else [])
+        if post["kind"] == "story":
+            from src.multi_format import STORY_FRAMES, story_posting_frames
+            if part > len(STORY_FRAMES):
+                return "🔁 Not retried: that was the poll frame, which is no longer posted."
+            # The frame by its number in the sequence (QF-80), not its place among the files still on disk.
+            frames = [f for n, f in story_posting_frames(files) if n == part]
+        else:
+            frames = files
         if not frames:
             return "🔁 The frame to retry is no longer on disk."
         run = self.db.get_run(post["run_id"]) or {}
@@ -3553,7 +3560,8 @@ class PipelineCoordinator:
         the daemon's post_due() publishes them when due. Shared by slot booking and Post now. reel_slot is the
         Reel's slot, or now when the Reel has posted."""
         lines: List[str] = []
-        stories = sorted(str(p) for p in (run_dir / "stories").glob("story_*.jpg"))
+        from src.release import story_frames
+        stories = [str(p) for p in story_frames(run_dir)]  # hook and reveal; never a retired poll frame (QF-80)
         if stories:
             when = post_schedule.story_time(reel_slot)
             self.db.add_scheduled_post(run_id, "story", when.astimezone(timezone.utc).isoformat(), stories)
@@ -3880,7 +3888,8 @@ class PipelineCoordinator:
             # A live approval books the Stories and the carousel for their slots; a dry run skipped them
             # entirely, so it never tested them. They are simulated here, each request as it would be sent.
             run_dir = Path(run["master_video_path"]).parent
-            stories = sorted(str(p) for p in (run_dir / "stories").glob("story_*.jpg"))
+            from src.release import story_frames
+            stories = [str(p) for p in story_frames(run_dir)]
             slides = sorted(str(p) for p in (run_dir / "carousel").glob("carousel_slide_*.jpg"))
             if stories:
                 pub["stories"] = self.publisher.publish_photos(run_id, tid, "story", stories, dry_run=True)

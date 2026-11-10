@@ -215,8 +215,8 @@ def test_story_frames_post_one_by_one_as_stories(monkeypatch, run, tmp_path):
     monkeypatch.setattr(requests, "post", fake_post)
     up = UploadPostPublisher(api_key="k" * 20, user="u", base_url="https://api.upload-post.com/api")
     res = MetaPublisher(db=run, publishers=[up]).publish_photos("r1", "01_topic", "story", _photos(tmp_path, 3))
-    assert res["status"] == "published" and res["posted_parts"] == 3
-    assert [c[1] for c in calls] == ["r1-story-1", "r1-story-2", "r1-story-3"]
+    assert res["status"] == "published" and res["posted_parts"] == 2
+    assert [c[1] for c in calls] == ["r1-story-1", "r1-story-2"]
     url, _, data, nfiles = calls[0]
     assert url == "https://api.upload-post.com/api/upload_photos" and nfiles == 1
     assert data["media_type"] == "STORIES" and data["facebook_media_type"] == "STORIES"

@@ -68,7 +68,8 @@ def test_the_poll_room_sits_on_a_feathered_band_not_a_hard_edged_box(tmp_path) -
     assert np.abs(np.diff(below)).max() < 8                  # feathered over ~120 px under the room
 
 
-def test_the_poll_rooms_position_is_written_for_the_operator(tmp_path) -> None:
+def test_no_poll_room_is_written_now_the_poll_frame_is_cut(tmp_path) -> None:
+    # Until QF-80 the poll frame's sticker room was written for the operator; the frame is no longer made.
     photos = [_photo(tmp_path / f"p{i}.jpg", c, (1080, 1920)) for i, c in enumerate([(90, 80, 70), (60, 70, 90), (200, 200, 200)])]
     payload = {"story_slides": [
         {"kicker": "DID YOU KNOW?", "line1": "ONE MAN KNOCKED", "line2": "THROUGH HIS WALL", "body": "Cappadocia, 1963."},
@@ -77,9 +78,8 @@ def test_the_poll_rooms_position_is_written_for_the_operator(tmp_path) -> None:
     M().generate_story_sequence(photos[0], payload, tmp_path / "run", scene_images=photos)
     manifest = json.loads((tmp_path / "run" / "companion_posting.json").read_text(encoding="utf-8"))
     layout = json.loads((tmp_path / "run" / "stories" / "layout.json").read_text(encoding="utf-8"))
-    pos = manifest["story_poll_sticker"]["position"]
-    assert pos["frame"] == "story_03_question.jpg" and pos["box"] == layout[2]["poll_sticker_room"]
-    assert pos["frame_size"] == [1080, 1920] and manifest["story_poll_sticker"]["question"] == POLL["question"]
+    assert "story_poll_sticker" not in manifest and manifest["story_frames"] == ["story_01_hook.jpg", "story_02_reveal.jpg"]
+    assert [e["frame"] for e in layout] == manifest["story_frames"] and not any(e.get("poll_sticker_room") for e in layout)
 
 
 def test_every_frame_sets_its_kicker_at_one_top_y(tmp_path) -> None:

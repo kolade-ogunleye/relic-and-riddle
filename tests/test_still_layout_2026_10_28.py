@@ -90,7 +90,7 @@ def test_antikythera_story_text_and_a_long_line_stay_whole_inside_the_story_box(
     for slide in slides:
         _assert_clean(records[slide.name], zone)
         assert "body" in records[slide.name]["shortened"]
-    drawn = json.loads((tmp_path / "long" / "stories" / "layout.json").read_text(encoding="utf-8"))[2]["body_drawn"]
+    drawn = json.loads((tmp_path / "long" / "stories" / "layout.json").read_text(encoding="utf-8"))[-1]["body_drawn"]
     assert drawn.endswith(chr(0x2026)) and " ".join((LONG_LINE * 2).split()).startswith(drawn[:-1])
 
 
@@ -234,7 +234,7 @@ def test_story_and_carousel_cut_offs_redraw_through_the_audit(tmp_path, looked, 
     assert looked["redraws"] == 1 and [i["severity"] for i in looks] == ["info"] and looks[0]["card"] == "story_02_reveal.jpg"
     assert _records(tmp_path / "stories")["story_02_reveal.jpg"]["tight"]
     layout = json.loads((tmp_path / "stories" / "layout.json").read_text(encoding="utf-8"))
-    assert [e["frame"] for e in layout] == ["story_01_hook.jpg", "story_02_reveal.jpg", "story_03_question.jpg"]
+    assert [e["frame"] for e in layout] == ["story_01_hook.jpg", "story_02_reveal.jpg"]  # no poll frame (QF-80)
     # Nothing measured or cut; the production bodies' five lines are the script stage's three-line rule's to
     # prevent (story_text_too_small), and are drawn whole.
     assert {i["type"] for i in report["issues"] if i["severity"] in ("critical", "major")} <= {"story_text_too_small"}

@@ -1,0 +1,99 @@
+{
+ "fixture": {
+  "frames_made": [
+   "story_01_hook.jpg",
+   "story_02_reveal.jpg"
+  ],
+  "poll_sticker_rooms_made": 0,
+  "companion_has_poll_sticker": false,
+  "old_run_frames_counted": 2,
+  "old_run_frames_booked": 2,
+  "old_booking_requests_sent": [
+   "run_old-story-1",
+   "run_old-story-2"
+  ],
+  "reveal_retry_request": [
+   "run_old-story-2-retry1-instagram"
+  ],
+  "reveal_retry_reach_recorded_as": [
+   "instagram_story2"
+  ],
+  "poll_frame_retry_sent_to_publisher": 0
+ },
+ "runs": {
+  "story_runs": 30,
+  "runs_with_poll_frame_on_disk": 30,
+  "frames_on_disk": 90,
+  "frames_booked": 60,
+  "runs_booking_the_poll_frame": 0,
+  "runs_with_layout_json": 22,
+  "poll_rooms_in_layout_json": 1,
+  "redrawn_from_recipes": [
+   {
+    "run": "run_gol_gumbaz_whispering_gallery_1793278143",
+    "frames": {
+     "story_01_hook.jpg": "5024826ea4acce2c3e217cdffca6d61d27a4fd10ec758c01be437a979b7c77be",
+     "story_02_reveal.jpg": "216c4573c18f5d4aac7e5db4375b4f295080332562a28cc32b7efded89ba0846"
+    }
+   },
+   {
+    "run": "run_nazca_lines_runway_paradox_1793247464",
+    "frames": {
+     "story_01_hook.jpg": "eb4e7453e67d7b2338272ec7776c0f85e3315ea917e7f3f0ee9e35ac560b5c01",
+     "story_02_reveal.jpg": "7c79e3d7ff08fd7ae2f89af379ee11373ead18e79f66f725f44e12778bdfbb18"
+    }
+   },
+   {
+    "run": "run_nazca_lines_runway_paradox_1793251266",
+    "frames": {
+     "story_01_hook.jpg": "3ac414e238c8856ee3e8522e26df17522945939a4b0e13e57933242de822c2ac",
+     "story_02_reveal.jpg": "7c79e3d7ff08fd7ae2f89af379ee11373ead18e79f66f725f44e12778bdfbb18"
+    }
+   },
+   {
+    "run": "run_nazca_lines_runway_paradox_1793262388",
+    "frames": {
+     "story_01_hook.jpg": "3ac414e238c8856ee3e8522e26df17522945939a4b0e13e57933242de822c2ac",
+     "story_02_reveal.jpg": "7c79e3d7ff08fd7ae2f89af379ee11373ead18e79f66f725f44e12778bdfbb18"
+    }
+   },
+   {
+    "run": "run_nazca_lines_runway_paradox_1793267092",
+    "frames": {
+     "story_01_hook.jpg": "3ac414e238c8856ee3e8522e26df17522945939a4b0e13e57933242de822c2ac",
+     "story_02_reveal.jpg": "7c79e3d7ff08fd7ae2f89af379ee11373ead18e79f66f725f44e12778bdfbb18"
+    }
+   },
+   {
+    "run": "run_richat_structure_sahara_eye_1793272675",
+    "frames": {
+     "story_01_hook.jpg": "a67a56c1cbb0064582ba5127c17a5343947ca413e66bf90d3599c7c4e4e5d2d2",
+     "story_02_reveal.jpg": "b242b18875202cd003eb5d471b813c91b1c888f30979ca92846212d628d42879"
+    }
+   },
+   {
+    "run": "run_richat_structure_sahara_eye_1793474843",
+    "frames": {
+     "story_01_hook.jpg": "9be9da03e52771baca5f3573586d58f062865ef7aabf7d2c809be88a7990b611",
+     "story_02_reveal.jpg": "852b8e67ffc43069ae01f68eefda41ec518e8b99dab8c8cdfa0ce1fe6ad26acf"
+    }
+   }
+  ]
+ },
+ "db": {
+  "story_publications": {
+   "simulated part 1": 7,
+   "simulated part 2": 7,
+   "simulated part 3": 7
+  },
+  "story_metric_rows": {},
+  "story_rows_with_reach": {}
+ },
+ "acceptance": {
+  "two_frames_made": true,
+  "no_poll_room_made": true,
+  "poll_frame_never_booked_or_sent": true,
+  "reveal_reach_recorded_as_frame_2": true,
+  "real_runs_booking_the_poll_frame": 0
+ }
+}

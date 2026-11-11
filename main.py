@@ -1109,8 +1109,12 @@ class PipelineCoordinator:
             content_format="deep_dive",
         )
 
-        from src.release import write_release_report
-        release = write_release_report(self.db.get_run(run_id), dry_run=dry_run)
+        from src.release import ReleaseReportLocked, locked_report, write_release_report
+        try:
+            release = write_release_report(self.db.get_run(run_id), dry_run=dry_run)
+        except ReleaseReportLocked as e:   # held, with the reason on the card; the card re-runs the gate
+            log.warning("Release report not saved: %s", e)
+            release = locked_report(e)
         auto_approve = self._auto_approve_allowed(run_id, payload, auto_approve, scenes=extended_scenes)
         blocked = self._blocked_at_gate(run_id, release, dry_run, "auto-approve flag") if auto_approve else None
         if blocked:
@@ -1244,8 +1248,12 @@ class PipelineCoordinator:
         run_dir = Path(run["master_video_path"]).parent
         from src.atomic_files import write_json
         write_json(run_dir / "script_metadata.json", payload)
-        from src.release import write_release_report
-        report = write_release_report(self.db.get_run(run_id))
+        from src.release import ReleaseReportLocked, locked_report, write_release_report
+        try:
+            report = write_release_report(self.db.get_run(run_id))
+        except ReleaseReportLocked as e:   # the edit stands; the card's own re-check saves the report later
+            log.warning("Release report not saved after the edit: %s", e)
+            report = locked_report(e)
         if appr.get("telegram_message_id"):
             self.telegram_bot._strip_buttons(appr["telegram_message_id"])
         # The review copy, as every re-send uses: the master (78 MB) was over Telegram's upload limit, so the
@@ -3450,8 +3458,12 @@ class PipelineCoordinator:
         add_provenance_attributions(payload, ledger)
         self.db.update_run(run_id, "pending_approval", script_payload=payload)
         (run_dir / "script_metadata.json").write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
-        from src.release import write_release_report
-        release = write_release_report(self.db.get_run(run_id), dry_run=dry_run)
+        from src.release import ReleaseReportLocked, locked_report, write_release_report
+        try:
+            release = write_release_report(self.db.get_run(run_id), dry_run=dry_run)
+        except ReleaseReportLocked as e:   # held, with the reason on the card; the card re-runs the gate
+            log.warning("Release report not saved: %s", e)
+            release = locked_report(e)
 
         # 8-9. Human approval (never implicit). The production card is finished either way.
         self._finish_progress(topic.get("title", tid), run_id, success=True)

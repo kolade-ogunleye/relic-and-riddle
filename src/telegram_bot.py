@@ -1472,7 +1472,13 @@ class TelegramApprovalBot:
                                       + [f"• {e(c['name'])}" + (" (not blocking)" if blocked else "") + f": {e(p)}"
                                          for c in later for p in check_problems(c)]
                                       + [f"• {e(c['name'])} (minor, not blocking): {e(p)}"
-                                         for c in open_checks for p in check_problems(c, "notes")], cap))
+                                         for c in open_checks for p in check_problems(c, "notes")]
+                                      # the operator's old-master note (QF-10b) is shown even when another
+                                      # check blocks: it says what a re-render will also fix
+                                      + [f"• {e(c['name'])} (note, not blocking): {e(p)}"
+                                         for c in report.get("checks", [])
+                                         if c.get("status") == "pass" and c.get("grandfathered")
+                                         for p in check_problems(c)], cap))
             line = ("⛔ <b>Release gate:</b> blocked. This version can't be posted: Edit, Regenerate or Reject it.\n"
                     if blocked else "⚠️ <b>Release gate:</b> needs review before a live post.\n")
             line += f"<blockquote expandable>{found}</blockquote>\n"

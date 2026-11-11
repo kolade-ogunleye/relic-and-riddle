@@ -67,18 +67,24 @@ def write_release_report(run, dry_run=False):
     from . import picture_qa
     deep_dive = profile.name == "deep_dive_16x9"
     report_path = master.parent / "release_report.json"
+    eligible = None   # the sha256 this master is "gated before QF-10" for, decided before any measurement (QF-10b)
     try:
         composition_record = _bound_composition(master)
+        eligible = _gated_before_qf10(composition_record, report_path)
         exempt = (composition_record or {}).get("full_image_spans") or []
         picture = (picture_qa.recorded(report_path, master, deep_dive=deep_dive, exempt_bars=exempt)
                    or picture_qa.measure(master, deep_dive=deep_dive, exempt_bars=exempt))
-        _grandfather_colour(picture, composition_record, report_path)
+        _grandfather_colour(picture, eligible)
         checks.extend(picture["checks"])
         checks.append({"name": "picture_measurement", "status": "pass",
                        "detail": f"Decoded all {picture['decoded_frames']} frames ({picture['duration']:.1f} s).",
                        "measurement": {k: v for k, v in picture.items() if k != "checks"}})
     except Exception as exc:  # noqa: BLE001 - any failure to measure is recorded as a failed check, never a pass
         add("picture_measurement", False, f"The picture could not be checked: {exc}")
+    if eligible:
+        # Kept on every outcome, a failed measurement included: the next check that does measure still finds the
+        # master gated before QF-10 (a timeout used to remove the operator's note for good).
+        next(c for c in checks if c["name"] == "picture_measurement")["gated_before_qf10"] = eligible
 
     ledger = master.parent / "provenance.json"
     integrity = verify_provenance_integrity(ledger)
@@ -188,9 +194,44 @@ def write_release_report(run, dry_run=False):
     # 1.1: the report carries the picture measurement (QF-10); a 1.0 report was written by the gate before it.
     report = {"schema_version": "1.1", "checked_at": datetime.now(timezone.utc).isoformat(),
               "profile": profile.model_dump(), "status": status, "dry_run": dry_run, "checks": checks}
-    master.parent.mkdir(parents=True, exist_ok=True)
-    (master.parent / "release_report.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
+    _save_report(master.parent / "release_report.json", report)
     return report
+
+
+class ReleaseReportLocked(ValueError):
+    """The release report could not be replaced because another program holds it open. A ValueError, so every
+    caller that refuses a blocked release ("Not posted", "Refusing") refuses this one in the same words."""
+
+
+REPORT_REPLACE_TRIES = 7        # 6 waits doubling from 20 ms: 1.26 s in all before giving up
+REPORT_REPLACE_FIRST_WAIT_S = 0.02
+
+
+def _save_report(path: Path, report: dict) -> None:
+    """Write the report atomically (a check never reads half of one, which would lose the old-master mark). On
+    Windows the final rename fails while another handle has the file open without delete sharing (an editor, a
+    reader, a virus scanner); that is retried for about 1.3 s, then refused in plain words, never a raw OSError."""
+    import time
+
+    from .atomic_files import write_json
+    wait = REPORT_REPLACE_FIRST_WAIT_S
+    for attempt in range(REPORT_REPLACE_TRIES):
+        try:
+            write_json(path, report)
+            return
+        except PermissionError:
+            if attempt == REPORT_REPLACE_TRIES - 1:
+                break
+            time.sleep(wait)
+            wait *= 2
+    raise ReleaseReportLocked(f"the release report ({Path(path).name}) is open in another program, so this check "
+                              "could not be saved, and nothing was approved or posted. Close it, then try again.")
+
+
+def locked_report(exc: Exception) -> dict:
+    """A report that holds the release when its file could not be saved (for callers that go on to the card)."""
+    return {"schema_version": "1.1", "status": "fail", "dry_run": False,
+            "checks": [{"name": "release_report", "status": "fail", "detail": str(exc)}]}
 
 
 def _bound_composition(master: Path) -> dict | None:
@@ -206,27 +247,37 @@ GRANDFATHERED_COLOUR = ("Made before the colour fix: the video's colour tags are
                         "It can still be posted; re-render it to tag it.")
 
 
-def _grandfather_colour(picture: dict, composition: dict | None, report_path: Path) -> None:
-    """Operator ruling (2026-11-10, "Grandfather old masters", decisions QF-10-ssim): a master gated before QF-10
-    whose colour tags are exactly the pre-QF-01 set gets a note, not a block. Every other picture check still blocks,
-    and a new render gets no exemption. "Gated before QF-10" is read from stored records, not guessed: the master's
+def _gated_before_qf10(composition: dict | None, report_path: Path) -> str | None:
+    """The master's sha256 when it was gated before QF-10, else None. Read from stored records, never guessed: its
     own composition record (bound to its sha256) was written before QF-10, which always adds `full_image_spans`;
-    and the run's release report was written by the earlier gate (no picture measurement), or by this one already
-    grandfathering these same bytes."""
+    and the run's release report was written by the earlier gate (no picture measurement), or by this gate, which
+    recorded the same finding for these same bytes (`gated_before_qf10` on its picture_measurement, kept whether the
+    measurement passed or failed; or a round-5 report's `grandfathered` measurement)."""
+    if composition is None or "full_image_spans" in composition or not composition.get("master_sha256"):
+        return None
+    sha = composition["master_sha256"]
+    try:
+        previous = json.loads(Path(report_path).read_text(encoding="utf-8"))
+        earlier = {c.get("name"): c for c in previous.get("checks", [])}
+    except (OSError, ValueError, AttributeError, TypeError):
+        return None
+    if "picture_measurement" not in earlier:
+        return sha
+    found = earlier["picture_measurement"] or {}
+    measured = found.get("measurement") or {}
+    round5 = measured.get("grandfathered") and measured.get("master_sha256") == sha
+    return sha if found.get("gated_before_qf10") == sha or round5 else None
+
+
+def _grandfather_colour(picture: dict, eligible: str | None) -> None:
+    """Operator ruling (2026-11-10, "Grandfather old masters", decisions QF-10-ssim): a master gated before QF-10
+    (`eligible`: _gated_before_qf10) whose colour tags are exactly the pre-QF-01 set gets a note, not a block. Every
+    other picture check still blocks, and a new render gets no exemption."""
     from .picture_qa import PRE_QF01_TAGS
     colour = next((c for c in picture["checks"] if c["name"] == "picture_colour"), None)
     if colour is None or colour["status"] != "fail" or colour.get("tags") != PRE_QF01_TAGS:
         return
-    if composition is None or "full_image_spans" in composition:
-        return
-    try:
-        previous = json.loads(Path(report_path).read_text(encoding="utf-8"))
-        earlier = {c.get("name"): c for c in previous.get("checks", [])}
-    except (OSError, ValueError, AttributeError):
-        return
-    measured = (earlier.get("picture_measurement") or {}).get("measurement") or {}
-    if "picture_measurement" in earlier and not (measured.get("grandfathered")
-                                                and measured.get("master_sha256") == picture["master_sha256"]):
+    if not eligible or eligible != picture.get("master_sha256"):
         return
     colour.update(status="pass", minor=True, grandfathered=True, detail=GRANDFATHERED_COLOUR)
     picture["grandfathered"] = True

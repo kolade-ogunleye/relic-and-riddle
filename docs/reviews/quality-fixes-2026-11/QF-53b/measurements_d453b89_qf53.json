@@ -1,13 +1,13 @@
 {
  "duplicate_rules_on_real_pairs": {
-  "pairs": 37,
+  "pairs": 17,
   "labels": {
-   "distinct": 14,
-   "duplicate": 19,
-   "variant": 4
+   "distinct": 7,
+   "duplicate": 8,
+   "variant": 2
   },
   "qf53_landed (either hash <= 10)": {
-   "duplicates_caught": 19,
+   "duplicates_caught": 8,
    "duplicates_missed": [],
    "distinct_wrongly_flagged": [
     "dev damascus_steel_nanotubes 12_commons.jpg/14_commons.jpg",
@@ -15,33 +15,24 @@
     "dev damascus_steel_nanotubes 14_commons.jpg/19_commons.jpg",
     "dev lycurgus_cup_nanotech 05_commons.jpg/08_commons.jpg",
     "dev voynich_manuscript 05_commons.jpg/09_commons.jpg",
-    "dev voynich_manuscript 10_commons.jpg/11_commons.jpg",
-    "prod damascus_steel_nanotubes 12_commons.jpg/14_commons.jpg",
-    "prod damascus_steel_nanotubes 12_commons.jpg/19_commons.jpg",
-    "prod damascus_steel_nanotubes 14_commons.jpg/19_commons.jpg",
-    "prod lycurgus_cup_nanotech 05_commons.jpg/08_commons.jpg",
-    "prod voynich_manuscript 05_commons.jpg/09_commons.jpg",
-    "prod voynich_manuscript 10_commons.jpg/11_commons.jpg"
+    "dev voynich_manuscript 10_commons.jpg/11_commons.jpg"
    ],
-   "variants_flagged": 2
+   "variants_flagged": 1
   },
   "qf53b_round1 (p <= 6, or both <= 10)": {
-   "duplicates_caught": 17,
+   "duplicates_caught": 7,
    "duplicates_missed": [
-    "dev roman_self_healing_concrete 22_commons.jpg/27_commons.jpg",
-    "prod kailasa_temple_monolith 06_commons.jpg/20_commons.jpg"
+    "dev roman_self_healing_concrete 22_commons.jpg/27_commons.jpg"
    ],
    "distinct_wrongly_flagged": [
-    "dev damascus_steel_nanotubes 12_commons.jpg/14_commons.jpg",
-    "prod damascus_steel_nanotubes 12_commons.jpg/14_commons.jpg"
+    "dev damascus_steel_nanotubes 12_commons.jpg/14_commons.jpg"
    ],
    "variants_flagged": 0
   },
   "qf53b (p + d <= 15)": {
-   "duplicates_caught": 17,
+   "duplicates_caught": 7,
    "duplicates_missed": [
-    "dev roman_self_healing_concrete 22_commons.jpg/27_commons.jpg",
-    "prod kailasa_temple_monolith 06_commons.jpg/20_commons.jpg"
+    "dev roman_self_healing_concrete 22_commons.jpg/27_commons.jpg"
    ],
    "distinct_wrongly_flagged": [],
    "variants_flagged": 0

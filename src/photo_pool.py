@@ -13,7 +13,7 @@ from PIL import Image, ImageOps
 from .image_quarantine import phash
 
 SHOT_CLASSES = ("wide", "interior", "detail", "people-scale", "archival")
-# Attribution that names nobody ("Unknown author", "Anonymous Italian, 16th century"): unverified, so it is
+# Attribution that names nobody ("Unknown author", "Anonymous, Flemish, 15th century"): unverified, so it is
 # neither one shared author nor a source of diversity.
 UNKNOWN_AUTHOR = re.compile(r"\bunknown|\banonym")
 
@@ -49,10 +49,10 @@ def signature(path: Path) -> dict:
 
 
 # Near duplicates: the pHash and dHash distances (bits of 64 each) added together. Calibrated on every
-# within-pool pair of the real development pools and the production sample (QF-53b evidence): re-edits and
-# re-exposures of one photo sum to 14 or less (Derinkuyu 08/20 is 8 + 6); different objects start at 17
-# (The Met swords 30975/30903 are 10 + 7). Pairs beyond this (two scans of one engraving at 21) are a known
-# limit of hashing, reported in the evidence, not tuned for.
+# within-pool pair of the real development pools (QF-53b evidence; the production sample checked as counts):
+# re-edits and re-exposures of one photo sum to 12 or less (Derinkuyu 21/23 is 10 + 2); different objects
+# start at 17 (The Met swords 30975/30903 are 10 + 7). Pairs beyond this (two scans of one engraving at 21)
+# are a known limit of hashing, reported in the evidence, not tuned for.
 DUPLICATE_DISTANCE = 15
 
 

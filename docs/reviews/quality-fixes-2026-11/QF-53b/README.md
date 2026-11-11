@@ -6,11 +6,13 @@ QF-53 (d453b89) made `/photos approve` refuse all 27 real pools with photos, and
 (decisions/QF-53b-author-cap.md, 2026-11-09): the author and shot-class quotas govern what the fetcher adds; a
 pool's existing photos are never moved out for them by automatic review or refill, and the pool's share is reported.
 
-Run: `python docs/reviews/quality-fixes-2026-11/QF-53b/measure.py <repo root>`. It prints JSON and writes nothing.
-Point it at another commit's worktree to measure that commit's code on the same pools. Its inputs are committed:
-- `real_pairs.json`: every within-pool pair with a pHash + dHash distance of 25 or less (37 of 3,683 pairs, across
-  the development pools and the production sample), with hashes only and a label made from side-by-side contact
-  sheets of the files.
+Run: `python docs/reviews/quality-fixes-2026-11/QF-53b/measure.py <repo root> [<outside pairs file>]`. It prints
+JSON and writes nothing. Point it at another commit's worktree to measure that commit's code on the same pools. Its
+inputs are committed:
+- `real_pairs.json`: every within-pool pair of the development pools with a pHash + dHash distance of 25 or less
+  (17 of 1,837 pairs), with hashes only and a label made from side-by-side contact sheets of the files.
+- The production sample's labelled pairs are not committed. They are kept in a pairs file of the same format outside
+  the repository; passed as `<outside pairs file>`, they are scored as counts only (no pair names).
 - `real_signatures.json`: `signature()` of the 278 development pool photos, as hashes only. The replay uses them in
   place of the photos, which are not in the repository.
 - the tracked `assets/*/credits.json`, with their recorded vision verdicts (the model is mocked, so no call is made).
@@ -20,7 +22,7 @@ storyboard stubbed, because the placeholders hold no pixels), and reports the ph
 
 ## What changed
 
-1. Unnamed attribution ("Unknown", "Unknown author", "Anonymous, Italian, 16th century", missing) is unverified:
+1. Unnamed attribution ("Unknown", "Unknown author", "Anonymous, <nationality>, <century>", missing) is unverified:
    it is reported as `unverified_authors` and never counted as one shared author. The 35% share is counted over
    the whole pool, for named authors only. Below three photos no pool can keep each author at 35% or less, so the
    fetch quota starts at three. Round 1's `has_authors` switch is removed.
@@ -40,18 +42,22 @@ storyboard stubbed, because the placeholders hold no pixels), and reports the ph
    unchanged-pool path keeps its stored verdict; the legacy comma fingerprint counts as unchanged when every file
    still hashes; the crop budget ignores legacy records with no crop width.
 
-## Duplicate rules on the 37 labelled real pairs
+## Duplicate rules on the 17 labelled development pairs
 
-| Rule | Duplicates caught (of 19) | Distinct objects flagged (of 14) | Variants flagged (of 4) |
+| Rule | Duplicates caught (of 8) | Distinct objects flagged (of 7) | Variants flagged (of 2) |
 |---|---|---|---|
-| QF-53 landed: either hash <= 10 | 19 | 12 (the Met swords, Lycurgus lit/unlit, Voynich folios) | 2 |
-| round 1: pHash <= 6, or both <= 10 | 17 | 2 (Met swords 12/14, dev and prod) | 0 |
-| this row: pHash + dHash <= 15 | 17 | 0 | 0 |
+| QF-53 landed: either hash <= 10 | 8 | 6 (the Met swords, Lycurgus lit/unlit, Voynich folios) | 1 |
+| round 1: pHash <= 6, or both <= 10 | 7 | 1 (Met swords 12/14) | 0 |
+| this row: pHash + dHash <= 15 | 7 | 0 | 0 |
 
-The two duplicates missed by this row are a limit of the hashes, not of the threshold. Roman concrete 22/27 (two
-scans of one Pantheon engraving) and production Kailasa 06/20 (the same viewpoint, photographed twice) both sit at
-21. Different objects sit at 17, 20 and 22 (the Met swords and the Lycurgus cup), so no hash threshold separates
-them. The four "variants" are Richat satellite scenes in different processing. A pixel-embedding comparison (the
+Production sample (counts only, from the outside pairs file): 20 labelled pairs, 11 duplicates, 7 distinct, 2
+variants. QF-53 landed: 11 caught, 6 distinct and 1 variant flagged; round 1: 10 caught, 1 distinct flagged; this
+row: 10 caught, 0 flagged.
+
+The duplicate missed by this row is a limit of the hashes, not of the threshold. Roman concrete 22/27 (two scans of
+one Pantheon engraving) sits at 21, and the one duplicate missed in the production sample is likewise beyond the
+rule. Different objects sit at 17, 20 and 22 (the Met swords and the Lycurgus cup), so no hash threshold separates
+them. The "variants" are Richat satellite scenes in different processing. A pixel-embedding comparison (the
 pinned local CLIP model approved for QF-59) is the follow-up that can tell these apart.
 
 ## Real pools, development (measure.py on each commit)

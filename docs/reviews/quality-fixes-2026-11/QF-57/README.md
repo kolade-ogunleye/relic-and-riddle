@@ -42,7 +42,8 @@ Anything else stays held: a US-only tag, a life term without a US basis, PD-algo
 Run `python docs/reviews/quality-fixes-2026-11/QF-57/measure.py <repo root> [<assets dir>]`. It prints JSON, writes
 nothing and makes no network call. The fixtures come from `fixtures.py` beside it, so it runs on the parent too.
 `before.json` is the parent (bfb090d) on the tracked dev pools, `measurements.json` this row; the
-`*_production_sample.json` pair is the same on a copy of the production sample (C:\tmp\prod-export-data, read-only).
+`*_production_sample.json` pair is the same on a copy of the production sample (C:\tmp\prod-export-data, read-only),
+kept outside the repository and reported as counts only.
 
 | | parent bfb090d | QF-57 |
 |---|---:|---:|
@@ -58,14 +59,14 @@ nothing and makes no network call. The fixtures come from `fixtures.py` beside i
 
 No ready pool becomes unready, on dev or production. Topic selection does change: `topic_engine.authoritative_images`
 counts topic and kept photos, and a topic with fewer than `TOPIC_MIN_AUTHORITATIVE_IMAGES` (8) is moved behind the
-others (not dropped). Wieliczka falls from 8 to 5 on dev and production and is demoted. Others lose photos but stay
-at or above 8 (Amber Room 18 -> 16, Voynich 18 -> 16, Roman concrete 12 -> 11 dev / 15 -> 14 production, Colossi of
-Memnon 16 -> 10); Greek fire (2 -> 1) and Tunguska (1 -> 0) were already below 8.
+others (not dropped). On dev, Wieliczka falls from 8 to 5 and is demoted. Others lose photos but stay at or above 8
+(Amber Room 18 -> 16, Voynich 18 -> 16, Roman concrete 12 -> 11, Colossi of Memnon 16 -> 10); Greek fire (2 -> 1)
+and Tunguska (1 -> 0) were already below 8.
 
-The held records (each file listed in the measurements):
+The held records (dev files listed in `measurements.json`; the production sample as counts only):
 - dev, 22: Colossi of Memnon 6, Tunguska 4, Wieliczka 3, and 1-2 in Amber Room, Flannan Isles, Greek fire,
   Roman concrete, Voynich and Zhang Heng (Nazca 04 passes by its CC-Zero category);
-- production, 8: Wieliczka 3, Amber Room 2, Voynich 2, Roman concrete 1 (the 1892 Pantheon photo).
+- production sample: 8 held in 4 pools; no ready pool becomes unready.
 
 By recorded evidence, the dev holds are: 7 with no rights category recorded, 3 PD-algorithm, and the rest a life
 term without a US basis (CC-PD-Mark with PD-old-80, PD-Russia-1996, "PD Old") or a US basis without a life term.

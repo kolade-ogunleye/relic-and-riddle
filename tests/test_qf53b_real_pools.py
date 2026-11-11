@@ -46,9 +46,10 @@ def test_every_labelled_real_duplicate_beyond_the_rule_is_a_recorded_hash_limit(
 
 
 @pytest.mark.parametrize("artist", ["Unknown", "Unknown author Unknown author", "unknown",
-                                    "Anonymous, Italian, 16th century", "From the Middle Ages, unknown", "", None])
+                                    "Anonymous, Flemish, 15th century", "From the Middle Ages, unknown", "", None])
 def test_real_unnamed_attribution_is_unverified(artist):
     # Real strings from the pools: trepanation has 15/15 "Unknown", the Voynich manuscript 16 "Unknown author".
+    # "Anonymous, <nationality>, <century>" is a synthetic string of a form real credits use.
     records = [{"file": f"{i}.jpg", "artist": artist, "shot_class": ("wide", "interior", "detail")[i % 3]}
                for i in range(6)]
     result = photo_pool.assess(records)

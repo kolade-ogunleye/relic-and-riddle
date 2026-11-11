@@ -4,8 +4,9 @@
 
 <repo root> is the code measured (the parent or this row); the fixtures come from fixtures.py beside this file, so
 the same script measures both. <assets dir> defaults to <repo root>/assets (the tracked dev pools); pass a COPY of
-another environment's assets (e.g. the production sample) to measure it. A field the measured code cannot produce
-(its parent has no such rule) is "n/a".
+another environment's assets (e.g. the production sample, kept outside the repository) to measure it: held records
+are then reported as counts only (per-topic file lists only for <repo root>/assets). A field the measured code cannot
+produce (its parent has no such rule) is "n/a".
 """
 
 import json
@@ -18,6 +19,7 @@ HERE = Path(__file__).resolve().parent
 
 
 def main(root: Path, assets: Path) -> dict:
+    own_assets = assets == (root / "assets").resolve()
     sys.path.insert(0, str(root))
     from scripts import fetch_commons_images as fetch
     from src import commons, config, image_review
@@ -75,8 +77,11 @@ def main(root: Path, assets: Path) -> dict:
                 else:
                     held_by_topic.setdefault(credits_path.parent.name, []).append(record.get("file"))
     result["real_pools"] = {"pools": pools, "ready_pools": ready, "pd_records": pd,
-                            "pd_records_passing_release_check": pd_ok, "pd_records_held": pd - pd_ok,
-                            "held": held_by_topic}
+                            "pd_records_passing_release_check": pd_ok, "pd_records_held": pd - pd_ok}
+    if own_assets:  # the repository's own pools: name the held files
+        result["real_pools"]["held"] = held_by_topic
+    else:  # another environment's pools: counts only
+        result["real_pools"]["pools_with_held"] = len(held_by_topic)
     return result
 
 

@@ -1,6 +1,8 @@
-"""QF-53b acceptance: python measure.py <repo root>. Prints JSON to stdout; writes nothing in the repository.
+"""QF-53b acceptance: python measure.py <repo root> [<outside pairs file>]. Prints JSON to stdout; writes nothing.
 
-1. Scores the duplicate rules on the committed, labelled real pairs (real_pairs.json: hashes only).
+1. Scores the duplicate rules on the committed, labelled development pairs (real_pairs.json: hashes only). An
+   optional <outside pairs file> (the same format, built from another environment's pools, e.g. the production
+   sample, and kept outside the repository) is scored as well and reported as counts only: no pair names.
 2. Replays every real pool (the tracked assets/*/credits.json at <repo root>) through the code at <repo root>
    on temporary copies: assess(), approve_set(), and review_pool() unforced and forced. The model is mocked to
    return each photo's recorded vision verdict (no model call), and the photos' hashes come from the committed
@@ -33,22 +35,36 @@ RULES = {
 }
 
 
-def _name(pair: dict) -> str:
+def _name(pair: dict) -> str | None:
+    """A pair's name, for development pairs only: another environment's pairs are never named."""
+    if pair.get("env") != "dev":
+        return None
     return f'{pair["env"]} {pair["topic"]} {pair["a"]}/{pair["b"]}'
 
 
-def score_rules() -> dict:
-    pairs = json.loads((HERE / "real_pairs.json").read_text(encoding="utf-8"))["pairs"]
+def _names(pairs: list[dict], named: bool) -> list[str] | int:
+    names = [n for n in map(_name, pairs) if n is not None] if named else []
+    return names if named and len(names) == len(pairs) else len(pairs)
+
+
+def score_rules(pairs: list[dict], named: bool = True) -> dict:
     out = {"pairs": len(pairs), "labels": dict(Counter(p["label"] for p in pairs))}
     for name, rule in RULES.items():
         flagged = [p for p in pairs if rule(p["phash_bits"], p["dhash_bits"])]
         out[name] = {
             "duplicates_caught": sum(p["label"] == "duplicate" for p in flagged),
-            "duplicates_missed": [_name(p) for p in pairs if p["label"] == "duplicate" and p not in flagged],
-            "distinct_wrongly_flagged": [_name(p) for p in flagged if p["label"] == "distinct"],
+            "duplicates_missed": _names([p for p in pairs if p["label"] == "duplicate" and p not in flagged], named),
+            "distinct_wrongly_flagged": _names([p for p in flagged if p["label"] == "distinct"], named),
             "variants_flagged": sum(p["label"] == "variant" for p in flagged),
         }
     return out
+
+
+def _outside_pairs(path: Path) -> list[dict]:
+    if path.is_relative_to(ROOT) or path.is_relative_to(HERE):
+        sys.exit(f"{path}: the outside pairs file must be kept outside the repository")
+    data = json.loads(path.read_text(encoding="utf-8"))
+    return data["pairs"] if isinstance(data, dict) else data
 
 
 SIGNATURES = json.loads((HERE / "real_signatures.json").read_text(encoding="utf-8"))["signatures"]
@@ -226,7 +242,10 @@ def replay_pools(assets: Path) -> dict:
     }
 
 
-result = {"duplicate_rules_on_real_pairs": score_rules()}
+result = {"duplicate_rules_on_real_pairs": score_rules(
+    json.loads((HERE / "real_pairs.json").read_text(encoding="utf-8"))["pairs"])}
+if len(sys.argv) > 2:  # another environment's pairs: counts only
+    result["duplicate_rules_on_outside_pairs"] = score_rules(_outside_pairs(Path(sys.argv[2]).resolve()), named=False)
 assets = ROOT / "assets"
 result["real_pools"] = replay_pools(assets) if any(assets.glob("*/credits.json")) else "skipped: no assets/ at this root"
 print(json.dumps(result, indent=1, ensure_ascii=False))

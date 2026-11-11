@@ -356,6 +356,28 @@ VIDEO_PRESET = "slow"
 AUDIO_SAMPLE_RATE = 48000
 TARGET_LUFS = -14.0
 TARGET_TRUE_PEAK = -1.5
+# Objective picture checks of the delivered master in the release gate (QF-10, src/picture_qa.py). Fixed quality
+# thresholds, not settings. Black: >= 98% of the picture at blackdetect's near-black for 0.1 s (three frames at
+# 30 fps). Freeze: the same picture held longer than the format's longest permitted hold (a Reel's six-second photo
+# hold, a deep dive's twelve-second cut) plus a frame. Bars: flat black bands, each >= 2% of the side, at both edges
+# of an axis for 1 s, flat meaning no sample above luma 16 + PICTURE_QA_BAR_LEVEL and at least
+# PICTURE_QA_BAR_FLAT_SHARE of a line's samples exactly 16 (padding). Range: more than 1% of a plane in
+# areas (3 x 3 samples) beyond limited range by over two codes, for 0.5 s; isolated codec ringing does not count. The
+# decode may take PICTURE_QA_TIMEOUT_BASE_S plus PICTURE_QA_TIMEOUT_PER_S per programme second; PICTURE_QA_THREADS 0
+# lets FFmpeg use every core.
+PICTURE_QA_BLACK_S = 0.10
+PICTURE_QA_FREEZE_REEL_S = 6.1
+PICTURE_QA_FREEZE_LONG_S = 12.1
+PICTURE_QA_BAR_FRACTION = 0.02
+PICTURE_QA_BAR_LEVEL = 2
+PICTURE_QA_BAR_FLAT_SHARE = 0.9
+PICTURE_QA_BAR_S = 1.0
+PICTURE_QA_RANGE_FRACTION = 0.01
+PICTURE_QA_RANGE_TOLERANCE = 2
+PICTURE_QA_RANGE_S = 0.5
+PICTURE_QA_TIMEOUT_BASE_S = 120.0
+PICTURE_QA_TIMEOUT_PER_S = 5.0
+PICTURE_QA_THREADS = 0
 # Sound-effect headroom (QF-06, 2026-11-05): every one-shot effect enters the music bed at SFX_PEAK_DBFS peak before
 # its cue gain (it was set to the RMS of the synthesized stand-in it replaces, so its peak went wherever the
 # recording's crest factor took it), and the bed bus (music, setting layer and effects together) is peak-limited at

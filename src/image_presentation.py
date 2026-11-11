@@ -100,6 +100,18 @@ def fit_filter(path: Path, width: int, height: int) -> str:
     return f"scale={fw}:{fh}:flags=lanczos,pad={width}:{height}:(ow-iw)/2:(oh-ih)/2:color=black"
 
 
+def full_image_spans(items, starts, ends, bridge: tuple[float, float] | None = None) -> list:
+    """The master's intervals (start, end in seconds) that show an essential image whole, padded by fit_filter, for
+    the composition record: the release gate's bar check reads them instead of guessing from pixels (QF-10). A
+    loop bridge (start, end) that leaves or lands on an essential first or last scene shows its padding too."""
+    from .typography import is_video
+    whole = [not is_video(Path(item)) and full_image(Path(item)) for item in items]
+    spans = [[round(a, 3), round(b, 3)] for keep, a, b in zip(whole, starts, ends) if keep]
+    if bridge and whole and (whole[0] or whole[-1]):
+        spans.append([round(bridge[0], 3), round(bridge[1], 3)])
+    return spans
+
+
 def fit_image(source: Image.Image, size: tuple[int, int]) -> Image.Image:
     """Still-format counterpart of fit_filter, including the native-size ceiling."""
     photo = ImageOps.exif_transpose(source).convert("RGBA")

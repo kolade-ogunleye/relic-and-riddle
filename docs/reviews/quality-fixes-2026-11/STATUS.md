@@ -76,7 +76,7 @@ QF-45 after it.
 
 | ID | Finding | Status | Commit | Acceptance metric before -> after | Evidence path | Regression test |
 |---|---|---|---|---|---|---|
-| QF-10 | Picture checks in the release gate | todo | | each check fails a deliberately broken master | QF-10/ | |
+| QF-10 | Picture checks in the release gate | done | this commit | broken masters failed 0/7 -> 7/7 (black, freeze, bars, range, colour, real graphic letterboxed, real graphic full range); clean pictures 3/3 pass (incl. Wieliczka house graphic, halftone ringing); no SSIM verdict without a reference (to QF-12, decision QF-10-ssim; photosensitivity to QF-88); real data: 0 false rejects of 1,258 house-graphic/design frames and 62 Reels (dev + production sample copy); essential images shown whole (QF-52) exempt from bars via the composition record; masters gated before QF-10 with pre-QF-01 tags get a note, not a block (operator ruling); deep dive 1,473 -> 158 CPU s, 534 s one-core projection for 360 s vs 1,920 s limit; re-check reuses by sha256; production sample cited as counts only | QF-10/ | tests/test_qf10_picture_gate.py |
 | QF-11 | Audio QA (loudnorm two-pass, ebur128, phone check) | todo | | ffmpeg passes per master; QA fields | QF-11/ | |
 | QF-12 | Host-independent delivery encode + manifest | todo | | ffprobe of both masters; encoder args in composition.json | QF-12/ | |
 | QF-13 | Lossless intermediates | todo | | no 4:2:0 JPEG written before the render | QF-13/ | |
@@ -137,7 +137,7 @@ QF-45 after it.
 
 | ID | Finding | Status | Commit | Acceptance metric before -> after | Evidence path | Regression test |
 |---|---|---|---|---|---|---|
-| QF-80 | Stories: cut the poll frame, pause frames 1-2 | done | this commit | frames made 3 -> 2, poll rooms made 1 -> 0; runs that would book the poll frame: dev 30 -> 0 of 30, production sample 34 -> 0 of 34; older 3-file booking sends 3 -> 2 requests; retried reveal stored as story1 -> story2; /posts frame count moved to proposed QF-103; hook and reveal pixel-identical (7 real runs); no audience gate (ruling QF-80-stories-threshold option 1) | QF-80/ | tests/test_qf80_story_poll_frame.py |
+| QF-80 | Stories: cut the poll frame, pause frames 1-2 | done | 307544b | frames made 3 -> 2, poll rooms made 1 -> 0; runs that would book the poll frame: dev 30 -> 0 of 30, production sample 34 -> 0 of 34; older 3-file booking sends 3 -> 2 requests; retried reveal stored as story1 -> story2; /posts frame count moved to proposed QF-103; hook and reveal pixel-identical (7 real runs); no audience gate (ruling QF-80-stories-threshold option 1) | QF-80/ | tests/test_qf80_story_poll_frame.py |
 | QF-81 | Carousels: lazy render, insights, FB gallery off | todo | | carousel/ only for booked runs | QF-81/ | |
 | QF-82 | Covers: final + grid only, bandit frozen | todo | | no cover_a/b/c in a run folder | QF-82/ | |
 | QF-83 | Shorts on, dead thumbnail call dropped, FOLLOW overlay | todo | | dry run posts a Short; no thumbnail request | QF-83/ | |

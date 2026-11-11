@@ -62,6 +62,24 @@ def write_release_report(run, dry_run=False):
     except (OSError, ValueError, KeyError, StopIteration, subprocess.SubprocessError) as exc:
         add("media_measurement", False, str(exc))
 
+    # The picture itself, every frame decoded (QF-10): black, frozen, barred or out-of-range pictures and wrong colour
+    # tags fail. A master measured before keeps its result (the review card re-runs this gate each time it is shown).
+    from . import picture_qa
+    deep_dive = profile.name == "deep_dive_16x9"
+    report_path = master.parent / "release_report.json"
+    try:
+        composition_record = _bound_composition(master)
+        exempt = (composition_record or {}).get("full_image_spans") or []
+        picture = (picture_qa.recorded(report_path, master, deep_dive=deep_dive, exempt_bars=exempt)
+                   or picture_qa.measure(master, deep_dive=deep_dive, exempt_bars=exempt))
+        _grandfather_colour(picture, composition_record, report_path)
+        checks.extend(picture["checks"])
+        checks.append({"name": "picture_measurement", "status": "pass",
+                       "detail": f"Decoded all {picture['decoded_frames']} frames ({picture['duration']:.1f} s).",
+                       "measurement": {k: v for k, v in picture.items() if k != "checks"}})
+    except Exception as exc:  # noqa: BLE001 - any failure to measure is recorded as a failed check, never a pass
+        add("picture_measurement", False, f"The picture could not be checked: {exc}")
+
     ledger = master.parent / "provenance.json"
     integrity = verify_provenance_integrity(ledger)
     add("provenance", integrity, "All recorded files must exist and match their checksums.")
@@ -167,11 +185,51 @@ def write_release_report(run, dry_run=False):
         add("story_credits", not stories, stories or "Every Story frame credits its photo as its licence asks.")
     status ="fail" if any(c["status"] == "fail" for c in checks) else (
         "needs_review" if any(c["status"] == "needs_review" for c in checks) else "pass")
-    report = {"schema_version": "1.0", "checked_at": datetime.now(timezone.utc).isoformat(),
+    # 1.1: the report carries the picture measurement (QF-10); a 1.0 report was written by the gate before it.
+    report = {"schema_version": "1.1", "checked_at": datetime.now(timezone.utc).isoformat(),
               "profile": profile.model_dump(), "status": status, "dry_run": dry_run, "checks": checks}
     master.parent.mkdir(parents=True, exist_ok=True)
     (master.parent / "release_report.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
     return report
+
+
+def _bound_composition(master: Path) -> dict | None:
+    """The master's composition record when it is bound to these exact bytes, else None."""
+    try:
+        record = json.loads(Path(master).with_suffix(".composition.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    return record if isinstance(record, dict) and record.get("master_sha256") == sha256_file(master) else None
+
+
+GRANDFATHERED_COLOUR = ("Made before the colour fix: the video's colour tags are incomplete (its picture is BT.709). "
+                        "It can still be posted; re-render it to tag it.")
+
+
+def _grandfather_colour(picture: dict, composition: dict | None, report_path: Path) -> None:
+    """Operator ruling (2026-11-10, "Grandfather old masters", decisions QF-10-ssim): a master gated before QF-10
+    whose colour tags are exactly the pre-QF-01 set gets a note, not a block. Every other picture check still blocks,
+    and a new render gets no exemption. "Gated before QF-10" is read from stored records, not guessed: the master's
+    own composition record (bound to its sha256) was written before QF-10, which always adds `full_image_spans`;
+    and the run's release report was written by the earlier gate (no picture measurement), or by this one already
+    grandfathering these same bytes."""
+    from .picture_qa import PRE_QF01_TAGS
+    colour = next((c for c in picture["checks"] if c["name"] == "picture_colour"), None)
+    if colour is None or colour["status"] != "fail" or colour.get("tags") != PRE_QF01_TAGS:
+        return
+    if composition is None or "full_image_spans" in composition:
+        return
+    try:
+        previous = json.loads(Path(report_path).read_text(encoding="utf-8"))
+        earlier = {c.get("name"): c for c in previous.get("checks", [])}
+    except (OSError, ValueError, AttributeError):
+        return
+    measured = (earlier.get("picture_measurement") or {}).get("measurement") or {}
+    if "picture_measurement" in earlier and not (measured.get("grandfathered")
+                                                and measured.get("master_sha256") == picture["master_sha256"]):
+        return
+    colour.update(status="pass", minor=True, grandfathered=True, detail=GRANDFATHERED_COLOUR)
+    picture["grandfathered"] = True
 
 
 def story_frames(run_dir: Path) -> list:

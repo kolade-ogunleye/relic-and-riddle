@@ -4413,6 +4413,13 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                     "captions": file_inputs([ass_path, output_mp4_path.with_suffix(".srt"), output_mp4_path.with_suffix(".vtt")]), "words_fingerprint": fingerprint(words),
                     "width": width, "height": height, "renderer_sha256": sha256_file(Path(__file__)),
                     "end_card": self.last_end_card}
+        # QF-10: where an essential image is shown whole, its fit_filter padding is by design; the release gate's
+        # bar check reads these spans (always written, so a master without the key was made before QF-10).
+        from .image_presentation import full_image_spans
+        bridge = None
+        if self.last_end_card and self.last_end_card.get("duration_s"):
+            bridge = (self.last_end_card["start_s"], self.last_end_card["start_s"] + self.last_end_card["duration_s"])
+        manifest["full_image_spans"] = full_image_spans(scene_images, starts, ends, bridge)
         if caption_overlap:   # freeze pass G1: the bursts drawn opaque over a graphic's text
             manifest["caption_graphic_overlap"] = caption_overlap
         manifest_path = output_mp4_path.with_suffix(".composition.json")

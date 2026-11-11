@@ -1,0 +1,3993 @@
+{
+ "method": {
+  "version": 1,
+  "sample_lines": 270,
+  "PICTURE_QA_BAR_FLAT_SHARE": 0.9,
+  "PICTURE_QA_BAR_FRACTION": 0.02,
+  "PICTURE_QA_BAR_LEVEL": 2,
+  "PICTURE_QA_BAR_S": 1.0,
+  "PICTURE_QA_BLACK_S": 0.1,
+  "PICTURE_QA_FREEZE_LONG_S": 12.1,
+  "PICTURE_QA_FREEZE_REEL_S": 6.1,
+  "PICTURE_QA_RANGE_FRACTION": 0.01,
+  "PICTURE_QA_RANGE_S": 0.5,
+  "PICTURE_QA_RANGE_TOLERANCE": 2
+ },
+ "threads": 0,
+ "dev": {
+  "masters": [],
+  "graphics": [],
+  "stills": [],
+  "summary": {
+   "masters": {
+    "items": 0,
+    "measured": 0,
+    "errors": 0,
+    "fail_counts": {},
+    "rejected_excluding_colour_tags": 0,
+    "wall_s": null,
+    "cpu_s_per_programme_s": null
+   },
+   "graphics": {
+    "items": 0,
+    "measured": 0,
+    "errors": 0,
+    "fail_counts": {},
+    "rejected_excluding_colour_tags": 0,
+    "wall_s": null,
+    "cpu_s_per_programme_s": null
+   },
+   "stills": {
+    "items": 0,
+    "measured": 0,
+    "errors": 0,
+    "fail_counts": {},
+    "rejected_excluding_colour_tags": 0,
+    "wall_s": null,
+    "cpu_s_per_programme_s": null
+   }
+  }
+ },
+ "cards": {
+  "rows": [
+   {
+    "card": "chapter_169_act1_bright__last",
+    "kind": "chapter",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     480,
+     270
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 4.18,
+    "decode_cpu_s": 0.8,
+    "analyser_cpu_s": 0.23,
+    "cpu_s_per_programme_s": 0.688
+   },
+   {
+    "card": "chapter_169_act1_bright__mid",
+    "kind": "chapter",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     480,
+     270
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 3.8,
+    "decode_cpu_s": 0.77,
+    "analyser_cpu_s": 0.2,
+    "cpu_s_per_programme_s": 0.646
+   },
+   {
+    "card": "chapter_169_act1_busy__last",
+    "kind": "chapter",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     480,
+     270
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 4.24,
+    "decode_cpu_s": 0.8,
+    "analyser_cpu_s": 0.14,
+    "cpu_s_per_programme_s": 0.625
+   },
+   {
+    "card": "chapter_169_act1_busy__mid",
+    "kind": "chapter",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     480,
+     270
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 4.59,
+    "decode_cpu_s": 0.7,
+    "analyser_cpu_s": 0.22,
+    "cpu_s_per_programme_s": 0.615
+   },
+   {
+    "card": "chapter_169_act1_dark__last",
+    "kind": "chapter",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     480,
+     270
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 4.34,
+    "decode_cpu_s": 0.78,
+    "analyser_cpu_s": 0.17,
+    "cpu_s_per_programme_s": 0.635
+   },
+   {
+    "card": "chapter_169_act1_dark__mid",
+    "kind": "chapter",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     480,
+     270
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 2.51,
+    "decode_cpu_s": 0.66,
+    "analyser_cpu_s": 0.14,
+    "cpu_s_per_programme_s": 0.531
+   },
+   {
+    "card": "chapter_169_act1_hero__last",
+    "kind": "chapter",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     480,
+     270
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 6.56,
+    "decode_cpu_s": 0.83,
+    "analyser_cpu_s": 0.16,
+    "cpu_s_per_programme_s": 0.656
+   },
+   {
+    "card": "chapter_169_act1_hero__mid",
+    "kind": "chapter",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     480,
+     270
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 4.21,
+    "decode_cpu_s": 0.8,
+    "analyser_cpu_s": 0.19,
+    "cpu_s_per_programme_s": 0.656
+   },
+   {
+    "card": "chapter_169_act1_plain__last",
+    "kind": "chapter",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     480,
+     270
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 3.11,
+    "decode_cpu_s": 0.69,
+    "analyser_cpu_s": 0.14,
+    "cpu_s_per_programme_s": 0.552
+   },
+   {
+    "card": "chapter_169_act1_plain__mid",
+    "kind": "chapter",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     480,
+     270
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 2.84,
+    "decode_cpu_s": 0.67,
+    "analyser_cpu_s": 0.17,
+    "cpu_s_per_programme_s": 0.562
+   },
+   {
+    "card": "chapter_169_act2_bright__last",
+    "kind": "chapter",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     480,
+     270
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 4.3,
+    "decode_cpu_s": 0.86,
+    "analyser_cpu_s": 0.16,
+    "cpu_s_per_programme_s": 0.677
+   },
+   {
+    "card": "chapter_169_act2_bright__mid",
+    "kind": "chapter",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     480,
+     270
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 3.03,
+    "decode_cpu_s": 0.7,
+    "analyser_cpu_s": 0.12,
+    "cpu_s_per_programme_s": 0.552
+   },
+   {
+    "card": "chapter_169_act2_busy__last",
+    "kind": "chapter",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     480,
+     270
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 3.1,
+    "decode_cpu_s": 0.72,
+    "analyser_cpu_s": 0.19,
+    "cpu_s_per_programme_s": 0.604
+   },
+   {
+    "card": "chapter_169_act2_busy__mid",
+    "kind": "chapter",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     480,
+     270
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 4.36,
+    "decode_cpu_s": 0.81,
+    "analyser_cpu_s": 0.14,
+    "cpu_s_per_programme_s": 0.635
+   },
+   {
+    "card": "chapter_169_act2_dark__last",
+    "kind": "chapter",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     480,
+     270
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 3.23,
+    "decode_cpu_s": 0.66,
+    "analyser_cpu_s": 0.12,
+    "cpu_s_per_programme_s": 0.521
+   },
+   {
+    "card": "chapter_169_act2_dark__mid",
+    "kind": "chapter",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     480,
+     270
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 2.79,
+    "decode_cpu_s": 0.69,
+    "analyser_cpu_s": 0.16,
+    "cpu_s_per_programme_s": 0.562
+   },
+   {
+    "card": "chapter_169_act2_hero__last",
+    "kind": "chapter",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     480,
+     270
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 3.92,
+    "decode_cpu_s": 0.94,
+    "analyser_cpu_s": 0.14,
+    "cpu_s_per_programme_s": 0.719
+   },
+   {
+    "card": "chapter_169_act2_hero__mid",
+    "kind": "chapter",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     480,
+     270
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 4.98,
+    "decode_cpu_s": 0.62,
+    "analyser_cpu_s": 0.17,
+    "cpu_s_per_programme_s": 0.531
+   },
+   {
+    "card": "chapter_169_act2_plain__last",
+    "kind": "chapter",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     480,
+     270
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 3.42,
+    "decode_cpu_s": 0.8,
+    "analyser_cpu_s": 0.14,
+    "cpu_s_per_programme_s": 0.625
+   },
+   {
+    "card": "chapter_169_act2_plain__mid",
+    "kind": "chapter",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     480,
+     270
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 5.14,
+    "decode_cpu_s": 0.78,
+    "analyser_cpu_s": 0.19,
+    "cpu_s_per_programme_s": 0.646
+   },
+   {
+    "card": "chapter_169_act3_bright__last",
+    "kind": "chapter",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     480,
+     270
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 1.86,
+    "decode_cpu_s": 0.88,
+    "analyser_cpu_s": 0.17,
+    "cpu_s_per_programme_s": 0.698
+   },
+   {
+    "card": "chapter_169_act3_bright__mid",
+    "kind": "chapter",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     480,
+     270
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 3.53,
+    "decode_cpu_s": 0.83,
+    "analyser_cpu_s": 0.12,
+    "cpu_s_per_programme_s": 0.635
+   },
+   {
+    "card": "chapter_169_act3_busy__last",
+    "kind": "chapter",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     480,
+     270
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 3.13,
+    "decode_cpu_s": 0.8,
+    "analyser_cpu_s": 0.12,
+    "cpu_s_per_programme_s": 0.615
+   },
+   {
+    "card": "chapter_169_act3_busy__mid",
+    "kind": "chapter",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     480,
+     270
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 2.82,
+    "decode_cpu_s": 0.66,
+    "analyser_cpu_s": 0.14,
+    "cpu_s_per_programme_s": 0.531
+   },
+   {
+    "card": "chapter_169_act3_dark__last",
+    "kind": "chapter",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     480,
+     270
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 2.92,
+    "decode_cpu_s": 0.64,
+    "analyser_cpu_s": 0.19,
+    "cpu_s_per_programme_s": 0.552
+   },
+   {
+    "card": "chapter_169_act3_dark__mid",
+    "kind": "chapter",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     480,
+     270
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 3.83,
+    "decode_cpu_s": 0.72,
+    "analyser_cpu_s": 0.14,
+    "cpu_s_per_programme_s": 0.573
+   },
+   {
+    "card": "chapter_169_act3_hero__last",
+    "kind": "chapter",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     480,
+     270
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 1.73,
+    "decode_cpu_s": 0.61,
+    "analyser_cpu_s": 0.17,
+    "cpu_s_per_programme_s": 0.521
+   },
+   {
+    "card": "chapter_169_act3_hero__mid",
+    "kind": "chapter",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     480,
+     270
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 2.71,
+    "decode_cpu_s": 0.78,
+    "analyser_cpu_s": 0.12,
+    "cpu_s_per_programme_s": 0.604
+   },
+   {
+    "card": "chapter_169_act3_plain__last",
+    "kind": "chapter",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     480,
+     270
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 4.33,
+    "decode_cpu_s": 0.67,
+    "analyser_cpu_s": 0.16,
+    "cpu_s_per_programme_s": 0.552
+   },
+   {
+    "card": "chapter_169_act3_plain__mid",
+    "kind": "chapter",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     480,
+     270
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 3.29,
+    "decode_cpu_s": 0.66,
+    "analyser_cpu_s": 0.11,
+    "cpu_s_per_programme_s": 0.51
+   },
+   {
+    "card": "chapter_169_act4_bright__last",
+    "kind": "chapter",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     480,
+     270
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 2.16,
+    "decode_cpu_s": 0.84,
+    "analyser_cpu_s": 0.14,
+    "cpu_s_per_programme_s": 0.656
+   },
+   {
+    "card": "chapter_169_act4_bright__mid",
+    "kind": "chapter",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     480,
+     270
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 3.41,
+    "decode_cpu_s": 0.62,
+    "analyser_cpu_s": 0.12,
+    "cpu_s_per_programme_s": 0.5
+   },
+   {
+    "card": "chapter_169_act4_busy__last",
+    "kind": "chapter",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     480,
+     270
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 3.63,
+    "decode_cpu_s": 0.78,
+    "analyser_cpu_s": 0.12,
+    "cpu_s_per_programme_s": 0.604
+   },
+   {
+    "card": "chapter_169_act4_busy__mid",
+    "kind": "chapter",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     480,
+     270
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 3.58,
+    "decode_cpu_s": 0.88,
+    "analyser_cpu_s": 0.14,
+    "cpu_s_per_programme_s": 0.677
+   },
+   {
+    "card": "chapter_169_act4_dark__last",
+    "kind": "chapter",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     480,
+     270
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 3.79,
+    "decode_cpu_s": 1.11,
+    "analyser_cpu_s": 0.19,
+    "cpu_s_per_programme_s": 0.865
+   },
+   {
+    "card": "chapter_169_act4_dark__mid",
+    "kind": "chapter",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     480,
+     270
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 2.72,
+    "decode_cpu_s": 0.94,
+    "analyser_cpu_s": 0.16,
+    "cpu_s_per_programme_s": 0.729
+   },
+   {
+    "card": "chapter_169_act4_hero__last",
+    "kind": "chapter",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     480,
+     270
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 2.52,
+    "decode_cpu_s": 0.28,
+    "analyser_cpu_s": 0.09,
+    "cpu_s_per_programme_s": 0.25
+   },
+   {
+    "card": "chapter_169_act4_hero__mid",
+    "kind": "chapter",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     480,
+     270
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 2.36,
+    "decode_cpu_s": 0.25,
+    "analyser_cpu_s": 0.14,
+    "cpu_s_per_programme_s": 0.26
+   },
+   {
+    "card": "chapter_169_act4_plain__last",
+    "kind": "chapter",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     480,
+     270
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 1.71,
+    "decode_cpu_s": 0.31,
+    "analyser_cpu_s": 0.25,
+    "cpu_s_per_programme_s": 0.375
+   },
+   {
+    "card": "chapter_169_act4_plain__mid",
+    "kind": "chapter",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     480,
+     270
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 1.93,
+    "decode_cpu_s": 0.39,
+    "analyser_cpu_s": 0.14,
+    "cpu_s_per_programme_s": 0.354
+   },
+   {
+    "card": "chapter_169_act5_bright__last",
+    "kind": "chapter",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     480,
+     270
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 2.22,
+    "decode_cpu_s": 0.34,
+    "analyser_cpu_s": 0.23,
+    "cpu_s_per_programme_s": 0.385
+   },
+   {
+    "card": "chapter_169_act5_bright__mid",
+    "kind": "chapter",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     480,
+     270
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 1.83,
+    "decode_cpu_s": 0.56,
+    "analyser_cpu_s": 0.19,
+    "cpu_s_per_programme_s": 0.5
+   },
+   {
+    "card": "chapter_169_act5_busy__last",
+    "kind": "chapter",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     480,
+     270
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 1.77,
+    "decode_cpu_s": 0.47,
+    "analyser_cpu_s": 0.2,
+    "cpu_s_per_programme_s": 0.448
+   },
+   {
+    "card": "chapter_169_act5_busy__mid",
+    "kind": "chapter",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     480,
+     270
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 1.96,
+    "decode_cpu_s": 0.33,
+    "analyser_cpu_s": 0.17,
+    "cpu_s_per_programme_s": 0.333
+   },
+   {
+    "card": "chapter_169_act5_dark__last",
+    "kind": "chapter",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     480,
+     270
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 1.84,
+    "decode_cpu_s": 0.28,
+    "analyser_cpu_s": 0.17,
+    "cpu_s_per_programme_s": 0.302
+   },
+   {
+    "card": "chapter_169_act5_dark__mid",
+    "kind": "chapter",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     480,
+     270
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 1.96,
+    "decode_cpu_s": 0.36,
+    "analyser_cpu_s": 0.23,
+    "cpu_s_per_programme_s": 0.396
+   },
+   {
+    "card": "chapter_169_act5_hero__last",
+    "kind": "chapter",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     480,
+     270
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 1.84,
+    "decode_cpu_s": 0.64,
+    "analyser_cpu_s": 0.2,
+    "cpu_s_per_programme_s": 0.562
+   },
+   {
+    "card": "chapter_169_act5_hero__mid",
+    "kind": "chapter",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     480,
+     270
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 1.71,
+    "decode_cpu_s": 0.48,
+    "analyser_cpu_s": 0.17,
+    "cpu_s_per_programme_s": 0.438
+   },
+   {
+    "card": "chapter_169_act5_plain__last",
+    "kind": "chapter",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     480,
+     270
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 1.95,
+    "decode_cpu_s": 0.34,
+    "analyser_cpu_s": 0.27,
+    "cpu_s_per_programme_s": 0.406
+   },
+   {
+    "card": "chapter_169_act5_plain__mid",
+    "kind": "chapter",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     480,
+     270
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 1.51,
+    "decode_cpu_s": 0.27,
+    "analyser_cpu_s": 0.34,
+    "cpu_s_per_programme_s": 0.406
+   },
+   {
+    "card": "chapter_916_act1_bright__last",
+    "kind": "chapter",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 2.27,
+    "decode_cpu_s": 0.48,
+    "analyser_cpu_s": 0.19,
+    "cpu_s_per_programme_s": 0.448
+   },
+   {
+    "card": "chapter_916_act1_bright__mid",
+    "kind": "chapter",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 1.99,
+    "decode_cpu_s": 0.62,
+    "analyser_cpu_s": 0.22,
+    "cpu_s_per_programme_s": 0.562
+   },
+   {
+    "card": "chapter_916_act1_busy__last",
+    "kind": "chapter",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 1.98,
+    "decode_cpu_s": 0.27,
+    "analyser_cpu_s": 0.16,
+    "cpu_s_per_programme_s": 0.281
+   },
+   {
+    "card": "chapter_916_act1_busy__mid",
+    "kind": "chapter",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 1.64,
+    "decode_cpu_s": 0.5,
+    "analyser_cpu_s": 0.25,
+    "cpu_s_per_programme_s": 0.5
+   },
+   {
+    "card": "chapter_916_act1_dark__last",
+    "kind": "chapter",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 2.42,
+    "decode_cpu_s": 0.44,
+    "analyser_cpu_s": 0.2,
+    "cpu_s_per_programme_s": 0.427
+   },
+   {
+    "card": "chapter_916_act1_dark__mid",
+    "kind": "chapter",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 1.99,
+    "decode_cpu_s": 0.44,
+    "analyser_cpu_s": 0.31,
+    "cpu_s_per_programme_s": 0.5
+   },
+   {
+    "card": "chapter_916_act1_hero__last",
+    "kind": "chapter",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 1.84,
+    "decode_cpu_s": 0.3,
+    "analyser_cpu_s": 0.22,
+    "cpu_s_per_programme_s": 0.344
+   },
+   {
+    "card": "chapter_916_act1_hero__mid",
+    "kind": "chapter",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 1.54,
+    "decode_cpu_s": 0.3,
+    "analyser_cpu_s": 0.17,
+    "cpu_s_per_programme_s": 0.312
+   },
+   {
+    "card": "chapter_916_act1_plain__last",
+    "kind": "chapter",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 1.77,
+    "decode_cpu_s": 0.28,
+    "analyser_cpu_s": 0.2,
+    "cpu_s_per_programme_s": 0.323
+   },
+   {
+    "card": "chapter_916_act1_plain__mid",
+    "kind": "chapter",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 2.12,
+    "decode_cpu_s": 0.48,
+    "analyser_cpu_s": 0.27,
+    "cpu_s_per_programme_s": 0.5
+   },
+   {
+    "card": "chapter_916_act2_bright__last",
+    "kind": "chapter",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 1.9,
+    "decode_cpu_s": 0.3,
+    "analyser_cpu_s": 0.19,
+    "cpu_s_per_programme_s": 0.323
+   },
+   {
+    "card": "chapter_916_act2_bright__mid",
+    "kind": "chapter",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 2.69,
+    "decode_cpu_s": 0.34,
+    "analyser_cpu_s": 0.27,
+    "cpu_s_per_programme_s": 0.406
+   },
+   {
+    "card": "chapter_916_act2_busy__last",
+    "kind": "chapter",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 2.08,
+    "decode_cpu_s": 0.48,
+    "analyser_cpu_s": 0.28,
+    "cpu_s_per_programme_s": 0.51
+   },
+   {
+    "card": "chapter_916_act2_busy__mid",
+    "kind": "chapter",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 2.17,
+    "decode_cpu_s": 0.41,
+    "analyser_cpu_s": 0.23,
+    "cpu_s_per_programme_s": 0.427
+   },
+   {
+    "card": "chapter_916_act2_dark__last",
+    "kind": "chapter",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 2.2,
+    "decode_cpu_s": 0.38,
+    "analyser_cpu_s": 0.23,
+    "cpu_s_per_programme_s": 0.406
+   },
+   {
+    "card": "chapter_916_act2_dark__mid",
+    "kind": "chapter",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 2.13,
+    "decode_cpu_s": 0.34,
+    "analyser_cpu_s": 0.3,
+    "cpu_s_per_programme_s": 0.427
+   },
+   {
+    "card": "chapter_916_act2_hero__last",
+    "kind": "chapter",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 2.57,
+    "decode_cpu_s": 0.53,
+    "analyser_cpu_s": 0.33,
+    "cpu_s_per_programme_s": 0.573
+   },
+   {
+    "card": "chapter_916_act2_hero__mid",
+    "kind": "chapter",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 2.51,
+    "decode_cpu_s": 0.61,
+    "analyser_cpu_s": 0.23,
+    "cpu_s_per_programme_s": 0.562
+   },
+   {
+    "card": "chapter_916_act2_plain__last",
+    "kind": "chapter",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 1.99,
+    "decode_cpu_s": 0.41,
+    "analyser_cpu_s": 0.36,
+    "cpu_s_per_programme_s": 0.51
+   },
+   {
+    "card": "chapter_916_act2_plain__mid",
+    "kind": "chapter",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 2.5,
+    "decode_cpu_s": 0.42,
+    "analyser_cpu_s": 0.31,
+    "cpu_s_per_programme_s": 0.49
+   },
+   {
+    "card": "chapter_916_act3_bright__last",
+    "kind": "chapter",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 2.32,
+    "decode_cpu_s": 0.42,
+    "analyser_cpu_s": 0.17,
+    "cpu_s_per_programme_s": 0.396
+   },
+   {
+    "card": "chapter_916_act3_bright__mid",
+    "kind": "chapter",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 2.4,
+    "decode_cpu_s": 0.53,
+    "analyser_cpu_s": 0.42,
+    "cpu_s_per_programme_s": 0.635
+   },
+   {
+    "card": "chapter_916_act3_busy__last",
+    "kind": "chapter",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 2.78,
+    "decode_cpu_s": 0.42,
+    "analyser_cpu_s": 0.27,
+    "cpu_s_per_programme_s": 0.458
+   },
+   {
+    "card": "chapter_916_act3_busy__mid",
+    "kind": "chapter",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 2.44,
+    "decode_cpu_s": 0.28,
+    "analyser_cpu_s": 0.34,
+    "cpu_s_per_programme_s": 0.417
+   },
+   {
+    "card": "chapter_916_act3_dark__last",
+    "kind": "chapter",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 2.31,
+    "decode_cpu_s": 0.56,
+    "analyser_cpu_s": 0.34,
+    "cpu_s_per_programme_s": 0.604
+   },
+   {
+    "card": "chapter_916_act3_dark__mid",
+    "kind": "chapter",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 3.11,
+    "decode_cpu_s": 0.34,
+    "analyser_cpu_s": 0.23,
+    "cpu_s_per_programme_s": 0.385
+   },
+   {
+    "card": "chapter_916_act3_hero__last",
+    "kind": "chapter",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 2.72,
+    "decode_cpu_s": 0.53,
+    "analyser_cpu_s": 0.27,
+    "cpu_s_per_programme_s": 0.531
+   },
+   {
+    "card": "chapter_916_act3_hero__mid",
+    "kind": "chapter",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 2.42,
+    "decode_cpu_s": 0.34,
+    "analyser_cpu_s": 0.23,
+    "cpu_s_per_programme_s": 0.385
+   },
+   {
+    "card": "chapter_916_act3_plain__last",
+    "kind": "chapter",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 2.54,
+    "decode_cpu_s": 0.48,
+    "analyser_cpu_s": 0.31,
+    "cpu_s_per_programme_s": 0.531
+   },
+   {
+    "card": "chapter_916_act3_plain__mid",
+    "kind": "chapter",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 2.34,
+    "decode_cpu_s": 0.5,
+    "analyser_cpu_s": 0.19,
+    "cpu_s_per_programme_s": 0.458
+   },
+   {
+    "card": "chapter_916_act4_bright__last",
+    "kind": "chapter",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 2.18,
+    "decode_cpu_s": 0.25,
+    "analyser_cpu_s": 0.17,
+    "cpu_s_per_programme_s": 0.281
+   },
+   {
+    "card": "chapter_916_act4_bright__mid",
+    "kind": "chapter",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 2.13,
+    "decode_cpu_s": 0.33,
+    "analyser_cpu_s": 0.23,
+    "cpu_s_per_programme_s": 0.375
+   },
+   {
+    "card": "chapter_916_act4_busy__last",
+    "kind": "chapter",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 2.24,
+    "decode_cpu_s": 0.31,
+    "analyser_cpu_s": 0.27,
+    "cpu_s_per_programme_s": 0.385
+   },
+   {
+    "card": "chapter_916_act4_busy__mid",
+    "kind": "chapter",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 2.08,
+    "decode_cpu_s": 0.42,
+    "analyser_cpu_s": 0.23,
+    "cpu_s_per_programme_s": 0.438
+   },
+   {
+    "card": "chapter_916_act4_dark__last",
+    "kind": "chapter",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 2.35,
+    "decode_cpu_s": 0.39,
+    "analyser_cpu_s": 0.2,
+    "cpu_s_per_programme_s": 0.396
+   },
+   {
+    "card": "chapter_916_act4_dark__mid",
+    "kind": "chapter",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 2.5,
+    "decode_cpu_s": 0.44,
+    "analyser_cpu_s": 0.5,
+    "cpu_s_per_programme_s": 0.625
+   },
+   {
+    "card": "chapter_916_act4_hero__last",
+    "kind": "chapter",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 2.43,
+    "decode_cpu_s": 0.23,
+    "analyser_cpu_s": 0.33,
+    "cpu_s_per_programme_s": 0.375
+   },
+   {
+    "card": "chapter_916_act4_hero__mid",
+    "kind": "chapter",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 3.62,
+    "decode_cpu_s": 0.28,
+    "analyser_cpu_s": 0.22,
+    "cpu_s_per_programme_s": 0.333
+   },
+   {
+    "card": "chapter_916_act4_plain__last",
+    "kind": "chapter",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 1.93,
+    "decode_cpu_s": 0.31,
+    "analyser_cpu_s": 0.31,
+    "cpu_s_per_programme_s": 0.417
+   },
+   {
+    "card": "chapter_916_act4_plain__mid",
+    "kind": "chapter",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 2.09,
+    "decode_cpu_s": 0.39,
+    "analyser_cpu_s": 0.34,
+    "cpu_s_per_programme_s": 0.49
+   },
+   {
+    "card": "chapter_916_act5_bright__last",
+    "kind": "chapter",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 2.53,
+    "decode_cpu_s": 0.53,
+    "analyser_cpu_s": 0.33,
+    "cpu_s_per_programme_s": 0.573
+   },
+   {
+    "card": "chapter_916_act5_bright__mid",
+    "kind": "chapter",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 2.32,
+    "decode_cpu_s": 0.45,
+    "analyser_cpu_s": 0.36,
+    "cpu_s_per_programme_s": 0.542
+   },
+   {
+    "card": "chapter_916_act5_busy__last",
+    "kind": "chapter",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 2.28,
+    "decode_cpu_s": 0.59,
+    "analyser_cpu_s": 0.19,
+    "cpu_s_per_programme_s": 0.521
+   },
+   {
+    "card": "chapter_916_act5_busy__mid",
+    "kind": "chapter",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 1.88,
+    "decode_cpu_s": 0.36,
+    "analyser_cpu_s": 0.36,
+    "cpu_s_per_programme_s": 0.479
+   },
+   {
+    "card": "chapter_916_act5_dark__last",
+    "kind": "chapter",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 2.23,
+    "decode_cpu_s": 0.41,
+    "analyser_cpu_s": 0.31,
+    "cpu_s_per_programme_s": 0.479
+   },
+   {
+    "card": "chapter_916_act5_dark__mid",
+    "kind": "chapter",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 2.03,
+    "decode_cpu_s": 0.33,
+    "analyser_cpu_s": 0.22,
+    "cpu_s_per_programme_s": 0.365
+   },
+   {
+    "card": "chapter_916_act5_hero__last",
+    "kind": "chapter",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 2.36,
+    "decode_cpu_s": 0.33,
+    "analyser_cpu_s": 0.22,
+    "cpu_s_per_programme_s": 0.365
+   },
+   {
+    "card": "chapter_916_act5_hero__mid",
+    "kind": "chapter",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 2.65,
+    "decode_cpu_s": 0.55,
+    "analyser_cpu_s": 0.34,
+    "cpu_s_per_programme_s": 0.594
+   },
+   {
+    "card": "chapter_916_act5_plain__last",
+    "kind": "chapter",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 2.18,
+    "decode_cpu_s": 0.28,
+    "analyser_cpu_s": 0.17,
+    "cpu_s_per_programme_s": 0.302
+   },
+   {
+    "card": "chapter_916_act5_plain__mid",
+    "kind": "chapter",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 2.5,
+    "decode_cpu_s": 0.72,
+    "analyser_cpu_s": 0.34,
+    "cpu_s_per_programme_s": 0.708
+   },
+   {
+    "card": "hook_916_disassembled_in_36_hours_bright__last",
+    "kind": "hook",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 2.05,
+    "decode_cpu_s": 0.28,
+    "analyser_cpu_s": 0.27,
+    "cpu_s_per_programme_s": 0.365
+   },
+   {
+    "card": "hook_916_disassembled_in_36_hours_busy__last",
+    "kind": "hook",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 2.34,
+    "decode_cpu_s": 0.34,
+    "analyser_cpu_s": 0.23,
+    "cpu_s_per_programme_s": 0.385
+   },
+   {
+    "card": "hook_916_disassembled_in_36_hours_dark__last",
+    "kind": "hook",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 2.39,
+    "decode_cpu_s": 0.41,
+    "analyser_cpu_s": 0.25,
+    "cpu_s_per_programme_s": 0.438
+   },
+   {
+    "card": "hook_916_etched_into_the_nazca_desert_bright__last",
+    "kind": "hook",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 1.85,
+    "decode_cpu_s": 0.3,
+    "analyser_cpu_s": 0.27,
+    "cpu_s_per_programme_s": 0.375
+   },
+   {
+    "card": "hook_916_etched_into_the_nazca_desert_busy__last",
+    "kind": "hook",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 2.08,
+    "decode_cpu_s": 0.17,
+    "analyser_cpu_s": 0.22,
+    "cpu_s_per_programme_s": 0.26
+   },
+   {
+    "card": "hook_916_etched_into_the_nazca_desert_dark__last",
+    "kind": "hook",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 1.85,
+    "decode_cpu_s": 0.44,
+    "analyser_cpu_s": 0.25,
+    "cpu_s_per_programme_s": 0.458
+   },
+   {
+    "card": "hook_916_etched_into_the_nazca_desert_hero__last",
+    "kind": "hook",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 1.99,
+    "decode_cpu_s": 0.39,
+    "analyser_cpu_s": 0.31,
+    "cpu_s_per_programme_s": 0.469
+   },
+   {
+    "card": "hook_916_inscribed_in_1994_bright__f00",
+    "kind": "hook",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 2.33,
+    "decode_cpu_s": 0.44,
+    "analyser_cpu_s": 0.22,
+    "cpu_s_per_programme_s": 0.438
+   },
+   {
+    "card": "hook_916_inscribed_in_1994_bright__f32",
+    "kind": "hook",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 2.14,
+    "decode_cpu_s": 0.62,
+    "analyser_cpu_s": 0.19,
+    "cpu_s_per_programme_s": 0.542
+   },
+   {
+    "card": "hook_916_inscribed_in_1994_bright__f37",
+    "kind": "hook",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 2.24,
+    "decode_cpu_s": 0.44,
+    "analyser_cpu_s": 0.22,
+    "cpu_s_per_programme_s": 0.438
+   },
+   {
+    "card": "hook_916_inscribed_in_1994_busy__f00",
+    "kind": "hook",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 2.69,
+    "decode_cpu_s": 0.61,
+    "analyser_cpu_s": 0.28,
+    "cpu_s_per_programme_s": 0.594
+   },
+   {
+    "card": "hook_916_inscribed_in_1994_busy__f32",
+    "kind": "hook",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 2.27,
+    "decode_cpu_s": 0.38,
+    "analyser_cpu_s": 0.19,
+    "cpu_s_per_programme_s": 0.375
+   },
+   {
+    "card": "hook_916_inscribed_in_1994_busy__f37",
+    "kind": "hook",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 2.45,
+    "decode_cpu_s": 0.44,
+    "analyser_cpu_s": 0.23,
+    "cpu_s_per_programme_s": 0.448
+   },
+   {
+    "card": "hook_916_inscribed_in_1994_dark__f00",
+    "kind": "hook",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 2.44,
+    "decode_cpu_s": 0.48,
+    "analyser_cpu_s": 0.36,
+    "cpu_s_per_programme_s": 0.562
+   },
+   {
+    "card": "hook_916_inscribed_in_1994_dark__f32",
+    "kind": "hook",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 2.36,
+    "decode_cpu_s": 0.5,
+    "analyser_cpu_s": 0.12,
+    "cpu_s_per_programme_s": 0.417
+   },
+   {
+    "card": "hook_916_inscribed_in_1994_dark__f37",
+    "kind": "hook",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 2.68,
+    "decode_cpu_s": 0.48,
+    "analyser_cpu_s": 0.28,
+    "cpu_s_per_programme_s": 0.51
+   },
+   {
+    "card": "hook_916_inscribed_in_1994_hero__f00",
+    "kind": "hook",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 3.19,
+    "decode_cpu_s": 0.42,
+    "analyser_cpu_s": 0.38,
+    "cpu_s_per_programme_s": 0.531
+   },
+   {
+    "card": "hook_916_inscribed_in_1994_hero__f32",
+    "kind": "hook",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 2.21,
+    "decode_cpu_s": 0.5,
+    "analyser_cpu_s": 0.25,
+    "cpu_s_per_programme_s": 0.5
+   },
+   {
+    "card": "hook_916_inscribed_in_1994_hero__f37",
+    "kind": "hook",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 2.8,
+    "decode_cpu_s": 0.53,
+    "analyser_cpu_s": 0.44,
+    "cpu_s_per_programme_s": 0.646
+   },
+   {
+    "card": "hook_916_rippled_across_the_globe_bright__f00",
+    "kind": "hook",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 2.66,
+    "decode_cpu_s": 0.48,
+    "analyser_cpu_s": 0.31,
+    "cpu_s_per_programme_s": 0.531
+   },
+   {
+    "card": "hook_916_rippled_across_the_globe_bright__f32",
+    "kind": "hook",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 2.16,
+    "decode_cpu_s": 0.41,
+    "analyser_cpu_s": 0.39,
+    "cpu_s_per_programme_s": 0.531
+   },
+   {
+    "card": "hook_916_rippled_across_the_globe_bright__f37",
+    "kind": "hook",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 2.34,
+    "decode_cpu_s": 0.67,
+    "analyser_cpu_s": 0.3,
+    "cpu_s_per_programme_s": 0.646
+   },
+   {
+    "card": "hook_916_rippled_across_the_globe_busy__f00",
+    "kind": "hook",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 2.23,
+    "decode_cpu_s": 1.02,
+    "analyser_cpu_s": 0.38,
+    "cpu_s_per_programme_s": 0.927
+   },
+   {
+    "card": "hook_916_rippled_across_the_globe_busy__f32",
+    "kind": "hook",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 2.51,
+    "decode_cpu_s": 0.77,
+    "analyser_cpu_s": 0.28,
+    "cpu_s_per_programme_s": 0.698
+   },
+   {
+    "card": "hook_916_rippled_across_the_globe_busy__f37",
+    "kind": "hook",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 2.23,
+    "decode_cpu_s": 0.64,
+    "analyser_cpu_s": 0.31,
+    "cpu_s_per_programme_s": 0.635
+   },
+   {
+    "card": "hook_916_rippled_across_the_globe_dark__f00",
+    "kind": "hook",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 2.7,
+    "decode_cpu_s": 0.39,
+    "analyser_cpu_s": 0.27,
+    "cpu_s_per_programme_s": 0.438
+   },
+   {
+    "card": "hook_916_rippled_across_the_globe_dark__f32",
+    "kind": "hook",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 3.16,
+    "decode_cpu_s": 0.38,
+    "analyser_cpu_s": 0.27,
+    "cpu_s_per_programme_s": 0.427
+   },
+   {
+    "card": "hook_916_rippled_across_the_globe_dark__f37",
+    "kind": "hook",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 2.26,
+    "decode_cpu_s": 0.52,
+    "analyser_cpu_s": 0.25,
+    "cpu_s_per_programme_s": 0.51
+   },
+   {
+    "card": "hook_916_rippled_across_the_globe_hero__f00",
+    "kind": "hook",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 2.59,
+    "decode_cpu_s": 0.56,
+    "analyser_cpu_s": 0.28,
+    "cpu_s_per_programme_s": 0.562
+   },
+   {
+    "card": "hook_916_rippled_across_the_globe_hero__f32",
+    "kind": "hook",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 3.29,
+    "decode_cpu_s": 0.47,
+    "analyser_cpu_s": 0.38,
+    "cpu_s_per_programme_s": 0.562
+   },
+   {
+    "card": "hook_916_rippled_across_the_globe_hero__f37",
+    "kind": "hook",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 2.6,
+    "decode_cpu_s": 0.42,
+    "analyser_cpu_s": 0.3,
+    "cpu_s_per_programme_s": 0.479
+   },
+   {
+    "card": "hook_916_shipped_to_k_nigsberg_castle_bright__f00",
+    "kind": "hook",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 2.71,
+    "decode_cpu_s": 0.41,
+    "analyser_cpu_s": 0.28,
+    "cpu_s_per_programme_s": 0.458
+   },
+   {
+    "card": "hook_916_shipped_to_k_nigsberg_castle_bright__f32",
+    "kind": "hook",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 2.3,
+    "decode_cpu_s": 0.59,
+    "analyser_cpu_s": 0.31,
+    "cpu_s_per_programme_s": 0.604
+   },
+   {
+    "card": "hook_916_shipped_to_k_nigsberg_castle_bright__f37",
+    "kind": "hook",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 2.79,
+    "decode_cpu_s": 0.67,
+    "analyser_cpu_s": 0.28,
+    "cpu_s_per_programme_s": 0.635
+   },
+   {
+    "card": "hook_916_shipped_to_k_nigsberg_castle_busy__f00",
+    "kind": "hook",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 2.85,
+    "decode_cpu_s": 0.64,
+    "analyser_cpu_s": 0.38,
+    "cpu_s_per_programme_s": 0.677
+   },
+   {
+    "card": "hook_916_shipped_to_k_nigsberg_castle_busy__f32",
+    "kind": "hook",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 2.66,
+    "decode_cpu_s": 0.66,
+    "analyser_cpu_s": 0.34,
+    "cpu_s_per_programme_s": 0.667
+   },
+   {
+    "card": "hook_916_shipped_to_k_nigsberg_castle_busy__f37",
+    "kind": "hook",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 2.59,
+    "decode_cpu_s": 0.62,
+    "analyser_cpu_s": 0.27,
+    "cpu_s_per_programme_s": 0.594
+   },
+   {
+    "card": "hook_916_shipped_to_k_nigsberg_castle_dark__f00",
+    "kind": "hook",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 2.47,
+    "decode_cpu_s": 0.61,
+    "analyser_cpu_s": 0.31,
+    "cpu_s_per_programme_s": 0.615
+   },
+   {
+    "card": "hook_916_shipped_to_k_nigsberg_castle_dark__f32",
+    "kind": "hook",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 2.75,
+    "decode_cpu_s": 0.73,
+    "analyser_cpu_s": 0.19,
+    "cpu_s_per_programme_s": 0.615
+   },
+   {
+    "card": "hook_916_shipped_to_k_nigsberg_castle_dark__f37",
+    "kind": "hook",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 2.06,
+    "decode_cpu_s": 0.66,
+    "analyser_cpu_s": 0.22,
+    "cpu_s_per_programme_s": 0.583
+   },
+   {
+    "card": "hooktitle_916_egypt_s_1_200_ton_quarry_mon_dark__last",
+    "kind": "hooktitle",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 1.88,
+    "decode_cpu_s": 0.38,
+    "analyser_cpu_s": 0.25,
+    "cpu_s_per_programme_s": 0.417
+   },
+   {
+    "card": "hooktitle_916_flattened_830_square_miles_dark__last",
+    "kind": "hooktitle",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 1.85,
+    "decode_cpu_s": 0.3,
+    "analyser_cpu_s": 0.38,
+    "cpu_s_per_programme_s": 0.448
+   },
+   {
+    "card": "hooktitle_916_lines_drawn_without_wings_dark__last",
+    "kind": "hooktitle",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 2.39,
+    "decode_cpu_s": 0.38,
+    "analyser_cpu_s": 0.28,
+    "cpu_s_per_programme_s": 0.438
+   },
+   {
+    "card": "hooktitle_916_surviving_ancient_skull_surg_dark__last",
+    "kind": "hooktitle",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 1.87,
+    "decode_cpu_s": 0.28,
+    "analyser_cpu_s": 0.23,
+    "cpu_s_per_programme_s": 0.344
+   },
+   {
+    "card": "hooktitle_916_the_lost_amber_room_heist_dark__last",
+    "kind": "hooktitle",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 1.86,
+    "decode_cpu_s": 0.41,
+    "analyser_cpu_s": 0.22,
+    "cpu_s_per_programme_s": 0.417
+   },
+   {
+    "card": "hooktitle_916_the_secret_labyrinth_beneath_dark__last",
+    "kind": "hooktitle",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 1.82,
+    "decode_cpu_s": 0.66,
+    "analyser_cpu_s": 0.3,
+    "cpu_s_per_programme_s": 0.635
+   },
+   {
+    "card": "hooktitle_916_vanished_russia_s_lost_amber_dark__last",
+    "kind": "hooktitle",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 2.1,
+    "decode_cpu_s": 0.67,
+    "analyser_cpu_s": 0.17,
+    "cpu_s_per_programme_s": 0.562
+   },
+   {
+    "card": "myth_169_richat_short_bright__a_before_strike",
+    "kind": "myth",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     480,
+     270
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 2.47,
+    "decode_cpu_s": 0.33,
+    "analyser_cpu_s": 0.3,
+    "cpu_s_per_programme_s": 0.417
+   },
+   {
+    "card": "myth_169_richat_short_bright__b_mid_strike",
+    "kind": "myth",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     480,
+     270
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 2.02,
+    "decode_cpu_s": 0.38,
+    "analyser_cpu_s": 0.19,
+    "cpu_s_per_programme_s": 0.375
+   },
+   {
+    "card": "myth_169_richat_short_bright__c_after_strike",
+    "kind": "myth",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     480,
+     270
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 2.11,
+    "decode_cpu_s": 0.38,
+    "analyser_cpu_s": 0.27,
+    "cpu_s_per_programme_s": 0.427
+   },
+   {
+    "card": "myth_169_richat_short_bright__d_fact_revealed",
+    "kind": "myth",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     480,
+     270
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 2.14,
+    "decode_cpu_s": 0.38,
+    "analyser_cpu_s": 0.47,
+    "cpu_s_per_programme_s": 0.562
+   },
+   {
+    "card": "myth_169_richat_short_dark__a_before_strike",
+    "kind": "myth",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     480,
+     270
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 2.07,
+    "decode_cpu_s": 0.44,
+    "analyser_cpu_s": 0.44,
+    "cpu_s_per_programme_s": 0.583
+   },
+   {
+    "card": "myth_169_richat_short_dark__b_mid_strike",
+    "kind": "myth",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     480,
+     270
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 2.34,
+    "decode_cpu_s": 0.31,
+    "analyser_cpu_s": 0.28,
+    "cpu_s_per_programme_s": 0.396
+   },
+   {
+    "card": "myth_169_richat_short_dark__c_after_strike",
+    "kind": "myth",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     480,
+     270
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 2.59,
+    "decode_cpu_s": 0.47,
+    "analyser_cpu_s": 0.3,
+    "cpu_s_per_programme_s": 0.51
+   },
+   {
+    "card": "myth_169_richat_short_dark__d_fact_revealed",
+    "kind": "myth",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     480,
+     270
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 1.98,
+    "decode_cpu_s": 0.31,
+    "analyser_cpu_s": 0.5,
+    "cpu_s_per_programme_s": 0.542
+   },
+   {
+    "card": "myth_916_richat_short_bright__a_before_strike",
+    "kind": "myth",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 2.58,
+    "decode_cpu_s": 0.58,
+    "analyser_cpu_s": 0.42,
+    "cpu_s_per_programme_s": 0.667
+   },
+   {
+    "card": "myth_916_richat_short_bright__b_mid_strike",
+    "kind": "myth",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 2.05,
+    "decode_cpu_s": 0.33,
+    "analyser_cpu_s": 0.2,
+    "cpu_s_per_programme_s": 0.354
+   },
+   {
+    "card": "myth_916_richat_short_bright__c_after_strike",
+    "kind": "myth",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 2.31,
+    "decode_cpu_s": 0.39,
+    "analyser_cpu_s": 0.31,
+    "cpu_s_per_programme_s": 0.469
+   },
+   {
+    "card": "myth_916_richat_short_bright__d_fact_revealed",
+    "kind": "myth",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 2.38,
+    "decode_cpu_s": 0.64,
+    "analyser_cpu_s": 0.27,
+    "cpu_s_per_programme_s": 0.604
+   },
+   {
+    "card": "myth_916_richat_short_busy__a_before_strike",
+    "kind": "myth",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 2.11,
+    "decode_cpu_s": 0.67,
+    "analyser_cpu_s": 0.27,
+    "cpu_s_per_programme_s": 0.625
+   },
+   {
+    "card": "myth_916_richat_short_busy__b_mid_strike",
+    "kind": "myth",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 1.96,
+    "decode_cpu_s": 0.39,
+    "analyser_cpu_s": 0.22,
+    "cpu_s_per_programme_s": 0.406
+   },
+   {
+    "card": "myth_916_richat_short_busy__c_after_strike",
+    "kind": "myth",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 2.4,
+    "decode_cpu_s": 0.78,
+    "analyser_cpu_s": 0.34,
+    "cpu_s_per_programme_s": 0.75
+   },
+   {
+    "card": "myth_916_richat_short_busy__d_fact_revealed",
+    "kind": "myth",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 2.0,
+    "decode_cpu_s": 0.42,
+    "analyser_cpu_s": 0.3,
+    "cpu_s_per_programme_s": 0.479
+   },
+   {
+    "card": "myth_916_richat_short_dark__a_before_strike",
+    "kind": "myth",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 2.43,
+    "decode_cpu_s": 0.5,
+    "analyser_cpu_s": 0.28,
+    "cpu_s_per_programme_s": 0.521
+   },
+   {
+    "card": "myth_916_richat_short_dark__b_mid_strike",
+    "kind": "myth",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 2.6,
+    "decode_cpu_s": 0.41,
+    "analyser_cpu_s": 0.36,
+    "cpu_s_per_programme_s": 0.51
+   },
+   {
+    "card": "myth_916_richat_short_dark__c_after_strike",
+    "kind": "myth",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 2.98,
+    "decode_cpu_s": 0.89,
+    "analyser_cpu_s": 0.28,
+    "cpu_s_per_programme_s": 0.781
+   },
+   {
+    "card": "myth_916_richat_short_dark__d_fact_revealed",
+    "kind": "myth",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 1.94,
+    "decode_cpu_s": 0.36,
+    "analyser_cpu_s": 0.36,
+    "cpu_s_per_programme_s": 0.479
+   },
+   {
+    "card": "myth_916_richat_short_hero__a_before_strike",
+    "kind": "myth",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 2.05,
+    "decode_cpu_s": 0.39,
+    "analyser_cpu_s": 0.31,
+    "cpu_s_per_programme_s": 0.469
+   },
+   {
+    "card": "myth_916_richat_short_hero__b_mid_strike",
+    "kind": "myth",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 2.29,
+    "decode_cpu_s": 0.61,
+    "analyser_cpu_s": 0.36,
+    "cpu_s_per_programme_s": 0.646
+   },
+   {
+    "card": "myth_916_richat_short_hero__c_after_strike",
+    "kind": "myth",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 1.97,
+    "decode_cpu_s": 0.61,
+    "analyser_cpu_s": 0.38,
+    "cpu_s_per_programme_s": 0.656
+   },
+   {
+    "card": "myth_916_richat_short_hero__d_fact_revealed",
+    "kind": "myth",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 2.14,
+    "decode_cpu_s": 0.61,
+    "analyser_cpu_s": 0.38,
+    "cpu_s_per_programme_s": 0.656
+   },
+   {
+    "card": "myth_916_richat_short_plain__a_before_strike",
+    "kind": "myth",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 2.22,
+    "decode_cpu_s": 0.58,
+    "analyser_cpu_s": 0.31,
+    "cpu_s_per_programme_s": 0.594
+   },
+   {
+    "card": "myth_916_richat_short_plain__b_mid_strike",
+    "kind": "myth",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 2.32,
+    "decode_cpu_s": 0.5,
+    "analyser_cpu_s": 0.41,
+    "cpu_s_per_programme_s": 0.604
+   },
+   {
+    "card": "myth_916_richat_short_plain__c_after_strike",
+    "kind": "myth",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 2.01,
+    "decode_cpu_s": 0.53,
+    "analyser_cpu_s": 0.34,
+    "cpu_s_per_programme_s": 0.583
+   },
+   {
+    "card": "myth_916_richat_short_plain__d_fact_revealed",
+    "kind": "myth",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 2.08,
+    "decode_cpu_s": 0.38,
+    "analyser_cpu_s": 0.23,
+    "cpu_s_per_programme_s": 0.406
+   },
+   {
+    "card": "after_memnon",
+    "kind": "end_card",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 2.93,
+    "decode_cpu_s": 0.41,
+    "analyser_cpu_s": 0.33,
+    "cpu_s_per_programme_s": 0.49
+   },
+   {
+    "card": "after_nazca",
+    "kind": "end_card",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 2.17,
+    "decode_cpu_s": 0.27,
+    "analyser_cpu_s": 0.28,
+    "cpu_s_per_programme_s": 0.365
+   },
+   {
+    "card": "after_voynich",
+    "kind": "end_card",
+    "duration_s": 1.5,
+    "frames": 45,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "pass",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {},
+    "wall_s": 2.84,
+    "decode_cpu_s": 0.33,
+    "analyser_cpu_s": 0.23,
+    "cpu_s_per_programme_s": 0.375
+   }
+  ],
+  "summary": {
+   "items": 178,
+   "measured": 178,
+   "errors": 0,
+   "fail_counts": {
+    "picture_bars": 0,
+    "picture_black": 0,
+    "picture_colour": 0,
+    "picture_freeze": 0,
+    "picture_range": 0
+   },
+   "rejected_excluding_colour_tags": 0,
+   "wall_s": {
+    "min": 1.51,
+    "median": 2.34,
+    "max": 6.56
+   },
+   "cpu_s_per_programme_s": {
+    "median": 0.51,
+    "max": 0.927
+   }
+  }
+ }
+}

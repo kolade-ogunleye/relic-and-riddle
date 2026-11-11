@@ -107,18 +107,17 @@ def test_display_copy_uses_a_true_ellipsis_and_drops_a_subline_the_headline_alre
 
 # ---------------------------------------------------------------- the grid's rhythm and the retired style
 
-def test_the_paper_card_skips_a_cover_while_either_of_the_last_two_was_one() -> None:
+def test_cover_history_cannot_rotate_the_fixed_style_while_frozen() -> None:
     for seed in "abcdefghij":
         style, _ = cover_selector.choose(GUMBAZ, [], previous="badge", seed=seed, recent=["badge", "depth_sandwich"])
-        assert style not in ("badge", "depth_sandwich")
+        assert style == "badge"
         style, _ = cover_selector.choose(GUMBAZ, [], previous="depth_sandwich", seed=seed,
                                          recent=["depth_sandwich", "monument"])
-        assert style in ("badge", "monument")
-    # Only the paper card is left once the neighbour rule has run: it is kept rather than nothing.
+        assert style == "badge"
+    # Fit/history variation cannot reactivate experimentation without cover-specific evidence.
     style, _ = cover_selector.choose(NO_FIGURE, [], previous="badge", seed="z", recent=["badge", "depth_sandwich"])
-    assert style == "depth_sandwich"
-    # Without the history the selector behaves as before (Thompson sampling over every fitting style).
-    assert {cover_selector.choose(GUMBAZ, [], seed=s)[0] for s in "abcdefghijklmnop"} >= {"badge", "monument"}
+    assert style == "badge"
+    assert {cover_selector.choose(GUMBAZ, [], seed=s)[0] for s in "abcdefghijklmnop"} == {"badge"}
 
 
 def test_minimal_is_retired_for_new_selections_but_still_renders() -> None:
@@ -129,18 +128,18 @@ def test_minimal_is_retired_for_new_selections_but_still_renders() -> None:
     assert im.size == (1080, 1920) and lay.elements
 
 
-def test_for_run_reads_the_two_previous_covers(db, monkeypatch) -> None:
+def test_for_run_reads_no_audience_or_neighbour_history_while_frozen(db, monkeypatch) -> None:
+    # QF-82: neither the audience table nor the previous covers may move the choice, so neither is read.
     for run in ("r1", "r2", "r3"):
         db.create_run(run, "01_topic")
-    styles = {"r2": "depth_sandwich", "r1": "monument"}
-    monkeypatch.setattr("src.audience.table", lambda db: [])
-    monkeypatch.setattr("src.audience.cover_style", lambda db, run_id, run: styles.get(run_id))
-    monkeypatch.setattr(db, "list_recent_runs", lambda limit=5: [{"run_id": r} for r in ("r3", "r2", "r1")])
-    seen = {}
-    real = cover_selector.choose
-    monkeypatch.setattr(cover_selector, "choose", lambda *a, **k: seen.update(k) or real(*a, **k))
-    style, _ = cover_selector.for_run(db, "r3", {"thumbnail": GUMBAZ})
-    assert seen["recent"] == ["depth_sandwich", "monument"] and style == "badge"
+
+    def forbidden(*args, **kwargs):
+        raise AssertionError("the frozen cover choice read history")
+    monkeypatch.setattr("src.audience.table", forbidden)
+    monkeypatch.setattr("src.audience.cover_style", forbidden)
+    monkeypatch.setattr(db, "list_recent_runs", forbidden)
+    style, why = cover_selector.for_run(db, "r3", {"thumbnail": GUMBAZ})
+    assert style == "badge" and "frozen" in why
 
 
 # ---------------------------------------------------------------- carousel

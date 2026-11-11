@@ -1,10 +1,10 @@
 """
 src/visual_engine.py
 ====================
-Scene sequencing and the branded thumbnail variant engine.
+Scene sequencing and the delivered cover engine.
 1. Resolves topic-specific scene media (images, plus an optional motion hook clip).
    A topic without its own media fails fast instead of borrowing another topic's imagery.
-2. Renders the cover variants with bold display type in two formats:
+2. Renders the final cover with bold display type in two formats:
    - 1080x1920 (9:16 Reel cover)
    - 1080x1080 (1:1 Instagram profile-grid crop)
 """
@@ -30,8 +30,8 @@ log = logging.getLogger(__name__)
 from . import brand as _brand
 GOLD = _brand.rgba(_brand.GOLD)
 WHITE = _brand.rgba(_brand.BONE)
-# The styles a Reel cover can go out in (cover_selector picks among those that fit). lower_third left the
-# rotation on 2026-11-01 (it differed from Discovery only in its headline colour); "monument" took its place.
+# The styles a Reel cover can go out in (cover_selector.fitting; selection is fixed to one since QF-82). lower_third
+# left the rotation on 2026-11-01 (it differed from Discovery only in its headline colour); "monument" took its place.
 # Every style ever posted stays drawable, so a kept recipe can always be redrawn (RENDERABLE_STYLES).
 COVER_STYLES = ("badge", "monument", "minimal", "depth_sandwich")
 RENDERABLE_STYLES = COVER_STYLES + ("lower_third",)
@@ -259,13 +259,14 @@ class VisualEngine:
         return pick(scene_media, stems)
 
     def generate_thumbnails(self, hero_image_path: Path, script_payload: Dict[str, Any], output_dir: Path,
-                            style: str = "badge", variants: bool = True) -> Tuple[Path, Path]:
-        """Cover in one of COVER_STYLES (rotated per run so neighbouring grid posts differ).
+                            style: str = "badge", variants: bool = False) -> Tuple[Path, Path]:
+        """The delivered cover in `style` (one of RENDERABLE_STYLES) and its profile-grid tile, nothing else.
         Every layout keeps its text inside the centre 1080x1080 square, which survives both the
         1:1 and the 3:4 profile-grid crops, and draws every line of its copy (eyebrow, title, tagline).
-        Also renders the complete 3-Variant Thumbnail Suite (Evidence Plate, Discovery,
-        Cinema) for human review and A/B selection. Each cover is measured and checked after
-        drawing (still_layout); a failing one is drawn once more with the tighter fit."""
+        Each cover is measured and checked after drawing (still_layout); a failing one is drawn once
+        more with the tighter fit. The A/B/C variant suite is no longer rendered (QF-82: the selector
+        never chose from it); `variants` is accepted for older callers and ignored. Variant files an older run
+        already holds are left as they are."""
         output_dir.mkdir(parents=True, exist_ok=True)
         out_916_path = output_dir / "thumbnail_cover.jpg"
         out_1x1_path = output_dir / "thumbnail_profile_grid.jpg"
@@ -317,16 +318,10 @@ class VisualEngine:
                 log.warning("Cover %s (%s) at profile-grid size: %s", path.name, chosen, "; ".join(proof["fails"]))
             return out
 
-        # The 3-variant 9:16 suite is for Reels; a documentary (variants=False) uses its 16:9 thumbnail.
-        if variants:
-            save(output_dir / "thumbnail_variant_a_blueprint.jpg", "depth_sandwich")
-            save(output_dir / "thumbnail_variant_b_intrigue.jpg", "badge")
-            save(output_dir / "thumbnail_variant_c_minimal.jpg", "minimal")
-
         chosen = self._fitted_style(copy, style if style in RENDERABLE_STYLES else "badge")
         final_916 = save(out_916_path, chosen, enforce=True)
         grid_crop(final_916).save(out_1x1_path, quality=95)
-        log.info("Thumbnails generated (%s, with 3-variant suite): %s, %s", style, out_916_path.name, out_1x1_path.name)
+        log.info("Covers generated (%s): %s, %s", chosen, out_916_path.name, out_1x1_path.name)
         return out_916_path, out_1x1_path
 
     def _grid_enforced(self, im, copy, style, out, lay, attempts):

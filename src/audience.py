@@ -839,8 +839,8 @@ MIN_PER_STYLE = 8   # videos per cover style on a platform before its comparison
 
 
 def cover_style_comparison(rows: list[dict[str, Any]]) -> list[str]:
-    """Digest lines comparing the cover styles, one per video platform (Instagram, Facebook, YouTube) on which two
-    styles have been measured, by the rates that do not depend on a topic's reach: 3-second skip rate where
+    """Historical Reel-content results grouped by recorded cover style, not evidence of a cover's effect.
+    One line per video platform (Instagram, Facebook, YouTube) on which two styles occur: 3-second skip rate where
     Instagram reports it (lowest first), shares and saves per account reached, and watch ratio. Each style's
     median, so one viral topic does not decide it; an early signal until each has MIN_PER_STYLE videos there."""
     from statistics import median
@@ -872,7 +872,8 @@ def cover_style_comparison(rows: list[dict[str, Any]]) -> list[str]:
         parts = [describe(style, group) for style, group in sorted(groups.items(), key=order)]
         early = min(len(g) for g in groups.values()) < MIN_PER_STYLE
         note = f" <i>Early signal: fewer than {MIN_PER_STYLE} videos per style.</i>" if early else ""
-        lines.append(f"• Cover styles · {PLATFORM_NAMES.get(platform, platform)} (median, best first): "
+        lines.append(f"• Cover styles · {PLATFORM_NAMES.get(platform, platform)} "
+                     "(Reel-content medians, not cover performance; cover style fixed): "
                      + "; ".join(parts) + "." + note)
     return lines
 

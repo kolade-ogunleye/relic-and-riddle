@@ -537,7 +537,10 @@ RECON_SIZE_PORTRAIT = 30  # the 9:16 size once tests/test_gap_engine.py lets the
 RECON_SIZE_WIDE = 26
 RECON_PLATE_ALPHA = 0x26  # ~85% opacity
 
-# Thumbnail Specifications (Variant B Locked Standard)
+# Thumbnail Specifications. Automatic cover selection is fixed to this style until a cover-specific signal exists
+# (YouTube long-form CTR or a manual Instagram test, QF-82); Reel-content rates never restart it, and there is
+# deliberately no environment switch for it.
+COVER_FIXED_STYLE = "badge"
 THUMB_OPACITY = 215            # ~85% opacity
 THUMB_BLUR_RADIUS = 10         # Soft feathered halo
 THUMB_EYEBROW_FONT_SIZE = 32

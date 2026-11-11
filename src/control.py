@@ -378,6 +378,18 @@ COVER_VARIANTS = {"a": "thumbnail_variant_a_blueprint.jpg", "b": "thumbnail_vari
                   "c": "thumbnail_variant_c_minimal.jpg"}
 
 
+def is_documentary_run(run_dir: Path, run: dict[str, Any] | None) -> bool:
+    """Whether the run at `run_dir` posts as the 16:9 documentary, whose posted cover is its 16:9 thumbnail and not
+    thumbnail_cover.jpg: by its delivery profile or content format, or a recorded cover path naming another file;
+    for a folder without a run row, by its documentary master."""
+    if run:
+        from .publishable import is_documentary
+        recorded = run.get("thumbnail_cover_path")
+        return (is_documentary(run.get("script_payload") or {}) or run.get("content_format") == "deep_dive"
+                or bool(recorded and Path(recorded).name != "thumbnail_cover.jpg"))
+    return any(Path(run_dir).glob("*_documentary_16x9.mp4"))
+
+
 def chosen_cover(run_dir: Path) -> Optional[str]:
     """Which variant the run's cover (thumbnail_cover.jpg) is: the same file, or else the closest picture."""
     cover = run_dir / "thumbnail_cover.jpg"
@@ -2166,15 +2178,26 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
                 return f"↩️ <b>Undone:</b> Restored skipped proposal {html.escape(last.get('slug', ''))}."
             return f"↩️ <b>Undone:</b> Restored {html.escape(last.get('desc', 'action'))}."
         if command == "covers":
-            # Covers are chosen for a video awaiting review (Lock refuses any other run), so that is what
-            # this opens; otherwise the newest run that has covers, as a preview. A run folder without
-            # covers (cancelled, failed, still producing) is never chosen.
+            # A video awaiting review is what this opens; otherwise the newest run that has covers, as a
+            # preview. A run folder without covers (cancelled, failed, still producing) is never chosen.
+            # Runs since QF-82 hold only the final cover and its profile-grid tile (`<run>:final` / `<run>:grid`
+            # pick which is shown); an older run's A/B/C variants keep the Lock screen below.
             ref = args.strip()
+            cover_view = "final"
+            if ref.endswith((":final", ":grid")):
+                ref, cover_view = ref.rsplit(":", 1)
             from .config import OUTPUT_DIR
             back = [[{"text": "🎬 Reviews", "callback_data": "creviews:"}], [HOME]]
 
             def has_covers(d):
-                return any((d / f"thumbnail_variant_{v}.jpg").exists() for v in ("a_blueprint", "b_intrigue", "c_minimal"))
+                # Only a Reel's covers: this screen never shows a picture the run does not post. A documentary
+                # posts its 16:9 thumbnail (shown on its review card, which has no Covers button for it), and
+                # its 9:16 cover and grid tile are never posted (QF-82 review 1).
+                if is_documentary_run(d, db.get_run(d.name)):
+                    return False
+                return ((d / "thumbnail_cover.jpg").exists()
+                        or any((d / f"thumbnail_variant_{v}.jpg").exists()
+                               for v in ("a_blueprint", "b_intrigue", "c_minimal")))
 
             def run_folder(run):
                 if run and run.get("master_video_path"):
@@ -2195,6 +2218,9 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
                     topic_dir = _resolve_topic_dir(ref, assets_dir, db=db)
                     runs = [p for p in OUTPUT_DIR.glob(f"run_{topic_dir.name}_*") if p.is_dir() and has_covers(p)]
                     run_dir = max(runs, key=lambda p: p.stat().st_mtime) if runs else None
+                if run_dir and is_documentary_run(run_dir, db.get_run(run_dir.name)):
+                    return ("🎨 A documentary has no Reel covers: it posts its 16:9 thumbnail, shown on its review "
+                            "card."), back
                 if not run_dir or not has_covers(run_dir):
                     return "🎨 This run has no covers yet (they are made when the video is rendered).", back
             else:
@@ -2223,6 +2249,33 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             var_a = run_dir / "thumbnail_variant_a_blueprint.jpg"
             var_b = run_dir / "thumbnail_variant_b_intrigue.jpg"
             var_c = run_dir / "thumbnail_variant_c_minimal.jpg"
+            final_cover = run_dir / "thumbnail_cover.jpg"
+            if final_cover.exists() and not any(path.exists() for path in (var_a, var_b, var_c)):
+                grid_cover = run_dir / "thumbnail_profile_grid.jpg"
+                if cover_view == "grid" and not grid_cover.exists():
+                    return "The profile-grid image is not available for this run.", back
+                selected_file = grid_cover if cover_view == "grid" else final_cover
+                key = db.run_key(run_dir.name) if run_rec else run_dir.name
+                def shown(view, name):   # 👁 the one on screen, as on the variant flip
+                    return ("👁 " if view == cover_view else "") + name
+                buttons = [[{"text": shown("final", "Final cover"), "callback_data": f"ccov:{key}:final"}]]
+                if grid_cover.exists():
+                    buttons[0].append({"text": shown("grid", "Profile-grid tile"),
+                                       "callback_data": f"ccov:{key}:grid"})
+                buttons.extend(back)
+                label = (html.escape(db.run_label(run_dir.name)) if run_rec
+                         else f"<code>{html.escape(run_dir.name)}</code>")
+                surface = "Profile-grid tile" if cover_view == "grid" else "Final cover"
+                caption = (f"🎨 <b>{surface}</b> · {label}\n\n"
+                           "The cover style is fixed while cover tests are paused. They resume once a "
+                           "cover-specific measure exists (YouTube thumbnail click-through or a manual Instagram test).")
+                if send_photo:
+                    from .credits import sha256_file
+                    # Bound to the file's bytes, so a redrawn cover is never shown from Telegram's older copy.
+                    send_photo(selected_file, caption, buttons,
+                               cache_key=f"cover:{run_dir.name}:{cover_view}:{sha256_file(selected_file)}")
+                    return ""
+                return caption, buttons
             # The variant the video's cover is now (it always said B: review, 2026-10-25)
             chosen = chosen_cover(run_dir)
             selected = chosen or ("b" if var_b.exists() else "a" if var_a.exists() else "c")   # the one previewed

@@ -3003,9 +3003,8 @@ class PipelineCoordinator:
             log.info(payload["source_note"])
 
         # Stills setup
-        # The cover style: those the copy fits, never the previous run's, the audience's numbers deciding once
-        # each has been tried (src/cover_selector.py; a per-run rotation until 2026-11-01). The hero as prepared
-        # above (upscaled, privacy-checked: the refit), so the paper card's fill rule reads its reviewed focus.
+        # The cover style: fixed while cover selection is frozen (src/cover_selector.py, QF-82; a bandit on Reel
+        # metrics from 2026-11-01, a per-run rotation before). The renderer fits it to the copy and the hero.
         from src import cover_selector
         style, _style_why = cover_selector.for_run(self.db, run_id, payload, hero=hero_img)
 

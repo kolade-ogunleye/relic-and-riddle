@@ -1,4 +1,4 @@
-"""Cover selection (2026-11-01): fit rules, neighbours differ, explore each style, then learn from Instagram."""
+"""Cover fitting and legacy diagnostics, with automatic selection frozen by QF-82."""
 
 from collections import Counter
 
@@ -31,24 +31,24 @@ def test_monument_needs_a_figure() -> None:
     assert "monument" not in cover_selector.fitting(year_only)       # a date is not a scale
 
 
-def test_the_previous_style_is_not_repeated_while_another_fits() -> None:
+def test_the_fixed_style_is_repeated_while_cover_experimentation_is_frozen() -> None:
     for seed in "abcdefgh":
         style, _ = cover_selector.choose(FIGURE, [], previous="badge", seed=seed)
-        assert style != "badge"
+        assert style == "badge"
 
 
-def test_least_tried_style_goes_first() -> None:
+def test_untried_styles_do_not_restart_the_frozen_bandit() -> None:
     rows = [_row(s, 30, 0.01) for s in ("badge", "minimal", "depth_sandwich") for _ in range(3)]
     style, why = cover_selector.choose(FIGURE, rows, seed="x")
-    assert style == "monument" and why.startswith("exploring")
+    assert style == "badge" and "frozen" in why
 
 
-def test_after_exploration_the_better_style_goes_out_more_often() -> None:
+def test_reel_performance_does_not_restart_cover_learning() -> None:
     rows = [_row("badge", 20, 0.03) for _ in range(12)]          # strong: little skip, high engagement
     rows += [_row(s, 70, 0.002) for s in ("monument", "minimal", "depth_sandwich") for _ in range(12)]
     picks = Counter(cover_selector.choose(FIGURE, rows, seed=f"run{i}")[0] for i in range(200))
-    assert picks["badge"] > 150
-    assert cover_selector.choose(FIGURE, rows, seed="run7")[1].startswith("learned")
+    assert picks == {"badge": 200}
+    assert "frozen" in cover_selector.choose(FIGURE, rows, seed="run7")[1]
 
 
 def test_the_choice_is_repeatable_for_a_run() -> None:

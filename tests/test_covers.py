@@ -68,7 +68,7 @@ def test_story_kicker_alignment(tmp_path):
     assert comp_data["platforms"]["instagram_reels"]["hashtags"] == ["#Archaeology", "#AncientHistory"]
 
 
-def test_3_variant_thumbnail_suite_generation(tmp_path):
+def test_cover_generation_omits_unused_variant_suite(tmp_path):
     hero = tmp_path / "hero.jpg"
     Image.new("RGB", (1080, 1920), (70, 60, 50)).save(hero)
     payload = {
@@ -91,9 +91,9 @@ def test_3_variant_thumbnail_suite_generation(tmp_path):
     var_a = tmp_path / "thumbnail_variant_a_blueprint.jpg"
     var_b = tmp_path / "thumbnail_variant_b_intrigue.jpg"
     var_c = tmp_path / "thumbnail_variant_c_minimal.jpg"
-    assert var_a.exists() and Image.open(var_a).size == (1080, 1920)
-    assert var_b.exists() and Image.open(var_b).size == (1080, 1920)
-    assert var_c.exists() and Image.open(var_c).size == (1080, 1920)
+    assert not var_a.exists()
+    assert not var_b.exists()
+    assert not var_c.exists()
 
 
 

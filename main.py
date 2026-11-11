@@ -3297,6 +3297,7 @@ class PipelineCoordinator:
             render_inputs = {"presentation": policy_inputs(scenes),
                              "media": file_inputs([*scenes, vo_path, bed_path]), "words": words,
                              "durations": durations, "emphasis": payload.get("emphasis_words"), "end_card": card_key,
+                             "loop_follow_overlay": bool(config.LOOP_FOLLOW_OVERLAY),   # QF-83: drawn into the master
                              "grade_bias": (payload.get("art_direction") or {}).get("grade_bias") or 0.0,  # part of the master
                              "rules": file_inputs([Path("src/video_composer.py"), Path("src/end_card.py"), Path("src/config.py"),
                                                    Path("src/encoding.py"), Path("src/encoded_audio.py"), Path("src/delivery_profiles.py"),

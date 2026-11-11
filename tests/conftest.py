@@ -22,6 +22,7 @@ def default_licences(monkeypatch):
     # Nor the developer's formats, Shorts switch or retry waits (a test never sleeps a real minute).
     monkeypatch.setattr(config, "VIDEO_FORMATS", ["reel"])
     monkeypatch.setattr(config, "YOUTUBE_SHORTS", False)
+    monkeypatch.setattr(config, "LOOP_FOLLOW_OVERLAY", False)   # QF-83's FOLLOW: its own tests turn it on
     monkeypatch.setattr(config, "SCENE_PLAN_RETRY_SECONDS", 0.0)
     monkeypatch.setattr(config, "PICTURE_CHECK_RETRY_SECONDS", 0.0)
     # Nor the deployment's model and dry-run choices: production's FREE_TIER_HEAVY=false and

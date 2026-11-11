@@ -372,8 +372,8 @@ def test_a_partial_publish_names_each_failed_platforms_reason_and_carries_it():
         raise AssertionError("a partial publish must stay unknown")
 
 
-def test_a_published_short_gets_its_thumbnail_set_best_effort(db, monkeypatch, tmp_path):
-    # 2026-10-24: the first Short went out with a frame as thumbnail; Upload-Post can set one afterwards.
+def test_a_published_short_does_not_make_the_dead_thumbnail_request(db, monkeypatch, tmp_path):
+    # QF-83: keep the Short's successful receipt without the automatic thumbnail call.
     from types import SimpleNamespace
     from src.publisher import MetaPublisher
     cover = tmp_path / "cover.jpg"
@@ -388,9 +388,10 @@ def test_a_published_short_gets_its_thumbnail_set_best_effort(db, monkeypatch, t
     db.create_run("run_y", topic)
     envelope = {"topic_id": topic, "run_id": "run_y", "media": {"thumbnail_path": str(cover)}, "metadata": {}}
     out = service.publish_short(envelope)
-    assert calls == [("y6_GqrOprXE", "cover.jpg")] and out["thumbnail"] == {"set": True, "error": None}
+    assert calls == [] and out["status"] == "published" and "thumbnail" not in out
     recorded = db.list_publications("run_y")[-1]
-    assert recorded["channel"] == "youtube-shorts" and '"set": true' in recorded["response_payload_json"]
+    assert recorded["channel"] == "youtube-shorts" and recorded["status"] == "published"
+    assert '"thumbnail"' not in recorded["response_payload_json"]
 
 
 def test_set_youtube_thumbnail_respects_the_size_limit_and_reports_refusals(monkeypatch, tmp_path):

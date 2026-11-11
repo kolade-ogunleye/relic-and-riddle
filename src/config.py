@@ -146,8 +146,12 @@ def effective_format(requested: str) -> "str | None":
     have = want & set(VIDEO_FORMATS)
     return "dual" if len(have) == 2 else "reel" if have == {"reel"} else "deep-dive" if have else None
 # Approved Reels are also uploaded to YouTube as Shorts: a separate upload after Facebook and
-# Instagram, so a YouTube problem never changes the Reel's own outcome.
-YOUTUBE_SHORTS = os.getenv("YOUTUBE_SHORTS", "false").strip().lower() in ("true", "1", "yes")
+# Instagram, so a YouTube problem never changes the Reel's own outcome. On unless set false (QF-83: the one
+# platform with Shorts revenue; an explicit YOUTUBE_SHORTS=false still turns it off).
+YOUTUBE_SHORTS = os.getenv("YOUTUBE_SHORTS", "true").strip().lower() in ("true", "1", "yes")
+# The Reel's loop bridge carries a one-word FOLLOW (src/end_card.py LOOP_FOLLOW; QF-83, operator 2026-11-10: on in
+# production). It adds no time or narration; false gives the purely visual bridge.
+LOOP_FOLLOW_OVERLAY = os.getenv("LOOP_FOLLOW_OVERLAY", "true").strip().lower() in ("true", "1", "yes")
 YOUTUBE_SHORTS_PRIVACY = (os.getenv("YOUTUBE_SHORTS_PRIVACY") or YOUTUBE_PRIVACY).strip().lower()
 if YOUTUBE_SHORTS_PRIVACY not in ("public", "unlisted", "private"):
     YOUTUBE_SHORTS_PRIVACY = YOUTUBE_PRIVACY

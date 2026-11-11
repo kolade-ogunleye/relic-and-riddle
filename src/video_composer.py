@@ -4457,14 +4457,16 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         and on the longest crossfade (record: still_fallback, the first gate's problems); only if that fails too does
         the Reel end at the narration. `motion`: loop_motion's push through the seam.
         Returns what the bridge measured, for the record."""
+        from . import config
         from . import end_card as card_mod
         stem = output_mp4_path.parent / output_mp4_path.stem
         body, audio = Path(f"{stem}_body.mkv"), Path(f"{stem}_programme.wav")
         last, first = Path(f"{stem}_card_bg.png"), Path(f"{stem}_frame0.png")
         total = vo_dur + card_mod.LOOP_SECONDS
         inter_encoder = _get_intermediate_video_encoder()
-        kw: Dict[str, Any] = {"line": card_mod.LOOP_LINE, **(motion or {})}
+        kw: Dict[str, Any] = {"line": card_mod.LOOP_LINE, "follow": bool(config.LOOP_FOLLOW_OVERLAY), **(motion or {})}
         fallback: Optional[List[str]] = None
+        follow_dropped: str | None = None
         try:
             _run_ffmpeg([*head,
                          "-map", "[v_final]", *inter_encoder, "-pix_fmt", "yuv420p",
@@ -4484,11 +4486,18 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                 # Before dropping the ending: the same bridge without the push through the seam and on its longest
                 # crossfade (the gentlest it can be). Most seam problems come from the motion; this keeps the Reel's
                 # ending and its length, and the record says which bridge shipped.
+                # QF-83: then, with a FOLLOW, the bridge without it (with its push, then still) before no bridge.
                 still = {**kw, "close_push": 0.0, "open_push": 0.0, "crossfade": card_mod.LOOP_CROSSFADE[1]}
-                retry = card_mod.check_loop_bridge(background, frame0, share, **still)
-                if retry["ok"]:
-                    log.warning("Loop bridge without its push: %s", "; ".join(gate["problems"]))
-                    fallback, kw, gate = gate["problems"], still, retry
+                ladder = [("push", still)] + ([("FOLLOW", {**kw, "follow": False}),
+                                               ("push and FOLLOW", {**still, "follow": False})] if kw.get("follow") else [])
+                for label, option in ladder:
+                    retry = card_mod.check_loop_bridge(background, frame0, share, **option)
+                    if retry["ok"]:
+                        log.warning("Loop bridge without its %s: %s", label, "; ".join(gate["problems"]))
+                        if kw.get("follow") and not option.get("follow"):
+                            follow_dropped = "; ".join(gate["problems"])
+                        fallback, kw, gate = gate["problems"], option, retry
+                        break
             errors = output_mp4_path.parent / f"{output_mp4_path.stem}_card_ffmpeg.log"
             if not gate["ok"]:
                 log.warning("Loop bridge dropped: %s", "; ".join(gate["problems"]))
@@ -4538,6 +4547,8 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                "duration_s": card_mod.LOOP_SECONDS, "text": stats.get("text")}
         if fallback:
             out["still_fallback"] = fallback   # why the bridge with the push was not used
+        if follow_dropped:   # QF-83: asked for, gated out; the review card says so (end_card.end_card_note)
+            out["follow_skipped"] = f"the bridge with it would not pass its gate ({follow_dropped})"
         return out
 
     def compose_deep_dive(

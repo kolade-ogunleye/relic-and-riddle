@@ -27,10 +27,13 @@ CANCEL_WHY = {"the Reel did not post": "its Reel's slot failed, so it was not po
 
 
 def _short_thumbnail(pubs, shorts) -> str:
-    """Whether the posted Short has its thumbnail: set by the try after posting or by the button since."""
+    """Whether the posted Short has its thumbnail: set by the try after posting (until QF-83) or by the button since;
+    "frame" when none was ever asked for (QF-83: no request follows the upload; the Shorts feed takes a frame)."""
     tries = [x for x in pubs if x.get("channel") == "youtube:thumbnail"]
     if any(x.get("status") == "published" for x in tries):
         return "set"
+    if not tries and not any('"thumbnail"' in (x.get("response_payload_json") or "") for x in shorts):
+        return "frame"
     error = ""
     for x in shorts:  # the try made right after the Short posted
         try:
@@ -240,7 +243,9 @@ def posting_episode(db, run_id: str) -> Tuple[str, List[List[Dict[str, str]]]]:
                 thumb = _short_thumbnail(pubs, shorts)
                 # Two images: the API sets the standard thumbnail; the Shorts tab and shelf use a frame of the video
                 # that only the YouTube app can change (operator, 2026-10-28: "set" while the Shorts tab showed frames)
-                lines.append("  YouTube thumbnail: " + ("standard thumbnail set (search, watch page); the Shorts tab shows a frame of the video, changed only in the YouTube app: the Short, ✏️ Edit, Thumbnail" if thumb == "set" else thumb))
+                frame = "a frame of the video, changed only in the YouTube app: the Short, ✏️ Edit, Thumbnail"
+                lines.append("  YouTube thumbnail: " + ("standard thumbnail set (search, watch page); the Shorts tab shows " + frame
+                                                        if thumb == "set" else frame if thumb == "frame" else thumb))
                 if thumb != "set":
                     row.append({"text": "▶️ YouTube thumbnail", "callback_data": f"ytthumb:{key}"})
             if row:

@@ -1,0 +1,11 @@
+{
+  "base": {
+    "frames": 300,
+    "sha256": "bb055fcc718e58e3ad9dd76df62c4d31a758efc4f44309432e392a9062b56401"
+  },
+  "build": {
+    "frames": 300,
+    "sha256": "bb055fcc718e58e3ad9dd76df62c4d31a758efc4f44309432e392a9062b56401"
+  },
+  "identical": true
+}

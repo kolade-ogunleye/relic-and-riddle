@@ -103,6 +103,20 @@ LOOP_MAX_MAD = 8.0                      # the bridge's last frame against frame 
 LOOP_CENTRE = 0.40                      # the line's vertical centre, as a share of the height (y 768: the Reel box)
 FOLLOW_SIZES = range(40, 29, -1)
 FOLLOW_TRACK = 0.12      # the follow line's letter spacing, as a share of its size
+# The loop bridge's FOLLOW (QF-83; operator 2026-11-10: on in production, config.LOOP_FOLLOW_OVERLAY): the end card's
+# follow ask cut to its one word, in the follow line's type (tracked Montserrat 800 capitals) but in bone, centred on
+# LOOP_CENTRE inside the Reel box. Not gold: the bridge is dimmed lightly (LOOP_DIM), and gold over its widest halo
+# measured 3.5-3.7:1 on a white frame and under 4.5:1 on one of seven real Reel endings; bone holds 4.8:1 on all.
+# It rises in over LOOP_FOLLOW_FRAMES[0] frames from the bridge's first frame and fades out over its last
+# LOOP_FOLLOW_FRAMES[1] frames, so the bridge's first and last frames carry none of it and the seam still lands on
+# frame 0. Its halo is solved on the lightest of the pictures it sits on (_follow_plate) and every full-opacity frame
+# is measured; under LOOP_FOLLOW_MIN the bridge is shipped without it (the review card says so).
+LOOP_FOLLOW = "FOLLOW"
+LOOP_FOLLOW_SIZE = 64
+LOOP_FOLLOW_FRAMES = (6, 8)
+LOOP_FOLLOW_RISE = 10                   # px it rises while it comes in (the end card's follow line: 10)
+LOOP_FOLLOW_HALO = 40                   # px: the halo's spread, wide enough to hold 4.8:1 on a near-white picture
+LOOP_FOLLOW_MIN = 4.5                   # WCAG AA on every full-opacity frame (the plan aims for brand.PLACE_TARGET)
 
 _FOLLOW_CLAUSE = re.compile(r"[\s,;:—–-]*(?:and\s+|then\s+|&\s+)?(?:please\s+)?follow\b.*$", re.IGNORECASE)
 
@@ -133,14 +147,22 @@ def end_card_record(master, fallback: bool = False) -> Optional[Dict[str, Any]]:
            "text": card.get("text"), "fallback": bool(fallback) and card.get("text") is not None}
     if isinstance(card.get("note"), dict):   # the loop bridge's render-time gate failed (check_loop_bridge)
         out["note"] = card["note"]
+    if card.get("follow") or card.get("follow_skipped"):   # QF-83: whether the bridge asked for the follow
+        out.update(follow=bool(card.get("follow")), fallback=False if card.get("follow") else out["fallback"])
+        if card.get("follow_skipped"):
+            out["follow_skipped"] = card["follow_skipped"]
     return out
 
 
 def end_card_note(record: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
     """The review card's note about the Reel's ending: the loop bridge's gate note when the bridge was dropped
-    (a warning), else an info note when the end card had to use the plain fallback line."""
+    (a warning), an info note when the bridge was asked for its FOLLOW but shipped without it (QF-83), else an info
+    note when the end card had to use the plain fallback line."""
     if record and isinstance(record.get("note"), dict):
         return record["note"]
+    if record and record.get("follow_skipped"):
+        return {"type": "end_card", "card": "End card", "severity": "info",
+                "issue": f"The loop bridge shipped without its FOLLOW: {record['follow_skipped']}."}
     if not record or not record.get("fallback"):
         return None
     return {"type": "end_card", "card": "End card", "severity": "info",
@@ -609,7 +631,7 @@ def _pulled(im: Image.Image, z: float, width: int, height: int) -> np.ndarray:
 
 
 def loop_bridge(last: Image.Image, first: Image.Image, share: str,
-                stats: dict[str, Any] | None = None, *, line: bool = True,
+                stats: dict[str, Any] | None = None, *, line: bool = True, follow: bool = False,
                 crossfade: float | None = None, close_zoom: float = 1.0, close_push: float = LOOP_PUSH,
                 open_push: float = LOOP_PUSH) -> Iterator[Image.Image]:
     """The 9:16 Reel's ending (operator, 2026-11-02): a loop bridge of LOOP_SECONDS instead of the end card.
@@ -630,8 +652,10 @@ def loop_bridge(last: Image.Image, first: Image.Image, share: str,
     its edge mirrored for the <= 2 % outside it), so it arrives at frame 0 already moving at the opening shot's
     rate and the Reel's frames 1.. carry on from there. `line` (the operator's 2026-11-02 spec): the share line
     rises in bone at a measured contrast, holds and fades out in the first 40% of the crossfade; False makes the bridge purely visual (round-3
-    panel recommendation, pending the operator) and records text None. `stats` receives the line (or None), its
-    size and contrast at the hold, the dim, the crossfade and the largest mean-L* step over the seam."""
+    panel recommendation, pending the operator) and records text None. `follow` (QF-83, config.LOOP_FOLLOW_OVERLAY)
+    draws LOOP_FOLLOW instead of the share line (never both: one element on the bridge), see LOOP_FOLLOW_SIZE; it
+    adds no time. `stats` receives the line (or None), its size and contrast at the hold (with FOLLOW: the lowest
+    over its full-opacity frames), the dim, the crossfade and the largest mean-L* step over the seam."""
     from .typography import plan_text
     width, height = WIDTH, HEIGHT
     if first.size != (width, height):
@@ -641,7 +665,7 @@ def loop_bridge(last: Image.Image, first: Image.Image, share: str,
         raise ValueError("loop_bridge: close_zoom must be > 0 and the pushes >= 0")
     a_rate = close_push / close_zoom     # relative zoom per frame on `last`, which is already at close_zoom
     lo, hi = LOOP_CROSSFADE
-    cf = float(crossfade if crossfade is not None else (lo if line else hi))
+    cf = float(crossfade if crossfade is not None else (lo if line and not follow else hi))
     cf = max(lo, min(hi, cf))
     a_img = _cover(last, (width, height))
     b_img = first.convert("RGB")
@@ -654,9 +678,13 @@ def loop_bridge(last: Image.Image, first: Image.Image, share: str,
     i_out = total - n_cf                 # the crossfade's first frame (mix 0); it runs to the Reel's frame 0
     t_out = i_out / FPS
     t_hold = (t_in + t_out) / 2          # where the line's contrast is measured
-    text = loop_text(share) if line else None
+    text = loop_text(share) if line and not follow else None
     plates, lay = [], None
-    if line:
+    follow_plate, follow_skipped, follow_contrasts = None, None, []
+    if follow:
+        follow_plate, follow_skipped = _follow_plate(a_img, b_img, a_rate, open_push, total)
+        text = LOOP_FOLLOW if follow_plate is not None else None
+    elif line:
         lay = layout(text, width, height)
         lines, line_h = lay["lines"], lay["line_h"]
         top = round(LOOP_CENTRE * height - len(lines) * line_h / 2)
@@ -687,6 +715,12 @@ def loop_bridge(last: Image.Image, first: Image.Image, share: str,
             la = ease(t / t_in) * (1 - ease_io((t - t_out) / (0.4 * cf)))
             for p in plates:
                 frame = p.draw(frame, la, round(12 * (1 - ease(t / t_in))))
+        if follow_plate is not None:
+            fa = follow_alpha(i, total)
+            rise = ease(i / LOOP_FOLLOW_FRAMES[0])
+            frame = follow_plate.draw(frame, fa, round(LOOP_FOLLOW_RISE * (1 - rise)))
+            if fa >= 1.0:   # measured where it is fully up, on the frame as drawn
+                follow_contrasts.append(follow_plate.measure(frame))
         if stats is not None:
             cur = mean_lstar(frame)
             steps.append(abs(cur - prev_l))
@@ -700,17 +734,58 @@ def loop_bridge(last: Image.Image, first: Image.Image, share: str,
         stats["mad_last"] = round(float(np.abs(np.asarray(frame, np.float32) - np.asarray(b_img, np.float32)).mean()), 2)
         stats.update(text=text, lines=[" ".join(ln) for ln in lay["lines"]] if lay else [],
                      share_size=lay["share_font"].size if lay else None, dim=dim, seconds=LOOP_SECONDS,
-                     follow=False, line=bool(line), crossfade=round(cf, 3), loop_dim=LOOP_DIM, push=close_push,
+                     follow=follow_plate is not None, line=bool(line), crossfade=round(cf, 3), loop_dim=LOOP_DIM, push=close_push,
                      close_zoom=close_zoom, open_push=open_push, mix_last=round(mix, 4),
                      max_step_L=round(max(steps), 2))
         stats.setdefault("contrast", None)
+        if follow:
+            vals = [v for v in follow_contrasts if v is not None]
+            stats.update(follow_requested=True, follow_skipped=follow_skipped,
+                         contrast=(min(vals) if vals else 0.0) if follow_plate is not None else None,
+                         follow_frames=len(follow_contrasts),
+                         follow_box=list(follow_plate.box) if follow_plate is not None else None,
+                         follow_size=LOOP_FOLLOW_SIZE if follow_plate is not None else None,
+                         follow_halo=follow_plate.halo if follow_plate is not None else None)
+
+
+def follow_alpha(i: int, total: int) -> float:
+    """The FOLLOW's opacity on the bridge's frame i of total: 0 on its first frame, up after LOOP_FOLLOW_FRAMES[0],
+    then out over its last LOOP_FOLLOW_FRAMES[1] frames to 0 on its last (the seam frame stays frame 0's)."""
+    n_in, n_out = LOOP_FOLLOW_FRAMES
+    return ease_io(i / n_in) * (1 - ease_io((i - (total - 1 - n_out)) / n_out))
+
+
+def _follow_plate(a_img: Image.Image, b_img: Image.Image, a_rate: float, open_push: float, total: int):
+    """The bridge's FOLLOW plate, its halo solved on the brightest picture it can sit on: per pixel, the lightest of
+    the outgoing shot (undimmed) and the incoming frame 0, each at the first and the last frame it is fully up. Every
+    frame under it is a mix of those two (and the dim only darkens), so the halo holds on all of them; or (None, why)
+    when even the strongest halo leaves it under LOOP_FOLLOW_MIN there (the bridge then ships without it). Solved on
+    the two endpoint frames only, 3 of 31 production endings measured under 4.5:1 mid-crossfade (QF-83 real_data)."""
+    from .typography import cap_height, full_halo_pad, plan_text
+    width, height = a_img.size
+    font = get_font("Montserrat", LOOP_FOLLOW_SIZE, weight=800)
+    spacing = LOOP_FOLLOW_SIZE * FOLLOW_TRACK
+    y = round(LOOP_CENTRE * height + cap_height(font) / 2)        # its baseline: the caps centred on LOOP_CENTRE
+    up = [i for i in range(total) if follow_alpha(i, total) >= 1.0]
+    grounds = [_pushed(a_img, 1 + a_rate * (i + 1), width, height) for i in (up[0], up[-1])]
+    grounds += [_pulled(b_img, 1 + open_push * (i - total), width, height) for i in (up[0], up[-1])]
+    lightest = Image.fromarray(np.maximum.reduce(grounds).clip(0, 255).astype(np.uint8))
+    plate = plan_text(lightest, (width / 2, y), LOOP_FOLLOW, font, WHITE, "ms", spacing, halo_px=LOOP_FOLLOW_HALO,
+                      halo_pad=full_halo_pad(LOOP_FOLLOW_HALO), max_halo=1.0)
+    if plate.empty:
+        return None, "the word did not render"
+    if (plate.contrast or 0.0) < LOOP_FOLLOW_MIN:
+        return None, f"{plate.contrast or 0.0:.2f}:1 at its strongest halo (needs {LOOP_FOLLOW_MIN}:1)"
+    return plate, None
 
 
 def seam_problems(stats: dict[str, Any]) -> list[str]:
     """Why a rendered loop bridge would hitch at the seam, from loop_bridge's own stats: a step over LOOP_MAX_STEP_L
-    in mean L*, a last frame LOOP_MAX_MAD or further from frame 0, or a last frame that is not one step short of it
-    (mix 29/30). Empty when the seam is clean."""
+    in mean L*, a last frame LOOP_MAX_MAD or further from frame 0, a last frame that is not one step short of it
+    (mix 29/30), or a FOLLOW (QF-83) measured under LOOP_FOLLOW_MIN on a full-opacity frame. Empty when clean."""
     problems = []
+    if stats.get("follow") and (stats.get("contrast") or 0.0) < LOOP_FOLLOW_MIN:
+        problems.append(f"its FOLLOW measures {stats.get('contrast')}:1 (at least {LOOP_FOLLOW_MIN}:1)")
     step = stats.get("max_step_L")
     if step is None or step > LOOP_MAX_STEP_L:
         problems.append(f"a frame steps {step} L* at the seam (at most {LOOP_MAX_STEP_L})")

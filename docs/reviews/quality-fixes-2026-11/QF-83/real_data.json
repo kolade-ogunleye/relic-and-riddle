@@ -1,0 +1,188 @@
+{
+  "follow_supported": true,
+  "dev": {
+    "summary": {
+      "masters": 7,
+      "follow_drawn": 7,
+      "follow_skipped": 0,
+      "contrast_min": 6.39,
+      "contrast_median": 7.05,
+      "seam_problems_plain": 0,
+      "seam_problems_follow": 0,
+      "follow_added_a_seam_problem": 0
+    },
+    "runs": {
+      "run_gol_gumbaz_whispering_gallery_1793278143": {
+        "follow": true,
+        "contrast": 7.64,
+        "halo": 0.64,
+        "frames_up": 16,
+        "skipped": null,
+        "box": [
+          374,
+          744,
+          709,
+          791
+        ],
+        "seam_plain": [],
+        "seam_follow": [],
+        "max_step_L": [
+          3.38,
+          3.39
+        ],
+        "mad_last": [
+          2.81,
+          2.81
+        ]
+      },
+      "run_nazca_lines_runway_paradox_1793267092": {
+        "follow": true,
+        "contrast": 7.0,
+        "halo": 0.8,
+        "frames_up": 16,
+        "skipped": null,
+        "box": [
+          374,
+          744,
+          709,
+          791
+        ],
+        "seam_plain": [],
+        "seam_follow": [],
+        "max_step_L": [
+          5.09,
+          5.13
+        ],
+        "mad_last": [
+          1.69,
+          1.69
+        ]
+      },
+      "run_odessa_catacombs_1793100750": {
+        "follow": true,
+        "contrast": 8.26,
+        "halo": 0.56,
+        "frames_up": 16,
+        "skipped": null,
+        "box": [
+          374,
+          744,
+          709,
+          791
+        ],
+        "seam_plain": [],
+        "seam_follow": [],
+        "max_step_L": [
+          3.35,
+          3.38
+        ],
+        "mad_last": [
+          1.74,
+          1.74
+        ]
+      },
+      "run_richat_structure_sahara_eye_1793474843": {
+        "follow": true,
+        "contrast": 6.61,
+        "halo": 0.56,
+        "frames_up": 16,
+        "skipped": null,
+        "box": [
+          374,
+          744,
+          709,
+          791
+        ],
+        "seam_plain": [],
+        "seam_follow": [],
+        "max_step_L": [
+          4.59,
+          4.6
+        ],
+        "mad_last": [
+          1.82,
+          1.82
+        ]
+      },
+      "run_roman_self_healing_concrete_1793163918": {
+        "follow": true,
+        "contrast": 7.05,
+        "halo": 0.8,
+        "frames_up": 16,
+        "skipped": null,
+        "box": [
+          374,
+          744,
+          709,
+          791
+        ],
+        "seam_plain": [],
+        "seam_follow": [],
+        "max_step_L": [
+          6.01,
+          6.04
+        ],
+        "mad_last": [
+          2.51,
+          2.51
+        ]
+      },
+      "run_trepanation_miracle_1792995462": {
+        "follow": true,
+        "contrast": 7.56,
+        "halo": 0.8,
+        "frames_up": 16,
+        "skipped": null,
+        "box": [
+          374,
+          744,
+          709,
+          791
+        ],
+        "seam_plain": [],
+        "seam_follow": [],
+        "max_step_L": [
+          5.04,
+          5.04
+        ],
+        "mad_last": [
+          2.21,
+          2.21
+        ]
+      },
+      "run_unfinished_obelisk_aswan_1793056896": {
+        "follow": true,
+        "contrast": 6.39,
+        "halo": 0.88,
+        "frames_up": 16,
+        "skipped": null,
+        "box": [
+          374,
+          744,
+          709,
+          791
+        ],
+        "seam_plain": [],
+        "seam_follow": [],
+        "max_step_L": [
+          6.46,
+          6.51
+        ],
+        "mad_last": [
+          2.19,
+          2.19
+        ]
+      }
+    }
+  },
+  "prod_counts": {
+    "masters": 31,
+    "follow_drawn": 31,
+    "follow_skipped": 0,
+    "contrast_min": 6.11,
+    "contrast_median": 7.84,
+    "seam_problems_plain": 0,
+    "seam_problems_follow": 0,
+    "follow_added_a_seam_problem": 0
+  }
+}

@@ -8,7 +8,10 @@ existing caps. A dry run can still consume API credits.
 
 Production runs only the formats in its `VIDEO_FORMATS` (default `reel`). The 16:9 documentary
 stays out of it until `docs/documentary-rebuild.md`'s acceptance criteria are met and approved;
-`YOUTUBE_SHORTS` stays off in production until the operator enables it.
+`YOUTUBE_SHORTS` and `LOOP_FOLLOW_OVERLAY` are on unless an environment sets them to `false` (QF-83). A host
+whose `.env` does not set `YOUTUBE_SHORTS` will post every approved Reel as a YouTube Short after a release that
+contains QF-83, and every Reel's loop bridge will say FOLLOW unless `LOOP_FOLLOW_OVERLAY=false`. This repository
+never edits production's `.env`: check both settings there with the operator before that release.
 
 ## Responsibility and runtime
 

@@ -20,7 +20,6 @@ import contextlib
 import json
 import logging
 import os
-import re
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -799,19 +798,10 @@ class MetaPublisher:
         except PublishUnknown as e:
             self.db.record_publication(tid, run_id, "youtube-shorts", "unknown", {"error": str(e)})
             return {"status": "unknown", "error": str(e)}
-        # The Short is up; now its thumbnail (a frame otherwise). Best-effort and recorded either way: the
-        # first Short (2026-10-24) went out with none, since the upload itself cannot carry one.
-        url = (res.get("post_urls") or {}).get("youtube") or ""
-        video_id = (re.search(r"[?&]v=([A-Za-z0-9_-]{6,})", url) or re.search(r"shorts/([A-Za-z0-9_-]{6,})", url) or [None, None])[1]
-        if video_id and hasattr(uploader, "set_youtube_thumbnail"):
-            try:
-                res["thumbnail"] = uploader.set_youtube_thumbnail(video_id, Path(envelope["media"]["thumbnail_path"]))
-            except Exception as e:  # never costs the Short its receipt
-                res["thumbnail"] = {"set": False, "error": str(e)[:200]}
-            if not res["thumbnail"].get("set"):
-                log.warning("YouTube Short thumbnail not set (%s); YouTube shows a frame.", res["thumbnail"].get("error"))
+        # No thumbnail request follows (QF-83): the Shorts feed shows a frame of the video, which only the YouTube
+        # app can change; the standard thumbnail stays a manual button (main.set_youtube_thumbnail).
         self.db.record_publication(tid, run_id, "youtube-shorts", "published", res)
-        return {"status": "published", "post_urls": res.get("post_urls") or {}, "thumbnail": res.get("thumbnail")}
+        return {"status": "published", "post_urls": res.get("post_urls") or {}}
 
     def publish_photos(self, run_id: str, topic_id: str, kind: str, photos: List[str], caption: str = "",
                        platforms: Optional[List[str]] = None, dry_run: bool = False, retry_tag: str = "",

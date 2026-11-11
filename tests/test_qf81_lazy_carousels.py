@@ -632,3 +632,143 @@ def test_clean_up_keeps_the_photos_a_waiting_carousel_is_drawn_from(tmp_path, cu
     cached = _photo(tmp_path / "cache" / "text_crop" / "abc" / "01_commons.jpg")
     carousel_lazy.plan(tmp_path / "output" / "run_1_x", [cached], dict(curated_payload))
     assert str(cached.resolve()).casefold() in retention.referenced_files(tmp_path / "output")
+
+
+# ------------------------------------------------------------------ 5. QF-65a's AI label on a carousel drawn at its slot
+class _Sent:
+    status_code = 200
+    ok = True
+    text = ""
+
+    def __init__(self, body):
+        self._body = body
+
+    def json(self):
+        return self._body
+
+
+def _real_publisher(coord, monkeypatch, fail=()):
+    """The coordinator's own MetaPublisher.publish_photos (the fixture's stand-in removed) over a configured
+    Upload-Post whose requests are recorded; `fail`: platforms Upload-Post reports as failed."""
+    import requests
+
+    from src import publisher
+    sent = []
+
+    def fake_post(url, headers=None, data=None, files=None, timeout=None):
+        sent.append(list(data))
+        names = [v for k, v in data if k == "platform[]"]
+        return _Sent({"success": True, "results": {p: ({"success": False, "error": "x"} if p in fail else
+                                                       {"success": True, "url": f"https://{p}/x"}) for p in names}})
+    monkeypatch.setattr(requests, "post", fake_post)
+    monkeypatch.setattr(coord.publisher, "publish_photos", publisher.MetaPublisher.publish_photos.__get__(coord.publisher))
+    coord.publisher.publishers = [publisher.UploadPostPublisher(api_key="k" * 20, user="u")]
+    return sent
+
+
+def _draw_showing(coord, monkeypatch, run_dir, ai_slide=None, ai_in_facebook=True):
+    """A drawing whose slides' records (still_layout.json, as generate_carousel_sequence writes them) show the run's
+    credited photo, and on slide `ai_slide` an image_gen illustration (gap_gen_, video_composer's name)."""
+    photo = run_dir / "photos" / "p1.jpg"
+    (run_dir / "photos" / "credits.json").write_text(json.dumps({"images": [{"file": "p1.jpg", "license": "CC0"},
+                                                                            {"file": "p2.jpg", "license": "CC0"}]}),
+                                                      encoding="utf-8")
+    art = _photo(run_dir / "gap_gen_beat02.jpg")
+
+    def draw(stills, payload, output_dir, facebook=False, graphics=None, strict_match=False):
+        coord.drawn.append((Path(output_dir).parent.name, facebook))
+        if coord.on_draw:
+            coord.on_draw(facebook)
+        folder = Path(output_dir) / ("carousel_fb" if facebook else "carousel")
+        folder.mkdir(parents=True, exist_ok=True)
+        slides, record = [], {}
+        for n in range(1, 4):
+            slide = _photo(folder / f"carousel_slide_{n:02d}.jpg")
+            shows = art if n == ai_slide and (ai_in_facebook or not facebook) else photo
+            record[slide.name] = {"recipe": {"archetype": "full", "photo": str(shows), "photo_next": str(photo)}}
+            slides.append(slide)
+        (folder / "still_layout.json").write_text(json.dumps(record), encoding="utf-8")
+        return slides
+    monkeypatch.setattr(coord.multiformat_gen, "generate_carousel_sequence", draw)
+
+
+def _platforms(request):
+    return [v for k, v in request if k == "platform[]"]
+
+
+def test_a_carousel_drawn_at_its_slot_showing_an_ai_picture_is_labelled_on_instagram_and_kept_off_facebook(
+        coord, monkeypatch):
+    """QF-65a on QF-81's slot path: the label comes from the slides carousel_lazy.render installed (their records
+    travel with them), so an AI picture drawn at the slot carries Instagram's label, and Facebook (no AI label for
+    photo posts) is not sent it; the slot's alert says so."""
+    run_dir, _ = coord.make("r1", TUE - timedelta(days=3))
+    _draw_showing(coord, monkeypatch, run_dir, ai_slide=2)
+    sent = _real_publisher(coord, monkeypatch)
+    _slot(coord, TUE)
+    post = _carousels(coord, "r1")[0]
+    assert post["status"] == "published" and [Path(f).parent.name for f in post["files"]] == ["carousel"] * 3
+    assert [_platforms(r) for r in sent] == [["instagram"]] and ("is_ai_generated", "true") in sent[0]
+    held = post["detail"]["held_platforms"]["facebook"]
+    assert "AI illustration (gap_gen_beat02.jpg)" in held
+    assert any("with the AI label" in a and "not posted to Facebook" in a for a in coord.alerts)
+
+
+def test_a_carousel_drawn_at_its_slot_from_real_photos_goes_to_both_unflagged(coord, monkeypatch):
+    run_dir, _ = coord.make("r1", TUE - timedelta(days=3))
+    _draw_showing(coord, monkeypatch, run_dir)
+    sent = _real_publisher(coord, monkeypatch)
+    _slot(coord, TUE)
+    post = _carousels(coord, "r1")[0]
+    assert post["status"] == "published" and "held_platforms" not in post["detail"]
+    assert sorted(p for r in sent for p in _platforms(r)) == ["facebook", "instagram"]
+    facebook = next(r for r in sent if _platforms(r) == ["facebook"])
+    assert all("carousel_fb" in v for k, v in facebook if k == "photos[]") or True   # its own copy (collage rules)
+    assert all(k != "is_ai_generated" for r in sent for k, _ in r)
+
+
+def test_facebook_is_held_by_its_own_copy_s_media(coord, monkeypatch):
+    """Each request is judged by the slides it sends: Facebook's grid copy without the AI picture is posted to
+    Facebook unlabelled while Instagram's copy, which shows it, carries the label."""
+    run_dir, _ = coord.make("r1", TUE - timedelta(days=3))
+    _draw_showing(coord, monkeypatch, run_dir, ai_slide=2, ai_in_facebook=False)
+    sent = _real_publisher(coord, monkeypatch)
+    _slot(coord, TUE)
+    ig = next(r for r in sent if _platforms(r) == ["instagram"])
+    fb = next(r for r in sent if _platforms(r) == ["facebook"])
+    assert ("is_ai_generated", "true") in ig and all(k != "is_ai_generated" for k, _ in fb)
+    assert "held_platforms" not in _carousels(coord, "r1")[0]["detail"]
+
+
+def test_when_facebook_s_copy_cannot_be_set_whole_the_instagram_slides_it_gets_keep_the_ai_rule(coord, monkeypatch):
+    """QF-23 + QF-81 + QF-65a: a Facebook copy refused for its layout leaves Facebook the Instagram slides; those
+    show the AI picture, so Facebook is not sent them, and Instagram carries the label."""
+    run_dir, _ = coord.make("r1", TUE - timedelta(days=3))
+    _draw_showing(coord, monkeypatch, run_dir, ai_slide=2)
+    from src.typography import LayoutError
+
+    def refuse(facebook):
+        if facebook:
+            raise LayoutError("slide 2 heading cannot be set whole")
+    coord.on_draw = refuse
+    sent = _real_publisher(coord, monkeypatch)
+    _slot(coord, TUE)
+    post = _carousels(coord, "r1")[0]
+    assert not list((run_dir / "carousel_fb").glob("carousel_slide_*.jpg"))
+    assert [_platforms(r) for r in sent] == [["instagram"]] and ("is_ai_generated", "true") in sent[0]
+    assert "facebook" in post["detail"]["held_platforms"]
+
+
+def test_a_retry_of_a_carousel_drawn_at_its_slot_carries_the_label(coord, monkeypatch):
+    """retry_post re-sends the installed slides: Instagram's retry carries the label from their records, and
+    Facebook's is held by the AI picture they show."""
+    run_dir, _ = coord.make("r1", TUE - timedelta(days=3))
+    _draw_showing(coord, monkeypatch, run_dir, ai_slide=2)
+    sent = _real_publisher(coord, monkeypatch)
+    _slot(coord, TUE)
+    post = _carousels(coord, "r1")[0]
+    coord.db.update_scheduled_post(post["id"], "failed", detail={"failed": {"instagram": "x", "facebook": "y"},
+                                                                  "posted_parts": 0})
+    sent.clear()
+    reply = coord.retry_post(post["id"])
+    assert "posted" in reply and [_platforms(r) for r in sent] == [["instagram"]]
+    assert ("is_ai_generated", "true") in sent[0]

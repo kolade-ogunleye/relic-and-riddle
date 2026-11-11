@@ -38,8 +38,8 @@ ENVELOPE_FIELDS: dict[str, tuple[str, ...]] = {
     "description": ("youtube.description",),
     "tags": ("youtube.tags",),
 }
-# Kept in the envelope for the record; no publisher posts them as text (the AI label is a platform flag set from
-# config, not from the writer).
+# Kept in the envelope for the record; no publisher posts them as text (the AI label is a platform flag derived from
+# the post's media and the setting, src/ai_label.py, never from the writer).
 RECORDED_ONLY = ("location", "meta_topic_categories", "is_ai_generated")
 # The payload fields a post's text is made from (the writer's, or an operator's edit of them).
 PUBLISHABLE_FIELDS = ("title", "caption", "carousel_caption", "first_comment", "hashtags", "youtube_title",
@@ -150,8 +150,10 @@ def topic_for(db: Any, topic_id: str) -> dict[str, Any] | None:
         return None
 
 
-def envelope_metadata(payload: dict[str, Any], topic: dict[str, Any] | None) -> dict[str, Any]:
-    """A Reel envelope's metadata, from the allowlisted payload fields only."""
+def envelope_metadata(payload: dict[str, Any], topic: dict[str, Any] | None,
+                      ai_label: dict[str, Any] | None = None) -> dict[str, Any]:
+    """A Reel envelope's metadata, from the allowlisted payload fields only. `ai_label`: the post's AI label as
+    derived from its media (ai_label.assess_video, QF-65a); without one, the setting alone (META_IS_AI_GENERATED)."""
     from .config import META_IS_AI_GENERATED
     from .publisher import with_disclosure
     final, _ = publishable_hashtags(payload.get("hashtags") or [], hashtag_candidates(topic))
@@ -162,7 +164,7 @@ def envelope_metadata(payload: dict[str, Any], topic: dict[str, Any] | None) -> 
         "hashtags": final,
         "meta_topic_categories": payload.get("meta_topic_categories", []),
         "first_comment": retag(payload.get("first_comment", ""), final),
-        "is_ai_generated": META_IS_AI_GENERATED,
+        "is_ai_generated": bool(ai_label.get("on")) if isinstance(ai_label, dict) else META_IS_AI_GENERATED,
         "youtube_title": retag(payload.get("youtube_title", ""), final),
         "description": (with_disclosure(retag(payload.get("description", ""), final), payload)
                         if payload.get("description") else ""),
@@ -255,18 +257,33 @@ def schedule(db: Any, now: datetime | None = None, window_seconds: int | None = 
             "closes": (now + timedelta(seconds=int(seconds))).isoformat()}
 
 
+def photo_posts(run_dir: Path | None) -> list[Path]:
+    """The Story frames and carousel slides a run would post (Stories: multi_format.story_posting_frames; a carousel:
+    at most 10 slides, Instagram's copy and Facebook's), for the card's AI-label line."""
+    if run_dir is None or not Path(run_dir).is_dir():
+        return []
+    from .multi_format import story_posting_frames
+    stories = [Path(p) for _, p in story_posting_frames(sorted(str(p) for p in (Path(run_dir) / "stories").glob("story_*.jpg")))]
+    slides = [p for folder in ("carousel", "carousel_fb")
+              for p in sorted((Path(run_dir) / folder).glob("carousel_slide_*.jpg"))[:10]]
+    return stories + slides
+
+
 def card_record(payload: dict[str, Any], db: Any, run_dir: Path | None = None,
                 window_seconds: int | None = None, now: datetime | None = None, topic_id: str = "",
-                posting: str = "now") -> dict[str, Any]:
+                posting: str = "now", master: Path | None = None, cover: Path | None = None) -> dict[str, Any]:
     """Everything the review card shows of what Approve publishes. `topic_id`: the run's, for a payload without
     one (a documentary's: publish_run fills it in the same way before build_envelope). `posting`: what Approve
-    does (POSTINGS); a documentary is never booked a slot (it goes to YouTube at once)."""
-    from . import config
+    does (POSTINGS); a documentary is never booked a slot (it goes to YouTube at once). `master` and `cover`: the
+    video and cover Approve posts, whose media decide the AI label (QF-65a; without a master the label is on)."""
+    from . import ai_label, config
     topic = topic_for(db, payload.get("topic_id") or topic_id)
     candidates = hashtag_candidates(topic)
     final, dropped = publishable_hashtags(payload.get("hashtags") or [], candidates)
-    meta = envelope_metadata(payload, topic)
+    label = ai_label.assess_video(master, payload, cover=cover)
+    meta = envelope_metadata(payload, topic, ai_label=label)
     documentary = is_documentary(payload)
+    photos = [] if documentary else photo_posts(run_dir)
     copy = card_copy(meta, youtube=documentary)
     slides = run_dir is not None and any((Path(run_dir) / "carousel").glob("carousel_slide_*.jpg"))
     from .carousel_lazy import planned
@@ -277,6 +294,7 @@ def card_record(payload: dict[str, Any], db: Any, run_dir: Path | None = None,
             "documentary": documentary, "shorts": bool(config.YOUTUBE_SHORTS),
             **({"carousel_at_slot": True} if at_slot and not documentary else {}),
             "carousel_own": bool((payload.get("carousel_caption") or "").strip()),
+            "ai_label": label, "ai_label_photos": ai_label.assess_photos(photos) if photos else None,
             **schedule(db, now=now, window_seconds=window_seconds,
                        posting="now" if documentary and posting == "slot" else posting)}
 

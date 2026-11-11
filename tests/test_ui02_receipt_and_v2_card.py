@@ -903,3 +903,39 @@ def test_review_undo_minutes_is_held_at_20(raw, minutes):
     """Review 3: above the approval window's 20-minute margin a last-minute approval is acted on after its slot."""
     assert config.REVIEW_UNDO_MINUTES_MAX == 20.0
     assert config.review_undo_minutes(raw) == minutes
+
+
+# ------------------------------------------------------------------ QF-65a's AI label on the V2 card (port onto UI-02)
+@pytest.mark.parametrize("scene, on", [("photo", False), ("illustration", True)])
+def test_v2_card_states_the_ai_label_the_media_approve_posts_decide(db, tmp_path, monkeypatch, scene, on):
+    """The V2 card's record is the one the envelope keeps (QF-43, QF-65a): its AI label comes from the run's master and
+    cover, as on the live card, never "no readable media record" for a run that has one; the card states it whole
+    with what Approve posts."""
+    from src import publishable
+    monkeypatch.setattr(config, "TELEGRAM_CARDS_V2", True)
+    monkeypatch.setattr(config, "META_IS_AI_GENERATED", False)
+    bot, _ = offline_bot(db, monkeypatch)
+    root, payload, report = fixture_run(db, tmp_path, monkeypatch)
+    pool = tmp_path / "assets" / "topic"
+    pool.mkdir(parents=True)
+    Image.new("RGB", (8, 8), "gray").save(pool / "01_commons.jpg")
+    (pool / "credits.json").write_text(json.dumps({"images": [{"file": "01_commons.jpg", "license": "CC0"}]}),
+                                       encoding="utf-8")
+    shown_media = pool / "01_commons.jpg" if scene == "photo" else root / "gap_gen_beat02.jpg"
+    if scene == "illustration":
+        Image.new("RGB", (8, 8), "red").save(shown_media)
+    (root / "master.composition.json").write_text(json.dumps({"scenes": [str(shown_media)]}), encoding="utf-8")
+    (root / "still_layout.json").write_text(json.dumps({"thumbnail_cover.jpg": {"recipe": {"hero": str(pool / "01_commons.jpg")}}}),
+                                            encoding="utf-8")
+    payload = {k: v for k, v in payload.items() if k != "picture_fit"}
+
+    plan = bot._v2_review_plan(root.name, payload, report, root)
+    posted = plan["posted"]
+    live = publishable.card_record(payload, db, run_dir=root, topic_id=payload["topic_id"], posting=posted["posting"],
+                                   master=root / "master.mp4", cover=root / "thumbnail_cover.jpg")
+    assert posted["ai_label"] == live["ai_label"] and posted["ai_label"]["on"] is on
+    assert "no readable media record for the video" not in posted["ai_label"]["reasons"]
+    posts = next(b for b in plan["blocks"] if b.get("summary") == "📤 What Approve posts")
+    line = [s for s in _strings(posts) if s.startswith("🤖 AI transparency:")]
+    assert line == [telegram_bot._plain(telegram_bot._ai_label_line(posted))]
+    assert ("AI label on" in line[0] and "gap_gen_beat02.jpg" in line[0]) if on else "no AI label" in line[0]

@@ -667,7 +667,22 @@ CARD_CAPTION_ROOM = 400   # the caption text the credits leave room for before t
 CAPTION_TOO_LONG = "<i>(too long for this card: see Edit)</i>"
 ALSO_HEAD = "📤 <b>Also posted, word for word</b>"   # what else Approve posts (QF-43)
 ALSO_SHORT = "📤 <b>Also posted:</b>"                # its one-line count, in the room a decision's badge keeps
+AI_HEAD = "🤖 <b>AI transparency:</b>"                 # whether the post carries the AI label, and why (QF-65a)
 _CARD_BLOCK_END = "</blockquote>\n"
+
+
+def _ai_label_line(posted: Any, brief: bool = False) -> str:
+    """The card's AI-label line from its record (publishable.card_record, QF-65a), whole or `brief` (whether the
+    label is on and its first reason); "" for a record without the assessment."""
+    if not isinstance(posted, dict):
+        return ""
+    from .ai_label import card_line
+    text = card_line(posted.get("ai_label"), documentary=bool(posted.get("documentary")),
+                     photos=posted.get("ai_label_photos"), brief=brief,
+                     # QF-81: a carousel drawn at its slot is labelled from its slides there (the slot's alert names
+                     # a Facebook hold); the card's assessment holds the Stories only
+                     stills="Stories" if posted.get("carousel_at_slot") else "Stories/carousel")
+    return f"{AI_HEAD} {html.escape(text)}" if text else ""
 
 
 def _said_once(card: str) -> str:
@@ -677,7 +692,7 @@ def _said_once(card: str) -> str:
     return first + sep + rest.replace(f": {CARD_LIST_MORE}", "")
 
 
-def _with_publish_lines(card: str, posted: dict[str, Any], limit: int, reserve: int) -> str:
+def _with_publish_lines(card: str, posted: dict[str, Any], limit: int, reserve: int, shift: int = 0) -> str:
     """The fitted review card (QF-42's fit, unchanged) with what else Approve posts and when (QF-43), each only in
     room the card leaves, so neither costs the narration, a caption or a finding anything (review of QF-43 on 30
     real cards: laid out with the card, they cut narration and dropped captions' "see Edit" lines):
@@ -687,9 +702,30 @@ def _with_publish_lines(card: str, posted: dict[str, Any], limit: int, reserve: 
     - on the card waiting for a decision only (`reserve` 0), in the room CARD_PAGE_LIMIT keeps for a decision's
       badge: the slot line under the title, then (when no form of the list fit) the list's count. The card stays
       one message under telegram_pages.PAGE_ABOVE; the decided card, rebuilt with its badge, has neither (its
-      receipt says what was booked). A card the findings already push past that keeps them in the reply."""
+      receipt says what was booked). A card the findings already push past that keeps them in the reply.
+    - the AI-label line (QF-65a) under the title, on every card with the record: brief (the label and its first
+      reason) in the room the fit gives up for it (card_fit_limit, ai_line_room), then whole once everything
+      else is laid out when the room left takes it; the reply under the card has it whole otherwise."""
     from .telegram_pages import PAGE_ABOVE
     also = _also_posted(posted, posted.get("copy") or {})
+    ai_whole, ai_brief = _ai_label_line(posted), _ai_label_line(posted, brief=True)
+    # `shift`: the room the fit freed beyond the AI line's own (TelegramApprovalBot._ai_layout); the slot
+    # line and the "Also posted" list or count are laid out in the room they had without the line.
+    page_cap, list_cap = PAGE_ABOVE - shift, limit - shift
+
+    def with_ai(text: str, line: str) -> str:
+        pin = text.find("📌 <b>")
+        at = text.find("\n", pin) if pin >= 0 else -1
+        if not line or at < 0:
+            return text
+        return text[:at + 1] + line + "\n" + text[at + 1:]
+
+    def whole_ai(text: str, room: int) -> str:
+        """The brief AI line swapped for the whole one when the room takes it."""
+        trial = text.replace(ai_brief + "\n", ai_whole + "\n", 1) if ai_brief and ai_whole != ai_brief else text
+        return trial if _tg_len(trial) <= room else text
+
+    card = with_ai(card, ai_brief)
 
     def with_list(text: str, cap: int | None) -> str:
         head = text.find("<b>Narration and timings:</b>")
@@ -704,23 +740,59 @@ def _with_publish_lines(card: str, posted: dict[str, Any], limit: int, reserve: 
     listed_ = False
     for k in (None, *range(len(also) - 2, -1, -1)):
         trial = with_list(card, k)
-        if trial != card and _tg_len(trial) <= limit:
+        if trial != card and _tg_len(trial) <= list_cap:
             card, listed_ = trial, True
             break
     if reserve > 0:
-        return card
+        return whole_ai(card, limit)
     pin = card.find("📌 <b>")
     title = card.find("\n", pin) if pin >= 0 else -1
     if title >= 0 and _schedule_line(posted):
         trial = card[:title + 1] + _schedule_line(posted) + card[title + 1:]
-        if _tg_len(trial) <= PAGE_ABOVE:
+        if _tg_len(trial) <= page_cap:
             card = trial
     if not listed_ and also:
         for trial in (with_list(card, 0), with_list(card, -1)):
-            if trial != card and _tg_len(trial) <= PAGE_ABOVE:
+            if trial != card and _tg_len(trial) <= page_cap:
                 card = trial
                 break
-    return card
+    return whole_ai(card, PAGE_ABOVE)
+
+
+def _publish_lines_shown(card: str) -> tuple[str, str]:
+    """What a card shows of Approve's lines (QF-43): its slot line and its "Also posted" section, as text."""
+    slot = next((ln for ln in card.splitlines() if ln.startswith("🗓 <b>Slot:</b>")), "")
+    at = card.find("📤 <b>Also posted")
+    if at < 0:
+        return slot, ""
+    end = card.find("</blockquote>", at) if card.startswith(ALSO_HEAD, at) else card.find("\n", at)
+    return slot, card[at:end if end >= 0 else len(card)]
+
+
+def _captions_named(card: str) -> int:
+    """How many captions a review card names: their text, or where to read it (QF-42)."""
+    return sum(card.count(f"<b>{label}:</b>") for label in ("Caption", "Carousel caption"))
+
+
+def _qf42_kept(card: str, reference: str, previews: bool = True) -> bool:
+    """Whether a fitted card keeps what QF-42's fit keeps on `reference` (the card without the AI-label line): the
+    narration whole if it was, every caption named, the credits' own lines, and (`previews`) each caption preview."""
+    return (("[shortened:" not in card or "[shortened:" in reference)
+            and _captions_named(card) >= _captions_named(reference)
+            and (CREDITS_UNLISTED not in card or CREDITS_UNLISTED in reference)
+            and (not previews or _caption_previews(card) >= _caption_previews(reference)))
+
+
+def _without_ai_line(card: str) -> str:
+    """The card without its AI-label line (QF-65a), for comparing what else it shows."""
+    return re.sub(r"(?m)^" + re.escape(AI_HEAD) + r"[^\n]*\n", "", card, count=1)
+
+
+def ai_line_room(posted: Any) -> int:
+    """The room the card's brief AI-label line takes (QF-65a): kept out of the fit, so the line is always on the card
+    and the narration, captions, findings and the other publish lines are laid out in what is left. 0 without one."""
+    line = _ai_label_line(posted, brief=True)
+    return _tg_len(line) + 1 if line else 0
 
 
 def needs_publish_reply(card: str, posted: Any) -> bool:
@@ -730,7 +802,9 @@ def needs_publish_reply(card: str, posted: Any) -> bool:
         return False
     also = _also_posted(posted, posted.get("copy") or {})
     slot = _schedule_line(posted)
-    return bool(also and listed(ALSO_HEAD, also) not in card) or bool(slot and slot not in card)
+    ai = _ai_label_line(posted)   # QF-65a: a card showing the brief AI line has the whole one in the reply
+    return (bool(also and listed(ALSO_HEAD, also) not in card) or bool(slot and slot not in card)
+            or bool(ai and ai not in card))
 
 
 def _caption_previews(card: str) -> int:
@@ -1699,10 +1773,90 @@ class TelegramApprovalBot:
         and the captions come first; when the findings leave them no room, each folded list is shortened
         to its first items and "…and N more" (a long Wieliczka card lost its narration and both captions,
         then was paged as plain text with buttons that failed: review of 2026-10-25)."""
+        card, _ = TelegramApprovalBot._ai_layout(script_payload, run_id, release, reserve)
+        return card
+
+    @staticmethod
+    def _ai_layout(script_payload: dict[str, Any], run_id: str, release: dict[str, Any] | None,
+                   reserve: int) -> tuple[str, int]:
+        """(the card, the room its narration, captions and findings were fitted in). With the AI-label record
+        (QF-65a) the brief AI line is a fact of the card: it does not change what else Approve's lines show (the slot
+        line and the "Also posted" list or count, as the card without the record lays them out, the narration's
+        old AI line included), unless keeping them would cost what QF-42 keeps (the last point):
+        - when the QF-42 fit leaves room for it with those lines unchanged, the fit is untouched;
+        - otherwise the fit gives up the line's room from what the card without the record fills, and when a fit
+          step (a finding list's cap) frees more than that, the publish lines are held to the room they had
+          (_with_publish_lines' `shift`);
+        - what QF-42 keeps comes first (_qf42_kept: the narration whole, every caption named, the credits' lines,
+          the caption previews): when giving up the line's room would cost one of them, the fit takes the room still
+          left under the page cap with the publish lines unchanged; when no fit does, the card keeps QF-42's fit and
+          the slot line or the "Also posted" count that no longer fits goes to the reply (needs_publish_reply), never
+          a caption or the narration. A lost caption preview alone (the caption still named, "see Edit") is the
+          line's accepted cost on the waiting card;
+        - the decided card (`reserve`: its badge) stays in CARD_PAGE_LIMIT less the badge and has no slot line or
+          "Also posted" count to give: where the line's room would cost what QF-42 keeps, it is QF-42's card without
+          the line (round 3). A card QF-42 cannot fit in its page (its floor) has no line either."""
         limit = CARD_PAGE_LIMIT - max(0, reserve)
-        card = TelegramApprovalBot._fitted_card(script_payload, run_id, release, limit)
         posted = script_payload.get("_publish_copy")
-        return _with_publish_lines(card, posted, limit, reserve) if isinstance(posted, dict) else card
+        natural = TelegramApprovalBot._fitted_card(script_payload, run_id, release, limit)
+        if not isinstance(posted, dict):
+            return natural, limit
+        need = ai_line_room(posted)
+        card = _with_publish_lines(natural, posted, limit, reserve)
+        if not need:
+            return card, limit
+        from .telegram_pages import PAGE_ABOVE
+        bare = {k: v for k, v in posted.items() if k not in ("ai_label", "ai_label_photos")}
+        bare_payload = {**script_payload, "_publish_copy": bare}
+        before_fit = TelegramApprovalBot._fitted_card(bare_payload, run_id, release, limit)
+        bare_card = _with_publish_lines(before_fit, bare, limit, reserve)
+        before = _publish_lines_shown(bare_card)
+        # The page the card fills: one message under PAGE_ABOVE; the decided card stays in the badge's room (QF-43).
+        cap = limit if reserve > 0 else PAGE_ABOVE
+        if _tg_len(card) <= cap and _publish_lines_shown(card) == before:
+            return card, limit
+
+        def laid_out(fit_limit: int) -> tuple[str, str]:
+            fitted = TelegramApprovalBot._fitted_card(script_payload, run_id, release, fit_limit)
+            shift = max(0, _tg_len(before_fit) - (_tg_len(fitted) + need))
+            return fitted, _with_publish_lines(fitted, posted, limit, reserve, shift=shift)
+
+        def on_page(text: str) -> str:
+            """The card within `cap`, or the line goes to the reply: QF-42's fit cannot shrink below the page less
+            the line (its floor; a long name's Approved badge on 2 of 140 real decided renders, QF-65a round 3)."""
+            return _without_ai_line(text) if _tg_len(text) > cap else text
+
+        fit_limit = max(0, _tg_len(before_fit) - need)
+        fitted, laid = laid_out(fit_limit)
+        if _qf42_kept(fitted, before_fit):
+            return on_page(laid), fit_limit
+        if reserve > 0:
+            # The decided card (rebuilt with its badge, _render_decision) has no slot line or "Also posted" count to
+            # give, and its page is the badge's room (QF-43): where the line's room would cost what QF-42 keeps (a
+            # caption or the whole narration on up to 33 of 860 fixture shapes, QF-65a round 2 review), it is QF-42's
+            # card without the line, its publish lines as that card lays them out (and without the narration's old
+            # AI line, which the record replaces).
+            return _without_ai_line(bare_card), limit
+        # The line's own room would cost what QF-42 keeps (a caption's preview or its "see Edit" pointer, the whole
+        # narration, the credits' lines: a real card lost its caption's pointer, QF-65a round 2): the fit takes the
+        # room the page still has under `cap` with the publish lines as the card without the record shows them.
+        roomy = min(limit, cap - need - (_tg_len(bare_card) - _tg_len(before_fit)))
+        if roomy > fit_limit:
+            fitted_r, laid_r = laid_out(roomy)
+            if (_qf42_kept(fitted_r, before_fit) and _tg_len(laid_r) <= cap
+                    and _publish_lines_shown(laid_r) == before):
+                return laid_r, roomy
+        if not _qf42_kept(fitted, before_fit, previews=False) and _tg_len(card) <= cap:
+            return card, limit   # no fit keeps a caption named or the narration whole: the publish lines go to the reply
+        return on_page(laid), fit_limit
+
+    @staticmethod
+    def card_fit_limit(script_payload: dict[str, Any], run_id: str, release: dict[str, Any] | None = None,
+                       reserve: int = 0) -> int:
+        """The room the card's narration, captions and findings are fitted in (_ai_layout): the page limit, or,
+        when the brief AI-label line (QF-65a) would change what else the card shows, what the card would fill
+        less the line's room (or, when that would cost what QF-42 keeps, the room left under the page cap)."""
+        return TelegramApprovalBot._ai_layout(script_payload, run_id, release, reserve)[1]
 
     @staticmethod
     def _fitted_card(script_payload: dict[str, Any], run_id: str, release: dict[str, Any] | None, limit: int) -> str:
@@ -1810,7 +1964,14 @@ class TelegramApprovalBot:
         if poll.get("question") and poll.get("options") and len(poll["options"]) >= 2:
             opts = [e(str(o)) for o in poll["options"]]
             text += f"📊 <b>Debate poll:</b> {e(poll['question'])} (A: {opts[0]} / B: {opts[1]})\n"
-        if script_payload.get("is_generated_by_ai"):
+        # Whether the post carries the AI label and why, from the media Approve posts (QF-65a: the card's record,
+        # publishable.card_record). The card lays it out with what else Approve posts (_with_publish_lines), so it
+        # costs the narration nothing; the reply under the card (`extras`) has it whole. A card without the record
+        # keeps the narration's line.
+        ai_line = _ai_label_line(posted)
+        if ai_line and extras:
+            text += ai_line + "\n"
+        elif not ai_line and script_payload.get("is_generated_by_ai"):
             text += "🤖 <b>AI transparency:</b> Synthetic media label embedded for Meta CMP compliance\n"
         def _format_note(note_val: Any) -> str:
             if not note_val:
@@ -2297,7 +2458,11 @@ class TelegramApprovalBot:
             posting = decider(run_id) if callable(decider) else ("dry_run" if mode == "dry_run" else "now")
             posted = publishable.card_record(payload, self.db, run_dir=run_dir if run_dir and run_dir.is_dir() else None,
                                              window_seconds=sizer() if callable(sizer) else None,
-                                             topic_id=(run or {}).get("topic_id") or "", posting=posting)
+                                             topic_id=(run or {}).get("topic_id") or "", posting=posting,
+                                             # the media Approve posts decide the AI label, as on the live card
+                                             # (QF-65a; without them the label is on for no media reason)
+                                             master=(run or {}).get("master_video_path") or None,
+                                             cover=(run or {}).get("thumbnail_cover_path") or None)
         except Exception as e:  # noqa: BLE001 - the live card shows the reason; the V2 card is not sent without it
             raise V2CardUnavailable(f"what Approve posts could not be worked out ({type(e).__name__}: {e})") from None
         if not release or not release.get("checks"):
@@ -2408,6 +2573,9 @@ class TelegramApprovalBot:
         when = _plain(_schedule_line(posted))
         if when:
             posts.append({"type": "paragraph", "text": when})
+        ai = _plain(_ai_label_line(posted))   # whether the posts carry the AI label, and why (QF-65a), whole
+        if ai:
+            posts.append({"type": "paragraph", "text": ai})
         if not copy.get("reel.caption") and not posted.get("documentary"):
             raise V2CardUnavailable("the run records no caption")
         blocks.append({"type": "details", "summary": "📤 What Approve posts", "blocks": posts})
@@ -2614,7 +2782,9 @@ class TelegramApprovalBot:
             posting = decider(run_id) if callable(decider) else ("dry_run" if mode == "dry_run" else "now")
             posted = publishable.card_record(script_payload, self.db, run_dir=run_dir if run_dir.is_dir() else None,
                                              window_seconds=sizer() if callable(sizer) else None,
-                                             topic_id=(run or {}).get("topic_id") or "", posting=posting)
+                                             topic_id=(run or {}).get("topic_id") or "", posting=posting,
+                                             master=(run or {}).get("master_video_path") or None,
+                                             cover=(run or {}).get("thumbnail_cover_path") or None)
         except Exception as e:  # noqa: BLE001  shown on the card; with no copy recorded, the envelope check refuses to post
             log.warning("Could not work out what Approve posts for %s: %s", run_id, e)
             posted = {"error": f"{type(e).__name__}: {e}"}
@@ -2665,6 +2835,11 @@ class TelegramApprovalBot:
                     full = "\n\n" + listed(ALSO_HEAD, also) + "\n" if also else ""
                 slot = _schedule_line(posted) if isinstance(posted, dict) else ""
                 slot = "" if slot in card_text else slot
+                # The whole AI-label line when the card had room only for its brief form (QF-65a); the full
+                # card text (CARD_LIST_MORE) already carries it.
+                ai = _ai_label_line(posted)
+                ai = "" if (ai in card_text or CARD_LIST_MORE in card_text) else ai
+                slot = "\n".join(x for x in (slot, ai) if x)
                 for n, text in enumerate(detail_messages(full) or ([""] if slot else []), 1):
                     detail_data = {"chat_id": self.chat_id, "parse_mode": "HTML",
                                    "text": ("📋 <b>In full</b>\n\n" + slot + ("\n" if slot and text else "")

@@ -3986,8 +3986,9 @@ class PipelineCoordinator:
         self.db.update_scheduled_post(post["id"], res["status"], detail=res)
         name = {"story": "Stories", "carousel": "Carousel"}[kind]
         label = html.escape(self.db.run_label(post["run_id"]))
+        held = "; ".join((res.get("held_platforms") or {}).values())   # QF-65a: AI media never posted unlabelled
         if res["status"] == "published":
-            self._alert(f"✅ {name} posted for {label}")
+            self._alert(f"✅ {name} posted for {label}" + (f" (with the AI label; {html.escape(held[:300])})" if held else ""))
         elif res["status"] == "unknown":
             self._alert(f"⚠️ <b>Not sure the {name.lower()} posted</b> for {label} "
                         f"({html.escape(str(res.get('error', ''))[:200])}). Not retried, to avoid a duplicate; please check.")

@@ -136,11 +136,14 @@ def test_what_else_is_posted_costs_the_card_nothing(narration_words):
     """Review of QF-43 round 1 on 30 real cards: laid out with the card, the slot line and the "Also posted" list cut
     narration and dropped captions' "see Edit" lines. The card is fitted as QF-42 fits it, on the posted strings, and
     they take only the room it leaves: the card without them is that layout exactly; the slot line sits in the room
-    kept for a decision's badge (one message under PAGE_ABOVE); the decided card has neither."""
+    kept for a decision's badge (one message under PAGE_ABOVE); the decided card has neither. QF-65a: the brief
+    AI-label line costs the narration, captions and findings exactly its own room, no more (QF-42's fit of the card
+    without the line, less the line), and the publish lines cost them nothing."""
     from src import publishable
     from src.telegram_bot import (
         CARD_LIST_MORE,
         CARD_PAGE_LIMIT,
+        _ai_label_line,
         _tg_len,
         needs_publish_reply,
     )
@@ -152,9 +155,18 @@ def test_what_else_is_posted_costs_the_card_nothing(narration_words):
     posted["copy"].update({f"alt.instagram.{n}": "A carved stone stair winds down into a dark hall. " * 4
                            for n in range(1, 11)})
     card = TelegramApprovalBot.format_card_text({**payload, "_publish_copy": posted}, "run_alt")
-    layout = TelegramApprovalBot.format_card_text(_posted_payload(payload, posted), "run_alt")
+    # QF-42's layout in the room the card's AI-label line leaves (QF-65a: card_fit_limit), pinned to the line's own
+    # room: the fit is untouched, or it is QF-42's card without the line less exactly that line and its newline
+    reference = TelegramApprovalBot.format_card_text(_posted_payload(payload, posted), "run_alt")   # QF-42, no line
+    brief = _ai_label_line(posted, brief=True)
+    assert brief and (brief in card or _ai_label_line(posted) in card)
+    fit = TelegramApprovalBot.card_fit_limit({**payload, "_publish_copy": posted}, "run_alt")
+    assert fit == CARD_PAGE_LIMIT or _tg_len(reference) - fit == _tg_len(brief) + 1
+    layout = TelegramApprovalBot.format_card_text(_posted_payload(payload, posted), "run_alt",
+                                                  reserve=CARD_PAGE_LIMIT - fit)
     assert _tg_len(layout) > CARD_PAGE_LIMIT - 200                  # a full card: no room to spare
     fitted = re.sub(r"🗓 <b>Slot:</b>[^\n]*\n", "", card, count=1)
+    fitted = re.sub(r"🤖 <b>AI transparency:</b>[^\n]*\n", "", fitted, count=1)   # QF-65a: laid out in that room too
     fitted = re.sub(r"\n📤 <b>Also posted(?:, word for word</b>\n<blockquote expandable>.*?</blockquote>|:</b>[^\n]*)\n",
                     "", fitted, count=1, flags=re.DOTALL)
     more = f": {CARD_LIST_MORE}"

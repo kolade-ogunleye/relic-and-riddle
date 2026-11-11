@@ -1,0 +1,52 @@
+[
+  {
+    "file": "ne_50m_admin_0_countries.geojson.gz",
+    "path": "ne_50m_admin_0_countries.geojson",
+    "bytes": 3083490,
+    "sha256": "3e458fc036ad0a66411f2c1e6cac49c5d7bfb81cb1123bc513b22511a2b7fdeb",
+    "packed_bytes": 1022494,
+    "packed_sha256": "e443d46b949ef355b78089d81b16cd9eb8989b68e28f305d7d8bee949701cdeb",
+    "source_url": "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/v5.1.2/geojson/ne_50m_admin_0_countries.geojson",
+    "license": "Natural Earth public domain"
+  },
+  {
+    "file": "ne_10m_admin_0_map_subunits.geojson.gz",
+    "path": "ne_10m_admin_0_map_subunits.geojson",
+    "bytes": 12592830,
+    "sha256": "e097c67281996c167dd861d82ed1b249c065b6ce6a710e927a510f4dfde77e05",
+    "packed_bytes": 4496902,
+    "packed_sha256": "8246ee29a0abe77a736c0c6ac4798a700d2bcd26cf8b1850227746ef4602262c",
+    "source_url": "https://naciscdn.org/naturalearth/10m/cultural/ne_10m_admin_0_map_subunits.zip",
+    "license": "Natural Earth public domain"
+  },
+  {
+    "file": "ne_10m_geography_marine_polys.geojson.gz",
+    "path": "ne_10m_geography_marine_polys.geojson",
+    "bytes": 1403488,
+    "sha256": "e3de852990f0f0ff916e9f07a4caa1044e0338b9b1411d8dbd45127bd4a38daa",
+    "packed_bytes": 541234,
+    "packed_sha256": "7f5e9e683832205faf8cbb9e83d6fbac4df10c5ec73d44b0c474a06260189cfd",
+    "source_url": "https://naciscdn.org/naturalearth/10m/physical/ne_10m_geography_marine_polys.zip",
+    "license": "Natural Earth public domain"
+  },
+  {
+    "file": "ne_50m_antarctic_ice_shelves_polys.geojson.gz",
+    "path": "ne_50m_antarctic_ice_shelves_polys.geojson",
+    "bytes": 127252,
+    "sha256": "67b7ae8ec051b4858b4771a1881e2b2ce4d64208bf60be221b6fa9330cfc4ab7",
+    "packed_bytes": 47164,
+    "packed_sha256": "bcbecce0f08f41c2b38ebc2a7015303a386d5597f2ce8dc9640443b8be764abf",
+    "source_url": "https://naciscdn.org/naturalearth/50m/physical/ne_50m_antarctic_ice_shelves_polys.zip",
+    "license": "Natural Earth public domain"
+  },
+  {
+    "path": "relief/SR_HR.tif",
+    "bytes": 233404238,
+    "sha256": "18d7e9171f860abd1108a5ac064946d15ad9b5b68d0644e97194e47ee4e93f5a",
+    "external_path": "tools/geo/relief/SR_HR.tif",
+    "fetch": "python scripts/fetch_relief.py",
+    "source_url": "https://naciscdn.org/naturalearth/10m/raster/SR_HR.zip",
+    "license": "Natural Earth public domain",
+    "note": "not committed (233 MB raw, 41 MB packed); the measure verifies the fetched file's size and SHA-256"
+  }
+]

@@ -392,7 +392,7 @@ def test_region_fallback_is_recognised() -> None:
 def test_locate_records_which_name_it_matched(monkeypatch, tmp_path) -> None:
     monkeypatch.setattr(geo, "available", lambda: True)
     monkeypatch.setattr(geo, "_load_cache", lambda: {})
-    monkeypatch.setattr(geo, "find_country", lambda name: {"names": {name.lower()}})
+    monkeypatch.setattr(geo, "find_country", lambda name, **_options: {"names": {name.lower()}})
     monkeypatch.setattr(geo, "in_country", lambda lon, lat, c, tolerance_deg=1.0: True)
     monkeypatch.setattr(geo, "CACHE_FILE", tmp_path / "cache.json")
     stored = geo.locate({"location": {"name": "Derinkuyu", "country": "Turkey", "latitude": 38.37, "longitude": 34.73}})

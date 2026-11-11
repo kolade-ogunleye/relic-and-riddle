@@ -1,0 +1,10 @@
+{
+ "case": "site-066-1080x1920",
+ "kind": "map",
+ "faults": [],
+ "home_drop": "neutral or unmatched ground; no country name or highlight",
+ "frame": {
+  "frames": 6,
+  "sha256": "a12c2cebb1162a38ff30b770bab83c1c01daeb79e3c78f97fde3e9d57338ef49"
+ }
+}

@@ -20,7 +20,7 @@ import logging
 import math
 import re
 import time
-from collections.abc import Iterator, Sequence
+from collections.abc import Iterable, Iterator, Sequence
 from contextlib import contextmanager
 from functools import lru_cache
 from pathlib import Path
@@ -28,6 +28,7 @@ from typing import Any, NamedTuple, NotRequired, TypedDict
 
 import requests
 
+from . import map_geometry, map_layers
 from .config import BASE_DIR, DATA_DIR
 
 log = logging.getLogger(__name__)
@@ -82,6 +83,7 @@ class Country(TypedDict):
     names: set[str]
     sovereign: str
     polygons: list[list[list[tuple[float, float]]]]
+    name_polygons: NotRequired[list[list[list[tuple[float, float]]]]]
     size: int
     display: str
     label_at: tuple[float, float] | None
@@ -92,6 +94,10 @@ class Country(TypedDict):
     full_name: NotRequired[str]             # round 14: `display` written out where Natural Earth abbreviates it
     key: NotRequired[str]                   # round 15: the entity's key (its ADMIN, or ADMIN/territory), shared by
                                             # its 1:50m and 1:10m forms (same_entity)
+    neutral: NotRequired[bool]              # disputed ground has no country name, sovereign or highlight
+    label_polygons: NotRequired[list[list[list[tuple[float, float]]]]]  # the subunits that carry `display`
+    admin_names: NotRequired[set[str]]      # its rows' Natural Earth ADMIN and GEOUNIT (folded, lower case): a topic
+                                            # country given as the entity's own ADMIN matches it (_hint_matches)
 
 
 def short_names(props: dict[str, object]) -> list[str]:
@@ -162,8 +168,8 @@ def countries() -> list[Country]:
     if _DETAIL[0]:
         got = countries_detail()
         if got:
-            return got
-    return countries_50m()
+            return map_layers.ground(got)
+    return map_layers.ground(countries_50m())
 
 
 @contextmanager
@@ -214,7 +220,7 @@ ICE_SHELVES_FILE = BASE_DIR / "tools" / "geo" / "ne_50m_antarctic_ice_shelves_po
 _ICE_MISSING_LOGGED: list[bool] = []
 
 
-def ice_shelf_polygons() -> list[list[Ring]]:
+def ice_shelf_polygons(*, preserve_holes: bool = False) -> list[list[Ring]]:
     """The Antarctic ice shelves of ICE_SHELVES_FILE as polygons (their outer rings); [] where the file is missing
     (logged once) or unreadable."""
     if not ICE_SHELVES_FILE.is_file():
@@ -237,20 +243,27 @@ def ice_shelf_polygons() -> list[list[Ring]]:
             # the outer ring alone: a shelf's holes are its ice rises (Roosevelt Island), grounded ice the 1:50m
             # outline leaves out too, so they are ground, not sea
             if poly and len(poly[0]) >= 4:
-                out.append([[(float(x), float(y)) for x, y in poly[0]]])
+                out.append([[(float(x), float(y)) for x, y in ring]
+                            for ring in (poly if preserve_holes else poly[:1])])
     return out
 
 
-def _add_ice_shelves(cs: list[Country]) -> None:
+def _add_ice_shelves(cs: list[Country], detail: bool = False) -> None:
     """Antarctica's ice shelves (ice_shelf_polygons) added to its polygons in `cs`, its size and extent updated."""
     ant = next((c for c in cs if "antarctica" in c["names"]), None)
     if ant is None:
         return
-    shelves = ice_shelf_polygons()
+    shelves = map_layers.polygons("ice") if detail else ice_shelf_polygons()
     if not shelves:
         return
-    ant["polygons"].extend(shelves)
-    ant["size"] += sum(len(p[0]) for p in shelves)
+    if detail:
+        # Keep the detailed coast for rendering. Country-name placement avoids
+        # shelf edges whose extent differs between the two source resolutions;
+        # original mainland ground remains eligible in full.
+        agreed = map_geometry.intersect_polygons(shelves, ice_shelf_polygons(preserve_holes=True))
+        ant["name_polygons"] = map_geometry.union_polygons(ant["polygons"] + agreed)
+    ant["polygons"] = map_geometry.union_polygons(ant["polygons"] + shelves)
+    ant["size"] = sum(len(p[0]) for p in ant["polygons"])
     xs = [x for poly in ant["polygons"] for x, _ in poly[0]]
     ys = [y for poly in ant["polygons"] for _, y in poly[0]]
     ant["extent"] = (min(xs), min(ys), max(xs), max(ys))
@@ -264,8 +277,9 @@ def _view_index(cs: list["Country"]) -> tuple[tuple[tuple[tuple[float, float, fl
                                               frozenset[tuple[int, int]]]:
     """(each polygon's outer-ring extent (lon0, lat0, lon1, lat1), the enclaves) of the country list `cs`, kept for
     the list countries() returns (recomputed for any other, as a test's own list)."""
-    if _VIEW_CACHE and _VIEW_CACHE[0][0] is cs:
-        return _VIEW_CACHE[0][1], _VIEW_CACHE[0][2]
+    for cached in _VIEW_CACHE:     # the 1:10m and 1:50m lists alternate within one render: keep both
+        if cached[0] is cs:
+            return cached[1], cached[2]
     ext = tuple(tuple((min(x for x, _ in poly[0]), min(y for _, y in poly[0]), max(x for x, _ in poly[0]),
                        max(y for _, y in poly[0])) for poly in c["polygons"]) for c in cs)
     holes: list[tuple[int, tuple[float, float, float, float]]] = []
@@ -281,7 +295,7 @@ def _view_index(cs: list["Country"]) -> tuple[tuple[tuple[tuple[float, float, fl
                 if hc != ci and h[0] - 1e-6 <= e[0] and e[2] <= h[2] + 1e-6 and h[1] - 1e-6 <= e[1] and e[3] <= h[3] + 1e-6:
                     encl.add((ci, pi))
                     break
-    _VIEW_CACHE[:] = [(cs, ext, frozenset(encl))]
+    _VIEW_CACHE[:] = [(cs, ext, frozenset(encl))] + _VIEW_CACHE[:1]
     return ext, frozenset(encl)
 
 
@@ -360,36 +374,28 @@ def seam_edges(ring: Ring, tol: float = 1e-6) -> list[bool]:
     return out
 
 
-def find_country(name: str) -> Country | None:
+def find_country(name: str, *, source: bool = False) -> Country | None:
     """The country itself by name; a sovereign-state match (e.g. a territory) only as a last resort,
     and then the largest one, so "UK" is Great Britain, not South Georgia."""
     key = ALIASES.get(name.strip().lower(), name.strip().lower())
-    exact = [c for c in countries() if key in c["names"]]
-    pool = exact or [c for c in countries() if c["sovereign"] == key]
+    # Coordinate validation retains the source geography. Neutral rendering
+    # must not erase a valid named place from the geocoder's candidate list.
+    cs = (countries_detail() if _DETAIL[0] else countries_50m()) if source else countries()
+    exact = [c for c in cs if key in c["names"]]
+    pool = exact or [c for c in cs if c["sovereign"] == key]
     return max(pool, key=lambda c: c["size"]) if pool else None
 
 
 def _in_ring(lon: float, lat: float, ring: Ring) -> bool:
-    inside, j = False, len(ring) - 1
-    for i in range(len(ring)):
-        xi, yi = ring[i]
-        xj, yj = ring[j]
-        if (yi > lat) != (yj > lat) and lon < (xj - xi) * (lat - yi) / ((yj - yi) or 1e-12) + xi:
-            inside = not inside
-        j = i
-    return inside
+    return map_geometry.contains(lon, lat, [ring])
 
 
 def in_country(lon: float, lat: float, country: dict[str, Any], tolerance_deg: float = 1.0) -> bool:
-    """Point-in-polygon (holes respected). Offshore sites (wrecks, bays, straits) count when
-    within about tolerance_deg (~100 km) of the coast; a namesake elsewhere is far further."""
-    offsets = [(0.0, 0.0)] + [(r * dx, r * dy) for r in (0.15, tolerance_deg / 2, tolerance_deg)
-                              for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1), (0.7, 0.7), (-0.7, 0.7), (0.7, -0.7), (-0.7, -0.7))]
-    for poly in country["polygons"]:
-        for dx, dy in offsets:
-            if _in_ring(lon + dx, lat + dy, poly[0]) and not any(_in_ring(lon + dx, lat + dy, h) for h in poly[1:]):
-                return True
-    return False
+    """GEOS ground containment, including holes and a true distance tolerance."""
+    from shapely import Point
+    point = Point(lon, lat)
+    return any(map_geometry.polygon(poly).distance(point) <= max(0.0, tolerance_deg)
+               for poly in country["polygons"])
 
 
 def _get(params: dict) -> dict:
@@ -440,7 +446,7 @@ def locate(topic: dict[str, Any]) -> dict[str, Any] | None:
     key = f"{name}|{country_name}".lower()
     if key in cache:
         return cache[key]
-    country = find_country(country_name)
+    country = find_country(country_name, source=True)
     if country is None:
         log.warning("Map: country '%s' not found in Natural Earth names.", country_name)
         return None
@@ -483,28 +489,50 @@ def is_region_fallback(place: dict[str, Any]) -> bool:
     return bool(place.get("approximate")) and bool(region) and str(place.get("label") or "").strip().lower() == region
 
 
+_PIP_CACHE: "dict[int, tuple[list[list[Ring]], int, list[Any]]]" = {}
+_PIP_CACHE_MAX = 256
+
+
 def point_in_polygons(x: float, y: float, polygons: list[list[Ring]]) -> bool:
-    """Point-in-polygon (holes respected) in any one plane: lon/lat or projected pixels alike (2026-11-02: the map
-    checks that a country's name moved off a route still lies on that country's land)."""
-    return any(_in_ring(x, y, poly[0]) and not any(_in_ring(x, y, h) for h in poly[1:]) for poly in polygons)
+    """GEOS containment in lon/lat or projected coordinates, respecting holes.
+
+    Callers probe one polygon list at many points (a name's centre and corners
+    at every nudge). The prepared polygons are kept for that list, holding a
+    reference so its identity cannot be reused; the answer is the same
+    covers() test as before (boundary points belong to the ground).
+    """
+    from shapely import Point, prepare
+    entry = _PIP_CACHE.get(id(polygons))
+    if entry is None or entry[0] is not polygons or entry[1] != len(polygons):
+        parts = []
+        for poly in polygons:
+            geometry = map_geometry.polygon(poly)
+            if not geometry.is_empty:
+                prepare(geometry)
+                parts.append((geometry.bounds, geometry))
+        if len(_PIP_CACHE) >= _PIP_CACHE_MAX:
+            _PIP_CACHE.clear()
+        entry = _PIP_CACHE[id(polygons)] = (polygons, len(polygons), parts)
+    point = None
+    for (x0, y0, x1, y1), geometry in entry[2]:
+        if x0 <= x <= x1 and y0 <= y <= y1:
+            point = point or Point(x, y)
+            if geometry.covers(point):
+                return True
+    return False
 
 
 def orthographic(lon: float, lat: float, lon0: float, lat0: float) -> tuple[float, float, bool]:
     """(x, y, visible) of a point on the unit orthographic globe centred on (lon0, lat0): x east, y north, in
     -1..1; `visible` false on the far hemisphere (round 4, 2026-11-02: the maps' context globe inset)."""
-    import math
-    la, lo, la0 = math.radians(lat), math.radians(lon - lon0), math.radians(lat0)
-    cos_c = math.sin(la0) * math.sin(la) + math.cos(la0) * math.cos(la) * math.cos(lo)
-    x = math.cos(la) * math.sin(lo)
-    y = math.cos(la0) * math.sin(la) - math.sin(la0) * math.cos(la) * math.cos(lo)
-    return x, y, cos_c > 0
+    return map_geometry.orthographic(lon, lat, lon0, lat0)
 
 
 def globe_rings(lon0: float, lat0: float, step: int = 4) -> list[tuple[dict[str, Any], list[list[tuple[float, float]]]]]:
     """Every country's outer rings on the orthographic globe centred on (lon0, lat0), as unit (x, y) points, each
     ring cut to its visible part (every `step`-th vertex: the inset is a few hundred pixels across)."""
     out = []
-    for c in (countries_50m() if _DETAIL[0] else countries()):    # round 15: the globe is a small scale: 1:50m
+    for c in (map_layers.ground(countries_50m()) if _DETAIL[0] else countries()):
         rings = []
         for poly in c["polygons"]:
             pts = [orthographic(x, y, lon0, lat0) for x, y in poly[0][::step]]
@@ -521,160 +549,24 @@ Point = tuple[float, float]
 Box = tuple[float, float, float, float]
 
 
+def clip_rings(ring: Sequence[Point], box: Box) -> list[Ring]:
+    """All disconnected pieces of a GEOS-clipped ring."""
+    return map_geometry.clip_rings(ring, box)
+
+
 def clip_ring(ring: Sequence[Point], box: Box) -> Ring:
-    """`ring` cut to the axis-aligned `box` (x0, y0, x1, y1), Sutherland-Hodgman (round 6, 2026-11-03: the country
-    name is set at the pole of the frame-clipped home polygon, so a country running off the frame is labelled where
-    the viewer sees it). O(n) per ring; an empty list where nothing of it is inside."""
-    x0, y0, x1, y1 = box
-    pts: Ring = [(float(x), float(y)) for x, y in ring]
-    edges = ((lambda p: p[0] >= x0, lambda a, b: _cut_x(a, b, x0)), (lambda p: p[0] <= x1, lambda a, b: _cut_x(a, b, x1)),
-             (lambda p: p[1] >= y0, lambda a, b: _cut_y(a, b, y0)), (lambda p: p[1] <= y1, lambda a, b: _cut_y(a, b, y1)))
-    for inside, cut in edges:
-        if not pts:
-            break
-        out: Ring = []
-        prev = pts[-1]
-        for cur in pts:
-            if inside(cur):
-                if not inside(prev):
-                    out.append(cut(prev, cur))
-                out.append(cur)
-            elif inside(prev):
-                out.append(cut(prev, cur))
-            prev = cur
-        pts = out
-    return pts
-
-
-def _cut_x(a: Point, b: Point, x: float) -> Point:
-    f = (x - a[0]) / ((b[0] - a[0]) or 1e-12)
-    return x, a[1] + (b[1] - a[1]) * f
-
-
-def _cut_y(a: Point, b: Point, y: float) -> Point:
-    f = (y - a[1]) / ((b[1] - a[1]) or 1e-12)
-    return a[0] + (b[0] - a[0]) * f, y
+    """Largest clipped component for the legacy single-ring interface."""
+    return max(clip_rings(ring, box), key=ring_area, default=[])
 
 
 def ring_area(ring: Sequence[Point]) -> float:
-    """The unsigned shoelace area of one ring."""
-    n = len(ring)
-    return abs(sum(ring[i][0] * ring[(i + 1) % n][1] - ring[(i + 1) % n][0] * ring[i][1] for i in range(n))) / 2
-
-
-class _Edges:
-    """Every edge of a set of rings as flat arrays, for the signed distance (even-odd inside test)."""
-
-    def __init__(self, rings: Sequence[Sequence[Point]]) -> None:
-        import numpy as np
-        ax: list[float] = []
-        ay: list[float] = []
-        bx: list[float] = []
-        by: list[float] = []
-        for ring in rings:
-            n = len(ring)
-            for i in range(n):
-                (x0, y0), (x1, y1) = ring[i], ring[(i + 1) % n]
-                ax.append(x0)
-                ay.append(y0)
-                bx.append(x1)
-                by.append(y1)
-        self.ax, self.ay = np.asarray(ax, np.float64), np.asarray(ay, np.float64)
-        self.bx, self.by = np.asarray(bx, np.float64), np.asarray(by, np.float64)
-        self.dx, self.dy = self.bx - self.ax, self.by - self.ay
-        self.l2 = np.where(self.dx ** 2 + self.dy ** 2 > 0, self.dx ** 2 + self.dy ** 2, 1.0)
-
-    def signed(self, x: float, y: float) -> float:
-        """Distance to the nearest edge, positive inside (an odd number of rings round the point)."""
-        import numpy as np
-        f = np.clip(((x - self.ax) * self.dx + (y - self.ay) * self.dy) / self.l2, 0.0, 1.0)
-        d = float(np.sqrt(np.min((self.ax + f * self.dx - x) ** 2 + (self.ay + f * self.dy - y) ** 2)))
-        crosses = (self.ay > y) != (self.by > y)
-        with np.errstate(divide="ignore", invalid="ignore"):
-            xs = self.ax + (y - self.ay) * self.dx / np.where(self.dy != 0, self.dy, 1e-12)
-        inside = int(np.count_nonzero(crosses & (x < xs))) % 2 == 1
-        return d if inside else -d
-
-
-def _avoid_distance(x: float, y: float, boxes: Sequence[Box], circles: Sequence[tuple[float, float, float]]) -> float:
-    """The signed distance from (x, y) to the nearest region it must keep out of (negative inside one)."""
-    best = math.inf
-    for bx0, by0, bx1, by1 in boxes:
-        ox, oy = max(bx0 - x, 0.0, x - bx1), max(by0 - y, 0.0, y - by1)
-        d = math.hypot(ox, oy) if ox or oy else -min(x - bx0, bx1 - x, y - by0, by1 - y)
-        best = min(best, d)
-    for cx, cy, r in circles:
-        best = min(best, math.hypot(x - cx, y - cy) - r)
-    return best
+    return float(map_geometry.polygon([ring]).area)
 
 
 def polylabel(rings: Sequence[Sequence[Point]], precision: float = 1.0, avoid: Sequence[Box] = (),
               avoid_circles: Sequence[tuple[float, float, float]] = ()) -> tuple[float, float, float] | None:
-    """(x, y, radius): the pole of inaccessibility of the region `rings` bound (even-odd: holes and several parts
-    alike), the inside point furthest from any edge, and that distance, to within `precision` (round 6, 2026-11-03:
-    where the map sets the home country's name). A quadtree of cells searched best-first from a priority queue
-    (Mapbox's polylabel): a cell is split only while its bound (its centre's distance plus its half-diagonal) can
-    still beat the best found by `precision`, so the search is O(c log c) in the cells it opens. `avoid` boxes and
-    `avoid_circles` (cx, cy, r) count as edges too (the marker and its label), so the point keeps clear of them.
-    None for no ring, a degenerate one, or a region no point of which is clear."""
-    import heapq
-    rings = [list(r) for r in rings if len(r) >= 3 and ring_area(r) > 1e-9]
-    if not rings:
-        return None
-    xs = [x for r in rings for x, _ in r]
-    ys = [y for r in rings for _, y in r]
-    x0, y0, x1, y1 = min(xs), min(ys), max(xs), max(ys)
-    w, h = x1 - x0, y1 - y0
-    size = min(w, h)
-    if size <= 0:
-        return None
-    edges = _Edges(rings)
-
-    def dist(x: float, y: float) -> float:
-        d = edges.signed(x, y)
-        if avoid or avoid_circles:
-            d = min(d, _avoid_distance(x, y, avoid, avoid_circles))
-        return d
-
-    heap: list[tuple[float, float, float, float, float]] = []   # (-bound, -d, x, y, half)
-
-    def push(x: float, y: float, half: float) -> None:
-        d = dist(x, y)
-        heapq.heappush(heap, (-(d + half * math.sqrt(2)), -d, x, y, half))
-    half = size / 2
-    cx = x0 + half
-    while cx < x1 + half:
-        cy = y0 + half
-        while cy < y1 + half:
-            push(cx, cy, half)
-            cy += size
-        cx += size
-    # the area-weighted centroid of the outer ring, and the box's centre, as the first best guesses
-    best_x, best_y = x0 + w / 2, y0 + h / 2
-    best_d = dist(best_x, best_y)
-    ring0 = max(rings, key=ring_area)
-    a = sum(ring0[i][0] * ring0[i - 1][1] - ring0[i - 1][0] * ring0[i][1] for i in range(len(ring0))) / 2
-    if abs(a) > 1e-9:
-        gx = sum((ring0[i][0] + ring0[i - 1][0]) * (ring0[i][0] * ring0[i - 1][1] - ring0[i - 1][0] * ring0[i][1])
-                 for i in range(len(ring0))) / (6 * a)
-        gy = sum((ring0[i][1] + ring0[i - 1][1]) * (ring0[i][0] * ring0[i - 1][1] - ring0[i - 1][0] * ring0[i][1])
-                 for i in range(len(ring0))) / (6 * a)
-        gd = dist(gx, gy)
-        if gd > best_d:
-            best_x, best_y, best_d = gx, gy, gd
-    while heap:
-        neg_bound, neg_d, x, y, half = heapq.heappop(heap)
-        d = -neg_d
-        if d > best_d:
-            best_x, best_y, best_d = x, y, d
-        if -neg_bound - best_d <= precision:
-            continue
-        half /= 2
-        for sx, sy in ((-1, -1), (1, -1), (-1, 1), (1, 1)):
-            push(x + sx * half, y + sy * half, half)
-    if best_d <= 0:
-        return None
-    return best_x, best_y, best_d
+    """GEOS maximum inscribed circle after subtracting label and marker obstacles."""
+    return map_geometry.pole(rings, precision, avoid, avoid_circles)
 
 
 # ------------------------------------------------------------------ shapefiles (round 11, 2026-11-04)
@@ -839,10 +731,14 @@ class Marine(TypedDict):
 _MARINE_MISSING_LOGGED: list[bool] = []
 
 
-@lru_cache(maxsize=1)
-def marine_polygons() -> tuple[Marine, ...]:
-    """The named water bodies of MARINE_FILE of a class in MARINE_CLASSES and scalerank up to MARINE_MAX_RANK, the
-    largest (lowest scalerank) first; () where the file is missing (logged once: no water is named)."""
+@lru_cache(maxsize=2)
+def marine_polygons(*, include_unlabelled: bool = False) -> tuple[Marine, ...]:
+    """Named marine regions, filtered to the label class/rank policy by default.
+
+    Ownership checks include regions that are not label candidates: a reef or
+    minor bay still prevents the enclosing sea's name from being placed there.
+    Missing data returns () and is logged once.
+    """
     if not MARINE_FILE.is_file():
         if not _MARINE_MISSING_LOGGED:
             _MARINE_MISSING_LOGGED.append(True)
@@ -861,7 +757,9 @@ def marine_polygons() -> tuple[Marine, ...]:
             rank = int(float(p.get("scalerank") or 9))
         except ValueError:
             rank = 9
-        if not name or cla not in MARINE_CLASSES or rank > MARINE_MAX_RANK or g.get("type") not in ("Polygon", "MultiPolygon"):
+        if not name or g.get("type") not in ("Polygon", "MultiPolygon"):
+            continue
+        if not include_unlabelled and (cla not in MARINE_CLASSES or rank > MARINE_MAX_RANK):
             continue
         polys = g["coordinates"] if g["type"] == "MultiPolygon" else [g["coordinates"]]
         polygons = [[densify_ring([(float(x), float(y)) for x, y in ring]) for ring in poly] for poly in polys]
@@ -933,12 +831,36 @@ def _split_ocean_halves(bodies: list["Marine"]) -> None:
         n["extent"], s["extent"] = _poly_extent(n_polys), _poly_extent(s_polys)
 
 
+@lru_cache(maxsize=1)
+def _detail_land_index() -> tuple[Any, tuple[Any, ...]] | None:
+    """An STRtree over every 1:10m map subunit polygon (holes kept), or None without the 1:10m file."""
+    from shapely import STRtree
+    units = countries_10m()
+    if not units:
+        return None
+    geoms = tuple(g for u in units for poly in u.polygons
+                  for g in [map_geometry.polygon(poly)] if not g.is_empty)
+    return STRtree(geoms), geoms
+
+
+def on_detail_land(lon: float, lat: float) -> bool:
+    """Whether (lon, lat) lies on 1:10m ground: an islet the coarser data of a wide view leaves out still counts
+    (a sea's name is never set over it). False without the 1:10m file."""
+    index = _detail_land_index()
+    if index is None:
+        return False
+    from shapely import Point
+    tree, geoms = index
+    point = Point((lon + 180.0) % 360.0 - 180.0, lat)
+    return any(geoms[int(i)].covers(point) for i in tree.query(point))
+
+
 def marine_at(lon: float, lat: float) -> Marine | None:
     """The smallest named water body (marine_polygons) whose own polygon holds (lon, lat), or None."""
     lon = (lon + 180.0) % 360.0 - 180.0
     best: Marine | None = None
     best_a = math.inf
-    for m in marine_polygons():
+    for m in marine_polygons(include_unlabelled=True):
         e = m["extent"]
         if not (e[0] <= lon <= e[2] and e[1] <= lat <= e[3]):
             continue
@@ -999,28 +921,13 @@ def countries_10m() -> tuple[Unit10m, ...]:
 
 
 def ring_km(ring: Ring, lon: float, lat: float) -> float:
-    """Km from (lon, lat) to the nearest vertex of `ring` (0 inside it), lon scaled by cos(lat)."""
-    if _in_ring(lon, lat, ring):
-        return 0.0
-    c = math.cos(math.radians(lat))
-    return 111.2 * min(math.hypot((x - lon) * c, y - lat) for x, y in ring)
+    """Distance to the actual ring, zero on its ground."""
+    return 0.0 if _in_ring(lon, lat, ring) else edge_km(ring, lon, lat)
 
 
 def edge_km(ring: Ring, lon: float, lat: float) -> float:
-    """Km from (lon, lat) to the nearest point of `ring`'s edges (not 0 inside it), lon scaled by cos(lat). O(n)."""
-    c = max(0.05, math.cos(math.radians(lat)))
-    best = math.inf
-    n = len(ring)
-    for i in range(n):
-        (ax, ay), (bx, by) = ring[i], ring[(i + 1) % n]
-        ax_, bx_, px_ = (ax - lon) * c, (bx - lon) * c, 0.0
-        ay_, by_ = ay - lat, by - lat
-        vx, vy = bx_ - ax_, by_ - ay_
-        ll = vx * vx + vy * vy
-        t = 0.0 if ll == 0 else max(0.0, min(1.0, ((px_ - ax_) * vx + (0.0 - ay_) * vy) / ll))
-        d = math.hypot(ax_ + t * vx, ay_ + t * vy)
-        best = min(best, d)
-    return 111.2 * best
+    """GEOS boundary distance in the site's metric azimuthal projection."""
+    return map_geometry.nearest_on_ring(lon, lat, ring)[0]
 
 
 # ------------------------------------------------------------------ the entity at a site (round 15, 2026-11-05)
@@ -1133,6 +1040,27 @@ def entity_name(level: str, own: str, rows: Sequence[Unit10m], n50: "Country | N
     return name, sorted(shorter, key=len, reverse=True)
 
 
+def _name_words(text: str) -> list[str]:
+    """`text`'s words for name matching: lower case, accents folded, "saint" as "st", "and"/"the"/"of" dropped."""
+    t = fold(str(text or "")).lower().replace("&", " and ").replace("saint", "st")
+    return [w for w in re.findall(r"[a-z]+", t) if w not in ("and", "the", "of")]
+
+
+def bears_name(display: str, values: Iterable[str]) -> bool:
+    """Whether a map subunit whose own names are `values` carries the name `display`: one of them written the
+    same (letters only), or `display` its first two or more words ("United States" of "United States of
+    America"). The rule an independent check of a drawn name applies to the ground under it."""
+    target = "".join(_name_words(display))
+    words = _name_words(display)
+    for v in values:
+        vw = _name_words(v)
+        if target and "".join(vw) == target:
+            return True
+        if len(words) >= 2 and len(vw) > len(words) and vw[:len(words)] == words:
+            return True
+    return False
+
+
 @lru_cache(maxsize=1)
 def countries_detail() -> list[Country]:
     """The 1:10m entities (entity_rows) as countries: each one's own polygons (all its subunits'), its name
@@ -1162,13 +1090,21 @@ def countries_detail() -> list[Country]:
         names.add(name.lower())
         xs = [x for poly in polygons for x, _ in poly[0]]
         ys = [y for poly in polygons for _, y in poly[0]]
-        out.append({"names": names, "sovereign": rows[0].sovereign, "polygons": polygons,
-                    "size": sum(len(poly[0]) for poly in polygons), "display": name,
-                    "label_at": c50["label_at"] if c50 is not None else None,
-                    "label_rank": int(c50["label_rank"]) if c50 is not None else 6,
-                    "type": str(c50.get("type") or "") if c50 is not None else "",
-                    "short_names": alts, "full_name": name, "key": key,
-                    "extent": (min(xs), min(ys), max(xs), max(ys))})
+        entity: Country = {"names": names, "sovereign": rows[0].sovereign, "polygons": polygons,
+                           "size": sum(len(poly[0]) for poly in polygons), "display": name,
+                           "label_at": c50["label_at"] if c50 is not None else None,
+                           "label_rank": int(c50["label_rank"]) if c50 is not None else 6,
+                           "type": str(c50.get("type") or "") if c50 is not None else "",
+                           "short_names": alts, "full_name": name, "key": key,
+                           "admin_names": {fold(v).strip().lower() for u in rows for v in (u.admin, u.geounit) if v},
+                           "extent": (min(xs), min(ys), max(xs), max(ys))}
+        # A neighbour's name is set on ground that carries it: SERBIA on Serbia's subunit, not on Vojvodina, whose
+        # own names are Vojvodina and Republic of Serbia. Kept only where some subunits do not carry the name.
+        bearing = [bears_name(name, set(u.names) | {u.name, u.admin, u.geounit, u.name_long}) for u in rows]
+        if any(bearing) and not all(bearing):
+            entity["label_polygons"] = [[list(r) for r in poly] for u, ok in zip(rows, bearing) if ok
+                                        for poly in u.polygons]
+        out.append(entity)
         if len(rows) > 1:
             seen: dict[tuple[Point, Point], int] = {}
             for ri, u in enumerate(rows):
@@ -1180,7 +1116,7 @@ def countries_detail() -> list[Country]:
                             got = seen.setdefault(e_, ri)
                             if got != ri:
                                 _INTERNAL_EDGES.add(e_)
-    _add_ice_shelves(out)
+    _add_ice_shelves(out, detail=True)
     return out
 
 
@@ -1203,7 +1139,11 @@ class SiteHome(NamedTuple):
 def _hint_matches(c: Country, hint: str) -> bool:
     h = fold(str(hint or "")).strip().lower()
     h = ALIASES.get(h, h)
-    return bool(h) and (h in {fold(n).lower() for n in c["names"]} or fold(str(c.get("sovereign") or "")) == h)
+    # QF-20 review 2: the entity's own Natural Earth ADMIN (and GEOUNIT) is its country too: Jarvis, Midway and
+    # Palmyra given as "United States Minor Outlying Islands", Christmas Island and Cocos as "Indian Ocean
+    # Territories" are their own ground, not a stated country that differs from it
+    return bool(h) and (h in {fold(n).lower() for n in c["names"]} or fold(str(c.get("sovereign") or "")) == h
+                        or h in c.get("admin_names", set()))
 
 
 def site_home(lon: float, lat: float, near_km: float = SITE_NEAR_KM, hint: str = "") -> SiteHome:
@@ -1217,10 +1157,14 @@ def site_home(lon: float, lat: float, near_km: float = SITE_NEAR_KM, hint: str =
     Germany); never beyond it (Fakaofo is Tokelau's, given as New Zealand). Across the antimeridian too.
     O(polygons near the site)."""
     cs = countries()
+    if any(c.get("neutral") and point_in_polygons(lon, lat, c["polygons"]) for c in cs):
+        log.info("Map: site lies in disputed ground; no home country or highlight.")
+        return SiteHome(None, 0.0)
     c_ = max(0.05, math.cos(math.radians(lat)))
     reach_y = max(near_km, SITE_SNAP_KM) / 111.2
     reach_x = reach_y / c_
     holds: tuple[float, Country] | None = None
+    holders: list[Country] = []        # every entity whose polygon holds the site (a border vertex: both sides)
     near: list[tuple[float, Country]] = []
     for c in cs:
         for poly in c["polygons"]:
@@ -1239,10 +1183,17 @@ def site_home(lon: float, lat: float, near_km: float = SITE_NEAR_KM, hint: str =
                     a = abs(ring_area(ring))
                     if holds is None or a < holds[0]:
                         holds = (a, c)
+                    holders.append(c)
                     continue
                 d = edge_km(ring, lo, lat)
                 if d <= max(near_km, SITE_SNAP_KM):
                     near.append((d, c))
+    if hint and holds is not None and not _hint_matches(holds[1], hint):
+        # QF-20 round 3: a site on a shared border (a vertex both polygons hold, the boundary counting as ground) is
+        # the stated country's where that country is one of the grounds holding it, never "differs from the ground"
+        held_by_hint = [c for c in holders if _hint_matches(c, hint)]
+        if held_by_hint:
+            return SiteHome(held_by_hint[0], 0.0)
     if hint:
         # round 16 (review 3): over a polygon that holds the site, only within SITE_HINT_KM (the 1:10m border's
         # own generalisation); off all ground, within SITE_SNAP_KM
@@ -1252,39 +1203,59 @@ def site_home(lon: float, lat: float, near_km: float = SITE_NEAR_KM, hint: str =
         if within:
             return SiteHome(within[0][1], within[0][0], holds is not None)
     if holds is not None:
+        known_enclave = any(_hint_matches(c, hint) and point_in_polygons(lon, lat, [[hole]])
+                            for c in cs for poly in c["polygons"] for hole in poly[1:]) if hint else False
+        if hint and not _hint_matches(holds[1], hint) and not known_enclave:
+            log.info("Map: stated country differs from drawn ground beyond %.0f km; no home named.", SITE_HINT_KM)
+            return SiteHome(None, 0.0)
         return SiteHome(holds[1], 0.0)
     near = [(d, c) for d, c in near if d <= near_km]
     if near:
         d, c = min(near, key=lambda t: t[0])
+        if c.get("neutral"):
+            log.info("Map: site is %.1f km off neutral ground; no home country or highlight.", d)
+            return SiteHome(None, 0.0)
         return SiteHome(c, d)
     return SiteHome(None, math.inf)
 
 
+def ground_at(lon: float, lat: float) -> Country | None:
+    """The drawn entity (neutral ground included) whose polygon holds (lon, lat), or None.
+
+    For framing only: a site on ground the map names no country for is still
+    framed on that ground. Nothing returned here is named or highlighted."""
+    lon = (lon + 180.0) % 360.0 - 180.0
+    for c in countries():
+        e = c.get("extent")
+        if e and not (e[0] <= lon <= e[2] and e[1] <= lat <= e[3]):
+            continue
+        if point_in_polygons(lon, lat, c["polygons"]):
+            return c
+    return None
+
+
 # ------------------------------------------------------------------ polar views (round 11, 2026-11-04)
 def azimuthal(lon: float, lat: float, lon0: float, lat0: float) -> tuple[float, float]:
-    """(u, v), degrees of arc east and north, of (lon, lat) on the azimuthal equidistant projection centred on
-    (lon0, lat0): distances from the centre are true, there is no seam or edge short of the antipode (coordinator
-    directive 2: a view near a pole is never plate carree run past it)."""
-    la, la0, dl = math.radians(lat), math.radians(lat0), math.radians(lon - lon0)
-    cos_c = max(-1.0, min(1.0, math.sin(la0) * math.sin(la) + math.cos(la0) * math.cos(la) * math.cos(dl)))
-    c = math.acos(cos_c)
-    kp = c / math.sin(c) if c > 1e-9 else 1.0
-    x = kp * math.cos(la) * math.sin(dl)
-    y = kp * (math.cos(la0) * math.sin(la) - math.sin(la0) * math.cos(la) * math.cos(dl))
-    return math.degrees(x), math.degrees(y)
+    """PROJ WGS84 azimuthal equidistant coordinates in nominal arc-degree units."""
+    return map_geometry.azimuthal(lon, lat, lon0, lat0)
 
 
 def azimuthal_inverse(u: float, v: float, lon0: float, lat0: float) -> tuple[float, float]:
-    """(lon, lat) of the plane point (u, v) (degrees of arc east and north) of azimuthal(lon0, lat0)."""
-    x, y = math.radians(u), math.radians(v)
-    rho = math.hypot(x, y)
-    la0 = math.radians(lat0)
-    if rho < 1e-12:
-        return lon0, lat0
-    c = rho
-    lat = math.asin(max(-1.0, min(1.0, math.cos(c) * math.sin(la0) + y * math.sin(c) * math.cos(la0) / rho)))
-    lon = lon0 + math.degrees(math.atan2(x * math.sin(c), rho * math.cos(la0) * math.cos(c) - y * math.sin(la0) * math.sin(c)))
-    return (lon + 180.0) % 360.0 - 180.0, math.degrees(lat)
+    return map_geometry.azimuthal_inverse(u, v, lon0, lat0)
+
+
+_SEAM_CACHE: dict[tuple[int, bool], tuple[Ring, int, list[bool]]] = {}
+
+
+def seam_edges_of(ring: Ring) -> list[bool]:
+    """seam_edges() of a source ring, kept for that ring object (it is redrawn at every framing step)."""
+    key = (id(ring), bool(_DETAIL[0]))
+    hit = _SEAM_CACHE.get(key)
+    if hit is None or hit[0] is not ring or hit[1] != len(ring):
+        if len(_SEAM_CACHE) >= 65536:
+            _SEAM_CACHE.clear()
+        hit = _SEAM_CACHE[key] = (ring, len(ring), seam_edges(list(ring)))
+    return hit[2]
 
 
 def polar_polygons(lon0: float, lat0: float, radius: float) -> list[tuple[Country, list[Ring]]]:

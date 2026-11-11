@@ -15,8 +15,10 @@ import random
 
 import numpy as np
 import pytest
+from shapely import Point
 
-from src import geo, graphics
+from src import geo, graphics, map_layers
+from tests import geo_truth
 from tests.test_r4_graphics_2026_11_02 import _render
 
 needs_geo = pytest.mark.skipif(not geo.available(), reason="country outlines not fetched")
@@ -242,8 +244,10 @@ REVIEW = {
     "puntaarenas": (P(-53.1638, -70.9171, "Chile", "Punta Arenas"), "CHILE"),
     "dumont": (P(-66.6628, 140.0014, "Antarctica", "Dumont d'Urville Station"), "ANTARCTICA"),
     "llivia": (P(42.4637, 1.9814, "Spain", "Llivia"), "SPAIN"),
-    "torshavn": (P(62.0107, -6.7741, "Denmark", "Torshavn, Faroe Islands"), "FAROE ISLANDS"),
-    "norfolk": (P(-29.056, 167.96, "Australia", "Kingston, Norfolk Island"), "NORFOLK ISLAND"),
+    # QF-20 (operator ruling Q1, 2026-11-11): FAROE ISLANDS and NORFOLK ISLAND repeat their titles, so each home is
+    # named by its sovereign, which the extended independent checker accepts
+    "torshavn": (P(62.0107, -6.7741, "Denmark", "Torshavn, Faroe Islands"), "DENMARK"),
+    "norfolk": (P(-29.056, 167.96, "Australia", "Kingston, Norfolk Island"), "AUSTRALIA"),
 }
 
 
@@ -264,6 +268,8 @@ def test_the_reviews_homes_are_named_on_their_own_ground(name, size, tmp_path, m
     if not lay["country"]["inside"]:
         assert lay["country"]["leader"] is not None or name in ("torshavn", "norfolk"), name
     assert not independent_name_faults(lay)
+    if name in ("torshavn", "norfolk"):                    # QF-20 Q1: the extended checker
+        assert not geo_truth.faults(lay), geo_truth.faults(lay)
     assert want not in lay["neighbours"] and "FAEROE IS." not in lay["neighbours"]
     assert "neighbour of itself" not in caplog.text
 
@@ -373,6 +379,21 @@ def test_a_two_row_span_keeps_years_later_together_first() -> None:
 
 
 # ---------------------------------------------------------------------------------------------- the sweep
+CONTESTED_EDGE_DEG = 1e-6      # about 0.1 m: a site on a contested feature or on its boundary (0.00 km)
+
+
+def _on_contested(lon: float, lat: float) -> bool:
+    """Whether (lon, lat) lies on or at the edge of Natural Earth ground with a recorded claim (QF-20 ruling Q2),
+    from the committed layer itself (map_layers.index), not from the code under test's answer."""
+    return bool(len(map_layers.index("neutral").query(Point(lon, lat), predicate="dwithin",
+                                                     distance=CONTESTED_EDGE_DEG)))
+
+
+def _on_lake(lon: float, lat: float) -> bool:
+    """Whether (lon, lat) lies on or at the edge of a Natural Earth lake (water, no country's ground)."""
+    return bool(len(map_layers.index("water").query(Point(lon, lat), predicate="dwithin", distance=CONTESTED_EDGE_DEG)))
+
+
 def _coastal_sites(n: int, seed: int = 1414) -> list[tuple[float, float, str, str]]:
     """`n` sites on the 1:10m coastline (a random vertex of a random 1:10m subunit polygon), seeded: the coastal
     sites off the 1:50m ground that the inland sweep never drew (how the cancelled home fill got through)."""
@@ -389,6 +410,8 @@ def _coastal_sites(n: int, seed: int = 1414) -> list[tuple[float, float, str, st
         lon, lat = rnd.choice(poly[0])
         if abs(lat) > 80:
             continue
+        if _on_contested(lon, lat) or _on_lake(lon, lat):
+            continue                  # QF-20: ordinary ground only (contested ground: below; a lake is water)
         c = geo.find_country(u.name) or geo.find_country(u.sovereign)
         if c is None or not c.get("display"):
             continue
@@ -419,3 +442,23 @@ def test_the_coastal_sweep_names_its_home_and_passes_an_independent_check(k, siz
     assert lay["country"] is not None, (label, "home name dropped")     # never passes by dropping the name
     faults = independent_name_faults(lay)
     assert not faults, (label, faults)
+
+
+# QF-20 ruling Q2 (2026-11-11): coastal sites on contested ground (inside the feature, or on its boundary) name no
+# home, with the reason recorded, and pass the independent check; the coastal sweep above draws ordinary ground only
+CONTESTED_COAST = [(27.009825, -10.921835, "W. Sahara", "Western Sahara coast"),
+                   (35.584599, 77.017552, "Siachen Glacier", "Siachen Glacier"),
+                   (45.320136, 32.591482, "Russia", "Crimea, on its boundary")]
+
+
+@needs_geo
+@needs_10m
+@needs_marine
+@pytest.mark.parametrize("size", SIZES, ids=["9x16", "16x9"])
+@pytest.mark.parametrize("k", range(len(CONTESTED_COAST)))
+def test_a_coastal_site_on_contested_ground_names_no_home(k, size, tmp_path, monkeypatch) -> None:
+    lat, lon, country, label = CONTESTED_COAST[k]
+    assert _on_contested(lon, lat), label
+    lay = _map(monkeypatch, tmp_path, P(lat, lon, country, label), size)
+    assert lay["country"] is None and lay["home_drop"], (label, lay["country"])
+    assert not geo_truth.faults(lay), (label, geo_truth.faults(lay))

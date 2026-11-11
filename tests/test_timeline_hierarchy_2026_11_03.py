@@ -126,6 +126,10 @@ def test_every_set_keeps_the_hierarchy_rules(tmp_path, monkeypatch, caplog, case
         return
     st = _render(monkeypatch, caplog, tmp_path, events)
     ent, kept, log_text = st["entries"], st["kept"], st["log"]
+    dense = len(kept) == 5 and "five entries use a date column" in log_text
+
+    def inline(en):
+        return dense and en["labels"][0].box[0] > XT + 2
     years = [en["year"] for en in ent]
     labels = [p for en in ent for p in en["labels"]]
     year_cap, label_cap = min(_cap(p) for p in years), max(_cap(p) for p in labels)
@@ -148,9 +152,16 @@ def test_every_set_keeps_the_hierarchy_rules(tmp_path, monkeypatch, caplog, case
             assert _cap(en["span"]) < label_cap, (case, en["span"].text)
             assert en["span"].font.size <= lab_min - 6, (case, en["span"].text)
     # E5: one left ink edge (a fallback span set beside a plate is excused)
-    lefts = [_year_group(en)[0].box[0] for en in ent] + [p.box[0] for p in labels]
+    lefts = [_year_group(en)[0].box[0] for en in ent]
+    lefts += [p.box[0] for en in ent if not inline(en) for p in en["labels"]]
     lefts += [en["span"].box[0] for en in ent if en["span"] is not None and not _fallback(st, en["span"])]
     assert max(abs(x - XT) for x in lefts) <= 1, (case, sorted(set(lefts)))
+    if dense:
+        column = [p.box[0] for en in ent if inline(en) for p in en["labels"]]
+        assert not column or max(column) - min(column) <= 1, (case, column)
+        for en in ent:
+            if inline(en):
+                assert min(p.box[0] for p in en["labels"]) - max(p.box[2] for p in _year_group(en)) >= 30
     # E6: no row but the last ends on a short word unless logged; the words are the source's (whole labels)
     for en, e in zip(ent, kept):
         text = graphics.drawable(e["label"].upper(), "Montserrat")
@@ -165,7 +176,9 @@ def test_every_set_keeps_the_hierarchy_rules(tmp_path, monkeypatch, caplog, case
     for en in ent:
         first = en["labels"][0]
         layout_air = first.xy[1] - _cap(first) - en["year"].xy[1]
-        if many:
+        if inline(en):
+            assert abs(first.xy[1] - _cap(first) - (en["year"].xy[1] - _cap(en["year"]))) <= 1
+        elif many:
             assert round(layout_air) == graphics.TALL_YEAR_LABEL_AIR, (case, layout_air)
             ink_air = first.box[1] - max(p.box[3] for p in _year_group(en))
             assert abs(ink_air - graphics.TALL_YEAR_LABEL_AIR) <= 2, (case, ink_air)
@@ -178,7 +191,8 @@ def test_every_set_keeps_the_hierarchy_rules(tmp_path, monkeypatch, caplog, case
     # E8: the gap between entries and the spans' air, by ink
     def inner(en) -> list[int]:
         rows = en["labels"]
-        return ([rows[0].box[1] - max(p.box[3] for p in _year_group(en))]
+        return ([graphics.TALL_YEAR_LABEL_AIR if inline(en)
+                 else rows[0].box[1] - max(p.box[3] for p in _year_group(en))]
                 + [b.box[1] - a.box[3] for a, b in itertools.pairwise(rows)])
     for k in range(1, len(ent)):
         above_ink = max(p.box[3] for p in ent[k - 1]["labels"])
@@ -203,7 +217,9 @@ def test_every_set_keeps_the_hierarchy_rules(tmp_path, monkeypatch, caplog, case
     for en, e in zip(ent, kept):
         text = graphics.drawable(" ".join(e["label"].upper().split()), "Montserrat")
         # round 6: judged by the render's own fit (tall_label_rows_needed), as timeline_copy_fit judges it
-        need = graphics.tall_label_rows_needed(text, graphics.tall_label_measure(*TALL) - graphics.TALL_INK_RESERVE)
+        measure = (safe_zones.graphics_box(*TALL)[2] - en["labels"][0].box[0] if inline(en)
+                   else graphics.tall_label_measure(*TALL))
+        need = graphics.tall_label_rows_needed(text, measure - graphics.TALL_INK_RESERVE)
         if need is None or need > budget:
             assert "copy-fit" in log_text, case
             continue
@@ -225,7 +241,8 @@ def test_every_set_keeps_the_hierarchy_rules(tmp_path, monkeypatch, caplog, case
             for k in range(1, len(ent))]
     # round 6 review (deliberate, spec F give-way 5): a third label row only with the years at the least ratio, so
     # such a column may leave spare height under it with its years below their starting size
-    third = many and max(len(en["labels"]) for en in ent) >= 3 and "copy-fit" not in log_text
+    third = (many and any(len(en["labels"]) >= 3 and not inline(en) for en in ent)
+             and "copy-fit" not in log_text)
     if third:
         assert min(_cap(p) for p in years) < graphics.TALL_YEAR_RATIO * label_cap + 1, case
     if bottom < box[3] - 3 and not third:
@@ -353,9 +370,9 @@ def test_timeline_copy_fit_flags_over_budget_labels_and_too_many_events() -> Non
     assert graphics.timeline_copy_fit(BABYLON) == []
     got = graphics.timeline_copy_fit(OVER_BUDGET)
     assert len(got) == 1 and "needs 3 rows" in got[0] and "budget 2" in got[0]
-    five = POMPEII + [E(1997, "Listed as a world heritage site")]
-    got = graphics.timeline_copy_fit(five)
-    assert any("5 events" in g for g in got)
+    six = POMPEII + [E(1997, "Listed as a world heritage site"), E(2000, "Restoration begins")]
+    got = graphics.timeline_copy_fit(six)
+    assert any("6 events" in g for g in got)
     three = [OVER_BUDGET[1], POMPEII[1], POMPEII[2]]                                  # 3 entries: 3 rows hold it
     assert graphics.timeline_copy_fit(three) == []
 

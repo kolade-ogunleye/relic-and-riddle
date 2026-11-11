@@ -24,6 +24,7 @@ import weakref
 from collections.abc import Callable, Iterable, Iterator, Sequence
 from dataclasses import dataclass
 from functools import cache, lru_cache
+from itertools import pairwise
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -453,8 +454,7 @@ def _nice_text(value: float) -> str:
 
 
 def _km_per_deg(lat: float) -> float:
-    phi = math.radians(lat)
-    return (111132.92 - 559.82 * math.cos(2 * phi) + 1.175 * math.cos(4 * phi)) / 1000.0
+    return geo.map_geometry.meridian_km_per_degree(lat)
 
 
 def _nice_below(limit_px: float, px_per_unit: float) -> list[float]:
@@ -961,11 +961,14 @@ def globe_inset(size: int, lon0: float, lat0: float, home: geo.Country | None,
     if geo.available():
         matched = False
         for c, rings in geo.globe_rings(lon0, lat0):
-            mine = geo.same_entity(c, home)      # round 15: the 1:50m form of the 1:10m home is the same entity
+            mine = not c.get("neutral") and geo.same_entity(c, home)
             matched |= mine
-            fill = brand.GOLD if mine else GLOBE_LAND
+            fill = (57, 61, 64) if c.get("neutral") else brand.GOLD if mine else GLOBE_LAND
             for ring in rings:
-                d.polygon([px(x, y) for x, y in ring], fill=(*fill, 255))
+                points = [px(x, y) for x, y in ring]
+                d.polygon(points, fill=(*fill, 255))
+                if c.get("neutral"):
+                    _dashed_border(d, points + [points[0]], (154, 160, 164, 255), ss, 4 * ss, 3 * ss)
         if home is not None and not matched:     # a territory the 1:50m data has no country for (Tokelau)
             for poly in home["polygons"]:
                 pts = [geo.orthographic(x, y, lon0, lat0) for x, y in poly[0][::4] or poly[0]]
@@ -1235,7 +1238,15 @@ def _polar_hill(rel: Image.Image, proj: "PolarProjection", bw: int, bh: int) -> 
     lat_hi, lat_lo = min(90.0, proj.lat0 + r), max(-90.0, proj.lat0 - r)
     y0 = max(0, int((90 - lat_hi) / 180 * h_) - 2)
     y1 = min(h_, math.ceil((90 - lat_lo) / 180 * h_) + 2)
-    src = np.asarray(rel.crop((0, y0, w_, y1)))
+    # The trusted source can exceed Pillow's default pixel limit. A second
+    # whole-band crop would reapply that limit even though decoding succeeded.
+    # Copy at most one megapixel per crop; retain the original samples and the
+    # global guard used for untrusted photos.
+    src = np.empty((y1 - y0, w_), np.uint8)
+    tile_rows = max(1, min(512, 1024 * 1024 // w_))
+    for start in range(y0, y1, tile_rows):
+        end = min(y1, start + tile_rows)
+        src[start - y0:end - y0] = np.asarray(rel.crop((0, start, w_, end)))
     hill = np.empty((bh, bw), np.float32)
     lat_abs = np.empty((bh, bw), np.float32)
     xs = np.arange(bw, dtype=np.float64) + 0.5
@@ -1250,11 +1261,81 @@ def _polar_hill(rel: Image.Image, proj: "PolarProjection", bw: int, bh: int) -> 
     if float(wgt.min()) < 1.0:
         soft = cv2.GaussianBlur(hill, (0, 0), max(2.0, bw / 120))
         hill = hill * wgt + soft * (1 - wgt)
+    ctx = _RELIEF_CTX.get()
+    bpp = ctx.base_per_px if ctx else 1.0
+    native_arc = max(360 / w_ * abs(math.cos(math.radians(proj.lat0))), 180 / h_)
+    magnification = native_arc * proj.k / max(1e-6, bpp)
+    if magnification > RELIEF_MAX_MAG:
+        weight = max(RELIEF_COARSE_FLOOR, 2.0 - magnification / RELIEF_MAX_MAG)
+        hill = float(hill.mean()) + (hill - float(hill.mean())) * weight
     return hill
 
 
-RELIEF_MAX_MAG = 6.0            # round 15: frame px one relief pixel may span before its shading is eased
-RELIEF_COARSE_FLOOR = 0.15      # and the least share of its contrast it keeps
+RELIEF_MAX_MAG = 2.0            # fade once a source relief pixel spans more than two frame pixels
+RELIEF_COARSE_FLOOR = 0.0       # at four frame pixels per source pixel, use flat ground
+
+
+def _visible_span(start, end, length, bounds):
+    """(t0, t1): the part of the segment start-end (as distances along it) inside `bounds`, or None (Liang-Barsky)."""
+    x0, y0, x1, y1 = bounds
+    t0, t1 = 0.0, 1.0
+    dx, dy = end[0] - start[0], end[1] - start[1]
+    for p, q in ((-dx, start[0] - x0), (dx, x1 - start[0]), (-dy, start[1] - y0), (dy, y1 - start[1])):
+        if p == 0:
+            if q < 0:
+                return None
+            continue
+        r = q / p
+        if p < 0:
+            t0 = max(t0, r)
+        else:
+            t1 = min(t1, r)
+        if t0 > t1:
+            return None
+    return t0 * length, t1 * length
+
+
+def _dashed_border(draw, points, fill, width, dash, gap):
+    """Continuous dash phase around a boundary, including short vertices. Only the part of each segment on the
+    canvas (with a margin) is walked dash by dash; the phase runs on over the rest in one step, so a ring projected
+    far off the frame (a distant disputed area on a wide azimuthal view) costs nothing and never stalls.
+    `draw` a raster.Draw (QF-26: the map's dashes antialiased) strokes every dash in one pass; an ImageDraw (the
+    globe's supersampled disc) dash by dash."""
+    segments: list[list[tuple[float, float]]] = []
+    phase = 0.0
+    period = dash + gap
+    w_, h_ = draw.im.size
+    margin = 2 * period + width
+    bounds = (-margin, -margin, w_ + margin, h_ + margin)
+    for start, end in pairwise(points):
+        length = math.dist(start, end)
+        if not length > 0:
+            continue
+        span = _visible_span(start, end, length, bounds)
+        if span is None:
+            phase = (phase + length) % period
+            continue
+        at, stop = span
+        phase = (phase + at) % period
+        while at < stop:
+            step = min(stop - at, (dash if phase < dash else period) - phase)
+            if step < 1e-8:
+                if stop - at < 1e-8:
+                    break
+                phase = 0.0 if phase >= period - 1e-8 else dash
+                continue
+            if phase < dash:
+                a = tuple(start[i] + (end[i] - start[i]) * at / length for i in (0, 1))
+                b = tuple(start[i] + (end[i] - start[i]) * (at + step) / length for i in (0, 1))
+                segments.append([a, b])
+            at += step
+            phase = (phase + step) % period
+        phase = (phase + length - stop) % period
+    if isinstance(draw, raster.Draw):
+        draw.lines(segments, fill=fill, width=width)
+    else:
+        for seg in segments:
+            draw.line(seg, fill=fill, width=width)
 
 
 def relief_base(lat0: float, lon0: float, bw: int, bh: int, kx: float, coslat: float, home, project,
@@ -1291,7 +1372,7 @@ def relief_base(lat0: float, lon0: float, bw: int, bh: int, kx: float, coslat: f
         # drawn wider than RELIEF_MAX_MAG frame px, its shading eased toward the mean (no made-up texture)
         mag = bw / max(1, box[2] - box[0]) / max(1e-6, bpp)
         if mag > RELIEF_MAX_MAG:
-            w_ = max(RELIEF_COARSE_FLOOR, RELIEF_MAX_MAG / mag)
+            w_ = max(RELIEF_COARSE_FLOOR, 2.0 - mag / RELIEF_MAX_MAG)
             hill = float(hill.mean()) + (hill - float(hill.mean())) * w_
     else:
         hill = np.full((bh, bw), 0.75, dtype=np.float32)
@@ -1299,8 +1380,10 @@ def relief_base(lat0: float, lon0: float, bw: int, bh: int, kx: float, coslat: f
     lon_half, lat_half = lon_span / 2 + 2, lat_span / 2 + 2
     land_m, home_m, home_big = Image.new("L", (bw, bh), 0), Image.new("L", (bw, bh), 0), Image.new("L", (bw, bh), 0)
     # QF-26: the land, the home's fill and its outline's source antialiased, each filled as one shape from the
-    # projected rings exactly (raster.Rings: no seam where two polygons meet, holes taken away)
-    dl, dh, dhb = raster.Rings(), raster.Rings(), raster.Rings()
+    # projected rings exactly (raster.Rings: no seam where two polygons meet, holes taken away); QF-20's neutral
+    # (disputed) ground too, so its grey meets the antialiased land without a stepped fringe
+    neutral_m = Image.new("L", (bw, bh), 0)
+    dl, dh, dhb, dn = raster.Rings(), raster.Rings(), raster.Rings(), raster.Rings()
     pinholes: list[list[tuple[float, float]]] = []     # the home's lochs the half cut below would close
     visible = []
     # id(country): (projected ring or, cut at a seam, an open run of it, small, closed)
@@ -1308,22 +1391,20 @@ def relief_base(lat0: float, lon0: float, bw: int, bh: int, kx: float, coslat: f
     seen: set[int] = set()
     # round 8 (review 6, 8): the polygons across the antimeridian and past a pole as well, the enclaves last
     polys = _view_polygons(polar, bw, bh) if polar is not None else geo.view_polygons(lon0, lat0, lon_half, lat_half)
+    batched = project.rings([r for _c, poly in polys for r in poly]) if isinstance(project, PolarProjection) else None
+    at_ = 0
     for c, poly in polys:
         ring = poly[0]
-        pts = [project(x, y) for x, y in ring]
+        if batched is not None:
+            drawn_poly, at_ = batched[at_:at_ + len(poly)], at_ + len(poly)
+        else:
+            drawn_poly = [[project(x, y) for x, y in r] for r in poly]
+        pts = drawn_poly[0]
         xs_, ys_ = [p[0] for p in pts], [p[1] for p in pts]
-        if max(max(xs_) - min(xs_), max(ys_) - min(ys_)) / bpp < RELIEF_ISLAND_MIN:
-            if c is home:                             # round 7 (R6): the home's island at its least extent
-                cx_, cy_ = (max(xs_) + min(xs_)) / 2, (max(ys_) + min(ys_)) / 2
-                r_ = RELIEF_ISLAND_MIN / 2 * bpp
-                for dd in (dl, dh):
-                    dd.oval([cx_ - r_, cy_ - r_, cx_ + r_, cy_ + r_])
-                if id(c) not in seen:
-                    seen.add(id(c))
-                    visible.append(c)
-            continue                                  # round 6: under 6 px across on screen: not drawn
+        if c is not home and max(max(xs_) - min(xs_), max(ys_) - min(ys_)) / bpp < RELIEF_ISLAND_MIN:
+            continue
         small = geo.ring_area(pts) / (bpp * bpp) < RELIEF_ISLAND_PX2
-        seams = geo.seam_edges(ring)
+        seams = geo.seam_edges_of(ring)
         if any(seams):      # round 9 (review 4): a cut at a pole or the antimeridian is never stroked as a border
             runs: list[list[tuple[float, float]]] = []
             start = next(i for i, sm in enumerate(seams) if sm)
@@ -1345,6 +1426,8 @@ def relief_base(lat0: float, lon0: float, bw: int, bh: int, kx: float, coslat: f
         else:
             drawn.setdefault(id(c), []).append((pts, small, True))
         dl.add(pts)
+        if c.get("neutral"):
+            dn.add(pts)
         if c is home:
             dh.add(pts)
             if not small:
@@ -1352,9 +1435,13 @@ def relief_base(lat0: float, lon0: float, bw: int, bh: int, kx: float, coslat: f
         if polar is not None and any(seams):     # round 11: the polar view's cut closed (no slit, no line)
             _close_seams([dl, dh, dhb] if c is home and not small else [dl, dh] if c is home else [dl], ring, pts,
                          255, max(3, round(2 * bpp)))
-        for hole in poly[1:]:
-            hp = [project(x, y) for x, y in hole]
+        for hi_, _hole in enumerate(poly[1:]):
+            hp = drawn_poly[1 + hi_]
+            if not geo.map_geometry.resolvable_hole(hp, bpp):
+                continue
             dl.add(hp, hole=True)
+            if c.get("neutral"):
+                dn.add(hp, hole=True)
             if c is home:                     # another country's hole is its enclave's ground, not the home's
                 dh.add(hp, hole=True)
                 dhb.add(hp, hole=True)
@@ -1363,7 +1450,7 @@ def relief_base(lat0: float, lon0: float, bw: int, bh: int, kx: float, coslat: f
         if id(c) not in seen:
             seen.add(id(c))
             visible.append(c)
-    for mask, rings in ((land_m, dl), (home_m, dh), (home_big, dhb)):
+    for mask, rings in ((land_m, dl), (home_m, dh), (home_big, dhb), (neutral_m, dn)):
         raster.Draw(mask, grid="exact").fill_rings(rings, 255)
     # round 2 (review 1): the home edge's ring and INK line are cut by morphology and then blurred, a treatment
     # made for a two-level mask (fed the coverage itself, the coast was softened twice). Their source is the
@@ -1382,6 +1469,8 @@ def relief_base(lat0: float, lon0: float, bw: int, bh: int, kx: float, coslat: f
     rows = np.linspace(0, 1, bh, dtype=np.float32)[:, None, None]
     sea_rgb = np.array((14, 22, 34), dtype=np.float32) * (1 - rows) + np.array((7, 11, 19), dtype=np.float32) * rows
     out = sea_rgb * (1 - land) + land_rgb * land * (1 - homea) + home_rgb * homea
+    neutral_alpha = np.asarray(neutral_m, dtype=np.float32)[..., None] / 255.0
+    out = out * (1 - neutral_alpha) + np.array((57, 61, 64), dtype=np.float32) * neutral_alpha
     hb = home_big.getbbox() if home is not None else None
     if hb:                       # the home coast's GOLD_LIGHT inner edge, inside the INK line drawn over the border
         pad_ = 16
@@ -1398,16 +1487,21 @@ def relief_base(lat0: float, lon0: float, bw: int, bh: int, kx: float, coslat: f
         ring = np.clip(outer.astype(np.float32) - inner.astype(np.float32), 0, 255) / 255.0
         ring = cv2.GaussianBlur(ring, (0, 0), max(0.5, 0.45 * bpp))[..., None]     # antialiased, not stepped
         region = out[cy0:cy1, cx0:cx1]
-        ring = ring * HOME_EDGE_ALPHA        # a hair under full: its JPEG ringing stays under the text whites
+        ring = ring * HOME_EDGE_ALPHA * (1 - neutral_alpha[cy0:cy1, cx0:cx1])
         out[cy0:cy1, cx0:cx1] = region * (1 - ring) + np.array(GOLD_LIGHT, dtype=np.float32) * ring
     base = Image.fromarray(np.clip(out, 0, 255).astype("uint8"), "RGB")
+    unbordered = base.copy() if neutral_m.getbbox() else None
 
     draw = ImageDraw.Draw(base, "RGBA")
     borders = raster.Draw(base, "RGBA", grid="exact")  # QF-26: borders antialiased, centred on the coast
     runs: list[tuple[tuple[int, int, int], int, list[list[tuple[float, float]]]]] = []   # one stroke a style
     for c in sorted(visible, key=lambda c: c is home):  # borders on top; the home outline last, in ink
+        if c.get("neutral"):
+            continue
         for pts, small, closed in drawn.get(id(c), []):
             if small:
+                if c is home:
+                    continue  # preserve the actual tiny fill, rather than cover it with ink
                 width = max(1, round(bpp))
                 colour = brand.INK if c is home else MAP_BORDER
             elif c is home:
@@ -1425,7 +1519,29 @@ def relief_base(lat0: float, lon0: float, bw: int, bh: int, kx: float, coslat: f
         disc_ = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2 * r_ + 1, 2 * r_ + 1))
         line_ = cv2.dilate(crop, disc_).astype(np.float32) - cv2.erode(crop, disc_, borderType=cv2.BORDER_REPLICATE)
         line_ = cv2.GaussianBlur(np.clip(line_, 0, 255), (0, 0), max(0.5, 0.45 * bpp))
+        # A symmetric coast stroke otherwise paints over the entire fill of a
+        # narrow spit. Keep its actual ground visible without widening it or
+        # inventing a replacement coastline.
+        opened = cv2.morphologyEx(crop, cv2.MORPH_OPEN, disc_, borderType=cv2.BORDER_REPLICATE)
+        narrow = np.clip(crop.astype(np.float32) - opened, 0, 255) / 255.0
+        line_ *= 1.0 - 0.85 * narrow
         base.paste(brand.INK, (cx0, cy0), Image.fromarray(np.clip(line_, 0, 255).astype(np.uint8), "L"))
+    if unbordered is not None:
+        # Remove the adjacent country's coincident solid stroke before drawing
+        # neutral dashes; otherwise the apparent gaps still assert a solid border.
+        # QF-26: the mask and the dashes antialiased on the exact grid, as the borders they sit on
+        border_mask = Image.new("L", (bw, bh), 0)
+        neutral_runs = []
+        for c in visible:
+            if c.get("neutral"):
+                for pts, _small, closed in drawn.get(id(c), []):
+                    neutral_runs.append(pts + [pts[0]] if closed else pts)
+        raster.Draw(border_mask, grid="exact").lines(neutral_runs, fill=255, width=max(5, round(7 * bpp)),
+                                                     joint="curve")
+        base.paste(unbordered, (0, 0), border_mask)
+        neutral_draw = raster.Draw(base, grid="exact")
+        for run in neutral_runs:
+            _dashed_border(neutral_draw, run, (154, 160, 164), max(1, round(1.5 * bpp)), 9 * bpp, 6 * bpp)
     # Neighbouring countries, named at Natural Earth's label points. A label is drawn only if it
     # collides with no other label and is either wholly inside the final close-up or wholly
     # outside it, so the last frame never shows half a name.
@@ -1456,7 +1572,8 @@ def relief_base(lat0: float, lon0: float, bw: int, bh: int, kx: float, coslat: f
         # Round 4 review (2026-11-02): a neighbour's name never touches the home country's fill ("SYRIA" was set
         # on the gold of Turkey at its southern edge and read as naming part of it), and sits on its own land:
         # Natural Earth's point by its centre, a nudged place by its centre and corners.
-        rings = [[[project(px_, py_) for px_, py_ in ring] for ring in poly] for poly in c["polygons"]]
+        rings = [[project.ring(ring) if isinstance(project, PolarProjection) else
+                  [project(px_, py_) for px_, py_ in ring] for ring in poly] for poly in (c.get("label_polygons") or c["polygons"])]
         if polar is not None:      # round 11: on a polar view the land's own drawn width (no lon/lat extent)
             xs_all = [p[0] for poly in rings for p in poly[0]]
             wide_ = max(xs_all) - min(xs_all) if xs_all else 0.0
@@ -2052,12 +2169,39 @@ def leader_marker(anchor: tuple[float, float], label: str, width: int, height: i
     """The honest fallback (round 13, directive 2): the dot at the site and its name on a leader, the name kept
     MARKER_LABEL_CLEAR off the site's own island or small country (its box as an obstacle) so the dot alone stands
     on it; the cover it leaves is logged where it is still over PIN_ISLAND_COVER_MAX."""
+    import cv2
     import numpy as np
     obst: list[Box] = []
     if part is not None and np.asarray(part).any():
         ys, xs = np.nonzero(part)
         obst.append((float(xs.min()), float(ys.min()), float(xs.max() + 1), float(ys.max() + 1)))
-    lay = dot_layout(anchor, label, width, height, obst, land, leader_only=True)
+    # A nearby islet is still geographic information. The coast-width heuristic
+    # alone can accept a long title covering all of a narrow secondary island.
+    # Protect each small connected land component without turning an entire
+    # archipelago's bounding box (including its water) into an obstacle.
+    protected = None
+    if land is not None:
+        _count, components, stats, _centres = cv2.connectedComponentsWithStats(
+            np.asarray(land, np.uint8), connectivity=8)
+        tb = get_text_box(width, height)
+        limit = PART_SMALL_SHARE * (tb[2] - tb[0]) * (tb[3] - tb[1])
+        small = np.flatnonzero(stats[:, cv2.CC_STAT_AREA] <= limit)
+        protected = np.isin(components, small[small != 0])
+    lines, font = marker_label_lines(label, width, height)
+    lay = leader_layout(anchor, lines, font, width, height, obst, land,
+                        keep_land_visible=protected)
+    if part is not None and len(lines) == 1 and len(lines[0].split()) > 1 \
+            and island_cover([lay.label_box], part) > PIN_ISLAND_COVER_MAX:
+        # A one-row title with no clear leader place lies over its own island (Levuka 9:16: 20 % of Ovalau).
+        # Its balanced two-row form, at the same size, is narrower and may clear the island; kept only if it
+        # covers less of it.
+        one_row = _tracked_w(lines[0], font, 0)
+        two = route_name_lines(label, font, one_row * 0.75, 2)
+        if two is not None and len(two) == 2:
+            lay2 = leader_layout(anchor, two, font, width, height, obst, land, keep_land_visible=protected)
+            if island_cover([lay2.label_box], part) < island_cover([lay.label_box], part):
+                log.info("Map: the dot's name set on two rows to keep off the site's own ground.")
+                lay = lay2
     if part is not None:     # the dot is the site's precise mark; its name is what must keep off the ground
         cover = island_cover([lay.label_box], part)
         if cover > PIN_ISLAND_COVER_MAX:
@@ -2195,7 +2339,7 @@ def dot_layout(anchor: tuple[float, float], text: str, width: int, height: int, 
 
 def leader_layout(anchor: tuple[float, float], lines: list[str], font: FreeTypeFont, width: int, height: int,
                   obstacles: Sequence[Box] = (), land: BoolArray | None = None, box: Box | None = None,
-                  style: str = "leader") -> MarkerLayout:
+                  style: str = "leader", keep_land_visible: BoolArray | None = None) -> MarkerLayout:
     """The leader layout (A.3): the site's name off the dot on a leader MAP_LEADER_MIN-MAP_LEADER_MAX long, from
     MARKER_LEAD_LABEL_GAP short of the label to MARKER_LEAD_RING_GAP short of the dot's ring; past MAP_LEADER_MAX the
     label moves round the dot (eight directions) instead of the leader lengthening. The first clear place wins; none
@@ -2243,6 +2387,12 @@ def leader_layout(anchor: tuple[float, float], lines: list[str], font: FreeTypeF
             lay = MarkerLayout(style, anchor, tuple(rows), font.size, lb, "leader", (a, b), mbox)
             if first is None:
                 first = lay
+            if keep_land_visible is not None:
+                air = round(MARKER_LABEL_CLEAR * k)
+                x0, y0 = max(0, math.floor(lb[0]) - air), max(0, math.floor(lb[1]) - air)
+                x1, y1 = min(width, math.ceil(lb[2]) + air), min(height, math.ceil(lb[3]) + air)
+                if keep_land_visible[y0:y1, x0:x1].any():
+                    continue
             if _box_clear(lb, list(obstacles), MARKER_LABEL_CLEAR * k) and coast_share(lb, land) <= MARKER_COAST_SHARE:
                 return lay
     if first is None:     # nothing inside the box at all: above the dot, the shortest leader
@@ -2300,12 +2450,18 @@ LOCATOR_NEIGHBOUR_MIN = 0.10     # round 6 review: and neighbouring land at leas
 POLAR_REACH = 75.0        # round 11 (coordinator directive 2): a view reaching this latitude is drawn polar
 
 
+# id(ring): (ring, u, v) of PROJ's coordinates per view centre (the last two centres); the ring is held so its id
+# is never reused while cached.
+_UV_CACHE: dict[tuple[float, float], dict[int, tuple[Any, Any, Any]]] = {}
+
+
 @dataclass(frozen=True)
 class PolarProjection:
-    """Round 11 (coordinator directive 2): the azimuthal equidistant view centred on the site (lon0, lat0) for a
-    map whose view reaches within 15 degrees of a pole (POLAR_REACH): the site at px (cx, cy), `k` px a degree of
-    arc, north up at the site. No void, mirrored land or seam: the pole is a point on the map like any other.
-    Called as a (lon, lat) -> px map."""
+    """PROJ local azimuthal view, used at every latitude.
+
+    The historical public name is retained for callers. The site (lon0, lat0)
+    lies at (cx, cy); k is pixels per nominal degree of geodesic arc.
+    """
     lon0: float
     lat0: float
     cx: float
@@ -2319,6 +2475,49 @@ class PolarProjection:
     def inverse(self, x: float, y: float) -> tuple[float, float]:
         return geo.azimuthal_inverse((x - self.cx) / self.k, (self.cy - y) / self.k, self.lon0, self.lat0)
 
+    def ring(self, points: Sequence[tuple[float, float]], down: float = 1.0) -> list[tuple[float, float]]:
+        """`[self(lon, lat) / down for each point]` in one PROJ call: the same arithmetic per point."""
+        if not points:
+            return []
+        import numpy as np
+        lons, lats = (np.asarray(v, dtype=np.float64) for v in zip(*points))
+        u, v = geo.map_geometry.azimuthal_many(lons, lats, self.lon0, self.lat0)
+        xs, ys = self.cx + u * self.k, self.cy - v * self.k
+        if down != 1:
+            xs, ys = xs / down, ys / down
+        return list(zip(xs.tolist(), ys.tolist()))
+
+    def rings(self, rings: Sequence[Sequence[tuple[float, float]]], down: float = 1.0
+              ) -> list[list[tuple[float, float]]]:
+        """ring() of each source ring. A ring's PROJ coordinates depend only on the view's centre, so they are
+        kept per ring for that centre (framing redraws the same rings at many scales); only the scale and offset
+        are applied per view: the same arithmetic per point as ring()."""
+        import numpy as np
+        uv = _UV_CACHE.setdefault((self.lon0, self.lat0), {})
+        if len(_UV_CACHE) > 2:
+            for key in list(_UV_CACHE)[:-2]:
+                del _UV_CACHE[key]
+        missing = [r for r in rings if len(r) and uv.get(id(r), (None,))[0] is not r]
+        if missing:
+            lons = np.fromiter((x for r in missing for x, _y in r), dtype=np.float64)
+            lats = np.fromiter((y for r in missing for _x, y in r), dtype=np.float64)
+            u_all, v_all = geo.map_geometry.azimuthal_many(lons, lats, self.lon0, self.lat0)
+            at = 0
+            for r in missing:
+                uv[id(r)] = (r, u_all[at:at + len(r)], v_all[at:at + len(r)])
+                at += len(r)
+        out = []
+        for r in rings:
+            if not len(r):
+                out.append([])
+                continue
+            _r, u, v = uv[id(r)]
+            xs, ys = self.cx + u * self.k, self.cy - v * self.k
+            if down != 1:
+                xs, ys = xs / down, ys / down
+            out.append(list(zip(xs.tolist(), ys.tolist())))
+        return out
+
     def scaled(self, by: float, dx: float = 0.0, dy: float = 0.0) -> "PolarProjection":
         """The same view `by` times the px (and moved by dx, dy px after)."""
         return PolarProjection(self.lon0, self.lat0, self.cx * by + dx, self.cy * by + dy, self.k * by)
@@ -2331,18 +2530,9 @@ class PolarProjection:
                      ) -> tuple["npt.NDArray[np.float64]", "npt.NDArray[np.float64]"]:
         """(lon, lat) arrays over the grid of px columns `xs` and rows `ys` (vectorised inverse)."""
         import numpy as np
-        u = np.radians((xs[None, :] - self.cx) / self.k)
-        v = np.radians((self.cy - ys[:, None]) / self.k)
-        rho = np.hypot(u, v)
-        la0 = math.radians(self.lat0)
-        c = rho
-        sc, cc = np.sin(c), np.cos(c)
-        with np.errstate(invalid="ignore", divide="ignore"):
-            lat = np.arcsin(np.clip(cc * math.sin(la0) + np.where(rho > 1e-12, v * sc * math.cos(la0) / rho, 0.0),
-                                    -1.0, 1.0))
-            lon = self.lon0 + np.degrees(np.arctan2(u * sc, rho * math.cos(la0) * cc - v * math.sin(la0) * sc))
-        lon = np.where(rho > 1e-12, lon, self.lon0)
-        return (lon + 180.0) % 360.0 - 180.0, np.degrees(lat)
+        u, v = np.meshgrid((xs - self.cx) / self.k, (self.cy - ys) / self.k)
+        return geo.map_geometry.azimuthal_inverse(u, v, self.lon0, self.lat0)
+
 
 
 def is_polar_view(site_lat: float, width: int, height: int, span_close: float, span_wide: float | None = None
@@ -2391,7 +2581,7 @@ def _close_seams(draws: Sequence[Any], ring: Sequence[tuple[float, float]],
     """Round 11: on a polar view the antimeridian cut of a polygon round the pole (Antarctica's) is two coincident
     edges, which a polygon fill leaves as an open one-pixel slit (stroked as a coast line from the pole out): the
     cut's edges (geo.seam_edges) are filled over with `fill`, `width` px wide."""
-    seams = geo.seam_edges(list(ring))
+    seams = geo.seam_edges_of(ring)
     n = len(pts)
     for i, sm in enumerate(seams):
         if sm and n > 1:
@@ -2420,15 +2610,22 @@ def view_masks(width: int, height: int, lon0: float, lat0: float, span: float, h
         return (width / 2 + (x - lon0) * kf * coslat) / down, (height / 2 - (y - lat0) * kf) / down
     polys = _view_polygons(polar, width, height) if polar is not None else geo.view_polygons(lon0, lat0, lon_half,
                                                                                              lat_half)
+    projected = polar.rings([ring for _c, poly in polys for ring in poly], down) if polar is not None else None
+    at = 0
     for c, poly in polys:   # round 8: wrapped, enclaves last
-        pts = [pt(x, y) for x, y in poly[0]]
+        if projected is not None:
+            drawn_poly, at = projected[at:at + len(poly)], at + len(poly)
+        else:
+            drawn_poly = [[pt(x, y) for x, y in ring] for ring in poly]
+        pts = drawn_poly[0]
         dl.polygon(pts, fill=255)
         if c is home:
             dh.polygon(pts, fill=255)
         if polar is not None:
             _close_seams([dl, dh] if c is home else [dl], poly[0], pts, 255, 3)
-        for hole in poly[1:]:
-            hp = [pt(x, y) for x, y in hole]
+        for hp in drawn_poly[1:]:
+            if not geo.map_geometry.resolvable_hole(hp, 1 / down):
+                continue
             dl.polygon(hp, fill=0)
             if c is home:
                 dh.polygon(hp, fill=0)
@@ -2505,7 +2702,10 @@ def home_title_form(name: str, title: str, home: geo.Country | None) -> str:
     if not name or home is None:
         return name
     t_words = re.findall(r"[A-Z0-9']+", geo.fold(title).upper())
-    if " ".join(t_words) == " ".join(re.findall(r"[A-Z0-9']+", name)):
+    name_words = re.findall(r"[A-Z0-9']+", geo.fold(name).upper())
+    repeats = bool(name_words) and any(t_words[j:j + len(name_words)] == name_words
+                                      for j in range(len(t_words) - len(name_words) + 1))
+    if repeats:
         sov = geo.fold(str(home.get("sovereign") or "")).lower()
         if sov and sov != str(home.get("key") or ""):
             for c in geo.countries():
@@ -2522,8 +2722,35 @@ def home_title_form(name: str, title: str, home: geo.Country | None) -> str:
     return name
 
 
+# One locator render asks for the same framing several times (the cross-format marker policy, the frame itself and
+# its retries); within one render_map call the answer is reused. Outside it (tests, other callers) it is computed.
+_SPAN_MEMO: "_contextvars.ContextVar[dict[tuple[Any, ...], tuple[Any, float, bool]] | None]" = \
+    _contextvars.ContextVar("locator_span_memo", default=None)
+
+
 def locator_span(lat0: float, lon0: float, home: geo.Country | None, width: int, height: int,
                  default: float = LOCATOR_SPAN, polar: bool = False) -> float:
+    """locator_span_uncached(), reused within one render_map call (the same answer, logged each time)."""
+    memo = _SPAN_MEMO.get()
+    if memo is None or home is None:
+        return locator_span_uncached(lat0, lon0, home, width, height, default, polar)
+    key = (float(lat0), float(lon0), id(home), width, height, default, polar)
+    hit = memo.get(key)
+    if hit is None or hit[0] is not home:
+        before = _SPAN_MISSES[0]
+        span = locator_span_uncached(lat0, lon0, home, width, height, default, polar)
+        hit = memo[key] = (home, span, _SPAN_MISSES[0] != before)
+    elif hit[2]:
+        log.info("Map framing: no span puts the home fill inside %s of the box; %.1f degrees.", LOCATOR_HOME_SHARE,
+                 hit[1])
+    return hit[1]
+
+
+_SPAN_MISSES = [0]
+
+
+def locator_span_uncached(lat0: float, lon0: float, home: geo.Country | None, width: int, height: int,
+                          default: float = LOCATOR_SPAN, polar: bool = False) -> float:
     """The close-up's span (round 6, framing): of the spans from 40 / LOCATOR_MAX_ZOOM degrees (the camera's wide
     view is at least 40 degrees, and its base holds its detail to that zoom) to 2.2x `default` (5 % log steps), the
     one whose home fill covers nearest LOCATOR_HOME_TARGET of the graphics box, inside LOCATOR_HOME_SHARE with sea or
@@ -2534,12 +2761,14 @@ def locator_span(lat0: float, lon0: float, home: geo.Country | None, width: int,
         return default
     box = get_text_box(width, height)
     lo_span = 40.0 / LOCATOR_MAX_ZOOM
+    # The former longitude-based default narrowed with latitude. Preserve that
+    # local physical extent now that the projection's scale is metric everywhere.
+    default = max(lo_span, default * max(0.2, math.cos(math.radians(lat0))))
     best, best_key = default, (math.inf, math.inf)
     j0 = math.floor(math.log(lo_span / default) / math.log(1.05))
     for j in range(j0, 17):
         span = max(lo_span, default * 1.05 ** j)
-        pv = PolarProjection(lon0, lat0, width / 2, height / 2 - polar_lift(width, height), width / span) \
-            if polar else None        # round 11: a polar view framed on its own projection
+        pv = PolarProjection(lon0, lat0, width / 2, height / 2 - polar_lift(width, height), width / span)
         land_m, home_m = view_masks(width, height, lon0, view_centre_lat(lat0, width, height, span)[0], span, home,
                                     down=8, polar=pv)
         share = home_share(home_m, box, 8)
@@ -2562,6 +2791,7 @@ def locator_span(lat0: float, lon0: float, home: geo.Country | None, width: int,
         if key < best_key:
             best, best_key = span, key
     if best_key[0] > 0:
+        _SPAN_MISSES[0] += 1
         log.info("Map framing: no span puts the home fill inside %s of the box; %.1f degrees.", LOCATOR_HOME_SHARE, best)
     return round(best, 4)
 
@@ -2589,41 +2819,21 @@ ISLAND_OFF_PX = 24.0            # round 14: px (at 1080) the most a site off all
 
 def _site_island(lat0: float, lon0: float, home: geo.Country
                  ) -> tuple[float, list[tuple[float, float]]] | None:
-    """(distance in degrees of latitude, ring) of the home's outer ring nearest the site (0 inside it), lon scaled
-    by cos(lat); None with no ring."""
-    coslat = max(0.2, math.cos(math.radians(lat0)))
-    best: tuple[float, list[tuple[float, float]]] | None = None
+    """Containing ground first, then the true closest boundary; never bbox distance."""
+    rings = [poly[0] for poly in home["polygons"] if poly and len(poly[0]) >= 3]
     for poly in home["polygons"]:
-        ring = poly[0]
-        xs, ys = [x for x, _y in ring], [y for _x, y in ring]
-        dx = max(min(xs) - lon0, 0.0, lon0 - max(xs)) * coslat
-        dy = max(min(ys) - lat0, 0.0, lat0 - max(ys))
-        d = math.hypot(dx, dy)
-        if best is None or d < best[0]:
-            best = (d, ring)
-    if best is None:
+        if poly and geo.point_in_polygons(lon0, lat0, [poly]):
+            return 0.0, poly[0]
+    if not rings:
         return None
-    ring = best[1]
-    if geo.point_in_polygons(lon0, lat0, [[ring]]):
-        return 0.0, ring
-    near = _nearest_on_ring(lat0, lon0, ring)
-    return math.hypot((near[1] - lon0) * coslat, near[0] - lat0), ring
+    distance, ring = min(((geo.edge_km(ring, lon0, lat0), ring) for ring in rings), key=lambda item: item[0])
+    return distance / _km_per_deg(lat0), ring
 
 
 def _nearest_on_ring(lat0: float, lon0: float, ring: Sequence[tuple[float, float]]) -> tuple[float, float]:
-    """(lat, lon) of the point of `ring` nearest the site (lon scaled by cos(lat)). O(n)."""
-    coslat = max(0.2, math.cos(math.radians(lat0)))
-    best, out = math.inf, (lat0, lon0)
-    for (ax, ay), (bx, by) in zip(ring, list(ring[1:]) + [ring[0]]):
-        ax_, bx_, px_ = ax * coslat, bx * coslat, lon0 * coslat
-        vx, vy = bx_ - ax_, by - ay
-        L = vx * vx + vy * vy
-        t = 0.0 if L == 0 else max(0.0, min(1.0, ((px_ - ax_) * vx + (lat0 - ay) * vy) / L))
-        qx, qy = ax_ + t * vx, ay + t * vy
-        d = math.hypot(qx - px_, qy - lat0)
-        if d < best:
-            best, out = d, (qy, qx / coslat)
-    return out
+    """Actual nearest boundary point in the site's metric azimuthal projection."""
+    _, (lon, lat) = geo.map_geometry.nearest_on_ring(lon0, lat0, ring)
+    return lat, lon
 
 
 COUNTRY_SMALL_FIT = 1.3       # round 12: a small country's width over its name's, framed for it to hold the name
@@ -2980,6 +3190,31 @@ def fill_pole(rings: Sequence[Sequence[tuple[float, float]]], precision: float =
     return geo.polylabel(best, precision=precision)
 
 
+def name_ground_mask(home: geo.Country, from_frame: Callable, width: int, height: int) -> BoolArray | None:
+    """Conservative name placement where source resolutions disagree on a coast.
+
+    This mask never changes the drawn land, site marker or map framing. Inverse
+    projection checks actual source polygons in bounded strips, avoiding a
+    second approximate projected coastline for the placement constraint.
+    """
+    polygons = home.get("name_polygons") or home.get("label_polygons")
+    if polygons is None:
+        return None
+    import numpy as np
+    from shapely import contains_xy, prepare, union_all
+
+    ground = union_all([geo.map_geometry.polygon(poly) for poly in polygons])
+    prepare(ground)
+    mask = np.zeros((height, width), dtype=bool)
+    xs = np.arange(width, dtype=np.float64) + 0.5
+    for start in range(0, height, 128):
+        end = min(height, start + 128)
+        xx, yy = np.meshgrid(xs, np.arange(start, end, dtype=np.float64) + 0.5)
+        lon, lat = from_frame(xx, yy)
+        mask[start:end] = contains_xy(ground, (lon + 180) % 360 - 180, lat)
+    return mask
+
+
 def home_rings(home: geo.Country, to_frame: Callable[[float, float], tuple[float, float]],
                clip: Box) -> list[list[tuple[float, float]]]:
     """The home country's rings (outer and holes) on the frame, cut to `clip`, as HomeRings (round 14: with the
@@ -2996,11 +3231,11 @@ def home_rings(home: geo.Country, to_frame: Callable[[float, float], tuple[float
         if c is not home:
             continue
         for ri, ring in enumerate(poly):
-            cut = geo.clip_ring([to_frame(x, y) for x, y in ring[:: max(1, len(ring) // 400)]], clip)
-            if len(cut) >= 3 and geo.ring_area(cut) > 4:
-                out.append(cut)
-                out.groups.append(gi)
-                out.outer.append(ri == 0)
+            for cut in geo.clip_rings([to_frame(x, y) for x, y in ring[:: max(1, len(ring) // 400)]], clip):
+                if len(cut) >= 3 and geo.ring_area(cut) > 4:
+                    out.append(cut)
+                    out.groups.append(gi)
+                    out.outer.append(ri == 0)
     return out
 
 
@@ -3128,12 +3363,15 @@ def view_country_ids(width: int, height: int, to_frame: Callable[[float, float],
         cid = cids.setdefault(id(c), len(cids) + 1)
         if c is home:
             home_id = cid
-        pts_ = [(x / down, y / down) for x, y in (to_frame(lo, la) for lo, la in poly[0])]
+        drawn = to_frame.rings(poly, down) if isinstance(to_frame, PolarProjection) else \
+            [[(x / down, y / down) for x, y in (to_frame(lo, la) for lo, la in ring)] for ring in poly]
+        pts_ = drawn[0]
         d.polygon(pts_, fill=cid)
         if isinstance(to_frame, PolarProjection):
             _close_seams([d], poly[0], pts_, cid, 2)
-        for hole in poly[1:]:
-            d.polygon([(x / down, y / down) for x, y in (to_frame(lo, la) for lo, la in hole)], fill=0)
+        for hp in drawn[1:]:
+            if geo.map_geometry.resolvable_hole(hp, 1 / down):
+                d.polygon(hp, fill=0)
     out: npt.NDArray[np.uint16] = np.asarray(im, dtype=np.uint16)
     return out, home_id
 
@@ -3223,8 +3461,17 @@ def country_outside_place(name: str, home: BoolArray | None, anchor: tuple[float
                      round(COUNTRY_ANCHOR_AIR * k))
     if not cands:
         return None
-    _dh, _da, x, y, b = cands[0]
-    return (x, y), b
+    for dh, _da, x, y, b in cands:
+        if has_home and dh >= LEADER_TOUCH_PX * k:
+            leader = ground_leader(b, home, k)
+            if leader is None or math.dist(*leader) < 28 * k:
+                continue
+            # The safe rectangle is convex: both endpoints inside means the
+            # entire drawn leader stays clear of the platform bands.
+            if any(not (tb[0] <= px <= tb[2] and tb[1] <= py <= tb[3]) for px, py in leader):
+                continue
+        return (x, y), b
+    return None
 
 
 def country_spot(name: str, rings: list[list[tuple[float, float]]], home: BoolArray | None, land: BoolArray | None,
@@ -3264,7 +3511,9 @@ def country_spot(name: str, rings: list[list[tuple[float, float]]], home: BoolAr
                 return CountrySpot(got[0], got[1], px, True)
         # round 11 (directive 5): the log says why: the fill too small, or the marker and the words keeping the
         # name out of a fill that would hold it
-        if inside_only:          # round 14: the caller tries a shorter form inside before any outside place
+        if inside_only:          # the caller tries a shorter form inside before any outside place
+            log.info("Map: in-fill name %r refused down to %d px: %s.", name,
+                     round(COUNTRY_SMALL_PX[-1] * k), "; ".join(dict.fromkeys(why)) or "no clear ground")
             return None
         if "kept out" in why:
             log.info("Map: the country's fill would hold its name, but the marker, the site's name and their air "
@@ -3516,7 +3765,8 @@ def water_labels(width: int, height: int, from_frame: Callable[[float, float], t
                     geo_fault[:] = [fault]
                 return not fault
             sq = hh / hw                                  # the name's box squeezed to a square
-            clipped = [[(x * sq, y) for x, y in geo.clip_ring(ring, tb)] for poly in polys for ring in poly]
+            clipped = [[(x * sq, y) for x, y in part] for poly in polys for ring in poly
+                       for part in geo.clip_rings(ring, tb)]
             grown = [((o[0] - WATER_CLEAR * k) * sq, o[1] - WATER_CLEAR * k, (o[2] + WATER_CLEAR * k) * sq,
                       o[3] + WATER_CLEAR * k) for o in taken]
             pole = geo.polylabel([r for r in clipped if len(r) >= 3], precision=2.0, avoid=grown)
@@ -3573,7 +3823,7 @@ class NeighbourName:
     box: Box
 
 
-NEIGHBOUR_MAX = 3                 # neighbours named on a close-up at most (2 wanted, spec E)
+NEIGHBOUR_MAX = 3                 # priority neighbour slots; remaining fitting names follow (2 wanted, spec E)
 NEIGHBOUR_STEP = 10               # px: the grid a neighbour's name is tried on
 
 
@@ -3641,8 +3891,9 @@ def neighbours_in_view(width: int, height: int, home: geo.Country | None,
     masks: dict[int, tuple[geo.Country, Image.Image]] = {}
     hm = Image.new("L", (w4, h4), 0)
     for c, poly in _view_polygons(to_frame, width, height):
-        outer = [(x / 4, y / 4) for x, y in (to_frame(lo, la) for lo, la in poly[0])]
-        holes = [[(x / 4, y / 4) for x, y in (to_frame(lo, la) for lo, la in hole)] for hole in poly[1:]]
+        drawn = to_frame.rings(poly, 4) if isinstance(to_frame, PolarProjection) else \
+            [[(x / 4, y / 4) for x, y in (to_frame(lo, la) for lo, la in ring)] for ring in poly]
+        outer, holes = drawn[0], drawn[1:]
         if c is home:
             target = hm
         elif not c.get("display") or c.get("type") == "Indeterminate" or c["label_rank"] > 6:
@@ -3673,7 +3924,9 @@ def close_neighbours(width: int, height: int, home: geo.Country | None,
     Montserrat MAP_NAME_WEIGHT, letter-spaced, on two rows where one does not fit) set where its land is deepest (the
     furthest from its own border) among the NEIGHBOUR_STEP grid places whose box, grown 6 px, is wholly on that
     country, off the home fill, inside the text box and MARKER_LABEL_CLEAR from every word (`keep_out`) and from the
-    names set before it. Round 8 (review 5: Urnes named no neighbour with Sweden filling the frame's right): where
+    names set before it. If every spaced form fails at the existing size floor,
+    try normal letter spacing with the same fonts, full names and ground/air constraints.
+    Round 8 (review 5: Urnes named no neighbour with Sweden filling the frame's right): where
     no such place is, a place whose box is at least NEIGHBOUR_LAND_SHARE on the country and otherwise on the sea
     (never on the home or a third country), then each a NEIGHBOUR_PX_STEPS step smaller (logged). `already`: the
     names the base shows on the close-up (upper case), not set twice."""
@@ -3690,8 +3943,9 @@ def close_neighbours(width: int, height: int, home: geo.Country | None,
     hm = Image.new("L", (width, height), 0)
     dh = ImageDraw.Draw(hm)
     for c, poly in _view_polygons(to_frame, width, height):   # round 8: wrapped, enclaves last
-        outer = [to_frame(x, y) for x, y in poly[0]]
-        holes = [[to_frame(x, y) for x, y in hole] for hole in poly[1:]]
+        drawn = to_frame.rings(poly) if isinstance(to_frame, PolarProjection) else \
+            [[to_frame(x, y) for x, y in ring] for ring in poly]
+        outer, holes = drawn[0], drawn[1:]
         dland.polygon(outer, fill=255)
         for hp in holes:
             dland.polygon(hp, fill=0)
@@ -3713,6 +3967,15 @@ def close_neighbours(width: int, height: int, home: geo.Country | None,
     cands: list[tuple[int, geo.Country, npt.NDArray[np.uint8]]] = []
     for c, m in masks.values():
         arr = np.asarray(m)
+        if c.get("label_polygons") and isinstance(to_frame, PolarProjection):
+            bearing = Image.new("L", (width, height), 0)
+            db = ImageDraw.Draw(bearing)
+            for poly in c["label_polygons"]:
+                drawn_ = to_frame.rings(poly)
+                db.polygon(drawn_[0], fill=255)
+                for hp in drawn_[1:]:
+                    db.polygon(hp, fill=0)
+            arr = np.where(np.asarray(bearing) > 0, arr, 0).astype(arr.dtype)
         area = int(np.count_nonzero(arr[y0:y1, x0:x1]))
         if area > 0:
             cands.append((area, c, arr))
@@ -3748,17 +4011,26 @@ def close_neighbours(width: int, height: int, home: geo.Country | None,
                                for j in range(1, len(words))]
         # round 12 (review: Khasab's UNITED ARAB EMIRATES, a third of the frame, unnamed): then its shorter forms
         options += [(" ".join(alt.upper()),) for alt in c.get("short_names", [])]
+        compact_options = [(c["display"].upper(),)] + [
+            (" ".join(words[:j]), " ".join(words[j:])) for j in range(1, len(words))
+        ] + [(alt.upper(),) for alt in c.get("short_names", [])]
         mask = arr > 0
         ii = _integral(mask)
         ii_other = _integral(land_all & ~mask)        # the home's and every third country's ground
         depth = cv2.distanceTransform(mask.astype(np.uint8), cv2.DIST_L2, 5)
         done = None
         why: dict[str, int] = {}
-        for dpx in NEIGHBOUR_PX_STEPS:
+        # A narrow country can hold its name at a readable size while not holding
+        # the artificial spaces between every letter. Preserve all existing
+        # successful spaced layouts before trying these complete normal forms.
+        attempts = [(dpx, options) for dpx in NEIGHBOUR_PX_STEPS] + [
+            (dpx, compact_options) for dpx in NEIGHBOUR_PX_STEPS
+        ]
+        for dpx, row_options in attempts:
             font = get_font("Montserrat", max(1, round(px0 - dpx * k)), weight=MAP_NAME_WEIGHT)
             ys_, xs_ = grids[bool(dpx)]
             for relaxed in (False,):      # round 15 (directive 2): never partly over the sea
-                for rows in options:
+                for rows in row_options:
                     pitch = round(font.size * 1.25)
                     rels = [probe.textbbox((0, 0), drawable(r, font), font=font, anchor="mm") for r in rows]
                     hw = max(r[2] - r[0] for r in rels) / 2
@@ -3767,8 +4039,9 @@ def close_neighbours(width: int, height: int, home: geo.Country | None,
                         why["area"] = why.get("area", 0) + 1
                         continue
                     ok = depth[ys_, xs_] >= (1 if relaxed else hh + 6)
-                    for i in np.argsort(-depth[ys_, xs_][ok], kind="stable"):
-                        x, y = float(xs_[ok][i]), float(ys_[ok][i])
+                    candidates_y, candidates_x = ys_[ok], xs_[ok]
+                    for i in np.argsort(-depth[candidates_y, candidates_x], kind="stable"):
+                        x, y = float(candidates_x[i]), float(candidates_y[i])
                         b = (x - hw, y - hh, x + hw, y + hh)
                         if not inside_tb(b):
                             why["box"] = why.get("box", 0) + 1
@@ -3796,9 +4069,10 @@ def close_neighbours(width: int, height: int, home: geo.Country | None,
                 if done is not None:
                     break
             if done is not None:
-                if dpx or relaxed:
+                if dpx or relaxed or row_options is compact_options:
                     log.info("Map: the neighbour %s named at %d px%s.", c["display"], font.size,
-                             ", partly over the sea" if relaxed else "")
+                             ", normal letter spacing" if row_options is compact_options
+                             else ", partly over the sea" if relaxed else "")
                 break
         if done is not None:
             out.append(done)
@@ -3984,6 +4258,8 @@ def water_name_fault(name: str, box: Box, from_frame: Callable[[float, float], t
         if land is not None and bool(_at(land, x, y)):
             return f"on land at ({x:.0f}, {y:.0f})"
         lon, lat = from_frame(x, y)
+        if geo.on_detail_land(lon, lat):      # an islet the view's own (coarser) land leaves out
+            return f"on land at ({x:.0f}, {y:.0f}) ({lon:.3f}, {lat:.3f})"
         m = geo.marine_at(lon, lat)
         if m is None or m["name"] != name:
             return (f"({lon:.2f}, {lat:.2f}) is on " + (m["name"] if m is not None else "no named water")
@@ -4022,9 +4298,7 @@ def _site_component(comps: tuple[Any, Any] | None, anchor: tuple[float, float], 
     return int(sub[ys[i], xs[i]]) if d[i] <= reach else 0
 
 
-LEADER_MIN_PX = 16.0           # round 16 (review 9): px (at 1080): an outside name either touches its ground (under
-                               # 6 px, no leader) or keeps at least this off it, so its leader is never a 5 to 7 px
-                               # tick that reads as an apostrophe (MALTA, ARUBA, SEYCHELLES)
+LEADER_MIN_PX = 36.0           # two 3 px endpoint insets leave at least 28 visible pixels, with raster margin
 LEADER_TOUCH_PX = 3.0          # and under this it touches its ground (a leader is drawn from 6 px)
 
 
@@ -4144,9 +4418,10 @@ def view_country_table(width: int, height: int, to_frame: Callable[[float, float
 
 
 def neighbour_name_fault(text: str, box: Box, table: tuple["npt.NDArray[np.uint16]", dict[int, geo.Country]],
-                         down: int = 2) -> str:
+                         down: int = 2, from_frame: Callable[[float, float], tuple[float, float]] | None = None) -> str:
     """Why a neighbour's name at `box` would be wrong ("" where it is right): a point on a third country's ground,
-    or (round 15, coordinator directive 2: every name inside its own polygon) a point off its own country's."""
+    or (round 15, coordinator directive 2: every name inside its own polygon) a point off its own country's; with
+    `from_frame`, also a point on a part of its country that does not carry the name (geo: label_polygons)."""
     ids, by = table
     want = text.upper().replace(" ", "")
     pts = name_check_points(box)
@@ -4157,6 +4432,10 @@ def neighbour_name_fault(text: str, box: Box, table: tuple["npt.NDArray[np.uint1
             continue
         c = by.get(cid)
         if c is not None and want in _country_keys(c):
+            if from_frame is not None and c.get("label_polygons"):
+                lon, lat = from_frame(x, y)
+                if not geo.point_in_polygons((lon + 180) % 360 - 180, lat, c["label_polygons"]):
+                    return f"over a part of {c.get('display')} that does not carry its name at ({x:.0f}, {y:.0f})"
             own += 1
         else:
             return "over " + (str(c.get("display") or "another country") if c is not None else "another country") \
@@ -4176,13 +4455,24 @@ def render_map(place: dict[str, Any], out: Path, width: int = VIDEO_WIDTH, heigh
     from all ground is on the open sea: marked there, no home named (logged)."""
     if not geo.available():
         return None
+    token = _SPAN_MEMO.set({})
+    try:
+        return _render_map_resolved(place, out, width, height, narration)
+    finally:
+        _SPAN_MEMO.reset(token)
+
+
+def _render_map_resolved(place: dict[str, Any], out: Path, width: int, height: int, narration: str) -> Path | None:
     with geo.detail_view():
         found = geo.site_home(float(place["lon"]), float(place["lat"]), hint=str(place.get("country") or ""))
         home = found.country
         given = str(place.get("country") or "")
         if home is None:
-            log.warning("Map: the site is more than %.0f km from all ground in the data; marked on the open sea, no "
-                        "home named%s.", geo.SITE_NEAR_KM, f" (the topic gives {given!r})" if given else "")
+            if found.km == 0:
+                log.info("Map: disputed or mismatched ground; site shown without a country name or highlight.")
+            else:
+                log.warning("Map: the site is more than %.0f km from all ground in the data; marked on the open sea, no "
+                            "home named%s.", geo.SITE_NEAR_KM, f" (the topic gives {given!r})" if given else "")
         else:
             if given and not geo._hint_matches(home, given):
                 log.info("Map: the site lies on %s's ground (the topic gives %r); named by its ground.",
@@ -4200,13 +4490,134 @@ def render_map(place: dict[str, Any], out: Path, width: int = VIDEO_WIDTH, heigh
                              "under %.0f km); named %s as the topic gives, the marker moved onto its ground.",
                              found.km, geo.SITE_HINT_KM, home["display"])
                     place = {**place, "lon": moved[0], "lat": moved[1]}
+        reason = "neutral or unmatched ground; no country name or highlight" if home is None and found.km == 0 else ""
         return _render_map(place, out, width, height, narration, open_sea=home is None, home_entity=home,
-                           resolved=True)
+                           resolved=True, home_reason=reason)
+
+
+def locator_marker_style(place: dict[str, Any], home: geo.Country | None, open_sea: bool = False) -> str:
+    """Choose one marker for both output formats, including permitted closer views."""
+    style = marker_style()
+    if style != "pin" or geo.is_region_fallback(place):
+        return style
+    for width, height in ((1080, 1920), (1920, 1080)):
+        lat, lon = float(place["lat"]), float(place["lon"])
+        close = locator_span(lat, lon, home, width, height)
+        island = island_span(lat, lon, home, width, height, close) \
+            if not open_sea and abs(lat) < POLAR_REACH else None
+        if island is not None:
+            close = island
+            lat, lon = island_site(lat, lon, home, width, height, close)
+        lift = polar_lift(width, height)
+        anchor = (width / 2, height / 2 - lift)
+        zoom = 1.0
+        while zoom >= HOME_ZOOM_MIN:
+            span = close if zoom == 1 else round(close * zoom, 4)
+            projection = PolarProjection(lon, lat, *anchor, width / span)
+            land, home_mask = view_masks(width, height, lon, lat, span, home, polar=projection)
+            part = site_part(home_mask, land, anchor, 1.0)
+            layout = marker_layout("pin", anchor, str(place["label"]), width, height,
+                                   land=land, home=part, ground=ground_word(part, home_mask, land))
+            reason = pin_fallback(layout, land, part, 1.0)
+            if reason:
+                log.info("Map: %s at %dx%d (zoom %.3f); use a dot on a leader in both formats.",
+                         reason, width, height, zoom)
+                return "leader"
+            zoom *= HOME_ZOOM_STEP
+    return style
+
+
+def locator_name_frame(lat: float, lon: float, home: geo.Country | None, width: int, height: int,
+                       span: float, anchor: tuple[float, float], label: str,
+                       style: str, span_floor: float = 0.0) -> tuple[float, tuple[float, float], tuple[str, ...]]:
+    """Bounded reframing when a nearby visible country's full name cannot fit.
+
+    The site stays at its geographic coordinates. Search only existing zoom
+    steps and small pans toward the unnamed neighbour; keep the existing home
+    and context shares, complete title, marker, type floors and ground checks.
+    Island views retain their existing source-detail limit. Returned names are
+    provisional until the final composition validates them with all furniture.
+    """
+    if home is None:
+        return span, anchor, ()
+    projection = PolarProjection(lon, lat, *anchor, width / span)
+    visible = neighbours_in_view(width, height, home, projection, anchor)
+    if not visible:
+        return span, anchor, ()
+    possible = close_neighbours(width, height, home, projection, [], set(), len(visible), anchor)
+    named = {name.name.upper() for name in possible}
+    # Prioritise the same nearest neighbours as the normal label planner.
+    missing = [name for name, _adjacent in visible[:2] if name not in named]
+    if not missing:
+        return span, anchor, ()
+    countries = {c["display"].upper(): c for c in geo.countries() if c.get("display")}
+    box = get_text_box(width, height)
+    k = min(width, height) / 1080
+    offsets = []
+    for name in missing:
+        point = countries.get(name, {}).get("label_at")
+        if point is None:
+            continue
+        target_x, target_y = projection(*point)
+        dx = -1 if target_x > anchor[0] else 1
+        dy = -1 if target_y > anchor[1] else 1
+        for x, y in ((.2, .15), (.2, .2), (.1, .25), (.2, 0), (0, .2)):
+            offset = (dx * x * width, dy * y * height)
+            if offset not in offsets:
+                offsets.append(offset)
+    for factor in (1.0, HOME_ZOOM_STEP, HOME_ZOOM_STEP ** 2, HOME_ZOOM_STEP ** 3):
+        if factor < HOME_ZOOM_MIN:
+            continue
+        for dx, dy in offsets:
+            candidate_anchor = (anchor[0] + dx, anchor[1] + dy)
+            candidate_span = round(span * factor, 4)
+            if candidate_span < span_floor:
+                continue
+            frame = PolarProjection(lon, lat, *candidate_anchor, width / candidate_span)
+            land, ground = view_masks(width, height, lon, lat, candidate_span, home, down=8, polar=frame)
+            share = home_share(ground, box, 8)
+            context = home_share(land & ~ground, box, 8)
+            if not (LOCATOR_HOME_SHARE[0] <= share <= LOCATOR_HOME_SHARE[1]
+                    and context >= LOCATOR_NEIGHBOUR_MIN):
+                continue
+            land, ground = view_masks(width, height, lon, lat, candidate_span, home, polar=frame)
+            share = home_share(ground, box)
+            context = home_share(land & ~ground, box)
+            if not (LOCATOR_HOME_SHARE[0] <= share <= LOCATOR_HOME_SHARE[1]
+                    and context >= LOCATOR_NEIGHBOUR_MIN):
+                continue
+            part = site_part(ground, land, candidate_anchor, k)
+            if style == "leader":
+                marker = leader_marker(candidate_anchor, label, width, height, land, part, k)
+            else:
+                marker = marker_layout(style, candidate_anchor, label, width, height,
+                                       land=land, home=part, ground=ground_word(part, ground, land))
+                if style == "pin" and pin_fallback(marker, land, part, k):
+                    continue  # Never change the canonical cross-format marker policy.
+            if any(not (box[0] <= b[0] < b[2] <= box[2] and box[1] <= b[1] < b[3] <= box[3])
+                   for b in (marker.label_box, marker.marker_box)):
+                continue
+            in_frame = {name for name, _adjacent in neighbours_in_view(width, height, home, frame, candidate_anchor)}
+            labels = close_neighbours(width, height, home, frame, [marker.label_box, marker.marker_box],
+                                      set(), len(in_frame), candidate_anchor)
+            fitted = {name.name.upper() for name in labels}
+            if not set(missing) & fitted or len(fitted) < len(named) or (named & in_frame) - fitted:
+                continue
+            recovered = tuple(sorted(set(missing) & fitted))
+            log.info("Map framing: provisional neighbour names %s at %.3fx span with site offset (%+.0f, %+.0f); "
+                     "home %.1f%%, neighbouring land %.1f%%.", ", ".join(sorted(set(missing) & fitted)),
+                     factor, dx, dy, 100 * share, 100 * context)
+            # Recovered names cannot replace formerly nameable neighbours that
+            # remain in view once scale, water and home labels are composed.
+            required = tuple(sorted(set(recovered) | (named & in_frame)))
+            return candidate_span, candidate_anchor, required
+    return span, anchor, ()
 
 
 def _render_map(place: dict[str, Any], out: Path, width: int = VIDEO_WIDTH, height: int = VIDEO_HEIGHT,
                 narration: str = "", open_sea: bool = False, home_entity: geo.Country | None = None,
-                resolved: bool = False, zoom: float = 1.0) -> Path | None:
+                resolved: bool = False, zoom: float = 1.0, home_reason: str = "",
+                marker_policy: str | None = None, view_shift: tuple[float, float] | None = None) -> Path | None:
     """Regional locator map (round 6, 2026-11-03): the camera moves from a wide view to a close-up framed so the home
     fill covers 20-60 % of the graphics box (locator_span; camera_spans' log-space ease, then held) while the context
     globe turns into the site and fades out before the arrival; then the marker (MAP_MARKER_STYLE: the pin drops,
@@ -4217,28 +4628,31 @@ def _render_map(place: dict[str, Any], out: Path, width: int = VIDEO_WIDTH, heig
     import numpy as np
     if not geo.available():
         return None
-    style = marker_style()
     lat0, lon0 = place["lat"], place["lon"]
     home = home_entity if resolved else geo.site_home(float(lon0), float(lat0), hint=str(place.get("country") or "")).country
+    # A site on unnamed ground (disputed, or a stated country the data does not
+    # hold there) is still framed on the ground that holds it, so an island is
+    # not a speck; that ground is never named or highlighted (frame_home only
+    # chooses the span and the marker).
+    frame_home = home if home is not None or not home_reason else geo.ground_at(float(lon0), float(lat0))
+    framed_sea = open_sea and frame_home is None
+    style = marker_policy or locator_marker_style(place, frame_home, framed_sea)
     portrait = height > width
     k = min(width, height) / 1080
-    # round 11 (coordinator directive 2): a view reaching POLAR_REACH is drawn on the azimuthal equidistant
-    # projection centred on the site (PolarProjection), never plate carree run past the pole
-    span_close = locator_span(lat0, lon0, home, width, height)
+    # Every locator uses the same local metric projection for framing, masks,
+    # relief and labels; there is no latitude-dependent affine approximation.
+    span_close = locator_span(lat0, lon0, frame_home, width, height)
     span_wide, scale = max(40.0, span_close * 1.6), 3    # degrees of longitude across the frame (neighbours in view)
     # round 14 (review: Torshavn and Jan Mayen 9:16, framed at Europe scale, the island hidden under the dot): the
     # island close-up is decided first, so a high-latitude island is framed on itself (then drawn polar only where
     # that close-up's views still reach the pole's latitudes)
-    island = island_span(lat0, lon0, home, width, height, span_close) \
-        if not open_sea and abs(lat0) < POLAR_REACH else None
+    island = island_span(lat0, lon0, frame_home, width, height, span_close) \
+        if not framed_sea and abs(lat0) < POLAR_REACH else None
     if island is not None:   # round 7 (R6): a tiny island in an empty sea: zoomed to it (the wide view with it)
         span_close = island
         span_wide = max(span_close * 1.6, min(40.0, span_close * LOCATOR_MAX_ZOOM))
-        lat0, lon0 = island_site(lat0, lon0, home, width, height, span_close)   # round 8: the pin on its island
+        lat0, lon0 = island_site(lat0, lon0, frame_home, width, height, span_close)   # round 8: the pin on its island
     polar = is_polar_view(lat0, width, height, span_close, span_wide)
-    if polar and island is None:
-        span_close = locator_span(lat0, lon0, home, width, height, polar=True)
-        span_wide = max(40.0, span_close * 1.6)
     if polar:
         log.info("Map: the view reaches %.0f degrees of latitude; drawn on a polar (azimuthal equidistant) "
                  "projection centred on the site.", POLAR_REACH)
@@ -4253,27 +4667,29 @@ def _render_map(place: dict[str, Any], out: Path, width: int = VIDEO_WIDTH, heig
     # Golden Triangle and Utqiagvik set the name outside, on a neighbour or the sea). The view is centred south
     # of the site to put it there; a region's area stays at the centre.
     site_lat, site_lon = lat0, lon0
-    if polar:
-        lift = 0.0 if area else polar_lift(width, height)
-    else:
-        lat0, lift = view_centre_lat(site_lat, width, height, span_close, area)
+    lift = 0.0 if area else polar_lift(width, height)
+    anchor = (width / 2, height / 2 - lift)
+    original_zoom = zoom
+    required_neighbours: tuple[str, ...] = ()
+    if view_shift is None:
+        framed_span, framed_anchor, required_neighbours = locator_name_frame(
+            lat0, lon0, home, width, height, span_close, anchor, str(place["label"]), style,
+            span_floor=span_close if island is not None else 0.0) if not area else (span_close, anchor, ())
+        view_shift = (framed_anchor[0] - anchor[0], framed_anchor[1] - anchor[1])
+        zoom *= framed_span / span_close
+        span_close = framed_span
+        span_wide = max(span_close * 1.6, min(span_wide, span_close * LOCATOR_MAX_ZOOM))
+    anchor = (anchor[0] + view_shift[0], anchor[1] + view_shift[1])
     kx = width * scale / span_wide                        # px per degree of longitude in the base image
     coslat = max(0.2, math.cos(math.radians(lat0)))
     bw, bh = width * scale, height * scale
     kf = width / span_close                               # frame px per degree of latitude at rest
     zf = span_wide / span_close  # the close-up the camera ends on (labels must not be cut by it)
-    pv_base = PolarProjection(lon0, site_lat, bw / 2, bh / 2 - lift * scale / zf, kx) if polar else None
-    pv_frame = PolarProjection(lon0, site_lat, width / 2, height / 2 - lift, kf) if polar else None
-
-    # Equirectangular with the x axis shrunk by cos(lat) so shapes keep their proportions (a polar view: pv_base)
-    def project(lon: float, lat: float) -> tuple[float, float]:
-        if pv_base is not None:
-            return pv_base(lon, lat)
-        return bw / 2 + (lon - lon0) * kx * coslat, bh / 2 - (lat - lat0) * kx
-
-    def to_frame_eq(lon: float, lat: float) -> tuple[float, float]:
-        return width / 2 + (lon - lon0) * kf * coslat, height / 2 - (lat - lat0) * kf
-    to_frame: Callable[[float, float], tuple[float, float]] = pv_frame if pv_frame is not None else to_frame_eq
+    pv_base = PolarProjection(lon0, site_lat, bw / 2 + view_shift[0] * scale / zf,
+                              bh / 2 - lift * scale / zf + view_shift[1] * scale / zf, kx)
+    pv_frame = PolarProjection(lon0, site_lat, *anchor, kf)
+    project = pv_base
+    to_frame = pv_frame
 
     final_view = (bw / 2 - bw / 2 / zf, bh / 2 - bh / 2 / zf, bw / 2 + bw / 2 / zf, bh / 2 + bh / 2 / zf)
     to_base = lambda x, y: (final_view[0] + x * (final_view[2] - final_view[0]) / width,
@@ -4282,7 +4698,6 @@ def _render_map(place: dict[str, Any], out: Path, width: int = VIDEO_WIDTH, heig
     def box_to_base(b: tuple[float, float, float, float]) -> tuple[float, float, float, float]:
         return to_base(b[0], b[1]) + to_base(b[2], b[3])
     label = str(place["label"])
-    anchor = (width / 2, height / 2 - lift)
     land_f, home_f = view_masks(width, height, lon0, lat0, span_close, home, polar=pv_frame)
     sx0, sy0, sx1, sy1 = get_text_box(width, height)
     # the site's name by its marker (A); a region's point: its name over the area, "APPROX. LOCATION" under it
@@ -4304,12 +4719,8 @@ def _render_map(place: dict[str, Any], out: Path, width: int = VIDEO_WIDTH, heig
         lay = marker_layout(style, anchor, label, width, height, land=land_f,
                             home=part_f if (island is not None or part_f is not None) else None,
                             ground=ground_word(part_f, home_f, land_f))
-        if style == "pin":
-            why_dot = pin_fallback(lay, land_f, part_f, k)
-            if why_dot:
-                log.info("Map: %s; the site marked by a dot on a leader instead.", why_dot)
-                style = "leader"
-                lay = leader_marker(anchor, label, width, height, land_f, part_f, k)
+        if style == "leader":
+            lay = leader_marker(anchor, label, width, height, land_f, part_f, k)
     # the country's name never stacks on the site's name like a title over it: it keeps out of the run beyond the
     # label on its side (to 200 px past it), as well as the label's own air
     lb = lay.label_box
@@ -4326,6 +4737,9 @@ def _render_map(place: dict[str, Any], out: Path, width: int = VIDEO_WIDTH, heig
     rings = home_rings(home, to_frame, (sx0, sy0, sx1, sy1)) if home is not None else []
     if isinstance(rings, HomeRings):
         rings.allow = allowed_home_parts(home_f, anchor, k)
+        agreed = name_ground_mask(home, pv_frame.inverse, width, height)
+        if agreed is not None:
+            rings.allow = agreed if rings.allow is None else rings.allow & agreed
     # the scale bar, placed after the site's and the country's words (C)
     bar = scale_bar(site_lat, kf, narration, bar_range=scale_range(width, height))
     cname = None
@@ -4343,7 +4757,7 @@ def _render_map(place: dict[str, Any], out: Path, width: int = VIDEO_WIDTH, heig
     # nearest within NAME_SITE_REACH_PX), never another speck of it; the other parts count as other land there
     site_part_lab = _site_component(comps_hl[0], anchor, NAME_SITE_REACH_PX * k)
     home_site = (comps_hl[0][0] == site_part_lab) if comps_hl[0] is not None and site_part_lab else home_f
-    home_drop = "" if home is not None else f"the open sea: no ground within {geo.SITE_NEAR_KM:.0f} km of the site"
+    home_drop = "" if home is not None else home_reason or f"the open sea: no ground within {geo.SITE_NEAR_KM:.0f} km of the site"
     if home is not None and c_text:
         # its place on geometry first, so the bar, the globe and the neighbours keep clear of it; its ink is
         # measured on the finished frame below. Round 15 (coordinator directive 2, LEADER OR DROP): inside its own
@@ -4379,14 +4793,23 @@ def _render_map(place: dict[str, Any], out: Path, width: int = VIDEO_WIDTH, heig
                     break
             if spot is not None:
                 break
-        if spot is None and zoom * HOME_ZOOM_STEP >= HOME_ZOOM_MIN and not polar and not area \
+        if spot is None and required_neighbours:
+            log.info("Map framing: provisional view cannot retain the home name; restore original framing.")
+            return _render_map(place, out, width, height, narration, open_sea, home_entity=home, resolved=True,
+                               zoom=original_zoom, home_reason=home_reason, marker_policy=style,
+                               view_shift=(0.0, 0.0))
+        # Every locator now shares the site-centred projection, so a view that
+        # reaches polar latitudes is framed closer the same way (Bamburgh 9:16
+        # dropped UNITED KINGDOM from a fill that holds it one step closer).
+        if spot is None and zoom * HOME_ZOOM_STEP >= HOME_ZOOM_MIN and not area \
                 and int(np.count_nonzero(home_f)) >= HOME_ZOOM_FILL_PX * k * k:
             # round 16 (review 1: Luxembourg's 250 x 420 px fill held no name beside LUXEMBOURG CITY, a regression
             # against HEAD): a fill large enough to be a country, not a speck, that holds its name nowhere is drawn
             # closer (HOME_ZOOM_STEP a time, to HOME_ZOOM_MIN) before the name is dropped
             log.info("Map: the home's name %r has no place at %.2f degrees; framed closer.", c_text, span_close)
             return _render_map(place, out, width, height, narration, open_sea, home_entity=home, resolved=True,
-                               zoom=zoom * HOME_ZOOM_STEP)
+                               zoom=zoom * HOME_ZOOM_STEP, home_reason=home_reason, marker_policy=style,
+                               view_shift=view_shift)
         if spot is None:
             home_drop = "fits neither its own fill nor open water beside it" + (f" (last: {last_fault})"
                                                                                  if last_fault else "")
@@ -4404,17 +4827,14 @@ def _render_map(place: dict[str, Any], out: Path, width: int = VIDEO_WIDTH, heig
     m_air = MARKER_SCALE_AIR * k
     sbl = place_scale_bar(bar, width, height, words + [(mb[0] - m_air, mb[1] - m_air, mb[2] + m_air, mb[3] + m_air)],
                           home=home_f, obstacles=coast, hero=_union([lb, mb]), rise_rows=SCALE_RISE_ROWS_LOCATOR)
-    gbox = place_globe(width, height, home_f, words + [sbl.box])
+    gbox = place_globe(width, height, land_f, words + [sbl.box])
     # round 9 (coordinator R6): on an island close-up the globe stays at rest as its locator inset (the frame is
     # mostly ocean; the globe says where in it the island is), instead of fading out before the pin lands; round 12
     # (review): so too on a close-up with next to no land in it (a site marked on the open sea: it was a pin on
     # blank sea, nothing else in the frame)
     globe_rest = island is not None or open_sea or home_share(land_f, get_text_box(width, height)) < LOCATOR_EMPTY_LAND
 
-    def from_frame(x: float, y: float) -> tuple[float, float]:
-        if pv_frame is not None:
-            return pv_frame.inverse(x, y)
-        return lon0 + (x - width / 2) / (kf * coslat), lat0 - (y - height / 2) / kf
+    from_frame = pv_frame.inverse
     wl = water_labels(width, height, from_frame, land_f, words + [sbl.box] + ([gbox] if gbox else []),
                       to_frame=to_frame, site=anchor)
     reserved = tuple(box_to_base((b[0] - 16, b[1] - 16, b[2] + 16, b[3] + 16)) for b in words + [column])
@@ -4490,7 +4910,7 @@ def _render_map(place: dict[str, Any], out: Path, width: int = VIDEO_WIDTH, heig
     # round 13 (directive 1): the name verifier's neighbour check on every name the base draws on the close-up;
     # one over a third country's ground (or mostly off its own) is drawn again without it (logged)
     table = view_country_table(width, height, to_frame)
-    bad_base = {nm.text: f for nm in names if (f := neighbour_name_fault(nm.text, nm.box, table))}
+    bad_base = {nm.text: f for nm in names if (f := neighbour_name_fault(nm.text, nm.box, table, from_frame=from_frame))}
     if bad_base:
         for t_, f_ in sorted(bad_base.items()):
             log.info("Map: name check: the neighbour %r drawn on the base is %s; dropped.", t_, f_)
@@ -4547,6 +4967,18 @@ def _render_map(place: dict[str, Any], out: Path, width: int = VIDEO_WIDTH, heig
             log.info("Map: the adjacent name(s) %s set again on the close-up (the neighbour(s) they gave way to "
                      "found no room).", ", ".join(n.name.upper() for n in again))
             near_names += again
+    # The priority pass reserves room for the nearest neighbours. Its three-name
+    # budget must not leave another visible country anonymous when its complete
+    # name still fits on its own ground with all existing words and furniture. A far name that gave way to an
+    # adjacent one may come back here once the adjacent ones are set (Athos keeps TURKEY, Valga FINLAND); the
+    # route's own pass below does not take them back (round 13: the Egypt route never names IRAQ).
+    visible = {nm for nm, _adj in neighbours_in_view(width, height, home, to_frame, anchor)}
+    named_now = already | {n.name.upper() for n in near_names}
+    remaining = visible - named_now
+    if remaining:
+        near_names += close_neighbours(width, height, home, to_frame,
+                                       taken + [n.box for n in near_names], named_now,
+                                       len(remaining), anchor)
     # round 13 (coordinator directive 1): the name verifier, last, on every name the close-up draws: one that
     # fails is not drawn (logged with why); the verdicts kept in LAST_NAME_CHECKS and the layout sidecar
     checks: list[NameCheck] = []
@@ -4576,7 +5008,7 @@ def _render_map(place: dict[str, Any], out: Path, width: int = VIDEO_WIDTH, heig
             log.info("Map: the marker stands %.0f px off its land; a leader drawn to it.", math.dist(*site_leader))
     keep_n = []
     for nb in near_names:
-        f_ = neighbour_name_fault(nb.name, nb.box, table)
+        f_ = neighbour_name_fault(nb.name, nb.box, table, from_frame=from_frame)
         checks.append(NameCheck("neighbour", nb.name.upper(), nb.box, f_))
         if not f_:
             keep_n.append(nb)
@@ -4586,7 +5018,7 @@ def _render_map(place: dict[str, Any], out: Path, width: int = VIDEO_WIDTH, heig
     for lab in shown_rest:
         b_ = (float(lab["box"][0]), float(lab["box"][1]), float(lab["box"][0] + lab["mask"].width),
               float(lab["box"][1] + lab["mask"].height))
-        f_ = neighbour_name_fault(str(lab["name"]), b_, table)
+        f_ = neighbour_name_fault(str(lab["name"]), b_, table, from_frame=from_frame)
         checks.append(NameCheck("neighbour", str(lab["name"]).upper(), b_, f_))
         if f_:
             for fr in plan:
@@ -4594,6 +5026,14 @@ def _render_map(place: dict[str, Any], out: Path, width: int = VIDEO_WIDTH, heig
                     if lab2["name"] == lab["name"]:
                         lab2["mask"] = None
     shown_rest = [lab for lab in shown_rest if lab["mask"] is not None]
+    if required_neighbours:
+        final_names = {nm.text.upper() for nm in names} | {str(lab["name"]).upper() for lab in shown_rest} \
+            | {nb.name.upper() for nb in near_names}
+        if cname is None or not set(required_neighbours) <= final_names:
+            log.info("Map framing: final furniture/name checks reject provisional view; restore original framing.")
+            return _render_map(place, out, width, height, narration, open_sea, home_entity=home, resolved=True,
+                               zoom=original_zoom, home_reason=home_reason, marker_policy=style,
+                               view_shift=(0.0, 0.0))
     for c_ in checks:
         if not c_.ok:
             log.warning("Map: name check: the %s name %r at (%.0f, %.0f) is %s; not drawn.", c_.kind, c_.text,
@@ -5166,7 +5606,7 @@ TALL_STOP_WORDS = frozenset({"A", "AN", "THE", "OF", "ON", "IN", "AT", "TO", "IN
 def tall_label_rows_budget(count: int) -> int:
     """The rows a 9:16 timeline label may take before it is over budget (2026-11-03): 2 at 4 entries, 3 at 3, and
     TALL_LABEL_ROWS at 2."""
-    return 2 if count >= 4 else 3 if count == 3 else TALL_LABEL_ROWS
+    return 3 if count == 5 else 2 if count >= 4 else 3 if count == 3 else TALL_LABEL_ROWS
 
 
 TALL_NUMBER_WORDS = frozenset({"TWO", "THREE", "FOUR", "FIVE", "SIX", "SEVEN", "EIGHT", "NINE", "TEN", "ELEVEN",
@@ -5191,6 +5631,11 @@ WIDE_HARD_LEVEL = 4               # round 13: weak_rank's level for a hard fault
 NAME_EPITHET_LINKS = frozenset({"the", "and", "&", "of"})   # round 13: "William the Conqueror", "Alfred the
                                                        # Great": inside the name; round 15 (R11): "Ferdinand and
                                                        # Isabella" held; round 16 (review 6): "Tower of Jesus Christ"
+
+
+NAME_LEAD_VERBS = frozenset({"annexed", "captured", "conquered", "declared", "designated", "founded",
+                            "inscribed", "joined", "listed", "named", "occupied", "protected", "rebuilt",
+                            "recognized", "recognised", "rediscovered", "restored"})
 
 
 def label_hard_fault(lines: Sequence[str], source: str | None = None) -> str:
@@ -5240,8 +5685,8 @@ def _held_breaks(words: list[str], source: str | None) -> set[int]:
         prev = src[j - 1].lstrip("\"'(\u201c\u2018")
         # round 16 (review 6): a sentence's first article is not part of the name after it ("The / Tower of Jesus
         # Christ" may break; the name itself may not)
-        lead_article = prev.lower() in {"the", "a", "an"} and not cap(j - 1)
-        if cap(j) and prev[:1].isupper() and not lead_article:   # "Jacob Roggeveen", "Rapa Nui National Park"
+        lead_word = prev.lower() in ({"the", "a", "an"} | NAME_LEAD_VERBS) and not cap(j - 1)
+        if cap(j) and prev[:1].isupper() and not lead_word:   # "Jacob Roggeveen", "Rapa Nui National Park"
             held.add(j)
     # round 9 (review 8): a lower-case particle between two capitalised words is inside the name ("Champ de Mars":
     # "ON THE CHAMP / DE MARS" split it), so neither break by it is taken
@@ -5789,7 +6234,7 @@ def year_ink_boxes(x: float, baseline: float, year: int, approximate: bool, f_ye
     return [b for b in out if b]
 
 
-TIMELINE_MAX_EVENTS = 4   # the entries a timeline draws (script_engine asks for 2-4)
+TIMELINE_MAX_EVENTS = 5   # preserve five-event supplied histories, including close adjacent dates
 
 
 def timeline_events(events: list[dict[str, Any]], limit: int = TIMELINE_MAX_EVENTS) -> list[dict[str, Any]]:
@@ -5799,6 +6244,11 @@ def timeline_events(events: list[dict[str, Any]], limit: int = TIMELINE_MAX_EVEN
     (the highest, ties to the earlier), else evenly spaced through the run; the dropped years are logged."""
     events = sorted(events, key=lambda e: e["year"])
     if len(events) <= limit:
+        if len(events) == limit == 5:
+            from .timeline_dense import fits_both_formats
+            if not fits_both_formats(events):
+                log.info("Timeline: five entries exceed readable capacity; applying the four-event significance policy.")
+                return timeline_events(events, limit=4)
         return events
     n, inner = len(events), limit - 2
     middle = list(range(1, n - 1))
@@ -5809,6 +6259,11 @@ def timeline_events(events: list[dict[str, Any]], limit: int = TIMELINE_MAX_EVEN
         keep = [0, *sorted(rank[:inner]), n - 1]
     else:
         keep = [0, *sorted({round(j * (n - 1) / (limit - 1)) for j in range(1, limit - 1)}), n - 1]
+    if len(keep) == limit == 5:
+        from .timeline_dense import fits_both_formats
+        if not fits_both_formats([events[i] for i in keep]):
+            log.info("Timeline: five entries exceed readable capacity; applying the four-event significance policy.")
+            return timeline_events(events, limit=4)
     dropped = [events[i] for i in range(n) if i not in keep]
     log.warning("Timeline: %d events, %d drawn; dropped %s.", n, len(keep),
                 ", ".join(year_text(int(e["year"]), bool(e.get("approximate"))) for e in dropped))
@@ -5946,6 +6401,11 @@ def _render_timeline_tall(events: list[dict[str, Any]], out: Path, width: int, h
     fallback place (never dropped); a label over its row budget is a copy-fit error (logged) set whole on up to
     TALL_LABEL_ROWS_MAX rows; and last the cut ladder, a label cut with an ellipsis (logged). The labels never
     step under TALL_LABEL_MIN_PX."""
+    if len(events) == 5:
+        from . import timeline_dense
+        dense = timeline_dense.plan(events, width, height)
+        if dense is not None:
+            return timeline_dense.render(events, out, width, height, photo, dense)
     n = int(CLIP_SECONDS * VIDEO_FPS)
     _top, bottom = get_text_bounds(width, height)
     x0 = inset_x0(width, height) + round(16 * width / VIDEO_WIDTH)   # the spine: its dots' left edge on the inset
@@ -6414,7 +6874,7 @@ def wide_span_clearance(box: tuple[float, float, float, float], block: tuple[flo
 
 
 def _render_timeline_wide(events: list[dict[str, Any]], out: Path, width: int, height: int,
-                          photo: Path | None) -> Path | None:
+                          photo: Path | None, _year_px: int = 92, _capacity_only: bool = False) -> Path | bool | None:
     """The 16:9 timeline v2: a GOLD_DIM spine across the frame (WIDE_TIMELINE) over the quiet photo, the events on a
     true time scale (timeline_positions, break marks on compressed gaps), each event one block that starts at its
     own marker (a hairline flag up or down from the dot, the year in gold Anton and the label in bone Montserrat
@@ -6425,8 +6885,9 @@ def _render_timeline_wide(events: list[dict[str, Any]], out: Path, width: int, h
     n = int(CLIP_SECONDS * VIDEO_FPS)
     probe = ImageDraw.Draw(Image.new("RGB", (8, 8)))
     run0, run1 = WIDE_TIMELINE
+    last_left = len(events) >= 3 and len(events) % 2 == 1
     spine_y = 540.0
-    f_year = get_font("Anton", g.f(92))
+    f_year = get_font("Anton", g.f(_year_px))
     track = S(2)
     cap_y = cap_height(f_year) / g.k
     flag, pad, clear, gap_pad = 74.0, 22.0, 24.0, 30.0      # dot to block, flag to text, block to block, gap label
@@ -6471,7 +6932,7 @@ def _render_timeline_wide(events: list[dict[str, Any]], out: Path, width: int, h
         r = span_rel_box(fi, line)
         return None if r is None else (r[0] + x, r[1] + y, r[2] + x, r[3] + y)
 
-    block_memo: dict[tuple[str, float, int], tuple[list[str], Any, bool]] = {}
+    block_memo: dict[tuple[str, float, int, bool], tuple[list[str], Any, bool]] = {}
     widened: set[str] = set()   # round 6: labels set past the WIDE_LABEL_COL column to stay whole
     deep_set: set[str] = set()  # round 7: labels set on more than WIDE_LABEL_ROWS rows of the column to stay whole
     slack_set: set[str] = set()  # round 8: labels set up to WIDE_LABEL_SLACK past the column to lose a weak row
@@ -6481,28 +6942,29 @@ def _render_timeline_wide(events: list[dict[str, Any]], out: Path, width: int, h
         # design px: the label's widest word at the floor size, the narrowest measure that never splits it
         return max((_tracked_w(w, floor_font, track) for w in text.split()), default=0.0) / g.k + 1
 
-    def fit_block(text: str, measure: float, rows_max: int = 4) -> tuple[list[str], Any, bool]:
+    def fit_block(text: str, measure: float, rows_max: int = 4, floor: bool = False) -> tuple[list[str], Any, bool]:
         """A label's lines at `measure`: three at 38 px, else three at a smaller size down to the 34 px floor, else
         four there, else (with `rows_max`) five or six (round 4 review 7: the order the label gives way in before
         any wider measure, which `layout_blocks` takes last). The measure is never narrower than the label's
         widest word, so no word is cut for its own width ("FLOODED…" where "CONSTANTINOPLE" did not fit 270 px).
         A lone first word ("MAUSOLEUM / FORTIFICATIONS / ...") takes the floor size, then the balanced break at
         the same rows that does not leave it lone, then one more row, while any of them avoids it."""
-        key = (text, measure, rows_max)
+        key = (text, measure, rows_max, floor)
         if key not in block_memo:
             m = S(max(measure, widest_word(text)))
             # round 4 review 5: each line pays for its own tracking (fit_tracked), not the whole label's
-            got = _probe_tracked(probe, text, "Montserrat", g.f(38), m, 3, g.f(34), track, weight=800,
-                              quiet=True)   # round 4: 34 / 32 before
+            got = _probe_tracked(probe, text, "Montserrat", g.f(34 if floor else 38), m, 3, g.f(34), track,
+                                 weight=800, quiet=True)   # round 4: 34 / 32 before
             if rows_max < 3:
-                got = _probe_tracked(probe, text, "Montserrat", g.f(38), m, rows_max, g.f(34), track, weight=800,
-                                  quiet=True)
+                got = _probe_tracked(probe, text, "Montserrat", g.f(34 if floor else 38), m, rows_max, g.f(34),
+                                     track, weight=800, quiet=True)
             for rows in range(4, rows_max + 1):
                 if not got[2]:
                     break
                 got = _probe_tracked(probe, text, "Montserrat", g.f(34), m, rows, g.f(34), track,
                                   weight=800, quiet=True)
-            if not got[2] and weak_rows(got[0], got[1]):
+            if not got[2] and (weak_rows(got[0], got[1])
+                               or label_hard_fault(got[0], wide_source.get(text))):
                 block_prev = got
                 # review 6: a lone first word at 38 px ("FIRST / CHAMBERS / CUT") gives way to the floor size
                 # where that breaks it better ("FIRST CHAMBERS CUT"); review 7: then a balanced break of the same
@@ -6563,6 +7025,16 @@ def _render_timeline_wide(events: list[dict[str, Any]], out: Path, width: int, h
                                             got)))
                 if weak_rank(got[0], got[1]) > weak_rank(*block_prev[:2]):
                     got = block_prev
+                # A short article row costs less than splitting the proper
+                # name it introduces. Keep that complete-name alternative
+                # available when the balanced candidates still break a name.
+                if label_hard_fault(got[0], wide_source.get(text)):
+                    whole_alts = [alt for alt in alts if not alt[2]
+                                  and not label_hard_fault(alt[0], wide_source.get(text))]
+                    if whole_alts:
+                        got = min(whole_alts, key=lambda alt: (
+                            weak_rank(alt[0], alt[1]),
+                            max(_tracked_w(line, alt[1], track) for line in alt[0])))
             elif got[2] and lone_first(got[0], got[1]):
                 # a cut label keeps its words and its size; only its break is balanced, in as many rows
                 for rows in range(len(got[0]), rows_max + 1):
@@ -6704,7 +7176,8 @@ def _render_timeline_wide(events: list[dict[str, Any]], out: Path, width: int, h
         return pad + (max((bb[2] for bb in boxes if bb), default=x0) - x0 + 1) / g.k
 
     def layout_blocks(label_max: float, widen: bool = False, rows_max: int = 4,
-                      rows_cap: int | None = None, deep: bool = True, unweak: bool = False) -> list[dict[str, Any]]:
+                      rows_cap: int | None = None, deep: bool = True, unweak: bool = False,
+                      floor: bool = False) -> list[dict[str, Any]]:
         """Each label's block at `label_max`; with `widen`, a label cut or left with a lone first word there takes
         the narrowest wider measure (WIDE_LABEL_STEP steps to WIDE_LABEL_MAX) at which it is neither (round 4
         review 6, 2026-11-03: one common measure cut "REDISCOVER…" where the frame had room for it whole).
@@ -6712,20 +7185,20 @@ def _render_timeline_wide(events: list[dict[str, Any]], out: Path, width: int, h
         with `rows_cap` a label on more rows than that widens too, to the first measure that sets it on as few (a
         deep block takes the spine's air on its side: fz26 cut "ABANDONED…" rather than widen to three rows).
         Review 8: measured once per setting (each span wording asked again for the same blocks); never mutated."""
-        key = (label_max, widen, rows_max, rows_cap, deep, unweak)
+        key = (label_max, widen, rows_max, rows_cap, deep, unweak, floor)
         if key in layout_memo:
             return layout_memo[key]
         blocks = []
         for k, text in enumerate(texts):
-            lines, f_lab, short = fit_block(text, label_max, rows_max)
-            deep = rows_cap is not None and len(lines) > rows_cap
+            lines, f_lab, short = fit_block(text, label_max, rows_max, floor)
+            too_deep = rows_cap is not None and len(lines) > rows_cap
             # round 8 (review 7, `unweak`: its own variants, after the others): a weak row or a widow widens too
             weak0 = unweak and not short and weak_rows(lines, f_lab)
-            if widen and (short or lone_first(lines, f_lab) or deep or weak0):
+            if widen and (short or lone_first(lines, f_lab) or too_deep or weak0):
                 m = label_max
                 while m < WIDE_LABEL_COL:
                     m = min(WIDE_LABEL_COL, m + WIDE_LABEL_STEP)
-                    got = fit_block(text, m, rows_max)
+                    got = fit_block(text, m, rows_max, floor)
                     # round 8 (review 7): a weak row or a widow widens the measure too, up to the column
                     if (not got[2] and not lone_first(got[0], got[1])
                             and not (weak0 and weak_level(got[0], got[1]) >= weak_level(lines, f_lab))
@@ -6737,7 +7210,7 @@ def _render_timeline_wide(events: list[dict[str, Any]], out: Path, width: int, h
                 if weak0 and not short and weak_level(lines, f_lab) > 1:
                     # round 8 (review 7): a weak row the column cannot break away ("HUGO'S NOVEL / SAVES / THE
                     # BUILDING": "SAVES THE BUILDING" is 422 px) runs up to WIDE_LABEL_SLACK past it (logged)
-                    got = fit_block(text, WIDE_LABEL_COL + WIDE_LABEL_SLACK, rows_max)
+                    got = fit_block(text, WIDE_LABEL_COL + WIDE_LABEL_SLACK, rows_max, floor)
                     if (not got[2] and not lone_first(got[0], got[1])
                             and weak_level(got[0], got[1]) < weak_level(lines, f_lab)
                             and (rows_cap is None or len(got[0]) <= rows_cap)):
@@ -6750,14 +7223,14 @@ def _render_timeline_wide(events: list[dict[str, Any]], out: Path, width: int, h
                     if not short or not deep:
                         break
                     for m2 in dict.fromkeys((label_max, WIDE_LABEL_COL)):
-                        got = fit_block(text, m2, rows_more)
+                        got = fit_block(text, m2, rows_more, floor)
                         if not got[2]:
                             lines, f_lab, short = got
                             deep_set.add(text)
                             break
                 while short and m < WIDE_LABEL_MAX:            # wider, at the rows allowed (shallow blocks)
                     m = min(WIDE_LABEL_MAX, m + WIDE_LABEL_STEP)
-                    got = fit_block(text, m, rows_max)
+                    got = fit_block(text, m, rows_max, floor)
                     if not got[2]:
                         lines, f_lab, short = got
                         widened.add(text)
@@ -6765,7 +7238,7 @@ def _render_timeline_wide(events: list[dict[str, Any]], out: Path, width: int, h
                     if not short:
                         break
                     for m2 in (label_max, WIDE_LABEL_COL, WIDE_LABEL_MAX):
-                        got = fit_block(text, m2, rows_more)
+                        got = fit_block(text, m2, rows_more, floor)
                         if not got[2]:
                             lines, f_lab, short = got
                             widened.add(text)
@@ -6815,7 +7288,7 @@ def _render_timeline_wide(events: list[dict[str, Any]], out: Path, width: int, h
         for k, (b, x) in enumerate(zip(blocks, xs)):
             above = k % 2 == 0
             top = spine - flags[0] - side_h[above] if above else spine + flags[1]
-            tx = x + pad
+            tx = x - b["w"] if last_left and k == len(blocks) - 1 else x + pad
             boxes = year_ink_boxes(X(tx), Y(top + cap_y), int(events[k]["year"]), bool(events[k].get("approximate")),
                                    f_year)
             cap_l, step = cap_(b["font"]) / g.k, round(b["font"].size * 1.3) / g.k
@@ -6839,7 +7312,7 @@ def _render_timeline_wide(events: list[dict[str, Any]], out: Path, width: int, h
         for k, (b, x) in enumerate(zip(blocks, xs)):
             above = k % 2 == 0
             top = spine - flags[0] - side_h[above] if above else spine + flags[1]
-            tx = x + pad
+            tx = x - b["w"] if last_left and k == len(blocks) - 1 else x + pad
             boxes = year_ink_boxes(X(tx), Y(top + cap_y), int(events[k]["year"]), bool(events[k].get("approximate")),
                                    f_year)
             cap_l, step = cap_(b["font"]) / g.k, round(b["font"].size * 1.3) / g.k
@@ -6922,7 +7395,7 @@ def _render_timeline_wide(events: list[dict[str, Any]], out: Path, width: int, h
         # setting; never "LATER" alone on a row
         airs = (("full", (False,)), ("across", (False,)), ("least", (False,)), ("full", (2,)),
                 ("across", (2,)), ("least", (2,)))
-        for sides, air, stackings in [((False,), a_, st_) for a_, st_ in airs] + [((True,), a_, st_) for a_, st_ in airs]:
+        for sides, air, stackings in [((False,), a_, st_) for a_, st_ in airs]:
             full = air == "full"
             for fi, font in enumerate(span_fonts):
                 cap_g, step_g = cap_(font) / g.k, round(font.size * 1.2) / g.k
@@ -7099,26 +7572,31 @@ def _render_timeline_wide(events: list[dict[str, Any]], out: Path, width: int, h
         # (round 4's ladder, more rows and wider measures, only for a label the column cuts)
         # round 7 (review 7): a label the column cuts first takes more rows of it (deep), and only where those blocks
         # cannot be laid out, the wider measure
-        ladder = [(False, WIDE_LABEL_ROWS, None, True), (True, WIDE_LABEL_ROWS, WIDE_LABEL_ROWS, True),
+        ladder = [(False, WIDE_LABEL_ROWS, None, True), (True, 2, 2, False),
+                  (True, WIDE_LABEL_ROWS, WIDE_LABEL_ROWS, True),
                   (True, WIDE_LABEL_ROWS, 2, True), (True, WIDE_LABEL_ROWS, WIDE_LABEL_ROWS, False),
                   (True, WIDE_LABEL_ROWS, 2, False)]
-        if label_max > WIDE_LABEL_COL:
-            ladder += [(False, 4, None, True), (False, 5, None, True), (False, 6, None, True), (True, 4, None, True),
-                       (True, 5, None, True), (True, 6, None, True), (True, 6, 3, True), (True, 6, 2, True)]
+        # R11: another event row is available at its own column too. Restricting
+        # this ladder to wider columns cut text to buy horizontal span space.
+        ladder += [(False, 4, None, True), (False, 5, None, True), (False, 6, None, True), (True, 4, None, True),
+                   (True, 5, None, True), (True, 6, None, True), (True, 6, 3, True), (True, 6, 2, True)]
         # round 8 (review 7): then each with its weak rows and widows widened away (never in place of a variant
         # above: a block widened for its widow changed which combinations of the others were tried)
         ladder = [(*v, False) for v in ladder] + [(*v, True) for v in ladder]
-        for widen, rows_max, rows_cap, deep, unweak in ladder:
+        ladder = [(False, *variant) for variant in ladder] + (
+            [(True, *variant) for variant in ladder] if last_left else [])
+        for floor, widen, rows_max, rows_cap, deep, unweak in ladder:
             if unweak and not widen:
                 continue
-            blocks = layout_blocks(label_max, widen, rows_max, rows_cap, deep, unweak)
+            blocks = layout_blocks(label_max, widen, rows_max, rows_cap, deep, unweak, floor)
             sig = [(b["lines"], b["font"].size) for b in blocks]
             if sig in seen:
                 continue
             seen.append(sig)
             yield blocks
             # round 12 (review: "NAMED A / WORLD / HERITAGE SITE"): a weak row asks for the variants too
-            if len(seen) == 1 and not any(b["short"] or b["lone"] or b["weak"] or b["hard"] for b in blocks):
+            if len(seen) == 1 and not any(b["short"] or b["lone"] or b["weak"] or b["hard"]
+                                        or len(b["lines"]) > 2 for b in blocks):
                 return
     # each span's settings' widths as gap steps (its room is the step less WIDE_SPAN_OFF each side), narrowest first
     span_steps = [sorted({max(tracked_width(ln, f_, S(1)) for ln in wide_span_lines(t, st_)) / g.k
@@ -7128,11 +7606,13 @@ def _render_timeline_wide(events: list[dict[str, Any]], out: Path, width: int, h
     spacing_args: dict[int, tuple[Any, float, list[float]]] = {}   # id(spacing): (it, last x, needs), kept alive
     pending: list[tuple[tuple[Any, ...], int, tuple[Any, ...]]] = []
     seq = 0
-    perfect = (False, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+    perfect = (False, 0, 0, 0, 0, 0, 0, 0, (0, 0), 0, 0, 0, 0, 0)
     right = float(WIDE_TITLE_SAFE[2])              # design px: a block's ink edge (review 9: ink_reach, not advance)
     # review 6: the gaps' least lengths sized for one-line spans, then stacked ones, then stacked at the floor size
-    for wording, fi_w in (("LINE", 0), ("STACKED", 0), ("STACKED", len(span_fonts) - 1)):
-        gap_w = [max(tracked_width(ln, span_fonts[fi_w], S(1)) for ln in wide_span_lines(t, wording == "STACKED"))
+    for wording, fi_w in (("LINE", 0), ("STACKED", 0), ("STACKED", len(span_fonts) - 1),
+                          ("COMPACT", len(span_fonts) - 1)):
+        gap_w = [max(tracked_width(ln, span_fonts[fi_w], S(1))
+                     for ln in wide_span_lines(compact_gap(t) if wording == "COMPACT" else t, wording != "LINE"))
                  / g.k if t else 0.0 for t in gap_texts]
         # round 6: 420 px columns first (560 first before); the wider ones only where those cut a label
         for label_max in (WIDE_LABEL_COL, 380, 340, 300, 270, 560, 500, 460):
@@ -7143,11 +7623,30 @@ def _render_timeline_wide(events: list[dict[str, Any]], out: Path, width: int, h
                 typo0 = (sum(b["one_word"] for b in blocks), sum(b["short"] for b in blocks),
                          sum(b["dropped"] for b in blocks), sum(b["hard"] for b in blocks), 0,
                          sum(b["lone"] for b in blocks),
-                         sum(b["wide"] for b in blocks), 0, 0, sum(b["weak"] for b in blocks))
+                         (sum(len(b["lines"]) > 2 for b in blocks), sum(b["wide"] for b in blocks)),
+                         0, 0, sum(b["weak"] for b in blocks))
                 if best is not None and (False, 0, *typo0, 0, 0) >= best[0]:
                     continue
-                base = [max(140.0, gw + 2 * gap_pad) for gw in gap_w]
-                last_x = run1 - blocks[-1]["w"]
+                # Adjacent dates with no elapsed-time label need only distinct
+                # markers. Reserving a nonexistent span steals room from words.
+                base = [max(140.0, gw + 2 * gap_pad) if text else clear * 2
+                        for gw, text in zip(gap_w, gap_texts)]
+                # A below-spine span following a lower event must begin beyond
+                # that event's year ink. Reserve this horizontal constraint up
+                # front, using the year rather than the wider description.
+                # Growing from a failed placement used to jump past the feasible
+                # spacing and fall back to equal gaps.
+                for k in range(2, len(events), 2):
+                    if not gap_texts[k - 1]:
+                        continue
+                    year_boxes = year_ink_boxes(X(pad), Y(400), int(events[k - 1]["year"]),
+                                               bool(events[k - 1].get("approximate")), f_year)
+                    year_right = max(bb[2] for bb in year_boxes if bb) / g.k
+                    base[k - 1] = max(base[k - 1], year_right + gap_w[k - 1] + WIDE_SPAN_OFF + 4)
+                # A fifth event uses a terminal flag on its right. Its text can
+                # then occupy the last column without stealing the preceding
+                # elapsed-time segment or extending past title-safe.
+                last_x = run1 if last_left else run1 - blocks[-1]["w"]
                 for _grow in range(10):                 # review 5: a span with no clear spot widens its own gap
                     # review 7: each try starts from the spans' own needs (and the gaps grown for them), so the
                     # neighbours' adjustments of one try do not pile up into the next and push the run past its end
@@ -7158,7 +7657,9 @@ def _render_timeline_wide(events: list[dict[str, Any]], out: Path, width: int, h
                         spacing_args[id(spacing)] = (spacing, last_x, list(needs))
                         xs = spacing.positions
                         # same-side neighbours (k, k + 2) keep their 24 px
-                        short_by = [(k, blocks[k]["w"] + clear - (xs[k + 2] - xs[k])) for k in range(len(xs) - 2)]
+                        short_by = [(k, blocks[k]["w"] + clear
+                                     + (blocks[-1]["w"] if last_left and k + 2 == len(xs) - 1 else 0)
+                                     - (xs[k + 2] - xs[k])) for k in range(len(xs) - 2)]
                         short_by = [(k, s_) for k, s_ in short_by if s_ > 0.5]
                         # review 7: and every block ends inside title-safe (only the last one was held in the run):
                         # the gaps after a block that runs past it lengthen, so the blocks after it move right
@@ -7175,13 +7676,27 @@ def _render_timeline_wide(events: list[dict[str, Any]], out: Path, width: int, h
                     assert spacing is not None
                     xs = spacing.positions
                     apart = (all(xs[k + 1] - xs[k] >= needs[k] - 1 for k in range(len(xs) - 1))
-                             and all(xs[k + 2] - xs[k] >= blocks[k]["w"] + clear - 1 for k in range(len(xs) - 2))
-                             and all(xs[k] + blocks[k]["w"] <= right + 1 for k in range(len(xs))))
+                             and all(xs[k + 2] - xs[k] >= blocks[k]["w"] + clear - 1
+                                     + (blocks[-1]["w"] if last_left and k + 2 == len(xs) - 1 else 0)
+                                     for k in range(len(xs) - 2))
+                             and all(xs[k] + blocks[k]["w"] <= right + 1
+                                     for k in range(len(xs) - int(last_left))))
+                    # An overlapping candidate cannot beat an already safe,
+                    # separated one. This grow loop already stops on not-apart;
+                    # avoid its expensive span search without removing any
+                    # spacing that the search could otherwise reach.
+                    if not apart and best is not None and best[0][:2] == (False, 0):
+                        break
                     # review 6: where a span finds no place clear of the blocks and level with no year, the flags
                     # lengthen (while title-safe has the room) so the spine has more air either side
                     tried: list[tuple[float, float]] = []
                     fewest: list[int] | None = None        # review 7: the spans the best flags still miss
-                    for flags0 in WIDE_FLAG_TRIES:
+                    # Spans now stay below the spine. Give that side its own
+                    # band before sacrificing an event's words to make room.
+                    flag_tries = (*WIDE_FLAG_TRIES,
+                                  *((WIDE_FLAG_MIN - flag, lower - flag)
+                                    for lower in (150, 170, 190, 210, 230)))
+                    for flags0 in flag_tries:
                         spine_y, flag_y, upright = vertical_fit(blocks, xs, (flag + flags0[0], flag + flags0[1]))
                         if any(abs(flag_y[0] - t[0]) < 0.5 and abs(flag_y[1] - t[1]) < 0.5 for t in tried):
                             continue                  # title-safe had no room for that: the same layout again
@@ -7209,7 +7724,8 @@ def _render_timeline_wide(events: list[dict[str, Any]], out: Path, width: int, h
                         typo = (sum(b["one_word"] for b in blocks), sum(b["short"] for b in blocks),
                                 sum(b["dropped"] for b in blocks), sum(b["hard"] for b in blocks), n_cmp,
                                 sum(b["lone"] for b in blocks),
-                                sum(b["wide"] for b in blocks), sum(span_above(sp) for sp in spots.values()),
+                                (sum(len(b["lines"]) > 2 for b in blocks), sum(b["wide"] for b in blocks)),
+                                sum(span_above(sp) for sp in spots.values()),
                                 span_wraps(spots), sum(b["weak"] for b in blocks))
                         # round 9 (spec G): a span over the spine costs more than any span's own give-way, so it
                         # is taken only where nothing else in the layout (no cut, lone, wide or weak label) is lost
@@ -7253,8 +7769,8 @@ def _render_timeline_wide(events: list[dict[str, Any]], out: Path, width: int, h
                         # block hangs over the segment where it is below it (k - 1 odd), so the gap that holds the
                         # span there is that block's width and its air before the span's narrowest setting
                         if (k - 1) % 2 == 1 and span_steps[k - 1]:
-                            need_k = max(need_k, min(blocks[k - 1]["w"] + WIDE_SPAN_CLEAR + span_steps[k - 1][0],
-                                                     step_k + 160.0))
+                            year_right = max(bb[2] for bb in geo_[k - 1]["years"]) / g.k - xs[k - 1]
+                            need_k = max(need_k, year_right + span_steps[k - 1][0] - WIDE_SPAN_OFF + 4)
                         base[k - 1] = max(base[k - 1], need_k)
                 if best is not None and best[0] == perfect:
                     break
@@ -7275,6 +7791,20 @@ def _render_timeline_wide(events: list[dict[str, Any]], out: Path, width: int, h
             best = (score, blocks, spacing, spine_y, flag_y, geo_, spots, missing, off, seq_)
     assert best is not None
     (_score, blocks, spacing, spine_y, flag_y, geo_, spots, missing, off, _seq), xs = best, best[2].positions
+    if (_score[0] or _score[1] or any(b["short"] or b["lone"] for b in blocks)) and _year_px > 72:
+        # The additional event row also needs vertical room. Pay for it with
+        # the year heading before reducing the readable label/span floors.
+        step = 80 if _year_px > 80 else 72
+        log.info("Timeline (16:9): years step to %d px to retain event words and span separation.", step)
+        return _render_timeline_wide(events, out, width, height, photo, _year_px=step,
+                                     _capacity_only=_capacity_only)
+    if _capacity_only:
+        # A theoretical sum of label widths does not prove a feasible layout:
+        # dates, flags and intervening spans compete for the same space.
+        # Use the exact renderer search, stopping before any drawing or output.
+        return not (_score[0] or _score[1] or missing
+                    or any(b["short"] or b["lone"] or b["hard"] for b in blocks)
+                    or any(span_above(spot) for spot in spots.values()))
     # round 9: the chosen spacing derived once more from its own needs (the same positions), so the last spacing
     # the search computed is the one drawn (the wider search for the spans under the spine ends on another)
     _sp, last_x_, needs_ = spacing_args[id(spacing)]
@@ -7340,7 +7870,8 @@ def _render_timeline_wide(events: list[dict[str, Any]], out: Path, width: int, h
         f_lab = b["font"]
         cap_l = cap_(f_lab) / g.k
         step = round(f_lab.size * 1.3) / g.k
-        top, tx = gb["top"], x + pad
+        top = gb["top"]
+        tx = x - b["w"] if last_left and k == len(blocks) - 1 else x + pad
         en = {"k": k, "x": x, "above": gb["above"], "top": top, "far": gb["far"]}
         en["year_plates"] = _year_plates(ground, X(tx), Y(top + cap_y), int(events[k]["year"]),
                                          bool(events[k].get("approximate")), f_year, GOLD)
@@ -7372,7 +7903,7 @@ def _render_timeline_wide(events: list[dict[str, Any]], out: Path, width: int, h
             gaps.append((k, plate))
             plates.append((f"gap{k}" if j == 0 else f"gap{k}_{j}", plate))
     marks = [(k, (xs[k - 1] + xs[k]) / 2) for k in spacing.breaks]
-    end = max(xs[-1] + blocks[-1]["w"], xs[-1] + 60)
+    end = min(run1, xs[-1] + 24) if last_left else max(xs[-1] + blocks[-1]["w"], xs[-1] + 60)
     sched = reveal_schedule(len(entries), CLIP_SECONDS)
     last: list[Image.Image] = []
     tail = 70.0                                   # the spine runs on past the last date, fading out
@@ -9721,22 +10252,8 @@ def render_cross_section(cs: dict[str, Any], out: Path, width: int = VIDEO_WIDTH
 
 # ---------------------------------------------------------------- route map
 def great_circle(a: tuple[float, float], b: tuple[float, float], steps: int = 32) -> list[tuple[float, float]]:
-    """`steps` + 1 (lon, lat) points along the great circle from `a` to `b` (both (lon, lat), degrees), so a long
-    leg bows as it does on the globe instead of a chord (round 3, 2026-11-02)."""
-    def vec(lon: float, lat: float) -> tuple[float, float, float]:
-        lo, la = math.radians(lon), math.radians(lat)
-        return math.cos(la) * math.cos(lo), math.cos(la) * math.sin(lo), math.sin(la)
-    p, q = vec(*a), vec(*b)
-    omega = math.acos(max(-1.0, min(1.0, sum(x * y for x, y in zip(p, q)))))
-    if omega < 1e-9:
-        return [a] * (steps + 1)
-    out = []
-    for k in range(steps + 1):
-        f = k / steps
-        s0, s1 = math.sin((1 - f) * omega) / math.sin(omega), math.sin(f * omega) / math.sin(omega)
-        x, y, z = (s0 * u + s1 * v for u, v in zip(p, q))
-        out.append((math.degrees(math.atan2(y, x)), math.degrees(math.atan2(z, math.hypot(x, y)))))
-    return out
+    """WGS84 geodesic samples, with exact endpoints and no antipodal singularity."""
+    return geo.map_geometry.route(a, b, steps)
 
 
 def _leader_box(leader: tuple[tuple[float, float], tuple[float, float]]) -> tuple[float, float, float, float]:
@@ -9979,10 +10496,14 @@ def route_land(project: Callable[[float, float], tuple[float, float]], scale: fl
     m = Image.new("L", (width, height), 0)
     dm = ImageDraw.Draw(m)
     lon_half, lat_half = lon_span / 2 + 2, lat_span / 2 + 2
-    for _c, poly in geo.view_polygons(lon0, lat0, lon_half, lat_half):   # round 8: wrapped, enclaves last
+    polygons = (_view_polygons(project, width * scale, height * scale) if isinstance(project, PolarProjection)
+                else geo.view_polygons(lon0, lat0, lon_half, lat_half))
+    for _c, poly in polygons:
         dm.polygon([(project(x, y)[0] / scale, project(x, y)[1] / scale) for x, y in poly[0]], fill=255)
         for hole in poly[1:]:
-            dm.polygon([(project(x, y)[0] / scale, project(x, y)[1] / scale) for x, y in hole], fill=0)
+            hp = [(project(x, y)[0] / scale, project(x, y)[1] / scale) for x, y in hole]
+            if geo.map_geometry.resolvable_hole(hp):
+                dm.polygon(hp, fill=0)
     land = np.asarray(m) > 127
     _n, parts = cv2.connectedComponents(land.astype(np.uint8), connectivity=8)
     return land, parts
@@ -10106,7 +10627,10 @@ def render_route(stops: list[dict[str, Any]], out: Path, width: int = VIDEO_WIDT
     if len(located) < 2:
         return None
     lats, lons = [p["lat"] for p in located], [p["lon"] for p in located]
-    lat0, lon0 = (min(lats) + max(lats)) / 2, (min(lons) + max(lons)) / 2
+    lat0 = (min(lats) + max(lats)) / 2
+    # Unwrap relative to the first stop so a route across 180 degrees stays local.
+    unwrapped = [lons[0] + (lon - lons[0] + 180) % 360 - 180 for lon in lons]
+    lon0 = (min(unwrapped) + max(unwrapped)) / 2
     coslat = max(0.2, math.cos(math.radians(lat0)))
     scale = 2
     bw, bh = width * scale, height * scale
@@ -10115,8 +10639,11 @@ def render_route(stops: list[dict[str, Any]], out: Path, width: int = VIDEO_WIDT
     # Fit every stop to the graphics box (round 4: 62 % of its width before): ROUTE_FIT of its width and of its
     # height less the labels' room, whichever binds, so an east-west route uses the width and a north-south one
     # the height.
-    span_lon = max((max(lons) - min(lons)) * coslat / (ROUTE_FIT * (sx1 - sx0) / width), 4.0)
-    span_lat = max((max(lats) - min(lats)) / (ROUTE_FIT * (bottom - top - 140) / height), 4.0)
+    local = [geo.azimuthal(lon, lat, lon0, lat0) for lon, lat in zip(lons, lats)]
+    span_lon = max((max(p[0] for p in local) - min(p[0] for p in local))
+                   / (ROUTE_FIT * (sx1 - sx0) / width), 4.0)
+    span_lat = max((max(p[1] for p in local) - min(p[1] for p in local))
+                   / (ROUTE_FIT * (bottom - top - 140) / height), 4.0)
     kx = min(bw / span_lon, bh / span_lat)
     # The stops centred on the graphics box, not the frame (round 3: on 9:16 the frame's centre is below the
     # box's, and a southern stop fell under the caption band): the view's centre moved to match.
@@ -10124,11 +10651,11 @@ def render_route(stops: list[dict[str, Any]], out: Path, width: int = VIDEO_WIDT
     # Round 6 (2026-11-03): on 9:16 on the graphics box's own centre (y about 673; the text box's, 694, before)
     portrait = height > width
     centre_y = (safe_zones.graphics_box(width, height)[1] + bottom) / 2 if portrait else (top + bottom) / 2
-    lat0 = lat_c - (bh / 2 - centre_y * scale) / kx
-    lon0 = lon_c + (bw / 2 - (sx0 + sx1) / 2 * scale) / (kx * coslat)
-
-    def project(lon: float, lat: float) -> tuple[float, float]:
-        return bw / 2 + (lon - lon0) * kx * coslat, bh / 2 - (lat - lat0) * kx
+    local_cx = (min(p[0] for p in local) + max(p[0] for p in local)) / 2
+    local_cy = (min(p[1] for p in local) + max(p[1] for p in local)) / 2
+    project = PolarProjection(lon_c, lat_c, (sx0 + sx1) / 2 * scale - local_cx * kx,
+                              centre_y * scale + local_cy * kx, kx)
+    to_frame_r = project.scaled(1 / scale)
 
     import numpy as np
     land_f, land_parts = route_land(project, scale, width, height, lon0, lat0, bw / (kx * coslat), bh / kx)
@@ -10545,10 +11072,9 @@ def render_route(stops: list[dict[str, Any]], out: Path, width: int = VIDEO_WIDT
     route_words += list(blay["boxes"]) if blay else []
     route_words += [gbox] if gbox else []
 
-    def from_frame(x: float, y: float) -> tuple[float, float]:
-        return lon0 + (x * scale - bw / 2) / (kx * coslat), lat0 - (y * scale - bh / 2) / kx
+    from_frame = to_frame_r.inverse
     leg_mask = np.asarray(leg_m) > 0
-    wl = water_labels(width, height, from_frame, land_f, route_words, avoid=leg_mask)
+    wl = water_labels(width, height, from_frame, land_f, route_words, avoid=leg_mask, to_frame=to_frame_r)
     words += tuple(((w_.box[0] - 12) * scale, (w_.box[1] - 12) * scale, (w_.box[2] + 12) * scale,
                     (w_.box[3] + 12) * scale) for w_ in wl)
     if gbox:
@@ -10573,11 +11099,9 @@ def render_route(stops: list[dict[str, Any]], out: Path, width: int = VIDEO_WIDT
                            reserved=corridor + words,   # no name under the route, a stop's name, the globe or the bar
                            final_safe=(sx0 * scale, sy0 * scale, sx1 * scale, sy1 * scale),
                            name_home=True, name_px=round(map_name_px(width, height) * scale),
-                           named=named, skip=skip_, named_boxes=named_bx).resize((width, height), Image.LANCZOS)
-
-    def to_frame_r(lon: float, lat: float) -> tuple[float, float]:
-        px_, py_ = project(lon, lat)
-        return px_ / scale, py_ / scale
+                           named=named, skip=skip_, named_boxes=named_bx,
+                           polar=project).resize((width, height), Image.LANCZOS)
+    gave_way_r: set[str] = set()        # the far names that gave way (round 13): not set again below
     try:
         base = route_base(set())
         # round 13 (coordinator directive 3): true land neighbours before distant countries. A name the base drew
@@ -10598,6 +11122,7 @@ def render_route(stops: list[dict[str, Any]], out: Path, width: int = VIDEO_WIDT
                 log.info("Route: the base's name(s) %s give way to the home's neighbour(s) %s.",
                          ", ".join(n_.upper() for n_ in give), ", ".join(missing_r))
                 base = route_base(set(give) | {n_.upper() for n_ in give})
+                gave_way_r = {n_.upper() for n_ in give}
         # round 16 (review 4: MOROCCO, drawn by the base, was never checked): every name the base draws goes
         # through the verifier too (the home's in its own fill, a neighbour's on its own ground); one that fails is
         # drawn again without it (logged), the home's then set by country_spot below
@@ -10614,7 +11139,7 @@ def render_route(stops: list[dict[str, Any]], out: Path, width: int = VIDEO_WIDT
                 f_ = home_name_fault(fb, True, home_b, land_f, (-1e5, -1e5), k_px)
                 base_checks.append(NameCheck("home", nm_.upper(), fb, f_))
             else:
-                f_ = neighbour_name_fault(nm_, fb, table_b)
+                f_ = neighbour_name_fault(nm_, fb, table_b, from_frame=from_frame)
                 base_checks.append(NameCheck("neighbour", nm_.upper(), fb, f_))
         bad_b = {c_.text for c_ in base_checks if not c_.ok}
         if bad_b:
@@ -10641,6 +11166,8 @@ def render_route(stops: list[dict[str, Any]], out: Path, width: int = VIDEO_WIDT
         home_r = cv2.resize((ids_r[0] == ids_r[1]).astype(np.uint8), (width, height),
                             interpolation=cv2.INTER_NEAREST) > 0 if ids_r[1] else None
         rings_r = home_rings(home, to_frame_r, (sx0, sy0, sx1, sy1))
+        if isinstance(rings_r, HomeRings):
+            rings_r.allow = name_ground_mask(home, from_frame, width, height)
         far = (-1e5, -1e5, -1e5 + 1, -1e5 + 1)
         r_text = str(home["display"]).upper()
         spot_r = country_spot(r_text, rings_r, home_r, land_f, far[:2], far, taken_r, [], width, height, ids=ids_r)
@@ -10658,6 +11185,13 @@ def render_route(stops: list[dict[str, Any]], out: Path, width: int = VIDEO_WIDT
             want_r = max(want_r, NEIGHBOUR_MAX - n_named)
     r_near = close_neighbours(width, height, home, to_frame_r, taken_r + [pl.box for _n, pl in r_cplates],
                               {nm.upper() for nm in named}, want_r)
+    visible_r = {nm for nm, _adj in neighbours_in_view(width, height, home, to_frame_r)}
+    named_now_r = {nm.upper() for nm in named} | gave_way_r | {n.name.upper() for n in r_near}
+    remaining_r = visible_r - named_now_r
+    if remaining_r:
+        r_near += close_neighbours(width, height, home, to_frame_r,
+                                   taken_r + [pl.box for _n, pl in r_cplates] + [n.box for n in r_near],
+                                   named_now_r, len(remaining_r))
     # round 14 (review: the route's names never went through the final check): the name verifier on every name
     # the route itself sets (its country's, the close-up neighbours', the seas'), one that fails not drawn
     # (logged); the verdicts in LAST_NAME_CHECKS and the route's own layout sidecar
@@ -10672,7 +11206,7 @@ def render_route(stops: list[dict[str, Any]], out: Path, width: int = VIDEO_WIDT
     r_leader = ground_leader(r_cname.box, home_r, k_px) if r_cname is not None and not r_cname.inside else None
     keep_rn = []
     for nb in r_near:
-        f_ = neighbour_name_fault(nb.name, nb.box, table_r)
+        f_ = neighbour_name_fault(nb.name, nb.box, table_r, from_frame=from_frame)
         r_checks.append(NameCheck("neighbour", nb.name.upper(), nb.box, f_))
         if not f_:
             keep_rn.append(nb)
@@ -10701,7 +11235,9 @@ def render_route(stops: list[dict[str, Any]], out: Path, width: int = VIDEO_WIDT
     stop_of = {id(pl): int(name[4:]) for name, pl in plates}
     bar_plates = _scale_bar_plates(_with_bar(rest, bar, bar_x, bar_y), bar, bar_x, bar_y) if bar else []
     t_bar = arrive[-1] + 0.3
-    view = (lon0 - bw / 2 / (kx * coslat), lat0 - bh / 2 / kx, lon0 + bw / 2 / (kx * coslat), lat0 + bh / 2 / kx)
+    view = [to_frame_r.inverse(x, y) for x, y in
+            [(width * f / 8, 0) for f in range(9)] + [(width, height * f / 8) for f in range(9)]
+            + [(width * (1 - f / 8), height) for f in range(9)] + [(0, height * (1 - f / 8)) for f in range(9)]]
     g_lon, g_lat = globe_centre(lon_c, lat_c)
     globe = globe_inset(gbox[2] - gbox[0], g_lon, g_lat, home, view,
                         (located[-1]["lon"], located[-1]["lat"])) if gbox else None

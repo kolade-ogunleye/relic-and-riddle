@@ -189,7 +189,11 @@ def test_azimuthal_round_trips_and_keeps_true_distance() -> None:
             assert math.isclose((back[0] - lon + 540) % 360 - 180, 0, abs_tol=1e-6) or abs(abs(lat) - 90) < 1e-6
             assert math.isclose(back[1], lat, abs_tol=1e-6)
     u, v = geo.azimuthal(0.0, -80.0, 0.0, -90.0)
-    assert math.isclose(math.hypot(u, v), 10.0, abs_tol=1e-9)                  # 10 degrees of arc from the pole
+    # QF-20: PROJ's azimuthal equidistant view on the WGS84 ellipsoid keeps the true geodesic distance from the
+    # centre (in arc degrees of the mean sphere): 10 degrees of latitude from the pole are 10.044 such degrees
+    from src import map_geometry
+    true_deg = map_geometry.GEODESIC.inv(0.0, -90.0, 0.0, -80.0)[2] / map_geometry.METRES_PER_ARC_DEGREE
+    assert math.isclose(math.hypot(u, v), true_deg, abs_tol=1e-9)
 
 
 def test_inverse_grid_matches_the_scalar_inverse() -> None:

@@ -95,8 +95,14 @@ def test_relief_multiplier_never_brightens_and_fades_near_the_marker() -> None:
     assert np.allclose(q[5, 5], m[5, 5])
 
 
-def _home_mask(place, home, w, h, span):
-    _land, hm = graphics.view_masks(w, h, place["lon"], place["lat"], span, home)
+def _home_mask(place, home, w, h, span, lay=None):
+    # QF-20: the close-up is drawn on the site-centred azimuthal projection at every latitude; with the layout,
+    # the mask uses that same projection (the frame's anchor and span), so it covers the home the frame shows
+    polar = None
+    if lay is not None:
+        (lon, lat), (ax, ay) = lay["anchor_lonlat"], lay["anchor"]
+        polar = graphics.PolarProjection(lon, lat, ax, ay, w / span)
+    _land, hm = graphics.view_masks(w, h, place["lon"], place["lat"], span, home, polar=polar)
     return hm
 
 
@@ -107,7 +113,7 @@ def test_home_relief_is_quiet_and_its_coast_has_no_teal(tmp_path, monkeypatch, c
     st = _render_fast(monkeypatch, lambda: graphics.render_map(place, tmp_path / "m.mp4", width=1920, height=1080))
     lay = json.loads(Path(str(tmp_path / "m.mp4") + ".layout.json").read_text(encoding="utf-8"))
     home = geo.find_country(case[2])
-    hm = _home_mask(place, home, 1920, 1080, lay["span_close"])
+    hm = _home_mask(place, home, 1920, 1080, lay["span_close"], lay)
     import cv2
     inner = cv2.erode(hm.astype(np.uint8), np.ones((15, 15), np.uint8)).astype(bool)
     arr = np.asarray(st["frames"][-1]).astype(np.float32)

@@ -14,6 +14,8 @@ msal==1.39.0  # personal OneDrive device sign-in and silent token refresh
 cryptography==50.0.2  # encrypted backup archives and token cache
 soundfile==0.13.1
 scipy==1.17.1
+shapely==2.2.0  # GEOS map geometry, clipping and label placement
+pyproj==3.7.2  # PROJ; last series supporting the project's Python 3.11 runtime
 pip-audit==2.10.1
 onnxruntime-directml==1.24.4; sys_platform == "win32"
 onnxruntime==1.24.4; sys_platform != "win32"

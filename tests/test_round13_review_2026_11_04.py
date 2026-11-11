@@ -15,6 +15,7 @@ import numpy as np
 import pytest
 
 from src import geo, graphics
+from tests import geo_truth
 from tests.test_r4_graphics_2026_11_02 import _render
 
 needs_geo = pytest.mark.skipif(not geo.available(), reason="country outlines not fetched")
@@ -240,7 +241,10 @@ SIZES = [(1080, 1920), (1920, 1080)]
 @pytest.mark.parametrize("size", SIZES, ids=["9x16", "16x9"])
 def test_ascension_reads_ascension(size, tmp_path, monkeypatch) -> None:
     lay = _map(monkeypatch, tmp_path, P(-7.9286, -14.4155, "Saint Helena", "Georgetown, Ascension"), size)
-    assert lay["country"]["text"] == "ASCENSION"
+    # QF-20 (operator ruling Q1, 2026-11-11): ASCENSION repeats the title, so the home is named by its sovereign;
+    # the independent checker accepts that (geo_truth.repeats_title), and SAINT HELENA is still never drawn
+    assert lay["country"]["text"] == "UNITED KINGDOM"
+    assert not geo_truth.faults(lay)
     assert "SAINT HELENA" not in json.dumps(lay)
 
 

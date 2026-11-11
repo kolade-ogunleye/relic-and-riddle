@@ -665,7 +665,9 @@ def test_a_fallback_span_sits_in_the_clear_band_and_collides_with_nothing(tmp_pa
     events = TALL_CASES[case]
     st = _render(monkeypatch, lambda: graphics.render_timeline(events, tmp_path / "t.mp4"))
     rows = _rows(st)
-    n = min(4, len(events))
+    # Capacity is shared by both formats; every selected adjacent pair still
+    # needs its own elapsed-time label when the five-event layout is used.
+    n = len(graphics.timeline_events(events))
     gaps = {int(nm[3:]): p for nm, p in st["plates"] if nm.startswith("gap")}
     assert set(gaps) == set(range(1, n)), case                           # never dropped
     for k, p in gaps.items():
@@ -858,19 +860,19 @@ def test_timeline_events_keep_the_first_and_last_and_log_the_dropped(caplog) -> 
     six = [{"year": y, "label": str(y)} for y in (-1200, -700, 780, 1100, 1923, 1963)]
     with caplog.at_level("WARNING", logger=graphics.log.name):
         kept = graphics.timeline_events(list(reversed(six)))
-    assert [e["year"] for e in kept] == [-1200, 780, 1100, 1963]            # first, last, evenly spaced between
-    assert "700 BC" in caplog.text and "1923" in caplog.text
+    assert [e["year"] for e in kept] == [-1200, -700, 780, 1923, 1963]     # first, last, evenly spaced between
+    assert "1100" in caplog.text
     weighted = [{**e, "significance": s} for e, s in zip(six, (0, 1, 0, 0, 9, 5))]
-    assert [e["year"] for e in graphics.timeline_events(weighted)] == [-1200, -700, 1923, 1963]
+    assert [e["year"] for e in graphics.timeline_events(weighted)] == [-1200, -700, 780, 1923, 1963]
     assert graphics.timeline_events(six[:4]) == six[:4]
-    assert [e["year"] for e in graphics.timeline_events(six[:5])] == [-1200, -700, 1100, 1923]
+    assert graphics.timeline_events(six[:5]) == six[:5]
 
 
 def test_a_six_event_timeline_still_draws_its_last_event(tmp_path, monkeypatch) -> None:
     six = [{"year": y, "label": f"Event {k}"} for k, y in enumerate((-1200, -700, 780, 1100, 1923, 1963))]
     st = _render(monkeypatch, lambda: graphics.render_timeline(six, tmp_path / "t.mp4"))
     years = [p.text for n, p in st["plates"] if n.startswith("year") and not n.endswith("_circa")]
-    assert len(years) == 4 and years[0].endswith("1200 BC") and years[-1] == "1963"
+    assert len(years) == 5 and years[0].endswith("1200 BC") and years[-1] == "1963"
 
 
 XL = "Abandoned after the long and bitter population exchange between the two neighbouring states of the region"
@@ -1359,19 +1361,19 @@ FUZZ_FAMILIES = {
 # QF-23 (checked copy never truncated): the committed timeline sets, by size, whose labels no layout holds whole
 # (docs/reviews/quality-fixes-2026-11/QF-23/timeline_refusals.py lists them: 63 of 370 renders, all fuzz, XL or xv
 # stress sets). Each is refused (TextFitError) where the base drew it with its cut labels logged; every other set
-# renders as before.
+# renders as before. Port of QF-20 onto QF-23's chain: QF-20's timelines (five events, the date column, the floor
+# sizes) hold 11 of those 63 whole, every rule kept and no label cut (fz17 9:16, four_xl_mixed 16:9, nz14, nz15,
+# nz23, nz24, nz25, lw9, qz4, qz9, qz12 16:9), so they are drawn and checked as every other set; no set is newly
+# refused.
 QF23_REFUSED: frozenset[str] = frozenset({
-    "cr/cr9-9x16", "fz/fz17-9x16", "fz/fz2-9x16", "fz/fz26-9x16", "fz/fz37-9x16", "fz/fz9-9x16", "lw/lw11-9x16",
-    "lw/lw12-9x16", "lw/lw13-9x16", "lw/lw2-9x16", "lw/lw4-9x16", "lw/lw6-9x16", "lw/lw9-16x9", "lw/lw9-9x16",
-    "nz/nz0-9x16", "nz/nz10-9x16", "nz/nz11-9x16", "nz/nz14-16x9", "nz/nz14-9x16", "nz/nz15-16x9",
-    "nz/nz15-9x16", "nz/nz16-9x16", "nz/nz18-9x16", "nz/nz2-16x9", "nz/nz2-9x16", "nz/nz22-9x16",
-    "nz/nz23-16x9", "nz/nz23-9x16", "nz/nz24-16x9", "nz/nz24-9x16", "nz/nz25-16x9", "nz/nz25-9x16",
-    "nz/nz27-9x16", "nz/nz3-9x16", "nz/nz31-9x16", "nz/nz35-9x16", "nz/nz36-16x9", "nz/nz36-9x16",
-    "nz/nz38-9x16", "nz/nz39-9x16", "nz/nz5-16x9", "nz/nz5-9x16", "nz/nz6-9x16", "qz/qz0-9x16", "qz/qz12-16x9",
-    "qz/qz12-9x16", "qz/qz14-9x16", "qz/qz4-16x9", "qz/qz4-9x16", "qz/qz9-16x9", "qz/qz9-9x16",
-    "tl/four_xl_close-16x9", "tl/four_xl_close-9x16", "tl/four_xl_mixed-16x9", "tl/four_xl_mixed-9x16",
-    "xv/xv0-9x16", "xv/xv1-9x16", "xv/xv10-9x16", "xv/xv11-9x16", "xv/xv21-16x9", "xv/xv21-9x16",
-    "xv/xv22-9x16", "xv/xv6-9x16",
+    "cr/cr9-9x16", "fz/fz2-9x16", "fz/fz26-9x16", "fz/fz37-9x16", "fz/fz9-9x16", "lw/lw11-9x16", "lw/lw12-9x16",
+    "lw/lw13-9x16", "lw/lw2-9x16", "lw/lw4-9x16", "lw/lw6-9x16", "lw/lw9-9x16", "nz/nz0-9x16", "nz/nz10-9x16",
+    "nz/nz11-9x16", "nz/nz14-9x16", "nz/nz15-9x16", "nz/nz16-9x16", "nz/nz18-9x16", "nz/nz2-16x9", "nz/nz2-9x16",
+    "nz/nz22-9x16", "nz/nz23-9x16", "nz/nz24-9x16", "nz/nz25-9x16", "nz/nz27-9x16", "nz/nz3-9x16", "nz/nz31-9x16",
+    "nz/nz35-9x16", "nz/nz36-16x9", "nz/nz36-9x16", "nz/nz38-9x16", "nz/nz39-9x16", "nz/nz5-16x9", "nz/nz5-9x16",
+    "nz/nz6-9x16", "qz/qz0-9x16", "qz/qz12-9x16", "qz/qz14-9x16", "qz/qz4-9x16", "qz/qz9-9x16",
+    "tl/four_xl_close-16x9", "tl/four_xl_close-9x16", "tl/four_xl_mixed-9x16", "xv/xv0-9x16", "xv/xv1-9x16",
+    "xv/xv10-9x16", "xv/xv11-9x16", "xv/xv21-16x9", "xv/xv21-9x16", "xv/xv22-9x16", "xv/xv6-9x16",
 })
 NAMED_TL = {"derinkuyu": DERINKUYU, "two_line4": TWO_LINE,
             "four_d": [{"year": -1200, "approximate": True, "label": "First chambers cut"},
@@ -1471,7 +1473,9 @@ def _timeline_checks(st: dict[str, Any], events, size: tuple[int, int], log_text
         # 2026-11-03 hierarchy spec: inside the box, and on its foot unless the years are at their starting size
         # and every gap between entries is at its TALL_GAP_CAP x cap limit (the spare height stays under it)
         assert bottom <= box[3], (bottom, box)
-        third = (len(kept) > 2 and max(len(ps) for ps in labels.values()) >= 3
+        date_column = "five entries use a date column" in log_text
+        third = (len(kept) > 2 and any(len(ps) >= 3 and (not date_column or
+                 ps[0].box[0] <= years[f"year{k}"].box[0] + 2) for k, ps in labels.items())
                  and "Timeline copy-fit" not in log_text)
         if third:   # round 6 review (deliberate, spec F give-way 5): a third label row only at the least ratio
             assert year_cap < graphics.TALL_YEAR_RATIO * label_cap + 1 and "Timeline years at" in log_text

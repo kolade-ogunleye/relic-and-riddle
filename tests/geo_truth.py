@@ -62,6 +62,26 @@ def names_match(text: str, names: set[str], props_list: list[dict]) -> bool:
     return False
 
 
+def _title_words(text: str) -> list[str]:
+    """`text`'s words as the renderer's title test reads them: accents folded, upper case, runs of A-Z, 0-9 and '."""
+    t = "".join(ch for ch in unicodedata.normalize("NFKD", str(text or "")) if not unicodedata.combining(ch))
+    return re.findall(r"[A-Z0-9']+", t.upper())
+
+
+def repeats_title(name: str, title: str) -> bool:
+    """Whether `name` is a whole-word run of `title` (operator ruling Q1 of QF-20, 2026-11-11): "Ascension" of
+    "Georgetown, Ascension", "Palmyra Atoll" of "Palmyra Atoll"; never part of a word ("George Town" is not a run
+    of "Georgetown")."""
+    nw, tw = _title_words(name), _title_words(title)
+    return bool(nw) and any(tw[j:j + len(nw)] == nw for j in range(len(tw) - len(nw) + 1))
+
+
+def _ground_repeats_title(f: Feature, title: str) -> bool:
+    """Whether one of the feature's own names is the site's title (normalised, the round-16 rule) or a whole-word
+    run of it."""
+    return norm(title) in f.names or any(repeats_title(str(f.props.get(k)), title) for k in NAME_KEYS if f.props.get(k))
+
+
 def norm(text: str) -> str:
     """Letters only, lower case, accents folded, "saint" as "st", "and"/"the" dropped."""
     t = "".join(ch for ch in unicodedata.normalize("NFKD", str(text or "")) if not unicodedata.combining(ch)).lower()
@@ -208,9 +228,10 @@ def faults(lay: dict) -> list[str]:
         names |= set().union(*(f.names for f in _load(SUBUNITS) if f.props.get("ADMIN") in admins))
         group = [f for f in _load(SUBUNITS) if f.props.get("ADMIN") in admins] + feats
         # round 16: a home whose own name only repeats the site's title (Palmyra Atoll) may be named by its
-        # sovereign (the feature's SOVEREIGNT), and only then
-        title = norm(str(lay.get("label") or ""))
-        if title and any(title in f.names for f in feats):
+        # sovereign (the feature's SOVEREIGNT), and only then; QF-20 ruling Q1 (2026-11-11): "repeats" is the
+        # renderer's test, the ground's name a whole-word run of the title (Ascension under "Georgetown, Ascension")
+        title = str(lay.get("label") or "")
+        if title and any(_ground_repeats_title(f, title) for f in feats):
             names |= {norm(f.props.get("SOVEREIGNT")) for f in feats if f.props.get("SOVEREIGNT")}
         if country:
             if not names_match(country["text"], names, [f.props for f in group]):
@@ -235,7 +256,7 @@ def faults(lay: dict) -> list[str]:
             own = features_named(text)
             if site and title and lay.get("kind") != "route" and norm(text) in {
                     norm(f.props.get("SOVEREIGNT")) for f in feats if f.props.get("SOVEREIGNT")}:
-                own = own + [f for f in feats if title in f.names]     # the sovereign's name on that ground
+                own = own + [f for f in feats if _ground_repeats_title(f, title)]   # the sovereign's name there
             inside = bool(country and country.get("inside"))
             for lo, la in pts:
                 on = land_at(lo, la)

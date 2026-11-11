@@ -36,7 +36,7 @@ def _map(monkeypatch, tmp_path, place, size, name="m") -> dict:
 # ---------------------------------------------------------------------------------------------- 1. identity
 @needs_data
 @pytest.mark.parametrize("lat, lon, given, want", [
-    (36.144, -5.342, "United Kingdom", "Gibraltar"),            # never Jersey, 1,476 km away; not Spain's ground
+    (36.144, -5.342, "United Kingdom", None),                   # neutral Natural Earth disputed ground
     (-9.38, -171.247, "New Zealand", "Tokelau"),                 # never NEW ZEALAND, 3,500 km away
     (0.3365, 6.7273, "Sao Tome and Principe", "Sao Tome and Principe"),   # accents folded
     (-7.926, -14.416, "United Kingdom", "Ascension"),
@@ -53,7 +53,9 @@ def test_the_home_is_the_entity_whose_ground_holds_the_site(lat, lon, given, wan
     with geo.detail_view() as on:
         assert on
         got = geo.site_home(lon, lat, hint=given)
-    assert got.country is not None and got.country["display"] == want, (got.country or {}).get("display")
+    assert (got.country or {}).get("display") == want
+    if want is None:
+        assert got.km == 0  # a recorded neutral-policy decision, not failed open-sea lookup
 
 
 @needs_data
@@ -139,9 +141,10 @@ DIRECTIVE2 = {
     "gambia": (P(13.45, -16.58, "Gambia", "Banjul"), "GAMBIA"),
     "akrotiri": (P(34.585, 32.987, "United Kingdom", "RAF Akrotiri"), "AKROTIRI SOVEREIGN BASE AREA"),
     "gibraltar": (P(36.144, -5.342, "United Kingdom", "Rock of Gibraltar"), "GIBRALTAR"),
-    "fakaofo": (P(-9.38, -171.247, "New Zealand", "Fakaofo, Tokelau"), "TOKELAU"),
+    # QF-20 (operator ruling Q1, 2026-11-11): a home whose own name repeats the title is named by its sovereign
+    "fakaofo": (P(-9.38, -171.247, "New Zealand", "Fakaofo, Tokelau"), "NEW ZEALAND"),
     "saotome": (P(0.3365, 6.7273, "Sao Tome and Principe", "Sao Tome"), "SAO TOME AND PRINCIPE"),
-    "ascension": (P(-7.926, -14.416, "United Kingdom", "Georgetown, Ascension"), "ASCENSION"),
+    "ascension": (P(-7.926, -14.416, "United Kingdom", "Georgetown, Ascension"), "UNITED KINGDOM"),   # Q1
     "tristan": (P(-37.067, -12.311, "United Kingdom", "Edinburgh of the Seven Seas"), "TRISTAN DA CUNHA"),
     "stkilda": (P(57.813, -8.57, "United Kingdom", "Hirta, St Kilda"), "UNITED KINGDOM"),
     "diego": (P(-7.313, 72.411, "United Kingdom", "Diego Garcia"), "BRITISH INDIAN OCEAN TERRITORY"),
@@ -221,7 +224,7 @@ def test_an_offshore_site_has_a_leader_to_its_land(tmp_path, monkeypatch) -> Non
     assert lead is not None and lead[1][0] >= 697 and lead[0][0] <= 560
     assert graphics.ground_leader((690.0, 946.0, 702.0, 958.0), land) is None   # touching its land: none
     lay = _map(monkeypatch, tmp_path, P(-9.38, -171.247, "New Zealand", "Fakaofo, Tokelau"), (1080, 1920))
-    assert lay["country"] is not None and lay["country"]["text"] == "TOKELAU"
+    assert lay["country"] is not None and lay["country"]["text"] == "NEW ZEALAND"   # QF-20 Q1: TOKELAU repeats the title
     assert not geo_truth.faults(lay)
 
 

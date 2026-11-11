@@ -82,7 +82,7 @@ def test_bikini_is_framed_with_its_countrys_nearest_ground(tmp_path, monkeypatch
                     fps=1)
         lay = json.loads((tmp_path / "m.mp4.layout.json").read_text(encoding="utf-8"))
         assert "too small to read; framed with its country's nearest ground" in caplog.text
-        assert 2.0 < lay["span_close"] < 12.0                                  # not one islet, not the ocean
+        assert 2.0 < lay["span_close"] < 12.5        # not one islet, not the ocean (WGS84 arc degrees: QF-20 Q3)
         assert lay["country"] is not None                                       # MARSHALL IS. named
         assert "found no place in any form" not in caplog.text
 

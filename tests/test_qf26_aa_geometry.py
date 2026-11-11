@@ -252,13 +252,19 @@ def test_the_home_coasts_gold_edge_keeps_its_strength(bpp, base_share):
     assert _gold_rim_share(bpp) >= 0.98 * base_share
 
 
-@pytest.mark.parametrize("bpp", [1.0, 2.4])
-def test_a_loch_smaller_than_a_pixel_keeps_its_ink_and_gold(bpp):
+@pytest.mark.parametrize("bpp,cx,cy,side,drawn", [(1.0, 560.3, 330.3, 0.3, False), (2.4, 560.3, 330.3, 0.3, False),
+                                                   (1.0, 560.0, 330.0, 1.2, True)])
+def test_a_loch_smaller_than_a_pixel_keeps_its_ink_and_gold(bpp, cx, cy, side, drawn):
     """Round 2: the home edge is cut where the home covers half a pixel; a loch whose coverage reaches half of no
     pixel would vanish from the INK line and the gold (Flannan's lochs did). It keeps the pixels it touches, as the
-    base drew it: an INK dot ringed with gold."""
-    cx, cy = 560.3, 330.3                                   # between pixel centres, 0.3 px square
-    sq = [(cx - 0.15, cy - 0.15), (cx + 0.15, cy - 0.15), (cx + 0.15, cy + 0.15), (cx - 0.15, cy + 0.15)]
+    base drew it: an INK dot ringed with gold. Port onto QF-20: a hole with no one-pixel-wide interior at the
+    drawing scale is not drawn at all (QF-20's map_geometry.resolvable_hole: sub-pixel slivers between source
+    layers made false coasts), so the 0.3 px loch leaves the home fill whole at both scales; a 1.2 px loch on a
+    pixel corner is drawn and still reaches half of no pixel, and keeps its INK dot and gold."""
+    sq = [(cx - side / 2, cy - side / 2), (cx + side / 2, cy - side / 2), (cx + side / 2, cy + side / 2),
+          (cx - side / 2, cy + side / 2)]
+    assert geo.map_geometry.resolvable_hole(sq, bpp) is drawn
+    assert not drawn or graphics._closed_at_half(sq)        # the pinhole case: no pixel reaches half
     loch = [(LON0 + (x - BW / 2) / (KX * COSLAT), LAT0 + (BH / 2 - y) / KX) for x, y in sq]
     arr = _home_base(bpp, holes=[loch])
     lum = arr @ np.array([0.299, 0.587, 0.114])
@@ -266,5 +272,9 @@ def test_a_loch_smaller_than_a_pixel_keeps_its_ink_and_gold(bpp):
     t = ((arr - inside) @ (gl - inside)) / ((gl - inside) @ (gl - inside))
     near = (slice(int(cy) - 2, int(cy) + 3), slice(int(cx) - 2, int(cx) + 3))
     ring = (slice(int(cy) - 6, int(cy) + 7), slice(int(cx) - 6, int(cx) + 7))
-    assert lum[near].min() < 60                             # the INK dot
-    assert t[ring].max() > 0.3                              # its gold
+    if drawn:
+        assert lum[near].min() < 60                         # the INK dot
+        assert t[ring].max() > 0.3                          # its gold
+    else:
+        whole = np.asarray(_home_base(bpp)) @ np.array([0.299, 0.587, 0.114])
+        assert np.array_equal(lum[ring], whole[ring])       # not drawn: the fill as with no loch

@@ -87,16 +87,22 @@ def test_an_outside_name_is_kept_by_the_sites_part() -> None:
 @pytest.mark.parametrize("lat, lon, given, want, overrode", [
     (50.7543, 6.0207, "Netherlands", "Netherlands", True),      # Vaals, 1.75 km into Germany's 1:10m ground
     (-4.215, -69.94, "Colombia", "Colombia", True),             # Leticia, 1.4 km into Brazil's
-    (36.1438, -5.3426, "United Kingdom", "Gibraltar", True),    # the Rock's summit, 0.3 km into Spain's
-    (51.4386, 4.9286, "Belgium", "Netherlands", False),         # Baarle, 3.4 km: past SITE_HINT_KM, the ground's
-    (69.0599, 20.5486, "Finland", "Norway", False),             # Treriksroset, 3.9 km: the ground's
-    (20.3536, 100.0837, "Thailand", "Myanmar", False),          # the Golden Triangle, 2.5 km: the ground's
+    # QF-20 (operator ruling Q2, 2026-11-11): the Rock lies by contested Gibraltar, neutral ground: no home
+    (36.1438, -5.3426, "United Kingdom", None, False),           # the Rock's summit, by contested Gibraltar
+    # QF-20 (operator ruling, qf20_spec "Enclaves missing from Natural Earth" and HANDOFF section 7): past the 2 km
+    # tie-break a topic country that is not the ground's names no home, the decision recorded (km 0: render_map's
+    # home_drop "neutral or unmatched ground"), never the ground's country
+    (51.4386, 4.9286, "Belgium", None, False),                   # Baarle, 3.4 km: past SITE_HINT_KM
+    (69.0599, 20.5486, "Finland", None, False),                  # Treriksroset, 3.9 km
+    (20.3536, 100.0837, "Thailand", None, False),                # the Golden Triangle, 2.5 km
 ])
 def test_the_topic_country_overrides_held_ground_only_within_its_error(lat, lon, given, want, overrode) -> None:
     with geo.detail_view():
         got = geo.site_home(lon, lat, hint=given)
-    assert got.country is not None and got.country["display"] == want
+    assert (got.country or {}).get("display") == want
     assert got.overrode is overrode
+    if want is None:
+        assert got.km == 0  # the recorded no-home decision, not a failed open-sea lookup
 
 
 @needs_data
@@ -200,8 +206,17 @@ def test_the_reviews_new_timelines_keep_every_name_whole(events, tmp_path, monke
 def test_a_span_that_fits_one_row_keeps_it(events, tmp_path, monkeypatch) -> None:
     st = _render(monkeypatch, lambda: graphics.render_timeline(events, tmp_path / "t.mp4", width=1920, height=1080),
                  fps=1)
-    spans = [getattr(p, "text", "") for n, p in st["plates"] if n.startswith("gap")]
-    assert spans and all(t.endswith("YEARS LATER") for t in spans), spans     # every span on one row
+    rows: dict[str, list[str]] = {}
+    for n, p in st["plates"]:
+        if n.startswith("gap"):
+            rows.setdefault(n.split("_")[0], []).append(getattr(p, "text", ""))
+    # QF-20 (spec ruling R11, decisions/QF-20.md capacity 4 -> 5): all five PISA events are drawn (the base dropped
+    # one), and no spacing of the run holds all four spans on one row (reviewer's experiment, QF-20 review 2): the
+    # 1372-1990 span alone takes the count-over-unit form "618 / YEARS LATER"; every other span keeps one row
+    assert len(rows) == 4, rows
+    two_row = [span for span in rows.values() if len(span) > 1]
+    assert two_row == [["618", "YEARS LATER"]], rows
+    assert all(span[0].endswith("YEARS LATER") for span in rows.values() if len(span) == 1), rows
 
 
 # ------------------------------------------------------------------------------------- 7. the outline gate

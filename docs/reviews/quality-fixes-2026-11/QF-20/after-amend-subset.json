@@ -1,0 +1,477 @@
+{
+ "what": "amend re-measure (ruling Q2 final filter): the 18 sweep sites and 4 route cases within 8 degrees of the 11 features the final filter makes neutral (remeasure_subset.py)",
+ "sites": [
+  6,
+  13,
+  21,
+  22,
+  33,
+  59,
+  60,
+  127,
+  153,
+  177,
+  181,
+  182,
+  188,
+  189,
+  191,
+  197,
+  199,
+  200
+ ],
+ "route_indexes": [
+  1,
+  7,
+  8,
+  15
+ ],
+ "renders": 44,
+ "passed": 44,
+ "home_changes_vs_after_json": {
+  "site-006-1080x1920": "named -> neutral (Wake Atoll)",
+  "site-006-1920x1080": "named -> neutral (Wake Atoll)"
+ },
+ "results": [
+  {
+   "case": "site-006-1080x1920",
+   "kind": "map",
+   "faults": [],
+   "home_drop": "neutral or unmatched ground; no country name or highlight",
+   "frame": {
+    "frames": 6,
+    "sha256": "dbaa0b63877ebd5e82810b393c3585dd31a9231b072029a900160eb679497b8f"
+   }
+  },
+  {
+   "case": "site-006-1920x1080",
+   "kind": "map",
+   "faults": [],
+   "home_drop": "neutral or unmatched ground; no country name or highlight",
+   "frame": {
+    "frames": 6,
+    "sha256": "aff9d7104a0c5e5684606f4b3d7a93756be91a9d79627f3b439e1b4a72c518e2"
+   }
+  },
+  {
+   "case": "site-013-1080x1920",
+   "kind": "map",
+   "faults": [],
+   "home_drop": "",
+   "frame": {
+    "frames": 6,
+    "sha256": "420f2d85b93ffee23ff55bf4faa4c212f239b23e059c84838bc7b63728a6d7af"
+   }
+  },
+  {
+   "case": "site-013-1920x1080",
+   "kind": "map",
+   "faults": [],
+   "home_drop": "",
+   "frame": {
+    "frames": 6,
+    "sha256": "e6071076abb62194157966ad2da5ab82a09c0988da09f2f771dad59e4d84f119"
+   }
+  },
+  {
+   "case": "site-021-1080x1920",
+   "kind": "map",
+   "faults": [],
+   "home_drop": "",
+   "frame": {
+    "frames": 6,
+    "sha256": "e27b06a17a591b0018bef4901b6bc9e2d0e20c86f4f3e0be2080c192816e0ce8"
+   }
+  },
+  {
+   "case": "site-021-1920x1080",
+   "kind": "map",
+   "faults": [],
+   "home_drop": "",
+   "frame": {
+    "frames": 6,
+    "sha256": "b385bbb2aaa2a4209be243daf1d87c7058f3ccf454c715db8990652fd4f8d3c0"
+   }
+  },
+  {
+   "case": "site-022-1080x1920",
+   "kind": "map",
+   "faults": [],
+   "home_drop": "",
+   "frame": {
+    "frames": 6,
+    "sha256": "5929abe99ddfe42ef3db3f3184bc9da00988c9f004b862a06e1f2582890dd047"
+   }
+  },
+  {
+   "case": "site-022-1920x1080",
+   "kind": "map",
+   "faults": [],
+   "home_drop": "",
+   "frame": {
+    "frames": 6,
+    "sha256": "955f69f983c4bc11767ee855b7eb8e68f41454e29de6879048bc4710c08cb685"
+   }
+  },
+  {
+   "case": "site-033-1080x1920",
+   "kind": "map",
+   "faults": [],
+   "home_drop": "",
+   "frame": {
+    "frames": 6,
+    "sha256": "e2db2a970d0bf68413d188b081643e7bb242cc57522fa8fc2ad8205060335f60"
+   }
+  },
+  {
+   "case": "site-033-1920x1080",
+   "kind": "map",
+   "faults": [],
+   "home_drop": "",
+   "frame": {
+    "frames": 6,
+    "sha256": "95c81ab13f4d87255428fe9cdc08582337062b4a8f146afca651a7d8d95420c4"
+   }
+  },
+  {
+   "case": "site-059-1080x1920",
+   "kind": "map",
+   "faults": [],
+   "home_drop": "",
+   "frame": {
+    "frames": 6,
+    "sha256": "c1700077c75035e7e13e0b1a7b7268bcb0a48aeba4d2428d31ce760eb063641e"
+   }
+  },
+  {
+   "case": "site-059-1920x1080",
+   "kind": "map",
+   "faults": [],
+   "home_drop": "",
+   "frame": {
+    "frames": 6,
+    "sha256": "3c618dd5cca35925705c44b3f914614ef8374449e909a5f22f776ecb8cd471b2"
+   }
+  },
+  {
+   "case": "site-060-1080x1920",
+   "kind": "map",
+   "faults": [],
+   "home_drop": "fits neither its own fill nor open water beside it",
+   "frame": {
+    "frames": 6,
+    "sha256": "ae6bd8d98267bdf5632c2ea4cd3b8eb6a0895113adcae14ecf85b93ece900bf0"
+   }
+  },
+  {
+   "case": "site-060-1920x1080",
+   "kind": "map",
+   "faults": [],
+   "home_drop": "fits neither its own fill nor open water beside it",
+   "frame": {
+    "frames": 6,
+    "sha256": "f18277b47e6d743039c9347f06f8840f01821dd226d088de13c4bb053e99df30"
+   }
+  },
+  {
+   "case": "site-127-1080x1920",
+   "kind": "map",
+   "faults": [],
+   "home_drop": "",
+   "frame": {
+    "frames": 6,
+    "sha256": "dbc18ecaa0fb156401eddd62f5394b62caf16961b8145d0694aaf936908712c2"
+   }
+  },
+  {
+   "case": "site-127-1920x1080",
+   "kind": "map",
+   "faults": [],
+   "home_drop": "",
+   "frame": {
+    "frames": 6,
+    "sha256": "e6db0357339972f3e99695a4a78eada675c255ec4a9cc4bf9da2df82e2c176ed"
+   }
+  },
+  {
+   "case": "site-153-1080x1920",
+   "kind": "map",
+   "faults": [],
+   "home_drop": "",
+   "frame": {
+    "frames": 6,
+    "sha256": "7b0c74c6708f023ae6634900c62153892a08c2a44b41bec2e5116e5b477a121d"
+   }
+  },
+  {
+   "case": "site-153-1920x1080",
+   "kind": "map",
+   "faults": [],
+   "home_drop": "",
+   "frame": {
+    "frames": 6,
+    "sha256": "99e5f16cef4b1f3941a3cccb6f48e5914d6592d60d1f4a33509caf574a2ce594"
+   }
+  },
+  {
+   "case": "site-177-1080x1920",
+   "kind": "map",
+   "faults": [],
+   "home_drop": "",
+   "frame": {
+    "frames": 6,
+    "sha256": "cb86c0ad27e064e3deac61aa72f7dcca0fe32bd5c1c435b4c9a8b6d30d9a0b34"
+   }
+  },
+  {
+   "case": "site-177-1920x1080",
+   "kind": "map",
+   "faults": [],
+   "home_drop": "",
+   "frame": {
+    "frames": 6,
+    "sha256": "f9f75b57355c7363f1af3fadaff4cedbdbb697874436c2d4b6a0f4b44d024ff1"
+   }
+  },
+  {
+   "case": "site-181-1080x1920",
+   "kind": "map",
+   "faults": [],
+   "home_drop": "",
+   "frame": {
+    "frames": 6,
+    "sha256": "7079c499a6727f4de987a1f0e17e90c9663896a30ab4adff288412103dda4579"
+   }
+  },
+  {
+   "case": "site-181-1920x1080",
+   "kind": "map",
+   "faults": [],
+   "home_drop": "",
+   "frame": {
+    "frames": 6,
+    "sha256": "fe8f452060ecbafd1cdee2d7fba07034bb93b152157cefbcd215dc9380d93c53"
+   }
+  },
+  {
+   "case": "site-182-1080x1920",
+   "kind": "map",
+   "faults": [],
+   "home_drop": "",
+   "frame": {
+    "frames": 6,
+    "sha256": "c9b768b55a6b1ad1d7237635282503d8df3077400ebe5e80f1e55169ee412021"
+   }
+  },
+  {
+   "case": "site-182-1920x1080",
+   "kind": "map",
+   "faults": [],
+   "home_drop": "",
+   "frame": {
+    "frames": 6,
+    "sha256": "fb72c7567d75bbc8ae9448ce37d3107c437656d8bf5a4efd97411add851aef43"
+   }
+  },
+  {
+   "case": "site-188-1080x1920",
+   "kind": "map",
+   "faults": [],
+   "home_drop": "",
+   "frame": {
+    "frames": 6,
+    "sha256": "2dc27571ba1046bd7ede2dfa92182545e027794ff6e02dd0dae07779c5d30020"
+   }
+  },
+  {
+   "case": "site-188-1920x1080",
+   "kind": "map",
+   "faults": [],
+   "home_drop": "",
+   "frame": {
+    "frames": 6,
+    "sha256": "f414f8fbf33bc2d6787b3657f81001bb71b861b488e1dc65738c76731bc8a893"
+   }
+  },
+  {
+   "case": "site-189-1080x1920",
+   "kind": "map",
+   "faults": [],
+   "home_drop": "",
+   "frame": {
+    "frames": 6,
+    "sha256": "26fb281f1143f556e13b74056357bda13af4c8ba6606f7813627647510de2114"
+   }
+  },
+  {
+   "case": "site-189-1920x1080",
+   "kind": "map",
+   "faults": [],
+   "home_drop": "",
+   "frame": {
+    "frames": 6,
+    "sha256": "afb4ee1e8095bc0fbb9d4d75e83565c00904688705c62c5097eb194d9a160a1e"
+   }
+  },
+  {
+   "case": "site-191-1080x1920",
+   "kind": "map",
+   "faults": [],
+   "home_drop": "",
+   "frame": {
+    "frames": 6,
+    "sha256": "014b4563a5fcbc6d984121a294de59ddd0d6124262c6efc550b81f7a590c002b"
+   }
+  },
+  {
+   "case": "site-191-1920x1080",
+   "kind": "map",
+   "faults": [],
+   "home_drop": "",
+   "frame": {
+    "frames": 6,
+    "sha256": "cd02f9eed5b136bfe2bf9ce474f060e5fc9a26382e38a9069c6713e695a432bb"
+   }
+  },
+  {
+   "case": "site-197-1080x1920",
+   "kind": "map",
+   "faults": [],
+   "home_drop": "",
+   "frame": {
+    "frames": 6,
+    "sha256": "3c6a32ba9583f0971d4e49185985c1918cedcebcc994a1a3433b64eddd461f81"
+   }
+  },
+  {
+   "case": "site-197-1920x1080",
+   "kind": "map",
+   "faults": [],
+   "home_drop": "",
+   "frame": {
+    "frames": 6,
+    "sha256": "f9e40e8268db84900d9e8c79bdb1a237ffbcec429fd8350a94cf20a23a58dbc9"
+   }
+  },
+  {
+   "case": "site-199-1080x1920",
+   "kind": "map",
+   "faults": [],
+   "home_drop": "",
+   "frame": {
+    "frames": 6,
+    "sha256": "7c1bf84977f64ad07f9df8cefda281ad7c40e8acf8b104b4d20e305a129177a1"
+   }
+  },
+  {
+   "case": "site-199-1920x1080",
+   "kind": "map",
+   "faults": [],
+   "home_drop": "",
+   "frame": {
+    "frames": 6,
+    "sha256": "2cf394aa25a8ed2d1d289fefaa14629bd23c1fefb12e4b3dd726f5eba6a208ba"
+   }
+  },
+  {
+   "case": "site-200-1080x1920",
+   "kind": "map",
+   "faults": [],
+   "home_drop": "",
+   "frame": {
+    "frames": 6,
+    "sha256": "f1ceb7e475a7a453fdc8364ce2839b7259cea5bffc08dee8efc7bc52abd8ca12"
+   }
+  },
+  {
+   "case": "site-200-1920x1080",
+   "kind": "map",
+   "faults": [],
+   "home_drop": "",
+   "frame": {
+    "frames": 6,
+    "sha256": "8186ae1c7f2c8af3c96a19754c20eddd05310f4eef9a2716e957632fb9224ab5"
+   }
+  },
+  {
+   "case": "route-japan-1080x1920",
+   "kind": "route",
+   "faults": [],
+   "home_drop": "",
+   "frame": {
+    "frames": 6,
+    "sha256": "900a4abf459f3089153332a91fc194baeb83a867977ad0c2779ae2d58d8efefe"
+   }
+  },
+  {
+   "case": "route-japan-1920x1080",
+   "kind": "route",
+   "faults": [],
+   "home_drop": "",
+   "frame": {
+    "frames": 6,
+    "sha256": "0ad8e5d36c09bc13ecf31d5121b2131817f7602d7255a9b98358d9cad301fed3"
+   }
+  },
+  {
+   "case": "route-sweep_japan-1080x1920",
+   "kind": "route",
+   "faults": [],
+   "home_drop": "",
+   "frame": {
+    "frames": 6,
+    "sha256": "f86006f2ca17c220b5a1fcc1df98d3d4e4ae3d88432dbfd0651888818986da17"
+   }
+  },
+  {
+   "case": "route-sweep_japan-1920x1080",
+   "kind": "route",
+   "faults": [],
+   "home_drop": "",
+   "frame": {
+    "frames": 6,
+    "sha256": "c0403e2d28302477fc785a6a42def276459dad870229a0e984db4567708e7b9f"
+   }
+  },
+  {
+   "case": "route-sweep_china-1080x1920",
+   "kind": "route",
+   "faults": [],
+   "home_drop": "",
+   "frame": {
+    "frames": 6,
+    "sha256": "cca696deea2767d76b53cf682210d4842c2ef9abfcc4b99588f0bf99f5ca7d78"
+   }
+  },
+  {
+   "case": "route-sweep_china-1920x1080",
+   "kind": "route",
+   "faults": [],
+   "home_drop": "",
+   "frame": {
+    "frames": 6,
+    "sha256": "1c01529fe1d041f0a4398ac8c0fcb18908ee2024e32c58ead8cd05bd5269ae96"
+   }
+  },
+  {
+   "case": "route-sweep_caribbean_netherlands-1080x1920",
+   "kind": "route",
+   "faults": [],
+   "home_drop": "",
+   "frame": {
+    "frames": 6,
+    "sha256": "5bd8806cd1484f8ec55ab16e8fe16a01d459708db209db4e9268a00d2fa48dbe"
+   }
+  },
+  {
+   "case": "route-sweep_caribbean_netherlands-1920x1080",
+   "kind": "route",
+   "faults": [],
+   "home_drop": "",
+   "frame": {
+    "frames": 6,
+    "sha256": "f2bf37517fe67bc882348724784ae0096b7807e7cf3a5d166b39a195f3bd7843"
+   }
+  }
+ ]
+}

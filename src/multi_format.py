@@ -19,7 +19,8 @@ from typing import Any, Dict, List, Tuple
 from PIL import Image, ImageDraw
 
 from .config import VIDEO_WIDTH, VIDEO_HEIGHT
-from .typography import (balanced_wrap, cap_height, drawable, fit_font, fit_line, fit_text, cover_crop, get_font,
+from .font_engine import GlyphRefused, surface
+from .typography import (balanced_wrap, cap_height, drawable, field_font, fit_font, fit_line, fit_text, cover_crop, get_font,
                          is_video, plan_text, record_contrast, spoken_units, text_size, tracked_width, wrap_text)
 from . import brand
 
@@ -556,10 +557,21 @@ class MultiFormatGenerator:
         for i, (slide, name) in enumerate(zip(slides_data, names)):
             recipe = {"renderer": "multi_format.redraw_story_frame", "photo": str(photos[i]), "slide": slide,
                       "index": i, "count": len(slides_data), "poll": poll}
-            base, lay, attempts = still_layout.drawn(
-                lambda tight: self._render_story_frame(photos[i], slide, i, len(slides_data), poll, tight=tight))
-            layout.append({**lay.meta, "frame": name})
             path = out_dir / name
+            try:
+                with surface(f"Story frame {i + 1}"):
+                    base, lay, attempts = still_layout.drawn(
+                        lambda tight: self._render_story_frame(photos[i], slide, i, len(slides_data), poll, tight=tight))
+            except GlyphRefused as e:
+                # QF-94: a field on this frame (its copy, or its photo's credit) no bundled face can draw: the frame
+                # is refused, never drawn with a letter (or an author's name) missing. The run's glyph ledger
+                # carries the reason to the review card; the other frames go on.
+                log.warning("Story frame %s refused: %s", name, e.reason)
+                path.unlink(missing_ok=True)          # never a frame left over from an earlier render
+                layout.append({"frame": name, "refused": e.reason, "chars": e.missing, "scripts": e.scripts,
+                               "text": e.text})
+                continue
+            layout.append({**lay.meta, "frame": name})
             base.save(path, quality=95)
             _delivered_contrast(lay, path)
             still_layout.save(path, lay, recipe, attempts)
@@ -583,7 +595,7 @@ class MultiFormatGenerator:
         companion_manifest = {
             "story_frames": [p.name for p in slides],  # no story_poll_sticker: no frame keeps a room for one (QF-80)
             # What each frame credits on itself (Stories carry no caption; story_credit, 2026-10-29)
-            "story_credits": {e["frame"]: e["photo_credit"].get("lines", []) for e in layout},
+            "story_credits": {e["frame"]: e["photo_credit"].get("lines", []) for e in layout if "refused" not in e},
             "first_comment": first_comment,
             "platforms": {
                 "instagram_reels": {
@@ -646,7 +658,8 @@ class MultiFormatGenerator:
         c_fill = brand.STONE_LT
         if credit["required"]:
             for c_px in range(STORY_CREDIT_PX, STORY_CREDIT_MIN_PX - 1, -2):  # at most three lines, never under 22 px
-                font_c = get_font(brand.DATA_FONT, c_px, weight=500)
+                # the credit's lines in one face (QF-94): a fallback face for all of them when one needs it
+                font_c = field_font("\n".join(credit["lines"]), get_font(brand.DATA_FONT, c_px, weight=500))
                 c_drawn = [ln for line in credit["lines"] for ln in _credit_wrap(d, drawable(line, font_c), font_c, max_w)]
                 if len(c_drawn) <= STORY_CREDIT_LINES:
                     break
@@ -2580,6 +2593,8 @@ def platform_encode(im: Image.Image) -> Image.Image:
 def _font_family(font) -> str:
     """The bundled family a loaded font came from (for refitting it at another size)."""
     from .typography import FONT_FILES
+    if getattr(font, "_rr_family", None):      # a brand face, or a fallback face standing in for one (QF-94)
+        return font._rr_family
     base = Path(getattr(font, "path", "") or "").name
     return next((n for n, f in FONT_FILES.items() if f == base), "Montserrat")
 

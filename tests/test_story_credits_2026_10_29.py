@@ -177,8 +177,10 @@ def test_a_long_name_stays_within_three_lines_and_a_missing_glyph_is_reported(tm
     credit = lay.meta["photo_credit"]
     assert len(credit["drawn"]) <= 3 and credit["complete"] and lay.problems() == []
     cjk = _topic(tmp_path, dict(BY_SA, artist="山田太郎"), "cjk.jpg")
-    _, lay = MultiFormatGenerator()._render_story_frame(cjk, SLIDE, 1, 3, {})
-    assert lay.meta["photo_credit"]["complete"] is False                   # the release report then flags it
+    # QF-94: no bundled face draws the name, so the frame is refused with the reason, never drawn without its author
+    from src.font_engine import GlyphRefused
+    with pytest.raises(GlyphRefused, match="CJK"):
+        MultiFormatGenerator()._render_story_frame(cjk, SLIDE, 1, 3, {})
 
 
 def _payload():

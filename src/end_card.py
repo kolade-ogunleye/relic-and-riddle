@@ -213,7 +213,7 @@ def layout(share: str, width: int = WIDTH, height: int = HEIGHT) -> dict[str, An
     safe area's centred width and spread through its height. 16:9 (the YouTube end screen): the masthead top-left
     in title-safe, then the share line, left-aligned, all left of the end screen's video element and above its
     subscribe button (END_SCREEN_SLOTS); no follow line (the subscribe element asks)."""
-    from .typography import drawable
+    from .typography import drawable, field_font
     landscape = width > height
     words = drawable(share, "Montserrat").split() or ["…"]  # no emoji or missing-glyph boxes (2026-10-29)
     floor = None   # 16:9: the lowest the text column may reach (above the subscribe slot)
@@ -231,7 +231,8 @@ def layout(share: str, width: int = WIDTH, height: int = HEIGHT) -> dict[str, An
     share_font, lines = None, None
     for max_lines, sizes in plan:
         for size in sizes:
-            share_font = get_font("Montserrat", size, weight=SHARE_WEIGHT)
+            # the share line's words are planned one by one: all in the line's face (QF-94)
+            share_font = field_font(" ".join(words), get_font("Montserrat", size, weight=SHARE_WEIGHT))
             lines = _balanced(words, share_font, max_w, max_lines)
             if lines and floor is not None and top0 + len(lines) * round(size * 1.24) > floor:
                 lines = None   # it would run into the subscribe slot: fewer lines or a smaller size

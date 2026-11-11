@@ -2585,8 +2585,14 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
                 return audience_chart_text(db)
             from . import audience_chart
             from .config import OUTPUT_DIR
+            from .font_engine import GlyphRefused
             from .telegram_ui import with_nav
-            info = audience_chart.chart_for(db, Path(OUTPUT_DIR) / "audience_chart.png")
+            try:
+                info = audience_chart.chart_for(db, Path(OUTPUT_DIR) / "audience_chart.png")
+            except GlyphRefused as e:     # QF-94: a title no bundled face draws is never drawn short
+                chars, scripts = html.escape(" ".join(e.missing)), html.escape(", ".join(e.scripts))
+                return audience_chart_text(db, note=f"The chart could not draw {chars} ({scripts}); its figures are "
+                                                    "below.")
             if send_photo(Path(info["path"]), html.escape(info["caption"]), with_nav([], "canalytics:")):
                 return ""
             return audience_chart_text(db, note="The chart could not be sent; its figures are below.")

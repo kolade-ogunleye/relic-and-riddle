@@ -661,6 +661,7 @@ def write_contact_sheet(
     """Grid of the set's images with tile numbers and optional storyboard beat context."""
     from PIL import Image, ImageDraw
 
+    from .font_engine import GlyphRefused, plain_face
     from .typography import get_font
 
     ordered_items = sheet_order(topic_dir, images, storyboards)
@@ -702,7 +703,14 @@ def write_contact_sheet(
             banner_h = 42
             draw.rectangle([x + 4, y + cell_h - banner_h - 4, x + cell_w - 4, y + cell_h - 4], fill=(0, 0, 0))
             snippet = why if len(why) <= 52 else why[:49].rsplit(" ", 1)[0] + "…"
-            draw.text((x + 12, y + cell_h - banner_h // 2 - 4), snippet, font=font_text, fill=(241, 245, 249), anchor="lm")
+            try:
+                draw.text((x + 12, y + cell_h - banner_h // 2 - 4), snippet, font=font_text, fill=(241, 245, 249),
+                          anchor="lm")
+            except GlyphRefused:
+                # QF-94: an archive title no bundled face draws (a CJK or Arabic file name) on this operator sheet is
+                # drawn as before, its missing letters as visible .notdef boxes: never a failed sheet
+                draw.text((x + 12, y + cell_h - banner_h // 2 - 4), snippet, font=plain_face(font_text),
+                          fill=(241, 245, 249), anchor="lm")
 
     path = topic_dir / CONTACT_SHEET
     sheet.save(path, quality=85)

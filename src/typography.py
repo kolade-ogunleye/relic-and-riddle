@@ -14,7 +14,17 @@ from typing import Any, Dict, List, Optional, Tuple
 from PIL import Image, ImageDraw, ImageFont, ImageOps
 
 from .config import FONTS_DIR
-from .font_engine import FeaturedFont, draw_run, inspect_font, resolve_features, shape
+from .font_engine import (
+    FeaturedFont,
+    begin_field,
+    brand_font,
+    draw_run,
+    field_face,
+    inspect_font,
+    record_glyph_event,
+    resolve_features,
+    shape,
+)
 
 FONT_FILES = {"Anton": "Anton-Regular.ttf", "Montserrat": "Montserrat-Variable.ttf", "Cinzel": "Cinzel-Variable.ttf",
               "IBM Plex Mono": "IBMPlexMono-SemiBold.ttf"}
@@ -24,6 +34,13 @@ VARIABLE_WEIGHTS = {"Montserrat": 600, "Cinzel": 700}  # SemiBold labels; Bold d
 # so a count-up's digits hold their place, with a plain zero (JetBrains Mono's dotted one reads as code).
 STATIC_WEIGHTS = {"IBM Plex Mono": {500: "IBMPlexMono-Medium.ttf", 600: "IBMPlexMono-SemiBold.ttf"}}
 VIDEO_SUFFIXES = (".mp4", ".mov", ".mkv", ".webm")
+# Fallback faces (QF-94; operator ruling 2026-11-10): Noto subsets for Greek, Cyrillic and extended Latin (SIL OFL
+# 1.1, fonts/license_evidence.json, scripts/build_fallback_fonts.py). A field its family cannot draw whole is set
+# in the first of these that can (the family's own style first), matched to the family's weight, width and cap
+# height by measurement (font_engine.field_face); then the other brand faces; never a dropped letter.
+# FALLBACK_STYLE names a family's style when it is not sans (a brand change, QF-87, edits these two tables only).
+FALLBACK_FILES = {"sans": "NotoSans-LGC.ttf", "serif": "NotoSerif-LGC.ttf"}
+FALLBACK_STYLE = {"Cinzel": "serif"}
 
 
 def font_file(name: str, weight: Optional[int] = None) -> str:
@@ -37,7 +54,19 @@ def font_file(name: str, weight: Optional[int] = None) -> str:
 def bundled_font_files() -> List[str]:
     """Every font file a renderer may load (for checkpoints and the release's font-rights check)."""
     files = list(FONT_FILES.values()) + [f for weights in STATIC_WEIGHTS.values() for f in weights.values()]
-    return list(dict.fromkeys(files))
+    return list(dict.fromkeys(files + list(FALLBACK_FILES.values())))
+
+
+def fallback_files(name: str) -> list[str]:
+    """The faces a family's field may be set in when the family cannot draw it, in the order they are tried: the
+    Noto subset of its own style (FALLBACK_STYLE), the other Noto subset, then the other brand faces (the
+    ruling refuses a field only when no bundled face has its glyphs: Cinzel has no arrow, Montserrat has)."""
+    style = FALLBACK_STYLE.get(name, "sans")
+    own = {FONT_FILES.get(name), *STATIC_WEIGHTS.get(name, {}).values()}
+    noto = [FALLBACK_FILES[style]] + [f for k, f in FALLBACK_FILES.items() if k != style]
+    others = [f for f in bundled_font_files() if f not in own and f not in noto]
+    # a face with a weight axis first: its weight is matched to the family's (font_engine.fallback_match)
+    return noto + sorted(others, key=lambda f: not any(a[0] == "wght" for a in inspect_font(str(FONTS_DIR / f)).axes))
 
 
 @lru_cache(maxsize=96)
@@ -49,6 +78,8 @@ def get_font(name: str, size: int, fonts_dir: Path = FONTS_DIR, weight: Optional
     if not path.exists():
         raise FileNotFoundError(f"Required font missing: {path}")
     font = FeaturedFont(str(path), size)   # default OpenType features on every measure and mask (font_engine)
+    font._rr_family = name
+    font._rr_fallbacks = tuple(str(fonts_dir / f) for f in fallback_files(name) if (fonts_dir / f).is_file())
     if name in VARIABLE_WEIGHTS:
         # Variable fonts default to their lightest instance; pin a legible weight.
         axes = inspect_font(str(path)).axes
@@ -64,38 +95,42 @@ def get_font(name: str, size: int, fonts_dir: Path = FONTS_DIR, weight: Optional
     return font
 
 
-# No emoji in rendered art (the binding gates), and nothing the bundled font has no glyph for: Montserrat has
-# none for emoji or their variation selector, so a writer's emoji at the end of the carousel's closing line was
-# drawn as two empty boxes, "□□" (production carousel, 2026-10-29). Pictographs, dingbats, flags, the joiner and
-# the variation selectors are dropped wherever art text is fitted or drawn; any other character is kept only
-# when the font draws it with a glyph of its own rather than its missing-glyph box (.notdef).
+# No emoji in rendered art (the binding gates): Montserrat has none for emoji or their variation selector, so a
+# writer's emoji at the end of the carousel's closing line was drawn as two empty boxes, "□□" (production carousel,
+# 2026-10-29). Pictographs, dingbats, flags, the joiner and the variation selectors are removed wherever art text is
+# fitted or drawn (recorded). Every other character is kept (QF-94: removing the ones a face had no glyph for drew
+# "ΑΓΙΑ ΣΟΦΙΑ" as "Σ" in Anton): a field the face cannot draw whole is set in a fallback face, or refused.
 ART_EMOJI = _re_mod.compile("[\U0001F000-\U0001FAFF\u2600-\u27BF\u2B00-\u2BFF\u200D\uFE0E\uFE0F\u20E3]")
 
 
-@lru_cache(maxsize=4096)
-def _has_glyph(path: str, ch: str) -> bool:
-    return ord(ch) in inspect_font(path).coverage
-
-
 def drawable(text: str, font) -> str:
-    """`text` as the font can draw it and the gates allow: emoji and characters without a glyph in `font` (a
-    FreeTypeFont or a bundled family name) removed, and the spaces they leave tidied ("marvel 🌍." ->
-    "marvel."). Plain ASCII is returned as it is."""
+    """`text` as the gates allow it on art: emoji removed and the spaces they leave tidied ("marvel 🌍." ->
+    "marvel."), the removal recorded. Never a letter less (QF-94): the field is checked against `font` (a
+    FreeTypeFont or a bundled family name) and its fallback faces here, so a field set in a fallback face is
+    recorded whole before it is fitted, and one no bundled face can draw raises GlyphRefused (the card that
+    asked for it is refused with that reason). Plain ASCII is returned as it is."""
     if not text or text.isascii():
         return text or ""
     if isinstance(font, str):
         font = get_font(font, 40)
-    path = getattr(font, "path", None)
-    kept = []
-    for ch in ART_EMOJI.sub("", text):
-        if ch.isascii() or ch.isspace() or not path or _has_glyph(str(path), ch):
-            kept.append(ch)
-    out = "".join(kept)
-    if out == text:
-        return text
-    out = _re_mod.sub(r"[^\S\n]{2,}", " ", out)
-    out = _re_mod.sub(r"[^\S\n]+([.,!?;:…])", r"\1", out)
-    return out.strip()
+    out = ART_EMOJI.sub("", text)
+    if out != text:
+        out = _re_mod.sub(r"[^\S\n]{2,}", " ", out)
+        out = _re_mod.sub(r"[^\S\n]+([.,!?;:…])", r"\1", out).strip()
+        face = Path(str(getattr(font, "path", "") or "")).name
+        record_glyph_event("emoji_removed", text, face, "".join(dict.fromkeys(ART_EMOJI.findall(text))))
+    begin_field(out)      # what is fitted and drawn next are this field's parts: recorded with it, once
+    field_face(out, font)
+    return out
+
+
+def field_font(text: str, font):
+    """The face a whole field is drawn in (font_engine.field_face): `font`, or its matched fallback face when
+    `font` cannot draw every character of `text`. For a renderer that draws a field's lines or words one at a
+    time, so they all take the field's face. GlyphRefused when no bundled face can draw it."""
+    if isinstance(font, str):
+        font = get_font(font, 40)
+    return field_face(drawable(text, font), font)
 
 
 def text_size(draw: ImageDraw.ImageDraw, text: str, font: ImageFont.FreeTypeFont) -> Tuple[int, int]:
@@ -172,6 +207,8 @@ FIT_MIN_RATIO = 0.75   # a text block may shrink to three quarters of its design
 
 
 def _font_name(font: ImageFont.FreeTypeFont) -> Optional[str]:
+    if getattr(font, "_rr_family", None):
+        return font._rr_family
     base = Path(getattr(font, "path", "") or "").name
     return next((n for n, f in FONT_FILES.items() if f == base), None) or next(
         (n for n, files in STATIC_WEIGHTS.items() if base in files.values()), None)
@@ -184,6 +221,7 @@ def fit_lines(draw: ImageDraw.ImageDraw, text: str, font: ImageFont.FreeTypeFont
     The text shrinks (down to FIT_MIN_RATIO of its size) until it fits in max_lines; if it still does not,
     whole sentences are kept while they fit, so the frame ends on a full stop; if not even the first sentence
     fits, every line is kept (a longer block, never a fragment). Each outcome other than a plain fit is logged."""
+    font = brand_font(font)     # a field already set in a fallback face is refitted from its own face's sizes
     text = drawable(" ".join((text or "").split()), font)
     if not text:
         return [], font
@@ -191,13 +229,13 @@ def fit_lines(draw: ImageDraw.ImageDraw, text: str, font: ImageFont.FreeTypeFont
     ratio = FIT_MIN_RATIO if min_ratio is None else min_ratio  # 1.0: never smaller (Story body, 2026-10-25)
     sizes = [font.size] + ([s for s in range(font.size - 2, int(font.size * ratio) - 1, -2)] if name else [])
     for size in sizes:
-        f = font if size == font.size else get_font(name, size)
+        f = field_face(text, font if size == font.size else get_font(name, size))   # one face for the field
         lines = wrap_text(draw, text, f, max_width)
         if len(lines) <= max_lines:
             if size != font.size:
                 _log.info("Text set at %dpx instead of %dpx to fit %d lines: %.60s", size, font.size, max_lines, text)
             return (balanced_wrap(draw, text, f, max_width) if len(lines) > 1 else lines), f
-    f = font if len(sizes) == 1 else get_font(name, sizes[-1])
+    f = field_face(text, font if len(sizes) == 1 else get_font(name, sizes[-1]))
     sentences = _re.split(r"(?<=[.!?])\s+", text)
     kept: List[str] = []
     for sentence in sentences:
@@ -264,7 +302,7 @@ def fit_text(draw: ImageDraw.ImageDraw, text: str, name: str, size: int, max_wid
         return [], get_font(name, size, weight=weight), False
     font = None
     for s in list(range(size, min_size - 1, -2)) + ([min_size] if (size - min_size) % 2 else []):
-        font = get_font(name, s, weight=weight)
+        font = field_face(text, get_font(name, s, weight=weight))      # one face for the whole field (QF-94)
         lines, ok = _wrap_fits(draw, text, font, max_width, stroke)
         if ok and len(lines) <= max_lines:
             if s != size and not quiet:
@@ -536,6 +574,7 @@ class TextPlate:
     def __init__(self, text, font, fill, xy, anchor, track, stroke, stroke_fill, halo_px, shadow, size,
                  halo_pad=None, features=None):
         import numpy as np
+        font = field_face(text, font)      # a plate built straight from a brand font records the face it draws in
         self.text, self.font, self.fill, self.xy, self.anchor = text, font, tuple(fill[:3]), xy, anchor
         self.features = resolve_features(text, features)   # the run's features, resolved once for every pass
         self.track, self.stroke, self.stroke_fill, self.shadow = track, stroke, stroke_fill, shadow
@@ -652,9 +691,13 @@ class TextPlate:
 
     def record(self) -> Dict[str, Any]:
         """What the still's layout keeps about this element."""
-        return {"contrast": self.contrast, "contrast_unaided": self.contrast_unaided, "halo": self.halo,
-                "fill": list(self.fill), "font": Path(getattr(self.font, "path", "") or "").name,
-                "px": round(float(self.font.size), 1)}
+        rec = {"contrast": self.contrast, "contrast_unaided": self.contrast_unaided, "halo": self.halo,
+               "fill": list(self.fill), "font": Path(getattr(self.font, "path", "") or "").name,
+               "px": round(float(self.font.size), 1)}
+        if getattr(self.font, "_rr_fallback_for", None):   # set in a fallback face: the face it stands in for (QF-94)
+            rec["fallback_for"] = self.font._rr_fallback_for
+            rec["fallback_px"] = round(float(self.font._rr_px), 1)   # px: the size asked for; this: as drawn
+        return rec
 
 
 def plan_text(im: Image.Image, xy, text: str, font, fill, anchor: str = "la", track: float = 0, stroke: int = 0,
@@ -667,6 +710,7 @@ def plan_text(im: Image.Image, xy, text: str, font, fill, anchor: str = "la", tr
     `halo_pad`: opt-in crop pad for the whole halo (full_halo_pad; TextPlate)."""
     from .brand import INK, PLACE_TARGET
     text = drawable(text, font)
+    font = field_face(text, font)      # the plate records the face it is drawn in (QF-94)
     halo_px = halo_px if halo_px is not None else int(min(31, max(21, font.size // 3)))
     plate = TextPlate(text, font, fill, xy, anchor, track, stroke, stroke_fill if stroke_fill is not None else INK,
                       halo_px, shadow, im.size, halo_pad=halo_pad, features=features)

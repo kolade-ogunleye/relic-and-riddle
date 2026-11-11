@@ -936,9 +936,13 @@ class PipelineCoordinator:
                 # the documentary master grades its photos at bias 0 (compose_deep_dive), so do the graphics' photos
                 fut_graphics = pool.submit(graphics.make_all, payload, topic, graphics_dir, photo=hero_img, width=1920, height=1080, palette=doc_art,
                                            grade_bias=0.0)
-                fut_callouts = pool.submit(callouts.make, payload, topic, scene_media, graphics_dir, width=1920, height=1080,
-                                           words=words, auto_approve=auto_approve, grade_bias=0.0)
-                fut_then_now = pool.submit(then_now.make, topic, graphics_dir, width=1920, height=1080, grade_bias=0.0)
+                # each glyph event names what it was drawn on (QF-94)
+                from src.font_engine import on_surface
+                fut_callouts = pool.submit(on_surface, "photo callouts", callouts.make, payload, topic, scene_media,
+                                           graphics_dir, width=1920, height=1080, words=words,
+                                           auto_approve=auto_approve, grade_bias=0.0)
+                fut_then_now = pool.submit(on_surface, "graphic then/now", then_now.make, topic, graphics_dir,
+                                           width=1920, height=1080, grade_bias=0.0)
 
                 own_graphics = fut_graphics.result()
                 labelled = fut_callouts.result()
@@ -973,9 +977,12 @@ class PipelineCoordinator:
             # Thumbnails need only the hero photo and the cover copy, which nothing below changes,
             # so they are drawn while the documentary renders (one worker: the engine keeps per-call state).
             thumb_pool = concurrent.futures.ThreadPoolExecutor(max_workers=1, thread_name_prefix="deep-thumbs")
+            from src.font_engine import on_surface
             fut_thumbs = thumb_pool.submit(lambda: (
-                self.visual_engine.generate_thumbnails(hero_img, payload, run_dir, variants=False),
-                self.visual_engine.generate_youtube_thumbnail(hero_img, payload, run_dir / "thumbnail_youtube_16x9.jpg")))
+                on_surface("cover", self.visual_engine.generate_thumbnails, hero_img, payload, run_dir,
+                           variants=False),
+                on_surface("YouTube thumbnail", self.visual_engine.generate_youtube_thumbnail, hero_img, payload,
+                           run_dir / "thumbnail_youtube_16x9.jpg")))
             thumb_pool.shutdown(wait=False)
             step(4, "Rendering the documentary, preparing review")
             try:
@@ -3024,7 +3031,7 @@ class PipelineCoordinator:
 
         from src.checkpoints import Checkpoints, cached_artifacts, file_inputs
         from src.image_presentation import policy_inputs
-        from src.typography import FONT_FILES, FONTS_DIR
+        from src.typography import FALLBACK_FILES, FONT_FILES, FONTS_DIR
         packaging_inputs = {"presentation": policy_inputs([hero_img, *scene_media]),
                             "photos": file_inputs([hero_img, *scene_media]), "style": style,
                             "strong": sorted(getattr(self, "_strong_stems", None) or []),  # which may face out
@@ -3033,7 +3040,8 @@ class PipelineCoordinator:
                             "rules": file_inputs([Path("src/visual_engine.py"), Path("src/multi_format.py"),
                                                   Path("src/typography.py"), Path("src/config.py"), Path("src/safe_zones.py"),
                                                   Path("src/script_engine.py"), Path("src/still_layout.py")]),
-                            "fonts": file_inputs([FONTS_DIR / name for name in FONT_FILES.values()])}
+                            "fonts": file_inputs([FONTS_DIR / name for name in (*FONT_FILES.values(),
+                                                                                *FALLBACK_FILES.values())])}
         if getattr(self, "progress_msg_id", None):
             try:
                 self.telegram_bot.update_progress_card(self.progress_msg_id, 3, 5, topic["title"], run_id, "Synthesizing graphics, stills & motion")
@@ -3048,8 +3056,11 @@ class PipelineCoordinator:
         encoding.get_video_encoder()  # probe once before parallel renderers race to detect it under load
         t0 = time.perf_counter()
         with concurrent.futures.ThreadPoolExecutor(max_workers=8) as pool:
+            # each glyph event names what it was drawn on (QF-94)
+            from src.font_engine import on_surface
             fut_thumb = pool.submit(cached_artifacts, run_dir, "thumbnails", packaging_inputs,
-                                    lambda: self.visual_engine.generate_thumbnails(hero_img, payload, run_dir, style=style))
+                                    lambda: on_surface("cover", self.visual_engine.generate_thumbnails, hero_img,
+                                                       payload, run_dir, style=style))
             fut_story = pool.submit(cached_artifacts, run_dir, "stories", packaging_inputs,
                                     lambda: self.multiformat_gen.generate_story_sequence(hero_img, payload, run_dir, scene_images=strong_media))
             from src import art_direction
@@ -3064,16 +3075,19 @@ class PipelineCoordinator:
                     return make()
                 return run
             fut_carousel = pool.submit(cached_artifacts, run_dir, "carousel", packaging_inputs, _after_graphics(
-                lambda: self.multiformat_gen.generate_carousel_sequence(strong_media, payload, run_dir)))
+                lambda: on_surface("carousel", self.multiformat_gen.generate_carousel_sequence, strong_media,
+                                   payload, run_dir)))
             # Facebook's copy of the slides, without swipe cues (it shows a multi-photo post as a grid).
             fut_carousel_fb = pool.submit(cached_artifacts, run_dir, "carousel_fb", packaging_inputs, _after_graphics(
-                lambda: self.multiformat_gen.generate_carousel_sequence(strong_media, payload, run_dir, facebook=True)))
+                lambda: on_surface("Facebook carousel", self.multiformat_gen.generate_carousel_sequence,
+                                   strong_media, payload, run_dir, facebook=True)))
 
             fut_beats = pool.submit(beat_images.source, beats, topic, run_dir / "beat_images", plan=query_plan) if query_plan else None
             fut_footage = pool.submit(footage.source, beats, topic, run_dir / "footage", plan=query_plan) if query_plan else None
-            fut_callouts = pool.submit(callouts.make, payload, topic, scene_media, run_dir / "graphics", words=words,
+            fut_callouts = pool.submit(on_surface, "photo callouts",
+                                       callouts.make, payload, topic, scene_media, run_dir / "graphics", words=words,
                                        auto_approve=auto_approve)
-            fut_then_now = pool.submit(then_now.make, topic, run_dir / "graphics",
+            fut_then_now = pool.submit(on_surface, "graphic then/now", then_now.make, topic, run_dir / "graphics",
                                        grade_bias=float(art.get("grade_bias") or 0.0))   # the master's bias (QF-86)
 
             thumb_916, thumb_1x1 = fut_thumb.result()

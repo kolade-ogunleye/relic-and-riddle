@@ -40,6 +40,7 @@ from .typography import (
     TextPlate,
     cap_height,
     drawable,
+    field_font,
     fit_font,
     fit_lines,
     fit_text,
@@ -1898,12 +1899,13 @@ def marker_label_lines(text: str, width: int, height: int) -> tuple[list[str], F
     k = 1.0 if tall else min(width / 1920, height / 1080)
     measure = (MARKER_LABEL_MEASURE if tall else MARKER_LABEL_MEASURE_WIDE) * k
     px0 = round((MARKER_LABEL_PX if tall else MARKER_LABEL_PX_WIDE) * k)
+    shown = " ".join(text.split()).upper()
     for px in range(px0, max(8, round(MARKER_LABEL_MIN_PX * k)) - 1, -2):
-        font = get_font("Anton", px)
+        font = field_font(shown, get_font("Anton", px))            # the name's rows in one face (QF-94)
         lines = route_name_lines(text, font, measure, MARKER_LABEL_ROWS)
         if lines is not None:
             return lines, font
-    font = get_font("Anton", max(8, round(MARKER_LABEL_MIN_PX * k)))
+    font = field_font(shown, get_font("Anton", max(8, round(MARKER_LABEL_MIN_PX * k))))
     return fit_lines(ImageDraw.Draw(Image.new("L", (8, 8))), text.upper(), font, measure)[:MARKER_LABEL_ROWS], font
 
 
@@ -4961,9 +4963,9 @@ def fit_tracked(probe: ImageDraw.ImageDraw, text: str, name: str, px: int, width
     if not text:
         return [], get_font(name, px, weight=weight), False
     sizes = list(range(px, lo - 1, -2)) + ([lo] if (px - lo) % 2 else [])
-    font = get_font(name, px, weight=weight)
+    font = field_font(text, get_font(name, px, weight=weight))
     for s in sizes or [px]:
-        font = get_font(name, s, weight=weight)
+        font = field_font(text, get_font(name, s, weight=weight))     # the label's lines in one face (QF-94)
         lines = tracked_wrap(text, font, width, track)
         if lines is not None and len(lines) <= rows:
             if s != px and not quiet:
@@ -4999,7 +5001,7 @@ def fit_tracked(probe: ImageDraw.ImageDraw, text: str, name: str, px: int, width
         s = font.size
         while s > 8 and _tracked_w(first, font, track) > width:
             s -= 2
-            font = get_font(name, s, weight=weight)
+            font = field_font(text, get_font(name, s, weight=weight))
         best = [first]
         if not quiet:
                 log.warning("Text set at %d px, under its %d px floor, so its first word is not broken: %.60s", s, lo,
@@ -10140,6 +10142,7 @@ def render_route(stops: list[dict[str, Any]], out: Path, width: int = VIDEO_WIDT
         unnamed, every step down to ROUTE_NAME_MIN_PX (ranked after the larger), with finer steps and a ring of
         places all round the stop."""
         found = []
+        shown_label = " ".join(label.split()).upper()      # as route_name_lines sets it
         reach_px = ROUTE_FAR_REACH if further or last else 160
         measures = [(label_w, ml, 0) for ml in (2, 3)]
         if (further or last) and len(label.split()) > 1:
@@ -10150,7 +10153,7 @@ def render_route(stops: list[dict[str, Any]], out: Path, width: int = VIDEO_WIDT
         fine = 2 if last else 1                   # review 9: the last pass steps half as far between places
         settings = []
         for px in ROUTE_NAME_STEPS:
-            f_px = f_lab if px == f_lab.size else get_font("Montserrat", px, weight=800)
+            f_px = field_font(shown_label, f_lab if px == f_lab.size else get_font("Montserrat", px, weight=800))
             for group in (measures, wide):
                 if settings and not last:
                     break
@@ -10815,8 +10818,11 @@ def make_all(payload: dict[str, Any], topic: dict[str, Any], work_dir: Path, pho
         try:
             if checkpoint.reusable("graphic", inputs):
                 return Path(next(iter(checkpoint.read()["graphic"]["outputs"])))
+            from .font_engine import surface
             from .photo_grade import using
-            with using(bias):   # set in the worker thread that draws this graphic
+            # set in the worker thread that draws this graphic: its photos' grade (QF-86) and its glyph events'
+            # surface (QF-94), two independent thread-local values, each restored on exit
+            with using(bias), surface(f"graphic {name}"):
                 result = job()
             # Maps incorporate external relief/geodata and require their own source
             # registry. Only these builders are entirely drawn by this module.

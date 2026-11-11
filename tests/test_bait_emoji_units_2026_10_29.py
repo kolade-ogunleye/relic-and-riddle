@@ -78,7 +78,7 @@ def test_emoji_and_characters_the_font_cannot_draw_are_removed():
     assert drawable("A marvel 🌍.", "Montserrat") == "A marvel."
     assert drawable("✨Wow✨ it works", "Anton") == "Wow it works"
     assert drawable("Café — 1°C → ½", "Montserrat") == "Café — 1°C → ½"           # real glyphs are kept
-    assert drawable("Café → ½", "Cinzel") == "Café ½"                             # Cinzel has no arrow
+    assert drawable("Café → ½", "Cinzel") == "Café → ½"     # Cinzel has no arrow: set in a face that has (QF-94)
     assert drawable("Plain ASCII, kept as it is.", "Montserrat") == "Plain ASCII, kept as it is."
     d = ImageDraw.Draw(Image.new("RGB", (8, 8)))
     lines, _, _ = fit_text(d, "Earth from orbit 🚀🌍", "Montserrat", 40, 900, 2, 30)

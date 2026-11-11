@@ -1182,6 +1182,8 @@ class QualityAuditor:
             from . import safe_zones
             try:
                 for entry in json.loads(layout_file.read_text(encoding="utf-8")):
+                    if entry.get("refused"):     # a frame refused, not drawn (QF-94): its reason is on the review card
+                        continue
                     w, h = entry.get("size") or (1080, 1920)
                     drawn, source = entry.get("body_drawn"), entry.get("body_source")
                     if source and drawn is not None and (drawn != source or not drawn.rstrip().endswith((".", "!", "?", "’", '"'))):

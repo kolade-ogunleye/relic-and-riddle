@@ -1303,8 +1303,31 @@ def unkerned_length(font: Any, text: str) -> float:
     draws). QF-21: the whole run is shaped once with the features libass draws it with (font_engine.LIBASS_FEATURES:
     no kern, no optional ligatures, no case forms) instead of summing single letters, so a combining mark stays on
     its letter."""
-    from .font_engine import LIBASS_FEATURES, shape
-    return shape(text, font, features=LIBASS_FEATURES).advance
+    from .font_engine import LIBASS_FEATURES, choose_face, shape, shape_in_face
+    face = choose_face(text, font)
+    if face is None:
+        # QF-94: a caption word no bundled face draws (an Arabic name in the narration) never stops the render.
+        # libass draws the captions and takes a system face for such characters, as before QF-94; the word is
+        # measured in the caption face as it stands (missing-glyph advances). A measure records nothing (the
+        # caption measures are cached across runs): build_subtitles records the word (_record_caption_faces).
+        return shape_in_face(text, font, features=LIBASS_FEATURES).advance
+    return shape(text, face, features=LIBASS_FEATURES).advance
+
+
+def _record_caption_faces(words: list[Any], font_name: str, upper: bool) -> None:
+    """Each caption word no bundled face draws, recorded once per run on the surface "captions" (QF-94) for the
+    review card: libass draws it in a system face, and the measures (unkerned_length, _glyph_box) take it in the
+    caption face itself, never refusing it. Recorded here, once per build, because those measures are cached."""
+    from .font_engine import choose_face, missing_glyphs, record_glyph_event, surface
+    from .typography import get_font
+    font = get_font(font_name, _LIBASS_REF_PX)
+    with surface("captions"):
+        for w in words:
+            word = w.get("word", "") if isinstance(w, dict) else str(w)
+            text = _ass_escape(str(word)).strip()
+            text = text.upper() if upper else text
+            if text and choose_face(text, font) is None:
+                record_glyph_event("caption_system_face", text, Path(str(font.path)).name, missing_glyphs(text, font))
 
 
 def _reel_ass_size(size: float) -> float:
@@ -1314,10 +1337,17 @@ def _reel_ass_size(size: float) -> float:
 
 @lru_cache(maxsize=512)
 def _glyph_box(ch: str) -> tuple[int, int, int, int] | None:
-    """The ink box of one caption glyph at _LIBASS_REF_PX (cached: rendering it is the measure's slow part)."""
-    from .font_engine import LIBASS_FEATURES
+    """The ink box of one caption glyph at _LIBASS_REF_PX (cached: rendering it is the measure's slow part).
+    Boxed in the face unkerned_length measures it in (QF-94): the caption face, or the bundled fallback face that
+    draws it; a glyph no bundled face draws in the caption face itself (its missing-glyph box, as before QF-94),
+    never refused: libass draws it in a system face (recorded by _record_caption_faces)."""
+    from .font_engine import LIBASS_FEATURES, choose_face, plain_face
     from .typography import get_font
-    return get_font(FONT_NAME, _LIBASS_REF_PX).getmask(ch, features=list(LIBASS_FEATURES)).getbbox()
+    font = get_font(FONT_NAME, _LIBASS_REF_PX)
+    face = choose_face(ch, font)
+    if face is None:
+        return plain_face(font).getmask(ch, features=list(LIBASS_FEATURES)).getbbox()
+    return face.getmask(ch, features=list(LIBASS_FEATURES)).getbbox()
 
 
 @lru_cache(maxsize=8192)
@@ -3718,6 +3748,8 @@ class VideoComposer:
         """
         from .typography import get_font
         is_widescreen = width > height
+        # QF-94: a word no bundled face draws is on the review card under "captions" (libass draws it)
+        _record_caption_faces(words, CAPTION_WIDE_FONT if is_widescreen else FONT_NAME, upper=not is_widescreen)
         if is_widescreen:
             eff_margin_v = margin_v if margin_v is not None else round(CAPTION_WIDE_MARGIN_V * height / 1080)
         else:
@@ -4146,9 +4178,11 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         width, height = profile.width, profile.height
         from .checkpoints import file_inputs, fingerprint
         from .credits import sha256_file
-        from .typography import FONT_FILES
+        from .typography import FALLBACK_FILES, FONT_FILES
         source_inputs = file_inputs([*scene_images, vo_path, bed_path])
-        font_inputs = file_inputs([self.fonts_dir / filename for filename in FONT_FILES.values()])
+        # the fallback faces a still may set a field in (QF-94) are sources too, with their licence evidence
+        font_inputs = file_inputs([self.fonts_dir / filename for filename in FONT_FILES.values()]
+                                  + [self.fonts_dir / f for f in FALLBACK_FILES.values() if (self.fonts_dir / f).is_file()])
         if not all(source_inputs.values()) or not all(font_inputs.values()):
             raise RenderError("Render sources and bundled fonts must exist")
 
@@ -4372,9 +4406,11 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                                      closing_transition=fades[-1] if fades else 0.0,
                                      opening_transition=fades[0] if fades else 0.0)
                 motion = {**motion, **seam_from_cameras(motions, n)}   # what the cameras really did
-                self.last_end_card = self._render_with_loop_bridge(head, delivery_args, end_card, vo_dur,
-                                                                   output_mp4_path, motion,
-                                                                   target_lufs=profile.target_lufs)
+                from .font_engine import surface
+                with surface("end card"):
+                    self.last_end_card = self._render_with_loop_bridge(head, delivery_args, end_card, vo_dur,
+                                                                       output_mp4_path, motion,
+                                                                       target_lufs=profile.target_lufs)
                 self.last_end_card["level"] = card_level
         finally:
             shutil.rmtree(camera_dir, ignore_errors=True)

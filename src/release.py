@@ -189,6 +189,9 @@ def write_release_report(run, dry_run=False):
     stories = story_credit_problems(master.parent)
     if stories is not None:
         add("story_credits", not stories, stories or "Every Story frame credits its photo as its licence asks.")
+    refused_frames = story_refusals(master.parent)
+    if refused_frames:   # QF-94: shown and decided by the operator, never a silent short Story
+        add("story_frames", False, refused_frames, review=True)
     status ="fail" if any(c["status"] == "fail" for c in checks) else (
         "needs_review" if any(c["status"] == "needs_review" for c in checks) else "pass")
     # 1.1: the report carries the picture measurement (QF-10); a 1.0 report was written by the gate before it.
@@ -315,6 +318,28 @@ def story_credit_problems(run_dir: Path):
         return None
     from .multi_format import story_credit_report
     return [_plain_story_problem(p) for p in story_credit_report(frames)["problems"]]
+
+
+def story_refusals(run_dir: Path) -> list:
+    """The Story frames refused because a field on them (their copy, or their photo's credit) has characters no
+    bundled face draws (QF-94), in the operator's words: which frame, what it could not draw, and that the Story
+    would post short. [] when none was refused."""
+    try:
+        layout = json.loads((Path(run_dir) / "stories" / "layout.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return []
+    entries = [e for e in layout if isinstance(e, dict)] if isinstance(layout, list) else []
+    refused = [e for e in entries if e.get("refused")]
+    drawn = len(story_frames(run_dir))
+    out = []
+    for e in refused:
+        frame = re.sub(r"^story_0*(\d+)\w*\.jpg$", lambda m: f"Story frame {int(m.group(1))}", str(e.get("frame")))
+        chars = " ".join(str(e.get("chars") or ""))
+        scripts = ", ".join(e.get("scripts") or [])
+        text = " / ".join(" ".join(line.split()) for line in str(e.get("text") or "").splitlines() if line.strip())
+        out.append(f"{frame} not drawn: no bundled face draws {chars} ({scripts}) in \u201c{text}\u201d; the Story "
+                   f"would post {drawn} of {len(entries)} frames")
+    return out
 
 
 def blocking_checks(report, dry_run=False):

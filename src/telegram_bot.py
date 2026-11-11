@@ -289,6 +289,62 @@ def design_card_notes(run_dir: Path) -> List[str]:
     return out
 
 
+def _refusal_effect(where: str) -> str:
+    """What a refused field costs on its surface, in the operator's words."""
+    if where.startswith("Story frame"):
+        return "so the frame is left out and the Story posts short"
+    if where.startswith("graphic") or where == "photo callouts":
+        return "so the graphic is left out of the video"
+    if where.startswith("design card"):
+        return "so the card is left out"
+    return "so that render stopped"
+
+
+def glyph_notes(run_dir: Path) -> list[str]:
+    """The run's lettering notes (QF-94), from its glyph ledger (font_engine.LEDGER_NAME), each naming the surface it
+    was drawn on: a field set in a fallback face because its face has no glyph for some of its characters; a field
+    no bundled face can draw, and what that cost (a Story frame not drawn, a graphic left out); a caption word libass
+    draws in a system face; and one count of the fields an emoji was removed from. A part of a field (a line, a word,
+    a fitting trial: `part_of`) is shown with its field, not on its own line."""
+    from .font_engine import LEDGER_NAME
+    out: list[str] = []
+    seen: set[tuple] = set()
+    emoji: set[str] = set()
+    try:
+        lines = (Path(run_dir) / LEDGER_NAME).read_text(encoding="utf-8").splitlines()
+    except (OSError, ValueError):
+        return out
+    for line in lines:
+        try:
+            ev = json.loads(line)
+            kind, face = ev["kind"], str(ev["face"])
+            # a field's lines (a credit's licence line and its "This frame" line) joined as the field reads
+            text = " / ".join(" ".join(line.split()) for line in str(ev["text"]).splitlines() if line.strip())
+            chars, scripts = " ".join(str(ev.get("chars") or "")), ", ".join(ev.get("scripts") or [])
+            where = str(ev.get("where") or "an image (surface not named)")
+        except (ValueError, KeyError, TypeError, AttributeError):
+            continue
+        if kind == "emoji_removed":
+            emoji.add(text)
+            continue
+        key = (kind, text, face, ev.get("fallback"), where)
+        if ev.get("part_of") or key in seen:
+            continue
+        seen.add(key)
+        head = where[0].upper() + where[1:]
+        if kind == "fallback":
+            out.append(f"{head}: \u201c{text}\u201d set in {ev.get('fallback')} ({face} has no {chars}, {scripts})")
+        elif kind == "refused":
+            out.append(f"{head}: \u201c{text}\u201d not drawn, {_refusal_effect(where)}: no bundled face draws "
+                       f"{chars} ({scripts})")
+        elif kind == "caption_system_face":
+            out.append(f"{head}: \u201c{text}\u201d has {chars} ({scripts}), which no bundled face draws; libass "
+                       "draws them in a system face")
+    if emoji:
+        out.append(f"Emoji removed from {len(emoji)} field(s) (no emoji in art)")
+    return out
+
+
 def detail_messages(full_card: str, limit: int = CARD_PAGE_LIMIT) -> List[str]:
     """The card's lists whole, for the message under a card whose lists were shortened: each section with an
     expandable blockquote, in order, packed into as few messages as Telegram's limit allows (a section longer
@@ -1676,6 +1732,10 @@ class TelegramApprovalBot:
                       and r_dir.is_dir() else [])
         if card_notes:     # freeze panel M12 (3): e.g. a myth card whose correction drops every specific
             text += "\n" + listed(f"🃏 Design cards: {len(card_notes)} note(s)", [e(x) for x in card_notes], cap) + "\n"
+        type_notes = (glyph_notes(r_dir) if r_dir is not None and r_dir.parent == Path(OUTPUT_DIR).resolve()
+                      and r_dir.is_dir() else [])
+        if type_notes:     # QF-94: a field set in a fallback face, or refused, is never silent
+            text += "\n" + listed(f"🔤 Lettering: {len(type_notes)} note(s)", [e(x) for x in type_notes], cap) + "\n"
         if sources:
             text += "\n📚 " + "\n📚 ".join(e(s.get("url", "")) for s in sources) + "\n"
         full = text + f"\n<i>Run ID (for the command line):</i> <code>{e(run_id)}</code>"  # code: Telegram linked the digits

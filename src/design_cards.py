@@ -874,10 +874,16 @@ def source_host(fact: dict) -> str | None:
 
 
 def _glyphs_ok(t: str, face: str, weight: int | None) -> None:
+    """Every character of `t` drawn: in `face` or a bundled fallback face (QF-94); CardRefused when an emoji would
+    be removed or no bundled face can draw a character (its reason on the card's record)."""
+    from .font_engine import GlyphRefused
     font = get_font(face, 40, weight=weight)
     for s in (t, t.upper()) if face == "Anton" else (t,):
-        if drawable(s, font) != s:
-            raise CardRefused(f"{face} cannot draw every glyph of {t!r}")
+        try:
+            if drawable(s, font) != s:
+                raise CardRefused(f"{face} cannot draw every glyph of {t!r}")
+        except GlyphRefused as e:
+            raise CardRefused(e.reason, code=e.code) from e
 
 
 def _src_parts(sheet: dict, fact_ids: Sequence[str]) -> tuple[list[dict], list[str]]:
@@ -4352,10 +4358,15 @@ def _check_out(out: Path, kind: str) -> Path:
 def _render(kind: str, planner: Callable[..., CardPlan], spec, sheet, out: Path, width: int, height: int,
             payload: Mapping[str, Any] | None = None):
     out = _check_out(out, kind)
+    from .font_engine import GlyphRefused, surface
     try:
-        return _emit_graphic(planner(spec, sheet, width, height, payload=payload), out)
+        with surface(f"design card {kind}"):
+            return _emit_graphic(planner(spec, sheet, width, height, payload=payload), out)
     except CardRefused as e:
         _refuse(kind, out, e)
+        return None
+    except GlyphRefused as e:     # a field no bundled face can draw (QF-94): the card refused with that reason
+        _refuse(kind, out, CardRefused(e.reason, code=e.code))
         return None
 
 

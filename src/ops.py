@@ -367,6 +367,8 @@ class RunLog:
         root.addHandler(handler)
         self.handler = handler
         _run_dir_for_evidence = self.run_dir
+        from .font_engine import LEDGER_NAME, set_glyph_ledger
+        set_glyph_ledger(self.run_dir / LEDGER_NAME)   # fallback faces and refused fields, for the review card (QF-94)
         return self
 
     def stop(self) -> None:
@@ -381,6 +383,8 @@ class RunLog:
         self.handler, self._restore = None, []
         if _run_dir_for_evidence == self.run_dir:
             _run_dir_for_evidence = None
+            from .font_engine import set_glyph_ledger
+            set_glyph_ledger(None)
 
 
 def record_llm_call(task: str, model: str, seconds: float, tokens_in: int = 0, tokens_out: int = 0,

@@ -176,9 +176,15 @@ _PROBE_PX = 200
 
 
 def scripts_of(chars: str) -> list[str]:
-    """The Unicode scripts (the first word of each character's name: Greek, Cyrillic, Arabic...) of `chars`."""
-    names = (unicodedata.name(ch, f"U+{ord(ch):04X}").split(" ")[0] for ch in chars)
-    return sorted({n if len(n) <= 3 else n.title() for n in names})
+    """The Unicode scripts (the first word of each character's name: Greek, Cyrillic, Arabic...) of `chars`; a
+    pictographic symbol is "emoji" (its name's first word, "Fire", says nothing of its script)."""
+    names = ("emoji" if _pictograph(ch) else unicodedata.name(ch, f"U+{ord(ch):04X}").split(" ")[0] for ch in chars)
+    return sorted({n if len(n) <= 3 or n == "emoji" else n.title() for n in names})
+
+
+def _pictograph(ch: str) -> bool:
+    cp = ord(ch)
+    return unicodedata.category(ch) == "So" and (cp >= 0x1F000 or 0x2600 <= cp <= 0x27BF)
 
 
 class GlyphRefused(ValueError):

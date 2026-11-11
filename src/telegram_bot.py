@@ -327,7 +327,10 @@ def glyph_notes(run_dir: Path) -> list[str]:
         if kind == "emoji_removed":
             emoji.add(text)
             continue
-        key = (kind, text, face, ev.get("fallback"), where)
+        # a caption word is listed once whichever caption face measured it (9:16 Anton, upper-cased; 16:9
+        # Montserrat): the note does not name the face (QF-94b)
+        key = ((kind, text.casefold(), where) if kind == "caption_system_face"
+               else (kind, text, face, ev.get("fallback"), where))
         if ev.get("part_of") or key in seen:
             continue
         seen.add(key)

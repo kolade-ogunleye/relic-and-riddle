@@ -374,6 +374,48 @@ def test_the_contact_sheet_draws_an_archive_title_no_bundled_face_draws(tmp_path
     assert path.is_file()
 
 
+def test_a_contact_sheet_inside_a_run_records_no_false_refusal(tmp_path):
+    """Review 3, finding 2 (QF-94b): photo screening redraws the sheet inside the run's RunLog. Its banner was first
+    drawn through the fallback lookup, which recorded a refusal ("not drawn, so that render stopped") before the
+    plain face drew it: a false note on the review card. The banner is now drawn in the plain face directly."""
+    from src.credits import write_contact_sheet
+    from src.telegram_bot import glyph_notes
+    Image.new("RGB", (400, 300), (90, 80, 70)).save(tmp_path / "a.jpg")
+    Image.new("RGB", (400, 300), (90, 80, 70)).save(tmp_path / "b.jpg")
+    images = [{"file": "a.jpg", "title": "File:ابن الهيثم 1958.jpg"},
+              {"file": "b.jpg", "title": "File:x.jpg", "vision_review": {"reason": "shows 東京 tower at night"}}]
+    FE.set_glyph_ledger(tmp_path / FE.LEDGER_NAME)
+    try:
+        path = write_contact_sheet(tmp_path, images)
+    finally:
+        FE.set_glyph_ledger(None)
+    assert path.is_file()
+    assert _events(tmp_path / FE.LEDGER_NAME) == [] and glyph_notes(tmp_path) == []
+
+
+def test_a_caption_word_built_in_both_formats_is_one_card_line(tmp_path):
+    """Review 3, finding 4 (QF-94b): one run building 9:16 (Anton, upper-cased) and 16:9 (Montserrat) captions
+    records the word in each face; the card, which does not name the face, lists it once."""
+    from src.telegram_bot import glyph_notes
+    from src.video_composer import VideoComposer
+    words = [{"word": w, "start": 0.1 + 0.4 * k, "dur": 0.3} for k, w in enumerate(["THE", "東京x", "TOWER"])]
+    FE.set_glyph_ledger(tmp_path / FE.LEDGER_NAME)
+    try:
+        VideoComposer().build_subtitles(words, tmp_path / "v.ass", width=1080, height=1920)
+        VideoComposer().build_subtitles(words, tmp_path / "w.ass", width=1920, height=1080)
+    finally:
+        FE.set_glyph_ledger(None)
+    assert len(_events(tmp_path / FE.LEDGER_NAME)) == 2           # the ledger keeps each face's event
+    assert glyph_notes(tmp_path) == [("Captions: “東京X” has 東 京 (CJK), which no bundled face draws; libass draws "
+                                      "them in a system face")]
+
+
+def test_an_emoji_is_labelled_emoji_not_by_its_name():
+    """Review 3, finding 6 (QF-94b): "🔥" was labelled "(Fire)", the first word of its Unicode name."""
+    assert FE.scripts_of("🔥") == ["emoji"] and FE.scripts_of("✨東") == ["CJK", "emoji"]
+    assert FE.scripts_of("ابن") == ["Arabic"] and FE.scripts_of("→") == ["Rightwards"]
+
+
 def test_the_audience_chart_falls_back_to_text_on_a_title_no_face_draws(db, tmp_path, monkeypatch):
     """/analytics chart: a title no bundled face draws makes the chart refuse; its figures come as text, saying why."""
     from src import audience_chart, config

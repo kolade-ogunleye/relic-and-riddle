@@ -85,7 +85,9 @@ glyph, with a reason the review card shows.
   (`_record_caption_faces`), and the card says libass draws it in a system face.
 - **Operator sheets.** The fallback lookup is on every bundled font, so two operator-only images that are not art
   would have raised too: the photo contact sheet now draws an archive title no bundled face draws as before (its
-  missing letters as visible .notdef boxes, `plain_face`), and `/analytics chart` sends its figures as text with "The
+  missing letters as visible .notdef boxes), in `plain_face` directly, so no refusal is recorded on the run's
+  review card during photo screening (QF-94b: round 3 drew through the fallback lookup first, which recorded a false
+  "not drawn, so that render stopped" before falling back), and `/analytics chart` sends its figures as text with "The
   chart could not draw … (script); its figures are below." instead of failing.
 - The fallback faces are recorded as sources: the composer's composition manifest (so the release's `font_rights`
   check and the provenance's resource evidence cover them), the stills' packaging cache inputs and the graphics jobs'
@@ -199,12 +201,33 @@ no bundled face draws CJK, so the frame is now refused with `GlyphRefused` (reas
   face can draw stops that stage with the GlyphRefused reason (the run's failure card shows it), as any other
   render error does. Their fields are the gate-passed English copy; real data has none in Arabic.
 - QF-87's acceptance "fonts/ lists only FONT_FILES entries" must count `FALLBACK_FILES` too.
-- Captions with a character the caption face lacks are an estimate, on the base and here, because libass picks the
-  face. Measured against libass renders (synthetic words, ffmpeg 8.1): an Arabic word is 8 px over the measure on
-  both trees, inside the 28 px plate pad. Greek is 52 px over the measure on both trees, but the ink is about 100 px
-  wider than on the base: with `fonts/NotoSans-LGC.ttf` in the captions' fontsdir, libass now draws Greek and Cyrillic
-  in Noto Sans instead of a system face. Real narrations have no character Anton lacks (review 1, finding 5), so no
-  real Reel changes.
+- **Greek and Cyrillic captions run past their plate (QF-94b, measured).** libass draws the captions, and for a
+  glyph the caption face lacks it takes a system face, not the bundled Noto: ffmpeg's font-selection log shows
+  `fontselect: (Anton, 700, 0) -> Arial-BoldMT` (16:9: `(Montserrat, 700, 0) -> Arial-BoldMT`) on the base and on
+  this commit alike, so the drawn ink is identical on both trees, to the pixel. What changed is the plate: it is
+  sized from the measure, which now takes Greek in the matched Noto (wider than Anton's .notdef boxes), so it is
+  closer to Arial's ink but still short of it. Ink past the plate on each side, from real libass renders on a red
+  ground (synthetic words; `caption_plate_overflow.py <repo root>`, its output for each tree in
+  caption_overflow_before.json and caption_overflow_after.json):
+
+  | 9:16 caption | base: plate w / ink past it, left / right | this commit: plate w / ink past it, left / right |
+  |---|---|---|
+  | Αθήνα wrote | 413 / 96 / 95 | 515 / 44 / 45 |
+  | Αγία Σοφία | 379 / 123 / 121 | 503 / 60 / 60 |
+  | Москва 1941 | 414 / 100 / 107 | 509 / 54 / 58 |
+  | Γνώθι σαυτόν | 440 / 154 / 155 | 583 / 83 / 83 |
+  | the Παρθενών temple | 646 / 148 / 148 (ink x 69-1011) | 648 / 65 / 64 (ink x 151-928) |
+  | Κωνσταντινούπολη | 593 / 242 / 242 (ink x 2-1079: the frame's edge) | 688 / 107 / 108 (ink x 89-992) |
+  | Counterrevolutionaries (control) | 690 / -28 / -27 (the pad, inside) | the same |
+  | Ibn ابن wrote | 440 / -25 / -23 (inside) | the same |
+
+  On 9:16 the overflow is 95-242 px a side on the base and 44-108 here, about half. In the two lines where the
+  ink x range changes, the plate's size also changed the burst's fit size, so the same Arial glyphs are drawn
+  smaller. On 16:9 (Montserrat, which has Cyrillic) the Greek ink runs 4-48 px past the plate a side on both
+  trees, within 4 px of each other. The Arabic caption stays inside its plate on both. Real narrations have no
+  character Anton lacks (review 1, finding 5), so no real Reel changes. Setting the matched face in libass (a `\fn`
+  override on such runs, or measuring in the face libass selects) so that the plate covers the ink is a row of
+  its own.
 - The ledger follows the run through `ops.RunLog` (as run.log does): a render started from Telegram outside a run (a
   cover redraw) is logged, not written to a run's ledger.
 - `graphics.marker_label_lines` slices fit_lines' `(lines, font)` tuple on its last-resort path (there on the base;

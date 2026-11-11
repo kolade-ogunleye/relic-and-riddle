@@ -771,6 +771,9 @@ def status_text(db: PipelineDatabase, next_run: Optional[str], voice_quota: Opti
                      else "• Issues: ✅ none open" + (f" · {fixed} fixed" if fixed else ""))
     except Exception as exc:
         log.debug("Issue counts unavailable: %s", exc)
+    from . import backup_health
+    if backup_health.monitored():  # last snapshot / last drill / hourly copy, from the backup worker's receipt (QF-72)
+        lines += backup_health.status_lines()
     return "\n".join(lines)
 
 
@@ -1626,6 +1629,10 @@ def dashboard_text_and_buttons(db: PipelineDatabase, next_run: Optional[str] = N
     beat = heartbeat_line(db)
     if beat:  # the daily heartbeat lives on the panel, not in its own message (operator, 2026-10-25)
         lines.append(beat)
+    from .backup_health import dashboard_line
+    stale = dashboard_line()  # only while a backup or drill is overdue (QF-72); /status always has the line
+    if stale:
+        lines.append(stale)
     digest = weekly_digest(db)
     if digest:
         lines.append(f"📰 This week's digest is ready ({e(digest['label'])})")

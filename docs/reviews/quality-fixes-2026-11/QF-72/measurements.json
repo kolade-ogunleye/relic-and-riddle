@@ -1,0 +1,90 @@
+{
+  "after": {
+    "acceptance_met": true,
+    "commit": "this row",
+    "fixture": {
+      "cycle_seconds": 8.35,
+      "cycle_upload_state": "verified",
+      "daily_archives_after": 7,
+      "daily_archives_before": 10,
+      "heartbeat": {
+        "27h": {
+          "backup_stale": true,
+          "drill_age_shown": true,
+          "has_line": true
+        },
+        "fresh": {
+          "backup_stale": false,
+          "drill_age_shown": true,
+          "has_line": true
+        }
+      },
+      "hourly_copy_has_wal_only_row": true,
+      "hourly_verified_copies": 1,
+      "receipt_fields": [
+        "database_at",
+        "drill_at",
+        "environment",
+        "errors",
+        "hourly_copies",
+        "local_snapshots",
+        "schema",
+        "snapshot_at",
+        "updated_at"
+      ]
+    },
+    "old_archive": {
+      "checksums_verified": 2,
+      "database_integrity": "ok",
+      "restored": true
+    },
+    "real_db": {
+      "copies_kept_default": 48,
+      "database_mb": 1.97,
+      "encrypted_copy_mb": 1.97,
+      "hourly_copy_seconds": 4.74,
+      "rows": 5445,
+      "rows_restored": 5445,
+      "spool_mb_at_default_retention": 94.5,
+      "tables": 20,
+      "tables_mismatched": 0
+    }
+  },
+  "before": {
+    "acceptance_met": false,
+    "commit": "5c7840e9",
+    "fixture": {
+      "cycle_seconds": 4.83,
+      "cycle_upload_state": "verified",
+      "daily_archives_after": 11,
+      "daily_archives_before": 10,
+      "heartbeat": {
+        "27h": {
+          "backup_stale": false,
+          "drill_age_shown": false,
+          "has_line": false
+        },
+        "fresh": {
+          "backup_stale": false,
+          "drill_age_shown": false,
+          "has_line": false
+        }
+      },
+      "hourly_copy_has_wal_only_row": null,
+      "hourly_verified_copies": 0,
+      "receipt_fields": null
+    },
+    "old_archive": {
+      "checksums_verified": 2,
+      "database_integrity": "ok",
+      "restored": true
+    },
+    "real_db": {
+      "hourly_copy": null,
+      "rows": 5445,
+      "tables": 20
+    }
+  },
+  "command": "python docs/reviews/quality-fixes-2026-11/QF-72/measure.py <repo root> --db <development data/pipeline.db>",
+  "note": "real_db reads a read-only online copy of the development database; counts only"
+}

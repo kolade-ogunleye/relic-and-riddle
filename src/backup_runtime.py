@@ -138,10 +138,41 @@ def sync_pending(*, store=None, spool=None, force=False):
     return results
 
 
-def restore_job(snapshot_id, destination, *, cloud=False, store=None, relocate=True):
+def restore_job(snapshot_id, destination, *, cloud=False, store=None, relocate=True, database_only=False):
+    """Isolated restore of a daily archive (local or --cloud), or of a local hourly copy (database_only).
+
+    Retention holds the same lock, so the archive and its receipt cannot be pruned while they are restored. A
+    replacement host without a spool restores from the cloud without one."""
+    if cloud and database_only:
+        raise BackupError("Hourly database copies stay on this host; choose a daily archive for a cloud restore")
+    # No import of the hourly module here: a daily or cloud restore must work even where it cannot load.
+    spool = Path(config.BACKUP_SPOOL_DIR) / ("sqlite-hourly" if database_only else "")
+    if not spool.exists():
+        report = _restore_job(snapshot_id, destination, cloud=cloud, store=store, relocate=relocate, spool=spool)
+    else:
+        with exclusive(spool / "jobs.db", "backup-retention") as acquired:
+            if not acquired:
+                raise BackupError("Backup retention or another restore is active; retry the isolated restore")
+            report = _restore_job(snapshot_id, destination, cloud=cloud, store=store, relocate=relocate, spool=spool)
+    if cloud:
+        _publish_status()  # a drill's receipt moves "last drill" at once, not at the next cycle
+    return report
+
+
+def _publish_status(errors=()):
+    """The redacted receipt for the pipeline; a missing or older module (an overlay) only skips it."""
+    try:
+        from .backup_checkpoints import write_status
+    except Exception as exc:  # noqa: BLE001 - the receipt is never in the way of a backup or a drill
+        log.warning("Backup status receipt unavailable: %s", type(exc).__name__)
+        return None
+    return write_status(errors)
+
+
+def _restore_job(snapshot_id, destination, *, cloud, store, relocate, spool):
     import tempfile
     key = load_key(config.BACKUP_KEY_FILE)
-    directory = job_directory(snapshot_id)
+    directory = job_directory(snapshot_id, spool)
     if not snapshot_id.startswith(config.BACKUP_ENVIRONMENT + "-"):
         raise BackupError("Choose the matching backup environment explicitly; cross-environment restore refused")
     if cloud:
@@ -167,19 +198,44 @@ def restore_job(snapshot_id, destination, *, cloud=False, store=None, relocate=T
 
 
 def run_cycle(*, store=None):
-    """Daily recovery snapshot plus durable retries; suitable for a recurring task."""
+    """One worker cycle (the task repeats every 10 minutes): the daily recovery archive, an hourly verified SQLite
+    copy, durable cloud retries, then local retention; the redacted status receipt is written last, whatever failed.
+
+    The returned list is still sync_pending's results (the launchers' contract). An hourly-copy or retention fault is
+    logged and named in the receipt, where the pipeline turns its age into an alert; it never stops the upload."""
     if not config.BACKUP_ENABLED or config.BACKUP_TRANSPORT != "onedrive-api":
         raise BackupError("Backup cycle requires enabled onedrive-api transport")
+    # The QF-72 modules are imported inside the guards: if they cannot load (an older overlay first on the package
+    # path), the daily archive and the upload still run.
     spool = config.BACKUP_SPOOL_DIR
     spool.mkdir(parents=True, exist_ok=True)
+    errors = []
     with exclusive(spool / "jobs.db", "backup-cycle") as acquired:
         if not acquired:
             return [{"state": "busy", "reason": "Another backup cycle owns the snapshot lock"}]
-        today = now()[:10]
-        jobs = [job for job in pending_jobs() if job.get("environment") == config.BACKUP_ENVIRONMENT]
-        if not any(job.get("created_at", "")[:10] == today for job in jobs):
-            stage_current_snapshot()
-        return sync_pending(store=store)
+        try:
+            today = now()[:10]
+            jobs = [job for job in pending_jobs() if job.get("environment") == config.BACKUP_ENVIRONMENT]
+            if not any(job.get("created_at", "")[:10] == today and job.get("kind", "full") == "full" for job in jobs):
+                stage_current_snapshot()
+            try:
+                from .backup_checkpoints import hourly_checkpoint
+                hourly_checkpoint()
+            except Exception as exc:  # noqa: BLE001 - named in the receipt; the upload still runs
+                errors.append("hourly")
+                log.warning("Hourly database copy failed: %s", exc if isinstance(exc, BackupError) else type(exc).__name__)
+            results = sync_pending(store=store)
+            for directory, keep, hourly in ((spool / "sqlite-hourly", config.BACKUP_DATABASE_KEEP, True),
+                                            (spool, config.BACKUP_SNAPSHOT_KEEP, False)):
+                try:
+                    from .backup_checkpoints import prune
+                    prune(directory, keep, hourly=hourly)
+                except Exception as exc:  # noqa: BLE001 - retention waits for the next cycle
+                    errors.append("retention")
+                    log.warning("Backup retention skipped: %s", exc if isinstance(exc, BackupError) else type(exc).__name__)
+            return results
+        finally:
+            _publish_status(errors)
 
 
 def check_readiness(*, store=None):

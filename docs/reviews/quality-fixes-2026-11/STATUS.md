@@ -116,7 +116,7 @@ QF-45 after it.
 | QF-69 | V2 card: no mock values, no fingerprint-bypassing undo | todo | | none of the literals in the blocks; undo of a posted Reel refused | QF-69/ | |
 | QF-70 | Stale-review state, 12-h floor, open review counts as idle | todo | | topic stays queued after the window; release gate idle | QF-70/ | |
 | QF-71 | Silent notifications except needs and the review card | todo | | info notify sends disable_notification | QF-71/ | |
-| QF-72 | Hourly SQLite backup, pruning, staleness alerts | todo | | heartbeat with a 27-h snapshot says backup stale | QF-72/ | |
+| QF-72 | Hourly SQLite backup, pruning, staleness alerts | done | this commit | measure.py, one worker cycle on a generated root: verified hourly SQLite copies 0 -> 1 (holds the row only in -wal), cloud-verified daily archives left of 10 + today's 11 -> 7, heartbeat with a 27-h snapshot says backup stale false -> true (fresh: false both); previous-writer archive restores true -> true; real dev database copy: every table's rows and content hash equal after the hourly test restore | QF-72/ | tests/test_qf72_backup_freshness.py |
 | QF-73 | Topic bank: hooks, sensitivity, proposals, regions, lint | todo | | hook_problems empty; no region > 40%; lint fails without sources | QF-73/ | |
 | QF-78 | Voice default from voices.json, listening record | todo | | health --live fails when the id is not in voices.json | QF-78/ | |
 | QF-79 | Classify and archive scripts; eval harness base | todo | | scripts/README.md lists every script with its class | QF-79/ | |
@@ -133,7 +133,7 @@ QF-45 after it.
 | QF-24 | 9:16 figures use the full frame | todo | | optical weight height; text out of platform bands | QF-24/ | |
 | QF-25 | design_cards wired into the composer | todo | | cards in the composed master; caption_clear_until_s honoured | QF-25/ | |
 | QF-26 | Aliased geometry: one AA path | todo | | edge aliasing measure on land, borders, scale | QF-26/ | |
-| QF-94 | Drawn text never drops a glyph: bundled Noto fallback faces (GLYPH-DROP, ruling 2026-11-10 Q2) | done | this commit | dev fields (1,332 strings x 4 faces) characters removed 214 -> 0, production sample (counts only, 1,357 strings) 144 -> 0, stress list (Greek, Cyrillic, Maltese, Turkish, Vietnamese, Arabic) 405 -> 0; fallbacks recorded 10/10 dev, 6/6 production, 31/31 stress, each with its surface; Arabic refused with a reason 4 dev, 16 stress (no bundled face maps Arabic; the tracked path is one LTR buffer); a refused Story frame is a needs_review release check naming the frame; a caption word no bundled face draws is measured in the caption face, never fatal, and listed under Captions | QF-94/ | tests/test_qf94_glyph_fallback.py |
+| QF-94 | Drawn text never drops a glyph: bundled Noto fallback faces (GLYPH-DROP, ruling 2026-11-10 Q2) | done | a781fea | dev fields (1,332 strings x 4 faces) characters removed 214 -> 0, production sample (counts only, 1,357 strings) 144 -> 0, stress list (Greek, Cyrillic, Maltese, Turkish, Vietnamese, Arabic) 405 -> 0; fallbacks recorded 10/10 dev, 6/6 production, 31/31 stress, each with its surface; Arabic refused with a reason 4 dev, 16 stress (no bundled face maps Arabic; the tracked path is one LTR buffer); a refused Story frame is a needs_review release check naming the frame; a caption word no bundled face draws is measured in the caption face, never fatal, and listed under Captions | QF-94/ | tests/test_qf94_glyph_fallback.py |
 
 ### Phase 4b - surfaces and assets
 

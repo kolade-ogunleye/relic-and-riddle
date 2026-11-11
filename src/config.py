@@ -563,6 +563,14 @@ ONEDRIVE_SCOPE = (os.getenv("ONEDRIVE_SCOPE") or "appfolder").strip().lower()
 ONEDRIVE_BACKUP_PATH = (os.getenv("ONEDRIVE_BACKUP_PATH") or "").strip()
 ONEDRIVE_TOKEN_CACHE = Path(os.getenv("ONEDRIVE_TOKEN_CACHE") or _backup_secret_dir / f"tokens-{ONEDRIVE_SCOPE}.enc")
 BACKUP_SYNC_FOLDER_FALLBACK = (os.getenv("BACKUP_SYNC_FOLDER_FALLBACK") or "false").lower() in ("true", "1", "yes")
+# The backup worker's local retention (QF-72): verified hourly SQLite copies (48 = two days of hourly recovery points)
+# and cloud-verified daily archives kept in the spool (their OneDrive copies are never deleted). Pending, damaged or
+# unknown archives never count and are never deleted.
+BACKUP_DATABASE_KEEP = max(2, int(os.getenv("BACKUP_DATABASE_KEEP") or "48"))
+BACKUP_SNAPSHOT_KEEP = max(2, int(os.getenv("BACKUP_SNAPSHOT_KEEP") or "7"))
+# The worker's redacted status receipt (timestamps and counts only), which the pipeline reads for /status and alerts.
+# Both processes must resolve the same path; the default is inside the application's data directory.
+BACKUP_STATUS_FILE = BASE_DIR / (os.getenv("BACKUP_STATUS_FILE") or "data/backup-status.json")  # relative: to the app root
 
 # >>> Picture coverage (2026-11-02): every narrated line has a planned, honest visual -------------------------------
 # Added as one block by the picture-coverage change; the lines above are owned by other changes.

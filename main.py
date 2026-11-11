@@ -5048,11 +5048,23 @@ def main(argv=None) -> int:
             # health check still hears from the daemon.
             from src.control import record_heartbeat
             record_heartbeat(coordinator.db)
+            backup_check()
             bot.show_dashboard()
             ping_healthcheck()
 
+        def backup_check():
+            # The backup worker's receipt, read hourly: a stale snapshot, lapsed drill or missing hourly copy is a
+            # Needs-you notice once a day per set of alerts (QF-72). Production only; dev has no backup worker.
+            from src.backup_health import monitored, notify_stale
+            try:
+                if monitored():
+                    notify_stale(coordinator.db, bot)
+            except Exception as e:  # noqa: BLE001 - never in the way of the heartbeat it runs inside
+                log.warning("Backup freshness check failed: %s", e)
+
         scheduler.add_job(heartbeat, CronTrigger(hour=hb_hour, minute=hb_minute, timezone=TIMEZONE),
                           max_instances=1, coalesce=True, misfire_grace_time=3600)
+        scheduler.add_job(backup_check, "interval", hours=1, max_instances=1, coalesce=True)
 
         def post_due():
             if is_paused(coordinator.db):

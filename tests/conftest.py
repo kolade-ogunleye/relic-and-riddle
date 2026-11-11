@@ -195,6 +195,7 @@ def no_repo_writes(monkeypatch, tmp_path_factory):
     sandbox = tmp_path_factory.mktemp("repo_writes")
     monkeypatch.setattr("src.config.ISSUES_DIR", sandbox / "issues")
     monkeypatch.setattr("src.config.LOG_DIR", sandbox / "logs")
+    monkeypatch.setattr("src.config.BACKUP_STATUS_FILE", sandbox / "backup-status.json")  # never data/'s receipt
     monkeypatch.setattr("src.env_sync.ROOT", sandbox)  # a daemon started by a test never touches the real .env
     monkeypatch.setattr("src.audio_engine.PACE_FILE", sandbox / "voice_pace.json")
     monkeypatch.setattr("src.colour_balance.CACHE_DIR", sandbox / "colour_balance")  # balanced copies of test photos

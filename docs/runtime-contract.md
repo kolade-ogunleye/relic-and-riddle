@@ -46,8 +46,9 @@ unchanged, never replaces an existing cache, and does not require custody-folder
 write permission. Launchers must not manipulate MSAL private state or print token
 values. An expired/revoked grant requires explicit application enrollment.
 
-`backup-cycle` captures at most one full snapshot per UTC day and retries queued
-uploads. Its v1 JSON result includes `cycle_verified`, `state`, `pending_jobs`,
+`backup-cycle` captures at most one full snapshot per UTC day, an hourly verified
+SQLite copy kept in the spool, retries queued uploads and applies local retention
+(docs/backup.md); it then writes the redacted status receipt the pipeline reads. Its v1 JSON result includes `cycle_verified`, `state`, `pending_jobs`,
 `latest_snapshot_id` and `verification`. Success requires no pending jobs, no busy
 worker result and a downloaded-SHA-256-verified snapshot captured within 26 hours
 (at most five minutes in the future for clock skew). This policy now lives in

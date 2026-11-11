@@ -74,6 +74,14 @@ class ContentRuntimeTests(unittest.TestCase):
         self.assertEqual(config.BACKUP_SPOOL_DIR, self.settings.runtime_root / "spool" / "Backup")
         self.assertFalse(config.BACKUP_SYNC_FOLDER_FALLBACK)
 
+    def test_backup_runs_the_released_application_modules_not_a_maintenance_overlay(self) -> None:
+        # QF-72: hourly copies, retention and the status receipt live in the application's backup modules; an
+        # overlay first on the package path would shadow them with older code.
+        package = ModuleType("src")
+        package.__path__ = [str(self.settings.app_root / "src")]
+        runtime.configure_backup(self.settings, package, ModuleType("src.config"))
+        self.assertEqual(package.__path__, [str(self.settings.app_root / "src")])
+
     def test_cache_bootstrap_leaves_the_original_untouched(self) -> None:
         self.settings.source_token_cache.parent.mkdir()
         self.settings.source_token_cache.write_bytes(b"fixture-encrypted-provider-input")

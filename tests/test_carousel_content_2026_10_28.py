@@ -188,7 +188,7 @@ def test_a_run_drawn_before_the_record_reuses_the_other_copys_photos(topic, rota
 
 # ---------------------------------------------------------------- 2. alt text
 
-def test_alt_text_says_what_the_photo_shows_and_what_the_slide_says(topic, rotate):
+def test_alt_text_says_what_the_photo_shows_and_what_the_slide_says(topic, rotate, monkeypatch):
     slides = MultiFormatGenerator().generate_carousel_sequence(topic["photos"], ROMAN, topic["run"])
     alts = [slide_alt_text(s) for s in slides]
     assert all(0 < len(a) <= 1000 for a in alts)
@@ -196,9 +196,17 @@ def test_alt_text_says_what_the_photo_shows_and_what_the_slide_says(topic, rotat
     assert "ROMAN CONCRETE SECRETS." in alts[0] and ROMAN["carousel_slides"][0]["body"] in alts[0]
     assert alts[1].startswith("Two photos: The vault of building 2 seen from below; and The vault of building 3")
     assert "comments" not in alts[6].lower()  # no comments footer on the closing slide (operator, 2026-10-29)
+    # QF-23: a body thirty times over is refused on the slide (it was drawn cut); the alt text's own cap is held on
+    # the record such a body leaves
     huge = dict(ROMAN, carousel_slides=[dict(c, body=c["body"] * 30) for c in ROMAN["carousel_slides"]])
-    slides = MultiFormatGenerator().generate_carousel_sequence(topic["photos"], huge, topic["run"] / "huge")
-    assert all(len(slide_alt_text(s)) <= 1000 for s in slides)
+    from src import multi_format
+    from src.typography import TextFitError
+    with pytest.raises(TextFitError, match="Checked copy does not fit"):
+        MultiFormatGenerator().generate_carousel_sequence(topic["photos"], huge, topic["run"] / "huge")
+    real = multi_format.slide_record
+    monkeypatch.setattr(multi_format, "slide_record", lambda s: {**real(s), "card": dict(
+        real(s).get("card") or {}, body=str((real(s).get("card") or {}).get("body") or "") * 30)})
+    assert all(len(slide_alt_text(s)) > 900 and len(slide_alt_text(s)) <= 1000 for s in slides)
     assert slide_alt_text(topic["run"] / "no_record.jpg") == ""
 
 

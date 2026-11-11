@@ -155,18 +155,24 @@ def extract_curiosity_badge(script_payload: Dict[str, Any]) -> str:
     for sc in stat_cards:
         val = str(sc.get("value", "")).strip()
         lbl = str(sc.get("label", "")).strip()
+        # QF-23: whole copy or the next source, never cut by characters (it was [:28] / [:22] / [:24])
         if any(c.isdigit() for c in val):
             badge = f"{val.upper()} • {lbl.upper()}"
-            return badge[:28] if len(badge) <= 28 else val.upper()[:22]
+            if len(badge) <= 28:
+                return badge
+            if len(val) <= 22:
+                return val.upper()
 
     scale_fact = script_payload.get("scale_fact") or {}
     if scale_fact.get("value"):
         val = scale_fact["value"]
         unit = str(scale_fact.get("unit", "")).upper()
-        return f"{val} {unit} RECORD"[:24]
+        for badge in (f"{val} {unit} RECORD", f"{val} {unit}".strip()):
+            if len(badge) <= 24:
+                return badge
 
-    if copy.get("eyebrow"):
-        return copy["eyebrow"].upper()[:24]
+    if copy.get("eyebrow") and len(copy["eyebrow"]) <= 24:
+        return copy["eyebrow"].upper()
 
     return "ARCHAEOLOGICAL RECORD"
 
@@ -318,8 +324,23 @@ class VisualEngine:
                 log.warning("Cover %s (%s) at profile-grid size: %s", path.name, chosen, "; ".join(proof["fails"]))
             return out
 
+        from .typography import TextFitError
         chosen = self._fitted_style(copy, style if style in RENDERABLE_STYLES else "badge")
-        final_916 = save(out_916_path, chosen, enforce=True)
+        try:
+            final_916 = save(out_916_path, chosen, enforce=True)
+        except TextFitError as e:
+            # QF-23: the next style the copy fits whole; a cover no style holds whole stops the run (refused)
+            from .cover_selector import fitting
+            focus, size = self._hero_fit()
+            for other in [s for s in fitting(copy, getattr(self, "_figure", None), focus, size) if s != chosen]:
+                try:
+                    final_916 = save(out_916_path, other, enforce=True)
+                    log.warning("Cover %s does not hold its copy whole (%s); drawn as %s.", chosen, e, other)
+                    break
+                except TextFitError:
+                    continue
+            else:
+                raise
         grid_crop(final_916).save(out_1x1_path, quality=95)
         log.info("Covers generated (%s): %s, %s", chosen, out_916_path.name, out_1x1_path.name)
         return out_916_path, out_1x1_path
@@ -338,16 +359,24 @@ class VisualEngine:
         first = hooks(lay)
         if not first:
             return out, lay, attempts, style, {}
+        from .typography import TextFitError
         render = self._renderer(style)
         tight_lay = still_layout.Layout("cover", (VIDEO_WIDTH, VIDEO_HEIGHT), cover_text_zone(), tight=True)
-        tight = render(im.copy(), copy, lay=tight_lay, tight=True)
-        if not hooks(tight_lay) and not tight_lay.problems():
-            return tight, tight_lay, attempts + 1, style, {"grid_redraw": {"tight": True, "fails": first}}
+        try:   # QF-23: a redraw that cannot hold the copy whole is no option; the cover drawn first stands
+            tight = render(im.copy(), copy, lay=tight_lay, tight=True)
+            if not hooks(tight_lay) and not tight_lay.problems():
+                return tight, tight_lay, attempts + 1, style, {"grid_redraw": {"tight": True, "fails": first}}
+        except TextFitError as e:
+            log.info("Cover %s: the tighter fit does not hold its copy whole (%s).", style, e)
         focus, size = self._hero_fit()   # r7: the paper card's fill rule applies to the fallback too
         for other in fitting(copy, getattr(self, "_figure", None), focus, size):
             if other == style:
                 continue
-            o_out, o_lay, o_att = self._render_checked(im, copy, other)
+            try:
+                o_out, o_lay, o_att = self._render_checked(im, copy, other)
+            except TextFitError as e:
+                log.info("Cover style %s does not hold the copy whole (%s).", other, e)
+                continue
             if not hooks(o_lay) and not o_lay.problems():
                 log.warning("Cover %s failed the profile-grid proof (%s); drawn as %s instead.", style,
                             "; ".join(first), other)
@@ -560,6 +589,7 @@ class VisualEngine:
         copy.setdefault("badge", _in_spoken_units({"b": extract_curiosity_badge(script_payload)}, script_payload)["b"])
         from .scene_planner import is_illustration
         meta: dict[str, Any] = {}
+        script_payload.pop("thumbnail_note", None)   # this render's note only (QF-23)
         im, _ = youtube_thumbnail.render(src, copy, focus, meta=meta, figure=cover_figure(copy, script_payload),
                                          youtube_title=script_payload.get("youtube_title") or None,
                                          illustration=is_illustration(Path(hero_image_path)),
@@ -573,8 +603,15 @@ class VisualEngine:
         output_path.with_suffix(".qa.json").write_text(json.dumps(
             {k: meta.get(k) for k in ("downscale", "downscale_ok", "downscale_fails", "title_overlap",
                                       "figure_withheld", "figure_declined", "tension_from", "text_over_focus",
-                                      "headline_fill_from", "tagline_dropped", "year_event", "ink_edge")},
+                                      "headline_fill_from", "tagline_dropped", "year_event", "ink_edge",
+                                      "headline_from", "headline_dropped", "headline_lines_dropped")},
             indent=1, ensure_ascii=False), encoding="utf-8")
+        # QF-23 (option 1): a headline the four-word budget holds only cut is never drawn cut; the review card says
+        # what the thumbnail drew instead
+        note = youtube_thumbnail.headline_note(meta)
+        if note:
+            script_payload["thumbnail_note"] = note
+            log.warning("YouTube thumbnail: %s", note)
         if not qa:
             log.warning("YouTube thumbnail at feed size: %s", "; ".join(meta.get("downscale_fails") or []))
         log.info("YouTube thumbnail generated: %s", output_path.name)
@@ -670,11 +707,11 @@ def documentary_cover_copy(script_payload: Dict[str, Any]) -> Dict[str, str]:
     copy = script_payload.get("thumbnail") or {}
     title = (script_payload.get("title") or "").strip()
     words, line1 = title.split(), ""
-    while words and len(f"{line1} {words[0]}".strip()) <= 24:
+    while words and (not line1 or len(f"{line1} {words[0]}") <= 24):   # whole words, the first even past 24 (QF-23)
         line1 = f"{line1} {words.pop(0)}".strip()
     rest = " ".join(words) if not copy.get("line1") else ""
     sub_theme = (script_payload.get("sub_theme") or "").strip()
     line2 = copy.get("line2") or rest or sub_theme or "THE EVIDENCE"
     tagline = copy.get("tagline") or ("" if line2 == sub_theme else sub_theme) or "WHAT THE EVIDENCE SHOWS"
     return {"eyebrow": (copy.get("eyebrow") or "DOCUMENTARY INVESTIGATION").upper(),
-            "line1": (copy.get("line1") or line1 or title[:24]).upper(), "line2": line2.upper(), "tagline": tagline.upper()}
+            "line1": (copy.get("line1") or line1).upper(), "line2": line2.upper(), "tagline": tagline.upper()}

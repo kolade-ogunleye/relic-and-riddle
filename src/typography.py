@@ -200,7 +200,6 @@ def balanced_wrap(draw: ImageDraw.ImageDraw, text: str, font: ImageFont.FreeType
 
 
 import logging as _logging
-import re as _re
 
 _log = _logging.getLogger(__name__)
 FIT_MIN_RATIO = 0.75   # a text block may shrink to three quarters of its design size before anything else
@@ -216,11 +215,10 @@ def _font_name(font: ImageFont.FreeTypeFont) -> Optional[str]:
 
 def fit_lines(draw: ImageDraw.ImageDraw, text: str, font: ImageFont.FreeTypeFont, max_width: int,
               max_lines: int, min_ratio: Optional[float] = None) -> Tuple[List[str], ImageFont.FreeTypeFont]:
-    """The lines to draw and the font to draw them with, never a cut sentence (operator, 2026-10-25: a posted
-    Story frame ended mid-sentence on "the", because every renderer kept only its first N wrapped lines).
-    The text shrinks (down to FIT_MIN_RATIO of its size) until it fits in max_lines; if it still does not,
-    whole sentences are kept while they fit, so the frame ends on a full stop; if not even the first sentence
-    fits, every line is kept (a longer block, never a fragment). Each outcome other than a plain fit is logged."""
+    """The lines to draw and the font to draw them with: the whole text, shrunk (down to FIT_MIN_RATIO of its size)
+    until it fits `max_lines` of `max_width`, else TextFitError (QF-23). It kept whole sentences while they fitted
+    (operator, 2026-10-25: never a cut sentence), but a later sentence can qualify an earlier one ("Its maker
+    remains unknown."), so none is dropped; nor does a text run past its block any more."""
     font = brand_font(font)     # a field already set in a fallback face is refitted from its own face's sizes
     text = drawable(" ".join((text or "").split()), font)
     if not text:
@@ -231,26 +229,35 @@ def fit_lines(draw: ImageDraw.ImageDraw, text: str, font: ImageFont.FreeTypeFont
     for size in sizes:
         f = field_face(text, font if size == font.size else get_font(name, size))   # one face for the field
         lines = wrap_text(draw, text, f, max_width)
-        if len(lines) <= max_lines:
+        if len(lines) <= max_lines and all(line_width(draw, line, f) <= max_width for line in lines):
             if size != font.size:
                 _log.info("Text set at %dpx instead of %dpx to fit %d lines: %.60s", size, font.size, max_lines, text)
             return (balanced_wrap(draw, text, f, max_width) if len(lines) > 1 else lines), f
     f = field_face(text, font if len(sizes) == 1 else get_font(name, sizes[-1]))
-    sentences = _re.split(r"(?<=[.!?])\s+", text)
-    kept: List[str] = []
-    for sentence in sentences:
-        if len(wrap_text(draw, " ".join(kept + [sentence]), f, max_width)) <= max_lines:
-            kept.append(sentence)
-        else:
-            break
-    if kept:
-        _log.warning("Text kept to %d of %d sentence(s) to fit %d lines: %.80s", len(kept), len(sentences), max_lines, text)
-        return wrap_text(draw, " ".join(kept), f, max_width), f
-    _log.warning("Text runs past its %d-line block (kept whole, never cut): %.80s", max_lines, text)
-    return wrap_text(draw, text, f, max_width), f
+    raise TextFitError(text, wrap_text(draw, text, f, max_width), f, max_width, max_lines)
 
 
-ELLIPSIS = "…"
+class LayoutError(ValueError):
+    """A card, slide, cover or graphic that cannot be drawn as designed without cutting checked copy (or, in the
+    parked freeze work, without dropping a required credit): the surface is refused and held, never delivered
+    shortened (QF-23; freeze panel round 2, F1 and F8). The one refusal type: the stills' hold
+    (main.hold_layout_error), the graphics' (graphics.make_all) and the review card's "Held" list all catch this
+    class, and every more particular refusal subclasses it (TextFitError; the park's BodyFitError)."""
+
+
+class TextFitError(LayoutError):
+    """Checked copy that fits no permitted size and line count whole (QF-23: nothing is dropped, cut or ended with
+    an ellipsis). `lines` is the whole copy wrapped at the last size tried, so a trial (probe_text) can see how far
+    it is from fitting; `where` names the box when there is no single width and line count to name."""
+
+    def __init__(self, text, lines=None, font=None, max_width=None, max_lines=None, where=""):
+        self.text, self.lines, self.font = text, list(lines or []), font
+        self.max_width, self.max_lines = max_width, max_lines
+        box = where or (f"{max_lines} line(s) of {round(max_width)} px at {font.size} px"
+                        if font is not None and max_width is not None and max_lines is not None else "its box")
+        excerpt = " ".join(str(text or "").split())
+        excerpt = excerpt if len(excerpt) <= 80 else excerpt[:77].rsplit(" ", 1)[0] + " ..."
+        super().__init__(f"Checked copy does not fit {box}: \"{excerpt}\"")
 
 
 def line_width(draw: ImageDraw.ImageDraw, text: str, font: ImageFont.FreeTypeFont, stroke: int = 0) -> int:
@@ -264,44 +271,22 @@ def _wrap_fits(draw, text, font, max_width, stroke):
     return lines, all(line_width(draw, ln, font, stroke) <= max_width for ln in lines)
 
 
-def _shorten(draw, text, font, max_width, max_lines, stroke):
-    """The longest start of `text`, cut at a word boundary and ended with an ellipsis, that fits."""
-    words = text.split()
-
-    def attempt(n):
-        candidate = " ".join(words[:n]).rstrip(",;:-–—") + ELLIPSIS
-        lines, ok = _wrap_fits(draw, candidate, font, max_width, stroke)
-        return lines if ok and len(lines) <= max_lines else None
-    lo, hi, best = 1, len(words) - 1, None      # the most words that fit (a binary search: more words never fit better)
-    while lo <= hi:
-        mid = (lo + hi) // 2
-        lines = attempt(mid)
-        if lines is not None:
-            best, lo = lines, mid + 1
-        else:
-            hi = mid - 1
-    if best is not None:
-        return best
-    word = words[0] if words else ""
-    while word and line_width(draw, word + ELLIPSIS, font, stroke) > max_width:
-        word = word[:-1]
-    return [word + ELLIPSIS] if word else []
-
-
 def fit_text(draw: ImageDraw.ImageDraw, text: str, name: str, size: int, max_width: int, max_lines: int,
              min_size: int, stroke: int = 0, sentences: bool = True, weight: Optional[int] = None,
              quiet: bool = False, balance: bool = True) -> Tuple[List[str], ImageFont.FreeTypeFont, bool]:
-    """Text fitted to a box with the font's real metrics, so it can never run past the box (still-layout
-    audit, 2026-10-28: a Story body cut at "35 meshing", a cover tagline missing). In order: wrap at the design
-    size; step the size down by 2 px to `min_size`; keep whole sentences (if `sentences`); last, shorten at a
-    word boundary with an ellipsis. Widths include the outline stroke. Returns (lines, font, shortened);
-    `quiet`: a trial fit, not logged. A text that fits is broken into balanced lines (`balance`, 2026-10-29)
-    and a figure never breaks from its unit (glue)."""
+    """Text fitted to a box with the font's real metrics (the shaped run: kerning and the default OpenType
+    features, font_engine), so it can never run past the box (still-layout audit, 2026-10-28: a Story body cut at
+    "35 meshing", a cover tagline missing). In order: wrap at the design size; step the size down by 2 px to
+    `min_size`; where nothing fits, raise TextFitError (QF-23: checked copy is never shortened, no sentence, word or
+    qualifier dropped and no ellipsis added; the surface is refused instead). `sentences` is kept for the callers'
+    signature and permits nothing. Widths include the outline stroke. Returns (lines, font, False); a trial that
+    must not raise is probe_text. `quiet`: not logged. A text that fits is broken into balanced lines (`balance`,
+    2026-10-29) and a figure never breaks from its unit (glue)."""
     text = drawable(" ".join((text or "").split()), name)
     if not text:
         return [], get_font(name, size, weight=weight), False
-    font = None
-    for s in list(range(size, min_size - 1, -2)) + ([min_size] if (size - min_size) % 2 else []):
+    font = lines = None
+    for s in list(range(size, min_size - 1, -2)) + ([min_size] if (size - min_size) % 2 else []) or [min_size]:
         font = field_face(text, get_font(name, s, weight=weight))      # one face for the whole field (QF-94)
         lines, ok = _wrap_fits(draw, text, font, max_width, stroke)
         if ok and len(lines) <= max_lines:
@@ -310,28 +295,23 @@ def fit_text(draw: ImageDraw.ImageDraw, text: str, name: str, size: int, max_wid
             if balance and len(lines) > 1:  # the same lines' count, the widest as narrow as it can be (2026-10-29)
                 lines = balanced_wrap(draw, text, font, max_width, stroke)
             return lines, font, False
-    if sentences:
-        parts = _re.split(r"(?<=[.!?])\s+", text)
-        kept: List[str] = []
-        for part in parts:
-            lines, ok = _wrap_fits(draw, " ".join(kept + [part]), font, max_width, stroke)
-            if ok and len(lines) <= max_lines:
-                kept.append(part)
-            else:
-                break
-        if kept and len(kept) < len(parts):
-            if not quiet:
-                _log.warning("Text kept to %d of %d sentence(s) to fit %d line(s): %.80s", len(kept), len(parts), max_lines, text)
-            return _wrap_fits(draw, " ".join(kept), font, max_width, stroke)[0], font, True
-    if not quiet:
-        _log.warning("Text shortened with an ellipsis to fit %d line(s) of %d px at %d px: %.80s", max_lines, max_width, font.size, text)
-    return _shorten(draw, text, font, max_width, max_lines, stroke), font, True
+    raise TextFitError(text, lines, font, max_width, max_lines)
+
+
+def probe_text(*args, **kwargs) -> Tuple[List[str], ImageFont.FreeTypeFont, bool]:
+    """fit_text as a trial (a layout choosing between permitted settings): (lines, font, overflow), where a copy
+    that does not fit comes back whole, wrapped at the last size tried, with overflow True instead of raising.
+    Never drawn as it is: the caller tries another permitted setting and ends on a strict fit_text."""
+    try:
+        return fit_text(*args, **kwargs)
+    except TextFitError as error:
+        return error.lines, error.font, True
 
 
 def fit_line(draw: ImageDraw.ImageDraw, text: str, name: str, size: int, max_width: int, min_size: int,
              stroke: int = 0, quiet: bool = False) -> Tuple[str, ImageFont.FreeTypeFont, bool]:
     """One line that fits `max_width` (fit_font returned its floor size even when the text still overflowed):
-    (text, font, shortened)."""
+    (text, font, False), else TextFitError (fit_text)."""
     lines, font, short = fit_text(draw, text, name, size, max_width, 1, min_size, stroke=stroke, sentences=False, quiet=quiet)
     return (lines[0] if lines else ""), font, short
 

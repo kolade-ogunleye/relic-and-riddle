@@ -923,6 +923,17 @@ def _render_fast(monkeypatch: pytest.MonkeyPatch, job) -> dict[str, Any]:
     return _render(monkeypatch, job, fps=1)
 
 
+def _refused_or_render(monkeypatch: pytest.MonkeyPatch, key: str, job) -> dict[str, Any] | None:
+    """QF-23: a timeline set in QF23_REFUSED (`key`: "<family>/<set>-<9x16|16x9>") raises the checked-copy refusal
+    and encodes nothing (None); any other set renders (_render_fast) and must not be refused."""
+    if key not in QF23_REFUSED:
+        return _render_fast(monkeypatch, job)
+    monkeypatch.setattr(graphics, "_encode", lambda *_a, **_k: pytest.fail(f"{key}: a refused timeline was encoded"))
+    with pytest.raises(graphics.TextFitError, match="Checked copy does not fit the "):
+        job()
+    return None
+
+
 @pytest.mark.parametrize("anchor", ["ls", "rs", "ms", "la"])
 @pytest.mark.parametrize("xy", [(700, 200), (700.4, 199.6), (712.75, 333.25)])
 def test_ink_box_is_the_planned_plates_box(anchor, xy) -> None:
@@ -1117,7 +1128,10 @@ def test_wide_timeline_spans_never_collide_are_never_dropped_and_everything_is_t
                                                                                           case) -> None:
     # review 5: "ABOUT 320 YEARS LATER" overprinted "FIRST CHAMBERS CUT"; bottom-row labels ran under y = 820
     events = graphics.timeline_events(TL_CASES[case])
-    st = _render_fast(monkeypatch, lambda: graphics.render_timeline(TL_CASES[case], tmp_path / "t.mp4", 1920, 1080))
+    st = _refused_or_render(monkeypatch, f"tl/{case}-16x9",
+                            lambda: graphics.render_timeline(TL_CASES[case], tmp_path / "t.mp4", 1920, 1080))
+    if st is None:   # QF-23: refused rather than drawn with its cut labels
+        return
     plates = st["plates"]
     hits = [(a, b) for (a, pa), (b, pb) in itertools.combinations(plates, 2)
             if not (a.startswith("label") and a == b) and graphics.LayoutConstraintSolver.boxes_intersect(pa.box, pb.box)]
@@ -1152,7 +1166,10 @@ def test_wide_timeline_labels_wrap_only_where_their_column_ends(tmp_path, monkey
 @pytest.mark.parametrize("case", sorted(TL_CASES))
 def test_tall_spans_keep_one_and_a_half_line_gaps_under_a_wrapped_label(tmp_path, monkeypatch, case) -> None:
     # review 5: a span set at the bare lean sat 22 px under a two-line label whose line gap is 18 px
-    st = _render_fast(monkeypatch, lambda: graphics.render_timeline(TL_CASES[case], tmp_path / "t.mp4"))
+    st = _refused_or_render(monkeypatch, f"tl/{case}-9x16",
+                            lambda: graphics.render_timeline(TL_CASES[case], tmp_path / "t.mp4"))
+    if st is None:   # QF-23: refused rather than drawn with its cut labels
+        return
     for n, p in st["plates"]:
         if not n.startswith("gap"):
             continue
@@ -1211,8 +1228,9 @@ def test_fit_tracked_never_cuts_a_label_that_fits_over_1500_labels_at_712_px() -
                                  "Montserrat")
         words = text.split()
         for rows in range(2, graphics.TALL_LABEL_ROWS_MAX + 1):
-            lines, font, short = graphics.fit_tracked(probe, text, "Montserrat", 42, 712, rows, 34, 2,
-                                                      weight=800, quiet=True)
+            # QF-23: the search behind fit_tracked (which refuses where this trial cuts), as the timeline tries it
+            lines, font, short = graphics._probe_tracked(probe, text, "Montserrat", 42, 712, rows, 34, 2,
+                                                         weight=800, quiet=True)
             if not short:
                 assert " ".join(lines) == text
                 assert len(lines) <= rows and all(graphics.tracked_width(ln, font, 2) <= 712 for ln in lines)
@@ -1230,16 +1248,22 @@ def test_fit_tracked_never_cuts_a_label_that_fits_over_1500_labels_at_712_px() -
 
 
 def test_fit_tracked_cuts_only_at_a_word_boundary() -> None:
+    # QF-23: the timeline layouts' trial (_probe_tracked) still scores a cut candidate at a word boundary; the fit a
+    # label is drawn from (fit_tracked) refuses it instead
     probe = ImageDraw.Draw(Image.new("RGB", (8, 8)))
-    lines, _font, short = graphics.fit_tracked(probe, "POPULATION EXCHANGE REDISCOVERED HALICARNASSUS", "Montserrat",
-                                              34, 300, 2, 34, 2, weight=800, quiet=True)
+    text = "POPULATION EXCHANGE REDISCOVERED HALICARNASSUS"
+    lines, _font, short = graphics._probe_tracked(probe, text, "Montserrat", 34, 300, 2, 34, 2, weight=800, quiet=True)
     assert short and lines[-1].endswith("…")
     assert all(w.removesuffix("…") in {"POPULATION", "EXCHANGE", "REDISCOVERED", "HALICARNASSUS"}
                for ln in lines for w in ln.split())
-    # a first word wider than the measure is set smaller, never broken
-    one, f1, cut = graphics.fit_tracked(probe, "HALICARNASSUS", "Montserrat", 38, 250, 1, 34, 2, weight=800,
-                                        quiet=True)
+    with pytest.raises(graphics.TextFitError, match="Checked copy does not fit"):
+        graphics.fit_tracked(probe, text, "Montserrat", 34, 300, 2, 34, 2, weight=800, quiet=True)
+    # a first word wider than the measure is set smaller, never broken (the trial); fit_tracked refuses it
+    one, f1, cut = graphics._probe_tracked(probe, "HALICARNASSUS", "Montserrat", 38, 250, 1, 34, 2, weight=800,
+                                           quiet=True)
     assert cut and one == ["HALICARNASSUS"] and graphics.tracked_width(one[0], f1, 2) <= 250
+    with pytest.raises(graphics.TextFitError, match="Checked copy does not fit"):
+        graphics.fit_tracked(probe, "HALICARNASSUS", "Montserrat", 38, 250, 1, 34, 2, weight=800, quiet=True)
 
 
 def test_tracked_wrap_keeps_no_lone_first_word_where_a_break_avoids_it() -> None:
@@ -1332,6 +1356,23 @@ FUZZ_FAMILIES = {
     "qz": {k: v for k, v in _fuzz_sets(6061, QZ_VOC, 30, -9000, 11, "qz").items()
            if k in ("qz0", "qz4", "qz9", "qz12", "qz14", "qz26")},
 }
+# QF-23 (checked copy never truncated): the committed timeline sets, by size, whose labels no layout holds whole
+# (docs/reviews/quality-fixes-2026-11/QF-23/timeline_refusals.py lists them: 63 of 370 renders, all fuzz, XL or xv
+# stress sets). Each is refused (TextFitError) where the base drew it with its cut labels logged; every other set
+# renders as before.
+QF23_REFUSED: frozenset[str] = frozenset({
+    "cr/cr9-9x16", "fz/fz17-9x16", "fz/fz2-9x16", "fz/fz26-9x16", "fz/fz37-9x16", "fz/fz9-9x16", "lw/lw11-9x16",
+    "lw/lw12-9x16", "lw/lw13-9x16", "lw/lw2-9x16", "lw/lw4-9x16", "lw/lw6-9x16", "lw/lw9-16x9", "lw/lw9-9x16",
+    "nz/nz0-9x16", "nz/nz10-9x16", "nz/nz11-9x16", "nz/nz14-16x9", "nz/nz14-9x16", "nz/nz15-16x9",
+    "nz/nz15-9x16", "nz/nz16-9x16", "nz/nz18-9x16", "nz/nz2-16x9", "nz/nz2-9x16", "nz/nz22-9x16",
+    "nz/nz23-16x9", "nz/nz23-9x16", "nz/nz24-16x9", "nz/nz24-9x16", "nz/nz25-16x9", "nz/nz25-9x16",
+    "nz/nz27-9x16", "nz/nz3-9x16", "nz/nz31-9x16", "nz/nz35-9x16", "nz/nz36-16x9", "nz/nz36-9x16",
+    "nz/nz38-9x16", "nz/nz39-9x16", "nz/nz5-16x9", "nz/nz5-9x16", "nz/nz6-9x16", "qz/qz0-9x16", "qz/qz12-16x9",
+    "qz/qz12-9x16", "qz/qz14-9x16", "qz/qz4-16x9", "qz/qz4-9x16", "qz/qz9-16x9", "qz/qz9-9x16",
+    "tl/four_xl_close-16x9", "tl/four_xl_close-9x16", "tl/four_xl_mixed-16x9", "tl/four_xl_mixed-9x16",
+    "xv/xv0-9x16", "xv/xv1-9x16", "xv/xv10-9x16", "xv/xv11-9x16", "xv/xv21-16x9", "xv/xv21-9x16",
+    "xv/xv22-9x16", "xv/xv6-9x16",
+})
 NAMED_TL = {"derinkuyu": DERINKUYU, "two_line4": TWO_LINE,
             "four_d": [{"year": -1200, "approximate": True, "label": "First chambers cut"},
                        {"year": 780, "approximate": True, "label": "Expanded against raiders"},
@@ -1508,11 +1549,21 @@ def _span_reading_checks(spans, labels, years, spine, size, log_text, texts) -> 
                         assert graphics.box_clearance(p.box, lp.box) >= row_near - 1, (p.text, lp.text)
 
 
-def _render_checked(monkeypatch, caplog, tmp_path, events, size) -> dict[str, Any]:
+def _render_checked(monkeypatch, caplog, tmp_path, events, size, refusal_ok: bool = False) -> dict[str, Any]:
+    """The render with every property check. QF-23: a set whose chosen layout still cuts a label is refused
+    (typography.TextFitError) and nothing is drawn; only a caller that expects that refusal (`refusal_ok`) gets it
+    back, as {"refused": its message}; every other caller fails on it as before."""
     st: dict[str, Any] = {}
     _spy_spine(monkeypatch, st)
-    with caplog.at_level("INFO"):
-        got = _render_fast(monkeypatch, lambda: graphics.render_timeline(events, tmp_path / "t.mp4", *size))
+    try:
+        with caplog.at_level("INFO"):
+            got = _render_fast(monkeypatch, lambda: graphics.render_timeline(events, tmp_path / "t.mp4", *size))
+    except graphics.TextFitError as e:
+        if not refusal_ok:
+            raise
+        assert str(e).startswith("Checked copy does not fit the ") and "timeline" in str(e), e
+        assert not list(tmp_path.glob("t.mp4*")), "a refused timeline writes nothing"
+        return {"refused": str(e)}
     got["spine"] = st.get("spine")
     return {**got, "checks": _timeline_checks(got, events, size, caplog.text)}
 
@@ -1523,7 +1574,12 @@ def test_timeline_fuzz_sets_keep_every_rule(tmp_path, monkeypatch, caplog, case,
     # review 6 (the reviewer's 40 fuzz sets): 16:9 cut labels in 10 sets at HEAD (fz8, fz2, fz9, fz16, fz38 with a
     # whole layout to spare), spans sat 23-24 px under 18-20 px line gaps, 9:16 labels ran 1-2 px out of the box
     events = FUZZ_TL[case]
-    got = _render_checked(monkeypatch, caplog, tmp_path, events, size)["checks"]
+    tag = "9x16" if size[1] > size[0] else "16x9"
+    full = _render_checked(monkeypatch, caplog, tmp_path, events, size, refusal_ok=True)
+    assert ("refused" in full) == (f"fz/{case}-{tag}" in QF23_REFUSED), (case, tag, full.get("refused"))
+    if "refused" in full:   # QF-23: refused rather than drawn with its cut labels
+        return
+    got = full["checks"]
     if size[0] > size[1]:
         assert not got["cut"], (case, got["cut"])                         # review 6 A: none cut on 16:9
         assert "lone word" not in caplog.text                             # and no lone first word either
@@ -1535,8 +1591,11 @@ def test_timeline_fuzz_properties_over_seeds_and_vocabularies(tmp_path, monkeypa
     # review 7: every rule on every set of the reviewer's seed 1203 (long words) and two more seeds, both sizes:
     # inside the safe box, no overlaps, no span level with a year, spans never dropped and 1.5 x the line gap, no
     # mid-word or single-word cut, the span's reading (_span_reading_checks) and every last resort logged
+    # QF-23: the sets in QF23_REFUSED (the base drew each with its cut labels logged) are refused, and only they
     fam, name = case.split("/")
-    _render_checked(monkeypatch, caplog, tmp_path, FUZZ_FAMILIES[fam][name], size)
+    got = _render_checked(monkeypatch, caplog, tmp_path, FUZZ_FAMILIES[fam][name], size, refusal_ok=True)
+    tag = "9x16" if size[1] > size[0] else "16x9"
+    assert ("refused" in got) == (f"{case}-{tag}" in QF23_REFUSED), (case, tag, got.get("refused"))
 
 
 @pytest.mark.parametrize("size", [(1080, 1920), (1920, 1080)], ids=["9x16", "16x9"])
@@ -1835,7 +1894,10 @@ def test_tall_years_drop_to_their_floor_before_a_label_is_cut(tmp_path, monkeypa
     # their years now keep the full ratio (this asserted `not cut or ratio < TALL_YEAR_RATIO` for all three).
     events = FUZZ_FAMILIES["nz"][case]
     with caplog.at_level("INFO"):
-        st = _render_fast(monkeypatch, lambda: graphics.render_timeline(events, tmp_path / "t.mp4"))
+        st = _refused_or_render(monkeypatch, f"nz/{case}-9x16",
+                                lambda: graphics.render_timeline(events, tmp_path / "t.mp4"))
+    if st is None:   # QF-23: refused rather than drawn with its cut labels (each case here was cut)
+        return
     years = [p for n, p in st["plates"] if n.startswith("year") and not n.endswith("circa")]
     labels = [p for n, p in st["plates"] if n.startswith("label")]
     cut = [p.text for p in labels if "…" in p.text]
@@ -1895,7 +1957,10 @@ def test_tall_years_shrink_only_for_what_it_buys_and_the_log_says_so(tmp_path, m
     # review 9: xv1, xv18 and xv21 logged "the years set under 2.0 x ... to keep 4 entries whole" and then "a label
     # cut" in the same render: the years had shrunk for nothing (the same labels are cut at the full ratio)
     with caplog.at_level("INFO"):
-        st = _render_fast(monkeypatch, lambda: graphics.render_timeline(XV_TL[case], tmp_path / "t.mp4"))
+        st = _refused_or_render(monkeypatch, f"xv/{case}-9x16",
+                                lambda: graphics.render_timeline(XV_TL[case], tmp_path / "t.mp4"))
+    if st is None:   # QF-23: refused rather than drawn with its cut labels
+        return
     labels = [p for n, p in st["plates"] if n.startswith("label")]
     years = [p for n, p in st["plates"] if n.startswith("year") and not n.endswith("circa")]
     cut = [p.text for p in labels if "…" in p.text]

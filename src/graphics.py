@@ -37,15 +37,17 @@ from .config import VIDEO_FPS, VIDEO_HEIGHT, VIDEO_WIDTH
 from .encoding import bounded_encode
 from .trusted_image import open_trusted
 from .typography import (
+    LayoutError,
+    TextFitError,
     TextPlate,
     cap_height,
     drawable,
     field_font,
     fit_font,
-    fit_lines,
     fit_text,
     get_font,
     plan_text,
+    probe_text,
     spoken_system,
     spoken_units,
     tracked_width,
@@ -1906,7 +1908,7 @@ def marker_label_lines(text: str, width: int, height: int) -> tuple[list[str], F
         if lines is not None:
             return lines, font
     font = field_font(shown, get_font("Anton", max(8, round(MARKER_LABEL_MIN_PX * k))))
-    return fit_lines(ImageDraw.Draw(Image.new("L", (8, 8))), text.upper(), font, measure)[:MARKER_LABEL_ROWS], font
+    raise TextFitError(text, [text.upper()], font, measure, MARKER_LABEL_ROWS)
 
 
 def _rows_box(rows: list[tuple[str, tuple[float, float], str]], font: FreeTypeFont) -> Box | None:
@@ -4949,9 +4951,22 @@ def tracked_wrap(text: str, font, width: float, track: float, lines: int | None 
 
 
 def fit_tracked(probe: ImageDraw.ImageDraw, text: str, name: str, px: int, width: float, rows: int, lo: int,
+                track: float, **kwargs: Any) -> tuple[list[str], Any, bool]:
+    """typography.fit_text for lines drawn with `track` px of letter spacing: (lines, font, False), every size from
+    `px` down to `lo` tried (_probe_tracked), else TextFitError (QF-23: never a dropped word or sentence, never an
+    ellipsis)."""
+    lines, font, short = _probe_tracked(probe, text, name, px, width, rows, lo, track, **kwargs)
+    if short:
+        raise TextFitError(text, tracked_wrap(text, font, width, track) or [text], font, width, rows)
+    return lines, font, False
+
+
+def _probe_tracked(probe: ImageDraw.ImageDraw, text: str, name: str, px: int, width: float, rows: int, lo: int,
                 track: float, sentences: bool = True, weight: int | None = None, quiet: bool = False,
                 **_kw: Any) -> tuple[list[str], Any, bool]:
-    """typography.fit_text for lines drawn with `track` px of letter spacing: (lines, font, shortened). Every
+    """The trial behind fit_tracked, for the timelines' layout search only: (lines, font, shortened). A shortened
+    candidate is scored, never drawn: a timeline whose chosen layout still has one is refused (QF-23), so the
+    layouts that hold every label whole are chosen exactly as before. Every
     size from `px` down to `lo` (2 px steps) is wrapped with each line measured as drawn, tracking included
     (tracked_wrap), so a label is cut only where no size gives it `rows` lines of `width` (round 4 review 6,
     2026-11-03: the tracking reserve was set from the lines wrapped at the largest size and never relaxed, so
@@ -5828,7 +5843,7 @@ def tall_label_rows_needed(text: str, width: float) -> int | None:
     TALL_LABEL_ROWS_MAX rows, or where one word alone is wider than `width`."""
     probe = ImageDraw.Draw(Image.new("RGB", (8, 8)))
     for r in range(1, TALL_LABEL_ROWS_MAX + 1):
-        _lines, _font, short = fit_tracked(probe, text, "Montserrat", TALL_LABEL_MIN_PX, width, r, TALL_LABEL_MIN_PX,
+        _lines, _font, short = _probe_tracked(probe, text, "Montserrat", TALL_LABEL_MIN_PX, width, r, TALL_LABEL_MIN_PX,
                                          tall_track(TALL_LABEL_MIN_PX), sentences=r > 1, weight=TALL_LABEL_WEIGHT,
                                          quiet=True)
         if not short:
@@ -5931,7 +5946,7 @@ def _render_timeline_tall(events: list[dict[str, Any]], out: Path, width: int, h
         key = (text, px, rows, lo)
         if key not in fit_memo:   # the labels' fits do not depend on the years: measured once per render
             # round 6: TALL_INK_RESERVE px kept for a row's ink past its advance (a final S or quote at 0.05 em)
-            lines, font, short = fit_tracked(probe, text, "Montserrat", px, label_w - TALL_INK_RESERVE, rows, lo, tall_track(px),
+            lines, font, short = _probe_tracked(probe, text, "Montserrat", px, label_w - TALL_INK_RESERVE, rows, lo, tall_track(px),
                                              sentences=rows > 1, weight=TALL_LABEL_WEIGHT, quiet=True)
             obeyed = True
             if len(lines) > 1:   # hierarchy spec B5: the same rows (and words), balanced, no short word last
@@ -6123,8 +6138,9 @@ def _render_timeline_tall(events: list[dict[str, Any]], out: Path, width: int, h
     if on_segment and not chosen[2][10]:
         log.warning("Timeline spans set without their full separation to keep %d labels at %d px.",
                     len(events), labels_px(chosen))
-    if chosen[2][11]:
-        log.warning("Timeline: a label cut to fit its rows at %d px.", labels_px(chosen))
+    if chosen[2][11]:   # QF-23: no layout holds every label whole; the timeline is refused, never drawn cut
+        raise TextFitError(" | ".join(en["text"] for en in chosen[2][2] if en["short"]),
+                           where=f"the portrait timeline's label rows at {labels_px(chosen)} px")
     year_px, scale, m = chosen
     f_year, cap_y, entries, y_first, _y_last, f_gap, _needs, _band, spacing, _clear, separate, _cut, _lead = m
     for en in entries:
@@ -6440,15 +6456,15 @@ def _render_timeline_wide(events: list[dict[str, Any]], out: Path, width: int, h
         if key not in block_memo:
             m = S(max(measure, widest_word(text)))
             # round 4 review 5: each line pays for its own tracking (fit_tracked), not the whole label's
-            got = fit_tracked(probe, text, "Montserrat", g.f(38), m, 3, g.f(34), track, weight=800,
+            got = _probe_tracked(probe, text, "Montserrat", g.f(38), m, 3, g.f(34), track, weight=800,
                               quiet=True)   # round 4: 34 / 32 before
             if rows_max < 3:
-                got = fit_tracked(probe, text, "Montserrat", g.f(38), m, rows_max, g.f(34), track, weight=800,
+                got = _probe_tracked(probe, text, "Montserrat", g.f(38), m, rows_max, g.f(34), track, weight=800,
                                   quiet=True)
             for rows in range(4, rows_max + 1):
                 if not got[2]:
                     break
-                got = fit_tracked(probe, text, "Montserrat", g.f(34), m, rows, g.f(34), track,
+                got = _probe_tracked(probe, text, "Montserrat", g.f(34), m, rows, g.f(34), track,
                                   weight=800, quiet=True)
             if not got[2] and weak_rows(got[0], got[1]):
                 block_prev = got
@@ -6488,10 +6504,10 @@ def _render_timeline_wide(events: list[dict[str, Any]], out: Path, width: int, h
                     if whole_got is not None:
                         alts.insert(0, whole_got)
                 if got[1].size > g.f(34):
-                    alts.append(fit_tracked(probe, text, "Montserrat", g.f(34), m, len(got[0]), g.f(34), track,
+                    alts.append(_probe_tracked(probe, text, "Montserrat", g.f(34), m, len(got[0]), g.f(34), track,
                                             weight=800, quiet=True))
                 for rows in range(2, len(got[0])):      # round 7: fewer rows at the floor size first
-                    alt = fit_tracked(probe, text, "Montserrat", g.f(34), m, rows, g.f(34), track, weight=800,
+                    alt = _probe_tracked(probe, text, "Montserrat", g.f(34), m, rows, g.f(34), track, weight=800,
                                       quiet=True)
                     if not alt[2] and len(alt[0]) == rows:
                         alts.append(alt)
@@ -7255,7 +7271,8 @@ def _render_timeline_wide(events: list[dict[str, Any]], out: Path, width: int, h
     def named(flag: str) -> str:
         return " | ".join(texts[k] for k, b in enumerate(blocks) if b[flag])
     if _score[3]:
-        log.warning("Timeline (16:9): %d label(s) cut: no measure holds them whole: %s.", _score[3], named("short"))
+        # QF-23: no measure holds them whole; the timeline is refused, never drawn cut
+        raise TextFitError(named("short"), where="the widescreen timeline's label measure")
     if _score[2]:
         log.warning("Timeline (16:9): %d label(s) cut to a single word: no layout keeps two: %s.", _score[2],
                     named("one_word"))
@@ -7980,7 +7997,7 @@ def _render_scale_vertical(fact, feet, ref_label, ref_feet, depth, out, width, h
             note = reference_note(ref_label)
             if note:
                 f_rn = get_font(brand.DATA_FONT, SCALE_RULER_PX - 4, weight=600)
-                nl, _f, short = fit_text(probe, note, brand.DATA_FONT, f_rn.size, int(box_x1 - ref_note.box[0] - 4), 2,
+                nl, _f, short = probe_text(probe, note, brand.DATA_FONT, f_rn.size, int(box_x1 - ref_note.box[0] - 4), 2,
                                          f_rn.size, sentences=False, weight=600, quiet=True)
                 yb = ref_note.box[3] + 14 + cap_height(f_rn)
                 rows_n = [plan_text(ground, (ref_note.box[0], yb + k * round(cap_height(f_rn) * 1.6)), ln, f_rn, MUTED,
@@ -8130,7 +8147,7 @@ def _render_scale_wide(fact: dict[str, Any], feet: float, ref_label: str, ref_fe
                                    sentences=False, weight=800, quiet=True)
     f_sub = get_font("Montserrat", f_sub.size, weight=800)
     fig_lines, f_fig = scale_figure_lines(probe, figure, g.f(96), g.f(72), g.f(64), col)
-    fits = [fit_text(probe, text, "Montserrat", g.f(36), int(col), 2, g.f(32), sentences=False,
+    fits = [probe_text(probe, text, "Montserrat", g.f(36), int(col), 2, g.f(32), sentences=False,
                      weight=600, quiet=True) for text in meaning]
     f_mean = get_font("Montserrat", min(f.size for _, f, _ in fits), weight=600)
     mean_lines = [ln for text in meaning for ln in fit_text(probe, text, "Montserrat", f_mean.size, int(col),
@@ -8564,7 +8581,12 @@ def render_stat_cards(cards: list[dict[str, Any]], out: Path, photo: Path | None
     # the type stepped down together when they do not fit.
     for scale in (1.0, 0.9, 0.8, 0.7, 0.6):
         num_px = round((380 if len(cards) == 1 else 230) * scale)
-        plans = [_stat_layout(probe, c, num_px, text_w, scale) for c in cards]
+        try:
+            plans = [_stat_layout(probe, c, num_px, text_w, scale) for c in cards]
+        except TextFitError:
+            if scale == 0.6:
+                raise
+            continue
         gap = 90
         total = sum(p["height"] for p in plans) + gap * (len(plans) - 1)
         if total <= bottom - top:
@@ -8905,8 +8927,13 @@ def _render_stat_cards_landscape(cards: list[dict[str, Any]], out: Path, photo: 
     col_w = (bx1 - bx0) if len(cards) == 1 else (bx1 - bx0 - gutter) // 2
     for scale in (1.0, 0.9, 0.8, 0.7):
         num_px = round((300 if len(cards) == 1 else 210) * scale * k)
-        plans = [_stat_layout(probe, c, num_px, col_w - 8, scale * k,
-                              label_min=round(40 * k), num_min=round(num_px * 0.62)) for c in cards]
+        try:
+            plans = [_stat_layout(probe, c, num_px, col_w - 8, scale * k,
+                                  label_min=round(40 * k), num_min=round(num_px * 0.62)) for c in cards]
+        except TextFitError:
+            if scale == 0.7:
+                raise
+            continue
         if max(p["height"] for p in plans) <= bottom - top:
             break
     if len(plans) > 1:   # one figure size for both cards, so their figures share a baseline
@@ -9144,7 +9171,7 @@ def _plan(ground: Image.Image, xy, text: str, font, fill, anchor: str = "la", tr
 
 def _fit_title(g: _Grid, title: str, width_px: float) -> tuple[list[str], Any]:
     probe = ImageDraw.Draw(Image.new("RGB", (8, 8)))
-    lines, font, short = fit_text(probe, title, "Anton", g.f(60), int(width_px), 1, g.f(56), sentences=False,
+    lines, font, short = probe_text(probe, title, "Anton", g.f(60), int(width_px), 1, g.f(56), sentences=False,
                                   quiet=True)
     if short or probe.textlength(lines[0] if lines else "", font=font) > width_px:
         lines, font, _ = fit_text(probe, title, "Anton", g.f(60), int(width_px), 2, g.f(56), sentences=False,
@@ -9337,7 +9364,7 @@ def _render_cross_section(cs: dict[str, Any], levels: list[dict[str, Any]], tota
 
     probe_t = ImageDraw.Draw(Image.new("RGB", (8, 8)))
     title = cs["subject"].upper()
-    title_lines, f_title, short = fit_text(probe_t, title, "Anton", g.f(L.title_px[0]), int(S(L.title_w)), 1,
+    title_lines, f_title, short = probe_text(probe_t, title, "Anton", g.f(L.title_px[0]), int(S(L.title_w)), 1,
                                            g.f(L.title_px[1]), sentences=False, quiet=True)
     if short or probe_t.textlength(title_lines[0] if title_lines else "", font=f_title) > S(L.title_w):
         title_lines, f_title, _ = fit_text(probe_t, title, "Anton", g.f(L.title_px[0]), int(S(L.title_w)), 2,
@@ -9438,14 +9465,14 @@ def _render_cross_section(cs: dict[str, Any], levels: list[dict[str, Any]], tota
         for k, (lv, p) in enumerate(zip(levels, plan)):
             deepest = k == len(levels) - 1
             ff = f_deep if deepest else f_fig
-            lines, f_fit, _ = fit_text(probe, lv["label"], "Montserrat", g.f(lab_px), int(lab_w), 2, g.f(lab_px),
-                                       weight=600, quiet=True)
-            if probe.textlength(lines[-1] if lines else "", font=f_fit) > lab_w:
-                lines, f_fit, _ = fit_text(probe, lv["label"], "Montserrat", g.f(lab_px), int(lab_w), 3,
-                                           g.f(lab_px), weight=600, quiet=True)
+            lines, _f, overflow = probe_text(probe, lv["label"], "Montserrat", g.f(lab_px), int(lab_w), 2, g.f(lab_px),
+                                             weight=600, quiet=True)
+            if overflow:   # QF-23: three lines before the graphic is refused (it was cut on two with an ellipsis)
+                lines, _f, _ = fit_text(probe, lv["label"], "Montserrat", g.f(lab_px), int(lab_w), 3,
+                                        g.f(lab_px), weight=600, quiet=True)
             capf = cap_height(ff) / g.k
             h = capf + label_gap + line_step * (len(lines) - 1) + 8
-            out_blocks.append({"font": ff, "lines": lines, "cap": capf, "h": h,
+            out_blocks.append({"font": ff, "lines": lines, "cap": capf, "h": h, "three": overflow,
                                "want": p["floor"] - p["passage_h"] / 2})
         return out_blocks
     best = None
@@ -9463,6 +9490,11 @@ def _render_cross_section(cs: dict[str, Any], levels: list[dict[str, Any]], tota
         if off <= 4:
             break
     _off, blocks, tops, label_gap, line_step, dpx = best
+    if any(b["three"] for b in blocks) and tops and tops[-1] + blocks[-1]["h"] > hi + 0.5:
+        # QF-23: a label two lines held only cut takes three, and then the stack does not fit the column even at its
+        # tightest: refused rather than drawn past the text box (it was cut to fit before); stacks of labels that two
+        # lines hold whole are placed exactly as before
+        raise TextFitError(" | ".join(str(lv["label"]) for lv in levels), where="the cross-section's label column")
     f_lab = get_font("Montserrat", g.f(L.lab_px - dpx), weight=600)
 
     # ---- the static ground: sky, banded rock, the surface, the ruler
@@ -10849,6 +10881,10 @@ def make_all(payload: dict[str, Any], topic: dict[str, Any], work_dir: Path, pho
                 checkpoint.complete("graphic", inputs, [result, Path(result).with_suffix(".jpg"),
                                     sidecar(result), Path(declaration["sources"][0]["path"])])
             return result
+        except LayoutError as e:   # QF-23: refused rather than drawn with its copy cut; held for the review card
+            log.error("Graphic '%s' held: its text cannot be set whole (%s); continuing without it.", name, e)
+            payload.setdefault("layout_holds", []).append({"deck": f"graphics/{name}", "error": str(e), "moved": []})
+            return None
         except Exception as e:  # noqa: BLE001  never raises (make_all): one failed graphic, not the run
             log.warning("Graphic '%s' failed (%s); continuing without it.", name, e)
             return None

@@ -1164,6 +1164,10 @@ class QualityAuditor:
                     from . import still_layout
                     layout_entry = still_layout.load(slide_path)
                     if layout_entry is not None:
+                        if "kicker_category" in (layout_entry.get("shortened") or []):   # QF-23: said on the card
+                            issues.append({"type": "kicker_category_dropped", "severity": "info", "slide": slide_path.name,
+                                           "issue": f"Slide {idx} ({slide_path.name}): its kicker names the subject "
+                                                    "alone; no scale holds the subject and its category whole"})
                         for prob in (still_layout.check(slide_path) or []):
                             if "text_cut_off" in prob or "leaves its safe zone" in prob:
                                 issues.append({

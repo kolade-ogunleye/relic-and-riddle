@@ -176,11 +176,16 @@ def test_each_row_carries_its_post_date_beside_an_unchanged_title():
 
 
 def test_long_titles_fit_beside_the_date():
+    # QF-23: a name the column beside the date holds only cut refuses the chart (control then sends the figures as
+    # text); it was drawn with an ellipsis. A name that fits is drawn whole beside its date.
     long = "The Sunken City of Heracleion, lost beneath the Bay of Abu Qir for twelve centuries and more"
-    _, info = ac.render([reel(long, 1, 2, 3, POSTED)], sample=True)
+    with pytest.raises(ValueError, match="Checked copy does not fit"):
+        ac.render([reel(long, 1, 2, 3, POSTED)], sample=True)
+    whole = "The Sunken City of Heracleion"
+    _, info = ac.render([reel(whole, 1, 2, 3, POSTED)], sample=True)
     probe = ac._Canvas(1)
     width = probe.width(info["titles"][0], ac._Fonts().sans(ac.TEXT * ac.SS, 600))
-    assert info["titles"][0].endswith("…") and width <= info["title_width"]
+    assert info["titles"][0] == whole and width <= info["title_width"]
 
 
 def test_without_dates_the_title_keeps_the_full_width():

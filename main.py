@@ -136,21 +136,14 @@ def compute_act_chapters(acts: List[Any], words: List[Dict[str, Any]], total_dur
 
 
 def documentary_cover(title: str, max_line: int = 22) -> Dict[str, str]:
-    """Documentary cover text: the fact-checked title over two lines (word-wrapped, at most
-    max_line characters each), with an eyebrow and tagline that make no factual claim."""
-    words, lines = title.upper().split(), ["", ""]
-    k = 0
-    for w in words:
-        candidate = (lines[k] + " " + w).strip()
-        if len(candidate) <= max_line:
-            lines[k] = candidate
-        elif k == 0 and lines[0]:
-            k = 1
-            lines[1] = w[:max_line]
-        else:
-            lines[1] = (lines[1][: max_line - 1] + "…") if lines[1] else w[: max_line - 1] + "…"
-            break
-    return {"eyebrow": "DOCUMENTARY", "line1": lines[0], "line2": lines[1], "tagline": "EXPLORE THE EVIDENCE"}
+    """Documentary cover text: the fact-checked title over two lines split on whole words (the first line up to
+    max_line characters, the rest of the title whole on the second), with an eyebrow and tagline that make no
+    factual claim. QF-23: never cut; it was cut mid-word with an ellipsis at max_line characters. A title the
+    cover cannot set whole is refused there (cover_design's strict fit, typography.TextFitError)."""
+    words, line1 = title.upper().split(), ""
+    while words and (not line1 or len(f"{line1} {words[0]}") <= max_line):
+        line1 = f"{line1} {words.pop(0)}".strip()
+    return {"eyebrow": "DOCUMENTARY", "line1": line1, "line2": " ".join(words), "tagline": "EXPLORE THE EVIDENCE"}
 
 
 def warn_missing_geo_files() -> List[str]:
@@ -982,6 +975,7 @@ class PipelineCoordinator:
             graphics_dir.mkdir(parents=True, exist_ok=True)
             encoding.get_video_encoder()  # probe once before parallel renderers race to detect it under load
             t_graphics = time.perf_counter()
+            payload.pop("layout_holds", None)   # QF-23: this render's holds only (a resumed run's old payload had some)
             with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:
                 from src import art_direction
                 doc_art = art_direction.record(run_dir, hero_img)
@@ -3185,6 +3179,7 @@ class PipelineCoordinator:
         strong_media = only_strong(scene_media, getattr(self, "_strong_stems", None))
         encoding.get_video_encoder()  # probe once before parallel renderers race to detect it under load
         t0 = time.perf_counter()
+        payload.pop("layout_holds", None)   # QF-23: this render's holds only (a resumed run's old payload had some)
         with concurrent.futures.ThreadPoolExecutor(max_workers=8) as pool:
             # each glyph event names what it was drawn on (QF-94)
             from src.font_engine import on_surface
@@ -3221,10 +3216,12 @@ class PipelineCoordinator:
                                        grade_bias=float(art.get("grade_bias") or 0.0))   # the master's bias (QF-86)
 
             thumb_916, thumb_1x1 = fut_thumb.result()
-            story_slides = fut_story.result()
-            carousel_slides = fut_carousel.result()
+            # A deck whose checked copy cannot be set whole (typography.LayoutError, QF-23) is held on its own, its
+            # frames out of the posting globs and the hold on the review card; the run goes on (hold_layout_error).
+            story_slides = hold_layout_error(fut_story, run_dir, "stories", payload)
+            carousel_slides = hold_layout_error(fut_carousel, run_dir, "carousel", payload)
             try:
-                fut_carousel_fb.result()
+                hold_layout_error(fut_carousel_fb, run_dir, "carousel_fb", payload)
             except Exception as e:  # Facebook then gets the Instagram slides, as before
                 log.warning("Facebook carousel slides not made (%s); Facebook gets the Instagram slides.", e)
 
@@ -4364,6 +4361,31 @@ def graph_reason(error: Exception) -> str:
     text = str(error)
     found = re.search(r"""['"]message['"]:\s*['"](.+?)['"],\s*['"](?:type|code)['"]""", text)
     return (found[1] if found else text)[:300]
+
+
+LAYOUT_HELD_DIR = "held"   # a held deck's frames, under its own folder: out of the posting globs (non-recursive)
+
+
+def hold_layout_error(future, run_dir: Path, folder: str, payload: dict[str, Any]) -> list[Path]:
+    """`future`'s slides, or [] when the deck raised typography.LayoutError (QF-23: its checked copy fits no
+    permitted layout whole): that deck alone is held. The error is logged, the frames it had saved are moved to
+    <folder>/held/ (the posting globs and the Facebook copy's file check then find none), and payload["layout_holds"]
+    records it for the review card. Any other error propagates."""
+    from src.typography import LayoutError
+    try:
+        return future.result()
+    except LayoutError as e:
+        log.error("%s held: its text cannot be set whole (%s); the run goes on without it.", folder, e)
+        src = Path(run_dir) / folder
+        moved = []
+        if src.is_dir():
+            dst = src / LAYOUT_HELD_DIR
+            dst.mkdir(exist_ok=True)
+            for p in sorted(src.glob("*.jpg")):
+                shutil.move(str(p), str(dst / p.name))
+                moved.append(p.name)
+        payload.setdefault("layout_holds", []).append({"deck": folder, "error": str(e), "moved": moved})
+        return []
 
 
 def prepared_still(path):

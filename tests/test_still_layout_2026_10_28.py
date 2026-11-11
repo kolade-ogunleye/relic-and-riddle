@@ -82,16 +82,12 @@ def test_antikythera_story_text_and_a_long_line_stay_whole_inside_the_story_box(
         assert entry["body_drawn"] == entry["body_source"]                 # "35 meshing" is followed by the rest
         assert safe_zones.inside(tuple(entry["text_box"]), zone)
     assert "30 of which remain visible today." in layout[1]["body_drawn"]
-    # A body far past the three lines the script allows still cannot leave the box: whole while it fits,
-    # shortened at a word with an ellipsis only when the box has no room left.
+    # A body beyond the available space must be refused, preserving its checked
+    # words for revision rather than delivering a shortened factual statement.
     long_payload = {**ANTIKYTHERA, "story_slides": [dict(ANTIKYTHERA["story_slides"][2], body=LONG_LINE * 2)] * 3}
-    slides = MultiFormatGenerator().generate_story_sequence(photo, long_payload, tmp_path / "long")
-    records = _records(tmp_path / "long" / "stories")
-    for slide in slides:
-        _assert_clean(records[slide.name], zone)
-        assert "body" in records[slide.name]["shortened"]
-    drawn = json.loads((tmp_path / "long" / "stories" / "layout.json").read_text(encoding="utf-8"))[-1]["body_drawn"]
-    assert drawn.endswith(chr(0x2026)) and " ".join((LONG_LINE * 2).split()).startswith(drawn[:-1])
+    with pytest.raises(ValueError, match="Checked copy does not fit"):
+        MultiFormatGenerator().generate_story_sequence(photo, long_payload, tmp_path / "long")
+    assert not list((tmp_path / "long" / "stories").glob("*.jpg"))
 
 
 def test_richat_cover_draws_its_tagline_inside_the_square_in_every_style(tmp_path, monkeypatch):

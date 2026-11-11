@@ -413,7 +413,7 @@ def render(reels: Sequence[Dict[str, Any]], out_path: Optional[Path] = None, *, 
     probe = _Canvas(1)
     head = headline(reels).upper()
     # One line when the headline fits at 64 px or more; two at the full size otherwise, never a cut claim.
-    head_lines, head_font, cut = typography.fit_text(probe.d, head, "Anton", 84 * SS, (W - 2 * MARGIN) * SS, 1, 64 * SS,
+    head_lines, head_font, cut = typography.probe_text(probe.d, head, "Anton", 84 * SS, (W - 2 * MARGIN) * SS, 1, 64 * SS,
                                                      sentences=False, quiet=True)
     if cut:
         head_lines, head_font, _ = typography.fit_text(probe.d, head, "Anton", 84 * SS, (W - 2 * MARGIN) * SS, 2,
@@ -460,7 +460,7 @@ def render(reels: Sequence[Dict[str, Any]], out_path: Optional[Path] = None, *, 
         axis_font = fonts.mono(TEXT * SS, medium=True)
         # The figures column (2026-10-29): beside each row's dots, one slot per platform, right-aligned to the
         # widest figure in it, its marker next to its own number. The title gets the full width above, so a
-        # Reel's name is cut only when it is longer than the canvas, never for the figures.
+        # Reel's name must fit whole at the existing font floor; overflow refuses delivery.
         slots = []
         right = W - MARGIN
         for p, _, colour, kind in reversed(present):

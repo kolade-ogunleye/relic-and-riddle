@@ -21,7 +21,8 @@ from PIL import Image, ImageDraw
 from .config import VIDEO_WIDTH, VIDEO_HEIGHT
 from .font_engine import GlyphRefused, surface
 from .typography import (balanced_wrap, cap_height, drawable, field_font, fit_font, fit_line, fit_text, cover_crop, get_font,
-                         is_video, plan_text, record_contrast, spoken_units, text_size, tracked_width, wrap_text)
+                         is_video, plan_text, probe_text, record_contrast, spoken_units, text_size, tracked_width,
+                         wrap_text, TextFitError)
 from . import brand
 
 log = logging.getLogger(__name__)
@@ -361,14 +362,11 @@ def draw_kicker(im: Image.Image, x: float, baseline: float, text: str, font, col
 
 
 def _fit_kicker(text: str, font, width: float) -> Tuple[str, bool]:
-    """A kicker that fits `width` at this size: whole, else shortened at a word with an ellipsis (logged)."""
+    """A kicker that fits `width` at this size, whole: (text, False); else TextFitError (QF-23: it was shortened at
+    a word with an ellipsis, and the kicker is checked copy like the rest of the frame)."""
     if not text or kicker_width(text, font) <= width:
         return text, False
-    words = text.split()
-    while len(words) > 1 and kicker_width(" ".join(words) + "…", font) > width:
-        words.pop()
-    log.warning("Kicker shortened to fit %d px: %s", width, text)
-    return " ".join(words) + "…", True
+    raise TextFitError(text, [text], font, width, 1)
 
 
 def story_body_lines(body: str, asks_poll: bool = False) -> int:
@@ -783,7 +781,7 @@ class MultiFormatGenerator:
             lay.meta_room = [0, POLL_STICKER_ROOM[0], VIDEO_WIDTH, POLL_STICKER_ROOM[1]]
         t_rows, t_height = title_plan(size, wrap)
         s1 = s2 = False
-        if not fits((t_rows, t_height)):   # even the floor does not fit: one line each, shortened with an ellipsis
+        if not fits((t_rows, t_height)):   # even the floor does not fit: one line each, whole or refused (QF-23)
             l1, font_t, s1 = fit_line(d, l1, "Anton", t_min, STORY_TITLE_W, t_min)
             l2, _, s2 = fit_line(d, l2, "Anton", t_min, STORY_TITLE_W, t_min)
             hero = None
@@ -794,10 +792,10 @@ class MultiFormatGenerator:
         n_room = max(1, (room - fixed - t_height - b_gap - 16) // b_step + 1)   # 16: the last line's descenders
         body_lines, font_b, b_short = [], get_font("Montserrat", STORY_BODY_PX, weight=STORY_BODY_WEIGHT), False
         # Never smaller than its design size (operator, 2026-10-25). The script stage keeps each body within three
-        # lines at this size (story_body_lines); a longer one takes more lines while the box has room, and is cut
-        # only when it has none (then at a sentence, else a word, with an ellipsis).
+        # lines at this size (story_body_lines); a longer one takes more lines while the box has room, and the frame
+        # is refused when it has none (QF-23: TextFitError, never cut at a sentence or a word).
         if body.strip():
-            body_lines, font_b, b_short = fit_text(d, body, "Montserrat", STORY_BODY_PX, max_w, STORY_BODY_LINES,
+            body_lines, font_b, b_short = probe_text(d, body, "Montserrat", STORY_BODY_PX, max_w, STORY_BODY_LINES,
                                                    STORY_BODY_PX, quiet=True, weight=STORY_BODY_WEIGHT)
             if b_short:
                 body_lines, font_b, b_short = fit_text(d, body, "Montserrat", STORY_BODY_PX, max_w,
@@ -908,12 +906,14 @@ class MultiFormatGenerator:
         return px
 
     @staticmethod
-    def _fit_text(d, text: str, family: str, size: int, width: int, max_lines: int, min_size: int, px=round, **kw):
+    def _fit_text(d, text: str, family: str, size: int, width: int, max_lines: int, min_size: int, px=round,
+                  trial=False, **kw):
         """fit_text decided on the design canvas (design sizes, strokes and floor; `width` in canvas px) and drawn
         at this canvas's scale: the lines break where the 1080 slide breaks them and each font is the 1080 size
         x 4/3. Fitted on the large canvas itself, fit_text's 2 px steps and the fonts' hinting picked other sizes
         and line breaks (a cover heading that fitted its 920 px on one line went onto two at 1440)."""
-        lines, font, short = fit_text(d, text, family, size, int(round(width / getattr(px, "s", 1.0))), max_lines,
+        fit = probe_text if trial else fit_text
+        lines, font, short = fit(d, text, family, size, int(round(width / getattr(px, "s", 1.0))), max_lines,
                                       min_size, **kw)
         return lines, get_font(family, getattr(px, "exact", px)(font.size)), short
 
@@ -1108,8 +1108,8 @@ class MultiFormatGenerator:
     def _plan_panel(self, d, heading: str, body: str, width: int, room: int, h_spec, b_spec, tight: bool,
                     h_stroke: int = 0, b_stroke: int = 0, h_pitch: float = 1.1, body_max: int = 4, px=round):
         """Heading and body measured to fit `width` x `room`: the heading on one line (shrinking to its floor),
-        else on two; the body wrapped, shrunk to 80% of its size, then kept to whole sentences, and only last
-        shortened at a word with an ellipsis. Returns the plan the panel is drawn from. `h_spec`, `b_spec` and
+        else on two; the body wrapped and shrunk to 80% of its size, else refused (QF-23: TextFitError, never kept
+        to whole sentences or shortened with an ellipsis). Returns the plan the panel is drawn from. `h_spec`, `b_spec` and
         the strokes are design px, `width` and `room` canvas px; the plan's fonts and steps are canvas px (_px)."""
         # Planned in design px (the 1080 slide's sizes, lines and line count), drawn at the canvas's scale.
         s = getattr(px, "s", 1.0)
@@ -1118,7 +1118,7 @@ class MultiFormatGenerator:
         b_size = b_spec
         if tight:
             h_size, b_size = int(h_size * 0.88), int(b_size * 0.9)
-        h_lines, font_h, h_short = fit_text(d, heading, "Anton", h_size, width, 1, h_min, stroke=h_stroke, sentences=False,
+        h_lines, font_h, h_short = probe_text(d, heading, "Anton", h_size, width, 1, h_min, stroke=h_stroke, sentences=False,
                                             quiet=True)
         if h_short:
             h_lines, font_h, h_short = fit_text(d, heading, "Anton", h_size, width, 2, h_min, stroke=h_stroke, sentences=False)
@@ -1299,9 +1299,14 @@ class MultiFormatGenerator:
         return 2 if int(getattr(_render_state, "heading_frame", 2) or 2) > 1 else 1
 
     def _heading_lines(self, d, px, heading: str, width: int, two_tone: bool | str = "wrap") -> int:
-        """How many lines a content slide's heading takes at its design scale (the frame it is planned on)."""
-        rows, _ = self._rows(d, px, heading, "", width, "", "", self.CONTENT_HEADING, self.BODY_LINES, two_tone,
-                             1.0, facebook_heading=True)
+        """How many lines a content slide's heading takes at its design scale (the frame it is planned on). A heading
+        that design scale holds only cut takes the two-line frame (QF-23: the slide steps down its scales whole, or is
+        refused, when drawn; the frame is the one its two lines, cut, took before)."""
+        try:
+            rows, _ = self._rows(d, px, heading, "", width, "", "", self.CONTENT_HEADING, self.BODY_LINES, two_tone,
+                                 1.0, facebook_heading=True)
+        except TextFitError:
+            return 2
         return max(1, sum(1 for r in rows if r["name"] == "heading" and r.get("text")))
 
     def _deck_heading_frame(self, cards: list[dict[str, Any]], archetypes: list[str], facebook: bool) -> int:
@@ -1332,7 +1337,7 @@ class MultiFormatGenerator:
         w = width
         while w >= px(420):
             got = self._fit_text(d, body, "Montserrat", int(size), w, max_lines, int(min(floor, size)), px=px,
-                                 quiet=True)
+                                 quiet=True, trial=True)
             lines, _, short = got
             first = first or got
             measure_ok = all(len(ln) <= self.BODY_MEASURE for ln in lines)
@@ -1405,12 +1410,12 @@ class MultiFormatGenerator:
         if facebook_heading:
             spec = self.CONTENT_HEADING_FB if getattr(_render_state, "facebook", False) else self.CONTENT_HEADING
             hi, lo = (int(v * scale) for v in spec)
-            one = self._fit_text(d, heading, "Anton", hi, width, 1, lo, px=px, sentences=False, quiet=True)
+            one = self._fit_text(d, heading, "Anton", hi, width, 1, lo, px=px, sentences=False, quiet=True, trial=True)
             if not one[2]:
                 h_lines, font_h = one[0], one[1]
             elif len(heading.split()) > 1:
                 halves = [h for h in split_balanced(heading) if h]
-                fits = [self._fit_text(d, h, "Anton", hi, width, 1, lo, px=px, sentences=False, quiet=True)
+                fits = [self._fit_text(d, h, "Anton", hi, width, 1, lo, px=px, sentences=False, quiet=True, trial=True)
                         for h in halves]
                 if not any(f[2] for f in fits):
                     font_h = min((f[1] for f in fits), key=lambda f: f.size)
@@ -1421,7 +1426,7 @@ class MultiFormatGenerator:
                 # Content slides (2026-11-02): two-tone only when the heading needs two lines anyway; a heading that
                 # fits one line stays one bone line ("25+ MILES WIDE" is one figure, not two thoughts).
                 use_two = self._fit_text(d, heading, "Anton", int(h_spec[0] * scale), width, 1, int(h_spec[1] * scale),
-                                         px=px, sentences=False, quiet=True)[2]
+                                         px=px, sentences=False, quiet=True, trial=True)[2]
             if use_two:
                 # Two-tone: two balanced lines, each as large as the narrower of the two allows (one size for both).
                 halves = [h for h in split_balanced(heading) if h]
@@ -1432,7 +1437,8 @@ class MultiFormatGenerator:
                 h_lines = [f[0][0] if f[0] else "" for f in fits]
             else:
                 h_lines, font_h, h_short = self._fit_text(d, heading, "Anton", int(h_spec[0] * scale), width, 1,
-                                                          int(h_spec[1] * scale), px=px, sentences=False, quiet=True)
+                                                          int(h_spec[1] * scale), px=px, sentences=False, quiet=True,
+                                                          trial=True)
                 if h_short:
                     h_lines, font_h, h_short = self._fit_text(d, heading, "Anton", int(h_spec[0] * scale), width, 2,
                                                               int(h_spec[1] * scale * 0.9), px=px, sentences=False)
@@ -1510,21 +1516,43 @@ class MultiFormatGenerator:
             fixed.update(kicker=kb, heading=hb, heading_frame=frame["heading_lines"], heading_lines=len(heads))
             return out
 
-        for scale in ((0.88, 0.8, 0.72) if tight else (1.0, 0.92, 0.84, 0.76, 0.7)):
-            rows, short = self._rows(d, px, heading, body, width, kicker, stat, h_spec, b_lines, two_tone, scale,
-                                     facebook_heading=content)
-            if extra:
-                rows = extra(rows, scale)
-            rows = place(rows)
-            drawn = [r for r in rows if r.get("text")]
-            if not drawn:
-                break
-            low = max(d.textbbox((0, r["y"]), r["text"], font=r["font"], anchor="ls")[3] for r in drawn)
-            high = min(d.textbbox((0, r["y"]), r["text"], font=r["font"], anchor="ls")[1] for r in drawn)
-            if bottom - (low - high) >= px(self.KEY_TOP):
-                break
-        else:
+        scales = (0.88, 0.8, 0.72) if tight else (1.0, 0.92, 0.84, 0.76, 0.7)
+
+        def stack_at(kick: str):
+            for scale in scales:
+                try:
+                    rows, short = self._rows(d, px, heading, body, width, kick, stat, h_spec, b_lines, two_tone,
+                                             scale, facebook_heading=content)
+                    if extra:
+                        rows = extra(rows, scale)
+                except TextFitError:   # QF-23: the next smaller scale before the copy is refused
+                    if scale == scales[-1]:
+                        raise
+                    continue
+                rows = place(rows)
+                drawn = [r for r in rows if r.get("text")]
+                if not drawn:
+                    return rows, short
+                low = max(d.textbbox((0, r["y"]), r["text"], font=r["font"], anchor="ls")[3] for r in drawn)
+                high = min(d.textbbox((0, r["y"]), r["text"], font=r["font"], anchor="ls")[1] for r in drawn)
+                if bottom - (low - high) >= px(self.KEY_TOP):
+                    return rows, short
             log.warning("Carousel slide text taller than the key area at its smallest scale: %.60s", heading)
+            return rows, short
+        try:
+            rows, short = stack_at(kicker)
+        except TextFitError:
+            # QF-23: a "<SUBJECT> · <CATEGORY>" kicker no scale holds whole names the subject alone rather than being
+            # cut: the category is the house label _get_card_category gives the slide ("YOUR TAKE"), no checked copy,
+            # and the subject is what a Facebook photo opened on its own needs. Recorded (shortened
+            # "kicker_category"), so the stills audit puts it on the review card; any copy that still does not fit
+            # refuses the slide
+            subject = kicker.split(" · ", 1)[0] if " · " in (kicker or "") else ""
+            if not subject:
+                raise
+            log.warning("Carousel kicker fits no scale whole; the slide names its subject alone: %s", kicker)
+            rows, short = stack_at(subject)
+            short = [*short, "kicker_category"]
         if lay is not None:
             lay.shortened += short
         drawn = [r for r in rows if r.get("text")]

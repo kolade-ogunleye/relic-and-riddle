@@ -68,6 +68,10 @@ SECTION = {"subject": "Derinkuyu underground city", "total_depth_ft": 280.0, "ap
                       {"depth_ft": 35.0, "label": "Living quarters, kitchens and communal halls"},
                       {"depth_ft": 140.0, "label": "Byzantine cruciform church and school"},
                       {"depth_ft": 280.0, "label": "Deepest wells and ventilation shaft base"}]}
+# QF-23: SECTION's first two labels fit its column only cut ("and storage…", "kitchens and…"), so it is refused; the
+# box check runs on the same section with labels the column holds whole
+SECTION_WHOLE = {**SECTION, "levels": [dict(SECTION["levels"][0], label="Stables and storage"),
+                                       dict(SECTION["levels"][1], label="Living quarters"), *SECTION["levels"][2:]]}
 GRAPHICS = {
     "numbers": lambda out: graphics.render_stat_cards(CARDS, out),
     "timeline": lambda out: graphics.render_timeline(TIMELINE, out),
@@ -75,8 +79,14 @@ GRAPHICS = {
                                                       "subject": "Derinkuyu underground city depth", "approximate": True}, out),
     "scale_height": lambda out: graphics.render_scale({"value": 32.0, "unit": "m", "dimension": "height",
                                                        "subject": "Kailasa temple monolith height", "approximate": True}, out),
-    "section": lambda out: graphics.render_cross_section(SECTION, out),
+    "section": lambda out: graphics.render_cross_section(SECTION_WHOLE, out),
 }
+
+
+def test_a_section_whose_labels_fit_only_cut_is_refused(tmp_path, monkeypatch):
+    monkeypatch.setattr(graphics, "_encode", lambda *_a, **_k: pytest.fail("a refused section was encoded"))
+    with pytest.raises(graphics.TextFitError, match="Checked copy does not fit the cross-section's label column"):
+        graphics.render_cross_section(SECTION, tmp_path / "s.mp4")
 
 
 @pytest.mark.parametrize("kind", sorted(GRAPHICS))

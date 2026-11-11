@@ -139,8 +139,24 @@ def _gradient(im: Image.Image, type_right: float | None = None, stop: float | No
 
 
 def _words(text: str, limit: int) -> str:
+    """The line whole, in capitals, when it has at most `limit` words, else "" (QF-23, operator decision option 1,
+    decisions/QF-23-thumbnail-question.md: the budget selects a whole verified line, never its first `limit`
+    words; it cut the line there before)."""
     words = " ".join((text or "").split()).upper().split()
-    return " ".join(words[:limit])
+    return " ".join(words) if len(words) <= limit else ""
+
+
+def headline_note(meta: dict) -> str:
+    """The review card's line for a headline the budget did not take whole (QF-23, option 1), or ""."""
+    if meta.get("headline_dropped"):
+        return f"🖼 YouTube thumbnail: drawn without its headline: {meta['headline_dropped']}"
+    if meta.get("headline_from"):
+        return (f"🖼 YouTube thumbnail: headline from the {meta['headline_from']}: the title's lines do not fit the "
+                f"four-word budget whole")
+    if meta.get("headline_lines_dropped"):
+        return (f"🖼 YouTube thumbnail: {' and '.join(meta['headline_lines_dropped'])} left out: longer than the "
+                f"budget, never cut")
+    return ""
 
 
 def _intersects(a, b) -> bool:
@@ -356,7 +372,17 @@ def _render(source, copy, focus, meta, figure, youtube_title, illustration, targ
         if not unit:   # a year: the payoff line (the second) under it, else the first
             lines = [ln for ln in lines[::-1] if ln.strip()][:1]
         budget = MAX_WORDS - (2 if unit else 1)   # the figure (and its unit) count
-        title = _words(" ".join(lines), budget)
+        # QF-23 (option 1): both lines when they fit the budget whole, else the first whole line that does, else
+        # another verified line (eyebrow, tagline) that does, else no headline (recorded); a line is never cut
+        title = next((t for t in [_words(" ".join(lines), budget)] + [_words(ln, budget) for ln in lines] if t), "")
+        if not title and any(ln.strip() for ln in lines):
+            alt = next(((k, _words(str(rest.get(k) or ""), budget)) for k in ("eyebrow", "tagline")
+                        if _words(str(rest.get(k) or ""), budget)), None)
+            if alt:
+                meta["headline_from"] = alt[0]
+                title = alt[1]
+            else:
+                meta["headline_dropped"] = f"no verified line fits the {budget}-word headline whole"
         if youtube_title and len(_content(title) & _content(youtube_title)) >= 2:
             # The title already says it: the subject line gives way to another verified line of the copy.
             alt = next(((k, _words(display_line, budget)) for k in ("eyebrow", "tagline")
@@ -419,8 +445,21 @@ def _render(source, copy, focus, meta, figure, youtube_title, illustration, targ
                 withhold_here(f"the hedge {hedge[0]!r} does not fit at feed size", found_h)
             hedge = None
         l1, l2 = _words(copy.get("line1", ""), 3), _words(copy.get("line2", ""), 3)
+        long_lines = [k for k, t in (("line1", l1), ("line2", l2)) if str(copy.get(k) or "").strip() and not t]
+        if long_lines and not (l1 or l2):
+            # QF-23 (option 1): no headline line fits the budget whole: another verified line that does, else none
+            alt = next(((k, _words(str(copy.get(k) or ""), 3)) for k in ("eyebrow", "tagline")
+                        if _words(str(copy.get(k) or ""), 3)
+                        and not (youtube_title and len(_content(copy.get(k)) & _content(youtube_title)) >= 2)), None)
+            if alt:
+                meta["headline_from"], l1 = alt
+            else:
+                meta["headline_dropped"] = "no verified line fits the 3-word headline lines whole"
+        elif long_lines:
+            meta["headline_lines_dropped"] = long_lines   # the other line stands alone, whole
         kicker = ""
-        if bool(l1) != bool(l2) and ("figure_withheld" in meta or "figure_declined" in meta):
+        if bool(l1) != bool(l2) and ("figure_withheld" in meta or "figure_declined" in meta
+                                     or "headline_lines_dropped" in meta):
             # Round 4: a withheld or declined figure left one headline line (Richat: "SAHARA EYE" alone, a third
             # of the left half empty). The other line of the two-tone system comes from the verified copy: the
             # eyebrow, else the tagline, when it is short, new to the headline and not the video title again.

@@ -206,7 +206,9 @@ def test_the_timeline_is_drawn_and_revealed_earliest_first(tmp_path, monkeypatch
     events = [{"year": 1963, "approximate": False, "label": "Rediscovered during home renovation"},
               {"year": 1923, "approximate": False, "label": "Completely abandoned"},
               {"year": -800, "approximate": True, "label": "First chambers"}]
-    graphics.render_timeline(events, tmp_path / "graphic_timeline.mp4", width=540, height=960)
+    # QF-23: at the pipeline's 9:16 size; the half-size canvas (540 x 960) held "Rediscovered during home renovation"
+    # only cut at the label floor, and a timeline that cuts a label is refused now
+    graphics.render_timeline(events, tmp_path / "graphic_timeline.mp4", width=1080, height=1920)
     years = ("800 BC", "1923", "1963")          # round 4: the circa mark is its own lowercase plate
     shown_at = [next(i for i, f in enumerate(per_frame) if y in f) for y in years]
     assert shown_at[0] < shown_at[1] < shown_at[2]                            # revealed earliest first

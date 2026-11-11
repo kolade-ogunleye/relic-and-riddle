@@ -147,7 +147,19 @@ LONG = [{"value": "1,200,000 TONS", "label": "Of volcanic stone removed from the
                                                 "laboratories and published surveys of the formation"}]
 
 
+FITTING = [{"value": "1,200,000 TONS", "label": "Of volcanic stone removed by hand"},
+           {"value": "94–104M YEARS AGO", "label": "Measured carbonatite rock cooling age"}]
+
+
 @pytest.mark.parametrize("cards", [LONG, LONG[:1], LONG[1:]], ids=["two", "one", "second"])
+def test_oversized_number_card_copy_is_refused_whole(cards, tmp_path, monkeypatch):
+    monkeypatch.setattr(graphics, "_encode", lambda *_a, **_k: pytest.fail("Truncated facts must never be encoded"))
+    with pytest.raises(ValueError, match="Checked copy does not fit"):
+        graphics.render_stat_cards(cards, tmp_path / "n.mp4")
+    assert not list(tmp_path.iterdir())
+
+
+@pytest.mark.parametrize("cards", [FITTING, FITTING[:1], FITTING[1:]], ids=["two", "one", "second"])
 def test_a_number_cards_text_ends_above_the_caption_gap(cards, tmp_path, monkeypatch):
     bottom = safe_zones.graphics_box()[3]
     assert bottom == graphics.TEXT_BOTTOM == 1058

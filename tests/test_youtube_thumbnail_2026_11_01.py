@@ -23,9 +23,15 @@ def test_a_measured_figure_is_the_hero() -> None:
 
 
 def test_without_a_figure_it_is_a_two_tone_headline_of_few_words() -> None:
-    _, plates = youtube_thumbnail.render(_photo(), {"line1": "BEHIND ONE WALL... AND MORE WORDS", "line2": "A FORGOTTEN CITY"})
+    _, plates = youtube_thumbnail.render(_photo(), {"line1": "BEHIND ONE WALL...", "line2": "A FORGOTTEN CITY"})
     texts = {n: p.text for n, p in plates}
     assert texts["title_1"] == "BEHIND ONE WALL\u2026" and texts["title_2"] == "A FORGOTTEN CITY"   # round 4: typeset
+    # QF-23 (operator decision, option 1): a line past the budget is left out whole, never drawn as its first words
+    meta: dict = {}
+    _, long_plates = youtube_thumbnail.render(_photo(), {"line1": "BEHIND ONE WALL... AND MORE WORDS",
+                                                         "line2": "A FORGOTTEN CITY"}, meta=meta)
+    assert [p.text for n, p in long_plates if n.startswith("title")] == ["A FORGOTTEN CITY"]
+    assert meta["headline_lines_dropped"] == ["line1"]
     fills = {n: p.fill for n, p in plates}
     assert fills["title_1"] == brand.BONE and fills["title_2"] == brand.GOLD
 

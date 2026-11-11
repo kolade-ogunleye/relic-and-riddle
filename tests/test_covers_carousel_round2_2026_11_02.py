@@ -349,7 +349,12 @@ def test_a_clamped_crop_is_enlarged_until_the_feature_lands_right_and_no_type_co
 
 def test_thumbnail_masthead_figure_and_word_budget() -> None:
     src = Image.new("RGB", (1920, 1080), (90, 80, 70))
-    _, plates = youtube_thumbnail.render(src, {"line1": "THE 25-MILE", "line2": "SAHARA EYE OF THE DESERT"})
+    # QF-23 (operator decision, option 1): a line past the budget is never drawn as its first words: with no verified
+    # line that fits, the thumbnail has no headline beside its figure (recorded); the budget check runs on one that fits
+    meta: dict = {}
+    _, plates = youtube_thumbnail.render(src, {"line1": "THE 25-MILE", "line2": "SAHARA EYE OF THE DESERT"}, meta=meta)
+    assert "title" not in dict(plates) and "no verified line fits" in meta["headline_dropped"]
+    _, plates = youtube_thumbnail.render(src, {"line1": "THE 25-MILE", "line2": "SAHARA EYE"})
     names = dict(plates)
     assert names["brand"].fill == brand.GOLD and names["brand"].font.size >= 60
     assert names["figure_unit"].font.size == pytest.approx(names["figure"].font.size * 0.5, abs=2)

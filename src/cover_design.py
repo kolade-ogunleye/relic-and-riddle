@@ -8,10 +8,12 @@ from PIL import Image, ImageDraw, ImageFilter, ImageOps
 
 from . import brand
 from .typography import (
+    TextFitError,
     fit_text,
     get_font,
     place_text,
     plan_text,
+    probe_text,
     record_contrast,
     text_size,
 )
@@ -191,7 +193,7 @@ def resolving_tagline(copy, reveal):
 
 def _eyebrow_lines(measure, text, width, size=EYEBROW_PX):
     """The eyebrow on one line in Montserrat 800 with EYEBROW_TRACK between letters, never under EYEBROW_MIN
-    (shortened at a word with an ellipsis before it shrinks further). Returns (lines, font, shortened)."""
+    (refused there, QF-23: TextFitError). Returns (lines, font, shortened)."""
     room = width - EYEBROW_TRACK * max(0, len(text) - 1)
     return fit_text(measure, text, "Montserrat", max(EYEBROW_MIN, size), int(room), 1, EYEBROW_MIN,
                     sentences=False, weight=800)
@@ -266,7 +268,7 @@ def _rows(im, copy, width, style, tight, figure=None):
         if name.startswith("title"):
             # Keep normal short copy on one line. Longer wording gets two lines
             # before descending to the emergency floor, rather than tiny type.
-            _, trial, short = fit_text(measure, text, face, size, width, 1,
+            _, trial, short = probe_text(measure, text, face, size, width, 1,
                                         min(size, int(96 * factor)), sentences=False, quiet=True)
             if not short:
                 size = trial.size
@@ -1377,7 +1379,13 @@ def sandwich_fill(copy, focus, source_size, figure=None):
     if not focus or not source_size:
         return None
     im = Image.new("RGBA", (1080, 1920))
-    rows, _ = _rows(im, copy, 1080 - 2 * 96, "depth_sandwich", False, figure)
+    try:
+        rows, _ = _rows(im, copy, 1080 - 2 * 96, "depth_sandwich", False, figure)
+    except TextFitError:   # QF-23: the stack the card is drawn with then is the tighter fit's (still_layout.drawn)
+        try:
+            rows, _ = _rows(im, copy, 1080 - 2 * 96, "depth_sandwich", True, figure)
+        except TextFitError:
+            return 0.0     # the copy fits the paper card in neither fit: it is not offered
     for row in rows:
         if row["name"] == "eyebrow":
             row["gap"] += TAB_PAD[1] + 6

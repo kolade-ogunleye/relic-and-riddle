@@ -349,6 +349,22 @@ def glyph_notes(run_dir: Path) -> list[str]:
     return out
 
 
+LAYOUT_HOLD_NAMES = {"stories": "Story frames", "carousel": "Instagram carousel", "carousel_fb": "Facebook carousel"}
+
+
+def layout_hold_lines(holds: Any) -> list[str]:
+    """Each surface held for a typography.LayoutError (payload["layout_holds"]: main.hold_layout_error for the
+    decks, graphics.make_all for the graphics; QF-23), as 'Story frames: Checked copy does not fit ...' lines."""
+    out: list[str] = []
+    for h in holds if isinstance(holds, list) else []:
+        if isinstance(h, dict) and h.get("deck"):
+            deck = str(h["deck"])
+            name = LAYOUT_HOLD_NAMES.get(deck) or ("graphic: " + deck.split("/", 1)[1] if deck.startswith("graphics/")
+                                                   else deck)
+            out.append(f"{name}: {h.get('error') or 'held'}")
+    return out
+
+
 def detail_messages(full_card: str, limit: int = CARD_PAGE_LIMIT) -> List[str]:
     """The card's lists whole, for the message under a card whose lists were shortened: each section with an
     expandable blockquote, in order, packed into as few messages as Telegram's limit allows (a section longer
@@ -1706,6 +1722,11 @@ class TelegramApprovalBot:
             text += "\n" + _format_note(script_payload["motion_note"])
         if script_payload.get("graphics_note"):
             text += "\n" + _format_note(script_payload["graphics_note"])
+        if script_payload.get("thumbnail_note"):   # QF-23: the YouTube thumbnail's headline, never cut
+            text += "\n" + _format_note(script_payload["thumbnail_note"])
+        holds = layout_hold_lines(script_payload.get("layout_holds"))
+        if holds:   # QF-23: a deck or graphic refused rather than drawn with its checked copy cut
+            text += "\n" + listed(f"✋ Held, its text would not fit whole: {len(holds)}", [e(x) for x in holds], cap) + "\n"
         if script_payload.get("reconstruction_note"):
             text += "\n" + _format_note(script_payload["reconstruction_note"])
         if script_payload.get("footage_note"):

@@ -117,6 +117,13 @@ def test_pompeii_and_babylon_render_whole_with_no_warning(tmp_path, monkeypatch,
 @pytest.mark.parametrize("case", sorted(SETS))
 def test_every_set_keeps_the_hierarchy_rules(tmp_path, monkeypatch, caplog, case) -> None:
     events = SETS[case]
+    if f"{case}-9x16" in r4.QF23_REFUSED:
+        # QF-23: a set no layout holds whole is refused, not drawn with cut labels; the hierarchy rules apply to
+        # what is drawn, and r4's property test holds the refusal to exactly these sets
+        monkeypatch.setattr(graphics, "_encode", lambda *_a, **_k: pytest.fail("a refused timeline was encoded"))
+        with pytest.raises(graphics.TextFitError, match="Checked copy does not fit the portrait timeline"):
+            graphics.render_timeline(events, tmp_path / "t.mp4", *TALL)
+        return
     st = _render(monkeypatch, caplog, tmp_path, events)
     ent, kept, log_text = st["entries"], st["kept"], st["log"]
     years = [en["year"] for en in ent]

@@ -88,8 +88,10 @@ def _box8(lum):
 
 
 def _sources(old, new, size):
+    """The pair as frame_pair hands it to the renderer: cover-cropped and given the master's photo grade (QF-86)."""
+    from src.photo_grade import grade
     big = (round(size[0] * (1 + then_now.PUSH)), round(size[1] * (1 + then_now.PUSH)))
-    return cover_crop(old, big).convert("RGB"), cover_crop(new, big).convert("RGB")
+    return grade(cover_crop(old, big)), grade(cover_crop(new, big))
 
 
 def _lum(a):

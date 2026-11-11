@@ -32,7 +32,7 @@ CORAL: RGB = (232, 115, 90)      # #E8735A, a chart's third series
 DATA_FONT = "IBM Plex Mono"      # typography.get_font family: Medium 500 and SemiBold 600, OFL 1.1 (fonts/)
 
 TEXT_CONTRAST = 4.5              # WCAG AA: every text element, measured on the delivered pixels
-PLACE_TARGET = 4.8               # what place_text aims for, so JPEG and the film grade still leave >= 4.5
+PLACE_TARGET = 4.8               # what place_text aims for, so JPEG and the master's conversions still leave >= 4.5
 
 
 def rgba(colour: RGB, alpha: int = 255) -> Tuple[int, int, int, int]:

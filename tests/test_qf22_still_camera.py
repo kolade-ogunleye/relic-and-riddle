@@ -10,6 +10,7 @@ from PIL import Image
 
 from src import end_card, still_camera
 from src.encoding import RGB_TO_BT709
+from src.video_composer import film_grade_filter
 
 needs_ffmpeg = pytest.mark.skipif(not shutil.which("ffmpeg"), reason="FFmpeg is required")
 
@@ -91,14 +92,15 @@ def test_the_camera_clip_holds_exactly_the_frames_the_graph_would_have_converted
     image.save(source)
     size = (96, 64)
     output = tmp_path / "camera.mkv"
-    motion = still_camera.render_clip(source, output, .3, size, 30, preset="drift", curve=True)
+    grade = film_grade_filter(0.041)     # the photo grade the composer passes for a photograph (QF-86)
+    motion = still_camera.render_clip(source, output, .3, size, 30, preset="drift", grade=grade)
     assert motion.frames == 9
     decoded = subprocess.run(["ffmpeg", "-v", "error", "-i", str(output), "-f", "rawvideo", "-pix_fmt", "yuv420p",
                               "-"], capture_output=True, check=True, timeout=60).stdout
     camera = still_camera.Camera(image.size, size, "drift", motion)
     work, factor = still_camera.working_copy(image, size)
     frames = [still_camera.frame_at(work, camera, i, factor=factor) for i in range(9)]
-    assert decoded == _yuv(frames, size, f"{still_camera.STILL_CURVE},{RGB_TO_BT709}")     # lossless, in order
+    assert decoded == _yuv(frames, size, f"format=gbrp16le,{grade},{RGB_TO_BT709}")     # lossless, in order
     probe = subprocess.run(["ffprobe", "-v", "error", "-show_entries", "stream=codec_name,color_space",
                             "-of", "csv=p=0", str(output)], capture_output=True, text=True, check=True).stdout
     assert probe.strip().startswith("ffv1") and "bt709" in probe

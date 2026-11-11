@@ -50,7 +50,6 @@ from .llm import LLMError, image_block, watch_served
 from .llm import task as llm_task
 from .typography import (
     cap_height,
-    cover_crop,
     get_font,
     is_video,
     plan_text,
@@ -2266,7 +2265,9 @@ def render(photo: Path, points: list[tuple], out: Path, width: int = VIDEO_WIDTH
     "labels" each label's text mask (its local frame) and plate box at rest, under "frames" one entry per frame with
     each live label's drawn plate and text alpha, its plate fraction, leader and marker, and where its masks sit."""
     import numpy as np
-    base = cover_crop(photo, (width, height)).convert("RGB")
+
+    from .photo_grade import cover
+    base = cover(photo, (width, height))   # graded as the master grades the bare photo (QF-86)
     n = int(CLIP_SECONDS * VIDEO_FPS)
     fmt = _fmt(width, height)
     landscape = width > height
@@ -2617,7 +2618,8 @@ def _full_res_view(photo: Path, width: int, height: int) -> tuple[Image.Image, f
     with Image.open(photo) as im:
         iw, ih = im.size
     k = max(1.0, min(iw / width, ih / height))
-    return cover_crop(photo, (round(width * k), round(height * k))).convert("RGB"), k
+    from .photo_grade import cover
+    return cover(photo, (round(width * k), round(height * k))), k   # graded as the frame is (QF-86)
 
 
 def verify_crop(src: Image.Image, x: float, y: float, side: int) -> Image.Image:
@@ -2971,14 +2973,18 @@ def replay(audit_path: Path, out: Path | None = None) -> Path:
 
 def make(payload: dict[str, Any], topic: dict[str, Any], photos: list[Path], work_dir: Path, width: int = VIDEO_WIDTH,
          height: int = VIDEO_HEIGHT, words: list[dict[str, Any]] | None = None, approved: Any = ...,
-         auto_approve: bool = False) -> Path | None:
+         auto_approve: bool = False, grade_bias: float | None = None) -> Path | None:
     """The labelled-photo graphic if the script names features, an approved topic photo shows two or more, and each
     drawn label passes its own check. `words`: the narration's timed words, so each label appears as it is said
     (payload["beat_times"] alone gives an estimate). `approved`: the approved photo stems (see approved_photos).
-    `auto_approve`: no human reviews the video, so the graphic needs a passing accuracy audit (audit_passes)."""
+    `auto_approve`: no human reviews the video, so the graphic needs a passing accuracy audit (audit_passes).
+    `grade_bias`: the bias the master grades the run's photos with (default payload["art_direction"]); the
+    labelled photo takes the same photo grade (QF-86, src/photo_grade.py)."""
     from .config import CALLOUTS_ENABLED
     if not CALLOUTS_ENABLED:
         return None
+    if grade_bias is None:
+        grade_bias = float((payload.get("art_direction") or {}).get("grade_bias") or 0.0)
     labels = payload.get("photo_labels") or []
     if len(labels) < 2:
         return None
@@ -3006,7 +3012,8 @@ def make(payload: dict[str, Any], topic: dict[str, Any], photos: list[Path], wor
         if len(points) < 2:
             log.info("Callouts: fewer than two labels clear the caption band; no graphic.")
             return None
-        ground = cover_crop(photo, (width, height)).convert("RGB")
+        from .photo_grade import cover
+        ground = cover(photo, (width, height), grade_bias)   # the ground as render draws it (graded, QF-86)
         _, said_at, _ = reveal_plan([p[0] for p in points], payload.get("beat_times"), words, squeeze=False,
                                     landscape=width > height)
         spoken = sorted(range(len(points)), key=lambda k: (said_at[k] is None, said_at[k] or 0.0, k))
@@ -3021,8 +3028,10 @@ def make(payload: dict[str, Any], topic: dict[str, Any], photos: list[Path], wor
             return None
         points, reveal, info = [points[k] for k in said], [reveal[k] for k in said], [info[k] for k in said]
         out = work_dir / "graphic_labels.mp4"
+        from .photo_grade import using
         try:
-            clip = render(photo, points, out, width=width, height=height, reveal=reveal)
+            with using(grade_bias):
+                clip = render(photo, points, out, width=width, height=height, reveal=reveal)
         except LowContrast as e:
             log.info("Callouts: %s; no graphic.", e)
             return None

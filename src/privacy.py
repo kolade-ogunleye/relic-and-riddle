@@ -5,7 +5,7 @@ Automated human face de-identification & privacy compliance for documentary medi
 
 Detects living human visitors/tourists/passersby in visual media before
 final composition and applies a high-grade elliptical feathered Gaussian blur
-matching BBC / National Geographic documentary broadcast standards.
+using the project's documented documentary privacy policy.
 
 Uses a 2-stage verification architecture:
 1. Candidate Detection: OpenCV's deep-learning neural face detector (YuNet ONNX).

@@ -272,20 +272,20 @@ def _encode(frames: Iterable[Image.Image], out: Path, n: int, width: int = VIDEO
 
 
 # ------------------------------------------------------- contrast on the graded frame (2026-10-29)
-# A graphic's text is measured where the viewer reads it: on its last frame after the master's film grade
-# (video_composer.picture_chain: the film grade, no grain since QF-03; the lens vignette is lifted while a graphic is on screen,
+# A graphic's text is measured where the viewer reads it: after the master's colour conversions.
+# No photo grade or grain is applied; the lens vignette is lifted while a graphic is on screen,
 # video_composer.graphic_vignette_enable, 2026-11-02), with the glyph masks it was drawn with. The planned and
 # graded ratios of each element are kept beside the clip (<clip>.contrast.json) for video_qa.graphic_contrast_problems.
 CONTRAST_SIDECAR = ".contrast.json"
 
 
 def graded_frame(frame: Image.Image, work: Path, vignette: bool = False) -> Image.Image | None:
-    """`frame` through the master's picture chain (format, hue-safe film print; `vignette` adds the lens
+    """`frame` through the master's graphic path (colour conversion, no photo curve; `vignette` adds the lens
     vignette, which the master lifts under graphic clips); None when ffmpeg cannot run here (the planned ratios
     are still recorded)."""
     try:
         from .encoding import BT709_TO_RGB, RGB_TO_BT709
-        from .video_composer import film_grade_filter, picture_chain
+        from .video_composer import picture_chain
         work.mkdir(parents=True, exist_ok=True)
         # round 8 (review): a name of its own per call: two renders sharing a stage_cache read each other's frame
         tag = f"{os.getpid()}_{uuid.uuid4().hex[:12]}"
@@ -294,7 +294,7 @@ def graded_frame(frame: Image.Image, work: Path, vignette: bool = False) -> Imag
         aspect = "16/9" if frame.width > frame.height else "9/16"
         # BT.709 in and out, as the master converts and tags its pictures (QF-01); the grade and vignette in
         # 16-bit RGB, as the master's picture_chain (QF-02)
-        chain = picture_chain(film_grade_filter(0.0, out_dir=work), frame.width, frame.height,
+        chain = picture_chain("null", frame.width, frame.height,
                               vignette=vignette,
                               lens_filter=f"vignette=PI/4.2:aspect={aspect}")
         graph = f"[0:v]{RGB_TO_BT709},format=yuv420p,{chain},format=yuv420p,{BT709_TO_RGB},format=rgb24[out]"
@@ -5631,8 +5631,8 @@ def timeline_backdrop(photo: Path | None, width: int, height: int) -> Image.Imag
     from PIL import ImageEnhance
     if not (photo and Path(photo).exists()):
         return Image.new("RGB", (width, height), brand.INK)
-    from .typography import cover_crop
-    im = cover_crop(Path(photo), (width, height)).convert("RGB").filter(ImageFilter.GaussianBlur(34))
+    from .photo_grade import cover
+    im = cover(Path(photo), (width, height)).filter(ImageFilter.GaussianBlur(34))   # graded as a bare photo (QF-86)
     im = ImageEnhance.Color(im).enhance(0.25)
     return Image.blend(im, Image.new("RGB", (width, height), brand.INK), 0.84).convert("RGB")
 
@@ -8353,8 +8353,8 @@ def _render_scale_wide(fact: dict[str, Any], feet: float, ref_label: str, ref_fe
 def _backdrop(photo: Path | None, width: int = VIDEO_WIDTH, height: int = VIDEO_HEIGHT) -> Image.Image:
     """A dark, heavily blurred version of the topic's photo (or the plain ground) behind text graphics."""
     if photo and Path(photo).exists():
-        from .typography import cover_crop
-        im = cover_crop(Path(photo), (width, height)).convert("RGB").filter(ImageFilter.GaussianBlur(28))
+        from .photo_grade import cover
+        im = cover(Path(photo), (width, height)).filter(ImageFilter.GaussianBlur(28))   # graded as a bare photo
         dark = Image.new("RGB", (width, height), SEA)
         return Image.blend(im, dark, 0.72).convert("RGB")
     return Image.new("RGB", (width, height), SEA)
@@ -8553,7 +8553,6 @@ def render_stat_cards(cards: list[dict[str, Any]], out: Path, photo: Path | None
         return None
     if width > height:
         return _render_stat_cards_landscape(cards, out, photo, width, height)
-    from .typography import cover_crop
     n = int(CLIP_SECONDS * VIDEO_FPS)
     top, bottom = get_text_bounds(width, height)
     x_text = inset_x0(width, height)                     # the shared inset edge (was M, 84)
@@ -8578,7 +8577,8 @@ def render_stat_cards(cards: list[dict[str, Any]], out: Path, photo: Path | None
         p["x0"] = x_text
         y += p["height"] + gap
     if photo and Path(photo).exists():
-        bg = cover_crop(Path(photo), (width, height)).convert("RGB")
+        from .photo_grade import cover
+        bg = cover(Path(photo), (width, height))   # the photo graded as the master grades it bare (QF-86)
     else:
         bg = Image.new("RGB", (width, height), SEA)
     from .multi_format import scrim
@@ -8680,8 +8680,8 @@ def stat_backdrop_wide(photo: Path | None, width: int, height: int) -> Image.Ima
     from PIL import ImageEnhance
     if not (photo and Path(photo).exists()):
         return timeline_backdrop(photo, width, height)
-    from .typography import cover_crop
-    im = cover_crop(Path(photo), (width, height)).convert("RGB")
+    from .photo_grade import cover
+    im = cover(Path(photo), (width, height))   # graded as a bare photo (QF-86)
     im = ImageEnhance.Color(im).enhance(0.55)
     im = Image.blend(im, Image.new("RGB", (width, height), brand.INK), 0.78)
     xs = np.arange(width, dtype=np.float32) / width
@@ -10742,13 +10742,16 @@ PHOTO_BUILDERS = frozenset({"numbers", "timeline"})  # builders that draw the he
 
 
 def make_all(payload: dict[str, Any], topic: dict[str, Any], work_dir: Path, photo: Path | None = None, width: int = VIDEO_WIDTH, height: int = VIDEO_HEIGHT,
-             palette: dict[str, Any] | None = None) -> list[Path]:
+             palette: dict[str, Any] | None = None, grade_bias: float | None = None) -> list[Path]:
     """Every graphic the script and topic support. Never raises: graphics are optional.
     `photo`: the topic's hero photo, used (blurred) behind the number cards.
     `palette`: the run's art direction (src/art_direction.py), made active here because this runs in a
-    worker thread, where the caller's context variable would not be seen."""
+    worker thread, where the caller's context variable would not be seen.
+    `grade_bias`: the bias the master grades this run's photos with (QF-86; default the palette's grade_bias); a
+    photo drawn inside a graphic takes the same grade (src/photo_grade.py)."""
     from .art_direction import use_palette
     use_palette(palette)
+    bias = float((palette or {}).get("grade_bias") or 0.0) if grade_bias is None else float(grade_bias)
     made: list[Path] = []
     jobs = []
     if payload.get("stat_cards"):
@@ -10793,6 +10796,8 @@ def make_all(payload: dict[str, Any], topic: dict[str, Any], work_dir: Path, pho
                         *[FONTS_DIR / filename for filename in bundled_font_files()]]
         if photo and name in PHOTO_BUILDERS:  # timeline also draws the photo (2026-11-02)
             source_files.append(Path(photo))
+            # the photo's grade (QF-86): its code and the master's curve
+            source_files += [Path(__file__).with_name("photo_grade.py"), Path(__file__).with_name("video_composer.py")]
         if name == "scale":
             source_files.append(REFERENCE_FILE)
         if name in ("map", "route"):
@@ -10804,11 +10809,15 @@ def make_all(payload: dict[str, Any], topic: dict[str, Any], work_dir: Path, pho
                            "timeline", "scale_fact")}}
         if name in ("numbers", "map"):  # figures (a map's scale bar) in the narration's units (2026-10-29)
             inputs["narration"] = payload.get("narration_script") or ""
+        if name in PHOTO_BUILDERS:   # the photo's grade is part of the picture (QF-86)
+            inputs["photo_grade_bias"] = bias
         checkpoint = Checkpoints(work_dir / "stage_cache" / name)
         try:
             if checkpoint.reusable("graphic", inputs):
                 return Path(next(iter(checkpoint.read()["graphic"]["outputs"])))
-            result = job()
+            from .photo_grade import using
+            with using(bias):   # set in the worker thread that draws this graphic
+                result = job()
             # Maps incorporate external relief/geodata and require their own source
             # registry. Only these builders are entirely drawn by this module.
             original_builders = {"cross-section", "timeline", "scale", "numbers"}

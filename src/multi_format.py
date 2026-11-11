@@ -1875,7 +1875,7 @@ class MultiFormatGenerator:
     def generate_carousel_sequence(self, scene_images: List[Path], script_payload: Dict[str, Any], output_dir: Path,
                                    facebook: bool = False, graphics: list[Path] | None = None) -> List[Path]:
         """Multi-Template Editorial Carousel (CAROUSEL_SIZE, 1440x1800, 4:5):
-        Dynamically routes each slide to one of 5 National Geographic / The Economist archetypes
+        Dynamically routes each slide to one of five editorial layout archetypes
         (Full-Bleed Immersive, Comparative Side-by-Side, Architectural Blueprint, Colossal Stat, Debate).
         facebook=True: the same slides for Facebook's multi-photo post (carousel_fb/). Neither copy has a swipe
         cue, slide counter, progress bar or dots any more (operator, 2026-10-28: Instagram draws its own counter

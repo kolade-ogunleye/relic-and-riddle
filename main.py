@@ -699,7 +699,7 @@ class PipelineCoordinator:
         Produces a 3:30 - 5:00 min 16:9 widescreen broadcast documentary according to the 5 pillars:
         - Act-by-act chunked fact verification (5 acts)
         - Sidechain audio ducking with multi-movement score
-        - BBC/Discovery 16:9 intelligent compositing (blurred backdrops for vertical/square photos)
+        - 16:9 aspect-aware compositing (blurred backdrops for vertical/square photos)
         - Hardware accelerated encoding (h264_nvenc)
         - Child run persistence in DB with fault isolation
         """
@@ -933,10 +933,12 @@ class PipelineCoordinator:
                 from src import art_direction
                 doc_art = art_direction.record(run_dir, hero_img)
                 payload["art_direction"] = doc_art
-                fut_graphics = pool.submit(graphics.make_all, payload, topic, graphics_dir, photo=hero_img, width=1920, height=1080, palette=doc_art)
+                # the documentary master grades its photos at bias 0 (compose_deep_dive), so do the graphics' photos
+                fut_graphics = pool.submit(graphics.make_all, payload, topic, graphics_dir, photo=hero_img, width=1920, height=1080, palette=doc_art,
+                                           grade_bias=0.0)
                 fut_callouts = pool.submit(callouts.make, payload, topic, scene_media, graphics_dir, width=1920, height=1080,
-                                           words=words, auto_approve=auto_approve)
-                fut_then_now = pool.submit(then_now.make, topic, graphics_dir, width=1920, height=1080)
+                                           words=words, auto_approve=auto_approve, grade_bias=0.0)
+                fut_then_now = pool.submit(then_now.make, topic, graphics_dir, width=1920, height=1080, grade_bias=0.0)
 
                 own_graphics = fut_graphics.result()
                 labelled = fut_callouts.result()
@@ -1020,7 +1022,7 @@ class PipelineCoordinator:
         if checkpoints.reusable("deep_render", render_inputs):
             log.info("Master documentary video already rendered: %s", master_mp4.name)
         else:
-            log.info("Composing 16:9 widescreen documentary with BBC intelligent compositing...")
+            log.info("Composing 16:9 widescreen documentary with aspect-aware compositing...")
             self.video_composer.compose_deep_dive(
                 scene_images=extended_scenes,
                 vo_path=vo_path,
@@ -3072,7 +3074,8 @@ class PipelineCoordinator:
             fut_footage = pool.submit(footage.source, beats, topic, run_dir / "footage", plan=query_plan) if query_plan else None
             fut_callouts = pool.submit(callouts.make, payload, topic, scene_media, run_dir / "graphics", words=words,
                                        auto_approve=auto_approve)
-            fut_then_now = pool.submit(then_now.make, topic, run_dir / "graphics")
+            fut_then_now = pool.submit(then_now.make, topic, run_dir / "graphics",
+                                       grade_bias=float(art.get("grade_bias") or 0.0))   # the master's bias (QF-86)
 
             thumb_916, thumb_1x1 = fut_thumb.result()
             story_slides = fut_story.result()

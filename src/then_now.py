@@ -704,7 +704,9 @@ def frame_pair(old: Path, new: Path, width: int, height: int) -> tuple[Image.Ima
                                   round(share[3] * im.height)] for k, im in zip(("old", "new"), ims)}
         ims = [im.crop((round(share[0] * im.width), round(share[1] * im.height),
                         im.width - round(share[2] * im.width), im.height - round(share[3] * im.height))) for im in ims]
-    srcs = [ImageOps.fit(im, big, Image.LANCZOS).convert("RGB") for im in ims]
+    from .photo_grade import grade
+    # both photos graded as the master grades a bare photo, before anything is drawn on them (QF-86)
+    srcs = [grade(ImageOps.fit(im, big, Image.LANCZOS)) for im in ims]
     if width > height:
         return srcs[0], srcs[1], info
     size = (width, height)
@@ -1675,14 +1677,19 @@ def render(old: Path, old_year: int, new: Path, new_year: int, out: Path, width:
     return clip
 
 
-def make(topic: dict[str, Any], work_dir: Path, width: int = VIDEO_WIDTH, height: int = VIDEO_HEIGHT) -> tuple[Path | None, list[dict[str, Any]]]:
-    """(clip, credits of both photos) or (None, [])."""
+def make(topic: dict[str, Any], work_dir: Path, width: int = VIDEO_WIDTH, height: int = VIDEO_HEIGHT,
+         grade_bias: float = 0.0) -> tuple[Path | None, list[dict[str, Any]]]:
+    """(clip, credits of both photos) or (None, []). `grade_bias`: the bias the master grades the run's photos with;
+    the pair takes the same photo grade (QF-86, src/photo_grade.py)."""
     try:
         found = source(topic, work_dir)
         if not found:
             return None, []
         old, old_c, new, new_c = found
-        clip = render(old, old_c["year"], new, new_c["year"], work_dir / "graphic_thennow.mp4", width=width, height=height)
+        from .photo_grade import using
+        with using(grade_bias):
+            clip = render(old, old_c["year"], new, new_c["year"], work_dir / "graphic_thennow.mp4", width=width,
+                          height=height)
         reg = Path(old).parent / REGISTRATION_SIDECAR
         if clip and reg.exists():   # the registration's measured numbers beside the clip, as its contrast is
             Path(str(clip) + ".registration.json").write_text(reg.read_text(encoding="utf-8"), encoding="utf-8")

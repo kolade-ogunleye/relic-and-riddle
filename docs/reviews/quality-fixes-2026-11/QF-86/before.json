@@ -1,0 +1,725 @@
+{
+ "inputs": {
+  "photo_gol_gumbaz_04.jpg": {
+   "from": "cache/upscaled/04_commons_fad489b1b2468caa.jpg",
+   "source_size": [
+    8538,
+    3840
+   ],
+   "why": "run_gol_gumbaz_whispering_gallery_1793278143: hero, Story 1, carousel 1 and parallax scene_01 source",
+   "sha256": "2a9a6ca66d1285901d430ca4d678a766c605a6f7b7a904ee2fb9173334c2cad6",
+   "bytes": 120564
+  },
+  "photo_gol_gumbaz_03.jpg": {
+   "from": "cache/upscaled/03_commons_749e0ecf629ab119.jpg",
+   "source_size": [
+    8533,
+    3840
+   ],
+   "why": "run_gol_gumbaz_whispering_gallery_1793278143: carousel slide 1 photo_next",
+   "sha256": "c33f99a7b2fef38e3e1d881d39db8f87da8aee75b5b3987fb71fba058b3570fb",
+   "bytes": 133465
+  },
+  "photo_gol_gumbaz_22.jpg": {
+   "from": "cache/upscaled/22_commons_466e53f5c2d25a35.jpg",
+   "source_size": [
+    8533,
+    3840
+   ],
+   "why": "run_gol_gumbaz_whispering_gallery_1793278143: thumbnail_cover hero",
+   "sha256": "d5416e27217aba7175d70b51a8e8e8ef2563c55c5cfe7e96082bf4e01db9d54a",
+   "bytes": 91005
+  },
+  "graphic_numbers_gol_gumbaz.jpg": {
+   "from": "output/run_gol_gumbaz_whispering_gallery_1793278143/graphics/graphic_numbers.jpg",
+   "source_size": [
+    1080,
+    1920
+   ],
+   "why": "stat card poster (photo ground)",
+   "sha256": "0f3a1b7acb3a78e2b2fb22c707c969541acb233567e79bccadf2897cafc9d4af",
+   "bytes": 22979
+  },
+  "graphic_map_gol_gumbaz.jpg": {
+   "from": "output/run_gol_gumbaz_whispering_gallery_1793278143/graphics/graphic_map.jpg",
+   "source_size": [
+    1080,
+    1920
+   ],
+   "why": "locator map poster",
+   "sha256": "afe0799817c59116ab6593077f93fdf59560c7490d2038b7c7a40e014ad31976",
+   "bytes": 53144
+  },
+  "graphic_thennow_roman.jpg": {
+   "from": "output/run_roman_self_healing_concrete_1793163918/graphics/graphic_thennow.jpg",
+   "source_size": [
+    1080,
+    1920
+   ],
+   "why": "then-and-now poster",
+   "sha256": "543fb16a04bb88c89c5f12ee1daac518d34737c822906fb26b3826890829a4df",
+   "bytes": 144902
+  },
+  "end_ground_wieliczka.jpg": {
+   "from": "output/run_wieliczka_salt_mine_1792974672/beat_images/beat10_2.jpg",
+   "source_size": [
+    4288,
+    2848
+   ],
+   "why": "park 16:9 end-screen case (last-scene photo)",
+   "sha256": "b6a0a128d444d9b07e1f6a9cb82a7cc5a34eb622a55b73d3b415a54e34ca8c8f",
+   "bytes": 138027
+  },
+  "end_ground_aswan.jpg": {
+   "from": "output/run_unfinished_obelisk_aswan_1792985912/beat_images/beat01_2.jpg",
+   "source_size": [
+    4288,
+    2848
+   ],
+   "why": "park 16:9 end-screen case (last-scene photo)",
+   "sha256": "1056c1af8079a5c4ed7512249e9d23b05f3dc8980c7104a3fd65f6b2033bb406",
+   "bytes": 239792
+  },
+  "end_ground_roman.jpg": {
+   "from": "cache/privacy/19_commons_2e369ae7f2cb042e.jpg",
+   "source_size": [
+    4032,
+    3024
+   ],
+   "why": "park 16:9 end-screen case (last-scene photo)",
+   "sha256": "ee9f522e38533ce9e5c44a19f9377b50e7ae8a5659e2eba228e60ebda80fef78",
+   "bytes": 201275
+  },
+  "hook_frame_nazca_dark.jpg": {
+   "from": "docs/reviews/freeze-panel-2026-11-04/cards/render_evidence.py --only hook --match inscribed (run_nazca_lines_runway_paradox_1793247464)",
+   "source_size": [
+    1080,
+    1920
+   ],
+   "why": "hook frame rest frame 32 on the run's darkest photo; label: new: real fact, test-signed field (statement from nazca-unesco-listing)",
+   "sha256": "3658477fdaeb14d82e9b7df618c8052e8849ec528659cabd4be847ea90a7c38c",
+   "bytes": 64079
+  },
+  "hook_frame_nazca_bright.jpg": {
+   "from": "docs/reviews/freeze-panel-2026-11-04/cards/render_evidence.py --only hook --match inscribed (run_nazca_lines_runway_paradox_1793247464)",
+   "source_size": [
+    1080,
+    1920
+   ],
+   "why": "hook frame rest frame 32 on the run's brightest photo; label: new: real fact, test-signed field (statement from nazca-unesco-listing)",
+   "sha256": "67bb9531912bbdef7221b5c8d33e1f2d1a6ecce1f607d8a1988414cca1f70ee2",
+   "bytes": 78515
+  },
+  "photo_richat_01.jpg": {
+   "from": "cache/text_crop/39aa01ff3d533d7d/01_commons.jpg",
+   "source_size": [
+    3840,
+    2299
+   ],
+   "why": "run_richat_structure_sahara_eye_1793474843: hero, the photo behind its stat card",
+   "sha256": "743d71b9d6de2d55bda41c0a05963a271e2f7cfbf5997764876a59acf2adef35",
+   "bytes": 176040
+  }
+ },
+ "run_grade_bias": {
+  "gol_gumbaz": 0.006,
+  "roman": 0.009,
+  "wieliczka": 0.041,
+  "aswan": 0.036,
+  "nazca": 0.009,
+  "richat": 0.05
+ },
+ "delta_e_definition": "CIE76, D65; designs: every 4th pixel; tokens: 24x24 median per token",
+ "network_calls": 0,
+ "native_graphics": {
+  "reel@+0.000": {
+   "grade_bias": 0.0,
+   "delta_e76": {
+    "INK": 3.022,
+    "INK2": 6.419,
+    "BONE": 0.892,
+    "STONE": 7.056,
+    "STONE_LT": 8.263,
+    "GOLD": 4.992,
+    "GOLD_DIM": 1.621,
+    "TEAL": 9.476,
+    "CORAL": 6.943
+   },
+   "maximum_delta_e76": 9.476
+  },
+  "deep_dive@+0.050": {
+   "grade_bias": 0.05,
+   "delta_e76": {
+    "INK": 5.653,
+    "INK2": 9.552,
+    "BONE": 0.892,
+    "STONE": 7.056,
+    "STONE_LT": 8.263,
+    "GOLD": 4.992,
+    "GOLD_DIM": 2.316,
+    "TEAL": 9.476,
+    "CORAL": 6.943
+   },
+   "maximum_delta_e76": 9.552
+  },
+  "reel@-0.050": {
+   "grade_bias": -0.05,
+   "delta_e76": {
+    "INK": 3.76,
+    "INK2": 6.315,
+    "BONE": 0.892,
+    "STONE": 7.056,
+    "STONE_LT": 8.263,
+    "GOLD": 4.992,
+    "GOLD_DIM": 1.724,
+    "TEAL": 9.476,
+    "CORAL": 6.943
+   },
+   "maximum_delta_e76": 9.476
+  },
+  "reel@+0.006": {
+   "grade_bias": 0.006,
+   "delta_e76": {
+    "INK": 3.46,
+    "INK2": 6.657,
+    "BONE": 0.892,
+    "STONE": 7.056,
+    "STONE_LT": 8.263,
+    "GOLD": 4.992,
+    "GOLD_DIM": 1.621,
+    "TEAL": 9.476,
+    "CORAL": 6.943
+   },
+   "maximum_delta_e76": 9.476
+  },
+  "reel@+0.009": {
+   "grade_bias": 0.009,
+   "delta_e76": {
+    "INK": 3.46,
+    "INK2": 6.902,
+    "BONE": 0.892,
+    "STONE": 7.056,
+    "STONE_LT": 8.263,
+    "GOLD": 4.992,
+    "GOLD_DIM": 1.621,
+    "TEAL": 9.476,
+    "CORAL": 6.943
+   },
+   "maximum_delta_e76": 9.476
+  },
+  "reel@+0.036": {
+   "grade_bias": 0.036,
+   "delta_e76": {
+    "INK": 5.236,
+    "INK2": 8.444,
+    "BONE": 0.892,
+    "STONE": 7.056,
+    "STONE_LT": 8.263,
+    "GOLD": 4.992,
+    "GOLD_DIM": 2.316,
+    "TEAL": 9.476,
+    "CORAL": 6.943
+   },
+   "maximum_delta_e76": 9.476
+  },
+  "reel@+0.041": {
+   "grade_bias": 0.041,
+   "delta_e76": {
+    "INK": 5.354,
+    "INK2": 9.117,
+    "BONE": 0.892,
+    "STONE": 7.056,
+    "STONE_LT": 8.263,
+    "GOLD": 4.992,
+    "GOLD_DIM": 2.316,
+    "TEAL": 9.476,
+    "CORAL": 6.943
+   },
+   "maximum_delta_e76": 9.476
+  },
+  "reel@+0.050": {
+   "grade_bias": 0.05,
+   "delta_e76": {
+    "INK": 5.483,
+    "INK2": 9.49,
+    "BONE": 0.892,
+    "STONE": 7.056,
+    "STONE_LT": 8.263,
+    "GOLD": 4.992,
+    "GOLD_DIM": 2.316,
+    "TEAL": 9.476,
+    "CORAL": 6.943
+   },
+   "maximum_delta_e76": 9.49
+  }
+ },
+ "preconversion_ramps": {
+  "0.0": {
+   "levels": 256,
+   "black": [
+    0,
+    0,
+    0
+   ],
+   "white": [
+    62747,
+    62747,
+    62747
+   ],
+   "monotone": true
+  },
+  "-0.05": {
+   "levels": 236,
+   "black": [
+    0,
+    2294,
+    0
+   ],
+   "white": [
+    62747,
+    62747,
+    62747
+   ],
+   "monotone": false
+  },
+  "0.05": {
+   "levels": 236,
+   "black": [
+    0,
+    0,
+    2294
+   ],
+   "white": [
+    62747,
+    62747,
+    62747
+   ],
+   "monotone": false
+  }
+ },
+ "designs": {
+  "stat_card": {
+   "input": "graphic_numbers_gol_gumbaz.jpg",
+   "path": "graphic clip",
+   "delta_e76_median": 10.244,
+   "delta_e76_p95": 12.685,
+   "mean_L_shift": -8.886,
+   "mean_chroma_shift": -1.195
+  },
+  "map": {
+   "input": "graphic_map_gol_gumbaz.jpg",
+   "path": "graphic clip",
+   "delta_e76_median": 5.855,
+   "delta_e76_p95": 12.297,
+   "mean_L_shift": -4.059,
+   "mean_chroma_shift": -2.701
+  },
+  "then_and_now": {
+   "input": "graphic_thennow_roman.jpg",
+   "path": "graphic clip",
+   "delta_e76_median": 7.339,
+   "delta_e76_p95": 12.856,
+   "mean_L_shift": -1.763,
+   "mean_chroma_shift": -0.314
+  },
+  "hook_frame_dark": {
+   "input": "hook_frame_nazca_dark.jpg",
+   "path": "graphic clip",
+   "delta_e76_median": 12.259,
+   "delta_e76_p95": 19.372,
+   "mean_L_shift": -9.749,
+   "mean_chroma_shift": -4.243
+  },
+  "hook_frame_bright": {
+   "input": "hook_frame_nazca_bright.jpg",
+   "path": "graphic clip",
+   "delta_e76_median": 13.69,
+   "delta_e76_p95": 18.2,
+   "mean_L_shift": -11.692,
+   "mean_chroma_shift": -0.695
+  },
+  "photo_parallax_clip": {
+   "input": "photo_gol_gumbaz_04.jpg",
+   "path": "parallax clip",
+   "delta_e76_median": 8.378,
+   "delta_e76_p95": 18.906,
+   "mean_L_shift": -7.351,
+   "mean_chroma_shift": -2.557
+  },
+  "photo_parallax_clip_warm_bias": {
+   "input": "photo_gol_gumbaz_04.jpg",
+   "path": "parallax clip, bias +0.05",
+   "delta_e76_median": 8.285,
+   "delta_e76_p95": 18.727,
+   "mean_L_shift": -7.227,
+   "mean_chroma_shift": -1.688
+  },
+  "photo_still_flat_move": {
+   "input": "photo_gol_gumbaz_04.jpg",
+   "path": "still (camera)",
+   "mean_L_shift": -7.577,
+   "mean_chroma_shift": -3.954,
+   "L_p5_p50_p95_drawn": [
+    8.44,
+    59.32,
+    84.94
+   ],
+   "L_p5_p50_p95_delivered": [
+    2.64,
+    51.05,
+    81.02
+   ]
+  },
+  "photo_parallax_clip_grade_only": {
+   "input": "photo_gol_gumbaz_04.jpg",
+   "path": "parallax clip, lens off",
+   "delta_e76_median": 7.971,
+   "delta_e76_p95": 13.401,
+   "mean_L_shift": 1.183,
+   "mean_chroma_shift": 0.24
+  },
+  "photo_parallax_clip_warm_bias_grade_only": {
+   "input": "photo_gol_gumbaz_04.jpg",
+   "path": "parallax clip, bias +0.05, lens off",
+   "delta_e76_median": 7.905,
+   "delta_e76_p95": 13.381,
+   "mean_L_shift": 1.338,
+   "mean_chroma_shift": 1.271
+  },
+  "photo_still_flat_move_grade_only": {
+   "input": "photo_gol_gumbaz_04.jpg",
+   "path": "still (camera), lens off",
+   "mean_L_shift": 1.018,
+   "mean_chroma_shift": -1.359,
+   "L_p5_p50_p95_drawn": [
+    8.44,
+    59.32,
+    84.94
+   ],
+   "L_p5_p50_p95_delivered": [
+    3.07,
+    66.67,
+    88.17
+   ]
+  },
+  "hook_frame_bright_grade_only": {
+   "input": "hook_frame_nazca_bright.jpg",
+   "path": "graphic clip, lens off",
+   "delta_e76_median": 11.76,
+   "delta_e76_p95": 13.376,
+   "mean_L_shift": -5.858,
+   "mean_chroma_shift": -0.388
+  }
+ },
+ "cut_gap": {
+  "gol_gumbaz": {
+   "input": "photo_gol_gumbaz_04.jpg",
+   "grade_bias": 0.006,
+   "bare_vs_graphic_layer": {
+    "delta_e76_median": 0.549,
+    "delta_e76_p95": 2.02,
+    "mean_L_shift": 0.173,
+    "mean_chroma_shift": 0.093
+   }
+  },
+  "roman": {
+   "input": "end_ground_roman.jpg",
+   "grade_bias": 0.009,
+   "bare_vs_graphic_layer": {
+    "delta_e76_median": 0.359,
+    "delta_e76_p95": 1.805,
+    "mean_L_shift": 0.197,
+    "mean_chroma_shift": 0.02
+   }
+  },
+  "aswan": {
+   "input": "end_ground_aswan.jpg",
+   "grade_bias": 0.036,
+   "bare_vs_graphic_layer": {
+    "delta_e76_median": 0.709,
+    "delta_e76_p95": 1.84,
+    "mean_L_shift": 0.252,
+    "mean_chroma_shift": 0.067
+   }
+  },
+  "wieliczka": {
+   "input": "end_ground_wieliczka.jpg",
+   "grade_bias": 0.041,
+   "bare_vs_graphic_layer": {
+    "delta_e76_median": 0.477,
+    "delta_e76_p95": 1.922,
+    "mean_L_shift": 0.055,
+    "mean_chroma_shift": 0.067
+   }
+  },
+  "richat": {
+   "input": "photo_richat_01.jpg",
+   "grade_bias": 0.05,
+   "bare_vs_graphic_layer": {
+    "delta_e76_median": 0.831,
+    "delta_e76_p95": 1.828,
+    "mean_L_shift": 0.224,
+    "mean_chroma_shift": 0.118
+   }
+  },
+  "aswan_cool_bound": {
+   "input": "end_ground_aswan.jpg",
+   "grade_bias": -0.05,
+   "bare_vs_graphic_layer": {
+    "delta_e76_median": 0.711,
+    "delta_e76_p95": 2.053,
+    "mean_L_shift": 0.256,
+    "mean_chroma_shift": 0.065
+   }
+  }
+ },
+ "stat_card_richat": {
+  "grade_bias": 0.05,
+  "contrast_min": 10.69,
+  "drawn_min": 6.89,
+  "graded_min": 10.69,
+  "elements": 4,
+  "top_band_vs_bare_photo_frame0": {
+   "delta_e76_median": 1.7,
+   "delta_e76_p95": 6.323,
+   "mean_L_shift": -0.746,
+   "mean_chroma_shift": -0.409
+  }
+ },
+ "contrast_path": {
+  "stat_card": {
+   "delta_e76_median": 10.32,
+   "delta_e76_p95": 13.212,
+   "mean_L_shift": -9.0,
+   "mean_chroma_shift": -1.166
+  },
+  "hook_frame_dark": {
+   "delta_e76_median": 9.233,
+   "delta_e76_p95": 14.58,
+   "mean_L_shift": -6.349,
+   "mean_chroma_shift": -2.785
+  },
+  "hook_frame_bright": {
+   "delta_e76_median": 11.832,
+   "delta_e76_p95": 13.3,
+   "mean_L_shift": -5.775,
+   "mean_chroma_shift": -0.298
+  }
+ },
+ "end_screen": {
+  "wieliczka": {
+   "input": "end_ground_wieliczka.jpg",
+   "ground": {
+    "mean_L_shift": -2.539,
+    "mean_chroma_shift": -1.154,
+    "L_p5_p50_p95_drawn": [
+     0.27,
+     0.59,
+     43.84
+    ],
+    "L_p5_p50_p95_delivered": [
+     0.0,
+     0.27,
+     39.7
+    ]
+   },
+   "ground_grade_only": {
+    "mean_L_shift": -1.991,
+    "mean_chroma_shift": -1.01,
+    "L_p5_p50_p95_drawn": [
+     0.27,
+     0.59,
+     43.84
+    ],
+    "L_p5_p50_p95_delivered": [
+     0.0,
+     0.27,
+     41.99
+    ]
+   },
+   "topic_grade_bias": 0.041,
+   "raw_photo": {
+    "contrast_kicker": 4.81,
+    "contrast": {
+     "brand": 14.31,
+     "share": 11.84
+    },
+    "ground_relative_luminance": 0.0285
+   },
+   "delivered_frame": {
+    "contrast_kicker": 4.8,
+    "contrast": {
+     "brand": 15.24,
+     "share": 11.55
+    },
+    "ground_relative_luminance": 0.0229
+   },
+   "delivered_at_topic_bias": {
+    "contrast_kicker": 5.05,
+    "contrast": {
+     "brand": 15.19,
+     "share": 11.63
+    },
+    "ground_relative_luminance": 0.0233
+   }
+  },
+  "aswan": {
+   "input": "end_ground_aswan.jpg",
+   "ground": {
+    "mean_L_shift": -6.47,
+    "mean_chroma_shift": -2.179,
+    "L_p5_p50_p95_drawn": [
+     29.51,
+     74.12,
+     86.81
+    ],
+    "L_p5_p50_p95_delivered": [
+     15.63,
+     65.79,
+     86.16
+    ]
+   },
+   "ground_grade_only": {
+    "mean_L_shift": 3.252,
+    "mean_chroma_shift": 0.037,
+    "L_p5_p50_p95_drawn": [
+     29.51,
+     74.12,
+     86.81
+    ],
+    "L_p5_p50_p95_delivered": [
+     19.17,
+     81.09,
+     88.38
+    ]
+   },
+   "topic_grade_bias": 0.036,
+   "raw_photo": {
+    "contrast_kicker": 5.08,
+    "contrast": {
+     "brand": 12.19,
+     "share": 14.28
+    },
+    "ground_relative_luminance": 0.4265
+   },
+   "delivered_frame": {
+    "contrast_kicker": 4.98,
+    "contrast": {
+     "brand": 11.86,
+     "share": 14.12
+    },
+    "ground_relative_luminance": 0.355
+   },
+   "delivered_at_topic_bias": {
+    "contrast_kicker": 4.97,
+    "contrast": {
+     "brand": 11.86,
+     "share": 14.12
+    },
+    "ground_relative_luminance": 0.3551
+   }
+  },
+  "roman": {
+   "input": "end_ground_roman.jpg",
+   "ground": {
+    "mean_L_shift": -9.433,
+    "mean_chroma_shift": -1.539,
+    "L_p5_p50_p95_drawn": [
+     13.7,
+     65.46,
+     88.14
+    ],
+    "L_p5_p50_p95_delivered": [
+     4.58,
+     57.46,
+     83.51
+    ]
+   },
+   "ground_grade_only": {
+    "mean_L_shift": -0.984,
+    "mean_chroma_shift": -0.481,
+    "L_p5_p50_p95_drawn": [
+     13.7,
+     65.46,
+     88.14
+    ],
+    "L_p5_p50_p95_delivered": [
+     5.07,
+     69.21,
+     90.45
+    ]
+   },
+   "topic_grade_bias": 0.009,
+   "raw_photo": {
+    "contrast_kicker": 4.89,
+    "contrast": {
+     "brand": 12.56,
+     "share": 14.37
+    },
+    "ground_relative_luminance": 0.3504
+   },
+   "delivered_frame": {
+    "contrast_kicker": 4.83,
+    "contrast": {
+     "brand": 12.07,
+     "share": 14.0
+    },
+    "ground_relative_luminance": 0.2644
+   },
+   "delivered_at_topic_bias": {
+    "contrast_kicker": 4.83,
+    "contrast": {
+     "brand": 12.07,
+     "share": 14.0
+    },
+    "ground_relative_luminance": 0.2645
+   }
+  }
+ },
+ "still_surfaces": {
+  "story_frame_1_sha256": "bde9d9b9ec4fcb142b85341f398e4425ede34cb6a2cb37e8fea9a24fb277b5ea",
+  "carousel_slide_1_sha256": "e5363875095ad2aa4ffe797e1e19d2a7158b09913a75a4b8e1bc3869fdc0d757",
+  "cover_sha256": "d57a62d018e27f277e5a96bc61eea034f7f25ffe0efe9c5ceb2382eb9cffd6ee",
+  "recipes": "run_gol_gumbaz_whispering_gallery_1793278143 stories/carousel/still_layout.json"
+ },
+ "name_policy": {
+  "matches": 20,
+  "unexpected": [
+   "assets/luts/kodak_2383.cube:1:TITLE \"Kodak 2383 Film Print Emulation\"",
+   "main.py:702:        - BBC/Discovery 16:9 intelligent compositing (blurred backdrops for vertical/square photos)",
+   "main.py:1023:            log.info(\"Composing 16:9 widescreen documentary with BBC intelligent compositing...\")",
+   "scripts/generate_kodak_lut.py:2:scripts/generate_kodak_lut.py",
+   "scripts/generate_kodak_lut.py:4:Generates an authentic 33x33x33 3D LUT (.cube) emulating Kodak 2383 cinema film print stock.",
+   "scripts/generate_kodak_lut.py:15:def generate_kodak_2383_cube(out_path: Path, size: int = 33):",
+   "scripts/generate_kodak_lut.py:30:        'TITLE \"Kodak 2383 Film Print Emulation\"',",
+   "scripts/generate_kodak_lut.py:58:    p = Path(\"assets/luts/kodak_2383.cube\")",
+   "scripts/generate_kodak_lut.py:59:    generate_kodak_2383_cube(p)",
+   "src/multi_format.py:1878:        Dynamically routes each slide to one of 5 National Geographic / The Economist archetypes",
+   "src/privacy.py:8:matching BBC / National Geographic documentary broadcast standards.",
+   "src/video_composer.py:2938:# The film grade (2026-10-29). The Kodak 2383 print LUT expects log film scans; on our display-referred stills it",
+   "src/video_composer.py:2945:FILM_PRINT_LUT = BASE_DIR / \"assets\" / \"luts\" / \"kodak_2383.cube\"",
+   "src/video_composer.py:4177:        Supports both 9:16 vertical (Reels) and 16:9 widescreen (Documentaries) with BBC intelligent compositing.",
+   "src/video_composer.py:4353:        # The Kodak 2383 print's tone with the picture's own hue (2026-10-29: the full LUT turned a balanced",
+   "src/video_composer.py:4540:        \"\"\"Compose a 16:9 widescreen broadcast documentary with BBC blurred-backdrop compositing.\"\"\""
+  ],
+  "exact_metadata_hash_intact": true,
+  "passed_with_approved_exact_exception": false
+ },
+ "acceptance": {
+  "graphic_tokens_delta_e_le_2": false,
+  "at_least_250_levels_before_conversion": false,
+  "black_zero": false,
+  "formula_lut_removed": false,
+  "formula_generator_removed": false,
+  "name_policy_with_exact_operator_exception": false,
+  "met": false
+ },
+ "encoder": [
+  "-c:v",
+  "libx264",
+  "-preset",
+  "slow",
+  "-crf",
+  "18"
+ ]
+}

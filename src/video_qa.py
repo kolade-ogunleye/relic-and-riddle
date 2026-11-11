@@ -1571,7 +1571,7 @@ def verify_motion_hook_integrity(
 # ---------------------------------------------------------------- text contrast on delivered, graded pixels (2026-10-29)
 # Every text element is drawn at a measured contrast (typography.place_text) and its ratio is recorded where it was
 # drawn: in still_layout.json for the Stories, carousel slides and covers, measured again on the saved JPEG, and in
-# <clip>.contrast.json beside each graphic, measured on its last frame after the master's film grade. The captions
+# <clip>.contrast.json beside each graphic, measured on its last frame through the master's graphic path. The captions
 # are measured here, on the master itself: frames are taken where captions are on screen, the caption file is drawn
 # again as plain white glyphs on black (no pill, outline or halo) for the glyph mask, and each sample's glyphs are
 # measured against the ring 2-10 px outside them (typography.ring_contrast). WCAG AA, 4.5:1, is the bound for all.

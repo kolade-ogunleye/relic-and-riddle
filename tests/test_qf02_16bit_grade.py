@@ -87,7 +87,7 @@ def test_the_picture_chain_is_16_bit_rgb_with_one_conversion_out():
     """The grade, grain, vignette and captions sit between one BT.709 read into gbrp16le and one conversion out."""
     from src.encoding import BT709_TO_RGB, RGB_TO_BT709
     chain = vc.picture_chain(vc.film_grade_filter(0.0), W, H, vignette_enable="", captions="subtitles='x.ass'")
-    assert chain.startswith(f"{BT709_TO_RGB},format=gbrp16le,{vc.FILM_PRE_CURVE},lut3d=")
+    assert chain.startswith(f"{BT709_TO_RGB},format=gbrp16le,{vc.PHOTO_CURVE}")
     assert chain.endswith(f"subtitles='x.ass',{RGB_TO_BT709}") and chain.count("out_color_matrix") == 1
     assert "blend=all_mode=multiply" in chain and vc.picture_vignette(W, H) in chain
     assert "format=yuv420p" not in chain[:chain.index("subtitles")]

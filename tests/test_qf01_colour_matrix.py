@@ -114,19 +114,13 @@ def test_the_master_delivers_bt709_red_from_a_still_and_a_graphic(tmp_path, narr
 
 
 def test_the_graded_master_is_the_grade_in_rgb_converted_once_with_bt709(tmp_path, narration):
-    """With the real film grade: the master's red graphic is the grade's own RGB, BT.709-encoded (its RGB round
-    trip uses BT.709 both ways; ffmpeg's inserted converters used BT.601)."""
+    """QF-86: authored graphic red stays red through the actual BT.709 master."""
     gfx = graphics._encode((Image.new("RGB", (1080, 1920), RED) for _ in range(40)), tmp_path / "gfx.mp4", 40,
                            1080, 1920)
     out = tmp_path / "master.mp4"
     vc.VideoComposer().compose_video([gfx], narration, narration, [{"word": "Red.", "start": 0.2, "dur": 0.4}],
                                      2.0, out, delivery_profile=get_delivery_profile("reel"))
-    ref = subprocess.run(["ffmpeg", "-v", "error", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", "16x16", "-i", "-",
-                          "-vf", f"format=rgb24,{vc.film_grade_filter(0.0)},format=rgb24", "-frames:v", "1",
-                          "-f", "rawvideo", "-pix_fmt", "rgb24", "-"],
-                         input=bytes(RED) * 256, capture_output=True, check=True, timeout=60).stdout
-    graded = tuple(int(c) for c in np.frombuffer(ref, np.uint8).reshape(-1, 3)[8 * 16 + 8])
-    _assert_bt709(out, expected=_bt709(graded), t=0.5)
+    _assert_bt709(out, expected=_bt709(RED), t=0.5)  # QF-86: graphic pixels bypass photo curves
 
 
 def test_the_loop_bridge_frames_enter_the_master_as_bt709():

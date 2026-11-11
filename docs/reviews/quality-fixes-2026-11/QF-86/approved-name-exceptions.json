@@ -1,0 +1,25 @@
+{
+  "domain_contexts": [
+    {
+      "path": "src/design_cards.py",
+      "content_sha256": "d247be767bf615ba4102ab94649c1e6aed380027d5699aed27fb37af4d8f2403"
+    },
+    {
+      "path": "src/fact_sheet.py",
+      "content_sha256": "6c7fc7c689aafa2a8f42fad1b62529c7bc759bfd55333475363c8469920bca8a"
+    },
+    {
+      "path": "src/fact_sheet.py",
+      "content_sha256": "24fea9217656b297700f4f3cf1cd48fbfa5ccf2a6a7fb913286851e73f212c40"
+    }
+  ],
+  "historical_metadata": {
+    "path": "assets/richat_structure_sahara_eye/credits.json",
+    "title": "File:Richat Structure from Gemini IV.jpg",
+    "source_url": "https://commons.wikimedia.org/wiki/File:Richat_Structure_from_Gemini_IV.jpg",
+    "field": "description",
+    "value_sha256": "4eb1b0285ff3848d39324f9abd6558b227f5da57f97c924b3a3d6c3bb743d6fe",
+    "approval": "Operator explicitly approved preserving this exact historical credit; no other source field or grading claim is exempt.",
+    "verified_source": "https://commons.wikimedia.org/w/index.php?title=File:Richat_Structure_from_Gemini_IV.jpg&oldid=1125653250"
+  }
+}

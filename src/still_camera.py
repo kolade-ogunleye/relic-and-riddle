@@ -7,8 +7,8 @@ still travels less than a long one) and reaches it on smoothstep (camera_motion.
 the AI hook clip keeps the old rate from its first frame (`lead`, as its zoompan did), and the loop bridge pre-rolls
 frame 0 at that rate; `trail` (ending at the rate) is available to a caller that carries a push on.
 Frames are sampled from a 2x working copy at fractional positions and written to a lossless FFV1 clip in the
-composer's graph format (BT.709 yuv420p, after the still grade's tone curve), so the graph reads exactly the frames
-it used to convert itself.
+composer's graph format (BT.709 yuv420p, after the photo grade when the shot is a photograph: QF-86), so the graph
+reads exactly the frames it used to convert itself.
 """
 
 import math
@@ -27,8 +27,6 @@ from PIL import Image, ImageOps
 from . import camera_motion
 from .encoding import RGB_TO_BT709, source_matrix
 
-# The stills' tone curve (QF-02: no black lift), applied before the graph's BT.709 conversion as it was in the graph.
-STILL_CURVE = "curves=master='0/0 0.1/0.11 0.5/0.50 0.9/0.89 1/0.97'"
 # Reading a YUV clip into RGB: swscale's default conversion truncates (a hook clip came back 0.77 Y levels darker,
 # chroma 0.145 off, after the BT.709 encode); accurate rounding and full chroma interpolation make the round trip
 # exact to 0.00 Y / 0.003 UV (QF-22 review 1). The matrix is the clip's own, as to_bt709 reads it.
@@ -307,9 +305,11 @@ def _video_frames(source: Path, size: tuple[int, int], duration: float, fps: flo
 
 
 def render_clip(source, output, duration, size, fps, *, preset="push", focal=(0.5, 0.5), lead=False, trail=False,
-                tilt: str | None = None, curve: bool = False, colorspace: str | None = None) -> Motion:
+                tilt: str | None = None, grade: str | None = None, colorspace: str | None = None) -> Motion:
     """Render one shot to `output` (FFV1, BT.709 yuv420p): a still photograph, or (a video `source`) an AI hook clip
-    whose every frame gets the move. `curve` applies STILL_CURVE first. Returns the shot's Motion, from which the
+    whose every frame gets the move. `grade` (the composer's photo curve, video_composer.film_grade_filter; None
+    for an illustration, a graphic or a manual clip) runs on the moved frame in 16-bit RGB before the BT.709
+    conversion, as the composer graded a still in its graph (QF-86). Returns the shot's Motion, from which the
     loop bridge takes the seam's zoom and speed."""
     from .typography import is_video
     source, output = Path(source), Path(output)
@@ -330,7 +330,7 @@ def render_clip(source, output, duration, size, fps, *, preset="push", focal=(0.
     output.parent.mkdir(parents=True, exist_ok=True)
     handle, temporary = tempfile.mkstemp(dir=output.parent, suffix=".mkv")
     os.close(handle)
-    vf = f"{STILL_CURVE},{RGB_TO_BT709}" if curve else RGB_TO_BT709
+    vf = f"format=gbrp16le,{grade},{RGB_TO_BT709}" if grade else RGB_TO_BT709
     try:
         with tempfile.TemporaryFile() as errors:
             process = subprocess.Popen(

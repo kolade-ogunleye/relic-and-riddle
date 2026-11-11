@@ -2422,7 +2422,8 @@ def toned_ground(photo: Path | None, geo: _Geo, blur: float, levels: tuple[np.nd
     xs = (np.arange(sw, dtype=np.float32) + 0.5) / sw
     vig = 1.0 - TONE_VIGNETTE * ((xs - 0.5) * 2) ** 2
     if photo and Path(photo).exists():
-        small = cover_crop(Path(photo), (W, H)).convert("RGB").resize((sw, sh), Image.BILINEAR)
+        from .photo_grade import cover
+        small = cover(Path(photo), (W, H)).resize((sw, sh), Image.BILINEAR)   # graded as a bare photo (QF-86)
         small = small.filter(ImageFilter.GaussianBlur(max(0.5, geo.px(blur) / q)))
         rgb = np.asarray(small, np.float32) / 255.0
         Y = rgb @ np.array([0.2126, 0.7152, 0.0722], np.float32)
@@ -2535,7 +2536,8 @@ def _photo_outside(photo: Path | None, geo: _Geo, y1: float, top: float | None =
         return None
     from PIL import ImageFilter
     W, H = geo.width, geo.height
-    pic = cover_crop(Path(photo), (W, H)).convert("RGB").filter(ImageFilter.GaussianBlur(geo.px(MYTH_BLUR)))
+    from .photo_grade import cover
+    pic = cover(Path(photo), (W, H)).filter(ImageFilter.GaussianBlur(geo.px(MYTH_BLUR)))   # graded (QF-86)
     # yellows turned toward amber first (TONE_YELLOW, as toned_ground does): a shaded yellow otherwise reads olive
     hsv = np.asarray(pic.convert("HSV"), np.float32)
     h = hsv[..., 0] * (360.0 / 255.0)
@@ -3978,7 +3980,11 @@ def plan_hook_frame(spec: HookFrame, sheet: dict, width: int = 1080, height: int
         raise CardRefused("the claim covers the reviewed subject in both positions")
     if position == "top" and spec.photo_kind == "generated":
         raise CardRefused("no room for the disclosure above a moved claim")
+    # a photograph takes the master's photo grade before anything is drawn on it (QF-86); a generated ground is not
+    from .photo_grade import grade, is_photograph
     bg = cover_crop(photo, size).convert("RGB")
+    if spec.photo_kind != "generated" and is_photograph(Path(photo)):
+        bg = grade(bg)
     if position == "normal" and spec.photo_kind != "generated":
         # review 2026-11-03 (round 3, C): on a bright ground the claim moves up under the masthead, so the two share
         # one compact plate (a title panel) instead of a tall panel with an empty middle; never onto the subject

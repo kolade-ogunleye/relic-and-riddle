@@ -11,7 +11,7 @@ rather than hand-picked, and one grammar for every graphic kind.
 - MOTION: one timing table. A count-up finishes by COUNT_DONE_BY of the clip so the resting value is on
   screen for most of it (the automated check and the viewer both see it).
 - grade_bias(hero): a bounded warm/cool shift from the hero photograph, so a desert topic and a cold-sea
-  topic do not share one tint; the film LUT stays.
+  topic do not share one tint; applied to photographs only, by video_composer's photo curve (QF-86).
 
 The active palette is a context variable set per run (use_palette); renderers read accent().
 """

@@ -30,7 +30,6 @@ from typing import Any, Dict, List, Optional, Set, Tuple
 from PIL import Image, ImageFilter
 
 from .config import (
-    BASE_DIR,
     AUDIO_SAMPLE_RATE,
     FONTS_DIR,
     FONT_NAME,
@@ -138,6 +137,51 @@ def _is_reconstruction_scene(item) -> bool:
         return any(Path(s.get("path", "")).stem.startswith(("gap_gen_", "gen_")) for s in source_chain(p))
     except Exception:  # noqa: BLE001 - an unreadable lineage is no reconstruction claim
         return False
+
+
+# Clips that are a photograph in motion (QF-86): a parallax move (src/parallax.py render_clip) and an AI motion
+# clip animated from a photo's anchor frame (src/motion.py). They take the photo curve as the stills do.
+PHOTO_CLIP_OPERATIONS = ("parallax", "ai_motion")
+_NOT_PHOTO_STEMS = ("gap_gen_", "gen_", "graphic_", "hook_frame", "footage_")
+
+
+def is_photo_clip(item) -> bool:
+    """True for a clip that is a photograph in motion: its own lineage record names a PHOTO_CLIP_OPERATIONS
+    operation, its whole source chain verifies (lineage.source_chain: every hash intact, every source present),
+    and neither the record's own sources nor anything in the chain is a generated illustration, a graphic or
+    footage. Fails closed: an unreadable record, a broken or stale chain, or a missing source is False (the clip
+    keeps its supplied colour)."""
+    p = Path(item)
+    if p.stem.startswith(_NOT_PHOTO_STEMS):
+        return False
+    try:
+        from .lineage import sidecar, source_chain
+        record = json.loads(sidecar(p).read_text(encoding="utf-8"))
+        if not isinstance(record, dict) or record.get("operation") not in PHOTO_CLIP_OPERATIONS:
+            return False
+        own = [str(s.get("path") or "") for s in record.get("sources") or [] if isinstance(s, dict)]
+        if not own or not all(own):
+            return False
+        chain = [str(s.get("path") or "") for s in source_chain(p) if s.get("kind") != "lineage"]
+    except Exception:  # noqa: BLE001 - any unreadable or broken lineage: not shown to be a photograph
+        return False
+    return not any(Path(s).stem.startswith(_NOT_PHOTO_STEMS) for s in own + chain)
+
+
+def is_photo_still(item) -> bool:
+    """True for a still that is a photograph, by the same rule as is_photo_clip: no generated-illustration,
+    graphic, hook-frame or footage stem in its own name or anywhere in its lineage, and, when it has a lineage
+    record (an upscale, a privacy edit), a chain that verifies. Fails closed: a broken or stale chain is False (the
+    still keeps its supplied colour). A still without a record (a photo as downloaded) is judged by its name."""
+    p = Path(item)
+    if p.stem.startswith(_NOT_PHOTO_STEMS):
+        return False
+    try:
+        from .lineage import source_chain
+        chain = [str(s.get("path") or "") for s in source_chain(p) if s.get("kind") != "lineage"]
+    except Exception:  # noqa: BLE001 - any unreadable or broken lineage: not shown to be a photograph
+        return False
+    return not any(Path(s).stem.startswith(_NOT_PHOTO_STEMS) for s in chain)
 
 
 def reconstruction_badge_intervals(scene_images, durations, vo_dur: float) -> list[tuple[float, float]]:
@@ -294,7 +338,7 @@ def _run_ffmpeg(cmd: List[str]) -> subprocess.CompletedProcess:
 
 
 from .encoding import bounded_encode, get_video_encoder as _get_video_encoder, get_intermediate_video_encoder as _get_intermediate_video_encoder
-from .encoding import BT709_FLAGS, BT709_TAGS, BT709_TO_RGB, RGB_TO_BT709, to_bt709
+from .encoding import BT709_FLAGS, BT709_TAGS, BT709_TO_RGB, RGB_TO_BT709, source_matrix, to_bt709
 
 
 def _ass_escape(text: str) -> str:
@@ -2935,111 +2979,32 @@ def _master_chain(gain_db: float) -> str:
     )
 
 
-# The film grade (2026-10-29). The Kodak 2383 print LUT expects log film scans; on our display-referred stills it
-# also pushed every colour warm/yellow and up to 2.5x more saturated, so a lamp-lit stone door that colour_balance
-# had taken from 70/71/31 to 85/84/45 came out 79/76/26 and read neon lime. The grade now keeps only the print's
-# tone (its grey response: the contrast, black density and highlight roll-off) and takes the hue from the picture:
-# each colour is scaled as a whole by the print's curve on a norm halfway between its luminance and its brightest
-# channel (hue and saturation kept, no channel clipped), then given a small, bounded chroma lift.
-# Measured on 40 stills of 10 topics: docs/reviews/film-grade-2026-10-29.
-FILM_PRINT_LUT = BASE_DIR / "assets" / "luts" / "kodak_2383.cube"
-FILM_LUT_DIR = BASE_DIR / "cache" / "luts"
-FILM_TONE_VERSION = 2       # 2 (QF-02): the table's black is video black (the print's black lift dropped)
-FILM_TONE_NORM_MIX = 0.5     # 0 = luminance (washes bright warm colours out), 1 = brightest channel (flatter)
-FILM_TONE_CHROMA = 1.03      # the print's richness, bounded: more than this grows a warm material into a cast
-# The pre-LUT white headroom. The stacked black lifts are gone (QF-02, 2026-11-06): a still's branch curve (0/0.02),
-# this curve (0/0.02) and the print table's own black (5.4/255) stacked to Y22 for a black still. Black is set once,
-# by the print table, at video black (Y16). One lift of 0.01 kept here measured Y16.9 (QF-02, with the grain the
-# master then carried: Y17.1-17.3), so none is kept.
-FILM_PRE_CURVE = "curves=master='0/0 0.5/0.50 1/0.98'"
-_LUMA_709 = (0.2126, 0.7152, 0.0722)
+# A restrained documentary photo curve, not a film-stock emulation (QF-86).
+# One 16-bit operation on each photographic still, before scene compositing:
+# black and white remain fixed, with a gentle middle-tone contrast adjustment.
+PHOTO_CURVE = "curves=master='0/0 0.2/0.195 0.5/0.505 0.8/0.81 1/1'"
 
 
-def _read_cube(path: Path):
-    """A .cube 3D LUT as an array [b][g][r] -> rgb (red runs fastest in the file)."""
-    import numpy as np
-    rows = []
-    for line in Path(path).read_text(encoding="utf-8", errors="replace").splitlines():
-        s = line.strip()
-        if s and (s[0].isdigit() or s[0] in ".-"):
-            rows.append([float(v) for v in s.split()[:3]])
-    a = np.asarray(rows, dtype=np.float64)
-    n = round(len(a) ** (1 / 3))
-    if n < 2 or n ** 3 != len(a):
-        raise ValueError(f"{Path(path).name} is not a 3D LUT")
-    return a.reshape(n, n, n, 3)
+def film_grade_filter(grade_bias: float = 0.0, source: Path | None = None,
+                      out_dir: Optional[Path] = None) -> str:
+    """Photo-only 16-bit curves; the historical API name remains for callers.
 
-
-def hue_safe_print_table(lut, mix: float = FILM_TONE_NORM_MIX, chroma: float = FILM_TONE_CHROMA,
-                         black: float | None = None):
-    """The print LUT's tone without its colour: a table of the same size whose greys stay grey (at the print's
-    mean grey response) and whose colours keep their hue, with relative chroma changed by at most `chroma`.
-    `black`: the table's black (None: the print's own); the difference fades out linearly to white, which stays."""
-    import numpy as np
-    n = lut.shape[0]
-    v = np.linspace(0.0, 1.0, n)
-    b, g, r = np.meshgrid(v, v, v, indexing="ij")
-    x = np.stack([r, g, b], axis=-1)
-    tone = np.array([lut[i, i, i] for i in range(n)]).mean(axis=1)   # the grey axis, neutralised
-    if black is not None:
-        tone = tone + (float(black) - tone[0]) * (1.0 - v)
-    w = np.asarray(_LUMA_709)
-    norm = mix * x.max(axis=-1) + (1 - mix) * (x @ w)
-    gain = np.where(norm > 1e-6, np.interp(norm, v, tone) / np.maximum(norm, 1e-6), 1.0)
-    out = x * gain[..., None]
-    out = out / np.maximum(out.max(axis=-1), 1.0)[..., None]   # over white: the whole colour scaled, hue kept
-    out[norm <= 1e-6] = tone[0]                                 # black is the print's black, neutral
-    y = out @ w
-    c = (out - y[..., None]) * chroma
-    with np.errstate(divide="ignore", invalid="ignore"):         # the chroma lift shrinks to stay in gamut
-        room = np.minimum(np.where(c > 0, (1 - y[..., None]) / c, np.inf),
-                          np.where(c < 0, -y[..., None] / c, np.inf)).min(axis=-1)
-    out = y[..., None] + c * np.clip(room, 0.0, 1.0)[..., None]
-    return np.clip(out, 0.0, 1.0)
-
-
-def hue_safe_print_lut(source: Path = FILM_PRINT_LUT, out_dir: Optional[Path] = None) -> Path:
-    """The hue-safe version of `source` as a .cube file (cached by the source's content and the settings)."""
-    import hashlib
-    data = Path(source).read_bytes()
-    key = hashlib.sha256(data + f"|v{FILM_TONE_VERSION}|{FILM_TONE_NORM_MIX}|{FILM_TONE_CHROMA}".encode()).hexdigest()[:12]
-    out = Path(out_dir or FILM_LUT_DIR) / f"{Path(source).stem}_tone_{key}.cube"
-    if out.is_file():
-        return out
-    table = hue_safe_print_table(_read_cube(source), black=0.0)   # QF-02: black is video black
-    n = table.shape[0]
-    body = "\n".join(f"{r:.6f} {g:.6f} {b:.6f}" for r, g, b in table.reshape(-1, 3))
-    text = (f'TITLE "{Path(source).stem} tone only (hue kept)"\nLUT_3D_SIZE {n}\n'
-            f"DOMAIN_MIN 0.0 0.0 0.0\nDOMAIN_MAX 1.0 1.0 1.0\n{body}\n")
-    out.parent.mkdir(parents=True, exist_ok=True)
-    tmp = out.with_name(f"{out.name}.{os.getpid()}.tmp")       # concurrent renders never read half a table
-    tmp.write_bytes(text.encode("ascii"))
-    os.replace(tmp, out)
-    return out
-
-
-def film_grade_filter(grade_bias: float = 0.0, source: Path = FILM_PRINT_LUT, out_dir: Optional[Path] = None) -> str:
-    """The master's film grade: the pre-curve and the hue-safe print LUT (a gentle neutral contrast when the LUT
-    is missing or unreadable), then the topic's bounded warm/cool bias."""
-    # no black lift (QF-02): the brightness offset and the curve's 0/0.02 are gone
-    grade = "eq=contrast=1.07:saturation=1.03,curves=master='0/0 0.2/0.19 0.5/0.51 0.8/0.82 1/0.98'"
-    if Path(source).exists():
-        try:
-            lut = hue_safe_print_lut(source, out_dir)
-            lut_str = str(lut.resolve()).replace("\\", "/").replace(":", "\\:")
-            grade = f"{FILM_PRE_CURVE},lut3d='{lut_str}'"
-        except (OSError, ValueError) as e:
-            log.warning("Film print LUT not usable (%s); the neutral contrast grade is used.", e)
+    No external or cached LUT is read. The legacy source/out_dir parameters are
+    accepted without accessing them. A bounded topic bias preserves both endpoints.
+    """
+    grade = PHOTO_CURVE
     bias = max(-0.05, min(0.05, float(grade_bias or 0.0)))
-    if bias:  # the topic's own warmth or coolness, bounded, after the film print
-        grade += f",colorbalance=rs={bias:.3f}:bs={-bias:.3f}:rm={bias / 2:.3f}:bm={-bias / 2:.3f}"
+    if bias:
+        grade += (f":red='0/0 0.5/{0.5 + bias / 2:.3f} 1/1'"
+                  f":blue='0/0 0.5/{0.5 - bias / 2:.3f} 1/1'")
     return grade
 
 
-# The picture chain in 16-bit RGB (QF-02, 2026-11-06). curves and lut3d are RGB filters; on the yuv420p stream
+# The picture chain in 16-bit RGB (QF-02, 2026-11-06). Curves are RGB filters; on the yuv420p stream
 # ffmpeg converted to 8-bit RGB and back around each: a 0-64 shadow ramp (56 luma levels) kept 29 in the master.
-# The graded picture is now read once into 16-bit planar RGB (gbrp16le) with the BT.709 matrix; the grade, the print
-# LUT, the lens vignette and the captions all work there, and it is converted once, at the end, to BT.709 yuv420p
+# The composited picture is read into 16-bit planar RGB (gbrp16le) with the BT.709 matrix.
+# Photo curves have already run on the individual stills; the lens and captions run here,
+# followed by one conversion to BT.709 yuv420p
 # (swscale dithers 16-bit RGB down to 8-bit YUV). ffmpeg's vignette has no 16-bit path, so the lens is drawn on a
 # white frame (the same picture_vignette filter) and multiplied into the 16-bit picture.
 # No grain (QF-03, 2026-11-06, operator decision): the unseeded noise=alls=8:allf=t+u made every render differ and
@@ -4170,11 +4135,11 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         value is the share line, drawn only when end_card.LOOP_LINE is on (off: the bridge has no line). The bed must
         run on for end_card.LOOP_SECONDS more (generate_ambient_bed(end_card_at=vo_dur)). Empty, or 16:9: no tail.
         grade_bias: a bounded warm (+) / cool (-) shift measured from the topic's hero photograph
-        (art direction, 2026-10-24), applied after the film LUT; 0 leaves the grade as it was.
+        applied only to photographic stills before compositing; zero gives the neutral photo curve.
         durations: seconds on screen per scene (e.g. from scene_planner beats). Hard cuts land
         on these boundaries, rounded to the nearest video frame. Only boundaries explicitly
         listed in act_cuts get an eight-frame dissolve. Without durations, scenes share the narration equally.
-        Supports both 9:16 vertical (Reels) and 16:9 widescreen (Documentaries) with BBC intelligent compositing.
+        Supports both 9:16 vertical (Reels) and 16:9 widescreen (Documentaries) with aspect-aware photo compositing.
         """
         from .delivery_profiles import get_delivery_profile
         profile = delivery_profile or get_delivery_profile("deep_dive" if width > height else "reel")
@@ -4232,6 +4197,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             raise RenderError("Scene boundaries must increase and fit inside the narration")
         macro_indices = set(macro_drifts or [])
 
+        photo_grade = film_grade_filter(grade_bias)
         input_args: List[str] = []
         filter_parts: List[str] = []
         # QF-22: stills and the AI hook clip move through the shared camera (src/still_camera.py), rendered to
@@ -4251,33 +4217,46 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                 if i == 0 and width < height and is_ai_motion_clip(item):
                     # the AI hook clip gets the opening still's push, from its first frame (lead)
                     clip = camera_dir / f"{i}.mkv"
+                    # QF-86: a hook clip animated from a photo takes the photo curve in the camera's RGB, before
+                    # its BT.709 conversion, as the stills do; an illustration's or a manual clip's keeps its colour
                     cameras.append((i, item, clip, clip_dur, {"preset": "hook", "lead": True,
-                                                              "colorspace": colorspace}))
+                                                              "colorspace": colorspace,
+                                                              "grade": photo_grade if is_photo_clip(item) else None}))
                     input_args += ["-t", f"{clip_dur:.3f}", "-i", str(clip)]
                     filter_parts.append(f"[{i}:v]fps={VIDEO_FPS},setsar=1,{BT709_TAGS}[v{i}]")
                     continue
                 input_args += ["-t", f"{clip_dur:.3f}", "-i", str(item)]
+                # A parallax clip, or an AI motion clip animated from a photo, is a photograph in motion: it takes
+                # the same 16-bit photo curve as a still, so a photo's grade does not depend on whether the depth
+                # model ran. Graphic, illustration and footage clips keep their supplied colour (QF-86).
+                clip_in = (f"scale=in_color_matrix={source_matrix(colorspace)},format=gbrp16le,{photo_grade},"
+                           f"{RGB_TO_BT709}" if is_photo_clip(item) else to_bt709(colorspace))
                 if width > height and self._is_portrait_video(item):
                     fg_h = int(round(height * 0.94)) // 2 * 2
                     filter_parts.append(
                         f"[{i}:v]tpad=stop_mode=clone:stop=-1,split[bg_in{i}][fg_in{i}];"
                         f"[bg_in{i}]scale={width}:{height}:force_original_aspect_ratio=increase,crop={width}:{height},boxblur=25:5,eq=brightness=-0.15[bg{i}];"
                         f"[fg_in{i}]scale=-2:{fg_h}[fg{i}];"
-                        f"[bg{i}][fg{i}]overlay=(W-w)/2:(H-h)/2,fps={VIDEO_FPS},setsar=1,{to_bt709(colorspace)}[v{i}]"
+                        f"[bg{i}][fg{i}]overlay=(W-w)/2:(H-h)/2,fps={VIDEO_FPS},setsar=1,{clip_in}[v{i}]"
                     )
                 else:
                     filter_parts.append(
                         f"[{i}:v]tpad=stop_mode=clone:stop=-1,scale={width}:{height}:force_original_aspect_ratio=increase,"
-                        f"crop={width}:{height},fps={VIDEO_FPS},setsar=1,{to_bt709(colorspace)}[v{i}]"
+                        f"crop={width}:{height},fps={VIDEO_FPS},setsar=1,{clip_in}[v{i}]"
                     )
                 continue
 
             from .image_presentation import fit_filter, full_image
+            from .scene_planner import is_illustration
+            # Keep authored graphics and generated illustrations out of the photo
+            # curve, including derivatives whose lineage records their origin; a
+            # broken or stale chain fails closed, as for clips (is_photo_still).
+            still_grade = "null" if not is_photo_still(item) or is_illustration(item) else photo_grade
             if full_image(item):
                 input_args += ["-loop", "1", "-t", f"{clip_dur:.3f}", "-i", str(item)]
                 filter_parts.append(
                     f"[{i}:v]{fit_filter(item, width, height)},fps={VIDEO_FPS},"
-                    f"setsar=1,{RGB_TO_BT709}[v{i}]"
+                    f"setsar=1,format=gbrp16le,{still_grade},{RGB_TO_BT709}[v{i}]"
                 )
                 continue
             from .still_camera import preset_for
@@ -4293,7 +4272,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             clip = camera_dir / f"{i}.mkv"
             cameras.append((i, item, clip, clip_dur, {
                 "preset": preset_for(i, n, i in macro_indices), "focal": self.compute_focal_point(item),
-                "tilt": tilt, "curve": tilt is None}))
+                "tilt": tilt, "grade": None if still_grade == "null" else still_grade}))
             input_args += ["-t", f"{clip_dur:.3f}", "-i", str(clip)]
             filter_parts.append(f"[{i}:v]fps={VIDEO_FPS},setsar=1,{BT709_TAGS}[v{i}]")
 
@@ -4350,9 +4329,9 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         # Graphics are drawn to their own measured contrast: the lens vignette is lifted while one is on screen,
         # so a graphic can use the frame's full width (2026-11-02; at the edges it read 2.7:1 after grading).
         vignette_enable = graphic_vignette_enable(scene_images, durations)
-        # The Kodak 2383 print's tone with the picture's own hue (2026-10-29: the full LUT turned a balanced
-        # lamp-lit door neon lime); film_grade_filter, above, has the why and the measurements.
-        film_grade = film_grade_filter(grade_bias)
+        # Photo curves ran before compositing, so graphics and footage retain their
+        # own colour even during an act dissolve. Only lens/captions remain here.
+        film_grade = "null"
         # The graded picture before the captions, split off for the end card's background (its last frame).
         card_split = "split[v_graded][v_card_src];[v_graded]" if card else ""
         # QF-02: from here `film_grade` is the whole picture chain in 16-bit RGB (picture_chain): the grade, the
@@ -4537,7 +4516,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         emphasis: Optional[List[str]] = None,
         act_cuts: list[float] | None = None,
     ) -> Path:
-        """Compose a 16:9 widescreen broadcast documentary with BBC blurred-backdrop compositing."""
+        """Compose a 16:9 widescreen broadcast documentary with blurred-backdrop compositing."""
         return self.compose_video(
             scene_images=scene_images,
             vo_path=vo_path,

@@ -5086,7 +5086,8 @@ def reconcile_interrupted_runs(db: PipelineDatabase, topic_engine=None) -> List[
                 continue
             if (datetime.now(timezone.utc) - started).total_seconds() < INTERRUPTED_GRACE_SECONDS:
                 continue
-        db.update_run(run_id, "failed", error="Interrupted: the process making it ended (crash or stop) before it finished.")
+        from src.telegram_bot import INTERRUPTED_ERROR
+        db.update_run(run_id, "failed", error=INTERRUPTED_ERROR)
         db.clear_active_progress(run_id)
         if topic_engine is not None and row["topic_id"]:
             topic_engine.record_status(row["topic_id"], "queued", run_id=run_id)

@@ -52,7 +52,7 @@ SCREENS: Dict[str, Tuple[str, str, Optional[str]]] = {
 }
 # Callbacks of the panels that are not dashboard screens (design §12): the notifications panel's item, page,
 # Dismiss all info and Undo taps. Every callback prefix is in SCREENS or here.
-PANEL_KINDS = {"n", "np", "nall", "nundo"}
+PANEL_KINDS = {"n", "np", "nall", "nundo", "pstop", "pkeep", "pstopok"}
 # Typed commands draw the same screens.
 SCREENS.update({
     "queue": SCREENS["qrefresh"], "progress": SCREENS["cprog"], "status": SCREENS["cstat"], "reviews": SCREENS["creviews"],

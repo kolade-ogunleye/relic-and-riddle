@@ -53,6 +53,8 @@ DASHBOARD = "dashboard"
 SLOT_PREFIX = "layout:"
 PROCESS_IDENTITY = f"{os.getpid()}-{int(time.time())}"
 NOTE_ACTIONS = {"n", "np", "nall", "nundo"}   # the notifications panel's own callbacks (telegram_ui.PANEL_KINDS)
+PROGRESS_ACTIONS = {"pstop", "pkeep", "pstopok"}   # the progress panel's Cancel run and its confirmation
+REAP_SECONDS = 60.0         # the reaper's round (design §7.4)
 SYNC_SECONDS = 20.0         # the condition items are re-derived this often (notice_conditions)
 HOME_IDLE_SECONDS = 15 * 60          # the dashboard goes back home after this without a tap (design §6.2)
 HOME_IDLE_BUSY_SECONDS = 30 * 60     # ... and after this while typed input or a wizard is mid-step
@@ -151,6 +153,7 @@ class Layout:
         self._stop = threading.Event()
         self._later: Any | None = None   # a CLI process's one pending redraw
         self._synced = 0.0                 # when the condition items were last derived
+        self._reaped = 0.0                 # when the reaper last ran
         self.clock = time.time
         self.timer = threading.Timer        # replaceable in tests
 
@@ -205,6 +208,9 @@ class Layout:
                 self._synced = now
                 from . import notice_conditions
                 notice_conditions.sync(self.db, now)   # condition items follow the state (UI-01b)
+            if now - self._reaped >= REAP_SECONDS and hasattr(self.bot, "reap_progress_panels"):
+                self._reaped = now
+                self.bot.reap_progress_panels()   # UI-01c: a run that ended without its finisher
             self.draw_notifications(now, force=force)
             self.push(now)
             self.delete_due_alerts(now)

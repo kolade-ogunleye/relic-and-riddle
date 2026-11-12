@@ -86,6 +86,9 @@ REASON_CARD_MINUTES = 30
 # before deciding what to keep (production 2026-10-26: the words came 20 s after the tap, 7 s after the run
 # began, and the script was kept unread). At least 10 s after the reason is seen.
 REGEN_DETAIL_SECONDS = 90
+STOP_CONFIRM_SECONDS = 300  # the progress panel's Cancel run confirmation stands this long (UI-01c)
+REAP_GRACE_SECONDS = 30     # a run that has just ended is left to its own process's finisher this long (UI-01c)
+INTERRUPTED_ERROR = "Interrupted: the process making it ended (crash or stop) before it finished."
 # Replies that replace the card they came from (text only).
 EDIT_IN_PLACE = {"uadd", "tadd", "simpub", "rsn", "impok", "impno", "imprev"}
 TOASTS = {"imgok": "✅ Storyboard Approved!", "imgcancel": "✖ Cancelled", "mcancel": "✖ Cancelled",
@@ -216,6 +219,16 @@ def _v2_reason_keyboard(target: str) -> dict[str, Any]:
     chips = [{"text": label, "callback_data": f"rejres:{target}:{code}"} for code, label in REASONS.items()]
     rows = [chips[i:i + 3] for i in range(0, len(chips), 3)]
     return {"inline_keyboard": rows + [[{"text": "← Keep it", "style": "primary", "callback_data": f"keepit:{target}"}]]}
+
+
+def _age_anchor(run: dict[str, Any]) -> float:
+    """When a run's record last changed, as epoch seconds (0 when it cannot be read: old enough)."""
+    from datetime import UTC, datetime
+    try:
+        at = datetime.fromisoformat(str(run.get("updated_at") or ""))
+    except ValueError:
+        return 0.0
+    return (at if at.tzinfo else at.replace(tzinfo=UTC)).timestamp()
 
 
 def clean_chat() -> bool:
@@ -3654,15 +3667,15 @@ class TelegramApprovalBot:
             f"<b>{html.escape(topic_title)}</b> · started {show_time(None, '%H:%M')}\n\n"
             f"🔄 <b>Step 1/5:</b> <i>{PROGRESS_STEPS[0]}...</i>\n"
             + "".join(f"◽ <b>Step {n}/5:</b> {m}\n" for n, m in enumerate(PROGRESS_STEPS[1:], start=2)) + "\n"
-            f"Progress: <code>[{bar}] {pct}%</code>\n"
-            f"⏱ <b>Elapsed:</b> 00:00 · <b>Time left:</b> {eta}"
+            + ("" if clean_chat() else f"Progress: <code>[{bar}] {pct}%</code>\n")   # the clean chat: no bar (§6.4)
+            + f"⏱ <b>Elapsed:</b> 00:00 · <b>Time left:</b> {eta}"
         )
         text = self.progress_mode(run_id) + "\n\n" + text
-        buttons = [[{"text": "🔄 Refresh", "callback_data": f"cprog:{self.db.run_key(run_id)}"}, {"text": "⏹ Cancel run", "callback_data": f"runstop:{self.db.run_key(run_id)}"}], [DONE_BUTTON]]
+        buttons = self._progress_buttons(run_id)
         markup = {"inline_keyboard": format_responsive_keyboard(buttons)}
         try:
             from .telegram_state import get as state_get, put as state_put
-            reuse = state_get(self.db, "progress-reuse", run_id)
+            reuse = state_get(self.db, "progress-reuse", run_id) if not clean_chat() else None
             mid = None
             if reuse:  # a re-render tapped on a card: that card becomes the progress card
                 state_put(self.db, "progress-reuse", run_id, "")
@@ -3684,6 +3697,11 @@ class TelegramApprovalBot:
                 from .card_ledger import record as record_card
                 put(self.db, "message-run", f"{self.chat_id}:{mid}", run_id)
                 record_card(run_id, "progress", text, buttons, mid)
+                if clean_chat():   # a layout row: the reaper deletes it if its run ends without its finisher
+                    from .process_state import identity
+                    from .telegram_layout import put_slot
+                    put_slot(self.db, f"progress:{run_id}", mid, owner_pid=os.getpid(),
+                             owner_identity=identity(os.getpid()))   # the process making the run (design §5.6)
                 self._last_progress_edit[mid] = time.monotonic()
                 self._last_progress_step[mid] = 1
                 if hasattr(self.db, "set_active_progress"):
@@ -3716,6 +3734,12 @@ class TelegramApprovalBot:
         # Redrawn outright: editing the card just deleted only produced "message to edit not found" first.
         self.update_progress_card(old, active.get("step", 1), active.get("total_steps", 5), active.get("topic_title", ""),
                                   active["run_id"], active.get("details", ""), redraw=True)
+        new = self._live_progress_card(active["run_id"])
+        if clean_chat() and new and new != old:   # the layout row follows the panel (its finisher and the reaper)
+            from .telegram_layout import SLOT_PREFIX, put_slot
+            card = self.db.get_telegram_card(SLOT_PREFIX + f"progress:{active['run_id']}") or {}
+            extra = {k: v for k, v in (card.get("payload") or {}).items() if k != "sent_at"}
+            put_slot(self.db, f"progress:{active['run_id']}", new, **extra)
         return True
 
     def _live_progress_card(self, run_id: str) -> Optional[int]:
@@ -3772,7 +3796,8 @@ class TelegramApprovalBot:
             else:
                 lines.append(f"◽ <b>Step {idx}/{total_steps}:</b> {m}")
 
-        lines.append(f"\nProgress: <code>[{bar}] {pct}%</code>")
+        if not clean_chat():   # the clean chat drops the bar (design §6.4): the stages say it
+            lines.append(f"\nProgress: <code>[{bar}] {pct}%</code>")
         lines.append(f"⏱ <b>Elapsed:</b> {elapsed_sec // 60:02d}:{elapsed_sec % 60:02d} · <b>Time left:</b> {eta}")
 
         lines.insert(1, self.progress_mode(run_id))
@@ -3780,7 +3805,7 @@ class TelegramApprovalBot:
         self._last_progress_edit[message_id] = now
         self._last_progress_step[message_id] = step
 
-        buttons = [[{"text": "🔄 Refresh", "callback_data": f"cprog:{self.db.run_key(run_id)}"}, {"text": "⏹ Cancel run", "callback_data": f"runstop:{self.db.run_key(run_id)}"}], [DONE_BUTTON]]
+        buttons = self._progress_buttons(run_id)
 
         # Keep DB updated with real-time active progress
         if hasattr(self.db, "set_active_progress"):
@@ -3851,6 +3876,8 @@ class TelegramApprovalBot:
             self.db.clear_active_progress(run_id)
         if not self.is_configured() or not message_id:
             return False
+        if clean_chat():
+            return self._end_progress_panel(message_id, run_id, success, error)
         if not success:
             run = self.db.get_run(run_id)
             if run and run.get("status") == "cancelled":
@@ -3894,6 +3921,155 @@ class TelegramApprovalBot:
             return self.edit_message_text(message_id, text, buttons=buttons)
         else:
             return self.delete_message(message_id)
+
+    def _progress_buttons(self, run_id: str) -> list:
+        """The progress panel's keyboard. The clean chat (UI-01c): Cancel run alone (no Refresh: it redraws
+        itself; no 🏠: the dashboard is just above), or, for 5 minutes after it is tapped, its confirmation
+        ← Keep making · Cancel run. The earlier chat: Refresh, Cancel run and 🏠."""
+        key = self.db.run_key(run_id)
+        if not clean_chat():
+            return [[{"text": "🔄 Refresh", "callback_data": f"cprog:{key}"},
+                     {"text": "⏹ Cancel run", "callback_data": f"runstop:{key}"}], [DONE_BUTTON]]
+        asked = getattr(self, "_stop_asked", {}).get(run_id)
+        if asked and time.time() - asked < STOP_CONFIRM_SECONDS:
+            return [[{"text": "← Keep making", "callback_data": f"pkeep:{key}"},
+                     {"text": "Cancel run", "style": "danger", "callback_data": f"pstopok:{key}"}]]
+        return [[{"text": "Cancel run", "callback_data": f"pstop:{key}"}]]
+
+    def _progress_tap(self, cq: dict[str, Any]) -> None:
+        """Cancel run on the progress panel: the confirmation replaces only its keyboard (design §6.4)."""
+        action, _, ref = cq.get("data", "").partition(":")
+        run_id = self.db.resolve_run(ref)
+        mid = (cq.get("message") or {}).get("message_id")
+        stops = self.__dict__.setdefault("_stop_asked", {})
+        if action == "pstop":
+            stops[run_id] = time.time()
+            self._answer_callback(cq["id"], "Cancel this run? It stops at the next step; what was made and paid for "
+                                            "is kept, and the topic goes back in the queue.")
+        elif action == "pkeep":
+            stops.pop(run_id, None)
+            self._answer_callback(cq["id"], "Still making it")
+        else:
+            stops.pop(run_id, None)
+            accepted = self.db.request_run_cancel(run_id)
+            self._answer_callback(cq["id"], "Cancel requested: it stops at the next step." if accepted
+                                  else "This run is no longer being made; nothing was cancelled.")
+            if accepted and mid:
+                self._api("editMessageReplyMarkup", data={"chat_id": self.chat_id, "message_id": mid,
+                                                          "reply_markup": json.dumps({"inline_keyboard": []})})
+                return
+        if mid:
+            self._api("editMessageReplyMarkup", data={"chat_id": self.chat_id, "message_id": mid, "reply_markup":
+                                                      json.dumps({"inline_keyboard": self._progress_buttons(run_id)})})
+
+    def _end_progress_panel(self, message_id: int, run_id: str, success: bool, error: str) -> bool:
+        """The clean chat (UI-01c): the progress panel lives exactly as long as its run. It is deleted at the end;
+        a failure becomes the Needs-you item "❌ <heading> · <title>" (Re-render, or Back to the queue when nothing
+        is worth keeping, · Details) and rings once; a cancel becomes an info item. Returns True: the ending was
+        said (so no second failure alert is sent)."""
+        from . import notifications as notes
+        from .telegram_layout import drop_slot
+        self.delete_message(message_id)
+        drop_slot(self.db, f"progress:{run_id}")
+        if success:
+            return True
+        run = self.db.get_run(run_id) or {}
+        label = self.db.run_label(run_id)
+        if run.get("status") == "cancelled":
+            notes.post(self.db, notes.INFO, f"cancel:{run_id}", "Render cancelled", emoji="⏹️", subject=label, run=run_id,
+                       body="Stopped at a step boundary. What was made and paid for is kept; the topic is back in the queue.")
+        else:
+            from .config import OUTPUT_DIR
+            from .control import failed_heading, short_reason
+            from .resume_points import kept_phrase, worth_resuming
+            late = bool(run) and worth_resuming(OUTPUT_DIR / run_id, run)
+            kept = kept_phrase(OUTPUT_DIR / run_id, run) if late else ""
+            reason = html.escape(short_reason(error, 1000))
+            if late:
+                body = f"Nothing was posted. Re-render continues from where it stopped, keeping {html.escape(kept)}.\n{reason}"
+                actions = [{"text": "Re-render", "callback_data": f"rerender:{self.db.run_key(run_id)}"}]
+            else:
+                body = ("Nothing was posted. It stopped before its script passed the fact check, so nothing is worth "
+                        f"keeping; the topic is set aside.\n{reason}")
+                actions = ([{"text": "Back to the queue", "callback_data": f"requeue:{run['topic_id']}"}]
+                           if run.get("topic_id") else [])
+            actions.append({"text": "Details", "callback_data": f"chist:{self.db.run_key(run_id)}"})
+            notes.post(self.db, notes.NEEDS, f"fail:{run_id}", failed_heading(self.db, run_id), body, emoji="❌",
+                       subject=label, actions=actions, run=run_id, replace=True)
+        self.layout.kick()
+        return True
+
+    def reap_progress_panels(self, now: float | None = None) -> int:
+        """The reaper (design §5.6, §7.4; the renderer runs it every 60 s). A progress panel goes when its run is
+        no longer being made and its finisher did not remove it (after REAP_GRACE_SECONDS, so the finisher always
+        has its turn), or when the process making the run has died (its recorded pid is gone or is another
+        process now): that run is marked interrupted, its topic goes back in the queue, and it becomes the
+        Needs-you item "⚠️ Run interrupted" under its failure key, so a worker-crash notice or the start-up
+        clearing for the same run are the same item. A cancelled run is the info item "⏹️ Render cancelled"."""
+        from . import notifications as notes
+        from .telegram_layout import SLOT_PREFIX, drop_slot
+        now = time.time() if now is None else now
+        reaped = 0
+        for card in self.db.list_telegram_cards(topic_id=0, card_kind="layout"):
+            name = str(card.get("card_id", "")).removeprefix(SLOT_PREFIX)
+            if not name.startswith("progress:"):
+                continue
+            run_id = name.partition(":")[2]
+            run = self.db.get_run(run_id) or {}
+            status = run.get("status")
+            if status == "producing":
+                if not self._run_owner_dead(card.get("payload") or {}, run_id):
+                    continue
+                self._mark_interrupted(run)
+                status = "interrupted"
+            elif run and now - _age_anchor(run) < REAP_GRACE_SECONDS:
+                continue   # just ended: its own process is still finishing it
+            self.delete_message(int(card["message_id"]))
+            drop_slot(self.db, name)
+            reaped += 1
+            label = self.db.run_label(run_id) if run else run_id
+            if status == "cancelled":
+                if not notes.has_open(self.db, f"cancel:{run_id}"):
+                    notes.post(self.db, notes.INFO, f"cancel:{run_id}", "Render cancelled", emoji="⏹️", subject=label,
+                               run=run_id, body="Stopped at a step boundary. What was made and paid for is kept.")
+            elif (status in ("failed", "timed_out", "interrupted") or not run) and not notes.has_open(self.db, f"fail:{run_id}"):
+                notes.post(self.db, notes.NEEDS, f"fail:{run_id}", "Run interrupted", emoji="⚠️", subject=label,
+                           run=run_id, body="The process making it ended before it finished. Nothing was posted; the "
+                                            "topic is back in the queue.",
+                           actions=notes.failure_actions(self.db, run_id))
+        return reaped   # the renderer's tick draws the panel right after (no kick: it runs under Layout._lock)
+
+    def _run_owner_dead(self, payload: dict[str, Any], run_id: str) -> bool:
+        """Whether the process recorded as making run_id has ended: its pid is gone, or is now another process
+        (a different creation identity). A process that cannot be checked ("unknown") is never declared dead on a
+        guess, as main.reconcile_interrupted_runs decides."""
+        from .process_state import identity
+        pid, owner = payload.get("owner_pid"), payload.get("owner_identity")
+        if not pid:
+            try:
+                record = json.loads(self.db.get_setting("run_owner:" + run_id) or "{}")
+            except ValueError:
+                record = {}
+            pid, owner = record.get("pid"), record.get("identity")
+        if not pid:
+            return False
+        observed = identity(int(pid))
+        if observed is None:
+            return True
+        return observed != "unknown" and bool(owner) and owner != "unknown" and observed != owner
+
+    def _mark_interrupted(self, run: dict[str, Any]) -> None:
+        """The run whose process died: failed as interrupted, its progress record cleared, its topic back in the
+        queue (the start-up reconcile's own steps, main.reconcile_interrupted_runs)."""
+        from .worker_deadline import forget
+        run_id = run["run_id"]
+        self.db.update_run(run_id, "failed", error=INTERRUPTED_ERROR)
+        if hasattr(self.db, "clear_active_progress"):
+            self.db.clear_active_progress(run_id)
+        if run.get("topic_id") and hasattr(self.db, "record_topic_status"):
+            self.db.record_topic_status(run["topic_id"], "queued", run_id=run_id)
+        forget(self.db, run_id)
+        log.warning("Run %s was interrupted (its process ended); marked failed, topic back in the queue.", run_id)
 
     def delete_message(self, message_id: int) -> bool:
         """Deletes a message from Telegram. Returns True if deleted, False otherwise."""
@@ -4694,7 +4870,7 @@ class TelegramApprovalBot:
         # Updates that arrived while the bot was down are processed, not skipped: an Approve tap
         # during a restart must not be lost (decisions are first-wins, so a replay is harmless).
         # Only commands older than STALE_COMMAND_SECONDS are dropped, so a day-old /run doesn't fire.
-        from .telegram_layout import NOTE_ACTIONS  # the panel's own taps
+        from .telegram_layout import NOTE_ACTIONS, PROGRESS_ACTIONS
         clean = config.TELEGRAM_CLEAN_CHAT and self.is_configured()
         if clean:
             self.layout.start()   # the long-running bot renders the layout (telegram_layout)
@@ -4738,6 +4914,13 @@ class TelegramApprovalBot:
                 if clean and msg.get("pinned_message") and str((msg.get("chat") or {}).get("id")) == str(self.chat_id):
                     # The service line a pin leaves ("… pinned 🔔 …") goes at once (design §5.2).
                     self._delete_soon(msg.get("message_id"))
+                    continue
+                if clean and cq and action in PROGRESS_ACTIONS:
+                    message = cq.get("message") or {}
+                    if self._authorized(cq.get("from", {}).get("id"), message.get("chat", {}).get("id")):
+                        self._queue_navigation(lambda tap=cq: self._progress_tap(tap))
+                    else:
+                        self._answer_callback(cq["id"], "Not authorized.")
                     continue
                 if clean and cq and action in NOTE_ACTIONS:
                     message = cq.get("message") or {}
@@ -4935,7 +5118,11 @@ class TelegramApprovalBot:
                     if card and started:
                         put(self.db, "progress-reuse", run_id, str(card))
                         self.edit_message_text(card, text, buttons=[[DONE_BUTTON]])
-                    elif text and not from_item:
+                    elif text and from_item:
+                        pass   # the item's page says why (and the toast)
+                    elif text and clean_chat():
+                        self.show_dashboard(text, [[DONE_BUTTON]])
+                    elif text:
                         self.notify(text, buttons=[[DONE_BUTTON]], record_alert=False, transient=True, group="studio")
                     self._answer_callback(cq['id'], 'Re-render started' if started else 'Not started')
                     if on_dashboard and (started or not clean_chat()):   # a refusal is never drawn over

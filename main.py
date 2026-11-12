@@ -32,7 +32,7 @@ import threading
 import logging
 import sys
 import time
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -40,7 +40,7 @@ from src.config import ASSETS_DIR, CURATED_SCRIPTS_DIR, DAILY_RUN_TIME, OUTPUT_D
 from src.credits import caption_credit_line, generate_provenance_ledger, load_credits
 from src.db import PipelineDatabase, QueueEmpty
 from src.control import clip_words, heartbeat_text, is_paused, make_command_handler, ping_healthcheck, record_run_mode
-from src import beat_images, callouts, colour_balance, config, encoding, footage, graphics, motion, post_schedule, privacy, then_now
+from src import beat_images, callouts, colour_balance, config, encoding, footage, graphics, motion, post_schedule, privacy, then_now, worker_deadline
 from src.llm import claude_available as llm_available
 from src.scene_planner import degraded_note, documentary_cuts, fit_findings, fit_note, fit_to_lines, plan_scenes, segment_beats
 from src.topic_proposer import origin_note as topic_origin_note
@@ -326,6 +326,9 @@ class PipelineCoordinator:
             result = self._produce_and_publish(topic, run_id, run_dir, auto_approve, dry_run, previous_status)
             self._finish_progress(topic.get("title", tid), run_id, success=True)
             self._collect_findings(run_id, run_dir, tid)
+        except worker_deadline.RunDeadlineExceeded as e:  # stopped at its deadline (_stop_at_deadline), files kept
+            self._collect_findings(run_id, run_dir, tid, error=f"RunDeadlineExceeded: {e}")
+            return {"status": "timed_out", "run_id": run_id, "topic_id": tid}
         except JobCancelled:
             return {"status": "cancelled", "run_id": run_id, "topic_id": tid}
         except FactStarvedTopicError as e:
@@ -390,6 +393,11 @@ class PipelineCoordinator:
         return result
 
     def _check_cancel(self, run_id):
+        """A stage boundary: an operator's cancel, or the run deadline (src/worker_deadline.py), stops the run here."""
+        if worker_deadline.stopped_here(run_id):  # already stopped: a stage that swallowed the stop meets it again
+            raise worker_deadline.RunDeadlineExceeded(worker_deadline.stop_reason(config.RUN_DEADLINE_MINUTES))
+        if worker_deadline.overdue(run_id):
+            self._stop_at_deadline(run_id)
         if not self.db.get_setting("cancel_run:" + run_id):
             return
         run = self.db.get_run(run_id)
@@ -399,6 +407,29 @@ class PipelineCoordinator:
         self.topic_engine.record_status(run["topic_id"], "cancelled", run_id=run_id)
         self._finish_progress(self.db.run_label(run_id), run_id, False, "Cancelled by operator")
         raise JobCancelled("Cancelled by operator")
+
+    def _stop_at_deadline(self, run_id: str) -> None:
+        """Past its production deadline at a stage boundary: a run still being made stops as timed_out, keeping
+        every file it made; its topic goes back in the queue (unless another run of it is booked or posted: a dual
+        run's Reel), its progress card says why, one Needs-you notice."""
+        minutes = config.RUN_DEADLINE_MINUTES
+        reason = worker_deadline.stop_reason(minutes)
+        with self.db._conn() as conn:  # only from producing: a review, an upload or a cancel is never overwritten
+            stopped = conn.execute("UPDATE runs SET status = 'timed_out', error = ?, updated_at = ? "
+                                   "WHERE run_id = ? AND status = 'producing'",
+                                   (reason + " and stopped at a stage boundary.", datetime.now(UTC).isoformat(),
+                                    run_id)).rowcount
+        if not stopped:
+            return
+        worker_deadline.mark_stopped(run_id)
+        run = self.db.get_run(run_id) or {}
+        log.warning("Run %s %s; stopped at a stage boundary, files kept.", run_id, reason.lower())
+        requeued = worker_deadline.requeue_topic(self.db, run)
+        label = self.db.run_label(run_id)
+        self._finish_progress(label, run_id, False, reason)
+        worker_deadline.notice_once(self.db, run_id, worker_deadline.deadline_notice(
+            label, minutes, worker_deadline.kept_line(run_id, run), requeued=requeued), self._alert)
+        raise worker_deadline.RunDeadlineExceeded(reason)
 
     def _progress_note(self, run_id: str, title: str, step: int, text: str) -> None:
         """A word on the progress card about the long sub-stage under way (the card went 5.6 minutes
@@ -431,6 +462,8 @@ class PipelineCoordinator:
             from src import improve
             run = self.db.get_run(run_id) or {}
             n = improve.collect_run(self.db, run_id, run_dir, run.get("script_payload"), topic_id=topic_id, error=error)
+            from src.stage_timer import file_findings
+            n += file_findings(self.db, run_id, run_dir) if run_dir else 0  # a stage over 150% of its budget
             log.info("Improvement ledger: %d finding(s) recorded for %s.", n, run_id)
         except Exception as e:
             log.warning("Could not record findings for %s: %s", run_id, e)
@@ -739,7 +772,7 @@ class PipelineCoordinator:
                 except Exception:
                     pass
 
-        def finish(success: bool, error: str = "") -> None:
+        def finish(success: bool, error: str = "", alert: bool = True) -> None:
             # The documentary files its findings like a Reel (it never did, so the audit never saw it).
             self._collect_findings(run_id, run_dir, tid, error=None if success else error)
             shown = False
@@ -748,7 +781,7 @@ class PipelineCoordinator:
                     shown = bool(self.telegram_bot.finish_progress_card(card, card_title, run_id, success=success, error=error))
                 except Exception as e:
                     log.debug("Could not finish the documentary progress card: %s", e)
-            if not success and not shown:  # no card to turn into the failure card: say so in a message
+            if not success and not shown and alert:  # no card to turn into the failure card: say so in a message
                 from src.control import short_reason
                 try:
                     self._alert(f"❌ <b>Documentary failed:</b> {html.escape(card_title)}\n\n"
@@ -1015,6 +1048,9 @@ class PipelineCoordinator:
             finish(result.get("status") not in ("failed", "blocked"), result.get("error", ""))  # blocked at the gate is no success
             return result
 
+        except worker_deadline.RunDeadlineExceeded as e:  # stopped at its deadline (_stop_at_deadline), files kept
+            finish(False, str(e), alert=False)  # the deadline notice already said so: one message
+            return {"status": "timed_out", "run_id": run_id, "parent_run_id": parent_run_id, "topic_id": tid}
         except JobCancelled:
             finish(False, "Cancelled by operator")
             return {"status": "cancelled", "run_id": run_id, "topic_id": tid}
@@ -1459,7 +1495,7 @@ class PipelineCoordinator:
         run = self.db.get_run(run_id)
         if not run:
             raise ValueError(f"Unknown run '{run_id}'.")
-        if run["status"] not in ("failed", "producing"):
+        if run["status"] not in ("failed", "timed_out", "producing"):
             raise ValueError(f"Run status '{run['status']}' can't be resumed.")
         run_dir = OUTPUT_DIR / run_id
         if not run_dir.is_dir():
@@ -1480,6 +1516,9 @@ class PipelineCoordinator:
             # filed. A resumed run skipped both, so its cards were never checked (2026-10-24).
             self._finish_progress(topic.get("title", run_id), run_id, success=True)
             self._collect_findings(run_id, run_dir, topic["id"])
+        except worker_deadline.RunDeadlineExceeded as e:  # stopped at its deadline (_stop_at_deadline), files kept
+            self._collect_findings(run_id, run_dir, topic["id"], error=f"RunDeadlineExceeded: {e}")
+            return {"status": "timed_out", "run_id": run_id, "topic_id": topic["id"]}
         except Exception as e:
             self.db.update_run(run_id, "failed", error=f"{type(e).__name__}: {e}")
             self.topic_engine.record_status(topic["id"], "failed", run_id=run_id)
@@ -3613,8 +3652,12 @@ class PipelineCoordinator:
         from src.release import require_release
         require_release(run)
         run_dir = Path(run["master_video_path"]).parent
-        slot = post_schedule.next_reel_slot(now, self._booked_reel_days())
+        taken = self._booked_reel_days()
+        slot = post_schedule.next_reel_slot(now, taken)
         self.db.add_scheduled_post(run_id, "reel", slot.astimezone(timezone.utc).isoformat(), [])
+        # A run approved after the slot it was made for is booked later, and says so (it did silently: QF-74)
+        worker_deadline.missed_slot_notice(self.db, run, slot, now, taken, self._alert)
+        worker_deadline.forget(self.db, run_id)  # decided and booked: its production start has served its purpose
         lines = [f"🎬 Reel: {post_schedule.fmt(slot)}"] + self._book_followers(run_id, run_dir, slot)
         self.db.update_run(run_id, "scheduled")
         self.topic_engine.record_status(run["topic_id"], "scheduled", run_id=run_id)
@@ -3831,6 +3874,16 @@ class PipelineCoordinator:
         with publication_lock(self.db.db_path, run_id, wait=30):
             return self._publish_run_locked(run_id, dry_run, previous_status)
 
+    def _timed_upload(self, run: dict[str, Any], upload):
+        """An upload, timed as the run's "upload" stage; its stage budgets are checked once it ends (QF-74)."""
+        from src.stage_timer import file_findings
+        run_dir = Path(run["master_video_path"]).parent
+        try:
+            with StageTimer(run_dir).stage("upload"):
+                return upload()
+        finally:
+            file_findings(self.db, run["run_id"], run_dir)
+
     def _publish_run_locked(self, run_id: str, dry_run: bool = False, previous_status: str = "queued") -> Dict[str, Any]:
         self._check_cancel(run_id)
         run = self.db.get_run(run_id)
@@ -3861,7 +3914,7 @@ class PipelineCoordinator:
         elif not self.db.claim_publication(run_id):
             raise ValueError("Publication was already claimed or this run is not ready")
         try:
-            pub = self.publisher.publish_reel(envelope, dry_run=dry_run)
+            pub = self._timed_upload(run, lambda: self.publisher.publish_reel(envelope, dry_run=dry_run))
         except Exception as exc:
             if not dry_run:
                 self.db.update_run(run_id, "publish_unknown", error=type(exc).__name__)
@@ -3934,7 +3987,8 @@ class PipelineCoordinator:
         if profile == "reel_9x16" and status == "published" and not dry_run:
             self._facebook_finishing(run_id)  # its cover and captions on Facebook, as soon as it is up
         if config.YOUTUBE_SHORTS and profile == "reel_9x16" and status in ("published", "simulated"):
-            pub["youtube_short"] = short = self.publisher.publish_short(envelope, dry_run=dry_run)
+            pub["youtube_short"] = short = self._timed_upload(
+                run, lambda: self.publisher.publish_short(envelope, dry_run=dry_run))
             if short["status"] == "published":
                 if receipt:
                     yt_urls = list(short.get("post_urls", {}).values())
@@ -4047,7 +4101,7 @@ def poll_loop(bot, handler) -> None:
                 time.sleep(POLL_BACKOFF_SECONDS)
 
 
-REMAKE_STATUSES = ("failed", "rejected", "regenerate")  # runs with a video that Re-render makes again without paying twice
+REMAKE_STATUSES = ("failed", "timed_out", "rejected", "regenerate")  # runs with a video that Re-render makes again without paying twice
 PROMOTABLE_STATUSES = ("simulated", "approved")  # a finished dry run that "Post for real" may publish
 PROMOTED_PREFIX = "promoted:"  # setting: the run was promoted to real posting (and when)
 # Whether the posting process posts only promoted runs (a dry-run daemon or bot), so Posting and Slots show what
@@ -4243,13 +4297,20 @@ def rerender_started(db, run_id: str) -> str:
 
 
 def run_in_worker(content_format: str, dry_run: bool, schedule_posts: bool, timeout: Optional[float] = None,
-                  extra: Optional[List[str]] = None, resume: Optional[str] = None) -> Dict[str, Any]:
+                  extra: Optional[List[str]] = None, resume: Optional[str] = None, db=None) -> Dict[str, Any]:
     """Runs one production cycle in its own process (main.py run), as the development bot already does.
     A native crash in a run (2026-10-23: a GPU library brought a worker down) then costs that run only,
     not the daemon with its bot and schedule. The daemon's poller keeps handling Telegram; the worker
     reads decisions from the database (--background-polling). Returns the worker's result, with
-    "crashed" (and the exit code) when it ended without writing one."""
+    "crashed" (and the exit code) when it ended without writing one, and "timed_out" with stopped=True when
+    its production outran the deadline plus its grace without stopping itself (src/worker_deadline.py):
+    `timeout` seconds of production, review waits excluded (default: config.run_deadline_limits)."""
     import tempfile
+    import uuid
+    limit = config.run_deadline_limits()[1] if timeout is None else timeout
+    if not 0 < limit < float("inf"):
+        raise ValueError("The worker's limit must be a positive number of seconds")
+    attempt = uuid.uuid4().hex  # the runs this worker claims carry it (claim_run); nothing else is ever stopped
     fd, result_path = tempfile.mkstemp(prefix="rr-run-", suffix=".json")
     os.close(fd)
     # `resume`: re-render that failed run in place (its script, voice and clips are reused).
@@ -4257,15 +4318,23 @@ def run_in_worker(content_format: str, dry_run: bool, schedule_posts: bool, time
     cmd = ([sys.executable, "-u", "main.py", *command, "--background-polling", "--result-file", result_path]
            + (["--dry-run"] if dry_run else []) + (["--schedule-posts"] if schedule_posts else []) + list(extra or []))
     try:
-        proc = subprocess.run(cmd, cwd=str(config.BASE_DIR), stdout=subprocess.DEVNULL, stderr=subprocess.PIPE,
-                              text=True, encoding="utf-8", errors="replace", timeout=timeout)
+        proc = subprocess.Popen(cmd, cwd=str(config.BASE_DIR), stdout=subprocess.DEVNULL, stderr=subprocess.PIPE,
+                                text=True, encoding="utf-8", errors="replace",
+                                env=dict(os.environ, RELIC_WORKER_ATTEMPT=attempt), **worker_deadline.launch_options())
+        try:
+            _, stderr, stopped = worker_deadline.supervise(proc, limit, db, attempt)
+        except BaseException:  # never leave an unsupervised worker behind
+            worker_deadline.stop_worker_tree(proc)
+            raise
+        if stopped:
+            return {"status": "timed_out", "stopped": True, "attempt": attempt, "exit_code": proc.returncode}
         try:
             result = json.loads(Path(result_path).read_text(encoding="utf-8") or "{}")
         except (OSError, ValueError):
             result = {}
         if not result:  # no result written: the process died (a native crash ends it without one)
             result = {"status": "crashed", "exit_code": proc.returncode,
-                      "stderr_tail": "\n".join((proc.stderr or "").strip().splitlines()[-8:])}
+                      "stderr_tail": "\n".join((stderr or "").strip().splitlines()[-8:])}
         result["exit_code"] = proc.returncode
         return result
     finally:
@@ -4379,6 +4448,7 @@ def reconcile_interrupted_runs(db: PipelineDatabase, topic_engine=None) -> List[
         db.clear_active_progress(run_id)
         if topic_engine is not None and row["topic_id"]:
             topic_engine.record_status(row["topic_id"], "queued", run_id=run_id)
+        worker_deadline.forget(db, run_id)  # its process cannot release it any more (QF-74)
         log.warning("Run %s was interrupted (its process ended); marked failed, topic back in the queue.", run_id)
         done.append(run_id)
     return done
@@ -4391,9 +4461,13 @@ def claim_run(db, run_id: str) -> None:
     """Records this process (pid and creation identity) as the one making run_id, until it releases it or
     ends. Another process never resumes a review wait for a run a live process owns (resume_reviews)."""
     from src.process_state import identity
+    worker_deadline.mark_started(run_id)  # its production deadline counts from here (src/worker_deadline.py)
+    now = datetime.now(timezone.utc).isoformat()
     try:
+        # attempt: the supervisor that launched this worker finds its runs by it (worker_deadline.owned_runs)
         db.set_setting(RUN_OWNER_PREFIX + run_id, json.dumps({"pid": os.getpid(), "identity": identity(os.getpid()),
-                                                              "at": datetime.now(timezone.utc).isoformat()}))
+                                                              "attempt": config.WORKER_ATTEMPT_ID, "at": now}))
+        db.set_setting(worker_deadline.STARTED_PREFIX + run_id, now)  # the slot it was made for (missed_slot_notice)
     except Exception as e:  # never fails the run; the review lock still guards the act itself
         log.warning("Could not record the owner of %s: %s", run_id, e)
 
@@ -4404,6 +4478,7 @@ def release_run(db, run_id: str) -> None:
         record = json.loads(db.get_setting(RUN_OWNER_PREFIX + run_id) or "{}")
         if record.get("pid") == os.getpid():
             db.set_setting(RUN_OWNER_PREFIX + run_id, "")
+            worker_deadline.release(db, run_id)  # its deadline bookkeeping ends with the run (QF-74)
     except Exception as e:
         log.debug("Could not release the owner of %s: %s", run_id, e)
 
@@ -4827,11 +4902,16 @@ def main(argv=None) -> int:
                 pid_info = f" (PID {worker_proc.pid})" if worker_proc else ""
                 return f"A production run is already in progress{pid_info}. Watch Telegram for progress updates."
 
-            def monitor_worker(proc):
+            def monitor_worker(proc, attempt, limits):
+                deadline, hard_stop = limits  # seconds: the worker's deadline, and that plus its grace
                 with run_lock:
                     log.info("Isolated production worker PID %d started.", proc.pid)
-                    stdout, stderr = proc.communicate()
+                    # Bounded: a worker that outruns its deadline and grace is stopped (src/worker_deadline.py)
+                    stdout, stderr, stopped = worker_deadline.supervise(proc, hard_stop, coordinator.db, attempt)
                     rc = proc.returncode
+                    if stopped:
+                        worker_deadline.finalize_stopped_worker(coordinator.db, attempt, bot.notify, deadline / 60,
+                                                                (hard_stop - deadline) / 60, bot.finish_progress_card)
                     if rc != 0:
                         log.error("Production worker PID %d failed with code %d:\n%s", proc.pid, rc, stdout or stderr)
                     else:
@@ -4864,7 +4944,12 @@ def main(argv=None) -> int:
                         db.set_setting(PRODUCE_KEY, "0")
                         bot.notify("⏹ Batch production stopped: the last episode did not finish cleanly.", group="runs")
 
+            import uuid
+
             from src.config import BASE_DIR
+            environment = config.worker_environment()  # an .env edit applies from the next run, not the next restart
+            limits = config.run_deadline_limits(environment)  # the deadline this worker reads, and that plus its grace
+            attempt = environment["RELIC_WORKER_ATTEMPT"] = uuid.uuid4().hex  # the runs it claims carry it
             # With posting slots on, the worker books the approved Reel like the daemon does.
             command = ["resume", resume, "--require-live"] if resume else ["run", "--require-live", "--format", content_format]
             worker_proc = subprocess.Popen(
@@ -4872,12 +4957,14 @@ def main(argv=None) -> int:
                 + (["--dry-run"] if config.BOT_RUNS_DRY else [])  # nothing posts from a bot-started run by default
                 + (["--schedule-posts"] if POST_SCHEDULING else []) + list(extra or []),
                 cwd=str(BASE_DIR),
-                env=config.worker_environment(),  # an .env edit applies from the next run, not the next restart
+                env=environment,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
                 text=True,
+                **worker_deadline.launch_options(),
             )
-            threading.Thread(target=monitor_worker, args=(worker_proc,), name="worker-monitor", daemon=True).start()
+            threading.Thread(target=monitor_worker, args=(worker_proc, attempt, limits), name="worker-monitor",
+                             daemon=True).start()
             return f"🎬 Production run launched in isolated worker (PID {worker_proc.pid}). Live progress updates will stream here."
 
         def rerender_in_bot(run_id: str) -> str:
@@ -5038,7 +5125,7 @@ def main(argv=None) -> int:
                 # Each run in its own process: a crash costs the run, never the daemon (its bot and schedule).
                 with busy_lease(coordinator.db, "the production run"):
                     result = run_in_worker(content_format, dry_run=args.dry_run, schedule_posts=POST_SCHEDULING, extra=extra,
-                                           resume=resume)
+                                           resume=resume)  # supervised against this process's database
                 status = result.get("status")
                 if status in ("published", "simulated", "rejected", "scheduled"):
                     ping_healthcheck()
@@ -5053,6 +5140,10 @@ def main(argv=None) -> int:
                                    [{"text": "💡 Propose new topics", "callback_data": "propose:"}], group="needs")
                 elif status == "refused":  # a re-render the run's state no longer allows
                     bot.notify(f"🔁 <b>Re-render not started</b>: {html.escape(str(result.get('error', '')))}", group="needs")
+                elif status == "timed_out" and result.get("stopped"):  # the worker did not stop itself at its deadline
+                    deadline, hard_stop = config.run_deadline_limits()
+                    worker_deadline.finalize_stopped_worker(coordinator.db, result["attempt"], bot.notify, deadline / 60,
+                                                            (hard_stop - deadline) / 60, bot.finish_progress_card)
                 elif status == "crashed":
                     code = result.get("exit_code")
                     log.error("Run worker crashed (exit %s); the daemon carries on.\n%s", code, result.get("stderr_tail", ""))

@@ -212,6 +212,7 @@ STATUS_WORDS = {
     "producing": "being made", "pending_approval": "waiting for you", "approved": "approved",
     "published": "published", "simulated": "test run (not posted)", "rejected": "rejected",
     "regenerate": "regenerated", "timeout": "no decision in time", "failed": "failed",
+    "timed_out": "stopped at its deadline",
     "cancelled": "cancelled by operator", "publish_unknown": "not sure it posted", "scheduled": "scheduled to post",
 }
 
@@ -624,6 +625,7 @@ def spend_summary(db: PipelineDatabase) -> str:
 
 REACHED_REVIEW = {"pending_approval", "approved", "rejected", "regenerate", "timeout", "simulated", "published",
                   "scheduled", "publish_unknown", "publishing"}
+STOPPED = ("failed", "timed_out")  # a run that ended unfinished: timed_out stopped at its deadline (QF-74)
 RERENDER_HOURS = 48  # a late failure older than this is not offered on the dashboard (Render it afresh)
 
 
@@ -646,7 +648,7 @@ def rerenderable(db: PipelineDatabase) -> Optional[Dict[str, Any]]:
                 (r.get("status") == "rejected" and r.get("master_video_path"))
                 # sent back with Regenerate and no new version followed (production 2026-10-25)
                 or (r.get("status") == "regenerate" and r.get("master_video_path") and r.get("topic_id") not in tried_since)
-                or (r.get("status") == "failed" and _worth_resuming(r))):  # src/resume_points.py
+                or (r.get("status") in STOPPED and _worth_resuming(r))):  # src/resume_points.py
             return r
         if r.get("status") in REACHED_REVIEW:
             made_since.add(r.get("topic_id"))
@@ -665,7 +667,7 @@ def health_line(db: PipelineDatabase, days: int = 7) -> str:
     since = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
     runs = [r for r in db.list_recent_runs(limit=80) if (r.get("created_at") or "") >= since]
     reached = sum(1 for r in runs if r.get("status") in REACHED_REVIEW)
-    failed = sum(1 for r in runs if r.get("status") == "failed")
+    failed = sum(1 for r in runs if r.get("status") in STOPPED)
     lengths = []
     for r in runs:
         try:
@@ -743,7 +745,7 @@ def status_text(db: PipelineDatabase, next_run: Optional[str], voice_quota: Opti
 
     icons = {"failed": "❌", "simulated": "🧪", "published": "✅", "pending_approval": "🎬", "producing": "⏳",
              "rejected": "✖", "approved": "👍", "scheduled": "🗓", "cancelled": "⏹", "regenerate": "🔄",
-             "timeout": "⌛", "publish_unknown": "⚠️"}  # every status an icon (Regenerated had a bare bullet)
+             "timeout": "⌛", "publish_unknown": "⚠️", "timed_out": "⏱"}  # every status an icon (Regenerated had a bare bullet)
     recent = db.list_recent_runs(5)
     lines += ["", "<b>Recent runs</b>"]
     for r in recent:
@@ -1341,7 +1343,7 @@ def remakeable(r: Dict[str, Any]) -> bool:
     your reason), or a failed one whose script had passed the fact check (resumed where it stopped)."""
     if r.get("status") in ("rejected", "regenerate"):
         return bool(r.get("master_video_path"))
-    return r.get("status") == "failed" and _worth_resuming(r)
+    return r.get("status") in STOPPED and _worth_resuming(r)
 
 
 def review_history(db: PipelineDatabase, page: int = 0, limit: int = 20) -> Tuple[str, List[List[Dict[str, str]]]]:
@@ -1582,17 +1584,19 @@ def dashboard_text_and_buttons(db: PipelineDatabase, next_run: Optional[str] = N
         # button (2026-10-24).
         reason = short_reason(late.get("error") or "", limit=1200)
         what = {"rejected": "Rejected, can be made again",
-                "regenerate": "Sent back to Regenerate; its new version did not start"}.get(late.get("status"), "")
+                "regenerate": "Sent back to Regenerate; its new version did not start",
+                "timed_out": "Stopped at its deadline, files kept"}.get(late.get("status"), "")
         if not what:  # said as it stopped: before or after its video was made
             what = "Failed after rendering" if late.get("master_video_path") else "Failed after its fact check"
         # The run id in code, not italics: Telegram linked its digits as a phone number (2026-10-24).
         needs.append(f"🔁 <b>{what}</b>\n  • {e(db.run_label(late['run_id']))}\n  <code>{e(late['run_id'])}</code>"
                      + (f"\n<blockquote expandable>{e(reason)}</blockquote>" if reason else ""))
-    if recent and recent[0].get("status") == "failed":
+    if recent and recent[0].get("status") in STOPPED:
         # Which run, on one line; the whole reason folded underneath (it was cut off mid-sentence:
         # operator, 2026-10-23).
         reason = short_reason(recent[0].get("error") or "", limit=1200)
-        needs.append(f"❌ <b>Last run failed</b>\n  • {e(db.run_label(recent[0]['run_id']))}\n  <code>{e(recent[0]['run_id'])}</code>"
+        heading = "⏱ <b>Last run stopped at its deadline</b>" if recent[0]["status"] == "timed_out" else "❌ <b>Last run failed</b>"
+        needs.append(f"{heading}\n  • {e(db.run_label(recent[0]['run_id']))}\n  <code>{e(recent[0]['run_id'])}</code>"
                      + (f"\n<blockquote expandable>{e(reason)}</blockquote>" if reason else ""))
 
     from . import config

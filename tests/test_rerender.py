@@ -88,8 +88,8 @@ def test_the_worker_resumes_the_run_under_the_worker_contract(monkeypatch, tmp_p
         seen["cmd"] = cmd
         out = cmd[cmd.index("--result-file") + 1]
         open(out, "w", encoding="utf-8").write(json.dumps({"status": "simulated", "run_id": "run_k"}))
-        return SimpleNamespace(returncode=0, stderr="")
-    monkeypatch.setattr(main.subprocess, "run", fake_run)
+        return SimpleNamespace(returncode=0, communicate=lambda **kw: (None, ""))
+    monkeypatch.setattr(main.subprocess, "Popen", fake_run)
     result = main.run_in_worker("reel", dry_run=True, schedule_posts=False, resume="run_k")
     assert seen["cmd"][2:5] == ["main.py", "resume", "run_k"] and "--background-polling" in seen["cmd"]
     assert "--dry-run" in seen["cmd"] and "--format" not in seen["cmd"] and result["status"] == "simulated"

@@ -309,6 +309,41 @@ def _approver_ids(raw: str) -> set:
 TELEGRAM_APPROVER_IDS = _approver_ids(os.getenv("TELEGRAM_APPROVER_IDS", TELEGRAM_CHAT_ID)) - {TELEGRAM_BOT_TOKEN.split(":")[0]}
 APPROVAL_TIMEOUT_SECONDS = int(os.getenv("APPROVAL_TIMEOUT_SECONDS", "3600"))
 
+
+def _positive_minutes(name: str, default: str, environment: dict[str, str] | None = None) -> float:
+    value = float((os.environ if environment is None else environment).get(name) or default)
+    if not 0 < value < float("inf"):  # NaN and infinity fail this too
+        raise ValueError(f"{name} must be a positive number of minutes, not {value}")
+    return value
+
+
+# Run deadline (QF-74). A run's production (everything up to its review card, then again after each decision) gets
+# RUN_DEADLINE_MINUTES; at the next stage boundary past it the run stops as timed_out, keeps its files for a
+# re-render and its topic goes back in the queue. Waiting for your review never counts. Measured
+# (docs/reviews/quality-fixes-2026-11/QF-74): the longest of 35 development productions took 75 minutes; of 37
+# production-sample attempts one ran past 150 minutes and finished normally (three master renders), none past 180,
+# so 180 stops none of them. A stage that never reaches a boundary is stopped RUN_DEADLINE_GRACE_MINUTES later by
+# the supervisor: 60 covers the longest single step measured (57 minutes in development; none past 60 in the
+# sample), so a working stage always ends at its own boundary first.
+RUN_DEADLINE_MINUTES = _positive_minutes("RUN_DEADLINE_MINUTES", "180")
+RUN_DEADLINE_GRACE_MINUTES = _positive_minutes("RUN_DEADLINE_GRACE_MINUTES", "60")
+
+
+def run_deadline_limits(environment: dict[str, str] | None = None) -> tuple[float, float]:
+    """(deadline, hard stop) in seconds of production for a worker started with `environment` (a bot-started worker
+    reads .env again: worker_environment), or with this process's settings."""
+    deadline = _positive_minutes("RUN_DEADLINE_MINUTES", str(RUN_DEADLINE_MINUTES), environment)
+    grace = _positive_minutes("RUN_DEADLINE_GRACE_MINUTES", str(RUN_DEADLINE_GRACE_MINUTES), environment)
+    return deadline * 60, (deadline + grace) * 60
+
+
+WORKER_POLL_SECONDS = 30  # how often the supervisor looks at its worker's runs
+# Set by the supervisor in its worker's environment (never in .env): which runs the worker it watches has claimed.
+WORKER_ATTEMPT_ID = os.getenv("RELIC_WORKER_ATTEMPT", "")
+# Per-stage budgets in minutes (script, voice, pictures, render, QA, upload); a run's total for a stage, retries
+# included, above warning_multiplier times its budget logs a WARNING and files one finding.
+STAGE_BUDGET_FILE = BASE_DIR / "data" / "stage_budget.json"
+
 # Telegram Bot Chat Upgrade v2 (Topics & Two-Card System)
 # Feature-flagged: disabled by default until operator acceptance.
 RELIC_ENVIRONMENT = (os.getenv("RELIC_ENVIRONMENT") or "development").strip().lower()

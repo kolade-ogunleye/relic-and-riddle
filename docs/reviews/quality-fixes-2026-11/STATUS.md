@@ -110,7 +110,7 @@ QF-45 after it.
 
 | ID | Finding | Status | Commit | Acceptance metric before -> after | Evidence path | Regression test |
 |---|---|---|---|---|---|---|
-| QF-74 | Run deadline, missed-slot alert, stage budgets | todo | | worker over timeout -> timed_out, requeued, one alert | QF-74/ | |
+| QF-74 | Run deadline, missed-slot alert, stage budgets | done | this commit | worker that never ends: TimeoutExpired escapes (no limit: waits forever), run producing, 0 notices -> stopped, run timed_out, topic requeued, files kept, 1 Needs-you notice; stage boundary past the deadline: carries on -> timed_out with its files, 1 notice, a review past it untouched; approval after the run's slot: silently booked next day -> 1 missed-slot notice; render 150%+ of budget: 0 -> 1 finding (one per run and stage); defaults measured (RUN_DEADLINE_MINUTES 180, grace 60): spec 150 would stop 1 of 37 healthy production-sample attempts, 180 stops 0 of 35 dev and 0 of 37 sample (dev max 75.4 min, longest step 57); weekly digest p50/p90 per stage | QF-74/ | tests/test_qf74_run_deadlines.py |
 | QF-77 | Provider runbooks and live probes | todo | | health --live fails on a 404 voice or non-200 Upload-Post | QF-77/ | |
 | QF-68 | Cost per Reel | todo | | usage rows carry run_id; the card shows the run's sum | QF-68/ | |
 | QF-69 | V2 card: no mock values, no fingerprint-bypassing undo | todo | | none of the literals in the blocks; undo of a posted Reel refused | QF-69/ | |

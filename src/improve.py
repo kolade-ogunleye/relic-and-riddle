@@ -967,6 +967,11 @@ def digest_text(db) -> str:
     ready = [p for p in proposals(db) if p["status"] == "ready"]
     if ready:
         lines.append(f"\n<b>{len(ready)} suggested fix(es) wait for you</b>: Status → Improvements")
+    try:  # QF-74: each budgeted stage's p50 / p90 this week, and runs stopped at the deadline
+        from .stage_timer import weekly_lines
+        lines += weekly_lines(db, since)
+    except (OSError, ValueError, KeyError, TypeError) as e:  # the digest is sent without it
+        log.info("Stage-time section unavailable: %s", e)
     try:
         from .audience import digest_lines
         lines += digest_lines(db)

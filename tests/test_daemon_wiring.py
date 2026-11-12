@@ -125,7 +125,7 @@ def test_bot_run_books_slots_when_scheduling_is_on(daemon_env, monkeypatch, sche
     launched = []
     trigger, tickers = _bot_mode(monkeypatch, daemon_env, scheduling)
     monkeypatch.setattr(main.subprocess, "Popen", lambda cmd, **k: launched.append(cmd) or SimpleNamespace(
-        pid=1, poll=lambda: None, communicate=lambda: ("", ""), returncode=0))
+        pid=1, poll=lambda: None, communicate=lambda **kw: ("", ""), returncode=0))
     trigger()
     assert ("--schedule-posts" in launched[0]) is scheduling
     assert len(tickers) == (1 if scheduling else 0)  # bot mode posts what it books
@@ -167,7 +167,7 @@ def test_a_run_started_from_the_bot_is_a_dry_run_unless_switched_off(daemon_env,
     launched = []
     trigger, _ = _bot_mode(monkeypatch, daemon_env, False)
     monkeypatch.setattr(main.subprocess, "Popen", lambda cmd, **k: launched.append(cmd) or SimpleNamespace(
-        pid=1, poll=lambda: None, communicate=lambda: ("", ""), returncode=0))
+        pid=1, poll=lambda: None, communicate=lambda **kw: ("", ""), returncode=0))
     trigger()
     assert ("--dry-run" in launched[0]) is dry
 
@@ -215,8 +215,8 @@ def test_run_in_worker_passes_the_run_settings_and_reads_its_result(monkeypatch)
         path = cmd[cmd.index("--result-file") + 1]
         with open(path, "w", encoding="utf-8") as f:
             json.dump({"status": "simulated", "run_id": "r9"}, f)
-        return SimpleNamespace(returncode=0, stderr="")
-    monkeypatch.setattr(main.subprocess, "run", fake_run)
+        return SimpleNamespace(returncode=0, communicate=lambda **kw: (None, ""))
+    monkeypatch.setattr(main.subprocess, "Popen", fake_run)
     result = main.run_in_worker("reel", dry_run=True, schedule_posts=False)
     assert result == {"status": "simulated", "run_id": "r9", "exit_code": 0}
     cmd = seen["cmd"]
@@ -226,8 +226,8 @@ def test_run_in_worker_passes_the_run_settings_and_reads_its_result(monkeypatch)
 
 
 def test_run_in_worker_reports_a_crash_when_no_result_was_written(monkeypatch):
-    monkeypatch.setattr(main.subprocess, "run", lambda cmd, **kw: SimpleNamespace(
-        returncode=3221225477, stderr="loading model\nWindows fatal exception: access violation\n"))
+    monkeypatch.setattr(main.subprocess, "Popen", lambda cmd, **kw: SimpleNamespace(
+        returncode=3221225477, communicate=lambda **kw: (None, "loading model\nWindows fatal exception: access violation\n")))
     result = main.run_in_worker("reel", dry_run=False, schedule_posts=True)
     assert result["status"] == "crashed" and result["exit_code"] == 3221225477
     assert "access violation" in result["stderr_tail"]
@@ -325,7 +325,7 @@ def test_a_regenerate_in_bot_mode_launches_the_regeneration_run(daemon_env, monk
     launched = []
     trigger, _ = _bot_mode(monkeypatch, daemon_env, False)
     monkeypatch.setattr(main.subprocess, "Popen", lambda cmd, **k: launched.append(cmd) or SimpleNamespace(
-        pid=1, poll=lambda: None, communicate=lambda: ("", ""), returncode=0))
+        pid=1, poll=lambda: None, communicate=lambda **kw: ("", ""), returncode=0))
     assert trigger() and "--regenerate-from" not in launched[-1]
 
 

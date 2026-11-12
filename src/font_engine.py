@@ -325,6 +325,7 @@ LEDGER_NAME = "glyph_faces.jsonl"
 _LEDGER: dict = {"path": None, "seen": set()}
 _LEDGER_LOCK = threading.Lock()
 _FIELD = threading.local()        # the field this thread is fitting and drawing (typography.drawable sets it)
+_THREAD_LEDGER = threading.local()   # a ledger for this thread only (glyph_ledger_for_thread)
 
 
 def begin_field(text: str) -> None:
@@ -360,6 +361,19 @@ def set_glyph_ledger(path) -> None:
         _LEDGER["path"], _LEDGER["seen"] = (Path(path) if path else None), set()
 
 
+@contextmanager
+def glyph_ledger_for_thread(path):
+    """Glyph events this thread records go to `path` (a run's LEDGER_NAME) while inside, whatever the process-wide
+    ledger is: a carousel drawn at its slot, days after its run, writes to that run's ledger (QF-81) without
+    touching the ledger of a run being made meanwhile in another thread."""
+    before = getattr(_THREAD_LEDGER, "state", None)
+    _THREAD_LEDGER.state = {"path": Path(path), "seen": set()}
+    try:
+        yield
+    finally:
+        _THREAD_LEDGER.state = before
+
+
 def record_glyph_event(kind: str, text: str, face: str, chars: str, fallback: str | None = None) -> None:
     """One string set in a fallback face ("fallback"), refused ("refused"), with emoji removed by the art gate
     ("emoji_removed"), or a caption whose characters no bundled face draws ("caption_system_face"): logged, and
@@ -370,11 +384,12 @@ def record_glyph_event(kind: str, text: str, face: str, chars: str, fallback: st
     key = (kind, text, face, fallback, where)
     field = getattr(_FIELD, "text", None)
     part_of = field if field and text != field and text.rstrip("…") in field else None
+    ledger = getattr(_THREAD_LEDGER, "state", None) or _LEDGER
     with _LEDGER_LOCK:
-        if key in _LEDGER["seen"]:
+        if key in ledger["seen"]:
             return
-        _LEDGER["seen"].add(key)
-        path = _LEDGER["path"]
+        ledger["seen"].add(key)
+        path = ledger["path"]
     event = {"at": datetime.now(UTC).isoformat(), "kind": kind, "where": where, "text": text, "face": face,
              "fallback": fallback, "chars": chars, "scripts": scripts_of(chars)}
     if part_of:

@@ -290,8 +290,10 @@ def _post_now_followers(db, run_id: str, run: dict[str, Any]) -> set:
     run_dir = Path(run.get("master_video_path") or "").parent if run.get("master_video_path") else None
     if run_dir is None or not run_dir.is_dir():
         return set()
+    from .carousel_lazy import planned
+    # A planned carousel (QF-81) has no slides on disk until its slot draws it, yet promote_run books it
     return ({"story"} if story_frames(run_dir) else set()) | (
-        {"carousel"} if any((run_dir / "carousel").glob("carousel_slide_*.jpg")) else set())
+        {"carousel"} if planned(run_dir) or any((run_dir / "carousel").glob("carousel_slide_*.jpg")) else set())
 
 
 def confirm_post_now(db, run_id: str) -> Tuple[str, List[List[Dict[str, str]]]]:

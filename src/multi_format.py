@@ -527,6 +527,10 @@ SHARE_WEIGHT = 700   # the closing slide's share-and-follow line: Montserrat Bol
 _render_state = threading.local()   # the slide being drawn on this thread: its subject
 
 
+class PhotoMatchFailed(RuntimeError):
+    """The carousel's photos could not be matched to its slides (MultiFormatGenerator._match_photos, strict)."""
+
+
 class MultiFormatGenerator:
     def generate_story_sequence(self, hero_img_path: Path, script_payload: Dict[str, Any], output_dir: Path,
                                 scene_images: List[Path] = None) -> List[Path]:
@@ -927,18 +931,37 @@ class MultiFormatGenerator:
     def _save_slide(cls, im: Image.Image, path: Path) -> None:
         im.save(path, "JPEG", **cls.CAROUSEL_JPEG)
 
-    def _match_photos(self, cards: List[Dict[str, Any]], stills: List[Path]) -> List[Path]:
-        """One photo per slide, matched to what the slide says (the scene planner's vision matching)."""
-        from .scene_planner import plan_scenes
+    def _match_photos(self, cards: List[Dict[str, Any]], stills: List[Path], strict: bool = False) -> List[Path]:
+        """One photo per slide, matched to what the slide says (the scene planner's vision matching). `strict`: a
+        failed match raises PhotoMatchFailed instead of rotating the photos (a carousel drawn at its slot is held
+        rather than posted with photos nobody matched to its slides: QF-81). A failed match is also a plan without
+        the vision planner: plan_scenes catches the planner's failures itself and returns filename order (the
+        rotation) or caption order, saying so in its notes; strict holds on both. The strict match tries the
+        planner CAROUSEL_PLAN_ATTEMPTS times, first wait CAROUSEL_PLAN_RETRY_SECONDS, so the slot decides promptly."""
+        from . import config
+        from .scene_planner import CAPTION_NOTES, plan_scenes
         beats = [{"start": float(i), "end": float(i + 1), "text": f"{c['heading']}. {c['body']}"} for i, c in enumerate(cards)]
         try:
-            chosen, _, _ = plan_scenes(beats, stills)
-            return [Path(c) for c in chosen]
+            if not strict:
+                chosen, _, _ = plan_scenes(beats, stills)
+                return [Path(c) for c in chosen]
+            chosen, _, notes = plan_scenes(beats, stills, attempts=config.CAROUSEL_PLAN_ATTEMPTS,
+                                           retry_seconds=config.CAROUSEL_PLAN_RETRY_SECONDS)
         except Exception as e:  # matching is a refinement; rotation is the fallback
+            if strict:
+                raise PhotoMatchFailed(f"its photos could not be matched to its slides ({e})") from e
             log.warning("Carousel photo matching failed (%s); rotating photos.", e)
             return [stills[i % len(stills)] for i in range(len(cards))]
+        if notes == "filename order":
+            raise PhotoMatchFailed("its photos could not be matched to its slides (the picture planner was "
+                                   "unavailable or failed every attempt, and filename order would only rotate them)")
+        if notes == CAPTION_NOTES:
+            raise PhotoMatchFailed("its photos could not be matched to its slides (the picture planner was "
+                                   "unavailable or failed every attempt; archive captions alone are not a match)")
+        return [Path(c) for c in chosen]
 
-    def _carousel_photos(self, cards: List[Dict[str, Any]], stills: List[Path], output_dir: Path) -> List[Path]:
+    def _carousel_photos(self, cards: List[Dict[str, Any]], stills: List[Path], output_dir: Path,
+                         strict: bool = False) -> List[Path]:
         """The slides' photos, matched once per run and shared by both copies (platform audit, 2026-10-28: the
         Instagram and Facebook copies were matched separately, in parallel, and showed different photos for the
         same slide). The match is kept in carousel_photos.json beside the copies; the second copy to be drawn
@@ -956,7 +979,8 @@ class MultiFormatGenerator:
             chosen = [Path(x) for x in kept.get("photos") or []]
             if kept.get("key") == key and len(chosen) == len(cards) and all(x.is_file() for x in chosen):
                 return chosen
-            chosen = _recorded_photos(output_dir, cards) or self._match_photos(cards, stills)
+            chosen = _recorded_photos(output_dir, cards) or (self._match_photos(cards, stills, strict=True) if strict
+                                                             else self._match_photos(cards, stills))
             try:
                 output_dir.mkdir(parents=True, exist_ok=True)
                 record.write_text(json.dumps({"key": key, "photos": [str(x) for x in chosen]}, indent=1,
@@ -1914,7 +1938,8 @@ class MultiFormatGenerator:
         return im, lay
 
     def generate_carousel_sequence(self, scene_images: List[Path], script_payload: Dict[str, Any], output_dir: Path,
-                                   facebook: bool = False, graphics: list[Path] | None = None) -> List[Path]:
+                                   facebook: bool = False, graphics: list[Path] | None = None,
+                                   strict_match: bool = False) -> List[Path]:
         """Multi-Template Editorial Carousel (CAROUSEL_SIZE, 1440x1800, 4:5):
         Dynamically routes each slide to one of five editorial layout archetypes
         (Full-Bleed Immersive, Comparative Side-by-Side, Architectural Blueprint, Colossal Stat, Debate).
@@ -1926,7 +1951,8 @@ class MultiFormatGenerator:
         with the tighter fit, and its record is kept in carousel*/still_layout.json.
         `graphics`: the run's graphics (graphic_*.mp4, each with its .jpg poster beside it; default: those in
         output_dir/graphics). When one is an explanatory drawing (DIAGRAM_KINDS), slide 3 or 4 shows it instead of
-        a photo (carousel_diagram), the same slide in both copies; without one nothing changes."""
+        a photo (carousel_diagram), the same slide in both copies; without one nothing changes.
+        `strict_match`: a failed photo match raises PhotoMatchFailed instead of rotating the photos (QF-81)."""
         from . import still_layout
         out_dir = output_dir / ("carousel_fb" if facebook else "carousel")
         out_dir.mkdir(parents=True, exist_ok=True)
@@ -1934,7 +1960,7 @@ class MultiFormatGenerator:
         cards = script_payload["carousel_slides"]
         poll = script_payload.get("poll") or {}
         total = len(cards)
-        photos = self._carousel_photos(cards, stills, output_dir)
+        photos = self._carousel_photos(cards, stills, output_dir, strict=strict_match)
         from .script_engine import share_prompt
         share = share_prompt(script_payload)  # the closing slide asks for a share and a follow (2026-10-25)
         narration = script_payload.get("narration_script") or ""

@@ -44,6 +44,8 @@ SCREENS: Dict[str, Tuple[str, str, Optional[str]]] = {
     "chelp": ("❓", "Help", HOME_CB),
     "runstop": ("⏹", "Cancel run", "jobs:"), "runstopok": ("⏹", "Cancel run", "jobs:"),
     "edit": ("✏️", "Edit text", HOME_CB), "cfootage": ("🎞", "Footage", "cimages:"),
+    # QF-81: a review's carousel, drawn on demand from its card (both copies, audited as at its slot)
+    "ccar": ("🖼", "Carousel preview", "creviews:"),
 }
 # Typed commands draw the same screens.
 SCREENS.update({
@@ -58,7 +60,8 @@ SCREENS.update({
 
 # Screens a ← may replay: they only show something. The others in SCREENS do something when opened (start a
 # contact-sheet job, open an edit or upload flow, confirm a cancel), so ← never repeats them.
-NOT_REPLAYABLE = {"runstop", "runstopok", "edit", "upload", "review", "pickbump", "pickdrop", "mreview", "mfmenu"}
+NOT_REPLAYABLE = {"runstop", "runstopok", "edit", "upload", "review", "pickbump", "pickdrop", "mreview", "mfmenu",
+                  "ccar"}
 TRAIL_LIMIT = 12
 
 

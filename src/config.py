@@ -195,6 +195,11 @@ FREE_TIER_HEAVY = os.getenv("FREE_TIER_HEAVY", "true").strip().lower() in ("true
 # doubling each time (3 tries, 60 s: about 3 minutes of waiting at most).
 SCENE_PLAN_ATTEMPTS = max(1, int(os.getenv("SCENE_PLAN_ATTEMPTS") or 3))
 SCENE_PLAN_RETRY_SECONDS = max(0.0, float(os.getenv("SCENE_PLAN_RETRY_SECONDS") or 60))
+# A carousel drawn at its slot or for its preview (QF-81) tries the picture plan CAROUSEL_PLAN_ATTEMPTS times, the
+# first wait CAROUSEL_PLAN_RETRY_SECONDS (doubling): a plan that still fails holds the carousel promptly (its photos
+# are never rotated), and the hold alert's Redraw tries again for the next slot (2 tries, 15 s).
+CAROUSEL_PLAN_ATTEMPTS = max(1, int(os.getenv("CAROUSEL_PLAN_ATTEMPTS") or 2))
+CAROUSEL_PLAN_RETRY_SECONDS = max(0.0, float(os.getenv("CAROUSEL_PLAN_RETRY_SECONDS") or 15))
 # Second free model for light, text-only tasks (src/groq.py); off until measured against Gemini.
 GROQ_API_KEY = (os.getenv("GROQ_API_KEY") or "").strip()
 GROQ_MODEL = (os.getenv("GROQ_MODEL") or "openai/gpt-oss-120b").strip()

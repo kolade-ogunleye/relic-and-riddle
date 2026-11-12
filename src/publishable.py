@@ -269,10 +269,13 @@ def card_record(payload: dict[str, Any], db: Any, run_dir: Path | None = None,
     documentary = is_documentary(payload)
     copy = card_copy(meta, youtube=documentary)
     slides = run_dir is not None and any((Path(run_dir) / "carousel").glob("carousel_slide_*.jpg"))
-    if not documentary and (slides or payload.get("carousel_caption")):  # a run with a carousel to post
+    from .carousel_lazy import planned
+    at_slot = run_dir is not None and not slides and planned(run_dir)   # drawn when it takes its slot (QF-81)
+    if not documentary and (slides or at_slot or payload.get("carousel_caption")):  # a run with a carousel to post
         copy.update(carousel_copy(payload, final, run_dir))
     return {"copy": copy, "hashtags": final, "dropped": dropped, "candidates": candidates,
             "documentary": documentary, "shorts": bool(config.YOUTUBE_SHORTS),
+            **({"carousel_at_slot": True} if at_slot and not documentary else {}),
             "carousel_own": bool((payload.get("carousel_caption") or "").strip()),
             **schedule(db, now=now, window_seconds=window_seconds,
                        posting="now" if documentary and posting == "slot" else posting)}

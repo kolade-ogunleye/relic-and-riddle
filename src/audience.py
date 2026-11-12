@@ -69,6 +69,9 @@ IG_METRICS = ("views", "reach", "ig_reels_avg_watch_time", "reels_skip_rate", "s
               "likes", "comments", "total_interactions")
 IG_STORY_METRICS = ("views", "reach", "shares", "total_interactions", "follows", "profile_visits",
                     "replies", "navigation")
+# A carousel album is FEED media (media_type CAROUSEL_ALBUM; instagram-media reference, read 2026-11-11): its
+# insights are the FEED ones (its child photos have none). QF-81: carousels were never measured from the Graph.
+IG_CAROUSEL_METRICS = ("views", "reach", "saved", "shares", "likes", "comments", "total_interactions")
 # developers.facebook.com/docs/graph-api/reference/video/video_insights (Reels, lifetime period).
 FB_METRICS = ("blue_reels_play_count", "fb_reels_total_plays", "post_impressions_unique",
               "post_video_avg_time_watched", "post_video_followers", "post_video_retention_graph")
@@ -240,9 +243,10 @@ def _fb_token() -> str:
 
 
 def instagram_media_id(post: Dict[str, Any], posted: Optional[datetime] = None, story: bool = False,
-                       taken: Optional[set] = None) -> Tuple[Optional[str], str]:
+                       taken: Optional[set] = None, carousel: bool = False) -> Tuple[Optional[str], str]:
     """(IG media id, how it was found) from the stored answer, else the account's recent media
-    (/media for a Reel, /stories for a live Story) by permalink shortcode, else by publication time."""
+    (/media for a Reel or, `carousel`, a carousel album; /stories for a live Story) by permalink shortcode,
+    else by publication time."""
     stored = stored_post_id(post, "instagram")
     if stored:
         return stored, "stored publish response"
@@ -253,12 +257,14 @@ def instagram_media_id(post: Dict[str, Any], posted: Optional[datetime] = None, 
                 {"fields": "id,permalink,timestamp,media_product_type,media_type", "limit": 50,
                  "access_token": config.META_ACCESS_TOKEN})
     media = body.get("data") or []
+    if carousel:   # only an album can be the carousel (a Reel posted the same hour is not)
+        media = [m for m in media if m.get("media_type") == "CAROUSEL_ALBUM"]
     shortcode = instagram_shortcode(_post_url(post, "instagram"))
     if shortcode:
         hit = next((m for m in media if f"/{shortcode}" in (m.get("permalink") or "")), None)
         if hit:
             return str(hit["id"]), "graph permalink"
-    pool = media if story else [m for m in media if m.get("media_product_type") in ("REELS", None)]
+    pool = media if story or carousel else [m for m in media if m.get("media_product_type") in ("REELS", None)]
     hit = _nearest(pool, posted, MATCH_WINDOW["story" if story else "reel"], taken or set(), "timestamp")
     if hit:
         return str(hit["id"]), "graph timestamp"
@@ -283,9 +289,9 @@ def facebook_video_id_for(post: Dict[str, Any], posted: Optional[datetime] = Non
 
 
 # ------------------------------------------------------------------ sources
-def instagram_insights(media_id: str, story: bool = False) -> Dict[str, Any]:
+def instagram_insights(media_id: str, story: bool = False, carousel: bool = False) -> Dict[str, Any]:
     """The media's insights; raises RuntimeError (Meta's own message) when none could be read."""
-    metrics = IG_STORY_METRICS if story else IG_METRICS
+    metrics = IG_STORY_METRICS if story else IG_CAROUSEL_METRICS if carousel else IG_METRICS
     base = f"{GRAPH}/{config.META_GRAPH_VERSION}/{media_id}/insights"
     out: Dict[str, Any] = {}
     errors: List[str] = []
@@ -441,7 +447,8 @@ def _graph_id(db, label: str, item: Dict[str, Any], rid: str) -> Tuple[Optional[
         posted = _when(item.get("posted_at"))
         taken = {v for k, v in known.items() if k.split("_")[0] == base}
         if base == "instagram":
-            found, how = instagram_media_id(res, posted, story=_is_story(label), taken=taken)
+            found, how = instagram_media_id(res, posted, story=_is_story(label), taken=taken,
+                                            carousel=label.endswith("_carousel"))
         elif base == "facebook":
             found, how = facebook_video_id_for(res, posted, taken=taken)
     if found:
@@ -453,7 +460,8 @@ def _graph_metrics(label: str, res: Dict[str, Any], db=None, item: Optional[Dict
                    rid: str = "") -> Tuple[Optional[Dict[str, Any]], str]:
     """(metrics, outcome): a post's metrics from Meta's own insights, or (None, why not)."""
     base = label.split("_")[0]
-    if base not in ("instagram", "facebook") or label.endswith("_carousel"):
+    # Instagram's carousel album has Graph insights (QF-81); Facebook's multi-photo post stays with Upload-Post.
+    if base not in ("instagram", "facebook") or label == "facebook_carousel":
         return None, "skipped: no Graph source for this post type"
     if base == "facebook" and _is_story(label):
         # Page stories: the Page Stories API lists them (developers.facebook.com/docs/page-stories-api) but
@@ -467,12 +475,14 @@ def _graph_metrics(label: str, res: Dict[str, Any], db=None, item: Optional[Dict
     if db is not None:
         media_id, how = _graph_id(db, label, item, rid)
     elif base == "instagram":
-        media_id, how = instagram_media_id(res, _when(item.get("posted_at")), story=_is_story(label))
+        media_id, how = instagram_media_id(res, _when(item.get("posted_at")), story=_is_story(label),
+                                           carousel=label.endswith("_carousel"))
     else:
         media_id, how = facebook_video_id_for(res, _when(item.get("posted_at")))
     if not media_id:
         raise RuntimeError(f"post id not found ({how})")
-    data = instagram_insights(media_id, story=_is_story(label)) if base == "instagram" else facebook_insights(media_id)
+    data = (instagram_insights(media_id, story=_is_story(label), carousel=label.endswith("_carousel"))
+            if base == "instagram" else facebook_insights(media_id))
     return {"source": f"{base}-graph", **data}, f"ok (id {how})"
 
 
@@ -964,12 +974,101 @@ def _parts(r: Dict[str, Any]) -> str:
     return ", ".join(x for x in parts if x) or "no numbers yet"
 
 
+CAROUSEL_SNAPSHOT = "7d"   # carousels and Reels are compared at the same age: saves keep coming for days
+
+
+def _at_snapshot(db, snapshot: str) -> dict[tuple, dict[str, float | None]]:
+    """{(run_id, platform label): derived rates} of every measured (not unavailable) row at `snapshot`."""
+    ensure_schema(db)
+    with db._conn() as conn:
+        rows = conn.execute("SELECT run_id, platform, metrics_json FROM audience_metrics WHERE snapshot = ?",
+                            (snapshot,)).fetchall()
+    out = {}
+    for r in rows:
+        try:
+            metrics = json.loads(r["metrics_json"] or "{}")
+        except ValueError:
+            continue
+        if isinstance(metrics, dict) and not metrics.get("unavailable"):
+            out[(r["run_id"], r["platform"])] = {**derived(metrics, None), "source": metrics.get("source")}
+    return out
+
+
+def carousel_comparison(db) -> list[str]:
+    """Digest lines on carousels against Reels (QF-81), per platform at CAROUSEL_SNAPSHOT: the median reach and
+    saves per account reached of the carousels and of the Reels, once MIN_FOR_PATTERNS carousels are measured there
+    (until then, how many are); then Facebook's Reel reach as a share of Instagram's for the same episodes, which
+    the operator's Facebook-gallery decision reads (rulings 2026-11-10, Q4). Medians, so one viral post does not
+    decide. [] while no carousel is measured."""
+    from statistics import median
+    rows = _at_snapshot(db, CAROUSEL_SNAPSHOT)
+    if not any(label.endswith("_carousel") for _, label in rows):
+        return []
+
+    def med(group, key):
+        vals = [r[key] for r in group if r.get(key) is not None]
+        return median(vals) if vals else None
+
+    def describe(group):
+        reach, save = med(group, "reach"), med(group, "save_rate")
+        bits = (f"reach {reach:.0f}" if reach is not None else None,
+                f"saves {save:.1%} of reach" if save is not None else None)
+        return ", ".join(b for b in bits if b) or "no rates yet"
+
+    lines = []
+    for platform in ("instagram", "facebook"):
+        carousels = [v for (_, label), v in rows.items() if label == f"{platform}_carousel"]
+        reels = [v for (_, label), v in rows.items() if label == platform]
+        if not carousels:
+            continue
+        name = PLATFORM_NAMES[platform]
+        if len(carousels) < MIN_FOR_PATTERNS:
+            lines.append(f"• Carousels vs Reels · {name} ({CAROUSEL_SNAPSHOT}): {len(carousels)} of "
+                         f"{MIN_FOR_PATTERNS} carousels measured; compared from {MIN_FOR_PATTERNS}.")
+        else:
+            lines.append(f"• Carousels vs Reels · {name} ({CAROUSEL_SNAPSHOT} medians): carousels "
+                         f"({len(carousels)}) {describe(carousels)}; Reels ({len(reels)}) {describe(reels)}.")
+    lines += facebook_reach_lines(rows)
+    return lines
+
+
+def facebook_reach_lines(rows: dict[tuple, dict[str, Any]]) -> list[str]:
+    """Facebook's Reel reach as a share of Instagram's for the same episodes (the Facebook-gallery decision's
+    number, rulings 2026-11-10 Q4). When Facebook's rows carry no reach (Upload-Post's Facebook Reel metrics are
+    views, likes and comments only), it says so plainly and gives, labelled as such, Facebook's Reel views as a share
+    of Instagram's instead. Instagram's reach (accounts reached, estimated) and Facebook's (post_impressions_unique)
+    are close but not the same measure, and the line says so."""
+    from statistics import median
+    fb_rows = {run: v for (run, label), v in rows.items() if label == "facebook"}
+    ig_rows = {run: v for (run, label), v in rows.items() if label == "instagram"}
+    if not fb_rows:
+        return []
+    when = f"{CAROUSEL_SNAPSHOT}, median of"
+    pairs = [(fb_rows[run]["reach"], ig["reach"]) for run, ig in ig_rows.items()
+             if ig.get("reach") and (fb_rows.get(run) or {}).get("reach") is not None]
+    if pairs:
+        return [(f"• Facebook Reel reach is {median(fb / ig for fb, ig in pairs):.0%} of Instagram's ({when} "
+                 f"{len(pairs)} episode(s); Facebook's unique impressions against Instagram's accounts reached): for "
+                 "the Facebook-gallery decision.")]
+    sources = sorted({str(v.get("source") or "unknown") for v in fb_rows.values()})
+    out = [(f"• Facebook Reel reach not measured ({CAROUSEL_SNAPSHOT}): its {len(fb_rows)} row(s) carry no reach "
+            f"(source {', '.join(sources)}), so the Facebook-gallery decision's reach ratio cannot be worked out yet.")]
+    views = [(fb_rows[run]["views"], ig["views"]) for run, ig in ig_rows.items()
+             if ig.get("views") and (fb_rows.get(run) or {}).get("views") is not None]
+    if views:
+        out.append(f"• Instead, views (not reach): Facebook Reel views are {median(fb / ig for fb, ig in views):.0%} "
+                   f"of Instagram's ({when} {len(views)} episode(s)).")
+    return out
+
+
 def digest_lines(db) -> List[str]:
-    """The weekly digest's audience part: each video platform's best videos at their latest snapshot."""
+    """The weekly digest's audience part: each video platform's best videos at their latest snapshot, then
+    carousels against Reels (carousel_comparison)."""
     import html
     rows = [r for r in table(db) if r["platform"] in VIDEO_PLATFORMS and not r.get("unavailable")]
+    carousels = carousel_comparison(db)
     if not rows:
-        return ["\n<b>Audience:</b> no published videos measured yet."]
+        return ["\n<b>Audience:</b> no published videos measured yet.", *carousels]
     lines = [f"\n<b>Audience</b> (latest snapshot, {len({r['run_id'] for r in rows})} video(s)):"]
     for platform in VIDEO_PLATFORMS:
         mine = sorted((r for r in rows if r["platform"] == platform), key=lambda r: -(r["views"] or 0))[:4]
@@ -982,7 +1081,7 @@ def digest_lines(db) -> List[str]:
             lines.append(comparison)
     if len({r["run_id"] for r in rows}) < MIN_FOR_PATTERNS:
         lines.append(f"<i>Fewer than {MIN_FOR_PATTERNS} videos: read these as descriptions, not patterns.</i>")
-    return lines
+    return lines + carousels
 
 
 def analytics_text(db, limit: int = 8) -> str:

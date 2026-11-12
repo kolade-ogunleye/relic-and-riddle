@@ -4,7 +4,8 @@ from main import PipelineCoordinator
 
 
 def test_the_carousel_waits_for_the_graphics_posters(db, monkeypatch, tmp_path, curated_payload):
-    """The diagram slide re-lays a graphic poster, so both carousel copies start after graphics.make_all ends."""
+    """The diagram slide re-lays a graphic poster, so no carousel copy is drawn before graphics.make_all ends
+    (QF-81: none is drawn while the run is made)."""
     import threading
     import time
 
@@ -59,6 +60,9 @@ def test_the_carousel_waits_for_the_graphics_posters(db, monkeypatch, tmp_path, 
     coord._render_approve_publish({"id": "01_topic"}, "r9", tmp_path, payload, [topic_img], topic_img,
                                   tmp_path / "v.mp3", tmp_path / "bed.wav", [], 3.0, True, True, None)
 
-    assert seen and all(seen)  # every carousel copy (Instagram and Facebook) began after the graphics
+    # QF-81: the run draws no carousel copy at all (only the episode that takes a carousel slot is drawn, at that
+    # slot, when the graphics posters have long been made); it records the photos the carousel will use.
+    from src import carousel_lazy
+    assert seen == [] and carousel_lazy.planned(tmp_path)
 
 

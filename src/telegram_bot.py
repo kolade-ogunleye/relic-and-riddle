@@ -61,13 +61,13 @@ from .telegram_ui import HOME as DONE_BUTTON
 from .telegram_ui import hourglass  # 🏠 Dashboard: one home button everywhere (2026-10-25 overhaul)
 PAGER_ICONS = {"⏮", "◀", "▶", "⏭"}
 _PANEL = ContextVar("telegram_navigation_panel", default=None)
-PANEL_ACTIONS = {"reviewpick", "pickbump", "pickdrop", "cideas", "cpropose", "ccov", "cmusic", "cdisc", "cprop", "cstat", "cimages", "caccounts", "imagepick", "imagehelp", "review", "mkeep", "mnext", "mdel", "mcancel", "mreview", "musicmenu", "mfmenu", "mlibrary", "chelp"}
+PANEL_ACTIONS = {"ccar", "reviewpick", "pickbump", "pickdrop", "cideas", "cpropose", "ccov", "cmusic", "cdisc", "cprop", "cstat", "cimages", "caccounts", "imagepick", "imagehelp", "review", "mkeep", "mnext", "mdel", "mcancel", "mreview", "musicmenu", "mfmenu", "mlibrary", "chelp"}
 # Cards removed before acting (their own Cancel/Skip/Next buttons).
 DELETE_FIRST = {"tskip"}
 # Decision buttons: disabled before acting so a second tap can't repeat the decision.
 ONE_SHOT = {"uadd", "tadd", "imgok", "mkeep", "cov", "rsn", "impok", "impno", "imprev",
             "pubok", "pubno", "simpub", "resend", "rerender", "promote", "requeue", "fbcaptions", "fbcover", "ytshort", "rebook", "ytthumb",
-            "newversion"}
+            "newversion", "carredraw"}
 # Replies that only acknowledge (the card or panel itself shows the result): a nudge that leaves on its own,
 # not a message that stays (operator, 2026-10-25: "Sending ... for review again" and "Thanks, noted" stayed).
 NUDGE_REPLIES = {"resend", "whytext", "requeue"}
@@ -92,7 +92,7 @@ TOASTS = {"imgok": "✅ Storyboard Approved!", "imgcancel": "✖ Cancelled", "mc
           "imprev": "↩ Reverted", "creviews": "🎬 Reviews", "cimprove": "🧭 Improvement", "cideas": "💡 Ideas", "canalytics": "📈 Audience"}
 
 # Plain names for jobs in /jobs and progress panels (never the internal button name).
-JOB_TITLES = {"fetchimages": "Fetching images", "filmfind": "Finding archive film", "mfetch": "Finding documentary music", "caccounts": "Checking accounts",
+JOB_TITLES = {"ccar": "Carousel preview", "fetchimages": "Fetching images", "filmfind": "Finding archive film", "mfetch": "Finding documentary music", "caccounts": "Checking accounts",
               "ccov": "Covers", "cmusic": "Music", "cstat": "Status", "cprop": "Waiting ideas",
               "cdisc": "UNESCO marvels", "mreview": "Music review", "mlibrary": "Music library", "mkeep": "Keeping a track",
               "mdel": "Removing a track", "mnext": "Next track", "review": "Image review", "uadd": "Adding a marvel",
@@ -620,6 +620,9 @@ def _also_posted(posted: dict[str, Any], copy: dict[str, str]) -> list[str]:
         if platform == "facebook" and copy[label] == twin:
             continue
         items.append(f"Alt text, slide {n} ({platform.capitalize()}): {_one_line(copy[label])}")
+    if posted.get("carousel_at_slot"):   # QF-81: drawn on demand (🖼 Preview carousel) or at its slot
+        items.append("Carousel slides and their alt text: drawn from this run's photos and carousel cards when you "
+                     "tap 🖼 Preview carousel or when it takes its carousel slot, and checked before they post")
     if posted.get("dropped"):
         items.append(f"Hashtags not posted (not on this topic's list): {e(' '.join(posted['dropped']))}")
     return items
@@ -2578,10 +2581,14 @@ class TelegramApprovalBot:
                  if p.name not in RETIRED_STORY_FRAMES]  # an older run's poll frame is not posted (QF-80)
         stills = story + sorted((run_dir / "carousel").glob("carousel_slide_*.jpg"))
         n_story = len(story)
+        from .carousel_lazy import planned
         for start in range(0, len(stills), 10):
             batch = stills[start:start + 10]
             items = [{"type": "photo", "path": p} for p in batch]
-            if start == 0:
+            if start == 0 and len(stills) == n_story and planned(run_dir):   # QF-81: drawn at its slot
+                items[0]["caption"] = (f"Also posted on approval: {n_story} Story frame(s); the carousel is drawn "
+                                       "when it takes its carousel slot (🖼 Preview carousel on the card shows it now)")
+            elif start == 0:
                 items[0]["caption"] = (f"Also posted on approval: {n_story} Story frame(s), then the "
                                        f"{len(stills) - n_story}-slide carousel")
             sent += self._album(items) or []
@@ -2624,7 +2631,9 @@ class TelegramApprovalBot:
             [{"text": "♻️ Regenerate", "callback_data": f"regen:{key}"},
              {"text": "❌ Reject", "callback_data": f"reject:{key}"}],
         ] + ([] if script_payload.get("delivery_profile") == "deep_dive_16x9"  # 9:16 covers don't fit a documentary
-             else [[{"text": "🎨 Covers", "callback_data": f"ccov:{key}"}]]) + [[DONE_BUTTON]])}
+             else [[{"text": "🎨 Covers", "callback_data": f"ccov:{key}"}]])
+          + ([[{"text": "🖼 Preview carousel", "callback_data": f"ccar:{key}"}]] if posted.get("carousel_at_slot") else [])
+          + [[DONE_BUTTON]])}
         # One message, never paged: a paged card moved into a panel whose buttons failed (2026-10-25);
         # format_card_text keeps it inside the limit by shortening its folded lists.
         rev_tid = config.TELEGRAM_TOPICS.get("reviews") if (config.TELEGRAM_CARDS_V2 and hasattr(config, "TELEGRAM_TOPICS")) else None
@@ -4413,7 +4422,7 @@ class TelegramApprovalBot:
                     if on_dashboard:
                         self.show_dashboard()
                     return
-                if action in {'fetchimages', 'filmfind', 'caccounts', 'mfetch', 'cstat', 'ccov', 'cmusic', 'mreview', 'review', 'cdisc', 'cprop', 'uadd', 'tadd', 'edittext', 'mkeep', 'mdel', 'mnext', 'mreview', 'mlibrary'}:
+                if action in {'ccar', 'fetchimages', 'filmfind', 'caccounts', 'mfetch', 'cstat', 'ccov', 'cmusic', 'mreview', 'review', 'cdisc', 'cprop', 'uadd', 'tadd', 'edittext', 'mkeep', 'mdel', 'mnext', 'mreview', 'mlibrary'}:
                     self._answer_callback(cq['id'], 'Working; you can keep using the bot')
                     revision = cq.get('_revision', self._panel_revisions.get(self._current_panel(msg_id), 0))
                     if action == 'fetchimages':

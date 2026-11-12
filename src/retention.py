@@ -139,10 +139,12 @@ def _paths_in(value, found: set[str]) -> None:
 
 
 def referenced_files(output_dir: Path) -> set[str]:
-    """Every file a run folder's provenance or lineage names (resolved, case-folded), the lineage records' own
-    sources included: a cache entry named here belongs to a kept run and is never freed."""
+    """Every file a run folder's provenance, lineage or carousel plan names (resolved, case-folded), the lineage
+    records' own sources included: a cache entry named here belongs to a kept run and is never freed (a carousel
+    plan's photos are drawn at its slot, days after the run: QF-81)."""
     found: set[str] = set()
-    for ledger in Path(output_dir).glob("run_*/provenance.json"):
+    ledgers = [*Path(output_dir).glob("run_*/provenance.json"), *Path(output_dir).glob("run_*/carousel_plan.json")]
+    for ledger in ledgers:
         try:
             _paths_in(json.loads(ledger.read_text(encoding="utf-8")), found)
         except (OSError, ValueError):

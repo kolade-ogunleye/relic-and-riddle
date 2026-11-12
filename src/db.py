@@ -985,12 +985,15 @@ class PipelineDatabase:
             return cur.lastrowid
 
     def update_scheduled_post(self, post_id: int, status: str, due_at: Optional[str] = None,
-                              detail: Optional[Dict[str, Any]] = None):
+                              detail: Optional[Dict[str, Any]] = None, files: list[str] | None = None):
+        """`files`: the post's image files, when they are drawn after booking (a carousel at its slot, QF-81)."""
         with self._conn() as conn:
             conn.execute("""
             UPDATE scheduled_posts SET status = ?, due_at = COALESCE(?, due_at),
-                   detail_json = COALESCE(?, detail_json), updated_at = ? WHERE id = ?""",
-                         (status, due_at, json.dumps(detail, default=str) if detail is not None else None, _now(), post_id))
+                   detail_json = COALESCE(?, detail_json), files_json = COALESCE(?, files_json),
+                   updated_at = ? WHERE id = ?""",
+                         (status, due_at, json.dumps(detail, default=str) if detail is not None else None,
+                          json.dumps(files) if files is not None else None, _now(), post_id))
 
     def list_scheduled_posts(self, statuses: tuple = ("pending", "waiting"), run_id: Optional[str] = None) -> List[Dict[str, Any]]:
         q = f"SELECT * FROM scheduled_posts WHERE status IN ({','.join('?' * len(statuses))})"

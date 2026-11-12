@@ -1815,6 +1815,53 @@ def topic_refs(args: str) -> List[str]:
     return out
 
 
+def carousel_preview_screen(db: PipelineDatabase, args: str, preview: Callable[[str], dict[str, Any]] | None,
+                            send_photo: SendPhoto | None) -> Any:
+    """ccar:<run>[:<page>]: the review's carousel as it would post (QF-81), drawn on demand by `preview`
+    (main.PipelineCoordinator.preview_carousel: both copies, audited as at its slot, reused while nothing changed).
+    Page 0 is both copies on one sheet (Instagram above, Facebook's grid copy below) with the verdict and every
+    finding; page n is Instagram's slide n with its alt text (and Facebook's, where it differs). In the one panel."""
+    from .carousel_lazy import SHEET, STAGE, summary
+    nl = chr(10)
+    ref, _, page_arg = args.strip().partition(":")
+    if preview is None:
+        return "🖼 The carousel preview works while the bot or daemon is running.", [[HOME]]
+    run_id = db.resolve_run(ref)
+    try:
+        record = preview(run_id)
+    except ValueError as e:
+        return "🖼 <b>Carousel preview</b>" + nl * 2 + html.escape(str(e)), [[HOME]]
+    stage = Path(record["run_dir"]) / STAGE
+    slides = (record.get("slides") or {}).get("carousel") or []
+    alts = record.get("alts") or {}
+    label = html.escape(db.run_label(run_id))
+    held = record.get("held")
+    verdict = (f"⛔ Held: {html.escape(str(held)[:300])}. It will not post like this." if held else
+               "✅ Its checks pass: this is what posts when it takes its carousel slot.")
+    found = summary(record, limit=500)
+    if not slides:
+        text = f"🖼 <b>Carousel preview</b> · {label}" + nl * 2 + verdict + (nl * 2 + html.escape(found) if found else "")
+        return text, [[HOME]]
+    page = min(int(page_arg), len(slides)) if page_arg.isdigit() else 0
+    buttons = pager(f"ccar:{ref}:", page, len(slides) + 1)
+    if page == 0:
+        path = stage / SHEET
+        caption = (f"🖼 <b>Carousel preview</b> · {label}" + nl + verdict + nl
+                   + f"{len(slides)} slides: Instagram above, Facebook's grid copy below; ▶ for each slide and its "
+                   "alt text." + (nl * 2 + html.escape(found) if found else ""))
+    else:
+        path = stage / "carousel" / slides[page - 1]["name"]
+        ig = (alts.get("carousel") or [""] * len(slides))[page - 1]
+        fb_alts = alts.get("carousel_fb") or []
+        fb = fb_alts[page - 1] if page - 1 < len(fb_alts) else ig
+        caption = (f"🖼 <b>Slide {page} of {len(slides)}</b> · {label}" + nl
+                   + f"Alt text (Instagram): {html.escape(ig or 'none')}"
+                   + (nl + f"Alt text (Facebook): {html.escape(fb)}" if fb != ig else ""))
+    if send_photo is not None and path.is_file() and send_photo(path, caption[:1024], buttons):
+        return ""
+    return caption, buttons + [[HOME]]
+
+
 def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[str]],
                          trigger_run: Callable[[], str], send_photo: Optional[SendPhoto] = None,
                          assets_dir: Path = ASSETS_DIR,
@@ -2628,6 +2675,13 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             return reply if isinstance(reply, tuple) else (reply, [[HOME]])
         if command == "ccov":
             return handle("covers", args)  # the latest render, whichever topic it is
+        if command == "ccar":   # ccar:<run>[:<page>] the review's carousel preview (QF-81)
+            return carousel_preview_screen(db, args, (run_actions or {}).get("carpreview"), send_photo)
+        if command == "carredraw":   # carredraw:<booking id>: a held carousel drawn again for its next slot
+            action = (run_actions or {}).get("carredraw")
+            if action is None:
+                return "That button only works while the daemon is running."
+            return action(args.strip())
         if command == "cprop":
             from . import topic_proposer
             from .models import TopicProposal

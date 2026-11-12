@@ -3176,8 +3176,8 @@ class PipelineCoordinator:
             except Exception:
                 pass
 
-        # Concurrently generate multiformat stills (thumbnails, story, carousel)
-        # and source media candidates (beat images, footage, channel graphics, callouts, then/now)
+        # Concurrently generate thumbnails and Story frames (the carousel is drawn only when it takes a carousel
+        # slot: carousel_lazy, QF-81) and source media candidates (beat images, footage, channel graphics, callouts, then/now)
         # Story frames and carousel slides use the topic's own photos only, never a context shot (2026-10-25).
         from src.image_review import only_strong
         strong_media = only_strong(scene_media, getattr(self, "_strong_stems", None))
@@ -3196,20 +3196,10 @@ class PipelineCoordinator:
             art = art_direction.record(run_dir, hero_img)  # the topic's accent and grade bias, recorded in palette.json
             payload["art_direction"] = art
             fut_graphics = pool.submit(graphics.make_all, payload, topic, run_dir / "graphics", photo=hero_img, palette=art)
-            # The carousel's diagram slide re-lays a graphic's poster (found in run_dir/graphics), so the slides
-            # wait for the graphics (submitted first, so it always holds a worker while they wait; 2026-11-02).
-            def _after_graphics(make):
-                def run():
-                    fut_graphics.result()
-                    return make()
-                return run
-            fut_carousel = pool.submit(cached_artifacts, run_dir, "carousel", packaging_inputs, _after_graphics(
-                lambda: on_surface("carousel", self.multiformat_gen.generate_carousel_sequence, strong_media,
-                                   payload, run_dir)))
-            # Facebook's copy of the slides, without swipe cues (it shows a multi-photo post as a grid).
-            fut_carousel_fb = pool.submit(cached_artifacts, run_dir, "carousel_fb", packaging_inputs, _after_graphics(
-                lambda: on_surface("Facebook carousel", self.multiformat_gen.generate_carousel_sequence,
-                                   strong_media, payload, run_dir, facebook=True)))
+            # The carousel is not drawn here: only the episode that takes a carousel slot draws it, then (QF-81:
+            # seven a week were drawn for three slots). The run records the photos it will be drawn from.
+            from src import carousel_lazy
+            carousel_lazy.plan(run_dir, strong_media, payload)
 
             fut_beats = pool.submit(beat_images.source, beats, topic, run_dir / "beat_images", plan=query_plan) if query_plan else None
             fut_footage = pool.submit(footage.source, beats, topic, run_dir / "footage", plan=query_plan) if query_plan else None
@@ -3222,12 +3212,9 @@ class PipelineCoordinator:
             thumb_916, thumb_1x1 = fut_thumb.result()
             # A deck whose checked copy cannot be set whole (typography.LayoutError, QF-23) is held on its own, its
             # frames out of the posting globs and the hold on the review card; the run goes on (hold_layout_error).
+            # The carousel is drawn at its slot or for its preview (QF-81), where carousel_lazy.draw holds it the same way.
             story_slides = hold_layout_error(fut_story, run_dir, "stories", payload)
-            carousel_slides = hold_layout_error(fut_carousel, run_dir, "carousel", payload)
-            try:
-                hold_layout_error(fut_carousel_fb, run_dir, "carousel_fb", payload)
-            except Exception as e:  # Facebook then gets the Instagram slides, as before
-                log.warning("Facebook carousel slides not made (%s); Facebook gets the Instagram slides.", e)
+            carousel_slides: list[Path] = []   # drawn at its slot (carousel_lazy.render)
 
             beat_paths, beat_credits = fut_beats.result() if fut_beats else ([], [])
             footage_clips, footage_credits = fut_footage.result() if fut_footage else ([], [])
@@ -3733,8 +3720,10 @@ class PipelineCoordinator:
             when = post_schedule.story_time(reel_slot)
             self.db.add_scheduled_post(run_id, "story", when.astimezone(timezone.utc).isoformat(), stories)
             lines.append(f"📱 {len(stories)} Story frames: {post_schedule.fmt(when)}")
-        carousel = sorted(str(p) for p in (run_dir / "carousel").glob("carousel_slide_*.jpg"))
-        if carousel:
+        from src import carousel_lazy
+        # A run made from QF-81 on books its carousel undrawn: it is drawn when it takes its slot.
+        carousel = [] if carousel_lazy.planned(run_dir) else carousel_lazy.drawn(run_dir)
+        if carousel or carousel_lazy.planned(run_dir):
             post_id = self.db.add_scheduled_post(run_id, "carousel", None, carousel, status="waiting")
             post = next(p for p in self.db.list_scheduled_posts(("waiting",), run_id=run_id) if p["id"] == post_id)
             # The slot it will take, as the daemon will see it (it named the next carousel slot, which the 48 h gap
@@ -4028,8 +4017,27 @@ class PipelineCoordinator:
                     ready.append((post, run))
         if not ready:
             return
-        post, run = max(ready, key=lambda pr: pr[0]["id"])  # the newest topic
+        # the newest topic; a carousel the operator asked to redraw after a hold goes first (QF-81)
+        post, run = max(ready, key=lambda pr: (bool((pr[0].get("detail") or {}).get("priority")), pr[0]["id"]))
         self.db.set_setting("carousel_posted_on", local.date().isoformat())  # before posting: never twice a day
+        run_dir = Path(run["master_video_path"]).parent
+        from src import carousel_lazy
+        if not post["files"] and carousel_lazy.planned(run_dir):
+            # Only the episode that takes the slot is drawn (QF-81), or its preview's drawing reused when nothing
+            # changed; the slot is taken first, so a held carousel is never drawn again the same day, nor again by
+            # itself later: the operator's "Redraw" button books it for the next slot.
+            try:
+                from src.publication_lock import publication_lock
+                with publication_lock(self.db.db_path, "carousel:" + post["run_id"], wait=900):
+                    files = carousel_lazy.render(run_dir, run["script_payload"], self.multiformat_gen, QualityAuditor())
+            except (carousel_lazy.CarouselHeld, ValueError) as e:
+                self._hold_carousel(post, e)
+                return
+            except OSError as e:   # a file that could not be read, written or installed: held, with the reason
+                self._hold_carousel(post, carousel_lazy.CarouselHeld(f"its slides could not be drawn or installed ({e})"))
+                return
+            self.db.update_scheduled_post(post["id"], "waiting", files=files)
+            post = {**post, "files": files}
         self._post_photos(post, run, "carousel")
 
     def _approved_fingerprint(self, run_id: str) -> str | None:
@@ -4113,6 +4121,55 @@ class PipelineCoordinator:
         if not dry_run:
             self._recheck_facts(run, retry_now=retry_now)
         return require_release(run, dry_run=dry_run)
+
+    def _hold_carousel(self, post: dict[str, Any], held: Exception) -> None:
+        """A carousel its slot could not post (carousel_lazy): its booking says why, and one alert gives every
+        finding of its drawing and the button that redraws it and posts it in the next slot."""
+        from src import carousel_lazy
+        record = getattr(held, "record", None) or {}
+        self.db.update_scheduled_post(post["id"], "failed", detail={"error": f"held at its slot: {held}", "held": True})
+        found = carousel_lazy.summary(record, limit=2400)
+        self._alert(f"❌ <b>Carousel held</b> for {html.escape(self.db.run_label(post['run_id']))}: "
+                    f"{html.escape(str(held)[:400])}" + (chr(10) * 2 + html.escape(found) if found else "")
+                    + chr(10) * 2 + "Nothing was posted. Redraw it once the cause is dealt with; it then posts in the "
+                      "next carousel slot, ahead of newer episodes.",
+                    buttons=[[{"text": "🔁 Redraw and post next slot", "callback_data": f"carredraw:{post['id']}"}]])
+
+    def redraw_carousel(self, post_id: Any) -> str:
+        """The hold alert's 🔁: the held carousel's drawing is discarded and it waits again, first in line for the
+        next carousel slot inside its window, where it is drawn afresh and audited before it posts (QF-81)."""
+        from src import carousel_lazy
+        post = next((p for p in self.db.list_scheduled_posts(("failed",)) if str(p["id"]) == str(post_id)), None)
+        if post is None or post["kind"] != "carousel" or not (post.get("detail") or {}).get("held"):
+            return "🖼 That carousel is not held any more: see Posting."
+        run = self.db.get_run(post["run_id"]) or {}
+        if not run.get("master_video_path"):
+            return "🖼 That episode has no run folder to draw from."
+        carousel_lazy.discard(Path(run["master_video_path"]).parent)
+        self.db.update_scheduled_post(post["id"], "waiting", files=[],
+                                      detail={"redraw": True, "priority": True, "held_before": post["detail"].get("error")})
+        car = post_schedule.first_carousel_slot(post_schedule.carousel_reel(self.db, post)[1],
+                                                now=datetime.now().astimezone())
+        label = html.escape(self.db.run_label(post["run_id"]))
+        if not car:
+            self.db.update_scheduled_post(post["id"], "expired")
+            return f"🖼 The carousel of {label} has no carousel slot left in its window, so it won't post."
+        return f"🔁 The carousel of {label} is drawn again and posts {html.escape(post_schedule.fmt(car))}, if its checks pass."
+
+    def preview_carousel(self, run_id: str) -> dict[str, Any]:
+        """The review card's 🖼 Preview carousel: both copies drawn and audited as the slot would (carousel_lazy.draw;
+        reused while nothing changed, so the slot reuses it too). Returns the drawing's record with "run_dir"."""
+        from src import carousel_lazy
+        from src.publication_lock import publication_lock
+        run = self.db.get_run(run_id) or {}
+        if not run.get("master_video_path"):
+            raise ValueError("This run has no run folder.")
+        run_dir = Path(run["master_video_path"]).parent
+        if not carousel_lazy.planned(run_dir):
+            raise ValueError("This run has no carousel to preview.")
+        with publication_lock(self.db.db_path, "carousel:" + run_id, wait=900):
+            record = carousel_lazy.draw(run_dir, run.get("script_payload") or {}, self.multiformat_gen, QualityAuditor())
+        return {**record, "run_dir": str(run_dir)}
 
     def publish_run(self, run_id: str, dry_run: bool = False, previous_status: str = "queued") -> Dict[str, Any]:
         from src.publication_lock import publication_lock
@@ -4271,6 +4328,9 @@ class PipelineCoordinator:
             slides = sorted(str(p) for p in (run_dir / "carousel").glob("carousel_slide_*.jpg"))
             if stories:
                 pub["stories"] = self.publisher.publish_photos(run_id, tid, "story", stories, dry_run=True)
+            from src import carousel_lazy
+            if carousel_lazy.planned(run_dir) and not slides:   # drawn only when it takes a real slot (QF-81)
+                pub["carousel"] = {"status": "deferred", "reason": "drawn only when it takes a carousel slot"}
             if slides:
                 try:
                     caption, comment = self._carousel_request(run_id, payload, slides)
@@ -4291,6 +4351,8 @@ class PipelineCoordinator:
                 if (pub.get("carousel") or {}).get("status") == "simulated":
                     done.append("carousel" + (" (Instagram and Facebook copies)" if pub["carousel"].get("planned_parts", 0) > 1 else ""))
                 text = "✅ <b>Approved · dry run</b>: nothing was posted. Simulated: " + ", ".join(done) + "."
+                if (pub.get("carousel") or {}).get("status") == "deferred":
+                    text += " The carousel is drawn only when it takes a carousel slot, so a dry run does not draw it."
             elif status == "published":
                 urls = dict(pub.get("post_urls") or {})
                 for url in ((pub.get("youtube_short") or {}).get("post_urls") or {}).values():
@@ -5443,7 +5505,9 @@ def main(argv=None) -> int:
                          "newversion": lambda run_id: new_version(coordinator, run_id, rerender_in_bot,
                                                                   busy=lambda: db.get_active_progress() is not None),
                          "ytthumb": getattr(coordinator, "set_youtube_thumbnail", None),
-                         "ytshort": getattr(coordinator, "post_youtube_short", None)},
+                         "ytshort": getattr(coordinator, "post_youtube_short", None),
+                         "carpreview": getattr(coordinator, "preview_carousel", None),
+                         "carredraw": getattr(coordinator, "redraw_carousel", None)},
             produce_batch=produce_batch,
         )
         if POST_SCHEDULING:  # what this mode books, it also posts when due
@@ -5935,7 +5999,9 @@ def main(argv=None) -> int:
                                                                   busy=lambda: run_lock.locked()
                                                                   or coordinator.db.get_active_progress() is not None),
                          "ytthumb": getattr(coordinator, "set_youtube_thumbnail", None),
-                         "ytshort": getattr(coordinator, "post_youtube_short", None)},
+                         "ytshort": getattr(coordinator, "post_youtube_short", None),
+                         "carpreview": getattr(coordinator, "preview_carousel", None),
+                         "carredraw": getattr(coordinator, "redraw_carousel", None)},
                                        produce_batch=produce_batch)
 
         def poll_telegram():

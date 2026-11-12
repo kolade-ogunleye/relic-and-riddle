@@ -504,13 +504,17 @@ def caption_order(beats: List[Dict[str, Any]], stills: List[Path]) -> Optional[L
 @llm_task("scene_plan")
 def plan_scenes(beats: List[Dict[str, Any]], media: List[Path], feedback: str = "",
                 use_storyboard: bool = True, reserve: Optional[List[Path]] = None,
-                pinned: Optional[Dict[int, Path]] = None) -> Tuple[List[Path], List[float], str]:
+                pinned: Optional[Dict[int, Path]] = None, attempts: int | None = None,
+                retry_seconds: float | None = None) -> Tuple[List[Path], List[float], str]:
     """Returns (media per beat, duration per beat, notes). A motion hook clip stays first.
     `feedback` lists problems a reviewer found with a previous plan, so they are avoided.
     `use_storyboard`: honour an approved Reel storyboard (its beats are numbered for a Reel; a
     documentary's many cuts are planned from the narration instead). `reserve`: stills offered only where a
     picture would otherwise be shown twice (no_repeats), never to the planner or the opening.
-    `pinned`: {0-based beat index: Path} beats verified as passing in a previous pass, locked against re-planning."""
+    `pinned`: {0-based beat index: Path} beats verified as passing in a previous pass, locked against re-planning.
+    `attempts` / `retry_seconds`: the planner's tries and first wait (default SCENE_PLAN_ATTEMPTS and
+    SCENE_PLAN_RETRY_SECONDS; a carousel drawn at its slot uses fewer, QF-81)."""
+    attempts = config.SCENE_PLAN_ATTEMPTS if attempts is None else max(1, int(attempts))
     durations = [b["end"] - b["start"] for b in beats]
     hook = media[0] if media and is_video(media[0]) and not _is_graphic(media[0]) else None
     stills = [p for p in media if not is_video(p)]
@@ -569,14 +573,14 @@ def plan_scenes(beats: List[Dict[str, Any]], media: List[Path], feedback: str = 
             # Pictures that follow the narration are the point of the video, so a failed plan is tried
             # again within the run (the stages before it are kept), waiting longer each time, before the
             # caption fallback below is used.
-            wait = config.SCENE_PLAN_RETRY_SECONDS
-            for attempt in range(1, config.SCENE_PLAN_ATTEMPTS + 1):
+            wait = config.SCENE_PLAN_RETRY_SECONDS if retry_seconds is None else max(0.0, float(retry_seconds))
+            for attempt in range(1, attempts + 1):
                 try:
                     plan = (free_llm.call(SYSTEM, content, ScenePlan, effort="low", max_tokens=4000)
                             if free_llm.enabled() else structured_call(SYSTEM, content, ScenePlan, effort="low", max_tokens=4000))
                     prompt_fence.check_reply(plan, mark)
                 except LLMError as e:
-                    failure = f"Scene planning attempt {attempt}/{config.SCENE_PLAN_ATTEMPTS} failed ({e})"
+                    failure = f"Scene planning attempt {attempt}/{attempts} failed ({e})"
                 else:
                     picks = [i - 1 for i in plan.images]
                     if len(picks) == n and all(0 <= i < len(options) for i in picks):
@@ -588,7 +592,7 @@ def plan_scenes(beats: List[Dict[str, Any]], media: List[Path], feedback: str = 
                         break
                     failure = f"Scene plan attempt {attempt} had {len(picks)} picks for {n} beats or bad numbers"
                 log.warning("%s.", failure)
-                if attempt < config.SCENE_PLAN_ATTEMPTS:
+                if attempt < attempts:
                     log.info("Trying the scene plan again in %.0fs.", wait)
                     time.sleep(wait)
                     wait *= 2

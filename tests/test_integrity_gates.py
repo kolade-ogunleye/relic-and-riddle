@@ -221,15 +221,23 @@ def test_a_reel_counts_its_music_track_once(db, monkeypatch, tmp_path, curated_p
     from tests.test_concurrency import _resumable_run
     lib = music.LIBRARY
     tracks = _json.loads(lib.read_text(encoding="utf-8"))
+    from src import sound_plan
     track = next(t for t in tracks if t.get("reviewed"))
-    monkeypatch.setattr(music, "choose_mood", lambda p: track["mood"])
+    # QF-84: the mood comes from the sound plan (was music.choose_mood), and a dry run is not a use (was before + 1):
+    # the Reel's track is recorded once as its selection, and counts once only when the Reel is published.
+    monkeypatch.setattr(sound_plan, "plan_and_mood", lambda words, title="": (None, {"mood": track["mood"], "reason": ""}))
     before = track.get("uses", 0)
     coord = _resumable_run(db, monkeypatch, tmp_path, curated_payload)
-    monkeypatch.setattr(music, "pick_library_track", lambda mood, seconds=0, exclude=None: track)
+    monkeypatch.setattr(music, "pick_library_track", lambda mood, seconds=0, exclude=None, **k: track)
     monkeypatch.setattr(coord, "_render_approve_publish", lambda *a: {"status": "simulated"})
     coord.resume_run("r5", dry_run=True)
     after = next(t for t in _json.loads(lib.read_text(encoding="utf-8")) if t["file"] == track["file"]).get("uses", 0)
-    assert after == before + 1
+    assert after == before
+    with db._conn() as conn:
+        assert conn.execute("SELECT COUNT(*) FROM music_selections WHERE file = ?", (track["file"],)).fetchone()[0] == 1
+    db.record_publication("01_topic", "r5", "upload-post", "published", {})
+    db.record_publication("01_topic", "r5", "youtube-shorts", "published", {})
+    assert db.music_published_uses() == {track["file"]: 1}
 
 
 @pytest.mark.parametrize("status, claimable", [("rejected", False), ("regenerate", False), ("approved", True),

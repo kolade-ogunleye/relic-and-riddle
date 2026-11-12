@@ -128,6 +128,8 @@ def test_picture_holds_remix_the_saved_bed_before_render_without_new_music(tmp_p
     coord._seed_bed_from_previous = lambda *a: None
     coord._render_approve_publish = render
     coord.audio_engine = SimpleNamespace(generate_ambient_bed=generate, last_sfx_sources=[])
+    selections = []   # QF-84: the reused bed's tracks are recorded for the run (the drone: none)
+    coord.db = SimpleNamespace(record_music_selection=lambda run_id, rows: selections.append((run_id, rows)))
     checkpoints = SimpleNamespace(reusable=lambda *a: True,
                                   complete=lambda stage, key, outputs: keys.append(dict(key)))
     result = coord._produce_bed_and_render(
@@ -135,6 +137,7 @@ def test_picture_holds_remix_the_saved_bed_before_render_without_new_music(tmp_p
         tmp_path / "voice.wav", tmp_path / "words.json", VO_DUR, words,
         checkpoints, lambda paths: {}, False, True, None, None)
     assert result == "rendered"
+    assert selections == [("fixture", [])]
     assert len(bed_calls) == len(records) == len(keys) == 2
     for (_, kw), key, final_durations in zip(bed_calls, keys, [held, repaired]):
         assert kw["scene_cuts"] == key["scene_cuts"] == caption_cut_times(final_durations)

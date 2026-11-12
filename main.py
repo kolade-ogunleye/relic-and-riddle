@@ -45,7 +45,7 @@ from src.llm import claude_available as llm_available
 from src.scene_planner import degraded_note, documentary_cuts, fit_findings, fit_note, fit_to_lines, plan_scenes, segment_beats
 from src.topic_proposer import origin_note as topic_origin_note
 from src.upscale import ensure_all, ensure_resolution
-from src.music import music_for
+from src.music import music_for, music_note, music_selection_rows
 from src.parallax import render_scenes as render_parallax
 from src.video_composer import TRANS_DUR, caption_cut_times
 from src.video_qa import QualityAuditor, audit_scene_feedback, qa_summary_html, review_render
@@ -865,22 +865,29 @@ class PipelineCoordinator:
             from src.audio_provenance import audio_source_inputs
             # The documentary's picture cuts (documentary_cuts, as the render below plans them): its whooshes land on them
             doc_scene_cuts = caption_cut_times([c["end"] - c["start"] for c in documentary_cuts(words, vo_dur)])
-            bed_inputs = {"voice_and_rules": file_inputs([vo_path, words_path, Path("src/audio_engine.py")]),
+            bed_inputs = {"voice_and_rules": file_inputs([vo_path, words_path, Path("src/audio_engine.py"),
+                                                          Path("src/sound_plan.py"), Path("src/music.py")]),
                           "cues": cue_timestamps, "scene_cuts": doc_scene_cuts, "music_preference": MUSIC_PREFER,
                           "selected_sources": audio_source_inputs(bed_path),
                           "library": [{k: v for k, v in t.items() if k != "uses"} for t in library_tracks],
                           "library_files": file_inputs([MUSIC_DIR / t["file"] for t in library_tracks])}
+            doc_music_path = run_dir / "music_selection.json"
             if not checkpoints.reusable("deep_bed", bed_inputs):
-                # Background score with broadcast sidechain ducking and act-boundary risers
-                music = music_for(payload, vo_dur + 0.5, run_dir, self.audio_engine.voice_quota(), is_documentary=True)
+                # Background score with broadcast sidechain ducking and act-boundary risers. The sound plan comes
+                # first: its dominant mood chooses the music (QF-84; never a default mood).
+                from src import sound_plan as sound_plan_mod
+                plan, mood_record = sound_plan_mod.plan_and_mood(words, topic.get("title", ""))
+                (run_dir / "sound_plan.json").write_text(json.dumps(plan, indent=1), encoding="utf-8")
+                music = music_for(dict(payload, topic_id=topic.get("id")), vo_dur + 0.5, run_dir,
+                                  self.audio_engine.voice_quota(), is_documentary=True,
+                                  mood_record=mood_record, published=self.db.music_published_uses())
+                payload["music_note"] = music_note(music)
+                self.db.record_music_selection(run_id, music_selection_rows(music))
                 if music.get("credit"):
                     payload["music_credit"] = music["credit"]
                     payload["description"] += f"\n\n{music['credit']}"
                     payload["caption"] += f"\n\n{music['credit']}"
                     (run_dir / "script_metadata.json").write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
-                from src import sound_plan as sound_plan_mod
-                plan = sound_plan_mod.plan(words, topic.get("title", ""))
-                (run_dir / "sound_plan.json").write_text(json.dumps(plan, indent=1), encoding="utf-8")
                 self.audio_engine.generate_ambient_bed(
                     vo_dur + 0.5, bed_path, words=words,
                     music_path=music.get("path"), music_paths=music.get("paths"),
@@ -888,9 +895,18 @@ class PipelineCoordinator:
                 )
                 from src.audio_provenance import record_bed
                 record_bed(bed_path, music, sfx=self.audio_engine.last_sfx_sources)
+                # Kept with the bed, so a resumed documentary restores its music line (a held one too) (QF-84)
+                doc_music_path.write_text(json.dumps(music, default=str, indent=2), encoding="utf-8")
                 bed_inputs["selected_sources"] = audio_source_inputs(bed_path)
-                checkpoints.complete("deep_bed", bed_inputs, [bed_path, bed_path.with_suffix(".wav.rights.json")])
+                checkpoints.complete("deep_bed", bed_inputs, [bed_path, bed_path.with_suffix(".wav.rights.json"),
+                                                              doc_music_path])
             else:
+                try:
+                    music = json.loads(doc_music_path.read_text(encoding="utf-8"))
+                    payload["music_note"] = music_note(music)
+                    self.db.record_music_selection(run_id, music_selection_rows(music))
+                except (OSError, ValueError) as e:   # a bed made before QF-84 kept no selection
+                    log.warning("Documentary music selection unreadable (%s); its music line is not shown.", e)
                 rights = json.loads(bed_path.with_suffix(".wav.rights.json").read_text(encoding="utf-8"))
                 attribution = rights.get("required_attribution", "")
                 if attribution and attribution not in payload["caption"]:
@@ -2292,7 +2308,8 @@ class PipelineCoordinator:
         # transition whooshes (QF-05: only on a cut, at most two).
         scene_cuts = caption_cut_times([b["end"] - b["start"] for b in segment_beats(words, vo_dur)])
         bed_inputs = {"voice_and_rules": portable_inputs(run_dir, [vo_path, words_path, Path("src/audio_engine.py"),
-                                                                    Path("src/end_card.py")]),
+                                                                    Path("src/end_card.py"), Path("src/sound_plan.py"),
+                                                                    Path("src/music.py")]),
                       "end_card": end_card.LOOP_VARIANT if card else None,
                       "profile": profile.model_dump(),
                       "library": [{k: v for k, v in t.items() if k != "uses"} for t in library_tracks],
@@ -2308,12 +2325,15 @@ class PipelineCoordinator:
                         "Scoring music & sound bed; photos being upscaled and privacy-checked")
                 except Exception:
                     pass
-            music = music_for(payload, bed_seconds, run_dir, self.audio_engine.voice_quota(),
-                              exclude=self._previous_tracks(self._feedback()))  # "Music / sound": not the same track
+            # The sound plan first: its dominant mood chooses the music (QF-84; never a default mood).
             from src import sound_plan as sound_plan_mod
-            plan = sound_plan_mod.plan(words, topic.get("title", ""))  # None: word-cue fallback
+            plan, mood_record = sound_plan_mod.plan_and_mood(words, topic.get("title", ""))  # plan None: word cues
             plan_path = run_dir / "sound_plan.json"
             plan_path.write_text(json.dumps(plan, indent=1), encoding="utf-8")
+            music = music_for(dict(payload, topic_id=topic.get("id")), bed_seconds, run_dir,
+                              self.audio_engine.voice_quota(),
+                              exclude=self._previous_tracks(self._feedback()),  # "Music / sound": not the same track
+                              mood_record=mood_record, published=self.db.music_published_uses())
             self.audio_engine.generate_ambient_bed(bed_seconds, bed_path, words=words,
                                                   music_path=music["path"], sr=profile.audio_sample_rate,
                                                   loop_seamless=profile.loop_seamless, sound_plan=plan,
@@ -2324,12 +2344,11 @@ class PipelineCoordinator:
                 bed_inputs["selected_sources"] = audio_source_inputs(bed_path)
                 checkpoints.complete("bed", bed_inputs, [bed_path, music_path, plan_path,
                                                          bed_path.with_suffix(".wav.rights.json")])
-        payload["music_note"] = {"elevenlabs": f"🎵 Music: ElevenLabs score ({music['mood']})",
-                                 "library": f"🎵 Music: free library track ({music['mood']})",
-                                 "none": "🎵 Music: none available; synthesized drone used"}[music["source"]]
+        payload["music_note"] = music_note(music)
         if music["credit"] and music["credit"] not in payload["caption"]:  # CC BY needs attribution
             payload["caption"] = f"{payload['caption']}\n{music['credit']}"
-        # music_for() counts the track's use when it picks it (a reused bed is not a new use)
+        # The tracks this bed was made from (a carried-over bed too); a use counts only once the Reel is published.
+        self.db.record_music_selection(run_id, music_selection_rows(music))
         StageTimer(run_dir).record("music_and_bed", time.perf_counter() - t0)
 
         def bed_for_cuts(durations):
@@ -4438,6 +4457,13 @@ def resume_reviews(coordinator, follow, waiting: Optional[set] = None, decided_o
 
 
 def _report_interrupted(coordinator, bot) -> None:
+    import sqlite3
+    try:   # once per database: the runs made before music_selections existed (QF-84), so their publications count
+        filled = coordinator.db.backfill_music_selections(OUTPUT_DIR)
+        if filled:
+            log.info("Music selections recorded for %d earlier run(s).", filled)
+    except (OSError, ValueError, AttributeError, sqlite3.Error) as e:   # AttributeError: a stand-in database
+        log.warning("Could not record the earlier runs' music selections: %s", e)
     try:
         stale = reconcile_interrupted_runs(coordinator.db, coordinator.topic_engine)
     except Exception as e:

@@ -1,0 +1,105 @@
+{
+ "code": "QF-84",
+ "classifier_failure": {
+  "no_model": null,
+  "call_fails": null
+ },
+ "failed_plan_runs": {
+  "library_picks_by_mood": {},
+  "held_with_reason": 12,
+  "largest_library_mood_share": null
+ },
+ "uses_after_twelve_dry_runs": 0,
+ "twelve_published_reels": {
+  "simulation": "12 Reels, 3 per mood, each published once on upload-post",
+  "counted_as": "published uses (publication receipts)",
+  "max_mood_share": 0.25,
+  "tracks_in_rotation": 12,
+  "rotating_tracks_with_at_least_one_use": 12,
+  "every_rotating_track_used": true,
+  "distinct_tracks_chosen": 12
+ },
+ "set": {
+  "approved_in_rotation_by_mood": {
+   "mysterious": 3,
+   "epic": 3,
+   "melancholic": 3,
+   "tense": 3
+  },
+  "creators_in_rotation": 11,
+  "retired_with_reason": 9,
+  "rule_keeps_by_mood": {
+   "mysterious": 3,
+   "epic": 3,
+   "melancholic": 3,
+   "tense": 3
+  },
+  "rotation_matches_rule": true
+ },
+ "real_data": {
+  "library": {
+   "tracks": 24,
+   "reviewed_by_mood": {
+    "mysterious": 5,
+    "epic": 4,
+    "melancholic": 6,
+    "tense": 6
+   },
+   "creators": 21,
+   "legacy_uses_by_mood": {
+    "epic": 17,
+    "melancholic": 0,
+    "mysterious": 360,
+    "tense": 8
+   }
+  },
+  "dev": {
+   "runs_with_selection": 33,
+   "selection_moods": {
+    "mysterious": 21,
+    "epic": 8,
+    "tense": 4
+   },
+   "max_selection_mood_share": 0.636,
+   "distinct_tracks_selected": 12,
+   "sound_plans": {
+    "plan": 34
+   },
+   "mood_classifier_calls": {
+    "ok": 18
+   },
+   "selection_moods_where_the_classifier_answered": {
+    "mysterious": 11,
+    "tense": 3,
+    "epic": 4
+   },
+   "reel_published_runs": 0
+  },
+  "prod": {
+   "runs_with_selection": 34,
+   "selection_moods": {
+    "mysterious": 23,
+    "epic": 10,
+    "tense": 1
+   },
+   "max_selection_mood_share": 0.676,
+   "sound_plans": {
+    "plan": 34
+   },
+   "reel_published_runs": 6,
+   "published_moods": {
+    "mysterious": 4,
+    "epic": 2
+   },
+   "max_published_mood_share": 0.667,
+   "reviewed_tracks": 21,
+   "reviewed_tracks_with_a_published_use": 5,
+   "backfill": {
+    "runs_filled": 34,
+    "runs_filled_on_a_second_start": 0,
+    "published_uses": 6,
+    "tracks_with_a_published_use": 5
+   }
+  }
+ }
+}

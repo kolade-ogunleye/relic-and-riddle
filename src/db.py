@@ -237,6 +237,18 @@ class PipelineDatabase:
                 updated_at TEXT NOT NULL,
                 created_at TEXT NOT NULL
             )""")
+            # The library music each run's bed was made from (QF-84). A selection is not a use: published uses are
+            # counted from these rows joined to the run's confirmed Reel receipts (music_published_uses).
+            conn.execute("""
+            CREATE TABLE IF NOT EXISTS music_selections (
+                run_id TEXT NOT NULL,
+                file TEXT NOT NULL,
+                sha256 TEXT,
+                mood TEXT,
+                position INTEGER NOT NULL DEFAULT 0,
+                recorded_at TEXT NOT NULL,
+                PRIMARY KEY (run_id, file)
+            )""")
             conn.execute("CREATE INDEX IF NOT EXISTS idx_telegram_cards_topic ON telegram_cards(topic_id)")
             conn.execute("CREATE INDEX IF NOT EXISTS idx_telegram_cards_expires ON telegram_cards(expires_at)")
         self._seed_topics_from_json()
@@ -849,6 +861,69 @@ class PipelineDatabase:
             INSERT INTO publications (topic_id, run_id, channel, status, response_payload_json, created_at)
             VALUES (?, ?, ?, ?, ?, ?)
             """, (topic_id, run_id, channel, status, json.dumps(response_payload, default=str), _now()))
+
+    # A video's own receipts: every channel but the companions ("upload-post:story", "facebook:cover", ...), the dry
+    # run and the coordinator's placeholder. One run counts once whatever the number of platforms or retries. A
+    # published documentary (its upload goes through upload-post too) counts each of its movements once: the
+    # track was heard in a published video, which is what a published use means.
+    REEL_RECEIPT_EXCLUDED = ("dry-run", "coordinator")
+
+    def record_music_selection(self, run_id: str, tracks: list[dict[str, Any]]) -> None:
+        """The library tracks (each {"file", "sha256", "mood"}) this run's bed was made from, replacing what an
+        earlier bed of the same run recorded (one transaction). An empty list clears it (drone, generated score)."""
+        now = _now()
+        with self._conn() as conn:
+            conn.execute("DELETE FROM music_selections WHERE run_id = ?", (run_id,))
+            for position, track in enumerate(tracks):
+                conn.execute("INSERT OR IGNORE INTO music_selections (run_id, file, sha256, mood, position, recorded_at)"
+                             " VALUES (?, ?, ?, ?, ?, ?)",
+                             (run_id, track["file"], track.get("sha256"), track.get("mood"), position, now))
+
+    MUSIC_BACKFILL_KEY = "music_selections_backfilled"
+
+    def backfill_music_selections(self, output_dir: Path) -> int:
+        """Once per database (QF-84): the selection of every run made before music_selections existed, read from
+        its folder's music_selection.json (library tracks only), so a Reel published before this release, or one
+        waiting for review at the release, counts its track once its receipts say so. A run that already has rows,
+        or no readable selection, is left alone; nothing is ever counted from the old `uses`. Returns the runs filled."""
+        from .credits import sha256_file
+        if self.get_setting(self.MUSIC_BACKFILL_KEY):
+            return 0
+        with self._conn() as conn:
+            runs = [r["run_id"] for r in conn.execute(
+                "SELECT run_id FROM runs WHERE run_id NOT IN (SELECT run_id FROM music_selections)")]
+        filled = 0
+        for run_id in runs:
+            try:
+                music = json.loads((Path(output_dir) / run_id / "music_selection.json").read_text(encoding="utf-8"))
+            except (OSError, ValueError):
+                continue
+            if not isinstance(music, dict) or music.get("source") != "library":
+                continue
+            tracks = [t for t in music.get("tracks") or [] if isinstance(t, dict) and t.get("file")] or (
+                [{"file": music["file"], "mood": music.get("mood"), "path": music.get("path")}] if music.get("file") else [])
+            rows = [{"file": t["file"], "mood": t.get("mood"),
+                     "sha256": (sha256_file(Path(t["path"])) or None) if t.get("path") else None} for t in tracks]
+            if rows:
+                self.record_music_selection(run_id, rows)
+                filled += 1
+        self.set_setting(self.MUSIC_BACKFILL_KEY, _now())
+        return filled
+
+    def music_published_uses(self) -> dict[str, int]:
+        """Published uses per library file: the runs whose bed used it and whose video (a Reel, or a documentary:
+        each of its movements) has a confirmed publication (status 'published' on a video channel, a retry or a
+        human's posted confirmation). Picks, renders, dry runs,
+        simulated, failed, unknown, scheduled, rejected and regenerated runs count nothing; a retry or a second
+        platform of the same Reel does not count twice. Derived at read time, so there is no counter to drift."""
+        excluded = self.REEL_RECEIPT_EXCLUDED
+        with self._conn() as conn:
+            rows = conn.execute(f"""
+            SELECT m.file AS file, COUNT(DISTINCT m.run_id) AS n FROM music_selections m
+            WHERE EXISTS (SELECT 1 FROM publications p WHERE p.run_id = m.run_id AND p.status = 'published'
+                          AND p.channel NOT LIKE '%:%' AND p.channel NOT IN ({','.join('?' * len(excluded))}))
+            GROUP BY m.file""", excluded).fetchall()
+        return {r["file"]: int(r["n"]) for r in rows}
 
     def list_publications(self, run_id: str) -> List[Dict[str, Any]]:
         with self._conn() as conn:

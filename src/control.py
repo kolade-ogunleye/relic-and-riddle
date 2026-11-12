@@ -2646,7 +2646,9 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             pending = music.pending_tracks()
             library = music.load_library()
             approved = sum(bool(t.get("reviewed")) for t in library)
-            text = (f"🎵 <b>Music</b>\n{approved} approved · {len(pending)} waiting for review\n\n"
+            retired = music.retired_tracks()   # QF-84's set: data/music/rotation.json
+            rotating = sum(music.in_rotation(t, retired) for t in library)
+            text = (f"🎵 <b>Music</b>\n{approved} approved ({rotating} in rotation) · {len(pending)} waiting for review\n\n"
                     "<i>Instrumental tracks for historical documentaries. Find them, listen, then approve; nothing new is approved on its own.</i>")
             if command == "mfmenu":
                 return f"🎵 <b>Find music</b>\n\nChoose a documentary mood. Fetches up to {config.MUSIC_FETCH_PER_MOOD} new CC0/CC BY tracks per mood; no paid generation. Each one waits for your review.", [[job_button(db, f"mfetch:{mood}", mood.title(), f"⏳ Fetching {mood}… · Jobs")] for mood in music.MOODS] + [[job_button(db, "mfetch:all", "All moods", "⏳ Fetching all moods… · Jobs")], [{"text": "← Music", "callback_data": "musicmenu:"}], [HOME]]
@@ -2658,8 +2660,12 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             page = max(0, int(args)) if args.isdigit() else 0
             start = page * 5
             lines = [f"🎵 <b>Music library</b> · {len(tracks)} tracks"]
+            published = db.music_published_uses()   # a use is a published Reel (QF-84), not a pick or a dry run
+            retired = music.retired_tracks()
             for track in tracks[start:start+5]:
-                lines.append(f"\n<b>{html.escape(track['title'])}</b>\n{html.escape(track['mood'])} · {html.escape(music.license_name(track))}")
+                state = " · retired" if track["file"] in retired else f" · {published.get(track['file'], 0)} published"
+                lines.append(f"\n<b>{html.escape(track['title'])}</b>\n{html.escape(track['mood'])} · "
+                             f"{html.escape(music.license_name(track))}{state}")
             pages = max(1, -(-len(tracks) // 5))
             if pages > 1:
                 lines[0] += f" · page {page + 1} of {pages}"

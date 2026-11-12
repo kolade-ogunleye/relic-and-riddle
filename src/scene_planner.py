@@ -35,7 +35,9 @@ Some candidates are the channel's own animated graphics (a locator map, a timeli
 
 
 def segment_beats(words: List[Dict[str, Any]], total: float) -> List[Dict[str, Any]]:
-    """Groups timed words into beats; each beat runs until the next beat starts."""
+    """Groups timed words into beats; each beat runs until the next beat starts. "word_span": the beat's words as
+    [first, end) offsets into `words` (the voiceover's word timeline), which places a beat in its own sentence
+    (picture_coverage.beat_sentences)."""
     beats: List[Dict[str, Any]] = []
     current: List[Dict[str, Any]] = []
     for i, w in enumerate(words):
@@ -46,7 +48,8 @@ def segment_beats(words: List[Dict[str, Any]], total: float) -> List[Dict[str, A
         pause = w["word"].rstrip()[-1:] in ".!?;:,—–"
         last = i == len(words) - 1
         if last or (length >= MIN_BEAT and pause and length >= TARGET_BEAT * 0.8) or length >= MAX_BEAT:
-            beats.append({"start": start, "text": " ".join(x["word"] for x in current)})
+            beats.append({"start": start, "text": " ".join(x["word"] for x in current),
+                          "word_span": [i + 1 - len(current), i + 1]})
             current = []
     if not beats:
         return [{"start": 0.0, "end": total, "text": ""}]
@@ -56,6 +59,7 @@ def segment_beats(words: List[Dict[str, Any]], total: float) -> List[Dict[str, A
     # Fold a very short final beat into the previous one.
     if len(beats) > 1 and beats[-1]["end"] - beats[-1]["start"] < 1.5:
         beats[-2]["end"], beats[-2]["text"] = beats[-1]["end"], beats[-2]["text"] + " " + beats[-1]["text"]
+        beats[-2]["word_span"] = [beats[-2]["word_span"][0], beats[-1]["word_span"][1]]
         beats.pop()
     return beats
 
@@ -1021,9 +1025,10 @@ def _illustration_context(beats: list[dict[str, Any]], topic: dict[str, Any] | N
     """What the illustration step needs, read once a planner call: each beat's verdict from the check before the
     voice (visual class, protected), the script record and fact sheet (the spec's source), the per-run budget (run
     folder only: never a shared topic folder), the cap on illustrated beats and the frame's shape."""
-    from .picture_coverage import beat_verdicts
+    from .picture_coverage import beat_verdicts, placed_verdicts
     verdicts = beat_verdicts(work_dir, beats)
-    ctx: dict[str, Any] = {"verdicts": verdicts, "enabled": False}
+    # The reconstruction exception's verdict: the beat's OWN sentence, placed by word position (never by text).
+    ctx: dict[str, Any] = {"verdicts": verdicts, "placed": placed_verdicts(work_dir, beats), "enabled": False}
     if not getattr(config, "GENERATIVE_GAP_FILLING", True) or work_dir is None:
         return ctx
     from . import image_gen
@@ -1112,6 +1117,12 @@ def _illustrate(k: int, line: str, out: list[Path], durations: list[float], repo
         report.setdefault("illustration_skipped", []).append({"beat": k + 1, "why": why})
         log.info("Beat %d: no illustration (%s).", k + 1, why)
         return False
+    placed = ctx.get("placed") or []
+    verdict = placed[k] if k < len(placed) else None   # the beat's own sentence by word position, or None
+    if image_gen.is_reconstruction_line(line, verdict):
+        # the placed verdict and its own sentence go into the spec (the gate and the nothing-added rule)
+        from .reconstruction import bind
+        spec.update(bind(verdict))
     others = [Path(p) for p in list(out) + list(ctx.get("pool") or [])
               if not is_video(Path(p)) and Path(p).is_file() and not is_illustration(Path(p)) and Path(p) != Path(pick)][:40]
     others += [Path(p) for p in out if is_illustration(Path(p)) and Path(p).is_file()]
@@ -1132,7 +1143,7 @@ def _illustrate(k: int, line: str, out: list[Path], durations: list[float], repo
         if not refs:
             log.info("Beat %d: %s.", k + 1, why_none)
         # Why a named subject may be drawn at all: a reconstruction, or every reference unfit for the screen.
-        reason = image_gen.illustration_reason(line, unfit, len(refs))
+        reason = image_gen.illustration_reason(line, unfit, len(refs), verdict=verdict)
     art, info = image_gen.illustrate_beat(line, spec, ctx["work_dir"], aspect=ctx.get("aspect", "9:16"),
                                           budget=ctx.get("budget"), others=others, references=refs,
                                           visual=visual_of[k], reason=reason)
@@ -1151,6 +1162,8 @@ def _illustrate(k: int, line: str, out: list[Path], durations: list[float], repo
                                                "model": info.get("model"), "descriptors": spec.get("required"),
                                                "protected": k < len(ctx.get("protected") or []) and ctx["protected"][k],
                                                "path": str(art), "visual": visual_of[k], "why_illustrated": reason,
+                                               "reconstruction_verdict": spec.get("reconstruction_verdict"),
+                                               "reconstruction_sentence": spec.get("reconstruction_sentence"),
                                                "references": [{key: r.get(key) for key in
                                                                ("path", "url", "title", "licence", "source")}
                                                               for r in used_refs]})

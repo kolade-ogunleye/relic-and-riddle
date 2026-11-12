@@ -96,26 +96,21 @@ SHOW_MIN_SIDE = config.IMAGE_GEN_SHOW_MIN_SIDE   # a reference shown on screen: 
 RECONSTRUCTION_REASON = "reconstruction"
 UNFIT_REASON = "references_unfit_for_screen"
 ILLUSTRATION_REASONS = (RECONSTRUCTION_REASON, UNFIT_REASON)
-_RECONSTRUCTION = re.compile(
-    r"\b(original(ly)?|once (stood|rose|held|had|looked|was|were|housed|filled)|when (it was |they were )?(new|built|"
-    r"complete|completed|finished|working)|at (its|their) (height|peak)|in (its|their) heyday|would have|used to|"
-    r"inside|interior|within (its|the|a)|how (it|they) (was|were) (built|made|raised|assembled)|being (built|raised|"
-    r"assembled)|under construction|(construction|building|assembly) of|assembl(ed|ing)|in use|in operation|worked|"
-    r"working|turn(ed|ing|s)?|rotat\w*|"
-    r"powered|operated|cranked|meshed|before (it|they) (fell|collapsed|sank|burned|was destroyed))\b", re.IGNORECASE)
 
 
-def is_reconstruction_line(line: str) -> bool:
-    """Whether the line is about what no photograph can show: the original appearance, an interior, a mechanism
-    in use or how it was built."""
-    return bool(_RECONSTRUCTION.search(str(line or "")))
+def is_reconstruction_line(line: str, verdict: dict[str, Any] | None = None) -> bool:
+    """Only an explicit structured pre-voice verdict grants a reconstruction exception: the verdict of the sentence
+    the beat `line` is spoken in, placed on it by word position (src/reconstruction.approved)."""
+    from .reconstruction import approved
+    return approved(line, verdict)
 
 
-def illustration_reason(line: str, unfit: Sequence[str] = (), n_refs: int = 0) -> str:
+def illustration_reason(line: str, unfit: Sequence[str] = (), n_refs: int = 0,
+                        *, verdict: dict[str, Any] | None = None) -> str:
     """RECONSTRUCTION_REASON, UNFIT_REASON, or "" when a named subject may not be illustrated. `unfit`: the kind
     of unfitness each reference showed when it was considered for the screen ("screen": too small, text or a
     watermark, cluttered; "line": it does not show what the line says; "unknown": no check could run)."""
-    if is_reconstruction_line(line):
+    if is_reconstruction_line(line, verdict):
         return RECONSTRUCTION_REASON
     kinds = list(unfit)
     if n_refs and len(kinds) >= n_refs and all(k == "screen" for k in kinds):
@@ -970,6 +965,10 @@ def illustrate_beat(line: str, spec: dict[str, Any], work_dir: Path, aspect: str
                           "reference is unfit for the screen (a reference fit to show is shown instead)")
         log.info("Illustration skipped for %r: %s.", line[:60], info["reason"])
         return None, info
+    from .reconstruction import spec_approved
+    if reason == RECONSTRUCTION_REASON and not spec_approved(line, spec):
+        info["reason"] = "reconstruction requires a structured pre-voice verdict for the sentence carrying this line"
+        return None, info
     if not is_available():
         info["reason"] = "generation off or no key"
         return None, info
@@ -1041,6 +1040,8 @@ def illustrate_beat(line: str, spec: dict[str, Any], work_dir: Path, aspect: str
                   "prompt_version": PROMPT_VERSION, "descriptors": list(spec.get("required") or []),
                   "fact_ids": list(spec.get("fact_ids") or []), "origin": "ai_illustration", "visual": visual,
                   "why_illustrated": reason,
+                  "reconstruction_verdict": spec.get("reconstruction_verdict"),
+                  "reconstruction_sentence": spec.get("reconstruction_sentence"),
                   "references": [{k: r.get(k) for k in ("path", "url", "title", "licence", "license_url", "source",
                                                         "artist", "sha256")} for r in refs]})
     log.info("Illustration for %r: %s (best of %d request(s)).", line[:60], out.name, info["calls"])

@@ -321,12 +321,128 @@ def beat_verdicts(run_dir: Path | None, beats: list[dict[str, Any]]) -> list[dic
         verdicts = [v for v in record.get("verdicts") or [] if isinstance(v, dict)]
     except (OSError, ValueError, AttributeError):
         return [None] * len(beats)
+    # A placement is only ever made by placed_verdicts (word position); one in the record itself is dropped.
+    verdicts = [{k: x for k, x in v.items() if k != PLACEMENT_KEY} if PLACEMENT_KEY in v else v for v in verdicts]
     sentences = [(_norm(v.get("sentence")), v) for v in verdicts]
     out: list[dict[str, Any] | None] = []
     for b in beats:
         words = _norm(b.get("text"))
         head = " ".join(words.split()[:4])
         out.append(next((v for sent, v in sentences if words and (words in sent or (head and head in sent))), None))
+    return out
+
+
+# A beat's own sentence by POSITION (QF-60): the reconstruction exception may only come from the verdict of the
+# sentence the beat is spoken in. beat_verdicts above finds the first sentence containing the beat's words, which a
+# short beat ("the sands.") can share with another sentence; it serves the visual class and protected flag only.
+PLACEMENT_KEY = "placement"
+PLACEMENT_BY = "word_position"
+WORDS_FILE = "words.json"     # the voiceover's word timeline (segment_beats' input)
+
+
+def _record_verdicts(run_dir: Path) -> list[dict[str, Any]] | None:
+    try:
+        from .prevoice_lines import RECORD_FILE
+        record = json.loads((Path(run_dir) / RECORD_FILE).read_text(encoding="utf-8"))
+        verdicts = record.get("verdicts")
+    except (OSError, ValueError, AttributeError):
+        return None
+    if not isinstance(verdicts, list) or not all(isinstance(v, dict) for v in verdicts):
+        return None
+    return verdicts
+
+
+def _voice_words(run_dir: Path) -> list[str] | None:
+    try:
+        words = json.loads((Path(run_dir) / WORDS_FILE).read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    if not isinstance(words, list) or not all(isinstance(w, dict) and isinstance(w.get("word"), str) for w in words):
+        return None
+    return [w["word"] for w in words]
+
+
+def _occurrences(seq: list[str], part: list[str]) -> int:
+    n = len(part)
+    return sum(seq[i:i + n] == part for i in range(len(seq) - n + 1)) if n else 0
+
+
+def _voice_to_script(script: list[str], voice: list[str]) -> dict[int, int]:
+    """Voice token position -> script token position, only where the alignment is certain: the identity when the
+    two token streams are equal; otherwise only inside matching blocks whose tokens occur exactly once in each
+    stream (a dropped or respoken word, e.g. a number the voice timeline leaves out, leaves its neighbourhood
+    unplaced: no guess)."""
+    if script == voice:
+        return {i: i for i in range(len(voice))}
+    from difflib import SequenceMatcher
+    out: dict[int, int] = {}
+    for a, b, size in SequenceMatcher(None, script, voice, autojunk=False).get_matching_blocks():
+        part = script[a:a + size]
+        if size and _occurrences(script, part) == 1 and _occurrences(voice, part) == 1:
+            out.update({b + i: a + i for i in range(size)})
+    return out
+
+
+def beat_sentences(run_dir: Path | None, beats: list[dict[str, Any]]) -> list[int | None]:
+    """Each beat's sentence by word position: the 0-based index into the pre-voice record's verdicts (one per
+    script sentence, prevoice_lines.sentences, in narration order) of the sentence the beat's words are spoken in.
+    The beat's word offsets ("word_span", from scene_planner.segment_beats) index the voiceover's word timeline
+    (WORDS_FILE); the timeline's tokens are aligned with the record sentences' tokens (the beat_verdicts
+    normalisation). None (unplaced: no exception may come from it) when the record or the timeline is missing,
+    the beat has no valid word span, its text is not the timeline's words at that span, any of its words has no
+    certain place in the script, its words are not consecutive in the script, or they lie in two sentences."""
+    if run_dir is None:
+        return [None] * len(beats)
+    verdicts, words = _record_verdicts(Path(run_dir)), _voice_words(Path(run_dir))
+    if not verdicts or not words:
+        return [None] * len(beats)
+    script: list[str] = []
+    sentence_of: list[int] = []
+    for i, v in enumerate(verdicts):
+        tokens = _norm(v.get("sentence")).split()
+        script += tokens
+        sentence_of += [i] * len(tokens)
+    voice: list[str] = []
+    offset = [0]
+    for w in words:
+        voice += _norm(w).split()
+        offset.append(len(voice))
+    to_script = _voice_to_script(script, voice)
+    out: list[int | None] = []
+    for b in beats:
+        span = b.get("word_span") if isinstance(b, dict) else None
+        if not (isinstance(span, (list, tuple)) and len(span) == 2
+                and all(isinstance(x, int) and not isinstance(x, bool) for x in span)
+                and 0 <= span[0] < span[1] <= len(words)):
+            out.append(None)
+            continue
+        lo, hi = offset[span[0]], offset[span[1]]
+        if lo >= hi or voice[lo:hi] != _norm(b.get("text")).split():
+            out.append(None)
+            continue
+        at = [to_script.get(p) for p in range(lo, hi)]
+        if any(p is None for p in at) or at != list(range(at[0], at[0] + len(at))):
+            out.append(None)
+            continue
+        owners = {sentence_of[p] for p in at}
+        out.append(owners.pop() if len(owners) == 1 else None)
+    return out
+
+
+def placed_verdicts(run_dir: Path | None, beats: list[dict[str, Any]]) -> list[dict[str, Any] | None]:
+    """Each beat's verdict by word position (beat_sentences): a copy of its own sentence's verdict carrying the
+    placement {"by": PLACEMENT_BY, "sentence_index", "beat"} that src/reconstruction.approved requires; None when
+    the beat cannot be placed. The only source of a reconstruction exception's verdict."""
+    if run_dir is None:
+        return [None] * len(beats)
+    verdicts = _record_verdicts(Path(run_dir)) or []
+    out: list[dict[str, Any] | None] = []
+    for b, i in zip(beats, beat_sentences(run_dir, beats)):
+        if i is None:
+            out.append(None)
+            continue
+        v = {k: x for k, x in verdicts[i].items() if k != PLACEMENT_KEY}
+        out.append({**v, PLACEMENT_KEY: {"by": PLACEMENT_BY, "sentence_index": i, "beat": str(b.get("text") or "")}})
     return out
 
 

@@ -315,11 +315,13 @@ def _nothing_added_rule(spec: dict[str, Any]) -> str:
     (spec["required"]) describe; anything else added still fails. Without the line or any descriptor nothing may
     be added (fail closed)."""
     from .image_gen import RECONSTRUCTION_REASON
+    from .reconstruction import spec_approved
     strict = ("nothing_added: the drawing shows no element, part, figure or decoration that the references do not "
               "show (a plain dark background is not an addition); list any addition under 'added'.\n")
     line = " ".join(str(spec.get("line") or "").split())[:400]
     descriptors = [" ".join(str(d).split())[:120] for d in spec.get("required") or [] if str(d).strip()][:12]
-    if spec.get("why_illustrated") != RECONSTRUCTION_REASON or not (line or descriptors):
+    if (spec.get("why_illustrated") != RECONSTRUCTION_REASON or not (line or descriptors)
+            or not spec_approved(str(spec.get("line") or ""), spec)):
         return strict
     allowed = ((f"The narrated line: \"{line}\"\n" if line else "")
                + ("The fact sheet's descriptors: " + "; ".join(descriptors) + "\n" if descriptors else ""))

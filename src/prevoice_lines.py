@@ -29,17 +29,18 @@ from pydantic import BaseModel
 
 from . import commons, config
 from .checkpoints import fingerprint
+from .reconstruction import ReconstructionAssessment
 
 log = logging.getLogger(__name__)
 
-VERSION = 3            # changes when the question does: an older verdict is asked again (3: the visual plan)
+VERSION = 4            # structured reconstruction assessment; older verdicts must be asked again
 STAGE = "picture_lines"
 RECORD_FILE = "picture_lines.json"
 NOTE_LABEL = "🖼 Lines no photo shows"
 POOL_MAX = 24          # image_review.MAX_PHOTOS: the pool a video can draw on
 
 
-class LineVerdict(BaseModel):
+class LineVerdict(ReconstructionAssessment):
     index: int                                        # 1-based, as numbered in the request
     kind: Literal["shown", "abstract", "generable", "unshown"]
     photo: Optional[int] = None                       # the photo that shows it, for "shown"
@@ -62,7 +63,18 @@ Also give each sentence its planned visual, "visual":
 - "named_subject": it names one particular thing to see (a named place, building, object, person or document); only a real photo of that very thing is honest.
 - "kind_of_thing": it names a kind of thing to see (Roman harbour piers, lime lumps, a drill core, oil lamps) rather than one particular example; a real photo of the same kind and period is honest.
 - "abstract": a number, date or duration, a comparison, a question, an idea or a conclusion; a graphic or any photo of the documentary's subject carries it.
-Judge from the descriptions only. A photo of the documentary's subject does not show a different thing the sentence names. reason: one short sentence."""
+Judge from the descriptions only. A photo of the documentary's subject does not show a different thing the sentence names. reason: one short sentence.
+Also emit reconstruction (boolean), reconstruction_kind and reconstruction_reason for every sentence.
+Default reconstruction=false and reconstruction_kind=null. True is restricted to an explicit depiction of:
+- original_appearance: the subject's lost original appearance, which no present photo can show;
+- unphotographed_interior: an interior for which no photograph exists, not merely an interior absent from this pool;
+- mechanism_in_use: the historical mechanism operating in a state no photograph can show;
+- construction: the historical process of building the subject, not merely its construction date.
+Give a concrete reconstruction_reason explaining the unavailable view. A missing pool photo alone is not evidence
+that no photograph exists. If uncertain, false. Words such as worked, inside, turned or originally alone grant no
+exception: 'Miners worked the salt by hand', 'Inside the museum stands a statue', and 'The road turns east' are
+ordinary photographic subjects. A shown or abstract sentence is never a reconstruction. This assessment does not
+override fact checks, subject restrictions, reference checks or the obligation to show an available exact photo."""
 
 
 def sentences(narration: str) -> List[str]:
@@ -136,7 +148,10 @@ def judge(narration: str, photos: List[Dict[str, str]], subject: str) -> Optiona
         out.append({"sentence": s, "kind": v.kind if v else "abstract", "reason": verdict_reason(v.reason) if v else "",
                     "photo": v.photo if v and v.kind == "shown" else None,
                     "modality": getattr(v, "modality", None) if v else None,
-                    "visual": plan_visual(v.kind if v else "abstract", getattr(v, "visual", None) if v else None)})
+                    "visual": plan_visual(v.kind if v else "abstract", getattr(v, "visual", None) if v else None),
+                    "reconstruction": v.reconstruction if v else False,
+                    "reconstruction_kind": v.reconstruction_kind if v else None,
+                    "reconstruction_reason": verdict_reason(v.reconstruction_reason) if v else ""})
     return out
 
 

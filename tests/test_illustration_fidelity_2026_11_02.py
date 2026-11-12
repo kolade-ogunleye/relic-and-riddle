@@ -17,7 +17,17 @@ from pathlib import Path
 import pytest
 from PIL import Image, ImageDraw
 
-from src import beat_images, config, credits, image_gen, image_quarantine, lineage, scene_planner, telegram_bot
+from src import (
+    beat_images,
+    config,
+    credits,
+    image_gen,
+    image_quarantine,
+    lineage,
+    reconstruction,
+    scene_planner,
+    telegram_bot,
+)
 from src import picture_coverage as pc
 from src import prevoice_lines as pl
 from src import substrate_compositor as sc
@@ -67,7 +77,18 @@ def _fake_ocr(monkeypatch, text=""):
 def _spec():
     spec, why = image_gen.spec_from_facts(GEARS, TOPIC, SHEET)
     assert spec, why
+    spec.update(reconstruction.bind(_placed(_reconstruction(GEARS), GEARS)))
     return spec
+
+
+def _reconstruction(line):
+    return {"sentence": line, "kind": "generable", "visual": pc.NAMED_SUBJECT, "reconstruction": True,
+            "reconstruction_kind": "mechanism_in_use", "reconstruction_reason": "Only the ancient fragments survive."}
+
+
+def _placed(verdict, beat):
+    """The verdict as picture_coverage.placed_verdicts hands it on: placed on `beat` by word position."""
+    return {**verdict, "placement": {"by": "word_position", "sentence_index": 0, "beat": beat}}
 
 
 @pytest.fixture
@@ -386,7 +407,18 @@ FILL = [f"The harbour wall stood firm in year {i}." for i in range(12)]
 
 
 def _beats(lines, seconds=3.0):
-    return [{"start": seconds * i, "end": seconds * (i + 1), "text": t} for i, t in enumerate(lines)]
+    """One beat per line, with its word offsets in the voiceover's word timeline (_voice), as segment_beats
+    records them."""
+    ends = [sum(len(t.split()) for t in lines[:i + 1]) for i in range(len(lines))]
+    return [{"start": seconds * i, "end": seconds * (i + 1), "text": t, "word_span": [ends[i] - len(t.split()), ends[i]]}
+            for i, t in enumerate(lines)]
+
+
+def _voice(run: Path, lines):
+    """The voiceover's word timeline (words.json) for `lines`: a reconstruction's verdict is placed on its beat by
+    the beat's word position in it (picture_coverage.placed_verdicts)."""
+    words = [{"word": w, "start": 0.3 * i, "dur": 0.25} for i, w in enumerate(" ".join(lines).split())]
+    (run / "words.json").write_text(json.dumps(words), encoding="utf-8")
 
 
 def _plain(folder: Path, n: int):
@@ -470,11 +502,14 @@ def test_auto_approve_is_refused_when_an_illustration_is_used(monkeypatch):
 
 
 # ------------------------------------------------------------------ 7. a reference fit to show is SHOWN
-def _named_run(world, line):
+def _named_run(world, line, reconstruction=False, lines=None):
     run = world / "run"
     run.mkdir(parents=True, exist_ok=True)
     (run / pl.RECORD_FILE).write_text(json.dumps({"verdicts": [
-        {"sentence": line, "kind": "unshown", "visual": pc.NAMED_SUBJECT}]}), encoding="utf-8")
+        {"sentence": line, "kind": "unshown", "visual": pc.NAMED_SUBJECT,
+         **(_reconstruction(line) if reconstruction else {})}]}), encoding="utf-8")
+    if lines is not None:
+        _voice(run, lines)
     return run
 
 
@@ -523,7 +558,8 @@ def test_a_reference_fit_to_show_is_shown_as_the_exact_photo_never_illustrated(w
 ])
 def test_a_named_subject_is_illustrated_only_for_a_reconstruction_or_unfit_references(world, monkeypatch, line,
                                                                                        unfit_ref, expect):
-    run = _named_run(world, line)
+    lines = ["The aqueduct strides across the valley.", line] + FILL[:10]
+    run = _named_run(world, line, reconstruction=expect == image_gen.RECONSTRUCTION_REASON, lines=lines)
     ref = _museum_ref(world, (300, 400) if unfit_ref == "small" else (1200, 1600))
     monkeypatch.setattr(image_gen, "find_references", lambda line, topic, local=(), work_dir=None, **k: ([ref], ""))
 
@@ -544,7 +580,6 @@ def test_a_named_subject_is_illustrated_only_for_a_reconstruction_or_unfit_refer
     monkeypatch.setattr(image_gen, "illustrate_beat", illustrate)
     monkeypatch.setattr(scene_planner, "_fact_sheet_for", lambda topic, payload: {"facts": [
         {"id": "F9", "statement": f"{line} It is made of bronze gears in a wooden case.", "disputed": False}]})
-    lines = ["The aqueduct strides across the valley.", line] + FILL[:10]
     photos = _plain(world / "x", len(lines))
     out, report = scene_planner.fit_to_lines(_beats(lines), photos, photos, "Antikythera", topic=TOPIC, work_dir=run)
     assert out[1] != Path(ref["path"]) and got["reason"] == expect and got["refs"] == [ref]
@@ -564,7 +599,10 @@ def test_the_real_gate_refuses_a_named_subject_with_references_but_no_reason(tmp
     assert image_gen.illustration_reason("The temple was built in 432 BC.", ["screen", "line"], 2) == ""
     assert image_gen.illustration_reason("The temple was built in 432 BC.", ["screen", "screen"], 2) == image_gen.UNFIT_REASON
     assert image_gen.illustration_reason("The temple was built in 432 BC.", ["unknown"], 1) == ""
-    assert image_gen.illustration_reason("Inside, a staircase spiralled down.", [], 0) == image_gen.RECONSTRUCTION_REASON
+    line = "Inside, a staircase spiralled down."
+    decision = {**_reconstruction(line), "reconstruction_kind": "unphotographed_interior",
+                "reconstruction_reason": "The interior was destroyed before photography; only a plan survives."}
+    assert image_gen.illustration_reason(line, [], 0, verdict=_placed(decision, line)) == image_gen.RECONSTRUCTION_REASON
 
 
 # ------------------------------------------------------------------ 8. a named subject's crop is OF the named thing

@@ -20,7 +20,15 @@ from pathlib import Path
 import pytest
 from PIL import Image, ImageDraw
 
-from src import beat_images, config, image_gen, image_quarantine, lineage, scene_planner
+from src import (
+    beat_images,
+    config,
+    image_gen,
+    image_quarantine,
+    lineage,
+    reconstruction,
+    scene_planner,
+)
 from src import picture_coverage as pc
 from src import prevoice_lines as pl
 
@@ -114,10 +122,16 @@ _YES = {"same_object": True, "same_count_of_parts": True, "same_shapes": True, "
         "confidence": 0.95}
 
 
+def _reconstruction():
+    return {"sentence": GEARS, "kind": "generable", "visual": pc.NAMED_SUBJECT, "reconstruction": True,
+            "reconstruction_kind": "mechanism_in_use", "reconstruction_reason": "Only ancient fragments survive.",
+            "placement": {"by": "word_position", "sentence_index": 0, "beat": GEARS}}   # placed on the GEARS beat
+
+
 def test_a_reconstruction_may_add_only_what_the_line_and_descriptors_describe(tmp_path, monkeypatch):
     draw, ref = _photo(tmp_path / "d.jpg"), _photo(tmp_path / "r.jpg", colour=(10, 10, 200))
     spec = {"topic": "Antikythera mechanism", "required": ["bronze gears", "wooden case"], "line": GEARS,
-            "why_illustrated": image_gen.RECONSTRUCTION_REASON}
+            "why_illustrated": image_gen.RECONSTRUCTION_REASON, **reconstruction.bind(_reconstruction())}
     llm = _comparison(monkeypatch, image_quarantine.ReferenceComparison(**_YES, nothing_added=True))
     ok, why = image_quarantine.reference_check(draw, [ref], spec)
     assert ok, why
@@ -151,7 +165,8 @@ def test_illustrate_beat_tells_the_rubric_why_and_what_the_line_says(tmp_path, m
                         lambda raw, final, spec, size, others=(), references=(): seen.append(spec) or (False, ["x"], 0.0))
     ref = _photo(tmp_path / "refs" / "fragment.jpg")
     one = {"path": str(ref), "title": "Antikythera mechanism fragment", "licence": "CC0", "sha256": "abc"}
-    spec = {"era": "classical_antiquity", "required": ["bronze gears"], "subject": "the mechanism"}
+    spec = {"era": "classical_antiquity", "required": ["bronze gears"], "subject": "the mechanism",
+            **reconstruction.bind(_reconstruction())}
     image_gen.illustrate_beat(GEARS, spec, tmp_path, visual=pc.NAMED_SUBJECT, references=[one],
                               reason=image_gen.RECONSTRUCTION_REASON, candidates=1)
     assert seen and seen[0]["why_illustrated"] == image_gen.RECONSTRUCTION_REASON and seen[0]["line"] == GEARS

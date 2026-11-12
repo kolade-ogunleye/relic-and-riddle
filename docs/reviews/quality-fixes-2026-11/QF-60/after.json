@@ -1,0 +1,256 @@
+{
+  "scope": "Permission boundary with the provider mocked (part 1); real beats and verdicts of 22 runs at four voice lengths (part 2)",
+  "ordinary_lines": [
+    {
+      "line": "Miners worked the salt by hand.",
+      "reason": ""
+    },
+    {
+      "line": "Inside the museum stands a statue.",
+      "reason": ""
+    },
+    {
+      "line": "The road turns east.",
+      "reason": ""
+    },
+    {
+      "line": "The original manuscript survives in the library.",
+      "reason": ""
+    },
+    {
+      "line": "The interior is open to visitors.",
+      "reason": ""
+    },
+    {
+      "line": "The mill is still in operation today.",
+      "reason": ""
+    },
+    {
+      "line": "The gears are displayed inside a glass case.",
+      "reason": ""
+    },
+    {
+      "line": "A rotating exhibit shows both sides of the fragment.",
+      "reason": ""
+    },
+    {
+      "line": "The workers assembled for a photograph.",
+      "reason": ""
+    },
+    {
+      "line": "The collection once housed a bronze statue.",
+      "reason": ""
+    },
+    {
+      "line": "The original stone door remains in place.",
+      "reason": ""
+    },
+    {
+      "line": "A working replica stands beside the fragments.",
+      "reason": ""
+    },
+    {
+      "line": "The camera turns toward the courtyard.",
+      "reason": ""
+    },
+    {
+      "line": "The construction of the museum ended in 1990.",
+      "reason": ""
+    },
+    {
+      "line": "The inscription is within the entrance hall.",
+      "reason": ""
+    },
+    {
+      "line": "The river powered mills that still survive.",
+      "reason": ""
+    },
+    {
+      "line": "The museum operated throughout the summer.",
+      "reason": ""
+    },
+    {
+      "line": "The town used to hold a weekly market.",
+      "reason": ""
+    },
+    {
+      "line": "The gears meshed in the modern demonstration model.",
+      "reason": ""
+    },
+    {
+      "line": "The gallery was originally a warehouse.",
+      "reason": ""
+    },
+    {
+      "line": "The stone blocks stand beside the road.",
+      "reason": ""
+    },
+    {
+      "line": "Three bronze fragments lie on the table.",
+      "reason": ""
+    },
+    {
+      "line": "The temple was built in 432 BC.",
+      "reason": ""
+    },
+    {
+      "line": "Visitors can see the carved doorway.",
+      "reason": ""
+    },
+    {
+      "line": "A staircase connects the two galleries.",
+      "reason": ""
+    }
+  ],
+  "ordinary_lines_total": 25,
+  "ordinary_lines_flagged": 0,
+  "three_examples_empty": true,
+  "structured_verdict_retained": true,
+  "unsupported_reconstruction_keeps_strict_reference_rule": true,
+  "real_runs": 22,
+  "real_sentences": 137,
+  "real_runs_timeline_differs_from_script": 5,
+  "real_old_regex_sentences_flagged": "7/137",
+  "real_sentences_flagged_now": "0/137",
+  "real_round3": {
+    "voice": {
+      "beats": 232,
+      "beats_inside_one_sentence": 188,
+      "valid_granted": "27/188",
+      "valid_refused": 161,
+      "refused_unplaced": 2,
+      "multi_beat_sentence_beats_granted": "0/113",
+      "wrong_sentence_granted": "0/1266",
+      "invalid_verdict_granted": "27/1302",
+      "other_sentence_verdict_granted": "0/1266"
+    },
+    "tail_0s": {
+      "beats": 232,
+      "beats_inside_one_sentence": 188,
+      "valid_granted": "27/188",
+      "valid_refused": 161,
+      "refused_unplaced": 2,
+      "multi_beat_sentence_beats_granted": "0/113",
+      "wrong_sentence_granted": "0/1266",
+      "invalid_verdict_granted": "27/1302",
+      "other_sentence_verdict_granted": "0/1266"
+    },
+    "tail_1s": {
+      "beats": 239,
+      "beats_inside_one_sentence": 195,
+      "valid_granted": "20/195",
+      "valid_refused": 175,
+      "refused_unplaced": 2,
+      "multi_beat_sentence_beats_granted": "0/127",
+      "wrong_sentence_granted": "0/1301",
+      "invalid_verdict_granted": "20/1351",
+      "other_sentence_verdict_granted": "0/1301"
+    },
+    "tail_3s": {
+      "beats": 239,
+      "beats_inside_one_sentence": 195,
+      "valid_granted": "20/195",
+      "valid_refused": 175,
+      "refused_unplaced": 2,
+      "multi_beat_sentence_beats_granted": "0/127",
+      "wrong_sentence_granted": "0/1301",
+      "invalid_verdict_granted": "20/1351",
+      "other_sentence_verdict_granted": "0/1301"
+    }
+  },
+  "real_round4": {
+    "voice": {
+      "beats": 232,
+      "beats_inside_one_sentence": 188,
+      "valid_granted": "184/188",
+      "valid_refused": 4,
+      "refused_unplaced": 2,
+      "multi_beat_sentence_beats_granted": "111/113",
+      "wrong_sentence_granted": "0/1266",
+      "invalid_verdict_granted": "184/1302",
+      "other_sentence_verdict_granted": "0/1266"
+    },
+    "tail_0s": {
+      "beats": 232,
+      "beats_inside_one_sentence": 188,
+      "valid_granted": "184/188",
+      "valid_refused": 4,
+      "refused_unplaced": 2,
+      "multi_beat_sentence_beats_granted": "111/113",
+      "wrong_sentence_granted": "0/1266",
+      "invalid_verdict_granted": "184/1302",
+      "other_sentence_verdict_granted": "0/1266"
+    },
+    "tail_1s": {
+      "beats": 239,
+      "beats_inside_one_sentence": 195,
+      "valid_granted": "188/195",
+      "valid_refused": 7,
+      "refused_unplaced": 2,
+      "multi_beat_sentence_beats_granted": "122/127",
+      "wrong_sentence_granted": "3/1301",
+      "invalid_verdict_granted": "188/1351",
+      "other_sentence_verdict_granted": "7/1301"
+    },
+    "tail_3s": {
+      "beats": 239,
+      "beats_inside_one_sentence": 195,
+      "valid_granted": "188/195",
+      "valid_refused": 7,
+      "refused_unplaced": 2,
+      "multi_beat_sentence_beats_granted": "122/127",
+      "wrong_sentence_granted": "3/1301",
+      "invalid_verdict_granted": "188/1351",
+      "other_sentence_verdict_granted": "7/1301"
+    }
+  },
+  "real_this_commit": {
+    "voice": {
+      "beats": 232,
+      "beats_inside_one_sentence": 188,
+      "valid_granted": "184/188",
+      "valid_refused": 4,
+      "refused_unplaced": 4,
+      "multi_beat_sentence_beats_granted": "111/113",
+      "wrong_sentence_granted": "0/1266",
+      "invalid_verdict_granted": "0/1288",
+      "other_sentence_verdict_granted": "0/1266"
+    },
+    "tail_0s": {
+      "beats": 232,
+      "beats_inside_one_sentence": 188,
+      "valid_granted": "184/188",
+      "valid_refused": 4,
+      "refused_unplaced": 4,
+      "multi_beat_sentence_beats_granted": "111/113",
+      "wrong_sentence_granted": "0/1266",
+      "invalid_verdict_granted": "0/1288",
+      "other_sentence_verdict_granted": "0/1266"
+    },
+    "tail_1s": {
+      "beats": 239,
+      "beats_inside_one_sentence": 195,
+      "valid_granted": "191/195",
+      "valid_refused": 4,
+      "refused_unplaced": 4,
+      "multi_beat_sentence_beats_granted": "125/127",
+      "wrong_sentence_granted": "0/1301",
+      "invalid_verdict_granted": "0/1337",
+      "other_sentence_verdict_granted": "0/1301"
+    },
+    "tail_3s": {
+      "beats": 239,
+      "beats_inside_one_sentence": 195,
+      "valid_granted": "191/195",
+      "valid_refused": 4,
+      "refused_unplaced": 4,
+      "multi_beat_sentence_beats_granted": "125/127",
+      "wrong_sentence_granted": "0/1301",
+      "invalid_verdict_granted": "0/1337",
+      "other_sentence_verdict_granted": "0/1301"
+    }
+  },
+  "real_never_granted_in_every_mode": true,
+  "real_every_inside_beat_granted_unless_unplaced": true,
+  "acceptance_met": true
+}

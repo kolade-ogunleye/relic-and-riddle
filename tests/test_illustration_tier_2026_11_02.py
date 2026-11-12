@@ -320,7 +320,18 @@ def _photos(folder: Path, n: int):
 
 
 def _beats(lines, seconds=3.0):
-    return [{"start": seconds * i, "end": seconds * (i + 1), "text": t} for i, t in enumerate(lines)]
+    """One beat per line, with its word offsets in the voiceover's word timeline (_voice), as segment_beats
+    records them."""
+    ends = [sum(len(t.split()) for t in lines[:i + 1]) for i in range(len(lines))]
+    return [{"start": seconds * i, "end": seconds * (i + 1), "text": t, "word_span": [ends[i] - len(t.split()), ends[i]]}
+            for i, t in enumerate(lines)]
+
+
+def _voice(run: Path, lines):
+    """The voiceover's word timeline (words.json) for `lines`: a reconstruction's verdict is placed on its beat by
+    the beat's word position in it (picture_coverage.placed_verdicts)."""
+    words = [{"word": w, "start": 0.3 * i, "dur": 0.25} for i, w in enumerate(" ".join(lines).split())]
+    (run / "words.json").write_text(json.dumps(words), encoding="utf-8")
 
 
 def _record(run: Path, verdicts):
@@ -379,7 +390,11 @@ def test_named_subject_with_descriptors_is_illustrated_before_the_map(world, mon
     photos = _photos(world.tmp / "x", len(lines))
 
     run = world.tmp / "run"
-    _record(run, [{"sentence": GEARS, "kind": "unshown", "visual": pc.NAMED_SUBJECT}])
+    assessment = {"sentence": GEARS, "kind": "unshown", "visual": pc.NAMED_SUBJECT,
+                  "reconstruction": True, "reconstruction_kind": "mechanism_in_use",
+                  "reconstruction_reason": "Only ancient fragments survive."}
+    _record(run, [assessment])
+    _voice(run, lines)
     monkeypatch.setattr(image_gen, "find_references", lambda *a, **k: ([], "no reference"))
     out, _ = scene_planner.fit_to_lines(_beats(lines), photos, photos, "Antikythera", work_dir=run)
     assert not out[1].name.startswith("gap_gen_") and world.made == []
@@ -390,7 +405,8 @@ def test_named_subject_with_descriptors_is_illustrated_before_the_map(world, mon
     one = {"path": str(ref), "title": "Antikythera mechanism fragment", "licence": "CC0", "sha256": "abc"}
     monkeypatch.setattr(image_gen, "find_references", lambda *a, **k: ([one], ""))
     run2 = world.tmp / "run2"
-    _record(run2, [{"sentence": GEARS, "kind": "unshown", "visual": pc.NAMED_SUBJECT}])
+    _record(run2, [assessment])
+    _voice(run2, lines)
     out, report = scene_planner.fit_to_lines(_beats(lines), photos, photos, "Antikythera", work_dir=run2)
     assert out[1].name.startswith("gap_gen_") and world.made == [GEARS]
     assert got[-1]["refs"] == [one] and got[-1]["reason"] == image_gen.RECONSTRUCTION_REASON

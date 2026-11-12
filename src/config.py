@@ -368,6 +368,16 @@ def review_undo_minutes(raw: str) -> float:
 
 REVIEW_UNDO_MINUTES = review_undo_minutes(os.getenv("REVIEW_UNDO_MINUTES", "10"))
 
+# The clean chat (UI-01, operator-approved design of 2026-11-12): one pinned notifications panel that every sender
+# writes into, the dashboard drawn in place, and temporary panels that leave. Off restores the earlier chat (each
+# notice a message of its own): the rollback during the on-device acceptance. Off by default until the whole chain
+# (through UI-01f's 40 h re-post) has passed that acceptance: a release carrying only part of it must not switch an
+# environment whose .env does not ask for it to a half-built clean chat. The development .env turns it on.
+TELEGRAM_CLEAN_CHAT = os.getenv("TELEGRAM_CLEAN_CHAT", "false").strip().lower() in ("true", "1", "yes")
+# Seconds a push alert (the one line that rings for a Needs-you item) stays before it is deleted. The design's 8 s
+# is to be proved on the phones (design Q1): raise it if the lock-screen banner leaves with the message.
+PUSH_ALERT_SECONDS = max(1.0, float(os.getenv("PUSH_ALERT_SECONDS", "8")))
+
 TELEGRAM_TOPICS = {
     "studio": int(os.getenv("TELEGRAM_TOPIC_STUDIO", "4906")),
     "needs": int(os.getenv("TELEGRAM_TOPIC_NEEDS", "4907")),

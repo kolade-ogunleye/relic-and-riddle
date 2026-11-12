@@ -46,7 +46,13 @@ SCREENS: Dict[str, Tuple[str, str, Optional[str]]] = {
     "edit": ("✏️", "Edit text", HOME_CB), "cfootage": ("🎞", "Footage", "cimages:"),
     # QF-81: a review's carousel, drawn on demand from its card (both copies, audited as at its slot)
     "ccar": ("🖼", "Carousel preview", "creviews:"),
+    # The clean chat (UI-01): the pinned notifications panel (not a dashboard screen: no parent, no 🏠) and its
+    # 90-day record under Status.
+    "cnote": ("🔔", "Notifications", None), "cnotices": ("🗒️", "Notices", "cstat:"),
 }
+# Callbacks of the panels that are not dashboard screens (design §12): the notifications panel's item, page,
+# Dismiss all info and Undo taps. Every callback prefix is in SCREENS or here.
+PANEL_KINDS = {"n", "np", "nall", "nundo"}
 # Typed commands draw the same screens.
 SCREENS.update({
     "queue": SCREENS["qrefresh"], "progress": SCREENS["cprog"], "status": SCREENS["cstat"], "reviews": SCREENS["creviews"],

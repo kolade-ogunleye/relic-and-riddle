@@ -123,7 +123,10 @@ def notify_stale(db, bot, *, now_at=None) -> bool:
     text = ("🗄 <b>Backups need attention</b>: " + html.escape("; ".join(result["alerts"])) + "\n"
             + html.escape(result["line"]) + "\nRecovery steps and the restore drill: docs/backup.md.")
     try:
-        sent = bot.notify(text, group="needs")
+        # The clean chat: an item with its way to the details (UI-01, design §10.3).
+        from . import notifications
+        sent = notifications.say(bot.notify, text, group="needs", key="backups",
+                                 actions=[{"text": "📊 Status", "callback_data": "cstat:"}])
     except Exception as exc:  # noqa: BLE001 - an alert must never break the daemon's scheduler
         log.warning("Backup notice not sent: %s", type(exc).__name__)
         return False

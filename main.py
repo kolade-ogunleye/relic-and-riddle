@@ -40,7 +40,7 @@ from src.config import ASSETS_DIR, CURATED_SCRIPTS_DIR, DAILY_RUN_TIME, OUTPUT_D
 from src.credits import caption_credit_line, generate_provenance_ledger, load_credits
 from src.db import REVIEW_CLAIM_PREFIX, UNDONE_BY, UNDOABLE, PipelineDatabase, QueueEmpty
 from src.control import clip_words, heartbeat_text, is_paused, make_command_handler, ping_healthcheck, record_run_mode
-from src import beat_images, callouts, colour_balance, config, encoding, footage, graphics, motion, post_schedule, privacy, then_now, worker_deadline
+from src import beat_images, callouts, colour_balance, config, encoding, footage, graphics, motion, notifications, post_schedule, privacy, then_now, worker_deadline
 from src.llm import claude_available as llm_available
 from src.scene_planner import degraded_note, documentary_cuts, fit_findings, fit_note, fit_to_lines, plan_scenes, segment_beats
 from src.topic_proposer import origin_note as topic_origin_note
@@ -243,9 +243,10 @@ class PipelineCoordinator:
             # Said in Telegram, not only logged: production's scheduled runs failed this way unnoticed (ffprobe).
             failed = [f"{k}: {v['msg']}" for k, v in health["details"].items() if v["required"] and not v["passed"]]
             try:
-                self._alert("🩺 <b>Run not started: a pre-flight check failed</b>\n\n"
+                _notice(self, "🩺 <b>Run not started: a pre-flight check failed</b>\n\n"
                             + "\n".join(f"• {html.escape(line[:200])}" for line in failed)
-                            + "\n\nNothing was made or spent. Fix the check, then start the run again.")
+                            + "\n\nNothing was made or spent. Fix the check, then start the run again.", section="needs", key="preflight",
+                             actions=[{"text": "Details", "callback_data": "cstat:"}])
             except Exception as e:
                 log.warning("Could not send the pre-flight alert: %s", e)
             ping_healthcheck("/fail")
@@ -276,16 +277,16 @@ class PipelineCoordinator:
                            and order.get(t["id"], 0) < order.get(topic["id"], 0)]
             if passed_over:
                 try:
-                    self._alert("🖼 <b>Topics moved back: too few photos for every line</b>\n\n"
+                    _notice(self, "🖼 <b>Topics moved back: too few photos for every line</b>\n\n"
                                 + "\n".join(f"• {html.escape(t.get('title') or t['id'])}: {html.escape(why)}"
-                                            for t, why in passed_over[:8]))
+                                            for t, why in passed_over[:8]), section="info", key="photos-skip")
                 except (OSError, RuntimeError, ValueError) as e:   # requests' errors are OSErrors
                     log.warning("Could not send the topic image gate alert: %s", e)
             if skipped:  # said, with the video's own count: an approved set it could not use failed at start (audit 2026-10-28)
                 try:
-                    self._alert("🖼 <b>Topics skipped: not enough photos a video can use</b>\n\n"
+                    _notice(self, "🖼 <b>Topics skipped: not enough photos a video can use</b>\n\n"
                                 + "\n".join(f"• {html.escape(t.get('title') or t['id'])}: {html.escape(why)}"
-                                            for t, why in skipped[:8]))
+                                            for t, why in skipped[:8]), section="info", key="photos-skip")
                 except Exception as e:
                     log.warning("Could not send the skipped-topics alert: %s", e)
             if topic is None:
@@ -335,7 +336,7 @@ class PipelineCoordinator:
             self.db.update_run(run_id, "failed", error=f"FactStarvedTopicError: {e}")
             self.topic_engine.record_status(tid, "fact_starved", run_id=run_id)
             log.warning("Topic '%s' is fact-starved: %s. Gracefully skipping to protect pipeline integrity.", tid, e)
-            self._alert(f"⚠️ <b>Topic skipped: fact-starved</b>\n\n<code>{html.escape(tid)}</code>\n\n{html.escape(str(e))}\n\nSkipped gracefully to next queued topic.")
+            _notice(self, f"⚠️ <b>Topic skipped: fact-starved</b>\n\n<code>{html.escape(tid)}</code>\n\n{html.escape(str(e))}\n\nSkipped gracefully to next queued topic.", section="info")
             next_t = self.topic_engine.get_next_topic()
             if next_t and next_t["id"] != tid:
                 log.info("Auto-advancing to next topic '%s'...", next_t['id'])
@@ -354,7 +355,8 @@ class PipelineCoordinator:
             self._collect_findings(run_id, run_dir, tid, error=f"{type(e).__name__}: {e}")
             log.error("Run %s failed: %s", run_id, e)
             if not card_shown:
-                self._alert(f"❌ <b>{failed_heading(self.db, run_id)}</b>\n\n<b>{html.escape(self.db.run_label(run_id))}</b>\n<blockquote expandable>{html.escape(str(e)[:600])}</blockquote>\nNothing was posted. The topic is set aside: restore it from the queue (/queue requeue N).")
+                _notice(self, f"❌ <b>{failed_heading(self.db, run_id)}</b>\n\n<b>{html.escape(self.db.run_label(run_id))}</b>\n<blockquote expandable>{html.escape(str(e)[:600])}</blockquote>\nNothing was posted. The topic is set aside: restore it from the queue (/queue requeue N).", section="needs", key=f"fail:{run_id}", run=run_id,
+                             actions=notifications.failure_actions(self.db, run_id))
             ping_healthcheck("/fail")
             raise
         finally:
@@ -777,8 +779,9 @@ class PipelineCoordinator:
             if not success and not shown and alert:  # no card to turn into the failure card: say so in a message
                 from src.control import short_reason
                 try:
-                    self._alert(f"❌ <b>Documentary failed:</b> {html.escape(card_title)}\n\n"
-                                f"{html.escape(short_reason(error, 600))}\n\nNothing was posted.")
+                    _notice(self, f"❌ <b>Documentary failed:</b> {html.escape(card_title)}\n\n"
+                                f"{html.escape(short_reason(error, 600))}\n\nNothing was posted.", section="needs", key=f"fail:{run_id}", run=run_id,
+                                 actions=notifications.failure_actions(self.db, run_id))
                 except Exception:
                     pass
 
@@ -1211,11 +1214,15 @@ class PipelineCoordinator:
         finally:
             release_run(self.db, produced["run_id"])
 
-    def _alert(self, text: str, buttons: Optional[list] = None, group: Optional[str] = None) -> None:
-        try:
-            self.telegram_bot.notify(text, buttons=buttons, group=group or "studio")
-        except TypeError:
-            getattr(self.telegram_bot, "notify")(text, buttons=buttons)
+    def _alert(self, text: str, buttons: Optional[list] = None, group: Optional[str] = None, **item: Any) -> None:
+        """A notice for the operator. In the clean chat it is an item of the pinned panel: `item` names its
+        section ("needs" or "info"), and where it coalesces its key, run, replace and its actions (UI-01, design
+        §10.2)."""
+        notifications.say(self.telegram_bot.notify, text, buttons=buttons, group=group or "studio", **item)
+
+    def _episode_action(self, run_id: str) -> list[dict[str, str]]:
+        """🗓️ Posting for a notice about one episode's posts: its page on Posting (design §10.2)."""
+        return [{"text": "🗓️ Posting", "callback_data": f"cpost:{self.db.run_key(run_id)}"}]
 
     def confirm_posted(self, run_id: str) -> str:
         """Human confirmed an 'unknown' publish did go live: count it as published."""
@@ -1427,8 +1434,9 @@ class PipelineCoordinator:
             return True
         log.warning("%s: %s; sent for review instead.", run_id, why)
         try:
-            self._alert(f"🏛 <b>Auto-approve refused</b>\n\n<b>{html.escape(self.db.run_label(run_id))}</b>\n"
-                        + html.escape(why) + "\nThe review card lists each illustration with its reference(s).")
+            _notice(self, f"🏛 <b>Auto-approve refused</b>\n\n<b>{html.escape(self.db.run_label(run_id))}</b>\n"
+                        + html.escape(why) + "\nThe review card lists each illustration with its reference(s).", section="needs", run=run_id,
+                         actions=[{"text": "🎬 Reviews", "callback_data": "creviews:"}])
         except Exception as e:  # noqa: BLE001 - the refusal stands whether or not the alert is delivered
             log.warning("Auto-approve refusal alert not sent (%s).", e)
         return False
@@ -1449,9 +1457,10 @@ class PipelineCoordinator:
         if run.get("topic_id"):
             self.topic_engine.record_status(run["topic_id"], "failed", run_id=run_id)
         log.warning("%s: %s", run_id, why)
-        self._alert(f"⛔ <b>Blocked at the release gate</b>, not approved ({html.escape(by)})\n\n"
+        _notice(self, f"⛔ <b>Blocked at the release gate</b>, not approved ({html.escape(by)})\n\n"
                     f"<b>{html.escape(self.db.run_label(run_id))}</b>\n<blockquote expandable>"
-                    + html.escape("\n".join(problems)[:900]) + "</blockquote>\nNothing was posted.")
+                    + html.escape("\n".join(problems)[:900]) + "</blockquote>\nNothing was posted.", section="needs", key=f"gate:{run_id}", run=run_id,
+                     actions=[{"text": "Details", "callback_data": f"chist:{self.db.run_key(run_id)}"}])
         return why
 
     @staticmethod
@@ -1530,7 +1539,8 @@ class PipelineCoordinator:
                     pass
                 self.progress_msg_id = None
             if not card_shown:
-                self._alert(f"❌ <b>{failed_heading(self.db, run_id)}</b>\n\n<b>{html.escape(self.db.run_label(run_id))}</b>\n<blockquote expandable>{html.escape(str(e)[:600])}</blockquote>\nNothing was posted. The topic is set aside: restore it from the queue (/queue requeue N).")
+                _notice(self, f"❌ <b>{failed_heading(self.db, run_id)}</b>\n\n<b>{html.escape(self.db.run_label(run_id))}</b>\n<blockquote expandable>{html.escape(str(e)[:600])}</blockquote>\nNothing was posted. The topic is set aside: restore it from the queue (/queue requeue N).", section="needs", key=f"fail:{run_id}", run=run_id,
+                             actions=notifications.failure_actions(self.db, run_id))
             ping_healthcheck("/fail")
             raise
         finally:
@@ -1564,8 +1574,8 @@ class PipelineCoordinator:
             log.warning("Photo orientation check for %s did not run: %s", topic.get("id"), e)
             return set()
         if done:
-            self._alert(f"🔄 <b>Photos turned over</b> in {html.escape(topic.get('title') or topic['id'])}:\n"
-                        + "\n".join("• " + html.escape(x) for x in done))
+            _notice(self, f"🔄 <b>Photos turned over</b> in {html.escape(topic.get('title') or topic['id'])}:\n"
+                        + "\n".join("• " + html.escape(x) for x in done), section="info")
         return still
 
     def _screen_photos(self, topic: Dict[str, Any]) -> None:
@@ -1866,9 +1876,9 @@ class PipelineCoordinator:
                 problems.append(reply)
         if problems:
             # What did not happen and what to do, not Graph's whole reply with its URL (operator, 2026-10-27)
-            self._alert(f"⚠️ <b>Facebook finishing</b> for {html.escape(self.db.run_label(run_id))}\n\n"
+            _notice(self, f"⚠️ <b>Facebook finishing</b> for {html.escape(self.db.run_label(run_id))}\n\n"
                         "The Reel posted fine; this extra step on Facebook did not:\n" + "\n".join(problems)
-                        + "\n\nTry it again from the episode: 🗓 Posting, its number, then the button.")
+                        + "\n\nTry it again from the episode: 🗓 Posting, its number, then the button.", section="info", run=run_id)
 
     def set_facebook_cover(self, run_id: str) -> str:
         """Sets the run's chosen cover (thumbnail_cover.jpg, 9:16 as the Reel) on its posted Facebook Reel."""
@@ -2282,7 +2292,7 @@ class PipelineCoordinator:
             checkpoints.complete("voice", voice_inputs, [vo_path, words_path, voice_path])
             if self.audio_engine.fallback_reason:
                 r_label = html.escape(self.db.run_label(run_id))
-                self._alert(f"🔁 <b>Voice fallback</b>\n\n<b>{r_label}</b>\n\n{html.escape(self.audio_engine.fallback_reason)}\n\nVoiced by: <b>{html.escape(self.audio_engine.last_provider)}</b>.")
+                _notice(self, f"🔁 <b>Voice fallback</b>\n\n<b>{r_label}</b>\n\n{html.escape(self.audio_engine.fallback_reason)}\n\nVoiced by: <b>{html.escape(self.audio_engine.last_provider)}</b>.", section="info")
         v_prov = (saved_voice.get("provider") if reusable else self.audio_engine.last_provider) or "unknown"
         v_lic = saved_voice.get("licensed") if reusable else self.audio_engine.last_licensed
         lic_badge = "🟢 Commercially Licensed" if v_lic else "🟡 Unlicensed (Review / Test Only)"
@@ -3705,7 +3715,7 @@ class PipelineCoordinator:
         self.topic_engine.record_status(run["topic_id"], "scheduled", run_id=run_id)
         # The review card becomes the schedule's receipt (a separate alert said the same thing again).
         if not self.telegram_bot.stamp_review_outcome(run_id, "🗓 <b>Approved · scheduled</b>\n" + "\n".join(html.escape(x) for x in lines)):
-            self._alert(f"🗓 <b>Post scheduled</b>\n\n<b>{html.escape(self.db.run_label(run_id))}</b>\n\n" + "\n".join(html.escape(x) for x in lines))
+            _notice(self, f"🗓 <b>Post scheduled</b>\n\n<b>{html.escape(self.db.run_label(run_id))}</b>\n\n" + "\n".join(html.escape(x) for x in lines), section="info", key=f"approved:{run_id}", run=run_id, replace=True)
         return {"status": "scheduled", "scheduled_for": slot.isoformat()}
 
     def _book_followers(self, run_id: str, run_dir: Path, reel_slot: datetime) -> List[str]:
@@ -3850,7 +3860,8 @@ class PipelineCoordinator:
         if post["kind"] != "reel":
             name = {"story": "Stories", "carousel": "Carousel"}.get(post["kind"], post["kind"])
             self.db.update_scheduled_post(post["id"], "failed", detail={"error": "; ".join(reasons)})
-            self._alert(f"❌ {name} not posted for {label}: " + html.escape("; ".join(reasons)[:300]))
+            _notice(self, f"❌ {name} not posted for {label}: " + html.escape("; ".join(reasons)[:300]), section="needs",
+                         key=f"post-failed:{post['id']}", actions=self._episode_action(post["run_id"]))
             return
         self.db.update_scheduled_post(post["id"], "blocked", detail={
             "reason": "; ".join(reasons), "reasons": reasons, "blocked_at": now.isoformat(), "error": str(exc)[:1000]})
@@ -3875,8 +3886,9 @@ class PipelineCoordinator:
         why = (f"its fact check, made before a code update, must be run again under the current rules first, and "
                f"that cannot happen now ({html.escape(said)}). It is tried again with a growing wait"
                if isinstance(exc, RecheckUnavailable) else html.escape(said))
-        self._alert(f"⚠️ <b>{name} not posted yet</b> for {html.escape(self.db.run_label(post['run_id']))}: "
-                    f"{why}\n\nIt stays booked and is tried again; you'll hear again only if the error changes.")
+        _notice(self, f"⚠️ <b>{name} not posted yet</b> for {html.escape(self.db.run_label(post['run_id']))}: "
+                    f"{why}\n\nIt stays booked and is tried again; you'll hear again only if the error changes.", section="needs", key=f"post-held:{post['id']}",
+                     actions=self._episode_action(post["run_id"]))
 
     def _reschedule(self, post: Dict[str, Any], run: Dict[str, Any], now: datetime) -> None:
         slot = post_schedule.next_reel_slot(now, self._booked_reel_days(exclude_id=post["id"]))
@@ -3893,12 +3905,14 @@ class PipelineCoordinator:
             if detail.get("moved_said") == held:
                 return
             self.db.update_scheduled_post(post["id"], "pending", detail={**detail, "moved_said": held})
-            self._alert(f"⏰ {label} could not post at its {html.escape(missed)} slot: it is still held "
+            _notice(self, f"⏰ {label} could not post at its {html.escape(missed)} slot: it is still held "
                         f"({html.escape(held)}). Moved to {html.escape(post_schedule.fmt(slot))}; it keeps moving to "
-                        "the next free slot until it can post, and you'll hear again only if the reason changes.")
+                        "the next free slot until it can post, and you'll hear again only if the reason changes.", section="needs", key=f"missed:{post['id']}",
+                         actions=self._episode_action(post["run_id"]))
             return
-        self._alert(f"⏰ Missed the {html.escape(missed)} slot for {label} "
-                    f"(the daemon was off or paused). Moved to {html.escape(post_schedule.fmt(slot))}.")
+        _notice(self, f"⏰ Missed the {html.escape(missed)} slot for {label} "
+                    f"(the daemon was off or paused). Moved to {html.escape(post_schedule.fmt(slot))}.", section="needs", key=f"missed:{post['id']}",
+                     actions=self._episode_action(post["run_id"]))
 
     CAROUSEL_CAPTION_MAX = 2200  # Instagram's caption and comment limit
 
@@ -3970,16 +3984,18 @@ class PipelineCoordinator:
             problems = story_credit_problems(Path(files[0]).parent.parent) or []
             if problems:
                 self.db.update_scheduled_post(post["id"], "failed", detail={"error": "Story credits: " + "; ".join(problems)})
-                self._alert(f"❌ Stories not posted for {html.escape(self.db.run_label(post['run_id']))}: "
-                            + html.escape("; ".join(problems)[:300]))
+                _notice(self, f"❌ Stories not posted for {html.escape(self.db.run_label(post['run_id']))}: "
+                            + html.escape("; ".join(problems)[:300]), section="needs", key=f"post-failed:{post['id']}",
+                             actions=[{"text": "Retry", "callback_data": f"retrypost:{post['id']}"}])
                 return "failed"
         try:
             caption, comment = (self._carousel_request(post["run_id"], run["script_payload"], files) if kind == "carousel"
                                 else ("", ""))
         except ValueError as e:   # its caption is not the one the review card showed (QF-43)
             self.db.update_scheduled_post(post["id"], "failed", detail={"error": str(e)})
-            self._alert(f"❌ Carousel not posted for {html.escape(self.db.run_label(post['run_id']))}: "
-                        + html.escape(str(e)[:300]))
+            _notice(self, f"❌ Carousel not posted for {html.escape(self.db.run_label(post['run_id']))}: "
+                        + html.escape(str(e)[:300]), section="needs", key=f"post-failed:{post['id']}",
+                         actions=[{"text": "Retry", "callback_data": f"retrypost:{post['id']}"}])
             return "failed"
         res = self.publisher.publish_photos(post["run_id"], run["topic_id"], kind, files, caption=caption,
                                             **({"first_comment": comment} if comment else {}))
@@ -3988,12 +4004,14 @@ class PipelineCoordinator:
         label = html.escape(self.db.run_label(post["run_id"]))
         held = "; ".join((res.get("held_platforms") or {}).values())   # QF-65a: AI media never posted unlabelled
         if res["status"] == "published":
-            self._alert(f"✅ {name} posted for {label}" + (f" (with the AI label; {html.escape(held[:300])})" if held else ""))
+            _notice(self, f"✅ {name} posted for {label}" + (f" (with the AI label; {html.escape(held[:300])})" if held else ""), section="info")
         elif res["status"] == "unknown":
-            self._alert(f"⚠️ <b>Not sure the {name.lower()} posted</b> for {label} "
-                        f"({html.escape(str(res.get('error', ''))[:200])}). Not retried, to avoid a duplicate; please check.")
+            _notice(self, f"⚠️ <b>Not sure the {name.lower()} posted</b> for {label} "
+                        f"({html.escape(str(res.get('error', ''))[:200])}). Not retried, to avoid a duplicate; please check.", section="needs",
+                         key=f"post-failed:{post['id']}", actions=self._episode_action(post["run_id"]))
         else:
-            self._alert(f"❌ {name} not posted for {label}: {html.escape(str(res.get('error', ''))[:300])}")
+            _notice(self, f"❌ {name} not posted for {label}: {html.escape(str(res.get('error', ''))[:300])}", section="needs",
+                         key=f"post-failed:{post['id']}", actions=[{"text": "Retry", "callback_data": f"retrypost:{post['id']}"}])
         return res["status"]
 
     def _post_carousel_if_due(self, now: datetime) -> None:
@@ -4171,12 +4189,12 @@ class PipelineCoordinator:
         log.info("Fact check of %s made before a code update, checked again under the current rules: %s.",
                  run["run_id"], "passed" if rec.get("passed") else "did not pass")
         paid = not all("gemini" in str(m).lower() for m in models.values())
-        self._alert(f"🔎 <b>Fact check run again</b> for {html.escape(self.db.run_label(run['run_id']))} before it "
+        _notice(self, f"🔎 <b>Fact check run again</b> for {html.escape(self.db.run_label(run['run_id']))} before it "
                     "posts (a code update since you approved it): trace check "
                     f"({html.escape(str(models.get('trace_check')))}) and evidence check "
                     f"({html.escape(str(models.get('evidence_check')))}), "
                     + ("paid API calls" if paid else "free tier") + ". "
-                    + ("Passed." if rec.get("passed") else "It did not pass, so the Reel is held."))
+                    + ("Passed." if rec.get("passed") else "It did not pass, so the Reel is held."), section="info")
 
     def _require_release(self, run: dict[str, Any], dry_run: bool = False, retry_now: bool = False) -> dict[str, Any]:
         """The release gate, after the fact re-check a code update calls for (QF-110)."""
@@ -4201,43 +4219,52 @@ class PipelineCoordinator:
         if binding or final:
             self.db.update_scheduled_post(post["id"], "failed", detail={
                 "error": f"held at its slot: {held}", "held": True, ("binding" if binding else "final"): True})
-            self._alert(f"❌ <b>Carousel not posted</b> for {html.escape(self.db.run_label(post['run_id']))}: "
-                        f"{html.escape(str(held)[:400])}." + chr(10) * 2
-                        + "This carousel will not post. Nothing was posted, and its Reel and other posts are not "
-                          "affected.",
-                        buttons=[[{"text": "📋 Details", "callback_data": f"cpost:{self.db.run_key(post['run_id'])}"}]])
+            _notice(self, f"❌ <b>Carousel not posted</b> for {html.escape(self.db.run_label(post['run_id']))}: "
+                    f"{html.escape(str(held)[:400])}." + chr(10) * 2
+                    + "This carousel will not post. Nothing was posted, and its Reel and other posts are not "
+                      "affected.",
+                    buttons=[[{"text": "📋 Details", "callback_data": f"cpost:{self.db.run_key(post['run_id'])}"}]],
+                    section="needs", key=f"post-failed:{post['id']}", run=post["run_id"], replace=True)
             return
         record = getattr(held, "record", None) or {}
         self.db.update_scheduled_post(post["id"], "failed", detail={"error": f"held at its slot: {held}", "held": True})
         found = carousel_lazy.summary(record, limit=2400)
-        self._alert(f"❌ <b>Carousel held</b> for {html.escape(self.db.run_label(post['run_id']))}: "
-                    f"{html.escape(str(held)[:400])}" + (chr(10) * 2 + html.escape(found) if found else "")
-                    + chr(10) * 2 + "Nothing was posted. Redraw it once the cause is dealt with; it then posts in the "
-                      "next carousel slot, ahead of newer episodes.",
-                    buttons=[[{"text": "🔁 Redraw and post next slot", "callback_data": f"carredraw:{post['id']}"}]])
+        # The clean chat (UI-01): one Needs-you item per held booking (its key), its Redraw an item action that
+        # closes it only when redraw_carousel says it was done (notifications.Outcome); the earlier chat's message
+        # is sent exactly as before (say() leaves the item fields out with the switch off).
+        _notice(self, f"❌ <b>Carousel held</b> for {html.escape(self.db.run_label(post['run_id']))}: "
+                f"{html.escape(str(held)[:400])}" + (chr(10) * 2 + html.escape(found) if found else "")
+                + chr(10) * 2 + "Nothing was posted. Redraw it once the cause is dealt with; it then posts in the "
+                  "next carousel slot, ahead of newer episodes.",
+                buttons=[[{"text": "🔁 Redraw and post next slot", "callback_data": f"carredraw:{post['id']}"}]],
+                section="needs", key=f"post-failed:{post['id']}", run=post["run_id"], replace=True)
 
     def redraw_carousel(self, post_id: Any) -> str:
         """The hold alert's 🔁: the held carousel's drawing is discarded and it waits again, first in line for the
-        next carousel slot inside its window, where it is drawn afresh and audited before it posts (QF-81)."""
+        next carousel slot inside its window, where it is drawn afresh and audited before it posts (QF-81).
+
+        The reply is a notifications.Outcome (UI-01): done only when it waits again for a slot, so the hold's item
+        closes then and stays open, saying why, on every refusal."""
         from src import carousel_lazy
+        from src.notifications import Outcome
         post = next((p for p in self.db.list_scheduled_posts(("failed",)) if str(p["id"]) == str(post_id)), None)
         if post is None or post["kind"] != "carousel" or not (post.get("detail") or {}).get("held"):
-            return "🖼 That carousel is not held any more: see Posting."
+            return Outcome("🖼 That carousel is not held any more: see Posting.", done=False)
         run = self.db.get_run(post["run_id"]) or {}
         if not run.get("master_video_path"):
-            return "🖼 That episode has no run folder to draw from."
+            return Outcome("🖼 That episode has no run folder to draw from.", done=False)
         if post["files"] and post["detail"].get("final"):   # QF-81d: a redraw makes a new deck, not the one booked
-            return (f"🖼 The carousel of {html.escape(self.db.run_label(post['run_id']))} can't be redrawn: its booked "
-                    "slides are gone, and a new drawing would not be the carousel you approved. It will not post, "
-                    "and nothing was changed.")
+            return Outcome(f"🖼 The carousel of {html.escape(self.db.run_label(post['run_id']))} can't be redrawn: "
+                           "its booked slides are gone, and a new drawing would not be the carousel you approved. It "
+                           "will not post, and nothing was changed.", done=False)
         broken = self._approval_broken(post["run_id"])
         if broken:   # QF-81b: it would only be held again at its slot, and take that slot from a newer episode
-            return (f"🖼 The carousel of {html.escape(self.db.run_label(post['run_id']))} can't be redrawn: "
-                    f"{html.escape(broken)}. It will not post, and nothing was changed.")
+            return Outcome(f"🖼 The carousel of {html.escape(self.db.run_label(post['run_id']))} can't be redrawn: "
+                           f"{html.escape(broken)}. It will not post, and nothing was changed.", done=False)
         missing = carousel_lazy.plan_problem(Path(run["master_video_path"]).parent)
         if missing:  # QF-81c: a redraw draws from this plan, so it would only be held again
-            return (f"🖼 The carousel of {html.escape(self.db.run_label(post['run_id']))} can't be redrawn: "
-                    f"{html.escape(missing)}. It will not post, and nothing was changed.")
+            return Outcome(f"🖼 The carousel of {html.escape(self.db.run_label(post['run_id']))} can't be redrawn: "
+                           f"{html.escape(missing)}. It will not post, and nothing was changed.", done=False)
         carousel_lazy.discard(Path(run["master_video_path"]).parent)
         self.db.update_scheduled_post(post["id"], "waiting", files=[],
                                       detail={"redraw": True, "priority": True, "held_before": post["detail"].get("error")})
@@ -4246,8 +4273,10 @@ class PipelineCoordinator:
         label = html.escape(self.db.run_label(post["run_id"]))
         if not car:
             self.db.update_scheduled_post(post["id"], "expired")
-            return f"🖼 The carousel of {label} has no carousel slot left in its window, so it won't post."
-        return f"🔁 The carousel of {label} is drawn again and posts {html.escape(post_schedule.fmt(car))}, if its checks pass."
+            return Outcome(f"🖼 The carousel of {label} has no carousel slot left in its window, so it won't post.",
+                           done=False)
+        return Outcome(f"🔁 The carousel of {label} is drawn again and posts {html.escape(post_schedule.fmt(car))}, if "
+                       "its checks pass.", done=True)
 
     def preview_carousel(self, run_id: str) -> dict[str, Any]:
         """The review card's 🖼 Preview carousel: both copies drawn and audited as the slot would (carousel_lazy.draw;
@@ -4339,7 +4368,9 @@ class PipelineCoordinator:
                                   for p in envelope["platforms"] if p not in missed)
                 failed = "".join(f"\n{_failed_line(p, why)}" for p, why in missed.items())
                 head = "⚠️ <b>Posted with problems</b>" if failed else "✅ <b>Published</b>"
-                self._alert(f"{head}\n\n<b>{html.escape(payload.get('title', tid))}</b>\n\n{links}{failed}")
+                _notice(self, f"{head}\n\n<b>{html.escape(payload.get('title', tid))}</b>\n\n{links}{failed}",
+                            section="needs" if failed else "info", key=f"posted:{run_id}", run=run_id, replace=True,
+                             actions=self._episode_action(run_id) if failed else None)
         elif status == "simulated":
             self.db.update_run(run_id, "simulated")
             self.topic_engine.record_status(tid, previous_status, run_id=run_id)
@@ -4382,7 +4413,8 @@ class PipelineCoordinator:
             self.topic_engine.record_status(tid, "failed", run_id=run_id)
             log.error("Publishing failed for %s: %s", run_id, pub.get("error"))
             self._alert(f"❌ <b>Publish failed</b>\n\n<b>{html.escape(self.db.run_label(run_id))}</b>\n<blockquote expandable>{html.escape(str(pub.get('error') or 'no error details were returned')[:500])}</blockquote>\nNothing was posted. The topic goes back in the queue for a retry.",
-                        group="needs")
+                        group="needs", key=f"fail:{run_id}", run=run_id,
+                        actions=[{"text": "Details", "callback_data": f"chist:{self.db.run_key(run_id)}"}])
         if profile == "reel_9x16" and status == "published" and not dry_run:
             self._facebook_finishing(run_id)  # its cover and captions on Facebook, as soon as it is up
         if shorts and status in ("published", "simulated"):
@@ -4394,8 +4426,8 @@ class PipelineCoordinator:
                     receipt.update_platform("youtube", "live", url=yt_urls[0] if yt_urls else None)
                 else:
                     links = "\n".join(html.escape(str(v)) for v in short.get("post_urls", {}).values())
-                    self._alert(f"▶️ <b>YouTube Short posted</b> ({html.escape(config.YOUTUBE_SHORTS_PRIVACY)})\n"
-                                f"<b>{html.escape(payload.get('title', tid))}</b>\n{links}")
+                    _notice(self, f"▶️ <b>YouTube Short posted</b> ({html.escape(config.YOUTUBE_SHORTS_PRIVACY)})\n"
+                                f"<b>{html.escape(payload.get('title', tid))}</b>\n{links}", section="info", run=run_id)
             elif short["status"] == "skipped" and receipt:   # no uploader set up: not attempted, said in plain words
                 receipt.update_platform("youtube", "skipped", error="no account that can upload Shorts is set up")
             elif short["status"] in ("failed", "unknown"):
@@ -4403,9 +4435,10 @@ class PipelineCoordinator:
                     receipt.update_platform("youtube", short["status"], error=str(short.get("error", "")))
                 else:
                     # The Reel stands either way; an unknown Short is checked by hand, never re-sent blindly.
-                    self._alert(f"⚠️ <b>YouTube Short {'unconfirmed' if short['status'] == 'unknown' else 'not posted'}</b>\n"
+                    _notice(self, f"⚠️ <b>YouTube Short {'unconfirmed' if short['status'] == 'unknown' else 'not posted'}</b>\n"
                                 f"<b>{html.escape(payload.get('title', tid))}</b>: the Reel is unaffected.\n"
-                                f"{html.escape(str(short.get('error', ''))[:300])}")
+                                f"{html.escape(str(short.get('error', ''))[:300])}", section="needs", run=run_id,
+                                 actions=self._episode_action(run_id))
         if receipt and status == "published":
             # Its Stories and carousel as booked, never a fixed promise (it said "in 45 minutes" and "its next
             # slot" whether or not any was booked: UI-02); Posting has their times.
@@ -4592,6 +4625,26 @@ def _write_result(path: Optional[str], result: Dict[str, Any]) -> None:
         Path(path).write_text(json.dumps(result, default=str), encoding="utf-8")
     except OSError as e:
         log.warning("Could not write the run result to %s: %s", path, e)
+
+
+def proposal_notice(bot, db, proposal: dict[str, Any]) -> None:
+    """A ready improvement proposal for the operator. The clean chat makes the night's proposals one item,
+    "🧭 3 improvement proposals" with 🧭 Improvements (design §6.1.3: the 29 Oct three-card complaint); otherwise
+    each is its own card with its buttons."""
+    from src import improve
+    if not config.TELEGRAM_CLEAN_CHAT:
+        text, buttons = improve.card(proposal)
+        bot.notify(text, buttons=buttons, silent=True, record_alert=False, group="needs")
+        return
+    ready = improve.proposals(db, "ready")
+    n = max(1, len(ready))
+    names = ", ".join(html.escape(str(p.get("title") or p.get("id"))) for p in ready[:3])
+    more = f" and {n - 3} more" if n > 3 else ""
+    bot.notify(f"🧭 <b>{n} improvement proposal{'s' if n != 1 else ''}</b>\n"
+               f"Waiting for your decision: {names or html.escape(str(proposal.get('title') or ''))}{more}.\n"
+               "Accept or decline each one in 🧭 Improvements.",
+               buttons=[[{"text": "🧭 Improvements", "callback_data": "cimprove:"}]], group="needs",
+               key="proposals", replace=True)
 
 
 POLL_BACKOFF_SECONDS, POLL_BACKOFF_MAX = 10, 120
@@ -4840,6 +4893,53 @@ def rerender_started(db, run_id: str) -> str:
             "(a stage whose inputs changed, or a voiceover outside the length limits, is made again). Its progress shows here.")
 
 
+def rerender_reply(coordinator, run_id: str, launch) -> "notifications.Outcome":
+    """Re-render's reply with its outcome (notifications.Outcome): refused, a run already in progress, or started.
+    `launch(extra)` starts it and returns an Outcome that is not done when it could not start. The outcome is the
+    handler's own, never read from the reply's words (a topic called "Notre-Dame" is not a refusal)."""
+    refusal = coordinator.rerender_refusal(run_id)
+    if refusal:
+        return notifications.Outcome(f"🔁 {html.escape(refusal)}", done=False)
+    started = launch(coordinator.remake_args(run_id))
+    if getattr(started, "done", True) is False:
+        return started
+    return notifications.Outcome(rerender_started(coordinator.db, run_id), done=True)
+
+
+UPDATES_BUSY = "A production run is in progress; try again when it finishes."
+UPDATES_STARTED = "🧰 Applying updates on a branch and running the tests. I'll report back."
+UPDATES_ITEM_KEY = "maintenance:apply"   # the Needs-you item offering 🧰 Apply updates
+
+
+def apply_updates_reply(busy: bool, start) -> "notifications.Outcome":
+    """🧰 Apply updates' reply with its outcome: refused in production or while a production run is in progress
+    (its item stays open, saying why), else started in the background."""
+    from src import maintenance
+    if not maintenance.apply_allowed():  # an old Apply button pressed in production
+        return notifications.Outcome(html.escape(maintenance.PRODUCTION_REFUSAL), done=False)
+    if busy:
+        return notifications.Outcome(UPDATES_BUSY, done=False)
+    start()
+    return notifications.Outcome(UPDATES_STARTED, done=True)
+
+
+def say_update_report(bot, plan) -> None:
+    """The weekly update report (design §8: every sender writes into the notifications panel, never a message).
+    With something to apply outside production it is a Needs-you item whose action is 🧰 Apply updates; otherwise an
+    info item until next week's, and an Apply item still open is resolved (nothing is left to apply)."""
+    from src import maintenance
+    buttons = maintenance.apply_buttons(plan)  # none in production: updates arrive as a signed release
+    if buttons:
+        notifications.say(bot.notify, maintenance.report_text(plan), buttons=[buttons], group="needs",
+                          key=UPDATES_ITEM_KEY, replace=True, record_alert=False)
+        return
+    if config.TELEGRAM_CLEAN_CHAT:
+        notifications.close_key(bot.db, UPDATES_ITEM_KEY)
+    bot.notify(maintenance.report_text(plan), transient=True, ttl_minutes=10070, group="info",  # until next week's
+               key="maintenance:weekly")
+
+
+
 def run_in_worker(content_format: str, dry_run: bool, schedule_posts: bool, timeout: Optional[float] = None,
                   extra: Optional[List[str]] = None, resume: Optional[str] = None, db=None) -> Dict[str, Any]:
     """Runs one production cycle in its own process (main.py run), as the development bot already does.
@@ -4953,7 +5053,7 @@ def announce_release(db: PipelineDatabase, bot, startup: bool = False) -> Option
         except Exception as e:  # a clear never stops the daemon starting
             log.warning("Could not clear the chat after the release: %s", e)
         return text
-    bot.notify(text, group="info")
+    bot.notify(text, group="info", key="policy:weekly")
     return None
 
 
@@ -5109,10 +5209,30 @@ def _report_interrupted(coordinator, bot) -> None:
     except Exception as e:
         log.warning("Could not reconcile interrupted runs: %s", e)
         return
-    if stale:
+    if stale and config.TELEGRAM_CLEAN_CHAT:
+        say_interrupted(coordinator.db, bot, stale)
+    elif stale:
         bot.notify("⚠️ <b>Interrupted run(s) cleared</b>: the process making them ended before they finished. "
                    "Nothing was posted; the topics are back in the queue.\n"
                    + "\n".join(f"• {html.escape(coordinator.db.run_label(r))}" for r in stale), group="needs")
+
+
+def _notice(owner, text: str, **item: Any) -> None:
+    """A coordinator's notice with its clean-chat item fields (section, key, run, replace, actions: UI-01), through
+    its _alert. A stand-in owner or _alert (tests use a namespace holding a list's append) gets what it takes."""
+    notifications.say(owner._alert, text, **item)
+
+
+def say_interrupted(db, bot, runs: List[str], why: str = "") -> None:
+    """The clean chat (UI-01): each run whose process ended before it finished is the Needs-you item "⚠️ Run
+    interrupted · <run>" under its failure key fail:<run>, so a worker crash, the reaper and the start-up clearing
+    are one item for one run, never three (design §5.6, §10.2)."""
+    for run_id in runs:
+        notifications.say(bot.notify, f"⚠️ <b>Run interrupted</b> · {html.escape(db.run_label(run_id))}\n\n"
+                        "The process making it ended before it finished. Nothing was posted; the topic is back in "
+                        "the queue." + (f" {why}" if why else ""),
+            group="needs", key=f"fail:{run_id}", run=run_id, replace=True,
+            actions=notifications.failure_actions(db, run_id))
 
 
 def prebuild_candidates(db: PipelineDatabase, n: int) -> list:
@@ -5171,7 +5291,8 @@ def say_posting_error(db, bot, error: Exception | None) -> None:
         log.debug("Posting error state not kept: %s", e)
     if error is not None:
         bot.notify(f"⚠️ Scheduled posting hit an error: {html.escape(str(error)[:300])}\n\nIt is tried again each "
-                   "minute; you'll hear again only if the error changes.", group="needs")
+                   "minute; you'll hear again only if the error changes.", group="needs", key="posting-error",
+                   actions=[{"text": "🗓️ Posting", "callback_data": "cposts:"}])
 
 
 def start_post_ticker(coordinator: "PipelineCoordinator", bot) -> threading.Thread:
@@ -5460,7 +5581,9 @@ def main(argv=None) -> int:
                 try:
                     result = coordinator.request_approval(run_id, resend=resend)
                 except Exception as e:
-                    bot.notify(f"⚠️ Couldn't {'re-send' if resend else 'resume'} the review: {html.escape(str(e)[:300])}", group="needs")
+                    notifications.say(bot.notify, f"⚠️ Couldn't {'re-send' if resend else 'resume'} the review: {html.escape(str(e)[:300])}",
+                        group="needs", key=f"review-lost:{run_id}", run=run_id,
+                        actions=[{"text": "Resend for review", "callback_data": f"resend:{coordinator.db.run_key(run_id)}"}])
                     return
                 finally:
                     if owner:
@@ -5483,7 +5606,8 @@ def main(argv=None) -> int:
             nonlocal worker_proc
             if run_lock.locked() or (worker_proc is not None and worker_proc.poll() is None):
                 pid_info = f" (PID {worker_proc.pid})" if worker_proc else ""
-                return f"A production run is already in progress{pid_info}. Watch Telegram for progress updates."
+                return notifications.Outcome(f"A production run is already in progress{pid_info}. Watch Telegram "
+                                             "for progress updates.", done=False)
 
             def monitor_worker(proc, attempt, limits):
                 deadline, hard_stop = limits  # seconds: the worker's deadline, and that plus its grace
@@ -5506,7 +5630,10 @@ def main(argv=None) -> int:
                     except Exception as e:
                         log.warning("Could not check for an interrupted run: %s", e)
                         cleared = []
-                    if cleared:
+                    if cleared and config.TELEGRAM_CLEAN_CHAT:
+                        say_interrupted(coordinator.db, bot, cleared, f"Its worker process ended (exit {rc}"
+                                        + (f" / 0x{rc & 0xFFFFFFFF:08X}" if isinstance(rc, int) and rc else "") + ").")
+                    elif cleared:
                         bot.notify(f"💥 <b>The run's worker process ended without finishing</b> (exit {rc}"
                                    + (f" / 0x{rc & 0xFFFFFFFF:08X}" if isinstance(rc, int) and rc else "")
                                    + "). Nothing was posted; the run was cleared and its topic is back in the queue.", group="needs")
@@ -5548,15 +5675,12 @@ def main(argv=None) -> int:
             )
             threading.Thread(target=monitor_worker, args=(worker_proc, attempt, limits), name="worker-monitor",
                              daemon=True).start()
-            return f"🎬 Production run launched in isolated worker (PID {worker_proc.pid}). Live progress updates will stream here."
+            return notifications.Outcome(f"🎬 Production run launched in isolated worker (PID {worker_proc.pid}). Live "
+                                         "progress updates will stream here.", done=True)
 
         def rerender_in_bot(run_id: str) -> str:
-            refusal = coordinator.rerender_refusal(run_id)
-            if refusal:
-                return f"🔁 {html.escape(refusal)}"
-            extra = coordinator.remake_args(run_id)
-            started = launch_worker(extra=extra) if extra else launch_worker(resume=run_id)
-            return started if "already in progress" in started else rerender_started(db, run_id)
+            return rerender_reply(coordinator, run_id, lambda extra: launch_worker(extra=extra) if extra
+                                  else launch_worker(resume=run_id))
 
         PRODUCE_KEY = "produce_remaining"  # episodes still to start in a /produce batch
 
@@ -5632,7 +5756,9 @@ def main(argv=None) -> int:
         try:
             poll_loop(bot, handler)
         except KeyboardInterrupt:
-            bot.notify("🔴 <b>Studio Control Center Offline</b> • Service stopped.", record_alert=False, group="info")
+            bot.notify("🔴 <b>Studio Control Center Offline</b> • Service stopped.", record_alert=False, group="info",
+                       key="service-state")
+            getattr(bot, "close_layout", lambda: None)()   # the next start renders at once (UI-01)
         return 0
 
     if args.command == "daemon":
@@ -5702,7 +5828,7 @@ def main(argv=None) -> int:
             if not manual and is_paused(coordinator.db):
                 log.info("Scheduled run skipped: paused.")
                 bot.notify("⏸ Scheduled run skipped (paused). Send /resume to re-enable.",
-                           transient=True, ttl_minutes=23 * 60 + 50, group="runs")
+                           transient=True, ttl_minutes=23 * 60 + 50, group="runs", key="paused-skip")
                 return
             if not run_lock.acquire(blocking=False):
                 log.warning("A run is already in progress; skipping.")
@@ -5726,7 +5852,10 @@ def main(argv=None) -> int:
                                    "(repeating topics risks Meta's unoriginal-content rules).",
                                    [{"text": "💡 Propose new topics", "callback_data": "propose:"}], group="needs")
                 elif status == "refused":  # a re-render the run's state no longer allows
-                    bot.notify(f"🔁 <b>Re-render not started</b>: {html.escape(str(result.get('error', '')))}", group="needs")
+                    run_ref = coordinator.db.resolve_run(resume) if resume else None
+                    notifications.say(bot.notify, f"🔁 <b>Re-render not started</b>: {html.escape(str(result.get('error', '')))}", group="needs",
+                        key=f"fail:{run_ref}" if run_ref else None, run=run_ref,
+                        actions=[{"text": "Details", "callback_data": f"chist:{coordinator.db.run_key(run_ref)}"}] if run_ref else None)
                 elif status == "timed_out" and result.get("stopped"):  # the worker did not stop itself at its deadline
                     deadline, hard_stop = config.run_deadline_limits()
                     worker_deadline.finalize_stopped_worker(coordinator.db, result["attempt"], bot.notify, deadline / 60,
@@ -5735,10 +5864,16 @@ def main(argv=None) -> int:
                     code = result.get("exit_code")
                     log.error("Run worker crashed (exit %s); the daemon carries on.\n%s", code, result.get("stderr_tail", ""))
                     cleared = reconcile_interrupted_runs(coordinator.db, coordinator.topic_engine)
-                    bot.notify(f"💥 <b>The run's worker process crashed</b> (exit {html.escape(str(code))}"
-                               + (f" / 0x{int(code) & 0xFFFFFFFF:08X}" if isinstance(code, int) else "")
-                               + "). Nothing was posted; the daemon, its bot and the schedule are unaffected."
-                               + (" The run was cleared and its topic is back in the queue." if cleared else ""), group="needs")
+                    if cleared and config.TELEGRAM_CLEAN_CHAT:   # the run's own item (one item for one failure)
+                        say_interrupted(coordinator.db, bot, cleared, f"Its worker process crashed (exit {html.escape(str(code))}"
+                                        + (f" / 0x{int(code) & 0xFFFFFFFF:08X}" if isinstance(code, int) else "")
+                                        + "); the daemon, its bot and the schedule are unaffected.")
+                    else:
+                        notifications.say(bot.notify, f"💥 <b>The run's worker process crashed</b> (exit {html.escape(str(code))}"
+                            + (f" / 0x{int(code) & 0xFFFFFFFF:08X}" if isinstance(code, int) else "")
+                            + "). Nothing was posted; the daemon, its bot and the schedule are unaffected."
+                            + (" The run was cleared and its topic is back in the queue." if cleared else ""), group="needs",
+                            key="worker-crash", actions=[{"text": "📊 Status", "callback_data": "cstat:"}])
             except BaseException as e:  # keep the daemon alive; the run is already recorded and alerted
                 log.exception("Run failed: %s", e)
             finally:
@@ -5837,7 +5972,7 @@ def main(argv=None) -> int:
                 from src.control import deployer_notice
                 notice = deployer_notice(coordinator.db)
                 if notice:
-                    bot.notify(notice, silent=True, record_alert=False, group="info")
+                    bot.notify(notice, silent=True, record_alert=False, group="info", key="release")
             except Exception as e:
                 log.debug("Deployer status check failed: %s", e)
 
@@ -5856,13 +5991,7 @@ def main(argv=None) -> int:
             except Exception as e:
                 bot.notify(f"🧰 Weekly update check failed: {html.escape(str(e)[:300])}", group="info")
                 return
-            buttons = maintenance.apply_buttons(plan)  # none in production: updates arrive as a signed release
-            if buttons:
-                bot._api("sendMessage", data={"chat_id": bot.chat_id, "parse_mode": "HTML",
-                                              "text": maintenance.report_text(plan),
-                                              "reply_markup": json.dumps({"inline_keyboard": [buttons]})})
-            else:
-                bot.notify(maintenance.report_text(plan), transient=True, ttl_minutes=10070, group="info")  # until next week's
+            say_update_report(bot, plan)   # an item of the notifications panel, never a message of its own
 
         scheduler.add_job(weekly_update_check, CronTrigger(day_of_week="mon", hour=hb_hour, minute=hb_minute + 5 if hb_minute < 55 else 0,
                                                            timezone=TIMEZONE), max_instances=1, coalesce=True, misfire_grace_time=3600)
@@ -5871,9 +6000,10 @@ def main(argv=None) -> int:
 
         def weekly_policy_watch():
             try:
-                bot.notify(policy_watch.digest_text(policy_watch.check(coordinator.db)), transient=True, ttl_minutes=10070, group="info")
+                bot.notify(policy_watch.digest_text(policy_watch.check(coordinator.db)), transient=True, ttl_minutes=10070, group="info",
+                           key="policy:weekly")
             except Exception as e:
-                bot.notify(f"📜 Weekly policy watch failed: {html.escape(str(e)[:300])}", group="info")
+                bot.notify(f"📜 Weekly policy watch failed: {html.escape(str(e)[:300])}", group="info", key="policy:weekly")
 
         scheduler.add_job(weekly_policy_watch, CronTrigger(day_of_week="wed", hour=hb_hour, minute=hb_minute,
                                                            timezone=TIMEZONE), max_instances=1, coalesce=True,
@@ -5890,7 +6020,9 @@ def main(argv=None) -> int:
                 try:
                     result = coordinator.request_approval(run_id, dry_run=args.dry_run, resend=resend)
                 except Exception as e:
-                    bot.notify(f"⚠️ Couldn't {'re-send' if resend else 'resume'} the review: {html.escape(str(e)[:300])}", group="needs")
+                    notifications.say(bot.notify, f"⚠️ Couldn't {'re-send' if resend else 'resume'} the review: {html.escape(str(e)[:300])}",
+                        group="needs", key=f"review-lost:{run_id}", run=run_id,
+                        actions=[{"text": "Resend for review", "callback_data": f"resend:{coordinator.db.run_key(run_id)}"}])
                     return
                 finally:
                     if owner:
@@ -5925,7 +6057,8 @@ def main(argv=None) -> int:
                     from src.asset_pipeline import not_ready_reason  # the live reason, by the video's own count
                     lines = [f"• {html.escape(t['title'])}: {html.escape(not_ready_reason(t['id']))}" for t in not_ready]
                     bot.notify("🖼 <b>Photo sets not ready</b>\n\nThese upcoming topics will be skipped until "
-                               "they have approved photos:\n" + "\n".join(lines), silent=True, group="needs")
+                               "they have approved photos:\n" + "\n".join(lines), silent=True, group="needs",
+                               key="photos-not-ready", actions=[{"text": "🖼 Pictures", "callback_data": "cimages:"}])
             except Exception as e:
                 log.warning("Nightly photo pool preparation failed: %s", e)
             for t in prebuild_candidates(coordinator.db, 3):
@@ -5934,7 +6067,8 @@ def main(argv=None) -> int:
                         fact_sheet.build(t)
                 except Exception as e:
                     log.warning("Fact sheet pre-build failed for %s: %s", t["id"], e)
-                    bot.notify(f"🧾 Couldn't build the fact sheet for {html.escape(t['title'])}: {html.escape(str(e)[:200])}", group="needs")
+                    bot.notify(f"🧾 Couldn't build the fact sheet for {html.escape(t['title'])}: {html.escape(str(e)[:200])}", group="needs",
+                               key=f"fact-sheet:{t['id']}", actions=[{"text": "Details", "callback_data": "cstat:"}])
 
         scheduler.add_job(prebuild_fact_sheets, CronTrigger(hour=3, minute=0, timezone=TIMEZONE),
                           max_instances=1, coalesce=True, misfire_grace_time=6 * 3600)
@@ -5961,14 +6095,14 @@ def main(argv=None) -> int:
                 problems = accounts.check(coordinator.db, force=True).get("problems") or []
                 if problems:
                     bot.notify("⚠️ <b>Publishing accounts</b>\n" + "\n".join(f"• {html.escape(p)}" for p in problems),
-                               silent=True, group="needs")
+                               silent=True, group="needs", key="accounts",
+                               actions=[{"text": "🔗 Accounts", "callback_data": "caccounts:"}])
             except Exception as e:
                 log.warning("Account check failed: %s", e)
             try:
                 for p in improve.make_proposals(coordinator.db):
                     if p["status"] == "ready":
-                        text, buttons = improve.card(p)
-                        bot.notify(text, buttons=buttons, silent=True, record_alert=False, group="needs")
+                        proposal_notice(bot, coordinator.db, p)
                 if improve.proposals(coordinator.db, "testing") and run_lock.acquire(blocking=False):
                     try:
                         from scripts.eval_prompts import run_candidates
@@ -5977,8 +6111,7 @@ def main(argv=None) -> int:
                         run_lock.release()
                     for p in improve.update_gates(coordinator.db, rows):
                         if p["status"] == "ready":
-                            text, buttons = improve.card(p)
-                            bot.notify(text, buttons=buttons, silent=True, record_alert=False, group="needs")
+                            proposal_notice(bot, coordinator.db, p)
             except Exception as e:
                 # Said in Telegram: the cycle failed every night on production for days as a log line only
                 # (2026-10-24). A broken improvement loop is itself something that needs you.
@@ -6031,20 +6164,16 @@ def main(argv=None) -> int:
         threading.Thread(target=check_accounts_now, name="account-check", daemon=True).start()
 
         def apply_updates() -> str:
-            if not maintenance.apply_allowed():  # an old Apply button pressed in production
-                return html.escape(maintenance.PRODUCTION_REFUSAL)
-            if run_lock.locked():
-                return "A production run is in progress; try again when it finishes."
-
             def work():
                 with run_lock, busy_lease(coordinator.db, "package updates"):  # never under a running production cycle
                     try:
                         bot.notify(maintenance.apply(maintenance.check()), group="info")
                     except Exception as e:
-                        bot.notify(f"❌ Updates not applied (rolled back): {html.escape(str(e)[:500])}", group="needs")
+                        bot.notify(f"❌ Updates not applied (rolled back): {html.escape(str(e)[:500])}", group="needs",
+                                   key="updates", actions=[{"text": "Details", "callback_data": "cstat:"}])
 
-            threading.Thread(target=work, name="apply-updates", daemon=True).start()
-            return "🧰 Applying updates on a branch and running the tests. I'll report back."
+            return apply_updates_reply(run_lock.locked(), threading.Thread(target=work, name="apply-updates",
+                                                                           daemon=True).start)
 
         def trigger_run(content_format: str = "reel", extra: Optional[List[str]] = None) -> str:
             if run_lock.locked():
@@ -6056,17 +6185,16 @@ def main(argv=None) -> int:
             return "🎬 Starting a run now. You'll get the review card when it's rendered; nothing posts without your approval."
 
         def rerender_run(run_id: str) -> str:
-            refusal = coordinator.rerender_refusal(run_id)
-            if refusal:
-                return f"🔁 {html.escape(refusal)}"
-            if run_lock.locked():
-                return "🔁 A run is already in progress; Re-render this one when it has finished."
-            extra = coordinator.remake_args(run_id)
-            if extra:  # rejected: a regeneration with the recorded reason, reusing what was paid for
-                scheduler.add_job(production_run, kwargs={"manual": True, "extra": extra})
-            else:
-                scheduler.add_job(production_run, kwargs={"manual": True, "resume": run_id})
-            return rerender_started(coordinator.db, run_id)
+            def launch(extra: list[str]):
+                if run_lock.locked():
+                    return notifications.Outcome("🔁 A run is already in progress; Re-render this one when it has "
+                                                 "finished.", done=False)
+                if extra:  # rejected: a regeneration with the recorded reason, reusing what was paid for
+                    scheduler.add_job(production_run, kwargs={"manual": True, "extra": extra})
+                else:
+                    scheduler.add_job(production_run, kwargs={"manual": True, "resume": run_id})
+                return None
+            return rerender_reply(coordinator, run_id, launch)
 
         bot.next_run_func = next_run
         handler = make_command_handler(coordinator.db, next_run, trigger_run, send_photo=bot.send_photo, send_audio=bot.send_audio, send_message=lambda text, buttons=None: bot.notify(text, buttons=buttons, record_alert=False, group="studio"), delete_message=bot.delete_message,
@@ -6124,7 +6252,9 @@ def main(argv=None) -> int:
             scheduler.start()
         except (KeyboardInterrupt, SystemExit):
             log.info("Daemon stopped.")
-            bot.notify("🔴 <b>Production Daemon Offline</b> • Scheduled runs stopped.", record_alert=False, group="info")
+            bot.notify("🔴 <b>Production Daemon Offline</b> • Scheduled runs stopped.", record_alert=False, group="info",
+                       key="service-state")
+            getattr(bot, "close_layout", lambda: None)()   # the next start renders at once (UI-01)
         return 0
 
     if args.command == "review":

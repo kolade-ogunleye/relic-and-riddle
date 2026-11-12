@@ -1862,6 +1862,40 @@ def carousel_preview_screen(db: PipelineDatabase, args: str, preview: Callable[[
     return caption, buttons + [[HOME]]
 
 
+NOTICES_SHOWN = 15   # items listed on 📊 Status › 🗒️ Notices
+NOTICE_STATES = {"open": "in the panel", "handled": "handled", "dismissed": "dismissed", "dropped": "dropped from the panel",
+                 "resolved": "dealt with"}
+
+
+def notices_screen(db, args: str = "") -> tuple[str, list[list[dict[str, str]]]]:
+    """📊 Status › 🗒️ Notices (UI-01): every item of the last 90 days, newest first, dismissed ones included,
+    with Restore for the ones the panel no longer shows. `/alerts clear` is Dismiss all info (Undo for 30 s)."""
+    from . import notifications as notes
+    from .telegram_ui import button, title, with_nav
+    word, _, rest = (args or "").strip().partition(" ")
+    note = ""
+    if word.lower() == "clear":
+        ids = notes.dismiss_all_info(db)
+        note = (f"✅ {len(ids)} info dismissed from the panel. Undo there for {notes.UNDO_SECONDS} s, or restore "
+                "them below." if ids else "There was no info to dismiss.")
+    elif word.lower() == "restore" and rest.strip().isdigit():
+        note = "↩️ Back in the panel." if notes.restore(db, int(rest)) else "That item is already in the panel or has gone."
+    items = notes.recent(db, limit=NOTICES_SHOWN)
+    lines = []
+    for item in items:
+        state = NOTICE_STATES.get(item["state"], item["state"])
+        subject = f" · {html.escape(item['subject'])}" if item.get("subject") else ""
+        count = f" ×{item['count']}" if int(item.get("count") or 1) > 1 else ""
+        lines.append(f"{html.escape(item.get('emoji') or '•')} <b>{html.escape(item['title'])}</b>{subject}{count}\n"
+                     f"<i>{show_time(item['updated_at'], '%a %d %b %H:%M')} · {state}</i>")
+    summary = (f"The last {notes.RETAIN_DAYS} days, newest first: what the pinned panel showed, dismissed items "
+               "included." if items else f"Nothing in the last {notes.RETAIN_DAYS} days.")
+    text = "\n\n".join(x for x in (title("🗒️", "Notices", summary), note, "\n\n".join(lines)) if x)
+    rows = [[button(f"↩️ Restore: {item['title']}", f"cnotices:restore {item['id']}")]
+            for item in items if item["state"] in (notes.DISMISSED, notes.DROPPED)][:5]
+    return text, with_nav(rows, "cstat:")
+
+
 def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[str]],
                          trigger_run: Callable[[], str], send_photo: Optional[SendPhoto] = None,
                          assets_dir: Path = ASSETS_DIR,
@@ -2632,7 +2666,8 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             # accounts, alerts, activity, improvements, the digest and the jobs all live here.
             return status_text(db, next_run(), voice_quota()), [
                 [{"text": "📈 Audience", "callback_data": "canalytics:"}, {"text": "🔗 Accounts", "callback_data": "caccounts:"}],
-                [{"text": "🔔 Alerts", "callback_data": "calerts:"}, {"text": "🛡 Activity", "callback_data": "caudit:"}],
+                [{"text": "🗒️ Notices", "callback_data": "cnotices:"} if config.TELEGRAM_CLEAN_CHAT
+                 else {"text": "🔔 Alerts", "callback_data": "calerts:"}, {"text": "🛡 Activity", "callback_data": "caudit:"}],
                 [{"text": "🧭 Improvements", "callback_data": "cimprove:"}, {"text": "📰 Digest", "callback_data": "cdigest:"}],
                 [{"text": "🧰 Jobs", "callback_data": "jobs:"}], [HOME]]
         if command in ("analytics", "canalytics"):  # the dashboard; typed subcommands open its other screens
@@ -2668,6 +2703,8 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             return analytics_video(db, args)
         if command == "capick":
             return analytics_picker(db, int(args) if args.strip().isdigit() else 0)
+        if config.TELEGRAM_CLEAN_CHAT and command in ("cnotices", "calerts", "alerts"):
+            return notices_screen(db, args)   # the clean chat's notices (UI-01): the panel's items, 90 days
         if command in ("caudit", "calerts"):
             # The screen's own reply, not wrapped again: a (text, buttons) pair inside another showed its repr,
             # quotes and escapes on the Alerts screen (operator, 2026-10-25).
@@ -2679,8 +2716,9 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             return carousel_preview_screen(db, args, (run_actions or {}).get("carpreview"), send_photo)
         if command == "carredraw":   # carredraw:<booking id>: a held carousel drawn again for its next slot
             action = (run_actions or {}).get("carredraw")
-            if action is None:
-                return "That button only works while the daemon is running."
+            if action is None:   # not done: the hold's item stays open (UI-01)
+                from .notifications import Outcome
+                return Outcome("That button only works while the daemon is running.", done=False)
             return action(args.strip())
         if command == "cprop":
             from . import topic_proposer
@@ -3027,8 +3065,9 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
         if command in ("pubok", "pubno", "resend", "simpub", "rerender", "promote", "postnow", "retryreel", "fbcaptions",
                        "fbcover", "ytshort", "rebook", "ytthumb", "newversion"):
             action = (run_actions or {}).get(command)
-            if action is None:
-                return "That button only works while the daemon is running."
+            if action is None:   # not done: an item offering it stays open (UI-01a)
+                from .notifications import Outcome
+                return Outcome("That button only works while the daemon is running.", done=False)
             run_id = db.resolve_run(args)
             result = action(run_id)
             blocked = command in ("postnow", "retryreel", "rebook") and any(
@@ -3073,7 +3112,8 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             return f"✖ Skipped {html.escape(args)}."
         if command == "upd":
             if apply_updates is None:
-                return "Updates can only be applied while the daemon is running."
+                from .notifications import Outcome
+                return Outcome("Updates can only be applied while the daemon is running.", done=False)
             return apply_updates()
         if command in ("imgok", "imgcancel"):
             # Both end on the topic's image menu (where the review was opened), not on a dead card.

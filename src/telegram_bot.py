@@ -61,6 +61,13 @@ from .telegram_ui import HOME as DONE_BUTTON
 from .telegram_ui import hourglass  # 🏠 Dashboard: one home button everywhere (2026-10-25 overhaul)
 PAGER_ICONS = {"⏮", "◀", "▶", "⏭"}
 _PANEL = ContextVar("telegram_navigation_panel", default=None)
+# A notifications item's action being run (UI-01): its callback's answers are collected here and its outcome
+# recorded, so the item closes only when the action was done and the tap gets one toast saying what happened.
+_ITEM_ACTION = ContextVar("notifications_item_action", default=None)
+# Toasts that only say a tap arrived: an item action's own toast says what was done instead.
+# Item actions whose handler says whether it was done (notifications.Outcome); a reply that does not say is not done.
+SAY_THEIR_OUTCOME = {"upd", "rerender", "carredraw"}
+PLAIN_TOASTS = {"", "Working", "Request checked", "Request received", "Updated", "Working; you can keep using the bot"}
 PANEL_ACTIONS = {"ccar", "reviewpick", "pickbump", "pickdrop", "cideas", "cpropose", "ccov", "cmusic", "cdisc", "cprop", "cstat", "cimages", "caccounts", "imagepick", "imagehelp", "review", "mkeep", "mnext", "mdel", "mcancel", "mreview", "musicmenu", "mfmenu", "mlibrary", "chelp"}
 # Cards removed before acting (their own Cancel/Skip/Next buttons).
 DELETE_FIRST = {"tskip"}
@@ -211,6 +218,12 @@ def _v2_reason_keyboard(target: str) -> dict[str, Any]:
     return {"inline_keyboard": rows + [[{"text": "← Keep it", "style": "primary", "callback_data": f"keepit:{target}"}]]}
 
 
+def clean_chat() -> bool:
+    """Whether the clean chat (UI-01) is on. A function: _process_update imports `config` locally further down,
+    so the module name is not reachable there."""
+    return bool(getattr(config, "TELEGRAM_CLEAN_CHAT", False))
+
+
 def plain_reason(error: Any, limit: int = 160) -> str:
     """A failure reason in plain words: no exception or outcome class name in front ("PublishFailed: ..."),
     cut at a word (control.short_reason)."""
@@ -281,7 +294,8 @@ class PublishReceipt:
             line = f"⚠️ {title} posted with problems · {_and_list(live)}; not {_and_list(missed)}"
         else:
             line = f"❌ {title} not posted"
-        self.bot.notify(line, group="runs", silent=True)
+        if not config.TELEGRAM_CLEAN_CHAT:   # the clean chat has one item per episode, the receipt itself
+            self.bot.notify(line, group="runs", silent=True)
 
     def _header(self, final: bool) -> str:
         title = f"<b>{html.escape(self.title)}</b>"
@@ -322,6 +336,12 @@ class PublishReceipt:
     def _send_or_update(self, final: bool = False):
         text = self._render_text(final=final)
         buttons = [[DONE_BUTTON]]
+        if config.TELEGRAM_CLEAN_CHAT:
+            # One "📮 Posted" item per episode, updated in place as each platform lands (design §10.1).
+            missed = final and any(p["status"] != "live" for p in self._attempted())
+            self.bot.notify(text, group="runs", section="needs" if missed else "info", key=f"posted:{self.run_id}",
+                            run=self.run_id, replace=True)
+            return
         if not self.message_id:
             res = self.bot.notify(text, buttons=buttons, group="runs", silent=True)
             if isinstance(res, int):
@@ -1379,6 +1399,9 @@ class TelegramApprovalBot:
         only the card and deleted its media: 2026-10-23 audit)."""
         from .telegram_state import get
         keep: Set[int] = set()
+        if hasattr(self.db, 'list_telegram_cards'):
+            from .telegram_layout import panel_ids
+            keep.update(panel_ids(self.db))   # the clean chat's always-on panels (UI-01)
         progress = self.db.get_active_progress() if hasattr(self.db, 'get_active_progress') else None
         if (progress or {}).get('message_id'):
             keep.add(progress['message_id'])
@@ -2867,6 +2890,10 @@ class TelegramApprovalBot:
     def _answer_callback(self, cq_id: str, text: str = "") -> None:
         """Safely answers a Telegram callback query; suppresses expired query (400) errors."""
         # Telegram shows only the first answer and rejects the rest; each rejected call still costs a round trip.
+        acting = _ITEM_ACTION.get()
+        if acting is not None and acting["cq"] == cq_id:   # an item's action: one toast once its outcome is known
+            acting["toasts"].append(str(text or ""))
+            return
         with self._answered_lock:
             if cq_id in self._answered:
                 return
@@ -3206,9 +3233,12 @@ class TelegramApprovalBot:
     NOTICE_TTL_MINUTES = 360  # an informational notice leaves the chat after this; its record stays in the database
 
     def notify(self, text: str, buttons: Optional[list] = None, transient: Optional[bool] = None, ttl_minutes: Optional[int] = None,
-               record_alert: bool = True, silent: bool = False, group: Optional[str] = None) -> bool:
+               record_alert: bool = True, silent: bool = False, group: Optional[str] = None,
+               section: str | None = None, key: str | None = None, subject: str | None = None,
+               run: str | None = None, replace: bool = False, actions: list | None = None) -> bool:
         """Sends an operational message (HTML), optionally with inline buttons (single or multi-row).
-        Never raises: alerts must not break a run.
+        Never raises: alerts must not break a run. `actions` are the clean chat's item-page buttons for a notice
+        that had none of its own (design §10.2); the earlier chat ignores them, as it did before.
         In Telegram V2 (TELEGRAM_CARDS_V2), routes by topic (group):
           studio (4906), needs (4907), reviews (4908), runs (4909), info (4910).
         Only group='needs' notifies audibly; all other groups are strictly silent."""
@@ -3230,6 +3260,11 @@ class TelegramApprovalBot:
             # Every screen a command draws keeps a way back to the dashboard (a command's own button
             # list, such as /bump's topics, often had none).
             return self.show_navigation_panel(panel[1], text, is_media=panel[2], buttons=navigation_buttons(buttons))
+        if config.TELEGRAM_CLEAN_CHAT and not (group == "studio" and record_alert is False):
+            # The clean chat (UI-01): a sender's notice is an item of the pinned notifications panel, never a
+            # message of its own. Only the screens a command draws (studio, unrecorded) still send here.
+            return self._post_notice(text, buttons, group, section, key, subject, run, replace, record_alert,
+                                     actions)
         if not self.is_configured():
             log.info("Notification (Telegram not configured): %s", text)
             if record_alert and hasattr(self.db, "record_alert"):
@@ -3280,6 +3315,235 @@ class TelegramApprovalBot:
                     log.warning("Fallback plain text notify also failed: %s", e2)
             log.warning("Could not send Telegram notification: %s", e)
             return False
+
+    def _post_notice(self, text: str, buttons: list | None, group: str | None, section: str | None,
+                     key: str | None, subject: str | None, run: str | None, replace: bool,
+                     record_alert: bool, extra: list | None = None) -> bool:
+        """A sender's message as a notifications-panel item (design §8): Needs you for group "needs" (or a
+        notice with actions to take), info for the run log and info groups. Its buttons become the item page's
+        actions, its links lines of the body. Returns True, never a message id: nothing was sent."""
+        from . import notifications as notes
+        text = _MASKER.mask(text)
+        emoji, title, parsed_subject, body = notes.parse(text)
+        subject = subject or parsed_subject
+        links = notes.links_from(buttons)
+        if links:
+            body = (body + "\n" if body else "") + " · ".join(links)
+        actions = notes.actions_from(buttons)
+        actions += [a for a in notes.actions_from([list(extra or [])]) if a not in actions]
+        if section is None:
+            section = (notes.NEEDS if group == "needs" else notes.INFO if group in ("runs", "info", "reviews")
+                       else notes.NEEDS if actions else notes.INFO)
+        try:
+            notes.post(self.db, section, key or "", title, body, emoji=emoji, subject=subject or "",
+                       actions=actions, run=run, replace=replace)
+        except Exception as e:  # noqa: BLE001 - alerts must not break a run
+            log.warning("Could not record the notice %r: %s", title, e)
+            return False
+        if record_alert and hasattr(self.db, "record_alert"):
+            self.db.record_alert(text, message_id=None, kind="persistent")   # the alert history, as before
+        self.layout.kick()
+        return True
+
+    @property
+    def layout(self):
+        """The clean chat's renderer for this bot (telegram_layout.Layout), made on first use."""
+        if getattr(self, "_layout", None) is None:
+            from .telegram_layout import Layout
+            self._layout = Layout(self)
+        return self._layout
+
+    def close_layout(self) -> None:
+        """At shutdown: the panel is drawn once more (the offline notice just posted), then the renderer lease is
+        given up, so the next start renders at once instead of waiting up to 90 s for the old lease to expire."""
+        layout = getattr(self, "_layout", None)
+        if layout is None or not config.TELEGRAM_CLEAN_CHAT:
+            return
+        try:
+            layout.halt()
+            if layout.is_renderer():
+                layout.tick(force=True)
+        except Exception as e:  # noqa: BLE001 - a shutdown never fails on the panel
+            log.warning("Could not draw the notifications panel at shutdown: %s", e)
+        finally:
+            layout.release()
+
+    def _notifications_tap(self, cq: dict[str, Any], command_handler) -> None:
+        """A tap on the notifications panel (n:<item>[:<verb>], np:<page>, nall, nundo). It acts in place with a
+        toast, or opens a dashboard screen in the dashboard; it never sends a message."""
+        from . import notifications as notes
+        data = cq.get("data", "")
+        action, _, rest = data.partition(":")
+        state = notes.view(self.db)
+        came_from = int(state.get("from") or 1) if state.get("item") else int(state.get("page") or 1)
+        answer = ""
+        dispatch = None
+        acting = None
+        if action == "np":
+            notes.set_view(self.db, int(rest) if rest.isdigit() else 1)
+        elif action == "nall":
+            ids = notes.dismiss_all_info(self.db)
+            notes.set_view(self.db, 1)
+            answer = f"{len(ids)} info dismissed. Undo for {notes.UNDO_SECONDS} s." if ids else "No info to dismiss"
+        elif action == "nundo":
+            answer = "Restored" if notes.undo_dismiss_all(self.db) else "Too late to undo"
+            notes.set_view(self.db, 1)
+        elif action == "n":
+            ref, _, verb = rest.partition(":")
+            item = notes.get(self.db, int(ref)) if ref.isdigit() else None
+            if not item:
+                answer = "That item has gone."
+                notes.set_view(self.db, 1)
+            elif not verb:
+                notes.set_view(self.db, came_from, item["id"], came_from)
+            elif item["state"] != notes.OPEN:
+                answer = "This has been dealt with."
+                notes.set_view(self.db, came_from, item["id"], came_from)
+            elif verb == notes.DISMISS:
+                notes.close(self.db, item["id"], notes.DISMISSED)
+                notes.set_view(self.db, came_from)
+                answer = "Dismissed"
+            elif notes.find_action(item, verb):
+                dispatch = notes.find_action(item, verb)["callback_data"]
+                if notes.opens_a_screen(dispatch):   # a screen: drawn in the dashboard, the item page stays
+                    notes.set_view(self.db, came_from, item["id"], came_from)
+                else:   # an action: the item closes only once it is done (_act_on_item)
+                    acting = item
+            else:
+                answer = "That button is no longer offered."
+        if acting is not None:
+            self._act_on_item(cq, acting, dispatch, command_handler, came_from)
+            return
+        if dispatch is None:
+            self._answer_callback(cq["id"], answer)
+        try:
+            self.layout.draw_notifications(force=True)
+        except Exception as e:  # noqa: BLE001 - the tap's own action still runs
+            log.warning("Could not redraw the notifications panel: %s", e)
+        if dispatch is not None:
+            self._dispatch_in_dashboard(cq, dispatch, command_handler)
+
+    def _act_on_item(self, cq: dict[str, Any], item: dict[str, Any], callback: str, command_handler,
+                     came_from: int) -> None:
+        """An item's action (Re-render, Back to the queue, Retry, Resend for review ...), run as a tap on the dashboard.
+        The item closes only when the action was done (design §6.1, spec: Needs you stays until handled); when it
+        was refused or failed, the item stays open and its page says why, in the handler's own words (design §10.1).
+        The tap gets one toast saying what happened; nothing is sent as a message (design §6.1, §9)."""
+        from . import notifications as notes
+        kind, _, target = callback.partition(":")
+        acting = {"cq": cq["id"], "done": None, "reason": "", "said": "", "toasts": []}
+        token = _ITEM_ACTION.set(acting)
+        error = None
+        try:
+            self._dispatch_in_dashboard(cq, callback, command_handler)
+        except Exception as e:  # noqa: BLE001 - a failed action leaves its item open, saying why
+            error = e
+            log.warning("The item's %s action failed: %s", kind, _MASKER.mask(str(e)))
+        finally:
+            _ITEM_ACTION.reset(token)
+        done = acting["done"]
+        if done is None:
+            done = error is None and self._item_action_done(kind, target)
+        reason = acting["reason"] or acting["said"] or (
+            f"it failed ({type(error).__name__}). Try again, or open Details." if error is not None else "")
+        now = notes.get(self.db, item["id"]) or item
+        if now.get("state") != notes.OPEN:   # the action took care of its item itself
+            notes.set_view(self.db, came_from)
+            toast = acting["said"] or next((t for t in acting["toasts"] if t not in PLAIN_TOASTS), "") or "Done"
+        elif done:
+            if not str(item.get("dedupe_key", "")).startswith("cond:"):   # a condition resolves itself
+                notes.close(self.db, item["id"], notes.HANDLED)
+            notes.set_view(self.db, came_from)
+            toast = acting["said"] or next((t for t in acting["toasts"] if t not in PLAIN_TOASTS), "") or "Done"
+        else:
+            notes.note(self.db, item["id"], reason or "the action did not run.")
+            notes.set_view(self.db, came_from, item["id"], came_from)
+            toast = notes.clip(notes.plain(reason), 190) or "Not done"
+        self._answer_callback(cq["id"], notes.clip(notes.plain(toast), 190))
+        try:
+            self.layout.draw_notifications(force=True)
+        except Exception as e:  # noqa: BLE001 - the item is recorded; the next tick draws it
+            log.warning("Could not redraw the notifications panel: %s", e)
+
+    @staticmethod
+    def _item_outcome(done: bool, reason: str = "") -> None:
+        """A branch that ran an item's action says whether it was done (and if not, why)."""
+        acting = _ITEM_ACTION.get()
+        if acting is not None:
+            acting["done"] = bool(done)
+            acting["reason"] = "" if done else str(reason or "")
+
+    def _item_action_done(self, kind: str, target: str) -> bool:
+        """Whether an item's action did what its item asks, read from the recorded state where there is one (a
+        topic back in the queue, a booking posted); any other action that ran without an error is done."""
+        if kind in SAY_THEIR_OUTCOME:   # done only when its handler says so (notifications.Outcome)
+            return False
+        try:
+            if kind == "requeue":
+                return (self.db.get_topic_by_id(target.strip()) or {}).get("status") == "queued"
+            if kind == "retrypost" and target.strip().isdigit():
+                post = next((p for p in self.db.list_scheduled_posts(
+                    ("pending", "waiting", "published", "failed", "unknown", "cancelled", "expired", "blocked"))
+                    if p["id"] == int(target)), None)
+                return bool(post) and post.get("status") == "published"
+        except Exception as e:  # noqa: BLE001 - not known: the item stays open (never lost)
+            log.warning("Could not tell whether the %s action was done: %s", kind, e)
+            return False
+        return True
+
+    @staticmethod
+    def _item_reply(reply: Any) -> None:
+        """An item's action answered: its first line is what the toast (or, when not done, the item) says."""
+        acting = _ITEM_ACTION.get()
+        text = reply[0] if isinstance(reply, tuple) else reply
+        if acting is not None and not acting["said"] and isinstance(text, str) and text.strip():
+            from . import notifications as notes
+            acting["said"] = " ".join(notes.plain(text.strip().split("\n\n", 1)[0]).split())
+        if acting is not None and acting["done"] is None and getattr(text, "done", None) is not None:
+            # The handler said whether it was done (notifications.Outcome): its words are only what is shown
+            TelegramApprovalBot._item_outcome(bool(text.done), acting["said"])
+
+    def _say_reply(self, cq: dict[str, Any], reply: Any) -> None:
+        """The clean chat's answer to a tap whose reply only acknowledges (Back to the queue, Resend for review):
+        the callback's toast when it fits (≤ 190 characters) and the tap is not answered yet, else a line drawn in
+        the dashboard. Never a message (design §6.1, §9: "No other ring")."""
+        from . import notifications as notes
+        text = reply[0] if isinstance(reply, tuple) else reply
+        if not (isinstance(text, str) and text.strip()):
+            return
+        plain_text = " ".join(notes.plain(text).split())
+        acting = _ITEM_ACTION.get()
+        if acting is not None and acting["cq"] == cq.get("id"):
+            acting["said"] = plain_text
+            if len(plain_text) <= 190:
+                return
+        elif len(plain_text) <= 190 and cq.get("id") not in self._answered:
+            self._answer_callback(cq["id"], plain_text)
+            return
+        self.show_dashboard(text, [[DONE_BUTTON]])
+
+    def _dispatch_in_dashboard(self, cq: dict[str, Any], callback: str, command_handler) -> None:
+        """Runs an item's action as a tap on the dashboard, so its screen or result is drawn there (the item
+        page stays where it is)."""
+        stored = self.db.get_setting("telegram_dashboard_id")
+        if not (stored and stored.isdigit()):
+            self.show_dashboard()
+            stored = self.db.get_setting("telegram_dashboard_id")
+        if not (stored and stored.isdigit()):
+            self._answer_callback(cq["id"], "The dashboard is not available; open it with /dashboard")
+            return
+        from .telegram_ui import step
+        with self._panel_lock:
+            mid = self._current_panel(int(stored))
+            self._panel_revisions[mid] = self._panel_revisions.get(mid, 0) + 1
+            revision = self._panel_revisions[mid]
+            self._panel_origin[mid] = self._panel_screen.get(mid)
+            self._panel_screen[mid] = callback
+            self._panel_trail[mid] = step(self._panel_trail.get(mid, []), callback)
+        message = {"message_id": mid, "chat": {"id": self.chat_id}}
+        update = {"callback_query": {"id": cq["id"], "from": cq.get("from") or {}, "message": message,
+                                     "data": callback, "_revision": revision}}
+        self._process_update(update, command_handler)
 
     # ------------------------------------------------------------ live render progress
     def progress_mode(self, run_id):
@@ -4374,6 +4638,10 @@ class TelegramApprovalBot:
         # Updates that arrived while the bot was down are processed, not skipped: an Approve tap
         # during a restart must not be lost (decisions are first-wins, so a replay is harmless).
         # Only commands older than STALE_COMMAND_SECONDS are dropped, so a day-old /run doesn't fire.
+        from .telegram_layout import NOTE_ACTIONS  # the panel's own taps
+        clean = config.TELEGRAM_CLEAN_CHAT and self.is_configured()
+        if clean:
+            self.layout.start()   # the long-running bot renders the layout (telegram_layout)
         data = {"timeout": timeout, "allowed_updates": json.dumps(["callback_query", "message"])}
         if self._offset is not None:
             data["offset"] = self._offset
@@ -4410,6 +4678,17 @@ class TelegramApprovalBot:
                             self._record_kind(mid, media=bool(message.get("photo") or message.get("audio") or message.get("video") or message.get("document") or message.get("animation")))
                 msg = update.get("message") or {}
                 action = (cq or {}).get("data", "").partition(":")[0]
+                if clean and msg.get("pinned_message") and str((msg.get("chat") or {}).get("id")) == str(self.chat_id):
+                    # The service line a pin leaves ("… pinned 🔔 …") goes at once (design §5.2).
+                    self._delete_soon(msg.get("message_id"))
+                    continue
+                if clean and cq and action in NOTE_ACTIONS:
+                    message = cq.get("message") or {}
+                    if self._authorized(cq.get("from", {}).get("id"), message.get("chat", {}).get("id")):
+                        self._queue_navigation(lambda tap=cq: self._notifications_tap(tap, command_handler))
+                    else:
+                        self._answer_callback(cq["id"], "Not authorized.")
+                    continue
                 media_upload = msg.get("caption") and any(msg.get(k) for k in ("photo","document","video","audio","voice"))
                 if (media_upload and self._authorized(msg.get("from",{}).get("id"), msg.get("chat",{}).get("id"))) or action in {"cov","covlock"}:
                     if cq:
@@ -4587,14 +4866,22 @@ class TelegramApprovalBot:
                         self._strip_buttons(msg_id)
                     reply = command_handler(action, target)
                     text = reply[0] if isinstance(reply, tuple) else (reply or "")
-                    started = "already" not in text.lower() and not text.startswith("🔁 That") and "Not" not in text[:12]
+                    from_item = _ITEM_ACTION.get() is not None
+                    told = getattr(text, "done", None)   # the handler's outcome (notifications.Outcome), not its words
+                    if told is not None:
+                        started = bool(told)
+                    elif from_item:   # a handler that does not say: its item stays open (never lost)
+                        started = False
+                    else:   # the earlier chat's reading of a reply that does not say (origin/main)
+                        started = "already" not in text.lower() and not text.startswith("🔁 That") and "Not" not in text[:12]
+                    self._item_outcome(started, text)   # from an item: it stays open, saying why, when not started
                     if card and started:
                         put(self.db, "progress-reuse", run_id, str(card))
                         self.edit_message_text(card, text, buttons=[[DONE_BUTTON]])
-                    elif text:
+                    elif text and not from_item:
                         self.notify(text, buttons=[[DONE_BUTTON]], record_alert=False, transient=True, group="studio")
                     self._answer_callback(cq['id'], 'Re-render started' if started else 'Not started')
-                    if on_dashboard:
+                    if on_dashboard and (started or not clean_chat()):   # a refusal is never drawn over
                         self.show_dashboard()
                     return
                 if action in {'ccar', 'fetchimages', 'filmfind', 'caccounts', 'mfetch', 'cstat', 'ccov', 'cmusic', 'mreview', 'review', 'cdisc', 'cprop', 'uadd', 'tadd', 'edittext', 'mkeep', 'mdel', 'mnext', 'mreview', 'mlibrary'}:
@@ -4628,6 +4915,7 @@ class TelegramApprovalBot:
                             _PANEL.reset(token)
                     if token is not None and panel[3]:
                         reply = ''
+                    self._item_reply(reply)   # an item's action: what its toast (or its page) says
                     self._answer_callback(cq['id'], 'Request checked')
                     if isinstance(reply, tuple):
                         text, buttons = reply
@@ -4644,6 +4932,8 @@ class TelegramApprovalBot:
                         next_fn = getattr(self, 'next_run_func', lambda: None)
                         dash_text, dash_buttons = dashboard_text_and_buttons(self.db, next_fn(), assets_dir=ASSETS_DIR)
                         self.show_navigation_panel(msg_id, dash_text, is_media=is_media, buttons=dash_buttons)
+                    elif action in NUDGE_REPLIES and clean_chat():
+                        self._say_reply(cq, reply)   # a toast, or a dashboard line: never a message (design §6.1)
                     elif action in NUDGE_REPLIES:
                         if msg_id and action in NOTICE_ACTIONS and not self._is_dashboard(msg_id):
                             self.delete_message(msg_id)  # the notice that offered it (timed out, reminder)
@@ -4667,9 +4957,16 @@ class TelegramApprovalBot:
                         from .telegram_ui import nav, parent_of
                         if msg_id and action in PANEL_ACTIONS:
                             self.show_navigation_panel(msg_id, reply, is_media=is_media, buttons=nav(self.back_for(msg_id, f"{action}:{target}")))
+                        elif _ITEM_ACTION.get() is not None:   # an item's action: its answer in the dashboard
+                            if _ITEM_ACTION.get()["done"] is not False:   # a refusal: the item's page says why
+                                self.show_dashboard(reply, [[DONE_BUTTON]])
                         else:
                             self.notify(reply, buttons=[[DONE_BUTTON]], record_alert=False, group="studio")
                 except Exception as e:
+                    if _ITEM_ACTION.get() is not None:   # an item's action: the item stays open and says why
+                        log.warning('The item action %s failed: %s', action, _MASKER.mask(str(e)))
+                        self._item_outcome(False, f'it failed: {str(e)[:150]}')
+                        return
                     self._answer_callback(cq['id'], 'Failed')
                     if action in PANEL_ACTIONS:
                         log.warning('Navigation %s failed: %s', action, _MASKER.mask(str(e)))
@@ -4993,7 +5290,9 @@ class TelegramApprovalBot:
                 self._settle_rejected_card(args.split(' ', 1)[0], reply_to['message_id'], now=True)
             if isinstance(reply, tuple):  # a refusal with buttons (an unrequeueable topic) still says why
                 reply = reply[0]
-            if isinstance(reply, str) and reply:
+            if isinstance(reply, str) and reply and clean_chat():
+                self.show_dashboard(reply, [[DONE_BUTTON]])   # a typed reply is a dashboard line (design §10.1)
+            elif isinstance(reply, str) and reply:
                 self.nudge(reply)
             return
         target = self._typed_panel()

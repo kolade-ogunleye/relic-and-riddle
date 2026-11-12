@@ -1228,10 +1228,13 @@ class PipelineDatabase:
         now_str = now_dt.isoformat()
         cutoff_str = (now_dt - timedelta(hours=max_age_hours)).isoformat()
         with self._conn() as conn:
+            # The clean chat's layout rows (kind "layout", UI-01) are never swept: their panels are re-posted
+            # in order before 48 h instead, and a swept row would leave its message in the chat.
             rows = conn.execute("""
                 SELECT * FROM telegram_cards
-                WHERE (expires_at IS NOT NULL AND expires_at <= ?)
-                   OR (created_at <= ?)
+                WHERE card_kind <> 'layout'
+                  AND ((expires_at IS NOT NULL AND expires_at <= ?)
+                   OR (created_at <= ?))
             """, (now_str, cutoff_str)).fetchall()
             expired = []
             for r in rows:

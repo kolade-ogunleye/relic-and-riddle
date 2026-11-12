@@ -118,7 +118,10 @@ def notice_once(db, run_id: str, text: str, notify: Callable[..., Any]) -> bool:
     if db.get_setting(key):
         return False
     db.set_setting(key, datetime.now(UTC).isoformat())
-    notify(text, group="needs")
+    # The clean chat: the run's one failure item, with its actions (UI-01, design §10.2).
+    from . import notifications
+    notifications.say(notify, text, group="needs", key=f"fail:{run_id}", run=run_id,
+                      actions=notifications.failure_actions(db, run_id))
     return True
 
 

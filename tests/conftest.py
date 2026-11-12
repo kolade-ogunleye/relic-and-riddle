@@ -23,6 +23,7 @@ def default_licences(monkeypatch):
     monkeypatch.setattr(config, "VIDEO_FORMATS", ["reel"])
     monkeypatch.setattr(config, "YOUTUBE_SHORTS", False)
     monkeypatch.setattr(config, "LOOP_FOLLOW_OVERLAY", False)   # QF-83's FOLLOW: its own tests turn it on
+    monkeypatch.setattr(config, "TELEGRAM_CLEAN_CHAT", False)   # UI-01's clean chat: the test_ui01* tests turn it on
     monkeypatch.setattr(config, "SCENE_PLAN_RETRY_SECONDS", 0.0)
     monkeypatch.setattr(config, "PICTURE_CHECK_RETRY_SECONDS", 0.0)
     # Nor the deployment's model and dry-run choices: production's FREE_TIER_HEAVY=false and

@@ -207,7 +207,7 @@ class PipelineCoordinator:
         self.db = db or PipelineDatabase()
         llm.configure_usage(self.db.record_llm_usage, self.db.llm_spend)
         self.health_checker = PreFlightHealthChecker()
-        self.lifecycle_manager = AssetLifecycleManager()
+        self.lifecycle_manager = AssetLifecycleManager(db=self.db)   # never a pending run's files (QF-110)
         self.topic_engine = TopicEngine(db=self.db)
         self.script_engine = ScriptEngine()
         self.audio_engine = AudioEngine()
@@ -1612,15 +1612,27 @@ class PipelineCoordinator:
         run = self.db.get_run(run_id) or {}
         if run.get("status") != "scheduled":
             return self.promote_run(run_id, now=True)
-        booking = next((p for p in self.db.list_scheduled_posts(("pending",), run_id=run_id) if p["kind"] == "reel"), None)
+        booking = next((p for p in self.db.list_scheduled_posts(("pending", "blocked"), run_id=run_id) if p["kind"] == "reel"), None)
         if booking is None:
             return "⚡ No pending Reel booking for that run."
-        from src.release import require_release
-        try:
-            require_release(run, dry_run=False)
-            res = self.publish_run(run_id, dry_run=False, previous_status="published" if run.get("times_published") else "queued")
+        from src.release import ReleaseBlocked
+        try:   # the checks: nothing is uploaded yet, so any failure here means it was not posted
+            self._require_release(run, dry_run=False, retry_now=True)
         except ValueError as e:
-            return f"⚡ Not posted: {html.escape(str(e))}"
+            return self._blocked_reply("⚡", run_id, e)
+        except Exception as e:  # noqa: BLE001 - the checker or network: nothing was posted, the booking stands
+            return f"⚡ Not posted: it could not be checked just now ({html.escape(_error_words(e))}). Try again later."
+        try:   # the upload: from its claim on, a failure means the outcome is unknown, never "not posted"
+            res = self.publish_run(run_id, dry_run=False, previous_status="published" if run.get("times_published") else "queued")
+        except ReleaseBlocked as e:
+            return self._blocked_reply("⚡", run_id, e)
+        except Exception as e:  # noqa: BLE001
+            if (self.db.get_run(run_id) or {}).get("status") != "publish_unknown":
+                return f"⚡ Not posted: {html.escape(_error_words(e))}"
+            self._unknown_booking(booking, e)
+            return ("⚡ <b>Outcome unknown</b>: the upload started and no answer came "
+                    f"({html.escape(_error_words(e))}). Check Facebook and Instagram before trying again, so nothing "
+                    "posts twice; then answer It posted or It didn't post.")
         now = datetime.now(timezone.utc)
         self.db.update_scheduled_post(booking["id"], res["status"], detail={
             "error": res.get("publish_result", {}).get("error"), "posted_at": now.isoformat()})
@@ -1640,17 +1652,54 @@ class PipelineCoordinator:
         return (f"⚡ <b>{html.escape(self.db.run_label(run_id))}</b> is posted; its Stories follow in "
                 f"{config.STORY_DELAY_MINUTES} minutes{then}.")
 
+    def _blocked_reply(self, icon: str, run_id: str, exc: Exception, verb: str = "posted") -> str:
+        """A release refusal in plain words, with what can work (QF-110): trying again re-runs the same checks."""
+        from src.posting_view import BLOCKED_NEXT
+        reasons = self._block_reasons(run_id, exc)
+        from src.release import ReleaseBlocked
+        return (f"{icon} Not {verb}: " + "; ".join(html.escape(r) for r in reasons)
+                + ("\n\n" + BLOCKED_NEXT if isinstance(exc, ReleaseBlocked) else ""))
+
+    def prepare_new_version(self, run_id: str) -> str | None:
+        """For "Make a new version" on a blocked booking (QF-110): its bookings are cancelled and the run is sent
+        back for a new version (status regenerate: Re-render makes it from this one, reusing what was paid for, and
+        it comes to review). Returns why not, or None. Every refusal comes before anything is changed: never for a
+        run whose Reel may be live (being uploaded, posted, or its outcome unknown: It posted / It didn't post
+        decides that), nor while a run is being made."""
+        run = self.db.get_run(run_id) or {}
+        posts = self.db.list_scheduled_posts(("pending", "waiting", "blocked"), run_id=run_id)
+        blocked = [p for p in posts if p["kind"] == "reel" and p["status"] == "blocked"]
+        if not blocked:
+            return "That episode has no blocked booking."
+        if run.get("status") not in ("scheduled", "approved", "simulated") or any(
+                x.get("status") in ("published", "unknown") for x in self.db.list_publications(run_id)):
+            return ("Its Reel may already be live (it was uploaded, or its outcome is unknown), so no new version is "
+                    "made: check the platforms first.")
+        if self.db.get_active_progress() is not None:
+            return "A run is being made now; make the new version when it has finished."
+        for p in posts:
+            self.db.update_scheduled_post(p["id"], "cancelled", detail={"reason": "replaced by a new version"})
+        self.db.set_setting(PROMOTED_PREFIX + run_id, "")
+        # The reason the regeneration acts on, recorded now, so it never waits for a reason chip that is not coming
+        reasons = (blocked[0].get("detail") or {}).get("reasons") or []
+        facts = any(str(r).startswith("Fact check") for r in reasons)
+        self.db.set_setting(f"decision_reason:{run_id}", json.dumps({
+            "reason": "facts" if facts else "other", "decision": "regenerate",
+            "text": "" if facts else "Blocked at its posting slot: " + "; ".join(map(str, reasons))[:500]}))
+        self.db.update_run(run_id, "regenerate")
+        return None
+
     def cancel_post(self, post_id: int) -> str:
         """Cancels a booking (operator, 2026-10-24). A Reel's Stories and carousel go with it, and the run
         is a post candidate again; a Stories or carousel booking goes alone."""
-        post = next((p for p in self.db.list_scheduled_posts(("pending", "waiting")) if p["id"] == int(post_id)), None)
+        post = next((p for p in self.db.list_scheduled_posts(("pending", "waiting", "blocked")) if p["id"] == int(post_id)), None)
         if post is None:
             return "⏹ That booking is no longer pending."
         run_id = post["run_id"]
         if post["kind"] != "reel":
             self.db.update_scheduled_post(post["id"], "cancelled", detail={"reason": "cancelled by the operator"})
             return f"⏹ {post['kind'].capitalize()} booking cancelled for {html.escape(self.db.run_label(run_id))}."
-        for other in self.db.list_scheduled_posts(("pending", "waiting"), run_id=run_id):
+        for other in self.db.list_scheduled_posts(("pending", "waiting", "blocked"), run_id=run_id):
             self.db.update_scheduled_post(other["id"], "cancelled", detail={"reason": "cancelled by the operator"})
         self.db.set_setting(PROMOTED_PREFIX + run_id, "")
         run = self.db.get_run(run_id) or {}
@@ -1932,11 +1981,13 @@ class PipelineCoordinator:
         last = next((p for p in reversed(self.db.list_publications(run_id)) if "retry" in (p.get("response_payload_json") or "")), None)
         if last and last.get("status") == "unknown":
             return "🔁 The last Reel retry's outcome is unknown: check the platform before another, so nothing posts twice."
-        from src.release import require_release
-        try:
-            require_release(run, dry_run=False)
+        try:   # a tap tries the fact re-check once more even after its automatic tries ran out
+            self._require_release(run, dry_run=False, retry_now=True)
         except ValueError as e:
-            return f"🔁 Not retried: {html.escape(str(e))}"
+            return self._blocked_reply("🔁", run_id, e, verb="retried")
+        except Exception as e:  # noqa: BLE001 - the checker or network: nothing was sent
+            return (f"🔁 Not retried: it could not be checked just now ({html.escape(_error_words(e))}). Nothing was "
+                    "sent; tap 🔁 Retry Reel again later.")
         payload = run["script_payload"]
         envelope = self.publisher.build_envelope(run_id, Path(run["master_video_path"]), Path(run["thumbnail_cover_path"]),
                                                  Path(run["thumbnail_grid_path"]), payload, platforms=platforms)
@@ -3648,9 +3699,9 @@ class PipelineCoordinator:
                     "scheduled_for": booked[0]["due_at"] if booked else None}
         payload = run["script_payload"]
         if payload.get("origin") == "curated" and not payload.get("human_reviewed"):
-            raise ValueError("This run used an unreviewed curated script; it can only be published after review.")
-        from src.release import require_release
-        require_release(run)
+            from src.release import ReleaseBlocked
+            raise ReleaseBlocked("This run used an unreviewed curated script; it can only be published after review.")
+        self._require_release(run)
         run_dir = Path(run["master_video_path"]).parent
         taken = self._booked_reel_days()
         slot = post_schedule.next_reel_slot(now, taken)
@@ -3713,29 +3764,126 @@ class PipelineCoordinator:
 
     def _post_due(self, now: Optional[datetime] = None) -> None:
         now = now or datetime.now(timezone.utc)
+        # Each booking on its own (QF-110): a refusal or error on one never stops the others.
+        #  - ReleaseBlocked (the release checks refused this version): "blocked", said once with what can work.
+        #  - an upload whose outcome is unknown (the run is publish_unknown): the booking is "unknown", never posted
+        #    again by this loop, and It posted / It didn't post decides (the existing reconciliation).
+        #  - anything else (an upload in progress elsewhere, its lock held, a locked report, the network, a checker
+        #    without a verdict): kept booked, tried again, said once per distinct error.
+        from src.release import ReleaseBlocked
         for post in self.db.list_scheduled_posts(("pending",)):
-            due = datetime.fromisoformat(post["due_at"])
-            if due > now or not self._may_post(post["run_id"]):
-                continue
-            run = self.db.get_run(post["run_id"]) or {}
-            if post["kind"] == "reel":
-                if now - due > MISSED_SLOT_GRACE:
-                    self._reschedule(post, run, now)
-                    continue
-                res = self.publish_run(post["run_id"])
-                self.db.update_scheduled_post(post["id"], res["status"], detail={
-                    "error": res.get("publish_result", {}).get("error"), "posted_at": now.isoformat()})
-                if res["status"] != "published":
-                    for other in self.db.list_scheduled_posts(("pending", "waiting"), run_id=post["run_id"]):
-                        self.db.update_scheduled_post(other["id"], "cancelled", detail={"reason": "the Reel did not post"})
-            elif post["kind"] == "story":
-                if run.get("status") == "scheduled":
-                    continue  # its Reel was moved; the Story moved with it
-                if run.get("status") != "published":
-                    self.db.update_scheduled_post(post["id"], "cancelled", detail={"reason": "the Reel did not post"})
-                    continue
-                self._post_photos(post, run, "story")
+            try:
+                self._post_one_due(post, now)
+            except ReleaseBlocked as e:
+                self._block_booking(post, e, now)
+            except Exception as e:  # one booking's failure is said, and the others still post
+                if not isinstance(e, ValueError):
+                    log.exception("Booking %s (%s) could not post.", post["id"], post["kind"])
+                if post["kind"] == "reel" and (self.db.get_run(post["run_id"]) or {}).get("status") == "publish_unknown":
+                    self._unknown_booking(post, e)
+                else:
+                    self._hold_booking(post, e)
         self._post_carousel_if_due(now)
+
+    def _post_one_due(self, post: dict[str, Any], now: datetime) -> None:
+        due = datetime.fromisoformat(post["due_at"])
+        if due > now or not self._may_post(post["run_id"]):
+            return
+        run = self.db.get_run(post["run_id"]) or {}
+        if post["kind"] == "reel":
+            if now - due > MISSED_SLOT_GRACE:
+                self._reschedule(post, run, now)
+                return
+            res = self.publish_run(post["run_id"])
+            self.db.update_scheduled_post(post["id"], res["status"], detail={
+                "error": res.get("publish_result", {}).get("error"), "posted_at": now.isoformat()})
+            if res["status"] != "published":
+                for other in self.db.list_scheduled_posts(("pending", "waiting"), run_id=post["run_id"]):
+                    self.db.update_scheduled_post(other["id"], "cancelled", detail={"reason": "the Reel did not post"})
+        elif post["kind"] == "story":
+            if run.get("status") == "scheduled":
+                return  # its Reel was moved; the Story moved with it
+            if run.get("status") != "published":
+                self.db.update_scheduled_post(post["id"], "cancelled", detail={"reason": "the Reel did not post"})
+                return
+            self._post_photos(post, run, "story")
+
+    def _block_reasons(self, run_id: str, exc: Exception) -> list[str]:
+        """Why the release refused, in plain words: from the release report it has just written, else its message."""
+        from src.release import plain_block_reasons
+        if str(exc).startswith("Release blocked"):
+            try:
+                master = Path((self.db.get_run(run_id) or {}).get("master_video_path") or "")
+                report = json.loads((master.parent / "release_report.json").read_text(encoding="utf-8"))
+                found = plain_block_reasons(report)
+                if found:
+                    return found
+            except (OSError, ValueError, TypeError):
+                pass
+        return [str(exc).removeprefix("Release blocked: ")[:400]]
+
+    def _still(self, post: dict[str, Any]) -> bool:
+        """True while the booking is still as this pass read it (a Post now may have changed it meanwhile)."""
+        return any(p["id"] == post["id"] for p in self.db.list_scheduled_posts((post["status"],), run_id=post["run_id"]))
+
+    def _unknown_booking(self, post: dict[str, Any], exc: Exception) -> None:
+        """The Reel's upload started and its outcome is unknown: the booking is "unknown" (this loop never posts it
+        again), its Stories and carousel are cancelled as for any Reel that did not post for sure, and the operator is
+        asked once whether it posted (the pubok/pubno reconciliation; a remake is never offered)."""
+        if not self._still(post):
+            return
+        self.db.update_scheduled_post(post["id"], "unknown", detail={"error": _error_words(exc)})
+        for other in self.db.list_scheduled_posts(("pending", "waiting"), run_id=post["run_id"]):
+            self.db.update_scheduled_post(other["id"], "cancelled", detail={"reason": "the Reel did not post"})
+        key = self.db.run_key(post["run_id"])
+        text = (f"⚠️ <b>Publish unconfirmed</b>\n\n<b>{html.escape(self.db.run_label(post['run_id']))}</b>\n\n"
+                f"The upload may have gone through ({html.escape(_error_words(exc))}). I won't retry automatically, "
+                "to avoid a duplicate post. Check Facebook and Instagram, then tell me:")
+        buttons = [{"text": "✅ It posted", "callback_data": f"pubok:{key}"},
+                   {"text": "🔁 It didn't post", "callback_data": f"pubno:{key}"}]
+        try:
+            self._alert(text, buttons=buttons, group="needs")
+        except TypeError:   # a stand-in alert that takes no group
+            self._alert(text, buttons=buttons)
+
+    def _block_booking(self, post: dict[str, Any], exc: Exception, now: datetime) -> None:
+        """Sets a booking aside: it is not posted, and trying again cannot change that (QF-110). A Reel's day is
+        freed for other episodes; its Stories and carousel wait with it. Said once, with what can work."""
+        if not self._still(post):
+            return
+        reasons = self._block_reasons(post["run_id"], exc)
+        label = html.escape(self.db.run_label(post["run_id"]))
+        log.warning("Booking %s (%s, %s) blocked: %s", post["id"], post["kind"], post["run_id"], "; ".join(reasons))
+        if post["kind"] != "reel":
+            name = {"story": "Stories", "carousel": "Carousel"}.get(post["kind"], post["kind"])
+            self.db.update_scheduled_post(post["id"], "failed", detail={"error": "; ".join(reasons)})
+            self._alert(f"❌ {name} not posted for {label}: " + html.escape("; ".join(reasons)[:300]))
+            return
+        self.db.update_scheduled_post(post["id"], "blocked", detail={
+            "reason": "; ".join(reasons), "reasons": reasons, "blocked_at": now.isoformat(), "error": str(exc)[:1000]})
+        from src.posting_view import BLOCKED_NEXT, blocked_buttons
+        lines = "\n".join(f"• {html.escape(r)}" for r in reasons)
+        text = f"⛔ <b>Not posted: {label}</b>\n\nIts Reel was held at its slot because:\n{lines}\n\n{BLOCKED_NEXT}"
+        try:
+            self._alert(text, buttons=blocked_buttons(self.db, post), group="needs")
+        except TypeError:   # a stand-in alert that takes no group
+            self._alert(text, buttons=blocked_buttons(self.db, post))
+
+    def _hold_booking(self, post: dict[str, Any], exc: Exception) -> None:
+        """Keeps a booking that hit an error which may pass: it is tried again at the next pass, and the error is
+        said once (again only when it changes), never every minute (QF-110)."""
+        from src.fact_evidence import RecheckUnavailable
+        said = _error_words(exc)
+        detail = dict(post.get("detail") or {})
+        if detail.get("held") == said or not self._still(post):
+            return
+        self.db.update_scheduled_post(post["id"], post["status"], detail={**detail, "held": said})
+        name = {"reel": "Reel", "story": "Stories", "carousel": "Carousel"}.get(post["kind"], post["kind"])
+        why = (f"its fact check, made before a code update, must be run again under the current rules first, and "
+               f"that cannot happen now ({html.escape(said)}). It is tried again with a growing wait"
+               if isinstance(exc, RecheckUnavailable) else html.escape(said))
+        self._alert(f"⚠️ <b>{name} not posted yet</b> for {html.escape(self.db.run_label(post['run_id']))}: "
+                    f"{why}\n\nIt stays booked and is tried again; you'll hear again only if the error changes.")
 
     def _reschedule(self, post: Dict[str, Any], run: Dict[str, Any], now: datetime) -> None:
         slot = post_schedule.next_reel_slot(now, self._booked_reel_days(exclude_id=post["id"]))
@@ -3745,7 +3893,18 @@ class PipelineCoordinator:
                 when = post_schedule.story_time(slot).astimezone(timezone.utc).isoformat()
                 self.db.update_scheduled_post(story["id"], "pending", due_at=when)
         missed = post_schedule.fmt(datetime.fromisoformat(post["due_at"]))
-        self._alert(f"⏰ Missed the {html.escape(missed)} slot for {html.escape(self.db.run_label(post['run_id']))} "
+        label = html.escape(self.db.run_label(post["run_id"]))
+        detail = dict(post.get("detail") or {})
+        held = detail.get("held")
+        if held:   # held at its slot (QF-110): said with why, and once per reason, never again each day
+            if detail.get("moved_said") == held:
+                return
+            self.db.update_scheduled_post(post["id"], "pending", detail={**detail, "moved_said": held})
+            self._alert(f"⏰ {label} could not post at its {html.escape(missed)} slot: it is still held "
+                        f"({html.escape(held)}). Moved to {html.escape(post_schedule.fmt(slot))}; it keeps moving to "
+                        "the next free slot until it can post, and you'll hear again only if the reason changes.")
+            return
+        self._alert(f"⏰ Missed the {html.escape(missed)} slot for {label} "
                     f"(the daemon was off or paused). Moved to {html.escape(post_schedule.fmt(slot))}.")
 
     CAROUSEL_CAPTION_MAX = 2200  # Instagram's caption and comment limit
@@ -3869,6 +4028,88 @@ class PipelineCoordinator:
         self.db.set_setting("carousel_posted_on", local.date().isoformat())  # before posting: never twice a day
         self._post_photos(post, run, "carousel")
 
+    def _approved_fingerprint(self, run_id: str) -> str | None:
+        """The run's review fingerprint when it is still the one on the review card you approved (QF-110: the
+        copy, video, cover, Stories and carousel unchanged since), else None."""
+        from src.telegram_state import get, review_fingerprint
+        approval = self.db.get_approval(run_id) or {}
+        if approval.get("decision") != "approved" or approval.get("telegram_message_id") is None:
+            return None
+        try:
+            shown = get(self.db, "review-card", f"{run_id}:{approval['telegram_message_id']}")
+            now = review_fingerprint(self.db, run_id)
+        except Exception:  # noqa: BLE001 - no card record (a command-line database) or a file missing: no binding
+            return None
+        return now if shown and shown == now else None
+
+    RECHECK_WAIT_PREFIX = "fact_recheck_wait:"
+    RECHECK_MAX_TRIES = 6            # then it waits for Post now (which tries once more)
+    RECHECK_FIRST_WAIT_S = 300       # doubling: 5, 10, 20, 40, 80 min
+
+    def _recheck_facts(self, run: dict[str, Any], retry_now: bool = False) -> None:
+        """QF-110: a fact review made before a code update changed the checkers' rules or the copy's fingerprint is
+        checked again under the current rules, on the copy you approved (never another), once per copy and rules;
+        the signed result, pass or fail, is kept beside the master (fact_evidence.RECHECK_FILE) for the release gate.
+        A changed sheet, reference file or copy is not re-checked: the gate blocks it. A checker that gives no verdict
+        (quota, rate limit, outage) raises RecheckUnavailable and nothing is stored: the booking is held and tried
+        again after a doubling wait, at most RECHECK_MAX_TRIES times (Post now tries once more). While a run is being
+        made the checkers are left to it (the free tier stays serial): the re-check waits and the booking is held."""
+        from src import fact_evidence as fe
+        payload = run.get("script_payload") or {}
+        payload = {**payload, "topic_id": payload.get("topic_id") or run.get("topic_id")}   # a documentary's has none
+        if not run.get("master_video_path") or not fe.fact_review_problem(payload) or not fe.drift_only(payload):
+            return
+        approved = self._approved_fingerprint(run["run_id"])
+        if not approved:
+            return
+        path = Path(run["master_video_path"]).parent / fe.RECHECK_FILE
+        try:
+            if fe.recheck_matches(payload, json.loads(path.read_text(encoding="utf-8")), approved):
+                return
+        except (OSError, ValueError):
+            pass
+        key = self.RECHECK_WAIT_PREFIX + run["run_id"]
+        try:
+            state = json.loads(self.db.get_setting(key) or "{}")
+        except ValueError:
+            state = {}
+        if self.db.get_active_progress() is not None:
+            raise fe.RecheckUnavailable("a run is using the checkers now; checked when it has finished")
+        if not retry_now:
+            if int(state.get("tries") or 0) >= self.RECHECK_MAX_TRIES:
+                raise fe.RecheckUnavailable(f"the checkers gave no verdict {state['tries']} times; tap Post now to try "
+                                            "once more")
+            if float(state.get("next_at") or 0) > time.time():
+                raise fe.RecheckUnavailable(str(state.get("why") or "waiting before the next try"))
+        from src import trace_check
+        models = trace_check.checker_models()
+        try:
+            rec = fe.run_recheck(payload, approved)
+        except fe.RecheckUnavailable as e:
+            tries = int(state.get("tries") or 0) + 1
+            self.db.set_setting(key, json.dumps({"tries": tries, "why": str(e)[:200],
+                                                 "next_at": time.time() + self.RECHECK_FIRST_WAIT_S * 2 ** (tries - 1)}))
+            raise
+        self.db.set_setting(key, "")
+        from src.atomic_files import write_json
+        write_json(path, rec)
+        log.info("Fact check of %s made before a code update, checked again under the current rules: %s.",
+                 run["run_id"], "passed" if rec.get("passed") else "did not pass")
+        paid = not all("gemini" in str(m).lower() for m in models.values())
+        self._alert(f"🔎 <b>Fact check run again</b> for {html.escape(self.db.run_label(run['run_id']))} before it "
+                    "posts (a code update since you approved it): trace check "
+                    f"({html.escape(str(models.get('trace_check')))}) and evidence check "
+                    f"({html.escape(str(models.get('evidence_check')))}), "
+                    + ("paid API calls" if paid else "free tier") + ". "
+                    + ("Passed." if rec.get("passed") else "It did not pass, so the Reel is held."))
+
+    def _require_release(self, run: dict[str, Any], dry_run: bool = False, retry_now: bool = False) -> dict[str, Any]:
+        """The release gate, after the fact re-check a code update calls for (QF-110)."""
+        from src.release import require_release
+        if not dry_run:
+            self._recheck_facts(run, retry_now=retry_now)
+        return require_release(run, dry_run=dry_run)
+
     def publish_run(self, run_id: str, dry_run: bool = False, previous_status: str = "queued") -> Dict[str, Any]:
         from src.publication_lock import publication_lock
         with publication_lock(self.db.db_path, run_id, wait=30):
@@ -3901,9 +4142,9 @@ class PipelineCoordinator:
         if profile not in ("reel_9x16", "deep_dive_16x9"):
             raise ValueError("No uploader is configured for this delivery profile; use the exported artifacts.")
         if not dry_run and payload.get("origin") == "curated" and not payload.get("human_reviewed"):
-            raise ValueError("This run used an unreviewed curated script; it can only be published after review.")
-        from src.release import require_release
-        require_release(run, dry_run=dry_run)
+            from src.release import ReleaseBlocked
+            raise ReleaseBlocked("This run used an unreviewed curated script; it can only be published after review.")
+        self._require_release(run, dry_run=dry_run)
         envelope = self.publisher.build_envelope(
             run_id, Path(run["master_video_path"]), Path(run["thumbnail_cover_path"]),
             Path(run["thumbnail_grid_path"]), payload,
@@ -4592,6 +4833,44 @@ def prebuild_candidates(db: PipelineDatabase, n: int) -> list:
     return out
 
 
+def new_version(coordinator: "PipelineCoordinator", run_id: str, rerender, busy=lambda: False) -> str:
+    """♻️ Make a new version of an episode whose booking was blocked (QF-110): its bookings are cancelled and it is
+    remade from this run (Re-render), then it comes to review like any new version. Every refusal comes first: while
+    a run is being made (`busy`) nothing is cancelled."""
+    if busy():
+        return "♻️ A run is in progress; make the new version when it has finished (nothing was changed)."
+    refusal = coordinator.prepare_new_version(run_id)
+    return f"♻️ {html.escape(refusal)}" if refusal else rerender(run_id)
+
+
+def _error_words(error: Exception) -> str:
+    """An error as said to the operator and compared for "said once": its type and first line, with object
+    addresses, long numbers and ids taken out (a network error carries a new address every minute)."""
+    text = str(error).strip().splitlines()[0] if str(error).strip() else ""
+    text = re.sub(r"0x[0-9a-fA-F]+", "0x…", text)
+    text = re.sub(r"\b[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\b", "…", text)
+    text = re.sub(r"\b\d{5,}\b", "…", text)
+    return f"{type(error).__name__}: {text}"[:300]
+
+
+POSTING_ERROR_KEY = "posting_error_said"
+
+
+def say_posting_error(db, bot, error: Exception | None) -> None:
+    """A posting pass's error is said once, and again only when it changes or after a pass that worked (QF-110:
+    one blocked Reel was reported about once a minute for days). `error` None: the pass worked."""
+    said = "" if error is None else _error_words(error)
+    try:
+        if (db.get_setting(POSTING_ERROR_KEY) or "") == said:
+            return
+        db.set_setting(POSTING_ERROR_KEY, said)
+    except Exception as e:  # noqa: BLE001 - a database that cannot be read still gets the message said
+        log.debug("Posting error state not kept: %s", e)
+    if error is not None:
+        bot.notify(f"⚠️ Scheduled posting hit an error: {html.escape(str(error)[:300])}\n\nIt is tried again each "
+                   "minute; you'll hear again only if the error changes.", group="needs")
+
+
 def start_post_ticker(coordinator: "PipelineCoordinator", bot) -> threading.Thread:
     """Bot mode's scheduled posting: every minute, publish what is due (held while paused),
     as the daemon's post_due job does."""
@@ -4602,9 +4881,10 @@ def start_post_ticker(coordinator: "PipelineCoordinator", bot) -> threading.Thre
                 continue
             try:
                 coordinator.post_due()
+                say_posting_error(coordinator.db, bot, None)
             except Exception as e:
                 log.exception("Posting scheduled items failed: %s", e)
-                bot.notify(f"⚠️ Scheduled posting hit an error: {html.escape(str(e)[:300])}", group="needs")
+                say_posting_error(coordinator.db, bot, e)
 
     thread = threading.Thread(target=tick, name="post-due", daemon=True)
     thread.start()
@@ -5012,6 +5292,8 @@ def main(argv=None) -> int:
                          "fbcaptions": getattr(coordinator, "add_facebook_captions", None),
                          "fbcover": getattr(coordinator, "set_facebook_cover", None),
                          "rebook": getattr(coordinator, "rebook_followers", None),
+                         "newversion": lambda run_id: new_version(coordinator, run_id, rerender_in_bot,
+                                                                  busy=lambda: db.get_active_progress() is not None),
                          "ytthumb": getattr(coordinator, "set_youtube_thumbnail", None),
                          "ytshort": getattr(coordinator, "post_youtube_short", None)},
             produce_batch=produce_batch,
@@ -5210,9 +5492,10 @@ def main(argv=None) -> int:
                 return  # held; slots missed while paused move to the next free slot on resume
             try:
                 coordinator.post_due()
+                say_posting_error(coordinator.db, bot, None)
             except Exception as e:
                 log.exception("Posting scheduled items failed: %s", e)
-                bot.notify(f"⚠️ Scheduled posting hit an error: {html.escape(str(e)[:300])}", group="needs")
+                say_posting_error(coordinator.db, bot, e)
 
         def report_release():  # a release refused before the stop window causes no restart to announce it
             try:
@@ -5500,6 +5783,9 @@ def main(argv=None) -> int:
                          "fbcaptions": getattr(coordinator, "add_facebook_captions", None),
                          "fbcover": getattr(coordinator, "set_facebook_cover", None),
                          "rebook": getattr(coordinator, "rebook_followers", None),
+                         "newversion": lambda run_id: new_version(coordinator, run_id, rerender_run,
+                                                                  busy=lambda: run_lock.locked()
+                                                                  or coordinator.db.get_active_progress() is not None),
                          "ytthumb": getattr(coordinator, "set_youtube_thumbnail", None),
                          "ytshort": getattr(coordinator, "post_youtube_short", None)},
                                        produce_batch=produce_batch)

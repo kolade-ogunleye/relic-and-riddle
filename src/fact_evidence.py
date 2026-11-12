@@ -334,3 +334,170 @@ def _current_unsigned(payload):
                 payload.get("guardrail_passed") is True and review.get("sheet_sha256") and
                 review.get("public_fingerprint") == public_fingerprint(payload) and
                 review["sheet_sha256"] in _digests(review.get("sheet_path", "")))
+
+
+# ---------------------------------------------------------------- QF-110: a review made before a code update
+# A stamp is bound to its copy and research file by the code's own fingerprints (review_rules_fingerprint: the
+# checkers' prompts; public_fingerprint: what surfaces() reads), so every code update that changed either made each
+# review approved before it stale, and an approved booking could never post (production, 2026-11-02 to 11-12). The
+# gate is now content-bound: when only those code fingerprints moved, the copy is checked again under the current
+# rules, and the result is kept beside the run (RECHECK_FILE, signed "fact_recheck"). Only a passing re-check of the
+# very content the operator approved (main.PipelineCoordinator._approved_fingerprint) lets it post. A changed or
+# missing fact sheet, a changed reference file, an unsigned or altered stamp, or changed copy still blocks.
+RECHECK_FILE = "fact_recheck.json"
+
+
+def _valid_rules():
+    return {review_rules_fingerprint(), "79415fa9c90d9a5027f19d13e77f998cf14dfdf848dc59042819e993438c455d"}
+
+
+def recheck_sheet(payload):
+    """The research file a re-check is made against: a signed stamp's own (its path as script_library re-points it);
+    for a stamp made before records were signed, only the topic's own fact sheet (DATA_DIR/fact_sheets/<topic>.json),
+    never a path the unsigned record names. None when there is none."""
+    review = _review(payload) or {}
+    if review.get("signature"):
+        return Path(review.get("sheet_path") or "") if review.get("sheet_path") else None
+    from . import config
+    topic = str(payload.get("topic_id") or "").strip()
+    if not topic or Path(topic).name != topic:
+        return None
+    return config.DATA_DIR / "fact_sheets" / f"{topic}.json"
+
+
+def drift_only(payload) -> bool:
+    """True when the payload's stamp is not current only because of code, so a re-check of the same copy against
+    the same research may stand in for it (QF-110):
+      - a signed stamp whose signatures hold (its own and its checker record's, for the fingerprint it was stamped
+        with) and whose rules or public-copy fingerprint differs from the current code's;
+      - a stamp made before records were signed (2026-11-03; production's code until then wrote no signature, no
+        checker record and no LF digest): operator decision A has the copy checked again, which the re-check is.
+    Either way the stamp's research file must be unchanged (its sha256, and its LF digest where recorded), the
+    reference file too when the script uses one, and the guardrail must have passed. A stamp carrying signed fields
+    but no signature, a signature that does not hold, or a changed sheet is never re-checked: it blocks."""
+    from .record_signing import key_problem, problem
+    if key_problem():
+        return False
+    review = _review(payload)
+    if not review:
+        return False
+    try:
+        if payload.get("guardrail_passed") is not True:
+            return False
+        sheet = recheck_sheet(payload)
+        if sheet is None or not review.get("sheet_sha256") or review["sheet_sha256"] not in _digests(sheet):
+            return False
+        if selected_reference(payload.get("scale_fact")) and review.get("reference_sha256") not in _digests(REFERENCE_FILE):
+            return False
+        if not review.get("signature"):
+            # made before signing: none of the fields signing added may be present without the signature
+            return not any(review.get(k) for k in ("check", "sheet_lf_sha256"))
+        if not review.get("sheet_lf_sha256") or review["sheet_lf_sha256"] != _lf_sha256(sheet):
+            return False
+        if stamp_problem(review):
+            return False
+        rec = review.get("check")
+        if not isinstance(rec, dict) or rec.get("public_fingerprint") != review.get("public_fingerprint"):
+            return False
+        if problem("gate_check", rec, exclude=("sha256",)):
+            return False
+        current = (review.get("review_rules_fingerprint") in _valid_rules()
+                   and review.get("public_fingerprint") == public_fingerprint(payload))
+        return not current
+    except (AttributeError, TypeError, KeyError, ValueError):
+        return False
+
+
+def recheck_subject(payload, approved):
+    """What a re-check is for: the original stamp (its signature, "" for one made before signing), the content the
+    operator approved (`approved`, the run's review fingerprint), this copy under the current code, the current rules
+    and the research file as it is now (its LF digest)."""
+    review = payload.get("fact_review") or {}
+    sheet = recheck_sheet(payload)
+    return {"stamp_signature": str(review.get("signature") or ""), "approved_fingerprint": str(approved or ""),
+            "stamp_sheet_sha256": str(review.get("sheet_sha256") or ""),
+            "public_fingerprint": public_fingerprint(payload), "review_rules_fingerprint": review_rules_fingerprint(),
+            "sheet_lf_sha256": _lf_sha256(sheet) if sheet else "",
+            "reference_sha256": str(review.get("reference_sha256") or "")}
+
+
+def recheck_record(payload, approved, passed, check=None, notes=""):
+    """The re-check's result, signed ("fact_recheck"); a failed one is kept too, so it is not paid for again."""
+    from datetime import UTC, datetime
+
+    from .record_signing import signed
+    return signed("fact_recheck", {**recheck_subject(payload, approved), "passed": bool(passed), "check": check,
+                                   "notes": str(notes or "")[:1000],
+                                   "checked_at": datetime.now(UTC).isoformat(timespec="seconds")})
+
+
+def recheck_matches(payload, rec, approved) -> bool:
+    """True when `rec` is a signed re-check made for this exact subject (pass or fail)."""
+    from .record_signing import problem
+    if not isinstance(rec, dict) or not approved or problem("fact_recheck", rec):
+        return False
+    return all(rec.get(k) == v for k, v in recheck_subject(payload, approved).items())
+
+
+def recheck_problem(payload, rec, approved) -> str:
+    """"" when `rec` is a signed, passing re-check of this copy under the current rules for the content the
+    operator approved (`approved`: the run's review fingerprint as it is now); else why not, in words."""
+    if not approved:
+        return ("its approval cannot be matched to this copy (the review card's record is missing or the copy, "
+                "video or pictures changed since)")
+    if not isinstance(rec, dict):
+        return "it has not been checked again yet"
+    if not recheck_matches(payload, rec, approved):
+        return "the re-check on record is for other copy, rules or research, or is not signed"
+    if rec.get("passed") is not True:
+        return "checked again under the current rules, it did not pass" + (f": {rec['notes']}" if rec.get("notes") else "")
+    why = check_record_problem(rec.get("check"), recheck_subject(payload, approved)["public_fingerprint"])
+    return f"the re-check has no passing automated check behind it ({why})" if why else ""
+
+
+class RecheckUnavailable(RuntimeError):
+    """A checker gave no verdict on the copy (quota, rate limit, outage, an empty or refused reply): nothing is
+    recorded, and the re-check is tried again later (QF-110 review 1: an outage stored as a signed failure blocked the
+    booking for good)."""
+
+
+def run_recheck(payload, approved):
+    """Runs both automated checkers again on a copy of `payload` (the stored payload is never changed, so the
+    approval's binding to it holds) against the fact sheet the stamp was made with, and returns the signed result.
+    A verdict, pass or fail, is returned; a checker that gives none raises RecheckUnavailable (as do its own
+    errors: the caller retries later, bounded). A verdict needs reviewed claims: an empty reply is not one."""
+    import copy
+    import json
+
+    from . import trace_check
+    from .llm import watch_served
+    sheet = json.loads(Path(recheck_sheet(payload)).read_text(encoding="utf-8"))
+    work = copy.deepcopy(payload)
+    work.pop("fact_review", None)
+    try:
+        with watch_served() as t_served:
+            t_passed, _, t_audits, t_notes = trace_check.check(work, sheet)
+    except Exception as e:  # quota, rate limit, network: no verdict on the copy
+        raise RecheckUnavailable(f"trace check unavailable: {type(e).__name__}") from e
+    if not t_audits:
+        raise RecheckUnavailable(f"trace check gave no verdict: {t_notes}")
+    if not t_passed:
+        return recheck_record(payload, approved, False, notes=f"trace check: {t_notes}")
+    try:
+        with watch_served() as e_served:
+            e_status, _, e_audits, e_notes = trace_check.evidence_check(work, sheet)
+    except Exception as e:
+        raise RecheckUnavailable(f"evidence check unavailable: {type(e).__name__}") from e
+    if e_status not in ("pass", "fail") or not e_audits:
+        raise RecheckUnavailable(f"evidence check gave no verdict: {e_notes}")
+    if e_status != "pass":
+        return recheck_record(payload, approved, False, notes=f"evidence check: {e_notes}")
+    models = trace_check.checker_models()
+    served = {"trace_check": t_served, "evidence_check": e_served}
+    models = {k: " + ".join(dict.fromkeys(served[k])) if served[k] else v for k, v in models.items()}
+    public = public_fingerprint(payload)
+    check = check_record(checker_run("trace_check", public, models["trace_check"], t_passed, t_audits, t_notes),
+                         checker_run("evidence_check", public, models["evidence_check"], True, e_audits, e_notes),
+                         public)
+    why = check_record_problem(check, public)
+    return recheck_record(payload, approved, not why, check=check, notes=why)

@@ -14,7 +14,6 @@ import re
 import shutil
 import socket
 import subprocess
-import time
 from logging.handlers import RotatingFileHandler
 from datetime import datetime, timezone
 from pathlib import Path
@@ -126,53 +125,24 @@ log = logging.getLogger(__name__)
 
 
 class AssetLifecycleManager:
-    """Maintains storage hygiene by pruning intermediate scratch files older than retention_days."""
+    """Maintains storage hygiene by freeing the intermediate scratch of FINISHED runs older than retention_days
+    (src/retention.py, QF-110): a run with a live booking or an open review, or one still being made, is never
+    touched. Narration, bed, master and every record are kept for every run."""
 
-    # Narration and bed are kept: a run's release check and rights evidence need them (a run can
-    # wait weeks for approval or a slot, and published runs may need them in a dispute).
-    SCRATCH_PATTERNS = ("*temp*", "*.tmp")
-    SCRATCH_DIRS = ("motion", "parallax", "qa_frames", "stage_cache", "audit")
+    # Freed by an explicit allowlist (src/retention.py): the "*temp*" pattern this class used deleted the master of
+    # every topic named "...temple...". Narration and bed are kept: a run's release check and rights evidence need
+    # them (a run can wait weeks for approval or a slot, and published runs may need them in a dispute).
 
-    def __init__(self, output_dir: Path = OUTPUT_DIR, retention_days: int = 7):
+    def __init__(self, output_dir: Path = OUTPUT_DIR, retention_days: int = 7, db=None):
         self.output_dir = output_dir
         self.retention_days = retention_days
+        self.db = db   # the pipeline's records, which say which runs are pending (None: none is known to be)
 
     def purge_intermediate_assets(self) -> Dict[str, Any]:
-        cutoff_sec = time.time() - self.retention_days * 86400
-        purged_files = 0
-        reclaimed_bytes = 0
-
-        for run_dir in self.output_dir.iterdir():
-            if not (run_dir.is_dir() and run_dir.name.startswith("run_")):
-                continue
-            if run_dir.stat().st_mtime >= cutoff_sec:
-                continue
-            # Purge loose scratch patterns
-            for pattern in self.SCRATCH_PATTERNS:
-                for f in run_dir.glob(pattern):
-                    try:
-                        size = f.stat().st_size
-                        f.unlink()
-                        purged_files += 1
-                        reclaimed_bytes += size
-                    except OSError as e:
-                        log.warning("Could not purge %s: %s", f, e)
-            # Purge intermediate scratch directories (motion, parallax, qa_frames, etc.)
-            for d_name in self.SCRATCH_DIRS:
-                s_dir = run_dir / d_name
-                if s_dir.is_dir():
-                    try:
-                        for sf in s_dir.rglob("*"):
-                            if sf.is_file():
-                                reclaimed_bytes += sf.stat().st_size
-                                purged_files += 1
-                        shutil.rmtree(s_dir)
-                    except OSError as e:
-                        log.warning("Could not remove scratch directory %s: %s", s_dir, e)
-
-        mb_reclaimed = reclaimed_bytes / (1024 * 1024)
-        log.info("Purged %d intermediate files (%.2f MB reclaimed).", purged_files, mb_reclaimed)
-        return {"purged_count": purged_files, "mb_reclaimed": round(mb_reclaimed, 2)}
+        from .retention import free_run_intermediates
+        result = free_run_intermediates(self.output_dir, self.db, self.retention_days)
+        return {"purged_count": result["purged_count"], "mb_reclaimed": result["mb_reclaimed"],
+                "runs": result["runs"], "protected": result["protected"]}
 
 
 class PreFlightHealthChecker:

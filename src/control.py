@@ -539,6 +539,7 @@ AUDIT_NAMES = {"cdash": "Dashboard", "approve": "Approve", "reject": "Reject", "
                "cdigest": "Weekly digest", "chistory": "Review history", "chist": "Review details", "postnow": "Post now", "produce": "Produce a batch",
                "cposts": "Posting", "cpost": "Posting: one episode", "posts": "Posting", "cancelpost": "Cancel a booking", "movepost": "Move a booking",
                "retrypost": "Retry the failed platform", "retryreel": "Retry the Reel's failed platform", "fbcaptions": "Add captions on Facebook", "fbcover": "Set the Facebook cover", "ytshort": "Post the YouTube Short", "rebook": "Book Stories and carousel again", "ytthumb": "Set the YouTube thumbnail",
+               "newversionask": "Make a new version?", "newversion": "Make a new version",
                "edit": "Edit text", "runstop": "Cancel run", "runstopok": "Confirm cancel",
                "simpub": "Simulated publish", "pubok": "It posted", "pubno": "It didn't post", "creviews": "Reviews",
                "cideas": "Topic ideas", "cdisc": "UNESCO marvels", "cprop": "Waiting ideas", "cpropose": "Research ideas",
@@ -1416,7 +1417,8 @@ def history_details(db: PipelineDatabase, key: str) -> Tuple[str, List[List[Dict
     return "\n".join(lines), [[HOME]]
 
 
-POST_ICON = {"pending": "🗓", "waiting": "⏳", "published": "✅", "failed": "❌", "unknown": "❓", "cancelled": "⏹"}
+POST_ICON = {"pending": "🗓", "waiting": "⏳", "published": "✅", "failed": "❌", "unknown": "❓", "cancelled": "⏹",
+             "blocked": "⛔"}
 POST_NAME = {"reel": "Reel", "story": "Stories", "carousel": "Carousel"}
 
 
@@ -1467,7 +1469,8 @@ def _when(iso: Optional[str], ahead: bool = True) -> str:
 def _episode_bookings(db: PipelineDatabase) -> List[Tuple[str, List[Dict[str, Any]]]]:
     """Every run with bookings, those with something still to post first (soonest first), then the rest
     (newest first); each run's bookings in posting order: Reel, Stories, carousel."""
-    every = db.list_scheduled_posts(("pending", "waiting", "published", "failed", "unknown", "cancelled", "expired"))
+    every = db.list_scheduled_posts(("pending", "waiting", "published", "failed", "unknown", "cancelled", "expired",
+                                     "blocked"))
     runs: Dict[str, List[Dict[str, Any]]] = {}
     for p in every:
         runs.setdefault(p["run_id"], []).append(p)
@@ -1483,7 +1486,7 @@ def _episode_bookings(db: PipelineDatabase) -> List[Tuple[str, List[Dict[str, An
 
     def key(item):
         _, posts = item
-        open_due = [p.get("due_at") or "9999" for p in posts if p["status"] in ("pending", "waiting")]
+        open_due = [p.get("due_at") or "9999" for p in posts if p["status"] in ("pending", "waiting", "blocked")]
         return (0, min(open_due), 0) if open_due else (1, "", -max(p["id"] for p in posts))
     return sorted(runs.items(), key=key)
 
@@ -2895,6 +2898,10 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             from .posting_view import confirm_post_now
             text, buttons = confirm_post_now(db, db.resolve_run(args.strip()))
             return text, buttons + [[HOME]]
+        if command == "newversionask":  # a blocked booking's new version replaces it: it asks first (QF-110)
+            from .posting_view import confirm_new_version
+            text, buttons = confirm_new_version(db, db.resolve_run(args.strip()))
+            return text, buttons + [[HOME]]
         if command == "cancelask":  # cancelling a Reel takes its Stories and carousel with it: it asks first
             from .posting_view import confirm_cancel
             try:
@@ -2936,7 +2943,8 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             try:
                 post_id = int(args.strip())
                 run_of = next((p["run_id"] for p in db.list_scheduled_posts(
-                    ("pending", "waiting", "published", "failed", "unknown", "cancelled", "expired")) if p["id"] == post_id), None)
+                    ("pending", "waiting", "published", "failed", "unknown", "cancelled", "expired", "blocked"))
+                if p["id"] == post_id), None)
                 result = action(post_id)
             except ValueError:
                 return "That booking id is not valid."
@@ -2960,13 +2968,15 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             q_text, q_buttons = render_queue_text_and_buttons(starting=current["id"] if started and current else None)
             return f"{res}\n\n{q_text}", q_buttons                       # the Queue panel, now showing the batch
         if command in ("pubok", "pubno", "resend", "simpub", "rerender", "promote", "postnow", "retryreel", "fbcaptions",
-                       "fbcover", "ytshort", "rebook", "ytthumb"):
+                       "fbcover", "ytshort", "rebook", "ytthumb", "newversion"):
             action = (run_actions or {}).get(command)
             if action is None:
                 return "That button only works while the daemon is running."
             run_id = db.resolve_run(args)
             result = action(run_id)
-            if command in EPISODE_ACTIONS and isinstance(result, str):
+            blocked = command in ("postnow", "retryreel", "rebook") and any(
+                p["kind"] == "reel" for p in db.list_scheduled_posts(("blocked",), run_id=run_id))
+            if (command in EPISODE_ACTIONS or blocked) and isinstance(result, str):
                 # The result on the episode's own card, redrawn (operator, 2026-10-27: the answer came as a separate
                 # message with only Dashboard, under a card still saying "Facebook cover: not set")
                 text, buttons = posting_episode(db, run_id)

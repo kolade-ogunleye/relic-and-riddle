@@ -607,6 +607,137 @@ def verify_provenance_integrity(provenance_path: Path) -> bool:
         return False
 
 
+# QF-110: the run folders a master is made THROUGH, not from: the animated scene clips (parallax/, motion/) and the
+# lineage records beside them. Once the master exists (its own sha256 bound in provenance and in its composition
+# record, with each clip's recorded sha256), they are not evidence of anything the master does not already carry, so
+# the release gate no longer needs them on disk; the pre-run clean-up and the retention command free them (only for
+# finished runs). A clip still on disk must still match its record. Everything else stays mandatory: the master and
+# its composition record (the unit of trust), the photos, footage, illustrations, map data and their licence and
+# credit records (photo rights), the narration and music bed with their rights records (voice and music rights,
+# which the gate inspects), the fonts and font licence (font rights), and the fact sheet and reference file.
+INTERMEDIATE_DIRS = ("parallax", "motion")
+
+
+def is_intermediate(path: Path, run_dir: Path) -> bool:
+    """True when `path` is a scene clip or lineage record in one of the run's INTERMEDIATE_DIRS."""
+    try:
+        rel = Path(path).resolve().relative_to(Path(run_dir).resolve())
+    except (ValueError, OSError):
+        return False
+    return len(rel.parts) > 1 and rel.parts[0] in INTERMEDIATE_DIRS
+
+
+def provenance_problems(provenance_path: Path) -> dict[str, Any]:
+    """The release gate's provenance check (QF-110): {"problems": [plain sentences], "missing_intermediates": n}.
+    Every recorded checksum is recomputed, as verify_provenance_integrity does, except that an intermediate clip or
+    lineage record (is_intermediate) that is no longer on disk is counted, not refused. A present file that does not
+    match, a missing mandatory file, or an incomplete record is a problem."""
+    out: dict[str, Any] = {"problems": [], "missing_intermediates": 0}
+    ledger = Path(provenance_path)
+    run_dir = ledger.parent
+    try:
+        data = json.loads(ledger.read_text(encoding="utf-8"))
+        if data.get("status") != "recorded" or data.get("issues"):
+            out["problems"].append("its source record is incomplete (written with open issues)")
+            return out
+        assets = data["assets"]
+        if len(assets) != data["assets_count"]:
+            out["problems"].append("its source record does not list every scene")
+            return out
+        groups = [("the approved video", [data["master_video"]]), ("a scene's source", assets),
+                  ("a licence or rights record", data.get("license_evidence", [])),
+                  ("a source file it was made from", data.get("derived_sources", [])),
+                  ("its fact sheet or reference file", data.get("factual_evidence", [])),
+                  ("a font or font licence", data.get("resource_evidence", [])),
+                  ("its narration", [data["voiceover"]] if data.get("voiceover") else []),
+                  ("its music bed", [data["ambient_bed"]] if data.get("ambient_bed") else []),
+                  ("its composition record", [data["composition_manifest"]] if data.get("composition_manifest") else [])]
+        for label, records in groups:
+            for rec in records:
+                expected = rec.get("sha256", "")
+                path = Path(rec["path"])
+                if not path.is_absolute():
+                    path = run_dir / path
+                name = rec.get("title") or path.name
+                if not re.fullmatch(r"[0-9a-f]{64}", str(expected)):
+                    out["problems"].append(f"{label} ({name}) has no valid checksum on record")
+                elif not path.is_file():
+                    if is_intermediate(path, run_dir) and label != "the approved video":
+                        out["missing_intermediates"] += 1
+                    else:
+                        out["problems"].append(f"{label} ({name}) is missing")
+                elif sha256_file(path) != expected:
+                    why = _repository_record_problem(path, expected, data, run_dir)
+                    if why is None:
+                        out["problems"].append(f"{label} ({name}) has changed since the video was made")
+                    elif why:
+                        out["problems"].append(why)
+    except (OSError, ValueError, KeyError, TypeError, AttributeError):
+        out["problems"].append("its source record is missing or cannot be read")
+    return out
+
+
+# QF-110 (operator ruling B, 2026-11-11): the rights records the REPOSITORY owns are compared by content, because a
+# release rewrites them for reasons that have nothing to do with an episode: the font licence catalogue
+# (fonts/license_evidence.json) grows when a font is added, and a licence text was re-saved with other line endings.
+# Every per-episode record (photos, credits.json, the voice and music .rights.json) stays byte-checked, and so do the
+# font files themselves.
+FONT_CATALOGUE = "license_evidence.json"
+
+
+def _line_endings_only(raw: bytes) -> bytes:
+    """A licence text with its line terminators made one: every run of CR before LF, and every lone CR, becomes LF.
+    Nothing else changes (no whitespace trimmed, no case folded, no blank line dropped), so two texts that are equal
+    after this have the same characters in the same order and differ only in how their lines end."""
+    return re.sub(rb"\r+\n", b"\n", raw).replace(b"\r", b"\n")
+
+
+def same_licence_text(path: Path, expected: str) -> bool:
+    """True when the licence text at `path`, line endings aside, is the one recorded with `expected` (its sha256 as
+    the file was then). Only the old file's hash is on record, so the current text is rendered with each common line
+    terminator (LF, CRLF, CR, CR CR LF) and one of them must hash to `expected`: any other byte that differs changes
+    every rendering's hash, so a different licence, or the same licence with a single word changed, never matches."""
+    import hashlib
+    text = _line_endings_only(Path(path).read_bytes())
+    return any(hashlib.sha256(text.replace(b"\n", end)).hexdigest() == expected
+               for end in (b"\n", b"\r\n", b"\r", b"\r\r\n"))
+
+
+def _repository_record_problem(path: Path, expected: str, data: dict[str, Any], run_dir: Path) -> str | None:
+    """For a recorded file whose bytes changed: None when it is not a repository-owned rights record (the caller
+    says it changed); "" when its content still holds; else the problem, in words."""
+    path = Path(path)
+    if path.parent.name == "licenses" and path.parent.parent.name == "fonts":
+        return "" if same_licence_text(path, expected) else f"the font licence text ({path.name}) has changed"
+    if path.name != FONT_CATALOGUE or path.parent.name != "fonts":
+        return None
+    import json
+    try:
+        manifest = Path((data.get("composition_manifest") or {})["path"])
+        if not manifest.is_absolute():
+            manifest = run_dir / manifest
+        used = {Path(f).name: digest for f, digest in json.loads(manifest.read_text(encoding="utf-8"))["fonts"].items()}
+        entries = {e.get("file"): e for e in json.loads(path.read_text(encoding="utf-8"))["fonts"] if isinstance(e, dict)}
+    except (OSError, ValueError, KeyError, TypeError, AttributeError):
+        return "the font licence record cannot be matched to the fonts this video used"
+    recorded = {Path(r.get("path", "")).name: r.get("sha256") for r in data.get("resource_evidence", [])}
+    if not used:
+        return "the font licence record cannot be matched to the fonts this video used"
+    for name, digest in sorted(used.items()):
+        entry = entries.get(name)
+        if not entry or entry.get("sha256") != digest:
+            return f"the font licence record's entry for {name} has changed"
+        licence = path.parent / str(entry.get("license_file") or "")
+        if not licence.name.startswith(name + "."):   # its own text (licenses/<font>.OFL.txt), never another font's
+            return f"the font licence record's entry for {name} has changed"
+        lic_recorded = recorded.get(licence.name)
+        # the entry must still name the licence text recorded with the video, and that text must still be it
+        if not lic_recorded or not licence.is_file() or entry.get("license_sha256") != sha256_file(licence) \
+                or not same_licence_text(licence, lic_recorded):
+            return f"the font licence record's entry for {name} has changed"
+    return ""
+
+
 # Audit defects a second scene plan can repair (a different picture for that beat), worded as
 # planner feedback. Other defects (loudness, cards, policy) are fixed elsewhere or need a person.
 SCENE_FIXES = {

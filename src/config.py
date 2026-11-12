@@ -382,6 +382,9 @@ CAROUSEL_DAYS = [d.strip().lower()[:3] for d in os.getenv("CAROUSEL_DAYS", "tue,
 # every carousel gets its slot (operator, 2026-11-03).
 CAROUSEL_GAP_HOURS = float(os.getenv("CAROUSEL_GAP_HOURS", "48"))
 CAROUSEL_MAX_AGE_DAYS = float(os.getenv("CAROUSEL_MAX_AGE_DAYS", "7"))
+# Prepared-image cache entries (cache/upscaled, privacy, text_crop, colour_balance) that no run folder's provenance or
+# lineage names are freed by `python -m src.retention --apply --caches` once unchanged this many days (QF-110/QF-100).
+CACHE_RETENTION_DAYS = float(os.getenv("CACHE_RETENTION_DAYS", "30"))
 
 # ------------------------------------------------------------------------------
 # LOCKED PRODUCTION SPECIFICATIONS

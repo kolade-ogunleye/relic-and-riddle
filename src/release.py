@@ -11,7 +11,7 @@ from .credits import (SHARE_ALIKE_NOTICE, asset_attribution, credit_line_problem
                       sha256_file)
 from .fact_evidence import fact_review_problem, fact_review_shown, human_review_shown, human_review_text
 from .delivery_profiles import get_delivery_profile
-from .video_qa import measure_program_loudness, verify_provenance_integrity
+from .video_qa import is_intermediate, measure_program_loudness, provenance_problems, verify_provenance_integrity
 
 
 def write_release_report(run, dry_run=False):
@@ -32,9 +32,11 @@ def write_release_report(run, dry_run=False):
     # ... and carry the automated checkers' own signed record of their passing runs on this copy (operator decision
     # 2026-11-04). A person's review of a curated script is shown beside it and never decides it.
     facts_problem = fact_review_problem(payload)
+    shown = facts_problem or fact_review_shown(payload)
+    if facts_problem:
+        facts_problem, shown = _rechecked_facts(run, payload, facts_problem)
     human = human_review_shown(payload)
-    add("facts", not facts_problem,
-        " ".join(t for t in (facts_problem or fact_review_shown(payload), human_review_text(human)) if t))
+    add("facts", not facts_problem, " ".join(t for t in (shown, human_review_text(human)) if t))
     if human:
         checks[-1]["human_review"] = human
     try:
@@ -103,8 +105,15 @@ def write_release_report(run, dry_run=False):
         add("audio_measurement", False, f"The sound could not be checked: {exc}")
 
     ledger = master.parent / "provenance.json"
-    integrity = verify_provenance_integrity(ledger)
-    add("provenance", integrity, "All recorded files must exist and match their checksums.")
+    # QF-110: the approved master is the unit of trust; a scene clip freed after it was made is counted, not refused
+    # (the strict check passes only where this one does; it is asked second so a measure that stubs it still can)
+    provenance = provenance_problems(ledger)
+    integrity = not provenance["problems"] or verify_provenance_integrity(ledger)
+    kept_out = provenance["missing_intermediates"]
+    add("provenance", integrity, (None if integrity else provenance["problems"]) or (
+        "All recorded files must exist and match their checksums." + (
+            f" {kept_out} intermediate scene clip file(s) are no longer kept; the master and every source and "
+            "rights record verify." if kept_out else "")))
     if integrity:
         data = json.loads(ledger.read_text(encoding="utf-8"))
         unresolved = [a["path"] for a in data["assets"] if a.get("rights_status") != "verified"]
@@ -151,7 +160,8 @@ def write_release_report(run, dry_run=False):
         for category in ("scenes", "voiceover", "ambient_bed", "fonts", "captions"):
             files = composition[category]
             valid_composition = valid_composition and bool(files) and all(
-                digest and sha256_file(Path(path)) == digest for path, digest in files.items())
+                digest and (sha256_file(Path(path)) == digest or _freed_clip(category, Path(path), master.parent))
+                for path, digest in files.items())
         from .checkpoints import fingerprint
         words = json.loads((master.parent / "words.json").read_text(encoding="utf-8"))
         valid_composition = valid_composition and composition["words_fingerprint"] == fingerprint(words)
@@ -215,6 +225,56 @@ def write_release_report(run, dry_run=False):
               "profile": profile.model_dump(), "status": status, "dry_run": dry_run, "checks": checks}
     _save_report(master.parent / "release_report.json", report)
     return report
+
+
+def _freed_clip(category: str, path: Path, run_dir: Path) -> bool:
+    """A scene clip that is gone from an intermediate folder (QF-110): its recorded sha256 is still compared with the
+    provenance record's below, and the master's own sha256 binds the rest."""
+    return category == "scenes" and not path.exists() and is_intermediate(path, run_dir)
+
+
+def _approved_now(run) -> str:
+    """The run's review fingerprint as it is now (telegram_state.review_fingerprint over its payload and files), or
+    "" when it cannot be computed (a file missing)."""
+    from .telegram_state import review_fingerprint
+
+    class _One:
+        @staticmethod
+        def get_run(_run_id):
+            return run
+    try:
+        return review_fingerprint(_One(), run.get("run_id"))
+    except (OSError, ValueError, TypeError, KeyError):
+        return ""
+
+
+def _rechecked_facts(run, payload, problem: str):
+    """(problem, detail) for the facts check when its stamp is not current (QF-110). A stamp that is stale only
+    because a code update changed the checkers' rules or the copy fingerprint passes on a signed, passing re-check of
+    this very copy under the current rules (fact_evidence.RECHECK_FILE beside the master), made for the content the
+    operator approved and still matching it now; any other problem is kept as it is."""
+    from . import fact_evidence as fe
+    payload = {**payload, "topic_id": payload.get("topic_id") or run.get("topic_id")}   # a documentary's has none
+    if not fe.drift_only(payload):
+        return problem, problem
+    try:
+        rec = json.loads((Path(run["master_video_path"]).parent / fe.RECHECK_FILE).read_text(encoding="utf-8"))
+    except (OSError, ValueError, KeyError, TypeError):
+        rec = None
+    why = fe.recheck_problem(payload, rec, _approved_now(run))
+    if why:
+        text = f"The fact check was made under earlier rules (a code update since); {why}."
+        return text, text
+    models = (rec.get("check") or {})
+    return "", (f"Checked again under the current rules on {rec.get('checked_at')} (the fact check was made before a "
+                f"code update): trace check ({(models.get('trace') or {}).get('model')}) and evidence check "
+                f"({(models.get('evidence') or {}).get('model')}) passed on this copy, which is the one you approved.")
+
+
+class ReleaseBlocked(ValueError):
+    """The release checks refused this version (QF-110): no retry can change it, only a new version or putting its
+    cause right. A ValueError, so every caller that refuses a blocked release still does; post_due tells it apart from
+    a state that may pass (an upload in progress, an outcome unknown, a lock held)."""
 
 
 class ReleaseReportLocked(ValueError):
@@ -400,11 +460,34 @@ def release_problems(report, dry_run=False) -> list:
     return [f"{c['name']}: {p}" for c in blocking_checks(report, dry_run) for p in check_problems(c)]
 
 
+# What a blocking check is about, as the operator reads it on a blocked booking (QF-110); others by their name.
+PLAIN_CHECKS = {"facts": "Fact check", "provenance": "Source files", "composition_inputs": "Recorded sources",
+                "asset_rights": "Photo rights", "voiceover_rights": "Voice rights", "ambient_bed_rights": "Music rights",
+                "font_rights": "Font rights", "image_attribution": "Photo credits", "description_attribution": "Photo credits",
+                "credit_lines": "Credit lines", "credit_phrases": "Credit lines", "share_alike_licence": "Licence notice",
+                "story_credits": "Story credits", "story_frames": "Story frames", "visual_checks": "Video check",
+                "media_measurement": "Video file", "picture_measurement": "Picture", "audio_measurement": "Sound",
+                "release_report": "Release report"}
+
+
+def plain_block_reasons(report, limit: int = 4) -> list:
+    """The release report's blocking checks in plain words, one line each ("Source files: its narration
+    (voiceover.mp3) is missing"), at most `limit` (the rest counted)."""
+    lines = []
+    for c in blocking_checks(report):
+        what = PLAIN_CHECKS.get(c.get("name"), str(c.get("name") or "check").replace("_", " ").capitalize())
+        found = check_problems(c)
+        lines.append(f"{what}: " + "; ".join(found[:3]) + (f" (and {len(found) - 3} more)" if len(found) > 3 else ""))
+    if len(lines) > limit:
+        lines = lines[:limit] + [f"and {len(lines) - limit} more check(s)"]
+    return lines
+
+
 def require_release(run, dry_run=False):
     report = write_release_report(run, dry_run=dry_run)
     problems = release_problems(report, dry_run)
     if problems:
-        raise ValueError("Release blocked: " + "; ".join(problems))
+        raise ReleaseBlocked("Release blocked: " + "; ".join(problems))
     return report
 
 

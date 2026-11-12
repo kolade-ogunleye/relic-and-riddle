@@ -26,6 +26,7 @@ SCREENS: Dict[str, Tuple[str, str, Optional[str]]] = {
     "creviews": ("🎬", "Reviews", HOME_CB), "chistory": ("📚", "History", "creviews:"), "chist": ("📚", "Review", "chistory:"),
     "cposts": ("🗓", "Posting", HOME_CB), "cpost": ("🗓", "Episode", "cposts:"), "cslots": ("🗓", "Slots", "cposts:"),
     "postnowask": ("⚡", "Post now", "cposts:"), "cancelask": ("⏹", "Cancel booking", "cposts:"),
+    "newversionask": ("♻️", "New version", "cposts:"),
     "cimages": ("🖼", "Pictures", HOME_CB), "imagepick": ("🖼", "Photo sets", "cimages:"),
     "imagehelp": ("🖼", "Topic pictures", "imagepick:0"), "review": ("🖼", "Photo set", "imagepick:0"),
     "reviewpick": ("🖼", "Photo sets", "cimages:"), "upload": ("📎", "Upload", "cimages:"),

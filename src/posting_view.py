@@ -18,12 +18,24 @@ from .control import (HOME, LIST_PAGE, POST_ICON, POST_NAME, _episode_bookings, 
 
 STATUS = {"pending": "booked", "waiting": "waits for its slot", "published": "posted", "failed": "didn't post",
           "unknown": "not sure it posted: check the platform", "cancelled": "cancelled",
-          "expired": "expired (it waited over 7 days)"}
+          "expired": "expired (it waited over 7 days)", "blocked": "held: it can't post as it is"}
 KIND_ICON = {"reel": "🎬", "story": "📱", "carousel": "🖼"}
 # Why a booking was cancelled, in the operator's words (a bare "cancelled" gave no idea what had happened or
 # whether anything was needed: operator, 2026-10-27, Göbekli Tepe's Stories)
 CANCEL_WHY = {"the Reel did not post": "its Reel's slot failed, so it was not posted",
-              "cancelled by the operator": "you cancelled it"}
+              "cancelled by the operator": "you cancelled it",
+              "replaced by a new version": "you asked for a new version of this episode"}
+# A blocked booking (QF-110): the release checks refused it at its slot, so trying again cannot change it.
+BLOCKED_NEXT = ("Trying again won't change this. Make a new version (it comes to you for review first), or cancel "
+                "the booking. Its slot is free for other episodes.")
+
+
+def blocked_buttons(db, post: dict[str, Any]) -> list[list[dict[str, str]]]:
+    """What can work on a blocked booking: a new version (it asks first), cancelling it (asks first), the details."""
+    key = db.run_key(post["run_id"])
+    return [[{"text": "♻️ Make a new version", "callback_data": f"newversionask:{key}"}],
+            [{"text": "⏹ Cancel booking", "callback_data": f"cancelask:{post['id']}"},
+             {"text": "📋 Details", "callback_data": f"cpost:{key}"}]]
 
 
 def _short_thumbnail(pubs, shorts) -> str:
@@ -212,10 +224,16 @@ def posting_episode(db, run_id: str) -> Tuple[str, List[List[Dict[str, str]]]]:
             links = _post_links(db, run_id, p["kind"])
             if links:
                 lines.append(f"  {links}")
-        else:
+        elif p["status"] != "blocked":   # a blocked one lists its reasons below
             note = post_error(detail)
             if note:  # only while it matters: a published post no longer shows its earlier error
                 lines.append(f"  <i>{e(note)}</i>")
+        if p["kind"] == "reel" and p["status"] == "blocked":
+            reasons = detail.get("reasons") or [detail.get("reason") or "no reason was recorded"]
+            lines += [f"  • {e(str(r))}" for r in reasons]
+            lines.append(f"  <i>{e(BLOCKED_NEXT)}</i>")
+            new_version, (cancel, _details) = blocked_buttons(db, p)   # Details is this screen
+            buttons += [new_version, [cancel]]
         if p["kind"] == "reel" and p["status"] == "pending":
             buttons.append([{"text": "⚡ Post now", "callback_data": f"postnowask:{key}"}])
             buttons.append([{"text": "⏭ Next free slot", "callback_data": f"movepost:{p['id']}"},
@@ -267,8 +285,18 @@ def confirm_post_now(db, run_id: str) -> Tuple[str, List[List[Dict[str, str]]]]:
              [{"text": "✖ Not now", "callback_data": f"cpost:{db.run_key(run_id)}"}]])
 
 
+def confirm_new_version(db, run_id: str) -> tuple[str, list[list[dict[str, str]]]]:
+    """♻️ Make a new version of an episode whose booking was blocked: it asks first (QF-110)."""
+    label = html.escape(db.run_label(run_id))
+    text = (f"♻️ <b>Make a new version?</b>\n{label}\n\nIts bookings are cancelled and a new version is made from "
+            "this one, reusing what it can; it comes to you for review, and is booked again only once you approve it.")
+    return (text,
+            [[{"text": "✅ Yes, make it", "callback_data": f"newversion:{db.run_key(run_id)}"}],
+             [{"text": "✖ Not now", "callback_data": f"cpost:{db.run_key(run_id)}"}]])
+
+
 def confirm_cancel(db, post_id: int) -> Tuple[str, List[List[Dict[str, str]]]]:
-    post = next((p for p in db.list_scheduled_posts(("pending", "waiting")) if p["id"] == post_id), None)
+    post = next((p for p in db.list_scheduled_posts(("pending", "waiting", "blocked")) if p["id"] == post_id), None)
     if post is None:
         return "⏹ That booking is no longer pending.", [[{"text": "← Posting", "callback_data": "cposts:"}]]
     label = html.escape(db.run_label(post["run_id"]))

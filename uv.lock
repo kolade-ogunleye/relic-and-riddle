@@ -1043,6 +1043,15 @@ wheels = [
 ]
 
 [[package]]
+name = "pybind11"
+version = "3.1.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/76/f3/95b0f40b31df41dbfe6bb0857419c9442c15839cbac4796f1c26ae0b6081/pybind11-3.1.0.tar.gz", hash = "sha256:a1cc06b524ab3edca51f8ad3895f9c4fa20b8b19283173dff4ae781449dc9639", size = 603746, upload-time = "2026-08-06T23:33:00.675Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/33/fd/8762f7ee3e4e4be6d1d846cffb4916dd9bb02b2f800d3603718a0efe494c/pybind11-3.1.0-py3-none-any.whl", hash = "sha256:b8488090f8acffbcb6b5d6a85571a6827a0a2981ffb75e5a0b27b87c4a6b7dd0", size = 319402, upload-time = "2026-08-06T23:32:59.047Z" },
+]
+
+[[package]]
 name = "pycparser"
 version = "3.12"
 source = { registry = "https://pypi.org/simple" }
@@ -1184,11 +1193,13 @@ dependencies = [
     { name = "opencv-python-headless" },
     { name = "pillow" },
     { name = "pip-audit" },
+    { name = "pybind11" },
     { name = "pydantic" },
     { name = "pytest" },
     { name = "pytest-xdist" },
     { name = "requests" },
     { name = "scipy" },
+    { name = "skia-python" },
     { name = "soundfile" },
     { name = "spacy" },
     { name = "uharfbuzz" },
@@ -1215,11 +1226,13 @@ requires-dist = [
     { name = "opencv-python-headless", specifier = "==4.14.0.94" },
     { name = "pillow", specifier = "==13.0.0" },
     { name = "pip-audit", specifier = "==2.10.1" },
+    { name = "pybind11", specifier = "==3.1.0" },
     { name = "pydantic", specifier = "==2.14.1" },
     { name = "pytest", specifier = "==9.0.3" },
     { name = "pytest-xdist", specifier = "==3.8.0" },
     { name = "requests", specifier = "==2.34.2" },
     { name = "scipy", specifier = "==1.17.1" },
+    { name = "skia-python", specifier = "==144.1" },
     { name = "soundfile", specifier = "==0.13.1" },
     { name = "spacy", specifier = "==3.8.18" },
     { name = "uharfbuzz", specifier = "==0.57.0" },
@@ -1318,6 +1331,23 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/58/15/8b3609fd3830ef7b27b655beb4b4e9c62313a4e8da8c676e142cc210d58e/shellingham-1.5.4.tar.gz", hash = "sha256:8dbca0739d487e5bd35ab3ca4b36e11c4078f3a234bfce294b0a0291363404de", size = 10310, upload-time = "2023-10-24T04:13:40.426Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/e0/f9/0595336914c5619e5f28a1fb793285925a8cd4b432c9da0a987836c7f822/shellingham-1.5.4-py2.py3-none-any.whl", hash = "sha256:7ecfff8f2fd72616f7481040475a65b2bf8af90a56c89140852d1120324e8686", size = 9755, upload-time = "2023-10-24T04:13:38.866Z" },
+]
+
+[[package]]
+name = "skia-python"
+version = "144.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "numpy" },
+    { name = "pybind11" },
+]
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/06/48/8e9b1e0120c419d43ca0dbac6c0b868c0fd62f84ddffa5bb71c9493263c6/skia_python-144.1-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:aaee140ba71919dab47328d587c4ad4029868e1170ea31bc317503801300fee6", size = 12582356, upload-time = "2026-10-20T11:31:38.479Z" },
+    { url = "https://files.pythonhosted.org/packages/0e/f9/5d50751e56fff972a2753b532d7e5b1815a8edcf7bf277cd6d1d94dcc23c/skia_python-144.1-cp311-cp311-macosx_11_0_x86_64.whl", hash = "sha256:0c5b7d85b11bc27787a8db830b36a55c226a1fbd05d7b7df91a80921717dfda6", size = 12741822, upload-time = "2026-10-20T11:31:41.792Z" },
+    { url = "https://files.pythonhosted.org/packages/76/5a/3217de8db215fa98d8034b9fe256efdc6d7e716aac3430beb1d9be384e30/skia_python-144.1-cp311-cp311-manylinux_2_28_aarch64.whl", hash = "sha256:e4669306fa7d1bb2c803ea73e739b73f2e396579f12cec91b03bb4d141b56cdc", size = 14222854, upload-time = "2026-10-20T11:31:44.048Z" },
+    { url = "https://files.pythonhosted.org/packages/92/e3/5b4361ece0d5e8e08793675f1d6e66d08b59da6d6ec6787c4ef7c588a285/skia_python-144.1-cp311-cp311-manylinux_2_28_x86_64.whl", hash = "sha256:db9f2dd35bfec41b12e4518a2d8e1f9b6e32cdfb6696f006d692e885de2b5f69", size = 14701726, upload-time = "2026-10-20T11:31:46.796Z" },
+    { url = "https://files.pythonhosted.org/packages/a7/93/b7713716dafabc8827f38fc9b88065677f807f4e1082395bd144d525c09f/skia_python-144.1-cp311-cp311-win_amd64.whl", hash = "sha256:e5198124643b1531097cb4057a412f973853a9a6eefeb8200c98f935a8c51c71", size = 11147655, upload-time = "2026-10-20T11:31:49.086Z" },
+    { url = "https://files.pythonhosted.org/packages/3f/c6/d80a140626e2a1199ea0a33493e556a6e876c197735b2a878d1b1bba1f1d/skia_python-144.1-cp311-cp311-win_arm64.whl", hash = "sha256:905a04faf081f37ac132bea178f2ad5517b9cc94526d9dc571b65dc91dd8c089", size = 10780524, upload-time = "2026-10-20T11:31:51.413Z" },
 ]
 
 [[package]]

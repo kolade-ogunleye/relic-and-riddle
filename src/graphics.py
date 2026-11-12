@@ -30,7 +30,7 @@ from typing import TYPE_CHECKING, Any
 from PIL import Image, ImageDraw, ImageFilter
 from PIL.ImageFont import FreeTypeFont
 
-from . import geo
+from . import geo, raster
 from .art_direction import MOTION, accent, count_start, push_in
 from .camera_motion import kenburns
 from .config import VIDEO_FPS, VIDEO_HEIGHT, VIDEO_WIDTH
@@ -680,7 +680,7 @@ def _draw_scale_bar(im: Image.Image, bar: ScaleBar, x: float, y: float, ab: floa
     down, the primary's end tick up and the secondary's down, each drawn once the line reaches it."""
     if ab <= 0:
         return
-    d = ImageDraw.Draw(im, "RGBA")
+    d = raster.Draw(im, "RGBA")                       # QF-26: antialiased (it grew in whole-pixel steps)
     reach = bar.length * min(1.0, ab)
     x1 = x + direction * reach
     case = SCALE_LINE_W + 2 * SCALE_CASE_W
@@ -1298,7 +1298,10 @@ def relief_base(lat0: float, lon0: float, bw: int, bh: int, kx: float, coslat: f
 
     lon_half, lat_half = lon_span / 2 + 2, lat_span / 2 + 2
     land_m, home_m, home_big = Image.new("L", (bw, bh), 0), Image.new("L", (bw, bh), 0), Image.new("L", (bw, bh), 0)
-    dl, dh, dhb = ImageDraw.Draw(land_m), ImageDraw.Draw(home_m), ImageDraw.Draw(home_big)
+    # QF-26: the land, the home's fill and its outline's source antialiased, each filled as one shape from the
+    # projected rings exactly (raster.Rings: no seam where two polygons meet, holes taken away)
+    dl, dh, dhb = raster.Rings(), raster.Rings(), raster.Rings()
+    pinholes: list[list[tuple[float, float]]] = []     # the home's lochs the half cut below would close
     visible = []
     # id(country): (projected ring or, cut at a seam, an open run of it, small, closed)
     drawn: dict[int, list[tuple[list[tuple[float, float]], bool, bool]]] = {}
@@ -1314,7 +1317,7 @@ def relief_base(lat0: float, lon0: float, bw: int, bh: int, kx: float, coslat: f
                 cx_, cy_ = (max(xs_) + min(xs_)) / 2, (max(ys_) + min(ys_)) / 2
                 r_ = RELIEF_ISLAND_MIN / 2 * bpp
                 for dd in (dl, dh):
-                    dd.ellipse([cx_ - r_, cy_ - r_, cx_ + r_, cy_ + r_], fill=255)
+                    dd.oval([cx_ - r_, cy_ - r_, cx_ + r_, cy_ + r_])
                 if id(c) not in seen:
                     seen.add(id(c))
                     visible.append(c)
@@ -1341,23 +1344,36 @@ def relief_base(lat0: float, lon0: float, bw: int, bh: int, kx: float, coslat: f
                 drawn.setdefault(id(c), []).append((run, small, False))
         else:
             drawn.setdefault(id(c), []).append((pts, small, True))
-        dl.polygon(pts, fill=255)
+        dl.add(pts)
         if c is home:
-            dh.polygon(pts, fill=255)
+            dh.add(pts)
             if not small:
-                dhb.polygon(pts, fill=255)
+                dhb.add(pts)
         if polar is not None and any(seams):     # round 11: the polar view's cut closed (no slit, no line)
             _close_seams([dl, dh, dhb] if c is home and not small else [dl, dh] if c is home else [dl], ring, pts,
                          255, max(3, round(2 * bpp)))
         for hole in poly[1:]:
             hp = [project(x, y) for x, y in hole]
-            dl.polygon(hp, fill=0)
+            dl.add(hp, hole=True)
             if c is home:                     # another country's hole is its enclave's ground, not the home's
-                dh.polygon(hp, fill=0)
-                dhb.polygon(hp, fill=0)
+                dh.add(hp, hole=True)
+                dhb.add(hp, hole=True)
+                if _closed_at_half(hp):
+                    pinholes.append(hp)
         if id(c) not in seen:
             seen.add(id(c))
             visible.append(c)
+    for mask, rings in ((land_m, dl), (home_m, dh), (home_big, dhb)):
+        raster.Draw(mask, grid="exact").fill_rings(rings, 255)
+    # round 2 (review 1): the home edge's ring and INK line are cut by morphology and then blurred, a treatment
+    # made for a two-level mask (fed the coverage itself, the coast was softened twice). Their source is the
+    # coverage taken at its half, the pixels whose centre the home covers: the same exact coast as the fill,
+    # without ImageDraw's half-pixel spread, so the INK line covers the neighbours' centred borders
+    home_big = home_big.point(lambda v: 255 if v >= 128 else 0)
+    if pinholes:          # a loch no pixel centre falls in keeps the pixels it touches, as ImageDraw kept them
+        dp = ImageDraw.Draw(home_big)
+        for hp in pinholes:
+            dp.polygon(hp, fill=0)
     land = np.asarray(land_m, dtype=np.float32)[..., None] / 255.0
     homea = np.asarray(home_m, dtype=np.float32)[..., None] / 255.0
     shade = (RELIEF_NEIGHBOUR[0] + RELIEF_NEIGHBOUR[1] * hill)[..., None]
@@ -1387,7 +1403,9 @@ def relief_base(lat0: float, lon0: float, bw: int, bh: int, kx: float, coslat: f
     base = Image.fromarray(np.clip(out, 0, 255).astype("uint8"), "RGB")
 
     draw = ImageDraw.Draw(base, "RGBA")
-    for c in sorted(visible, key=lambda c: c is home):  # borders crisp on top; the home outline last, in ink
+    borders = raster.Draw(base, "RGBA", grid="exact")  # QF-26: borders antialiased, centred on the coast
+    runs: list[tuple[tuple[int, int, int], int, list[list[tuple[float, float]]]]] = []   # one stroke a style
+    for c in sorted(visible, key=lambda c: c is home):  # borders on top; the home outline last, in ink
         for pts, small, closed in drawn.get(id(c), []):
             if small:
                 width = max(1, round(bpp))
@@ -1396,7 +1414,11 @@ def relief_base(lat0: float, lon0: float, bw: int, bh: int, kx: float, coslat: f
                 continue                  # the home outline: an antialiased INK ring, composited below
             else:
                 colour, width = MAP_BORDER, 3
-            draw.line(pts + [pts[0]] if closed else pts, fill=colour, width=width, joint="curve")
+            if not runs or runs[-1][:2] != (colour, width):
+                runs.append((colour, width, []))
+            runs[-1][2].append(pts + [pts[0]] if closed else pts)
+    for colour, width, lines in runs:
+        borders.lines(lines, fill=colour, width=width, joint="curve")
     if hb:                                # the home coast's 2 px INK line over the border, antialiased (it stepped)
         crop = np.asarray(home_big.crop((cx0, cy0, cx1, cy1)))
         r_ = max(1, round(HOME_LINE_W / 2 * bpp))
@@ -2350,7 +2372,21 @@ def _view_polygons(to_frame: Callable[[float, float], tuple[float, float]], widt
     return geo.view_polygons(*_frame_view(to_frame, round(width), round(height)))
 
 
-def _close_seams(draws: Sequence[ImageDraw.ImageDraw], ring: Sequence[tuple[float, float]],
+def _closed_at_half(ring: Sequence[tuple[float, float]]) -> bool:
+    """QF-26 round 2: a hole whose coverage reaches half of no pixel (relief_base's home edge is cut where the
+    home covers half a pixel, so such a loch would vanish from the coast's INK and gold); holes over 256 px across
+    always reach it."""
+    xs, ys = [p[0] for p in ring], [p[1] for p in ring]
+    x0, y0 = math.floor(min(xs)) - 1, math.floor(min(ys)) - 1
+    w, h = math.ceil(max(xs)) - x0 + 1, math.ceil(max(ys)) - y0 + 1
+    if w > 256 or h > 256:
+        return False
+    tile = Image.new("L", (w, h), 0)
+    raster.Draw(tile, grid="exact").polygon([(x - x0, y - y0) for x, y in ring], fill=255)
+    return max(tile.getextrema()) < 128
+
+
+def _close_seams(draws: Sequence[Any], ring: Sequence[tuple[float, float]],
                  pts: Sequence[tuple[float, float]], fill: int, width: int = 3) -> None:
     """Round 11: on a polar view the antimeridian cut of a polygon round the pole (Antarctica's) is two coincident
     edges, which a polygon fill leaves as an open one-pixel slit (stroked as a coast line from the pole out): the
@@ -8017,7 +8053,7 @@ def _render_scale_vertical(fact, feet, ref_label, ref_feet, depth, out, width, h
         """One frame: the drawing and the words tied to it, pushed in over the hold; then the heading and the
         meaning, which never move (the push stays inside the drawing's own air)."""
         im = ground.copy()
-        d = ImageDraw.Draw(im, "RGBA")
+        d = raster.Draw(im, "RGBA")                   # QF-26: every shape of the drawing antialiased
         if depth:
             d.rectangle([x0, line_y, x1, floor_y + SECTION_FOOT], fill=(*EARTH, 255))  # the ground, in section
             dig = _ease((t - 0.3) / 1.2)
@@ -8249,7 +8285,7 @@ def _render_scale_wide(fact: dict[str, Any], feet: float, ref_label: str, ref_fe
 
     def drawing(t: float) -> Image.Image:
         im = ground.copy()
-        d = ImageDraw.Draw(im, "RGBA")
+        d = raster.Draw(im, "RGBA")                   # QF-26: every shape of the drawing antialiased
         lw = max(1, round(S(3)))
         if depth:
             d.rectangle([X(gx0), Y(line_y), X(gx1), Y(floor_y + 24)], fill=(*EARTH, 255))   # the ground, in section
@@ -8868,7 +8904,7 @@ def _stat_clip(cards: list[dict[str, Any]], plans: list[dict[str, Any]], bg: Ima
                             for tw in r["twins"]:
                                 if dim > 0.001:
                                     im = tw.draw(im, a * dim, dy)
-                            d = ImageDraw.Draw(im, "RGBA")
+                            d = raster.Draw(im, "RGBA")       # QF-26: the dashes antialiased
                             fill = _lerp(r["fill"], r["dim_fill"], dim)
                             for dx0, dy0, dx1, dy1 in r["dashes"]:
                                 d.rectangle([dx0, dy0 + dy, dx1, dy1 + dy], fill=(*fill, int(255 * a)))
@@ -8881,16 +8917,17 @@ def _stat_clip(cards: list[dict[str, Any]], plans: list[dict[str, Any]], bg: Ima
                         fill = (*_lerp(r["fill"], r["dim_fill"], dim), int(255 * a))
                         for j, (c, cx) in enumerate(r["chars"]):    # the final figure, scaled about its start
                             _text(d, (ox + (cx - ox) * sc + spread * j, yy), c, f, fill, anchor="ms")
+                        bars = raster.Draw(im, "RGBA")            # QF-26: the settling dashes antialiased
                         for j, (dx0, dy0, dx1, dy1) in enumerate(r["dashes"]):
                             shift = spread * (sum(1 for _c, cx in r["chars"] if cx < dx0) - 0.5)
                             base = yy
-                            d.rectangle([ox + (dx0 - ox) * sc + shift, base + (dy0 - (yy - dy)) * sc,
+                            bars.rectangle([ox + (dx0 - ox) * sc + shift, base + (dy0 - (yy - dy)) * sc,
                                          ox + (dx1 - ox) * sc + shift, base + (dy1 - (yy - dy)) * sc], fill=fill)
                     else:
                         if r["kind"] == "kicker":
                             x0, y0, x1, y1 = r.get("rule", r.get("bar", (p["x0"], yy, p["x0"] + 44, yy + 3)))
                             fill = _lerp(r["fill"], r["dim_fill"], dim)
-                            ImageDraw.Draw(im, "RGBA").rectangle([x0, y0 + dy, x1, y1 + dy], fill=(*fill, int(255 * a)))
+                            raster.Draw(im, "RGBA").rectangle([x0, y0 + dy, x1, y1 + dy], fill=(*fill, int(255 * a)))
                         for pl in r["plates"]:
                             if dim < 0.999:
                                 im = pl.draw(im, a * (1 - dim), dy)
@@ -10828,6 +10865,7 @@ def make_all(payload: dict[str, Any], topic: dict[str, Any], work_dir: Path, pho
         from .typography import FONTS_DIR, bundled_font_files
         source_files = [Path(__file__), Path(__file__).with_name("typography.py"),
                         Path(__file__).with_name("brand.py"), Path(__file__).with_name("camera_motion.py"),
+                        Path(__file__).with_name("raster.py"),
                         *[FONTS_DIR / filename for filename in bundled_font_files()]]
         if photo and name in PHOTO_BUILDERS:  # timeline also draws the photo (2026-11-02)
             source_files.append(Path(photo))

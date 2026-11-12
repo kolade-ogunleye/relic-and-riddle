@@ -18,6 +18,8 @@ pip-audit==2.10.1
 onnxruntime-directml==1.24.4; sys_platform == "win32"
 onnxruntime==1.24.4; sys_platform != "win32"
 opencv-python-headless==4.14.0.94
+skia-python==144.1  # QF-26: the one antialiased geometry rasteriser (CPU raster surfaces only; BSD-3)
+pybind11==3.1.0  # skia-python's required runtime support package (BSD-3)
 
 # tests: the deployer installs this file and runs the suite (tools production never runs: pyproject.toml dev group)
 pytest==9.0.3

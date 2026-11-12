@@ -4019,32 +4019,66 @@ class PipelineCoordinator:
         from src import carousel_lazy
         # the newest topic; a carousel the operator asked to redraw after a hold goes first (QF-81). One that no
         # longer matches the review you approved (QF-81b) can never post: it is set aside before the slot is taken,
-        # so the next ready episode takes the slot in its place.
+        # so the next ready episode takes the slot in its place. So can one with nothing left to post (QF-81c): its
+        # slides gone (any of them: QF-81d), or (booked undrawn) its plan missing, unreadable, corrupt or without a
+        # photo to draw; it is held with one alert.
         for post, run in sorted(ready, key=lambda pr: (bool((pr[0].get("detail") or {}).get("priority")), pr[0]["id"]),
                                 reverse=True):
             run_dir = Path(run["master_video_path"]).parent
-            if post["files"] or not carousel_lazy.planned(run_dir):
-                break
+            if post["files"]:
+                # a drawn booking posts exactly the deck it booked, or nothing (QF-81d): never what is left of it
+                gone = [f for f in post["files"] if not Path(f).is_file()]
+                if gone:
+                    where = Path(post["files"][0]).parent.name
+                    self._hold_carousel(post, carousel_lazy.CarouselHeld(
+                        f"its {len(post['files'])} slides in {where}/ are no longer on disk"
+                        if len(gone) == len(post["files"]) else
+                        f"{len(gone)} of its {len(post['files'])} slides in {where}/ are no longer on disk "
+                        f"({', '.join(Path(f).name for f in gone[:3])}{', …' if len(gone) > 3 else ''}), so the rest "
+                        f"is not the carousel you approved"), final=True)
+                    continue
+                broken = self._approval_broken(post["run_id"])   # its slides' bytes, bound by the review card
+                if not broken:
+                    break
+                self._hold_carousel(post, carousel_lazy.CarouselHeld(broken), binding=True)
+                continue
+            missing = carousel_lazy.plan_problem(run_dir)
+            if missing:
+                self._hold_carousel(post, carousel_lazy.CarouselHeld(missing), final=True)
+                continue
             broken = self._approval_broken(post["run_id"])
             if not broken:
                 break
             self._hold_carousel(post, carousel_lazy.CarouselHeld(broken), binding=True)
         else:
             return
+        taken_on = self.db.get_setting("carousel_posted_on")
         self.db.set_setting("carousel_posted_on", local.date().isoformat())  # before posting: never twice a day
-        if not post["files"] and carousel_lazy.planned(run_dir):
+        if not post["files"]:
             # Only the episode that takes the slot is drawn (QF-81), or its preview's drawing reused when nothing
             # changed; the slot is taken first, so a held carousel is never drawn again the same day, nor again by
             # itself later: the operator's "Redraw" button books it for the next slot.
+            missing = broken = None
             try:
                 from src.publication_lock import publication_lock
                 with publication_lock(self.db.db_path, "carousel:" + post["run_id"], wait=900):
-                    files = carousel_lazy.render(run_dir, run["script_payload"], self.multiformat_gen, QualityAuditor())
+                    # checked again under the lock (QF-81c): a plan changed or removed while the lock was awaited is
+                    # never drawn
+                    missing = carousel_lazy.plan_problem(run_dir)
+                    broken = None if missing else self._approval_broken(post["run_id"])
+                    if not (missing or broken):
+                        files = carousel_lazy.render(run_dir, run["script_payload"], self.multiformat_gen,
+                                                     QualityAuditor())
             except (carousel_lazy.CarouselHeld, ValueError) as e:
                 self._hold_carousel(post, e)
                 return
             except OSError as e:   # a file that could not be read, written or installed: held, with the reason
                 self._hold_carousel(post, carousel_lazy.CarouselHeld(f"its slides could not be drawn or installed ({e})"))
+                return
+            if missing or broken:   # nothing was drawn or posted: the slot is left to the next ready episode
+                self._hold_carousel(post, carousel_lazy.CarouselHeld(missing or broken), binding=bool(broken),
+                                    final=bool(missing))
+                self.db.set_setting("carousel_posted_on", taken_on or "")
                 return
             self.db.update_scheduled_post(post["id"], "waiting", files=files)
             post = {**post, "files": files}
@@ -4151,17 +4185,22 @@ class PipelineCoordinator:
             self._recheck_facts(run, retry_now=retry_now)
         return require_release(run, dry_run=dry_run)
 
-    def _hold_carousel(self, post: dict[str, Any], held: Exception, binding: bool = False) -> None:
+    def _hold_carousel(self, post: dict[str, Any], held: Exception, binding: bool = False,
+                       final: bool = False) -> None:
         """A carousel its slot could not post (carousel_lazy): its booking says why, and one alert gives every
         finding of its drawing and the button that redraws it and posts it in the next slot.
 
         binding: it no longer matches the review you approved (QF-81b). Its Reel is posted, so that review cannot be
         approved again and a redraw would only hold it again: the alert says it will not post and offers only its
-        Details (and the 🏠 every notice has)."""
+        Details (and the 🏠 every notice has).
+
+        final: nothing is left to draw or post from (QF-81c: its slides gone, all or some (QF-81d), or its plan missing,
+        unreadable, corrupt or without a photo to draw), so a redraw cannot help either: the same alert, naming what
+        is missing."""
         from src import carousel_lazy
-        if binding:
+        if binding or final:
             self.db.update_scheduled_post(post["id"], "failed", detail={
-                "error": f"held at its slot: {held}", "held": True, "binding": True})
+                "error": f"held at its slot: {held}", "held": True, ("binding" if binding else "final"): True})
             self._alert(f"❌ <b>Carousel not posted</b> for {html.escape(self.db.run_label(post['run_id']))}: "
                         f"{html.escape(str(held)[:400])}." + chr(10) * 2
                         + "This carousel will not post. Nothing was posted, and its Reel and other posts are not "
@@ -4187,10 +4226,18 @@ class PipelineCoordinator:
         run = self.db.get_run(post["run_id"]) or {}
         if not run.get("master_video_path"):
             return "🖼 That episode has no run folder to draw from."
+        if post["files"] and post["detail"].get("final"):   # QF-81d: a redraw makes a new deck, not the one booked
+            return (f"🖼 The carousel of {html.escape(self.db.run_label(post['run_id']))} can't be redrawn: its booked "
+                    "slides are gone, and a new drawing would not be the carousel you approved. It will not post, "
+                    "and nothing was changed.")
         broken = self._approval_broken(post["run_id"])
         if broken:   # QF-81b: it would only be held again at its slot, and take that slot from a newer episode
             return (f"🖼 The carousel of {html.escape(self.db.run_label(post['run_id']))} can't be redrawn: "
                     f"{html.escape(broken)}. It will not post, and nothing was changed.")
+        missing = carousel_lazy.plan_problem(Path(run["master_video_path"]).parent)
+        if missing:  # QF-81c: a redraw draws from this plan, so it would only be held again
+            return (f"🖼 The carousel of {html.escape(self.db.run_label(post['run_id']))} can't be redrawn: "
+                    f"{html.escape(missing)}. It will not post, and nothing was changed.")
         carousel_lazy.discard(Path(run["master_video_path"]).parent)
         self.db.update_scheduled_post(post["id"], "waiting", files=[],
                                       detail={"redraw": True, "priority": True, "held_before": post["detail"].get("error")})

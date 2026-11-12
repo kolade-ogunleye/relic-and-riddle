@@ -44,6 +44,7 @@ STAGE = "carousel_draw"
 RECORD = "draw.json"
 SHEET = "preview_sheet.jpg"
 COPIES = ("carousel", "carousel_fb")
+MIN_STILLS = 1   # the fewest photos of the topic a deck is drawn from (the photo match cycles what it has)
 SLIDES = "carousel_slide_*.jpg"
 COPY_FILES = ("still_layout.json", "collage_report.json", "collage_board.jpg")
 DRAW_FIELDS = ("carousel_slides", "poll", "narration_script", "share_line")   # what generate_carousel_sequence reads
@@ -120,15 +121,49 @@ def plan(run_dir: Path | str, stills: list[Path], payload: dict[str, Any]) -> di
     return record
 
 
-def _checked_stills(run_dir: Path, payload: dict[str, Any]) -> list[Path]:
-    """The plan's photos, after checking that nothing it recorded changed; raises CarouselHeld otherwise."""
+def _read_plan(run_dir: Path) -> tuple[dict[str, Any], list[tuple[Path, str]]]:
+    """The plan and its photos (path, SHA-256), in order; raises CarouselHeld when it cannot be read or is corrupt."""
     try:
         record = json.loads((run_dir / PLAN).read_text(encoding="utf-8"))
         entries = [(Path(e["path"]), str(e["sha256"])) for e in record["stills"]]
     except (OSError, ValueError, KeyError, TypeError) as e:
         raise CarouselHeld(f"its plan ({PLAN}) cannot be read: {e}") from e
-    if not entries:
-        raise CarouselHeld("its plan records no photo of the topic")
+    return record, entries
+
+
+def _no_deck(entries: list[tuple[Path, str]]) -> str | None:
+    """Why the plan's photos cannot make a deck, or None: fewer stills than MIN_STILLS once the entries the renderer
+    drops (a video, an empty path) are left out. generate_carousel_sequence draws stills only."""
+    from .typography import is_video
+    usable = [p for p, _ in entries if str(p) not in ("", ".") and not is_video(p)]
+    if len(usable) >= MIN_STILLS:
+        return None
+    if not usable:
+        return "its plan records no photo of the topic" + (f" (its {len(entries)} entries are not stills)"
+                                                           if entries else "")
+    return f"its plan records {len(usable)} photos of the topic, and its slides need {MIN_STILLS}"
+
+
+def plan_problem(run_dir: Path | str) -> str | None:
+    """Why an undrawn carousel (booked from its plan) cannot be drawn at all, or None (QF-81c): its plan is missing,
+    unreadable or corrupt, or records too few photos to make a deck (none, as `plan` writes it when a run's scene
+    media are all video or none is on disk). A Redraw draws from the same plan, so it cannot help."""
+    run_dir = Path(run_dir)
+    if not planned(run_dir):
+        return f"its plan ({PLAN}) is missing, so its slides cannot be drawn"
+    try:
+        _, entries = _read_plan(run_dir)
+    except CarouselHeld as e:
+        return str(e)
+    return _no_deck(entries)
+
+
+def _checked_stills(run_dir: Path, payload: dict[str, Any]) -> list[Path]:
+    """The plan's photos, after checking that nothing it recorded changed; raises CarouselHeld otherwise."""
+    record, entries = _read_plan(run_dir)
+    no_deck = _no_deck(entries)
+    if no_deck:
+        raise CarouselHeld(no_deck)
     for path, digest in entries:
         if not path.is_file():
             raise CarouselHeld(f"its photo {path.name} is no longer on disk")

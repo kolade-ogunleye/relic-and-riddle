@@ -4016,13 +4016,22 @@ class PipelineCoordinator:
                 run = self.db.get_run(post["run_id"])
                 if run and run["status"] == "published":
                     ready.append((post, run))
-        if not ready:
-            return
-        # the newest topic; a carousel the operator asked to redraw after a hold goes first (QF-81)
-        post, run = max(ready, key=lambda pr: (bool((pr[0].get("detail") or {}).get("priority")), pr[0]["id"]))
-        self.db.set_setting("carousel_posted_on", local.date().isoformat())  # before posting: never twice a day
-        run_dir = Path(run["master_video_path"]).parent
         from src import carousel_lazy
+        # the newest topic; a carousel the operator asked to redraw after a hold goes first (QF-81). One that no
+        # longer matches the review you approved (QF-81b) can never post: it is set aside before the slot is taken,
+        # so the next ready episode takes the slot in its place.
+        for post, run in sorted(ready, key=lambda pr: (bool((pr[0].get("detail") or {}).get("priority")), pr[0]["id"]),
+                                reverse=True):
+            run_dir = Path(run["master_video_path"]).parent
+            if post["files"] or not carousel_lazy.planned(run_dir):
+                break
+            broken = self._approval_broken(post["run_id"])
+            if not broken:
+                break
+            self._hold_carousel(post, carousel_lazy.CarouselHeld(broken), binding=True)
+        else:
+            return
+        self.db.set_setting("carousel_posted_on", local.date().isoformat())  # before posting: never twice a day
         if not post["files"] and carousel_lazy.planned(run_dir):
             # Only the episode that takes the slot is drawn (QF-81), or its preview's drawing reused when nothing
             # changed; the slot is taken first, so a held carousel is never drawn again the same day, nor again by
@@ -4054,6 +4063,25 @@ class PipelineCoordinator:
         except Exception:  # noqa: BLE001 - no card record (a command-line database) or a file missing: no binding
             return None
         return now if shown and shown == now else None
+
+    def _approval_broken(self, run_id: str) -> str | None:
+        """Why the run no longer matches the review card you approved (QF-81b), or None. Only a Telegram approval
+        whose card fingerprint was recorded binds (as _approved_fingerprint): an approval with no card record (the
+        command line, the auto-approve flag) is not bound, as before."""
+        from src.telegram_state import get, review_fingerprint
+        approval = self.db.get_approval(run_id) or {}
+        if approval.get("decision") != "approved" or approval.get("telegram_message_id") is None:
+            return None
+        shown = get(self.db, "review-card", f"{run_id}:{approval['telegram_message_id']}")
+        if not shown:
+            return None
+        try:
+            now = review_fingerprint(self.db, run_id)
+        except Exception as e:  # noqa: BLE001 - a reviewed file missing or unreadable: held, with the reason
+            return f"a file of the review you approved can no longer be read ({e})"
+        if now != shown:
+            return "its plan or files changed after you approved the review, so it is not the carousel you approved"
+        return None
 
     RECHECK_WAIT_PREFIX = "fact_recheck_wait:"
     RECHECK_MAX_TRIES = 6            # then it waits for Post now (which tries once more)
@@ -4123,10 +4151,23 @@ class PipelineCoordinator:
             self._recheck_facts(run, retry_now=retry_now)
         return require_release(run, dry_run=dry_run)
 
-    def _hold_carousel(self, post: dict[str, Any], held: Exception) -> None:
+    def _hold_carousel(self, post: dict[str, Any], held: Exception, binding: bool = False) -> None:
         """A carousel its slot could not post (carousel_lazy): its booking says why, and one alert gives every
-        finding of its drawing and the button that redraws it and posts it in the next slot."""
+        finding of its drawing and the button that redraws it and posts it in the next slot.
+
+        binding: it no longer matches the review you approved (QF-81b). Its Reel is posted, so that review cannot be
+        approved again and a redraw would only hold it again: the alert says it will not post and offers only its
+        Details (and the 🏠 every notice has)."""
         from src import carousel_lazy
+        if binding:
+            self.db.update_scheduled_post(post["id"], "failed", detail={
+                "error": f"held at its slot: {held}", "held": True, "binding": True})
+            self._alert(f"❌ <b>Carousel not posted</b> for {html.escape(self.db.run_label(post['run_id']))}: "
+                        f"{html.escape(str(held)[:400])}." + chr(10) * 2
+                        + "This carousel will not post. Nothing was posted, and its Reel and other posts are not "
+                          "affected.",
+                        buttons=[[{"text": "📋 Details", "callback_data": f"cpost:{self.db.run_key(post['run_id'])}"}]])
+            return
         record = getattr(held, "record", None) or {}
         self.db.update_scheduled_post(post["id"], "failed", detail={"error": f"held at its slot: {held}", "held": True})
         found = carousel_lazy.summary(record, limit=2400)
@@ -4146,6 +4187,10 @@ class PipelineCoordinator:
         run = self.db.get_run(post["run_id"]) or {}
         if not run.get("master_video_path"):
             return "🖼 That episode has no run folder to draw from."
+        broken = self._approval_broken(post["run_id"])
+        if broken:   # QF-81b: it would only be held again at its slot, and take that slot from a newer episode
+            return (f"🖼 The carousel of {html.escape(self.db.run_label(post['run_id']))} can't be redrawn: "
+                    f"{html.escape(broken)}. It will not post, and nothing was changed.")
         carousel_lazy.discard(Path(run["master_video_path"]).parent)
         self.db.update_scheduled_post(post["id"], "waiting", files=[],
                                       detail={"redraw": True, "priority": True, "held_before": post["detail"].get("error")})

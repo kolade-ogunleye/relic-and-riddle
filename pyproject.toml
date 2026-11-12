@@ -25,6 +25,8 @@ dependencies = [
     "onnxruntime-directml==1.24.4; sys_platform == 'win32'",
     "onnxruntime==1.24.4; sys_platform != 'win32'",
     "opencv-python-headless==4.14.0.94",
+    "skia-python==144.1",
+    "pybind11==3.1.0",
     "pytest==9.0.3",
     "pytest-xdist==3.8.0",
     "httpx==0.28.1",

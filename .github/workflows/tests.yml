@@ -13,7 +13,7 @@ jobs:
         with:
           python-version: "3.11"
           cache: pip
-      - run: sudo apt-get update && sudo apt-get install -y libsndfile1 ffmpeg libfribidi0
+      - run: sudo apt-get update && sudo apt-get install -y libsndfile1 ffmpeg libfribidi0 libfontconfig1 libgl1 libegl1
       - name: uv (the version pyproject.toml requires)
         run: pip install uv==0.13.7
       - name: The lock is current for pyproject.toml

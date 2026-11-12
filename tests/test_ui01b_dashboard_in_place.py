@@ -4,6 +4,8 @@ docs/design/telegram-clean-chat-2026-11-11.md §6.1.2, §6.2; mock-ups 1 and 6).
 What needs the operator lives in the pinned notifications panel as condition items that resolve themselves; the
 dashboard keeps the state of production and is never sent fresh at the bottom (only the ordered rebuild sends a
 new copy). A fake Bot API keeps ids, edits, pins and deletions; nothing calls Telegram."""
+import json
+
 import pytest
 
 from src import config
@@ -34,6 +36,8 @@ class FakeTelegram:
             return {"message_id": mid}
         if method == "deleteMessage":
             self.deleted.add(int(data["message_id"]))
+        if method == "deleteMessages":   # the re-post deletes the old copies in one call (UI-01f)
+            self.deleted.update(int(m) for m in json.loads(data["message_ids"]))
         if method == "pinChatMessage":
             self.pinned.append(int(data["message_id"]))
         return True
@@ -344,19 +348,23 @@ def test_the_layout_never_draws_the_dashboard_while_holding_its_own_lock(db, mon
     fake.deleted.add(slot_message(db, "notifications"))
     bot._notifications_tap({"id": "cq1", "from": {"id": 7}, "message": {"message_id": 1, "chat": {"id": 100}},
                             "data": "np:1"}, None)
-    assert held and not any(held), held
+    # UI-01f: the re-post sends the dashboard's copy itself, so the layout never enters show_dashboard at all;
+    # the dashboard is still sent again under the new panel
+    assert not any(held), held
+    assert int(db.get_setting("telegram_dashboard_id")) > slot_message(db, "notifications")
 
 
 def test_only_the_renderer_sends_the_panel(db, monkeypatch):
-    """Design §5.4: another process holds the renderer lease, so this one draws its dashboard but never sends a
-    notifications panel of its own."""
+    """Design §5.4: another process holds the renderer lease, so this one never sends a notifications panel (nor,
+    since UI-01f, a dashboard) of its own."""
     from src import telegram_layout
     bot, fake = make_bot(db, monkeypatch)
     assert telegram_layout.acquire(db, owner="the-daemon")
     assert bot.layout.ensure() is None and bot.layout.rebuild() is None
     bot.show_dashboard("🏛️ <b>Dashboard</b>", [[{"text": "x", "callback_data": "cdash:"}]])
     assert telegram_layout.slot_message(db, "notifications") is None
-    assert len(fake.sends()) == 1 and "Dashboard" in fake.sends()[0]["text"]
+    # UI-01f: nor a dashboard: it asks the renderer to draw it (design §5.4, only the renderer sends layout messages)
+    assert fake.sends() == [] and "Dashboard" in db.get_setting(bot.DASHBOARD_ASK_KEY)
 
 
 def test_the_weekly_digest_arrives_silently(db, monkeypatch):

@@ -420,6 +420,7 @@ def test_a_command_while_armed_runs_and_the_input_keeps_waiting_a_photo_is_refus
     monkeypatch.setattr(bot, "_run_command", lambda handler, command, args, target=None: ran.append(command))
     typed(bot, "/queue", 903)
     assert ran == ["queue"] and bot.review.armed()
+    mid = db.get_telegram_card("layout:review")["message_id"]   # the first dashboard re-posts the panel under it
     photo = {"update_id": 904, "message": {"message_id": 904, "photo": [{"file_id": "x"}], "chat": {"id": 100},
                                           "from": {"id": 7}, "date": int(bot.review.clock())}}
     bot._process_update(photo, lambda c, a: "")

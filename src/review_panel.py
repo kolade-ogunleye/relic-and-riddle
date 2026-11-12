@@ -25,6 +25,7 @@ posts (publishable.card_record, the QF-43 record the envelope must match) and th
 """
 from __future__ import annotations
 
+import contextlib
 import functools
 import html
 import json
@@ -221,10 +222,25 @@ def _serial(fn):
     lock order (Layout._rebuild_lock -> the bot's _dashboard_lock -> Layout._lock -> ReviewPanel._lock): the
     renderer's tick may hold Layout._lock when it is taken, never the other way. While it is held the panel never
     calls into the layout (kick, redraw, ensure, rebuild), the dashboard (show_dashboard) or a command handler
-    (edittext, cancelpost: they draw the dashboard); those calls are deferred until it is released."""
+    (edittext, cancelpost: they draw the dashboard); those calls are deferred until both locks are released.
+    An entry that draws the panel takes Layout._lock first (UI-01f), so a draw never lands on a copy the ordered
+    re-post is replacing: a page turn during a re-post waits for its swap, then edits the new copy. Delivery does
+    not (`_serial_record`): its first draw uploads the video, which must not hold the renderer's tick."""
+    return _entry(fn, layout_first=True)
+
+
+def _serial_record(fn):
+    """_serial without Layout._lock first: for delivery (an upload can take minutes)."""
+    return _entry(fn, layout_first=False)
+
+
+def _entry(fn, layout_first: bool):
     @functools.wraps(fn)
     def run(self, *args, **kwargs):
-        with self._lock:
+        layout = self.bot.layout if layout_first else None
+        outer = (layout._lock if layout is not None and not self._lock._is_owned()   # nested: already in order
+                 else contextlib.nullcontext())
+        with outer, self._lock:
             self._depth += 1
             try:
                 result = fn(self, *args, **kwargs)
@@ -339,7 +355,7 @@ class ReviewPanel:
         return sorted(runs, key=closes)
 
     # ---------------------------------------------------------- delivery
-    @_serial
+    @_serial_record
     def deliver(self, run_id: str, video_path: Path, thumbnail_path: Path, payload: dict[str, Any],
                 release: dict[str, Any] | None) -> int | None:
         """The review joins the panel: the panel is sent (silently) when it is the first, otherwise only its count
@@ -758,7 +774,19 @@ class ReviewPanel:
             handles = {name: stack.enter_context(open(path, "rb")) for name, path in files.items()}
             return self.bot._api(method, timeout=300 if files else 30, data=data, files=handles or None)
 
-    def _send(self, view: dict[str, Any]) -> int | None:
+    @_serial
+    def copy_send(self) -> int | None:
+        """The panel sent again as it is (the ordered re-post, UI-01f): from the file ids, so nothing is uploaded;
+        the caller swaps the slot to it and rebinds the reviews."""
+        view = self.view()
+        pager = self.pager(view)
+        if not pager:
+            return None
+        if view.get("run") not in pager:
+            view.update(run=pager[0], tab="sum", sub=1, face=None)
+        return self._send(view, keep=False)
+
+    def _send(self, view: dict[str, Any], keep: bool = True) -> int | None:
         """The panel's message: born last, under the dashboard and any progress panel, silently (the push alert
         rings for it)."""
         if self._not_here():
@@ -788,9 +816,12 @@ class ReviewPanel:
         if not mid:
             return None
         self._remember(run_id, result, picture)
-        view = {**view, "sent_at": self.clock(), "media": kind}
-        self._save(view, mid)
         self.bot._record_kind(mid, media=True)
+        if keep:
+            view = {**view, "sent_at": self.clock(), "media": kind}
+            self._save(view, mid)
+        from .layout_repost import seen
+        seen(self.db, mid)
         return int(mid)
 
     def draw(self, media: bool = False) -> bool:
@@ -834,8 +865,10 @@ class ReviewPanel:
             if "message is not modified" in reason:
                 return True
             if "message to edit not found" in reason or "message_id_invalid" in reason:
+                # Missing (deleted by hand, a Clear history): the layout is posted again from this panel down
+                # (design §5.3), or, outside the renderer, sent again at the bottom where it belongs.
+                log.warning("The review panel is gone (%s); posting it again in order.", e)
                 from .telegram_layout import drop_slot
-                log.warning("The review panel is gone (%s); sending it again.", e)
                 drop_slot(self.db, SLOT)
                 new = self._send(view)
                 if new:
@@ -1044,7 +1077,7 @@ class ReviewPanel:
             return "Dry run: nothing is posted."
         return "Posts once the Undo window has passed." if float(config.REVIEW_UNDO_MINUTES) > 0 else "Posting now."
 
-    @_serial
+    @_serial_record
     def booked(self, run_id: str) -> None:
         """The Approve booked its slot: the "✅ Approved" item says when it posts, and keeps Undo until 15 minutes
         before it."""
@@ -1068,7 +1101,7 @@ class ReviewPanel:
                    actions=[{"text": "Undo approval", "callback_data": f"rvua:{self.db.run_key(run_id)}"}] if undo else [])
         self._kick()
 
-    @_serial
+    @_serial_record
     def remind(self, run_id: str, closes: float) -> None:
         """Half an hour into the wait: the reviews item rings once more, "⏰ Review closes 16:40 · Petra" (design
         §6.5: the reminder message is retired)."""
@@ -1082,7 +1115,7 @@ class ReviewPanel:
                          (line, notice_conditions.PREFIX + "reviews"))   # the alert keeps its ⏰ (design §9)
         self._kick()
 
-    @_serial
+    @_serial_record
     def claimed(self, run_id: str) -> None:
         """The worker acts on the decision now (main.undone_before_acting): an Undo that can no longer work leaves
         the item. A booked Approve keeps it until 15 minutes before its slot (the tick removes it then)."""

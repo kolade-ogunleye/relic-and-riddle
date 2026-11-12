@@ -248,14 +248,16 @@ def test_the_reaper_takes_a_dead_processes_panel_and_marks_the_run_interrupted(d
     import main
     from src.telegram_layout import put_slot
     bot, fake = make_bot(db, monkeypatch)
+    clock = [1_000_000.0]
+    bot.layout.clock = lambda: clock[0]
+    bot.layout.tick()                                  # the chat as it stands: the pinned panel exists
+    clock[0] += 60
     run = a_run(db, "killed")
     alive = a_run(db, "alive")
     db.record_topic_status(db.get_run(run)["topic_id"], "producing", run_id=run)
     mid = bot.send_progress_card(run, "Petra")
     kept = bot.send_progress_card(alive, "Ani")
     put_slot(db, f"progress:{run}", mid, owner_pid=a_dead_pid(), owner_identity="133000000000000000")
-    clock = [1_000_000.0]
-    bot.layout.clock = lambda: clock[0]
     bot.layout.tick()                                  # the renderer's pass: the reaper runs in it
     assert mid in fake.deleted and kept not in fake.deleted
     record = db.get_run(run)

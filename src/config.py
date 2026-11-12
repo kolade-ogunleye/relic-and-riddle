@@ -377,6 +377,13 @@ TELEGRAM_CLEAN_CHAT = os.getenv("TELEGRAM_CLEAN_CHAT", "false").strip().lower() 
 # Minutes before a booked Reel's slot at which the clean chat's "✅ Approved" item loses its Undo (UI-01e, the
 # operator's 29 Oct ruling: Undo until 15 minutes before the first post). Until then Undo cancels the booking.
 REVIEW_APPROVE_UNDO_LEAD_MINUTES = max(0.0, float(os.getenv("REVIEW_APPROVE_UNDO_LEAD_MINUTES", "15")))
+# The clean chat's re-post (UI-01f): Telegram lets a bot delete only messages younger than 48 hours, so the layout is
+# posted again in order at the first idle moment after its oldest copy is LAYOUT_REPOST_IDLE_HOURS old, and at
+# LAYOUT_REPOST_FORCE_HOURS whatever is happening (8 h of margin for an offline bot). Idle: no tap or message for
+# LAYOUT_IDLE_MINUTES, no input waiting, no review page opened in the last 5 minutes. Shorten them on dev to test it.
+LAYOUT_REPOST_IDLE_HOURS = max(0.0, float(os.getenv("LAYOUT_REPOST_IDLE_HOURS", "30")))
+LAYOUT_REPOST_FORCE_HOURS = min(46.0, max(LAYOUT_REPOST_IDLE_HOURS, float(os.getenv("LAYOUT_REPOST_FORCE_HOURS", "40"))))
+LAYOUT_IDLE_MINUTES = max(0.0, float(os.getenv("LAYOUT_IDLE_MINUTES", "10")))
 # Seconds a push alert (the one line that rings for a Needs-you item) stays before it is deleted. The design's 8 s
 # is to be proved on the phones (design Q1): raise it if the lock-screen banner leaves with the message.
 PUSH_ALERT_SECONDS = max(1.0, float(os.getenv("PUSH_ALERT_SECONDS", "8")))

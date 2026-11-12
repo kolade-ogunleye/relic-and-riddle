@@ -52,6 +52,9 @@ class FakeTelegram:
         if method == "deleteMessage":
             self.deleted.add(int(data["message_id"]))
             return True
+        if method == "deleteMessages":   # the re-post deletes the old copies in one call (UI-01f)
+            self.deleted.update(int(m) for m in json.loads(data["message_ids"]))
+            return True
         if method == "pinChatMessage":
             self.pinned.append(int(data["message_id"]))
             return True
@@ -59,6 +62,11 @@ class FakeTelegram:
 
     def sends(self):
         return [d for m, d in self.calls if m == "sendMessage"]
+
+
+def slot_message_of(db, name):
+    from src.telegram_layout import slot_message
+    return slot_message(db, name)
 
 
 def make_bot(db, monkeypatch, fake=None):
@@ -310,10 +318,13 @@ def test_the_panel_goes_above_an_existing_dashboard(db, monkeypatch):
     bot, fake = make_bot(db, monkeypatch)
     db.set_setting("telegram_dashboard_id", "55")
     fake.messages[55] = {"text": "dashboard"}
-    shown = []
-    monkeypatch.setattr(bot, "show_dashboard", lambda **kw: shown.append(kw) or db.set_setting("telegram_dashboard_id", "999"))
     bot.notify("⚠️ <b>Publishing accounts</b>\n• Instagram token expired", group="needs")
-    assert shown == [{"fresh": True, "rebuild": True}]   # the dashboard is sent again under the panel
+    # The dashboard is sent again under the panel and its old copy deleted (UI-01f: by the ordered re-post itself,
+    # never through show_dashboard while the layout's lock is held)
+    panel = slot_message_of(db, "notifications")
+    new_dash = int(db.get_setting("telegram_dashboard_id"))
+    assert panel < new_dash and new_dash != 55 and 55 in fake.deleted
+    assert fake.messages[new_dash]["text"].startswith("🏛️")             # its home screen (no content recorded for 55)
 
 
 def test_the_pin_service_line_is_deleted_when_it_arrives(db, monkeypatch):

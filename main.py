@@ -5755,9 +5755,13 @@ def main(argv=None) -> int:
         try:
             poll_loop(bot, handler)
         except KeyboardInterrupt:
-            bot.notify("🔴 <b>Studio Control Center Offline</b> • Service stopped.", record_alert=False, group="info",
-                       key="service-state")
-            getattr(bot, "close_layout", lambda: None)()   # the next start renders at once (UI-01)
+            if config.TELEGRAM_CLEAN_CHAT:
+                # UI-01f (design §7.3): the dashboard's footer and the service-state item; the panel is drawn once
+                # more and the renderer lease given up (close_layout's job), so the next start renders at once
+                bot.service_stopped()
+            else:
+                bot.notify("🔴 <b>Studio Control Center Offline</b> • Service stopped.", record_alert=False,
+                           group="info", key="service-state")
         return 0
 
     if args.command == "daemon":
@@ -6252,9 +6256,11 @@ def main(argv=None) -> int:
             scheduler.start()
         except (KeyboardInterrupt, SystemExit):
             log.info("Daemon stopped.")
-            bot.notify("🔴 <b>Production Daemon Offline</b> • Scheduled runs stopped.", record_alert=False, group="info",
-                       key="service-state")
-            getattr(bot, "close_layout", lambda: None)()   # the next start renders at once (UI-01)
+            if config.TELEGRAM_CLEAN_CHAT:
+                bot.service_stopped()   # UI-01f: footer, service-state item, the lease given up (design §7.3)
+            else:
+                bot.notify("🔴 <b>Production Daemon Offline</b> • Scheduled runs stopped.", record_alert=False,
+                           group="info", key="service-state")
         return 0
 
     if args.command == "review":

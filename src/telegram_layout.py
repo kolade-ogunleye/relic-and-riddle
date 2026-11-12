@@ -23,10 +23,15 @@ Lock order (one order, so the dashboard and the layout can never wait on each ot
 - Code holding _dashboard_lock never calls ensure() or rebuild(): show_dashboard makes sure the panel exists
   before it takes its lock.
 - A rebuild holds _rebuild_lock for the whole send-in-order (the panel, then the dashboard under it), and
-  Layout._lock only while it writes the panel itself.
+  Layout._lock only while it writes the panel itself. With the clean chat on the rebuild is the whole layout's
+  re-post (layout_repost, UI-01f): it takes _rebuild_lock, _dashboard_lock and Layout._lock, in that order, and
+  holds them until the old copies are deleted; it sends the dashboard's copy itself, never through show_dashboard.
+  A dashboard drawn under _dashboard_lock that needs a re-post (it left a media screen) asks for it, and the
+  re-post runs once that lock is released.
 - The review panel's own lock (review_panel.ReviewPanel._lock, UI-01e) comes after all three: the tick takes it
-  under Layout._lock; code holding it never takes another of these locks (kick, redraw, show_dashboard and command
-  handlers are deferred until it is released).
+  under Layout._lock, and since UI-01f each entry that draws the panel takes Layout._lock first; code holding it
+  never takes another of these locks (kick, redraw, show_dashboard and command handlers are deferred until it is
+  released).
 """
 from __future__ import annotations
 
@@ -168,10 +173,12 @@ class Layout:
         return acquire(self.db, self.owner, seconds, self.clock())
 
     def start(self) -> None:
-        """The long-running bot's renderer thread: holds the lease and keeps the panel current."""
+        """The long-running bot's renderer thread: holds the lease and keeps the panel current. Its first round
+        reconciles the layout with the chat (UI-01f, design §7.5, §13)."""
         if self._thread and self._thread.is_alive():
             return
         self._stop.clear()
+        self._started = False
         self._thread = threading.Thread(target=self._loop, name="telegram-layout", daemon=True)
         self._thread.start()
 
@@ -189,7 +196,28 @@ class Layout:
     def release(self) -> None:
         release(self.db, self.owner)
 
+    def started(self) -> bool:
+        """The renderer's start (design §7.3, §7.5, §13): the earlier layout migrated once, an interrupted rebuild
+        finished, every panel checked and the missing or too-old ones posted again, then "back online"."""
+        if not enabled() or not self.bot.is_configured() or not (self.is_renderer() or self.take()):
+            return False
+        last_poll = float(self.db.get_setting("telegram_last_poll") or 0) or None
+        with self._rebuild_lock:   # outermost (lock order); a re-post takes the dashboard lock and _lock itself
+            if self.repost.migrate() is None:
+                self.repost.reconcile()
+            self.repost.back(last_poll)
+        self._started = True
+        return True
+
     def _loop(self) -> None:
+        while not self._stop.is_set() and not self._started:
+            try:
+                self.started()
+            except Exception as e:  # noqa: BLE001 - the renderer goes on; the age rule repairs the layout later
+                log.warning("Telegram layout start-up check failed: %s", e)
+                self._started = True
+            if not self._started:
+                self._stop.wait(5.0)
         while not self._stop.is_set():
             try:
                 self.tick()
@@ -222,6 +250,16 @@ class Layout:
             self.push(now)
             self.delete_due_alerts(now)
         self.repair()
+        asked = getattr(self.bot, "draw_asked_dashboard", None)
+        if callable(asked):
+            asked()   # UI-01f: a dashboard another process asked for (only the renderer sends one), outside _lock
+        if enabled() and getattr(self, "_started", True):
+            # UI-01f: the 30 h idle / 40 h forced re-post and the hourly gap sweep, outside _lock (a re-post takes
+            # _rebuild_lock, then the dashboard lock, then _lock: the lock order)
+            self.repost.tick(now)
+            asked = getattr(self.bot, "_repost_if_asked", None)
+            if callable(asked):
+                asked()   # a dashboard re-post asked for under the dashboard lock and not run yet (path B)
         idle = getattr(self.bot, "dashboard_idle_tick", None)
         if callable(idle):
             idle(now)
@@ -259,24 +297,39 @@ class Layout:
 
     def ensure(self, now: float | None = None) -> int | None:
         """The notifications panel exists, pinned, above the dashboard. When it is missing, the renderer sends it
-        and then the dashboard (if there is one) again under it, deleting the old copy: the order holds. Another
-        process leaves it to the renderer and returns None. Never call it holding _dashboard_lock or _lock."""
+        and then the panels below it again under it (the ordered rebuild: layout_repost with the clean chat on),
+        deleting the old copies: the order holds. Another process leaves it to the renderer and returns None. Never
+        call it holding _dashboard_lock or _lock."""
         mid = slot_message(self.db, NOTIFICATIONS)
         if mid or not self.renders_here():
             return mid
         with self._rebuild_lock:
             return slot_message(self.db, NOTIFICATIONS) or self._rebuild(NOTIFICATIONS)
 
-    def rebuild(self, from_slot: str = NOTIFICATIONS) -> int | None:
+    @property
+    def repost(self):
+        """The ordered rebuild, the reconcile, the gap sweep and the migration (layout_repost, UI-01f)."""
+        if getattr(self, "_repost", None) is None:
+            from .layout_repost import Repost
+            self._repost = Repost(self)
+        return self._repost
+
+    def rebuild(self, from_slot: str = NOTIFICATIONS, urgent: bool = False) -> int | None:
         """Sends the panels from `from_slot` down again, in order, then deletes the old copies (design §5.2).
         The old copies stay on screen until every new one is sent, so the chat is never empty. Renderer only;
-        never call it holding _dashboard_lock or _lock."""
+        never call it holding _dashboard_lock or _lock. With the clean chat on it is the whole layout's re-post
+        (layout_repost: the dashboard, progress and review panels too; the dashboard's copy is sent there, under
+        the dashboard lock, never through show_dashboard). `urgent` (the operator's /start, /clear) does not wait
+        out a failed re-post's back-off."""
         if not self.renders_here():
             return None
         with self._rebuild_lock:
-            return self._rebuild(from_slot)
+            return self._rebuild(from_slot, urgent)
 
-    def _rebuild(self, from_slot: str) -> int | None:
+    def _rebuild(self, from_slot: str, urgent: bool = False) -> int | None:
+        if enabled():
+            sent = self.repost.rebuild(from_slot, urgent=urgent)
+            return slot_message(self.db, NOTIFICATIONS) if sent is not None else None
         old_notes = slot_message(self.db, NOTIFICATIONS)
         new_notes = old_notes
         if from_slot == NOTIFICATIONS:

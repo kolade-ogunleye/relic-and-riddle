@@ -67,6 +67,7 @@ _ITEM_ACTION = ContextVar("notifications_item_action", default=None)
 # Toasts that only say a tap arrived: an item action's own toast says what was done instead.
 # Item actions whose handler closes the item itself when it is done (the review panel's Undo approval).
 CLOSE_THEIR_ITEM = {"rvua"}
+LEGACY_ACTIONS_NS = "alert-actions"   # an earlier-chat notice's buttons by "<chat>:<message>" (UI-01f, §13)
 # Item actions whose handler says whether it was done (notifications.Outcome); a reply that does not say is not done.
 SAY_THEIR_OUTCOME = {"upd", "rerender", "carredraw"}
 PLAIN_TOASTS = {"", "Working", "Request checked", "Request received", "Updated", "Working; you can keep using the bot"}
@@ -1286,8 +1287,76 @@ class TelegramApprovalBot:
             text, buttons = dashboard_text_and_buttons(self.db, getattr(self, "next_run_func", lambda: None)(), assets_dir=ASSETS_DIR)
         if not rebuild:
             self._panel_first()
+            made = self._first_dashboard(text, buttons)
+            if made:
+                return made
         with self._dashboard_lock:
-            return self._show_dashboard_locked(text, buttons, fresh, rebuild)
+            shown = self._show_dashboard_locked(text, buttons, fresh, rebuild)
+        self._repost_if_asked()
+        return shown
+
+    def _first_dashboard(self, text, buttons) -> int | None:
+        """The clean chat (UI-01f): the first dashboard goes in its place, under the notifications panel and above
+        any temporary panel, by posting the layout again from the dashboard down. Called before _dashboard_lock is
+        taken (the re-post takes _rebuild_lock, then _dashboard_lock: telegram_layout's lock order); only the
+        renderer does it. Returns the dashboard's message, or None when it is drawn the usual way."""
+        if not clean_chat() or not self.is_configured() or self.db.get_setting("telegram_dashboard_id"):
+            return None
+        layout = self.layout
+        if not layout.renders_here():
+            return None
+        with layout._rebuild_lock:
+            if self.db.get_setting("telegram_dashboard_id"):   # another thread placed it meanwhile: drawn in place
+                return None
+            self._pending_dashboard = (text, buttons)
+            try:
+                layout.rebuild("dashboard")
+            finally:
+                self._pending_dashboard = None
+        made = self.db.get_setting("telegram_dashboard_id")
+        return int(made) if made and made.isdigit() else None
+
+    def _panels_below_dashboard(self) -> bool:
+        """Whether a progress or review panel sits below the dashboard (a dashboard sent at the bottom would break the
+        order)."""
+        from .telegram_layout import SLOT_PREFIX
+        names = [str(c.get("card_id", "")).removeprefix(SLOT_PREFIX)
+                 for c in self.db.list_telegram_cards(topic_id=0, card_kind="layout")]
+        return any(n.startswith("progress:") or n == "review" for n in names)
+
+    DASHBOARD_ASK_KEY = "dashboard-redraw"   # a dashboard another process asked the renderer to draw (UI-01f)
+
+    def _ask_renderer_for_dashboard(self, text, buttons) -> None:
+        """A process that is not the renderer records the dashboard it would draw; the renderer's tick draws it
+        (design §5.4: only the renderer sends layout messages), as review-panel-redraw does for the review."""
+        self.db.set_setting(self.DASHBOARD_ASK_KEY, json.dumps({"text": text, "buttons": buttons, "at": time.time()}))
+
+    def draw_asked_dashboard(self) -> bool:
+        """The renderer's side: the dashboard another process asked for is drawn here (in place, or posted again in
+        order when it leaves a media screen). Never called holding _dashboard_lock or Layout._lock."""
+        raw = self.db.get_setting(self.DASHBOARD_ASK_KEY)
+        if not raw or not clean_chat() or not self.layout.is_renderer():
+            return False
+        self.db.set_setting(self.DASHBOARD_ASK_KEY, "")
+        try:
+            asked = json.loads(raw)
+        except ValueError:
+            asked = {}
+        self.show_dashboard(asked.get("text"), asked.get("buttons"))
+        return True
+
+    def _repost_if_asked(self) -> None:
+        """A dashboard drawn under _dashboard_lock that had to be posted again in order (design §6.3 path B: it
+        left a media screen) asked for it; the re-post runs now that the lock is released (lock order). The
+        renderer's tick runs one left behind."""
+        slot = getattr(self, "_repost_from", None)
+        if not slot or self._dashboard_lock._is_owned():
+            return
+        self._repost_from = None
+        try:
+            self.layout.rebuild(slot)
+        except Exception as e:  # noqa: BLE001 - the age rule and the next tick post it again
+            log.warning("Could not post the layout again from the %s: %s", slot, e)
 
     def _panel_first(self) -> None:
         """The clean chat: the pinned panel is made before a dashboard is drawn, so the dashboard always sits
@@ -1321,8 +1390,19 @@ class TelegramApprovalBot:
             if self.show_navigation_panel(current, text, buttons):
                 self.db.set_setting("telegram_dashboard_id", str(self._current_panel(current)))
                 return self._current_panel(current)
+        if clean and self.is_configured() and not self.layout.renders_here():
+            # UI-01f: a process that is not the renderer never sends a dashboard (design §5.4): it asks the renderer.
+            self._ask_renderer_for_dashboard(text, buttons)
+            return None
+        if clean and previous and self.is_configured() and self._panels_below_dashboard():
+            # The dashboard's message is gone and panels sit below it: it is posted again in its place, in order
+            # (after the lock is released), never at the bottom under them.
+            self.__dict__.setdefault("_content", {})[self._current_panel(previous)] = (text, copy.deepcopy(buttons))
+            self._repost_from = "dashboard"
+            return self._current_panel(previous)
         message_id = self.notify(text, buttons=buttons, record_alert=False, group="studio")
         if type(message_id) is int:
+            self.__dict__.setdefault("_content", {})[message_id] = (text, copy.deepcopy(buttons))
             self.db.set_setting("telegram_dashboard_id", str(message_id))
             self._record_kind(message_id, media=False)
             # One panel in the chat: the one this replaces goes (a review card is never the panel).
@@ -1334,8 +1414,11 @@ class TelegramApprovalBot:
         """A typed command opens the one panel at the bottom of the chat and runs in it, as a tap would."""
         self._dashboard_touched = time.time()   # the operator is using the dashboard (its return home waits)
         self._panel_first()                     # before the lock (telegram_layout's lock order)
-        with self._dashboard_lock:   # the clean chat draws it in the dashboard (UI-01b)
-            message_id = self._show_dashboard_locked("⏳ <b>Working…</b>", [[DONE_BUTTON]], fresh=True)
+        message_id = self._first_dashboard("⏳ <b>Working…</b>", [[DONE_BUTTON]])   # UI-01f, before the lock too
+        if not message_id:
+            with self._dashboard_lock:   # the clean chat draws it in the dashboard (UI-01b)
+                message_id = self._show_dashboard_locked("⏳ <b>Working…</b>", [[DONE_BUTTON]], fresh=True)
+            self._repost_if_asked()
         if type(message_id) is not int:
             return None
         return message_id, False, self._panel_revisions.get(message_id, 0)
@@ -1380,6 +1463,29 @@ class TelegramApprovalBot:
                 return edited
             # The edit found a photo/audio/video panel this process had no record of (a restart, a worker
             # process): it is replaced by a text message below, as a known media panel is.
+        if clean_chat() and media and self.is_configured():
+            stored = self.db.get_setting("telegram_dashboard_id")
+            if stored == str(current) and not self.layout.renders_here():
+                # Not the renderer (a run's worker ending its run): only the renderer sends a dashboard (design
+                # §5.4), so it is asked to draw this one; the layout's order holds.
+                self._ask_renderer_for_dashboard(text, buttons)
+                return True
+            if stored == str(current):
+                # Design §6.3 path B: the dashboard leaves a picture or music screen. A media message cannot become
+                # text, so the dashboard and every panel below it are posted again in order and the old copies go.
+                self.__dict__.setdefault("_content", {})[current] = (text, copy.deepcopy(buttons))
+                if self._dashboard_lock._is_owned():
+                    # Drawn under the dashboard lock (show_dashboard): the re-post takes _rebuild_lock first, so it
+                    # runs once that lock is released (_repost_if_asked; the renderer's tick as a fallback).
+                    self._repost_from = "dashboard"
+                    return True
+                self._record_kind(current, media=False)   # its copy is text
+                if self.layout.rebuild("dashboard") is not None and self.db.get_setting("telegram_dashboard_id") != stored:
+                    return True
+                self._record_kind(current, media=True)
+                # The re-post could not run (its back-off, a refused copy): the media panel stays as it is, never a
+                # new dashboard at the bottom (that broke the order); the content is kept for the next re-post.
+                return True
         screen_data = {
             "chat_id": self.chat_id,
             "text": safe_html_truncate(_MASKER.mask(text), 4000),
@@ -3376,6 +3482,7 @@ class TelegramApprovalBot:
         # No message is a dead end: one tap back to the panel, whether or not it carries buttons of its own
         # (a timeout notice or a proposal card had only its actions: 2026-10-25 overhaul).
         buttons = navigation_buttons(buttons) if buttons else [DONE_BUTTON]
+        offered = buttons   # the notice's own buttons, before a long text's page arrows
         from .telegram_pages import panel as paginate
         text, buttons = paginate(self.db, text, buttons)
         truncated_text = text
@@ -3397,6 +3504,7 @@ class TelegramApprovalBot:
             # A transient message is always recorded: its expiry lives in that record (without it, it stayed).
             if (record_alert or transient) and hasattr(self.db, "record_alert"):
                 self.db.record_alert(text, message_id=msg_id, kind="transient" if transient else "persistent", expires_at=expires_at)
+                self._remember_actions(msg_id, offered)   # the clean chat's first start keeps them (§13)
             return msg_id if msg_id else True
         except Exception as e:
             err_msg = str(e).lower()
@@ -3475,6 +3583,226 @@ class TelegramApprovalBot:
                 layout.tick(force=True)
         except Exception as e:  # noqa: BLE001 - a shutdown never fails on the panel
             log.warning("Could not draw the notifications panel at shutdown: %s", e)
+        finally:
+            layout.release()
+
+    # ------------------------------------------------------------ the ordered re-post (UI-01f)
+    def _note_update(self, update: dict[str, Any]) -> None:
+        """An update from the chat: the operator was active now (the re-post waits for an idle moment), its message
+        id is the newest seen (the gap sweep's bound), and a message just received is not swept while it is read."""
+        from .layout_repost import seen
+        msg = update.get("message") or (update.get("callback_query") or {}).get("message") or {}
+        mid = msg.get("message_id")
+        if mid:
+            seen(self.db, mid)
+        if update.get("message") and mid:
+            recent = self.__dict__.setdefault("_recent_ids", {})
+            recent[int(mid)] = time.time()
+            for old in [k for k, at in recent.items() if time.time() - at > 120]:
+                recent.pop(old, None)
+        sender = (update.get("message") or update.get("callback_query") or {}).get("from") or {}
+        if str(sender.get("id", "")) in self.approver_ids:
+            self._last_activity = time.time()
+
+    def panel_copy(self, message_id: int | None, name: str) -> dict[str, Any] | None:
+        """A layout panel as it shows now, as sendMessage data (silent is added by the caller): the content last
+        drawn in it, or for a dashboard with none recorded its home screen, for a progress panel its run's
+        current stage."""
+        from .telegram_pages import panel as paginate
+        content = None
+        if message_id:
+            content = (getattr(self, "_content", {}) or {}).get(self._current_panel(int(message_id)))
+        if name == "dashboard" and getattr(self, "_pending_dashboard", None):
+            content = self._pending_dashboard
+        if content is None and name == "dashboard":
+            from .config import ASSETS_DIR
+            from .control import dashboard_text_and_buttons
+            content = dashboard_text_and_buttons(self.db, getattr(self, "next_run_func", lambda: None)(), assets_dir=ASSETS_DIR)
+        if content is None and name.startswith("progress:"):
+            run_id = name.partition(":")[2]
+            content = (f"{hourglass()} <b>Progress</b>\n\n<b>{html.escape(self.db.run_label(run_id))}</b>",
+                       self._progress_buttons(run_id))
+        if content is None:
+            return None
+        self.__dict__.setdefault("_copied", {})[name] = content   # what the new copy shows (adopt_copies)
+        text, buttons = content
+        text, buttons = paginate(self.db, _MASKER.mask(text), buttons)
+        return {"chat_id": self.chat_id, "text": safe_html_truncate(text, 4000), "parse_mode": "HTML",
+                "disable_web_page_preview": "true",
+                "reply_markup": json.dumps({"inline_keyboard": format_responsive_keyboard(buttons) if buttons else []})}
+
+    def adopt_copies(self, sent: dict[str, int], old: dict[str, int | None]) -> None:
+        """After the re-post's swap: each panel's new message takes over its old one's screen, path, content and
+        taps (the alias table); the progress record and the reviews follow their panels."""
+        with self._panel_lock:
+            for name, new in sent.items():
+                before = old.get(name)
+                media = name == "review"
+                if before:
+                    before = int(before)
+                    self._panel_aliases[before] = int(new)
+                    for cache in (self._panel_screen, self._panel_origin, self._panel_trail, self._panel_revisions,
+                                  self.__dict__.setdefault("_content", {})):
+                        if before in cache:
+                            cache[int(new)] = cache[before]
+                self._panel_media[int(new)] = media
+                copied = self.__dict__.setdefault("_copied", {}).pop(name, None)
+                if copied is not None:
+                    self.__dict__.setdefault("_content", {})[int(new)] = copied
+        for name, new in sent.items():
+            self._record_kind(int(new), media=name == "review")
+            if name.startswith("progress:"):
+                try:
+                    record = json.loads(self.db.get_setting("active_progress") or "{}")
+                except ValueError:
+                    record = {}
+                if record.get("run_id") == name.partition(":")[2]:
+                    record["message_id"] = int(new)
+                    self.db.set_setting("active_progress", json.dumps(record))
+                self._last_progress_edit[int(new)] = time.monotonic()
+            elif name == "review":
+                self.review.rebind(int(new))
+
+    def pending_legacy_reviews(self) -> list[dict[str, Any]]:
+        """Reviews waiting on a card of the earlier layout (no review-panel record): moved into the review panel at
+        the first start of the clean chat's re-post build (design §13)."""
+        from .review_panel import STATE
+        from .telegram_state import get
+        out = []
+        for approval in self.db.list_pending_approvals():
+            run = self.db.get_run(approval["run_id"]) or {}
+            if run.get("status") == "pending_approval" and run.get("master_video_path") and not get(self.db, STATE, approval["run_id"]):
+                out.append(run)
+        return out
+
+    def redeliver_review(self, run: dict[str, Any]) -> int | None:
+        """The review copy sent again (as a Resend does), into the review panel."""
+        root = Path(run["master_video_path"]).parent
+        proxy = root / "review_proxy.mp4"
+        video = proxy if proxy.is_file() else Path(run["master_video_path"])
+        cover = Path(run.get("thumbnail_cover_path") or root / "thumbnail_cover.jpg")
+        return self.send_approval_request(video, cover, run.get("script_payload") or {}, run["run_id"])
+
+    def legacy_message_ids(self) -> list[int]:
+        """Every message id the earlier layout recorded (design §13): alerts, review cards and albums, the timeout
+        and "Review waiting" notices, cards, media screens, the messages runs were mapped to."""
+        from .layout_repost import STUCK_KEY
+        ids: set = set(self.db.list_known_message_ids() if hasattr(self.db, "list_known_message_ids") else [])
+        with self.db._conn() as conn:
+            for namespace, key, value in conn.execute(
+                    "SELECT namespace, key, value FROM telegram_transport WHERE namespace IN "
+                    "('review-messages', 'timeout-notice', 'review-need-notice', 'message-run', 'review-cover')"):
+                try:
+                    data = json.loads(value)
+                except ValueError:
+                    data = None
+                if namespace == "message-run":
+                    tail = str(key).rpartition(":")[2]
+                    if tail.isdigit():
+                        ids.add(int(tail))
+                elif isinstance(data, list):
+                    ids.update(m for m in data if isinstance(m, int))
+                elif isinstance(data, int):
+                    ids.add(data)
+        for card in self.db.list_telegram_cards() if hasattr(self.db, "list_telegram_cards") else []:
+            if card.get("card_kind") == "layout":
+                continue
+            payload = card.get("payload") or {}
+            ids.update(m for m in (card.get("message_id"), payload.get("video_mid"), payload.get("card_mid"))
+                       if isinstance(m, int))
+        ids.update(self._media_ids())
+        stuck = set(json.loads(self.db.get_setting(STUCK_KEY) or "[]") or [])
+        return sorted(m for m in ids if isinstance(m, int) and m > 0 and m not in stuck)
+
+    def legacy_notices(self) -> list[dict[str, Any]]:
+        """The earlier chat's notices still in the chat (alerts not purged: persistent ones, and transient ones not
+        yet expired) younger than 48 hours, oldest first: {"id", "text", "message_id", "run", "kind", "actions"}
+        (design §13). The run is the one their message was mapped to, if any; the actions are the buttons the notice
+        carried when this build recorded them (_remember_actions), else none."""
+        from .telegram_state import get
+        now = datetime.now(UTC)
+        cutoff = now - timedelta(hours=48)
+        out = []
+        try:
+            with self.db._conn() as conn:
+                rows = [dict(r) for r in conn.execute(
+                    "SELECT id, message_id, text, kind, expires_at, created_at FROM alerts WHERE purged = 0 "
+                    "AND message_id IS NOT NULL AND kind IN ('persistent', 'transient') ORDER BY id")]
+        except Exception as e:  # noqa: BLE001 - no alerts table: nothing to move
+            log.debug("No earlier notices to move: %s", e)
+            return []
+        for row in rows:
+            try:
+                created = datetime.fromisoformat(str(row["created_at"]))
+                expires = datetime.fromisoformat(str(row["expires_at"])) if row.get("expires_at") else None
+            except ValueError:
+                continue
+            if created.tzinfo is None:
+                created = created.replace(tzinfo=UTC)
+            if expires is not None and expires.tzinfo is None:
+                expires = expires.replace(tzinfo=UTC)
+            if created < cutoff or not str(row.get("text") or "").strip():
+                continue
+            if row["kind"] == "transient" and expires is not None and expires <= now:   # gone with its lifetime
+                continue
+            key = f"{self.chat_id}:{row['message_id']}"
+            run = get(self.db, "message-run", key)
+            actions = get(self.db, LEGACY_ACTIONS_NS, key) or []
+            out.append({"id": row["id"], "text": row["text"], "message_id": row["message_id"], "run": run or None,
+                        "kind": row["kind"], "actions": [a for a in actions if isinstance(a, dict)]})
+        return out
+
+    def _remember_actions(self, message_id: Any, buttons: Any) -> None:
+        """A notice's own buttons, kept by its message id (the alerts table records only its text): when the clean
+        chat starts (§13) its Needs-you item offers the same actions instead of only Details or 📊 Status."""
+        from . import notifications as notes
+        actions = notes.actions_from(buttons)
+        if not (message_id and actions):
+            return
+        try:
+            from .telegram_state import put
+            put(self.db, LEGACY_ACTIONS_NS, f"{self.chat_id}:{message_id}", actions)
+        except Exception as e:  # noqa: BLE001 - a notice is never lost over its record
+            log.debug("Could not keep the notice's buttons: %s", e)
+
+    def chat_is_older_than_48h(self) -> bool:
+        """Whether the earlier chat holds messages the bot can no longer delete (its oldest recorded alert)."""
+        try:
+            with self.db._conn() as conn:
+                row = conn.execute("SELECT MIN(created_at) FROM alerts WHERE message_id IS NOT NULL").fetchone()
+            oldest = datetime.fromisoformat(str(row[0])) if row and row[0] else None
+        except Exception:  # noqa: BLE001 - unknown: no note
+            return False
+        if oldest is None:
+            return False
+        if oldest.tzinfo is None:
+            oldest = oldest.replace(tzinfo=UTC)
+        return datetime.now(UTC) - oldest > timedelta(hours=48)
+
+    def stopped_footer(self, line: str) -> bool:
+        """A clean stop: the dashboard's last line says the bot is stopped (design §7.3)."""
+        stored = self.db.get_setting("telegram_dashboard_id")
+        if not (stored and stored.isdigit()):
+            return False
+        with self._dashboard_lock:   # a dashboard edit (telegram_layout's lock order: taken before Layout._lock)
+            mid = self._current_panel(int(stored))
+            content = (getattr(self, "_content", {}) or {}).get(mid)
+            if not content or self._is_media(mid):
+                return False
+            text, buttons = content
+            return self.edit_message_text(mid, f"{text}\n\n<i>{html.escape(line)}</i>", buttons=buttons)
+
+    def service_stopped(self) -> None:
+        """The bot or daemon stops cleanly: said on the dashboard and in the service-state item, then the renderer
+        lease is released (the next process takes it at once), as close_layout does. The renderer thread stops
+        first, so nothing draws after the stop line; only the renderer says it (the lease)."""
+        layout = self.layout
+        try:
+            layout.halt()
+            if layout.is_renderer():
+                layout.repost.stopping()
+        except Exception as e:  # noqa: BLE001 - stopping goes on
+            log.warning("Could not say the bot stopped: %s", e)
         finally:
             layout.release()
 
@@ -3764,6 +4092,7 @@ class TelegramApprovalBot:
                 from .card_ledger import record as record_card
                 put(self.db, "message-run", f"{self.chat_id}:{mid}", run_id)
                 record_card(run_id, "progress", text, buttons, mid)
+                self.__dict__.setdefault("_content", {})[mid] = (text, copy.deepcopy(buttons))
                 if clean_chat():   # a layout row: the reaper deletes it if its run ends without its finisher
                     from .process_state import identity
                     from .telegram_layout import put_slot
@@ -4261,6 +4590,7 @@ class TelegramApprovalBot:
         if not self.is_configured() or not message_id:
             return False
         content = (text, copy.deepcopy(buttons))  # a caller may change its list after a queued edit returns
+        self.__dict__.setdefault("_content", {})[message_id] = content   # a re-post sends this copy (UI-01f)
         with self._edit_lock:  # the order edits were asked for: the latest content wins a hold
             self._edit_seq += 1
             seq = self._edit_seq
@@ -4971,6 +5301,8 @@ class TelegramApprovalBot:
                     continue
                 self._offset = max(self._offset or 0, update["update_id"] + 1)
                 cq = update.get("callback_query")
+                if clean:   # UI-01f: idle moments, the gap sweep's bound and the messages being read
+                    self._note_update(update)
                 if cq:
                     cq["data"] = decode(self.db, cq.get("data", ""))
                     if offline and self._stale_tap(cq["data"]):
@@ -5626,7 +5958,7 @@ class TelegramApprovalBot:
             if not repeat and clean_chat():
                 # The recovery after a Telegram "Clear history" too: the layout is posted again in order, the
                 # old copies deleted (design §5.3, §6.7).
-                self.layout.rebuild()
+                self.layout.rebuild(urgent=True)
                 if not self.db.get_setting("telegram_dashboard_id"):
                     self.show_dashboard()
             elif not repeat:
@@ -5651,7 +5983,7 @@ class TelegramApprovalBot:
             next_fn = getattr(self, 'next_run_func', lambda: None)
             dash_text, dash_buttons = dashboard_text_and_buttons(self.db, next_fn(), assets_dir=ASSETS_DIR)
             if clean_chat():
-                self.layout.rebuild()
+                self.layout.rebuild(urgent=True)
                 self.show_dashboard(dash_text, dash_buttons)
                 return
             self.show_dashboard(dash_text, dash_buttons, fresh=True)

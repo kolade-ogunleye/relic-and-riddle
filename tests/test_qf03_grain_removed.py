@@ -95,14 +95,20 @@ def test_calibration_cuts_the_same_samples_instead_of_racing_input_eof(tmp_path,
         chains.append(args[-1])
         return -14.0, -2.0
 
+    def analyse(*args, **kwargs):   # QF-11: the gain is measured once, from the unlimited mix
+        chains.append(args[2])
+        return {"integrated_lufs": -14.0, "loudness_range_lu": 1.0, "true_peak_dbtp": -2.0, "frames": [],
+                "passes": 1}
+
     monkeypatch.setattr(vc.VideoComposer, '_measure', staticmethod(measure))
+    monkeypatch.setattr(vc.VideoComposer, '_analyse', staticmethod(analyse))
     composer = vc.VideoComposer()
     composer.calibrate_gain(voice, bed, end=1.0)
-    assert len(chains) == 2
+    assert len(chains) == 1
     assert all('atrim=end_sample=48000' in c and ',apad[bg_carved]' in c for c in chains)
     composer.calibrate_gain(voice, bed, end=2.0)
-    assert len(chains) == 4  # a different endpoint cannot reuse the first programme's gain
-    assert all('atrim=end_sample=96000' in c for c in chains[2:])
+    assert len(chains) == 2  # a different endpoint cannot reuse the first programme's gain
+    assert all('atrim=end_sample=96000' in c for c in chains[1:])
 
 
 def test_concurrent_renders_keep_the_audio_and_container_identical(tmp_path, monkeypatch):

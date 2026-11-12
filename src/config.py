@@ -382,6 +382,25 @@ PICTURE_QA_RANGE_S = 0.5
 PICTURE_QA_TIMEOUT_BASE_S = 120.0
 PICTURE_QA_TIMEOUT_PER_S = 5.0
 PICTURE_QA_THREADS = 0
+# Objective sound checks of the delivered master in the release gate (QF-11, src/audio_qa.py). Fixed quality
+# thresholds, not settings; one decode measures them (ITU-R BS.1770 / EBU Tech 3341 meter). Dropout (blocks): the
+# sound below AUDIO_QA_SILENCE_DB dBFS for AUDIO_QA_SILENCE_S or more anywhere more than AUDIO_QA_EDGE_S inside the
+# programme, or for AUDIO_QA_EDGE_SILENCE_S or more at either end. Phone (a note, never blocking): a mobile-speaker
+# simulation, AUDIO_QA_PHONE_LOW_HZ to AUDIO_QA_PHONE_HIGH_HZ at 24 dB per octave; a 3 s window above the relative
+# gate whose loudness through it is more than AUDIO_QA_PHONE_LOSS_LU below the full band is noted. Sibilance (the
+# AUDIO_QA_SIBILANCE band) is recorded only. The decode may take AUDIO_QA_TIMEOUT_BASE_S plus AUDIO_QA_TIMEOUT_PER_S
+# per programme second (QF-10's picture limit).
+AUDIO_QA_SILENCE_DB = -60
+AUDIO_QA_SILENCE_S = 0.2
+AUDIO_QA_EDGE_S = 0.5
+AUDIO_QA_EDGE_SILENCE_S = 1.0
+AUDIO_QA_PHONE_LOW_HZ = 300
+AUDIO_QA_PHONE_HIGH_HZ = 8000
+AUDIO_QA_PHONE_LOSS_LU = 10.0
+AUDIO_QA_SIBILANCE_LOW_HZ = 4000
+AUDIO_QA_SIBILANCE_HIGH_HZ = 10000
+AUDIO_QA_TIMEOUT_BASE_S = 120.0
+AUDIO_QA_TIMEOUT_PER_S = 5.0
 # Sound-effect headroom (QF-06, 2026-11-05): every one-shot effect enters the music bed at SFX_PEAK_DBFS peak before
 # its cue gain (it was set to the RMS of the synthesized stand-in it replaces, so its peak went wherever the
 # recording's crest factor took it), and the bed bus (music, setting layer and effects together) is peak-limited at

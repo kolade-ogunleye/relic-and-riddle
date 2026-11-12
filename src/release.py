@@ -86,6 +86,22 @@ def write_release_report(run, dry_run=False):
         # master gated before QF-10 (a timeout used to remove the operator's note for good).
         next(c for c in checks if c["name"] == "picture_measurement")["gated_before_qf10"] = eligible
 
+    # The sound, every sample decoded once (QF-11): a dropout to silence blocks; a phone-speaker loss is a note. A
+    # master measured before keeps its result. A master gated before QF-11 has no exemption: no real master fails
+    # these checks (dev 0 of 30, production sample 0 of 33), so nothing grandfathered under QF-10 changes status.
+    from . import audio_qa
+    try:
+        sound = (audio_qa.recorded(report_path, master, deep_dive=deep_dive)
+                 or audio_qa.measure(master, deep_dive=deep_dive))
+        checks.extend(sound["checks"])
+        checks.append({"name": "audio_measurement", "status": "pass",
+                       "detail": (f"Decoded all {sound['decoded_samples_per_channel']:,} samples per channel "
+                                  f"({sound['duration']:.1f} s): loudness range {sound['loudness_range_lu']} LU, "
+                                  f"loudest 3 s {sound['max_short_term_lufs']} LUFS."),
+                       "measurement": {k: v for k, v in sound.items() if k != "checks"}})
+    except Exception as exc:  # noqa: BLE001 - any failure to measure is recorded as a failed check, never a pass
+        add("audio_measurement", False, f"The sound could not be checked: {exc}")
+
     ledger = master.parent / "provenance.json"
     integrity = verify_provenance_integrity(ledger)
     add("provenance", integrity, "All recorded files must exist and match their checksums.")

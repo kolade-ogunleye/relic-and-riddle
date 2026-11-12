@@ -1,0 +1,711 @@
+{
+ "root_has_audio_qa": false,
+ "dev": {
+  "mastering_summary": {
+   "runs": 34,
+   "errors": 0,
+   "decodes": {
+    "min": 2,
+    "median": 6.0,
+    "max": 6
+   },
+   "decodes_with_card_level": {
+    "min": 6,
+    "median": 6.0,
+    "max": 6
+   },
+   "decodes_without_card_level": {
+    "min": 2,
+    "median": 2.0,
+    "max": 2
+   },
+   "mastering_s": {
+    "min": 8.3,
+    "median": 28.95,
+    "max": 36.2
+   },
+   "integrated_lufs": {
+    "min": -14.2,
+    "median": -14.1,
+    "max": -14.0
+   },
+   "true_peak_dbtp": {
+    "min": -1.9,
+    "median": -1.9,
+    "max": -1.9
+   },
+   "off_target_over_0_5_lu": 0,
+   "limiter_cost_lu": null,
+   "limiter_cost_bound_lu": null,
+   "bound_below_real_cost": 0
+  },
+  "mastering": [
+   {
+    "run": "run_amber_room_heist_1792790550",
+    "deep_dive": false,
+    "loop_bridge": false,
+    "card_db": 0.0,
+    "decodes": 2,
+    "mastering_s": 36.2,
+    "gain_db": 3.2,
+    "integrated_lufs": -14.1,
+    "true_peak_dbtp": -1.9,
+    "limiter_cost_lu": null,
+    "limiter_cost_bound_lu": null
+   },
+   {
+    "run": "run_amber_room_heist_1792801257",
+    "deep_dive": false,
+    "loop_bridge": false,
+    "card_db": 0.0,
+    "decodes": 2,
+    "mastering_s": 10.9,
+    "gain_db": 3.4,
+    "integrated_lufs": -14.0,
+    "true_peak_dbtp": -1.9,
+    "limiter_cost_lu": null,
+    "limiter_cost_bound_lu": null
+   },
+   {
+    "run": "run_amber_room_heist_1792805842",
+    "deep_dive": false,
+    "loop_bridge": false,
+    "card_db": 0.0,
+    "decodes": 2,
+    "mastering_s": 10.0,
+    "gain_db": 3.4,
+    "integrated_lufs": -14.1,
+    "true_peak_dbtp": -1.9,
+    "limiter_cost_lu": null,
+    "limiter_cost_bound_lu": null
+   },
+   {
+    "run": "run_damascus_steel_nanotubes_1792732472_short",
+    "deep_dive": false,
+    "loop_bridge": false,
+    "card_db": 0.0,
+    "decodes": 2,
+    "mastering_s": 10.5,
+    "gain_db": 3.5,
+    "integrated_lufs": -14.1,
+    "true_peak_dbtp": -1.9,
+    "limiter_cost_lu": null,
+    "limiter_cost_bound_lu": null
+   },
+   {
+    "run": "run_gol_gumbaz_whispering_gallery_1793278143",
+    "deep_dive": false,
+    "loop_bridge": true,
+    "card_db": 3.5,
+    "decodes": 6,
+    "mastering_s": 30.6,
+    "gain_db": 3.3,
+    "integrated_lufs": -14.1,
+    "true_peak_dbtp": -1.9,
+    "limiter_cost_lu": null,
+    "limiter_cost_bound_lu": null
+   },
+   {
+    "run": "run_greek_fire_siphon_1792735284_short",
+    "deep_dive": false,
+    "loop_bridge": false,
+    "card_db": 0.0,
+    "decodes": 2,
+    "mastering_s": 10.3,
+    "gain_db": 3.4,
+    "integrated_lufs": -14.1,
+    "true_peak_dbtp": -1.9,
+    "limiter_cost_lu": null,
+    "limiter_cost_bound_lu": null
+   },
+   {
+    "run": "run_hal_saflieni_hypogeum_1792949304",
+    "deep_dive": false,
+    "loop_bridge": false,
+    "card_db": 0.0,
+    "decodes": 2,
+    "mastering_s": 10.5,
+    "gain_db": 3.2,
+    "integrated_lufs": -14.1,
+    "true_peak_dbtp": -1.9,
+    "limiter_cost_lu": null,
+    "limiter_cost_bound_lu": null
+   },
+   {
+    "run": "run_kailasa_temple_monolith_1792524470",
+    "deep_dive": false,
+    "loop_bridge": false,
+    "card_db": 0.0,
+    "decodes": 2,
+    "mastering_s": 8.7,
+    "gain_db": 3.7,
+    "integrated_lufs": -14.1,
+    "true_peak_dbtp": -1.9,
+    "limiter_cost_lu": null,
+    "limiter_cost_bound_lu": null
+   },
+   {
+    "run": "run_nazca_lines_runway_paradox_1792961797",
+    "deep_dive": false,
+    "loop_bridge": false,
+    "card_db": 0.0,
+    "decodes": 2,
+    "mastering_s": 9.5,
+    "gain_db": 3.2,
+    "integrated_lufs": -14.1,
+    "true_peak_dbtp": -1.9,
+    "limiter_cost_lu": null,
+    "limiter_cost_bound_lu": null
+   },
+   {
+    "run": "run_nazca_lines_runway_paradox_1793247464",
+    "deep_dive": false,
+    "loop_bridge": true,
+    "card_db": 12.0,
+    "decodes": 6,
+    "mastering_s": 30.8,
+    "gain_db": 1.7,
+    "integrated_lufs": -14.2,
+    "true_peak_dbtp": -1.9,
+    "limiter_cost_lu": null,
+    "limiter_cost_bound_lu": null
+   },
+   {
+    "run": "run_nazca_lines_runway_paradox_1793251266",
+    "deep_dive": false,
+    "loop_bridge": true,
+    "card_db": 12.0,
+    "decodes": 6,
+    "mastering_s": 29.4,
+    "gain_db": 1.7,
+    "integrated_lufs": -14.2,
+    "true_peak_dbtp": -1.9,
+    "limiter_cost_lu": null,
+    "limiter_cost_bound_lu": null
+   },
+   {
+    "run": "run_nazca_lines_runway_paradox_1793262388",
+    "deep_dive": false,
+    "loop_bridge": true,
+    "card_db": 12.0,
+    "decodes": 6,
+    "mastering_s": 29.3,
+    "gain_db": 1.7,
+    "integrated_lufs": -14.2,
+    "true_peak_dbtp": -1.9,
+    "limiter_cost_lu": null,
+    "limiter_cost_bound_lu": null
+   },
+   {
+    "run": "run_nazca_lines_runway_paradox_1793267092",
+    "deep_dive": false,
+    "loop_bridge": true,
+    "card_db": 12.0,
+    "decodes": 6,
+    "mastering_s": 29.2,
+    "gain_db": 1.7,
+    "integrated_lufs": -14.2,
+    "true_peak_dbtp": -1.9,
+    "limiter_cost_lu": null,
+    "limiter_cost_bound_lu": null
+   },
+   {
+    "run": "run_odessa_catacombs_1792970549",
+    "deep_dive": false,
+    "loop_bridge": false,
+    "card_db": 0.0,
+    "decodes": 2,
+    "mastering_s": 8.5,
+    "gain_db": 3.2,
+    "integrated_lufs": -14.1,
+    "true_peak_dbtp": -1.9,
+    "limiter_cost_lu": null,
+    "limiter_cost_bound_lu": null
+   },
+   {
+    "run": "run_odessa_catacombs_1793098390",
+    "deep_dive": false,
+    "loop_bridge": true,
+    "card_db": 8.1,
+    "decodes": 6,
+    "mastering_s": 27.6,
+    "gain_db": 3.4,
+    "integrated_lufs": -14.0,
+    "true_peak_dbtp": -1.9,
+    "limiter_cost_lu": null,
+    "limiter_cost_bound_lu": null
+   },
+   {
+    "run": "run_odessa_catacombs_1793100750",
+    "deep_dive": false,
+    "loop_bridge": true,
+    "card_db": 8.1,
+    "decodes": 6,
+    "mastering_s": 31.1,
+    "gain_db": 3.4,
+    "integrated_lufs": -14.0,
+    "true_peak_dbtp": -1.9,
+    "limiter_cost_lu": null,
+    "limiter_cost_bound_lu": null
+   },
+   {
+    "run": "run_odessa_catacombs_1793159709",
+    "deep_dive": false,
+    "loop_bridge": true,
+    "card_db": 12.0,
+    "decodes": 6,
+    "mastering_s": 27.1,
+    "gain_db": 3.5,
+    "integrated_lufs": -14.1,
+    "true_peak_dbtp": -1.9,
+    "limiter_cost_lu": null,
+    "limiter_cost_bound_lu": null
+   },
+   {
+    "run": "run_richat_structure_sahara_eye_1792737039_short",
+    "deep_dive": false,
+    "loop_bridge": false,
+    "card_db": 0.0,
+    "decodes": 2,
+    "mastering_s": 8.3,
+    "gain_db": 3.3,
+    "integrated_lufs": -14.1,
+    "true_peak_dbtp": -1.9,
+    "limiter_cost_lu": null,
+    "limiter_cost_bound_lu": null
+   },
+   {
+    "run": "run_richat_structure_sahara_eye_1792740961_long",
+    "deep_dive": true,
+    "loop_bridge": false,
+    "card_db": 0.0,
+    "decodes": 2,
+    "mastering_s": 35.3,
+    "gain_db": 3.2,
+    "integrated_lufs": -14.1,
+    "true_peak_dbtp": -1.9,
+    "limiter_cost_lu": null,
+    "limiter_cost_bound_lu": null
+   },
+   {
+    "run": "run_richat_structure_sahara_eye_1792778206",
+    "deep_dive": false,
+    "loop_bridge": false,
+    "card_db": 0.0,
+    "decodes": 2,
+    "mastering_s": 8.8,
+    "gain_db": 3.2,
+    "integrated_lufs": -14.0,
+    "true_peak_dbtp": -1.9,
+    "limiter_cost_lu": null,
+    "limiter_cost_bound_lu": null
+   },
+   {
+    "run": "run_richat_structure_sahara_eye_1793272675",
+    "deep_dive": false,
+    "loop_bridge": true,
+    "card_db": 5.2,
+    "decodes": 6,
+    "mastering_s": 33.3,
+    "gain_db": 3.2,
+    "integrated_lufs": -14.1,
+    "true_peak_dbtp": -1.9,
+    "limiter_cost_lu": null,
+    "limiter_cost_bound_lu": null
+   },
+   {
+    "run": "run_richat_structure_sahara_eye_1793468053",
+    "deep_dive": false,
+    "loop_bridge": true,
+    "card_db": 5.8,
+    "decodes": 6,
+    "mastering_s": 28.7,
+    "gain_db": 3.3,
+    "integrated_lufs": -14.1,
+    "true_peak_dbtp": -1.9,
+    "limiter_cost_lu": null,
+    "limiter_cost_bound_lu": null
+   },
+   {
+    "run": "run_richat_structure_sahara_eye_1793474473",
+    "deep_dive": false,
+    "loop_bridge": true,
+    "card_db": 5.8,
+    "decodes": 6,
+    "mastering_s": 30.1,
+    "gain_db": 3.3,
+    "integrated_lufs": -14.1,
+    "true_peak_dbtp": -1.9,
+    "limiter_cost_lu": null,
+    "limiter_cost_bound_lu": null
+   },
+   {
+    "run": "run_richat_structure_sahara_eye_1793474843",
+    "deep_dive": false,
+    "loop_bridge": true,
+    "card_db": 5.8,
+    "decodes": 6,
+    "mastering_s": 29.6,
+    "gain_db": 3.3,
+    "integrated_lufs": -14.1,
+    "true_peak_dbtp": -1.9,
+    "limiter_cost_lu": null,
+    "limiter_cost_bound_lu": null
+   },
+   {
+    "run": "run_roman_self_healing_concrete_1793161347",
+    "deep_dive": false,
+    "loop_bridge": true,
+    "card_db": 10.3,
+    "decodes": 6,
+    "mastering_s": 31.1,
+    "gain_db": 3.5,
+    "integrated_lufs": -14.1,
+    "true_peak_dbtp": -1.9,
+    "limiter_cost_lu": null,
+    "limiter_cost_bound_lu": null
+   },
+   {
+    "run": "run_roman_self_healing_concrete_1793163918",
+    "deep_dive": false,
+    "loop_bridge": true,
+    "card_db": 10.3,
+    "decodes": 6,
+    "mastering_s": 33.4,
+    "gain_db": 3.5,
+    "integrated_lufs": -14.1,
+    "true_peak_dbtp": -1.9,
+    "limiter_cost_lu": null,
+    "limiter_cost_bound_lu": null
+   },
+   {
+    "run": "run_singing_colossi_of_memnon_1792952878",
+    "deep_dive": false,
+    "loop_bridge": false,
+    "card_db": 0.0,
+    "decodes": 2,
+    "mastering_s": 10.7,
+    "gain_db": 3.3,
+    "integrated_lufs": -14.1,
+    "true_peak_dbtp": -1.9,
+    "limiter_cost_lu": null,
+    "limiter_cost_bound_lu": null
+   },
+   {
+    "run": "run_trepanation_miracle_1792995462",
+    "deep_dive": false,
+    "loop_bridge": true,
+    "card_db": 9.1,
+    "decodes": 6,
+    "mastering_s": 35.3,
+    "gain_db": 3.2,
+    "integrated_lufs": -14.1,
+    "true_peak_dbtp": -1.9,
+    "limiter_cost_lu": null,
+    "limiter_cost_bound_lu": null
+   },
+   {
+    "run": "run_tunguska_event_1908_1792930600",
+    "deep_dive": false,
+    "loop_bridge": false,
+    "card_db": 0.0,
+    "decodes": 2,
+    "mastering_s": 10.0,
+    "gain_db": 3.4,
+    "integrated_lufs": -14.1,
+    "true_peak_dbtp": -1.9,
+    "limiter_cost_lu": null,
+    "limiter_cost_bound_lu": null
+   },
+   {
+    "run": "run_unfinished_obelisk_aswan_1792985912",
+    "deep_dive": false,
+    "loop_bridge": true,
+    "card_db": 5.3,
+    "decodes": 6,
+    "mastering_s": 33.6,
+    "gain_db": 3.4,
+    "integrated_lufs": -14.1,
+    "true_peak_dbtp": -1.9,
+    "limiter_cost_lu": null,
+    "limiter_cost_bound_lu": null
+   },
+   {
+    "run": "run_unfinished_obelisk_aswan_1792993374",
+    "deep_dive": false,
+    "loop_bridge": true,
+    "card_db": 3.7,
+    "decodes": 6,
+    "mastering_s": 31.3,
+    "gain_db": 3.3,
+    "integrated_lufs": -14.1,
+    "true_peak_dbtp": -1.9,
+    "limiter_cost_lu": null,
+    "limiter_cost_bound_lu": null
+   },
+   {
+    "run": "run_unfinished_obelisk_aswan_1793056896",
+    "deep_dive": false,
+    "loop_bridge": true,
+    "card_db": 7.2,
+    "decodes": 6,
+    "mastering_s": 32.5,
+    "gain_db": 3.4,
+    "integrated_lufs": -14.1,
+    "true_peak_dbtp": -1.9,
+    "limiter_cost_lu": null,
+    "limiter_cost_bound_lu": null
+   },
+   {
+    "run": "run_voynich_manuscript_1792965308",
+    "deep_dive": false,
+    "loop_bridge": false,
+    "card_db": 0.0,
+    "decodes": 2,
+    "mastering_s": 10.9,
+    "gain_db": 3.7,
+    "integrated_lufs": -14.1,
+    "true_peak_dbtp": -1.9,
+    "limiter_cost_lu": null,
+    "limiter_cost_bound_lu": null
+   },
+   {
+    "run": "run_wieliczka_salt_mine_1792974672",
+    "deep_dive": false,
+    "loop_bridge": false,
+    "card_db": 0.0,
+    "decodes": 2,
+    "mastering_s": 10.3,
+    "gain_db": 3.4,
+    "integrated_lufs": -14.0,
+    "true_peak_dbtp": -1.9,
+    "limiter_cost_lu": null,
+    "limiter_cost_bound_lu": null
+   }
+  ],
+  "gate_summary": {
+   "masters": 30,
+   "measurement_failed": 30,
+   "failed": {},
+   "noted": {},
+   "loudness_range_lu": null,
+   "max_short_term_lufs": null,
+   "max_momentary_lufs": null,
+   "phone_loss_lu": null,
+   "phone_worst_window_lu": null,
+   "sibilance_worst_rel_lu": null,
+   "longest_silence_s": null,
+   "flat_factor": null,
+   "wall_s_per_programme_s": null,
+   "cpu_s_per_programme_s": null
+  },
+  "gate": [
+   {
+    "master": "run_amber_room_heist_1792790550/amber_room_heist_master.mp4",
+    "deep_dive": false,
+    "error": "no src.audio_qa in this tree (no sound checks in the gate)"
+   },
+   {
+    "master": "run_amber_room_heist_1792801257/amber_room_heist_master.mp4",
+    "deep_dive": false,
+    "error": "no src.audio_qa in this tree (no sound checks in the gate)"
+   },
+   {
+    "master": "run_amber_room_heist_1792805842/amber_room_heist_master.mp4",
+    "deep_dive": false,
+    "error": "no src.audio_qa in this tree (no sound checks in the gate)"
+   },
+   {
+    "master": "run_damascus_steel_nanotubes_1792732472_short/damascus_steel_nanotubes_master.mp4",
+    "deep_dive": false,
+    "error": "no src.audio_qa in this tree (no sound checks in the gate)"
+   },
+   {
+    "master": "run_gol_gumbaz_whispering_gallery_1793278143/gol_gumbaz_whispering_gallery_master.mp4",
+    "deep_dive": false,
+    "error": "no src.audio_qa in this tree (no sound checks in the gate)"
+   },
+   {
+    "master": "run_greek_fire_siphon_1792735284_short/greek_fire_siphon_master.mp4",
+    "deep_dive": false,
+    "error": "no src.audio_qa in this tree (no sound checks in the gate)"
+   },
+   {
+    "master": "run_hal_saflieni_hypogeum_1792949304/hal_saflieni_hypogeum_master.mp4",
+    "deep_dive": false,
+    "error": "no src.audio_qa in this tree (no sound checks in the gate)"
+   },
+   {
+    "master": "run_nazca_lines_runway_paradox_1792961797/nazca_lines_runway_paradox_master.mp4",
+    "deep_dive": false,
+    "error": "no src.audio_qa in this tree (no sound checks in the gate)"
+   },
+   {
+    "master": "run_nazca_lines_runway_paradox_1793247464/nazca_lines_runway_paradox_master.mp4",
+    "deep_dive": false,
+    "error": "no src.audio_qa in this tree (no sound checks in the gate)"
+   },
+   {
+    "master": "run_nazca_lines_runway_paradox_1793251266/nazca_lines_runway_paradox_master.mp4",
+    "deep_dive": false,
+    "error": "no src.audio_qa in this tree (no sound checks in the gate)"
+   },
+   {
+    "master": "run_nazca_lines_runway_paradox_1793262388/nazca_lines_runway_paradox_master.mp4",
+    "deep_dive": false,
+    "error": "no src.audio_qa in this tree (no sound checks in the gate)"
+   },
+   {
+    "master": "run_nazca_lines_runway_paradox_1793267092/nazca_lines_runway_paradox_master.mp4",
+    "deep_dive": false,
+    "error": "no src.audio_qa in this tree (no sound checks in the gate)"
+   },
+   {
+    "master": "run_odessa_catacombs_1792970549/odessa_catacombs_master.mp4",
+    "deep_dive": false,
+    "error": "no src.audio_qa in this tree (no sound checks in the gate)"
+   },
+   {
+    "master": "run_odessa_catacombs_1793098390/odessa_catacombs_master.mp4",
+    "deep_dive": false,
+    "error": "no src.audio_qa in this tree (no sound checks in the gate)"
+   },
+   {
+    "master": "run_odessa_catacombs_1793100750/odessa_catacombs_master.mp4",
+    "deep_dive": false,
+    "error": "no src.audio_qa in this tree (no sound checks in the gate)"
+   },
+   {
+    "master": "run_richat_structure_sahara_eye_1792737039_short/richat_structure_sahara_eye_master.mp4",
+    "deep_dive": false,
+    "error": "no src.audio_qa in this tree (no sound checks in the gate)"
+   },
+   {
+    "master": "run_richat_structure_sahara_eye_1792740961_long/richat_structure_sahara_eye_documentary_16x9.mp4",
+    "deep_dive": true,
+    "error": "no src.audio_qa in this tree (no sound checks in the gate)"
+   },
+   {
+    "master": "run_richat_structure_sahara_eye_1792778206/richat_structure_sahara_eye_master.mp4",
+    "deep_dive": false,
+    "error": "no src.audio_qa in this tree (no sound checks in the gate)"
+   },
+   {
+    "master": "run_richat_structure_sahara_eye_1793272675/richat_structure_sahara_eye_master.mp4",
+    "deep_dive": false,
+    "error": "no src.audio_qa in this tree (no sound checks in the gate)"
+   },
+   {
+    "master": "run_richat_structure_sahara_eye_1793474843/richat_structure_sahara_eye_master.mp4",
+    "deep_dive": false,
+    "error": "no src.audio_qa in this tree (no sound checks in the gate)"
+   },
+   {
+    "master": "run_roman_self_healing_concrete_1793161347/roman_self_healing_concrete_master.mp4",
+    "deep_dive": false,
+    "error": "no src.audio_qa in this tree (no sound checks in the gate)"
+   },
+   {
+    "master": "run_roman_self_healing_concrete_1793163918/roman_self_healing_concrete_master.mp4",
+    "deep_dive": false,
+    "error": "no src.audio_qa in this tree (no sound checks in the gate)"
+   },
+   {
+    "master": "run_singing_colossi_of_memnon_1792952878/singing_colossi_of_memnon_master.mp4",
+    "deep_dive": false,
+    "error": "no src.audio_qa in this tree (no sound checks in the gate)"
+   },
+   {
+    "master": "run_trepanation_miracle_1792995462/trepanation_miracle_master.mp4",
+    "deep_dive": false,
+    "error": "no src.audio_qa in this tree (no sound checks in the gate)"
+   },
+   {
+    "master": "run_tunguska_event_1908_1792930600/tunguska_event_1908_master.mp4",
+    "deep_dive": false,
+    "error": "no src.audio_qa in this tree (no sound checks in the gate)"
+   },
+   {
+    "master": "run_unfinished_obelisk_aswan_1792985912/unfinished_obelisk_aswan_master.mp4",
+    "deep_dive": false,
+    "error": "no src.audio_qa in this tree (no sound checks in the gate)"
+   },
+   {
+    "master": "run_unfinished_obelisk_aswan_1792993374/unfinished_obelisk_aswan_master.mp4",
+    "deep_dive": false,
+    "error": "no src.audio_qa in this tree (no sound checks in the gate)"
+   },
+   {
+    "master": "run_unfinished_obelisk_aswan_1793056896/unfinished_obelisk_aswan_master.mp4",
+    "deep_dive": false,
+    "error": "no src.audio_qa in this tree (no sound checks in the gate)"
+   },
+   {
+    "master": "run_voynich_manuscript_1792965308/voynich_manuscript_master.mp4",
+    "deep_dive": false,
+    "error": "no src.audio_qa in this tree (no sound checks in the gate)"
+   },
+   {
+    "master": "run_wieliczka_salt_mine_1792974672/wieliczka_salt_mine_master.mp4",
+    "deep_dive": false,
+    "error": "no src.audio_qa in this tree (no sound checks in the gate)"
+   }
+  ]
+ },
+ "prod": {
+  "mastering_summary": {
+   "runs": 34,
+   "errors": 0,
+   "decodes": {
+    "min": 2,
+    "median": 6.0,
+    "max": 6
+   },
+   "decodes_with_card_level": {
+    "min": 6,
+    "median": 6,
+    "max": 6
+   },
+   "decodes_without_card_level": {
+    "min": 2,
+    "median": 2,
+    "max": 2
+   },
+   "mastering_s": {
+    "min": 10.3,
+    "median": 32.1,
+    "max": 48.1
+   },
+   "integrated_lufs": {
+    "min": -14.2,
+    "median": -14.1,
+    "max": -14.0
+   },
+   "true_peak_dbtp": {
+    "min": -1.9,
+    "median": -1.9,
+    "max": -1.9
+   },
+   "off_target_over_0_5_lu": 0,
+   "limiter_cost_lu": null,
+   "limiter_cost_bound_lu": null,
+   "bound_below_real_cost": 0
+  },
+  "gate_summary": {
+   "masters": 33,
+   "measurement_failed": 33,
+   "failed": {},
+   "noted": {},
+   "loudness_range_lu": null,
+   "max_short_term_lufs": null,
+   "max_momentary_lufs": null,
+   "phone_loss_lu": null,
+   "phone_worst_window_lu": null,
+   "sibilance_worst_rel_lu": null,
+   "longest_silence_s": null,
+   "flat_factor": null,
+   "wall_s_per_programme_s": null,
+   "cpu_s_per_programme_s": null
+  }
+ }
+}

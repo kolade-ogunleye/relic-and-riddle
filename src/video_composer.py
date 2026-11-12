@@ -9,10 +9,11 @@ FFmpeg assembly embodying the locked production standards:
    same plate (shown whole, not word by word).
 2. Varied Ken Burns motion sampled at fractional source positions (one shared camera,
    src/camera_motion.py) on eased curves, through lossless intermediates (src/still_camera.py).
-3. Voice cleanup, sidechain ducking of the ambient bed under speech, then measured
-   gain + 4x-oversampled brickwall limiting to hit -14 LUFS (EBU R128) with true peak
-   below -1.5 dBTP. (Single-filter loudnorm undershoots when the hammer transient makes
-   linear mode impossible, and overshoots true peak in its dynamic mode.)
+3. Voice cleanup, sidechain ducking of the ambient bed under speech, then two-pass mastering to -14 LUFS
+   (ITU-R BS.1770) with true peak below -1.5 dBTP: one measurement of the unlimited mix, then its measured gain
+   applied linearly ahead of a 4x-oversampled brickwall limiter (QF-11). loudnorm's own second pass is not used:
+   its linear mode needs the whole gain to fit under the true-peak target, which no real mix does, so it falls
+   back to its dynamic mode (time-varying gain; QF-11 review 3: 34 of 34 real mixes).
 4. H.264 CRF 18 (slow), TV-range yuv420p, AAC 48 kHz, +faststart for streaming.
 """
 
@@ -3009,6 +3010,32 @@ def _master_chain(gain_db: float) -> str:
     )
 
 
+MASTER_TOLERANCE_LU = 0.5   # the delivery tolerance the gain is set to (the old search's `tolerance`)
+
+
+def _limiter_cost_bound(frames: list, gain_db: float, gate_lufs: float) -> float:
+    """An upper estimate (LU) of how much the master limiter can lower the integrated loudness of a programme
+    whose unlimited mix the analysis measured, at `gain_db`. The limiter only ever turns the programme down, and
+    only where a peak would cross its ceiling. Each 400 ms block (the BS.1770 gating block, read from the meter's
+    momentary loudness every fourth 100 ms frame) is assumed turned down for the whole block by the largest excess
+    of any true peak over the ceiling in its frames and in the frame on either side (attack 2.5 ms, release 80 ms).
+    Over the blocks above the relative gate that is never less than the limiter really takes (QF-11: real mixes
+    estimate 0.26-0.66 LU where the limiter took at most 0.2)."""
+    from .encoded_audio import MASTER_LIMIT
+    ceiling = 20 * math.log10(MASTER_LIMIT)
+    before = after = 0.0
+    for k in range(3, len(frames), 4):
+        momentary = frames[k][1]
+        if momentary is None or momentary < gate_lufs:
+            continue
+        peaks = [f[2] for f in frames[max(0, k - 4):k + 2] if f[2] is not None]
+        excess = max(0.0, max(peaks, default=-200.0) + gain_db - ceiling)
+        energy = 10 ** ((momentary + 0.691) / 10)
+        before += energy
+        after += energy * 10 ** (-excess / 10)
+    return 10 * math.log10(before / after) if after > 0 else 0.0
+
+
 # A restrained documentary photo curve, not a film-stock emulation (QF-86).
 # One 16-bit operation on each photographic still, before scene compositing:
 # black and white remain fixed, with a gentle middle-tone contrast adjustment.
@@ -3661,6 +3688,7 @@ def _relevel_filter(audio: Path, seconds: float, target_lufs: float) -> str:
 class VideoComposer:
     def __init__(self, fonts_dir: Path = FONTS_DIR):
         self.fonts_dir = fonts_dir
+        self.last_mastering = None   # what the last calibrate_gain measured (QF-11, the composition record)
 
     @staticmethod
     def _format_ass_time(sec: float) -> str:
@@ -4032,42 +4060,93 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             raise RenderError("Could not measure program loudness (silent audio?).")
         return float(i_match.group(1)), float(p_match.group(1))
 
-    def calibrate_gain(self, vo_path: Path, bed_path: Path, tolerance: float = 0.5, accept: float = 1.0,
+    @staticmethod
+    def _analyse(vo_path: Path, bed_path: Path, chain: str, card_at: float | None = None) -> dict:
+        """One decode of the mixed programme through `chain`: its integrated loudness (LUFS), loudness range (LU) and
+        true peak (dBTP) by ITU-R BS.1770, and every 100 ms frame's (time, momentary loudness, true peak). With
+        `card_at`, the same decode also measures the body before it and the end card after it."""
+        meter = "ebur128@whole=peak=true:framelog=info"
+        if card_at is None:
+            graph = f"{chain},{meter}[out]"
+        else:
+            graph = (f"{chain},asplit=3[a_whole][a_body][a_card];[a_whole]{meter}[out];"
+                     f"[a_body]atrim=end={card_at:.3f},ebur128@body,anullsink;"
+                     f"[a_card]atrim=start={card_at:.3f},asetpts=PTS-STARTPTS,ebur128@card,anullsink")
+        res = _run_ffmpeg(["ffmpeg", "-hide_banner", "-nostats", "-i", str(vo_path), "-i", str(bed_path),
+                           "-filter_complex", graph, "-map", "[out]", "-f", "null", "-"])
+
+        def summary(name: str) -> dict:
+            found = re.search(rf"\[ebur128@{name} @ [^\]]+\] Summary:", res.stderr)
+            block = res.stderr[found.end():] if found else ""
+            block = block[:block.find("\n[")] if "\n[" in block else block
+            out = {}
+            for key, pattern in (("integrated_lufs", r"I:\s+(-?[\d.]+) LUFS"), ("loudness_range_lu", r"LRA:\s+([\d.]+) LU"),
+                                 ("true_peak_dbtp", r"Peak:\s+(-?[\d.]+) dBFS")):
+                match = re.search(pattern, block)
+                if match:
+                    out[key] = float(match.group(1))
+            if "integrated_lufs" not in out:
+                raise RenderError("Could not measure program loudness (silent audio?).")
+            return out
+
+        frames = []
+        for t, m, a, b in re.findall(r"\[ebur128@whole @ [^\]]+\] t: ([\d.]+)\s+TARGET:\S+ LUFS\s+M:\s*(-?[\d.]+|-inf)"
+                                     r"\s+S:.*?FTPK:\s*(-?[\d.]+|-inf)\s+(-?[\d.]+|-inf)", res.stderr):
+            level = float(m) if m != "-inf" and float(m) > -120 else None
+            peaks = [float(v) for v in (a, b) if v != "-inf"]
+            frames.append((float(t), level, max(peaks) if peaks else None))
+        if not frames:
+            raise RenderError("Could not measure program loudness (no meter frames).")
+        found = {"passes": 1, **summary("whole"), "frames": frames}
+        if card_at is not None:
+            found["body_lufs"] = summary("body")["integrated_lufs"]
+            found["card_lufs"] = summary("card")["integrated_lufs"]
+        return found
+
+    def calibrate_gain(self, vo_path: Path, bed_path: Path, tolerance: float = MASTER_TOLERANCE_LU, accept: float = 1.0,
                        max_iter: int = 6, target_lufs: float = TARGET_LUFS,
                        target_true_peak: float = TARGET_TRUE_PEAK, pad: float = 0.0,
                        card_at: Optional[float] = None, card_db: float = 0.0,
                        end: float | None = None) -> float:
         """
-        Finds the gain that lands the limited mix on target_lufs (within `tolerance` LU,
-        the usual delivery tolerance). The limiter absorbs part of each gain step, so steps
-        are scaled up. If it never gets that close, the best result within `accept` LU is
-        used with a warning; platforms re-normalize, so that is not worth failing a run.
+        The gain that lands the limited mix on target_lufs (within `tolerance` LU, the usual delivery tolerance):
+        one measurement of the unlimited mix, then the static gain target - measured (QF-11). The limited mix is
+        measured again only when the limiter could cost more than the tolerance (_limiter_cost_bound), and then
+        corrected as before; if it never gets that close, the best result within `accept` LU is used with a
+        warning. What was measured is kept in `last_mastering` for the composition record.
         """
         from .credits import sha256_file
-        # Same voice + bed + targets always converge to the same gain (each pass decodes the full
-        # mix), so a re-render (QA re-plan, deep-dive) reuses it instead of re-measuring.
+        # Same voice + bed + targets always give the same gain (each pass decodes the full mix), so a re-render
+        # (QA re-plan, deep-dive) reuses it instead of re-measuring.
         key = (sha256_file(vo_path), sha256_file(bed_path), tolerance, accept, max_iter, target_lufs, target_true_peak, round(pad, 3),
                card_at, round(card_db, 2), end)
         cache = self.__dict__.setdefault("_gain_cache", {})
+        records = self.__dict__.setdefault("_mastering_records", {})
         if all(key[:2]) and key in cache:
             log.info("Mastering: reusing calibrated gain %+.2f dB for unchanged audio", cache[key])
+            self.last_mastering = {**records.get(key, {}), "reused": True, "analysis_passes": 0}
             return cache[key]
+        self.__dict__.pop("_last_calibration", None)
         gain = self._calibrate_gain(vo_path, bed_path, tolerance, accept, max_iter, target_lufs, target_true_peak, pad,
                                     card_at, card_db, end)
+        self.last_mastering = dict(self.__dict__.get("_last_calibration") or {})
         if all(key[:2]):
             cache[key] = gain
+            records[key] = self.last_mastering
         return gain
 
     def end_card_level(self, vo_path: Path, bed_path: Path, card_at: float, pad: float, gain: float) -> Dict[str, float]:
         """The end card's loudness against the narrated body in the mastered programme, and the correction (dB)
         that sets it END_CARD_BELOW_BODY_LU under the body: the bed's music level differs from run to run, so the
-        card's level is measured, not assumed (6.3 to 8.7 LU under the body on three masters, 2026-10-25)."""
+        card's level is measured, not assumed (6.3 to 8.7 LU under the body on three masters, 2026-10-25). One
+        decode measures both (QF-11; it was one each)."""
         chain = _audio_chain(0, 1, pad, end=card_at + pad if pad > 0 else None) + _master_chain(gain)
-        body, _ = self._measure(vo_path, bed_path, chain + f",atrim=end={card_at:.3f}")
-        card, _ = self._measure(vo_path, bed_path, chain + f",atrim=start={card_at:.3f},asetpts=PTS-STARTPTS")
+        found = self._analyse(vo_path, bed_path, chain, card_at=card_at)
+        body, card = found["body_lufs"], found["card_lufs"]
         correction = max(-12.0, min(12.0, (body - END_CARD_BELOW_BODY_LU) - card))
         log.info("End card: %.1f LUFS against the body's %.1f; set %+.1f dB", card, body, correction)
-        return {"body_lufs": round(body, 1), "card_lufs": round(card, 1), "correction_db": round(correction, 1)}
+        return {"body_lufs": round(body, 1), "card_lufs": round(card, 1), "correction_db": round(correction, 1),
+                "passes": 1}
 
     def _calibrate_gain(self, vo_path: Path, bed_path: Path, tolerance: float, accept: float,
                         max_iter: int, target_lufs: float, target_true_peak: float, pad: float = 0.0,
@@ -4076,11 +4155,26 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         # Measure the same sample-bounded programme as delivery. A finite sidechain
         # can forward either input's EOF first under load, changing the measured gain.
         base = _audio_chain(0, 1, pad, card_at, card_db, end=end)
-        integrated, _ = self._measure(vo_path, bed_path, base)
-        gain = target_lufs - integrated
+        from .encoded_audio import LOWPASS_HZ
+        # The unlimited mix in the master chain's own band (its low-pass comes before the limiter).
+        first = self._analyse(vo_path, bed_path, base + f",lowpass=f={LOWPASS_HZ}:poles=2")
+        integrated = first["integrated_lufs"]
+        gain = round(target_lufs - integrated, 2)
+        bound = _limiter_cost_bound(first["frames"], gain, integrated - 10.0)
+        record = {"method": "measured static gain ahead of the true-peak limiter (two-pass)",
+                  "first_pass": {k: first.get(k) for k in ("integrated_lufs", "loudness_range_lu", "true_peak_dbtp")},
+                  "gain_db": gain, "limiter_cost_bound_lu": round(bound, 2), "tolerance_lu": tolerance,
+                  "verified": [], "analysis_passes": 1}
+        self.__dict__["_last_calibration"] = record
+        log.info("Mastering: %.1f LUFS unlimited -> gain %+.2f dB (limiter costs at most %.2f LU)",
+                 integrated, gain, bound)
+        if bound <= tolerance + 1e-9:
+            return gain
         best_gain, best_err = gain, float("inf")
         for _ in range(max_iter):
             integrated, peak = self._measure(vo_path, bed_path, base + _master_chain(gain))
+            record["verified"].append({"gain_db": gain, "integrated_lufs": integrated, "true_peak_dbtp": peak})
+            record["analysis_passes"] += 1
             log.info("Mastering: gain %+.2f dB -> %.1f LUFS, %.1f dBTP", gain, integrated, peak)
             if peak > target_true_peak:
                 raise RenderError(f"True peak {peak} dBTP exceeds {target_true_peak} after limiting.")
@@ -4088,10 +4182,12 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             if err < best_err:
                 best_gain, best_err = gain, err
             if err <= tolerance + 1e-9:
+                record["gain_db"] = gain
                 return gain
             gain += (target_lufs - integrated) * 1.5
         if best_err <= accept:
             log.warning("Loudness within %.1f LU of %.1f LUFS (not %.1f); using best gain.", best_err, target_lufs, tolerance)
+            record["gain_db"] = best_gain
             return best_gain
         raise RenderError(f"Loudness did not converge to {target_lufs} LUFS (best was {best_err:.1f} LU off).")
 
@@ -4336,6 +4432,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         gain = self.calibrate_gain(vo_path, bed_path, target_lufs=profile.target_lufs,
                                    target_true_peak=profile.target_true_peak, pad=card_seconds,
                                    end=vo_dur + card_seconds)
+        mastering = {"passes": [self.last_mastering]}
         card_at, card_db, card_level = (vo_dur if card else None), 0.0, None
         if card:  # the card's own level, measured in the mastered programme, then the whole mastered again
             card_level = self.end_card_level(vo_path, bed_path, vo_dur, card_seconds, gain)
@@ -4344,6 +4441,11 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                 gain = self.calibrate_gain(vo_path, bed_path, target_lufs=profile.target_lufs,
                                            target_true_peak=profile.target_true_peak, pad=card_seconds,
                                            card_at=card_at, card_db=card_db, end=vo_dur + card_seconds)
+                mastering["passes"].append(self.last_mastering)
+        # QF-11: what the mastering measured, and how many decodes of the mix it took before the render
+        mastering.update(gain_db=gain, card_level=card_level,
+                         analysis_passes=sum((p or {}).get("analysis_passes", 0) for p in mastering["passes"])
+                         + (card_level or {}).get("passes", 0))
         # The loop seam (review, 2026-11-03): the programme is cut at the bridge's end (vo_dur + card_seconds), and
         # the bed's LOOP_BRIDGE_EDGE fade-out ends exactly there. The bed file keeps 50 ms of headroom past the cut
         # (end_card.bed_tail), where its own fade used to fall: the delivered file then ended at the bridge's held
@@ -4422,7 +4524,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         self.export_subtitles_vtt(words, output_mp4_path.with_suffix(".vtt"))
         import json
         manifest = {"master_sha256": sha256_file(output_mp4_path),
-                    "encoded_audio": encoded_audio,
+                    "audio_mastering": mastering, "encoded_audio": encoded_audio,
                     "scenes": file_inputs(scene_images), "voiceover": file_inputs([vo_path]),
                     "ambient_bed": file_inputs([bed_path]), "fonts": font_inputs,
                     "captions": file_inputs([ass_path, output_mp4_path.with_suffix(".srt"), output_mp4_path.with_suffix(".vtt")]), "words_fingerprint": fingerprint(words),

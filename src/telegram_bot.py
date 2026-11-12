@@ -1646,6 +1646,8 @@ class TelegramApprovalBot:
                 self._delete_soon(msg.get("message_id"))  # received and staged: the copy in the chat is clutter
                 self.show_upload(updated, expected_revision=state.get("_navigation_revision"))
         except Exception as exc:
+            if clean_chat():   # read, and answered in the upload panel: the photo leaves (UI-01d)
+                self._delete_soon(msg.get("message_id"))
             current = self.image_wizard().load(chat, user)
             if current and current["id"] == state["id"]:
                 self.show_upload(current, str(exc) if isinstance(exc, ValueError) else "The image could not be read; try another image")
@@ -4955,6 +4957,7 @@ class TelegramApprovalBot:
         sent = (update.get('message') or {}).get('date')
         if sent and time.time() - sent > STALE_COMMAND_SECONDS:
             log.info('Skipping a message sent %d min ago while the bot was offline.', (time.time() - sent) // 60)
+            self._leave_unanswered(update.get('message') or {}, stale=True)   # not replayed, not left, and said
             return
         cq = update.get('callback_query')
         if cq:
@@ -5247,12 +5250,16 @@ class TelegramApprovalBot:
                     self.show_upload(state)
                 except ValueError as exc:
                     self.show_navigation_panel(panel, html.escape(str(exc)), [[DONE_BUTTON]])
+                if clean_chat() and msg.get('message_id'):
+                    self._delete_soon(msg['message_id'])   # read and answered in the dashboard: it leaves (§6.7)
                 return
             if state and (image or (text and (not text.startswith('/')) and (not msg.get('reply_to_message')))):
                 if image and state['stage'] == 'file':
                     state['_navigation_revision'] = self._panel_revisions.get(self._current_panel(state['message_id']), 0)
                     self.jobs.submit(self._background(), 'Receiving image', lambda: self.receive_guided_image(msg, image, state), lambda job, result: False, resource=f"guided-image:{chat}:{user}")
                 elif image:
+                    if clean_chat() and msg.get('message_id'):   # answered in the upload panel: it leaves (UI-01d)
+                        self._delete_soon(msg['message_id'])
                     self.show_upload(state, 'The image was already received. Please answer the current prompt.')
                 elif text:
                     if msg.get('message_id'):
@@ -5278,10 +5285,10 @@ class TelegramApprovalBot:
                 ref, rights = parse_caption(image_caption.partition(' ')[2])
                 content = self.download_image(image_item)
                 topic_id = add_image(self.db, config.ASSETS_DIR, ref, rights, content, msg.get('from', {}).get('id'))
-                self.notify(f'🖼 Image saved for <code>{html.escape(topic_id)}</code>. The set needs human review.', buttons=[[{'text': 'Review set', 'callback_data': f'review:{ref}'}], [DONE_BUTTON]], record_alert=False, group="studio")
+                self._upload_reply(msg, f'🖼 Image saved for <code>{html.escape(topic_id)}</code>. The set needs human review.', buttons=[[{'text': 'Review set', 'callback_data': f'review:{ref}'}], [DONE_BUTTON]], record_alert=False, group="studio")
             except Exception as exc:
                 message = str(exc) if isinstance(exc, ValueError) else type(exc).__name__
-                self.notify(f'⚠️ Image upload failed: {html.escape(message)}', buttons=[[DONE_BUTTON]], record_alert=False, group="studio")
+                self._upload_reply(msg, f'⚠️ Image upload failed: {html.escape(message)}', buttons=[[DONE_BUTTON]], record_alert=False, group="studio")
             return
         photo_item = (msg.get('photo') or [None])[-1] or msg.get('document')
         photo_caption = (msg.get('caption') or '').strip()
@@ -5296,12 +5303,18 @@ class TelegramApprovalBot:
                         "with /issue to report a problem.</i>")
                 self.show_dashboard((reply if isinstance(reply, str) else "🔍 Add your question as the photo's caption: /ask &lt;question&gt;") + note,
                                     navigation_buttons(None), fresh=True)
+                self._leave_unanswered(msg, hint=False)   # read and answered: the photo leaves (UI-01d)
+                return
+            if (clean_chat() and not caption and self._awaiting and self._awaiting[1] > time.time()
+                    and not (msg.get('video') or msg.get('document'))):
+                self._leave_unanswered(msg)   # "That was a photo; type the text instead." (UI-01d)
                 return
             if word not in {'/photos', '/footage', '/issue'} and not (msg.get('video') or msg.get('document')):
                 self.show_dashboard("📎 <b>Photo received</b>, but its caption doesn't say what to do with it.\n\n"
                                     "• Report a problem: caption <code>/issue what is wrong</code>\n"
                                     "• Ask about it: caption <code>/ask your question</code>\n"
                                     "• Add it to a topic: Pictures → Photo sets → the topic → Upload my image", navigation_buttons(None), fresh=True)
+                self._leave_unanswered(msg, hint=False)   # the dashboard says what to do; the photo leaves (UI-01d)
                 return
         doc_or_vid = msg.get('video') or msg.get('document')
         caption = (msg.get('caption') or '').strip()
@@ -5318,11 +5331,11 @@ class TelegramApprovalBot:
             # Every outcome is said (it failed silently: an unknown topic, a clip over Telegram's 20 MB, a bare
             # caption: review of 2026-10-25).
             if not topic_ref:
-                self.notify(f"🎞 Say which topic the clip is for: <code>{html.escape(FORM)}</code>", group="studio")
+                self._upload_reply(msg, f"🎞 Say which topic the clip is for: <code>{html.escape(FORM)}</code>", group="studio")
                 return
             if (doc_or_vid.get('file_size') or 0) > FOOTAGE_MAX_BYTES:
-                self.notify(f"🎞 That clip is {doc_or_vid['file_size'] / 1048576:.0f} MB; a bot can receive up to "
-                            f"{FOOTAGE_MAX_BYTES // 1048576} MB. Trim or compress it and send it again.", group="studio")
+                self._upload_reply(msg, f"🎞 That clip is {doc_or_vid['file_size'] / 1048576:.0f} MB; a bot can receive up to "
+                                   f"{FOOTAGE_MAX_BYTES // 1048576} MB. Trim or compress it and send it again.", group="studio")
                 return
             if topic_ref:
                 try:
@@ -5354,13 +5367,13 @@ class TelegramApprovalBot:
                         (footage_dir / 'curated_footage.json').write_text(json.dumps(cand, indent=2, ensure_ascii=False), encoding='utf-8')
                         missing = [k for k in ('source', 'licence', 'licence_url') if k not in rights]
                         note = '' if not missing else f"\n⚠️ No {', '.join(missing)} given, so the release gate will hold any video using it. Resend with <code>/footage topic | source: URL | licence: CC BY 4.0 | licence_url: URL</code>."
-                        self.notify(f'✅ Video clip received and saved for <b>{html.escape(topic_dir.name)}</b>.{note}', group="studio")
+                        self._upload_reply(msg, f'✅ Video clip received and saved for <b>{html.escape(topic_dir.name)}</b>.{note}', group="studio")
                     else:
-                        self.notify("🎞 Telegram didn't hand the clip over (no file path). Send it again.", group="studio")
+                        self._upload_reply(msg, "🎞 Telegram didn't hand the clip over (no file path). Send it again.", group="studio")
                 except Exception as exc:
                     log.exception('Direct video download from Telegram failed')
                     reason = str(exc) if isinstance(exc, ValueError) else type(exc).__name__
-                    self.notify(f"🎞 The clip wasn't saved: {html.escape(reason[:300])}", group="studio")
+                    self._upload_reply(msg, f"🎞 The clip wasn't saved: {html.escape(reason[:300])}", group="studio")
             return
         photos = msg.get('photo')
         media_item = (photos[-1] if photos else None) or msg.get('document') or msg.get('video') or msg.get('audio') or msg.get('voice')
@@ -5405,6 +5418,8 @@ class TelegramApprovalBot:
         text = (msg.get('text') or '').strip()
         reply_to = msg.get('reply_to_message')
         if not text or command_handler is None:
+            if command_handler is not None:
+                self._leave_unanswered(msg)
             return
         user_id = str(msg.get('from', {}).get('id', ''))
         chat_id = str(msg.get('chat', {}).get('id', ''))
@@ -5464,6 +5479,7 @@ class TelegramApprovalBot:
                 args = f'run {run_ref} {args}'
             audit_payload = f'/ask (reply) {text}'
         else:
+            self._leave_unanswered(msg)   # plain text that answers nothing
             return
         try:
             self.db.record_audit_event(user_id=user_id, username=username, chat_id=chat_id, event_type='command', payload=audit_payload, status='allowed' if is_auth else 'denied')
@@ -5569,6 +5585,49 @@ class TelegramApprovalBot:
 
     _workers = None
     _cleanup = None
+
+    UNANSWERED = "🤔 Type a command, or use the buttons. Help lists every command."
+    PHOTO_FOR_TEXT = "That was a photo; type the text instead."
+    MEDIA_FOR_TEXT = "That wasn't text; type it instead."
+
+    def _upload_reply(self, msg: dict[str, Any], text: str, **notify: Any) -> None:
+        """The answer to an upload (/photos caption, /footage): the clean chat (UI-01d, design §6.6, §10.1) draws
+        it in the dashboard and deletes the upload once it is read (staged, or refused with what to do); the
+        earlier chat sends it as before."""
+        if not clean_chat():
+            group = notify.pop("group", "studio")
+            self.notify(text, group=group, **notify)
+            return
+        self.show_dashboard(text, navigation_buttons(notify.get("buttons")))
+        if msg.get('message_id'):
+            self._delete_soon(msg['message_id'])
+
+    def _leave_unanswered(self, msg: dict[str, Any], hint: bool = True, stale: bool = False) -> None:
+        """The clean chat (UI-01d, design §6.6): the operator's messages are never permanent. A message the bot has no
+        use for (plain text that answers nothing, a sticker, a photo nothing asked for, one sent while the bot was
+        off) is deleted once read, and the dashboard says what to do instead of leaving it unanswered."""
+        if not clean_chat() or not msg.get('message_id'):
+            return
+        if not self._authorized(msg.get('from', {}).get('id', ''), msg.get('chat', {}).get('id', '')):
+            return
+        self._delete_soon(msg['message_id'])
+        if stale:   # it was not acted on: said in the dashboard, so it never looks handled
+            self._stale_dropped = getattr(self, "_stale_dropped", 0) + 1
+            n = self._stale_dropped
+            text = (f"⌛ {n} message{'s' if n != 1 else ''} sent while the bot was off "
+                    f"{'were' if n != 1 else 'was'} not acted on; send {'them' if n != 1 else 'it'} again.")
+        elif not hint:
+            return
+        else:
+            media = any(msg.get(k) for k in ('photo', 'document', 'video', 'audio', 'voice', 'sticker', 'animation'))
+            waiting = self._awaiting
+            armed = waiting and waiting[1] > time.time()
+            text = (self.PHOTO_FOR_TEXT if media and armed and msg.get('photo') else self.MEDIA_FOR_TEXT if media and armed
+                    else self.UNANSWERED)
+        try:
+            self.show_dashboard(text, [[{"text": "❓ Help", "callback_data": "chelp:Everyday"}], [DONE_BUTTON]])
+        except Exception as e:  # noqa: BLE001 - the message is gone either way
+            log.debug("Dashboard hint not drawn: %s", e)
 
     def _delete_soon(self, message_id) -> None:
         """Removes a message off the reply path: what the operator sees next does not wait for it."""

@@ -573,13 +573,17 @@ class PipelineCoordinator:
         # QF-14: a hook fault blocks. A library script written before the rule gets the one opening edit, fact-checked
         # again as any revision is, the same way (all four shipped entries open on 17-26 words, 2026-11-10).
         # QF-15: so does a payoff fault, in the same one edit (no shipped entry has a payoff_sentence).
+        # QF-16: and a hedge in the opening, payoff or loop, read against the topic's own sheet.
+        from src import fact_sheet
         from src.script_engine import (
+            hedge_problems,
             hook_problems,
             opening_edit_findings,
             payoff_problems,
         )
         hook = (hook_problems(saved.get("narration_script") or "")
-                + payoff_problems(saved.get("narration_script") or "", saved.get("payoff_sentence") or ""))
+                + payoff_problems(saved.get("narration_script") or "", saved.get("payoff_sentence") or "")
+                + hedge_problems(saved.get("narration_script") or "", fact_sheet.load(topic["id"], max_age_days=3650)))
         saved["_weak_hook_here"] = opening_edit_findings(hook) if hook else ""
         return saved
 
@@ -2088,10 +2092,15 @@ class PipelineCoordinator:
         # QF-14 (operator ruling 2026-11-10): an opening that ships without an early signal is flagged on the review
         # card for the operator to judge; the flag follows the words the run will voice.
         # QF-15 (operator ruling 2026-11-10): likewise a payoff that names none of the opening's nouns.
-        from src.script_engine import hook_signal_note, payoff_note
+        # QF-16 (ruling 2026-11-11): likewise an opening, payoff or loop that keeps a qualifier.
+        from src import fact_sheet
+        from src.script_engine import hedge_note, hook_signal_note, payoff_note
+        hedge_sheet = (fact_sheet.load(checked.get("topic_id") or topic.get("id") or "", max_age_days=3650)
+                       if checked.get("fact_sheet") else None)
         for key, flag in (("hook_signal_note", hook_signal_note(checked.get("narration_script") or "")),
                           ("payoff_note", payoff_note(checked.get("narration_script") or "",
-                                                      checked.get("payoff_sentence") or ""))):
+                                                      checked.get("payoff_sentence") or "")),
+                          ("hedge_note", hedge_note(checked.get("narration_script") or "", hedge_sheet))):
             if flag != (checked.get(key) or ""):
                 checked = {k: v for k, v in checked.items() if k != key} | ({key: flag} if flag else {})
         if checked is not payload:
@@ -2626,15 +2635,23 @@ class PipelineCoordinator:
             # QF-15: likewise a kept script with a blocking payoff fault (every script written before the rule has no
             # payoff_sentence): its edit would change the penultimate sentence, unless that is itself an asked line. A
             # payoff that only names no opening noun is reworded as before and not edited again (once per payoff).
+            # QF-16: likewise a kept script whose opening, payoff or loop states a disputed fact, unless that
+            # sentence is itself an asked line.
+            from src import fact_sheet
             from src.script_engine import (
+                _close_sentences,
                 _first_sentence,
                 _split_sentences,
                 blocking_problems,
+                hedge_problems,
                 hook_problems,
                 payoff_problems,
             )
             narration, asked = payload["narration_script"], [v["sentence"] for v in missing]
             penultimate = (_split_sentences(narration)[-2:-1] or [""])[0]
+            hedge_sheet = (fact_sheet.load(payload.get("topic_id") or topic.get("id") or "", max_age_days=3650)
+                           if payload.get("fact_sheet") else None)
+            hedged = blocking_problems(hedge_problems(narration, hedge_sheet))
             if (blocking_problems(hook_problems(narration)) and _first_sentence(narration) not in asked):
                 left, missing = missing, []
                 why_left = "the kept script's opening fails the hook rule's cap or label; a rewording would be refused"
@@ -2643,6 +2660,10 @@ class PipelineCoordinator:
                   and penultimate not in asked):
                 left, missing = missing, []
                 why_left = "the kept script has no payoff the payoff rule accepts; a rewording would be refused"
+                log.info("Line-picture check: the kept script stands (%s).", why_left)
+            elif hedged and not any(f"the {w} (" in p and x in asked for p in hedged for w, x in _close_sentences(narration)):
+                left, missing = missing, []
+                why_left = "the kept script states a disputed fact in its opening, payoff or loop; a rewording would be refused"
                 log.info("Line-picture check: the kept script stands (%s).", why_left)
         if missing:
             log.info("Before the voice, %d line(s) name something no photo shows; sent back to the writer (at most %d "

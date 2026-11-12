@@ -156,11 +156,28 @@ def sources_line(sheet: dict[str, Any]) -> str:
     return "sources: " + " + ".join(parts) if parts else ""
 
 
-def _neutral_hedge(statement: str, kind: str) -> str:
-    """Hedge a weakly sourced fact without crediting anyone the evidence does not name."""
+def _auto_form(statement: str, kind: str) -> str:
+    """The automatic hedge's wording: the statement after a source-neutral lead."""
     stmt = statement.rstrip(".")
     lead = "by one account" if kind == "date" else "by one estimate"
     return f"{lead}, {stmt[:1].lower() + stmt[1:]}."
+
+
+def _neutral_hedge(statement: str, kind: str, evidence: list[dict[str, Any]] | None = None) -> str:
+    """Hedge a weakly sourced fact without crediting anyone the evidence does not name, or "" where the automatic
+    hedge does not apply (QF-16, operator ruling 2026-11-11, option B): only a date or a measured quantity (a number
+    with a unit) is hedged automatically, said as the range its evidence quotes around it when there is one; a weak
+    count or event figure ("by one estimate, miners carved four chapels") is not."""
+    from .narrative_hedges import auto_hedge_allowed, with_quoted_range
+    if not auto_hedge_allowed(statement, kind):
+        return ""
+    return _auto_form(with_quoted_range(statement, evidence or [], kind), kind)
+
+
+def _is_auto_hedge(fact: dict[str, Any]) -> bool:
+    """Whether a stored fact's hedge is the automatic one (as made before QF-16), not one its writer authored."""
+    hedge = " ".join((fact.get("hedge") or "").split()).lower()
+    return bool(hedge) and hedge == " ".join(_auto_form(fact.get("statement", ""), fact.get("kind", "")).split()).lower()
 
 
 def _unesco_evidence(topic: Dict[str, Any]):
@@ -331,9 +348,11 @@ def _apply_rules(draft_facts, quotes: List[dict], auto_hedge: bool = False):
         if not strongly_sourced(f.kind, cited):
             if not f.hedge:
                 if auto_hedge:
-                    f.hedge = _neutral_hedge(f.statement, f.kind)
-                else:
-                    dropped.append((f.id, f"a {f.kind} with one weak source and no hedge"))
+                    f.hedge = _neutral_hedge(f.statement, f.kind, cited)
+                if not f.hedge:   # QF-16: a weak count or event figure gets no automatic hedge
+                    dropped.append((f.id, f"a {f.kind} with one weak source and no hedge"
+                                    + (" (the automatic hedge takes only a date or a measured quantity)"
+                                       if auto_hedge else "")))
                     continue
             disputed = True  # usable only with its hedge
         facts.append({"id": f.id, "statement": f.statement, "kind": f.kind, "disputed": disputed,
@@ -398,17 +417,30 @@ def load(topic_id: str, max_age_days: int = FACT_SHEET_MAX_AGE_DAYS) -> Optional
         return None
     # Rules added after a sheet was built still apply: drop facts that attribute to a named source
     # without evidence from that source, and hedge a number or date no longer strongly sourced (QF-40:
-    # corroboration only among tier 1-2 sites).
+    # corroboration only among tier 1-2 sites). QF-16: the automatic hedge's scope is re-checked here too, in place
+    # (no RULES_VERSION bump, which would research every topic again): a stored automatic hedge on a count or an event
+    # figure drops that fact; one on a measured quantity or a date is worded again (the quoted range, if any).
     kept = []
     for f in sheet["facts"]:
         named = _named_sources(f["statement"] + " " + f.get("hedge", ""))
         if named and not any(any(n in _host(e["url"]) for n in named) for e in f["evidence"]):
             log.info("Fact sheet %s: ignoring %s (unsupported attribution).", topic_id, f["id"])
             continue
+        if f.get("disputed") and _is_auto_hedge(f):
+            hedge = _neutral_hedge(f["statement"], f.get("kind", ""), f.get("evidence") or [])
+            if not hedge:
+                log.info("Fact sheet %s: ignoring %s (a weak %s figure the automatic hedge no longer takes).",
+                         topic_id, f["id"], f.get("kind"))
+                continue
+            f = {**f, "hedge": hedge}
         if not f.get("disputed") and not strongly_sourced(f.get("kind", ""), f.get("evidence") or []):
+            hedge = f.get("hedge") or _neutral_hedge(f["statement"], f.get("kind", ""), f.get("evidence") or [])
+            if not hedge:
+                log.info("Fact sheet %s: ignoring %s (a weak %s figure with no hedge).", topic_id, f["id"], f.get("kind"))
+                continue
             log.info("Fact sheet %s: %s is a %s without two corroborating sites; used only with its hedge.",
                      topic_id, f["id"], f.get("kind"))
-            f = {**f, "disputed": True, "hedge": f.get("hedge") or _neutral_hedge(f["statement"], f.get("kind", ""))}
+            f = {**f, "disputed": True, "hedge": hedge}
         kept.append(f)
     sheet["facts"] = kept
     return sheet

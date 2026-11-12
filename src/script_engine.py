@@ -79,6 +79,7 @@ Editorial rules:
 - Hard ban on research meta-commentary: NEVER discuss the state of records, studies, or sources in the narration (e.g. do NOT say "popular sources give shallower figures", "there is no official figure for...", "records do not specify", or "sources disagree"). Instead, present the physical and historical realities directly with natural in-situ hedges (e.g. "carved roughly X feet (Y m) down", "an estimated N residents", or "ranging between A and B meters", using the sourced figures).
 - Never end on a trailing word such as "when", "until", "because", "and", "that", "the" or "of".
 - Use numbers only when sources support them. Where sources disagree, say "about", "up to", "estimated", or name the range. State the hedged physical reality directly.
+- Hedge placement: a DISPUTED fact (and any "by one estimate"/"by one account") belongs in the body, never in the first sentence, the payoff or the final loop sentence; open, pay off and close on undisputed facts or a question. Keep those three sentences free of qualifiers ("roughly", "most likely", "suggests"). Never drop a needed qualifier to make a claim sound certain: move the whole qualified claim into the body instead.
 - No conspiracy or pseudo-archaeology framing (aliens, lost super-civilizations, etc.).
 - Topic notes supplied by the user may contain errors or exaggerations. Check them; do not repeat them unverified.
 - On-screen copy is short and uppercase-friendly: thumbnail lines at most 22 characters, story and carousel headings at most 26 characters, bodies at most 90 characters.
@@ -195,7 +196,9 @@ List sources only from retrieved_sources."""
 
 REVISE_SYSTEM = """You fix a short history video package so it passes fact-checking. For each finding, replace ONLY
 the rejected sentence or phrase: hedge it naturally using fluent English (e.g. 'models suggest', 'scientists calculate', 'roughly'), or replace it with a verified
-fact, or remove it. CRITICAL: NEVER prepend robotic prefixes like 'Estimated,' or 'Approximately,' to fix a sentence.
+fact, or remove it. A hedged claim stays in the body: never in the first sentence, the payoff or the final loop sentence.
+Instead of hedging one of those three, move the claim with its hedge into the body and use an undisputed fact there.
+CRITICAL: NEVER prepend robotic prefixes like 'Estimated,' or 'Approximately,' to fix a sentence.
 CRITICAL GROUNDING IN REVISIONS:
 When replacing or fixing an untraced claim, you must ONLY use vocabulary, dates, measurements, and statements that exist in <verified_facts>.
 DO NOT introduce outside parametric memory or unlisted adjectives (e.g. do not introduce terms like 'alkaline', 'volcanic', or unlisted builder names unless they appear in <verified_facts>).
@@ -771,7 +774,8 @@ def mandatory_hedges_note(sheet: Optional[Dict[str, Any]], texts: Optional[List[
     return ("\n\nMANDATORY HEDGES: these figures are disputed. Every text that states one keeps its hedge, or an "
             "equivalent (\"about\", \"roughly\", \"an estimated\", \"up to\", a range): the narration, the caption, "
             "the carousel caption, the first comment, every story and carousel slide, and every graphic (titles and "
-            "covers are exempt). A flat figure anywhere is rejected. GRAPHICS too: a stat card's value or label, a "
+            "covers are exempt). In the narration they stay in the body: never the first sentence, the payoff or the final loop "
+            "sentence. A flat figure anywhere is rejected. GRAPHICS too: a stat card's value or label, a "
             "timeline entry, the scale figure, a cross-section depth, a route or photo label that states a disputed "
             "figure or range carries the hedge in its own text (\"about 280 ft\", \"up to <N> levels\") or is marked "
             "approximate; one that cannot carry it is left out of the graphics. Never the same hedge twice in one text: two "
@@ -1784,8 +1788,9 @@ def headline_problems(pkg: ScriptPackage, sheet: Optional[Dict[str, Any]] = None
 
 
 def _opening_faults(problems: List[str]) -> List[str]:
-    """All hook faults, the opening's existing story faults and the payoff's faults (QF-15) share one edit."""
-    return [p for p in problems or [] if p.startswith((STORY_PROBLEM, HOOK_PROBLEM, PAYOFF_PROBLEM))]
+    """All hook faults, the opening's existing story faults, the payoff's faults (QF-15) and the close's hedges (QF-16)
+    share one edit."""
+    return [p for p in problems or [] if p.startswith((STORY_PROBLEM, HOOK_PROBLEM, PAYOFF_PROBLEM, HEDGE_PROBLEM))]
 
 
 def story_problems(pkg: ScriptPackage, topic: Optional[Dict[str, Any]] = None) -> List[str]:
@@ -1880,6 +1885,71 @@ def payoff_problems(narration: str, payoff: str) -> list[str]:
     return [(f"{PAYOFF_NOUN_PROBLEM}the payoff (\"{payoff[:80]}\") names none of the first sentence's nouns. Name the "
              "opening's subject again, the same word (\"the dome\" again, not \"the structure\"), in a sentence that "
              "answers the opening; a shared verb, adjective or number does not count.")]
+
+
+HEDGE_PROBLEM = "Hedge: "   # every hedge-placement problem starts so (QF-16)
+# Operator ruling 2026-11-11 (decisions/QF-16-question.md, option P3, under delegation): in the opening, the payoff and
+# the final loop sentence, a disputed fact of the run's own sheet blocks after the one shared repair edit; any other
+# qualifier there gets that edit and then ships flagged on the review card (hedge_note). A question is exempt. Body
+# qualifiers are the writer's: neither blocked nor flagged. Its flag-only finding starts so.
+HEDGE_WORDING_PROBLEM = HEDGE_PROBLEM + "qualified: "
+_UNSET_SHEET = object()
+
+
+def _close_sentences(narration: str) -> list[tuple[str, str]]:
+    """(where, sentence) for the narration's opening, payoff (penultimate) and final loop sentence."""
+    parts = _split_sentences(narration)
+    out = [("opening", parts[0])] if parts else []
+    if len(parts) >= 3:
+        out.append(("payoff", parts[-2]))
+    if len(parts) >= 2:
+        out.append(("closing loop", parts[-1]))
+    return out
+
+
+def hedge_problems(narration: str, sheet: Any = _UNSET_SHEET) -> list[str]:
+    """Hedges where the narration must stand on undisputed facts (QF-16): its opening, its payoff and its final loop.
+    A disputed fact there (the automatic hedge's lead, or a figure only a disputed fact of `sheet` states; the draft's
+    sheet when none is passed) blocks after the one repair edit (_opening_faults); any other qualifier there
+    (narrative_hedges.markers) is HEDGE_WORDING_PROBLEM: the same edit, then flagged (hedge_note). Questions are exempt;
+    body sentences are not read."""
+    from . import narrative_hedges
+    if sheet is _UNSET_SHEET:
+        sheet = _draft_sheet.get()
+        sheet = sheet() if callable(sheet) else sheet
+    problems = []
+    for where, sentence in _close_sentences(narration):
+        if narrative_hedges.is_question(sentence):
+            continue
+        quoted = sentence if len(sentence) <= 100 else sentence[:97] + "..."
+        why = narrative_hedges.carries_disputed(sentence, sheet)
+        if why:
+            problems.append(f"{HEDGE_PROBLEM}the {where} (\"{quoted}\") states a disputed fact ({why}). Move that claim, "
+                            f"with its hedge, into the body, and give the {where} an undisputed fact (or a question).")
+            continue
+        found = narrative_hedges.markers(sentence)
+        if found:
+            problems.append(f"{HEDGE_WORDING_PROBLEM}the {where} (\"{quoted}\") is qualified (\"{found[0][0]}\"). State "
+                            "an undisputed fact there without the qualifier, or move the qualified claim into the body.")
+    return problems
+
+
+def _hedge_keys(narration: str) -> set:
+    """The normalised close sentences: what "the same sentence" means for a qualifier's one repair edit."""
+    return {" ".join(sentence.lower().split()) for _, sentence in _close_sentences(narration)}
+
+
+def hedge_note(narration: str, sheet: Any = _UNSET_SHEET) -> str:
+    """The review card's flag for an opening, payoff or loop that ships qualified (after its one repair edit), or "":
+    the sentences and why, for the operator to judge (QF-16, not a publishable field)."""
+    flagged = [p for p in hedge_problems(narration, sheet) if p.startswith(HEDGE_WORDING_PROBLEM)]
+    if not flagged:
+        return ""
+    where = [w for w, _ in _close_sentences(narration) if any(p.startswith(f"{HEDGE_WORDING_PROBLEM}the {w} (")
+                                                             for p in flagged)]
+    lines = " ".join(f"“{x}”" for w, x in _close_sentences(narration) if w in where)
+    return (f"⚠️ Hedged {' and '.join(where)}: {lines} keeps a qualifier, and the one repair edit did not remove it. "
+            "Judge whether it should stand on a firmer fact.")
 
 
 # ---------------------------------------------------------------- engagement bait
@@ -2491,7 +2561,7 @@ def draft_problems(pkg: ScriptPackage) -> List[str]:
     structure passed, a draft sent back for its structure came back the wrong length, and that cost the next
     attempt too (production, Hal Saflieni 2026-10-27)."""
     return (validate_structure(pkg) + spoken_length_problems(pkg) + hook_problems(pkg.narration_script)
-            + payoff_problems(pkg.narration_script, pkg.payoff_sentence)
+            + payoff_problems(pkg.narration_script, pkg.payoff_sentence) + hedge_problems(pkg.narration_script)
             + story_problems(pkg) + headline_problems(pkg) + cover_problems(pkg))
 
 
@@ -2512,8 +2582,10 @@ def blocking_problems(problems: List[str]) -> List[str]:
     one opening edit (_edit_story) and are then recorded (_note_kept_hook; the signal on the review card,
     hook_signal_note). The hook's cap and a label opening block (QF-14, operator ruling 2026-11-10), and so does a
     missing, misplaced or hook-repeating payoff (QF-15, operator ruling 2026-11-10), after the same one edit; a payoff
-    that names none of the opening's nouns ships flagged (payoff_note)."""
-    return [p for p in problems if not p.startswith((STORY_PROBLEM, HOOK_SIGNAL_PROBLEM, PAYOFF_NOUN_PROBLEM))]
+    that names none of the opening's nouns ships flagged (payoff_note). QF-16 (ruling 2026-11-11): a disputed fact in
+    the opening, payoff or loop blocks after that edit; another qualifier there ships flagged (hedge_note)."""
+    return [p for p in problems
+            if not p.startswith((STORY_PROBLEM, HOOK_SIGNAL_PROBLEM, PAYOFF_NOUN_PROBLEM, HEDGE_WORDING_PROBLEM))]
 
 
 def hook_signal_note(narration: str) -> str:
@@ -2552,20 +2624,29 @@ def opening_edit_findings(faults: list[str]) -> str:
     (QF-15) ride in the same call, after the opening's, with the penultimate sentence as the one more sentence it may
     change; without any, the text is the opening edit's alone."""
     payoff = [f for f in faults if f.startswith(PAYOFF_PROBLEM)]
-    faults = [f for f in faults if not f.startswith(PAYOFF_PROBLEM)]
+    hedges = [f for f in faults if f.startswith(HEDGE_PROBLEM)]
+    faults = [f for f in faults if not f.startswith((PAYOFF_PROBLEM, HEDGE_PROBLEM))]
     hook = (" " + HOOK_FORMS) if any(f.startswith(HOOK_PROBLEM) for f in faults) and HOOK_FORMS not in " ".join(faults) else ""
     opening = ("OPENING: " + " ".join(faults) + hook + f" Edit only what these need: the narration's first "
                f"{PLACE_WITHIN} sentences (a new first sentence of at most {HOOK_MAX_WORDS} words keeps its facts "
                "and hedges), and for a story the title and caption tell, the narration's opening or else the title "
                "and the caption's first line. Keep the length and every other sentence"
-               + (", but for the payoff below." if payoff else ".")) if faults else ""
-    if not payoff:
-        return opening
-    return ((opening + " " if opening else "") + "PAYOFF: " + " ".join(payoff) + " Edit only the "
-            "narration's penultimate sentence for these (or, when it already answers the opening with one of the "
-            "first sentence's nouns, only payoff_sentence), with verified facts and every hedge kept; payoff_sentence "
-            "is that sentence word for word. If the first sentence changes, the payoff still names one of its "
-            "nouns. Never add a sentence, and keep the length.")
+               + (", but for the sentences below." if payoff or hedges else ".")) if faults else ""
+    if payoff:
+        opening = ((opening + " " if opening else "") + "PAYOFF: " + " ".join(payoff) + " Edit only the "
+                   "narration's penultimate sentence for these (or, when it already answers the opening with one of the "
+                   "first sentence's nouns, only payoff_sentence), with verified facts and every hedge kept; "
+                   "payoff_sentence is that sentence word for word. If the first sentence changes, the payoff still names "
+                   "one of its nouns. Never add a sentence, and keep the length.")
+    if hedges:
+        # QF-16: the sentence named (the first, the penultimate or the last) is the one more the edit may change,
+        # with one body sentence that takes the qualified claim
+        opening = ((opening + " " if opening else "") + "HEDGE: " + " ".join(hedges) + " Edit only the sentences "
+                   "named and at most one body sentence: the qualified claim, with its hedge, goes into that body "
+                   "sentence, and the named sentence becomes an undisputed verified fact (or a question). Never delete "
+                   "a needed hedge to make a claim sound certain. If the penultimate sentence changes, payoff_sentence "
+                   "is it word for word. Never add a sentence, and keep the length.")
+    return opening
 
 
 def _length_edit_fixes(problem: str) -> bool:
@@ -2573,7 +2654,7 @@ def _length_edit_fixes(problem: str) -> bool:
     rewords it), the hook or the payoff (the opening edit after it, _fit_length_by_editing). Before QF-14 the hook was
     advisory here; counted as blocking without this, a long draft with a long first sentence cost a full rewrite, and
     so would a long draft with a payoff fault (QF-15)."""
-    return "when spoken" in problem or problem.startswith((REPEAT_PROBLEM, HOOK_PROBLEM, PAYOFF_PROBLEM))
+    return "when spoken" in problem or problem.startswith((REPEAT_PROBLEM, HOOK_PROBLEM, PAYOFF_PROBLEM, HEDGE_PROBLEM))
 
 
 def _note_kept_hook(problems: List[str]) -> None:
@@ -2581,7 +2662,8 @@ def _note_kept_hook(problems: List[str]) -> None:
     the log and the findings ledger (script.hook); the signal is also flagged on the review card (hook_signal_note),
     and so is a payoff naming none of the opening's nouns (payoff_note, QF-15). The hook's cap and a label block, so
     neither is ever kept."""
-    weak = [p for p in problems if p.startswith((HOOK_PROBLEM, STORY_PROBLEM, PAYOFF_NOUN_PROBLEM))]
+    weak = [p for p in problems
+            if p.startswith((HOOK_PROBLEM, STORY_PROBLEM, PAYOFF_NOUN_PROBLEM, HEDGE_WORDING_PROBLEM))]
     if weak:
         log.info("Draft kept with an opening the hook rule would rewrite: %s", " ".join(weak)[:300])
         improve.note_problems(weak, "structure")
@@ -2651,8 +2733,11 @@ class ScriptEngine:
                     # likewise its payoff (QF-15): a revision that keeps it sends no new noun-only payoff edit
                     self.__dict__.setdefault("_payoffs_tried", set()).add(
                         _payoff_key(previous.get("narration_script") or ""))
+                    # and its close's qualifiers (QF-16): kept sentences get no new flag-only hedge edit
+                    self.__dict__.setdefault("_hedges_tried", set()).update(
+                        _hedge_keys(previous.get("narration_script") or ""))
                     pkg = self._revise_surgically(previous, revision_notes, sheet)
-                    if pkg is not None and ("OPENING:" in revision_notes or "PAYOFF:" in revision_notes):
+                    if pkg is not None and any(k in revision_notes for k in ("OPENING:", "PAYOFF:", "HEDGE:")):
                         # this revision was the one opening edit (a library script's hook or payoff): not asked again
                         self.__dict__.setdefault("_story_tried", set()).add(pkg.narration_script)
                 except LLMError as e:
@@ -2942,7 +3027,8 @@ class ScriptEngine:
             return None
         try:
             # the hook and the payoff are left to the opening edit below, on the fitted words (_narrow_edits)
-            length = [p for p in problems if not p.startswith((REPEAT_PROBLEM, HOOK_PROBLEM, PAYOFF_PROBLEM))]
+            length = [p for p in problems
+                      if not p.startswith((REPEAT_PROBLEM, HOOK_PROBLEM, PAYOFF_PROBLEM, HEDGE_PROBLEM))]
             repeats = [p for p in problems if p.startswith(REPEAT_PROBLEM)]
             fitted = self._revise_surgically(pkg.model_dump(), "LENGTH: " + " ".join(length)
                                              + (" REPEAT: " + " ".join(repeats) if repeats else ""), sheet)
@@ -3077,7 +3163,7 @@ class ScriptEngine:
             return blocking_problems(problems)
 
         def narrow(p: str) -> bool:
-            return ("when spoken" in p or p.startswith((REPEAT_PROBLEM, HOOK_PROBLEM, PAYOFF_PROBLEM))
+            return ("when spoken" in p or p.startswith((REPEAT_PROBLEM, HOOK_PROBLEM, PAYOFF_PROBLEM, HEDGE_PROBLEM))
                     or copy_problem_fields(p, pkg) is not None)
 
         if (sheet is not None and _opening_faults(problems) and all(narrow(p) for p in blocking())
@@ -3088,7 +3174,7 @@ class ScriptEngine:
             edited = self._edit_story(pkg, problems, sheet)
             if edited is not None:
                 pkg, problems = edited, draft_problems(edited)
-            elif any(p.startswith((HOOK_PROBLEM, PAYOFF_PROBLEM)) for p in blocking()):
+            elif any(p.startswith((HOOK_PROBLEM, PAYOFF_PROBLEM, HEDGE_PROBLEM)) for p in blocking()):
                 return pkg, problems   # a fault the edit could not fix sends the draft back: no further edit is spent
         if not blocking() or not all(narrow(p) for p in blocking()):
             return pkg, problems
@@ -3131,14 +3217,19 @@ class ScriptEngine:
         opening, payoff = _opening_key(pkg.narration_script), _payoff_key(pkg.narration_script)
         openings = self.__dict__.setdefault("_openings_tried", set())
         payoffs = self.__dict__.setdefault("_payoffs_tried", set())
-        # The faults that ship flagged (a weak signal, a payoff naming no opening noun) get one edit per opening and
-        # per payoff sentence: none when each one's sentence already had it (QF-14; QF-15 operator ruling).
+        hedges = self.__dict__.setdefault("_hedges_tried", set())
+        closes = _hedge_keys(pkg.narration_script)
+        # The faults that ship flagged (a weak signal, a payoff naming no opening noun, a qualified close) get one edit
+        # per opening, payoff and close sentence: none when each one's sentence already had it (QF-14; QF-15 and QF-16
+        # operator rulings).
         if all((f.startswith(HOOK_SIGNAL_PROBLEM) and opening in openings)
-               or (f.startswith(PAYOFF_NOUN_PROBLEM) and payoff in payoffs) for f in faults):
+               or (f.startswith(PAYOFF_NOUN_PROBLEM) and payoff in payoffs)
+               or (f.startswith(HEDGE_WORDING_PROBLEM) and closes <= hedges) for f in faults):
             return None
         tried.add(pkg.narration_script)
         openings.add(opening)
         payoffs.add(payoff)
+        hedges.update(closes)
         try:
             edited = self._revise_surgically(pkg.model_dump(), opening_edit_findings(faults), sheet)
         except LLMError as e:
@@ -3346,13 +3437,14 @@ class ScriptEngine:
         except ValidationError as e:
             return False, script_payload, f"REJECTED: payload does not match schema: {e.error_count()} errors."
 
+        sheet = fact_sheet.load(script_payload.get("topic_id", ""), max_age_days=3650) if script_payload.get("fact_sheet") else None
         problems = (validate_structure(pkg) or spoken_length_problems(pkg)
                     or blocking_problems(hook_problems(pkg.narration_script)
-                                         + payoff_problems(pkg.narration_script, pkg.payoff_sentence)))
+                                         + payoff_problems(pkg.narration_script, pkg.payoff_sentence)
+                                         + hedge_problems(pkg.narration_script, sheet)))
         if problems:
             return False, script_payload, "REJECTED: " + " ".join(problems)
 
-        sheet = fact_sheet.load(script_payload.get("topic_id", ""), max_age_days=3650) if script_payload.get("fact_sheet") else None
         if sheet is not None:  # written from verified facts: trace every claim to them (same evidence each time)
             passed, confidence, audits, msg = trace_check.check(script_payload, sheet)
             disputed = sum(f["disputed"] for f in sheet["facts"])

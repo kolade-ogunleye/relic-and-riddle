@@ -1,0 +1,369 @@
+{
+ "rule": {
+  "has_hedge_check": true,
+  "auto_hedge_scope_check": true,
+  "rules_version": 2
+ },
+ "synthetic": {
+  "close_cases": {
+   "auto_lead_in_the_opening": "blocked",
+   "disputed_figure_in_the_payoff": "blocked",
+   "disputed_metric_figure_in_the_loop": "blocked",
+   "disputed_figure_spelled_out": "blocked",
+   "qualifier_in_the_opening": "flagged",
+   "uncertain_claim_in_the_loop": "flagged",
+   "evidential_in_the_payoff": "flagged",
+   "control_question_in_the_loop": "clean",
+   "control_question_with_a_disputed_figure": "clean",
+   "control_undisputed_figure": "clean",
+   "control_body_hedges": "clean",
+   "control_spatial_and_topical": "clean"
+  },
+  "close_cases_as_ruled": 12,
+  "of": 12,
+  "quantitative_qualifiers_read_as_quantitative": 6,
+  "of_quantitative": 6,
+  "auto_hedge": {
+   "weak_count": {
+    "kept": false,
+    "hedge": ""
+   },
+   "weak_count_in_digits": {
+    "kept": false,
+    "hedge": ""
+   },
+   "weak_measured_quantity": {
+    "kept": true,
+    "hedge": "by one estimate, the city reached 85 meters deep."
+   },
+   "weak_mass": {
+    "kept": true,
+    "hedge": "by one estimate, 200,000 tons of rock."
+   },
+   "weak_date": {
+    "kept": true,
+    "hedge": "by one account, it was rediscovered in 1963."
+   },
+   "weak_range": {
+    "kept": true,
+    "hedge": "by one estimate, the trenches are 10 to 15 centimeters deep."
+   },
+   "weak_figure_quoted_as_a_range": {
+    "kept": true,
+    "hedge": "by one estimate, the city reached 85 meters deep."
+   }
+  },
+  "auto_hedge_as_ruled": 7,
+  "of_auto": 7
+ },
+ "fact_sheets": {
+  "sheets": 20,
+  "researched_again_on_next_use": 2,
+  "built_under_older_rules": 2,
+  "facts_stored": 271,
+  "facts_loaded": 228,
+  "automatic_hedges_stored": 47,
+  "automatic_hedges_loaded": 35,
+  "dropped_on_load_by_kind": {
+   "number": 13
+  },
+  "hedges_now_saying_their_quoted_range": 0,
+  "facts_per_loaded_sheet": {
+   "min": 11,
+   "median": 12.5
+  },
+  "loaded_sheets_below_minimum": 0
+ },
+ "corpus": {
+  "script_library": {
+   "scripts": 4,
+   "outcomes": {
+    "blocked": 0,
+    "flagged": 1,
+    "clean": 3
+   },
+   "outcomes_with_hook_and_payoff_rules": {
+    "blocked": 4,
+    "flagged": 0,
+    "clean": 0
+   },
+   "hits": {
+    "payoff_flags": 1
+   },
+   "marks": {
+    "justified": 1,
+    "false": 0,
+    "unjudged": 0
+   },
+   "body_qualifiers": {
+    "sentences": 4,
+    "quantitative": 4,
+    "not_quantitative": 0,
+    "refused": 0
+   },
+   "close_sentences_with_auto_lead": 0,
+   "per_item": [
+    {
+     "run": "singing_colossi_of_memnon",
+     "sha": "ee684c37213d",
+     "where": "payoff",
+     "kind": "flags",
+     "mark": "justified"
+    }
+   ]
+  },
+  "runs_1": {
+   "scripts": 28,
+   "outcomes": {
+    "blocked": 2,
+    "flagged": 4,
+    "clean": 22
+   },
+   "outcomes_with_hook_and_payoff_rules": {
+    "blocked": 24,
+    "flagged": 3,
+    "clean": 1
+   },
+   "hits": {
+    "payoff_flags": 2,
+    "closing loop_blocks": 1,
+    "payoff_blocks": 1,
+    "opening_flags": 2
+   },
+   "marks": {
+    "justified": 6,
+    "false": 0,
+    "unjudged": 0
+   },
+   "body_qualifiers": {
+    "sentences": 32,
+    "quantitative": 27,
+    "not_quantitative": 5,
+    "refused": 0
+   },
+   "close_sentences_with_auto_lead": 2,
+   "per_item": [
+    {
+     "run": "run_amber_room_heist_1792790550",
+     "sha": "dbff01c80271",
+     "where": "payoff",
+     "kind": "flags",
+     "mark": "justified"
+    },
+    {
+     "run": "run_singing_colossi_of_memnon_1792952878",
+     "sha": "ee684c37213d",
+     "where": "payoff",
+     "kind": "flags",
+     "mark": "justified"
+    },
+    {
+     "run": "run_trepanation_miracle_1792991470",
+     "sha": "fb080ba5ca1c",
+     "where": "closing loop",
+     "kind": "blocks",
+     "mark": "justified"
+    },
+    {
+     "run": "run_trepanation_miracle_1792995462",
+     "sha": "fb080ba5ca1c",
+     "where": "payoff",
+     "kind": "blocks",
+     "mark": "justified"
+    },
+    {
+     "run": "run_tunguska_event_1908_1792930600",
+     "sha": "f88839197c59",
+     "where": "opening",
+     "kind": "flags",
+     "mark": "justified"
+    },
+    {
+     "run": "run_unfinished_obelisk_aswan_1792985912",
+     "sha": "cff70796b8fe",
+     "where": "opening",
+     "kind": "flags",
+     "mark": "justified"
+    }
+   ]
+  },
+  "runs_2": {
+   "scripts": 26,
+   "outcomes": {
+    "blocked": 0,
+    "flagged": 7,
+    "clean": 19
+   },
+   "outcomes_with_hook_and_payoff_rules": {
+    "blocked": 16,
+    "flagged": 9,
+    "clean": 1
+   },
+   "hits": {
+    "payoff_flags": 1,
+    "opening_flags": 2,
+    "closing loop_flags": 4
+   },
+   "marks": {
+    "justified": 7,
+    "false": 0,
+    "unjudged": 0
+   },
+   "body_qualifiers": {
+    "sentences": 23,
+    "quantitative": 20,
+    "not_quantitative": 3,
+    "refused": 0
+   },
+   "close_sentences_with_auto_lead": 0,
+   "per_item": "omitted: counts only (production sample)"
+  }
+ },
+ "corpus_pooled": {
+  "scripts": 52,
+  "outcomes": {
+   "blocked": 2,
+   "flagged": 11,
+   "clean": 39
+  },
+  "outcomes_with_hook_and_payoff_rules": {
+   "blocked": 38,
+   "flagged": 12,
+   "clean": 2
+  },
+  "hits": {
+   "payoff_flags": 3,
+   "closing loop_blocks": 1,
+   "payoff_blocks": 1,
+   "opening_flags": 4,
+   "closing loop_flags": 4
+  },
+  "marks": {
+   "justified": 13,
+   "false": 0,
+   "unjudged": 0
+  },
+  "body_qualifiers": {
+   "sentences": 53,
+   "quantitative": 45,
+   "not_quantitative": 8,
+   "refused": 0
+  },
+  "close_sentences_with_auto_lead": 2
+ },
+ "routing_replay": {
+  "script_library": {
+   "edit_fixes": {
+    "calls": {
+     "writer": 4,
+     "opening_payoff_or_hedge_edit": 4,
+     "length_edit": 0,
+     "other_edit": 0
+    },
+    "outcomes": {
+     "accepted": 4
+    },
+    "heavy_calls_per_run_mean": 2.0,
+    "heavy_calls_per_run_max": 2
+   },
+   "edit_fails": {
+    "calls": {
+     "writer": 12,
+     "opening_payoff_or_hedge_edit": 4,
+     "length_edit": 0,
+     "other_edit": 0
+    },
+    "outcomes": {
+     "no_script": 4
+    },
+    "heavy_calls_per_run_mean": 4.0,
+    "heavy_calls_per_run_max": 4
+   }
+  },
+  "runs_1": {
+   "edit_fixes": {
+    "calls": {
+     "writer": 29,
+     "opening_payoff_or_hedge_edit": 26,
+     "length_edit": 0,
+     "other_edit": 2
+    },
+    "outcomes": {
+     "accepted": 26,
+     "not_a_script_package": 1,
+     "no_script": 1
+    },
+    "heavy_calls_per_run_mean": 2.11,
+    "heavy_calls_per_run_max": 6
+   },
+   "edit_fails": {
+    "calls": {
+     "writer": 73,
+     "opening_payoff_or_hedge_edit": 26,
+     "length_edit": 0,
+     "other_edit": 0
+    },
+    "outcomes": {
+     "accepted": 4,
+     "no_script": 23,
+     "not_a_script_package": 1
+    },
+    "heavy_calls_per_run_mean": 3.67,
+    "heavy_calls_per_run_max": 4
+   }
+  },
+  "runs_2": {
+   "edit_fixes": {
+    "calls": {
+     "writer": 34,
+     "opening_payoff_or_hedge_edit": 25,
+     "length_edit": 0,
+     "other_edit": 8
+    },
+    "outcomes": {
+     "accepted": 22,
+     "no_script": 4
+    },
+    "heavy_calls_per_run_mean": 2.58,
+    "heavy_calls_per_run_max": 6
+   },
+   "edit_fails": {
+    "calls": {
+     "writer": 58,
+     "opening_payoff_or_hedge_edit": 25,
+     "length_edit": 0,
+     "other_edit": 0
+    },
+    "outcomes": {
+     "no_script": 16,
+     "accepted": 10
+    },
+    "heavy_calls_per_run_mean": 3.19,
+    "heavy_calls_per_run_max": 4
+   }
+  }
+ },
+ "pace": {
+  "runs_1": {
+   "bursts": 772,
+   "bursts_over_17_cps": 277,
+   "bursts_over_20_cps": 58,
+   "burst_cps_median": 15.7,
+   "burst_cps_max": 37.5,
+   "touched_close_sentences_timed": 2,
+   "touched_speech_cps_median": 17.21,
+   "touched_speech_cps_max": 17.85
+  },
+  "runs_2": {
+   "bursts": 851,
+   "bursts_over_17_cps": 271,
+   "bursts_over_20_cps": 72,
+   "burst_cps_median": 15.62,
+   "burst_cps_max": 29.17,
+   "touched_close_sentences_timed": 6,
+   "touched_speech_cps_median": 14.49,
+   "touched_speech_cps_max": 16.07
+  }
+ },
+ "acceptance_met": true
+}

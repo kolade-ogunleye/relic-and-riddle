@@ -1687,6 +1687,8 @@ class TelegramApprovalBot:
             text += "\n" + _format_note(script_payload["hook_signal_note"])
         if script_payload.get("payoff_note"):  # a payoff shipped naming no opening noun (QF-15): judge it
             text += "\n" + _format_note(script_payload["payoff_note"])
+        if script_payload.get("hedge_note"):  # an opening, payoff or loop shipped qualified (QF-16): judge it
+            text += "\n" + _format_note(script_payload["hedge_note"])
         if script_payload.get("trimmed_sentences"):  # said, so the reviewer can judge the flow without them
             where = list(script_payload.get("trimmed_from") or [])  # where each was read, beyond the narration
             where += [""] * (len(script_payload["trimmed_sentences"]) - len(where))

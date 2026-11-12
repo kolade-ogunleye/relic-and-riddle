@@ -246,7 +246,13 @@ def curated_payload():
     opening = "In Cappadocia, a house renovation in 1963 revealed an underground tunnel."
     payload["narration_script"] = opening + " " + payload["narration_script"].split(". ", 1)[1]
     payload["hook_sentence"] = opening
-    # QF-15: the penultimate sentence ("Its earliest tunnels ...") is the payoff; it names the opening's "tunnel".
+    # QF-16: the curated penultimate sentence ("Its earliest tunnels may be nearly three thousand years old, and ...")
+    # is qualified, so it would get the one hedge edit and ship flagged; the positive fixture's payoff is the same
+    # sentence's other supplied fact, unhedged. The repository's curated file itself still faces the real rule.
+    sentences = payload["narration_script"].split(". ")
+    sentences[-2] = "Byzantine-era Christians later expanded its tunnels to hide from raids"
+    payload["narration_script"] = ". ".join(sentences)
+    # QF-15: the penultimate sentence is the payoff; it names the opening's "tunnel".
     payload["payoff_sentence"] = payload["narration_script"].split(". ")[-2] + "."
     payload.update({"topic_id": "derinkuyu_underground_city", "origin": "curated",
                     "location": {"name": "Derinkuyu", "country": "Turkey"}})

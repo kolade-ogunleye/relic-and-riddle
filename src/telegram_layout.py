@@ -14,6 +14,16 @@ notifications panel at the top, the dashboard under it, then the temporary panel
   missing, and then the panels below it are sent again after it, so the order holds (the ordered rebuild).
 - **Push alerts**: a Needs-you item that should ring sends one line with sound, at most one a minute (more join
   the next one), deleted after PUSH_ALERT_SECONDS. The deletion is recorded, so a restart still makes it.
+
+Lock order (one order, so the dashboard and the layout can never wait on each other):
+  Layout._rebuild_lock  ->  TelegramApprovalBot._dashboard_lock  ->  Layout._lock
+- Layout._lock is the innermost lock: code holding it never draws the dashboard (show_dashboard, which takes
+  _dashboard_lock) and never starts a rebuild. A panel found missing while it is held is only noted
+  (_rebuild_due); the rebuild runs once the lock is released.
+- Code holding _dashboard_lock never calls ensure() or rebuild(): show_dashboard makes sure the panel exists
+  before it takes its lock.
+- A rebuild holds _rebuild_lock for the whole send-in-order (the panel, then the dashboard under it), and
+  Layout._lock only while it writes the panel itself.
 """
 from __future__ import annotations
 
@@ -43,6 +53,9 @@ DASHBOARD = "dashboard"
 SLOT_PREFIX = "layout:"
 PROCESS_IDENTITY = f"{os.getpid()}-{int(time.time())}"
 NOTE_ACTIONS = {"n", "np", "nall", "nundo"}   # the notifications panel's own callbacks (telegram_ui.PANEL_KINDS)
+SYNC_SECONDS = 20.0         # the condition items are re-derived this often (notice_conditions)
+HOME_IDLE_SECONDS = 15 * 60          # the dashboard goes back home after this without a tap (design §6.2)
+HOME_IDLE_BUSY_SECONDS = 30 * 60     # ... and after this while typed input or a wizard is mid-step
 
 
 def enabled() -> bool:
@@ -125,7 +138,9 @@ class Layout:
         self.bot = bot
         self.db = bot.db
         self.owner = owner
-        self._lock = threading.RLock()
+        self._lock = threading.RLock()          # innermost (see the lock order above)
+        self._rebuild_lock = threading.RLock()  # outermost: one ordered rebuild at a time
+        self._rebuild_due = False                # the panel went missing while _lock was held
         self._drawn: dict[str, Any] = {}      # slot -> the (text, keyboard) last drawn
         self._rev_seen = -1
         self._rev_since = 0.0
@@ -135,6 +150,7 @@ class Layout:
         self._thread: threading.Thread | None = None
         self._stop = threading.Event()
         self._later: Any | None = None   # a CLI process's one pending redraw
+        self._synced = 0.0                 # when the condition items were last derived
         self.clock = time.time
         self.timer = threading.Timer        # replaceable in tests
 
@@ -183,11 +199,19 @@ class Layout:
             if not self.take():
                 return False
             self._heartbeat = now
+        self.ensure(now)   # before _lock: a rebuild draws the dashboard (lock order)
         with self._lock:
-            self.ensure(now)
+            if force or now - self._synced >= SYNC_SECONDS:
+                self._synced = now
+                from . import notice_conditions
+                notice_conditions.sync(self.db, now)   # condition items follow the state (UI-01b)
             self.draw_notifications(now, force=force)
             self.push(now)
             self.delete_due_alerts(now)
+        self.repair()
+        idle = getattr(self.bot, "dashboard_idle_tick", None)
+        if callable(idle):
+            idle(now)
         return True
 
     def kick(self) -> None:
@@ -215,21 +239,35 @@ class Layout:
             log.warning("Could not draw the notifications panel: %s", e)
 
     # ---------------------------------------------------------- the notifications panel
+    def renders_here(self) -> bool:
+        """Whether this process may send the panels: it holds the renderer lease, or takes it because nobody does
+        (a CLI process alone). Only the renderer ever sends a panel (design §5.4)."""
+        return self.is_renderer() or self.take()
+
     def ensure(self, now: float | None = None) -> int | None:
-        """The notifications panel exists, pinned, above the dashboard. When it is missing it is sent, and the
-        dashboard (if there is one) is sent again under it and its old copy deleted: the order holds."""
+        """The notifications panel exists, pinned, above the dashboard. When it is missing, the renderer sends it
+        and then the dashboard (if there is one) again under it, deleting the old copy: the order holds. Another
+        process leaves it to the renderer and returns None. Never call it holding _dashboard_lock or _lock."""
         mid = slot_message(self.db, NOTIFICATIONS)
-        if mid:
+        if mid or not self.renders_here():
             return mid
-        return self.rebuild(NOTIFICATIONS)
+        with self._rebuild_lock:
+            return slot_message(self.db, NOTIFICATIONS) or self._rebuild(NOTIFICATIONS)
 
     def rebuild(self, from_slot: str = NOTIFICATIONS) -> int | None:
         """Sends the panels from `from_slot` down again, in order, then deletes the old copies (design §5.2).
-        The old copies stay on screen until every new one is sent, so the chat is never empty."""
-        with self._lock:
-            old_notes = slot_message(self.db, NOTIFICATIONS)
-            new_notes = old_notes
-            if from_slot == NOTIFICATIONS:
+        The old copies stay on screen until every new one is sent, so the chat is never empty. Renderer only;
+        never call it holding _dashboard_lock or _lock."""
+        if not self.renders_here():
+            return None
+        with self._rebuild_lock:
+            return self._rebuild(from_slot)
+
+    def _rebuild(self, from_slot: str) -> int | None:
+        old_notes = slot_message(self.db, NOTIFICATIONS)
+        new_notes = old_notes
+        if from_slot == NOTIFICATIONS:
+            with self._lock:   # only while the panel itself is written (lock order)
                 text, rows = notes.render(self.db, self.clock(), self._run_key)
                 new_notes = self._send(text, rows)
                 if not new_notes:
@@ -237,15 +275,31 @@ class Layout:
                 put_slot(self.db, NOTIFICATIONS, new_notes, self.clock())
                 self._drawn[NOTIFICATIONS] = (text, rows)
                 self._pin(new_notes)
-            # The dashboard goes below: a fresh copy under the panel, the old one deleted by show_dashboard.
-            if self.bot.db.get_setting("telegram_dashboard_id"):
-                try:
-                    self.bot.show_dashboard(fresh=True)
-                except Exception as e:  # noqa: BLE001 - the panel above is already drawn
-                    log.warning("Could not re-send the dashboard under the notifications panel: %s", e)
-            if old_notes and old_notes != new_notes:
-                self.bot.delete_message(old_notes)
-            return new_notes
+        # The dashboard goes below: a fresh copy under the panel, the old one deleted by show_dashboard. _lock is
+        # not held here: show_dashboard takes _dashboard_lock.
+        if self.bot.db.get_setting("telegram_dashboard_id"):
+            try:
+                self.bot.show_dashboard(fresh=True, rebuild=True)
+            except Exception as e:  # noqa: BLE001 - the panel above is already drawn
+                log.warning("Could not re-send the dashboard under the notifications panel: %s", e)
+        if old_notes and old_notes != new_notes:
+            self.bot.delete_message(old_notes)
+        return new_notes
+
+    def repair(self) -> int | None:
+        """Re-posts the panel in order when an edit found it gone (outside _lock: lock order)."""
+        if not self._rebuild_due:
+            return None
+        self._rebuild_due = False
+        return self.ensure()
+
+    def redraw(self) -> bool:
+        """Draws the panel now (a tap on it), under _lock as the renderer's tick does, so two edits never race
+        and an older render never lands last; a panel found gone is posted again after the lock is released."""
+        with self._lock:
+            drawn = self.draw_notifications(force=True)
+        self.repair()
+        return drawn
 
     def _run_key(self, run_id: str) -> str:
         try:
@@ -320,7 +374,7 @@ class Layout:
             if "message to edit not found" in reason or "message_id_invalid" in reason:
                 log.warning("The notifications panel is gone (%s); posting it again in order.", e)
                 drop_slot(self.db, NOTIFICATIONS)
-                self.rebuild(NOTIFICATIONS)
+                self._rebuild_due = True   # posted again once _lock is released (lock order)
                 return True
             if "can't parse entities" in reason:
                 log.warning("Notifications panel drawn as plain text: %s", e)
@@ -390,8 +444,9 @@ def alert_text(waiting: list[dict[str, Any]], needs: int) -> str:
     '🔔 3 need you · newest: Review waiting'."""
     newest = max(waiting, key=lambda i: (float(i["updated_at"]), i["id"]))
     if len(waiting) == 1:
-        line = newest["title"] + (f" · {newest['subject']}" if newest.get("subject") else "")
+        line = newest.get("alert") or newest["title"] + (f" · {newest['subject']}" if newest.get("subject") else "")
         return "🔔 " + notes.clip(line, ALERT_LIMIT - 2)
     count = max(needs, len(waiting))
     lead = f"🔔 {count} {'needs' if count == 1 else 'need'} you · newest: "
-    return lead + notes.clip(newest["title"], max(8, ALERT_LIMIT - len(lead)))
+    newest_name = (newest.get("alert") or newest["title"]).partition(" · ")[0]
+    return lead + notes.clip(newest_name, max(8, ALERT_LIMIT - len(lead)))

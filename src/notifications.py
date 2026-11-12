@@ -45,6 +45,8 @@ REVISION_KEY = "notifications-rev"
 VIEW_KEY = "notifications-view"
 UNDO_KEY = "notifications-undo"
 SEEN_NEEDS_KEY = "notifications-needs-seen"
+FAIL_PREFIX = "fail:"       # a run's failure item: fail:<run>
+LATE_PREFIX = "cond:late:"  # the late-failure condition for a run (notice_conditions)
 DISMISS = "x"              # the verb of an item page's Dismiss button: n:<id>:x
 OPEN, HANDLED, DISMISSED, DROPPED, RESOLVED = "open", "handled", "dismissed", "dropped", "resolved"
 
@@ -79,8 +81,10 @@ def ensure(db) -> None:
         conn.execute("CREATE INDEX IF NOT EXISTS idx_notifications_key ON notifications(dedupe_key, state)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_notifications_state ON notifications(state, updated_at)")
         have = {r[1] for r in conn.execute("PRAGMA table_info(notifications)")}
-        if "note" not in have:   # why the item's last action was not done (shown on its page)
-            conn.execute("ALTER TABLE notifications ADD COLUMN note TEXT")
+        for column, decl in (("alert", "TEXT"), ("cond_count", "INTEGER"),   # UI-01b: condition items
+                             ("note", "TEXT")):   # why the item's last action was not done (shown on its page)
+            if column not in have:
+                conn.execute(f"ALTER TABLE notifications ADD COLUMN {column} {decl}")
     _ready.add(path)
 
 
@@ -110,9 +114,12 @@ def replaceable(key: str) -> bool:
 
 def post(db, section: str, key: str, title: str, body: str = "", *, emoji: str = "", subject: str = "",
          actions: Sequence[dict[str, str]] = (), run: str | None = None, replace: bool = False,
-         now: float | None = None) -> dict[str, Any]:
+         now: float | None = None, ring: bool | None = None, alert: str | None = None,
+         cond_count: int | None = None) -> dict[str, Any]:
     """Writes one item and bumps the panel's revision; it never sends. Returns {"id", "push"}: push is True when
-    the item should ring (a Needs-you item added, reopened or escalated, its key quiet for 6 h)."""
+    the item should ring (a Needs-you item added, reopened or escalated, its key quiet for 6 h). `ring` overrides
+    that rule for an item that is still open (a condition whose count rose rings, an unchanged one does not);
+    `alert` is the alert's own line when it differs from the title."""
     if section not in (NEEDS, INFO):
         raise ValueError(f"a notification needs a section (needs or info), not {section!r}")
     ensure(db)
@@ -123,6 +130,13 @@ def post(db, section: str, key: str, title: str, body: str = "", *, emoji: str =
     with db._conn() as conn:
         row = conn.execute("SELECT * FROM notifications WHERE dedupe_key = ? AND state = 'open' ORDER BY id DESC LIMIT 1",
                            (key,)).fetchone()
+        if row is None and key.startswith(FAIL_PREFIX):
+            # One failure is one item: the late-failure condition already showing this run becomes the run's
+            # failure item (the same item, so it never rings twice; the condition skips a run with a fail: item).
+            row = conn.execute("SELECT * FROM notifications WHERE dedupe_key = ? AND state = 'open' ORDER BY id DESC "
+                               "LIMIT 1", (LATE_PREFIX + key[len(FAIL_PREFIX):],)).fetchone()
+            if row is not None:
+                conn.execute("UPDATE notifications SET dedupe_key = ?, cond_count = NULL WHERE id = ?", (key, row["id"]))
         if row:
             item = _row(row)
             escalated = item["section"] == INFO and section == NEEDS
@@ -130,19 +144,21 @@ def post(db, section: str, key: str, title: str, body: str = "", *, emoji: str =
             count = 1 if (replace or replaceable(key)) else int(item["count"]) + 1
             push = kept_section == NEEDS and (escalated or not item["pushed_at"]
                                               or now - float(item["pushed_at"]) >= PUSH_REPEAT_SECONDS)
+            if ring is not None:
+                push = kept_section == NEEDS and (ring or escalated)
             conn.execute("""UPDATE notifications SET section = ?, emoji = ?, title = ?, subject = ?, body = ?, actions = ?,
                             run_id = COALESCE(?, run_id), count = ?, updated_at = ?, pushed_at = ?,
-                            push_pending = MAX(push_pending, ?), note = NULL WHERE id = ?""",
+                            push_pending = MAX(push_pending, ?), alert = ?, cond_count = ?, note = NULL WHERE id = ?""",
                          (kept_section, emoji, title, subject, body, payload, run, count, now,
-                          now if push else item["pushed_at"], int(push), item["id"]))
+                          now if push else item["pushed_at"], int(push), alert, cond_count, item["id"]))
             item_id = item["id"]
         else:
-            push = section == NEEDS
+            push = section == NEEDS and ring is not False
             cur = conn.execute("""INSERT INTO notifications (dedupe_key, section, emoji, title, subject, body, actions,
-                                  run_id, count, state, created_at, updated_at, pushed_at, push_pending)
-                                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, 'open', ?, ?, ?, ?)""",
+                                  run_id, count, state, created_at, updated_at, pushed_at, push_pending, alert, cond_count)
+                                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, 'open', ?, ?, ?, ?, ?, ?)""",
                                (key, section, emoji, title, subject, body, payload, run, now, now, now if push else None,
-                                int(push)))
+                                int(push), alert, cond_count))
             item_id = cur.lastrowid
         _retain(conn, now)
     bump(db)
@@ -181,6 +197,20 @@ def clear_pushes(db, ids: Sequence[int]) -> None:
         conn.executemany("UPDATE notifications SET push_pending = 0 WHERE id = ?", [(int(i),) for i in ids])
         # An item closed before its alert went never rings later.
         conn.execute("UPDATE notifications SET push_pending = 0 WHERE push_pending = 1 AND state <> 'open'")
+
+
+def has_key(db, key: str) -> bool:
+    """Whether any item, open or closed, was ever written under this key."""
+    ensure(db)
+    with db._conn() as conn:
+        return conn.execute("SELECT 1 FROM notifications WHERE dedupe_key = ? LIMIT 1", (key,)).fetchone() is not None
+
+
+def has_open(db, key: str) -> bool:
+    ensure(db)
+    with db._conn() as conn:
+        return conn.execute("SELECT 1 FROM notifications WHERE dedupe_key = ? AND state = 'open' LIMIT 1",
+                            (key,)).fetchone() is not None
 
 
 def get(db, item_id: int) -> dict[str, Any] | None:
@@ -628,6 +658,7 @@ def _item_page(item, items, head, now, run_key, came_from):
     from .telegram_ui import label
     verbs = [{"text": label(action_label(a)), "callback_data": f"n:{item['id']}:{action_ref(a)}"}
              for a in item["actions"]]
-    verbs.append({"text": "Dismiss", "callback_data": f"n:{item['id']}:{DISMISS}"})
+    if not str(item.get("dedupe_key", "")).startswith("cond:"):   # a condition resolves itself: no Dismiss
+        verbs.append({"text": "Dismiss", "callback_data": f"n:{item['id']}:{DISMISS}"})
     rows = [verbs[k:k + 3] for k in range(0, len(verbs), 3)]
     return "\n\n".join(parts), rows + [back]

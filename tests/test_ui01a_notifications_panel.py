@@ -68,6 +68,11 @@ def make_bot(db, monkeypatch, fake=None):
     monkeypatch.setattr(bot, "_api", fake)
     monkeypatch.setattr(bot, "_queue_navigation", lambda work: work() or True)
     monkeypatch.setattr(bot, "_delete_soon", bot.delete_message)
+    try:   # condition items (UI-01b) are their own tests: here the panel holds only what the test posts
+        from src import notice_conditions
+        monkeypatch.setattr(notice_conditions, "current", lambda db_: [])
+    except ImportError:
+        pass
     return bot, fake
 
 
@@ -308,7 +313,7 @@ def test_the_panel_goes_above_an_existing_dashboard(db, monkeypatch):
     shown = []
     monkeypatch.setattr(bot, "show_dashboard", lambda **kw: shown.append(kw) or db.set_setting("telegram_dashboard_id", "999"))
     bot.notify("⚠️ <b>Publishing accounts</b>\n• Instagram token expired", group="needs")
-    assert shown == [{"fresh": True}]   # the dashboard is sent again under the panel
+    assert shown == [{"fresh": True, "rebuild": True}]   # the dashboard is sent again under the panel
 
 
 def test_the_pin_service_line_is_deleted_when_it_arrives(db, monkeypatch):
@@ -486,7 +491,7 @@ def test_a_missing_panel_is_posted_again_in_order(db, monkeypatch):
     bot.layout.ensure()
     fake.deleted.add(101)                     # the operator deleted it
     notes().post(db, "info", "k", "Something")
-    bot.layout.draw_notifications(force=True)
+    bot.layout.redraw()   # UI-01b: drawn under the layout lock, the missing panel re-posted once it is released
     from src.telegram_layout import slot_message
     assert slot_message(db, "notifications") not in (None, 101) and fake.pinned[-1] == slot_message(db, "notifications")
 
@@ -545,13 +550,17 @@ def test_every_main_sender_names_its_section():
 
 
 def test_proposals_of_one_night_are_one_item(db, monkeypatch):
+    from src import notice_conditions
+    real = notice_conditions.current
     bot, _fake = make_bot(db, monkeypatch)
+    monkeypatch.setattr(notice_conditions, "current", real)   # proposals are a condition item (UI-01b)
     import main
     from src import improve
-    monkeypatch.setattr(improve, "proposals", lambda db_, status=None: [{"id": f"p{k}", "title": f"Rule {k}"} for k in range(3)])
+    monkeypatch.setattr(improve, "proposals", lambda db_, status=None: [{"id": f"p{k}", "title": f"Rule {k}", "status": "ready"}
+                                                                         for k in range(3)])
     for k in range(3):
-        main.proposal_notice(bot, db, {"id": f"p{k}", "title": f"Rule {k}"})
-    items = notes().open_items(db)
+        main.proposal_notice(bot, db, {"id": f"p{k}", "title": f"Rule {k}", "status": "ready"})
+    items = [i for i in notes().open_items(db) if "proposal" in i["dedupe_key"]]
     assert len(items) == 1 and items[0]["title"] == "3 improvement proposals"
     assert items[0]["actions"] == [{"text": "🧭 Improvements", "callback_data": "cimprove:"}]
 

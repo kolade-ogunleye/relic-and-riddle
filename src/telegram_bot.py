@@ -1255,7 +1255,7 @@ class TelegramApprovalBot:
             message_id = self._panel_aliases[message_id]
         return message_id
 
-    def show_dashboard(self, text=None, buttons=None, fresh=False):
+    def show_dashboard(self, text=None, buttons=None, fresh=False, rebuild=False):
         """One dashboard anchor survives /start and routine process reloads. Serialized: two refreshes at
         once (production's startup card and a queued Dashboard tap) each found the stored panel gone and
         each posted one; under the lock the second edits the panel the first posted."""
@@ -1263,16 +1263,37 @@ class TelegramApprovalBot:
             from .control import dashboard_text_and_buttons
             from .config import ASSETS_DIR
             text, buttons = dashboard_text_and_buttons(self.db, getattr(self, "next_run_func", lambda: None)(), assets_dir=ASSETS_DIR)
+        if not rebuild:
+            self._panel_first()
         with self._dashboard_lock:
-            return self._show_dashboard_locked(text, buttons, fresh)
+            return self._show_dashboard_locked(text, buttons, fresh, rebuild)
 
-    def _show_dashboard_locked(self, text, buttons, fresh):
+    def _panel_first(self) -> None:
+        """The clean chat: the pinned panel is made before a dashboard is drawn, so the dashboard always sits
+        under it. Called before _dashboard_lock is taken, never under it (telegram_layout's lock order); only the
+        renderer sends the panel (ensure checks the lease)."""
+        if not clean_chat() or not self.is_configured():
+            return
+        from .telegram_layout import NOTIFICATIONS, slot_message
+        if slot_message(self.db, NOTIFICATIONS):
+            return
+        try:
+            self.layout.ensure()
+        except Exception as e:  # noqa: BLE001 - the dashboard is still drawn
+            log.warning("Could not post the notifications panel before the dashboard: %s", e)
+
+    def _show_dashboard_locked(self, text, buttons, fresh, rebuild=False):
         from .control import dashboard_text_and_buttons
         from .config import ASSETS_DIR
         if text is None:
             text, buttons = dashboard_text_and_buttons(self.db, getattr(self, "next_run_func", lambda: None)(), assets_dir=ASSETS_DIR)
         stored = self.db.get_setting("telegram_dashboard_id")
         previous = int(stored) if stored and stored.isdigit() else None
+        clean = config.TELEGRAM_CLEAN_CHAT and not rebuild
+        if clean:
+            # The clean chat (UI-01b): the dashboard is drawn in place, never sent fresh at the bottom (that broke
+            # the layout's order). Only the ordered rebuild sends a new copy (telegram_layout.rebuild).
+            fresh = False
         if previous and not fresh:
             current = self._current_panel(previous)
             self._panel_revisions[current] = self._panel_revisions.get(current, 0) + 1
@@ -1290,7 +1311,9 @@ class TelegramApprovalBot:
 
     def _typed_panel(self):
         """A typed command opens the one panel at the bottom of the chat and runs in it, as a tap would."""
-        with self._dashboard_lock:
+        self._dashboard_touched = time.time()   # the operator is using the dashboard (its return home waits)
+        self._panel_first()                     # before the lock (telegram_layout's lock order)
+        with self._dashboard_lock:   # the clean chat draws it in the dashboard (UI-01b)
             message_id = self._show_dashboard_locked("⏳ <b>Working…</b>", [[DONE_BUTTON]], fresh=True)
         if type(message_id) is not int:
             return None
@@ -1304,13 +1327,17 @@ class TelegramApprovalBot:
         with self._dashboard_lock:
             stored = self.db.get_setting("telegram_dashboard_id")
             anchor = self._current_panel(int(stored)) if stored and stored.isdigit() else None
+            if clean_chat() and anchor and anchor != current:
+                # The clean chat (UI-01b): every screen is drawn in the dashboard. A screen asked for from another
+                # message (an older card) never turns that message into a second dashboard.
+                current, is_media = anchor, self._is_media(anchor)
             if anchor and anchor != current and current in self._protected_messages():
                 # A screen asked for from a card that must stay (a review card, its receipt): it opens as the
                 # one panel at the bottom and the old panel goes. Drawn in the card, it left two dashboards in
                 # the chat, since a protected card never becomes the panel (production, 2026-10-25). Outside
                 # the panel context, so the fresh message is sent, not routed back here.
                 token = _PANEL.set(None)
-                try:
+                try:   # the clean chat draws it in the dashboard itself (fresh is ignored there: UI-01b)
                     return type(self._show_dashboard_locked(text, buttons, fresh=True)) is int
                 finally:
                     _PANEL.reset(token)
@@ -1486,6 +1513,11 @@ class TelegramApprovalBot:
             if job.get("error_detail"):
                 text += "\n" + html.escape(job["error_detail"]) + "\nInspect /jobs before explicitly retrying."
             delivered = self.update_navigation_target(destination[0], text, buttons)
+            if not delivered and config.TELEGRAM_CLEAN_CHAT:
+                # The operator moved on while it ran: the result is an info item with a way to its screen; the
+                # dashboard is not yanked back (design §6.2).
+                head = "🧰 <b>" + html.escape(title) + (" done" if job["state"] == "completed" else f": {job['state']}") + "</b>"
+                return bool(self.notify(head + "\n" + text, buttons=buttons, group="info", key=f"job:{job['id']}"))
             if not delivered and late:
                 # Requested work whose screen was left while it ran: its result becomes the one panel
                 # (a second message would leave two cards in the chat).
@@ -3417,7 +3449,7 @@ class TelegramApprovalBot:
         if dispatch is None:
             self._answer_callback(cq["id"], answer)
         try:
-            self.layout.draw_notifications(force=True)
+            self.layout.redraw()
         except Exception as e:  # noqa: BLE001 - the tap's own action still runs
             log.warning("Could not redraw the notifications panel: %s", e)
         if dispatch is not None:
@@ -3461,7 +3493,7 @@ class TelegramApprovalBot:
             toast = notes.clip(notes.plain(reason), 190) or "Not done"
         self._answer_callback(cq["id"], notes.clip(notes.plain(toast), 190))
         try:
-            self.layout.draw_notifications(force=True)
+            self.layout.redraw()
         except Exception as e:  # noqa: BLE001 - the item is recorded; the next tick draws it
             log.warning("Could not redraw the notifications panel: %s", e)
 
@@ -3521,6 +3553,30 @@ class TelegramApprovalBot:
             self._answer_callback(cq["id"], plain_text)
             return
         self.show_dashboard(text, [[DONE_BUTTON]])
+
+    def dashboard_idle_tick(self, now: float | None = None) -> bool:
+        """Back home by itself (design §6.2): after 15 minutes without a tap the dashboard returns to its home
+        screen; 30 minutes while typed input is armed or a wizard (upload, music review) is mid-step."""
+        if not config.TELEGRAM_CLEAN_CHAT:
+            return False
+        from .telegram_layout import HOME_IDLE_BUSY_SECONDS, HOME_IDLE_SECONDS
+        from .telegram_ui import NOT_REPLAYABLE
+        now = time.time() if now is None else now
+        stored = self.db.get_setting("telegram_dashboard_id")
+        if not (stored and stored.isdigit()):
+            return False
+        mid = self._current_panel(int(stored))
+        screen = self._panel_screen.get(mid)
+        if not screen or screen.partition(":")[0] == "cdash":
+            return False
+        busy = bool(self._awaiting) or screen.partition(":")[0] in NOT_REPLAYABLE
+        if now - float(getattr(self, "_dashboard_touched", now)) < (HOME_IDLE_BUSY_SECONDS if busy else HOME_IDLE_SECONDS):
+            return False
+        with self._panel_lock:
+            self._panel_screen[mid] = "cdash:"
+            self._panel_trail[mid] = ["cdash:"]
+        self.show_dashboard()
+        return True
 
     def _dispatch_in_dashboard(self, cq: dict[str, Any], callback: str, command_handler) -> None:
         """Runs an item's action as a tap on the dashboard, so its screen or result is drawn there (the item
@@ -4672,6 +4728,7 @@ class TelegramApprovalBot:
                             if cq.get("data") and not cq["data"].startswith(("jobcancel:", "jobs:")):
                                 self._panel_origin[mid] = self._panel_screen.get(mid)  # where this button was
                                 self._panel_screen[mid] = cq["data"]
+                                self._dashboard_touched = time.time()
                             if cq.get("data"):
                                 from .telegram_ui import step
                                 self._panel_trail[mid] = step(self._panel_trail.get(mid, []), cq["data"])
@@ -4742,7 +4799,7 @@ class TelegramApprovalBot:
                     from .config import ASSETS_DIR
                     dash_text, dash_buttons = dashboard_text_and_buttons(self.db, getattr(self, 'next_run_func', lambda: None)(), assets_dir=ASSETS_DIR)
                     is_media = bool(msg.get('photo') or msg.get('audio') or msg.get('video') or msg.get('document'))
-                    if self.show_navigation_panel(msg['message_id'], dash_text, dash_buttons, is_media):
+                    if self.show_navigation_panel(msg['message_id'], dash_text, dash_buttons, is_media) and not clean_chat():
                         self.db.set_setting('telegram_dashboard_id', str(self._current_panel(msg['message_id'])))
                 return
             if action == 'ccov' and target:
@@ -4989,7 +5046,15 @@ class TelegramApprovalBot:
             upload_match = re.match(r'^/photos\s+(?:upload\s+(\S.*)|(\S+)\s+upload)\s*$', text, re.IGNORECASE)
             if upload_match:
                 ref = upload_match.group(1) or upload_match.group(2)
-                panel = self.notify('Preparing image upload…', record_alert=False, group="studio")
+                target = self._typed_panel() if clean_chat() else None
+                if target:
+                    # The clean chat (design §6.2, §10.1 "Upload wizard step sent fresh -> D"): the wizard opens in
+                    # the dashboard, as the button path does; its screen is the wizard (the 30-min return home).
+                    panel = target[0]
+                    with self._panel_lock:
+                        self._panel_screen[panel] = f"upload:{ref}"
+                else:
+                    panel = self.notify('Preparing image upload…', record_alert=False, group="studio")
                 try:
                     state = wizard.begin(chat, user, ref, panel)
                     self.show_upload(state)
@@ -5238,7 +5303,13 @@ class TelegramApprovalBot:
                 repeat = time.monotonic() - self._last_opened < 5
                 if not repeat:
                     self._last_opened = time.monotonic()
-            if not repeat:
+            if not repeat and clean_chat():
+                # The recovery after a Telegram "Clear history" too: the layout is posted again in order, the
+                # old copies deleted (design §5.3, §6.7).
+                self.layout.rebuild()
+                if not self.db.get_setting("telegram_dashboard_id"):
+                    self.show_dashboard()
+            elif not repeat:
                 self.show_dashboard(fresh=True)
             if msg.get('message_id'):
                 self._delete_soon(msg['message_id'])  # after the panel exists, so the chat is never empty
@@ -5259,6 +5330,10 @@ class TelegramApprovalBot:
             from .config import ASSETS_DIR
             next_fn = getattr(self, 'next_run_func', lambda: None)
             dash_text, dash_buttons = dashboard_text_and_buttons(self.db, next_fn(), assets_dir=ASSETS_DIR)
+            if clean_chat():
+                self.layout.rebuild()
+                self.show_dashboard(dash_text, dash_buttons)
+                return
             self.show_dashboard(dash_text, dash_buttons, fresh=True)
             return
         if command == 'progress' and is_auth and self.bring_progress_down():

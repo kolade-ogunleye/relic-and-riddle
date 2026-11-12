@@ -4636,15 +4636,13 @@ def proposal_notice(bot, db, proposal: dict[str, Any]) -> None:
         text, buttons = improve.card(proposal)
         bot.notify(text, buttons=buttons, silent=True, record_alert=False, group="needs")
         return
-    ready = improve.proposals(db, "ready")
-    n = max(1, len(ready))
-    names = ", ".join(html.escape(str(p.get("title") or p.get("id"))) for p in ready[:3])
-    more = f" and {n - 3} more" if n > 3 else ""
-    bot.notify(f"🧭 <b>{n} improvement proposal{'s' if n != 1 else ''}</b>\n"
-               f"Waiting for your decision: {names or html.escape(str(proposal.get('title') or ''))}{more}.\n"
-               "Accept or decline each one in 🧭 Improvements.",
-               buttons=[[{"text": "🧭 Improvements", "callback_data": "cimprove:"}]], group="needs",
-               key="proposals", replace=True)
+    # The proposals item is a condition item (UI-01b): it follows the ledger, and resolves itself once every
+    # proposal is decided.
+    from src import notice_conditions
+    notice_conditions.sync(db)
+    kick = getattr(getattr(bot, "layout", None), "kick", None)
+    if callable(kick):
+        kick()
 
 
 POLL_BACKOFF_SECONDS, POLL_BACKOFF_MAX = 10, 120
@@ -6128,7 +6126,8 @@ def main(argv=None) -> int:
                 from src.control import record_weekly_digest
                 record_weekly_digest(coordinator.db, improve.digest_text(coordinator.db))
                 bot.show_dashboard()
-                bot.nudge("🔔 Dashboard updated: this week's digest is ready.")
+                from src import notice_conditions
+                notice_conditions.announce_digest(coordinator.db, bot)
             except Exception as e:
                 log.warning("Weekly digest failed: %s", e)
 

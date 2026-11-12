@@ -1614,9 +1614,14 @@ def dashboard_text_and_buttons(db: PipelineDatabase, next_run: Optional[str] = N
         environment += f" ({e(release)})"
     mode = run_mode_label(db)  # whether this process's runs post (QF-47)
     lines = [f"🏛️ <b><u>RELIC &amp; RIDDLE</u></b> · {environment}" + (f" · <b>{mode}</b>" if mode else ""), ""]
+    # The clean chat (UI-01b): what needs you is the pinned notifications panel's (its condition items); the
+    # dashboard keeps the state of production, so the two never repeat each other. The decided review's receipt
+    # is an info item and 📜 History.
+    clean = config.TELEGRAM_CLEAN_CHAT
     # A blank line between items: they ran together (operator, 2026-10-25).
-    lines += (["<b>Needs you</b>"] + [ln for item in needs for ln in (item, "")]) if needs else ["✅ <b>Nothing needs you right now.</b>", ""]
-    outcome = last_review_outcome(db)
+    if not clean:
+        lines += (["<b>Needs you</b>"] + [ln for item in needs for ln in (item, "")]) if needs else ["✅ <b>Nothing needs you right now.</b>", ""]
+    outcome = None if clean else last_review_outcome(db)
     if outcome:  # the decided review's receipt lives here, so the chat keeps one panel
         lines += [outcome, ""]
     # One fact a line (the 2026-10-25 overhaul): the schedule, what is being made, the queue, the next slot.
@@ -1640,15 +1645,15 @@ def dashboard_text_and_buttons(db: PipelineDatabase, next_run: Optional[str] = N
     stale = dashboard_line()  # only while a backup or drill is overdue (QF-72); /status always has the line
     if stale:
         lines.append(stale)
-    digest = weekly_digest(db)
+    digest = None if clean else weekly_digest(db)   # the clean chat: an info item with Open digest
     if digest:
         lines.append(f"📰 This week's digest is ready ({e(digest['label'])})")
 
     waiting_reviews = len(pending) + len(timed_out)  # timed-out reviews are decisions waiting too
     row1 = []  # what waits for a decision; Reviews itself is counted on its own button below
-    if waiting_proposals:
+    if waiting_proposals and not clean:
         row1.append({"text": f"🧭 Proposals ({len(waiting_proposals)})", "callback_data": "cimprove:"})
-    candidates = post_candidates(db, limit=1) if not active else []
+    candidates = post_candidates(db, limit=1) if not (active or clean) else []
     if candidates:  # a finished dry run can be posted for real from here (asked to confirm first)
         # The run is named with what needs you, not squeezed into the button (operator, 2026-10-24).
         candidate_line = f"🚀 <b>Post candidate</b>\n  • {e(db.run_label(candidates[0]['run_id']))}"
@@ -1659,7 +1664,7 @@ def dashboard_text_and_buttons(db: PipelineDatabase, next_run: Optional[str] = N
         else:
             lines[needs_index:needs_index] = [candidate_line, ""]
         row1.append({"text": "🚀 Post for real", "callback_data": f"postreal:{db.run_key(candidates[0]['run_id'])}"})
-    if late:
+    if late and not clean:   # the clean chat: the late failure's item carries Re-render
         # A run that failed after its video was made (the release gate, say) is made again in place. Not only
         # the latest run: a cancelled scheduled run hid the button for the run that mattered (2026-10-24).
         verb = "Make again" if late.get("status") in ("rejected", "regenerate") else "Re-render"  # rejected: regenerated with the reason given

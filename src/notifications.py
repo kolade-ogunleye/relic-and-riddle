@@ -625,7 +625,7 @@ def find_action(item: dict[str, Any], ref: str) -> dict[str, str] | None:
     return next((a for a in item.get("actions") or [] if action_ref(a) == ref), None)
 
 
-PANEL_OPENERS: set = set()   # actions that open a panel of their own (they keep their emoji, as a screen's button)
+PANEL_OPENERS = {"rvshow"}   # actions that open a panel of their own (they keep their emoji, as a screen's button)
 
 
 def opens_a_screen(callback: str) -> bool:

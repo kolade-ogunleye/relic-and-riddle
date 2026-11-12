@@ -53,9 +53,24 @@ def current(db) -> list[dict[str, Any]]:
                     "title": "Review waiting" if len(pending) == 1 else "Reviews waiting",
                     "subject": str(len(pending)) if len(pending) > 1 else db.run_label(first["run_id"]),
                     "body": body, "count": len(pending), "alert": f"Review waiting · {newest}",
-                    "actions": [{"text": "🎬 Reviews", "callback_data": "creviews:"}]})
+                    "actions": [_reviews_action(db)]})
     timed_out = db.timed_out_reviews() if hasattr(db, "timed_out_reviews") else []
-    if timed_out:
+    if _panel(db) and timed_out:
+        # One item per run (UI-01e): a review that timed out in the clean chat is its run's own item (fail:<run>,
+        # written by the wait's timeout), so the condition names only the others (timed out before it).
+        with db._conn() as conn:
+            own = {r[0].partition(":")[2] for r in conn.execute(
+                "SELECT dedupe_key FROM notifications WHERE state = 'open' AND dedupe_key LIKE 'fail:%'")}
+        timed_out = [r for r in timed_out if r["run_id"] not in own]
+    if timed_out and len(timed_out) == 1 and _panel(db):
+        # The clean chat's review panel (UI-01e, mock-up 3): the one review that timed out, with Resend for review
+        run_id = timed_out[0]["run_id"]
+        out.append({"key": PREFIX + "timed-out", "section": notes.NEEDS, "emoji": "⏰", "title": "Review timed out",
+                    "subject": db.run_label(run_id), "run": run_id, "count": 1,
+                    "body": "No decision came within the review window, so nothing was posted. The render is kept: "
+                            "resend it for review, or reject it later from 🎬 Reviews.",
+                    "actions": [{"text": "Resend for review", "callback_data": f"resend:{db.run_key(run_id)}"}]})
+    elif timed_out:
         out.append({"key": PREFIX + "timed-out", "section": notes.NEEDS, "emoji": "⏰",
                     "title": "Review timed out" if len(timed_out) == 1 else f"{len(timed_out)} reviews timed out",
                     "subject": db.run_label(timed_out[0]["run_id"]) if len(timed_out) == 1 else "",
@@ -126,6 +141,21 @@ def current(db) -> list[dict[str, Any]]:
     return out
 
 
+def _panel(db) -> bool:
+    """Whether the clean chat's review panel is in use (UI-01e): the switch is on."""
+    from . import config
+    return bool(getattr(config, "TELEGRAM_CLEAN_CHAT", False))
+
+
+def _reviews_action(db) -> dict[str, str]:
+    """🎬 Show reviews turns the review panel to the soonest-closing review when the panel is in the chat
+    (design §10.1); otherwise 🎬 Reviews opens the list in the dashboard."""
+    from .telegram_layout import slot_message
+    if _panel(db) and slot_message(db, "review"):
+        return {"text": "🎬 Show reviews", "callback_data": "rvshow:"}
+    return {"text": "🎬 Reviews", "callback_data": "creviews:"}
+
+
 def proposals_item(ready: list[dict[str, Any]]) -> dict[str, Any]:
     """The night's ready proposals as one item (design §6.1.3: three proposal cards were the 29 Oct complaint)."""
     n = len(ready)
@@ -175,7 +205,7 @@ def sync(db, now: float | None = None) -> dict[str, int]:
             "SELECT dedupe_key FROM notifications WHERE state = 'open' AND dedupe_key LIKE 'fail:%'")]
     for key in fails:
         run = db.get_run(key.partition(":")[2]) if key.partition(":")[2] else None
-        if run and run.get("status") not in STOPPED:
+        if run and run.get("status") not in STOPPED + ("timeout",):   # a timed-out review waits for Resend
             counts["resolved"] += notes.close_key(db, key, notes.RESOLVED)
     return counts
 

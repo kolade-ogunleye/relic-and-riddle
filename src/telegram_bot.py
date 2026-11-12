@@ -65,6 +65,8 @@ _PANEL = ContextVar("telegram_navigation_panel", default=None)
 # recorded, so the item closes only when the action was done and the tap gets one toast saying what happened.
 _ITEM_ACTION = ContextVar("notifications_item_action", default=None)
 # Toasts that only say a tap arrived: an item action's own toast says what was done instead.
+# Item actions whose handler closes the item itself when it is done (the review panel's Undo approval).
+CLOSE_THEIR_ITEM = {"rvua"}
 # Item actions whose handler says whether it was done (notifications.Outcome); a reply that does not say is not done.
 SAY_THEIR_OUTCOME = {"upd", "rerender", "carredraw"}
 PLAIN_TOASTS = {"", "Working", "Request checked", "Request received", "Updated", "Working; you can keep using the bot"}
@@ -193,6 +195,12 @@ def v2_card_decision(db: Any, run_id: str, approval: dict[str, Any]) -> bool:
     """The decision was tapped on the run's delivered V2 review pair (its video message), so its Undo applies."""
     if not str(approval.get("decided_by") or "").startswith("telegram:") or not hasattr(db, "get_telegram_card"):
         return False
+    if clean_chat():
+        # The clean chat's review panel (UI-01e) decides with the same Undo window: its Undo is the decided item's.
+        from .review_panel import STATE
+        from .telegram_state import get
+        if get(db, STATE, run_id) and get(db, "review-card", f"{run_id}:{approval.get('telegram_message_id')}"):
+            return True
     card = db.get_telegram_card(f"review:{run_id}") or {}
     return (card.get("card_kind") == "review_pair"
             and (card.get("payload") or {}).get("video_mid") == approval.get("telegram_message_id"))
@@ -2229,7 +2237,9 @@ class TelegramApprovalBot:
             log.warning("Telegram not configured. Review with: python main.py review approve|reject %s", run_id)
             return None
         earlier_card = (get_state_early(self.db, "review-messages", run_id) or [None])[-1]
-        if previous and previous.get("telegram_message_id"):
+        if clean_chat():
+            pass   # the review panel is shared by every review waiting: its keyboard is redrawn, never stripped
+        elif previous and previous.get("telegram_message_id"):
             self._strip_buttons(previous["telegram_message_id"])  # a resend leaves one live card
         elif isinstance(earlier_card, int):
             # An edit or a cover lock clears the approval's card id first, so the card the chat still showed
@@ -2251,6 +2261,21 @@ class TelegramApprovalBot:
             except Exception as e:  # never lose the card over it: the saved verdict stands
                 log.warning("Could not re-check the release gate for the review card: %s", e)
         from .telegram_state import review_fingerprint, put, get as get_state
+        if clean_chat():
+            # One paged review panel (UI-01e): the review joins it; no album, card or "In full" reply is sent.
+            try:
+                return self.review.deliver(run_id, Path(video_path), Path(thumbnail_path), script_payload, release)
+            except Exception as e:  # noqa: BLE001 - the review stays pending; Resend delivers it again
+                log.warning("Could not deliver the review of %s to the panel: %s", run_id, _MASKER.mask(str(e)))
+                # A sender's item (UI-01a): through notifications.say with its §10.2 action; delivery closes it.
+                from . import notifications as notes
+                notes.say(self.notify, f"⚠️ <b>Review not delivered</b> · {html.escape(self.db.run_label(run_id))}\n\n"
+                          "Approval is unavailable until it is delivered. Resend it once the cause is fixed.\n"
+                          + html.escape(plain_reason(e, 300)),
+                          group="needs", key=f"undelivered:{run_id}", run=run_id, replace=True,
+                          subject=self.db.run_label(run_id),
+                          actions=[{"text": "Resend for review", "callback_data": f"resend:{self.db.run_key(run_id)}"}])
+                return None
         if config.TELEGRAM_CARDS_V2:
             # Only when every value it shows comes from the run; otherwise the live card, and why (UI-02)
             try:
@@ -2478,6 +2503,13 @@ class TelegramApprovalBot:
     def close_undo(self, run_id: str) -> bool:
         """The V2 review video loses its Undo button: called when the worker claims the decision (its Undo window
         has ended), so no Undo stays tappable once it can no longer work. Best effort; never raises."""
+        if clean_chat():
+            try:   # the clean chat: the decided item's Undo (UI-01e), kept for a booked Approve until near its slot
+                self.review.claimed(run_id)
+                return True
+            except Exception as e:  # noqa: BLE001 - a stale Undo is answered "too late"; acting goes on
+                log.info("Could not update the Undo of %s: %s", run_id, e)
+                return False
         try:
             card = self.db.get_telegram_card(f"review:{run_id}") if hasattr(self.db, "get_telegram_card") else None
             video = ((card or {}).get("payload") or {}).get("video_mid")
@@ -2684,6 +2716,10 @@ class TelegramApprovalBot:
         run = self.db.get_run(run_id) or {}
         approval = self.db.get_approval(run_id) or {}
         if run.get("status") != "pending_approval" or approval.get("decision") != "pending":
+            return False
+        if clean_chat():
+            # The review panel (UI-01e): False, so the caller delivers it again, which redraws the panel in place
+            # with the locked cover (uploaded once) and binds the copy; nothing new is sent to the chat.
             return False
         messages = [m for m in (get(self.db, "review-messages", run_id) or []) if isinstance(m, int)]
         cover_id = get(self.db, "review-cover", run_id)
@@ -2956,6 +2992,15 @@ class TelegramApprovalBot:
         from .telegram_state import decode
         from .publication_lock import publication_lock
         action, _, target = decode(self.db, cq.get("data", "")).partition(":")
+        from .review_panel import REVIEW_ACTIONS
+        if clean_chat() and action in REVIEW_ACTIONS:
+            msg = cq.get("message") or {}
+            if not self._authorized(str(cq.get("from", {}).get("id", "")), msg.get("chat", {}).get("id", "")):
+                self._answer_callback(cq["id"], "Not authorized.")
+                return None
+            decided = self.review.tap({**cq, "data": decode(self.db, cq.get("data", ""))})
+            ref = target.partition(":")[0]
+            return decided if decided and (run_id is None or self.db.resolve_run(ref) == run_id) else None
         run_target = target.partition(":")[0] if action == "rejres" else target
         resolved = self.db.resolve_run(run_target)
         try:
@@ -3207,6 +3252,14 @@ class TelegramApprovalBot:
         mid = (appr or {}).get("telegram_message_id")
         if not self.is_configured():
             return False
+        if clean_chat():
+            # The decided review left the panel already (UI-01e); its item says what happened: a booking adds the
+            # slot to "✅ Approved", a publication is the receipt's "📮 Posted" (the same item, in place).
+            from .card_ledger import record as record_card
+            record_card(run_id, "receipt", outcome)
+            if outcome.startswith("🗓"):
+                self.review.booked(run_id)
+            return True
         from .control import LAST_REVIEW_KEY
         from .telegram_state import get, put
         receipt = (f"<b>{html.escape(self.db.run_label(run_id))}</b>: {outcome}\n"
@@ -3267,6 +3320,8 @@ class TelegramApprovalBot:
         mid = (self.db.get_approval(run_id) or {}).get("telegram_message_id")
         if not self.is_configured() or not isinstance(mid, int):
             return False
+        if clean_chat():
+            return False   # the review panel is not this run's card any more (UI-01e)
         reason = fb.get("reason")
         said = (f"✅ Reason: <b>{html.escape(REASONS.get(reason, reason))}</b>"
                 + (f": <i>{html.escape(clip_words(str(fb['text']), 200))}</i>" if fb.get("text") else "") + "."
@@ -3393,6 +3448,14 @@ class TelegramApprovalBot:
         return True
 
     @property
+    def review(self):
+        """The clean chat's one review panel (review_panel.ReviewPanel), made on first use."""
+        if getattr(self, "_review", None) is None:
+            from .review_panel import ReviewPanel
+            self._review = ReviewPanel(self)
+        return self._review
+
+    @property
     def layout(self):
         """The clean chat's renderer for this bot (telegram_layout.Layout), made on first use."""
         if getattr(self, "_layout", None) is None:
@@ -3491,7 +3554,7 @@ class TelegramApprovalBot:
         done = acting["done"]
         if done is None:
             done = error is None and self._item_action_done(kind, target)
-        reason = acting["reason"] or acting["said"] or (
+        reason = acting["reason"] or acting["said"] or next((t for t in acting["toasts"] if t not in PLAIN_TOASTS), "") or (
             f"it failed ({type(error).__name__}). Try again, or open Details." if error is not None else "")
         now = notes.get(self.db, item["id"]) or item
         if now.get("state") != notes.OPEN:   # the action took care of its item itself
@@ -3523,6 +3586,8 @@ class TelegramApprovalBot:
     def _item_action_done(self, kind: str, target: str) -> bool:
         """Whether an item's action did what its item asks, read from the recorded state where there is one (a
         topic back in the queue, a booking posted); any other action that ran without an error is done."""
+        if kind in CLOSE_THEIR_ITEM:   # done means its item was closed by it (handled above)
+            return False
         if kind in SAY_THEIR_OUTCOME:   # done only when its handler says so (notifications.Outcome)
             return False
         try:
@@ -4491,6 +4556,8 @@ class TelegramApprovalBot:
         """Strips inline action buttons from a run's review card in Telegram."""
         if not self.is_configured():
             return False
+        if clean_chat():
+            return self.review.refresh()   # the review leaves the pager; the panel goes with the last one (UI-01e)
         appr = self.db.get_approval(run_id) if hasattr(self.db, "get_approval") else None
         if not appr or not appr.get("telegram_message_id"):
             return False
@@ -4507,6 +4574,20 @@ class TelegramApprovalBot:
     def timeout_notice(self, run_id: str) -> None:
         """Says a review closed without a decision, with Resend: from the wait, and from the stale sweep (which
         closed reviews silently: their buttons just went, 2026-10-25)."""
+        if clean_chat():
+            # The run's own Needs-you item (UI-01e, design §6.5, mock-up 3), said through notifications.say under the
+            # run's failure key fail:<run> (UI-01a's §10.2 rule: one item per run, replacing an earlier one), with
+            # Resend for review · Details; it resolves itself once resent (notice_conditions.sync).
+            from . import notifications as notes
+            key = self.db.run_key(run_id)
+            notes.say(self.notify, f"⏰ <b>Review timed out</b> · {html.escape(self.db.run_label(run_id))}\n\n"
+                      "No decision came within the review window, so nothing was posted. The render is kept: "
+                      "resend it for review, or reject it later from 🎬 Reviews.",
+                      group="needs", key=f"fail:{run_id}", run=run_id, replace=True,
+                      subject=self.db.run_label(run_id),
+                      actions=[{"text": "Resend for review", "callback_data": f"resend:{key}"},
+                               {"text": "Details", "callback_data": f"chist:{key}"}])
+            return
         notice = self.notify(f"⌛ No decision on {html.escape(self.db.run_label(run_id))}; nothing was posted. "
                              "The render is kept: resend it here, or later from Reviews on the dashboard.",
                              buttons=[{"text": "📨 Resend for review", "callback_data": f"resend:{self.db.run_key(run_id)}"}],
@@ -4872,6 +4953,7 @@ class TelegramApprovalBot:
         # Updates that arrived while the bot was down are processed, not skipped: an Approve tap
         # during a restart must not be lost (decisions are first-wins, so a replay is harmless).
         # Only commands older than STALE_COMMAND_SECONDS are dropped, so a day-old /run doesn't fire.
+        from .review_panel import REVIEW_ACTIONS
         from .telegram_layout import NOTE_ACTIONS, PROGRESS_ACTIONS
         clean = config.TELEGRAM_CLEAN_CHAT and self.is_configured()
         if clean:
@@ -4924,6 +5006,13 @@ class TelegramApprovalBot:
                     else:
                         self._answer_callback(cq["id"], "Not authorized.")
                     continue
+                if clean and cq and action in REVIEW_ACTIONS:
+                    message = cq.get("message") or {}
+                    if self._authorized(cq.get("from", {}).get("id"), message.get("chat", {}).get("id")):
+                        self._queue_navigation(lambda tap=cq: self.review.tap(tap, command_handler))
+                    else:
+                        self._answer_callback(cq["id"], "Not authorized.")
+                    continue
                 if clean and cq and action in NOTE_ACTIONS:
                     message = cq.get("message") or {}
                     if self._authorized(cq.get("from", {}).get("id"), message.get("chat", {}).get("id")):
@@ -4973,6 +5062,10 @@ class TelegramApprovalBot:
                 log.debug('Could not record callback audit: %s', ea)
             if not ok:
                 self._answer_callback(cq['id'], 'Not authorized.')
+                return
+            from .review_panel import REVIEW_ACTIONS
+            if action in REVIEW_ACTIONS and clean_chat():
+                self.review.tap(cq, command_handler)
                 return
             if action == 'cprog' and self.bring_progress_down():
                 self._answer_callback(cq['id'], 'Progress card moved to the bottom')
@@ -5070,6 +5163,12 @@ class TelegramApprovalBot:
                 msg = cq.get('message') or {}
                 msg_id = msg.get('message_id')
                 is_media = bool(msg.get('photo') or msg.get('audio') or msg.get('video') or msg.get('document'))
+                if clean_chat() and msg_id and action in PANEL_ACTIONS and msg_id == self.review.message():
+                    # A screen asked for from the review panel (UI-01e: 🖼 Preview carousel, QF-81; 🎨 Covers) is
+                    # drawn in the dashboard: the review panel's video and caption are never drawn over.
+                    opened = self._typed_panel()
+                    if opened:
+                        msg_id, is_media = opened[0], opened[1]
                 if action in {'jobs', 'jobcancel'}:
                     note = ''
                     cancelled = cq.get('_cancelled') if action == 'jobs' else (self.jobs.cancel(target) if action == 'jobcancel' else None)
@@ -5227,6 +5326,16 @@ class TelegramApprovalBot:
                         self.notify(f'⚠️ {html.escape(what)} did not work: {html.escape(str(e)[:300])}', group="studio")
             return
         msg = update.get('message') or {}
+        typed = (msg.get('text') or '').strip()
+        if (clean_chat() and typed and not typed.startswith('/') and self.review.armed()
+                and self._authorized(msg.get('from', {}).get('id', ''), msg.get('chat', {}).get('id', ''))
+                and (msg.get('reply_to_message') or {}).get('message_id') in (None, self.review.message())):
+            # The review panel asked for words (UI-01e, design §6.6): the next plain text, or a reply to the panel,
+            # answers it; the message leaves once read and the panel shows the answer.
+            self._delete_soon(msg.get('message_id'))
+            if command_handler is not None:
+                self.review.typed(typed, command_handler)
+            return
         if self._authorized(msg.get('from', {}).get('id', ''), msg.get('chat', {}).get('id', '')):
             chat, user = (msg['chat']['id'], msg['from']['id'])
             wizard = self.image_wizard()
@@ -5293,6 +5402,12 @@ class TelegramApprovalBot:
         photo_item = (msg.get('photo') or [None])[-1] or msg.get('document')
         photo_caption = (msg.get('caption') or '').strip()
         issue_waiting = bool(self._awaiting and self._awaiting[0] == 'issue' and self._awaiting[1] > time.time())
+        if (photo_item and clean_chat() and self.review.armed() and not photo_caption.startswith('/')
+                and self._authorized(msg.get('from', {}).get('id', ''), msg.get('chat', {}).get('id', ''))):
+            # The review panel asked for text (UI-01e, design §6.6): the photo leaves and the panel says so.
+            self._delete_soon(msg.get('message_id'))
+            self.review.typed_photo()
+            return
         if photo_item and command_handler and not issue_waiting and self._authorized(msg.get('from', {}).get('id', ''), msg.get('chat', {}).get('id', '')):
             caption = photo_caption
             word = caption.split(' ', 1)[0].split('@')[0].lower()
@@ -5435,6 +5550,8 @@ class TelegramApprovalBot:
             command = command.split('@')[0].lower()
             if command in {'ask', 'issue'} and not args.strip() and is_auth:
                 # Help can only send the bare command: the next message is the question or report.
+                if clean_chat() and self.review.armed():
+                    self.review.cancelled_by(command)   # one input at a time: the review panel says so
                 with self._panel_lock:
                     self._awaiting = (command, time.time() + 600)
             if command == 'issue' and args.strip() and reply_to:
@@ -5620,6 +5737,9 @@ class TelegramApprovalBot:
             return
         else:
             media = any(msg.get(k) for k in ('photo', 'document', 'video', 'audio', 'voice', 'sticker', 'animation'))
+            if media and self.review.armed():
+                self.review.typed_photo()   # the review panel asked for text: it says so (design §6.6)
+                return
             waiting = self._awaiting
             armed = waiting and waiting[1] > time.time()
             text = (self.PHOTO_FOR_TEXT if media and armed and msg.get('photo') else self.MEDIA_FOR_TEXT if media and armed
@@ -5717,6 +5837,9 @@ class TelegramApprovalBot:
         try:
             while time.monotonic() < deadline:
                 self.cleanup_transient_messages()
+                if not reminded and time.monotonic() - started >= reminder_after and clean_chat():
+                    reminded = True   # the clean chat (UI-01e): the reviews item rings once more, no message
+                    self.review.remind(run_id, time.time() + deadline - time.monotonic())
                 if not reminded and time.monotonic() - started >= reminder_after:
                     reminded = True
                     closes = show_time(time.time() + deadline - time.monotonic(), "%H:%M %Z")

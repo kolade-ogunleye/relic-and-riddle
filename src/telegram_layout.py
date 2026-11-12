@@ -24,6 +24,9 @@ Lock order (one order, so the dashboard and the layout can never wait on each ot
   before it takes its lock.
 - A rebuild holds _rebuild_lock for the whole send-in-order (the panel, then the dashboard under it), and
   Layout._lock only while it writes the panel itself.
+- The review panel's own lock (review_panel.ReviewPanel._lock, UI-01e) comes after all three: the tick takes it
+  under Layout._lock; code holding it never takes another of these locks (kick, redraw, show_dashboard and command
+  handlers are deferred until it is released).
 """
 from __future__ import annotations
 
@@ -211,6 +214,10 @@ class Layout:
             if now - self._reaped >= REAP_SECONDS and hasattr(self.bot, "reap_progress_panels"):
                 self._reaped = now
                 self.bot.reap_progress_panels()   # UI-01c: a run that ended without its finisher
+                if getattr(self.bot, "_review", None) is not None or slot_message(self.db, "review"):
+                    self.bot.review.tick(now)     # UI-01e: the reason step, the note, an input, Undo windows
+            if hasattr(self.bot, "review") and self.db.get_setting("review-panel-redraw"):
+                self.bot.review.redraw_if_asked()   # UI-01e: a review another process delivered
             self.draw_notifications(now, force=force)
             self.push(now)
             self.delete_due_alerts(now)
@@ -451,8 +458,10 @@ def alert_text(waiting: list[dict[str, Any]], needs: int) -> str:
     newest = max(waiting, key=lambda i: (float(i["updated_at"]), i["id"]))
     if len(waiting) == 1:
         line = newest.get("alert") or newest["title"] + (f" · {newest['subject']}" if newest.get("subject") else "")
+        if line.startswith("⏰ "):   # the review reminder: "⏰ Review closes 16:40 · <title>" (design §9)
+            return notes.clip(line, ALERT_LIMIT)
         return "🔔 " + notes.clip(line, ALERT_LIMIT - 2)
     count = max(needs, len(waiting))
     lead = f"🔔 {count} {'needs' if count == 1 else 'need'} you · newest: "
-    newest_name = (newest.get("alert") or newest["title"]).partition(" · ")[0]
+    newest_name = (newest.get("alert") or newest["title"]).removeprefix("⏰ ").partition(" · ")[0]
     return lead + notes.clip(newest_name, max(8, ALERT_LIMIT - len(lead)))

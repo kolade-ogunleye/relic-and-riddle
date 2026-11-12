@@ -349,6 +349,19 @@ STAGE_BUDGET_FILE = BASE_DIR / "data" / "stage_budget.json"
 RELIC_ENVIRONMENT = (os.getenv("RELIC_ENVIRONMENT") or "development").strip().lower()
 TELEGRAM_CARDS_V2 = os.getenv("TELEGRAM_CARDS_V2", "false").lower() in ("true", "1", "yes")
 RELIC_STRICT_TOPICS = os.getenv("RELIC_STRICT_TOPICS", "false").lower() in ("true", "1", "yes")
+# How long a decision taken on a V2 review card can be undone: the worker acts on it only once this has passed, so the
+# card's Undo works for the whole window (UI-02). A booked slot loses nothing; a post-now posts this much later.
+# At most 20 minutes, the approval window's margin before the Reel slot (main._approval_window): the longer the Undo,
+# the further past its slot a last-minute approval is acted on (UI-02 review 3). Higher values are read as 20.
+REVIEW_UNDO_MINUTES_MAX = 20.0
+
+
+def review_undo_minutes(raw: str) -> float:
+    """REVIEW_UNDO_MINUTES as set, held between 0 (no Undo) and REVIEW_UNDO_MINUTES_MAX."""
+    return min(REVIEW_UNDO_MINUTES_MAX, max(0.0, float(raw)))
+
+
+REVIEW_UNDO_MINUTES = review_undo_minutes(os.getenv("REVIEW_UNDO_MINUTES", "10"))
 
 TELEGRAM_TOPICS = {
     "studio": int(os.getenv("TELEGRAM_TOPIC_STUDIO", "4906")),

@@ -38,7 +38,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from src.config import ASSETS_DIR, CURATED_SCRIPTS_DIR, DAILY_RUN_TIME, OUTPUT_DIR, POST_SCHEDULING, TIMEZONE
 from src.credits import caption_credit_line, generate_provenance_ledger, load_credits
-from src.db import PipelineDatabase, QueueEmpty
+from src.db import REVIEW_CLAIM_PREFIX, UNDONE_BY, UNDOABLE, PipelineDatabase, QueueEmpty
 from src.control import clip_words, heartbeat_text, is_paused, make_command_handler, ping_healthcheck, record_run_mode
 from src import beat_images, callouts, colour_balance, config, encoding, footage, graphics, motion, post_schedule, privacy, then_now, worker_deadline
 from src.llm import claude_available as llm_available
@@ -1376,11 +1376,15 @@ class PipelineCoordinator:
             if not mine:
                 log.info("A wait on %s's review is already running; it acts on the decision, not this one.", run_id)
                 return None, None
-            if decided:
-                decision = decided
-            else:
-                self.telegram_bot.approval_window = self._approval_window   # a resend's window is sized again from it
-                decision = self.telegram_bot.wait_for_decision(run_id, self._approval_window())
+            while True:
+                if decided:
+                    decision = decided
+                else:
+                    self.telegram_bot.approval_window = self._approval_window   # a resend's window is sized again from it
+                    decision = self.telegram_bot.wait_for_decision(run_id, self._approval_window())
+                if decided or decision not in UNDOABLE or not undone_before_acting(
+                        self.db, run_id, decision, getattr(self, "telegram_bot", None)):
+                    break
             if decision != "approved":
                 return decision, act(decision)
             stamp = str((self.db.get_approval(run_id) or {}).get("decision_timestamp") or "")
@@ -3648,6 +3652,9 @@ class PipelineCoordinator:
 
     def _after_approval(self, run_id: str, dry_run: bool = False, previous_status: str = "queued") -> Dict[str, Any]:
         dry_run = dry_run or self.db.get_setting("run_mode:" + run_id) == "dry_run"
+        # The slot is picked from the decision's time, fixed before the backup: the Undo wait and the copy of the run
+        # folder never push a last-moment approval past its slot (review 2 of UI-02)
+        picked_from = slot_clock(self.db, run_id)
         if getattr(config, "BACKUP_ENABLED", True):
             try:
                 from src.backup import backup_run
@@ -3657,7 +3664,7 @@ class PipelineCoordinator:
             except Exception as e:
                 log.warning("Tier 2 Gold Backup skipped: %s", e)
         if self._approve_posting(run_id, dry_run) == "slot":
-            return self.schedule_run(run_id)
+            return self.schedule_run(run_id, now=picked_from)
         return self.publish_run(run_id, dry_run=dry_run, previous_status=previous_status)
 
     def _approve_posting(self, run_id: str, dry_run: bool = False) -> str:
@@ -4162,23 +4169,27 @@ class PipelineCoordinator:
             raise
         status = pub["status"]
         receipt = None
-        if config.TELEGRAM_CARDS_V2 and hasattr(self, "telegram_bot") and hasattr(self.telegram_bot, "create_publish_receipt"):
-            receipt = self.telegram_bot.create_publish_receipt(run_id, payload.get("title", tid))
+        shorts = config.YOUTUBE_SHORTS and profile == "reel_9x16"
+        if (status == "published" and config.TELEGRAM_CARDS_V2 and hasattr(self, "telegram_bot")
+                and hasattr(self.telegram_bot, "create_publish_receipt")):
+            # Made once the Reel's outcome is known, from what was attempted: each platform live or failed as it
+            # came out, the Short listed only when it will be attempted (it showed every platform "live", and
+            # "Reel & Short" with Shorts off or failed: UI-02). A Reel that failed outright has the alert below.
+            receipt = self.telegram_bot.create_publish_receipt(
+                run_id, payload.get("title", tid), platforms=_receipt_platforms(envelope["platforms"], shorts),
+                initial=_receipt_outcomes(pub, envelope["platforms"]))
 
         if status == "published":
             self.db.update_run(run_id, "published")
             self.topic_engine.record_status(tid, "published", run_id=run_id)
             log.info("Published %s.", run_id)
-            urls = pub.get("post_urls") or pub.get("post_ids") or {}
-            if receipt:
-                receipt.update_platform("instagram", "live", url=urls.get("instagram"))
-                receipt.update_platform("facebook", "live", url=urls.get("facebook"))
-            else:
-                links = "\n".join(f"{html.escape(k)}: {html.escape(str(v))}" for k, v in urls.items())
-                missing = pub.get("missing_platforms")
-                warn = (f"\n⚠️ Not posted to {html.escape(', '.join(missing))}: {html.escape(str(pub.get('error', ''))[:300])}"
-                        if missing else "")
-                self._alert(f"✅ <b>Published</b>\n\n<b>{html.escape(payload.get('title', tid))}</b>\n\n{links}{warn}")
+            if not receipt:
+                urls, missed = pub.get("post_urls") or {}, _missing_reasons(pub)
+                links = "\n".join(f"✅ {html.escape(_PLATFORM_NAMES.get(p, p))}: {html.escape(str(urls.get(p) or 'posted'))}"
+                                  for p in envelope["platforms"] if p not in missed)
+                failed = "".join(f"\n{_failed_line(p, why)}" for p, why in missed.items())
+                head = "⚠️ <b>Posted with problems</b>" if failed else "✅ <b>Published</b>"
+                self._alert(f"{head}\n\n<b>{html.escape(payload.get('title', tid))}</b>\n\n{links}{failed}")
         elif status == "simulated":
             self.db.update_run(run_id, "simulated")
             self.topic_engine.record_status(tid, previous_status, run_id=run_id)
@@ -4224,7 +4235,7 @@ class PipelineCoordinator:
                         group="needs")
         if profile == "reel_9x16" and status == "published" and not dry_run:
             self._facebook_finishing(run_id)  # its cover and captions on Facebook, as soon as it is up
-        if config.YOUTUBE_SHORTS and profile == "reel_9x16" and status in ("published", "simulated"):
+        if shorts and status in ("published", "simulated"):
             pub["youtube_short"] = short = self._timed_upload(
                 run, lambda: self.publisher.publish_short(envelope, dry_run=dry_run))
             if short["status"] == "published":
@@ -4235,16 +4246,22 @@ class PipelineCoordinator:
                     links = "\n".join(html.escape(str(v)) for v in short.get("post_urls", {}).values())
                     self._alert(f"▶️ <b>YouTube Short posted</b> ({html.escape(config.YOUTUBE_SHORTS_PRIVACY)})\n"
                                 f"<b>{html.escape(payload.get('title', tid))}</b>\n{links}")
+            elif short["status"] == "skipped" and receipt:   # no uploader set up: not attempted, said in plain words
+                receipt.update_platform("youtube", "skipped", error="no account that can upload Shorts is set up")
             elif short["status"] in ("failed", "unknown"):
                 if receipt:
-                    receipt.update_platform("youtube", "failed", error=str(short.get("error", "")))
+                    receipt.update_platform("youtube", short["status"], error=str(short.get("error", "")))
                 else:
                     # The Reel stands either way; an unknown Short is checked by hand, never re-sent blindly.
                     self._alert(f"⚠️ <b>YouTube Short {'unconfirmed' if short['status'] == 'unknown' else 'not posted'}</b>\n"
                                 f"<b>{html.escape(payload.get('title', tid))}</b>: the Reel is unaffected.\n"
                                 f"{html.escape(str(short.get('error', ''))[:300])}")
         if receipt and status == "published":
-            receipt.finalize(stories_delay_minutes=config.STORY_DELAY_MINUTES, carousel_slot="next slot")
+            # Its Stories and carousel as booked, never a fixed promise (it said "in 45 minutes" and "its next
+            # slot" whether or not any was booked: UI-02); Posting has their times.
+            booked = {p["kind"] for p in self.db.list_scheduled_posts(("pending", "waiting"), run_id=run_id)}
+            follow = [name for kind, name in (("story", "Stories"), ("carousel", "carousel")) if kind in booked]
+            receipt.finalize(follow_up=f"◽ Its {' and '.join(follow)} follow as booked (see Posting)." if follow else "")
         if dry_run and profile == "reel_9x16" and status == "simulated":
             # A live approval books the Stories and the carousel for their slots; a dry run skipped them
             # entirely, so it never tested them. They are simulated here, each request as it would be sent.
@@ -4278,7 +4295,14 @@ class PipelineCoordinator:
                 urls = dict(pub.get("post_urls") or {})
                 for url in ((pub.get("youtube_short") or {}).get("post_urls") or {}).values():
                     urls["youtube short"] = url
-                text = "✅ <b>Approved · posted</b>" + "".join(f"\n• {html.escape(k)}: {html.escape(str(v))}" for k, v in urls.items())
+                problems = dict(_missing_reasons(pub))
+                short = pub.get("youtube_short") or {}
+                if short.get("status") in ("failed", "unknown"):
+                    problems["youtube short"] = ("not confirmed: " if short["status"] == "unknown" else "") + str(short.get("error") or "")
+                # The outcome as it is: a platform that failed is named, never folded into "posted" (UI-02)
+                text = (("⚠️ <b>Approved · posted with problems</b>" if problems else "✅ <b>Approved · posted</b>")
+                        + "".join(f"\n✅ {html.escape(_PLATFORM_NAMES.get(k, k))}: {html.escape(str(v))}" for k, v in urls.items())
+                        + "".join(f"\n{_failed_line(k, why)}" for k, why in problems.items()))
             elif status == "unknown":
                 text = ("⚠️ <b>Approved · publish unconfirmed</b>: check the accounts, then answer the "
                         "PUBLISH UNCONFIRMED alert (It posted / It didn't post).")  # it sits above the panel
@@ -4301,6 +4325,108 @@ def with_earlier_rejections(notes: str, earlier: List[str]) -> str:
     return (notes + "\n\nRejected in earlier drafts of this script. Do not restate these claims or their idea in "
             "any wording, anywhere: title, caption, first comment, narration, on-screen text, slides or graphics. "
             "If the topic's framing depends on one, frame it with facts the research notes do support:\n" + history)
+
+
+_undo_clock = time.time    # the Undo window's clock and wait (tests replace them)
+_undo_sleep = time.sleep
+UNDO_POLL_SECONDS = 2.0
+
+
+def undone_before_acting(db, run_id: str, decision: str, bot=None) -> bool:
+    """Claims the review's decision before acting on it (REVIEW_CLAIM_PREFIX: its decision time), then reads
+    it again: True when the card's Undo reopened it first, so the wait goes on. The undo
+    (db.undo_review_decision) refuses once the claim holds the decision's time; both are single writes, so
+    exactly one of them wins (a V2 Undo reopened runs already published: UI-02).
+
+    A decision tapped on a V2 review card is claimed only once its Undo window (config.REVIEW_UNDO_MINUTES) has
+    passed, so the card's Undo works for the whole window it offers (it lasted one 5 s poll: review 1 of UI-02).
+    The wait reads the decision again every UNDO_POLL_SECONDS meanwhile. On the claim the card's Undo button is
+    removed (`bot.close_undo`)."""
+    if not (hasattr(db, "get_approval") and hasattr(db, "set_setting")):
+        return False
+    approval = db.get_approval(run_id) or {}
+    stamp = str(approval.get("decision_timestamp") or "")
+    if approval.get("decision") != decision:
+        return _reopened(approval)
+    if not stamp:
+        return False
+    from src.telegram_bot import undo_until, v2_card_decision
+
+    def changed(now: dict) -> bool:
+        return now.get("decision") != decision or str(now.get("decision_timestamp") or "") != stamp
+
+    v2 = v2_card_decision(db, run_id, approval)
+    until = undo_until(approval) if v2 else None
+    if until is not None and _undo_clock() < until:
+        log.info("The %s of %s can be undone on its card until its window ends; acting after it.", decision, run_id)
+    while until is not None and _undo_clock() < until:
+        _undo_sleep(max(0.0, min(UNDO_POLL_SECONDS, until - _undo_clock())))
+        now = db.get_approval(run_id) or {}
+        if changed(now):
+            log.info("The %s of %s was undone on its card before it was acted on; waiting again.", decision, run_id)
+            return bool(now)
+    db.set_setting(REVIEW_CLAIM_PREFIX + run_id, stamp)
+    now = db.get_approval(run_id) or {}
+    if changed(now) and _reopened(now):
+        log.info("The %s of %s was undone on its card before it was acted on; waiting again.", decision, run_id)
+        return True
+    if v2 and bot is not None and hasattr(bot, "close_undo"):
+        bot.close_undo(run_id)      # claimed: no Undo stays tappable
+    return False
+
+
+def slot_clock(db, run_id: str) -> datetime | None:
+    """The time an approved Reel's slot is picked from: its decision's time when that was at most the Undo window and
+    half an hour ago (the window was sized for a slot from then: _approval_window), otherwise None (now)."""
+    try:
+        decided = datetime.fromisoformat(str((db.get_approval(run_id) or {}).get("decision_timestamp")))
+    except (TypeError, ValueError, AttributeError):
+        return None
+    if decided.tzinfo is None:
+        return None
+    age = datetime.fromtimestamp(_undo_clock()).astimezone() - decided
+    return decided if timedelta(0) <= age <= timedelta(minutes=float(config.REVIEW_UNDO_MINUTES) + 30) else None
+
+
+def _reopened(approval: dict[str, Any]) -> bool:
+    """The review changed after the wait read its decision: an Undo reopened it, or it was decided again since."""
+    return approval.get("decided_by") == UNDONE_BY or approval.get("decision") not in (None, "pending") and bool(approval)
+
+
+_PLATFORM_NAMES = {"instagram": "Instagram", "facebook": "Facebook", "youtube": "YouTube",
+                   "youtube short": "YouTube Short"}
+
+
+def _missing_reasons(pub: dict[str, Any]) -> dict[str, str]:
+    """{platform: why it was not posted} for each platform a published Reel missed (publisher.platform_errors,
+    or the merged error for a result recorded before it)."""
+    reasons = pub.get("platform_errors") or {}
+    return {p: str(reasons.get(p) or pub.get("error") or "no reason was returned") for p in pub.get("missing_platforms") or []}
+
+
+def _failed_line(platform: str, reason: str) -> str:
+    """'❌ Instagram: <plain reason>' (HTML)."""
+    from src.telegram_bot import plain_reason
+    return f"❌ {html.escape(_PLATFORM_NAMES.get(platform, platform))}: {html.escape(plain_reason(reason))}"
+
+
+def _receipt_platforms(requested: list[str], shorts: bool) -> list[str]:
+    """The publish receipt's rows: what was attempted, in order (a documentary's YouTube video is "youtube-video";
+    "youtube" is the Reel's Short, listed only when it will be attempted)."""
+    rows = [p for p in ("instagram", "facebook") if p in requested]
+    rows += ["youtube-video"] if "youtube" in requested else []
+    return rows + (["youtube"] if shorts and rows and "youtube" not in requested else [])
+
+
+def _receipt_outcomes(pub: dict[str, Any], requested: list[str]) -> dict[str, dict[str, Any]]:
+    """The receipt's first state from a published result: each requested platform it did not miss is live (with
+    its link when one was returned), each missed one failed with its reason."""
+    urls, missed = pub.get("post_urls") or {}, _missing_reasons(pub)
+    row = {"youtube": "youtube-video"}
+    out = {row.get(p, p): {"status": "live", "url": urls.get(p) if isinstance(urls.get(p), str) else None}
+           for p in requested if p not in missed}
+    out.update({row.get(p, p): {"status": "failed", "error": why} for p, why in missed.items()})
+    return out
 
 
 def _write_result(path: Optional[str], result: Dict[str, Any]) -> None:

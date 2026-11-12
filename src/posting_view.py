@@ -10,6 +10,7 @@ import html
 import json
 import re
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 from . import post_schedule
@@ -276,13 +277,50 @@ def posting_episode(db, run_id: str) -> Tuple[str, List[List[Dict[str, str]]]]:
     return "\n".join(lines), buttons + [[{"text": "← Posting", "callback_data": "cposts:"}]]
 
 
+def _post_now_followers(db, run_id: str, run: dict[str, Any]) -> set:
+    """The Stories and carousel Post now will really post: those booked for the run, or (a run not booked yet,
+    whose Post now books them after the Reel: main.promote_run) those on disk. Only Upload-Post posts them, so
+    none without it (it promised them whatever was booked or set up: review 1 of UI-02)."""
+    from .publisher import UploadPostPublisher
+    if not UploadPostPublisher().configured():
+        return set()
+    if run.get("status") == "scheduled":
+        return {p["kind"] for p in db.list_scheduled_posts(("pending", "waiting"), run_id=run_id)} & {"story", "carousel"}
+    from .release import story_frames
+    run_dir = Path(run.get("master_video_path") or "").parent if run.get("master_video_path") else None
+    if run_dir is None or not run_dir.is_dir():
+        return set()
+    return ({"story"} if story_frames(run_dir) else set()) | (
+        {"carousel"} if any((run_dir / "carousel").glob("carousel_slide_*.jpg")) else set())
+
+
 def confirm_post_now(db, run_id: str) -> Tuple[str, List[List[Dict[str, str]]]]:
     from . import config
+    from .publisher import attempted_platforms
     label = html.escape(db.run_label(run_id))
-    return (f"⚡ <b>Post now?</b>\n{label}\n\nThe Reel goes out now on Facebook, Instagram and YouTube; its Stories "
-            f"follow {config.STORY_DELAY_MINUTES} min later and the carousel in its slot. This can't be undone.",
-            [[{"text": "✅ Yes, post it now", "callback_data": f"postnow:{db.run_key(run_id)}"}],
-             [{"text": "✖ Not now", "callback_data": f"cpost:{db.run_key(run_id)}"}]])
+    # Only what will really be attempted, from YOUTUBE_SHORTS and the accounts set up (it promised YouTube
+    # whatever the Shorts setting: UI-02)
+    run = db.get_run(run_id) or {}
+    documentary = (run.get("content_format") == "deep_dive"
+                   or (run.get("script_payload") or {}).get("delivery_profile") == "deep_dive_16x9")
+    targets = attempted_platforms(documentary=documentary)
+    no = [{"text": "✖ Not now", "callback_data": f"cpost:{db.run_key(run_id)}"}]
+    if not targets:
+        return (f"⚡ <b>Post now?</b>\n{label}\n\nNo posting account is set up, so nothing can be posted now. "
+                "Set one up first.", [no])
+    if documentary:
+        what = "The documentary goes out now on YouTube."
+    else:
+        names = [{"facebook": "Facebook", "instagram": "Instagram"}[t] for t in targets if t != "youtube-short"]
+        follows = _post_now_followers(db, run_id, run)
+        then = [f"its Stories follow {config.STORY_DELAY_MINUTES} min later" if "story" in follows else "",
+                "the carousel in its slot" if "carousel" in follows else ""]
+        then = [x for x in then if x]
+        what = (f"The Reel goes out now on {' and '.join(names)}"
+                + (", then as a YouTube Short" if "youtube-short" in targets else "")
+                + (f"; {' and '.join(then)}." if then else "."))
+    return (f"⚡ <b>Post now?</b>\n{label}\n\n{what} This can't be undone.",
+            [[{"text": "✅ Yes, post it now", "callback_data": f"postnow:{db.run_key(run_id)}"}], no])
 
 
 def confirm_new_version(db, run_id: str) -> tuple[str, list[list[dict[str, str]]]]:

@@ -17,17 +17,22 @@ import os
 import re
 import sqlite3
 from contextlib import contextmanager
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 from pathlib import Path
 import time
 from typing import Dict, Any, ClassVar, Iterator, List, Optional
 
-from .config import DATA_DIR, TOPICS_DIR
+from .config import APPROVAL_TIMEOUT_SECONDS, DATA_DIR, TOPICS_DIR
 
 DB_PATH = DATA_DIR / "pipeline.db"
 # A topic stuck "in_production" longer than this is assumed to be from a crashed run.
 STALE_PRODUCTION_HOURS = 6
 TIMEOUT_HOLD_DAYS = 7  # a timed-out review's topic waits this long for Resend or Reject before it is made again
+# A review decision the worker is about to act on (its decision time), and the decisions a card's Undo may reopen
+# while the worker has not claimed them (undo_review_decision; main.undone_before_acting)
+REVIEW_CLAIM_PREFIX = "review-claim:"
+UNDOABLE = ("approved", "rejected")
+UNDONE_BY = "undone"   # decided_by of a review an Undo reopened: the worker's wait goes on (it never acts on it)
 
 log = logging.getLogger(__name__)
 
@@ -578,8 +583,10 @@ class PipelineDatabase:
             INSERT INTO approvals (run_id, topic_id, telegram_message_id, decision, created_at)
             VALUES (?, ?, ?, 'pending', ?)
             ON CONFLICT(run_id) DO UPDATE SET telegram_message_id = excluded.telegram_message_id, revision = revision + 1, expires_at = NULL,
-                created_at = excluded.created_at  -- delivered now: the stale sweep counts from the newest card (2026-10-25)
-            """, (run_id, topic_id, message_id, _now()))
+                created_at = excluded.created_at,  -- delivered now: the stale sweep counts from the newest card (2026-10-25)
+                decided_by = CASE WHEN decided_by = ? THEN NULL ELSE decided_by END
+                -- a new card ends what an Undo gave back: its wait narrows the 24 h placeholder again (UI-02 review 3)
+            """, (run_id, topic_id, message_id, _now(), UNDONE_BY))
             conn.execute("UPDATE approvals SET expires_at=? WHERE run_id=?", (time.time() + 86400, run_id))
 
     def update_approval_decision(self, run_id: str, decision: str, decided_by: Optional[str] = None) -> bool:
@@ -599,6 +606,43 @@ class PipelineDatabase:
                 AND EXISTS (SELECT 1 FROM runs WHERE runs.run_id=approvals.run_id
                             AND status IN ('pending_approval', 'producing'))""",
                 (decision, _now(), actor, run_id, message_id, time.time()))
+            return cur.rowcount == 1
+
+    def undo_review_decision(self, run_id, decision, message_id, within_seconds, window_seconds=None):
+        """Reopens a review decided on its card (decision back to pending), only while nothing has been done with
+        that decision: it is still `decision`, taken on this card (`message_id`) at most `within_seconds` ago,
+        the run still waits on its review, the worker has not claimed it (REVIEW_CLAIM_PREFIX holds another time),
+        and nothing is booked or posted for the run. One statement: a claim and an undo never both win.
+        The review gets back the time it had left when it was decided, and at least `within_seconds` from now
+        (expires_at): an Undo after its window had closed gave back an Approve that refused (review 2 of UI-02).
+        What it gets back is at most the review window, `window_seconds` (default APPROVAL_TIMEOUT_SECONDS): a
+        decision taken before any wait narrowed the delivery's 24 h placeholder gave back about 24 h, and the
+        review wait (with the production lock) followed it (review 3 of UI-02).
+        Returns True when it was reopened."""
+        if decision not in UNDOABLE:
+            return False
+        cutoff = (datetime.now(UTC) - timedelta(seconds=within_seconds)).isoformat()
+        with self._conn() as conn:
+            row = conn.execute("SELECT expires_at, decision_timestamp FROM approvals WHERE run_id=?", (run_id,)).fetchone()
+            left = 0.0
+            try:
+                left = float(row["expires_at"]) - datetime.fromisoformat(str(row["decision_timestamp"])).timestamp()
+            except (TypeError, ValueError, KeyError, IndexError):
+                pass
+            cap = max(float(APPROVAL_TIMEOUT_SECONDS if window_seconds is None else window_seconds), 0.0)
+            now = time.time()
+            kept = min(float((row["expires_at"] if row else None) or 0), now + cap)
+            expires = max(kept, now + max(min(left, cap), within_seconds))
+            cur = conn.execute("""UPDATE approvals SET decision='pending', decision_timestamp=NULL, decided_by=?,
+                expires_at=?
+                WHERE run_id=? AND decision=? AND telegram_message_id=? AND decision_timestamp>=?
+                AND EXISTS (SELECT 1 FROM runs WHERE runs.run_id=approvals.run_id AND status='pending_approval')
+                AND NOT EXISTS (SELECT 1 FROM settings WHERE key=? AND value=approvals.decision_timestamp)
+                AND NOT EXISTS (SELECT 1 FROM scheduled_posts WHERE scheduled_posts.run_id=approvals.run_id
+                                AND status IN ('pending', 'waiting', 'blocked', 'published', 'unknown'))
+                AND NOT EXISTS (SELECT 1 FROM publications WHERE publications.run_id=approvals.run_id
+                                AND status IN ('published', 'unknown'))""",
+                (UNDONE_BY, expires, run_id, decision, message_id, cutoff, REVIEW_CLAIM_PREFIX + run_id))
             return cur.rowcount == 1
 
     def commit_review_copy(self, run_id, revision, payload):

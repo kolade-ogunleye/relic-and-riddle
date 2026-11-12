@@ -1,0 +1,652 @@
+{
+ "timeline": null,
+ "scale_fact": null,
+ "stat_cards": [
+  {
+   "value": "Est. 144 ft (44 m)",
+   "label": "External dome diameter"
+  }
+ ],
+ "cross_section": null,
+ "route": null,
+ "photo_labels": [
+  "masonry dome",
+  "whispering gallery",
+  "pendentive systems"
+ ],
+ "emphasis_words": [
+  "Gol Gumbaz",
+  "Bijapur",
+  "1656"
+ ],
+ "title": "The 144-Foot Whispering Vault of Gol Gumbaz 🏛️",
+ "hook_sentence": "Can a quiet whisper travel across an estimated 144-foot (44 m) masonry dome?",
+ "narration_script": "Can a quiet whisper travel across an estimated 144-foot (44 m) masonry dome? Inside the dark gray basalt mausoleum of Gol Gumbaz in Bijapur, sound waves are guided continuously along the curved boundary of a prominent whispering gallery. This massive dome combines bricks of varying dimensions with lime mortar, gaining structural integrity without metal tension rings on pendentive systems attributed to Central Asian traditions. Construction began in the early 17th century and ceased in 1656 upon Mohammad Adil Shah's death, leaving several decorative elements unfinished. Yet the unfinished monument still prompts modern builders to wonder how ancient masonry mastered acoustics so completely.",
+ "closing_sentence": "Yet the unfinished monument still prompts modern builders to wonder how ancient masonry mastered acoustics so completely.",
+ "caption": "Sound travels along curved stone in ways modern halls still strive to replicate.\n🏛️ Inside Gol Gumbaz in Bijapur, Karnataka, lime mortar binds massive brick layers without a single metal tension ring. By one estimate, its central dome reached an external diameter of 144 feet (44 m), making it the largest unsupported dome in India when work ceased in 1656. Pendentive arches drawn from Central Asian architectural traditions carry the entire weight. Did seventeenth-century builders plan this sound phenomenon or discover it by chance? 🤔 Send this to an acoustic architecture fan, and follow for our next ancient marvel! 🏛️\n\n#GolGumbaz #Bijapur #AncientEngineering #IndianArchitecture\n\n🎵 Music: “soundscape1-freesound.wav” by Thoribass (CC BY 4.0)\n\n\n🎬 This video is licensed CC BY-SA 4.0: https://creativecommons.org/licenses/by-sa/4.0/\n\n📷 Pinakpani | File:Gol Gumbaz, the mausoleum of Mohammed Adil Shah, in Vijaypura 15.jpg | CC BY 4.0 | https://commons.wikimedia.org/wiki/File:Gol_Gumbaz,_the_mausoleum_of_Mohammed_Adil_Shah,_in_Vijaypura_15.jpg | https://creativecommons.org/licenses/by/4.0\n\n📷 Pinakpani | File:Interior of Gol Gumbaz building in Vijaypura, Karnataka 08.jpg | CC BY 4.0 | https://commons.wikimedia.org/wiki/File:Interior_of_Gol_Gumbaz_building_in_Vijaypura,_Karnataka_08.jpg | https://creativecommons.org/licenses/by/4.0\n\n📷 Pinakpani | File:Interior of Gol Gumbaz building in Vijaypura, Karnataka 07.jpg | CC BY 4.0 | https://commons.wikimedia.org/wiki/File:Interior_of_Gol_Gumbaz_building_in_Vijaypura,_Karnataka_07.jpg | https://creativecommons.org/licenses/by/4.0\n\n📷 Santoshsmalagi | File:Inside the Dome Gol Gumbaz.JPG | CC BY-SA 3.0 | https://commons.wikimedia.org/wiki/File:Inside_the_Dome_Gol_Gumbaz.JPG | https://creativecommons.org/licenses/by-sa/3.0\n\n📷 Pinakpani | File:Interior of Gol Gumbaz building in Vijaypura, Karnataka 16.jpg | CC BY 4.0 | https://commons.wikimedia.org/wiki/File:Interior_of_Gol_Gumbaz_building_in_Vijaypura,_Karnataka_16.jpg | https://creativecommons.org/licenses/by/4.0",
+ "first_comment": "Did the builders deliberately calculate this acoustic effect, or was it an accidental masterpiece of geometry?",
+ "hashtags": [
+  "#GolGumbaz",
+  "#Bijapur",
+  "#AncientEngineering",
+  "#IndianArchitecture"
+ ],
+ "thumbnail": {
+  "eyebrow": "ANCIENT ACOUSTICS",
+  "line1": "THE 144-FOOT",
+  "line2": "WHISPERING DOME",
+  "tagline": "BUILT WITHOUT RINGS"
+ },
+ "story_slides": [
+  {
+   "kicker": "ANCIENT MARVEL",
+   "line1": "THE ACOUSTIC DOME",
+   "line2": "OF GOL GUMBAZ",
+   "body": "Sound circles this vast chamber along its curved boundary."
+  },
+  {
+   "kicker": "NO METAL RINGS",
+   "line1": "BRICK AND MORTAR",
+   "line2": "WITHOUT TENSION",
+   "body": "By one estimate, the central dome spans 144 feet (44 m)."
+  },
+  {
+   "kicker": "ACOUSTIC MYSTERY",
+   "line1": "INTENTIONAL DESIGN",
+   "line2": "OR PURE CHANCE?",
+   "body": "Construction halted in 1656 after Mohammad Adil Shah died."
+  }
+ ],
+ "poll": {
+  "question": "Intentional design or lucky accident?",
+  "options": [
+   "Planned acoustics",
+   "Lucky accident"
+  ]
+ },
+ "carousel_slides": [
+  {
+   "heading": "THE WHISPERING VAULT",
+   "body": "How did seventeenth-century builders create an acoustic wonder in Bijapur, India?"
+  },
+  {
+   "heading": "MASSIVE SCALE",
+   "body": "By one estimate, the central dome has an external diameter of 44 meters (144 feet)."
+  },
+  {
+   "heading": "ACOUSTIC GUIDANCE",
+   "body": "Sound waves are guided continuously along the curved boundary of the gallery."
+  },
+  {
+   "heading": "ENGINEERING WITHOUT METAL",
+   "body": "The dome achieved structural integrity using bricks and mortar without metal rings."
+  },
+  {
+   "heading": "CENTRAL ASIAN ROOTS",
+   "body": "The pendentive support system is attributed to Central Asian building traditions."
+  },
+  {
+   "heading": "UNFINISHED MONUMENT",
+   "body": "Work ceased in 1656 upon Mohammad Adil Shah's death, leaving elements unfinished."
+  },
+  {
+   "heading": "LOST INGENUITY?",
+   "body": "Did ancient builders master acoustic physics that modern architecture has forgotten?"
+  }
+ ],
+ "sources": [
+  {
+   "title": "UNESCO World Heritage Centre - Monuments and Forts of the Deccan Sultanate",
+   "url": "https://whc.unesco.org/en/tentativelists/5887/"
+  },
+  {
+   "title": "Wikipedia - Gol Gumbaz",
+   "url": "https://en.wikipedia.org/wiki/Gol_Gumbaz"
+  },
+  {
+   "title": "Journal of Optics - Nonlinear and quantum optics with whispering gallery resonators",
+   "url": "https://doi.org/10.1088/2040-8978/18/12/123002"
+  }
+ ],
+ "carousel_caption": "Swipe through the architectural anatomy of Gol Gumbaz in Bijapur. 🏛️ By one estimate, its central dome has an external diameter of 144 feet (44 m) without metal tension rings. Could modern acoustics ever match such historic masonry? 🤔 Send this to an acoustic architecture fan, and follow for our next ancient marvel! 🏛️\n\n#GolGumbaz #Bijapur #AncientEngineering #IndianArchitecture",
+ "share_line": "Send this to an acoustic architecture fan, and follow for our next ancient marvel! 🏛️",
+ "fact_sheet": true,
+ "topic_id": "gol_gumbaz_whispering_gallery",
+ "origin": "gemini-free",
+ "word_count": 102,
+ "location": {
+  "name": "Bijapur",
+  "city": "Karnataka",
+  "region": "Karnataka",
+  "country": "India",
+  "latitude": 0.0,
+  "longitude": 0.0
+ },
+ "meta_topic_categories": [
+  "History & Philosophy",
+  "Science & Tech",
+  "Travel & Culture"
+ ],
+ "topic_origin_note": "🗂 Topic origin: the original topic bank (added before origins were recorded)",
+ "fact_sheet_note": "🧾 Written from a verified fact sheet: 15 facts with quoted evidence (7 disputed, used only with their hedges)",
+ "fact_audits": [
+  {
+   "claim": "Gol Gumbaz has a 144-foot whispering dome vault.",
+   "where": "[title]",
+   "fact_ids": [
+    "fact-3",
+    "fact-4"
+   ],
+   "claim_type": "domain_fact",
+   "verdict": "traced",
+   "note": "Titles are exempt from mandatory statistical hedging words; correctly reflects the site's whispering gallery and external diameter."
+  },
+  {
+   "claim": "The masonry dome has an estimated external diameter of 144 feet (44 m).",
+   "where": "[narration]",
+   "fact_ids": [
+    "fact-4"
+   ],
+   "claim_type": "domain_fact",
+   "verdict": "traced",
+   "note": "Accurately conveys the disputed diameter with the required hedge ('estimated')."
+  },
+  {
+   "claim": "Gol Gumbaz is a dark gray basalt mausoleum located in Bijapur.",
+   "where": "[narration]",
+   "fact_ids": [
+    "fact-1"
+   ],
+   "claim_type": "domain_fact",
+   "verdict": "traced",
+   "note": "Matches fact-1 exactly."
+  },
+  {
+   "claim": "Sound waves are guided continuously along the curved boundary of a prominent whispering gallery in the monument.",
+   "where": "[narration]",
+   "fact_ids": [
+    "fact-2",
+    "fact-3"
+   ],
+   "claim_type": "domain_fact",
+   "verdict": "traced",
+   "note": "Directly matches the definition and presence of the whispering gallery effect at Gol Gumbaz."
+  },
+  {
+   "claim": "The dome combines bricks of varying dimensions with lime mortar, gaining structural integrity without metal tension rings.",
+   "where": "[narration]",
+   "fact_ids": [
+    "fact-8",
+    "fact-9"
+   ],
+   "claim_type": "domain_fact",
+   "verdict": "traced",
+   "note": "Accurately reflects the construction materials and absence of metal tension rings."
+  },
+  {
+   "claim": "The pendentive system of the dome is attributed to Central Asian traditions.",
+   "where": "[narration]",
+   "fact_ids": [
+    "fact-10"
+   ],
+   "claim_type": "domain_fact",
+   "verdict": "traced",
+   "note": "Matches fact-10."
+  },
+  {
+   "claim": "Construction began in the early 17th century and ceased in 1656 upon Mohammad Adil Shah's death, leaving several decorative elements unfinished.",
+   "where": "[narration]",
+   "fact_ids": [
+    "fact-11"
+   ],
+   "claim_type": "domain_fact",
+   "verdict": "traced",
+   "note": "Matches fact-11 verbatim in meaning."
+  },
+  {
+   "claim": "The unfinished monument prompts modern builders to wonder how ancient masonry mastered acoustics so completely.",
+   "where": "[narration]",
+   "fact_ids": [],
+   "claim_type": "rhetorical_framing",
+   "verdict": "traced",
+   "note": "Philosophical closing framing connecting the history to modern wonder."
+  },
+  {
+   "claim": "Inside Gol Gumbaz in Bijapur, Karnataka, lime mortar binds massive brick layers without a single metal tension ring.",
+   "where": "[caption]",
+   "fact_ids": [
+    "fact-1",
+    "fact-8",
+    "fact-9"
+   ],
+   "claim_type": "domain_fact",
+   "verdict": "traced",
+   "note": "Matches fact-1, fact-8, and fact-9."
+  },
+  {
+   "claim": "By one estimate, the central dome reached an external diameter of 144 feet (44 m), making it the largest unsupported dome in India when work ceased in 1656.",
+   "where": "[caption]",
+   "fact_ids": [
+    "fact-4",
+    "fact-11"
+   ],
+   "claim_type": "domain_fact",
+   "verdict": "traced",
+   "note": "Preserves the required 'By one estimate' hedge for disputed fact-4 and aligns with fact-11."
+  },
+  {
+   "claim": "Pendentive arches drawn from Central Asian architectural traditions carry the weight of the dome.",
+   "where": "[caption]",
+   "fact_ids": [
+    "fact-10"
+   ],
+   "claim_type": "domain_fact",
+   "verdict": "traced",
+   "note": "Consistent with fact-10."
+  },
+  {
+   "claim": "By one estimate, the central dome has an external diameter of 144 feet (44 m) without metal tension rings.",
+   "where": "[carousel caption]",
+   "fact_ids": [
+    "fact-4",
+    "fact-9"
+   ],
+   "claim_type": "domain_fact",
+   "verdict": "traced",
+   "note": "Hedged with 'By one estimate' per fact-4 and accurately cites absence of metal tension rings per fact-9."
+  },
+  {
+   "claim": "A 144-foot whispering dome was built without tension rings.",
+   "where": "[on-screen cover]",
+   "fact_ids": [
+    "fact-3",
+    "fact-4",
+    "fact-9"
+   ],
+   "claim_type": "domain_fact",
+   "verdict": "traced",
+   "note": "On-screen covers are exempt from mandatory statistical hedging words; factually depicts the site's dimensions and engineering."
+  },
+  {
+   "claim": "Sound circles the chamber along its curved boundary.",
+   "where": "[story]",
+   "fact_ids": [
+    "fact-2",
+    "fact-3"
+   ],
+   "claim_type": "domain_fact",
+   "verdict": "traced",
+   "note": "Matches acoustic phenomenon of the whispering gallery."
+  },
+  {
+   "claim": "By one estimate, the central dome spans 144 feet (44 m) using brick and mortar without metal tension rings.",
+   "where": "[story]",
+   "fact_ids": [
+    "fact-4",
+    "fact-8",
+    "fact-9"
+   ],
+   "claim_type": "domain_fact",
+   "verdict": "traced",
+   "note": "Retains the required hedge 'By one estimate' and matches facts 4, 8, and 9."
+  },
+  {
+   "claim": "Construction halted in 1656 after Mohammad Adil Shah died.",
+   "where": "[story]",
+   "fact_ids": [
+    "fact-11"
+   ],
+   "claim_type": "domain_fact",
+   "verdict": "traced",
+   "note": "Directly matches fact-11."
+  },
+  {
+   "claim": "By one estimate, the central dome has an external diameter of 44 meters (144 feet).",
+   "where": "[slide]",
+   "fact_ids": [
+    "fact-4"
+   ],
+   "claim_type": "domain_fact",
+   "verdict": "traced",
+   "note": "Matches fact-4 with exact required hedging."
+  },
+  {
+   "claim": "Sound waves are guided continuously along the curved boundary of the gallery.",
+   "where": "[slide]",
+   "fact_ids": [
+    "fact-2",
+    "fact-3"
+   ],
+   "claim_type": "domain_fact",
+   "verdict": "traced",
+   "note": "Matches fact-2 and fact-3."
+  },
+  {
+   "claim": "The dome achieved structural integrity using bricks and mortar without metal rings.",
+   "where": "[slide]",
+   "fact_ids": [
+    "fact-8",
+    "fact-9"
+   ],
+   "claim_type": "domain_fact",
+   "verdict": "traced",
+   "note": "Matches fact-8 and fact-9."
+  },
+  {
+   "claim": "The pendentive support system is attributed to Central Asian building traditions.",
+   "where": "[slide]",
+   "fact_ids": [
+    "fact-10"
+   ],
+   "claim_type": "domain_fact",
+   "verdict": "traced",
+   "note": "Matches fact-10."
+  },
+  {
+   "claim": "Work ceased in 1656 upon Mohammad Adil Shah's death, leaving elements unfinished.",
+   "where": "[slide]",
+   "fact_ids": [
+    "fact-11"
+   ],
+   "claim_type": "domain_fact",
+   "verdict": "traced",
+   "note": "Matches fact-11."
+  },
+  {
+   "claim": "The external dome diameter is estimated at 144 ft (44 m).",
+   "where": "[graphic]",
+   "fact_ids": [
+    "fact-4"
+   ],
+   "claim_type": "domain_fact",
+   "verdict": "traced",
+   "note": "Properly hedged ('Est.') and matches fact-4."
+  },
+  {
+   "claim": "The structure features a masonry dome, whispering gallery, and pendentive systems.",
+   "where": "[graphic]",
+   "fact_ids": [
+    "fact-1",
+    "fact-3",
+    "fact-8",
+    "fact-10"
+   ],
+   "claim_type": "domain_fact",
+   "verdict": "traced",
+   "note": "Matches architectural features outlined in fact-1, fact-3, fact-8, and fact-10."
+  }
+ ],
+ "consensus_confidence": 100.0,
+ "second_check": {
+  "status": "pass",
+  "confidence": 100.0,
+  "audits": [
+   {
+    "claim": "Gol Gumbaz is a dark gray basalt mausoleum located in Bijapur, Karnataka.",
+    "claim_type": "domain_fact",
+    "verdict": "supported",
+    "quote_ids": [
+     1,
+     2
+    ],
+    "note": "Q1 and Q2 confirm Gol Gumbaz is a dark gray basalt mausoleum located in the city of Bijapur in Karnataka, India."
+   },
+   {
+    "claim": "The central dome of Gol Gumbaz has an external diameter of approximately 144 feet (44 meters).",
+    "claim_type": "domain_fact",
+    "verdict": "supported",
+    "quote_ids": [
+     5,
+     6,
+     7
+    ],
+    "note": "Q5, Q6, and Q7 state that the dome has an external diameter of approximately 144 ft (44 m)."
+   },
+   {
+    "claim": "In its whispering gallery, sound waves are guided along the curved boundary.",
+    "claim_type": "domain_fact",
+    "verdict": "supported",
+    "quote_ids": [
+     3,
+     4
+    ],
+    "note": "Q3 explains whispering gallery modes as the acoustic phenomenon of guiding a wave by a curved boundary, and Q4 notes the central dome's whispering gallery."
+   },
+   {
+    "claim": "The central dome is constructed of bricks of varying size cemented with layers of lime mortar.",
+    "claim_type": "domain_fact",
+    "verdict": "supported",
+    "quote_ids": [
+     9,
+     10
+    ],
+    "note": "Q9 states the dome is made of bricks of varying size cemented with layers of lime mortar, reiterated in Q10."
+   },
+   {
+    "claim": "The central dome of Gol Gumbaz does not make use of metal tension rings.",
+    "claim_type": "domain_fact",
+    "verdict": "supported",
+    "quote_ids": [
+     11
+    ],
+    "note": "Q11 explicitly confirms that the central dome of the Gol Gumbaz does not make use of metal tension rings."
+   },
+   {
+    "claim": "The pendentive support system of Gol Gumbaz is attributed to Central Asian architectural traditions.",
+    "claim_type": "domain_fact",
+    "verdict": "supported",
+    "quote_ids": [
+     12
+    ],
+    "note": "Q12 states that the conceptual origin of the pendentive support system is generally attributed to Central Asia."
+   },
+   {
+    "claim": "Construction of Gol Gumbaz began in the early 17th century during Mohammed Adil Shah's reign and halted upon his death in 1656, leaving several decorative elements unfinished.",
+    "claim_type": "domain_fact",
+    "verdict": "supported",
+    "quote_ids": [
+     13,
+     14
+    ],
+    "note": "Q13 and Q14 confirm that construction began in the early 17th century following Adil Shah's ascension and halted upon his death in 1656, leaving several decorative elements unfinished."
+   },
+   {
+    "claim": "Gol Gumbaz was the largest unsupported dome in India at the time of its completion.",
+    "claim_type": "domain_fact",
+    "verdict": "supported",
+    "quote_ids": [
+     5
+    ],
+    "note": "Q5 confirms that with an external diameter of 44 m (144 ft), it was the largest unsupported dome in India at the time of its completion."
+   }
+  ],
+  "summary": "[evidence re-check (gemini-3.7-flash)] All 8 claims supported by the quoted evidence."
+ },
+ "guardrail_passed": true,
+ "script_rounds": 2,
+ "fact_rounds": 2,
+ "script_round_reasons": [
+  "REJECTED by fact checker: 1 untraceable claim(s): 'The dark gray basalt monument itself boasts an external diameter of 144 feet (44 m).' ([carousel caption]; contradicts: Fact-4 states the central dom"
+ ],
+ "fact_review": {
+  "public_fingerprint": "b8e0cc5d9eae7d386cdae91b3ebac32e8292cf626049f92fa6809518aee7aa6d",
+  "sheet_path": "data/fact_sheets/gol_gumbaz_whispering_gallery.json",
+  "sheet_sha256": "cb59590791f506f2c78bbec32ea9b96940bc2150ed488911c520f554cb5d0130",
+  "review_rules_fingerprint": "79415fa9c90d9a5027f19d13e77f998cf14dfdf848dc59042819e993438c455d"
+ },
+ "picture_lines": {
+  "v": 1,
+  "script": "c00ae782bf10ad104b26e769f224c5c6d731e0d638ba7398127e49e96d4ab200",
+  "pool": "22b15726a7bad07b497f1f9d8e349e2284c4643cc938111a21abff67859d92b2",
+  "unshown": [],
+  "rewritten": [],
+  "left": []
+ },
+ "voice_note": "🎙️ Voice: Azure (🟢 Commercially Licensed)",
+ "delivery_profile": "reel_9x16",
+ "music_note": "🎵 Music: free library track (mysterious)",
+ "source_note": "🖼 15 of 15 source images were below video resolution and were AI-upscaled; sharper originals would look better.",
+ "art_direction": {
+  "accent": [
+   120,
+   190,
+   255
+  ],
+  "accent_hex": "#78BEFF",
+  "source": "default: no saturated hue in 22_commons_466e53f5c2d25a35.jpg",
+  "grade_bias": 0.006
+ },
+ "scene_plan_note": "",
+ "picture_hold": {
+  "merged": [],
+  "shown": [],
+  "repeats": [],
+  "distinct": 8,
+  "still_beats": 8,
+  "short": false,
+  "storyboard": false,
+  "reserve_used": []
+ },
+ "picture_fit": {
+  "judged": 8,
+  "cached": 0,
+  "swapped": [
+   {
+    "beat": 8,
+    "from": "07_commons_0465bd1ec0956c55.jpg",
+    "to": "23_commons_49430d838523f856.jpg"
+   }
+  ],
+  "graphic": [],
+  "held": [],
+  "unshown": [],
+  "stopped": ""
+ },
+ "graphics_note": "🗺 Original graphics in this video: map",
+ "footage_credits": [],
+ "footage_note": "",
+ "beat_image_credits": [
+  {
+   "title": "File:Bijapur Gol Gumbaz.jpg",
+   "download_url": "https://upload.wikimedia.org/wikipedia/commons/f/f4/Bijapur_Gol_Gumbaz.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "source_url": "https://commons.wikimedia.org/wiki/File:Bijapur_Gol_Gumbaz.jpg",
+   "artist": "Bharat Galagali",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "attribution_required": true,
+   "year": 2013,
+   "width": 2560,
+   "height": 1920,
+   "grade": 0,
+   "description": "Gol Gumbaz Built by Adil Shah.",
+   "categories": [
+    "Self-published work",
+    "Images from Wiki Loves Earth 2016 in India",
+    "Uploaded via Campaign:wle-in",
+    "Images from Wiki Loves Earth 2016",
+    "India photographs taken on 2013-04-19",
+    "Images from Wiki Loves Earth missing SDC depicts",
+    "Images from Wiki Loves Earth missing SDC location of creation",
+    "Maintenance for Wiki Loves Earth 2016 in India",
+    "Exterior decoration of the Gol Gumbaz"
+   ],
+   "lat": null,
+   "lon": null,
+   "relevance": 8.0,
+   "file": "output/run_gol_gumbaz_whispering_gallery_1793278143/beat_images/beat02_2.jpg",
+   "beat": 2,
+   "looked": "The photograph shows the exterior facade, corner towers, and massive dome of the Gol Gumbaz in Bijapur.",
+   "upscaled": "cache/privacy/beat02_2_f623e3971478cf26_3184e209b19dd0de.jpg"
+  },
+  {
+   "title": "File:Inside the Dome Gol Gumbaz.JPG",
+   "download_url": "https://upload.wikimedia.org/wikipedia/commons/7/72/Inside_the_Dome_Gol_Gumbaz.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "source_url": "https://commons.wikimedia.org/wiki/File:Inside_the_Dome_Gol_Gumbaz.JPG",
+   "artist": "Santoshsmalagi",
+   "license": "CC BY-SA 3.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/3.0",
+   "attribution_required": true,
+   "year": 2011,
+   "width": 4320,
+   "height": 3240,
+   "grade": 0,
+   "description": "Inside the Whispering Gallery of Gol Gumbaz",
+   "categories": [
+    "GFDL",
+    "Taken with Sony DSC-W320",
+    "Blurred images",
+    "License migration redundant",
+    "Interior of Gol Gumbaz",
+    "Self-published work",
+    "Files with coordinates missing SDC location of creation",
+    "Dome of Gol Gumbaz"
+   ],
+   "lat": 16.830031,
+   "lon": 75.736097,
+   "relevance": 8.0,
+   "file": "output/run_gol_gumbaz_whispering_gallery_1793278143/beat_images/beat03_2.jpg",
+   "beat": 3,
+   "looked": "The photograph shows the interior dome and intersecting arch vaulting system of the Gol Gumbaz, where the famous whispering gallery is located along the circular base of the dome.",
+   "upscaled": "output/run_gol_gumbaz_whispering_gallery_1793278143/beat_images/beat03_2.jpg"
+  }
+ ],
+ "beat_image_note": "🔍 2 photo(s) from outside the topic's set, fetched for one line each: line 2: The photograph shows the exterior facade, corner towers, and massive dome of the Gol Gumbaz in Bijapur.; line 3: The photograph shows the interior dome and intersecting arch vaulting system of the Gol Gumbaz, where the…",
+ "beat_image_lines": [
+  "line 2: The photograph shows the exterior facade, corner towers, and massive dome of the Gol Gumbaz in Bijapur.",
+  "line 3: The photograph shows the interior dome and intersecting arch vaulting system of the Gol Gumbaz, where the famous whispering gallery is located along the circular base of the dome."
+ ],
+ "motion_note": "",
+ "end_card": {
+  "variant": "capsule_v3",
+  "start_s": 44.76,
+  "duration_s": 2.9,
+  "text": "Send this to an acoustic architecture fan.",
+  "fallback": false
+ },
+ "is_generated_by_ai": true,
+ "self_healing": {
+  "score": 100,
+  "certified": true,
+  "issues": [],
+  "loudness": {
+   "integrated_lufs": -14.1,
+   "true_peak_dbtp": -1.9
+  },
+  "master_sha256": "053d46c9cf9de187bea68e1f0d866cd46e675ccdf694cc538db1266b3e8479e1",
+  "atomic_breakdown": {
+   "video": {
+    "score": 100,
+    "certified": true
+   },
+   "carousel": {
+    "score": 100,
+    "certified": true,
+    "issues": [],
+    "slides_audited": 7
+   },
+   "stories": {
+    "score": 100,
+    "certified": true,
+    "issues": [],
+    "cards_audited": 3
+   },
+   "thumbnails": {
+    "score": 100,
+    "certified": true,
+    "issues": [],
+    "thumbnails_audited": 2
+   },
+   "policy": {
+    "score": 100,
+    "certified": true,
+    "issues": []
+   }
+  }
+ },
+ "qa_summary": "🔎 Automated video check: no issues found",
+ "video_check": {
+  "run": true,
+  "issues": []
+ },
+ "description": "\n\n🎬 This video is licensed CC BY-SA 4.0: https://creativecommons.org/licenses/by-sa/4.0/\n\n📷 Pinakpani | File:Gol Gumbaz, the mausoleum of Mohammed Adil Shah, in Vijaypura 15.jpg | CC BY 4.0 | https://commons.wikimedia.org/wiki/File:Gol_Gumbaz,_the_mausoleum_of_Mohammed_Adil_Shah,_in_Vijaypura_15.jpg | https://creativecommons.org/licenses/by/4.0\n\n📷 Pinakpani | File:Interior of Gol Gumbaz building in Vijaypura, Karnataka 08.jpg | CC BY 4.0 | https://commons.wikimedia.org/wiki/File:Interior_of_Gol_Gumbaz_building_in_Vijaypura,_Karnataka_08.jpg | https://creativecommons.org/licenses/by/4.0\n\n📷 Pinakpani | File:Interior of Gol Gumbaz building in Vijaypura, Karnataka 07.jpg | CC BY 4.0 | https://commons.wikimedia.org/wiki/File:Interior_of_Gol_Gumbaz_building_in_Vijaypura,_Karnataka_07.jpg | https://creativecommons.org/licenses/by/4.0\n\n📷 Santoshsmalagi | File:Inside the Dome Gol Gumbaz.JPG | CC BY-SA 3.0 | https://commons.wikimedia.org/wiki/File:Inside_the_Dome_Gol_Gumbaz.JPG | https://creativecommons.org/licenses/by-sa/3.0\n\n📷 Pinakpani | File:Interior of Gol Gumbaz building in Vijaypura, Karnataka 16.jpg | CC BY 4.0 | https://commons.wikimedia.org/wiki/File:Interior_of_Gol_Gumbaz_building_in_Vijaypura,_Karnataka_16.jpg | https://creativecommons.org/licenses/by/4.0\n\n📷 Bharat Galagali | File:Bijapur Gol Gumbaz.jpg | CC BY-SA 4.0 | https://commons.wikimedia.org/wiki/File:Bijapur_Gol_Gumbaz.jpg | https://creativecommons.org/licenses/by-sa/4.0\n\n📷 Pinakpani | File:Interior of Gol Gumbaz building in Vijaypura, Karnataka 04.jpg | CC BY 4.0 | https://commons.wikimedia.org/wiki/File:Interior_of_Gol_Gumbaz_building_in_Vijaypura,_Karnataka_04.jpg | https://creativecommons.org/licenses/by/4.0\n\n📷 Pinakpani | File:Interior of Gol Gumbaz building in Vijaypura, Karnataka 10.jpg | CC BY 4.0 | https://commons.wikimedia.org/wiki/File:Interior_of_Gol_Gumbaz_building_in_Vijaypura,_Karnataka_10.jpg | https://creativecommons.org/licenses/by/4.0"
+}

@@ -245,7 +245,7 @@ def test_a_short_card_lists_everything_and_needs_no_reply(review, monkeypatch):
     texts = [d["text"] for m, d in calls if m == "sendMessage"]
     assert len(texts) == 1                                        # the card alone: nothing is left for a reply
     assert "• Facebook Reel: the title and the caption above" in texts[0]
-    assert "• YouTube Short (not posted: YOUTUBE_SHORTS is off): the title above" in texts[0]
+    assert "• YouTube Short (not posted: YouTube Shorts are turned off): the title above" in texts[0]
 
 
 DOCUMENTARY = {k: v for k, v in PAYLOAD.items() if k != "topic_id"} | {   # a documentary's payload has no topic_id

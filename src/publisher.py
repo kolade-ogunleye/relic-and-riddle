@@ -655,6 +655,22 @@ def with_disclosure(text: str, script_payload: dict[str, Any]) -> str:
     return (text.rstrip() + "\n\n" + ILLUSTRATION_DISCLOSURE) if text.strip() else ILLUSTRATION_DISCLOSURE
 
 
+def attempted_platforms(publishers: list | None = None, documentary: bool = False) -> list[str]:
+    """What a live post of a run attempts, as MetaPublisher would: "facebook" and "instagram" where a configured
+    publisher covers them, "youtube-short" when YOUTUBE_SHORTS is on and Upload-Post (the only Shorts uploader) is
+    configured; a documentary goes to "youtube" alone. A platform no configured publisher covers is not attempted."""
+    pubs = publishers if publishers is not None else [UploadPostPublisher(), InstagramGraphPublisher(),
+                                                      FacebookPageReelsPublisher()]
+    ready = [p for p in pubs if not hasattr(p, "configured") or p.configured()]
+    covered = {x for p in ready for x in getattr(p, "platforms", ())}
+    if documentary:
+        return ["youtube"] if "youtube" in covered else []
+    out = [x for x in ("facebook", "instagram") if x in covered]
+    if out and config.YOUTUBE_SHORTS and any(hasattr(p, "publish_short") for p in ready):
+        out.append("youtube-short")
+    return out
+
+
 class MetaPublisher:
     def __init__(self, db: Optional[PipelineDatabase] = None, publishers: Optional[list] = None):
         self.db = db or PipelineDatabase()
@@ -736,6 +752,7 @@ class MetaPublisher:
         # platforms still remaining that it supports (Upload-Post: both; direct APIs: one each).
         remaining = set(envelope["platforms"])
         errors, done = [], []
+        failures: dict[str, str] = {}   # each platform's latest failure, for the receipt's own line (UI-02)
         for pub in self.publishers:
             covers = remaining & set(getattr(pub, "platforms", envelope["platforms"]))
             if not covers:
@@ -753,6 +770,7 @@ class MetaPublisher:
             except PublishFailed as e:
                 log.warning("%s failed (nothing published): %s", pub.name, e)
                 errors.append(f"{pub.name}: {e}")
+                failures.update({p: str(e) for p in covers})
                 self.db.record_publication(tid, run_id, pub.name, "failed", {"error": str(e)})
             except PublishUnknown as e:
                 log.error("%s outcome UNKNOWN; not failing over to avoid a duplicate post: %s", pub.name, e)
@@ -772,6 +790,7 @@ class MetaPublisher:
             if remaining:
                 merged["missing_platforms"] = sorted(remaining)
                 merged["error"] = "; ".join(errors) or "no publisher configured for " + ", ".join(sorted(remaining))
+                merged["platform_errors"] = {p: failures.get(p) or "no account is set up for it" for p in sorted(remaining)}
             return merged
         msg = "; ".join(errors) if errors else "no publisher is configured"
         return {"status": "failed", "error": msg}

@@ -25,18 +25,6 @@
       "checked_on": "2026-10-24"
     },
     {
-      "file": "BebasNeue-Regular.ttf",
-      "sha256": "08e4623805102d819f58601e46e345648846075e363b2ceb23313c2d1c83ec73",
-      "copyright": "Copyright 2019 The Bebas Neue Project Authors (https://github.com/dharmatype/Bebas-Neue)",
-      "version": "Version 2.000",
-      "license_description": "This Font Software is licensed under the SIL Open Font License, Version 1.1. This license is available with a FAQ at: http://scripts.sil.org/OFL",
-      "license_url": "http://scripts.sil.org/OFL",
-      "license_file": "licenses/BebasNeue-Regular.ttf.OFL.txt",
-      "license_sha256": "72082f6cb4d04be2ecf7cc7d9e1e7d73787f0af8a5a278a47cade70c16b78341",
-      "source_url": "https://raw.githubusercontent.com/google/fonts/main/ofl/bebasneue/OFL.txt",
-      "checked_on": "2026-10-24"
-    },
-    {
       "file": "Cinzel-Variable.ttf",
       "sha256": "f4d83d34d1f6c741193e4acf4b3dff9531e5a67b6aa65228d00a7db72a4e0f34",
       "copyright": "Copyright 2020 The Cinzel Project Authors (https://github.com/NDISCOVER/Cinzel)",
@@ -73,18 +61,6 @@
       "source_url": "https://github.com/IBM/plex/releases/download/%40ibm/plex-mono%402.5.0/ibm-plex-mono.zip",
       "release": "@ibm/plex-mono 2.5.0 (archive sha256 6d23f01257663d8cc49a0d64c22ced630b79e0e2a0ac08a0da86e9a38bbc481c); TTF copied unmodified; Reserved Font Name \"Plex\"",
       "checked_on": "2026-10-29"
-    },
-    {
-      "file": "Montserrat-Bold.ttf",
-      "sha256": "bc6e854971cea46b463be6f9eef4d9cd52f51cfc1fc0dd90c9d3e6483dc0ec61",
-      "copyright": "Copyright 2011 The Montserrat Project Authors (https://github.com/JulietaUla/Montserrat)",
-      "version": "Version 9.000; ttfautohint (v1.8.4.7-5d5b)",
-      "license_description": "This Font Software is licensed under the SIL Open Font License, Version 1.1. This license is available with a FAQ at: https://openfontlicense.org",
-      "license_url": "https://openfontlicense.org",
-      "license_file": "licenses/Montserrat-Bold.ttf.OFL.txt",
-      "license_sha256": "8b7141c03fa4f8d44e6345d5d4931709290f0f67875e452e95ac1fd3a027802e",
-      "source_url": "https://raw.githubusercontent.com/JulietaUla/Montserrat/master/fonts/ttf/Montserrat-Bold.ttf",
-      "checked_on": "2026-11-04"
     },
     {
       "file": "NotoSans-LGC.ttf",

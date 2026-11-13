@@ -1,0 +1,384 @@
+{
+ "schema": 1,
+ "source_sha256": {
+  "src/video_composer.py": "50af62fb29f18c51",
+  "src/typography.py": "22d306b44dbc9330",
+  "src/font_engine.py": "24d4e91a3c4df31a",
+  "src/cover_design.py": "8df39c2efd6e905c"
+ },
+ "fonts": {
+  "files": [
+   "Anton-Regular.ttf",
+   "Cinzel-Variable.ttf",
+   "IBMPlexMono-Medium.ttf",
+   "IBMPlexMono-SemiBold.ttf",
+   "Montserrat-Variable.ttf",
+   "NotoSans-LGC.ttf",
+   "NotoSerif-LGC.ttf"
+  ],
+  "unregistered_files": [],
+  "bebas_files": 0,
+  "montserrat_files": 1,
+  "evidence_rows": 7,
+  "evidence_without_file": [],
+  "files_without_evidence": [],
+  "bebas_references_in_src": 0
+ },
+ "captions": {
+  "total": {
+   "bursts": 255,
+   "two_line_bursts": 91,
+   "one_word_bursts": 3,
+   "scaled_tags": 0,
+   "case_kept": 721,
+   "words": 721,
+   "plates": 255,
+   "plates_outside_band": 0,
+   "runs": 7,
+   "words_unchanged": true
+  },
+  "runs": [
+   {
+    "run": "run_amber_room_heist_1792790550",
+    "family": "RR Caption",
+    "bold": "0",
+    "embedded_face": true,
+    "bursts": 37,
+    "two_line_bursts": 14,
+    "one_word_bursts": 2,
+    "sizes": [
+     74,
+     80
+    ],
+    "scaled_tags": 0,
+    "words_unchanged": true,
+    "case_kept": 105,
+    "words": 105,
+    "plates": 37,
+    "plates_outside_band": 0,
+    "ass_sha": "f646f5c4a2031975"
+   },
+   {
+    "run": "run_gol_gumbaz_whispering_gallery_1793278143",
+    "family": "RR Caption",
+    "bold": "0",
+    "embedded_face": true,
+    "bursts": 37,
+    "two_line_bursts": 10,
+    "one_word_bursts": 0,
+    "sizes": [
+     66,
+     74,
+     80
+    ],
+    "scaled_tags": 0,
+    "words_unchanged": true,
+    "case_kept": 100,
+    "words": 100,
+    "plates": 37,
+    "plates_outside_band": 0,
+    "ass_sha": "7b46d1ee2d983401"
+   },
+   {
+    "run": "run_nazca_lines_runway_paradox_1792961797",
+    "family": "RR Caption",
+    "bold": "0",
+    "embedded_face": true,
+    "bursts": 36,
+    "two_line_bursts": 15,
+    "one_word_bursts": 0,
+    "sizes": [
+     74,
+     80
+    ],
+    "scaled_tags": 0,
+    "words_unchanged": true,
+    "case_kept": 104,
+    "words": 104,
+    "plates": 36,
+    "plates_outside_band": 0,
+    "ass_sha": "9e2827953294fdf2"
+   },
+   {
+    "run": "run_richat_structure_sahara_eye_1793474843",
+    "family": "RR Caption",
+    "bold": "0",
+    "embedded_face": true,
+    "bursts": 35,
+    "two_line_bursts": 14,
+    "one_word_bursts": 0,
+    "sizes": [
+     74,
+     80
+    ],
+    "scaled_tags": 0,
+    "words_unchanged": true,
+    "case_kept": 95,
+    "words": 95,
+    "plates": 35,
+    "plates_outside_band": 0,
+    "ass_sha": "5fd4bff753976372"
+   },
+   {
+    "run": "run_tunguska_event_1908_1792930600",
+    "family": "RR Caption",
+    "bold": "0",
+    "embedded_face": true,
+    "bursts": 34,
+    "two_line_bursts": 9,
+    "one_word_bursts": 0,
+    "sizes": [
+     74,
+     80
+    ],
+    "scaled_tags": 0,
+    "words_unchanged": true,
+    "case_kept": 98,
+    "words": 98,
+    "plates": 34,
+    "plates_outside_band": 0,
+    "ass_sha": "2ac6afaa99668c50"
+   },
+   {
+    "run": "run_unfinished_obelisk_aswan_1792985912",
+    "family": "RR Caption",
+    "bold": "0",
+    "embedded_face": true,
+    "bursts": 36,
+    "two_line_bursts": 14,
+    "one_word_bursts": 0,
+    "sizes": [
+     74,
+     80
+    ],
+    "scaled_tags": 0,
+    "words_unchanged": true,
+    "case_kept": 104,
+    "words": 104,
+    "plates": 36,
+    "plates_outside_band": 0,
+    "ass_sha": "2e1ae5d5ed76885e"
+   },
+   {
+    "run": "run_voynich_manuscript_1792965308",
+    "family": "RR Caption",
+    "bold": "0",
+    "embedded_face": true,
+    "bursts": 40,
+    "two_line_bursts": 15,
+    "one_word_bursts": 1,
+    "sizes": [
+     74,
+     80
+    ],
+    "scaled_tags": 0,
+    "words_unchanged": true,
+    "case_kept": 115,
+    "words": 115,
+    "plates": 40,
+    "plates_outside_band": 0,
+    "ass_sha": "51a1d04afa91c28f"
+   }
+  ],
+  "wide": {
+   "run": "run_richat_structure_sahara_eye_1792740961_long",
+   "family": "RR Sans",
+   "bold": "-1",
+   "embedded_face": true,
+   "scaled_tags": 0
+  }
+ },
+ "konigsberg": {
+  "Anton": {
+   "default": [
+    47,
+    113,
+    940,
+    325
+   ],
+   "smcp": [
+    47,
+    106,
+    932,
+    301
+   ],
+   "bounds_differ": true,
+   "accent_px_default": 2088,
+   "accent_px_smcp": 2088
+  },
+  "Montserrat": {
+   "default": [
+    58,
+    145,
+    1213,
+    341
+   ],
+   "smcp": [
+    58,
+    144,
+    1255,
+    302
+   ],
+   "bounds_differ": true,
+   "accent_px_default": 1016,
+   "accent_px_smcp": 1014
+  },
+  "caption_face_is_anton_smcp": true
+ },
+ "native_accents": {
+  "identical": true,
+  "differing_px": 0
+ },
+ "masthead": {
+  "covers": 15,
+  "masthead_drawn": 0,
+  "drawn_under_9px": 0,
+  "min_cap_124": null,
+  "grid_floor": 9,
+  "rows": [
+   {
+    "case": "wieliczka",
+    "style": "minimal",
+    "drawn": false,
+    "cap_124": null,
+    "grid_fails": []
+   },
+   {
+    "case": "wieliczka",
+    "style": "badge",
+    "drawn": false,
+    "cap_124": null,
+    "grid_fails": []
+   },
+   {
+    "case": "wieliczka",
+    "style": "depth_sandwich",
+    "drawn": false,
+    "cap_124": null,
+    "grid_fails": []
+   },
+   {
+    "case": "greek",
+    "style": "minimal",
+    "drawn": false,
+    "cap_124": null,
+    "grid_fails": []
+   },
+   {
+    "case": "greek",
+    "style": "badge",
+    "drawn": false,
+    "cap_124": null,
+    "grid_fails": []
+   },
+   {
+    "case": "greek",
+    "style": "depth_sandwich",
+    "drawn": false,
+    "cap_124": null,
+    "grid_fails": []
+   },
+   {
+    "case": "tunguska",
+    "style": "minimal",
+    "drawn": false,
+    "cap_124": null,
+    "grid_fails": []
+   },
+   {
+    "case": "tunguska",
+    "style": "badge",
+    "drawn": false,
+    "cap_124": null,
+    "grid_fails": []
+   },
+   {
+    "case": "tunguska",
+    "style": "depth_sandwich",
+    "drawn": false,
+    "cap_124": null,
+    "grid_fails": []
+   },
+   {
+    "case": "amber",
+    "style": "minimal",
+    "drawn": false,
+    "cap_124": null,
+    "grid_fails": []
+   },
+   {
+    "case": "amber",
+    "style": "badge",
+    "drawn": false,
+    "cap_124": null,
+    "grid_fails": []
+   },
+   {
+    "case": "amber",
+    "style": "depth_sandwich",
+    "drawn": false,
+    "cap_124": null,
+    "grid_fails": []
+   },
+   {
+    "case": "richat",
+    "style": "minimal",
+    "drawn": false,
+    "cap_124": null,
+    "grid_fails": []
+   },
+   {
+    "case": "richat",
+    "style": "badge",
+    "drawn": false,
+    "cap_124": null,
+    "grid_fails": []
+   },
+   {
+    "case": "richat",
+    "style": "depth_sandwich",
+    "drawn": false,
+    "cap_124": null,
+    "grid_fails": []
+   }
+  ]
+ },
+ "hook_masthead": {
+  "frames": 3,
+  "masthead_drawn": 0,
+  "drawn_under_9px": 0,
+  "rows": [
+   {
+    "ground": [
+     40,
+     35,
+     30
+    ],
+    "drawn": false,
+    "cap_124": null,
+    "position": "normal"
+   },
+   {
+    "ground": [
+     120,
+     110,
+     95
+    ],
+    "drawn": false,
+    "cap_124": null,
+    "position": "normal"
+   },
+   {
+    "ground": [
+     235,
+     238,
+     242
+    ],
+    "drawn": false,
+    "cap_124": null,
+    "position": "plate"
+   }
+  ]
+ },
+ "acceptance_met": true
+}

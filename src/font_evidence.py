@@ -34,6 +34,8 @@ def font_rights(path):
                      record.get("license_sha256") and license_path.is_file() and
                      record["license_sha256"] == sha256_file(license_path) and
                      "SIL Open Font License" in record["license_description"] and record["copyright"])
+        if record.get("derived_from"):
+            valid = valid and record.get("source_sha256") == sha256_file(Path(record["derived_from"]))
         return valid, record
     except (OSError, ValueError, KeyError, TypeError, StopIteration):
         return False, {"file": str(path), "status": "unverified"}

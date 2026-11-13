@@ -296,7 +296,10 @@ def test_a_caption_word_no_face_draws_is_measured_not_fatal(tmp_path):
 
 # Review 2, blocking 1: measured on base 4b288e84 (the caption face's own boxes and advances for the Arabic word)
 REEL_ARABIC = "THE SCHOLAR ابن الهيثم WROTE"
-REEL_ARABIC_BASE = (891.53, 0.74, 889.94)          # _libass_line at 80: (advance, ink left, ink right)
+# QF-87 (true small capitals): the line is measured as one shaped run in the caption face RR Caption (the same Arabic
+# missing-glyph advances as Anton: 4,725.7 per 1000 em), plus the CapText Spacing per glyph; on base 4b288e84 it was
+# (891.53, 0.74, 889.94), the per-run measure
+REEL_ARABIC_BASE = (1037.77, 0.74, 1035.83)        # _libass_line at 80: (advance, ink left, ink right)
 
 
 def test_the_reel_caption_measure_takes_a_word_no_bundled_face_draws():
@@ -395,7 +398,8 @@ def test_a_contact_sheet_inside_a_run_records_no_false_refusal(tmp_path):
 
 def test_a_caption_word_built_in_both_formats_is_one_card_line(tmp_path):
     """Review 3, finding 4 (QF-94b): one run building 9:16 (Anton, upper-cased) and 16:9 (Montserrat) captions
-    records the word in each face; the card, which does not name the face, lists it once."""
+    records the word in each face; the card, which does not name the face, lists it once. QF-87: the 9:16 caption
+    keeps the narration's case (it was upper-cased), so both formats record 東京x."""
     from src.telegram_bot import glyph_notes
     from src.video_composer import VideoComposer
     words = [{"word": w, "start": 0.1 + 0.4 * k, "dur": 0.3} for k, w in enumerate(["THE", "東京x", "TOWER"])]
@@ -406,7 +410,7 @@ def test_a_caption_word_built_in_both_formats_is_one_card_line(tmp_path):
     finally:
         FE.set_glyph_ledger(None)
     assert len(_events(tmp_path / FE.LEDGER_NAME)) == 2           # the ledger keeps each face's event
-    assert glyph_notes(tmp_path) == [("Captions: “東京X” has 東 京 (CJK), which no bundled face draws; libass draws "
+    assert glyph_notes(tmp_path) == [("Captions: “東京x” has 東 京 (CJK), which no bundled face draws; libass draws "
                                       "them in a system face")]
 
 

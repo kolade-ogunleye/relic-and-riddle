@@ -24,6 +24,7 @@ import os
 import re
 import shutil
 import subprocess
+import unicodedata
 from functools import lru_cache
 from pathlib import Path
 from collections.abc import Callable
@@ -83,6 +84,7 @@ from .config import (
     CAPTION_DIGIT_MIN_S,
     CAPTION_WIDE_MAX_PLATE,
     CAPTION_CUT_CLEAR_FRAMES,
+    CAPTION_TWO_LINE_INK_GAP,
     CAPTION_TWO_LINE_PITCH_EM,
     CAPTION_PAUSE_BREAK_S,
     CAPTION_PAUSE_SOFT_S,
@@ -353,6 +355,18 @@ from .safe_zones import caption_band_top as _caption_band_top
 from .safe_zones import graphics_box as _graphics_box
 
 
+def _caption_family() -> str:
+    """The family a 9:16 caption is drawn and measured in: with CAPTION_SMALL_CAPS the derived caption face
+    (font_assets.CAPTION_FAMILY, Anton with its smcp glyphs as the default lower case: libass applies no OpenType
+    feature a script asks for), else FONT_NAME. The small capitals exist for Anton only."""
+    from .font_assets import CAPTION_FAMILY
+    if CAPTION_SMALL_CAPS:
+        if FONT_NAME != "Anton":
+            raise ValueError("True caption small caps require the approved Anton-derived face")
+        return CAPTION_FAMILY
+    return FONT_NAME
+
+
 @lru_cache(maxsize=16)
 def _font_vmetrics(name: str, weight: int | None = None) -> tuple[int, int, int]:
     """(unitsPerEm, usWinAscent, usWinDescent) of a bundled font, read from its head and OS/2 tables. libass sizes
@@ -382,12 +396,12 @@ def _libass_face(path: Path) -> tuple[frozenset[str], int] | None:
     return info.names, info.weight
 
 
-def libass_font_problems(fonts_dir: Path, requests: list[tuple[str, int]]) -> list[str]:
+def libass_font_problems(fonts_dir: Path, requests: list[tuple[str, int]], extra_fonts=()) -> list[str]:
     """For each (ASS Fontname, weight) the captions draw, why libass would not draw it from the bundled fonts: no
     bundled face carries that name (libass then takes a system font: the line no longer matches the plate measured
     in the bundled font), or the nearest bundled face of that name is more than 150 lighter than asked (libass
     thickens it synthetically: not the designed weight). Empty when every request resolves."""
-    faces = [face for p in sorted(Path(fonts_dir).glob("*")) if p.suffix.lower() in (".ttf", ".otf")
+    faces = [face for p in [*sorted(Path(fonts_dir).glob("*")), *extra_fonts] if p.suffix.lower() in (".ttf", ".otf")
              and (face := _libass_face(p)) is not None]
     problems: list[str] = []
     for fontname, weight in requests:
@@ -404,7 +418,7 @@ def reel_render_px(fit: float) -> float:
     """The Anton em libass draws for a 9:16 caption of nominal size `fit`: its ASS size (FONT_SIZE_ASS, or
     fit / 0.5625 for a shrunk word) times unitsPerEm / (winAscent + winDescent). About 2.6% over `fit`; until the
     round-3 captions change (2026-11-02) the plate was measured at `fit`, a little narrower than the drawn line."""
-    upm, asc, desc = _font_vmetrics(FONT_NAME)
+    upm, asc, desc = _font_vmetrics(_caption_family())
     ass_size = FONT_SIZE_ASS if fit >= FONT_SIZE else fit / 0.5625
     return ass_size * upm / (asc + desc)
 
@@ -412,7 +426,7 @@ def reel_render_px(fit: float) -> float:
 def reel_cap_height(fit: float) -> float:
     """The drawn cap height in px of a 9:16 caption at nominal size `fit`."""
     from .typography import get_font
-    return float(-get_font(FONT_NAME, max(8, round(reel_render_px(fit)))).getbbox("H", anchor="ls")[1])
+    return float(-get_font(_caption_family(), max(8, round(reel_render_px(fit)))).getbbox("H", anchor="ls")[1])
 
 
 # The 9:16 plate's height follows the type (round 3: CAPTION_REEL_PAD_Y_EM of the cap height above and below the
@@ -1365,7 +1379,7 @@ def _glyph_box(ch: str) -> tuple[int, int, int, int] | None:
     never refused: libass draws it in a system face (recorded by _record_caption_faces)."""
     from .font_engine import LIBASS_FEATURES, choose_face, plain_face
     from .typography import get_font
-    font = get_font(FONT_NAME, _LIBASS_REF_PX)
+    font = get_font(_caption_family(), _LIBASS_REF_PX)
     face = choose_face(ch, font)
     if face is None:
         return plain_face(font).getmask(ch, features=list(LIBASS_FEATURES)).getbbox()
@@ -1375,35 +1389,77 @@ def _glyph_box(ch: str) -> tuple[int, int, int, int] | None:
 @lru_cache(maxsize=8192)
 def _libass_line(words: tuple[str, ...], size: float, sc_scale: int = CAPTION_SC_SCALE) -> tuple[float, float, float]:
     """(advance, ink left, ink right) in px of a 9:16 caption line as libass draws it (freeze pass C5, 2026-11-04):
-    the em of its ASS size, each run's small-capital fscx (format_word_caption), the CapText Spacing after every
-    glyph at that run's fscx, each space at the fscx of the word before it (the tags carry over), and the first and
-    last glyphs' side bearings. Unhinted: glyph metrics at a large em, scaled linearly. Each run's advance is shaped
-    unkerned (unkerned_length: libass draws the captions unkerned; operator decision 2026-11-05).
-    Measured against libass renders within 2 px (tests/test_freeze_captions_2026_11_04.py)."""
+    the em of its ASS size, the CapText Spacing after every glyph, and the ink of the first and last glyphs.
+    QF-87: the line is one run in the caption face (_caption_family: Anton's own small-capital glyphs as the
+    default forms of its lower case), shaped once with the features libass draws it with (LIBASS_FEATURES: no kern,
+    operator decision 2026-11-05; no optional ligatures, no contextual or case forms), and its ink is the chosen
+    glyphs' own rasters at their shaped positions (font_engine.run_ink_bounds). No capital is scaled down (the
+    round-2 82% fscx runs are gone). A line the caption face cannot map whole is shaped in the bundled face that
+    can (QF-94, choose_face), or in the caption face itself when none can (libass takes a system face for it,
+    recorded by _record_caption_faces). Unhinted: glyph metrics at a large em, scaled linearly."""
+    from .font_engine import run_ink_bounds
+    k = _libass_scale(size)
+    run, face = _caption_line_run(words)
+    box = run_ink_bounds(run, face)
+    if not box:
+        return run.advance * k, 0.0, 0.0
+    return (run.advance * k + REEL_LETTER_SPACING * len(run.glyphs),
+            box[0] * k,
+            box[2] * k + REEL_LETTER_SPACING * max(0, len(run.glyphs) - 1))
+
+
+def _libass_scale(size: float) -> float:
+    """px at a 9:16 caption of nominal size `size` per px of the _LIBASS_REF_PX reference measure."""
+    upm, asc, desc = _font_vmetrics(_caption_family())
+    return _reel_ass_size(size) * upm / (asc + desc) / _LIBASS_REF_PX
+
+
+@lru_cache(maxsize=8192)
+def _caption_line_run(words: tuple[str, ...]):
+    """(GlyphRun, face) of one 9:16 caption line at _LIBASS_REF_PX, as _libass_line describes it: one run in the
+    caption face (or the bundled face that maps it whole, QF-94; else the caption face itself), LIBASS_FEATURES."""
+    from .font_engine import LIBASS_FEATURES, choose_face, shape, shape_in_face
     from .typography import get_font
-    upm, asc, desc = _font_vmetrics(FONT_NAME)
-    k = _reel_ass_size(size) * upm / (asc + desc) / _LIBASS_REF_PX
-    font = get_font(FONT_NAME, _LIBASS_REF_PX)
-    space = unkerned_length(font, " ")
-    pen, left, right, prev = 0.0, None, 0.0, 1.0
-    for wi, word in enumerate(words):
-        if wi:
-            pen += (space * k + REEL_LETTER_SPACING) * prev
-        runs = (caption_runs(_ass_escape(word), sc_scale) if CAPTION_SMALL_CAPS
-                else [(_ass_escape(word).upper(), True)])
-        for text, full in runs:
-            if not text:
-                continue
-            s = 1.0 if full else sc_scale / 100.0
-            if left is None:
-                box = _glyph_box(text[0])
-                left = pen + (box[0] if box else 0) * k * s
-            last_at = pen + (unkerned_length(font, text[:-1]) * k + REEL_LETTER_SPACING * (len(text) - 1)) * s
-            box = _glyph_box(text[-1])
-            right = last_at + (box[2] if box else unkerned_length(font, text[-1])) * k * s
-            pen += (unkerned_length(font, text) * k + REEL_LETTER_SPACING * len(text)) * s
-            prev = s
-    return pen, (left or 0.0), right
+    font = get_font(_caption_family(), _LIBASS_REF_PX)
+    text = " ".join(_caption_display_text(word) for word in words)
+    text = text if CAPTION_SMALL_CAPS else text.upper()
+    face = choose_face(text, font)
+    if face is None:
+        return shape_in_face(text, font, features=LIBASS_FEATURES), font
+    return shape(text, face, features=LIBASS_FEATURES), face
+
+
+@lru_cache(maxsize=8192)
+def _caption_line_ink(words: tuple[str, ...], size: float) -> tuple[float, float]:
+    """(ink top, ink bottom) in px of one 9:16 caption line at caption size `size`, from its baseline (up is
+    negative): the shaped glyphs' own ink, so a line of small capitals is shorter than a line with an accented
+    capital (QF-87)."""
+    from .font_engine import run_ink_bounds
+    run, face = _caption_line_run(words)
+    box = run_ink_bounds(run, face)
+    if box is None:
+        raise ValueError(f"A caption line has no ink: {' '.join(words)!r}")
+    k = _libass_scale(size)
+    return box[1] * k, box[3] * k
+
+
+def _caption_two_line_geometry(parts: list[list[str]], size: float) -> tuple[int, int, float]:
+    """(pitch, plate height, lower-line offset) of a two-line 9:16 burst at caption size `size` (QF-24/QF-87
+    layout decision 2026-11-09). The baselines are CAPTION_TWO_LINE_PITCH_EM x the cap height apart, or further
+    when the measured ink of the two lines (an accented capital under a descender) would come closer than
+    CAPTION_TWO_LINE_INK_GAP px. The plate is the one-line plate plus that minimum pitch, or taller when the ink
+    block needs it with REEL_PAD_Y above and below; the ink block is centred in it. The offset is from the plate's
+    bottom edge to the lower line's an5 anchor (its line box's centre)."""
+    upper, lower = (_caption_line_ink(tuple(part), float(size)) for part in parts)
+    min_pitch = round(CAPTION_TWO_LINE_PITCH_EM * reel_cap_height(size))
+    pitch = max(min_pitch, math.ceil(upper[1] - lower[0] + CAPTION_TWO_LINE_INK_GAP))
+    ink_h = pitch + lower[1] - upper[0]
+    box_h = max(REEL_PLATE_H + min_pitch, math.ceil(ink_h + 2 * REEL_PAD_Y))
+    pad = (box_h - ink_h) / 2
+    _, asc, desc = _font_vmetrics(_caption_family())
+    ass_size = _reel_ass_size(size)
+    baseline = asc * ass_size / (asc + desc) - ass_size / 2   # the baseline below the line box's centre
+    return pitch, box_h, -pad - lower[1] - baseline
 
 
 def _caption_ink_width(words: list[str], size: float, sc_scale: int = CAPTION_SC_SCALE) -> float:
@@ -1426,12 +1482,13 @@ def _ink_budget(max_width: int = MAX_CAPTION_WIDTH) -> float:
 
 
 def _caption_text_width(words: list[str], size: int, sc_scale: int = CAPTION_SC_SCALE, drawn: bool = False) -> float:
-    """Width in px of these words at caption size `size`, with the caption's small capitals.
+    """Width in px of these words at caption size `size`.
 
-    Without `drawn`, the round-2 type measure at `size` (PIL at that size). With `drawn` it is the ink width libass
-    actually draws (freeze pass C5: per-run fscx, the style Spacing, side bearings; _libass_line), which the burst
-    builder fits and the plate is sized from. Each run measures unkerned, as libass draws it (unkerned_length,
-    operator decision 2026-11-05)."""
+    Without `drawn`, the round-2 reference measure (Anton capitals, the narration's lower case as 82% capitals,
+    PIL at that size): the word bonds and baseline cuts the burst builder keeps (the HEAD 0036b18 gate, operator
+    decision 2026-11-04) are defined on it, so a change of the drawn face (QF-87) moves no cut. No renderer draws
+    it. With `drawn` it is the ink width libass draws in the caption face (_libass_line: the genuine small-capital
+    glyphs), which the burst builder fits and the plate is sized from."""
     if drawn:
         return _caption_ink_width(list(words), size, sc_scale)
     from .typography import get_font
@@ -1450,12 +1507,15 @@ def _caption_text_width(words: list[str], size: int, sc_scale: int = CAPTION_SC_
 
 
 def measure_caption_phrase(phrase: Any, fit_rendered: int, sc_scale: int = CAPTION_SC_SCALE) -> tuple[int, int]:
-    """(ink width, cap height) in px of a caption phrase as libass draws it at `fit_rendered` (freeze pass C5)."""
+    """(ink width, cap height) in px of a caption phrase as libass draws it at `fit_rendered` (freeze pass C5). QF-87
+    review 1: the shaped glyphs' outline extent, in whole pixels rounded down: libass's visible ink (its edge pixels
+    under about 40% coverage do not show) is 0 to 0.8 px wider than the outline extent on the ten pinned samples and
+    0.6 px narrower on WAVY Vault 7,000, so the extent rounded down is never wider than the drawn ink."""
     total_w = _caption_text_width(_phrase_words(phrase), fit_rendered, sc_scale, drawn=True)
     # The capitals' drawn height: the line is upper case (full and small capitals), so the plate is padded around
     # the cap band and the letters sit optically centred (round 3; was a fixed 75 px whatever the size).
     text_h = max(30, round(reel_cap_height(fit_rendered)))
-    return round(total_w), text_h
+    return math.floor(total_w), text_h
 
 
 CAPTION_MIN_SIZE = 60  # px: the smallest a single over-long word shrinks to (round 2: 48 made bursts jump 33%)
@@ -1469,11 +1529,15 @@ def _caption_fit_size(phrase: Any, scale: float = 1.0, max_width: int = MAX_CAPT
     Freeze pass C4 (2026-11-04): a burst of several words takes the largest rung of the ladder FONT_SIZE (80) ->
     CAPTION_BURST_MIN_SIZE (74) -> CAPTION_BOND_MIN_SIZE (66) that fits; the phrase builder forms a burst that is
     no bond only where it fits at 74, so only bonded bursts draw at 66. A single word too long for the line shrinks
-    down to CAPTION_MIN_SIZE (and below it only as far as the safe width requires)."""
+    down to CAPTION_MIN_SIZE (and below it only as far as the safe width requires).
+    QF-87: a burst reel_caption_lines draws on two lines takes that layout's rung."""
     words = _phrase_words(phrase)
     budget = _ink_budget(max_width)
     if _caption_ink_width(words, FONT_SIZE) * scale <= budget:
         return FONT_SIZE
+    layout = reel_caption_lines(phrase) if max_width == MAX_CAPTION_WIDTH and len(words) > 1 else None
+    if layout is not None:
+        return layout[1]
     if len(words) > 1:
         for rung in (CAPTION_BURST_MIN_SIZE, CAPTION_BOND_MIN_SIZE):
             if _caption_ink_width(words, rung) * scale <= budget:
@@ -1509,19 +1573,28 @@ def _fits_caption_width(phrase: Any, max_width: int = MAX_CAPTION_WIDTH) -> bool
     """Whether a burst fits the caption width at the full caption size, as rendered (small capitals included).
     A burst that does not is never formed from more than one word: until 2026-11-02 this tested the smallest
     size (48 px), so a wide burst shrank and adjacent bursts differed in size by up to a third (caption review
-    round 2, finding 1); the pill must also stay inside the area the platforms leave free (safe_zones.REEL)."""
-    return _caption_ink_width(_phrase_words(phrase), FONT_SIZE) <= _ink_budget(max_width)
+    round 2, finding 1); the pill must also stay inside the area the platforms leave free (safe_zones.REEL).
+    QF-87: or it draws on two lines at FONT_SIZE (reel_caption_lines)."""
+    if _caption_ink_width(_phrase_words(phrase), FONT_SIZE) <= _ink_budget(max_width):
+        return True
+    layout = reel_caption_lines(phrase) if max_width == MAX_CAPTION_WIDTH else None
+    return bool(layout and layout[1] == FONT_SIZE)
 
 
 def _fits_caption_burst(phrase: Any, max_width: int = MAX_CAPTION_WIDTH) -> bool:
-    """Whether a multi-word burst fits the caption width at CAPTION_BURST_MIN_SIZE, the most a burst may shrink."""
-    return _caption_ink_width(_phrase_words(phrase), CAPTION_BURST_MIN_SIZE) <= _ink_budget(max_width)
+    """Whether a multi-word burst fits the caption width at CAPTION_BURST_MIN_SIZE, the most a burst may shrink, or
+    draws on two lines (reel_caption_lines, QF-87)."""
+    if _caption_ink_width(_phrase_words(phrase), CAPTION_BURST_MIN_SIZE) <= _ink_budget(max_width):
+        return True
+    return max_width == MAX_CAPTION_WIDTH and reel_caption_lines(phrase) is not None
 
 
 def _fits_caption_bonded(phrase: Any, max_width: int = MAX_CAPTION_WIDTH) -> bool:
     """Whether a burst no cut can divide without splitting a bond (a hedge or range with its figure) fits at
-    CAPTION_BOND_MIN_SIZE (partition_words_grammatical)."""
-    return _caption_ink_width(_phrase_words(phrase), CAPTION_BOND_MIN_SIZE) <= _ink_budget(max_width)
+    CAPTION_BOND_MIN_SIZE (partition_words_grammatical), or draws on two lines (reel_caption_lines, QF-87)."""
+    if _caption_ink_width(_phrase_words(phrase), CAPTION_BOND_MIN_SIZE) <= _ink_budget(max_width):
+        return True
+    return max_width == MAX_CAPTION_WIDTH and reel_caption_lines(phrase) is not None
 
 
 CAPTION_LADDER = (FONT_SIZE, CAPTION_BURST_MIN_SIZE, CAPTION_BOND_MIN_SIZE)   # px: the 9:16 sizes a burst draws at
@@ -1539,29 +1612,48 @@ def _two_line_clears_graphics(size: float, height: int = VIDEO_HEIGHT) -> bool:
     return two_line_top >= _caption_band_top(VIDEO_WIDTH, height)
 
 
+def _two_line_structure(shown: list[str], k: int, named: set[int]) -> tuple[int, int, int]:
+    """How a break before word k reads (lower is better; QF-87 review 1): (it splits a proper name (name_bonds), line
+    1 ends on a word that dangles (a preposition, a pre-modifier, a possessive: _dangles), line 1 is one function
+    word alone)."""
+    return ((k - 1) in named, _dangles(shown[k - 1]), k == 1 and _bare(shown[0]) in FUNCTION_WORDS)
+
+
 @lru_cache(maxsize=4096)
-def _two_line_cached(words: tuple[str, ...]) -> tuple[int, int] | None:
+def _two_line_options(words: tuple[str, ...]) -> tuple[tuple[tuple, int, int, float], ...]:
+    """Every (rank, k, rung, wider line) where a 9:16 burst may break onto two lines: line 1 the first k words, both
+    lines inside the ink budget at a CAPTION_LADDER rung whose two-line plate clears the graphics, line 1 never ending
+    on an article nor between a hedge and its figure or an atomic pair. Sorted best first: the larger rung (a caption
+    never shrinks to keep a name whole: lander ruling 2026-11-13, QF-87 round 3), then at that rung
+    (_two_line_structure) a break that keeps a proper name whole, then a line 1 that does not end on a dangling word
+    (a preposition, a pre-modifier) and is not one function word alone, then the narrower wider line, then a break
+    before a connector (OF, DE)."""
     shown = _phrase_words(list(words))
     if len(shown) < 2:
-        return None
+        return ()
+    named = name_bonds(list(shown))
+    links = _figure_bonds(list(shown))
     budget = _ink_budget()
+    out = []
     for rung in CAPTION_LADDER:
         if not _two_line_clears_graphics(rung):
             continue   # fix round 1: never above the caption band (under the graphics box); split instead
-        best: tuple[tuple[int, int], int] | None = None
         for k in range(1, len(shown)):
-            if _bare(shown[k - 1]) in _ARTICLES or _is_atomic_boundary(shown[k - 1], shown[k]) \
-                    or (k - 1) in _figure_bonds(list(shown)):
-                continue   # line 1 never ends on an article, nor between a hedge and its figure
+            if _bare(shown[k - 1]) in _ARTICLES or _is_atomic_boundary(shown[k - 1], shown[k]) or (k - 1) in links:
+                continue
             wide = max(_caption_ink_width(shown[:k], rung), _caption_ink_width(shown[k:], rung))
             if wide > budget:
                 continue
-            key = (round(wide), 0 if _bare(shown[k]) in NAME_PARTICLES else 1)   # a tie: before a connector
-            if best is None or key < best[0]:
-                best = (key, k)
-        if best is not None:
-            return best[1], rung
-    return None
+            name, dangles, lone = _two_line_structure(shown, k, named)
+            rank = (-rung, name, dangles, lone, round(wide), 0 if _bare(shown[k]) in NAME_PARTICLES else 1)
+            out.append((rank, k, rung, wide))
+    return tuple(sorted(out))
+
+
+@lru_cache(maxsize=4096)
+def _two_line_cached(words: tuple[str, ...]) -> tuple[int, int] | None:
+    options = _two_line_options(words)
+    return (options[0][1], options[0][2]) if options else None
 
 
 def _two_line_layout(words: list[Any]) -> tuple[int, int] | None:
@@ -1569,31 +1661,112 @@ def _two_line_layout(words: list[Any]) -> tuple[int, int] | None:
     the first k words, both lines' ink within the ink budget (_ink_budget) at `size`, the largest rung of
     CAPTION_LADDER where some word-boundary break fits; the break minimises the wider line. Line 1 never ends on an
     article and the break never falls inside a hedge and its figure or an atomic pair; on a tie it goes before a
-    connector (OF, DE, DELLA). None where no break fits at CAPTION_BOND_MIN_SIZE."""
+    connector (OF, DE, DELLA). None where no break fits at CAPTION_BOND_MIN_SIZE. QF-87 rounds 2-3: the break is
+    ranked by size first, then phrase structure (_two_line_options): at the largest rung where any break fits, a name,
+    a modifier and its noun, a function word and what follows stay on one line where a break there allows it."""
     raw = tuple(w if isinstance(w, str) else str(w.get("word", "")) for w in words)
     return _two_line_cached(raw)
 
 
 def reel_caption_lines(phrase: Any) -> tuple[int, int] | None:
-    """(k, size) where a 9:16 burst draws on two lines (line 1 its first k words; freeze pass N1), else None: the
-    burst is a whole proper name (name_bonds) with at most an article and one lead-in before it, too wide for one
-    line at CAPTION_BOND_MIN_SIZE, and _two_line_layout fits it. Every other burst is one line."""
-    raw = [w if isinstance(w, str) else str(w.get("word", "")) for w in (
-        phrase.split() if isinstance(phrase, str) else phrase)]
-    if len(raw) < 2 or _fits_caption_bonded(raw):
+    """(k, size) where a 9:16 burst draws on two lines (line 1 its first k words), else None.
+
+    Freeze pass N1 drew only a whole proper name this way. QF-87 (the QF-24/QF-87 layout, operator decision
+    2026-11-09): the genuine small capitals are wider than the 82% capitals they replace, so a complete bounded
+    burst too wide for one line at CAPTION_BURST_MIN_SIZE draws on two lines instead of splitting: at most
+    MAX_BURST_WORDS words and MAX_BURST_CHARS characters (a figure group CAPTION_BOND_EXTRA_WORDS/CHARS more; a whole
+    name with at most an article and one lead-in, any length), on the 80/74/66 ladder (66 only for a burst with a
+    name or a figure). The break is _two_line_layout's; a figure group whose bonds leave no such break may break
+    only before a range joiner (TO, AND, OR), a bracketed conversion or after its hedge, never between a number and
+    its unit. The rung is the largest at which both lines fit the ink budget and the plate, at its measured
+    two-line height (_caption_two_line_geometry), stays inside the caption band. Every other burst is one line."""
+    raw = tuple(w if isinstance(w, str) else str(w.get("word", "")) for w in (
+        phrase.split() if isinstance(phrase, str) else phrase))
+    return _reel_caption_lines(raw)
+
+
+@lru_cache(maxsize=8192)
+def _reel_caption_lines(raw: tuple[str, ...]) -> tuple[int, int] | None:
+    words = list(raw)
+    if len(words) < 2:
         return None
-    named = name_bonds(raw)
-    end = len(raw) - 1
-    if not _name_end_at(named, end):
+    budget = _ink_budget()
+    if _caption_ink_width(_phrase_words(words), CAPTION_BURST_MIN_SIZE) <= budget:
         return None
-    s = _name_start_of(named, end)
-    prefix = [_bare(r) for r in raw[:s]]
-    if len(prefix) > 2 or any(x not in LEAD_IN_WORDS for x in prefix) or (
-            len(prefix) == 2 and prefix[1] not in _ARTICLE_SLOT):
+    named = name_bonds(words)
+    end = len(words) - 1
+    start = _name_start_of(named, end) if _name_end_at(named, end) else len(words)
+    prefix = [_bare(w) for w in words[:start]]
+    whole_name = (start < len(words) and len(prefix) <= 2 and all(w in LEAD_IN_WORDS for w in prefix)
+                  and (len(prefix) < 2 or prefix[1] in _ARTICLE_SLOT))
+    links = _figure_bonds(words)
+    figure = any(c.isdigit() for w in words for c in w)
+    whole_figure = figure and all(k in links or _is_atomic_boundary(words[k], words[k + 1]) for k in range(end))
+    minimum = CAPTION_BOND_MIN_SIZE if whole_figure or whole_name else CAPTION_BURST_MIN_SIZE
+    extra, extra_chars = (CAPTION_BOND_EXTRA_WORDS, CAPTION_BOND_EXTRA_CHARS) if whole_figure else (0, 0)
+    if not whole_name and (len(words) > MAX_BURST_WORDS + extra
+                           or len(" ".join(words)) > MAX_BURST_CHARS + extra_chars):
         return None
-    if prefix and prefix[0] not in _ARTICLE_SLOT and _fits_caption_bonded(raw[1:]):
-        return None   # the article and the name fit one line: the lead-in is its own burst (ladder step b)
-    return _two_line_layout(raw)
+    shown = _phrase_words(words)
+    floor = CAPTION_BOND_MIN_SIZE if named or figure else CAPTION_BURST_MIN_SIZE
+
+    def plate_fits(k: int, rung: int) -> bool:
+        return _caption_two_line_geometry([shown[:k], shown[k:]], rung)[1] <= _caption_band_height()
+
+    # QF-87 rounds 2-3: the best-ranked break (the larger rung, then phrase structure, then width) whose plate the band
+    # holds, at a rung no lower than the burst's floor; a burst whose breaks all need a rung under `minimum` is no
+    # two-line burst (a whole figure group then tries its range or bracket break)
+    options = [(k, rung) for _, k, rung, _ in _two_line_options(tuple(words)) if rung >= floor and plate_fits(k, rung)]
+    if options and max(rung for _, rung in options) >= minimum:
+        return options[0]
+    split = _figure_two_line(words, minimum) if whole_figure else None
+    if split is None:
+        return None
+    for rung in CAPTION_LADDER:
+        if rung > split[1] or rung < floor:
+            continue
+        parts = [shown[:split[0]], shown[split[0]:]]
+        if max(_caption_ink_width(part, rung) for part in parts) <= budget and plate_fits(split[0], rung):
+            return split[0], rung
+    return None
+
+
+def _caption_band_height(height: int = VIDEO_HEIGHT) -> int:
+    """The tallest 9:16 plate the caption band holds: from its top (safe_zones.caption_band_top) to the plate's
+    bottom edge, CAPTION_REEL_CLEARANCE above the foot of the safe box (CAPTION_MARGIN_V)."""
+    return height - CAPTION_MARGIN_V - CAPTION_REEL_CLEARANCE - _caption_band_top(VIDEO_WIDTH, height)
+
+
+def _figure_two_line(words: list[str], minimum: int) -> tuple[int, int] | None:
+    """(k, size) for a figure group no _two_line_layout break may divide (QF-87): line 2 starts at a range joiner
+    (TO, AND, OR), a bracketed conversion or the figure after its hedge, at the largest CAPTION_LADDER rung from
+    `minimum` whose two lines both fit the ink budget and clear the graphics; the break with the narrower wider
+    line wins. A number never leaves its unit."""
+    budget = _ink_budget()
+    for rung in CAPTION_LADDER:
+        if rung < minimum or not _two_line_clears_graphics(rung):
+            continue
+        choices = []
+        for k in range(1, len(words)):
+            after_hedge = (tuple(_norm(w) for w in words[:k]) in HEDGE_PHRASES
+                           and any(c.isdigit() for c in words[k]))
+            if _norm(words[k]) not in RANGE_JOINERS and not words[k].startswith("(") and not after_hedge:
+                continue
+            wide = max(_caption_ink_width(_phrase_words(words[:k]), rung),
+                       _caption_ink_width(_phrase_words(words[k:]), rung))
+            if wide <= budget:
+                choices.append((wide, k))
+        if choices:
+            return min(choices)[1], rung
+    return None
+
+
+def _caption_display_text(word: str) -> str:
+    """A caption word as the ASS file draws it: escaped and in Unicode NFC. Display only: the transcript's words,
+    their times and the SRT/VTT sidecars keep the narration's own text. libass places a decomposed accent (E +
+    U+0301) differently from its precomposed letter (É); NFC selects the face's own accented glyph, so both
+    spellings draw the same ink, in the face's small capitals for a lower-case letter (QF-87)."""
+    return _ass_escape(unicodedata.normalize("NFC", word))
 
 
 def format_word_caption(
@@ -1608,14 +1781,15 @@ def format_word_caption(
     ease_ms: int = 0,
 ) -> str:
     """Formats a word for ASS kinetic subtitles.
-    When enable_small_caps is True, the word is upper-cased in runs (caption_runs): full size where the narration
-    has a capital (the initial of a capitalised word, an acronym), small capitals (sc_scale%) elsewhere. Stripping
-    the override tags leaves the narration's word, upper-cased.
+    When enable_small_caps is True the word keeps the narration's case and accents (NFC, _caption_display_text):
+    the caption face (font_assets.CAPTION_FAMILY) draws its lower case as Anton's own small-capital glyphs and its
+    capitals full size, so no capital outline is scaled down (QF-87; it was 82% fscx runs). Stripping the override
+    tags leaves the narration's word. Without small caps the word is upper-cased.
     With `ease_ms` > 0 the word being spoken now eases in from transparent over that many ms from the start of its
     event (round 3: it hard-cut on). Only that word: words already on the line never fade again, and no size pop
     (a \\fscx pop on one word of a centred line reflows the whole line).
     """
-    clean = _ass_escape(word)
+    clean = _caption_display_text(word)
     ease = f"{{\\alpha&HFF&\\t(0,{int(ease_ms)},\\alpha&H00&)}}" if is_spoken_now and ease_ms > 0 else ""
     # Freeze pass C11 (2026-11-04): gold is on the key term's letters and figures; its trailing punctuation is bone
     # K1: a quote mark before a gold word is bone too
@@ -1623,14 +1797,10 @@ def format_word_caption(
     if not enable_small_caps:
         out = ease + (f"{{\\c{COL_PAST}}}{lead}" if lead else "") + f"{{\\c{colour}\\fscx100\\fscy100}}{core.upper()}"
         return out + (f"{{\\c{COL_PAST}}}{tail}" if tail else "")
-    init_tag = f"\\c{colour}\\fscx100\\fscy100"
-    sc_tag = f"\\c{colour}\\fscx{sc_scale}\\fscy{sc_scale}"
-    runs = caption_runs(core, sc_scale)
     out = ease + (f"{{\\c{COL_PAST}\\fscx100\\fscy100}}{lead}" if lead else "")
-    out += "".join(f"{{{init_tag if full else sc_tag}}}{text}" for text, full in runs)
+    out += f"{{\\c{colour}\\fscx100\\fscy100}}{core}"
     if tail:
-        scale = 100 if not runs or runs[-1][1] else sc_scale
-        out += f"{{\\c{COL_PAST}\\fscx{scale}\\fscy{scale}}}{tail}"
+        out += f"{{\\c{COL_PAST}\\fscx100\\fscy100}}{tail}"
     return out
 
 
@@ -2356,9 +2526,75 @@ def caption_phrases(words: list[dict[str, Any]], emphasis: list[str] | None = No
     phrases = merge_short_bursts(partition_words_grammatical(words, bonds=bonds, base_cuts=base, loose=loose,
                                                              held_soft=_base_figure_links(words, base) & loose),
                                  _fits_caption_width, MAX_BURST_WORDS, dwell=True, dwell_fits=_fits_caption_burst, max_chars=MAX_BURST_CHARS)
-    return _rejoin_base(phrases, words, base, lambda ph: (
+    phrases = _rejoin_base(phrases, words, base, lambda ph: (
         len(ph) <= MAX_BURST_WORDS and len(" ".join(_phrase_words(ph))) <= MAX_BURST_CHARS
         and _fits_caption_burst(ph)))
+    return _two_line_phrasing(phrases, words, base)
+
+
+def _two_line_phrasing(phrases: list[list[dict[str, Any]]], words: list[dict[str, Any]],
+                       base: set[int]) -> list[list[dict[str, Any]]]:
+    """QF-87 (the QF-24/QF-87 layout, operator decision 2026-11-09): the 9:16 bursts once a burst may draw on two
+    lines (reel_caption_lines). Each change keeps every word, its time and every bond, and holds the burst caps:
+    two to MAX_BURST_WORDS words, MAX_BURST_CHARS characters, not function words only, fitting at
+    CAPTION_BURST_MIN_SIZE on one line or two.
+    1. A short sentence the round-4 phrasing (`base`) joined to what follows (NO. IT WAS) is not stranded by a
+       wider two-line neighbour: the pair is re-cut at the round-4 boundary after the sentence end instead.
+    2. Two bursts the round-4 phrasing did not cut are one again where the join holds (_rejoin_base).
+    3. A burst ending on a dangling function word (an article, a preposition: _dangles, FUNCTION_WORDS; never a
+       pre-modifier, whose noun phrase stays whole: QF-87 review 1) that is on screen for less than its
+       reading_need takes the first words of a two-line successor, where both bursts hold the caps, no bond or
+       atomic pair is split, the new end does not dangle and neither burst reads faster than
+       1 / CAPTION_READ_PER_CHAR characters a second."""
+    out = [list(p) for p in phrases if p]
+    pos = {id(w): k for k, w in enumerate(words)}
+    raw = [w["word"] for w in words]
+    protected = name_bonds(raw) | caption_bonds(words)
+
+    def allowed(chunk: list[dict[str, Any]]) -> bool:
+        return (2 <= len(chunk) <= MAX_BURST_WORDS and len(" ".join(_phrase_words(chunk))) <= MAX_BURST_CHARS
+                and not _function_only(chunk) and _fits_caption_burst(chunk))
+
+    for i in range(len(out) - 1):
+        left, right = out[i], out[i + 1]
+        cut = pos[id(left[-1])]
+        if cut in base or not _ends_sentence(left):
+            continue
+        end = min((b for b in base if b > cut), default=len(words) - 1)
+        combo = left + right
+        k = end - pos[id(combo[0])] + 1
+        if not 0 < k < len(combo) or end in protected:
+            continue
+        a, b = combo[:k], combo[k:]
+        if allowed(a) and allowed(b):
+            out[i:i + 2] = [a, b]
+    out = _rejoin_base(out, words, base, allowed)
+    max_cps = 1 / CAPTION_READ_PER_CHAR
+    for i in range(len(out) - 1):
+        left, right = out[i], out[i + 1]
+        if (not _dangles(left[-1]["word"]) or _ends_clause(left[-1]["word"])
+                or _bare(left[-1]["word"]) not in FUNCTION_WORDS):
+            continue   # review 1: only a function word end moves; a pre-modifier keeps its noun phrase (DARK GRAY)
+        show, hide, _ = burst_timings(out)[i]
+        if hide - show >= reading_need(left) or reel_caption_lines(right) is None:
+            continue
+        for take in range(1, len(right) - 1):
+            a, b = left + right[:take], right[take:]
+            cut = pos[id(a[-1])]
+            if (not allowed(a) or not allowed(b) or cut in protected or _dangles(a[-1]["word"])
+                    or _is_atomic_boundary(a[-1]["word"], b[0]["word"])):
+                continue
+            trial = out[:i] + [a, b] + out[i + 2:]
+            timing = burst_timings(trial)
+            cps = [len(" ".join(_phrase_words(trial[q]))) / max(0.01, timing[q][1] - timing[q][0])
+                   for q in (i, i + 1)]
+            if max(cps) > max_cps:
+                continue
+            out = trial
+            break
+    if [w for p in out for w in p] != words:
+        raise RuntimeError("caption phrasing lost or reordered a word")
+    return out
 
 
 def caption_cut_times(durations: list[float]) -> list[float]:
@@ -3785,7 +4021,7 @@ class VideoComposer:
            hedge with it). 16:9: each burst is shown whole and still, bone with its key term gold (round 3: a
            documentary is read in sentences, not word by word). A burst shows two frames before its first word and
            leaves soon after its last across a pause (burst_timings).
-        5. 9:16: Small Caps typography following the narration's capitals (caption_runs).
+        5. 9:16: Genuine small-cap glyphs, preserving the narration's case and accents.
         While a graphic is on screen (`graphic_intervals`) the captions carry no gold: one gold event at a time.
         Round 4: no burst splits a hedge from its figure or term, or a range (caption_bonds); a 16:9 burst carries
         one gold span (single_gold_span); with `first_frame_whole` a Reel's first burst is whole from frame 0 when
@@ -3797,12 +4033,23 @@ class VideoComposer:
         Freeze pass G1: with `graphic_clips` ((start, end, clip) as caption_graphic_clips reads them), a 9:16 burst
         over a graphic whose text reaches into its plate (graphic_caption_intrusion) draws its plate near-opaque
         (CAPTION_GUARD_ALPHA); each is listed in self.last_caption_graphic_overlap and logged as a warning.
-        Supports both 9:16 vertical (Reels) and 16:9 widescreen (Documentaries: one Montserrat Bold line).
+        Supports both 9:16 vertical (Reels) and 16:9 widescreen (Documentaries: one Montserrat Bold line, in the
+        static 700 instance derived from the one Montserrat source, font_assets.WIDE_FAMILY). Either derived face is
+        embedded in the ASS file ([Fonts]), so libass draws it without an installed font.
         """
+        from .font_assets import (
+            DERIVED_FAMILIES,
+            WIDE_FAMILY,
+            ass_embedded_font,
+            derived_font,
+        )
         from .typography import get_font
         is_widescreen = width > height
+        caption_family = WIDE_FAMILY if is_widescreen else _caption_family()
         # QF-94: a word no bundled face draws is on the review card under "captions" (libass draws it)
-        _record_caption_faces(words, CAPTION_WIDE_FONT if is_widescreen else FONT_NAME, upper=not is_widescreen)
+        _record_caption_faces(words, caption_family, upper=not is_widescreen and not CAPTION_SMALL_CAPS)
+        # the face the captions are measured in (typography.get_font: derived from the bundled fonts), embedded
+        embedded_font = derived_font(caption_family) if caption_family in DERIVED_FAMILIES else None
         if is_widescreen:
             eff_margin_v = margin_v if margin_v is not None else round(CAPTION_WIDE_MARGIN_V * height / 1080)
         else:
@@ -3818,17 +4065,19 @@ class VideoComposer:
             badge_px = round(RECON_SIZE_WIDE * height / 1080)
             badge_fs = ass_font_size(RECON_FONT, badge_px, 600)
             styles = (
-                f"Style: CapText,{CAPTION_WIDE_FONT},{wide_fs},{COL_PAST},&H000000FF,&H00000000,&H00000000,-1,0,0,0,100,100,0,0,1,0,0,5,0,0,0,1\n"
-                f"Style: CapBox,{CAPTION_WIDE_FONT},{wide_fs},{COL_BACK},&H000000FF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,7,0,0,0,1\n"
+                f"Style: CapText,{caption_family},{wide_fs},{COL_PAST},&H000000FF,&H00000000,&H00000000,-1,0,0,0,100,100,0,0,1,0,0,5,0,0,0,1\n"
+                f"Style: CapBox,{caption_family},{wide_fs},{COL_BACK},&H000000FF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,7,0,0,0,1\n"
                 f"Style: ReconBadge,{RECON_FONT},{badge_fs},{COL_ACTIVE},&H000000FF,&H00000000,&H00000000,-1,0,0,0,100,100,1.5,0,1,0,0,7,0,0,0,1\n"
                 f"Style: ReconPlate,{RECON_FONT},{badge_fs},{recon_plate},&H000000FF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,7,0,0,0,1\n"
             )
         else:
             badge_px = RECON_SIZE_PORTRAIT
             badge_fs = ass_font_size(RECON_FONT, badge_px, 600)
+            # CapText Bold 0 (QF-87): Anton has one weight (400); Bold -1 asked libass for 700, and libass thickened
+            # the outlines synthetically (about 10% more ink than the face draws). The caption face draws as designed.
             styles = (
-                f"Style: CapText,{FONT_NAME},{FONT_SIZE_ASS},{COL_PAST},&H000000FF,&H00000000,&H00000000,-1,0,0,0,100,100,{REEL_LETTER_SPACING:g},0,1,0,0,5,0,0,0,1\n"
-                f"Style: CapBox,{FONT_NAME},{FONT_SIZE_ASS},{COL_BACK},&H000000FF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,7,0,0,0,1\n"
+                f"Style: CapText,{caption_family},{FONT_SIZE_ASS},{COL_PAST},&H000000FF,&H00000000,&H00000000,0,0,0,0,100,100,{REEL_LETTER_SPACING:g},0,1,0,0,5,0,0,0,1\n"
+                f"Style: CapBox,{caption_family},{FONT_SIZE_ASS},{COL_BACK},&H000000FF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,7,0,0,0,1\n"
                 f"Style: ReconBadge,{RECON_FONT},{badge_fs},{COL_ACTIVE},&H000000FF,&H00000000,&H00000000,-1,0,0,0,100,100,1.5,0,1,0,0,7,0,0,0,1\n"
                 f"Style: ReconPlate,{RECON_FONT},{badge_fs},{recon_plate},&H000000FF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,7,0,0,0,1\n"
             )
@@ -3898,7 +4147,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                 size_tag = f"{{\\fs{ass_size}}}" if fit < FONT_SIZE else ""
                 if lines:
                     parts = [shown[:lines[0]], shown[lines[0]:]]
-                    text_w = round(max(_caption_ink_width(pw, fit) for pw in parts))
+                    text_w = math.floor(max(_caption_ink_width(pw, fit) for pw in parts))   # as measure_caption_phrase
                     cap_h = max(30, round(reel_cap_height(fit)))
                 else:
                     text_w, cap_h = measure_caption_phrase(phrase, fit, CAPTION_SC_SCALE)
@@ -3914,17 +4163,17 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                 box_y = height - eff_margin_v - CAPTION_REEL_CLEARANCE - box_h
                 # \an5 centres the line box (ass_size tall) on \pos; the line is capitals, so the cap band (cap top to
                 # baseline) is centred in the plate (round 3: optically centred, was a fixed 7.5 px nudge).
-                _, asc, desc = _font_vmetrics(FONT_NAME)
+                _, asc, desc = _font_vmetrics(caption_family)
                 baseline = asc * ass_size / (asc + desc)
                 ink_mid = (baseline - cap_h / 2) - ass_size / 2
                 center_y = round(box_y + box_h / 2 - ink_mid)
                 if lines:
-                    # Two lines (N1): the plate grows upward from the one-line plate's bottom edge by the baseline
-                    # pitch; line 2 sits where a one-line burst would, line 1 a pitch above; each line's ink is
-                    # centred on the plate's centre
-                    pitch = round(CAPTION_TWO_LINE_PITCH_EM * reel_cap_height(fit))
-                    box_y -= pitch
-                    box_h += pitch
+                    # Two lines (N1; QF-87): the plate grows upward from the one-line plate's bottom edge to hold the
+                    # two lines' measured ink, their baselines a pitch apart (_caption_two_line_geometry); each
+                    # line's ink is centred on the plate's centre
+                    pitch, box_h, lower_offset = _caption_two_line_geometry(parts, fit)
+                    box_y = height - eff_margin_v - CAPTION_REEL_CLEARANCE - box_h
+                    center_y = round(box_y + box_h + lower_offset)
                     two = {"k": lines[0], "y": [center_y - pitch, center_y],
                            "dx": [_caption_ink_offset(pw, fit) for pw in parts]}
             in_graphic = any(show < b and hide > a for a, b in graphic_spans)
@@ -4069,6 +4318,8 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         # Sort all events chronologically (layer 0 background pill always appears under layer 1 text)
         raw_events.sort(key=lambda e: (e[1], e[0]))
 
+        if embedded_font:
+            header = header.replace("[Events]", ass_embedded_font(embedded_font) + "\n[Events]")
         lines = [header]
         for layer, ts, te, style, txt in raw_events:
             ts, te = ts + timeline_offset_s, te + timeline_offset_s
@@ -4309,12 +4560,20 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         width, height = profile.width, profile.height
         from .checkpoints import file_inputs, fingerprint
         from .credits import sha256_file
-        from .typography import FALLBACK_FILES, FONT_FILES
+        from .font_assets import DERIVED_FAMILIES, WIDE_FAMILY, derived_font
+        from .typography import bundled_font_files, font_file
         extra_sources = [opening_card] if opening_card else []
         source_inputs = file_inputs([*scene_images, vo_path, bed_path, *extra_sources])
-        # the fallback faces a still may set a field in (QF-94) are sources too, with their licence evidence
-        font_inputs = file_inputs([self.fonts_dir / filename for filename in FONT_FILES.values()]
-                                  + [self.fonts_dir / f for f in FALLBACK_FILES.values() if (self.fonts_dir / f).is_file()])
+        caption_family = WIDE_FAMILY if width > height else _caption_family()
+        try:
+            derived_caption = (derived_font(caption_family, self.fonts_dir) if caption_family in DERIVED_FAMILIES
+                               else self.fonts_dir / font_file(caption_family))
+        except (OSError, ValueError) as exc:
+            raise RenderError("Captions would not draw in the bundled font: " + str(exc)) from exc
+        # every bundled face (the fallback faces a still may set a field in, QF-94, among them) and the caption
+        # face libass draws (QF-87: derived from a bundled source) are sources, with their licence evidence
+        font_inputs = file_inputs([*(self.fonts_dir / f for f in bundled_font_files() if (self.fonts_dir / f).is_file()),
+                                   derived_caption])
         if not all(source_inputs.values()) or not all(font_inputs.values()):
             raise RenderError("Render sources and bundled fonts must exist")
 
@@ -4373,8 +4632,8 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         caption_overlap = list(getattr(self, "last_caption_graphic_overlap", []) or [])
         # The caption plates are measured in the bundled font; burn them in only if libass draws that font
         # (round 3: with only Montserrat-Variable.ttf bundled, the 16:9 line drew in Inter and ran off its plate).
-        caption_font = (CAPTION_WIDE_FONT, 700) if width > height else (FONT_NAME, 400)
-        font_problems = libass_font_problems(self.fonts_dir, [caption_font])
+        caption_font = (caption_family, 700 if width > height else 400)
+        font_problems = libass_font_problems(self.fonts_dir, [caption_font], [derived_caption])
         if font_problems:
             raise RenderError("Captions would not draw in the bundled font: " + "; ".join(font_problems))
         from . import end_card as card_mod

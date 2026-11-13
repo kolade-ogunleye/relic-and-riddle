@@ -1,0 +1,32 @@
+{
+ "01_commons": {
+  "masthead": {
+   "shown": false,
+   "cap_124": 5.2,
+   "reason": "under 9 px cap height at profile-grid size"
+  },
+  "brand_cap_124": null,
+  "hook_fails": [],
+  "position": "normal"
+ },
+ "02_commons": {
+  "masthead": {
+   "shown": false,
+   "cap_124": 5.2,
+   "reason": "under 9 px cap height at profile-grid size"
+  },
+  "brand_cap_124": null,
+  "hook_fails": [],
+  "position": "normal"
+ },
+ "05_commons": {
+  "masthead": {
+   "shown": false,
+   "cap_124": 5.2,
+   "reason": "under 9 px cap height at profile-grid size"
+  },
+  "brand_cap_124": null,
+  "hook_fails": [],
+  "position": "normal"
+ }
+}

@@ -763,6 +763,10 @@ CAPTION_INK_FIT_PAD = 28
 # Freeze pass round 2 (2026-11-04), fixed values. A 9:16 name too wide for one line at CAPTION_BOND_MIN_SIZE draws on
 # two lines whose baselines are CAPTION_TWO_LINE_PITCH_EM x the cap height apart (operator decision N1).
 CAPTION_TWO_LINE_PITCH_EM = 1.30
+# QF-24/QF-87 layout (operator decision 2026-11-09): a bounded burst (at most MAX_BURST_WORDS words, its bonds kept)
+# too wide for one line at CAPTION_BURST_MIN_SIZE may draw on two lines inside the caption band. The two lines' measured
+# ink stays at least CAPTION_TWO_LINE_INK_GAP px apart (the pitch grows past CAPTION_TWO_LINE_PITCH_EM when it must).
+CAPTION_TWO_LINE_INK_GAP = 10
 # P1: after clause or sentence punctuation, a silence of CAPTION_PAUSE_BREAK_S or more is a hard burst break; without
 # punctuation, a break at a silence of CAPTION_PAUSE_SOFT_S or more is rewarded.
 CAPTION_PAUSE_BREAK_S = 0.30

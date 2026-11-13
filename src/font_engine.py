@@ -521,6 +521,33 @@ def _glyph_font(path: str, size: float, variations: tuple[tuple[str, float], ...
     return font
 
 
+@lru_cache(maxsize=2048)
+def _glyph_ink(path: str, size: float, variations: tuple[tuple[str, float], ...], index: int):
+    """The rasterised ink box of glyph `index` (shaping has already chosen it), relative to its origin on the
+    baseline; None for a glyph with no ink (a space)."""
+    font = _glyph_font(path, size, variations)
+    features = ["-" + tag for tag in sorted(inspect_font(path).features)]
+    mask, offset = font.getmask2(chr(_GLYPH_CODEPOINT + index), anchor="ls", features=features)
+    box = mask.getbbox()
+    return None if box is None else (offset[0] + box[0], offset[1] + box[1],
+                                     offset[0] + box[2], offset[1] + box[3])
+
+
+def run_ink_bounds(run: GlyphRun, font):
+    """The ink box of a shaped run in `font` (left, top, right, bottom; baseline at y 0), from each chosen glyph's
+    own raster at its shaped position, so a long line is measured without rasterising it whole; None when the run
+    has no ink."""
+    boxes = []
+    for glyph in run.glyphs:
+        box = _glyph_ink(str(font.path), raster_px(font), getattr(font, "_rr_variations", ()), glyph.index)
+        if box is not None:
+            boxes.append((box[0] + glyph.x, box[1] - glyph.y, box[2] + glyph.x, box[3] - glyph.y))
+    if not boxes:
+        return None
+    return (min(box[0] for box in boxes), min(box[1] for box in boxes),
+            max(box[2] for box in boxes), max(box[3] for box in boxes))
+
+
 def draw_run(draw, xy, text: str, font, fill, anchor="la", tracking=0, stroke=0, stroke_fill=None, features=None):
     """Draws `text` as shape() measures it at `xy` (a Pillow anchor) and returns the drawn box (stroke included).
 

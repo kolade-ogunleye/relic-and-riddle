@@ -127,7 +127,9 @@ def test_small_caps_keep_the_letter_after_an_apostrophe_small():
     import re
     tag = format_word_caption("Kailasa's", "&HFFFFFF&", False, False, False)
     pieces = re.findall(r"fscx(\d+)\\fscy\d+\}([^{]*)", tag)
-    assert pieces == [("100", "K"), ("82", "AILASA'S")]                      # one initial, the rest small
-    assert "fscy100}S" not in tag
+    # QF-87 (decision QF-24/QF-87 layout, 2026-11-09): one run, the narration's own letters, at full scale: the caption
+    # face draws the lower case after the apostrophe as a small capital like the rest (was K + 82% AILASA'S)
+    assert pieces == [("100", "Kailasa's")]
+    assert "fscx82" not in tag
     plain = format_word_caption("BC", "&HFFFFFF&", False, False, False)
     assert "BC" in plain and "fscx82" not in plain                            # acronyms stay full size

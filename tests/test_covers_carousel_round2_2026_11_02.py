@@ -88,9 +88,9 @@ def test_monument_sets_two_remaining_title_lines_bone_then_gold() -> None:
 
 def test_minimal_spaces_masthead_eyebrow_and_title_ink_to_ink() -> None:
     _, lay = _cover(GUMBAZ, "minimal")
-    brand_box = _el(lay, "brand")["box"]
+    # QF-87 (row rule: a profile-grid masthead is 9 px cap height at 124 px or absent): at BRAND_PX it is 5.2 px, so a cover draws none and lay.meta['masthead'] says why; the eyebrow-to-title gap holds (was: the masthead's foot to the eyebrow's caps MINIMAL_GAPS[0] too)
+    assert not any(e["name"] == "brand" for e in lay.elements) and lay.meta["masthead"]["shown"] is False
     eyebrow, title = _el(lay, "eyebrow")["box"], _el(lay, "title_1")["box"]
-    assert abs((eyebrow[1] - brand_box[3]) - MINIMAL_GAPS[0]) <= 3
     assert abs((title[1] - eyebrow[3]) - MINIMAL_GAPS[1]) <= 3
 
 

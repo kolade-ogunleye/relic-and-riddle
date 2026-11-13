@@ -1191,11 +1191,15 @@ def test_limiter_window_stops_at_clause():
 
 
 def test_hook_masthead_planned_at_hook_target(photos):
-    """Round 2 review 6: the masthead plans 5.1 like every other hook line."""
+    """Round 2 review 6: the masthead plans 5.1 like every other hook line. QF-87 (lander ruling 2026-11-13: the row's rule 'masthead >= 9 px at the 124 px tile or absent' reaches the hook frame): the 64 px masthead is 5.2 px there, so the card draws none and lay.meta['masthead'] says why; every line drawn plans 5.1 (was:
+    the masthead's plate among them)."""
+    assert not dc.hook_masthead_shown()
     for kind in ("warm", "sky", "noise", "dark"):
         plan = dc.plan_hook_frame(hook(photos[kind], eyebrow="The Richat ring"), SHEET)
-        brand_p = dict(plan.meta["_contrast"])["brand"]
-        assert brand_p.contrast >= dc.HOOK_TARGET == 5.1, (kind, brand_p.contrast)
+        assert "brand" not in dict(plan.meta["_contrast"]) and plan.meta["masthead"]["shown"] is False
+        assert plan.meta["masthead"]["cap_124"] < 9 and plan.meta["grid_proof"]["hook_fails"] == []
+        for name, p in plan.meta["_contrast"]:
+            assert p.contrast >= dc.HOOK_TARGET == 5.1, (kind, name, p.contrast)
 
 
 def test_qualifier_rewraps_instead_of_refusing():
@@ -1294,7 +1298,8 @@ def test_hook_scrim_sized_to_the_ground(tmp_path, photos):
             sc = plan.meta["scrim"]
             assert sc["mode"] == "plate" and sc["strength"] in dc.HOOK_PLATE_STEPS, (name, sc)
             assert sc["halo"] <= dc.HOOK_GLOW_MAX and sc.get("eyebrow_patch", 0.0) == 0.0, (name, sc)
-            assert plan.meta["mast_band"]["strength"] in dc.HOOK_PLATE_STEPS, (name, plan.meta["mast_band"])
+            # QF-87 (lander ruling 2026-11-13: the row's rule 'masthead >= 9 px at the 124 px tile or absent' reaches the hook frame): the 64 px masthead is 5.2 px there, so the card draws none and lay.meta['masthead'] says why (was: the masthead's band strength in HOOK_PLATE_STEPS)
+            assert plan.meta["mast_band"] is None and plan.meta["masthead"]["shown"] is False
             for n, p in plan.meta["_contrast"]:
                 assert p.contrast >= 5.1, (name, n, p.contrast)
             g0 = np.asarray(plan.meta["_ground0"]).astype(float)
@@ -1332,7 +1337,8 @@ def test_hook_diamond_stays_visible(tmp_path, photos):
     grounds = _sky_and_yellow(tmp_path)
     for path in (grounds["yellow"], grounds["sky"], photos["warm"], photos["dark"]):
         plan = dc.plan_hook_frame(hook(path), SHEET)
-        assert plan.meta["diamond_contrast"] >= 3.0, (path, plan.meta["diamond_contrast"])
+        # QF-87 (lander ruling 2026-11-13: the row's rule 'masthead >= 9 px at the 124 px tile or absent' reaches the hook frame): the 64 px masthead is 5.2 px there, so the card draws none and lay.meta['masthead'] says why: no diamond is drawn, so none is measured (was >= 3.0)
+        assert plan.meta["diamond_contrast"] is None and not any(e.name == "brand_mark" for e in plan.elements)
 
 
 # ------------------------------------------------------------------------------------------------ round 3 review fixes
@@ -1532,7 +1538,7 @@ def test_hook_halos_drawn_under_every_line(tmp_path, photos):
         jumps = set(np.nonzero(np.abs(np.diff(a, axis=0)).max(axis=1) > 24)[0])
         if plan.meta["scrim"]["mode"] == "plate":
             y0, y1 = plan.meta["scrim"]["plate"]
-            mb = plan.meta["mast_band"]["band"]
+            mb = (plan.meta["mast_band"] or {}).get("band", [])   # QF-87: no masthead band without a masthead
             edges = {y for e in (y0, y1, *mb) for y in range(e - 2, e + 2)}
             jumps -= edges
         assert not jumps, (path, sorted(jumps)[:10])

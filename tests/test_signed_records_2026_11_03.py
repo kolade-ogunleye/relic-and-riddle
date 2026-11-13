@@ -502,12 +502,12 @@ def test_the_bright_hook_panel_is_evenly_padded_centred_and_has_no_foot_rule(tmp
         y0, y1 = plan.meta["scrim"]["plate"]
         els = {e.name: e for e in plan.elements}
         titles = [e.box for n, e in els.items() if n.startswith("title_")]
-        assert els["brand"].box[1] - y0 == dc.HOOK_PLATE_AIR, rgb
+        # QF-87 (lander ruling 2026-11-13: the hook frame draws no masthead under 9 px at the tile): the panel holds the
+        # claim alone with HOOK_PLATE_AIR above its first ink and below its last (was: above the masthead's ink)
+        assert "brand" not in els and "brand_mark" not in els
+        assert min(b[1] for b in titles) - y0 == dc.HOOK_PLATE_AIR, rgb
         assert abs((y1 - max(b[3] for b in titles)) - dc.HOOK_PLATE_AIR) <= 1, rgb
-        # centred on the masthead's axis: QF-24 (decision QF-24/QF-87 layout, 2026-11-13 (d)), the organic Reel box's
-        # axis, x 480 (dc.HOOK_CENTRE_X), with the masthead inside the box; x 540 on the ads box
-        mast = (els["brand_mark"].box[0], els["brand"].box[2])
-        assert abs((mast[0] + mast[1]) / 2 - dc.HOOK_CENTRE_X) <= 3 and dc.TALL_LEFT <= mast[0] and mast[1] <= dc.TALL_RIGHT
+        # QF-24 (decision QF-24/QF-87 layout, 2026-11-13 (d)): the organic Reel box's axis, x 480 (dc.HOOK_CENTRE_X)
         for b in titles:
             assert abs((b[0] + b[2]) / 2 - dc.HOOK_CENTRE_X) <= 3 and dc.HOOK_CENTRE_X == 480, (rgb, b)
         assert "rule" not in plan.meta["scrim"]
@@ -523,10 +523,13 @@ def test_a_bright_hook_has_one_plate_from_the_masthead_to_the_claim(tmp_path):
         photo = _photo(tmp_path / f"{rgb[0]}.jpg", rgb)
         plan = dc.plan_hook_frame(dc.HookFrame("Astronauts see it from orbit", ("orb",), photo, "",
                                                claim_src=dc.CardRef("statements", "S")), s)
-        sc, band = plan.meta["scrim"], plan.meta["mast_band"]
-        assert sc["mode"] == "plate" and band.get("on_plate") and plan.meta["anchors"]["position"] == "plate"
+        sc = plan.meta["scrim"]
+        # QF-87 (lander ruling 2026-11-13): no masthead, so no masthead band; the one plate holds the claim (was: from
+        # the masthead's band to the claim)
+        assert plan.meta["mast_band"] is None and plan.meta["masthead"]["shown"] is False
+        assert sc["mode"] == "plate" and plan.meta["anchors"]["position"] == "plate"
         y0, y1 = sc["plate"]
-        assert y0 <= band["band"][0] and y1 >= plan.meta["anchors"]["L"]       # one plate holds both
+        assert y1 >= plan.meta["anchors"]["L"]
         a = np.asarray(plan.meta["_r"]["under"].getchannel("A")).astype(int)[:, 540]
         assert (a[y0 + 2:y1 - 2] > 230).all()                                   # no bright gap inside it
         g0 = np.asarray(plan.meta["_ground0"]).astype(float)[y0 + 20:y1 - 20].mean(axis=(0, 1))

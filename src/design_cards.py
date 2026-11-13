@@ -51,6 +51,8 @@ from .config import CAPTION_READ_BASE, CAPTION_READ_PER_CHAR, VIDEO_FPS
 from .cover_design import (
     EYEBROW_PX,
     EYEBROW_TRACK,
+    GRID_SCALE,
+    MASTHEAD_GRID_CAP,
     QUALIFIERS,
     _brand,
     _provenance,
@@ -177,6 +179,14 @@ MASTHEAD_FOOT_PAD = 14      # freeze panel H6: the disclosure's top stays this f
 # freeze panel H6 (2), declined: a 44 px hook masthead fails the profile-grid gate (grid_proof: its cap draws 3.6 px at
 # the 124 px tile, floor 5), so the hook keeps the covers' 64 px masthead; only its foot is re-measured here
 HOOK_BRAND_PX = 64
+
+
+def hook_masthead_shown() -> bool:
+    """QF-87 (lander ruling 2026-11-13: the row's rule reaches the Reel's first frame): the hook frame draws its
+    masthead only at cover_design.MASTHEAD_GRID_CAP px cap height at the 124 px profile-grid tile, else none (the
+    64 px masthead is 5.2 px there). The card is never refused for it; its geometry is unchanged without it."""
+    cap = -get_font("Cinzel", HOOK_BRAND_PX, weight=700).getbbox("H", anchor="ls")[1]
+    return cap * GRID_SCALE[0] >= MASTHEAD_GRID_CAP
 HOOK_PLATE_FEATHER = 64     # freeze panel H6 (4): design px over which the plate's top and bottom edges feather
 EYEBROW_SCRIM_AIR = 56      # design px: the hook's wash is flat from this far above the eyebrow rule
 RULE_HALO_PX = 12           # the eyebrow rule's INK halo: its feather past the measuring band
@@ -3703,7 +3713,9 @@ def _hook_scrim(bg: Image.Image, box: Sequence[float], rows: Sequence[tuple],
     if lum >= HOOK_PLATE_LUM:
         y0, y1 = box[1] - HOOK_PLATE_PAD[0], box[3] + HOOK_PLATE_PAD[1]
         if plate_top is not None:
-            y0 = min(y0, plate_top)       # one panel from the masthead down (no second strip, no gap)
+            # one panel from the masthead down (no second strip, no gap); with `plate_bottom` (the designed, evenly
+            # padded panel) the top is exactly `plate_top` (QF-87: with no masthead, HOOK_PLATE_AIR above the block)
+            y0 = plate_top if plate_bottom is not None else min(y0, plate_top)
         if plate_bottom is not None:
             y1 = plate_bottom             # the claim's ink foot plus the same air as above the masthead
         for i, st in enumerate(HOOK_PLATE_STEPS):
@@ -4041,7 +4053,13 @@ def plan_hook_frame(spec: HookFrame, sheet: dict, width: int = 1080, height: int
     centred = on_plate                   # operator 2026-11-04: the panel centred again (the rework's flush left undone)
     # freeze panel H3: one alignment axis per position: flush left at TALL_LEFT on the wash (the masthead's mark too),
     # all centred on the plate. The masthead's geometry and layout record; its plate is re-planned at HOOK_TARGET
-    _brand(bg.copy(), lay, left=None if centred else TALL_LEFT, centre=cx)
+    mast_shown = hook_masthead_shown()
+    if mast_shown:
+        _brand(bg.copy(), lay, left=None if centred else TALL_LEFT, centre=cx)
+    else:
+        cap = -get_font("Cinzel", HOOK_BRAND_PX, weight=700).getbbox("H", anchor="ls")[1]
+        lay.meta["masthead"] = {"shown": False, "cap_124": round(cap * GRID_SCALE[0], 1),
+                                "reason": f"under {MASTHEAD_GRID_CAP} px cap height at profile-grid size"}
     xs = [line_x(ln, centred) for ln in lines]
     eb_x = round(cx - eb_w / 2) if centred else TALL_LEFT
     gold_ks, gold_from = _hook_gold_lines(lines, t)
@@ -4060,11 +4078,20 @@ def plan_hook_frame(spec: HookFrame, sheet: dict, width: int = 1080, height: int
     # with an eyebrow the scrim starts EYEBROW_SCRIM_AIR above its rule (round 1 review 6: 24 px left the GOLD rule
     # on the scrim's soft edge, 1.7-2.5 on bright, white and busy photos)
     scrim_box = (76, block_top - (EYEBROW_SCRIM_AIR if eyebrow else 24), 908, L + 30)
-    mast_top = _mast_band(lay.meta["plates"]["brand"][0])[0] - MAST_PLATE_PAD
     plate_bottom = None
     if on_plate:   # the same air above the masthead's ink and below the claim's ink (review 2026-11-03, round 4)
-        mast_top = lay.meta["plates"]["brand"][0].box[1] - HOOK_PLATE_AIR
         plate_bottom = max(b + _ink(ln, f_claim)[3] for ln, b in zip(lines, geo["baselines"])) + HOOK_PLATE_AIR
+    if mast_shown:
+        mast_top = _mast_band(lay.meta["plates"]["brand"][0])[0] - MAST_PLATE_PAD
+        if on_plate:
+            mast_top = lay.meta["plates"]["brand"][0].box[1] - HOOK_PLATE_AIR
+    elif on_plate:  # QF-87: no masthead: the panel holds the claim block alone, HOOK_PLATE_AIR above its first ink
+        ink_top = min(b + _ink(ln, f_claim)[1] for ln, b in zip(lines, geo["baselines"]))
+        if eyebrow:
+            ink_top = min(ink_top, geo["E"] - 46)        # the eyebrow's GOLD rule is the block's first ink
+        mast_top = ink_top - HOOK_PLATE_AIR
+    else:
+        mast_top = None
     under, scrim_rec = _hook_scrim(bg, scrim_box, rows, eb_row, eb_box, plate_top=mast_top,
                                    plate_bottom=plate_bottom, feather=HOOK_PLATE_FEATHER)
     # freeze panel H5: a warm, saturated ground under the block gets a soft radial INK scrim behind it
@@ -4077,9 +4104,11 @@ def plan_hook_frame(spec: HookFrame, sheet: dict, width: int = 1080, height: int
         under = Image.alpha_composite(radial, under)
     scrim_rec["radial"] = {"hue": round(hue, 1), "saturation": round(sat_, 1), "applied": radial is not None}
     shared = scrim_rec["strength"] if scrim_rec.get("mode") == "plate" else None
-    under, brand_plate, band_rec = _hook_masthead(bg, under, lay.meta["plates"]["brand"][0],
-                                                  crisp=scrim_rec.get("mode") == "plate", on_plate=shared)
-    lay.meta["plates"]["brand"] = [brand_plate]
+    brand_plate, band_rec, diamond = None, None, None
+    if mast_shown:
+        under, brand_plate, band_rec = _hook_masthead(bg, under, lay.meta["plates"]["brand"][0],
+                                                      crisp=scrim_rec.get("mode") == "plate", on_plate=shared)
+        lay.meta["plates"]["brand"] = [brand_plate]
     rule = None
     if eyebrow:
         E = geo["E"]
@@ -4087,32 +4116,35 @@ def plan_hook_frame(spec: HookFrame, sheet: dict, width: int = 1080, height: int
         under = _rule_halo(bg, under, rule)
     # the masthead's GOLD diamond: the lighter band no longer darkens it on a yellow wall, so it gets the eyebrow
     # rule's measured soft INK halo, the least that brings its box to NONTEXT_MIN (none on most grounds)
-    mark_box = next(e["box"] for e in lay.elements if e["name"] == "brand_mark")
-    cx, cy = (mark_box[0] + mark_box[2]) / 2, (mark_box[1] + mark_box[3]) / 2
-    r = (mark_box[2] - mark_box[0]) / 2
-    diamond = [(cx, cy - r), (cx + r, cy), (cx, cy + r), (cx - r, cy)]
-    under = _rule_halo(bg, under, [round(v) for v in mark_box], shape=diamond)
+    if mast_shown:
+        mark_box = next(e["box"] for e in lay.elements if e["name"] == "brand_mark")
+        mcx, mcy = (mark_box[0] + mark_box[2]) / 2, (mark_box[1] + mark_box[3]) / 2
+        r = (mark_box[2] - mark_box[0]) / 2
+        diamond = [(mcx, mcy - r), (mcx + r, mcy), (mcx, mcy + r), (mcx - r, mcy)]
+        under = _rule_halo(bg, under, [round(v) for v in mark_box], shape=diamond)
     ground0 = Image.alpha_composite(bg.convert("RGBA"), under).convert("RGB")
-    if brand_plate.contrast is None or brand_plate.contrast < HOOK_TARGET:
+    if mast_shown and (brand_plate.contrast is None or brand_plate.contrast < HOOK_TARGET):
         raise CardRefused(f"the masthead reaches only {brand_plate.contrast} against {HOOK_TARGET}")
     # two mark layers: `marks` under the plates (the disclosure's INK plate, which its text sits on) and `top` over
     # them (the diamond and the eyebrow rule: a neighbouring plate's INK halo would otherwise dim them)
     marks = Image.new("RGBA", size, (0, 0, 0, 0))
     top = Image.new("RGBA", size, (0, 0, 0, 0))
     md, td = ImageDraw.Draw(marks), ImageDraw.Draw(top)
-    td.polygon(diamond, outline=INK + (255,), width=3)
-    td.polygon(diamond, fill=GOLD + (255,))
+    if diamond:
+        td.polygon(diamond, outline=INK + (255,), width=3)
+        td.polygon(diamond, fill=GOLD + (255,))
     # no GOLD rule along the panel's foot (review 2026-11-03, round 4: it vanished against a yellow wall); the
     # panel's accents are the diamond and the GOLD last line, both on the INK
     card = _Card("hook", _Geo(width, height), ground0, target=HOOK_TARGET)
     hook = ("hook",)
-    card._el("brand", "text", brand_plate.text, "Cinzel", 700, brand_plate.font.size, BONE, brand_plate.xy, "lt",
-             brand_plate.track,
-             brand_plate.box, hook)
-    card.roles["brand"], card.drawn["brand"] = "masthead", brand_plate.text
-    card._el("brand_mark", "mark", "", "", None, 0, GOLD, (cx, cy), "", 0.0, tuple(mark_box), hook)
-    card.roles["brand_mark"] = "mark"
-    plates: list[Any] = [brand_plate]
+    plates: list[Any] = []
+    if mast_shown:
+        card._el("brand", "text", brand_plate.text, "Cinzel", 700, brand_plate.font.size, BONE, brand_plate.xy,
+                 "lt", brand_plate.track, brand_plate.box, hook)
+        card.roles["brand"], card.drawn["brand"] = "masthead", brand_plate.text
+        card._el("brand_mark", "mark", "", "", None, 0, GOLD, (mcx, mcy), "", 0.0, tuple(mark_box), hook)
+        card.roles["brand_mark"] = "mark"
+        plates.append(brand_plate)
     lay_plates: dict[str, list] = {"title_1": [], "title_2": []}
     if rule:
         E = geo["E"]
@@ -4135,14 +4167,14 @@ def plan_hook_frame(spec: HookFrame, sheet: dict, width: int = 1080, height: int
             lay_plates["title_2" if p.fill == GOLD else "title_1"].append(p)
     if not lay_plates["title_2"]:
         del lay_plates["title_2"]
-    lay.meta["plates"].update(lay_plates)
+    lay.meta.setdefault("plates", {}).update(lay_plates)
     prov = None
     if spec.photo_kind == "generated":
         # the plate ends DISCLOSURE_AIR above the block (round 1 review 11: 16 px made it read as the claim's eyebrow)
         lay.meta["composition"] = {"image_box": [84, 0, 996, block_top - DISCLOSURE_AIR + 24]}
         _provenance(ground0.convert("RGBA"), lay)
         prov = lay.meta["provenance"]["plate"]
-        if prov[1] < mast_foot + MASTHEAD_FOOT_PAD:
+        if mast_shown and prov[1] < mast_foot + MASTHEAD_FOOT_PAD:
             raise CardRefused("the disclosure would collide with the masthead")
         md.rectangle([prov[0], prov[1], prov[2], prov[3]], fill=INK + (255,))
         pp = lay.meta["plates"]["provenance"][0]
@@ -4159,10 +4191,12 @@ def plan_hook_frame(spec: HookFrame, sheet: dict, width: int = 1080, height: int
     if proof["hook_fails"]:
         raise CardRefused("profile grid: " + "; ".join(proof["hook_fails"]))
     nontext = []
-    dmask = mark_mask(size, lambda d: d.polygon(diamond, fill=255))
-    diamond_c = nontext_contrast(frame0, dmask, ground=ground0)
-    if diamond_c is None or diamond_c < NONTEXT_MIN:
-        raise CardRefused(f"the masthead's diamond reaches only {diamond_c}")
+    diamond_c = None
+    if diamond:
+        dmask = mark_mask(size, lambda d: d.polygon(diamond, fill=255))
+        diamond_c = nontext_contrast(frame0, dmask, ground=ground0)
+        if diamond_c is None or diamond_c < NONTEXT_MIN:
+            raise CardRefused(f"the masthead's diamond reaches only {diamond_c}")
     if rule:
         mask = mark_mask(size, lambda d: d.rectangle([rule[0], rule[1], rule[2] - 1, rule[3] - 1], fill=255))
         v = nontext_contrast(frame0, mask, ground=ground0)
@@ -4170,7 +4204,7 @@ def plan_hook_frame(spec: HookFrame, sheet: dict, width: int = 1080, height: int
             raise CardRefused(f"the eyebrow rule reaches only {v}")
         nontext.append(("eyebrow_rule", mask))
     frames, seconds = _frames(HOOK_SECONDS)
-    contrast = [("brand", brand_plate)] + [(nm, p) for nm, p in card.contrast]
+    contrast = ([("brand", brand_plate)] if mast_shown else []) + [(nm, p) for nm, p in card.contrast]
     if spec.photo_kind == "generated":
         contrast.append(("provenance", lay.meta["plates"]["provenance"][0]))
     # H5: the drawn contrast, measured on frames 0 and 32 as the chapter and myth cards measure theirs
@@ -4186,6 +4220,7 @@ def plan_hook_frame(spec: HookFrame, sheet: dict, width: int = 1080, height: int
                         else None, "block_top": block_top, "L": L, "position": position},
             "caption_clear_until_s": CAPTION_CLEAR, "grid_proof": proof, "withheld": withheld, "focus": focus,
             "scrim": scrim_rec, "mast_band": band_rec, "diamond_contrast": diamond_c, "eyebrow_dropped": eyebrow_dropped,
+            "masthead": lay.meta.get("masthead", {"shown": True}),
             "drawn_contrast": drawn, "drawn_contrast_min": drawn_min,
             "gold": {"line": gold_k, "lines": list(gold_ks), "from": gold_from},
             "eyebrow_alpha": HOOK_EYEBROW_ALPHA if eyebrow else None,

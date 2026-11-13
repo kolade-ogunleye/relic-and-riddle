@@ -47,7 +47,9 @@ def test_masthead_band_eases_out_over_a_long_ramp_above_a_full_width_photo() -> 
     d8 = rows[8:] - rows[:-8]                        # brightening per 8 rows (single rows are 8-bit quantised)
     assert d8.max() < 26                             # was 37: a fast ramp
     assert np.abs(d8[8:] - d8[:-8]).max() < 12       # was 20: the knee where the band met the photo
-    assert (np.diff(rows) > 0.2).sum() >= 60         # spread over 60+ rows (was 38)
+    # QF-87 (row rule: a profile-grid masthead is 9 px cap height at 124 px or absent): at BRAND_PX it is 5.2 px, so a cover draws none and lay.meta['masthead'] says why: with no masthead there is no band to ease out, so no line across the sky at all (was: the band's ramp
+    # spread over 60+ rows)
+    assert np.abs(np.diff(rows)).max() < 1
 
 
 def test_an_inset_window_keeps_a_clear_gap_under_the_masthead() -> None:

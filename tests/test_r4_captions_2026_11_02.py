@@ -227,12 +227,18 @@ def test_an_attribution_hedge_waits_for_its_term_in_the_reel(tmp_path):
     words = _timed("Its builders were possibly Phrygian.")
     assert hedge_figures(words, ["Phrygian"]) == {3: 4}
     ass = VideoComposer().build_subtitles(words, tmp_path / "c.ass", emphasis=["Phrygian"]).read_text("utf-8")
+    # QF-87 (decision QF-24/QF-87 layout, 2026-11-09): the narration's case (was POSSIBLY / PHRYGIAN), and a
+    # two-line burst's two events in one reveal interval are read together
+    intervals: dict = {}
+    for start, end, t in _events(ass, "CapText"):
+        intervals.setdefault((start, end), []).append(t)
     seen = 0
-    for _, _, t in _events(ass, "CapText"):
-        shown = re.sub(r"\{[^}]*\}", "", t.split(CAPTION_HIDDEN)[0]).split()
-        if "POSSIBLY" in shown:
+    for parts in intervals.values():
+        shown = [w for t in parts for w in re.sub(r"\{[^}]*\}", "", t.split(CAPTION_HIDDEN)[0]).split()]
+        gold = [w for t in parts for w in _gold(t)]
+        if "possibly" in shown:
             seen += 1
-            assert ("POSSIBLY" in _gold(t)) == ("PHRYGIAN" in shown)
+            assert ("possibly" in gold) == ("Phrygian." in shown or "Phrygian" in shown)
     assert seen >= 2
 
 
@@ -256,7 +262,7 @@ def test_a_widescreen_line_draws_one_gold_span(tmp_path):
     assert all("Derinkuyu" not in g for g in golds if "280" in g)
     # the Reel keeps both key terms (its gold arrives word by word, one at a time)
     reel = VideoComposer().build_subtitles(words, tmp_path / "r.ass", emphasis=["Derinkuyu", "280 feet"]).read_text("utf-8")
-    assert any("DERINKUYU" in _gold(t) for _, _, t in _events(reel, "CapText"))
+    assert any("Derinkuyu" in _gold(t) for _, _, t in _events(reel, "CapText"))   # QF-87: the narration's case
 
 
 # ---------------------------------------------------------------- 9:16 first frame
@@ -283,7 +289,7 @@ def test_the_whole_first_burst_is_one_settled_event_in_bone_and_gold(tmp_path):
     t = first[0][2]
     assert CAPTION_HIDDEN not in t and "\\t(" not in t and "\\fad" not in t
     assert "\\fad" not in boxes[0][2]
-    assert "DERINKUYU" in _gold(t)
+    assert "Derinkuyu" in _gold(t)     # QF-87: the narration's case (was DERINKUYU)
     # the rest of the Reel still reveals word by word
     assert any(CAPTION_HIDDEN in e[2] for e in texts if e[0] > 1.0)
     # without the switch the first burst reveals as before
@@ -450,7 +456,7 @@ def test_a_mixed_count_sentence_never_forces_a_burst_over_the_word_cap(tmp_path)
     for _, _, t in _events(ass, "CapText"):
         assert len(re.sub(r"\{[^}]*\}", "", t).replace(CAPTION_HIDDEN, " ").split()) <= MAX_BURST_WORDS
     golds = {w.strip(".,") for _, _, t in _events(ass, "CapText") for w in _gold(t)}
-    assert golds <= {"20", "YEARS"}
+    assert golds <= {"20", "years"}    # QF-87: the narration's case (was YEARS)
 
 
 def test_a_widescreen_first_line_waits_for_its_narration(tmp_path):

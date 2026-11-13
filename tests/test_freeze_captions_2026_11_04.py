@@ -258,7 +258,9 @@ def test_rashtrakuta_lead_in_is_one_burst():
     """Never UNDER THE alone. N1 (operator decision, round 2): no burst shrinks below the 66 px bond floor to hold a
     name, so at 9:16 the four words (724 px at 66) break as UNDER | THE RASHTRAKUTA DYNASTY (a one-word lead-in
     burst); 16:9 keeps the four words on its one line."""
-    assert _texts(layout("names", False)[1])[:2] == ["UNDER", "THE RASHTRAKUTA DYNASTY"]
+    # QF-87 (decision QF-24/QF-87 layout, 2026-11-09): the four words are one bounded burst on two lines at the
+    # 66 px bond floor (UNDER THE RASHTRAKUTA / DYNASTY); was UNDER | THE RASHTRAKUTA DYNASTY, a one-word lead-in burst
+    assert _texts(layout("names", False)[1])[:1] == ["UNDER THE RASHTRAKUTA DYNASTY"]
     texts = _texts(layout("names", True)[1])
     assert texts[0] == "UNDER THE RASHTRAKUTA DYNASTY", texts
     for wide in (False, True):
@@ -368,7 +370,10 @@ def test_every_reel_plate_is_one_height(tmp_path):
         path = line.split("\\p1}")[1].split("{")[0]
         numbers = [int(x) for x in re.findall(r"-?\d+", path)]
         heights.add(max(numbers[1::2]))   # the path's y coordinates (x y pairs): its bottom is the plate's height
-    assert heights == {vc.REEL_PLATE_H}, heights
+    # QF-87 (decision QF-24/QF-87 layout, 2026-11-09): one height per line count: every one-line plate is
+    # REEL_PLATE_H, a two-line plate holds its two lines' measured ink, inside the band (was one height for all)
+    assert vc.REEL_PLATE_H in heights, heights
+    assert all(h == vc.REEL_PLATE_H or vc.REEL_PLATE_H < h <= vc._caption_band_height() for h in heights), heights
 
 
 # ---------------------------------------------------------------- C5: the drawn measure
@@ -451,15 +456,21 @@ def require_raqm():
 # "Kerning: yes") while raqm kerns, so the measure sums single-letter advances (vc.unkerned_length). WAVY Vault (WA,
 # AV) measured 545 kerned against libass's 552 and measures 550 now; Beneath, It was, an estimated, Amenhotep gain
 # 1 px each. Every sample is now 1 to 2 px under the ink (REEL_INK_OVER_MEASURE).
+# QF-87 (decision QF-24/QF-87 layout, 2026-11-09): the captions draw in RR Caption (Anton's own small capitals,
+# the narration's case, no 82% scale) and the line is measured as one shaped run with each glyph's own ink
+# (_libass_line), in whole pixels rounded down (measure_caption_phrase, QF-87 review 1); the pins are re-measured
+# (fit size, measure, libass ink). Was (80, 443, 444), (80, 402, 403), (80, 171, 172), (80, 639, 640), (80, 634, 635),
+# (80, 510, 511), (80, 550, 552), (77, 634, 635), (80, 593, 594), (80, 558, 560).
 REEL_MEASURE_RAQM = {
-    "Wait, look here!": (80, 443, 444), "Beneath Odesa": (80, 402, 403), "It was": (80, 171, 172),
-    "an estimated 720 tons": (80, 639, 640), "shore of the Black Sea": (80, 634, 635),
-    "Amenhotep III was": (80, 510, 511), "WAVY Vault 7,000": (80, 550, 552), "COUNTERREVOLUTIONARIES": (77, 634, 635),
-    "Incomprehensibilities": (80, 593, 594), "the mine's rock salt": (80, 558, 560),
+    "Wait, look here!": (80, 528, 528), "Beneath Odesa": (80, 472, 473), "It was": (80, 204, 205),
+    "an estimated 720 tons": (66, 617, 618), "shore of the Black Sea": (66, 625, 626),
+    "Amenhotep III was": (80, 596, 597), "WAVY Vault 7,000": (80, 579, 579), "COUNTERREVOLUTIONARIES": (64, 638, 639),
+    "Incomprehensibilities": (71, 639, 640), "the mine's rock salt": (74, 633, 634),
 }
 # libass's ink less the unkerned measure, in px: measured 0 to 2 on all 329 one-line 9:16 bursts of the five fixture
 # runs (8 at 0, 224 at 1, 97 at 2; the kerned measure was off by up to 5, 55 bursts over 2) and on the ten samples
 # (docs/reviews/freeze-panel-2026-11-04/captions/decision-nokern-measure-2026-11-05/README.md).
+# QF-87: 0 to 1 px on the ten samples (the outline extent rounded down)
 REEL_INK_OVER_MEASURE = (0, 2)
 
 
@@ -508,12 +519,17 @@ def test_caption_measure_is_unkerned(tmp_path):
 
 # Real one-line 9:16 bursts of the fixture runs where the kerned measure fell 3 to 5 px short of libass's ink (the
 # worst five of 329; decision-nokern-measure-2026-11-05/README.md): (run, burst) -> libass ink width at its fit.
+# QF-87 (decision QF-24/QF-87 layout, 2026-11-09): re-picked on the caption face: WAS INITIALLY CONSIDERED and
+# ALTERNATIVE SPECULATION draw on two lines now, GRAY BASALT MAUSOLEUM is no burst, and BUILT IN VARIOUS kerns no
+# more than 2 px; these are the one-line bursts of the five runs where a kerned measure falls most short of the ink
+# (3 to 5 px). Was WAS INITIALLY CONSIDERED 624, BUILT IN VARIOUS 423, ALTERNATIVE SPECULATION 611, GRAY BASALT
+# MAUSOLEUM 614, A CATACLYSM STRUCK 550.
 KERN_WORST = {
-    ("richat_structure_sahara_eye", "WAS INITIALLY CONSIDERED"): 624,
-    ("richat_structure_sahara_eye", "BUILT IN VARIOUS"): 423,
-    ("richat_structure_sahara_eye", "ALTERNATIVE SPECULATION"): 611,
-    ("gol_gumbaz_whispering_gallery", "GRAY BASALT MAUSOLEUM"): 614,
-    ("tunguska_event_1908", "A CATACLYSM STRUCK"): 550,
+    ("tunguska_event_1908", "A CATACLYSM STRUCK"): 623,
+    ("richat_structure_sahara_eye", "CLOSELY MATCHING"): 586,
+    ("tunguska_event_1908", "WAVES GENERATED"): 564,
+    ("amber_room_heist", "LIKELY INCINERATED"): 592,
+    ("richat_structure_sahara_eye", "LAYERS THAT FORM"): 579,
 }
 
 
@@ -534,12 +550,17 @@ def test_unkerned_measure_matches_libass_ink_on_real_bursts(run, text, tmp_path,
     assert ink == KERN_WORST[(run, text)], (text, ink)
     lo, hi = REEL_INK_OVER_MEASURE
     assert lo <= ink - measured <= hi, (text, measured, ink)
+    # QF-87: the line is shaped once with font_engine.LIBASS_FEATURES (no kern); shaped with kerning on (as raqm
+    # lays it out), the measure falls short of libass's ink (was: unkerned_length patched to raqm's getlength)
+    from src import font_engine
     vc._libass_line.cache_clear()
-    monkeypatch.setattr(vc, "unkerned_length", lambda font, t: font.getlength(t))
+    vc._caption_line_run.cache_clear()
+    monkeypatch.setattr(font_engine, "LIBASS_FEATURES", ("kern", "-liga", "-clig"))
     try:
         assert ink - vc.measure_caption_phrase(phrase, size)[0] > 2, text
     finally:
         vc._libass_line.cache_clear()
+        vc._caption_line_run.cache_clear()
 
 
 def test_ink_budget_is_the_plate_less_the_pad():
@@ -623,7 +644,9 @@ def test_figure_units_exact():
     edge = _texts(layout("edge", False)[1])
     # fix round 1 (gate): BETWEEN 287 AND 300 KILOMETRES cannot hold at 66 px; HEAD 0036b18 cuts the range after AND
     # and the tree takes HEAD's cut (was: no burst ends on 287 AND)
-    assert "AGO, BETWEEN 287 AND" in edge and "300 KILOMETRES BELOW" in edge, edge
+    # QF-87 (decision QF-24/QF-87 layout, 2026-11-09): the range is one burst on two lines at 74 px, BETWEEN 287
+    # AND | 300 KILOMETRES (was HEAD's AGO, BETWEEN 287 AND | 300 KILOMETRES BELOW, a cut inside the range)
+    assert "BETWEEN 287 AND 300 KILOMETRES" in edge and "BELOW THE SEA" in edge, edge
     aswan = _texts(layout("unfinished_obelisk_aswan", False)[1])
     # fix round 2 (review blocker 1, operator decision 2026-11-04 as written: only a name bond or a width or floor
     # limit forces a cut HEAD 0036b18 lacks): a figure link HEAD cut holds only where that costs no such cut. Aswan keeps
@@ -927,9 +950,12 @@ def test_gold_word_punctuation_is_bone(tmp_path):
     words = _even("Who dismantled the Colossi of Memnon? Nobody knows.")
     ass = VideoComposer().build_subtitles(words, tmp_path / "c.ass", emphasis=["Colossi of Memnon"])
     # the burst's last event: every word shown, MEMNON gold (a full-size M, small-capital EMNON), then a bone ?
-    last = [l for l in ass.read_text("utf-8").splitlines() if ",CapText," in l and "EMNON" in l][-1]
+    # QF-87 (decision QF-24/QF-87 layout, 2026-11-09): MEMNON is the narration's Memnon, one full-scale run in the
+    # caption face's small capitals (was a full-size M and 82% EMNON)
+    last = [l for l in ass.read_text("utf-8").splitlines() if ",CapText," in l and "Memnon" in l][-1]
     tags = re.findall(r"\{([^}]*)\}([^{]*)", last.split(",,", 1)[1])
-    memnon = [c for tag, text in tags for c in [re.search(r"\\c(&H[0-9A-F]+&)", tag)] if "EMNON" in text or text == "M"]
+    memnon = [c for tag, text in tags for c in [re.search(r"\\c(&H[0-9A-F]+&)", tag)] if "Memnon" in text]
+    assert memnon
     assert all(m and m.group(1) == GOLD for m in memnon), tags
     question = [tag for tag, text in tags if text.strip() == "?"]
     assert question and BONE in question[0], tags
@@ -946,7 +972,9 @@ def test_wide_gold_comma_is_bone_and_figures_stay_gold(tmp_path):
 
 def test_format_word_caption_gold_tail():
     out = vc.format_word_caption("Memnon?", GOLD, True, False, True)
-    assert out.endswith(f"{{\\c{BONE}\\fscx{config.CAPTION_SC_SCALE}\\fscy{config.CAPTION_SC_SCALE}}}?"), out
+    # QF-87: the tail is at full scale like the word (was the 82% small-capital scale after a lower-case letter)
+    assert out.endswith(f"{{\\c{BONE}\\fscx100\\fscy100}}?"), out
+    assert f"\\fscx{config.CAPTION_SC_SCALE}" not in out
     assert "?" not in out.split(BONE)[0]
     assert vc.gold_tail("7,000") == ("7,000", "") and vc.gold_tail("13-FOOT,") == ("13-FOOT", ",")
     plain = vc.format_word_caption("Memnon?", BONE, False, False, False)
@@ -1030,13 +1058,15 @@ def test_sidecar_lines_are_balanced():
 
 
 # ---------------------------------------------------------------- C1: the 16:9 font (operator decision pending)
-STATIC_BOLD = ROOT / "fonts" / "Montserrat-Bold.ttf"
 AWAITING = "awaiting operator approval of static Montserrat Bold"
 
 
 def test_wide_font_resolves():
-    assert STATIC_BOLD.exists()   # W1: the static face is bundled (operator decision), so the test runs
-    assert vc.libass_font_problems(Path("fonts"), [(config.CAPTION_WIDE_FONT, 700)]) == []
+    # QF-87 (one Montserrat source): the static 700 face is derived from Montserrat-Variable.ttf (RR Sans) and
+    # embedded in the caption file; Montserrat-Bold.ttf is no longer bundled (was: the bundled static face resolves)
+    from src.font_assets import WIDE_FAMILY, derived_font
+    assert not (ROOT / "fonts" / "Montserrat-Bold.ttf").exists()
+    assert vc.libass_font_problems(Path("fonts"), [(WIDE_FAMILY, 700)], [derived_font(WIDE_FAMILY)]) == []
 
 
 def _wide_plate_gaps(text, tmp_path, shrink_plate: int = 0):
@@ -1285,9 +1315,14 @@ def test_no_multi_word_captext_below_the_bond_floor_in_the_real_reels(tmp_path):
 def test_under_the_rashtrakuta_dynasty_breaks_before_the_article():
     words = _even("Under the Rashtrakuta dynasty", step=0.3, dur=0.28)
     phrases = caption_phrases(words)
-    assert _texts(phrases) == ["UNDER", "THE RASHTRAKUTA DYNASTY"]
-    assert vc._caption_fit_size(phrases[1]) == CAPTION_BOND_MIN_SIZE and vc.reel_caption_lines(phrases[1]) is None
-    assert round(vc._caption_ink_width(vc._phrase_words(phrases[1]), CAPTION_BOND_MIN_SIZE)) <= 640
+    # QF-87 (decision QF-24/QF-87 layout, 2026-11-09): one burst on two lines at the bond floor, its first line
+    # never ending on the article (was UNDER | THE RASHTRAKUTA DYNASTY on one line each)
+    assert _texts(phrases) == ["UNDER THE RASHTRAKUTA DYNASTY"]
+    k, size = vc.reel_caption_lines(phrases[0])
+    assert size == vc._caption_fit_size(phrases[0]) == CAPTION_BOND_MIN_SIZE
+    shown = vc._phrase_words(phrases[0])
+    assert shown[k - 1].lower() != "the"
+    assert all(round(vc._caption_ink_width(part, size)) <= 640 for part in (shown[:k], shown[k:]))
 
 
 def test_tunguska_long_name():
@@ -1301,7 +1336,10 @@ def test_tunguska_long_name():
     assert "THE" not in texts and all(not t.endswith(" THE") for t in texts)
     k = texts.index("NEAR THE PODKAMENNAYA")
     assert texts[k - 1:k + 3] == ["LOCAL TIME", "NEAR THE PODKAMENNAYA", "TUNGUSKA RIVER", "IN CENTRAL SIBERIA"], texts
-    assert all(vc.reel_caption_lines(p) is None for p in phrases)
+    # QF-87 (decision QF-24/QF-87 layout, 2026-11-09): the same bursts; NEAR THE PODKAMENNAYA (wider than the budget
+    # at 74 px in genuine small capitals) draws on two lines inside the band, its first line never the article alone
+    # (was: no two-line burst)
+    assert vc.reel_caption_lines(phrases[k]) == (1, FONT_SIZE)
     assert all(vc._caption_fit_size(p) in LADDER for p in phrases if len(p) > 1)
 
 
@@ -1327,7 +1365,9 @@ def test_two_line_plates_never_rise_over_the_graphics(tmp_path):
     # the graphics' foot at 1090) holds a two-line plate at every rung (none did under the ads profile, so this
     # tunguska burst had no two-line layout); every plate still stays in the band, under the graphics
     assert all(vc._two_line_clears_graphics(r) for r in vc.CAPTION_LADDER)
-    assert vc._two_line_layout("near the Podkamennaya Tunguska River".split()) == (3, 74)
+    # QF-87 (decision QF-24/QF-87 layout, 2026-11-09): in genuine small capitals no break of the five words fits the
+    # budget at any rung (was (3, 74)), so the phrase builder cuts it (test_tunguska_long_name)
+    assert vc._two_line_layout("near the Podkamennaya Tunguska River".split()) is None
     seen = 0
     for topic, c in RUNS.items():
         if RUN_WIDE[topic]:
@@ -1339,7 +1379,9 @@ def test_two_line_plates_never_rise_over_the_graphics(tmp_path):
             # QF-24: the organic Reel box (113, 288)-(848, 1370) and its band from y 1130 (was 65-888, foot 1248)
             assert top >= 1130 > vc.CAPTION_GUARD_GRAPHICS_BOTTOM and bottom <= 1370 and left >= 113 \
                 and right <= 848, (topic, top, bottom)
-            assert bottom - top == vc.REEL_PLATE_H, (topic, top, bottom)
+            # QF-87: a two-line plate holds its two lines' measured ink inside the band (was one height for all)
+            assert bottom - top == vc.REEL_PLATE_H or vc.REEL_PLATE_H < bottom - top <= vc._caption_band_height(), \
+                (topic, top, bottom)
     assert seen > 100
 
 
@@ -1422,7 +1464,11 @@ def test_world_war_one_and_two_stay_whole():
     assert not any(t.endswith("WORLD WAR") for t in texts)
     k = texts.index("WORLD WAR ONE")
     assert texts[k - 1:k + 2] == ["FROM BOTH", "WORLD WAR ONE", "AND WORLD WAR TWO"], texts[k - 2:k + 3]
-    assert round(vc._caption_ink_width(vc._phrase_words(phrases[k + 1]), FONT_SIZE)) <= 640
+    # QF-87 (decision QF-24/QF-87 layout, 2026-11-09): AND WORLD WAR TWO draws 661 px at 80 in genuine small capitals,
+    # so it takes the 74 px rung on one line (was <= 640 at 80)
+    size = vc._caption_fit_size(phrases[k + 1])
+    assert size == CAPTION_BURST_MIN_SIZE and vc.reel_caption_lines(phrases[k + 1]) is None
+    assert round(vc._caption_ink_width(vc._phrase_words(phrases[k + 1]), size)) <= 640
     for p in phrases:
         if len(p) > 1:
             assert vc._caption_fit_size(p) >= CAPTION_BOND_MIN_SIZE
@@ -1526,7 +1572,9 @@ def test_units_and_hedges_on_the_real_runs():
     # FOLLOWING and THE ROOM WAS MOST | LIKELY INCINERATED (was: no burst ends on BY ONE or opens on LIKELY)
     # fix round 2 (as above): amber keeps HEAD's COVERED MORE THAN 590 | SQUARE FEET, no lone COVERED (was: no burst
     # ends on MORE THAN 590 or opens on SQUARE FEET)
-    assert "COVERED MORE THAN 590" in amber and "SQUARE FEET" in amber and "COVERED" not in amber, amber
+    # QF-87 (decision QF-24/QF-87 layout, 2026-11-09): SQUARE FEET AND CONTAINED is one two-line burst now (was SQUARE
+    # FEET | AND CONTAINED); HEAD's COVERED MORE THAN 590 | SQUARE FEET cut stands, no lone COVERED
+    assert "COVERED MORE THAN 590" in amber and "SQUARE FEET AND CONTAINED" in amber and "COVERED" not in amber, amber
     for topic in RUNS:
         words, phrases = run_layout(topic)
         head = _head_cuts(words, list(RUNS[topic].get("emphasis_words") or []), RUN_WIDE[topic])
@@ -1569,20 +1617,15 @@ HEAD_CUTS_FILE = ROOT / "docs/reviews/freeze-panel-2026-11-04/captions/regressio
 # raqm's kerned measure (GEOLOGICAL HERITAGE SITES. measured 639.9 px at 74) and is back with the unkerned measure
 # (operator decision 2026-11-05, "measure without kerning"): 640.6 px at 74, and libass draws 642 px of ink there, so
 # the burst passes the 640 px ink budget (measured in test_head_regression_gate). HEAD never cut there.
+# QF-87 (decision QF-24/QF-87 layout, 2026-11-09): eight width-forced 9:16 cuts are gone, HEAD's burst draws on
+# two lines instead: names PUSHED | TOWARD, edge YEARS | AGO,, wieliczka UNDERGROUND | GALLERIES, richat DATING | OF,
+# THOUSANDS | OF, RECOGNIZED | THIS, HERITAGE | SITES. and voynich SCRIPT | WHERE.
 GATE_FORCED = {
-    ("names", "9:16", "pushed", "toward"): ("width", "PUSHED TOWARD LENINGRAD. is 653 px at 74"),
-    ("edge", "9:16", "years", "ago,"): ("width", "ROUGHLY 1,200 YEARS AGO, is 646 px at 74; AGO is no bond"),
-    ("wieliczka_salt_mine", "9:16", "underground", "galleries"): ("width", "OF UNDERGROUND GALLERIES is 654 px at 74"),
-    ("run:richat_structure_sahara_eye", "9:16", "dating", "of"): ("width", "DATING OF THE CARBONATITE is 649 px at 74"),
-    ("run:richat_structure_sahara_eye", "9:16", "thousands", "of"):
-        ("width", "THOUSANDS OF PREHISTORIC is 646 px at 74"),
-    ("run:richat_structure_sahara_eye", "9:16", "recognized", "this"):
-        ("width", "RECOGNIZED THIS SCIENTIFIC is 645 px at 74"),
-    # operator decision 2026-11-05 (measure without kerning): libass draws 642 px of ink, the kerned measure said 639.9
-    ("run:richat_structure_sahara_eye", "9:16", "heritage", "sites."):
-        ("width", "GEOLOGICAL HERITAGE SITES. is 640.6 px at 74 unkerned (libass draws 642)"),
     ("run:gol_gumbaz_whispering_gallery", "9:16", "across", "an"): ("article", "HEAD's TRAVEL ACROSS AN"),
-    ("run:voynich_manuscript", "9:16", "script", "where"): ("width", "SCRIPT WHERE AN ALPHABET is 653 px at 74"),
+    # QF-87 review 1: voynich SCRIPT | WHERE is gone (HEAD's SCRIPT WHERE AN ALPHABET draws on two lines at 80). One new
+    # 9:16 cut keeps a figure range whole (kind "range", measured below: the burst it ends holds the whole range and
+    # HEAD's burst does not): HEAD's AGO, BETWEEN 287 AND | 300 KILOMETRES BELOW cut inside the range
+    ("edge", "9:16", "kilometres", "below"): ("range", "BETWEEN 287 AND 300 KILOMETRES, one range on two lines"),
     ("edge", "cues", "ago,", "between"): ("article", "HEAD's cue ended on BELOW THE (the next opened on SEA.)"),
     # fix round 3 (review: a new cue end goes before a determiner, not mid-phrase): one word back from HEAD's THE
     ("odessa_catacombs", "cues", "used", "the"): ("article", "HEAD's cue ended on PARTISANS USED THE"),
@@ -1597,20 +1640,9 @@ GATE_FORCED = {
 }
 # One-word 9:16 bursts HEAD 0036b18 does not form, each where a GATE_FORCED cut leaves the word alone: the other
 # split ends on a function word (a hard defect, as at HEAD) or passes the width.
-LONE_FORCED = {
-    ("names", "pushed"): "width: PUSHED TOWARD is a dangling end; PUSHED TOWARD LENINGRAD. 653 px at 74",
-    ("run:richat_structure_sahara_eye", "dating"): "width: DATING OF | THE CARBONATITE ends on OF",
-    ("run:richat_structure_sahara_eye", "thousands"): "width: THOUSANDS OF | PREHISTORIC ends on OF",
-    ("run:richat_structure_sahara_eye", "recognized"): "width: RECOGNIZED THIS | SCIENTIFIC ends on THIS",
-    # fix round 2 (the decision as written): amber COVERED and colossi INCLUDING were figure-forced and are HEAD's
-    # bursts again; wieliczka GALLERIES takes HEAD's lone KILOMETERS. back with it
-    ("wieliczka_salt_mine", "galleries"):
-        "width: OF UNDERGROUND GALLERIES 654 px at 74; OF UNDERGROUND | GALLERIES BETWEEN ... passes the width too",
-    # operator decision 2026-11-05 (measure without kerning): HEAD's OFFICIAL | GEOLOGICAL HERITAGE SITES. stands, and
-    # its last burst passes the width, so one word of it goes alone (GEOLOGICAL | HERITAGE SITES. would leave GEOLOGICAL)
-    ("run:richat_structure_sahara_eye", "sites."):
-        "width: GEOLOGICAL HERITAGE SITES. 640.6 px at 74 (libass draws 642); either cut leaves one word alone",
-}
+# QF-87 (decision QF-24/QF-87 layout, 2026-11-09): none is left. The six width-forced lone words (names PUSHED,
+# richat DATING, THOUSANDS, RECOGNIZED, SITES., wieliczka GALLERIES) are gone: HEAD's wide burst draws on two lines
+LONE_FORCED: dict = {}
 
 
 def _gate_cases():
@@ -1653,11 +1685,20 @@ def test_head_regression_gate():
                 key = (case, fmt, raw[k], raw[k + 1])
                 new[key] = k
                 kind = GATE_FORCED.get(key, ("?",))[0]
+                if kind == "range":   # QF-87 review 1: the burst the new cut ends holds a whole figure range
+                    ends = _ends(caption_phrases(words, emph))
+                    start = max([e + 1 for e in ends if e < k] + [0])
+                    burst = [vc._norm(x) for x in raw[start:k + 1]]
+                    joins = [i for i, x in enumerate(burst) if x in vc.RANGE_JOINERS]
+                    assert any(any(c.isdigit() for c in raw[start + i - 1]) and any(c.isdigit() for c in raw[start + i + 1])
+                               for i in joins if 0 < i < len(burst) - 1), (key, raw[start:k + 1])
                 if kind == "width":   # measured: HEAD's burst passes the ink budget at 74 px or the 28 characters
                     a, e = next((a, e) for a, e in spans if a <= k < e)
                     shown = vc._phrase_words(raw[a:e + 1])
                     assert (vc._caption_ink_width(shown, CAPTION_BURST_MIN_SIZE) > budget
                             or len(" ".join(shown)) > MAX_BURST_CHARS), (key, shown)
+                    # QF-87 review 1: and no two-line layout holds it (width forces nothing a two-line burst draws)
+                    assert fmt != "9:16" or vc.reel_caption_lines(raw[a:e + 1]) is None, (key, shown)
     assert set(new) == set(GATE_FORCED), sorted(set(new) ^ set(GATE_FORCED))
     # kept from review round 4: AS THE SECOND | MOST COMMON. and HIDING PLACE are HEAD's and stay
     voy = _texts(run_layout("voynich_manuscript")[1])
@@ -1742,12 +1783,9 @@ def test_m1_pre_modifiers_and_proper_modifiers():
 # Bursts the speech leaves under CAPTION_MIN_ON_SCREEN_S: each is held to the next burst's appearance (no silence to
 # extend into) and no same-clause neighbour can take it (the reason given).
 # Fix round 1 (gate): RUNS, THOUGH NO and AND SHELLED are HEAD 0036b18's longer bursts again and left the list.
-SPEECH_LIMITED = {
-    ("names", "PUSHED"): "PUSHED TOWARD LENINGRAD. is 653 px at 74 (over 640, no bond); ARMY GROUP NORTH is a whole name",
-    ("amber_room_heist", "BY ONE"): "gate: HEAD 0036b18's BY ONE | ESTIMATE, FOLLOWING (a hedge phrase is no figure "
-                                    "link); BY ONE ESTIMATE, FOLLOWING is 5 words",
-    # fix round 2 (the decision as written): amber COVERED is HEAD 0036b18's COVERED MORE THAN 590 | SQUARE FEET again
-}
+# QF-87 (decision QF-24/QF-87 layout, 2026-11-09): none is left. names PUSHED is no lone burst (PUSHED TOWARD
+# LENINGRAD. draws on two lines) and amber's BY ONE burst is up its half second in the new phrasing (both were here)
+SPEECH_LIMITED: dict = {}
 
 
 def _short_bursts():
@@ -1813,10 +1851,13 @@ def test_amber_bursts_over_the_timeline_graphic_get_an_opaque_plate(tmp_path):
     # QF-24 (decision QF-24/QF-87 layout, 2026-11-09, deliberate change): the plates sit in the 240 px band (y 1130 and
     # below), 40 px under the graphics box, so no burst over the timeline meets its text and none takes the opaque
     # plate (on the ads profile the bursts over graphic_timeline.mp4 were flagged and drawn at &H08&)
-    assert flagged == []
+    # QF-87 (decision QF-24/QF-87 layout, 2026-11-09): MOSAIC WAS RECOVERED draws on two lines (plate top y 1137), and
+    # its guard (CAPTION_GUARD_PAD) reaches this run's committed timeline poster, drawn before QF-24 with text at
+    # y 1140-1160: that one burst is flagged and drawn near-opaque, as the guard is meant to (was none flagged)
+    assert [f["text"] for f in flagged] == ["mosaic was recovered"]
     span = next((a, b) for a, b, clip in gclips if clip.name == "graphic_timeline.mp4")
     plates = [l for l in ass.read_text("utf-8").splitlines() if ",CapBox," in l]
-    assert sum("\\1a&H08&" in l for l in plates) == len(flagged) == 0
+    assert sum("\\1a&H08&" in l for l in plates) == len(flagged) == 1
     phrases = caption_phrases(_fx.words(c), list(c["emphasis_words"]))
     tim = vc.burst_timings(phrases, first_frame_whole=config.CAPTION_FIRST_FRAME_WHOLE_S, dwell=True)
     for f in flagged:
@@ -1842,7 +1883,10 @@ def test_richat_reel_graphics_and_the_two_line_plate(tmp_path):
     # the committed graphic records are what the guard read (a missing sidecar would also give no flag)
     assert len(gclips) == 2 and all(Path(str(c) + vc.CAPTION_CONTRAST_SIDECAR).is_file() for _, _, c in gclips), gclips
     assert flagged == []
-    assert all(vc.reel_caption_lines(p) is None for p in caption_phrases(words))
+    # QF-87 (decision QF-24/QF-87 layout, 2026-11-09): bursts wider than the budget at 74 px draw on two lines now
+    # (was none), every plate inside the band under the graphics box, and still none meets a graphic's text
+    assert any(vc.reel_caption_lines(p) for p in caption_phrases(words))
+    assert all(top >= 1130 for _, top, _, _ in _reel_plates(a))
     b = VideoComposer().build_subtitles(words, tmp_path / "b.ass").read_text("utf-8")
     assert a.replace("\\1a&H08&", "") == b
 
@@ -1861,11 +1905,12 @@ def test_graphic_intrusion_reads_the_sidecar_boxes(tmp_path):
 def test_quote_marks_next_to_a_gold_word_are_bone(tmp_path):
     words = _even('The alchemists called it "Mercury" and kept it sealed.')
     ass = VideoComposer().build_subtitles(words, tmp_path / "q.ass", emphasis=["Mercury"])
-    last = [l for l in ass.read_text("utf-8").splitlines() if ",CapText," in l and "ERCURY" in l][-1]
+    # QF-87: the narration's case, Mercury (was MERCURY, a full-size M and 82% ERCURY)
+    last = [l for l in ass.read_text("utf-8").splitlines() if ",CapText," in l and "Mercury" in l][-1]
     tags = re.findall(r"\{([^}]*)\}([^{]*)", last.split(",,", 1)[1])
     quotes = [tag for tag, text in tags if text.strip() == '"']
     assert len(quotes) == 2 and all(BONE in q for q in quotes), tags
-    gold = [tag for tag, text in tags if "ERCURY" in text]
+    gold = [tag for tag, text in tags if "Mercury" in text]
     assert gold and all(GOLD in g for g in gold)
 
 

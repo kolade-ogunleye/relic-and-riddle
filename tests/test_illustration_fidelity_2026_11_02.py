@@ -34,7 +34,8 @@ from src import substrate_compositor as sc
 
 GEARS = "The bronze gears of the mechanism turned inside a wooden case."
 SHEET = {"facts": [
-    {"id": "F1", "statement": "The mechanism had bronze gears housed in a wooden case about 34 cm wide.",
+    {"id": "F1", "statement": ("The mechanism had bronze gears housed in a wooden case about 34 cm wide. "
+                               "The mechanism held its bronze gears in a wooden case."),
      "kind": "other", "disputed": False, "evidence": [{"url": "https://www.nature.com/x", "quote": "bronze gears"}]}]}
 TOPIC = {"id": "antikythera", "title": "Antikythera mechanism"}
 
@@ -265,7 +266,10 @@ def _candidate(tmp_path):
 PASSING = {"descriptors": [{"descriptor": "bronze", "shown": True}, {"descriptor": "gears", "shown": True},
                            {"descriptor": "mechanism", "shown": True}],
            "has_text": False, "anachronism": False, "identifiable_face": False, "subject_in_safe_zone": True,
-           "could_be_mistaken_for_photograph": False}
+           "could_be_mistaken_for_photograph": False,
+           "depicted_elements": ["mechanism", "gear", "case"],
+           "measure_checks": [{"measure": "about 34 cm", "consistent": None,
+                               "reason": "No physical scale in this fixture."}]}
 SAME = {"same_object": True, "same_count_of_parts": True, "same_shapes": True, "same_proportions": True,
         "nothing_added": True, "added": [], "confidence": 0.95}
 

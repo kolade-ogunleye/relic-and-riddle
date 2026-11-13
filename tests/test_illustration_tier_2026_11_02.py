@@ -39,7 +39,8 @@ from src.video_composer import (
 
 GEARS = "The bronze gears of the mechanism turned inside a wooden case."
 SHEET = {"facts": [
-    {"id": "F1", "statement": "The mechanism had bronze gears housed in a wooden case about 34 cm wide.",
+    {"id": "F1", "statement": ("The mechanism had bronze gears housed in a wooden case about 34 cm wide. "
+                               "The mechanism held its bronze gears in a wooden case."),
      "kind": "other", "disputed": False, "evidence": [{"url": "https://www.nature.com/x", "quote": "bronze gears"}]},
     {"id": "F2", "statement": "The wreck was dated to about 70 BC.", "kind": "date", "disputed": False,
      "evidence": [{"url": "https://www.britannica.com/y", "quote": "70 BC"}]}]}
@@ -577,7 +578,9 @@ def test_the_prompt_is_house_style_from_the_fact_sheet_with_no_named_artist():
     for banned in ("Piranesi", "Dürer", "accuracy", "accurate"):
         assert banned not in prompt
     assert "scratchboard" in prompt and "near-black ink ground" in prompt and "burin" in prompt
-    assert "34 cm" in prompt and "exploded axonometric" in prompt and "middle third" in prompt
+    # QF-61 (decision A, structured counts only): the prose's "about 34 cm" reaches the generator as no number at all
+    assert "34" not in prompt and image_gen.NO_COUNT in prompt
+    assert "exploded axonometric" in prompt and "middle third" in prompt
     assert "Do not include any text" in prompt and "turned inside" not in prompt   # fact-sheet words, not narration
     assert spec["required"] == ["bronze", "gears", "mechanism"] and spec["era"] == "classical_antiquity"
 
@@ -631,7 +634,7 @@ def test_the_full_rubric_fails_closed_and_rejects_near_duplicates(tmp_path, monk
     def verdict(**kw):
         base = {"descriptors": [{"descriptor": "bronze", "shown": True}, {"descriptor": "gears", "shown": True}],
                 "has_text": False, "anachronism": False, "identifiable_face": False, "subject_in_safe_zone": True,
-                "could_be_mistaken_for_photograph": False}
+                "could_be_mistaken_for_photograph": False, "depicted_elements": ["gear"]}
         base.update(kw)
         return lambda s, p, schema, **k: schema(**base)
     monkeypatch.setattr(free_llm, "structured", verdict())

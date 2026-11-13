@@ -33,7 +33,7 @@ from typing import Any, Dict, List, Optional
 from urllib.parse import urlparse
 
 from .config import DATA_DIR
-from . import free_llm, prompt_fence
+from . import fact_quantities, free_llm, prompt_fence
 from .llm import research_with_evidence, structured_call, task as llm_task
 from .models import FactSheetDraft, Source
 
@@ -47,6 +47,9 @@ MIN_VERIFIED_FACTS = 6
 # 2: venue-based tiers (a DOI alone is not tier 1), dates need a reference work or two sites,
 #    source-neutral hedges, UNESCO evidence only from the topic's own site.
 RULES_VERSION = 2
+# Bump when a fact gains a field (never a reason to rebuild: a sheet of an older schema stays valid as it is).
+# 2: a fact may carry "quantities", its structured counts and measures signed with it (src/fact_quantities.py, QF-61).
+FACT_SCHEMA_VERSION = 2
 
 
 class FactStarvedTopicError(ValueError):
@@ -89,7 +92,11 @@ A statement or hedge may name a source ('according to the ministry') only if a c
 CARD FIELDS (cards): copy for on-screen cards, proposed only from the facts above and their quotes. Add no claim, figure, name or date that a fact does not state; leave a list empty rather than stretch.
 - statements: up to 8 short card-ready statements, each at most 84 characters, each restating ONE of your facts (fact_id) with its hedge or limiting words kept.
 - myths: up to 3 misconceptions that a cited quote shows people believe and that one of your facts refutes. myth is the misconception as people state it (a whole claim, never a fragment of a true sentence); verdict "false" when the facts contradict it, "misleading" when they show it overstated; refuting_fact_id; correction at most 84 characters, said from that fact; quote_id is the quote number that is its source and must be a quote that fact cites.
-- quotes: up to 3 quotations that stand between quotation marks in a quote a fact cites (quote_id, fact_id). quotation is the exact words between one pair of marks, whole; speaker is the person the quote itself names as saying it (name, and role only if the quote or fact gives one); work and date only if the quote or its fact gives them, else "" and null."""
+- quotes: up to 3 quotations that stand between quotation marks in a quote a fact cites (quote_id, fact_id). quotation is the exact words between one pair of marks, whole; speaker is the person the quote itself names as saying it (name, and role only if the quote or fact gives one); work and date only if the quote or its fact gives them, else "" and null.
+QUANTITIES (counts, measures on each fact): the only numbers an illustration may show. Leave both empty unless the statement itself says how many of a physical thing the subject has, or how big it is.
+- counts: {element: the counted thing's singular noun, as the statement words it; count: the whole number the statement gives; qualifier; source: the statement's own words holding that number and noun}.
+- measures: {element: what is measured; measure: the statement's own words for the number and its unit; qualifier}.
+- qualifier is "exact" only when the statement gives the number as exact for the subject itself; "approximate" for about, nearly, some, over, an estimate or any hedge; "minimum"/"maximum" for at least/up to; "range" for a range or alternatives; "per_unit" for each, every, per or a side; "comparison_set" for a set the subject belongs to or is compared with ("among the 34 monuments", "one of 7 temples"). A label number ("Cave 16", "Pillar 43") is never a count. Never total, split, infer or round a number."""
 
 
 def tier(url: str) -> int:
@@ -355,9 +362,16 @@ def _apply_rules(draft_facts, quotes: List[dict], auto_hedge: bool = False):
                                        if auto_hedge else "")))
                     continue
             disputed = True  # usable only with its hedge
-        facts.append({"id": f.id, "statement": f.statement, "kind": f.kind, "disputed": disputed,
-                      "hedge": f.hedge if disputed else (f.hedge or ""),
-                      "evidence": [_evidence(q) for q in cited]})
+        fact = {"id": f.id, "statement": f.statement, "kind": f.kind, "disputed": disputed,
+                "hedge": f.hedge if disputed else (f.hedge or ""), "evidence": [_evidence(q) for q in cited]}
+        # QF-61: the writer's structured counts and measures, kept only as the statement and evidence state them and
+        # signed with the fact; a fact without them is countless (an illustration then draws no specific number)
+        record, refused = fact_quantities.check(fact, getattr(f, "counts", []), getattr(f, "measures", []))
+        for why in refused:
+            log.info("Fact sheet: %s: quantity not kept (%s).", f.id, why)
+        if record:
+            fact["quantities"] = record
+        facts.append(fact)
     return facts, dropped
 
 
@@ -398,6 +412,7 @@ def path_for(topic_id: str) -> Path:
 
 def save(sheet: Dict[str, Any]) -> None:
     sheet["rules_version"] = RULES_VERSION
+    sheet["fact_schema"] = FACT_SCHEMA_VERSION
     SHEETS_DIR.mkdir(parents=True, exist_ok=True)
     path_for(sheet["topic_id"]).write_text(json.dumps(sheet, indent=1, ensure_ascii=False), encoding="utf-8")
 

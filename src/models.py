@@ -76,6 +76,25 @@ class RouteStop(BaseModel):
     label: str                # at most 32 characters, e.g. "Built in Rhodes?" or "1902: found by divers"
 
 
+QuantityQualifier = Literal["exact", "approximate", "minimum", "maximum", "range", "per_unit", "comparison_set"]
+
+
+class DraftCount(BaseModel):
+    """How many of one physical thing the fact states (QF-61), as the fact-sheet writer proposes it. Checked by
+    src/fact_quantities.py before it is stored; only an "exact" count the statement states as exact is ever drawn."""
+    element: str              # the counted thing's singular noun, in the fact's own word ("mast")
+    count: int                # the whole number the fact states
+    qualifier: QuantityQualifier
+    source: str               # the statement's own words holding the number and the noun ("three tall masts")
+
+
+class DraftMeasure(BaseModel):
+    """One size, distance or weight the fact states (QF-61), checked like a count (src/fact_quantities.py)."""
+    element: str              # what is measured ("ship")
+    measure: str              # the statement's own words: the number and its unit ("34 cm")
+    qualifier: QuantityQualifier
+
+
 class DraftFact(BaseModel):
     """A fact as the fact-sheet writer proposes it, citing evidence by number."""
     id: str                   # short id, e.g. "F3"
@@ -84,6 +103,8 @@ class DraftFact(BaseModel):
     quote_ids: List[int]      # 1-based numbers of the evidence quotes that support it
     disputed: bool            # do the quotes (or sources) disagree?
     hedge: str                # if disputed or estimated: the safe wording (e.g. "about 85 m; sources range 60-85 m"); else ""
+    counts: list[DraftCount] = []      # QF-61: structured counts of physical things the statement states
+    measures: list[DraftMeasure] = []  # QF-61: structured measures the statement states
 
 
 CARD_TEXT_MAX = 84   # characters: a card-ready statement or a myth's correction

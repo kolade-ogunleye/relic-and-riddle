@@ -39,7 +39,7 @@ from typing import Any
 
 import numpy as np
 from PIL import Image
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, StrictBool, StrictInt
 
 from . import config
 
@@ -247,9 +247,26 @@ class DescriptorCheck(BaseModel):
     shown: bool
 
 
+class ElementCheck(BaseModel):
+    """One counted element: whether it is shown and how many are seen (null when they cannot all be counted)."""
+    element: str
+    shown: StrictBool = False
+    count_seen: StrictInt | None = Field(default=None, ge=0)
+
+
+class MeasureCheck(BaseModel):
+    """One stated measure: consistent only where a scale makes it observable (null otherwise), with the reason."""
+    measure: str
+    consistent: StrictBool | None = None
+    reason: str = ""
+
+
 class IllustrationVerdict(BaseModel):
     """The rubric's vision answer: every field must come back in the passing direction."""
     descriptors: list[DescriptorCheck] = []
+    elements: list[ElementCheck] = []
+    depicted_elements: list[str] | None = None
+    measure_checks: list[MeasureCheck] = []
     has_text: bool = True
     anachronism: bool = True
     identifiable_face: bool = True
@@ -267,7 +284,10 @@ def vision_rubric(image_path: Path, spec: dict[str, Any]) -> tuple[bool, str]:
     system = ("You check a generated illustration for a history documentary before it is shown. Be strict: it is "
               "shown only when every answer is in the passing direction. Return JSON with exactly the fields "
               "'descriptors' (list of {'descriptor', 'shown'}), 'has_text', 'anachronism', 'identifiable_face', "
-              "'subject_in_safe_zone', 'could_be_mistaken_for_photograph' and 'reason'.")
+              "'subject_in_safe_zone', 'could_be_mistaken_for_photograph', 'elements' (list of {'element', 'shown', "
+              "'count_seen': an integer, or null when they cannot all be counted}), 'depicted_elements' (EVERY physical "
+              "object and part drawn, each by its singular noun), 'measure_checks' (list of {'measure', 'consistent', "
+              "'reason'}) and 'reason'.")
     prompt = (f"It should depict: {spec.get('subject', '')}\nEra: {spec.get('era_label') or spec.get('era', '')}\n"
               "For each required descriptor say whether the image clearly shows it: "
               + "; ".join(required) + "\n"
@@ -275,7 +295,16 @@ def vision_rubric(image_path: Path, spec: dict[str, Any]) -> tuple[bool, str]:
               "anachronism: anything that does not belong to the era is shown.\n"
               "identifiable_face: a face of a real, identifiable person is shown.\n"
               "subject_in_safe_zone: the subject sits in the middle third, clear of the frame edges and the lower fifth.\n"
-              "could_be_mistaken_for_photograph: a viewer could take it for a real photograph.")
+              "could_be_mistaken_for_photograph: a viewer could take it for a real photograph.\n"
+              + (f"Count each of these elements: {[c.get('element') for c in spec.get('counts') or []]}. count_seen is "
+                 "the number drawn; null when any is hidden or unclear, never a guess.\n" if spec.get("counts") else
+                 "No count is required: 'elements' may be empty.\n") +
+              "depicted_elements: list every object and part drawn, including anything not named here; do not list the "
+              "plain background, the hatching or the line work.\n"
+              f"Measures stated by the facts: {list(spec.get('physical_measures') or [])}. For each, consistent is "
+              "true or false only where a visible scale or proportion makes it observable, null when it cannot be "
+              "seen (an unscaled absolute size), false for a visible contradiction; the reason gives the visual "
+              "evidence or why it cannot be seen.")
     try:
         v = free_llm.structured(system, [prompt, _image(image_path)], IllustrationVerdict, role=DESCRIPTOR_ROLE,
                                 task_class="light")
@@ -290,9 +319,42 @@ def vision_rubric(image_path: Path, spec: dict[str, Any]) -> tuple[bool, str]:
                              (v.identifiable_face, "an identifiable face"),
                              (not v.subject_in_safe_zone, "the subject outside the safe zone"),
                              (v.could_be_mistaken_for_photograph, "it could be mistaken for a photograph")) if bad]
+    problems += _inventory_problems(v, spec)
     if problems:
         return False, "; ".join(problems) + (f" ({v.reason})" if v.reason else "")
     return True, PASS
+
+
+def _inventory_problems(v: IllustrationVerdict, spec: dict[str, Any]) -> list[str]:
+    """QF-61: every stated count drawn exactly, nothing drawn that the facts do not name, every stated measure
+    answered (never contradicted). A missing inventory, a missing or unknown count and a missing measure reject."""
+    from .illustration_elements import canonical, item_allowed, item_words
+    terms = {canonical(t) for t in spec.get("inventory_terms") or []}
+    terms |= {canonical(w) for x in (spec.get("allowed_elements") or []) + (spec.get("required") or [])
+              + (spec.get("materials") or []) + (spec.get("forms") or []) for w in str(x).split()}
+    terms |= {canonical(c.get("element", "")) for c in spec.get("counts") or []}
+    terms.discard("")
+    problems = []
+    inventory = v.depicted_elements
+    if not terms or not inventory:
+        return ["no complete inventory of what is drawn, or no element the facts name"]
+    extra = [item for item in inventory if not item_allowed(item, terms)]
+    extra += [e.element for e in v.elements if e.shown and not item_allowed(e.element, terms) and e.element not in extra]
+    if extra:
+        problems.append("elements absent from the facts: " + ", ".join(extra))
+    drawn = set().union(*(item_words(item) for item in inventory))
+    for expected in spec.get("counts") or []:
+        element = canonical(expected.get("element", ""))
+        count = expected.get("count")
+        checks = [e for e in v.elements if canonical(e.element) == element]
+        if (len(checks) != 1 or checks[0].shown is not (count > 0) or checks[0].count_seen != count
+                or (element in drawn) != (count > 0)):
+            problems.append(f"count mismatch or unknown: {expected.get('element')} must be {count}")
+    for measure in spec.get("physical_measures") or []:
+        checks = [m for m in v.measure_checks if m.measure.strip() == str(measure).strip()]
+        if len(checks) != 1 or checks[0].consistent is False or not re.search(r"[A-Za-z0-9]{3}", checks[0].reason):
+            problems.append(f"measure missing or contradicted: {measure}")
+    return problems
 
 
 class ReferenceComparison(BaseModel):

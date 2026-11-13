@@ -63,7 +63,7 @@ from .config import is_configured
 log = logging.getLogger(__name__)
 
 API_BASE = "https://generativelanguage.googleapis.com/v1beta"
-PROMPT_VERSION = "engraving-2026-11-02"
+PROMPT_VERSION = "engraving-2026-11-13"     # QF-61 round 7: the subject is whole number-free sentences
 CANDIDATE_DIR = "illustration_candidates"
 BUDGET_FILE = "illustration_budget.json"
 ALLOWED_SURFACES = ("beat",)   # never a hook, cover, thumbnail or story slide
@@ -165,6 +165,13 @@ ERA_LABEL: dict[str, str] = {
     "classical_antiquity": "antiquity", "medieval_renaissance": "the medieval and early modern period",
     "industrial_victorian": "the nineteenth century", "modern_cold_war": "the twentieth century",
 }
+# QF-61: with no checked count, the drawing commits to no number (the prose's numbers are removed from the prompt)
+NO_COUNT = ("No count of anything here has been checked: draw no specific number of any repeated element, and do "
+            "not lay out repeated parts so that they can be counted.")
+NO_OTHER_COUNT = "Draw no specific number of any other repeated element."
+# QF-61 round 6: the closed inventory stays in the vision check (spec allowed_elements / inventory_terms); the generator
+# gets no word list, which could leave out the fact's own subject ("statues") or a form it must clearly show
+ONLY_NAMED = "Add no object or decorative element that the subject, material and forms above do not name."
 LIGHT = "Light rakes from the upper left and is rendered only by the density of the hatching."
 COMPOSITION = ("The subject sits in the middle third of the frame, clear of the edges; the lowest fifth of the frame "
                "is quiet, plain dark ground.")
@@ -476,8 +483,6 @@ _STRUCTURES = {"chamber", "chambers", "tunnel", "tunnels", "staircase", "stairs"
                "floor", "floors", "well", "cistern", "temple", "fortress", "pyramid", "aqueduct", "tower", "dome",
                "vault", "harbour", "harbor", "canal", "channel"}
 _MECHANISMS = {"gear", "gears", "mechanism", "dial", "lever", "pulley", "crane", "wheel"}
-_MEASURE = re.compile(r"\b\d[\d,]*(?:\.\d+)?\s*(?:m|metres?|meters?|ft|feet|km|kilomet(?:re|er)s?|cm|mm|tonnes?|tons?|"
-                      r"kg|levels?|floors?|storeys?|stories)\b", re.IGNORECASE)
 _LARGE = re.compile(r"\b\d[\d,]*(?:\.\d+)?\s*(?:m|metres?|meters?|ft|feet|km|kilomet(?:re|er)s?|levels?|floors?|"
                     r"storeys?|stories)\b", re.IGNORECASE)
 
@@ -486,10 +491,47 @@ def _norm(text: str) -> str:
     return " ".join(re.sub(r"[^a-z0-9 ]", " ", str(text or "").lower()).split())
 
 
+_CLIP_DANGLING = {"the", "a", "an", "of", "in", "on", "at", "by", "for", "from", "to", "with", "and", "or", "but",
+                  "its", "their", "his", "her", "this", "that", "these", "those", "was", "were", "is", "are", "as",
+                  "into", "than", "which", "who", "whether", "when", "where", "while", "during", "since", "until",
+                  "till", "before", "after", "between", "among", "across", "over", "under", "around", "about",
+                  "within", "through", "without", "including", "toward", "towards", "near", "upon", "via", "against",
+                  "along", "per", "like", "below", "above", "beneath", "behind", "onto", "nor", "be", "been", "has",
+                  "have", "had", "may", "might", "can", "could", "will", "would", "should", "must", "both", "either"}
+
+
 def _clean(text: str, n: int = 180) -> str:
     """Fact-sheet text as a prompt slot: one line, no quotes or brackets, clipped (web-derived data, never orders)."""
     text = re.sub(r"[\"“”<>{}\[\]`]", "", " ".join(str(text or "").split()))
-    return text if len(text) <= n else text[:n].rsplit(" ", 1)[0]
+    if len(text) <= n:
+        return text
+    # clipped: never end on a dangling word ("... was within the") or a comma (QF-61 round 6)
+    words = text[:n].rsplit(" ", 1)[0].split()
+    while len(words) > 1 and (words[-1].lower().strip(",;:") in _CLIP_DANGLING or words[-1].endswith((",", ";", ":"))):
+        words.pop()
+    return " ".join(words)
+
+
+# QF-61 round 7: the subject is whole sentences of the facts, each exactly as written. A sentence that states any
+# number, or carries a character the prompt never takes from fact text, is left out whole; prose is never edited.
+SUBJECT_MAX = 180                   # whole sentences while they fit
+SUBJECT_FIRST_MAX = 300             # a first sentence longer than SUBJECT_MAX is still taken whole up to this
+_UNSAFE_CHARS = re.compile(r"[\"“”<>{}\[\]`]")
+
+
+def _subject(facts: Sequence[dict[str, Any]]) -> str:
+    """The generator's subject: the facts' number-free sentences (illustration_elements.number_free_sentences), each
+    whole and unaltered (only runs of white space become one space), as many as fit; never a clipped sentence."""
+    from .illustration_elements import number_free_sentences
+    kept = dict.fromkeys(" ".join(s.split()) for f in facts
+                         for s in number_free_sentences(str(f.get("statement") or "")))
+    out: list[str] = []
+    for s in kept:
+        if _UNSAFE_CHARS.search(s):
+            continue
+        if (not out and len(s) <= SUBJECT_FIRST_MAX) or (out and len(" ".join([*out, s])) <= SUBJECT_MAX):
+            out.append(s)
+    return " ".join(out)
 
 
 def _years(text: str) -> list[int]:
@@ -565,7 +607,27 @@ def spec_from_facts(line: str, topic: dict[str, Any] | None, fact_sheet: dict[st
     required = materials + [f for f in forms if f not in materials]
     if not required:
         return None, "the facts give no physical descriptor to draw from"
-    measures = list(dict.fromkeys(m.group(0) for m in _MEASURE.finditer(statements)))[:3]
+    # QF-61 (operator decision 2026-11-12, structured counts only): no number is read out of the prose. An unclear
+    # quantity in it still refuses the picture; the counts and measures come only from the facts' signed quantities
+    # records (src/fact_quantities.py), "exact" entries only; the prose that reaches the prompt has its numbers removed
+    from .fact_quantities import checked
+    from .illustration_elements import canonical, extract, has_number
+    fidelity = extract(statements, _FORMS)
+    if fidelity["unresolved_quantities"]:
+        return None, ("a physical quantity in the facts is not exact and clear: "
+                      + "; ".join(fidelity["unresolved_quantities"][:3]))
+    counts, measures, seen = [], [], {}
+    for f in facts:
+        q = checked(f)
+        for c in q["counts"]:
+            seen.setdefault(canonical(c["element"]), set()).add(c["count"])
+            counts.append({"element": c["element"], "count": c["count"], "source": c["source"],
+                           "fact_id": str(f.get("id"))})
+        measures += [m["measure"] for m in q["measures"] if m["measure"] not in measures]
+    if any(len(v) > 1 for v in seen.values()):
+        return None, "a physical quantity in the facts is not exact and clear: two facts give different counts"
+    counts = list({canonical(c["element"]): c for c in counts}.values())
+    allowed = sorted(set(fidelity["allowed_elements"]) | {canonical(c["element"]) for c in counts})
     era = derive_era(topic, fact_sheet)
     if set(forms) & _MECHANISMS:
         viewpoint = "an exploded axonometric view"
@@ -575,11 +637,23 @@ def spec_from_facts(line: str, topic: dict[str, Any] | None, fact_sheet: dict[st
         viewpoint = "a three-quarter view"
     place = next((str((topic or {}).get(k)) for k in ("place", "location", "country") if isinstance((topic or {}).get(k), str)
                   and (topic or {}).get(k)), "")
-    spec = {"subject": _clean(statements), "topic": _clean((topic or {}).get("title") or "", 80),
+    subject = _subject(facts)
+    if not subject:
+        return None, "the facts cannot be described without their numbers: every sentence of them states one"
+    title = str((topic or {}).get("title") or "")
+    spec = {"subject": subject, "topic": "" if has_number(title) else _clean(title, 80),
             "materials": materials, "forms": forms, "required": required[:4], "measures": measures,
             "human_scale": bool(_LARGE.search(" ".join(measures))), "era": era, "era_label": ERA_LABEL[era],
-            "setting": _clean(place, 60), "viewpoint": viewpoint, "fact_ids": [str(f.get("id")) for f in facts]}
+            "setting": "" if has_number(place) else _clean(place, 60), "viewpoint": viewpoint,
+            "fact_ids": [str(f.get("id")) for f in facts], "counts": counts, "physical_measures": measures,
+            "allowed_elements": allowed, "inventory_terms": sorted(set(fidelity["inventory_terms"]) | set(allowed))}
     return spec, ""
+
+
+def counts_sentence(counts: Sequence[dict[str, Any]]) -> str:
+    """The prompt's sentence for the checked exact counts (each from a signed quantities record)."""
+    return ("Exact counts, checked against the sources: " + "; ".join(f"{c['count']} {c['element']}" for c in counts)
+            + ". Draw exactly these numbers.")
 
 
 def build_prompt(spec: dict[str, Any]) -> str:
@@ -592,9 +666,13 @@ def build_prompt(spec: dict[str, Any]) -> str:
     if spec.get("forms"):
         parts.append(f"It clearly shows: {', '.join(spec['forms'])}.")
     if spec.get("measures"):
-        parts.append(f"Scale: {', '.join(spec['measures'])}."
-                     + (" One small, generic human figure with no facial detail stands beside it for scale."
-                        if spec.get("human_scale") else ""))
+        parts.append(f"Scale, as the checked facts state it: {'; '.join(spec['measures'])}. Do not add a person or "
+                     "any other object to show the scale.")
+    if spec.get("counts"):
+        parts.append(counts_sentence(spec["counts"]) + " " + NO_OTHER_COUNT)
+    else:
+        parts.append(NO_COUNT)
+    parts.append(ONLY_NAMED)
     parts.append(f"Setting and era: {spec.get('setting') + ', ' if spec.get('setting') else ''}{ERA_LABEL[era]}.")
     parts += [f"Viewpoint: {spec.get('viewpoint') or 'a three-quarter view'}.", LIGHT, COMPOSITION, EXCLUDE]
     return " ".join(parts)

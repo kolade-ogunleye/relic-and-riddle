@@ -1,0 +1,21 @@
+{
+  "scripts_total": 50,
+  "classified": 0,
+  "unclassified": 50,
+  "classes": {
+    "live": 0,
+    "operator": 0,
+    "data": 0,
+    "validation": 0,
+    "eval": 0,
+    "one-off": 0,
+    "archived": 0
+  },
+  "archived": 0,
+  "archived_referenced": 0,
+  "archived_guarded": 0,
+  "unreferenced": 12,
+  "live_checked": 10,
+  "live_unchanged": 10,
+  "acceptance": false
+}

@@ -16,7 +16,13 @@ Every topic contains:
 """
 
 import json
+import sys
 from pathlib import Path
+
+if "--i-know-this-is-archived" not in sys.argv:
+    sys.exit("scripts/archive/generate_topic_bank.py is an archived one-off and is not maintained.\n"
+             "If run, it writes a topic bank under scripts/data/topics/, beside the archive.\n"
+             "Refusing; see scripts/README.md, or pass --i-know-this-is-archived.")
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data" / "topics"
 DATA_DIR.mkdir(parents=True, exist_ok=True)

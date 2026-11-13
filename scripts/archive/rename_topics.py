@@ -1,6 +1,11 @@
 import sys
 from pathlib import Path
 
+if "--i-know-this-is-archived" not in sys.argv:
+    sys.exit("scripts/archive/rename_topics.py is an archived one-off and is not maintained.\n"
+             "If run, it renames the configured chat's Telegram forum topics.\n"
+             "Refusing; see scripts/README.md, or pass --i-know-this-is-archived.")
+
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from src.telegram_bot import TelegramApprovalBot

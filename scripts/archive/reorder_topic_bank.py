@@ -2,6 +2,11 @@ import json
 import sys
 from pathlib import Path
 
+if "--i-know-this-is-archived" not in sys.argv:
+    sys.exit("scripts/archive/reorder_topic_bank.py is an archived one-off and is not maintained.\n"
+             "If run, it rewrites the topic bank and the topic rows in the database.\n"
+             "Refusing; see scripts/README.md, or pass --i-know-this-is-archived.")
+
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 

@@ -6,6 +6,11 @@ import json
 import sys
 from pathlib import Path
 
+if "--i-know-this-is-archived" not in sys.argv:
+    sys.exit("scripts/archive/regenerate_queue.py is an archived one-off and is not maintained.\n"
+             "If run, it deletes and rewrites topic rows in the database.\n"
+             "Refusing; see scripts/README.md, or pass --i-know-this-is-archived.")
+
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 

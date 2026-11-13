@@ -379,7 +379,9 @@ class ReviewPanel:
                                              # the media Approve posts decide the AI label, as on the live card
                                              # (QF-65a; without them the label is on for no media reason)
                                              master=run.get("master_video_path") or None,
-                                             cover=run.get("thumbnail_cover_path") or None)
+                                             cover=run.get("thumbnail_cover_path") or None,
+                                             # QF-73: its own run never spaces it; the Waiting line as both cards
+                                             run_id=run_id)
         except Exception as e:  # noqa: BLE001 - shown on Posts; with no copy recorded the envelope refuses to post
             log.warning("Could not work out what Approve posts for %s: %s", run_id, e)
             posted = {"error": f"{type(e).__name__}: {e}"}

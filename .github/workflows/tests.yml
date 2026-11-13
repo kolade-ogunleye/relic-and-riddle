@@ -28,6 +28,8 @@ jobs:
         run: python -m pip_audit --strict --require-hashes --disable-pip --progress-spinner off -r "$RUNNER_TEMP/locked.txt"
       - name: Dev tools
         run: python -m ruff --version
+      - name: Topic bank editorial lint (QF-73)
+        run: python scripts/lint_topic_bank.py
       - run: python -m pytest -q -n 4
       - name: Windows launcher adapter tests (the installed runtime/ copy)
         working-directory: deployment/windows/runtime

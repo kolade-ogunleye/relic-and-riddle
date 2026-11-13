@@ -413,6 +413,21 @@ POST_TIMEZONE = os.getenv("POST_TIMEZONE", "America/New_York")
 POST_SCHEDULING = os.getenv("POST_SCHEDULING", "true").lower() in ("true", "1", "yes")
 REEL_POST_TIMES = [t.strip() for t in os.getenv("REEL_POST_TIMES", "12:00,19:00").split(",") if t.strip()]
 STORY_DELAY_MINUTES = int(os.getenv("STORY_DELAY_MINUTES", "45"))
+# Topic bank editorial policy (QF-73). A topic with a "sensitivity" list (deaths, human remains, war, living sacred
+# practice...) is never published within SENSITIVE_TOPIC_GAP_DAYS audience-calendar days (POST_TIMEZONE) of another
+# sensitive topic: 1 keeps at least one clear day between them. Nightly at TOPIC_PROPOSAL_TIME (DEFAULT_TIMEZONE),
+# when fewer than TOPIC_QUEUE_FLOOR topics are queued, research proposes TOPIC_NIGHTLY_PROPOSALS ideas for your
+# Add (existing provider budgets; nothing joins the bank without you). The bank lint refuses a region group holding
+# more than TOPIC_REGION_MAX_SHARE of the topics.
+SENSITIVE_TOPIC_GAP_DAYS = max(1, int(os.getenv("SENSITIVE_TOPIC_GAP_DAYS") or 1))
+TOPIC_QUEUE_FLOOR = max(0, int(os.getenv("TOPIC_QUEUE_FLOOR") or 14))
+TOPIC_NIGHTLY_PROPOSALS = max(1, int(os.getenv("TOPIC_NIGHTLY_PROPOSALS") or 3))
+TOPIC_PROPOSAL_TIME = os.getenv("TOPIC_PROPOSAL_TIME", "03:30")
+# The nightly research starts at most this many times per calendar week (ISO week, DEFAULT_TIMEZONE): 1 is the
+# weekly run it replaced, so research spend does not rise (QF-73). Research you start yourself is not counted.
+# Raising it raises spend: the operator's decision. 0 turns the nightly research off.
+TOPIC_RESEARCH_RUNS_PER_WEEK = max(0, int(os.getenv("TOPIC_RESEARCH_RUNS_PER_WEEK") or 1))
+TOPIC_REGION_MAX_SHARE = 0.4   # fixed (QF-73 acceptance), not a setting
 CAROUSEL_DAYS = [d.strip().lower()[:3] for d in os.getenv("CAROUSEL_DAYS", "tue,wed,thu").split(",") if d.strip()]
 # A carousel goes out CAROUSEL_GAP_HOURS after its Reel at the soonest (Upload-Post flags similar content within
 # 48 h, docs/sources.md: don't go lower) and expires CAROUSEL_MAX_AGE_DAYS after its Reel posts (or, while the Reel

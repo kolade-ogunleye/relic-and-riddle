@@ -257,6 +257,8 @@ class PipelineCoordinator:
             topic = self.topic_engine.get_topic_by_id(topic_id)
             if not topic:
                 raise ValueError(f"Topic ID '{topic_id}' not found in topic bank.")
+            if topic.get("hold"):   # QF-73: an editorial hold is cleared in the bank, never bypassed by naming it
+                raise ValueError(f"Topic '{topic_id}' is on hold: {topic['hold']}")
         else:
             # The first topic in production order whose photo pool is approved, or can be made so now
             # (fetched and reviewed on merit); topics without usable photos are skipped, not failed.
@@ -1722,7 +1724,7 @@ class PipelineCoordinator:
         if post is None:
             return "⏭ That Reel booking is no longer pending."
         after = datetime.fromisoformat(post["due_at"]) + timedelta(minutes=1)
-        slot = post_schedule.next_reel_slot(after, self._booked_reel_days(exclude_id=post["id"]))
+        slot = self._reel_slot(post["run_id"], after, self._booked_reel_days(exclude_id=post["id"]))
         self.db.update_scheduled_post(post["id"], "pending", due_at=slot.astimezone(timezone.utc).isoformat())
         for story in self.db.list_scheduled_posts(("pending",), run_id=post["run_id"]):
             if story["kind"] == "story":
@@ -3705,7 +3707,7 @@ class PipelineCoordinator:
         self._require_release(run)
         run_dir = Path(run["master_video_path"]).parent
         taken = self._booked_reel_days()
-        slot = post_schedule.next_reel_slot(now, taken)
+        slot = self._reel_slot(run_id, now, taken)
         self.db.add_scheduled_post(run_id, "reel", slot.astimezone(timezone.utc).isoformat(), [])
         # A run approved after the slot it was made for is booked later, and says so (it did silently: QF-74)
         worker_deadline.missed_slot_notice(self.db, run, slot, now, taken, self._alert)
@@ -3745,6 +3747,13 @@ class PipelineCoordinator:
                          f"🖼 Carousel: its last carousel slot ({config.CAROUSEL_MAX_AGE_DAYS:g} days after the Reel, "
                          f"or its first slot {gap} after it) has passed, so it won't post")
         return lines
+
+    def _reel_slot(self, run_id: str, after: datetime, taken: set) -> datetime:
+        """The next free Reel slot after `after` that keeps a sensitive topic a clear audience day from another
+        (src/topic_policy.next_safe_slot, QF-73); the plain next free slot for any other topic."""
+        from src.topic_policy import next_safe_slot
+        return next_safe_slot(self.db, (self.db.get_run(run_id) or {}).get("topic_id") or "", after, taken,
+                              run_id=run_id)
 
     def _booked_reel_days(self, exclude_id: Optional[int] = None) -> set:
         return {datetime.fromisoformat(p["due_at"]).astimezone(post_schedule.tz()).date()
@@ -3891,7 +3900,7 @@ class PipelineCoordinator:
                      actions=self._episode_action(post["run_id"]))
 
     def _reschedule(self, post: Dict[str, Any], run: Dict[str, Any], now: datetime) -> None:
-        slot = post_schedule.next_reel_slot(now, self._booked_reel_days(exclude_id=post["id"]))
+        slot = self._reel_slot(post["run_id"], now, self._booked_reel_days(exclude_id=post["id"]))
         self.db.update_scheduled_post(post["id"], "pending", due_at=slot.astimezone(timezone.utc).isoformat())
         for story in self.db.list_scheduled_posts(("pending",), run_id=post["run_id"]):
             if story["kind"] == "story":
@@ -4014,7 +4023,178 @@ class PipelineCoordinator:
                          key=f"post-failed:{post['id']}", actions=[{"text": "Retry", "callback_data": f"retrypost:{post['id']}"}])
         return res["status"]
 
+    def _spacing_holds(self, post: dict[str, Any], run: dict[str, Any], slot: datetime) -> bool:
+        """QF-73: whether sensitive-topic spacing keeps this ready carousel from its slot. Its booking records why
+        (detail "waiting_for": "spacing", "spacing": the reason) and keeps it: a carousel spacing held back that then
+        loses its spaced slot to another carousel still waited for spacing (posting_view.carousel_outlook). Post
+        anyway (post_carousel_anyway) sets spacing aside for this carousel."""
+        detail = dict(post.get("detail") or {})
+        if detail.get("spacing_override"):
+            return False
+        problem = self.db.topic_problem(run["topic_id"], slot, run_id=post["run_id"], spacing_only=True)
+        if problem and (detail.get("waiting_for"), detail.get("spacing")) != ("spacing", problem):
+            detail.update(waiting_for="spacing", spacing=problem, spacing_at=slot.isoformat())
+            self.db.update_scheduled_post(post["id"], "waiting", detail=detail)
+        return bool(problem)
+
+    def _spacing_expiry(self, post: dict[str, Any], now: datetime) -> dict[str, Any] | None:
+        """The detail an expiring carousel records when the carousel plan kept it from a slot for sensitive-topic
+        spacing, or for a carousel you chose to post anyway (QF-73), else None (its detail is kept, as before)."""
+        detail = dict(post.get("detail") or {})
+        if detail.get("waiting_for") != "spacing" and not isinstance(detail.get("spacing_why"), dict):
+            return None
+        from src.posting_view import SPACING
+        return {**detail, "reason": SPACING, "expired_at": now.isoformat()}
+
+    def _watch_carousel_spacing(self, now: datetime) -> None:
+        """QF-73: a carousel the carousel plan leaves no slot for, because sensitive-topic spacing held it back (also
+        when a spaced slot is then lost to another carousel), because another carousel you chose to post anyway takes
+        its slot, or because you chose to post it anyway and another choice holds the only slot, never expires
+        silently. "No slot left" is decided once, by the plan itself (posting_view.carousel_outlook: the same order
+        the slot loop uses), the answer every screen shows. At every pass of the posting loop, from the moment its
+        Reel has posted (its window is then known), such a carousel raises ONE Needs-you alert, as soon as that is
+        so: why, until when, Post anyway (only when the plan would then give it a slot: that slot is named) and Let it
+        expire (what happens if you do nothing). Its booking keeps the reason, and once its deadline has passed it
+        expires recording it. Spacing that waits only for an unconfirmed publication raises no alert: it is decided
+        once that publication is known."""
+        from src.posting_view import (
+            SPACING,
+            carousel_outlook,
+            post_anyway_outcome,
+            spacing_buttons,
+            why_words,
+        )
+        outlook = None
+        for post in self.db.list_scheduled_posts(("waiting",)):
+            if post["kind"] != "carousel" or not self._may_post(post["run_id"]):
+                continue
+            outlook = outlook or carousel_outlook(self.db, now)
+            wait = outlook["waits"].get(post["id"])
+            if not wait or wait["earliest"] or wait["state"] != "posted":
+                continue
+            detail = dict(post.get("detail") or {})
+            record = {"spacing_why": wait["why"], "deadline": wait["deadline"].isoformat()}
+            if wait["kind"] == "spacing":
+                record.update(waiting_for="spacing", spacing=wait["reason"] or detail.get("spacing") or "")
+            if now > wait["deadline"]:
+                self.db.update_scheduled_post(post["id"], "expired", detail={
+                    **detail, **record, "reason": SPACING, "expired_at": now.isoformat()})
+                log.info("Carousel %s of %s expired: %s.", post["id"], post["run_id"], why_words(wait["why"], past=True))
+                continue
+            if not wait["unconfirmed"] and any(detail.get(k) != v for k, v in record.items()):
+                detail.update(record)
+                self.db.update_scheduled_post(post["id"], "waiting", detail=detail)
+            flag = "spacing_alert" if wait["kind"] == "spacing" else "slot_alert"
+            if wait["unconfirmed"] or detail.get(flag):
+                continue
+            outcome = ({"slot": None, "blocked_by": None} if wait["override"]
+                       else post_anyway_outcome(self.db, post, outlook=outlook))
+            detail[flag] = now.isoformat()
+            self.db.update_scheduled_post(post["id"], "waiting", detail=detail)
+            label = html.escape(self.db.run_label(post["run_id"]))
+            deadline = html.escape(post_schedule.fmt(wait["deadline"]))
+            if wait["kind"] == "spacing" and not wait["lost"]:
+                why = str(wait["reason"] or "it is too close to another sensitive topic's post")
+                head = (f"⏳ <b>Carousel waiting: {SPACING}</b>\n\n<b>{label}</b>\n\nIts carousel would post too close "
+                        f"to another sensitive topic ({html.escape(why[:1].lower() + why[1:])}), and no spaced "
+                        f"carousel slot comes before its deadline, {deadline}.\n\n")
+            else:
+                title = f"Carousel waiting: {SPACING}" if wait["kind"] == "spacing" else "Carousel without a slot"
+                head = (f"⏳ <b>{title}</b>\n\n<b>{label}</b>\n\nIts carousel has no slot before its deadline, "
+                        f"{deadline}: {html.escape(why_words(wait['why']))}.\n\n")
+            if outcome["slot"]:
+                head += (f"▶️ Post anyway: it posts at {html.escape(post_schedule.fmt(outcome['slot']))}, after the "
+                         "checks every carousel passes.\n")
+            elif outcome["blocked_by"]:
+                other = next((p for p in self.db.list_scheduled_posts(("waiting",)) if p["id"] == outcome["blocked_by"]),
+                             None)
+                head += ("Post anyway can't give it a slot: the carousel of "
+                         f"{html.escape(self.db.run_label(other['run_id']) if other else 'another episode')}, which you "
+                         "chose to post anyway, holds it.\n")
+            text = head + "⏹ Let it expire: nothing is posted. If you do nothing, it expires at its deadline."
+            # The clean chat (UI-01): one Needs-you item per carousel booking, under the key its holds use, so a later
+            # notice for it (no slot, then held at its slot) replaces this one; Post anyway and Let it expire are its
+            # actions and close it only when they were done (notifications.Outcome). With the switch off, say()
+            # leaves the item fields out and the notice is sent exactly as before.
+            _notice(self, text, buttons=spacing_buttons(post, {"next": outcome["slot"]}), group="needs",
+                    section="needs", key=f"post-failed:{post['id']}", run=post["run_id"], replace=True)
+
+    def _spaced_carousel(self, post_id: Any) -> dict[str, Any] | None:
+        """The waiting carousel a QF-73 alert's button names, while the plan still keeps it from a slot, or it waited
+        for spacing, or you chose Post anyway for it."""
+        from src.posting_view import spacing_wait
+        post = next((p for p in self.db.list_scheduled_posts(("waiting",)) if str(p["id"]) == str(post_id)), None)
+        if post is None or post["kind"] != "carousel":
+            return None
+        detail = post.get("detail") or {}
+        return post if (spacing_wait(self.db, post) or detail.get("waiting_for") == "spacing"
+                        or detail.get("spacing_override") or isinstance(detail.get("spacing_why"), dict)) else None
+
+    def post_carousel_anyway(self, post_id: Any) -> str:
+        """The spacing alert's ▶️ Post anyway (QF-73): spacing is set aside for this one carousel, which goes first
+        at the slot the carousel plan then gives it (posting_view.post_anyway_outcome), and the reply names that
+        slot; the checks every carousel passes there (QF-81 draw and audit, the approved review, its slides) still
+        apply. When a carousel you chose to post anyway earlier holds the only slot, nothing is changed and the reply
+        says so (the first choice keeps its slot).
+
+        The reply is a notifications.Outcome (UI-01): done only when spacing is set aside and the plan gives it a
+        slot, so its item closes then and stays open, saying why, on every refusal."""
+        from src.notifications import Outcome
+        from src.posting_view import carousel_outlook, post_anyway_outcome
+        post = self._spaced_carousel(post_id)
+        if post is None:
+            return Outcome("🖼 That carousel is not waiting for sensitive-topic spacing any more: see Posting.",
+                           done=False)
+        label = html.escape(self.db.run_label(post["run_id"]))
+        now = datetime.now(UTC)
+        outlook = carousel_outlook(self.db, now)
+        outcome = post_anyway_outcome(self.db, post, outlook=outlook)
+        reel_at = post_schedule.carousel_reel(self.db, post)[1]
+        deadline = html.escape(post_schedule.fmt(post_schedule.carousel_deadline(reel_at)))
+        waiting = {p["id"]: p for p in self.db.list_scheduled_posts(("waiting",))}
+        if outcome["blocked_by"]:
+            other = waiting.get(outcome["blocked_by"])
+            held = outlook["plan"].get(outcome["blocked_by"])
+            return Outcome(f"🖼 The carousel of {label} can't take that slot: the carousel of "
+                           f"{html.escape(self.db.run_label(other['run_id']) if other else 'another episode')}, which "
+                           "you chose to post anyway first, holds its only carousel slot"
+                           + (f", {html.escape(post_schedule.fmt(held))}" if held else "")
+                           + f". Nothing was changed. If you do nothing, it expires at its deadline, {deadline}.",
+                           done=False)
+        slot = outcome["slot"]
+        if not slot:
+            return Outcome(f"🖼 The carousel of {label} has no carousel slot left before its deadline, so it can't "
+                           "post.", done=False)
+        if not (post.get("detail") or {}).get("spacing_override"):
+            self.db.update_scheduled_post(post["id"], "waiting", detail={
+                **(post.get("detail") or {}), "spacing_override": True, "spacing_override_at": now.isoformat(),
+                "priority": True})
+        first = post_schedule.first_carousel_slot(reel_at, now=now - MISSED_SLOT_GRACE)
+        where = "its next carousel slot, " if slot == first else ""
+        gone = [html.escape(self.db.run_label(waiting[pid]["run_id"])) for pid in outcome["displaced"] if pid in waiting]
+        return Outcome(f"▶️ The carousel of {label} posts at {where}{html.escape(post_schedule.fmt(slot))}, if its "
+                       "checks pass. Sensitive-topic spacing is set aside for this carousel only."
+                       + (f" The carousel of {', '.join(gone)} gives up that slot and has none left before its "
+                          "deadline: you will get a notice for it." if gone else ""), done=True)
+
+    def expire_spaced_carousel(self, post_id: Any) -> str:
+        """The alert's ⏹ Let it expire (QF-73): it expires now, its booking recording why. The reply is a
+        notifications.Outcome (UI-01): done only when it expired."""
+        from src.notifications import Outcome
+        from src.posting_view import SPACING, spacing_wait
+        post = self._spaced_carousel(post_id)
+        if post is None:
+            return Outcome("🖼 That carousel is not waiting for sensitive-topic spacing any more: see Posting.",
+                           done=False)
+        wait = spacing_wait(self.db, post) or {}
+        self.db.update_scheduled_post(post["id"], "expired", detail={
+            **(post.get("detail") or {}), **({"spacing_why": wait["why"]} if wait.get("why") else {}),
+            "reason": SPACING, "by": "operator", "expired_at": datetime.now(UTC).isoformat()})
+        return Outcome(f"⏹ The carousel of {html.escape(self.db.run_label(post['run_id']))} won't post: you let it "
+                       f"expire ({SPACING}). Its Reel and other posts are not affected.", done=True)
+
     def _post_carousel_if_due(self, now: datetime) -> None:
+        self._watch_carousel_spacing(now)   # QF-73: a carousel spacing leaves no slot for is said, never silent
         local = now.astimezone(post_schedule.tz())
         slot = post_schedule.carousel_time(local.date())
         if not slot or not slot <= now < slot + MISSED_SLOT_GRACE:
@@ -4029,10 +4209,13 @@ class PipelineCoordinator:
         for post in waiting:
             state, reel_at = post_schedule.carousel_reel(self.db, post)
             if post_schedule.carousel_expired(slot, reel_at):  # a week-old carousel is stale next to newer Reels
-                self.db.update_scheduled_post(post["id"], "expired")
+                self.db.update_scheduled_post(post["id"], "expired", detail=self._spacing_expiry(post, now))
             elif state == "posted" and post_schedule.carousel_may_take(slot, reel_at):
                 run = self.db.get_run(post["run_id"])
-                if run and run["status"] == "published":
+                # QF-73: a sensitive topic's carousel too close to another sensitive topic's post waits for a later
+                # slot (it stays waiting, its reason recorded; another ready episode may take this one), unless you
+                # chose Post anyway for it
+                if run and run["status"] == "published" and not self._spacing_holds(post, run, slot):
                     ready.append((post, run))
         from src import carousel_lazy
         # the newest topic; a carousel the operator asked to redraw after a hold goes first (QF-81). One that no
@@ -4336,7 +4519,9 @@ class PipelineCoordinator:
         if dry_run:
             self.db.update_run(run_id, "approved")
         elif not self.db.claim_publication(run_id):
-            raise ValueError("Publication was already claimed or this run is not ready")
+            # QF-73: a sensitive topic too close to another one is refused with that reason
+            raise ValueError(self.db.topic_problem(run["topic_id"], run_id=run_id, spacing_only=True)
+                             or "Publication was already claimed or this run is not ready")
         try:
             pub = self._timed_upload(run, lambda: self.publisher.publish_reel(envelope, dry_run=dry_run))
         except Exception as exc:
@@ -5314,11 +5499,12 @@ def start_post_ticker(coordinator: "PipelineCoordinator", bot) -> threading.Thre
     return thread
 
 
-def _proposal_trigger(db: PipelineDatabase, bot) -> Any:
-    """Research is an operator job: cancellable and tied to its originating panel."""
+def _proposal_trigger(db: PipelineDatabase, bot, n: int | None = None) -> Any:
+    """Research is an operator job: cancellable and tied to its originating panel. `n`: the ideas it proposes
+    (propose()'s default when None)."""
     def work():
         from src import topic_proposer
-        proposals = topic_proposer.propose(db)
+        proposals = topic_proposer.propose(db) if n is None else topic_proposer.propose(db, n)
         text = (f"💡 Research complete: {len(proposals)} new idea(s). Open Waiting ideas to review them."
                 if proposals else "💡 No new verified topic ideas this time.")
         return text, [[{"text": "Waiting ideas", "callback_data": "cprop:"}],
@@ -5723,7 +5909,9 @@ def main(argv=None) -> int:
                          "ytthumb": getattr(coordinator, "set_youtube_thumbnail", None),
                          "ytshort": getattr(coordinator, "post_youtube_short", None),
                          "carpreview": getattr(coordinator, "preview_carousel", None),
-                         "carredraw": getattr(coordinator, "redraw_carousel", None)},
+                         "carredraw": getattr(coordinator, "redraw_carousel", None),
+                         "carspace": getattr(coordinator, "post_carousel_anyway", None),
+                         "carexpire": getattr(coordinator, "expire_spaced_carousel", None)},
             produce_batch=produce_batch,
         )
         if POST_SCHEDULING:  # what this mode books, it also posts when due
@@ -6075,9 +6263,14 @@ def main(argv=None) -> int:
 
         scheduler.add_job(prebuild_fact_sheets, CronTrigger(hour=3, minute=0, timezone=TIMEZONE),
                           max_instances=1, coalesce=True, misfire_grace_time=6 * 3600)
-        scheduler.add_job(propose_topics.run_now, CronTrigger(day_of_week="fri", hour=hb_hour, minute=hb_minute,
-                                                              timezone=TIMEZONE), max_instances=1, coalesce=True,
-                          misfire_grace_time=3600)
+        # Nightly (QF-73): research proposes ideas for your Add while the queue is short, at most
+        # TOPIC_RESEARCH_RUNS_PER_WEEK times a week (1: the weekly run it replaces, so spend does not rise).
+        from src.topic_policy import nightly_proposals
+        nightly_research = _proposal_trigger(coordinator.db, bot, config.TOPIC_NIGHTLY_PROPOSALS)
+        proposal_hour, proposal_minute = (int(x) for x in config.TOPIC_PROPOSAL_TIME.split(":"))
+        scheduler.add_job(lambda: nightly_proposals(coordinator.db, nightly_research.run_now),
+                          CronTrigger(hour=proposal_hour, minute=proposal_minute, timezone=TIMEZONE),
+                          max_instances=1, coalesce=True, misfire_grace_time=3600)
 
         def improvement_cycle():
             """Nightly: recurring findings become proposals; candidate writing rules are tested on the
@@ -6226,7 +6419,9 @@ def main(argv=None) -> int:
                          "ytthumb": getattr(coordinator, "set_youtube_thumbnail", None),
                          "ytshort": getattr(coordinator, "post_youtube_short", None),
                          "carpreview": getattr(coordinator, "preview_carousel", None),
-                         "carredraw": getattr(coordinator, "redraw_carousel", None)},
+                         "carredraw": getattr(coordinator, "redraw_carousel", None),
+                         "carspace": getattr(coordinator, "post_carousel_anyway", None),
+                         "carexpire": getattr(coordinator, "expire_spaced_carousel", None)},
                                        produce_batch=produce_batch)
 
         def poll_telegram():

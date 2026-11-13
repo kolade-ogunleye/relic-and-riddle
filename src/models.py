@@ -355,6 +355,10 @@ class TopicProposal(BaseModel):
     image_keywords: List[str] # words a relevant file title must contain
     why_it_works: str
     sources: List[Source]
+    # QF-73: the broad geographic region, and the reasons for editorial care ([] after assessing none). A proposal
+    # without an assessment counts as sensitive (topic_policy.UNASSESSED) until you edit the bank.
+    region_group: str = "unclassified"
+    sensitivity: list[str] = Field(default_factory=lambda: ["Editorial sensitivity assessment pending"])
 
 
 class TopicProposals(BaseModel):

@@ -17,11 +17,13 @@ import re
 import unicodedata
 from typing import Dict, List, Optional
 
+from . import config
 from .config import TOPICS_DIR
 from .topic_store import serialized
 from .db import PipelineDatabase
 from .llm import claude_available, format_sources, research, structured_call, task as llm_task
 from .models import TopicProposal, TopicProposals
+from .topic_policy import VIRAL_TAG, intake_problems, readiness, sensitivity_note
 
 log = logging.getLogger(__name__)
 
@@ -114,7 +116,12 @@ def propose(db: PipelineDatabase, n: int = 3) -> List[TopicProposal]:
 
     struct_prompt = (
         f"<research>\n{notes}\n</research>\n<retrieved_sources>\n{format_sources(retrieved)}\n</retrieved_sources>\n"
-        f"Return {candidate_count} proposals. key_facts: exactly 5, hedged where sources disagree. hashtags: exactly 7. "
+        f"Return {candidate_count} proposals. key_facts: exactly 5, hedged where sources disagree, at least one with a "
+        "number, a scale or a contrast. hashtags: exactly 7, never #ReelsViral. "
+        f"hook: a question or a stark verified claim of at most {config.HOOK_MAX_WORDS} words, its number, scale, "
+        f"contrast or question within the first {config.HOOK_SIGNAL_WITHIN}. region_group: the broad geographic "
+        "region. sensitivity: the reasons the subject needs care (deaths, human remains, war, living religious "
+        "practice, animal harm), or an empty list after assessing none. "
         "image_queries: 2-4 Wikimedia Commons searches. image_keywords: 2-6 lowercase words, at least one of which "
         f"must appear in a relevant image file title. {sources_instruction}"
     )
@@ -152,9 +159,10 @@ def propose(db: PipelineDatabase, n: int = 3) -> List[TopicProposal]:
         else:
             valid_sources = [s for s in (p.sources or []) if s and s.url]
         p.sources = valid_sources
+        p.hashtags = [tag for tag in p.hashtags if tag.casefold() != VIRAL_TAG]
 
         dup = near_duplicate(p.title, existing)
-        if not p.sources or p.slug in taken or len(p.key_facts) < 3 or dup:
+        if intake_problems(p.model_dump(mode="json")) or p.slug in taken or len(p.key_facts) < 3 or dup:
             log.info("Skipping proposal %s (no verified source, duplicate%s, or too thin).", p.slug,
                      f" of '{dup}'" if dup else "")
             continue
@@ -176,11 +184,14 @@ def added_record(by: str, via: str) -> Dict[str, str]:
 
 
 def origin_note(topic: Dict) -> str:
-    """The review card's line on where the topic came from."""
+    """The review card's line on where the topic came from, with the sensitivity chip under it for a sensitive
+    topic (QF-73; both review cards show this note)."""
     added = topic.get("added") or {}
+    chip = sensitivity_note(topic)
+    chip = f"\n⚠️ {chip}" if chip else ""
     if not added:
-        return "🗂 Topic origin: the original topic bank (added before origins were recorded)"
-    return f"🗂 Topic origin: {added.get('by', '?')}, {added.get('via', '?')}, {added.get('at', '?')}"
+        return "🗂 Topic origin: the original topic bank (added before origins were recorded)" + chip
+    return f"🗂 Topic origin: {added.get('by', '?')}, {added.get('via', '?')}, {added.get('at', '?')}" + chip
 
 
 def _wikipedia_title(p: TopicProposal) -> str:
@@ -207,14 +218,22 @@ def add(db: PipelineDatabase, slug: str) -> str:
         return slug
     if slug not in store:
         raise ValueError(f"No pending proposal '{slug}'.")
-    p = TopicProposal.model_validate(store.pop(slug))
+    p = TopicProposal.model_validate(store[slug])
+    problems = intake_problems(p.model_dump(mode="json"))
+    if problems:   # refused before anything is written; the proposal stays waiting
+        raise ValueError("; ".join(problems))
+    store.pop(slug)
     bank = _bank()
     topic_id = p.slug
     bank["topics"].append({
-        "id": topic_id, "title": p.title, "sub_theme": p.sub_theme, "hook": p.hook,
+        # A hook that fails the opening rule is not passed on (QF-73): the writer opens from the facts instead.
+        "id": topic_id, "title": p.title, "sub_theme": p.sub_theme,
+        "hook": p.hook if readiness({"hook": p.hook})["hook_passes"] else "",
         "location": p.location.model_dump(), "key_facts": p.key_facts,
-        "meta_categories": ["History & Philosophy", "Travel & Culture"], "hashtags": p.hashtags,
+        "meta_categories": ["History & Philosophy", "Travel & Culture"],
+        "hashtags": [tag for tag in p.hashtags if tag.casefold() != VIRAL_TAG],
         "sources": [s.model_dump() for s in p.sources],
+        "region_group": p.region_group or "unclassified", "sensitivity": list(p.sensitivity),
         "added": added_record("research proposal", f"approved in Telegram ({len(p.sources)} sources)"),
     })
     bank["total"] = len(bank["topics"])
@@ -250,7 +269,16 @@ def proposal_text(p: TopicProposal) -> str:
     facts = "\n".join(f"• {e(f)}" for f in p.key_facts)
     loc = ", ".join(x for x in (p.location.name, p.location.country) if x)
     src = "\n".join(f"📚 {e(s.url)}" for s in p.sources[:3])
-    return (f"<b>{e(p.title)}</b>\n📍 {e(loc)} · {e(p.sub_theme)}\n\n"
+    # QF-73: before Add, the card says whether the hook passes the opening rule, whether a concrete fact exists,
+    # and why the subject needs care
+    ready = readiness({"hook": p.hook, "key_facts": p.key_facts})
+    chip = sensitivity_note(p.model_dump())
+    checks = ("✅ Hook passes the opening rule" if ready["hook_passes"]
+              else "⚠️ Hook fails the opening rule: it is not passed to the writer") + "\n" + (
+        "✅ A key fact carries a number, a scale or a contrast" if ready["concrete_fact"]
+        else "⚠️ No concrete fact (a number, a scale or a contrast): its first run relies on research to find one")
+    return (f"<b>{e(p.title)}</b>\n📍 {e(loc)} · {e(p.sub_theme)}\n"
+            + (f"⚠️ {e(chip)}\n" if chip else "") + f"{e(checks)}\n\n"
             f"<i>\"{e(p.hook)}\"</i>\n\n"
             f"<blockquote expandable><b>Verified facts</b>\n{facts}\n\n"
             f"<b>Why it works</b>: {e(p.why_it_works)}\n\n"

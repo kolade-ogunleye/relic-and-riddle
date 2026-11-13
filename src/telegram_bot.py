@@ -69,7 +69,7 @@ _ITEM_ACTION = ContextVar("notifications_item_action", default=None)
 CLOSE_THEIR_ITEM = {"rvua"}
 LEGACY_ACTIONS_NS = "alert-actions"   # an earlier-chat notice's buttons by "<chat>:<message>" (UI-01f, §13)
 # Item actions whose handler says whether it was done (notifications.Outcome); a reply that does not say is not done.
-SAY_THEIR_OUTCOME = {"upd", "rerender", "carredraw"}
+SAY_THEIR_OUTCOME = {"upd", "rerender", "carredraw", "carspace", "carexpire"}
 PLAIN_TOASTS = {"", "Working", "Request checked", "Request received", "Updated", "Working; you can keep using the bot"}
 PANEL_ACTIONS = {"ccar", "reviewpick", "pickbump", "pickdrop", "cideas", "cpropose", "ccov", "cmusic", "cdisc", "cprop", "cstat", "cimages", "caccounts", "imagepick", "imagehelp", "review", "mkeep", "mnext", "mdel", "mcancel", "mreview", "musicmenu", "mfmenu", "mlibrary", "chelp"}
 # Cards removed before acting (their own Cancel/Skip/Next buttons).
@@ -77,7 +77,7 @@ DELETE_FIRST = {"tskip"}
 # Decision buttons: disabled before acting so a second tap can't repeat the decision.
 ONE_SHOT = {"uadd", "tadd", "imgok", "mkeep", "cov", "rsn", "impok", "impno", "imprev",
             "pubok", "pubno", "simpub", "resend", "rerender", "promote", "requeue", "fbcaptions", "fbcover", "ytshort", "rebook", "ytthumb",
-            "newversion", "carredraw"}
+            "newversion", "carredraw", "carspace", "carexpire"}
 # Replies that only acknowledge (the card or panel itself shows the result): a nudge that leaves on its own,
 # not a message that stays (operator, 2026-10-25: "Sending ... for review again" and "Thanks, noted" stayed).
 NUDGE_REPLIES = {"resend", "whytext", "requeue"}
@@ -586,6 +586,9 @@ def _schedule_line(posted: dict[str, Any]) -> str:
             return ""
     slot = when(posted.get("slot"))
     closes = when(posted.get("closes"))
+    if posted.get("scheduling_hold") and posted.get("posting") != "dry_run":   # QF-73: Approve cannot post it yet
+        return ("🗓 <b>Waiting:</b> " + html.escape(str(posted["scheduling_hold"]))
+                + (f" · <b>review closes</b> {html.escape(closes)}" if closes else "") + "\n")
     if slot and closes and slot[:10] == closes[:10]:   # the same day: its time alone ("Tue 27 Oct 16:40 MDT" -> "16:40 MDT")
         closes = closes[11:]
     line = "🗓 <b>Slot:</b> " + (html.escape(slot) if slot else "none, a dry run posts nothing"
@@ -2682,7 +2685,7 @@ class TelegramApprovalBot:
                                              # the media Approve posts decide the AI label, as on the live card
                                              # (QF-65a; without them the label is on for no media reason)
                                              master=(run or {}).get("master_video_path") or None,
-                                             cover=(run or {}).get("thumbnail_cover_path") or None)
+                                             cover=(run or {}).get("thumbnail_cover_path") or None, run_id=run_id)
         except Exception as e:  # noqa: BLE001 - the live card shows the reason; the V2 card is not sent without it
             raise V2CardUnavailable(f"what Approve posts could not be worked out ({type(e).__name__}: {e})") from None
         if not release or not release.get("checks"):
@@ -3008,7 +3011,7 @@ class TelegramApprovalBot:
                                              window_seconds=sizer() if callable(sizer) else None,
                                              topic_id=(run or {}).get("topic_id") or "", posting=posting,
                                              master=(run or {}).get("master_video_path") or None,
-                                             cover=(run or {}).get("thumbnail_cover_path") or None)
+                                             cover=(run or {}).get("thumbnail_cover_path") or None, run_id=run_id)
         except Exception as e:  # noqa: BLE001  shown on the card; with no copy recorded, the envelope check refuses to post
             log.warning("Could not work out what Approve posts for %s: %s", run_id, e)
             posted = {"error": f"{type(e).__name__}: {e}"}

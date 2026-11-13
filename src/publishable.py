@@ -237,24 +237,32 @@ POSTINGS = ("slot", "now", "dry_run")   # what Approve does: books a slot, posts
 
 
 def schedule(db: Any, now: datetime | None = None, window_seconds: int | None = None,
-             posting: str = "now") -> dict[str, str | None]:
+             posting: str = "now", topic_id: str = "", run_id: str = "") -> dict[str, str | None]:
     """{"posting": what Approve does (POSTINGS; main.PipelineCoordinator._approve_posting), "slot": the Reel slot
-    it books (post_schedule.next_reel_slot over the booked days; None unless Approve books one), "closes": when the
-    review closes}, the times as ISO strings."""
+    it books (topic_policy.next_safe_slot over the booked days, the slot main books; None unless Approve books one),
+    "closes": when the review closes}, the times as ISO strings; plus "scheduling_hold" when Approve cannot post or
+    book this sensitive topic yet (another sensitive publication too close or unconfirmed, QF-73)."""
     from . import config, post_schedule
+    from .topic_policy import SensitiveSpacingError, next_safe_slot
     now = now or datetime.now(UTC)
     posting = posting if posting in POSTINGS else "now"
-    slot = None
+    slot, hold = None, ""
     if posting == "slot" and config.POST_SCHEDULING:
         try:
             taken = {datetime.fromisoformat(p["due_at"]).astimezone(post_schedule.tz()).date()
                      for p in db.list_scheduled_posts(("pending",)) if p.get("kind") == "reel" and p.get("due_at")}
-            slot = post_schedule.next_reel_slot(now, taken).isoformat()
+            slot = (next_safe_slot(db, topic_id, now, taken, run_id=run_id) if hasattr(db, "topic_problem")
+                    else post_schedule.next_reel_slot(now, taken)).isoformat()
+        except SensitiveSpacingError as exc:   # no day is safe yet: the card says so, never "posted at once"
+            hold = str(exc)
         except (KeyError, ValueError, TypeError, AttributeError):  # a schedule misconfiguration never costs the card
             slot = None
+    elif posting == "now" and topic_id and hasattr(db, "topic_problem"):
+        hold = db.topic_problem(topic_id, now, run_id=run_id, spacing_only=True)
     seconds = window_seconds if window_seconds is not None else config.APPROVAL_TIMEOUT_SECONDS
-    return {"posting": "slot" if slot else ("now" if posting == "slot" else posting), "slot": slot,
-            "closes": (now + timedelta(seconds=int(seconds))).isoformat()}
+    return {"posting": "slot" if slot or (hold and posting == "slot") else ("now" if posting == "slot" else posting),
+            "slot": slot, "closes": (now + timedelta(seconds=int(seconds))).isoformat(),
+            **({"scheduling_hold": hold} if hold else {})}
 
 
 def photo_posts(run_dir: Path | None) -> list[Path]:
@@ -271,7 +279,8 @@ def photo_posts(run_dir: Path | None) -> list[Path]:
 
 def card_record(payload: dict[str, Any], db: Any, run_dir: Path | None = None,
                 window_seconds: int | None = None, now: datetime | None = None, topic_id: str = "",
-                posting: str = "now", master: Path | None = None, cover: Path | None = None) -> dict[str, Any]:
+                posting: str = "now", master: Path | None = None, cover: Path | None = None,
+                run_id: str = "") -> dict[str, Any]:
     """Everything the review card shows of what Approve publishes. `topic_id`: the run's, for a payload without
     one (a documentary's: publish_run fills it in the same way before build_envelope). `posting`: what Approve
     does (POSTINGS); a documentary is never booked a slot (it goes to YouTube at once). `master` and `cover`: the
@@ -296,7 +305,9 @@ def card_record(payload: dict[str, Any], db: Any, run_dir: Path | None = None,
             "carousel_own": bool((payload.get("carousel_caption") or "").strip()),
             "ai_label": label, "ai_label_photos": ai_label.assess_photos(photos) if photos else None,
             **schedule(db, now=now, window_seconds=window_seconds,
-                       posting="now" if documentary and posting == "slot" else posting)}
+                       posting="now" if documentary and posting == "slot" else posting,
+                       topic_id=(topic or {}).get("id") or payload.get("topic_id") or topic_id,
+                       run_id=run_id or payload.get("run_id") or "")}
 
 
 def save_record(db: Any, run_id: str, record: dict[str, Any]) -> None:

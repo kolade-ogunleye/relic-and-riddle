@@ -251,7 +251,8 @@ def _resolve_topic_dir(ref: str, assets_dir: Path, db: Optional[PipelineDatabase
 
 
 @serialized
-def _add_topic_to_bank(db: PipelineDatabase, title: str, u_site=None) -> Tuple[str, str, Dict[str, Any]]:
+def _add_topic_to_bank(db: PipelineDatabase, title: str, u_site=None,
+                       source_url: str = "") -> Tuple[str, str, Dict[str, Any]]:
     from . import topic_proposer
     bank = topic_proposer._bank()
     existing_titles = [t["title"] for t in bank.get("topics", [])]
@@ -276,21 +277,39 @@ def _add_topic_to_bank(db: PipelineDatabase, title: str, u_site=None) -> Tuple[s
         loc_lon = u_site.longitude or 0.0
         u_tag = f"\n🏛️ <b>UNESCO Verified:</b> #{u_site.id_number} ({html.escape(u_site.site)})"
 
+    # QF-73: a topic joins the bank with a source: the page the operator gives (/add Title | https://page), else the
+    # matched UNESCO record, else the English Wikipedia page of the title, the exact page its photo subject is
+    # verified by (photo_queries: a title that is no exact page holds the photo search). No fact or hook is made up:
+    # key facts are the UNESCO record's own description when one matched, and research writes the opening.
+    from urllib.parse import quote
+
+    from .topic_policy import UNASSESSED, UNCLASSIFIED, sources_valid
+    if source_url:
+        sources = [{"title": title, "url": source_url}]
+    elif u_site:
+        sources = [{"title": f"UNESCO World Heritage List: {u_site.site}",
+                    "url": f"https://whc.unesco.org/en/list/{u_site.id_number}/"}]
+    else:
+        sources = [{"title": f"Wikipedia: {title}",
+                    "url": "https://en.wikipedia.org/wiki/" + quote(title.replace(" ", "_"), safe="_(),'-")}]
+    if not sources_valid(sources):
+        raise ValueError("The source must be a public https:// page: /add Title | https://source-page")
+    described = [x.strip() for x in re.split(r"(?<=[.!?])\s+", (u_site.short_description or "") if u_site else "")
+                 if x.strip()]
+
     new_topic = {
         "id": topic_id,
         "title": title,
         "sub_theme": "Historical Curiosities & Ancient Marvels",
-        "hook": f"What really lies within {title}?",
+        "hook": "",
         # latitude/longitude: the keys every reader uses (lat/lon here were never read).
         "location": {"name": title, "country": loc_country, "latitude": loc_lat, "longitude": loc_lon},
-        "key_facts": [
-            f"Documented historical site: {title}",
-            "Architectural or archaeological significance recognized by researchers.",
-            "Subject of ongoing academic and field study."
-        ],
+        "key_facts": described[:5],
         "meta_categories": ["History & Philosophy", "Travel & Culture"],
         "hashtags": [f"#{slug[:20].replace('_', '')}", "#ancienthistory", "#archaeology", "#relicandriddle"],
-        "sources": [{"title": title, "url": f"https://en.wikipedia.org/wiki/{slug}"}],
+        "sources": sources,
+        "region_group": UNCLASSIFIED,
+        "sensitivity": [UNASSESSED],   # counted as sensitive until someone assesses it in the bank
         "added": topic_proposer.added_record("operator", "added by title in Telegram"
                                              + (f" (UNESCO #{u_site.id_number})" if u_site else "")),
     }
@@ -315,6 +334,19 @@ def _add_topic_to_bank(db: PipelineDatabase, title: str, u_site=None) -> Tuple[s
     commit(topic_proposer.BANK, topic_proposer.QUERIES, bank, queries)
     db._seed_topics_from_json()
     return topic_id, u_tag, decomp
+
+
+def _added_topic_notes(db: PipelineDatabase, topic_id: str) -> str:
+    """The /add reply's lines on the new topic (QF-73): the source it was added with, whether it has a concrete fact
+    yet, and that its sensitivity is unassessed (it is spaced as sensitive until someone assesses it)."""
+    from .topic_policy import readiness
+    topic = db.get_topic_by_id(topic_id) or {}
+    lines = [f"📚 <b>Source:</b> {html.escape(str(s.get('url', '')))}" for s in (topic.get("sources") or [])[:1]]
+    if not readiness(topic)["concrete_fact"]:
+        lines.append("ℹ️ No concrete fact (a number, a scale or a contrast) yet: its first run relies on research "
+                     "to find one.")
+    lines.append("⚠️ Sensitivity not assessed: it keeps a clear day from other sensitive topics until it is.")
+    return "\n".join(lines) + "\n"
 
 
 def images_text(assets_dir: Path = ASSETS_DIR, db: Optional[PipelineDatabase] = None) -> str:
@@ -733,13 +765,16 @@ def status_text(db: PipelineDatabase, next_run: Optional[str], voice_quota: Opti
     upcoming = db.list_scheduled_posts(("pending", "waiting"))
     if upcoming:
         from .post_schedule import fmt
-        from .posting_view import carousel_plan
-        plan = carousel_plan(db)
+        from .posting_view import carousel_outlook, spacing_wait, spacing_words
+        outlook = carousel_outlook(db)   # QF-73: the one plan Posting and the daemon's alerts use
+        plan = outlook["plan"]
         names = {"reel": "Reel", "story": "Stories", "carousel": "Carousel"}
         lines.append("• Upcoming posts:")
         for p in upcoming[:6]:
             slot = plan.get(p["id"]) if not p["due_at"] else None   # a carousel's real slot, as Posting shows it
-            when = fmt(datetime.fromisoformat(p["due_at"])) if p["due_at"] else (fmt(slot) if slot else "after its Reel")
+            wait = spacing_wait(db, p, outlook=outlook) if not p["due_at"] else None   # QF-73: a wait says so
+            when = fmt(datetime.fromisoformat(p["due_at"])) if p["due_at"] else (
+                spacing_words(wait, slot) if wait else fmt(slot) if slot else "after its Reel")
             lines.append(f"   ◦ {names.get(p['kind'], p['kind'])} {e(when)} — {e(db.run_label(p['run_id']))}")
         if len(upcoming) > 6:
             lines.append(f"   <i>…and {len(upcoming) - 6} more in Posting</i>")
@@ -2719,8 +2754,10 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             return handle("covers", args)  # the latest render, whichever topic it is
         if command == "ccar":   # ccar:<run>[:<page>] the review's carousel preview (QF-81)
             return carousel_preview_screen(db, args, (run_actions or {}).get("carpreview"), send_photo)
-        if command == "carredraw":   # carredraw:<booking id>: a held carousel drawn again for its next slot
-            action = (run_actions or {}).get("carredraw")
+        if command in ("carredraw", "carspace", "carexpire"):
+            # carredraw:<booking id>: a held carousel drawn again for its next slot; carspace / carexpire (QF-73): a
+            # carousel sensitive-topic spacing leaves no slot for, posted anyway at its next slot or let expire
+            action = (run_actions or {}).get(command)
             if action is None:   # not done: the hold's item stays open (UI-01)
                 from .notifications import Outcome
                 return Outcome("That button only works while the daemon is running.", done=False)
@@ -3275,19 +3312,22 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
                     lines.append(f"<blockquote expandable>{html.escape(clip_words(body, 600))}</blockquote>")
             return "\n".join(lines), [[HOME]]
         if command == "add":
-            title = args.strip()
+            title, _, source_url = args.strip().partition("|")
+            title, source_url = title.strip(), source_url.strip()
             if not title:
                 return ("➕ <b>Add a topic</b>\n\nSend /add followed by the title, for example "
-                        "<code>/add The Lost Labyrinth of Hawara</code>\n\n"
+                        "<code>/add The Lost Labyrinth of Hawara</code>, or with the page it comes from: "
+                        "<code>/add Title | https://source-page</code>\n\n"
                         "<i>Its facts are researched and checked before it can be made.</i>",
                         [[{"text": "💡 Topic ideas", "callback_data": "cideas:"}], [HOME]])
             try:
-                topic_id, u_tag, decomp = _add_topic_to_bank(db, title)
+                topic_id, u_tag, decomp = _add_topic_to_bank(db, title, source_url=source_url)
             except ValueError as e:
                 return f"⚠️ {html.escape(str(e))}.\nTopic was not added."
             arch_lines = [f"  • <b>{arch_name.capitalize()}:</b> {html.escape(arch_q)}" for arch_name, arch_q in decomp.get("archetypes", {}).items()]
             arch_summary = "\n" + "\n".join(arch_lines) if arch_lines else ""
             return (f"➕ Added <b>{html.escape(title)}</b> (<code>{html.escape(topic_id)}</code>) to topic queue!{u_tag}\n"
+                    + _added_topic_notes(db, topic_id) +
                     f"🎬 <b>Documentary Shot Archetypes:</b>{arch_summary}\n\n"
                     f"Open <code>/photos {html.escape(topic_id)}</code> to fetch, upload or review photos.")
         if command in ("discover", "discoverpanel"):

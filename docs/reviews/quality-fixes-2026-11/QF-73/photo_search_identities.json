@@ -1,0 +1,62 @@
+{
+  "_doc": "The eight QF-73 topics' photo-search identities, verified by the row owner on 2026-11-08 from the public Wikidata item and UNESCO site pages (no API call). They join data/topics/image_queries.json with a recorded Wikidata answer in data/topics/wikidata_snapshot.json (QF-54a requires one for every curated search, a network step), after which each topic's 'hold' is removed from the bank.",
+  "verified": "2026-11-08",
+  "records": [
+    {
+      "topic": "great_zimbabwe",
+      "qid": "Q209217",
+      "wikidata": "https://www.wikidata.org/wiki/Q209217",
+      "primary_site": "https://whc.unesco.org/en/list/364/",
+      "scope": "Great Zimbabwe ruined city"
+    },
+    {
+      "topic": "lalibela",
+      "qid": "Q642979",
+      "wikidata": "https://www.wikidata.org/wiki/Q642979",
+      "primary_site": "https://whc.unesco.org/en/list/18/",
+      "scope": "Monolithic church complex, not the modern town or king"
+    },
+    {
+      "topic": "monte_alban",
+      "qid": "Q464899",
+      "wikidata": "https://www.wikidata.org/wiki/Q464899",
+      "primary_site": "https://whc.unesco.org/en/list/415/",
+      "scope": "Archaeological site component, not Oaxaca city"
+    },
+    {
+      "topic": "palenque",
+      "qid": "Q181427",
+      "wikidata": "https://www.wikidata.org/wiki/Q181427",
+      "primary_site": "https://whc.unesco.org/en/list/411/",
+      "scope": "Maya archaeological site, not the modern municipality"
+    },
+    {
+      "topic": "borobudur",
+      "qid": "Q42798",
+      "wikidata": "https://www.wikidata.org/wiki/Q42798",
+      "primary_site": "https://whc.unesco.org/en/list/592/",
+      "scope": "Borobudur temple component, not the administrative district"
+    },
+    {
+      "topic": "angkor",
+      "qid": "Q163607",
+      "wikidata": "https://www.wikidata.org/wiki/Q163607",
+      "primary_site": "https://whc.unesco.org/en/list/668/",
+      "scope": "Former capital archaeological region including temples and reservoirs; not just Angkor Wat"
+    },
+    {
+      "topic": "nan_madol",
+      "qid": "Q846967",
+      "wikidata": "https://www.wikidata.org/wiki/Q846967",
+      "primary_site": "https://whc.unesco.org/en/list/1503/",
+      "scope": "Ruined ceremonial city on artificial islets"
+    },
+    {
+      "topic": "rapa_nui",
+      "qid": "Q1763364",
+      "wikidata": "https://www.wikidata.org/wiki/Q1763364",
+      "primary_site": "https://whc.unesco.org/en/list/715/",
+      "scope": "National park containing the moai/ahu cultural landscape; not a modern town"
+    }
+  ]
+}

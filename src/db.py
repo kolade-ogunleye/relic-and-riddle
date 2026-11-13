@@ -156,6 +156,8 @@ class PipelineDatabase:
             # Additive migrations for databases created by earlier versions.
             self._add_column(conn, "runs", "error", "TEXT")
             self._add_column(conn, "topics", "added_json", "TEXT")  # who added the topic, how and when
+            # QF-73: the topic's sources, sensitivity, region_group and hold (topic_policy.EDITORIAL_KEYS)
+            self._add_column(conn, "topics", "editorial_json", "TEXT")
             self._add_column(conn, "runs", "parent_run_id", "TEXT")
             self._add_column(conn, "runs", "content_format", "TEXT DEFAULT 'reel'")
             self._add_column(conn, "approvals", "decided_by", "TEXT")
@@ -275,6 +277,7 @@ class PipelineDatabase:
         with open(self.topic_bank_file, "r", encoding="utf-8") as f:
             topics = json.load(f).get("topics", [])
         now = _now()
+        from .topic_policy import editorial
         with self._conn() as conn:
             existing = {r["id"] for r in conn.execute("SELECT id FROM topics")}
             changed = 0
@@ -282,15 +285,17 @@ class PipelineDatabase:
                 cur = conn.execute("""
                 INSERT INTO topics (
                     id, title, sub_theme, hook, location_json, key_facts_json,
-                    hashtags_json, meta_categories_json, added_json, status, times_published, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'queued', 0, ?)
+                    hashtags_json, meta_categories_json, added_json, editorial_json, status, times_published,
+                    updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'queued', 0, ?)
                 ON CONFLICT(id) DO UPDATE SET
                     title = excluded.title, sub_theme = excluded.sub_theme, hook = excluded.hook,
                     location_json = excluded.location_json, key_facts_json = excluded.key_facts_json,
                     hashtags_json = excluded.hashtags_json, meta_categories_json = excluded.meta_categories_json,
-                    added_json = excluded.added_json
+                    added_json = excluded.added_json, editorial_json = excluded.editorial_json
                 WHERE topics.title IS NOT excluded.title OR topics.hook IS NOT excluded.hook
                    OR topics.added_json IS NOT excluded.added_json
+                   OR topics.editorial_json IS NOT excluded.editorial_json
                    OR topics.sub_theme IS NOT excluded.sub_theme OR topics.location_json IS NOT excluded.location_json
                    OR topics.key_facts_json IS NOT excluded.key_facts_json OR topics.hashtags_json IS NOT excluded.hashtags_json
                    OR topics.meta_categories_json IS NOT excluded.meta_categories_json
@@ -299,6 +304,7 @@ class PipelineDatabase:
                     json.dumps(t.get("location", {})), json.dumps(t.get("key_facts", [])),
                     json.dumps(t.get("hashtags", [])), json.dumps(t.get("meta_categories", [])),
                     json.dumps(t["added"]) if t.get("added") else None,
+                    json.dumps(editorial(t)),
                     now,
                 ))
                 changed += cur.rowcount
@@ -310,6 +316,7 @@ class PipelineDatabase:
     @staticmethod
     def _topic_from_row(row: sqlite3.Row) -> Dict[str, Any]:
         return {
+            **json.loads(row["editorial_json"] or "{}"),   # every topics row has it (_init_db adds the column)
             "id": row["id"],
             "title": row["title"],
             "sub_theme": row["sub_theme"],
@@ -367,9 +374,15 @@ class PipelineDatabase:
             held = {r[0] for r in conn.execute(
                 "SELECT topic_id FROM runs WHERE status = 'timeout' AND updated_at >= ?",
                 ((datetime.now(timezone.utc) - timedelta(days=TIMEOUT_HOLD_DAYS)).isoformat(),))}
-        rows = [r for r in rows if r["id"] not in held]
+            # QF-73: a topic on an editorial hold, or a sensitive one whose audience day is not clear, waits.
+            from .topic_policy import topic_problem
+            editorial_held = {r["id"] for r in rows if r["id"] not in held and topic_problem(conn, r["id"])}
+        rows = [r for r in rows if r["id"] not in held | editorial_held]
 
         if not rows:
+            if editorial_held:
+                raise QueueEmpty("Every topic left is on an editorial hold or waits for a clear day between sensitive "
+                                 "topics (reconcile any unconfirmed publication).")
             if held:  # not empty: what is left waits for a decision on a timed-out review
                 raise QueueEmpty("Every topic left waits for a timed-out review: Resend or Reject it (Reviews).")
             raise QueueEmpty("No unpublished topics left. Add new ones with /ideas research (or `python main.py topic propose`).")
@@ -510,11 +523,36 @@ class PipelineDatabase:
         """Only one caller may initiate an upload for a finished run. A run a human rejected (or
         sent back for regeneration) can never be claimed, whatever code path asks."""
         with self._conn() as conn:
+            # QF-73: the spacing check and the claim are one transaction, so two sensitive runs cannot both pass it.
+            conn.execute("BEGIN IMMEDIATE")
+            from .topic_policy import topic_problem
+            run = conn.execute("SELECT topic_id FROM runs WHERE run_id = ?", (run_id,)).fetchone()
+            if run and topic_problem(conn, run["topic_id"], run_id=run_id, spacing_only=True):
+                return False
             result = conn.execute(
                 "UPDATE runs SET status = 'publishing', updated_at = ? WHERE run_id = ? "
                 "AND status IN ('approved', 'pending_approval', 'scheduled', 'failed', "
                 "'simulated', 'timeout')", (_now(), run_id))
             return result.rowcount == 1
+
+    def topic_problem(self, topic_id: str, at: Any = None, *, run_id: str = "", spacing_only: bool = False) -> str:
+        """Why the topic cannot be made or published at `at` (now by default): its editorial hold, or a sensitive
+        topic's spacing (src/topic_policy.topic_problem); "" when it can."""
+        from .topic_policy import topic_problem
+        with self._conn() as conn:
+            return topic_problem(conn, topic_id, at, run_id=run_id, spacing_only=spacing_only)
+
+    @staticmethod
+    def _check_topic_booking(conn: sqlite3.Connection, run_id: str, kind: str, due_at: str | None,
+                             status: str) -> None:
+        """A Reel booked or moved onto a day the topic's spacing does not allow is refused (QF-73)."""
+        if kind != "reel" or status not in ("pending", "waiting"):
+            return
+        from .topic_policy import topic_problem
+        row = conn.execute("SELECT topic_id FROM runs WHERE run_id = ?", (run_id,)).fetchone()
+        problem = topic_problem(conn, row["topic_id"], due_at, run_id=run_id, spacing_only=True) if row else ""
+        if problem:
+            raise ValueError(problem)
 
     def recover_interrupted_publication(self, run_id: str) -> bool:
         """Hold the OS upload lock, then quarantine a claim left by a dead worker.
@@ -979,6 +1017,8 @@ class PipelineDatabase:
                            status: str = "pending") -> int:
         now = _now()
         with self._conn() as conn:
+            conn.execute("BEGIN IMMEDIATE")
+            self._check_topic_booking(conn, run_id, kind, due_at, status)
             cur = conn.execute("""
             INSERT INTO scheduled_posts (run_id, kind, due_at, status, files_json, created_at, updated_at)
             VALUES (?, ?, ?, ?, ?, ?, ?)""", (run_id, kind, due_at, status, json.dumps(files), now, now))
@@ -988,6 +1028,10 @@ class PipelineDatabase:
                               detail: Optional[Dict[str, Any]] = None, files: list[str] | None = None):
         """`files`: the post's image files, when they are drawn after booking (a carousel at its slot, QF-81)."""
         with self._conn() as conn:
+            conn.execute("BEGIN IMMEDIATE")
+            row = conn.execute("SELECT run_id, kind, due_at FROM scheduled_posts WHERE id = ?", (post_id,)).fetchone()
+            if row and due_at and due_at != row["due_at"]:   # a move; a status change on its own day is never refused
+                self._check_topic_booking(conn, row["run_id"], row["kind"], due_at, status)
             conn.execute("""
             UPDATE scheduled_posts SET status = ?, due_at = COALESCE(?, due_at),
                    detail_json = COALESCE(?, detail_json), files_json = COALESCE(?, files_json),

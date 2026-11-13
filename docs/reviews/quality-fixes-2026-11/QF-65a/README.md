@@ -227,8 +227,11 @@ reserves 44, 75 and 140 are badges of that length. Round 2 (6afba7e9) -> this co
   0 -> 11. Over PAGE_ABOVE 2 -> 0: these are the Approved badge with a 64-character name on 2 cards whose fit cannot
   shrink into the page (3,882 + 128 and 3,887 + 128 in round 2). Over CARD_PAGE_LIMIT 8 -> 2: those same 2, which is
   QF-42's own floor (the card without any record is 3,880 and 3,885 there). Longest decided render 4,015 -> 3,914.
-- What the operator sees on a decided card without the line: the card as it looked before QF-65a's line, plus the
-  badge. The waiting card that was tapped showed the line. Where it showed only the brief line, the reply under it
+- What the operator sees on a decided card without the line: QF-42's card without any AI line, plus the badge. The
+  narration's old line is dropped too, because the record replaces it, so on those 11 renders the decided card makes
+  no AI statement where the base (5c7840e9) showed "Synthetic media label embedded for Meta CMP compliance"
+  (corrected in QF-65b, which puts the line back on 3 of the 11 where it fits). The waiting card that was tapped
+  showed the line. Where it showed only the brief line, the reply under it
   has the whole line. The posts carry the label regardless.
 
 ## Tests

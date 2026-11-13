@@ -259,8 +259,8 @@ def test_a_facebook_only_request_with_ai_media_is_not_sent(tmp_path, run_db, mon
 
 
 def test_a_still_without_a_record_is_labelled_on_instagram(tmp_path, run_db, monkeypatch):
-    """Fail closed: a slide whose record is missing cannot be traced, so Instagram's label is set. Facebook, which has
-    no label for photos, still gets it (as before: a run made before still records)."""
+    """Fail closed: a slide whose record is missing cannot be traced, so Instagram's label is set. (Facebook, which has
+    no label for photos, is judged by the run's video since QF-65b: tests/test_qf65b_ai_label_follow_up.py.)"""
     slide = tmp_path / "output" / "run_x" / "carousel" / "carousel_slide_01.jpg"
     slide.parent.mkdir(parents=True)
     slide.write_bytes(FAKE_JPEG)

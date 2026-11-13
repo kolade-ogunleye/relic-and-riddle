@@ -205,6 +205,20 @@ def _photos(tmp_path, n):
     return paths
 
 
+def _recorded(folder, name, content):
+    """A slide with its record (still_layout.json, as every run since still records has it) naming a credited
+    photo: a real photo, so the request it goes in is judged by it (QF-65a/QF-65b)."""
+    photos = folder.parent / "photos"
+    photos.mkdir(exist_ok=True)
+    (photos / "p.jpg").write_bytes(b"photo")
+    (photos / "credits.json").write_text(json.dumps({"images": [{"file": "p.jpg", "license": "CC0"}]}), encoding="utf-8")
+    (folder / name).write_bytes(content)
+    side = folder / "still_layout.json"
+    data = json.loads(side.read_text(encoding="utf-8")) if side.is_file() else {}
+    data[name] = {"recipe": {"photo": str(photos / "p.jpg")}}
+    side.write_text(json.dumps(data), encoding="utf-8")
+
+
 def test_story_frames_post_one_by_one_as_stories(monkeypatch, run, tmp_path):
     calls = []
 
@@ -231,12 +245,13 @@ def test_carousel_is_one_post_with_caption_and_max_ten(monkeypatch, run, tmp_pat
     res = MetaPublisher(db=run, publishers=[up]).publish_photos("r1", "01_topic", "carousel", _photos(tmp_path, 12), caption="Cap")
     # Instagram's carousel takes ten; Facebook's grid gets its own request of five (platform audit, 2026-10-28;
     # item 3, 2026-11-03: four until then).
-    assert res["status"] == "published" and len(calls) == 2
+    # QF-65b (decisions QF-65b.md, operator 2026-11-12): these slides have no record and no video record to judge
+    # them by, so Facebook (no AI label for photo posts) is not sent them (fail closed); Instagram's label is set.
+    assert res["status"] == "published" and len(calls) == 1
     data, nfiles = calls[0]
     assert nfiles == 10 and data["title"] == "Cap" and "media_type" not in data and data["platform[]"] == "instagram"
     assert "facebook_no_story" not in data  # it would keep the post out of feeds (2026-10-25)
-    data, nfiles = calls[1]
-    assert nfiles == 5 and data["title"] == "Cap" and data["platform[]"] == "facebook"
+    assert data["is_ai_generated"] == "true" and "a still with no record" in res["held_platforms"]["facebook"]
 
 
 def test_story_failure_after_first_frame_is_unknown(monkeypatch, run, tmp_path):
@@ -329,9 +344,9 @@ def test_facebook_gets_its_own_carousel_copy_without_swipe_cues(monkeypatch, run
     ig, fb = tmp_path / "carousel", tmp_path / "carousel_fb"
     ig.mkdir(); fb.mkdir()
     slides = []
-    for i in range(1, 4):
-        (ig / f"carousel_slide_{i:02d}.jpg").write_bytes(b"IG")
-        (fb / f"carousel_slide_{i:02d}.jpg").write_bytes(b"FB")
+    for i in range(1, 4):   # each slide with its record (QF-65b: a slide without one is judged by its run's video)
+        _recorded(ig, f"carousel_slide_{i:02d}.jpg", b"IG")
+        _recorded(fb, f"carousel_slide_{i:02d}.jpg", b"FB")
         slides.append(str(ig / f"carousel_slide_{i:02d}.jpg"))
     up = UploadPostPublisher(api_key="k" * 20, user="u")
     res = MetaPublisher(db=run, publishers=[up]).publish_photos("r1", "01_topic", "carousel", slides, caption="Cap")
@@ -346,9 +361,9 @@ def test_a_dry_run_records_the_real_plan_for_each_platform(run, tmp_path):
     ig, fb = tmp_path / "carousel", tmp_path / "carousel_fb"
     ig.mkdir(); fb.mkdir()
     slides = []
-    for i in (1, 2):
-        (ig / f"carousel_slide_{i:02d}.jpg").write_bytes(b"0")
-        (fb / f"carousel_slide_{i:02d}.jpg").write_bytes(b"0")
+    for i in (1, 2):   # each slide with its record (QF-65b: a slide without one is judged by its run's video)
+        _recorded(ig, f"carousel_slide_{i:02d}.jpg", b"0")
+        _recorded(fb, f"carousel_slide_{i:02d}.jpg", b"0")
         slides.append(str(ig / f"carousel_slide_{i:02d}.jpg"))
     res = MetaPublisher(db=run, publishers=[]).publish_photos("r1", "01_topic", "carousel", slides, dry_run=True)
     assert res == {"status": "simulated", "posted_parts": 0, "planned_parts": 2}

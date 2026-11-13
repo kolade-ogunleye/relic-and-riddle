@@ -12,7 +12,9 @@ Now every post's flag is derived from the records of the files it shows, and the
                   "unknown" (missing file, unreadable record, a clip or picture with no record of where it came from)
   assess_video    a Reel, Short or documentary: the master's scenes (its composition manifest), the picture check's
                   illustrated beats and the cover; on = the setting, or any AI or unknown media (fails closed)
-  assess_photos   a Story frame or carousel slides: the photos each still's record says it shows
+  assess_photos   a Story frame or carousel slides: the photos each still's record says it shows; facebook_hold
+                  when they show AI media, or when a still has no record and its run's video is not wholly real
+                  (QF-65b, fail closed)
   card_line       the review card's line: whether the label is on, and why
 
 What each platform takes (cited in docs/reviews/quality-fixes-2026-11/QF-65a/README.md): Instagram's is_ai_generated
@@ -175,9 +177,42 @@ def assess_photos(photos: Iterable[Any]) -> dict[str, Any]:
     narration setting does not apply (a photo post has no narration)."""
     ai: list[str] = []
     unknown: list[str] = []
-    for still in photos or []:
+    photos = list(photos or [])
+    for still in photos:
         _collect(_still_verdicts(still, "slide"), ai, unknown)
-    return _result(ai, unknown, False)
+    held = _record_less_hold([s for s in photos if s and still_sources(s) is None])
+    return {**_result(ai, unknown, False), "facebook_hold": bool(ai or held),
+            "facebook_reasons": list(dict.fromkeys(ai)) + held}
+
+
+def _record_less_hold(stills: list[Any]) -> list[str]:
+    """Why stills with no record (a run made before still records) are kept off Facebook, which has no AI label for
+    photo posts (QF-65b; operator decision 2026-11-12: fail closed). Such a still is judged by its run's video (the
+    run folder holding its stories/ or carousel/ folder): the master's scenes, from its composition manifest, and
+    the picture check's illustrated beats. It goes to Facebook only when every one of them traces to real media;
+    AI media, media that cannot be traced, or no readable video record keep it off. [] when none is held."""
+    reasons: list[str] = []
+    by_run: dict[Path, str] = {}
+    for still in stills:
+        by_run.setdefault(Path(str(still)).parent.parent, Path(str(still)).name)
+    for run, name in by_run.items():
+        try:
+            payload = json.loads((run / "script_metadata.json").read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            payload = None
+        manifests = sorted(run.glob("*.composition.json")) if run.is_dir() else []
+        if not manifests:
+            reasons.append(f"a still with no record ({name}) and no video record to judge it by")
+            continue
+        for manifest in manifests:
+            master = manifest.with_name(manifest.name[:-len(".composition.json")] + ".mp4")
+            label = assess_video(master, payload if isinstance(payload, dict) else None, setting=False)
+            if label["ai_media"] or label["unknown"]:
+                reasons.append(f"a still with no record ({name}) from a video "
+                               + ("showing AI media" if label["ai_media"] else "not wholly traceable")
+                               + f": {label['reasons'][0]}")
+                break
+    return reasons
 
 
 def _why(label: dict[str, Any]) -> str:
@@ -219,7 +254,7 @@ def card_line(label: dict[str, Any] | None, documentary: bool = False,
                 reason = reason[:BRIEF_REASON_MAX - 1].rstrip() + "…"
             more = len(label.get("reasons") or []) > 1
             text = f"AI label on: {reason}" + ("; more in the reply" if more else "")
-        if isinstance(photos, dict) and photos.get("ai_media"):
+        if isinstance(photos, dict) and (photos.get("ai_media") or photos.get("facebook_hold")):
             text += f"; {stills} kept off Facebook"
         return text
     where = "YouTube" if documentary else "Instagram, Facebook, YouTube"
@@ -230,6 +265,9 @@ def card_line(label: dict[str, Any] | None, documentary: bool = False,
     if isinstance(photos, dict) and photos.get("ai_media"):
         text += (f". {stills}: AI label on Instagram; not posted to Facebook, which has no AI label for "
                  f"photos ({_why(dict(photos, unknown_reasons=[]))})")
+    elif isinstance(photos, dict) and photos.get("facebook_hold"):   # stills with no record (QF-65b)
+        text += (f". {stills}: AI label on Instagram; not posted to Facebook, which has no AI label for "
+                 f"photos ({(photos.get('facebook_reasons') or ['a still that cannot be traced'])[0]})")
     elif isinstance(photos, dict) and photos.get("on"):
         text += f". {stills}: AI label on Instagram (a still cannot be traced)"
     return text

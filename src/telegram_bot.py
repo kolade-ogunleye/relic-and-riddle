@@ -755,12 +755,7 @@ def _with_publish_lines(card: str, posted: dict[str, Any], limit: int, reserve: 
     # line and the "Also posted" list or count are laid out in the room they had without the line.
     page_cap, list_cap = PAGE_ABOVE - shift, limit - shift
 
-    def with_ai(text: str, line: str) -> str:
-        pin = text.find("📌 <b>")
-        at = text.find("\n", pin) if pin >= 0 else -1
-        if not line or at < 0:
-            return text
-        return text[:at + 1] + line + "\n" + text[at + 1:]
+    with_ai = _under_title
 
     def whole_ai(text: str, room: int) -> str:
         """The brief AI line swapped for the whole one when the room takes it."""
@@ -799,6 +794,15 @@ def _with_publish_lines(card: str, posted: dict[str, Any], limit: int, reserve: 
                 card = trial
                 break
     return whole_ai(card, PAGE_ABOVE)
+
+
+def _under_title(card: str, line: str) -> str:
+    """The card with `line` (the AI-label line, QF-65a) under its title; unchanged without a line or a title."""
+    pin = card.find("📌 <b>")
+    at = card.find("\n", pin) if pin >= 0 else -1
+    if not line or at < 0:
+        return card
+    return card[:at + 1] + line + "\n" + card[at + 1:]
 
 
 def _publish_lines_shown(card: str) -> tuple[str, str]:
@@ -1978,8 +1982,9 @@ class TelegramApprovalBot:
           a caption or the narration. A lost caption preview alone (the caption still named, "see Edit") is the
           line's accepted cost on the waiting card;
         - the decided card (`reserve`: its badge) stays in CARD_PAGE_LIMIT less the badge and has no slot line or
-          "Also posted" count to give: where the line's room would cost what QF-42 keeps, it is QF-42's card without
-          the line (round 3). A card QF-42 cannot fit in its page (its floor) has no line either."""
+          "Also posted" count to give: where the line's room would cost what QF-42 keeps, it is QF-42's card with
+          the line under its title only where that card still has room for it (round 3, QF-65b). A card QF-42 cannot
+          fit in its page (its floor) has no line."""
         limit = CARD_PAGE_LIMIT - max(0, reserve)
         posted = script_payload.get("_publish_copy")
         natural = TelegramApprovalBot._fitted_card(script_payload, run_id, release, limit)
@@ -2019,8 +2024,15 @@ class TelegramApprovalBot:
             # give, and its page is the badge's room (QF-43): where the line's room would cost what QF-42 keeps (a
             # caption or the whole narration on up to 33 of 860 fixture shapes, QF-65a round 2 review), it is QF-42's
             # card without the line, its publish lines as that card lays them out (and without the narration's old
-            # AI line, which the record replaces).
-            return _without_ai_line(bare_card), limit
+            # AI line, which the record replaces). The AI line, whole or else brief, is then put back under the title
+            # where that card still has room for it in the badge's room (QF-65b): the line is the only change, so it
+            # costs QF-42 nothing (the reviewer's real decided renders without the line: 11 -> 8).
+            plain = _without_ai_line(bare_card)
+            for line in (_ai_label_line(posted), _ai_label_line(posted, brief=True)):
+                trial = _under_title(plain, line)
+                if trial != plain and _tg_len(trial) <= limit:
+                    return trial, limit
+            return plain, limit
         # The line's own room would cost what QF-42 keeps (a caption's preview or its "see Edit" pointer, the whole
         # narration, the credits' lines: a real card lost its caption's pointer, QF-65a round 2): the fit takes the
         # room the page still has under `cap` with the publish lines as the card without the record shows them.

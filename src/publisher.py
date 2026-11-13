@@ -888,8 +888,9 @@ class MetaPublisher:
         parts = parts or list(range(1, len(batches) + 1))  # a Story request's part is its frame's number
         # The AI label (QF-65a): a request whose stills show AI media, or media whose origin cannot be traced
         # (ai_label.assess_photos, fails closed), carries Instagram's flag. Facebook has none for photo posts, so a
-        # request showing AI media is not sent there (held_platforms says why); one whose stills only lack a record
-        # (a run made before still records) still is, as before.
+        # request showing AI media is not sent there (held_platforms says why). Nor is one with a still that has no
+        # record (a run made before still records) unless its run's video traces wholly to real media (QF-65b;
+        # operator decision 2026-11-12: fail closed; ai_label.assess_photos' facebook_hold).
         from . import ai_label
         held: dict[str, str] = {}
         flagged: dict[str, bool] = {}
@@ -897,9 +898,9 @@ class MetaPublisher:
         for i, (batch, batch_platforms, key) in zip(parts, batches):
             label = ai_label.assess_photos(batch)
             flagged[key] = bool(label["on"])
-            if label["ai_media"] and "facebook" in batch_platforms:
+            if label["facebook_hold"] and "facebook" in batch_platforms:
                 held["facebook"] = ("not posted to Facebook, which has no AI label for photo posts: "
-                                    + "; ".join(label["reasons"][:3]))
+                                    + "; ".join(label["facebook_reasons"][:3]))
                 batch_platforms = [x for x in batch_platforms if x != "facebook"]
             if batch_platforms:
                 kept.append((i, (batch, batch_platforms, key)))

@@ -5931,8 +5931,12 @@ def main(argv=None) -> int:
                 except Exception as e:
                     log.debug("Review sweep failed: %s", e)
         threading.Thread(target=sweep_reviews, name="review-sweep", daemon=True).start()
-        from src.control import startup_dashboard_card
-        card_text, card_buttons = startup_dashboard_card(db, mode="bot", assets_dir=config.ASSETS_DIR)
+        from src.control import startup_dashboard_card, when_pools_counted
+        # QF-115: drawn at once; the photo sets it has not counted yet are counted in the background, and the card is
+        # built again by this builder (its started line kept) once they are
+        bot.startup_card = lambda: startup_dashboard_card(db, mode="bot", assets_dir=config.ASSETS_DIR)
+        when_pools_counted(getattr(bot, "pools_counted", None))
+        card_text, card_buttons = bot.startup_card()
         bot.warm_up()
         bot.show_dashboard(card_text, card_buttons)
         # This loop owns getUpdates. A review wait this process runs itself (Resend) must read decisions
@@ -6441,12 +6445,19 @@ def main(argv=None) -> int:
 
         log.info("Daemon scheduled daily at %s (%s); heartbeat at %s. Ctrl+C to stop.", args.time, TIMEZONE, HEARTBEAT_TIME)
         try:
-            from src.control import startup_dashboard_card
-            card_text, card_buttons = startup_dashboard_card(coordinator.db, mode="daemon", time_str=args.time, timezone_str=TIMEZONE, assets_dir=config.ASSETS_DIR)
-            if args.dry_run:
-                card_text = card_text.replace("\n\n", "\n\n🧪 <b>Validation mode</b>: runs, reviews and approvals work, but nothing is posted.\n\n", 1)
-            if release_note:  # the chat was just cleared: the release leads the panel (one panel, not two)
-                card_text = card_text.replace("\n\n", f"\n\n{release_note}\n\n", 1)
+            from src.control import startup_dashboard_card, when_pools_counted
+
+            def startup_card():
+                card_text, card_buttons = startup_dashboard_card(coordinator.db, mode="daemon", time_str=args.time, timezone_str=TIMEZONE, assets_dir=config.ASSETS_DIR)
+                if args.dry_run:
+                    card_text = card_text.replace("\n\n", "\n\n🧪 <b>Validation mode</b>: runs, reviews and approvals work, but nothing is posted.\n\n", 1)
+                if release_note:  # the chat was just cleared: the release leads the panel (one panel, not two)
+                    card_text = card_text.replace("\n\n", f"\n\n{release_note}\n\n", 1)
+                return card_text, card_buttons
+            # QF-115: built again by the same builder once the photo sets it had not counted yet are counted
+            bot.startup_card = startup_card
+            when_pools_counted(getattr(bot, "pools_counted", None))
+            card_text, card_buttons = startup_card()
             scheduler.add_job(lambda: bot.show_dashboard(card_text, card_buttons))
             scheduler.start()
         except (KeyboardInterrupt, SystemExit):

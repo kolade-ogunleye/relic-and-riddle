@@ -2,15 +2,23 @@
 
 import hashlib
 import io
+import json
+import logging
 import math
+import os
 import re
+import threading
+import time
 from collections import Counter
 from pathlib import Path
 
 import numpy as np
 from PIL import Image, ImageOps
 
+from . import config
 from .image_quarantine import phash
+
+log = logging.getLogger(__name__)
 
 SHOT_CLASSES = ("wide", "interior", "detail", "people-scale", "archival")
 # Attribution that names nobody ("Unknown author", "Anonymous, Flemish, 15th century"): unverified, so it is
@@ -113,25 +121,127 @@ def provisional_shot_class(image: dict) -> str:
     return next((kind for kind, pattern in groups if re.search(pattern, text)), "unknown")
 
 
-_SIGNATURES: dict[tuple[str, int, int], dict] = {}
+# Signatures of the pools' photos, by file (QF-115). After a restart every photo of every queued pool was decoded
+# again before the bot's first message (one pHash a photo: minutes on a loaded machine), so the answers of the photos
+# under ASSETS_DIR are also kept on disk. An answer is reused while the file's size, modification time, file id and
+# st_ctime_ns (the inode change time on POSIX, which a copy that keeps the modification time still moves; the creation
+# time on Windows) are the ones recorded and that modification time is older than the check by more than RACY_SECONDS
+# (as git's index does: a write in the same clock tick as the check would leave both unchanged); otherwise the bytes
+# are read and the answer reused only when their SHA-256 is the recorded one. A changed or replaced photo, of the same
+# size or not, is hashed again. A record entry of the wrong shape is treated as missing; writers take a file lock.
+SIGNATURE_CACHE_FILE = config.BASE_DIR / "cache" / "photo_signatures.json"
+RACY_SECONDS = 2.0
+SAVE_LOCK_WAIT_SECONDS = 10.0
+_unsaved: set[str] = set()   # answers a save could not write (its lock was held too long): written by the next one
+_SIGNATURES: dict[str, dict] = {}   # resolved path -> {size, mtime_ns, ino, ctime_ns, checked_at, digest, signature}
+_signature_lock = threading.RLock()
+_loaded = False
 
 
-def _current_signature(path: Path) -> dict:
-    """signature() of the file as it is now, remembered while its size and modification time stay the same:
-    readiness rechecks every photo of a pool on each screen and at each run start (QF-58)."""
-    stat = Path(path).stat()
-    key = (str(Path(path).resolve()), stat.st_size, stat.st_mtime_ns)
-    if key not in _SIGNATURES:
-        _SIGNATURES[key] = signature(path)
-    return dict(_SIGNATURES[key])
+def _kept_on_disk(key: str) -> bool:
+    """Only the pools' own photos are kept on disk (a folder a test or a script makes elsewhere is not)."""
+    root = str(Path(config.ASSETS_DIR).resolve())
+    return os.path.normcase(key).startswith(os.path.normcase(root) + os.sep)
+
+
+def _valid(entry) -> bool:
+    """A record entry of the shape this module writes: one of any other shape is treated as missing."""
+    if not isinstance(entry, dict):
+        return False
+    whole = ("size", "mtime_ns", "ino", "ctime_ns")
+    if any(type(entry.get(field)) is not int for field in whole) or type(entry.get("checked_at")) not in (int, float):
+        return False
+    found = entry.get("signature")
+    return (isinstance(entry.get("digest"), str) and isinstance(found, dict)
+            and all(isinstance(found.get(field), str) for field in ("source_sha256", "phash", "dhash"))
+            and found["source_sha256"] == entry["digest"])
+
+
+def _recorded() -> dict[str, dict]:
+    """The record on disk: its valid entries, of photos that are still there."""
+    try:
+        found = json.loads(Path(SIGNATURE_CACHE_FILE).read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+    photos = found.get("photos") if isinstance(found, dict) else None
+    if not isinstance(photos, dict):
+        return {}
+    return {key: entry for key, entry in photos.items() if isinstance(key, str) and _valid(entry) and os.path.isfile(key)}
+
+
+def _load_signatures() -> None:
+    """The recorded answers, once a process; those of photos that are gone are dropped."""
+    global _loaded
+    if _loaded:
+        return
+    _loaded = True
+    from .publication_lock import publication_lock
+    try:
+        # Read under the writers' lock: on Windows a reader holding the file open makes a writer's replace fail.
+        with publication_lock(SIGNATURE_CACHE_FILE, "photo-signatures", wait=SAVE_LOCK_WAIT_SECONDS):
+            found = _recorded()
+    except (OSError, ValueError) as e:   # a cache: every photo is checked by its bytes instead
+        log.debug("Photo signatures not read: %s", e)
+        return
+    for key, entry in found.items():
+        _SIGNATURES.setdefault(key, entry)
+
+
+def _save_signatures(keys: set[str]) -> None:
+    """The answers found for `keys` are written to the disk record, merged with what another process wrote."""
+    global _unsaved
+    keys = {key for key in keys if _kept_on_disk(key)} | _unsaved
+    if not keys:
+        return
+    from .atomic_files import write_json
+    from .publication_lock import publication_lock
+    try:
+        # One writer at a time across processes (read, merge, replace): no process's answers are lost.
+        with publication_lock(SIGNATURE_CACHE_FILE, "photo-signatures", wait=SAVE_LOCK_WAIT_SECONDS):
+            photos = _recorded()
+            photos.update({key: _SIGNATURES[key] for key in keys if key in _SIGNATURES})
+            write_json(SIGNATURE_CACHE_FILE, {"version": 1, "photos": photos})
+        _unsaved = set()
+    except (OSError, ValueError) as e:   # a cache: the next save writes them
+        _unsaved = keys
+        log.debug("Photo signatures not saved: %s", e)
+
+
+def _current_signature(path: Path, changed: set[str] | None = None) -> dict:
+    """signature() of the file as it is now (see SIGNATURE_CACHE_FILE). Readiness rechecks every photo of a pool on
+    each screen and at each run start (QF-58); `changed` collects the files whose record was written."""
+    path = Path(path)
+    stat = path.stat()
+    key = str(path.resolve())
+    with _signature_lock:
+        _load_signatures()
+        entry = _SIGNATURES.get(key)
+    if (entry and entry.get("size") == stat.st_size and entry.get("mtime_ns") == stat.st_mtime_ns
+            and entry.get("ino") == stat.st_ino and entry.get("ctime_ns") == stat.st_ctime_ns
+            and stat.st_mtime_ns / 1e9 < entry["checked_at"] - RACY_SECONDS):
+        return dict(entry["signature"])
+    checked_at = time.time()
+    digest = hashlib.sha256(path.read_bytes()).hexdigest()
+    if entry and entry.get("digest") == digest:
+        found = entry["signature"]   # the same bytes: touched, copied back, or checked just after a write
+    else:
+        found = signature(path)
+    with _signature_lock:
+        _SIGNATURES[key] = {"size": stat.st_size, "mtime_ns": stat.st_mtime_ns, "ino": stat.st_ino,
+                            "ctime_ns": stat.st_ctime_ns, "checked_at": checked_at, "digest": digest,
+                            "signature": dict(found)}
+    if changed is not None:
+        changed.add(key)
+    return dict(found)
 
 
 def refresh(topic_dir: Path, images: list[dict]) -> None:
-    """Recompute hashes from the current files before fetch/approval decisions."""
+    """Recompute hashes from the current files before fetch/approval decisions (an unchanged file's are reused)."""
+    changed: set[str] = set()
     for image in images:
         try:
             image.pop("hash_flat", None)
-            image.update(_current_signature(topic_dir / image["file"]))
+            image.update(_current_signature(topic_dir / image["file"], changed))
             image.pop("hash_error", None)
         except (OSError, ValueError, KeyError) as exc:
             for field in ("source_sha256", "phash", "dhash"):
@@ -139,6 +249,9 @@ def refresh(topic_dir: Path, images: list[dict]) -> None:
             image["hash_error"] = type(exc).__name__
         if shot_class(image) == "unknown":
             image["shot_class"] = provisional_shot_class(image)
+    if changed:
+        with _signature_lock:
+            _save_signatures(changed)
 
 
 def author_quota_applies(target: int) -> bool:

@@ -1284,23 +1284,35 @@ class TelegramApprovalBot:
             message_id = self._panel_aliases[message_id]
         return message_id
 
-    def show_dashboard(self, text=None, buttons=None, fresh=False, rebuild=False):
+    def show_dashboard(self, text=None, buttons=None, fresh=False, rebuild=False, expect=None):
         """One dashboard anchor survives /start and routine process reloads. Serialized: two refreshes at
         once (production's startup card and a queued Dashboard tap) each found the stored panel gone and
-        each posted one; under the lock the second edits the panel the first posted."""
+        each posted one; under the lock the second edits the panel the first posted. `expect` (panel, revision,
+        text): drawn only in that panel, and only while it is still at that revision with that text
+        (draw_counted_dashboard, QF-115)."""
         if text is None:  # built before the lock: building reads the database, not Telegram's
             from .control import dashboard_text_and_buttons
             from .config import ASSETS_DIR
             text, buttons = dashboard_text_and_buttons(self.db, getattr(self, "next_run_func", lambda: None)(), assets_dir=ASSETS_DIR)
         if not rebuild:
             self._panel_first()
-            made = self._first_dashboard(text, buttons)
+            made = None if expect is not None else self._first_dashboard(text, buttons)
             if made:
+                self._counted_meanwhile(text)
                 return made
         with self._dashboard_lock:
-            shown = self._show_dashboard_locked(text, buttons, fresh, rebuild)
+            shown = self._show_dashboard_locked(text, buttons, fresh, rebuild, expect=expect)
         self._repost_if_asked()
+        self._counted_meanwhile(text)
         return shown
+
+    def _counted_meanwhile(self, text) -> None:
+        """QF-115: a dashboard that says it is counting the photo sets, drawn after the count ended (the count can
+        end while the layout is being posted, before the dashboard's message is known): drawn again now. Called
+        holding no lock."""
+        from .control import COUNTING_POOLS, counting
+        if text and COUNTING_POOLS in text and not counting():
+            self.draw_counted_dashboard()
 
     def _first_dashboard(self, text, buttons) -> int | None:
         """The clean chat (UI-01f): the first dashboard goes in its place, under the notifications panel and above
@@ -1352,6 +1364,67 @@ class TelegramApprovalBot:
         self.show_dashboard(asked.get("text"), asked.get("buttons"))
         return True
 
+    def pools_counted(self) -> None:
+        """control.when_pools_counted (QF-115): the photo sets a dashboard said it was counting are counted. With the
+        clean chat's renderer running, its tick draws the dashboard again (outside Layout._lock: the lock order);
+        otherwise it is drawn here, in the counter's thread, which holds no lock."""
+        layout = getattr(self, "_layout", None)
+        thread = getattr(layout, "_thread", None)
+        if clean_chat() and thread is not None and thread.is_alive():
+            self._counted_due = True
+            return
+        self.draw_counted_dashboard()
+
+    def draw_counted_dashboard(self) -> bool:
+        """The dashboard drawn again with the photo-set count it was waiting for, only while it still shows the
+        counting line and nothing was opened in it since that line was drawn (a tap raises the panel's revision as
+        it arrives, before its screen is drawn): a screen the operator opened meanwhile is left alone (home counts
+        when next drawn). Checked again under _dashboard_lock just before the draw (show_dashboard's expect): the
+        card is built in between. The startup card is built again by its own builder (startup_card, set by main),
+        so its started line stays; a note leading the dashboard (⏸ Paused…) is kept."""
+        from .config import ASSETS_DIR
+        from .control import (
+            COUNTING_POOLS,
+            DASHBOARD_HEADING,
+            STARTED_MARKS,
+            dashboard_text_and_buttons,
+        )
+        self._counted_due = False
+        stored = self.db.get_setting("telegram_dashboard_id")
+        if not (stored and stored.isdigit()):
+            return False
+        with self._panel_lock:
+            panel = self._current_panel(int(stored))
+            content = (getattr(self, "_content", {}) or {}).get(panel)
+            revision = self._panel_revisions.get(panel, 0)
+            marked = (getattr(self, "_counting_marks", {}) or {}).get(panel, revision)
+        if not content or COUNTING_POOLS not in content[0] or marked != revision:
+            return False
+        build = getattr(self, "startup_card", None)
+        if callable(build) and any(mark in content[0] for mark in STARTED_MARKS):
+            text, buttons = build()
+        else:
+            text, buttons = dashboard_text_and_buttons(self.db, getattr(self, "next_run_func", lambda: None)(),
+                                                       assets_dir=ASSETS_DIR)
+        if COUNTING_POOLS in text:   # still counting (a set changed meanwhile): the count's end calls again
+            return False
+        lead = content[0].find(DASHBOARD_HEADING)
+        if lead > 0:
+            text = content[0][:lead] + text
+        return bool(self.show_dashboard(text, buttons, expect=(panel, revision, content[0])))
+
+    def _mark_counting(self, message_id, text) -> None:
+        """QF-115: the panel's revision when a dashboard that says it is counting the photo sets is drawn in it;
+        draw_counted_dashboard draws the count only while the panel is still at that revision. A screen built before
+        the count ended and drawn after it (its listener has been called) is drawn again from a new thread: this
+        may run under _dashboard_lock or Layout._lock, so it never draws here."""
+        from .control import COUNTING_POOLS, counting
+        if text and COUNTING_POOLS in text:
+            with self._panel_lock:
+                self.__dict__.setdefault("_counting_marks", {})[message_id] = self._panel_revisions.get(message_id, 0)
+            if not counting():
+                threading.Thread(target=self.pools_counted, name="photo-set-redraw", daemon=True).start()
+
     def _repost_if_asked(self) -> None:
         """A dashboard drawn under _dashboard_lock that had to be posted again in order (design §6.3 path B: it
         left a media screen) asked for it; the re-post runs now that the lock is released (lock order). The
@@ -1379,7 +1452,7 @@ class TelegramApprovalBot:
         except Exception as e:  # noqa: BLE001 - the dashboard is still drawn
             log.warning("Could not post the notifications panel before the dashboard: %s", e)
 
-    def _show_dashboard_locked(self, text, buttons, fresh, rebuild=False):
+    def _show_dashboard_locked(self, text, buttons, fresh, rebuild=False, expect=None):
         from .control import dashboard_text_and_buttons
         from .config import ASSETS_DIR
         if text is None:
@@ -1391,9 +1464,16 @@ class TelegramApprovalBot:
             # The clean chat (UI-01b): the dashboard is drawn in place, never sent fresh at the bottom (that broke
             # the layout's order). Only the ordered rebuild sends a new copy (telegram_layout.rebuild).
             fresh = False
+        if expect is not None and not (previous and not fresh):
+            return None   # QF-115: the panel the count was for is gone; the next dashboard draw counts
         if previous and not fresh:
             current = self._current_panel(previous)
-            self._panel_revisions[current] = self._panel_revisions.get(current, 0) + 1
+            with self._panel_lock:   # checked with the revision raised together: a tap raises it under this lock
+                if expect is not None and (
+                        current != expect[0] or self._panel_revisions.get(current, 0) != expect[1]
+                        or ((getattr(self, "_content", {}) or {}).get(current) or (None,))[0] != expect[2]):
+                    return None   # QF-115: a screen was opened in the panel meanwhile; it is left alone
+                self._panel_revisions[current] = self._panel_revisions.get(current, 0) + 1
             if self.show_navigation_panel(current, text, buttons):
                 self.db.set_setting("telegram_dashboard_id", str(self._current_panel(current)))
                 return self._current_panel(current)
@@ -1410,6 +1490,7 @@ class TelegramApprovalBot:
         message_id = self.notify(text, buttons=buttons, record_alert=False, group="studio")
         if type(message_id) is int:
             self.__dict__.setdefault("_content", {})[message_id] = (text, copy.deepcopy(buttons))
+            self._mark_counting(message_id, text)
             self.db.set_setting("telegram_dashboard_id", str(message_id))
             self._record_kind(message_id, media=False)
             # One panel in the chat: the one this replaces goes (a review card is never the panel).
@@ -4606,6 +4687,7 @@ class TelegramApprovalBot:
             return False
         content = (text, copy.deepcopy(buttons))  # a caller may change its list after a queued edit returns
         self.__dict__.setdefault("_content", {})[message_id] = content   # a re-post sends this copy (UI-01f)
+        self._mark_counting(message_id, text)
         with self._edit_lock:  # the order edits were asked for: the latest content wins a hold
             self._edit_seq += 1
             seq = self._edit_seq

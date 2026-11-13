@@ -253,6 +253,8 @@ class Layout:
         asked = getattr(self.bot, "draw_asked_dashboard", None)
         if callable(asked):
             asked()   # UI-01f: a dashboard another process asked for (only the renderer sends one), outside _lock
+        if getattr(self.bot, "_counted_due", False) is True:
+            self.bot.draw_counted_dashboard()   # QF-115: the photo-set count the dashboard waited for, outside _lock
         if enabled() and getattr(self, "_started", True):
             # UI-01f: the 30 h idle / 40 h forced re-post and the hourly gap sweep, outside _lock (a re-post takes
             # _rebuild_lock, then the dashboard lock, then _lock: the lock order)

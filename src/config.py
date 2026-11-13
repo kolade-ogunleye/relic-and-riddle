@@ -374,6 +374,11 @@ REVIEW_UNDO_MINUTES = review_undo_minutes(os.getenv("REVIEW_UNDO_MINUTES", "10")
 # (through UI-01f's 40 h re-post) has passed that acceptance: a release carrying only part of it must not switch an
 # environment whose .env does not ask for it to a half-built clean chat. The development .env turns it on.
 TELEGRAM_CLEAN_CHAT = os.getenv("TELEGRAM_CLEAN_CHAT", "false").strip().lower() in ("true", "1", "yes")
+# Seconds a dashboard waits for the queued topics' photo sets to be counted (QF-115). A set not counted yet (after a
+# restart, or once its credits.json changed) is counted in the background; past this wait the dashboard says
+# "counting photo sets…" and is drawn again with the number once they are. The bot's first message never waited
+# on every pool photo's hashes again (minutes on a loaded machine).
+DASHBOARD_POOL_COUNT_WAIT_SECONDS = max(0.0, float(os.getenv("DASHBOARD_POOL_COUNT_WAIT_SECONDS", "1")))
 # Minutes before a booked Reel's slot at which the clean chat's "✅ Approved" item loses its Undo (UI-01e, the
 # operator's 29 Oct ruling: Undo until 15 minutes before the first post). Until then Undo cancels the booking.
 REVIEW_APPROVE_UNDO_LEAD_MINUTES = max(0.0, float(os.getenv("REVIEW_APPROVE_UNDO_LEAD_MINUTES", "15")))

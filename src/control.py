@@ -15,6 +15,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 import re
 import sqlite3
+import threading
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import requests
@@ -725,24 +726,133 @@ def health_line(db: PipelineDatabase, days: int = 7) -> str:
 
 
 _READY_CACHE: Dict[str, Tuple[float, bool]] = {}  # credits.json path -> (mtime, ready)
+# QF-115: the sets not counted yet are counted in the background; a dashboard waits for them only
+# DASHBOARD_POOL_COUNT_WAIT_SECONDS and otherwise says it is counting, then is drawn again (when_pools_counted).
+COUNTING_POOLS = "counting photo sets…"
+_count_lock = threading.Condition()
+_count_pending: dict[str, dict[str, Any]] = {}   # topic id -> topic, still to count
+_counter: threading.Thread | None = None
+_count_listener: Callable[[], None] | None = None   # the process's bot (when_pools_counted)
+_count_shown = False   # a caller was told "counting": the listeners are called once the count is done
 
 
-def ready_pools(db: PipelineDatabase, topics: List[Dict[str, Any]]) -> int:
-    """Queued topics whose photo pool passes the same readiness rule production uses. Each set's answer is
-    kept until its credits.json changes: the dashboard read and parsed every set on every tap (2026-10-25)."""
+def _ready_key(t: dict[str, Any]) -> tuple[str, float]:
+    credits = ASSETS_DIR / t["id"] / "credits.json"
+    return str(credits), (credits.stat().st_mtime if credits.is_file() else -1.0)
+
+
+def _counted(t: dict[str, Any]) -> bool | None:
+    """The set's answer when it is known for its credits.json as it is now, else None."""
+    try:
+        key, stamp = _ready_key(t)
+    except (OSError, KeyError):
+        return False
+    cached = _READY_CACHE.get(key)
+    return cached[1] if cached is not None and cached[0] == stamp else None
+
+
+def _count(t: dict[str, Any]) -> bool:
     from .asset_pipeline import pool_ready
-    n = 0
-    for t in topics:
+    key, stamp = _ready_key(t)
+    cached = _READY_CACHE[key] = (stamp, bool(pool_ready(t["id"])))
+    return cached[1]
+
+
+def _count_in_background() -> None:
+    """The counter thread: the sets asked for, one at a time; a set that cannot be read counts as not ready."""
+    global _counter, _count_shown
+    while True:
+        with _count_lock:
+            if not _count_pending:
+                _counter = None
+                shown, _count_shown = _count_shown, False
+                _count_lock.notify_all()
+                break
+            t = _count_pending.pop(next(iter(_count_pending)))
         try:
-            credits = ASSETS_DIR / t["id"] / "credits.json"
-            key, stamp = str(credits), (credits.stat().st_mtime if credits.is_file() else -1.0)
-            cached = _READY_CACHE.get(key)
-            if cached is None or cached[0] != stamp:
-                cached = _READY_CACHE[key] = (stamp, bool(pool_ready(t["id"])))
-            n += cached[1]
-        except Exception:
-            pass
-    return n
+            _count(t)
+        except Exception as e:  # noqa: BLE001 - the dashboard shows the set as not ready, as ready_pools always did
+            log.debug("Photo set %s not counted: %s", t.get("id"), e)
+            try:
+                key, stamp = _ready_key(t)
+                _READY_CACHE[key] = (stamp, False)
+            except (OSError, KeyError):
+                pass
+        with _count_lock:
+            _count_lock.notify_all()
+    listener = _count_listener
+    if shown and listener is not None:
+        try:
+            listener()
+        except Exception as e:  # noqa: BLE001 - the next dashboard draw counts them
+            log.warning("Could not draw the counted photo sets: %s", e)
+
+
+def when_pools_counted(listener: Callable[[], None] | None) -> None:
+    """`listener` (one a process: its bot's) is called in the counter's thread each time a count a caller was told
+    about has finished: the bot draws its dashboard again with the number."""
+    global _count_listener
+    _count_listener = listener
+
+
+def ready_pools(db: PipelineDatabase, topics: List[Dict[str, Any]], wait: float | None = None) -> int | None:
+    """Queued topics whose photo pool passes the same readiness rule production uses. Each set's answer is
+    kept until its credits.json changes: the dashboard read and parsed every set on every tap (2026-10-25).
+    `wait` None counts the sets not known yet here and now. With a number of seconds they are counted in the
+    background (QF-115: a restart's first dashboard waited minutes on every pool's photo hashes); None is returned
+    when they are not all counted within it, and the when_pools_counted listener is called once they are.
+    A process with no listener (a run's worker, a command) cannot draw again once they are counted, so a wait
+    there counts them in place: its dashboard never says "counting" (QF-115 round 2). wait=0 never blocks (the
+    renderer's notice conditions keep their item as it is meanwhile)."""
+    global _counter, _count_shown
+    if wait is None or (wait > 0 and _count_listener is None):
+        n = 0
+        for t in topics:
+            try:
+                known = _counted(t)
+                n += known if known is not None else _count(t)
+            except Exception:
+                pass
+        return n
+    missing = [t for t in topics if _counted(t) is None]
+    if missing:
+        deadline = clock.monotonic() + max(0.0, wait)
+        with _count_lock:
+            for t in missing:
+                _count_pending[t["id"]] = t
+            while True:
+                missing = [t for t in missing if _counted(t) is None]
+                if not missing:
+                    break
+                if _counter is None:   # (again when a credits.json changed while it was counted)
+                    for t in missing:
+                        _count_pending[t["id"]] = t
+                    _counter = threading.Thread(target=_count_in_background, name="photo-set-count", daemon=True)
+                    _counter.start()
+                left = deadline - clock.monotonic()
+                if left <= 0:
+                    _count_shown = True
+                    return None
+                _count_lock.wait(left)
+    return sum(bool(_counted(t)) for t in topics)
+
+
+def counting() -> bool:
+    """Whether photo sets are being counted in the background now."""
+    return _counter is not None
+
+
+def count_wait() -> float:
+    """How long a dashboard waits for the photo sets to be counted (DASHBOARD_POOL_COUNT_WAIT_SECONDS)."""
+    return config.DASHBOARD_POOL_COUNT_WAIT_SECONDS
+
+
+DASHBOARD_HEADING = "🏛️ <b><u>RELIC &amp; RIDDLE</u></b>"   # the dashboard's first line (a screen may lead with a note)
+
+
+def queue_line(queued: int, ready: int | None) -> str:
+    """The dashboard's queue line; while the photo sets are being counted, it says so (QF-115)."""
+    return f"📋 Queue: {queued} topics · " + (COUNTING_POOLS if ready is None else f"{ready} with photos ready")
 
 
 def status_text(db: PipelineDatabase, next_run: Optional[str], voice_quota: Optional[dict] = None) -> str:
@@ -1581,7 +1691,7 @@ def dashboard_text_and_buttons(db: PipelineDatabase, next_run: Optional[str] = N
     paused = is_paused(db)
     topics = db.list_all_topics()
     queued = [t for t in topics if t.get("status") == "queued"]
-    ready = ready_pools(db, queued)
+    ready = ready_pools(db, queued, wait=count_wait())   # None: still being counted (QF-115)
     pending = db.list_pending_approvals()
     try:
         from . import improve
@@ -1611,7 +1721,7 @@ def dashboard_text_and_buttons(db: PipelineDatabase, next_run: Optional[str] = N
         needs.append("⚠️ " + e(account_problems[0]))
     from . import provider_status
     needs += provider_status.dashboard_lines()  # a provider shut by a limit or cap, said here not only in the log
-    if queued and ready < len(queued) and ready < 3:
+    if queued and ready is not None and ready < len(queued) and ready < 3:
         needs.append(f"🖼 Only {ready} queued topic(s) have photos ready")
     recent = db.list_recent_runs(limit=1)
     active = db.get_active_progress() if hasattr(db, "get_active_progress") else None
@@ -1648,7 +1758,7 @@ def dashboard_text_and_buttons(db: PipelineDatabase, next_run: Optional[str] = N
     if release:
         environment += f" ({e(release)})"
     mode = run_mode_label(db)  # whether this process's runs post (QF-47)
-    lines = [f"🏛️ <b><u>RELIC &amp; RIDDLE</u></b> · {environment}" + (f" · <b>{mode}</b>" if mode else ""), ""]
+    lines = [f"{DASHBOARD_HEADING} · {environment}" + (f" · <b>{mode}</b>" if mode else ""), ""]
     # The clean chat (UI-01b): what needs you is the pinned notifications panel's (its condition items); the
     # dashboard keeps the state of production, so the two never repeat each other. The decided review's receipt
     # is an info item and 📜 History.
@@ -1666,7 +1776,7 @@ def dashboard_text_and_buttons(db: PipelineDatabase, next_run: Optional[str] = N
     if active:
         label = "Making" if active.get("worker_state") == "running" else "Last recorded run (worker not active/verified)"
         lines.append(f"⏳ {label}: {e(db.run_label(active['run_id']))} · step {active.get('step', 1)} of {active.get('total_steps', 5)}")
-    lines.append(f"📋 Queue: {len(queued)} topics · {ready} with photos ready")
+    lines.append(queue_line(len(queued), ready))
     if next_t:
         lines.append(f"➡️ Next up: <b>{e(next_t['title'])}</b>")
     booked = db.list_scheduled_posts(("pending", "waiting"))
@@ -1828,11 +1938,14 @@ def record_weekly_digest(db: PipelineDatabase, text: str) -> None:
     db.set_setting(DIGEST_KEY, json.dumps({"text": text, "at": now, "label": show(now, "%a %d %b")}))
 
 
+STARTED_MARKS = ("🟢 Daemon started", "🟢 Bot started")   # the startup card's own line (startup_dashboard_card)
+
+
 def startup_dashboard_card(db: PipelineDatabase, mode: str = "bot", time_str: Optional[str] = None,
                            timezone_str: Optional[str] = None, assets_dir: Path = ASSETS_DIR) -> Tuple[str, List[List[Dict[str, str]]]]:
     """Keep the dashboard heading, with startup state in its body."""
-    started = (f"🟢 Daemon started: daily run at {html.escape(time_str or '09:00')} {html.escape(timezone_str or 'UTC')}"
-               if mode == "daemon" else "🟢 Bot started (commands and reviews; no scheduled runs)")
+    started = (f"{STARTED_MARKS[0]}: daily run at {html.escape(time_str or '09:00')} {html.escape(timezone_str or 'UTC')}"
+               if mode == "daemon" else f"{STARTED_MARKS[1]} (commands and reviews; no scheduled runs)")
     text, buttons = dashboard_text_and_buttons(db, None, assets_dir=assets_dir)
     heading, _, body = text.partition("\n\n")
     return heading + "\n\n" + started + "\n\n" + body, buttons

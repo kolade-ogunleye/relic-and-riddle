@@ -105,8 +105,10 @@ def current(db) -> list[dict[str, Any]]:
                     "subject": "", "body": "Scheduled runs are skipped until a topic is added.", "count": 1,
                     "actions": [{"text": "💡 Ideas", "callback_data": "cideas:"}, {"text": "📋 Queue", "callback_data": "qrefresh:"}]})
     else:
-        ready_sets = control.ready_pools(db, queued)
-        if ready_sets < len(queued) and ready_sets < 3:
+        ready_sets = control.ready_pools(db, queued, wait=0)   # the renderer's tick never waits on photo hashes
+        if ready_sets is None:   # still being counted (QF-115): the item stays as it was until they are
+            out.append({"key": PREFIX + "photos", "keep": True})
+        elif ready_sets < len(queued) and ready_sets < 3:
             out.append({"key": PREFIX + "photos", "section": notes.NEEDS, "emoji": "🖼", "title": "Photo sets not ready",
                         "subject": "", "body": f"Only {ready_sets} of {len(queued)} queued topics have photos ready.",
                         "count": 1, "actions": [{"text": "🖼 Pictures", "callback_data": "cimages:"}]})
@@ -185,6 +187,8 @@ def sync(db, now: float | None = None) -> dict[str, int]:
             "SELECT * FROM notifications WHERE dedupe_key LIKE 'cond:%' AND id IN "
             "(SELECT MAX(id) FROM notifications WHERE dedupe_key LIKE 'cond:%' GROUP BY dedupe_key)")}
     for c in held:
+        if c.get("keep"):
+            continue   # not known yet: neither posted nor resolved
         last = rows.get(c["key"])
         same = last and (last["title"], last["subject"], last["body"]) == (c["title"], c["subject"], c["body"])
         if last and same and (last["state"] == notes.OPEN or last["state"] == notes.DISMISSED):

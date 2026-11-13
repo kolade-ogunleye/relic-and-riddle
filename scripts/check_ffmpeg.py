@@ -26,13 +26,13 @@ LIBRARIES = ("libass", "libharfbuzz", "libfribidi", "libfreetype", "fontconfig",
 # Every filter src/ names in a filter graph (find_src_usage() keeps this list complete; a few are ordinary words
 # that happen to be filter names in src/ strings, e.g. "copy", "null", "format": harmless, every full build has them).
 FILTERS = (
-    "adelay", "aeval", "afade", "aformat", "alimiter", "amerge", "amix", "amultiply", "anullsink", "apad",
-    "aresample", "asetpts", "asplit", "astats", "atrim", "blend", "boxblur", "color", "colorspace", "compand",
-    "concat", "copy", "crop", "cue", "curves", "ebur128", "eq", "equalizer", "exposure", "field", "format", "fps",
-    "highpass", "hstack", "hue", "identity", "life", "loop", "lowpass", "metadata", "null", "overlay", "pad", "pan",
-    "phase", "scale", "scroll", "segment", "select", "setparams", "setpts", "setsar", "settb", "sidechaincompress",
-    "signature", "silencedetect", "split", "subtitles", "thumbnail", "tile", "tpad", "trim", "vignette", "volume",
-    "xfade",
+    "adelay", "aeval", "afade", "aformat", "alimiter", "alphamerge", "amerge", "amix", "amultiply", "anullsink",
+    "apad", "aresample", "asetpts", "asplit", "astats", "atrim", "blend", "boxblur", "color", "colorspace",
+    "compand", "concat", "copy", "crop", "cue", "curves", "ebur128", "eq", "equalizer", "exposure", "field",
+    "format", "fps", "geq", "highpass", "hstack", "hue", "identity", "life", "loop", "lowpass", "metadata",
+    "null", "overlay", "pad", "pan", "phase", "scale", "scroll", "segment", "select", "setparams", "setpts",
+    "setsar", "settb", "sidechaincompress", "signature", "silencedetect", "split", "subtitles", "thumbnail",
+    "tile", "tpad", "trim", "vignette", "volume", "xfade",
 )
 ENCODERS = ("aac", "ffv1", "h264_nvenc", "libx264", "pcm_s16le", "pcm_s24le", "png", "rawvideo")
 # "-f" formats src/ names, plus the containers its outputs use by extension (.mp4, .mkv, .wav, numbered images).

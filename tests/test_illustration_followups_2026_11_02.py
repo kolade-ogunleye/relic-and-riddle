@@ -125,6 +125,7 @@ _YES = {"same_object": True, "same_count_of_parts": True, "same_shapes": True, "
 def _reconstruction():
     return {"sentence": GEARS, "kind": "generable", "visual": pc.NAMED_SUBJECT, "reconstruction": True,
             "reconstruction_kind": "mechanism_in_use", "reconstruction_reason": "Only ancient fragments survive.",
+            "reconstruction_cause": "no_longer_operating", "reconstruction_subject_words": "bronze gears",   # QF-60b
             "placement": {"by": "word_position", "sentence_index": 0, "beat": GEARS}}   # placed on the GEARS beat
 
 

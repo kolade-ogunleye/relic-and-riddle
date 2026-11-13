@@ -38,9 +38,15 @@ ORDINARY = [
 ]
 
 
+def subject(line):
+    """The words naming what is reconstructed, copied from the line (QF-60b): its longest word but "inside"."""
+    return max((w for w in line.replace(",", " ").replace(".", " ").split() if w.lower() != "inside"), key=len)
+
+
 def verdict(line, **changes):
     return {"sentence": line, "kind": "generable", "visual": "named_subject", "reconstruction": True,
-            "reconstruction_kind": "mechanism_in_use",
+            "reconstruction_kind": "mechanism_in_use", "reconstruction_cause": "no_longer_operating",
+            "reconstruction_subject_words": subject(line),
             "reconstruction_reason": "The ancient operating state cannot be photographed; only fragments survive.",
             **changes}
 

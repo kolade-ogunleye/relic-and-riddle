@@ -20,6 +20,7 @@ cascade. It may go back up to rounds() times (config.PREVOICE_REWRITE_ROUNDS, de
 the previous one left fewer such lines than it was given; still nothing blocks alone when the check cannot run.
 """
 
+import json
 import logging
 import re
 from pathlib import Path
@@ -29,11 +30,19 @@ from pydantic import BaseModel
 
 from . import commons, config
 from .checkpoints import fingerprint
-from .reconstruction import ReconstructionAssessment
+from .reconstruction import ReconstructionAssessment, prompt_fields
 
 log = logging.getLogger(__name__)
 
-VERSION = 4            # structured reconstruction assessment; older verdicts must be asked again
+VERSION = 5            # a reconstruction's structured cause and subject words (QF-60b)
+# Versions asked the same questions as VERSION but for the reconstruction's structured fields (QF-60b): a record of
+# one is still current unless it holds a reconstruction verdict without them (current_without_reconstruction), so
+# the version change re-asks only a record whose reconstruction answer it changes.
+RECONSTRUCTION_ONLY_VERSIONS = (4,)
+# The structured fields of a reconstruction answer (QF-60b); a record whose reconstruction verdict lacks them (a
+# VERSION 4 record, or one of VERSION 5 written before the fields were asked for) is asked again for them alone.
+RECONSTRUCTION_FIELDS = ("reconstruction", "reconstruction_kind", "reconstruction_cause",
+                         "reconstruction_subject_words", "reconstruction_reason")
 STAGE = "picture_lines"
 RECORD_FILE = "picture_lines.json"
 NOTE_LABEL = "🖼 Lines no photo shows"
@@ -64,17 +73,21 @@ Also give each sentence its planned visual, "visual":
 - "kind_of_thing": it names a kind of thing to see (Roman harbour piers, lime lumps, a drill core, oil lamps) rather than one particular example; a real photo of the same kind and period is honest.
 - "abstract": a number, date or duration, a comparison, a question, an idea or a conclusion; a graphic or any photo of the documentary's subject carries it.
 Judge from the descriptions only. A photo of the documentary's subject does not show a different thing the sentence names. reason: one short sentence.
-Also emit reconstruction (boolean), reconstruction_kind and reconstruction_reason for every sentence.
-Default reconstruction=false and reconstruction_kind=null. True is restricted to an explicit depiction of:
-- original_appearance: the subject's lost original appearance, which no present photo can show;
+Also emit reconstruction (boolean), reconstruction_kind, reconstruction_cause, reconstruction_subject_words and
+reconstruction_reason for every sentence. Default reconstruction=false, reconstruction_kind=null,
+reconstruction_cause=null, reconstruction_subject_words="" and reconstruction_reason="". True is restricted to an
+explicit depiction of:
+- original_appearance: the subject's lost original appearance, which differs from what survives today;
 - unphotographed_interior: an interior for which no photograph exists, not merely an interior absent from this pool;
-- mechanism_in_use: the historical mechanism operating in a state no photograph can show;
+- mechanism_in_use: the historical mechanism operating, in a state that can no longer be seen;
 - construction: the historical process of building the subject, not merely its construction date.
-Give a concrete reconstruction_reason explaining the unavailable view. A missing pool photo alone is not evidence
-that no photograph exists. If uncertain, false. Words such as worked, inside, turned or originally alone grant no
-exception: 'Miners worked the salt by hand', 'Inside the museum stands a statue', and 'The road turns east' are
-ordinary photographic subjects. A shown or abstract sentence is never a reconstruction. This assessment does not
-override fact checks, subject restrictions, reference checks or the obligation to show an available exact photo."""
+""" + prompt_fields() + """
+reconstruction_reason: one short sentence for the human reviewer.
+A missing pool photo alone is not evidence that no photograph exists. If uncertain, false. Words such as worked,
+inside, turned or originally alone grant no exception: 'Miners worked the salt by hand', 'Inside the museum stands a
+statue', and 'The road turns east' are ordinary photographic subjects. A shown or abstract sentence is never a
+reconstruction. This assessment does not override fact checks, subject restrictions, reference checks or the
+obligation to show an available exact photo."""
 
 
 def sentences(narration: str) -> List[str]:
@@ -122,6 +135,62 @@ def keys(narration: str, photos: List[Dict[str, str]]) -> Dict[str, Any]:
             "pool": fingerprint([[p["file"], p["text"]] for p in photos])}
 
 
+def legacy_key(stamp: dict[str, Any], key: dict[str, Any], checkpoints: Any,
+               for_pictures: bool = False) -> dict[str, Any] | None:
+    """The key of RECONSTRUCTION_ONLY_VERSIONS that this script's stamp or the run's checkpoint was judged under,
+    with the same script and photos (the same test as the current key's: a stamp that left no line unshown and is
+    not a pictures regeneration, or a reusable checkpoint), else None."""
+    for old in RECONSTRUCTION_ONLY_VERSIONS:
+        legacy = dict(key, v=old)
+        stamped = all(stamp.get(k) == v for k, v in legacy.items()) and not stamp.get("left")
+        if (stamped and not for_pictures) or checkpoints.reusable(STAGE, legacy):
+            return legacy
+    return None
+
+
+def record_verdicts(run_dir: Path, key: dict[str, Any] | None = None) -> list[dict[str, Any]] | None:
+    """The verdicts of the run's record (RECORD_FILE), or None when there is no readable record or, with `key`, the
+    record was not judged for that key's script and photos."""
+    try:
+        record = json.loads((Path(run_dir) / RECORD_FILE).read_text(encoding="utf-8"))
+        verdicts = record.get("verdicts")
+    except (OSError, ValueError, AttributeError):
+        return None
+    if key is not None and any(record.get(k) != key.get(k) for k in ("script", "pool")):
+        return None
+    return [v for v in verdicts if isinstance(v, dict)] if isinstance(verdicts, list) else None
+
+
+def current_without_reconstruction(verdicts: list[dict[str, Any]] | None) -> bool:
+    """Whether a record judged without the structured reconstruction fields stays current: it holds no
+    reconstruction verdict (reconstruction true) lacking them (a "reconstruction_cause" key, which every answer of
+    this version writes, None included), the only answer the new fields can change. A record of
+    RECONSTRUCTION_ONLY_VERSIONS, or of VERSION written before the fields were asked for, with such a verdict is asked
+    again once; a record with no reconstruction verdict is never asked again. No record in this run (a stamped
+    library script) is current too: as before the version change, the check is not asked again and nothing in
+    this run can grant a reconstruction."""
+    return not any(v.get("reconstruction") is True and "reconstruction_cause" not in v for v in verdicts or [])
+
+
+def refresh_reconstruction(old: list[dict[str, Any]], new: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """The old record's verdicts with only their reconstruction fields (RECONSTRUCTION_FIELDS) taken from the new
+    answer (the same sentences: the key holds the same script), so a version change re-asks the reconstruction and
+    changes nothing else: no kind, photo or visual class, hence no rewording, no picture search and no other line.
+    A sentence the new answer leaves out, or answers with no reconstruction, loses its reconstruction (fail
+    closed)."""
+    by = {" ".join(str(v.get("sentence") or "").split()): v for v in new or []}
+    out = []
+    for v in old:
+        n = by.get(" ".join(str(v.get("sentence") or "").split())) or {}
+        yes = n.get("reconstruction") is True
+        out.append({**v, "reconstruction": yes,
+                    "reconstruction_kind": n.get("reconstruction_kind") if yes else None,
+                    "reconstruction_cause": n.get("reconstruction_cause") if yes else None,
+                    "reconstruction_subject_words": str(n.get("reconstruction_subject_words") or "") if yes else "",
+                    "reconstruction_reason": str(n.get("reconstruction_reason") or "") if yes else ""})
+    return out
+
+
 def judge(narration: str, photos: List[Dict[str, str]], subject: str) -> Optional[List[Dict[str, Any]]]:
     """[{"sentence", "kind", "photo", "reason"}] per sentence (one light, text-only call), or None when the model
     could not run. A sentence the answer skips is "abstract": never sent back on no evidence."""
@@ -151,6 +220,8 @@ def judge(narration: str, photos: List[Dict[str, str]], subject: str) -> Optiona
                     "visual": plan_visual(v.kind if v else "abstract", getattr(v, "visual", None) if v else None),
                     "reconstruction": v.reconstruction if v else False,
                     "reconstruction_kind": v.reconstruction_kind if v else None,
+                    "reconstruction_cause": v.reconstruction_cause if v else None,
+                    "reconstruction_subject_words": v.reconstruction_subject_words if v else "",
                     "reconstruction_reason": verdict_reason(v.reconstruction_reason) if v else ""})
     return out
 

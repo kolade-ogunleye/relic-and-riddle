@@ -393,7 +393,8 @@ def test_named_subject_with_descriptors_is_illustrated_before_the_map(world, mon
     run = world.tmp / "run"
     assessment = {"sentence": GEARS, "kind": "unshown", "visual": pc.NAMED_SUBJECT,
                   "reconstruction": True, "reconstruction_kind": "mechanism_in_use",
-                  "reconstruction_reason": "Only ancient fragments survive."}
+                  "reconstruction_reason": "Only ancient fragments survive.",
+                  "reconstruction_cause": "no_longer_operating", "reconstruction_subject_words": "bronze gears"}
     _record(run, [assessment])
     _voice(run, lines)
     monkeypatch.setattr(image_gen, "find_references", lambda *a, **k: ([], "no reference"))

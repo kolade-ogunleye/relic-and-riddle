@@ -84,7 +84,11 @@ def _spec():
 
 def _reconstruction(line):
     return {"sentence": line, "kind": "generable", "visual": pc.NAMED_SUBJECT, "reconstruction": True,
-            "reconstruction_kind": "mechanism_in_use", "reconstruction_reason": "Only the ancient fragments survive."}
+            "reconstruction_kind": "mechanism_in_use", "reconstruction_reason": "Only the ancient fragments survive.",
+            # QF-60b: the structured cause and the line's own words (its longest word but "inside")
+            "reconstruction_cause": "no_longer_operating",
+            "reconstruction_subject_words": max((w for w in line.replace(",", " ").replace(".", " ").split()
+                                                 if w.lower() != "inside"), key=len)}
 
 
 def _placed(verdict, beat):
@@ -605,6 +609,7 @@ def test_the_real_gate_refuses_a_named_subject_with_references_but_no_reason(tmp
     assert image_gen.illustration_reason("The temple was built in 432 BC.", ["unknown"], 1) == ""
     line = "Inside, a staircase spiralled down."
     decision = {**_reconstruction(line), "reconstruction_kind": "unphotographed_interior",
+                "reconstruction_cause": "never_photographed",
                 "reconstruction_reason": "The interior was destroyed before photography; only a plan survives."}
     assert image_gen.illustration_reason(line, [], 0, verdict=_placed(decision, line)) == image_gen.RECONSTRUCTION_REASON
 

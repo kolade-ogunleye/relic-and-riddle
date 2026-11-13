@@ -2722,7 +2722,13 @@ class PipelineCoordinator:
         # left lines unshown (a library script whose rewording was refused, production Derinkuyu 2026-10-29, by a
         # caption bug since fixed): another run tries the rewording once more, a resume of this one does not.
         stamped = all(stamp.get(k) == v for k, v in key.items()) and not stamp.get("left")
-        if (stamped and not for_pictures) or checkpoints.reusable(pl.STAGE, key):
+        # QF-60b: judged under this version or one that differs only in the reconstruction's structured fields (cause,
+        # subject words), the record stays current unless it holds a reconstruction verdict without them; one that
+        # does is asked again once, for that answer alone.
+        current = (stamped and not for_pictures) or checkpoints.reusable(pl.STAGE, key)
+        legacy = key if current else pl.legacy_key(stamp, key, checkpoints, for_pictures)
+        old_verdicts = pl.record_verdicts(run_dir, legacy) if legacy is not None else None
+        if legacy is not None and pl.current_without_reconstruction(old_verdicts):
             log.info("Line-picture check before the voice: already judged for this script and these photos.")
             return payload
         title = topic.get("title", run_id)
@@ -2731,6 +2737,20 @@ class PipelineCoordinator:
         verdicts = pl.judge(payload["narration_script"], photos, title)
         if verdicts is None:  # not stamped: asked again on the next run of this script
             return payload
+        if legacy is not None and old_verdicts:
+            # Only the reconstruction fields change: no kind, photo or visual class, so no rewording, no picture
+            # search and no other line; the script and its stamp's outcome stand.
+            record = run_dir / pl.RECORD_FILE
+            try:
+                saved = json.loads(record.read_text(encoding="utf-8"))
+                saved.update(key)
+                saved["verdicts"] = pl.refresh_reconstruction(old_verdicts, verdicts)
+                record.write_text(json.dumps(saved, indent=1, ensure_ascii=False), encoding="utf-8")
+                checkpoints.complete(pl.STAGE, key, [record])
+            except (OSError, ValueError, AttributeError) as e:
+                log.debug("Line-picture reconstruction answers not refreshed: %s", e)
+                return payload
+            return dict(payload, **{pl.STAGE: {k: v for k, v in saved.items() if k not in ("verdicts", "photos")}})
         # Only a line naming a particular thing goes back (prevoice_lines.needs_rewrite); an unshown kind-of-thing line
         # is left to the render's fallback cascade (src/picture_coverage.py).
         # With the payload, protected "marvel" lines the fact check supports with a source are kept from the writer and

@@ -1,0 +1,772 @@
+{
+ "schema": 1,
+ "photos": 23,
+ "summary": {
+  "run_trepanation_miracle_1792995462": {
+   "graphic": "numbers",
+   "grounds": 23,
+   "min_contrast": 3.24,
+   "grounds_with_a_line_under_target": 9,
+   "worst_ground": "run_amber_room_heist_1792801257"
+  },
+  "run_richat_structure_sahara_eye_1792778206": {
+   "graphic": "numbers",
+   "grounds": 23,
+   "min_contrast": 3.24,
+   "grounds_with_a_line_under_target": 9,
+   "worst_ground": "run_amber_room_heist_1792801257"
+  },
+  "run_amber_room_heist_1792790550": {
+   "graphic": "numbers",
+   "grounds": 23,
+   "min_contrast": 3.23,
+   "grounds_with_a_line_under_target": 10,
+   "worst_ground": "run_amber_room_heist_1792801257"
+  },
+  "run_amber_room_heist_1792781224": {
+   "graphic": "timeline",
+   "grounds": 23,
+   "min_contrast": 4.41,
+   "grounds_with_a_line_under_target": 1,
+   "worst_ground": "run_amber_room_heist_1792801257"
+  }
+ },
+ "rows": [
+  {
+   "copy": "run_trepanation_miracle_1792995462",
+   "graphic": "numbers",
+   "photo": "run_amber_room_heist_1792790550",
+   "min_contrast": 5.87,
+   "under_target": 0,
+   "lines": 9
+  },
+  {
+   "copy": "run_trepanation_miracle_1792995462",
+   "graphic": "numbers",
+   "photo": "run_amber_room_heist_1792801257",
+   "min_contrast": 3.24,
+   "under_target": 1,
+   "lines": 9
+  },
+  {
+   "copy": "run_trepanation_miracle_1792995462",
+   "graphic": "numbers",
+   "photo": "run_amber_room_heist_1792805842",
+   "min_contrast": 5.87,
+   "under_target": 0,
+   "lines": 9
+  },
+  {
+   "copy": "run_trepanation_miracle_1792995462",
+   "graphic": "numbers",
+   "photo": "run_gol_gumbaz_whispering_gallery_1793278143",
+   "min_contrast": 5.12,
+   "under_target": 0,
+   "lines": 9
+  },
+  {
+   "copy": "run_trepanation_miracle_1792995462",
+   "graphic": "numbers",
+   "photo": "run_nazca_lines_runway_paradox_1792961797",
+   "min_contrast": 4.72,
+   "under_target": 0,
+   "lines": 9
+  },
+  {
+   "copy": "run_trepanation_miracle_1792995462",
+   "graphic": "numbers",
+   "photo": "run_nazca_lines_runway_paradox_1793247464",
+   "min_contrast": 4.72,
+   "under_target": 0,
+   "lines": 9
+  },
+  {
+   "copy": "run_trepanation_miracle_1792995462",
+   "graphic": "numbers",
+   "photo": "run_nazca_lines_runway_paradox_1793251266",
+   "min_contrast": 4.72,
+   "under_target": 0,
+   "lines": 9
+  },
+  {
+   "copy": "run_trepanation_miracle_1792995462",
+   "graphic": "numbers",
+   "photo": "run_nazca_lines_runway_paradox_1793262388",
+   "min_contrast": 4.71,
+   "under_target": 0,
+   "lines": 9
+  },
+  {
+   "copy": "run_trepanation_miracle_1792995462",
+   "graphic": "numbers",
+   "photo": "run_nazca_lines_runway_paradox_1793267092",
+   "min_contrast": 3.85,
+   "under_target": 1,
+   "lines": 9
+  },
+  {
+   "copy": "run_trepanation_miracle_1792995462",
+   "graphic": "numbers",
+   "photo": "run_odessa_catacombs_1792970549",
+   "min_contrast": 4.96,
+   "under_target": 0,
+   "lines": 9
+  },
+  {
+   "copy": "run_trepanation_miracle_1792995462",
+   "graphic": "numbers",
+   "photo": "run_richat_structure_sahara_eye_1792737039_short",
+   "min_contrast": 4.45,
+   "under_target": 1,
+   "lines": 9
+  },
+  {
+   "copy": "run_trepanation_miracle_1792995462",
+   "graphic": "numbers",
+   "photo": "run_richat_structure_sahara_eye_1792778206",
+   "min_contrast": 3.52,
+   "under_target": 1,
+   "lines": 9
+  },
+  {
+   "copy": "run_trepanation_miracle_1792995462",
+   "graphic": "numbers",
+   "photo": "run_richat_structure_sahara_eye_1793272675",
+   "min_contrast": 3.96,
+   "under_target": 1,
+   "lines": 9
+  },
+  {
+   "copy": "run_trepanation_miracle_1792995462",
+   "graphic": "numbers",
+   "photo": "run_richat_structure_sahara_eye_1793474843",
+   "min_contrast": 3.6,
+   "under_target": 1,
+   "lines": 9
+  },
+  {
+   "copy": "run_trepanation_miracle_1792995462",
+   "graphic": "numbers",
+   "photo": "run_roman_self_healing_concrete_1793161347",
+   "min_contrast": 5.71,
+   "under_target": 0,
+   "lines": 9
+  },
+  {
+   "copy": "run_trepanation_miracle_1792995462",
+   "graphic": "numbers",
+   "photo": "run_roman_self_healing_concrete_1793163918",
+   "min_contrast": 5.08,
+   "under_target": 0,
+   "lines": 9
+  },
+  {
+   "copy": "run_trepanation_miracle_1792995462",
+   "graphic": "numbers",
+   "photo": "run_singing_colossi_of_memnon_1792952878",
+   "min_contrast": 4.18,
+   "under_target": 1,
+   "lines": 9
+  },
+  {
+   "copy": "run_trepanation_miracle_1792995462",
+   "graphic": "numbers",
+   "photo": "run_trepanation_miracle_1792995462",
+   "min_contrast": 4.34,
+   "under_target": 1,
+   "lines": 9
+  },
+  {
+   "copy": "run_trepanation_miracle_1792995462",
+   "graphic": "numbers",
+   "photo": "run_unfinished_obelisk_aswan_1792985912",
+   "min_contrast": 4.69,
+   "under_target": 0,
+   "lines": 9
+  },
+  {
+   "copy": "run_trepanation_miracle_1792995462",
+   "graphic": "numbers",
+   "photo": "run_unfinished_obelisk_aswan_1792993374",
+   "min_contrast": 4.84,
+   "under_target": 0,
+   "lines": 9
+  },
+  {
+   "copy": "run_trepanation_miracle_1792995462",
+   "graphic": "numbers",
+   "photo": "run_unfinished_obelisk_aswan_1793056896",
+   "min_contrast": 4.69,
+   "under_target": 0,
+   "lines": 9
+  },
+  {
+   "copy": "run_trepanation_miracle_1792995462",
+   "graphic": "numbers",
+   "photo": "run_voynich_manuscript_1792965308",
+   "min_contrast": 3.98,
+   "under_target": 1,
+   "lines": 9
+  },
+  {
+   "copy": "run_trepanation_miracle_1792995462",
+   "graphic": "numbers",
+   "photo": "run_wieliczka_salt_mine_1792974672",
+   "min_contrast": 4.67,
+   "under_target": 0,
+   "lines": 9
+  },
+  {
+   "copy": "run_richat_structure_sahara_eye_1792778206",
+   "graphic": "numbers",
+   "photo": "run_amber_room_heist_1792790550",
+   "min_contrast": 5.96,
+   "under_target": 0,
+   "lines": 7
+  },
+  {
+   "copy": "run_richat_structure_sahara_eye_1792778206",
+   "graphic": "numbers",
+   "photo": "run_amber_room_heist_1792801257",
+   "min_contrast": 3.24,
+   "under_target": 1,
+   "lines": 7
+  },
+  {
+   "copy": "run_richat_structure_sahara_eye_1792778206",
+   "graphic": "numbers",
+   "photo": "run_amber_room_heist_1792805842",
+   "min_contrast": 5.96,
+   "under_target": 0,
+   "lines": 7
+  },
+  {
+   "copy": "run_richat_structure_sahara_eye_1792778206",
+   "graphic": "numbers",
+   "photo": "run_gol_gumbaz_whispering_gallery_1793278143",
+   "min_contrast": 5.0,
+   "under_target": 0,
+   "lines": 7
+  },
+  {
+   "copy": "run_richat_structure_sahara_eye_1792778206",
+   "graphic": "numbers",
+   "photo": "run_nazca_lines_runway_paradox_1792961797",
+   "min_contrast": 4.82,
+   "under_target": 0,
+   "lines": 7
+  },
+  {
+   "copy": "run_richat_structure_sahara_eye_1792778206",
+   "graphic": "numbers",
+   "photo": "run_nazca_lines_runway_paradox_1793247464",
+   "min_contrast": 4.82,
+   "under_target": 0,
+   "lines": 7
+  },
+  {
+   "copy": "run_richat_structure_sahara_eye_1792778206",
+   "graphic": "numbers",
+   "photo": "run_nazca_lines_runway_paradox_1793251266",
+   "min_contrast": 4.82,
+   "under_target": 0,
+   "lines": 7
+  },
+  {
+   "copy": "run_richat_structure_sahara_eye_1792778206",
+   "graphic": "numbers",
+   "photo": "run_nazca_lines_runway_paradox_1793262388",
+   "min_contrast": 4.57,
+   "under_target": 0,
+   "lines": 7
+  },
+  {
+   "copy": "run_richat_structure_sahara_eye_1792778206",
+   "graphic": "numbers",
+   "photo": "run_nazca_lines_runway_paradox_1793267092",
+   "min_contrast": 3.92,
+   "under_target": 1,
+   "lines": 7
+  },
+  {
+   "copy": "run_richat_structure_sahara_eye_1792778206",
+   "graphic": "numbers",
+   "photo": "run_odessa_catacombs_1792970549",
+   "min_contrast": 5.21,
+   "under_target": 0,
+   "lines": 7
+  },
+  {
+   "copy": "run_richat_structure_sahara_eye_1792778206",
+   "graphic": "numbers",
+   "photo": "run_richat_structure_sahara_eye_1792737039_short",
+   "min_contrast": 3.57,
+   "under_target": 1,
+   "lines": 7
+  },
+  {
+   "copy": "run_richat_structure_sahara_eye_1792778206",
+   "graphic": "numbers",
+   "photo": "run_richat_structure_sahara_eye_1792778206",
+   "min_contrast": 3.53,
+   "under_target": 1,
+   "lines": 7
+  },
+  {
+   "copy": "run_richat_structure_sahara_eye_1792778206",
+   "graphic": "numbers",
+   "photo": "run_richat_structure_sahara_eye_1793272675",
+   "min_contrast": 3.89,
+   "under_target": 1,
+   "lines": 7
+  },
+  {
+   "copy": "run_richat_structure_sahara_eye_1792778206",
+   "graphic": "numbers",
+   "photo": "run_richat_structure_sahara_eye_1793474843",
+   "min_contrast": 3.59,
+   "under_target": 1,
+   "lines": 7
+  },
+  {
+   "copy": "run_richat_structure_sahara_eye_1792778206",
+   "graphic": "numbers",
+   "photo": "run_roman_self_healing_concrete_1793161347",
+   "min_contrast": 5.3,
+   "under_target": 0,
+   "lines": 7
+  },
+  {
+   "copy": "run_richat_structure_sahara_eye_1792778206",
+   "graphic": "numbers",
+   "photo": "run_roman_self_healing_concrete_1793163918",
+   "min_contrast": 5.62,
+   "under_target": 0,
+   "lines": 7
+  },
+  {
+   "copy": "run_richat_structure_sahara_eye_1792778206",
+   "graphic": "numbers",
+   "photo": "run_singing_colossi_of_memnon_1792952878",
+   "min_contrast": 4.1,
+   "under_target": 1,
+   "lines": 7
+  },
+  {
+   "copy": "run_richat_structure_sahara_eye_1792778206",
+   "graphic": "numbers",
+   "photo": "run_trepanation_miracle_1792995462",
+   "min_contrast": 4.39,
+   "under_target": 1,
+   "lines": 7
+  },
+  {
+   "copy": "run_richat_structure_sahara_eye_1792778206",
+   "graphic": "numbers",
+   "photo": "run_unfinished_obelisk_aswan_1792985912",
+   "min_contrast": 4.75,
+   "under_target": 0,
+   "lines": 7
+  },
+  {
+   "copy": "run_richat_structure_sahara_eye_1792778206",
+   "graphic": "numbers",
+   "photo": "run_unfinished_obelisk_aswan_1792993374",
+   "min_contrast": 4.84,
+   "under_target": 0,
+   "lines": 7
+  },
+  {
+   "copy": "run_richat_structure_sahara_eye_1792778206",
+   "graphic": "numbers",
+   "photo": "run_unfinished_obelisk_aswan_1793056896",
+   "min_contrast": 4.75,
+   "under_target": 0,
+   "lines": 7
+  },
+  {
+   "copy": "run_richat_structure_sahara_eye_1792778206",
+   "graphic": "numbers",
+   "photo": "run_voynich_manuscript_1792965308",
+   "min_contrast": 3.8,
+   "under_target": 1,
+   "lines": 7
+  },
+  {
+   "copy": "run_richat_structure_sahara_eye_1792778206",
+   "graphic": "numbers",
+   "photo": "run_wieliczka_salt_mine_1792974672",
+   "min_contrast": 4.7,
+   "under_target": 0,
+   "lines": 7
+  },
+  {
+   "copy": "run_amber_room_heist_1792790550",
+   "graphic": "numbers",
+   "photo": "run_amber_room_heist_1792790550",
+   "min_contrast": 5.8,
+   "under_target": 0,
+   "lines": 8
+  },
+  {
+   "copy": "run_amber_room_heist_1792790550",
+   "graphic": "numbers",
+   "photo": "run_amber_room_heist_1792801257",
+   "min_contrast": 3.23,
+   "under_target": 1,
+   "lines": 8
+  },
+  {
+   "copy": "run_amber_room_heist_1792790550",
+   "graphic": "numbers",
+   "photo": "run_amber_room_heist_1792805842",
+   "min_contrast": 5.8,
+   "under_target": 0,
+   "lines": 8
+  },
+  {
+   "copy": "run_amber_room_heist_1792790550",
+   "graphic": "numbers",
+   "photo": "run_gol_gumbaz_whispering_gallery_1793278143",
+   "min_contrast": 4.93,
+   "under_target": 0,
+   "lines": 8
+  },
+  {
+   "copy": "run_amber_room_heist_1792790550",
+   "graphic": "numbers",
+   "photo": "run_nazca_lines_runway_paradox_1792961797",
+   "min_contrast": 4.77,
+   "under_target": 0,
+   "lines": 8
+  },
+  {
+   "copy": "run_amber_room_heist_1792790550",
+   "graphic": "numbers",
+   "photo": "run_nazca_lines_runway_paradox_1793247464",
+   "min_contrast": 4.77,
+   "under_target": 0,
+   "lines": 8
+  },
+  {
+   "copy": "run_amber_room_heist_1792790550",
+   "graphic": "numbers",
+   "photo": "run_nazca_lines_runway_paradox_1793251266",
+   "min_contrast": 4.77,
+   "under_target": 0,
+   "lines": 8
+  },
+  {
+   "copy": "run_amber_room_heist_1792790550",
+   "graphic": "numbers",
+   "photo": "run_nazca_lines_runway_paradox_1793262388",
+   "min_contrast": 4.39,
+   "under_target": 1,
+   "lines": 8
+  },
+  {
+   "copy": "run_amber_room_heist_1792790550",
+   "graphic": "numbers",
+   "photo": "run_nazca_lines_runway_paradox_1793267092",
+   "min_contrast": 3.85,
+   "under_target": 1,
+   "lines": 8
+  },
+  {
+   "copy": "run_amber_room_heist_1792790550",
+   "graphic": "numbers",
+   "photo": "run_odessa_catacombs_1792970549",
+   "min_contrast": 4.88,
+   "under_target": 0,
+   "lines": 8
+  },
+  {
+   "copy": "run_amber_room_heist_1792790550",
+   "graphic": "numbers",
+   "photo": "run_richat_structure_sahara_eye_1792737039_short",
+   "min_contrast": 4.24,
+   "under_target": 1,
+   "lines": 8
+  },
+  {
+   "copy": "run_amber_room_heist_1792790550",
+   "graphic": "numbers",
+   "photo": "run_richat_structure_sahara_eye_1792778206",
+   "min_contrast": 3.3,
+   "under_target": 1,
+   "lines": 8
+  },
+  {
+   "copy": "run_amber_room_heist_1792790550",
+   "graphic": "numbers",
+   "photo": "run_richat_structure_sahara_eye_1793272675",
+   "min_contrast": 3.89,
+   "under_target": 1,
+   "lines": 8
+  },
+  {
+   "copy": "run_amber_room_heist_1792790550",
+   "graphic": "numbers",
+   "photo": "run_richat_structure_sahara_eye_1793474843",
+   "min_contrast": 3.67,
+   "under_target": 1,
+   "lines": 8
+  },
+  {
+   "copy": "run_amber_room_heist_1792790550",
+   "graphic": "numbers",
+   "photo": "run_roman_self_healing_concrete_1793161347",
+   "min_contrast": 5.36,
+   "under_target": 0,
+   "lines": 8
+  },
+  {
+   "copy": "run_amber_room_heist_1792790550",
+   "graphic": "numbers",
+   "photo": "run_roman_self_healing_concrete_1793163918",
+   "min_contrast": 5.52,
+   "under_target": 0,
+   "lines": 8
+  },
+  {
+   "copy": "run_amber_room_heist_1792790550",
+   "graphic": "numbers",
+   "photo": "run_singing_colossi_of_memnon_1792952878",
+   "min_contrast": 4.22,
+   "under_target": 1,
+   "lines": 8
+  },
+  {
+   "copy": "run_amber_room_heist_1792790550",
+   "graphic": "numbers",
+   "photo": "run_trepanation_miracle_1792995462",
+   "min_contrast": 4.33,
+   "under_target": 1,
+   "lines": 8
+  },
+  {
+   "copy": "run_amber_room_heist_1792790550",
+   "graphic": "numbers",
+   "photo": "run_unfinished_obelisk_aswan_1792985912",
+   "min_contrast": 4.79,
+   "under_target": 0,
+   "lines": 8
+  },
+  {
+   "copy": "run_amber_room_heist_1792790550",
+   "graphic": "numbers",
+   "photo": "run_unfinished_obelisk_aswan_1792993374",
+   "min_contrast": 4.84,
+   "under_target": 0,
+   "lines": 8
+  },
+  {
+   "copy": "run_amber_room_heist_1792790550",
+   "graphic": "numbers",
+   "photo": "run_unfinished_obelisk_aswan_1793056896",
+   "min_contrast": 4.79,
+   "under_target": 0,
+   "lines": 8
+  },
+  {
+   "copy": "run_amber_room_heist_1792790550",
+   "graphic": "numbers",
+   "photo": "run_voynich_manuscript_1792965308",
+   "min_contrast": 3.82,
+   "under_target": 1,
+   "lines": 8
+  },
+  {
+   "copy": "run_amber_room_heist_1792790550",
+   "graphic": "numbers",
+   "photo": "run_wieliczka_salt_mine_1792974672",
+   "min_contrast": 4.62,
+   "under_target": 0,
+   "lines": 8
+  },
+  {
+   "copy": "run_amber_room_heist_1792781224",
+   "graphic": "timeline",
+   "photo": "run_amber_room_heist_1792790550",
+   "min_contrast": 5.44,
+   "under_target": 0,
+   "lines": 11
+  },
+  {
+   "copy": "run_amber_room_heist_1792781224",
+   "graphic": "timeline",
+   "photo": "run_amber_room_heist_1792801257",
+   "min_contrast": 4.41,
+   "under_target": 1,
+   "lines": 11
+  },
+  {
+   "copy": "run_amber_room_heist_1792781224",
+   "graphic": "timeline",
+   "photo": "run_amber_room_heist_1792805842",
+   "min_contrast": 5.44,
+   "under_target": 0,
+   "lines": 11
+  },
+  {
+   "copy": "run_amber_room_heist_1792781224",
+   "graphic": "timeline",
+   "photo": "run_gol_gumbaz_whispering_gallery_1793278143",
+   "min_contrast": 5.71,
+   "under_target": 0,
+   "lines": 11
+  },
+  {
+   "copy": "run_amber_room_heist_1792781224",
+   "graphic": "timeline",
+   "photo": "run_nazca_lines_runway_paradox_1792961797",
+   "min_contrast": 5.29,
+   "under_target": 0,
+   "lines": 11
+  },
+  {
+   "copy": "run_amber_room_heist_1792781224",
+   "graphic": "timeline",
+   "photo": "run_nazca_lines_runway_paradox_1793247464",
+   "min_contrast": 5.29,
+   "under_target": 0,
+   "lines": 11
+  },
+  {
+   "copy": "run_amber_room_heist_1792781224",
+   "graphic": "timeline",
+   "photo": "run_nazca_lines_runway_paradox_1793251266",
+   "min_contrast": 5.29,
+   "under_target": 0,
+   "lines": 11
+  },
+  {
+   "copy": "run_amber_room_heist_1792781224",
+   "graphic": "timeline",
+   "photo": "run_nazca_lines_runway_paradox_1793262388",
+   "min_contrast": 5.24,
+   "under_target": 0,
+   "lines": 11
+  },
+  {
+   "copy": "run_amber_room_heist_1792781224",
+   "graphic": "timeline",
+   "photo": "run_nazca_lines_runway_paradox_1793267092",
+   "min_contrast": 4.97,
+   "under_target": 0,
+   "lines": 11
+  },
+  {
+   "copy": "run_amber_room_heist_1792781224",
+   "graphic": "timeline",
+   "photo": "run_odessa_catacombs_1792970549",
+   "min_contrast": 5.65,
+   "under_target": 0,
+   "lines": 11
+  },
+  {
+   "copy": "run_amber_room_heist_1792781224",
+   "graphic": "timeline",
+   "photo": "run_richat_structure_sahara_eye_1792737039_short",
+   "min_contrast": 5.39,
+   "under_target": 0,
+   "lines": 11
+  },
+  {
+   "copy": "run_amber_room_heist_1792781224",
+   "graphic": "timeline",
+   "photo": "run_richat_structure_sahara_eye_1792778206",
+   "min_contrast": 5.3,
+   "under_target": 0,
+   "lines": 11
+  },
+  {
+   "copy": "run_amber_room_heist_1792781224",
+   "graphic": "timeline",
+   "photo": "run_richat_structure_sahara_eye_1793272675",
+   "min_contrast": 4.71,
+   "under_target": 0,
+   "lines": 11
+  },
+  {
+   "copy": "run_amber_room_heist_1792781224",
+   "graphic": "timeline",
+   "photo": "run_richat_structure_sahara_eye_1793474843",
+   "min_contrast": 5.88,
+   "under_target": 0,
+   "lines": 11
+  },
+  {
+   "copy": "run_amber_room_heist_1792781224",
+   "graphic": "timeline",
+   "photo": "run_roman_self_healing_concrete_1793161347",
+   "min_contrast": 4.54,
+   "under_target": 0,
+   "lines": 11
+  },
+  {
+   "copy": "run_amber_room_heist_1792781224",
+   "graphic": "timeline",
+   "photo": "run_roman_self_healing_concrete_1793163918",
+   "min_contrast": 5.72,
+   "under_target": 0,
+   "lines": 11
+  },
+  {
+   "copy": "run_amber_room_heist_1792781224",
+   "graphic": "timeline",
+   "photo": "run_singing_colossi_of_memnon_1792952878",
+   "min_contrast": 5.04,
+   "under_target": 0,
+   "lines": 11
+  },
+  {
+   "copy": "run_amber_room_heist_1792781224",
+   "graphic": "timeline",
+   "photo": "run_trepanation_miracle_1792995462",
+   "min_contrast": 5.15,
+   "under_target": 0,
+   "lines": 11
+  },
+  {
+   "copy": "run_amber_room_heist_1792781224",
+   "graphic": "timeline",
+   "photo": "run_unfinished_obelisk_aswan_1792985912",
+   "min_contrast": 4.65,
+   "under_target": 0,
+   "lines": 11
+  },
+  {
+   "copy": "run_amber_room_heist_1792781224",
+   "graphic": "timeline",
+   "photo": "run_unfinished_obelisk_aswan_1792993374",
+   "min_contrast": 5.28,
+   "under_target": 0,
+   "lines": 11
+  },
+  {
+   "copy": "run_amber_room_heist_1792781224",
+   "graphic": "timeline",
+   "photo": "run_unfinished_obelisk_aswan_1793056896",
+   "min_contrast": 4.65,
+   "under_target": 0,
+   "lines": 11
+  },
+  {
+   "copy": "run_amber_room_heist_1792781224",
+   "graphic": "timeline",
+   "photo": "run_voynich_manuscript_1792965308",
+   "min_contrast": 5.04,
+   "under_target": 0,
+   "lines": 11
+  },
+  {
+   "copy": "run_amber_room_heist_1792781224",
+   "graphic": "timeline",
+   "photo": "run_wieliczka_salt_mine_1792974672",
+   "min_contrast": 5.23,
+   "under_target": 0,
+   "lines": 11
+  }
+ ]
+}

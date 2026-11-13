@@ -125,7 +125,9 @@ def test_reel_plates_stay_inside_the_reel_box_and_below_the_graphics_floor(tmp_p
     assert pills and all(safe_zones.inside(p, box) for p in pills)
     assert all(p[1] >= safe_zones.caption_band_top() and p[1] > safe_zones.graphics_box()[3] for p in pills)
     assert all(p[3] - p[1] == REEL_PLATE_H for p in pills)       # one plate height per Reel
-    assert all(1228 <= p[3] <= 1248 - 20 for p in pills)           # 20 px over the platforms' band (was 8)
+    # 20 px over the platforms' band (was 8); QF-24 (decision QF-24/QF-87 layout, deliberate change): the organic
+    # band starts at y 1370 (the ads one at 1248, so the pills ended at 1228)
+    assert all(1350 <= p[3] <= 1370 - 20 for p in pills)
 
 
 def test_the_plate_is_sized_to_the_line_libass_draws(tmp_path):

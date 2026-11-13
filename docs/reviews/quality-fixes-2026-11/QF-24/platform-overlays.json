@@ -1,0 +1,898 @@
+{
+ "status": "approved 2026-11-09 as the shared organic Reel profile (decision QF-24/QF-87 layout); engineering stress bounds from one screenshot per platform, not a published Meta specification",
+ "source_note": "Control rectangles were read by hand from two operator-supplied viewer screenshots (one Instagram Reel, one Facebook Reel with a shopping banner), both 1170x2532. No screenshot pixels, account names or image hashes are kept here; only the rectangles and the derived boxes.",
+ "youtube_shorts": {
+  "source": "https://support.google.com/youtube/answer/16215842",
+  "labels": "15% top, 28% bottom, 6% left, 6% upper right, 21.5% right over the lower 63%",
+  "conservative_box_1080x1920": [
+   65,
+   288,
+   848,
+   1382
+  ]
+ },
+ "screenshot_dimensions": [
+  1170,
+  2532
+ ],
+ "manual_annotation_uncertainty_screen_px": 12,
+ "engineering_clearance_source_px": 16,
+ "limitations": [
+  "The uploaded video aspect ratio, crop, player transform and accessibility settings are unknown.",
+  "Both a visible-media viewport and full-screen media hidden by the comment composer are modeled.",
+  "Fit and cover are centered hypothetical transforms, not recovered facts about these screenshots.",
+  "Control rectangles are manually read conservative bounds; they contain no original image pixels.",
+  "One device/mode per platform cannot establish universal coverage of every future app/UI state.",
+  "Expanded descriptions, keyboards, popovers and modal sheets are not guaranteed safe by any static profile."
+ ],
+ "observations": {
+  "instagram": {
+   "visible_media_bottom": 2282,
+   "controls": {
+    "status_and_navigation": [
+     0,
+     0,
+     1170,
+     260
+    ],
+    "right_rail": [
+     1030,
+     1055,
+     1135,
+     2240
+    ],
+    "account_audio_description": [
+     35,
+     2015,
+     1000,
+     2260
+    ],
+    "comment_composer": [
+     0,
+     2282,
+     1170,
+     2532
+    ]
+   }
+  },
+  "facebook": {
+   "visible_media_bottom": 2300,
+   "controls": {
+    "status_and_navigation": [
+     0,
+     0,
+     1170,
+     260
+    ],
+    "right_rail": [
+     1030,
+     1285,
+     1135,
+     2205
+    ],
+    "shopping_banner": [
+     30,
+     1840,
+     745,
+     2025
+    ],
+    "account_audio_description": [
+     30,
+     2045,
+     1000,
+     2270
+    ],
+    "comment_composer": [
+     0,
+     2300,
+     1170,
+     2532
+    ]
+   }
+  }
+ },
+ "profiles_source_boxes": {
+  "current": [
+   65,
+   288,
+   888,
+   1248
+  ],
+  "shorts": [
+   65,
+   288,
+   848,
+   1382
+  ],
+  "shared_guarded": [
+   113,
+   288,
+   848,
+   1370
+  ]
+ },
+ "derived_per_platform_guarded_boxes": {
+  "instagram": [
+   113,
+   245,
+   852,
+   1502
+  ],
+  "facebook": [
+   113,
+   244,
+   852,
+   1370
+  ]
+ },
+ "scenarios": {
+  "instagram": {
+   "visible_media_fit": {
+    "viewport_screen_box": [
+     0,
+     0,
+     1170,
+     2282
+    ],
+    "scale": 1.0833333333333333,
+    "source_origin_screen": [
+     0.0,
+     101.0
+    ],
+    "visible_source_box": [
+     0,
+     0,
+     1080,
+     1920
+    ],
+    "controls_source": {
+     "status_and_navigation": [
+      0.0,
+      -93.23076923076924,
+      1080.0,
+      146.76923076923077
+     ],
+     "right_rail": [
+      950.7692307692308,
+      880.6153846153846,
+      1047.6923076923078,
+      1974.4615384615386
+     ],
+     "account_audio_description": [
+      32.30769230769231,
+      1766.769230769231,
+      923.0769230769231,
+      1992.9230769230771
+     ],
+     "comment_composer": [
+      0.0,
+      2013.2307692307693,
+      1080.0,
+      2244.0
+     ]
+    },
+    "controls_guarded_source": {
+     "status_and_navigation": [
+      -27.07692307692308,
+      -120.30769230769232,
+      1107.076923076923,
+      173.84615384615384
+     ],
+     "right_rail": [
+      923.6923076923077,
+      853.5384615384615,
+      1074.769230769231,
+      2001.5384615384617
+     ],
+     "account_audio_description": [
+      5.230769230769226,
+      1739.6923076923078,
+      950.1538461538462,
+      2020.0000000000002
+     ],
+     "comment_composer": [
+      -27.07692307692308,
+      1986.1538461538462,
+      1107.076923076923,
+      2271.076923076923
+     ]
+    },
+    "profile_checks": {
+     "current": {
+      "entire_rectangle_visible": true,
+      "overlaps_observed_controls": [],
+      "overlaps_uncertainty_plus_guard": []
+     },
+     "shorts": {
+      "entire_rectangle_visible": true,
+      "overlaps_observed_controls": [],
+      "overlaps_uncertainty_plus_guard": []
+     },
+     "shared_guarded": {
+      "entire_rectangle_visible": true,
+      "overlaps_observed_controls": [],
+      "overlaps_uncertainty_plus_guard": []
+     }
+    }
+   },
+   "visible_media_cover": {
+    "viewport_screen_box": [
+     0,
+     0,
+     1170,
+     2282
+    ],
+    "scale": 1.1885416666666666,
+    "source_origin_screen": [
+     -56.8125,
+     0.0
+    ],
+    "visible_source_box": [
+     47.80017528483786,
+     0,
+     1032.199824715162,
+     1920
+    ],
+    "controls_source": {
+     "status_and_navigation": [
+      47.80017528483786,
+      0.0,
+      1032.199824715162,
+      218.75547765118318
+     ],
+     "right_rail": [
+      914.4084136722174,
+      887.6424189307626,
+      1002.751971954426,
+      1884.6625766871166
+     ],
+     "account_audio_description": [
+      77.24802804557406,
+      1695.3549517966696,
+      889.1673970201578,
+      1901.489921121823
+     ],
+     "comment_composer": [
+      47.80017528483786,
+      1920.0,
+      1032.199824715162,
+      2130.34180543383
+     ]
+    },
+    "controls_guarded_source": {
+     "status_and_navigation": [
+      21.703768624014025,
+      -26.09640666082384,
+      1058.2962313759858,
+      244.85188431200703
+     ],
+     "right_rail": [
+      888.3120070113936,
+      861.5460122699387,
+      1028.8483786152499,
+      1910.7589833479403
+     ],
+     "account_audio_description": [
+      51.151621384750214,
+      1669.258545135846,
+      915.2638036809816,
+      1927.5863277826468
+     ],
+     "comment_composer": [
+      21.703768624014025,
+      1893.9035933391763,
+      1058.2962313759858,
+      2156.438212094654
+     ]
+    },
+    "profile_checks": {
+     "current": {
+      "entire_rectangle_visible": true,
+      "overlaps_observed_controls": [],
+      "overlaps_uncertainty_plus_guard": []
+     },
+     "shorts": {
+      "entire_rectangle_visible": true,
+      "overlaps_observed_controls": [],
+      "overlaps_uncertainty_plus_guard": []
+     },
+     "shared_guarded": {
+      "entire_rectangle_visible": true,
+      "overlaps_observed_controls": [],
+      "overlaps_uncertainty_plus_guard": []
+     }
+    }
+   },
+   "full_screen_fit": {
+    "viewport_screen_box": [
+     0,
+     0,
+     1170,
+     2532
+    ],
+    "scale": 1.0833333333333333,
+    "source_origin_screen": [
+     0.0,
+     226.0
+    ],
+    "visible_source_box": [
+     0,
+     0,
+     1080,
+     1897.846153846154
+    ],
+    "controls_source": {
+     "status_and_navigation": [
+      0.0,
+      -208.61538461538464,
+      1080.0,
+      31.384615384615387
+     ],
+     "right_rail": [
+      950.7692307692308,
+      765.2307692307693,
+      1047.6923076923078,
+      1859.076923076923
+     ],
+     "account_audio_description": [
+      32.30769230769231,
+      1651.3846153846155,
+      923.0769230769231,
+      1877.5384615384617
+     ],
+     "comment_composer": [
+      0.0,
+      1897.846153846154,
+      1080.0,
+      2128.6153846153848
+     ]
+    },
+    "controls_guarded_source": {
+     "status_and_navigation": [
+      -27.07692307692308,
+      -235.6923076923077,
+      1107.076923076923,
+      58.46153846153847
+     ],
+     "right_rail": [
+      923.6923076923077,
+      738.1538461538462,
+      1074.769230769231,
+      1886.1538461538462
+     ],
+     "account_audio_description": [
+      5.230769230769226,
+      1624.3076923076924,
+      950.1538461538462,
+      1904.6153846153848
+     ],
+     "comment_composer": [
+      -27.07692307692308,
+      1870.769230769231,
+      1107.076923076923,
+      2155.6923076923076
+     ]
+    },
+    "profile_checks": {
+     "current": {
+      "entire_rectangle_visible": true,
+      "overlaps_observed_controls": [],
+      "overlaps_uncertainty_plus_guard": []
+     },
+     "shorts": {
+      "entire_rectangle_visible": true,
+      "overlaps_observed_controls": [],
+      "overlaps_uncertainty_plus_guard": []
+     },
+     "shared_guarded": {
+      "entire_rectangle_visible": true,
+      "overlaps_observed_controls": [],
+      "overlaps_uncertainty_plus_guard": []
+     }
+    }
+   },
+   "full_screen_cover": {
+    "viewport_screen_box": [
+     0,
+     0,
+     1170,
+     2532
+    ],
+    "scale": 1.31875,
+    "source_origin_screen": [
+     -127.125,
+     0.0
+    ],
+    "visible_source_box": [
+     96.39810426540284,
+     0,
+     983.6018957345971,
+     1730.42654028436
+    ],
+    "controls_source": {
+     "status_and_navigation": [
+      96.39810426540284,
+      0.0,
+      983.6018957345971,
+      197.15639810426538
+     ],
+     "right_rail": [
+      877.4407582938388,
+      800.0,
+      957.0616113744076,
+      1698.5781990521325
+     ],
+     "account_audio_description": [
+      122.93838862559241,
+      1527.9620853080567,
+      854.6919431279621,
+      1713.7440758293837
+     ],
+     "comment_composer": [
+      96.39810426540284,
+      1730.42654028436,
+      983.6018957345971,
+      1919.9999999999998
+     ]
+    },
+    "controls_guarded_source": {
+     "status_and_navigation": [
+      71.29857819905213,
+      -25.099526066350712,
+      1008.7014218009477,
+      222.25592417061608
+     ],
+     "right_rail": [
+      852.3412322274881,
+      774.9004739336493,
+      982.1611374407582,
+      1723.6777251184833
+     ],
+     "account_audio_description": [
+      97.8388625592417,
+      1502.8625592417059,
+      879.7914691943128,
+      1738.8436018957345
+     ],
+     "comment_composer": [
+      71.29857819905213,
+      1705.3270142180093,
+      1008.7014218009477,
+      1945.0995260663506
+     ]
+    },
+    "profile_checks": {
+     "current": {
+      "entire_rectangle_visible": false,
+      "overlaps_observed_controls": [
+       "right_rail"
+      ],
+      "overlaps_uncertainty_plus_guard": [
+       "right_rail"
+      ]
+     },
+     "shorts": {
+      "entire_rectangle_visible": false,
+      "overlaps_observed_controls": [],
+      "overlaps_uncertainty_plus_guard": []
+     },
+     "shared_guarded": {
+      "entire_rectangle_visible": true,
+      "overlaps_observed_controls": [],
+      "overlaps_uncertainty_plus_guard": []
+     }
+    }
+   }
+  },
+  "facebook": {
+   "visible_media_fit": {
+    "viewport_screen_box": [
+     0,
+     0,
+     1170,
+     2300
+    ],
+    "scale": 1.0833333333333333,
+    "source_origin_screen": [
+     0.0,
+     110.0
+    ],
+    "visible_source_box": [
+     0,
+     0,
+     1080,
+     1920
+    ],
+    "controls_source": {
+     "status_and_navigation": [
+      0.0,
+      -101.53846153846155,
+      1080.0,
+      138.46153846153848
+     ],
+     "right_rail": [
+      950.7692307692308,
+      1084.6153846153848,
+      1047.6923076923078,
+      1933.846153846154
+     ],
+     "shopping_banner": [
+      27.692307692307693,
+      1596.9230769230771,
+      687.6923076923077,
+      1767.6923076923078
+     ],
+     "account_audio_description": [
+      27.692307692307693,
+      1786.1538461538462,
+      923.0769230769231,
+      1993.846153846154
+     ],
+     "comment_composer": [
+      0.0,
+      2021.5384615384617,
+      1080.0,
+      2235.6923076923076
+     ]
+    },
+    "controls_guarded_source": {
+     "status_and_navigation": [
+      -27.07692307692308,
+      -128.61538461538464,
+      1107.076923076923,
+      165.53846153846155
+     ],
+     "right_rail": [
+      923.6923076923077,
+      1057.5384615384617,
+      1074.769230769231,
+      1960.9230769230771
+     ],
+     "shopping_banner": [
+      0.6153846153846132,
+      1569.846153846154,
+      714.7692307692308,
+      1794.769230769231
+     ],
+     "account_audio_description": [
+      0.6153846153846132,
+      1759.076923076923,
+      950.1538461538462,
+      2020.9230769230771
+     ],
+     "comment_composer": [
+      -27.07692307692308,
+      1994.4615384615386,
+      1107.076923076923,
+      2262.7692307692305
+     ]
+    },
+    "profile_checks": {
+     "current": {
+      "entire_rectangle_visible": true,
+      "overlaps_observed_controls": [],
+      "overlaps_uncertainty_plus_guard": []
+     },
+     "shorts": {
+      "entire_rectangle_visible": true,
+      "overlaps_observed_controls": [],
+      "overlaps_uncertainty_plus_guard": []
+     },
+     "shared_guarded": {
+      "entire_rectangle_visible": true,
+      "overlaps_observed_controls": [],
+      "overlaps_uncertainty_plus_guard": []
+     }
+    }
+   },
+   "visible_media_cover": {
+    "viewport_screen_box": [
+     0,
+     0,
+     1170,
+     2300
+    ],
+    "scale": 1.1979166666666667,
+    "source_origin_screen": [
+     -61.875,
+     0.0
+    ],
+    "visible_source_box": [
+     51.65217391304348,
+     0,
+     1028.3478260869565,
+     1919.9999999999998
+    ],
+    "controls_source": {
+     "status_and_navigation": [
+      51.65217391304348,
+      0.0,
+      1028.3478260869565,
+      217.04347826086956
+     ],
+     "right_rail": [
+      911.4782608695651,
+      1072.695652173913,
+      999.1304347826086,
+      1840.695652173913
+     ],
+     "shopping_banner": [
+      76.69565217391303,
+      1536.0,
+      673.5652173913043,
+      1690.4347826086955
+     ],
+     "account_audio_description": [
+      76.69565217391303,
+      1707.1304347826085,
+      886.4347826086956,
+      1894.9565217391303
+     ],
+     "comment_composer": [
+      51.65217391304348,
+      1919.9999999999998,
+      1028.3478260869565,
+      2113.669565217391
+     ]
+    },
+    "controls_guarded_source": {
+     "status_and_navigation": [
+      25.63478260869565,
+      -26.017391304347825,
+      1054.3652173913042,
+      243.0608695652174
+     ],
+     "right_rail": [
+      885.4608695652173,
+      1046.6782608695653,
+      1025.1478260869565,
+      1866.7130434782607
+     ],
+     "shopping_banner": [
+      50.67826086956521,
+      1509.9826086956523,
+      699.5826086956521,
+      1716.4521739130432
+     ],
+     "account_audio_description": [
+      50.67826086956521,
+      1681.1130434782608,
+      912.4521739130435,
+      1920.9739130434782
+     ],
+     "comment_composer": [
+      25.63478260869565,
+      1893.9826086956518,
+      1054.3652173913042,
+      2139.686956521739
+     ]
+    },
+    "profile_checks": {
+     "current": {
+      "entire_rectangle_visible": true,
+      "overlaps_observed_controls": [],
+      "overlaps_uncertainty_plus_guard": [
+       "right_rail"
+      ]
+     },
+     "shorts": {
+      "entire_rectangle_visible": true,
+      "overlaps_observed_controls": [],
+      "overlaps_uncertainty_plus_guard": []
+     },
+     "shared_guarded": {
+      "entire_rectangle_visible": true,
+      "overlaps_observed_controls": [],
+      "overlaps_uncertainty_plus_guard": []
+     }
+    }
+   },
+   "full_screen_fit": {
+    "viewport_screen_box": [
+     0,
+     0,
+     1170,
+     2532
+    ],
+    "scale": 1.0833333333333333,
+    "source_origin_screen": [
+     0.0,
+     226.0
+    ],
+    "visible_source_box": [
+     0,
+     0,
+     1080,
+     1914.4615384615386
+    ],
+    "controls_source": {
+     "status_and_navigation": [
+      0.0,
+      -208.61538461538464,
+      1080.0,
+      31.384615384615387
+     ],
+     "right_rail": [
+      950.7692307692308,
+      977.5384615384617,
+      1047.6923076923078,
+      1826.769230769231
+     ],
+     "shopping_banner": [
+      27.692307692307693,
+      1489.846153846154,
+      687.6923076923077,
+      1660.6153846153848
+     ],
+     "account_audio_description": [
+      27.692307692307693,
+      1679.076923076923,
+      923.0769230769231,
+      1886.769230769231
+     ],
+     "comment_composer": [
+      0.0,
+      1914.4615384615386,
+      1080.0,
+      2128.6153846153848
+     ]
+    },
+    "controls_guarded_source": {
+     "status_and_navigation": [
+      -27.07692307692308,
+      -235.6923076923077,
+      1107.076923076923,
+      58.46153846153847
+     ],
+     "right_rail": [
+      923.6923076923077,
+      950.4615384615386,
+      1074.769230769231,
+      1853.846153846154
+     ],
+     "shopping_banner": [
+      0.6153846153846132,
+      1462.769230769231,
+      714.7692307692308,
+      1687.6923076923078
+     ],
+     "account_audio_description": [
+      0.6153846153846132,
+      1652.0,
+      950.1538461538462,
+      1913.846153846154
+     ],
+     "comment_composer": [
+      -27.07692307692308,
+      1887.3846153846155,
+      1107.076923076923,
+      2155.6923076923076
+     ]
+    },
+    "profile_checks": {
+     "current": {
+      "entire_rectangle_visible": true,
+      "overlaps_observed_controls": [],
+      "overlaps_uncertainty_plus_guard": []
+     },
+     "shorts": {
+      "entire_rectangle_visible": true,
+      "overlaps_observed_controls": [],
+      "overlaps_uncertainty_plus_guard": []
+     },
+     "shared_guarded": {
+      "entire_rectangle_visible": true,
+      "overlaps_observed_controls": [],
+      "overlaps_uncertainty_plus_guard": []
+     }
+    }
+   },
+   "full_screen_cover": {
+    "viewport_screen_box": [
+     0,
+     0,
+     1170,
+     2532
+    ],
+    "scale": 1.31875,
+    "source_origin_screen": [
+     -127.125,
+     0.0
+    ],
+    "visible_source_box": [
+     96.39810426540284,
+     0,
+     983.6018957345971,
+     1744.0758293838862
+    ],
+    "controls_source": {
+     "status_and_navigation": [
+      96.39810426540284,
+      0.0,
+      983.6018957345971,
+      197.15639810426538
+     ],
+     "right_rail": [
+      877.4407582938388,
+      974.4075829383886,
+      957.0616113744076,
+      1672.0379146919431
+     ],
+     "shopping_banner": [
+      119.14691943127961,
+      1395.2606635071088,
+      661.3270142180095,
+      1535.5450236966824
+     ],
+     "account_audio_description": [
+      119.14691943127961,
+      1550.7109004739336,
+      854.6919431279621,
+      1721.3270142180093
+     ],
+     "comment_composer": [
+      96.39810426540284,
+      1744.0758293838862,
+      983.6018957345971,
+      1919.9999999999998
+     ]
+    },
+    "controls_guarded_source": {
+     "status_and_navigation": [
+      71.29857819905213,
+      -25.099526066350712,
+      1008.7014218009477,
+      222.25592417061608
+     ],
+     "right_rail": [
+      852.3412322274881,
+      949.3080568720379,
+      982.1611374407582,
+      1697.137440758294
+     ],
+     "shopping_banner": [
+      94.04739336492891,
+      1370.161137440758,
+      686.4265402843602,
+      1560.6445497630332
+     ],
+     "account_audio_description": [
+      94.04739336492891,
+      1525.6113744075828,
+      879.7914691943128,
+      1746.42654028436
+     ],
+     "comment_composer": [
+      71.29857819905213,
+      1718.9763033175354,
+      1008.7014218009477,
+      1945.0995260663506
+     ]
+    },
+    "profile_checks": {
+     "current": {
+      "entire_rectangle_visible": false,
+      "overlaps_observed_controls": [
+       "right_rail"
+      ],
+      "overlaps_uncertainty_plus_guard": [
+       "right_rail"
+      ]
+     },
+     "shorts": {
+      "entire_rectangle_visible": false,
+      "overlaps_observed_controls": [],
+      "overlaps_uncertainty_plus_guard": [
+       "shopping_banner"
+      ]
+     },
+     "shared_guarded": {
+      "entire_rectangle_visible": true,
+      "overlaps_observed_controls": [],
+      "overlaps_uncertainty_plus_guard": []
+     }
+    }
+   }
+  }
+ }
+}

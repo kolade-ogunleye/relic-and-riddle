@@ -1,0 +1,1868 @@
+{
+ "schema": 1,
+ "inputs": {
+  "graphics": "QF-23/real_inputs.json (34 dev runs' checked copy)",
+  "captions": "freeze-panel-2026-11-04/fixtures/runs/*/words.json (7 9:16 narrations)"
+ },
+ "yardstick": {
+  "reel_box": [
+   113,
+   288,
+   848,
+   1370
+  ],
+  "graphics_box": [
+   113,
+   288,
+   848,
+   1090
+  ],
+  "caption_band_top": 1130,
+  "platforms": {
+   "instagram_reels": [
+    113,
+    245,
+    852,
+    1502
+   ],
+   "facebook_reels": [
+    113,
+    244,
+    852,
+    1370
+   ],
+   "youtube_shorts": [
+    65,
+    288,
+    848,
+    1382
+   ]
+  }
+ },
+ "source_sha256": {
+  "src/safe_zones.py": "1099573a28f6f298",
+  "src/graphics.py": "918f51320a6504e1",
+  "src/video_composer.py": "35220fc5524adb97",
+  "src/config.py": "09f63c3b1c531b40"
+ },
+ "profile": {
+  "reel_box": [
+   113,
+   288,
+   848,
+   1370
+  ],
+  "story_box": [
+   65,
+   269,
+   1015,
+   1248
+  ],
+  "graphics_box": [
+   113,
+   288,
+   848,
+   1090
+  ],
+  "caption_band_top": 1130,
+  "graphics_text_box": [
+   113,
+   330,
+   848,
+   1090
+  ],
+  "inset_edges": [
+   120,
+   820
+  ],
+  "caption_ink_measure": 640,
+  "caption_margin_v": 550,
+  "two_line_rungs": [
+   80,
+   74,
+   66
+  ]
+ },
+ "graphics_summary": {
+  "numbers": {
+   "graphics": 23,
+   "ok": 23,
+   "errors": 0,
+   "text_plates": 149,
+   "plates_outside_graphics_box": 0,
+   "graphics_with_text_outside_graphics_box": 0,
+   "plates_outside_reel_box": 0,
+   "plates_under_platform_ui": {
+    "instagram_reels": 0,
+    "facebook_reels": 0,
+    "youtube_shorts": 0
+   },
+   "min_px": 32,
+   "median_text_foot": 1035,
+   "max_text_foot": 1086
+  },
+  "route": {
+   "graphics": 1,
+   "ok": 0,
+   "errors": 0
+  },
+  "scale": {
+   "graphics": 3,
+   "ok": 2,
+   "errors": 0,
+   "text_plates": 29,
+   "plates_outside_graphics_box": 0,
+   "graphics_with_text_outside_graphics_box": 0,
+   "plates_outside_reel_box": 0,
+   "plates_under_platform_ui": {
+    "instagram_reels": 0,
+    "facebook_reels": 0,
+    "youtube_shorts": 0
+   },
+   "min_px": 28,
+   "median_text_foot": 1090,
+   "max_text_foot": 1090,
+   "median_ink_foot": 1089,
+   "median_ink_centroid_y": 741.1
+  },
+  "timeline": {
+   "graphics": 10,
+   "ok": 10,
+   "errors": 0,
+   "text_plates": 104,
+   "plates_outside_graphics_box": 0,
+   "graphics_with_text_outside_graphics_box": 0,
+   "plates_outside_reel_box": 0,
+   "plates_under_platform_ui": {
+    "instagram_reels": 0,
+    "facebook_reels": 0,
+    "youtube_shorts": 0
+   },
+   "min_px": 24,
+   "median_text_foot": 1090,
+   "max_text_foot": 1090,
+   "median_ink_foot": 1089,
+   "median_ink_centroid_y": 668.7
+  }
+ },
+ "graphics_total": {
+  "graphics": 37,
+  "ok": 35,
+  "errors": 0,
+  "text_plates": 282,
+  "plates_outside_graphics_box": 0,
+  "graphics_with_text_outside_graphics_box": 0,
+  "plates_outside_reel_box": 0,
+  "plates_under_platform_ui": {
+   "instagram_reels": 0,
+   "facebook_reels": 0,
+   "youtube_shorts": 0
+  },
+  "min_px": 24,
+  "median_text_foot": 1070,
+  "max_text_foot": 1090,
+  "median_ink_foot": 1089,
+  "median_ink_centroid_y": 670.5
+ },
+ "captions_total": {
+  "runs": 7,
+  "bursts": 273,
+  "plates_outside_reel_box": 0,
+  "plates_outside_caption_band": 0,
+  "plates_under_platform_ui": {
+   "instagram_reels": 0,
+   "facebook_reels": 0,
+   "youtube_shorts": 0
+  },
+  "two_line_bursts": 0
+ },
+ "captions": [
+  {
+   "run": "run_amber_room_heist_1792790550",
+   "bursts": 41,
+   "bursts_sha": "1603b0459255033a",
+   "plates_sha": "9970279687519b2f",
+   "words_sha": "ec7f7e2cd32c26cb",
+   "two_line_bursts": 0,
+   "outside_reel_box": 0,
+   "outside_caption_band": 0,
+   "under_platform_ui": {
+    "instagram_reels": 0,
+    "facebook_reels": 0,
+    "youtube_shorts": 0
+   },
+   "plate_x": [
+    132,
+    827
+   ],
+   "plate_y": [
+    1229,
+    1350
+   ],
+   "widest_plate_centre_x": 480.0,
+   "widest_plate_w": 694
+  },
+  {
+   "run": "run_gol_gumbaz_whispering_gallery_1793278143",
+   "bursts": 40,
+   "bursts_sha": "038ee41b2353cf2e",
+   "plates_sha": "efa326452dc075ee",
+   "words_sha": "00e25532319fde33",
+   "two_line_bursts": 0,
+   "outside_reel_box": 0,
+   "outside_caption_band": 0,
+   "under_platform_ui": {
+    "instagram_reels": 0,
+    "facebook_reels": 0,
+    "youtube_shorts": 0
+   },
+   "plate_x": [
+    138,
+    822
+   ],
+   "plate_y": [
+    1229,
+    1350
+   ],
+   "widest_plate_centre_x": 480.5,
+   "widest_plate_w": 683
+  },
+  {
+   "run": "run_nazca_lines_runway_paradox_1792961797",
+   "bursts": 36,
+   "bursts_sha": "d604d7bde0d21beb",
+   "plates_sha": "98c4f14aa12b5faf",
+   "words_sha": "09b30d9e843856bb",
+   "two_line_bursts": 0,
+   "outside_reel_box": 0,
+   "outside_caption_band": 0,
+   "under_platform_ui": {
+    "instagram_reels": 0,
+    "facebook_reels": 0,
+    "youtube_shorts": 0
+   },
+   "plate_x": [
+    132,
+    828
+   ],
+   "plate_y": [
+    1229,
+    1350
+   ],
+   "widest_plate_centre_x": 480.5,
+   "widest_plate_w": 695
+  },
+  {
+   "run": "run_richat_structure_sahara_eye_1793474843",
+   "bursts": 39,
+   "bursts_sha": "995276e6a42e392f",
+   "plates_sha": "1c264795d4d6da4c",
+   "words_sha": "5e197d8298077e93",
+   "two_line_bursts": 0,
+   "outside_reel_box": 0,
+   "outside_caption_band": 0,
+   "under_platform_ui": {
+    "instagram_reels": 0,
+    "facebook_reels": 0,
+    "youtube_shorts": 0
+   },
+   "plate_x": [
+    140,
+    820
+   ],
+   "plate_y": [
+    1229,
+    1350
+   ],
+   "widest_plate_centre_x": 479.5,
+   "widest_plate_w": 679
+  },
+  {
+   "run": "run_tunguska_event_1908_1792930600",
+   "bursts": 35,
+   "bursts_sha": "760a9034ec792d84",
+   "plates_sha": "63232dc1f9777ae7",
+   "words_sha": "0cd6b21dae0c394d",
+   "two_line_bursts": 0,
+   "outside_reel_box": 0,
+   "outside_caption_band": 0,
+   "under_platform_ui": {
+    "instagram_reels": 0,
+    "facebook_reels": 0,
+    "youtube_shorts": 0
+   },
+   "plate_x": [
+    135,
+    825
+   ],
+   "plate_y": [
+    1229,
+    1350
+   ],
+   "widest_plate_centre_x": 480.0,
+   "widest_plate_w": 690
+  },
+  {
+   "run": "run_unfinished_obelisk_aswan_1792985912",
+   "bursts": 40,
+   "bursts_sha": "72925d39cdf8efa8",
+   "plates_sha": "4dc034e6d5ee4b90",
+   "words_sha": "70ba753028cd9cf3",
+   "two_line_bursts": 0,
+   "outside_reel_box": 0,
+   "outside_caption_band": 0,
+   "under_platform_ui": {
+    "instagram_reels": 0,
+    "facebook_reels": 0,
+    "youtube_shorts": 0
+   },
+   "plate_x": [
+    135,
+    825
+   ],
+   "plate_y": [
+    1229,
+    1350
+   ],
+   "widest_plate_centre_x": 480.5,
+   "widest_plate_w": 689
+  },
+  {
+   "run": "run_voynich_manuscript_1792965308",
+   "bursts": 42,
+   "bursts_sha": "6f1354e1828795da",
+   "plates_sha": "7513b2199ae4fd92",
+   "words_sha": "329f0de8aa013a17",
+   "two_line_bursts": 0,
+   "outside_reel_box": 0,
+   "outside_caption_band": 0,
+   "under_platform_ui": {
+    "instagram_reels": 0,
+    "facebook_reels": 0,
+    "youtube_shorts": 0
+   },
+   "plate_x": [
+    131,
+    828
+   ],
+   "plate_y": [
+    1229,
+    1350
+   ],
+   "widest_plate_centre_x": 479.0,
+   "widest_plate_w": 696
+  }
+ ],
+ "surfaces": {
+  "callouts_reference_pair": {
+   "labels": [
+    [
+     "STONE DOOR",
+     "RECESS"
+    ],
+    [
+     "CARVED",
+     "TUFF WALL"
+    ]
+   ],
+   "px": [
+    38
+   ],
+   "conflict": false,
+   "plates": [
+    [
+     432,
+     613,
+     768,
+     721
+    ],
+    [
+     153,
+     798,
+     447,
+     906
+    ]
+   ],
+   "inside_graphics_box": true,
+   "min_plate_gap": 77
+  },
+  "end_card": [
+   {
+    "masthead_px": 73,
+    "masthead_x": [
+     117,
+     843
+    ],
+    "share_px": 52,
+    "share_lines": 4,
+    "box": [
+     160,
+     846,
+     800,
+     1102
+    ],
+    "inside_reel_box": true
+   },
+   {
+    "masthead_px": 73,
+    "masthead_x": [
+     117,
+     843
+    ],
+    "share_px": 52,
+    "share_lines": 4,
+    "box": [
+     162,
+     846,
+     798,
+     1102
+    ],
+    "inside_reel_box": true
+   },
+   {
+    "masthead_px": 73,
+    "masthead_x": [
+     117,
+     843
+    ],
+    "share_px": 54,
+    "share_lines": 3,
+    "box": [
+     116,
+     874,
+     844,
+     1075
+    ],
+    "inside_reel_box": true
+   },
+   {
+    "masthead_px": 73,
+    "masthead_x": [
+     117,
+     843
+    ],
+    "share_px": 52,
+    "share_lines": 3,
+    "box": [
+     114,
+     878,
+     846,
+     1070
+    ],
+    "inside_reel_box": true
+   },
+   {
+    "masthead_px": 73,
+    "masthead_x": [
+     117,
+     843
+    ],
+    "share_px": 54,
+    "share_lines": 3,
+    "box": [
+     116,
+     874,
+     844,
+     1075
+    ],
+    "inside_reel_box": true
+   }
+  ],
+  "then_now": {
+   "split": 768,
+   "then_marker": [
+    131,
+    330,
+    "lt"
+   ],
+   "now_marker": [
+    131,
+    864,
+    "lt"
+   ],
+   "now_year_foot": 1038
+  },
+  "cards": {
+   "myth_long_et": {
+    "ink": [
+     113,
+     312,
+     843,
+     1065
+    ],
+    "text_px": {
+     "myth_label": 40,
+     "myth_0": 58,
+     "myth_1": 58,
+     "fact_label": 40,
+     "fact_0": 76,
+     "fact_1": 76,
+     "fact_2": 76,
+     "fact_3": 76,
+     "source_label": 28,
+     "source": 38
+    },
+    "inside_graphics_box": true
+   },
+   "myth_longest916": {
+    "refused": "every size that holds the myth and the fact ends a line on a stop word (ANCIENT BUILDERS POURED THE / OUTER WALLS OUT OF"
+   },
+   "myth_richat_fact9": {
+    "ink": [
+     113,
+     288,
+     668,
+     1079
+    ],
+    "text_px": {
+     "myth_label": 40,
+     "myth_0": 66,
+     "myth_1": 66,
+     "fact_label": 40,
+     "fact_0": 76,
+     "fact_1": 76,
+     "fact_2": 76,
+     "fact_3": 76,
+     "fact_4": 76,
+     "source_label": 28,
+     "source": 38
+    },
+    "inside_graphics_box": true
+   },
+   "hook_h1": {
+    "ink": [
+     124,
+     462,
+     836,
+     831
+    ],
+    "text_px": {
+     "brand": 64,
+     "title_0": 144,
+     "title_1": 144
+    },
+    "inside_graphics_box": true
+   },
+   "chapter_richat_act1": {
+    "ink": [
+     113,
+     433,
+     818,
+     1089
+    ],
+    "text_px": {
+     "kicker_label": 40,
+     "numeral": 300,
+     "title_0": 92,
+     "title_1": 92,
+     "title_2": 92,
+     "total": 72
+    },
+    "inside_graphics_box": true
+   },
+   "chapter_richat_act2": {
+    "ink": [
+     113,
+     309,
+     816,
+     1089
+    ],
+    "text_px": {
+     "kicker_label": 40,
+     "numeral": 300,
+     "title_0": 136,
+     "title_1": 136,
+     "title_2": 136,
+     "total": 72
+    },
+    "inside_graphics_box": true
+   },
+   "chapter_richat_act3": {
+    "ink": [
+     113,
+     332,
+     844,
+     1089
+    ],
+    "text_px": {
+     "kicker_label": 40,
+     "numeral": 300,
+     "title_0": 128,
+     "title_1": 128,
+     "title_2": 128,
+     "total": 72
+    },
+    "inside_graphics_box": true
+   },
+   "chapter_richat_act4": {
+    "ink": [
+     113,
+     433,
+     828,
+     1089
+    ],
+    "text_px": {
+     "kicker_label": 40,
+     "numeral": 300,
+     "title_0": 92,
+     "title_1": 92,
+     "title_2": 92,
+     "total": 72
+    },
+    "inside_graphics_box": true
+   },
+   "chapter_richat_act5": {
+    "ink": [
+     113,
+     332,
+     809,
+     1089
+    ],
+    "text_px": {
+     "kicker_label": 40,
+     "numeral": 300,
+     "title_0": 128,
+     "title_1": 128,
+     "title_2": 128,
+     "total": 72
+    },
+    "inside_graphics_box": true
+   }
+  },
+  "timeline_five_close": "refused"
+ },
+ "wide": {
+  "graphics": 36,
+  "graphics_ok": 35,
+  "graphics_sha": "60fd68bd272ddc92",
+  "caption_files": 8,
+  "captions_sha": "93e18e8a7e5bf96a",
+  "captions": [
+   {
+    "run": "run_amber_room_heist_1792790550",
+    "events": 52,
+    "events_sha": "07bed16031396a3c"
+   },
+   {
+    "run": "run_gol_gumbaz_whispering_gallery_1793278143",
+    "events": 44,
+    "events_sha": "fa1a2cf7174517e9"
+   },
+   {
+    "run": "run_nazca_lines_runway_paradox_1792961797",
+    "events": 48,
+    "events_sha": "399c635e39dafda3"
+   },
+   {
+    "run": "run_richat_structure_sahara_eye_1792740961_long",
+    "events": 200,
+    "events_sha": "82c3c70ea8a91336"
+   },
+   {
+    "run": "run_richat_structure_sahara_eye_1793474843",
+    "events": 46,
+    "events_sha": "6fe9825c8606ead3"
+   },
+   {
+    "run": "run_tunguska_event_1908_1792930600",
+    "events": 42,
+    "events_sha": "7b7cef254e261b68"
+   },
+   {
+    "run": "run_unfinished_obelisk_aswan_1792985912",
+    "events": 48,
+    "events_sha": "d2d76a47f01b68d1"
+   },
+   {
+    "run": "run_voynich_manuscript_1792965308",
+    "events": 54,
+    "events_sha": "e17abe7a3d16486a"
+   }
+  ]
+ },
+ "runs": [
+  {
+   "run": "run_amber_room_heist_1792781224",
+   "graphics": [
+    {
+     "graphic": "numbers",
+     "outcome": "ok",
+     "plates": 7,
+     "min_px": 36,
+     "max_px": 207,
+     "words_sha": "84888b1b90e10f04",
+     "text_top": 376,
+     "text_foot": 1044,
+     "text_left": 120,
+     "text_right": 772,
+     "text_centroid_y": 771.2,
+     "outside_graphics_box": 0,
+     "outside_reel_box": 0,
+     "under_platform_ui": {
+      "instagram_reels": 0,
+      "facebook_reels": 0,
+      "youtube_shorts": 0
+     }
+    },
+    {
+     "graphic": "timeline",
+     "outcome": "ok",
+     "plates": 14,
+     "min_px": 24,
+     "max_px": 102,
+     "words_sha": "6aed0172d7be49d1",
+     "text_top": 299,
+     "text_foot": 1090,
+     "text_left": 192,
+     "text_right": 720,
+     "text_centroid_y": 699.0,
+     "outside_graphics_box": 0,
+     "outside_reel_box": 0,
+     "under_platform_ui": {
+      "instagram_reels": 0,
+      "facebook_reels": 0,
+      "youtube_shorts": 0
+     },
+     "ink_top": 299,
+     "ink_foot": 1089,
+     "ink_centroid_y": 690.5
+    }
+   ],
+   "wide": [
+    {
+     "graphic": "numbers",
+     "outcome": "ok",
+     "frame_sha": "d40700a8403af7ee",
+     "plates_sha": "5149c3c6f4149b28"
+    },
+    {
+     "graphic": "timeline",
+     "outcome": "ok",
+     "frame_sha": "2c88f1ef7eba5f71",
+     "plates_sha": "e673640321fcdef8"
+    }
+   ]
+  },
+  {
+   "run": "run_amber_room_heist_1792790550",
+   "graphics": [
+    {
+     "graphic": "numbers",
+     "outcome": "ok",
+     "plates": 8,
+     "min_px": 32,
+     "max_px": 184,
+     "words_sha": "2aa96b240dad5824",
+     "text_top": 385,
+     "text_foot": 1035,
+     "text_left": 119,
+     "text_right": 775,
+     "text_centroid_y": 782.4,
+     "outside_graphics_box": 0,
+     "outside_reel_box": 0,
+     "under_platform_ui": {
+      "instagram_reels": 0,
+      "facebook_reels": 0,
+      "youtube_shorts": 0
+     }
+    },
+    {
+     "graphic": "timeline",
+     "outcome": "ok",
+     "plates": 10,
+     "min_px": 24,
+     "max_px": 150,
+     "words_sha": "77dc139c8f9f5806",
+     "text_top": 299,
+     "text_foot": 1090,
+     "text_left": 192,
+     "text_right": 817,
+     "text_centroid_y": 674.2,
+     "outside_graphics_box": 0,
+     "outside_reel_box": 0,
+     "under_platform_ui": {
+      "instagram_reels": 0,
+      "facebook_reels": 0,
+      "youtube_shorts": 0
+     },
+     "ink_top": 299,
+     "ink_foot": 1089,
+     "ink_centroid_y": 659.5
+    }
+   ],
+   "wide": [
+    {
+     "graphic": "numbers",
+     "outcome": "ok",
+     "frame_sha": "f6c953c502441081",
+     "plates_sha": "1347cda127395889"
+    },
+    {
+     "graphic": "timeline",
+     "outcome": "ok",
+     "frame_sha": "74d8ae1e2a462a54",
+     "plates_sha": "b6449ea5a0df3985"
+    }
+   ]
+  },
+  {
+   "run": "run_amber_room_heist_1792801257",
+   "graphics": [
+    {
+     "graphic": "numbers",
+     "outcome": "ok",
+     "plates": 9,
+     "min_px": 32,
+     "max_px": 184,
+     "words_sha": "73b2781a5b53db36",
+     "text_top": 362,
+     "text_foot": 1059,
+     "text_left": 119,
+     "text_right": 703,
+     "text_centroid_y": 765.8,
+     "outside_graphics_box": 0,
+     "outside_reel_box": 0,
+     "under_platform_ui": {
+      "instagram_reels": 0,
+      "facebook_reels": 0,
+      "youtube_shorts": 0
+     }
+    },
+    {
+     "graphic": "timeline",
+     "outcome": "ok",
+     "plates": 10,
+     "min_px": 24,
+     "max_px": 150,
+     "words_sha": "e7defdfa27a7387c",
+     "text_top": 299,
+     "text_foot": 1090,
+     "text_left": 192,
+     "text_right": 762,
+     "text_centroid_y": 682.7,
+     "outside_graphics_box": 0,
+     "outside_reel_box": 0,
+     "under_platform_ui": {
+      "instagram_reels": 0,
+      "facebook_reels": 0,
+      "youtube_shorts": 0
+     },
+     "ink_top": 299,
+     "ink_foot": 1089,
+     "ink_centroid_y": 668.7
+    },
+    {
+     "graphic": "route",
+     "outcome": "skipped"
+    }
+   ],
+   "wide": [
+    {
+     "graphic": "numbers",
+     "outcome": "ok",
+     "frame_sha": "a0448f6237e0b6e4",
+     "plates_sha": "11b09499834c6593"
+    },
+    {
+     "graphic": "timeline",
+     "outcome": "ok",
+     "frame_sha": "bb096123d7a89076",
+     "plates_sha": "0e2d07c331a7781e"
+    }
+   ]
+  },
+  {
+   "run": "run_amber_room_heist_1792805842",
+   "graphics": [
+    {
+     "graphic": "numbers",
+     "outcome": "ok",
+     "plates": 8,
+     "min_px": 36,
+     "max_px": 207,
+     "words_sha": "f692742c5d846a00",
+     "text_top": 367,
+     "text_foot": 1070,
+     "text_left": 119,
+     "text_right": 773,
+     "text_centroid_y": 672.5,
+     "outside_graphics_box": 0,
+     "outside_reel_box": 0,
+     "under_platform_ui": {
+      "instagram_reels": 0,
+      "facebook_reels": 0,
+      "youtube_shorts": 0
+     }
+    },
+    {
+     "graphic": "timeline",
+     "outcome": "ok",
+     "plates": 14,
+     "min_px": 24,
+     "max_px": 102,
+     "words_sha": "e9dce08c4e8ce2a1",
+     "text_top": 299,
+     "text_foot": 1090,
+     "text_left": 192,
+     "text_right": 762,
+     "text_centroid_y": 711.1,
+     "outside_graphics_box": 0,
+     "outside_reel_box": 0,
+     "under_platform_ui": {
+      "instagram_reels": 0,
+      "facebook_reels": 0,
+      "youtube_shorts": 0
+     },
+     "ink_top": 299,
+     "ink_foot": 1089,
+     "ink_centroid_y": 699.5
+    }
+   ],
+   "wide": [
+    {
+     "graphic": "numbers",
+     "outcome": "ok",
+     "frame_sha": "fcaf8c54860ebda6",
+     "plates_sha": "7e548ae19eafdb9a"
+    },
+    {
+     "graphic": "timeline",
+     "outcome": "ok",
+     "frame_sha": "1cbaf1dc11d08b91",
+     "plates_sha": "58c8fc2395171133"
+    }
+   ]
+  },
+  {
+   "run": "run_damascus_steel_nanotubes_1792732472_short",
+   "graphics": [
+    {
+     "graphic": "numbers",
+     "outcome": "ok",
+     "plates": 5,
+     "min_px": 46,
+     "max_px": 380,
+     "words_sha": "773a30776ae15097",
+     "text_top": 442,
+     "text_foot": 978,
+     "text_left": 123,
+     "text_right": 813,
+     "text_centroid_y": 685.0,
+     "outside_graphics_box": 0,
+     "outside_reel_box": 0,
+     "under_platform_ui": {
+      "instagram_reels": 0,
+      "facebook_reels": 0,
+      "youtube_shorts": 0
+     }
+    }
+   ],
+   "wide": [
+    {
+     "graphic": "numbers",
+     "outcome": "ok",
+     "frame_sha": "4e0fb3210343b36a",
+     "plates_sha": "e43fa5d2edc65d25"
+    }
+   ]
+  },
+  {
+   "run": "run_gol_gumbaz_whispering_gallery_1793278143",
+   "graphics": [
+    {
+     "graphic": "numbers",
+     "outcome": "ok",
+     "plates": 6,
+     "min_px": 40,
+     "max_px": 380,
+     "words_sha": "b4a684c9519b36c2",
+     "text_top": 421,
+     "text_foot": 1016,
+     "text_left": 121,
+     "text_right": 756,
+     "text_centroid_y": 686.8,
+     "outside_graphics_box": 0,
+     "outside_reel_box": 0,
+     "under_platform_ui": {
+      "instagram_reels": 0,
+      "facebook_reels": 0,
+      "youtube_shorts": 0
+     }
+    }
+   ],
+   "wide": [
+    {
+     "graphic": "numbers",
+     "outcome": "ok",
+     "frame_sha": "3ec90c4ac27e36aa",
+     "plates_sha": "a400dfb7d60d55eb"
+    }
+   ]
+  },
+  {
+   "run": "run_greek_fire_siphon_1792735284_short",
+   "graphics": [],
+   "wide": []
+  },
+  {
+   "run": "run_hal_saflieni_hypogeum_1792949304",
+   "graphics": [
+    {
+     "graphic": "numbers",
+     "outcome": "ok",
+     "plates": 4,
+     "min_px": 40,
+     "max_px": 320,
+     "words_sha": "ccf5c1876980797a",
+     "text_top": 480,
+     "text_foot": 957,
+     "text_left": 119,
+     "text_right": 822,
+     "text_centroid_y": 714.7,
+     "outside_graphics_box": 0,
+     "outside_reel_box": 0,
+     "under_platform_ui": {
+      "instagram_reels": 0,
+      "facebook_reels": 0,
+      "youtube_shorts": 0
+     }
+    },
+    {
+     "graphic": "timeline",
+     "outcome": "ok",
+     "plates": 10,
+     "min_px": 24,
+     "max_px": 150,
+     "words_sha": "ebc1df84176ef3a0",
+     "text_top": 299,
+     "text_foot": 1090,
+     "text_left": 192,
+     "text_right": 735,
+     "text_centroid_y": 635.2,
+     "outside_graphics_box": 0,
+     "outside_reel_box": 0,
+     "under_platform_ui": {
+      "instagram_reels": 0,
+      "facebook_reels": 0,
+      "youtube_shorts": 0
+     },
+     "ink_top": 299,
+     "ink_foot": 1089,
+     "ink_centroid_y": 626.6
+    }
+   ],
+   "wide": [
+    {
+     "graphic": "numbers",
+     "outcome": "ok",
+     "frame_sha": "b83b6282eabe2adf",
+     "plates_sha": "1a63b965675da9f4"
+    },
+    {
+     "graphic": "timeline",
+     "outcome": "ok",
+     "frame_sha": "9c5f06f9c2936331",
+     "plates_sha": "23bd02f7cd74a78b"
+    }
+   ]
+  },
+  {
+   "run": "run_kailasa_temple_monolith_1792524470",
+   "graphics": [],
+   "wide": []
+  },
+  {
+   "run": "run_nazca_lines_runway_paradox_1792961797",
+   "graphics": [
+    {
+     "graphic": "numbers",
+     "outcome": "ok",
+     "plates": 6,
+     "min_px": 40,
+     "max_px": 360,
+     "words_sha": "4e05bc2d740799c5",
+     "text_top": 429,
+     "text_foot": 1008,
+     "text_left": 120,
+     "text_right": 830,
+     "text_centroid_y": 684.8,
+     "outside_graphics_box": 0,
+     "outside_reel_box": 0,
+     "under_platform_ui": {
+      "instagram_reels": 0,
+      "facebook_reels": 0,
+      "youtube_shorts": 0
+     }
+    },
+    {
+     "graphic": "timeline",
+     "outcome": "ok",
+     "plates": 11,
+     "min_px": 24,
+     "max_px": 150,
+     "words_sha": "39b5ee1300dcd7b8",
+     "text_top": 299,
+     "text_foot": 1090,
+     "text_left": 192,
+     "text_right": 695,
+     "text_centroid_y": 638.2,
+     "outside_graphics_box": 0,
+     "outside_reel_box": 0,
+     "under_platform_ui": {
+      "instagram_reels": 0,
+      "facebook_reels": 0,
+      "youtube_shorts": 0
+     },
+     "ink_top": 299,
+     "ink_foot": 1089,
+     "ink_centroid_y": 628.1
+    }
+   ],
+   "wide": [
+    {
+     "graphic": "numbers",
+     "outcome": "ok",
+     "frame_sha": "f703f2fbc707fbf3",
+     "plates_sha": "0b3d9e498a20394d"
+    },
+    {
+     "graphic": "timeline",
+     "outcome": "ok",
+     "frame_sha": "189e3588c591ef14",
+     "plates_sha": "633fd51e3f93e43b"
+    }
+   ]
+  },
+  {
+   "run": "run_nazca_lines_runway_paradox_1793247464",
+   "graphics": [],
+   "wide": []
+  },
+  {
+   "run": "run_nazca_lines_runway_paradox_1793251266",
+   "graphics": [],
+   "wide": []
+  },
+  {
+   "run": "run_nazca_lines_runway_paradox_1793262388",
+   "graphics": [],
+   "wide": []
+  },
+  {
+   "run": "run_nazca_lines_runway_paradox_1793267092",
+   "graphics": [],
+   "wide": []
+  },
+  {
+   "run": "run_odessa_catacombs_1792970549",
+   "graphics": [
+    {
+     "graphic": "numbers",
+     "outcome": "ok",
+     "plates": 4,
+     "min_px": 40,
+     "max_px": 380,
+     "words_sha": "dd3861ff6c444766",
+     "text_top": 483,
+     "text_foot": 954,
+     "text_left": 120,
+     "text_right": 780,
+     "text_centroid_y": 743.5,
+     "outside_graphics_box": 0,
+     "outside_reel_box": 0,
+     "under_platform_ui": {
+      "instagram_reels": 0,
+      "facebook_reels": 0,
+      "youtube_shorts": 0
+     }
+    }
+   ],
+   "wide": [
+    {
+     "graphic": "numbers",
+     "outcome": "ok",
+     "frame_sha": "bb9da9f26e5b420b",
+     "plates_sha": "e2c0b615aed3a953"
+    }
+   ]
+  },
+  {
+   "run": "run_odessa_catacombs_1793098390",
+   "graphics": [
+    {
+     "graphic": "numbers",
+     "outcome": "ok",
+     "plates": 4,
+     "min_px": 40,
+     "max_px": 380,
+     "words_sha": "dd3861ff6c444766",
+     "text_top": 483,
+     "text_foot": 954,
+     "text_left": 120,
+     "text_right": 780,
+     "text_centroid_y": 743.5,
+     "outside_graphics_box": 0,
+     "outside_reel_box": 0,
+     "under_platform_ui": {
+      "instagram_reels": 0,
+      "facebook_reels": 0,
+      "youtube_shorts": 0
+     }
+    }
+   ],
+   "wide": [
+    {
+     "graphic": "numbers",
+     "outcome": "ok",
+     "frame_sha": "bb9da9f26e5b420b",
+     "plates_sha": "e2c0b615aed3a953"
+    }
+   ]
+  },
+  {
+   "run": "run_odessa_catacombs_1793100750",
+   "graphics": [
+    {
+     "graphic": "numbers",
+     "outcome": "ok",
+     "plates": 4,
+     "min_px": 40,
+     "max_px": 380,
+     "words_sha": "dd3861ff6c444766",
+     "text_top": 483,
+     "text_foot": 954,
+     "text_left": 120,
+     "text_right": 780,
+     "text_centroid_y": 743.5,
+     "outside_graphics_box": 0,
+     "outside_reel_box": 0,
+     "under_platform_ui": {
+      "instagram_reels": 0,
+      "facebook_reels": 0,
+      "youtube_shorts": 0
+     }
+    }
+   ],
+   "wide": [
+    {
+     "graphic": "numbers",
+     "outcome": "ok",
+     "frame_sha": "bb9da9f26e5b420b",
+     "plates_sha": "e2c0b615aed3a953"
+    }
+   ]
+  },
+  {
+   "run": "run_odessa_catacombs_1793159709",
+   "graphics": [
+    {
+     "graphic": "numbers",
+     "outcome": "ok",
+     "plates": 4,
+     "min_px": 40,
+     "max_px": 380,
+     "words_sha": "dd3861ff6c444766",
+     "text_top": 483,
+     "text_foot": 954,
+     "text_left": 120,
+     "text_right": 780,
+     "text_centroid_y": 743.5,
+     "outside_graphics_box": 0,
+     "outside_reel_box": 0,
+     "under_platform_ui": {
+      "instagram_reels": 0,
+      "facebook_reels": 0,
+      "youtube_shorts": 0
+     }
+    }
+   ],
+   "wide": [
+    {
+     "graphic": "numbers",
+     "outcome": "ok",
+     "frame_sha": "bb9da9f26e5b420b",
+     "plates_sha": "e2c0b615aed3a953"
+    }
+   ]
+  },
+  {
+   "run": "run_richat_structure_sahara_eye_1792737039_short",
+   "graphics": [
+    {
+     "graphic": "numbers",
+     "outcome": "ok",
+     "plates": 8,
+     "min_px": 46,
+     "max_px": 170,
+     "words_sha": "cd30f1e04a2492ee",
+     "text_top": 380,
+     "text_foot": 1041,
+     "text_left": 121,
+     "text_right": 825,
+     "text_centroid_y": 722.6,
+     "outside_graphics_box": 0,
+     "outside_reel_box": 0,
+     "under_platform_ui": {
+      "instagram_reels": 0,
+      "facebook_reels": 0,
+      "youtube_shorts": 0
+     }
+    }
+   ],
+   "wide": [
+    {
+     "graphic": "numbers",
+     "outcome": "ok",
+     "frame_sha": "559038f391447e9b",
+     "plates_sha": "54c677c9fbe1bbfb"
+    }
+   ]
+  },
+  {
+   "run": "run_richat_structure_sahara_eye_1792778206",
+   "graphics": [
+    {
+     "graphic": "numbers",
+     "outcome": "ok",
+     "plates": 7,
+     "min_px": 46,
+     "max_px": 200,
+     "words_sha": "6e44623e21c4a503",
+     "text_top": 336,
+     "text_foot": 1084,
+     "text_left": 121,
+     "text_right": 810,
+     "text_centroid_y": 724.8,
+     "outside_graphics_box": 0,
+     "outside_reel_box": 0,
+     "under_platform_ui": {
+      "instagram_reels": 0,
+      "facebook_reels": 0,
+      "youtube_shorts": 0
+     }
+    }
+   ],
+   "wide": [
+    {
+     "graphic": "numbers",
+     "outcome": "ok",
+     "frame_sha": "fee869d567b473d6",
+     "plates_sha": "9efb852d7cc1d4ee"
+    }
+   ]
+  },
+  {
+   "run": "run_richat_structure_sahara_eye_1793272675",
+   "graphics": [
+    {
+     "graphic": "timeline",
+     "outcome": "ok",
+     "plates": 7,
+     "min_px": 32,
+     "max_px": 190,
+     "words_sha": "1006e3b49eb83972",
+     "text_top": 299,
+     "text_foot": 1090,
+     "text_left": 192,
+     "text_right": 688,
+     "text_centroid_y": 698.4,
+     "outside_graphics_box": 0,
+     "outside_reel_box": 0,
+     "under_platform_ui": {
+      "instagram_reels": 0,
+      "facebook_reels": 0,
+      "youtube_shorts": 0
+     },
+     "ink_top": 299,
+     "ink_foot": 1089,
+     "ink_centroid_y": 670.5
+    }
+   ],
+   "wide": [
+    {
+     "graphic": "timeline",
+     "outcome": "ok",
+     "frame_sha": "6572ab135803b3bf",
+     "plates_sha": "bd432d7c407926e7"
+    }
+   ]
+  },
+  {
+   "run": "run_richat_structure_sahara_eye_1793468053",
+   "graphics": [
+    {
+     "graphic": "numbers",
+     "outcome": "ok",
+     "plates": 4,
+     "min_px": 46,
+     "max_px": 130,
+     "words_sha": "b55aa1b70b10ffbc",
+     "text_top": 585,
+     "text_foot": 836,
+     "text_left": 121,
+     "text_right": 793,
+     "text_centroid_y": 703.0,
+     "outside_graphics_box": 0,
+     "outside_reel_box": 0,
+     "under_platform_ui": {
+      "instagram_reels": 0,
+      "facebook_reels": 0,
+      "youtube_shorts": 0
+     }
+    }
+   ],
+   "wide": [
+    {
+     "graphic": "numbers",
+     "outcome": "ok",
+     "frame_sha": "20596cfd5ae5f7fd",
+     "plates_sha": "2fda03b8ddf04819"
+    }
+   ]
+  },
+  {
+   "run": "run_richat_structure_sahara_eye_1793474473",
+   "graphics": [
+    {
+     "graphic": "numbers",
+     "outcome": "ok",
+     "plates": 4,
+     "min_px": 46,
+     "max_px": 130,
+     "words_sha": "b55aa1b70b10ffbc",
+     "text_top": 585,
+     "text_foot": 836,
+     "text_left": 121,
+     "text_right": 793,
+     "text_centroid_y": 703.0,
+     "outside_graphics_box": 0,
+     "outside_reel_box": 0,
+     "under_platform_ui": {
+      "instagram_reels": 0,
+      "facebook_reels": 0,
+      "youtube_shorts": 0
+     }
+    }
+   ],
+   "wide": [
+    {
+     "graphic": "numbers",
+     "outcome": "ok",
+     "frame_sha": "20596cfd5ae5f7fd",
+     "plates_sha": "2fda03b8ddf04819"
+    }
+   ]
+  },
+  {
+   "run": "run_richat_structure_sahara_eye_1793474843",
+   "graphics": [
+    {
+     "graphic": "numbers",
+     "outcome": "ok",
+     "plates": 4,
+     "min_px": 46,
+     "max_px": 130,
+     "words_sha": "b55aa1b70b10ffbc",
+     "text_top": 585,
+     "text_foot": 836,
+     "text_left": 121,
+     "text_right": 793,
+     "text_centroid_y": 703.0,
+     "outside_graphics_box": 0,
+     "outside_reel_box": 0,
+     "under_platform_ui": {
+      "instagram_reels": 0,
+      "facebook_reels": 0,
+      "youtube_shorts": 0
+     }
+    }
+   ],
+   "wide": [
+    {
+     "graphic": "numbers",
+     "outcome": "ok",
+     "frame_sha": "20596cfd5ae5f7fd",
+     "plates_sha": "2fda03b8ddf04819"
+    }
+   ]
+  },
+  {
+   "run": "run_roman_self_healing_concrete_1793161347",
+   "graphics": [
+    {
+     "graphic": "timeline",
+     "outcome": "ok",
+     "plates": 7,
+     "min_px": 32,
+     "max_px": 190,
+     "words_sha": "43fb698f36ddb6d7",
+     "text_top": 299,
+     "text_foot": 1090,
+     "text_left": 192,
+     "text_right": 749,
+     "text_centroid_y": 663.5,
+     "outside_graphics_box": 0,
+     "outside_reel_box": 0,
+     "under_platform_ui": {
+      "instagram_reels": 0,
+      "facebook_reels": 0,
+      "youtube_shorts": 0
+     },
+     "ink_top": 299,
+     "ink_foot": 1089,
+     "ink_centroid_y": 646.3
+    }
+   ],
+   "wide": [
+    {
+     "graphic": "timeline",
+     "outcome": "ok",
+     "frame_sha": "4ac7aeed0702e6cd",
+     "plates_sha": "be050f02b3377c6b"
+    }
+   ]
+  },
+  {
+   "run": "run_roman_self_healing_concrete_1793163918",
+   "graphics": [
+    {
+     "graphic": "timeline",
+     "outcome": "ok",
+     "plates": 7,
+     "min_px": 32,
+     "max_px": 190,
+     "words_sha": "43fb698f36ddb6d7",
+     "text_top": 299,
+     "text_foot": 1090,
+     "text_left": 192,
+     "text_right": 749,
+     "text_centroid_y": 663.5,
+     "outside_graphics_box": 0,
+     "outside_reel_box": 0,
+     "under_platform_ui": {
+      "instagram_reels": 0,
+      "facebook_reels": 0,
+      "youtube_shorts": 0
+     },
+     "ink_top": 299,
+     "ink_foot": 1089,
+     "ink_centroid_y": 646.3
+    }
+   ],
+   "wide": [
+    {
+     "graphic": "timeline",
+     "outcome": "ok",
+     "frame_sha": "4ac7aeed0702e6cd",
+     "plates_sha": "be050f02b3377c6b"
+    }
+   ]
+  },
+  {
+   "run": "run_singing_colossi_of_memnon_1792952878",
+   "graphics": [
+    {
+     "graphic": "numbers",
+     "outcome": "ok",
+     "plates": 8,
+     "min_px": 36,
+     "max_px": 207,
+     "words_sha": "ab9460ab243eb70a",
+     "text_top": 367,
+     "text_foot": 1070,
+     "text_left": 120,
+     "text_right": 592,
+     "text_centroid_y": 734.3,
+     "outside_graphics_box": 0,
+     "outside_reel_box": 0,
+     "under_platform_ui": {
+      "instagram_reels": 0,
+      "facebook_reels": 0,
+      "youtube_shorts": 0
+     }
+    },
+    {
+     "graphic": "timeline",
+     "outcome": "ok",
+     "plates": 14,
+     "min_px": 24,
+     "max_px": 113,
+     "words_sha": "f912f8bc5f3c4d23",
+     "text_top": 299,
+     "text_foot": 1090,
+     "text_left": 192,
+     "text_right": 734,
+     "text_centroid_y": 702.9,
+     "outside_graphics_box": 0,
+     "outside_reel_box": 0,
+     "under_platform_ui": {
+      "instagram_reels": 0,
+      "facebook_reels": 0,
+      "youtube_shorts": 0
+     },
+     "ink_top": 299,
+     "ink_foot": 1089,
+     "ink_centroid_y": 693.1
+    },
+    {
+     "graphic": "scale",
+     "outcome": "skipped"
+    }
+   ],
+   "wide": [
+    {
+     "graphic": "numbers",
+     "outcome": "ok",
+     "frame_sha": "723c874f6a232c36",
+     "plates_sha": "654baa6fbdac15d5"
+    },
+    {
+     "graphic": "timeline",
+     "outcome": "ok",
+     "frame_sha": "dcf53bf8ae042a5e",
+     "plates_sha": "ca3215f4256b946b"
+    },
+    {
+     "graphic": "scale",
+     "outcome": "skipped"
+    }
+   ]
+  },
+  {
+   "run": "run_trepanation_miracle_1792995462",
+   "graphics": [
+    {
+     "graphic": "numbers",
+     "outcome": "ok",
+     "plates": 10,
+     "min_px": 36,
+     "max_px": 127,
+     "words_sha": "9d56d0079f7c966b",
+     "text_top": 334,
+     "text_foot": 1086,
+     "text_left": 120,
+     "text_right": 806,
+     "text_centroid_y": 602.8,
+     "outside_graphics_box": 0,
+     "outside_reel_box": 0,
+     "under_platform_ui": {
+      "instagram_reels": 0,
+      "facebook_reels": 0,
+      "youtube_shorts": 0
+     }
+    }
+   ],
+   "wide": [
+    {
+     "graphic": "numbers",
+     "outcome": "ok",
+     "frame_sha": "2e156a729cfcc01b",
+     "plates_sha": "467ac82c7495ee30"
+    }
+   ]
+  },
+  {
+   "run": "run_tunguska_event_1908_1792930600",
+   "graphics": [
+    {
+     "graphic": "numbers",
+     "outcome": "ok",
+     "plates": 9,
+     "min_px": 40,
+     "max_px": 160,
+     "words_sha": "2d4b115387c0f0de",
+     "text_top": 365,
+     "text_foot": 1073,
+     "text_left": 119,
+     "text_right": 836,
+     "text_centroid_y": 769.2,
+     "outside_graphics_box": 0,
+     "outside_reel_box": 0,
+     "under_platform_ui": {
+      "instagram_reels": 0,
+      "facebook_reels": 0,
+      "youtube_shorts": 0
+     }
+    }
+   ],
+   "wide": [
+    {
+     "graphic": "numbers",
+     "outcome": "ok",
+     "frame_sha": "75325ec6d8775d51",
+     "plates_sha": "0cc48ec59969394c"
+    }
+   ]
+  },
+  {
+   "run": "run_unfinished_obelisk_aswan_1792985912",
+   "graphics": [],
+   "wide": []
+  },
+  {
+   "run": "run_unfinished_obelisk_aswan_1792993374",
+   "graphics": [
+    {
+     "graphic": "numbers",
+     "outcome": "ok",
+     "plates": 10,
+     "min_px": 36,
+     "max_px": 147,
+     "words_sha": "0cfe99d3fa4608a1",
+     "text_top": 356,
+     "text_foot": 1081,
+     "text_left": 121,
+     "text_right": 840,
+     "text_centroid_y": 748.0,
+     "outside_graphics_box": 0,
+     "outside_reel_box": 0,
+     "under_platform_ui": {
+      "instagram_reels": 0,
+      "facebook_reels": 0,
+      "youtube_shorts": 0
+     }
+    },
+    {
+     "graphic": "scale",
+     "outcome": "ok",
+     "plates": 14,
+     "min_px": 28,
+     "max_px": 76,
+     "words_sha": "9edc5365a2aa968b",
+     "text_top": 339,
+     "text_foot": 1087,
+     "text_left": 120,
+     "text_right": 834,
+     "text_centroid_y": 709.8,
+     "outside_graphics_box": 0,
+     "outside_reel_box": 0,
+     "under_platform_ui": {
+      "instagram_reels": 0,
+      "facebook_reels": 0,
+      "youtube_shorts": 0
+     },
+     "ink_top": 339,
+     "ink_foot": 1086,
+     "ink_centroid_y": 741.1
+    }
+   ],
+   "wide": [
+    {
+     "graphic": "numbers",
+     "outcome": "ok",
+     "frame_sha": "9e14d2aac46efb7d",
+     "plates_sha": "f800e4f2d5752ae0"
+    },
+    {
+     "graphic": "scale",
+     "outcome": "ok",
+     "frame_sha": "4955618d07583a01",
+     "plates_sha": "2de019db14eecd85"
+    }
+   ]
+  },
+  {
+   "run": "run_unfinished_obelisk_aswan_1793056896",
+   "graphics": [
+    {
+     "graphic": "numbers",
+     "outcome": "ok",
+     "plates": 8,
+     "min_px": 40,
+     "max_px": 160,
+     "words_sha": "2202898180f0defb",
+     "text_top": 394,
+     "text_foot": 1044,
+     "text_left": 121,
+     "text_right": 825,
+     "text_centroid_y": 720.2,
+     "outside_graphics_box": 0,
+     "outside_reel_box": 0,
+     "under_platform_ui": {
+      "instagram_reels": 0,
+      "facebook_reels": 0,
+      "youtube_shorts": 0
+     }
+    }
+   ],
+   "wide": [
+    {
+     "graphic": "numbers",
+     "outcome": "ok",
+     "frame_sha": "9ea889fa2e5fae73",
+     "plates_sha": "165ffe4d44d347c8"
+    }
+   ]
+  },
+  {
+   "run": "run_voynich_manuscript_1792965308",
+   "graphics": [
+    {
+     "graphic": "numbers",
+     "outcome": "ok",
+     "plates": 8,
+     "min_px": 40,
+     "max_px": 160,
+     "words_sha": "c0592fb9404c5e7c",
+     "text_top": 348,
+     "text_foot": 1072,
+     "text_left": 121,
+     "text_right": 802,
+     "text_centroid_y": 607.3,
+     "outside_graphics_box": 0,
+     "outside_reel_box": 0,
+     "under_platform_ui": {
+      "instagram_reels": 0,
+      "facebook_reels": 0,
+      "youtube_shorts": 0
+     }
+    }
+   ],
+   "wide": [
+    {
+     "graphic": "numbers",
+     "outcome": "ok",
+     "frame_sha": "c3405fb112c9a76b",
+     "plates_sha": "7176c0b1d3402e90"
+    }
+   ]
+  },
+  {
+   "run": "run_wieliczka_salt_mine_1792974672",
+   "graphics": [
+    {
+     "graphic": "scale",
+     "outcome": "ok",
+     "plates": 15,
+     "min_px": 30,
+     "max_px": 76,
+     "words_sha": "12eb7ee432ad88bb",
+     "text_top": 339,
+     "text_foot": 1090,
+     "text_left": 120,
+     "text_right": 819,
+     "text_centroid_y": 712.6,
+     "outside_graphics_box": 0,
+     "outside_reel_box": 0,
+     "under_platform_ui": {
+      "instagram_reels": 0,
+      "facebook_reels": 0,
+      "youtube_shorts": 0
+     },
+     "ink_top": 339,
+     "ink_foot": 1089,
+     "ink_centroid_y": 725.5
+    }
+   ],
+   "wide": [
+    {
+     "graphic": "scale",
+     "outcome": "ok",
+     "frame_sha": "63815e05f2e039a2",
+     "plates_sha": "aef2f545915e64c1"
+    }
+   ]
+  }
+ ],
+ "acceptance_met": true
+}

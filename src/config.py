@@ -551,8 +551,8 @@ FONT_SIZE = int(os.getenv("FONT_SIZE") or 80)
 # The ASS Fontsize that draws FONT_SIZE under libass's PlayResX/PlayResY scale (a shrunk word uses the same
 # fit / 0.5625): 142 for 80 px (it was a fixed 128 for 72 px, so a FONT_SIZE set in .env drew at the old size).
 FONT_SIZE_ASS = round(FONT_SIZE / 0.5625)
-# The bottom band the Reel platforms draw their own interface over (safe_zones.REEL: Meta's 35%, 672 px,
-# the same figure on YouTube Shorts); the caption pill ends above it.
+# The bottom band the Reel platforms draw their own interface over (safe_zones.REEL, the shared organic Reel profile:
+# 550 px, set by Facebook's observed shopping banner; Meta's ads figure, 672 px, until QF-24); the pill ends above it.
 from .safe_zones import REEL as _REEL_UI  # noqa: E402
 CAPTION_MARGIN_V = _REEL_UI.bottom
 MIN_BURST_WORDS = 2
@@ -717,8 +717,11 @@ CAPTION_REEL_PAD_Y_EM = 0.35                    # x the drawn cap height
 # The pill's bottom edge stands this far above the platforms' bottom band (safe_zones.REEL.bottom), so it reads apart
 # from the Instagram and Facebook username and description rows (was safe_zones.CAPTION_CLEARANCE, 8 px; the panel
 # suggested about 28, held at 20 while tests/test_safe_zones.py keeps the pill within 20 px of the band). The pill's
-# top stays below safe_zones.caption_band_top (y 1098), and so clear of the graphics floor (y 1058).
+# top stays below safe_zones.caption_band_top (y 1130), and so clear of the graphics floor (y 1090).
 CAPTION_REEL_CLEARANCE = 20
+# The caption ink measure (QF-24/QF-87 layout decision, 2026-11-09): the reviewed 640 px, centred in the Reel box
+# (x 480 at 1080 wide: its right rail is wider than its left), not narrowed to the width centred on the frame.
+CAPTION_REEL_TEXT_WIDTH = 640                  # px at the 1080 x 1920 reference frame
 # Words ease in over CAPTION_WORD_EASE_MS instead of cutting on; the plate fades in (CAPTION_PLATE_FADE_IN_MS) only where
 # it really appears after a pause and out (CAPTION_PLATE_FADE_OUT_MS) only where it leaves before one. Between bursts
 # heard back to back its width keeps to at most CAPTION_PLATE_STEPS sizes per run, so it no longer strobes every burst.

@@ -162,7 +162,9 @@ def test_oversized_number_card_copy_is_refused_whole(cards, tmp_path, monkeypatc
 @pytest.mark.parametrize("cards", [FITTING, FITTING[:1], FITTING[1:]], ids=["two", "one", "second"])
 def test_a_number_cards_text_ends_above_the_caption_gap(cards, tmp_path, monkeypatch):
     bottom = safe_zones.graphics_box()[3]
-    assert bottom == graphics.TEXT_BOTTOM == 1058
+    # QF-24 (decision QF-24/QF-87 layout, deliberate change): the organic graphics box ends at y 1090 (1370 less the
+    # 240 px caption band and the 40 px gap; the ads box's foot was 1058)
+    assert bottom == graphics.TEXT_BOTTOM == 1090
     boxes = []
     real = graphics.plan_text
 

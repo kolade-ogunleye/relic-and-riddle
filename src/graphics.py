@@ -73,10 +73,11 @@ from . import brand
 SEA, LAND, HOME, BORDER, GRID = brand.INK, (40, 43, 48), (92, 74, 42), (96, 98, 104), (24, 28, 34)
 GOLD, WHITE, MUTED = brand.GOLD, brand.BONE, brand.STONE_LT
 GOLD_LINE = brand.GOLD_DIM
-M = 84  # a 9:16 graphic's left text margin (19 px inside the Reel box), shared with the Story column
-# Where a 9:16 graphic may put text and figures: the Reel box every platform leaves free (safe_zones: Meta's
-# 14/35/6 %, YouTube Shorts' right-hand icon column), less the caption band at its bottom. TEXT_TOP stays a
-# little below the box's top edge, as it was; TEXT_MAX_W is the widest text centred on the frame.
+M = 84  # a 9:16 graphic's left text margin (19 px inside the ads Reel box), shared with the Story column
+# Where a 9:16 graphic may put text and figures: the Reel box every platform leaves free (safe_zones: the shared
+# organic Reel profile, x 113-848, y 288-1370 at 1080 x 1920), less the caption band and its gap at its bottom (the
+# graphics end at y 1090). TEXT_TOP stays a little below the box's top edge, as it was; TEXT_MAX_W is the widest
+# text centred on the frame.
 from . import safe_zones
 
 _BOX = safe_zones.graphics_box(VIDEO_WIDTH, VIDEO_HEIGHT)
@@ -84,19 +85,23 @@ TEXT_TOP, TEXT_BOTTOM = max(330, _BOX[1]), _BOX[3]
 TEXT_LEFT, TEXT_RIGHT = _BOX[0], _BOX[2]
 TEXT_MAX_W = safe_zones.REEL.centred_width(VIDEO_WIDTH, VIDEO_HEIGHT)
 # The shared inset edge (2026-11-02): every 9:16 graphic (timeline, scale, cross-section, number cards) starts its
-# words and drawings on one left edge at x 100 and keeps its drawings to x 100-860, inside the Reel box (65-888), so a
-# cut from one graphic to the next keeps the column still (each had its own edge at 65-102 before).
-INSET_X0, INSET_X1 = 100, 860
+# words and drawings on one left edge and keeps its drawings to INSET_X0-INSET_X1, inside the Reel box, so a cut from
+# one graphic to the next keeps the column still (each had its own edge at 65-102 before). QF-24: x 120-820, inside
+# the organic box (113-848), whose left edge already holds 28 px of clearance and annotation uncertainty (x 100-860
+# inside the ads box, 65-888, until then). The right edge keeps its 28 px inside the box.
+INSET_PAD_LEFT, INSET_PAD_RIGHT = 7, 28
+INSET_X0, INSET_X1 = TEXT_LEFT + INSET_PAD_LEFT, TEXT_RIGHT - INSET_PAD_RIGHT
 
 
 def inset_x0(width: int = VIDEO_WIDTH, height: int = VIDEO_HEIGHT) -> int:
-    """The shared left edge of a 9:16 graphic on this frame (INSET_X0 on 1080 wide)."""
-    return round(INSET_X0 * width / VIDEO_WIDTH)
+    """The shared left edge of a 9:16 graphic on this frame (INSET_X0 on 1080 wide): the graphics box's left edge
+    plus INSET_PAD_LEFT, scaled."""
+    return safe_zones.graphics_box(width, height)[0] + round(INSET_PAD_LEFT * width / VIDEO_WIDTH)
 
 
 def inset_x1(width: int = VIDEO_WIDTH, height: int = VIDEO_HEIGHT) -> int:
     """The right edge of a 9:16 graphic's drawings on this frame (INSET_X1 on 1080 wide)."""
-    return round(INSET_X1 * width / VIDEO_WIDTH)
+    return safe_zones.graphics_box(width, height)[2] - round(INSET_PAD_RIGHT * width / VIDEO_WIDTH)
 
 from .reference_facts import (
     REFERENCE_FILE,
@@ -8029,12 +8034,14 @@ def _render_scale_vertical(fact, feet, ref_label, ref_feet, depth, out, width, h
             plates.append(("ref_label", ref_note))
             bracket = (tick_x, ref_top, ref_top)
             # round 4: what the landmark's figure measures, under it (reference_note: "GROUND TO TORCH TIP"), in
-            # the data face at the ruler's size, two lines at most, inside the box or not at all
+            # the data face at the ruler's size, three lines at most (two until QF-24), inside the box or not at all
             note = reference_note(ref_label)
             if note:
                 f_rn = get_font(brand.DATA_FONT, SCALE_RULER_PX - 4, weight=600)
-                nl, _f, short = probe_text(probe, note, brand.DATA_FONT, f_rn.size, int(box_x1 - ref_note.box[0] - 4), 2,
-                                         f_rn.size, sentences=False, weight=600, quiet=True)
+                # QF-24: wrapped on its tracked ink (it is drawn with track=1), three rows at most: wrapped on the
+                # untracked advance and held to two, the narrower organic box dropped "GROUND TO TORCH TIP" whole
+                nl, _f, short = _probe_tracked(probe, note, brand.DATA_FONT, f_rn.size, int(box_x1 - ref_note.box[0] - 4),
+                                               3, f_rn.size, 1, sentences=False, weight=600)
                 yb = ref_note.box[3] + 14 + cap_height(f_rn)
                 rows_n = [plan_text(ground, (ref_note.box[0], yb + k * round(cap_height(f_rn) * 1.6)), ln, f_rn, MUTED,
                                     "ls", track=1) for k, ln in enumerate(nl)]
@@ -8611,7 +8618,7 @@ def render_stat_cards(cards: list[dict[str, Any]], out: Path, photo: Path | None
     n = int(CLIP_SECONDS * VIDEO_FPS)
     top, bottom = get_text_bounds(width, height)
     x_text = inset_x0(width, height)                     # the shared inset edge (was M, 84)
-    text_w = TEXT_RIGHT - x_text - 4
+    text_w = get_text_box(width, height)[2] - x_text - 4
     probe = ImageDraw.Draw(Image.new("RGB", (8, 8)))
     # Measured first: both cards between the bounds (the lower one ending on the graphics box's bottom at most),
     # the type stepped down together when they do not fit.
@@ -8619,6 +8626,12 @@ def render_stat_cards(cards: list[dict[str, Any]], out: Path, photo: Path | None
         num_px = round((380 if len(cards) == 1 else 230) * scale)
         try:
             plans = [_stat_layout(probe, c, num_px, text_w, scale) for c in cards]
+            if len(plans) > 1:   # one figure size for both (round 3): a smaller second figure implied a ranking
+                # QF-24: measured at the shared size it is drawn at. The fit was tested on the two cards' own
+                # (larger) sizes, so the pair could step down a whole scale, kickers and labels too, where the drawn
+                # pair fitted; the narrower organic box made that more frequent.
+                size = min(p["figure_px"] for p in plans)
+                plans = [_stat_layout(probe, c, size, text_w, scale, num_min=size) for c in cards]
         except TextFitError:
             if scale == 0.6:
                 raise
@@ -8627,10 +8640,6 @@ def render_stat_cards(cards: list[dict[str, Any]], out: Path, photo: Path | None
         total = sum(p["height"] for p in plans) + gap * (len(plans) - 1)
         if total <= bottom - top:
             break
-    if len(plans) > 1:   # one figure size for both (round 3): a smaller second figure implied a ranking
-        size = min(p["figure_px"] for p in plans)
-        plans = [_stat_layout(probe, c, size, text_w, scale, num_min=size) for c in cards]
-        total = sum(p["height"] for p in plans) + gap * (len(plans) - 1)
     y = max(top, (top + bottom) // 2 - total // 2)
     for p in plans:
         p["y0"] = y - p["top"]
@@ -9007,14 +9016,20 @@ _SS = 2  # supersampling of the diagrams' vector layers
 
 
 class _Grid:
-    """Design coordinates (the 1080x1920 frame, text box 65-888 x 330-1058) on this frame's text box."""
+    """Design coordinates (the 1080x1920 frame as the ads Reel box laid it out: words from the inset edge at x 100,
+    text box 65-888 x 330-1058) on this frame: design x 100 on the shared inset edge (inset_x0), y 330 on the text
+    box's top, at the frame's own scale. QF-24: the scale was the design box fitted into the text box, so the
+    organic box (735 px wide, 88 fewer) would have set every word 11% smaller; a layout reads its own right edge
+    and foot from the grid instead (ix(bx1), iy(by1))."""
+    DESIGN_X0 = 100
 
     def __init__(self, width: int, height: int):
         self.bx0, self.by0, self.bx1, self.by1 = get_text_box(width, height)
-        self.k = min((self.bx1 - self.bx0) / 823, (self.by1 - self.by0) / 728)
+        self.k = min(width / VIDEO_WIDTH, height / VIDEO_HEIGHT)
+        self.ox = inset_x0(width, height)
 
     def x(self, v: float) -> float:
-        return self.bx0 + (v - 65) * self.k
+        return self.ox + (v - self.DESIGN_X0) * self.k
 
     def y(self, v: float) -> float:
         return self.by0 + (v - 330) * self.k
@@ -9030,7 +9045,11 @@ class _Grid:
 
     def ix(self, px: float) -> float:
         """The design x of frame x `px`."""
-        return 65 + (px - self.bx0) / self.k
+        return self.DESIGN_X0 + (px - self.ox) / self.k
+
+    def iy(self, py: float) -> float:
+        """The design y of frame y `py`."""
+        return 330 + (py - self.by0) / self.k
 
 
 class _Sprite:
@@ -9267,6 +9286,7 @@ _SECTION_TALL = _SectionLayout(
     fig_px=44, deep_px=68, lab_px=30, small_px=28, line_step=36, label_gap=42, fan_gap=14, room_start=(10, 24),
     room_w=(52, 96), room_gap=(14, 30), niche_w=(36, 50), room_h_max=54, turns=(326, 472, 400),
     bends=(518, 530, 536))   # on the shared inset edge (2026-11-02): title and ruler figures from x 100
+_SECTION_TALL_FOOT = 1058    # the design foot _SECTION_TALL's bottom_d, axis_limit and label_hi were set against
 # The 16:9 master's vignette (video_composer: vignette=PI/4.2, aspect 16/9) takes the frame's edges to about half
 # their brightness, so the wide layouts keep their words inside x 400-1600 and y 190-800, where a bone or gold
 # line still measures 4.5:1 on the graded frame (the 153 px title-safe margin alone left text at 2.7:1).
@@ -9309,8 +9329,17 @@ def _render_cross_section_vertical(cs: dict[str, Any], levels: list[dict[str, An
     the next tick past the deepest level), rooms cut as irregular vaults branching off an accent shaft with sloped
     passages between levels (a city, not a comb), labels fanned out on leaders so the shallow ones never overlap,
     and a gold lantern that descends the shaft, each level's label fading in as it arrives and dimming as it
-    moves on, so the deepest figure ends brightest."""
-    return _render_cross_section(cs, levels, total, out, width, height, _Grid(width, height), _SECTION_TALL)
+    moves on, so the deepest figure ends brightest.
+
+    QF-24: _SECTION_TALL was drawn for the ads box (right edge 888, foot 1058). On the organic box the label column
+    ends on the box's right edge and the depth axis and labels run down to its foot (1090), the type at its size."""
+    grid = _Grid(width, height)
+    right, foot = grid.ix(grid.bx1), grid.iy(grid.by1)
+    extra = foot - _SECTION_TALL_FOOT
+    layout = dataclasses.replace(_SECTION_TALL, right=right, title_w=right - _SECTION_TALL.title_x,
+                                 bottom_d=_SECTION_TALL.bottom_d + extra, axis_limit=_SECTION_TALL.axis_limit + extra,
+                                 label_hi=_SECTION_TALL.label_hi + extra)
+    return _render_cross_section(cs, levels, total, out, width, height, grid, layout)
 
 
 def _render_cross_section_wide(cs: dict[str, Any], levels: list[dict[str, Any]], total: float, out: Path,
@@ -9424,6 +9453,15 @@ def _render_cross_section(cs: dict[str, Any], levels: list[dict[str, Any]], tota
     f_deep = get_font("Anton", g.f(L.deep_px))
     f_lab = get_font("Montserrat", g.f(L.lab_px), weight=600)
     f_small = get_font("Montserrat", g.f(L.small_px), weight=600)
+    # QF-24: a level's feet and metres share one line; the label column starts where the widest such line still
+    # ends on the column's right edge (the organic box's is 60 design px further in than the ads box's), and the
+    # rooms keep their gap to it. A narrower column moves, never clips a unit or shrinks the type.
+    inline_w = max((probe.textbbox((0, 0), f"{lv['depth_ft']:,.0f} FT", font=f_deep if k == len(levels) - 1 else f_fig,
+                                   anchor="ls")[2] + S(14)
+                    + probe.textbbox((0, 0), f"{lv['depth_ft'] / 3.28084:,.0f} M", font=f_lab, anchor="ls")[2])
+                   for k, lv in enumerate(levels))
+    label_x = min(label_x, L.right - (math.ceil(inline_w) + 1) / g.k)
+    rooms_x1 = min(rooms_x1, label_x - (L.label_x - L.rooms_x1))
     lab_w = S(L.right - label_x)
     left_turn, right_turn, mid_turn = L.turns
 
@@ -9843,6 +9881,11 @@ ROUTE_LEADER_CASE = 6       # and its ink casing, so it reads on the relief as t
 # LIGHTHOUSE, 172 px from its nearest stop, and rr8's TOMB, 242 px, were left unnamed at 34 px)
 ROUTE_NAME_STEPS = (34, 32, 30, 28)
 ROUTE_NAME_MIN_PX = ROUTE_NAME_STEPS[-1]
+# QF-24: on 9:16 a name's places at its first size are joined by its places this many px smaller, ranked after every
+# full-size place (size_drop): on the organic Reel box (x 113-848, 88 px narrower than the ads box) a name that just
+# misses its side of the box at full size took the other side, where a far stop's only room was (rr8: the customs
+# house's name crossed to the tomb's side, and the tomb was left unnamed)
+ROUTE_NAME_NEXT_STEP = 2
 ROUTE_NAME_NB_AIR = 36      # round 16 (review): px (at 1080) a country's name keeps off a stop's name
 ROUTE_DEEP_TRIES = 24       # and a stop it left unnamed tries this many of its clear places first (place_names)
 # words that never stand alone on a name's line ("CUSTOMS / HOUSE OF / THE / GENOESE / TRADERS")
@@ -10222,17 +10265,19 @@ def render_route(stops: list[dict[str, Any]], out: Path, width: int = VIDEO_WIDT
         fine = 2 if last else 1                   # review 9: the last pass steps half as far between places
         settings = []
         for px in ROUTE_NAME_STEPS:
+            if settings and not last and (not portrait or px < settings[0][1].size - ROUTE_NAME_NEXT_STEP):
+                break
             f_px = field_font(shown_label, f_lab if px == f_lab.size else get_font("Montserrat", px, weight=800))
+            at_px: list[tuple[list[str], Any, int, int]] = []
             for group in (measures, wide):
-                if settings and not last:
+                if at_px and not last:
                     break
                 for measure, max_lines, tier in group:
                     # round 4 review 3: a third line before a smaller size
                     lines = route_name_lines(label, f_px, measure, max_lines)
-                    if lines is not None and all(lines != st_[0] or f_px is not st_[1] for st_ in settings):
-                        settings.append((lines, f_px, max_lines, tier))
-            if settings and not last:
-                break
+                    if lines is not None and all(lines != st_[0] or f_px is not st_[1] for st_ in settings + at_px):
+                        at_px.append((lines, f_px, max_lines, tier))
+            settings += at_px
         for lines, f_fit, max_lines, tier in settings:
             size_drop = f_lab.size - f_fit.size
             step = round(f_fit.size * 1.22)

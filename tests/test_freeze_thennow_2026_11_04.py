@@ -226,7 +226,10 @@ def test_the_panel_measured_points_no_longer_step(tmp_path, monkeypatch):
     lum = _lum(got["frames"][round(3.6 * FPS)])
     b = plates["THEN"].box
     row = _box8(lum)[b[1] - 20:b[3] + 20]           # round 2 (T3): 8 x 8 means, so the 2 x 2-cell dither averages
-    assert np.abs(row[:, 270] - row[:, 269]).max() <= 2
+    # the panel's point on the kicker row, 187 px right of the THEN kicker's x (83 on the ads box; QF-24: the organic
+    # box moves the kicker 48 px right, to 131, and the point with it)
+    c = then_now.marker_xy("then", *PORTRAIT)[0] + 187
+    assert np.abs(row[:, c] - row[:, c - 1]).max() <= 2
     sky = _gradient(tmp_path / "sky.png", 196, 246, size=(2100, 1200))
     got, plates = _plates_of(monkeypatch, tmp_path, sky, sky, LANDSCAPE, keep=(round(0.9 * FPS),), stop=round(0.9 * FPS))
     lum = _lum(got["frames"][round(0.9 * FPS)])

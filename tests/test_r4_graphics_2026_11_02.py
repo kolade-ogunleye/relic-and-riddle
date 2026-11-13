@@ -657,12 +657,25 @@ def _assert_clear(plates) -> None:
     assert not hits, hits
 
 
+def _refused_tall(monkeypatch: pytest.MonkeyPatch, case: str, job) -> bool:
+    """QF-24: a TALL_CASES set in QF23_REFUSED (five_close on the organic Reel box: its best two-row break needs 697 px
+    at the 30 px floor where the column holds 646, 706 on the ads box, and no three-row stack of its four drawn
+    entries fits the 9:16 column) raises the checked-copy refusal and encodes nothing (_refused_or_render); True when
+    it is refused, checked here."""
+    if f"tl/{case}-9x16" not in QF23_REFUSED:
+        return False
+    assert _refused_or_render(monkeypatch, f"tl/{case}-9x16", job) is None
+    return True
+
+
 @pytest.mark.parametrize("case", sorted(TALL_CASES))
 def test_a_fallback_span_sits_in_the_clear_band_and_collides_with_nothing(tmp_path, monkeypatch, case) -> None:
     # round 4 review 3: centred between the dots at the label column, the fallback sat on label2 (Derinkuyu, six
     # events) and on every label of five close entries; it now sits in the band between the two entries
     monkeypatch.setattr(graphics, "span_fit", lambda text, px, fits: None)
     events = TALL_CASES[case]
+    if _refused_tall(monkeypatch, case, lambda: graphics.render_timeline(events, tmp_path / "t.mp4")):
+        return
     st = _render(monkeypatch, lambda: graphics.render_timeline(events, tmp_path / "t.mp4"))
     rows = _rows(st)
     n = min(4, len(events))
@@ -694,6 +707,8 @@ def test_free_span_xy_finds_a_clear_place_or_none() -> None:
 @pytest.mark.parametrize("case", sorted(TALL_CASES))
 def test_tall_labels_hold_their_floor_and_spans_stay_under_them(tmp_path, monkeypatch, case) -> None:
     # round 4 review 3: a crowded four-entry column took the labels to 27 px under 30 px spans
+    if _refused_tall(monkeypatch, case, lambda: graphics.render_timeline(TALL_CASES[case], tmp_path / "t.mp4")):
+        return
     st = _render(monkeypatch, lambda: graphics.render_timeline(TALL_CASES[case], tmp_path / "t.mp4"))
     labels = [p for n, p in st["plates"] if n.startswith("label")]
     gaps = [p for n, p in st["plates"] if n.startswith("gap")]
@@ -1360,18 +1375,22 @@ FUZZ_FAMILIES = {
 # (docs/reviews/quality-fixes-2026-11/QF-23/timeline_refusals.py lists them: 63 of 370 renders, all fuzz, XL or xv
 # stress sets). Each is refused (TextFitError) where the base drew it with its cut labels logged; every other set
 # renders as before.
+# QF-24 (decision QF-24/QF-87 layout, 2026-11-13: keep the approved rectangle, fix the surfaces): re-taken on the
+# shared organic Reel box (label column to x 848, 40 px narrower; foot 1090, 32 px lower), 66 of 370 renders, all
+# 9:16 changes. Newly refused: cr/cr14, fz/fz11, lw/lw0, nz/nz9, nz/nz26, nz/nz32, nz/nz37, qz/qz26, se/se1,
+# tl/five_close, xv/xv7, xv/xv17, xv/xv18; drawn whole now (the taller column): cr/cr9, fz/fz2, fz/fz17, fz/fz26,
+# fz/fz37, lw/lw11, nz/nz6, nz/nz10, qz/qz0, xv/xv11 (docs/reviews/quality-fixes-2026-11/QF-24/census_*.json).
 QF23_REFUSED: frozenset[str] = frozenset({
-    "cr/cr9-9x16", "fz/fz17-9x16", "fz/fz2-9x16", "fz/fz26-9x16", "fz/fz37-9x16", "fz/fz9-9x16", "lw/lw11-9x16",
-    "lw/lw12-9x16", "lw/lw13-9x16", "lw/lw2-9x16", "lw/lw4-9x16", "lw/lw6-9x16", "lw/lw9-16x9", "lw/lw9-9x16",
-    "nz/nz0-9x16", "nz/nz10-9x16", "nz/nz11-9x16", "nz/nz14-16x9", "nz/nz14-9x16", "nz/nz15-16x9",
-    "nz/nz15-9x16", "nz/nz16-9x16", "nz/nz18-9x16", "nz/nz2-16x9", "nz/nz2-9x16", "nz/nz22-9x16",
-    "nz/nz23-16x9", "nz/nz23-9x16", "nz/nz24-16x9", "nz/nz24-9x16", "nz/nz25-16x9", "nz/nz25-9x16",
-    "nz/nz27-9x16", "nz/nz3-9x16", "nz/nz31-9x16", "nz/nz35-9x16", "nz/nz36-16x9", "nz/nz36-9x16",
-    "nz/nz38-9x16", "nz/nz39-9x16", "nz/nz5-16x9", "nz/nz5-9x16", "nz/nz6-9x16", "qz/qz0-9x16", "qz/qz12-16x9",
-    "qz/qz12-9x16", "qz/qz14-9x16", "qz/qz4-16x9", "qz/qz4-9x16", "qz/qz9-16x9", "qz/qz9-9x16",
-    "tl/four_xl_close-16x9", "tl/four_xl_close-9x16", "tl/four_xl_mixed-16x9", "tl/four_xl_mixed-9x16",
-    "xv/xv0-9x16", "xv/xv1-9x16", "xv/xv10-9x16", "xv/xv11-9x16", "xv/xv21-16x9", "xv/xv21-9x16",
-    "xv/xv22-9x16", "xv/xv6-9x16",
+    "cr/cr14-9x16", "fz/fz11-9x16", "fz/fz9-9x16", "lw/lw0-9x16", "lw/lw12-9x16", "lw/lw13-9x16", "lw/lw2-9x16",
+    "lw/lw4-9x16", "lw/lw6-9x16", "lw/lw9-16x9", "lw/lw9-9x16", "nz/nz0-9x16", "nz/nz11-9x16", "nz/nz14-16x9",
+    "nz/nz14-9x16", "nz/nz15-16x9", "nz/nz15-9x16", "nz/nz16-9x16", "nz/nz18-9x16", "nz/nz2-16x9", "nz/nz2-9x16",
+    "nz/nz22-9x16", "nz/nz23-16x9", "nz/nz23-9x16", "nz/nz24-16x9", "nz/nz24-9x16", "nz/nz25-16x9", "nz/nz25-9x16",
+    "nz/nz26-9x16", "nz/nz27-9x16", "nz/nz3-9x16", "nz/nz31-9x16", "nz/nz32-9x16", "nz/nz35-9x16", "nz/nz36-16x9",
+    "nz/nz36-9x16", "nz/nz37-9x16", "nz/nz38-9x16", "nz/nz39-9x16", "nz/nz5-16x9", "nz/nz5-9x16", "nz/nz9-9x16",
+    "qz/qz12-16x9", "qz/qz12-9x16", "qz/qz14-9x16", "qz/qz26-9x16", "qz/qz4-16x9", "qz/qz4-9x16", "qz/qz9-16x9",
+    "qz/qz9-9x16", "se/se1-9x16", "tl/five_close-9x16", "tl/four_xl_close-16x9", "tl/four_xl_close-9x16",
+    "tl/four_xl_mixed-16x9", "tl/four_xl_mixed-9x16", "xv/xv0-9x16", "xv/xv1-9x16", "xv/xv10-9x16", "xv/xv17-9x16",
+    "xv/xv18-9x16", "xv/xv21-16x9", "xv/xv21-9x16", "xv/xv22-9x16", "xv/xv6-9x16", "xv/xv7-9x16",
 })
 NAMED_TL = {"derinkuyu": DERINKUYU, "two_line4": TWO_LINE,
             "four_d": [{"year": -1200, "approximate": True, "label": "First chambers cut"},

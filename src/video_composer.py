@@ -69,6 +69,7 @@ from .config import (
     CAPTION_READ_PER_CHAR,
     CAPTION_READ_BASE,
     CAPTION_MAX_CPS,
+    CAPTION_CPS_TIMING_SLACK_S,
     CAPTION_FIRST_FRAME_WHOLE_S,
     CAPTION_CUT_SNAP_FRAMES,
     CAPTION_CUT_MIN_FRAMES,
@@ -1826,6 +1827,56 @@ def burst_timings(
     return out
 
 
+class CaptionReadingRateError(RenderError):
+    """A burst the caption timing shows faster than CAPTION_MAX_CPS and faster than its words are spoken (QF-88)."""
+
+
+def _speech_window(phrases: list[list[dict[str, Any]]], i: int) -> float:
+    """How long burst i's words hold the narration (reading_rates)."""
+    end = _word_end(phrases[i][-1])
+    if i + 1 < len(phrases) and float(phrases[i + 1][0]["start"]) - end <= CAPTION_PAUSE_GAP:
+        end = max(end, float(phrases[i + 1][0]["start"]))
+    return end - float(phrases[i][0]["start"])
+
+
+def rate_defect(phrases: list[list[dict[str, Any]]], i: int, show: float, hide: float) -> bool:
+    """Whether burst i shown from `show` to `hide` is a reading-rate timing defect (QF-88): over CAPTION_MAX_CPS and
+    up for less than its words hold the narration by more than CAPTION_CPS_TIMING_SLACK_S (1 us of float noise
+    aside). snap_to_cuts refuses a move that makes one; build_subtitles raises on any left."""
+    text = " ".join(_phrase_words(phrases[i]))
+    if hide <= show or not text:
+        return False
+    return (len(text) / (hide - show) > CAPTION_MAX_CPS
+            and hide - show < _speech_window(phrases, i) - CAPTION_CPS_TIMING_SLACK_S - 1e-6)
+
+
+def reading_rates(phrases: list[list[dict[str, Any]]], timings: list[tuple[float, float, list[float]]]) -> dict[str, Any]:
+    """Each burst's reading rate as delivered (QF-88): its characters, spaces included, over its time on screen
+    ("shown"), against the rate its own words are spoken at: over the time they hold the narration, from its first
+    word's start to the next burst's first word where that follows without a pause (CAPTION_PAUSE_GAP), else to its
+    last word's end. (Every burst shows CAPTION_LEAD_FRAMES before its first word, so back-to-back bursts are up for
+    exactly that time.) A burst shown over CAPTION_MAX_CPS and for less than that time by more than
+    CAPTION_CPS_TIMING_SLACK_S is a timing defect; one spoken over CAPTION_MAX_CPS is the narration's pace (counted,
+    worst kept)."""
+    rows = []
+    for i, (phrase, (show, hide, _)) in enumerate(zip(phrases, timings)):
+        text = " ".join(_phrase_words(phrase))
+        if hide <= show or not text:
+            continue
+        spoken_s = _speech_window(phrases, i)
+        shown = len(text) / (hide - show)
+        spoken = len(text) / spoken_s if spoken_s > 0 else float("inf")
+        rows.append({"at": round(show, 2), "text": text, "shown_cps": round(shown, 1),
+                     "spoken_cps": round(spoken, 1) if spoken != float("inf") else None,
+                     "defect": rate_defect(phrases, i, show, hide)})
+    fast = [r for r in rows if r["shown_cps"] > CAPTION_MAX_CPS]
+    worst = max(rows, key=lambda r: r["shown_cps"], default=None)
+    return {"max_cps": CAPTION_MAX_CPS, "bursts": len(rows), "over_max": len(fast),
+            "over_20": sum(r["shown_cps"] > 20 for r in rows),
+            "worst": {k: worst[k] for k in ("at", "text", "shown_cps", "spoken_cps")} if worst else None,
+            "timing_defects": [{k: r[k] for k in ("at", "text", "shown_cps", "spoken_cps")} for r in rows if r["defect"]]}
+
+
 def emphasis_bonds(words: list[dict[str, Any]], emphasis: list[str] | None) -> set[int]:
     """Bonds inside each gold run (emphasis_indices with its hedges: ROCK SALT, ROUGHLY 280 FEET): no burst splits
     a key term (freeze pass C7, 2026-11-04). Never across clause or sentence punctuation."""
@@ -2365,7 +2416,8 @@ def snap_to_cuts(
     the snap onto the cut is not valid, a boundary before the cut moves back to `snap_frames` frames before it (else
     CAPTION_CUT_CLEAR_FRAMES before it), one after it out to CAPTION_CUT_CLEAR_FRAMES after it, so no boundary is
     left one to three frames off a cut where a move is valid. A move also keeps each burst whole for
-    CAPTION_DWELL_AFTER_LAST_S after its last word appears (or no less than it had)."""
+    CAPTION_DWELL_AFTER_LAST_S after its last word appears (or no less than it had), and (QF-88) never makes a burst
+    a reading-rate defect (rate_defect) it was not."""
     if not cuts or not timings:
         return timings
     frame = 1.0 / fps
@@ -2383,6 +2435,9 @@ def snap_to_cuts(
             if hide - rev[-1] < min(CAPTION_DWELL_AFTER_LAST_S, old_dwell) - 1e-9:
                 return False
             if show > first_words[j] + frame + 1e-9:   # at most a frame after its first word is heard
+                return False
+            # QF-88: never a reading-rate defect the burst did not have (the timing code keeps CPS, decision B)
+            if rate_defect(phrases, j, show, hide) and not rate_defect(phrases, j, timings[j][0], timings[j][1]):
                 return False
             if j > 0 and show < cand[j - 1][1] - 1e-9:
                 return False
@@ -3836,6 +3891,14 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             r == 0.0 for r in timings[0][2])
         if not is_widescreen:
             timings = snap_to_cuts(phrases, timings, cuts)
+        # QF-88: CPS enforced where the caption timing decides it; the narration's own pace is recorded only.
+        self.last_reading_rate = rates = reading_rates(phrases, timings)
+        if rates["timing_defects"]:
+            bad = rates["timing_defects"][0]
+            raise CaptionReadingRateError(
+                f"Caption burst at {bad['at']:.2f} s (\"{bad['text']}\") is shown at {bad['shown_cps']} characters a "
+                f"second, over {CAPTION_MAX_CPS:g}, and leaves before its words are said (spoken at {bad['spoken_cps']}): "
+                f"{len(rates['timing_defects'])} burst(s) like it")
         raw_events: list[tuple[int, float, float, str, str]] = []  # (layer, start, end, style, text)
 
         center_x = width // 2
@@ -4537,6 +4600,8 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         if self.last_end_card and self.last_end_card.get("duration_s"):
             bridge = (self.last_end_card["start_s"], self.last_end_card["start_s"] + self.last_end_card["duration_s"])
         manifest["full_image_spans"] = full_image_spans(scene_images, starts, ends, bridge)
+        # QF-88: the captions' reading rate as delivered (the release gate notes the narration's pace from it)
+        manifest["reading_rate"] = getattr(self, "last_reading_rate", None)
         if caption_overlap:   # freeze pass G1: the bursts drawn opaque over a graphic's text
             manifest["caption_graphic_overlap"] = caption_overlap
         manifest_path = output_mp4_path.with_suffix(".composition.json")

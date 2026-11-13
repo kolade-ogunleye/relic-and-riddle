@@ -206,6 +206,22 @@ def get_curated_footage(topic_id: str, work_dir: Path) -> Tuple[List[Path], List
         except Exception as e:
             log.warning("Failed to prepare curated footage %s: %s", p.name, e)
             continue
+        # QF-88: the segment is checked as it is taken in (black, freeze, WCAG 2.3.1 flashing); a clip that fails
+        # is not used. One that cannot be measured here is used and logged: the release gate decodes the master it
+        # goes into, and that check fails closed.
+        from .picture_qa import ingest_problems
+        picture_check = "passed"
+        try:
+            problems = ingest_problems(final_clip)
+        except Exception as e:  # noqa: BLE001 - recorded; the master's own picture check is the authority
+            log.warning("Curated footage %s not picture-checked at ingest (%s); the release gate checks the master.",
+                        p.name, e)
+            problems, picture_check = [], f"not measured ({str(e)[:160]})"
+        if problems:
+            log.warning("Curated footage %s not used: %s", p.name, "; ".join(problems))
+            final_clip.unlink(missing_ok=True)
+            final_clip.with_suffix(".jpg").unlink(missing_ok=True)
+            continue
 
         cand.setdefault("provider", "curated")
         cand.setdefault("title", p.stem.replace("_", " ").title())
@@ -217,6 +233,7 @@ def get_curated_footage(topic_id: str, work_dir: Path) -> Tuple[List[Path], List
             file=str(final_clip),
             place_specific=True,
             check_note="Human curated and approved footage",
+            picture_check=picture_check,   # QF-88: read by the release gate's ingest note
             downloaded_at=time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         )
         cand.pop("text", None)

@@ -321,8 +321,8 @@ def _finish(raw: Path, out: Path, archetype: str = "megastructure") -> Path:
 
 # The gates' version, in each accepted clip's .qa.json: a clip accepted under older gates (no motion check) is
 # measured again before it is reused or carried over (production Derinkuyu, 2026-10-29: the still clip was carried
-# into the re-render "already paid for").
-GATE_VERSION = 2
+# into the re-render "already paid for"). 3 (QF-88): the picture check (black, freeze, flashing) joined the gates.
+GATE_VERSION = 3
 
 
 def _sha256(path: Path) -> str:
@@ -378,6 +378,20 @@ def _gate(out: Path, archetype: str = "megastructure", keep: bool = True) -> Dic
                 f"{100 * moved['moving_share']:.0f}% of regions moving < {100 * MIN_MOVING_SHARE:.0f}%)")
             log.warning("AI motion clip %s rejected: %s.", out.name, qa["reason"])
             reject(qa, "Motion check failed")
+        # QF-88: an AI clip that goes black, freezes or flashes (WCAG 2.3.1) is rejected before it is used. One
+        # that cannot be measured here is logged and kept: the release gate decodes the master it goes into, and
+        # that check fails closed.
+        from .picture_qa import ingest_problems
+        qa["picture_check"] = "passed"   # QF-88: read by the release gate's ingest note
+        try:
+            problems = ingest_problems(out)
+        except (OSError, ValueError, subprocess.SubprocessError) as e:
+            log.warning("AI motion clip %s not picture-checked at ingest (%s); the release gate checks the master.",
+                        out.name, e)
+            problems, qa["picture_check"] = [], f"not measured ({str(e)[:160]})"
+        if problems:
+            qa["pass"], qa["reason"] = False, "; ".join(problems)
+            reject(qa, "Picture check failed")
         log.info("AI motion hook verified: %s (inliers=%d, ratio=%.2f, content change %.0f%%, flow %.2f%%, "
                  "%.0f%% of regions moving)", qa.get("reason"), qa.get("inliers", 0), qa.get("inlier_ratio", 0.0),
                  100 * changed, 100 * moved["flow_share"], 100 * moved["moving_share"])

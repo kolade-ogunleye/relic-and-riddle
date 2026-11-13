@@ -1,0 +1,84 @@
+{
+ "method": {
+  "version": 2,
+  "sample_lines": 270,
+  "PICTURE_QA_BAR_FLAT_SHARE": 0.9,
+  "PICTURE_QA_BAR_FRACTION": 0.02,
+  "PICTURE_QA_BAR_LEVEL": 2,
+  "PICTURE_QA_BAR_S": 1.0,
+  "PICTURE_QA_BLACK_S": 0.1,
+  "PICTURE_QA_FLASH_AREA": 0.25,
+  "PICTURE_QA_FLASH_COARSE": 0.1,
+  "PICTURE_QA_FLASH_DARK": 0.8,
+  "PICTURE_QA_FLASH_FIELD": 0.3333333333333333,
+  "PICTURE_QA_FLASH_GRID": 600,
+  "PICTURE_QA_FLASH_IN_PLACE": 6,
+  "PICTURE_QA_FLASH_LUMINANCE": 0.1,
+  "PICTURE_QA_FLASH_PER_S": 3,
+  "PICTURE_QA_FLASH_RED": 0.2,
+  "PICTURE_QA_FLASH_RED_SHARE": 0.8,
+  "PICTURE_QA_FREEZE_LONG_S": 12.1,
+  "PICTURE_QA_FREEZE_REEL_S": 6.1,
+  "PICTURE_QA_RANGE_FRACTION": 0.01,
+  "PICTURE_QA_RANGE_S": 0.5,
+  "PICTURE_QA_RANGE_TOLERANCE": 2
+ },
+ "note": "Round 7: masters, graphics and ingest from `real_data.py --parts masters,graphics,ingest` on the round-7 flash code, over a fresh scratch copy of the production sample's output (hash-checked, deleted after; counts only; pass / hold / reject); captions and cvd from the round-2 full run, whose code for those parts is unchanged since.",
+ "sets": {
+  "prod": {
+   "summary": {
+    "masters": {
+     "items": 33,
+     "errors": 0,
+     "flash_fail": 1,
+     "flash_held": 4,
+     "hold_sheet_bytes_max": 288793,
+     "measurement_fail": 0,
+     "other_picture_blocks": 0,
+     "old_report_masters": 33,
+     "noted_qf10b_then_qf88": 33,
+     "noted_lost_on_remeasure": 0,
+     "caption_rate_checks": 0,
+     "cvd_fail": 0,
+     "contrast_notes": 3,
+     "second_check_wall_s": {
+      "median": 34.7,
+      "max": 119.5
+     }
+    },
+    "graphic_clips": {
+     "items": 86,
+     "errors": 0,
+     "flash_fail": 0
+    },
+    "ingest": {},
+    "captions": {
+     "masters": 33,
+     "bursts": 1115,
+     "bursts_over_17": 337,
+     "bursts_over_20": 96,
+     "bursts_spoken_over_17": 337,
+     "masters_with_a_burst_over_17": 33,
+     "timing_defects": 0,
+     "masters_failed_by_the_gate": 0,
+     "masters_noted": 33,
+     "median_worst_cps": 21.9
+    },
+    "cvd": {
+     "graphics": 86,
+     "graphics_fail": 0,
+     "graphics_with_a_pair": 34,
+     "worst_pair_de00_min": 20.8,
+     "worst_pair_de00_median": 22.0,
+     "stills": 408,
+     "stills_fail": 0,
+     "graphics_with_a_contrast_note": 3,
+     "errors": 0,
+     "run_accents": 11,
+     "accents_rejected_at_source": 0,
+     "accent_vs_gold_de00_min": 48.2
+    }
+   }
+  }
+ }
+}

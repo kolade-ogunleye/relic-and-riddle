@@ -2025,13 +2025,19 @@ class TelegramApprovalBot:
                                          for c in later for p in check_problems(c)]
                                       + [f"• {e(c['name'])} (minor, not blocking): {e(p)}"
                                          for c in open_checks for p in check_problems(c, "notes")]
-                                      # the operator's old-master note (QF-10b) is shown even when another
+                                      # the operator's old-master note (QF-10b) and QF-88's notes are shown even when another
                                       # check blocks: it says what a re-render will also fix
                                       + [f"• {e(c['name'])} (note, not blocking): {e(p)}"
                                          for c in report.get("checks", [])
-                                         if c.get("status") == "pass" and c.get("grandfathered")
+                                         if c.get("status") == "pass" and (c.get("grandfathered") or c.get("note"))
                                          for p in check_problems(c)], cap))
-            line = ("⛔ <b>Release gate:</b> blocked. This version can't be posted: Edit, Regenerate or Reject it.\n"
+            # QF-88: a held flash stretch alone is not a defect found; it waits for the operator's look.
+            # Only a pure hold: a flash check with a failing interval is blocked, not held (round 7).
+            held = blocked and all(c.get("name") == "picture_flash" and c.get("hold") and c.get("status") == "needs_review"
+                                   and not c.get("intervals") for c in blocking)
+            line = ("⏸ <b>Release gate:</b> held: possible flash; needs your look. Nothing posts until you have "
+                    "looked and cleared it (<code>review clear-flash</code>), or it is re-rendered.\n" if held else
+                    "⛔ <b>Release gate:</b> blocked. This version can't be posted: Edit, Regenerate or Reject it.\n"
                     if blocked else "⚠️ <b>Release gate:</b> needs review before a live post.\n")
             line += f"<blockquote expandable>{found}</blockquote>\n"
         if measured:

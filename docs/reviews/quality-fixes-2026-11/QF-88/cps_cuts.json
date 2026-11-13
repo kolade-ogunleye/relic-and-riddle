@@ -1,0 +1,22 @@
+{
+ "dev": {
+  "runs": 35,
+  "builds": 735,
+  "failed": 0,
+  "runs_failing": 0,
+  "no_cut_failed": 0,
+  "errors": 0,
+  "early_hide_builds": 35,
+  "early_hide_caught": 35
+ },
+ "prod": {
+  "runs": 34,
+  "builds": 714,
+  "failed": 0,
+  "runs_failing": 0,
+  "no_cut_failed": 0,
+  "errors": 0,
+  "early_hide_builds": 34,
+  "early_hide_caught": 34
+ }
+}

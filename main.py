@@ -1179,7 +1179,8 @@ class PipelineCoordinator:
         except ReleaseReportLocked as e:   # held, with the reason on the card; the card re-runs the gate
             log.warning("Release report not saved: %s", e)
             release = locked_report(e)
-        auto_approve = self._auto_approve_allowed(run_id, payload, auto_approve, scenes=extended_scenes)
+        auto_approve = (self._auto_approve_allowed(run_id, payload, auto_approve, scenes=extended_scenes)
+                        and not self._held_for_look(run_id, release))
         blocked = self._blocked_at_gate(run_id, release, dry_run, "auto-approve flag") if auto_approve else None
         if blocked:
             return {"run_id": run_id, "parent_run_id": parent_run_id, "topic_id": tid, "status": "blocked",
@@ -1442,6 +1443,23 @@ class PipelineCoordinator:
         except Exception as e:  # noqa: BLE001 - the refusal stands whether or not the alert is delivered
             log.warning("Auto-approve refusal alert not sent (%s).", e)
         return False
+
+    def _held_for_look(self, run_id: str, report: dict[str, Any] | None) -> bool:
+        """QF-88: a possible flash the gate holds for the operator's look is never decided by the auto-approve flag
+        (nor recorded as blocked): the run goes to review, its card says why, and it posts only once the operator
+        has cleared the stretch and approved it."""
+        from src.release import held_flash
+        held = held_flash(report)
+        if not held:
+            return False
+        log.warning("%s: possible flash held for the operator's look; sent for review instead.", run_id)
+        try:
+            _notice(self, f"⚠️ <b>Auto-approve refused</b>\n\n<b>{html.escape(self.db.run_label(run_id))}</b>\n"
+                        "Possible flash; needs your look. The review card says where.", section="needs", run=run_id,
+                    actions=[{"text": "🎬 Reviews", "callback_data": "creviews:"}])
+        except Exception as e:  # noqa: BLE001 - the refusal stands whether or not the alert is delivered
+            log.warning("Auto-approve refusal alert not sent (%s).", e)
+        return True
 
     def _blocked_at_gate(self, run_id: str, report: Optional[Dict[str, Any]], dry_run: bool, by: str) -> Optional[str]:
         """An approval that does not come from the Telegram card (the auto-approve flag, the CLI) meets the
@@ -3615,7 +3633,8 @@ class PipelineCoordinator:
         # 8-9. Human approval (never implicit). The production card is finished either way.
         self._finish_progress(topic.get("title", tid), run_id, success=True)
         decision = None
-        auto_approve = self._auto_approve_allowed(run_id, payload, auto_approve, scenes=scenes)
+        auto_approve = (self._auto_approve_allowed(run_id, payload, auto_approve, scenes=scenes)
+                        and not self._held_for_look(run_id, release))
         blocked = self._blocked_at_gate(run_id, release, dry_run, "auto-approve flag") if auto_approve else None
         if blocked:
             return {"run_id": run_id, "topic_id": tid, "decision": None, "status": "blocked", "error": blocked,
@@ -5595,6 +5614,10 @@ def main(argv=None) -> int:
     send_p = review_sub.add_parser("send", help="Re-send the Telegram review card for a timed-out run and wait")
     send_p.add_argument("run_id")
     send_p.add_argument("--dry-run", action="store_true")
+    flash_p = review_sub.add_parser("clear-flash", help="Clear a held possible flash after looking at it (QF-88)")
+    flash_p.add_argument("run_id")
+    flash_p.add_argument("--looked", action="store_true",
+                         help="I watched the held stretch and nothing in it flashes more than 3 times a second")
     pub_p = review_sub.add_parser("publish", help="Publish a rendered run that was never published")
     pub_p.add_argument("run_id")
     pub_p.add_argument("--dry-run", action="store_true")
@@ -6501,6 +6524,38 @@ def main(argv=None) -> int:
                 print(f"{args.run_id}: no pending approval (current: {appr and appr['decision']}). "
                       f"To publish a finished run, use `review publish {args.run_id}`.")
                 return 1
+        elif args.review_action == "clear-flash":
+            from src.release import (
+                clear_flash_hold,
+                flash_failure,
+                held_flash,
+                write_release_report,
+            )
+            run = db.get_run(args.run_id)
+            if not run or not run.get("master_video_path"):
+                print(f"Unknown run or no rendered video: {args.run_id}")
+                return 1
+            report = write_release_report(run, dry_run=False)
+            failing = flash_failure(report)
+            if failing:     # QF-88 round 7: a failing flash is a hazard, never cleared by a look
+                print(f"Refusing: {args.run_id} fails the flash check, so it cannot be cleared; re-render it "
+                      f"without that flashing.\n  {failing}")
+                return 1
+            held = held_flash(report)
+            if not held:
+                print(f"{args.run_id}: no flash stretch is held for this master; nothing to clear.")
+                return 1
+            flash = next(c for c in report["checks"] if c["name"] == "picture_flash")
+            run_dir = Path(run["master_video_path"]).parent
+            print(flash["detail"])
+            for sheet in flash.get("contact_sheets") or []:
+                print(f"  contact sheet: {run_dir / sheet['path']}")
+            if not args.looked:
+                print("Not cleared. Watch the stretch, then run this again with --looked to clear it.")
+                return 1
+            clear_flash_hold(run_dir, report, by="cli")
+            print(f"{args.run_id}: the held stretch is cleared for these bytes. Approve it on the card or with "
+                  f"`review approve {args.run_id}`.")
         elif args.review_action == "send":
             try:
                 res = PipelineCoordinator(db).request_approval(args.run_id, dry_run=args.dry_run)

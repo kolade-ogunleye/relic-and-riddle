@@ -77,6 +77,7 @@ def write_release_report(run, dry_run=False):
         picture = (picture_qa.recorded(report_path, master, deep_dive=deep_dive, exempt_bars=exempt)
                    or picture_qa.measure(master, deep_dive=deep_dive, exempt_bars=exempt))
         _grandfather_colour(picture, eligible)
+        _flash_hold(picture, master)
         checks.extend(picture["checks"])
         checks.append({"name": "picture_measurement", "status": "pass",
                        "detail": f"Decoded all {picture['decoded_frames']} frames ({picture['duration']:.1f} s).",
@@ -87,6 +88,9 @@ def write_release_report(run, dry_run=False):
         # Kept on every outcome, a failed measurement included: the next check that does measure still finds the
         # master gated before QF-10 (a timeout used to remove the operator's note for good).
         next(c for c in checks if c["name"] == "picture_measurement")["gated_before_qf10"] = eligible
+    checks.extend(_reading_rate_checks(_bound_composition(master)))
+    checks.extend(_colour_vision_checks(master.parent))
+    checks.extend(_ingest_notes(master.parent))
 
     # The sound, every sample decoded once (QF-11): a dropout to silence blocks; a phone-speaker loss is a note. A
     # master measured before keeps its result. A master gated before QF-11 has no exemption: no real master fails
@@ -360,6 +364,191 @@ def _grandfather_colour(picture: dict, eligible: str | None) -> None:
         return
     colour.update(status="pass", minor=True, grandfathered=True, detail=GRANDFATHERED_COLOUR)
     picture["grandfathered"] = True
+
+
+FLASH_REVIEW = "flash_review.json"     # the operator's clearance of a held flash stretch, beside the master
+
+
+def _flash_hold(picture: dict, master: Path) -> None:
+    """QF-88, operator decision A after round 5: a picture_flash count only a motion test could confirm is held
+    ("needs_review"), never passed silently and never rejected as a hazard. The report carries a contact sheet of
+    each held stretch from the master's own frames; the hold blocks every live post until the operator clears it for
+    these exact bytes and stretches (`review clear-flash`, clear_flash_hold), and then reads as a note.
+
+    Only a pure hold: a check with any failing interval is a fail and stays one (round 7). A recorded report that
+    holds a fail with a held stretch beside it (as round 6 measured) is put back to the fail it is, and an earlier
+    clearance is never applied to it."""
+    from . import picture_qa
+    flash = next((c for c in picture.get("checks", []) if c.get("name") == "picture_flash"), None)
+    if flash and flash.get("intervals"):
+        if flash.get("hold") or flash.get("held") or flash.get("cleared"):
+            for key in ("hold", "held", "cleared", "contact_sheets", "minor", "note"):
+                flash.pop(key, None)
+            flash["status"] = "fail"
+            if flash.get("held_detail"):
+                flash["detail"] = flash.pop("held_detail")
+        return
+    if not flash or not flash.get("hold") or not flash.get("held"):
+        return
+    # A reused report may hold the cleared form: the hold is always judged again from the record on disk.
+    flash.update(status="needs_review", minor=False, note=False)
+    flash.pop("cleared", None)
+    if flash.get("held_detail"):
+        flash["detail"] = flash["held_detail"]
+    flash["held_detail"] = flash["detail"]
+    sheets, missing = [], []
+    for k, span in enumerate(flash["held"][:4]):
+        out = Path(master).with_name(f"{Path(master).stem}.flash_hold_{k + 1}.jpg")
+        known = next((s for s in flash.get("contact_sheets") or [] if s.get("path") == out.name
+                      and s.get("start") == span["start"] and s.get("end") == span["end"]), None)
+        try:
+            if known and out.is_file() and known.get("master_sha256") == picture.get("master_sha256"):
+                sheets.append(known)
+                continue
+            sheets.append({**picture_qa.hold_sheet(master, span["start"], span["end"], out),
+                           "master_sha256": picture.get("master_sha256")})
+        except Exception as exc:  # noqa: BLE001 - a missing sheet never lifts the hold; it is said instead
+            missing.append(f"{_clock(span['start'])}-{_clock(span['end'])} ({exc})")
+    flash["contact_sheets"] = sheets
+    if sheets:
+        flash["detail"] += " Contact sheet: " + ", ".join(s["path"] for s in sheets) + " (beside the master)."
+    if missing:
+        flash["detail"] += " The contact sheet could not be made for " + "; ".join(missing) + "."
+    try:
+        cleared = json.loads((Path(master).parent / FLASH_REVIEW).read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return
+    if (isinstance(cleared, dict) and cleared.get("master_sha256") == picture.get("master_sha256")
+            and cleared.get("held") == flash["held"] and cleared.get("cleared_at")):
+        flash.update(status="pass", minor=True, note=True, cleared=cleared,
+                     detail=f"Possible flash at {', '.join(_clock(s['start']) + '-' + _clock(s['end']) for s in flash['held'])}: "
+                            f"you looked at it and cleared it ({str(cleared['cleared_at'])[:10]}).")
+
+
+def held_flash(report) -> list:
+    """The held picture_flash stretches of a report ([] when none is held, and always when the check has a failing
+    interval: a fail is never a hold)."""
+    flash = next((c for c in (report or {}).get("checks", []) if c.get("name") == "picture_flash"), None)
+    return (list(flash.get("held") or []) if flash and flash.get("status") == "needs_review"
+            and not flash.get("intervals") else [])
+
+
+def flash_failure(report) -> str | None:
+    """Why a report's picture_flash check fails (its sentence), or None when it has no failing interval."""
+    flash = next((c for c in (report or {}).get("checks", []) if c.get("name") == "picture_flash"), None)
+    return flash.get("detail") if flash and (flash.get("intervals") or flash.get("status") == "fail") else None
+
+
+def clear_flash_hold(run_dir: Path, report: dict, by: str) -> dict:
+    """The operator's clearance of a held flash stretch for these exact bytes and stretches, written beside the
+    master; a re-render or a different hold needs a new look. Raises when the report holds nothing, and when the
+    flash check fails anywhere: a failing flash is a hazard, never the operator's to clear (QF-88 round 7)."""
+    flash = next((c for c in (report or {}).get("checks", []) if c.get("name") == "picture_flash"), None)
+    if flash and (flash.get("intervals") or flash.get("status") == "fail"):
+        raise ValueError("The flash check fails on this master (it flashes more than 3 times in a second somewhere), "
+                         "so it cannot be cleared: re-render it without that flashing.")
+    held = held_flash(report)
+    measured = next((c for c in report.get("checks", []) if c.get("name") == "picture_measurement"), {})
+    sha = (measured.get("measurement") or {}).get("master_sha256")
+    if not flash or not held or not sha:
+        raise ValueError("The release report holds no flash stretch for this master.")
+    from datetime import UTC
+    record = {"master_sha256": sha, "held": held, "cleared_at": datetime.now(UTC).isoformat(), "by": by,
+              "contact_sheets": [s.get("path") for s in flash.get("contact_sheets") or []]}
+    from .atomic_files import write_json
+    write_json(Path(run_dir) / FLASH_REVIEW, record)
+    return record
+
+
+def _clock(seconds: float) -> str:
+    return f"{int(seconds // 60)}:{seconds % 60:04.1f}"
+
+
+def _reading_rate_checks(composition: dict | None) -> list:
+    """QF-88, CPS (operator decision, option B): the captions' reading rate the composer recorded for these bytes.
+    A timing defect (a burst shown faster than 17 cps and than its words are spoken) fails; the narration's own
+    pace over 17 cps is a note, never a block. A master rendered before QF-88 has no record: nothing is claimed."""
+    rate = (composition or {}).get("reading_rate")
+    if not isinstance(rate, dict):
+        return []
+    limit = rate.get("max_cps", 17.0)
+    defects = rate.get("timing_defects") or []
+    if defects:
+        shown = "; ".join(f"{_clock(d['at'])} \"{d['text']}\" at {d['shown_cps']} cps (spoken at {d['spoken_cps']})"
+                          for d in defects[:3])
+        return [{"name": "caption_rate", "status": "fail", "detail":
+                 f"Captions shown faster than {limit:g} characters a second and faster than they are spoken: "
+                 f"{shown}. Re-render: the caption timing must hold them longer."}]
+    worst = rate.get("worst") or {}
+    if rate.get("over_max"):
+        return [{"name": "caption_rate", "status": "pass", "minor": True, "note": True, "rate": rate, "detail":
+                 f"{rate['over_max']} of {rate['bursts']} caption bursts go by faster than {limit:g} characters a "
+                 f"second because the narration is that fast (worst {worst.get('shown_cps')} cps at "
+                 f"{_clock(worst.get('at') or 0)}, \"{worst.get('text')}\"). The captions keep pace with the voice; "
+                 "a shorter script line there would slow them."}]
+    return [{"name": "caption_rate", "status": "pass", "rate": rate,
+             "detail": f"Every caption burst reads at {limit:g} characters a second or slower."}]
+
+
+def _ingest_notes(run_dir: Path) -> list:
+    """QF-88: footage and AI clips the ingest check could not measure (their records say "not measured"). A note,
+    not a block: the master's own picture check, which fails closed, measured every frame they are in."""
+    unmeasured = []
+    for record in sorted([*Path(run_dir).glob("footage/footage_*.json"), *Path(run_dir).glob("motion/*.qa.json")]):
+        try:
+            state = str(json.loads(record.read_text(encoding="utf-8")).get("picture_check") or "")
+        except (OSError, ValueError, AttributeError):
+            continue
+        if state.startswith("not measured"):
+            unmeasured.append(f"{record.name.split('.')[0]} ({state})")
+    if not unmeasured:
+        return []
+    return [{"name": "ingest_picture", "status": "pass", "minor": True, "note": True, "detail":
+             f"Not picture-checked when taken in: {'; '.join(unmeasured[:4])}. The master's own check (black, "
+             "freeze, flashing) measured every frame they appear in."}]
+
+
+def _colour_vision_checks(run_dir: Path) -> list:
+    """QF-88, CVD (operator decision, option C): every rendered graphic's meaning colours stay apart for
+    protanopia, deuteranopia and tritanopia (colour_vision.check, Machado 2009); a pair under 10 dE00 fails. WCAG
+    1.4.11 non-text contrast is measured and noted, never a block. A run without graphics gets no check."""
+    from . import colour_vision
+    try:
+        palette = json.loads((Path(run_dir) / "palette.json").read_text(encoding="utf-8"))
+        accent = palette.get("accent")
+    except (OSError, ValueError, AttributeError):
+        accent = None
+    try:
+        results = colour_vision.run_check(run_dir, accent)
+    except Exception as exc:  # noqa: BLE001 - an unmeasured graphic is a failed check, never a pass
+        return [{"name": "graphic_colour_vision", "status": "fail",
+                 "detail": f"The graphics' colours could not be checked for colour-blind viewers: {exc}"}]
+    if not results:
+        return []
+    names = {"gold": "the gold figures", "accent": "the accent lines", "teal": "the teal series",
+             "coral": "the coral series", "home_fill": "the highlighted country", "land": "its neighbours"}
+    bad = [(r["graphic"], p) for r in results for p in r["pairs"] if not p["pass"]]
+    if bad:
+        shown = "; ".join(f"{g}: {names[p['pair'][0]]} and {names[p['pair'][1]]} are {p['de00'][p['worst_vision']]} "
+                          f"dE00 apart under {p['worst_vision']}" for g, p in bad[:3])
+        return [{"name": "graphic_colour_vision", "status": "fail", "graphics": results, "detail":
+                 f"A colour-blind viewer would see two meaning colours as one ({shown}; at least "
+                 f"{colour_vision.MIN_DE00:g} is needed): re-render with an accent clear of them."}]
+    skipped = "" if accent is not None else (
+        " The run has no palette record (made before the art direction), so its accent is unknown and the gold "
+        "against accent pair was not judged.")
+    out = [{"name": "graphic_colour_vision", "status": "pass", "graphics": results, "detail":
+            f"Every graphic's meaning colours stay apart for colour-blind viewers ({len(results)} checked; at least "
+            f"{colour_vision.MIN_DE00:g} dE00 under protanopia, deuteranopia and tritanopia).{skipped}"}]
+    short = [(r["graphic"], n) for r in results for n in r["nontext"] if not n["meets"]]
+    if short:
+        shown = "; ".join(f"{g}: {names[n['mark']]} {n['contrast'][n['worst_vision']]}:1"
+                          + ("" if n["worst_vision"] == "normal" else f" under {n['worst_vision']}")
+                          for g, n in short[:3])
+        out.append({"name": "graphic_contrast", "status": "pass", "minor": True, "note": True, "detail":
+                    f"Marks under the 3:1 contrast WCAG 1.4.11 asks against their ground: {shown}. A design "
+                    "criterion for the freeze loop, not a block."})
+    return out
 
 
 def story_frames(run_dir: Path) -> list:

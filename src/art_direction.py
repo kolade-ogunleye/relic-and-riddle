@@ -99,8 +99,7 @@ def palette_from(hero: Optional[Path]) -> Dict[str, Any]:
         log.debug("Palette not sampled from %s (%s); default used.", hero, e)
         return dict(DEFAULT_PALETTE)
     gold_hue = colorsys.rgb_to_hsv(*(c / 255.0 for c in GOLD))[0] * 360.0
-    best, best_score = None, 0.0          # a saturated hue clear of gold
-    warm, warm_score = None, 0.0          # a saturated hue near gold (sand, bronze, fire): its complement is used
+    clear, near = [], []                  # saturated hues clear of gold; saturated hues near gold (sand, bronze, fire)
     for count, index in counts:
         rgb = tuple(pal[index * 3:index * 3 + 3])
         if len(rgb) < 3:
@@ -109,24 +108,32 @@ def palette_from(hero: Optional[Path]) -> Dict[str, Any]:
         if s < 0.25 or v < 0.25:
             continue  # greys and near-black carry no hue worth building on
         score = count * s
-        if _hue_distance(h * 360.0, gold_hue) < GOLD_HUE_CLEARANCE:
-            if score > warm_score:
-                warm, warm_score = rgb, score
-            continue  # too close to the figure colour to be the structure colour
-        if score > best_score:
-            best, best_score = rgb, score
-    if best is None and warm is not None:
+        # too close to the figure colour to be the structure colour: its complement is a candidate instead
+        (near if _hue_distance(h * 360.0, gold_hue) < GOLD_HUE_CLEARANCE else clear).append((score, rgb))
+    # QF-88: an accent a colour-blind viewer would see as the figure gold (colour_vision.accent_problem, the CVD
+    # gate's own rule) is passed over for the next sampled hue, then the complement, then the default.
+    from .colour_vision import accent_problem
+    for score, rgb in sorted(clear, reverse=True):
+        lifted = _legible(rgb)  # type: ignore[arg-type]
+        why = accent_problem(lifted)
+        if why is None:
+            return {"accent": lifted, "accent_hex": "#%02X%02X%02X" % lifted, "sampled": "#%02X%02X%02X" % tuple(rgb),
+                    "contrast": round(contrast(lifted), 1), "source": f"sampled from {Path(hero).name}"}
+        log.info("Accent #%02X%02X%02X passed over: %s.", *lifted, why)
+    for score, warm in sorted(near, reverse=True)[:1]:
         h, s, v = colorsys.rgb_to_hsv(*(c / 255.0 for c in warm))
         complement = tuple(int(round(c * 255)) for c in colorsys.hsv_to_rgb((h + 0.5) % 1.0, s, v))
         lifted = _legible(complement)  # type: ignore[arg-type]
-        return {"accent": lifted, "accent_hex": "#%02X%02X%02X" % lifted, "sampled": "#%02X%02X%02X" % tuple(warm),
-                "contrast": round(contrast(lifted), 1),
-                "source": f"complement of the dominant warm hue in {Path(hero).name} (too close to gold to use as is)"}
-    if best is None:
-        return dict(DEFAULT_PALETTE, source=f"default: no saturated hue in {Path(hero).name}")
-    lifted = _legible(best)  # type: ignore[arg-type]
-    return {"accent": lifted, "accent_hex": "#%02X%02X%02X" % lifted, "sampled": "#%02X%02X%02X" % tuple(best),
-            "contrast": round(contrast(lifted), 1), "source": f"sampled from {Path(hero).name}"}
+        why = accent_problem(lifted)
+        if why is None:
+            return {"accent": lifted, "accent_hex": "#%02X%02X%02X" % lifted, "sampled": "#%02X%02X%02X" % tuple(warm),
+                    "contrast": round(contrast(lifted), 1),
+                    "source": f"complement of the dominant warm hue in {Path(hero).name} (too close to gold to use as is)"}
+        log.info("Accent #%02X%02X%02X passed over: %s.", *lifted, why)
+    if clear or near:
+        return dict(DEFAULT_PALETTE, source=f"default: no sampled hue in {Path(hero).name} stays clear of gold "
+                                            "for colour-blind viewers")
+    return dict(DEFAULT_PALETTE, source=f"default: no saturated hue in {Path(hero).name}")
 
 
 def type_scale(width: int, height: int) -> Dict[str, int]:

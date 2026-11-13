@@ -497,6 +497,58 @@ AUDIO_QA_SIBILANCE_LOW_HZ = 4000
 AUDIO_QA_SIBILANCE_HIGH_HZ = 10000
 AUDIO_QA_TIMEOUT_BASE_S = 120.0
 AUDIO_QA_TIMEOUT_PER_S = 5.0
+# Photosensitivity (QF-88, src/picture_qa.Flash): W3C WCAG 2.2 success criterion 2.3.1, "Three Flashes or Below
+# Threshold", with its general flash and red flash thresholds. A transition is a change in relative luminance of at
+# least PICTURE_QA_FLASH_LUMINANCE (10% of the maximum) where the darker state is below PICTURE_QA_FLASH_DARK (0.80);
+# a red transition (WCAG's note 3) is a change of more than PICTURE_QA_FLASH_RED in CIE 1976 UCS chromaticity
+# (u', v') to or from a saturated red (R / (R + G + B) >= PICTURE_QA_FLASH_RED_SHARE, linear R, G, B).
+# A flash is a pair of opposing transitions. A 10-degree visual field makes a transition on a frame where more than
+# PICTURE_QA_FLASH_AREA (25%; "no more than 25%" passes) of it rises, or falls, opposite to its last transition; a
+# frame where more than that share rises and more than that share falls (a counter-phase pattern) is one transition.
+# A field's count over one second is the most transitions it made ("the combined area of flashes occurring
+# concurrently": whichever parts of it change together); a count that needs its fine counter-phase frames (see
+# PICTURE_QA_FLASH_COARSE) stands only where more than PICTURE_QA_FLASH_AREA of it also made those sample by sample
+# (a whip pan over detail is not one area flashing; picture_qa._FlashStage). A picture fails where that count is more than twice PICTURE_QA_FLASH_PER_S. The field is WCAG's own estimate, a
+# 341 x 256 rectangle on a 1024 x 768 screen: PICTURE_QA_FLASH_FIELD (a third) of each side of the frame, at any
+# position (an exact sliding window; stricter on a phone, where a 10-degree field is a larger share of the screen).
+# The luminance thresholds equal ITU-R BT.1702's (20 cd/m2, darker state below 160 cd/m2, on its 200 cd/m2 reference
+# display).
+PICTURE_QA_FLASH_LUMINANCE = 0.10
+PICTURE_QA_FLASH_DARK = 0.80
+PICTURE_QA_FLASH_RED = 0.2
+PICTURE_QA_FLASH_RED_SHARE = 0.8
+PICTURE_QA_FLASH_PER_S = 3
+PICTURE_QA_FLASH_AREA = 0.25
+PICTURE_QA_FLASH_FIELD = 1 / 3
+# A counter-phase frame (more than PICTURE_QA_FLASH_AREA rising and more than that share falling) is excused as motion
+# over fine detail only when neither its rise nor its fall is coarse: more than PICTURE_QA_FLASH_AREA of the field
+# changing by majority over boxes PICTURE_QA_FLASH_COARSE of the field's shorter side (about 1 degree). A coarse one
+# (bands, blocks, cuts between pictures) always counts (QF-88 round 5).
+PICTURE_QA_FLASH_COARSE = 0.1
+# Held, not failed (operator decision A after QF-88 round 5): a count over the limit that stands only because more than
+# PICTURE_QA_FLASH_AREA of a field's samples made its last fine counter-phase transitions themselves (one fine frame
+# after six that always count) is what both a fine pattern reversing in place and a whip over detail give; only a
+# motion test could tell them apart. picture_flash is then "needs_review": the master waits for the operator's look
+# (release.py, `review clear-flash`), never posts by itself and is never rejected as a hazard. The release report
+# carries a JPEG contact sheet of each held stretch from the master's own frames: up to PICTURE_HOLD_SHEET_FRAMES
+# frames, PICTURE_HOLD_SHEET_TILE pixels wide, at most PICTURE_HOLD_SHEET_KB. Not part of the measurement method.
+# A field's remaining fine counter-phase transitions (after those that always count) decide a fail by themselves only
+# where more than PICTURE_QA_FLASH_AREA of its samples made at least PICTURE_QA_FLASH_IN_PLACE of them in place (twice
+# PICTURE_QA_FLASH_PER_S: that area alone flashed at the limit; masked_rolling in 4-px columns: 6 each). With fewer
+# the count is held: whips over detail into a flat card made 1 to 4 on real masters (dev Richat 1793272675 and
+# production-sample masters, round 6), as a fine pattern reversing in place once or twice does.
+PICTURE_QA_FLASH_IN_PLACE = 6
+PICTURE_HOLD_SHEET_FRAMES = 60
+PICTURE_HOLD_SHEET_TILE = 135
+PICTURE_HOLD_SHEET_KB = 300
+# The flash grid: the frame as PICTURE_QA_FLASH_GRID x PICTURE_QA_FLASH_GRID area means, one sample per 0.05 degree
+# (a field is a third of a side, 10 degrees: 200 samples), so WCAG's 0.1-degree pattern limit is 2 x 2 samples.
+# The fine stage also reads each sample as changing where solid change (2 x 2 boxes) within one grid step of it does
+# (QF-88 round 7: boxes straddling a square's edge read as unchanged and lost about 21% of a 0.44-degree checker),
+# beside the boxes as they are; either reading's fail fails (picture_qa._FlashStage). A fine counter-phase count
+# reached with fewer than PICTURE_QA_FLASH_IN_PLACE in-place frames is held, not failed. A fail anywhere in a
+# master is never held, so it is never cleared.
+PICTURE_QA_FLASH_GRID = 600
 # Sound-effect headroom (QF-06, 2026-11-05): every one-shot effect enters the music bed at SFX_PEAK_DBFS peak before
 # its cue gain (it was set to the RMS of the synthesized stand-in it replaces, so its peak went wherever the
 # recording's crest factor took it), and the bed bus (music, setting layer and effects together) is peak-limited at
@@ -773,6 +825,12 @@ CAPTION_PLATE_SLACK = 96   # px: bursts within this of a run's plate width share
 CAPTION_READ_PER_CHAR = 0.045
 CAPTION_READ_BASE = 0.25
 CAPTION_MAX_CPS = 17.0
+# QF-88 (operator decision, decisions QF-88-question, option B): the render fails when the caption timing shows a burst
+# faster than CAPTION_MAX_CPS and for less time than its own words take to say, by more than CAPTION_CPS_TIMING_SLACK_S
+# (a timing defect; the slack is the two-frame lead every burst shows with, which the programme's start clamps, plus
+# a frame). A burst whose words are spoken that fast is the narration's pace: it is recorded in the composition
+# record (reading_rate) and noted on the review card, never failed here.
+CAPTION_CPS_TIMING_SLACK_S = 0.10
 # 16:9: CAPTION_WIDE_MARGIN_V (130, y 950 at 1080) is set with the other 16:9 values, above.
 # <<< Captions round 3 ------------------------------------------------------------------------------------------------
 

@@ -14,7 +14,7 @@ FIXTURES = Path(__file__).parent / "fixtures" / "qf10"
 # Wieliczka's depth-comparison graphic as the Reel shows it at 25 s (run_wieliczka_salt_mine_1792974672): the house
 # dark ground, the bars and their labels in the middle, the caption below. Sampled on the gate's own 270 x 480 grid.
 WIELICZKA = FIXTURES / "wieliczka_depth_graphic_25s.png"
-PICTURE = {"picture_colour", "picture_black", "picture_freeze", "picture_bars", "picture_range"}
+PICTURE = {"picture_colour", "picture_black", "picture_freeze", "picture_bars", "picture_range", "picture_flash"}
 
 
 def make(path, kind):

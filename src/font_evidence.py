@@ -99,6 +99,8 @@ def font_rights(path):
                      record.get("license_sha256") and license_path.is_file() and
                      record["license_sha256"] == sha256_file(license_path) and
                      "SIL Open Font License" in record["license_description"] and record["copyright"])
+        if record.get("derived_from"):
+            valid = valid and record.get("source_sha256") == sha256_file(Path(record["derived_from"]))
         if valid:   # QF-126: the face itself keeps its notices, and a modified face no reserved name
             problems = face_licence_problems(path, license_path.read_text(encoding="utf-8", errors="replace"),
                                              unmodified=recorded_unmodified(record))

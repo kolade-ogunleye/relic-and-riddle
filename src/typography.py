@@ -45,6 +45,9 @@ FALLBACK_STYLE = {"Cinzel": "serif"}
 
 def font_file(name: str, weight: Optional[int] = None) -> str:
     """The bundled file for a family (and, for a static family, the weight nearest `weight`)."""
+    from .font_assets import DERIVED_FAMILIES, derived_font
+    if name in DERIVED_FAMILIES:
+        return str(derived_font(name))
     if name in STATIC_WEIGHTS and weight:
         files = STATIC_WEIGHTS[name]
         return files[min(files, key=lambda w: abs(w - weight))]
@@ -74,7 +77,8 @@ def get_font(name: str, size: int, fonts_dir: Path = FONTS_DIR, weight: Optional
     """A bundled font at `size`; `weight` picks an instance of a variable font (the type hierarchy uses
     Montserrat 500/600/700 and Cinzel 700) or a static family's file (IBM Plex Mono 500/600), else the pinned
     default."""
-    path = fonts_dir / font_file(name, weight)
+    from .font_assets import DERIVED_FAMILIES, derived_font
+    path = derived_font(name, fonts_dir) if name in DERIVED_FAMILIES else fonts_dir / font_file(name, weight)
     if not path.exists():
         raise FileNotFoundError(f"Required font missing: {path}")
     font = FeaturedFont(str(path), size)   # default OpenType features on every measure and mask (font_engine)

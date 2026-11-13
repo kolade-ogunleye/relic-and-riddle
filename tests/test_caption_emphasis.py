@@ -20,17 +20,18 @@ def test_ass_highlights_only_key_words_with_a_pop(tmp_path):
     ass = VideoComposer().build_subtitles(WORDS, tmp_path / "c.ass", emphasis=["Derinkuyu"]).read_text(encoding="utf-8")
     events = [ln for ln in ass.splitlines() if ln.startswith("Dialogue:")]
     gold = [e for e in events if COL_EMPHASIS in e]
-    assert gold and all("DERINKUYU" in re.sub(r"\{[^}]*\}", "", e) for e in gold)
+    assert gold and all("DERINKUYU" in re.sub(r"\{[^}]*\}", "", e).upper() for e in gold)
     if EMPHASIS_POP > 100:
         assert sum(f"\\fscx{EMPHASIS_POP}" in e for e in events) == 1  # one pop, when the word is spoken
-    assert COL_EMPHASIS not in "".join(e for e in events if "STILL" in re.sub(r"\{[^}]*\}", "", e) or "ASTONISHES" in re.sub(r"\{[^}]*\}", "", e))
+    assert COL_EMPHASIS not in "".join(e for e in events if "STILL" in re.sub(r"\{[^}]*\}", "", e).upper() or "ASTONISHES" in re.sub(r"\{[^}]*\}", "", e).upper())
 
 
 def test_key_word_stays_grey_until_spoken(tmp_path):
+    import re
     ass = VideoComposer().build_subtitles(WORDS, tmp_path / "c.ass", emphasis=["man"]).read_text(encoding="utf-8")
-    events = [ln for ln in ass.splitlines() if ln.startswith("Dialogue:") and ",CapText," in ln and "AN" in ln]
+    events = [ln for ln in ass.splitlines() if ln.startswith("Dialogue:") and ",CapText," in ln and "MAN" in re.sub(r"\{[^}]*\}", "", ln).upper()]
     before, spoken = events[0], events[-1]   # burst contains MAN: before MAN is spoken vs when MAN is spoken
-    assert f"{COL_FUTURE}" in before and "AN" in before
+    assert f"{COL_FUTURE}" in before and "MAN" in re.sub(r"\{[^}]*\}", "", before).upper()
     assert f"{COL_EMPHASIS}" in spoken
     if EMPHASIS_POP > 100:
         assert f"\\fscx{EMPHASIS_POP}" in spoken
@@ -88,7 +89,11 @@ def test_ass_generates_rounded_box_layer_and_text_layer(tmp_path):
 
     # Check text line formatting has no-wrap tag
     text_lines = [l for l in content.splitlines() if "CapText" in l and l.startswith("Dialogue:")]
-    assert len(text_lines) == len(words)
+    # Each spoken-word reveal keeps one interval, with one event per visual line.
+    from collections import Counter
+    intervals = Counter(tuple(line.split(",", 3)[1:3]) for line in text_lines)
+    assert len(intervals) == len(words)
+    assert all(count in (1, 2) for count in intervals.values())
     assert "\\q2" in text_lines[0]
 
 
@@ -99,15 +104,16 @@ def test_caption_renders_in_small_caps(tmp_path):
     ass_path = VideoComposer().build_subtitles(words, tmp_path / "caption_sc.ass")
     content = ass_path.read_text(encoding="utf-8")
 
-    # Verify that small caps scaling tag \fscx{CAPTION_SC_SCALE}\fscy{CAPTION_SC_SCALE} is emitted
-    assert f"\\fscx{CAPTION_SC_SCALE}\\fscy{CAPTION_SC_SCALE}" in content
+    # Genuine small-cap glyphs are embedded; capital outlines are never scaled down.
+    assert "Style: CapText,RR Caption," in content
+    assert f"\\fscx{CAPTION_SC_SCALE}\\fscy{CAPTION_SC_SCALE}" not in content
     # Verify initial letters are full scale 100%
     assert "\\fscx100\\fscy100" in content
     # Verify text stripping reveals full words
     text_lines = [l for l in content.splitlines() if "CapText" in l and l.startswith("Dialogue:")]
     import re
     clean = re.sub(r"\{[^}]*\}", "", text_lines[0].split(",,")[-1])
-    assert "ROMAN" in clean and "CONCRETE" in clean
+    assert "Roman" in clean and "concrete" in clean
 
 
 def test_align_words_with_script_restores_punctuation():

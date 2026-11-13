@@ -293,9 +293,16 @@ def test_a_bonded_run_shrinks_rather_than_leave_its_figure_at_80_px(text, run, t
         ends.add(n - 1)
     assert not ends & bonds
     ass = VideoComposer().build_subtitles(words, tmp_path / "c.ass").read_text(encoding="utf-8")
-    shown = [re.sub(r"\{[^}]*\}", "", ln.split(",", 9)[9]).replace(CAPTION_HIDDEN, " ").split()
-             for ln in ass.splitlines() if ln.startswith("Dialogue:") and ",CapText," in ln]
-    assert any(" ".join(run.upper().split()) in " ".join(e) for e in shown)
+    # QF-87 (decision QF-24/QF-87 layout, 2026-11-09): the narration's case (was upper-cased), and a two-line burst's
+    # two events in one reveal interval read together
+    intervals: dict = {}
+    for ln in ass.splitlines():
+        if ln.startswith("Dialogue:") and ",CapText," in ln:
+            f = ln.split(",", 9)
+            intervals.setdefault((f[1], f[2]), []).append(
+                re.sub(r"\{[^}]*\}", "", f[9]).replace(CAPTION_HIDDEN, " ").split())
+    shown = [[w for part in parts for w in part] for parts in intervals.values()]
+    assert any(" ".join(run.split()) in " ".join(e) for e in shown)
 
 
 def test_a_dot_env_left_at_72_px_is_warned_about():

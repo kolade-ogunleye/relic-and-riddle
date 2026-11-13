@@ -421,7 +421,8 @@ def test_h1_claim_size_by_line_count(ground, photos):
         titles = [x for x in plan.elements if x.name.startswith("title_")]
         assert max(x.box[2] for x in titles) <= RIGHT
         top = min(x.box[1] for x in plan.elements if x.name.startswith(("title_", "eyebrow")))
-        assert top >= e["brand"].box[3] + 56 - 1, (claim, top, e["brand"].box)
+        # QF-87 (lander ruling 2026-11-13: the row's rule 'masthead >= 9 px at the 124 px tile or absent' reaches the hook frame): the 64 px masthead is 5.2 px there, so the card draws none and lay.meta['masthead'] says why; the block keeps its place, 56 px under the masthead's reserved line (was e["brand"].box[3])
+        assert "brand" not in e and top >= dc._hook_mast_foot() + 56 - 1, (claim, top)
 
 
 def test_h2_gold_rule(photos):
@@ -454,7 +455,8 @@ def test_h3_one_axis_per_position(photos):
     plan = hook_plan(photos["dark"], eyebrow="The Richat ring")
     assert plan.meta["anchors"]["position"] == "normal"
     e = els(plan)
-    assert abs(e["brand_mark"].box[0] - LEFT) <= 2 and abs(e["eyebrow_rule"].box[0] - LEFT) <= 2
+    # QF-87 (lander ruling 2026-11-13: the row's rule 'masthead >= 9 px at the 124 px tile or absent' reaches the hook frame): the 64 px masthead is 5.2 px there, so the card draws none and lay.meta['masthead'] says why (was: the mark flush left at LEFT too)
+    assert "brand_mark" not in e and abs(e["eyebrow_rule"].box[0] - LEFT) <= 2
     assert abs(e["eyebrow"].box[0] - LEFT) <= 2 and all(abs(e[n].box[0] - LEFT) <= 2 for n in ("title_0", "title_1"))
     normal_p = plan.meta["anchors"]["P"]
     plan = hook_plan(photos["sky"], eyebrow="The Richat ring")
@@ -463,10 +465,10 @@ def test_h3_one_axis_per_position(photos):
     for n in ("eyebrow", "title_0", "title_1", "eyebrow_rule"):
         assert abs((e[n].box[0] + e[n].box[2]) / 2 - AXIS) <= 3 and LEFT <= e[n].box[0] and e[n].box[2] <= RIGHT, (
             n, e[n].box)
-    mast = _union_box([e["brand"].box, e["brand_mark"].box])
-    assert abs((mast[0] + mast[2]) / 2 - AXIS) <= 3 and LEFT <= mast[0] and mast[2] <= RIGHT, mast
+    # QF-87: no masthead on the plate either (was: centred on AXIS inside the box, the first ink 56 px under it)
+    assert "brand" not in e and "brand_mark" not in e
     first = min(x.box[1] for x in plan.elements if x.name.startswith(("title_", "eyebrow")))
-    assert first - e["brand"].box[3] >= 56
+    assert first - dc._hook_mast_foot() >= 56
 
 
 def test_h4_dissolve(photos):
@@ -1004,13 +1006,12 @@ def test_h6_plate_flush_left_and_feathered(photos):
     a = plan.meta["anchors"]
     assert a["position"] == "plate" and a["P"] <= normal.meta["anchors"]["P"]
     e = els(plan)
-    assert abs(els(normal)["brand_mark"].box[0] - LEFT) <= 2 and abs(els(normal)["title_0"].box[0] - LEFT) <= 2
+    # QF-87: no masthead (the 9-px-or-absent rule) on either position (was: its mark flush left on the wash)
+    assert "brand_mark" not in els(normal) and abs(els(normal)["title_0"].box[0] - LEFT) <= 2
     titles = [x.box for n, x in e.items() if n.startswith("title_")]
     for b in titles:
         assert abs((b[0] + b[2]) / 2 - AXIS) <= 3 and b[0] >= LEFT and b[2] <= RIGHT, b
-    brand_box = _union_box([e["brand"].box, e["brand_mark"].box])
-    assert abs((brand_box[0] + brand_box[2]) / 2 - AXIS) <= 3, brand_box
-    assert LEFT <= brand_box[0] and brand_box[2] <= RIGHT, brand_box
+    assert "brand" not in e and "brand_mark" not in e   # QF-87 (was: the masthead centred on AXIS on the plate)
     y0, y1 = plan.meta["scrim"]["plate"]
     lum = np.asarray(dc.frame_at(plan, 0).convert("L"), np.float32)[:, 900:1060].mean(axis=1)
     for a_, b_ in ((y0 - 70, y0 + 2), (y1 - 2, y1 + 70)):

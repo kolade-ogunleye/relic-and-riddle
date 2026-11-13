@@ -79,12 +79,19 @@ def test_only_the_spoken_word_eases_in_and_without_a_size_pop():
 
 def test_each_word_event_eases_exactly_its_new_word(tmp_path):
     _, ass = _build(tmp_path, _timed("Roman concrete heals itself inside ocean water."))
-    for _, _, text in _events(ass, "CapText"):
-        visible, _, _ = text.partition(CAPTION_HIDDEN)
-        assert visible.count("\\t(0,") == 1                       # one easing word: the one spoken now
-        last_visible_word = re.split(r" (?=\{)", visible)[-1]
+    # QF-87 (decision QF-24/QF-87 layout, 2026-11-09): a two-line burst draws one event per line in each word's
+    # interval; the interval eases exactly one word, the newest visible one, on whichever line it is
+    intervals: dict = {}
+    for start, end, text in _events(ass, "CapText"):
+        intervals.setdefault((start, end), []).append(text)
+    for parts in intervals.values():
+        visible = [t.partition(CAPTION_HIDDEN)[0] for t in parts]
+        assert sum(v.count("\\t(0,") for v in visible) == 1           # one easing word: the one spoken now
+        newest = [v for v in visible if _plain(v).strip()][-1]
+        last_visible_word = re.split(r" (?=\{)", newest)[-1]
         assert "\\t(0," in last_visible_word                       # and it is the newest visible word
-        assert "\\fscx1" not in text.replace("\\fscx100", "")      # no pop
+        for text in parts:
+            assert "\\fscx1" not in text.replace("\\fscx100", "")  # no pop
 
 
 # ---------------------------------------------------------------- plate continuity
@@ -124,33 +131,41 @@ def test_reel_plates_stay_inside_the_reel_box_and_below_the_graphics_floor(tmp_p
     box = safe_zones.safe_box("reel")
     assert pills and all(safe_zones.inside(p, box) for p in pills)
     assert all(p[1] >= safe_zones.caption_band_top() and p[1] > safe_zones.graphics_box()[3] for p in pills)
-    assert all(p[3] - p[1] == REEL_PLATE_H for p in pills)       # one plate height per Reel
+    # QF-87 (decision QF-24/QF-87 layout, 2026-11-09): one plate height per line count: a one-line plate is
+    # REEL_PLATE_H, a two-line plate holds its measured ink (_caption_two_line_geometry), inside the band (was all one)
+    from src.video_composer import _caption_band_height
+    assert all(p[3] - p[1] == REEL_PLATE_H or REEL_PLATE_H < p[3] - p[1] <= _caption_band_height() for p in pills)
+    assert any(p[3] - p[1] == REEL_PLATE_H for p in pills)
     # 20 px over the platforms' band (was 8); QF-24 (decision QF-24/QF-87 layout, deliberate change): the organic
     # band starts at y 1370 (the ads one at 1248, so the pills ended at 1228)
     assert all(1350 <= p[3] <= 1370 - 20 for p in pills)
 
 
 def test_the_plate_is_sized_to_the_line_libass_draws(tmp_path):
-    words = _timed("Beneath Cappadocia lies")
+    # QF-87 (decision QF-24/QF-87 layout, 2026-11-09): BENEATH CAPPADOCIA LIES now draws on two lines (it is wider
+    # than the budget in genuine small capitals), so the one-line rule is checked on BENEATH CAPPADOCIA
+    words = _timed("Beneath Cappadocia")
     path, _ = _build(tmp_path, words)
     (x0, _, x1, _), = caption_pills(path)
     from src.config import FONT_SIZE   # item 2 (2026-11-03): the caption size, 80 px (was a literal 72)
-    drawn = _caption_text_width(["Beneath", "Cappadocia", "lies"], FONT_SIZE, drawn=True)
-    assert drawn > _caption_text_width(["Beneath", "Cappadocia", "lies"], FONT_SIZE)   # the em libass draws is larger
+    drawn = _caption_text_width(["Beneath", "Cappadocia"], FONT_SIZE, drawn=True)
+    assert drawn > _caption_text_width(["Beneath", "Cappadocia"], FONT_SIZE)   # the em libass draws is larger
     # K1 (operator decision, 2026-11-04): the plate is the ink at the burst's own size plus 28 px a side; at 40 px a
     # side it was capped at 696 px, so the size the ink was measured at did not show
     from src.video_composer import _caption_fit_size
-    size = _caption_fit_size("Beneath Cappadocia lies")
-    drawn_at_size = _caption_text_width(["Beneath", "Cappadocia", "lies"], size, drawn=True)
+    size = _caption_fit_size("Beneath Cappadocia")
+    drawn_at_size = _caption_text_width(["Beneath", "Cappadocia"], size, drawn=True)
     assert x1 - x0 == min(round(drawn_at_size + 56), 696)
 
 
 def test_the_capitals_are_optically_centred_in_the_plate(tmp_path):
-    path, ass = _build(tmp_path, _timed("Beneath Cappadocia lies"))
+    # QF-87 (decision QF-24/QF-87 layout, 2026-11-09): checked on a one-line burst (BENEATH CAPPADOCIA LIES draws
+    # on two lines now), in the caption face RR Caption (Anton's metrics, its own small capitals)
+    path, ass = _build(tmp_path, _timed("Beneath Cappadocia"))
     (_, y0, _, y1), = caption_pills(path)
     (_, _, text), = _events(ass, "CapText")[-1:]
     cy = int(re.search(r"\\pos\(\d+,(\d+)\)", text).group(1))
-    _, asc, desc = _font_vmetrics("Anton")
+    _, asc, desc = _font_vmetrics("RR Caption")
     from src.config import FONT_SIZE_ASS   # item 2 (2026-11-03): 142 for 80 px (was a literal 128, the 72 px size)
     baseline_y = cy - FONT_SIZE_ASS / 2 + asc * FONT_SIZE_ASS / (asc + desc)   # \an5 centres the line box on \pos
     cap_top = baseline_y - REEL_CAP_H
@@ -274,10 +289,10 @@ def test_a_hedge_turns_gold_only_when_its_figure_is_revealed(tmp_path):
     seen = 0
     for _, _, t in _events(ass, "CapText"):
         words = {w: c for c, w in _visible_words(t)}
-        if "ROUGHLY" not in words:
+        if "roughly" not in words:     # QF-87 (decision QF-24/QF-87 layout, 2026-11-09): the narration's case (was ROUGHLY)
             continue
         seen += 1
-        assert (words["ROUGHLY"] == COL_EMPHASIS) == ("280" in words)    # bone alone, gold beside 280
+        assert (words["roughly"] == COL_EMPHASIS) == ("280" in words)    # bone alone, gold beside 280
     assert seen >= 2
 
 
@@ -296,8 +311,8 @@ def test_a_hedge_is_never_gold_on_a_plate_without_its_figure(tmp_path):
     _, ass = _build(tmp_path, words, emphasis=["280 feet"])
     for _, _, t in _events(ass, "CapText"):
         words_shown = {w: c for c, w in _visible_words(t)}
-        if "ROUGHLY." in words_shown:
-            assert words_shown["ROUGHLY."] != COL_EMPHASIS
+        if "roughly." in words_shown:  # QF-87: the narration's case
+            assert words_shown["roughly."] != COL_EMPHASIS
 
 
 def test_the_contrast_record_measures_the_colours_the_file_draws():
@@ -327,9 +342,11 @@ def test_libass_font_problems_names_a_missing_face_and_a_synthetic_weight(tmp_pa
     (only_variable / "Montserrat-Variable.ttf").write_bytes((fonts / "Montserrat-Variable.ttf").read_bytes())
     missing = libass_font_problems(only_variable, [("Montserrat", 700)])
     assert len(missing) == 1 and "no bundled font" in missing[0]
-    # freeze step 1 (operator decision 2026-11-04): Montserrat 700 resolves in the bundled fonts; a face still missing
-    # there is named
-    assert libass_font_problems(fonts, [("Montserrat", 700)]) == []
+    # QF-87 (one Montserrat source): the 16:9 face is RR Sans, the 700 instance derived from Montserrat-Variable.ttf;
+    # it resolves with the derived file (was the bundled Montserrat-Bold.ttf, gone), Montserrat 700 is named missing
+    from src.font_assets import WIDE_FAMILY, derived_font
+    assert libass_font_problems(fonts, [(WIDE_FAMILY, 700)], [derived_font(WIDE_FAMILY)]) == []
+    assert len(libass_font_problems(fonts, [("Montserrat", 700)])) == 1
     black = libass_font_problems(fonts, [("Montserrat Black", 900)])
     assert len(black) == 1 and "no bundled font" in black[0]
     thin = libass_font_problems(fonts, [("Montserrat Thin", 700)])

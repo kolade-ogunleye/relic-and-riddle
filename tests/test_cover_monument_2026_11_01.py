@@ -23,7 +23,9 @@ def _draw(copy, monkeypatch):
 def test_the_figure_is_the_hero_and_not_repeated(monkeypatch) -> None:
     out, lay, drawn = _draw(GUMBAZ, monkeypatch)
     names = {e["name"] for e in lay.elements}
-    assert {"figure", "figure_unit", "title_2", "eyebrow", "tagline", "brand"} <= names
+    # QF-87 (row rule: a profile-grid masthead is 9 px cap height at 124 px or absent): at BRAND_PX it is 5.2 px, so a cover draws none and lay.meta['masthead'] says why (was: "brand" among the elements)
+    assert {"figure", "figure_unit", "title_2", "eyebrow", "tagline"} <= names and "brand" not in names
+    assert lay.meta["masthead"]["shown"] is False
     assert "title_1" not in names                  # "THE 144-FOOT" said nothing the figure does not
     assert "144-FOOT" not in drawn and "WHISPERING DOME" in drawn and "FT" in drawn
     assert lay.meta["monument"] == {"number": "144", "unit": "FT", "from": "line1"}

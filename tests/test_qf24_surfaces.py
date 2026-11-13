@@ -101,11 +101,13 @@ def test_the_hook_plate_centres_on_the_box_axis_with_its_masthead_inside(signed,
     plan = fc.hook_plan(T._photo(tmp_path / "sky.jpg", "sky"), eyebrow="The Richat ring")
     assert plan.meta["anchors"]["position"] == "plate"
     e = {x.name: x for x in plan.elements}
-    mast = fc._union_box([e["brand"].box, e["brand_mark"].box])
-    assert REEL_RECT[0] <= mast[0] and mast[2] <= REEL_RECT[2], mast
+    # QF-87 (lander ruling 2026-11-13: masthead >= 9 px at the 124 px tile or absent, the hook frame too): no masthead
+    # at 5.2 px; the claim's lines centre on the box axis inside the box (was: the masthead centred on it)
+    assert "brand" not in e and "brand_mark" not in e
     for x in plan.elements:
         assert REEL_RECT[0] <= x.box[0] and x.box[2] <= REEL_RECT[2], (x.name, x.box)
-    assert abs((mast[0] + mast[2]) / 2 - 480) <= 3
+    titles = [x.box for n, x in e.items() if n.startswith("title_")]
+    assert titles and all(abs((b[0] + b[2]) / 2 - 480) <= 3 for b in titles), titles
 
 
 def test_the_stress_myth_longest916_is_a_declared_refusal(signed):

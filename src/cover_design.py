@@ -120,6 +120,7 @@ EYEBROW_QUALIFIER_GAP = 44                           # the eyebrow's ink foot to
 GRID_WIDTHS = (124, 180)                             # the profile grid's tile widths on phones (3:4 crop)
 GRID_SCALE = tuple(w / 1080 for w in GRID_WIDTHS)
 QUALIFIER_GRID_CAP = 9                               # px of cap height a qualifier keeps at 124 px wide
+MASTHEAD_GRID_CAP = 9                                # QF-87: a cover's masthead is this tall at 124 px wide, or absent
 EYEBROW_PX, EYEBROW_MIN, EYEBROW_TRACK = 40, 36, 4.0   # Montserrat 800 tracked capitals, every style (2026-11-02)
 TAGLINE_PX, TAGLINE_MIN = 38, 32                        # never under 32 px: at 24-30 it vanished in the grid
 TAGLINE_TRACK = 3.0     # round 4: the deck's tracked capitals (~+80/1000 at 38 px), like the eyebrow; it was the
@@ -384,7 +385,7 @@ def _mast_scrim(im, lay, xy, font, plate):
     return im, plate
 
 
-def _brand(im, lay, centered=False, paper=False, left=None, centre=540):
+def _brand(im, lay, centered=False, paper=False, left=None, centre=540, grid_delivery=False):
     """The masthead: the gold diamond mark, then RELIC & RIDDLE, at a measured contrast like every other line.
 
     40 px Cinzel Bold (2026-11-01): at 32 px regular it was 11 px tall on a 390 px phone and a smear in the
@@ -392,8 +393,17 @@ def _brand(im, lay, centered=False, paper=False, left=None, centre=540):
     field) the name is ink and the mark dark gold. On photographs the name is always bone with the solved ink
     halo (brand.PLACE_TARGET), as the carousel header is: a mean-luminance switch between ink and bone, with the
     halo disabled, left it unreadable on mid-tone or busy photographs.
+
+    QF-87: `grid_delivery` (a cover, which the profile grid shows at 124 px wide) draws the masthead only when its
+    cap height there is at least MASTHEAD_GRID_CAP px; under it the masthead is absent (at BRAND_PX it is about
+    5 px: a smear, not a mark) and lay.meta["masthead"] says why. The grid proof holds a drawn one to the same floor.
     """
     font = get_font("Cinzel", BRAND_PX, weight=700)
+    if grid_delivery and cap_h_of(font) * GRID_SCALE[0] < MASTHEAD_GRID_CAP:
+        if lay is not None:
+            lay.meta["masthead"] = {"shown": False, "cap_124": round(cap_h_of(font) * GRID_SCALE[0], 1),
+                                    "reason": f"under {MASTHEAD_GRID_CAP} px cap height at profile-grid size"}
+        return im
     measure = ImageDraw.Draw(im)
     name_w = text_size(measure, BRAND_TEXT, font)[0] + BRAND_TRACK * (len(BRAND_TEXT) - 1)
     group = 2 * MARK_R + MARK_GAP + name_w
@@ -1008,7 +1018,7 @@ def _monument(im, copy, lay, tight, source, focus, figure=None):
     if lay is not None:
         lay.meta["scrim"] = {"box": [margin, top, stack_right, scrim_foot], "strength": MONUMENT_SCRIM,
                              "feather": MONUMENT_SCRIM_FEATHER}
-    im = _brand(im, lay)
+    im = _brand(im, lay, grid_delivery=True)
 
     y = top
     plates = {}
@@ -1251,7 +1261,7 @@ def _render(im, copy, style, lay, tight, source, focus, figure):
                         full_width=full)
         im = _shade(im, top + 10, 1920, strength=0.84 if style == "badge" else 0.78, feather=100,
                     foot=(top + height + BADGE_FOOT[0], BADGE_FOOT[1], BADGE_FOOT[2]) if full else None)
-        im = _brand(im, lay)
+        im = _brand(im, lay, grid_delivery=True)
         return _paint(im, rows, margin, top, False, lay)
     if paper:
         # Round 3: the photograph appears once, inside the card, on a flat ink mat (no blurred continuation of
@@ -1265,7 +1275,7 @@ def _render(im, copy, style, lay, tight, source, focus, figure):
         im = _shade(im, 420, 1500, strength=1.0, feather=180)
         # Ink is an editorial ground, not a colour grade applied to the photograph.
         ImageDraw.Draw(im).rectangle((0, 420, 1079, 1499), fill=brand.INK + (255,))
-    im = _brand(im, lay, centered, paper)
+    im = _brand(im, lay, centered, paper, grid_delivery=True)
     if style == "minimal":
         # Measured ink to ink (2026-11-02 round 2): the masthead's foot to the eyebrow's caps MINIMAL_GAPS[0], the
         # eyebrow's foot to the title's caps MINIMAL_GAPS[1]. Rows are placed by their ascender line, so each gap
@@ -1440,7 +1450,7 @@ PROVENANCE_PX, PROVENANCE_PAD = 30, (14, 10)
 # but must never be the only carrier of a fact-bearing word (a qualifier, a unit, a date).
 # r7: the hedge line ("qualifier") is a hook like the monument's kicker: it carries the figure's qualifier.
 GRID_HOOK = {"title_1": 9, "title_2": 9, "figure": 9, "figure_unit": 9, "figure_qualifier": 9,
-             "qualifier": QUALIFIER_GRID_CAP, "brand": 5}
+             "qualifier": QUALIFIER_GRID_CAP, "brand": MASTHEAD_GRID_CAP}
 GRID_TEXTURE = ("eyebrow", "tagline", "figure_dim", "provenance")
 CROP_34 = (0, 240, 1080, 1680)
 

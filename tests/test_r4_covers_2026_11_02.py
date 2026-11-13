@@ -273,8 +273,9 @@ def test_paper_card_fills_its_window_with_a_reviewed_photo() -> None:
 def test_paper_card_margin_is_even_around_the_masthead() -> None:
     _, lay = _cover(GUMBAZ, "depth_sandwich")
     card = lay.meta["sandwich"]["card"]
-    brand_box = next(e["box"] for e in lay.elements if e["name"] == "brand")
-    assert 420 <= card[1] and abs((brand_box[1] - card[1]) - 36) <= 4
+    # QF-87 (row rule: a profile-grid masthead is 9 px cap height at 124 px or absent): at BRAND_PX it is 5.2 px, so a cover draws none and lay.meta['masthead'] says why; the card keeps its top (was: the masthead 36 px under the card's top edge)
+    assert not any(e["name"] == "brand" for e in lay.elements) and lay.meta["masthead"]["shown"] is False
+    assert 420 <= card[1]
     deck = _plates(lay, "tagline")[0]
     assert card[3] - deck.box[3] >= 32
 

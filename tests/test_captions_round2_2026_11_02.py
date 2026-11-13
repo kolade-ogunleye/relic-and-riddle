@@ -97,7 +97,11 @@ def _plain(tagged):
 def test_the_phrase_builder_tests_the_full_caption_size_not_the_smallest():
     phrase = "underground for thousands"  # fits at 48 px (the old test size), not at 72 px
     assert _caption_text_width(phrase.split(), 48) <= MAX_CAPTION_WIDTH
-    assert not _fits_caption_width(phrase)
+    # QF-87 (decision QF-24/QF-87 layout, 2026-11-09): it fits at the full size on two lines now (reel_caption_lines),
+    # never on one: the builder still tests the full size, not the smallest
+    from src.video_composer import _caption_ink_width, _ink_budget, reel_caption_lines
+    assert _caption_ink_width(phrase.split(), FONT_SIZE) > _ink_budget()
+    assert reel_caption_lines(phrase) == (1, FONT_SIZE) and _fits_caption_width(phrase)   # UNDERGROUND / FOR THOUSANDS
     assert _fits_caption_width("a single stone")
 
 
@@ -129,7 +133,14 @@ def test_bursts_keep_one_size_across_a_realistic_narration(tmp_path):
 
 def test_only_a_single_over_long_word_shrinks_and_not_below_60():
     assert CAPTION_MIN_SIZE >= 60
-    assert CAPTION_MIN_SIZE <= _caption_fit_size("Pseudoarchaeoastronomical") < FONT_SIZE
+    # QF-87 (decision QF-24/QF-87 layout, 2026-11-09): the genuine small capitals are wider than the 82% capitals, so this
+    # 25-letter word needs 52 px to stay inside the safe width; below CAPTION_MIN_SIZE only as far as that requires
+    # (was 60 <= size): one px larger leaves the ink budget, and it never goes under CAPTION_HARD_MIN
+    from src.video_composer import CAPTION_HARD_MIN, _caption_ink_width, _ink_budget
+    size = _caption_fit_size("Pseudoarchaeoastronomical")
+    assert CAPTION_HARD_MIN < size == 52 < CAPTION_MIN_SIZE
+    assert _caption_ink_width(["Pseudoarchaeoastronomical"], size) <= _ink_budget() \
+        < _caption_ink_width(["Pseudoarchaeoastronomical"], size + 1)
     words = _timed("It was hidden underground for thousands of years.")
     for p in partition_words_grammatical(words):
         if len(p) > 1:
@@ -142,22 +153,34 @@ def test_upcoming_words_are_transparent_placeholders_and_the_plate_is_fixed(tmp_
     ass = VideoComposer().build_subtitles(words, tmp_path / "c.ass").read_text(encoding="utf-8")
     texts = _events(ass, "CapText")
     boxes = _events(ass, "CapBox")
-    assert len(texts) == len(words)
-    phrases = merge_short_bursts(partition_words_grammatical(words), _fits_caption_width, 5)
+    # QF-87 (decision QF-24/QF-87 layout, 2026-11-09): a two-line burst draws one event per line in each word's interval,
+    # so the events are grouped by interval: one interval per word (was one event per word); the case is the
+    # narration's own (was upper-cased)
+    from src.video_composer import caption_phrases, reel_caption_lines
+    intervals: dict = {}
+    for start, end, text in texts:
+        intervals.setdefault((start, end), []).append(text)
+    assert len(intervals) == len(words) and all(len(v) in (1, 2) for v in intervals.values())
+    groups = list(intervals.items())
+    phrases = caption_phrases(words)
     k = 0
     for bi, phrase in enumerate(phrases):
-        shown = " ".join(_phrase_words(phrase)).upper()
+        shown = " ".join(_phrase_words(phrase))
+        lines = reel_caption_lines(phrase)
         box_start, box_end, _ = boxes[bi]
         for wi in range(len(phrase)):
-            start, end, text = texts[k]
+            (start, end), parts = groups[k]
             k += 1
+            assert len(parts) == (2 if lines else 1)
             assert box_start <= start and end <= box_end + 1e-6             # the plate holds through the burst
-            assert _plain(text) == shown                                     # same layout every event
-            visible, _, hidden = text.partition(CAPTION_HIDDEN)
-            assert len(_plain(visible).split()) == wi + 1
-            assert COL_FUTURE not in visible
+            text = "".join(parts)
+            assert " ".join(_plain(t).strip() for t in parts) == shown       # same layout every event
+            visible = [t.partition(CAPTION_HIDDEN)[0] for t in parts]
+            hidden = [t.partition(CAPTION_HIDDEN)[2] for t in parts]
+            assert sum(len(_plain(v).split()) for v in visible) == wi + 1
+            assert all(COL_FUTURE not in v for v in visible)
+            assert sum(len(_plain(h).split()) for h in hidden) == len(phrase) - wi - 1
             assert (CAPTION_HIDDEN in text) == (wi < len(phrase) - 1)
-            assert len(_plain(hidden).split()) == len(phrase) - wi - 1
 
 
 def test_gold_marks_key_terms_only(tmp_path):
@@ -166,24 +189,27 @@ def test_gold_marks_key_terms_only(tmp_path):
     for _, _, text in _events(ass, "CapText"):
         for colour, word in re.findall(r"\\c(&H[0-9A-F]+&)[^}]*\}([^{]*)", text):
             if colour == COL_EMPHASIS:
-                assert "DERINKUYU".startswith(word.strip()) or word.strip() in "DERINKUYU"
+                # QF-87 (decision QF-24/QF-87 layout, 2026-11-09): the narration's own case (was DERINKUYU)
+                assert "Derinkuyu".startswith(word.strip()) or word.strip() in "Derinkuyu"
 
 
 # ---------------------------------------------------------------- 3. casing follows the narration
+# QF-87 (decision QF-24/QF-87 layout, 2026-11-09): the word is one run at full scale in the narration's own case; the caption
+# face draws its lower case as Anton's small-capital glyphs (was capitals scaled to 82%)
 @pytest.mark.parametrize("word, runs", [
-    ("concrete", [("82", "CONCRETE")]),
-    ("Roman", [("100", "R"), ("82", "OMAN")]),
-    ("stone?", [("82", "STONE?")]),
+    ("concrete", [("100", "concrete")]),
+    ("Roman", [("100", "Roman")]),
+    ("stone?", [("100", "stone?")]),
     ("1963,", [("100", "1963,")]),
     ("BC", [("100", "BC")]),
-    ("us", [("82", "US")]),
+    ("us", [("100", "us")]),
     ("I", [("100", "I")]),
-    ("self-healing", [("82", "SELF-HEALING")]),
+    ("self-healing", [("100", "self-healing")]),
 ])
 def test_full_size_initials_only_where_the_narration_has_a_capital(word, runs):
     tag = format_word_caption(word, "&H00FFFFFF&", False, False, False)
     assert re.findall(r"fscx(\d+)\\fscy\d+\}([^{]*)", tag) == runs
-    assert _plain(tag) == word.upper()
+    assert _plain(tag) == word
 
 
 def test_caption_characters_still_equal_the_narration(tmp_path):
@@ -193,11 +219,17 @@ def test_caption_characters_still_equal_the_narration(tmp_path):
     # round-4 base, operator decision: the HEAD-regression gate); was the bare partition and merge
     from src.video_composer import caption_phrases
     phrases = caption_phrases(words)
-    finals = [e[2] for e in _burst_events(ass, "CapText") if CAPTION_HIDDEN not in e[2]]
-    assert [_plain(t) for t in finals] == [" ".join(_phrase_words(p)).upper() for p in phrases]
+    # QF-87 (decision QF-24/QF-87 layout, 2026-11-09): the narration's own case, a two-line burst's two events read in
+    # order (was upper-cased, one event); no lower-case word is drawn as scaled capitals
+    finals: dict = {}
+    for start, end, text in _burst_events(ass, "CapText"):
+        finals.setdefault((start, end), []).append(text)
+    done = [" ".join(_plain(t).strip() for t in parts) for parts in finals.values()
+            if not any(CAPTION_HIDDEN in t for t in parts)]
+    assert done == [" ".join(_phrase_words(p)) for p in phrases]
     lower_words = [w["word"] for w in words if w["word"][0].islower()]
     first_lower = format_word_caption(lower_words[0], "&H00FFFFFF&", False, False, False)
-    assert "fscx100" not in first_lower
+    assert "fscx82" not in first_lower and _plain(first_lower) == lower_words[0]
 
 
 # ---------------------------------------------------------------- 4. timing
@@ -232,7 +264,10 @@ def test_a_burst_shorter_than_0_6_s_joins_a_neighbour(tmp_path):
     ass = VideoComposer().build_subtitles(words, tmp_path / "c.ass").read_text(encoding="utf-8")
     # fix round 1 (operator decision 2026-11-04, the HEAD-regression gate): the drawn bursts keep HEAD 0036b18's join
     # across the sentence end (SPACE. | OK. was a cut HEAD does not make), so one plate, as at HEAD (was 2 in round 2)
-    assert len(_events(ass, "CapBox")) == 1 and len(_events(ass, "CapText")) == 4
+    # QF-87 (decision QF-24/QF-87 layout, 2026-11-09): the four words draw on two lines (VISIBLE FROM | SPACE. OK), one
+    # event per line in each of the four reveal intervals (was 4 one-line events)
+    texts = _events(ass, "CapText")
+    assert len(_events(ass, "CapBox")) == 1 and len({(a, b) for a, b, _ in texts}) == 4 and len(texts) == 8
     paused = [dict(w) for w in words]
     paused[3]["start"] = 2.5                                             # after a long pause it stays alone
     assert len(merge_short_bursts(partition_words_grammatical(paused), _fits_caption_width, 5)) == 2
@@ -259,7 +294,9 @@ def test_widescreen_captions_use_montserrat_bold_brand_colours_and_a_plate(tmp_p
     ass = VideoComposer().build_subtitles(words, tmp_path / "w.ass", width=1920, height=1080,
                                           emphasis=["Kailasa"]).read_text(encoding="utf-8")
     style = next(ln for ln in ass.splitlines() if ln.startswith("Style: CapText,")).split(",")
-    assert style[1] == "Montserrat" and style[7] == "-1"                  # Bold, not the variable font's Thin
+    # QF-87 (one Montserrat source): the static 700 instance derived from Montserrat-Variable.ttf, embedded in the
+    # file (was the bundled Montserrat-Bold.ttf under the family name Montserrat)
+    assert style[1] == "RR Sans" and style[7] == "-1" and "[Fonts]" in ass   # Bold, not the variable font's Thin
     assert int(style[2]) == ass_font_size("Montserrat", 52, 700)
     for stale in ("&HCCCCCC&", "&H999999&", "&H00D7D7&"):
         assert stale not in ass

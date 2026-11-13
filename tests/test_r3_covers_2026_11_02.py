@@ -8,7 +8,6 @@ from PIL import Image, ImageDraw
 
 from src import brand, cover_selector, youtube_thumbnail
 from src.cover_design import (
-    BRAND_TOP,
     figure_check,
     figure_qualifier,
     grid_proof,
@@ -163,20 +162,17 @@ def test_discovery_reviewed_photo_spans_the_full_width() -> None:
 def test_masthead_over_a_bright_sky_uses_a_band_scrim_not_a_boxy_halo() -> None:
     sky = _photo((120, 170, 225))
     _, lay = _cover(GUMBAZ, "badge", photo=sky)
-    brand_el = _names(lay)["brand"]
-    assert lay.meta["mast_scrim"]["strength"] <= 0.75
-    assert brand_el["halo"] <= 0.3 and brand_el["contrast"] >= 4.5 and brand_el["fill"] == list(brand.BONE)
+    # QF-87 (row rule: a profile-grid masthead is 9 px cap height at 124 px or absent): at BRAND_PX it is 5.2 px, so a cover draws none and lay.meta['masthead'] says why: no masthead, so no band scrim over the sky either (was: a band scrim at <= 0.75 under a bone masthead)
+    assert "brand" not in _names(lay) and "mast_scrim" not in lay.meta
+    assert lay.meta["masthead"]["shown"] is False
 
 
 def test_masthead_line_is_locked_on_every_selectable_style() -> None:
-    tops, centres = set(), set()
+    # QF-87 (row rule: a profile-grid masthead is 9 px cap height at 124 px or absent): at BRAND_PX it is 5.2 px, so a cover draws none and lay.meta['masthead'] says why, the same on every selectable style (was: one masthead line, centred, on every style)
     for style in ("badge", "monument", "depth_sandwich"):
         _, lay = _cover(GUMBAZ, style)
-        b, m = _names(lay)["brand"]["box"], _names(lay)["brand_mark"]["box"]
-        tops.add(b[1])
-        centres.add(round((m[0] + b[2]) / 2))
-        assert BRAND_TOP <= b[1] < BRAND_TOP + 20 and 240 <= b[1] and b[3] <= 1680   # inside the 3:4 crop too
-    assert len(tops) == 1 and all(abs(c - 540) <= 2 for c in centres)
+        assert "brand" not in _names(lay) and "brand_mark" not in _names(lay)
+        assert lay.meta["masthead"]["shown"] is False and lay.meta["masthead"]["cap_124"] < 9
 
 
 # --- the paper card ----------------------------------------------------------------------------------------------

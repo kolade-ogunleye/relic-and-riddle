@@ -3770,6 +3770,7 @@ class VideoComposer:
         first_frame_whole: float | None = None,
         cuts: list[float] | None = None,
         graphic_clips: list[tuple[float, float, Path]] | None = None,
+        timeline_offset_s: float = 0.0,
     ) -> Path:
         """Dynamic running-speech kinetic captions:
         1. Grammatical phrasing: sensitive to punctuation (. ? ! …) so every new sentence starts fresh.
@@ -4070,6 +4071,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 
         lines = [header]
         for layer, ts, te, style, txt in raw_events:
+            ts, te = ts + timeline_offset_s, te + timeline_offset_s
             te_clamped = max(te, ts + 0.02)
             lines.append(
                 f"Dialogue: {layer},{self._format_ass_time(ts)},{self._format_ass_time(te_clamped)},{style},,0,0,0,,{txt}"
@@ -4287,6 +4289,8 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         end_card: str = "",
         macro_drifts: Optional[List[int]] = None,
         act_cuts: list[float] | None = None,
+        opening_card: Path | None = None,
+        caption_offset_s: float = 0.0,
     ) -> Path:
         """
         end_card: non-empty ends a Reel on the loop bridge after the narration (src/end_card.py loop_bridge,
@@ -4306,7 +4310,8 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         from .checkpoints import file_inputs, fingerprint
         from .credits import sha256_file
         from .typography import FALLBACK_FILES, FONT_FILES
-        source_inputs = file_inputs([*scene_images, vo_path, bed_path])
+        extra_sources = [opening_card] if opening_card else []
+        source_inputs = file_inputs([*scene_images, vo_path, bed_path, *extra_sources])
         # the fallback faces a still may set a field in (QF-94) are sources too, with their licence evidence
         font_inputs = file_inputs([self.fonts_dir / filename for filename in FONT_FILES.values()]
                                   + [self.fonts_dir / f for f in FALLBACK_FILES.values() if (self.fonts_dir / f).is_file()])
@@ -4317,16 +4322,54 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         if not durations or len(durations) != n:
             durations = [vo_dur / n] * n
 
+        from . import card_composition
+        design_card_inputs = card_composition.cache_inputs([*scene_images, *extra_sources])
+        if opening_card:
+            opening = card_composition.load_contract(opening_card)
+            if (width >= height or opening["kind"] != "hook"
+                    or not opening["caption_clear_until_s"] <= caption_offset_s <= opening["seconds"]
+                    or any(float(w["start"]) < caption_offset_s for w in words)):
+                raise RenderError("Opening hook is not aligned with its complete voice/caption schedule")
+        elif caption_offset_s:
+            raise RenderError("Caption offset requires a verified opening card")
+        caption_durations = list(durations)
+        caption_durations[0] -= caption_offset_s
+        if caption_durations[0] <= 0:
+            raise RenderError("Opening hook cannot replace the first picture interval")
+        caption_words = [{**w, "start": float(w["start"]) - caption_offset_s} for w in words]
+        card_clock = 0.0
+        card_intervals = []
+        for item, duration in zip(scene_images, caption_durations):
+            if card_composition.is_card(item):
+                contract = card_composition.load_contract(item)
+                if (contract["width"], contract["height"]) != (width, height):
+                    raise RenderError("Design card requires its authored native aspect and dimensions")
+                if duration + 1e-6 < contract["seconds"]:
+                    raise RenderError("Design card would be cut before its reading interval")
+                if contract["kind"] == "hook":
+                    raise RenderError("Hook requires an explicit caption-clear opening schedule")
+                beat = {"start": card_clock, "end": card_clock + duration,
+                        "text": " ".join(w["word"] for w in caption_words
+                                         if card_clock <= w["start"] < card_clock + duration)}
+                if not card_composition.matches(item, beat, caption_words):
+                    raise RenderError("Design card does not match its complete authored interval and narration")
+                card_intervals.append({"asset": str(item), "kind": contract["kind"],
+                                       "start": card_clock + caption_offset_s,
+                                       "end": card_clock + duration + caption_offset_s,
+                                       "minimum_read_s": contract["seconds"]})
+            card_clock += duration
+
         # Historical reconstruction badge intervals (crossfades included: reconstruction_badge_intervals)
-        recon_intervals = reconstruction_badge_intervals(scene_images, durations, vo_dur)
+        recon_intervals = reconstruction_badge_intervals(scene_images, caption_durations, vo_dur - caption_offset_s)
 
         ass_path = output_mp4_path.parent / (output_mp4_path.stem + "_captions.ass")
-        self.build_subtitles(words, ass_path, emphasis=emphasis, width=width, height=height,
+        self.build_subtitles(caption_words, ass_path, emphasis=emphasis, width=width, height=height,
                              reconstruction_intervals=recon_intervals,
-                             graphic_intervals=caption_graphic_intervals(scene_images, durations),
+                             graphic_intervals=caption_graphic_intervals(scene_images, caption_durations),
                              first_frame_whole=CAPTION_FIRST_FRAME_WHOLE_S if height > width else None,
-                             cuts=caption_cut_times(durations) if height > width else None,
-                             graphic_clips=caption_graphic_clips(scene_images, durations))
+                             cuts=caption_cut_times(caption_durations) if height > width else None,
+                             graphic_clips=caption_graphic_clips(scene_images, caption_durations),
+                             timeline_offset_s=caption_offset_s)
         caption_overlap = list(getattr(self, "last_caption_graphic_overlap", []) or [])
         # The caption plates are measured in the bundled font; burn them in only if libass draws that font
         # (round 3: with only Montserrat-Variable.ttf bundled, the 16:9 line drew in Inter and ran off its plate).
@@ -4439,10 +4482,17 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 
         # Explicit trim/setpts also makes concat safe for footage with nonzero timestamps.
         for i, clip_dur in enumerate(clip_durs):
-            filter_parts.append(f"[v{i}]trim=duration={clip_dur:.9f},setpts=PTS-STARTPTS,settb=AVTB[c{i}]")
+            # The hook is an added prefix. Start the original first moving
+            # picture with its narration, instead of consuming its early frames
+            # invisibly under the hook and freezing its ending for longer.
+            prefix = (f"tpad=start_mode=clone:start_duration={caption_offset_s:.9f},"
+                      if i == 0 and opening_card else "")
+            filter_parts.append(f"[v{i}]{prefix}trim=duration={clip_dur:.9f},setpts=PTS-STARTPTS,settb=AVTB[c{i}]")
+        # With an opening hook the scene timeline is overlaid by it first; the overlay is then [video_raw].
+        timeline = "video_scenes" if opening_card else "video_raw"
         curr = "[c0]"
         for k in range(n - 1):
-            out = f"[x{k}]" if k < n - 2 else "[video_raw]"
+            out = f"[x{k}]" if k < n - 2 else f"[{timeline}]"
             if fades[k]:
                 off = boundaries[k] - fades[k] / 2
                 filter_parts.append(f"{curr}[c{k + 1}]xfade=transition=dissolve:duration={fades[k]:.9f}:offset={off:.9f}{out}")
@@ -4450,9 +4500,15 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                 filter_parts.append(f"{curr}[c{k + 1}]concat=n=2:v=1:a=0,fps={VIDEO_FPS},settb=AVTB{out}")
             curr = out
         if n == 1:
-            filter_parts.append("[c0]null[video_raw]")
+            filter_parts.append(f"[c0]null[{timeline}]")
 
         input_args += ["-i", str(vo_path), "-i", str(bed_path)]
+        if opening_card:
+            input_args += ["-i", str(opening_card)]
+            filter_parts.append(f"[{n + 2}:v]trim=duration={caption_offset_s:.9f},setpts=PTS-STARTPTS,"
+                                f"scale={width}:{height},setsar=1[{n + 2}hook]")
+            filter_parts.append(f"[{timeline}][{n + 2}hook]overlay=eof_action=pass:repeatlast=0:"
+                                f"enable='lt(t,{caption_offset_s:.9f})'[video_raw]")
         if card:  # the bridge's sound is the bed running on: a bed made for the narration alone would cut out
             import soundfile as sf
             bed_seconds = sf.info(str(bed_path)).duration
@@ -4549,18 +4605,22 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             shutil.rmtree(camera_dir, ignore_errors=True)
         from .encoded_audio import finalize_encoded_audio
         encoded_audio = finalize_encoded_audio(output_mp4_path, profile.target_lufs, profile.target_true_peak)
-        if source_inputs != file_inputs([*scene_images, vo_path, bed_path]):
+        if source_inputs != file_inputs([*scene_images, vo_path, bed_path, *extra_sources]):
             raise RenderError("Source files changed while rendering")
         self.export_subtitles_srt(words, output_mp4_path.with_suffix(".srt"))
         self.export_subtitles_vtt(words, output_mp4_path.with_suffix(".vtt"))
         import json
         manifest = {"master_sha256": sha256_file(output_mp4_path),
                     "audio_mastering": mastering, "encoded_audio": encoded_audio,
-                    "scenes": file_inputs(scene_images), "voiceover": file_inputs([vo_path]),
+                    "scenes": file_inputs([*scene_images, *extra_sources]), "voiceover": file_inputs([vo_path]),
                     "ambient_bed": file_inputs([bed_path]), "fonts": font_inputs,
                     "captions": file_inputs([ass_path, output_mp4_path.with_suffix(".srt"), output_mp4_path.with_suffix(".vtt")]), "words_fingerprint": fingerprint(words),
                     "width": width, "height": height, "renderer_sha256": sha256_file(Path(__file__)),
-                    "end_card": self.last_end_card}
+                    "end_card": self.last_end_card, "design_cards": design_card_inputs,
+                    "design_card_intervals": card_intervals,
+                    "opening_offset_s": caption_offset_s,
+                    "opening_card": ({"asset": str(opening_card), "start": 0.0, "end": caption_offset_s,
+                                      "voice_start": caption_offset_s} if opening_card else None)}
         # QF-10: where an essential image is shown whole, its fit_filter padding is by design; the release gate's
         # bar check reads these spans (always written, so a master without the key was made before QF-10).
         from .image_presentation import full_image_spans

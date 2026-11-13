@@ -16,7 +16,8 @@ A card that cannot be drawn
 whole at its stated sizes refuses (CardRefused) and render_* writes the reason beside the clip instead of a
 partial card. plan_* and frame_at are pure and need no ffmpeg; render_* encode with graphics._encode.
 
-Nothing imports this module yet (the composer has to honour `caption_clear_until_s` before the hook is wired in).
+src/card_composition.py binds the rendered cards to the composer (QF-25): the hook opens a Reel ahead of the narration
+and no caption starts before its `caption_clear_until_s`.
 """
 from __future__ import annotations
 

@@ -10859,7 +10859,7 @@ PHOTO_BUILDERS = frozenset({"numbers", "timeline"})  # builders that draw the he
 
 
 def make_all(payload: dict[str, Any], topic: dict[str, Any], work_dir: Path, photo: Path | None = None, width: int = VIDEO_WIDTH, height: int = VIDEO_HEIGHT,
-             palette: dict[str, Any] | None = None, grade_bias: float | None = None) -> list[Path]:
+             palette: dict[str, Any] | None = None, grade_bias: float | None = None, words=None) -> list[Path]:
     """Every graphic the script and topic support. Never raises: graphics are optional.
     `photo`: the topic's hero photo, used (blurred) behind the number cards.
     `palette`: the run's art direction (src/art_direction.py), made active here because this runs in a
@@ -10980,5 +10980,7 @@ def make_all(payload: dict[str, Any], topic: dict[str, Any], work_dir: Path, pho
             results = [f.result() for f in futures]
 
     made = [p for p in results if p]
+    from . import card_composition
+    made += card_composition.make_all(payload, work_dir / "design_cards", photo=photo, width=width, height=height, words=words)
     log.info("Original graphics (%dx%d): %s", width, height, ", ".join(p.stem.replace("graphic_", "") for p in made) or "none")
     return made

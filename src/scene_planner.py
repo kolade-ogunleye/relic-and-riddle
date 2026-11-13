@@ -312,21 +312,38 @@ def lock_narrative_graphics(beats: List[Dict[str, Any]], graphics: List[Path]) -
 
     The map is placed first (map_beat): on the beat that names the place most strongly, the earliest of equals,
     or the beat after the hook when that is the hook."""
+    from . import card_composition
     locked: Dict[int, Path] = {}
     placed: set = set()
+    for gi, graphic in enumerate(graphics):
+        if card_composition.is_card(graphic):
+            at = next((i for i, beat in enumerate(beats) if i not in locked
+                       and card_composition.matches(graphic, beat)
+                       and (i > 0 or card_composition.load_contract(graphic)["kind"] == "chapter")), None)
+            if at is not None:
+                locked[at] = graphic
+                placed.add(gi)
     # Production Derinkuyu, 2026-10-29: "in Cappadocia, Turkey" (beat 2) and the last line ("Derinkuyu ... between
     # Greece and Turkey") named the place equally; ties went to the latest beat, the graphics cap then dropped the
     # latest locked graphic (the map), and the scale graphic followed the hook onto the place's words instead.
     for gi, g in enumerate(graphics):
         if graphic_match.kind_of(g) == "map":
             at = map_beat(beats, g)
+            if at in locked:
+                # A chapter's authored start cannot move. The locator may use
+                # another actual naming beat, never overwrite the heading.
+                candidates = [(graphic_match.score(g, b.get("text", "")), i)
+                              for i, b in enumerate(beats) if i > 0 and i not in locked]
+                candidates.sort(key=lambda item: (-item[0], item[1]))
+                at = (candidates[0][1] if candidates and candidates[0][0] >= graphic_match.THRESHOLD else None)
             if at is not None:
                 locked[at] = g
                 placed.add(gi)
             break
     pairs = sorted(((graphic_match.score(g, b.get("text", "")), idx, gi)
                     for gi, g in enumerate(graphics) if Path(g).stem.startswith("graphic_") and gi not in placed
-                    for idx, b in enumerate(beats) if idx > 0), reverse=True)
+                    for idx, b in enumerate(beats) if idx > 0
+                    and (not card_composition.is_card(g) or card_composition.matches(g, b))), reverse=True)
     for s, idx, gi in pairs:
         if s < graphic_match.THRESHOLD:
             break
@@ -337,7 +354,7 @@ def lock_narrative_graphics(beats: List[Dict[str, Any]], graphics: List[Path]) -
     # no beat) follows the hook on the next beat, while the narration is still on that subject.
     if len(beats) > 1 and 1 not in locked:
         for gi, g in enumerate(graphics):
-            if (gi not in placed and Path(g).stem.startswith("graphic_")
+            if (gi not in placed and not card_composition.is_card(g) and Path(g).stem.startswith("graphic_")
                     and graphic_match.score(g, beats[0].get("text", "")) >= graphic_match.THRESHOLD):
                 locked[1] = g
                 break
@@ -505,7 +522,8 @@ def caption_order(beats: List[Dict[str, Any]], stills: List[Path]) -> Optional[L
 def plan_scenes(beats: List[Dict[str, Any]], media: List[Path], feedback: str = "",
                 use_storyboard: bool = True, reserve: Optional[List[Path]] = None,
                 pinned: Optional[Dict[int, Path]] = None, attempts: int | None = None,
-                retry_seconds: float | None = None) -> Tuple[List[Path], List[float], str]:
+                retry_seconds: float | None = None,
+                documentary_chapters: bool = False) -> Tuple[List[Path], List[float], str]:
     """Returns (media per beat, duration per beat, notes). A motion hook clip stays first.
     `feedback` lists problems a reviewer found with a previous plan, so they are avoided.
     `use_storyboard`: honour an approved Reel storyboard (its beats are numbered for a Reel; a
@@ -680,7 +698,20 @@ def plan_scenes(beats: List[Dict[str, Any]], media: List[Path], feedback: str = 
         for k, p in pinned.items():
             if 0 <= k < len(chosen) and p in options:
                 chosen[k] = p
-    if hook is not None:
+    from . import card_composition
+    if documentary_chapters:
+        # Act headings are structural navigation, not additional Reel graphics.
+        # Ordinary graphics retain their existing count and share limits above.
+        for k, graphic in locked.items():
+            if (card_composition.is_card(graphic)
+                    and card_composition.load_contract(graphic)["kind"] == "chapter"
+                    and card_composition.matches(graphic, beats[k])):
+                chosen[k] = graphic
+    for k, pick in enumerate(chosen):
+        if card_composition.is_card(pick) and not card_composition.matches(pick, beats[k]):
+            chosen[k] = next((p for p in stills if p not in chosen), stills[k % len(stills)])
+    if hook is not None and not (documentary_chapters and 0 in locked
+                                and card_composition.is_card(locked[0])):
         chosen[0] = hook
     return chosen, durations, notes
 

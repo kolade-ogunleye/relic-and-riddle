@@ -164,6 +164,9 @@ def write_release_report(run, dry_run=False):
                 for path, digest in files.items())
         from .checkpoints import fingerprint
         words = json.loads((master.parent / "words.json").read_text(encoding="utf-8"))
+        if composition.get("opening_card") or composition.get("opening_offset_s"):
+            from .card_composition import composed_words
+            words = composed_words(composition, words)
         valid_composition = valid_composition and composition["words_fingerprint"] == fingerprint(words)
         from .font_evidence import font_rights
         font_results = [font_rights(Path(path)) for path in composition["fonts"]]

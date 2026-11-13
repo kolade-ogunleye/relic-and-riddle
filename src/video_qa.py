@@ -480,6 +480,21 @@ def review_render(video: Path, beats: List[Dict[str, Any]], cover: Path, work_di
         content: List[dict] = []
         for i, (frame, beat) in enumerate(zip(frames, beats), 1):
             content += [{"type": "text", "text": beat_prompt(i, beat, assets)}, image_block(frame, 768)]
+        manifest_path = video.with_suffix(".composition.json")
+        if manifest_path.is_file():
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            opening = manifest.get("opening_card")
+            if opening:
+                from .card_composition import load_contract
+                record = load_contract(Path(opening["asset"]))
+                if record["kind"] != "hook":
+                    raise ValueError("Opening review requires a verified hook")
+                opening_frame = extract_frames(video, [min(.6, float(opening["end"]) / 2)],
+                                               work_dir / "qa_opening")[0]
+                content += [{"type": "text", "text":
+                    "Beat 1 opening card, before narration begins. Check its complete text and picture quality; "
+                    "its caption-clear pre-roll contains no spoken words. Report any issue against beat 1."},
+                    image_block(opening_frame, 768)]
         content += [{"type": "text", "text": "Cover image (thumbnail):"}, image_block(cover, 768),
                     {"type": "text", "text": "Report issues by beat number (use 0 for the cover)."}]
         report = (free_llm.call(SYSTEM, content, QAReport, role="checker", effort="low", max_tokens=4000)

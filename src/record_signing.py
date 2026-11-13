@@ -20,6 +20,8 @@ Kinds signed here:
                  by the release gate, never counted as a fact check (operator decision, 2026-11-04)
   "fact_recheck" a review made before a code update, checked again under the current rules for the content the
                  operator approved (fact_evidence.recheck_record, QF-110): kept beside the run, never in its payload
+  "design_card_asset" rendered card bytes, design metadata and their checked source (card_composition);
+                 source fact-check records are still independently reverified before composition
 
 Where the key is unset nothing is signed (sign returns ""), and verify refuses every record. How a missing key is
 treated is decided by the environment (config.RELIC_ENVIRONMENT, which the production launcher sets to
@@ -50,7 +52,8 @@ from typing import Any
 log = logging.getLogger(__name__)
 
 DOMAIN = b"relic-and-riddle/fact-record/v1"
-KINDS = frozenset(("check_run", "card_check", "gate_check", "fact_review", "human_review", "fact_recheck"))
+KINDS = frozenset(("check_run", "card_check", "gate_check", "fact_review", "human_review", "fact_recheck",
+                   "design_card_asset"))
 SIGNATURE = "signature"
 # A key under MIN_KEY_BYTES, or an .env.example placeholder ("your_..."), is treated as unset (review 2026-11-03,
 # round 4): it is never used to sign, so every record stays untrusted and production fails closed. 32 bytes is the

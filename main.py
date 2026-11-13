@@ -855,6 +855,12 @@ class PipelineCoordinator:
             write_json(run_dir / "script_metadata.json", payload)
             self.db.update_run(run_id, "producing", script_payload=payload)
 
+            # Each authored chapter title receives its own signed fact gate before voice spending.
+            from src import card_composition
+            chapter_sheet = card_composition.check_chapter_fields(
+                payload, DATA_DIR / "fact_sheets" / f"{tid}.json", run_dir / "card-fact-sheet.json")
+            payload["design_card_sheet"] = str(chapter_sheet)
+
             # 3. Audio generation
             from src.audio_engine import VOICEOVER_FILE, rights_file, voiceover_file
             vo_path = voiceover_file(run_dir)
@@ -893,8 +899,9 @@ class PipelineCoordinator:
             from src.config import MUSIC_PREFER
             library_tracks = load_library()
             from src.audio_provenance import audio_source_inputs
-            # The documentary's picture cuts (documentary_cuts, as the render below plans them): its whooshes land on them
-            doc_scene_cuts = caption_cut_times([c["end"] - c["start"] for c in documentary_cuts(words, vo_dur)])
+            # The same complete chapter intervals drive picture cuts and their sound cues.
+            cuts = card_composition.chapter_cuts(documentary_cuts(words, vo_dur), chapters, words, vo_dur)
+            doc_scene_cuts = caption_cut_times([c["end"] - c["start"] for c in cuts])
             bed_inputs = {"voice_and_rules": file_inputs([vo_path, words_path, Path("src/audio_engine.py"),
                                                           Path("src/sound_plan.py"), Path("src/music.py")]),
                           "cues": cue_timestamps, "scene_cuts": doc_scene_cuts, "music_preference": MUSIC_PREFER,
@@ -982,7 +989,7 @@ class PipelineCoordinator:
                 payload["art_direction"] = doc_art
                 # the documentary master grades its photos at bias 0 (compose_deep_dive), so do the graphics' photos
                 fut_graphics = pool.submit(graphics.make_all, payload, topic, graphics_dir, photo=hero_img, width=1920, height=1080, palette=doc_art,
-                                           grade_bias=0.0)
+                                           grade_bias=0.0, words=words)
                 # each glyph event names what it was drawn on (QF-94)
                 from src.font_engine import on_surface
                 fut_callouts = pool.submit(on_surface, "photo callouts", callouts.make, payload, topic, scene_media,
@@ -1013,8 +1020,9 @@ class PipelineCoordinator:
                         seen_hashes.add(h)
                         unique_media.append(p)
 
-            cuts = documentary_cuts(words, vo_dur)
-            extended_scenes, durations, plan_notes = plan_scenes(cuts, unique_media + own_graphics, use_storyboard=False)
+            extended_scenes, durations, plan_notes = plan_scenes(
+                cuts, unique_media + own_graphics, use_storyboard=False, documentary_chapters=True)
+            card_composition.require_chapters(extended_scenes, chapters)
             payload["scene_plan_note"] = degraded_note(plan_notes)
             self._audit_documentary(vo_dur, len(deep_dive_pkg.acts), extended_scenes, durations)
             log.info("Documentary timeline: %d cuts, sum=%.2fs (target=%.2fs); %s",
@@ -1069,8 +1077,10 @@ class PipelineCoordinator:
         cached_artifacts(run_dir, "caption_exports", {"words": words, "rules": file_inputs([Path("src/video_composer.py")])},
             lambda: [self.video_composer.export_subtitles_srt(words, master_mp4.with_suffix(".srt")),
                      self.video_composer.export_subtitles_vtt(words, master_mp4.with_suffix(".vtt"))])
+        from src import card_composition
         from src.image_presentation import policy_inputs
-        render_inputs = {"presentation": policy_inputs(extended_scenes),
+        render_inputs = {"design_cards": card_composition.cache_inputs(extended_scenes),
+                         "presentation": policy_inputs(extended_scenes),
                          "sources": file_inputs([*extended_scenes, vo_path, bed_path, words_path,
                          Path("src/video_composer.py"), Path("src/encoded_audio.py"), Path("src/encoding.py"),
                          Path("src/still_camera.py"), Path("src/camera_motion.py")]),
@@ -2448,11 +2458,18 @@ class PipelineCoordinator:
         self.db.record_music_selection(run_id, music_selection_rows(music))
         StageTimer(run_dir).record("music_and_bed", time.perf_counter() - t0)
 
-        def bed_for_cuts(durations):
+        def bed_for_cuts(durations, *, opening_offset_s=0.0):
             # Picture holds/repairs can remove planned cuts after the first bed was made.
             # Re-mix locally from the selected music and saved plan, without selecting
             # or generating another score, before the master hashes its audio input.
             nonlocal scene_cuts
+            if opening_offset_s:
+                from src import card_composition
+                saved_plan = json.loads((run_dir / "sound_plan.json").read_text(encoding="utf-8"))
+                return card_composition.mix_opening_bed(
+                    self.audio_engine, music, bed_path, words, saved_plan, bed_seconds, vo_dur,
+                    durations, opening_offset_s, sample_rate=profile.audio_sample_rate,
+                    loop_seamless=profile.loop_seamless, end_card=card)
             actual_cuts = caption_cut_times(durations)
             if actual_cuts == scene_cuts:
                 return
@@ -3100,7 +3117,11 @@ class PipelineCoordinator:
             timer.record("image_prep_wait", time.perf_counter() - t0)  # what was left after the bed
         else:
             scene_media, hero_img, low_res = self._prepare_images(scene_media, hero_img, run_dir)
-        beats = segment_beats(words, vo_dur)
+        from src import card_composition
+        design_candidates = card_composition.make_all(
+            payload, run_dir / "graphics" / "design_cards", photo=hero_img,
+            width=config.VIDEO_WIDTH, height=config.VIDEO_HEIGHT, words=words)
+        beats = card_composition.card_cuts(segment_beats(words, vo_dur), design_candidates, words)
         if config.VIDEO_HEIGHT > config.VIDEO_WIDTH:
             from src.image_review import required_photos
             from src.scene_planner import picture_id, script_asks_for_graphics
@@ -3195,7 +3216,8 @@ class PipelineCoordinator:
             from src import art_direction
             art = art_direction.record(run_dir, hero_img)  # the topic's accent and grade bias, recorded in palette.json
             payload["art_direction"] = art
-            fut_graphics = pool.submit(graphics.make_all, payload, topic, run_dir / "graphics", photo=hero_img, palette=art)
+            fut_graphics = pool.submit(graphics.make_all, payload, topic, run_dir / "graphics", photo=hero_img, palette=art,
+                                       words=words)
             # The carousel is not drawn here: only the episode that takes a carousel slot draws it, then (QF-81:
             # seven a week were drawn for three slots). The run records the photos it will be drawn from.
             from src import carousel_lazy
@@ -3397,9 +3419,6 @@ class PipelineCoordinator:
                 log.warning("Parallax rendering failed (%s); using flat camera moves.", e)
             timer.record(f"parallax_attempt{attempt}", time.perf_counter() - t0)
             t0 = time.perf_counter()
-            cached_artifacts(run_dir, "caption_exports", {"words": words, "rules": file_inputs([Path("src/video_composer.py")])},
-                lambda: [self.video_composer.export_subtitles_srt(words, master_mp4.with_suffix(".srt")),
-                         self.video_composer.export_subtitles_vtt(words, master_mp4.with_suffix(".vtt"))])
             render_checkpoint = Checkpoints(run_dir / "stage_cache" / "render")
             from src.script_engine import end_card_share
             from src.end_card import LOOP_LINE, end_card_note, end_card_record
@@ -3410,11 +3429,33 @@ class PipelineCoordinator:
             # with LOOP_LINE off a reworded share line changes nothing in the master, only whether a bridge is there.
             # The 16:9 end screen still draws the line and keys on it in its own render.
             card_key = card_share if LOOP_LINE else bool((card_share or "").strip())
-            if bed_for_cuts is not None:
+            from src import card_composition
+            hook = card_composition.opening_card(run_dir / "graphics" / "design_cards")
+            render_schedule = card_composition.opening_schedule(
+                hook, words, durations, beats, vo_path, bed_path, vo_dur, run_dir / "stage_cache" / "opening")
+            if hook:
+                if bed_for_cuts is None:
+                    raise ValueError("An opening hook requires the normal scheduled music mixer")
+                render_schedule["bed"] = bed_for_cuts(
+                    render_schedule["durations"], opening_offset_s=render_schedule["offset"])
+            elif bed_for_cuts is not None:
                 bed_for_cuts(durations)
-            render_inputs = {"presentation": policy_inputs(scenes),
-                             "media": file_inputs([*scenes, vo_path, bed_path]), "words": words,
-                             "durations": durations, "emphasis": payload.get("emphasis_words"), "end_card": card_key,
+            render_words, render_durations = render_schedule["words"], render_schedule["durations"]
+            render_beats = render_schedule["beats"]
+            payload["opening_card"] = {"file": str(hook) if hook else None,
+                                       "start": 0.0, "end": render_schedule["offset"],
+                                       "offset_s": render_schedule["offset"], "music_from_existing_mixer": bool(hook)}
+            payload["beat_times"] = [{"start": round(float(b["start"]), 2), "text": b["text"]}
+                                     for b in render_beats]
+            cached_artifacts(run_dir, "caption_exports", {"words": render_words,
+                "rules": file_inputs([Path("src/video_composer.py")])},
+                lambda rendered=render_words: [self.video_composer.export_subtitles_srt(rendered, master_mp4.with_suffix(".srt")),
+                                               self.video_composer.export_subtitles_vtt(rendered, master_mp4.with_suffix(".vtt"))])
+            render_inputs = {"design_cards": card_composition.cache_inputs([*scenes, *([hook] if hook else [])]),
+                             "opening_offset_s": render_schedule["offset"],
+                             "presentation": policy_inputs(scenes),
+                             "media": file_inputs([*scenes, render_schedule["voice"], render_schedule["bed"]]), "words": render_words,
+                             "durations": render_durations, "emphasis": payload.get("emphasis_words"), "end_card": card_key,
                              "loop_follow_overlay": bool(config.LOOP_FOLLOW_OVERLAY),   # QF-83: drawn into the master
                              "grade_bias": (payload.get("art_direction") or {}).get("grade_bias") or 0.0,  # part of the master
                              "rules": file_inputs([Path("src/video_composer.py"), Path("src/end_card.py"), Path("src/config.py"),
@@ -3424,7 +3465,9 @@ class PipelineCoordinator:
             self._check_cancel(run_id)
             if not render_checkpoint.reusable("master", render_inputs):
                 self._progress_note(run_id, topic.get("title", run_id), 3, "Synthesizing graphics, stills & motion · rendering the master video")
-                self.video_composer.compose_video(scenes, vo_path, bed_path, words, vo_dur, master_mp4, durations=durations,
+                self.video_composer.compose_video(scenes, render_schedule["voice"], render_schedule["bed"],
+                                                  render_words, render_schedule["total"], master_mp4, durations=render_durations,
+                                                  **({"opening_card": hook, "caption_offset_s": render_schedule["offset"]} if hook else {}),
                                                   emphasis=payload.get("emphasis_words"),
                                                   grade_bias=float((payload.get("art_direction") or {}).get("grade_bias") or 0.0),
                                                   end_card=card_share,
@@ -3445,18 +3488,19 @@ class PipelineCoordinator:
             # master and cover, so the LLM review runs while the audit measures.
             t0 = time.perf_counter()
             qa_pool = concurrent.futures.ThreadPoolExecutor(max_workers=1)
-            fut_qa = qa_pool.submit(review_render, master_mp4, beats, thumb_916, run_dir, scenes)
+            fut_qa = qa_pool.submit(review_render, master_mp4, render_beats, thumb_916, run_dir, scenes)
             # Deterministic quality audit (payload key "self_healing" kept for existing runs)
             try:
                 timeline_cuts = []
                 t_cursor = 0.0
-                for c_idx, (asset, dur) in enumerate(zip(scenes, durations)):
-                    b_txt = beats[c_idx]["text"] if c_idx < len(beats) else ""
+                for c_idx, (asset, dur) in enumerate(zip(scenes, render_durations)):
+                    b_txt = render_beats[c_idx]["text"] if c_idx < len(render_beats) else ""
+                    prefix = render_schedule["offset"] if c_idx == 0 else 0.0
                     timeline_cuts.append({
                         "scene_index": c_idx,
-                        "start": t_cursor,
+                        "start": t_cursor + prefix,
                         "end": t_cursor + dur,
-                        "dur": dur,
+                        "dur": dur - prefix,
                         "text": b_txt,
                         "asset": asset,
                     })
@@ -3465,7 +3509,7 @@ class PipelineCoordinator:
                 quality_audit = QualityAuditor().certify(
                     video_path=master_mp4,
                     timeline=timeline_cuts,
-                    words=words,
+                    words=render_words,
                     run_dir=run_dir,
                     carousel_dir=run_dir / "carousel",
                     story_dir=run_dir / "stories",
@@ -3564,7 +3608,7 @@ class PipelineCoordinator:
         # finding was shown on the card beside "all checks pass" (Nazca, 2026-10-25).
         payload["video_check"] = {"run": qa is not None,
                                   "issues": [{"beat": i.beat, "severity": str(i.severity).lower(), "issue": i.issue,
-                                              "where": beat_where(i.beat, beats)}
+                                              "where": beat_where(i.beat, render_beats)}
                                              for i in (qa.issues if qa is not None else [])]}
         # A beat the fallback cascade covered honestly (a same-kind photo, a detail, film, map, graphic or labelled
         # reconstruction) is a warning when the look says only that the very thing named is not shown; a wrong or
@@ -3587,7 +3631,8 @@ class PipelineCoordinator:
         (run_dir / "script_metadata.json").write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
 
         ledger = generate_provenance_ledger(run_dir, topic, payload, master_mp4,
-                                   vo_path, bed_path, media_items=scenes,
+                                   render_schedule["voice"], render_schedule["bed"],
+                                   media_items=[*scenes, *([hook] if hook else [])],
                                    self_healing=payload.get("self_healing"))
         from src.credits import add_provenance_attributions
         add_provenance_attributions(payload, ledger)

@@ -1,0 +1,24 @@
+{
+  "runs": 34,
+  "reels": 34,
+  "documentaries": 0,
+  "with_words": 34,
+  "fact_sheet_found": 0,
+  "sheet_with_card_fields": 0,
+  "statements": 0,
+  "myths": 0,
+  "quotes": 0,
+  "hook_eligible_statement": 0,
+  "myth_spoken_in_order": 0,
+  "documentary_chapters": 0,
+  "documentary_chapter_cuts_fit": 0,
+  "first_caption_before_clear_today": 33,
+  "first_caption_at_or_after_offset_with_hook": 34,
+  "first_caption_today_s_min_median_max": [
+    0.0,
+    0.0,
+    0.0
+  ],
+  "caption_clear_until_s": 1.4,
+  "hook_offset_s": 1.4
+}

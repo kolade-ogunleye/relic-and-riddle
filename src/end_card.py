@@ -50,7 +50,7 @@ TARGETS = {"band": 30.0, "band_std": 12.0, "outside": 40.0}   # 0-255 luminance 
 TOP = 780                # y of the share line's first row (9:16)
 MAST_TOP = 490           # y of the masthead's cap top (9:16): the composition spreads through the Reel box
 MASTHEAD_W = 740         # the masthead group at cover scale (panel round 2, 2026-11-02: ~200 px wide here, big
-                         # everywhere else); on 9:16 the Reel box's centred width (696) caps it first
+                         # everywhere else); on 9:16 the Reel box's width (735; 696 centred on the ads box) caps it first
 RULE_HALF = 120          # half the gold rule under the masthead
 FOLLOW_GAP = 60          # px from the share block's last row to the follow line
 # The share ask: two lines at the largest of these that fits (operator, 2026-10-29: two lines at >= 54 px), else
@@ -229,16 +229,27 @@ def _masthead(max_w: int) -> dict[str, Any]:
     return best
 
 
+def reel_column(width: int = WIDTH, height: int = HEIGHT) -> tuple[float, int]:
+    """(centre x, width) of the 9:16 card's column: the Reel box, its group centred in it (x 480 at 1080 x 1920).
+    QF-24: the shared organic Reel box (x 113-848) leaves 616 px centred on the frame (its right rail, 232 px, is wider
+    than its left, 113 px), which set the masthead below its cover scale and the share line a size and a line
+    smaller; centred in the box, as the captions are (video_composer.reel_caption_centre_x), the card keeps its
+    reviewed sizes (decided on real renders: docs/reviews/quality-fixes-2026-11/QF-24/README.md)."""
+    x0, _, x1, _ = REEL.box(width, height)
+    return round((x0 + x1) / 2), x1 - x0
+
+
 def layout(share: str, width: int = WIDTH, height: int = HEIGHT) -> dict[str, Any]:
     """Where everything goes. 9:16: the masthead centred at cover scale, a short gold rule, the share line in bone
-    and, unless the share line already says follow, FOLLOW FOR THE NEXT RELIC in tracked gold, all inside the Reel
-    safe area's centred width and spread through its height. 16:9 (the YouTube end screen): the masthead top-left
+    and, unless the share line already says follow, FOLLOW FOR THE NEXT RELIC in tracked gold, all centred in the
+    Reel safe area (reel_column) and spread through its height. 16:9 (the YouTube end screen): the masthead top-left
     in title-safe, then the share line, left-aligned, all left of the end screen's video element and above its
     subscribe button (END_SCREEN_SLOTS); no follow line (the subscribe element asks)."""
     from .typography import drawable, field_font
     landscape = width > height
     words = drawable(share, "Montserrat").split() or ["…"]  # no emoji or missing-glyph boxes (2026-10-29)
     floor = None   # 16:9: the lowest the text column may reach (above the subscribe slot)
+    cx = width / 2
     if landscape:
         x0, y0 = round(width * 0.08), round(height * 0.12)
         max_w = min(END_SCREEN_SLOTS[k][0] for k in END_SCREEN_VIDEO_SLOTS) - END_SCREEN_GAP - x0
@@ -248,7 +259,7 @@ def layout(share: str, width: int = WIDTH, height: int = HEIGHT) -> dict[str, An
         top0 = y0 + m["font"].getbbox("R", anchor="lt")[3] + 40 + 70
         floor = END_SCREEN_SLOTS["subscribe"][1] - END_SCREEN_GAP
     else:
-        max_w = REEL.centred_width(width, height)
+        cx, max_w = reel_column(width, height)
         plan = SHARE_PLAN
     share_font, lines = None, None
     for max_lines, sizes in plan:
@@ -294,7 +305,6 @@ def layout(share: str, width: int = WIDTH, height: int = HEIGHT) -> dict[str, An
         dy = round((by0 + by1) / 2 - (g_top + g_bottom) / 2)
         dy = max(by0 - g_top, min(by1 - g_bottom, dy)) if g_bottom - g_top <= by1 - by0 else by0 - g_top
         mast_top = MAST_TOP + dy
-        cx = width / 2
         mast_x0 = round(cx - mast["width"] / 2)
         mast_xy = (mast_x0 + 2 * mast["mark_r"] + mast["gap"], mast_top)
         mark_c = (mast_x0 + mast["mark_r"], mast_top + (cap[1] + cap[3]) / 2)
@@ -305,15 +315,15 @@ def layout(share: str, width: int = WIDTH, height: int = HEIGHT) -> dict[str, An
     share_bottom = top + len(lines) * line_h
     follow_y = share_bottom + FOLLOW_GAP
     if follow:
-        box = (width / 2 - follow_w / 2, follow_y + ink[1], width / 2 + follow_w / 2, follow_y + ink[3])
+        box = (cx - follow_w / 2, follow_y + ink[1], cx + follow_w / 2, follow_y + ink[3])
     else:   # no follow line: the box is the share block's
         widest = max(probe.textlength(" ".join(ln), font=share_font) for ln in lines)
-        left = align_x if landscape else width / 2 - widest / 2
+        left = align_x if landscape else cx - widest / 2
         box = (left, top, left + widest, share_bottom)
     return {"share_font": share_font, "lines": lines, "line_h": line_h, "follow_font": follow_font, "spacing": spacing,
             "follow_y": follow_y, "box": box, "max_width": max_w, "follow": follow, "top": top,
             "masthead": mast, "masthead_xy": mast_xy, "mark_centre": mark_c, "rule_y": rule_y, "rule": rule,
-            "align_x": align_x, "landscape": landscape, "masthead_top": mast_xy[1],
+            "align_x": align_x, "landscape": landscape, "masthead_top": mast_xy[1], "centre_x": cx,
             "share_widths": [probe.textlength(" ".join(ln), font=share_font) for ln in lines]}
 
 
@@ -372,7 +382,7 @@ def _word_xs(lay: dict[str, Any], width: int) -> list[tuple[int, int, str, float
     out = []
     for li, line in enumerate(lay["lines"]):
         text = " ".join(line)
-        left = lay["align_x"] if lay["align_x"] is not None else width / 2 - probe.textlength(text, font=f) / 2
+        left = lay["align_x"] if lay["align_x"] is not None else lay["centre_x"] - probe.textlength(text, font=f) / 2
         for wi, w in enumerate(line):
             x = left + probe.textlength(" ".join(line[:wi]) + (" " if wi else ""), font=f)
             out.append((li, wi, w, x, lay["top"] + li * lay["line_h"]))
@@ -519,7 +529,7 @@ def frames(last: Image.Image, share: str, stats: dict[str, Any] | None = None, *
     brand_plate = plan_text(rest, lay["masthead_xy"], mast["text"], mast["font"], WHITE, "lt", mast["track"])
     words = _word_xs(lay, width)
     word_plates = [plan_text(rest, (round(x), y), w, lay["share_font"], WHITE) for _, _, w, x, y in words]
-    follow_plate = (plan_text(rest, (width / 2, lay["follow_y"]), FOLLOW, lay["follow_font"], GOLD, "ma", lay["spacing"])
+    follow_plate = (plan_text(rest, (lay["centre_x"], lay["follow_y"]), FOLLOW, lay["follow_font"], GOLD, "ma", lay["spacing"])
                     if lay["follow"] else None)
     extras = end_screen_extras(width) if landscape else None
     kicker_plate = credits_plate = None
@@ -694,7 +704,7 @@ def loop_bridge(last: Image.Image, first: Image.Image, share: str,
         held = Image.fromarray((held_arr * (1 - shape) + ink * shape).clip(0, 255).astype(np.uint8))
         for li, ln in enumerate(lines):
             s = " ".join(ln)
-            x = width / 2 - probe.textlength(s, font=lay["share_font"]) / 2
+            x = lay["centre_x"] - probe.textlength(s, font=lay["share_font"]) / 2
             plates.append(plan_text(held, (round(x), top + li * line_h), s, lay["share_font"], WHITE))
     mix_at = _seam_curve(n_cf, 1 - 1 / total)
     hold_i = min(range(total), key=lambda k: abs(k / FPS - t_hold))
@@ -770,7 +780,7 @@ def _follow_plate(a_img: Image.Image, b_img: Image.Image, a_rate: float, open_pu
     grounds = [_pushed(a_img, 1 + a_rate * (i + 1), width, height) for i in (up[0], up[-1])]
     grounds += [_pulled(b_img, 1 + open_push * (i - total), width, height) for i in (up[0], up[-1])]
     lightest = Image.fromarray(np.maximum.reduce(grounds).clip(0, 255).astype(np.uint8))
-    plate = plan_text(lightest, (width / 2, y), LOOP_FOLLOW, font, WHITE, "ms", spacing, halo_px=LOOP_FOLLOW_HALO,
+    plate = plan_text(lightest, (reel_column(width, height)[0], y), LOOP_FOLLOW, font, WHITE, "ms", spacing, halo_px=LOOP_FOLLOW_HALO,
                       halo_pad=full_halo_pad(LOOP_FOLLOW_HALO), max_halo=1.0)
     if plate.empty:
         return None, "the word did not render"

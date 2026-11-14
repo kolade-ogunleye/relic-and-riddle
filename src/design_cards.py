@@ -148,12 +148,23 @@ HOOK_TOP_AIR = 56           # freeze panel H6: the moved claim block's top stand
                             # ink foot (re-measured, so a smaller masthead moves it up)
 HOOK_TOP_BLOCK = 565        # the claim block's top when moved off the reviewed subject (freeze panel H3: masthead
                             # foot + 56, was 547)
-# freeze panel H1: the claim's size by its line count, the largest whose lines' right ink stays inside x 888
+# freeze panel H1: the claim's size by its line count, the largest whose lines' right ink stays inside TALL_RIGHT (x 888 on the ads box)
 # freeze panel H6 (1): the 2-line ladder from 176 (was 152)
 HOOK_SIZES = {1: (192, 176, 160, 144, 128), 2: (176, 168, 160, 152, 144, 136, 128, 120, 112),
               3: tuple(range(128, 111, -8))}
-HOOK_MEASURE = 788          # flush left from x 100 to the Reel box's right edge (888)
-HOOK_MEASURE_CENTRED = 696  # centred on x 540, inside 192..888
+# The 9:16 cards' edges, in 1080-wide design px, from the one safe-zone statement (QF-24: the shared organic Reel box,
+# x 113-848, graphics to y 1090; they were literals for the ads box, x 100-888, foot 1058): words start on the box's
+# left edge (the box already holds the platforms' clearance; on the graphics' inset edge, x 120, the reviewed long
+# myths no longer fitted their floors), end on its right edge, stop at its graphics foot.
+TALL_LEFT = graphics_box()[0]                        # x 113 (was 100)
+TALL_RIGHT = graphics_box()[2]                       # x 848 (was 888)
+TALL_FOOT = graphics_box()[3]                        # y 1090 (was 1058)
+HOOK_MEASURE = TALL_RIGHT - TALL_LEFT                # flush left from TALL_LEFT to the Reel box's right edge (735)
+# QF-24: the hook's plate position centres on the box's own axis (x 480), as the captions and the end card do: centred
+# on the frame (x 540) the 616 px the organic box leaves there (232..848) set the claim a size smaller and the drawn
+# masthead (634 px with its mark) ran 9 px past the box's right edge
+HOOK_CENTRE_X = round((TALL_LEFT + TALL_RIGHT) / 2)   # x 480 (540 on the ads box: its centred width, 192..888)
+HOOK_MEASURE_CENTRED = HOOK_MEASURE                  # centred on HOOK_CENTRE_X, the box edge to edge (616: 232..848)
 HOOK_EYEBROW_ALPHA = 0.8    # freeze panel H2: the eyebrow in BONE at this alpha, so the claim holds the only gold type
 HOOK_SCRIM_HUE = (15.0, 55.0)   # freeze panel H5: a warm, saturated ground under the block (hue degrees, saturation
 HOOK_SCRIM_SAT = 90             # of 255) gets a soft radial INK scrim behind it
@@ -1432,10 +1443,10 @@ CHAPTER_TALL_SLACK = 12                 # 16:9 (C5): two title lines may stand t
 # title lines grows until their first cap top meets the video's numeral ink top, at most to this x P (so the sizes
 # from 145 px up meet it; smaller two-line sizes keep a gap rather than open the lines further)
 CHAPTER_WIDE_LEAD_MAX = 1.20
-CHAPTER_TALL_MEASURE = 788              # 9:16 (C6): the title measure (HOOK_MEASURE, was 760)
+CHAPTER_TALL_MEASURE = HOOK_MEASURE     # 9:16 (C6): the title measure (788 on the ads box, 760 before C6)
 CHAPTER_THREE_GAIN = 16                 # 9:16 (C6): 3 title lines when they set at least this much larger than 2
-CHAPTER_TALL_CENTRE = 864               # 9:16 (C6): the block's centre (0.45 x 1920), never past 1058
-CHAPTER_TALL_BOX = (288, 1058)          # 9:16: the graphics box's y
+CHAPTER_TALL_CENTRE = 864               # 9:16 (C6): the block's centre (0.45 x 1920), never past TALL_FOOT
+CHAPTER_TALL_BOX = (graphics_box()[1], TALL_FOOT)   # 9:16: the graphics box's y
 CHAPTER_INK_FOOT = 2                    # design px a round letter's overshoot may run below the last baseline
 CHAPTER_TITLE_T0 = {False: 0.62, True: 0.80}     # s: the first title line's start (C6: 9:16 was 0.55)
 CHAPTER_TITLE_STAGGER = {False: 0.18, True: 0.18}  # s: per title line (C6: 9:16 was 0.12)
@@ -1564,7 +1575,7 @@ def _chapter_wide_rise(off: Sequence[int], P: int, col_tall: int) -> int:
 
 def _chapter_tall_block(P: int, lines: Sequence[str]) -> tuple[int, list[int], int]:
     """9:16 (freeze panel C6): (block height from the kicker rule's top to the last title baseline, the title lines'
-    offsets (A1), the block's top R): centred on min(CHAPTER_TALL_CENTRE, 1058 - H / 2), never above 288."""
+    offsets (A1), the block's top R): centred on min(CHAPTER_TALL_CENTRE, TALL_FOOT - H / 2), never above 288."""
     cap, step = round(0.86 * P), round(0.98 * P)
     off = _lead(lines, P, step, cap)
     H = 340 + 56 + cap + off[-1]
@@ -1645,7 +1656,10 @@ def plan_chapter_card(spec: ChapterCard, sheet: dict, width: int = 1080, height:
             try:
                 fit3 = _w1_ladder(sizes, three)
             except CardRefused:
-                fit3 = None
+                # QF-24 (operator decision 2026-11-05, draw every chapter card): where W2's few steps find only
+                # stop-word ends (on the organic box's 735 px measure "ARCHAEOLOGICAL / EVIDENCE AND / REFUTED
+                # CLAIMS" from 112 to 96 px), the ladder steps on down to its floor for the first clean break
+                fit3 = next(((P, ls) for P in sizes if (ls := three(P)) and not _stop_end(ls)), None)
             if fit3 and (fit is None or fit3[0] >= fit[0] + CHAPTER_THREE_GAIN):
                 fit = fit3
             if fit is None and refused is not None:
@@ -1678,7 +1692,7 @@ def plan_chapter_card(spec: ChapterCard, sheet: dict, width: int = 1080, height:
         if sat is None:
             # the photo's own colour under the block (the toned ground there is dark, where HSV saturation is noise)
             sat = (_sat_under(cover_crop(spec.photo, (geo.width, geo.height)).convert("RGB"),
-                              geo.box((100 if not geo.wide else 153, y0, 1766 if geo.wide else 888, y1)))
+                              geo.box((TALL_LEFT if not geo.wide else 153, y0, 1766 if geo.wide else TALL_RIGHT, y1)))
                    if spec.photo else 0.0)
         plan = _chapter_compose(spec, geo, rest, drift, last_t, seconds, frames, cited, prov, P, lines, num, total_t,
                                 div_x, title_x, edge)
@@ -1708,13 +1722,13 @@ def _chapter_compose(spec: ChapterCard, geo: _Geo, rest: Image.Image, drift: Any
         H, _, R = _chapter_tall_block(P, lines)
         Bn = R + 340
         first = Bn + 56 + cap
-        _kicker(card, "kicker", "CHAPTER", 100, R, GOLD, GOLD, (0.10, 0.30), (0.15, REVEAL))
-        n_start, num_x = 0.25, 100
+        _kicker(card, "kicker", "CHAPTER", TALL_LEFT, R, GOLD, GOLD, (0.10, 0.30), (0.15, REVEAL))
+        n_start, num_x = 0.25, TALL_LEFT
         card.text("numeral", num, "Anton", None, npx, GOLD, num_x, Bn, ("ease", n_start, REVEAL), "display",
                   rise=False, settle=(n_start, FIGURE_SETTLE))
         baselines = [first + o for o in off]
         for k, (ln, b) in enumerate(zip(lines, baselines)):
-            card.text(f"title_{k}", ln, "Anton", None, P, BONE, 100, b, ("ease", t0 + dt * k, REVEAL, TITLE_ALPHA),
+            card.text(f"title_{k}", ln, "Anton", None, P, BONE, TALL_LEFT, b, ("ease", t0 + dt * k, REVEAL, TITLE_ALPHA),
                       "display")
         anchors.update(R=R, Bn=Bn, title_baselines=baselines, block_centre=round(R + H / 2, 1), block_h=H)
         if total_t:
@@ -1987,7 +2001,7 @@ def plan_myth_fact(spec: MythFact, sheet: dict, width: int = 1080, height: int =
 # The myth card (round 4, F): MYTH and FACT as two equal display statements in Anton caps, the myth struck through
 # by a bold GOLD bar on every line and stepped back to STONE_LT, the fact revealed in BONE (its figures GOLD) as the
 # hero. One size for both, the largest of MYTH_SIZES at which both wrap within their line limits and the block
-# fits the text zone (9:16: y 330-1058 over the caption band; 16:9: two columns in title-safe y 129-816, the block
+# fits the text zone (9:16: y 330 to TALL_FOOT over the caption band; 16:9: two columns in title-safe y 129-816, the block
 # centred on y 475 like the 16:9 quote).
 MYTH_SIZES = (128, 120, 112, 104, 96, 92, 88, 84, 80, 76, 72, 68, 64)
 # The ground: the photo toned (toned_ground), dark across the block by MYTH_DIM (tried in turn for the STONE_LT
@@ -1996,8 +2010,8 @@ MYTH_DIM = (0.80, 0.86, 0.91, 0.95)
 MYTH_FEATHER = 300                   # design px over which the ground opens above the block
 MYTH_BLUR = 36                       # design px Gaussian (review 2026-11-03: at least 18; 22 left 200 px caps legible)
 MYTH_LINES = {False: (4, 4), True: (4, 5)}
-MYTH_MEASURE = {False: (788, 788), True: (617, 926)}   # 9:16: x 100 to the Reel box's right edge (888)
-MYTH_X = {False: (100, 100), True: (153, 840)}         # 16:9: the fact's column runs to title-safe's right (1766)
+MYTH_MEASURE = {False: (HOOK_MEASURE, HOOK_MEASURE), True: (617, 926)}   # 9:16: TALL_LEFT to the box's right edge
+MYTH_X = {False: (TALL_LEFT, TALL_LEFT), True: (153, 840)}         # 16:9: the fact's column runs to title-safe's right (1766)
 # freeze panel M10: the 16:9 divider at 786 (was 806), so the myth column gains 17 px and the fact 20
 # review 2026-11-03 (second round, 3): on 16:9 the struck myth outweighed the fact; the myth is set at this share of
 # the fact's size there, so the fact is the hero (9:16 keeps one size: its two statements stack)
@@ -2010,7 +2024,7 @@ MYTH_RATIO = {False: 0.86, True: 0.70}
 MYTH_WIDE_RATIOS = (0.88, 0.86, 0.80, 0.75, 0.70, 0.65, 0.60)   # freeze panel M2: to 0.60
 MYTH_DIVIDER_AIR = 54              # 16:9: design px from the divider to the fact column
 MYTH_TOP = {False: 288, True: 129}          # design px: the block's top, its lowest ink and its centre
-MYTH_BOTTOM = {False: 1058, True: 816}
+MYTH_BOTTOM = {False: TALL_FOOT, True: 816}
 MYTH_CENTRE = {False: 694, True: 475}
 # freeze panel M11 (5): the rule-to-label drop grows by 8 (was 46 / 42) and the label-to-content air gives them up
 # (was 36), so the rule top, every content baseline and the lowest ink stand where they did (chapter kickers too)
@@ -2530,7 +2544,7 @@ class _PanelDrift:
 # burned-in 200 px caps legible above the panel), in its own colour (yellows turned toward amber) under a light even
 # veil (MYTH_OUT_SHADE), so a flat white sky reads white, not grey.
 MYTH_PANEL_AIR = 40          # design px the panel runs past the graphics box (its foot is the caption band's top)
-MYTH_PANEL = (288 - MYTH_PANEL_AIR, 1058 + MYTH_PANEL_AIR)   # safe_zones.graphics_box() y, plus the air
+MYTH_PANEL = (graphics_box()[1] - MYTH_PANEL_AIR, graphics_box()[3] + MYTH_PANEL_AIR)   # its y, plus the air
 MYTH_OUT_SHADE = 0.12        # the INK veil over the photograph outside the panel
 
 
@@ -3239,8 +3253,8 @@ QUOTE_SHORT_PX = {False: 76, True: 72}
 QUOTE_SHORT_LINES = 3
 QUOTE_WIDE_ROOM = 2 * (475 - 160)   # the 16:9 block is centred on y 475 and never starts above y 160
 QUOTE_LINES_LARGE = 6      # lines a 9:16 quote may take at or under QUOTE_SHORT_PX
-QUOTE_TALL_TOP = 300       # design px: the 9:16 block is centred on y 694, never starts above y 300 nor ends past 1058
-QUOTE_TALL_ROOM = 1058 - QUOTE_TALL_TOP
+QUOTE_TALL_TOP = 300       # design px: the 9:16 block is centred on y 694, never starts above y 300 nor ends past
+QUOTE_TALL_ROOM = TALL_FOOT - QUOTE_TALL_TOP   # TALL_FOOT (1090; 1058 on the ads box)
 QUOTE_STEP = 1.28          # x P: the 9:16 quote's line step (1.33 left a six-line quote no room at 64 px)
 
 
@@ -3288,8 +3302,11 @@ def plan_quote_card(spec: QuoteCard, sheet: dict, width: int = 1080, height: int
         sp_px, sp_track = 34, 5
         ci_px = 28
     else:
-        # round 4 (H): the 9:16 quote takes the largest size whose block still fits the text zone (y 340-1058)
-        mark_px, x_mark, x_text, measure, sizes, max_lines = 240, 100, 100, 760, QUOTE_SIZES_TALL, 5
+        # round 4 (H): the 9:16 quote takes the largest size whose block still fits the text zone (y 340 to TALL_FOOT)
+        mark_px, x_mark, x_text, sizes, max_lines = 240, TALL_LEFT, TALL_LEFT, QUOTE_SIZES_TALL, 5
+        # QF-24: to the box's right edge, as the myth and hook cards (735: x 113-848; 760, x 100-860, on the ads box):
+        # 28 px short of it (707) a long work title broke inside the title on the citation's two lines
+        measure = TALL_RIGHT - TALL_LEFT
         sp_px, sp_track = 40, 6
         ci_px = 30
     f_ci = get_font(DATA_FONT, geo.px(ci_px), weight=500)
@@ -3344,7 +3361,7 @@ def plan_quote_card(spec: QuoteCard, sheet: dict, width: int = 1080, height: int
         ci_step = CITE_STEP[False]
         H = (166 + step * (n - 1) + 57 + 47 + sp_extra + (50 if citation else 0)
              + ci_step * max(0, len(cite) - 1))
-        M = max(QUOTE_TALL_TOP, min(round(694 - H / 2), 1058 - H))
+        M = max(QUOTE_TALL_TOP, min(round(694 - H / 2), TALL_FOOT - H))
         first, r_drop, sp_drop, ci_drop = M + 166, 57, 47, 50
     # review 2026-11-03 (second round, 3): the quote's ground is the photo toned, dark behind the block and opening
     # around it (it read as one flat dark grey on every photo)
@@ -3379,7 +3396,7 @@ def plan_quote_card(spec: QuoteCard, sheet: dict, width: int = 1080, height: int
                   sp_base + sp_extra + ci_drop + j * ci_step, ("ease", 0.30, REVEAL), "data")
     if not geo.wide:
         bottom = max(e.box[3] for e in card.elements)
-        if bottom > geo.y(1058):
+        if bottom > geo.y(TALL_FOOT):
             raise CardRefused(f"the quote card's last ink at {bottom} runs into the caption band")
     meta = {"provenance": {"quote": {"source": "card_field", "kind": "quotes", "id": spec.quote_src.id,
                                      "fact_id": qf["fact_id"]}},
@@ -3953,12 +3970,14 @@ def plan_hook_frame(spec: HookFrame, sheet: dict, width: int = 1080, height: int
 
     eb_w = _tracked_width(eyebrow, f_eb, EYEBROW_TRACK) if eyebrow else 0.0
 
+    cx = HOOK_CENTRE_X * width / 1080      # the plate position's axis (QF-24: the box's, not the frame's)
+
     def line_x(ln: str, centred: bool) -> int:
-        """The line's ink-left x: 100 (flush left), or centred on the canvas under the centred masthead."""
+        """The line's ink-left x: TALL_LEFT (flush left), or centred on the box's axis under the centred masthead."""
         if not centred:
-            return 100
+            return TALL_LEFT
         ib = _ink(ln, f_claim)
-        return round(width / 2 - (ib[2] - ib[0]) / 2)
+        return round(cx - (ib[2] - ib[0]) / 2)
 
     def block_box(g, centred=False):
         boxes = []
@@ -3966,8 +3985,8 @@ def plan_hook_frame(spec: HookFrame, sheet: dict, width: int = 1080, height: int
             ib, x = _ink(ln, f_claim), line_x(ln, centred)
             boxes.append((x, b + ib[1], x + ib[2] - ib[0], b + ib[3]))
         if eyebrow:
-            ex = round(width / 2 - eb_w / 2) if centred else 100
-            boxes.append((min(ex, width / 2 - 22) if centred else ex, g["E"] - 46, ex + int(eb_w), g["E"] + 4))
+            ex = round(cx - eb_w / 2) if centred else TALL_LEFT
+            boxes.append((min(ex, cx - 22) if centred else ex, g["E"] - 46, ex + int(eb_w), g["E"] + 4))
         return _union(boxes)
     position = None
     mast_foot = _hook_mast_foot()
@@ -3997,7 +4016,8 @@ def plan_hook_frame(spec: HookFrame, sheet: dict, width: int = 1080, height: int
         box_n = (76, geo["block_top"] - (EYEBROW_SCRIM_AIR if eyebrow else 24), 908, geo["L"] + 30)
         # operator decision 2026-11-04 (review: the rework's flush-left panel stood 48 px off the masthead's axis):
         # on the plate the claim is centred under the centred masthead again, refit to HOOK_MEASURE_CENTRED so its
-        # lines stay inside 192..888; the plate keeps H6 (4)'s moved-up position and feathered edges
+        # lines stay inside the box on its axis (QF-24: x 113..848 on x 480); the plate keeps H6 (4)'s moved-up position and
+        # feathered edges
         try:
             c_fit = hook_fit(HOOK_MEASURE_CENTRED)
         except CardRefused:
@@ -4018,11 +4038,11 @@ def plan_hook_frame(spec: HookFrame, sheet: dict, width: int = 1080, height: int
     n = len(lines)
     on_plate = position == "plate"       # one title panel under the masthead
     centred = on_plate                   # operator 2026-11-04: the panel centred again (the rework's flush left undone)
-    # freeze panel H3: one alignment axis per position: flush left at x 100 on the wash (the masthead's mark too),
+    # freeze panel H3: one alignment axis per position: flush left at TALL_LEFT on the wash (the masthead's mark too),
     # all centred on the plate. The masthead's geometry and layout record; its plate is re-planned at HOOK_TARGET
-    _brand(bg.copy(), lay, left=None if centred else 100)
+    _brand(bg.copy(), lay, left=None if centred else TALL_LEFT, centre=cx)
     xs = [line_x(ln, centred) for ln in lines]
-    eb_x = round(width / 2 - eb_w / 2) if centred else 100
+    eb_x = round(cx - eb_w / 2) if centred else TALL_LEFT
     gold_ks, gold_from = _hook_gold_lines(lines, t)
     gold_k = gold_ks[0]
     rows = []
@@ -4062,7 +4082,7 @@ def plan_hook_frame(spec: HookFrame, sheet: dict, width: int = 1080, height: int
     rule = None
     if eyebrow:
         E = geo["E"]
-        rule = (round(width / 2) - 22, E - 46, round(width / 2) + 22, E - 42) if centred else (100, E - 46, 144, E - 42)
+        rule = (round(cx) - 22, E - 46, round(cx) + 22, E - 42) if centred else (TALL_LEFT, E - 46, TALL_LEFT + 44, E - 42)
         under = _rule_halo(bg, under, rule)
     # the masthead's GOLD diamond: the lighter band no longer darkens it on a yellow wall, so it gets the eyebrow
     # rule's measured soft INK halo, the least that brings its box to NONTEXT_MIN (none on most grounds)

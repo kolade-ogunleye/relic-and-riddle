@@ -384,7 +384,7 @@ def _mast_scrim(im, lay, xy, font, plate):
     return im, plate
 
 
-def _brand(im, lay, centered=False, paper=False, left=None):
+def _brand(im, lay, centered=False, paper=False, left=None, centre=540):
     """The masthead: the gold diamond mark, then RELIC & RIDDLE, at a measured contrast like every other line.
 
     40 px Cinzel Bold (2026-11-01): at 32 px regular it was 11 px tall on a 390 px phone and a smear in the
@@ -400,7 +400,8 @@ def _brand(im, lay, centered=False, paper=False, left=None):
     # One place on every style (2026-11-02 design review: it moved between left and centre): centred on the
     # canvas, the same band in the profile grid's square on every tile.
     # Freeze pass (2026-11-04): a left-set card (the first frame) sets it flush left, its mark's ink at x `left`.
-    x0 = round(540 - group / 2) if left is None else int(left)
+    # QF-24: a 9:16 card centred in the organic Reel box passes its axis (`centre`, x 480 there).
+    x0 = round(centre - group / 2) if left is None else int(left)
     top = BRAND_TOP
     cap = font.getbbox("R", anchor="lt")
     cy = top + (cap[1] + cap[3]) / 2

@@ -1,0 +1,1296 @@
+{
+ "before": {
+  "endcard_0": {
+   "run": "run_wieliczka_salt_mine_1792974672",
+   "masthead_px": 70,
+   "masthead_w": 696,
+   "share_px": 52,
+   "share_lines": 4,
+   "box": [
+    220,
+    785,
+    860,
+    1041
+   ],
+   "contrast": {
+    "brand": 14.13,
+    "share": 15.72
+   }
+  },
+  "bridge_0": {
+   "run": "run_wieliczka_salt_mine_1792974672",
+   "follow_box": [
+    374,
+    744,
+    709,
+    791
+   ],
+   "contrast": 10.35
+  },
+  "endcard_1": {
+   "run": "run_unfinished_obelisk_aswan_1792985912",
+   "masthead_px": 70,
+   "masthead_w": 696,
+   "share_px": 52,
+   "share_lines": 4,
+   "box": [
+    222,
+    785,
+    858,
+    1041
+   ],
+   "contrast": {
+    "brand": 14.41,
+    "share": 15.67
+   }
+  },
+  "bridge_1": {
+   "run": "run_unfinished_obelisk_aswan_1792985912",
+   "follow_box": [
+    374,
+    744,
+    709,
+    791
+   ],
+   "contrast": 6.15
+  },
+  "endcard_2": {
+   "run": "run_nazca_lines_runway_paradox_1793251266",
+   "masthead_px": 70,
+   "masthead_w": 696,
+   "share_px": 52,
+   "share_lines": 4,
+   "box": [
+    268,
+    785,
+    812,
+    1041
+   ],
+   "contrast": {
+    "brand": 14.18,
+    "share": 15.43
+   }
+  },
+  "bridge_2": {
+   "run": "run_nazca_lines_runway_paradox_1793251266",
+   "follow_box": [
+    374,
+    744,
+    709,
+    791
+   ],
+   "contrast": 7.13
+  },
+  "endcard_3": {
+   "run": "run_odessa_catacombs_1792970549",
+   "masthead_px": 70,
+   "masthead_w": 696,
+   "share_px": 52,
+   "share_lines": 4,
+   "box": [
+    233,
+    785,
+    847,
+    1041
+   ],
+   "contrast": {
+    "brand": 15.16,
+    "share": 15.8
+   }
+  },
+  "bridge_3": {
+   "run": "run_odessa_catacombs_1792970549",
+   "follow_box": [
+    374,
+    744,
+    709,
+    791
+   ],
+   "contrast": 7.59
+  },
+  "endcard_4": {
+   "run": "run_nazca_lines_runway_paradox_1793247464",
+   "masthead_px": 70,
+   "masthead_w": 696,
+   "share_px": 52,
+   "share_lines": 4,
+   "box": [
+    268,
+    785,
+    812,
+    1041
+   ],
+   "contrast": {
+    "brand": 14.3,
+    "share": 14.98
+   }
+  },
+  "bridge_4": {
+   "run": "run_nazca_lines_runway_paradox_1793247464",
+   "follow_box": [
+    374,
+    744,
+    709,
+    791
+   ],
+   "contrast": 7.13
+  },
+  "thennow_0": {
+   "run": "run_roman_self_healing_concrete_1793163918",
+   "split": 768,
+   "now_marker": [
+    83,
+    864,
+    "lt"
+   ]
+  },
+  "thennow_1": {
+   "run": "run_singing_colossi_of_memnon_1792952878",
+   "split": 768,
+   "now_marker": [
+    83,
+    864,
+    "lt"
+   ]
+  },
+  "callouts": {
+   "layout": [
+    {
+     "lines": [
+      "STONE DOOR",
+      "RECESS"
+     ],
+     "px": 42,
+     "box": [
+      418,
+      605,
+      782,
+      721
+     ],
+     "conflict": false
+    },
+    {
+     "lines": [
+      "CARVED",
+      "TUFF WALL"
+     ],
+     "px": 42,
+     "box": [
+      104,
+      782,
+      424,
+      898
+     ],
+     "conflict": false
+    }
+   ]
+  },
+  "card_myth_richat_richat": {
+   "ink_x": [
+    96,
+    853
+   ],
+   "ink_foot": 1047,
+   "text": {
+    "fact_0": "IMPACT THEORY DISPROVED",
+    "fact_1": "WHEN SUSPECTED COESITE",
+    "fact_2": "WAS IDENTIFIED",
+    "fact_3": "IN 1969 AS BARITE",
+    "fact_label": "FACT",
+    "myth_0": "THE RICHAT STRUCTURE",
+    "myth_1": "IS AN IMPACT CRATER",
+    "myth_label": "MYTH",
+    "source": "WIKIPEDIA.ORG",
+    "source_label": "SOURCE"
+   },
+   "anchors": {
+    "R": 288,
+    "F": 599,
+    "myth_baselines": [
+     427,
+     504
+    ],
+    "fact_baselines": [
+     746,
+     822,
+     898,
+     974
+    ],
+    "px": 76,
+    "myth_px": 66,
+    "ground_dim": 0.8,
+    "M": 288,
+    "verdict": "false",
+    "strike": "solid",
+    "compact": false,
+    "block": [
+     288,
+     1058
+    ],
+    "pen_total": 0.8,
+    "panel_open": [
+     624,
+     1098,
+     3.6300000000000003,
+     0.4
+    ]
+   }
+  },
+  "card_myth_richat_amber": {
+   "ink_x": [
+    96,
+    853
+   ],
+   "ink_foot": 1047,
+   "text": {
+    "fact_0": "IMPACT THEORY DISPROVED",
+    "fact_1": "WHEN SUSPECTED COESITE",
+    "fact_2": "WAS IDENTIFIED",
+    "fact_3": "IN 1969 AS BARITE",
+    "fact_label": "FACT",
+    "myth_0": "THE RICHAT STRUCTURE",
+    "myth_1": "IS AN IMPACT CRATER",
+    "myth_label": "MYTH",
+    "source": "WIKIPEDIA.ORG",
+    "source_label": "SOURCE"
+   },
+   "anchors": {
+    "R": 288,
+    "F": 599,
+    "myth_baselines": [
+     427,
+     504
+    ],
+    "fact_baselines": [
+     746,
+     822,
+     898,
+     974
+    ],
+    "px": 76,
+    "myth_px": 66,
+    "ground_dim": 0.8,
+    "M": 288,
+    "verdict": "false",
+    "strike": "solid",
+    "compact": false,
+    "block": [
+     288,
+     1058
+    ],
+    "pen_total": 0.8,
+    "panel_open": [
+     624,
+     1098,
+     3.6300000000000003,
+     0.4
+    ]
+   }
+  },
+  "card_myth_long_et_richat": {
+   "ink_x": [
+    96,
+    856
+   ],
+   "ink_foot": 1047,
+   "text": {
+    "fact_0": "WIND AND WATER SLOWLY",
+    "fact_1": "ERODED THE DOME",
+    "fact_2": "OVER MILLIONS OF YEARS",
+    "fact_3": "INTO CONCENTRIC RINGS",
+    "fact_label": "FACT",
+    "myth_0": "EXTRATERRESTRIALS CONSTRUCTED",
+    "myth_1": "THE CIRCULAR RINGS",
+    "myth_label": "MYTH",
+    "source": "NASA.GOV",
+    "source_label": "SOURCE"
+   },
+   "anchors": {
+    "R": 288,
+    "F": 583,
+    "myth_baselines": [
+     422,
+     492
+    ],
+    "fact_baselines": [
+     734,
+     814,
+     894,
+     974
+    ],
+    "px": 80,
+    "myth_px": 60,
+    "ground_dim": 0.8,
+    "M": 288,
+    "verdict": "false",
+    "strike": "solid",
+    "compact": false,
+    "block": [
+     288,
+     1058
+    ],
+    "pen_total": 0.748691,
+    "panel_open": [
+     612,
+     1098,
+     3.578691,
+     0.4
+    ]
+   }
+  },
+  "card_myth_long_et_amber": {
+   "ink_x": [
+    96,
+    856
+   ],
+   "ink_foot": 1047,
+   "text": {
+    "fact_0": "WIND AND WATER SLOWLY",
+    "fact_1": "ERODED THE DOME",
+    "fact_2": "OVER MILLIONS OF YEARS",
+    "fact_3": "INTO CONCENTRIC RINGS",
+    "fact_label": "FACT",
+    "myth_0": "EXTRATERRESTRIALS CONSTRUCTED",
+    "myth_1": "THE CIRCULAR RINGS",
+    "myth_label": "MYTH",
+    "source": "NASA.GOV",
+    "source_label": "SOURCE"
+   },
+   "anchors": {
+    "R": 288,
+    "F": 583,
+    "myth_baselines": [
+     422,
+     492
+    ],
+    "fact_baselines": [
+     734,
+     814,
+     894,
+     974
+    ],
+    "px": 80,
+    "myth_px": 60,
+    "ground_dim": 0.8,
+    "M": 288,
+    "verdict": "false",
+    "strike": "solid",
+    "compact": false,
+    "block": [
+     288,
+     1058
+    ],
+    "pen_total": 0.748691,
+    "panel_open": [
+     612,
+     1098,
+     3.578691,
+     0.4
+    ]
+   }
+  },
+  "card_chapter_act1_richat": {
+   "ink_x": [
+    100,
+    867
+   ],
+   "ink_foot": 1057,
+   "text": {
+    "kicker_label": "CHAPTER",
+    "numeral": "1",
+    "title_0": "INTRODUCTION:",
+    "title_1": "A DESERT LANDMARK",
+    "title_2": "FROM SPACE",
+    "total": "/ 5"
+   },
+   "anchors": {
+    "title_px": 100,
+    "title_lines": [
+     "INTRODUCTION:",
+     "A DESERT LANDMARK",
+     "FROM SPACE"
+    ],
+    "R": 378,
+    "Bn": 718,
+    "title_baselines": [
+     860,
+     958,
+     1056
+    ],
+    "block_centre": 717.0,
+    "block_h": 678,
+    "total_fill": "#F2B630",
+    "total_placement": "after_numeral",
+    "ground_saturation": 134.5,
+    "darken_steps": 0,
+    "drawn_contrast_min": 9.36
+   }
+  },
+  "card_chapter_act1_amber": {
+   "ink_x": [
+    100,
+    867
+   ],
+   "ink_foot": 1057,
+   "text": {
+    "kicker_label": "CHAPTER",
+    "numeral": "1",
+    "title_0": "INTRODUCTION:",
+    "title_1": "A DESERT LANDMARK",
+    "title_2": "FROM SPACE",
+    "total": "/ 5"
+   },
+   "anchors": {
+    "title_px": 100,
+    "title_lines": [
+     "INTRODUCTION:",
+     "A DESERT LANDMARK",
+     "FROM SPACE"
+    ],
+    "R": 378,
+    "Bn": 718,
+    "title_baselines": [
+     860,
+     958,
+     1056
+    ],
+    "block_centre": 717.0,
+    "block_h": 678,
+    "total_fill": "#F2B630",
+    "total_placement": "after_numeral",
+    "ground_saturation": 198.0,
+    "darken_steps": 0,
+    "drawn_contrast_min": 9.08
+   }
+  },
+  "card_chapter_act4_richat": {
+   "ink_x": [
+    100,
+    878
+   ],
+   "ink_foot": 1057,
+   "text": {
+    "kicker_label": "CHAPTER",
+    "numeral": "4",
+    "title_0": "ARCHAEOLOGICAL",
+    "title_1": "EVIDENCE",
+    "title_2": "AND REFUTED CLAIMS",
+    "total": "/ 5"
+   },
+   "anchors": {
+    "title_px": 100,
+    "title_lines": [
+     "ARCHAEOLOGICAL",
+     "EVIDENCE",
+     "AND REFUTED CLAIMS"
+    ],
+    "R": 378,
+    "Bn": 718,
+    "title_baselines": [
+     860,
+     958,
+     1056
+    ],
+    "block_centre": 717.0,
+    "block_h": 678,
+    "total_fill": "#F2B630",
+    "total_placement": "after_numeral",
+    "ground_saturation": 134.5,
+    "darken_steps": 0,
+    "drawn_contrast_min": 9.33
+   }
+  },
+  "card_chapter_act4_amber": {
+   "ink_x": [
+    100,
+    878
+   ],
+   "ink_foot": 1057,
+   "text": {
+    "kicker_label": "CHAPTER",
+    "numeral": "4",
+    "title_0": "ARCHAEOLOGICAL",
+    "title_1": "EVIDENCE",
+    "title_2": "AND REFUTED CLAIMS",
+    "total": "/ 5"
+   },
+   "anchors": {
+    "title_px": 100,
+    "title_lines": [
+     "ARCHAEOLOGICAL",
+     "EVIDENCE",
+     "AND REFUTED CLAIMS"
+    ],
+    "R": 378,
+    "Bn": 718,
+    "title_baselines": [
+     860,
+     958,
+     1056
+    ],
+    "block_centre": 717.0,
+    "block_h": 678,
+    "total_fill": "#F2B630",
+    "total_placement": "after_numeral",
+    "ground_saturation": 198.0,
+    "darken_steps": 0,
+    "drawn_contrast_min": 9.08
+   }
+  },
+  "card_hook_richat": {
+   "refused": "the photo would be enlarged 3.08x (max 2.0)"
+  },
+  "card_hook_amber": {
+   "ink_x": [
+    100,
+    852
+   ],
+   "ink_foot": 1011,
+   "text": {
+    "brand": "RELIC & RIDDLE",
+    "title_0": "ABOUT 40 KM",
+    "title_1": "ACROSS"
+   },
+   "axis": 476,
+   "anchors": {
+    "P": 152,
+    "lines": 2,
+    "baselines": [
+     861,
+     1010
+    ],
+    "T": 730,
+    "E": null,
+    "block_top": 730,
+    "L": 1010,
+    "position": "normal"
+   }
+  },
+  "card_hook_obelisk_plate": {
+   "ink_x": [
+    204,
+    877
+   ],
+   "ink_foot": 816,
+   "text": {
+    "brand": "RELIC & RIDDLE",
+    "title_0": "ABOUT 40 KM",
+    "title_1": "ACROSS"
+   },
+   "axis": 540,
+   "anchors": {
+    "P": 136,
+    "lines": 2,
+    "baselines": [
+     682,
+     815
+    ],
+    "T": 565,
+    "E": null,
+    "block_top": 565,
+    "L": 815,
+    "position": "plate"
+   }
+  },
+  "cards_16x9": {
+   "myth_richat": "[('myth_rule', (153, 218, 197, 222)), ('myth_label', (153, 241, 286, 269)), ('myth_0', (153, 295, 479, 366)), ('myth_1', (153, 388, 548, 459)), ('myth_2', (153, 481, 706, 552)), ('strike_0', (148, 322, 484, 328)), ('strike_1', (148, 415, 553, 421)), ('strike_2', (148, 508, 711, 514)), ('fact_rule', (840, 218, 884, 222)), ('fact_label', (840, 240, 963, 270)), ('fact_0', (840, 295, 1752, 376)), ('fact_1', (840, 387, 1713, 468)), ('fact_2', (840, 479, 1358, 560)), ('fact_3', (840, 571, 1450, 652)), ('source_label', (840, 699, 988, 720)), ('source', (1002, 692, 1297, 719)), ('divider', (786, 218, 788, 735))]",
+   "myth_long_et": "[('myth_rule', (153, 211, 197, 215)), ('myth_label', (153, 234, 286, 262)), ('myth_0', (153, 288, 764, 362)), ('myth_1', (153, 385, 572, 459)), ('myth_2', (153, 482, 574, 556)), ('myth_3', (153, 579, 330, 653)), ('strike_0', (148, 316, 769, 323)), ('strike_1', (148, 413, 577, 420)), ('strike_2', (148, 510, 579, 517)), ('strike_3', (148, 607, 335, 614)), ('fact_rule', (840, 211, 884, 215)), ('fact_label', (840, 233, 963, 263)), ('fact_0', (840, 288, 1745, 372)), ('fact_1', (840, 384, 1477, 468)), ('fact_2', (840, 480, 1714, 564)), ('fact_3', (840, 576, 1666, 660)), ('source_label', (840, 707, 988, 728)), ('source', (1002, 700, 1183, 727)), ('divider', (786, 211, 788, 743))]",
+   "chapter_act1": "[('numeral', (220, 360, 325, 670)), ('divider', (391, 360, 393, 670)), ('kicker_rule', (459, 281, 503, 285)), ('kicker_label', (459, 303, 690, 333)), ('total', (714, 298, 778, 336)), ('title_0', (459, 358, 1747, 484)), ('title_1', (459, 531, 1736, 657))]",
+   "chapter_act4": "[('numeral', (153, 360, 325, 671)), ('divider', (391, 360, 393, 670)), ('kicker_rule', (459, 281, 503, 285)), ('kicker_label', (459, 303, 690, 333)), ('total', (714, 298, 778, 336)), ('title_0', (459, 358, 1724, 470)), ('title_1', (459, 512, 1454, 624))]",
+   "hook": null
+  }
+ },
+ "step_down": {
+  "endcard_0": {
+   "run": "run_wieliczka_salt_mine_1792974672",
+   "masthead_px": 64,
+   "masthead_w": 636,
+   "share_px": 46,
+   "share_lines": 4,
+   "box": [
+    257,
+    860,
+    823,
+    1088
+   ],
+   "contrast": {
+    "brand": 14.61,
+    "share": 16.36
+   }
+  },
+  "endcard_1": {
+   "run": "run_unfinished_obelisk_aswan_1792985912",
+   "masthead_px": 64,
+   "masthead_w": 636,
+   "share_px": 46,
+   "share_lines": 4,
+   "box": [
+    259,
+    860,
+    821,
+    1088
+   ],
+   "contrast": {
+    "brand": 14.79,
+    "share": 15.42
+   }
+  },
+  "endcard_2": {
+   "run": "run_nazca_lines_runway_paradox_1793251266",
+   "masthead_px": 64,
+   "masthead_w": 636,
+   "share_px": 52,
+   "share_lines": 4,
+   "box": [
+    268,
+    846,
+    812,
+    1102
+   ],
+   "contrast": {
+    "brand": 14.53,
+    "share": 15.15
+   }
+  },
+  "endcard_3": {
+   "run": "run_odessa_catacombs_1792970549",
+   "masthead_px": 64,
+   "masthead_w": 636,
+   "share_px": 52,
+   "share_lines": 4,
+   "box": [
+    233,
+    846,
+    847,
+    1102
+   ],
+   "contrast": {
+    "brand": 15.62,
+    "share": 15.81
+   }
+  },
+  "endcard_4": {
+   "run": "run_nazca_lines_runway_paradox_1793247464",
+   "masthead_px": 64,
+   "masthead_w": 636,
+   "share_px": 52,
+   "share_lines": 4,
+   "box": [
+    268,
+    846,
+    812,
+    1102
+   ],
+   "contrast": {
+    "brand": 14.65,
+    "share": 14.84
+   }
+  }
+ },
+ "after": {
+  "endcard_0": {
+   "run": "run_wieliczka_salt_mine_1792974672",
+   "masthead_px": 73,
+   "masthead_w": 726,
+   "share_px": 52,
+   "share_lines": 4,
+   "box": [
+    160,
+    846,
+    800,
+    1102
+   ],
+   "contrast": {
+    "brand": 14.31,
+    "share": 15.55
+   }
+  },
+  "bridge_0": {
+   "run": "run_wieliczka_salt_mine_1792974672",
+   "follow_box": [
+    314,
+    744,
+    649,
+    791
+   ],
+   "contrast": 10.23
+  },
+  "endcard_1": {
+   "run": "run_unfinished_obelisk_aswan_1792985912",
+   "masthead_px": 73,
+   "masthead_w": 726,
+   "share_px": 52,
+   "share_lines": 4,
+   "box": [
+    162,
+    846,
+    798,
+    1102
+   ],
+   "contrast": {
+    "brand": 14.79,
+    "share": 15.38
+   }
+  },
+  "bridge_1": {
+   "run": "run_unfinished_obelisk_aswan_1792985912",
+   "follow_box": [
+    314,
+    744,
+    649,
+    791
+   ],
+   "contrast": 6.06
+  },
+  "endcard_2": {
+   "run": "run_nazca_lines_runway_paradox_1793251266",
+   "masthead_px": 73,
+   "masthead_w": 726,
+   "share_px": 54,
+   "share_lines": 3,
+   "box": [
+    116,
+    874,
+    844,
+    1075
+   ],
+   "contrast": {
+    "brand": 14.69,
+    "share": 15.28
+   }
+  },
+  "bridge_2": {
+   "run": "run_nazca_lines_runway_paradox_1793251266",
+   "follow_box": [
+    314,
+    744,
+    649,
+    791
+   ],
+   "contrast": 7.01
+  },
+  "endcard_3": {
+   "run": "run_odessa_catacombs_1792970549",
+   "masthead_px": 73,
+   "masthead_w": 726,
+   "share_px": 52,
+   "share_lines": 3,
+   "box": [
+    114,
+    878,
+    846,
+    1070
+   ],
+   "contrast": {
+    "brand": 15.64,
+    "share": 15.81
+   }
+  },
+  "bridge_3": {
+   "run": "run_odessa_catacombs_1792970549",
+   "follow_box": [
+    314,
+    744,
+    649,
+    791
+   ],
+   "contrast": 7.11
+  },
+  "endcard_4": {
+   "run": "run_nazca_lines_runway_paradox_1793247464",
+   "masthead_px": 73,
+   "masthead_w": 726,
+   "share_px": 54,
+   "share_lines": 3,
+   "box": [
+    116,
+    874,
+    844,
+    1075
+   ],
+   "contrast": {
+    "brand": 14.81,
+    "share": 14.81
+   }
+  },
+  "bridge_4": {
+   "run": "run_nazca_lines_runway_paradox_1793247464",
+   "follow_box": [
+    314,
+    744,
+    649,
+    791
+   ],
+   "contrast": 7.08
+  },
+  "thennow_0": {
+   "run": "run_roman_self_healing_concrete_1793163918",
+   "split": 768,
+   "now_marker": [
+    131,
+    864,
+    "lt"
+   ]
+  },
+  "thennow_1": {
+   "run": "run_singing_colossi_of_memnon_1792952878",
+   "split": 768,
+   "now_marker": [
+    131,
+    864,
+    "lt"
+   ]
+  },
+  "callouts": {
+   "layout": [
+    {
+     "lines": [
+      "STONE DOOR",
+      "RECESS"
+     ],
+     "px": 38,
+     "box": [
+      432,
+      613,
+      768,
+      721
+     ],
+     "conflict": false
+    },
+    {
+     "lines": [
+      "CARVED",
+      "TUFF WALL"
+     ],
+     "px": 38,
+     "box": [
+      153,
+      798,
+      447,
+      906
+     ],
+     "conflict": false
+    }
+   ]
+  },
+  "card_myth_richat_richat": {
+   "ink_x": [
+    113,
+    668
+   ],
+   "ink_foot": 1079,
+   "text": {
+    "fact_0": "IMPACT THEORY",
+    "fact_1": "DISPROVED WHEN",
+    "fact_2": "SUSPECTED COESITE",
+    "fact_3": "WAS IDENTIFIED",
+    "fact_4": "IN 1969 AS BARITE",
+    "fact_label": "FACT",
+    "myth_0": "THE RICHAT STRUCTURE",
+    "myth_1": "IS AN IMPACT CRATER",
+    "myth_label": "MYTH",
+    "source": "WIKIPEDIA.ORG",
+    "source_label": "SOURCE"
+   },
+   "anchors": {
+    "R": 288,
+    "F": 567,
+    "myth_baselines": [
+     427,
+     504
+    ],
+    "fact_baselines": [
+     714,
+     790,
+     866,
+     942,
+     1018
+    ],
+    "px": 76,
+    "myth_px": 66,
+    "ground_dim": 0.8,
+    "M": 288,
+    "verdict": "false",
+    "strike": "solid",
+    "compact": true,
+    "block": [
+     288,
+     1090
+    ],
+    "pen_total": 0.8,
+    "panel_open": [
+     624,
+     1130,
+     3.6300000000000003,
+     0.4
+    ]
+   }
+  },
+  "card_myth_richat_amber": {
+   "ink_x": [
+    113,
+    668
+   ],
+   "ink_foot": 1079,
+   "text": {
+    "fact_0": "IMPACT THEORY",
+    "fact_1": "DISPROVED WHEN",
+    "fact_2": "SUSPECTED COESITE",
+    "fact_3": "WAS IDENTIFIED",
+    "fact_4": "IN 1969 AS BARITE",
+    "fact_label": "FACT",
+    "myth_0": "THE RICHAT STRUCTURE",
+    "myth_1": "IS AN IMPACT CRATER",
+    "myth_label": "MYTH",
+    "source": "WIKIPEDIA.ORG",
+    "source_label": "SOURCE"
+   },
+   "anchors": {
+    "R": 288,
+    "F": 567,
+    "myth_baselines": [
+     427,
+     504
+    ],
+    "fact_baselines": [
+     714,
+     790,
+     866,
+     942,
+     1018
+    ],
+    "px": 76,
+    "myth_px": 66,
+    "ground_dim": 0.8,
+    "M": 288,
+    "verdict": "false",
+    "strike": "solid",
+    "compact": true,
+    "block": [
+     288,
+     1090
+    ],
+    "pen_total": 0.8,
+    "panel_open": [
+     624,
+     1130,
+     3.6300000000000003,
+     0.4
+    ]
+   }
+  },
+  "card_myth_long_et_richat": {
+   "ink_x": [
+    113,
+    843
+   ],
+   "ink_foot": 1065,
+   "text": {
+    "fact_0": "WIND AND WATER SLOWLY",
+    "fact_1": "ERODED THE DOME",
+    "fact_2": "OVER MILLIONS OF YEARS",
+    "fact_3": "INTO CONCENTRIC RINGS",
+    "fact_label": "FACT",
+    "myth_0": "EXTRATERRESTRIALS CONSTRUCTED",
+    "myth_1": "THE CIRCULAR RINGS",
+    "myth_label": "MYTH",
+    "source": "NASA.GOV",
+    "source_label": "SOURCE"
+   },
+   "anchors": {
+    "R": 312,
+    "F": 617,
+    "myth_baselines": [
+     444,
+     511
+    ],
+    "fact_baselines": [
+     764,
+     840,
+     916,
+     992
+    ],
+    "px": 76,
+    "myth_px": 58,
+    "ground_dim": 0.8,
+    "M": 312,
+    "verdict": "false",
+    "strike": "solid",
+    "compact": false,
+    "block": [
+     312,
+     1076
+    ],
+    "pen_total": 0.748543,
+    "panel_open": [
+     631,
+     1130,
+     3.5785430000000003,
+     0.4
+    ]
+   }
+  },
+  "card_myth_long_et_amber": {
+   "ink_x": [
+    113,
+    843
+   ],
+   "ink_foot": 1065,
+   "text": {
+    "fact_0": "WIND AND WATER SLOWLY",
+    "fact_1": "ERODED THE DOME",
+    "fact_2": "OVER MILLIONS OF YEARS",
+    "fact_3": "INTO CONCENTRIC RINGS",
+    "fact_label": "FACT",
+    "myth_0": "EXTRATERRESTRIALS CONSTRUCTED",
+    "myth_1": "THE CIRCULAR RINGS",
+    "myth_label": "MYTH",
+    "source": "NASA.GOV",
+    "source_label": "SOURCE"
+   },
+   "anchors": {
+    "R": 312,
+    "F": 617,
+    "myth_baselines": [
+     444,
+     511
+    ],
+    "fact_baselines": [
+     764,
+     840,
+     916,
+     992
+    ],
+    "px": 76,
+    "myth_px": 58,
+    "ground_dim": 0.8,
+    "M": 312,
+    "verdict": "false",
+    "strike": "solid",
+    "compact": false,
+    "block": [
+     312,
+     1076
+    ],
+    "pen_total": 0.748543,
+    "panel_open": [
+     631,
+     1130,
+     3.5785430000000003,
+     0.4
+    ]
+   }
+  },
+  "card_chapter_act1_richat": {
+   "ink_x": [
+    113,
+    818
+   ],
+   "ink_foot": 1089,
+   "text": {
+    "kicker_label": "CHAPTER",
+    "numeral": "1",
+    "title_0": "INTRODUCTION:",
+    "title_1": "A DESERT LANDMARK",
+    "title_2": "FROM SPACE",
+    "total": "/ 5"
+   },
+   "anchors": {
+    "title_px": 92,
+    "title_lines": [
+     "INTRODUCTION:",
+     "A DESERT LANDMARK",
+     "FROM SPACE"
+    ],
+    "R": 433,
+    "Bn": 773,
+    "title_baselines": [
+     908,
+     998,
+     1088
+    ],
+    "block_centre": 760.5,
+    "block_h": 655,
+    "total_fill": "#F2B630",
+    "total_placement": "after_numeral",
+    "ground_saturation": 135.5,
+    "darken_steps": 0,
+    "drawn_contrast_min": 9.33
+   }
+  },
+  "card_chapter_act1_amber": {
+   "ink_x": [
+    113,
+    818
+   ],
+   "ink_foot": 1089,
+   "text": {
+    "kicker_label": "CHAPTER",
+    "numeral": "1",
+    "title_0": "INTRODUCTION:",
+    "title_1": "A DESERT LANDMARK",
+    "title_2": "FROM SPACE",
+    "total": "/ 5"
+   },
+   "anchors": {
+    "title_px": 92,
+    "title_lines": [
+     "INTRODUCTION:",
+     "A DESERT LANDMARK",
+     "FROM SPACE"
+    ],
+    "R": 433,
+    "Bn": 773,
+    "title_baselines": [
+     908,
+     998,
+     1088
+    ],
+    "block_centre": 760.5,
+    "block_h": 655,
+    "total_fill": "#F2B630",
+    "total_placement": "after_numeral",
+    "ground_saturation": 199.6,
+    "darken_steps": 0,
+    "drawn_contrast_min": 9.28
+   }
+  },
+  "card_chapter_act4_richat": {
+   "ink_x": [
+    113,
+    828
+   ],
+   "ink_foot": 1089,
+   "text": {
+    "kicker_label": "CHAPTER",
+    "numeral": "4",
+    "title_0": "ARCHAEOLOGICAL",
+    "title_1": "EVIDENCE",
+    "title_2": "AND REFUTED CLAIMS",
+    "total": "/ 5"
+   },
+   "anchors": {
+    "title_px": 92,
+    "title_lines": [
+     "ARCHAEOLOGICAL",
+     "EVIDENCE",
+     "AND REFUTED CLAIMS"
+    ],
+    "R": 433,
+    "Bn": 773,
+    "title_baselines": [
+     908,
+     998,
+     1088
+    ],
+    "block_centre": 760.5,
+    "block_h": 655,
+    "total_fill": "#F2B630",
+    "total_placement": "after_numeral",
+    "ground_saturation": 135.5,
+    "darken_steps": 0,
+    "drawn_contrast_min": 9.33
+   }
+  },
+  "card_chapter_act4_amber": {
+   "ink_x": [
+    113,
+    828
+   ],
+   "ink_foot": 1089,
+   "text": {
+    "kicker_label": "CHAPTER",
+    "numeral": "4",
+    "title_0": "ARCHAEOLOGICAL",
+    "title_1": "EVIDENCE",
+    "title_2": "AND REFUTED CLAIMS",
+    "total": "/ 5"
+   },
+   "anchors": {
+    "title_px": 92,
+    "title_lines": [
+     "ARCHAEOLOGICAL",
+     "EVIDENCE",
+     "AND REFUTED CLAIMS"
+    ],
+    "R": 433,
+    "Bn": 773,
+    "title_baselines": [
+     908,
+     998,
+     1088
+    ],
+    "block_centre": 760.5,
+    "block_h": 655,
+    "total_fill": "#F2B630",
+    "total_placement": "after_numeral",
+    "ground_saturation": 199.6,
+    "darken_steps": 0,
+    "drawn_contrast_min": 8.97
+   }
+  },
+  "card_hook_richat": {
+   "refused": "the photo would be enlarged 3.08x (max 2.0)"
+  },
+  "card_hook_amber": {
+   "ink_x": [
+    113,
+    825
+   ],
+   "ink_foot": 1011,
+   "text": {
+    "brand": "RELIC & RIDDLE",
+    "title_0": "ABOUT 40 KM",
+    "title_1": "ACROSS"
+   },
+   "axis": 469,
+   "anchors": {
+    "P": 144,
+    "lines": 2,
+    "baselines": [
+     869,
+     1010
+    ],
+    "T": 745,
+    "E": null,
+    "block_top": 745,
+    "L": 1010,
+    "position": "normal"
+   }
+  },
+  "card_hook_obelisk_plate": {
+   "ink_x": [
+    124,
+    836
+   ],
+   "ink_foot": 831,
+   "text": {
+    "brand": "RELIC & RIDDLE",
+    "title_0": "ABOUT 40 KM",
+    "title_1": "ACROSS"
+   },
+   "axis": 480,
+   "anchors": {
+    "P": 144,
+    "lines": 2,
+    "baselines": [
+     689,
+     830
+    ],
+    "T": 565,
+    "E": null,
+    "block_top": 565,
+    "L": 830,
+    "position": "plate"
+   }
+  },
+  "cards_16x9": {
+   "myth_richat": "[('myth_rule', (153, 218, 197, 222)), ('myth_label', (153, 241, 286, 269)), ('myth_0', (153, 295, 479, 366)), ('myth_1', (153, 388, 548, 459)), ('myth_2', (153, 481, 706, 552)), ('strike_0', (148, 322, 484, 328)), ('strike_1', (148, 415, 553, 421)), ('strike_2', (148, 508, 711, 514)), ('fact_rule', (840, 218, 884, 222)), ('fact_label', (840, 240, 963, 270)), ('fact_0', (840, 295, 1752, 376)), ('fact_1', (840, 387, 1713, 468)), ('fact_2', (840, 479, 1358, 560)), ('fact_3', (840, 571, 1450, 652)), ('source_label', (840, 699, 988, 720)), ('source', (1002, 692, 1297, 719)), ('divider', (786, 218, 788, 735))]",
+   "myth_long_et": "[('myth_rule', (153, 211, 197, 215)), ('myth_label', (153, 234, 286, 262)), ('myth_0', (153, 288, 764, 362)), ('myth_1', (153, 385, 572, 459)), ('myth_2', (153, 482, 574, 556)), ('myth_3', (153, 579, 330, 653)), ('strike_0', (148, 316, 769, 323)), ('strike_1', (148, 413, 577, 420)), ('strike_2', (148, 510, 579, 517)), ('strike_3', (148, 607, 335, 614)), ('fact_rule', (840, 211, 884, 215)), ('fact_label', (840, 233, 963, 263)), ('fact_0', (840, 288, 1745, 372)), ('fact_1', (840, 384, 1477, 468)), ('fact_2', (840, 480, 1714, 564)), ('fact_3', (840, 576, 1666, 660)), ('source_label', (840, 707, 988, 728)), ('source', (1002, 700, 1183, 727)), ('divider', (786, 211, 788, 743))]",
+   "chapter_act1": "[('numeral', (220, 360, 325, 670)), ('divider', (391, 360, 393, 670)), ('kicker_rule', (459, 281, 503, 285)), ('kicker_label', (459, 303, 690, 333)), ('total', (714, 298, 778, 336)), ('title_0', (459, 358, 1747, 484)), ('title_1', (459, 531, 1736, 657))]",
+   "chapter_act4": "[('numeral', (153, 360, 325, 671)), ('divider', (391, 360, 393, 670)), ('kicker_rule', (459, 281, 503, 285)), ('kicker_label', (459, 303, 690, 333)), ('total', (714, 298, 778, 336)), ('title_0', (459, 358, 1724, 470)), ('title_1', (459, 512, 1454, 624))]",
+   "hook": null
+  }
+ },
+ "cards_16x9_identical": true
+}

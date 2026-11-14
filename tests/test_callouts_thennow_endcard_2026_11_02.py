@@ -26,7 +26,9 @@ def _photo(path, size=(1200, 2100), seed=1):
 def test_callout_plates_stay_in_the_reel_text_box():
     x0, y0, x1, y1 = callouts.text_box(1080, 1920)
     reel = safe_zones.safe_box("reel")
-    assert (x0, x1) == (reel[0] + 18, reel[2] - 18) == (83, 870)
+    # QF-24 (decision QF-24/QF-87 layout, 2026-11-09 and 2026-11-13): the label box runs to the organic Reel box's
+    # edges (113-848), which already hold the platforms' clearance; it was the ads box 18 px in (83, 870)
+    assert (x0, x1) == (reel[0], reel[2]) == (113, 848)
     for lab in callouts.layout_labels(POINTS_916, 1080, 1920):
         b = lab["box"]
         assert x0 <= b[0] and b[2] <= x1 and y0 <= b[1] and b[3] <= y1, (lab["lines"], b)
@@ -135,9 +137,12 @@ def test_the_card_never_says_follow_twice():
 def test_the_masthead_is_at_cover_scale_inside_the_safe_width():
     lay = end_card.layout("Send this to the codebreaker you know.")
     m = lay["masthead"]
-    assert m["size"] >= 64 and 600 <= m["width"] <= min(end_card.MASTHEAD_W, safe_zones.REEL.centred_width())
+    # QF-24 (decision 2026-11-13, (b), chosen on real renders): the group centred in the organic Reel box (x 480, its
+    # 735 px), not on the frame's 616 px centred width (x 540) that set the masthead under its cover scale
+    centre, column = end_card.reel_column()
+    assert m["size"] >= 64 and 600 <= m["width"] <= min(end_card.MASTHEAD_W, column)
     x = lay["masthead_xy"][0] - 2 * m["mark_r"] - m["gap"]
-    assert abs((x + m["width"] / 2) - 540) <= 2                            # centred
+    assert abs((x + m["width"] / 2) - centre) <= 2 and centre == 480        # centred
     assert lay["share_font"].size >= 54 and lay["line_h"] > 0
 
 

@@ -392,7 +392,17 @@ def test_balanced_rows_keep_a_name_or_a_count_whole_where_a_break_allows(source)
     text = graphics.drawable(source.upper(), "Montserrat")
     lines = graphics.tracked_wrap(text, font, width, 2)
     rows, obeyed = graphics.balanced_label_rows(lines, font, width, 2, source=source)
-    assert obeyed and len(rows) == len(lines) == 2 and " ".join(rows) == text
+    if source == COLOSSEUM[1]["label"]:
+        # QF-24: on the organic box's 652 px measure (712 on the ads box) every two-row break of the Titus label that
+        # fits ends its first row on A or WITH (TALL_STOP_WORDS); the count is still held whole on two rows, and on
+        # three rows the word rule holds with it (a branch-only expected-value change: obeyed on two rows before)
+        assert not obeyed and len(rows) == len(lines) == 2 and " ".join(rows) == text
+        assert "HUNDRED DAYS" in rows[1]
+        lines = graphics.tracked_wrap(text, font, width / 1.5, 2)   # its fewest rows past two: three
+        rows, obeyed = graphics.balanced_label_rows(lines, font, width, 2, source=source)
+        assert len(rows) == len(lines) == 3 and not {"HUNDRED DAYS"} & {a.split()[-1] + " " + b.split()[0]
+                                                                         for a, b in itertools.pairwise(rows)}
+    assert obeyed and len(rows) == len(lines) and " ".join(rows) == text
     assert all(graphics.tracked_width(r, font, 2) <= width for r in rows)
     ends = {r.split()[-1] + " " + n.split()[0] for r, n in itertools.pairwise(rows)}
     assert not ends & {"RAPA NUI", "NUI NATIONAL", "NATIONAL PARK", "RANO RARAKU", "HUNDRED DAYS"}, rows

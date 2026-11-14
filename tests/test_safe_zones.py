@@ -10,24 +10,29 @@ from PIL import Image
 
 from src import graphics, safe_zones
 from src.config import CAPTION_MARGIN_V, VIDEO_HEIGHT, VIDEO_WIDTH
-from src.video_composer import MAX_CAPTION_WIDTH, VideoComposer
+from src.video_composer import MAX_CAPTION_WIDTH, VideoComposer, reel_caption_span
 from src.video_qa import QualityAuditor, caption_pills
 
 W, H = VIDEO_WIDTH, VIDEO_HEIGHT
 
 
 def test_the_reel_box_is_the_strictest_of_its_three_platforms():
-    # Meta's 14% / 35% / 6% on both Reels surfaces; Shorts' 288 top and 192 right (its icon column) decide the Reel box.
-    assert safe_zones.REEL == safe_zones.Inset(top=288, bottom=672, left=65, right=192)
+    # QF-24 (decision QF-24/QF-87 layout, 2026-11-09, deliberate change): the organic viewers' profiles, not the ads
+    # guides' (Meta's 14% / 35% / 6%, Shorts' 288 top and 192 right: Inset(288, 672, 65, 192), box (65, 288, 888,
+    # 1248), centred width 696, (32, 144, 444, 624) at 540 x 960, margin 672, text box (65, 330, 888, 1058)): Shorts'
+    # 288 top and 232 right rail, Facebook's 550 bottom and the Meta screenshots' 113 left decide the Reel box.
+    assert safe_zones.REEL == safe_zones.Inset(top=288, bottom=550, left=113, right=232)
     assert safe_zones.STORY == safe_zones.Inset(top=269, bottom=672, left=65, right=65)
-    assert safe_zones.safe_box("reel") == (65, 288, 888, 1248) and safe_zones.safe_box("story") == (65, 269, 1015, 1248)
-    assert safe_zones.REEL.centred_width() == 696 and safe_zones.REEL.box(540, 960) == (32, 144, 444, 624)
+    assert safe_zones.safe_box("reel") == (113, 288, 848, 1370) and safe_zones.safe_box("story") == (65, 269, 1015, 1248)
+    assert safe_zones.REEL.centred_width() == 616 and safe_zones.REEL.box(540, 960) == (56, 144, 424, 685)
     assert safe_zones.cover_box() == (0, 420, 1080, 1500)
     # The renderers' constants come from the spec, so they cannot drift apart again.
-    assert CAPTION_MARGIN_V == safe_zones.REEL.bottom == 672
-    assert MAX_CAPTION_WIDTH + 2 * 28 == safe_zones.REEL.centred_width()           # the pill, padding included, fits
-    assert graphics.get_text_bounds(W, H) == (330, 1058) and graphics.get_text_box(W, H) == (65, 330, 888, 1058)
-    assert graphics.centred_text_width(W, H) == 696 and graphics.TEXT_BOTTOM == 1058
+    assert CAPTION_MARGIN_V == safe_zones.REEL.bottom == 550
+    # the pill, padding included, fits the box centred on the box (QF-24: the reviewed 640 px measure is kept and
+    # centred at x 480, not cut to the 616 px left around the frame's centre; was == centred_width(), 696)
+    assert MAX_CAPTION_WIDTH == 640 and MAX_CAPTION_WIDTH + 2 * 28 <= reel_caption_span() == 734
+    assert graphics.get_text_bounds(W, H) == (330, 1090) and graphics.get_text_box(W, H) == (113, 330, 848, 1090)
+    assert graphics.centred_text_width(W, H) == 616 and graphics.TEXT_BOTTOM == 1090
     assert graphics.get_text_bounds(1920, 1080) == (129, 820)                         # the documentary's bounds unchanged
 
 
@@ -143,4 +148,6 @@ def test_the_audit_reads_the_caption_pills_as_rectangles(tmp_path):
                    "Dialogue: 0,0:00:00.08,0:00:01.14,CapBox,,0,0,0,,{\\pos(278,1202)\\p1}m 14 0 l 510 0 b 518 0 524 6 524 14 l 524 93 b 524 101 518 107 510 107 l 14 107 b 6 107 0 101 0 93 l 0 14 b 0 6 6 0 14 0{\\p0}\n"
                    "Dialogue: 1,0:00:00.08,0:00:01.14,CapText,,0,0,0,,{\\pos(540,1248)\\q2}VISIBLE\n", encoding="utf-8")
     assert caption_pills(ass) == [(278, 1202, 802, 1309)]                           # the first publication's lowest pill
-    assert not safe_zones.inside((278, 1202, 802, 1309), safe_zones.safe_box("reel"))  # 61 px under the line: the finding
+    # 61 px under the ads line (y 1248) it was measured against: the finding. QF-24 (decision QF-24/QF-87 layout,
+    # deliberate change): the organic Reel box ends at y 1370, so the Story box, which keeps that line, holds the check
+    assert not safe_zones.inside((278, 1202, 802, 1309), safe_zones.safe_box("story"))

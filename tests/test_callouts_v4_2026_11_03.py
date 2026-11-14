@@ -162,10 +162,12 @@ def test_the_large_dome_916_gets_a_graphic_with_every_rule_kept():
     w, h = 1080, 1920
     assert callouts.tier(DOME_916[0], w, h) == "B"             # about 30 % of the frame: an outline by default
     assert callouts.declutter(DOME_916, w, h) is not None
-    clear = callouts.clear_of_captions(DOME_916, w, h)          # as make runs it: the door reaches the caption band
-    assert [p[0] for p in clear] == ["lime-plastered dome", "east lantern window"]
+    # as make runs it. QF-24: the door (y 1080) no longer reaches the caption band (y 1130 on the organic box, 1098
+    # on the ads box), so all three pass; the three have no layout, and the cheapest valid pair keeps the door
+    clear = callouts.clear_of_captions(DOME_916, w, h)
+    assert [p[0] for p in clear] == ["lime-plastered dome", "east lantern window", "door"]
     kept = callouts.declutter(clear, w, h)
-    assert kept is not None and [p[0] for p in kept] == ["lime-plastered dome", "east lantern window"]
+    assert kept is not None and [p[0] for p in kept] == ["lime-plastered dome", "door"]
     assert callouts.tier(kept[0], w, h) == "A"                  # the outline cannot be laid out: a point marker
     labs = callouts.layout_labels(kept, w, h)
     _check_rules(kept, (w, h), labs)
@@ -326,7 +328,8 @@ def test_a_free_engine_answer_notes_the_gemini_model(monkeypatch):
 def test_declutter_breaks_a_cost_tie_in_spoken_order(monkeypatch):
     pts = [("a", 100, 100), ("b", 200, 200), ("c", 300, 300)]
 
-    def fake_layout(points, width, height, loupe=True, push=None, ground=None, mag=None, spoken=None):
+    # QF-24: declutter passes layout_labels step_down=False on its full-size pass (the stepped search runs after)
+    def fake_layout(points, width, height, loupe=True, push=None, ground=None, mag=None, spoken=None, step_down=True):
         return [{"conflict": len(points) == 3, "set_cost": 1.0} for _ in points]
     monkeypatch.setattr(callouts, "layout_labels", fake_layout)
     assert [p[0] for p in callouts.declutter(pts, 1080, 1920)] == ["a", "b"]

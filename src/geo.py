@@ -69,12 +69,18 @@ def available() -> bool:
 
 def missing_files() -> list[tuple[Path, str]]:
     """The geo files that are not on disk, each with the command that fetches it: without the country outlines
-    no map is drawn; without the shaded relief maps render flat."""
+    no map is drawn; without the shaded relief maps render flat; without the 1:10m map subunits (QF-24 round 4) a
+    route sets no neighbour name of its own (graphics.close_neighbours places one only on the country's 1:10m ground; the
+    names its base map sets at their 1:50m label points stay) and a locator close-up is drawn from the 1:50m
+    outlines. A file on disk that cannot be read is not listed here; it is read as missing when first used, with
+    its own WARNING (countries_10m)."""
     out: list[tuple[Path, str]] = []
     if not COUNTRIES_FILE.is_file():
         out.append((COUNTRIES_FILE, FETCH_COUNTRIES_CMD))
     if not (RELIEF_FILE.is_file() or _relief_file().is_file()):
         out.append((RELIEF_HR_FILE, FETCH_RELIEF_CMD))
+    if not COUNTRIES_10M_FILE.is_file():
+        out.append((COUNTRIES_10M_FILE, FETCH_COUNTRIES_10M_CMD))
     return out
 
 
@@ -898,26 +904,48 @@ class Unit10m(NamedTuple):
     iso: str = ""
 
 
+_UNREADABLE_10M: dict[Path, str] = {}     # QF-24 round 4b: a 1:10m file on disk that could not be read -> why
+
+
 @lru_cache(maxsize=1)
 def countries_10m() -> tuple[Unit10m, ...]:
-    """Each 1:10m map subunit (Unit10m); () where the file is missing."""
-    if not COUNTRIES_10M_FILE.is_file():
+    """Each 1:10m map subunit (Unit10m); () where the file is missing. QF-24 round 4b (ruling 2026-11-14: fail
+    closed when that ground cannot be read): a file that cannot be read (cut short, not JSON, not UTF-8, not the
+    layer's shape) is read as missing, never raised from a render, with one WARNING (countries_10m_unreadable)."""
+    path = COUNTRIES_10M_FILE
+    if not path.is_file():
         return ()
-    data = json.loads(COUNTRIES_10M_FILE.read_text(encoding="utf-8"))
-    out = []
-    for f in data.get("features", []):
-        props, geom = f.get("properties") or {}, f.get("geometry") or {}
-        if geom.get("type") not in ("Polygon", "MultiPolygon"):
-            continue
-        polys = geom["coordinates"] if geom["type"] == "MultiPolygon" else [geom["coordinates"]]
-        names = frozenset(str(props.get(k, "")).strip().lower() for k in NAME_FIELDS + ("SUBUNIT",) if props.get(k))
-        own = str(props.get("SUBUNIT") or props.get("NAME_LONG") or props.get("NAME") or "").strip()
-        out.append(Unit10m(names, str(props.get("SOVEREIGNT") or "").strip().lower(), own,
-                           tuple([[(float(x), float(y)) for x, y in ring] for ring in poly] for poly in polys),
-                           str(props.get("ADMIN") or own).strip(), str(props.get("GEOUNIT") or "").strip(),
-                           str(props.get("NAME_LONG") or "").strip(), str(props.get("NAME") or "").strip(),
-                           str(props.get("ISO_A3") or "").strip()))
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+        out = []
+        for f in data.get("features", []):
+            props, geom = f.get("properties") or {}, f.get("geometry") or {}
+            if geom.get("type") not in ("Polygon", "MultiPolygon"):
+                continue
+            polys = geom["coordinates"] if geom["type"] == "MultiPolygon" else [geom["coordinates"]]
+            names = frozenset(str(props.get(k, "")).strip().lower() for k in NAME_FIELDS + ("SUBUNIT",)
+                              if props.get(k))
+            own = str(props.get("SUBUNIT") or props.get("NAME_LONG") or props.get("NAME") or "").strip()
+            out.append(Unit10m(names, str(props.get("SOVEREIGNT") or "").strip().lower(), own,
+                               tuple([[(float(x), float(y)) for x, y in ring] for ring in poly] for poly in polys),
+                               str(props.get("ADMIN") or own).strip(), str(props.get("GEOUNIT") or "").strip(),
+                               str(props.get("NAME_LONG") or "").strip(), str(props.get("NAME") or "").strip(),
+                               str(props.get("ISO_A3") or "").strip()))
+    except (OSError, ValueError, KeyError, TypeError, AttributeError, IndexError) as e:
+        _UNREADABLE_10M[path] = type(e).__name__
+        log.warning("Map: %s cannot be read (%s; fetch it again with %s), so it is read as missing: a route sets "
+                    "no neighbour name of its own (only the names its base map sets at their 1:50m label points) "
+                    "and a locator close-up is drawn from the 1:50m outlines.", path.name, type(e).__name__,
+                    FETCH_COUNTRIES_10M_CMD)
+        return ()
+    _UNREADABLE_10M.pop(path, None)
     return tuple(out)
+
+
+def countries_10m_unreadable() -> str | None:
+    """QF-24 round 4b: why the 1:10m file on disk could not be read (its error's type name; countries_10m logged
+    it), or None where it was read, is missing or has not been read yet."""
+    return _UNREADABLE_10M.get(COUNTRIES_10M_FILE)
 
 
 def ring_km(ring: Ring, lon: float, lat: float) -> float:

@@ -61,7 +61,9 @@ def test_the_fallback_is_flagged_and_noted_on_the_review_card():
 def test_everything_stays_inside_the_safe_area(share):
     lay = end_card.layout(share)
     x0, y0, x1, y1 = REEL.box(end_card.WIDTH, end_card.HEIGHT)
-    assert lay["max_width"] == REEL.centred_width()
+    # QF-24 (decision 2026-11-13, (b)): the group centres in the organic Reel box, its 735 px (end_card.reel_column),
+    # not the 616 px the box leaves centred on the frame (REEL.centred_width(), 696 on the ads box)
+    assert lay["max_width"] == end_card.reel_column()[1] == x1 - x0
     assert max(lay["share_widths"]) <= lay["max_width"] and len(lay["lines"]) <= 5
     box = lay["box"]
     assert x0 <= box[0] and box[2] <= x1 and y0 <= end_card.TOP - 120 and box[3] <= y1   # clear of the right rail

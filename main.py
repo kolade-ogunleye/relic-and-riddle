@@ -152,7 +152,9 @@ def documentary_cover(title: str, max_line: int = 22) -> Dict[str, str]:
 def warn_missing_geo_files() -> List[str]:
     """A WARNING at run start for each map data file not on disk (tools/ is gitignored, so a deploy from GitHub
     has neither until they are fetched): without the country outlines no locator or route map is made, without the
-    shaded relief they render flat. Returns the warnings logged."""
+    shaded relief they render flat, without the 1:10m map subunits a route sets no neighbour name of its own (only
+    the names its base map sets at their 1:50m label points) and a locator close-up is drawn from the 1:50m
+    outlines. Returns the warnings logged."""
     from src import geo
     lines = []
     for path, command in geo.missing_files():
@@ -160,7 +162,11 @@ def warn_missing_geo_files() -> List[str]:
             shown = path.relative_to(config.BASE_DIR)
         except ValueError:
             shown = path
-        effect = "maps render flat (no shaded relief)" if "relief" in path.parts else "no map graphics are made"
+        if path == geo.COUNTRIES_10M_FILE:
+            effect = ("route maps set no neighbour name of their own (only the names their base map sets at their "
+                      "1:50m label points) and locator close-ups are drawn from the 1:50m outlines")
+        else:
+            effect = "maps render flat (no shaded relief)" if "relief" in path.parts else "no map graphics are made"
         lines.append(f"Map data missing: {shown} is not on disk, so {effect}. Fetch it with: {command}")
         log.warning(lines[-1])
     return lines

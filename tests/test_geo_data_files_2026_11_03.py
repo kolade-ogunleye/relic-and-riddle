@@ -28,6 +28,9 @@ def geo_paths(tmp_path, monkeypatch):
     monkeypatch.setattr(geo, "RELIEF_HR_FILE", hr)
     monkeypatch.setattr(geo, "RELIEF_50M_FILE", m50)
     monkeypatch.setattr(geo, "RELIEF_FILE", hr)
+    # QF-24 round 4: the 1:10m map subunits are required map data too; present here unless a test removes the file,
+    # so the tests of the outlines and the relief read the same on a machine with and without the fetched layer
+    monkeypatch.setattr(geo, "COUNTRIES_10M_FILE", _touch(tmp_path / "geo" / "ne_10m_admin_0_map_subunits.geojson"))
     return countries, hr, m50
 
 
@@ -64,6 +67,29 @@ def test_nothing_is_warned_when_both_files_are_present(geo_paths, caplog):
     with caplog.at_level(logging.WARNING, logger="pipeline"):
         assert main.warn_missing_geo_files() == []
     assert not [r for r in caplog.records if r.name == "pipeline"]
+
+
+def test_the_missing_1_10m_map_subunits_are_warned_about_with_their_fetch_command(geo_paths, caplog):
+    """QF-24 round 4: without the layer a route sets no neighbour name of its own (graphics.detail_ground_mask; the
+    base map's names stay), so its absence is reported where the other required map files are."""
+    countries, hr, _ = geo_paths
+    _touch(countries), _touch(hr)
+    layer = geo.COUNTRIES_10M_FILE
+    layer.unlink()
+    assert geo.missing_files() == [(layer, "python scripts/fetch_geodata.py --10m")]
+    with caplog.at_level(logging.WARNING, logger="pipeline"):
+        lines = main.warn_missing_geo_files()
+    warned = [r for r in caplog.records if r.levelno == logging.WARNING and r.name == "pipeline"]
+    assert len(lines) == len(warned) == 1 and warned[0].getMessage() == lines[0]
+    assert "ne_10m_admin_0_map_subunits.geojson" in lines[0] and "python scripts/fetch_geodata.py --10m" in lines[0]
+    assert "set no neighbour name of their own" in lines[0] and "1:50m outlines" in lines[0]
+    assert "no map graphics are made" not in lines[0] and "render flat" not in lines[0]     # each effect its own
+
+
+def test_every_missing_map_file_is_listed_once(geo_paths):
+    countries, hr, _ = geo_paths
+    geo.COUNTRIES_10M_FILE.unlink()
+    assert [p.name for p, _c in geo.missing_files()] == [countries.name, hr.name, "ne_10m_admin_0_map_subunits.geojson"]
 
 
 def test_the_medium_relief_counts_as_present_and_is_the_fallback(geo_paths):

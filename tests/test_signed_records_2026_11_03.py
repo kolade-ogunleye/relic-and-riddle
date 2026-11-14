@@ -504,8 +504,12 @@ def test_the_bright_hook_panel_is_evenly_padded_centred_and_has_no_foot_rule(tmp
         titles = [e.box for n, e in els.items() if n.startswith("title_")]
         assert els["brand"].box[1] - y0 == dc.HOOK_PLATE_AIR, rgb
         assert abs((y1 - max(b[3] for b in titles)) - dc.HOOK_PLATE_AIR) <= 1, rgb
-        for b in titles:                                              # centred on the masthead's axis
-            assert abs((b[0] + b[2]) / 2 - 540) <= 3, (rgb, b)
+        # centred on the masthead's axis: QF-24 (decision QF-24/QF-87 layout, 2026-11-13 (d)), the organic Reel box's
+        # axis, x 480 (dc.HOOK_CENTRE_X), with the masthead inside the box; x 540 on the ads box
+        mast = (els["brand_mark"].box[0], els["brand"].box[2])
+        assert abs((mast[0] + mast[1]) / 2 - dc.HOOK_CENTRE_X) <= 3 and dc.TALL_LEFT <= mast[0] and mast[1] <= dc.TALL_RIGHT
+        for b in titles:
+            assert abs((b[0] + b[2]) / 2 - dc.HOOK_CENTRE_X) <= 3 and dc.HOOK_CENTRE_X == 480, (rgb, b)
         assert "rule" not in plan.meta["scrim"]
         f0 = np.asarray(plan.meta["_ground0"]).astype(int)
         foot = f0[y1 - 8:y1 - 1].reshape(-1, 3)

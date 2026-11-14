@@ -140,14 +140,20 @@ procedure never changes `.env`, identities, ACLs or the backup task, nor the pos
 production keeps posting live. Rollback: the same procedure with the previous tag.
 
 Map data is not in the release either (`tools/` is gitignored). Fetch it once on the VM, from the app root:
-`python scripts/fetch_geodata.py` (country outlines; without them no maps are made) and
+`python scripts/fetch_geodata.py` (country outlines; without them no maps are made),
 `python scripts/fetch_relief.py` (Natural Earth shaded relief SR_HR.tif; `--medium` for the smaller SR_50M.tif;
-without either, maps render flat). Each run logs a `Map data missing` WARNING naming any file still absent.
-Three more files improve the maps and are fetched the same way: `python scripts/fetch_marine.py` (Natural Earth's
+without either, maps render flat) and `python scripts/fetch_geodata.py --10m` (the 1:10m map subunits,
+`tools/geo/ne_10m_admin_0_map_subunits.geojson`: every locator close-up is drawn from them, the home a map names
+is the entity whose polygon holds the site, such as Gibraltar, Tokelau or Ascension, and a neighbour name a
+route adds to its base map's is set only on that country's 1:10m ground; without them, or with a file that cannot
+be read, a route sets no neighbour name of its own (it keeps the names its base map sets at their 1:50m label
+points) and the close-up falls back to the 1:50m outlines, logged). These three are required map data: each run
+logs a `Map data missing` WARNING naming any of them still absent (a 1:10m file on disk that cannot be read is
+logged once, `cannot be read`, when a map first reads it; fetch it again). Fetch the 1:10m map subunits on the VM before
+the first release that carries QF-24 is installed.
+Two more files improve the maps and are fetched the same way: `python scripts/fetch_marine.py` (Natural Earth's
 1:10m marine polygons and 1:50m Antarctic ice shelves; without them no sea is named and the ice shelves are drawn
-as sea, logged) and `python scripts/fetch_geodata.py --10m` (the 1:10m map subunits: every locator close-up is
-drawn from them, and the home a map names is the entity whose polygon holds the site, such as Gibraltar, Tokelau
-or Ascension; without them the close-up falls back to the 1:50m outlines, logged). Both download from naciscdn.org.
+as sea, logged). The marine files and the 1:10m map subunits download from naciscdn.org.
 
 ## Automatic release deployment
 

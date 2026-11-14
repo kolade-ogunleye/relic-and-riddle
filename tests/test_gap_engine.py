@@ -401,8 +401,10 @@ def test_recon_badge_upper_third_and_lineage_derivation(tmp_path):
     # upper-third label (\an8, MarginV 310) until the operator approved the move (caption review, 2026-11-02).
     assert "Style: ReconBadge" in content
     assert "Style: ReconPlate" in content
-    assert r"\an7\pos(98," in content and "}AI ILLUSTRATION · NOT A PHOTO" in content
-    assert r"{\pos(84,300)\p1}" in content
+    # QF-24 (decision QF-24/QF-87 layout, deliberate change): 19 px inside the organic Reel box (x 132; it was x 84,
+    # 19 px inside the ads box), the text 14 px in from the plate (x 146; was 98)
+    assert r"\an7\pos(146," in content and "}AI ILLUSTRATION · NOT A PHOTO" in content
+    assert r"{\pos(132,300)\p1}" in content
 
 
 # ---------------------------------------------------------------------------

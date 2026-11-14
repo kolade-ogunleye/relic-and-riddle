@@ -168,7 +168,10 @@ resumes after Phase 4b, on the post-QF code. No design is frozen.
 
 - Production `.env`: set `FACT_RECORD_KEY` (32+ bytes: `python3 -c "import secrets; print(secrets.token_hex(32))"`)
   and remove `FONT_SIZE=72`.
-- On the VM: `python scripts/fetch_geodata.py` and `python scripts/fetch_relief.py`.
+- On the VM: `python scripts/fetch_geodata.py`, `python scripts/fetch_relief.py` and (QF-24 round 4: required,
+  before the first release that carries QF-24) `python scripts/fetch_geodata.py --10m`; without the 1:10m map
+  subunits a route sets no neighbour name of its own (only its base map's, at their 1:50m label points). A run's
+  `Map data missing` warning names each absent file.
 - A Gemini key, and Tesseract (or `IMAGE_GEN_REQUIRE_OCR=false`), for illustrations and for real fact checks.
 - On the VM, FriBiDi for Pillow's raqm layout (operator decision 2026-11-05): put `libfribidi-0.dll` (MSYS2 UCRT64
   `mingw-w64-ucrt-x86_64-fribidi`, as on the dev PC, its SHA-256 checked against the repository database) in a folder

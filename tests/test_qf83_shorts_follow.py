@@ -117,7 +117,9 @@ def test_the_follow_sits_in_the_reel_box_reads_and_leaves_the_seam_alone(case):
     halo = end_card.LOOP_FOLLOW_HALO
     assert bx0 <= x0 - halo and x1 + halo <= bx1 and by0 <= y0 - halo and y1 + halo + end_card.LOOP_FOLLOW_RISE <= by1
     assert y1 + halo + end_card.LOOP_FOLLOW_RISE < safe_zones.caption_band_top()      # clear of frame 0's caption
-    assert abs((x0 + x1) / 2 - 540) <= 2
+    # QF-24 (decision 2026-11-13, (b)): FOLLOW centres in the organic Reel box (end_card.reel_column, x 480), as the
+    # captions do; x 540 was the ads box's centred width
+    assert abs((x0 + x1) / 2 - end_card.reel_column()[0]) <= 2 and end_card.reel_column()[0] == 480
 
 
 def test_a_follow_that_cannot_read_is_left_off_and_the_review_card_says_so(monkeypatch, tmp_path):

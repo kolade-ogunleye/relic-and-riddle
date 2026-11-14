@@ -411,7 +411,6 @@ SHADOW_DY, SHADOW_BLUR, SHADOW_ALPHA = 4, 14, 90     # the plate's lift shadow, 
 BAR_W = 3                                            # the gold attachment bar: as wide as the leader
 BAR_LEN = {"portrait": (48, 140), "landscape": (44, 120)}   # top/bottom bar: clamp(0.45 x plate width, lo, hi)
 BAR_SIDE_INSET = 10                                  # a side bar: the plate height less this at each end
-TEXT_INSET = 18                                      # 9:16: the text box sits this far inside the Reel box
 LEADER_W, LEADER_HALO = 3, 2                         # gold core; INK casing each side (7 px in all)
 CASING_ALPHA = 200
 LEADER_LEN = {"portrait": (56, 80, 180, 260), "landscape": (48, 70, 160, 240)}   # min, preferred lo-hi, max
@@ -428,6 +427,15 @@ SLIDES = (0.0, -0.25, 0.25, -0.45, 0.45)             # plate slides along the at
 # grid, 41 px of slide where the grid offered 0 or 80): every FINE_STEP px of slide across the edge and of leader
 # length. The cap applies to the valid candidates, cheapest first, so a finer grid never pushes a valid one out.
 FINE_STEP = 12
+# QF-24: on the organic Reel box (x 113-848, 88 px narrower than the ads box) a 9:16 set the reviewed candidates hold no
+# valid layout for is tried again before it is refused: first at its full size with leader lengths every
+# STEP_DOWN_FINE px (the window between a plate's own-dot ratio and a surface's inner half can be under FINE_STEP
+# wide), then its labels stepped down together, LABEL_STEP px at a time to the existing floor (four fifths of
+# LABEL_PX: _shapes), on that finer grid (as a map's stepped-down names are, graphics.NEIGHBOUR_FINE_STEP). One size
+# for every label of a set, so no label reads as ranked under another; a set no size holds is refused as before
+# (declutter: a pair dropped, or no graphic). 16:9 is unchanged.
+STEP_DOWN_FINE = 4
+LABEL_STEP = 2
 MAX_CANDS = 240
 SNAP_TOP = 32                                        # the cheapest valid sets the alignment snaps are tried on
 DOT_CORE = {"portrait": 6, "landscape": 5}           # tier A marker: gold core on an INK disc
@@ -510,13 +518,15 @@ class Push:
 
 
 def text_box(width: int = VIDEO_WIDTH, height: int = VIDEO_HEIGHT) -> tuple[int, int, int, int]:
-    """(x0, y0, x1, y1) every label plate stays inside: on 9:16 the Reel box 18 px in on each side (x 83..870
-    at 1080), between the graphics' text rows; on 16:9 broadcast title-safe (graphics.get_text_box)."""
+    """(x0, y0, x1, y1) every label plate stays inside: on 9:16 the Reel box edge to edge (x 113..848 at 1080, as the
+    graphics' words run; QF-24: the box already holds the platforms' clearance, so the 18 px inset the ads box had,
+    x 83..870, is not taken again), between the graphics' text rows; on 16:9 broadcast title-safe
+    (graphics.get_text_box)."""
     if width > height:
         return get_text_box(width, height)
     x0, _, x1, _ = safe_zones.safe_box("reel", width, height)
     top, bottom = get_text_bounds(width, height)
-    return x0 + TEXT_INSET, top, x1 - TEXT_INSET, bottom
+    return x0, top, x1, bottom
 
 
 def _overlaps(a: tuple, b: tuple, gap: int = 16) -> bool:
@@ -633,13 +643,20 @@ class _Shape:
         self.ph = 2 * math.ceil((2 * PLATE_PAD_CAP + self.cap + self.step * (len(lines) - 1)) / 2)
 
 
-def _shapes(measure: ImageDraw.ImageDraw, label: str, fmt: str) -> list[_Shape]:
+def label_sizes(fmt: str) -> list[int]:
+    """The label sizes, largest first: LABEL_PX down to four fifths of it, LABEL_STEP px apart."""
+    size0 = LABEL_PX[fmt]
+    return list(range(size0, math.ceil(size0 * 0.8) - 1, -LABEL_STEP))
+
+
+def _shapes(measure: ImageDraw.ImageDraw, label: str, fmt: str, top: int | None = None) -> list[_Shape]:
     """The label's plate shapes: on one line and on two balanced lines (at most LABEL_MAX_CHARS each), in
-    Montserrat Bold tracked +0.04 em, at the largest size down to four fifths of LABEL_PX where either fits."""
+    Montserrat Bold tracked +0.04 em, at the largest size down to four fifths of LABEL_PX where either fits
+    (`top`: the largest size tried, for a set stepped down together; QF-24)."""
     text = label.upper()
-    size0, max_w = LABEL_PX[fmt], LABEL_MAX_W[fmt]
+    max_w = LABEL_MAX_W[fmt]
     words = text.split()
-    sizes = list(range(size0, math.ceil(size0 * 0.8) - 1, -2))
+    sizes = [s for s in label_sizes(fmt) if top is None or s <= top] or label_sizes(fmt)[-1:]
     for s in sizes:
         font = get_font("Montserrat", s, weight=700)
         track = LABEL_TRACK * s
@@ -837,13 +854,15 @@ def _build(feat: _Feat, si: int, shape: _Shape, edge: str, E: tuple[float, float
             "vis": lead["vis"], "target": lead["target"], "diag": lead["diag"], "segs": segs[:2]}
 
 
-def _candidates(feat: _Feat, shapes: list[_Shape], fmt: str, lr: int, bounds: tuple) -> list[dict]:
-    """Every placement worth scoring: each shape, each edge, each leader length (LEADER_TRIES and every FINE_STEP
-    px between the shortest and the longest), each slide along the edge (SLIDES and every FINE_STEP px)."""
+def _candidates(feat: _Feat, shapes: list[_Shape], fmt: str, lr: int, bounds: tuple,
+                len_step: int = FINE_STEP) -> list[dict]:
+    """Every placement worth scoring: each shape, each edge, each leader length (LEADER_TRIES and every `len_step`
+    px between the shortest and the longest: FINE_STEP, or STEP_DOWN_FINE on a retry), each slide along the edge
+    (SLIDES and every FINE_STEP px)."""
     out, seen = [], set()
     bx0, by0, bx1, by1 = bounds
     lo, hi = LEADER_TRIES[fmt][0], LEADER_TRIES[fmt][-1]
-    lengths = sorted({*LEADER_TRIES[fmt], *range(lo, hi + 1, FINE_STEP)})
+    lengths = sorted({*LEADER_TRIES[fmt], *range(lo, hi + 1, len_step)})
     for si, shape in enumerate(shapes):
         for edge in EDGES:
             P = feat.target(edge)
@@ -1234,7 +1253,47 @@ def _total(ctx: _Ctx, chosen: list[dict], spoken: list[int]) -> float:
 
 def layout_labels(points: list[tuple], width: int = VIDEO_WIDTH, height: int = VIDEO_HEIGHT,
                   loupe: bool = True, push: Push | None = None, ground: Any = None, mag: float | None = None,
-                  spoken: list[int] | None = None) -> list[dict[str, Any]]:
+                  spoken: list[int] | None = None, step_down: bool = True) -> list[dict[str, Any]]:
+    """Where each label goes (_layout_set). On 9:16 a set with no valid layout on the reviewed grid at full size is
+    tried again (`step_down`) on the finer leader grid, then with its labels stepped down together (STEP_DOWN_FINE,
+    LABEL_STEP; QF-24); the first valid set is kept. When none is, the set keeps its conflicts (declutter drops or
+    refuses it; render never draws one): the largest attempt whose plates still stand LABEL_GAP apart, else the
+    full-size one."""
+    first = _layout_set(points, width, height, loupe, ground, mag, spoken)
+    if not step_down or width > height or not any(lab["conflict"] for lab in first):
+        return first
+    labs = _stepped_layout(points, width, height, loupe, ground, mag, spoken)
+    if labs is not None:
+        return labs
+    if _plates_apart(first):
+        return first
+    for top in label_sizes(_fmt(width, height)):
+        labs = _layout_set(points, width, height, loupe, ground, mag, spoken, top=top, len_step=STEP_DOWN_FINE)
+        if _plates_apart(labs):
+            return labs
+    return first
+
+
+def _stepped_layout(points: list[tuple], width: int, height: int, loupe: bool, ground: Any, mag: float | None,
+                    spoken: list[int] | None) -> list[dict[str, Any]] | None:
+    """The first valid layout of the set on the finer leader grid, at full size and then stepped down together
+    (QF-24), or None."""
+    for top in label_sizes(_fmt(width, height)):
+        labs = _layout_set(points, width, height, loupe, ground, mag, spoken, top=top, len_step=STEP_DOWN_FINE,
+                           relax=False)
+        if labs is not None:
+            return labs
+    return None
+
+
+def _plates_apart(labs: list[dict[str, Any]]) -> bool:
+    """Whether every two plates of a layout stand LABEL_GAP apart."""
+    return not any(_overlaps(tuple(a["box"]), tuple(b["box"]), LABEL_GAP) for a, b in combinations(labs, 2))
+
+
+def _layout_set(points: list[tuple], width: int, height: int, loupe: bool, ground: Any, mag: float | None,
+                spoken: list[int] | None, top: int | None = None, len_step: int = FINE_STEP,
+                relax: bool = True) -> list[dict[str, Any]] | None:
     """Where each label goes, in the order of `points` (each (label, x, y[, area[, w, h[, kind[, box]]]])): its
     lines and font, its plate box (inside text_box at every sampled t), the edge its leader meets and that edge's
     centre (`end`), its S1/S2 route and text anchor. Every label's candidates (2 plate shapes x 4 edges x 6 leader
@@ -1242,7 +1301,8 @@ def layout_labels(points: list[tuple], width: int = VIDEO_WIDTH, height: int = V
     pairwise compatibility is tabled once, and the cheapest valid set is found exactly by branch and bound. When
     no valid set exists the labels that break a limit are marked `conflict` (declutter drops them; render refuses
     them). `loupe`: False when the photo has no native detail to magnify (see loupe_mag); `mag` its magnification.
-    `ground`: the frame-sized photo, for the busyness cost. `spoken`: the label indices in spoken order."""
+    `ground`: the frame-sized photo, for the busyness cost. `spoken`: the label indices in spoken order. `top`: the
+    largest label size; `len_step`: the leader-length grid; `relax` False returns None instead of a conflict set."""
     np = _np()
     fmt = _fmt(width, height)
     bounds = text_box(width, height)
@@ -1253,10 +1313,10 @@ def layout_labels(points: list[tuple], width: int = VIDEO_WIDTH, height: int = V
     feats = [_Feat(k, p, width, height, fmt, k == li, src_r) for k, p in enumerate(points)]
     ctx = _Ctx(feats, width, height, bounds, fmt, ground)
     spoken = list(spoken) if spoken else list(range(len(points)))
-    shapes = [_shapes(measure, p[0], fmt) for p in points]
+    shapes = [_shapes(measure, p[0], fmt, top) for p in points]
     cands, valid = [], []
     def scored(k: int, ft: _Feat) -> tuple[list[dict], Any]:
-        cs = _candidates(ft, shapes[k], fmt, lr, bounds)
+        cs = _candidates(ft, shapes[k], fmt, lr, bounds, len_step)
         for c in cs:
             c["static"] = ctx.static(c)
         cs.sort(key=lambda c: c["static"])
@@ -1287,6 +1347,8 @@ def layout_labels(points: list[tuple], width: int = VIDEO_WIDTH, height: int = V
     best = _exact(ctx, cands, valid, compat, pcost, list(range(n)), spoken, lr)
     conflict = [False] * n
     if best is None:
+        if not relax:
+            return None
         chosen, conflict = _relaxed(ctx, cands, valid, compat, pcost, feats, shapes, fmt, lr, bounds, spoken)
         set_cost = float("inf")
     else:
@@ -1590,13 +1652,16 @@ def declutter(points: list[tuple], width: int = VIDEO_WIDTH, height: int = VIDEO
     order += [k for k in range(len(pts)) if k not in order]
     rank = {k: r for r, k in enumerate(order)}
 
-    def fit(keys: tuple[int, ...]) -> tuple[float, list[tuple]] | None:
+    def fit(keys: tuple[int, ...], step_down: bool) -> tuple[float, list[tuple]] | None:
         sub = [pts[i] for i in keys]
         said = sorted(range(len(keys)), key=lambda j: rank[keys[j]])
         for v in _marker_variants(sub, width, height):
             if len(unambiguous(v, width, height)) < len(v):   # a moved surface's dot too close to another's
                 continue
-            labs = layout_labels(v, width, height, loupe, ground=ground, mag=mag, spoken=said)
+            if step_down:   # QF-24: only a valid stepped-down set; the full-size one has failed already
+                labs = _stepped_layout(v, width, height, loupe, ground, mag, said) or [{"conflict": True}]
+            else:
+                labs = layout_labels(v, width, height, loupe, ground=ground, mag=mag, spoken=said, step_down=False)
             if not any(lab["conflict"] for lab in labs):
                 moved = [q[0] for q, o in zip(v, sub) if q is not o]
                 if moved:
@@ -1605,15 +1670,27 @@ def declutter(points: list[tuple], width: int = VIDEO_WIDTH, height: int = VIDEO
                 return labs[0]["set_cost"], v
         return None
 
-    whole = fit(tuple(range(len(pts))))
+    # Every set and pair at the full label size first (the reviewed search); only when none holds are the sets
+    # tried again stepped down (layout_labels, QF-24), so a smaller size never replaces a full-size graphic.
+    for step_down in (False, True) if width < height else (False,):
+        got = _declutter_pass(pts, rank, fit, step_down)
+        if got is not None:
+            return got
+    return None
+
+
+def _declutter_pass(pts: list[tuple], rank: dict[int, int], fit: Any, step_down: bool) -> list[tuple] | None:
+    """One declutter search (the whole set, else the cheapest valid pair) with `fit` at full size, or stepped down."""
+    whole = fit(tuple(range(len(pts))), step_down)
     if whole is not None:
         return whole[1]
     if len(pts) < 3:
-        log.info("Callouts: the two labels cannot be placed without breaking a limit; no graphic.")
+        log.info("Callouts: the two labels cannot be placed without breaking a limit%s; no graphic.",
+                 " at any label size" if step_down else "")
         return None
     best = None
     for combo in combinations(range(len(pts)), 2):
-        got = fit(combo)
+        got = fit(combo, step_down)
         if got is None:
             continue
         key = (got[0], sorted(rank[i] for i in combo))

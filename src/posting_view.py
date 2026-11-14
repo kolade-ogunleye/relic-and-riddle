@@ -170,13 +170,23 @@ def _spacing_reason(db, post: dict[str, Any], slot: datetime) -> str:
     return db.topic_problem(topic_id, slot, run_id=post["run_id"], spacing_only=True) if topic_id else ""
 
 
-def _rank(post: dict[str, Any], overrides: Any = ()) -> tuple:
-    """The daemon's order at a carousel slot (main._post_carousel_if_due): a carousel given priority (QF-81's redraw,
-    QF-73's Post anyway) first, then the newest."""
-    return (bool((post.get("detail") or {}).get("priority")) or post["id"] in overrides, post["id"])
+def _rank(post: dict[str, Any], overrides: Any = (), lead: Any = None) -> tuple:
+    """The daemon's order at a carousel slot (main._post_carousel_if_due takes the plan's pick): a carousel given
+    priority (QF-81's redraw, QF-73's Post anyway) first, then the newest. Among those given priority, the earlier
+    choice goes first (QF-73b: its "priority_at"; one recorded without a time counts as the earliest), so a later
+    choice never moves a slot a reply already named; a "what if" override (`overrides`, not chosen yet) counts as
+    chosen now, after every earlier choice. `lead` asks what if that carousel went before every other."""
+    detail = post.get("detail") or {}
+    if post["id"] == lead:
+        return (True, float("inf"), post["id"])
+    if not detail.get("priority"):
+        return (post["id"] in overrides, float("-inf") if post["id"] in overrides else 0.0, post["id"])
+    chosen = _dt(detail.get("priority_at") or detail.get("spacing_override_at"))
+    return (True, -chosen.timestamp() if chosen else 0.0, post["id"])
 
 
-def carousel_outlook(db, now: datetime | None = None, overrides: Any = ()) -> dict[str, Any]:
+def carousel_outlook(db, now: datetime | None = None, overrides: Any = (), lead: Any = None,
+                     may_post: Any = None) -> dict[str, Any]:
     """QF-73: the one answer to where each waiting carousel will post, as the daemon picks them, used by Posting, the
     episode, the dashboard, Slots, wont_post, the Needs-you alert and the expiry record alike.
 
@@ -184,27 +194,34 @@ def carousel_outlook(db, now: datetime | None = None, overrides: Any = ()) -> di
     posted that day) the eligible carousel of the highest _rank takes it. A carousel is eligible from 48 h after its
     Reel to its deadline (post_schedule.carousel_may_take; while its Reel hasn't posted, its slot is a forecast) unless
     sensitive-topic spacing refuses it there; a sensitive carousel the plan puts in a slot counts on that day, as it
-    will once posted. Post anyway (detail "spacing_override", or `overrides` to ask "what if") sets spacing aside.
+    will once posted. Post anyway (detail "spacing_override", or `overrides` to ask "what if") sets spacing aside. A
+    carousel whose Reel is still to post (booked, late or held) cannot take a slot sooner than 48 h from now, so a
+    slot whose posting window is open takes only a carousel whose Reel has posted (QF-73b: the slot loop posts the
+    plan's pick). `may_post` is the daemon's own run filter (its
+    _may_post); the screens use the settings it keeps (_skipped).
 
     Returns {"plan": {booking id: slot}, "over": the ids Post anyway was chosen for, "now", "waits": {booking id:
-    wait}}. A wait is given for a carousel spacing refused at a slot (in the plan, or earlier at its slot: its
-    booking's "waiting_for"), one you chose to post anyway that gets no slot, and one a carousel you chose to post
-    anyway displaced (it would otherwise have taken that slot): {"kind": "spacing" | "slot", "reason": spacing's
-    words, "why": what keeps it from a slot (why_words), "lost": a slot it lost is named, "earliest": its planned
-    slot or None (none before its deadline), "deadline", "state": its Reel's, "unconfirmed": spacing waits for an
-    unconfirmed publication, "override": Post anyway was chosen}."""
+    wait}, "refused": {booking id: [(slot, spacing's reason), ...]}}. A wait is given for a carousel spacing refused
+    at a slot (in the plan, or earlier at its slot: its booking's "waiting_for"), one you chose to post anyway that
+    gets no slot, one a carousel you chose to post anyway displaced (it would otherwise have taken that slot), and
+    (QF-73b) one that loses every slot to other carousels, newer ones as a rule: {"kind": "spacing" | "slot",
+    "reason": spacing's words, "why": what keeps it from a slot (why_words), "lost": a slot it lost is named,
+    "earliest": its planned slot or None (none before its deadline), "deadline", "state": its Reel's, "unconfirmed":
+    spacing waits for an unconfirmed publication, "override": Post anyway was chosen}."""
     from . import config
     from .topic_policy import TOO_CLOSE, UNCONFIRMED, _day
     now = now or datetime.now(UTC)
     overrides = set(overrides)
-    waiting = [p for p in db.list_scheduled_posts(("waiting",)) if not _skipped(db, p["run_id"])]  # as the daemon skips
+    allowed = may_post or (lambda run_id: not _skipped(db, run_id))
+    waiting = [p for p in db.list_scheduled_posts(("waiting",)) if allowed(p["run_id"])]  # as the daemon skips
     reels = {p["id"]: post_schedule.carousel_reel(db, p) for p in waiting}
     waiting = [p for p in waiting if reels[p["id"]][0] in ("posted", "booked")]   # a Reel that won't post: no slot yet
     over = {p["id"] for p in waiting if (p.get("detail") or {}).get("spacing_override")} | overrides
-    out: dict[str, Any] = {"plan": {}, "waits": {}, "over": over, "now": now}
+    out: dict[str, Any] = {"plan": {}, "waits": {}, "over": over, "now": now, "refused": {}}
     if not waiting:
         return out
-    topics = {p["id"]: (db.get_run(p["run_id"]) or {}).get("topic_id") for p in waiting}
+    runs = {p["id"]: db.get_run(p["run_id"]) or {} for p in waiting}
+    topics = {pid: run.get("topic_id") for pid, run in runs.items()}
     sensitive = {t: bool((db.get_topic_by_id(t) or {}).get("sensitivity")) for t in set(topics.values()) if t}
     deadlines = {p["id"]: post_schedule.carousel_deadline(reels[p["id"]][1]) for p in waiting}
     seen: dict[int, dict[str, Any]] = {p["id"]: {"refused": "", "lost": None, "displaced": None} for p in waiting}
@@ -223,6 +240,10 @@ def carousel_outlook(db, now: datetime | None = None, overrides: Any = ()) -> di
         for p in waiting:
             if p["id"] in plan or not post_schedule.carousel_may_take(slot, reels[p["id"]][1]):
                 continue
+            if reels[p["id"]][0] != "posted" and slot < now + post_schedule.carousel_gap():
+                continue   # its Reel is still to post (late, or held: QF-110), so no earlier than now: not this slot
+            if slot <= now and runs[p["id"]].get("status") != "published":
+                continue   # its posting window is open and its run has not posted: the slot loop cannot post it
             reason = "" if p["id"] in over else _spacing_reason(db, p, slot)
             topic = topics[p["id"]]
             if not reason and p["id"] not in over and sensitive.get(topic) and any(
@@ -230,11 +251,12 @@ def carousel_outlook(db, now: datetime | None = None, overrides: Any = ()) -> di
                 reason = TOO_CLOSE
             if reason:
                 seen[p["id"]]["refused"] = UNCONFIRMED if reason == UNCONFIRMED else seen[p["id"]]["refused"] or reason
+                out["refused"].setdefault(p["id"], []).append((slot, reason))
             else:
                 eligible.append(p)
         if not eligible:
             continue
-        win = max(eligible, key=lambda p: _rank(p, overrides))
+        win = max(eligible, key=lambda p: _rank(p, overrides, lead))
         plan[win["id"]] = slot
         if sensitive.get(topics[win["id"]]):
             shown.append((topics[win["id"]], slot))
@@ -243,7 +265,7 @@ def carousel_outlook(db, now: datetime | None = None, overrides: Any = ()) -> di
             seen[p["id"]]["lost"] = seen[p["id"]]["lost"] or (slot, win)
         plain = [p for p in rest if p["id"] not in over]
         if win["id"] in over and plain:   # the one that would have taken it, but for Post anyway
-            runner = max(plain, key=lambda p: _rank(p, overrides))
+            runner = max(plain, key=lambda p: _rank(p, overrides, lead))
             seen[runner["id"]]["displaced"] = seen[runner["id"]]["displaced"] or (slot, win)
     for p in waiting:
         pid, s, detail = p["id"], seen[p["id"]], p.get("detail") or {}
@@ -251,8 +273,11 @@ def carousel_outlook(db, now: datetime | None = None, overrides: Any = ()) -> di
         spaced = pid not in over and bool(s["refused"] or (pid not in plan and detail.get("waiting_for") == "spacing"))
         if pid in plan and not spaced:
             continue
-        if pid not in plan and not (spaced or pid in over or s["displaced"]):
-            continue   # it only loses to newer carousels, as every carousel may (expired after 7 days, as before)
+        if pid not in plan and not (spaced or pid in over or s["displaced"] or s["lost"]
+                                    or isinstance(detail.get("spacing_why"), dict)):
+            continue   # no slot of its window is left to plan, and nothing was ever said about it
+        # QF-73b: one that only loses to other carousels (newer ones, as a rule) has a wait as well: the screens and
+        # the Needs-you notice say so, never "after its Reel" up to a silent expiry (QF-110: never silent)
         kind = "spacing" if spaced else "slot"
         lost = s["displaced"] or s["lost"]
         why: dict[str, Any] = {"kind": kind, "chosen": pid in over}
@@ -282,15 +307,20 @@ def carousel_plan(db, now: Optional[datetime] = None, days: int = SLOT_DAYS + 7)
 def post_anyway_outcome(db, post: dict[str, Any], now: datetime | None = None,
                         outlook: dict[str, Any] | None = None) -> dict[str, Any]:
     """What Post anyway would secure for this carousel, from the plan itself: {"slot": the slot the plan then gives
-    it, or None; "blocked_by": the booking id of a carousel you already chose to post anyway that would lose its
-    only slot to it (Post anyway then changes nothing: the first choice keeps its slot); "displaced": the booking
-    ids it would leave with no slot before their deadline}."""
+    it, or None; "blocked_by": the booking id of a carousel you already chose to post anyway that holds the only slot
+    it could take (Post anyway then changes nothing: the first choice keeps its slot); "displaced": the booking ids
+    it would leave with no slot before their deadline}. An earlier choice keeps the slot it was given (_rank), so
+    the slot named here is the one it posts at unless a check at that slot holds it (QF-73b)."""
     base = outlook or carousel_outlook(db, now)
     then = carousel_outlook(db, base["now"], overrides={post["id"]})
+    slot = then["plan"].get(post["id"])
+    if slot is None:   # which earlier choice holds the slot it could have taken: the one that would lose it
+        first = carousel_outlook(db, base["now"], overrides={post["id"]}, lead=post["id"])
+        blocked = [pid for pid, held in base["plan"].items()
+                   if pid != post["id"] and pid in base["over"] and first["plan"].get(pid) != held]
+        return {"slot": None, "blocked_by": blocked[0] if blocked else None, "displaced": []}
     lose = [pid for pid in base["plan"] if pid != post["id"] and pid not in then["plan"]]
-    blocked = [pid for pid in lose if pid in base["over"]]
-    return {"slot": None if blocked else then["plan"].get(post["id"]), "blocked_by": blocked[0] if blocked else None,
-            "displaced": [] if blocked else lose}
+    return {"slot": slot, "blocked_by": None, "displaced": lose}
 
 
 def spacing_wait(db, post: dict[str, Any], now: datetime | None = None,

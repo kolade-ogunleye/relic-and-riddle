@@ -1439,6 +1439,7 @@ class PipelineCoordinator:
         try:
             _notice(self, f"🏛 <b>Auto-approve refused</b>\n\n<b>{html.escape(self.db.run_label(run_id))}</b>\n"
                         + html.escape(why) + "\nThe review card lists each illustration with its reference(s).", section="needs", run=run_id,
+                         key=f"autoapprove-illustration:{run_id}", replace=True,   # QF-88c: one item per run
                          actions=[{"text": "🎬 Reviews", "callback_data": "creviews:"}])
         except Exception as e:  # noqa: BLE001 - the refusal stands whether or not the alert is delivered
             log.warning("Auto-approve refusal alert not sent (%s).", e)
@@ -1456,6 +1457,7 @@ class PipelineCoordinator:
         try:
             _notice(self, f"⚠️ <b>Auto-approve refused</b>\n\n<b>{html.escape(self.db.run_label(run_id))}</b>\n"
                         "Possible flash; needs your look. The review card says where.", section="needs", run=run_id,
+                    key=f"autoapprove-flash:{run_id}", replace=True,   # QF-88c: one item per run
                     actions=[{"text": "🎬 Reviews", "callback_data": "creviews:"}])
         except Exception as e:  # noqa: BLE001 - the refusal stands whether or not the alert is delivered
             log.warning("Auto-approve refusal alert not sent (%s).", e)
@@ -3892,10 +3894,9 @@ class PipelineCoordinator:
                 "to avoid a duplicate post. Check Facebook and Instagram, then tell me:")
         buttons = [{"text": "✅ It posted", "callback_data": f"pubok:{key}"},
                    {"text": "🔁 It didn't post", "callback_data": f"pubno:{key}"}]
-        try:
-            self._alert(text, buttons=buttons, group="needs")
-        except TypeError:   # a stand-in alert that takes no group
-            self._alert(text, buttons=buttons)
+        # UI-01g: one Needs-you item per run's unconfirmed Reel (the same key as publish_run's), through _notice
+        _notice(self, text, buttons=buttons, group="needs", section="needs", key=f"unconfirmed:{post['run_id']}",
+                run=post["run_id"], replace=True)
 
     def _block_booking(self, post: dict[str, Any], exc: Exception, now: datetime) -> None:
         """Sets a booking aside: it is not posted, and trying again cannot change that (QF-110). A Reel's day is
@@ -3916,10 +3917,9 @@ class PipelineCoordinator:
         from src.posting_view import BLOCKED_NEXT, blocked_buttons
         lines = "\n".join(f"• {html.escape(r)}" for r in reasons)
         text = f"⛔ <b>Not posted: {label}</b>\n\nIts Reel was held at its slot because:\n{lines}\n\n{BLOCKED_NEXT}"
-        try:
-            self._alert(text, buttons=blocked_buttons(self.db, post), group="needs")
-        except TypeError:   # a stand-in alert that takes no group
-            self._alert(text, buttons=blocked_buttons(self.db, post))
+        # UI-01g: one Needs-you item per blocked booking, under the key its earlier hold used (_hold_booking)
+        _notice(self, text, buttons=blocked_buttons(self.db, post), group="needs", section="needs",
+                key=f"post-held:{post['id']}", run=post["run_id"], replace=True)
 
     def _hold_booking(self, post: dict[str, Any], exc: Exception) -> None:
         """Keeps a booking that hit an error which may pass: it is tried again at the next pass, and the error is
@@ -4052,6 +4052,7 @@ class PipelineCoordinator:
         label = html.escape(self.db.run_label(post["run_id"]))
         held = "; ".join((res.get("held_platforms") or {}).values())   # QF-65a: AI media never posted unlabelled
         if res["status"] == "published":
+            self._close_booking_item(post)   # QF-73b: a spacing or no-slot notice it had is answered
             _notice(self, f"✅ {name} posted for {label}" + (f" (with the AI label; {html.escape(held[:300])})" if held else ""), section="info")
         elif res["status"] == "unknown":
             _notice(self, f"⚠️ <b>Not sure the {name.lower()} posted</b> for {label} "
@@ -4067,14 +4068,30 @@ class PipelineCoordinator:
         (detail "waiting_for": "spacing", "spacing": the reason) and keeps it: a carousel spacing held back that then
         loses its spaced slot to another carousel still waited for spacing (posting_view.carousel_outlook). Post
         anyway (post_carousel_anyway) sets spacing aside for this carousel."""
-        detail = dict(post.get("detail") or {})
-        if detail.get("spacing_override"):
+        if (post.get("detail") or {}).get("spacing_override"):
             return False
         problem = self.db.topic_problem(run["topic_id"], slot, run_id=post["run_id"], spacing_only=True)
+        self._record_spacing(post, slot, problem)
+        return bool(problem)
+
+    def _record_spacing(self, post: dict[str, Any], slot: datetime, problem: str) -> None:
+        """Keeps on a waiting carousel's booking why spacing refused it at `slot` (_spacing_holds; the slot loop,
+        from the carousel plan's own refusals: QF-73b)."""
+        detail = dict(post.get("detail") or {})
         if problem and (detail.get("waiting_for"), detail.get("spacing")) != ("spacing", problem):
             detail.update(waiting_for="spacing", spacing=problem, spacing_at=slot.isoformat())
             self.db.update_scheduled_post(post["id"], "waiting", detail=detail)
-        return bool(problem)
+            post["detail"] = detail
+
+    def _close_booking_item(self, post: dict[str, Any]) -> None:
+        """QF-73b: a carousel's Needs-you item (its spacing or no-slot notice, under its booking's key) is answered
+        once the carousel posts or expires: it is closed as resolved, never left open with buttons that no longer
+        apply. The earlier chat (switch off) has no items."""
+        if post.get("kind") == "carousel" and config.TELEGRAM_CLEAN_CHAT:
+            try:
+                notifications.close_key(self.db, f"post-failed:{post['id']}")
+            except Exception as e:  # noqa: BLE001 - the post or expiry stands whether or not its item is closed
+                log.warning("Could not close the notice of booking %s: %s", post["id"], e)
 
     def _spacing_expiry(self, post: dict[str, Any], now: datetime) -> dict[str, Any] | None:
         """The detail an expiring carousel records when the carousel plan kept it from a slot for sensitive-topic
@@ -4088,8 +4105,8 @@ class PipelineCoordinator:
     def _watch_carousel_spacing(self, now: datetime) -> None:
         """QF-73: a carousel the carousel plan leaves no slot for, because sensitive-topic spacing held it back (also
         when a spaced slot is then lost to another carousel), because another carousel you chose to post anyway takes
-        its slot, or because you chose to post it anyway and another choice holds the only slot, never expires
-        silently. "No slot left" is decided once, by the plan itself (posting_view.carousel_outlook: the same order
+        its slot, because you chose to post it anyway and another choice holds the only slot, or (QF-73b) because
+        other carousels, newer ones as a rule, take every slot of its window, never expires silently. "No slot left" is decided once, by the plan itself (posting_view.carousel_outlook: the same order
         the slot loop uses), the answer every screen shows. At every pass of the posting loop, from the moment its
         Reel has posted (its window is then known), such a carousel raises ONE Needs-you alert, as soon as that is
         so: why, until when, Post anyway (only when the plan would then give it a slot: that slot is named) and Let it
@@ -4107,7 +4124,7 @@ class PipelineCoordinator:
         for post in self.db.list_scheduled_posts(("waiting",)):
             if post["kind"] != "carousel" or not self._may_post(post["run_id"]):
                 continue
-            outlook = outlook or carousel_outlook(self.db, now)
+            outlook = outlook or carousel_outlook(self.db, now, may_post=self._may_post)
             wait = outlook["waits"].get(post["id"])
             if not wait or wait["earliest"] or wait["state"] != "posted":
                 continue
@@ -4119,6 +4136,7 @@ class PipelineCoordinator:
                 self.db.update_scheduled_post(post["id"], "expired", detail={
                     **detail, **record, "reason": SPACING, "expired_at": now.isoformat()})
                 log.info("Carousel %s of %s expired: %s.", post["id"], post["run_id"], why_words(wait["why"], past=True))
+                self._close_booking_item(post)   # QF-73b: its notice said it would expire then; it has
                 continue
             if not wait["unconfirmed"] and any(detail.get(k) != v for k, v in record.items()):
                 detail.update(record)
@@ -4174,7 +4192,9 @@ class PipelineCoordinator:
         at the slot the carousel plan then gives it (posting_view.post_anyway_outcome), and the reply names that
         slot; the checks every carousel passes there (QF-81 draw and audit, the approved review, its slides) still
         apply. When a carousel you chose to post anyway earlier holds the only slot, nothing is changed and the reply
-        says so (the first choice keeps its slot).
+        says so (the first choice keeps its slot). A later choice never moves an earlier one (QF-73b: posting_view._rank
+        puts the earlier choice first), so the slot a reply names is the slot it posts at unless a check there holds
+        it. A carousel that only loses its slots to newer ones (QF-73b) goes ahead of them the same way.
 
         The reply is a notifications.Outcome (UI-01): done only when spacing is set aside and the plan gives it a
         slot, so its item closes then and stays open, saying why, on every refusal."""
@@ -4191,6 +4211,9 @@ class PipelineCoordinator:
         reel_at = post_schedule.carousel_reel(self.db, post)[1]
         deadline = html.escape(post_schedule.fmt(post_schedule.carousel_deadline(reel_at)))
         waiting = {p["id"]: p for p in self.db.list_scheduled_posts(("waiting",))}
+        # QF-73b: a carousel that only loses its slots to other carousels has no spacing to set aside
+        spaced = ((post.get("detail") or {}).get("waiting_for") == "spacing"
+                  or (outlook["waits"].get(post["id"]) or {}).get("kind", "spacing") == "spacing")
         if outcome["blocked_by"]:
             other = waiting.get(outcome["blocked_by"])
             held = outlook["plan"].get(outcome["blocked_by"])
@@ -4207,12 +4230,13 @@ class PipelineCoordinator:
         if not (post.get("detail") or {}).get("spacing_override"):
             self.db.update_scheduled_post(post["id"], "waiting", detail={
                 **(post.get("detail") or {}), "spacing_override": True, "spacing_override_at": now.isoformat(),
-                "priority": True})
+                "priority": True, "priority_at": now.isoformat()})
         first = post_schedule.first_carousel_slot(reel_at, now=now - MISSED_SLOT_GRACE)
         where = "its next carousel slot, " if slot == first else ""
         gone = [html.escape(self.db.run_label(waiting[pid]["run_id"])) for pid in outcome["displaced"] if pid in waiting]
         return Outcome(f"▶️ The carousel of {label} posts at {where}{html.escape(post_schedule.fmt(slot))}, if its "
-                       "checks pass. Sensitive-topic spacing is set aside for this carousel only."
+                       "checks pass. " + ("Sensitive-topic spacing is set aside for this carousel only."
+                                          if spaced else "It goes ahead of newer episodes' carousels.")
                        + (f" The carousel of {', '.join(gone)} gives up that slot and has none left before its "
                           "deadline: you will get a notice for it." if gone else ""), done=True)
 
@@ -4241,29 +4265,37 @@ class PipelineCoordinator:
         if self.db.get_setting("carousel_posted_on") == local.date().isoformat():
             return
         waiting = [p for p in self.db.list_scheduled_posts(("waiting",)) if self._may_post(p["run_id"])]
-        ready = []
         # One rule with Posting and the booking's confirmation (post_schedule.carousel_may_take), measured at the
         # slot: from 48 h after its Reel posted (or its slot, while it hasn't) to its deadline, 7 days after it or its
         # first carousel slot when later
         for post in waiting:
-            state, reel_at = post_schedule.carousel_reel(self.db, post)
+            reel_at = post_schedule.carousel_reel(self.db, post)[1]
             if post_schedule.carousel_expired(slot, reel_at):  # a week-old carousel is stale next to newer Reels
                 self.db.update_scheduled_post(post["id"], "expired", detail=self._spacing_expiry(post, now))
-            elif state == "posted" and post_schedule.carousel_may_take(slot, reel_at):
-                run = self.db.get_run(post["run_id"])
-                # QF-73: a sensitive topic's carousel too close to another sensitive topic's post waits for a later
-                # slot (it stays waiting, its reason recorded; another ready episode may take this one), unless you
-                # chose Post anyway for it
-                if run and run["status"] == "published" and not self._spacing_holds(post, run, slot):
-                    ready.append((post, run))
+                self._close_booking_item(post)   # QF-73b: its spacing or slot notice is answered by the expiry
         from src import carousel_lazy
-        # the newest topic; a carousel the operator asked to redraw after a hold goes first (QF-81). One that no
-        # longer matches the review you approved (QF-81b) can never post: it is set aside before the slot is taken,
-        # so the next ready episode takes the slot in its place. So can one with nothing left to post (QF-81c): its
-        # slides gone (any of them: QF-81d), or (booked undrawn) its plan missing, unreadable, corrupt or without a
-        # photo to draw; it is held with one alert.
-        for post, run in sorted(ready, key=lambda pr: (bool((pr[0].get("detail") or {}).get("priority")), pr[0]["id"]),
-                                reverse=True):
+        from src.posting_view import carousel_outlook
+        # QF-73b: the slot posts the carousel plan's pick (posting_view.carousel_outlook, the one answer every screen,
+        # notice and reply gives): priority (QF-81's redraw, QF-73's Post anyway, the earlier choice first), then the
+        # newest whose Reel has posted, in its window; a sensitive topic's carousel too close to another sensitive
+        # topic's post waits for a later slot (its reason recorded; another ready episode may take this one), unless
+        # you chose Post anyway for it. One that no longer matches the review you approved (QF-81b) can never post:
+        # it is set aside before the slot is taken, and the plan, asked again, gives the slot to the next ready
+        # episode. So can one with nothing left to post (QF-81c): its slides gone (any of them: QF-81d), or (booked
+        # undrawn) its plan missing, unreadable, corrupt or without a photo to draw; it is held with one alert.
+        tried: set = set()
+        while True:
+            outlook = carousel_outlook(self.db, now, may_post=self._may_post)
+            for post in waiting:
+                for at, problem in outlook["refused"].get(post["id"], ()):
+                    if at == slot:
+                        self._record_spacing(post, slot, problem)
+            post = next((p for p in waiting if outlook["plan"].get(p["id"]) == slot and p["id"] not in tried), None)
+            if post is None:
+                return
+            tried.add(post["id"])
+            post = next((p for p in self.db.list_scheduled_posts(("waiting",)) if p["id"] == post["id"]), post)
+            run = self.db.get_run(post["run_id"])
             run_dir = Path(run["master_video_path"]).parent
             if post["files"]:
                 # a drawn booking posts exactly the deck it booked, or nothing (QF-81d): never what is left of it
@@ -4290,18 +4322,28 @@ class PipelineCoordinator:
             if not broken:
                 break
             self._hold_carousel(post, carousel_lazy.CarouselHeld(broken), binding=True)
-        else:
-            return
         taken_on = self.db.get_setting("carousel_posted_on")
         self.db.set_setting("carousel_posted_on", local.date().isoformat())  # before posting: never twice a day
-        if not post["files"]:
-            # Only the episode that takes the slot is drawn (QF-81), or its preview's drawing reused when nothing
-            # changed; the slot is taken first, so a held carousel is never drawn again the same day, nor again by
-            # itself later: the operator's "Redraw" button books it for the next slot.
-            missing = broken = None
+        from src.publication_lock import publication_lock
+        db_path = getattr(self.db, "db_path", None)
+        with contextlib.ExitStack() as stack:
             try:
-                from src.publication_lock import publication_lock
-                with publication_lock(self.db.db_path, "carousel:" + post["run_id"], wait=900):
+                if db_path is not None:
+                    stack.enter_context(publication_lock(db_path, "carousel:" + post["run_id"], wait=900))
+            except ValueError as e:
+                if not post["files"]:
+                    self._hold_carousel(post, e)   # as before: an undrawn carousel whose lock was not freed is held
+                    return
+                # a drawn one is tried again at the next pass of its posting window
+                log.warning("Carousel %s of %s not posted at %s: %s", post["id"], post["run_id"], slot, e)
+                self.db.set_setting("carousel_posted_on", taken_on or "")
+                return
+            if not post["files"]:
+                # Only the episode that takes the slot is drawn (QF-81), or its preview's drawing reused when nothing
+                # changed; the slot is taken first, so a held carousel is never drawn again the same day, nor again
+                # by itself later: the operator's "Redraw" button books it for the next slot.
+                missing = broken = None
+                try:
                     # checked again under the lock (QF-81c): a plan changed or removed while the lock was awaited is
                     # never drawn
                     missing = carousel_lazy.plan_problem(run_dir)
@@ -4309,20 +4351,30 @@ class PipelineCoordinator:
                     if not (missing or broken):
                         files = carousel_lazy.render(run_dir, run["script_payload"], self.multiformat_gen,
                                                      QualityAuditor())
-            except (carousel_lazy.CarouselHeld, ValueError) as e:
-                self._hold_carousel(post, e)
-                return
-            except OSError as e:   # a file that could not be read, written or installed: held, with the reason
-                self._hold_carousel(post, carousel_lazy.CarouselHeld(f"its slides could not be drawn or installed ({e})"))
-                return
-            if missing or broken:   # nothing was drawn or posted: the slot is left to the next ready episode
-                self._hold_carousel(post, carousel_lazy.CarouselHeld(missing or broken), binding=bool(broken),
-                                    final=bool(missing))
+                except (carousel_lazy.CarouselHeld, ValueError) as e:
+                    self._hold_carousel(post, e)
+                    return
+                except OSError as e:   # a file that could not be read, written or installed: held, with the reason
+                    self._hold_carousel(post, carousel_lazy.CarouselHeld(
+                        f"its slides could not be drawn or installed ({e})"))
+                    return
+                if missing or broken:   # nothing was drawn or posted: the slot is left to the next ready episode
+                    self._hold_carousel(post, carousel_lazy.CarouselHeld(missing or broken), binding=bool(broken),
+                                        final=bool(missing))
+                    self.db.set_setting("carousel_posted_on", taken_on or "")
+                    return
+                self.db.update_scheduled_post(post["id"], "waiting", files=files)
+                post = {**post, "files": files}
+            # QF-73b: sensitive-topic spacing checked again under the lock, after any drawing, just before posting:
+            # another sensitive publication claimed (or posted) while this carousel was chosen or drawn keeps it
+            # waiting (its drawing kept, its reason recorded) and frees the slot for the next pass, unless you chose
+            # Post anyway for it
+            if self._spacing_holds(post, run, slot):
+                log.info("Carousel %s of %s waits: sensitive-topic spacing changed while it was prepared.",
+                         post["id"], post["run_id"])
                 self.db.set_setting("carousel_posted_on", taken_on or "")
                 return
-            self.db.update_scheduled_post(post["id"], "waiting", files=files)
-            post = {**post, "files": files}
-        self._post_photos(post, run, "carousel")
+            self._post_photos(post, run, "carousel")
 
     def _approved_fingerprint(self, run_id: str) -> str | None:
         """The run's review fingerprint when it is still the one on the review card you approved (QF-110: the
@@ -4488,10 +4540,14 @@ class PipelineCoordinator:
             return Outcome(f"🖼 The carousel of {html.escape(self.db.run_label(post['run_id']))} can't be redrawn: "
                            f"{html.escape(missing)}. It will not post, and nothing was changed.", done=False)
         carousel_lazy.discard(Path(run["master_video_path"]).parent)
+        now = datetime.now().astimezone()
         self.db.update_scheduled_post(post["id"], "waiting", files=[],
-                                      detail={"redraw": True, "priority": True, "held_before": post["detail"].get("error")})
-        car = post_schedule.first_carousel_slot(post_schedule.carousel_reel(self.db, post)[1],
-                                                now=datetime.now().astimezone())
+                                      detail={"redraw": True, "priority": True, "priority_at": now.isoformat(),
+                                              "held_before": post["detail"].get("error")})
+        car = post_schedule.first_carousel_slot(post_schedule.carousel_reel(self.db, post)[1], now=now)
+        if car:   # QF-73b: the slot the carousel plan gives it (a carousel chosen first keeps its own), when it has one
+            from src.posting_view import carousel_outlook
+            car = carousel_outlook(self.db, now, may_post=self._may_post)["plan"].get(post["id"]) or car
         label = html.escape(self.db.run_label(post["run_id"]))
         if not car:
             self.db.update_scheduled_post(post["id"], "expired")
@@ -4603,7 +4659,8 @@ class PipelineCoordinator:
             self.topic_engine.record_status(tid, "approved", run_id=run_id)
             log.warning("Publishing halted for %s: commercial voice license required.", run_id)
             key = self.db.run_key(run_id)
-            self._alert(
+            _notice(
+                self,
                 f"🛑 <b>Blocked: unlicensed voice</b>\n\n"
                 f"Topic: <b>{html.escape(payload.get('title', tid))}</b>\n"
                 f"Voice used: <code>{html.escape(str(pub.get('provider', 'unlicensed')))}</code> (Unlicensed)\n\n"
@@ -4611,11 +4668,11 @@ class PipelineCoordinator:
                 f"👉 <i>Options:</i>\n"
                 f"• Configure an active Azure Speech key or ElevenLabs paid plan\n"
                 f"• Or execute a simulated publish for testing",
-                [
+                buttons=[
                     {"text": "🧪 Simulate Publish Only", "callback_data": f"simpub:{key}"},
                     {"text": "📨 Resend review card", "callback_data": f"resend:{key}"}
                 ],
-                group="needs",
+                group="needs", section="needs", key=f"unlicensed:{run_id}", run=run_id, replace=True,   # UI-01g
             )
             self._stamp_review(run_id, status, pub)
             return {"status": status, "publish_result": pub}
@@ -4624,21 +4681,22 @@ class PipelineCoordinator:
             self.topic_engine.record_status(tid, "publish_unknown", run_id=run_id)
             log.error("Publish outcome UNKNOWN for %s. Check the accounts, then `topic requeue %s` if it did not post.", run_id, tid)
             key = self.db.run_key(run_id)
-            self._alert(
+            _notice(
+                self,
                 f"⚠️ <b>Publish unconfirmed</b>\n\n<b>{html.escape(self.db.run_label(run_id))}</b>\n\n"
                 f"The upload may have gone through ({html.escape(str(pub.get('error') or 'no confirmation received')[:200])}). "
                 "I won't retry automatically, to avoid a duplicate post. Check Facebook and Instagram, then tell me:",
-                [{"text": "✅ It posted", "callback_data": f"pubok:{key}"},
-                 {"text": "🔁 It didn't post", "callback_data": f"pubno:{key}"}],
-                group="needs",
+                buttons=[{"text": "✅ It posted", "callback_data": f"pubok:{key}"},
+                         {"text": "🔁 It didn't post", "callback_data": f"pubno:{key}"}],
+                group="needs", section="needs", key=f"unconfirmed:{run_id}", run=run_id, replace=True,   # UI-01g
             )
         else:
             self.db.update_run(run_id, "failed", error=pub.get("error"))
             self.topic_engine.record_status(tid, "failed", run_id=run_id)
             log.error("Publishing failed for %s: %s", run_id, pub.get("error"))
-            self._alert(f"❌ <b>Publish failed</b>\n\n<b>{html.escape(self.db.run_label(run_id))}</b>\n<blockquote expandable>{html.escape(str(pub.get('error') or 'no error details were returned')[:500])}</blockquote>\nNothing was posted. The topic goes back in the queue for a retry.",
-                        group="needs", key=f"fail:{run_id}", run=run_id,
-                        actions=[{"text": "Details", "callback_data": f"chist:{self.db.run_key(run_id)}"}])
+            _notice(self, f"❌ <b>Publish failed</b>\n\n<b>{html.escape(self.db.run_label(run_id))}</b>\n<blockquote expandable>{html.escape(str(pub.get('error') or 'no error details were returned')[:500])}</blockquote>\nNothing was posted. The topic goes back in the queue for a retry.",
+                    group="needs", section="needs", key=f"fail:{run_id}", run=run_id,
+                    actions=[{"text": "Details", "callback_data": f"chist:{self.db.run_key(run_id)}"}])
         if profile == "reel_9x16" and status == "published" and not dry_run:
             self._facebook_finishing(run_id)  # its cover and captions on Facebook, as soon as it is up
         if shorts and status in ("published", "simulated"):
@@ -4662,6 +4720,7 @@ class PipelineCoordinator:
                     _notice(self, f"⚠️ <b>YouTube Short {'unconfirmed' if short['status'] == 'unknown' else 'not posted'}</b>\n"
                                 f"<b>{html.escape(payload.get('title', tid))}</b>: the Reel is unaffected.\n"
                                 f"{html.escape(str(short.get('error', ''))[:300])}", section="needs", run=run_id,
+                                key=f"short:{run_id}", replace=True,   # UI-01g: one item per run's Short
                                  actions=self._episode_action(run_id))
         if receipt and status == "published":
             # Its Stories and carousel as booked, never a fixed promise (it said "in 45 minutes" and "its next
@@ -6083,12 +6142,16 @@ def main(argv=None) -> int:
                 elif status == "queue_empty":
                     ping_healthcheck()  # the system is healthy; it just has nothing new to make
                     if "timed-out review" in str(result.get("detail", "")):  # held, not exhausted
-                        bot.notify("⌛ <b>Today's run was skipped</b>: every topic left waits for a timed-out review. "
-                                   "Resend or Reject it.", [{"text": "🎬 Reviews", "callback_data": "creviews:"}], group="needs")
+                        # UI-01g: one item, whichever day it is said again
+                        notifications.say(bot.notify, "⌛ <b>Today's run was skipped</b>: every topic left waits for a "
+                                          "timed-out review. Resend or Reject it.",
+                                          buttons=[{"text": "🎬 Reviews", "callback_data": "creviews:"}], group="needs",
+                                          key="run-skipped", replace=True)
                     else:
-                        bot.notify("📭 <b>Topic queue is empty</b>: every topic has been published, so today's run was skipped "
-                                   "(repeating topics risks Meta's unoriginal-content rules).",
-                                   [{"text": "💡 Propose new topics", "callback_data": "propose:"}], group="needs")
+                        notifications.say(bot.notify, "📭 <b>Topic queue is empty</b>: every topic has been published, "
+                                          "so today's run was skipped (repeating topics risks Meta's unoriginal-content "
+                                          "rules).", buttons=[{"text": "💡 Propose new topics", "callback_data": "propose:"}],
+                                          group="needs", key="queue-empty", replace=True)
                 elif status == "refused":  # a re-render the run's state no longer allows
                     run_ref = coordinator.db.resolve_run(resume) if resume else None
                     notifications.say(bot.notify, f"🔁 <b>Re-render not started</b>: {html.escape(str(result.get('error', '')))}", group="needs",

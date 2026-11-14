@@ -25,7 +25,10 @@ def _place(case):
 
 def test_globe_sizes_and_corners() -> None:
     tr = graphics.globe_box(1080, 1920)
-    assert tr[2] - tr[0] == graphics.GLOBE_PX == 200 and tr[2] == 888 and tr[0] == 688
+    # QF-24 (decision QF-24/QF-87 layout, 2026-11-09: the shared organic Reel box, x 113-848): the globe's right
+    # edge stays on the graphics box's right edge, 848 (888, the ads box's, until then)
+    assert tr[2] - tr[0] == graphics.GLOBE_PX == 200 and tr[2] == 848 and tr[0] == 648
+    assert tr[2] == graphics.safe_zones.graphics_box(1080, 1920)[2]
     assert tr[1] == graphics.get_text_box(1080, 1920)[1]                 # on the text box's top (330)
     wide = graphics.globe_box(1920, 1080)
     assert wide[2] - wide[0] == graphics.GLOBE_PX_WIDE == 180 and wide[2] == 1766 and wide[1] == 130
@@ -155,7 +158,11 @@ def test_bijapur_globe_never_on_the_home_fill(tmp_path, monkeypatch) -> None:
     if lay["globe"] is None:
         return
     gb = lay["globe"]
-    hm = _home_mask(place, geo.find_country("India"), 1080, 1920, lay["span_close"])
+    # QF-24 round 3: the home as the frame draws it (QF-20's site-centred projection, from the layout's anchor and
+    # span, as _home_mask's lay argument gives it). Without it the mask is projected about another centre: on the
+    # organic Reel box the globe sits in the bottom-right corner (its disc on the sea, clear of every land pixel of
+    # the drawn frame), where that off-centre mask put 8,995 px of India under it
+    hm = _home_mask(place, geo.find_country("India"), 1080, 1920, lay["span_close"], lay)
     import cv2
     disc = np.zeros(hm.shape, np.uint8)
     cv2.circle(disc, ((gb[0] + gb[2]) // 2, (gb[1] + gb[3]) // 2), (gb[2] - gb[0]) // 2, 1, -1)

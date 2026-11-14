@@ -345,7 +345,9 @@ def test_reel_plates_stay_in_the_reel_box_and_below_the_graphics(tmp_path):
     box = safe_zones.safe_box("reel")
     graphics_bottom = safe_zones.graphics_box()[3]
     assert pills and all(safe_zones.inside(p, box) for p in pills)
-    assert all(p[0] >= 65 and p[2] <= 888 and p[1] > graphics_bottom and p[3] <= 1248 for p in pills)
+    # QF-24 (decision QF-24/QF-87 layout, deliberate change): the organic Reel box, x 113-848, foot 1370 (was the
+    # ads box, x 65-888, foot 1248)
+    assert all(p[0] >= 113 and p[2] <= 848 and p[1] > graphics_bottom and p[3] <= 1370 for p in pills)
 
 
 def test_portrait_reconstruction_badge_is_readable_top_left(tmp_path):
@@ -357,6 +359,8 @@ def test_portrait_reconstruction_badge_is_readable_top_left(tmp_path):
     style = next(ln for ln in ass.splitlines() if ln.startswith("Style: ReconBadge,")).split(",")
     assert style[18] == "7"  # top-left alignment
     (_, _, plate), = _events(ass, "ReconPlate")
-    assert r"\pos(84,300)" in plate
+    # QF-24 (decision QF-24/QF-87 layout, deliberate change): 19 px inside the organic Reel box's left edge (x 113),
+    # 12 px under its top, as it stood 19 px inside the ads box (x 84, 65-888) before
+    assert r"\pos(132,300)" in plate
     width = get_font("IBM Plex Mono", RECON_SIZE_PORTRAIT, weight=600).getlength("AI ILLUSTRATION · NOT A PHOTO")
-    assert 84 + width + 60 <= 888  # plate stays clear of the right rail
+    assert 132 + width + 60 <= 848  # plate stays clear of the right rail (the organic box's x 848; was 888)

@@ -5,7 +5,7 @@ FFmpeg assembly embodying the locked production standards:
 1. Anton 80 px (72 until 2026-11-03) running-speech kinetic captions on an INK plate: each burst shown at one size, its words
    easing in as they are spoken (upcoming words are transparent placeholders, so the line never moves), bone
    text, gold for the script's key terms only; zero-overlap ASS events inside the Reel safe box
-   (safe_zones.REEL: the plate ends above y 1248). 16:9 burns in one still Montserrat Bold line per burst on the
+   (safe_zones.REEL: the plate ends above y 1370, centred in the box at x 480). 16:9 burns in one still Montserrat Bold line per burst on the
    same plate (shown whole, not word by word).
 2. Varied Ken Burns motion sampled at fractional source positions (one shared camera,
    src/camera_motion.py) on eased curves, through lossless intermediates (src/still_camera.py).
@@ -61,6 +61,7 @@ from .config import (
     CAPTION_WIDE_MAX_WORDS,
     CAPTION_REEL_PAD_Y_EM,
     CAPTION_REEL_CLEARANCE,
+    CAPTION_REEL_TEXT_WIDTH,
     CAPTION_WORD_EASE_MS,
     CAPTION_PLATE_FADE_IN_MS,
     CAPTION_PLATE_FADE_OUT_MS,
@@ -349,6 +350,8 @@ def _ass_escape(text: str) -> str:
 
 
 from .safe_zones import REEL as _REEL_UI
+from .safe_zones import caption_band_top as _caption_band_top
+from .safe_zones import graphics_box as _graphics_box
 
 
 @lru_cache(maxsize=16)
@@ -421,9 +424,27 @@ REEL_PAD_X = CAPTION_PAD_X
 REEL_PAD_Y = round(CAPTION_REEL_PAD_Y_EM * REEL_CAP_H)
 REEL_PLATE_H = round(REEL_CAP_H + 2 * REEL_PAD_Y)   # one plate height per Reel
 
-# The widest caption text, centred: its pill (text plus padding) fills at most the width every Reel platform
-# leaves free (safe_zones.REEL.centred_width, 696 px: Shorts' icon column takes the right 192 px). 640 px.
-MAX_CAPTION_WIDTH = _REEL_UI.centred_width() - 2 * REEL_PAD_X
+# The widest caption text: the reviewed CAPTION_REEL_TEXT_WIDTH (640 px), its pill (text plus padding, 696 px) inside
+# the width every Reel platform leaves free (safe_zones.REEL, 735 px). The pill is centred in that box, not on the
+# frame (reel_caption_centre_x): centred on the frame the organic box leaves 616 px (its right rail, 232 px, is wider
+# than its left, 113 px), which would cut every line to 560 px and form new bursts (QF-24).
+MAX_CAPTION_WIDTH = min(CAPTION_REEL_TEXT_WIDTH, _REEL_UI.box()[2] - _REEL_UI.box()[0] - 2 * REEL_PAD_X)
+
+
+def reel_caption_centre_x(width: int = VIDEO_WIDTH, height: int = VIDEO_HEIGHT) -> int:
+    """The x a 9:16 caption is centred on: the frame's centre when the widest pill fits around it inside the Reel
+    box, else the box's centre (x 480 at 1080 x 1920: the shared organic Reel box is x 113-848)."""
+    x0, _, x1, _ = _REEL_UI.box(width, height)
+    half = (MAX_CAPTION_WIDTH + 2 * REEL_PAD_X) * width / VIDEO_WIDTH / 2
+    centre = width // 2
+    return centre if x0 <= centre - half and centre + half <= x1 else round((x0 + x1) / 2)
+
+
+def reel_caption_span(width: int = VIDEO_WIDTH, height: int = VIDEO_HEIGHT) -> int:
+    """The widest 9:16 plate centred on reel_caption_centre_x that stays inside the Reel box."""
+    x0, _, x1, _ = _REEL_UI.box(width, height)
+    cx = reel_caption_centre_x(width, height)
+    return int(2 * min(cx - x0, x1 - cx))
 
 
 TERMINAL_PUNCT = re.compile(r"[\.\?!…]+[\"\'”’\)]*$")
@@ -1509,11 +1530,14 @@ CAPTION_LADDER = (FONT_SIZE, CAPTION_BURST_MIN_SIZE, CAPTION_BOND_MIN_SIZE)   # 
 
 def _two_line_clears_graphics(size: float, height: int = VIDEO_HEIGHT) -> bool:
     """Whether a two-line 9:16 plate at caption size `size` (REEL_PLATE_H plus one baseline pitch, its bottom on the
-    one-line plate's) stays below safe_zones.graphics_box (top y > CAPTION_GUARD_GRAPHICS_BOTTOM): operator decision
-    2026-11-04, a caption plate never rises over the graphics. At 1080 x 1920 no rung clears it (66 px: top y 1032),
-    so a burst that would need two lines is split instead."""
+    one-line plate's) stays inside the band reserved for captions (safe_zones.caption_band_top, which stands the
+    40 px gap below safe_zones.graphics_box): operator decision 2026-11-04, a caption plate never rises over the
+    graphics. Under the ads profile no rung cleared it (66 px: top y 1032 over a graphics floor at 1058); the
+    organic profile's 240 px band (QF-24/QF-87 decision, 2026-11-09) holds a two-line plate at every rung (80 px:
+    top y 1137 under a band top of 1130). A burst that would cross it is split instead."""
     one_line_top = height - CAPTION_MARGIN_V - CAPTION_REEL_CLEARANCE - REEL_PLATE_H
-    return one_line_top - round(CAPTION_TWO_LINE_PITCH_EM * reel_cap_height(size)) > CAPTION_GUARD_GRAPHICS_BOTTOM
+    two_line_top = one_line_top - round(CAPTION_TWO_LINE_PITCH_EM * reel_cap_height(size))
+    return two_line_top >= _caption_band_top(VIDEO_WIDTH, height)
 
 
 @lru_cache(maxsize=4096)
@@ -1524,7 +1548,7 @@ def _two_line_cached(words: tuple[str, ...]) -> tuple[int, int] | None:
     budget = _ink_budget()
     for rung in CAPTION_LADDER:
         if not _two_line_clears_graphics(rung):
-            continue   # fix round 1: never above the graphics box (CAPTION_GUARD_GRAPHICS_BOTTOM); split instead
+            continue   # fix round 1: never above the caption band (under the graphics box); split instead
         best: tuple[tuple[int, int], int] | None = None
         for k in range(1, len(shown)):
             if _bare(shown[k - 1]) in _ARTICLES or _is_atomic_boundary(shown[k - 1], shown[k]) \
@@ -3242,7 +3266,7 @@ CAPTION_GUARD_INK_LUMA = 140
 CAPTION_GUARD_INK_SHARE = 0.005
 CAPTION_GUARD_INK_CHROMA = 48   # the poster scan's text pixels are near-neutral: max - min channel at most this
 CAPTION_GUARD_ALPHA = "&H08&"   # the plate's fill: 97% opaque (CapBox draws &H20, 87%)
-CAPTION_GUARD_GRAPHICS_BOTTOM = 1058   # safe_zones.graphics_box's bottom edge (px) at 1080 x 1920
+CAPTION_GUARD_GRAPHICS_BOTTOM = _graphics_box()[3]   # safe_zones.graphics_box's bottom edge: y 1090 at 1080 x 1920
 
 
 def caption_graphic_clips(scene_images: list[Path], durations: list[float]) -> list[tuple[float, float, Path]]:
@@ -3901,7 +3925,9 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                 f"{len(rates['timing_defects'])} burst(s) like it")
         raw_events: list[tuple[int, float, float, str, str]] = []  # (layer, start, end, style, text)
 
-        center_x = width // 2
+        # 9:16: centred in the Reel box (x 480 at 1080 wide: the organic box's right rail is wider than its left)
+        center_x = width // 2 if is_widescreen else reel_caption_centre_x(width, height)
+        caption_span = reel_caption_span(width, height)
         graphic_spans = list(graphic_intervals or [])
 
         # Pass 1: each burst's geometry
@@ -3942,7 +3968,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                 # builder fits to the ink budget; operator decision 2026-11-04: the compliant 28 px, not 40), never
                 # wider than the width every Reel platform leaves free; the plate is centred on the ink, not on the
                 # advance box libass centres on the anchor
-                box_w = min(round(text_w + CAPTION_INK_FIT_PAD * 2), _REEL_UI.centred_width())
+                box_w = min(round(text_w + CAPTION_INK_FIT_PAD * 2), caption_span)
                 ink_dx = 0.0 if lines else _caption_ink_offset(shown, fit)
                 box_h = REEL_PLATE_H
                 # The pill ends CAPTION_REEL_CLEARANCE above the band the platforms draw over (eff_margin_v =
@@ -3994,7 +4020,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             box_w, box_h = g["box_w"], g["box_h"]
             box_x = round(center_x + g["ink_dx"] - box_w / 2)
             if not is_widescreen:   # never outside the width every Reel platform leaves free
-                half = _REEL_UI.centred_width() / 2
+                half = caption_span / 2
                 box_x = max(round(center_x - half), min(box_x, round(center_x + half) - box_w))
             whole = pi == 0 and whole_first   # round 4: the first burst whole and settled on frame 0
             fade_in = 0 if is_widescreen or whole or (pi > 0 and joined_next[pi - 1]) else CAPTION_PLATE_FADE_IN_MS
@@ -4081,14 +4107,19 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         # The AI-reconstruction disclosure (layer 2 plate, layer 3 text) while a reconstruction is on screen
         if reconstruction_intervals:
             label = RECON_BADGE_LABEL
-            # Bone IBM Plex Mono on an INK plate, top-left: the 5% title-safe corner on 16:9; on 9:16 inside the Meta
-            # inset below the Reel's top bar (x 84, y 300). The 9:16 badge was 22px, centred and unplated until the
+            # Bone IBM Plex Mono on an INK plate, top-left: the 5% title-safe corner on 16:9; on 9:16 inside the Reel
+            # box below the Reel's top bar, 19 px in from its left edge and 12 px under its top (x 132, y 300 on the
+            # organic box; x 84 on the ads box until QF-24). The 9:16 badge was 22px, centred and unplated until the
             # caption review of 2026-11-02 (operator approved moving it).
             scale = height / 1080 if is_widescreen else 1
             pad_x, pad_y = round(14 * scale), round(8 * scale)
             b_top, b_bottom = _ink_band(RECON_FONT, badge_px, badge_fs, 600)
             tw = unkerned_length(get_font(RECON_FONT, badge_px, weight=600), label) + 1.5 * len(label)
-            x0, y0 = (round(0.05 * width), round(0.05 * height)) if is_widescreen else (84, 300)
+            if is_widescreen:
+                x0, y0 = round(0.05 * width), round(0.05 * height)
+            else:
+                reel_x0, reel_y0, _, _ = _REEL_UI.box(width, height)
+                x0, y0 = reel_x0 + round(19 * width / VIDEO_WIDTH), reel_y0 + round(12 * height / VIDEO_HEIGHT)
             text_pos = (x0 + pad_x, round(y0 + pad_y - b_top))
             badge_text = f"{{\\an7\\pos({text_pos[0]},{text_pos[1]})}}{label}"
             plate_w, plate_h = round(tw + 2 * pad_x), round(b_bottom - b_top + 2 * pad_y)

@@ -74,10 +74,11 @@ from . import brand
 SEA, LAND, HOME, BORDER, GRID = brand.INK, (40, 43, 48), (92, 74, 42), (96, 98, 104), (24, 28, 34)
 GOLD, WHITE, MUTED = brand.GOLD, brand.BONE, brand.STONE_LT
 GOLD_LINE = brand.GOLD_DIM
-M = 84  # a 9:16 graphic's left text margin (19 px inside the Reel box), shared with the Story column
-# Where a 9:16 graphic may put text and figures: the Reel box every platform leaves free (safe_zones: Meta's
-# 14/35/6 %, YouTube Shorts' right-hand icon column), less the caption band at its bottom. TEXT_TOP stays a
-# little below the box's top edge, as it was; TEXT_MAX_W is the widest text centred on the frame.
+M = 84  # a 9:16 graphic's left text margin (19 px inside the ads Reel box), shared with the Story column
+# Where a 9:16 graphic may put text and figures: the Reel box every platform leaves free (safe_zones: the shared
+# organic Reel profile, x 113-848, y 288-1370 at 1080 x 1920), less the caption band and its gap at its bottom (the
+# graphics end at y 1090). TEXT_TOP stays a little below the box's top edge, as it was; TEXT_MAX_W is the widest
+# text centred on the frame.
 from . import safe_zones
 
 _BOX = safe_zones.graphics_box(VIDEO_WIDTH, VIDEO_HEIGHT)
@@ -85,19 +86,23 @@ TEXT_TOP, TEXT_BOTTOM = max(330, _BOX[1]), _BOX[3]
 TEXT_LEFT, TEXT_RIGHT = _BOX[0], _BOX[2]
 TEXT_MAX_W = safe_zones.REEL.centred_width(VIDEO_WIDTH, VIDEO_HEIGHT)
 # The shared inset edge (2026-11-02): every 9:16 graphic (timeline, scale, cross-section, number cards) starts its
-# words and drawings on one left edge at x 100 and keeps its drawings to x 100-860, inside the Reel box (65-888), so a
-# cut from one graphic to the next keeps the column still (each had its own edge at 65-102 before).
-INSET_X0, INSET_X1 = 100, 860
+# words and drawings on one left edge and keeps its drawings to INSET_X0-INSET_X1, inside the Reel box, so a cut from
+# one graphic to the next keeps the column still (each had its own edge at 65-102 before). QF-24: x 120-820, inside
+# the organic box (113-848), whose left edge already holds 28 px of clearance and annotation uncertainty (x 100-860
+# inside the ads box, 65-888, until then). The right edge keeps its 28 px inside the box.
+INSET_PAD_LEFT, INSET_PAD_RIGHT = 7, 28
+INSET_X0, INSET_X1 = TEXT_LEFT + INSET_PAD_LEFT, TEXT_RIGHT - INSET_PAD_RIGHT
 
 
 def inset_x0(width: int = VIDEO_WIDTH, height: int = VIDEO_HEIGHT) -> int:
-    """The shared left edge of a 9:16 graphic on this frame (INSET_X0 on 1080 wide)."""
-    return round(INSET_X0 * width / VIDEO_WIDTH)
+    """The shared left edge of a 9:16 graphic on this frame (INSET_X0 on 1080 wide): the graphics box's left edge
+    plus INSET_PAD_LEFT, scaled."""
+    return safe_zones.graphics_box(width, height)[0] + round(INSET_PAD_LEFT * width / VIDEO_WIDTH)
 
 
 def inset_x1(width: int = VIDEO_WIDTH, height: int = VIDEO_HEIGHT) -> int:
     """The right edge of a 9:16 graphic's drawings on this frame (INSET_X1 on 1080 wide)."""
-    return round(INSET_X1 * width / VIDEO_WIDTH)
+    return safe_zones.graphics_box(width, height)[2] - round(INSET_PAD_RIGHT * width / VIDEO_WIDTH)
 
 from .reference_facts import (
     REFERENCE_FILE,
@@ -761,6 +766,11 @@ def place_scale_bar(bar: ScaleBar, width: int, height: int, labels: Sequence[Box
     ii_obs = _integral(obs_a) if obs_a is not None else None
     ii_home = _integral(home_a) if home_a is not None else None
     b0 = scale_bar_box(bar, ox, oy, font)
+    # QF-24: on 9:16 the bar's line and ticks keep their 30 px of slack past the text box, its words stay inside it
+    # (the organic Reel box, x 113-848: with the slack a route's "500 KM" was set to x 872)
+    labs0 = [b_ for b_ in (ink_box(xy, t, font, "ls", font.size * SCALE_LABEL_TRACK)
+                           for _n, t, xy in scale_bar_label_specs(bar, ox, oy, font)) if b_]
+    lab0 = _union(labs0) if tall and labs0 else None
     a_ = SCALE_LABEL_CLEAR       # round 6 review: clear of every label by this, not only off it
 
     def faults(b: Box) -> tuple[int, int, float]:
@@ -787,6 +797,8 @@ def place_scale_bar(bar: ScaleBar, width: int, height: int, labels: Sequence[Box
                     if b[0] < lo_x - 0.5 or b[2] > hi_x + 0.5:
                         if j:
                             break
+                        continue
+                    if lab0 is not None and (lab0[0] + x - ox < tb_[0] - 0.5 or lab0[2] + x - ox > tb_[2] + 0.5):
                         continue
                     yield x, oy + dy, b
     ha = SCALE_HERO_AIR * k
@@ -909,7 +921,7 @@ MAP_LEADER_MIN = 24       # and the shortest
 
 
 def globe_box(width: int, height: int, corner: str = "tr", shrink: float = 1.0) -> tuple[int, int, int, int]:
-    """Where the context globe sits (round 6): 9:16 in the Reel box's top-right corner (x 688-888, its top on the
+    """Where the context globe sits (round 6): 9:16 in the Reel box's top-right corner (x 648-848, its top on the
     text box's, y 330: the graphics box's 288 is above it); 16:9 its right edge on title-safe's (1766), its top at
     130 (clear of YouTube's timestamp corner, bottom-right). `corner` "tl" mirrors it, "br" and "bl" set it low (over
     the scale bar's row); `shrink` draws it smaller, from the same corner."""
@@ -2209,6 +2221,16 @@ def leader_marker(anchor: tuple[float, float], label: str, width: int, height: i
     return lay
 
 
+def _into_box_x(lb: Box, box: Box, tall: bool = True) -> float:
+    """QF-24: the px a 9:16 label centred on its marker slides along its row to lie within the box's x-range (0
+    where it does already, where it is wider than the box, or on a wide frame: 16:9 is unchanged). The 9:16 site is
+    centred on the frame (x 540) and the organic Reel box is not (x 113-848, its axis 480), so a name at its full
+    measure (MARKER_LABEL_MEASURE, 640 px) centred on the pin ran to x 860, past the box's right edge."""
+    if not tall or lb[2] - lb[0] > box[2] - box[0]:
+        return 0.0
+    return max(box[0] - lb[0], 0.0) + min(box[2] - lb[2], 0.0)
+
+
 def pin_layout(anchor: tuple[float, float], text: str, width: int, height: int,
                box: Box | None = None, home: BoolArray | None = None, ground: str = "island") -> MarkerLayout:
     """The pin's site label (A.1): centred on the pin's x, the last row's baseline MARKER_LABEL_GAP above the head's
@@ -2223,11 +2245,17 @@ def pin_layout(anchor: tuple[float, float], text: str, width: int, height: int,
     last_base = head_top - MARKER_LABEL_GAP * k
     rows = _label_rows(lines, font, anchor[0], last_base - step * (len(lines) - 1), "ms")
     lb = _rows_box(rows, font) or (anchor[0], last_base - cap, anchor[0], last_base)
+    if (sx := _into_box_x(lb, box, height > width)):   # QF-24: inside the box's x-range, the least slide off the pin
+        rows = _label_rows(lines, font, anchor[0] + sx, last_base - step * (len(lines) - 1), "ms")
+        lb = _rows_box(rows, font) or lb
     position = "above"
     if lb[1] < box[1] + MARKER_LABEL_TOP_AIR:
         first_base = anchor[1] + PIN_SHADOW[1] * k / 2 + MARKER_LABEL_GAP * k + cap
         rows = _label_rows(lines, font, anchor[0], first_base, "ms")
         lb = _rows_box(rows, font) or lb
+        if (sx := _into_box_x(lb, box, height > width)):
+            rows = _label_rows(lines, font, anchor[0] + sx, first_base, "ms")
+            lb = _rows_box(rows, font) or lb
         position = "flip"
     r = PIN_HEAD_D / 2 * k
     mbox = (anchor[0] - r - PIN_STROKE * k, anchor[1] - PIN_HEIGHT * k - PIN_STROKE * k, anchor[0] + r + PIN_STROKE * k,
@@ -2257,6 +2285,9 @@ def pin_layout(anchor: tuple[float, float], text: str, width: int, height: int,
             else:
                 base_ = first_base if pos == "flip" else last_base - step * (len(lines) - 1)
                 rows2 = _label_rows(lines, font, anchor[0] + dx, base_, "ms")
+                lb2 = _rows_box(rows2, font) or lb
+                if (sx := _into_box_x(lb2, box, height > width)):   # QF-24: slid on into the box's x-range
+                    rows2 = _label_rows(lines, font, anchor[0] + dx + sx, base_, "ms")
             lb2 = _rows_box(rows2, font) or lb
             if not (box[0] <= lb2[0] and lb2[2] <= box[2] and box[1] <= lb2[1] and lb2[3] <= box[3]):
                 continue
@@ -3380,7 +3411,7 @@ def country_outside_place(name: str, home: BoolArray | None, anchor: tuple[float
                           width: int, height: int, aim: tuple[float, float] | None = None,
                           land: BoolArray | None = None, label: Box | None = None,
                           ids: tuple["npt.NDArray[np.uint16]", int] | None = None,
-                          ) -> tuple[tuple[float, float], Box] | None:
+                          px: int | None = None) -> tuple[tuple[float, float], Box] | None:
     """The name set outside its fill (A.4 fallback). Round 15 (coordinator directive 2, LEADER OR DROP): only over
     open water: its box, grown COUNTRY_OUT_AIR, on no land of any size (the home's or any other: the tiers that let
     it sit on a neighbour's land, as RUSSIA did on Lithuania, are gone), within COUNTRY_NEAR_PX of the home's ground
@@ -3389,12 +3420,12 @@ def country_outside_place(name: str, home: BoolArray | None, anchor: tuple[float
     COUNTRY_LABEL_AIR from the site's label and MARKER_LABEL_CLEAR from `obstacles`. Of those places the one
     nearest the home's ground, then nearest `aim`; it is drawn with a leader to that ground (ground_leader). None
     where no place is. `ids` is unused (kept for callers). O(w h) over a 6 px grid, each box tested in O(1) on
-    summed-area tables."""
+    summed-area tables. `px`: the size (COUNTRY_OUT_PX by default)."""
     import cv2
     import numpy as np
     tall = height > width
     k = 1.0 if tall else min(width / 1920, height / 1080)
-    font = get_font("Montserrat", round(COUNTRY_OUT_PX * k), weight=600)
+    font = get_font("Montserrat", round(COUNTRY_OUT_PX * k) if px is None else px, weight=600)
     track = font.size * COUNTRY_TRACK
     rel = ink_box((0.0, 0.0), name, font, "mm", track)
     if rel is None:
@@ -3522,10 +3553,27 @@ def country_spot(name: str, rings: list[list[tuple[float, float]]], home: BoolAr
             log.info("Map: the country's name fits its fill at no size down to %d px; set outside it.",
                      round(COUNTRY_SMALL_PX[-1] * k))
     pole = fill_pole(rings) if rings else None
+    out_px = round(COUNTRY_OUT_PX * k)
     out = country_outside_place(name, home, anchor, list(keep_out) + list(obstacles), width, height,
                                 pole[:2] if pole else None, land, label, ids)
+    if out is None:
+        # QF-24 (9:16; 16:9 unchanged): a name wider than the text box at COUNTRY_OUT_PX (the organic Reel box is
+        # 735 px wide, 88 fewer than the ads box: FRENCH SOUTHERN AND ANTARCTIC LANDS measures 802 px at 24) steps
+        # down the COUNTRY_SMALL_PX sizes the fill already takes, to their floor, before it is dropped; a name the
+        # box holds keeps its size
+        tb = get_text_box(width, height)
+        f_ = get_font("Montserrat", out_px, weight=600)
+        wide = ink_box((0.0, 0.0), name, f_, "mm", f_.size * COUNTRY_TRACK)
+        steps = [round(p_ * k) for p_ in COUNTRY_SMALL_PX if round(p_ * k) < out_px]
+        for px in (steps if tall and wide is not None and wide[2] - wide[0] > tb[2] - tb[0] else []):
+            out = country_outside_place(name, home, anchor, list(keep_out) + list(obstacles), width, height,
+                                        pole[:2] if pole else None, land, label, ids, px=px)
+            if out is not None:
+                log.info("Map: the country's name set outside its fill at %d px: %d px wide at %d, the text box "
+                         "%d.", px, round(wide[2] - wide[0]), out_px, round(tb[2] - tb[0]))
+                return CountrySpot(out[0], out[1], px, False)
     if out is not None:
-        return CountrySpot(out[0], out[1], round(COUNTRY_OUT_PX * k), False)
+        return CountrySpot(out[0], out[1], out_px, False)
     log.warning("Map: no place for the country's name %r inside or outside its fill.", name)
     return None
 
@@ -3915,16 +3963,30 @@ def neighbours_in_view(width: int, height: int, home: geo.Country | None,
     return [(str(c["display"]).upper(), rank[id(c)][0] == 0.0) for c, _a in order]
 
 
+def detail_ground_mask(country: geo.Country, from_frame: Callable, width: int, height: int) -> BoolArray | None:
+    """QF-24 round 3: where `country`'s 1:10m ground (geo.countries_detail, the same entity) lies on the frame, by
+    inverse projection (name_ground_mask's method); None where the 1:10m layer has no such entity."""
+    detail = next((d for d in geo.countries_detail() if geo.same_entity(d, country)), None)
+    if detail is None:
+        return None
+    polygons = detail.get("label_polygons") or detail.get("polygons")
+    return name_ground_mask({"label_polygons": polygons}, from_frame, width, height) if polygons else None
+
+
 def close_neighbours(width: int, height: int, home: geo.Country | None,
                      to_frame: Callable[[float, float], tuple[float, float]], keep_out: Sequence[Box],
                      already: set[str], wanted: int = NEIGHBOUR_MAX,
-                     anchor: tuple[float, float] | None = None) -> list[NeighbourName]:
+                     anchor: tuple[float, float] | None = None,
+                     from_frame: Callable | None = None) -> list[NeighbourName]:
     """The neighbours named on the resting close-up (round 6 review: none was, at the new zooms, their Natural
     Earth label points off the frame): the countries with the most land in the text box first, each name (MAP_NAME_PX
     Montserrat MAP_NAME_WEIGHT, letter-spaced, on two rows where one does not fit) set where its land is deepest (the
     furthest from its own border) among the NEIGHBOUR_STEP grid places whose box, grown 6 px, is wholly on that
     country, off the home fill, inside the text box and MARKER_LABEL_CLEAR from every word (`keep_out`) and from the
-    names set before it. If every spaced form fails at the existing size floor,
+    names set before it. QF-24 round 3: with `from_frame` (the route, drawn on the 1:50m layer) a name's place must
+    also lie on the country's 1:10m ground (detail_ground_mask): on the organic Reel box the Morocco route's only
+    room for ALGERIA was a corner on Algeria's 1:50m fill that the 1:10m border puts 7 km inside Morocco. If every
+    spaced form fails at the existing size floor,
     try normal letter spacing with the same fonts, full names and ground/air constraints.
     Round 8 (review 5: Urnes named no neighbour with Sweden filling the frame's right): where
     no such place is, a place whose box is at least NEIGHBOUR_LAND_SHARE on the country and otherwise on the sea
@@ -3967,6 +4029,10 @@ def close_neighbours(width: int, height: int, home: geo.Country | None,
     cands: list[tuple[int, geo.Country, npt.NDArray[np.uint8]]] = []
     for c, m in masks.values():
         arr = np.asarray(m)
+        if from_frame is not None:
+            own = detail_ground_mask(c, from_frame, width, height)
+            if own is not None:
+                arr = np.where(own, arr, 0).astype(arr.dtype)
         if c.get("label_polygons") and isinstance(to_frame, PolarProjection):
             bearing = Image.new("L", (width, height), 0)
             db = ImageDraw.Draw(bearing)
@@ -6608,6 +6674,15 @@ def _render_timeline_tall(events: list[dict[str, Any]], out: Path, width: int, h
             log.warning("Timeline: the years set under %.1f x the labels' cap height to keep %d entries whole.",
                         full, len(events))
     else:
+        # QF-24: a cut label is refused (QF-23, below), so before any layout that cuts one the years step on to the
+        # last resort (TALL_YEAR_RATIO_LAST, the largest size that holds them) with every label whole. On the
+        # organic Reel box the label column is 40 px narrower and a long label takes a third row (round 7's KHUFU
+        # label needs 692 px for two rows at 30 px; the column holds 646); the cut ladder came first and refused it.
+        chosen = first_fit([(TALL_LABEL_ROWS_MAX, TALL_YEAR_RATIO_LAST)], True)
+        if chosen is not None:
+            log.warning("Timeline: the years set under %.1f x the labels' cap height (at %.1f x, the last resort) to "
+                        "keep %d entries whole.", least, TALL_YEAR_RATIO_LAST, len(events))
+    if chosen is None:
         at_full = first_fit([(r, full) for r in ladder], False)
         at_least = first_fit([(r, least) for r in ladder], False)
         chosen = at_full
@@ -8560,12 +8635,14 @@ def _render_scale_vertical(fact, feet, ref_label, ref_feet, depth, out, width, h
             plates.append(("ref_label", ref_note))
             bracket = (tick_x, ref_top, ref_top)
             # round 4: what the landmark's figure measures, under it (reference_note: "GROUND TO TORCH TIP"), in
-            # the data face at the ruler's size, two lines at most, inside the box or not at all
+            # the data face at the ruler's size, three lines at most (two until QF-24), inside the box or not at all
             note = reference_note(ref_label)
             if note:
                 f_rn = get_font(brand.DATA_FONT, SCALE_RULER_PX - 4, weight=600)
-                nl, _f, short = probe_text(probe, note, brand.DATA_FONT, f_rn.size, int(box_x1 - ref_note.box[0] - 4), 2,
-                                         f_rn.size, sentences=False, weight=600, quiet=True)
+                # QF-24: wrapped on its tracked ink (it is drawn with track=1), three rows at most: wrapped on the
+                # untracked advance and held to two, the narrower organic box dropped "GROUND TO TORCH TIP" whole
+                nl, _f, short = _probe_tracked(probe, note, brand.DATA_FONT, f_rn.size, int(box_x1 - ref_note.box[0] - 4),
+                                               3, f_rn.size, 1, sentences=False, weight=600)
                 yb = ref_note.box[3] + 14 + cap_height(f_rn)
                 rows_n = [plan_text(ground, (ref_note.box[0], yb + k * round(cap_height(f_rn) * 1.6)), ln, f_rn, MUTED,
                                     "ls", track=1) for k, ln in enumerate(nl)]
@@ -9142,7 +9219,7 @@ def render_stat_cards(cards: list[dict[str, Any]], out: Path, photo: Path | None
     n = int(CLIP_SECONDS * VIDEO_FPS)
     top, bottom = get_text_bounds(width, height)
     x_text = inset_x0(width, height)                     # the shared inset edge (was M, 84)
-    text_w = TEXT_RIGHT - x_text - 4
+    text_w = get_text_box(width, height)[2] - x_text - 4
     probe = ImageDraw.Draw(Image.new("RGB", (8, 8)))
     # Measured first: both cards between the bounds (the lower one ending on the graphics box's bottom at most),
     # the type stepped down together when they do not fit.
@@ -9150,6 +9227,12 @@ def render_stat_cards(cards: list[dict[str, Any]], out: Path, photo: Path | None
         num_px = round((380 if len(cards) == 1 else 230) * scale)
         try:
             plans = [_stat_layout(probe, c, num_px, text_w, scale) for c in cards]
+            if len(plans) > 1:   # one figure size for both (round 3): a smaller second figure implied a ranking
+                # QF-24: measured at the shared size it is drawn at. The fit was tested on the two cards' own
+                # (larger) sizes, so the pair could step down a whole scale, kickers and labels too, where the drawn
+                # pair fitted; the narrower organic box made that more frequent.
+                size = min(p["figure_px"] for p in plans)
+                plans = [_stat_layout(probe, c, size, text_w, scale, num_min=size) for c in cards]
         except TextFitError:
             if scale == 0.6:
                 raise
@@ -9158,10 +9241,6 @@ def render_stat_cards(cards: list[dict[str, Any]], out: Path, photo: Path | None
         total = sum(p["height"] for p in plans) + gap * (len(plans) - 1)
         if total <= bottom - top:
             break
-    if len(plans) > 1:   # one figure size for both (round 3): a smaller second figure implied a ranking
-        size = min(p["figure_px"] for p in plans)
-        plans = [_stat_layout(probe, c, size, text_w, scale, num_min=size) for c in cards]
-        total = sum(p["height"] for p in plans) + gap * (len(plans) - 1)
     y = max(top, (top + bottom) // 2 - total // 2)
     for p in plans:
         p["y0"] = y - p["top"]
@@ -9538,14 +9617,20 @@ _SS = 2  # supersampling of the diagrams' vector layers
 
 
 class _Grid:
-    """Design coordinates (the 1080x1920 frame, text box 65-888 x 330-1058) on this frame's text box."""
+    """Design coordinates (the 1080x1920 frame as the ads Reel box laid it out: words from the inset edge at x 100,
+    text box 65-888 x 330-1058) on this frame: design x 100 on the shared inset edge (inset_x0), y 330 on the text
+    box's top, at the frame's own scale. QF-24: the scale was the design box fitted into the text box, so the
+    organic box (735 px wide, 88 fewer) would have set every word 11% smaller; a layout reads its own right edge
+    and foot from the grid instead (ix(bx1), iy(by1))."""
+    DESIGN_X0 = 100
 
     def __init__(self, width: int, height: int):
         self.bx0, self.by0, self.bx1, self.by1 = get_text_box(width, height)
-        self.k = min((self.bx1 - self.bx0) / 823, (self.by1 - self.by0) / 728)
+        self.k = min(width / VIDEO_WIDTH, height / VIDEO_HEIGHT)
+        self.ox = inset_x0(width, height)
 
     def x(self, v: float) -> float:
-        return self.bx0 + (v - 65) * self.k
+        return self.ox + (v - self.DESIGN_X0) * self.k
 
     def y(self, v: float) -> float:
         return self.by0 + (v - 330) * self.k
@@ -9561,7 +9646,11 @@ class _Grid:
 
     def ix(self, px: float) -> float:
         """The design x of frame x `px`."""
-        return 65 + (px - self.bx0) / self.k
+        return self.DESIGN_X0 + (px - self.ox) / self.k
+
+    def iy(self, py: float) -> float:
+        """The design y of frame y `py`."""
+        return 330 + (py - self.by0) / self.k
 
 
 class _Sprite:
@@ -9798,6 +9887,7 @@ _SECTION_TALL = _SectionLayout(
     fig_px=44, deep_px=68, lab_px=30, small_px=28, line_step=36, label_gap=42, fan_gap=14, room_start=(10, 24),
     room_w=(52, 96), room_gap=(14, 30), niche_w=(36, 50), room_h_max=54, turns=(326, 472, 400),
     bends=(518, 530, 536))   # on the shared inset edge (2026-11-02): title and ruler figures from x 100
+_SECTION_TALL_FOOT = 1058    # the design foot _SECTION_TALL's bottom_d, axis_limit and label_hi were set against
 # The 16:9 master's vignette (video_composer: vignette=PI/4.2, aspect 16/9) takes the frame's edges to about half
 # their brightness, so the wide layouts keep their words inside x 400-1600 and y 190-800, where a bone or gold
 # line still measures 4.5:1 on the graded frame (the 153 px title-safe margin alone left text at 2.7:1).
@@ -9840,8 +9930,17 @@ def _render_cross_section_vertical(cs: dict[str, Any], levels: list[dict[str, An
     the next tick past the deepest level), rooms cut as irregular vaults branching off an accent shaft with sloped
     passages between levels (a city, not a comb), labels fanned out on leaders so the shallow ones never overlap,
     and a gold lantern that descends the shaft, each level's label fading in as it arrives and dimming as it
-    moves on, so the deepest figure ends brightest."""
-    return _render_cross_section(cs, levels, total, out, width, height, _Grid(width, height), _SECTION_TALL)
+    moves on, so the deepest figure ends brightest.
+
+    QF-24: _SECTION_TALL was drawn for the ads box (right edge 888, foot 1058). On the organic box the label column
+    ends on the box's right edge and the depth axis and labels run down to its foot (1090), the type at its size."""
+    grid = _Grid(width, height)
+    right, foot = grid.ix(grid.bx1), grid.iy(grid.by1)
+    extra = foot - _SECTION_TALL_FOOT
+    layout = dataclasses.replace(_SECTION_TALL, right=right, title_w=right - _SECTION_TALL.title_x,
+                                 bottom_d=_SECTION_TALL.bottom_d + extra, axis_limit=_SECTION_TALL.axis_limit + extra,
+                                 label_hi=_SECTION_TALL.label_hi + extra)
+    return _render_cross_section(cs, levels, total, out, width, height, grid, layout)
 
 
 def _render_cross_section_wide(cs: dict[str, Any], levels: list[dict[str, Any]], total: float, out: Path,
@@ -9955,6 +10054,15 @@ def _render_cross_section(cs: dict[str, Any], levels: list[dict[str, Any]], tota
     f_deep = get_font("Anton", g.f(L.deep_px))
     f_lab = get_font("Montserrat", g.f(L.lab_px), weight=600)
     f_small = get_font("Montserrat", g.f(L.small_px), weight=600)
+    # QF-24: a level's feet and metres share one line; the label column starts where the widest such line still
+    # ends on the column's right edge (the organic box's is 60 design px further in than the ads box's), and the
+    # rooms keep their gap to it. A narrower column moves, never clips a unit or shrinks the type.
+    inline_w = max((probe.textbbox((0, 0), f"{lv['depth_ft']:,.0f} FT", font=f_deep if k == len(levels) - 1 else f_fig,
+                                   anchor="ls")[2] + S(14)
+                    + probe.textbbox((0, 0), f"{lv['depth_ft'] / 3.28084:,.0f} M", font=f_lab, anchor="ls")[2])
+                   for k, lv in enumerate(levels))
+    label_x = min(label_x, L.right - (math.ceil(inline_w) + 1) / g.k)
+    rooms_x1 = min(rooms_x1, label_x - (L.label_x - L.rooms_x1))
     lab_w = S(L.right - label_x)
     left_turn, right_turn, mid_turn = L.turns
 
@@ -10360,6 +10468,11 @@ ROUTE_LEADER_CASE = 6       # and its ink casing, so it reads on the relief as t
 # LIGHTHOUSE, 172 px from its nearest stop, and rr8's TOMB, 242 px, were left unnamed at 34 px)
 ROUTE_NAME_STEPS = (34, 32, 30, 28)
 ROUTE_NAME_MIN_PX = ROUTE_NAME_STEPS[-1]
+# QF-24: on 9:16 a name's places at its first size are joined by its places this many px smaller, ranked after every
+# full-size place (size_drop): on the organic Reel box (x 113-848, 88 px narrower than the ads box) a name that just
+# misses its side of the box at full size took the other side, where a far stop's only room was (rr8: the customs
+# house's name crossed to the tomb's side, and the tomb was left unnamed)
+ROUTE_NAME_NEXT_STEP = 2
 ROUTE_NAME_NB_AIR = 36      # round 16 (review): px (at 1080) a country's name keeps off a stop's name
 ROUTE_DEEP_TRIES = 24       # and a stop it left unnamed tries this many of its clear places first (place_names)
 # words that never stand alone on a name's line ("CUSTOMS / HOUSE OF / THE / GENOESE / TRADERS")
@@ -10749,17 +10862,19 @@ def render_route(stops: list[dict[str, Any]], out: Path, width: int = VIDEO_WIDT
         fine = 2 if last else 1                   # review 9: the last pass steps half as far between places
         settings = []
         for px in ROUTE_NAME_STEPS:
+            if settings and not last and (not portrait or px < settings[0][1].size - ROUTE_NAME_NEXT_STEP):
+                break
             f_px = field_font(shown_label, f_lab if px == f_lab.size else get_font("Montserrat", px, weight=800))
+            at_px: list[tuple[list[str], Any, int, int]] = []
             for group in (measures, wide):
-                if settings and not last:
+                if at_px and not last:
                     break
                 for measure, max_lines, tier in group:
                     # round 4 review 3: a third line before a smaller size
                     lines = route_name_lines(label, f_px, measure, max_lines)
-                    if lines is not None and all(lines != st_[0] or f_px is not st_[1] for st_ in settings):
-                        settings.append((lines, f_px, max_lines, tier))
-            if settings and not last:
-                break
+                    if lines is not None and all(lines != st_[0] or f_px is not st_[1] for st_ in settings + at_px):
+                        at_px.append((lines, f_px, max_lines, tier))
+            settings += at_px
         for lines, f_fit, max_lines, tier in settings:
             size_drop = f_lab.size - f_fit.size
             step = round(f_fit.size * 1.22)
@@ -11184,14 +11299,14 @@ def render_route(stops: list[dict[str, Any]], out: Path, width: int = VIDEO_WIDT
         if any(nm not in named_up for nm in adj_r[:NEIGHBOUR_MAX]):
             want_r = max(want_r, NEIGHBOUR_MAX - n_named)
     r_near = close_neighbours(width, height, home, to_frame_r, taken_r + [pl.box for _n, pl in r_cplates],
-                              {nm.upper() for nm in named}, want_r)
+                              {nm.upper() for nm in named}, want_r, from_frame=from_frame)
     visible_r = {nm for nm, _adj in neighbours_in_view(width, height, home, to_frame_r)}
     named_now_r = {nm.upper() for nm in named} | gave_way_r | {n.name.upper() for n in r_near}
     remaining_r = visible_r - named_now_r
     if remaining_r:
         r_near += close_neighbours(width, height, home, to_frame_r,
                                    taken_r + [pl.box for _n, pl in r_cplates] + [n.box for n in r_near],
-                                   named_now_r, len(remaining_r))
+                                   named_now_r, len(remaining_r), from_frame=from_frame)
     # round 14 (review: the route's names never went through the final check): the name verifier on every name
     # the route itself sets (its country's, the close-up neighbours', the seas'), one that fails not drawn
     # (logged); the verdicts in LAST_NAME_CHECKS and the route's own layout sidecar

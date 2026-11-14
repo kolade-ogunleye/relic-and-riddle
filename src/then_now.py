@@ -401,6 +401,7 @@ KICKER_PX = {"portrait": 48, "landscape": _kicker_px_for_cap(KICKER_CAP_WIDE)}
 # default for the year, each cropped wide enough for its whole tail (typography.full_halo_pad).
 YEAR_OFFSET = 1.30
 NOW_DROP = 96
+SPLIT_TALL = 0.4                    # 9:16: the divider's resting y as a share of the height (768 at 1920)
 KICKER_HALO = 36
 # Freeze panel 2026-11-04 (T8, fact safety): the recent photo's kicker reads NOW only for a photo at most
 # NOW_YEARS years old (UTC); an older "recent" photo reads LATER. The years drawn are always the ones passed in.
@@ -445,11 +446,14 @@ def kicker_word(which: str, year: int) -> str:
 
 
 def _split_at(width: int, height: int) -> int:
-    """The divider's resting place: x 960 on 16:9; on 9:16 the middle of the Reel box (y 768 at 1920)."""
+    """The divider's resting place: x 960 on 16:9; on 9:16 SPLIT_TALL of the frame height (y 768 at 1920, the
+    reviewed split). QF-24: it was the middle of the ads Reel box (288-1248), which is 0.4 of the height; the organic
+    box's middle (829) would put the NOW marker under the graphics foot (1090), and the graphics box's middle (689,
+    QF-24 review 1) set the NOW kicker on the old photo's subject and cut 79 px of it. At 768 the NOW year's foot is
+    1038, inside the graphics box, and the markers sit on the graphics box (marker_xy)."""
     if width > height:
         return width // 2
-    _, y0, _, y1 = safe_zones.safe_box("reel", width, height)
-    return (y0 + y1) // 2
+    return round(height * SPLIT_TALL)
 
 
 def divider_at(t: float, width: int, height: int) -> float:
@@ -904,15 +908,16 @@ def join_blurred(then_im: Image.Image, now_im: Image.Image, pos: float, dpos: fl
 
 
 def marker_xy(which: str, width: int, height: int, side: str = "left", word: str | None = None) -> tuple[int, int, str]:
-    """(x, y, anchor) of a year marker's kicker. 9:16: in each panel's part of the Reel box, left-set at its
-    left edge + 18 or (side "right", T10) right-set to its right edge - 18, the NOW kicker's cap top NOW_DROP px
+    """(x, y, anchor) of a year marker's kicker. 9:16: in each panel's part of the graphics box (the Reel box above
+    its caption band), left-set at its left edge + 18 or (side "right", T10) right-set to its right edge - 18, the
+    NOW kicker's cap top NOW_DROP px
     below the divider. 16:9: either side of the divider at the top of title-safe, THEN set right to it and NOW
     left (the master's vignette takes the corners of a 16:9 frame below 4.5:1, measured on the graded frame)."""
     split = _split_at(width, height)
     if width > height:
         _, y0, _, _ = get_text_box(width, height)
         return (split - 64, y0 + 40, "rt") if which == "then" else (split + 64, y0 + 40, "lt")
-    x0, y0, x1, _ = safe_zones.safe_box("reel", width, height)
+    x0, y0, x1, _ = safe_zones.graphics_box(width, height)
     x, anchor = (x1 - 18, "rt") if side == "right" else (x0 + 18, "lt")
     if which == "then":
         return x, max(y0 + 42, TEXT_TOP), anchor

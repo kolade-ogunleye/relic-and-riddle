@@ -25,11 +25,13 @@ def _photo(path, size=(1200, 2100), seed=1, lo=60, hi=240):
 
 # ---------------------------------------------------------------- caption band
 def test_caption_top_is_the_band_on_916_and_the_caption_zone_on_169():
-    assert callouts.caption_top(1080, 1920) == safe_zones.caption_band_top(1080, 1920) == 1098
+    # QF-24 (decision QF-24/QF-87 layout): the 240 px band of the organic Reel box starts at 1130 (1098 on the ads box)
+    assert callouts.caption_top(1080, 1920) == safe_zones.caption_band_top(1080, 1920) == 1130
     assert callouts.caption_top(1920, 1080) == 905
 
 
-@pytest.mark.parametrize("size,low", [((1080, 1920), 1320), ((1080, 1920), 1090), ((1920, 1080), 900)])
+# QF-24: the 9:16 band starts 32 px lower (1130, not 1098), so the dot the push carries into it stands 32 px lower too
+@pytest.mark.parametrize("size,low", [((1080, 1920), 1320), ((1080, 1920), 1122), ((1920, 1080), 900)])
 def test_a_dot_in_or_pushed_into_the_caption_band_is_dropped(size, low):
     w, h = size
     pts = [("stone door recess", w * 0.55, h * 0.4), ("carved tuff wall", w * 0.3, low)]
@@ -46,7 +48,8 @@ def test_dots_clear_of_the_band_along_the_whole_push_are_kept():
 
 
 def test_the_loupe_source_ring_counts_as_the_dot():
-    pts = [("a", 600, 700, 0.2), ("b", 300, 1015, 0.01)]         # b gets the loupe: its ring is loupe_r / mag
+    # b gets the loupe: its ring is loupe_r / mag (QF-24: b 32 px lower, 1047 not 1015, as the band starts at 1130)
+    pts = [("a", 600, 700, 0.2), ("b", 300, 1047, 0.01)]
     assert len(callouts.clear_of_captions(pts, 1080, 1920, mag=0.0)) == 2
     assert [p[0] for p in callouts.clear_of_captions(pts, 1080, 1920, mag=1.3)] == ["a"]
 

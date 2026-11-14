@@ -353,11 +353,13 @@ def test_boxes_9x16(size, photos):
     plans = graphic_plans(w, h, photos["noise"])
     if size == (1080, 1920):
         plans["hook"] = dc.plan_hook_frame(hook(photos["dark"]), SHEET)
+    # QF-24 (decision QF-24/QF-87 layout): the cards lie on the organic Reel box, x 113-848 with its graphics foot at
+    # y 1090 (the ads box: x 100-888, foot 1058); graphics_box() is that box
     for kind, plan in plans.items():
         for e in plan.elements:
             assert inside(e.box, zone), (kind, e.name, e.box, zone)
-            assert e.box[3] <= round(1058 * w / 1080), (kind, e.name)
-            assert e.box[0] >= round(100 * w / 1080) - 1 or e.kind == "mark" or kind == "hook", (kind, e.name, e.box)
+            assert e.box[3] <= round(1090 * w / 1080), (kind, e.name)
+            assert e.box[0] >= round(113 * w / 1080) - 1 or e.kind == "mark" or kind == "hook", (kind, e.name, e.box)
 
 
 @pytest.mark.parametrize("size", [(1920, 1080), (1280, 720)])
@@ -414,9 +416,12 @@ def test_exact_anchors():
     # freeze panel round 2 (C6, deliberate change): the 9:16 title measure is 788 and three lines are taken when they
     # set >= 16 px larger than two, the block centred on min(864, 1058 - H / 2): "THE EYE / OF THE GREAT / SAHARA" at
     # 128 (was 136 in 2 lines, R 371, Bn 711, baselines [884, 1017], rule at 371)
-    assert (a["title_px"], a["R"], a["Bn"], a["title_baselines"]) == (128, 300, 640, [806, 931, 1056])
+    # QF-24 (organic Reel box: title measure 735 from x 113, foot 1090; 788 from x 100 and 1058 on the ads box): the
+    # same three lines set at 136 (was 128), the block centred on min(864, 1090 - H / 2): R 309, Bn 649, baselines
+    # [822, 955, 1088], rule at x 113 (were R 300, Bn 640, [806, 931, 1056], x 100)
+    assert (a["title_px"], a["R"], a["Bn"], a["title_baselines"]) == (136, 309, 649, [822, 955, 1088])
     els = {e.name: e for e in p.elements}
-    assert els["kicker_rule"].box == (100, 300, 144, 304)
+    assert els["kicker_rule"].box == (113, 309, 157, 313)
     p = dc.plan_chapter_card(chapter(), SHEET, 1920, 1080)
     els = {e.name: e for e in p.elements}
     last = max(n for n in els if n.startswith("title_"))
@@ -442,11 +447,13 @@ def test_exact_anchors():
     # zone opens to y 300 and the measure to 788, so this length sets at 68, not 64)
     # review 2026-11-03 (5): the block is composed for the whole graphics box (its top 288, the FACT group set down
     # by up to MYTH_SPREAD) and no smaller size is taken to save a line, so this length sets at 72, not 68
-    assert p.meta["anchors"]["R"] == 288 and p.meta["anchors"]["fact_baselines"][-1] == 974   # was 1046
     # freeze panel 2026-11-04 (M1, deliberate change; handover: the 76 px floor with the source kept): the myth tries
     # 0.86, 0.80 and 0.76 of the fact in two lines at each size, so this length sets at 80 (myth 60), not 72 (or 68
     # without raqm, where P 76 and 72 failed the block height with a 3-line myth at 0.86)
-    assert p.meta["anchors"]["px"] == 80 and p.meta["anchors"]["myth_px"] == 60
+    # QF-24: on the organic box's 735 px measure (788 on the ads box) it sets at the 76 px floor (myth 58), its block
+    # centred lower in the taller box: R 312, the last fact baseline 992 (were R 288, 974, at 80 / 60)
+    assert p.meta["anchors"]["R"] == 312 and p.meta["anchors"]["fact_baselines"][-1] == 992
+    assert p.meta["anchors"]["px"] == 76 and p.meta["anchors"]["myth_px"] == 58
     assert p.meta["source_omitted"] is None                                                   # was "no room"
     p = dc.plan_quote_card(quote(text=WALK_EV.split('"')[1], fact_id="f_walk", role="", work="", year=None),
                            SHEET, 1920, 1080)
@@ -1224,7 +1231,7 @@ def test_long_work_title_wraps_the_citation():
         assert text.startswith("THE EGYPTOLOGIST · THE PYRAMIDS AND TEMPLES OF GIZEH · 1883"), text
         assert "…" not in text
         bottom = max(e.box[3] for e in plan.elements)
-        assert bottom <= round(1058 * size[0] / 1080)
+        assert bottom <= round(1090 * size[0] / 1080)     # QF-24: the organic graphics foot (1058 on the ads box)
     wide = dc.plan_quote_card(spec, PYR, 1920, 1080)
     assert wide.meta["anchors"]["citation_lines"] == 1
     f = dc.get_font(brand.DATA_FONT, 30, weight=500)

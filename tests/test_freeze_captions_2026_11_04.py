@@ -544,7 +544,11 @@ def test_unkerned_measure_matches_libass_ink_on_real_bursts(run, text, tmp_path,
 
 def test_ink_budget_is_the_plate_less_the_pad():
     from src.safe_zones import REEL
-    assert vc._ink_budget() == REEL.centred_width() - 2 * config.CAPTION_INK_FIT_PAD == 640
+    # QF-24 (decision QF-24/QF-87 layout, deliberate change): the reviewed 640 px is kept, its plate centred in the
+    # organic box (centred on the frame that box leaves 616 px; around its centre, x 480, 734); it was the ads box's
+    # centred width (696) less the pad
+    assert vc._ink_budget() == vc.MAX_CAPTION_WIDTH + 2 * config.CAPTION_PAD_X - 2 * config.CAPTION_INK_FIT_PAD == 640
+    assert REEL.centred_width() == 616 and vc._ink_budget() + 2 * config.CAPTION_INK_FIT_PAD <= vc.reel_caption_span()
     assert CAPTION_INK_PAD_MIN == 40
     assert vc.MAX_CAPTION_WIDTH == 640 and config.CAPTION_PAD_X == 28   # unchanged
 
@@ -1319,8 +1323,11 @@ def test_two_line_plates_never_rise_over_the_graphics(tmp_path):
     lines is split. Every plate of the four real Reels stays inside the Reel box and below the graphics box. Was
     test_two_line_burst_geometry (the two-line tunguska plate, top y 1015)."""
     assert vc.REEL_PLATE_H == 121 and round(config.CAPTION_TWO_LINE_PITCH_EM * vc.reel_cap_height(66)) == 75
-    assert not any(vc._two_line_clears_graphics(r) for r in vc.CAPTION_LADDER)
-    assert vc._two_line_layout("near the Podkamennaya Tunguska River".split()) is None
+    # QF-24 (decision QF-24/QF-87 layout, 2026-11-09, deliberate change): the 240 px band (top y 1130, 40 px under
+    # the graphics' foot at 1090) holds a two-line plate at every rung (none did under the ads profile, so this
+    # tunguska burst had no two-line layout); every plate still stays in the band, under the graphics
+    assert all(vc._two_line_clears_graphics(r) for r in vc.CAPTION_LADDER)
+    assert vc._two_line_layout("near the Podkamennaya Tunguska River".split()) == (3, 74)
     seen = 0
     for topic, c in RUNS.items():
         if RUN_WIDE[topic]:
@@ -1329,8 +1336,9 @@ def test_two_line_plates_never_rise_over_the_graphics(tmp_path):
                                               emphasis=list(c.get("emphasis_words") or []))
         for left, top, right, bottom in _reel_plates(ass.read_text("utf-8")):
             seen += 1
-            assert top > vc.CAPTION_GUARD_GRAPHICS_BOTTOM and bottom <= 1248 and left >= 65 and right <= 888, \
-                (topic, top, bottom)
+            # QF-24: the organic Reel box (113, 288)-(848, 1370) and its band from y 1130 (was 65-888, foot 1248)
+            assert top >= 1130 > vc.CAPTION_GUARD_GRAPHICS_BOTTOM and bottom <= 1370 and left >= 113 \
+                and right <= 848, (topic, top, bottom)
             assert bottom - top == vc.REEL_PLATE_H, (topic, top, bottom)
     assert seen > 100
 
@@ -1802,10 +1810,13 @@ def test_amber_bursts_over_the_timeline_graphic_get_an_opaque_plate(tmp_path):
     ass = comp.build_subtitles(_fx.words(c), tmp_path / "a.ass", emphasis=list(c["emphasis_words"]),
                                graphic_intervals=vc.caption_graphic_intervals(clips, durations), graphic_clips=gclips)
     flagged = comp.last_caption_graphic_overlap
-    assert flagged and {f["clip"] for f in flagged} == {"graphic_timeline.mp4"}
+    # QF-24 (decision QF-24/QF-87 layout, 2026-11-09, deliberate change): the plates sit in the 240 px band (y 1130 and
+    # below), 40 px under the graphics box, so no burst over the timeline meets its text and none takes the opaque
+    # plate (on the ads profile the bursts over graphic_timeline.mp4 were flagged and drawn at &H08&)
+    assert flagged == []
     span = next((a, b) for a, b, clip in gclips if clip.name == "graphic_timeline.mp4")
     plates = [l for l in ass.read_text("utf-8").splitlines() if ",CapBox," in l]
-    assert sum("\\1a&H08&" in l for l in plates) == len(flagged)
+    assert sum("\\1a&H08&" in l for l in plates) == len(flagged) == 0
     phrases = caption_phrases(_fx.words(c), list(c["emphasis_words"]))
     tim = vc.burst_timings(phrases, first_frame_whole=config.CAPTION_FIRST_FRAME_WHOLE_S, dwell=True)
     for f in flagged:

@@ -71,7 +71,7 @@ ALIAS_LIMIT = 200
 # Needs-you item before its message is deleted (design §13, "Needs you never lost"). Every heading mark of a Needs-you
 # sender (section or group "needs" in main.py and src/) is here: tests/test_ui01f_repost.py scans for them.
 NEEDS_MARKS = ("❌", "⚠️", "⚠", "💥", "🩺", "⏰", "⌛", "⛔", "🚫", "🔴", "🆘", "❓",
-               "🛑", "⏱", "🗄", "🧾", "🔁", "📭", "🏛", "🖼")
+               "🛑", "⏱", "🗄", "🧾", "🔁", "📭", "🏛", "🖼", "⏳")
 # Headings only informational senders use (digests, receipts, a run started, posted, scheduled, stopped, back): a
 # persistent notice is Needs you unless its mark is one of these; a transient one is Needs you only by NEEDS_MARKS
 # (the earlier chat gave every Needs-you notice without buttons a 6 h life, and info ones too).

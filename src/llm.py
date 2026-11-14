@@ -97,6 +97,34 @@ def task(name: str):
         _task.reset(token)
 
 
+# The model that actually answered each call made inside watch_served() (the photo callouts' audit records it: a
+# budget swap, a refusal fallback or the free engine's Claude last resort serves another model than configured).
+_served: contextvars.ContextVar[list[str] | None] = contextvars.ContextVar("llm_served", default=None)
+
+
+@contextmanager
+def watch_served():
+    """Collects, in order, the model that answered each structured call made inside the block."""
+    got: list[str] = []
+    token = _served.set(got)
+    try:
+        yield got
+    finally:
+        _served.reset(token)
+
+
+def note_served(model: str | None) -> None:
+    """Records `model` as the one that answered (only inside watch_served)."""
+    got = _served.get()
+    if got is not None and model:
+        got.append(str(model))
+
+
+def served_count() -> int:
+    got = _served.get()
+    return len(got) if got is not None else 0
+
+
 def configure_usage(record: Callable[..., None], month_spend: Callable[[str], float]) -> None:
     global _record_usage, _month_spend
     _record_usage, _month_spend = record, month_spend
@@ -409,7 +437,9 @@ def structured_call(system: str, prompt: Union[str, list], schema: Type[T], *, e
     parse_fn = getattr(client.beta.messages, "parse", None)
     if parse_fn is None:
         from . import gemini
-        return gemini.structured(system, prompt, schema)
+        result = gemini.structured(system, prompt, schema)
+        note_served("gemini (default model)")
+        return result
 
     def send(model: str):
         kw = _model_kwargs(model, effort)
@@ -455,6 +485,9 @@ def structured_call(system: str, prompt: Union[str, list], schema: Type[T], *, e
     _check_stop(response)
     if response.parsed_output is None:
         raise LLMError(f"No structured output returned (stop_reason={response.stop_reason}).")
+    # the response names the model that answered: a refusal fallback's, or the budget model on a budget swap
+    served = getattr(response, "model", None)
+    note_served(served if isinstance(served, str) and served else model_used)
     return response.parsed_output
 
 

@@ -85,5 +85,5 @@ def test_a_photo_with_a_rotate_flag_is_saved_upright(tmp_path, monkeypatch):
     im.save(buf, "JPEG", exif=exif)
     monkeypatch.setattr(commons, "_get", lambda *a, **k: type("R", (), {"content": buf.getvalue()})())
     dest = tmp_path / "x.jpg"
-    commons.download_jpeg("https://example.org/x.jpg", dest)
+    commons.download_jpeg("https://upload.wikimedia.org/x.jpg", dest)              # a Commons file (QF-44: hosts checked)
     assert Image.open(dest).size == (300, 400)                                  # portrait, as it is meant to be seen

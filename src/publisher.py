@@ -20,7 +20,6 @@ import contextlib
 import json
 import logging
 import os
-import re
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -29,7 +28,7 @@ from typing import Dict, Any, List, Optional, Tuple
 import requests
 
 from . import config
-from .config import META_IS_AI_GENERATED, is_configured
+from .config import is_configured
 from .db import PipelineDatabase
 
 log = logging.getLogger(__name__)
@@ -103,15 +102,16 @@ class UploadPostPublisher:
             # docs.upload-post.com/api/upload-video: Instagram's caption is instagram_title (falls back
             # to title); Facebook's Reel title is facebook_title (falls back to title; max 255 chars,
             # docs .../resources/character-limits) and its text is facebook_description.
-            ("title", meta["title"][:255]),
-            ("instagram_title", meta["caption"]),
-            ("facebook_title", meta["title"][:255]),
-            ("facebook_description", meta["caption"]),
-            ("first_comment", meta["first_comment"]),
+            ("title", reel_fields(meta)["title"]),
+            ("instagram_title", reel_fields(meta)["caption"]),
+            ("facebook_title", reel_fields(meta)["title"]),
+            ("facebook_description", reel_fields(meta)["caption"]),
+            ("first_comment", reel_fields(meta)["first_comment"]),
             ("media_type", "REELS"),
             ("share_to_feed", "true"),
             ("facebook_media_type", "REELS"),
-            # The AI label (synthetic narration) needs the Instagram and the Facebook flag.
+            # The AI label needs the Instagram and the Facebook flag: on for the synthetic narration (the setting) and
+            # whenever the Reel shows AI media or media whose origin cannot be traced (ai_label.assess_video, QF-65a).
             ("is_ai_generated", "true" if meta["is_ai_generated"] else "false"),
             ("facebook_is_ai_generated", "true" if meta["is_ai_generated"] else "false"),
             ("async_upload", "true"),
@@ -157,12 +157,13 @@ class UploadPostPublisher:
         YouTube title (100 characters), description, tags, Education category, the AI-content disclosure,
         not made for kids, and the 16:9 thumbnail as a file (2 MB maximum; needs a verified channel)."""
         meta, media = envelope["metadata"], envelope["media"]
+        yt = youtube_fields(meta)
         data: List[Tuple[str, str]] = [
             ("user", self.user), ("platform[]", "youtube"),
-            ("title", (meta.get("youtube_title") or meta["title"])[:100]),
-            ("youtube_title", (meta.get("youtube_title") or meta["title"])[:100]),
-            ("youtube_description", (meta.get("description") or meta["caption"])[:5000]),
-            *[("tags[]", tag) for tag in (meta.get("tags") or [])[:30]],
+            ("title", yt["title"]),
+            ("youtube_title", yt["title"]),
+            ("youtube_description", yt["description"]),
+            *[("tags[]", tag) for tag in yt["tags"]],
             ("categoryId", "27"),  # Education
             ("privacyStatus", config.YOUTUBE_PRIVACY),
             ("selfDeclaredMadeForKids", "false"),
@@ -210,12 +211,12 @@ class UploadPostPublisher:
             raise NotConfigured("UPLOAD_POST_API_KEY / UPLOAD_POST_USER not set")
         meta, media = envelope["metadata"], envelope["media"]
         key = envelope["run_id"] + ":youtube-short"
-        tags = " ".join(meta.get("hashtags") or [])
+        short = youtube_short_fields(meta)
         data: List[Tuple[str, str]] = [
             ("user", self.user), ("platform[]", "youtube"),
-            ("title", meta["title"][:100]), ("youtube_title", meta["title"][:100]),
-            ("youtube_description", (meta["caption"] + ("\n\n" + tags if tags and tags not in meta["caption"] else ""))[:5000]),
-            *[("tags[]", t.lstrip("#")) for t in (meta.get("hashtags") or [])[:30]],
+            ("title", short["title"]), ("youtube_title", short["title"]),
+            ("youtube_description", short["description"]),
+            *[("tags[]", t) for t in short["tags"]],
             ("categoryId", "27"),  # Education
             ("privacyStatus", config.YOUTUBE_SHORTS_PRIVACY),
             ("selfDeclaredMadeForKids", "false"),
@@ -273,18 +274,24 @@ class UploadPostPublisher:
         return {"set": False, "error": f"HTTP {response.status_code}: {body.get('error') or body.get('message') or body}"[:300]}
 
     def publish_photos(self, kind: str, photos: List[str], caption: str, platforms: List[str], key: str,
-                       alt_texts: Optional[List[str]] = None, first_comment: str = "") -> Dict[str, Any]:
+                       alt_texts: Optional[List[str]] = None, first_comment: str = "",
+                       ai_generated: bool = False) -> Dict[str, Any]:
         _assert_recovery_unlocked()
         """A carousel (several photos, one post) or a single Story frame (kind="story", one photo).
         Docs: docs.upload-post.com/api/upload-photo/ (media_type / facebook_media_type = STORIES).
         A carousel's `alt_texts` (one per photo, in order) go as instagram_alt_text / facebook_alt_text, each a
         JSON list (the documented per-photo form; at most 1,000 characters an item); Stories take none. Its
         `first_comment` goes as each platform's own <platform>_first_comment (a failed first comment never
-        fails the post, Upload-Post reports it under `warnings`)."""
+        fails the post, Upload-Post reports it under `warnings`). `ai_generated`: Instagram's AI label
+        (is_ai_generated, documented for photos and carousels, the whole post; QF-65a). Facebook photo posts take no
+        AI label (Upload-Post's AI-labelling guide: a no-op there), so MetaPublisher.publish_photos sends them no
+        AI media."""
         if not self.configured():
             raise NotConfigured("UPLOAD_POST_API_KEY / UPLOAD_POST_USER not set")
         data: List[Tuple[str, str]] = [("user", self.user), *[("platform[]", p) for p in platforms],
                                        ("async_upload", "true"), ("request_id", key)]
+        if ai_generated:
+            data.append(("is_ai_generated", "true"))
         if kind == "story":
             data += [("media_type", "STORIES"), ("facebook_media_type", "STORIES")]
         else:
@@ -421,6 +428,8 @@ class InstagramGraphPublisher:
             container = self._call("POST", f"{self.graph}/{self.ig_user_id}/media", data={
                 "media_type": "REELS", "upload_type": "resumable", "caption": meta["caption"],
                 "share_to_feed": "true", "access_token": self.token,
+                # The AI label (Content Publishing API, is_ai_generated on the container; QF-65a)
+                "is_ai_generated": "true" if meta.get("is_ai_generated", True) else "false",
             })
             container_id = container["id"]
             upload_uri = container.get("uri") or f"https://rupload.facebook.com/ig-api-upload/{self.version}/{container_id}"
@@ -571,6 +580,8 @@ class FacebookPageReelsPublisher:
             self._call("POST", reels, data={
                 "upload_phase": "finish", "video_id": video_id, "video_state": "PUBLISHED",
                 "description": meta["caption"], "access_token": self.token,
+                # The AI label (Reels publishing guide, is_ai_generated on the finish call; QF-65a)
+                "is_ai_generated": "true" if meta.get("is_ai_generated", True) else "false",
             })
         except (requests.Timeout, requests.ConnectionError) as e:
             raise PublishUnknown(f"Facebook Reel finish outcome unknown: {e}") from e
@@ -596,6 +607,27 @@ class FacebookPageReelsPublisher:
         raise PublishFailed("Facebook video not ready in time; nothing was published.")
 
 
+def reel_fields(meta: dict[str, Any]) -> dict[str, str]:
+    """The Reel's text as it is sent (Facebook's title at most 255 characters; the caption is Instagram's and
+    Facebook's text). The review card shows these strings (publishable.card_copy)."""
+    return {"title": meta["title"][:255], "caption": meta["caption"], "first_comment": meta.get("first_comment", "")}
+
+
+def youtube_fields(meta: dict[str, Any]) -> dict[str, Any]:
+    """The documentary's YouTube title (100 characters), description (5,000) and tags (30)."""
+    return {"title": (meta.get("youtube_title") or meta["title"])[:100],
+            "description": (meta.get("description") or meta["caption"])[:5000],
+            "tags": list((meta.get("tags") or [])[:30])}
+
+
+def youtube_short_fields(meta: dict[str, Any]) -> dict[str, Any]:
+    """The Short's title, description (the caption, with the hashtags when it does not carry them) and tags."""
+    tags = " ".join(meta.get("hashtags") or [])
+    return {"title": meta["title"][:100],
+            "description": (meta["caption"] + ("\n\n" + tags if tags and tags not in meta["caption"] else ""))[:5000],
+            "tags": [t.lstrip("#") for t in (meta.get("hashtags") or [])[:30]]}
+
+
 def _caption_for(kind: str, caption: str, platforms: List[str]) -> str:
     """The caption a carousel request carries (operator, 2026-10-28: a posted Facebook carousel's pointing hand
     pointed right while its caption sat above the photos). No request carries a direction cue (neutral_cues:
@@ -617,6 +649,39 @@ def _caption_for(kind: str, caption: str, platforms: List[str]) -> str:
     return (clean(body).rstrip() + "\n\n" + "\n".join(credits)).strip()
 
 
+ILLUSTRATION_DISCLOSURE = "Contains AI-generated illustrations where no photograph exists."
+
+
+def used_illustrations(script_payload: dict[str, Any]) -> bool:
+    """Whether the run put a generated illustration on screen (the picture check's record, payload["picture_fit"])."""
+    fit = script_payload.get("picture_fit") or {}
+    return bool(isinstance(fit, dict) and fit.get("generated"))
+
+
+def with_disclosure(text: str, script_payload: dict[str, Any]) -> str:
+    """`text` with ILLUSTRATION_DISCLOSURE appended when the run used an illustration (once; unchanged otherwise)."""
+    text = text or ""
+    if not used_illustrations(script_payload) or ILLUSTRATION_DISCLOSURE in text:
+        return text
+    return (text.rstrip() + "\n\n" + ILLUSTRATION_DISCLOSURE) if text.strip() else ILLUSTRATION_DISCLOSURE
+
+
+def attempted_platforms(publishers: list | None = None, documentary: bool = False) -> list[str]:
+    """What a live post of a run attempts, as MetaPublisher would: "facebook" and "instagram" where a configured
+    publisher covers them, "youtube-short" when YOUTUBE_SHORTS is on and Upload-Post (the only Shorts uploader) is
+    configured; a documentary goes to "youtube" alone. A platform no configured publisher covers is not attempted."""
+    pubs = publishers if publishers is not None else [UploadPostPublisher(), InstagramGraphPublisher(),
+                                                      FacebookPageReelsPublisher()]
+    ready = [p for p in pubs if not hasattr(p, "configured") or p.configured()]
+    covered = {x for p in ready for x in getattr(p, "platforms", ())}
+    if documentary:
+        return ["youtube"] if "youtube" in covered else []
+    out = [x for x in ("facebook", "instagram") if x in covered]
+    if out and config.YOUTUBE_SHORTS and any(hasattr(p, "publish_short") for p in ready):
+        out.append("youtube-short")
+    return out
+
+
 class MetaPublisher:
     def __init__(self, db: Optional[PipelineDatabase] = None, publishers: Optional[list] = None):
         self.db = db or PipelineDatabase()
@@ -625,6 +690,21 @@ class MetaPublisher:
 
     def build_envelope(self, run_id: str, video_path: Path, thumbnail_916_path: Path, thumbnail_1x1_path: Path,
                        script_payload: Dict[str, Any], platforms: Optional[List[str]] = None) -> Dict[str, Any]:
+        """The Reel's (or the documentary's) request. Its text comes from the allowlisted fields only
+        (publishable.ENVELOPE_FIELDS) and must be what the run's review card showed word for word: a field
+        outside the allowlist, or a string the card did not show, raises ValueError (QF-43)."""
+        from . import ai_label, publishable
+        # The AI label from what the post shows (QF-65a): the master's scenes, the illustrated beats, the cover; and
+        # on whenever the review card said it would be (the card's promise is kept even if a record changed since).
+        label = ai_label.assess_video(video_path, script_payload, cover=thumbnail_916_path)
+        record = publishable.load_record(self.db, run_id)
+        shown = (record or {}).get("ai_label") if isinstance(record, dict) else None
+        if isinstance(shown, dict) and shown.get("on") and not label["on"]:
+            label = dict(label, on=True, reasons=list(label["reasons"]) + ["the review card showed the AI label on"])
+        metadata = publishable.envelope_metadata(script_payload,
+                                                 publishable.topic_for(self.db, script_payload["topic_id"]),
+                                                 ai_label=label)
+        publishable.check_envelope(metadata, record, youtube=(platforms or []) == ["youtube"])
         return {
             "run_id": run_id,
             "topic_id": script_payload["topic_id"],
@@ -635,18 +715,8 @@ class MetaPublisher:
                 "thumbnail_1x1_path": str(thumbnail_1x1_path.resolve()),
                 "video_size_mb": round(os.path.getsize(video_path) / (1024 * 1024), 2),
             },
-            "metadata": {
-                "title": script_payload["title"],
-                "caption": script_payload["caption"],
-                "location": script_payload.get("location", {}),
-                "hashtags": script_payload.get("hashtags", []),
-                "meta_topic_categories": script_payload.get("meta_topic_categories", []),
-                "first_comment": script_payload.get("first_comment", ""),
-                "is_ai_generated": META_IS_AI_GENERATED,
-                "youtube_title": script_payload.get("youtube_title", ""),
-                "description": script_payload.get("description", ""),
-                "tags": script_payload.get("tags", []),
-            },
+            "metadata": metadata,
+            "ai_label": label,
             "created_at": _now(),
         }
 
@@ -701,6 +771,7 @@ class MetaPublisher:
         # platforms still remaining that it supports (Upload-Post: both; direct APIs: one each).
         remaining = set(envelope["platforms"])
         errors, done = [], []
+        failures: dict[str, str] = {}   # each platform's latest failure, for the receipt's own line (UI-02)
         for pub in self.publishers:
             covers = remaining & set(getattr(pub, "platforms", envelope["platforms"]))
             if not covers:
@@ -718,6 +789,7 @@ class MetaPublisher:
             except PublishFailed as e:
                 log.warning("%s failed (nothing published): %s", pub.name, e)
                 errors.append(f"{pub.name}: {e}")
+                failures.update({p: str(e) for p in covers})
                 self.db.record_publication(tid, run_id, pub.name, "failed", {"error": str(e)})
             except PublishUnknown as e:
                 log.error("%s outcome UNKNOWN; not failing over to avoid a duplicate post: %s", pub.name, e)
@@ -737,6 +809,7 @@ class MetaPublisher:
             if remaining:
                 merged["missing_platforms"] = sorted(remaining)
                 merged["error"] = "; ".join(errors) or "no publisher configured for " + ", ".join(sorted(remaining))
+                merged["platform_errors"] = {p: failures.get(p) or "no account is set up for it" for p in sorted(remaining)}
             return merged
         msg = "; ".join(errors) if errors else "no publisher is configured"
         return {"status": "failed", "error": msg}
@@ -763,19 +836,10 @@ class MetaPublisher:
         except PublishUnknown as e:
             self.db.record_publication(tid, run_id, "youtube-shorts", "unknown", {"error": str(e)})
             return {"status": "unknown", "error": str(e)}
-        # The Short is up; now its thumbnail (a frame otherwise). Best-effort and recorded either way: the
-        # first Short (2026-10-24) went out with none, since the upload itself cannot carry one.
-        url = (res.get("post_urls") or {}).get("youtube") or ""
-        video_id = (re.search(r"[?&]v=([A-Za-z0-9_-]{6,})", url) or re.search(r"shorts/([A-Za-z0-9_-]{6,})", url) or [None, None])[1]
-        if video_id and hasattr(uploader, "set_youtube_thumbnail"):
-            try:
-                res["thumbnail"] = uploader.set_youtube_thumbnail(video_id, Path(envelope["media"]["thumbnail_path"]))
-            except Exception as e:  # never costs the Short its receipt
-                res["thumbnail"] = {"set": False, "error": str(e)[:200]}
-            if not res["thumbnail"].get("set"):
-                log.warning("YouTube Short thumbnail not set (%s); YouTube shows a frame.", res["thumbnail"].get("error"))
+        # No thumbnail request follows (QF-83): the Shorts feed shows a frame of the video, which only the YouTube
+        # app can change; the standard thumbnail stays a manual button (main.set_youtube_thumbnail).
         self.db.record_publication(tid, run_id, "youtube-shorts", "published", res)
-        return {"status": "published", "post_urls": res.get("post_urls") or {}, "thumbnail": res.get("thumbnail")}
+        return {"status": "published", "post_urls": res.get("post_urls") or {}}
 
     def publish_photos(self, run_id: str, topic_id: str, kind: str, photos: List[str], caption: str = "",
                        platforms: Optional[List[str]] = None, dry_run: bool = False, retry_tag: str = "",
@@ -785,19 +849,29 @@ class MetaPublisher:
         stops there so nothing is posted twice. `retry_tag` names a deliberate re-send of a failed
         platform (operator, 2026-10-24) so its idempotency keys differ from the first attempt's.
         A carousel's slides carry alt text built from what each shows (multi_format.slide_alt_text);
-        `first_comment` (the credits, when they do not fit the caption) is posted under it on each platform."""
+        `first_comment` (the credits, when they do not fit the caption) is posted under it on each platform.
+        Stories post the sequence's frames only (multi_format.story_posting_frames, QF-80): a retired poll frame
+        booked by an older run is not sent, and each request keeps its frame's number in the sequence."""
         platforms = platforms or ["facebook", "instagram"]
+        parts: list[int] = []
+        if kind == "story":
+            from .multi_format import story_posting_frames
+            numbered = story_posting_frames(photos)
+            parts, photos = [n for n, _ in numbered], [p for _, p in numbered]
+            if not photos:
+                return {"status": "failed", "error": "no Story frame to post (the poll frame is no longer posted)",
+                        "posted_parts": 0}
         if not dry_run:
             _assert_recovery_unlocked()
         channel = f"upload-post:{kind}"
         tag = f"-{retry_tag}" if retry_tag else ""
         # (photos, platforms, key) per request. Stories: one frame per request, in order. A carousel goes as
         # one post per platform group; Facebook gets its own request, from its copy when the run made one
-        # (carousel_fb/: no "swipe" in its text), with at most four photos: its grid shows four tiles and put
-        # "+3" over the fourth of seven, hiding the closing slide (multi_format.facebook_pick; audit 2026-10-28).
+        # (carousel_fb/: no "swipe" in its text), with at most FACEBOOK_PHOTOS (5): its collage put "+3" over the
+        # fourth of seven, hiding the closing slide (multi_format.facebook_pick; audit 2026-10-28; 4 until 2026-11-03).
         # Upload-Post puts a Facebook multi-photo post's caption on its first photo, which is the cover.
         if kind == "story":
-            batches = [([p], platforms, f"{run_id}-{kind}-{i}{tag}") for i, p in enumerate(photos, 1)]
+            batches = [([p], platforms, f"{run_id}-{kind}-{n}{tag}") for n, p in zip(parts, photos)]
         else:
             from .multi_format import facebook_pick
             slides = photos[:10]  # Instagram carousels: max 10
@@ -811,32 +885,61 @@ class MetaPublisher:
                 batches = [(fb_slides, ["facebook"], f"{run_id}-{kind}-1{tag}")]
             else:
                 batches = [(slides, platforms, f"{run_id}-{kind}-1{tag}")]
+        parts = parts or list(range(1, len(batches) + 1))  # a Story request's part is its frame's number
+        # The AI label (QF-65a): a request whose stills show AI media, or media whose origin cannot be traced
+        # (ai_label.assess_photos, fails closed), carries Instagram's flag. Facebook has none for photo posts, so a
+        # request showing AI media is not sent there (held_platforms says why). Nor is one with a still that has no
+        # record (a run made before still records) unless its run's video traces wholly to real media (QF-65b;
+        # operator decision 2026-11-12: fail closed; ai_label.assess_photos' facebook_hold).
+        from . import ai_label
+        held: dict[str, str] = {}
+        flagged: dict[str, bool] = {}
+        kept = []
+        for i, (batch, batch_platforms, key) in zip(parts, batches):
+            label = ai_label.assess_photos(batch)
+            flagged[key] = bool(label["on"])
+            if label["facebook_hold"] and "facebook" in batch_platforms:
+                held["facebook"] = ("not posted to Facebook, which has no AI label for photo posts: "
+                                    + "; ".join(label["facebook_reasons"][:3]))
+                batch_platforms = [x for x in batch_platforms if x != "facebook"]
+            if batch_platforms:
+                kept.append((i, (batch, batch_platforms, key)))
+        parts, batches = [i for i, _ in kept], [b for _, b in kept]
+        if not batches:
+            if not dry_run:
+                self.db.record_publication(topic_id, run_id, channel, "failed", {"error": held["facebook"], "held": held})
+            return {"status": "failed", "error": held["facebook"], "posted_parts": 0, "held_platforms": held}
         alt_texts = {}
         if kind != "story":  # Stories take no alt text through Upload-Post
             from .multi_format import slide_alt_text
             alt_texts = {key: [slide_alt_text(Path(p)) for p in batch] for batch, _, key in batches}
         if dry_run:  # the real plan, each request recorded as it would be sent, nothing sent
-            for i, (batch, batch_platforms, key) in enumerate(batches, 1):
+            for i, (batch, batch_platforms, key) in zip(parts, batches):
                 self.db.record_publication(topic_id, run_id, channel, "simulated",
                                            {"part": i, "platforms": batch_platforms, "request_id": key, "photos": batch,
                                             "caption": _caption_for(kind, caption, batch_platforms),
+                                            "is_ai_generated": flagged.get(key, False),
                                             **({"alt_text": alt_texts.get(key), "first_comment": first_comment}
-                                               if kind != "story" else {})})
+                                               if kind != "story" else {}),
+                                            **({"held": held} if held else {})})
             log.info("Dry run: %s not posted (%d request(s) planned).", kind, len(batches))
-            return {"status": "simulated", "posted_parts": 0, "planned_parts": len(batches)}
+            return {"status": "simulated", "posted_parts": 0, "planned_parts": len(batches),
+                    **({"held_platforms": held} if held else {})}
         up = next((p for p in self.publishers if isinstance(p, UploadPostPublisher)), None)
         if up is None or not up.configured():
             return {"status": "failed", "error": "Upload-Post is not configured (needed for Stories and carousels)"}
         done = []
-        for i, (batch, batch_platforms, key) in enumerate(batches, 1):
+        for i, (batch, batch_platforms, key) in zip(parts, batches):
             try:
                 res = up.publish_photos(kind, batch, _caption_for(kind, caption, batch_platforms), batch_platforms, key,
                                         alt_texts=alt_texts.get(key),
-                                        first_comment=first_comment if kind != "story" else "")
+                                        first_comment=first_comment if kind != "story" else "",
+                                        **({"ai_generated": True} if flagged.get(key) else {}))
             except PublishFailed as e:
                 self.db.record_publication(topic_id, run_id, channel, "failed", {"error": str(e), "part": i})
                 status = "unknown" if done else "failed"  # earlier frames already went out
-                return {"status": status, "error": str(e), "posted_parts": len(done)}
+                return {"status": status, "error": str(e), "posted_parts": len(done),
+                        **({"part": i} if kind == "story" else {})}
             except PublishUnknown as e:
                 failed, ok = getattr(e, "failed", {}) or {}, getattr(e, "ok", {}) or {}
                 self.db.record_publication(topic_id, run_id, channel, "unknown",
@@ -849,4 +952,5 @@ class MetaPublisher:
         urls: Dict[str, Any] = {}
         for r in done:
             urls.update(r.get("post_urls") or {})
-        return {"status": "published", "post_urls": urls, "posted_parts": len(done)}
+        return {"status": "published", "post_urls": urls, "posted_parts": len(done),
+                **({"held_platforms": held} if held else {})}

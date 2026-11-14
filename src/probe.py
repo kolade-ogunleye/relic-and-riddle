@@ -30,7 +30,8 @@ from .db import PipelineDatabase
 log = logging.getLogger(__name__)
 
 NOTE_KEYS = ("fact_sheet_note", "voice_note", "music_note", "motion_note", "graphics_note", "reconstruction_note", "footage_note",
-             "beat_image_note", "source_note", "picture_lines_note")
+             "beat_image_note", "source_note", "picture_lines_note", "hook_signal_note",
+             "payoff_note", "hedge_note")
 USAGE = ("🔍 <b>Ask the studio</b>\n\n"
          "✍️ <b>Type your question now</b> and send it as a message (within 10 minutes), or copy an example:\n\n"
          "<code>/ask how many music tracks are approved?</code>\n"
@@ -142,12 +143,16 @@ def system_evidence(db: PipelineDatabase) -> Dict[str, Any]:
         from . import music, topic_proposer
         from .control import ready_pools
         library = music.load_library()
+        retired = music.retired_tracks()
         topics = db.list_all_topics()
         queued = [t for t in topics if t.get("status") == "queued"]
         ev["inventory"] = {
             "music tracks approved": sum(1 for t in library if t.get("reviewed")),
             "music tracks waiting for review": len(music.pending_tracks()),
-            "music tracks by mood (approved)": {m: sum(1 for t in library if t.get("reviewed") and t.get("mood") == m) for m in music.MOODS},
+            # QF-84: what the picks draw from (approved and not retired by data/music/rotation.json)
+            "music tracks in rotation": sum(1 for t in library if music.in_rotation(t, retired)),
+            "music tracks in rotation by mood": {m: sum(1 for t in library if music.in_rotation(t, retired)
+                                                        and t.get("mood") == m) for m in music.MOODS},
             "topics queued": len(queued), "topics total": len(topics),
             "queued topics with an approved image set": ready_pools(db, queued),
             "topic ideas waiting for a decision": len(topic_proposer.pending(db)),
@@ -277,7 +282,8 @@ def _deterministic(ev: Dict[str, Any]) -> str:
 
 
 _COUNTS = [  # (words in a "how many" question, inventory keys answered, plain label)
-    (r"music|tracks?|songs?", ("music tracks approved", "music tracks waiting for review"), "Music"),
+    (r"music|tracks?|songs?", ("music tracks approved", "music tracks waiting for review", "music tracks in rotation"),
+     "Music"),
     (r"ideas?|proposals?", ("topic ideas waiting for a decision",), "Topic ideas"),
     (r"images?|photos?|pictures?|pools?", ("queued topics with an approved image set", "topics queued"), "Images"),
     (r"topics?|queue", ("topics queued", "topics total"), "Topics"),
@@ -293,8 +299,8 @@ def _count_answer(question: str, inventory: Dict[str, Any]) -> Optional[str]:
         if re.search(rf"\b({words})\b", question, re.IGNORECASE):
             lines.append(f"<b>{label}</b>: " + " · ".join(f"{inventory[k]} {k.replace('music tracks ', '').replace('queued topics ', '')}" for k in keys if k in inventory))
             if label == "Music":
-                moods = inventory.get("music tracks by mood (approved)") or {}
-                lines.append("Approved by mood: " + ", ".join(f"{m} {n}" for m, n in moods.items()))
+                moods = inventory.get("music tracks in rotation by mood") or {}
+                lines.append("In rotation by mood: " + ", ".join(f"{m} {n}" for m, n in moods.items()))
     return "\n".join(lines) or None
 
 

@@ -69,20 +69,73 @@ def put_upright(topic_dir: Path) -> Tuple[List[str], Set[str]]:
         name, path = item["file"], topic_dir / item["file"]
         shown = sheet_name(topic_dir, item)
         url = item.get("download_url")
-        fresh = path.with_name(path.stem + ".upright.jpg")
+        requested = path.with_name(path.stem + ".upright.png")
+        fresh = requested
+        target = path.with_suffix(".png")
+        installed = False
+        credit_path = topic_dir / "credits.json"
+        old_credits = credit_path.read_bytes()
+        credit_temp = topic_dir / "credits.upright.tmp"
+        backup = topic_dir / BACKUP_DIR / name
+        saved_sidecars: dict = {}
         try:
             if not url:
                 raise ValueError("no download link recorded")
-            commons.download_jpeg(url, fresh)
+            commons.download_jpeg(url, requested, provider=item.get("provider") or None)  # its provider's hosts (QF-44)
+            fresh = commons.stored(requested)   # the kept source JPEG, or the decoded PNG (QF-13)
+            target = path.with_suffix(fresh.suffix)
+            saved_sidecars = {Path(str(target) + suffix): (Path(str(target) + suffix).read_bytes()
+                              if Path(str(target) + suffix).exists() else None)
+                             for suffix in (".quality.json", ".presentation.json")}
             if turned(fresh, item.get("width"), item.get("height")):
                 raise ValueError("Commons gave it turned over again")
+            if target != path and target.exists():
+                raise ValueError(f"A separate {target.suffix} already exists; preserve both for review")
+            from . import image_presentation
+            from .credits import sha256_file
+            from .photo_pool import signature
+            essential = image_presentation._record(path)
+            data = json.loads(old_credits)
+            records = data if isinstance(data, list) else (data.get("images") or data.get("items") or [])
+            for entry in records:
+                if isinstance(entry, dict) and entry.get("file") == name:
+                    entry.update(file=target.name, **signature(fresh))
+                    if "sha256" in entry:
+                        entry["sha256"] = sha256_file(fresh)
+                    entry.pop("vision_review", None)  # old review bytes cannot approve a refreshed original
+            if isinstance(data, dict):
+                data["reviewed"] = False
+            credit_temp.write_text(json.dumps(data, indent=2), encoding="utf-8")
             (topic_dir / BACKUP_DIR).mkdir(exist_ok=True)
-            shutil.copy2(path, topic_dir / BACKUP_DIR / name)
-            fresh.replace(path)
-            done.append(f"{shown}: was stored turned over; fetched again upright (the old file is kept as {BACKUP_DIR}/{name})")
+            if backup.exists() and sha256_file(backup) != sha256_file(path):
+                backup = backup.with_name(f"{backup.stem}-{sha256_file(path)[:12]}{backup.suffix}")
+            shutil.copy2(path, backup)
+            fresh.replace(target)
+            installed = True
+            if essential:
+                image_presentation.designate(target, essential["reason"])
+            quality = Path(str(fresh) + ".quality.json")
+            if quality.exists():
+                quality.replace(Path(str(target) + ".quality.json"))
+            credit_temp.replace(credit_path)
+            if target != path:
+                path.unlink()  # the original remains byte-for-byte in its backup, not twice in the active pool
+            done.append(f"{shown}: was stored turned over; fetched again upright (the old file is kept as {BACKUP_DIR}/{backup.name})")
             log.info("Photo %s/%s was stored turned over; fetched again upright.", topic_dir.name, name)
         except Exception as e:
-            fresh.unlink(missing_ok=True)
+            for left in {fresh, requested, requested.with_suffix(".jpg")}:
+                left.unlink(missing_ok=True)
+            credit_temp.unlink(missing_ok=True)
+            if installed:
+                if target != path:
+                    target.unlink(missing_ok=True)
+                shutil.copy2(backup, path)
+                credit_path.write_bytes(old_credits)
+                for marker, previous in saved_sidecars.items():
+                    if previous is None:
+                        marker.unlink(missing_ok=True)
+                    else:
+                        marker.write_bytes(previous)
             still.add(name)
             done.append(f"{shown}: is stored turned over and could not be fetched again ({str(e)[:120]}); "
                         "this run leaves it out")

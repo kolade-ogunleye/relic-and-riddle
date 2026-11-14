@@ -1,0 +1,5855 @@
+{
+ "code_root": ".",
+ "pinned_settings": {
+  "FONT_NAME": "Anton",
+  "FONT_SIZE": "80"
+ },
+ "font_size_px": 80,
+ "fonts_dir": "fonts",
+ "lut": "assets/luts/kodak_2383.cube",
+ "picture_chain": "film_grade_filter(0.0) -> noise alls=8 (seed 7) -> picture_vignette(width, height) as compose_video draws it (lifted over graphic_* clips) -> subtitles (libass, fonts/)",
+ "inputs_rule": "fixtures.load('captions'): real words.json, emphasis_words, scene timeline; one case labelled new",
+ "cases": {
+  "richat_structure_sahara_eye_16x9": {
+   "run": "output/run_richat_structure_sahara_eye_1792740961_long",
+   "topic": "richat_structure_sahara_eye",
+   "format": "16:9",
+   "why": "the only 16:9 narration (documentary words.json)",
+   "label": null,
+   "words": "output/run_richat_structure_sahara_eye_1792740961_long/words.json",
+   "text": null,
+   "emphasis": [],
+   "vignette_aspect": "vignette=PI/6.4:aspect=1",
+   "vignette_source": "src.video_composer.picture_vignette",
+   "cuts": null,
+   "graphic_intervals": [],
+   "caption_graphic_overlap": [],
+   "timeline_complete": false,
+   "bursts": [
+    {
+     "show": 0.02,
+     "hide": 2.22,
+     "last_event": 0.02,
+     "text": "The Richat Structure is situated near",
+     "lines": [
+      "The Richat Structure is situated near"
+     ],
+     "words": 6,
+     "ass_fs": 81,
+     "shrunk": false,
+     "plate_w": 1060,
+     "plate_y": 866,
+     "plate_h": 84,
+     "guard": false
+    },
+    {
+     "show": 2.22,
+     "hide": 4.09,
+     "last_event": 2.22,
+     "text": "Ouadane on the Adrar Plateau",
+     "lines": [
+      "Ouadane on the Adrar Plateau"
+     ],
+     "words": 5,
+     "ass_fs": 81,
+     "shrunk": false,
+     "plate_w": 888,
+     "plate_y": 866,
+     "plate_h": 84,
+     "guard": false
+    },
+    {
+     "show": 4.09,
+     "hide": 6.63,
+     "last_event": 4.09,
+     "text": "within the Adrar Region of Mauritania",
+     "lines": [
+      "within the Adrar Region of Mauritania"
+     ],
+     "words": 6,
+     "ass_fs": 81,
+     "shrunk": false,
+     "plate_w": 1092,
+     "plate_y": 866,
+     "plate_h": 84,
+     "guard": false
+    },
+    {
+     "show": 6.63,
+     "hide": 8.56,
+     "last_event": 6.63,
+     "text": "Visible from space as a massive",
+     "lines": [
+      "Visible from space as a massive"
+     ],
+     "words": 6,
+     "ass_fs": 81,
+     "shrunk": false,
+     "plate_w": 920,
+     "plate_y": 866,
+     "plate_h": 84,
+     "guard": false
+    },
+    {
+     "show": 8.56,
+     "hide": 10.65,
+     "last_event": 8.56,
+     "text": "desert landmark, the concentric",
+     "lines": [
+      "desert landmark, the concentric"
+     ],
+     "words": 4,
+     "ass_fs": 81,
+     "shrunk": false,
+     "plate_w": 938,
+     "plate_y": 866,
+     "plate_h": 84,
+     "guard": false
+    },
+    {
+     "show": 10.65,
+     "hide": 12.48,
+     "last_event": 10.65,
+     "text": "formation has served as a visual",
+     "lines": [
+      "formation has served as a visual"
+     ],
+     "words": 6,
+     "ass_fs": 81,
+     "shrunk": false,
+     "plate_w": 932,
+     "plate_y": 866,
+     "plate_h": 84,
+     "guard": false
+    },
+    {
+     "show": 12.48,
+     "hide": 15.01,
+     "last_event": 12.48,
+     "text": "reference point for space shuttle crews",
+     "lines": [
+      "reference point for space shuttle crews"
+     ],
+     "words": 6,
+     "ass_fs": 81,
+     "shrunk": false,
+     "plate_w": 1132,
+     "plate_y": 866,
+     "plate_h": 84,
+     "guard": false
+    },
+    {
+     "show": 15.01,
+     "hide": 16.53,
+     "last_event": 15.01,
+     "text": "Its documented scale depends",
+     "lines": [
+      "Its documented scale depends"
+     ],
+     "words": 4,
+     "ass_fs": 81,
+     "shrunk": false,
+     "plate_w": 900,
+     "plate_y": 866,
+     "plate_h": 84,
+     "guard": false
+    },
+    {
+     "show": 16.53,
+     "hide": 18.49,
+     "last_event": 16.53,
+     "text": "on the observational method:",
+     "lines": [
+      "on the observational method:"
+     ],
+     "words": 4,
+     "ass_fs": 81,
+     "shrunk": false,
+     "plate_w": 868,
+     "plate_y": 866,
+     "plate_h": 84,
+     "guard": false
+    },
+    {
+     "show": 18.49,
+     "hide": 20.01,
+     "last_event": 18.49,
+     "text": "geological field surveys",
+     "lines": [
+      "geological field surveys"
+     ],
+     "words": 3,
+     "ass_fs": 81,
+     "shrunk": false,
+     "plate_w": 700,
+     "plate_y": 866,
+     "plate_h": 84,
+     "guard": false
+    },
+    {
+     "show": 20.01,
+     "hide": 22.08,
+     "last_event": 20.01,
+     "text": "record the feature at 40 kilometres",
+     "lines": [
+      "record the feature at 40 kilometres"
+     ],
+     "words": 6,
+     "ass_fs": 81,
+     "shrunk": false,
+     "plate_w": 1020,
+     "plate_y": 866,
+     "plate_h": 84,
+     "guard": false
+    },
+    {
+     "show": 22.08,
+     "hide": 24.55,
+     "last_event": 22.08,
+     "text": "across, though satellite observations",
+     "lines": [
+      "across, though satellite observations"
+     ],
+     "words": 4,
+     "ass_fs": 81,
+     "shrunk": false,
+     "plate_w": 1064,
+     "plate_y": 866,
+     "plate_h": 84,
+     "guard": false
+    },
+    {
+     "show": 24.55,
+     "hide": 25.84,
+     "last_event": 24.55,
+     "text": "describe it as spanning",
+     "lines": [
+      "describe it as spanning"
+     ],
+     "words": 4,
+     "ass_fs": 81,
+     "shrunk": false,
+     "plate_w": 692,
+     "plate_y": 866,
+     "plate_h": 84,
+     "guard": false
+    },
+    {
+     "show": 25.84,
+     "hide": 27.66,
+     "last_event": 25.84,
+     "text": "almost 50 kilometres",
+     "lines": [
+      "almost 50 kilometres"
+     ],
+     "words": 3,
+     "ass_fs": 81,
+     "shrunk": false,
+     "plate_w": 634,
+     "plate_y": 866,
+     "plate_h": 84,
+     "guard": false
+    },
+    {
+     "show": 27.66,
+     "hide": 29.75,
+     "last_event": 27.66,
+     "text": "What physical processes formed",
+     "lines": [
+      "What physical processes formed"
+     ],
+     "words": 4,
+     "ass_fs": 81,
+     "shrunk": false,
+     "plate_w": 952,
+     "plate_y": 866,
+     "plate_h": 84,
+     "guard": false
+    },
+    {
+     "show": 29.75,
+     "hide": 31.2,
+     "last_event": 29.75,
+     "text": "this circular geological",
+     "lines": [
+      "this circular geological"
+     ],
+     "words": 3,
+     "ass_fs": 81,
+     "shrunk": false,
+     "plate_w": 680,
+     "plate_y": 866,
+     "plate_h": 84,
+     "guard": false
+    },
+    {
+     "show": 31.2,
+     "hide": 33.07,
+     "last_event": 31.2,
+     "text": "formation in the Sahara?",
+     "lines": [
+      "formation in the Sahara?"
+     ],
+     "words": 4,
+     "ass_fs": 81,
+     "shrunk": false,
+     "plate_w": 736,
+     "plate_y": 866,
+     "plate_h": 84,
+     "guard": false
+    },
+    {
+     "show": 33.07,
+     "hide": 35.16,
+     "last_event": 33.07,
+     "text": "Geologists identify the structure",
+     "lines": [
+      "Geologists identify the structure"
+     ],
+     "words": 4,
+     "ass_fs": 81,
+     "shrunk": false,
+     "plate_w": 946,
+     "plate_y": 866,
+     "plate_h": 84,
+     "guard": false
+    },
+    {
+     "show": 35.16,
+     "hide": 36.74,
+     "last_event": 35.16,
+     "text": "as an eroded dome created",
+     "lines": [
+      "as an eroded dome created"
+     ],
+     "words": 5,
+     "ass_fs": 81,
+     "shrunk": false,
+     "plate_w": 806,
+     "plate_y": 866,
+     "plate_h": 84,
+     "guard": false
+    },
+    {
+     "show": 36.74,
+     "hide": 38.11,
+     "last_event": 36.74,
+     "text": "when a subsurface igneous",
+     "lines": [
+      "when a subsurface igneous"
+     ],
+     "words": 4,
+     "ass_fs": 81,
+     "shrunk": false,
+     "plate_w": 808,
+     "plate_y": 866,
+     "plate_h": 84,
+     "guard": false
+    },
+    {
+     "show": 38.11,
+     "hide": 40.05,
+     "last_event": 38.11,
+     "text": "intrusion deformed the overlying",
+     "lines": [
+      "intrusion deformed the overlying"
+     ],
+     "words": 4,
+     "ass_fs": 81,
+     "shrunk": false,
+     "plate_w": 964,
+     "plate_y": 866,
+     "plate_h": 84,
+     "guard": false
+    },
+    {
+     "show": 40.05,
+     "hide": 42.82,
+     "last_event": 40.05,
+     "text": "sedimentary rock into concentric rings",
+     "lines": [
+      "sedimentary rock into concentric rings"
+     ],
+     "words": 5,
+     "ass_fs": 81,
+     "shrunk": false,
+     "plate_w": 1122,
+     "plate_y": 866,
+     "plate_h": 84,
+     "guard": false
+    },
+    {
+     "show": 42.82,
+     "hide": 44.26,
+     "last_event": 42.82,
+     "text": "The structural characteristics",
+     "lines": [
+      "The structural characteristics"
+     ],
+     "words": 3,
+     "ass_fs": 81,
+     "shrunk": false,
+     "plate_w": 860,
+     "plate_y": 866,
+     "plate_h": 84,
+     "guard": false
+    },
+    {
+     "show": 44.26,
+     "hide": 46.07,
+     "last_event": 44.26,
+     "text": "display distinct layering",
+     "lines": [
+      "display distinct layering"
+     ],
+     "words": 3,
+     "ass_fs": 81,
+     "shrunk": false,
+     "plate_w": 712,
+     "plate_y": 866,
+     "plate_h": 84,
+     "guard": false
+    },
+    {
+     "show": 46.07,
+     "hide": 47.83,
+     "last_event": 46.07,
+     "text": "and magmatic features",
+     "lines": [
+      "and magmatic features"
+     ],
+     "words": 3,
+     "ass_fs": 81,
+     "shrunk": false,
+     "plate_w": 696,
+     "plate_y": 866,
+     "plate_h": 84,
+     "guard": false
+    },
+    {
+     "show": 47.83,
+     "hide": 49.19,
+     "last_event": 47.83,
+     "text": "By one estimate",
+     "lines": [
+      "By one estimate"
+     ],
+     "words": 3,
+     "ass_fs": 81,
+     "shrunk": false,
+     "plate_w": 504,
+     "plate_y": 866,
+     "plate_h": 84,
+     "guard": false
+    },
+    {
+     "show": 49.19,
+     "hide": 51.22,
+     "last_event": 49.19,
+     "text": "the sedimentary rock layers that form",
+     "lines": [
+      "the sedimentary rock layers that form"
+     ],
+     "words": 6,
+     "ass_fs": 81,
+     "shrunk": false,
+     "plate_w": 1096,
+     "plate_y": 866,
+     "plate_h": 84,
+     "guard": false
+    },
+    {
+     "show": 51.22,
+     "hide": 52.76,
+     "last_event": 51.22,
+     "text": "the outer rings of the structure",
+     "lines": [
+      "the outer rings of the structure"
+     ],
+     "words": 6,
+     "ass_fs": 81,
+     "shrunk": false,
+     "plate_w": 908,
+     "plate_y": 866,
+     "plate_h": 84,
+     "guard": false
+    },
+    {
+     "show": 52.76,
+     "hide": 54.07,
+     "last_event": 52.76,
+     "text": "dip outward at angles",
+     "lines": [
+      "dip outward at angles"
+     ],
+     "words": 4,
+     "ass_fs": 81,
+     "shrunk": false,
+     "plate_w": 656,
+     "plate_y": 866,
+     "plate_h": 84,
+     "guard": false
+    },
+    {
+     "show": 54.07,
+     "hide": 56.16,
+     "last_event": 54.07,
+     "text": "between 10 and 20 degrees",
+     "lines": [
+      "between 10 and 20 degrees"
+     ],
+     "words": 5,
+     "ass_fs": 81,
+     "shrunk": false,
+     "plate_w": 804,
+     "plate_y": 866,
+     "plate_h": 84,
+     "guard": false
+    },
+    {
+     "show": 56.16,
+     "hide": 58.12,
+     "last_event": 56.16,
+     "text": "Framing the complex are concentric",
+     "lines": [
+      "Framing the complex are concentric"
+     ],
+     "words": 5,
+     "ass_fs": 81,
+     "shrunk": false,
+     "plate_w": 1054,
+     "plate_y": 866,
+     "plate_h": 84,
+     "guard": false
+    },
+    {
+     "show": 58.12,
+     "hide": 59.95,
+     "last_event": 58.12,
+     "text": "gabbroic ring dikes",
+     "lines": [
+      "gabbroic ring dikes"
+     ],
+     "words": 3,
+     "ass_fs": 81,
+     "shrunk": false,
+     "plate_w": 586,
+     "plate_y": 866,
+     "plate_h": 84,
+     "guard": false
+    },
+    {
+     "show": 59.95,
+     "hide": 61.41,
+     "last_event": 59.95,
+     "text": "consisting of an inner ring",
+     "lines": [
+      "consisting of an inner ring"
+     ],
+     "words": 5,
+     "ass_fs": 81,
+     "shrunk": false,
+     "plate_w": 776,
+     "plate_y": 866,
+     "plate_h": 84,
+     "guard": false
+    },
+    {
+     "show": 61.41,
+     "hide": 63.57,
+     "last_event": 61.41,
+     "text": "about 30 metres wide and an outer",
+     "lines": [
+      "about 30 metres wide and an outer"
+     ],
+     "words": 7,
+     "ass_fs": 81,
+     "shrunk": false,
+     "plate_w": 1020,
+     "plate_y": 866,
+     "plate_h": 84,
+     "guard": false
+    },
+    {
+     "show": 63.57,
+     "hide": 65.72,
+     "last_event": 63.57,
+     "text": "ring about 70 metres wide",
+     "lines": [
+      "ring about 70 metres wide"
+     ],
+     "words": 5,
+     "ass_fs": 81,
+     "shrunk": false,
+     "plate_w": 782,
+     "plate_y": 866,
+     "plate_h": 84,
+     "guard": false
+    },
+    {
+     "show": 65.72,
+     "hide": 67.93,
+     "last_event": 65.72,
+     "text": "At the core, by one estimate",
+     "lines": [
+      "At the core, by one estimate"
+     ],
+     "words": 6,
+     "ass_fs": 81,
+     "shrunk": false,
+     "plate_w": 832,
+     "plate_y": 866,
+     "plate_h": 84,
+     "guard": false
+    },
+    {
+     "show": 67.93,
+     "hide": 69.41,
+     "last_event": 67.93,
+     "text": "the heart of the structure features",
+     "lines": [
+      "the heart of the structure features"
+     ],
+     "words": 6,
+     "ass_fs": 81,
+     "shrunk": false,
+     "plate_w": 996,
+     "plate_y": 866,
+     "plate_h": 84,
+     "guard": false
+    },
+    {
+     "show": 69.41,
+     "hide": 71.49,
+     "last_event": 69.41,
+     "text": "a siliceous breccia covering an area",
+     "lines": [
+      "a siliceous breccia covering an area"
+     ],
+     "words": 6,
+     "ass_fs": 81,
+     "shrunk": false,
+     "plate_w": 1028,
+     "plate_y": 866,
+     "plate_h": 84,
+     "guard": false
+    },
+    {
+     "show": 71.49,
+     "hide": 74.18,
+     "last_event": 71.49,
+     "text": "at least 30 kilometres in diameter",
+     "lines": [
+      "at least 30 kilometres in diameter"
+     ],
+     "words": 6,
+     "ass_fs": 81,
+     "shrunk": false,
+     "plate_w": 980,
+     "plate_y": 866,
+     "plate_h": 84,
+     "guard": false
+    },
+    {
+     "show": 74.18,
+     "hide": 76.29,
+     "last_event": 74.18,
+     "text": "reaching a thickness of at least 40 metres",
+     "lines": [
+      "reaching a thickness of at least 40 metres"
+     ],
+     "words": 8,
+     "ass_fs": 81,
+     "shrunk": false,
+     "plate_w": 1206,
+     "plate_y": 866,
+     "plate_h": 84,
+     "guard": false
+    },
+    {
+     "show": 76.29,
+     "hide": 77.59,
+     "last_event": 76.29,
+     "text": "at its center",
+     "lines": [
+      "at its center"
+     ],
+     "words": 3,
+     "ass_fs": 81,
+     "shrunk": false,
+     "plate_w": 386,
+     "plate_y": 866,
+     "plate_h": 84,
+     "guard": false
+    },
+    {
+     "show": 77.59,
+     "hide": 79.09,
+     "last_event": 77.59,
+     "text": "The geological origins",
+     "lines": [
+      "The geological origins"
+     ],
+     "words": 3,
+     "ass_fs": 81,
+     "shrunk": false,
+     "plate_w": 660,
+     "plate_y": 866,
+     "plate_h": 84,
+     "guard": false
+    },
+    {
+     "show": 79.09,
+     "hide": 81.03,
+     "last_event": 79.09,
+     "text": "of the Richat Structure were once",
+     "lines": [
+      "of the Richat Structure were once"
+     ],
+     "words": 6,
+     "ass_fs": 81,
+     "shrunk": false,
+     "plate_w": 984,
+     "plate_y": 866,
+     "plate_h": 84,
+     "guard": false
+    },
+    {
+     "show": 81.03,
+     "hide": 83.24,
+     "last_event": 81.03,
+     "text": "a matter of scientific debate",
+     "lines": [
+      "a matter of scientific debate"
+     ],
+     "words": 5,
+     "ass_fs": 81,
+     "shrunk": false,
+     "plate_w": 832,
+     "plate_y": 866,
+     "plate_h": 84,
+     "guard": false
+    },
+    {
+     "show": 83.24,
+     "hide": 85.26,
+     "last_event": 83.24,
+     "text": "The feature was initially considered",
+     "lines": [
+      "The feature was initially considered"
+     ],
+     "words": 5,
+     "ass_fs": 81,
+     "shrunk": false,
+     "plate_w": 1032,
+     "plate_y": 866,
+     "plate_h": 84,
+     "guard": false
+    },
+    {
+     "show": 85.26,
+     "hide": 87.89,
+     "last_event": 85.26,
+     "text": "an extraterrestrial impact crater",
+     "lines": [
+      "an extraterrestrial impact crater"
+     ],
+     "words": 4,
+     "ass_fs": 81,
+     "shrunk": false,
+     "plate_w": 936,
+     "plate_y": 866,
+     "plate_h": 84,
+     "guard": false
+    },
+    {
+     "show": 87.89,
+     "hide": 90.72,
+     "last_event": 87.89,
+     "text": "However, the impact theory was disproved",
+     "lines": [
+      "However, the impact theory was disproved"
+     ],
+     "words": 6,
+     "ass_fs": 81,
+     "shrunk": false,
+     "plate_w": 1234,
+     "plate_y": 866,
+     "plate_h": 84,
+     "guard": false
+    },
+    {
+     "show": 90.72,
+     "hide": 92.47,
+     "last_event": 90.72,
+     "text": "when suspected shock-metamorphism",
+     "lines": [
+      "when suspected shock-metamorphism"
+     ],
+     "words": 3,
+     "ass_fs": 81,
+     "shrunk": false,
+     "plate_w": 1132,
+     "plate_y": 866,
+     "plate_h": 84,
+     "guard": false
+    },
+    {
+     "show": 92.47,
+     "hide": 95.18,
+     "last_event": 92.47,
+     "text": "coesite was identified in 1969",
+     "lines": [
+      "coesite was identified in 1969"
+     ],
+     "words": 5,
+     "ass_fs": 81,
+     "shrunk": false,
+     "plate_w": 860,
+     "plate_y": 866,
+     "plate_h": 84,
+     "guard": false
+    },
+    {
+     "show": 95.18,
+     "hide": 96.91,
+     "last_event": 95.18,
+     "text": "as mislabeled barite",
+     "lines": [
+      "as mislabeled barite"
+     ],
+     "words": 3,
+     "ass_fs": 81,
+     "shrunk": false,
+     "plate_w": 608,
+     "plate_y": 866,
+     "plate_h": 84,
+     "guard": false
+    },
+    {
+     "show": 96.91,
+     "hide": 98.84,
+     "last_event": 96.91,
+     "text": "Subsequent geochemical analyses",
+     "lines": [
+      "Subsequent geochemical analyses"
+     ],
+     "words": 3,
+     "ass_fs": 81,
+     "shrunk": false,
+     "plate_w": 1004,
+     "plate_y": 866,
+     "plate_h": 84,
+     "guard": false
+    },
+    {
+     "show": 98.84,
+     "hide": 100.16,
+     "last_event": 98.84,
+     "text": "established a terrestrial",
+     "lines": [
+      "established a terrestrial"
+     ],
+     "words": 3,
+     "ass_fs": 81,
+     "shrunk": false,
+     "plate_w": 704,
+     "plate_y": 866,
+     "plate_h": 84,
+     "guard": false
+    },
+    {
+     "show": 100.16,
+     "hide": 103.01,
+     "last_event": 100.16,
+     "text": "timeline: dating of the carbonatite rocks",
+     "lines": [
+      "timeline: dating of the carbonatite rocks"
+     ],
+     "words": 6,
+     "ass_fs": 81,
+     "shrunk": false,
+     "plate_w": 1164,
+     "plate_y": 866,
+     "plate_h": 84,
+     "guard": false
+    },
+    {
+     "show": 103.01,
+     "hide": 103.87,
+     "last_event": 103.01,
+     "text": "shows they cooled",
+     "lines": [
+      "shows they cooled"
+     ],
+     "words": 3,
+     "ass_fs": 81,
+     "shrunk": false,
+     "plate_w": 568,
+     "plate_y": 866,
+     "plate_h": 84,
+     "guard": false
+    },
+    {
+     "show": 103.87,
+     "hide": 107.54,
+     "last_event": 103.87,
+     "text": "between 94 and 104 million years ago",
+     "lines": [
+      "between 94 and 104 million years ago"
+     ],
+     "words": 7,
+     "ass_fs": 81,
+     "shrunk": false,
+     "plate_w": 1090,
+     "plate_y": 866,
+     "plate_h": 84,
+     "guard": false
+    },
+    {
+     "show": 107.54,
+     "hide": 109.26,
+     "last_event": 107.54,
+     "text": "closely matching the hydrothermal",
+     "lines": [
+      "closely matching the hydrothermal"
+     ],
+     "words": 4,
+     "ass_fs": 81,
+     "shrunk": false,
+     "plate_w": 1024,
+     "plate_y": 866,
+     "plate_h": 84,
+     "guard": false
+    },
+    {
+     "show": 109.26,
+     "hide": 111.58,
+     "last_event": 109.26,
+     "text": "event that produced the central breccia",
+     "lines": [
+      "event that produced the central breccia"
+     ],
+     "words": 6,
+     "ass_fs": 81,
+     "shrunk": false,
+     "plate_w": 1152,
+     "plate_y": 866,
+     "plate_h": 84,
+     "guard": false
+    },
+    {
+     "show": 111.58,
+     "hide": 113.85,
+     "last_event": 111.58,
+     "text": "Physical evidence across the terrain",
+     "lines": [
+      "Physical evidence across the terrain"
+     ],
+     "words": 5,
+     "ass_fs": 81,
+     "shrunk": false,
+     "plate_w": 1044,
+     "plate_y": 866,
+     "plate_h": 84,
+     "guard": false
+    },
+    {
+     "show": 113.85,
+     "hide": 115.88,
+     "last_event": 113.85,
+     "text": "establishes a prolonged record",
+     "lines": [
+      "establishes a prolonged record"
+     ],
+     "words": 4,
+     "ass_fs": 81,
+     "shrunk": false,
+     "plate_w": 904,
+     "plate_y": 866,
+     "plate_h": 84,
+     "guard": false
+    },
+    {
+     "show": 115.88,
+     "hide": 117.32,
+     "last_event": 115.88,
+     "text": "of human presence",
+     "lines": [
+      "of human presence"
+     ],
+     "words": 3,
+     "ass_fs": 81,
+     "shrunk": false,
+     "plate_w": 588,
+     "plate_y": 866,
+     "plate_h": 84,
+     "guard": false
+    },
+    {
+     "show": 117.32,
+     "hide": 118.94,
+     "last_event": 117.32,
+     "text": "Prehistoric human habitation",
+     "lines": [
+      "Prehistoric human habitation"
+     ],
+     "words": 3,
+     "ass_fs": 81,
+     "shrunk": false,
+     "plate_w": 864,
+     "plate_y": 866,
+     "plate_h": 84,
+     "guard": false
+    },
+    {
+     "show": 118.94,
+     "hide": 121.22,
+     "last_event": 118.94,
+     "text": "is evidenced by exceptional accumulations",
+     "lines": [
+      "is evidenced by exceptional accumulations"
+     ],
+     "words": 5,
+     "ass_fs": 81,
+     "shrunk": false,
+     "plate_w": 1240,
+     "plate_y": 866,
+     "plate_h": 84,
+     "guard": false
+    },
+    {
+     "show": 121.22,
+     "hide": 123.1,
+     "last_event": 121.22,
+     "text": "of Acheulean artifacts alongside",
+     "lines": [
+      "of Acheulean artifacts alongside"
+     ],
+     "words": 4,
+     "ass_fs": 81,
+     "shrunk": false,
+     "plate_w": 942,
+     "plate_y": 866,
+     "plate_h": 84,
+     "guard": false
+    },
+    {
+     "show": 123.1,
+     "hide": 125.16,
+     "last_event": 123.1,
+     "text": "Middle Stone Age Aterian tools dating",
+     "lines": [
+      "Middle Stone Age Aterian tools dating"
+     ],
+     "words": 6,
+     "ass_fs": 81,
+     "shrunk": false,
+     "plate_w": 1102,
+     "plate_y": 866,
+     "plate_h": 84,
+     "guard": false
+    },
+    {
+     "show": 125.16,
+     "hide": 129.21,
+     "last_event": 125.16,
+     "text": "from roughly 145,000 to 29,000 years ago",
+     "lines": [
+      "from roughly 145,000 to 29,000 years ago"
+     ],
+     "words": 7,
+     "ass_fs": 81,
+     "shrunk": false,
+     "plate_w": 1182,
+     "plate_y": 866,
+     "plate_h": 84,
+     "guard": false
+    },
+    {
+     "show": 129.21,
+     "hide": 130.7,
+     "last_event": 129.21,
+     "text": "Later mortuary traditions",
+     "lines": [
+      "Later mortuary traditions"
+     ],
+     "words": 3,
+     "ass_fs": 81,
+     "shrunk": false,
+     "plate_w": 748,
+     "plate_y": 866,
+     "plate_h": 84,
+     "guard": false
+    },
+    {
+     "show": 130.7,
+     "hide": 132.89,
+     "last_event": 130.7,
+     "text": "also appear across the site",
+     "lines": [
+      "also appear across the site"
+     ],
+     "words": 5,
+     "ass_fs": 81,
+     "shrunk": false,
+     "plate_w": 784,
+     "plate_y": 866,
+     "plate_h": 84,
+     "guard": false
+    },
+    {
+     "show": 132.89,
+     "hide": 134.36,
+     "last_event": 132.89,
+     "text": "by one estimate",
+     "lines": [
+      "by one estimate"
+     ],
+     "words": 3,
+     "ass_fs": 81,
+     "shrunk": false,
+     "plate_w": 500,
+     "plate_y": 866,
+     "plate_h": 84,
+     "guard": false
+    },
+    {
+     "show": 134.36,
+     "hide": 135.7,
+     "last_event": 134.36,
+     "text": "thousands of prehistoric",
+     "lines": [
+      "thousands of prehistoric"
+     ],
+     "words": 3,
+     "ass_fs": 81,
+     "shrunk": false,
+     "plate_w": 726,
+     "plate_y": 866,
+     "plate_h": 84,
+     "guard": false
+    },
+    {
+     "show": 135.7,
+     "hide": 137.8,
+     "last_event": 135.7,
+     "text": "stone burial mounds built in various",
+     "lines": [
+      "stone burial mounds built in various"
+     ],
+     "words": 6,
+     "ass_fs": 81,
+     "shrunk": false,
+     "plate_w": 1046,
+     "plate_y": 866,
+     "plate_h": 84,
+     "guard": false
+    },
+    {
+     "show": 137.8,
+     "hide": 139.64,
+     "last_event": 137.8,
+     "text": "distinct architectural styles",
+     "lines": [
+      "distinct architectural styles"
+     ],
+     "words": 3,
+     "ass_fs": 81,
+     "shrunk": false,
+     "plate_w": 808,
+     "plate_y": 866,
+     "plate_h": 84,
+     "guard": false
+    },
+    {
+     "show": 139.64,
+     "hide": 142.23,
+     "last_event": 139.64,
+     "text": "line the protruding dikes of the formation",
+     "lines": [
+      "line the protruding dikes of the formation"
+     ],
+     "words": 7,
+     "ass_fs": 81,
+     "shrunk": false,
+     "plate_w": 1200,
+     "plate_y": 866,
+     "plate_h": 84,
+     "guard": false
+    },
+    {
+     "show": 142.23,
+     "hide": 144.53,
+     "last_event": 142.23,
+     "text": "While these material finds document human",
+     "lines": [
+      "While these material finds document human"
+     ],
+     "words": 6,
+     "ass_fs": 81,
+     "shrunk": false,
+     "plate_w": 1288,
+     "plate_y": 866,
+     "plate_h": 84,
+     "guard": false
+    },
+    {
+     "show": 144.53,
+     "hide": 146.67,
+     "last_event": 144.53,
+     "text": "activity, the physical record",
+     "lines": [
+      "activity, the physical record"
+     ],
+     "words": 4,
+     "ass_fs": 81,
+     "shrunk": false,
+     "plate_w": 814,
+     "plate_y": 866,
+     "plate_h": 84,
+     "guard": false
+    },
+    {
+     "show": 146.67,
+     "hide": 149.49,
+     "last_event": 146.67,
+     "text": "also refutes alternative speculation",
+     "lines": [
+      "also refutes alternative speculation"
+     ],
+     "words": 4,
+     "ass_fs": 81,
+     "shrunk": false,
+     "plate_w": 1024,
+     "plate_y": 866,
+     "plate_h": 84,
+     "guard": false
+    },
+    {
+     "show": 149.49,
+     "hide": 150.84,
+     "last_event": 149.49,
+     "text": "Fringe theories proposing",
+     "lines": [
+      "Fringe theories proposing"
+     ],
+     "words": 3,
+     "ass_fs": 81,
+     "shrunk": false,
+     "plate_w": 764,
+     "plate_y": 866,
+     "plate_h": 84,
+     "guard": false
+    },
+    {
+     "show": 150.84,
+     "hide": 152.69,
+     "last_event": 150.84,
+     "text": "the formation as Plato's lost city",
+     "lines": [
+      "the formation as Plato's lost city"
+     ],
+     "words": 6,
+     "ass_fs": 81,
+     "shrunk": false,
+     "plate_w": 940,
+     "plate_y": 866,
+     "plate_h": 84,
+     "guard": false
+    },
+    {
+     "show": 152.69,
+     "hide": 154.86,
+     "last_event": 152.69,
+     "text": "of Atlantis are refuted by geological",
+     "lines": [
+      "of Atlantis are refuted by geological"
+     ],
+     "words": 6,
+     "ass_fs": 81,
+     "shrunk": false,
+     "plate_w": 1040,
+     "plate_y": 866,
+     "plate_h": 84,
+     "guard": false
+    },
+    {
+     "show": 154.86,
+     "hide": 157.84,
+     "last_event": 154.86,
+     "text": "reality, as the feature is an ancient",
+     "lines": [
+      "reality, as the feature is an ancient"
+     ],
+     "words": 7,
+     "ass_fs": 81,
+     "shrunk": false,
+     "plate_w": 1004,
+     "plate_y": 866,
+     "plate_h": 84,
+     "guard": false
+    },
+    {
+     "show": 157.84,
+     "hide": 159.3,
+     "last_event": 157.84,
+     "text": "natural inland terrestrial",
+     "lines": [
+      "natural inland terrestrial"
+     ],
+     "words": 3,
+     "ass_fs": 81,
+     "shrunk": false,
+     "plate_w": 724,
+     "plate_y": 866,
+     "plate_h": 84,
+     "guard": false
+    },
+    {
+     "show": 159.3,
+     "hide": 161.51,
+     "last_event": 159.3,
+     "text": "dome rather than a sunken island",
+     "lines": [
+      "dome rather than a sunken island"
+     ],
+     "words": 6,
+     "ass_fs": 81,
+     "shrunk": false,
+     "plate_w": 984,
+     "plate_y": 866,
+     "plate_h": 84,
+     "guard": false
+    },
+    {
+     "show": 161.51,
+     "hide": 162.69,
+     "last_event": 161.51,
+     "text": "Through decades of field",
+     "lines": [
+      "Through decades of field"
+     ],
+     "words": 4,
+     "ass_fs": 81,
+     "shrunk": false,
+     "plate_w": 736,
+     "plate_y": 866,
+     "plate_h": 84,
+     "guard": false
+    },
+    {
+     "show": 162.69,
+     "hide": 165.42,
+     "last_event": 162.69,
+     "text": "surveys and geochemical analyses",
+     "lines": [
+      "surveys and geochemical analyses"
+     ],
+     "words": 4,
+     "ass_fs": 81,
+     "shrunk": false,
+     "plate_w": 1004,
+     "plate_y": 866,
+     "plate_h": 84,
+     "guard": false
+    },
+    {
+     "show": 165.42,
+     "hide": 167.4,
+     "last_event": 165.42,
+     "text": "the Richat Structure has been established",
+     "lines": [
+      "the Richat Structure has been established"
+     ],
+     "words": 6,
+     "ass_fs": 81,
+     "shrunk": false,
+     "plate_w": 1208,
+     "plate_y": 866,
+     "plate_h": 84,
+     "guard": false
+    },
+    {
+     "show": 167.4,
+     "hide": 169.59,
+     "last_event": 167.4,
+     "text": "as an eroded geological dome shaped",
+     "lines": [
+      "as an eroded geological dome shaped"
+     ],
+     "words": 6,
+     "ass_fs": 81,
+     "shrunk": false,
+     "plate_w": 1096,
+     "plate_y": 866,
+     "plate_h": 84,
+     "guard": false
+    },
+    {
+     "show": 169.59,
+     "hide": 171.6,
+     "last_event": 169.59,
+     "text": "by deep-seated igneous processes",
+     "lines": [
+      "by deep-seated igneous processes"
+     ],
+     "words": 4,
+     "ass_fs": 81,
+     "shrunk": false,
+     "plate_w": 1004,
+     "plate_y": 866,
+     "plate_h": 84,
+     "guard": false
+    },
+    {
+     "show": 171.6,
+     "hide": 173.29,
+     "last_event": 171.6,
+     "text": "and prolonged erosion",
+     "lines": [
+      "and prolonged erosion"
+     ],
+     "words": 3,
+     "ass_fs": 81,
+     "shrunk": false,
+     "plate_w": 676,
+     "plate_y": 866,
+     "plate_h": 84,
+     "guard": false
+    },
+    {
+     "show": 173.29,
+     "hide": 175.34,
+     "last_event": 173.29,
+     "text": "In October 2022",
+     "lines": [
+      "In October 2022"
+     ],
+     "words": 3,
+     "ass_fs": 81,
+     "shrunk": false,
+     "plate_w": 490,
+     "plate_y": 866,
+     "plate_h": 84,
+     "guard": false
+    },
+    {
+     "show": 175.34,
+     "hide": 177.33,
+     "last_event": 175.34,
+     "text": "the International Union of Geological",
+     "lines": [
+      "the International Union of Geological"
+     ],
+     "words": 5,
+     "ass_fs": 81,
+     "shrunk": false,
+     "plate_w": 1068,
+     "plate_y": 866,
+     "plate_h": 84,
+     "guard": false
+    },
+    {
+     "show": 177.33,
+     "hide": 179.61,
+     "last_event": 177.33,
+     "text": "Sciences recognized this scientific",
+     "lines": [
+      "Sciences recognized this scientific"
+     ],
+     "words": 4,
+     "ass_fs": 81,
+     "shrunk": false,
+     "plate_w": 1000,
+     "plate_y": 866,
+     "plate_h": 84,
+     "guard": false
+    },
+    {
+     "show": 179.61,
+     "hide": 182.08,
+     "last_event": 179.61,
+     "text": "value by designating the formation",
+     "lines": [
+      "value by designating the formation"
+     ],
+     "words": 5,
+     "ass_fs": 81,
+     "shrunk": false,
+     "plate_w": 1024,
+     "plate_y": 866,
+     "plate_h": 84,
+     "guard": false
+    },
+    {
+     "show": 182.08,
+     "hide": 183.44,
+     "last_event": 182.08,
+     "text": "as one of the world's first",
+     "lines": [
+      "as one of the world's first"
+     ],
+     "words": 6,
+     "ass_fs": 81,
+     "shrunk": false,
+     "plate_w": 746,
+     "plate_y": 866,
+     "plate_h": 84,
+     "guard": false
+    },
+    {
+     "show": 183.44,
+     "hide": 186.45,
+     "last_event": 183.44,
+     "text": "100 official geological heritage sites",
+     "lines": [
+      "100 official geological heritage sites"
+     ],
+     "words": 5,
+     "ass_fs": 81,
+     "shrunk": false,
+     "plate_w": 1034,
+     "plate_y": 866,
+     "plate_h": 84,
+     "guard": false
+    },
+    {
+     "show": 186.45,
+     "hide": 188.49,
+     "last_event": 186.45,
+     "text": "With its origin grounded in verified",
+     "lines": [
+      "With its origin grounded in verified"
+     ],
+     "words": 6,
+     "ass_fs": 81,
+     "shrunk": false,
+     "plate_w": 1020,
+     "plate_y": 866,
+     "plate_h": 84,
+     "guard": false
+    },
+    {
+     "show": 188.49,
+     "hide": 190.26,
+     "last_event": 188.49,
+     "text": "terrestrial processes, what",
+     "lines": [
+      "terrestrial processes, what"
+     ],
+     "words": 3,
+     "ass_fs": 81,
+     "shrunk": false,
+     "plate_w": 784,
+     "plate_y": 866,
+     "plate_h": 84,
+     "guard": false
+    },
+    {
+     "show": 190.26,
+     "hide": 191.81,
+     "last_event": 190.26,
+     "text": "questions remain for field",
+     "lines": [
+      "questions remain for field"
+     ],
+     "words": 4,
+     "ass_fs": 81,
+     "shrunk": false,
+     "plate_w": 762,
+     "plate_y": 866,
+     "plate_h": 84,
+     "guard": false
+    },
+    {
+     "show": 191.81,
+     "hide": 193.73,
+     "last_event": 191.81,
+     "text": "researchers studying the formation",
+     "lines": [
+      "researchers studying the formation"
+     ],
+     "words": 4,
+     "ass_fs": 81,
+     "shrunk": false,
+     "plate_w": 1028,
+     "plate_y": 866,
+     "plate_h": 84,
+     "guard": false
+    },
+    {
+     "show": 193.73,
+     "hide": 196.03,
+     "last_event": 193.73,
+     "text": "and its prehistoric human occupations?",
+     "lines": [
+      "and its prehistoric human occupations?"
+     ],
+     "words": 5,
+     "ass_fs": 81,
+     "shrunk": false,
+     "plate_w": 1148,
+     "plate_y": 866,
+     "plate_h": 84,
+     "guard": false
+    }
+   ],
+   "checks": {
+    "names": [
+     {
+      "name": "Richat Structure",
+      "whole": true,
+      "bursts": "The Richat Structure is situated near"
+     },
+     {
+      "name": "Adrar Plateau",
+      "whole": true,
+      "bursts": "Ouadane on the Adrar Plateau"
+     },
+     {
+      "name": "Adrar Region",
+      "whole": true,
+      "bursts": "within the Adrar Region of Mauritania"
+     },
+     {
+      "name": "Richat Structure",
+      "whole": true,
+      "bursts": "of the Richat Structure were once"
+     },
+     {
+      "name": "Middle Stone Age Aterian",
+      "whole": true,
+      "bursts": "Middle Stone Age Aterian tools dating"
+     },
+     {
+      "name": "Richat Structure",
+      "whole": true,
+      "bursts": "the Richat Structure has been established"
+     },
+     {
+      "name": "International Union of Geological Sciences (joined: catalogue parts 'International Union' + 'Geological Sciences')",
+      "whole": false,
+      "bursts": "the International Union of Geological | Sciences recognized this scientific"
+     }
+    ],
+    "article_endings": [],
+    "function_only": [],
+    "below_floor": [],
+    "word_count_ok": true,
+    "under_half_second": [],
+    "pause_spanning": [
+     "4: 0.55s after 'landmark,' in desert landmark, the concentric",
+     "11: 0.54s after 'across,' in across, though satellite observations",
+     "52: 0.74s after 'timeline:' in timeline: dating of the carbonatite rocks",
+     "73: 0.34s after 'activity,' in activity, the physical record",
+     "78: 0.57s after 'reality,' in reality, as the feature is an ancient",
+     "94: 0.34s after 'processes,' in terrestrial processes, what"
+    ],
+    "two_line": [],
+    "one_word": []
+   },
+   "samples": [
+    {
+     "id": "richat_structure_sahara_eye_16x9_w000_first",
+     "word_index": 0,
+     "word": "The",
+     "t_caption": 0.17,
+     "t_background": 0.089,
+     "background": "assets/richat_structure_sahara_eye/02_commons.jpg",
+     "scene": 1,
+     "vignette": "vignette=PI/6.4:aspect=1",
+     "burst": "The Richat Structure is situated near",
+     "corner_min_luma": [
+      0,
+      3,
+      3,
+      118
+     ],
+     "corner_mean_ratio": [
+      0.414,
+      0.508,
+      0.513,
+      0.61
+     ]
+    },
+    {
+     "id": "richat_structure_sahara_eye_16x9_w002_name-richat-1",
+     "word_index": 2,
+     "word": "Structure",
+     "t_caption": 0.17,
+     "t_background": 0.625,
+     "background": "assets/richat_structure_sahara_eye/02_commons.jpg",
+     "scene": 1,
+     "vignette": "vignette=PI/6.4:aspect=1",
+     "burst": "The Richat Structure is situated near",
+     "corner_min_luma": [
+      0,
+      3,
+      3,
+      118
+     ],
+     "corner_mean_ratio": [
+      0.414,
+      0.508,
+      0.513,
+      0.61
+     ]
+    },
+    {
+     "id": "richat_structure_sahara_eye_16x9_w010_name-adrar-9",
+     "word_index": 10,
+     "word": "Plateau",
+     "t_caption": 2.37,
+     "t_background": 3.559,
+     "background": "assets/richat_structure_sahara_eye/02_commons.jpg",
+     "scene": 1,
+     "vignette": "vignette=PI/6.4:aspect=1",
+     "burst": "Ouadane on the Adrar Plateau",
+     "corner_min_luma": [
+      0,
+      3,
+      3,
+      118
+     ],
+     "corner_mean_ratio": [
+      0.414,
+      0.508,
+      0.513,
+      0.61
+     ]
+    },
+    {
+     "id": "richat_structure_sahara_eye_16x9_w014_name-adrar-13",
+     "word_index": 14,
+     "word": "Region",
+     "t_caption": 4.24,
+     "t_background": 5.0,
+     "background": "assets/richat_structure_sahara_eye/02_commons.jpg",
+     "scene": 1,
+     "vignette": "vignette=PI/6.4:aspect=1",
+     "burst": "within the Adrar Region of Mauritania",
+     "corner_min_luma": [
+      0,
+      3,
+      3,
+      118
+     ],
+     "corner_mean_ratio": [
+      0.414,
+      0.508,
+      0.513,
+      0.61
+     ]
+    },
+    {
+     "id": "richat_structure_sahara_eye_16x9_w199_name-richat-198",
+     "word_index": 199,
+     "word": "Structure",
+     "t_caption": 79.24,
+     "t_background": 79.898,
+     "background": "assets/richat_structure_sahara_eye/09_commons.jpg",
+     "scene": 8,
+     "vignette": "vignette=PI/6.4:aspect=1",
+     "burst": "of the Richat Structure were once",
+     "corner_min_luma": [
+      86,
+      110,
+      0,
+      125
+     ],
+     "corner_mean_ratio": [
+      0.606,
+      0.607,
+      0.442,
+      0.611
+     ]
+    },
+    {
+     "id": "richat_structure_sahara_eye_16x9_w292_name-middle-289",
+     "word_index": 292,
+     "word": "Aterian",
+     "t_caption": 123.25,
+     "t_background": 124.005,
+     "background": "assets/richat_structure_sahara_eye/13_commons.jpg",
+     "scene": 12,
+     "vignette": "vignette=PI/6.4:aspect=1",
+     "burst": "Middle Stone Age Aterian tools dating",
+     "corner_min_luma": [
+      0,
+      26,
+      3,
+      1
+     ],
+     "corner_mean_ratio": [
+      0.285,
+      0.587,
+      0.562,
+      0.61
+     ]
+    },
+    {
+     "id": "richat_structure_sahara_eye_16x9_w387_name-richat-386",
+     "word_index": 387,
+     "word": "Structure",
+     "t_caption": 165.57,
+     "t_background": 166.02,
+     "background": "assets/richat_structure_sahara_eye/18_commons.jpg",
+     "scene": 16,
+     "vignette": "vignette=PI/6.4:aspect=1",
+     "burst": "the Richat Structure has been established",
+     "corner_min_luma": [
+      100,
+      66,
+      6,
+      0
+     ],
+     "corner_mean_ratio": [
+      0.608,
+      0.606,
+      0.533,
+      0.429
+     ]
+    },
+    {
+     "id": "richat_structure_sahara_eye_16x9_w412_name-international-408",
+     "word_index": 412,
+     "word": "Sciences",
+     "t_caption": 177.48,
+     "t_background": 177.398,
+     "background": "assets/richat_structure_sahara_eye/19_commons.jpg",
+     "scene": 17,
+     "vignette": "vignette=PI/6.4:aspect=1",
+     "burst": "Sciences recognized this scientific",
+     "corner_min_luma": [
+      121,
+      0,
+      1,
+      2
+     ],
+     "corner_mean_ratio": [
+      0.609,
+      0.531,
+      0.376,
+      0.552
+     ]
+    },
+    {
+     "id": "richat_structure_sahara_eye_16x9_w224_longword",
+     "word_index": 224,
+     "word": "shock-metamorphism",
+     "t_caption": 90.87,
+     "t_background": 91.556,
+     "background": "assets/richat_structure_sahara_eye/10_commons.jpg",
+     "scene": 9,
+     "vignette": "vignette=PI/6.4:aspect=1",
+     "burst": "when suspected shock-metamorphism",
+     "corner_min_luma": [
+      0,
+      0,
+      74,
+      30
+     ],
+     "corner_mean_ratio": [
+      0.591,
+      0.577,
+      0.597,
+      0.599
+     ]
+    },
+    {
+     "id": "richat_structure_sahara_eye_16x9_w213_longword",
+     "word_index": 213,
+     "word": "extraterrestrial",
+     "t_caption": 85.41,
+     "t_background": 85.574,
+     "background": "assets/richat_structure_sahara_eye/09_commons.jpg",
+     "scene": 8,
+     "vignette": "vignette=PI/6.4:aspect=1",
+     "burst": "an extraterrestrial impact crater",
+     "corner_min_luma": [
+      86,
+      110,
+      0,
+      125
+     ],
+     "corner_mean_ratio": [
+      0.606,
+      0.607,
+      0.442,
+      0.611
+     ]
+    },
+    {
+     "id": "richat_structure_sahara_eye_16x9_w352_possessive",
+     "word_index": 352,
+     "word": "Plato's",
+     "t_caption": 150.99,
+     "t_background": 151.76,
+     "background": "assets/richat_structure_sahara_eye/15_commons.jpg",
+     "scene": 14,
+     "vignette": "vignette=PI/6.4:aspect=1",
+     "burst": "the formation as Plato's lost city",
+     "corner_min_luma": [
+      70,
+      58,
+      18,
+      0
+     ],
+     "corner_mean_ratio": [
+      0.603,
+      0.596,
+      0.559,
+      0.572
+     ]
+    },
+    {
+     "id": "richat_structure_sahara_eye_16x9_w227_mid",
+     "word_index": 227,
+     "word": "identified",
+     "t_caption": 92.62,
+     "t_background": 93.304,
+     "background": "assets/richat_structure_sahara_eye/10_commons.jpg",
+     "scene": 9,
+     "vignette": "vignette=PI/6.4:aspect=1",
+     "burst": "coesite was identified in 1969",
+     "corner_min_luma": [
+      0,
+      0,
+      74,
+      30
+     ],
+     "corner_mean_ratio": [
+      0.591,
+      0.577,
+      0.597,
+      0.599
+     ]
+    },
+    {
+     "id": "richat_structure_sahara_eye_16x9_w385_late",
+     "word_index": 385,
+     "word": "the",
+     "t_caption": 165.57,
+     "t_background": 165.485,
+     "background": "assets/richat_structure_sahara_eye/18_commons.jpg",
+     "scene": 16,
+     "vignette": "vignette=PI/6.4:aspect=1",
+     "burst": "the Richat Structure has been established",
+     "corner_min_luma": [
+      100,
+      66,
+      6,
+      0
+     ],
+     "corner_mean_ratio": [
+      0.608,
+      0.606,
+      0.533,
+      0.429
+     ]
+    }
+   ],
+   "sidecar": [
+    {
+     "start": 0.089291,
+     "end": 4.158166,
+     "text": "The Richat Structure is situated\nnear Ouadane on the Adrar Plateau"
+    },
+    {
+     "start": 4.158166,
+     "end": 6.401019999999999,
+     "text": "within the Adrar Region of Mauritania."
+    },
+    {
+     "start": 6.696437,
+     "end": 9.615291,
+     "text": "Visible from space\nas a massive desert landmark,"
+    },
+    {
+     "start": 10.06377,
+     "end": 14.158166,
+     "text": "the concentric formation has served as a\nvisual reference point for space shuttle"
+    },
+    {
+     "start": 14.158166,
+     "end": 17.957145,
+     "text": "crews. Its documented scale depends\non the observational method:"
+    },
+    {
+     "start": 18.558666,
+     "end": 22.778562,
+     "text": "geological field surveys record\nthe feature at 40 kilometres across,"
+    },
+    {
+     "start": 23.214291,
+     "end": 27.421415000000003,
+     "text": "though satellite observations describe\nit as spanning almost 50 kilometres."
+    },
+    {
+     "start": 27.729583,
+     "end": 29.821437,
+     "text": "What physical processes formed"
+    },
+    {
+     "start": 29.821437,
+     "end": 34.464291,
+     "text": "this circular geological formation\nin the Sahara? Geologists identify"
+    },
+    {
+     "start": 34.464291,
+     "end": 38.8010199,
+     "text": "the structure as an eroded dome created\nwhen a subsurface igneous intrusion"
+    },
+    {
+     "start": 38.8010199,
+     "end": 42.028062,
+     "text": "deformed the overlying sedimentary\nrock into concentric"
+    },
+    {
+     "start": 42.028062,
+     "end": 46.875,
+     "text": "rings. The structural characteristics\ndisplay distinct layering and magmatic"
+    },
+    {
+     "start": 46.875,
+     "end": 52.2321449,
+     "text": "features. By one estimate, the sedimentary\nrock layers that form the outer rings of"
+    },
+    {
+     "start": 52.2321449,
+     "end": 55.916333,
+     "text": "the structure dip outward\nat angles between 10 and 20 degrees."
+    },
+    {
+     "start": 56.224479,
+     "end": 59.615312,
+     "text": "Framing the complex\nare concentric gabbroic ring dikes,"
+    },
+    {
+     "start": 60.01275,
+     "end": 64.630104,
+     "text": "consisting of an inner ring about 30\nmetres wide and an outer ring about 70"
+    },
+    {
+     "start": 64.630104,
+     "end": 67.765812,
+     "text": "metres wide. At the core, by one estimate,"
+    },
+    {
+     "start": 67.997437,
+     "end": 71.556125,
+     "text": "the heart of the structure features\na siliceous breccia covering an area"
+    },
+    {
+     "start": 71.556125,
+     "end": 76.36076015789475,
+     "text": "at least 30 kilometres in diameter,\nreaching a thickness of at least 40 metres"
+    },
+    {
+     "start": 76.36076015789475,
+     "end": 81.785708,
+     "text": "at its center. The geological origins of\nthe Richat Structure were once a matter of"
+    },
+    {
+     "start": 81.785708,
+     "end": 86.543375,
+     "text": "scientific debate. The feature was\ninitially considered an extraterrestrial"
+    },
+    {
+     "start": 86.543375,
+     "end": 91.556125,
+     "text": "impact crater. However, the impact\ntheory was disproved when suspected"
+    },
+    {
+     "start": 91.556125,
+     "end": 96.668874,
+     "text": "shock-metamorphism coesite was identified\nin 1969 as mislabeled barite."
+    },
+    {
+     "start": 96.977041,
+     "end": 100.878062,
+     "text": "Subsequent geochemical analyses\nestablished a terrestrial timeline:"
+    },
+    {
+     "start": 101.517854,
+     "end": 106.709187,
+     "text": "dating of the carbonatite rocks shows they\ncooled between 94 and 104 million years"
+    },
+    {
+     "start": 106.709187,
+     "end": 111.33722799999998,
+     "text": "ago, closely matching the hydrothermal\nevent that produced the central breccia."
+    },
+    {
+     "start": 111.645395,
+     "end": 116.364791,
+     "text": "Physical evidence across the terrain\nestablishes a prolonged record of human"
+    },
+    {
+     "start": 116.364791,
+     "end": 121.403062,
+     "text": "presence. Prehistoric human habitation is\nevidenced by exceptional accumulations of"
+    },
+    {
+     "start": 121.403062,
+     "end": 125.471937,
+     "text": "Acheulean artifacts alongside\nMiddle Stone Age Aterian tools dating from"
+    },
+    {
+     "start": 125.471937,
+     "end": 128.96479,
+     "text": "roughly 145,000 to 29,000 years ago."
+    },
+    {
+     "start": 129.272958,
+     "end": 132.421415,
+     "text": "Later mortuary traditions\nalso appear across the site;"
+    },
+    {
+     "start": 132.959187,
+     "end": 137.869895,
+     "text": "by one estimate, thousands of prehistoric\nstone burial mounds built in various"
+    },
+    {
+     "start": 137.869895,
+     "end": 141.975,
+     "text": "distinct architectural styles line\nthe protruding dikes of the formation."
+    },
+    {
+     "start": 142.295916,
+     "end": 145.342333,
+     "text": "While these material finds\ndocument human activity,"
+    },
+    {
+     "start": 145.586729,
+     "end": 149.24541599999998,
+     "text": "the physical record also\nrefutes alternative speculation."
+    },
+    {
+     "start": 149.553562,
+     "end": 154.094375,
+     "text": "Fringe theories proposing the formation as\nPlato's lost city of Atlantis are refuted"
+    },
+    {
+     "start": 154.094375,
+     "end": 157.63826999999998,
+     "text": "by geological reality,\nas the feature is an ancient,"
+    },
+    {
+     "start": 157.908166,
+     "end": 161.273478,
+     "text": "natural inland terrestrial dome\nrather than a sunken island."
+    },
+    {
+     "start": 161.581625,
+     "end": 164.95968599999998,
+     "text": "Through decades of field surveys\nand geochemical analyses,"
+    },
+    {
+     "start": 165.484687,
+     "end": 169.834187,
+     "text": "the Richat Structure has been established\nas an eroded geological dome shaped by"
+    },
+    {
+     "start": 169.834187,
+     "end": 173.046416,
+     "text": "deep-seated igneous processes\nand prolonged erosion."
+    },
+    {
+     "start": 173.354583,
+     "end": 179.107145,
+     "text": "In October 2022, the International Union\nof Geological Sciences recognized this"
+    },
+    {
+     "start": 179.107145,
+     "end": 184.081625,
+     "text": "scientific value by designating the\nformation as one of the world's first 100"
+    },
+    {
+     "start": 184.081625,
+     "end": 186.196936,
+     "text": "official geological heritage sites."
+    },
+    {
+     "start": 186.517854,
+     "end": 189.85764500000002,
+     "text": "With its origin grounded\nin verified terrestrial processes,"
+    },
+    {
+     "start": 190.102041,
+     "end": 194.145395,
+     "text": "what questions remain for field\nresearchers studying the formation and its"
+    },
+    {
+     "start": 194.145395,
+     "end": 196.03112399999998,
+     "text": "prehistoric human occupations?"
+    }
+   ]
+  },
+  "gol_gumbaz_whispering_gallery_9x16": {
+   "run": "output/run_gol_gumbaz_whispering_gallery_1793278143",
+   "topic": "gol_gumbaz_whispering_gallery",
+   "format": "9:16",
+   "why": "most multi-word proper names in one 9:16 narration",
+   "label": null,
+   "words": "output/run_gol_gumbaz_whispering_gallery_1793278143/words.json",
+   "text": null,
+   "emphasis": [
+    "Gol Gumbaz",
+    "Bijapur",
+    "1656"
+   ],
+   "vignette_aspect": "vignette=PI/4.2:aspect=9/16",
+   "vignette_source": "src.video_composer.picture_vignette",
+   "cuts": [
+    5.889,
+    11.489,
+    17.149,
+    23.357,
+    28.762,
+    34.205,
+    39.15,
+    44.708
+   ],
+   "graphic_intervals": [
+    [
+     5.889,
+     11.489
+    ]
+   ],
+   "caption_graphic_overlap": [],
+   "timeline_complete": true,
+   "bursts": [
+    {
+     "show": 0.0,
+     "hide": 1.11,
+     "last_event": 0.0,
+     "text": "CAN A QUIET WHISPER",
+     "lines": [
+      "CAN A QUIET WHISPER"
+     ],
+     "words": 4,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 682,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 1.11,
+     "hide": 2.18,
+     "last_event": 1.67,
+     "text": "TRAVEL ACROSS",
+     "lines": [
+      "TRAVEL ACROSS"
+     ],
+     "words": 2,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 494,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 2.18,
+     "hide": 4.06,
+     "last_event": 2.98,
+     "text": "AN ESTIMATED 144-FOOT",
+     "lines": [
+      "AN ESTIMATED 144-FOOT"
+     ],
+     "words": 3,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 684,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 4.06,
+     "hide": 5.69,
+     "last_event": 5.02,
+     "text": "MASONRY DOME?",
+     "lines": [
+      "MASONRY DOME?"
+     ],
+     "words": 2,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 490,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 5.69,
+     "hide": 6.74,
+     "last_event": 6.44,
+     "text": "INSIDE THE DARK",
+     "lines": [
+      "INSIDE THE DARK"
+     ],
+     "words": 3,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 466,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 6.74,
+     "hide": 8.16,
+     "last_event": 7.5,
+     "text": "GRAY BASALT MAUSOLEUM",
+     "lines": [
+      "GRAY BASALT MAUSOLEUM"
+     ],
+     "words": 3,
+     "ass_fs": 132,
+     "shrunk": true,
+     "plate_w": 668,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 74
+    },
+    {
+     "show": 8.16,
+     "hide": 9.3,
+     "last_event": 8.75,
+     "text": "OF GOL GUMBAZ",
+     "lines": [
+      "OF GOL GUMBAZ"
+     ],
+     "words": 3,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 468,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 9.3,
+     "hide": 10.88,
+     "last_event": 9.46,
+     "text": "IN BIJAPUR",
+     "lines": [
+      "IN BIJAPUR"
+     ],
+     "words": 2,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 334,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 10.88,
+     "hide": 12.13,
+     "last_event": 11.74,
+     "text": "SOUND WAVES ARE GUIDED",
+     "lines": [
+      "SOUND WAVES ARE GUIDED"
+     ],
+     "words": 4,
+     "ass_fs": 132,
+     "shrunk": true,
+     "plate_w": 670,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 74
+    },
+    {
+     "show": 12.13,
+     "hide": 13.4,
+     "last_event": 13.05,
+     "text": "CONTINUOUSLY ALONG",
+     "lines": [
+      "CONTINUOUSLY ALONG"
+     ],
+     "words": 2,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 668,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 13.4,
+     "hide": 14.51,
+     "last_event": 13.9,
+     "text": "THE CURVED BOUNDARY",
+     "lines": [
+      "THE CURVED BOUNDARY"
+     ],
+     "words": 3,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 668,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 14.51,
+     "hide": 15.25,
+     "last_event": 14.72,
+     "text": "OF A PROMINENT",
+     "lines": [
+      "OF A PROMINENT"
+     ],
+     "words": 3,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 466,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 15.25,
+     "hide": 16.67,
+     "last_event": 15.74,
+     "text": "WHISPERING GALLERY",
+     "lines": [
+      "WHISPERING GALLERY"
+     ],
+     "words": 2,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 668,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 16.67,
+     "hide": 17.6,
+     "last_event": 17.34,
+     "text": "THIS MASSIVE DOME",
+     "lines": [
+      "THIS MASSIVE DOME"
+     ],
+     "words": 3,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 568,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 17.6,
+     "hide": 18.57,
+     "last_event": 18.17,
+     "text": "COMBINES BRICKS",
+     "lines": [
+      "COMBINES BRICKS"
+     ],
+     "words": 2,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 566,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 18.57,
+     "hide": 19.64,
+     "last_event": 19.08,
+     "text": "OF VARYING DIMENSIONS",
+     "lines": [
+      "OF VARYING DIMENSIONS"
+     ],
+     "words": 3,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 666,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 19.64,
+     "hide": 21.15,
+     "last_event": 20.1,
+     "text": "WITH LIME MORTAR",
+     "lines": [
+      "WITH LIME MORTAR"
+     ],
+     "words": 3,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 568,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 21.15,
+     "hide": 21.99,
+     "last_event": 21.5,
+     "text": "GAINING STRUCTURAL",
+     "lines": [
+      "GAINING STRUCTURAL"
+     ],
+     "words": 2,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 664,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 21.99,
+     "hide": 23.17,
+     "last_event": 22.91,
+     "text": "INTEGRITY WITHOUT METAL",
+     "lines": [
+      "INTEGRITY WITHOUT METAL"
+     ],
+     "words": 3,
+     "ass_fs": 132,
+     "shrunk": true,
+     "plate_w": 666,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 74
+    },
+    {
+     "show": 23.17,
+     "hide": 23.94,
+     "last_event": 23.59,
+     "text": "TENSION RINGS",
+     "lines": [
+      "TENSION RINGS"
+     ],
+     "words": 2,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 430,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 23.94,
+     "hide": 24.59,
+     "last_event": 24.12,
+     "text": "ON PENDENTIVE",
+     "lines": [
+      "ON PENDENTIVE"
+     ],
+     "words": 2,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 428,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 24.59,
+     "hide": 25.65,
+     "last_event": 25.1,
+     "text": "SYSTEMS ATTRIBUTED",
+     "lines": [
+      "SYSTEMS ATTRIBUTED"
+     ],
+     "words": 2,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 668,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 25.65,
+     "hide": 26.46,
+     "last_event": 26.18,
+     "text": "TO CENTRAL ASIAN",
+     "lines": [
+      "TO CENTRAL ASIAN"
+     ],
+     "words": 3,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 570,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 26.46,
+     "hide": 27.57,
+     "last_event": 26.46,
+     "text": "TRADITIONS",
+     "lines": [
+      "TRADITIONS"
+     ],
+     "words": 1,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 430,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 27.57,
+     "hide": 28.57,
+     "last_event": 28.17,
+     "text": "CONSTRUCTION BEGAN",
+     "lines": [
+      "CONSTRUCTION BEGAN"
+     ],
+     "words": 2,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 670,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 28.57,
+     "hide": 29.13,
+     "last_event": 28.79,
+     "text": "IN THE EARLY",
+     "lines": [
+      "IN THE EARLY"
+     ],
+     "words": 3,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 440,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 29.13,
+     "hide": 30.25,
+     "last_event": 29.64,
+     "text": "17TH CENTURY",
+     "lines": [
+      "17TH CENTURY"
+     ],
+     "words": 2,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 442,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 30.25,
+     "hide": 30.81,
+     "last_event": 30.39,
+     "text": "AND CEASED",
+     "lines": [
+      "AND CEASED"
+     ],
+     "words": 2,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 444,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 30.81,
+     "hide": 32.34,
+     "last_event": 32.0,
+     "text": "IN 1656 UPON",
+     "lines": [
+      "IN 1656 UPON"
+     ],
+     "words": 3,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 442,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 32.34,
+     "hide": 33.5,
+     "last_event": 33.12,
+     "text": "MOHAMMAD ADIL SHAH'S",
+     "lines": [
+      "MOHAMMAD ADIL SHAH'S"
+     ],
+     "words": 3,
+     "ass_fs": 132,
+     "shrunk": true,
+     "plate_w": 668,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 74
+    },
+    {
+     "show": 33.5,
+     "hide": 34.9,
+     "last_event": 34.54,
+     "text": "DEATH, LEAVING",
+     "lines": [
+      "DEATH, LEAVING"
+     ],
+     "words": 2,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 442,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 34.9,
+     "hide": 35.78,
+     "last_event": 35.33,
+     "text": "SEVERAL DECORATIVE",
+     "lines": [
+      "SEVERAL DECORATIVE"
+     ],
+     "words": 2,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 670,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 35.78,
+     "hide": 37.4,
+     "last_event": 36.26,
+     "text": "ELEMENTS UNFINISHED",
+     "lines": [
+      "ELEMENTS UNFINISHED"
+     ],
+     "words": 2,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 670,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 37.4,
+     "hide": 38.42,
+     "last_event": 37.76,
+     "text": "YET THE UNFINISHED",
+     "lines": [
+      "YET THE UNFINISHED"
+     ],
+     "words": 3,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 554,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 38.42,
+     "hide": 39.3,
+     "last_event": 38.95,
+     "text": "MONUMENT STILL",
+     "lines": [
+      "MONUMENT STILL"
+     ],
+     "words": 2,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 550,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 39.3,
+     "hide": 40.2,
+     "last_event": 39.79,
+     "text": "PROMPTS MODERN",
+     "lines": [
+      "PROMPTS MODERN"
+     ],
+     "words": 2,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 552,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 40.2,
+     "hide": 41.26,
+     "last_event": 40.85,
+     "text": "BUILDERS TO WONDER",
+     "lines": [
+      "BUILDERS TO WONDER"
+     ],
+     "words": 3,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 648,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 41.26,
+     "hide": 42.43,
+     "last_event": 41.97,
+     "text": "HOW ANCIENT MASONRY",
+     "lines": [
+      "HOW ANCIENT MASONRY"
+     ],
+     "words": 3,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 648,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 42.43,
+     "hide": 43.45,
+     "last_event": 42.89,
+     "text": "MASTERED ACOUSTICS",
+     "lines": [
+      "MASTERED ACOUSTICS"
+     ],
+     "words": 2,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 648,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 43.45,
+     "hide": 44.49,
+     "last_event": 43.66,
+     "text": "SO COMPLETELY",
+     "lines": [
+      "SO COMPLETELY"
+     ],
+     "words": 2,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 450,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    }
+   ],
+   "checks": {
+    "names": [
+     {
+      "name": "Gol Gumbaz",
+      "whole": true,
+      "bursts": "OF GOL GUMBAZ"
+     },
+     {
+      "name": "Central Asian",
+      "whole": true,
+      "bursts": "TO CENTRAL ASIAN"
+     },
+     {
+      "name": "Mohammad Adil Shah's",
+      "whole": true,
+      "bursts": "MOHAMMAD ADIL SHAH'S"
+     }
+    ],
+    "article_endings": [],
+    "function_only": [],
+    "below_floor": [],
+    "word_count_ok": true,
+    "under_half_second": [],
+    "pause_spanning": [
+     "30: 0.60s after 'death,' in DEATH, LEAVING"
+    ],
+    "two_line": [],
+    "one_word": [
+     "23: TRADITIONS"
+    ]
+   },
+   "samples": [
+    {
+     "id": "gol_gumbaz_whispering_gallery_9x16_w000_first",
+     "word_index": 0,
+     "word": "Can",
+     "t_caption": 0.15,
+     "t_background": 0.089,
+     "background": "C:\\Users\\OMOKOL~1\\AppData\\Local\\Temp\\rr_fixture_frames\\run_gol_gumbaz_whispering_gallery_1793278143\\scene_01_0.089.png",
+     "scene": 0,
+     "vignette": "vignette=PI/4.2:aspect=9/16",
+     "burst": "CAN A QUIET WHISPER",
+     "corner_min_luma": null,
+     "corner_mean_ratio": null
+    },
+    {
+     "id": "gol_gumbaz_whispering_gallery_9x16_w019_name-gol-18",
+     "word_index": 19,
+     "word": "Gumbaz",
+     "t_caption": 8.9,
+     "t_background": 8.814,
+     "background": "C:\\Users\\OMOKOL~1\\AppData\\Local\\Temp\\rr_fixture_frames\\run_gol_gumbaz_whispering_gallery_1793278143\\graphic_map_2.925.png",
+     "scene": 1,
+     "vignette": "lifted (graphic clip)",
+     "burst": "OF GOL GUMBAZ",
+     "corner_min_luma": null,
+     "corner_mean_ratio": null
+    },
+    {
+     "id": "gol_gumbaz_whispering_gallery_9x16_w060_name-central-59",
+     "word_index": 60,
+     "word": "Asian",
+     "t_caption": 26.32,
+     "t_background": 26.25,
+     "background": "C:\\Users\\OMOKOL~1\\AppData\\Local\\Temp\\rr_fixture_frames\\run_gol_gumbaz_whispering_gallery_1793278143\\scene_05_2.893.png",
+     "scene": 4,
+     "vignette": "vignette=PI/4.2:aspect=9/16",
+     "burst": "TO CENTRAL ASIAN",
+     "corner_min_luma": null,
+     "corner_mean_ratio": null
+    },
+    {
+     "id": "gol_gumbaz_whispering_gallery_9x16_w076_name-mohammad-74",
+     "word_index": 76,
+     "word": "Shah's",
+     "t_caption": 33.27,
+     "t_background": 33.189,
+     "background": "C:\\Users\\OMOKOL~1\\AppData\\Local\\Temp\\rr_fixture_frames\\run_gol_gumbaz_whispering_gallery_1793278143\\scene_06_4.427.png",
+     "scene": 5,
+     "vignette": "vignette=PI/4.2:aspect=9/16",
+     "burst": "MOHAMMAD ADIL SHAH'S",
+     "corner_min_luma": null,
+     "corner_mean_ratio": null
+    },
+    {
+     "id": "gol_gumbaz_whispering_gallery_9x16_w062_longword",
+     "word_index": 62,
+     "word": "Construction",
+     "t_caption": 28.32,
+     "t_background": 27.64,
+     "background": "C:\\Users\\OMOKOL~1\\AppData\\Local\\Temp\\rr_fixture_frames\\run_gol_gumbaz_whispering_gallery_1793278143\\scene_05_4.283.png",
+     "scene": 4,
+     "vignette": "vignette=PI/4.2:aspect=9/16",
+     "burst": "CONSTRUCTION BEGAN",
+     "corner_min_luma": null,
+     "corner_mean_ratio": null
+    },
+    {
+     "id": "gol_gumbaz_whispering_gallery_9x16_w026_longword",
+     "word_index": 26,
+     "word": "continuously",
+     "t_caption": 13.2,
+     "t_background": 12.194,
+     "background": "C:\\Users\\OMOKOL~1\\AppData\\Local\\Temp\\rr_fixture_frames\\run_gol_gumbaz_whispering_gallery_1793278143\\scene_03_0.705.png",
+     "scene": 2,
+     "vignette": "vignette=PI/4.2:aspect=9/16",
+     "burst": "CONTINUOUSLY ALONG",
+     "corner_min_luma": null,
+     "corner_mean_ratio": null
+    },
+    {
+     "id": "gol_gumbaz_whispering_gallery_9x16_w076_possessive",
+     "word_index": 76,
+     "word": "Shah's",
+     "t_caption": 33.27,
+     "t_background": 33.189,
+     "background": "C:\\Users\\OMOKOL~1\\AppData\\Local\\Temp\\rr_fixture_frames\\run_gol_gumbaz_whispering_gallery_1793278143\\scene_06_4.427.png",
+     "scene": 5,
+     "vignette": "vignette=PI/4.2:aspect=9/16",
+     "burst": "MOHAMMAD ADIL SHAH'S",
+     "corner_min_luma": null,
+     "corner_mean_ratio": null
+    },
+    {
+     "id": "gol_gumbaz_whispering_gallery_9x16_w050_mid",
+     "word_index": 50,
+     "word": "without",
+     "t_caption": 23.04,
+     "t_background": 22.602,
+     "background": "C:\\Users\\OMOKOL~1\\AppData\\Local\\Temp\\rr_fixture_frames\\run_gol_gumbaz_whispering_gallery_1793278143\\scene_04_5.453.png",
+     "scene": 3,
+     "vignette": "vignette=PI/4.2:aspect=9/16",
+     "burst": "INTEGRITY WITHOUT METAL",
+     "corner_min_luma": null,
+     "corner_mean_ratio": null
+    },
+    {
+     "id": "gol_gumbaz_whispering_gallery_9x16_w085_late",
+     "word_index": 85,
+     "word": "unfinished",
+     "t_caption": 37.91,
+     "t_background": 37.832,
+     "background": "C:\\Users\\OMOKOL~1\\AppData\\Local\\Temp\\rr_fixture_frames\\run_gol_gumbaz_whispering_gallery_1793278143\\scene_07_3.627.png",
+     "scene": 6,
+     "vignette": "vignette=PI/4.2:aspect=9/16",
+     "burst": "YET THE UNFINISHED",
+     "corner_min_luma": null,
+     "corner_mean_ratio": null
+    }
+   ],
+   "sidecar": []
+  },
+  "tunguska_event_1908_9x16": {
+   "run": "output/run_tunguska_event_1908_1792930600",
+   "topic": "tunguska_event_1908",
+   "format": "9:16",
+   "why": "longest multi-word proper name (characters)",
+   "label": null,
+   "words": "output/run_tunguska_event_1908_1792930600/words.json",
+   "text": null,
+   "emphasis": [
+    "Podkamennaya Tunguska River",
+    "meteor air burst"
+   ],
+   "vignette_aspect": "vignette=PI/4.2:aspect=9/16",
+   "vignette_source": "src.video_composer.picture_vignette",
+   "cuts": [
+    6.03,
+    11.63,
+    17.085,
+    21.087,
+    24.935,
+    30.535,
+    36.169,
+    40.477,
+    46.111
+   ],
+   "graphic_intervals": [
+    [
+     6.03,
+     11.63
+    ],
+    [
+     24.935,
+     30.535
+    ]
+   ],
+   "caption_graphic_overlap": [],
+   "timeline_complete": true,
+   "bursts": [
+    {
+     "show": 0.0,
+     "hide": 0.6,
+     "last_event": 0.0,
+     "text": "ON THE MORNING",
+     "lines": [
+      "ON THE MORNING"
+     ],
+     "words": 3,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 550,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 0.6,
+     "hide": 2.48,
+     "last_event": 1.76,
+     "text": "OF 30 JUNE 1908",
+     "lines": [
+      "OF 30 JUNE 1908"
+     ],
+     "words": 4,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 552,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 2.48,
+     "hide": 3.87,
+     "last_event": 2.93,
+     "text": "AT AROUND 7:14",
+     "lines": [
+      "AT AROUND 7:14"
+     ],
+     "words": 3,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 552,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 3.87,
+     "hide": 5.16,
+     "last_event": 4.16,
+     "text": "LOCAL TIME",
+     "lines": [
+      "LOCAL TIME"
+     ],
+     "words": 2,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 342,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 5.16,
+     "hide": 6.2,
+     "last_event": 5.43,
+     "text": "NEAR THE PODKAMENNAYA",
+     "lines": [
+      "NEAR THE PODKAMENNAYA"
+     ],
+     "words": 3,
+     "ass_fs": 132,
+     "shrunk": true,
+     "plate_w": 688,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 74
+    },
+    {
+     "show": 6.2,
+     "hide": 7.13,
+     "last_event": 6.78,
+     "text": "TUNGUSKA RIVER",
+     "lines": [
+      "TUNGUSKA RIVER"
+     ],
+     "words": 2,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 552,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 7.13,
+     "hide": 8.99,
+     "last_event": 7.71,
+     "text": "IN CENTRAL SIBERIA",
+     "lines": [
+      "IN CENTRAL SIBERIA"
+     ],
+     "words": 3,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 550,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 8.99,
+     "hide": 10.44,
+     "last_event": 9.64,
+     "text": "A CATACLYSM STRUCK",
+     "lines": [
+      "A CATACLYSM STRUCK"
+     ],
+     "words": 3,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 688,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 10.44,
+     "hide": 11.91,
+     "last_event": 10.94,
+     "text": "BY ONE ESTIMATE",
+     "lines": [
+      "BY ONE ESTIMATE"
+     ],
+     "words": 3,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 550,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 11.91,
+     "hide": 13.08,
+     "last_event": 12.48,
+     "text": "THE BLAST DEVASTATED",
+     "lines": [
+      "THE BLAST DEVASTATED"
+     ],
+     "words": 3,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 690,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 13.08,
+     "hide": 14.79,
+     "last_event": 14.46,
+     "text": "MORE THAN 830 SQUARE",
+     "lines": [
+      "MORE THAN 830 SQUARE"
+     ],
+     "words": 4,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 688,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 14.79,
+     "hide": 16.85,
+     "last_event": 15.72,
+     "text": "MILES OF TAIGA FOREST",
+     "lines": [
+      "MILES OF TAIGA FOREST"
+     ],
+     "words": 4,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 688,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 16.85,
+     "hide": 17.79,
+     "last_event": 17.32,
+     "text": "FLATTENING TREES",
+     "lines": [
+      "FLATTENING TREES"
+     ],
+     "words": 2,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 550,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 17.79,
+     "hide": 18.65,
+     "last_event": 18.02,
+     "text": "IN A DISTINCTIVE",
+     "lines": [
+      "IN A DISTINCTIVE"
+     ],
+     "words": 3,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 550,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 18.65,
+     "hide": 19.9,
+     "last_event": 19.01,
+     "text": "RADIAL PATTERN",
+     "lines": [
+      "RADIAL PATTERN"
+     ],
+     "words": 2,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 552,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 19.9,
+     "hide": 21.09,
+     "last_event": 20.56,
+     "text": "SCIENTISTS CALCULATE",
+     "lines": [
+      "SCIENTISTS CALCULATE"
+     ],
+     "words": 2,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 652,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 21.09,
+     "hide": 22.34,
+     "last_event": 21.82,
+     "text": "THE AIRBURST RELEASED",
+     "lines": [
+      "THE AIRBURST RELEASED"
+     ],
+     "words": 3,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 654,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 22.34,
+     "hide": 23.81,
+     "last_event": 23.35,
+     "text": "BETWEEN 10 AND 15",
+     "lines": [
+      "BETWEEN 10 AND 15"
+     ],
+     "words": 4,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 652,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 23.81,
+     "hide": 25.51,
+     "last_event": 24.47,
+     "text": "MEGATONS OF TNT",
+     "lines": [
+      "MEGATONS OF TNT"
+     ],
+     "words": 3,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 520,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 25.51,
+     "hide": 26.55,
+     "last_event": 26.17,
+     "text": "ATMOSPHERIC PRESSURE",
+     "lines": [
+      "ATMOSPHERIC PRESSURE"
+     ],
+     "words": 2,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 690,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 26.55,
+     "hide": 27.61,
+     "last_event": 26.96,
+     "text": "WAVES GENERATED",
+     "lines": [
+      "WAVES GENERATED"
+     ],
+     "words": 2,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 562,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 27.61,
+     "hide": 28.56,
+     "last_event": 27.85,
+     "text": "BY THE EXPLOSION",
+     "lines": [
+      "BY THE EXPLOSION"
+     ],
+     "words": 3,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 560,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 28.56,
+     "hide": 30.05,
+     "last_event": 29.4,
+     "text": "RIPPLED ACROSS THE GLOBE",
+     "lines": [
+      "RIPPLED ACROSS THE GLOBE"
+     ],
+     "words": 4,
+     "ass_fs": 132,
+     "shrunk": true,
+     "plate_w": 690,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 74
+    },
+    {
+     "show": 30.05,
+     "hide": 30.88,
+     "last_event": 30.33,
+     "text": "AND WERE DETECTED",
+     "lines": [
+      "AND WERE DETECTED"
+     ],
+     "words": 3,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 562,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 30.88,
+     "hide": 31.72,
+     "last_event": 31.06,
+     "text": "BY BAROGRAPHS",
+     "lines": [
+      "BY BAROGRAPHS"
+     ],
+     "words": 2,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 458,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 31.72,
+     "hide": 32.82,
+     "last_event": 31.72,
+     "text": "WORLDWIDE",
+     "lines": [
+      "WORLDWIDE"
+     ],
+     "words": 1,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 458,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 32.82,
+     "hide": 34.01,
+     "last_event": 33.36,
+     "text": "SCIENTIFIC CONSENSUS",
+     "lines": [
+      "SCIENTIFIC CONSENSUS"
+     ],
+     "words": 2,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 678,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 34.01,
+     "hide": 35.04,
+     "last_event": 34.63,
+     "text": "ATTRIBUTES THE EVENT",
+     "lines": [
+      "ATTRIBUTES THE EVENT"
+     ],
+     "words": 3,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 678,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 35.04,
+     "hide": 35.97,
+     "last_event": 35.3,
+     "text": "TO AN ATMOSPHERIC",
+     "lines": [
+      "TO AN ATMOSPHERIC"
+     ],
+     "words": 3,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 570,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 35.97,
+     "hide": 37.65,
+     "last_event": 36.62,
+     "text": "METEOR AIR BURST",
+     "lines": [
+      "METEOR AIR BURST"
+     ],
+     "words": 3,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 566,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 37.65,
+     "hide": 38.58,
+     "last_event": 38.07,
+     "text": "THOUGH NO CELESTIAL",
+     "lines": [
+      "THOUGH NO CELESTIAL"
+     ],
+     "words": 3,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 678,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 38.58,
+     "hide": 39.5,
+     "last_event": 39.23,
+     "text": "FRAGMENT HAS EVER",
+     "lines": [
+      "FRAGMENT HAS EVER"
+     ],
+     "words": 3,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 568,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 39.5,
+     "hide": 40.79,
+     "last_event": 40.14,
+     "text": "BEEN FORMALLY IDENTIFIED",
+     "lines": [
+      "BEEN FORMALLY IDENTIFIED"
+     ],
+     "words": 3,
+     "ass_fs": 132,
+     "shrunk": true,
+     "plate_w": 678,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 74
+    },
+    {
+     "show": 40.79,
+     "hide": 41.44,
+     "last_event": 41.13,
+     "text": "FROM THAT SUDDEN",
+     "lines": [
+      "FROM THAT SUDDEN"
+     ],
+     "words": 3,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 568,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 41.44,
+     "hide": 42.56,
+     "last_event": 41.97,
+     "text": "SIBERIAN MORNING",
+     "lines": [
+      "SIBERIAN MORNING"
+     ],
+     "words": 2,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 568,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    }
+   ],
+   "checks": {
+    "names": [
+     {
+      "name": "Podkamennaya Tunguska River",
+      "whole": false,
+      "bursts": "NEAR THE PODKAMENNAYA | TUNGUSKA RIVER"
+     },
+     {
+      "name": "Central Siberia",
+      "whole": true,
+      "bursts": "IN CENTRAL SIBERIA"
+     }
+    ],
+    "article_endings": [],
+    "function_only": [],
+    "below_floor": [],
+    "word_count_ok": true,
+    "under_half_second": [],
+    "pause_spanning": [],
+    "two_line": [],
+    "one_word": [
+     "25: WORLDWIDE"
+    ]
+   },
+   "samples": [
+    {
+     "id": "tunguska_event_1908_9x16_w000_first",
+     "word_index": 0,
+     "word": "On",
+     "t_caption": 0.15,
+     "t_background": 0.089,
+     "background": "C:\\Users\\OMOKOL~1\\AppData\\Local\\Temp\\rr_fixture_frames\\run_tunguska_event_1908_1792930600\\scene_01_0.089.png",
+     "scene": 0,
+     "vignette": "vignette=PI/4.2:aspect=9/16",
+     "burst": "ON THE MORNING",
+     "corner_min_luma": null,
+     "corner_mean_ratio": null
+    },
+    {
+     "id": "tunguska_event_1908_9x16_w016_name-podkamennaya-14",
+     "word_index": 16,
+     "word": "River",
+     "t_caption": 6.93,
+     "t_background": 6.849,
+     "background": "C:\\Users\\OMOKOL~1\\AppData\\Local\\Temp\\rr_fixture_frames\\run_tunguska_event_1908_1792930600\\graphic_map_0.819.png",
+     "scene": 1,
+     "vignette": "lifted (graphic clip)",
+     "burst": "TUNGUSKA RIVER",
+     "corner_min_luma": null,
+     "corner_mean_ratio": null
+    },
+    {
+     "id": "tunguska_event_1908_9x16_w019_name-central-18",
+     "word_index": 19,
+     "word": "Siberia,",
+     "t_caption": 7.86,
+     "t_background": 7.781,
+     "background": "C:\\Users\\OMOKOL~1\\AppData\\Local\\Temp\\rr_fixture_frames\\run_tunguska_event_1908_1792930600\\graphic_map_1.751.png",
+     "scene": 1,
+     "vignette": "lifted (graphic clip)",
+     "burst": "IN CENTRAL SIBERIA",
+     "corner_min_luma": null,
+     "corner_mean_ratio": null
+    },
+    {
+     "id": "tunguska_event_1908_9x16_w014_longword",
+     "word_index": 14,
+     "word": "Podkamennaya",
+     "t_caption": 5.58,
+     "t_background": 5.497,
+     "background": "C:\\Users\\OMOKOL~1\\AppData\\Local\\Temp\\rr_fixture_frames\\run_tunguska_event_1908_1792930600\\scene_01_5.497.png",
+     "scene": 0,
+     "vignette": "vignette=PI/4.2:aspect=9/16",
+     "burst": "NEAR THE PODKAMENNAYA",
+     "corner_min_luma": null,
+     "corner_mean_ratio": null
+    },
+    {
+     "id": "tunguska_event_1908_9x16_w080_longword",
+     "word_index": 80,
+     "word": "atmospheric",
+     "t_caption": 35.45,
+     "t_background": 35.37,
+     "background": "C:\\Users\\OMOKOL~1\\AppData\\Local\\Temp\\rr_fixture_frames\\run_tunguska_event_1908_1792930600\\scene_07_4.835.png",
+     "scene": 6,
+     "vignette": "vignette=PI/4.2:aspect=9/16",
+     "burst": "TO AN ATMOSPHERIC",
+     "corner_min_luma": null,
+     "corner_mean_ratio": null
+    },
+    {
+     "id": "tunguska_event_1908_9x16_w049_mid",
+     "word_index": 49,
+     "word": "between",
+     "t_caption": 23.5,
+     "t_background": 22.411,
+     "background": "C:\\Users\\OMOKOL~1\\AppData\\Local\\Temp\\rr_fixture_frames\\run_tunguska_event_1908_1792930600\\scene_05_1.324.png",
+     "scene": 4,
+     "vignette": "vignette=PI/4.2:aspect=9/16",
+     "burst": "BETWEEN 10 AND 15",
+     "corner_min_luma": null,
+     "corner_mean_ratio": null
+    },
+    {
+     "id": "tunguska_event_1908_9x16_w083_late",
+     "word_index": 83,
+     "word": "burst,",
+     "t_caption": 36.77,
+     "t_background": 36.684,
+     "background": "C:\\Users\\OMOKOL~1\\AppData\\Local\\Temp\\rr_fixture_frames\\run_tunguska_event_1908_1792930600\\scene_08_0.515.png",
+     "scene": 7,
+     "vignette": "vignette=PI/4.2:aspect=9/16",
+     "burst": "METEOR AIR BURST",
+     "corner_min_luma": null,
+     "corner_mean_ratio": null
+    }
+   ],
+   "sidecar": []
+  },
+  "amber_room_heist_9x16": {
+   "run": "output/run_amber_room_heist_1792790550",
+   "topic": "amber_room_heist",
+   "format": "9:16",
+   "why": "longest single word across all narrations; non-ASCII letters in a proper name (Königsberg)",
+   "label": null,
+   "words": "output/run_amber_room_heist_1792790550/words.json",
+   "text": null,
+   "emphasis": [
+    "Amber Room",
+    "36 hours",
+    "Königsberg Castle"
+   ],
+   "vignette_aspect": "vignette=PI/4.2:aspect=9/16",
+   "vignette_source": "src.video_composer.picture_vignette",
+   "cuts": [
+    4.441818181818181,
+    8.883636363636363,
+    13.325454545454544,
+    17.767272727272726,
+    22.209090909090907,
+    26.65090909090909,
+    31.09272727272727,
+    35.53454545454545,
+    39.97636363636363,
+    44.418181818181814
+   ],
+   "graphic_intervals": [
+    [
+     0.0,
+     4.441818181818181
+    ],
+    [
+     39.97636363636363,
+     44.418181818181814
+    ]
+   ],
+   "caption_graphic_overlap": [
+    {
+     "burst": 33,
+     "clip": "graphic_timeline.mp4",
+     "rect": [
+      229,
+      1083,
+      852,
+      1252
+     ],
+     "text": "by Soviet artillery"
+    },
+    {
+     "burst": 34,
+     "clip": "graphic_timeline.mp4",
+     "rect": [
+      303,
+      1083,
+      775,
+      1252
+     ],
+     "text": "Yet in 1997"
+    },
+    {
+     "burst": 35,
+     "clip": "graphic_timeline.mp4",
+     "rect": [
+      251,
+      1083,
+      829,
+      1252
+     ],
+     "text": "an original stone"
+    },
+    {
+     "burst": 36,
+     "clip": "graphic_timeline.mp4",
+     "rect": [
+      180,
+      1083,
+      900,
+      1252
+     ],
+     "text": "mosaic was recovered"
+    }
+   ],
+   "timeline_complete": false,
+   "bursts": [
+    {
+     "show": 0.0,
+     "hide": 1.57,
+     "last_event": 0.0,
+     "text": "IN 1941",
+     "lines": [
+      "IN 1941"
+     ],
+     "words": 2,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 384,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 1.57,
+     "hide": 2.51,
+     "last_event": 1.97,
+     "text": "GERMAN SOLDIERS",
+     "lines": [
+      "GERMAN SOLDIERS"
+     ],
+     "words": 2,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 518,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 2.51,
+     "hide": 3.8,
+     "last_event": 3.29,
+     "text": "OF ARMY GROUP NORTH",
+     "lines": [
+      "OF ARMY GROUP NORTH"
+     ],
+     "words": 4,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 694,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 3.8,
+     "hide": 4.47,
+     "last_event": 3.8,
+     "text": "DISASSEMBLED",
+     "lines": [
+      "DISASSEMBLED"
+     ],
+     "words": 1,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 520,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 4.47,
+     "hide": 5.24,
+     "last_event": 4.95,
+     "text": "THE AMBER ROOM",
+     "lines": [
+      "THE AMBER ROOM"
+     ],
+     "words": 3,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 522,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 5.24,
+     "hide": 6.45,
+     "last_event": 5.71,
+     "text": "IN 36 HOURS",
+     "lines": [
+      "IN 36 HOURS"
+     ],
+     "words": 3,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 382,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 6.45,
+     "hide": 8.33,
+     "last_event": 7.19,
+     "text": "UNDER EXPERT SUPERVISION",
+     "lines": [
+      "UNDER EXPERT SUPERVISION"
+     ],
+     "words": 3,
+     "ass_fs": 132,
+     "shrunk": true,
+     "plate_w": 696,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 74
+    },
+    {
+     "show": 8.33,
+     "hide": 8.88,
+     "last_event": 8.5,
+     "text": "BY ONE",
+     "lines": [
+      "BY ONE"
+     ],
+     "words": 2,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 304,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 8.88,
+     "hide": 10.3,
+     "last_event": 9.74,
+     "text": "ESTIMATE, FOLLOWING",
+     "lines": [
+      "ESTIMATE, FOLLOWING"
+     ],
+     "words": 2,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 668,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 10.3,
+     "hide": 11.07,
+     "last_event": 10.3,
+     "text": "EIGHTEENTH-CENTURY",
+     "lines": [
+      "EIGHTEENTH-CENTURY"
+     ],
+     "words": 1,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 668,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 11.07,
+     "hide": 12.4,
+     "last_event": 11.07,
+     "text": "EXPANSIONS",
+     "lines": [
+      "EXPANSIONS"
+     ],
+     "words": 1,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 438,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 12.4,
+     "hide": 13.33,
+     "last_event": 13.01,
+     "text": "THE COMPLETED ROOM",
+     "lines": [
+      "THE COMPLETED ROOM"
+     ],
+     "words": 3,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 672,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 13.33,
+     "hide": 15.0,
+     "last_event": 14.04,
+     "text": "COVERED MORE THAN 590",
+     "lines": [
+      "COVERED MORE THAN 590"
+     ],
+     "words": 4,
+     "ass_fs": 132,
+     "shrunk": true,
+     "plate_w": 670,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 74
+    },
+    {
+     "show": 15.0,
+     "hide": 15.86,
+     "last_event": 15.33,
+     "text": "SQUARE FEET",
+     "lines": [
+      "SQUARE FEET"
+     ],
+     "words": 2,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 438,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 15.86,
+     "hide": 16.48,
+     "last_event": 15.99,
+     "text": "AND CONTAINED",
+     "lines": [
+      "AND CONTAINED"
+     ],
+     "words": 2,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 440,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 16.48,
+     "hide": 17.97,
+     "last_event": 17.34,
+     "text": "OVER 13,000 POUNDS",
+     "lines": [
+      "OVER 13,000 POUNDS"
+     ],
+     "words": 3,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 668,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 17.97,
+     "hide": 18.85,
+     "last_event": 18.06,
+     "text": "OF AMBER",
+     "lines": [
+      "OF AMBER"
+     ],
+     "words": 2,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 304,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 18.85,
+     "hide": 20.74,
+     "last_event": 19.28,
+     "text": "IN EARLY 1944",
+     "lines": [
+      "IN EARLY 1944"
+     ],
+     "words": 3,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 438,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 20.74,
+     "hide": 21.43,
+     "last_event": 21.06,
+     "text": "IT WAS PACKED",
+     "lines": [
+      "IT WAS PACKED"
+     ],
+     "words": 3,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 440,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 21.43,
+     "hide": 22.21,
+     "last_event": 21.64,
+     "text": "INTO CRATES",
+     "lines": [
+      "INTO CRATES"
+     ],
+     "words": 2,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 438,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 22.21,
+     "hide": 24.0,
+     "last_event": 23.03,
+     "text": "IN KÖNIGSBERG CASTLE",
+     "lines": [
+      "IN KÖNIGSBERG CASTLE"
+     ],
+     "words": 3,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 632,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 24.0,
+     "hide": 25.26,
+     "last_event": 24.79,
+     "text": "DOCUMENTATION TRACKING",
+     "lines": [
+      "DOCUMENTATION TRACKING"
+     ],
+     "words": 2,
+     "ass_fs": 132,
+     "shrunk": true,
+     "plate_w": 680,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 74
+    },
+    {
+     "show": 25.26,
+     "hide": 26.39,
+     "last_event": 26.02,
+     "text": "ITS LOCATION ENDS",
+     "lines": [
+      "ITS LOCATION ENDS"
+     ],
+     "words": 3,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 520,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 26.39,
+     "hide": 28.44,
+     "last_event": 27.48,
+     "text": "IN AUGUST 1944",
+     "lines": [
+      "IN AUGUST 1944"
+     ],
+     "words": 3,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 520,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 28.44,
+     "hide": 29.1,
+     "last_event": 28.72,
+     "text": "WHEN ALLIED",
+     "lines": [
+      "WHEN ALLIED"
+     ],
+     "words": 2,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 386,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 29.1,
+     "hide": 30.0,
+     "last_event": 29.55,
+     "text": "BOMBERS HEAVILY",
+     "lines": [
+      "BOMBERS HEAVILY"
+     ],
+     "words": 2,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 518,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 30.0,
+     "hide": 31.81,
+     "last_event": 30.67,
+     "text": "FIRE-BOMBED KÖNIGSBERG",
+     "lines": [
+      "FIRE-BOMBED KÖNIGSBERG"
+     ],
+     "words": 2,
+     "ass_fs": 132,
+     "shrunk": true,
+     "plate_w": 680,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 74
+    },
+    {
+     "show": 31.81,
+     "hide": 33.13,
+     "last_event": 32.66,
+     "text": "INVESTIGATIONS CONCLUDE",
+     "lines": [
+      "INVESTIGATIONS CONCLUDE"
+     ],
+     "words": 2,
+     "ass_fs": 132,
+     "shrunk": true,
+     "plate_w": 682,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 74
+    },
+    {
+     "show": 33.13,
+     "hide": 34.09,
+     "last_event": 33.75,
+     "text": "THE ROOM WAS MOST",
+     "lines": [
+      "THE ROOM WAS MOST"
+     ],
+     "words": 4,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 682,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 34.09,
+     "hide": 35.18,
+     "last_event": 34.42,
+     "text": "LIKELY INCINERATED",
+     "lines": [
+      "LIKELY INCINERATED"
+     ],
+     "words": 2,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 576,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 35.18,
+     "hide": 36.45,
+     "last_event": 35.97,
+     "text": "WHEN KÖNIGSBERG CASTLE",
+     "lines": [
+      "WHEN KÖNIGSBERG CASTLE"
+     ],
+     "words": 3,
+     "ass_fs": 132,
+     "shrunk": true,
+     "plate_w": 682,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 74
+    },
+    {
+     "show": 36.45,
+     "hide": 37.6,
+     "last_event": 37.24,
+     "text": "WAS BOMBED BY BRITISH",
+     "lines": [
+      "WAS BOMBED BY BRITISH"
+     ],
+     "words": 4,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 684,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 37.6,
+     "hide": 38.75,
+     "last_event": 38.39,
+     "text": "AIRCRAFT AND SHELLED",
+     "lines": [
+      "AIRCRAFT AND SHELLED"
+     ],
+     "words": 3,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 684,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 38.75,
+     "hide": 40.38,
+     "last_event": 39.35,
+     "text": "BY SOVIET ARTILLERY",
+     "lines": [
+      "BY SOVIET ARTILLERY"
+     ],
+     "words": 3,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 574,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": true,
+     "px": 80
+    },
+    {
+     "show": 40.38,
+     "hide": 42.43,
+     "last_event": 41.03,
+     "text": "YET IN 1997",
+     "lines": [
+      "YET IN 1997"
+     ],
+     "words": 3,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 426,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": true,
+     "px": 80
+    },
+    {
+     "show": 42.43,
+     "hide": 43.26,
+     "last_event": 42.94,
+     "text": "AN ORIGINAL STONE",
+     "lines": [
+      "AN ORIGINAL STONE"
+     ],
+     "words": 3,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 530,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": true,
+     "px": 80
+    },
+    {
+     "show": 43.26,
+     "hide": 44.42,
+     "last_event": 44.0,
+     "text": "MOSAIC WAS RECOVERED",
+     "lines": [
+      "MOSAIC WAS RECOVERED"
+     ],
+     "words": 3,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 672,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": true,
+     "px": 80
+    },
+    {
+     "show": 44.42,
+     "hide": 45.72,
+     "last_event": 44.64,
+     "text": "IN GERMANY",
+     "lines": [
+      "IN GERMANY"
+     ],
+     "words": 2,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 422,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 45.72,
+     "hide": 46.49,
+     "last_event": 46.08,
+     "text": "FUELING HUNTS",
+     "lines": [
+      "FUELING HUNTS"
+     ],
+     "words": 2,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 424,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 46.49,
+     "hide": 47.14,
+     "last_event": 46.71,
+     "text": "FOR THE CHAMBER",
+     "lines": [
+      "FOR THE CHAMBER"
+     ],
+     "words": 3,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 530,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 47.14,
+     "hide": 48.96,
+     "last_event": 47.95,
+     "text": "LOOTED IN 1941",
+     "lines": [
+      "LOOTED IN 1941"
+     ],
+     "words": 3,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 530,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    }
+   ],
+   "checks": {
+    "names": [
+     {
+      "name": "Army Group North",
+      "whole": true,
+      "bursts": "OF ARMY GROUP NORTH"
+     },
+     {
+      "name": "Amber Room",
+      "whole": true,
+      "bursts": "THE AMBER ROOM"
+     },
+     {
+      "name": "Königsberg Castle",
+      "whole": true,
+      "bursts": "IN KÖNIGSBERG CASTLE"
+     },
+     {
+      "name": "Königsberg Castle",
+      "whole": true,
+      "bursts": "WHEN KÖNIGSBERG CASTLE"
+     }
+    ],
+    "article_endings": [],
+    "function_only": [],
+    "below_floor": [],
+    "word_count_ok": true,
+    "under_half_second": [],
+    "pause_spanning": [
+     "8: 0.37s after 'estimate,' in ESTIMATE, FOLLOWING"
+    ],
+    "two_line": [],
+    "one_word": [
+     "3: DISASSEMBLED",
+     "9: EIGHTEENTH-CENTURY",
+     "10: EXPANSIONS"
+    ]
+   },
+   "samples": [
+    {
+     "id": "amber_room_heist_9x16_w000_first",
+     "word_index": 0,
+     "word": "In",
+     "t_caption": 0.15,
+     "t_background": 0.089,
+     "background": "C:\\Users\\OMOKOL~1\\AppData\\Local\\Temp\\rr_fixture_frames\\run_amber_room_heist_1792790550\\graphic_numbers_0.089.png",
+     "scene": 1,
+     "vignette": "lifted (graphic clip)",
+     "burst": "IN 1941",
+     "corner_min_luma": null,
+     "corner_mean_ratio": null
+    },
+    {
+     "id": "amber_room_heist_9x16_w007_name-army-5",
+     "word_index": 7,
+     "word": "North",
+     "t_caption": 3.44,
+     "t_background": 3.355,
+     "background": "C:\\Users\\OMOKOL~1\\AppData\\Local\\Temp\\rr_fixture_frames\\run_amber_room_heist_1792790550\\graphic_numbers_3.355.png",
+     "scene": 1,
+     "vignette": "lifted (graphic clip)",
+     "burst": "OF ARMY GROUP NORTH",
+     "corner_min_luma": null,
+     "corner_mean_ratio": null
+    },
+    {
+     "id": "amber_room_heist_9x16_w011_name-amber-10",
+     "word_index": 11,
+     "word": "Room",
+     "t_caption": 5.095,
+     "t_background": 5.013,
+     "background": "assets/amber_room_heist/02_commons.jpg",
+     "scene": 2,
+     "vignette": "vignette=PI/4.2:aspect=9/16",
+     "burst": "THE AMBER ROOM",
+     "corner_min_luma": null,
+     "corner_mean_ratio": null
+    },
+    {
+     "id": "amber_room_heist_9x16_w050_name-konigsberg-49",
+     "word_index": 50,
+     "word": "Castle.",
+     "t_caption": 23.18,
+     "t_background": 23.099,
+     "background": "assets/amber_room_heist/08_commons.jpg",
+     "scene": 6,
+     "vignette": "vignette=PI/4.2:aspect=9/16",
+     "burst": "IN KÖNIGSBERG CASTLE",
+     "corner_min_luma": null,
+     "corner_mean_ratio": null
+    },
+    {
+     "id": "amber_room_heist_9x16_w075_name-konigsberg-74",
+     "word_index": 75,
+     "word": "Castle",
+     "t_caption": 36.12,
+     "t_background": 36.033,
+     "background": "output/run_amber_room_heist_1792790550/beat_images/beat10_1.jpg",
+     "scene": 9,
+     "vignette": "vignette=PI/4.2:aspect=9/16",
+     "burst": "WHEN KÖNIGSBERG CASTLE",
+     "corner_min_luma": null,
+     "corner_mean_ratio": null
+    },
+    {
+     "id": "amber_room_heist_9x16_w022_longword",
+     "word_index": 22,
+     "word": "eighteenth-century",
+     "t_caption": 10.45,
+     "t_background": 10.37,
+     "background": "assets/amber_room_heist/05_commons.jpg",
+     "scene": 3,
+     "vignette": "vignette=PI/4.2:aspect=9/16",
+     "burst": "EIGHTEENTH-CENTURY",
+     "corner_min_luma": null,
+     "corner_mean_ratio": null
+    },
+    {
+     "id": "amber_room_heist_9x16_w065_longword",
+     "word_index": 65,
+     "word": "Investigations",
+     "t_caption": 32.81,
+     "t_background": 31.875,
+     "background": "assets/amber_room_heist/11_commons.jpg",
+     "scene": 8,
+     "vignette": "vignette=PI/4.2:aspect=9/16",
+     "burst": "INVESTIGATIONS CONCLUDE",
+     "corner_min_luma": null,
+     "corner_mean_ratio": null
+    },
+    {
+     "id": "amber_room_heist_9x16_w052_mid",
+     "word_index": 52,
+     "word": "tracking",
+     "t_caption": 24.94,
+     "t_background": 24.86,
+     "background": "assets/amber_room_heist/08_commons.jpg",
+     "scene": 6,
+     "vignette": "vignette=PI/4.2:aspect=9/16",
+     "burst": "DOCUMENTATION TRACKING",
+     "corner_min_luma": null,
+     "corner_mean_ratio": null
+    },
+    {
+     "id": "amber_room_heist_9x16_w089_late",
+     "word_index": 89,
+     "word": "an",
+     "t_caption": 43.09,
+     "t_background": 42.5,
+     "background": "C:\\Users\\OMOKOL~1\\AppData\\Local\\Temp\\rr_fixture_frames\\run_amber_room_heist_1792790550\\graphic_timeline_2.524.png",
+     "scene": 10,
+     "vignette": "lifted (graphic clip)",
+     "burst": "AN ORIGINAL STONE",
+     "corner_min_luma": null,
+     "corner_mean_ratio": null
+    }
+   ],
+   "sidecar": []
+  },
+  "voynich_manuscript_9x16": {
+   "run": "output/run_voynich_manuscript_1792965308",
+   "topic": "voynich_manuscript",
+   "format": "9:16",
+   "why": "most words in a 9:16 narration (densest bursts)",
+   "label": null,
+   "words": "output/run_voynich_manuscript_1792965308/words.json",
+   "text": null,
+   "emphasis": [
+    "Wilfrid Voynich",
+    "Zipf's law"
+   ],
+   "vignette_aspect": "vignette=PI/4.2:aspect=9/16",
+   "vignette_source": "src.video_composer.picture_vignette",
+   "cuts": [
+    5.456,
+    10.911,
+    15.142,
+    20.547,
+    26.147,
+    30.238,
+    35.795,
+    41.395,
+    45.448,
+    51.057
+   ],
+   "graphic_intervals": [
+    [
+     20.547,
+     26.147
+    ],
+    [
+     35.795,
+     41.395
+    ]
+   ],
+   "caption_graphic_overlap": [],
+   "timeline_complete": true,
+   "bursts": [
+    {
+     "show": 0.0,
+     "hide": 1.06,
+     "last_event": 0.0,
+     "text": "AN UNREAD MEDIEVAL",
+     "lines": [
+      "AN UNREAD MEDIEVAL"
+     ],
+     "words": 3,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 668,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 1.06,
+     "hide": 2.1,
+     "last_event": 1.45,
+     "text": "BOOK DISPLAYS",
+     "lines": [
+      "BOOK DISPLAYS"
+     ],
+     "words": 2,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 432,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 2.1,
+     "hide": 3.35,
+     "last_event": 2.73,
+     "text": "LINGUISTIC PRECISION",
+     "lines": [
+      "LINGUISTIC PRECISION"
+     ],
+     "words": 2,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 670,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 3.35,
+     "hide": 4.14,
+     "last_event": 3.58,
+     "text": "THAT DEFEATS",
+     "lines": [
+      "THAT DEFEATS"
+     ],
+     "words": 2,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 434,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 4.14,
+     "hide": 5.99,
+     "last_event": 4.59,
+     "text": "MODERN CRYPTANALYSIS",
+     "lines": [
+      "MODERN CRYPTANALYSIS"
+     ],
+     "words": 2,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 668,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 5.99,
+     "hide": 7.08,
+     "last_event": 6.69,
+     "text": "RADIOCARBON DATING",
+     "lines": [
+      "RADIOCARBON DATING"
+     ],
+     "words": 2,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 684,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 7.08,
+     "hide": 7.83,
+     "last_event": 7.08,
+     "text": "ESTABLISHED",
+     "lines": [
+      "ESTABLISHED"
+     ],
+     "words": 1,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 374,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 7.83,
+     "hide": 8.77,
+     "last_event": 8.1,
+     "text": "THAT THE MANUSCRIPT'S",
+     "lines": [
+      "THAT THE MANUSCRIPT'S"
+     ],
+     "words": 3,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 686,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 8.77,
+     "hide": 9.59,
+     "last_event": 9.24,
+     "text": "PARCHMENT DATES",
+     "lines": [
+      "PARCHMENT DATES"
+     ],
+     "words": 2,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 524,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 9.59,
+     "hide": 12.68,
+     "last_event": 11.68,
+     "text": "BETWEEN 1404 AND 1438",
+     "lines": [
+      "BETWEEN 1404 AND 1438"
+     ],
+     "words": 4,
+     "ass_fs": 132,
+     "shrunk": true,
+     "plate_w": 684,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 74
+    },
+    {
+     "show": 12.68,
+     "hide": 13.91,
+     "last_event": 13.06,
+     "text": "BY ONE ESTIMATE",
+     "lines": [
+      "BY ONE ESTIMATE"
+     ],
+     "words": 3,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 562,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 13.91,
+     "hide": 14.87,
+     "last_event": 14.58,
+     "text": "THE TEXT IS WRITTEN",
+     "lines": [
+      "THE TEXT IS WRITTEN"
+     ],
+     "words": 4,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 566,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 14.87,
+     "hide": 15.84,
+     "last_event": 15.44,
+     "text": "FROM LEFT TO RIGHT",
+     "lines": [
+      "FROM LEFT TO RIGHT"
+     ],
+     "words": 4,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 562,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 15.84,
+     "hide": 17.28,
+     "last_event": 16.8,
+     "text": "IN AN UNIDENTIFIED SCRIPT",
+     "lines": [
+      "IN AN UNIDENTIFIED SCRIPT"
+     ],
+     "words": 4,
+     "ass_fs": 132,
+     "shrunk": true,
+     "plate_w": 666,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 74
+    },
+    {
+     "show": 17.28,
+     "hide": 18.07,
+     "last_event": 17.61,
+     "text": "WHERE AN ALPHABET",
+     "lines": [
+      "WHERE AN ALPHABET"
+     ],
+     "words": 3,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 668,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 18.07,
+     "hide": 19.12,
+     "last_event": 18.62,
+     "text": "OF 20 TO 25",
+     "lines": [
+      "OF 20 TO 25"
+     ],
+     "words": 4,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 418,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 19.12,
+     "hide": 20.02,
+     "last_event": 19.55,
+     "text": "CHARACTERS ACCOUNTS",
+     "lines": [
+      "CHARACTERS ACCOUNTS"
+     ],
+     "words": 2,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 666,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 20.02,
+     "hide": 20.68,
+     "last_event": 20.19,
+     "text": "FOR VIRTUALLY",
+     "lines": [
+      "FOR VIRTUALLY"
+     ],
+     "words": 2,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 416,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 20.68,
+     "hide": 22.06,
+     "last_event": 21.21,
+     "text": "THE ENTIRE WORK",
+     "lines": [
+      "THE ENTIRE WORK"
+     ],
+     "words": 3,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 564,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 22.06,
+     "hide": 22.97,
+     "last_event": 22.47,
+     "text": "BESIDE BOTANICAL",
+     "lines": [
+      "BESIDE BOTANICAL"
+     ],
+     "words": 2,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 510,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 22.97,
+     "hide": 24.51,
+     "last_event": 23.79,
+     "text": "DIAGRAMS OF UNIDENTIFIED",
+     "lines": [
+      "DIAGRAMS OF UNIDENTIFIED"
+     ],
+     "words": 3,
+     "ass_fs": 132,
+     "shrunk": true,
+     "plate_w": 688,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 74
+    },
+    {
+     "show": 24.51,
+     "hide": 25.83,
+     "last_event": 25.49,
+     "text": "PLANTS, THE TEXT",
+     "lines": [
+      "PLANTS, THE TEXT"
+     ],
+     "words": 3,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 510,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 25.83,
+     "hide": 27.14,
+     "last_event": 26.81,
+     "text": "CONFORMS TO ZIPF'S LAW",
+     "lines": [
+      "CONFORMS TO ZIPF'S LAW"
+     ],
+     "words": 4,
+     "ass_fs": 132,
+     "shrunk": true,
+     "plate_w": 686,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 74
+    },
+    {
+     "show": 27.14,
+     "hide": 27.69,
+     "last_event": 27.42,
+     "text": "WHERE THE MOST",
+     "lines": [
+      "WHERE THE MOST"
+     ],
+     "words": 3,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 512,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 27.69,
+     "hide": 28.71,
+     "last_event": 28.29,
+     "text": "COMMON WORD APPEARS",
+     "lines": [
+      "COMMON WORD APPEARS"
+     ],
+     "words": 3,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 686,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 28.71,
+     "hide": 30.04,
+     "last_event": 29.69,
+     "text": "ROUGHLY TWICE AS OFTEN",
+     "lines": [
+      "ROUGHLY TWICE AS OFTEN"
+     ],
+     "words": 4,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 688,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 30.04,
+     "hide": 30.78,
+     "last_event": 30.41,
+     "text": "AS THE SECOND",
+     "lines": [
+      "AS THE SECOND"
+     ],
+     "words": 3,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 514,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 30.78,
+     "hide": 31.85,
+     "last_event": 31.02,
+     "text": "MOST COMMON",
+     "lines": [
+      "MOST COMMON"
+     ],
+     "words": 2,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 512,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 31.85,
+     "hide": 32.59,
+     "last_event": 31.92,
+     "text": "THE MANUSCRIPT",
+     "lines": [
+      "THE MANUSCRIPT"
+     ],
+     "words": 2,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 498,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 32.59,
+     "hide": 33.91,
+     "last_event": 33.49,
+     "text": "IS NAMED AFTER POLISH",
+     "lines": [
+      "IS NAMED AFTER POLISH"
+     ],
+     "words": 4,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 654,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 33.91,
+     "hide": 34.53,
+     "last_event": 34.17,
+     "text": "BOOK DEALER",
+     "lines": [
+      "BOOK DEALER"
+     ],
+     "words": 2,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 380,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 34.53,
+     "hide": 35.8,
+     "last_event": 34.92,
+     "text": "WILFRID VOYNICH",
+     "lines": [
+      "WILFRID VOYNICH"
+     ],
+     "words": 2,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 498,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 35.8,
+     "hide": 36.69,
+     "last_event": 36.5,
+     "text": "WHO ACQUIRED IT",
+     "lines": [
+      "WHO ACQUIRED IT"
+     ],
+     "words": 3,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 498,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 36.69,
+     "hide": 38.17,
+     "last_event": 37.05,
+     "text": "IN 1912",
+     "lines": [
+      "IN 1912"
+     ],
+     "words": 2,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 380,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 38.17,
+     "hide": 39.35,
+     "last_event": 38.99,
+     "text": "AMERICAN AND BRITISH",
+     "lines": [
+      "AMERICAN AND BRITISH"
+     ],
+     "words": 3,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 696,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 39.35,
+     "hide": 40.58,
+     "last_event": 39.78,
+     "text": "MILITARY CRYPTOGRAPHERS",
+     "lines": [
+      "MILITARY CRYPTOGRAPHERS"
+     ],
+     "words": 2,
+     "ass_fs": 132,
+     "shrunk": true,
+     "plate_w": 696,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 74
+    },
+    {
+     "show": 40.58,
+     "hide": 41.11,
+     "last_event": 40.81,
+     "text": "FROM BOTH",
+     "lines": [
+      "FROM BOTH"
+     ],
+     "words": 2,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 336,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 41.11,
+     "hide": 42.01,
+     "last_event": 41.62,
+     "text": "WORLD WAR ONE",
+     "lines": [
+      "WORLD WAR ONE"
+     ],
+     "words": 3,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 506,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 42.01,
+     "hide": 42.98,
+     "last_event": 42.68,
+     "text": "AND WORLD WAR TWO",
+     "lines": [
+      "AND WORLD WAR TWO"
+     ],
+     "words": 4,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 696,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 42.98,
+     "hide": 44.13,
+     "last_event": 43.66,
+     "text": "ATTEMPTED TO DECIPHER",
+     "lines": [
+      "ATTEMPTED TO DECIPHER"
+     ],
+     "words": 3,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 696,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 44.13,
+     "hide": 44.7,
+     "last_event": 44.23,
+     "text": "THE CODEX",
+     "lines": [
+      "THE CODEX"
+     ],
+     "words": 2,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 336,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 44.7,
+     "hide": 45.78,
+     "last_event": 45.02,
+     "text": "WITHOUT SUCCESS",
+     "lines": [
+      "WITHOUT SUCCESS"
+     ],
+     "words": 2,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 506,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    }
+   ],
+   "checks": {
+    "names": [
+     {
+      "name": "Wilfrid Voynich",
+      "whole": true,
+      "bursts": "WILFRID VOYNICH"
+     },
+     {
+      "name": "World War One",
+      "whole": true,
+      "bursts": "WORLD WAR ONE"
+     },
+     {
+      "name": "World War Two",
+      "whole": true,
+      "bursts": "AND WORLD WAR TWO"
+     }
+    ],
+    "article_endings": [],
+    "function_only": [],
+    "below_floor": [],
+    "word_count_ok": true,
+    "under_half_second": [],
+    "pause_spanning": [
+     "21: 0.32s after 'plants,' in PLANTS, THE TEXT"
+    ],
+    "two_line": [],
+    "one_word": [
+     "6: ESTABLISHED"
+    ]
+   },
+   "samples": [
+    {
+     "id": "voynich_manuscript_9x16_w000_first",
+     "word_index": 0,
+     "word": "An",
+     "t_caption": 0.15,
+     "t_background": 0.051,
+     "background": "C:\\Users\\OMOKOL~1\\AppData\\Local\\Temp\\rr_fixture_frames\\run_voynich_manuscript_1792965308\\scene_01_0.051.png",
+     "scene": 0,
+     "vignette": "vignette=PI/4.2:aspect=9/16",
+     "burst": "AN UNREAD MEDIEVAL",
+     "corner_min_luma": null,
+     "corner_mean_ratio": null
+    },
+    {
+     "id": "voynich_manuscript_9x16_w088_name-wilfrid-87",
+     "word_index": 88,
+     "word": "Voynich,",
+     "t_caption": 35.07,
+     "t_background": 34.987,
+     "background": "C:\\Users\\OMOKOL~1\\AppData\\Local\\Temp\\rr_fixture_frames\\run_voynich_manuscript_1792965308\\scene_07_4.749.png",
+     "scene": 6,
+     "vignette": "vignette=PI/4.2:aspect=9/16",
+     "burst": "WILFRID VOYNICH",
+     "corner_min_luma": null,
+     "corner_mean_ratio": null
+    },
+    {
+     "id": "voynich_manuscript_9x16_w103_name-world-101",
+     "word_index": 103,
+     "word": "One",
+     "t_caption": 41.77,
+     "t_background": 41.684,
+     "background": "C:\\Users\\OMOKOL~1\\AppData\\Local\\Temp\\rr_fixture_frames\\run_voynich_manuscript_1792965308\\scene_09_0.289.png",
+     "scene": 8,
+     "vignette": "vignette=PI/4.2:aspect=9/16",
+     "burst": "WORLD WAR ONE",
+     "corner_min_luma": null,
+     "corner_mean_ratio": null
+    },
+    {
+     "id": "voynich_manuscript_9x16_w107_name-world-105",
+     "word_index": 107,
+     "word": "Two",
+     "t_caption": 42.83,
+     "t_background": 42.742,
+     "background": "C:\\Users\\OMOKOL~1\\AppData\\Local\\Temp\\rr_fixture_frames\\run_voynich_manuscript_1792965308\\scene_09_1.347.png",
+     "scene": 8,
+     "vignette": "vignette=PI/4.2:aspect=9/16",
+     "burst": "AND WORLD WAR TWO",
+     "corner_min_luma": null,
+     "corner_mean_ratio": null
+    },
+    {
+     "id": "voynich_manuscript_9x16_w098_longword",
+     "word_index": 98,
+     "word": "cryptographers",
+     "t_caption": 39.93,
+     "t_background": 39.847,
+     "background": "C:\\Users\\OMOKOL~1\\AppData\\Local\\Temp\\rr_fixture_frames\\run_voynich_manuscript_1792965308\\graphic_map_4.052.png",
+     "scene": 7,
+     "vignette": "lifted (graphic clip)",
+     "burst": "MILITARY CRYPTOGRAPHERS",
+     "corner_min_luma": null,
+     "corner_mean_ratio": null
+    },
+    {
+     "id": "voynich_manuscript_9x16_w010_longword",
+     "word_index": 10,
+     "word": "cryptanalysis.",
+     "t_caption": 4.74,
+     "t_background": 4.656,
+     "background": "C:\\Users\\OMOKOL~1\\AppData\\Local\\Temp\\rr_fixture_frames\\run_voynich_manuscript_1792965308\\scene_01_4.656.png",
+     "scene": 0,
+     "vignette": "vignette=PI/4.2:aspect=9/16",
+     "burst": "MODERN CRYPTANALYSIS",
+     "corner_min_luma": null,
+     "corner_mean_ratio": null
+    },
+    {
+     "id": "voynich_manuscript_9x16_w062_possessive",
+     "word_index": 62,
+     "word": "Zipf's",
+     "t_caption": 26.96,
+     "t_background": 26.518,
+     "background": "C:\\Users\\OMOKOL~1\\AppData\\Local\\Temp\\rr_fixture_frames\\run_voynich_manuscript_1792965308\\scene_06_0.371.png",
+     "scene": 5,
+     "vignette": "vignette=PI/4.2:aspect=9/16",
+     "burst": "CONFORMS TO ZIPF'S LAW",
+     "corner_min_luma": null,
+     "corner_mean_ratio": null
+    },
+    {
+     "id": "voynich_manuscript_9x16_w057_mid",
+     "word_index": 57,
+     "word": "plants,",
+     "t_caption": 25.64,
+     "t_background": 24.579,
+     "background": "C:\\Users\\OMOKOL~1\\AppData\\Local\\Temp\\rr_fixture_frames\\run_voynich_manuscript_1792965308\\graphic_numbers_4.032.png",
+     "scene": 4,
+     "vignette": "lifted (graphic clip)",
+     "burst": "PLANTS, THE TEXT",
+     "corner_min_luma": null,
+     "corner_mean_ratio": null
+    },
+    {
+     "id": "voynich_manuscript_9x16_w097_late",
+     "word_index": 97,
+     "word": "military",
+     "t_caption": 39.93,
+     "t_background": 39.413,
+     "background": "C:\\Users\\OMOKOL~1\\AppData\\Local\\Temp\\rr_fixture_frames\\run_voynich_manuscript_1792965308\\graphic_map_3.618.png",
+     "scene": 7,
+     "vignette": "lifted (graphic clip)",
+     "burst": "MILITARY CRYPTOGRAPHERS",
+     "corner_min_luma": null,
+     "corner_mean_ratio": null
+    }
+   ],
+   "sidecar": []
+  },
+  "kailasa_temple_monolith_NEW_9x16": {
+   "run": "output/run_kailasa_temple_monolith_1792524470",
+   "topic": "kailasa_temple_monolith",
+   "format": "9:16",
+   "why": "operator long-name decision (UNDER | THE RASHTRAKUTA ...): the closest real material",
+   "label": "new: fact-sheet statement kailasa-commencement-patron (no run narrates it), synthetic fitted timings (layout only)",
+   "words": "fitted (see label)",
+   "text": "Excavation of the Kailasa temple commenced under the eighth-century Rashtrakuta king Krishna I.",
+   "emphasis": [],
+   "vignette_aspect": "vignette=PI/4.2:aspect=9/16",
+   "vignette_source": "src.video_composer.picture_vignette",
+   "cuts": [],
+   "graphic_intervals": [],
+   "caption_graphic_overlap": [],
+   "timeline_complete": true,
+   "bursts": [
+    {
+     "show": 0.0,
+     "hide": 0.72,
+     "last_event": 0.0,
+     "text": "EXCAVATION",
+     "lines": [
+      "EXCAVATION"
+     ],
+     "words": 1,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 356,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 0.72,
+     "hide": 1.97,
+     "last_event": 1.56,
+     "text": "OF THE KAILASA TEMPLE",
+     "lines": [
+      "OF THE KAILASA TEMPLE"
+     ],
+     "words": 4,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 676,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 1.97,
+     "hide": 2.93,
+     "last_event": 2.59,
+     "text": "COMMENCED UNDER",
+     "lines": [
+      "COMMENCED UNDER"
+     ],
+     "words": 2,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 568,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 2.93,
+     "hide": 4.03,
+     "last_event": 3.15,
+     "text": "THE EIGHTH-CENTURY",
+     "lines": [
+      "THE EIGHTH-CENTURY"
+     ],
+     "words": 2,
+     "ass_fs": 142,
+     "shrunk": false,
+     "plate_w": 570,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 80
+    },
+    {
+     "show": 4.03,
+     "hide": 5.84,
+     "last_event": 5.54,
+     "text": "RASHTRAKUTA KING KRISHNA I",
+     "lines": [
+      "RASHTRAKUTA KING KRISHNA I"
+     ],
+     "words": 4,
+     "ass_fs": 117,
+     "shrunk": true,
+     "plate_w": 676,
+     "plate_y": 1107,
+     "plate_h": 121,
+     "guard": false,
+     "px": 66
+    }
+   ],
+   "checks": {
+    "names": [
+     {
+      "name": "Kailasa temple",
+      "whole": true,
+      "bursts": "OF THE KAILASA TEMPLE"
+     },
+     {
+      "name": "Rashtrakuta king Krishna I",
+      "whole": true,
+      "bursts": "RASHTRAKUTA KING KRISHNA I"
+     }
+    ],
+    "article_endings": [],
+    "function_only": [],
+    "below_floor": [],
+    "word_count_ok": true,
+    "under_half_second": [],
+    "pause_spanning": [],
+    "two_line": [],
+    "one_word": [
+     "0: EXCAVATION"
+    ]
+   },
+   "samples": [
+    {
+     "id": "kailasa_temple_monolith_NEW_9x16_w000_first",
+     "word_index": 0,
+     "word": "Excavation",
+     "t_caption": 0.15,
+     "t_background": 0.1,
+     "background": "assets/kailasa_temple_monolith/01_commons.jpg",
+     "scene": 0,
+     "vignette": "vignette=PI/4.2:aspect=9/16",
+     "burst": "EXCAVATION",
+     "corner_min_luma": null,
+     "corner_mean_ratio": null
+    },
+    {
+     "id": "kailasa_temple_monolith_NEW_9x16_w004_name-kailasa-3",
+     "word_index": 4,
+     "word": "temple",
+     "t_caption": 1.71,
+     "t_background": 1.623,
+     "background": "assets/kailasa_temple_monolith/01_commons.jpg",
+     "scene": 0,
+     "vignette": "vignette=PI/4.2:aspect=9/16",
+     "burst": "OF THE KAILASA TEMPLE",
+     "corner_min_luma": null,
+     "corner_mean_ratio": null
+    },
+    {
+     "id": "kailasa_temple_monolith_NEW_9x16_w012_name-rashtrakuta-9",
+     "word_index": 12,
+     "word": "I.",
+     "t_caption": 5.69,
+     "t_background": 5.606,
+     "background": "assets/kailasa_temple_monolith/01_commons.jpg",
+     "scene": 0,
+     "vignette": "vignette=PI/4.2:aspect=9/16",
+     "burst": "RASHTRAKUTA KING KRISHNA I",
+     "corner_min_luma": null,
+     "corner_mean_ratio": null
+    },
+    {
+     "id": "kailasa_temple_monolith_NEW_9x16_w006_mid",
+     "word_index": 6,
+     "word": "under",
+     "t_caption": 2.74,
+     "t_background": 2.652,
+     "background": "assets/kailasa_temple_monolith/01_commons.jpg",
+     "scene": 0,
+     "vignette": "vignette=PI/4.2:aspect=9/16",
+     "burst": "COMMENCED UNDER",
+     "corner_min_luma": null,
+     "corner_mean_ratio": null
+    },
+    {
+     "id": "kailasa_temple_monolith_NEW_9x16_w011_late",
+     "word_index": 11,
+     "word": "Krishna",
+     "t_caption": 5.69,
+     "t_background": 5.125,
+     "background": "assets/kailasa_temple_monolith/01_commons.jpg",
+     "scene": 0,
+     "vignette": "vignette=PI/4.2:aspect=9/16",
+     "burst": "RASHTRAKUTA KING KRISHNA I",
+     "corner_min_luma": null,
+     "corner_mean_ratio": null
+    }
+   ],
+   "sidecar": []
+  }
+ }
+}

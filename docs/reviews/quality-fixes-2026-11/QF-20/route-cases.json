@@ -1,0 +1,544 @@
+{
+ "note": "Route sweep cases: the real run's route, the spec's Japan route, committed test routes and regional groups of the fixed 200-site sweep (polar, antimeridian, island and strait stress).",
+ "routes": [
+  {
+   "name": "amber",
+   "source": "output/run_amber_room_heist_1792801257 graphic_map payload route (real run); coordinates as the dev map harness",
+   "narration": "",
+   "stops": [
+    {
+     "place": "Catherine Palace",
+     "country": "Russia",
+     "label": "Looted by German troops",
+     "lat": 59.7163,
+     "lon": 30.3956
+    },
+    {
+     "place": "Konigsberg Castle",
+     "country": "Germany",
+     "label": "Final documented location",
+     "lat": 54.7104,
+     "lon": 20.5101
+    }
+   ]
+  },
+  {
+   "name": "japan",
+   "source": "qf20_spec.md finding 13 (independent map review 2026-11-05 route_japan)",
+   "narration": "west from Tokyo",
+   "stops": [
+    {
+     "place": "Tokyo",
+     "country": "Japan",
+     "label": "Senso-ji, Tokyo",
+     "lat": 35.7148,
+     "lon": 139.7967
+    },
+    {
+     "place": "Kyoto",
+     "country": "Japan",
+     "label": "Fushimi Inari, Kyoto",
+     "lat": 34.9671,
+     "lon": 135.7727
+    },
+    {
+     "place": "Nara",
+     "country": "Japan",
+     "label": "Todai-ji, Nara",
+     "lat": 34.6851,
+     "lon": 135.843
+    },
+    {
+     "place": "Hiroshima",
+     "country": "Japan",
+     "label": "Hiroshima Peace Memorial",
+     "lat": 34.3955,
+     "lon": 132.4536
+    }
+   ]
+  },
+  {
+   "name": "turkey",
+   "source": "tests/test_r3_graphics_2026_11_02.py route points",
+   "narration": "",
+   "stops": [
+    {
+     "place": "Istanbul",
+     "country": "Turkey",
+     "label": "Constantinople",
+     "lat": 41.0082,
+     "lon": 28.9784
+    },
+    {
+     "place": "Ankara",
+     "country": "Turkey",
+     "label": "Ancyra",
+     "lat": 39.9334,
+     "lon": 32.8597
+    },
+    {
+     "place": "Derinkuyu",
+     "country": "Turkey",
+     "label": "Derinkuyu underground city",
+     "lat": 38.3735,
+     "lon": 34.7347
+    }
+   ]
+  },
+  {
+   "name": "peru",
+   "source": "tests/test_round12_review_2026_11_04.py ROUTE_COORDS",
+   "narration": "",
+   "stops": [
+    {
+     "place": "Lima",
+     "country": "Peru",
+     "label": "Lima",
+     "lat": -12.0464,
+     "lon": -77.0428
+    },
+    {
+     "place": "Nazca",
+     "country": "Peru",
+     "label": "Nazca",
+     "lat": -14.739,
+     "lon": -75.13
+    },
+    {
+     "place": "Arequipa",
+     "country": "Peru",
+     "label": "Arequipa",
+     "lat": -16.3989,
+     "lon": -71.537
+    },
+    {
+     "place": "Cusco",
+     "country": "Peru",
+     "label": "Cusco",
+     "lat": -13.5163,
+     "lon": -71.9785
+    },
+    {
+     "place": "Machu Picchu",
+     "country": "Peru",
+     "label": "Machu Picchu",
+     "lat": -13.1631,
+     "lon": -72.545
+    }
+   ]
+  },
+  {
+   "name": "egypt",
+   "source": "tests/test_round13_review_2026_11_04.py route coords",
+   "narration": "",
+   "stops": [
+    {
+     "place": "Alexandria",
+     "country": "Egypt",
+     "label": "Alexandria",
+     "lat": 31.2001,
+     "lon": 29.9187
+    },
+    {
+     "place": "Giza",
+     "country": "Egypt",
+     "label": "Giza",
+     "lat": 29.9792,
+     "lon": 31.1342
+    },
+    {
+     "place": "Luxor",
+     "country": "Egypt",
+     "label": "Luxor",
+     "lat": 25.7188,
+     "lon": 32.6573
+    },
+    {
+     "place": "Aswan",
+     "country": "Egypt",
+     "label": "Aswan",
+     "lat": 24.0889,
+     "lon": 32.8998
+    },
+    {
+     "place": "Abu Simbel",
+     "country": "Egypt",
+     "label": "Abu Simbel",
+     "lat": 22.3372,
+     "lon": 31.6258
+    }
+   ]
+  },
+  {
+   "name": "greece",
+   "source": "tests/test_round14_review_2026_11_04.py route coords",
+   "narration": "",
+   "stops": [
+    {
+     "place": "Athens",
+     "country": "Greece",
+     "label": "Athens",
+     "lat": 37.9715,
+     "lon": 23.7257
+    },
+    {
+     "place": "Delphi",
+     "country": "Greece",
+     "label": "Delphi",
+     "lat": 38.4824,
+     "lon": 22.501
+    },
+    {
+     "place": "Olympia",
+     "country": "Greece",
+     "label": "Olympia",
+     "lat": 37.6383,
+     "lon": 21.63
+    },
+    {
+     "place": "Knossos",
+     "country": "Greece",
+     "label": "Knossos",
+     "lat": 35.298,
+     "lon": 25.1631
+    }
+   ]
+  },
+  {
+   "name": "morocco",
+   "source": "tests/test_round16_review_2026_11_05.py route coords",
+   "narration": "",
+   "stops": [
+    {
+     "place": "Marrakesh",
+     "country": "Morocco",
+     "label": "Marrakesh",
+     "lat": 31.6295,
+     "lon": -7.9811
+    },
+    {
+     "place": "Fes",
+     "country": "Morocco",
+     "label": "Fes",
+     "lat": 34.0331,
+     "lon": -5.0003
+    },
+    {
+     "place": "Tangier",
+     "country": "Morocco",
+     "label": "Tangier",
+     "lat": 35.7595,
+     "lon": -5.834
+    }
+   ]
+  },
+  {
+   "name": "sweep_japan",
+   "source": "sweep-sites.json sites 176, 180, 195, 197, 191",
+   "narration": "",
+   "stops": [
+    {
+     "place": "Site 176",
+     "country": "Japan",
+     "label": "Site 176",
+     "lat": 43.7128,
+     "lon": 141.3374
+    },
+    {
+     "place": "Site 180",
+     "country": "Japan",
+     "label": "Site 180",
+     "lat": 41.928,
+     "lon": 143.2415
+    },
+    {
+     "place": "Site 195",
+     "country": "Japan",
+     "label": "Site 195",
+     "lat": 35.6144,
+     "lon": 139.8972
+    },
+    {
+     "place": "Site 197",
+     "country": "Japan",
+     "label": "Site 197",
+     "lat": 33.8929,
+     "lon": 135.1187
+    },
+    {
+     "place": "Site 191",
+     "country": "Japan",
+     "label": "Site 191",
+     "lat": 32.6036,
+     "lon": 130.1731
+    }
+   ]
+  },
+  {
+   "name": "sweep_china",
+   "source": "sweep-sites.json sites 156, 118, 59, 182",
+   "narration": "",
+   "stops": [
+    {
+     "place": "Site 156",
+     "country": "China",
+     "label": "Site 156",
+     "lat": 42.6251,
+     "lon": 87.4747
+    },
+    {
+     "place": "Site 118",
+     "country": "China",
+     "label": "Site 118",
+     "lat": 28.1446,
+     "lon": 121.1599
+    },
+    {
+     "place": "Site 59",
+     "country": "China",
+     "label": "Site 59",
+     "lat": 22.2783,
+     "lon": 114.1747
+    },
+    {
+     "place": "Site 182",
+     "country": "China",
+     "label": "Site 182",
+     "lat": 18.1693,
+     "lon": 109.5612
+    }
+   ]
+  },
+  {
+   "name": "sweep_canada_arctic",
+   "source": "sweep-sites.json sites 80, 161, 144",
+   "narration": "",
+   "stops": [
+    {
+     "place": "Site 80",
+     "country": "Canada",
+     "label": "Site 80",
+     "lat": 82.5,
+     "lon": -62.3
+    },
+    {
+     "place": "Site 161",
+     "country": "Canada",
+     "label": "Site 161",
+     "lat": 76.0785,
+     "lon": -98.1899
+    },
+    {
+     "place": "Site 144",
+     "country": "Canada",
+     "label": "Site 144",
+     "lat": 61.1675,
+     "lon": -112.1203
+    }
+   ]
+  },
+  {
+   "name": "sweep_greenland",
+   "source": "sweep-sites.json sites 83, 106, 87, 186",
+   "narration": "",
+   "stops": [
+    {
+     "place": "Site 83",
+     "country": "Greenland",
+     "label": "Site 83",
+     "lat": 77.467,
+     "lon": -69.23
+    },
+    {
+     "place": "Site 106",
+     "country": "Greenland",
+     "label": "Site 106",
+     "lat": 76.3211,
+     "lon": -52.584
+    },
+    {
+     "place": "Site 87",
+     "country": "Greenland",
+     "label": "Site 87",
+     "lat": 83.6625,
+     "lon": -33.37
+    },
+    {
+     "place": "Site 186",
+     "country": "Greenland",
+     "label": "Site 186",
+     "lat": 77.809,
+     "lon": -19.2613
+    }
+   ]
+  },
+  {
+   "name": "sweep_fiji_antimeridian",
+   "source": "sweep-sites.json sites 94, 89, 90",
+   "narration": "",
+   "stops": [
+    {
+     "place": "Site 94",
+     "country": "Fiji",
+     "label": "Site 94",
+     "lat": -17.9,
+     "lon": 178.0
+    },
+    {
+     "place": "Site 89",
+     "country": "Fiji",
+     "label": "Site 89",
+     "lat": -16.8,
+     "lon": 179.9
+    },
+    {
+     "place": "Site 90",
+     "country": "Fiji",
+     "label": "Site 90",
+     "lat": -16.78,
+     "lon": -179.95
+    }
+   ]
+  },
+  {
+   "name": "sweep_russia_antimeridian",
+   "source": "sweep-sites.json sites 88, 92",
+   "narration": "",
+   "stops": [
+    {
+     "place": "Site 88",
+     "country": "Russia",
+     "label": "Site 88",
+     "lat": 71.24,
+     "lon": -179.4
+    },
+    {
+     "place": "Site 92",
+     "country": "Russia",
+     "label": "Site 92",
+     "lat": 65.0,
+     "lon": 179.5
+    }
+   ]
+  },
+  {
+   "name": "sweep_antarctica",
+   "source": "sweep-sites.json sites 85, 84, 98, 79",
+   "narration": "",
+   "stops": [
+    {
+     "place": "Site 85",
+     "country": "Antarctica",
+     "label": "Site 85",
+     "lat": -77.85,
+     "lon": 166.67
+    },
+    {
+     "place": "Site 84",
+     "country": "Antarctica",
+     "label": "Site 84",
+     "lat": -75.1,
+     "lon": 123.33
+    },
+    {
+     "place": "Site 98",
+     "country": "Antarctica",
+     "label": "Site 98",
+     "lat": -82.7554,
+     "lon": 27.5187
+    },
+    {
+     "place": "Site 79",
+     "country": "Antarctica",
+     "label": "Site 79",
+     "lat": -89.9,
+     "lon": 0.0
+    }
+   ]
+  },
+  {
+   "name": "sweep_spain_strait",
+   "source": "sweep-sites.json sites 54, 64, 65",
+   "narration": "",
+   "stops": [
+    {
+     "place": "Site 54",
+     "country": "Spain",
+     "label": "Site 54",
+     "lat": 42.4637,
+     "lon": 1.9814
+    },
+    {
+     "place": "Site 64",
+     "country": "Spain",
+     "label": "Site 64",
+     "lat": 35.889,
+     "lon": -5.317
+    },
+    {
+     "place": "Site 65",
+     "country": "Spain",
+     "label": "Site 65",
+     "lat": 35.29,
+     "lon": -2.94
+    }
+   ]
+  },
+  {
+   "name": "sweep_caribbean_netherlands",
+   "source": "sweep-sites.json sites 33, 31, 145",
+   "narration": "",
+   "stops": [
+    {
+     "place": "Site 33",
+     "country": "Netherlands",
+     "label": "Site 33",
+     "lat": 12.52,
+     "lon": -70.03
+    },
+    {
+     "place": "Site 31",
+     "country": "Netherlands",
+     "label": "Site 31",
+     "lat": 18.0,
+     "lon": -63.05
+    },
+    {
+     "place": "Site 145",
+     "country": "Netherlands",
+     "label": "Site 145",
+     "lat": 17.4731,
+     "lon": -62.9575
+    }
+   ]
+  },
+  {
+   "name": "sweep_brazil",
+   "source": "sweep-sites.json sites 27, 128, 70",
+   "narration": "",
+   "stops": [
+    {
+     "place": "Site 27",
+     "country": "Brazil",
+     "label": "Site 27",
+     "lat": -3.854,
+     "lon": -32.424
+    },
+    {
+     "place": "Site 128",
+     "country": "Brazil",
+     "label": "Site 128",
+     "lat": -16.551,
+     "lon": -55.1199
+    },
+    {
+     "place": "Site 70",
+     "country": "Brazil",
+     "label": "Site 70",
+     "lat": -25.69,
+     "lon": -54.59
+    }
+   ]
+  }
+ ]
+}

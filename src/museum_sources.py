@@ -16,8 +16,18 @@ same shape as commons.candidates() so ranking, the vision review and the credits
     IMAGES_ALLOW_SHARE_ALIKE allows it); in copyright, NonCommercial or NoDerivatives never (operator,
     2026-10-28). Needs EUROPEANA_API_KEY; off without one.
 
-The Library of Congress is not included: loc.gov answers automated clients with a bot challenge,
-and getting around that would not be appropriate.
+Further sources (2026-11-02), each off by default (config MUSEUM_*_ENABLED) because their API parameters could not
+be checked against the official documentation from the development container; every one is marked UNVERIFIED where
+it is called, and must be checked live before it is enabled:
+
+  - Openverse (api.openverse.org): CC0, public-domain mark, CC BY (and CC BY-SA where allowed) only; the file must
+    be on a host footage.ALLOWED_HOSTS["openverse"] lists.
+  - Library of Congress (www.loc.gov JSON API): only items whose rights advisory says there are no known
+    restrictions. Earlier (2026-10) loc.gov answered automated clients with a bot challenge, and getting around that
+    would not be appropriate: a challenge page is not JSON, so it is simply skipped (nothing is worked around).
+  - Art Institute of Chicago (api.artic.edu): is_public_domain artworks only (CC0), images from its IIIF server.
+  - The US National Archives catalog is not included: its catalog API (v2) is understood to need an API key
+    (not verified from its documentation here), and the brief was to skip a source that needs one.
 
 Requests are made one at a time with a pause between, and identify the bot like commons.HEADERS.
 
@@ -29,6 +39,7 @@ asks no museum again.
 
 import html
 import logging
+import re
 import threading
 import time
 from pathlib import Path
@@ -39,6 +50,7 @@ import requests
 from . import config
 from .commons import HEADERS
 from .credits import normalize
+from .image_rights import basis, public_domain, recorded_basis_ok
 
 log = logging.getLogger(__name__)
 
@@ -46,6 +58,10 @@ MET = "https://collectionapi.metmuseum.org/public/collection"
 NASA = "https://images-api.nasa.gov"
 SI = "https://api.si.edu/openaccess/api/v1.0/search"
 EUROPEANA = "https://api.europeana.eu/record/v2/search.json"
+OPENVERSE = "https://api.openverse.org/v1/images/"
+LOC = "https://www.loc.gov/photos/"
+ARTIC = "https://api.artic.edu/api/v1/artworks/search"
+ARTIC_IIIF = "https://www.artic.edu/iiif/2"
 PAUSE = 1.0
 _last_request = 0.0
 _failures = 0     # requests that did not answer: a search that saw one is not cached (asked again next time)
@@ -76,7 +92,10 @@ def _candidate(**kw) -> Dict:
     base = {"title": "", "download_url": "", "source_url": "", "artist": "Unknown", "license": "",
             "license_url": "", "attribution_required": False, "year": None, "width": 0, "height": 0,
             "grade": 0, "description": "", "categories": [], "lat": None, "lon": None, "provider": ""}
-    return {**base, **kw}
+    record = {**base, **kw}
+    if str(record["license"]).lower().startswith("cc0") and not record.get("worldwide_basis"):
+        record["worldwide_basis"] = basis("cc0", record["source_url"])
+    return record
 
 
 def met_search(query: str, limit: int = 12) -> List[Dict]:
@@ -101,8 +120,12 @@ def nasa_search(query: str, limit: int = 12) -> List[Dict]:
     out = []
     for item in ((found or {}).get("collection") or {}).get("items", [])[:limit]:
         d = (item.get("data") or [{}])[0]
-        third_party = d.get("secondary_creator") or d.get("photographer") or ""
-        if third_party and "nasa" not in third_party.lower():
+        credits = [str(d.get(field) or "") for field in ("secondary_creator", "photographer")]
+        credits += re.findall(r"(?:image\s+)?credit\s*:\s*([^\n<]+)", str(d.get("description") or ""), re.IGNORECASE)
+        third_party = next((value for value in credits if value), "")
+        own_names = {"nasa", "jpl", "jsc", "gsfc", "ksc", "goddard", "nasa goddard", "nasa jpl"}
+        if any(part.strip().lower() not in own_names for value in credits if value
+               for part in re.split(r"[/&,;]", value) if part.strip()):
             continue  # credited to another party: may be copyrighted
         credit = third_party or f"NASA ({d.get('center') or 'NASA'})"
         assets = _get(f"{NASA}/asset/{d['nasa_id']}") or {}
@@ -115,6 +138,8 @@ def nasa_search(query: str, limit: int = 12) -> List[Dict]:
             title=f"{d.get('title', d['nasa_id'])} (NASA {d['nasa_id']})", download_url=best.replace("http://", "https://"),
             source_url=f"https://images.nasa.gov/details/{d['nasa_id']}", artist=credit, license="Public domain",
             license_url="https://www.nasa.gov/nasa-brand-center/images-and-media/",
+            worldwide_basis=basis("nasa-own-work", "https://www.nasa.gov/nasa-brand-center/images-and-media/",
+                                  third_party=False, credit=credit, scope="NASA factual-use permission; no endorsement"),
             description=html.unescape(d.get("description") or "")[:400], categories=(d.get("keywords") or [])[:10],
             year=int(d["date_created"][:4]) if (d.get("date_created") or "")[:4].isdigit() else None, provider="nasa"))
     return out
@@ -153,8 +178,11 @@ def open_licence(rights_url: str):
     educational use only, NonCommercial and NoDerivatives are never reusable here (ERT's Antikythera films on
     Europeana are "In Copyright - Educational Use Permitted": operator, 2026-10-28)."""
     import re
+    from urllib.parse import urlparse
     url = (rights_url or "").strip().replace("https://", "http://").rstrip("/")
-    if "/publicdomain/mark/" in url or "rightsstatements.org/vocab/NoC-US" in url:
+    if urlparse(url).hostname != "creativecommons.org":
+        return None
+    if "/publicdomain/mark/" in url:
         return "Public domain", rights_url
     if "/publicdomain/zero/" in url:
         return "CC0", rights_url
@@ -180,6 +208,8 @@ def europeana_search(query: str, limit: int = 12, media_type: str = "IMAGE") -> 
             media = "https://" + media[len("http://"):]
         if not rights or not license_allowed(rights[0]) or not media.startswith("https://"):
             continue  # a page to view, not a file, is not taken either
+        if public_domain(rights[0]):
+            continue  # a generic aggregated PD mark supplies no source/life-term evidence
         holder = (it.get("dataProvider") or [""])[0]
         names = [v for vals in (it.get("dcCreatorLangAware") or {}).values() for v in vals] + list(it.get("dcCreator") or [])
         creator = next((n for n in names if n and not n.startswith("http")), "")  # a name, not an authority link
@@ -193,7 +223,209 @@ def europeana_search(query: str, limit: int = 12, media_type: str = "IMAGE") -> 
     return out
 
 
-SOURCES = {"met": met_search, "nasa": nasa_search, "smithsonian": smithsonian_search, "europeana": europeana_search}
+def _file_allowed(url: str, provider: str) -> bool:
+    """An https file on one of the provider's hosts (footage.ALLOWED_HOSTS)."""
+    from urllib.parse import urlparse
+
+    from .footage import _host_allowed
+    parsed = urlparse(url or "")
+    return parsed.scheme == "https" and _host_allowed(parsed.hostname or "", provider)
+
+
+def openverse_licence(code: str, version: str = "") -> tuple | None:
+    """(licence name as the licence filter reads it, licence URL) for an Openverse licence code we may reuse, edit
+    and publish; None for NoDerivatives, NonCommercial or anything unknown."""
+    code = (code or "").strip().lower()
+    if code == "pdm":
+        return "Public domain", "https://creativecommons.org/publicdomain/mark/1.0/"
+    if code == "cc0":
+        return "CC0", "https://creativecommons.org/publicdomain/zero/1.0/"
+    if code in ("by", "by-sa"):
+        version = (version or "4.0").strip()
+        return f"CC {code.upper()} {version}", f"https://creativecommons.org/licenses/{code}/{version}/"
+    return None
+
+
+def openverse_search(query: str, limit: int = 12) -> list[dict]:
+    """UNVERIFIED (api.openverse.org could not be fetched on 2026-11-02): GET /v1/images/ with q, license (comma-
+    separated codes), page_size, mature; results carry url, license, license_version, license_url, creator,
+    foreign_landing_url, title, tags[].name, width, height, provider. Anonymous use is rate limited."""
+    if not config.MUSEUM_OPENVERSE_ENABLED:
+        return []
+    found = _get(OPENVERSE, {"q": query, "license": "cc0,pdm,by,by-sa", "page_size": limit, "mature": "false"})
+    out = []
+    for it in (found or {}).get("results") or []:
+        if not isinstance(it, dict):
+            continue
+        rights = openverse_licence(it.get("license", ""), it.get("license_version", ""))
+        url = str(it.get("url") or "")
+        if not rights or not _file_allowed(url, "openverse"):
+            continue
+        verified = _verify_openverse_source(it)
+        if not verified:
+            continue
+        rights = verified["license"], verified["license_url"]
+        from .credits import license_allowed
+        if not license_allowed(rights[0]):
+            continue
+        if public_domain(rights[0]) and not recorded_basis_ok(verified):
+            continue
+        out.append(_candidate(
+            title=f"{it.get('title') or query} (Openverse, {it.get('provider') or it.get('source') or 'unknown'})"[:200],
+            download_url=url, source_url=it.get("foreign_landing_url") or url,
+            artist=verified.get("artist") or it.get("creator") or "Unknown",
+            license=rights[0], license_url=rights[1],
+            worldwide_basis=verified.get("worldwide_basis"),
+            license_verified_at=verified["license_verified_at"],
+            license_verification_source=verified["license_verification_source"],
+            attribution_required=not rights[0].startswith(("Public", "CC0")),
+            width=int(it.get("width") or 0), height=int(it.get("height") or 0),
+            categories=[t.get("name", "") for t in it.get("tags") or [] if isinstance(t, dict)][:10],
+            provider="openverse"))
+    return out
+
+
+def _verify_openverse_source(item: dict) -> dict | None:
+    """Recheck the exact Flickr photo or Commons file; other aggregations stay held."""
+    from urllib.parse import unquote, urlparse
+
+    from . import commons
+    source, media = urlparse(str(item.get("foreign_landing_url") or "")), urlparse(str(item.get("url") or ""))
+    if source.scheme != "https":
+        return None
+    if source.hostname in ("flickr.com", "www.flickr.com"):
+        match = re.fullmatch(r"/photos/[^/]+/([0-9]+)/?", source.path)
+        file_id = re.match(r"([0-9]+)_", media.path.rsplit("/", 1)[-1])
+        if not config.FLICKR_API_KEY or not match or not file_id or match[1] != file_id[1]:
+            return None
+        if media.hostname != "live.staticflickr.com" and not (media.hostname or "").endswith(".staticflickr.com"):
+            return None
+        common = {"api_key": config.FLICKR_API_KEY, "format": "json", "nojsoncallback": 1}
+        result = _get("https://www.flickr.com/services/rest/", {
+            **common, "method": "flickr.photos.getInfo", "photo_id": match[1]}) or {}
+        photo = result.get("photo") or {}
+        if (result.get("stat") != "ok" or str(photo.get("id")) != match[1]
+                or str((photo.get("visibility") or {}).get("ispublic")) != "1"):
+            return None
+        licenses = _get("https://www.flickr.com/services/rest/", {
+            **common, "method": "flickr.photos.licenses.getInfo"}) or {}
+        license_url = next((entry.get("url", "") for entry in (licenses.get("licenses") or {}).get("license", [])
+                            if str(entry.get("id")) == str(photo.get("license"))), "")
+        rights = open_licence(license_url)
+        if not rights or public_domain(rights[0]):
+            return None  # a Flickr PD mark alone supplies no worldwide basis
+        owner = photo.get("owner") or {}
+        record = {"license": rights[0], "license_url": rights[1], "artist": owner.get("realname") or owner.get("username")}
+        if rights[0] == "CC0":
+            record["worldwide_basis"] = basis("cc0", source.geturl())
+    elif source.hostname == "commons.wikimedia.org" and source.path.startswith("/wiki/File:"):
+        title = unquote(source.path[len("/wiki/"):])
+        try:
+            response = commons._get(commons.API, params={"action": "query", "format": "json", "titles": title,
+                "prop": "imageinfo|categories|templates", "iiprop": "url|size|mime|extmetadata", "cllimit": "max",
+                "tllimit": "max"}, timeout=30, max_wait=30)
+            pages = list((response.json().get("query") or {}).get("pages", {}).values())
+            records = list(commons.candidates(pages, []))
+        except (requests.RequestException, ValueError):
+            return None
+        record = next((candidate for candidate in records if candidate.get("download_url") == media.geturl()), None)
+        if record is None:
+            return None
+    else:
+        return None
+    return {**record, "license_verified_at": basis("", "")["checked_at"],
+            "license_verification_source": source.geturl()}
+
+
+_NO_KNOWN_RESTRICTIONS = ("no known restrictions", "no known copyright restrictions")
+_LOC_US_ONLY = ("in the u.s.", "in the united states", "use elsewhere may be restricted")
+
+
+def _loc_rights(result: dict) -> str:
+    """The rights advisory a Library of Congress search result carries (on the result or its "item"), as text."""
+    values = []
+    for holder in (result, result.get("item") if isinstance(result.get("item"), dict) else {}):
+        for key in ("rights_advisory", "rights"):
+            v = holder.get(key)
+            values += v if isinstance(v, list) else [v] if v else []
+    return " ".join(str(v) for v in values)
+
+
+def loc_search(query: str, limit: int = 12) -> list[dict]:
+    """Verified against the live API on 2026-11-02: GET /photos/?q=..&fo=json&c=<count>; each result has title, url
+    (the item page), date, image_url (sizes, smallest first) and its rights statement under item.rights. Only a
+    result whose statement says "no known restrictions" without a U.S.-only limit is taken ("Rights status not
+    evaluated" and "publication in the U.S. ... elsewhere may be restricted" are refused). A bot-challenge page is
+    not JSON: skipped by _get."""
+    found = _get(LOC, {"q": query, "fo": "json", "c": limit, "fa": "online-format:image"})
+    out = []
+    for r in (found or {}).get("results") or []:
+        if not isinstance(r, dict):
+            continue
+        rights = _loc_rights(r)
+        if not any(p in rights.lower() for p in _NO_KNOWN_RESTRICTIONS):
+            continue
+        if any(p in rights.lower() for p in _LOC_US_ONLY):
+            # "No known restrictions on publication in the U.S. Use elsewhere may be restricted": the channel
+            # publishes worldwide from Canada, so a U.S.-only clearance is not taken (2026-11-02).
+            continue
+        images = [str(u).split("#", 1)[0] for u in r.get("image_url") or [] if u]
+        images = ["https:" + u if u.startswith("//") else u for u in images]
+        best = images[-1] if images else ""   # the largest size; a thumbnail is never taken in its place
+        if not _file_allowed(best, "loc"):
+            continue
+        date = str(r.get("date") or "")
+        out.append(_candidate(
+            title=f"{r.get('title') or 'Item'} (Library of Congress)"[:200], download_url=best,
+            source_url=r.get("url") or r.get("id") or "", artist=", ".join(r.get("contributor") or [])[:120] or "Library of Congress",
+            license="Public domain", license_url="https://www.loc.gov/legal/understanding-copyright/",
+            worldwide_basis=basis("loc-no-known-restrictions", r.get("url") or r.get("id") or "",
+                                  statement=rights, us_only=False),
+            year=int(date[:4]) if date[:4].isdigit() else None,
+            description=(" ".join(r.get("description") or []) if isinstance(r.get("description"), list)
+                         else str(r.get("description") or ""))[:400] + f" Rights: {rights}"[:200],
+            categories=[str(s) for s in r.get("subject") or []][:10], provider="loc"))
+    return out
+
+
+ARTIC_WIDTH = 843   # the IIIF width the Art Institute documents as always available (larger may be refused)
+
+
+def artic_search(query: str, limit: int = 12) -> list[dict]:
+    """UNVERIFIED (api.artic.edu could not be fetched on 2026-11-02): GET /api/v1/artworks/search with q,
+    query[term][is_public_domain]=true, fields, limit; the answer's config.iiif_url and each artwork's image_id make
+    <iiif_url>/<image_id>/full/843,/0/default.jpg. Public-domain artworks' images are CC0. The AIC-User-Agent header
+    names the client, as the Art Institute asks."""
+    fields = "id,title,image_id,artist_display,date_start,date_display,place_of_origin,medium_display,is_public_domain,term_titles"
+    found = _get(ARTIC, {"q": query, "query[term][is_public_domain]": "true", "fields": fields, "limit": limit},
+                 headers={"AIC-User-Agent": HEADERS.get("User-Agent", "relic-and-riddle")})
+    iiif = str(((found or {}).get("config") or {}).get("iiif_url") or ARTIC_IIIF).rstrip("/")
+    out = []
+    for a in (found or {}).get("data") or []:
+        if not isinstance(a, dict) or a.get("is_public_domain") is not True or not a.get("image_id"):
+            continue
+        url = f"{iiif}/{a['image_id']}/full/{ARTIC_WIDTH},/0/default.jpg"
+        if not _file_allowed(url, "artic"):
+            continue
+        desc = ", ".join(str(x) for x in (a.get("date_display"), a.get("place_of_origin"), a.get("medium_display")) if x)
+        out.append(_candidate(
+            title=f"{a.get('title') or 'Artwork'} (Art Institute of Chicago {a.get('id')})"[:200], download_url=url,
+            source_url=f"https://www.artic.edu/artworks/{a.get('id')}", artist=a.get("artist_display") or "Art Institute of Chicago",
+            license="CC0", license_url="https://creativecommons.org/publicdomain/zero/1.0/",
+            year=a.get("date_start") if isinstance(a.get("date_start"), int) else None,
+            description=desc[:400], categories=[str(t) for t in a.get("term_titles") or []][:10], provider="artic"))
+    return out
+
+
+SOURCES = {"met": met_search, "nasa": nasa_search, "smithsonian": smithsonian_search, "europeana": europeana_search,
+           "openverse": openverse_search, "loc": loc_search, "artic": artic_search}
+BASE_SOURCES = ("met", "nasa", "smithsonian", "europeana")   # the topic pool's sources before 2026-11-02
+
+
+def extra_sources() -> tuple:
+    """The further sources the operator has enabled (config MUSEUM_*_ENABLED), in order."""
+    return tuple(name for name, flag in (("openverse", "MUSEUM_OPENVERSE_ENABLED"), ("loc", "MUSEUM_LOC_ENABLED"),
+                                         ("artic", "MUSEUM_ARTIC_ENABLED")) if getattr(config, flag, False))
 
 
 def _names_subject(cand: Dict, kws: List[str]) -> bool:
@@ -201,11 +433,14 @@ def _names_subject(cand: Dict, kws: List[str]) -> bool:
     return not kws or any(k in text for k in kws)
 
 
-def search_all(query: str, keywords: List[str], sources=tuple(SOURCES)) -> List[Dict]:
-    """Candidates from the museum sources whose title or description names the subject."""
+def search_all(query: str, keywords: list[str], sources: tuple | None = None) -> list[dict]:
+    """Candidates from the museum sources whose title or description names the subject (BASE_SOURCES and the
+    further sources the operator enabled, unless given)."""
     kws = [normalize(k) for k in keywords]
     out = []
-    for name in sources:
+    for name in sources or BASE_SOURCES + extra_sources():
+        if name == "openverse" and not config.MUSEUM_OPENVERSE_ENABLED:
+            continue
         for cand in SOURCES[name](query):
             if _names_subject(cand, kws):
                 out.append(cand)
@@ -235,7 +470,7 @@ def line_sources() -> tuple:
         names.append("smithsonian")
     if config.EUROPEANA_API_KEY:
         names.append("europeana")
-    return tuple(names)
+    return tuple(names) + extra_sources()
 
 
 def _cache_key(name: str, query: str, limit: int) -> str:
@@ -268,9 +503,11 @@ def cached_search(query: str, keywords: List[str], sources: Optional[tuple] = No
     for name in sources or line_sources():
         if name not in SOURCES:
             continue
+        if name == "openverse" and not config.MUSEUM_OPENVERSE_ENABLED:
+            continue
         key = _cache_key(name, query, limit)
         hit = cache.get(key)
-        if isinstance(hit, dict) and now - float(hit.get("at") or 0) < CACHE_DAYS * 86400:
+        if name != "openverse" and isinstance(hit, dict) and now - float(hit.get("at") or 0) < CACHE_DAYS * 86400:
             found = list(hit.get("found") or [])
         else:
             if (deadline is not None and time.monotonic() > deadline) or _down_until.get(name, 0) > time.monotonic():
@@ -286,6 +523,8 @@ def cached_search(query: str, keywords: List[str], sources: Optional[tuple] = No
             else:
                 fresh[key] = {"at": now, "found": found}
         out += [dict(c) for c in found if isinstance(c, dict) and c.get("download_url")
+                and (not public_domain(str(c.get("license") or "")) or recorded_basis_ok(c))
+                and (name != "openverse" or c.get("license_verified_at"))
                 and license_allowed(str(c.get("license") or "")) and _names_subject(c, kws)]
     if fresh:
         try:

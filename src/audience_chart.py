@@ -56,6 +56,13 @@ MARGIN = 80
 SS = 2                   # supersampling: PIL draws shapes without anti-aliasing, so draw at 2x and reduce
 SNAPSHOT = "7d"
 LIMIT = 6
+# Each platform counts a "view" its own way (Instagram and Facebook Reels plays, YouTube Shorts views; _views() reads
+# whichever field the snapshot has), so the chart says so under the figures, in words that name no definition the
+# code has not checked (round-3 panel, standards editor, 2026-11-02).
+FOOTNOTE = "EACH PLATFORM COUNTS A VIEW ITS OWN WAY"
+NEAR = 24                 # px: markers closer than this on one row (about one marker's radius) are fanned out (_spread)
+SPREAD = 11               # px each step of that spread moves a marker off the row's line
+DATE_SEP = " \u00b7 "      # between a row's post date and its title
 
 MONO_FILES = ("IBMPlexMono-SemiBold.ttf", "IBMPlexMono-Medium.ttf")
 
@@ -336,6 +343,58 @@ class _Canvas:
         return self.im.resize((W, self.h), Image.LANCZOS)
 
 
+def row_date(posted_at: Any) -> str:
+    """A Reel's post date as the row shows it ("28 OCT"), in the operator's zone; "" with no or an unreadable date."""
+    if posted_at in (None, ""):
+        return ""
+    from . import local_time
+    try:
+        return local_time.local(posted_at).strftime("%d %b").upper().lstrip("0")
+    except (TypeError, ValueError, OverflowError):
+        return ""
+
+
+def _spread(xs: Sequence[tuple[str, float]], near: float = NEAR, step: float = SPREAD) -> dict[str, float]:
+    """Vertical offsets for one row's markers: a run of markers each within `near` px of the next (equal or nearly
+    equal values) is fanned about the row's line, one `step` apart, so every shape in it stays visible; the shape is
+    what keeps gold and coral apart for a deutan reader (round-3 panel, 2026-11-02). x never moves: it is the value."""
+    out = {p: 0.0 for p, _ in xs}
+    ordered = sorted(xs, key=lambda t: t[1])
+    groups: list[list[str]] = []
+    last = None
+    for p, x in ordered:
+        if last is not None and x - last < near:
+            groups[-1].append(p)
+        else:
+            groups.append([p])
+        last = x
+    for g in groups:
+        if len(g) > 1:
+            for i, p in enumerate(g):
+                out[p] = (i - (len(g) - 1) / 2) * step * (2 if len(g) == 2 else 1)
+    return out
+
+
+def _posted_ts(posted_at: Any) -> float | None:
+    """A row's post time as epoch seconds, or None with no or an unreadable date."""
+    if posted_at in (None, ""):
+        return None
+    from . import local_time
+    try:
+        return local_time.local(posted_at).timestamp()
+    except (TypeError, ValueError, OverflowError, OSError):
+        return None
+
+
+def newest_first(reels: Sequence[dict[str, Any]]) -> list[dict[str, Any]]:
+    """The rows newest posting first, so the subtitle's "newest on top" is true whatever order a caller passes
+    (round-4 panel, 2026-11-02: a caller's oldest-first list drew 19 OCT on top). Stable: rows posted at the same
+    time, and undated rows (after every dated one), keep the caller's order."""
+    keyed = [(_posted_ts(r.get("posted_at")), i, r) for i, r in enumerate(reels)]
+    dated = sorted((k for k in keyed if k[0] is not None), key=lambda k: (-k[0], k[1]))
+    return [r for _, _, r in dated] + [r for ts, _, r in keyed if ts is None]
+
+
 def _date(today: Optional[datetime]) -> str:
     if today is None:
         from . import local_time
@@ -345,15 +404,16 @@ def _date(today: Optional[datetime]) -> str:
 
 def render(reels: Sequence[Dict[str, Any]], out_path: Optional[Path] = None, *, sample: bool = False,
            today: Optional[datetime] = None, mono_dir: Optional[Path] = None) -> Tuple[Image.Image, Dict[str, Any]]:
-    """The chart for `reels` (reels_at_7d's shape, newest first) as a 1200 px wide image, saved as PNG when
-    `out_path` is given. Returns (image, info): info has the headline, the drawn texts with their boxes and
-    colours, the fonts used and the layout figures the tests check."""
-    reels = list(reels)[:LIMIT]
+    """The chart for `reels` (reels_at_7d's shape) as a 1200 px wide image, saved as PNG when `out_path` is given:
+    the newest LIMIT rows, newest on top, whatever order they come in (newest_first). Returns (image, info): info has
+    the headline, the drawn texts with their boxes and colours, the fonts used and the layout figures the tests
+    check."""
+    reels = newest_first(reels)[:LIMIT]
     fonts = _Fonts(mono_dir)
     probe = _Canvas(1)
     head = headline(reels).upper()
     # One line when the headline fits at 64 px or more; two at the full size otherwise, never a cut claim.
-    head_lines, head_font, cut = typography.fit_text(probe.d, head, "Anton", 84 * SS, (W - 2 * MARGIN) * SS, 1, 64 * SS,
+    head_lines, head_font, cut = typography.probe_text(probe.d, head, "Anton", 84 * SS, (W - 2 * MARGIN) * SS, 1, 64 * SS,
                                                      sentences=False, quiet=True)
     if cut:
         head_lines, head_font, _ = typography.fit_text(probe.d, head, "Anton", 84 * SS, (W - 2 * MARGIN) * SS, 2,
@@ -370,7 +430,8 @@ def render(reels: Sequence[Dict[str, Any]], out_path: Optional[Path] = None, *, 
     y_legend = y_after_sub + 70 if reels else y_after_sub
     y_rows = y_legend + 52
     y_axis = y_rows + row_h * len(reels) + 4
-    y_foot = (y_axis + 70 if reels else y_after_sub + 120)
+    y_note = y_axis + 70 if reels else None
+    y_foot = (y_axis + 70 + 50 if reels else y_after_sub + 120)
     height = int(y_foot + (50 if sample else 0) + 52)
 
     c = _Canvas(height)
@@ -399,12 +460,13 @@ def render(reels: Sequence[Dict[str, Any]], out_path: Optional[Path] = None, *, 
         axis_font = fonts.mono(TEXT * SS, medium=True)
         # The figures column (2026-10-29): beside each row's dots, one slot per platform, right-aligned to the
         # widest figure in it, its marker next to its own number. The title gets the full width above, so a
-        # Reel's name is cut only when it is longer than the canvas, never for the figures.
+        # Reel's name must fit whole at the existing font floor; overflow refuses delivery.
         slots = []
         right = W - MARGIN
         for p, _, colour, kind in reversed(present):
             wmax = max(c.width(figure(r["views"].get(p)), fig_font) for r in reels)
-            slots.append((p, colour, kind, right))
+            # the key marker at one x per slot, left of the slot's widest figure: a column that never wobbles
+            slots.append((p, colour, kind, right, right - wmax - 20))
             right -= wmax + 26 + 28
         x0, x1 = MARGIN + 22, right - 34
         vals = [v for r in reels for v in r["views"].values() if v is not None]
@@ -425,34 +487,52 @@ def render(reels: Sequence[Dict[str, Any]], out_path: Optional[Path] = None, *, 
         px = lambda v: x0 + (x1 - x0) * (v / tk[-1] if tk[-1] else 0)  # noqa: E731
         for t in tk:
             c.line(px(t), y_rows + 44, px(t), y_axis - 30, GRID, 2)
-        info["title_width"] = W - 2 * MARGIN
+        # Each row is told apart by its post date as well as its title (round-3 panel, 2026-11-02): the date in a
+        # column of its own, as wide as the widest, so every title starts at one x; the title has the rest.
+        dates = [row_date(r.get("posted_at")) for r in reels]
+        date_font = fonts.mono(TEXT * SS)
+        date_w = max((c.width(d + DATE_SEP, date_font) for d in dates if d), default=0)
+        info["title_width"] = W - 2 * MARGIN - date_w
+        info["title_x"] = MARGIN + date_w
+        info["dates"] = dates
         info["plot"] = (x0, x1)
-        titles = []
+        titles, markers = [], []
         for i, r in enumerate(reels):
             y_t = y_rows + i * row_h + 34
             y_d = y_t + 40  # nearer its own title than the next row's, so each title reads with its dots
+            if dates[i]:
+                c.text((MARGIN, y_t), dates[i] + DATE_SEP.rstrip(), date_font, STONE_LT, clear=True)
             title, _, _ = typography.fit_line(probe.d, str(r.get("title") or r.get("run_id") or ""), "Montserrat",
-                                              TEXT * SS, (W - 2 * MARGIN) * SS, TEXT * SS, quiet=True)
+                                              TEXT * SS, int(info["title_width"] * SS), TEXT * SS, quiet=True)
             titles.append(title)
-            c.text((MARGIN, y_t), title, title_font, BONE, clear=True)
-            for p, colour, kind, rx in slots:
+            c.text((info["title_x"], y_t), title, title_font, BONE, clear=True)
+            for p, colour, kind, rx, kx in slots:
                 v = r["views"].get(p)
                 s = figure(v)
-                c.marker(kind, rx - c.width(s, fig_font) - 20, y_d, 9, colour, outline=0)
+                c.marker(kind, kx, y_d, 9, colour, outline=0)
                 c.text((rx, y_d), s, fig_font, colour if v is not None else STONE_LT, anchor="rm")
             row = [r["views"].get(p) for p, *_ in present if r["views"].get(p) is not None]
             if len(row) > 1:
                 c.line(px(min(row)), y_d, px(max(row)), y_d, BAR, 8)
+            plotted = [(p, px(r["views"][p])) for p, *_ in present if r["views"].get(p) is not None]
+            dy = _spread(plotted)
+            at = {}
             # the largest marker first, so a triangle or square on the same value still shows on top
             for p, _, colour, kind in sorted(present, key=lambda q: {"circle": 0, "square": 1, "triangle": 2}[q[3]]):
                 v = r["views"].get(p)
                 if v is not None:
-                    c.marker(kind, px(v), y_d, 17, colour)
+                    at[p] = (px(v), y_d + dy[p])
+                    c.marker(kind, px(v), y_d + dy[p], 17, colour)
+            markers.append(at)
         info["titles"] = titles
+        info["markers"] = markers
+        info["key_x"] = {p: kx for p, _, _, _, kx in slots}
         for t, (x, _) in zip(tk, xs):
             c.text((x, y_axis + 10), axis_label(t, tk[-1]), axis_font, STONE_LT, anchor="ms")
         info["ticks"] = tk
     foot_font = fonts.mono(TEXT * SS, medium=True)
+    if y_note is not None:
+        c.text((MARGIN, y_note), FOOTNOTE, fonts.mono(TEXT * SS), STONE_LT)
     if sample:
         c.text((MARGIN, y_foot), "SAMPLE DATA, NOT AUDIENCE FIGURES", foot_font, CORAL)
         y_foot += 50

@@ -1,9 +1,10 @@
 """Evidence for docs/reviews/brand-overhaul-2026-10-29: before (HEAD) | after half-size pairs and measurements."""
 import json
+import os
 import sys
 from pathlib import Path
 
-MAIN = Path(r"C:\Users\omokolade\GitHub\relic-and-riddle")
+MAIN = Path(os.environ.get("RR_FIXTURE_REPO") or Path(__file__).resolve().parents[3])  # the checkout holding output/
 sys.path.insert(0, str(MAIN))
 from PIL import Image, ImageDraw  # noqa: E402
 from src.typography import get_font  # noqa: E402

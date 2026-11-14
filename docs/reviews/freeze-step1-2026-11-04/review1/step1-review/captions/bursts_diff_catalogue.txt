@@ -1,0 +1,92 @@
+===== richat_structure_sahara_eye_16x9 
+  - The geological origins of the Richat
+  - Structure were once a matter
+  - of scientific debate
+  + The geological origins
+  + of the Richat Structure were once
+  + a matter of scientific debate
+  ..
+  - is evidenced by exceptional
+  - accumulations of Acheulean
+  - artifacts alongside Middle
+  - Stone Age Aterian tools dating
+  + is evidenced by exceptional accumulations
+  + of Acheulean artifacts alongside
+  + Middle Stone Age Aterian tools dating
+  ..
+  -- sidecar 46 -> 46
+  S- Acheulean artifacts alongside Middle
+Stone Age Aterian tools dating from
+  S+ Acheulean artifacts alongside
+Middle Stone Age Aterian tools dating from
+  ..
+===== gol_gumbaz_whispering_gallery_9x16 
+  - GRAY BASALT  [80px]
+  - MAUSOLEUM OF GOL  [80px]
+  - GUMBAZ IN BIJAPUR  [80px]
+  + GRAY BASALT MAUSOLEUM  [78px]
+  + OF GOL GUMBAZ  [80px]
+  + IN BIJAPUR  [80px]
+  ..
+  - ON PENDENTIVE SYSTEMS  [80px]
+  - ATTRIBUTED TO CENTRAL  [80px]
+  - ASIAN TRADITIONS  [80px]
+  + ON PENDENTIVE  [80px]
+  + SYSTEMS ATTRIBUTED  [80px]
+  + TO CENTRAL ASIAN  [80px]
+  + TRADITIONS  [80px]
+  ..
+  - AND CEASED IN 1656  [80px]
+  - UPON MOHAMMAD ADIL  [80px]
+  - SHAH'S DEATH, LEAVING  [80px]
+  + AND CEASED  [80px]
+  + IN 1656 UPON  [80px]
+  + MOHAMMAD ADIL SHAH'S  [78px]
+  + DEATH, LEAVING  [80px]
+  ..
+===== tunguska_event_1908_9x16 
+  - LOCAL TIME  [80px]
+  - NEAR THE PODKAMENNAYA  [78px]
+  - TUNGUSKA RIVER  [80px]
+  - IN CENTRAL SIBERIA  [80px]
+  + LOCAL TIME, NEAR THE  [80px]
+  + PODKAMENNAYA TUNGUSKA  [76px]
+  + RIVER IN CENTRAL SIBERIA  [78px]
+  ..
+===== amber_room_heist_9x16 
+  - DISASSEMBLED THE AMBER  [76px]
+  - ROOM IN 36 HOURS  [80px]
+  + DISASSEMBLED  [80px]
+  + THE AMBER ROOM  [80px]
+  + IN 36 HOURS  [80px]
+  ..
+  - WHEN KÖNIGSBERG  [80px]
+  - CASTLE WAS BOMBED  [80px]
+  - BY BRITISH AIRCRAFT  [80px]
+  - AND SHELLED  [80px]
+  + WHEN KÖNIGSBERG CASTLE  [77px]
+  + WAS BOMBED BY BRITISH  [80px]
+  + AIRCRAFT AND SHELLED  [80px]
+  ..
+===== voynich_manuscript_9x16 
+  - BOOK DEALER WILFRID  [80px]
+  - VOYNICH, WHO ACQUIRED  [80px]
+  - IT IN 1912  [80px]
+  + BOOK DEALER  [80px]
+  + WILFRID VOYNICH  [80px]
+  + WHO ACQUIRED IT  [80px]
+  + IN 1912  [80px]
+  ..
+  - FROM BOTH WORLD  [80px]
+  - WAR ONE AND WORLD  [80px]
+  - WAR TWO ATTEMPTED  [80px]
+  + FROM BOTH WORLD WAR  [80px]
+  + ONE AND WORLD WAR  [80px]
+  + TWO ATTEMPTED  [80px]
+  ..
+===== kailasa_temple_monolith_NEW_9x16 new: fact-sheet statement kailasa-commencement-patron (no run narrates it), synthetic fitted timings (layout only)
+  - OF THE KAILASA  [80px]
+  - TEMPLE COMMENCED  [80px]
+  + OF THE KAILASA TEMPLE  [80px]
+  + COMMENCED  [80px]
+  ..

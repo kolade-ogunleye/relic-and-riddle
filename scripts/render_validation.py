@@ -1,7 +1,6 @@
 """Render and inspect a prepared documentary without publishing or sending messages."""
 import argparse
 import json
-import re
 import sys
 from pathlib import Path
 
@@ -9,12 +8,12 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 from src import graphics
-from src.audio_engine import AudioEngine
+from src.audio_engine import AudioEngine, voiceover_file
 from src.config import DATA_DIR
 from src.credits import add_provenance_attributions, generate_provenance_ledger
-from src.fact_evidence import current_fact_review, record_fact_review
+from src.fact_evidence import current_fact_review, stamp_checked_review
 from src.release import write_release_report
-from src.trace_check import check, evidence_check
+from src.trace_check import check, checker_models, evidence_check
 from src.video_composer import VideoComposer
 from src.video_qa import QualityAuditor
 from src.visual_engine import VisualEngine
@@ -41,8 +40,6 @@ def main():
     for credit, photo in zip(selected, photos):
         credit["file"] = str(photo)
     (root / "credits.json").write_text(json.dumps({"reviewed": False, "images": selected}, indent=2), encoding="utf-8")
-    payload.update(rolling_stone_defense={"title": "ILLUSTRATIVE STONE DOOR"},
-                   ventilation_airflow={"title": "ILLUSTRATIVE AIRFLOW"})
     if not current_fact_review(payload):
         sheet_path = DATA_DIR / "fact_sheets" / f"{topic_id}.json"
         passed, confidence, audits, notes = check(payload, json.loads(sheet_path.read_text(encoding="utf-8")))
@@ -56,18 +53,15 @@ def main():
         (root / "script_metadata.json").write_text(json.dumps(payload, indent=2), encoding="utf-8")
         if not passed:
             raise ValueError("Final diagram/package review failed: " + notes + "; " + evidence_notes)
-        record_fact_review(payload, sheet_path)
+        # stamped with both checkers' signed runs (fact_evidence.record_fact_review refuses otherwise)
+        stamp_checked_review(payload, sheet_path, (passed, confidence, audits, notes),
+                             (status, evidence_confidence, evidence_audits, evidence_notes), checker_models())
     print("Package verified; generating graphics", flush=True)
     made = graphics.make_all(payload, topic, root / "graphics", width=1920, height=1080)
     by_name = {p.stem: p for p in made}
     words = json.loads((root / "words.json").read_text(encoding="utf-8"))
-    duration = AudioEngine.get_duration(root / "voiceover.mp3")
+    duration = AudioEngine.get_duration(voiceover_file(root))
     cues = {0.0: by_name["graphic_map"]} if "graphic_map" in by_name else {}
-    for pattern, name in ((r"rolling|cylinders|doors", "graphic_defense"),
-                          (r"ventilation", "graphic_ventilation")):
-        word = next((w for w in words if re.search(pattern, w["word"], re.I)), None)
-        if word and name in by_name:
-            cues[max(0.0, word["start"] - 0.3)] = by_name[name]
     boundaries = [float(t) for t in range(0, int(duration), 8)
                   if t == 0 or all(abs(t - cue) >= 3 for cue in cues)]
     boundaries = sorted(set([*boundaries, *cues, duration]))
@@ -87,7 +81,7 @@ def main():
     master = root / "documentary_master.mp4"
     print(f"Rendering {len(scenes)} cuts, {duration:.3f} seconds", flush=True)
     composer = VideoComposer()
-    composer.compose_deep_dive(scenes, root / "voiceover.mp3", root / "ambient_bed.wav",
+    composer.compose_deep_dive(scenes, voiceover_file(root), root / "ambient_bed.wav",
                               words, duration, master, durations=durations)
     print("Render complete; auditing", flush=True)
     audit = QualityAuditor().audit_rendered_timeline(master, timeline, words,
@@ -98,7 +92,7 @@ def main():
     cover, grid = visual.generate_thumbnails(hero, payload, root)
     thumbnail = visual.generate_youtube_thumbnail(hero, payload, root / "thumbnail_youtube_16x9.jpg")
     payload["thumbnail_youtube"] = str(thumbnail)
-    ledger = generate_provenance_ledger(root, topic, payload, master, root / "voiceover.mp3",
+    ledger = generate_provenance_ledger(root, topic, payload, master, voiceover_file(root),
         root / "ambient_bed.wav", scenes, audit)
     add_provenance_attributions(payload, ledger)
     (root / "script_metadata.json").write_text(json.dumps(payload, indent=2), encoding="utf-8")

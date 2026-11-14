@@ -64,9 +64,8 @@ def available() -> bool:
 
 @lru_cache(maxsize=1)
 def _session():
-    import onnxruntime as ort
-    providers = [p for p in ("DmlExecutionProvider", "CPUExecutionProvider") if p in ort.get_available_providers()]
-    return ort.InferenceSession(str(MODEL_PATH), providers=providers)
+    from .onnx_session import create_session
+    return create_session(MODEL_PATH)
 
 
 def depth_map(rgb):
@@ -143,7 +142,7 @@ def preset_for(index: int, total: int) -> str:
     return SEQUENCE[(index - 1) % len(SEQUENCE)]
 
 
-from .encoding import bounded_encode
+from .encoding import BT709_FLAGS, RGB_TO_BT709, bounded_encode
 
 
 @bounded_encode
@@ -174,8 +173,8 @@ def render_clip(image_path: Path, out_path: Path, duration: float, preset: str =
     frames = max(2, int(round(duration * fps)))
     proc = subprocess.Popen(
         ["ffmpeg", "-y", "-v", "error", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{out_w}x{out_h}",
-         "-r", str(fps), "-i", "-", "-c:v", "libx264", "-preset", "fast", "-crf", "14",
-         "-pix_fmt", "yuv420p", str(out_path)],
+         "-r", str(fps), "-i", "-", "-vf", RGB_TO_BT709, "-c:v", "libx264", "-preset", "fast", "-crf", "14",
+         *BT709_FLAGS, "-pix_fmt", "yuv420p", str(out_path)],
         stdin=subprocess.PIPE)
     try:
         for i in range(frames):
@@ -207,6 +206,7 @@ def render_scenes(scenes, durations, work_dir: Path, transition: float,
         log.info("Parallax unavailable (model or libraries missing); using flat camera moves.")
         return None
     from .typography import is_video
+    from .image_presentation import full_image
     from concurrent.futures import ThreadPoolExecutor
 
     from .checkpoints import Checkpoints, file_inputs
@@ -241,7 +241,7 @@ def render_scenes(scenes, durations, work_dir: Path, transition: float,
             p = Path(scene)
             is_reconstruction = p.stem.startswith(("gap_gen_", "gen_"))
             is_macro = i in exempt_set
-            if not is_video(p) and not is_reconstruction and not is_macro:
+            if not is_video(p) and not is_reconstruction and not is_macro and not full_image(p):
                 # A photo shown again gets another frame and a move it has not had, never the same shot twice
                 # (Nazca, 2026-10-25: the repeat was reframed but rose as before).
                 variant = shown.get(str(scene), 0)

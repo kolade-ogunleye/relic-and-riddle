@@ -1,0 +1,113 @@
+{
+  "note": "the development checkout's 31 photo pools (278 photos with records, 1.4 GB), read-only; QF115_POOLS=<assets folder>",
+  "before_fe88d4a6": {
+    "startup_cold_plain": {
+      "elapsed_to_first_message_s": 261.471,
+      "elapsed_to_dashboard_s": 261.471,
+      "first_queue_line": "📋 Queue: 31 topics · 15 with photos ready",
+      "elapsed_to_count_shown_s": 261.471,
+      "counted_ready_sets": 15,
+      "messages_sent": 1
+    },
+    "startup_warm_plain": {
+      "elapsed_to_first_message_s": 344.768,
+      "elapsed_to_dashboard_s": 344.768,
+      "first_queue_line": "📋 Queue: 31 topics · 15 with photos ready",
+      "elapsed_to_count_shown_s": 344.768,
+      "counted_ready_sets": 15,
+      "messages_sent": 1
+    },
+    "startup_cold_clean": {
+      "elapsed_to_first_message_s": 377.026,
+      "elapsed_to_dashboard_s": 378.157,
+      "first_queue_line": "📋 Queue: 31 topics · 15 with photos ready",
+      "elapsed_to_count_shown_s": 378.157,
+      "counted_ready_sets": 15,
+      "messages_sent": 2
+    },
+    "startup_warm_clean": {
+      "elapsed_to_first_message_s": 223.088,
+      "elapsed_to_dashboard_s": 223.641,
+      "first_queue_line": "📋 Queue: 31 topics · 15 with photos ready",
+      "elapsed_to_count_shown_s": 223.641,
+      "counted_ready_sets": 15,
+      "messages_sent": 2
+    },
+    "refresh_cold_process": {
+      "photos": 278,
+      "first_refresh_elapsed_s": 183.576,
+      "second_refresh_elapsed_s": 0.535,
+      "hash_errors": 0
+    },
+    "refresh_restarted_process": {
+      "photos": 278,
+      "first_refresh_elapsed_s": 166.095,
+      "second_refresh_elapsed_s": 0.542,
+      "hash_errors": 0
+    },
+    "signature_record_on_disk": false,
+    "pools": 31
+  },
+  "after": {
+    "startup_cold_plain": {
+      "elapsed_to_first_message_s": 1.778,
+      "elapsed_to_dashboard_s": 1.778,
+      "first_queue_line": "📋 Queue: 31 topics · counting photo sets…",
+      "elapsed_to_count_shown_s": 278.192,
+      "counted_ready_sets": 15,
+      "messages_sent": 1,
+      "photo_warning_shown": false
+    },
+    "startup_warm_plain": {
+      "elapsed_to_first_message_s": 1.132,
+      "elapsed_to_dashboard_s": 1.132,
+      "first_queue_line": "📋 Queue: 31 topics · counting photo sets…",
+      "elapsed_to_count_shown_s": 53.002,
+      "counted_ready_sets": 15,
+      "messages_sent": 1,
+      "photo_warning_shown": false
+    },
+    "worker_after_restart_plain": {
+      "elapsed_to_first_message_s": 12.598,
+      "elapsed_to_dashboard_s": 12.598,
+      "first_queue_line": "📋 Queue: 31 topics · 15 with photos ready",
+      "elapsed_to_count_shown_s": 12.598,
+      "counted_ready_sets": 15,
+      "messages_sent": 1,
+      "photo_warning_shown": false
+    },
+    "startup_cold_clean": {
+      "elapsed_to_first_message_s": 1.214,
+      "elapsed_to_dashboard_s": 1.368,
+      "first_queue_line": "📋 Queue: 31 topics · counting photo sets…",
+      "elapsed_to_count_shown_s": 162.359,
+      "counted_ready_sets": 15,
+      "messages_sent": 2,
+      "photo_warning_shown": false
+    },
+    "startup_warm_clean": {
+      "elapsed_to_first_message_s": 4.051,
+      "elapsed_to_dashboard_s": 5.049,
+      "first_queue_line": "📋 Queue: 31 topics · counting photo sets…",
+      "elapsed_to_count_shown_s": 55.039,
+      "counted_ready_sets": 15,
+      "messages_sent": 2,
+      "photo_warning_shown": false
+    },
+    "refresh_cold_process": {
+      "photos": 278,
+      "first_refresh_elapsed_s": 197.461,
+      "second_refresh_elapsed_s": 1.304,
+      "hash_errors": 0
+    },
+    "refresh_restarted_process": {
+      "photos": 278,
+      "first_refresh_elapsed_s": 5.539,
+      "second_refresh_elapsed_s": 5.656,
+      "hash_errors": 0
+    },
+    "signature_record_on_disk": true,
+    "pools": 31
+  },
+  "after_note": "round 2, measured again on the final tree while other suites loaded the machine; in the full run startup_cold_plain's count took longer than measure.py's 600 s window (first message 1.162 s), so that scenario was run again alone: the figures above"
+}

@@ -1,0 +1,400 @@
+=== run_richat_structure_sahara_eye_1792740961_long | richat_structure_sahara_eye [16:9] ===
+why: the only 16:9 narration (documentary words.json)
+454 words, 98 bursts, emphasis []; vignette vignette=PI/6.4:aspect=1 (src.video_composer.picture_vignette)
+  0    0.02-   2.22  fs 81  plate 1060x 84   The Richat Structure is situated near
+  1    2.22-   4.09  fs 81  plate  888x 84   Ouadane on the Adrar Plateau
+  2    4.09-   6.63  fs 81  plate 1092x 84   within the Adrar Region of Mauritania
+  3    6.63-   8.56  fs 81  plate  920x 84   Visible from space as a massive
+  4    8.56-  10.65  fs 81  plate  938x 84   desert landmark, the concentric
+  5   10.65-  12.48  fs 81  plate  932x 84   formation has served as a visual
+  6   12.48-  15.01  fs 81  plate 1132x 84   reference point for space shuttle crews
+  7   15.01-  16.53  fs 81  plate  900x 84   Its documented scale depends
+  8   16.53-  18.49  fs 81  plate  868x 84   on the observational method:
+  9   18.49-  20.01  fs 81  plate  700x 84   geological field surveys
+ 10   20.01-  22.08  fs 81  plate 1020x 84   record the feature at 40 kilometres
+ 11   22.08-  24.55  fs 81  plate 1064x 84   across, though satellite observations
+ 12   24.55-  25.84  fs 81  plate  692x 84   describe it as spanning
+ 13   25.84-  27.66  fs 81  plate  634x 84   almost 50 kilometres
+ 14   27.66-  29.75  fs 81  plate  952x 84   What physical processes formed
+ 15   29.75-  31.20  fs 81  plate  680x 84   this circular geological
+ 16   31.20-  33.07  fs 81  plate  736x 84   formation in the Sahara?
+ 17   33.07-  35.16  fs 81  plate  946x 84   Geologists identify the structure
+ 18   35.16-  36.74  fs 81  plate  806x 84   as an eroded dome created
+ 19   36.74-  38.11  fs 81  plate  808x 84   when a subsurface igneous
+ 20   38.11-  40.05  fs 81  plate  964x 84   intrusion deformed the overlying
+ 21   40.05-  42.82  fs 81  plate 1122x 84   sedimentary rock into concentric rings
+ 22   42.82-  44.26  fs 81  plate  860x 84   The structural characteristics
+ 23   44.26-  46.07  fs 81  plate  712x 84   display distinct layering
+ 24   46.07-  47.83  fs 81  plate  696x 84   and magmatic features
+ 25   47.83-  49.19  fs 81  plate  504x 84   By one estimate
+ 26   49.19-  51.22  fs 81  plate 1096x 84   the sedimentary rock layers that form
+ 27   51.22-  52.76  fs 81  plate  908x 84   the outer rings of the structure
+ 28   52.76-  54.07  fs 81  plate  656x 84   dip outward at angles
+ 29   54.07-  56.16  fs 81  plate  804x 84   between 10 and 20 degrees
+ 30   56.16-  58.12  fs 81  plate 1054x 84   Framing the complex are concentric
+ 31   58.12-  59.95  fs 81  plate  586x 84   gabbroic ring dikes
+ 32   59.95-  61.41  fs 81  plate  776x 84   consisting of an inner ring
+ 33   61.41-  63.57  fs 81  plate 1020x 84   about 30 metres wide and an outer
+ 34   63.57-  65.72  fs 81  plate  782x 84   ring about 70 metres wide
+ 35   65.72-  67.93  fs 81  plate  832x 84   At the core, by one estimate
+ 36   67.93-  69.41  fs 81  plate  996x 84   the heart of the structure features
+ 37   69.41-  71.49  fs 81  plate 1028x 84   a siliceous breccia covering an area
+ 38   71.49-  74.18  fs 81  plate  980x 84   at least 30 kilometres in diameter
+ 39   74.18-  76.29  fs 81  plate 1206x 84   reaching a thickness of at least 40 metres
+ 40   76.29-  77.59  fs 81  plate  386x 84   at its center
+ 41   77.59-  79.09  fs 81  plate  660x 84   The geological origins
+ 42   79.09-  81.03  fs 81  plate  984x 84   of the Richat Structure were once
+ 43   81.03-  83.24  fs 81  plate  832x 84   a matter of scientific debate
+ 44   83.24-  85.26  fs 81  plate 1032x 84   The feature was initially considered
+ 45   85.26-  87.89  fs 81  plate  936x 84   an extraterrestrial impact crater
+ 46   87.89-  90.72  fs 81  plate 1234x 84   However, the impact theory was disproved
+ 47   90.72-  92.47  fs 81  plate 1132x 84   when suspected shock-metamorphism
+ 48   92.47-  95.18  fs 81  plate  860x 84   coesite was identified in 1969
+ 49   95.18-  96.91  fs 81  plate  608x 84   as mislabeled barite
+ 50   96.91-  98.84  fs 81  plate 1004x 84   Subsequent geochemical analyses
+ 51   98.84- 100.16  fs 81  plate  704x 84   established a terrestrial
+ 52  100.16- 103.01  fs 81  plate 1164x 84   timeline: dating of the carbonatite rocks
+ 53  103.01- 103.87  fs 81  plate  568x 84   shows they cooled
+ 54  103.87- 107.54  fs 81  plate 1090x 84   between 94 and 104 million years ago
+ 55  107.54- 109.26  fs 81  plate 1024x 84   closely matching the hydrothermal
+ 56  109.26- 111.58  fs 81  plate 1152x 84   event that produced the central breccia
+ 57  111.58- 113.85  fs 81  plate 1044x 84   Physical evidence across the terrain
+ 58  113.85- 115.88  fs 81  plate  904x 84   establishes a prolonged record
+ 59  115.88- 117.32  fs 81  plate  588x 84   of human presence
+ 60  117.32- 118.94  fs 81  plate  864x 84   Prehistoric human habitation
+ 61  118.94- 121.22  fs 81  plate 1240x 84   is evidenced by exceptional accumulations
+ 62  121.22- 123.10  fs 81  plate  942x 84   of Acheulean artifacts alongside
+ 63  123.10- 125.16  fs 81  plate 1102x 84   Middle Stone Age Aterian tools dating
+ 64  125.16- 129.21  fs 81  plate 1182x 84   from roughly 145,000 to 29,000 years ago
+ 65  129.21- 130.70  fs 81  plate  748x 84   Later mortuary traditions
+ 66  130.70- 132.89  fs 81  plate  784x 84   also appear across the site
+ 67  132.89- 134.36  fs 81  plate  500x 84   by one estimate
+ 68  134.36- 135.70  fs 81  plate  726x 84   thousands of prehistoric
+ 69  135.70- 137.80  fs 81  plate 1046x 84   stone burial mounds built in various
+ 70  137.80- 139.64  fs 81  plate  808x 84   distinct architectural styles
+ 71  139.64- 142.23  fs 81  plate 1200x 84   line the protruding dikes of the formation
+ 72  142.23- 144.53  fs 81  plate 1288x 84   While these material finds document human
+ 73  144.53- 146.67  fs 81  plate  814x 84   activity, the physical record
+ 74  146.67- 149.49  fs 81  plate 1024x 84   also refutes alternative speculation
+ 75  149.49- 150.84  fs 81  plate  764x 84   Fringe theories proposing
+ 76  150.84- 152.69  fs 81  plate  940x 84   the formation as Plato's lost city
+ 77  152.69- 154.86  fs 81  plate 1040x 84   of Atlantis are refuted by geological
+ 78  154.86- 157.84  fs 81  plate 1004x 84   reality, as the feature is an ancient
+ 79  157.84- 159.30  fs 81  plate  724x 84   natural inland terrestrial
+ 80  159.30- 161.51  fs 81  plate  984x 84   dome rather than a sunken island
+ 81  161.51- 162.69  fs 81  plate  736x 84   Through decades of field
+ 82  162.69- 165.42  fs 81  plate 1004x 84   surveys and geochemical analyses
+ 83  165.42- 167.40  fs 81  plate 1208x 84   the Richat Structure has been established
+ 84  167.40- 169.59  fs 81  plate 1096x 84   as an eroded geological dome shaped
+ 85  169.59- 171.60  fs 81  plate 1004x 84   by deep-seated igneous processes
+ 86  171.60- 173.29  fs 81  plate  676x 84   and prolonged erosion
+ 87  173.29- 175.34  fs 81  plate  490x 84   In October 2022
+ 88  175.34- 177.33  fs 81  plate 1068x 84   the International Union of Geological
+ 89  177.33- 179.61  fs 81  plate 1000x 84   Sciences recognized this scientific
+ 90  179.61- 182.08  fs 81  plate 1024x 84   value by designating the formation
+ 91  182.08- 183.44  fs 81  plate  746x 84   as one of the world's first
+ 92  183.44- 186.45  fs 81  plate 1034x 84   100 official geological heritage sites
+ 93  186.45- 188.49  fs 81  plate 1020x 84   With its origin grounded in verified
+ 94  188.49- 190.26  fs 81  plate  784x 84   terrestrial processes, what
+ 95  190.26- 191.81  fs 81  plate  762x 84   questions remain for field
+ 96  191.81- 193.73  fs 81  plate 1028x 84   researchers studying the formation
+ 97  193.73- 196.03  fs 81  plate 1148x 84   and its prehistoric human occupations?
+  names:
+    WHOLE  Richat Structure             The Richat Structure is situated near
+    WHOLE  Adrar Plateau                Ouadane on the Adrar Plateau
+    WHOLE  Adrar Region                 within the Adrar Region of Mauritania
+    WHOLE  Richat Structure             of the Richat Structure were once
+    WHOLE  Middle Stone Age Aterian     Middle Stone Age Aterian tools dating
+    WHOLE  Richat Structure             the Richat Structure has been established
+    SPLIT  International Union of Geological Sciences (joined: catalogue parts 'International Union' + 'Geological Sciences') the International Union of Geological | Sciences recognized this scientific
+  bursts ending on an article: none
+  function-word-only bursts: none
+  bursts on screen under 0.50 s: none
+  bursts spanning a pause of 0.30 s or more after punctuation: ["4: 0.55s after 'landmark,' in desert landmark, the concentric", "11: 0.54s after 'across,' in across, though satellite observations", "52: 0.74s after 'timeline:' in timeline: dating of the carbonatite rocks", "73: 0.34s after 'activity,' in activity, the physical record", "78: 0.57s after 'reality,' in reality, as the feature is an ancient", "94: 0.34s after 'processes,' in terrestrial processes, what"]
+  sidecar cues (.srt/.vtt): 47
+       0.09-   4.16  'The Richat Structure is situated\nnear Ouadane on the Adrar Plateau'
+       4.16-   6.40  'within the Adrar Region of Mauritania.'
+       6.70-   9.62  'Visible from space\nas a massive desert landmark,'
+      10.06-  14.16  'the concentric formation has served as a\nvisual reference point for space shuttle'
+      14.16-  17.96  'crews. Its documented scale depends\non the observational method:'
+      18.56-  22.78  'geological field surveys record\nthe feature at 40 kilometres across,'
+      23.21-  27.42  'though satellite observations describe\nit as spanning almost 50 kilometres.'
+      27.73-  29.82  'What physical processes formed'
+      29.82-  34.46  'this circular geological formation\nin the Sahara? Geologists identify'
+      34.46-  38.80  'the structure as an eroded dome created\nwhen a subsurface igneous intrusion'
+      38.80-  42.03  'deformed the overlying sedimentary\nrock into concentric'
+      42.03-  46.88  'rings. The structural characteristics\ndisplay distinct layering and magmatic'
+      46.88-  52.23  'features. By one estimate, the sedimentary\nrock layers that form the outer rings of'
+      52.23-  55.92  'the structure dip outward\nat angles between 10 and 20 degrees.'
+      56.22-  59.62  'Framing the complex\nare concentric gabbroic ring dikes,'
+      60.01-  64.63  'consisting of an inner ring about 30\nmetres wide and an outer ring about 70'
+      64.63-  67.77  'metres wide. At the core, by one estimate,'
+      68.00-  71.56  'the heart of the structure features\na siliceous breccia covering an area'
+      71.56-  76.36  'at least 30 kilometres in diameter,\nreaching a thickness of at least 40 metres'
+      76.36-  81.79  'at its center. The geological origins of\nthe Richat Structure were once a matter of'
+      81.79-  86.54  'scientific debate. The feature was\ninitially considered an extraterrestrial'
+      86.54-  91.56  'impact crater. However, the impact\ntheory was disproved when suspected'
+      91.56-  96.67  'shock-metamorphism coesite was identified\nin 1969 as mislabeled barite.'
+      96.98- 100.88  'Subsequent geochemical analyses\nestablished a terrestrial timeline:'
+     101.52- 106.71  'dating of the carbonatite rocks shows they\ncooled between 94 and 104 million years'
+     106.71- 111.34  'ago, closely matching the hydrothermal\nevent that produced the central breccia.'
+     111.65- 116.36  'Physical evidence across the terrain\nestablishes a prolonged record of human'
+     116.36- 121.40  'presence. Prehistoric human habitation is\nevidenced by exceptional accumulations of'
+     121.40- 125.47  'Acheulean artifacts alongside\nMiddle Stone Age Aterian tools dating from'
+     125.47- 128.96  'roughly 145,000 to 29,000 years ago.'
+     129.27- 132.42  'Later mortuary traditions\nalso appear across the site;'
+     132.96- 137.87  'by one estimate, thousands of prehistoric\nstone burial mounds built in various'
+     137.87- 141.97  'distinct architectural styles line\nthe protruding dikes of the formation.'
+     142.30- 145.34  'While these material finds\ndocument human activity,'
+     145.59- 149.25  'the physical record also\nrefutes alternative speculation.'
+     149.55- 154.09  "Fringe theories proposing the formation as\nPlato's lost city of Atlantis are refuted"
+     154.09- 157.64  'by geological reality,\nas the feature is an ancient,'
+     157.91- 161.27  'natural inland terrestrial dome\nrather than a sunken island.'
+     161.58- 164.96  'Through decades of field surveys\nand geochemical analyses,'
+     165.48- 169.83  'the Richat Structure has been established\nas an eroded geological dome shaped by'
+     169.83- 173.05  'deep-seated igneous processes\nand prolonged erosion.'
+     173.35- 179.11  'In October 2022, the International Union\nof Geological Sciences recognized this'
+     179.11- 184.08  "scientific value by designating the\nformation as one of the world's first 100"
+     184.08- 186.20  'official geological heritage sites.'
+     186.52- 189.86  'With its origin grounded\nin verified terrestrial processes,'
+     190.10- 194.15  'what questions remain for field\nresearchers studying the formation and its'
+     194.15- 196.03  'prehistoric human occupations?'
+
+=== run_gol_gumbaz_whispering_gallery_1793278143 | gol_gumbaz_whispering_gallery [9:16] ===
+why: most multi-word proper names in one 9:16 narration
+100 words, 40 bursts, emphasis ['Gol Gumbaz', 'Bijapur', '1656']; vignette vignette=PI/4.2:aspect=9/16 (src.video_composer.picture_vignette)
+  0    0.00-   1.11   80px  plate  682x121   CAN A QUIET WHISPER
+  1    1.11-   2.18   80px  plate  494x121   TRAVEL ACROSS
+  2    2.18-   4.06   80px  plate  684x121   AN ESTIMATED 144-FOOT
+  3    4.06-   5.69   80px  plate  490x121   MASONRY DOME?
+  4    5.69-   6.74   80px  plate  466x121   INSIDE THE DARK
+  5    6.74-   8.16   74px* plate  668x121   GRAY BASALT MAUSOLEUM
+  6    8.16-   9.30   80px  plate  468x121   OF GOL GUMBAZ
+  7    9.30-  10.88   80px  plate  334x121   IN BIJAPUR
+  8   10.88-  12.13   74px* plate  670x121   SOUND WAVES ARE GUIDED
+  9   12.13-  13.40   80px  plate  668x121   CONTINUOUSLY ALONG
+ 10   13.40-  14.51   80px  plate  668x121   THE CURVED BOUNDARY
+ 11   14.51-  15.25   80px  plate  466x121   OF A PROMINENT
+ 12   15.25-  16.67   80px  plate  668x121   WHISPERING GALLERY
+ 13   16.67-  17.60   80px  plate  568x121   THIS MASSIVE DOME
+ 14   17.60-  18.57   80px  plate  566x121   COMBINES BRICKS
+ 15   18.57-  19.64   80px  plate  666x121   OF VARYING DIMENSIONS
+ 16   19.64-  21.15   80px  plate  568x121   WITH LIME MORTAR
+ 17   21.15-  21.99   80px  plate  664x121   GAINING STRUCTURAL
+ 18   21.99-  23.17   74px* plate  666x121   INTEGRITY WITHOUT METAL
+ 19   23.17-  23.94   80px  plate  430x121   TENSION RINGS
+ 20   23.94-  24.59   80px  plate  428x121   ON PENDENTIVE
+ 21   24.59-  25.65   80px  plate  668x121   SYSTEMS ATTRIBUTED
+ 22   25.65-  26.46   80px  plate  570x121   TO CENTRAL ASIAN
+ 23   26.46-  27.57   80px  plate  430x121   TRADITIONS
+ 24   27.57-  28.57   80px  plate  670x121   CONSTRUCTION BEGAN
+ 25   28.57-  29.13   80px  plate  440x121   IN THE EARLY
+ 26   29.13-  30.25   80px  plate  442x121   17TH CENTURY
+ 27   30.25-  30.81   80px  plate  444x121   AND CEASED
+ 28   30.81-  32.34   80px  plate  442x121   IN 1656 UPON
+ 29   32.34-  33.50   74px* plate  668x121   MOHAMMAD ADIL SHAH'S
+ 30   33.50-  34.90   80px  plate  442x121   DEATH, LEAVING
+ 31   34.90-  35.78   80px  plate  670x121   SEVERAL DECORATIVE
+ 32   35.78-  37.40   80px  plate  670x121   ELEMENTS UNFINISHED
+ 33   37.40-  38.42   80px  plate  554x121   YET THE UNFINISHED
+ 34   38.42-  39.30   80px  plate  550x121   MONUMENT STILL
+ 35   39.30-  40.20   80px  plate  552x121   PROMPTS MODERN
+ 36   40.20-  41.26   80px  plate  648x121   BUILDERS TO WONDER
+ 37   41.26-  42.43   80px  plate  648x121   HOW ANCIENT MASONRY
+ 38   42.43-  43.45   80px  plate  648x121   MASTERED ACOUSTICS
+ 39   43.45-  44.49   80px  plate  450x121   SO COMPLETELY
+  names:
+    WHOLE  Gol Gumbaz                   OF GOL GUMBAZ
+    WHOLE  Central Asian                TO CENTRAL ASIAN
+    WHOLE  Mohammad Adil Shah's         MOHAMMAD ADIL SHAH'S
+  bursts ending on an article: none
+  function-word-only bursts: none
+  one-word bursts: ['23: TRADITIONS']
+  bursts below the 66 px floor: none
+  two-line bursts: none
+  bursts on screen under 0.50 s: none
+  bursts spanning a pause of 0.30 s or more after punctuation: ["30: 0.60s after 'death,' in DEATH, LEAVING"]
+
+=== run_tunguska_event_1908_1792930600 | tunguska_event_1908 [9:16] ===
+why: longest multi-word proper name (characters)
+98 words, 35 bursts, emphasis ['Podkamennaya Tunguska River', 'meteor air burst']; vignette vignette=PI/4.2:aspect=9/16 (src.video_composer.picture_vignette)
+  0    0.00-   0.60   80px  plate  550x121   ON THE MORNING
+  1    0.60-   2.48   80px  plate  552x121   OF 30 JUNE 1908
+  2    2.48-   3.87   80px  plate  552x121   AT AROUND 7:14
+  3    3.87-   5.16   80px  plate  342x121   LOCAL TIME
+  4    5.16-   6.20   74px* plate  688x121   NEAR THE PODKAMENNAYA
+  5    6.20-   7.13   80px  plate  552x121   TUNGUSKA RIVER
+  6    7.13-   8.99   80px  plate  550x121   IN CENTRAL SIBERIA
+  7    8.99-  10.44   80px  plate  688x121   A CATACLYSM STRUCK
+  8   10.44-  11.91   80px  plate  550x121   BY ONE ESTIMATE
+  9   11.91-  13.08   80px  plate  690x121   THE BLAST DEVASTATED
+ 10   13.08-  14.79   80px  plate  688x121   MORE THAN 830 SQUARE
+ 11   14.79-  16.85   80px  plate  688x121   MILES OF TAIGA FOREST
+ 12   16.85-  17.79   80px  plate  550x121   FLATTENING TREES
+ 13   17.79-  18.65   80px  plate  550x121   IN A DISTINCTIVE
+ 14   18.65-  19.90   80px  plate  552x121   RADIAL PATTERN
+ 15   19.90-  21.09   80px  plate  652x121   SCIENTISTS CALCULATE
+ 16   21.09-  22.34   80px  plate  654x121   THE AIRBURST RELEASED
+ 17   22.34-  23.81   80px  plate  652x121   BETWEEN 10 AND 15
+ 18   23.81-  25.51   80px  plate  520x121   MEGATONS OF TNT
+ 19   25.51-  26.55   80px  plate  690x121   ATMOSPHERIC PRESSURE
+ 20   26.55-  27.61   80px  plate  562x121   WAVES GENERATED
+ 21   27.61-  28.56   80px  plate  560x121   BY THE EXPLOSION
+ 22   28.56-  30.05   74px* plate  690x121   RIPPLED ACROSS THE GLOBE
+ 23   30.05-  30.88   80px  plate  562x121   AND WERE DETECTED
+ 24   30.88-  31.72   80px  plate  458x121   BY BAROGRAPHS
+ 25   31.72-  32.82   80px  plate  458x121   WORLDWIDE
+ 26   32.82-  34.01   80px  plate  678x121   SCIENTIFIC CONSENSUS
+ 27   34.01-  35.04   80px  plate  678x121   ATTRIBUTES THE EVENT
+ 28   35.04-  35.97   80px  plate  570x121   TO AN ATMOSPHERIC
+ 29   35.97-  37.65   80px  plate  566x121   METEOR AIR BURST
+ 30   37.65-  38.58   80px  plate  678x121   THOUGH NO CELESTIAL
+ 31   38.58-  39.50   80px  plate  568x121   FRAGMENT HAS EVER
+ 32   39.50-  40.79   74px* plate  678x121   BEEN FORMALLY IDENTIFIED
+ 33   40.79-  41.44   80px  plate  568x121   FROM THAT SUDDEN
+ 34   41.44-  42.56   80px  plate  568x121   SIBERIAN MORNING
+  names:
+    SPLIT  Podkamennaya Tunguska River  NEAR THE PODKAMENNAYA | TUNGUSKA RIVER
+    WHOLE  Central Siberia              IN CENTRAL SIBERIA
+  bursts ending on an article: none
+  function-word-only bursts: none
+  one-word bursts: ['25: WORLDWIDE']
+  bursts below the 66 px floor: none
+  two-line bursts: none
+  bursts on screen under 0.50 s: none
+  bursts spanning a pause of 0.30 s or more after punctuation: none
+
+=== run_amber_room_heist_1792790550 | amber_room_heist [9:16] ===
+why: longest single word across all narrations; non-ASCII letters in a proper name (Königsberg)
+105 words, 41 bursts, emphasis ['Amber Room', '36 hours', 'Königsberg Castle']; vignette vignette=PI/4.2:aspect=9/16 (src.video_composer.picture_vignette)
+  0    0.00-   1.57   80px  plate  384x121   IN 1941
+  1    1.57-   2.51   80px  plate  518x121   GERMAN SOLDIERS
+  2    2.51-   3.80   80px  plate  694x121   OF ARMY GROUP NORTH
+  3    3.80-   4.47   80px  plate  520x121   DISASSEMBLED
+  4    4.47-   5.24   80px  plate  522x121   THE AMBER ROOM
+  5    5.24-   6.45   80px  plate  382x121   IN 36 HOURS
+  6    6.45-   8.33   74px* plate  696x121   UNDER EXPERT SUPERVISION
+  7    8.33-   8.88   80px  plate  304x121   BY ONE
+  8    8.88-  10.30   80px  plate  668x121   ESTIMATE, FOLLOWING
+  9   10.30-  11.07   80px  plate  668x121   EIGHTEENTH-CENTURY
+ 10   11.07-  12.40   80px  plate  438x121   EXPANSIONS
+ 11   12.40-  13.33   80px  plate  672x121   THE COMPLETED ROOM
+ 12   13.33-  15.00   74px* plate  670x121   COVERED MORE THAN 590
+ 13   15.00-  15.86   80px  plate  438x121   SQUARE FEET
+ 14   15.86-  16.48   80px  plate  440x121   AND CONTAINED
+ 15   16.48-  17.97   80px  plate  668x121   OVER 13,000 POUNDS
+ 16   17.97-  18.85   80px  plate  304x121   OF AMBER
+ 17   18.85-  20.74   80px  plate  438x121   IN EARLY 1944
+ 18   20.74-  21.43   80px  plate  440x121   IT WAS PACKED
+ 19   21.43-  22.21   80px  plate  438x121   INTO CRATES
+ 20   22.21-  24.00   80px  plate  632x121   IN KÖNIGSBERG CASTLE
+ 21   24.00-  25.26   74px* plate  680x121   DOCUMENTATION TRACKING
+ 22   25.26-  26.39   80px  plate  520x121   ITS LOCATION ENDS
+ 23   26.39-  28.44   80px  plate  520x121   IN AUGUST 1944
+ 24   28.44-  29.10   80px  plate  386x121   WHEN ALLIED
+ 25   29.10-  30.00   80px  plate  518x121   BOMBERS HEAVILY
+ 26   30.00-  31.81   74px* plate  680x121   FIRE-BOMBED KÖNIGSBERG
+ 27   31.81-  33.13   74px* plate  682x121   INVESTIGATIONS CONCLUDE
+ 28   33.13-  34.09   80px  plate  682x121   THE ROOM WAS MOST
+ 29   34.09-  35.18   80px  plate  576x121   LIKELY INCINERATED
+ 30   35.18-  36.45   74px* plate  682x121   WHEN KÖNIGSBERG CASTLE
+ 31   36.45-  37.60   80px  plate  684x121   WAS BOMBED BY BRITISH
+ 32   37.60-  38.75   80px  plate  684x121   AIRCRAFT AND SHELLED
+ 33   38.75-  40.38   80px  plate  574x121 G BY SOVIET ARTILLERY
+ 34   40.38-  42.43   80px  plate  426x121 G YET IN 1997
+ 35   42.43-  43.26   80px  plate  530x121 G AN ORIGINAL STONE
+ 36   43.26-  44.42   80px  plate  672x121 G MOSAIC WAS RECOVERED
+ 37   44.42-  45.72   80px  plate  422x121   IN GERMANY
+ 38   45.72-  46.49   80px  plate  424x121   FUELING HUNTS
+ 39   46.49-  47.14   80px  plate  530x121   FOR THE CHAMBER
+ 40   47.14-  48.96   80px  plate  530x121   LOOTED IN 1941
+  names:
+    WHOLE  Army Group North             OF ARMY GROUP NORTH
+    WHOLE  Amber Room                   THE AMBER ROOM
+    WHOLE  Königsberg Castle            IN KÖNIGSBERG CASTLE
+    WHOLE  Königsberg Castle            WHEN KÖNIGSBERG CASTLE
+  bursts ending on an article: none
+  function-word-only bursts: none
+  one-word bursts: ['3: DISASSEMBLED', '9: EIGHTEENTH-CENTURY', '10: EXPANSIONS']
+  bursts below the 66 px floor: none
+  two-line bursts: none
+  bursts on screen under 0.50 s: none
+  bursts spanning a pause of 0.30 s or more after punctuation: ["8: 0.37s after 'estimate,' in ESTIMATE, FOLLOWING"]
+
+=== run_voynich_manuscript_1792965308 | voynich_manuscript [9:16] ===
+why: most words in a 9:16 narration (densest bursts)
+115 words, 42 bursts, emphasis ['Wilfrid Voynich', "Zipf's law"]; vignette vignette=PI/4.2:aspect=9/16 (src.video_composer.picture_vignette)
+  0    0.00-   1.06   80px  plate  668x121   AN UNREAD MEDIEVAL
+  1    1.06-   2.10   80px  plate  432x121   BOOK DISPLAYS
+  2    2.10-   3.35   80px  plate  670x121   LINGUISTIC PRECISION
+  3    3.35-   4.14   80px  plate  434x121   THAT DEFEATS
+  4    4.14-   5.99   80px  plate  668x121   MODERN CRYPTANALYSIS
+  5    5.99-   7.08   80px  plate  684x121   RADIOCARBON DATING
+  6    7.08-   7.83   80px  plate  374x121   ESTABLISHED
+  7    7.83-   8.77   80px  plate  686x121   THAT THE MANUSCRIPT'S
+  8    8.77-   9.59   80px  plate  524x121   PARCHMENT DATES
+  9    9.59-  12.68   74px* plate  684x121   BETWEEN 1404 AND 1438
+ 10   12.68-  13.91   80px  plate  562x121   BY ONE ESTIMATE
+ 11   13.91-  14.87   80px  plate  566x121   THE TEXT IS WRITTEN
+ 12   14.87-  15.84   80px  plate  562x121   FROM LEFT TO RIGHT
+ 13   15.84-  17.28   74px* plate  666x121   IN AN UNIDENTIFIED SCRIPT
+ 14   17.28-  18.07   80px  plate  668x121   WHERE AN ALPHABET
+ 15   18.07-  19.12   80px  plate  418x121   OF 20 TO 25
+ 16   19.12-  20.02   80px  plate  666x121   CHARACTERS ACCOUNTS
+ 17   20.02-  20.68   80px  plate  416x121   FOR VIRTUALLY
+ 18   20.68-  22.06   80px  plate  564x121   THE ENTIRE WORK
+ 19   22.06-  22.97   80px  plate  510x121   BESIDE BOTANICAL
+ 20   22.97-  24.51   74px* plate  688x121   DIAGRAMS OF UNIDENTIFIED
+ 21   24.51-  25.83   80px  plate  510x121   PLANTS, THE TEXT
+ 22   25.83-  27.14   74px* plate  686x121   CONFORMS TO ZIPF'S LAW
+ 23   27.14-  27.69   80px  plate  512x121   WHERE THE MOST
+ 24   27.69-  28.71   80px  plate  686x121   COMMON WORD APPEARS
+ 25   28.71-  30.04   80px  plate  688x121   ROUGHLY TWICE AS OFTEN
+ 26   30.04-  30.78   80px  plate  514x121   AS THE SECOND
+ 27   30.78-  31.85   80px  plate  512x121   MOST COMMON
+ 28   31.85-  32.59   80px  plate  498x121   THE MANUSCRIPT
+ 29   32.59-  33.91   80px  plate  654x121   IS NAMED AFTER POLISH
+ 30   33.91-  34.53   80px  plate  380x121   BOOK DEALER
+ 31   34.53-  35.80   80px  plate  498x121   WILFRID VOYNICH
+ 32   35.80-  36.69   80px  plate  498x121   WHO ACQUIRED IT
+ 33   36.69-  38.17   80px  plate  380x121   IN 1912
+ 34   38.17-  39.35   80px  plate  696x121   AMERICAN AND BRITISH
+ 35   39.35-  40.58   74px* plate  696x121   MILITARY CRYPTOGRAPHERS
+ 36   40.58-  41.11   80px  plate  336x121   FROM BOTH
+ 37   41.11-  42.01   80px  plate  506x121   WORLD WAR ONE
+ 38   42.01-  42.98   80px  plate  696x121   AND WORLD WAR TWO
+ 39   42.98-  44.13   80px  plate  696x121   ATTEMPTED TO DECIPHER
+ 40   44.13-  44.70   80px  plate  336x121   THE CODEX
+ 41   44.70-  45.78   80px  plate  506x121   WITHOUT SUCCESS
+  names:
+    WHOLE  Wilfrid Voynich              WILFRID VOYNICH
+    WHOLE  World War One                WORLD WAR ONE
+    WHOLE  World War Two                AND WORLD WAR TWO
+  bursts ending on an article: none
+  function-word-only bursts: none
+  one-word bursts: ['6: ESTABLISHED']
+  bursts below the 66 px floor: none
+  two-line bursts: none
+  bursts on screen under 0.50 s: none
+  bursts spanning a pause of 0.30 s or more after punctuation: ["21: 0.32s after 'plants,' in PLANTS, THE TEXT"]
+
+=== run_kailasa_temple_monolith_1792524470 | kailasa_temple_monolith [9:16] ===
+why: operator long-name decision (UNDER | THE RASHTRAKUTA ...): the closest real material
+NEW: FACT-SHEET STATEMENT KAILASA-COMMENCEMENT-PATRON (NO RUN NARRATES IT), SYNTHETIC FITTED TIMINGS (LAYOUT ONLY)
+13 words, 5 bursts, emphasis []; vignette vignette=PI/4.2:aspect=9/16 (src.video_composer.picture_vignette)
+text (fact sheet kailasa-commencement-patron, disputed=True): Excavation of the Kailasa temple commenced under the eighth-century Rashtrakuta king Krishna I.
+  0    0.00-   0.72   80px  plate  356x121   EXCAVATION
+  1    0.72-   1.97   80px  plate  676x121   OF THE KAILASA TEMPLE
+  2    1.97-   2.93   80px  plate  568x121   COMMENCED UNDER
+  3    2.93-   4.03   80px  plate  570x121   THE EIGHTH-CENTURY
+  4    4.03-   5.84   66px* plate  676x121   RASHTRAKUTA KING KRISHNA I
+  names:
+    WHOLE  Kailasa temple               OF THE KAILASA TEMPLE
+    WHOLE  Rashtrakuta king Krishna I   RASHTRAKUTA KING KRISHNA I
+  bursts ending on an article: none
+  function-word-only bursts: none
+  one-word bursts: ['0: EXCAVATION']
+  bursts below the 66 px floor: none
+  two-line bursts: none
+  timing checks: none (synthetic timings, layout only)
+

@@ -1,0 +1,129 @@
+{
+  "repo": "<repo root argument>",
+  "commit": "7dfd28a (src modified)",
+  "ffmpeg": "ffmpeg version 8.1-full_build-www.gyan.dev",
+  "encoder": "-c:v libx264 -preset slow -crf 18",
+  "fixtures": {
+    "salt.jpg": "985326d451ba9d86f4cec8897ef974d20c7687d0665627ed4147c13452f27ab1",
+    "passage.jpg": "dba3cc4e87a0b0c53ccade08b02c1484fdec6469a3737946f5a80a93ca530390"
+  },
+  "profiles": {
+    "generated/reel": {
+      "size": "1080x1920",
+      "frames": 180,
+      "duration_s": 6.0,
+      "file_bytes": 1946463,
+      "video_kbps": 2392.1,
+      "noise_filter_in_master_graph": false,
+      "sha256": [
+        "a2588d6e148ec87d",
+        "a2588d6e148ec87d"
+      ],
+      "video_stream_md5": [
+        "beeca3cedc80a2b2",
+        "beeca3cedc80a2b2"
+      ],
+      "audio_stream_md5": [
+        "709313e631fad534",
+        "709313e631fad534"
+      ],
+      "second_render": {
+        "identical": true,
+        "differing_bytes": 0,
+        "boxes": {}
+      }
+    },
+    "generated/deep_dive": {
+      "size": "1920x1080",
+      "frames": 180,
+      "duration_s": 6.0,
+      "file_bytes": 6950859,
+      "video_kbps": 9065.4,
+      "noise_filter_in_master_graph": false,
+      "sha256": [
+        "312e639bc0b58e51",
+        "312e639bc0b58e51"
+      ],
+      "video_stream_md5": [
+        "5dd7b5aacd044e5b",
+        "5dd7b5aacd044e5b"
+      ],
+      "audio_stream_md5": [
+        "709313e631fad534",
+        "709313e631fad534"
+      ],
+      "second_render": {
+        "identical": true,
+        "differing_bytes": 0,
+        "boxes": {}
+      }
+    },
+    "photos/reel": {
+      "size": "1080x1920",
+      "frames": 180,
+      "duration_s": 6.0,
+      "file_bytes": 2084829,
+      "video_kbps": 2576.7,
+      "noise_filter_in_master_graph": false,
+      "sha256": [
+        "39873046f1eb22fe",
+        "39873046f1eb22fe"
+      ],
+      "video_stream_md5": [
+        "a27430aaf1a1763a",
+        "a27430aaf1a1763a"
+      ],
+      "audio_stream_md5": [
+        "709313e631fad534",
+        "709313e631fad534"
+      ],
+      "second_render": {
+        "identical": true,
+        "differing_bytes": 0,
+        "boxes": {}
+      }
+    },
+    "photos/deep_dive": {
+      "size": "1920x1080",
+      "frames": 180,
+      "duration_s": 6.0,
+      "file_bytes": 2703038,
+      "video_kbps": 3400.9,
+      "noise_filter_in_master_graph": false,
+      "sha256": [
+        "851c4ffc1669142e",
+        "851c4ffc1669142e"
+      ],
+      "video_stream_md5": [
+        "73d184dbc4053b34",
+        "73d184dbc4053b34"
+      ],
+      "audio_stream_md5": [
+        "709313e631fad534",
+        "709313e631fad534"
+      ],
+      "second_render": {
+        "identical": true,
+        "differing_bytes": 0,
+        "boxes": {}
+      }
+    }
+  },
+  "static_clip_flicker": {
+    "what": "mean |Y(n+1) - Y(n)| over a centred 400x400 box, frames 3-24 (before the caption), lossless encode",
+    "mean_abs_frame_diff_code": 0.128
+  },
+  "acceptance": {
+    "no_noise_filter": true,
+    "video_bitstreams_identical": true,
+    "renders_byte_identical": true,
+    "bitrate_drop_ge_50pct": true,
+    "met": true
+  },
+  "bitrate_drop_vs_before": {
+    "generated/reel": 0.892,
+    "generated/deep_dive": 0.601,
+    "photos/reel": 0.873,
+    "photos/deep_dive": 0.85
+  }
+}

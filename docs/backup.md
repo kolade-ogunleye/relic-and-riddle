@@ -135,9 +135,10 @@ After enrollment and a successful restore drill, add only the backup settings to
 the production configuration and restart its process. Leave dev configuration,
 Telegram identity, provider flags, and spend caps unchanged. API retry scheduling
 runs through the separate backup worker, scheduled by the host. The cycle captures
-at most one full snapshot per UTC day and retries pending uploads; explicit
-`snapshot` commands can capture additional state before deployments or after
-important changes. This daily cadence is not a zero-data-loss transaction journal.
+at most one full snapshot per UTC day, an hourly verified copy of the database
+(below) and retries pending uploads; explicit `snapshot` commands can capture
+additional state before deployments or after important changes. Neither cadence
+is a zero-data-loss transaction journal.
 For the confirmed fallback policy, also set `BACKUP_SYNC_FOLDER_FALLBACK=true`
 and keep production's existing `BACKUP_ONEDRIVE_DIR` pointing to its real synced
 OneDrive directory. Do not use a guessed folder on a replacement host; provision
@@ -168,8 +169,56 @@ Snapshots contain an online SQLite backup, application source, persistent data,
 assets, fonts, and output. They exclude actual `.env` files, credentials, virtual
 environments, and downloaded tools/models. Provision those dependencies and
 production secrets separately during recovery. Snapshots are full copies, not
-incremental; check local free space and OneDrive quota. There is currently no
-automatic retention pruning. Do not delete the last verified recoverable copy.
+incremental; check OneDrive quota (cloud copies are never deleted by the worker).
+
+## Hourly database copies, retention and freshness
+
+Each worker cycle (the backup task repeats every 10 minutes) also takes an hourly
+copy of `data/pipeline.db` with SQLite's online backup API, so committed rows still
+in the `-wal` file are included while the pipeline writes. The copy is an archive
+of the same format (schema 1, same key, `kind: database`, only `data/pipeline.db`)
+in `<spool>/sqlite-hourly`. It counts only after a test restore: decryption, every
+manifest hash, SQLite integrity and foreign keys, and the restored database's
+schema digest and per-table row counts equal to the staged copy's. A copy that
+fails stays as `failed` evidence (only the newest one) and the next attempt waits
+an hour. Hourly copies stay on this host: they narrow the database recovery point
+to an hour against local damage; the daily cloud archive remains the off-machine
+recovery point, and whole-VM recovery stays a lab responsibility.
+
+```powershell
+.\.venv\Scripts\python.exe scripts\backupctl.py --environment production status --hourly
+.\.venv\Scripts\python.exe scripts\backupctl.py --environment production restore '<snapshot-id>' --database-only --destination 'C:\Recovery\relic-db-drill'
+```
+
+Retention runs at the end of each cycle and never touches OneDrive:
+`BACKUP_DATABASE_KEEP` (default 48, two days) verified hourly copies, re-hashed before
+they count, and `BACKUP_SNAPSHOT_KEEP` (default 7) cloud-verified daily archives, plus
+the one holding the latest drill receipt. Pending, failed, damaged, other-environment,
+linked or unexplained content is never deleted. Restores and retention share one
+lock, so an archive cannot be pruned while it is restored.
+
+Drill one of the newest kept daily snapshots (`status` lists them). The drill's
+receipt is written into that snapshot's local spool directory. A drill of a snapshot
+whose local copy was already pruned still restores from the cloud, but it records
+nothing locally, so "last drill" and readiness stay overdue.
+
+The worker writes a redacted receipt (`BACKUP_STATUS_FILE`, default
+`data/backup-status.json`: timestamps and counts only) after every cycle and drill.
+The pipeline reads only that file. In production, `/status` and the daily heartbeat
+show "Last snapshot X h / last drill N d / hourly copy M min"; the dashboard shows a
+line, and Needs you gets one notice a day, while any of these holds: no
+cloud-verified snapshot in 26 h ("backup stale"), no cloud restore drill in 30 days
+("restore drill overdue"), no verified hourly copy in 3 h ("hourly copy stale"), or
+the worker's last cycle named a failed stage ("backup worker fault (retention)" or
+"(hourly copy)"). A missing or unreadable receipt alerts as unknown. Development has
+no backup worker and shows nothing.
+
+In production the receipt depends on a lab-owned grant: the backup account
+(`LAB\rr-backup$`) may create files in the application's `data/` folder (CreateFiles,
+with CREATOR OWNER Modify on what it creates; the grant SQLite readers already need
+for their sidecars). Without that grant the worker cannot write the receipt, and the
+pipeline shows "no status from the backup worker" and alerts. The application does
+not change that ACL; a missing grant is raised with the lab.
 
 Restore validates encryption, inventory, file hashes, SQLite integrity, and foreign
 keys before promoting the directory. It preserves publication IDs, usage history,

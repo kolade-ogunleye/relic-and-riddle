@@ -8,7 +8,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 from src import graphics
-from src.audio_engine import AudioEngine
+from src.audio_engine import AudioEngine, voiceover_file
 from src.config import DATA_DIR
 from src.credits import add_provenance_attributions, generate_provenance_ledger
 from src.fact_evidence import current_fact_review
@@ -43,13 +43,13 @@ def main():
     (root / "credits.json").write_text(json.dumps({"reviewed": False, "images": selected}, indent=2), encoding="utf-8")
     made = graphics.make_all(payload, topic, root / "graphics", photo=photos[0])
     words = json.loads((root / "words.json").read_text(encoding="utf-8"))
-    duration = AudioEngine.get_duration(root / "voiceover.mp3")
+    duration = AudioEngine.get_duration(voiceover_file(root))
     beats = segment_beats(words, duration)
     scenes, durations, notes = plan_scenes(beats, photos + made)
     print(f"Rendering {len(scenes)} cuts, {duration:.3f} seconds: {notes}", flush=True)
     master = root / "reel_master.mp4"
     composer = VideoComposer()
-    composer.compose_video(scenes, root / "voiceover.mp3", root / "ambient_bed.wav", words,
+    composer.compose_video(scenes, voiceover_file(root), root / "ambient_bed.wav", words,
                            duration, master, durations=durations)
     timeline, cursor = [], 0.0
     for index, (scene, length) in enumerate(zip(scenes, durations)):
@@ -67,7 +67,7 @@ def main():
     multiformat.generate_carousel_sequence(photos, payload, root)
     composer.export_subtitles_srt(words, root / "captions.srt")
     composer.export_subtitles_vtt(words, root / "captions.vtt")
-    ledger = generate_provenance_ledger(root, topic, payload, master, root / "voiceover.mp3",
+    ledger = generate_provenance_ledger(root, topic, payload, master, voiceover_file(root),
         root / "ambient_bed.wav", scenes, audit)
     add_provenance_attributions(payload, ledger)
     (root / "script_metadata.json").write_text(json.dumps(payload, indent=2), encoding="utf-8")

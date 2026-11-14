@@ -1,0 +1,446 @@
+{
+ "schema": 1,
+ "source": "a folder of run_*/verified_script.json given as the second argument (counts only)",
+ "runs_measured": 34,
+ "source_sha256": {
+  "src/typography.py": "6f0dd04eaabc6bc8",
+  "src/graphics.py": "e8927272a063ad0f",
+  "src/multi_format.py": "2417ea9f83731a9f",
+  "src/cover_design.py": "fc687e989b34bd6e",
+  "src/visual_engine.py": "88ba0d2fc0a87a69",
+  "src/still_layout.py": "09cb2a4987c3a172",
+  "src/audience_chart.py": "dfd4493a9aee6796"
+ },
+ "primitives": {
+  "impossible_boxes": [
+   {
+    "method": "fit_text",
+    "input": "The object is about two thousand years old, according to the surviving inscription.",
+    "refused": false,
+    "returned": [
+     "Th…"
+    ],
+    "ellipsis": true,
+    "words_lost": [
+     "ABOUT",
+     "ACCORDING",
+     "INSCRIPTION",
+     "IS",
+     "OBJECT",
+     "OLD",
+     "SURVIVING",
+     "THE",
+     "THOUSAND",
+     "TO",
+     "TWO",
+     "YEARS"
+    ],
+    "overflows": false
+   },
+   {
+    "method": "fit_text quiet",
+    "input": "The object is about two thousand years old, according to the surviving inscription.",
+    "refused": false,
+    "returned": [
+     "Th…"
+    ],
+    "ellipsis": true,
+    "words_lost": [
+     "ABOUT",
+     "ACCORDING",
+     "INSCRIPTION",
+     "IS",
+     "OBJECT",
+     "OLD",
+     "SURVIVING",
+     "THE",
+     "THOUSAND",
+     "TO",
+     "TWO",
+     "YEARS"
+    ],
+    "overflows": false
+   },
+   {
+    "method": "fit_line",
+    "input": "The object is about two thousand years old, according to the surviving inscription.",
+    "refused": false,
+    "returned": [
+     "Th…"
+    ],
+    "ellipsis": true,
+    "words_lost": [
+     "ABOUT",
+     "ACCORDING",
+     "INSCRIPTION",
+     "IS",
+     "OBJECT",
+     "OLD",
+     "SURVIVING",
+     "THE",
+     "THOUSAND",
+     "TO",
+     "TWO",
+     "YEARS"
+    ],
+    "overflows": false
+   },
+   {
+    "method": "fit_lines",
+    "input": "The object is about two thousand years old, according to the surviving inscription.",
+    "refused": false,
+    "returned": [
+     "The",
+     "object",
+     "is",
+     "about",
+     "two",
+     "thousand",
+     "years",
+     "old,",
+     "according",
+     "to the",
+     "surviving",
+     "inscription."
+    ],
+    "ellipsis": false,
+    "words_lost": [],
+    "overflows": true
+   },
+   {
+    "method": "fit_tracked",
+    "input": "The object is about two thousand years old, according to the surviving inscription.",
+    "refused": false,
+    "returned": [
+     "The…"
+    ],
+    "ellipsis": true,
+    "words_lost": [
+     "ABOUT",
+     "ACCORDING",
+     "INSCRIPTION",
+     "IS",
+     "OBJECT",
+     "OLD",
+     "SURVIVING",
+     "THOUSAND",
+     "TO",
+     "TWO",
+     "YEARS"
+    ],
+    "overflows": false
+   },
+   {
+    "method": "fit_text",
+    "input": "The doorway is closed. The proposed reconstruction remains disputed.",
+    "refused": false,
+    "returned": [
+     "Th…"
+    ],
+    "ellipsis": true,
+    "words_lost": [
+     "CLOSED",
+     "DISPUTED",
+     "DOORWAY",
+     "IS",
+     "PROPOSED",
+     "RECONSTRUCTION",
+     "REMAINS",
+     "THE"
+    ],
+    "overflows": false
+   },
+   {
+    "method": "fit_text quiet",
+    "input": "The doorway is closed. The proposed reconstruction remains disputed.",
+    "refused": false,
+    "returned": [
+     "Th…"
+    ],
+    "ellipsis": true,
+    "words_lost": [
+     "CLOSED",
+     "DISPUTED",
+     "DOORWAY",
+     "IS",
+     "PROPOSED",
+     "RECONSTRUCTION",
+     "REMAINS",
+     "THE"
+    ],
+    "overflows": false
+   },
+   {
+    "method": "fit_line",
+    "input": "The doorway is closed. The proposed reconstruction remains disputed.",
+    "refused": false,
+    "returned": [
+     "Th…"
+    ],
+    "ellipsis": true,
+    "words_lost": [
+     "CLOSED",
+     "DISPUTED",
+     "DOORWAY",
+     "IS",
+     "PROPOSED",
+     "RECONSTRUCTION",
+     "REMAINS",
+     "THE"
+    ],
+    "overflows": false
+   },
+   {
+    "method": "fit_lines",
+    "input": "The doorway is closed. The proposed reconstruction remains disputed.",
+    "refused": false,
+    "returned": [
+     "The",
+     "doorway",
+     "is",
+     "closed.",
+     "The",
+     "proposed",
+     "reconstruction",
+     "remains",
+     "disputed."
+    ],
+    "ellipsis": false,
+    "words_lost": [],
+    "overflows": true
+   },
+   {
+    "method": "fit_tracked",
+    "input": "The doorway is closed. The proposed reconstruction remains disputed.",
+    "refused": false,
+    "returned": [
+     "The…"
+    ],
+    "ellipsis": true,
+    "words_lost": [
+     "CLOSED",
+     "DISPUTED",
+     "DOORWAY",
+     "IS",
+     "PROPOSED",
+     "RECONSTRUCTION",
+     "REMAINS"
+    ],
+    "overflows": false
+   },
+   {
+    "method": "fit_text",
+    "input": "Antidisestablishmentarianism",
+    "refused": false,
+    "returned": [
+     "An…"
+    ],
+    "ellipsis": true,
+    "words_lost": [
+     "ANTIDISESTABLISHMENTARIANISM"
+    ],
+    "overflows": false
+   },
+   {
+    "method": "fit_text quiet",
+    "input": "Antidisestablishmentarianism",
+    "refused": false,
+    "returned": [
+     "An…"
+    ],
+    "ellipsis": true,
+    "words_lost": [
+     "ANTIDISESTABLISHMENTARIANISM"
+    ],
+    "overflows": false
+   },
+   {
+    "method": "fit_line",
+    "input": "Antidisestablishmentarianism",
+    "refused": false,
+    "returned": [
+     "An…"
+    ],
+    "ellipsis": true,
+    "words_lost": [
+     "ANTIDISESTABLISHMENTARIANISM"
+    ],
+    "overflows": false
+   },
+   {
+    "method": "fit_lines",
+    "input": "Antidisestablishmentarianism",
+    "refused": false,
+    "returned": [
+     "Antidisestablishmentarianism"
+    ],
+    "ellipsis": false,
+    "words_lost": [],
+    "overflows": true
+   },
+   {
+    "method": "fit_tracked",
+    "input": "Antidisestablishmentarianism",
+    "refused": false,
+    "returned": [
+     "Antidisestablishmentarianism"
+    ],
+    "ellipsis": false,
+    "words_lost": [],
+    "overflows": true
+   }
+  ],
+  "refused": 0,
+  "cases": 15,
+  "truncated": 11,
+  "fitting_controls": [
+   {
+    "input": "About two thousand years old. Its exact date remains disputed.",
+    "lines": [
+     "About two thousand years old.",
+     "Its exact date remains disputed."
+    ],
+    "px": 40,
+    "shortened": false,
+    "whole": true,
+    "within_width": true
+   },
+   {
+    "input": "Built under King Krishna I.",
+    "lines": [
+     "Built under King Krishna I."
+    ],
+    "px": 40,
+    "shortened": false,
+    "whole": true,
+    "within_width": true
+   },
+   {
+    "input": "Königsberg, 1945.",
+    "lines": [
+     "Königsberg, 1945."
+    ],
+    "px": 40,
+    "shortened": false,
+    "whole": true,
+    "within_width": true
+   }
+  ]
+ },
+ "surfaces": {
+  "stories": {
+   "ok": 34,
+   "refused": 0,
+   "error": 0,
+   "skipped": 0,
+   "drew_cut": 0
+  },
+  "carousel": {
+   "ok": 34,
+   "refused": 0,
+   "error": 0,
+   "skipped": 0,
+   "drew_cut": 11
+  },
+  "carousel_fb": {
+   "ok": 34,
+   "refused": 0,
+   "error": 0,
+   "skipped": 0,
+   "drew_cut": 11
+  },
+  "covers": {
+   "ok": 34,
+   "refused": 0,
+   "error": 0,
+   "skipped": 0,
+   "drew_cut": 0
+  },
+  "documentary_cover": {
+   "ok": 34,
+   "refused": 0,
+   "error": 0,
+   "skipped": 0,
+   "drew_cut": 22
+  },
+  "youtube_thumbnail": {
+   "ok": 34,
+   "refused": 0,
+   "error": 0,
+   "skipped": 0,
+   "drew_cut": 18
+  },
+  "numbers_916": {
+   "ok": 20,
+   "refused": 0,
+   "error": 0,
+   "skipped": 0,
+   "drew_cut": 0
+  },
+  "timeline_916": {
+   "ok": 20,
+   "refused": 0,
+   "error": 0,
+   "skipped": 0,
+   "drew_cut": 0
+  },
+  "site_label_916": {
+   "ok": 34,
+   "refused": 0,
+   "error": 0,
+   "skipped": 0,
+   "drew_cut": 0
+  },
+  "numbers_169": {
+   "ok": 20,
+   "refused": 0,
+   "error": 0,
+   "skipped": 0,
+   "drew_cut": 0
+  },
+  "timeline_169": {
+   "ok": 20,
+   "refused": 0,
+   "error": 0,
+   "skipped": 0,
+   "drew_cut": 0
+  },
+  "site_label_169": {
+   "ok": 34,
+   "refused": 0,
+   "error": 0,
+   "skipped": 0,
+   "drew_cut": 0
+  },
+  "chart_title": {
+   "ok": 34,
+   "refused": 0,
+   "error": 0,
+   "skipped": 0,
+   "drew_cut": 1
+  },
+  "scale_916": {
+   "ok": 5,
+   "refused": 0,
+   "error": 0,
+   "skipped": 0,
+   "drew_cut": 0
+  },
+  "scale_169": {
+   "ok": 5,
+   "refused": 0,
+   "error": 0,
+   "skipped": 0,
+   "drew_cut": 0
+  }
+ },
+ "totals": {
+  "surfaces": 396,
+  "ok": 396,
+  "refused": 0,
+  "error": 0,
+  "drew_cut": 63
+ },
+ "acceptance_met": false,
+ "refusals": {}
+}

@@ -10,7 +10,16 @@ Background music for each Reel, best source first:
      CC BY tracks are credited in the caption.
   3. None: the audio engine falls back to its synthesized drone.
 
-The mood comes from a cheap Claude classification of the script (default "mysterious").
+The mood comes from the sound plan (src/sound_plan.py dominant_mood: the mood covering most of the narration),
+chosen before the music. There is no default: without a mood the library is held, the review card says why and the
+drone plays (QF-84: a failed classifier used to mean "mysterious", so 360 picks fell on five tracks).
+
+Rotation counts PUBLISHED uses only (PipelineDatabase.music_published_uses: Reels whose publication is confirmed),
+never a pick, a render or a dry run. The library's `uses` field is the old render-pick count, kept as history and no
+longer written. Which approved tracks rotate is data/music/rotation.json ({"retired": {file: reason}}), a tracked file
+no host writes: library.json is rewritten on every host (approvals, and until QF-84 the pick counts), so a release
+that changed it would be refused by the deployer wherever production's copy differs. A track rotation.json does not
+list rotates (a host's own approvals included).
 """
 
 import json
@@ -43,10 +52,13 @@ class MoodChoice(BaseModel):
 
 
 @llm_task("music_mood")
-def choose_mood(payload: Dict[str, Any]) -> str:
+def choose_mood(payload: dict[str, Any]) -> str | None:
+    """A classification of the script alone (scripts, and callers that have no sound plan). None when it cannot be
+    made: never a default mood."""
     from . import free_llm
     if not free_llm.ready():
-        return "mysterious"
+        log.warning("Mood classification unavailable (no model); no mood.")
+        return None
     try:
         choice = free_llm.call(
             "Pick the background-music mood that best fits this short history documentary narration.",
@@ -55,8 +67,8 @@ def choose_mood(payload: Dict[str, Any]) -> str:
             models=LIGHT_TASK_MODELS)
         return choice.mood
     except LLMError as e:
-        log.warning("Mood classification failed (%s); using 'mysterious'.", e)
-        return "mysterious"
+        log.warning("Mood classification failed (%s); no mood.", e)
+        return None
 
 
 # ------------------------------------------------------------------ library
@@ -70,10 +82,33 @@ def load_library(available_only: bool = True) -> List[Dict[str, Any]]:
     return [t for t in tracks if (MUSIC_DIR / t["file"]).exists()] if available_only else tracks
 
 
+def rotation_path() -> Path:
+    return LIBRARY.parent / "rotation.json"
+
+
+def retired_tracks() -> dict[str, str]:
+    """{library file: the reason it is out of rotation}, from rotation.json (absent or unreadable: none retired)."""
+    try:
+        data = json.loads(rotation_path().read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+    retired = data.get("retired") if isinstance(data, dict) else None
+    return {str(k): str(v) for k, v in retired.items()} if isinstance(retired, dict) else {}
+
+
+def in_rotation(track: dict[str, Any], retired: dict[str, str] | None = None) -> bool:
+    """Approved and not retired by rotation.json."""
+    retired = retired_tracks() if retired is None else retired
+    return bool(track.get("reviewed")) and track.get("file") not in retired
+
+
 def save_library(tracks: List[Dict[str, Any]]) -> None:
     MUSIC_DIR.mkdir(parents=True, exist_ok=True)
+    LIBRARY.parent.mkdir(parents=True, exist_ok=True)
     import tempfile
-    with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", dir=MUSIC_DIR, delete=False) as stream:
+    # The temporary file sits beside the library it replaces: a rename cannot cross filesystems
+    # (CI, 2026-11-02: data/music on the work disk, a test's library under /tmp -> EXDEV).
+    with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", dir=LIBRARY.parent, delete=False) as stream:
         stream.write(json.dumps(tracks, indent=2, ensure_ascii=False))
         temporary = Path(stream.name)
     try:
@@ -100,14 +135,28 @@ def register_download(track, content):
         return True
 
 
-def pick_library_track(mood: str, min_seconds: float = 0, exclude: Optional[List[str]] = None) -> Optional[Dict[str, Any]]:
-    """An approved track in the mood (any approved track as a fallback), long enough if min_seconds > 0."""
+def rotation_key(published: dict[str, int], tie: str = ""):
+    """Least-published first; equal counts in a stable order that differs from topic to topic (a hash of `tie` and
+    the file), so unpublished tracks are not always taken in file-name order."""
+    import hashlib
+    return lambda t: (int(published.get(t["file"], 0)), hashlib.sha256(f"{tie}|{t['file']}".encode()).hexdigest())
+
+
+def pick_library_track(mood: str, min_seconds: float = 0, exclude: list[str] | None = None,
+                       published: dict[str, int] | None = None, strict: bool = False,
+                       tie: str = "") -> dict[str, Any] | None:
+    """An approved track in rotation (in_rotation) in the mood, long enough if min_seconds > 0. `strict`: that mood only (the
+    pipeline: a track of another mood never fills a set); otherwise any approved track as a fallback. `published`:
+    rotate by published uses (rotation_key); without it, by the old `uses` pick count."""
     exclude = set(exclude or [])
-    tracks = [t for t in load_library() if t.get("reviewed") and t["file"] not in exclude]
+    retired = retired_tracks()
+    tracks = [t for t in load_library() if in_rotation(t, retired) and t["file"] not in exclude]
     if not tracks:
         return None
     in_mood = [t for t in tracks if t["mood"] == mood]
-    pool = in_mood or tracks
+    pool = in_mood if (in_mood or strict) else tracks
+    if not pool:
+        return None
     long_enough = [t for t in pool if t["duration_ms"] >= min_seconds * 1000]
     if min_seconds > 0:
         if not long_enough:
@@ -115,13 +164,17 @@ def pick_library_track(mood: str, min_seconds: float = 0, exclude: Optional[List
         candidate_pool = long_enough
     else:
         candidate_pool = pool
+    if published is not None:
+        return min(candidate_pool, key=rotation_key(published, tie))
     return min(candidate_pool, key=lambda t: t.get("uses", 0))  # rotate: least-used first
 
 
-def pick_documentary_movements(primary_mood: str, num_movements: int = 3, exclude: Optional[List[str]] = None) -> List[Dict[str, Any]]:
+def pick_documentary_movements(primary_mood: str, num_movements: int = 3, exclude: list[str] | None = None,
+                               published: dict[str, int] | None = None, tie: str = "") -> list[dict[str, Any]]:
     """Selects 2-3 distinct complementary movements across documentary acts (e.g. Mysterious -> Epic -> Tense)."""
     exclude = set(exclude or [])
-    tracks = [t for t in load_library() if t.get("reviewed") and t["file"] not in exclude]
+    retired = retired_tracks()
+    tracks = [t for t in load_library() if in_rotation(t, retired) and t["file"] not in exclude]
     if not tracks:
         return []
     arc_order = [primary_mood]
@@ -133,16 +186,19 @@ def pick_documentary_movements(primary_mood: str, num_movements: int = 3, exclud
     chosen: List[Dict[str, Any]] = []
     used_files = set(exclude)
     for m in arc_order:
-        tr = pick_library_track(m, min_seconds=0, exclude=list(used_files))
+        # each movement in its own mood (strict): a mood without tracks is skipped, never filled by another
+        tr = pick_library_track(m, min_seconds=0, exclude=list(used_files), published=published, strict=True, tie=tie)
         if tr:
             chosen.append(tr)
             used_files.add(tr["file"])
         if len(chosen) >= num_movements:
             break
-    return chosen or ([pick_library_track(primary_mood)] if pick_library_track(primary_mood) else [])
+    return chosen
 
 
 def mark_used(file: str) -> None:
+    """The old render-pick counter (`uses`). Nothing in the pipeline calls it since QF-84: a pick, a render or a dry
+    run is not a use; published uses come from the publication receipts (PipelineDatabase.music_published_uses)."""
     from .publication_lock import publication_lock
     with publication_lock(LIBRARY, "music-library"):
         tracks = load_library(available_only=False)
@@ -150,6 +206,36 @@ def mark_used(file: str) -> None:
             if t["file"] == file:
                 t["uses"] = t.get("uses", 0) + 1
         save_library(tracks)
+
+
+def music_note(music: dict[str, Any]) -> str:
+    """The review card's music line: the source and the sound plan's mood, or why the music was held (QF-84: a
+    missing mood is shown, never filled in)."""
+    record = music.get("mood_record") or {}
+    share = record.get("share")
+    mood = music.get("mood")
+    why = f"{mood}, the sound plan's mood for {round(share * 100)}% of the narration" if mood and share else (mood or "")
+    if music.get("source") == "elevenlabs":
+        return f"🎵 Music: ElevenLabs score ({why})"
+    if music.get("source") == "library":
+        return f"🎵 Music: free library track ({why})"
+    if music.get("held"):
+        return f"🎵 Music held: {music['held']}; synthesized drone used"
+    return "🎵 Music: none available; synthesized drone used"
+
+
+def music_selection_rows(music: dict[str, Any]) -> list[dict[str, Any]]:
+    """The library tracks a bed was made from, bound to their bytes, for PipelineDatabase.record_music_selection.
+    A generated score or the drone: none (they are not library tracks)."""
+    from .credits import sha256_file
+    if music.get("source") != "library":
+        return []
+    rows = []
+    for track in music.get("tracks") or []:
+        path = Path(track.get("path") or MUSIC_DIR / track["file"])
+        rows.append({"file": track["file"], "mood": track.get("mood"),
+                     "sha256": sha256_file(path) if path.is_file() else None})
+    return rows
 
 
 def license_name(track: Dict[str, Any]) -> str:
@@ -186,34 +272,52 @@ def generate_elevenlabs(mood: str, seconds: float, out_path: Path) -> Path:
 
 
 def music_for(payload: Dict[str, Any], seconds: float, work_dir: Path, voice_quota: Optional[dict],
-              is_documentary: bool = False, exclude: Optional[List[str]] = None) -> Dict[str, Any]:
+              is_documentary: bool = False, exclude: list[str] | None = None,
+              mood_record: dict[str, Any] | None = None,
+              published: dict[str, int] | None = None) -> dict[str, Any]:
     """
-    Returns {"path": Path|None, "paths": List[Path]|None, "source": "elevenlabs"|"library"|"none", "mood": str, "credit": str, "file": str}.
+    Returns {"path": Path|None, "paths": list[Path]|None, "source": "elevenlabs"|"library"|"none", "mood": str|None,
+    "mood_record": dict, "credit": str, "file": str, "held": str (why there is no music; absent when there is)}.
     `exclude`: library files not to use (a Regenerate for "Music / sound" must not get the same track).
+    `mood_record`: the sound plan's mood (sound_plan.dominant_mood); the pipeline always passes it. A record without a
+    mood holds the music: no library track or score, the drone, and `held` says why (for the review card). Without a
+    record (scripts) the script is classified (choose_mood), with no default either.
+    `published`: published uses per library file (PipelineDatabase.music_published_uses), the rotation's count. Nothing
+    here counts a use.
     """
-    mood = choose_mood(payload)
+    if mood_record is None:
+        mood = choose_mood(payload)
+        mood_record = {"mood": mood, "reason": "" if mood else "the script could not be classified",
+                       "source": "classifier"}
+    mood = mood_record.get("mood")
+    if mood not in MOODS:
+        reason = mood_record.get("reason") or f"the mood {mood!r} has no music set"
+        log.warning("Music held: no mood (%s); using the synthesized drone.", reason)
+        return {"path": None, "paths": None, "source": "none", "mood": None, "mood_record": mood_record, "credit": "",
+                "file": "", "held": f"no mood ({reason})"}
+    published = published or {}
+    tie = str(payload.get("topic_id") or payload.get("title") or "")
 
     def library():
         can_eleven = bool(is_configured(ELEVENLABS_API_KEY) and elevenlabs_paid(voice_quota))
         if is_documentary and not can_eleven:
-            movements = pick_documentary_movements(mood, num_movements=3, exclude=exclude)
+            movements = pick_documentary_movements(mood, num_movements=3, exclude=exclude, published=published, tie=tie)
             if movements:
                 paths = [MUSIC_DIR / t["file"] for t in movements]
                 credits = [credit_line(t) for t in movements if credit_line(t)]
-                for t in movements:
-                    mark_used(t["file"])
                 log.info("Music: documentary multi-movement suite (%d tracks: %s).",
                          len(movements), ", ".join(t["mood"] for t in movements))
-                return {"path": paths[0], "paths": paths, "source": "library", "mood": mood,
+                return {"path": paths[0], "paths": paths, "source": "library", "mood": mood, "mood_record": mood_record,
                         "credit": " \n".join(credits), "file": movements[0]["file"],
                         "tracks": [{**t, "path": str(MUSIC_DIR / t["file"])} for t in movements]}
-        track = pick_library_track(mood, seconds, exclude=exclude)
+        track = pick_library_track(mood, seconds, exclude=exclude, published=published, strict=True, tie=tie)
         if not track and not can_eleven:
-            track = pick_library_track(mood, 0, exclude=exclude)
+            track = pick_library_track(mood, 0, exclude=exclude, published=published, strict=True, tie=tie)
         if track:
-            log.info("Music: library track '%s' (%s).", track["title"], track["mood"])
-            mark_used(track["file"])
-            return {"path": MUSIC_DIR / track["file"], "paths": [MUSIC_DIR / track["file"]], "source": "library", "mood": mood,
+            log.info("Music: library track '%s' (%s, %d published use(s)).", track["title"], track["mood"],
+                     published.get(track["file"], 0))
+            return {"path": MUSIC_DIR / track["file"], "paths": [MUSIC_DIR / track["file"]], "source": "library",
+                    "mood": mood, "mood_record": mood_record,
                     "credit": credit_line(track), "file": track["file"],
                     "tracks": [{**track, "path": str(MUSIC_DIR / track["file"])}]}
         return None
@@ -224,7 +328,8 @@ def music_for(payload: Dict[str, Any], seconds: float, work_dir: Path, voice_quo
         try:
             path = generate_elevenlabs(mood, seconds + 1, work_dir / "music_elevenlabs.mp3")
             log.info("Music: ElevenLabs score (%s).", mood)
-            return {"path": path, "paths": [path], "source": "elevenlabs", "mood": mood, "credit": "", "file": ""}
+            return {"path": path, "paths": [path], "source": "elevenlabs", "mood": mood, "mood_record": mood_record,
+                    "credit": "", "file": ""}
         except (requests.RequestException, OSError) as e:
             log.warning("ElevenLabs Music failed (%s).", e)
             return None
@@ -234,8 +339,9 @@ def music_for(payload: Dict[str, Any], seconds: float, work_dir: Path, voice_quo
         result = option()
         if result:
             return result
-    log.info("Music: no paid plan or approved library track; using the synthesized drone.")
-    return {"path": None, "paths": None, "source": "none", "mood": mood, "credit": "", "file": ""}
+    log.info("Music: no paid plan or approved %s track; using the synthesized drone.", mood)
+    return {"path": None, "paths": None, "source": "none", "mood": mood, "mood_record": mood_record, "credit": "",
+            "file": "", "held": f"no approved {mood} track"}
 
 
 # ------------------------------------------------------------------ review

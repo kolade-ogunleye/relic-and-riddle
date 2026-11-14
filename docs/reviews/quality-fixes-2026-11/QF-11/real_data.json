@@ -1,0 +1,1399 @@
+{
+ "root_has_audio_qa": true,
+ "dev": {
+  "mastering_summary": {
+   "runs": 34,
+   "errors": 0,
+   "decodes": {
+    "min": 1,
+    "median": 3.0,
+    "max": 5
+   },
+   "decodes_with_card_level": {
+    "min": 3,
+    "median": 3.0,
+    "max": 5
+   },
+   "decodes_without_card_level": {
+    "min": 1,
+    "median": 1.0,
+    "max": 2
+   },
+   "mastering_s": {
+    "min": 3.7,
+    "median": 13.5,
+    "max": 25.3
+   },
+   "integrated_lufs": {
+    "min": -14.2,
+    "median": -14.1,
+    "max": -14.0
+   },
+   "true_peak_dbtp": {
+    "min": -1.9,
+    "median": -1.9,
+    "max": -1.9
+   },
+   "off_target_over_0_5_lu": 0,
+   "limiter_cost_lu": {
+    "min": 0.0,
+    "median": 0.1,
+    "max": 0.2
+   },
+   "limiter_cost_bound_lu": {
+    "min": 0.26,
+    "median": 0.44,
+    "max": 0.66
+   },
+   "bound_below_real_cost": 0
+  },
+  "mastering": [
+   {
+    "run": "run_amber_room_heist_1792790550",
+    "deep_dive": false,
+    "loop_bridge": false,
+    "card_db": 0.0,
+    "decodes": 1,
+    "mastering_s": 17.6,
+    "gain_db": 3.2,
+    "integrated_lufs": -14.1,
+    "true_peak_dbtp": -1.9,
+    "limiter_cost_lu": 0.1,
+    "limiter_cost_bound_lu": 0.44
+   },
+   {
+    "run": "run_amber_room_heist_1792801257",
+    "deep_dive": false,
+    "loop_bridge": false,
+    "card_db": 0.0,
+    "decodes": 1,
+    "mastering_s": 5.2,
+    "gain_db": 3.4,
+    "integrated_lufs": -14.0,
+    "true_peak_dbtp": -1.9,
+    "limiter_cost_lu": 0.0,
+    "limiter_cost_bound_lu": 0.42
+   },
+   {
+    "run": "run_amber_room_heist_1792805842",
+    "deep_dive": false,
+    "loop_bridge": false,
+    "card_db": 0.0,
+    "decodes": 2,
+    "mastering_s": 11.2,
+    "gain_db": 3.4,
+    "integrated_lufs": -14.1,
+    "true_peak_dbtp": -1.9,
+    "limiter_cost_lu": 0.1,
+    "limiter_cost_bound_lu": 0.53
+   },
+   {
+    "run": "run_damascus_steel_nanotubes_1792732472_short",
+    "deep_dive": false,
+    "loop_bridge": false,
+    "card_db": 0.0,
+    "decodes": 1,
+    "mastering_s": 4.8,
+    "gain_db": 3.5,
+    "integrated_lufs": -14.1,
+    "true_peak_dbtp": -1.9,
+    "limiter_cost_lu": 0.1,
+    "limiter_cost_bound_lu": 0.49
+   },
+   {
+    "run": "run_gol_gumbaz_whispering_gallery_1793278143",
+    "deep_dive": false,
+    "loop_bridge": true,
+    "card_db": 3.5,
+    "decodes": 3,
+    "mastering_s": 16.0,
+    "gain_db": 3.3,
+    "integrated_lufs": -14.1,
+    "true_peak_dbtp": -1.9,
+    "limiter_cost_lu": 0.1,
+    "limiter_cost_bound_lu": 0.44
+   },
+   {
+    "run": "run_greek_fire_siphon_1792735284_short",
+    "deep_dive": false,
+    "loop_bridge": false,
+    "card_db": 0.0,
+    "decodes": 2,
+    "mastering_s": 9.1,
+    "gain_db": 3.4,
+    "integrated_lufs": -14.1,
+    "true_peak_dbtp": -1.9,
+    "limiter_cost_lu": 0.1,
+    "limiter_cost_bound_lu": 0.66
+   },
+   {
+    "run": "run_hal_saflieni_hypogeum_1792949304",
+    "deep_dive": false,
+    "loop_bridge": false,
+    "card_db": 0.0,
+    "decodes": 1,
+    "mastering_s": 4.4,
+    "gain_db": 3.2,
+    "integrated_lufs": -14.1,
+    "true_peak_dbtp": -1.9,
+    "limiter_cost_lu": 0.1,
+    "limiter_cost_bound_lu": 0.34
+   },
+   {
+    "run": "run_kailasa_temple_monolith_1792524470",
+    "deep_dive": false,
+    "loop_bridge": false,
+    "card_db": 0.0,
+    "decodes": 1,
+    "mastering_s": 3.9,
+    "gain_db": 3.7,
+    "integrated_lufs": -14.1,
+    "true_peak_dbtp": -1.9,
+    "limiter_cost_lu": 0.1,
+    "limiter_cost_bound_lu": 0.46
+   },
+   {
+    "run": "run_nazca_lines_runway_paradox_1792961797",
+    "deep_dive": false,
+    "loop_bridge": false,
+    "card_db": 0.0,
+    "decodes": 1,
+    "mastering_s": 4.0,
+    "gain_db": 3.2,
+    "integrated_lufs": -14.1,
+    "true_peak_dbtp": -1.9,
+    "limiter_cost_lu": 0.1,
+    "limiter_cost_bound_lu": 0.47
+   },
+   {
+    "run": "run_nazca_lines_runway_paradox_1793247464",
+    "deep_dive": false,
+    "loop_bridge": true,
+    "card_db": 12.0,
+    "decodes": 5,
+    "mastering_s": 25.3,
+    "gain_db": 1.7,
+    "integrated_lufs": -14.2,
+    "true_peak_dbtp": -1.9,
+    "limiter_cost_lu": 0.2,
+    "limiter_cost_bound_lu": 0.62
+   },
+   {
+    "run": "run_nazca_lines_runway_paradox_1793251266",
+    "deep_dive": false,
+    "loop_bridge": true,
+    "card_db": 12.0,
+    "decodes": 5,
+    "mastering_s": 24.9,
+    "gain_db": 1.7,
+    "integrated_lufs": -14.2,
+    "true_peak_dbtp": -1.9,
+    "limiter_cost_lu": 0.2,
+    "limiter_cost_bound_lu": 0.62
+   },
+   {
+    "run": "run_nazca_lines_runway_paradox_1793262388",
+    "deep_dive": false,
+    "loop_bridge": true,
+    "card_db": 12.0,
+    "decodes": 5,
+    "mastering_s": 25.1,
+    "gain_db": 1.7,
+    "integrated_lufs": -14.2,
+    "true_peak_dbtp": -1.9,
+    "limiter_cost_lu": 0.2,
+    "limiter_cost_bound_lu": 0.62
+   },
+   {
+    "run": "run_nazca_lines_runway_paradox_1793267092",
+    "deep_dive": false,
+    "loop_bridge": true,
+    "card_db": 12.0,
+    "decodes": 5,
+    "mastering_s": 25.2,
+    "gain_db": 1.7,
+    "integrated_lufs": -14.2,
+    "true_peak_dbtp": -1.9,
+    "limiter_cost_lu": 0.2,
+    "limiter_cost_bound_lu": 0.62
+   },
+   {
+    "run": "run_odessa_catacombs_1792970549",
+    "deep_dive": false,
+    "loop_bridge": false,
+    "card_db": 0.0,
+    "decodes": 1,
+    "mastering_s": 3.8,
+    "gain_db": 3.2,
+    "integrated_lufs": -14.1,
+    "true_peak_dbtp": -1.9,
+    "limiter_cost_lu": 0.1,
+    "limiter_cost_bound_lu": 0.39
+   },
+   {
+    "run": "run_odessa_catacombs_1793098390",
+    "deep_dive": false,
+    "loop_bridge": true,
+    "card_db": 8.1,
+    "decodes": 3,
+    "mastering_s": 14.3,
+    "gain_db": 3.4,
+    "integrated_lufs": -14.0,
+    "true_peak_dbtp": -1.9,
+    "limiter_cost_lu": 0.0,
+    "limiter_cost_bound_lu": 0.42
+   },
+   {
+    "run": "run_odessa_catacombs_1793100750",
+    "deep_dive": false,
+    "loop_bridge": true,
+    "card_db": 8.1,
+    "decodes": 3,
+    "mastering_s": 13.2,
+    "gain_db": 3.4,
+    "integrated_lufs": -14.0,
+    "true_peak_dbtp": -1.9,
+    "limiter_cost_lu": 0.0,
+    "limiter_cost_bound_lu": 0.42
+   },
+   {
+    "run": "run_odessa_catacombs_1793159709",
+    "deep_dive": false,
+    "loop_bridge": true,
+    "card_db": 12.0,
+    "decodes": 4,
+    "mastering_s": 18.2,
+    "gain_db": 3.5,
+    "integrated_lufs": -14.1,
+    "true_peak_dbtp": -1.9,
+    "limiter_cost_lu": 0.1,
+    "limiter_cost_bound_lu": 0.53
+   },
+   {
+    "run": "run_richat_structure_sahara_eye_1792737039_short",
+    "deep_dive": false,
+    "loop_bridge": false,
+    "card_db": 0.0,
+    "decodes": 1,
+    "mastering_s": 3.9,
+    "gain_db": 3.3,
+    "integrated_lufs": -14.1,
+    "true_peak_dbtp": -1.9,
+    "limiter_cost_lu": 0.1,
+    "limiter_cost_bound_lu": 0.41
+   },
+   {
+    "run": "run_richat_structure_sahara_eye_1792740961_long",
+    "deep_dive": true,
+    "loop_bridge": false,
+    "card_db": 0.0,
+    "decodes": 1,
+    "mastering_s": 16.7,
+    "gain_db": 3.2,
+    "integrated_lufs": -14.1,
+    "true_peak_dbtp": -1.9,
+    "limiter_cost_lu": 0.1,
+    "limiter_cost_bound_lu": 0.37
+   },
+   {
+    "run": "run_richat_structure_sahara_eye_1792778206",
+    "deep_dive": false,
+    "loop_bridge": false,
+    "card_db": 0.0,
+    "decodes": 1,
+    "mastering_s": 3.7,
+    "gain_db": 3.2,
+    "integrated_lufs": -14.0,
+    "true_peak_dbtp": -1.9,
+    "limiter_cost_lu": 0.0,
+    "limiter_cost_bound_lu": 0.45
+   },
+   {
+    "run": "run_richat_structure_sahara_eye_1793272675",
+    "deep_dive": false,
+    "loop_bridge": true,
+    "card_db": 5.2,
+    "decodes": 3,
+    "mastering_s": 15.0,
+    "gain_db": 3.2,
+    "integrated_lufs": -14.1,
+    "true_peak_dbtp": -1.9,
+    "limiter_cost_lu": 0.1,
+    "limiter_cost_bound_lu": 0.34
+   },
+   {
+    "run": "run_richat_structure_sahara_eye_1793468053",
+    "deep_dive": false,
+    "loop_bridge": true,
+    "card_db": 5.8,
+    "decodes": 3,
+    "mastering_s": 14.9,
+    "gain_db": 3.3,
+    "integrated_lufs": -14.1,
+    "true_peak_dbtp": -1.9,
+    "limiter_cost_lu": 0.1,
+    "limiter_cost_bound_lu": 0.37
+   },
+   {
+    "run": "run_richat_structure_sahara_eye_1793474473",
+    "deep_dive": false,
+    "loop_bridge": true,
+    "card_db": 5.8,
+    "decodes": 3,
+    "mastering_s": 14.3,
+    "gain_db": 3.3,
+    "integrated_lufs": -14.1,
+    "true_peak_dbtp": -1.9,
+    "limiter_cost_lu": 0.1,
+    "limiter_cost_bound_lu": 0.37
+   },
+   {
+    "run": "run_richat_structure_sahara_eye_1793474843",
+    "deep_dive": false,
+    "loop_bridge": true,
+    "card_db": 5.8,
+    "decodes": 3,
+    "mastering_s": 13.0,
+    "gain_db": 3.3,
+    "integrated_lufs": -14.1,
+    "true_peak_dbtp": -1.9,
+    "limiter_cost_lu": 0.1,
+    "limiter_cost_bound_lu": 0.37
+   },
+   {
+    "run": "run_roman_self_healing_concrete_1793161347",
+    "deep_dive": false,
+    "loop_bridge": true,
+    "card_db": 10.3,
+    "decodes": 4,
+    "mastering_s": 20.2,
+    "gain_db": 3.5,
+    "integrated_lufs": -14.1,
+    "true_peak_dbtp": -1.9,
+    "limiter_cost_lu": 0.1,
+    "limiter_cost_bound_lu": 0.53
+   },
+   {
+    "run": "run_roman_self_healing_concrete_1793163918",
+    "deep_dive": false,
+    "loop_bridge": true,
+    "card_db": 10.3,
+    "decodes": 4,
+    "mastering_s": 20.5,
+    "gain_db": 3.5,
+    "integrated_lufs": -14.1,
+    "true_peak_dbtp": -1.9,
+    "limiter_cost_lu": 0.1,
+    "limiter_cost_bound_lu": 0.53
+   },
+   {
+    "run": "run_singing_colossi_of_memnon_1792952878",
+    "deep_dive": false,
+    "loop_bridge": false,
+    "card_db": 0.0,
+    "decodes": 1,
+    "mastering_s": 4.5,
+    "gain_db": 3.3,
+    "integrated_lufs": -14.1,
+    "true_peak_dbtp": -1.9,
+    "limiter_cost_lu": 0.1,
+    "limiter_cost_bound_lu": 0.31
+   },
+   {
+    "run": "run_trepanation_miracle_1792995462",
+    "deep_dive": false,
+    "loop_bridge": true,
+    "card_db": 9.1,
+    "decodes": 3,
+    "mastering_s": 15.1,
+    "gain_db": 3.2,
+    "integrated_lufs": -14.1,
+    "true_peak_dbtp": -1.9,
+    "limiter_cost_lu": 0.1,
+    "limiter_cost_bound_lu": 0.46
+   },
+   {
+    "run": "run_tunguska_event_1908_1792930600",
+    "deep_dive": false,
+    "loop_bridge": false,
+    "card_db": 0.0,
+    "decodes": 2,
+    "mastering_s": 9.0,
+    "gain_db": 3.4,
+    "integrated_lufs": -14.1,
+    "true_peak_dbtp": -1.9,
+    "limiter_cost_lu": 0.1,
+    "limiter_cost_bound_lu": 0.61
+   },
+   {
+    "run": "run_unfinished_obelisk_aswan_1792985912",
+    "deep_dive": false,
+    "loop_bridge": true,
+    "card_db": 5.3,
+    "decodes": 3,
+    "mastering_s": 13.7,
+    "gain_db": 3.4,
+    "integrated_lufs": -14.1,
+    "true_peak_dbtp": -1.9,
+    "limiter_cost_lu": 0.1,
+    "limiter_cost_bound_lu": 0.37
+   },
+   {
+    "run": "run_unfinished_obelisk_aswan_1792993374",
+    "deep_dive": false,
+    "loop_bridge": true,
+    "card_db": 3.7,
+    "decodes": 3,
+    "mastering_s": 13.3,
+    "gain_db": 3.3,
+    "integrated_lufs": -14.1,
+    "true_peak_dbtp": -1.9,
+    "limiter_cost_lu": 0.1,
+    "limiter_cost_bound_lu": 0.44
+   },
+   {
+    "run": "run_unfinished_obelisk_aswan_1793056896",
+    "deep_dive": false,
+    "loop_bridge": true,
+    "card_db": 7.2,
+    "decodes": 3,
+    "mastering_s": 15.1,
+    "gain_db": 3.4,
+    "integrated_lufs": -14.1,
+    "true_peak_dbtp": -1.9,
+    "limiter_cost_lu": 0.1,
+    "limiter_cost_bound_lu": 0.35
+   },
+   {
+    "run": "run_voynich_manuscript_1792965308",
+    "deep_dive": false,
+    "loop_bridge": false,
+    "card_db": 0.0,
+    "decodes": 1,
+    "mastering_s": 4.3,
+    "gain_db": 3.7,
+    "integrated_lufs": -14.1,
+    "true_peak_dbtp": -1.9,
+    "limiter_cost_lu": 0.1,
+    "limiter_cost_bound_lu": 0.32
+   },
+   {
+    "run": "run_wieliczka_salt_mine_1792974672",
+    "deep_dive": false,
+    "loop_bridge": false,
+    "card_db": 0.0,
+    "decodes": 1,
+    "mastering_s": 4.4,
+    "gain_db": 3.4,
+    "integrated_lufs": -14.0,
+    "true_peak_dbtp": -1.9,
+    "limiter_cost_lu": 0.0,
+    "limiter_cost_bound_lu": 0.26
+   }
+  ],
+  "gate_summary": {
+   "masters": 30,
+   "measurement_failed": 0,
+   "failed": {
+    "audio_dropout": 0,
+    "audio_phone": 0
+   },
+   "noted": {
+    "audio_dropout": 0,
+    "audio_phone": 0
+   },
+   "loudness_range_lu": {
+    "min": 1.1,
+    "median": 1.65,
+    "max": 2.4
+   },
+   "max_short_term_lufs": {
+    "min": -13.4,
+    "median": -12.95,
+    "max": -12.4
+   },
+   "max_momentary_lufs": {
+    "min": -11.7,
+    "median": -11.1,
+    "max": -10.1
+   },
+   "phone_loss_lu": {
+    "min": 2.7,
+    "median": 4.8,
+    "max": 5.2
+   },
+   "phone_worst_window_lu": {
+    "min": 4.2,
+    "median": 6.8,
+    "max": 7.9
+   },
+   "sibilance_worst_rel_lu": {
+    "min": -7.1,
+    "median": -5.45,
+    "max": -3.1
+   },
+   "longest_silence_s": {
+    "min": 0.0,
+    "median": 0.0,
+    "max": 0.36
+   },
+   "flat_factor": {
+    "min": 0.0,
+    "median": 0.0,
+    "max": 0.0
+   },
+   "wall_s_per_programme_s": {
+    "min": 0.0836,
+    "median": 0.113,
+    "max": 0.2296
+   },
+   "cpu_s_per_programme_s": {
+    "min": 0.107,
+    "median": 0.127,
+    "max": 0.1738
+   }
+  },
+  "gate": [
+   {
+    "master": "run_amber_room_heist_1792790550/amber_room_heist_master.mp4",
+    "deep_dive": false,
+    "duration_s": 49.248,
+    "status": {
+     "audio_dropout": "pass",
+     "audio_phone": "pass"
+    },
+    "noted": [],
+    "integrated_lufs": -14.1,
+    "true_peak_dbtp": -1.9,
+    "loudness_range_lu": 1.8,
+    "max_short_term_lufs": -12.9,
+    "max_momentary_lufs": -10.7,
+    "phone_loss_lu": 5.1,
+    "phone_worst_window_lu": 6.8,
+    "sibilance_worst_rel_lu": -5.4,
+    "longest_silence_s": 0.0,
+    "flat_factor": 0.0,
+    "wall_s": 6.74,
+    "cpu_s": 6.38,
+    "wall_s_per_programme_s": 0.1368,
+    "cpu_s_per_programme_s": 0.1294
+   },
+   {
+    "master": "run_amber_room_heist_1792801257/amber_room_heist_master.mp4",
+    "deep_dive": false,
+    "duration_s": 47.64,
+    "status": {
+     "audio_dropout": "pass",
+     "audio_phone": "pass"
+    },
+    "noted": [],
+    "integrated_lufs": -14.1,
+    "true_peak_dbtp": -1.9,
+    "loudness_range_lu": 1.6,
+    "max_short_term_lufs": -12.8,
+    "max_momentary_lufs": -11.1,
+    "phone_loss_lu": 4.9,
+    "phone_worst_window_lu": 7.4,
+    "sibilance_worst_rel_lu": -4.8,
+    "longest_silence_s": 0.0,
+    "flat_factor": 0.0,
+    "wall_s": 4.58,
+    "cpu_s": 6.0,
+    "wall_s_per_programme_s": 0.0961,
+    "cpu_s_per_programme_s": 0.1259
+   },
+   {
+    "master": "run_amber_room_heist_1792805842/amber_room_heist_master.mp4",
+    "deep_dive": false,
+    "duration_s": 49.68,
+    "status": {
+     "audio_dropout": "pass",
+     "audio_phone": "pass"
+    },
+    "noted": [],
+    "integrated_lufs": -14.2,
+    "true_peak_dbtp": -1.8,
+    "loudness_range_lu": 1.9,
+    "max_short_term_lufs": -12.9,
+    "max_momentary_lufs": -10.9,
+    "phone_loss_lu": 4.8,
+    "phone_worst_window_lu": 6.9,
+    "sibilance_worst_rel_lu": -3.3,
+    "longest_silence_s": 0.0,
+    "flat_factor": 0.0,
+    "wall_s": 4.5,
+    "cpu_s": 6.94,
+    "wall_s_per_programme_s": 0.0905,
+    "cpu_s_per_programme_s": 0.1396
+   },
+   {
+    "master": "run_damascus_steel_nanotubes_1792732472_short/damascus_steel_nanotubes_master.mp4",
+    "deep_dive": false,
+    "duration_s": 48.79,
+    "status": {
+     "audio_dropout": "pass",
+     "audio_phone": "pass"
+    },
+    "noted": [],
+    "integrated_lufs": -14.1,
+    "true_peak_dbtp": -1.9,
+    "loudness_range_lu": 1.9,
+    "max_short_term_lufs": -12.6,
+    "max_momentary_lufs": -11.2,
+    "phone_loss_lu": 5.0,
+    "phone_worst_window_lu": 7.2,
+    "sibilance_worst_rel_lu": -3.1,
+    "longest_silence_s": 0.0,
+    "flat_factor": 0.0,
+    "wall_s": 5.32,
+    "cpu_s": 6.47,
+    "wall_s_per_programme_s": 0.1091,
+    "cpu_s_per_programme_s": 0.1326
+   },
+   {
+    "master": "run_gol_gumbaz_whispering_gallery_1793278143/gol_gumbaz_whispering_gallery_master.mp4",
+    "deep_dive": false,
+    "duration_s": 47.66,
+    "status": {
+     "audio_dropout": "pass",
+     "audio_phone": "pass"
+    },
+    "noted": [],
+    "integrated_lufs": -14.1,
+    "true_peak_dbtp": -1.9,
+    "loudness_range_lu": 1.3,
+    "max_short_term_lufs": -13.2,
+    "max_momentary_lufs": -11.3,
+    "phone_loss_lu": 4.6,
+    "phone_worst_window_lu": 6.7,
+    "sibilance_worst_rel_lu": -6.3,
+    "longest_silence_s": 0.0,
+    "flat_factor": 0.0,
+    "wall_s": 6.33,
+    "cpu_s": 8.28,
+    "wall_s_per_programme_s": 0.1329,
+    "cpu_s_per_programme_s": 0.1738
+   },
+   {
+    "master": "run_greek_fire_siphon_1792735284_short/greek_fire_siphon_master.mp4",
+    "deep_dive": false,
+    "duration_s": 47.496,
+    "status": {
+     "audio_dropout": "pass",
+     "audio_phone": "pass"
+    },
+    "noted": [],
+    "integrated_lufs": -14.2,
+    "true_peak_dbtp": -1.9,
+    "loudness_range_lu": 1.4,
+    "max_short_term_lufs": -13.0,
+    "max_momentary_lufs": -11.7,
+    "phone_loss_lu": 4.9,
+    "phone_worst_window_lu": 7.0,
+    "sibilance_worst_rel_lu": -5.6,
+    "longest_silence_s": 0.0,
+    "flat_factor": 0.0,
+    "wall_s": 4.22,
+    "cpu_s": 6.47,
+    "wall_s_per_programme_s": 0.0888,
+    "cpu_s_per_programme_s": 0.1362
+   },
+   {
+    "master": "run_hal_saflieni_hypogeum_1792949304/hal_saflieni_hypogeum_master.mp4",
+    "deep_dive": false,
+    "duration_s": 49.15,
+    "status": {
+     "audio_dropout": "pass",
+     "audio_phone": "pass"
+    },
+    "noted": [],
+    "integrated_lufs": -14.1,
+    "true_peak_dbtp": -1.9,
+    "loudness_range_lu": 1.5,
+    "max_short_term_lufs": -13.1,
+    "max_momentary_lufs": -11.5,
+    "phone_loss_lu": 4.4,
+    "phone_worst_window_lu": 6.5,
+    "sibilance_worst_rel_lu": -4.5,
+    "longest_silence_s": 0.0,
+    "flat_factor": 0.0,
+    "wall_s": 6.82,
+    "cpu_s": 6.06,
+    "wall_s_per_programme_s": 0.1388,
+    "cpu_s_per_programme_s": 0.1233
+   },
+   {
+    "master": "run_nazca_lines_runway_paradox_1792961797/nazca_lines_runway_paradox_master.mp4",
+    "deep_dive": false,
+    "duration_s": 47.71,
+    "status": {
+     "audio_dropout": "pass",
+     "audio_phone": "pass"
+    },
+    "noted": [],
+    "integrated_lufs": -14.1,
+    "true_peak_dbtp": -1.8,
+    "loudness_range_lu": 1.4,
+    "max_short_term_lufs": -13.1,
+    "max_momentary_lufs": -10.1,
+    "phone_loss_lu": 4.6,
+    "phone_worst_window_lu": 6.6,
+    "sibilance_worst_rel_lu": -6.3,
+    "longest_silence_s": 0.0,
+    "flat_factor": 0.0,
+    "wall_s": 5.33,
+    "cpu_s": 6.75,
+    "wall_s_per_programme_s": 0.1117,
+    "cpu_s_per_programme_s": 0.1415
+   },
+   {
+    "master": "run_nazca_lines_runway_paradox_1793247464/nazca_lines_runway_paradox_master.mp4",
+    "deep_dive": false,
+    "duration_s": 50.1,
+    "status": {
+     "audio_dropout": "pass",
+     "audio_phone": "pass"
+    },
+    "noted": [],
+    "integrated_lufs": -14.2,
+    "true_peak_dbtp": -1.8,
+    "loudness_range_lu": 2.4,
+    "max_short_term_lufs": -13.4,
+    "max_momentary_lufs": -11.1,
+    "phone_loss_lu": 2.7,
+    "phone_worst_window_lu": 4.2,
+    "sibilance_worst_rel_lu": -6.6,
+    "longest_silence_s": 0.0,
+    "flat_factor": 0.0,
+    "wall_s": 4.19,
+    "cpu_s": 6.38,
+    "wall_s_per_programme_s": 0.0836,
+    "cpu_s_per_programme_s": 0.1272
+   },
+   {
+    "master": "run_nazca_lines_runway_paradox_1793251266/nazca_lines_runway_paradox_master.mp4",
+    "deep_dive": false,
+    "duration_s": 50.1,
+    "status": {
+     "audio_dropout": "pass",
+     "audio_phone": "pass"
+    },
+    "noted": [],
+    "integrated_lufs": -14.2,
+    "true_peak_dbtp": -1.8,
+    "loudness_range_lu": 2.4,
+    "max_short_term_lufs": -13.4,
+    "max_momentary_lufs": -11.1,
+    "phone_loss_lu": 2.7,
+    "phone_worst_window_lu": 4.2,
+    "sibilance_worst_rel_lu": -6.6,
+    "longest_silence_s": 0.0,
+    "flat_factor": 0.0,
+    "wall_s": 5.76,
+    "cpu_s": 6.56,
+    "wall_s_per_programme_s": 0.1149,
+    "cpu_s_per_programme_s": 0.131
+   },
+   {
+    "master": "run_nazca_lines_runway_paradox_1793262388/nazca_lines_runway_paradox_master.mp4",
+    "deep_dive": false,
+    "duration_s": 50.1,
+    "status": {
+     "audio_dropout": "pass",
+     "audio_phone": "pass"
+    },
+    "noted": [],
+    "integrated_lufs": -14.2,
+    "true_peak_dbtp": -1.8,
+    "loudness_range_lu": 2.4,
+    "max_short_term_lufs": -13.4,
+    "max_momentary_lufs": -11.1,
+    "phone_loss_lu": 2.7,
+    "phone_worst_window_lu": 4.2,
+    "sibilance_worst_rel_lu": -6.6,
+    "longest_silence_s": 0.0,
+    "flat_factor": 0.0,
+    "wall_s": 7.57,
+    "cpu_s": 5.69,
+    "wall_s_per_programme_s": 0.1511,
+    "cpu_s_per_programme_s": 0.1135
+   },
+   {
+    "master": "run_nazca_lines_runway_paradox_1793267092/nazca_lines_runway_paradox_master.mp4",
+    "deep_dive": false,
+    "duration_s": 50.1,
+    "status": {
+     "audio_dropout": "pass",
+     "audio_phone": "pass"
+    },
+    "noted": [],
+    "integrated_lufs": -14.2,
+    "true_peak_dbtp": -1.8,
+    "loudness_range_lu": 2.4,
+    "max_short_term_lufs": -13.4,
+    "max_momentary_lufs": -11.1,
+    "phone_loss_lu": 2.7,
+    "phone_worst_window_lu": 4.2,
+    "sibilance_worst_rel_lu": -6.6,
+    "longest_silence_s": 0.0,
+    "flat_factor": 0.0,
+    "wall_s": 5.18,
+    "cpu_s": 6.19,
+    "wall_s_per_programme_s": 0.1035,
+    "cpu_s_per_programme_s": 0.1235
+   },
+   {
+    "master": "run_odessa_catacombs_1792970549/odessa_catacombs_master.mp4",
+    "deep_dive": false,
+    "duration_s": 44.568,
+    "status": {
+     "audio_dropout": "pass",
+     "audio_phone": "pass"
+    },
+    "noted": [],
+    "integrated_lufs": -14.0,
+    "true_peak_dbtp": -1.8,
+    "loudness_range_lu": 1.6,
+    "max_short_term_lufs": -13.1,
+    "max_momentary_lufs": -11.4,
+    "phone_loss_lu": 4.5,
+    "phone_worst_window_lu": 6.3,
+    "sibilance_worst_rel_lu": -4.6,
+    "longest_silence_s": 0.0,
+    "flat_factor": 0.0,
+    "wall_s": 4.96,
+    "cpu_s": 5.22,
+    "wall_s_per_programme_s": 0.1113,
+    "cpu_s_per_programme_s": 0.1171
+   },
+   {
+    "master": "run_odessa_catacombs_1793098390/odessa_catacombs_master.mp4",
+    "deep_dive": false,
+    "duration_s": 47.468,
+    "status": {
+     "audio_dropout": "pass",
+     "audio_phone": "pass"
+    },
+    "noted": [],
+    "integrated_lufs": -14.1,
+    "true_peak_dbtp": -1.9,
+    "loudness_range_lu": 1.4,
+    "max_short_term_lufs": -12.9,
+    "max_momentary_lufs": -11.2,
+    "phone_loss_lu": 5.0,
+    "phone_worst_window_lu": 7.1,
+    "sibilance_worst_rel_lu": -5.4,
+    "longest_silence_s": 0.0,
+    "flat_factor": 0.0,
+    "wall_s": 3.99,
+    "cpu_s": 5.59,
+    "wall_s_per_programme_s": 0.0841,
+    "cpu_s_per_programme_s": 0.1178
+   },
+   {
+    "master": "run_odessa_catacombs_1793100750/odessa_catacombs_master.mp4",
+    "deep_dive": false,
+    "duration_s": 47.468,
+    "status": {
+     "audio_dropout": "pass",
+     "audio_phone": "pass"
+    },
+    "noted": [],
+    "integrated_lufs": -14.1,
+    "true_peak_dbtp": -1.9,
+    "loudness_range_lu": 1.4,
+    "max_short_term_lufs": -12.9,
+    "max_momentary_lufs": -11.2,
+    "phone_loss_lu": 5.0,
+    "phone_worst_window_lu": 7.1,
+    "sibilance_worst_rel_lu": -5.4,
+    "longest_silence_s": 0.0,
+    "flat_factor": 0.0,
+    "wall_s": 10.15,
+    "cpu_s": 5.81,
+    "wall_s_per_programme_s": 0.2138,
+    "cpu_s_per_programme_s": 0.1225
+   },
+   {
+    "master": "run_richat_structure_sahara_eye_1792737039_short/richat_structure_sahara_eye_master.mp4",
+    "deep_dive": false,
+    "duration_s": 44.88,
+    "status": {
+     "audio_dropout": "pass",
+     "audio_phone": "pass"
+    },
+    "noted": [],
+    "integrated_lufs": -14.1,
+    "true_peak_dbtp": -1.8,
+    "loudness_range_lu": 1.7,
+    "max_short_term_lufs": -13.1,
+    "max_momentary_lufs": -11.2,
+    "phone_loss_lu": 4.7,
+    "phone_worst_window_lu": 6.4,
+    "sibilance_worst_rel_lu": -5.1,
+    "longest_silence_s": 0.0,
+    "flat_factor": 0.0,
+    "wall_s": 5.36,
+    "cpu_s": 5.72,
+    "wall_s_per_programme_s": 0.1195,
+    "cpu_s_per_programme_s": 0.1274
+   },
+   {
+    "master": "run_richat_structure_sahara_eye_1792740961_long/richat_structure_sahara_eye_documentary_16x9.mp4",
+    "deep_dive": true,
+    "duration_s": 196.368,
+    "status": {
+     "audio_dropout": "pass",
+     "audio_phone": "pass"
+    },
+    "noted": [],
+    "integrated_lufs": -14.1,
+    "true_peak_dbtp": -1.8,
+    "loudness_range_lu": 1.6,
+    "max_short_term_lufs": -12.9,
+    "max_momentary_lufs": -10.8,
+    "phone_loss_lu": 4.8,
+    "phone_worst_window_lu": 7.9,
+    "sibilance_worst_rel_lu": -4.6,
+    "longest_silence_s": 0.36,
+    "flat_factor": 0.0,
+    "wall_s": 19.4,
+    "cpu_s": 22.19,
+    "wall_s_per_programme_s": 0.0988,
+    "cpu_s_per_programme_s": 0.113
+   },
+   {
+    "master": "run_richat_structure_sahara_eye_1792778206/richat_structure_sahara_eye_master.mp4",
+    "deep_dive": false,
+    "duration_s": 42.79,
+    "status": {
+     "audio_dropout": "pass",
+     "audio_phone": "pass"
+    },
+    "noted": [],
+    "integrated_lufs": -14.1,
+    "true_peak_dbtp": -1.9,
+    "loudness_range_lu": 1.1,
+    "max_short_term_lufs": -13.1,
+    "max_momentary_lufs": -10.8,
+    "phone_loss_lu": 4.8,
+    "phone_worst_window_lu": 6.4,
+    "sibilance_worst_rel_lu": -6.2,
+    "longest_silence_s": 0.0,
+    "flat_factor": 0.0,
+    "wall_s": 4.64,
+    "cpu_s": 5.66,
+    "wall_s_per_programme_s": 0.1085,
+    "cpu_s_per_programme_s": 0.1322
+   },
+   {
+    "master": "run_richat_structure_sahara_eye_1793272675/richat_structure_sahara_eye_master.mp4",
+    "deep_dive": false,
+    "duration_s": 51.188,
+    "status": {
+     "audio_dropout": "pass",
+     "audio_phone": "pass"
+    },
+    "noted": [],
+    "integrated_lufs": -14.0,
+    "true_peak_dbtp": -1.8,
+    "loudness_range_lu": 2.4,
+    "max_short_term_lufs": -12.4,
+    "max_momentary_lufs": -10.8,
+    "phone_loss_lu": 4.2,
+    "phone_worst_window_lu": 6.7,
+    "sibilance_worst_rel_lu": -4.6,
+    "longest_silence_s": 0.0,
+    "flat_factor": 0.0,
+    "wall_s": 6.91,
+    "cpu_s": 6.56,
+    "wall_s_per_programme_s": 0.1351,
+    "cpu_s_per_programme_s": 0.1282
+   },
+   {
+    "master": "run_richat_structure_sahara_eye_1793474843/richat_structure_sahara_eye_master.mp4",
+    "deep_dive": false,
+    "duration_s": 46.748,
+    "status": {
+     "audio_dropout": "pass",
+     "audio_phone": "pass"
+    },
+    "noted": [],
+    "integrated_lufs": -14.1,
+    "true_peak_dbtp": -1.8,
+    "loudness_range_lu": 1.6,
+    "max_short_term_lufs": -13.1,
+    "max_momentary_lufs": -10.9,
+    "phone_loss_lu": 5.0,
+    "phone_worst_window_lu": 7.1,
+    "sibilance_worst_rel_lu": -5.5,
+    "longest_silence_s": 0.0,
+    "flat_factor": 0.0,
+    "wall_s": 10.73,
+    "cpu_s": 5.0,
+    "wall_s_per_programme_s": 0.2296,
+    "cpu_s_per_programme_s": 0.107
+   },
+   {
+    "master": "run_roman_self_healing_concrete_1793161347/roman_self_healing_concrete_master.mp4",
+    "deep_dive": false,
+    "duration_s": 50.54,
+    "status": {
+     "audio_dropout": "pass",
+     "audio_phone": "pass"
+    },
+    "noted": [],
+    "integrated_lufs": -14.1,
+    "true_peak_dbtp": 1.0,
+    "loudness_range_lu": 1.7,
+    "max_short_term_lufs": -12.6,
+    "max_momentary_lufs": -11.1,
+    "phone_loss_lu": 4.6,
+    "phone_worst_window_lu": 7.1,
+    "sibilance_worst_rel_lu": -4.3,
+    "longest_silence_s": 0.0,
+    "flat_factor": 0.0,
+    "wall_s": 4.74,
+    "cpu_s": 6.66,
+    "wall_s_per_programme_s": 0.0938,
+    "cpu_s_per_programme_s": 0.1317
+   },
+   {
+    "master": "run_roman_self_healing_concrete_1793163918/roman_self_healing_concrete_master.mp4",
+    "deep_dive": false,
+    "duration_s": 50.54,
+    "status": {
+     "audio_dropout": "pass",
+     "audio_phone": "pass"
+    },
+    "noted": [],
+    "integrated_lufs": -14.1,
+    "true_peak_dbtp": -1.9,
+    "loudness_range_lu": 1.7,
+    "max_short_term_lufs": -12.6,
+    "max_momentary_lufs": -11.1,
+    "phone_loss_lu": 4.6,
+    "phone_worst_window_lu": 7.1,
+    "sibilance_worst_rel_lu": -4.4,
+    "longest_silence_s": 0.0,
+    "flat_factor": 0.0,
+    "wall_s": 6.5,
+    "cpu_s": 6.16,
+    "wall_s_per_programme_s": 0.1286,
+    "cpu_s_per_programme_s": 0.1218
+   },
+   {
+    "master": "run_singing_colossi_of_memnon_1792952878/singing_colossi_of_memnon_master.mp4",
+    "deep_dive": false,
+    "duration_s": 47.11,
+    "status": {
+     "audio_dropout": "pass",
+     "audio_phone": "pass"
+    },
+    "noted": [],
+    "integrated_lufs": -14.1,
+    "true_peak_dbtp": -1.8,
+    "loudness_range_lu": 1.2,
+    "max_short_term_lufs": -13.2,
+    "max_momentary_lufs": -11.1,
+    "phone_loss_lu": 4.9,
+    "phone_worst_window_lu": 7.1,
+    "sibilance_worst_rel_lu": -4.7,
+    "longest_silence_s": 0.0,
+    "flat_factor": 0.0,
+    "wall_s": 4.85,
+    "cpu_s": 6.19,
+    "wall_s_per_programme_s": 0.103,
+    "cpu_s_per_programme_s": 0.1313
+   },
+   {
+    "master": "run_trepanation_miracle_1792995462/trepanation_miracle_master.mp4",
+    "deep_dive": false,
+    "duration_s": 51.668,
+    "status": {
+     "audio_dropout": "pass",
+     "audio_phone": "pass"
+    },
+    "noted": [],
+    "integrated_lufs": -14.1,
+    "true_peak_dbtp": -1.8,
+    "loudness_range_lu": 2.0,
+    "max_short_term_lufs": -12.9,
+    "max_momentary_lufs": -11.3,
+    "phone_loss_lu": 4.4,
+    "phone_worst_window_lu": 6.2,
+    "sibilance_worst_rel_lu": -5.7,
+    "longest_silence_s": 0.0,
+    "flat_factor": 0.0,
+    "wall_s": 6.16,
+    "cpu_s": 7.0,
+    "wall_s_per_programme_s": 0.1192,
+    "cpu_s_per_programme_s": 0.1355
+   },
+   {
+    "master": "run_tunguska_event_1908_1792930600/tunguska_event_1908_master.mp4",
+    "deep_dive": false,
+    "duration_s": 42.84,
+    "status": {
+     "audio_dropout": "pass",
+     "audio_phone": "pass"
+    },
+    "noted": [],
+    "integrated_lufs": -14.1,
+    "true_peak_dbtp": -1.9,
+    "loudness_range_lu": 1.7,
+    "max_short_term_lufs": -13.0,
+    "max_momentary_lufs": -11.6,
+    "phone_loss_lu": 4.8,
+    "phone_worst_window_lu": 7.8,
+    "sibilance_worst_rel_lu": -6.3,
+    "longest_silence_s": 0.0,
+    "flat_factor": 0.0,
+    "wall_s": 7.42,
+    "cpu_s": 5.0,
+    "wall_s_per_programme_s": 0.1732,
+    "cpu_s_per_programme_s": 0.1167
+   },
+   {
+    "master": "run_unfinished_obelisk_aswan_1792985912/unfinished_obelisk_aswan_master.mp4",
+    "deep_dive": false,
+    "duration_s": 48.308,
+    "status": {
+     "audio_dropout": "pass",
+     "audio_phone": "pass"
+    },
+    "noted": [],
+    "integrated_lufs": -14.1,
+    "true_peak_dbtp": -1.6,
+    "loudness_range_lu": 1.9,
+    "max_short_term_lufs": -12.8,
+    "max_momentary_lufs": -11.1,
+    "phone_loss_lu": 4.8,
+    "phone_worst_window_lu": 6.5,
+    "sibilance_worst_rel_lu": -6.8,
+    "longest_silence_s": 0.0,
+    "flat_factor": 0.0,
+    "wall_s": 5.79,
+    "cpu_s": 6.06,
+    "wall_s_per_programme_s": 0.1198,
+    "cpu_s_per_programme_s": 0.1255
+   },
+   {
+    "master": "run_unfinished_obelisk_aswan_1792993374/unfinished_obelisk_aswan_master.mp4",
+    "deep_dive": false,
+    "duration_s": 47.49,
+    "status": {
+     "audio_dropout": "pass",
+     "audio_phone": "pass"
+    },
+    "noted": [],
+    "integrated_lufs": -14.1,
+    "true_peak_dbtp": -1.8,
+    "loudness_range_lu": 1.6,
+    "max_short_term_lufs": -12.9,
+    "max_momentary_lufs": -10.9,
+    "phone_loss_lu": 4.4,
+    "phone_worst_window_lu": 6.2,
+    "sibilance_worst_rel_lu": -6.9,
+    "longest_silence_s": 0.0,
+    "flat_factor": 0.0,
+    "wall_s": 5.12,
+    "cpu_s": 5.81,
+    "wall_s_per_programme_s": 0.1078,
+    "cpu_s_per_programme_s": 0.1224
+   },
+   {
+    "master": "run_unfinished_obelisk_aswan_1793056896/unfinished_obelisk_aswan_master.mp4",
+    "deep_dive": false,
+    "duration_s": 48.956,
+    "status": {
+     "audio_dropout": "pass",
+     "audio_phone": "pass"
+    },
+    "noted": [],
+    "integrated_lufs": -14.1,
+    "true_peak_dbtp": -1.8,
+    "loudness_range_lu": 1.6,
+    "max_short_term_lufs": -12.8,
+    "max_momentary_lufs": -11.4,
+    "phone_loss_lu": 5.0,
+    "phone_worst_window_lu": 7.2,
+    "sibilance_worst_rel_lu": -7.1,
+    "longest_silence_s": 0.0,
+    "flat_factor": 0.0,
+    "wall_s": 5.24,
+    "cpu_s": 6.91,
+    "wall_s_per_programme_s": 0.107,
+    "cpu_s_per_programme_s": 0.1411
+   },
+   {
+    "master": "run_voynich_manuscript_1792965308/voynich_manuscript_master.mp4",
+    "deep_dive": false,
+    "duration_s": 46.056,
+    "status": {
+     "audio_dropout": "pass",
+     "audio_phone": "pass"
+    },
+    "noted": [],
+    "integrated_lufs": -14.1,
+    "true_peak_dbtp": -1.9,
+    "loudness_range_lu": 1.5,
+    "max_short_term_lufs": -13.3,
+    "max_momentary_lufs": -11.5,
+    "phone_loss_lu": 5.2,
+    "phone_worst_window_lu": 6.8,
+    "sibilance_worst_rel_lu": -3.5,
+    "longest_silence_s": 0.0,
+    "flat_factor": 0.0,
+    "wall_s": 5.58,
+    "cpu_s": 6.22,
+    "wall_s_per_programme_s": 0.1212,
+    "cpu_s_per_programme_s": 0.135
+   },
+   {
+    "master": "run_wieliczka_salt_mine_1792974672/wieliczka_salt_mine_master.mp4",
+    "deep_dive": false,
+    "duration_s": 47.208,
+    "status": {
+     "audio_dropout": "pass",
+     "audio_phone": "pass"
+    },
+    "noted": [],
+    "integrated_lufs": -14.1,
+    "true_peak_dbtp": -1.9,
+    "loudness_range_lu": 1.7,
+    "max_short_term_lufs": -12.8,
+    "max_momentary_lufs": -10.8,
+    "phone_loss_lu": 4.9,
+    "phone_worst_window_lu": 7.8,
+    "sibilance_worst_rel_lu": -6.7,
+    "longest_silence_s": 0.0,
+    "flat_factor": 0.0,
+    "wall_s": 6.12,
+    "cpu_s": 5.75,
+    "wall_s_per_programme_s": 0.1297,
+    "cpu_s_per_programme_s": 0.1218
+   }
+  ],
+  "time_limit": {
+   "longest_programme_s": 360.0,
+   "longest_wall_s_projected": 82.7,
+   "audio_limit_s": 1920.0
+  }
+ },
+ "prod": {
+  "mastering_summary": {
+   "runs": 34,
+   "errors": 0,
+   "decodes": {
+    "min": 1,
+    "median": 3.0,
+    "max": 5
+   },
+   "decodes_with_card_level": {
+    "min": 3,
+    "median": 3,
+    "max": 5
+   },
+   "decodes_without_card_level": {
+    "min": 1,
+    "median": 1,
+    "max": 1
+   },
+   "mastering_s": {
+    "min": 4.2,
+    "median": 20.05,
+    "max": 31.7
+   },
+   "integrated_lufs": {
+    "min": -14.2,
+    "median": -14.1,
+    "max": -14.0
+   },
+   "true_peak_dbtp": {
+    "min": -1.9,
+    "median": -1.9,
+    "max": -1.9
+   },
+   "off_target_over_0_5_lu": 0,
+   "limiter_cost_lu": {
+    "min": 0.0,
+    "median": 0.1,
+    "max": 0.2
+   },
+   "limiter_cost_bound_lu": {
+    "min": 0.03,
+    "median": 0.48,
+    "max": 0.83
+   },
+   "bound_below_real_cost": 0
+  },
+  "gate_summary": {
+   "masters": 33,
+   "measurement_failed": 0,
+   "failed": {
+    "audio_dropout": 0,
+    "audio_phone": 0
+   },
+   "noted": {
+    "audio_dropout": 0,
+    "audio_phone": 0
+   },
+   "loudness_range_lu": {
+    "min": 1.2,
+    "median": 1.7,
+    "max": 2.1
+   },
+   "max_short_term_lufs": {
+    "min": -13.3,
+    "median": -13.1,
+    "max": -12.7
+   },
+   "max_momentary_lufs": {
+    "min": -12.0,
+    "median": -11.4,
+    "max": -11.0
+   },
+   "phone_loss_lu": {
+    "min": 2.6,
+    "median": 2.8,
+    "max": 3.3
+   },
+   "phone_worst_window_lu": {
+    "min": 3.7,
+    "median": 4.1,
+    "max": 4.9
+   },
+   "sibilance_worst_rel_lu": {
+    "min": -8.8,
+    "median": -7.4,
+    "max": -5.8
+   },
+   "longest_silence_s": {
+    "min": 0.0,
+    "median": 0.0,
+    "max": 0.0
+   },
+   "flat_factor": {
+    "min": 0.0,
+    "median": 0.0,
+    "max": 0.0
+   },
+   "wall_s_per_programme_s": {
+    "min": 0.0902,
+    "median": 0.121,
+    "max": 0.1787
+   },
+   "cpu_s_per_programme_s": {
+    "min": 0.1062,
+    "median": 0.131,
+    "max": 0.143
+   }
+  },
+  "time_limit": {
+   "longest_programme_s": 360.0,
+   "longest_wall_s_projected": 64.3,
+   "audio_limit_s": 1920.0
+  }
+ }
+}

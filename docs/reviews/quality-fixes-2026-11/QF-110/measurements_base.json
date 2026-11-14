@@ -1,0 +1,79 @@
+{
+  "synthetic": {
+    "missing_parallax_verified_master": "blocks",
+    "altered_master": "blocks",
+    "changed_source_photo": "blocks",
+    "recheck_after_code_update": "absent",
+    "post_due_isolates_bookings": "absent",
+    "cleanup_protects_pending_runs": "absent"
+  },
+  "runs": {
+    "set_1": {
+      "runs": 47,
+      "with_provenance": 30,
+      "lack_parallax_dir": 25,
+      "intermediate_files_missing": 135,
+      "provenance_old_rule_pass": 0,
+      "provenance_new_rule_pass": 0,
+      "provenance_new_rule_pass_if_outside_verifies": 0,
+      "runs_blocked_by_intermediates_alone": 0,
+      "true_blocks": {
+        "fact_files_changed": 2,
+        "fonts_changed": 30,
+        "master_missing": 1,
+        "rights_records_changed": 2
+      },
+      "runs_with_true_block": 30,
+      "runs_missing_files_outside_sample": 0,
+      "fact_stamp": 33,
+      "stamp_signed": 0,
+      "stamp_made_before_signing": 33,
+      "drift_rules": 1,
+      "drift_public": 0,
+      "drift_any": 1,
+      "sheet_unchanged": 30,
+      "sheet_changed": 3,
+      "sheet_not_in_sample": 0,
+      "drift_alone_with_sheet_unchanged": 1,
+      "gate_provenance_pass": null,
+      "gate_problems": {},
+      "sample": false
+    },
+    "set_2": {
+      "runs": 34,
+      "with_provenance": 34,
+      "lack_parallax_dir": 34,
+      "intermediate_files_missing": 596,
+      "provenance_old_rule_pass": 0,
+      "provenance_new_rule_pass": 0,
+      "provenance_new_rule_pass_if_outside_verifies": 27,
+      "runs_blocked_by_intermediates_alone": 27,
+      "true_blocks": {
+        "master_missing": 1,
+        "photos_and_sources_changed": 2,
+        "rights_records_changed": 7
+      },
+      "runs_with_true_block": 7,
+      "runs_missing_files_outside_sample": 34,
+      "fact_stamp": 34,
+      "stamp_signed": 0,
+      "stamp_made_before_signing": 34,
+      "drift_rules": 9,
+      "drift_public": 0,
+      "drift_any": 9,
+      "sheet_unchanged": 0,
+      "sheet_changed": 0,
+      "sheet_not_in_sample": 34,
+      "drift_alone_with_sheet_unchanged": 0,
+      "gate_provenance_pass": null,
+      "gate_problems": {},
+      "sample": true
+    }
+  },
+  "approval_binding": {
+    "approved": 13,
+    "card_recorded": 6,
+    "binding_holds": 6,
+    "files_missing": 0
+  }
+}

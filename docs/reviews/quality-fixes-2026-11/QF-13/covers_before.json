@@ -1,0 +1,350 @@
+{
+ "fixture": {
+  "hero_format": "JPEG",
+  "against_drawn_hero": {
+   "hue_deg": 0.57,
+   "saturation_ratio": 1.0588
+  },
+  "against_lossless_hero": {
+   "hue_deg": 3.96,
+   "saturation_ratio": 1.0312
+  }
+ },
+ "real": {
+  "covers": 30,
+  "patch_hue_deg_median": 0.23,
+  "patch_hue_deg_max": 4.17,
+  "rows": [
+   {
+    "run": "run_amber_room_heist_1792790550",
+    "hero": "01_commons.jpg",
+    "hero_found_by": "correlation 0.64",
+    "hero_format": "JPEG",
+    "cover_bytes": 673012,
+    "patch_hue_deg": 0.24,
+    "patch_saturation_ratio": 1.0062,
+    "frame_hue_deg": 7.5,
+    "frame_saturation_ratio": 0.8267
+   },
+   {
+    "run": "run_amber_room_heist_1792801257",
+    "hero": "01_commons.jpg",
+    "hero_found_by": "correlation 0.73",
+    "hero_format": "JPEG",
+    "cover_bytes": 633414,
+    "patch_hue_deg": 0.24,
+    "patch_saturation_ratio": 1.0062,
+    "frame_hue_deg": 8.1,
+    "frame_saturation_ratio": 0.8215
+   },
+   {
+    "run": "run_amber_room_heist_1792805842",
+    "hero": "01_commons.jpg",
+    "hero_found_by": "correlation 0.86",
+    "hero_format": "JPEG",
+    "cover_bytes": 658304,
+    "patch_hue_deg": 0.24,
+    "patch_saturation_ratio": 1.0062,
+    "frame_hue_deg": 8.0,
+    "frame_saturation_ratio": 0.826
+   },
+   {
+    "run": "run_damascus_steel_nanotubes_1792732472_short",
+    "hero": "15_commons.jpg",
+    "hero_found_by": "correlation 0.37",
+    "hero_format": "JPEG",
+    "cover_bytes": 276684,
+    "patch_hue_deg": null,
+    "patch_saturation_ratio": null,
+    "frame_hue_deg": 101.43,
+    "frame_saturation_ratio": 1.1032
+   },
+   {
+    "run": "run_gol_gumbaz_whispering_gallery_1793278143",
+    "hero": "22_commons.jpg",
+    "hero_found_by": "recipe",
+    "hero_format": "JPEG",
+    "cover_bytes": 352906,
+    "patch_hue_deg": 4.17,
+    "patch_saturation_ratio": 1.0238,
+    "frame_hue_deg": 15.1,
+    "frame_saturation_ratio": 1.4643
+   },
+   {
+    "run": "run_greek_fire_siphon_1792735284_short",
+    "hero": "01_commons.jpg",
+    "hero_found_by": "correlation 0.96",
+    "hero_format": "JPEG",
+    "cover_bytes": 612251,
+    "patch_hue_deg": 0.44,
+    "patch_saturation_ratio": 0.9655,
+    "frame_hue_deg": 176.96,
+    "frame_saturation_ratio": 0.8726
+   },
+   {
+    "run": "run_hal_saflieni_hypogeum_1792949304",
+    "hero": "01_commons.jpg",
+    "hero_found_by": "correlation 0.94",
+    "hero_format": "JPEG",
+    "cover_bytes": 433988,
+    "patch_hue_deg": 0.18,
+    "patch_saturation_ratio": 1.0,
+    "frame_hue_deg": 4.09,
+    "frame_saturation_ratio": 1.0526
+   },
+   {
+    "run": "run_kailasa_temple_monolith_1792524470",
+    "hero": "01_commons.jpg",
+    "hero_found_by": "correlation 0.83",
+    "hero_format": "JPEG",
+    "cover_bytes": 458494,
+    "patch_hue_deg": 0.43,
+    "patch_saturation_ratio": 1.0011,
+    "frame_hue_deg": 177.76,
+    "frame_saturation_ratio": 1.5099
+   },
+   {
+    "run": "run_nazca_lines_runway_paradox_1792961797",
+    "hero": "08_commons.jpg",
+    "hero_found_by": "correlation 0.90",
+    "hero_format": "JPEG",
+    "cover_bytes": 629894,
+    "patch_hue_deg": 0.0,
+    "patch_saturation_ratio": 0.9794,
+    "frame_hue_deg": 160.8,
+    "frame_saturation_ratio": 1.4429
+   },
+   {
+    "run": "run_nazca_lines_runway_paradox_1793247464",
+    "hero": "08_commons.jpg",
+    "hero_found_by": "recipe",
+    "hero_format": "JPEG",
+    "cover_bytes": 588958,
+    "patch_hue_deg": 0.0,
+    "patch_saturation_ratio": 0.9794,
+    "frame_hue_deg": 161.7,
+    "frame_saturation_ratio": 1.4746
+   },
+   {
+    "run": "run_nazca_lines_runway_paradox_1793251266",
+    "hero": "08_commons.jpg",
+    "hero_found_by": "recipe",
+    "hero_format": "JPEG",
+    "cover_bytes": 588958,
+    "patch_hue_deg": 0.0,
+    "patch_saturation_ratio": 0.9794,
+    "frame_hue_deg": 161.7,
+    "frame_saturation_ratio": 1.4746
+   },
+   {
+    "run": "run_nazca_lines_runway_paradox_1793262388",
+    "hero": "08_commons.jpg",
+    "hero_found_by": "recipe",
+    "hero_format": "JPEG",
+    "cover_bytes": 588958,
+    "patch_hue_deg": 0.0,
+    "patch_saturation_ratio": 0.9794,
+    "frame_hue_deg": 161.7,
+    "frame_saturation_ratio": 1.4746
+   },
+   {
+    "run": "run_nazca_lines_runway_paradox_1793267092",
+    "hero": "08_commons.jpg",
+    "hero_found_by": "recipe",
+    "hero_format": "JPEG",
+    "cover_bytes": 588958,
+    "patch_hue_deg": 0.0,
+    "patch_saturation_ratio": 0.9794,
+    "frame_hue_deg": 161.7,
+    "frame_saturation_ratio": 1.4746
+   },
+   {
+    "run": "run_odessa_catacombs_1792970549",
+    "hero": "01_commons.jpg",
+    "hero_found_by": "correlation 0.79",
+    "hero_format": "JPEG",
+    "cover_bytes": 468193,
+    "patch_hue_deg": 0.14,
+    "patch_saturation_ratio": 1.0048,
+    "frame_hue_deg": 4.29,
+    "frame_saturation_ratio": 0.9685
+   },
+   {
+    "run": "run_odessa_catacombs_1793098390",
+    "hero": "01_commons.jpg",
+    "hero_found_by": "correlation 0.79",
+    "hero_format": "JPEG",
+    "cover_bytes": 468193,
+    "patch_hue_deg": 0.14,
+    "patch_saturation_ratio": 1.0048,
+    "frame_hue_deg": 4.29,
+    "frame_saturation_ratio": 0.9685
+   },
+   {
+    "run": "run_odessa_catacombs_1793100750",
+    "hero": "01_commons.jpg",
+    "hero_found_by": "correlation 0.68",
+    "hero_format": "JPEG",
+    "cover_bytes": 468193,
+    "patch_hue_deg": 0.14,
+    "patch_saturation_ratio": 1.0048,
+    "frame_hue_deg": 4.29,
+    "frame_saturation_ratio": 0.9685
+   },
+   {
+    "run": "run_richat_structure_sahara_eye_1792737039_short",
+    "hero": "01_commons.jpg",
+    "hero_found_by": "correlation 0.87",
+    "hero_format": "JPEG",
+    "cover_bytes": 536974,
+    "patch_hue_deg": 0.26,
+    "patch_saturation_ratio": 1.0018,
+    "frame_hue_deg": 6.72,
+    "frame_saturation_ratio": 0.9532
+   },
+   {
+    "run": "run_richat_structure_sahara_eye_1792740961_long",
+    "hero": "01_commons.jpg",
+    "hero_found_by": "correlation 0.86",
+    "hero_format": "JPEG",
+    "cover_bytes": 549941,
+    "patch_hue_deg": 0.26,
+    "patch_saturation_ratio": 1.0018,
+    "frame_hue_deg": 6.07,
+    "frame_saturation_ratio": 0.944
+   },
+   {
+    "run": "run_richat_structure_sahara_eye_1792778206",
+    "hero": "01_commons.jpg",
+    "hero_found_by": "correlation 0.87",
+    "hero_format": "JPEG",
+    "cover_bytes": 525471,
+    "patch_hue_deg": 0.26,
+    "patch_saturation_ratio": 1.0018,
+    "frame_hue_deg": 6.72,
+    "frame_saturation_ratio": 0.9529
+   },
+   {
+    "run": "run_richat_structure_sahara_eye_1793272675",
+    "hero": "06_commons.jpg",
+    "hero_found_by": "correlation 0.21",
+    "hero_format": "JPEG",
+    "cover_bytes": 375209,
+    "patch_hue_deg": 0.13,
+    "patch_saturation_ratio": 0.984,
+    "frame_hue_deg": 4.71,
+    "frame_saturation_ratio": 1.1107
+   },
+   {
+    "run": "run_richat_structure_sahara_eye_1793474843",
+    "hero": "01_commons.jpg",
+    "hero_found_by": "recipe",
+    "hero_format": "JPEG",
+    "cover_bytes": 495522,
+    "patch_hue_deg": 0.26,
+    "patch_saturation_ratio": 1.0018,
+    "frame_hue_deg": 7.67,
+    "frame_saturation_ratio": 0.9526
+   },
+   {
+    "run": "run_roman_self_healing_concrete_1793163918",
+    "hero": "04_commons.jpg",
+    "hero_found_by": "correlation 0.85",
+    "hero_format": "JPEG",
+    "cover_bytes": 568520,
+    "patch_hue_deg": 0.0,
+    "patch_saturation_ratio": 0.9981,
+    "frame_hue_deg": 178.04,
+    "frame_saturation_ratio": 1.3237
+   },
+   {
+    "run": "run_singing_colossi_of_memnon_1792952878",
+    "hero": "01_commons.jpg",
+    "hero_found_by": "correlation 0.90",
+    "hero_format": "JPEG",
+    "cover_bytes": 399368,
+    "patch_hue_deg": 0.22,
+    "patch_saturation_ratio": 0.9979,
+    "frame_hue_deg": 178.71,
+    "frame_saturation_ratio": 1.1291
+   },
+   {
+    "run": "run_trepanation_miracle_1792995462",
+    "hero": "05_commons.jpg",
+    "hero_found_by": "correlation 0.82",
+    "hero_format": "JPEG",
+    "cover_bytes": 577263,
+    "patch_hue_deg": 0.1,
+    "patch_saturation_ratio": 0.9972,
+    "frame_hue_deg": 153.5,
+    "frame_saturation_ratio": 1.2868
+   },
+   {
+    "run": "run_tunguska_event_1908_1792930600",
+    "hero": "01_commons.jpg",
+    "hero_found_by": "correlation 0.76",
+    "hero_format": "JPEG",
+    "cover_bytes": 632216,
+    "patch_hue_deg": null,
+    "patch_saturation_ratio": null,
+    "frame_hue_deg": null,
+    "frame_saturation_ratio": null
+   },
+   {
+    "run": "run_unfinished_obelisk_aswan_1792985912",
+    "hero": "01_commons.jpg",
+    "hero_found_by": "correlation 0.98",
+    "hero_format": "JPEG",
+    "cover_bytes": 519300,
+    "patch_hue_deg": 0.44,
+    "patch_saturation_ratio": 1.0005,
+    "frame_hue_deg": 11.43,
+    "frame_saturation_ratio": 1.3006
+   },
+   {
+    "run": "run_unfinished_obelisk_aswan_1792993374",
+    "hero": "01_commons.jpg",
+    "hero_found_by": "correlation 0.88",
+    "hero_format": "JPEG",
+    "cover_bytes": 525614,
+    "patch_hue_deg": 0.44,
+    "patch_saturation_ratio": 1.0005,
+    "frame_hue_deg": 11.43,
+    "frame_saturation_ratio": 1.2966
+   },
+   {
+    "run": "run_unfinished_obelisk_aswan_1793056896",
+    "hero": "01_commons.jpg",
+    "hero_found_by": "correlation 0.98",
+    "hero_format": "JPEG",
+    "cover_bytes": 535359,
+    "patch_hue_deg": 0.44,
+    "patch_saturation_ratio": 1.0005,
+    "frame_hue_deg": 11.0,
+    "frame_saturation_ratio": 1.2873
+   },
+   {
+    "run": "run_voynich_manuscript_1792965308",
+    "hero": "07_commons.jpg",
+    "hero_found_by": "correlation 0.49",
+    "hero_format": "JPEG",
+    "cover_bytes": 423121,
+    "patch_hue_deg": 1.1,
+    "patch_saturation_ratio": 0.9963,
+    "frame_hue_deg": 24.0,
+    "frame_saturation_ratio": 1.5154
+   },
+   {
+    "run": "run_wieliczka_salt_mine_1792974672",
+    "hero": "01_commons.jpg",
+    "hero_found_by": "correlation 0.80",
+    "hero_format": "JPEG",
+    "cover_bytes": 499746,
+    "patch_hue_deg": 0.16,
+    "patch_saturation_ratio": 1.0063,
+    "frame_hue_deg": 7.09,
+    "frame_saturation_ratio": 0.9325
+   }
+  ]
+ }
+}

@@ -5,8 +5,9 @@
 # site.yml excludes this from normal/tagged lab runs using the never tag.
 # Preserve until handed to the external application owner; do not deploy this
 # directly as part of lab provisioning. See docs/CONTENT_VM_TASK_IDENTITY.md.
+# Run with -e content_runtime_host=<production-host> (its lab inventory name; QF-49).
 - name: Configure explicit-path content runtime
-  hosts: content-client-win-01
+  hosts: "{{ content_runtime_host }}"
   gather_facts: false
   become: true
   become_method: ansible.builtin.runas

@@ -8,7 +8,10 @@ existing caps. A dry run can still consume API credits.
 
 Production runs only the formats in its `VIDEO_FORMATS` (default `reel`). The 16:9 documentary
 stays out of it until `docs/documentary-rebuild.md`'s acceptance criteria are met and approved;
-`YOUTUBE_SHORTS` stays off in production until the operator enables it.
+`YOUTUBE_SHORTS` and `LOOP_FOLLOW_OVERLAY` are on unless an environment sets them to `false` (QF-83). A host
+whose `.env` does not set `YOUTUBE_SHORTS` will post every approved Reel as a YouTube Short after a release that
+contains QF-83, and every Reel's loop bridge will say FOLLOW unless `LOOP_FOLLOW_OVERLAY=false`. This repository
+never edits production's `.env`: check both settings there with the operator before that release.
 
 ## Responsibility and runtime
 
@@ -56,8 +59,11 @@ Current deployed adapters remain compatible until a lab-controlled promotion.
    human approval. Archive validation runs before explicit live activation,
    retaining paid usage, publication IDs, unknown outcomes and provenance.
 
-Production remains `daemon --dry-run` until the operator explicitly authorizes
-live posting. This runbook does not implement an automatic merge/deploy pipeline.
+Production posts live: the operator activated it on 2026-10-25, so the launcher runs
+`daemon` with no dry-run flag and every run is a posting candidate (approval still
+decides). Development's bot-started runs stay dry runs (`BOT_RUNS_DRY`). The Telegram
+dashboard masthead names the mode the running process uses: 📡 LIVE posting or 🧪 dry run.
+This runbook does not implement an automatic merge/deploy pipeline.
 
 ### Script library (step-1 work carried between environments)
 
@@ -117,20 +123,31 @@ human acceptance are separate gates. See the reconciliation register for status.
 With the lab handoff complete (lab PR #60), release promotion is the application's procedure.
 `deployment/windows/Promote-ContentRelease.ps1` runs once, elevated, on the VM and performs the
 idle stop/start: it refuses while a run is producing, stops the pipeline through its launcher's
-stop file, waits for the operator's SSH session to update the tree (`ready <commit>` in
-`C:\Users\omokolade.LAB\relic-promote.flag`), restarts the managed task, retires the disabled
+stop file, waits for the operator's SSH session to update the tree (`ready <commit>` in the flag named by
+`-HandoffFlag`, the SSH profile's
+`<operator-home>\relic-promote.flag`), restarts the managed task, retires the disabled
 legacy tasks after exporting their definitions, and runs the focused probe under
 `LAB\rr-pipeline$` (`-PaidVoice` adds one short licensed voice sample per provider). During
 the wait the SSH session runs `deployment/windows/Update-ContentReleaseTree.ps1 -Commit <tag>`:
 it checks out the release, installs pinned requirements, places
 `tools/models/realesrgan_x4plus.onnx` (verified SHA-256, see [upscaler](upscaler.md)), runs the
 offline suite and writes `ready <commit>`; on any failure it returns to the previous commit and
-signals that one. Stage beforehand in `C:\Users\omokolade.LAB\relic-stage`: the release git
+signals that one. Stage beforehand in `<operator-home>\relic-stage`: the release git
 bundle (fetched into `refs/remotes/stage/release`, which does not touch the running tree), the
 model and the new dependency wheels, so the stopped window is short. Production data files
 the release does not change (fact sheets, credits, music usage) keep their local changes. The
-procedure never changes `.env`, identities, ACLs or the backup task, and production stays in
-`--dry-run`. Rollback: the same procedure with the previous tag.
+procedure never changes `.env`, identities, ACLs or the backup task, nor the posting mode:
+production keeps posting live. Rollback: the same procedure with the previous tag.
+
+Map data is not in the release either (`tools/` is gitignored). Fetch it once on the VM, from the app root:
+`python scripts/fetch_geodata.py` (country outlines; without them no maps are made) and
+`python scripts/fetch_relief.py` (Natural Earth shaded relief SR_HR.tif; `--medium` for the smaller SR_50M.tif;
+without either, maps render flat). Each run logs a `Map data missing` WARNING naming any file still absent.
+Three more files improve the maps and are fetched the same way: `python scripts/fetch_marine.py` (Natural Earth's
+1:10m marine polygons and 1:50m Antarctic ice shelves; without them no sea is named and the ice shelves are drawn
+as sea, logged) and `python scripts/fetch_geodata.py --10m` (the 1:10m map subunits: every locator close-up is
+drawn from them, and the home a map names is the entity whose polygon holds the site, such as Gibraltar, Tokelau
+or Ascension; without them the close-up falls back to the 1:50m outlines, logged). Both download from naciscdn.org.
 
 ## Automatic release deployment
 
@@ -171,7 +188,7 @@ deployer is doing; `/deploy` includes it in its reply.
 
 **Boundaries.** The deployer's account is denied `.env`, has no administrator membership, cannot
 change its own installed copy, the signer list or the tasks, and never changes identities, ACLs,
-the database or the backup. Production keeps `daemon --dry-run`. A tree that is not at a release
+the database or the backup. Production keeps running `daemon` live. A tree that is not at a release
 tag (a manual change) pauses automatic deployment until a release is installed again.
 
 **Releasing.** Tag a reviewed commit and sign it with the smartcard key:
@@ -184,8 +201,9 @@ new tag on the previous good commit; for an emergency, the elevated procedure ab
 1. Apply lab plays 50, 51 and 54. They provide `LAB\rr-deploy$` and its rights; play 54 also grants it git, the operator's MinGit winget package.
 2. During a promotion, while `Promote-ContentRelease.ps1` waits for `ready <commit>` and the pipeline is stopped, open a second **elevated** window on the VM in the release checkout and run:
    ```powershell
-   .\deployment\windows\Install-ContentReleaseDeployer.ps1 -WhatIf   # review what it would change
-   .\deployment\windows\Install-ContentReleaseDeployer.ps1
+   $repo = 'git@github.com:<owner>/relic-and-riddle.git'               # the release repository
+   .\deployment\windows\Install-ContentReleaseDeployer.ps1 -Repository $repo -WhatIf   # review what it would change
+   .\deployment\windows\Install-ContentReleaseDeployer.ps1 -Repository $repo
    ```
 
 The installer first checks every prerequisite and changes nothing if one fails:
@@ -219,12 +237,13 @@ promotion stops it (when the release gate is idle and the deployer has nothing i
 
 ```powershell
 $root = 'C:\ProgramData\HNSHL\ContentRuntime'
-Set-Location C:\Users\omokolade.LAB\relic-and-riddle                       # at the release tag
+Set-Location <operator-home>\relic-and-riddle                       # at the release tag
 New-Item -ItemType File -Path "$root\control\Pipeline.stop" -Force | Out-Null
 while ((Get-ScheduledTask RelicAndRiddle-Production-Unattended).State -eq 'Running') { Start-Sleep 3 }
 (Get-ScheduledTask RelicAndRiddle-ProductionBackup-Unattended).State       # must not be Running
-.\deployment\windows\Install-ContentReleaseDeployer.ps1 -WhatIf             # lists only what differs
-.\deployment\windows\Install-ContentReleaseDeployer.ps1
+$repo = 'git@github.com:<owner>/relic-and-riddle.git'                     # the release repository
+.\deployment\windows\Install-ContentReleaseDeployer.ps1 -Repository $repo -WhatIf  # lists only what differs
+.\deployment\windows\Install-ContentReleaseDeployer.ps1 -Repository $repo
 Remove-Item "$root\control\Pipeline.stop" -Force
 Start-ScheduledTask RelicAndRiddle-Production-Unattended
 ```

@@ -1,0 +1,72 @@
+{
+  "defaults": {
+    "YOUTUBE_SHORTS": true,
+    "LOOP_FOLLOW_OVERLAY": true
+  },
+  "dry_run_receipts": [
+    "dry-run:simulated",
+    "youtube-shorts:simulated"
+  ],
+  "upload": {
+    "thumbnail_requests": 0,
+    "result_has_thumbnail": false,
+    "receipt_has_thumbnail": false,
+    "status": "published"
+  },
+  "follow_supported": true,
+  "bridges": {
+    "wieliczka_passage": {
+      "frames": 30,
+      "text": "FOLLOW",
+      "contrast": 11.9,
+      "frames_full_opacity": 16,
+      "halo": 0.0,
+      "box": [
+        374,
+        744,
+        709,
+        791
+      ],
+      "skipped": null,
+      "seam_problems": [],
+      "seam_problems_visual": [],
+      "ends_equal_visual": true
+    },
+    "white": {
+      "frames": 30,
+      "text": "FOLLOW",
+      "contrast": 5.58,
+      "frames_full_opacity": 16,
+      "halo": 0.96,
+      "box": [
+        374,
+        744,
+        709,
+        791
+      ],
+      "skipped": null,
+      "seam_problems": [],
+      "seam_problems_visual": [],
+      "ends_equal_visual": true
+    },
+    "black": {
+      "frames": 30,
+      "text": "FOLLOW",
+      "contrast": 17.6,
+      "frames_full_opacity": 16,
+      "halo": 0.0,
+      "box": [
+        374,
+        744,
+        709,
+        791
+      ],
+      "skipped": null,
+      "seam_problems": [],
+      "seam_problems_visual": [],
+      "ends_equal_visual": true
+    }
+  },
+  "network_calls": 0,
+  "acceptance": true
+}

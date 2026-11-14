@@ -1,0 +1,17 @@
+{
+  "warning_multiplier": 1.5,
+  "minutes": {"script": 20, "voice": 8, "pictures": 25, "render": 15, "qa": 5, "upload": 5},
+  "stages": {
+    "script_and_fact_check": "script",
+    "voiceover": "voice",
+    "image_prep": "pictures",
+    "stills_graphics_sourcing": "pictures",
+    "deep_graphics": "pictures",
+    "parallax_attempt": "render",
+    "master_render_attempt": "render",
+    "deep_master_render": "render",
+    "qa_attempt": "qa",
+    "deep_qa": "qa",
+    "upload": "upload"
+  }
+}

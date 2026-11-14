@@ -1,0 +1,163 @@
+{
+ "files": {
+  "photo_gol_gumbaz_04.jpg": {
+   "from": "cache/upscaled/04_commons_fad489b1b2468caa.jpg",
+   "source_size": [
+    8538,
+    3840
+   ],
+   "why": "run_gol_gumbaz_whispering_gallery_1793278143: hero, Story 1, carousel 1 and parallax scene_01 source",
+   "sha256": "2a9a6ca66d1285901d430ca4d678a766c605a6f7b7a904ee2fb9173334c2cad6",
+   "bytes": 120564
+  },
+  "photo_gol_gumbaz_03.jpg": {
+   "from": "cache/upscaled/03_commons_749e0ecf629ab119.jpg",
+   "source_size": [
+    8533,
+    3840
+   ],
+   "why": "run_gol_gumbaz_whispering_gallery_1793278143: carousel slide 1 photo_next",
+   "sha256": "c33f99a7b2fef38e3e1d881d39db8f87da8aee75b5b3987fb71fba058b3570fb",
+   "bytes": 133465
+  },
+  "photo_gol_gumbaz_22.jpg": {
+   "from": "cache/upscaled/22_commons_466e53f5c2d25a35.jpg",
+   "source_size": [
+    8533,
+    3840
+   ],
+   "why": "run_gol_gumbaz_whispering_gallery_1793278143: thumbnail_cover hero",
+   "sha256": "d5416e27217aba7175d70b51a8e8e8ef2563c55c5cfe7e96082bf4e01db9d54a",
+   "bytes": 91005
+  },
+  "graphic_numbers_gol_gumbaz.jpg": {
+   "from": "output/run_gol_gumbaz_whispering_gallery_1793278143/graphics/graphic_numbers.jpg",
+   "source_size": [
+    1080,
+    1920
+   ],
+   "why": "stat card poster (photo ground)",
+   "sha256": "0f3a1b7acb3a78e2b2fb22c707c969541acb233567e79bccadf2897cafc9d4af",
+   "bytes": 22979
+  },
+  "graphic_map_gol_gumbaz.jpg": {
+   "from": "output/run_gol_gumbaz_whispering_gallery_1793278143/graphics/graphic_map.jpg",
+   "source_size": [
+    1080,
+    1920
+   ],
+   "why": "locator map poster",
+   "sha256": "afe0799817c59116ab6593077f93fdf59560c7490d2038b7c7a40e014ad31976",
+   "bytes": 53144
+  },
+  "graphic_thennow_roman.jpg": {
+   "from": "output/run_roman_self_healing_concrete_1793163918/graphics/graphic_thennow.jpg",
+   "source_size": [
+    1080,
+    1920
+   ],
+   "why": "then-and-now poster",
+   "sha256": "543fb16a04bb88c89c5f12ee1daac518d34737c822906fb26b3826890829a4df",
+   "bytes": 144902
+  },
+  "end_ground_wieliczka.jpg": {
+   "from": "output/run_wieliczka_salt_mine_1792974672/beat_images/beat10_2.jpg",
+   "source_size": [
+    4288,
+    2848
+   ],
+   "why": "park 16:9 end-screen case (last-scene photo)",
+   "sha256": "b6a0a128d444d9b07e1f6a9cb82a7cc5a34eb622a55b73d3b415a54e34ca8c8f",
+   "bytes": 138027
+  },
+  "end_ground_aswan.jpg": {
+   "from": "output/run_unfinished_obelisk_aswan_1792985912/beat_images/beat01_2.jpg",
+   "source_size": [
+    4288,
+    2848
+   ],
+   "why": "park 16:9 end-screen case (last-scene photo)",
+   "sha256": "1056c1af8079a5c4ed7512249e9d23b05f3dc8980c7104a3fd65f6b2033bb406",
+   "bytes": 239792
+  },
+  "end_ground_roman.jpg": {
+   "from": "cache/privacy/19_commons_2e369ae7f2cb042e.jpg",
+   "source_size": [
+    4032,
+    3024
+   ],
+   "why": "park 16:9 end-screen case (last-scene photo)",
+   "sha256": "ee9f522e38533ce9e5c44a19f9377b50e7ae8a5659e2eba228e60ebda80fef78",
+   "bytes": 201275
+  },
+  "hook_frame_nazca_dark.jpg": {
+   "from": "docs/reviews/freeze-panel-2026-11-04/cards/render_evidence.py --only hook --match inscribed (run_nazca_lines_runway_paradox_1793247464)",
+   "source_size": [
+    1080,
+    1920
+   ],
+   "why": "hook frame rest frame 32 on the run's darkest photo; label: new: real fact, test-signed field (statement from nazca-unesco-listing)",
+   "sha256": "3658477fdaeb14d82e9b7df618c8052e8849ec528659cabd4be847ea90a7c38c",
+   "bytes": 64079
+  },
+  "hook_frame_nazca_bright.jpg": {
+   "from": "docs/reviews/freeze-panel-2026-11-04/cards/render_evidence.py --only hook --match inscribed (run_nazca_lines_runway_paradox_1793247464)",
+   "source_size": [
+    1080,
+    1920
+   ],
+   "why": "hook frame rest frame 32 on the run's brightest photo; label: new: real fact, test-signed field (statement from nazca-unesco-listing)",
+   "sha256": "67bb9531912bbdef7221b5c8d33e1f2d1a6ecce1f607d8a1988414cca1f70ee2",
+   "bytes": 78515
+  },
+  "photo_richat_01.jpg": {
+   "from": "cache/text_crop/39aa01ff3d533d7d/01_commons.jpg",
+   "source_size": [
+    3840,
+    2299
+   ],
+   "why": "run_richat_structure_sahara_eye_1793474843: hero, the photo behind its stat card",
+   "sha256": "743d71b9d6de2d55bda41c0a05963a271e2f7cfbf5997764876a59acf2adef35",
+   "bytes": 176040
+  }
+ },
+ "runs": {
+  "gol_gumbaz": {
+   "run": "run_gol_gumbaz_whispering_gallery_1793278143",
+   "grade_bias": 0.006
+  },
+  "roman": {
+   "run": "run_roman_self_healing_concrete_1793163918",
+   "grade_bias": 0.009,
+   "share_line": "Send this to a friend fascinated by ancient engineering, and follow for the next marvel.",
+   "share_line_from": "output/run_roman_self_healing_concrete_1793163918/script_metadata.json share_line (verbatim)"
+  },
+  "wieliczka": {
+   "run": "run_wieliczka_salt_mine_1792974672",
+   "grade_bias": 0.041,
+   "share_line": "Share this with a friend who loves underground marvels, and follow for the next story! ⛏️",
+   "share_line_from": "output/run_wieliczka_salt_mine_1792974672/script_metadata.json share_line (verbatim)"
+  },
+  "aswan": {
+   "run": "run_unfinished_obelisk_aswan_1792985912",
+   "grade_bias": 0.036,
+   "share_line": "Send this to a friend fascinated by ancient engineering, and follow for the next marvel.",
+   "share_line_from": "output/run_unfinished_obelisk_aswan_1792985912/script_metadata.json share_line (verbatim)"
+  },
+  "nazca": {
+   "run": "run_nazca_lines_runway_paradox_1793247464",
+   "grade_bias": 0.009
+  },
+  "richat": {
+   "run": "run_richat_structure_sahara_eye_1793474843",
+   "grade_bias": 0.05,
+   "stat_cards": [
+    {
+     "value": "94-104M years",
+     "label": "Cooling of carbonatite rocks"
+    }
+   ],
+   "narration_script": "A massive circular desert formation served as a visual reference for space shuttle crews. Near Ouadane on the Adrar Plateau of Mauritania, a subsurface igneous intrusion deformed overlying sedimentary rock layers into concentric rings framed by gabbroic dikes. Geologists initially considered it an extraterrestrial impact crater, until analysis in 1969 proved suspected shock coesite was mislabeled barite. Dating shows the carbonatite rocks cooled between 94 and 104 million years ago, long before prehistoric humans left exceptional accumulations of Acheulean stone tools. Deep erosion sculpted this natural dome into an unmistakable desert landmark seen from space."
+  }
+ }
+}

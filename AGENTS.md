@@ -1,7 +1,7 @@
 # Environment boundaries
 
 - This checkout on the workstation is **development**. The checkout on
-  `content-client-win-01.lab.internal` is **production**.
+  `<production-host>` is **production**.
 - Preserve each environment's existing `.env`. Never deploy the workstation's
   `.env`, database, usage counters, approvals, or posting queue to production.
 - Development uses `@relicandriddle_dev_bot` (8701645452); production uses

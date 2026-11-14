@@ -26,6 +26,7 @@ SCREENS: Dict[str, Tuple[str, str, Optional[str]]] = {
     "creviews": ("🎬", "Reviews", HOME_CB), "chistory": ("📚", "History", "creviews:"), "chist": ("📚", "Review", "chistory:"),
     "cposts": ("🗓", "Posting", HOME_CB), "cpost": ("🗓", "Episode", "cposts:"), "cslots": ("🗓", "Slots", "cposts:"),
     "postnowask": ("⚡", "Post now", "cposts:"), "cancelask": ("⏹", "Cancel booking", "cposts:"),
+    "newversionask": ("♻️", "New version", "cposts:"),
     "cimages": ("🖼", "Pictures", HOME_CB), "imagepick": ("🖼", "Photo sets", "cimages:"),
     "imagehelp": ("🖼", "Topic pictures", "imagepick:0"), "review": ("🖼", "Photo set", "imagepick:0"),
     "reviewpick": ("🖼", "Photo sets", "cimages:"), "upload": ("📎", "Upload", "cimages:"),
@@ -43,7 +44,20 @@ SCREENS: Dict[str, Tuple[str, str, Optional[str]]] = {
     "chelp": ("❓", "Help", HOME_CB),
     "runstop": ("⏹", "Cancel run", "jobs:"), "runstopok": ("⏹", "Cancel run", "jobs:"),
     "edit": ("✏️", "Edit text", HOME_CB), "cfootage": ("🎞", "Footage", "cimages:"),
+    # QF-81: a review's carousel, drawn on demand from its card (both copies, audited as at its slot)
+    "ccar": ("🖼", "Carousel preview", "creviews:"),
+    # The clean chat (UI-01): the pinned notifications panel (not a dashboard screen: no parent, no 🏠) and its
+    # 90-day record under Status.
+    "cnote": ("🔔", "Notifications", None), "cnotices": ("🗒️", "Notices", "cstat:"),
+    # The one review panel (UI-01e): not a dashboard screen either (no parent, no 🏠: D1).
+    "crev": ("🎬", "Review", None),
 }
+# Callbacks of the panels that are not dashboard screens (design §12): the notifications panel's item, page,
+# Dismiss all info and Undo taps. Every callback prefix is in SCREENS or here.
+PANEL_KINDS = {"n", "np", "nall", "nundo", "pstop", "pkeep", "pstopok",
+               # the review panel's pager, tabs, decisions, reason step, typed input and the decided item's Undo
+               "rvp", "rvt", "rvi", "rva", "rvb", "rvr", "rvg", "rvk", "rvs", "rvn", "rvd", "rvu", "rve", "rvc",
+               "rvshow", "rvua"}
 # Typed commands draw the same screens.
 SCREENS.update({
     "queue": SCREENS["qrefresh"], "progress": SCREENS["cprog"], "status": SCREENS["cstat"], "reviews": SCREENS["creviews"],
@@ -57,7 +71,8 @@ SCREENS.update({
 
 # Screens a ← may replay: they only show something. The others in SCREENS do something when opened (start a
 # contact-sheet job, open an edit or upload flow, confirm a cancel), so ← never repeats them.
-NOT_REPLAYABLE = {"runstop", "runstopok", "edit", "upload", "review", "pickbump", "pickdrop", "mreview", "mfmenu"}
+NOT_REPLAYABLE = {"runstop", "runstopok", "edit", "upload", "review", "pickbump", "pickdrop", "mreview", "mfmenu",
+                  "ccar"}
 TRAIL_LIMIT = 12
 
 

@@ -18,8 +18,9 @@ import os
 import re
 import threading
 import time
+from collections import Counter
 from contextvars import ContextVar
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Set
 
@@ -43,6 +44,7 @@ ACTIONS = {
     "approve": "approved", "regen": "regenerate", "reject": "rejected", "cancel": "cancelled",
     "rejres": "rejected", "keepit": "keep", "undoappr": "undo_approved", "undorej": "undo_rejected",
 }
+DECISIONS = {"approved", "regenerate", "rejected", "cancelled"}   # what a review can be decided as
 TELEGRAM_VIDEO_LIMIT_MB = 49.0
 REASON_CARD_HOURS = 2  # a decided review's reason card survives /clear this long (the window for a reply)
 STALE_COMMAND_SECONDS = 600  # commands queued while the bot was down longer than this are not replayed
@@ -59,12 +61,23 @@ from .telegram_ui import HOME as DONE_BUTTON
 from .telegram_ui import hourglass  # 🏠 Dashboard: one home button everywhere (2026-10-25 overhaul)
 PAGER_ICONS = {"⏮", "◀", "▶", "⏭"}
 _PANEL = ContextVar("telegram_navigation_panel", default=None)
-PANEL_ACTIONS = {"reviewpick", "pickbump", "pickdrop", "cideas", "cpropose", "ccov", "cmusic", "cdisc", "cprop", "cstat", "cimages", "caccounts", "imagepick", "imagehelp", "review", "mkeep", "mnext", "mdel", "mcancel", "mreview", "musicmenu", "mfmenu", "mlibrary", "chelp"}
+# A notifications item's action being run (UI-01): its callback's answers are collected here and its outcome
+# recorded, so the item closes only when the action was done and the tap gets one toast saying what happened.
+_ITEM_ACTION = ContextVar("notifications_item_action", default=None)
+# Toasts that only say a tap arrived: an item action's own toast says what was done instead.
+# Item actions whose handler closes the item itself when it is done (the review panel's Undo approval).
+CLOSE_THEIR_ITEM = {"rvua"}
+LEGACY_ACTIONS_NS = "alert-actions"   # an earlier-chat notice's buttons by "<chat>:<message>" (UI-01f, §13)
+# Item actions whose handler says whether it was done (notifications.Outcome); a reply that does not say is not done.
+SAY_THEIR_OUTCOME = {"upd", "rerender", "carredraw", "carspace", "carexpire"}
+PLAIN_TOASTS = {"", "Working", "Request checked", "Request received", "Updated", "Working; you can keep using the bot"}
+PANEL_ACTIONS = {"ccar", "reviewpick", "pickbump", "pickdrop", "cideas", "cpropose", "ccov", "cmusic", "cdisc", "cprop", "cstat", "cimages", "caccounts", "imagepick", "imagehelp", "review", "mkeep", "mnext", "mdel", "mcancel", "mreview", "musicmenu", "mfmenu", "mlibrary", "chelp"}
 # Cards removed before acting (their own Cancel/Skip/Next buttons).
 DELETE_FIRST = {"tskip"}
 # Decision buttons: disabled before acting so a second tap can't repeat the decision.
 ONE_SHOT = {"uadd", "tadd", "imgok", "mkeep", "cov", "rsn", "impok", "impno", "imprev",
-            "pubok", "pubno", "simpub", "resend", "rerender", "promote", "requeue", "fbcaptions", "fbcover", "ytshort", "rebook", "ytthumb"}
+            "pubok", "pubno", "simpub", "resend", "rerender", "promote", "requeue", "fbcaptions", "fbcover", "ytshort", "rebook", "ytthumb",
+            "newversion", "carredraw", "carspace", "carexpire"}
 # Replies that only acknowledge (the card or panel itself shows the result): a nudge that leaves on its own,
 # not a message that stays (operator, 2026-10-25: "Sending ... for review again" and "Thanks, noted" stayed).
 NUDGE_REPLIES = {"resend", "whytext", "requeue"}
@@ -76,6 +89,9 @@ REASON_CARD_MINUTES = 30
 # before deciding what to keep (production 2026-10-26: the words came 20 s after the tap, 7 s after the run
 # began, and the script was kept unread). At least 10 s after the reason is seen.
 REGEN_DETAIL_SECONDS = 90
+STOP_CONFIRM_SECONDS = 300  # the progress panel's Cancel run confirmation stands this long (UI-01c)
+REAP_GRACE_SECONDS = 30     # a run that has just ended is left to its own process's finisher this long (UI-01c)
+INTERRUPTED_ERROR = "Interrupted: the process making it ended (crash or stop) before it finished."
 # Replies that replace the card they came from (text only).
 EDIT_IN_PLACE = {"uadd", "tadd", "simpub", "rsn", "impok", "impno", "imprev"}
 TOASTS = {"imgok": "✅ Storyboard Approved!", "imgcancel": "✖ Cancelled", "mcancel": "✖ Cancelled",
@@ -89,7 +105,7 @@ TOASTS = {"imgok": "✅ Storyboard Approved!", "imgcancel": "✖ Cancelled", "mc
           "imprev": "↩ Reverted", "creviews": "🎬 Reviews", "cimprove": "🧭 Improvement", "cideas": "💡 Ideas", "canalytics": "📈 Audience"}
 
 # Plain names for jobs in /jobs and progress panels (never the internal button name).
-JOB_TITLES = {"fetchimages": "Fetching images", "filmfind": "Finding archive film", "mfetch": "Finding documentary music", "caccounts": "Checking accounts",
+JOB_TITLES = {"ccar": "Carousel preview", "fetchimages": "Fetching images", "filmfind": "Finding archive film", "mfetch": "Finding documentary music", "caccounts": "Checking accounts",
               "ccov": "Covers", "cmusic": "Music", "cstat": "Status", "cprop": "Waiting ideas",
               "cdisc": "UNESCO marvels", "mreview": "Music review", "mlibrary": "Music library", "mkeep": "Keeping a track",
               "mdel": "Removing a track", "mnext": "Next track", "review": "Image review", "uadd": "Adding a marvel",
@@ -150,48 +166,191 @@ class TelegramRateLimited(RuntimeError):
         self.retry_after = float(retry_after)
 
 
+class V2CardUnavailable(ValueError):
+    """A value the V2 review card shows that the run does not record: the live card is sent instead, never a
+    stand-in value (UI-02)."""
+
+
+V2_VOICE_NAMES = {"azure": "Azure Speech", "elevenlabs": "ElevenLabs"}
+# The run's notes the live card lists (_card_text), shown on the V2 card under its findings
+V2_NOTE_KEYS = ("scene_plan_note", "topic_origin_note", "fact_sheet_note", "hook_signal_note", "payoff_note",
+                "picture_lines_note", "voice_note", "music_note", "motion_note", "graphics_note",
+                "reconstruction_note", "footage_note", "beat_image_note", "source_note")
+V2_SCRIPT_ROOM = 1500   # characters of narration the V2 card shows; the rest is named (Edit text has it whole)
+
+
+def undo_minutes() -> float:
+    """A V2 card's Undo window (config.REVIEW_UNDO_MINUTES): the worker acts on its decision only after it."""
+    return float(config.REVIEW_UNDO_MINUTES)
+
+
+def undo_until(approval: dict[str, Any]) -> float | None:
+    """When the Undo window of this decision ends (epoch seconds), or None without a decision time."""
+    try:
+        return datetime.fromisoformat(str(approval.get("decision_timestamp"))).timestamp() + undo_minutes() * 60
+    except (TypeError, ValueError):
+        return None
+
+
+def v2_card_decision(db: Any, run_id: str, approval: dict[str, Any]) -> bool:
+    """The decision was tapped on the run's delivered V2 review pair (its video message), so its Undo applies."""
+    if not str(approval.get("decided_by") or "").startswith("telegram:") or not hasattr(db, "get_telegram_card"):
+        return False
+    if clean_chat():
+        # The clean chat's review panel (UI-01e) decides with the same Undo window: its Undo is the decided item's.
+        from .review_panel import STATE
+        from .telegram_state import get
+        if get(db, STATE, run_id) and get(db, "review-card", f"{run_id}:{approval.get('telegram_message_id')}"):
+            return True
+    card = db.get_telegram_card(f"review:{run_id}") or {}
+    return (card.get("card_kind") == "review_pair"
+            and (card.get("payload") or {}).get("video_mid") == approval.get("telegram_message_id"))
+
+
+V2_ONLY_ACTIONS = {"keepit", "undoappr", "undorej", "rejres"}   # buttons only the V2 review card carries
+
+
+def _v2_review_keyboard(key: str, blocked: bool) -> dict[str, Any]:
+    """The V2 review video's decision buttons; no Approve on a version the release gate blocks (the card's rule:
+    "Keep it" and an Undo rebuilt it with Approve whatever the gate said)."""
+    return {"inline_keyboard": [
+        ([] if blocked else [{"text": "🚀 Approve & post", "style": "success", "callback_data": f"approve:{key}"}])
+        + [{"text": "✏️ Edit text", "style": "primary", "callback_data": f"edit:{key}"}],
+        [{"text": "♻️ Redo with a note", "style": "primary", "callback_data": f"regen:{key}"},
+         {"text": "❌ Reject", "style": "danger", "callback_data": f"reject:{key}"}],
+    ]}
+
+
+def _v2_reason_keyboard(target: str) -> dict[str, Any]:
+    """Reject's reasons on the V2 card: improve.REASONS, the one set every reason card uses (operator ruling,
+    UI-01 spec), three to a row, then "← Keep it"."""
+    from .improve import REASONS
+    chips = [{"text": label, "callback_data": f"rejres:{target}:{code}"} for code, label in REASONS.items()]
+    rows = [chips[i:i + 3] for i in range(0, len(chips), 3)]
+    return {"inline_keyboard": rows + [[{"text": "← Keep it", "style": "primary", "callback_data": f"keepit:{target}"}]]}
+
+
+def _age_anchor(run: dict[str, Any]) -> float:
+    """When a run's record last changed, as epoch seconds (0 when it cannot be read: old enough)."""
+    from datetime import UTC, datetime
+    try:
+        at = datetime.fromisoformat(str(run.get("updated_at") or ""))
+    except ValueError:
+        return 0.0
+    return (at if at.tzinfo else at.replace(tzinfo=UTC)).timestamp()
+
+
+def clean_chat() -> bool:
+    """Whether the clean chat (UI-01) is on. A function: _process_update imports `config` locally further down,
+    so the module name is not reachable there."""
+    return bool(getattr(config, "TELEGRAM_CLEAN_CHAT", False))
+
+
+def plain_reason(error: Any, limit: int = 160) -> str:
+    """A failure reason in plain words: no exception or outcome class name in front ("PublishFailed: ..."),
+    cut at a word (control.short_reason)."""
+    from .control import short_reason
+    text = re.sub(r"^(?:[A-Z]\w*(?:Error|Exception|Failed|Unknown|NotConfigured)|NotConfigured):\s*", "", str(error or "").strip())
+    return short_reason(text, limit) or "no reason was returned"
+
+
+def _plain(text: Any) -> str:
+    """HTML card text as plain rich-message text: tags removed, entities decoded."""
+    return html.unescape(re.sub(r"<[^>]+>", "", str(text or ""))).strip()
+
+
+def _run_json(run_dir: Path | None, name: str) -> dict[str, Any]:
+    """A run's JSON record, or {} when it is missing or unreadable."""
+    try:
+        data = json.loads((Path(run_dir) / name).read_text(encoding="utf-8")) if run_dir else {}
+    except (OSError, ValueError):
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
+RECEIPT_NAMES = {"instagram": "Instagram Reel", "facebook": "Facebook Reel", "youtube": "YouTube Short",
+                 "youtube-video": "YouTube video"}
+
+
 class PublishReceipt:
-    """Consolidated in-place publication notification in topic Runs (4909).
-    Edits a single message as Instagram, Facebook, and YouTube Short publish steps complete,
-    ending with Stories/carousel schedule and a single Dashboard button."""
-    def __init__(self, bot, run_id: str, title: str):
+    """Consolidated in-place publication notification in topic Runs (4909): one message, edited as each
+    attempted platform comes out, ending with its outcome and a single Dashboard button. It says what really
+    happened (UI-02): the header is ✅ only when every attempted platform posted, ⚠️ "Posted with problems" when
+    some did not, ❌ when none did; a failure is "❌ <platform>: <plain reason>"; the Short is listed only when it
+    is attempted; the Runs log line names only what posted."""
+    def __init__(self, bot, run_id: str, title: str, platforms: list[str] | None = None,
+                 initial: dict[str, dict[str, Any]] | None = None):
         self.bot = bot
         self.run_id = run_id
         self.title = title
         self.message_id = None
-        self.platforms = {
-            "instagram": {"name": "Instagram Reel", "status": "uploading", "url": None, "error": None},
-            "facebook": {"name": "Facebook Reel", "status": "uploading", "url": None, "error": None},
-            "youtube": {"name": "YouTube Short", "status": "waiting", "url": None, "error": None},
-        }
+        keys = list(platforms) if platforms is not None else (
+            ["instagram", "facebook"] + (["youtube"] if config.YOUTUBE_SHORTS else []))
+        self.platforms = {k: {"name": RECEIPT_NAMES.get(k, k), "status": "waiting" if k == "youtube" else "uploading",
+                              "url": None, "error": None} for k in keys}
+        for k, state in (initial or {}).items():
+            if k in self.platforms:
+                self.platforms[k].update(state)
         self.follow_up = ""
         self._send_or_update()
 
     def update_platform(self, key: str, status: str, url: Optional[str] = None, error: Optional[str] = None):
+        """`status`: uploading, waiting, live, failed, unknown (sent, not confirmed) or skipped (not attempted)."""
         if key in self.platforms:
             self.platforms[key].update(status=status, url=url, error=error)
             self._send_or_update()
 
-    def finalize(self, stories_delay_minutes: int = 45, carousel_slot: str = "next slot"):
-        self.follow_up = f"◽ Stories follow in {stories_delay_minutes} minutes\n◽ Carousel in its {carousel_slot}"
+    def _attempted(self) -> list[dict[str, Any]]:
+        return [p for p in self.platforms.values() if p["status"] != "skipped"]
+
+    def finalize(self, follow_up: str = ""):
+        self.follow_up = follow_up
         self._send_or_update(final=True)
-        # Outcome line in Runs log (silent)
-        self.bot.notify(f"📮 {self.title} posted · Reel & Short", group="runs", silent=True)
+        # Outcome line in Runs log (silent): only what posted is named
+        live = [p["name"] for p in self._attempted() if p["status"] == "live"]
+        missed = [p["name"] for p in self._attempted() if p["status"] != "live"]
+        title = html.escape(self.title)
+        if live and not missed:
+            line = f"📮 {title} posted · {_and_list(live)}"
+        elif live:
+            line = f"⚠️ {title} posted with problems · {_and_list(live)}; not {_and_list(missed)}"
+        else:
+            line = f"❌ {title} not posted"
+        if not config.TELEGRAM_CLEAN_CHAT:   # the clean chat has one item per episode, the receipt itself
+            self.bot.notify(line, group="runs", silent=True)
+
+    def _header(self, final: bool) -> str:
+        title = f"<b>{html.escape(self.title)}</b>"
+        if not final:
+            return f"⚡ <b>Posting</b> · {title}"
+        attempted = self._attempted()
+        live = [p for p in attempted if p["status"] == "live"]
+        if attempted and len(live) == len(attempted):
+            return f"✅ <b>Posted</b> · {title}"
+        if live:
+            return f"⚠️ <b>Posted with problems</b> · {title}"
+        if attempted and all(p["status"] == "failed" for p in attempted):
+            return f"❌ <b>Not posted</b> · {title}"
+        return f"⚠️ <b>Not confirmed</b> · {title}" if attempted else f"❌ <b>Not posted</b> · {title}"
 
     def _render_text(self, final: bool = False) -> str:
-        icon = "✅" if final else "⚡"
-        lines = [f"{icon} <b>{html.escape(self.title)}</b>\n"]
+        lines = [self._header(final) + "\n"]
         for p in self.platforms.values():
+            why = html.escape(plain_reason(p.get("error")))
             if p["status"] == "live" and p["url"]:
-                lines.append(f"• {p['name']}: ✅ <a href=\"{html.escape(str(p['url']))}\">live</a>")
+                lines.append(f"✅ {p['name']}: <a href=\"{html.escape(str(p['url']))}\">live</a>")
             elif p["status"] == "live":
-                lines.append(f"• {p['name']}: ✅ live")
+                lines.append(f"✅ {p['name']}: live")
             elif p["status"] == "uploading":
-                lines.append(f"• {p['name']}: ⏳ uploading…")
+                lines.append(f"⏳ {p['name']}: uploading…")
             elif p["status"] == "waiting":
-                lines.append(f"• {p['name']}: ◽ queued")
+                lines.append(f"◽ {p['name']}: queued")
             elif p["status"] == "failed":
-                lines.append(f"• {p['name']}: ⚠️ failed ({html.escape(str(p['error'])[:120])})")
+                lines.append(f"❌ {p['name']}: {why}")
+            elif p["status"] == "unknown":
+                lines.append(f"⚠️ {p['name']}: not confirmed ({why}); check the account before posting it again")
+            elif p["status"] == "skipped":
+                lines.append(f"◽ {p['name']}: not attempted ({why})")
         if self.follow_up:
             lines.append(f"\n{self.follow_up}")
         return "\n".join(lines)
@@ -199,12 +358,23 @@ class PublishReceipt:
     def _send_or_update(self, final: bool = False):
         text = self._render_text(final=final)
         buttons = [[DONE_BUTTON]]
+        if config.TELEGRAM_CLEAN_CHAT:
+            # One "📮 Posted" item per episode, updated in place as each platform lands (design §10.1).
+            missed = final and any(p["status"] != "live" for p in self._attempted())
+            self.bot.notify(text, group="runs", section="needs" if missed else "info", key=f"posted:{self.run_id}",
+                            run=self.run_id, replace=True)
+            return
         if not self.message_id:
             res = self.bot.notify(text, buttons=buttons, group="runs", silent=True)
             if isinstance(res, int):
                 self.message_id = res
         else:
             self.bot.edit_message_text(self.message_id, text, buttons=buttons)
+
+
+def _and_list(items: list[str]) -> str:
+    """'A', 'A and B', 'A, B and C'."""
+    return items[0] if len(items) == 1 else ", ".join(items[:-1]) + " and " + items[-1]
 
 
 def _post(url, timeout=30, **kwargs):
@@ -261,6 +431,108 @@ def listed(heading: str, items: List[str], cap: Optional[int] = None) -> str:
     return head + ("\n<blockquote expandable>" + "\n".join(f"• {x}" for x in body) + "</blockquote>" if body else "")
 
 
+# Freeze panel 2026-11-04 (M12 (3), operator decision): a design card's quality notes (its <graphic>.design.json, written
+# by design_cards) reach the review card, so a myth card whose correction drops every specific is seen before approval
+DESIGN_NOTE_TEXT = {
+    "correction_drops_specifics": "the correction keeps none of its fact's figures, dates or names",
+}
+
+
+def design_card_notes(run_dir: Path) -> List[str]:
+    """Each drawn design card's quality notes in `run_dir` (or one folder under it), as 'graphic_mythfact_01: ...'
+    lines. A refused, unreadable or note-free record gives none."""
+    out: List[str] = []
+    try:
+        found = sorted(set(run_dir.glob("graphic_*.design.json")) | set(run_dir.glob("*/graphic_*.design.json")))
+    except OSError:
+        return out
+    for p in found:
+        try:
+            rec = json.loads(p.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            continue
+        if not isinstance(rec, dict) or rec.get("refused"):
+            continue
+        for n in rec.get("quality_notes") or []:
+            out.append(f"{p.name.split('.', 1)[0]}: {DESIGN_NOTE_TEXT.get(str(n), str(n))}")
+    return out
+
+
+def _refusal_effect(where: str) -> str:
+    """What a refused field costs on its surface, in the operator's words."""
+    if where.startswith("Story frame"):
+        return "so the frame is left out and the Story posts short"
+    if where.startswith("graphic") or where == "photo callouts":
+        return "so the graphic is left out of the video"
+    if where.startswith("design card"):
+        return "so the card is left out"
+    return "so that render stopped"
+
+
+def glyph_notes(run_dir: Path) -> list[str]:
+    """The run's lettering notes (QF-94), from its glyph ledger (font_engine.LEDGER_NAME), each naming the surface it
+    was drawn on: a field set in a fallback face because its face has no glyph for some of its characters; a field
+    no bundled face can draw, and what that cost (a Story frame not drawn, a graphic left out); a caption word libass
+    draws in a system face; and one count of the fields an emoji was removed from. A part of a field (a line, a word,
+    a fitting trial: `part_of`) is shown with its field, not on its own line."""
+    from .font_engine import LEDGER_NAME
+    out: list[str] = []
+    seen: set[tuple] = set()
+    emoji: set[str] = set()
+    try:
+        lines = (Path(run_dir) / LEDGER_NAME).read_text(encoding="utf-8").splitlines()
+    except (OSError, ValueError):
+        return out
+    for line in lines:
+        try:
+            ev = json.loads(line)
+            kind, face = ev["kind"], str(ev["face"])
+            # a field's lines (a credit's licence line and its "This frame" line) joined as the field reads
+            text = " / ".join(" ".join(line.split()) for line in str(ev["text"]).splitlines() if line.strip())
+            chars, scripts = " ".join(str(ev.get("chars") or "")), ", ".join(ev.get("scripts") or [])
+            where = str(ev.get("where") or "an image (surface not named)")
+        except (ValueError, KeyError, TypeError, AttributeError):
+            continue
+        if kind == "emoji_removed":
+            emoji.add(text)
+            continue
+        # a caption word is listed once whichever caption face measured it (9:16 Anton, upper-cased; 16:9
+        # Montserrat): the note does not name the face (QF-94b)
+        key = ((kind, text.casefold(), where) if kind == "caption_system_face"
+               else (kind, text, face, ev.get("fallback"), where))
+        if ev.get("part_of") or key in seen:
+            continue
+        seen.add(key)
+        head = where[0].upper() + where[1:]
+        if kind == "fallback":
+            out.append(f"{head}: \u201c{text}\u201d set in {ev.get('fallback')} ({face} has no {chars}, {scripts})")
+        elif kind == "refused":
+            out.append(f"{head}: \u201c{text}\u201d not drawn, {_refusal_effect(where)}: no bundled face draws "
+                       f"{chars} ({scripts})")
+        elif kind == "caption_system_face":
+            out.append(f"{head}: \u201c{text}\u201d has {chars} ({scripts}), which no bundled face draws; libass "
+                       "draws them in a system face")
+    if emoji:
+        out.append(f"Emoji removed from {len(emoji)} field(s) (no emoji in art)")
+    return out
+
+
+LAYOUT_HOLD_NAMES = {"stories": "Story frames", "carousel": "Instagram carousel", "carousel_fb": "Facebook carousel"}
+
+
+def layout_hold_lines(holds: Any) -> list[str]:
+    """Each surface held for a typography.LayoutError (payload["layout_holds"]: main.hold_layout_error for the
+    decks, graphics.make_all for the graphics; QF-23), as 'Story frames: Checked copy does not fit ...' lines."""
+    out: list[str] = []
+    for h in holds if isinstance(holds, list) else []:
+        if isinstance(h, dict) and h.get("deck"):
+            deck = str(h["deck"])
+            name = LAYOUT_HOLD_NAMES.get(deck) or ("graphic: " + deck.split("/", 1)[1] if deck.startswith("graphics/")
+                                                   else deck)
+            out.append(f"{name}: {h.get('error') or 'held'}")
+    return out
+
+
 def detail_messages(full_card: str, limit: int = CARD_PAGE_LIMIT) -> List[str]:
     """The card's lists whole, for the message under a card whose lists were shortened: each section with an
     expandable blockquote, in order, packed into as few messages as Telegram's limit allows (a section longer
@@ -294,6 +566,113 @@ def without_hashtags(text: str) -> str:
     return _TRAILING_HASHTAGS.sub("", "\n".join(lines).strip()).strip()
 
 
+def _one_line(text: str) -> str:
+    """A posted string as one card list item, HTML-escaped: each line break shown as ⏎ (a list item is one line)."""
+    return html.escape(str(text or "")).replace("\r\n", "\n").replace("\n", " ⏎ ")
+
+
+def _schedule_line(posted: dict[str, Any]) -> str:
+    """'🗓 Slot: Tue 27 Oct 17:00 MDT · review closes Tue 27 Oct 16:40 MDT': the Reel slot an Approve books now
+    (post_schedule.next_reel_slot), only when it books one (otherwise that it posts at once, or nothing on a dry
+    run), and when this review closes (QF-43)."""
+    from . import post_schedule
+    if posted.get("error"):   # nothing was worked out: Approve posts nothing (the "Also posted" list says why)
+        return ""
+
+    def when(iso: str | None) -> str:
+        try:
+            return post_schedule.fmt(datetime.fromisoformat(str(iso)))
+        except (TypeError, ValueError):
+            return ""
+    slot = when(posted.get("slot"))
+    closes = when(posted.get("closes"))
+    if posted.get("scheduling_hold") and posted.get("posting") != "dry_run":   # QF-73: Approve cannot post it yet
+        return ("🗓 <b>Waiting:</b> " + html.escape(str(posted["scheduling_hold"]))
+                + (f" · <b>review closes</b> {html.escape(closes)}" if closes else "") + "\n")
+    if slot and closes and slot[:10] == closes[:10]:   # the same day: its time alone ("Tue 27 Oct 16:40 MDT" -> "16:40 MDT")
+        closes = closes[11:]
+    line = "🗓 <b>Slot:</b> " + (html.escape(slot) if slot else "none, a dry run posts nothing"
+                                 if posted.get("posting") == "dry_run" else "posted as soon as you approve")
+    return line + (f" · <b>review closes</b> {html.escape(closes)}" if closes else "") + "\n"
+
+
+def _posted_hashtags_line(posted: dict[str, Any]) -> str:
+    """The hashtags posted (the topic's candidate list decides)."""
+    tags = posted.get("hashtags") or []
+    line = f"<b>Hashtags:</b> {html.escape(' '.join(tags))}" if tags else "<b>Hashtags:</b> none (none is on this topic's list)"
+    return line   # the written ones left out are in the "Also posted" list (_also_posted)
+
+
+def _changed_lines(shown: str, posted: str) -> str:
+    """`posted` said as its changes to `shown` ("“old” → “new”" per changed line), or "" when that is not shorter
+    than `posted` itself. Exact: every other line of `posted` is the same line of `shown`."""
+    import difflib
+    a, b = shown.splitlines(), posted.splitlines()
+    parts: list[str] = []
+    for op, i1, i2, j1, j2 in difflib.SequenceMatcher(a=a, b=b, autojunk=False).get_opcodes():
+        if op == "equal":
+            continue
+        old, new = " ⏎ ".join(a[i1:i2]), " ⏎ ".join(b[j1:j2])
+        parts.append(f"“{old}” → “{new}”" if old and new else f"without “{old}”" if old else f"with “{new}” added")
+    said = "; ".join(parts)
+    return said if parts and len(said) < len(posted) else ""
+
+
+def _also_posted(posted: dict[str, Any], copy: dict[str, str]) -> list[str]:
+    """Every other string Approve posts, word for word, as card list items (QF-43): the Facebook Reel title, the
+    YouTube Short's title, description and tags (a documentary: its YouTube title, description and tags), the
+    carousel caption as Facebook's photo grid carries it, and each slide's alt text. A string the card already shows
+    (the title, the caption, the carousel caption) is named, not repeated; one that differs from it only in a few
+    lines is said as those lines' changes."""
+    e = html.escape
+    if posted.get("error"):
+        return [f"<i>could not be worked out ({e(str(posted['error'])[:200])}): Approve will not post</i>"]
+    if posted.get("documentary"):
+        return [f"YouTube title: {_one_line(copy.get('youtube.title'))}",
+                f"YouTube description: {_one_line(copy.get('youtube.description'))}",
+                f"YouTube tags: {_one_line(copy.get('youtube.tags') or 'none')}"]
+    title, caption = copy.get("reel.title", ""), copy.get("reel.caption", "")
+    tags = ", ".join(t.lstrip("#") for t in posted.get("hashtags") or [])
+    short = []
+    short.append("the title above" if copy.get("short.title") == title else f"title {_one_line(copy.get('short.title'))}")
+    description = copy.get("short.description", "")
+    short.append("the caption above" if description == caption
+                 else f"description {_one_line(description)}")
+    short.append("the hashtags as tags" if copy.get("short.tags", "") == tags
+                 else f"tags {_one_line(copy.get('short.tags') or 'none')}")
+    off = "" if posted.get("shorts") else " (not posted: YouTube Shorts are turned off)"
+    # The first item is the one the card keeps when its room is short (_card_text): the YouTube Short when it is
+    # posted; while YOUTUBE_SHORTS is off it is not, and goes last.
+    items = ["Facebook Reel: the title and the caption above"]   # the card's title and caption are these (_card_text)
+    items.insert(0 if posted.get("shorts") else 1, f"YouTube Short{off}: " + ", ".join(short))
+    if "carousel.facebook" in copy:
+        ig, fb = copy.get("carousel.instagram", ""), copy["carousel.facebook"]
+        above = "the carousel caption above"
+        if not posted.get("carousel_own", True):   # no carousel caption of its own: the card shows none (_card_text)
+            changes = _changed_lines(caption, ig)
+            items.append("Instagram carousel caption: " + (
+                "the caption above" if ig == caption else f"the caption above with {e(changes)}" if changes
+                else _one_line(ig)) + ", then the photo credit lines")
+            above = "the Instagram carousel caption"
+        changes = _changed_lines(ig, fb)
+        items.append("Facebook carousel caption: " + (
+            above if fb == ig else f"{above} with {e(changes)}" if changes
+            else _one_line(fb)) + ", then the photo credit lines")
+    for label in sorted((k for k in copy if k.startswith("alt.")), key=lambda k: (k.split(".")[1] != "instagram",
+                                                                                  int(k.rsplit(".", 1)[1]))):
+        _, platform, n = label.split(".")
+        twin = copy.get(f"alt.instagram.{n}")
+        if platform == "facebook" and copy[label] == twin:
+            continue
+        items.append(f"Alt text, slide {n} ({platform.capitalize()}): {_one_line(copy[label])}")
+    if posted.get("carousel_at_slot"):   # QF-81: drawn on demand (🖼 Preview carousel) or at its slot
+        items.append("Carousel slides and their alt text: drawn from this run's photos and carousel cards when you "
+                     "tap 🖼 Preview carousel or when it takes its carousel slot, and checked before they post")
+    if posted.get("dropped"):
+        items.append(f"Hashtags not posted (not on this topic's list): {e(' '.join(posted['dropped']))}")
+    return items
+
+
 def _tg_len(text: str) -> int:
     """Length as Telegram counts it (UTF-16 code units)."""
     return len(text.encode("utf-16-le")) // 2
@@ -323,6 +702,178 @@ def _second_check_line(second: Optional[Dict[str, Any]]) -> str:
     if second.get("status") == "pass":
         return f"✅ Second check{html.escape(who)}: passed ({second.get('confidence', 0)}% of {len(second.get('audits', []))} claims)\n"
     return "⚠️ Second check: unavailable (first check only)\n"
+
+
+CREDIT_CARD_CLIP = 60     # a credit that is not a photo's, on a card with no room left (QF-42)
+CREDIT_CARD_TITLE = 32    # a photo credit's title in its short form on a long card (QF-42)
+CREDITS_HEAD = "📷 <b>Credits posted with the captions:</b>"
+CREDITS_UNLISTED = "📷 <b>Credits:</b>"  # the count alone, on a card the findings fill (shortened first)
+CARD_CAPTION_ROOM = 400   # the caption text the credits leave room for before they are shortened
+CAPTION_TOO_LONG = "<i>(too long for this card: see Edit)</i>"
+ALSO_HEAD = "📤 <b>Also posted, word for word</b>"   # what else Approve posts (QF-43)
+ALSO_SHORT = "📤 <b>Also posted:</b>"                # its one-line count, in the room a decision's badge keeps
+AI_HEAD = "🤖 <b>AI transparency:</b>"                 # whether the post carries the AI label, and why (QF-65a)
+_CARD_BLOCK_END = "</blockquote>\n"
+
+
+def _ai_label_line(posted: Any, brief: bool = False) -> str:
+    """The card's AI-label line from its record (publishable.card_record, QF-65a), whole or `brief` (whether the
+    label is on and its first reason); "" for a record without the assessment."""
+    if not isinstance(posted, dict):
+        return ""
+    from .ai_label import card_line
+    text = card_line(posted.get("ai_label"), documentary=bool(posted.get("documentary")),
+                     photos=posted.get("ai_label_photos"), brief=brief,
+                     # QF-81: a carousel drawn at its slot is labelled from its slides there (the slot's alert names
+                     # a Facebook hold); the card's assessment holds the Stories only
+                     stills="Stories" if posted.get("carousel_at_slot") else "Stories/carousel")
+    return f"{AI_HEAD} {html.escape(text)}" if text else ""
+
+
+def _said_once(card: str) -> str:
+    """Where the rest of a shortened list is, said once: each shortened list repeated it (production review card,
+    2026-10-29). The card's room is measured on this form, the one sent (QF-42)."""
+    first, sep, rest = card.partition(f": {CARD_LIST_MORE}")
+    return first + sep + rest.replace(f": {CARD_LIST_MORE}", "")
+
+
+def _with_publish_lines(card: str, posted: dict[str, Any], limit: int, reserve: int, shift: int = 0) -> str:
+    """The fitted review card (QF-42's fit, unchanged) with what else Approve posts and when (QF-43), each only in
+    room the card leaves, so neither costs the narration, a caption or a finding anything (review of QF-43 on 30
+    real cards: laid out with the card, they cut narration and dropped captions' "see Edit" lines):
+    - the "Also posted, word for word" list after the copy's folded section, in the longest form within `limit`
+      (whole; its first items and "…and N more"; its count): the reply under the card has it whole
+      (needs_publish_reply);
+    - on the card waiting for a decision only (`reserve` 0), in the room CARD_PAGE_LIMIT keeps for a decision's
+      badge: the slot line under the title, then (when no form of the list fit) the list's count. The card stays
+      one message under telegram_pages.PAGE_ABOVE; the decided card, rebuilt with its badge, has neither (its
+      receipt says what was booked). A card the findings already push past that keeps them in the reply.
+    - the AI-label line (QF-65a) under the title, on every card with the record: brief (the label and its first
+      reason) in the room the fit gives up for it (card_fit_limit, ai_line_room), then whole once everything
+      else is laid out when the room left takes it; the reply under the card has it whole otherwise."""
+    from .telegram_pages import PAGE_ABOVE
+    also = _also_posted(posted, posted.get("copy") or {})
+    ai_whole, ai_brief = _ai_label_line(posted), _ai_label_line(posted, brief=True)
+    # `shift`: the room the fit freed beyond the AI line's own (TelegramApprovalBot._ai_layout); the slot
+    # line and the "Also posted" list or count are laid out in the room they had without the line.
+    page_cap, list_cap = PAGE_ABOVE - shift, limit - shift
+
+    with_ai = _under_title
+
+    def whole_ai(text: str, room: int) -> str:
+        """The brief AI line swapped for the whole one when the room takes it."""
+        trial = text.replace(ai_brief + "\n", ai_whole + "\n", 1) if ai_brief and ai_whole != ai_brief else text
+        return trial if _tg_len(trial) <= room else text
+
+    card = with_ai(card, ai_brief)
+
+    def with_list(text: str, cap: int | None) -> str:
+        head = text.find("<b>Narration and timings:</b>")
+        at = text.find(_CARD_BLOCK_END, head) if head >= 0 else -1
+        if not also or at < 0:
+            return text
+        at += len(_CARD_BLOCK_END)
+        section = (listed(ALSO_HEAD, also, cap) if cap is None or cap >= 0   # -1: its count on one line
+                   else f"{ALSO_SHORT} <i>{len(also)} item{'s' if len(also) != 1 else ''} in the reply</i>")
+        return _said_once(text[:at] + "\n" + section + "\n" + text[at:])
+
+    listed_ = False
+    for k in (None, *range(len(also) - 2, -1, -1)):
+        trial = with_list(card, k)
+        if trial != card and _tg_len(trial) <= list_cap:
+            card, listed_ = trial, True
+            break
+    if reserve > 0:
+        return whole_ai(card, limit)
+    pin = card.find("📌 <b>")
+    title = card.find("\n", pin) if pin >= 0 else -1
+    if title >= 0 and _schedule_line(posted):
+        trial = card[:title + 1] + _schedule_line(posted) + card[title + 1:]
+        if _tg_len(trial) <= page_cap:
+            card = trial
+    if not listed_ and also:
+        for trial in (with_list(card, 0), with_list(card, -1)):
+            if trial != card and _tg_len(trial) <= page_cap:
+                card = trial
+                break
+    return whole_ai(card, PAGE_ABOVE)
+
+
+def _under_title(card: str, line: str) -> str:
+    """The card with `line` (the AI-label line, QF-65a) under its title; unchanged without a line or a title."""
+    pin = card.find("📌 <b>")
+    at = card.find("\n", pin) if pin >= 0 else -1
+    if not line or at < 0:
+        return card
+    return card[:at + 1] + line + "\n" + card[at + 1:]
+
+
+def _publish_lines_shown(card: str) -> tuple[str, str]:
+    """What a card shows of Approve's lines (QF-43): its slot line and its "Also posted" section, as text."""
+    slot = next((ln for ln in card.splitlines() if ln.startswith("🗓 <b>Slot:</b>")), "")
+    at = card.find("📤 <b>Also posted")
+    if at < 0:
+        return slot, ""
+    end = card.find("</blockquote>", at) if card.startswith(ALSO_HEAD, at) else card.find("\n", at)
+    return slot, card[at:end if end >= 0 else len(card)]
+
+
+def _captions_named(card: str) -> int:
+    """How many captions a review card names: their text, or where to read it (QF-42)."""
+    return sum(card.count(f"<b>{label}:</b>") for label in ("Caption", "Carousel caption"))
+
+
+def _qf42_kept(card: str, reference: str, previews: bool = True) -> bool:
+    """Whether a fitted card keeps what QF-42's fit keeps on `reference` (the card without the AI-label line): the
+    narration whole if it was, every caption named, the credits' own lines, and (`previews`) each caption preview."""
+    return (("[shortened:" not in card or "[shortened:" in reference)
+            and _captions_named(card) >= _captions_named(reference)
+            and (CREDITS_UNLISTED not in card or CREDITS_UNLISTED in reference)
+            and (not previews or _caption_previews(card) >= _caption_previews(reference)))
+
+
+def _without_ai_line(card: str) -> str:
+    """The card without its AI-label line (QF-65a), for comparing what else it shows."""
+    return re.sub(r"(?m)^" + re.escape(AI_HEAD) + r"[^\n]*\n", "", card, count=1)
+
+
+def ai_line_room(posted: Any) -> int:
+    """The room the card's brief AI-label line takes (QF-65a): kept out of the fit, so the line is always on the card
+    and the narration, captions, findings and the other publish lines are laid out in what is left. 0 without one."""
+    line = _ai_label_line(posted, brief=True)
+    return _tg_len(line) + 1 if line else 0
+
+
+def needs_publish_reply(card: str, posted: Any) -> bool:
+    """Whether the reply under the card must carry what Approve posts: the card shows the "Also posted" list only in
+    part, or not at all, or has no slot line (_with_publish_lines)."""
+    if not isinstance(posted, dict):
+        return False
+    also = _also_posted(posted, posted.get("copy") or {})
+    slot = _schedule_line(posted)
+    ai = _ai_label_line(posted)   # QF-65a: a card showing the brief AI line has the whole one in the reply
+    return (bool(also and listed(ALSO_HEAD, also) not in card) or bool(slot and slot not in card)
+            or bool(ai and ai not in card))
+
+
+def _caption_previews(card: str) -> int:
+    """How many captions a review card shows some text of: on it, and not only where to read it (QF-42)."""
+    return sum(f"<b>{label}:</b>" in card for label in ("Caption", "Carousel caption")) - card.count(CAPTION_TOO_LONG)
+
+
+def _credit_card_line(line: str, form: int) -> str:
+    """A caption credit line as a long review card lists it (QF-42): whole (form 0); a photo credit
+    ("📷 author | title | licence | source | licence URL") without its two links (1), as author and title cut to
+    CREDIT_CARD_TITLE (2), or the author alone (3). Any other credit line (music, footage, the share-alike notice)
+    is whole, cut to CREDIT_CARD_CLIP characters in form 3."""
+    from .control import clip_words
+    fields = [f.strip() for f in line.removeprefix("📷").split(" | ")] if line.startswith("📷") else []
+    if len(fields) != 5:
+        return line if form < 3 else clip_words(line, CREDIT_CARD_CLIP)
+    author, title, licence = fields[0], fields[1].removeprefix("File:"), fields[2]
+    return line if not form else "📷 " + " · ".join(
+        [author, title, licence] if form == 1 else [author, clip_words(title, CREDIT_CARD_TITLE)] if form == 2
+        else [author])
 
 
 def _clip_copy(text: str, limit: int) -> str:
@@ -641,6 +1192,29 @@ def origin_label(origin: str) -> str:
     return {"curated": "curated script", "claude": "Claude"}.get(origin, origin)
 
 
+
+def illustration_review_items(payload: dict[str, Any], run_dir: Path) -> list[list[dict[str, Any]]]:
+    """Albums (at most 10 photos each) showing each illustrated beat of the run (payload["picture_fit"]["generated"])
+    followed by its reference image(s), captioned with the beat's narrated line and each reference's title and
+    licence. Files that are missing are left out; [] when the run has no illustration."""
+    e = html.escape
+    items: list[dict[str, Any]] = []
+    for g in (payload.get("picture_fit") or {}).get("generated") or []:
+        if not isinstance(g, dict):
+            continue
+        art = Path(str(g.get("path") or "")) if g.get("path") else Path(run_dir) / str(g.get("to") or "")
+        if not art.is_file():
+            continue
+        refs = [r for r in g.get("references") or [] if isinstance(r, dict) and Path(str(r.get("path") or "")).is_file()]
+        items.append({"type": "photo", "path": art, "caption": (
+            f"🏛 Beat {e(str(g.get('beat')))} illustration (needs your approval) · “{e(str(g.get('line') or '')[:600])}”"
+            + ("" if refs else " · no reference: a kind of thing, drawn from the facts"))})
+        for r in refs:
+            items.append({"type": "photo", "path": Path(str(r["path"])), "caption": (
+                f"Reference for beat {e(str(g.get('beat')))}: {e(str(r.get('title') or '')[:300])} "
+                f"({e(str(r.get('licence') or '?'))}" + (f", {e(str(r['url'])[:300])}" if r.get("url") else "") + ")")})
+    return [items[i:i + 10] for i in range(0, len(items), 10)]
+
 class TelegramApprovalBot:
     def __init__(
         self,
@@ -710,32 +1284,213 @@ class TelegramApprovalBot:
             message_id = self._panel_aliases[message_id]
         return message_id
 
-    def show_dashboard(self, text=None, buttons=None, fresh=False):
+    def show_dashboard(self, text=None, buttons=None, fresh=False, rebuild=False, expect=None):
         """One dashboard anchor survives /start and routine process reloads. Serialized: two refreshes at
         once (production's startup card and a queued Dashboard tap) each found the stored panel gone and
-        each posted one; under the lock the second edits the panel the first posted."""
+        each posted one; under the lock the second edits the panel the first posted. `expect` (panel, revision,
+        text): drawn only in that panel, and only while it is still at that revision with that text
+        (draw_counted_dashboard, QF-115)."""
         if text is None:  # built before the lock: building reads the database, not Telegram's
             from .control import dashboard_text_and_buttons
             from .config import ASSETS_DIR
             text, buttons = dashboard_text_and_buttons(self.db, getattr(self, "next_run_func", lambda: None)(), assets_dir=ASSETS_DIR)
+        if not rebuild:
+            self._panel_first()
+            made = None if expect is not None else self._first_dashboard(text, buttons)
+            if made:
+                self._counted_meanwhile(text)
+                return made
         with self._dashboard_lock:
-            return self._show_dashboard_locked(text, buttons, fresh)
+            shown = self._show_dashboard_locked(text, buttons, fresh, rebuild, expect=expect)
+        self._repost_if_asked()
+        self._counted_meanwhile(text)
+        return shown
 
-    def _show_dashboard_locked(self, text, buttons, fresh):
+    def _counted_meanwhile(self, text) -> None:
+        """QF-115: a dashboard that says it is counting the photo sets, drawn after the count ended (the count can
+        end while the layout is being posted, before the dashboard's message is known): drawn again now. Called
+        holding no lock."""
+        from .control import COUNTING_POOLS, counting
+        if text and COUNTING_POOLS in text and not counting():
+            self.draw_counted_dashboard()
+
+    def _first_dashboard(self, text, buttons) -> int | None:
+        """The clean chat (UI-01f): the first dashboard goes in its place, under the notifications panel and above
+        any temporary panel, by posting the layout again from the dashboard down. Called before _dashboard_lock is
+        taken (the re-post takes _rebuild_lock, then _dashboard_lock: telegram_layout's lock order); only the
+        renderer does it. Returns the dashboard's message, or None when it is drawn the usual way."""
+        if not clean_chat() or not self.is_configured() or self.db.get_setting("telegram_dashboard_id"):
+            return None
+        layout = self.layout
+        if not layout.renders_here():
+            return None
+        with layout._rebuild_lock:
+            if self.db.get_setting("telegram_dashboard_id"):   # another thread placed it meanwhile: drawn in place
+                return None
+            self._pending_dashboard = (text, buttons)
+            try:
+                layout.rebuild("dashboard")
+            finally:
+                self._pending_dashboard = None
+        made = self.db.get_setting("telegram_dashboard_id")
+        return int(made) if made and made.isdigit() else None
+
+    def _panels_below_dashboard(self) -> bool:
+        """Whether a progress or review panel sits below the dashboard (a dashboard sent at the bottom would break the
+        order)."""
+        from .telegram_layout import SLOT_PREFIX
+        names = [str(c.get("card_id", "")).removeprefix(SLOT_PREFIX)
+                 for c in self.db.list_telegram_cards(topic_id=0, card_kind="layout")]
+        return any(n.startswith("progress:") or n == "review" for n in names)
+
+    DASHBOARD_ASK_KEY = "dashboard-redraw"   # a dashboard another process asked the renderer to draw (UI-01f)
+
+    def _ask_renderer_for_dashboard(self, text, buttons) -> None:
+        """A process that is not the renderer records the dashboard it would draw; the renderer's tick draws it
+        (design §5.4: only the renderer sends layout messages), as review-panel-redraw does for the review."""
+        self.db.set_setting(self.DASHBOARD_ASK_KEY, json.dumps({"text": text, "buttons": buttons, "at": time.time()}))
+
+    def draw_asked_dashboard(self) -> bool:
+        """The renderer's side: the dashboard another process asked for is drawn here (in place, or posted again in
+        order when it leaves a media screen). Never called holding _dashboard_lock or Layout._lock."""
+        raw = self.db.get_setting(self.DASHBOARD_ASK_KEY)
+        if not raw or not clean_chat() or not self.layout.is_renderer():
+            return False
+        self.db.set_setting(self.DASHBOARD_ASK_KEY, "")
+        try:
+            asked = json.loads(raw)
+        except ValueError:
+            asked = {}
+        self.show_dashboard(asked.get("text"), asked.get("buttons"))
+        return True
+
+    def pools_counted(self) -> None:
+        """control.when_pools_counted (QF-115): the photo sets a dashboard said it was counting are counted. With the
+        clean chat's renderer running, its tick draws the dashboard again (outside Layout._lock: the lock order);
+        otherwise it is drawn here, in the counter's thread, which holds no lock."""
+        layout = getattr(self, "_layout", None)
+        thread = getattr(layout, "_thread", None)
+        if clean_chat() and thread is not None and thread.is_alive():
+            self._counted_due = True
+            return
+        self.draw_counted_dashboard()
+
+    def draw_counted_dashboard(self) -> bool:
+        """The dashboard drawn again with the photo-set count it was waiting for, only while it still shows the
+        counting line and nothing was opened in it since that line was drawn (a tap raises the panel's revision as
+        it arrives, before its screen is drawn): a screen the operator opened meanwhile is left alone (home counts
+        when next drawn). Checked again under _dashboard_lock just before the draw (show_dashboard's expect): the
+        card is built in between. The startup card is built again by its own builder (startup_card, set by main),
+        so its started line stays; a note leading the dashboard (⏸ Paused…) is kept."""
+        from .config import ASSETS_DIR
+        from .control import (
+            COUNTING_POOLS,
+            DASHBOARD_HEADING,
+            STARTED_MARKS,
+            dashboard_text_and_buttons,
+        )
+        self._counted_due = False
+        stored = self.db.get_setting("telegram_dashboard_id")
+        if not (stored and stored.isdigit()):
+            return False
+        with self._panel_lock:
+            panel = self._current_panel(int(stored))
+            content = (getattr(self, "_content", {}) or {}).get(panel)
+            revision = self._panel_revisions.get(panel, 0)
+            marked = (getattr(self, "_counting_marks", {}) or {}).get(panel, revision)
+        if not content or COUNTING_POOLS not in content[0] or marked != revision:
+            return False
+        build = getattr(self, "startup_card", None)
+        if callable(build) and any(mark in content[0] for mark in STARTED_MARKS):
+            text, buttons = build()
+        else:
+            text, buttons = dashboard_text_and_buttons(self.db, getattr(self, "next_run_func", lambda: None)(),
+                                                       assets_dir=ASSETS_DIR)
+        if COUNTING_POOLS in text:   # still counting (a set changed meanwhile): the count's end calls again
+            return False
+        lead = content[0].find(DASHBOARD_HEADING)
+        if lead > 0:
+            text = content[0][:lead] + text
+        return bool(self.show_dashboard(text, buttons, expect=(panel, revision, content[0])))
+
+    def _mark_counting(self, message_id, text) -> None:
+        """QF-115: the panel's revision when a dashboard that says it is counting the photo sets is drawn in it;
+        draw_counted_dashboard draws the count only while the panel is still at that revision. A screen built before
+        the count ended and drawn after it (its listener has been called) is drawn again from a new thread: this
+        may run under _dashboard_lock or Layout._lock, so it never draws here."""
+        from .control import COUNTING_POOLS, counting
+        if text and COUNTING_POOLS in text:
+            with self._panel_lock:
+                self.__dict__.setdefault("_counting_marks", {})[message_id] = self._panel_revisions.get(message_id, 0)
+            if not counting():
+                threading.Thread(target=self.pools_counted, name="photo-set-redraw", daemon=True).start()
+
+    def _repost_if_asked(self) -> None:
+        """A dashboard drawn under _dashboard_lock that had to be posted again in order (design §6.3 path B: it
+        left a media screen) asked for it; the re-post runs now that the lock is released (lock order). The
+        renderer's tick runs one left behind."""
+        slot = getattr(self, "_repost_from", None)
+        if not slot or self._dashboard_lock._is_owned():
+            return
+        self._repost_from = None
+        try:
+            self.layout.rebuild(slot)
+        except Exception as e:  # noqa: BLE001 - the age rule and the next tick post it again
+            log.warning("Could not post the layout again from the %s: %s", slot, e)
+
+    def _panel_first(self) -> None:
+        """The clean chat: the pinned panel is made before a dashboard is drawn, so the dashboard always sits
+        under it. Called before _dashboard_lock is taken, never under it (telegram_layout's lock order); only the
+        renderer sends the panel (ensure checks the lease)."""
+        if not clean_chat() or not self.is_configured():
+            return
+        from .telegram_layout import NOTIFICATIONS, slot_message
+        if slot_message(self.db, NOTIFICATIONS):
+            return
+        try:
+            self.layout.ensure()
+        except Exception as e:  # noqa: BLE001 - the dashboard is still drawn
+            log.warning("Could not post the notifications panel before the dashboard: %s", e)
+
+    def _show_dashboard_locked(self, text, buttons, fresh, rebuild=False, expect=None):
         from .control import dashboard_text_and_buttons
         from .config import ASSETS_DIR
         if text is None:
             text, buttons = dashboard_text_and_buttons(self.db, getattr(self, "next_run_func", lambda: None)(), assets_dir=ASSETS_DIR)
         stored = self.db.get_setting("telegram_dashboard_id")
         previous = int(stored) if stored and stored.isdigit() else None
+        clean = config.TELEGRAM_CLEAN_CHAT and not rebuild
+        if clean:
+            # The clean chat (UI-01b): the dashboard is drawn in place, never sent fresh at the bottom (that broke
+            # the layout's order). Only the ordered rebuild sends a new copy (telegram_layout.rebuild).
+            fresh = False
+        if expect is not None and not (previous and not fresh):
+            return None   # QF-115: the panel the count was for is gone; the next dashboard draw counts
         if previous and not fresh:
             current = self._current_panel(previous)
-            self._panel_revisions[current] = self._panel_revisions.get(current, 0) + 1
+            with self._panel_lock:   # checked with the revision raised together: a tap raises it under this lock
+                if expect is not None and (
+                        current != expect[0] or self._panel_revisions.get(current, 0) != expect[1]
+                        or ((getattr(self, "_content", {}) or {}).get(current) or (None,))[0] != expect[2]):
+                    return None   # QF-115: a screen was opened in the panel meanwhile; it is left alone
+                self._panel_revisions[current] = self._panel_revisions.get(current, 0) + 1
             if self.show_navigation_panel(current, text, buttons):
                 self.db.set_setting("telegram_dashboard_id", str(self._current_panel(current)))
                 return self._current_panel(current)
+        if clean and self.is_configured() and not self.layout.renders_here():
+            # UI-01f: a process that is not the renderer never sends a dashboard (design §5.4): it asks the renderer.
+            self._ask_renderer_for_dashboard(text, buttons)
+            return None
+        if clean and previous and self.is_configured() and self._panels_below_dashboard():
+            # The dashboard's message is gone and panels sit below it: it is posted again in its place, in order
+            # (after the lock is released), never at the bottom under them.
+            self.__dict__.setdefault("_content", {})[self._current_panel(previous)] = (text, copy.deepcopy(buttons))
+            self._repost_from = "dashboard"
+            return self._current_panel(previous)
         message_id = self.notify(text, buttons=buttons, record_alert=False, group="studio")
         if type(message_id) is int:
+            self.__dict__.setdefault("_content", {})[message_id] = (text, copy.deepcopy(buttons))
+            self._mark_counting(message_id, text)
             self.db.set_setting("telegram_dashboard_id", str(message_id))
             self._record_kind(message_id, media=False)
             # One panel in the chat: the one this replaces goes (a review card is never the panel).
@@ -745,8 +1500,13 @@ class TelegramApprovalBot:
 
     def _typed_panel(self):
         """A typed command opens the one panel at the bottom of the chat and runs in it, as a tap would."""
-        with self._dashboard_lock:
-            message_id = self._show_dashboard_locked("⏳ <b>Working…</b>", [[DONE_BUTTON]], fresh=True)
+        self._dashboard_touched = time.time()   # the operator is using the dashboard (its return home waits)
+        self._panel_first()                     # before the lock (telegram_layout's lock order)
+        message_id = self._first_dashboard("⏳ <b>Working…</b>", [[DONE_BUTTON]])   # UI-01f, before the lock too
+        if not message_id:
+            with self._dashboard_lock:   # the clean chat draws it in the dashboard (UI-01b)
+                message_id = self._show_dashboard_locked("⏳ <b>Working…</b>", [[DONE_BUTTON]], fresh=True)
+            self._repost_if_asked()
         if type(message_id) is not int:
             return None
         return message_id, False, self._panel_revisions.get(message_id, 0)
@@ -759,13 +1519,17 @@ class TelegramApprovalBot:
         with self._dashboard_lock:
             stored = self.db.get_setting("telegram_dashboard_id")
             anchor = self._current_panel(int(stored)) if stored and stored.isdigit() else None
+            if clean_chat() and anchor and anchor != current:
+                # The clean chat (UI-01b): every screen is drawn in the dashboard. A screen asked for from another
+                # message (an older card) never turns that message into a second dashboard.
+                current, is_media = anchor, self._is_media(anchor)
             if anchor and anchor != current and current in self._protected_messages():
                 # A screen asked for from a card that must stay (a review card, its receipt): it opens as the
                 # one panel at the bottom and the old panel goes. Drawn in the card, it left two dashboards in
                 # the chat, since a protected card never becomes the panel (production, 2026-10-25). Outside
                 # the panel context, so the fresh message is sent, not routed back here.
                 token = _PANEL.set(None)
-                try:
+                try:   # the clean chat draws it in the dashboard itself (fresh is ignored there: UI-01b)
                     return type(self._show_dashboard_locked(text, buttons, fresh=True)) is int
                 finally:
                     _PANEL.reset(token)
@@ -787,6 +1551,29 @@ class TelegramApprovalBot:
                 return edited
             # The edit found a photo/audio/video panel this process had no record of (a restart, a worker
             # process): it is replaced by a text message below, as a known media panel is.
+        if clean_chat() and media and self.is_configured():
+            stored = self.db.get_setting("telegram_dashboard_id")
+            if stored == str(current) and not self.layout.renders_here():
+                # Not the renderer (a run's worker ending its run): only the renderer sends a dashboard (design
+                # §5.4), so it is asked to draw this one; the layout's order holds.
+                self._ask_renderer_for_dashboard(text, buttons)
+                return True
+            if stored == str(current):
+                # Design §6.3 path B: the dashboard leaves a picture or music screen. A media message cannot become
+                # text, so the dashboard and every panel below it are posted again in order and the old copies go.
+                self.__dict__.setdefault("_content", {})[current] = (text, copy.deepcopy(buttons))
+                if self._dashboard_lock._is_owned():
+                    # Drawn under the dashboard lock (show_dashboard): the re-post takes _rebuild_lock first, so it
+                    # runs once that lock is released (_repost_if_asked; the renderer's tick as a fallback).
+                    self._repost_from = "dashboard"
+                    return True
+                self._record_kind(current, media=False)   # its copy is text
+                if self.layout.rebuild("dashboard") is not None and self.db.get_setting("telegram_dashboard_id") != stored:
+                    return True
+                self._record_kind(current, media=True)
+                # The re-post could not run (its back-off, a refused copy): the media panel stays as it is, never a
+                # new dashboard at the bottom (that broke the order); the content is kept for the next re-post.
+                return True
         screen_data = {
             "chat_id": self.chat_id,
             "text": safe_html_truncate(_MASKER.mask(text), 4000),
@@ -854,6 +1641,9 @@ class TelegramApprovalBot:
         only the card and deleted its media: 2026-10-23 audit)."""
         from .telegram_state import get
         keep: Set[int] = set()
+        if hasattr(self.db, 'list_telegram_cards'):
+            from .telegram_layout import panel_ids
+            keep.update(panel_ids(self.db))   # the clean chat's always-on panels (UI-01)
         progress = self.db.get_active_progress() if hasattr(self.db, 'get_active_progress') else None
         if (progress or {}).get('message_id'):
             keep.add(progress['message_id'])
@@ -938,6 +1728,11 @@ class TelegramApprovalBot:
             if job.get("error_detail"):
                 text += "\n" + html.escape(job["error_detail"]) + "\nInspect /jobs before explicitly retrying."
             delivered = self.update_navigation_target(destination[0], text, buttons)
+            if not delivered and config.TELEGRAM_CLEAN_CHAT:
+                # The operator moved on while it ran: the result is an info item with a way to its screen; the
+                # dashboard is not yanked back (design §6.2).
+                head = "🧰 <b>" + html.escape(title) + (" done" if job["state"] == "completed" else f": {job['state']}") + "</b>"
+                return bool(self.notify(head + "\n" + text, buttons=buttons, group="info", key=f"job:{job['id']}"))
             if not delivered and late:
                 # Requested work whose screen was left while it ran: its result becomes the one panel
                 # (a second message would leave two cards in the chat).
@@ -982,8 +1777,9 @@ class TelegramApprovalBot:
     def is_configured(self) -> bool:
         return is_configured(self.bot_token) and is_configured(self.chat_id) and bool(self.approver_ids)
 
-    def create_publish_receipt(self, run_id: str, title: str) -> PublishReceipt:
-        return PublishReceipt(self, run_id, title)
+    def create_publish_receipt(self, run_id: str, title: str, platforms: list[str] | None = None,
+                               initial: dict[str, dict[str, Any]] | None = None) -> PublishReceipt:
+        return PublishReceipt(self, run_id, title, platforms=platforms, initial=initial)
 
     def image_wizard(self):
         from . import config
@@ -1004,7 +1800,9 @@ class TelegramApprovalBot:
             from . import config
             from .image_upload import OWN_WORK_LICENCES
             licences = (list(OWN_WORK_LICENCES) if state["rights"].get("own_work") else
-                        ["CC0", "CC BY 4.0", "Public domain"] + (["CC BY-SA 4.0"] if config.IMAGES_ALLOW_SHARE_ALIKE else []))
+                        # No "Public domain" button (QF-57): an upload carries no recorded worldwide basis, so a
+                        # public-domain upload would be held and never used. CC0 covers a worldwide waiver.
+                        ["CC0", "CC BY 4.0"] + (["CC BY-SA 4.0"] if config.IMAGES_ALLOW_SHARE_ALIKE else []))
             buttons.insert(0, [{"text": licence, "callback_data": f"uploadlic:{state['id']}:{licence}"} for licence in licences])
         text = f"🖼 <b>Upload: {html.escape(state.get('title', state['topic']))}</b>\n\n{html.escape(PROMPTS[stage])}"
         if note:
@@ -1050,6 +1848,8 @@ class TelegramApprovalBot:
                 self._delete_soon(msg.get("message_id"))  # received and staged: the copy in the chat is clutter
                 self.show_upload(updated, expected_revision=state.get("_navigation_revision"))
         except Exception as exc:
+            if clean_chat():   # read, and answered in the upload panel: the photo leaves (UI-01d)
+                self._delete_soon(msg.get("message_id"))
             current = self.image_wizard().load(chat, user)
             if current and current["id"] == state["id"]:
                 self.show_upload(current, str(exc) if isinstance(exc, ValueError) else "The image could not be read; try another image")
@@ -1224,8 +2024,20 @@ class TelegramApprovalBot:
                                       + [f"• {e(c['name'])}" + (" (not blocking)" if blocked else "") + f": {e(p)}"
                                          for c in later for p in check_problems(c)]
                                       + [f"• {e(c['name'])} (minor, not blocking): {e(p)}"
-                                         for c in open_checks for p in check_problems(c, "notes")], cap))
-            line = ("⛔ <b>Release gate:</b> blocked. This version can't be posted: Edit, Regenerate or Reject it.\n"
+                                         for c in open_checks for p in check_problems(c, "notes")]
+                                      # the operator's old-master note (QF-10b) and QF-88's notes are shown even when another
+                                      # check blocks: it says what a re-render will also fix
+                                      + [f"• {e(c['name'])} (note, not blocking): {e(p)}"
+                                         for c in report.get("checks", [])
+                                         if c.get("status") == "pass" and (c.get("grandfathered") or c.get("note"))
+                                         for p in check_problems(c)], cap))
+            # QF-88: a held flash stretch alone is not a defect found; it waits for the operator's look.
+            # Only a pure hold: a flash check with a failing interval is blocked, not held (round 7).
+            held = blocked and all(c.get("name") == "picture_flash" and c.get("hold") and c.get("status") == "needs_review"
+                                   and not c.get("intervals") for c in blocking)
+            line = ("⏸ <b>Release gate:</b> held: possible flash; needs your look. Nothing posts until you have "
+                    "looked and cleared it (<code>review clear-flash</code>), or it is re-rendered.\n" if held else
+                    "⛔ <b>Release gate:</b> blocked. This version can't be posted: Edit, Regenerate or Reject it.\n"
                     if blocked else "⚠️ <b>Release gate:</b> needs review before a live post.\n")
             line += f"<blockquote expandable>{found}</blockquote>\n"
         if measured:
@@ -1239,22 +2051,147 @@ class TelegramApprovalBot:
         and the captions come first; when the findings leave them no room, each folded list is shortened
         to its first items and "…and N more" (a long Wieliczka card lost its narration and both captions,
         then was paged as plain text with buttons that failed: review of 2026-10-25)."""
-        card = ""
-        limit = CARD_PAGE_LIMIT - max(0, reserve)
-        for cap in (None, 4, 3, 2, 1, 0):
-            card = TelegramApprovalBot._card_text(script_payload, run_id, release, cap, limit)
-            # The narration whole first; the findings are shortened only as far as that needs; the captions
-            # take what is left (the long caption is clipped, "full text: Edit", as before).
-            captions = all(f"<b>{label}:</b>" in card for key, label in (("caption", "Caption"), ("carousel_caption", "Carousel caption"))
-                           if script_payload.get(key))  # at least its first lines, or where to read it
-            if "[shortened:" not in card and captions and _tg_len(card) <= limit:
-                return card
+        card, _ = TelegramApprovalBot._ai_layout(script_payload, run_id, release, reserve)
         return card
 
     @staticmethod
+    def _ai_layout(script_payload: dict[str, Any], run_id: str, release: dict[str, Any] | None,
+                   reserve: int) -> tuple[str, int]:
+        """(the card, the room its narration, captions and findings were fitted in). With the AI-label record
+        (QF-65a) the brief AI line is a fact of the card: it does not change what else Approve's lines show (the slot
+        line and the "Also posted" list or count, as the card without the record lays them out, the narration's
+        old AI line included), unless keeping them would cost what QF-42 keeps (the last point):
+        - when the QF-42 fit leaves room for it with those lines unchanged, the fit is untouched;
+        - otherwise the fit gives up the line's room from what the card without the record fills, and when a fit
+          step (a finding list's cap) frees more than that, the publish lines are held to the room they had
+          (_with_publish_lines' `shift`);
+        - what QF-42 keeps comes first (_qf42_kept: the narration whole, every caption named, the credits' lines,
+          the caption previews): when giving up the line's room would cost one of them, the fit takes the room still
+          left under the page cap with the publish lines unchanged; when no fit does, the card keeps QF-42's fit and
+          the slot line or the "Also posted" count that no longer fits goes to the reply (needs_publish_reply), never
+          a caption or the narration. A lost caption preview alone (the caption still named, "see Edit") is the
+          line's accepted cost on the waiting card;
+        - the decided card (`reserve`: its badge) stays in CARD_PAGE_LIMIT less the badge and has no slot line or
+          "Also posted" count to give: where the line's room would cost what QF-42 keeps, it is QF-42's card with
+          the line under its title only where that card still has room for it (round 3, QF-65b). A card QF-42 cannot
+          fit in its page (its floor) has no line."""
+        limit = CARD_PAGE_LIMIT - max(0, reserve)
+        posted = script_payload.get("_publish_copy")
+        natural = TelegramApprovalBot._fitted_card(script_payload, run_id, release, limit)
+        if not isinstance(posted, dict):
+            return natural, limit
+        need = ai_line_room(posted)
+        card = _with_publish_lines(natural, posted, limit, reserve)
+        if not need:
+            return card, limit
+        from .telegram_pages import PAGE_ABOVE
+        bare = {k: v for k, v in posted.items() if k not in ("ai_label", "ai_label_photos")}
+        bare_payload = {**script_payload, "_publish_copy": bare}
+        before_fit = TelegramApprovalBot._fitted_card(bare_payload, run_id, release, limit)
+        bare_card = _with_publish_lines(before_fit, bare, limit, reserve)
+        before = _publish_lines_shown(bare_card)
+        # The page the card fills: one message under PAGE_ABOVE; the decided card stays in the badge's room (QF-43).
+        cap = limit if reserve > 0 else PAGE_ABOVE
+        if _tg_len(card) <= cap and _publish_lines_shown(card) == before:
+            return card, limit
+
+        def laid_out(fit_limit: int) -> tuple[str, str]:
+            fitted = TelegramApprovalBot._fitted_card(script_payload, run_id, release, fit_limit)
+            shift = max(0, _tg_len(before_fit) - (_tg_len(fitted) + need))
+            return fitted, _with_publish_lines(fitted, posted, limit, reserve, shift=shift)
+
+        def on_page(text: str) -> str:
+            """The card within `cap`, or the line goes to the reply: QF-42's fit cannot shrink below the page less
+            the line (its floor; a long name's Approved badge on 2 of 140 real decided renders, QF-65a round 3)."""
+            return _without_ai_line(text) if _tg_len(text) > cap else text
+
+        fit_limit = max(0, _tg_len(before_fit) - need)
+        fitted, laid = laid_out(fit_limit)
+        if _qf42_kept(fitted, before_fit):
+            return on_page(laid), fit_limit
+        if reserve > 0:
+            # The decided card (rebuilt with its badge, _render_decision) has no slot line or "Also posted" count to
+            # give, and its page is the badge's room (QF-43): where the line's room would cost what QF-42 keeps (a
+            # caption or the whole narration on up to 33 of 860 fixture shapes, QF-65a round 2 review), it is QF-42's
+            # card without the line, its publish lines as that card lays them out (and without the narration's old
+            # AI line, which the record replaces). The AI line, whole or else brief, is then put back under the title
+            # where that card still has room for it in the badge's room (QF-65b): the line is the only change, so it
+            # costs QF-42 nothing (the reviewer's real decided renders without the line: 11 -> 8).
+            plain = _without_ai_line(bare_card)
+            for line in (_ai_label_line(posted), _ai_label_line(posted, brief=True)):
+                trial = _under_title(plain, line)
+                if trial != plain and _tg_len(trial) <= limit:
+                    return trial, limit
+            return plain, limit
+        # The line's own room would cost what QF-42 keeps (a caption's preview or its "see Edit" pointer, the whole
+        # narration, the credits' lines: a real card lost its caption's pointer, QF-65a round 2): the fit takes the
+        # room the page still has under `cap` with the publish lines as the card without the record shows them.
+        roomy = min(limit, cap - need - (_tg_len(bare_card) - _tg_len(before_fit)))
+        if roomy > fit_limit:
+            fitted_r, laid_r = laid_out(roomy)
+            if (_qf42_kept(fitted_r, before_fit) and _tg_len(laid_r) <= cap
+                    and _publish_lines_shown(laid_r) == before):
+                return laid_r, roomy
+        if not _qf42_kept(fitted, before_fit, previews=False) and _tg_len(card) <= cap:
+            return card, limit   # no fit keeps a caption named or the narration whole: the publish lines go to the reply
+        return on_page(laid), fit_limit
+
+    @staticmethod
+    def card_fit_limit(script_payload: dict[str, Any], run_id: str, release: dict[str, Any] | None = None,
+                       reserve: int = 0) -> int:
+        """The room the card's narration, captions and findings are fitted in (_ai_layout): the page limit, or,
+        when the brief AI-label line (QF-65a) would change what else the card shows, what the card would fill
+        less the line's room (or, when that would cost what QF-42 keeps, the room left under the page cap)."""
+        return TelegramApprovalBot._ai_layout(script_payload, run_id, release, reserve)[1]
+
+    @staticmethod
+    def _fitted_card(script_payload: dict[str, Any], run_id: str, release: dict[str, Any] | None, limit: int) -> str:
+        """The card in `limit`, fitted as QF-42 fits it. What else Approve posts and the slot it books are laid out
+        afterwards, in the room this leaves (_with_publish_lines), so they cost the narration, the captions and the
+        findings nothing (review of QF-43 on 30 real cards)."""
+
+        def first_fit(credits: bool, previews: int = 0) -> tuple:
+            card = ""
+            for cap in (None, 4, 3, 2, 1, 0):
+                card = TelegramApprovalBot._card_text(script_payload, run_id, release, cap, limit, credits=credits)
+                # The narration whole first; the findings are shortened only as far as that needs; the captions
+                # take what is left (the long caption is clipped, "full text: Edit", as before). Every caption
+                # credit keeps its own line (QF-42), in the shortest form at worst (_card_text's credits).
+                captions = all(f"<b>{label}:</b>" in card for key, label in (("caption", "Caption"), ("carousel_caption", "Carousel caption"))
+                               if script_payload.get(key))  # at least its first lines, or where to read it
+                if ("[shortened:" not in card and captions and CREDITS_UNLISTED not in card
+                        and _tg_len(card) <= limit and _caption_previews(card) >= previews):
+                    return card, True
+            return card, False
+
+        card, fits = first_fit(True)
+        if not fits or CREDITS_HEAD not in card:
+            return card
+        # The credits list costs no caption the preview the card without it shows (review of QF-42: six cards lost
+        # theirs): the findings are shortened further first, when that gives it back.
+        target = _caption_previews(first_fit(False)[0])
+        if _caption_previews(card) >= target:
+            return card
+        better, fits = first_fit(True, target)
+        return better if fits else card
+
+    @staticmethod
     def _card_text(script_payload: Dict[str, Any], run_id: str, release: Optional[Dict[str, Any]], cap: Optional[int],
-                   limit: int = CARD_PAGE_LIMIT) -> str:
+                   limit: int = CARD_PAGE_LIMIT, credits: bool = True, extras: bool = False) -> str:
+        """The review card at findings cap `cap`. `credits=False`: the card as it was before the credits list
+        (QF-42), each credit line only inside its caption: format_card_text's measure of the captions' room.
+        `extras`: with the whole "Also posted" list (QF-43), as the reply under the card has it."""
         e = html.escape
+        # What Approve posts, as each platform receives it (QF-43: publishable.card_record, added by
+        # send_review_card): the caption after the illustration disclosure, the hashtags from the topic's list. A
+        # carousel posting the Reel caption (a script without its own) is in the "Also posted" list, not repeated.
+        posted = script_payload.get("_publish_copy")
+        copy = (posted or {}).get("copy") or {} if isinstance(posted, dict) else {}
+        if isinstance(posted, dict):
+            script_payload = {**script_payload, **{key: copy[label] for key, label in (
+                ("title", "reel.title"), ("caption", "reel.caption"), ("carousel_caption", "carousel.instagram"),
+                ("first_comment", "reel.first_comment")) if label in copy and (key != "carousel_caption"
+                                                                               or script_payload.get(key))}}
         loc = script_payload.get("location") or {}
         place = ", ".join(e(str(v)) for v in (loc.get("name"), loc.get("country")) if v)
         regen = script_payload.get("_regeneration_note")  # added by send_review_card for a regenerated run
@@ -1267,6 +2204,21 @@ class TelegramApprovalBot:
 
         if not audits or conf is None:
             integrity = "⚠️ <b>Integrity:</b> verification not recorded"
+        # Every image credit the captions carry, each on its own line in its own folded list (QF-42): they were only
+        # inside the caption block, which a long caption clips or replaces with "too long for this card".
+        # The list has a length budget (review of QF-42: whole lines, two URLs each, pushed real cards past Telegram's
+        # 4,096): it is filled after the narration, in the longest of _credit_card_line's forms that fits.
+        from .credits import split_attribution
+        credit_lines = list(dict.fromkeys(line.strip() for key in ("caption", "carousel_caption")
+                                          for line in split_attribution(script_payload.get(key) or "")[1])) if credits else []
+        credit_forms = []
+        for form in range(4):
+            shown = [_credit_card_line(x, form) for x in credit_lines]
+            if form >= 2:  # a short form can repeat itself (five photos by one author): each once, with its count
+                counts = Counter(shown)
+                shown = [x if counts[x] == 1 else f"{x} (×{counts[x]})" for x in dict.fromkeys(shown)]
+            credit_forms.append("\n" + listed(f"{CREDITS_HEAD} {len(credit_lines)}", [e(x) for x in shown])
+                                + (f"\n<i>Shortened to fit: {CARD_LIST_MORE}</i>" if shown != credit_lines else "") + "\n")
 
         text = (
             f"🎬 <b>Master review</b>\n\n"
@@ -1285,14 +2237,27 @@ class TelegramApprovalBot:
             # has the whole text.
             + ("\x00CAPTION\x00" if script_payload.get("caption") else "")
             + ("\x00CAROUSEL\x00" if script_payload.get("carousel_caption") else "")
-            + (f"<b>Hashtags:</b> {e(' '.join(script_payload['hashtags']))}" if script_payload.get("hashtags")
+            + (_posted_hashtags_line(posted) if isinstance(posted, dict) and not posted.get("documentary")
+               else f"<b>Hashtags:</b> {e(' '.join(script_payload['hashtags']))}" if script_payload.get("hashtags")
                else f"<b>Tags:</b> {e(', '.join(script_payload.get('tags') or []))}") + "</blockquote>\n"
+            + ("\x00CREDITS\x00" if credit_lines else "")
         )
+        if extras and isinstance(posted, dict) and _also_posted(posted, copy):
+            # Its own section (detail_messages' sections are split at a blank line). On the card it takes only the
+            # room the fitted card leaves (_with_publish_lines); the reply under the card has it whole.
+            text += "\n" + listed(ALSO_HEAD, _also_posted(posted, copy)) + "\n"
         poll = script_payload.get("poll") or {}
         if poll.get("question") and poll.get("options") and len(poll["options"]) >= 2:
             opts = [e(str(o)) for o in poll["options"]]
             text += f"📊 <b>Debate poll:</b> {e(poll['question'])} (A: {opts[0]} / B: {opts[1]})\n"
-        if script_payload.get("is_generated_by_ai"):
+        # Whether the post carries the AI label and why, from the media Approve posts (QF-65a: the card's record,
+        # publishable.card_record). The card lays it out with what else Approve posts (_with_publish_lines), so it
+        # costs the narration nothing; the reply under the card (`extras`) has it whole. A card without the record
+        # keeps the narration's line.
+        ai_line = _ai_label_line(posted)
+        if ai_line and extras:
+            text += ai_line + "\n"
+        elif not ai_line and script_payload.get("is_generated_by_ai"):
             text += "🤖 <b>AI transparency:</b> Synthetic media label embedded for Meta CMP compliance\n"
         def _format_note(note_val: Any) -> str:
             if not note_val:
@@ -1312,6 +2277,12 @@ class TelegramApprovalBot:
             text += "\n" + _format_note(script_payload["topic_origin_note"])
         if script_payload.get("fact_sheet_note"):
             text += "\n" + _format_note(script_payload["fact_sheet_note"])
+        if script_payload.get("hook_signal_note"):  # an opening shipped without an early signal (QF-14): judge it
+            text += "\n" + _format_note(script_payload["hook_signal_note"])
+        if script_payload.get("payoff_note"):  # a payoff shipped naming no opening noun (QF-15): judge it
+            text += "\n" + _format_note(script_payload["payoff_note"])
+        if script_payload.get("hedge_note"):  # an opening, payoff or loop shipped qualified (QF-16): judge it
+            text += "\n" + _format_note(script_payload["hedge_note"])
         if script_payload.get("trimmed_sentences"):  # said, so the reviewer can judge the flow without them
             where = list(script_payload.get("trimmed_from") or [])  # where each was read, beyond the narration
             where += [""] * (len(script_payload["trimmed_sentences"]) - len(where))
@@ -1328,6 +2299,11 @@ class TelegramApprovalBot:
             text += "\n" + _format_note(script_payload["motion_note"])
         if script_payload.get("graphics_note"):
             text += "\n" + _format_note(script_payload["graphics_note"])
+        if script_payload.get("thumbnail_note"):   # QF-23: the YouTube thumbnail's headline, never cut
+            text += "\n" + _format_note(script_payload["thumbnail_note"])
+        holds = layout_hold_lines(script_payload.get("layout_holds"))
+        if holds:   # QF-23: a deck or graphic refused rather than drawn with its checked copy cut
+            text += "\n" + listed(f"✋ Held, its text would not fit whole: {len(holds)}", [e(x) for x in holds], cap) + "\n"
         if script_payload.get("reconstruction_note"):
             text += "\n" + _format_note(script_payload["reconstruction_note"])
         if script_payload.get("footage_note"):
@@ -1354,41 +2330,108 @@ class TelegramApprovalBot:
             # Each note whole, folded, as the gate's findings are (operator, 2026-10-25: cut mid-word at 160)
             text += "\n" + listed(f"👀 Look at the stills and cover: {len(notes)} note(s)", cap=cap, items=
                                   [f"{e(str(i.get('card') or i.get('type') or ''))}: {e(str(i['issue']))}" for i in notes]) + "\n"
+        from .config import OUTPUT_DIR
+        r_dir = (Path(OUTPUT_DIR) / str(run_id)).resolve() if run_id else None
+        card_notes = (design_card_notes(r_dir) if r_dir is not None and r_dir.parent == Path(OUTPUT_DIR).resolve()
+                      and r_dir.is_dir() else [])
+        if card_notes:     # freeze panel M12 (3): e.g. a myth card whose correction drops every specific
+            text += "\n" + listed(f"🃏 Design cards: {len(card_notes)} note(s)", [e(x) for x in card_notes], cap) + "\n"
+        type_notes = (glyph_notes(r_dir) if r_dir is not None and r_dir.parent == Path(OUTPUT_DIR).resolve()
+                      and r_dir.is_dir() else [])
+        if type_notes:     # QF-94: a field set in a fallback face, or refused, is never silent
+            text += "\n" + listed(f"🔤 Lettering: {len(type_notes)} note(s)", [e(x) for x in type_notes], cap) + "\n"
         if sources:
             text += "\n📚 " + "\n📚 ".join(e(s.get("url", "")) for s in sources) + "\n"
         full = text + f"\n<i>Run ID (for the command line):</i> <code>{e(run_id)}</code>"  # code: Telegram linked the digits
         # A card over the page limit is paged as plain text and loses its collapsible script, so a long
         # (documentary) narration is shortened inside it instead; the full script is in the run folder.
         narration = script_payload.get("narration_script", "")
-        bare = full.replace("\x00CAPTION\x00", "").replace("\x00CAROUSEL\x00", "")
-        room = limit - _tg_len(bare.replace("\x00NARRATION\x00", ""))
+        unlisted = f"\n{CREDITS_UNLISTED} {len(credit_lines)}: {CARD_LIST_MORE}\n"  # no form of the list fits
+        bare = full.replace("\x00CAPTION\x00", "").replace("\x00CAROUSEL\x00", "").replace("\x00NARRATION\x00", "")
+        note = f" … [shortened: all {len(narration.split())} words are in the run's script_metadata.json]"
+        # Room is kept for every credit's own line in the shortest form (the author: QF-42); on a card the notes
+        # already fill (no word of the narration fits), for the count alone.
+        room = limit - _tg_len(_said_once(bare.replace("\x00CREDITS\x00", credit_forms[-1] if credit_lines else "")))
+        if credit_lines and room < _tg_len(e(narration)) and room <= _tg_len(e(note)):
+            room = limit - _tg_len(_said_once(bare.replace("\x00CREDITS\x00", unlisted)))
         if _tg_len(e(narration)) > room:
-            note = f" … [shortened: all {len(narration.split())} words are in the run's script_metadata.json]"
             cut = narration
-            while cut and _tg_len(e(cut)) + _tg_len(note) > room:
+            while cut and _tg_len(e(cut)) + _tg_len(e(note)) > room:
                 cut = cut[:-40].rsplit(" ", 1)[0]
             narration = cut + note
         full = full.replace("\x00NARRATION\x00", e(narration), 1)
         # The captions take only the room the narration leaves (adding them in full shortened the narration
         # of real cards: 2026-10-23 UI review); what does not fit says where the whole of it is.
-        for key, label, marker in (("carousel_caption", "Carousel caption", "\x00CAROUSEL\x00"),
-                                   ("caption", "Caption", "\x00CAPTION\x00")):  # the short one first
-            if marker not in full:
-                continue
-            spare = limit - _tg_len(full.replace("\x00CAPTION\x00", "").replace("\x00CAROUSEL\x00", ""))
+        # Without its hashtags: they have their own line on the card (operator, 2026-10-25). Posted as written.
+        captions = [(label, marker, without_hashtags(script_payload.get(key) or "")) for key, label, marker in (
+            ("carousel_caption", "Carousel caption", "\x00CAROUSEL\x00"),
+            ("caption", "Caption", "\x00CAPTION\x00")) if marker in full]  # the short one first
+        if credit_lines:  # shown in the credits list
+            captions = [(label, marker, split_attribution(value)[0]) for label, marker, value in captions]
+
+        def caption_block(label: str, value: str, spare: int) -> tuple:
+            """The caption's block in `spare` (whole, clipped at a word, or where to read it) and how many
+            characters of its text it shows."""
             head = f"\n<b>{label}:</b>\n"
-            # Without its hashtags: they have their own line on the card (operator, 2026-10-25). Posted as written.
-            text_value = without_hashtags(script_payload.get(key) or "")
-            block = head + e(text_value) + "\n"
-            if _tg_len(block) > spare:
-                fit = spare - _tg_len(head) - 30
-                block = head + (e(_clip_copy(text_value, fit)) if fit >= 120 else "<i>(too long for this card: see Edit)</i>") + "\n"
-                if _tg_len(block) > spare:
-                    block = ""
-            full = full.replace(marker, block, 1)
-        # Where the rest is, said once: each shortened list repeated it (production review card, 2026-10-29).
-        first, sep, rest = full.partition(f": {CARD_LIST_MORE}")
-        return first + sep + rest.replace(f": {CARD_LIST_MORE}", "")
+            block = head + e(value) + "\n"
+            if _tg_len(block) <= spare:
+                return block, len(value)
+            fit = spare - _tg_len(head) - 30
+            while fit >= 120:  # clipped at a word to the room (its escaped form can be longer than the clip)
+                clipped = _clip_copy(value, fit)
+                block = head + e(clipped) + "\n"
+                if _tg_len(block) <= spare:
+                    return block, len(clipped.removesuffix(" (full text: Edit)"))
+                fit -= _tg_len(block) - spare
+            block = head + CAPTION_TOO_LONG + "\n"  # else where to read it, when that fits
+            return (block, 0) if _tg_len(block) <= spare else ("", 0)
+
+        def fill(card: str) -> tuple:
+            """`card` with its captions in the room left, and its score: (captions on the card, captions with a
+            preview, characters of their text shown). A caption on the card, if only as where to read it, ranks
+            ahead of another's preview (review of QF-42: Wieliczka dropped its carousel caption for a clipped main
+            caption, though both "see Edit" lines fit)."""
+            spare = limit - _tg_len(_said_once(card.replace("\x00CAPTION\x00", "").replace("\x00CAROUSEL\x00", "")))
+            whole = [_tg_len(f"\n<b>{label}:</b>\n" + e(value) + "\n") for label, _, value in captions]
+            heads = [_tg_len(f"\n<b>{label}:</b>\n") for label, _, _ in captions]
+            # On a card with credits the short caption, filled first, may keep back the room of the main caption's
+            # clipped preview, or of where to read it (review of QF-42: a whole carousel caption took the room, and
+            # the caption read "too long for this card" or was left out): whichever shows the captions best.
+            keeps = [[0] * len(captions)] + ([[min(w, h + 150) for w, h in zip(whole, heads)],
+                                              [min(w, h + _tg_len(CAPTION_TOO_LONG + "\n")) for w, h in zip(whole, heads)]]
+                                             if credit_lines else [])
+            best = None
+            for keep in keeps:
+                out, left, score = card, spare, (0, 0, 0)
+                for i, (label, marker, value) in enumerate(captions):
+                    block, chars = caption_block(label, value, left - sum(keep[i + 1:]))
+                    out, left = out.replace(marker, block, 1), left - _tg_len(block)
+                    score = (score[0] + bool(block), score[1] + bool(block and (chars or not value)), score[2] + chars)
+                if best is None or score > best[0]:
+                    best = (score, out)
+            return best[1], best[0]
+
+        if credit_lines:
+            # The credits next, in the longest form that leaves each caption a preview and the captions their text
+            # (at most CARD_CAPTION_ROOM of it); else the form that shows the most of the captions (a shorter form
+            # before a caption is dropped); the count alone, and where the lines are, only when no form fits (a
+            # card the findings already fill: format_card_text then shortens those first).
+            whole = sum(len(value) for _, _, value in captions)
+            best = None
+            for section in credit_forms:
+                with_credits = full.replace("\x00CREDITS\x00", section, 1)
+                if _tg_len(_said_once(with_credits.replace("\x00CAPTION\x00", "").replace("\x00CAROUSEL\x00", ""))) > limit:
+                    continue
+                card, score = fill(with_credits)
+                if score[1] == len(captions) and score[2] >= min(whole, CARD_CAPTION_ROOM):
+                    best = (score, card)
+                    break
+                if best is None or score > best[0]:
+                    best = (score, card)
+            full = best[1] if best else fill(full.replace("\x00CREDITS\x00", unlisted, 1))[0]
+        else:
+            full = fill(full)[0]
+        return _said_once(full)
 
     def send_approval_request(self, video_path: Path, thumbnail_path: Path, script_payload: Dict[str, Any], run_id: str) -> Optional[int]:
         """Everything one Approve publishes, then the card: an album with the cover, a scene strip and
@@ -1402,7 +2445,9 @@ class TelegramApprovalBot:
             log.warning("Telegram not configured. Review with: python main.py review approve|reject %s", run_id)
             return None
         earlier_card = (get_state_early(self.db, "review-messages", run_id) or [None])[-1]
-        if previous and previous.get("telegram_message_id"):
+        if clean_chat():
+            pass   # the review panel is shared by every review waiting: its keyboard is redrawn, never stripped
+        elif previous and previous.get("telegram_message_id"):
             self._strip_buttons(previous["telegram_message_id"])  # a resend leaves one live card
         elif isinstance(earlier_card, int):
             # An edit or a cover lock clears the approval's card id first, so the card the chat still showed
@@ -1424,8 +2469,30 @@ class TelegramApprovalBot:
             except Exception as e:  # never lose the card over it: the saved verdict stands
                 log.warning("Could not re-check the release gate for the review card: %s", e)
         from .telegram_state import review_fingerprint, put, get as get_state
+        if clean_chat():
+            # One paged review panel (UI-01e): the review joins it; no album, card or "In full" reply is sent.
+            try:
+                return self.review.deliver(run_id, Path(video_path), Path(thumbnail_path), script_payload, release)
+            except Exception as e:  # noqa: BLE001 - the review stays pending; Resend delivers it again
+                log.warning("Could not deliver the review of %s to the panel: %s", run_id, _MASKER.mask(str(e)))
+                # A sender's item (UI-01a): through notifications.say with its §10.2 action; delivery closes it.
+                from . import notifications as notes
+                notes.say(self.notify, f"⚠️ <b>Review not delivered</b> · {html.escape(self.db.run_label(run_id))}\n\n"
+                          "Approval is unavailable until it is delivered. Resend it once the cause is fixed.\n"
+                          + html.escape(plain_reason(e, 300)),
+                          group="needs", key=f"undelivered:{run_id}", run=run_id, replace=True,
+                          subject=self.db.run_label(run_id),
+                          actions=[{"text": "Resend for review", "callback_data": f"resend:{self.db.run_key(run_id)}"}])
+                return None
         if config.TELEGRAM_CARDS_V2:
-            return self._send_review_pair_v2(Path(video_path), Path(thumbnail_path), script_payload, run_id, release)
+            # Only when every value it shows comes from the run; otherwise the live card, and why (UI-02)
+            try:
+                plan = self._v2_review_plan(run_id, script_payload, release, Path(video_path).parent)
+            except V2CardUnavailable as e:
+                log.warning("V2 review card not used for %s: %s. Sending the live card instead.", run_id, e)
+            else:
+                return self._send_review_pair_v2(Path(video_path), Path(thumbnail_path), script_payload, run_id,
+                                                 release, plan=plan)
         earlier = get_state(self.db, "review-messages", run_id) or []  # the previous delivery's card and albums
         media_ids: List[int] = []
         try:
@@ -1468,7 +2535,8 @@ class TelegramApprovalBot:
         return card
 
     def _send_review_pair_v2(self, video_path: Path, thumbnail_path: Path, script_payload: Dict[str, Any],
-                             run_id: str, release: Optional[Dict[str, Any]] = None) -> Optional[int]:
+                             run_id: str, release: dict[str, Any] | None = None,
+                             plan: dict[str, Any] | None = None) -> int | None:
         """Telegram V2 Two-Card Review Pair in topic Reviews (4908):
         1. Plain sendVideo with cover and solid inline decision buttons.
         2. Rich card directly underneath with computed verdict lede, hook quote, facts table, and folded Details.
@@ -1487,8 +2555,8 @@ class TelegramApprovalBot:
                 return None
 
         key = self.db.run_key(run_id)
-        from .release import blocking_checks
-        blocked = bool(release) and bool(blocking_checks(release, dry_run=release.get("dry_run", False)))
+        plan = plan or self._v2_review_plan(run_id, script_payload, release, video_path.parent)
+        blocked = plan["blocked"]
         title = script_payload.get("title", self.db.run_label(run_id))
 
         previous = self.db.get_approval(run_id) if hasattr(self.db, "get_approval") else None
@@ -1499,14 +2567,8 @@ class TelegramApprovalBot:
             put(self.db, "review-need-notice", run_id, None)
 
         # 1. Message 1: sendVideo with cover and solid inline decision buttons
-        kb = {
-            "inline_keyboard": [
-                ([] if blocked else [{"text": "🚀 Approve & Post", "style": "success", "callback_data": f"approve:{key}"}])
-                + [{"text": "✏️ Edit text", "style": "primary", "callback_data": f"edit:{key}"}],
-                [{"text": "♻️ Redo with a note", "style": "primary", "callback_data": f"regen:{key}"},
-                 {"text": "❌ Reject", "style": "danger", "callback_data": f"reject:{key}"}],
-            ]
-        }
+        kb = _v2_review_keyboard(key, blocked)
+        fingerprint = review_fingerprint(self.db, run_id)
         vid_params = {
             "chat_id": self.chat_id,
             "message_thread_id": config.TELEGRAM_TOPICS["reviews"],
@@ -1532,9 +2594,16 @@ class TelegramApprovalBot:
         if not vid_mid:
             log.error("Failed to send review video for %s: %s", run_id, vid_resp)
             return None
+        if fingerprint != review_fingerprint(self.db, run_id):
+            log.warning("Review artifacts of %s changed during delivery; the review is not offered.", run_id)
+            self.delete_message(vid_mid)
+            return None
+        # The media is delivered for this copy: recorded now, so the live card can be the fallback (the rich
+        # card's failure deleted the video and sent nothing, since send_review_card refused without it: UI-02)
+        put(self.db, "review-media", run_id, fingerprint)
 
         # 2. Message 2: Rich Details Card directly under Message 1
-        card_blocks = self._build_review_rich_blocks(run_id, script_payload, release, blocked)
+        card_blocks = plan["blocks"]
         rich_params = {
             "chat_id": self.chat_id,
             "message_thread_id": config.TELEGRAM_TOPICS["reviews"],
@@ -1550,20 +2619,31 @@ class TelegramApprovalBot:
             rich_resp = None
 
         if not card_mid:
-            log.warning("Failed to send review rich card for %s: %s; falling back to text", run_id, rich_resp)
+            log.warning("Failed to send review rich card for %s: %s; sending the live card under the video", run_id, rich_resp)
+            # The live card decides: the video keeps no decision buttons of its own
+            try:
+                self._api("editMessageReplyMarkup", data={"chat_id": self.chat_id, "message_id": vid_mid,
+                                                          "reply_markup": json.dumps({"inline_keyboard": []})})
+            except Exception as e:  # noqa: BLE001 - the live card is sent either way
+                log.warning("Could not remove the review video's buttons: %s", e)
             try:
                 card_mid = self.send_review_card(run_id, script_payload, release)
             except Exception as e:
                 log.error("Failed to send fallback review card: %s", e)
                 card_mid = None
+            if not card_mid:
+                # Only once no card could be sent: no headless video sits in the chat
+                self.delete_message(vid_mid)
+                return None
+            put(self.db, "review-messages", run_id, [vid_mid, card_mid])
+            put(self.db, "review-cover", run_id, None)
+            stale = sorted({m for m in earlier if isinstance(m, int)} - {vid_mid, card_mid})
+            if stale:
+                self.delete_messages(stale)
+            return card_mid
 
-        if not card_mid:
-            # Atomic rollback: if card fails, remove video so no headless approval sits in chat
-            self.delete_message(vid_mid)
-            return None
-
-        fingerprint = review_fingerprint(self.db, run_id)
-        put(self.db, "review-media", run_id, fingerprint)
+        from . import publishable
+        publishable.save_record(self.db, run_id, plan["posted"])   # before the card's buttons can decide (QF-43)
         put(self.db, "review-messages", run_id, [vid_mid, card_mid])
         put(self.db, "review-card", f"{run_id}:{vid_mid}", fingerprint)
         put(self.db, "review-card", f"{run_id}:{card_mid}", fingerprint)
@@ -1572,7 +2652,8 @@ class TelegramApprovalBot:
         self.db.record_approval(run_id, script_payload.get("topic_id", ""), vid_mid)
 
         # 3. Message 3: Single audible alert line in 🔔 Needs you
-        short_name = self.db.run_label(run_id)[:36]
+        from .control import clip_words
+        short_name = clip_words(self.db.run_label(run_id), 36)   # at a word, with an ellipsis (it cut mid-word)
         need_notice = self._api("sendMessage", data={
             "chat_id": self.chat_id,
             "message_thread_id": config.TELEGRAM_TOPICS["needs"],
@@ -1605,92 +2686,229 @@ class TelegramApprovalBot:
 
         return vid_mid
 
-    def _build_review_rich_blocks(self, run_id: str, payload: Dict[str, Any], release: Optional[Dict[str, Any]], blocked: bool) -> List[Dict[str, Any]]:
-        title = payload.get("title", self.db.run_label(run_id))
-        hook = payload.get("hook_sentence") or payload.get("hook") or ""
-        duration = float(payload.get("duration", 52.0))
+    def _is_v2_card(self, run_id: str | None, message_id: Any) -> bool:
+        """Whether `message_id` is the video of the run's delivered V2 review pair (a live card sent instead of it,
+        under the flag, is not: its taps take the live card's path)."""
+        if not run_id or not isinstance(message_id, int) or not hasattr(self.db, "get_telegram_card"):
+            return False
+        card = self.db.get_telegram_card(f"review:{run_id}") or {}
+        return card.get("card_kind") == "review_pair" and (card.get("payload") or {}).get("video_mid") == message_id
+
+    def _v2_blocked(self, run_id: str) -> bool:
+        """The release gate blocks this version (its saved report): no Approve button is offered."""
+        from .release import blocking_checks
+        report = self._release_report(self.db.get_run(run_id) or {})
+        return bool(report) and bool(blocking_checks(report, dry_run=report.get("dry_run", False)))
+
+    def _v2_card_status(self, run_id: str, status: str, **extra: Any) -> None:
+        card = self.db.get_telegram_card(f"review:{run_id}")
+        if card:
+            p = {k: v for k, v in (card.get("payload") or {}).items() if k != "reason"}
+            p.update(status=status, **extra)
+            self.db.put_telegram_card(card["card_id"], card["topic_id"], card["message_id"], card["card_kind"], p,
+                                      revision=card["revision"] + 1)
+
+    def close_undo(self, run_id: str) -> bool:
+        """The V2 review video loses its Undo button: called when the worker claims the decision (its Undo window
+        has ended), so no Undo stays tappable once it can no longer work. Best effort; never raises."""
+        if clean_chat():
+            try:   # the clean chat: the decided item's Undo (UI-01e), kept for a booked Approve until near its slot
+                self.review.claimed(run_id)
+                return True
+            except Exception as e:  # noqa: BLE001 - a stale Undo is answered "too late"; acting goes on
+                log.info("Could not update the Undo of %s: %s", run_id, e)
+                return False
+        try:
+            card = self.db.get_telegram_card(f"review:{run_id}") if hasattr(self.db, "get_telegram_card") else None
+            video = ((card or {}).get("payload") or {}).get("video_mid")
+            if not isinstance(video, int) or not self.is_configured():
+                return False
+            self._api("editMessageReplyMarkup", data={"chat_id": self.chat_id, "message_id": video,
+                                                      "reply_markup": json.dumps({"inline_keyboard": []})})
+            return True
+        except Exception as e:  # noqa: BLE001 - a stale button is answered "too late"; acting goes on
+            log.info("Could not remove the Undo button of %s: %s", run_id, e)
+            return False
+
+    def _undo_refusal(self, run_id: str, decision: str, fresh: bool) -> str:
+        """Why an Undo did nothing, in plain words."""
+        if undo_minutes() <= 0:
+            return "Undo is turned off."
+        if not fresh:
+            return "Not undone: this copy changed or is not verified. Resend it for review."
+        approval = self.db.get_approval(run_id) or {}
+        what = "rejection" if decision == "rejected" else "approval"
+        if approval.get("decision") != decision:
+            return f"Nothing to undo: the review is no longer at this {what}."
+        try:
+            age = (datetime.now(UTC) - datetime.fromisoformat(str(approval.get("decision_timestamp")))).total_seconds()
+        except (TypeError, ValueError):
+            age = 0.0
+        if age > undo_minutes() * 60:
+            return f"Too late to undo: {undo_minutes():g} minutes have passed."
+        if decision == "rejected":
+            return "Too late to undo: the rejection was acted on. Restore the topic from the queue's “Can be restored” list."
+        return "Too late to undo: publishing or booking has started. Posting shows what happens next."
+
+    def _v2_review_plan(self, run_id: str, payload: dict[str, Any], release: dict[str, Any] | None,
+                        run_dir: Path | None) -> dict[str, Any]:
+        """The V2 review card, every value from the run (UI-02): {"blocks", "posted" (publishable.card_record, the
+        copy Approve posts, saved once the card is delivered), "blocked"}. Raises V2CardUnavailable, naming the
+        value, when the run does not record one the card shows; the caller then sends the live card. The card had
+        shown invented values: "9 distinct / 10 beats", "✅ Cleared", "~$0.41", "Gemini 2.5 Pro", "ElevenLabs ·
+        Archivist", "Ancient Winds · licensed", "rc70", "made just now", a 52 s default length, a stock caption and
+        first comment, and two findings lines that were never checked."""
+        from . import publishable
+        from .release import blocking_checks
+        run = self.db.get_run(run_id) if hasattr(self.db, "get_run") else None
+        try:
+            sizer = getattr(self, "approval_window", None)
+            decider = getattr(self, "approve_posting", None)
+            mode = self.db.get_setting("run_mode:" + run_id) if hasattr(self.db, "get_setting") else None
+            posting = decider(run_id) if callable(decider) else ("dry_run" if mode == "dry_run" else "now")
+            posted = publishable.card_record(payload, self.db, run_dir=run_dir if run_dir and run_dir.is_dir() else None,
+                                             window_seconds=sizer() if callable(sizer) else None,
+                                             topic_id=(run or {}).get("topic_id") or "", posting=posting,
+                                             # the media Approve posts decide the AI label, as on the live card
+                                             # (QF-65a; without them the label is on for no media reason)
+                                             master=(run or {}).get("master_video_path") or None,
+                                             cover=(run or {}).get("thumbnail_cover_path") or None, run_id=run_id)
+        except Exception as e:  # noqa: BLE001 - the live card shows the reason; the V2 card is not sent without it
+            raise V2CardUnavailable(f"what Approve posts could not be worked out ({type(e).__name__}: {e})") from None
+        if not release or not release.get("checks"):
+            raise V2CardUnavailable("the run has no release gate report")
+        blocking = blocking_checks(release, dry_run=release.get("dry_run", False))
+        blocked = bool(blocking)
+        blocks = self._build_review_rich_blocks(run_id, payload, release, blocked, posted=posted, run_dir=run_dir)
+        return {"blocks": blocks, "posted": posted, "blocked": blocked}
+
+    def _build_review_rich_blocks(self, run_id: str, payload: dict[str, Any], release: dict[str, Any] | None,
+                                  blocked: bool, posted: dict[str, Any] | None = None,
+                                  run_dir: Path | None = None) -> list[dict[str, Any]]:
+        """The V2 rich card's blocks. Every value comes from the run: its payload (script_metadata), its release
+        gate report, the copy Approve posts (`posted`), and its voice.json and music_selection.json. A value the
+        card needs and the run does not record raises V2CardUnavailable; an optional row (voice, music, who wrote
+        it) is left out when its record is missing, never filled in."""
+        from .release import blocking_checks
+        if not isinstance(posted, dict) or posted.get("error"):
+            raise V2CardUnavailable("what Approve posts is not recorded"
+                                    + (f" ({posted['error']})" if isinstance(posted, dict) and posted.get("error") else ""))
+        if not release or not release.get("checks"):
+            raise V2CardUnavailable("the run has no release gate report")
+        copy = posted.get("copy") or {}
+        title = copy.get("reel.title") or payload.get("title")
+        if not title:
+            raise V2CardUnavailable("the run records no title")
+        measured = re.search(r"Measured ([\d.]+)s", str(next((c.get("detail") for c in release["checks"]
+                                                             if c.get("name") == "duration"), "")))
+        if not measured:
+            raise V2CardUnavailable("the release gate measured no length")
+        length = float(measured.group(1))
+        narration = str(payload.get("narration_script") or "").strip()
+        if not narration:
+            raise V2CardUnavailable("the run records no narration")
         key = self.db.run_key(run_id)
+        checks = release["checks"]
+        open_checks = [c for c in checks if c.get("status") != "pass"]
+
+        def count(n: int, one: str, many: str) -> str:
+            return f"{n} {one if n == 1 else many}"
 
         if blocked:
-            lede = "⛔ **Can't be approved yet** · 1 check failed"
+            n = len(blocking_checks(release, dry_run=release.get("dry_run", False)))
+            lede = ["⛔ ", {"type": "bold", "text": "Can't be approved yet"}, f" · {count(n, 'check blocks', 'checks block')} it"]
+            gate = "⛔ Blocked"
+        elif open_checks:
+            lede = ["⚠️ ", {"type": "bold", "text": "Needs review before a live post"},
+                    f" · {count(len(open_checks), 'open check', 'open checks')}"]
+            gate = "⚠️ Needs review"
         else:
-            lede = "⚠️ **Ready to approve** · 2 notes to check" if release and release.get("warnings") else f"✅ **Ready to approve** · {duration:.0f} s"
+            lede = ["✅ ", {"type": "bold", "text": "Ready to approve"}, f" · {length:.0f} s"]
+            gate = "✅ All checks pass"
 
-        blocks = [
+        blocks: list[dict[str, Any]] = [
             {"type": "heading", "size": 2, "text": f"🎬 {title}"},
             {"type": "paragraph", "text": lede},
         ]
+        hook = payload.get("hook_sentence") or payload.get("hook") or ""
         if hook:
-            blocks.append({"type": "paragraph", "text": {"type": "italic", "text": f"“{hook}” — Hook, first 3 seconds"}})
+            blocks.append({"type": "paragraph", "text": {"type": "italic", "text": f"“{hook}” (opening line)"}})
 
-        rows = [
-            [{"text": {"type": "bold", "text": "Length"}, "align": "left", "valign": "middle"}, {"text": f"{duration:.1f} s", "align": "right", "valign": "middle"}],
-            [{"text": {"type": "bold", "text": "Release gate"}, "align": "left", "valign": "middle"}, {"text": "⛔ Blocked" if blocked else "✅ All checks passed", "align": "right", "valign": "middle"}],
-            [{"text": {"type": "bold", "text": "Pictures"}, "align": "left", "valign": "middle"}, {"text": "9 distinct / 10 beats", "align": "right", "valign": "middle"}],
-            [{"text": {"type": "bold", "text": "Rights"}, "align": "left", "valign": "middle"}, {"text": "✅ Cleared", "align": "right", "valign": "middle"}],
-            [{"text": {"type": "bold", "text": "Cost"}, "align": "left", "valign": "middle"}, {"text": "~$0.41", "align": "right", "valign": "middle"}],
-        ]
-        blocks.append({
-            "type": "table",
-            "is_bordered": True,
-            "is_striped": True,
-            "is_compact": True,
-            "cells": rows,
-        })
+        def row(label: str, value: str) -> list[dict[str, Any]]:
+            return [{"text": {"type": "bold", "text": label}, "align": "left", "valign": "middle"},
+                    {"text": value, "align": "right", "valign": "middle"}]
 
-        script_text = payload.get("narration_script", "")
-        lines = [s.strip() + "." for s in script_text.split(". ") if s.strip()][:4]
-        if lines:
-            blocks.append({
-                "type": "details",
-                "summary": f"📜 Script · {duration:.0f} s, {len(script_text.split())} words",
-                "blocks": [{"type": "paragraph", "text": line} for line in lines],
-            })
+        blocks.append({"type": "table", "is_bordered": True, "is_striped": True, "is_compact": True,
+                       "cells": [row("Length", f"{length:.1f} s"), row("Release gate", gate)]})
 
-        blocks.append({
-            "type": "details",
-            "summary": "🔎 Findings & notes",
-            "blocks": [{"type": "list", "items": [
-                {"blocks": [{"type": "paragraph", "text": "Picture checks passed against narration"}]},
-                {"blocks": [{"type": "paragraph", "text": "Voice and audio pacing verified"}]},
-            ]}],
-        })
+        illustrated = [g for g in (payload.get("picture_fit") or {}).get("generated") or [] if isinstance(g, dict)]
+        if illustrated:
+            from .image_gen import review_note
+            blocks.append({"type": "paragraph", "text": _plain(review_note(illustrated))})
 
-        blocks.append({
-            "type": "details",
-            "summary": "Captions & first comment",
-            "blocks": [
-                {"type": "heading", "size": 3, "text": "Caption"},
-                {"type": "paragraph", "text": payload.get("caption", "Ancient discoveries that defy conventional history.")},
-                {"type": "heading", "size": 3, "text": "First comment"},
-                {"type": "paragraph", "text": "What do you think was the true purpose? #ancientmysteries #history"},
-            ],
-        })
+        # The whole narration when it is a Reel's (it showed the first four sentences under a summary that
+        # implied all of it); a long one up to SCRIPT_ROOM, then where the rest is.
+        sentences = [s.strip() for s in re.split(r"(?<=[.!?])\s+", narration) if s.strip()]
+        shown, used = [], 0
+        for s in sentences:
+            if shown and used + len(s) > V2_SCRIPT_ROOM:
+                break
+            shown.append(s)
+            used += len(s)
+        script = [{"type": "paragraph", "text": s} for s in shown]
+        if len(shown) < len(sentences):
+            script.append({"type": "paragraph", "text": {"type": "italic", "text": (
+                f"…and {count(len(sentences) - len(shown), 'more sentence', 'more sentences')}: Edit text shows the whole script.")}})
+        blocks.append({"type": "details", "summary": f"📜 Script · {length:.0f} s, {len(narration.split())} words",
+                       "blocks": script})
 
-        blocks.append({
-            "type": "details",
-            "summary": "Run details",
-            "blocks": [{
-                "type": "table",
-                "is_bordered": True,
-                "is_striped": True,
-                "is_compact": True,
-                "cells": [
-                    [{"text": {"type": "bold", "text": "Written by"}, "align": "left", "valign": "middle"}, {"text": "Gemini 2.5 Pro", "align": "right", "valign": "middle"}],
-                    [{"text": {"type": "bold", "text": "Voice"}, "align": "left", "valign": "middle"}, {"text": "ElevenLabs · Archivist", "align": "right", "valign": "middle"}],
-                    [{"text": {"type": "bold", "text": "Music"}, "align": "left", "valign": "middle"}, {"text": "Ancient Winds · licensed", "align": "right", "valign": "middle"}],
-                    [{"text": {"type": "bold", "text": "Cost"}, "align": "left", "valign": "middle"}, {"text": "$0.41", "align": "right", "valign": "middle"}],
-                ],
-            }],
-        })
+        # The gate's own findings (as release_lines words them for the live card) and the run's notes
+        found = [line[2:].strip() for line in _plain(TelegramApprovalBot.release_lines(release)).splitlines()
+                 if line.startswith("• ")]
+        found += [_plain(payload[k]) for k in V2_NOTE_KEYS if payload.get(k) and _plain(payload[k])]
+        if found:
+            blocks.append({"type": "details", "summary": f"🔎 Findings and notes · {len(found)}",
+                           "blocks": [{"type": "list", "items": [{"blocks": [{"type": "paragraph", "text": f}]}
+                                                                 for f in found]}]})
 
-        blocks.append({"type": "buttons", "align": "center", "buttons": [
-            {"text": "🎨 Covers", "style": "primary", "callback_data": f"ccov:{key}"},
-            {"text": "📋 Copy run id", "copy_text": {"text": run_id}},
-        ]})
+        # What Approve posts, word for word (QF-43's record, saved when the card is delivered)
+        posts: list[dict[str, Any]] = []
+        for label, value in (("Caption", copy.get("reel.caption")), ("First comment", copy.get("reel.first_comment")),
+                             ("Carousel caption", copy.get("carousel.instagram") if posted.get("carousel_own") else "")):
+            if value:
+                posts += [{"type": "heading", "size": 3, "text": label}, {"type": "paragraph", "text": value}]
+        if not posted.get("documentary"):
+            posts.append({"type": "paragraph", "text": _plain(_posted_hashtags_line(posted))})
+        posts += [{"type": "paragraph", "text": _plain(item)} for item in _also_posted(posted, copy)]
+        when = _plain(_schedule_line(posted))
+        if when:
+            posts.append({"type": "paragraph", "text": when})
+        ai = _plain(_ai_label_line(posted))   # whether the posts carry the AI label, and why (QF-65a), whole
+        if ai:
+            posts.append({"type": "paragraph", "text": ai})
+        if not copy.get("reel.caption") and not posted.get("documentary"):
+            raise V2CardUnavailable("the run records no caption")
+        blocks.append({"type": "details", "summary": "📤 What Approve posts", "blocks": posts})
 
-        env_tag = "📡 Production" if config.RELIC_ENVIRONMENT == "production" else "🧪 Dry run"
-        blocks.append({"type": "footer", "text": f"{env_tag} · rc70 · made just now"})
+        details = []
+        if payload.get("origin"):
+            details.append(row("Written by", origin_label(str(payload["origin"]))))
+        voice = _run_json(run_dir, "voice.json")
+        if voice.get("provider"):
+            details.append(row("Voice", f"{V2_VOICE_NAMES.get(voice['provider'], voice['provider'])} · "
+                                        + ("licensed" if voice.get("licensed") else "not licensed")))
+        music = str(_run_json(run_dir, "music_selection.json").get("credit") or "")
+        music = re.sub(r"^\W*Music:\s*", "", music).strip()
+        if music:
+            details.append(row("Music", music))
+        if details:
+            blocks.append({"type": "details", "summary": "Run details", "blocks": [
+                {"type": "table", "is_bordered": True, "is_striped": True, "is_compact": True, "cells": details}]})
+
+        buttons = [{"text": "📋 Copy run id", "copy_text": {"text": run_id}}]
+        if payload.get("delivery_profile") != "deep_dive_16x9":   # 9:16 covers don't fit a documentary
+            buttons.insert(0, {"text": "🎨 Covers", "style": "primary", "callback_data": f"ccov:{key}"})
+        blocks.append({"type": "buttons", "align": "center", "buttons": buttons})
         return blocks
 
     def refresh_review_cover(self, run_id: str) -> bool:
@@ -1706,6 +2924,10 @@ class TelegramApprovalBot:
         run = self.db.get_run(run_id) or {}
         approval = self.db.get_approval(run_id) or {}
         if run.get("status") != "pending_approval" or approval.get("decision") != "pending":
+            return False
+        if clean_chat():
+            # The review panel (UI-01e): False, so the caller delivers it again, which redraws the panel in place
+            # with the locked cover (uploaded once) and binds the copy; nothing new is sent to the chat.
             return False
         messages = [m for m in (get(self.db, "review-messages", run_id) or []) if isinstance(m, int)]
         cover_id = get(self.db, "review-cover", run_id)
@@ -1832,12 +3054,23 @@ class TelegramApprovalBot:
             log.warning("Video is %.1f MB, over Telegram's bot upload limit; review it locally: %s", size_mb, video_path)
         if first:
             sent += self._album(first) or []
-        stills = sorted((run_dir / "stories").glob("story_*.jpg")) + sorted((run_dir / "carousel").glob("carousel_slide_*.jpg"))
-        n_story = len(list((run_dir / "stories").glob("story_*.jpg")))
+        # Every illustrated beat beside its reference(s) and its narrated line (reliable depiction, 2026-11-02): the
+        # operator approves each illustration on the review itself.
+        for batch in illustration_review_items(payload, run_dir):
+            sent += self._album(batch) or []
+        from .multi_format import RETIRED_STORY_FRAMES
+        story = [p for p in sorted((run_dir / "stories").glob("story_*.jpg"))
+                 if p.name not in RETIRED_STORY_FRAMES]  # an older run's poll frame is not posted (QF-80)
+        stills = story + sorted((run_dir / "carousel").glob("carousel_slide_*.jpg"))
+        n_story = len(story)
+        from .carousel_lazy import planned
         for start in range(0, len(stills), 10):
             batch = stills[start:start + 10]
             items = [{"type": "photo", "path": p} for p in batch]
-            if start == 0:
+            if start == 0 and len(stills) == n_story and planned(run_dir):   # QF-81: drawn at its slot
+                items[0]["caption"] = (f"Also posted on approval: {n_story} Story frame(s); the carousel is drawn "
+                                       "when it takes its carousel slot (🖼 Preview carousel on the card shows it now)")
+            elif start == 0:
                 items[0]["caption"] = (f"Also posted on approval: {n_story} Story frame(s), then the "
                                        f"{len(stills) - n_story}-slide carousel")
             sent += self._album(items) or []
@@ -1850,6 +3083,26 @@ class TelegramApprovalBot:
             raise ValueError("Review media must be delivered for this exact copy before approval")
         key = self.db.run_key(run_id)  # short: Telegram limits button data to 64 bytes
         regen = self.db.get_setting("regenerating:" + run_id) if hasattr(self.db, "get_setting") else None
+        # What Approve posts, word for word per platform, with the slot it books and when the review closes; kept
+        # as the card's record, which the envelope must match (publisher.build_envelope; QF-43).
+        from . import publishable
+        from .config import OUTPUT_DIR
+        run = self.db.get_run(run_id) if hasattr(self.db, "get_run") else None
+        run_dir = Path((run or {}).get("master_video_path") or Path(OUTPUT_DIR) / str(run_id) / "x").parent
+        try:
+            sizer = getattr(self, "approval_window", None)
+            decider = getattr(self, "approve_posting", None)   # the coordinator's; a bot alone posts at once
+            mode = self.db.get_setting("run_mode:" + run_id) if hasattr(self.db, "get_setting") else None
+            posting = decider(run_id) if callable(decider) else ("dry_run" if mode == "dry_run" else "now")
+            posted = publishable.card_record(script_payload, self.db, run_dir=run_dir if run_dir.is_dir() else None,
+                                             window_seconds=sizer() if callable(sizer) else None,
+                                             topic_id=(run or {}).get("topic_id") or "", posting=posting,
+                                             master=(run or {}).get("master_video_path") or None,
+                                             cover=(run or {}).get("thumbnail_cover_path") or None, run_id=run_id)
+        except Exception as e:  # noqa: BLE001  shown on the card; with no copy recorded, the envelope check refuses to post
+            log.warning("Could not work out what Approve posts for %s: %s", run_id, e)
+            posted = {"error": f"{type(e).__name__}: {e}"}
+        script_payload = {**script_payload, "_publish_copy": posted}
         card_text = self.format_card_text({**script_payload, "_regeneration_note": regen} if regen else script_payload,
                                           run_id, release=release)
         # A version the release gate blocks is not offered for approval: Approve could only end in
@@ -1862,7 +3115,9 @@ class TelegramApprovalBot:
             [{"text": "♻️ Regenerate", "callback_data": f"regen:{key}"},
              {"text": "❌ Reject", "callback_data": f"reject:{key}"}],
         ] + ([] if script_payload.get("delivery_profile") == "deep_dive_16x9"  # 9:16 covers don't fit a documentary
-             else [[{"text": "🎨 Covers", "callback_data": f"ccov:{key}"}]]) + [[DONE_BUTTON]])}
+             else [[{"text": "🎨 Covers", "callback_data": f"ccov:{key}"}]])
+          + ([[{"text": "🖼 Preview carousel", "callback_data": f"ccar:{key}"}]] if posted.get("carousel_at_slot") else [])
+          + [[DONE_BUTTON]])}
         # One message, never paged: a paged card moved into a panel whose buttons failed (2026-10-25);
         # format_card_text keeps it inside the limit by shortening its folded lists.
         rev_tid = config.TELEGRAM_TOPICS.get("reviews") if (config.TELEGRAM_CARDS_V2 and hasattr(config, "TELEGRAM_TOPICS")) else None
@@ -1882,13 +3137,27 @@ class TelegramApprovalBot:
                 send_card_data["message_thread_id"] = rev_tid
             msg = self._api("sendMessage", data=send_card_data)
         message_id = msg["message_id"]
-        if CARD_LIST_MORE in card_text:  # the lists the card had to shorten, whole, in the reply under it
+        # The lists the card had to shorten, whole, in the reply under it; and what else Approve posts, and the slot,
+        # when the card had no room for them (QF-43: _with_publish_lines).
+        if CARD_LIST_MORE in card_text or needs_publish_reply(card_text, posted):
             try:
-                full = self._card_text({**script_payload, "_regeneration_note": regen} if regen else script_payload,
-                                       run_id, release, None, 10 ** 6)
-                for n, text in enumerate(detail_messages(full), 1):
+                if CARD_LIST_MORE in card_text:
+                    full = self._card_text({**script_payload, "_regeneration_note": regen} if regen else script_payload,
+                                           run_id, release, None, 10 ** 6, extras=True)
+                else:
+                    also = _also_posted(posted, posted.get("copy") or {})
+                    full = "\n\n" + listed(ALSO_HEAD, also) + "\n" if also else ""
+                slot = _schedule_line(posted) if isinstance(posted, dict) else ""
+                slot = "" if slot in card_text else slot
+                # The whole AI-label line when the card had room only for its brief form (QF-65a); the full
+                # card text (CARD_LIST_MORE) already carries it.
+                ai = _ai_label_line(posted)
+                ai = "" if (ai in card_text or CARD_LIST_MORE in card_text) else ai
+                slot = "\n".join(x for x in (slot, ai) if x)
+                for n, text in enumerate(detail_messages(full) or ([""] if slot else []), 1):
                     detail_data = {"chat_id": self.chat_id, "parse_mode": "HTML",
-                                   "text": ("📋 <b>In full</b>\n\n" if n == 1 else "") + text,
+                                   "text": ("📋 <b>In full</b>\n\n" + slot + ("\n" if slot and text else "")
+                                            if n == 1 else "") + text,
                                    "reply_to_message_id": message_id,
                                    "disable_web_page_preview": "true"}
                     if rev_tid:
@@ -1899,6 +3168,7 @@ class TelegramApprovalBot:
                 log.warning("Could not send the review card's lists in full: %s", e)
         from .card_ledger import record as record_card
         record_card(run_id, "review", card_text, markup["inline_keyboard"], message_id)
+        publishable.save_record(self.db, run_id, posted)   # before the card's buttons can decide
         self.db.record_approval(run_id, script_payload.get("topic_id", ""), message_id)
         put(self.db, "message-run", f"{self.chat_id}:{message_id}", run_id)
         put(self.db, "review-card", f"{run_id}:{message_id}", fingerprint)
@@ -1911,6 +3181,10 @@ class TelegramApprovalBot:
     def _answer_callback(self, cq_id: str, text: str = "") -> None:
         """Safely answers a Telegram callback query; suppresses expired query (400) errors."""
         # Telegram shows only the first answer and rejects the rest; each rejected call still costs a round trip.
+        acting = _ITEM_ACTION.get()
+        if acting is not None and acting["cq"] == cq_id:   # an item's action: one toast once its outcome is known
+            acting["toasts"].append(str(text or ""))
+            return
         with self._answered_lock:
             if cq_id in self._answered:
                 return
@@ -1926,6 +3200,15 @@ class TelegramApprovalBot:
         from .telegram_state import decode
         from .publication_lock import publication_lock
         action, _, target = decode(self.db, cq.get("data", "")).partition(":")
+        from .review_panel import REVIEW_ACTIONS
+        if clean_chat() and action in REVIEW_ACTIONS:
+            msg = cq.get("message") or {}
+            if not self._authorized(str(cq.get("from", {}).get("id", "")), msg.get("chat", {}).get("id", "")):
+                self._answer_callback(cq["id"], "Not authorized.")
+                return None
+            decided = self.review.tap({**cq, "data": decode(self.db, cq.get("data", ""))})
+            ref = target.partition(":")[0]
+            return decided if decided and (run_id is None or self.db.resolve_run(ref) == run_id) else None
         run_target = target.partition(":")[0] if action == "rejres" else target
         resolved = self.db.resolve_run(run_target)
         try:
@@ -1937,7 +3220,7 @@ class TelegramApprovalBot:
 
     def _handle_callback_locked(self, cq: Dict[str, Any], run_id: Optional[str] = None) -> Optional[str]:
         """Applies an approval button press. With run_id, ignores presses for other runs."""
-        from .telegram_state import decode, get, put
+        from .telegram_state import decode, get, put, review_fingerprint
         action, _, target = decode(self.db, cq.get("data", "")).partition(":")
         run_target = target.partition(":")[0] if action == "rejres" else target
         if action not in ACTIONS or (run_id is not None and self.db.resolve_run(run_target) != run_id):
@@ -1952,131 +3235,99 @@ class TelegramApprovalBot:
             return None
 
         # --- Telegram V2 Review Pair Interactive Flow ---
-        if config.TELEGRAM_CARDS_V2 and action == "reject":
-            reason_kb = {
-                "inline_keyboard": [
-                    [{"text": "Pictures", "callback_data": f"rejres:{target}:pictures"},
-                     {"text": "Script", "callback_data": f"rejres:{target}:script"},
-                     {"text": "Voice", "callback_data": f"rejres:{target}:voice"}],
-                    [{"text": "Music", "callback_data": f"rejres:{target}:music"},
-                     {"text": "Length", "callback_data": f"rejres:{target}:length"},
-                     {"text": "Facts", "callback_data": f"rejres:{target}:facts"}],
-                    [{"text": "Other", "callback_data": f"rejres:{target}:other"},
-                     {"text": "← Keep it", "style": "primary", "callback_data": f"keepit:{target}"}],
-                ]
-            }
-            self._answer_callback(cq["id"], "Select rejection reason:")
+        # Only on a V2 card, and only while the flag is on: with it off, "← Keep it" was recorded as the decision
+        # "keep" and failed the run and its topic; an Undo reset any decision (UI-02).
+        v2_card = config.TELEGRAM_CARDS_V2 and self._is_v2_card(run_id, msg_id)
+        if action in V2_ONLY_ACTIONS - {"rejres"} and not v2_card:
+            self._answer_callback(cq["id"], "This button belongs to a review layout that is switched off. Nothing changed.")
+            return None
+
+        if v2_card and action == "reject":
+            self._answer_callback(cq["id"], "Pick a reason.")
             self._api("editMessageReplyMarkup", data={
                 "chat_id": self.chat_id, "message_id": msg_id,
-                "reply_markup": json.dumps(reason_kb),
+                "reply_markup": json.dumps(_v2_reason_keyboard(target)),
             })
             return "reject_prompt"
 
-        if config.TELEGRAM_CARDS_V2 and action == "keepit":
-            orig_kb = {
-                "inline_keyboard": [
-                    [{"text": "🚀 Approve & Post", "style": "success", "callback_data": f"approve:{target}"},
-                     {"text": "✏️ Edit text", "style": "primary", "callback_data": f"edit:{target}"}],
-                    [{"text": "♻️ Redo with a note", "style": "primary", "callback_data": f"regen:{target}"},
-                     {"text": "❌ Reject", "style": "danger", "callback_data": f"reject:{target}"}],
-                ]
-            }
+        if v2_card and action == "keepit":
             self._answer_callback(cq["id"], "Kept.")
             self._api("editMessageReplyMarkup", data={
                 "chat_id": self.chat_id, "message_id": msg_id,
-                "reply_markup": json.dumps(orig_kb),
+                "reply_markup": json.dumps(_v2_review_keyboard(target, self._v2_blocked(run_id))),
             })
             return "kept"
 
-        if config.TELEGRAM_CARDS_V2 and action == "rejres":
+        if v2_card and action == "rejres":
+            from . import improve
             target_key, _, reason = target.partition(":")
-            resolved_run = self.db.resolve_run(target_key)
-            if resolved_run:
-                run_id = resolved_run
-            applied = self.db.decide_telegram_review(run_id, msg_id, "rejected", f"telegram:{user_id}")
-            if applied:
-                card = self.db.get_telegram_card(f"review:{run_id}")
-                if card:
-                    p = card.get("payload") or {}
-                    p.update(status="rejected", reason=reason)
-                    self.db.put_telegram_card(card["card_id"], card["topic_id"], card["message_id"], card["card_kind"], p, revision=card["revision"] + 1)
-                self.db.record_issue(f"rej-{run_id}", f"Rejected by operator: {reason}", run_id=run_id, user_id=user_id)
-                undo_kb = {"inline_keyboard": [[{"text": "↩️ Undo", "style": "primary", "callback_data": f"undorej:{target_key}"}]]}
-                stamp_caption = f"❌ Rejected · Reason: {reason.capitalize()}. Topic in Queue › Restorable."
-                self._api("editMessageCaption", data={
+            if reason not in improve.REASONS:   # a chip of the retired 7-reason set: not a decision
+                self._answer_callback(cq["id"], "That reason is no longer offered. Tap Reject again.")
+                self._api("editMessageReplyMarkup", data={
                     "chat_id": self.chat_id, "message_id": msg_id,
-                    "caption": stamp_caption,
-                    "reply_markup": json.dumps(undo_kb),
+                    "reply_markup": json.dumps(_v2_review_keyboard(target_key, self._v2_blocked(run_id))),
                 })
-                notice_id = get(self.db, "review-need-notice", run_id)
-                if notice_id:
-                    self.delete_message(notice_id)
-                    put(self.db, "review-need-notice", run_id, None)
-                self._answer_callback(cq["id"], f"Rejected ({reason}). Undo for 10 min.")
-                return "rejected"
+                return None
+            expected = get(self.db, "review-card", f"{run_id}:{msg_id}")
+            if not expected or expected != review_fingerprint(self.db, run_id):
+                self._answer_callback(cq["id"], "This copy is not verified or changed. Resend it for review.")
+                return None
+            applied = self.db.decide_telegram_review(run_id, msg_id, "rejected", f"telegram:{user_id}")
+            if not applied:
+                existing = (self.db.get_approval(run_id) or {}).get("decision", "unknown")
+                self._answer_callback(cq["id"], f"⚠️ Expired/Closed ({existing})")
+                return existing
+            label = improve.REASONS[reason]
+            improve.record_reason(self.db, run_id, reason, "rejected")   # the ledger the live card's chips feed
+            self._v2_card_status(run_id, "rejected", reason=reason)
+            sender = cq.get("from") or {}
+            name = next((n for n in (sender.get("first_name"), sender.get("username")) if n and re.search(r"\w", n)), "you")
+            until = undo_until(self.db.get_approval(run_id) or {}) if undo_minutes() > 0 else None
+            # The Undo works for its whole window: the worker sets the topic aside only once it has passed (UI-02)
+            undo_kb = {"inline_keyboard": [[{"text": "↩️ Undo", "style": "primary", "callback_data": f"undorej:{target_key}"}]]
+                       if until else []}
+            when = f" Undo until {show_time(until, '%H:%M %Z')}; then the" if until else " The"
+            self._api("editMessageCaption", data={
+                "chat_id": self.chat_id, "message_id": msg_id,
+                "caption": (f"❌ Rejected by {name} · reason: {label}. Nothing was posted.{when} topic is set aside "
+                            "(restore it from the queue's “Can be restored” list)."),
+                "reply_markup": json.dumps(undo_kb),
+            })
+            notice_id = get(self.db, "review-need-notice", run_id)
+            if notice_id:
+                self.delete_message(notice_id)
+                put(self.db, "review-need-notice", run_id, None)
+            self._answer_callback(cq["id"], f"Rejected ({label}).")
+            return "rejected"
 
-        if config.TELEGRAM_CARDS_V2 and action == "undorej":
-            target_key = target
-            resolved_run = self.db.resolve_run(target_key)
-            if resolved_run:
-                run_id = resolved_run
-            card = self.db.get_telegram_card(f"review:{run_id}")
-            if card:
-                p = card.get("payload") or {}
-                p.update(status="waiting")
-                p.pop("reason", None)
-                self.db.put_telegram_card(card["card_id"], card["topic_id"], card["message_id"], card["card_kind"], p, revision=card["revision"] + 1)
-            with self.db._conn() as conn:
-                conn.execute("UPDATE approvals SET decision='pending', decision_timestamp=NULL, decided_by=NULL WHERE run_id=?", (run_id,))
+        if v2_card and action in ("undorej", "undoappr"):
+            decision = "rejected" if action == "undorej" else "approved"
+            expected = get(self.db, "review-card", f"{run_id}:{msg_id}")
+            fresh = bool(expected) and expected == review_fingerprint(self.db, run_id)
+            # Reopened only while the decision is untouched (db.undo_review_decision): it reset any decision,
+            # days later, on a published or regenerated run, and redrew Approve buttons that could not decide.
+            sizer = getattr(self, "approval_window", None)     # what it gives back: at most the review window
+            try:
+                window = float(sizer()) if callable(sizer) else float(APPROVAL_TIMEOUT_SECONDS)
+            except Exception as e:  # noqa: BLE001 - sized as a review without the coordinator's slot rules
+                log.warning("Review window not sized for the Undo (%s); the configured timeout caps it.", e)
+                window = float(APPROVAL_TIMEOUT_SECONDS)
+            if not fresh or not self.db.undo_review_decision(run_id, decision, msg_id, undo_minutes() * 60, window):
+                self._answer_callback(cq["id"], self._undo_refusal(run_id, decision, fresh))
+                self._api("editMessageReplyMarkup", data={"chat_id": self.chat_id, "message_id": msg_id,
+                                                          "reply_markup": json.dumps({"inline_keyboard": []})})
+                return None
+            self._v2_card_status(run_id, "waiting")
             run = self.db.get_run(run_id) or {}
             title = run.get("script_payload", {}).get("title", self.db.run_label(run_id))
-            orig_kb = {
-                "inline_keyboard": [
-                    [{"text": "🚀 Approve & Post", "style": "success", "callback_data": f"approve:{target_key}"},
-                     {"text": "✏️ Edit text", "style": "primary", "callback_data": f"edit:{target_key}"}],
-                    [{"text": "♻️ Redo with a note", "style": "primary", "callback_data": f"regen:{target_key}"},
-                     {"text": "❌ Reject", "style": "danger", "callback_data": f"reject:{target_key}"}],
-                ]
-            }
             self._api("editMessageCaption", data={
                 "chat_id": self.chat_id, "message_id": msg_id,
                 "caption": f"🎬 {title}",
-                "reply_markup": json.dumps(orig_kb),
+                "reply_markup": json.dumps(_v2_review_keyboard(target, self._v2_blocked(run_id))),
             })
-            self._answer_callback(cq["id"], "Rejection undone. Review restored.")
-            return "undone"
-
-        if config.TELEGRAM_CARDS_V2 and action == "undoappr":
-            target_key = target
-            resolved_run = self.db.resolve_run(target_key)
-            if resolved_run:
-                run_id = resolved_run
-            card = self.db.get_telegram_card(f"review:{run_id}")
-            if card:
-                p = card.get("payload") or {}
-                p.update(status="waiting")
-                self.db.put_telegram_card(card["card_id"], card["topic_id"], card["message_id"], card["card_kind"], p, revision=card["revision"] + 1)
-            posts = self.db.list_scheduled_posts(("pending", "waiting"), run_id=run_id)
-            for p in posts:
-                self.db.update_scheduled_post(p["id"], "cancelled", detail={"reason": "undone by operator"})
-            with self.db._conn() as conn:
-                conn.execute("UPDATE approvals SET decision='pending', decision_timestamp=NULL, decided_by=NULL WHERE run_id=?", (run_id,))
-            run = self.db.get_run(run_id) or {}
-            title = run.get("script_payload", {}).get("title", self.db.run_label(run_id))
-            orig_kb = {
-                "inline_keyboard": [
-                    [{"text": "🚀 Approve & Post", "style": "success", "callback_data": f"approve:{target_key}"},
-                     {"text": "✏️ Edit text", "style": "primary", "callback_data": f"edit:{target_key}"}],
-                    [{"text": "♻️ Redo with a note", "style": "primary", "callback_data": f"regen:{target_key}"},
-                     {"text": "❌ Reject", "style": "danger", "callback_data": f"reject:{target_key}"}],
-                ]
-            }
-            self._api("editMessageCaption", data={
-                "chat_id": self.chat_id, "message_id": msg_id,
-                "caption": f"🎬 {title}",
-                "reply_markup": json.dumps(orig_kb),
-            })
-            self._answer_callback(cq["id"], "Approval undone. Review restored.")
+            closes = (self.db.get_approval(run_id) or {}).get("expires_at")
+            self._answer_callback(cq["id"], ("Rejection" if decision == "rejected" else "Approval") + " undone. The review is open"
+                                  + (f" until {show_time(float(closes), '%H:%M %Z')}." if closes else " again."))
             return "undone"
 
         if not self.db.get_approval(run_id):
@@ -2096,12 +3347,8 @@ class TelegramApprovalBot:
             self._queue_navigation(lambda: self._strip_buttons(msg.get("message_id")))
             return existing
 
-        if config.TELEGRAM_CARDS_V2:
-            card = self.db.get_telegram_card(f"review:{run_id}")
-            if card:
-                p = card.get("payload") or {}
-                p.update(status=decision)
-                self.db.put_telegram_card(card["card_id"], card["topic_id"], card["message_id"], card["card_kind"], p, revision=card["revision"] + 1)
+        if v2_card:
+            self._v2_card_status(run_id, decision)
 
         self._answer_callback(cq["id"], f"Decision: {decision.upper()}")
         self._queue_navigation(lambda: self._render_decision(cq, run_id, decision, user_id))
@@ -2115,9 +3362,19 @@ class TelegramApprovalBot:
         # A name, not an ID; a placeholder first name such as "-" is no name.
         name = next((n for n in (sender.get("first_name"), sender.get("username")) if n and re.search(r"\w", n)), "you")
         who = html.escape(name)
-        if config.TELEGRAM_CARDS_V2 and decision == "approved":
-            undo_kb = {"inline_keyboard": [[{"text": "↩️ Undo approval", "style": "primary", "callback_data": f"undoappr:{self.db.run_key(run_id)}"}]]}
-            stamp_caption = f"✅ Approved by {who} · release check and publishing under way"
+        if decision == "approved" and config.TELEGRAM_CARDS_V2 and self._is_v2_card(run_id, msg_id):
+            until = undo_until(self.db.get_approval(run_id) or {}) if undo_minutes() > 0 else None
+            undo_kb = {"inline_keyboard": [[{"text": "↩️ Undo approval", "style": "primary",
+                                              "callback_data": f"undoappr:{self.db.run_key(run_id)}"}]] if until else []}
+            # What happens, and when: the worker acts only once the Undo window has passed (UI-02). Plain text.
+            from . import publishable
+            posting = (publishable.load_record(self.db, run_id) or {}).get("posting")
+            then = show_time(until, "%H:%M %Z") if until else ""   # with its zone, as the slot line and reminder
+            stamp_caption = (f"✅ Approved by {name} · " + (
+                "release check and publishing under way" if not until else
+                f"books its slot after {then} unless you undo" if posting == "slot" else
+                f"dry run after {then} unless you undo; nothing is posted" if posting == "dry_run" else
+                f"posts after {then} unless you undo"))
             self._api("editMessageCaption", data={
                 "chat_id": self.chat_id, "message_id": msg_id,
                 "caption": stamp_caption,
@@ -2158,7 +3415,10 @@ class TelegramApprovalBot:
         run = self.db.get_run(run_id) if hasattr(self.db, "get_run") else None
         if run and run.get("script_payload"):
             # With the gate's report, as on the card that was tapped (it said "Release gate: not run yet")
-            updated_text = self.format_card_text(run["script_payload"], run_id, release=self._release_report(run),
+            from .publishable import load_record
+            shown = load_record(self.db, run_id)   # what the tapped card showed would be posted
+            updated_text = self.format_card_text({**run["script_payload"], **({"_publish_copy": shown} if shown else {})},
+                                                 run_id, release=self._release_report(run),
                                                  reserve=_tg_len(badge)) + badge   # the badge fits: never paged
         elif orig_text:
             updated_text = html.escape(orig_text) + badge
@@ -2200,6 +3460,14 @@ class TelegramApprovalBot:
         mid = (appr or {}).get("telegram_message_id")
         if not self.is_configured():
             return False
+        if clean_chat():
+            # The decided review left the panel already (UI-01e); its item says what happened: a booking adds the
+            # slot to "✅ Approved", a publication is the receipt's "📮 Posted" (the same item, in place).
+            from .card_ledger import record as record_card
+            record_card(run_id, "receipt", outcome)
+            if outcome.startswith("🗓"):
+                self.review.booked(run_id)
+            return True
         from .control import LAST_REVIEW_KEY
         from .telegram_state import get, put
         receipt = (f"<b>{html.escape(self.db.run_label(run_id))}</b>: {outcome}\n"
@@ -2260,6 +3528,8 @@ class TelegramApprovalBot:
         mid = (self.db.get_approval(run_id) or {}).get("telegram_message_id")
         if not self.is_configured() or not isinstance(mid, int):
             return False
+        if clean_chat():
+            return False   # the review panel is not this run's card any more (UI-01e)
         reason = fb.get("reason")
         said = (f"✅ Reason: <b>{html.escape(REASONS.get(reason, reason))}</b>"
                 + (f": <i>{html.escape(clip_words(str(fb['text']), 200))}</i>" if fb.get("text") else "") + "."
@@ -2273,9 +3543,12 @@ class TelegramApprovalBot:
     NOTICE_TTL_MINUTES = 360  # an informational notice leaves the chat after this; its record stays in the database
 
     def notify(self, text: str, buttons: Optional[list] = None, transient: Optional[bool] = None, ttl_minutes: Optional[int] = None,
-               record_alert: bool = True, silent: bool = False, group: Optional[str] = None) -> bool:
+               record_alert: bool = True, silent: bool = False, group: Optional[str] = None,
+               section: str | None = None, key: str | None = None, subject: str | None = None,
+               run: str | None = None, replace: bool = False, actions: list | None = None) -> bool:
         """Sends an operational message (HTML), optionally with inline buttons (single or multi-row).
-        Never raises: alerts must not break a run.
+        Never raises: alerts must not break a run. `actions` are the clean chat's item-page buttons for a notice
+        that had none of its own (design §10.2); the earlier chat ignores them, as it did before.
         In Telegram V2 (TELEGRAM_CARDS_V2), routes by topic (group):
           studio (4906), needs (4907), reviews (4908), runs (4909), info (4910).
         Only group='needs' notifies audibly; all other groups are strictly silent."""
@@ -2297,6 +3570,11 @@ class TelegramApprovalBot:
             # Every screen a command draws keeps a way back to the dashboard (a command's own button
             # list, such as /bump's topics, often had none).
             return self.show_navigation_panel(panel[1], text, is_media=panel[2], buttons=navigation_buttons(buttons))
+        if config.TELEGRAM_CLEAN_CHAT and not (group == "studio" and record_alert is False):
+            # The clean chat (UI-01): a sender's notice is an item of the pinned notifications panel, never a
+            # message of its own. Only the screens a command draws (studio, unrecorded) still send here.
+            return self._post_notice(text, buttons, group, section, key, subject, run, replace, record_alert,
+                                     actions)
         if not self.is_configured():
             log.info("Notification (Telegram not configured): %s", text)
             if record_alert and hasattr(self.db, "record_alert"):
@@ -2306,6 +3584,7 @@ class TelegramApprovalBot:
         # No message is a dead end: one tap back to the panel, whether or not it carries buttons of its own
         # (a timeout notice or a proposal card had only its actions: 2026-10-25 overhaul).
         buttons = navigation_buttons(buttons) if buttons else [DONE_BUTTON]
+        offered = buttons   # the notice's own buttons, before a long text's page arrows
         from .telegram_pages import panel as paginate
         text, buttons = paginate(self.db, text, buttons)
         truncated_text = text
@@ -2327,6 +3606,7 @@ class TelegramApprovalBot:
             # A transient message is always recorded: its expiry lives in that record (without it, it stayed).
             if (record_alert or transient) and hasattr(self.db, "record_alert"):
                 self.db.record_alert(text, message_id=msg_id, kind="transient" if transient else "persistent", expires_at=expires_at)
+                self._remember_actions(msg_id, offered)   # the clean chat's first start keeps them (§13)
             return msg_id if msg_id else True
         except Exception as e:
             err_msg = str(e).lower()
@@ -2347,6 +3627,489 @@ class TelegramApprovalBot:
                     log.warning("Fallback plain text notify also failed: %s", e2)
             log.warning("Could not send Telegram notification: %s", e)
             return False
+
+    def _post_notice(self, text: str, buttons: list | None, group: str | None, section: str | None,
+                     key: str | None, subject: str | None, run: str | None, replace: bool,
+                     record_alert: bool, extra: list | None = None) -> bool:
+        """A sender's message as a notifications-panel item (design §8): Needs you for group "needs" (or a
+        notice with actions to take), info for the run log and info groups. Its buttons become the item page's
+        actions, its links lines of the body. Returns True, never a message id: nothing was sent."""
+        from . import notifications as notes
+        text = _MASKER.mask(text)
+        emoji, title, parsed_subject, body = notes.parse(text)
+        subject = subject or parsed_subject
+        links = notes.links_from(buttons)
+        if links:
+            body = (body + "\n" if body else "") + " · ".join(links)
+        actions = notes.actions_from(buttons)
+        actions += [a for a in notes.actions_from([list(extra or [])]) if a not in actions]
+        if section is None:
+            section = (notes.NEEDS if group == "needs" else notes.INFO if group in ("runs", "info", "reviews")
+                       else notes.NEEDS if actions else notes.INFO)
+        try:
+            notes.post(self.db, section, key or "", title, body, emoji=emoji, subject=subject or "",
+                       actions=actions, run=run, replace=replace)
+        except Exception as e:  # noqa: BLE001 - alerts must not break a run
+            log.warning("Could not record the notice %r: %s", title, e)
+            return False
+        if record_alert and hasattr(self.db, "record_alert"):
+            self.db.record_alert(text, message_id=None, kind="persistent")   # the alert history, as before
+        self.layout.kick()
+        return True
+
+    @property
+    def review(self):
+        """The clean chat's one review panel (review_panel.ReviewPanel), made on first use."""
+        if getattr(self, "_review", None) is None:
+            from .review_panel import ReviewPanel
+            self._review = ReviewPanel(self)
+        return self._review
+
+    @property
+    def layout(self):
+        """The clean chat's renderer for this bot (telegram_layout.Layout), made on first use."""
+        if getattr(self, "_layout", None) is None:
+            from .telegram_layout import Layout
+            self._layout = Layout(self)
+        return self._layout
+
+    def close_layout(self) -> None:
+        """At shutdown: the panel is drawn once more (the offline notice just posted), then the renderer lease is
+        given up, so the next start renders at once instead of waiting up to 90 s for the old lease to expire."""
+        layout = getattr(self, "_layout", None)
+        if layout is None or not config.TELEGRAM_CLEAN_CHAT:
+            return
+        try:
+            layout.halt()
+            if layout.is_renderer():
+                layout.tick(force=True)
+        except Exception as e:  # noqa: BLE001 - a shutdown never fails on the panel
+            log.warning("Could not draw the notifications panel at shutdown: %s", e)
+        finally:
+            layout.release()
+
+    # ------------------------------------------------------------ the ordered re-post (UI-01f)
+    def _note_update(self, update: dict[str, Any]) -> None:
+        """An update from the chat: the operator was active now (the re-post waits for an idle moment), its message
+        id is the newest seen (the gap sweep's bound), and a message just received is not swept while it is read."""
+        from .layout_repost import seen
+        msg = update.get("message") or (update.get("callback_query") or {}).get("message") or {}
+        mid = msg.get("message_id")
+        if mid:
+            seen(self.db, mid)
+        if update.get("message") and mid:
+            recent = self.__dict__.setdefault("_recent_ids", {})
+            recent[int(mid)] = time.time()
+            for old in [k for k, at in recent.items() if time.time() - at > 120]:
+                recent.pop(old, None)
+        sender = (update.get("message") or update.get("callback_query") or {}).get("from") or {}
+        if str(sender.get("id", "")) in self.approver_ids:
+            self._last_activity = time.time()
+
+    def panel_copy(self, message_id: int | None, name: str) -> dict[str, Any] | None:
+        """A layout panel as it shows now, as sendMessage data (silent is added by the caller): the content last
+        drawn in it, or for a dashboard with none recorded its home screen, for a progress panel its run's
+        current stage."""
+        from .telegram_pages import panel as paginate
+        content = None
+        if message_id:
+            content = (getattr(self, "_content", {}) or {}).get(self._current_panel(int(message_id)))
+        if name == "dashboard" and getattr(self, "_pending_dashboard", None):
+            content = self._pending_dashboard
+        if content is None and name == "dashboard":
+            from .config import ASSETS_DIR
+            from .control import dashboard_text_and_buttons
+            content = dashboard_text_and_buttons(self.db, getattr(self, "next_run_func", lambda: None)(), assets_dir=ASSETS_DIR)
+        if content is None and name.startswith("progress:"):
+            run_id = name.partition(":")[2]
+            content = (f"{hourglass()} <b>Progress</b>\n\n<b>{html.escape(self.db.run_label(run_id))}</b>",
+                       self._progress_buttons(run_id))
+        if content is None:
+            return None
+        self.__dict__.setdefault("_copied", {})[name] = content   # what the new copy shows (adopt_copies)
+        text, buttons = content
+        text, buttons = paginate(self.db, _MASKER.mask(text), buttons)
+        return {"chat_id": self.chat_id, "text": safe_html_truncate(text, 4000), "parse_mode": "HTML",
+                "disable_web_page_preview": "true",
+                "reply_markup": json.dumps({"inline_keyboard": format_responsive_keyboard(buttons) if buttons else []})}
+
+    def adopt_copies(self, sent: dict[str, int], old: dict[str, int | None]) -> None:
+        """After the re-post's swap: each panel's new message takes over its old one's screen, path, content and
+        taps (the alias table); the progress record and the reviews follow their panels."""
+        with self._panel_lock:
+            for name, new in sent.items():
+                before = old.get(name)
+                media = name == "review"
+                if before:
+                    before = int(before)
+                    self._panel_aliases[before] = int(new)
+                    for cache in (self._panel_screen, self._panel_origin, self._panel_trail, self._panel_revisions,
+                                  self.__dict__.setdefault("_content", {})):
+                        if before in cache:
+                            cache[int(new)] = cache[before]
+                self._panel_media[int(new)] = media
+                copied = self.__dict__.setdefault("_copied", {}).pop(name, None)
+                if copied is not None:
+                    self.__dict__.setdefault("_content", {})[int(new)] = copied
+        for name, new in sent.items():
+            self._record_kind(int(new), media=name == "review")
+            if name.startswith("progress:"):
+                try:
+                    record = json.loads(self.db.get_setting("active_progress") or "{}")
+                except ValueError:
+                    record = {}
+                if record.get("run_id") == name.partition(":")[2]:
+                    record["message_id"] = int(new)
+                    self.db.set_setting("active_progress", json.dumps(record))
+                self._last_progress_edit[int(new)] = time.monotonic()
+            elif name == "review":
+                self.review.rebind(int(new))
+
+    def pending_legacy_reviews(self) -> list[dict[str, Any]]:
+        """Reviews waiting on a card of the earlier layout (no review-panel record): moved into the review panel at
+        the first start of the clean chat's re-post build (design §13)."""
+        from .review_panel import STATE
+        from .telegram_state import get
+        out = []
+        for approval in self.db.list_pending_approvals():
+            run = self.db.get_run(approval["run_id"]) or {}
+            if run.get("status") == "pending_approval" and run.get("master_video_path") and not get(self.db, STATE, approval["run_id"]):
+                out.append(run)
+        return out
+
+    def redeliver_review(self, run: dict[str, Any]) -> int | None:
+        """The review copy sent again (as a Resend does), into the review panel."""
+        root = Path(run["master_video_path"]).parent
+        proxy = root / "review_proxy.mp4"
+        video = proxy if proxy.is_file() else Path(run["master_video_path"])
+        cover = Path(run.get("thumbnail_cover_path") or root / "thumbnail_cover.jpg")
+        return self.send_approval_request(video, cover, run.get("script_payload") or {}, run["run_id"])
+
+    def legacy_message_ids(self) -> list[int]:
+        """Every message id the earlier layout recorded (design §13): alerts, review cards and albums, the timeout
+        and "Review waiting" notices, cards, media screens, the messages runs were mapped to."""
+        from .layout_repost import STUCK_KEY
+        ids: set = set(self.db.list_known_message_ids() if hasattr(self.db, "list_known_message_ids") else [])
+        with self.db._conn() as conn:
+            for namespace, key, value in conn.execute(
+                    "SELECT namespace, key, value FROM telegram_transport WHERE namespace IN "
+                    "('review-messages', 'timeout-notice', 'review-need-notice', 'message-run', 'review-cover')"):
+                try:
+                    data = json.loads(value)
+                except ValueError:
+                    data = None
+                if namespace == "message-run":
+                    tail = str(key).rpartition(":")[2]
+                    if tail.isdigit():
+                        ids.add(int(tail))
+                elif isinstance(data, list):
+                    ids.update(m for m in data if isinstance(m, int))
+                elif isinstance(data, int):
+                    ids.add(data)
+        for card in self.db.list_telegram_cards() if hasattr(self.db, "list_telegram_cards") else []:
+            if card.get("card_kind") == "layout":
+                continue
+            payload = card.get("payload") or {}
+            ids.update(m for m in (card.get("message_id"), payload.get("video_mid"), payload.get("card_mid"))
+                       if isinstance(m, int))
+        ids.update(self._media_ids())
+        stuck = set(json.loads(self.db.get_setting(STUCK_KEY) or "[]") or [])
+        return sorted(m for m in ids if isinstance(m, int) and m > 0 and m not in stuck)
+
+    def legacy_notices(self) -> list[dict[str, Any]]:
+        """The earlier chat's notices still in the chat (alerts not purged: persistent ones, and transient ones not
+        yet expired) younger than 48 hours, oldest first: {"id", "text", "message_id", "run", "kind", "actions"}
+        (design §13). The run is the one their message was mapped to, if any; the actions are the buttons the notice
+        carried when this build recorded them (_remember_actions), else none."""
+        from .telegram_state import get
+        now = datetime.now(UTC)
+        cutoff = now - timedelta(hours=48)
+        out = []
+        try:
+            with self.db._conn() as conn:
+                rows = [dict(r) for r in conn.execute(
+                    "SELECT id, message_id, text, kind, expires_at, created_at FROM alerts WHERE purged = 0 "
+                    "AND message_id IS NOT NULL AND kind IN ('persistent', 'transient') ORDER BY id")]
+        except Exception as e:  # noqa: BLE001 - no alerts table: nothing to move
+            log.debug("No earlier notices to move: %s", e)
+            return []
+        for row in rows:
+            try:
+                created = datetime.fromisoformat(str(row["created_at"]))
+                expires = datetime.fromisoformat(str(row["expires_at"])) if row.get("expires_at") else None
+            except ValueError:
+                continue
+            if created.tzinfo is None:
+                created = created.replace(tzinfo=UTC)
+            if expires is not None and expires.tzinfo is None:
+                expires = expires.replace(tzinfo=UTC)
+            if created < cutoff or not str(row.get("text") or "").strip():
+                continue
+            if row["kind"] == "transient" and expires is not None and expires <= now:   # gone with its lifetime
+                continue
+            key = f"{self.chat_id}:{row['message_id']}"
+            run = get(self.db, "message-run", key)
+            actions = get(self.db, LEGACY_ACTIONS_NS, key) or []
+            out.append({"id": row["id"], "text": row["text"], "message_id": row["message_id"], "run": run or None,
+                        "kind": row["kind"], "actions": [a for a in actions if isinstance(a, dict)]})
+        return out
+
+    def _remember_actions(self, message_id: Any, buttons: Any) -> None:
+        """A notice's own buttons, kept by its message id (the alerts table records only its text): when the clean
+        chat starts (§13) its Needs-you item offers the same actions instead of only Details or 📊 Status."""
+        from . import notifications as notes
+        actions = notes.actions_from(buttons)
+        if not (message_id and actions):
+            return
+        try:
+            from .telegram_state import put
+            put(self.db, LEGACY_ACTIONS_NS, f"{self.chat_id}:{message_id}", actions)
+        except Exception as e:  # noqa: BLE001 - a notice is never lost over its record
+            log.debug("Could not keep the notice's buttons: %s", e)
+
+    def chat_is_older_than_48h(self) -> bool:
+        """Whether the earlier chat holds messages the bot can no longer delete (its oldest recorded alert)."""
+        try:
+            with self.db._conn() as conn:
+                row = conn.execute("SELECT MIN(created_at) FROM alerts WHERE message_id IS NOT NULL").fetchone()
+            oldest = datetime.fromisoformat(str(row[0])) if row and row[0] else None
+        except Exception:  # noqa: BLE001 - unknown: no note
+            return False
+        if oldest is None:
+            return False
+        if oldest.tzinfo is None:
+            oldest = oldest.replace(tzinfo=UTC)
+        return datetime.now(UTC) - oldest > timedelta(hours=48)
+
+    def stopped_footer(self, line: str) -> bool:
+        """A clean stop: the dashboard's last line says the bot is stopped (design §7.3)."""
+        stored = self.db.get_setting("telegram_dashboard_id")
+        if not (stored and stored.isdigit()):
+            return False
+        with self._dashboard_lock:   # a dashboard edit (telegram_layout's lock order: taken before Layout._lock)
+            mid = self._current_panel(int(stored))
+            content = (getattr(self, "_content", {}) or {}).get(mid)
+            if not content or self._is_media(mid):
+                return False
+            text, buttons = content
+            return self.edit_message_text(mid, f"{text}\n\n<i>{html.escape(line)}</i>", buttons=buttons)
+
+    def service_stopped(self) -> None:
+        """The bot or daemon stops cleanly: said on the dashboard and in the service-state item, then the renderer
+        lease is released (the next process takes it at once), as close_layout does. The renderer thread stops
+        first, so nothing draws after the stop line; only the renderer says it (the lease)."""
+        layout = self.layout
+        try:
+            layout.halt()
+            if layout.is_renderer():
+                layout.repost.stopping()
+        except Exception as e:  # noqa: BLE001 - stopping goes on
+            log.warning("Could not say the bot stopped: %s", e)
+        finally:
+            layout.release()
+
+    def _notifications_tap(self, cq: dict[str, Any], command_handler) -> None:
+        """A tap on the notifications panel (n:<item>[:<verb>], np:<page>, nall, nundo). It acts in place with a
+        toast, or opens a dashboard screen in the dashboard; it never sends a message."""
+        from . import notifications as notes
+        data = cq.get("data", "")
+        action, _, rest = data.partition(":")
+        state = notes.view(self.db)
+        came_from = int(state.get("from") or 1) if state.get("item") else int(state.get("page") or 1)
+        answer = ""
+        dispatch = None
+        acting = None
+        if action == "np":
+            notes.set_view(self.db, int(rest) if rest.isdigit() else 1)
+        elif action == "nall":
+            ids = notes.dismiss_all_info(self.db)
+            notes.set_view(self.db, 1)
+            answer = f"{len(ids)} info dismissed. Undo for {notes.UNDO_SECONDS} s." if ids else "No info to dismiss"
+        elif action == "nundo":
+            answer = "Restored" if notes.undo_dismiss_all(self.db) else "Too late to undo"
+            notes.set_view(self.db, 1)
+        elif action == "n":
+            ref, _, verb = rest.partition(":")
+            item = notes.get(self.db, int(ref)) if ref.isdigit() else None
+            if not item:
+                answer = "That item has gone."
+                notes.set_view(self.db, 1)
+            elif not verb:
+                notes.set_view(self.db, came_from, item["id"], came_from)
+            elif item["state"] != notes.OPEN:
+                answer = "This has been dealt with."
+                notes.set_view(self.db, came_from, item["id"], came_from)
+            elif verb == notes.DISMISS:
+                notes.close(self.db, item["id"], notes.DISMISSED)
+                notes.set_view(self.db, came_from)
+                answer = "Dismissed"
+            elif notes.find_action(item, verb):
+                dispatch = notes.find_action(item, verb)["callback_data"]
+                if notes.opens_a_screen(dispatch):   # a screen: drawn in the dashboard, the item page stays
+                    notes.set_view(self.db, came_from, item["id"], came_from)
+                else:   # an action: the item closes only once it is done (_act_on_item)
+                    acting = item
+            else:
+                answer = "That button is no longer offered."
+        if acting is not None:
+            self._act_on_item(cq, acting, dispatch, command_handler, came_from)
+            return
+        if dispatch is None:
+            self._answer_callback(cq["id"], answer)
+        try:
+            self.layout.redraw()
+        except Exception as e:  # noqa: BLE001 - the tap's own action still runs
+            log.warning("Could not redraw the notifications panel: %s", e)
+        if dispatch is not None:
+            self._dispatch_in_dashboard(cq, dispatch, command_handler)
+
+    def _act_on_item(self, cq: dict[str, Any], item: dict[str, Any], callback: str, command_handler,
+                     came_from: int) -> None:
+        """An item's action (Re-render, Back to the queue, Retry, Resend for review ...), run as a tap on the dashboard.
+        The item closes only when the action was done (design §6.1, spec: Needs you stays until handled); when it
+        was refused or failed, the item stays open and its page says why, in the handler's own words (design §10.1).
+        The tap gets one toast saying what happened; nothing is sent as a message (design §6.1, §9)."""
+        from . import notifications as notes
+        kind, _, target = callback.partition(":")
+        acting = {"cq": cq["id"], "done": None, "reason": "", "said": "", "toasts": []}
+        token = _ITEM_ACTION.set(acting)
+        error = None
+        try:
+            self._dispatch_in_dashboard(cq, callback, command_handler)
+        except Exception as e:  # noqa: BLE001 - a failed action leaves its item open, saying why
+            error = e
+            log.warning("The item's %s action failed: %s", kind, _MASKER.mask(str(e)))
+        finally:
+            _ITEM_ACTION.reset(token)
+        done = acting["done"]
+        if done is None:
+            done = error is None and self._item_action_done(kind, target)
+        reason = acting["reason"] or acting["said"] or next((t for t in acting["toasts"] if t not in PLAIN_TOASTS), "") or (
+            f"it failed ({type(error).__name__}). Try again, or open Details." if error is not None else "")
+        now = notes.get(self.db, item["id"]) or item
+        if now.get("state") != notes.OPEN:   # the action took care of its item itself
+            notes.set_view(self.db, came_from)
+            toast = acting["said"] or next((t for t in acting["toasts"] if t not in PLAIN_TOASTS), "") or "Done"
+        elif done:
+            if not str(item.get("dedupe_key", "")).startswith("cond:"):   # a condition resolves itself
+                notes.close(self.db, item["id"], notes.HANDLED)
+            notes.set_view(self.db, came_from)
+            toast = acting["said"] or next((t for t in acting["toasts"] if t not in PLAIN_TOASTS), "") or "Done"
+        else:
+            notes.note(self.db, item["id"], reason or "the action did not run.")
+            notes.set_view(self.db, came_from, item["id"], came_from)
+            toast = notes.clip(notes.plain(reason), 190) or "Not done"
+        self._answer_callback(cq["id"], notes.clip(notes.plain(toast), 190))
+        try:
+            self.layout.redraw()
+        except Exception as e:  # noqa: BLE001 - the item is recorded; the next tick draws it
+            log.warning("Could not redraw the notifications panel: %s", e)
+
+    @staticmethod
+    def _item_outcome(done: bool, reason: str = "") -> None:
+        """A branch that ran an item's action says whether it was done (and if not, why)."""
+        acting = _ITEM_ACTION.get()
+        if acting is not None:
+            acting["done"] = bool(done)
+            acting["reason"] = "" if done else str(reason or "")
+
+    def _item_action_done(self, kind: str, target: str) -> bool:
+        """Whether an item's action did what its item asks, read from the recorded state where there is one (a
+        topic back in the queue, a booking posted); any other action that ran without an error is done."""
+        if kind in CLOSE_THEIR_ITEM:   # done means its item was closed by it (handled above)
+            return False
+        if kind in SAY_THEIR_OUTCOME:   # done only when its handler says so (notifications.Outcome)
+            return False
+        try:
+            if kind == "requeue":
+                return (self.db.get_topic_by_id(target.strip()) or {}).get("status") == "queued"
+            if kind == "retrypost" and target.strip().isdigit():
+                post = next((p for p in self.db.list_scheduled_posts(
+                    ("pending", "waiting", "published", "failed", "unknown", "cancelled", "expired", "blocked"))
+                    if p["id"] == int(target)), None)
+                return bool(post) and post.get("status") == "published"
+        except Exception as e:  # noqa: BLE001 - not known: the item stays open (never lost)
+            log.warning("Could not tell whether the %s action was done: %s", kind, e)
+            return False
+        return True
+
+    @staticmethod
+    def _item_reply(reply: Any) -> None:
+        """An item's action answered: its first line is what the toast (or, when not done, the item) says."""
+        acting = _ITEM_ACTION.get()
+        text = reply[0] if isinstance(reply, tuple) else reply
+        if acting is not None and not acting["said"] and isinstance(text, str) and text.strip():
+            from . import notifications as notes
+            acting["said"] = " ".join(notes.plain(text.strip().split("\n\n", 1)[0]).split())
+        if acting is not None and acting["done"] is None and getattr(text, "done", None) is not None:
+            # The handler said whether it was done (notifications.Outcome): its words are only what is shown
+            TelegramApprovalBot._item_outcome(bool(text.done), acting["said"])
+
+    def _say_reply(self, cq: dict[str, Any], reply: Any) -> None:
+        """The clean chat's answer to a tap whose reply only acknowledges (Back to the queue, Resend for review):
+        the callback's toast when it fits (≤ 190 characters) and the tap is not answered yet, else a line drawn in
+        the dashboard. Never a message (design §6.1, §9: "No other ring")."""
+        from . import notifications as notes
+        text = reply[0] if isinstance(reply, tuple) else reply
+        if not (isinstance(text, str) and text.strip()):
+            return
+        plain_text = " ".join(notes.plain(text).split())
+        acting = _ITEM_ACTION.get()
+        if acting is not None and acting["cq"] == cq.get("id"):
+            acting["said"] = plain_text
+            if len(plain_text) <= 190:
+                return
+        elif len(plain_text) <= 190 and cq.get("id") not in self._answered:
+            self._answer_callback(cq["id"], plain_text)
+            return
+        self.show_dashboard(text, [[DONE_BUTTON]])
+
+    def dashboard_idle_tick(self, now: float | None = None) -> bool:
+        """Back home by itself (design §6.2): after 15 minutes without a tap the dashboard returns to its home
+        screen; 30 minutes while typed input is armed or a wizard (upload, music review) is mid-step."""
+        if not config.TELEGRAM_CLEAN_CHAT:
+            return False
+        from .telegram_layout import HOME_IDLE_BUSY_SECONDS, HOME_IDLE_SECONDS
+        from .telegram_ui import NOT_REPLAYABLE
+        now = time.time() if now is None else now
+        stored = self.db.get_setting("telegram_dashboard_id")
+        if not (stored and stored.isdigit()):
+            return False
+        mid = self._current_panel(int(stored))
+        screen = self._panel_screen.get(mid)
+        if not screen or screen.partition(":")[0] == "cdash":
+            return False
+        busy = bool(self._awaiting) or screen.partition(":")[0] in NOT_REPLAYABLE
+        if now - float(getattr(self, "_dashboard_touched", now)) < (HOME_IDLE_BUSY_SECONDS if busy else HOME_IDLE_SECONDS):
+            return False
+        with self._panel_lock:
+            self._panel_screen[mid] = "cdash:"
+            self._panel_trail[mid] = ["cdash:"]
+        self.show_dashboard()
+        return True
+
+    def _dispatch_in_dashboard(self, cq: dict[str, Any], callback: str, command_handler) -> None:
+        """Runs an item's action as a tap on the dashboard, so its screen or result is drawn there (the item
+        page stays where it is)."""
+        stored = self.db.get_setting("telegram_dashboard_id")
+        if not (stored and stored.isdigit()):
+            self.show_dashboard()
+            stored = self.db.get_setting("telegram_dashboard_id")
+        if not (stored and stored.isdigit()):
+            self._answer_callback(cq["id"], "The dashboard is not available; open it with /dashboard")
+            return
+        from .telegram_ui import step
+        with self._panel_lock:
+            mid = self._current_panel(int(stored))
+            self._panel_revisions[mid] = self._panel_revisions.get(mid, 0) + 1
+            revision = self._panel_revisions[mid]
+            self._panel_origin[mid] = self._panel_screen.get(mid)
+            self._panel_screen[mid] = callback
+            self._panel_trail[mid] = step(self._panel_trail.get(mid, []), callback)
+        message = {"message_id": mid, "chat": {"id": self.chat_id}}
+        update = {"callback_query": {"id": cq["id"], "from": cq.get("from") or {}, "message": message,
+                                     "data": callback, "_revision": revision}}
+        self._process_update(update, command_handler)
 
     # ------------------------------------------------------------ live render progress
     def progress_mode(self, run_id):
@@ -2401,15 +4164,15 @@ class TelegramApprovalBot:
             f"<b>{html.escape(topic_title)}</b> · started {show_time(None, '%H:%M')}\n\n"
             f"🔄 <b>Step 1/5:</b> <i>{PROGRESS_STEPS[0]}...</i>\n"
             + "".join(f"◽ <b>Step {n}/5:</b> {m}\n" for n, m in enumerate(PROGRESS_STEPS[1:], start=2)) + "\n"
-            f"Progress: <code>[{bar}] {pct}%</code>\n"
-            f"⏱ <b>Elapsed:</b> 00:00 · <b>Time left:</b> {eta}"
+            + ("" if clean_chat() else f"Progress: <code>[{bar}] {pct}%</code>\n")   # the clean chat: no bar (§6.4)
+            + f"⏱ <b>Elapsed:</b> 00:00 · <b>Time left:</b> {eta}"
         )
         text = self.progress_mode(run_id) + "\n\n" + text
-        buttons = [[{"text": "🔄 Refresh", "callback_data": f"cprog:{self.db.run_key(run_id)}"}, {"text": "⏹ Cancel run", "callback_data": f"runstop:{self.db.run_key(run_id)}"}], [DONE_BUTTON]]
+        buttons = self._progress_buttons(run_id)
         markup = {"inline_keyboard": format_responsive_keyboard(buttons)}
         try:
             from .telegram_state import get as state_get, put as state_put
-            reuse = state_get(self.db, "progress-reuse", run_id)
+            reuse = state_get(self.db, "progress-reuse", run_id) if not clean_chat() else None
             mid = None
             if reuse:  # a re-render tapped on a card: that card becomes the progress card
                 state_put(self.db, "progress-reuse", run_id, "")
@@ -2431,6 +4194,12 @@ class TelegramApprovalBot:
                 from .card_ledger import record as record_card
                 put(self.db, "message-run", f"{self.chat_id}:{mid}", run_id)
                 record_card(run_id, "progress", text, buttons, mid)
+                self.__dict__.setdefault("_content", {})[mid] = (text, copy.deepcopy(buttons))
+                if clean_chat():   # a layout row: the reaper deletes it if its run ends without its finisher
+                    from .process_state import identity
+                    from .telegram_layout import put_slot
+                    put_slot(self.db, f"progress:{run_id}", mid, owner_pid=os.getpid(),
+                             owner_identity=identity(os.getpid()))   # the process making the run (design §5.6)
                 self._last_progress_edit[mid] = time.monotonic()
                 self._last_progress_step[mid] = 1
                 if hasattr(self.db, "set_active_progress"):
@@ -2463,6 +4232,12 @@ class TelegramApprovalBot:
         # Redrawn outright: editing the card just deleted only produced "message to edit not found" first.
         self.update_progress_card(old, active.get("step", 1), active.get("total_steps", 5), active.get("topic_title", ""),
                                   active["run_id"], active.get("details", ""), redraw=True)
+        new = self._live_progress_card(active["run_id"])
+        if clean_chat() and new and new != old:   # the layout row follows the panel (its finisher and the reaper)
+            from .telegram_layout import SLOT_PREFIX, put_slot
+            card = self.db.get_telegram_card(SLOT_PREFIX + f"progress:{active['run_id']}") or {}
+            extra = {k: v for k, v in (card.get("payload") or {}).items() if k != "sent_at"}
+            put_slot(self.db, f"progress:{active['run_id']}", new, **extra)
         return True
 
     def _live_progress_card(self, run_id: str) -> Optional[int]:
@@ -2519,7 +4294,8 @@ class TelegramApprovalBot:
             else:
                 lines.append(f"◽ <b>Step {idx}/{total_steps}:</b> {m}")
 
-        lines.append(f"\nProgress: <code>[{bar}] {pct}%</code>")
+        if not clean_chat():   # the clean chat drops the bar (design §6.4): the stages say it
+            lines.append(f"\nProgress: <code>[{bar}] {pct}%</code>")
         lines.append(f"⏱ <b>Elapsed:</b> {elapsed_sec // 60:02d}:{elapsed_sec % 60:02d} · <b>Time left:</b> {eta}")
 
         lines.insert(1, self.progress_mode(run_id))
@@ -2527,7 +4303,7 @@ class TelegramApprovalBot:
         self._last_progress_edit[message_id] = now
         self._last_progress_step[message_id] = step
 
-        buttons = [[{"text": "🔄 Refresh", "callback_data": f"cprog:{self.db.run_key(run_id)}"}, {"text": "⏹ Cancel run", "callback_data": f"runstop:{self.db.run_key(run_id)}"}], [DONE_BUTTON]]
+        buttons = self._progress_buttons(run_id)
 
         # Keep DB updated with real-time active progress
         if hasattr(self.db, "set_active_progress"):
@@ -2598,6 +4374,8 @@ class TelegramApprovalBot:
             self.db.clear_active_progress(run_id)
         if not self.is_configured() or not message_id:
             return False
+        if clean_chat():
+            return self._end_progress_panel(message_id, run_id, success, error)
         if not success:
             run = self.db.get_run(run_id)
             if run and run.get("status") == "cancelled":
@@ -2641,6 +4419,155 @@ class TelegramApprovalBot:
             return self.edit_message_text(message_id, text, buttons=buttons)
         else:
             return self.delete_message(message_id)
+
+    def _progress_buttons(self, run_id: str) -> list:
+        """The progress panel's keyboard. The clean chat (UI-01c): Cancel run alone (no Refresh: it redraws
+        itself; no 🏠: the dashboard is just above), or, for 5 minutes after it is tapped, its confirmation
+        ← Keep making · Cancel run. The earlier chat: Refresh, Cancel run and 🏠."""
+        key = self.db.run_key(run_id)
+        if not clean_chat():
+            return [[{"text": "🔄 Refresh", "callback_data": f"cprog:{key}"},
+                     {"text": "⏹ Cancel run", "callback_data": f"runstop:{key}"}], [DONE_BUTTON]]
+        asked = getattr(self, "_stop_asked", {}).get(run_id)
+        if asked and time.time() - asked < STOP_CONFIRM_SECONDS:
+            return [[{"text": "← Keep making", "callback_data": f"pkeep:{key}"},
+                     {"text": "Cancel run", "style": "danger", "callback_data": f"pstopok:{key}"}]]
+        return [[{"text": "Cancel run", "callback_data": f"pstop:{key}"}]]
+
+    def _progress_tap(self, cq: dict[str, Any]) -> None:
+        """Cancel run on the progress panel: the confirmation replaces only its keyboard (design §6.4)."""
+        action, _, ref = cq.get("data", "").partition(":")
+        run_id = self.db.resolve_run(ref)
+        mid = (cq.get("message") or {}).get("message_id")
+        stops = self.__dict__.setdefault("_stop_asked", {})
+        if action == "pstop":
+            stops[run_id] = time.time()
+            self._answer_callback(cq["id"], "Cancel this run? It stops at the next step; what was made and paid for "
+                                            "is kept, and the topic goes back in the queue.")
+        elif action == "pkeep":
+            stops.pop(run_id, None)
+            self._answer_callback(cq["id"], "Still making it")
+        else:
+            stops.pop(run_id, None)
+            accepted = self.db.request_run_cancel(run_id)
+            self._answer_callback(cq["id"], "Cancel requested: it stops at the next step." if accepted
+                                  else "This run is no longer being made; nothing was cancelled.")
+            if accepted and mid:
+                self._api("editMessageReplyMarkup", data={"chat_id": self.chat_id, "message_id": mid,
+                                                          "reply_markup": json.dumps({"inline_keyboard": []})})
+                return
+        if mid:
+            self._api("editMessageReplyMarkup", data={"chat_id": self.chat_id, "message_id": mid, "reply_markup":
+                                                      json.dumps({"inline_keyboard": self._progress_buttons(run_id)})})
+
+    def _end_progress_panel(self, message_id: int, run_id: str, success: bool, error: str) -> bool:
+        """The clean chat (UI-01c): the progress panel lives exactly as long as its run. It is deleted at the end;
+        a failure becomes the Needs-you item "❌ <heading> · <title>" (Re-render, or Back to the queue when nothing
+        is worth keeping, · Details) and rings once; a cancel becomes an info item. Returns True: the ending was
+        said (so no second failure alert is sent)."""
+        from . import notifications as notes
+        from .telegram_layout import drop_slot
+        self.delete_message(message_id)
+        drop_slot(self.db, f"progress:{run_id}")
+        if success:
+            return True
+        run = self.db.get_run(run_id) or {}
+        label = self.db.run_label(run_id)
+        if run.get("status") == "cancelled":
+            notes.post(self.db, notes.INFO, f"cancel:{run_id}", "Render cancelled", emoji="⏹️", subject=label, run=run_id,
+                       body="Stopped at a step boundary. What was made and paid for is kept; the topic is back in the queue.")
+        else:
+            from .config import OUTPUT_DIR
+            from .control import failed_heading, short_reason
+            from .resume_points import kept_phrase, worth_resuming
+            late = bool(run) and worth_resuming(OUTPUT_DIR / run_id, run)
+            kept = kept_phrase(OUTPUT_DIR / run_id, run) if late else ""
+            reason = html.escape(short_reason(error, 1000))
+            if late:
+                body = f"Nothing was posted. Re-render continues from where it stopped, keeping {html.escape(kept)}.\n{reason}"
+                actions = [{"text": "Re-render", "callback_data": f"rerender:{self.db.run_key(run_id)}"}]
+            else:
+                body = ("Nothing was posted. It stopped before its script passed the fact check, so nothing is worth "
+                        f"keeping; the topic is set aside.\n{reason}")
+                actions = ([{"text": "Back to the queue", "callback_data": f"requeue:{run['topic_id']}"}]
+                           if run.get("topic_id") else [])
+            actions.append({"text": "Details", "callback_data": f"chist:{self.db.run_key(run_id)}"})
+            notes.post(self.db, notes.NEEDS, f"fail:{run_id}", failed_heading(self.db, run_id), body, emoji="❌",
+                       subject=label, actions=actions, run=run_id, replace=True)
+        self.layout.kick()
+        return True
+
+    def reap_progress_panels(self, now: float | None = None) -> int:
+        """The reaper (design §5.6, §7.4; the renderer runs it every 60 s). A progress panel goes when its run is
+        no longer being made and its finisher did not remove it (after REAP_GRACE_SECONDS, so the finisher always
+        has its turn), or when the process making the run has died (its recorded pid is gone or is another
+        process now): that run is marked interrupted, its topic goes back in the queue, and it becomes the
+        Needs-you item "⚠️ Run interrupted" under its failure key, so a worker-crash notice or the start-up
+        clearing for the same run are the same item. A cancelled run is the info item "⏹️ Render cancelled"."""
+        from . import notifications as notes
+        from .telegram_layout import SLOT_PREFIX, drop_slot
+        now = time.time() if now is None else now
+        reaped = 0
+        for card in self.db.list_telegram_cards(topic_id=0, card_kind="layout"):
+            name = str(card.get("card_id", "")).removeprefix(SLOT_PREFIX)
+            if not name.startswith("progress:"):
+                continue
+            run_id = name.partition(":")[2]
+            run = self.db.get_run(run_id) or {}
+            status = run.get("status")
+            if status == "producing":
+                if not self._run_owner_dead(card.get("payload") or {}, run_id):
+                    continue
+                self._mark_interrupted(run)
+                status = "interrupted"
+            elif run and now - _age_anchor(run) < REAP_GRACE_SECONDS:
+                continue   # just ended: its own process is still finishing it
+            self.delete_message(int(card["message_id"]))
+            drop_slot(self.db, name)
+            reaped += 1
+            label = self.db.run_label(run_id) if run else run_id
+            if status == "cancelled":
+                if not notes.has_open(self.db, f"cancel:{run_id}"):
+                    notes.post(self.db, notes.INFO, f"cancel:{run_id}", "Render cancelled", emoji="⏹️", subject=label,
+                               run=run_id, body="Stopped at a step boundary. What was made and paid for is kept.")
+            elif (status in ("failed", "timed_out", "interrupted") or not run) and not notes.has_open(self.db, f"fail:{run_id}"):
+                notes.post(self.db, notes.NEEDS, f"fail:{run_id}", "Run interrupted", emoji="⚠️", subject=label,
+                           run=run_id, body="The process making it ended before it finished. Nothing was posted; the "
+                                            "topic is back in the queue.",
+                           actions=notes.failure_actions(self.db, run_id))
+        return reaped   # the renderer's tick draws the panel right after (no kick: it runs under Layout._lock)
+
+    def _run_owner_dead(self, payload: dict[str, Any], run_id: str) -> bool:
+        """Whether the process recorded as making run_id has ended: its pid is gone, or is now another process
+        (a different creation identity). A process that cannot be checked ("unknown") is never declared dead on a
+        guess, as main.reconcile_interrupted_runs decides."""
+        from .process_state import identity
+        pid, owner = payload.get("owner_pid"), payload.get("owner_identity")
+        if not pid:
+            try:
+                record = json.loads(self.db.get_setting("run_owner:" + run_id) or "{}")
+            except ValueError:
+                record = {}
+            pid, owner = record.get("pid"), record.get("identity")
+        if not pid:
+            return False
+        observed = identity(int(pid))
+        if observed is None:
+            return True
+        return observed != "unknown" and bool(owner) and owner != "unknown" and observed != owner
+
+    def _mark_interrupted(self, run: dict[str, Any]) -> None:
+        """The run whose process died: failed as interrupted, its progress record cleared, its topic back in the
+        queue (the start-up reconcile's own steps, main.reconcile_interrupted_runs)."""
+        from .worker_deadline import forget
+        run_id = run["run_id"]
+        self.db.update_run(run_id, "failed", error=INTERRUPTED_ERROR)
+        if hasattr(self.db, "clear_active_progress"):
+            self.db.clear_active_progress(run_id)
+        if run.get("topic_id") and hasattr(self.db, "record_topic_status"):
+            self.db.record_topic_status(run["topic_id"], "queued", run_id=run_id)
+        forget(self.db, run_id)
+        log.warning("Run %s was interrupted (its process ended); marked failed, topic back in the queue.", run_id)
 
     def delete_message(self, message_id: int) -> bool:
         """Deletes a message from Telegram. Returns True if deleted, False otherwise."""
@@ -2765,6 +4692,8 @@ class TelegramApprovalBot:
         if not self.is_configured() or not message_id:
             return False
         content = (text, copy.deepcopy(buttons))  # a caller may change its list after a queued edit returns
+        self.__dict__.setdefault("_content", {})[message_id] = content   # a re-post sends this copy (UI-01f)
+        self._mark_counting(message_id, text)
         with self._edit_lock:  # the order edits were asked for: the latest content wins a hold
             self._edit_seq += 1
             seq = self._edit_seq
@@ -3060,6 +4989,8 @@ class TelegramApprovalBot:
         """Strips inline action buttons from a run's review card in Telegram."""
         if not self.is_configured():
             return False
+        if clean_chat():
+            return self.review.refresh()   # the review leaves the pager; the panel goes with the last one (UI-01e)
         appr = self.db.get_approval(run_id) if hasattr(self.db, "get_approval") else None
         if not appr or not appr.get("telegram_message_id"):
             return False
@@ -3076,6 +5007,20 @@ class TelegramApprovalBot:
     def timeout_notice(self, run_id: str) -> None:
         """Says a review closed without a decision, with Resend: from the wait, and from the stale sweep (which
         closed reviews silently: their buttons just went, 2026-10-25)."""
+        if clean_chat():
+            # The run's own Needs-you item (UI-01e, design §6.5, mock-up 3), said through notifications.say under the
+            # run's failure key fail:<run> (UI-01a's §10.2 rule: one item per run, replacing an earlier one), with
+            # Resend for review · Details; it resolves itself once resent (notice_conditions.sync).
+            from . import notifications as notes
+            key = self.db.run_key(run_id)
+            notes.say(self.notify, f"⏰ <b>Review timed out</b> · {html.escape(self.db.run_label(run_id))}\n\n"
+                      "No decision came within the review window, so nothing was posted. The render is kept: "
+                      "resend it for review, or reject it later from 🎬 Reviews.",
+                      group="needs", key=f"fail:{run_id}", run=run_id, replace=True,
+                      subject=self.db.run_label(run_id),
+                      actions=[{"text": "Resend for review", "callback_data": f"resend:{key}"},
+                               {"text": "Details", "callback_data": f"chist:{key}"}])
+            return
         notice = self.notify(f"⌛ No decision on {html.escape(self.db.run_label(run_id))}; nothing was posted. "
                              "The render is kept: resend it here, or later from Reviews on the dashboard.",
                              buttons=[{"text": "📨 Resend for review", "callback_data": f"resend:{self.db.run_key(run_id)}"}],
@@ -3124,7 +5069,7 @@ class TelegramApprovalBot:
         now = time.time()
         if hasattr(self.db, "sweep_expired_telegram_cards"):
             try:
-                self.db.sweep_expired_telegram_cards(now)
+                self.db.sweep_expired_telegram_cards()   # its own age rule (it was given the time as max_age_hours)
             except Exception as e:
                 log.debug("sweep_expired_telegram_cards failed: %s", e)
 
@@ -3149,7 +5094,7 @@ class TelegramApprovalBot:
                             ts = float(updated_at)
                         except Exception:
                             ts = 0.0
-                if status in ("approved", "rejected", "archived") and ts < cutoff:
+                if status in ("approved", "rejected") and ts < cutoff:   # an archived card is gone already
                     mids = [m for m in (payload.get("video_mid"), payload.get("card_mid"), card.get("message_id")) if isinstance(m, int)]
                     if mids:
                         self.delete_messages(list(set(mids)))
@@ -3441,6 +5386,11 @@ class TelegramApprovalBot:
         # Updates that arrived while the bot was down are processed, not skipped: an Approve tap
         # during a restart must not be lost (decisions are first-wins, so a replay is harmless).
         # Only commands older than STALE_COMMAND_SECONDS are dropped, so a day-old /run doesn't fire.
+        from .review_panel import REVIEW_ACTIONS
+        from .telegram_layout import NOTE_ACTIONS, PROGRESS_ACTIONS
+        clean = config.TELEGRAM_CLEAN_CHAT and self.is_configured()
+        if clean:
+            self.layout.start()   # the long-running bot renders the layout (telegram_layout)
         data = {"timeout": timeout, "allowed_updates": json.dumps(["callback_query", "message"])}
         if self._offset is not None:
             data["offset"] = self._offset
@@ -3454,6 +5404,8 @@ class TelegramApprovalBot:
                     continue
                 self._offset = max(self._offset or 0, update["update_id"] + 1)
                 cq = update.get("callback_query")
+                if clean:   # UI-01f: idle moments, the gap sweep's bound and the messages being read
+                    self._note_update(update)
                 if cq:
                     cq["data"] = decode(self.db, cq.get("data", ""))
                     if offline and self._stale_tap(cq["data"]):
@@ -3471,12 +5423,38 @@ class TelegramApprovalBot:
                             if cq.get("data") and not cq["data"].startswith(("jobcancel:", "jobs:")):
                                 self._panel_origin[mid] = self._panel_screen.get(mid)  # where this button was
                                 self._panel_screen[mid] = cq["data"]
+                                self._dashboard_touched = time.time()
                             if cq.get("data"):
                                 from .telegram_ui import step
                                 self._panel_trail[mid] = step(self._panel_trail.get(mid, []), cq["data"])
                             self._record_kind(mid, media=bool(message.get("photo") or message.get("audio") or message.get("video") or message.get("document") or message.get("animation")))
                 msg = update.get("message") or {}
                 action = (cq or {}).get("data", "").partition(":")[0]
+                if clean and msg.get("pinned_message") and str((msg.get("chat") or {}).get("id")) == str(self.chat_id):
+                    # The service line a pin leaves ("… pinned 🔔 …") goes at once (design §5.2).
+                    self._delete_soon(msg.get("message_id"))
+                    continue
+                if clean and cq and action in PROGRESS_ACTIONS:
+                    message = cq.get("message") or {}
+                    if self._authorized(cq.get("from", {}).get("id"), message.get("chat", {}).get("id")):
+                        self._queue_navigation(lambda tap=cq: self._progress_tap(tap))
+                    else:
+                        self._answer_callback(cq["id"], "Not authorized.")
+                    continue
+                if clean and cq and action in REVIEW_ACTIONS:
+                    message = cq.get("message") or {}
+                    if self._authorized(cq.get("from", {}).get("id"), message.get("chat", {}).get("id")):
+                        self._queue_navigation(lambda tap=cq: self.review.tap(tap, command_handler))
+                    else:
+                        self._answer_callback(cq["id"], "Not authorized.")
+                    continue
+                if clean and cq and action in NOTE_ACTIONS:
+                    message = cq.get("message") or {}
+                    if self._authorized(cq.get("from", {}).get("id"), message.get("chat", {}).get("id")):
+                        self._queue_navigation(lambda tap=cq: self._notifications_tap(tap, command_handler))
+                    else:
+                        self._answer_callback(cq["id"], "Not authorized.")
+                    continue
                 media_upload = msg.get("caption") and any(msg.get(k) for k in ("photo","document","video","audio","voice"))
                 if (media_upload and self._authorized(msg.get("from",{}).get("id"), msg.get("chat",{}).get("id"))) or action in {"cov","covlock"}:
                     if cq:
@@ -3503,6 +5481,7 @@ class TelegramApprovalBot:
         sent = (update.get('message') or {}).get('date')
         if sent and time.time() - sent > STALE_COMMAND_SECONDS:
             log.info('Skipping a message sent %d min ago while the bot was offline.', (time.time() - sent) // 60)
+            self._leave_unanswered(update.get('message') or {}, stale=True)   # not replayed, not left, and said
             return
         cq = update.get('callback_query')
         if cq:
@@ -3519,6 +5498,10 @@ class TelegramApprovalBot:
             if not ok:
                 self._answer_callback(cq['id'], 'Not authorized.')
                 return
+            from .review_panel import REVIEW_ACTIONS
+            if action in REVIEW_ACTIONS and clean_chat():
+                self.review.tap(cq, command_handler)
+                return
             if action == 'cprog' and self.bring_progress_down():
                 self._answer_callback(cq['id'], 'Progress card moved to the bottom')
                 return
@@ -3530,7 +5513,7 @@ class TelegramApprovalBot:
                     from .config import ASSETS_DIR
                     dash_text, dash_buttons = dashboard_text_and_buttons(self.db, getattr(self, 'next_run_func', lambda: None)(), assets_dir=ASSETS_DIR)
                     is_media = bool(msg.get('photo') or msg.get('audio') or msg.get('video') or msg.get('document'))
-                    if self.show_navigation_panel(msg['message_id'], dash_text, dash_buttons, is_media):
+                    if self.show_navigation_panel(msg['message_id'], dash_text, dash_buttons, is_media) and not clean_chat():
                         self.db.set_setting('telegram_dashboard_id', str(self._current_panel(msg['message_id'])))
                 return
             if action == 'ccov' and target:
@@ -3615,6 +5598,12 @@ class TelegramApprovalBot:
                 msg = cq.get('message') or {}
                 msg_id = msg.get('message_id')
                 is_media = bool(msg.get('photo') or msg.get('audio') or msg.get('video') or msg.get('document'))
+                if clean_chat() and msg_id and action in PANEL_ACTIONS and msg_id == self.review.message():
+                    # A screen asked for from the review panel (UI-01e: 🖼 Preview carousel, QF-81; 🎨 Covers) is
+                    # drawn in the dashboard: the review panel's video and caption are never drawn over.
+                    opened = self._typed_panel()
+                    if opened:
+                        msg_id, is_media = opened[0], opened[1]
                 if action in {'jobs', 'jobcancel'}:
                     note = ''
                     cancelled = cq.get('_cancelled') if action == 'jobs' else (self.jobs.cancel(target) if action == 'jobcancel' else None)
@@ -3654,17 +5643,29 @@ class TelegramApprovalBot:
                         self._strip_buttons(msg_id)
                     reply = command_handler(action, target)
                     text = reply[0] if isinstance(reply, tuple) else (reply or "")
-                    started = "already" not in text.lower() and not text.startswith("🔁 That") and "Not" not in text[:12]
+                    from_item = _ITEM_ACTION.get() is not None
+                    told = getattr(text, "done", None)   # the handler's outcome (notifications.Outcome), not its words
+                    if told is not None:
+                        started = bool(told)
+                    elif from_item:   # a handler that does not say: its item stays open (never lost)
+                        started = False
+                    else:   # the earlier chat's reading of a reply that does not say (origin/main)
+                        started = "already" not in text.lower() and not text.startswith("🔁 That") and "Not" not in text[:12]
+                    self._item_outcome(started, text)   # from an item: it stays open, saying why, when not started
                     if card and started:
                         put(self.db, "progress-reuse", run_id, str(card))
                         self.edit_message_text(card, text, buttons=[[DONE_BUTTON]])
+                    elif text and from_item:
+                        pass   # the item's page says why (and the toast)
+                    elif text and clean_chat():
+                        self.show_dashboard(text, [[DONE_BUTTON]])
                     elif text:
                         self.notify(text, buttons=[[DONE_BUTTON]], record_alert=False, transient=True, group="studio")
                     self._answer_callback(cq['id'], 'Re-render started' if started else 'Not started')
-                    if on_dashboard:
+                    if on_dashboard and (started or not clean_chat()):   # a refusal is never drawn over
                         self.show_dashboard()
                     return
-                if action in {'fetchimages', 'filmfind', 'caccounts', 'mfetch', 'cstat', 'ccov', 'cmusic', 'mreview', 'review', 'cdisc', 'cprop', 'uadd', 'tadd', 'edittext', 'mkeep', 'mdel', 'mnext', 'mreview', 'mlibrary'}:
+                if action in {'ccar', 'fetchimages', 'filmfind', 'caccounts', 'mfetch', 'cstat', 'ccov', 'cmusic', 'mreview', 'review', 'cdisc', 'cprop', 'uadd', 'tadd', 'edittext', 'mkeep', 'mdel', 'mnext', 'mreview', 'mlibrary'}:
                     self._answer_callback(cq['id'], 'Working; you can keep using the bot')
                     revision = cq.get('_revision', self._panel_revisions.get(self._current_panel(msg_id), 0))
                     if action == 'fetchimages':
@@ -3695,6 +5696,7 @@ class TelegramApprovalBot:
                             _PANEL.reset(token)
                     if token is not None and panel[3]:
                         reply = ''
+                    self._item_reply(reply)   # an item's action: what its toast (or its page) says
                     self._answer_callback(cq['id'], 'Request checked')
                     if isinstance(reply, tuple):
                         text, buttons = reply
@@ -3711,6 +5713,8 @@ class TelegramApprovalBot:
                         next_fn = getattr(self, 'next_run_func', lambda: None)
                         dash_text, dash_buttons = dashboard_text_and_buttons(self.db, next_fn(), assets_dir=ASSETS_DIR)
                         self.show_navigation_panel(msg_id, dash_text, is_media=is_media, buttons=dash_buttons)
+                    elif action in NUDGE_REPLIES and clean_chat():
+                        self._say_reply(cq, reply)   # a toast, or a dashboard line: never a message (design §6.1)
                     elif action in NUDGE_REPLIES:
                         if msg_id and action in NOTICE_ACTIONS and not self._is_dashboard(msg_id):
                             self.delete_message(msg_id)  # the notice that offered it (timed out, reminder)
@@ -3734,9 +5738,16 @@ class TelegramApprovalBot:
                         from .telegram_ui import nav, parent_of
                         if msg_id and action in PANEL_ACTIONS:
                             self.show_navigation_panel(msg_id, reply, is_media=is_media, buttons=nav(self.back_for(msg_id, f"{action}:{target}")))
+                        elif _ITEM_ACTION.get() is not None:   # an item's action: its answer in the dashboard
+                            if _ITEM_ACTION.get()["done"] is not False:   # a refusal: the item's page says why
+                                self.show_dashboard(reply, [[DONE_BUTTON]])
                         else:
                             self.notify(reply, buttons=[[DONE_BUTTON]], record_alert=False, group="studio")
                 except Exception as e:
+                    if _ITEM_ACTION.get() is not None:   # an item's action: the item stays open and says why
+                        log.warning('The item action %s failed: %s', action, _MASKER.mask(str(e)))
+                        self._item_outcome(False, f'it failed: {str(e)[:150]}')
+                        return
                     self._answer_callback(cq['id'], 'Failed')
                     if action in PANEL_ACTIONS:
                         log.warning('Navigation %s failed: %s', action, _MASKER.mask(str(e)))
@@ -3750,6 +5761,16 @@ class TelegramApprovalBot:
                         self.notify(f'⚠️ {html.escape(what)} did not work: {html.escape(str(e)[:300])}', group="studio")
             return
         msg = update.get('message') or {}
+        typed = (msg.get('text') or '').strip()
+        if (clean_chat() and typed and not typed.startswith('/') and self.review.armed()
+                and self._authorized(msg.get('from', {}).get('id', ''), msg.get('chat', {}).get('id', ''))
+                and (msg.get('reply_to_message') or {}).get('message_id') in (None, self.review.message())):
+            # The review panel asked for words (UI-01e, design §6.6): the next plain text, or a reply to the panel,
+            # answers it; the message leaves once read and the panel shows the answer.
+            self._delete_soon(msg.get('message_id'))
+            if command_handler is not None:
+                self.review.typed(typed, command_handler)
+            return
         if self._authorized(msg.get('from', {}).get('id', ''), msg.get('chat', {}).get('id', '')):
             chat, user = (msg['chat']['id'], msg['from']['id'])
             wizard = self.image_wizard()
@@ -3759,18 +5780,30 @@ class TelegramApprovalBot:
             upload_match = re.match(r'^/photos\s+(?:upload\s+(\S.*)|(\S+)\s+upload)\s*$', text, re.IGNORECASE)
             if upload_match:
                 ref = upload_match.group(1) or upload_match.group(2)
-                panel = self.notify('Preparing image upload…', record_alert=False, group="studio")
+                target = self._typed_panel() if clean_chat() else None
+                if target:
+                    # The clean chat (design §6.2, §10.1 "Upload wizard step sent fresh -> D"): the wizard opens in
+                    # the dashboard, as the button path does; its screen is the wizard (the 30-min return home).
+                    panel = target[0]
+                    with self._panel_lock:
+                        self._panel_screen[panel] = f"upload:{ref}"
+                else:
+                    panel = self.notify('Preparing image upload…', record_alert=False, group="studio")
                 try:
                     state = wizard.begin(chat, user, ref, panel)
                     self.show_upload(state)
                 except ValueError as exc:
                     self.show_navigation_panel(panel, html.escape(str(exc)), [[DONE_BUTTON]])
+                if clean_chat() and msg.get('message_id'):
+                    self._delete_soon(msg['message_id'])   # read and answered in the dashboard: it leaves (§6.7)
                 return
             if state and (image or (text and (not text.startswith('/')) and (not msg.get('reply_to_message')))):
                 if image and state['stage'] == 'file':
                     state['_navigation_revision'] = self._panel_revisions.get(self._current_panel(state['message_id']), 0)
                     self.jobs.submit(self._background(), 'Receiving image', lambda: self.receive_guided_image(msg, image, state), lambda job, result: False, resource=f"guided-image:{chat}:{user}")
                 elif image:
+                    if clean_chat() and msg.get('message_id'):   # answered in the upload panel: it leaves (UI-01d)
+                        self._delete_soon(msg['message_id'])
                     self.show_upload(state, 'The image was already received. Please answer the current prompt.')
                 elif text:
                     if msg.get('message_id'):
@@ -3796,14 +5829,20 @@ class TelegramApprovalBot:
                 ref, rights = parse_caption(image_caption.partition(' ')[2])
                 content = self.download_image(image_item)
                 topic_id = add_image(self.db, config.ASSETS_DIR, ref, rights, content, msg.get('from', {}).get('id'))
-                self.notify(f'🖼 Image saved for <code>{html.escape(topic_id)}</code>. The set needs human review.', buttons=[[{'text': 'Review set', 'callback_data': f'review:{ref}'}], [DONE_BUTTON]], record_alert=False, group="studio")
+                self._upload_reply(msg, f'🖼 Image saved for <code>{html.escape(topic_id)}</code>. The set needs human review.', buttons=[[{'text': 'Review set', 'callback_data': f'review:{ref}'}], [DONE_BUTTON]], record_alert=False, group="studio")
             except Exception as exc:
                 message = str(exc) if isinstance(exc, ValueError) else type(exc).__name__
-                self.notify(f'⚠️ Image upload failed: {html.escape(message)}', buttons=[[DONE_BUTTON]], record_alert=False, group="studio")
+                self._upload_reply(msg, f'⚠️ Image upload failed: {html.escape(message)}', buttons=[[DONE_BUTTON]], record_alert=False, group="studio")
             return
         photo_item = (msg.get('photo') or [None])[-1] or msg.get('document')
         photo_caption = (msg.get('caption') or '').strip()
         issue_waiting = bool(self._awaiting and self._awaiting[0] == 'issue' and self._awaiting[1] > time.time())
+        if (photo_item and clean_chat() and self.review.armed() and not photo_caption.startswith('/')
+                and self._authorized(msg.get('from', {}).get('id', ''), msg.get('chat', {}).get('id', ''))):
+            # The review panel asked for text (UI-01e, design §6.6): the photo leaves and the panel says so.
+            self._delete_soon(msg.get('message_id'))
+            self.review.typed_photo()
+            return
         if photo_item and command_handler and not issue_waiting and self._authorized(msg.get('from', {}).get('id', ''), msg.get('chat', {}).get('id', '')):
             caption = photo_caption
             word = caption.split(' ', 1)[0].split('@')[0].lower()
@@ -3814,12 +5853,18 @@ class TelegramApprovalBot:
                         "with /issue to report a problem.</i>")
                 self.show_dashboard((reply if isinstance(reply, str) else "🔍 Add your question as the photo's caption: /ask &lt;question&gt;") + note,
                                     navigation_buttons(None), fresh=True)
+                self._leave_unanswered(msg, hint=False)   # read and answered: the photo leaves (UI-01d)
+                return
+            if (clean_chat() and not caption and self._awaiting and self._awaiting[1] > time.time()
+                    and not (msg.get('video') or msg.get('document'))):
+                self._leave_unanswered(msg)   # "That was a photo; type the text instead." (UI-01d)
                 return
             if word not in {'/photos', '/footage', '/issue'} and not (msg.get('video') or msg.get('document')):
                 self.show_dashboard("📎 <b>Photo received</b>, but its caption doesn't say what to do with it.\n\n"
                                     "• Report a problem: caption <code>/issue what is wrong</code>\n"
                                     "• Ask about it: caption <code>/ask your question</code>\n"
                                     "• Add it to a topic: Pictures → Photo sets → the topic → Upload my image", navigation_buttons(None), fresh=True)
+                self._leave_unanswered(msg, hint=False)   # the dashboard says what to do; the photo leaves (UI-01d)
                 return
         doc_or_vid = msg.get('video') or msg.get('document')
         caption = (msg.get('caption') or '').strip()
@@ -3836,11 +5881,11 @@ class TelegramApprovalBot:
             # Every outcome is said (it failed silently: an unknown topic, a clip over Telegram's 20 MB, a bare
             # caption: review of 2026-10-25).
             if not topic_ref:
-                self.notify(f"🎞 Say which topic the clip is for: <code>{html.escape(FORM)}</code>", group="studio")
+                self._upload_reply(msg, f"🎞 Say which topic the clip is for: <code>{html.escape(FORM)}</code>", group="studio")
                 return
             if (doc_or_vid.get('file_size') or 0) > FOOTAGE_MAX_BYTES:
-                self.notify(f"🎞 That clip is {doc_or_vid['file_size'] / 1048576:.0f} MB; a bot can receive up to "
-                            f"{FOOTAGE_MAX_BYTES // 1048576} MB. Trim or compress it and send it again.", group="studio")
+                self._upload_reply(msg, f"🎞 That clip is {doc_or_vid['file_size'] / 1048576:.0f} MB; a bot can receive up to "
+                                   f"{FOOTAGE_MAX_BYTES // 1048576} MB. Trim or compress it and send it again.", group="studio")
                 return
             if topic_ref:
                 try:
@@ -3872,13 +5917,13 @@ class TelegramApprovalBot:
                         (footage_dir / 'curated_footage.json').write_text(json.dumps(cand, indent=2, ensure_ascii=False), encoding='utf-8')
                         missing = [k for k in ('source', 'licence', 'licence_url') if k not in rights]
                         note = '' if not missing else f"\n⚠️ No {', '.join(missing)} given, so the release gate will hold any video using it. Resend with <code>/footage topic | source: URL | licence: CC BY 4.0 | licence_url: URL</code>."
-                        self.notify(f'✅ Video clip received and saved for <b>{html.escape(topic_dir.name)}</b>.{note}', group="studio")
+                        self._upload_reply(msg, f'✅ Video clip received and saved for <b>{html.escape(topic_dir.name)}</b>.{note}', group="studio")
                     else:
-                        self.notify("🎞 Telegram didn't hand the clip over (no file path). Send it again.", group="studio")
+                        self._upload_reply(msg, "🎞 Telegram didn't hand the clip over (no file path). Send it again.", group="studio")
                 except Exception as exc:
                     log.exception('Direct video download from Telegram failed')
                     reason = str(exc) if isinstance(exc, ValueError) else type(exc).__name__
-                    self.notify(f"🎞 The clip wasn't saved: {html.escape(reason[:300])}", group="studio")
+                    self._upload_reply(msg, f"🎞 The clip wasn't saved: {html.escape(reason[:300])}", group="studio")
             return
         photos = msg.get('photo')
         media_item = (photos[-1] if photos else None) or msg.get('document') or msg.get('video') or msg.get('audio') or msg.get('voice')
@@ -3923,6 +5968,8 @@ class TelegramApprovalBot:
         text = (msg.get('text') or '').strip()
         reply_to = msg.get('reply_to_message')
         if not text or command_handler is None:
+            if command_handler is not None:
+                self._leave_unanswered(msg)
             return
         user_id = str(msg.get('from', {}).get('id', ''))
         chat_id = str(msg.get('chat', {}).get('id', ''))
@@ -3938,6 +5985,8 @@ class TelegramApprovalBot:
             command = command.split('@')[0].lower()
             if command in {'ask', 'issue'} and not args.strip() and is_auth:
                 # Help can only send the bare command: the next message is the question or report.
+                if clean_chat() and self.review.armed():
+                    self.review.cancelled_by(command)   # one input at a time: the review panel says so
                 with self._panel_lock:
                     self._awaiting = (command, time.time() + 600)
             if command == 'issue' and args.strip() and reply_to:
@@ -3982,6 +6031,7 @@ class TelegramApprovalBot:
                 args = f'run {run_ref} {args}'
             audit_payload = f'/ask (reply) {text}'
         else:
+            self._leave_unanswered(msg)   # plain text that answers nothing
             return
         try:
             self.db.record_audit_event(user_id=user_id, username=username, chat_id=chat_id, event_type='command', payload=audit_payload, status='allowed' if is_auth else 'denied')
@@ -4008,7 +6058,13 @@ class TelegramApprovalBot:
                 repeat = time.monotonic() - self._last_opened < 5
                 if not repeat:
                     self._last_opened = time.monotonic()
-            if not repeat:
+            if not repeat and clean_chat():
+                # The recovery after a Telegram "Clear history" too: the layout is posted again in order, the
+                # old copies deleted (design §5.3, §6.7).
+                self.layout.rebuild(urgent=True)
+                if not self.db.get_setting("telegram_dashboard_id"):
+                    self.show_dashboard()
+            elif not repeat:
                 self.show_dashboard(fresh=True)
             if msg.get('message_id'):
                 self._delete_soon(msg['message_id'])  # after the panel exists, so the chat is never empty
@@ -4029,6 +6085,10 @@ class TelegramApprovalBot:
             from .config import ASSETS_DIR
             next_fn = getattr(self, 'next_run_func', lambda: None)
             dash_text, dash_buttons = dashboard_text_and_buttons(self.db, next_fn(), assets_dir=ASSETS_DIR)
+            if clean_chat():
+                self.layout.rebuild(urgent=True)
+                self.show_dashboard(dash_text, dash_buttons)
+                return
             self.show_dashboard(dash_text, dash_buttons, fresh=True)
             return
         if command == 'progress' and is_auth and self.bring_progress_down():
@@ -4060,7 +6120,9 @@ class TelegramApprovalBot:
                 self._settle_rejected_card(args.split(' ', 1)[0], reply_to['message_id'], now=True)
             if isinstance(reply, tuple):  # a refusal with buttons (an unrequeueable topic) still says why
                 reply = reply[0]
-            if isinstance(reply, str) and reply:
+            if isinstance(reply, str) and reply and clean_chat():
+                self.show_dashboard(reply, [[DONE_BUTTON]])   # a typed reply is a dashboard line (design §10.1)
+            elif isinstance(reply, str) and reply:
                 self.nudge(reply)
             return
         target = self._typed_panel()
@@ -4075,6 +6137,52 @@ class TelegramApprovalBot:
 
     _workers = None
     _cleanup = None
+
+    UNANSWERED = "🤔 Type a command, or use the buttons. Help lists every command."
+    PHOTO_FOR_TEXT = "That was a photo; type the text instead."
+    MEDIA_FOR_TEXT = "That wasn't text; type it instead."
+
+    def _upload_reply(self, msg: dict[str, Any], text: str, **notify: Any) -> None:
+        """The answer to an upload (/photos caption, /footage): the clean chat (UI-01d, design §6.6, §10.1) draws
+        it in the dashboard and deletes the upload once it is read (staged, or refused with what to do); the
+        earlier chat sends it as before."""
+        if not clean_chat():
+            group = notify.pop("group", "studio")
+            self.notify(text, group=group, **notify)
+            return
+        self.show_dashboard(text, navigation_buttons(notify.get("buttons")))
+        if msg.get('message_id'):
+            self._delete_soon(msg['message_id'])
+
+    def _leave_unanswered(self, msg: dict[str, Any], hint: bool = True, stale: bool = False) -> None:
+        """The clean chat (UI-01d, design §6.6): the operator's messages are never permanent. A message the bot has no
+        use for (plain text that answers nothing, a sticker, a photo nothing asked for, one sent while the bot was
+        off) is deleted once read, and the dashboard says what to do instead of leaving it unanswered."""
+        if not clean_chat() or not msg.get('message_id'):
+            return
+        if not self._authorized(msg.get('from', {}).get('id', ''), msg.get('chat', {}).get('id', '')):
+            return
+        self._delete_soon(msg['message_id'])
+        if stale:   # it was not acted on: said in the dashboard, so it never looks handled
+            self._stale_dropped = getattr(self, "_stale_dropped", 0) + 1
+            n = self._stale_dropped
+            text = (f"⌛ {n} message{'s' if n != 1 else ''} sent while the bot was off "
+                    f"{'were' if n != 1 else 'was'} not acted on; send {'them' if n != 1 else 'it'} again.")
+        elif not hint:
+            return
+        else:
+            media = any(msg.get(k) for k in ('photo', 'document', 'video', 'audio', 'voice', 'sticker', 'animation'))
+            if media and self.review.armed():
+                self.review.typed_photo()   # the review panel asked for text: it says so (design §6.6)
+                return
+            waiting = self._awaiting
+            armed = waiting and waiting[1] > time.time()
+            text = (self.PHOTO_FOR_TEXT if media and armed and msg.get('photo') else self.MEDIA_FOR_TEXT if media and armed
+                    else self.UNANSWERED)
+        try:
+            self.show_dashboard(text, [[{"text": "❓ Help", "callback_data": "chelp:Everyday"}], [DONE_BUTTON]])
+        except Exception as e:  # noqa: BLE001 - the message is gone either way
+            log.debug("Dashboard hint not drawn: %s", e)
 
     def _delete_soon(self, message_id) -> None:
         """Removes a message off the reply path: what the operator sees next does not wait for it."""
@@ -4150,7 +6258,10 @@ class TelegramApprovalBot:
         after `reminder_after` seconds when the window is long enough; on timeout, a Resend button."""
         timeout_seconds = timeout_seconds or APPROVAL_TIMEOUT_SECONDS
         with self.db._conn() as conn:
-            conn.execute("UPDATE approvals SET expires_at=MIN(COALESCE(expires_at,?),?) WHERE run_id=?", (time.time()+timeout_seconds, time.time()+timeout_seconds, run_id))
+            # A review an Undo reopened keeps the time the Undo gave it (UI-02); any other is narrowed to this wait
+            conn.execute("UPDATE approvals SET expires_at=CASE WHEN decided_by='undone' THEN MAX(COALESCE(expires_at,0),?) "
+                         "ELSE MIN(COALESCE(expires_at,?),?) END WHERE run_id=?",
+                         (time.time()+timeout_seconds, time.time()+timeout_seconds, time.time()+timeout_seconds, run_id))
         log.info("Awaiting human decision for %s (timeout %ss)...", run_id, timeout_seconds)
         started = time.monotonic()
         deadline = started + timeout_seconds
@@ -4161,6 +6272,9 @@ class TelegramApprovalBot:
         try:
             while time.monotonic() < deadline:
                 self.cleanup_transient_messages()
+                if not reminded and time.monotonic() - started >= reminder_after and clean_chat():
+                    reminded = True   # the clean chat (UI-01e): the reviews item rings once more, no message
+                    self.review.remind(run_id, time.time() + deadline - time.monotonic())
                 if not reminded and time.monotonic() - started >= reminder_after:
                     reminded = True
                     closes = show_time(time.time() + deadline - time.monotonic(), "%H:%M %Z")
@@ -4180,6 +6294,14 @@ class TelegramApprovalBot:
                             self._delete_soon(old)
                         reminder.clear()
                     delivered = approval.get("created_at")
+                if approval and approval.get("expires_at") and approval.get("decided_by") == "undone":
+                    # A V2 Undo gives the review back its time (db.undo_review_decision, at most the review window):
+                    # the wait follows. Only then: a delivery (record_approval) sets a 24 h placeholder that the wait
+                    # narrows itself, and it clears the Undo's mark, so a card re-sent after an Undo is not followed.
+                    try:
+                        deadline = max(deadline, time.monotonic() + float(approval["expires_at"]) - time.time())
+                    except (TypeError, ValueError):
+                        pass
                 if approval and approval["decision"] != "pending":
                     log.info("Decision for %s: %s (by %s)", run_id, approval["decision"], approval.get("decided_by"))
                     return approval["decision"]
@@ -4217,7 +6339,7 @@ class TelegramApprovalBot:
 
     def record_local_decision(self, run_id: str, decision: str) -> bool:
         """CLI decision path. Returns False if the run already has a decision."""
-        if decision not in ACTIONS.values():
+        if decision not in DECISIONS:   # never a card's pseudo-decision ("keep", "undo_approved": UI-02)
             raise ValueError(f"Invalid decision '{decision}'")
         if decision == "approved":  # the card's rule (send_review_card): a blocked version is not approved
             from .release import release_problems

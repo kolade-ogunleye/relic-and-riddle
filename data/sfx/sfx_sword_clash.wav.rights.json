@@ -1,5 +1,5 @@
 {
-  "path": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\data\\sfx\\sfx_sword_clash.wav",
+  "path": "data/sfx/sfx_sword_clash.wav",
   "sha256": "40338caed8d7d5f72cb68a103df327dfaa26e9152c7a9e55a2de1044fc441e2f",
   "provider": "elevenlabs-sound-effects",
   "plan": "creator",

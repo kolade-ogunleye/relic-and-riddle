@@ -126,7 +126,8 @@ def _text_blocks(data: Dict[str, Any]) -> List[Dict[str, Any]]:
 def research(system: str, prompt: str) -> Tuple[str, List[Source]]:
     """Search-grounded answer; sources come from the response's url_citation annotations or grounded text."""
     for attempt in (1, 2):  # a grounded answer occasionally comes back without citations: ask once more
-        data = _post({"model": GEMINI_MODEL, "input": f"{system}\n\n{prompt}", "tools": [{"type": "google_search"}]})
+        data = _post({"model": GEMINI_MODEL, "system_instruction": system, "input": prompt,
+                      "tools": [{"type": "google_search"}]})
         blocks = _text_blocks(data)
         text = "".join(b.get("text", "") for b in blocks).strip()
         seen, sources = set(), []
@@ -154,7 +155,8 @@ def research(system: str, prompt: str) -> Tuple[str, List[Source]]:
         try:
             gc_url = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent"
             gc_body = {
-                "contents": [{"parts": [{"text": f"{system}\n\n{prompt}"}]}],
+                "system_instruction": {"parts": [{"text": system}]},
+                "contents": [{"role": "user", "parts": [{"text": prompt}]}],
                 "tools": [{"googleSearch": {}}]
             }
             gc_resp = requests.post(gc_url, headers={"x-goog-api-key": GEMINI_API_KEY}, json=gc_body, timeout=60)
@@ -254,7 +256,7 @@ def structured(system: str, prompt: Union[str, list], schema: Type[T], model: st
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{model or GEMINI_MODEL}:generateContent"
         body = {
             "system_instruction": {"parts": [{"text": system}]},
-            "contents": [{"parts": parts}],
+            "contents": [{"role": "user", "parts": parts}],
             "generationConfig": {
                 "response_mime_type": "application/json",
                 "response_schema": _inline_refs(schema.model_json_schema())
@@ -312,7 +314,8 @@ def structured(system: str, prompt: Union[str, list], schema: Type[T], model: st
 
     data = _post({
         "model": model or GEMINI_MODEL,
-        "input": f"{system}\n\n{prompt}",
+        "system_instruction": system,   # its own role, never one string with the quoted material (QF-41)
+        "input": prompt,
         "response_format": {"type": "text", "mime_type": "application/json",
                             "schema": _inline_refs(schema.model_json_schema())},
     }, key=key, timeout=timeout or 300)

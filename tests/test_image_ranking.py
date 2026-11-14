@@ -13,7 +13,8 @@ def page(title, w, h, grade_cat=None):
 
 
 def test_grade_then_resolution():
-    pages = [page("temple wide small", 2000, 1500), page("temple wide huge", 8000, 6000),
+    # All ranking fixtures meet the crop floor; QF-52 tests refusal separately.
+    pages = [page("temple wide small", 2000, 1920), page("temple wide huge", 8000, 6000),
              page("temple wide featured", 3000, 2000, "Category:Featured pictures on Wikimedia Commons"),
              page("temple wide quality", 2500, 2000, "Category:Quality images")]
     ranked = commons.best_first(list(commons.candidates(pages, ["temple"])))
@@ -27,7 +28,9 @@ def test_queries_take_turns_so_every_shot_type_is_covered():
 
 
 def test_openverse_licences_pass_the_same_filter(monkeypatch):
-    results = [{"license": lic, "license_version": ver, "url": f"u{i}", "title": lic}
+    from src import config, museum_sources
+    monkeypatch.setattr(config, "MUSEUM_OPENVERSE_ENABLED", True)
+    results = [{"license": lic, "license_version": ver, "url": f"https://upload.wikimedia.org/{i}.jpg", "title": lic}
                for i, (lic, ver) in enumerate([("by", "4.0"), ("by-nd", "4.0"), ("by-sa", "4.0"), ("cc0", "1.0"), ("pdm", "")])]
 
     class R:
@@ -35,7 +38,13 @@ def test_openverse_licences_pass_the_same_filter(monkeypatch):
 
         def json(self):
             return {"results": results}
-    monkeypatch.setattr(fetch.requests, "get", lambda *a, **k: R())
+    monkeypatch.setattr(museum_sources, "_get", lambda *a, **k: R().json())
+    monkeypatch.setattr(museum_sources, "_verify_openverse_source", lambda item: {
+        "license": museum_sources.openverse_licence(item["license"], item["license_version"])[0],
+        "license_url": museum_sources.openverse_licence(item["license"], item["license_version"])[1],
+        "worldwide_basis": {"kind": "commons-pd-old", "evidence": "https://commons.wikimedia.org/wiki/File:Fixture.jpg",
+                            "checked_at": "2026-11-06T00:00:00+00:00", "source_life_term": "PD-old-100", "us_basis": "PD-US-expired"},
+        "license_verified_at": "2026-11-06T00:00:00+00:00", "license_verification_source": "https://commons.wikimedia.org/wiki/File:Fixture.jpg"})
     assert [c["license"] for c in fetch.search_openverse("x")] == ["CC BY 4.0", "CC0", "Public domain"]
 
 
@@ -109,17 +118,22 @@ def test_planner_sees_each_photos_archive_caption(tmp_path):
     assert sp._photo_caption(tmp_path / "unknown.jpg") == ""
 
 
+def _downloaded(url, dest, **kwargs):
+    dest.write_bytes(b"jpg")
+    return 3000, 2500  # decoded dimensions returned by the downloader (native crop)
+
+
 def test_namesakes_and_off_topic_fallbacks_are_refused(monkeypatch, tmp_path):
     # The old Zhang Heng set held prints of "Zhang Heng the Boatman" and the actress Zhang Ziyi.
-    good = page("Zhang Heng seismoscope replica", 3000, 2000)
-    boatman = page("Senkaji Choo (Zhang Heng) boatman print", 3000, 2000)
+    good = page("Zhang Heng seismoscope replica", 3000, 2500)
+    boatman = page("Senkaji Choo (Zhang Heng) boatman print", 3000, 2500)
     monkeypatch.setattr(fetch, "search", lambda q, **k: [good, boatman])
     monkeypatch.setattr(fetch, "search_graded", lambda q, **k: [])
     monkeypatch.setattr("src.museum_sources.search_all", lambda q, kws: [])
     monkeypatch.setattr(fetch, "find_categories", lambda *a, **k: [])
     monkeypatch.setattr(fetch, "search_openverse", lambda q, limit=15: [
         {"title": "Egyptian bowl from Zakros", "download_url": "u", "license": "CC0"}])
-    monkeypatch.setattr(fetch, "download_jpeg", lambda url, dest, **k: dest.write_bytes(b"jpg"))
+    monkeypatch.setattr(fetch, "download_jpeg", _downloaded)
     monkeypatch.setattr("src.storyboard.generate_storyboard", lambda *a, **k: None)
     spec = {"queries": ["Zhang Heng"], "keywords": ["zhang heng", "seismoscope"], "exclude": ["boatman"]}
     fetch.fetch_topic({"id": "zhang", "title": "Zhang Heng"}, spec, allow_sa=False, target_images=5,
@@ -134,15 +148,15 @@ def test_share_alike_only_fills_what_open_licences_cannot(monkeypatch, tmp_path)
     monkeypatch.setattr(config, "IMAGES_ALLOW_SHARE_ALIKE", True)
     sa = page("Zhang Heng seismoscope share alike", 4000, 3000)
     sa["imageinfo"][0]["extmetadata"]["LicenseShortName"]["value"] = "CC BY-SA 4.0"
-    open_ = page("Zhang Heng seismoscope open", 3000, 2000)
+    open_ = page("Zhang Heng seismoscope open", 3000, 2500)
     monkeypatch.setattr(fetch, "search", lambda q, **k: [sa, open_])   # the BY-SA one ranks higher (bigger)
     monkeypatch.setattr(fetch, "search_graded", lambda q, **k: [])
     monkeypatch.setattr("src.museum_sources.search_all", lambda q, kws: [])
     monkeypatch.setattr(fetch, "find_categories", lambda *a, **k: [])
     monkeypatch.setattr(fetch, "search_openverse", lambda q, limit=15: [])
-    monkeypatch.setattr(fetch, "download_jpeg", lambda url, dest, **k: dest.write_bytes(b"jpg"))
+    monkeypatch.setattr(fetch, "download_jpeg", _downloaded)
     monkeypatch.setattr("src.storyboard.generate_storyboard", lambda *a, **k: None)
-    spec = {"queries": ["Zhang Heng"], "keywords": ["zhang heng", "seismoscope"]}
+    spec = {"queries": ["Zhang Heng"], "keywords": ["zhang heng", "seismoscope"], "exclude": ["boatman"]}
     import json
     fetch.fetch_topic({"id": "z1", "title": "Zhang Heng"}, spec, allow_sa=True, target_images=1, assets_dir=tmp_path)
     one = [i["license"] for i in json.loads((tmp_path / "z1" / "credits.json").read_text())["images"]]

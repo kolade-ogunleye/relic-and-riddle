@@ -30,7 +30,9 @@ GOLD_FILES = [
     "*_documentary_16x9_captions.ass",
     "thumbnail_youtube_16x9.jpg",
     # The narration and bed with their rights records: what a rights dispute is decided on.
-    "voiceover.mp3",
+    "voiceover.wav",
+    "voiceover.wav.rights.json",
+    "voiceover.mp3",              # a take made before QF-08
     "voiceover.mp3.rights.json",
     "ambient_bed.wav",
     "ambient_bed.wav.rights.json",

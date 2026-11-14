@@ -1,0 +1,1502 @@
+{
+  "posted_strings_shown_on_card": "8/8",
+  "posted_strings": {
+    "reel title": {
+      "shown": true,
+      "text": "The City Inside the Hill"
+    },
+    "reel instagram_title": {
+      "shown": true,
+      "text": "A city carved into one hill 🏛️\nIts builders left no name.\nWould you go down?\n#StoneCity #Archaeology #AncientMysteries\n\nContains AI-generated illustrations where no photograph exists."
+    },
+    "reel facebook_title": {
+      "shown": true,
+      "text": "The City Inside the Hill"
+    },
+    "reel facebook_description": {
+      "shown": true,
+      "text": "A city carved into one hill 🏛️\nIts builders left no name.\nWould you go down?\n#StoneCity #Archaeology #AncientMysteries\n\nContains AI-generated illustrations where no photograph exists."
+    },
+    "reel first_comment": {
+      "shown": true,
+      "text": "Which level would you explore first?"
+    },
+    "short youtube_title": {
+      "shown": true,
+      "text": "The City Inside the Hill"
+    },
+    "short youtube_description": {
+      "shown": true,
+      "text": "A city carved into one hill 🏛️\nIts builders left no name.\nWould you go down?\n#StoneCity #Archaeology #AncientMysteries\n\nContains AI-generated illustrations where no photograph exists."
+    },
+    "short tags[]": {
+      "shown": true,
+      "text": "StoneCity, Archaeology, AncientMysteries"
+    }
+  },
+  "card_shows_illustration_disclosure": true,
+  "posted_caption_has_disclosure": true,
+  "card_shows_youtube_title": true,
+  "card_shows_youtube_description": true,
+  "slot_line": "🗓 <b>Slot:</b> Fri 06 Nov 12:00 EST · <b>review closes</b> 04:17 EST",
+  "slot_line_equals_next_reel_slot": true,
+  "card_shows_review_close_time": true,
+  "off_list_hashtag_posted": false,
+  "posted_hashtags": [
+    "#AncientMysteries",
+    "#Archaeology",
+    "#StoneCity"
+  ],
+  "build_envelope_raises_on_copy_not_on_card": true,
+  "card_characters": 934,
+  "carousel_status": "published",
+  "carousel_posted_captions": {
+    "instagram": "Swipe the rooms.\n#StoneCity #Archaeology #AncientMysteries",
+    "facebook": "See the photos the rooms.\n#StoneCity #Archaeology #AncientMysteries"
+  },
+  "carousel_caption_shown_on_card": {
+    "instagram": true,
+    "facebook": true
+  },
+  "carousel_off_list_hashtag_posted": false,
+  "carousel_posted_hashtags": [
+    "#AncientMysteries",
+    "#Archaeology",
+    "#StoneCity"
+  ],
+  "carousel_refused_when_card_showed_another": true,
+  "documentary_approve_posts": true,
+  "documentary_approve_refused": "",
+  "slot_lines": {
+    "reel, slots booked": {
+      "approve_books_slot": true,
+      "slot_line": "🗓 <b>Slot:</b> Fri 06 Nov 12:00 EST · <b>review closes</b> 04:17 EST",
+      "truthful": true
+    },
+    "documentary": {
+      "approve_books_slot": false,
+      "slot_line": "🗓 <b>Slot:</b> posted as soon as you approve · <b>review closes</b> Fri 06 Nov 04:17 EST",
+      "truthful": true
+    },
+    "reel, no slots (command line)": {
+      "approve_books_slot": false,
+      "slot_line": "🗓 <b>Slot:</b> posted as soon as you approve · <b>review closes</b> Fri 06 Nov 04:17 EST",
+      "truthful": true
+    },
+    "reel, dry run": {
+      "approve_books_slot": false,
+      "slot_line": "🗓 <b>Slot:</b> none, a dry run posts nothing · <b>review closes</b> Fri 06 Nov 04:17 EST",
+      "truthful": true
+    }
+  },
+  "slot_lines_truthful": "4/4",
+  "acceptance_met": true,
+  "real_runs": {
+    "measured": true,
+    "cards": 30,
+    "over_card_page_limit": 29,
+    "over_page_above_4000": 2,
+    "over_telegram_4096": 2,
+    "longest": 4199,
+    "narration_shortened": 6,
+    "caption_see_edit_or_absent": 9,
+    "carousel_caption_see_edit_or_absent": 9,
+    "caption_characters_shown": 10948,
+    "credits_list": 25,
+    "with_slot_line": 28,
+    "with_also_posted_list": {
+      "whole": 1,
+      "part": 1,
+      "count": 26,
+      "absent": 2
+    },
+    "cards_with_a_regression_vs_qf42_card": 0,
+    "fitted_part_is_qf42_layout_of_posted_copy": 30,
+    "approve_refused": 0,
+    "documentaries": 1,
+    "slot_line_truthful": 30,
+    "carousels": 29,
+    "carousel_posted_as_card_shows": 29,
+    "carousel_off_list_hashtag_posted": 0,
+    "per_card": {
+      "run_amber_room_heist_1792790550": {
+        "length": 3983,
+        "caption": [
+          "clipped",
+          280
+        ],
+        "carousel_caption": [
+          "full",
+          276
+        ],
+        "narration_chars": 715,
+        "narration_shortened": false,
+        "findings_lists_first_items": 0,
+        "findings_lists_count_only": 0,
+        "credits_list": true,
+        "slot_line": true,
+        "also_posted_list": "count",
+        "qf42_card": {
+          "length": 3863,
+          "caption": [
+            "clipped",
+            260
+          ],
+          "carousel_caption": [
+            "full",
+            276
+          ],
+          "narration_chars": 715,
+          "narration_shortened": false,
+          "findings_lists_first_items": 0,
+          "findings_lists_count_only": 0,
+          "credits_list": true,
+          "slot_line": false,
+          "also_posted_list": "absent"
+        },
+        "regressions_vs_qf42_card": [],
+        "fitted_part_is_qf42_layout_of_posted_copy": true,
+        "approve_refused": "",
+        "approve": "slot",
+        "slot_line_text": "🗓 <b>Slot:</b> Thu 05 Nov 19:00 EST · <b>review closes</b> 11:00 EST",
+        "slot_line_truthful": true
+      },
+      "run_amber_room_heist_1792801257": {
+        "length": 3989,
+        "caption": [
+          "full",
+          413
+        ],
+        "carousel_caption": [
+          "full",
+          255
+        ],
+        "narration_chars": 705,
+        "narration_shortened": false,
+        "findings_lists_first_items": 0,
+        "findings_lists_count_only": 0,
+        "credits_list": true,
+        "slot_line": true,
+        "also_posted_list": "count",
+        "qf42_card": {
+          "length": 3833,
+          "caption": [
+            "full",
+            413
+          ],
+          "carousel_caption": [
+            "full",
+            255
+          ],
+          "narration_chars": 705,
+          "narration_shortened": false,
+          "findings_lists_first_items": 0,
+          "findings_lists_count_only": 0,
+          "credits_list": true,
+          "slot_line": false,
+          "also_posted_list": "absent"
+        },
+        "regressions_vs_qf42_card": [],
+        "fitted_part_is_qf42_layout_of_posted_copy": true,
+        "approve_refused": "",
+        "approve": "slot",
+        "slot_line_text": "🗓 <b>Slot:</b> Thu 05 Nov 19:00 EST · <b>review closes</b> 11:00 EST",
+        "slot_line_truthful": true
+      },
+      "run_amber_room_heist_1792805842": {
+        "length": 3991,
+        "caption": [
+          "clipped",
+          207
+        ],
+        "carousel_caption": [
+          "full",
+          292
+        ],
+        "narration_chars": 714,
+        "narration_shortened": false,
+        "findings_lists_first_items": 0,
+        "findings_lists_count_only": 0,
+        "credits_list": true,
+        "slot_line": true,
+        "also_posted_list": "count",
+        "qf42_card": {
+          "length": 3867,
+          "caption": [
+            "clipped",
+            182
+          ],
+          "carousel_caption": [
+            "full",
+            292
+          ],
+          "narration_chars": 714,
+          "narration_shortened": false,
+          "findings_lists_first_items": 0,
+          "findings_lists_count_only": 0,
+          "credits_list": true,
+          "slot_line": false,
+          "also_posted_list": "absent"
+        },
+        "regressions_vs_qf42_card": [],
+        "fitted_part_is_qf42_layout_of_posted_copy": true,
+        "approve_refused": "",
+        "approve": "slot",
+        "slot_line_text": "🗓 <b>Slot:</b> Thu 05 Nov 19:00 EST · <b>review closes</b> 11:00 EST",
+        "slot_line_truthful": true
+      },
+      "run_damascus_steel_nanotubes_1792732472_short": {
+        "length": 3836,
+        "caption": [
+          "full",
+          574
+        ],
+        "carousel_caption": [
+          "full",
+          228
+        ],
+        "narration_chars": 769,
+        "narration_shortened": false,
+        "findings_lists_first_items": 0,
+        "findings_lists_count_only": 0,
+        "credits_list": false,
+        "slot_line": true,
+        "also_posted_list": "whole",
+        "qf42_card": {
+          "length": 3282,
+          "caption": [
+            "full",
+            574
+          ],
+          "carousel_caption": [
+            "full",
+            228
+          ],
+          "narration_chars": 769,
+          "narration_shortened": false,
+          "findings_lists_first_items": 0,
+          "findings_lists_count_only": 0,
+          "credits_list": false,
+          "slot_line": false,
+          "also_posted_list": "absent"
+        },
+        "regressions_vs_qf42_card": [],
+        "fitted_part_is_qf42_layout_of_posted_copy": true,
+        "approve_refused": "",
+        "approve": "slot",
+        "slot_line_text": "🗓 <b>Slot:</b> Thu 05 Nov 19:00 EST · <b>review closes</b> 11:00 EST",
+        "slot_line_truthful": true
+      },
+      "run_gol_gumbaz_whispering_gallery_1793278143": {
+        "length": 3988,
+        "caption": [
+          "clipped",
+          130
+        ],
+        "carousel_caption": [
+          "clipped",
+          260
+        ],
+        "narration_chars": 697,
+        "narration_shortened": false,
+        "findings_lists_first_items": 1,
+        "findings_lists_count_only": 0,
+        "credits_list": true,
+        "slot_line": true,
+        "also_posted_list": "count",
+        "qf42_card": {
+          "length": 3864,
+          "caption": [
+            "clipped",
+            124
+          ],
+          "carousel_caption": [
+            "clipped",
+            248
+          ],
+          "narration_chars": 697,
+          "narration_shortened": false,
+          "findings_lists_first_items": 1,
+          "findings_lists_count_only": 0,
+          "credits_list": true,
+          "slot_line": false,
+          "also_posted_list": "absent"
+        },
+        "regressions_vs_qf42_card": [],
+        "fitted_part_is_qf42_layout_of_posted_copy": true,
+        "approve_refused": "",
+        "approve": "slot",
+        "slot_line_text": "🗓 <b>Slot:</b> Thu 05 Nov 19:00 EST · <b>review closes</b> 11:00 EST",
+        "slot_line_truthful": true
+      },
+      "run_greek_fire_siphon_1792735284_short": {
+        "length": 3990,
+        "caption": [
+          "clipped",
+          139
+        ],
+        "carousel_caption": [
+          "clipped",
+          172
+        ],
+        "narration_chars": 764,
+        "narration_shortened": false,
+        "findings_lists_first_items": 0,
+        "findings_lists_count_only": 0,
+        "credits_list": true,
+        "slot_line": true,
+        "also_posted_list": "count",
+        "qf42_card": {
+          "length": 3866,
+          "caption": [
+            "clipped",
+            131
+          ],
+          "carousel_caption": [
+            "clipped",
+            164
+          ],
+          "narration_chars": 764,
+          "narration_shortened": false,
+          "findings_lists_first_items": 0,
+          "findings_lists_count_only": 0,
+          "credits_list": true,
+          "slot_line": false,
+          "also_posted_list": "absent"
+        },
+        "regressions_vs_qf42_card": [],
+        "fitted_part_is_qf42_layout_of_posted_copy": true,
+        "approve_refused": "",
+        "approve": "slot",
+        "slot_line_text": "🗓 <b>Slot:</b> Thu 05 Nov 19:00 EST · <b>review closes</b> 11:00 EST",
+        "slot_line_truthful": true
+      },
+      "run_hal_saflieni_hypogeum_1792949304": {
+        "length": 3982,
+        "caption": [
+          "clipped",
+          167
+        ],
+        "carousel_caption": [
+          "full",
+          307
+        ],
+        "narration_chars": 760,
+        "narration_shortened": false,
+        "findings_lists_first_items": 0,
+        "findings_lists_count_only": 0,
+        "credits_list": true,
+        "slot_line": true,
+        "also_posted_list": "count",
+        "qf42_card": {
+          "length": 3869,
+          "caption": [
+            "clipped",
+            154
+          ],
+          "carousel_caption": [
+            "full",
+            307
+          ],
+          "narration_chars": 760,
+          "narration_shortened": false,
+          "findings_lists_first_items": 0,
+          "findings_lists_count_only": 0,
+          "credits_list": true,
+          "slot_line": false,
+          "also_posted_list": "absent"
+        },
+        "regressions_vs_qf42_card": [],
+        "fitted_part_is_qf42_layout_of_posted_copy": true,
+        "approve_refused": "",
+        "approve": "slot",
+        "slot_line_text": "🗓 <b>Slot:</b> Thu 05 Nov 19:00 EST · <b>review closes</b> 11:00 EST",
+        "slot_line_truthful": true
+      },
+      "run_kailasa_temple_monolith_1792524470": {
+        "length": 3989,
+        "caption": [
+          "clipped",
+          183
+        ],
+        "carousel_caption": [
+          "full",
+          343
+        ],
+        "narration_chars": 666,
+        "narration_shortened": false,
+        "findings_lists_first_items": 0,
+        "findings_lists_count_only": 0,
+        "credits_list": true,
+        "slot_line": true,
+        "also_posted_list": "count",
+        "qf42_card": {
+          "length": 3865,
+          "caption": [
+            "clipped",
+            163
+          ],
+          "carousel_caption": [
+            "full",
+            346
+          ],
+          "narration_chars": 666,
+          "narration_shortened": false,
+          "findings_lists_first_items": 0,
+          "findings_lists_count_only": 0,
+          "credits_list": true,
+          "slot_line": false,
+          "also_posted_list": "absent"
+        },
+        "regressions_vs_qf42_card": [],
+        "fitted_part_is_qf42_layout_of_posted_copy": true,
+        "approve_refused": "",
+        "approve": "slot",
+        "slot_line_text": "🗓 <b>Slot:</b> Thu 05 Nov 19:00 EST · <b>review closes</b> 11:00 EST",
+        "slot_line_truthful": true
+      },
+      "run_nazca_lines_runway_paradox_1792961797": {
+        "length": 3985,
+        "caption": [
+          "clipped",
+          357
+        ],
+        "carousel_caption": [
+          "full",
+          288
+        ],
+        "narration_chars": 719,
+        "narration_shortened": false,
+        "findings_lists_first_items": 0,
+        "findings_lists_count_only": 2,
+        "credits_list": true,
+        "slot_line": true,
+        "also_posted_list": "count",
+        "qf42_card": {
+          "length": 3863,
+          "caption": [
+            "clipped",
+            341
+          ],
+          "carousel_caption": [
+            "full",
+            289
+          ],
+          "narration_chars": 719,
+          "narration_shortened": false,
+          "findings_lists_first_items": 0,
+          "findings_lists_count_only": 2,
+          "credits_list": true,
+          "slot_line": false,
+          "also_posted_list": "absent"
+        },
+        "regressions_vs_qf42_card": [],
+        "fitted_part_is_qf42_layout_of_posted_copy": true,
+        "approve_refused": "",
+        "approve": "slot",
+        "slot_line_text": "🗓 <b>Slot:</b> Thu 05 Nov 19:00 EST · <b>review closes</b> 11:00 EST",
+        "slot_line_truthful": true
+      },
+      "run_nazca_lines_runway_paradox_1793247464": {
+        "length": 4168,
+        "caption": [
+          "absent",
+          0
+        ],
+        "carousel_caption": [
+          "absent",
+          0
+        ],
+        "narration_chars": 67,
+        "narration_shortened": true,
+        "findings_lists_first_items": 0,
+        "findings_lists_count_only": 1,
+        "credits_list": false,
+        "slot_line": false,
+        "also_posted_list": "absent",
+        "qf42_card": {
+          "length": 4180,
+          "caption": [
+            "absent",
+            0
+          ],
+          "carousel_caption": [
+            "absent",
+            0
+          ],
+          "narration_chars": 67,
+          "narration_shortened": true,
+          "findings_lists_first_items": 0,
+          "findings_lists_count_only": 1,
+          "credits_list": false,
+          "slot_line": false,
+          "also_posted_list": "absent"
+        },
+        "regressions_vs_qf42_card": [],
+        "fitted_part_is_qf42_layout_of_posted_copy": true,
+        "approve_refused": "",
+        "approve": "slot",
+        "slot_line_text": "🗓 <b>Slot:</b> Thu 05 Nov 19:00 EST · <b>review closes</b> 11:00 EST",
+        "slot_line_truthful": true
+      },
+      "run_nazca_lines_runway_paradox_1793251266": {
+        "length": 4199,
+        "caption": [
+          "absent",
+          0
+        ],
+        "carousel_caption": [
+          "absent",
+          0
+        ],
+        "narration_chars": 67,
+        "narration_shortened": true,
+        "findings_lists_first_items": 0,
+        "findings_lists_count_only": 1,
+        "credits_list": false,
+        "slot_line": false,
+        "also_posted_list": "absent",
+        "qf42_card": {
+          "length": 4211,
+          "caption": [
+            "absent",
+            0
+          ],
+          "carousel_caption": [
+            "absent",
+            0
+          ],
+          "narration_chars": 67,
+          "narration_shortened": true,
+          "findings_lists_first_items": 0,
+          "findings_lists_count_only": 1,
+          "credits_list": false,
+          "slot_line": false,
+          "also_posted_list": "absent"
+        },
+        "regressions_vs_qf42_card": [],
+        "fitted_part_is_qf42_layout_of_posted_copy": true,
+        "approve_refused": "",
+        "approve": "slot",
+        "slot_line_text": "🗓 <b>Slot:</b> Thu 05 Nov 19:00 EST · <b>review closes</b> 11:00 EST",
+        "slot_line_truthful": true
+      },
+      "run_nazca_lines_runway_paradox_1793262388": {
+        "length": 3980,
+        "caption": [
+          "absent",
+          0
+        ],
+        "carousel_caption": [
+          "absent",
+          0
+        ],
+        "narration_chars": 188,
+        "narration_shortened": true,
+        "findings_lists_first_items": 0,
+        "findings_lists_count_only": 2,
+        "credits_list": false,
+        "slot_line": true,
+        "also_posted_list": "count",
+        "qf42_card": {
+          "length": 3869,
+          "caption": [
+            "absent",
+            0
+          ],
+          "carousel_caption": [
+            "absent",
+            0
+          ],
+          "narration_chars": 188,
+          "narration_shortened": true,
+          "findings_lists_first_items": 0,
+          "findings_lists_count_only": 2,
+          "credits_list": false,
+          "slot_line": false,
+          "also_posted_list": "absent"
+        },
+        "regressions_vs_qf42_card": [],
+        "fitted_part_is_qf42_layout_of_posted_copy": true,
+        "approve_refused": "",
+        "approve": "slot",
+        "slot_line_text": "🗓 <b>Slot:</b> Thu 05 Nov 19:00 EST · <b>review closes</b> 11:00 EST",
+        "slot_line_truthful": true
+      },
+      "run_nazca_lines_runway_paradox_1793267092": {
+        "length": 3975,
+        "caption": [
+          "absent",
+          0
+        ],
+        "carousel_caption": [
+          "absent",
+          0
+        ],
+        "narration_chars": 278,
+        "narration_shortened": true,
+        "findings_lists_first_items": 0,
+        "findings_lists_count_only": 2,
+        "credits_list": true,
+        "slot_line": true,
+        "also_posted_list": "count",
+        "qf42_card": {
+          "length": 3864,
+          "caption": [
+            "absent",
+            0
+          ],
+          "carousel_caption": [
+            "absent",
+            0
+          ],
+          "narration_chars": 278,
+          "narration_shortened": true,
+          "findings_lists_first_items": 0,
+          "findings_lists_count_only": 2,
+          "credits_list": true,
+          "slot_line": false,
+          "also_posted_list": "absent"
+        },
+        "regressions_vs_qf42_card": [],
+        "fitted_part_is_qf42_layout_of_posted_copy": true,
+        "approve_refused": "",
+        "approve": "slot",
+        "slot_line_text": "🗓 <b>Slot:</b> Thu 05 Nov 19:00 EST · <b>review closes</b> 11:00 EST",
+        "slot_line_truthful": true
+      },
+      "run_odessa_catacombs_1792970549": {
+        "length": 3983,
+        "caption": [
+          "clipped",
+          124
+        ],
+        "carousel_caption": [
+          "clipped",
+          132
+        ],
+        "narration_chars": 666,
+        "narration_shortened": false,
+        "findings_lists_first_items": 0,
+        "findings_lists_count_only": 0,
+        "credits_list": true,
+        "slot_line": true,
+        "also_posted_list": "count",
+        "qf42_card": {
+          "length": 3864,
+          "caption": [
+            "clipped",
+            136
+          ],
+          "carousel_caption": [
+            "clipped",
+            122
+          ],
+          "narration_chars": 666,
+          "narration_shortened": false,
+          "findings_lists_first_items": 0,
+          "findings_lists_count_only": 0,
+          "credits_list": true,
+          "slot_line": false,
+          "also_posted_list": "absent"
+        },
+        "regressions_vs_qf42_card": [],
+        "fitted_part_is_qf42_layout_of_posted_copy": true,
+        "approve_refused": "",
+        "approve": "slot",
+        "slot_line_text": "🗓 <b>Slot:</b> Thu 05 Nov 19:00 EST · <b>review closes</b> 11:00 EST",
+        "slot_line_truthful": true
+      },
+      "run_odessa_catacombs_1793098390": {
+        "length": 3988,
+        "caption": [
+          "clipped",
+          132
+        ],
+        "carousel_caption": [
+          "clipped",
+          270
+        ],
+        "narration_chars": 666,
+        "narration_shortened": false,
+        "findings_lists_first_items": 1,
+        "findings_lists_count_only": 0,
+        "credits_list": true,
+        "slot_line": true,
+        "also_posted_list": "count",
+        "qf42_card": {
+          "length": 3867,
+          "caption": [
+            "clipped",
+            132
+          ],
+          "carousel_caption": [
+            "clipped",
+            270
+          ],
+          "narration_chars": 666,
+          "narration_shortened": false,
+          "findings_lists_first_items": 1,
+          "findings_lists_count_only": 0,
+          "credits_list": true,
+          "slot_line": false,
+          "also_posted_list": "absent"
+        },
+        "regressions_vs_qf42_card": [],
+        "fitted_part_is_qf42_layout_of_posted_copy": true,
+        "approve_refused": "",
+        "approve": "slot",
+        "slot_line_text": "🗓 <b>Slot:</b> Thu 05 Nov 19:00 EST · <b>review closes</b> 11:00 EST",
+        "slot_line_truthful": true
+      },
+      "run_odessa_catacombs_1793100750": {
+        "length": 3981,
+        "caption": [
+          "clipped",
+          253
+        ],
+        "carousel_caption": [
+          "full",
+          334
+        ],
+        "narration_chars": 666,
+        "narration_shortened": false,
+        "findings_lists_first_items": 0,
+        "findings_lists_count_only": 0,
+        "credits_list": true,
+        "slot_line": true,
+        "also_posted_list": "count",
+        "qf42_card": {
+          "length": 3860,
+          "caption": [
+            "clipped",
+            253
+          ],
+          "carousel_caption": [
+            "full",
+            334
+          ],
+          "narration_chars": 666,
+          "narration_shortened": false,
+          "findings_lists_first_items": 0,
+          "findings_lists_count_only": 0,
+          "credits_list": true,
+          "slot_line": false,
+          "also_posted_list": "absent"
+        },
+        "regressions_vs_qf42_card": [],
+        "fitted_part_is_qf42_layout_of_posted_copy": true,
+        "approve_refused": "",
+        "approve": "slot",
+        "slot_line_text": "🗓 <b>Slot:</b> Thu 05 Nov 19:00 EST · <b>review closes</b> 11:00 EST",
+        "slot_line_truthful": true
+      },
+      "run_richat_structure_sahara_eye_1792737039_short": {
+        "length": 3990,
+        "caption": [
+          "clipped",
+          229
+        ],
+        "carousel_caption": [
+          "full",
+          300
+        ],
+        "narration_chars": 706,
+        "narration_shortened": false,
+        "findings_lists_first_items": 0,
+        "findings_lists_count_only": 0,
+        "credits_list": true,
+        "slot_line": true,
+        "also_posted_list": "count",
+        "qf42_card": {
+          "length": 3864,
+          "caption": [
+            "clipped",
+            195
+          ],
+          "carousel_caption": [
+            "full",
+            302
+          ],
+          "narration_chars": 706,
+          "narration_shortened": false,
+          "findings_lists_first_items": 0,
+          "findings_lists_count_only": 0,
+          "credits_list": true,
+          "slot_line": false,
+          "also_posted_list": "absent"
+        },
+        "regressions_vs_qf42_card": [],
+        "fitted_part_is_qf42_layout_of_posted_copy": true,
+        "approve_refused": "",
+        "approve": "slot",
+        "slot_line_text": "🗓 <b>Slot:</b> Thu 05 Nov 19:00 EST · <b>review closes</b> 11:00 EST",
+        "slot_line_truthful": true
+      },
+      "run_richat_structure_sahara_eye_1792740961_long": {
+        "length": 3983,
+        "caption": [
+          "absent",
+          0
+        ],
+        "carousel_caption": [
+          "absent",
+          0
+        ],
+        "narration_chars": 2420,
+        "narration_shortened": true,
+        "findings_lists_first_items": 1,
+        "findings_lists_count_only": 0,
+        "credits_list": true,
+        "slot_line": true,
+        "also_posted_list": "count",
+        "qf42_card": {
+          "length": 3841,
+          "caption": [
+            "absent",
+            0
+          ],
+          "carousel_caption": [
+            "absent",
+            0
+          ],
+          "narration_chars": 2420,
+          "narration_shortened": true,
+          "findings_lists_first_items": 1,
+          "findings_lists_count_only": 0,
+          "credits_list": true,
+          "slot_line": false,
+          "also_posted_list": "absent"
+        },
+        "regressions_vs_qf42_card": [],
+        "fitted_part_is_qf42_layout_of_posted_copy": true,
+        "approve_refused": "",
+        "approve": "now",
+        "slot_line_text": "🗓 <b>Slot:</b> posted as soon as you approve · <b>review closes</b> Thu 05 Nov 11:00 EST",
+        "slot_line_truthful": true
+      },
+      "run_richat_structure_sahara_eye_1792778206": {
+        "length": 3990,
+        "caption": [
+          "clipped",
+          131
+        ],
+        "carousel_caption": [
+          "clipped",
+          326
+        ],
+        "narration_chars": 674,
+        "narration_shortened": false,
+        "findings_lists_first_items": 0,
+        "findings_lists_count_only": 0,
+        "credits_list": true,
+        "slot_line": true,
+        "also_posted_list": "count",
+        "qf42_card": {
+          "length": 3866,
+          "caption": [
+            "clipped",
+            131
+          ],
+          "carousel_caption": [
+            "clipped",
+            300
+          ],
+          "narration_chars": 674,
+          "narration_shortened": false,
+          "findings_lists_first_items": 0,
+          "findings_lists_count_only": 0,
+          "credits_list": true,
+          "slot_line": false,
+          "also_posted_list": "absent"
+        },
+        "regressions_vs_qf42_card": [],
+        "fitted_part_is_qf42_layout_of_posted_copy": true,
+        "approve_refused": "",
+        "approve": "slot",
+        "slot_line_text": "🗓 <b>Slot:</b> Thu 05 Nov 19:00 EST · <b>review closes</b> 11:00 EST",
+        "slot_line_truthful": true
+      },
+      "run_richat_structure_sahara_eye_1793272675": {
+        "length": 3993,
+        "caption": [
+          "too_long",
+          0
+        ],
+        "carousel_caption": [
+          "too_long",
+          0
+        ],
+        "narration_chars": 718,
+        "narration_shortened": false,
+        "findings_lists_first_items": 0,
+        "findings_lists_count_only": 0,
+        "credits_list": true,
+        "slot_line": true,
+        "also_posted_list": "count",
+        "qf42_card": {
+          "length": 3841,
+          "caption": [
+            "too_long",
+            0
+          ],
+          "carousel_caption": [
+            "too_long",
+            0
+          ],
+          "narration_chars": 718,
+          "narration_shortened": false,
+          "findings_lists_first_items": 0,
+          "findings_lists_count_only": 0,
+          "credits_list": true,
+          "slot_line": false,
+          "also_posted_list": "absent"
+        },
+        "regressions_vs_qf42_card": [],
+        "fitted_part_is_qf42_layout_of_posted_copy": true,
+        "approve_refused": "",
+        "approve": "slot",
+        "slot_line_text": "🗓 <b>Slot:</b> Thu 05 Nov 19:00 EST · <b>review closes</b> 11:00 EST",
+        "slot_line_truthful": true
+      },
+      "run_richat_structure_sahara_eye_1793474843": {
+        "length": 3986,
+        "caption": [
+          "clipped",
+          122
+        ],
+        "carousel_caption": [
+          "clipped",
+          248
+        ],
+        "narration_chars": 669,
+        "narration_shortened": false,
+        "findings_lists_first_items": 0,
+        "findings_lists_count_only": 0,
+        "credits_list": true,
+        "slot_line": true,
+        "also_posted_list": "count",
+        "qf42_card": {
+          "length": 3865,
+          "caption": [
+            "clipped",
+            122
+          ],
+          "carousel_caption": [
+            "clipped",
+            223
+          ],
+          "narration_chars": 669,
+          "narration_shortened": false,
+          "findings_lists_first_items": 0,
+          "findings_lists_count_only": 0,
+          "credits_list": true,
+          "slot_line": false,
+          "also_posted_list": "absent"
+        },
+        "regressions_vs_qf42_card": [],
+        "fitted_part_is_qf42_layout_of_posted_copy": true,
+        "approve_refused": "",
+        "approve": "slot",
+        "slot_line_text": "🗓 <b>Slot:</b> Thu 05 Nov 19:00 EST · <b>review closes</b> 11:00 EST",
+        "slot_line_truthful": true
+      },
+      "run_roman_self_healing_concrete_1793163918": {
+        "length": 3982,
+        "caption": [
+          "absent",
+          0
+        ],
+        "carousel_caption": [
+          "absent",
+          0
+        ],
+        "narration_chars": 368,
+        "narration_shortened": true,
+        "findings_lists_first_items": 0,
+        "findings_lists_count_only": 0,
+        "credits_list": true,
+        "slot_line": true,
+        "also_posted_list": "count",
+        "qf42_card": {
+          "length": 3879,
+          "caption": [
+            "absent",
+            0
+          ],
+          "carousel_caption": [
+            "absent",
+            0
+          ],
+          "narration_chars": 368,
+          "narration_shortened": true,
+          "findings_lists_first_items": 0,
+          "findings_lists_count_only": 0,
+          "credits_list": true,
+          "slot_line": false,
+          "also_posted_list": "absent"
+        },
+        "regressions_vs_qf42_card": [],
+        "fitted_part_is_qf42_layout_of_posted_copy": true,
+        "approve_refused": "",
+        "approve": "slot",
+        "slot_line_text": "🗓 <b>Slot:</b> Thu 05 Nov 19:00 EST · <b>review closes</b> 11:00 EST",
+        "slot_line_truthful": true
+      },
+      "run_singing_colossi_of_memnon_1792952878": {
+        "length": 3996,
+        "caption": [
+          "clipped",
+          133
+        ],
+        "carousel_caption": [
+          "clipped",
+          206
+        ],
+        "narration_chars": 694,
+        "narration_shortened": false,
+        "findings_lists_first_items": 0,
+        "findings_lists_count_only": 0,
+        "credits_list": true,
+        "slot_line": true,
+        "also_posted_list": "count",
+        "qf42_card": {
+          "length": 3874,
+          "caption": [
+            "clipped",
+            133
+          ],
+          "carousel_caption": [
+            "clipped",
+            206
+          ],
+          "narration_chars": 694,
+          "narration_shortened": false,
+          "findings_lists_first_items": 0,
+          "findings_lists_count_only": 0,
+          "credits_list": true,
+          "slot_line": false,
+          "also_posted_list": "absent"
+        },
+        "regressions_vs_qf42_card": [],
+        "fitted_part_is_qf42_layout_of_posted_copy": true,
+        "approve_refused": "",
+        "approve": "slot",
+        "slot_line_text": "🗓 <b>Slot:</b> Thu 05 Nov 19:00 EST · <b>review closes</b> 11:00 EST",
+        "slot_line_truthful": true
+      },
+      "run_trepanation_miracle_1792995462": {
+        "length": 3988,
+        "caption": [
+          "clipped",
+          134
+        ],
+        "carousel_caption": [
+          "clipped",
+          356
+        ],
+        "narration_chars": 776,
+        "narration_shortened": false,
+        "findings_lists_first_items": 1,
+        "findings_lists_count_only": 2,
+        "credits_list": true,
+        "slot_line": true,
+        "also_posted_list": "count",
+        "qf42_card": {
+          "length": 3867,
+          "caption": [
+            "clipped",
+            134
+          ],
+          "carousel_caption": [
+            "clipped",
+            356
+          ],
+          "narration_chars": 776,
+          "narration_shortened": false,
+          "findings_lists_first_items": 1,
+          "findings_lists_count_only": 2,
+          "credits_list": true,
+          "slot_line": false,
+          "also_posted_list": "absent"
+        },
+        "regressions_vs_qf42_card": [],
+        "fitted_part_is_qf42_layout_of_posted_copy": true,
+        "approve_refused": "",
+        "approve": "slot",
+        "slot_line_text": "🗓 <b>Slot:</b> Thu 05 Nov 19:00 EST · <b>review closes</b> 11:00 EST",
+        "slot_line_truthful": true
+      },
+      "run_tunguska_event_1908_1792930600": {
+        "length": 3991,
+        "caption": [
+          "clipped",
+          135
+        ],
+        "carousel_caption": [
+          "clipped",
+          276
+        ],
+        "narration_chars": 661,
+        "narration_shortened": false,
+        "findings_lists_first_items": 0,
+        "findings_lists_count_only": 0,
+        "credits_list": true,
+        "slot_line": true,
+        "also_posted_list": "count",
+        "qf42_card": {
+          "length": 3865,
+          "caption": [
+            "clipped",
+            127
+          ],
+          "carousel_caption": [
+            "clipped",
+            265
+          ],
+          "narration_chars": 661,
+          "narration_shortened": false,
+          "findings_lists_first_items": 0,
+          "findings_lists_count_only": 0,
+          "credits_list": true,
+          "slot_line": false,
+          "also_posted_list": "absent"
+        },
+        "regressions_vs_qf42_card": [],
+        "fitted_part_is_qf42_layout_of_posted_copy": true,
+        "approve_refused": "",
+        "approve": "slot",
+        "slot_line_text": "🗓 <b>Slot:</b> Thu 05 Nov 19:00 EST · <b>review closes</b> 11:00 EST",
+        "slot_line_truthful": true
+      },
+      "run_unfinished_obelisk_aswan_1792985912": {
+        "length": 3991,
+        "caption": [
+          "too_long",
+          0
+        ],
+        "carousel_caption": [
+          "too_long",
+          0
+        ],
+        "narration_chars": 703,
+        "narration_shortened": false,
+        "findings_lists_first_items": 0,
+        "findings_lists_count_only": 0,
+        "credits_list": true,
+        "slot_line": true,
+        "also_posted_list": "count",
+        "qf42_card": {
+          "length": 3837,
+          "caption": [
+            "absent",
+            0
+          ],
+          "carousel_caption": [
+            "too_long",
+            0
+          ],
+          "narration_chars": 703,
+          "narration_shortened": false,
+          "findings_lists_first_items": 0,
+          "findings_lists_count_only": 0,
+          "credits_list": true,
+          "slot_line": false,
+          "also_posted_list": "absent"
+        },
+        "regressions_vs_qf42_card": [],
+        "fitted_part_is_qf42_layout_of_posted_copy": true,
+        "approve_refused": "",
+        "approve": "slot",
+        "slot_line_text": "🗓 <b>Slot:</b> Thu 05 Nov 19:00 EST · <b>review closes</b> 11:00 EST",
+        "slot_line_truthful": true
+      },
+      "run_unfinished_obelisk_aswan_1792993374": {
+        "length": 3996,
+        "caption": [
+          "clipped",
+          497
+        ],
+        "carousel_caption": [
+          "full",
+          385
+        ],
+        "narration_chars": 683,
+        "narration_shortened": false,
+        "findings_lists_first_items": 0,
+        "findings_lists_count_only": 0,
+        "credits_list": true,
+        "slot_line": true,
+        "also_posted_list": "count",
+        "qf42_card": {
+          "length": 3870,
+          "caption": [
+            "clipped",
+            466
+          ],
+          "carousel_caption": [
+            "full",
+            385
+          ],
+          "narration_chars": 683,
+          "narration_shortened": false,
+          "findings_lists_first_items": 0,
+          "findings_lists_count_only": 0,
+          "credits_list": true,
+          "slot_line": false,
+          "also_posted_list": "absent"
+        },
+        "regressions_vs_qf42_card": [],
+        "fitted_part_is_qf42_layout_of_posted_copy": true,
+        "approve_refused": "",
+        "approve": "slot",
+        "slot_line_text": "🗓 <b>Slot:</b> Thu 05 Nov 19:00 EST · <b>review closes</b> 11:00 EST",
+        "slot_line_truthful": true
+      },
+      "run_unfinished_obelisk_aswan_1793056896": {
+        "length": 3989,
+        "caption": [
+          "clipped",
+          129
+        ],
+        "carousel_caption": [
+          "clipped",
+          312
+        ],
+        "narration_chars": 696,
+        "narration_shortened": false,
+        "findings_lists_first_items": 0,
+        "findings_lists_count_only": 0,
+        "credits_list": true,
+        "slot_line": true,
+        "also_posted_list": "count",
+        "qf42_card": {
+          "length": 3866,
+          "caption": [
+            "clipped",
+            129
+          ],
+          "carousel_caption": [
+            "clipped",
+            283
+          ],
+          "narration_chars": 696,
+          "narration_shortened": false,
+          "findings_lists_first_items": 0,
+          "findings_lists_count_only": 0,
+          "credits_list": true,
+          "slot_line": false,
+          "also_posted_list": "absent"
+        },
+        "regressions_vs_qf42_card": [],
+        "fitted_part_is_qf42_layout_of_posted_copy": true,
+        "approve_refused": "",
+        "approve": "slot",
+        "slot_line_text": "🗓 <b>Slot:</b> Thu 05 Nov 19:00 EST · <b>review closes</b> 11:00 EST",
+        "slot_line_truthful": true
+      },
+      "run_voynich_manuscript_1792965308": {
+        "length": 3922,
+        "caption": [
+          "full",
+          524
+        ],
+        "carousel_caption": [
+          "full",
+          389
+        ],
+        "narration_chars": 734,
+        "narration_shortened": false,
+        "findings_lists_first_items": 0,
+        "findings_lists_count_only": 0,
+        "credits_list": false,
+        "slot_line": true,
+        "also_posted_list": "part",
+        "qf42_card": {
+          "length": 3620,
+          "caption": [
+            "full",
+            524
+          ],
+          "carousel_caption": [
+            "full",
+            389
+          ],
+          "narration_chars": 734,
+          "narration_shortened": false,
+          "findings_lists_first_items": 0,
+          "findings_lists_count_only": 0,
+          "credits_list": false,
+          "slot_line": false,
+          "also_posted_list": "absent"
+        },
+        "regressions_vs_qf42_card": [],
+        "fitted_part_is_qf42_layout_of_posted_copy": true,
+        "approve_refused": "",
+        "approve": "slot",
+        "slot_line_text": "🗓 <b>Slot:</b> Thu 05 Nov 19:00 EST · <b>review closes</b> 11:00 EST",
+        "slot_line_truthful": true
+      },
+      "run_wieliczka_salt_mine_1792974672": {
+        "length": 3980,
+        "caption": [
+          "too_long",
+          0
+        ],
+        "carousel_caption": [
+          "too_long",
+          0
+        ],
+        "narration_chars": 722,
+        "narration_shortened": false,
+        "findings_lists_first_items": 1,
+        "findings_lists_count_only": 2,
+        "credits_list": true,
+        "slot_line": true,
+        "also_posted_list": "count",
+        "qf42_card": {
+          "length": 3827,
+          "caption": [
+            "too_long",
+            0
+          ],
+          "carousel_caption": [
+            "too_long",
+            0
+          ],
+          "narration_chars": 722,
+          "narration_shortened": false,
+          "findings_lists_first_items": 1,
+          "findings_lists_count_only": 2,
+          "credits_list": true,
+          "slot_line": false,
+          "also_posted_list": "absent"
+        },
+        "regressions_vs_qf42_card": [],
+        "fitted_part_is_qf42_layout_of_posted_copy": true,
+        "approve_refused": "",
+        "approve": "slot",
+        "slot_line_text": "🗓 <b>Slot:</b> Thu 05 Nov 19:00 EST · <b>review closes</b> 11:00 EST",
+        "slot_line_truthful": true
+      }
+    },
+    "per_carousel": {
+      "run_amber_room_heist_1792790550": {
+        "posted_as_card_shows": true,
+        "off_list_hashtags": []
+      },
+      "run_amber_room_heist_1792801257": {
+        "posted_as_card_shows": true,
+        "off_list_hashtags": []
+      },
+      "run_amber_room_heist_1792805842": {
+        "posted_as_card_shows": true,
+        "off_list_hashtags": []
+      },
+      "run_damascus_steel_nanotubes_1792732472_short": {
+        "posted_as_card_shows": true,
+        "off_list_hashtags": []
+      },
+      "run_gol_gumbaz_whispering_gallery_1793278143": {
+        "posted_as_card_shows": true,
+        "off_list_hashtags": []
+      },
+      "run_greek_fire_siphon_1792735284_short": {
+        "posted_as_card_shows": true,
+        "off_list_hashtags": []
+      },
+      "run_hal_saflieni_hypogeum_1792949304": {
+        "posted_as_card_shows": true,
+        "off_list_hashtags": []
+      },
+      "run_kailasa_temple_monolith_1792524470": {
+        "posted_as_card_shows": true,
+        "off_list_hashtags": []
+      },
+      "run_nazca_lines_runway_paradox_1792961797": {
+        "posted_as_card_shows": true,
+        "off_list_hashtags": []
+      },
+      "run_nazca_lines_runway_paradox_1793247464": {
+        "posted_as_card_shows": true,
+        "off_list_hashtags": []
+      },
+      "run_nazca_lines_runway_paradox_1793251266": {
+        "posted_as_card_shows": true,
+        "off_list_hashtags": []
+      },
+      "run_nazca_lines_runway_paradox_1793262388": {
+        "posted_as_card_shows": true,
+        "off_list_hashtags": []
+      },
+      "run_nazca_lines_runway_paradox_1793267092": {
+        "posted_as_card_shows": true,
+        "off_list_hashtags": []
+      },
+      "run_odessa_catacombs_1792970549": {
+        "posted_as_card_shows": true,
+        "off_list_hashtags": []
+      },
+      "run_odessa_catacombs_1793098390": {
+        "posted_as_card_shows": true,
+        "off_list_hashtags": []
+      },
+      "run_odessa_catacombs_1793100750": {
+        "posted_as_card_shows": true,
+        "off_list_hashtags": []
+      },
+      "run_richat_structure_sahara_eye_1792737039_short": {
+        "posted_as_card_shows": true,
+        "off_list_hashtags": []
+      },
+      "run_richat_structure_sahara_eye_1792778206": {
+        "posted_as_card_shows": true,
+        "off_list_hashtags": []
+      },
+      "run_richat_structure_sahara_eye_1793272675": {
+        "posted_as_card_shows": true,
+        "off_list_hashtags": []
+      },
+      "run_richat_structure_sahara_eye_1793474843": {
+        "posted_as_card_shows": true,
+        "off_list_hashtags": []
+      },
+      "run_roman_self_healing_concrete_1793163918": {
+        "posted_as_card_shows": true,
+        "off_list_hashtags": []
+      },
+      "run_singing_colossi_of_memnon_1792952878": {
+        "posted_as_card_shows": true,
+        "off_list_hashtags": []
+      },
+      "run_trepanation_miracle_1792995462": {
+        "posted_as_card_shows": true,
+        "off_list_hashtags": []
+      },
+      "run_tunguska_event_1908_1792930600": {
+        "posted_as_card_shows": true,
+        "off_list_hashtags": []
+      },
+      "run_unfinished_obelisk_aswan_1792985912": {
+        "posted_as_card_shows": true,
+        "off_list_hashtags": []
+      },
+      "run_unfinished_obelisk_aswan_1792993374": {
+        "posted_as_card_shows": true,
+        "off_list_hashtags": []
+      },
+      "run_unfinished_obelisk_aswan_1793056896": {
+        "posted_as_card_shows": true,
+        "off_list_hashtags": []
+      },
+      "run_voynich_manuscript_1792965308": {
+        "posted_as_card_shows": true,
+        "off_list_hashtags": []
+      },
+      "run_wieliczka_salt_mine_1792974672": {
+        "posted_as_card_shows": true,
+        "off_list_hashtags": []
+      }
+    }
+  }
+}

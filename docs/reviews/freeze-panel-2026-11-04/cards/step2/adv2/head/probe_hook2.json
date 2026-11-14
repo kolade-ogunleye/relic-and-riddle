@@ -1,0 +1,1974 @@
+{
+ "hookeb2_defeated_kievan_rus_longship_dark": {
+  "lines": {
+   "title": [
+    "DEFEATED KIEVAN",
+    "RUS’ LONGSHIPS"
+   ]
+  },
+  "anchors": {
+   "P": 120,
+   "Pm": null,
+   "position": "plate",
+   "lines": 2,
+   "block_top": 547,
+   "L": 858,
+   "E": 593
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {
+   "mode": "plate",
+   "strength": 0.96
+  },
+  "elements": [
+   {
+    "name": "brand",
+    "box": [
+     265,
+     462,
+     862,
+     508
+    ],
+    "px": 64
+   },
+   {
+    "name": "brand_mark",
+    "box": [
+     216,
+     472,
+     242,
+     498
+    ],
+    "px": 0
+   },
+   {
+    "name": "eyebrow_rule",
+    "box": [
+     518,
+     547,
+     562,
+     551
+    ],
+    "px": 0
+   },
+   {
+    "name": "eyebrow",
+    "box": [
+     294,
+     564,
+     783,
+     594
+    ],
+    "px": 40
+   },
+   {
+    "name": "title_0",
+    "box": [
+     168,
+     637,
+     913,
+     740
+    ],
+    "px": 120
+   },
+   {
+    "name": "title_1",
+    "box": [
+     191,
+     754,
+     889,
+     859
+    ],
+    "px": 120
+   }
+  ]
+ },
+ "hookeb2_defeated_kievan_rus_longship_bright": {
+  "lines": {
+   "title": [
+    "DEFEATED KIEVAN",
+    "RUS’ LONGSHIPS"
+   ]
+  },
+  "anchors": {
+   "P": 120,
+   "Pm": null,
+   "position": "plate",
+   "lines": 2,
+   "block_top": 547,
+   "L": 858,
+   "E": 593
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {
+   "mode": "plate",
+   "strength": 0.96
+  },
+  "elements": [
+   {
+    "name": "brand",
+    "box": [
+     265,
+     462,
+     862,
+     508
+    ],
+    "px": 64
+   },
+   {
+    "name": "brand_mark",
+    "box": [
+     216,
+     472,
+     242,
+     498
+    ],
+    "px": 0
+   },
+   {
+    "name": "eyebrow_rule",
+    "box": [
+     518,
+     547,
+     562,
+     551
+    ],
+    "px": 0
+   },
+   {
+    "name": "eyebrow",
+    "box": [
+     294,
+     564,
+     783,
+     594
+    ],
+    "px": 40
+   },
+   {
+    "name": "title_0",
+    "box": [
+     168,
+     637,
+     913,
+     740
+    ],
+    "px": 120
+   },
+   {
+    "name": "title_1",
+    "box": [
+     191,
+     754,
+     889,
+     859
+    ],
+    "px": 120
+   }
+  ]
+ },
+ "hookeb2_defeated_kievan_rus_longship_busy": {
+  "lines": {
+   "title": [
+    "DEFEATED KIEVAN",
+    "RUS’ LONGSHIPS"
+   ]
+  },
+  "anchors": {
+   "P": 120,
+   "Pm": null,
+   "position": "plate",
+   "lines": 2,
+   "block_top": 547,
+   "L": 858,
+   "E": 593
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {
+   "mode": "plate",
+   "strength": 0.96
+  },
+  "elements": [
+   {
+    "name": "brand",
+    "box": [
+     265,
+     462,
+     862,
+     508
+    ],
+    "px": 64
+   },
+   {
+    "name": "brand_mark",
+    "box": [
+     216,
+     472,
+     242,
+     498
+    ],
+    "px": 0
+   },
+   {
+    "name": "eyebrow_rule",
+    "box": [
+     518,
+     547,
+     562,
+     551
+    ],
+    "px": 0
+   },
+   {
+    "name": "eyebrow",
+    "box": [
+     294,
+     564,
+     783,
+     594
+    ],
+    "px": 40
+   },
+   {
+    "name": "title_0",
+    "box": [
+     168,
+     637,
+     913,
+     740
+    ],
+    "px": 120
+   },
+   {
+    "name": "title_1",
+    "box": [
+     191,
+     754,
+     889,
+     859
+    ],
+    "px": 120
+   }
+  ]
+ },
+ "hookeb2_dedicated_in_ad_128_dark": {
+  "lines": {
+   "title": [
+    "DEDICATED",
+    "IN AD 128"
+   ]
+  },
+  "anchors": {
+   "P": 128,
+   "Pm": null,
+   "position": "plate",
+   "lines": 2,
+   "block_top": 547,
+   "L": 872,
+   "E": 593
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {
+   "mode": "plate",
+   "strength": 0.96
+  },
+  "elements": [
+   {
+    "name": "brand",
+    "box": [
+     265,
+     462,
+     862,
+     508
+    ],
+    "px": 64
+   },
+   {
+    "name": "brand_mark",
+    "box": [
+     216,
+     472,
+     242,
+     498
+    ],
+    "px": 0
+   },
+   {
+    "name": "eyebrow_rule",
+    "box": [
+     518,
+     547,
+     562,
+     551
+    ],
+    "px": 0
+   },
+   {
+    "name": "eyebrow",
+    "box": [
+     234,
+     564,
+     846,
+     594
+    ],
+    "px": 40
+   },
+   {
+    "name": "title_0",
+    "box": [
+     295,
+     636,
+     785,
+     748
+    ],
+    "px": 128
+   },
+   {
+    "name": "title_1",
+    "box": [
+     320,
+     761,
+     761,
+     873
+    ],
+    "px": 128
+   }
+  ]
+ },
+ "hookeb2_dedicated_in_ad_128_bright+busy": {
+  "lines": {
+   "title": [
+    "DEDICATED",
+    "IN AD 128"
+   ]
+  },
+  "anchors": {
+   "P": 128,
+   "Pm": null,
+   "position": "plate",
+   "lines": 2,
+   "block_top": 547,
+   "L": 872,
+   "E": 593
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {
+   "mode": "plate",
+   "strength": 0.96
+  },
+  "elements": [
+   {
+    "name": "brand",
+    "box": [
+     265,
+     462,
+     862,
+     508
+    ],
+    "px": 64
+   },
+   {
+    "name": "brand_mark",
+    "box": [
+     216,
+     472,
+     242,
+     498
+    ],
+    "px": 0
+   },
+   {
+    "name": "eyebrow_rule",
+    "box": [
+     518,
+     547,
+     562,
+     551
+    ],
+    "px": 0
+   },
+   {
+    "name": "eyebrow",
+    "box": [
+     234,
+     564,
+     846,
+     594
+    ],
+    "px": 40
+   },
+   {
+    "name": "title_0",
+    "box": [
+     295,
+     636,
+     785,
+     748
+    ],
+    "px": 128
+   },
+   {
+    "name": "title_1",
+    "box": [
+     320,
+     761,
+     761,
+     873
+    ],
+    "px": 128
+   }
+  ]
+ },
+ "hookeb2_dedicated_in_ad_128_hero": {
+  "lines": {
+   "title": [
+    "DEDICATED",
+    "IN AD 128"
+   ]
+  },
+  "anchors": {
+   "P": 128,
+   "Pm": null,
+   "position": "plate",
+   "lines": 2,
+   "block_top": 547,
+   "L": 872,
+   "E": 593
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {
+   "mode": "plate",
+   "strength": 0.96
+  },
+  "elements": [
+   {
+    "name": "brand",
+    "box": [
+     265,
+     462,
+     862,
+     508
+    ],
+    "px": 64
+   },
+   {
+    "name": "brand_mark",
+    "box": [
+     216,
+     472,
+     242,
+     498
+    ],
+    "px": 0
+   },
+   {
+    "name": "eyebrow_rule",
+    "box": [
+     518,
+     547,
+     562,
+     551
+    ],
+    "px": 0
+   },
+   {
+    "name": "eyebrow",
+    "box": [
+     234,
+     564,
+     846,
+     594
+    ],
+    "px": 40
+   },
+   {
+    "name": "title_0",
+    "box": [
+     295,
+     636,
+     785,
+     748
+    ],
+    "px": 128
+   },
+   {
+    "name": "title_1",
+    "box": [
+     320,
+     761,
+     761,
+     873
+    ],
+    "px": 128
+   }
+  ]
+ },
+ "hookeb2_named_after_wilfrid_voynich_dark": {
+  "lines": {
+   "title": [
+    "NAMED AFTER",
+    "WILFRID VOYNICH"
+   ]
+  },
+  "anchors": {
+   "P": 120,
+   "Pm": null,
+   "position": "normal",
+   "lines": 2,
+   "block_top": 699,
+   "L": 1010,
+   "E": 745
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {
+   "mode": "wash",
+   "strength": 0.45
+  },
+  "elements": [
+   {
+    "name": "brand",
+    "box": [
+     265,
+     462,
+     862,
+     508
+    ],
+    "px": 64
+   },
+   {
+    "name": "brand_mark",
+    "box": [
+     216,
+     472,
+     242,
+     498
+    ],
+    "px": 0
+   },
+   {
+    "name": "eyebrow_rule",
+    "box": [
+     100,
+     699,
+     144,
+     703
+    ],
+    "px": 0
+   },
+   {
+    "name": "eyebrow",
+    "box": [
+     100,
+     716,
+     649,
+     746
+    ],
+    "px": 40
+   },
+   {
+    "name": "title_0",
+    "box": [
+     100,
+     789,
+     697,
+     892
+    ],
+    "px": 120
+   },
+   {
+    "name": "title_1",
+    "box": [
+     100,
+     906,
+     846,
+     1011
+    ],
+    "px": 120
+   }
+  ]
+ },
+ "hookeb2_named_after_wilfrid_voynich_bright": {
+  "lines": {
+   "title": [
+    "NAMED AFTER",
+    "WILFRID VOYNICH"
+   ]
+  },
+  "anchors": {
+   "P": 120,
+   "Pm": null,
+   "position": "plate",
+   "lines": 2,
+   "block_top": 547,
+   "L": 858,
+   "E": 593
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {
+   "mode": "plate",
+   "strength": 0.96
+  },
+  "elements": [
+   {
+    "name": "brand",
+    "box": [
+     265,
+     462,
+     862,
+     508
+    ],
+    "px": 64
+   },
+   {
+    "name": "brand_mark",
+    "box": [
+     216,
+     472,
+     242,
+     498
+    ],
+    "px": 0
+   },
+   {
+    "name": "eyebrow_rule",
+    "box": [
+     518,
+     547,
+     562,
+     551
+    ],
+    "px": 0
+   },
+   {
+    "name": "eyebrow",
+    "box": [
+     264,
+     564,
+     813,
+     594
+    ],
+    "px": 40
+   },
+   {
+    "name": "title_0",
+    "box": [
+     242,
+     637,
+     839,
+     740
+    ],
+    "px": 120
+   },
+   {
+    "name": "title_1",
+    "box": [
+     167,
+     754,
+     913,
+     859
+    ],
+    "px": 120
+   }
+  ]
+ },
+ "hookeb2_named_after_wilfrid_voynich_busy": {
+  "lines": {
+   "title": [
+    "NAMED AFTER",
+    "WILFRID VOYNICH"
+   ]
+  },
+  "anchors": {
+   "P": 120,
+   "Pm": null,
+   "position": "normal",
+   "lines": 2,
+   "block_top": 699,
+   "L": 1010,
+   "E": 745
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {
+   "mode": "wash",
+   "strength": 0.55
+  },
+  "elements": [
+   {
+    "name": "brand",
+    "box": [
+     265,
+     462,
+     862,
+     508
+    ],
+    "px": 64
+   },
+   {
+    "name": "brand_mark",
+    "box": [
+     216,
+     472,
+     242,
+     498
+    ],
+    "px": 0
+   },
+   {
+    "name": "eyebrow_rule",
+    "box": [
+     100,
+     699,
+     144,
+     703
+    ],
+    "px": 0
+   },
+   {
+    "name": "eyebrow",
+    "box": [
+     100,
+     716,
+     649,
+     746
+    ],
+    "px": 40
+   },
+   {
+    "name": "title_0",
+    "box": [
+     100,
+     789,
+     697,
+     892
+    ],
+    "px": 120
+   },
+   {
+    "name": "title_1",
+    "box": [
+     100,
+     906,
+     846,
+     1011
+    ],
+    "px": 120
+   }
+  ]
+ },
+ "hookoil_dark": {
+  "refused": "the claim 'Hot pitch, oil and resin' states what fact 'fact-6' denies ('oil')"
+ },
+ "hookgen2_dedicated_in_ad_128_beat03_1": {
+  "lines": {
+   "title": [
+    "DEDICATED",
+    "IN AD 128"
+   ]
+  },
+  "anchors": {
+   "P": 128,
+   "Pm": null,
+   "position": "normal",
+   "lines": 2,
+   "block_top": 775,
+   "L": 1010,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {
+   "mode": "wash",
+   "strength": 0.75
+  },
+  "elements": [
+   {
+    "name": "brand",
+    "box": [
+     265,
+     462,
+     862,
+     508
+    ],
+    "px": 64
+   },
+   {
+    "name": "brand_mark",
+    "box": [
+     216,
+     472,
+     242,
+     498
+    ],
+    "px": 0
+   },
+   {
+    "name": "title_0",
+    "box": [
+     100,
+     774,
+     590,
+     886
+    ],
+    "px": 128
+   },
+   {
+    "name": "title_1",
+    "box": [
+     100,
+     899,
+     541,
+     1011
+    ],
+    "px": 128
+   },
+   {
+    "name": "provenance_plate",
+    "box": [
+     108,
+     702,
+     686,
+     743
+    ],
+    "px": 0
+   },
+   {
+    "name": "provenance",
+    "box": [
+     122,
+     712,
+     671,
+     733
+    ],
+    "px": 30
+   }
+  ]
+ },
+ "hookgen2_dedicated_in_ad_128_beat03_2": {
+  "lines": {
+   "title": [
+    "DEDICATED",
+    "IN AD 128"
+   ]
+  },
+  "anchors": {
+   "P": 128,
+   "Pm": null,
+   "position": "normal",
+   "lines": 2,
+   "block_top": 775,
+   "L": 1010,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {
+   "mode": "wash",
+   "strength": 0.75
+  },
+  "elements": [
+   {
+    "name": "brand",
+    "box": [
+     265,
+     462,
+     862,
+     508
+    ],
+    "px": 64
+   },
+   {
+    "name": "brand_mark",
+    "box": [
+     216,
+     472,
+     242,
+     498
+    ],
+    "px": 0
+   },
+   {
+    "name": "title_0",
+    "box": [
+     100,
+     774,
+     590,
+     886
+    ],
+    "px": 128
+   },
+   {
+    "name": "title_1",
+    "box": [
+     100,
+     899,
+     541,
+     1011
+    ],
+    "px": 128
+   },
+   {
+    "name": "provenance_plate",
+    "box": [
+     108,
+     702,
+     686,
+     743
+    ],
+    "px": 0
+   },
+   {
+    "name": "provenance",
+    "box": [
+     122,
+     712,
+     671,
+     733
+    ],
+    "px": 30
+   }
+  ]
+ },
+ "hookgen2_dedicated_in_ad_128_beat03_3": {
+  "lines": {
+   "title": [
+    "DEDICATED",
+    "IN AD 128"
+   ]
+  },
+  "anchors": {
+   "P": 128,
+   "Pm": null,
+   "position": "normal",
+   "lines": 2,
+   "block_top": 775,
+   "L": 1010,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {
+   "mode": "wash",
+   "strength": 0.6
+  },
+  "elements": [
+   {
+    "name": "brand",
+    "box": [
+     265,
+     462,
+     862,
+     508
+    ],
+    "px": 64
+   },
+   {
+    "name": "brand_mark",
+    "box": [
+     216,
+     472,
+     242,
+     498
+    ],
+    "px": 0
+   },
+   {
+    "name": "title_0",
+    "box": [
+     100,
+     774,
+     590,
+     886
+    ],
+    "px": 128
+   },
+   {
+    "name": "title_1",
+    "box": [
+     100,
+     899,
+     541,
+     1011
+    ],
+    "px": 128
+   },
+   {
+    "name": "provenance_plate",
+    "box": [
+     108,
+     702,
+     686,
+     743
+    ],
+    "px": 0
+   },
+   {
+    "name": "provenance",
+    "box": [
+     122,
+     712,
+     671,
+     733
+    ],
+    "px": 30
+   }
+  ]
+ },
+ "hookgen2_dedicated_in_ad_128_beat04_1": {
+  "lines": {
+   "title": [
+    "DEDICATED",
+    "IN AD 128"
+   ]
+  },
+  "anchors": {
+   "P": 128,
+   "Pm": null,
+   "position": "normal",
+   "lines": 2,
+   "block_top": 775,
+   "L": 1010,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {
+   "mode": "plate",
+   "strength": 0.96
+  },
+  "elements": [
+   {
+    "name": "brand",
+    "box": [
+     265,
+     462,
+     862,
+     508
+    ],
+    "px": 64
+   },
+   {
+    "name": "brand_mark",
+    "box": [
+     216,
+     472,
+     242,
+     498
+    ],
+    "px": 0
+   },
+   {
+    "name": "title_0",
+    "box": [
+     100,
+     774,
+     590,
+     886
+    ],
+    "px": 128
+   },
+   {
+    "name": "title_1",
+    "box": [
+     100,
+     899,
+     541,
+     1011
+    ],
+    "px": 128
+   },
+   {
+    "name": "provenance_plate",
+    "box": [
+     108,
+     702,
+     686,
+     743
+    ],
+    "px": 0
+   },
+   {
+    "name": "provenance",
+    "box": [
+     122,
+     712,
+     671,
+     733
+    ],
+    "px": 30
+   }
+  ]
+ },
+ "hookgen2_in_27_bc_a_major_earthquake_beat02_1": {
+  "lines": {
+   "title": [
+    "IN 27 BC, A",
+    "MAJOR",
+    "EARTHQUAKE"
+   ]
+  },
+  "anchors": {
+   "P": 112,
+   "Pm": null,
+   "position": "normal",
+   "lines": 3,
+   "block_top": 694,
+   "L": 1010,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {
+   "mode": "wash",
+   "strength": 0.7
+  },
+  "elements": [
+   {
+    "name": "brand",
+    "box": [
+     265,
+     462,
+     862,
+     508
+    ],
+    "px": 64
+   },
+   {
+    "name": "brand_mark",
+    "box": [
+     216,
+     472,
+     242,
+     498
+    ],
+    "px": 0
+   },
+   {
+    "name": "title_0",
+    "box": [
+     100,
+     693,
+     552,
+     804
+    ],
+    "px": 112
+   },
+   {
+    "name": "title_1",
+    "box": [
+     100,
+     803,
+     392,
+     901
+    ],
+    "px": 112
+   },
+   {
+    "name": "title_2",
+    "box": [
+     100,
+     913,
+     609,
+     1021
+    ],
+    "px": 112
+   },
+   {
+    "name": "provenance_plate",
+    "box": [
+     108,
+     621,
+     686,
+     662
+    ],
+    "px": 0
+   },
+   {
+    "name": "provenance",
+    "box": [
+     122,
+     631,
+     671,
+     652
+    ],
+    "px": 30
+   }
+  ]
+ },
+ "hookgen2_in_27_bc_a_major_earthquake_beat05_1": {
+  "lines": {
+   "title": [
+    "IN 27 BC, A",
+    "MAJOR",
+    "EARTHQUAKE"
+   ]
+  },
+  "anchors": {
+   "P": 112,
+   "Pm": null,
+   "position": "normal",
+   "lines": 3,
+   "block_top": 694,
+   "L": 1010,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {
+   "mode": "wash",
+   "strength": 0.7
+  },
+  "elements": [
+   {
+    "name": "brand",
+    "box": [
+     265,
+     462,
+     862,
+     508
+    ],
+    "px": 64
+   },
+   {
+    "name": "brand_mark",
+    "box": [
+     216,
+     472,
+     242,
+     498
+    ],
+    "px": 0
+   },
+   {
+    "name": "title_0",
+    "box": [
+     100,
+     693,
+     552,
+     804
+    ],
+    "px": 112
+   },
+   {
+    "name": "title_1",
+    "box": [
+     100,
+     803,
+     392,
+     901
+    ],
+    "px": 112
+   },
+   {
+    "name": "title_2",
+    "box": [
+     100,
+     913,
+     609,
+     1021
+    ],
+    "px": 112
+   },
+   {
+    "name": "provenance_plate",
+    "box": [
+     108,
+     621,
+     686,
+     662
+    ],
+    "px": 0
+   },
+   {
+    "name": "provenance",
+    "box": [
+     122,
+     631,
+     671,
+     652
+    ],
+    "px": 30
+   }
+  ]
+ },
+ "hookgen2_in_27_bc_a_major_earthquake_beat10_1": {
+  "lines": {
+   "title": [
+    "IN 27 BC, A",
+    "MAJOR",
+    "EARTHQUAKE"
+   ]
+  },
+  "anchors": {
+   "P": 112,
+   "Pm": null,
+   "position": "normal",
+   "lines": 3,
+   "block_top": 694,
+   "L": 1010,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {
+   "mode": "wash",
+   "strength": 0.5
+  },
+  "elements": [
+   {
+    "name": "brand",
+    "box": [
+     265,
+     462,
+     862,
+     508
+    ],
+    "px": 64
+   },
+   {
+    "name": "brand_mark",
+    "box": [
+     216,
+     472,
+     242,
+     498
+    ],
+    "px": 0
+   },
+   {
+    "name": "title_0",
+    "box": [
+     100,
+     693,
+     552,
+     804
+    ],
+    "px": 112
+   },
+   {
+    "name": "title_1",
+    "box": [
+     100,
+     803,
+     392,
+     901
+    ],
+    "px": 112
+   },
+   {
+    "name": "title_2",
+    "box": [
+     100,
+     913,
+     609,
+     1021
+    ],
+    "px": 112
+   },
+   {
+    "name": "provenance_plate",
+    "box": [
+     108,
+     621,
+     686,
+     662
+    ],
+    "px": 0
+   },
+   {
+    "name": "provenance",
+    "box": [
+     122,
+     631,
+     671,
+     652
+    ],
+    "px": 30
+   }
+  ]
+ },
+ "hookgen2_in_27_bc_a_major_earthquake_beat10_2": {
+  "lines": {
+   "title": [
+    "IN 27 BC, A",
+    "MAJOR",
+    "EARTHQUAKE"
+   ]
+  },
+  "anchors": {
+   "P": 112,
+   "Pm": null,
+   "position": "normal",
+   "lines": 3,
+   "block_top": 694,
+   "L": 1010,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {
+   "mode": "wash",
+   "strength": 0.7
+  },
+  "elements": [
+   {
+    "name": "brand",
+    "box": [
+     265,
+     462,
+     862,
+     508
+    ],
+    "px": 64
+   },
+   {
+    "name": "brand_mark",
+    "box": [
+     216,
+     472,
+     242,
+     498
+    ],
+    "px": 0
+   },
+   {
+    "name": "title_0",
+    "box": [
+     100,
+     693,
+     552,
+     804
+    ],
+    "px": 112
+   },
+   {
+    "name": "title_1",
+    "box": [
+     100,
+     803,
+     392,
+     901
+    ],
+    "px": 112
+   },
+   {
+    "name": "title_2",
+    "box": [
+     100,
+     913,
+     609,
+     1021
+    ],
+    "px": 112
+   },
+   {
+    "name": "provenance_plate",
+    "box": [
+     108,
+     621,
+     686,
+     662
+    ],
+    "px": 0
+   },
+   {
+    "name": "provenance",
+    "box": [
+     122,
+     631,
+     671,
+     652
+    ],
+    "px": 30
+   }
+  ]
+ },
+ "hookgen2_in_27_bc_a_major_earthquake_beat10_3": {
+  "lines": {
+   "title": [
+    "IN 27 BC, A",
+    "MAJOR",
+    "EARTHQUAKE"
+   ]
+  },
+  "anchors": {
+   "P": 112,
+   "Pm": null,
+   "position": "normal",
+   "lines": 3,
+   "block_top": 694,
+   "L": 1010,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {
+   "mode": "wash",
+   "strength": 0.75
+  },
+  "elements": [
+   {
+    "name": "brand",
+    "box": [
+     265,
+     462,
+     862,
+     508
+    ],
+    "px": 64
+   },
+   {
+    "name": "brand_mark",
+    "box": [
+     216,
+     472,
+     242,
+     498
+    ],
+    "px": 0
+   },
+   {
+    "name": "title_0",
+    "box": [
+     100,
+     693,
+     552,
+     804
+    ],
+    "px": 112
+   },
+   {
+    "name": "title_1",
+    "box": [
+     100,
+     803,
+     392,
+     901
+    ],
+    "px": 112
+   },
+   {
+    "name": "title_2",
+    "box": [
+     100,
+     913,
+     609,
+     1021
+    ],
+    "px": 112
+   },
+   {
+    "name": "provenance_plate",
+    "box": [
+     108,
+     621,
+     686,
+     662
+    ],
+    "px": 0
+   },
+   {
+    "name": "provenance",
+    "box": [
+     122,
+     631,
+     671,
+     652
+    ],
+    "px": 30
+   }
+  ]
+ },
+ "hookgen2_named_after_wilfrid_voynich_beat01_1": {
+  "lines": {
+   "title": [
+    "NAMED AFTER",
+    "WILFRID VOYNICH"
+   ]
+  },
+  "anchors": {
+   "P": 120,
+   "Pm": null,
+   "position": "normal",
+   "lines": 2,
+   "block_top": 789,
+   "L": 1010,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {
+   "mode": "wash",
+   "strength": 0.65
+  },
+  "elements": [
+   {
+    "name": "brand",
+    "box": [
+     265,
+     462,
+     862,
+     508
+    ],
+    "px": 64
+   },
+   {
+    "name": "brand_mark",
+    "box": [
+     216,
+     472,
+     242,
+     498
+    ],
+    "px": 0
+   },
+   {
+    "name": "title_0",
+    "box": [
+     100,
+     789,
+     697,
+     892
+    ],
+    "px": 120
+   },
+   {
+    "name": "title_1",
+    "box": [
+     100,
+     906,
+     846,
+     1011
+    ],
+    "px": 120
+   },
+   {
+    "name": "provenance_plate",
+    "box": [
+     108,
+     716,
+     686,
+     757
+    ],
+    "px": 0
+   },
+   {
+    "name": "provenance",
+    "box": [
+     122,
+     726,
+     671,
+     747
+    ],
+    "px": 30
+   }
+  ]
+ },
+ "hookgen2_carved_directly_out_of_bedro_beat01_1": {
+  "lines": {
+   "title": [
+    "CARVED DIRECTLY",
+    "OUT OF BEDROCK"
+   ]
+  },
+  "anchors": {
+   "P": 112,
+   "Pm": null,
+   "position": "normal",
+   "lines": 2,
+   "block_top": 804,
+   "L": 1010,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {
+   "mode": "plate",
+   "strength": 0.96
+  },
+  "elements": [
+   {
+    "name": "brand",
+    "box": [
+     265,
+     462,
+     862,
+     508
+    ],
+    "px": 64
+   },
+   {
+    "name": "brand_mark",
+    "box": [
+     216,
+     472,
+     242,
+     498
+    ],
+    "px": 0
+   },
+   {
+    "name": "title_0",
+    "box": [
+     100,
+     803,
+     808,
+     901
+    ],
+    "px": 112
+   },
+   {
+    "name": "title_1",
+    "box": [
+     100,
+     913,
+     768,
+     1011
+    ],
+    "px": 112
+   },
+   {
+    "name": "provenance_plate",
+    "box": [
+     108,
+     731,
+     686,
+     772
+    ],
+    "px": 0
+   },
+   {
+    "name": "provenance",
+    "box": [
+     122,
+     741,
+     671,
+     762
+    ],
+    "px": 30
+   }
+  ]
+ },
+ "hookgen2_carved_directly_out_of_bedro_beat01_2": {
+  "lines": {
+   "title": [
+    "CARVED DIRECTLY",
+    "OUT OF BEDROCK"
+   ]
+  },
+  "anchors": {
+   "P": 112,
+   "Pm": null,
+   "position": "normal",
+   "lines": 2,
+   "block_top": 804,
+   "L": 1010,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {
+   "mode": "plate",
+   "strength": 0.96
+  },
+  "elements": [
+   {
+    "name": "brand",
+    "box": [
+     265,
+     462,
+     862,
+     508
+    ],
+    "px": 64
+   },
+   {
+    "name": "brand_mark",
+    "box": [
+     216,
+     472,
+     242,
+     498
+    ],
+    "px": 0
+   },
+   {
+    "name": "title_0",
+    "box": [
+     100,
+     803,
+     808,
+     901
+    ],
+    "px": 112
+   },
+   {
+    "name": "title_1",
+    "box": [
+     100,
+     913,
+     768,
+     1011
+    ],
+    "px": 112
+   },
+   {
+    "name": "provenance_plate",
+    "box": [
+     108,
+     731,
+     686,
+     772
+    ],
+    "px": 0
+   },
+   {
+    "name": "provenance",
+    "box": [
+     122,
+     741,
+     671,
+     762
+    ],
+    "px": 30
+   }
+  ]
+ },
+ "hookgen2_carved_directly_out_of_bedro_beat01_3": {
+  "lines": {
+   "title": [
+    "CARVED DIRECTLY",
+    "OUT OF BEDROCK"
+   ]
+  },
+  "anchors": {
+   "P": 112,
+   "Pm": null,
+   "position": "normal",
+   "lines": 2,
+   "block_top": 804,
+   "L": 1010,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {
+   "mode": "plate",
+   "strength": 0.96
+  },
+  "elements": [
+   {
+    "name": "brand",
+    "box": [
+     265,
+     462,
+     862,
+     508
+    ],
+    "px": 64
+   },
+   {
+    "name": "brand_mark",
+    "box": [
+     216,
+     472,
+     242,
+     498
+    ],
+    "px": 0
+   },
+   {
+    "name": "title_0",
+    "box": [
+     100,
+     803,
+     808,
+     901
+    ],
+    "px": 112
+   },
+   {
+    "name": "title_1",
+    "box": [
+     100,
+     913,
+     768,
+     1011
+    ],
+    "px": 112
+   },
+   {
+    "name": "provenance_plate",
+    "box": [
+     108,
+     731,
+     686,
+     772
+    ],
+    "px": 0
+   },
+   {
+    "name": "provenance",
+    "box": [
+     122,
+     741,
+     671,
+     762
+    ],
+    "px": 30
+   }
+  ]
+ }
+}

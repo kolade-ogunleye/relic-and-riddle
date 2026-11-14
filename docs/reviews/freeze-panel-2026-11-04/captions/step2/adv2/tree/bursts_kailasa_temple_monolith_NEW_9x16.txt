@@ -1,0 +1,20 @@
+=== run_kailasa_temple_monolith_1792524470 | kailasa_temple_monolith [9:16] ===
+why: operator long-name decision (UNDER | THE RASHTRAKUTA ...): the closest real material
+NEW: FACT-SHEET STATEMENT KAILASA-COMMENCEMENT-PATRON (NO RUN NARRATES IT), SYNTHETIC FITTED TIMINGS (LAYOUT ONLY)
+13 words, 5 bursts, emphasis []; vignette vignette=PI/4.2:aspect=9/16 (src.video_composer.picture_vignette)
+text (fact sheet kailasa-commencement-patron, disputed=True): Excavation of the Kailasa temple commenced under the eighth-century Rashtrakuta king Krishna I.
+  0    0.00-   0.72   80px  plate  356x121   EXCAVATION
+  1    0.72-   1.97   80px  plate  676x121   OF THE KAILASA TEMPLE
+  2    1.97-   2.93   80px  plate  568x121   COMMENCED UNDER
+  3    2.93-   4.03   80px  plate  570x121   THE EIGHTH-CENTURY
+  4    4.03-   5.84   66px* plate  676x121   RASHTRAKUTA KING KRISHNA I
+  names:
+    WHOLE  Kailasa temple               OF THE KAILASA TEMPLE
+    WHOLE  Rashtrakuta king Krishna I   RASHTRAKUTA KING KRISHNA I
+  bursts ending on an article: none
+  function-word-only bursts: none
+  one-word bursts: ['0: EXCAVATION']
+  bursts below the 66 px floor: none
+  two-line bursts: none
+  timing checks: none (synthetic timings, layout only)
+

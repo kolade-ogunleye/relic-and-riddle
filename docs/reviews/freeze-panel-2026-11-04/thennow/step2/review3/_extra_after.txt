@@ -1,0 +1,4 @@
+ok  9x16 dark_wieliczka_extra
+ok  16x9 dark_wieliczka_extra
+docs/reviews/freeze-panel-2026-11-04/thennow/step2/review3/extra_compare/dark_wieliczka_extra_before_after.jpg
+A 0

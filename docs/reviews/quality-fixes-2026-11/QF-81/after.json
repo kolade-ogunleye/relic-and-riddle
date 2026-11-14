@@ -1,0 +1,18 @@
+{
+ "episodes": 21,
+ "carousel_slots": 9,
+ "copies_drawn_while_made": 0,
+ "copies_drawn_at_slot": 16,
+ "copies_drawn_total": 16,
+ "slide_audits": 8,
+ "carousels_posted": 8,
+ "duplicate_posts": 0,
+ "carousel_status": {
+  "expired": 5,
+  "published": 8,
+  "waiting": 8
+ },
+ "run_folders_with_carousel_slides": 8,
+ "drawn_but_never_posted": 0,
+ "folders_with_slides_are_exactly_the_posted": true
+}

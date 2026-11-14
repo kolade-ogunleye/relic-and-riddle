@@ -1,5 +1,5 @@
 {
-  "path": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\data\\sfx\\sfx_stone_door.wav",
+  "path": "data/sfx/sfx_stone_door.wav",
   "sha256": "de24fbe471965eabca635793fd32dde8d864ce245bcb4dba58752e68aaf196ab",
   "provider": "elevenlabs-sound-effects",
   "plan": "creator",

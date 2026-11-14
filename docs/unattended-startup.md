@@ -12,8 +12,9 @@ No application release should reinstall them or create another managed account.
 This application supplies the [service contract](runtime-contract.md), meaningful
 exit status and the [focused probe](production-probe-handoff.md). The lab owns
 managed passwords, host authorization/ACLs, platform reboot acceptance and security
-telemetry. This project owns workload triggers and process supervision; preserved
-deployment source is in `deployment/windows/handoff`. gMSA rotation does not change the content
+telemetry. This project owns workload triggers and process supervision; the maintained
+launcher is `deployment/windows/runtime` (`deployment/windows/handoff` keeps only the
+handoff's provenance record). gMSA rotation does not change the content
 backup encryption key; OneDrive OAuth consent is a separate application grant.
 
 The lab evidence proves Session 0 NVENC/API canaries, cloud upload/restore,
@@ -23,5 +24,6 @@ See [reconciliation and readiness](deployment-reconciliation.md) for that backlo
 
 A desktop OneDrive client is not running when signed out. The managed backup
 therefore uses the API and durable local spool, with desktop sync fallback disabled.
-The pipeline remains in dry-run mode. No reboot or account migration is required
+The pipeline posts live (operator activation, 2026-10-25); approval still decides
+each post. No reboot or account migration is required
 for a focused application probe under the already provisioned identity.

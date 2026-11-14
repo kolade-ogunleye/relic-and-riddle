@@ -322,5 +322,29 @@
    "tier": 1
   }
  ],
+ "cards": {
+  "statements": [
+   {
+    "id": "S1",
+    "text": "UNESCO inscribed the Ħal Saflieni Hypogeum on the World Heritage List in 1980.",
+    "fact_id": "unesco_listing_1980",
+    "check": {
+     "verdict": "needs_check",
+     "parts": {},
+     "runs": [],
+     "findings": [
+      "needs check: no fact-checker model key in the development checkout on 2026-11-03, so trace_check.check and evidence_check were not run; unusable until card_fields.check_cards runs"
+     ],
+     "checked_at": "2026-11-03T15:05:51.951753+00:00",
+     "facts_sha256": "c6e53ec109d179cd8d8316771b70fdf4eb66686805d642fa9f64aeca1417b64f",
+     "field_sha256": "4c5ee453805d433d414ace9f5070eef8800db45da355525fc0c0d471d0f08acc",
+     "sha256": "c4fb0dbc95639bb4be7da2b5af3ba568cc1dab0850ed14f6e742172ca612dd7e"
+    }
+   }
+  ],
+  "myths": [],
+  "quotes": [],
+  "dropped": []
+ },
  "rules_version": 2
 }

@@ -21,13 +21,14 @@ def main():
     candidates = json.loads(args.candidates.read_text(encoding="utf-8"))
     credits, outcomes = [], []
     for index, candidate in enumerate(candidates, 1):
-        path = args.output / f"{index:02d}_commons.jpg"
+        path = commons.stored(args.output / f"{index:02d}_commons.png")
         try:
             if path.is_file():
                 with Image.open(path) as image:
                     image.verify()
             else:
                 commons.download_jpeg(candidate["download_url"], path, max_wait=0)
+                path = commons.stored(path)   # the kept source JPEG, or the decoded PNG (QF-13)
             credits.append({**candidate, "file": path.name, "sha256": sha256_file(path)})
             outcome = {"file": path.name, "status": "downloaded"}
         except Exception as exc:

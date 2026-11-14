@@ -33,6 +33,7 @@ import requests
 from PIL import Image
 
 from . import config, media_budget
+from .encoding import BT709_FLAGS, to_bt709
 from .footage import download, probe
 from .typography import cover_crop
 from .video_qa import verify_motion_hook_integrity
@@ -151,7 +152,7 @@ def pre_condition_anchor_frame(image: Path, out_path: Optional[Path] = None, arc
     """Pre-conditions the authentic archival photo: crops to vertical 9:16 centering salient features."""
     if not Path(image).exists():
         return image
-    target_out = out_path or image.with_name(f"{image.stem}_anchor.jpg")
+    target_out = Path(out_path).with_suffix(".png") if out_path else image.with_name(f"{image.stem}_anchor.png")
     try:
         im = Image.open(image).convert("RGB")
     except Exception:
@@ -179,7 +180,7 @@ def pre_condition_anchor_frame(image: Path, out_path: Optional[Path] = None, arc
         im = im.crop((0, top, w, top + new_h))
 
     im = im.resize((1080, 1920), Image.Resampling.LANCZOS)
-    im.save(target_out, "JPEG", quality=95)
+    im.save(target_out, "PNG")
     return target_out
 
 
@@ -306,8 +307,10 @@ def _finish(raw: Path, out: Path, archetype: str = "megastructure") -> Path:
         [
             "ffmpeg", "-y", "-v", "error", "-protocol_whitelist", "file", "-i", str(raw),
             "-t", f"{SECONDS_OUT:.2f}", "-an",
-            "-vf", "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,fps=30",
-            "-c:v", "libx264", "-preset", "medium", "-crf", "17", "-pix_fmt", "yuv420p", str(out)
+            # BT.709 limited range, tagged, read with the clip's own matrix (QF-01)
+            "-vf", ("scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,fps=30,"
+                    f"{to_bt709(info.get('color_space'), info.get('height') or 0)}"),
+            "-c:v", "libx264", "-preset", "medium", "-crf", "17", *BT709_FLAGS, "-pix_fmt", "yuv420p", str(out)
         ],
         check=True, timeout=300, capture_output=True
     )
@@ -318,8 +321,8 @@ def _finish(raw: Path, out: Path, archetype: str = "megastructure") -> Path:
 
 # The gates' version, in each accepted clip's .qa.json: a clip accepted under older gates (no motion check) is
 # measured again before it is reused or carried over (production Derinkuyu, 2026-10-29: the still clip was carried
-# into the re-render "already paid for").
-GATE_VERSION = 2
+# into the re-render "already paid for"). 3 (QF-88): the picture check (black, freeze, flashing) joined the gates.
+GATE_VERSION = 3
 
 
 def _sha256(path: Path) -> str:
@@ -375,6 +378,20 @@ def _gate(out: Path, archetype: str = "megastructure", keep: bool = True) -> Dic
                 f"{100 * moved['moving_share']:.0f}% of regions moving < {100 * MIN_MOVING_SHARE:.0f}%)")
             log.warning("AI motion clip %s rejected: %s.", out.name, qa["reason"])
             reject(qa, "Motion check failed")
+        # QF-88: an AI clip that goes black, freezes or flashes (WCAG 2.3.1) is rejected before it is used. One
+        # that cannot be measured here is logged and kept: the release gate decodes the master it goes into, and
+        # that check fails closed.
+        from .picture_qa import ingest_problems
+        qa["picture_check"] = "passed"   # QF-88: read by the release gate's ingest note
+        try:
+            problems = ingest_problems(out)
+        except (OSError, ValueError, subprocess.SubprocessError) as e:
+            log.warning("AI motion clip %s not picture-checked at ingest (%s); the release gate checks the master.",
+                        out.name, e)
+            problems, qa["picture_check"] = [], f"not measured ({str(e)[:160]})"
+        if problems:
+            qa["pass"], qa["reason"] = False, "; ".join(problems)
+            reject(qa, "Picture check failed")
         log.info("AI motion hook verified: %s (inliers=%d, ratio=%.2f, content change %.0f%%, flow %.2f%%, "
                  "%.0f%% of regions moving)", qa.get("reason"), qa.get("inliers", 0), qa.get("inlier_ratio", 0.0),
                  100 * changed, 100 * moved["flow_share"], 100 * moved["moving_share"])
@@ -526,7 +543,7 @@ def animate(
     """(clip, provider) from the first provider that is configured, within budget and succeeds;
     None means the still stays a still (and gets the free 2.5D parallax treatment)."""
     archetype = classify_archetype(topic, fact_sheet)
-    anchor_img = pre_condition_anchor_frame(image, out.with_name(f"{out.stem}_anchor.jpg"), archetype=archetype)
+    anchor_img = pre_condition_anchor_frame(image, out.with_name(f"{out.stem}_anchor.png"), archetype=archetype)
 
     try:
         prov_list = providers(topic, fact_sheet)

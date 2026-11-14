@@ -1,21 +1,29 @@
+# Production install source; kept in agreement with the hashed uv.lock (pyproject.toml; CI: scripts/check_lock.py)
 anthropic==1.13.0
 pydantic==2.14.1
 APScheduler==3.11.3
 edge-tts==7.3.1  # test runs only (no commercial licence); 7.2.8 is now refused (HTTP 403)
 azure-cognitiveservices-speech==1.51.2
 numpy==2.4.6
-pillow==12.3.0
+pillow==13.0.0
+fonttools==4.67.0  # OpenType tables, coverage and font instancing
+uharfbuzz==0.57.0  # one glyph run for tracked text measurement and drawing
+spacy==3.8.18  # offline noun agreement; the pinned English model is committed in data/nlp
 requests==2.34.2
 msal==1.39.0  # personal OneDrive device sign-in and silent token refresh
 cryptography==50.0.2  # encrypted backup archives and token cache
 soundfile==0.13.1
-scipy>=1.10.0
+scipy==1.17.1
+shapely==2.2.0  # GEOS map geometry, clipping and label placement
+pyproj==3.7.2  # PROJ; last series supporting the project's Python 3.11 runtime
 pip-audit==2.10.1
 onnxruntime-directml==1.24.4; sys_platform == "win32"
 onnxruntime==1.24.4; sys_platform != "win32"
 opencv-python-headless==4.14.0.94
+skia-python==144.1  # QF-26: the one antialiased geometry rasteriser (CPU raster surfaces only; BSD-3)
+pybind11==3.1.0  # skia-python's required runtime support package (BSD-3)
 
-# dev
+# tests: the deployer installs this file and runs the suite (tools production never runs: pyproject.toml dev group)
 pytest==9.0.3
 pytest-xdist==3.8.0  # the suite on 4 workers: 85 s instead of 2-3 min, before and inside an install window
 httpx==0.28.1  # tests build SDK errors with it; anthropic 1.x no longer installs it

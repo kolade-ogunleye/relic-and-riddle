@@ -1,0 +1,71 @@
+{
+ "wikipedia_plus_attacker_page": {
+  "disputed": false,
+  "hedge": "",
+  "dropped": [],
+  "evidence_provenance": [
+   {
+    "host": null,
+    "tier": 2,
+    "fetch": null
+   },
+   {
+    "host": null,
+    "tier": 3,
+    "fetch": null
+   }
+  ],
+  "requests": [
+   "https://en.wikipedia.org/w/api.php",
+   "https://api.openalex.org/works?search=Old%20Mint%20Vault&per-page=3",
+   "https://en.wikipedia.org/w/api.php",
+   "https://attacker-blog.example/vault"
+  ]
+ },
+ "wikipedia_plus_cited_gov_page": {
+  "disputed": false,
+  "hedge": "",
+  "dropped": [],
+  "evidence_provenance": [
+   {
+    "host": null,
+    "tier": 2,
+    "fetch": null
+   },
+   {
+    "host": null,
+    "tier": 1,
+    "fetch": null
+   }
+  ],
+  "requests": [
+   "https://en.wikipedia.org/w/api.php",
+   "https://api.openalex.org/works?search=Old%20Mint%20Vault&per-page=3",
+   "https://en.wikipedia.org/w/api.php",
+   "https://records.example.gov/vault"
+  ]
+ },
+ "verify_field": {
+  "number_statement_wikipedia_plus_cited_page": "accepted",
+  "quote_wikipedia_only": "accepted",
+  "control_number_statement_with_tier1": "accepted",
+  "control_quote_with_tier1": "accepted",
+  "provenance_edited_after_signing": "refused (stale_check)"
+ },
+ "date_fact_statements_on_wikipedia_alone": {
+  "On 30 June 1908 the sky lit up": "accepted",
+  "Carved around 9600 BC": "accepted",
+  "Vesuvius buried it in AD 79": "accepted",
+  "Begun about 3000 BC": "accepted",
+  "Built in 1871": "accepted",
+  "July 29, 1941, at around 7:14": "accepted",
+  "Built between 9,600 and 8,200 BCE": "accepted",
+  "Dug in the 8th to 7th century BC": "accepted",
+  "Made between 7,000 and 10,000 years ago": "accepted",
+  "In 1941 it was taken apart in 36 hours": "accepted",
+  "Dated to 6500 BCE, 40 of 120 skulls": "accepted"
+ },
+ "shipped_date_facts_refused_as_statements_on_wikipedia_alone": {},
+ "review_card_sources_line": null,
+ "acceptance_met": false
+}

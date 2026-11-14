@@ -14,6 +14,8 @@ import logging
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 import re
+import sqlite3
+import threading
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import requests
@@ -211,6 +213,7 @@ STATUS_WORDS = {
     "producing": "being made", "pending_approval": "waiting for you", "approved": "approved",
     "published": "published", "simulated": "test run (not posted)", "rejected": "rejected",
     "regenerate": "regenerated", "timeout": "no decision in time", "failed": "failed",
+    "timed_out": "stopped at its deadline",
     "cancelled": "cancelled by operator", "publish_unknown": "not sure it posted", "scheduled": "scheduled to post",
 }
 
@@ -249,7 +252,8 @@ def _resolve_topic_dir(ref: str, assets_dir: Path, db: Optional[PipelineDatabase
 
 
 @serialized
-def _add_topic_to_bank(db: PipelineDatabase, title: str, u_site=None) -> Tuple[str, str, Dict[str, Any]]:
+def _add_topic_to_bank(db: PipelineDatabase, title: str, u_site=None,
+                       source_url: str = "") -> Tuple[str, str, Dict[str, Any]]:
     from . import topic_proposer
     bank = topic_proposer._bank()
     existing_titles = [t["title"] for t in bank.get("topics", [])]
@@ -274,21 +278,39 @@ def _add_topic_to_bank(db: PipelineDatabase, title: str, u_site=None) -> Tuple[s
         loc_lon = u_site.longitude or 0.0
         u_tag = f"\n🏛️ <b>UNESCO Verified:</b> #{u_site.id_number} ({html.escape(u_site.site)})"
 
+    # QF-73: a topic joins the bank with a source: the page the operator gives (/add Title | https://page), else the
+    # matched UNESCO record, else the English Wikipedia page of the title, the exact page its photo subject is
+    # verified by (photo_queries: a title that is no exact page holds the photo search). No fact or hook is made up:
+    # key facts are the UNESCO record's own description when one matched, and research writes the opening.
+    from urllib.parse import quote
+
+    from .topic_policy import UNASSESSED, UNCLASSIFIED, sources_valid
+    if source_url:
+        sources = [{"title": title, "url": source_url}]
+    elif u_site:
+        sources = [{"title": f"UNESCO World Heritage List: {u_site.site}",
+                    "url": f"https://whc.unesco.org/en/list/{u_site.id_number}/"}]
+    else:
+        sources = [{"title": f"Wikipedia: {title}",
+                    "url": "https://en.wikipedia.org/wiki/" + quote(title.replace(" ", "_"), safe="_(),'-")}]
+    if not sources_valid(sources):
+        raise ValueError("The source must be a public https:// page: /add Title | https://source-page")
+    described = [x.strip() for x in re.split(r"(?<=[.!?])\s+", (u_site.short_description or "") if u_site else "")
+                 if x.strip()]
+
     new_topic = {
         "id": topic_id,
         "title": title,
         "sub_theme": "Historical Curiosities & Ancient Marvels",
-        "hook": f"What really lies within {title}?",
+        "hook": "",
         # latitude/longitude: the keys every reader uses (lat/lon here were never read).
         "location": {"name": title, "country": loc_country, "latitude": loc_lat, "longitude": loc_lon},
-        "key_facts": [
-            f"Documented historical site: {title}",
-            "Architectural or archaeological significance recognized by researchers.",
-            "Subject of ongoing academic and field study."
-        ],
+        "key_facts": described[:5],
         "meta_categories": ["History & Philosophy", "Travel & Culture"],
         "hashtags": [f"#{slug[:20].replace('_', '')}", "#ancienthistory", "#archaeology", "#relicandriddle"],
-        "sources": [{"title": title, "url": f"https://en.wikipedia.org/wiki/{slug}"}],
+        "sources": sources,
+        "region_group": UNCLASSIFIED,
+        "sensitivity": [UNASSESSED],   # counted as sensitive until someone assesses it in the bank
         "added": topic_proposer.added_record("operator", "added by title in Telegram"
                                              + (f" (UNESCO #{u_site.id_number})" if u_site else "")),
     }
@@ -307,10 +329,25 @@ def _add_topic_to_bank(db: PipelineDatabase, title: str, u_site=None) -> Tuple[s
         "keywords": decomp["keywords"],
         "archetypes": decomp.get("archetypes", {})
     }
+    from .photo_queries import structured_spec
+    queries[topic_id] = structured_spec(queries[topic_id], wikipedia_title=title)
     from .topic_store import commit
     commit(topic_proposer.BANK, topic_proposer.QUERIES, bank, queries)
     db._seed_topics_from_json()
     return topic_id, u_tag, decomp
+
+
+def _added_topic_notes(db: PipelineDatabase, topic_id: str) -> str:
+    """The /add reply's lines on the new topic (QF-73): the source it was added with, whether it has a concrete fact
+    yet, and that its sensitivity is unassessed (it is spaced as sensitive until someone assesses it)."""
+    from .topic_policy import readiness
+    topic = db.get_topic_by_id(topic_id) or {}
+    lines = [f"📚 <b>Source:</b> {html.escape(str(s.get('url', '')))}" for s in (topic.get("sources") or [])[:1]]
+    if not readiness(topic)["concrete_fact"]:
+        lines.append("ℹ️ No concrete fact (a number, a scale or a contrast) yet: its first run relies on research "
+                     "to find one.")
+    lines.append("⚠️ Sensitivity not assessed: it keeps a clear day from other sensitive topics until it is.")
+    return "\n".join(lines) + "\n"
 
 
 def images_text(assets_dir: Path = ASSETS_DIR, db: Optional[PipelineDatabase] = None) -> str:
@@ -373,6 +410,18 @@ def shown_and_more(items: List[str], shown: int = SECTION_SHOWN, where: str = "P
 
 COVER_VARIANTS = {"a": "thumbnail_variant_a_blueprint.jpg", "b": "thumbnail_variant_b_intrigue.jpg",
                   "c": "thumbnail_variant_c_minimal.jpg"}
+
+
+def is_documentary_run(run_dir: Path, run: dict[str, Any] | None) -> bool:
+    """Whether the run at `run_dir` posts as the 16:9 documentary, whose posted cover is its 16:9 thumbnail and not
+    thumbnail_cover.jpg: by its delivery profile or content format, or a recorded cover path naming another file;
+    for a folder without a run row, by its documentary master."""
+    if run:
+        from .publishable import is_documentary
+        recorded = run.get("thumbnail_cover_path")
+        return (is_documentary(run.get("script_payload") or {}) or run.get("content_format") == "deep_dive"
+                or bool(recorded and Path(recorded).name != "thumbnail_cover.jpg"))
+    return any(Path(run_dir).glob("*_documentary_16x9.mp4"))
 
 
 def chosen_cover(run_dir: Path) -> Optional[str]:
@@ -523,6 +572,7 @@ AUDIT_NAMES = {"cdash": "Dashboard", "approve": "Approve", "reject": "Reject", "
                "cdigest": "Weekly digest", "chistory": "Review history", "chist": "Review details", "postnow": "Post now", "produce": "Produce a batch",
                "cposts": "Posting", "cpost": "Posting: one episode", "posts": "Posting", "cancelpost": "Cancel a booking", "movepost": "Move a booking",
                "retrypost": "Retry the failed platform", "retryreel": "Retry the Reel's failed platform", "fbcaptions": "Add captions on Facebook", "fbcover": "Set the Facebook cover", "ytshort": "Post the YouTube Short", "rebook": "Book Stories and carousel again", "ytthumb": "Set the YouTube thumbnail",
+               "newversionask": "Make a new version?", "newversion": "Make a new version",
                "edit": "Edit text", "runstop": "Cancel run", "runstopok": "Confirm cancel",
                "simpub": "Simulated publish", "pubok": "It posted", "pubno": "It didn't post", "creviews": "Reviews",
                "cideas": "Topic ideas", "cdisc": "UNESCO marvels", "cprop": "Waiting ideas", "cpropose": "Research ideas",
@@ -590,8 +640,12 @@ def spend_lines(db: PipelineDatabase) -> List[str]:
     claude = sum(c for task, c in by_task.items() if not task.startswith(("paid-fallback", "groq")))
     if claude or config.SCRIPT_ENGINE == "claude":
         lines.append(f"Claude this month: ${claude:.2f}" + (f" of ${CLAUDE_MONTHLY_BUDGET_USD:.2f}" if CLAUDE_MONTHLY_BUDGET_USD > 0 else ""))
-    media = db.media_spend(month)
+    from .media_budget import AI_IMAGES
+    images = db.media_spend(month, AI_IMAGES)
+    media = db.media_spend(month) - images
     lines.append(f"AI motion this month: ${media:.2f} of ${MEDIA_MONTHLY_BUDGET_USD:.2f}")
+    # Illustrations share the media cap with motion (QF-46): their own line, so the bill is legible.
+    lines.append(f"AI images this month: ${images:.2f} (same ${MEDIA_MONTHLY_BUDGET_USD:.2f} media cap)")
     return lines
 
 
@@ -605,6 +659,7 @@ def spend_summary(db: PipelineDatabase) -> str:
 
 REACHED_REVIEW = {"pending_approval", "approved", "rejected", "regenerate", "timeout", "simulated", "published",
                   "scheduled", "publish_unknown", "publishing"}
+STOPPED = ("failed", "timed_out")  # a run that ended unfinished: timed_out stopped at its deadline (QF-74)
 RERENDER_HOURS = 48  # a late failure older than this is not offered on the dashboard (Render it afresh)
 
 
@@ -627,7 +682,7 @@ def rerenderable(db: PipelineDatabase) -> Optional[Dict[str, Any]]:
                 (r.get("status") == "rejected" and r.get("master_video_path"))
                 # sent back with Regenerate and no new version followed (production 2026-10-25)
                 or (r.get("status") == "regenerate" and r.get("master_video_path") and r.get("topic_id") not in tried_since)
-                or (r.get("status") == "failed" and _worth_resuming(r))):  # src/resume_points.py
+                or (r.get("status") in STOPPED and _worth_resuming(r))):  # src/resume_points.py
             return r
         if r.get("status") in REACHED_REVIEW:
             made_since.add(r.get("topic_id"))
@@ -646,7 +701,7 @@ def health_line(db: PipelineDatabase, days: int = 7) -> str:
     since = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
     runs = [r for r in db.list_recent_runs(limit=80) if (r.get("created_at") or "") >= since]
     reached = sum(1 for r in runs if r.get("status") in REACHED_REVIEW)
-    failed = sum(1 for r in runs if r.get("status") == "failed")
+    failed = sum(1 for r in runs if r.get("status") in STOPPED)
     lengths = []
     for r in runs:
         try:
@@ -671,24 +726,133 @@ def health_line(db: PipelineDatabase, days: int = 7) -> str:
 
 
 _READY_CACHE: Dict[str, Tuple[float, bool]] = {}  # credits.json path -> (mtime, ready)
+# QF-115: the sets not counted yet are counted in the background; a dashboard waits for them only
+# DASHBOARD_POOL_COUNT_WAIT_SECONDS and otherwise says it is counting, then is drawn again (when_pools_counted).
+COUNTING_POOLS = "counting photo sets…"
+_count_lock = threading.Condition()
+_count_pending: dict[str, dict[str, Any]] = {}   # topic id -> topic, still to count
+_counter: threading.Thread | None = None
+_count_listener: Callable[[], None] | None = None   # the process's bot (when_pools_counted)
+_count_shown = False   # a caller was told "counting": the listeners are called once the count is done
 
 
-def ready_pools(db: PipelineDatabase, topics: List[Dict[str, Any]]) -> int:
-    """Queued topics whose photo pool passes the same readiness rule production uses. Each set's answer is
-    kept until its credits.json changes: the dashboard read and parsed every set on every tap (2026-10-25)."""
+def _ready_key(t: dict[str, Any]) -> tuple[str, float]:
+    credits = ASSETS_DIR / t["id"] / "credits.json"
+    return str(credits), (credits.stat().st_mtime if credits.is_file() else -1.0)
+
+
+def _counted(t: dict[str, Any]) -> bool | None:
+    """The set's answer when it is known for its credits.json as it is now, else None."""
+    try:
+        key, stamp = _ready_key(t)
+    except (OSError, KeyError):
+        return False
+    cached = _READY_CACHE.get(key)
+    return cached[1] if cached is not None and cached[0] == stamp else None
+
+
+def _count(t: dict[str, Any]) -> bool:
     from .asset_pipeline import pool_ready
-    n = 0
-    for t in topics:
+    key, stamp = _ready_key(t)
+    cached = _READY_CACHE[key] = (stamp, bool(pool_ready(t["id"])))
+    return cached[1]
+
+
+def _count_in_background() -> None:
+    """The counter thread: the sets asked for, one at a time; a set that cannot be read counts as not ready."""
+    global _counter, _count_shown
+    while True:
+        with _count_lock:
+            if not _count_pending:
+                _counter = None
+                shown, _count_shown = _count_shown, False
+                _count_lock.notify_all()
+                break
+            t = _count_pending.pop(next(iter(_count_pending)))
         try:
-            credits = ASSETS_DIR / t["id"] / "credits.json"
-            key, stamp = str(credits), (credits.stat().st_mtime if credits.is_file() else -1.0)
-            cached = _READY_CACHE.get(key)
-            if cached is None or cached[0] != stamp:
-                cached = _READY_CACHE[key] = (stamp, bool(pool_ready(t["id"])))
-            n += cached[1]
-        except Exception:
-            pass
-    return n
+            _count(t)
+        except Exception as e:  # noqa: BLE001 - the dashboard shows the set as not ready, as ready_pools always did
+            log.debug("Photo set %s not counted: %s", t.get("id"), e)
+            try:
+                key, stamp = _ready_key(t)
+                _READY_CACHE[key] = (stamp, False)
+            except (OSError, KeyError):
+                pass
+        with _count_lock:
+            _count_lock.notify_all()
+    listener = _count_listener
+    if shown and listener is not None:
+        try:
+            listener()
+        except Exception as e:  # noqa: BLE001 - the next dashboard draw counts them
+            log.warning("Could not draw the counted photo sets: %s", e)
+
+
+def when_pools_counted(listener: Callable[[], None] | None) -> None:
+    """`listener` (one a process: its bot's) is called in the counter's thread each time a count a caller was told
+    about has finished: the bot draws its dashboard again with the number."""
+    global _count_listener
+    _count_listener = listener
+
+
+def ready_pools(db: PipelineDatabase, topics: List[Dict[str, Any]], wait: float | None = None) -> int | None:
+    """Queued topics whose photo pool passes the same readiness rule production uses. Each set's answer is
+    kept until its credits.json changes: the dashboard read and parsed every set on every tap (2026-10-25).
+    `wait` None counts the sets not known yet here and now. With a number of seconds they are counted in the
+    background (QF-115: a restart's first dashboard waited minutes on every pool's photo hashes); None is returned
+    when they are not all counted within it, and the when_pools_counted listener is called once they are.
+    A process with no listener (a run's worker, a command) cannot draw again once they are counted, so a wait
+    there counts them in place: its dashboard never says "counting" (QF-115 round 2). wait=0 never blocks (the
+    renderer's notice conditions keep their item as it is meanwhile)."""
+    global _counter, _count_shown
+    if wait is None or (wait > 0 and _count_listener is None):
+        n = 0
+        for t in topics:
+            try:
+                known = _counted(t)
+                n += known if known is not None else _count(t)
+            except Exception:
+                pass
+        return n
+    missing = [t for t in topics if _counted(t) is None]
+    if missing:
+        deadline = clock.monotonic() + max(0.0, wait)
+        with _count_lock:
+            for t in missing:
+                _count_pending[t["id"]] = t
+            while True:
+                missing = [t for t in missing if _counted(t) is None]
+                if not missing:
+                    break
+                if _counter is None:   # (again when a credits.json changed while it was counted)
+                    for t in missing:
+                        _count_pending[t["id"]] = t
+                    _counter = threading.Thread(target=_count_in_background, name="photo-set-count", daemon=True)
+                    _counter.start()
+                left = deadline - clock.monotonic()
+                if left <= 0:
+                    _count_shown = True
+                    return None
+                _count_lock.wait(left)
+    return sum(bool(_counted(t)) for t in topics)
+
+
+def counting() -> bool:
+    """Whether photo sets are being counted in the background now."""
+    return _counter is not None
+
+
+def count_wait() -> float:
+    """How long a dashboard waits for the photo sets to be counted (DASHBOARD_POOL_COUNT_WAIT_SECONDS)."""
+    return config.DASHBOARD_POOL_COUNT_WAIT_SECONDS
+
+
+DASHBOARD_HEADING = "🏛️ <b><u>RELIC &amp; RIDDLE</u></b>"   # the dashboard's first line (a screen may lead with a note)
+
+
+def queue_line(queued: int, ready: int | None) -> str:
+    """The dashboard's queue line; while the photo sets are being counted, it says so (QF-115)."""
+    return f"📋 Queue: {queued} topics · " + (COUNTING_POOLS if ready is None else f"{ready} with photos ready")
 
 
 def status_text(db: PipelineDatabase, next_run: Optional[str], voice_quota: Optional[dict] = None) -> str:
@@ -711,20 +875,23 @@ def status_text(db: PipelineDatabase, next_run: Optional[str], voice_quota: Opti
     upcoming = db.list_scheduled_posts(("pending", "waiting"))
     if upcoming:
         from .post_schedule import fmt
-        from .posting_view import carousel_plan
-        plan = carousel_plan(db)
+        from .posting_view import carousel_outlook, spacing_wait, spacing_words
+        outlook = carousel_outlook(db)   # QF-73: the one plan Posting and the daemon's alerts use
+        plan = outlook["plan"]
         names = {"reel": "Reel", "story": "Stories", "carousel": "Carousel"}
         lines.append("• Upcoming posts:")
         for p in upcoming[:6]:
             slot = plan.get(p["id"]) if not p["due_at"] else None   # a carousel's real slot, as Posting shows it
-            when = fmt(datetime.fromisoformat(p["due_at"])) if p["due_at"] else (fmt(slot) if slot else "after its Reel")
+            wait = spacing_wait(db, p, outlook=outlook) if not p["due_at"] else None   # QF-73: a wait says so
+            when = fmt(datetime.fromisoformat(p["due_at"])) if p["due_at"] else (
+                spacing_words(wait, slot) if wait else fmt(slot) if slot else "after its Reel")
             lines.append(f"   ◦ {names.get(p['kind'], p['kind'])} {e(when)} — {e(db.run_label(p['run_id']))}")
         if len(upcoming) > 6:
             lines.append(f"   <i>…and {len(upcoming) - 6} more in Posting</i>")
 
     icons = {"failed": "❌", "simulated": "🧪", "published": "✅", "pending_approval": "🎬", "producing": "⏳",
              "rejected": "✖", "approved": "👍", "scheduled": "🗓", "cancelled": "⏹", "regenerate": "🔄",
-             "timeout": "⌛", "publish_unknown": "⚠️"}  # every status an icon (Regenerated had a bare bullet)
+             "timeout": "⌛", "publish_unknown": "⚠️", "timed_out": "⏱"}  # every status an icon (Regenerated had a bare bullet)
     recent = db.list_recent_runs(5)
     lines += ["", "<b>Recent runs</b>"]
     for r in recent:
@@ -752,6 +919,9 @@ def status_text(db: PipelineDatabase, next_run: Optional[str], voice_quota: Opti
                      else "• Issues: ✅ none open" + (f" · {fixed} fixed" if fixed else ""))
     except Exception as exc:
         log.debug("Issue counts unavailable: %s", exc)
+    from . import backup_health
+    if backup_health.monitored():  # last snapshot / last drill / hourly copy, from the backup worker's receipt (QF-72)
+        lines += backup_health.status_lines()
     return "\n".join(lines)
 
 
@@ -1319,7 +1489,7 @@ def remakeable(r: Dict[str, Any]) -> bool:
     your reason), or a failed one whose script had passed the fact check (resumed where it stopped)."""
     if r.get("status") in ("rejected", "regenerate"):
         return bool(r.get("master_video_path"))
-    return r.get("status") == "failed" and _worth_resuming(r)
+    return r.get("status") in STOPPED and _worth_resuming(r)
 
 
 def review_history(db: PipelineDatabase, page: int = 0, limit: int = 20) -> Tuple[str, List[List[Dict[str, str]]]]:
@@ -1392,7 +1562,8 @@ def history_details(db: PipelineDatabase, key: str) -> Tuple[str, List[List[Dict
     return "\n".join(lines), [[HOME]]
 
 
-POST_ICON = {"pending": "🗓", "waiting": "⏳", "published": "✅", "failed": "❌", "unknown": "❓", "cancelled": "⏹"}
+POST_ICON = {"pending": "🗓", "waiting": "⏳", "published": "✅", "failed": "❌", "unknown": "❓", "cancelled": "⏹",
+             "blocked": "⛔"}
 POST_NAME = {"reel": "Reel", "story": "Stories", "carousel": "Carousel"}
 
 
@@ -1440,25 +1611,11 @@ def _when(iso: Optional[str], ahead: bool = True) -> str:
     return fmt_ahead(moment) if ahead else fmt(moment)
 
 
-def carousel_slot_for(db: PipelineDatabase, post: Dict[str, Any]) -> Optional[datetime]:
-    """When a waiting carousel is expected to go out: the first carousel slot 48 hours after its Reel posted
-    (and not before now). None while its Reel has not posted. Only the newest waiting carousel posts in a slot."""
-    from . import post_schedule
-    reel = next((p for p in db.list_scheduled_posts(("published",), run_id=post["run_id"]) if p["kind"] == "reel"), None)
-    posted = ((reel or {}).get("detail") or {}).get("posted_at") or (reel or {}).get("due_at")
-    if not posted:
-        return None
-    earliest = max(datetime.now(timezone.utc), datetime.fromisoformat(posted) + timedelta(hours=48))
-    try:
-        return post_schedule.next_carousel_slot(earliest)
-    except ValueError:
-        return None
-
-
 def _episode_bookings(db: PipelineDatabase) -> List[Tuple[str, List[Dict[str, Any]]]]:
     """Every run with bookings, those with something still to post first (soonest first), then the rest
     (newest first); each run's bookings in posting order: Reel, Stories, carousel."""
-    every = db.list_scheduled_posts(("pending", "waiting", "published", "failed", "unknown", "cancelled", "expired"))
+    every = db.list_scheduled_posts(("pending", "waiting", "published", "failed", "unknown", "cancelled", "expired",
+                                     "blocked"))
     runs: Dict[str, List[Dict[str, Any]]] = {}
     for p in every:
         runs.setdefault(p["run_id"], []).append(p)
@@ -1474,7 +1631,7 @@ def _episode_bookings(db: PipelineDatabase) -> List[Tuple[str, List[Dict[str, An
 
     def key(item):
         _, posts = item
-        open_due = [p.get("due_at") or "9999" for p in posts if p["status"] in ("pending", "waiting")]
+        open_due = [p.get("due_at") or "9999" for p in posts if p["status"] in ("pending", "waiting", "blocked")]
         return (0, min(open_due), 0) if open_due else (1, "", -max(p["id"] for p in posts))
     return sorted(runs.items(), key=key)
 
@@ -1506,13 +1663,35 @@ def post_candidates(db: PipelineDatabase, hours: int = 48, limit: int = 3) -> Li
     return out
 
 
+# Whether the runs this process starts are dry runs, recorded when the bot or the daemon starts (QF-47: the docs
+# said production was a dry run while it posted live; the masthead now says which, from the process itself).
+RUNS_DRY_KEY = "process_runs_dry"
+
+
+def record_run_mode(db: PipelineDatabase, dry_run: bool) -> None:
+    """Keeps the starting process's run mode for the dashboard masthead; never stops a start."""
+    try:
+        db.set_setting(RUNS_DRY_KEY, "true" if dry_run else "false")
+    except (sqlite3.Error, OSError, AttributeError) as e:  # a stand-in database without settings
+        log.debug("Run mode not recorded: %s", e)
+
+
+def run_mode_label(db: PipelineDatabase) -> str:
+    """"📡 LIVE posting" or "🧪 dry run" for the masthead; "" before a bot or daemon recorded its mode."""
+    try:
+        recorded = db.get_setting(RUNS_DRY_KEY)
+    except (sqlite3.Error, OSError, AttributeError):
+        return ""
+    return {"false": "📡 LIVE posting", "true": "🧪 dry run"}.get(recorded or "", "")
+
+
 def dashboard_text_and_buttons(db: PipelineDatabase, next_run: Optional[str] = None, assets_dir: Path = ASSETS_DIR) -> Tuple[str, List[List[Dict[str, str]]]]:
     """What needs you first (reviews, proposals, problems), then the state of production."""
     e = html.escape
     paused = is_paused(db)
     topics = db.list_all_topics()
     queued = [t for t in topics if t.get("status") == "queued"]
-    ready = ready_pools(db, queued)
+    ready = ready_pools(db, queued, wait=count_wait())   # None: still being counted (QF-115)
     pending = db.list_pending_approvals()
     try:
         from . import improve
@@ -1542,7 +1721,7 @@ def dashboard_text_and_buttons(db: PipelineDatabase, next_run: Optional[str] = N
         needs.append("⚠️ " + e(account_problems[0]))
     from . import provider_status
     needs += provider_status.dashboard_lines()  # a provider shut by a limit or cap, said here not only in the log
-    if queued and ready < len(queued) and ready < 3:
+    if queued and ready is not None and ready < len(queued) and ready < 3:
         needs.append(f"🖼 Only {ready} queued topic(s) have photos ready")
     recent = db.list_recent_runs(limit=1)
     active = db.get_active_progress() if hasattr(db, "get_active_progress") else None
@@ -1553,17 +1732,19 @@ def dashboard_text_and_buttons(db: PipelineDatabase, next_run: Optional[str] = N
         # button (2026-10-24).
         reason = short_reason(late.get("error") or "", limit=1200)
         what = {"rejected": "Rejected, can be made again",
-                "regenerate": "Sent back to Regenerate; its new version did not start"}.get(late.get("status"), "")
+                "regenerate": "Sent back to Regenerate; its new version did not start",
+                "timed_out": "Stopped at its deadline, files kept"}.get(late.get("status"), "")
         if not what:  # said as it stopped: before or after its video was made
             what = "Failed after rendering" if late.get("master_video_path") else "Failed after its fact check"
         # The run id in code, not italics: Telegram linked its digits as a phone number (2026-10-24).
         needs.append(f"🔁 <b>{what}</b>\n  • {e(db.run_label(late['run_id']))}\n  <code>{e(late['run_id'])}</code>"
                      + (f"\n<blockquote expandable>{e(reason)}</blockquote>" if reason else ""))
-    if recent and recent[0].get("status") == "failed":
+    if recent and recent[0].get("status") in STOPPED:
         # Which run, on one line; the whole reason folded underneath (it was cut off mid-sentence:
         # operator, 2026-10-23).
         reason = short_reason(recent[0].get("error") or "", limit=1200)
-        needs.append(f"❌ <b>Last run failed</b>\n  • {e(db.run_label(recent[0]['run_id']))}\n  <code>{e(recent[0]['run_id'])}</code>"
+        heading = "⏱ <b>Last run stopped at its deadline</b>" if recent[0]["status"] == "timed_out" else "❌ <b>Last run failed</b>"
+        needs.append(f"{heading}\n  • {e(db.run_label(recent[0]['run_id']))}\n  <code>{e(recent[0]['run_id'])}</code>"
                      + (f"\n<blockquote expandable>{e(reason)}</blockquote>" if reason else ""))
 
     from . import config
@@ -1576,10 +1757,16 @@ def dashboard_text_and_buttons(db: PipelineDatabase, next_run: Optional[str] = N
         release = None
     if release:
         environment += f" ({e(release)})"
-    lines = [f"🏛️ <b><u>RELIC &amp; RIDDLE</u></b> · {environment}", ""]
+    mode = run_mode_label(db)  # whether this process's runs post (QF-47)
+    lines = [f"{DASHBOARD_HEADING} · {environment}" + (f" · <b>{mode}</b>" if mode else ""), ""]
+    # The clean chat (UI-01b): what needs you is the pinned notifications panel's (its condition items); the
+    # dashboard keeps the state of production, so the two never repeat each other. The decided review's receipt
+    # is an info item and 📜 History.
+    clean = config.TELEGRAM_CLEAN_CHAT
     # A blank line between items: they ran together (operator, 2026-10-25).
-    lines += (["<b>Needs you</b>"] + [ln for item in needs for ln in (item, "")]) if needs else ["✅ <b>Nothing needs you right now.</b>", ""]
-    outcome = last_review_outcome(db)
+    if not clean:
+        lines += (["<b>Needs you</b>"] + [ln for item in needs for ln in (item, "")]) if needs else ["✅ <b>Nothing needs you right now.</b>", ""]
+    outcome = None if clean else last_review_outcome(db)
     if outcome:  # the decided review's receipt lives here, so the chat keeps one panel
         lines += [outcome, ""]
     # One fact a line (the 2026-10-25 overhaul): the schedule, what is being made, the queue, the next slot.
@@ -1589,7 +1776,7 @@ def dashboard_text_and_buttons(db: PipelineDatabase, next_run: Optional[str] = N
     if active:
         label = "Making" if active.get("worker_state") == "running" else "Last recorded run (worker not active/verified)"
         lines.append(f"⏳ {label}: {e(db.run_label(active['run_id']))} · step {active.get('step', 1)} of {active.get('total_steps', 5)}")
-    lines.append(f"📋 Queue: {len(queued)} topics · {ready} with photos ready")
+    lines.append(queue_line(len(queued), ready))
     if next_t:
         lines.append(f"➡️ Next up: <b>{e(next_t['title'])}</b>")
     booked = db.list_scheduled_posts(("pending", "waiting"))
@@ -1599,15 +1786,19 @@ def dashboard_text_and_buttons(db: PipelineDatabase, next_run: Optional[str] = N
     beat = heartbeat_line(db)
     if beat:  # the daily heartbeat lives on the panel, not in its own message (operator, 2026-10-25)
         lines.append(beat)
-    digest = weekly_digest(db)
+    from .backup_health import dashboard_line
+    stale = dashboard_line()  # only while a backup or drill is overdue (QF-72); /status always has the line
+    if stale:
+        lines.append(stale)
+    digest = None if clean else weekly_digest(db)   # the clean chat: an info item with Open digest
     if digest:
         lines.append(f"📰 This week's digest is ready ({e(digest['label'])})")
 
     waiting_reviews = len(pending) + len(timed_out)  # timed-out reviews are decisions waiting too
     row1 = []  # what waits for a decision; Reviews itself is counted on its own button below
-    if waiting_proposals:
+    if waiting_proposals and not clean:
         row1.append({"text": f"🧭 Proposals ({len(waiting_proposals)})", "callback_data": "cimprove:"})
-    candidates = post_candidates(db, limit=1) if not active else []
+    candidates = post_candidates(db, limit=1) if not (active or clean) else []
     if candidates:  # a finished dry run can be posted for real from here (asked to confirm first)
         # The run is named with what needs you, not squeezed into the button (operator, 2026-10-24).
         candidate_line = f"🚀 <b>Post candidate</b>\n  • {e(db.run_label(candidates[0]['run_id']))}"
@@ -1618,7 +1809,7 @@ def dashboard_text_and_buttons(db: PipelineDatabase, next_run: Optional[str] = N
         else:
             lines[needs_index:needs_index] = [candidate_line, ""]
         row1.append({"text": "🚀 Post for real", "callback_data": f"postreal:{db.run_key(candidates[0]['run_id'])}"})
-    if late:
+    if late and not clean:   # the clean chat: the late failure's item carries Re-render
         # A run that failed after its video was made (the release gate, say) is made again in place. Not only
         # the latest run: a cancelled scheduled run hid the button for the run that mattered (2026-10-24).
         verb = "Make again" if late.get("status") in ("rejected", "regenerate") else "Re-render"  # rejected: regenerated with the reason given
@@ -1747,11 +1938,14 @@ def record_weekly_digest(db: PipelineDatabase, text: str) -> None:
     db.set_setting(DIGEST_KEY, json.dumps({"text": text, "at": now, "label": show(now, "%a %d %b")}))
 
 
+STARTED_MARKS = ("🟢 Daemon started", "🟢 Bot started")   # the startup card's own line (startup_dashboard_card)
+
+
 def startup_dashboard_card(db: PipelineDatabase, mode: str = "bot", time_str: Optional[str] = None,
                            timezone_str: Optional[str] = None, assets_dir: Path = ASSETS_DIR) -> Tuple[str, List[List[Dict[str, str]]]]:
     """Keep the dashboard heading, with startup state in its body."""
-    started = (f"🟢 Daemon started: daily run at {html.escape(time_str or '09:00')} {html.escape(timezone_str or 'UTC')}"
-               if mode == "daemon" else "🟢 Bot started (commands and reviews; no scheduled runs)")
+    started = (f"{STARTED_MARKS[0]}: daily run at {html.escape(time_str or '09:00')} {html.escape(timezone_str or 'UTC')}"
+               if mode == "daemon" else f"{STARTED_MARKS[1]} (commands and reviews; no scheduled runs)")
     text, buttons = dashboard_text_and_buttons(db, None, assets_dir=assets_dir)
     heading, _, body = text.partition("\n\n")
     return heading + "\n\n" + started + "\n\n" + body, buttons
@@ -1772,6 +1966,87 @@ def topic_refs(args: str) -> List[str]:
         elif part:
             out.append(part)
     return out
+
+
+def carousel_preview_screen(db: PipelineDatabase, args: str, preview: Callable[[str], dict[str, Any]] | None,
+                            send_photo: SendPhoto | None) -> Any:
+    """ccar:<run>[:<page>]: the review's carousel as it would post (QF-81), drawn on demand by `preview`
+    (main.PipelineCoordinator.preview_carousel: both copies, audited as at its slot, reused while nothing changed).
+    Page 0 is both copies on one sheet (Instagram above, Facebook's grid copy below) with the verdict and every
+    finding; page n is Instagram's slide n with its alt text (and Facebook's, where it differs). In the one panel."""
+    from .carousel_lazy import SHEET, STAGE, summary
+    nl = chr(10)
+    ref, _, page_arg = args.strip().partition(":")
+    if preview is None:
+        return "🖼 The carousel preview works while the bot or daemon is running.", [[HOME]]
+    run_id = db.resolve_run(ref)
+    try:
+        record = preview(run_id)
+    except ValueError as e:
+        return "🖼 <b>Carousel preview</b>" + nl * 2 + html.escape(str(e)), [[HOME]]
+    stage = Path(record["run_dir"]) / STAGE
+    slides = (record.get("slides") or {}).get("carousel") or []
+    alts = record.get("alts") or {}
+    label = html.escape(db.run_label(run_id))
+    held = record.get("held")
+    verdict = (f"⛔ Held: {html.escape(str(held)[:300])}. It will not post like this." if held else
+               "✅ Its checks pass: this is what posts when it takes its carousel slot.")
+    found = summary(record, limit=500)
+    if not slides:
+        text = f"🖼 <b>Carousel preview</b> · {label}" + nl * 2 + verdict + (nl * 2 + html.escape(found) if found else "")
+        return text, [[HOME]]
+    page = min(int(page_arg), len(slides)) if page_arg.isdigit() else 0
+    buttons = pager(f"ccar:{ref}:", page, len(slides) + 1)
+    if page == 0:
+        path = stage / SHEET
+        caption = (f"🖼 <b>Carousel preview</b> · {label}" + nl + verdict + nl
+                   + f"{len(slides)} slides: Instagram above, Facebook's grid copy below; ▶ for each slide and its "
+                   "alt text." + (nl * 2 + html.escape(found) if found else ""))
+    else:
+        path = stage / "carousel" / slides[page - 1]["name"]
+        ig = (alts.get("carousel") or [""] * len(slides))[page - 1]
+        fb_alts = alts.get("carousel_fb") or []
+        fb = fb_alts[page - 1] if page - 1 < len(fb_alts) else ig
+        caption = (f"🖼 <b>Slide {page} of {len(slides)}</b> · {label}" + nl
+                   + f"Alt text (Instagram): {html.escape(ig or 'none')}"
+                   + (nl + f"Alt text (Facebook): {html.escape(fb)}" if fb != ig else ""))
+    if send_photo is not None and path.is_file() and send_photo(path, caption[:1024], buttons):
+        return ""
+    return caption, buttons + [[HOME]]
+
+
+NOTICES_SHOWN = 15   # items listed on 📊 Status › 🗒️ Notices
+NOTICE_STATES = {"open": "in the panel", "handled": "handled", "dismissed": "dismissed", "dropped": "dropped from the panel",
+                 "resolved": "dealt with"}
+
+
+def notices_screen(db, args: str = "") -> tuple[str, list[list[dict[str, str]]]]:
+    """📊 Status › 🗒️ Notices (UI-01): every item of the last 90 days, newest first, dismissed ones included,
+    with Restore for the ones the panel no longer shows. `/alerts clear` is Dismiss all info (Undo for 30 s)."""
+    from . import notifications as notes
+    from .telegram_ui import button, title, with_nav
+    word, _, rest = (args or "").strip().partition(" ")
+    note = ""
+    if word.lower() == "clear":
+        ids = notes.dismiss_all_info(db)
+        note = (f"✅ {len(ids)} info dismissed from the panel. Undo there for {notes.UNDO_SECONDS} s, or restore "
+                "them below." if ids else "There was no info to dismiss.")
+    elif word.lower() == "restore" and rest.strip().isdigit():
+        note = "↩️ Back in the panel." if notes.restore(db, int(rest)) else "That item is already in the panel or has gone."
+    items = notes.recent(db, limit=NOTICES_SHOWN)
+    lines = []
+    for item in items:
+        state = NOTICE_STATES.get(item["state"], item["state"])
+        subject = f" · {html.escape(item['subject'])}" if item.get("subject") else ""
+        count = f" ×{item['count']}" if int(item.get("count") or 1) > 1 else ""
+        lines.append(f"{html.escape(item.get('emoji') or '•')} <b>{html.escape(item['title'])}</b>{subject}{count}\n"
+                     f"<i>{show_time(item['updated_at'], '%a %d %b %H:%M')} · {state}</i>")
+    summary = (f"The last {notes.RETAIN_DAYS} days, newest first: what the pinned panel showed, dismissed items "
+               "included." if items else f"Nothing in the last {notes.RETAIN_DAYS} days.")
+    text = "\n\n".join(x for x in (title("🗒️", "Notices", summary), note, "\n\n".join(lines)) if x)
+    rows = [[button(f"↩️ Restore: {item['title']}", f"cnotices:restore {item['id']}")]
+            for item in items if item["state"] in (notes.DISMISSED, notes.DROPPED)][:5]
+    return text, with_nav(rows, "cstat:")
 
 
 def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[str]],
@@ -2151,15 +2426,26 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
                 return f"↩️ <b>Undone:</b> Restored skipped proposal {html.escape(last.get('slug', ''))}."
             return f"↩️ <b>Undone:</b> Restored {html.escape(last.get('desc', 'action'))}."
         if command == "covers":
-            # Covers are chosen for a video awaiting review (Lock refuses any other run), so that is what
-            # this opens; otherwise the newest run that has covers, as a preview. A run folder without
-            # covers (cancelled, failed, still producing) is never chosen.
+            # A video awaiting review is what this opens; otherwise the newest run that has covers, as a
+            # preview. A run folder without covers (cancelled, failed, still producing) is never chosen.
+            # Runs since QF-82 hold only the final cover and its profile-grid tile (`<run>:final` / `<run>:grid`
+            # pick which is shown); an older run's A/B/C variants keep the Lock screen below.
             ref = args.strip()
+            cover_view = "final"
+            if ref.endswith((":final", ":grid")):
+                ref, cover_view = ref.rsplit(":", 1)
             from .config import OUTPUT_DIR
             back = [[{"text": "🎬 Reviews", "callback_data": "creviews:"}], [HOME]]
 
             def has_covers(d):
-                return any((d / f"thumbnail_variant_{v}.jpg").exists() for v in ("a_blueprint", "b_intrigue", "c_minimal"))
+                # Only a Reel's covers: this screen never shows a picture the run does not post. A documentary
+                # posts its 16:9 thumbnail (shown on its review card, which has no Covers button for it), and
+                # its 9:16 cover and grid tile are never posted (QF-82 review 1).
+                if is_documentary_run(d, db.get_run(d.name)):
+                    return False
+                return ((d / "thumbnail_cover.jpg").exists()
+                        or any((d / f"thumbnail_variant_{v}.jpg").exists()
+                               for v in ("a_blueprint", "b_intrigue", "c_minimal")))
 
             def run_folder(run):
                 if run and run.get("master_video_path"):
@@ -2180,6 +2466,9 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
                     topic_dir = _resolve_topic_dir(ref, assets_dir, db=db)
                     runs = [p for p in OUTPUT_DIR.glob(f"run_{topic_dir.name}_*") if p.is_dir() and has_covers(p)]
                     run_dir = max(runs, key=lambda p: p.stat().st_mtime) if runs else None
+                if run_dir and is_documentary_run(run_dir, db.get_run(run_dir.name)):
+                    return ("🎨 A documentary has no Reel covers: it posts its 16:9 thumbnail, shown on its review "
+                            "card."), back
                 if not run_dir or not has_covers(run_dir):
                     return "🎨 This run has no covers yet (they are made when the video is rendered).", back
             else:
@@ -2208,6 +2497,33 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             var_a = run_dir / "thumbnail_variant_a_blueprint.jpg"
             var_b = run_dir / "thumbnail_variant_b_intrigue.jpg"
             var_c = run_dir / "thumbnail_variant_c_minimal.jpg"
+            final_cover = run_dir / "thumbnail_cover.jpg"
+            if final_cover.exists() and not any(path.exists() for path in (var_a, var_b, var_c)):
+                grid_cover = run_dir / "thumbnail_profile_grid.jpg"
+                if cover_view == "grid" and not grid_cover.exists():
+                    return "The profile-grid image is not available for this run.", back
+                selected_file = grid_cover if cover_view == "grid" else final_cover
+                key = db.run_key(run_dir.name) if run_rec else run_dir.name
+                def shown(view, name):   # 👁 the one on screen, as on the variant flip
+                    return ("👁 " if view == cover_view else "") + name
+                buttons = [[{"text": shown("final", "Final cover"), "callback_data": f"ccov:{key}:final"}]]
+                if grid_cover.exists():
+                    buttons[0].append({"text": shown("grid", "Profile-grid tile"),
+                                       "callback_data": f"ccov:{key}:grid"})
+                buttons.extend(back)
+                label = (html.escape(db.run_label(run_dir.name)) if run_rec
+                         else f"<code>{html.escape(run_dir.name)}</code>")
+                surface = "Profile-grid tile" if cover_view == "grid" else "Final cover"
+                caption = (f"🎨 <b>{surface}</b> · {label}\n\n"
+                           "The cover style is fixed while cover tests are paused. They resume once a "
+                           "cover-specific measure exists (YouTube thumbnail click-through or a manual Instagram test).")
+                if send_photo:
+                    from .credits import sha256_file
+                    # Bound to the file's bytes, so a redrawn cover is never shown from Telegram's older copy.
+                    send_photo(selected_file, caption, buttons,
+                               cache_key=f"cover:{run_dir.name}:{cover_view}:{sha256_file(selected_file)}")
+                    return ""
+                return caption, buttons
             # The variant the video's cover is now (it always said B: review, 2026-10-25)
             chosen = chosen_cover(run_dir)
             selected = chosen or ("b" if var_b.exists() else "a" if var_a.exists() else "c")   # the one previewed
@@ -2503,7 +2819,8 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             # accounts, alerts, activity, improvements, the digest and the jobs all live here.
             return status_text(db, next_run(), voice_quota()), [
                 [{"text": "📈 Audience", "callback_data": "canalytics:"}, {"text": "🔗 Accounts", "callback_data": "caccounts:"}],
-                [{"text": "🔔 Alerts", "callback_data": "calerts:"}, {"text": "🛡 Activity", "callback_data": "caudit:"}],
+                [{"text": "🗒️ Notices", "callback_data": "cnotices:"} if config.TELEGRAM_CLEAN_CHAT
+                 else {"text": "🔔 Alerts", "callback_data": "calerts:"}, {"text": "🛡 Activity", "callback_data": "caudit:"}],
                 [{"text": "🧭 Improvements", "callback_data": "cimprove:"}, {"text": "📰 Digest", "callback_data": "cdigest:"}],
                 [{"text": "🧰 Jobs", "callback_data": "jobs:"}], [HOME]]
         if command in ("analytics", "canalytics"):  # the dashboard; typed subcommands open its other screens
@@ -2517,8 +2834,17 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
                 return audience_chart_text(db)
             from . import audience_chart
             from .config import OUTPUT_DIR
+            from .font_engine import GlyphRefused
             from .telegram_ui import with_nav
-            info = audience_chart.chart_for(db, Path(OUTPUT_DIR) / "audience_chart.png")
+            from .typography import LayoutError
+            try:
+                info = audience_chart.chart_for(db, Path(OUTPUT_DIR) / "audience_chart.png")
+            except GlyphRefused as e:     # QF-94: a title no bundled face draws is never drawn short
+                chars, scripts = html.escape(" ".join(e.missing)), html.escape(", ".join(e.scripts))
+                return audience_chart_text(db, note=f"The chart could not draw {chars} ({scripts}); its figures are "
+                                                    "below.")
+            except LayoutError:   # QF-23: a Reel's name that fits the chart only cut: the figures as text instead
+                return audience_chart_text(db, note="A Reel's name does not fit the chart whole; its figures are below.")
             if send_photo(Path(info["path"]), html.escape(info["caption"]), with_nav([], "canalytics:")):
                 return ""
             return audience_chart_text(db, note="The chart could not be sent; its figures are below.")
@@ -2530,6 +2856,8 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             return analytics_video(db, args)
         if command == "capick":
             return analytics_picker(db, int(args) if args.strip().isdigit() else 0)
+        if config.TELEGRAM_CLEAN_CHAT and command in ("cnotices", "calerts", "alerts"):
+            return notices_screen(db, args)   # the clean chat's notices (UI-01): the panel's items, 90 days
         if command in ("caudit", "calerts"):
             # The screen's own reply, not wrapped again: a (text, buttons) pair inside another showed its repr,
             # quotes and escapes on the Alerts screen (operator, 2026-10-25).
@@ -2537,6 +2865,16 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             return reply if isinstance(reply, tuple) else (reply, [[HOME]])
         if command == "ccov":
             return handle("covers", args)  # the latest render, whichever topic it is
+        if command == "ccar":   # ccar:<run>[:<page>] the review's carousel preview (QF-81)
+            return carousel_preview_screen(db, args, (run_actions or {}).get("carpreview"), send_photo)
+        if command in ("carredraw", "carspace", "carexpire"):
+            # carredraw:<booking id>: a held carousel drawn again for its next slot; carspace / carexpire (QF-73): a
+            # carousel sensitive-topic spacing leaves no slot for, posted anyway at its next slot or let expire
+            action = (run_actions or {}).get(command)
+            if action is None:   # not done: the hold's item stays open (UI-01)
+                from .notifications import Outcome
+                return Outcome("That button only works while the daemon is running.", done=False)
+            return action(args.strip())
         if command == "cprop":
             from . import topic_proposer
             from .models import TopicProposal
@@ -2565,7 +2903,9 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             pending = music.pending_tracks()
             library = music.load_library()
             approved = sum(bool(t.get("reviewed")) for t in library)
-            text = (f"🎵 <b>Music</b>\n{approved} approved · {len(pending)} waiting for review\n\n"
+            retired = music.retired_tracks()   # QF-84's set: data/music/rotation.json
+            rotating = sum(music.in_rotation(t, retired) for t in library)
+            text = (f"🎵 <b>Music</b>\n{approved} approved ({rotating} in rotation) · {len(pending)} waiting for review\n\n"
                     "<i>Instrumental tracks for historical documentaries. Find them, listen, then approve; nothing new is approved on its own.</i>")
             if command == "mfmenu":
                 return f"🎵 <b>Find music</b>\n\nChoose a documentary mood. Fetches up to {config.MUSIC_FETCH_PER_MOOD} new CC0/CC BY tracks per mood; no paid generation. Each one waits for your review.", [[job_button(db, f"mfetch:{mood}", mood.title(), f"⏳ Fetching {mood}… · Jobs")] for mood in music.MOODS] + [[job_button(db, "mfetch:all", "All moods", "⏳ Fetching all moods… · Jobs")], [{"text": "← Music", "callback_data": "musicmenu:"}], [HOME]]
@@ -2577,8 +2917,12 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             page = max(0, int(args)) if args.isdigit() else 0
             start = page * 5
             lines = [f"🎵 <b>Music library</b> · {len(tracks)} tracks"]
+            published = db.music_published_uses()   # a use is a published Reel (QF-84), not a pick or a dry run
+            retired = music.retired_tracks()
             for track in tracks[start:start+5]:
-                lines.append(f"\n<b>{html.escape(track['title'])}</b>\n{html.escape(track['mood'])} · {html.escape(music.license_name(track))}")
+                state = " · retired" if track["file"] in retired else f" · {published.get(track['file'], 0)} published"
+                lines.append(f"\n<b>{html.escape(track['title'])}</b>\n{html.escape(track['mood'])} · "
+                             f"{html.escape(music.license_name(track))}{state}")
             pages = max(1, -(-len(tracks) // 5))
             if pages > 1:
                 lines[0] += f" · page {page + 1} of {pages}"
@@ -2804,6 +3148,10 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             from .posting_view import confirm_post_now
             text, buttons = confirm_post_now(db, db.resolve_run(args.strip()))
             return text, buttons + [[HOME]]
+        if command == "newversionask":  # a blocked booking's new version replaces it: it asks first (QF-110)
+            from .posting_view import confirm_new_version
+            text, buttons = confirm_new_version(db, db.resolve_run(args.strip()))
+            return text, buttons + [[HOME]]
         if command == "cancelask":  # cancelling a Reel takes its Stories and carousel with it: it asks first
             from .posting_view import confirm_cancel
             try:
@@ -2845,7 +3193,8 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             try:
                 post_id = int(args.strip())
                 run_of = next((p["run_id"] for p in db.list_scheduled_posts(
-                    ("pending", "waiting", "published", "failed", "unknown", "cancelled", "expired")) if p["id"] == post_id), None)
+                    ("pending", "waiting", "published", "failed", "unknown", "cancelled", "expired", "blocked"))
+                if p["id"] == post_id), None)
                 result = action(post_id)
             except ValueError:
                 return "That booking id is not valid."
@@ -2869,13 +3218,16 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             q_text, q_buttons = render_queue_text_and_buttons(starting=current["id"] if started and current else None)
             return f"{res}\n\n{q_text}", q_buttons                       # the Queue panel, now showing the batch
         if command in ("pubok", "pubno", "resend", "simpub", "rerender", "promote", "postnow", "retryreel", "fbcaptions",
-                       "fbcover", "ytshort", "rebook", "ytthumb"):
+                       "fbcover", "ytshort", "rebook", "ytthumb", "newversion"):
             action = (run_actions or {}).get(command)
-            if action is None:
-                return "That button only works while the daemon is running."
+            if action is None:   # not done: an item offering it stays open (UI-01a)
+                from .notifications import Outcome
+                return Outcome("That button only works while the daemon is running.", done=False)
             run_id = db.resolve_run(args)
             result = action(run_id)
-            if command in EPISODE_ACTIONS and isinstance(result, str):
+            blocked = command in ("postnow", "retryreel", "rebook") and any(
+                p["kind"] == "reel" for p in db.list_scheduled_posts(("blocked",), run_id=run_id))
+            if (command in EPISODE_ACTIONS or blocked) and isinstance(result, str):
                 # The result on the episode's own card, redrawn (operator, 2026-10-27: the answer came as a separate
                 # message with only Dashboard, under a card still saying "Facebook cover: not set")
                 text, buttons = posting_episode(db, run_id)
@@ -2915,7 +3267,8 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             return f"✖ Skipped {html.escape(args)}."
         if command == "upd":
             if apply_updates is None:
-                return "Updates can only be applied while the daemon is running."
+                from .notifications import Outcome
+                return Outcome("Updates can only be applied while the daemon is running.", done=False)
             return apply_updates()
         if command in ("imgok", "imgcancel"):
             # Both end on the topic's image menu (where the review was opened), not on a dead card.
@@ -3072,19 +3425,22 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
                     lines.append(f"<blockquote expandable>{html.escape(clip_words(body, 600))}</blockquote>")
             return "\n".join(lines), [[HOME]]
         if command == "add":
-            title = args.strip()
+            title, _, source_url = args.strip().partition("|")
+            title, source_url = title.strip(), source_url.strip()
             if not title:
                 return ("➕ <b>Add a topic</b>\n\nSend /add followed by the title, for example "
-                        "<code>/add The Lost Labyrinth of Hawara</code>\n\n"
+                        "<code>/add The Lost Labyrinth of Hawara</code>, or with the page it comes from: "
+                        "<code>/add Title | https://source-page</code>\n\n"
                         "<i>Its facts are researched and checked before it can be made.</i>",
                         [[{"text": "💡 Topic ideas", "callback_data": "cideas:"}], [HOME]])
             try:
-                topic_id, u_tag, decomp = _add_topic_to_bank(db, title)
+                topic_id, u_tag, decomp = _add_topic_to_bank(db, title, source_url=source_url)
             except ValueError as e:
                 return f"⚠️ {html.escape(str(e))}.\nTopic was not added."
             arch_lines = [f"  • <b>{arch_name.capitalize()}:</b> {html.escape(arch_q)}" for arch_name, arch_q in decomp.get("archetypes", {}).items()]
             arch_summary = "\n" + "\n".join(arch_lines) if arch_lines else ""
             return (f"➕ Added <b>{html.escape(title)}</b> (<code>{html.escape(topic_id)}</code>) to topic queue!{u_tag}\n"
+                    + _added_topic_notes(db, topic_id) +
                     f"🎬 <b>Documentary Shot Archetypes:</b>{arch_summary}\n\n"
                     f"Open <code>/photos {html.escape(topic_id)}</code> to fetch, upload or review photos.")
         if command in ("discover", "discoverpanel"):

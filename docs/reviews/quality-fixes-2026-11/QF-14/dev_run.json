@@ -1,0 +1,21 @@
+{
+ "route": {
+  "script_engine": "free",
+  "free_tier_heavy": true,
+  "free_key_configured": true,
+  "writer_model": "gemini-3.8-flash",
+  "paid_fallbacks": "0 in this process"
+ },
+ "topic": "wieliczka_salt_mine",
+ "fact_sheet_cached": true,
+ "outcome": "no script",
+ "error_head": "The script writer (gemini-free) could not be reached for 'wieliczka_salt_mine': The free model gemini-3.8-flash did not answer in time (2 attempts). No video was made; run it again later.",
+ "seconds": 323.8,
+ "model_calls": 1,
+ "model_calls_by_task_class": {
+  "heavy": 1,
+  "light": 0
+ },
+ "writer_drafts": [],
+ "edits": []
+}

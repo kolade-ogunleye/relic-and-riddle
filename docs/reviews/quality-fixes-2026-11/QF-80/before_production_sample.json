@@ -1,0 +1,61 @@
+{
+ "fixture": {
+  "frames_made": [
+   "story_01_hook.jpg",
+   "story_02_reveal.jpg",
+   "story_03_question.jpg"
+  ],
+  "poll_sticker_rooms_made": 1,
+  "companion_has_poll_sticker": true,
+  "old_run_frames_counted": 3,
+  "old_run_frames_booked": 3,
+  "old_booking_requests_sent": [
+   "run_old-story-1",
+   "run_old-story-2",
+   "run_old-story-3"
+  ],
+  "reveal_retry_request": [
+   "run_old-story-1-retry1-instagram"
+  ],
+  "reveal_retry_reach_recorded_as": [
+   "instagram_story1"
+  ],
+  "poll_frame_retry_sent_to_publisher": 1
+ },
+ "runs": {
+  "story_runs": 34,
+  "runs_with_poll_frame_on_disk": 34,
+  "frames_on_disk": 102,
+  "frames_booked": 102,
+  "runs_booking_the_poll_frame": 34,
+  "runs_with_layout_json": 33,
+  "poll_rooms_in_layout_json": 17,
+  "redrawn_from_recipes": []
+ },
+ "metrics": {
+  "story_publications": {
+   "published part None": 15,
+   "unknown part None": 1
+  },
+  "story_metric_rows": {
+   "facebook_story1": 6,
+   "facebook_story2": 6,
+   "facebook_story3": 4,
+   "instagram_story1": 6,
+   "instagram_story2": 6,
+   "instagram_story3": 4
+  },
+  "story_rows_with_reach": {
+   "instagram_story1": 2,
+   "instagram_story2": 2,
+   "instagram_story3": 2
+  }
+ },
+ "acceptance": {
+  "two_frames_made": false,
+  "no_poll_room_made": false,
+  "poll_frame_never_booked_or_sent": false,
+  "reveal_reach_recorded_as_frame_2": false,
+  "real_runs_booking_the_poll_frame": 34
+ }
+}

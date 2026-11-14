@@ -13,9 +13,19 @@ from src.models import ScriptPackage
 from src.script_engine import ScriptEngine
 
 SHEET = {"topic_id": "t1", "facts": [], "sources": [{"title": "X", "url": "https://en.wikipedia.org/wiki/X", "tier": 2}]}
+LENGTH_PAYOFF = "That city sheltered families."
+
+
+def length_fixture(words, closing):
+    # Isolate length repair with a valid opening; dedicated QF14 tests exercise
+    # the independent hook repair and its failure behavior.
+    opening = "In 1963, a renovation revealed an underground city."
+    rest = words - len(opening.split()) - len(LENGTH_PAYOFF.split())
+    return opening + " " + " ".join(["word"] * rest) + ". " + LENGTH_PAYOFF + " " + closing
 
 
 def _engine(monkeypatch, curated_payload):
+    curated_payload["payoff_sentence"] = LENGTH_PAYOFF
     engine = ScriptEngine()
     monkeypatch.setattr(script_engine, "_ready", lambda: True)
     monkeypatch.setattr(engine, "_sheet", lambda topic: SHEET)
@@ -29,7 +39,7 @@ def _engine(monkeypatch, curated_payload):
         f"{len(pkg.narration_script.split())} words; extend the narration to 105-116 words with more verified facts "
         "from the research notes, keeping the closing sentence."])
     closing = curated_payload["closing_sentence"]
-    short = ScriptPackage.model_validate(dict(curated_payload, narration_script=" ".join(["word"] * 80) + ". " + closing))
+    short = ScriptPackage.model_validate(dict(curated_payload, narration_script=length_fixture(80, closing)))
     return engine, short, closing
 
 
@@ -40,14 +50,13 @@ def test_a_length_only_miss_is_edited_to_the_window_not_rewritten(monkeypatch, c
 
     def revise(previous, findings, sheet):
         edited.append(findings)
-        return ScriptPackage.model_validate(dict(previous, narration_script=" ".join(["word"] * 108) + ". " + closing))
+        return ScriptPackage.model_validate(dict(previous, narration_script=length_fixture(108, closing)))
     monkeypatch.setattr(engine, "_revise_surgically", revise)
     out = engine.generate_script({"id": "t", "title": "T"})
     length = [e for e in edited if e.startswith("LENGTH:")]
     assert len(written) == 1 and len(length) == 1           # one draft, one length edit: no second full rewrite
     assert "105-116 words" in length[0]
-    # Its 108-word first sentence then gets one opening edit (2026-10-29), which this stub cannot fix: kept as was.
-    assert [e.split(":", 1)[0] for e in edited] == ["LENGTH", "OPENING"]
+    assert [e.split(":", 1)[0] for e in edited] == ["LENGTH"]
     assert len(out["narration_script"].split()) == 108 + len(closing.split()) and out["fact_sheet_used"] is True
 
 
@@ -58,7 +67,7 @@ def test_a_length_edit_that_still_misses_falls_back_to_the_rewrite(monkeypatch, 
     def write(topic, feedback):
         written.append(feedback)
         words = 112 if re.search(r"extend the narration to", feedback) else 80
-        return ScriptPackage.model_validate(dict(curated_payload, narration_script=" ".join(["word"] * words) + ". " + closing))
+        return ScriptPackage.model_validate(dict(curated_payload, narration_script=length_fixture(words, closing)))
     monkeypatch.setattr(engine, "_generate_with_claude", write)
     monkeypatch.setattr(engine, "_revise_surgically", lambda previous, findings, sheet: short)  # no better
     out = engine.generate_script({"id": "t", "title": "T"})

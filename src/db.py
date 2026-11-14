@@ -17,17 +17,22 @@ import os
 import re
 import sqlite3
 from contextlib import contextmanager
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 from pathlib import Path
 import time
-from typing import Dict, Any, Iterator, List, Optional
+from typing import Dict, Any, ClassVar, Iterator, List, Optional
 
-from .config import DATA_DIR, TOPICS_DIR
+from .config import APPROVAL_TIMEOUT_SECONDS, DATA_DIR, TOPICS_DIR
 
 DB_PATH = DATA_DIR / "pipeline.db"
 # A topic stuck "in_production" longer than this is assumed to be from a crashed run.
 STALE_PRODUCTION_HOURS = 6
 TIMEOUT_HOLD_DAYS = 7  # a timed-out review's topic waits this long for Resend or Reject before it is made again
+# A review decision the worker is about to act on (its decision time), and the decisions a card's Undo may reopen
+# while the worker has not claimed them (undo_review_decision; main.undone_before_acting)
+REVIEW_CLAIM_PREFIX = "review-claim:"
+UNDOABLE = ("approved", "rejected")
+UNDONE_BY = "undone"   # decided_by of a review an Undo reopened: the worker's wait goes on (it never acts on it)
 
 log = logging.getLogger(__name__)
 
@@ -151,6 +156,8 @@ class PipelineDatabase:
             # Additive migrations for databases created by earlier versions.
             self._add_column(conn, "runs", "error", "TEXT")
             self._add_column(conn, "topics", "added_json", "TEXT")  # who added the topic, how and when
+            # QF-73: the topic's sources, sensitivity, region_group and hold (topic_policy.EDITORIAL_KEYS)
+            self._add_column(conn, "topics", "editorial_json", "TEXT")
             self._add_column(conn, "runs", "parent_run_id", "TEXT")
             self._add_column(conn, "runs", "content_format", "TEXT DEFAULT 'reel'")
             self._add_column(conn, "approvals", "decided_by", "TEXT")
@@ -237,6 +244,18 @@ class PipelineDatabase:
                 updated_at TEXT NOT NULL,
                 created_at TEXT NOT NULL
             )""")
+            # The library music each run's bed was made from (QF-84). A selection is not a use: published uses are
+            # counted from these rows joined to the run's confirmed Reel receipts (music_published_uses).
+            conn.execute("""
+            CREATE TABLE IF NOT EXISTS music_selections (
+                run_id TEXT NOT NULL,
+                file TEXT NOT NULL,
+                sha256 TEXT,
+                mood TEXT,
+                position INTEGER NOT NULL DEFAULT 0,
+                recorded_at TEXT NOT NULL,
+                PRIMARY KEY (run_id, file)
+            )""")
             conn.execute("CREATE INDEX IF NOT EXISTS idx_telegram_cards_topic ON telegram_cards(topic_id)")
             conn.execute("CREATE INDEX IF NOT EXISTS idx_telegram_cards_expires ON telegram_cards(expires_at)")
         self._seed_topics_from_json()
@@ -258,6 +277,7 @@ class PipelineDatabase:
         with open(self.topic_bank_file, "r", encoding="utf-8") as f:
             topics = json.load(f).get("topics", [])
         now = _now()
+        from .topic_policy import editorial
         with self._conn() as conn:
             existing = {r["id"] for r in conn.execute("SELECT id FROM topics")}
             changed = 0
@@ -265,15 +285,17 @@ class PipelineDatabase:
                 cur = conn.execute("""
                 INSERT INTO topics (
                     id, title, sub_theme, hook, location_json, key_facts_json,
-                    hashtags_json, meta_categories_json, added_json, status, times_published, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'queued', 0, ?)
+                    hashtags_json, meta_categories_json, added_json, editorial_json, status, times_published,
+                    updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'queued', 0, ?)
                 ON CONFLICT(id) DO UPDATE SET
                     title = excluded.title, sub_theme = excluded.sub_theme, hook = excluded.hook,
                     location_json = excluded.location_json, key_facts_json = excluded.key_facts_json,
                     hashtags_json = excluded.hashtags_json, meta_categories_json = excluded.meta_categories_json,
-                    added_json = excluded.added_json
+                    added_json = excluded.added_json, editorial_json = excluded.editorial_json
                 WHERE topics.title IS NOT excluded.title OR topics.hook IS NOT excluded.hook
                    OR topics.added_json IS NOT excluded.added_json
+                   OR topics.editorial_json IS NOT excluded.editorial_json
                    OR topics.sub_theme IS NOT excluded.sub_theme OR topics.location_json IS NOT excluded.location_json
                    OR topics.key_facts_json IS NOT excluded.key_facts_json OR topics.hashtags_json IS NOT excluded.hashtags_json
                    OR topics.meta_categories_json IS NOT excluded.meta_categories_json
@@ -282,6 +304,7 @@ class PipelineDatabase:
                     json.dumps(t.get("location", {})), json.dumps(t.get("key_facts", [])),
                     json.dumps(t.get("hashtags", [])), json.dumps(t.get("meta_categories", [])),
                     json.dumps(t["added"]) if t.get("added") else None,
+                    json.dumps(editorial(t)),
                     now,
                 ))
                 changed += cur.rowcount
@@ -293,6 +316,7 @@ class PipelineDatabase:
     @staticmethod
     def _topic_from_row(row: sqlite3.Row) -> Dict[str, Any]:
         return {
+            **json.loads(row["editorial_json"] or "{}"),   # every topics row has it (_init_db adds the column)
             "id": row["id"],
             "title": row["title"],
             "sub_theme": row["sub_theme"],
@@ -350,9 +374,15 @@ class PipelineDatabase:
             held = {r[0] for r in conn.execute(
                 "SELECT topic_id FROM runs WHERE status = 'timeout' AND updated_at >= ?",
                 ((datetime.now(timezone.utc) - timedelta(days=TIMEOUT_HOLD_DAYS)).isoformat(),))}
-        rows = [r for r in rows if r["id"] not in held]
+            # QF-73: a topic on an editorial hold, or a sensitive one whose audience day is not clear, waits.
+            from .topic_policy import topic_problem
+            editorial_held = {r["id"] for r in rows if r["id"] not in held and topic_problem(conn, r["id"])}
+        rows = [r for r in rows if r["id"] not in held | editorial_held]
 
         if not rows:
+            if editorial_held:
+                raise QueueEmpty("Every topic left is on an editorial hold or waits for a clear day between sensitive "
+                                 "topics (reconcile any unconfirmed publication).")
             if held:  # not empty: what is left waits for a decision on a timed-out review
                 raise QueueEmpty("Every topic left waits for a timed-out review: Resend or Reject it (Reviews).")
             raise QueueEmpty("No unpublished topics left. Add new ones with /ideas research (or `python main.py topic propose`).")
@@ -493,11 +523,36 @@ class PipelineDatabase:
         """Only one caller may initiate an upload for a finished run. A run a human rejected (or
         sent back for regeneration) can never be claimed, whatever code path asks."""
         with self._conn() as conn:
+            # QF-73: the spacing check and the claim are one transaction, so two sensitive runs cannot both pass it.
+            conn.execute("BEGIN IMMEDIATE")
+            from .topic_policy import topic_problem
+            run = conn.execute("SELECT topic_id FROM runs WHERE run_id = ?", (run_id,)).fetchone()
+            if run and topic_problem(conn, run["topic_id"], run_id=run_id, spacing_only=True):
+                return False
             result = conn.execute(
                 "UPDATE runs SET status = 'publishing', updated_at = ? WHERE run_id = ? "
                 "AND status IN ('approved', 'pending_approval', 'scheduled', 'failed', "
                 "'simulated', 'timeout')", (_now(), run_id))
             return result.rowcount == 1
+
+    def topic_problem(self, topic_id: str, at: Any = None, *, run_id: str = "", spacing_only: bool = False) -> str:
+        """Why the topic cannot be made or published at `at` (now by default): its editorial hold, or a sensitive
+        topic's spacing (src/topic_policy.topic_problem); "" when it can."""
+        from .topic_policy import topic_problem
+        with self._conn() as conn:
+            return topic_problem(conn, topic_id, at, run_id=run_id, spacing_only=spacing_only)
+
+    @staticmethod
+    def _check_topic_booking(conn: sqlite3.Connection, run_id: str, kind: str, due_at: str | None,
+                             status: str) -> None:
+        """A Reel booked or moved onto a day the topic's spacing does not allow is refused (QF-73)."""
+        if kind != "reel" or status not in ("pending", "waiting"):
+            return
+        from .topic_policy import topic_problem
+        row = conn.execute("SELECT topic_id FROM runs WHERE run_id = ?", (run_id,)).fetchone()
+        problem = topic_problem(conn, row["topic_id"], due_at, run_id=run_id, spacing_only=True) if row else ""
+        if problem:
+            raise ValueError(problem)
 
     def recover_interrupted_publication(self, run_id: str) -> bool:
         """Hold the OS upload lock, then quarantine a claim left by a dead worker.
@@ -566,8 +621,10 @@ class PipelineDatabase:
             INSERT INTO approvals (run_id, topic_id, telegram_message_id, decision, created_at)
             VALUES (?, ?, ?, 'pending', ?)
             ON CONFLICT(run_id) DO UPDATE SET telegram_message_id = excluded.telegram_message_id, revision = revision + 1, expires_at = NULL,
-                created_at = excluded.created_at  -- delivered now: the stale sweep counts from the newest card (2026-10-25)
-            """, (run_id, topic_id, message_id, _now()))
+                created_at = excluded.created_at,  -- delivered now: the stale sweep counts from the newest card (2026-10-25)
+                decided_by = CASE WHEN decided_by = ? THEN NULL ELSE decided_by END
+                -- a new card ends what an Undo gave back: its wait narrows the 24 h placeholder again (UI-02 review 3)
+            """, (run_id, topic_id, message_id, _now(), UNDONE_BY))
             conn.execute("UPDATE approvals SET expires_at=? WHERE run_id=?", (time.time() + 86400, run_id))
 
     def update_approval_decision(self, run_id: str, decision: str, decided_by: Optional[str] = None) -> bool:
@@ -587,6 +644,43 @@ class PipelineDatabase:
                 AND EXISTS (SELECT 1 FROM runs WHERE runs.run_id=approvals.run_id
                             AND status IN ('pending_approval', 'producing'))""",
                 (decision, _now(), actor, run_id, message_id, time.time()))
+            return cur.rowcount == 1
+
+    def undo_review_decision(self, run_id, decision, message_id, within_seconds, window_seconds=None):
+        """Reopens a review decided on its card (decision back to pending), only while nothing has been done with
+        that decision: it is still `decision`, taken on this card (`message_id`) at most `within_seconds` ago,
+        the run still waits on its review, the worker has not claimed it (REVIEW_CLAIM_PREFIX holds another time),
+        and nothing is booked or posted for the run. One statement: a claim and an undo never both win.
+        The review gets back the time it had left when it was decided, and at least `within_seconds` from now
+        (expires_at): an Undo after its window had closed gave back an Approve that refused (review 2 of UI-02).
+        What it gets back is at most the review window, `window_seconds` (default APPROVAL_TIMEOUT_SECONDS): a
+        decision taken before any wait narrowed the delivery's 24 h placeholder gave back about 24 h, and the
+        review wait (with the production lock) followed it (review 3 of UI-02).
+        Returns True when it was reopened."""
+        if decision not in UNDOABLE:
+            return False
+        cutoff = (datetime.now(UTC) - timedelta(seconds=within_seconds)).isoformat()
+        with self._conn() as conn:
+            row = conn.execute("SELECT expires_at, decision_timestamp FROM approvals WHERE run_id=?", (run_id,)).fetchone()
+            left = 0.0
+            try:
+                left = float(row["expires_at"]) - datetime.fromisoformat(str(row["decision_timestamp"])).timestamp()
+            except (TypeError, ValueError, KeyError, IndexError):
+                pass
+            cap = max(float(APPROVAL_TIMEOUT_SECONDS if window_seconds is None else window_seconds), 0.0)
+            now = time.time()
+            kept = min(float((row["expires_at"] if row else None) or 0), now + cap)
+            expires = max(kept, now + max(min(left, cap), within_seconds))
+            cur = conn.execute("""UPDATE approvals SET decision='pending', decision_timestamp=NULL, decided_by=?,
+                expires_at=?
+                WHERE run_id=? AND decision=? AND telegram_message_id=? AND decision_timestamp>=?
+                AND EXISTS (SELECT 1 FROM runs WHERE runs.run_id=approvals.run_id AND status='pending_approval')
+                AND NOT EXISTS (SELECT 1 FROM settings WHERE key=? AND value=approvals.decision_timestamp)
+                AND NOT EXISTS (SELECT 1 FROM scheduled_posts WHERE scheduled_posts.run_id=approvals.run_id
+                                AND status IN ('pending', 'waiting', 'blocked', 'published', 'unknown'))
+                AND NOT EXISTS (SELECT 1 FROM publications WHERE publications.run_id=approvals.run_id
+                                AND status IN ('published', 'unknown'))""",
+                (UNDONE_BY, expires, run_id, decision, message_id, cutoff, REVIEW_CLAIM_PREFIX + run_id))
             return cur.rowcount == 1
 
     def commit_review_copy(self, run_id, revision, payload):
@@ -685,12 +779,18 @@ class PipelineDatabase:
         except Exception:
             return None
 
-    RETENTION_DAYS = {"audit_log": 90, "alerts": 90, "telegram_media_cache": 30, "findings": 365}
+    # Retention per table, as published in docs/privacy.md (keep the two in step). audience_*: per-post platform
+    # metrics kept two years (the channel's own medians), the media ids they were read by as long, and each
+    # source's outcome (API messages, redacted) 90 days.
+    RETENTION_DAYS = {"audit_log": 90, "alerts": 90, "telegram_media_cache": 30, "findings": 365,
+                      "audience_metrics": 730, "audience_media_ids": 730, "audience_sources": 90}
+    RETENTION_COLUMN: ClassVar[dict[str, str]] = {"telegram_media_cache": "updated_at", "audience_metrics": "fetched_at",
+                                                   "audience_media_ids": "found_at", "audience_sources": "collected_at"}
 
     def prune_history(self) -> Dict[str, int]:
         """Deletes old rows from the tables that only grow (activity log, alerts, Telegram media cache,
-        improvement findings). Runs, approvals, issues, spend and publications are the audit trail and
-        are never pruned. Returns rows deleted per table."""
+        improvement findings, audience metrics). Runs, approvals, issues, spend and publications are the
+        audit trail and are never pruned. Returns rows deleted per table."""
         from datetime import timedelta
         deleted = {}
         with self._conn() as conn:
@@ -698,7 +798,7 @@ class PipelineDatabase:
             for table, days in self.RETENTION_DAYS.items():
                 if table not in tables:
                     continue
-                column = "updated_at" if table == "telegram_media_cache" else "created_at"
+                column = self.RETENTION_COLUMN.get(table, "created_at")
                 cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
                 deleted[table] = conn.execute(f"DELETE FROM {table} WHERE {column} < ?", (cutoff,)).rowcount
         return deleted
@@ -761,10 +861,14 @@ class PipelineDatabase:
             conn.execute("INSERT INTO media_usage (provider, item, cost_usd, created_at) VALUES (?, ?, ?, ?)",
                          (provider, item, cost_usd, _now()))
 
-    def media_spend(self, month: str) -> float:
+    def media_spend(self, month: str, provider: str | None = None) -> float:
+        """The month's media spend, all providers or one."""
+        sql = "SELECT COALESCE(SUM(cost_usd), 0) AS s FROM media_usage WHERE substr(created_at, 1, 7) = ?"
+        args: tuple[Any, ...] = (month,)
+        if provider is not None:
+            sql, args = sql + " AND provider = ?", (month, provider)
         with self._conn() as conn:
-            row = conn.execute("SELECT COALESCE(SUM(cost_usd), 0) AS s FROM media_usage WHERE substr(created_at, 1, 7) = ?",
-                               (month,)).fetchone()
+            row = conn.execute(sql, args).fetchone()
         return float(row["s"])
 
     def llm_spend_by_task(self, month: str) -> List[Dict[str, Any]]:
@@ -840,6 +944,69 @@ class PipelineDatabase:
             VALUES (?, ?, ?, ?, ?, ?)
             """, (topic_id, run_id, channel, status, json.dumps(response_payload, default=str), _now()))
 
+    # A video's own receipts: every channel but the companions ("upload-post:story", "facebook:cover", ...), the dry
+    # run and the coordinator's placeholder. One run counts once whatever the number of platforms or retries. A
+    # published documentary (its upload goes through upload-post too) counts each of its movements once: the
+    # track was heard in a published video, which is what a published use means.
+    REEL_RECEIPT_EXCLUDED = ("dry-run", "coordinator")
+
+    def record_music_selection(self, run_id: str, tracks: list[dict[str, Any]]) -> None:
+        """The library tracks (each {"file", "sha256", "mood"}) this run's bed was made from, replacing what an
+        earlier bed of the same run recorded (one transaction). An empty list clears it (drone, generated score)."""
+        now = _now()
+        with self._conn() as conn:
+            conn.execute("DELETE FROM music_selections WHERE run_id = ?", (run_id,))
+            for position, track in enumerate(tracks):
+                conn.execute("INSERT OR IGNORE INTO music_selections (run_id, file, sha256, mood, position, recorded_at)"
+                             " VALUES (?, ?, ?, ?, ?, ?)",
+                             (run_id, track["file"], track.get("sha256"), track.get("mood"), position, now))
+
+    MUSIC_BACKFILL_KEY = "music_selections_backfilled"
+
+    def backfill_music_selections(self, output_dir: Path) -> int:
+        """Once per database (QF-84): the selection of every run made before music_selections existed, read from
+        its folder's music_selection.json (library tracks only), so a Reel published before this release, or one
+        waiting for review at the release, counts its track once its receipts say so. A run that already has rows,
+        or no readable selection, is left alone; nothing is ever counted from the old `uses`. Returns the runs filled."""
+        from .credits import sha256_file
+        if self.get_setting(self.MUSIC_BACKFILL_KEY):
+            return 0
+        with self._conn() as conn:
+            runs = [r["run_id"] for r in conn.execute(
+                "SELECT run_id FROM runs WHERE run_id NOT IN (SELECT run_id FROM music_selections)")]
+        filled = 0
+        for run_id in runs:
+            try:
+                music = json.loads((Path(output_dir) / run_id / "music_selection.json").read_text(encoding="utf-8"))
+            except (OSError, ValueError):
+                continue
+            if not isinstance(music, dict) or music.get("source") != "library":
+                continue
+            tracks = [t for t in music.get("tracks") or [] if isinstance(t, dict) and t.get("file")] or (
+                [{"file": music["file"], "mood": music.get("mood"), "path": music.get("path")}] if music.get("file") else [])
+            rows = [{"file": t["file"], "mood": t.get("mood"),
+                     "sha256": (sha256_file(Path(t["path"])) or None) if t.get("path") else None} for t in tracks]
+            if rows:
+                self.record_music_selection(run_id, rows)
+                filled += 1
+        self.set_setting(self.MUSIC_BACKFILL_KEY, _now())
+        return filled
+
+    def music_published_uses(self) -> dict[str, int]:
+        """Published uses per library file: the runs whose bed used it and whose video (a Reel, or a documentary:
+        each of its movements) has a confirmed publication (status 'published' on a video channel, a retry or a
+        human's posted confirmation). Picks, renders, dry runs,
+        simulated, failed, unknown, scheduled, rejected and regenerated runs count nothing; a retry or a second
+        platform of the same Reel does not count twice. Derived at read time, so there is no counter to drift."""
+        excluded = self.REEL_RECEIPT_EXCLUDED
+        with self._conn() as conn:
+            rows = conn.execute(f"""
+            SELECT m.file AS file, COUNT(DISTINCT m.run_id) AS n FROM music_selections m
+            WHERE EXISTS (SELECT 1 FROM publications p WHERE p.run_id = m.run_id AND p.status = 'published'
+                          AND p.channel NOT LIKE '%:%' AND p.channel NOT IN ({','.join('?' * len(excluded))}))
+            GROUP BY m.file""", excluded).fetchall()
+        return {r["file"]: int(r["n"]) for r in rows}
+
     def list_publications(self, run_id: str) -> List[Dict[str, Any]]:
         with self._conn() as conn:
             rows = conn.execute("SELECT * FROM publications WHERE run_id = ? ORDER BY id", (run_id,)).fetchall()
@@ -850,18 +1017,27 @@ class PipelineDatabase:
                            status: str = "pending") -> int:
         now = _now()
         with self._conn() as conn:
+            conn.execute("BEGIN IMMEDIATE")
+            self._check_topic_booking(conn, run_id, kind, due_at, status)
             cur = conn.execute("""
             INSERT INTO scheduled_posts (run_id, kind, due_at, status, files_json, created_at, updated_at)
             VALUES (?, ?, ?, ?, ?, ?, ?)""", (run_id, kind, due_at, status, json.dumps(files), now, now))
             return cur.lastrowid
 
     def update_scheduled_post(self, post_id: int, status: str, due_at: Optional[str] = None,
-                              detail: Optional[Dict[str, Any]] = None):
+                              detail: Optional[Dict[str, Any]] = None, files: list[str] | None = None):
+        """`files`: the post's image files, when they are drawn after booking (a carousel at its slot, QF-81)."""
         with self._conn() as conn:
+            conn.execute("BEGIN IMMEDIATE")
+            row = conn.execute("SELECT run_id, kind, due_at FROM scheduled_posts WHERE id = ?", (post_id,)).fetchone()
+            if row and due_at and due_at != row["due_at"]:   # a move; a status change on its own day is never refused
+                self._check_topic_booking(conn, row["run_id"], row["kind"], due_at, status)
             conn.execute("""
             UPDATE scheduled_posts SET status = ?, due_at = COALESCE(?, due_at),
-                   detail_json = COALESCE(?, detail_json), updated_at = ? WHERE id = ?""",
-                         (status, due_at, json.dumps(detail, default=str) if detail is not None else None, _now(), post_id))
+                   detail_json = COALESCE(?, detail_json), files_json = COALESCE(?, files_json),
+                   updated_at = ? WHERE id = ?""",
+                         (status, due_at, json.dumps(detail, default=str) if detail is not None else None,
+                          json.dumps(files) if files is not None else None, _now(), post_id))
 
     def list_scheduled_posts(self, statuses: tuple = ("pending", "waiting"), run_id: Optional[str] = None) -> List[Dict[str, Any]]:
         q = f"SELECT * FROM scheduled_posts WHERE status IN ({','.join('?' * len(statuses))})"
@@ -1096,10 +1272,13 @@ class PipelineDatabase:
         now_str = now_dt.isoformat()
         cutoff_str = (now_dt - timedelta(hours=max_age_hours)).isoformat()
         with self._conn() as conn:
+            # The clean chat's layout rows (kind "layout", UI-01) are never swept: their panels are re-posted
+            # in order before 48 h instead, and a swept row would leave its message in the chat.
             rows = conn.execute("""
                 SELECT * FROM telegram_cards
-                WHERE (expires_at IS NOT NULL AND expires_at <= ?)
-                   OR (created_at <= ?)
+                WHERE card_kind <> 'layout'
+                  AND ((expires_at IS NOT NULL AND expires_at <= ?)
+                   OR (created_at <= ?))
             """, (now_str, cutoff_str)).fetchall()
             expired = []
             for r in rows:

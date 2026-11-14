@@ -1,0 +1,83 @@
+{
+  "commit": "c560590+changes",
+  "python": "3.11.9",
+  "dependencies": {
+    "pillow_installed": "13.0.0",
+    "pillow_pinned": "13.0.0",
+    "scipy_pinned": "1.17.1",
+    "requirements_not_exact_pins": [],
+    "uv_lock": true,
+    "ci_runs_pip_audit": true,
+    "ci_installs_hashed_lock": true,
+    "ci_checks_requirements_against_lock": true,
+    "uv_lock_packages": 83,
+    "uv_lock_sha256_hashes": 479,
+    "requirements_agree_with_lock": true,
+    "check_lock_output": [
+      "requirements.txt agrees with uv.lock"
+    ]
+  },
+  "pixel_limit": {
+    "graphics._relief": {
+      "decodes": 4,
+      "decodes_under_lifted_limit": 0,
+      "decodes_under_changed_limit": 0,
+      "limits_seen": [
+        "89478485"
+      ],
+      "global_limit_after": "89478485"
+    },
+    "upscale._upscale_ncnn": {
+      "decodes": 4,
+      "decodes_under_lifted_limit": 0,
+      "decodes_under_changed_limit": 0,
+      "limits_seen": [
+        "89478485"
+      ],
+      "global_limit_after": "89478485"
+    },
+    "fetch_relief.valid_relief": {
+      "decodes": 4,
+      "decodes_under_lifted_limit": 0,
+      "decodes_under_changed_limit": 0,
+      "limits_seen": [
+        "89478485"
+      ],
+      "global_limit_after": "89478485"
+    },
+    "commons.download_jpeg": {
+      "decodes": 4,
+      "decodes_under_lifted_limit": 0,
+      "decodes_under_changed_limit": 0,
+      "limits_seen": [
+        "89478485"
+      ],
+      "global_limit_after": "89478485"
+    },
+    "decodes_under_lifted_limit_total": 0,
+    "decodes_under_changed_limit_total": 0
+  },
+  "byte_cap": {
+    "body_bytes": 125829120,
+    "bytes_read": 52494336,
+    "outcome": "refused: Download too large: over 52,428,800 bytes (cap)",
+    "saved": false,
+    "streamed": true,
+    "redirects_disabled": true,
+    "cap_mb_setting": 50
+  },
+  "advisories": {
+    "weekly_check_requirements": {
+      "packages_audited": 78,
+      "advisories": 0,
+      "by_package": {},
+      "exit_status": 0
+    },
+    "ci_hashed_lock": {
+      "packages_audited": 81,
+      "advisories": 0,
+      "by_package": {},
+      "exit_status": 0
+    }
+  }
+}

@@ -22,11 +22,12 @@ import subprocess
 import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
-from urllib.parse import urlparse
+from urllib.parse import urljoin, urlparse
 
 import requests
 
-from . import commons, config
+from . import commons, config, url_guard
+from .encoding import BT709_FLAGS, to_bt709
 
 log = logging.getLogger(__name__)
 
@@ -40,7 +41,20 @@ ALLOWED_HOSTS = {
     "archive": {"archive.org", ".archive.org"},
     # Europeana's holders serve their own files: any https host, still size-capped, video-only and re-encoded.
     "europeana": {"*"},
+    # Still images from the further open-access sources (src/museum_sources.py, 2026-11-02): a candidate whose file
+    # is on another host is not taken. Openverse indexes files where their holders keep them: the hosts allowed are
+    # Flickr's static servers and Wikimedia's upload server (the bulk of its CC/PD images); others are left out.
+    "openverse": {".staticflickr.com", "upload.wikimedia.org"},
+    "loc": {"tile.loc.gov", "www.loc.gov", "cdn.loc.gov"},
+    "artic": {"www.artic.edu"},
+    # The museum still-image searches (src/museum_sources.py): each serves its files from its own image host (QF-44).
+    "met": {"images.metmuseum.org"},
+    "nasa": {"images-assets.nasa.gov"},
+    "smithsonian": {"ids.si.edu"},
 }
+# Still-image providers: a picture whose provider is not recorded (a Commons search result, a credits.json entry)
+# may come from any of their fixed hosts, never from a wildcard one.
+IMAGE_PROVIDERS = ("commons", "openverse", "loc", "artic", "met", "nasa", "smithsonian", "europeana")
 CREDIT_PREFIX = "🎥 Footage:"
 
 
@@ -48,21 +62,33 @@ def _host_allowed(host: str, provider: str) -> bool:
     return bool(host) and any(h == "*" or host == h or (h.startswith(".") and host.endswith(h)) for h in ALLOWED_HOSTS[provider])
 
 
+def url_allowed(url: str, provider: str | None) -> bool:
+    """An https URL on the provider's hosts (any image provider's fixed hosts when `provider` is None) whose host is
+    public (src/url_guard: no private, loopback or link-local address, no local name). A wildcard provider's host is
+    also resolved and refused when it points inside (QF-44)."""
+    if provider is None:
+        return url_guard.checked(url, lambda h: any(_host_allowed(h, p) and "*" not in ALLOWED_HOSTS[p]
+                                                    for p in IMAGE_PROVIDERS), resolve=False)
+    if provider not in ALLOWED_HOSTS:
+        return False
+    return url_guard.checked(url, lambda h: _host_allowed(h, provider), resolve="*" in ALLOWED_HOSTS[provider])
+
+
 # ----------------------------------------------------------- download & clip
 def download(url: str, provider: str, dest: Path, extra_headers: Optional[dict] = None, max_bytes: Optional[int] = None) -> Path:
     """HTTPS from the provider's media hosts only, streamed with a size cap (archive film has its own, larger one)."""
     cap = max_bytes or MAX_BYTES
     parsed = urlparse(url)
-    if parsed.scheme != "https" or not _host_allowed(parsed.hostname or "", provider):
+    if not url_allowed(url, provider):
         raise ValueError(f"refusing to download from {parsed.scheme}://{parsed.hostname}")
     headers = commons.HEADERS if provider == "commons" else {"User-Agent": commons.HEADERS["User-Agent"]}
     headers = {**headers, **(extra_headers or {})}
     with requests.get(url, stream=True, timeout=(15, 120), headers=headers, allow_redirects=False) as resp:
         if resp.is_redirect:
-            target = urlparse(resp.headers.get("Location", ""))
-            if target.scheme != "https" or not _host_allowed(target.hostname or "", provider):
-                raise ValueError(f"refusing redirect to {target.hostname}")
-            return download(resp.headers["Location"], provider, dest, max_bytes=cap)  # credentials are not forwarded
+            location = urljoin(url, resp.headers.get("Location", ""))
+            if not url_allowed(location, provider):
+                raise ValueError(f"refusing redirect to {urlparse(location).hostname}")
+            return download(location, provider, dest, max_bytes=cap)  # credentials are not forwarded
         resp.raise_for_status()
         declared = int(resp.headers.get("Content-Length") or 0)
         if declared > cap:  # don't start a download that would only hit the cap
@@ -83,7 +109,7 @@ def download(url: str, provider: str, dest: Path, extra_headers: Optional[dict] 
 def probe(path: Path) -> Dict[str, Any]:
     """Local-only ffprobe of the first video stream."""
     out = subprocess.run(["ffprobe", "-v", "error", "-protocol_whitelist", "file", "-select_streams", "v:0",
-                          "-show_entries", "stream=width,height:format=duration,format_name", "-of", "json", str(path)],
+                          "-show_entries", "stream=width,height,color_space:format=duration,format_name", "-of", "json", str(path)],
                          capture_output=True, text=True, timeout=60)
     if out.returncode != 0:
         raise ValueError(f"not a readable video: {out.stderr[-200:]}")
@@ -93,7 +119,8 @@ def probe(path: Path) -> Dict[str, Any]:
         raise ValueError(f"refusing container format {fmt}")
     s = (data.get("streams") or [{}])[0]
     return {"width": int(s.get("width") or 0), "height": int(s.get("height") or 0),
-            "duration": float(data.get("format", {}).get("duration") or 0)}
+            "duration": float(data.get("format", {}).get("duration") or 0),
+            "color_space": s.get("color_space") or ""}
 
 
 FILL = "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,fps=30"
@@ -112,6 +139,12 @@ def frame_filter(info: Dict[str, Any]) -> List[str]:
     return ["-vf", FILL]
 
 
+def frame_filter_bt709(info: dict[str, Any]) -> list[str]:
+    """frame_filter, then BT.709 limited range, tagged, read with the source's own matrix (QF-01)."""
+    kind, graph = frame_filter(info)
+    return [kind, f"{graph},{to_bt709(info.get('color_space'), info.get('height') or 0)}"]
+
+
 def make_segment(src: Path, info: Dict[str, Any], out: Path) -> Path:
     """A muted 1080x1920 H.264 segment from the core b-roll part of the video, plus a poster frame."""
     dur = info["duration"]
@@ -125,8 +158,8 @@ def make_segment(src: Path, info: Dict[str, Any], out: Path) -> Path:
     else:
         start = max(0.0, (dur - SEGMENT_SECONDS) / 2)
     subprocess.run(["ffmpeg", "-y", "-v", "error", "-protocol_whitelist", "file", "-ss", f"{start:.2f}", "-t", f"{SEGMENT_SECONDS:.2f}",
-                    "-i", str(src), "-an", *frame_filter(info),
-                    "-c:v", "libx264", "-preset", "medium", "-crf", "17", "-pix_fmt", "yuv420p", str(out)],
+                    "-i", str(src), "-an", *frame_filter_bt709(info),
+                    "-c:v", "libx264", "-preset", "medium", "-crf", "17", *BT709_FLAGS, "-pix_fmt", "yuv420p", str(out)],
                    check=True, timeout=600, capture_output=True)
     subprocess.run(["ffmpeg", "-y", "-v", "error", "-protocol_whitelist", "file", "-ss", f"{SEGMENT_SECONDS / 2:.2f}", "-i", str(out),
                     "-frames:v", "1", str(out.with_suffix(".jpg"))], check=True, timeout=60, capture_output=True)
@@ -146,16 +179,8 @@ def get_curated_footage(topic_id: str, work_dir: Path) -> Tuple[List[Path], List
 
     work_dir.mkdir(parents=True, exist_ok=True)
     clips, credits = [], []
+    from .image_rights import effective_basis, rights_held
     for idx, p in enumerate(video_files):
-        n = len(clips) + 1
-        final_clip = work_dir / f"footage_{n:02d}.mp4"
-        try:
-            info = probe(p)
-            make_segment(p, info, final_clip)
-        except Exception as e:
-            log.warning("Failed to prepare curated footage %s: %s", p.name, e)
-            continue
-
         meta_file = p.with_suffix(".json")
         if meta_file.exists():
             try:
@@ -164,6 +189,39 @@ def get_curated_footage(topic_id: str, work_dir: Path) -> Tuple[List[Path], List
                 cand = {}
         else:
             cand = {}
+        # QF-57: a public-domain film with no worldwide basis may not be released, so it is not used either (no
+        # render that the release gate would then block). The basis is read from the asset record (its stored basis,
+        # or the operator's recorded approval) before the run-time note below replaces that record's check_note.
+        if rights_held(cand):
+            log.warning("Curated footage %s skipped: public domain without a worldwide basis.", p.name)
+            continue
+        derived = effective_basis(cand)
+        if derived:
+            cand["worldwide_basis"] = derived
+        n = len(clips) + 1
+        final_clip = work_dir / f"footage_{n:02d}.mp4"
+        try:
+            info = probe(p)
+            make_segment(p, info, final_clip)
+        except Exception as e:
+            log.warning("Failed to prepare curated footage %s: %s", p.name, e)
+            continue
+        # QF-88: the segment is checked as it is taken in (black, freeze, WCAG 2.3.1 flashing); a clip that fails
+        # is not used. One that cannot be measured here is used and logged: the release gate decodes the master it
+        # goes into, and that check fails closed.
+        from .picture_qa import ingest_problems
+        picture_check = "passed"
+        try:
+            problems = ingest_problems(final_clip)
+        except Exception as e:  # noqa: BLE001 - recorded; the master's own picture check is the authority
+            log.warning("Curated footage %s not picture-checked at ingest (%s); the release gate checks the master.",
+                        p.name, e)
+            problems, picture_check = [], f"not measured ({str(e)[:160]})"
+        if problems:
+            log.warning("Curated footage %s not used: %s", p.name, "; ".join(problems))
+            final_clip.unlink(missing_ok=True)
+            final_clip.with_suffix(".jpg").unlink(missing_ok=True)
+            continue
 
         cand.setdefault("provider", "curated")
         cand.setdefault("title", p.stem.replace("_", " ").title())
@@ -175,6 +233,7 @@ def get_curated_footage(topic_id: str, work_dir: Path) -> Tuple[List[Path], List
             file=str(final_clip),
             place_specific=True,
             check_note="Human curated and approved footage",
+            picture_check=picture_check,   # QF-88: read by the release gate's ingest note
             downloaded_at=time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         )
         cand.pop("text", None)

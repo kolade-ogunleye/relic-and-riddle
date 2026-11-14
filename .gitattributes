@@ -2,3 +2,12 @@
 # itself), so a file written on Windows and one written on Linux diff only by content.
 # Added 2026-10-24 after CRLF churn bloated several release diffs.
 * text=auto eol=lf
+
+# The offline model manifest binds exact file bytes on Windows and Linux.
+data/nlp/** -text
+data/nlp/**/model binary
+data/nlp/**/moves binary
+data/nlp/**/tokenizer binary
+data/nlp/**/key2row binary
+data/nlp/**/vectors binary
+data/nlp/**/*.bin binary

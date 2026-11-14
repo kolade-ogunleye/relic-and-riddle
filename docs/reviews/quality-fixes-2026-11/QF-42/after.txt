@@ -1,0 +1,1816 @@
+python measure.py <repo root> on the fix (RR_FIXTURE_REPO set for real_runs)
+{
+  "example_as_given": "",
+  "example_cc_by_line": "📷 Ann Lee | File:x | CC BY 4.0 | https://commons.wikimedia.org/wiki/File:Example.jpg | https://creativecommons.org/licenses/by/4.0/",
+  "example_title_field": "File:x",
+  "example_title_chars": 6,
+  "example_has_link_or_hashtag": false,
+  "corpus_lines": 6,
+  "corpus_lines_with_link_address_handle_or_hashtag": 0,
+  "corpus_findings": [],
+  "corpus_max_title_chars": 59,
+  "card_credit_lines": 6,
+  "card_credit_lines_shown": {
+    "_card_text": 6,
+    "format_card_text": 6
+  },
+  "card_every_asset_has_its_credit": true,
+  "committed_credits_files": 31,
+  "committed_records": 278,
+  "committed_lines_with_link_address_handle_or_hashtag": 0,
+  "committed_max_title_chars": 59,
+  "committed_titles_over_60": 0,
+  "emails_in_committed_credits": [],
+  "crowded_review_cards": {
+    "cards": 12,
+    "over_card_page_limit": 0,
+    "over_telegram_4096": 0,
+    "longest": 3868,
+    "findings_shortened": 4,
+    "cards_missing_a_photo_credit": 0,
+    "over_4096": []
+  },
+  "crowded_cards_within_limit_with_every_credit": true,
+  "near_full_cards": {
+    "source_note_42": {
+      "caption": [
+        "clipped",
+        275
+      ],
+      "carousel_caption": [
+        "full",
+        317
+      ],
+      "narration_chars": 720,
+      "narration_shortened": false,
+      "findings_shortened": false,
+      "findings_lists_first_items": 0,
+      "findings_lists_count_only": 0,
+      "length": 3866,
+      "every_author": true
+    },
+    "source_note_45": {
+      "caption": [
+        "clipped",
+        139
+      ],
+      "carousel_caption": [
+        "full",
+        317
+      ],
+      "narration_chars": 720,
+      "narration_shortened": false,
+      "findings_shortened": false,
+      "findings_lists_first_items": 0,
+      "findings_lists_count_only": 0,
+      "length": 3868,
+      "every_author": true
+    }
+  },
+  "near_full_cards_keep_both_caption_previews_and_every_credit": true,
+  "see_edit_card": {
+    "caption": [
+      "too_long",
+      0
+    ],
+    "carousel_caption": [
+      "too_long",
+      0
+    ],
+    "narration_chars": 720,
+    "narration_shortened": false,
+    "findings_shortened": false,
+    "findings_lists_first_items": 0,
+    "findings_lists_count_only": 0,
+    "length": 3798,
+    "every_author": true,
+    "every_caption_on_the_card": true
+  },
+  "see_edit_card_keeps_every_caption_and_credit": true,
+  "copy_credited_before_qf42": {
+    "old_safe_lines": {
+      "image_attribution": "pass",
+      "credit_lines": "pass"
+    },
+    "old_safe_lines_after_edit": {
+      "image_attribution": "pass",
+      "credit_lines": "pass"
+    },
+    "old_line_with_a_link": {
+      "image_attribution": "pass",
+      "credit_lines": "fail"
+    },
+    "old_line_with_a_link_after_edit": {
+      "image_attribution": "pass",
+      "credit_lines": "pass"
+    },
+    "regenerated_caption": {
+      "photo_credit_lines": 2,
+      "photos": 2,
+      "titles_over_60": 0,
+      "lines_with_link_or_hashtag": 0
+    },
+    "regenerated_description": {
+      "photo_credit_lines": 2,
+      "photos": 2,
+      "titles_over_60": 0,
+      "lines_with_link_or_hashtag": 0
+    }
+  },
+  "copy_credited_before_qf42_keeps_gate_and_rewrites": true,
+  "real_runs": {
+    "measured": true,
+    "cards": {
+      "cards": 30,
+      "over_card_page_limit": 2,
+      "over_telegram_4096": 2,
+      "longest": 4211,
+      "findings_shortened": 10,
+      "cards_missing_a_photo_credit": 4,
+      "over_4096": [
+        "run_nazca_lines_runway_paradox_1793247464: 4180",
+        "run_nazca_lines_runway_paradox_1793251266: 4211"
+      ]
+    },
+    "per_card": {
+      "run_amber_room_heist_1792790550": {
+        "caption": [
+          "clipped",
+          260
+        ],
+        "carousel_caption": [
+          "full",
+          276
+        ],
+        "narration_chars": 715,
+        "narration_shortened": false,
+        "findings_shortened": false,
+        "findings_lists_first_items": 0,
+        "findings_lists_count_only": 0,
+        "length": 3863,
+        "photo_authors_missing": 0,
+        "every_findings_cap": {
+          "with_list": {
+            "most_caption_previews": 2,
+            "longest_narration": 715,
+            "narration_chars_at_caps_none_4_3_2_1_0": [
+              715,
+              715,
+              715,
+              715,
+              715,
+              715
+            ],
+            "caps_fitting_with_whole_narration_and_every_caption": [
+              null,
+              4,
+              3,
+              2,
+              1,
+              0
+            ],
+            "shortest_credit_form_on_every_card": false
+          },
+          "without_list": {
+            "most_caption_previews": 2,
+            "longest_narration": 715,
+            "narration_chars_at_caps_none_4_3_2_1_0": [
+              715,
+              715,
+              715,
+              715,
+              715,
+              715
+            ],
+            "caps_fitting_with_whole_narration_and_every_caption": [
+              null,
+              4,
+              3,
+              2,
+              1,
+              0
+            ]
+          }
+        }
+      },
+      "run_amber_room_heist_1792801257": {
+        "caption": [
+          "full",
+          413
+        ],
+        "carousel_caption": [
+          "full",
+          255
+        ],
+        "narration_chars": 705,
+        "narration_shortened": false,
+        "findings_shortened": false,
+        "findings_lists_first_items": 0,
+        "findings_lists_count_only": 0,
+        "length": 3833,
+        "photo_authors_missing": 0,
+        "every_findings_cap": {
+          "with_list": {
+            "most_caption_previews": 2,
+            "longest_narration": 705,
+            "narration_chars_at_caps_none_4_3_2_1_0": [
+              705,
+              705,
+              705,
+              705,
+              705,
+              705
+            ],
+            "caps_fitting_with_whole_narration_and_every_caption": [
+              null,
+              4,
+              3,
+              2,
+              1,
+              0
+            ],
+            "shortest_credit_form_on_every_card": false
+          },
+          "without_list": {
+            "most_caption_previews": 2,
+            "longest_narration": 705,
+            "narration_chars_at_caps_none_4_3_2_1_0": [
+              705,
+              705,
+              705,
+              705,
+              705,
+              705
+            ],
+            "caps_fitting_with_whole_narration_and_every_caption": [
+              null,
+              4,
+              3,
+              2,
+              1,
+              0
+            ]
+          }
+        }
+      },
+      "run_amber_room_heist_1792805842": {
+        "caption": [
+          "clipped",
+          182
+        ],
+        "carousel_caption": [
+          "full",
+          292
+        ],
+        "narration_chars": 714,
+        "narration_shortened": false,
+        "findings_shortened": false,
+        "findings_lists_first_items": 0,
+        "findings_lists_count_only": 0,
+        "length": 3867,
+        "photo_authors_missing": 0,
+        "every_findings_cap": {
+          "with_list": {
+            "most_caption_previews": 2,
+            "longest_narration": 714,
+            "narration_chars_at_caps_none_4_3_2_1_0": [
+              714,
+              714,
+              714,
+              714,
+              714,
+              714
+            ],
+            "caps_fitting_with_whole_narration_and_every_caption": [
+              null,
+              4,
+              3,
+              2,
+              1,
+              0
+            ],
+            "shortest_credit_form_on_every_card": false
+          },
+          "without_list": {
+            "most_caption_previews": 2,
+            "longest_narration": 714,
+            "narration_chars_at_caps_none_4_3_2_1_0": [
+              714,
+              714,
+              714,
+              714,
+              714,
+              714
+            ],
+            "caps_fitting_with_whole_narration_and_every_caption": [
+              null,
+              4,
+              3,
+              2,
+              1,
+              0
+            ]
+          }
+        }
+      },
+      "run_damascus_steel_nanotubes_1792732472_short": {
+        "caption": [
+          "full",
+          574
+        ],
+        "carousel_caption": [
+          "full",
+          228
+        ],
+        "narration_chars": 769,
+        "narration_shortened": false,
+        "findings_shortened": false,
+        "findings_lists_first_items": 0,
+        "findings_lists_count_only": 0,
+        "length": 3282,
+        "photo_authors_missing": 0,
+        "every_findings_cap": {
+          "with_list": {
+            "most_caption_previews": 2,
+            "longest_narration": 769,
+            "narration_chars_at_caps_none_4_3_2_1_0": [
+              769,
+              769,
+              769,
+              769,
+              769,
+              769
+            ],
+            "caps_fitting_with_whole_narration_and_every_caption": [
+              null,
+              4,
+              3,
+              2,
+              1,
+              0
+            ],
+            "shortest_credit_form_on_every_card": true
+          },
+          "without_list": {
+            "most_caption_previews": 2,
+            "longest_narration": 769,
+            "narration_chars_at_caps_none_4_3_2_1_0": [
+              769,
+              769,
+              769,
+              769,
+              769,
+              769
+            ],
+            "caps_fitting_with_whole_narration_and_every_caption": [
+              null,
+              4,
+              3,
+              2,
+              1,
+              0
+            ]
+          }
+        }
+      },
+      "run_gol_gumbaz_whispering_gallery_1793278143": {
+        "caption": [
+          "clipped",
+          124
+        ],
+        "carousel_caption": [
+          "clipped",
+          248
+        ],
+        "narration_chars": 697,
+        "narration_shortened": false,
+        "findings_shortened": true,
+        "findings_lists_first_items": 1,
+        "findings_lists_count_only": 0,
+        "length": 3864,
+        "photo_authors_missing": 0,
+        "every_findings_cap": {
+          "with_list": {
+            "most_caption_previews": 2,
+            "longest_narration": 697,
+            "narration_chars_at_caps_none_4_3_2_1_0": [
+              697,
+              697,
+              697,
+              697,
+              697,
+              697
+            ],
+            "caps_fitting_with_whole_narration_and_every_caption": [
+              null,
+              4,
+              3,
+              2,
+              1,
+              0
+            ],
+            "shortest_credit_form_on_every_card": false
+          },
+          "without_list": {
+            "most_caption_previews": 2,
+            "longest_narration": 697,
+            "narration_chars_at_caps_none_4_3_2_1_0": [
+              697,
+              697,
+              697,
+              697,
+              697,
+              697
+            ],
+            "caps_fitting_with_whole_narration_and_every_caption": [
+              null,
+              4,
+              3,
+              2,
+              1,
+              0
+            ]
+          }
+        }
+      },
+      "run_greek_fire_siphon_1792735284_short": {
+        "caption": [
+          "clipped",
+          131
+        ],
+        "carousel_caption": [
+          "clipped",
+          164
+        ],
+        "narration_chars": 764,
+        "narration_shortened": false,
+        "findings_shortened": false,
+        "findings_lists_first_items": 0,
+        "findings_lists_count_only": 0,
+        "length": 3866,
+        "photo_authors_missing": 0,
+        "every_findings_cap": {
+          "with_list": {
+            "most_caption_previews": 2,
+            "longest_narration": 764,
+            "narration_chars_at_caps_none_4_3_2_1_0": [
+              764,
+              764,
+              764,
+              764,
+              764,
+              764
+            ],
+            "caps_fitting_with_whole_narration_and_every_caption": [
+              null,
+              4,
+              3,
+              2,
+              1,
+              0
+            ],
+            "shortest_credit_form_on_every_card": false
+          },
+          "without_list": {
+            "most_caption_previews": 2,
+            "longest_narration": 764,
+            "narration_chars_at_caps_none_4_3_2_1_0": [
+              764,
+              764,
+              764,
+              764,
+              764,
+              764
+            ],
+            "caps_fitting_with_whole_narration_and_every_caption": [
+              null,
+              4,
+              3,
+              2,
+              1,
+              0
+            ]
+          }
+        }
+      },
+      "run_hal_saflieni_hypogeum_1792949304": {
+        "caption": [
+          "clipped",
+          154
+        ],
+        "carousel_caption": [
+          "full",
+          307
+        ],
+        "narration_chars": 760,
+        "narration_shortened": false,
+        "findings_shortened": false,
+        "findings_lists_first_items": 0,
+        "findings_lists_count_only": 0,
+        "length": 3869,
+        "photo_authors_missing": 0,
+        "every_findings_cap": {
+          "with_list": {
+            "most_caption_previews": 2,
+            "longest_narration": 760,
+            "narration_chars_at_caps_none_4_3_2_1_0": [
+              760,
+              760,
+              760,
+              760,
+              760,
+              760
+            ],
+            "caps_fitting_with_whole_narration_and_every_caption": [
+              null,
+              4,
+              3,
+              2,
+              1,
+              0
+            ],
+            "shortest_credit_form_on_every_card": false
+          },
+          "without_list": {
+            "most_caption_previews": 2,
+            "longest_narration": 760,
+            "narration_chars_at_caps_none_4_3_2_1_0": [
+              760,
+              760,
+              760,
+              760,
+              760,
+              760
+            ],
+            "caps_fitting_with_whole_narration_and_every_caption": [
+              null,
+              4,
+              3,
+              2,
+              1,
+              0
+            ]
+          }
+        }
+      },
+      "run_kailasa_temple_monolith_1792524470": {
+        "caption": [
+          "clipped",
+          163
+        ],
+        "carousel_caption": [
+          "full",
+          346
+        ],
+        "narration_chars": 666,
+        "narration_shortened": false,
+        "findings_shortened": false,
+        "findings_lists_first_items": 0,
+        "findings_lists_count_only": 0,
+        "length": 3865,
+        "photo_authors_missing": 0,
+        "every_findings_cap": {
+          "with_list": {
+            "most_caption_previews": 2,
+            "longest_narration": 666,
+            "narration_chars_at_caps_none_4_3_2_1_0": [
+              666,
+              666,
+              666,
+              666,
+              666,
+              666
+            ],
+            "caps_fitting_with_whole_narration_and_every_caption": [
+              null,
+              4,
+              3,
+              2,
+              1,
+              0
+            ],
+            "shortest_credit_form_on_every_card": false
+          },
+          "without_list": {
+            "most_caption_previews": 2,
+            "longest_narration": 666,
+            "narration_chars_at_caps_none_4_3_2_1_0": [
+              666,
+              666,
+              666,
+              666,
+              666,
+              666
+            ],
+            "caps_fitting_with_whole_narration_and_every_caption": [
+              null,
+              4,
+              3,
+              2,
+              1,
+              0
+            ]
+          }
+        }
+      },
+      "run_nazca_lines_runway_paradox_1792961797": {
+        "caption": [
+          "clipped",
+          341
+        ],
+        "carousel_caption": [
+          "full",
+          289
+        ],
+        "narration_chars": 719,
+        "narration_shortened": false,
+        "findings_shortened": true,
+        "findings_lists_first_items": 0,
+        "findings_lists_count_only": 2,
+        "length": 3863,
+        "photo_authors_missing": 0,
+        "every_findings_cap": {
+          "with_list": {
+            "most_caption_previews": 2,
+            "longest_narration": 719,
+            "narration_chars_at_caps_none_4_3_2_1_0": [
+              719,
+              719,
+              719,
+              719,
+              719,
+              719
+            ],
+            "caps_fitting_with_whole_narration_and_every_caption": [
+              0
+            ],
+            "shortest_credit_form_on_every_card": true
+          },
+          "without_list": {
+            "most_caption_previews": 2,
+            "longest_narration": 719,
+            "narration_chars_at_caps_none_4_3_2_1_0": [
+              719,
+              719,
+              719,
+              719,
+              719,
+              719
+            ],
+            "caps_fitting_with_whole_narration_and_every_caption": [
+              0
+            ]
+          }
+        }
+      },
+      "run_nazca_lines_runway_paradox_1793247464": {
+        "caption": [
+          "absent",
+          0
+        ],
+        "carousel_caption": [
+          "absent",
+          0
+        ],
+        "narration_chars": 67,
+        "narration_shortened": true,
+        "findings_shortened": true,
+        "findings_lists_first_items": 0,
+        "findings_lists_count_only": 1,
+        "length": 4180,
+        "photo_authors_missing": 4,
+        "every_findings_cap": {
+          "with_list": {
+            "most_caption_previews": 0,
+            "longest_narration": 67,
+            "narration_chars_at_caps_none_4_3_2_1_0": [
+              67,
+              67,
+              67,
+              67,
+              67,
+              67
+            ],
+            "caps_fitting_with_whole_narration_and_every_caption": [],
+            "shortest_credit_form_on_every_card": true
+          },
+          "without_list": {
+            "most_caption_previews": 0,
+            "longest_narration": 67,
+            "narration_chars_at_caps_none_4_3_2_1_0": [
+              67,
+              67,
+              67,
+              67,
+              67,
+              67
+            ],
+            "caps_fitting_with_whole_narration_and_every_caption": []
+          }
+        }
+      },
+      "run_nazca_lines_runway_paradox_1793251266": {
+        "caption": [
+          "absent",
+          0
+        ],
+        "carousel_caption": [
+          "absent",
+          0
+        ],
+        "narration_chars": 67,
+        "narration_shortened": true,
+        "findings_shortened": true,
+        "findings_lists_first_items": 0,
+        "findings_lists_count_only": 1,
+        "length": 4211,
+        "photo_authors_missing": 4,
+        "every_findings_cap": {
+          "with_list": {
+            "most_caption_previews": 0,
+            "longest_narration": 67,
+            "narration_chars_at_caps_none_4_3_2_1_0": [
+              67,
+              67,
+              67,
+              67,
+              67,
+              67
+            ],
+            "caps_fitting_with_whole_narration_and_every_caption": [],
+            "shortest_credit_form_on_every_card": true
+          },
+          "without_list": {
+            "most_caption_previews": 0,
+            "longest_narration": 67,
+            "narration_chars_at_caps_none_4_3_2_1_0": [
+              67,
+              67,
+              67,
+              67,
+              67,
+              67
+            ],
+            "caps_fitting_with_whole_narration_and_every_caption": []
+          }
+        }
+      },
+      "run_nazca_lines_runway_paradox_1793262388": {
+        "caption": [
+          "absent",
+          0
+        ],
+        "carousel_caption": [
+          "absent",
+          0
+        ],
+        "narration_chars": 188,
+        "narration_shortened": true,
+        "findings_shortened": true,
+        "findings_lists_first_items": 0,
+        "findings_lists_count_only": 2,
+        "length": 3869,
+        "photo_authors_missing": 4,
+        "every_findings_cap": {
+          "with_list": {
+            "most_caption_previews": 0,
+            "longest_narration": 188,
+            "narration_chars_at_caps_none_4_3_2_1_0": [
+              67,
+              67,
+              67,
+              67,
+              67,
+              188
+            ],
+            "caps_fitting_with_whole_narration_and_every_caption": [],
+            "shortest_credit_form_on_every_card": true
+          },
+          "without_list": {
+            "most_caption_previews": 0,
+            "longest_narration": 188,
+            "narration_chars_at_caps_none_4_3_2_1_0": [
+              67,
+              67,
+              67,
+              67,
+              67,
+              188
+            ],
+            "caps_fitting_with_whole_narration_and_every_caption": []
+          }
+        }
+      },
+      "run_nazca_lines_runway_paradox_1793267092": {
+        "caption": [
+          "absent",
+          0
+        ],
+        "carousel_caption": [
+          "absent",
+          0
+        ],
+        "narration_chars": 278,
+        "narration_shortened": true,
+        "findings_shortened": true,
+        "findings_lists_first_items": 0,
+        "findings_lists_count_only": 2,
+        "length": 3864,
+        "photo_authors_missing": 0,
+        "every_findings_cap": {
+          "with_list": {
+            "most_caption_previews": 0,
+            "longest_narration": 278,
+            "narration_chars_at_caps_none_4_3_2_1_0": [
+              67,
+              67,
+              67,
+              67,
+              67,
+              278
+            ],
+            "caps_fitting_with_whole_narration_and_every_caption": [],
+            "shortest_credit_form_on_every_card": true
+          },
+          "without_list": {
+            "most_caption_previews": 0,
+            "longest_narration": 550,
+            "narration_chars_at_caps_none_4_3_2_1_0": [
+              67,
+              67,
+              67,
+              67,
+              67,
+              550
+            ],
+            "caps_fitting_with_whole_narration_and_every_caption": []
+          }
+        }
+      },
+      "run_odessa_catacombs_1792970549": {
+        "caption": [
+          "clipped",
+          136
+        ],
+        "carousel_caption": [
+          "clipped",
+          122
+        ],
+        "narration_chars": 666,
+        "narration_shortened": false,
+        "findings_shortened": false,
+        "findings_lists_first_items": 0,
+        "findings_lists_count_only": 0,
+        "length": 3864,
+        "photo_authors_missing": 0,
+        "every_findings_cap": {
+          "with_list": {
+            "most_caption_previews": 2,
+            "longest_narration": 666,
+            "narration_chars_at_caps_none_4_3_2_1_0": [
+              666,
+              666,
+              666,
+              666,
+              666,
+              666
+            ],
+            "caps_fitting_with_whole_narration_and_every_caption": [
+              null,
+              4,
+              3,
+              2,
+              1,
+              0
+            ],
+            "shortest_credit_form_on_every_card": false
+          },
+          "without_list": {
+            "most_caption_previews": 2,
+            "longest_narration": 666,
+            "narration_chars_at_caps_none_4_3_2_1_0": [
+              666,
+              666,
+              666,
+              666,
+              666,
+              666
+            ],
+            "caps_fitting_with_whole_narration_and_every_caption": [
+              null,
+              4,
+              3,
+              2,
+              1,
+              0
+            ]
+          }
+        }
+      },
+      "run_odessa_catacombs_1793098390": {
+        "caption": [
+          "clipped",
+          132
+        ],
+        "carousel_caption": [
+          "clipped",
+          270
+        ],
+        "narration_chars": 666,
+        "narration_shortened": false,
+        "findings_shortened": true,
+        "findings_lists_first_items": 1,
+        "findings_lists_count_only": 0,
+        "length": 3867,
+        "photo_authors_missing": 0,
+        "every_findings_cap": {
+          "with_list": {
+            "most_caption_previews": 2,
+            "longest_narration": 666,
+            "narration_chars_at_caps_none_4_3_2_1_0": [
+              666,
+              666,
+              666,
+              666,
+              666,
+              666
+            ],
+            "caps_fitting_with_whole_narration_and_every_caption": [
+              null,
+              4,
+              3,
+              2,
+              1,
+              0
+            ],
+            "shortest_credit_form_on_every_card": false
+          },
+          "without_list": {
+            "most_caption_previews": 2,
+            "longest_narration": 666,
+            "narration_chars_at_caps_none_4_3_2_1_0": [
+              666,
+              666,
+              666,
+              666,
+              666,
+              666
+            ],
+            "caps_fitting_with_whole_narration_and_every_caption": [
+              1,
+              0
+            ]
+          }
+        }
+      },
+      "run_odessa_catacombs_1793100750": {
+        "caption": [
+          "clipped",
+          253
+        ],
+        "carousel_caption": [
+          "full",
+          334
+        ],
+        "narration_chars": 666,
+        "narration_shortened": false,
+        "findings_shortened": false,
+        "findings_lists_first_items": 0,
+        "findings_lists_count_only": 0,
+        "length": 3860,
+        "photo_authors_missing": 0,
+        "every_findings_cap": {
+          "with_list": {
+            "most_caption_previews": 2,
+            "longest_narration": 666,
+            "narration_chars_at_caps_none_4_3_2_1_0": [
+              666,
+              666,
+              666,
+              666,
+              666,
+              666
+            ],
+            "caps_fitting_with_whole_narration_and_every_caption": [
+              null,
+              4,
+              3,
+              2,
+              1,
+              0
+            ],
+            "shortest_credit_form_on_every_card": false
+          },
+          "without_list": {
+            "most_caption_previews": 2,
+            "longest_narration": 666,
+            "narration_chars_at_caps_none_4_3_2_1_0": [
+              666,
+              666,
+              666,
+              666,
+              666,
+              666
+            ],
+            "caps_fitting_with_whole_narration_and_every_caption": [
+              null,
+              4,
+              3,
+              2,
+              1,
+              0
+            ]
+          }
+        }
+      },
+      "run_richat_structure_sahara_eye_1792737039_short": {
+        "caption": [
+          "clipped",
+          195
+        ],
+        "carousel_caption": [
+          "full",
+          302
+        ],
+        "narration_chars": 706,
+        "narration_shortened": false,
+        "findings_shortened": false,
+        "findings_lists_first_items": 0,
+        "findings_lists_count_only": 0,
+        "length": 3864,
+        "photo_authors_missing": 0,
+        "every_findings_cap": {
+          "with_list": {
+            "most_caption_previews": 2,
+            "longest_narration": 706,
+            "narration_chars_at_caps_none_4_3_2_1_0": [
+              706,
+              706,
+              706,
+              706,
+              706,
+              706
+            ],
+            "caps_fitting_with_whole_narration_and_every_caption": [
+              null,
+              4,
+              3,
+              2,
+              1,
+              0
+            ],
+            "shortest_credit_form_on_every_card": false
+          },
+          "without_list": {
+            "most_caption_previews": 2,
+            "longest_narration": 706,
+            "narration_chars_at_caps_none_4_3_2_1_0": [
+              706,
+              706,
+              706,
+              706,
+              706,
+              706
+            ],
+            "caps_fitting_with_whole_narration_and_every_caption": [
+              null,
+              4,
+              3,
+              2,
+              1,
+              0
+            ]
+          }
+        }
+      },
+      "run_richat_structure_sahara_eye_1792740961_long": {
+        "caption": [
+          "absent",
+          0
+        ],
+        "carousel_caption": [
+          "absent",
+          0
+        ],
+        "narration_chars": 2420,
+        "narration_shortened": true,
+        "findings_shortened": true,
+        "findings_lists_first_items": 1,
+        "findings_lists_count_only": 0,
+        "length": 3841,
+        "photo_authors_missing": 0,
+        "every_findings_cap": {
+          "with_list": {
+            "most_caption_previews": 0,
+            "longest_narration": 2420,
+            "narration_chars_at_caps_none_4_3_2_1_0": [
+              2022,
+              2375,
+              2420,
+              2420,
+              2420,
+              2420
+            ],
+            "caps_fitting_with_whole_narration_and_every_caption": [],
+            "shortest_credit_form_on_every_card": true
+          },
+          "without_list": {
+            "most_caption_previews": 0,
+            "longest_narration": 2597,
+            "narration_chars_at_caps_none_4_3_2_1_0": [
+              2245,
+              2549,
+              2549,
+              2597,
+              2597,
+              2597
+            ],
+            "caps_fitting_with_whole_narration_and_every_caption": []
+          }
+        }
+      },
+      "run_richat_structure_sahara_eye_1792778206": {
+        "caption": [
+          "clipped",
+          131
+        ],
+        "carousel_caption": [
+          "clipped",
+          300
+        ],
+        "narration_chars": 674,
+        "narration_shortened": false,
+        "findings_shortened": false,
+        "findings_lists_first_items": 0,
+        "findings_lists_count_only": 0,
+        "length": 3866,
+        "photo_authors_missing": 0,
+        "every_findings_cap": {
+          "with_list": {
+            "most_caption_previews": 2,
+            "longest_narration": 674,
+            "narration_chars_at_caps_none_4_3_2_1_0": [
+              674,
+              674,
+              674,
+              674,
+              674,
+              674
+            ],
+            "caps_fitting_with_whole_narration_and_every_caption": [
+              null,
+              4,
+              3,
+              2,
+              1,
+              0
+            ],
+            "shortest_credit_form_on_every_card": false
+          },
+          "without_list": {
+            "most_caption_previews": 2,
+            "longest_narration": 674,
+            "narration_chars_at_caps_none_4_3_2_1_0": [
+              674,
+              674,
+              674,
+              674,
+              674,
+              674
+            ],
+            "caps_fitting_with_whole_narration_and_every_caption": [
+              null,
+              4,
+              3,
+              2,
+              1,
+              0
+            ]
+          }
+        }
+      },
+      "run_richat_structure_sahara_eye_1793272675": {
+        "caption": [
+          "too_long",
+          0
+        ],
+        "carousel_caption": [
+          "too_long",
+          0
+        ],
+        "narration_chars": 718,
+        "narration_shortened": false,
+        "findings_shortened": false,
+        "findings_lists_first_items": 0,
+        "findings_lists_count_only": 0,
+        "length": 3841,
+        "photo_authors_missing": 0,
+        "every_findings_cap": {
+          "with_list": {
+            "most_caption_previews": 0,
+            "longest_narration": 718,
+            "narration_chars_at_caps_none_4_3_2_1_0": [
+              718,
+              718,
+              718,
+              718,
+              718,
+              718
+            ],
+            "caps_fitting_with_whole_narration_and_every_caption": [
+              null,
+              4,
+              3,
+              2,
+              1,
+              0
+            ],
+            "shortest_credit_form_on_every_card": true
+          },
+          "without_list": {
+            "most_caption_previews": 1,
+            "longest_narration": 718,
+            "narration_chars_at_caps_none_4_3_2_1_0": [
+              718,
+              718,
+              718,
+              718,
+              718,
+              718
+            ],
+            "caps_fitting_with_whole_narration_and_every_caption": [
+              null,
+              4,
+              3,
+              2,
+              1,
+              0
+            ]
+          }
+        }
+      },
+      "run_richat_structure_sahara_eye_1793474843": {
+        "caption": [
+          "clipped",
+          122
+        ],
+        "carousel_caption": [
+          "clipped",
+          223
+        ],
+        "narration_chars": 669,
+        "narration_shortened": false,
+        "findings_shortened": false,
+        "findings_lists_first_items": 0,
+        "findings_lists_count_only": 0,
+        "length": 3865,
+        "photo_authors_missing": 0,
+        "every_findings_cap": {
+          "with_list": {
+            "most_caption_previews": 2,
+            "longest_narration": 669,
+            "narration_chars_at_caps_none_4_3_2_1_0": [
+              669,
+              669,
+              669,
+              669,
+              669,
+              669
+            ],
+            "caps_fitting_with_whole_narration_and_every_caption": [
+              null,
+              4,
+              3,
+              2,
+              1,
+              0
+            ],
+            "shortest_credit_form_on_every_card": false
+          },
+          "without_list": {
+            "most_caption_previews": 2,
+            "longest_narration": 669,
+            "narration_chars_at_caps_none_4_3_2_1_0": [
+              669,
+              669,
+              669,
+              669,
+              669,
+              669
+            ],
+            "caps_fitting_with_whole_narration_and_every_caption": [
+              null,
+              4,
+              3,
+              2,
+              1,
+              0
+            ]
+          }
+        }
+      },
+      "run_roman_self_healing_concrete_1793163918": {
+        "caption": [
+          "absent",
+          0
+        ],
+        "carousel_caption": [
+          "absent",
+          0
+        ],
+        "narration_chars": 368,
+        "narration_shortened": true,
+        "findings_shortened": false,
+        "findings_lists_first_items": 0,
+        "findings_lists_count_only": 0,
+        "length": 3879,
+        "photo_authors_missing": 0,
+        "every_findings_cap": {
+          "with_list": {
+            "most_caption_previews": 0,
+            "longest_narration": 368,
+            "narration_chars_at_caps_none_4_3_2_1_0": [
+              368,
+              368,
+              368,
+              368,
+              368,
+              368
+            ],
+            "caps_fitting_with_whole_narration_and_every_caption": [],
+            "shortest_credit_form_on_every_card": true
+          },
+          "without_list": {
+            "most_caption_previews": 0,
+            "longest_narration": 724,
+            "narration_chars_at_caps_none_4_3_2_1_0": [
+              724,
+              724,
+              724,
+              724,
+              724,
+              724
+            ],
+            "caps_fitting_with_whole_narration_and_every_caption": []
+          }
+        }
+      },
+      "run_singing_colossi_of_memnon_1792952878": {
+        "caption": [
+          "clipped",
+          133
+        ],
+        "carousel_caption": [
+          "clipped",
+          206
+        ],
+        "narration_chars": 694,
+        "narration_shortened": false,
+        "findings_shortened": false,
+        "findings_lists_first_items": 0,
+        "findings_lists_count_only": 0,
+        "length": 3874,
+        "photo_authors_missing": 0,
+        "every_findings_cap": {
+          "with_list": {
+            "most_caption_previews": 2,
+            "longest_narration": 694,
+            "narration_chars_at_caps_none_4_3_2_1_0": [
+              694,
+              694,
+              694,
+              694,
+              694,
+              694
+            ],
+            "caps_fitting_with_whole_narration_and_every_caption": [
+              null,
+              4,
+              3,
+              2,
+              1,
+              0
+            ],
+            "shortest_credit_form_on_every_card": true
+          },
+          "without_list": {
+            "most_caption_previews": 2,
+            "longest_narration": 694,
+            "narration_chars_at_caps_none_4_3_2_1_0": [
+              694,
+              694,
+              694,
+              694,
+              694,
+              694
+            ],
+            "caps_fitting_with_whole_narration_and_every_caption": [
+              null,
+              4,
+              3,
+              2,
+              1,
+              0
+            ]
+          }
+        }
+      },
+      "run_trepanation_miracle_1792995462": {
+        "caption": [
+          "clipped",
+          134
+        ],
+        "carousel_caption": [
+          "clipped",
+          356
+        ],
+        "narration_chars": 776,
+        "narration_shortened": false,
+        "findings_shortened": true,
+        "findings_lists_first_items": 1,
+        "findings_lists_count_only": 2,
+        "length": 3867,
+        "photo_authors_missing": 0,
+        "every_findings_cap": {
+          "with_list": {
+            "most_caption_previews": 2,
+            "longest_narration": 776,
+            "narration_chars_at_caps_none_4_3_2_1_0": [
+              67,
+              227,
+              273,
+              314,
+              776,
+              776
+            ],
+            "caps_fitting_with_whole_narration_and_every_caption": [
+              1,
+              0
+            ],
+            "shortest_credit_form_on_every_card": false
+          },
+          "without_list": {
+            "most_caption_previews": 2,
+            "longest_narration": 776,
+            "narration_chars_at_caps_none_4_3_2_1_0": [
+              67,
+              355,
+              404,
+              445,
+              776,
+              776
+            ],
+            "caps_fitting_with_whole_narration_and_every_caption": [
+              0
+            ]
+          }
+        }
+      },
+      "run_tunguska_event_1908_1792930600": {
+        "caption": [
+          "clipped",
+          127
+        ],
+        "carousel_caption": [
+          "clipped",
+          265
+        ],
+        "narration_chars": 661,
+        "narration_shortened": false,
+        "findings_shortened": false,
+        "findings_lists_first_items": 0,
+        "findings_lists_count_only": 0,
+        "length": 3865,
+        "photo_authors_missing": 0,
+        "every_findings_cap": {
+          "with_list": {
+            "most_caption_previews": 2,
+            "longest_narration": 661,
+            "narration_chars_at_caps_none_4_3_2_1_0": [
+              661,
+              661,
+              661,
+              661,
+              661,
+              661
+            ],
+            "caps_fitting_with_whole_narration_and_every_caption": [
+              null,
+              4,
+              3,
+              2,
+              1,
+              0
+            ],
+            "shortest_credit_form_on_every_card": false
+          },
+          "without_list": {
+            "most_caption_previews": 2,
+            "longest_narration": 661,
+            "narration_chars_at_caps_none_4_3_2_1_0": [
+              661,
+              661,
+              661,
+              661,
+              661,
+              661
+            ],
+            "caps_fitting_with_whole_narration_and_every_caption": [
+              null,
+              4,
+              3,
+              2,
+              1,
+              0
+            ]
+          }
+        }
+      },
+      "run_unfinished_obelisk_aswan_1792985912": {
+        "caption": [
+          "absent",
+          0
+        ],
+        "carousel_caption": [
+          "too_long",
+          0
+        ],
+        "narration_chars": 703,
+        "narration_shortened": false,
+        "findings_shortened": false,
+        "findings_lists_first_items": 0,
+        "findings_lists_count_only": 0,
+        "length": 3837,
+        "photo_authors_missing": 0,
+        "every_findings_cap": {
+          "with_list": {
+            "most_caption_previews": 0,
+            "longest_narration": 703,
+            "narration_chars_at_caps_none_4_3_2_1_0": [
+              703,
+              703,
+              703,
+              703,
+              703,
+              703
+            ],
+            "caps_fitting_with_whole_narration_and_every_caption": [],
+            "shortest_credit_form_on_every_card": true
+          },
+          "without_list": {
+            "most_caption_previews": 1,
+            "longest_narration": 703,
+            "narration_chars_at_caps_none_4_3_2_1_0": [
+              703,
+              703,
+              703,
+              703,
+              703,
+              703
+            ],
+            "caps_fitting_with_whole_narration_and_every_caption": []
+          }
+        }
+      },
+      "run_unfinished_obelisk_aswan_1792993374": {
+        "caption": [
+          "clipped",
+          466
+        ],
+        "carousel_caption": [
+          "full",
+          385
+        ],
+        "narration_chars": 683,
+        "narration_shortened": false,
+        "findings_shortened": false,
+        "findings_lists_first_items": 0,
+        "findings_lists_count_only": 0,
+        "length": 3870,
+        "photo_authors_missing": 0,
+        "every_findings_cap": {
+          "with_list": {
+            "most_caption_previews": 2,
+            "longest_narration": 683,
+            "narration_chars_at_caps_none_4_3_2_1_0": [
+              683,
+              683,
+              683,
+              683,
+              683,
+              683
+            ],
+            "caps_fitting_with_whole_narration_and_every_caption": [
+              null,
+              4,
+              3,
+              2,
+              1,
+              0
+            ],
+            "shortest_credit_form_on_every_card": false
+          },
+          "without_list": {
+            "most_caption_previews": 2,
+            "longest_narration": 683,
+            "narration_chars_at_caps_none_4_3_2_1_0": [
+              683,
+              683,
+              683,
+              683,
+              683,
+              683
+            ],
+            "caps_fitting_with_whole_narration_and_every_caption": [
+              null,
+              4,
+              3,
+              2,
+              1,
+              0
+            ]
+          }
+        }
+      },
+      "run_unfinished_obelisk_aswan_1793056896": {
+        "caption": [
+          "clipped",
+          129
+        ],
+        "carousel_caption": [
+          "clipped",
+          283
+        ],
+        "narration_chars": 696,
+        "narration_shortened": false,
+        "findings_shortened": false,
+        "findings_lists_first_items": 0,
+        "findings_lists_count_only": 0,
+        "length": 3866,
+        "photo_authors_missing": 0,
+        "every_findings_cap": {
+          "with_list": {
+            "most_caption_previews": 2,
+            "longest_narration": 696,
+            "narration_chars_at_caps_none_4_3_2_1_0": [
+              696,
+              696,
+              696,
+              696,
+              696,
+              696
+            ],
+            "caps_fitting_with_whole_narration_and_every_caption": [
+              null,
+              4,
+              3,
+              2,
+              1,
+              0
+            ],
+            "shortest_credit_form_on_every_card": false
+          },
+          "without_list": {
+            "most_caption_previews": 2,
+            "longest_narration": 696,
+            "narration_chars_at_caps_none_4_3_2_1_0": [
+              696,
+              696,
+              696,
+              696,
+              696,
+              696
+            ],
+            "caps_fitting_with_whole_narration_and_every_caption": [
+              null,
+              4,
+              3,
+              2,
+              1,
+              0
+            ]
+          }
+        }
+      },
+      "run_voynich_manuscript_1792965308": {
+        "caption": [
+          "full",
+          524
+        ],
+        "carousel_caption": [
+          "full",
+          389
+        ],
+        "narration_chars": 734,
+        "narration_shortened": false,
+        "findings_shortened": false,
+        "findings_lists_first_items": 0,
+        "findings_lists_count_only": 0,
+        "length": 3620,
+        "photo_authors_missing": 0,
+        "every_findings_cap": {
+          "with_list": {
+            "most_caption_previews": 2,
+            "longest_narration": 734,
+            "narration_chars_at_caps_none_4_3_2_1_0": [
+              734,
+              734,
+              734,
+              734,
+              734,
+              734
+            ],
+            "caps_fitting_with_whole_narration_and_every_caption": [
+              null,
+              4,
+              3,
+              2,
+              1,
+              0
+            ],
+            "shortest_credit_form_on_every_card": true
+          },
+          "without_list": {
+            "most_caption_previews": 2,
+            "longest_narration": 734,
+            "narration_chars_at_caps_none_4_3_2_1_0": [
+              734,
+              734,
+              734,
+              734,
+              734,
+              734
+            ],
+            "caps_fitting_with_whole_narration_and_every_caption": [
+              null,
+              4,
+              3,
+              2,
+              1,
+              0
+            ]
+          }
+        }
+      },
+      "run_wieliczka_salt_mine_1792974672": {
+        "caption": [
+          "too_long",
+          0
+        ],
+        "carousel_caption": [
+          "too_long",
+          0
+        ],
+        "narration_chars": 722,
+        "narration_shortened": false,
+        "findings_shortened": true,
+        "findings_lists_first_items": 1,
+        "findings_lists_count_only": 2,
+        "length": 3827,
+        "photo_authors_missing": 1,
+        "every_findings_cap": {
+          "with_list": {
+            "most_caption_previews": 0,
+            "longest_narration": 722,
+            "narration_chars_at_caps_none_4_3_2_1_0": [
+              67,
+              67,
+              67,
+              416,
+              504,
+              722
+            ],
+            "caps_fitting_with_whole_narration_and_every_caption": [
+              0
+            ],
+            "shortest_credit_form_on_every_card": true
+          },
+          "without_list": {
+            "most_caption_previews": 2,
+            "longest_narration": 722,
+            "narration_chars_at_caps_none_4_3_2_1_0": [
+              67,
+              67,
+              67,
+              416,
+              722,
+              722
+            ],
+            "caps_fitting_with_whole_narration_and_every_caption": [
+              0
+            ]
+          }
+        }
+      }
+    },
+    "runs_with_photo_credits": 28,
+    "image_attribution_not_pass": 2,
+    "image_attribution_not_pass_runs": [
+      "run_amber_room_heist_1792801257",
+      "run_wieliczka_salt_mine_1792974672"
+    ],
+    "credit_lines_fail": 0,
+    "credit_lines_fail_runs": []
+  },
+  "acceptance_met": true
+}

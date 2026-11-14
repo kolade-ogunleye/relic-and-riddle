@@ -1,0 +1,14 @@
+{
+  "source_commit": "d5509fa654dd827b3ea5fcd2d5208fd5bfb22b69",
+  "scope": "generated photos; mocked visual decisions; production batching, measurement and ranking",
+  "batch_sizes": [
+    24
+  ],
+  "review_image_long_edges": [
+    512
+  ],
+  "records_retained": 24,
+  "quality_and_depiction": 0,
+  "technical_checks": 0,
+  "preferred_topic_photo": "reconstruction"
+}

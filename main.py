@@ -32,25 +32,24 @@ import threading
 import logging
 import sys
 import time
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 from src.config import ASSETS_DIR, CURATED_SCRIPTS_DIR, DAILY_RUN_TIME, OUTPUT_DIR, POST_SCHEDULING, TIMEZONE
 from src.credits import caption_credit_line, generate_provenance_ledger, load_credits
-from src.db import PipelineDatabase, QueueEmpty
-from src.control import clip_words, heartbeat_text, is_paused, make_command_handler, ping_healthcheck
-from src import beat_images, callouts, colour_balance, config, encoding, footage, graphics, motion, post_schedule, privacy, then_now
+from src.db import REVIEW_CLAIM_PREFIX, UNDONE_BY, UNDOABLE, PipelineDatabase, QueueEmpty
+from src.control import clip_words, heartbeat_text, is_paused, make_command_handler, ping_healthcheck, record_run_mode
+from src import beat_images, callouts, colour_balance, config, encoding, footage, graphics, motion, notifications, post_schedule, privacy, then_now, worker_deadline
 from src.llm import claude_available as llm_available
 from src.scene_planner import degraded_note, documentary_cuts, fit_findings, fit_note, fit_to_lines, plan_scenes, segment_beats
 from src.topic_proposer import origin_note as topic_origin_note
 from src.upscale import ensure_all, ensure_resolution
-from src.music import music_for
+from src.music import music_for, music_note, music_selection_rows
 from src.parallax import render_scenes as render_parallax
-from src.video_composer import TRANS_DUR
+from src.video_composer import TRANS_DUR, caption_cut_times
 from src.video_qa import QualityAuditor, audit_scene_feedback, qa_summary_html, review_render
 from src.control import failed_heading
-from src.visual_engine import COVER_STYLES
 from src.ops import AssetLifecycleManager, PreFlightHealthChecker, setup_logging
 from src.fact_sheet import FactStarvedTopicError
 from src.stage_timer import StageTimer
@@ -71,7 +70,6 @@ MAX_FACT_REVISIONS = 2  # rewrites of a Claude script that failed fact-checking,
 
 MISSED_SLOT_GRACE = timedelta(hours=3)
 SCHEDULED_POSTING_LOCK = "scheduled-posting"  # one post_due pass at a time across processes
-CAROUSEL_GAP = timedelta(hours=48)  # Upload-Post flags similar content within 48h (docs/sources.md)
 
 
 def compute_act_chapters(acts: List[Any], words: List[Dict[str, Any]], total_dur: float) -> Tuple[List[Dict[str, Any]], str, List[float]]:
@@ -138,21 +136,46 @@ def compute_act_chapters(acts: List[Any], words: List[Dict[str, Any]], total_dur
 
 
 def documentary_cover(title: str, max_line: int = 22) -> Dict[str, str]:
-    """Documentary cover text: the fact-checked title over two lines (word-wrapped, at most
-    max_line characters each), with an eyebrow and tagline that make no factual claim."""
-    words, lines = title.upper().split(), ["", ""]
-    k = 0
-    for w in words:
-        candidate = (lines[k] + " " + w).strip()
-        if len(candidate) <= max_line:
-            lines[k] = candidate
-        elif k == 0 and lines[0]:
-            k = 1
-            lines[1] = w[:max_line]
-        else:
-            lines[1] = (lines[1][: max_line - 1] + "…") if lines[1] else w[: max_line - 1] + "…"
-            break
-    return {"eyebrow": "DOCUMENTARY", "line1": lines[0], "line2": lines[1], "tagline": "EXPLORE THE EVIDENCE"}
+    """Documentary cover text: the fact-checked title over two lines split on whole words (the first line up to
+    max_line characters, the rest of the title whole on the second), with an eyebrow and tagline that make no
+    factual claim. QF-23: never cut; it was cut mid-word with an ellipsis at max_line characters. A title the
+    cover cannot set whole is refused there (cover_design's strict fit, typography.TextFitError)."""
+    words, line1 = title.upper().split(), ""
+    while words and (not line1 or len(f"{line1} {words[0]}") <= max_line):
+        line1 = f"{line1} {words.pop(0)}".strip()
+    return {"eyebrow": "DOCUMENTARY", "line1": line1, "line2": " ".join(words), "tagline": "EXPLORE THE EVIDENCE"}
+
+
+def warn_missing_geo_files() -> List[str]:
+    """A WARNING at run start for each map data file not on disk (tools/ is gitignored, so a deploy from GitHub
+    has neither until they are fetched): without the country outlines no locator or route map is made, without the
+    shaded relief they render flat. Returns the warnings logged."""
+    from src import geo
+    lines = []
+    for path, command in geo.missing_files():
+        try:
+            shown = path.relative_to(config.BASE_DIR)
+        except ValueError:
+            shown = path
+        effect = "maps render flat (no shaded relief)" if "relief" in path.parts else "no map graphics are made"
+        lines.append(f"Map data missing: {shown} is not on disk, so {effect}. Fetch it with: {command}")
+        log.warning(lines[-1])
+    return lines
+
+
+def warn_missing_raqm() -> List[str]:
+    """A WARNING at run start when Pillow cannot lay text out with raqm (operator decision 2026-11-05: raqm everywhere,
+    so every machine renders what review measured). Pillow's wheels load FriBiDi at run time: on Linux the libfribidi0
+    package, on Windows libfribidi-0.dll on PATH (docs/HANDOVER-design.md). Without it text falls back to BASIC layout
+    (no shaping, no GPOS kerning) and lines measure wider than reviewed. Returns the warnings logged."""
+    from PIL import features
+    if features.check("raqm"):
+        return []
+    line = ("Pillow raqm text layout is unavailable (FriBiDi not found), so text renders with BASIC layout and "
+            "measures wider than reviewed. Install FriBiDi: Linux libfribidi0; Windows libfribidi-0.dll on PATH "
+            "(docs/HANDOVER-design.md).")
+    log.warning(line)
+    return [line]
 
 
 class PipelineCoordinator:
@@ -177,7 +200,7 @@ class PipelineCoordinator:
         self.db = db or PipelineDatabase()
         llm.configure_usage(self.db.record_llm_usage, self.db.llm_spend)
         self.health_checker = PreFlightHealthChecker()
-        self.lifecycle_manager = AssetLifecycleManager()
+        self.lifecycle_manager = AssetLifecycleManager(db=self.db)   # never a pending run's files (QF-110)
         self.topic_engine = TopicEngine(db=self.db)
         self.script_engine = ScriptEngine()
         self.audio_engine = AudioEngine()
@@ -185,6 +208,8 @@ class PipelineCoordinator:
         self.video_composer = VideoComposer()
         self.multiformat_gen = MultiFormatGenerator()
         self.telegram_bot = TelegramApprovalBot(db=self.db)
+        self.telegram_bot.approval_window = self._approval_window  # the review card says when it closes (QF-43)
+        self.telegram_bot.approve_posting = self._approve_posting  # ...and whether Approve books a slot
         self.publisher = MetaPublisher(db=self.db)
 
     def run_cycle(
@@ -209,13 +234,19 @@ class PipelineCoordinator:
         health = self.health_checker.run_all(require_live=require_live)
         for k, v in health["details"].items():
             log.info("Health %-11s %s %s", k, "OK " if v["passed"] else ("FAIL" if v["required"] else "warn"), v["msg"])
+        if config.FONT_SIZE == 72:   # the caption size before 2026-11-03, most likely an old .env line
+            log.warning("FONT_SIZE=72 is set (a .env from before 2026-11-03?): Reel captions draw at 72 px, not the "
+                        "approved 80. Remove the line or set FONT_SIZE=80.")
+        warn_missing_geo_files()
+        warn_missing_raqm()
         if not health["all_passed"]:
             # Said in Telegram, not only logged: production's scheduled runs failed this way unnoticed (ffprobe).
             failed = [f"{k}: {v['msg']}" for k, v in health["details"].items() if v["required"] and not v["passed"]]
             try:
-                self._alert("🩺 <b>Run not started: a pre-flight check failed</b>\n\n"
+                _notice(self, "🩺 <b>Run not started: a pre-flight check failed</b>\n\n"
                             + "\n".join(f"• {html.escape(line[:200])}" for line in failed)
-                            + "\n\nNothing was made or spent. Fix the check, then start the run again.")
+                            + "\n\nNothing was made or spent. Fix the check, then start the run again.", section="needs", key="preflight",
+                             actions=[{"text": "Details", "callback_data": "cstat:"}])
             except Exception as e:
                 log.warning("Could not send the pre-flight alert: %s", e)
             ping_healthcheck("/fail")
@@ -226,17 +257,38 @@ class PipelineCoordinator:
             topic = self.topic_engine.get_topic_by_id(topic_id)
             if not topic:
                 raise ValueError(f"Topic ID '{topic_id}' not found in topic bank.")
+            if topic.get("hold"):   # QF-73: an editorial hold is cleared in the bank, never bypassed by naming it
+                raise ValueError(f"Topic '{topic_id}' is on hold: {topic['hold']}")
         else:
             # The first topic in production order whose photo pool is approved, or can be made so now
             # (fetched and reviewed on merit); topics without usable photos are skipped, not failed.
             from src.asset_pipeline import first_ready
             skipped = []
-            topic = first_ready(self.db.ranked_topics(), skipped=skipped)
+            # Topics whose approved pool has too few distinct authoritative photos go behind the others, said with
+            # their reason when one would otherwise have been made first (src/topic_engine.demote_thin, 2026-11-02).
+            ranked = self.db.ranked_topics()
+            order = {t["id"]: i for i, t in enumerate(ranked)}
+            try:
+                from src.topic_engine import demote_thin
+                ranked, thin = demote_thin(ranked)
+            except (OSError, ValueError, TypeError, KeyError) as e:
+                log.warning("Topic image gate could not run (%s); production order unchanged.", e)
+                thin = []
+            topic = first_ready(ranked, skipped=skipped)
+            passed_over = [(t, why) for t, why in thin if topic is not None and t["id"] != topic["id"]
+                           and order.get(t["id"], 0) < order.get(topic["id"], 0)]
+            if passed_over:
+                try:
+                    _notice(self, "🖼 <b>Topics moved back: too few photos for every line</b>\n\n"
+                                + "\n".join(f"• {html.escape(t.get('title') or t['id'])}: {html.escape(why)}"
+                                            for t, why in passed_over[:8]), section="info", key="photos-skip")
+                except (OSError, RuntimeError, ValueError) as e:   # requests' errors are OSErrors
+                    log.warning("Could not send the topic image gate alert: %s", e)
             if skipped:  # said, with the video's own count: an approved set it could not use failed at start (audit 2026-10-28)
                 try:
-                    self._alert("🖼 <b>Topics skipped: not enough photos a video can use</b>\n\n"
+                    _notice(self, "🖼 <b>Topics skipped: not enough photos a video can use</b>\n\n"
                                 + "\n".join(f"• {html.escape(t.get('title') or t['id'])}: {html.escape(why)}"
-                                            for t, why in skipped[:8]))
+                                            for t, why in skipped[:8]), section="info", key="photos-skip")
                 except Exception as e:
                     log.warning("Could not send the skipped-topics alert: %s", e)
             if topic is None:
@@ -270,6 +322,9 @@ class PipelineCoordinator:
             result = self._produce_and_publish(topic, run_id, run_dir, auto_approve, dry_run, previous_status)
             self._finish_progress(topic.get("title", tid), run_id, success=True)
             self._collect_findings(run_id, run_dir, tid)
+        except worker_deadline.RunDeadlineExceeded as e:  # stopped at its deadline (_stop_at_deadline), files kept
+            self._collect_findings(run_id, run_dir, tid, error=f"RunDeadlineExceeded: {e}")
+            return {"status": "timed_out", "run_id": run_id, "topic_id": tid}
         except JobCancelled:
             return {"status": "cancelled", "run_id": run_id, "topic_id": tid}
         except FactStarvedTopicError as e:
@@ -283,7 +338,7 @@ class PipelineCoordinator:
             self.db.update_run(run_id, "failed", error=f"FactStarvedTopicError: {e}")
             self.topic_engine.record_status(tid, "fact_starved", run_id=run_id)
             log.warning("Topic '%s' is fact-starved: %s. Gracefully skipping to protect pipeline integrity.", tid, e)
-            self._alert(f"⚠️ <b>Topic skipped: fact-starved</b>\n\n<code>{html.escape(tid)}</code>\n\n{html.escape(str(e))}\n\nSkipped gracefully to next queued topic.")
+            _notice(self, f"⚠️ <b>Topic skipped: fact-starved</b>\n\n<code>{html.escape(tid)}</code>\n\n{html.escape(str(e))}\n\nSkipped gracefully to next queued topic.", section="info")
             next_t = self.topic_engine.get_next_topic()
             if next_t and next_t["id"] != tid:
                 log.info("Auto-advancing to next topic '%s'...", next_t['id'])
@@ -302,7 +357,8 @@ class PipelineCoordinator:
             self._collect_findings(run_id, run_dir, tid, error=f"{type(e).__name__}: {e}")
             log.error("Run %s failed: %s", run_id, e)
             if not card_shown:
-                self._alert(f"❌ <b>{failed_heading(self.db, run_id)}</b>\n\n<b>{html.escape(self.db.run_label(run_id))}</b>\n<blockquote expandable>{html.escape(str(e)[:600])}</blockquote>\nNothing was posted. The topic is set aside: restore it from the queue (/queue requeue N).")
+                _notice(self, f"❌ <b>{failed_heading(self.db, run_id)}</b>\n\n<b>{html.escape(self.db.run_label(run_id))}</b>\n<blockquote expandable>{html.escape(str(e)[:600])}</blockquote>\nNothing was posted. The topic is set aside: restore it from the queue (/queue requeue N).", section="needs", key=f"fail:{run_id}", run=run_id,
+                             actions=notifications.failure_actions(self.db, run_id))
             ping_healthcheck("/fail")
             raise
         finally:
@@ -334,6 +390,11 @@ class PipelineCoordinator:
         return result
 
     def _check_cancel(self, run_id):
+        """A stage boundary: an operator's cancel, or the run deadline (src/worker_deadline.py), stops the run here."""
+        if worker_deadline.stopped_here(run_id):  # already stopped: a stage that swallowed the stop meets it again
+            raise worker_deadline.RunDeadlineExceeded(worker_deadline.stop_reason(config.RUN_DEADLINE_MINUTES))
+        if worker_deadline.overdue(run_id):
+            self._stop_at_deadline(run_id)
         if not self.db.get_setting("cancel_run:" + run_id):
             return
         run = self.db.get_run(run_id)
@@ -343,6 +404,29 @@ class PipelineCoordinator:
         self.topic_engine.record_status(run["topic_id"], "cancelled", run_id=run_id)
         self._finish_progress(self.db.run_label(run_id), run_id, False, "Cancelled by operator")
         raise JobCancelled("Cancelled by operator")
+
+    def _stop_at_deadline(self, run_id: str) -> None:
+        """Past its production deadline at a stage boundary: a run still being made stops as timed_out, keeping
+        every file it made; its topic goes back in the queue (unless another run of it is booked or posted: a dual
+        run's Reel), its progress card says why, one Needs-you notice."""
+        minutes = config.RUN_DEADLINE_MINUTES
+        reason = worker_deadline.stop_reason(minutes)
+        with self.db._conn() as conn:  # only from producing: a review, an upload or a cancel is never overwritten
+            stopped = conn.execute("UPDATE runs SET status = 'timed_out', error = ?, updated_at = ? "
+                                   "WHERE run_id = ? AND status = 'producing'",
+                                   (reason + " and stopped at a stage boundary.", datetime.now(UTC).isoformat(),
+                                    run_id)).rowcount
+        if not stopped:
+            return
+        worker_deadline.mark_stopped(run_id)
+        run = self.db.get_run(run_id) or {}
+        log.warning("Run %s %s; stopped at a stage boundary, files kept.", run_id, reason.lower())
+        requeued = worker_deadline.requeue_topic(self.db, run)
+        label = self.db.run_label(run_id)
+        self._finish_progress(label, run_id, False, reason)
+        worker_deadline.notice_once(self.db, run_id, worker_deadline.deadline_notice(
+            label, minutes, worker_deadline.kept_line(run_id, run), requeued=requeued), self._alert)
+        raise worker_deadline.RunDeadlineExceeded(reason)
 
     def _progress_note(self, run_id: str, title: str, step: int, text: str) -> None:
         """A word on the progress card about the long sub-stage under way (the card went 5.6 minutes
@@ -375,6 +459,8 @@ class PipelineCoordinator:
             from src import improve
             run = self.db.get_run(run_id) or {}
             n = improve.collect_run(self.db, run_id, run_dir, run.get("script_payload"), topic_id=topic_id, error=error)
+            from src.stage_timer import file_findings
+            n += file_findings(self.db, run_id, run_dir) if run_dir else 0  # a stage over 150% of its budget
             log.info("Improvement ledger: %d finding(s) recorded for %s.", n, run_id)
         except Exception as e:
             log.warning("Could not record findings for %s: %s", run_id, e)
@@ -514,16 +600,35 @@ class PipelineCoordinator:
         # measurement: three library scripts ran 51.8-53.7 s for a 51.5 s limit, 2026-10-27): the caller shortens
         # it to the measured word count and fact-checks the revision, instead of paying for a new script.
         saved["_too_long_here"] = self._spoken_length_now(saved)
+        # QF-14: a hook fault blocks. A library script written before the rule gets the one opening edit, fact-checked
+        # again as any revision is, the same way (all four shipped entries open on 17-26 words, 2026-11-10).
+        # QF-15: so does a payoff fault, in the same one edit (no shipped entry has a payoff_sentence).
+        # QF-16: and a hedge in the opening, payoff or loop, read against the topic's own sheet.
+        from src import fact_sheet
+        from src.script_engine import (
+            hedge_problems,
+            hook_problems,
+            opening_edit_findings,
+            payoff_problems,
+        )
+        hook = (hook_problems(saved.get("narration_script") or "")
+                + payoff_problems(saved.get("narration_script") or "", saved.get("payoff_sentence") or "")
+                + hedge_problems(saved.get("narration_script") or "", fact_sheet.load(topic["id"], max_age_days=3650)))
+        saved["_weak_hook_here"] = opening_edit_findings(hook) if hook else ""
         return saved
 
     def _library_payload(self, topic, run_id, run_dir, dry_run, library: Dict[str, Any]) -> Dict[str, Any]:
-        """The library script as this run's script: as it is when it fits this narrator, else shortened to the
-        measured word count and fact-checked again, as any revision is (never thrown away for a new one)."""
+        """The library script as this run's script: as it is when it fits this narrator and passes the hook rule, else
+        shortened to the measured word count and/or given the opening edit, and fact-checked again, as any revision
+        is (never thrown away for a new one)."""
         too_long = library.pop("_too_long_here", "")
+        weak_hook = library.pop("_weak_hook_here", "")
         source = (library.get("from_library") or {}).get("run_id", "another environment")
-        if too_long:
-            log.info("Library script (from %s) runs long for this voice; shortening it: %s", source, too_long[:160])
-            return self._write_and_check_script(topic, run_id, run_dir, dry_run, initial_payload=library, initial_notes=too_long)
+        if too_long or weak_hook:
+            notes = " ".join(n for n in (too_long, weak_hook) if n)
+            log.info("Library script (from %s) is edited before use (too long for this voice: %s; hook fault: %s): %s",
+                     source, bool(too_long), bool(weak_hook), notes[:160])
+            return self._write_and_check_script(topic, run_id, run_dir, dry_run, initial_payload=library, initial_notes=notes)
         log.info("Script taken from the script library (checked against this same fact sheet, from %s).", source)
         return library
 
@@ -541,7 +646,8 @@ class PipelineCoordinator:
         from src.checkpoints import Checkpoints
         from src.credits import sha256_file
         try:
-            same_voice = vo_path.is_file() and sha256_file(vo_path) == sha256_file(previous / "voiceover.mp3")
+            from src.audio_engine import voiceover_file
+            same_voice = vo_path.is_file() and sha256_file(vo_path) == sha256_file(voiceover_file(previous))
             record = Checkpoints(previous).read().get("bed") or {}
         except OSError:
             return
@@ -571,7 +677,8 @@ class PipelineCoordinator:
         `wanted` is the provider this run would use first, and a voice from another one is not carried."""
         from src.script_library import reuses
         previous = self._previous_run_dir()
-        if previous is None or not reuses("voice") or (run_dir / "voiceover.mp3").exists():
+        from src.audio_engine import rights_file, voiceover_file
+        if previous is None or not reuses("voice") or voiceover_file(run_dir).exists():
             return
         from src.checkpoints import Checkpoints
         try:
@@ -579,7 +686,8 @@ class PipelineCoordinator:
             record = Checkpoints(previous).read().get("voice") or {}
         except (OSError, ValueError):
             return
-        names = ["voiceover.mp3", "words.json", "voice.json"]
+        take = voiceover_file(previous).name  # the WAV, or a take made before QF-08 (MP3)
+        names = [take, "words.json", "voice.json"]
         if meta.get("narration_script") != narration or not record.get("inputs") or not all((previous / n).is_file() for n in names):
             return
         try:
@@ -589,14 +697,14 @@ class PipelineCoordinator:
         if wanted and made_by and made_by != wanted:
             log.info("Voiceover not carried over from %s: it was made by %s and this run uses %s.", previous.name, made_by, wanted)
             return
-        for extra in ("voiceover.mp3.rights.json",):
+        for extra in (rights_file(take).name,):
             if (previous / extra).is_file():
                 names.append(extra)
         try:
             from src.audio_provenance import rebind_rights
             for n in names:
                 shutil.copy2(previous / n, run_dir / n)
-            rebind_rights(run_dir / "voiceover.mp3")  # its rights record named the previous run's folder
+            rebind_rights(run_dir / take)  # its rights record named the previous run's folder
             Checkpoints(run_dir).adopt("voice", record["inputs"], [run_dir / n for n in names[:3]])
         except (OSError, ValueError) as e:
             log.warning("Could not carry the voiceover over from %s: %s", previous.name, e)
@@ -625,7 +733,7 @@ class PipelineCoordinator:
         Produces a 3:30 - 5:00 min 16:9 widescreen broadcast documentary according to the 5 pillars:
         - Act-by-act chunked fact verification (5 acts)
         - Sidechain audio ducking with multi-movement score
-        - BBC/Discovery 16:9 intelligent compositing (blurred backdrops for vertical/square photos)
+        - 16:9 aspect-aware compositing (blurred backdrops for vertical/square photos)
         - Hardware accelerated encoding (h264_nvenc)
         - Child run persistence in DB with fault isolation
         """
@@ -661,7 +769,7 @@ class PipelineCoordinator:
                 except Exception:
                     pass
 
-        def finish(success: bool, error: str = "") -> None:
+        def finish(success: bool, error: str = "", alert: bool = True) -> None:
             # The documentary files its findings like a Reel (it never did, so the audit never saw it).
             self._collect_findings(run_id, run_dir, tid, error=None if success else error)
             shown = False
@@ -670,11 +778,12 @@ class PipelineCoordinator:
                     shown = bool(self.telegram_bot.finish_progress_card(card, card_title, run_id, success=success, error=error))
                 except Exception as e:
                     log.debug("Could not finish the documentary progress card: %s", e)
-            if not success and not shown:  # no card to turn into the failure card: say so in a message
+            if not success and not shown and alert:  # no card to turn into the failure card: say so in a message
                 from src.control import short_reason
                 try:
-                    self._alert(f"❌ <b>Documentary failed:</b> {html.escape(card_title)}\n\n"
-                                f"{html.escape(short_reason(error, 600))}\n\nNothing was posted.")
+                    _notice(self, f"❌ <b>Documentary failed:</b> {html.escape(card_title)}\n\n"
+                                f"{html.escape(short_reason(error, 600))}\n\nNothing was posted.", section="needs", key=f"fail:{run_id}", run=run_id,
+                                 actions=notifications.failure_actions(self.db, run_id))
                 except Exception:
                     pass
 
@@ -752,7 +861,8 @@ class PipelineCoordinator:
             self.db.update_run(run_id, "producing", script_payload=payload)
 
             # 3. Audio generation
-            vo_path = run_dir / "voiceover.mp3"
+            from src.audio_engine import VOICEOVER_FILE, rights_file, voiceover_file
+            vo_path = voiceover_file(run_dir)
             words_path = run_dir / "words.json"
             voice_inputs = self.voice_inputs(raw_narration, dry_run)
             licensed_req, allow_paid = voice_inputs["licensed_only"], voice_inputs["allow_paid"]
@@ -762,6 +872,7 @@ class PipelineCoordinator:
                 log.info("Deep-Dive Voiceover: reusing existing audio (%.2fs, %d words timed)", vo_dur, len(words))
             else:
                 self._check_cancel(run_id)
+                vo_path = run_dir / VOICEOVER_FILE  # a new take is always the WAV (QF-08)
                 words = self.audio_engine.generate_narration(raw_narration, vo_path, licensed_only=licensed_req,
                                                              allow_paid=allow_paid)
                 words_path.write_text(json.dumps(words), encoding="utf-8")
@@ -770,7 +881,7 @@ class PipelineCoordinator:
                 from src.audio_provenance import record_voice
                 record_voice(vo_path, self.audio_engine.last_provider, self.audio_engine.last_licensed, raw_narration)
                 checkpoints.complete("deep_voice", voice_inputs,
-                                     [vo_path, words_path, vo_path.with_suffix(".mp3.rights.json")])
+                                     [vo_path, words_path, rights_file(vo_path)])
 
             step(2, f"Voiceover mastered ({vo_dur:.0f}s)")
             # Compute precise chapter timestamps for description, metadata, and cinematic act-transition cues
@@ -787,32 +898,50 @@ class PipelineCoordinator:
             from src.config import MUSIC_PREFER
             library_tracks = load_library()
             from src.audio_provenance import audio_source_inputs
-            bed_inputs = {"voice_and_rules": file_inputs([vo_path, words_path, Path("src/audio_engine.py")]),
-                          "cues": cue_timestamps, "music_preference": MUSIC_PREFER,
+            # The documentary's picture cuts (documentary_cuts, as the render below plans them): its whooshes land on them
+            doc_scene_cuts = caption_cut_times([c["end"] - c["start"] for c in documentary_cuts(words, vo_dur)])
+            bed_inputs = {"voice_and_rules": file_inputs([vo_path, words_path, Path("src/audio_engine.py"),
+                                                          Path("src/sound_plan.py"), Path("src/music.py")]),
+                          "cues": cue_timestamps, "scene_cuts": doc_scene_cuts, "music_preference": MUSIC_PREFER,
                           "selected_sources": audio_source_inputs(bed_path),
                           "library": [{k: v for k, v in t.items() if k != "uses"} for t in library_tracks],
                           "library_files": file_inputs([MUSIC_DIR / t["file"] for t in library_tracks])}
+            doc_music_path = run_dir / "music_selection.json"
             if not checkpoints.reusable("deep_bed", bed_inputs):
-                # Background score with broadcast sidechain ducking and act-boundary risers
-                music = music_for(payload, vo_dur + 0.5, run_dir, self.audio_engine.voice_quota(), is_documentary=True)
+                # Background score with broadcast sidechain ducking and act-boundary risers. The sound plan comes
+                # first: its dominant mood chooses the music (QF-84; never a default mood).
+                from src import sound_plan as sound_plan_mod
+                plan, mood_record = sound_plan_mod.plan_and_mood(words, topic.get("title", ""))
+                (run_dir / "sound_plan.json").write_text(json.dumps(plan, indent=1), encoding="utf-8")
+                music = music_for(dict(payload, topic_id=topic.get("id")), vo_dur + 0.5, run_dir,
+                                  self.audio_engine.voice_quota(), is_documentary=True,
+                                  mood_record=mood_record, published=self.db.music_published_uses())
+                payload["music_note"] = music_note(music)
+                self.db.record_music_selection(run_id, music_selection_rows(music))
                 if music.get("credit"):
                     payload["music_credit"] = music["credit"]
                     payload["description"] += f"\n\n{music['credit']}"
                     payload["caption"] += f"\n\n{music['credit']}"
                     (run_dir / "script_metadata.json").write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
-                from src import sound_plan as sound_plan_mod
-                plan = sound_plan_mod.plan(words, topic.get("title", ""))
-                (run_dir / "sound_plan.json").write_text(json.dumps(plan, indent=1), encoding="utf-8")
                 self.audio_engine.generate_ambient_bed(
                     vo_dur + 0.5, bed_path, words=words,
                     music_path=music.get("path"), music_paths=music.get("paths"),
-                    cue_timestamps=cue_timestamps, sound_plan=plan
+                    cue_timestamps=cue_timestamps, sound_plan=plan, scene_cuts=doc_scene_cuts
                 )
                 from src.audio_provenance import record_bed
                 record_bed(bed_path, music, sfx=self.audio_engine.last_sfx_sources)
+                # Kept with the bed, so a resumed documentary restores its music line (a held one too) (QF-84)
+                doc_music_path.write_text(json.dumps(music, default=str, indent=2), encoding="utf-8")
                 bed_inputs["selected_sources"] = audio_source_inputs(bed_path)
-                checkpoints.complete("deep_bed", bed_inputs, [bed_path, bed_path.with_suffix(".wav.rights.json")])
+                checkpoints.complete("deep_bed", bed_inputs, [bed_path, bed_path.with_suffix(".wav.rights.json"),
+                                                              doc_music_path])
             else:
+                try:
+                    music = json.loads(doc_music_path.read_text(encoding="utf-8"))
+                    payload["music_note"] = music_note(music)
+                    self.db.record_music_selection(run_id, music_selection_rows(music))
+                except (OSError, ValueError) as e:   # a bed made before QF-84 kept no selection
+                    log.warning("Documentary music selection unreadable (%s); its music line is not shown.", e)
                 rights = json.loads(bed_path.with_suffix(".wav.rights.json").read_text(encoding="utf-8"))
                 attribution = rights.get("required_attribution", "")
                 if attribution and attribution not in payload["caption"]:
@@ -851,13 +980,21 @@ class PipelineCoordinator:
             graphics_dir.mkdir(parents=True, exist_ok=True)
             encoding.get_video_encoder()  # probe once before parallel renderers race to detect it under load
             t_graphics = time.perf_counter()
+            payload.pop("layout_holds", None)   # QF-23: this render's holds only (a resumed run's old payload had some)
             with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:
                 from src import art_direction
                 doc_art = art_direction.record(run_dir, hero_img)
                 payload["art_direction"] = doc_art
-                fut_graphics = pool.submit(graphics.make_all, payload, topic, graphics_dir, photo=hero_img, width=1920, height=1080, palette=doc_art)
-                fut_callouts = pool.submit(callouts.make, payload, topic, scene_media, graphics_dir, width=1920, height=1080)
-                fut_then_now = pool.submit(then_now.make, topic, graphics_dir, width=1920, height=1080)
+                # the documentary master grades its photos at bias 0 (compose_deep_dive), so do the graphics' photos
+                fut_graphics = pool.submit(graphics.make_all, payload, topic, graphics_dir, photo=hero_img, width=1920, height=1080, palette=doc_art,
+                                           grade_bias=0.0)
+                # each glyph event names what it was drawn on (QF-94)
+                from src.font_engine import on_surface
+                fut_callouts = pool.submit(on_surface, "photo callouts", callouts.make, payload, topic, scene_media,
+                                           graphics_dir, width=1920, height=1080, words=words,
+                                           auto_approve=auto_approve, grade_bias=0.0)
+                fut_then_now = pool.submit(on_surface, "graphic then/now", then_now.make, topic, graphics_dir,
+                                           width=1920, height=1080, grade_bias=0.0)
 
                 own_graphics = fut_graphics.result()
                 labelled = fut_callouts.result()
@@ -892,21 +1029,27 @@ class PipelineCoordinator:
             # Thumbnails need only the hero photo and the cover copy, which nothing below changes,
             # so they are drawn while the documentary renders (one worker: the engine keeps per-call state).
             thumb_pool = concurrent.futures.ThreadPoolExecutor(max_workers=1, thread_name_prefix="deep-thumbs")
+            from src.font_engine import on_surface
             fut_thumbs = thumb_pool.submit(lambda: (
-                self.visual_engine.generate_thumbnails(hero_img, payload, run_dir, variants=False),
-                self.visual_engine.generate_youtube_thumbnail(hero_img, payload, run_dir / "thumbnail_youtube_16x9.jpg")))
+                on_surface("cover", self.visual_engine.generate_thumbnails, hero_img, payload, run_dir,
+                           variants=False),
+                on_surface("YouTube thumbnail", self.visual_engine.generate_youtube_thumbnail, hero_img, payload,
+                           run_dir / "thumbnail_youtube_16x9.jpg")))
             thumb_pool.shutdown(wait=False)
             step(4, "Rendering the documentary, preparing review")
             try:
                 result = self._render_and_certify_deep_dive(
                     topic, tid, run_id, run_dir, parent_run_id, payload, words, vo_dur, vo_path, bed_path, words_path,
                     extended_scenes, durations, cuts, master_mp4, checkpoints, file_inputs, cached_artifacts,
-                    fut_thumbs, auto_approve, dry_run)
+                    fut_thumbs, auto_approve, dry_run, act_cuts=cue_timestamps)
             finally:
                 concurrent.futures.wait([fut_thumbs])  # never leave a writer running past the run
             finish(result.get("status") not in ("failed", "blocked"), result.get("error", ""))  # blocked at the gate is no success
             return result
 
+        except worker_deadline.RunDeadlineExceeded as e:  # stopped at its deadline (_stop_at_deadline), files kept
+            finish(False, str(e), alert=False)  # the deadline notice already said so: one message
+            return {"status": "timed_out", "run_id": run_id, "parent_run_id": parent_run_id, "topic_id": tid}
         except JobCancelled:
             finish(False, "Cancelled by operator")
             return {"status": "cancelled", "run_id": run_id, "topic_id": tid}
@@ -924,19 +1067,24 @@ class PipelineCoordinator:
 
     def _render_and_certify_deep_dive(self, topic, tid, run_id, run_dir, parent_run_id, payload, words, vo_dur,
                                       vo_path, bed_path, words_path, extended_scenes, durations, cuts, master_mp4,
-                                      checkpoints, file_inputs, cached_artifacts, fut_thumbs, auto_approve, dry_run):
+                                      checkpoints, file_inputs, cached_artifacts, fut_thumbs, auto_approve, dry_run,
+                                      act_cuts=None):
         timer = StageTimer(run_dir)
         t0 = time.perf_counter()
         cached_artifacts(run_dir, "caption_exports", {"words": words, "rules": file_inputs([Path("src/video_composer.py")])},
             lambda: [self.video_composer.export_subtitles_srt(words, master_mp4.with_suffix(".srt")),
                      self.video_composer.export_subtitles_vtt(words, master_mp4.with_suffix(".vtt"))])
-        render_inputs = {"sources": file_inputs([*extended_scenes, vo_path, bed_path, words_path,
-                         Path("src/video_composer.py"), Path("src/encoded_audio.py"), Path("src/encoding.py")]),
-                         "durations": durations, "emphasis": topic.get("key_facts", [])[:5]}
+        from src.image_presentation import policy_inputs
+        render_inputs = {"presentation": policy_inputs(extended_scenes),
+                         "sources": file_inputs([*extended_scenes, vo_path, bed_path, words_path,
+                         Path("src/video_composer.py"), Path("src/encoded_audio.py"), Path("src/encoding.py"),
+                         Path("src/still_camera.py"), Path("src/camera_motion.py")]),
+                         "durations": durations, "emphasis": topic.get("key_facts", [])[:5],
+                         "act_cuts": act_cuts or []}
         if checkpoints.reusable("deep_render", render_inputs):
             log.info("Master documentary video already rendered: %s", master_mp4.name)
         else:
-            log.info("Composing 16:9 widescreen documentary with BBC intelligent compositing...")
+            log.info("Composing 16:9 widescreen documentary with aspect-aware compositing...")
             self.video_composer.compose_deep_dive(
                 scene_images=extended_scenes,
                 vo_path=vo_path,
@@ -946,6 +1094,7 @@ class PipelineCoordinator:
                 output_mp4_path=master_mp4,
                 durations=durations,
                 emphasis=topic.get("key_facts", [])[:5],
+                act_cuts=act_cuts,
             )
 
             checkpoints.complete("deep_render", render_inputs, [master_mp4,
@@ -1024,8 +1173,14 @@ class PipelineCoordinator:
             content_format="deep_dive",
         )
 
-        from src.release import write_release_report
-        release = write_release_report(self.db.get_run(run_id), dry_run=dry_run)
+        from src.release import ReleaseReportLocked, locked_report, write_release_report
+        try:
+            release = write_release_report(self.db.get_run(run_id), dry_run=dry_run)
+        except ReleaseReportLocked as e:   # held, with the reason on the card; the card re-runs the gate
+            log.warning("Release report not saved: %s", e)
+            release = locked_report(e)
+        auto_approve = (self._auto_approve_allowed(run_id, payload, auto_approve, scenes=extended_scenes)
+                        and not self._held_for_look(run_id, release))
         blocked = self._blocked_at_gate(run_id, release, dry_run, "auto-approve flag") if auto_approve else None
         if blocked:
             return {"run_id": run_id, "parent_run_id": parent_run_id, "topic_id": tid, "status": "blocked",
@@ -1062,11 +1217,15 @@ class PipelineCoordinator:
         finally:
             release_run(self.db, produced["run_id"])
 
-    def _alert(self, text: str, buttons: Optional[list] = None, group: Optional[str] = None) -> None:
-        try:
-            self.telegram_bot.notify(text, buttons=buttons, group=group or "studio")
-        except TypeError:
-            getattr(self.telegram_bot, "notify")(text, buttons=buttons)
+    def _alert(self, text: str, buttons: Optional[list] = None, group: Optional[str] = None, **item: Any) -> None:
+        """A notice for the operator. In the clean chat it is an item of the pinned panel: `item` names its
+        section ("needs" or "info"), and where it coalesces its key, run, replace and its actions (UI-01, design
+        §10.2)."""
+        notifications.say(self.telegram_bot.notify, text, buttons=buttons, group=group or "studio", **item)
+
+    def _episode_action(self, run_id: str) -> list[dict[str, str]]:
+        """🗓️ Posting for a notice about one episode's posts: its page on Posting (design §10.2)."""
+        return [{"text": "🗓️ Posting", "callback_data": f"cpost:{self.db.run_key(run_id)}"}]
 
     def confirm_posted(self, run_id: str) -> str:
         """Human confirmed an 'unknown' publish did go live: count it as published."""
@@ -1142,6 +1301,10 @@ class PipelineCoordinator:
             return "Nothing changed: the text you sent matches the current copy."
         old = {f: old[f] for f in changes}
         payload.update(changes)
+        # Credit lines written before QF-42 are rewritten with any edit (caption, description, carousel caption, first
+        # comment), so a run the gate's credit_lines check holds for an old line can be fixed here.
+        from src.credits import rewrite_payload_credits
+        rewrite_payload_credits(payload)
         labels = [f.replace("_", " ") for f in changes]  # "title, carousel caption and caption"
         names = labels[0] if len(labels) == 1 else ", ".join(labels[:-1]) + " and " + labels[-1]
         topic = self.topic_engine.get_topic_by_id(run["topic_id"]) or {"id": run["topic_id"]}
@@ -1154,8 +1317,12 @@ class PipelineCoordinator:
         run_dir = Path(run["master_video_path"]).parent
         from src.atomic_files import write_json
         write_json(run_dir / "script_metadata.json", payload)
-        from src.release import write_release_report
-        report = write_release_report(self.db.get_run(run_id))
+        from src.release import ReleaseReportLocked, locked_report, write_release_report
+        try:
+            report = write_release_report(self.db.get_run(run_id))
+        except ReleaseReportLocked as e:   # the edit stands; the card's own re-check saves the report later
+            log.warning("Release report not saved after the edit: %s", e)
+            report = locked_report(e)
         if appr.get("telegram_message_id"):
             self.telegram_bot._strip_buttons(appr["telegram_message_id"])
         # The review copy, as every re-send uses: the master (78 MB) was over Telegram's upload limit, so the
@@ -1219,11 +1386,15 @@ class PipelineCoordinator:
             if not mine:
                 log.info("A wait on %s's review is already running; it acts on the decision, not this one.", run_id)
                 return None, None
-            if decided:
-                decision = decided
-            else:
-                self.telegram_bot.approval_window = self._approval_window   # a resend's window is sized again from it
-                decision = self.telegram_bot.wait_for_decision(run_id, self._approval_window())
+            while True:
+                if decided:
+                    decision = decided
+                else:
+                    self.telegram_bot.approval_window = self._approval_window   # a resend's window is sized again from it
+                    decision = self.telegram_bot.wait_for_decision(run_id, self._approval_window())
+                if decided or decision not in UNDOABLE or not undone_before_acting(
+                        self.db, run_id, decision, getattr(self, "telegram_bot", None)):
+                    break
             if decision != "approved":
                 return decision, act(decision)
             stamp = str((self.db.get_approval(run_id) or {}).get("decision_timestamp") or "")
@@ -1252,6 +1423,44 @@ class PipelineCoordinator:
                     self.db.set_setting(key, "")  # a passing failure: a later wait (or a resend) acts on it again
                 raise
 
+    def _auto_approve_allowed(self, run_id: str, payload: dict[str, Any] | None, auto_approve: bool,
+                              scenes: list[Any] | tuple[Any, ...] = ()) -> bool:
+        """Whether the auto-approve flag may decide this run: never when it shows an AI illustration (operator,
+        2026-11-02: an illustration must reliably depict its subject, and the operator approves each one on the review
+        card), read from payload["picture_fit"] and from the rendered `scenes` themselves (the deep dive records no
+        picture_fit). A refused flag sends the run to review instead, with the reason logged and alerted."""
+        if not auto_approve:
+            return False
+        from src.image_gen import auto_approve_refusal
+        why = auto_approve_refusal(payload, scenes)
+        if not why:
+            return True
+        log.warning("%s: %s; sent for review instead.", run_id, why)
+        try:
+            _notice(self, f"🏛 <b>Auto-approve refused</b>\n\n<b>{html.escape(self.db.run_label(run_id))}</b>\n"
+                        + html.escape(why) + "\nThe review card lists each illustration with its reference(s).", section="needs", run=run_id,
+                         actions=[{"text": "🎬 Reviews", "callback_data": "creviews:"}])
+        except Exception as e:  # noqa: BLE001 - the refusal stands whether or not the alert is delivered
+            log.warning("Auto-approve refusal alert not sent (%s).", e)
+        return False
+
+    def _held_for_look(self, run_id: str, report: dict[str, Any] | None) -> bool:
+        """QF-88: a possible flash the gate holds for the operator's look is never decided by the auto-approve flag
+        (nor recorded as blocked): the run goes to review, its card says why, and it posts only once the operator
+        has cleared the stretch and approved it."""
+        from src.release import held_flash
+        held = held_flash(report)
+        if not held:
+            return False
+        log.warning("%s: possible flash held for the operator's look; sent for review instead.", run_id)
+        try:
+            _notice(self, f"⚠️ <b>Auto-approve refused</b>\n\n<b>{html.escape(self.db.run_label(run_id))}</b>\n"
+                        "Possible flash; needs your look. The review card says where.", section="needs", run=run_id,
+                    actions=[{"text": "🎬 Reviews", "callback_data": "creviews:"}])
+        except Exception as e:  # noqa: BLE001 - the refusal stands whether or not the alert is delivered
+            log.warning("Auto-approve refusal alert not sent (%s).", e)
+        return True
+
     def _blocked_at_gate(self, run_id: str, report: Optional[Dict[str, Any]], dry_run: bool, by: str) -> Optional[str]:
         """An approval that does not come from the Telegram card (the auto-approve flag, the CLI) meets the
         same release gate first: the card offers no Approve on a blocked version (send_review_card), and these
@@ -1268,9 +1477,10 @@ class PipelineCoordinator:
         if run.get("topic_id"):
             self.topic_engine.record_status(run["topic_id"], "failed", run_id=run_id)
         log.warning("%s: %s", run_id, why)
-        self._alert(f"⛔ <b>Blocked at the release gate</b>, not approved ({html.escape(by)})\n\n"
+        _notice(self, f"⛔ <b>Blocked at the release gate</b>, not approved ({html.escape(by)})\n\n"
                     f"<b>{html.escape(self.db.run_label(run_id))}</b>\n<blockquote expandable>"
-                    + html.escape("\n".join(problems)[:900]) + "</blockquote>\nNothing was posted.")
+                    + html.escape("\n".join(problems)[:900]) + "</blockquote>\nNothing was posted.", section="needs", key=f"gate:{run_id}", run=run_id,
+                     actions=[{"text": "Details", "callback_data": f"chist:{self.db.run_key(run_id)}"}])
         return why
 
     @staticmethod
@@ -1312,7 +1522,7 @@ class PipelineCoordinator:
         run = self.db.get_run(run_id)
         if not run:
             raise ValueError(f"Unknown run '{run_id}'.")
-        if run["status"] not in ("failed", "producing"):
+        if run["status"] not in ("failed", "timed_out", "producing"):
             raise ValueError(f"Run status '{run['status']}' can't be resumed.")
         run_dir = OUTPUT_DIR / run_id
         if not run_dir.is_dir():
@@ -1333,6 +1543,9 @@ class PipelineCoordinator:
             # filed. A resumed run skipped both, so its cards were never checked (2026-10-24).
             self._finish_progress(topic.get("title", run_id), run_id, success=True)
             self._collect_findings(run_id, run_dir, topic["id"])
+        except worker_deadline.RunDeadlineExceeded as e:  # stopped at its deadline (_stop_at_deadline), files kept
+            self._collect_findings(run_id, run_dir, topic["id"], error=f"RunDeadlineExceeded: {e}")
+            return {"status": "timed_out", "run_id": run_id, "topic_id": topic["id"]}
         except Exception as e:
             self.db.update_run(run_id, "failed", error=f"{type(e).__name__}: {e}")
             self.topic_engine.record_status(topic["id"], "failed", run_id=run_id)
@@ -1346,7 +1559,8 @@ class PipelineCoordinator:
                     pass
                 self.progress_msg_id = None
             if not card_shown:
-                self._alert(f"❌ <b>{failed_heading(self.db, run_id)}</b>\n\n<b>{html.escape(self.db.run_label(run_id))}</b>\n<blockquote expandable>{html.escape(str(e)[:600])}</blockquote>\nNothing was posted. The topic is set aside: restore it from the queue (/queue requeue N).")
+                _notice(self, f"❌ <b>{failed_heading(self.db, run_id)}</b>\n\n<b>{html.escape(self.db.run_label(run_id))}</b>\n<blockquote expandable>{html.escape(str(e)[:600])}</blockquote>\nNothing was posted. The topic is set aside: restore it from the queue (/queue requeue N).", section="needs", key=f"fail:{run_id}", run=run_id,
+                             actions=notifications.failure_actions(self.db, run_id))
             ping_healthcheck("/fail")
             raise
         finally:
@@ -1380,8 +1594,8 @@ class PipelineCoordinator:
             log.warning("Photo orientation check for %s did not run: %s", topic.get("id"), e)
             return set()
         if done:
-            self._alert(f"🔄 <b>Photos turned over</b> in {html.escape(topic.get('title') or topic['id'])}:\n"
-                        + "\n".join("• " + html.escape(x) for x in done))
+            _notice(self, f"🔄 <b>Photos turned over</b> in {html.escape(topic.get('title') or topic['id'])}:\n"
+                        + "\n".join("• " + html.escape(x) for x in done), section="info")
         return still
 
     def _screen_photos(self, topic: Dict[str, Any]) -> None:
@@ -1426,15 +1640,27 @@ class PipelineCoordinator:
         run = self.db.get_run(run_id) or {}
         if run.get("status") != "scheduled":
             return self.promote_run(run_id, now=True)
-        booking = next((p for p in self.db.list_scheduled_posts(("pending",), run_id=run_id) if p["kind"] == "reel"), None)
+        booking = next((p for p in self.db.list_scheduled_posts(("pending", "blocked"), run_id=run_id) if p["kind"] == "reel"), None)
         if booking is None:
             return "⚡ No pending Reel booking for that run."
-        from src.release import require_release
-        try:
-            require_release(run, dry_run=False)
-            res = self.publish_run(run_id, dry_run=False, previous_status="published" if run.get("times_published") else "queued")
+        from src.release import ReleaseBlocked
+        try:   # the checks: nothing is uploaded yet, so any failure here means it was not posted
+            self._require_release(run, dry_run=False, retry_now=True)
         except ValueError as e:
-            return f"⚡ Not posted: {html.escape(str(e))}"
+            return self._blocked_reply("⚡", run_id, e)
+        except Exception as e:  # noqa: BLE001 - the checker or network: nothing was posted, the booking stands
+            return f"⚡ Not posted: it could not be checked just now ({html.escape(_error_words(e))}). Try again later."
+        try:   # the upload: from its claim on, a failure means the outcome is unknown, never "not posted"
+            res = self.publish_run(run_id, dry_run=False, previous_status="published" if run.get("times_published") else "queued")
+        except ReleaseBlocked as e:
+            return self._blocked_reply("⚡", run_id, e)
+        except Exception as e:  # noqa: BLE001
+            if (self.db.get_run(run_id) or {}).get("status") != "publish_unknown":
+                return f"⚡ Not posted: {html.escape(_error_words(e))}"
+            self._unknown_booking(booking, e)
+            return ("⚡ <b>Outcome unknown</b>: the upload started and no answer came "
+                    f"({html.escape(_error_words(e))}). Check Facebook and Instagram before trying again, so nothing "
+                    "posts twice; then answer It posted or It didn't post.")
         now = datetime.now(timezone.utc)
         self.db.update_scheduled_post(booking["id"], res["status"], detail={
             "error": res.get("publish_result", {}).get("error"), "posted_at": now.isoformat()})
@@ -1444,20 +1670,64 @@ class PipelineCoordinator:
             if story["kind"] == "story":
                 self.db.update_scheduled_post(story["id"], "pending",
                                               due_at=post_schedule.story_time(now).astimezone(timezone.utc).isoformat())
+        # Its carousel's slot counts from now, when the Reel really posted (post_schedule.carousel_reel): the
+        # booking's confirmation named one counted from the Reel's slot (operator, 2026-11-03)
+        carousels = [p for p in self.db.list_scheduled_posts(("waiting",), run_id=run_id) if p["kind"] == "carousel"]
+        car = (post_schedule.first_carousel_slot(post_schedule.carousel_reel(self.db, carousels[-1])[1], now=now)
+               if carousels else None)
+        then = (f", the carousel {html.escape(post_schedule.fmt(car))}" if car else
+                ", its carousel has no carousel slot left, so it won't post" if carousels else "")
         return (f"⚡ <b>{html.escape(self.db.run_label(run_id))}</b> is posted; its Stories follow in "
-                f"{config.STORY_DELAY_MINUTES} minutes, the carousel in its next slot.")
+                f"{config.STORY_DELAY_MINUTES} minutes{then}.")
+
+    def _blocked_reply(self, icon: str, run_id: str, exc: Exception, verb: str = "posted") -> str:
+        """A release refusal in plain words, with what can work (QF-110): trying again re-runs the same checks."""
+        from src.posting_view import BLOCKED_NEXT
+        reasons = self._block_reasons(run_id, exc)
+        from src.release import ReleaseBlocked
+        return (f"{icon} Not {verb}: " + "; ".join(html.escape(r) for r in reasons)
+                + ("\n\n" + BLOCKED_NEXT if isinstance(exc, ReleaseBlocked) else ""))
+
+    def prepare_new_version(self, run_id: str) -> str | None:
+        """For "Make a new version" on a blocked booking (QF-110): its bookings are cancelled and the run is sent
+        back for a new version (status regenerate: Re-render makes it from this one, reusing what was paid for, and
+        it comes to review). Returns why not, or None. Every refusal comes before anything is changed: never for a
+        run whose Reel may be live (being uploaded, posted, or its outcome unknown: It posted / It didn't post
+        decides that), nor while a run is being made."""
+        run = self.db.get_run(run_id) or {}
+        posts = self.db.list_scheduled_posts(("pending", "waiting", "blocked"), run_id=run_id)
+        blocked = [p for p in posts if p["kind"] == "reel" and p["status"] == "blocked"]
+        if not blocked:
+            return "That episode has no blocked booking."
+        if run.get("status") not in ("scheduled", "approved", "simulated") or any(
+                x.get("status") in ("published", "unknown") for x in self.db.list_publications(run_id)):
+            return ("Its Reel may already be live (it was uploaded, or its outcome is unknown), so no new version is "
+                    "made: check the platforms first.")
+        if self.db.get_active_progress() is not None:
+            return "A run is being made now; make the new version when it has finished."
+        for p in posts:
+            self.db.update_scheduled_post(p["id"], "cancelled", detail={"reason": "replaced by a new version"})
+        self.db.set_setting(PROMOTED_PREFIX + run_id, "")
+        # The reason the regeneration acts on, recorded now, so it never waits for a reason chip that is not coming
+        reasons = (blocked[0].get("detail") or {}).get("reasons") or []
+        facts = any(str(r).startswith("Fact check") for r in reasons)
+        self.db.set_setting(f"decision_reason:{run_id}", json.dumps({
+            "reason": "facts" if facts else "other", "decision": "regenerate",
+            "text": "" if facts else "Blocked at its posting slot: " + "; ".join(map(str, reasons))[:500]}))
+        self.db.update_run(run_id, "regenerate")
+        return None
 
     def cancel_post(self, post_id: int) -> str:
         """Cancels a booking (operator, 2026-10-24). A Reel's Stories and carousel go with it, and the run
         is a post candidate again; a Stories or carousel booking goes alone."""
-        post = next((p for p in self.db.list_scheduled_posts(("pending", "waiting")) if p["id"] == int(post_id)), None)
+        post = next((p for p in self.db.list_scheduled_posts(("pending", "waiting", "blocked")) if p["id"] == int(post_id)), None)
         if post is None:
             return "⏹ That booking is no longer pending."
         run_id = post["run_id"]
         if post["kind"] != "reel":
             self.db.update_scheduled_post(post["id"], "cancelled", detail={"reason": "cancelled by the operator"})
             return f"⏹ {post['kind'].capitalize()} booking cancelled for {html.escape(self.db.run_label(run_id))}."
-        for other in self.db.list_scheduled_posts(("pending", "waiting"), run_id=run_id):
+        for other in self.db.list_scheduled_posts(("pending", "waiting", "blocked"), run_id=run_id):
             self.db.update_scheduled_post(other["id"], "cancelled", detail={"reason": "cancelled by the operator"})
         self.db.set_setting(PROMOTED_PREFIX + run_id, "")
         run = self.db.get_run(run_id) or {}
@@ -1472,7 +1742,7 @@ class PipelineCoordinator:
         if post is None:
             return "⏭ That Reel booking is no longer pending."
         after = datetime.fromisoformat(post["due_at"]) + timedelta(minutes=1)
-        slot = post_schedule.next_reel_slot(after, self._booked_reel_days(exclude_id=post["id"]))
+        slot = self._reel_slot(post["run_id"], after, self._booked_reel_days(exclude_id=post["id"]))
         self.db.update_scheduled_post(post["id"], "pending", due_at=slot.astimezone(timezone.utc).isoformat())
         for story in self.db.list_scheduled_posts(("pending",), run_id=post["run_id"]):
             if story["kind"] == "story":
@@ -1504,12 +1774,22 @@ class PipelineCoordinator:
             return "🔁 This booking has been retried twice; it is not retried again automatically."
         files = [f for f in post["files"] if Path(f).exists()]
         part = int(detail.get("part") or (int(detail.get("posted_parts") or 0) + 1))
-        frames = files if post["kind"] == "carousel" else (files[part - 1:part] if 0 < part <= len(files) else [])
+        if post["kind"] == "story":
+            from src.multi_format import STORY_FRAMES, story_posting_frames
+            if part > len(STORY_FRAMES):
+                return "🔁 Not retried: that was the poll frame, which is no longer posted."
+            # The frame by its number in the sequence (QF-80), not its place among the files still on disk.
+            frames = [f for n, f in story_posting_frames(files) if n == part]
+        else:
+            frames = files
         if not frames:
             return "🔁 The frame to retry is no longer on disk."
         run = self.db.get_run(post["run_id"]) or {}
-        caption, comment = (self._carousel_post(run.get("script_payload") or {}, frames) if post["kind"] == "carousel"
-                            else ("", ""))
+        try:
+            caption, comment = (self._carousel_request(post["run_id"], run.get("script_payload") or {}, frames)
+                                if post["kind"] == "carousel" else ("", ""))
+        except ValueError as e:   # its caption is not the one the review card showed (QF-43)
+            return f"🔁 Not retried: {html.escape(str(e))}"
         attempt = int(detail.get("retries") or 0) + 1
         platforms = sorted(failed)
         res = self.publisher.publish_photos(post["run_id"], run.get("topic_id"), post["kind"], frames, caption=caption,
@@ -1616,9 +1896,9 @@ class PipelineCoordinator:
                 problems.append(reply)
         if problems:
             # What did not happen and what to do, not Graph's whole reply with its URL (operator, 2026-10-27)
-            self._alert(f"⚠️ <b>Facebook finishing</b> for {html.escape(self.db.run_label(run_id))}\n\n"
+            _notice(self, f"⚠️ <b>Facebook finishing</b> for {html.escape(self.db.run_label(run_id))}\n\n"
                         "The Reel posted fine; this extra step on Facebook did not:\n" + "\n".join(problems)
-                        + "\n\nTry it again from the episode: 🗓 Posting, its number, then the button.")
+                        + "\n\nTry it again from the episode: 🗓 Posting, its number, then the button.", section="info", run=run_id)
 
     def set_facebook_cover(self, run_id: str) -> str:
         """Sets the run's chosen cover (thumbnail_cover.jpg, 9:16 as the Reel) on its posted Facebook Reel."""
@@ -1729,11 +2009,13 @@ class PipelineCoordinator:
         last = next((p for p in reversed(self.db.list_publications(run_id)) if "retry" in (p.get("response_payload_json") or "")), None)
         if last and last.get("status") == "unknown":
             return "🔁 The last Reel retry's outcome is unknown: check the platform before another, so nothing posts twice."
-        from src.release import require_release
-        try:
-            require_release(run, dry_run=False)
+        try:   # a tap tries the fact re-check once more even after its automatic tries ran out
+            self._require_release(run, dry_run=False, retry_now=True)
         except ValueError as e:
-            return f"🔁 Not retried: {html.escape(str(e))}"
+            return self._blocked_reply("🔁", run_id, e, verb="retried")
+        except Exception as e:  # noqa: BLE001 - the checker or network: nothing was sent
+            return (f"🔁 Not retried: it could not be checked just now ({html.escape(_error_words(e))}). Nothing was "
+                    "sent; tap 🔁 Retry Reel again later.")
         payload = run["script_payload"]
         envelope = self.publisher.build_envelope(run_id, Path(run["master_video_path"]), Path(run["thumbnail_cover_path"]),
                                                  Path(run["thumbnail_grid_path"]), payload, platforms=platforms)
@@ -1925,6 +2207,20 @@ class PipelineCoordinator:
         # concrete line no photo shows goes back to the writer once, while it is still only words.
         checked = self._lines_against_pictures(topic, run_id, run_dir, dry_run, payload, scene_media,
                                                checkpoints, kept_words)
+        # QF-14 (operator ruling 2026-11-10): an opening that ships without an early signal is flagged on the review
+        # card for the operator to judge; the flag follows the words the run will voice.
+        # QF-15 (operator ruling 2026-11-10): likewise a payoff that names none of the opening's nouns.
+        # QF-16 (ruling 2026-11-11): likewise an opening, payoff or loop that keeps a qualifier.
+        from src import fact_sheet
+        from src.script_engine import hedge_note, hook_signal_note, payoff_note
+        hedge_sheet = (fact_sheet.load(checked.get("topic_id") or topic.get("id") or "", max_age_days=3650)
+                       if checked.get("fact_sheet") else None)
+        for key, flag in (("hook_signal_note", hook_signal_note(checked.get("narration_script") or "")),
+                          ("payoff_note", payoff_note(checked.get("narration_script") or "",
+                                                      checked.get("payoff_sentence") or "")),
+                          ("hedge_note", hedge_note(checked.get("narration_script") or "", hedge_sheet))):
+            if flag != (checked.get(key) or ""):
+                checked = {k: v for k, v in checked.items() if k != key} | ({key: flag} if flag else {})
         if checked is not payload:
             payload = checked
             saved_script.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
@@ -1937,15 +2233,33 @@ class PipelineCoordinator:
             except Exception:
                 pass
 
+        # Before the paid voice (decisions/QF-58-gate.md, Option A): the pool is refilled for the photo beats the
+        # checked script will have (scene_planner.estimated_photo_beats; one bounded search, not repeated within
+        # the refresh period), and a Reel whose pool is no longer ready at the floor (photos removed or replaced
+        # since the run started) stops here, with its checked script saved, before any voice is paid for.
+        tid = topic["id"]
+        if config.VIDEO_HEIGHT > config.VIDEO_WIDTH and (ASSETS_DIR / tid / "credits.json").is_file():
+            from src.asset_pipeline import ensure_pool, not_ready_reason, pool_ready
+            from src.scene_planner import (
+                estimated_photo_beats,
+                script_asks_for_graphics,
+            )
+            from src.visual_engine import MissingAssetsError
+            expected = estimated_photo_beats(payload.get("narration_script") or "", script_asks_for_graphics(payload))
+            if not ensure_pool(topic, ASSETS_DIR, beats=[{}] * expected) and not pool_ready(tid, ASSETS_DIR):
+                self.db.update_run(run_id, "producing", script_payload=payload)
+                raise MissingAssetsError(f"Photo pool for {tid} not ready before the voice: {not_ready_reason(tid, ASSETS_DIR)}")
+
         # 4-5. Audio (reused when resuming)
         self._check_cancel(run_id)
-        vo_path = run_dir / "voiceover.mp3"
+        from src.audio_engine import VOICEOVER_FILE, voiceover_file
         words_path = run_dir / "words.json"
         voice_path = run_dir / "voice.json"  # which provider made it, and whether it's licensed
         voice_inputs = self.voice_inputs(payload["narration_script"], dry_run)
         # A regeneration keeps its paid voice, unless this run would be voiced by another provider now.
         self._seed_voice_from_previous(run_dir, payload["narration_script"],
                                        wanted=self.audio_engine.preferred_provider(voice_inputs["allow_paid"]))
+        vo_path = voiceover_file(run_dir)  # after the carry-over: the WAV, or a take made before QF-08
         saved_voice = json.loads(voice_path.read_text(encoding="utf-8")) if voice_path.exists() else {}
         # A real run never reuses an unlicensed (test) voiceover. Older runs without voice.json
         # predate this record, so they are re-voiced too.
@@ -1972,6 +2286,7 @@ class PipelineCoordinator:
         else:
             from src.audio_engine import calibrate_pace
             from src.script_engine import refit_speed
+            vo_path = run_dir / VOICEOVER_FILE  # a new take is always the WAV (QF-08)
 
             def voice_at(speed):
                 made = self.audio_engine.generate_narration(payload["narration_script"], vo_path, licensed_only=licensed_req,
@@ -1997,7 +2312,7 @@ class PipelineCoordinator:
             checkpoints.complete("voice", voice_inputs, [vo_path, words_path, voice_path])
             if self.audio_engine.fallback_reason:
                 r_label = html.escape(self.db.run_label(run_id))
-                self._alert(f"🔁 <b>Voice fallback</b>\n\n<b>{r_label}</b>\n\n{html.escape(self.audio_engine.fallback_reason)}\n\nVoiced by: <b>{html.escape(self.audio_engine.last_provider)}</b>.")
+                _notice(self, f"🔁 <b>Voice fallback</b>\n\n<b>{r_label}</b>\n\n{html.escape(self.audio_engine.fallback_reason)}\n\nVoiced by: <b>{html.escape(self.audio_engine.last_provider)}</b>.", section="info")
         v_prov = (saved_voice.get("provider") if reusable else self.audio_engine.last_provider) or "unknown"
         v_lic = saved_voice.get("licensed") if reusable else self.audio_engine.last_licensed
         lic_badge = "🟢 Commercially Licensed" if v_lic else "🟡 Unlicensed (Review / Test Only)"
@@ -2112,15 +2427,21 @@ class PipelineCoordinator:
         self._seed_bed_from_previous(run_dir, vo_path)  # a regeneration keeps the bed made for its voiceover
         from src.checkpoints import portable_inputs
         from src import end_card
-        card = profile.width < profile.height  # a Reel ends on the end card, whose sound the bed carries
-        bed_seconds = vo_dur + (end_card.SECONDS + 0.05 if card else 0.5)
+        # A Reel ends on the loop bridge (end_card.LOOP_SECONDS; the 2.9 s end card until 2026-11-03), whose sound
+        # the bed carries: the bed is sized to the bridge.
+        card = profile.width < profile.height
+        bed_seconds = vo_dur + end_card.bed_tail(card)
+        # The picture's cuts: the narration's beat boundaries (segment_beats, the grid the scene plan cuts on), for the
+        # transition whooshes (QF-05: only on a cut, at most two).
+        scene_cuts = caption_cut_times([b["end"] - b["start"] for b in segment_beats(words, vo_dur)])
         bed_inputs = {"voice_and_rules": portable_inputs(run_dir, [vo_path, words_path, Path("src/audio_engine.py"),
-                                                                    Path("src/end_card.py")]),
-                      "end_card": end_card.VARIANT if card else None,
+                                                                    Path("src/end_card.py"), Path("src/sound_plan.py"),
+                                                                    Path("src/music.py")]),
+                      "end_card": end_card.LOOP_VARIANT if card else None,
                       "profile": profile.model_dump(),
                       "library": [{k: v for k, v in t.items() if k != "uses"} for t in library_tracks],
                       "library_files": file_inputs([MUSIC_DIR / t["file"] for t in library_tracks]),
-                      "selected_sources": audio_source_inputs(bed_path)}
+                      "selected_sources": audio_source_inputs(bed_path), "scene_cuts": scene_cuts}
         if checkpoints.reusable("bed", bed_inputs):
             music = json.loads(music_path.read_text(encoding="utf-8"))
         else:
@@ -2131,37 +2452,68 @@ class PipelineCoordinator:
                         "Scoring music & sound bed; photos being upscaled and privacy-checked")
                 except Exception:
                     pass
-            music = music_for(payload, bed_seconds, run_dir, self.audio_engine.voice_quota(),
-                              exclude=self._previous_tracks(self._feedback()))  # "Music / sound": not the same track
+            # The sound plan first: its dominant mood chooses the music (QF-84; never a default mood).
             from src import sound_plan as sound_plan_mod
-            plan = sound_plan_mod.plan(words, topic.get("title", ""))  # None: word-cue fallback
+            plan, mood_record = sound_plan_mod.plan_and_mood(words, topic.get("title", ""))  # plan None: word cues
             plan_path = run_dir / "sound_plan.json"
             plan_path.write_text(json.dumps(plan, indent=1), encoding="utf-8")
+            music = music_for(dict(payload, topic_id=topic.get("id")), bed_seconds, run_dir,
+                              self.audio_engine.voice_quota(),
+                              exclude=self._previous_tracks(self._feedback()),  # "Music / sound": not the same track
+                              mood_record=mood_record, published=self.db.music_published_uses())
             self.audio_engine.generate_ambient_bed(bed_seconds, bed_path, words=words,
                                                   music_path=music["path"], sr=profile.audio_sample_rate,
                                                   loop_seamless=profile.loop_seamless, sound_plan=plan,
-                                                  end_card_at=vo_dur if card else None)
+                                                  end_card_at=vo_dur if card else None, scene_cuts=scene_cuts)
             if bed_path.is_file():
                 record_bed(bed_path, music, sfx=self.audio_engine.last_sfx_sources)
                 music_path.write_text(json.dumps(music, default=str, indent=2), encoding="utf-8")
                 bed_inputs["selected_sources"] = audio_source_inputs(bed_path)
                 checkpoints.complete("bed", bed_inputs, [bed_path, music_path, plan_path,
                                                          bed_path.with_suffix(".wav.rights.json")])
-        payload["music_note"] = {"elevenlabs": f"🎵 Music: ElevenLabs score ({music['mood']})",
-                                 "library": f"🎵 Music: free library track ({music['mood']})",
-                                 "none": "🎵 Music: none available; synthesized drone used"}[music["source"]]
+        payload["music_note"] = music_note(music)
         if music["credit"] and music["credit"] not in payload["caption"]:  # CC BY needs attribution
             payload["caption"] = f"{payload['caption']}\n{music['credit']}"
-        # music_for() counts the track's use when it picks it (a reused bed is not a new use)
+        # The tracks this bed was made from (a carried-over bed too); a use counts only once the Reel is published.
+        self.db.record_music_selection(run_id, music_selection_rows(music))
         StageTimer(run_dir).record("music_and_bed", time.perf_counter() - t0)
+
+        def bed_for_cuts(durations):
+            # Picture holds/repairs can remove planned cuts after the first bed was made.
+            # Re-mix locally from the selected music and saved plan, without selecting
+            # or generating another score, before the master hashes its audio input.
+            nonlocal scene_cuts
+            actual_cuts = caption_cut_times(durations)
+            if actual_cuts == scene_cuts:
+                return
+            saved_plan = json.loads((run_dir / "sound_plan.json").read_text(encoding="utf-8"))
+            self.audio_engine.generate_ambient_bed(
+                bed_seconds, bed_path, words=words, music_path=music["path"],
+                sr=profile.audio_sample_rate, loop_seamless=profile.loop_seamless,
+                sound_plan=saved_plan, end_card_at=vo_dur if card else None,
+                scene_cuts=actual_cuts)
+            record_bed(bed_path, music, sfx=self.audio_engine.last_sfx_sources)
+            scene_cuts = actual_cuts
+            bed_inputs["scene_cuts"] = actual_cuts
+            bed_inputs["selected_sources"] = audio_source_inputs(bed_path)
+            checkpoints.complete("bed", bed_inputs, [bed_path, music_path, run_dir / "sound_plan.json",
+                                                     bed_path.with_suffix(".wav.rights.json")])
+
         return self._render_approve_publish(topic, run_id, run_dir, payload, scene_media, hero_img,
                                             vo_path, bed_path, words, vo_dur, auto_approve, dry_run, previous_status,
-                                            prepared)
+                                            prepared, bed_for_cuts)
 
     def _write_and_check_script(self, topic, run_id, run_dir, dry_run,
                                 initial_payload=None, initial_notes="") -> Dict[str, Any]:
         tid = topic["id"]
         revision_notes, payload = initial_notes, initial_payload
+        # The hook's form, learned from how earlier Reels' first three seconds did (src/hook_learning.py). The
+        # writer is steered; the form it actually wrote is what is measured.
+        from src import hook_learning
+        hook_form, hook_why = hook_learning.for_run(self.db, run_id, topic)
+        from src import engagement_learning
+        asks, asks_why = engagement_learning.for_run(self.db, run_id)   # share line and caption question forms
+        topic = {**topic, "hook_form": hook_form, "engagement_forms": asks}
 
         def show(text: str) -> None:  # step 1 is long; the card says which draft it is on
             if getattr(self, "progress_msg_id", None):
@@ -2206,8 +2558,33 @@ class PipelineCoordinator:
                     log.info("Claude script revisions rejected by guardrail; falling back to curated script for '%s'.", tid)
                     payload = self.script_engine._finalize(pkg, topic, origin="curated")
                     payload["human_reviewed"] = reviewed
+                    from src.script_engine import curated_human_review
+                    review = curated_human_review(tid) if reviewed else None
+                    if review:   # who reviewed it and when, signed apart; never counted as a fact check
+                        payload["human_review"] = review
                     passed, payload, notes = self.script_engine.verify_claims(payload, topic=topic, allow_unreviewed_curated=dry_run)
 
+        # Soft check on the hook's form: a passed draft that opens in another form than asked is revised once,
+        # its first sentence only, and the revision is kept only if it passes the fact checks again and is in
+        # the asked form. Accuracy outranks the form: otherwise the passed draft stands. It runs before the
+        # share line, the credits and the guardrail record, so an accepted revision gets all of them as any
+        # passed draft does (PR review, 2026-11-02: it lost guardrail_passed and failed the fact record).
+        written = hook_learning.classify(payload.get("hook_sentence", ""))
+        revised = None
+        if (passed and hook_form and written and written != hook_form
+                and payload.get("origin") in ("claude", "gemini-free")):
+            revised = False
+            try:
+                retry = self.script_engine.generate_script(
+                    topic, revision_notes=hook_learning.revision_note(hook_form, payload.get("hook_sentence", "")),
+                    previous=payload)
+                r_passed, retry, r_notes = self.script_engine.verify_claims(retry, topic=topic,
+                                                                           allow_unreviewed_curated=dry_run)
+                if r_passed and hook_learning.classify(retry.get("hook_sentence", "")) == hook_form:
+                    payload, notes, written, revised = retry, r_notes, hook_form, True
+                    drafts += 1
+            except Exception as e:  # noqa: BLE001 - the passed draft stands whatever the revision does
+                log.warning("Hook form revision not used (%s); the passed draft stands.", e)
         if passed:
             # Meta's creator tips (2026-10-25): ask viewers to share, invite them to follow. One line, the
             # writer's when it passes its checks, before the hashtags of both captions; the same line closes
@@ -2233,13 +2610,26 @@ class PipelineCoordinator:
         # Every draft the writer produced, not only the fact-check rounds (the record read "1 round" for a run
         # whose log showed two drafts rejected inside the engine: Memnon, 2026-10-25).
         payload["script_rounds"] = max(drafts, revision + 1)
-        payload["fact_rounds"] = revision + 1
+        payload["fact_rounds"] = revision + 1 + (1 if revised else 0)
         payload["script_round_reasons"] = [r[:200] for r in structural + earlier]
-        from src.config import DATA_DIR
-        sheet_file = DATA_DIR / "fact_sheets" / f"{tid}.json"
-        if passed and sheet_file.is_file():
-            from src.fact_evidence import record_fact_review
-            record_fact_review(payload, sheet_file)
+        payload["hook_plan"] = {"asked": hook_form, "written": written, "revised": revised, "why": hook_why}
+        payload["engagement_plan"] = {
+            "asked": list(asks) if asks else None, "why": asks_why,
+            "written": [engagement_learning.classify_share(payload.get("share_line", "")),
+                        engagement_learning.classify_question(
+                            engagement_learning.caption_question(payload.get("caption", "")))]}
+        from src.fact_evidence import current_fact_review, unchecked_pass
+        if passed and not current_fact_review(payload):
+            # Operator decision 2026-11-04: a stamp exists only where the automated checkers ran and passed on this
+            # copy. No script-stage pass is one (a human-reviewed curated script, an unreviewed one in a dry run,
+            # or a draft checked before its share line and credits were added), so nothing is stamped here: the
+            # final copy goes through trace_check and evidence_check (_verify_final_copy), the same path for every
+            # script, and is stamped there with their signed record.
+            payload.pop("fact_review", None)
+            log.info("Script passed its stage%s; its final copy is fact-checked before any fact review is recorded.",
+                     " without a fact checker (unreviewed curated, dry run)" if unchecked_pass(payload)
+                     else " (human reviewed: the review is recorded, not counted as a fact check)"
+                     if payload.get("human_reviewed") else "")
         (run_dir / "script_metadata.json").write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
         self.db.update_run(run_id, "producing", script_payload=payload)
         if not passed:
@@ -2247,26 +2637,45 @@ class PipelineCoordinator:
         return payload
 
     def _verify_final_copy(self, payload, topic):
-        from src.fact_evidence import current_fact_review, record_fact_review
+        from src.fact_evidence import current_fact_review
         from src import trace_check, config as pipeline_config
         if current_fact_review(payload):
             return
+        # production with no FACT_RECORD_KEY stops before a checker call: nothing could be signed (decision A)
+        from src.fact_evidence import require_signing_key
+        require_signing_key()
         sheet_path = pipeline_config.DATA_DIR / "fact_sheets" / f"{topic['id']}.json"
         if not sheet_path.is_file():
             raise ValueError("Final package verification requires a fact sheet")
         sheet = json.loads(sheet_path.read_text(encoding="utf-8"))
-        passed, _, audits, notes = trace_check.check(payload, sheet)
+        # the models that ANSWERED go on the gate record, not the configured ones
+        from src.llm import watch_served
+        with watch_served() as t_served:
+            passed, _, audits, notes = trace_check.check(payload, sheet)
         payload["guardrail_passed"] = passed
         payload["final_fact_audits"] = audits
         if not passed:
             raise ValueError("Final public copy failed fact verification: " + notes)
-        status, confidence, evidence_audits, evidence_notes = trace_check.evidence_check(payload, sheet)
+        with watch_served() as e_served:
+            status, confidence, evidence_audits, evidence_notes = trace_check.evidence_check(payload, sheet)
         payload["second_check"] = {"status": status, "confidence": confidence,
                                     "audits": evidence_audits, "summary": evidence_notes}
         if status != "pass":
             payload["guardrail_passed"] = False
             raise ValueError("Final public copy failed evidence verification: " + evidence_notes)
-        record_fact_review(payload, sheet_path)
+        from src.fact_evidence import stamp_checked_review
+        from src.record_signing import key_problem
+        models = trace_check.checker_models()
+        served = {"trace_check": t_served, "evidence_check": e_served}
+        models = {k: " + ".join(dict.fromkeys(served[k])) if served[k] else v for k, v in models.items()}
+        if key_problem():
+            # development with no FACT_RECORD_KEY (production stopped above): no record can be signed, so none is
+            # stamped; the release gate says why and nothing publishes, as with an unsigned record before
+            payload.pop("fact_review", None)
+            return
+        # each run signed as the checkers returned it (FACT_RECORD_KEY), then the gate record and the stamp
+        stamp_checked_review(payload, sheet_path, (passed, None, audits, notes),
+                             (status, confidence, evidence_audits, evidence_notes), models)
 
     def _lines_against_pictures(self, topic, run_id, run_dir, dry_run, payload, scene_media, checkpoints,
                                 kept_words=False) -> Dict[str, Any]:
@@ -2288,11 +2697,12 @@ class PipelineCoordinator:
         for_pictures = bool(kept_words) and pl.rewords_for(self._feedback())
         if not pl.enabled() or (kept_words and not for_pictures) or not payload.get("narration_script"):
             return payload
-        if (run_dir / "voiceover.mp3").is_file() and (run_dir / "words.json").is_file():
+        from src.audio_engine import voiceover_file
+        if voiceover_file(run_dir).is_file() and (run_dir / "words.json").is_file():
             return payload  # a take this run already paid for is never thrown away by this check
         try:  # a regeneration resumed before its voice was copied still keeps the words (review, 2026-10-28)
             previous = self._previous_run_dir()
-            if not for_pictures and previous is not None and (previous / "voiceover.mp3").is_file() and json.loads(
+            if not for_pictures and previous is not None and voiceover_file(previous).is_file() and json.loads(
                     (previous / "script_metadata.json").read_text(encoding="utf-8")).get("narration_script") == payload["narration_script"]:
                 return payload  # the previous run's paid take is for these exact words: never reworded here
         except (OSError, ValueError, AttributeError):
@@ -2312,7 +2722,13 @@ class PipelineCoordinator:
         # left lines unshown (a library script whose rewording was refused, production Derinkuyu 2026-10-29, by a
         # caption bug since fixed): another run tries the rewording once more, a resume of this one does not.
         stamped = all(stamp.get(k) == v for k, v in key.items()) and not stamp.get("left")
-        if (stamped and not for_pictures) or checkpoints.reusable(pl.STAGE, key):
+        # QF-60b: judged under this version or one that differs only in the reconstruction's structured fields (cause,
+        # subject words), the record stays current unless it holds a reconstruction verdict without them; one that
+        # does is asked again once, for that answer alone.
+        current = (stamped and not for_pictures) or checkpoints.reusable(pl.STAGE, key)
+        legacy = key if current else pl.legacy_key(stamp, key, checkpoints, for_pictures)
+        old_verdicts = pl.record_verdicts(run_dir, legacy) if legacy is not None else None
+        if legacy is not None and pl.current_without_reconstruction(old_verdicts):
             log.info("Line-picture check before the voice: already judged for this script and these photos.")
             return payload
         title = topic.get("title", run_id)
@@ -2321,48 +2737,123 @@ class PipelineCoordinator:
         verdicts = pl.judge(payload["narration_script"], photos, title)
         if verdicts is None:  # not stamped: asked again on the next run of this script
             return payload
-        missing = pl.unshown(verdicts)
+        if legacy is not None and old_verdicts:
+            # Only the reconstruction fields change: no kind, photo or visual class, so no rewording, no picture
+            # search and no other line; the script and its stamp's outcome stand.
+            record = run_dir / pl.RECORD_FILE
+            try:
+                saved = json.loads(record.read_text(encoding="utf-8"))
+                saved.update(key)
+                saved["verdicts"] = pl.refresh_reconstruction(old_verdicts, verdicts)
+                record.write_text(json.dumps(saved, indent=1, ensure_ascii=False), encoding="utf-8")
+                checkpoints.complete(pl.STAGE, key, [record])
+            except (OSError, ValueError, AttributeError) as e:
+                log.debug("Line-picture reconstruction answers not refreshed: %s", e)
+                return payload
+            return dict(payload, **{pl.STAGE: {k: v for k, v in saved.items() if k not in ("verdicts", "photos")}})
+        # Only a line naming a particular thing goes back (prevoice_lines.needs_rewrite); an unshown kind-of-thing line
+        # is left to the render's fallback cascade (src/picture_coverage.py).
+        # With the payload, protected "marvel" lines the fact check supports with a source are kept from the writer and
+        # routed to the render's cascade (illustration panel, 2026-11-02).
+        missing = pl.needs_rewrite(verdicts, payload)
         side_report: Dict[str, Any] = {}
         if missing:  # the picture side first: the reserve photos, then a bounded search for just these lines
             missing, verdicts, photos, side_report = self._picture_side(topic, run_id, run_dir, payload["narration_script"],
                                                                         verdicts, missing, photos)
+            missing = pl.needs_rewrite(verdicts, payload) if missing else missing
+        protected = pl.protected_sentences(payload)
         final, final_verdicts, rewritten, left, why_left = payload, verdicts, [], [], ""
+        if missing and for_pictures:
+            # QF-14: a kept script written before the hook rule may open over the cap or on a label (blocking faults).
+            # Its rewording would be refused at its opening and rewritten, and a pictures regeneration refuses any
+            # change outside the asked lines: every call would be spent on a result that is always refused. Unless the
+            # first sentence is itself an asked line, its words are kept and no call is made. A weak signal alone does
+            # not block (operator ruling 2026-11-10): that script is reworded as before, and its opening is not
+            # edited again (script_engine._edit_story, once per opening).
+            # QF-15: likewise a kept script with a blocking payoff fault (every script written before the rule has no
+            # payoff_sentence): its edit would change the penultimate sentence, unless that is itself an asked line. A
+            # payoff that only names no opening noun is reworded as before and not edited again (once per payoff).
+            # QF-16: likewise a kept script whose opening, payoff or loop states a disputed fact, unless that
+            # sentence is itself an asked line.
+            from src import fact_sheet
+            from src.script_engine import (
+                _close_sentences,
+                _first_sentence,
+                _split_sentences,
+                blocking_problems,
+                hedge_problems,
+                hook_problems,
+                payoff_problems,
+            )
+            narration, asked = payload["narration_script"], [v["sentence"] for v in missing]
+            penultimate = (_split_sentences(narration)[-2:-1] or [""])[0]
+            hedge_sheet = (fact_sheet.load(payload.get("topic_id") or topic.get("id") or "", max_age_days=3650)
+                           if payload.get("fact_sheet") else None)
+            hedged = blocking_problems(hedge_problems(narration, hedge_sheet))
+            if (blocking_problems(hook_problems(narration)) and _first_sentence(narration) not in asked):
+                left, missing = missing, []
+                why_left = "the kept script's opening fails the hook rule's cap or label; a rewording would be refused"
+                log.info("Line-picture check: the kept script stands (%s).", why_left)
+            elif (blocking_problems(payoff_problems(narration, payload.get("payoff_sentence") or ""))
+                  and penultimate not in asked):
+                left, missing = missing, []
+                why_left = "the kept script has no payoff the payoff rule accepts; a rewording would be refused"
+                log.info("Line-picture check: the kept script stands (%s).", why_left)
+            elif hedged and not any(f"the {w} (" in p and x in asked for p in hedged for w, x in _close_sentences(narration)):
+                left, missing = missing, []
+                why_left = "the kept script states a disputed fact in its opening, payoff or loop; a rewording would be refused"
+                log.info("Line-picture check: the kept script stands (%s).", why_left)
         if missing:
-            log.info("Before the voice, %d line(s) name something no photo shows; sent back to the writer once: %s",
-                     len(missing), " | ".join(v["sentence"] for v in missing)[:300])
+            log.info("Before the voice, %d line(s) name something no photo shows; sent back to the writer (at most %d "
+                     "round(s)): %s", len(missing), pl.rounds(), " | ".join(v["sentence"] for v in missing)[:300])
             import copy
             revised = None
-            draft = copy.deepcopy(payload)
-            # The writer revises the copy as it wrote it: the image credit block is added again after its checks,
-            # never twice (production Derinkuyu, 2026-10-29).
-            draft["caption"] = beat_images.credit_caption(draft.get("caption") or "", {"images": []}, [])
-            try:
-                revised = self._write_and_check_script(topic, run_id, run_dir, dry_run, initial_payload=draft,
-                                                       initial_notes=pl.revision_note(missing, photos, minimal=for_pictures))
-                from src.fact_evidence import current_fact_review
-                if not current_fact_review(revised):
-                    self._verify_final_copy(revised, topic)
-            except JobCancelled:
-                raise
-            except Exception as e:  # never lose a verified script: the rewording is a saving, not a new way to fail
-                revised, why_left = None, f"the rewording did not pass its checks: {pl.clip(str(e), 120)}"
-            if revised is not None and revised.get("origin") != payload.get("origin"):
-                # The revision fell back to another script (the curated one): not a rewording of these lines, so
-                # the card would name sentences it never changed (review, 2026-10-28)
-                revised, why_left = None, "the rewording fell back to another script"
-            if revised is not None and for_pictures:
-                changed = pl.other_lines_changed(payload["narration_script"], revised["narration_script"],
-                                                 [v["sentence"] for v in missing])
-                if changed:   # a pictures regeneration keeps every other line word for word, or nothing changes
-                    revised, why_left = None, f"the rewording changed other lines too (“{pl.clip(changed[0], 60)}”)"
-            if revised is not None:
+            # Up to pl.rounds() rewordings (2026-11-02): each from the last one that passed its checks, for the lines
+            # it still left unshown; a further round only while the previous one left fewer such lines. Every round
+            # goes through the writer and both fact checks; only a rewording that leaves no such line is voiced.
+            current, asked = payload, missing
+            for round_no in range(1, pl.rounds() + 1):
+                revised = None
+                draft = copy.deepcopy(current)
+                # The writer revises the copy as it wrote it: the image credit block is added again after its checks,
+                # never twice (production Derinkuyu, 2026-10-29).
+                draft["caption"] = beat_images.credit_caption(draft.get("caption") or "", {"images": []}, [])
+                try:
+                    revised = self._write_and_check_script(topic, run_id, run_dir, dry_run, initial_payload=draft,
+                                                           initial_notes=pl.revision_note(asked, photos, minimal=for_pictures))
+                    from src.fact_evidence import current_fact_review
+                    if not current_fact_review(revised):
+                        self._verify_final_copy(revised, topic)
+                except JobCancelled:
+                    raise
+                except Exception as e:  # never lose a verified script: the rewording is a saving, not a new way to fail
+                    revised, why_left = None, f"the rewording did not pass its checks: {pl.clip(str(e), 120)}"
+                if revised is not None and revised.get("origin") != payload.get("origin"):
+                    # The revision fell back to another script (the curated one): not a rewording of these lines, so
+                    # the card would name sentences it never changed (review, 2026-10-28)
+                    revised, why_left = None, "the rewording fell back to another script"
+                if revised is not None and for_pictures:
+                    changed = pl.other_lines_changed(payload["narration_script"], revised["narration_script"],
+                                                     [v["sentence"] for v in missing])
+                    if changed:   # a pictures regeneration keeps every other line word for word, or nothing changes
+                        revised, why_left = None, f"the rewording changed other lines too (“{pl.clip(changed[0], 60)}”)"
+                if revised is not None:
+                    lost = pl.protected_rewrite_problem(payload["narration_script"], revised["narration_script"], protected)
+                    if lost:  # a protected line keeps its numbers and names, or the rewording is refused
+                        revised, why_left = None, lost
+                if revised is None:
+                    break
                 again = pl.judge(revised["narration_script"], photos, title)
                 now = pl.sentences(revised["narration_script"])
-                still = pl.unshown(again) if again is not None else [v for v in missing if v["sentence"] in now]
-                if still:
-                    revised, why_left = None, "the rewording still names something no photo shows"
-                else:
+                still = pl.needs_rewrite(again, revised) if again is not None else [v for v in asked if v["sentence"] in now]
+                if not still:
                     final, final_verdicts, rewritten = revised, again or [], missing
+                    break
+                closer, why_left, revised = revised, "the rewording still names something no photo shows", None
+                if round_no >= pl.rounds() or len(still) >= len(asked) or again is None:
+                    break
+                log.info("Before the voice, round %d left %d line(s) no photo shows; asking once more.", round_no, len(still))
+                current, asked = closer, still
             if revised is None:
                 left = missing
                 log.info("Line-picture check: the verified script stands (%s).", why_left)
@@ -2418,7 +2909,7 @@ class PipelineCoordinator:
             again = pl.judge(" ".join(v["sentence"] for v in lines), pool, title)
             if again is None:
                 return lines, None
-            return pl.unshown(again), again
+            return pl.needs_rewrite(again), again
 
         merged = {v["sentence"]: v for v in verdicts}
         still = missing
@@ -2648,7 +3139,7 @@ class PipelineCoordinator:
 
     def _render_approve_publish(self, topic, run_id, run_dir, payload, scene_media, hero_img,
                                 vo_path, bed_path, words, vo_dur, auto_approve, dry_run, previous_status,
-                                prepared=None):
+                                prepared=None, bed_for_cuts=None):
         tid = topic["id"]
         # 6. Source quality: upscale stills too small for a sharp 1080x1920 crop (local Real-ESRGAN),
         # then de-identify living human faces before rendering. Usually already done in the
@@ -2659,19 +3150,54 @@ class PipelineCoordinator:
             timer.record("image_prep_wait", time.perf_counter() - t0)  # what was left after the bed
         else:
             scene_media, hero_img, low_res = self._prepare_images(scene_media, hero_img, run_dir)
+        beats = segment_beats(words, vo_dur)
+        if config.VIDEO_HEIGHT > config.VIDEO_WIDTH:
+            from src.image_review import required_photos
+            from src.scene_planner import picture_id, script_asks_for_graphics
+            from src.typography import is_video
+            distinct = {picture_id(path) for path in scene_media if not is_video(Path(path))}
+            # Photo beats: the narration's beats less the one a graphic takes when the script asks for one.
+            photo_beats = [{}] * max(0, len(beats) - (1 if script_asks_for_graphics(payload) else 0))
+            if len(distinct) < required_photos(photo_beats) and (ASSETS_DIR / tid / "credits.json").is_file():
+                # Fewer distinct photos than photo beats: one bounded refill (asset_pipeline.ensure_pool; not
+                # repeated within the refresh period, so after the refill before the voice it only re-reads the
+                # pool), and the pool's sequence again when it gained photos, with
+                # the same selection as at run start (turned and text-bearing photos out, strong photos for the
+                # Stories and carousel, the cover's photograph by hero_photo).
+                from src.asset_pipeline import ensure_pool
+                from src.image_review import strong_stems
+                from src.visual_engine import MissingAssetsError, VisualEngine
+                self._check_cancel(run_id)
+                ensure_pool(topic, ASSETS_DIR, beats=photo_beats)
+                engine = VisualEngine(ASSETS_DIR)
+                try:
+                    refreshed = [m for m in engine.get_scene_sequence(topic)
+                                 if Path(str(m)).name not in getattr(self, "_still_turned", set())]
+                except MissingAssetsError:
+                    refreshed = []
+                if len({picture_id(path) for path in refreshed if not is_video(Path(path))}) > len(distinct):
+                    refreshed = beat_images.without_burned_in_text(refreshed, topic.get("title", ""),
+                                                                   config.MIN_SCENE_IMAGES)
+                    log.info("Photo pool refilled for %d beats: %d distinct photos, was %d.", len(beats),
+                             len({picture_id(path) for path in refreshed if not is_video(Path(path))}), len(distinct))
+                    self._strong_stems = strong_stems(ASSETS_DIR / tid)
+                    scene_media, hero_img, low_res = self._prepare_images(refreshed, engine.hero_image(refreshed), run_dir)
         if low_res:
             payload["source_note"] = (f"🖼 {low_res} of {len(scene_media)} source images were below video resolution "
                                       "and were AI-upscaled; sharper originals would look better.")
             log.info(payload["source_note"])
 
         # Stills setup
-        key = self.db.run_key(run_id)  # rotate cover layouts so neighbouring grid posts differ
-        style = COVER_STYLES[int(key) % len(COVER_STYLES)] if key.isdigit() else COVER_STYLES[0]
+        # The cover style: fixed while cover selection is frozen (src/cover_selector.py, QF-82; a bandit on Reel
+        # metrics from 2026-11-01, a per-run rotation before). The renderer fits it to the copy and the hero.
+        from src import cover_selector
+        style, _style_why = cover_selector.for_run(self.db, run_id, payload, hero=hero_img)
 
         # 7. Master render
         self._check_cancel(run_id)
         # Match pictures to narration beats; cuts land on the beat boundaries.
-        beats = segment_beats(words, vo_dur)
+        # Kept with the run: the audience's retention curve is read beat by beat later (audience.beat_drops).
+        payload["beat_times"] = [{"start": round(float(b["start"]), 2), "text": str(b.get("text") or "")} for b in beats]
         # Extra candidates searched for the concrete subject of individual beats (openly licensed).
         # One query plan (picture subjects per beat) serves both beat images and real footage.
         query_plan = None
@@ -2682,55 +3208,63 @@ class PipelineCoordinator:
                 log.warning("Beat query planning failed (%s); no beat images or footage this run.", e)
 
         from src.checkpoints import Checkpoints, cached_artifacts, file_inputs
-        from src.typography import FONT_FILES, FONTS_DIR
-        packaging_inputs = {"photos": file_inputs([hero_img, *scene_media]), "style": style,
+        from src.image_presentation import policy_inputs
+        from src.typography import FALLBACK_FILES, FONT_FILES, FONTS_DIR
+        packaging_inputs = {"presentation": policy_inputs([hero_img, *scene_media]),
+                            "photos": file_inputs([hero_img, *scene_media]), "style": style,
                             "strong": sorted(getattr(self, "_strong_stems", None) or []),  # which may face out
                             "picks": file_inputs([Path("src/image_review.py")]),
                             "copy": {key: payload.get(key) for key in ("title", "thumbnail", "story_slides", "carousel_slides", "poll", "share_line")},
                             "rules": file_inputs([Path("src/visual_engine.py"), Path("src/multi_format.py"),
                                                   Path("src/typography.py"), Path("src/config.py"), Path("src/safe_zones.py"),
                                                   Path("src/script_engine.py"), Path("src/still_layout.py")]),
-                            "fonts": file_inputs([FONTS_DIR / name for name in FONT_FILES.values()])}
+                            "fonts": file_inputs([FONTS_DIR / name for name in (*FONT_FILES.values(),
+                                                                                *FALLBACK_FILES.values())])}
         if getattr(self, "progress_msg_id", None):
             try:
                 self.telegram_bot.update_progress_card(self.progress_msg_id, 3, 5, topic["title"], run_id, "Synthesizing graphics, stills & motion")
             except Exception:
                 pass
 
-        # Concurrently generate multiformat stills (thumbnails, story, carousel)
-        # and source media candidates (beat images, footage, channel graphics, callouts, then/now)
+        # Concurrently generate thumbnails and Story frames (the carousel is drawn only when it takes a carousel
+        # slot: carousel_lazy, QF-81) and source media candidates (beat images, footage, channel graphics, callouts, then/now)
         # Story frames and carousel slides use the topic's own photos only, never a context shot (2026-10-25).
         from src.image_review import only_strong
         strong_media = only_strong(scene_media, getattr(self, "_strong_stems", None))
         encoding.get_video_encoder()  # probe once before parallel renderers race to detect it under load
         t0 = time.perf_counter()
+        payload.pop("layout_holds", None)   # QF-23: this render's holds only (a resumed run's old payload had some)
         with concurrent.futures.ThreadPoolExecutor(max_workers=8) as pool:
+            # each glyph event names what it was drawn on (QF-94)
+            from src.font_engine import on_surface
             fut_thumb = pool.submit(cached_artifacts, run_dir, "thumbnails", packaging_inputs,
-                                    lambda: self.visual_engine.generate_thumbnails(hero_img, payload, run_dir, style=style))
+                                    lambda: on_surface("cover", self.visual_engine.generate_thumbnails, hero_img,
+                                                       payload, run_dir, style=style))
             fut_story = pool.submit(cached_artifacts, run_dir, "stories", packaging_inputs,
                                     lambda: self.multiformat_gen.generate_story_sequence(hero_img, payload, run_dir, scene_images=strong_media))
-            fut_carousel = pool.submit(cached_artifacts, run_dir, "carousel", packaging_inputs,
-                                       lambda: self.multiformat_gen.generate_carousel_sequence(strong_media, payload, run_dir))
-            # Facebook's copy of the slides, without swipe cues (it shows a multi-photo post as a grid).
-            fut_carousel_fb = pool.submit(cached_artifacts, run_dir, "carousel_fb", packaging_inputs,
-                                          lambda: self.multiformat_gen.generate_carousel_sequence(strong_media, payload, run_dir, facebook=True))
-
-            fut_beats = pool.submit(beat_images.source, beats, topic, run_dir / "beat_images", plan=query_plan) if query_plan else None
-            fut_footage = pool.submit(footage.source, beats, topic, run_dir / "footage", plan=query_plan) if query_plan else None
             from src import art_direction
             art = art_direction.record(run_dir, hero_img)  # the topic's accent and grade bias, recorded in palette.json
             payload["art_direction"] = art
             fut_graphics = pool.submit(graphics.make_all, payload, topic, run_dir / "graphics", photo=hero_img, palette=art)
-            fut_callouts = pool.submit(callouts.make, payload, topic, scene_media, run_dir / "graphics")
-            fut_then_now = pool.submit(then_now.make, topic, run_dir / "graphics")
+            # The carousel is not drawn here: only the episode that takes a carousel slot draws it, then (QF-81:
+            # seven a week were drawn for three slots). The run records the photos it will be drawn from.
+            from src import carousel_lazy
+            carousel_lazy.plan(run_dir, strong_media, payload)
+
+            fut_beats = pool.submit(beat_images.source, beats, topic, run_dir / "beat_images", plan=query_plan) if query_plan else None
+            fut_footage = pool.submit(footage.source, beats, topic, run_dir / "footage", plan=query_plan) if query_plan else None
+            fut_callouts = pool.submit(on_surface, "photo callouts",
+                                       callouts.make, payload, topic, scene_media, run_dir / "graphics", words=words,
+                                       auto_approve=auto_approve)
+            fut_then_now = pool.submit(on_surface, "graphic then/now", then_now.make, topic, run_dir / "graphics",
+                                       grade_bias=float(art.get("grade_bias") or 0.0))   # the master's bias (QF-86)
 
             thumb_916, thumb_1x1 = fut_thumb.result()
-            story_slides = fut_story.result()
-            carousel_slides = fut_carousel.result()
-            try:
-                fut_carousel_fb.result()
-            except Exception as e:  # Facebook then gets the Instagram slides, as before
-                log.warning("Facebook carousel slides not made (%s); Facebook gets the Instagram slides.", e)
+            # A deck whose checked copy cannot be set whole (typography.LayoutError, QF-23) is held on its own, its
+            # frames out of the posting globs and the hold on the review card; the run goes on (hold_layout_error).
+            # The carousel is drawn at its slot or for its preview (QF-81), where carousel_lazy.draw holds it the same way.
+            story_slides = hold_layout_error(fut_story, run_dir, "stories", payload)
+            carousel_slides: list[Path] = []   # drawn at its slot (carousel_lazy.render)
 
             beat_paths, beat_credits = fut_beats.result() if fut_beats else ([], [])
             footage_clips, footage_credits = fut_footage.result() if fut_footage else ([], [])
@@ -2818,6 +3352,17 @@ class PipelineCoordinator:
                 beats, scenes, durations, fit_report, held, where = self._hold_short_pool(
                     run_id, topic, beats, scenes, durations, fit_report, available, storyboard=plan_notes == STORYBOARD_NOTES)
                 planned = list(scenes)  # the plan the repair pass judges (the overflow re-plan replaced the first)
+            if config.VIDEO_HEIGHT > config.VIDEO_WIDTH:
+                from src.scene_planner import fit_holds, reel_photo_coverage
+                from src.visual_engine import MissingAssetsError
+                # A still kept past the hold limit only by a pause gets its cut moved into that pause.
+                beats, durations, hold_moves = fit_holds(beats, scenes, durations, words)
+                coverage_gate = reel_photo_coverage(scenes, durations)
+                payload["photo_coverage_gate"] = {**coverage_gate, "cuts_moved": hold_moves}
+                if not coverage_gate["ok"]:
+                    self.db.update_run(run_id, "producing", script_payload=payload)
+                    raise MissingAssetsError("Reel photo coverage: " + "; ".join(coverage_gate["problems"])
+                                             + ". Add distinct photos or revise the storyboard before rendering.")
             payload["caption"] = caption
             from src.scene_planner import hold_note, storyboard_opening_note
             reserve_used = sorted({Path(r).name for r in reserve if picture_id(r) in {picture_id(s) for s in scenes}})
@@ -2832,14 +3377,19 @@ class PipelineCoordinator:
                              f"{len(reserve_used)} reserve context photo(s) used", source="scene_plan")
             payload["picture_fit"] = {k: fit_report.get(k) for k in ("judged", "cached", "swapped", "graphic", "generated", "held",
                                                                       "unshown", "stopped")}
+            # Which cascade tier filled each beat (src/picture_coverage.py), in the run folder for the video check and
+            # the operator; a beat a lower tier covered is a warning there, not a blocker (video_qa.coverage_severity).
+            from src import picture_coverage
+            coverage = picture_coverage.write(run_dir, beats, scenes, fit_report)
+            payload["beat_coverage"] = {"file": picture_coverage.COVERAGE_FILE, "summary": coverage["summary"]}
             used_graphics = [p.stem.replace("graphic_", "") for p in own_graphics if p in scenes]
             payload["graphics_note"] = ("🗺 Original graphics in this video: " + ", ".join(used_graphics)) if used_graphics else ""
             generated_list = fit_report.get("generated", [])
             if generated_list:
-                payload["reconstruction_note"] = (
-                    f"🏛 Archival Reconstructions ({len(generated_list)}): "
-                    + "; ".join(f"Beat {g['beat']} ({clip_words(g.get('line', ''), 80)})" for g in generated_list)
-                )
+                # Every illustrated beat on the review card with its narrated line, the illustration and its
+                # reference(s) (reliable depiction, 2026-11-02); the run waits for the operator (never auto-approved).
+                from src.image_gen import review_note
+                payload["reconstruction_note"] = review_note(generated_list)
                 from src import improve
                 for g in generated_list:
                     improve.note(
@@ -2851,6 +3401,11 @@ class PipelineCoordinator:
             payload["footage_note"] = (f"🎥 {len(used_footage)} real footage clip(s) "
                                        f"({sum(c['place_specific'] for c in used_footage)} of the actual site): "
                                        + "; ".join(f"{c['provider']}: {c['source_url']}" for c in used_footage)) if used_footage else ""
+            # A reference image of a named subject shown as its exact photo (src/scene_planner._show_reference) is
+            # credited like any beat image (reliable depiction, 2026-11-02).
+            on_screen = {str(Path(p)) for p in scenes}
+            used = list(used) + [c for c in fit_report.get("reference_credits") or []
+                                 if isinstance(c, dict) and str(Path(str(c.get("file") or ""))) in on_screen]
             payload["beat_image_credits"] = used
             # What each one is and which line it is for: the card said only "check they show the right thing",
             # and a Wells Cathedral clock came into an Antikythera video unnoticed (2026-10-25).
@@ -2874,6 +3429,8 @@ class PipelineCoordinator:
                                                durations=durations)
             payload["motion_note"] = (f"🤖 AI motion ({', '.join(motion_used)}) animates {len(motion_used)} real photo(s); "
                                       "the Reel carries the AI label") if motion_used else ""
+            from src import hook_learning
+            payload["opening"] = {"shot": hook_learning.opening_shot(scenes, run_dir / "motion")}
             if not motion_used and config.MOTION_MAX_CLIPS > 0:  # a paid provider out of credit: said on the card
                 try:
                     payload["motion_note"] = motion.fallback_note(motion_used, paid_motion)
@@ -2895,13 +3452,24 @@ class PipelineCoordinator:
                          self.video_composer.export_subtitles_vtt(words, master_mp4.with_suffix(".vtt"))])
             render_checkpoint = Checkpoints(run_dir / "stage_cache" / "render")
             from src.script_engine import end_card_share
-            from src.end_card import end_card_note, end_card_record
-            card_share, card_fallback = end_card_share(payload)  # the end card's share line (it says FOLLOW itself)
-            render_inputs = {"media": file_inputs([*scenes, vo_path, bed_path]), "words": words,
-                             "durations": durations, "emphasis": payload.get("emphasis_words"), "end_card": card_share,
+            from src.end_card import LOOP_LINE, end_card_note, end_card_record
+            # The share line (end_card.LOOP_LINE draws it on the loop bridge; off since 2026-11-03): non-empty, it
+            # also tells the composer to end the Reel on the bridge.
+            card_share, card_fallback = end_card_share(payload)
+            # This 9:16 master's cache keys on the share line only while the bridge draws it (review, 2026-11-03):
+            # with LOOP_LINE off a reworded share line changes nothing in the master, only whether a bridge is there.
+            # The 16:9 end screen still draws the line and keys on it in its own render.
+            card_key = card_share if LOOP_LINE else bool((card_share or "").strip())
+            if bed_for_cuts is not None:
+                bed_for_cuts(durations)
+            render_inputs = {"presentation": policy_inputs(scenes),
+                             "media": file_inputs([*scenes, vo_path, bed_path]), "words": words,
+                             "durations": durations, "emphasis": payload.get("emphasis_words"), "end_card": card_key,
+                             "loop_follow_overlay": bool(config.LOOP_FOLLOW_OVERLAY),   # QF-83: drawn into the master
                              "grade_bias": (payload.get("art_direction") or {}).get("grade_bias") or 0.0,  # part of the master
                              "rules": file_inputs([Path("src/video_composer.py"), Path("src/end_card.py"), Path("src/config.py"),
-                                                   Path("src/encoding.py"), Path("src/encoded_audio.py"), Path("src/delivery_profiles.py")]),
+                                                   Path("src/encoding.py"), Path("src/encoded_audio.py"), Path("src/delivery_profiles.py"),
+                                                   Path("src/still_camera.py"), Path("src/camera_motion.py")]),
                              "fonts": packaging_inputs["fonts"]}
             self._check_cancel(run_id)
             if not render_checkpoint.reusable("master", render_inputs):
@@ -3048,6 +3616,18 @@ class PipelineCoordinator:
                                   "issues": [{"beat": i.beat, "severity": str(i.severity).lower(), "issue": i.issue,
                                               "where": beat_where(i.beat, beats)}
                                              for i in (qa.issues if qa is not None else [])]}
+        # A beat the fallback cascade covered honestly (a same-kind photo, a detail, film, map, graphic or labelled
+        # reconstruction) is a warning when the look says only that the very thing named is not shown; a wrong or
+        # invented subject still blocks (src/video_qa.coverage_severity, src/picture_coverage.py).
+        try:
+            from src import picture_coverage
+            from src.video_qa import coverage_severity
+            payload["video_check"]["issues"] = coverage_severity(payload["video_check"]["issues"],
+                                                                 picture_coverage.load(run_dir))
+            payload["video_check"]["coverage_warnings"] = sum(
+                1 for i in payload["video_check"]["issues"] if isinstance(i, dict) and i.get("warning"))
+        except (OSError, ValueError, TypeError, KeyError, AttributeError) as e:  # the findings stand as they were
+            log.warning("Picture coverage could not grade the video check (%s); its findings stand.", e)
         (run_dir / "qa_report.json").write_text(qa.model_dump_json(indent=2) if qa else "null", encoding="utf-8")
         log.info("%s", re.sub(r"<[^>]+>", "", payload["qa_summary"]).replace("\n", " | "))
         self._verify_final_copy(payload, topic)
@@ -3063,12 +3643,18 @@ class PipelineCoordinator:
         add_provenance_attributions(payload, ledger)
         self.db.update_run(run_id, "pending_approval", script_payload=payload)
         (run_dir / "script_metadata.json").write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
-        from src.release import write_release_report
-        release = write_release_report(self.db.get_run(run_id), dry_run=dry_run)
+        from src.release import ReleaseReportLocked, locked_report, write_release_report
+        try:
+            release = write_release_report(self.db.get_run(run_id), dry_run=dry_run)
+        except ReleaseReportLocked as e:   # held, with the reason on the card; the card re-runs the gate
+            log.warning("Release report not saved: %s", e)
+            release = locked_report(e)
 
         # 8-9. Human approval (never implicit). The production card is finished either way.
         self._finish_progress(topic.get("title", tid), run_id, success=True)
         decision = None
+        auto_approve = (self._auto_approve_allowed(run_id, payload, auto_approve, scenes=scenes)
+                        and not self._held_for_look(run_id, release))
         blocked = self._blocked_at_gate(run_id, release, dry_run, "auto-approve flag") if auto_approve else None
         if blocked:
             return {"run_id": run_id, "topic_id": tid, "decision": None, "status": "blocked", "error": blocked,
@@ -3104,6 +3690,9 @@ class PipelineCoordinator:
 
     def _after_approval(self, run_id: str, dry_run: bool = False, previous_status: str = "queued") -> Dict[str, Any]:
         dry_run = dry_run or self.db.get_setting("run_mode:" + run_id) == "dry_run"
+        # The slot is picked from the decision's time, fixed before the backup: the Undo wait and the copy of the run
+        # folder never push a last-moment approval past its slot (review 2 of UI-02)
+        picked_from = slot_clock(self.db, run_id)
         if getattr(config, "BACKUP_ENABLED", True):
             try:
                 from src.backup import backup_run
@@ -3112,9 +3701,19 @@ class PipelineCoordinator:
                     backup_run(Path(run["master_video_path"]).parent, db_path=getattr(self.db, "db_path", None))
             except Exception as e:
                 log.warning("Tier 2 Gold Backup skipped: %s", e)
-        if self.schedule_posts and POST_SCHEDULING and not dry_run and (self.db.get_run(run_id) or {}).get("content_format") != "deep_dive":
-            return self.schedule_run(run_id)
+        if self._approve_posting(run_id, dry_run) == "slot":
+            return self.schedule_run(run_id, now=picked_from)
         return self.publish_run(run_id, dry_run=dry_run, previous_status=previous_status)
+
+    def _approve_posting(self, run_id: str, dry_run: bool = False) -> str:
+        """What Approve does with the run (_after_approval): "dry_run" (a simulated publish, nothing posted),
+        "slot" (schedule_run books its Reel a posting slot) or "now" (publish_run posts it at once: no scheduled
+        posting, or a documentary, which goes to YouTube at once). The review card says which (QF-43)."""
+        if dry_run or self.db.get_setting("run_mode:" + run_id) == "dry_run":
+            return "dry_run"
+        if self.schedule_posts and POST_SCHEDULING and (self.db.get_run(run_id) or {}).get("content_format") != "deep_dive":
+            return "slot"
+        return "now"
 
     # ------------------------------------------------------------ posting slots
     def schedule_run(self, run_id: str, now: Optional[datetime] = None) -> Dict[str, Any]:
@@ -3142,34 +3741,58 @@ class PipelineCoordinator:
                     "scheduled_for": booked[0]["due_at"] if booked else None}
         payload = run["script_payload"]
         if payload.get("origin") == "curated" and not payload.get("human_reviewed"):
-            raise ValueError("This run used an unreviewed curated script; it can only be published after review.")
-        from src.release import require_release
-        require_release(run)
+            from src.release import ReleaseBlocked
+            raise ReleaseBlocked("This run used an unreviewed curated script; it can only be published after review.")
+        self._require_release(run)
         run_dir = Path(run["master_video_path"]).parent
-        slot = post_schedule.next_reel_slot(now, self._booked_reel_days())
+        taken = self._booked_reel_days()
+        slot = self._reel_slot(run_id, now, taken)
         self.db.add_scheduled_post(run_id, "reel", slot.astimezone(timezone.utc).isoformat(), [])
+        # A run approved after the slot it was made for is booked later, and says so (it did silently: QF-74)
+        worker_deadline.missed_slot_notice(self.db, run, slot, now, taken, self._alert)
+        worker_deadline.forget(self.db, run_id)  # decided and booked: its production start has served its purpose
         lines = [f"🎬 Reel: {post_schedule.fmt(slot)}"] + self._book_followers(run_id, run_dir, slot)
         self.db.update_run(run_id, "scheduled")
         self.topic_engine.record_status(run["topic_id"], "scheduled", run_id=run_id)
         # The review card becomes the schedule's receipt (a separate alert said the same thing again).
         if not self.telegram_bot.stamp_review_outcome(run_id, "🗓 <b>Approved · scheduled</b>\n" + "\n".join(html.escape(x) for x in lines)):
-            self._alert(f"🗓 <b>Post scheduled</b>\n\n<b>{html.escape(self.db.run_label(run_id))}</b>\n\n" + "\n".join(html.escape(x) for x in lines))
+            _notice(self, f"🗓 <b>Post scheduled</b>\n\n<b>{html.escape(self.db.run_label(run_id))}</b>\n\n" + "\n".join(html.escape(x) for x in lines), section="info", key=f"approved:{run_id}", run=run_id, replace=True)
         return {"status": "scheduled", "scheduled_for": slot.isoformat()}
 
     def _book_followers(self, run_id: str, run_dir: Path, reel_slot: datetime) -> List[str]:
-        """Books a Reel's Stories (STORY_DELAY_MINUTES after it) and its carousel (the next carousel slot);
-        the daemon's post_due() publishes them when due. Shared by slot booking and Post now."""
+        """Books a Reel's Stories (STORY_DELAY_MINUTES after it) and its carousel (its first carousel slot 48 h
+        after the Reel, before its deadline: post_schedule.first_carousel_slot, the rule the daemon and Posting use);
+        the daemon's post_due() publishes them when due. Shared by slot booking and Post now. reel_slot is the
+        Reel's slot, or now when the Reel has posted."""
         lines: List[str] = []
-        stories = sorted(str(p) for p in (run_dir / "stories").glob("story_*.jpg"))
+        from src.release import story_frames
+        stories = [str(p) for p in story_frames(run_dir)]  # hook and reveal; never a retired poll frame (QF-80)
         if stories:
             when = post_schedule.story_time(reel_slot)
             self.db.add_scheduled_post(run_id, "story", when.astimezone(timezone.utc).isoformat(), stories)
             lines.append(f"📱 {len(stories)} Story frames: {post_schedule.fmt(when)}")
-        carousel = sorted(str(p) for p in (run_dir / "carousel").glob("carousel_slide_*.jpg"))
-        if carousel:
-            self.db.add_scheduled_post(run_id, "carousel", None, carousel, status="waiting")
-            lines.append(f"🖼 Carousel: queued for the next carousel slot (from {post_schedule.fmt(post_schedule.next_carousel_slot(reel_slot))})")
+        from src import carousel_lazy
+        # A run made from QF-81 on books its carousel undrawn: it is drawn when it takes its slot.
+        carousel = [] if carousel_lazy.planned(run_dir) else carousel_lazy.drawn(run_dir)
+        if carousel or carousel_lazy.planned(run_dir):
+            post_id = self.db.add_scheduled_post(run_id, "carousel", None, carousel, status="waiting")
+            post = next(p for p in self.db.list_scheduled_posts(("waiting",), run_id=run_id) if p["id"] == post_id)
+            # The slot it will take, as the daemon will see it (it named the next carousel slot, which the 48 h gap
+            # and the 7-day expiry could rule out: operator, 2026-11-03); a newer episode's carousel goes first.
+            # None only when booked again too late (its Reel posted days ago and its last carousel slot has passed)
+            car = post_schedule.first_carousel_slot(post_schedule.carousel_reel(self.db, post)[1], now=reel_slot)
+            gap = f"{config.CAROUSEL_GAP_HOURS:g} h"
+            lines.append(f"🖼 Carousel: {post_schedule.fmt(car)} (its first carousel slot {gap} after the Reel)" if car else
+                         f"🖼 Carousel: its last carousel slot ({config.CAROUSEL_MAX_AGE_DAYS:g} days after the Reel, "
+                         f"or its first slot {gap} after it) has passed, so it won't post")
         return lines
+
+    def _reel_slot(self, run_id: str, after: datetime, taken: set) -> datetime:
+        """The next free Reel slot after `after` that keeps a sensitive topic a clear audience day from another
+        (src/topic_policy.next_safe_slot, QF-73); the plain next free slot for any other topic."""
+        from src.topic_policy import next_safe_slot
+        return next_safe_slot(self.db, (self.db.get_run(run_id) or {}).get("topic_id") or "", after, taken,
+                              run_id=run_id)
 
     def _booked_reel_days(self, exclude_id: Optional[int] = None) -> set:
         return {datetime.fromisoformat(p["due_at"]).astimezone(post_schedule.tz()).date()
@@ -3192,40 +3815,152 @@ class PipelineCoordinator:
 
     def _post_due(self, now: Optional[datetime] = None) -> None:
         now = now or datetime.now(timezone.utc)
+        # Each booking on its own (QF-110): a refusal or error on one never stops the others.
+        #  - ReleaseBlocked (the release checks refused this version): "blocked", said once with what can work.
+        #  - an upload whose outcome is unknown (the run is publish_unknown): the booking is "unknown", never posted
+        #    again by this loop, and It posted / It didn't post decides (the existing reconciliation).
+        #  - anything else (an upload in progress elsewhere, its lock held, a locked report, the network, a checker
+        #    without a verdict): kept booked, tried again, said once per distinct error.
+        from src.release import ReleaseBlocked
         for post in self.db.list_scheduled_posts(("pending",)):
-            due = datetime.fromisoformat(post["due_at"])
-            if due > now or not self._may_post(post["run_id"]):
-                continue
-            run = self.db.get_run(post["run_id"]) or {}
-            if post["kind"] == "reel":
-                if now - due > MISSED_SLOT_GRACE:
-                    self._reschedule(post, run, now)
-                    continue
-                res = self.publish_run(post["run_id"])
-                self.db.update_scheduled_post(post["id"], res["status"], detail={
-                    "error": res.get("publish_result", {}).get("error"), "posted_at": now.isoformat()})
-                if res["status"] != "published":
-                    for other in self.db.list_scheduled_posts(("pending", "waiting"), run_id=post["run_id"]):
-                        self.db.update_scheduled_post(other["id"], "cancelled", detail={"reason": "the Reel did not post"})
-            elif post["kind"] == "story":
-                if run.get("status") == "scheduled":
-                    continue  # its Reel was moved; the Story moved with it
-                if run.get("status") != "published":
-                    self.db.update_scheduled_post(post["id"], "cancelled", detail={"reason": "the Reel did not post"})
-                    continue
-                self._post_photos(post, run, "story")
+            try:
+                self._post_one_due(post, now)
+            except ReleaseBlocked as e:
+                self._block_booking(post, e, now)
+            except Exception as e:  # one booking's failure is said, and the others still post
+                if not isinstance(e, ValueError):
+                    log.exception("Booking %s (%s) could not post.", post["id"], post["kind"])
+                if post["kind"] == "reel" and (self.db.get_run(post["run_id"]) or {}).get("status") == "publish_unknown":
+                    self._unknown_booking(post, e)
+                else:
+                    self._hold_booking(post, e)
         self._post_carousel_if_due(now)
 
+    def _post_one_due(self, post: dict[str, Any], now: datetime) -> None:
+        due = datetime.fromisoformat(post["due_at"])
+        if due > now or not self._may_post(post["run_id"]):
+            return
+        run = self.db.get_run(post["run_id"]) or {}
+        if post["kind"] == "reel":
+            if now - due > MISSED_SLOT_GRACE:
+                self._reschedule(post, run, now)
+                return
+            res = self.publish_run(post["run_id"])
+            self.db.update_scheduled_post(post["id"], res["status"], detail={
+                "error": res.get("publish_result", {}).get("error"), "posted_at": now.isoformat()})
+            if res["status"] != "published":
+                for other in self.db.list_scheduled_posts(("pending", "waiting"), run_id=post["run_id"]):
+                    self.db.update_scheduled_post(other["id"], "cancelled", detail={"reason": "the Reel did not post"})
+        elif post["kind"] == "story":
+            if run.get("status") == "scheduled":
+                return  # its Reel was moved; the Story moved with it
+            if run.get("status") != "published":
+                self.db.update_scheduled_post(post["id"], "cancelled", detail={"reason": "the Reel did not post"})
+                return
+            self._post_photos(post, run, "story")
+
+    def _block_reasons(self, run_id: str, exc: Exception) -> list[str]:
+        """Why the release refused, in plain words: from the release report it has just written, else its message."""
+        from src.release import plain_block_reasons
+        if str(exc).startswith("Release blocked"):
+            try:
+                master = Path((self.db.get_run(run_id) or {}).get("master_video_path") or "")
+                report = json.loads((master.parent / "release_report.json").read_text(encoding="utf-8"))
+                found = plain_block_reasons(report)
+                if found:
+                    return found
+            except (OSError, ValueError, TypeError):
+                pass
+        return [str(exc).removeprefix("Release blocked: ")[:400]]
+
+    def _still(self, post: dict[str, Any]) -> bool:
+        """True while the booking is still as this pass read it (a Post now may have changed it meanwhile)."""
+        return any(p["id"] == post["id"] for p in self.db.list_scheduled_posts((post["status"],), run_id=post["run_id"]))
+
+    def _unknown_booking(self, post: dict[str, Any], exc: Exception) -> None:
+        """The Reel's upload started and its outcome is unknown: the booking is "unknown" (this loop never posts it
+        again), its Stories and carousel are cancelled as for any Reel that did not post for sure, and the operator is
+        asked once whether it posted (the pubok/pubno reconciliation; a remake is never offered)."""
+        if not self._still(post):
+            return
+        self.db.update_scheduled_post(post["id"], "unknown", detail={"error": _error_words(exc)})
+        for other in self.db.list_scheduled_posts(("pending", "waiting"), run_id=post["run_id"]):
+            self.db.update_scheduled_post(other["id"], "cancelled", detail={"reason": "the Reel did not post"})
+        key = self.db.run_key(post["run_id"])
+        text = (f"⚠️ <b>Publish unconfirmed</b>\n\n<b>{html.escape(self.db.run_label(post['run_id']))}</b>\n\n"
+                f"The upload may have gone through ({html.escape(_error_words(exc))}). I won't retry automatically, "
+                "to avoid a duplicate post. Check Facebook and Instagram, then tell me:")
+        buttons = [{"text": "✅ It posted", "callback_data": f"pubok:{key}"},
+                   {"text": "🔁 It didn't post", "callback_data": f"pubno:{key}"}]
+        try:
+            self._alert(text, buttons=buttons, group="needs")
+        except TypeError:   # a stand-in alert that takes no group
+            self._alert(text, buttons=buttons)
+
+    def _block_booking(self, post: dict[str, Any], exc: Exception, now: datetime) -> None:
+        """Sets a booking aside: it is not posted, and trying again cannot change that (QF-110). A Reel's day is
+        freed for other episodes; its Stories and carousel wait with it. Said once, with what can work."""
+        if not self._still(post):
+            return
+        reasons = self._block_reasons(post["run_id"], exc)
+        label = html.escape(self.db.run_label(post["run_id"]))
+        log.warning("Booking %s (%s, %s) blocked: %s", post["id"], post["kind"], post["run_id"], "; ".join(reasons))
+        if post["kind"] != "reel":
+            name = {"story": "Stories", "carousel": "Carousel"}.get(post["kind"], post["kind"])
+            self.db.update_scheduled_post(post["id"], "failed", detail={"error": "; ".join(reasons)})
+            _notice(self, f"❌ {name} not posted for {label}: " + html.escape("; ".join(reasons)[:300]), section="needs",
+                         key=f"post-failed:{post['id']}", actions=self._episode_action(post["run_id"]))
+            return
+        self.db.update_scheduled_post(post["id"], "blocked", detail={
+            "reason": "; ".join(reasons), "reasons": reasons, "blocked_at": now.isoformat(), "error": str(exc)[:1000]})
+        from src.posting_view import BLOCKED_NEXT, blocked_buttons
+        lines = "\n".join(f"• {html.escape(r)}" for r in reasons)
+        text = f"⛔ <b>Not posted: {label}</b>\n\nIts Reel was held at its slot because:\n{lines}\n\n{BLOCKED_NEXT}"
+        try:
+            self._alert(text, buttons=blocked_buttons(self.db, post), group="needs")
+        except TypeError:   # a stand-in alert that takes no group
+            self._alert(text, buttons=blocked_buttons(self.db, post))
+
+    def _hold_booking(self, post: dict[str, Any], exc: Exception) -> None:
+        """Keeps a booking that hit an error which may pass: it is tried again at the next pass, and the error is
+        said once (again only when it changes), never every minute (QF-110)."""
+        from src.fact_evidence import RecheckUnavailable
+        said = _error_words(exc)
+        detail = dict(post.get("detail") or {})
+        if detail.get("held") == said or not self._still(post):
+            return
+        self.db.update_scheduled_post(post["id"], post["status"], detail={**detail, "held": said})
+        name = {"reel": "Reel", "story": "Stories", "carousel": "Carousel"}.get(post["kind"], post["kind"])
+        why = (f"its fact check, made before a code update, must be run again under the current rules first, and "
+               f"that cannot happen now ({html.escape(said)}). It is tried again with a growing wait"
+               if isinstance(exc, RecheckUnavailable) else html.escape(said))
+        _notice(self, f"⚠️ <b>{name} not posted yet</b> for {html.escape(self.db.run_label(post['run_id']))}: "
+                    f"{why}\n\nIt stays booked and is tried again; you'll hear again only if the error changes.", section="needs", key=f"post-held:{post['id']}",
+                     actions=self._episode_action(post["run_id"]))
+
     def _reschedule(self, post: Dict[str, Any], run: Dict[str, Any], now: datetime) -> None:
-        slot = post_schedule.next_reel_slot(now, self._booked_reel_days(exclude_id=post["id"]))
+        slot = self._reel_slot(post["run_id"], now, self._booked_reel_days(exclude_id=post["id"]))
         self.db.update_scheduled_post(post["id"], "pending", due_at=slot.astimezone(timezone.utc).isoformat())
         for story in self.db.list_scheduled_posts(("pending",), run_id=post["run_id"]):
             if story["kind"] == "story":
                 when = post_schedule.story_time(slot).astimezone(timezone.utc).isoformat()
                 self.db.update_scheduled_post(story["id"], "pending", due_at=when)
         missed = post_schedule.fmt(datetime.fromisoformat(post["due_at"]))
-        self._alert(f"⏰ Missed the {html.escape(missed)} slot for {html.escape(self.db.run_label(post['run_id']))} "
-                    f"(the daemon was off or paused). Moved to {html.escape(post_schedule.fmt(slot))}.")
+        label = html.escape(self.db.run_label(post["run_id"]))
+        detail = dict(post.get("detail") or {})
+        held = detail.get("held")
+        if held:   # held at its slot (QF-110): said with why, and once per reason, never again each day
+            if detail.get("moved_said") == held:
+                return
+            self.db.update_scheduled_post(post["id"], "pending", detail={**detail, "moved_said": held})
+            _notice(self, f"⏰ {label} could not post at its {html.escape(missed)} slot: it is still held "
+                        f"({html.escape(held)}). Moved to {html.escape(post_schedule.fmt(slot))}; it keeps moving to "
+                        "the next free slot until it can post, and you'll hear again only if the reason changes.", section="needs", key=f"missed:{post['id']}",
+                         actions=self._episode_action(post["run_id"]))
+            return
+        _notice(self, f"⏰ Missed the {html.escape(missed)} slot for {label} "
+                    f"(the daemon was off or paused). Moved to {html.escape(post_schedule.fmt(slot))}.", section="needs", key=f"missed:{post['id']}",
+                     actions=self._episode_action(post["run_id"]))
 
     CAROUSEL_CAPTION_MAX = 2200  # Instagram's caption and comment limit
 
@@ -3234,18 +3969,32 @@ class PipelineCoordinator:
         """The carousel's caption (see _carousel_post)."""
         return PipelineCoordinator._carousel_post(payload, slides)[0]
 
+    def _carousel_request(self, run_id: str, payload: dict[str, Any], slides: list[str]) -> tuple[str, str]:
+        """(caption, first comment) the carousel posts: its caption as the run's review card showed it (the
+        hashtags from the topic's list; publishable.carousel_post_base raises ValueError when the card showed
+        another), then the photo credits (_carousel_post). QF-43."""
+        from src import publishable
+        _, final = publishable.carousel_post_base(payload, self.db, run_id,
+                                                  (self.db.get_run(run_id) or {}).get("topic_id", ""))
+        return self._carousel_post(payload, slides, hashtags=final)
+
     @staticmethod
-    def _carousel_post(payload: Dict[str, Any], slides: Optional[List[str]] = None) -> Tuple[str, str]:
+    def _carousel_post(payload: Dict[str, Any], slides: Optional[List[str]] = None,
+                       hashtags: list[str] | None = None) -> Tuple[str, str]:
         """(caption, first comment) for a carousel. The caption is the carousel's own text (Meta and Upload-Post
-        flag duplicate captions; older scripts without one fall back to the Reel caption), then a credit line
+        flag duplicate captions; older scripts without one fall back to the Reel caption), with no hashtag outside
+        `hashtags` when given (publishable.carousel_base: the topic's list, as the review card shows), then a credit line
         for every photo the slides show whose licence asks for one (credits.asset_attribution, read from each
         slide's record): the Reel caption's first credit line covered neither every photo nor only these
         (platform audit, 2026-10-28). Credits that would take the caption over Instagram's 2,200 characters go
         in the first comment instead. A slide without a record (drawn before records were kept) adds the Reel
         caption's summary credit line, as before."""
         from src.multi_format import carousel_credits
-        own = (payload.get("carousel_caption") or "").strip()
-        base = own or payload.get("caption", "")
+        if hashtags is not None:
+            from src.publishable import carousel_base
+            base = carousel_base(payload, hashtags)
+        else:
+            base = (payload.get("carousel_caption") or "").strip() or payload.get("caption", "")
         slides = [Path(s) for s in slides or []]
         if slides and (slides[0].parent.parent / "carousel_fb").is_dir():  # one caption goes to both platforms:
             # credit what Facebook's copy shows as well (a carousel packaged before rc68 matched its photos apart)
@@ -3283,32 +4032,208 @@ class PipelineCoordinator:
             problems = story_credit_problems(Path(files[0]).parent.parent) or []
             if problems:
                 self.db.update_scheduled_post(post["id"], "failed", detail={"error": "Story credits: " + "; ".join(problems)})
-                self._alert(f"❌ Stories not posted for {html.escape(self.db.run_label(post['run_id']))}: "
-                            + html.escape("; ".join(problems)[:300]))
+                _notice(self, f"❌ Stories not posted for {html.escape(self.db.run_label(post['run_id']))}: "
+                            + html.escape("; ".join(problems)[:300]), section="needs", key=f"post-failed:{post['id']}",
+                             actions=[{"text": "Retry", "callback_data": f"retrypost:{post['id']}"}])
                 return "failed"
-        caption, comment = self._carousel_post(run["script_payload"], files) if kind == "carousel" else ("", "")
+        try:
+            caption, comment = (self._carousel_request(post["run_id"], run["script_payload"], files) if kind == "carousel"
+                                else ("", ""))
+        except ValueError as e:   # its caption is not the one the review card showed (QF-43)
+            self.db.update_scheduled_post(post["id"], "failed", detail={"error": str(e)})
+            _notice(self, f"❌ Carousel not posted for {html.escape(self.db.run_label(post['run_id']))}: "
+                        + html.escape(str(e)[:300]), section="needs", key=f"post-failed:{post['id']}",
+                         actions=[{"text": "Retry", "callback_data": f"retrypost:{post['id']}"}])
+            return "failed"
         res = self.publisher.publish_photos(post["run_id"], run["topic_id"], kind, files, caption=caption,
                                             **({"first_comment": comment} if comment else {}))
         self.db.update_scheduled_post(post["id"], res["status"], detail=res)
         name = {"story": "Stories", "carousel": "Carousel"}[kind]
         label = html.escape(self.db.run_label(post["run_id"]))
+        held = "; ".join((res.get("held_platforms") or {}).values())   # QF-65a: AI media never posted unlabelled
         if res["status"] == "published":
-            self._alert(f"✅ {name} posted for {label}")
+            _notice(self, f"✅ {name} posted for {label}" + (f" (with the AI label; {html.escape(held[:300])})" if held else ""), section="info")
         elif res["status"] == "unknown":
-            self._alert(f"⚠️ <b>Not sure the {name.lower()} posted</b> for {label} "
-                        f"({html.escape(str(res.get('error', ''))[:200])}). Not retried, to avoid a duplicate; please check.")
+            _notice(self, f"⚠️ <b>Not sure the {name.lower()} posted</b> for {label} "
+                        f"({html.escape(str(res.get('error', ''))[:200])}). Not retried, to avoid a duplicate; please check.", section="needs",
+                         key=f"post-failed:{post['id']}", actions=self._episode_action(post["run_id"]))
         else:
-            self._alert(f"❌ {name} not posted for {label}: {html.escape(str(res.get('error', ''))[:300])}")
+            _notice(self, f"❌ {name} not posted for {label}: {html.escape(str(res.get('error', ''))[:300])}", section="needs",
+                         key=f"post-failed:{post['id']}", actions=[{"text": "Retry", "callback_data": f"retrypost:{post['id']}"}])
         return res["status"]
 
-    def _reel_posted_before(self, run_id: str, cutoff: datetime) -> bool:
-        """Upload-Post flags similar content within 48h per account, so a topic's carousel waits."""
-        for p in self.db.list_scheduled_posts(("published",), run_id=run_id):
-            if p["kind"] == "reel":
-                return datetime.fromisoformat(p["detail"].get("posted_at") or p["updated_at"]) <= cutoff
-        return True  # posted outside the scheduler (CLI): no slot record to wait on
+    def _spacing_holds(self, post: dict[str, Any], run: dict[str, Any], slot: datetime) -> bool:
+        """QF-73: whether sensitive-topic spacing keeps this ready carousel from its slot. Its booking records why
+        (detail "waiting_for": "spacing", "spacing": the reason) and keeps it: a carousel spacing held back that then
+        loses its spaced slot to another carousel still waited for spacing (posting_view.carousel_outlook). Post
+        anyway (post_carousel_anyway) sets spacing aside for this carousel."""
+        detail = dict(post.get("detail") or {})
+        if detail.get("spacing_override"):
+            return False
+        problem = self.db.topic_problem(run["topic_id"], slot, run_id=post["run_id"], spacing_only=True)
+        if problem and (detail.get("waiting_for"), detail.get("spacing")) != ("spacing", problem):
+            detail.update(waiting_for="spacing", spacing=problem, spacing_at=slot.isoformat())
+            self.db.update_scheduled_post(post["id"], "waiting", detail=detail)
+        return bool(problem)
+
+    def _spacing_expiry(self, post: dict[str, Any], now: datetime) -> dict[str, Any] | None:
+        """The detail an expiring carousel records when the carousel plan kept it from a slot for sensitive-topic
+        spacing, or for a carousel you chose to post anyway (QF-73), else None (its detail is kept, as before)."""
+        detail = dict(post.get("detail") or {})
+        if detail.get("waiting_for") != "spacing" and not isinstance(detail.get("spacing_why"), dict):
+            return None
+        from src.posting_view import SPACING
+        return {**detail, "reason": SPACING, "expired_at": now.isoformat()}
+
+    def _watch_carousel_spacing(self, now: datetime) -> None:
+        """QF-73: a carousel the carousel plan leaves no slot for, because sensitive-topic spacing held it back (also
+        when a spaced slot is then lost to another carousel), because another carousel you chose to post anyway takes
+        its slot, or because you chose to post it anyway and another choice holds the only slot, never expires
+        silently. "No slot left" is decided once, by the plan itself (posting_view.carousel_outlook: the same order
+        the slot loop uses), the answer every screen shows. At every pass of the posting loop, from the moment its
+        Reel has posted (its window is then known), such a carousel raises ONE Needs-you alert, as soon as that is
+        so: why, until when, Post anyway (only when the plan would then give it a slot: that slot is named) and Let it
+        expire (what happens if you do nothing). Its booking keeps the reason, and once its deadline has passed it
+        expires recording it. Spacing that waits only for an unconfirmed publication raises no alert: it is decided
+        once that publication is known."""
+        from src.posting_view import (
+            SPACING,
+            carousel_outlook,
+            post_anyway_outcome,
+            spacing_buttons,
+            why_words,
+        )
+        outlook = None
+        for post in self.db.list_scheduled_posts(("waiting",)):
+            if post["kind"] != "carousel" or not self._may_post(post["run_id"]):
+                continue
+            outlook = outlook or carousel_outlook(self.db, now)
+            wait = outlook["waits"].get(post["id"])
+            if not wait or wait["earliest"] or wait["state"] != "posted":
+                continue
+            detail = dict(post.get("detail") or {})
+            record = {"spacing_why": wait["why"], "deadline": wait["deadline"].isoformat()}
+            if wait["kind"] == "spacing":
+                record.update(waiting_for="spacing", spacing=wait["reason"] or detail.get("spacing") or "")
+            if now > wait["deadline"]:
+                self.db.update_scheduled_post(post["id"], "expired", detail={
+                    **detail, **record, "reason": SPACING, "expired_at": now.isoformat()})
+                log.info("Carousel %s of %s expired: %s.", post["id"], post["run_id"], why_words(wait["why"], past=True))
+                continue
+            if not wait["unconfirmed"] and any(detail.get(k) != v for k, v in record.items()):
+                detail.update(record)
+                self.db.update_scheduled_post(post["id"], "waiting", detail=detail)
+            flag = "spacing_alert" if wait["kind"] == "spacing" else "slot_alert"
+            if wait["unconfirmed"] or detail.get(flag):
+                continue
+            outcome = ({"slot": None, "blocked_by": None} if wait["override"]
+                       else post_anyway_outcome(self.db, post, outlook=outlook))
+            detail[flag] = now.isoformat()
+            self.db.update_scheduled_post(post["id"], "waiting", detail=detail)
+            label = html.escape(self.db.run_label(post["run_id"]))
+            deadline = html.escape(post_schedule.fmt(wait["deadline"]))
+            if wait["kind"] == "spacing" and not wait["lost"]:
+                why = str(wait["reason"] or "it is too close to another sensitive topic's post")
+                head = (f"⏳ <b>Carousel waiting: {SPACING}</b>\n\n<b>{label}</b>\n\nIts carousel would post too close "
+                        f"to another sensitive topic ({html.escape(why[:1].lower() + why[1:])}), and no spaced "
+                        f"carousel slot comes before its deadline, {deadline}.\n\n")
+            else:
+                title = f"Carousel waiting: {SPACING}" if wait["kind"] == "spacing" else "Carousel without a slot"
+                head = (f"⏳ <b>{title}</b>\n\n<b>{label}</b>\n\nIts carousel has no slot before its deadline, "
+                        f"{deadline}: {html.escape(why_words(wait['why']))}.\n\n")
+            if outcome["slot"]:
+                head += (f"▶️ Post anyway: it posts at {html.escape(post_schedule.fmt(outcome['slot']))}, after the "
+                         "checks every carousel passes.\n")
+            elif outcome["blocked_by"]:
+                other = next((p for p in self.db.list_scheduled_posts(("waiting",)) if p["id"] == outcome["blocked_by"]),
+                             None)
+                head += ("Post anyway can't give it a slot: the carousel of "
+                         f"{html.escape(self.db.run_label(other['run_id']) if other else 'another episode')}, which you "
+                         "chose to post anyway, holds it.\n")
+            text = head + "⏹ Let it expire: nothing is posted. If you do nothing, it expires at its deadline."
+            # The clean chat (UI-01): one Needs-you item per carousel booking, under the key its holds use, so a later
+            # notice for it (no slot, then held at its slot) replaces this one; Post anyway and Let it expire are its
+            # actions and close it only when they were done (notifications.Outcome). With the switch off, say()
+            # leaves the item fields out and the notice is sent exactly as before.
+            _notice(self, text, buttons=spacing_buttons(post, {"next": outcome["slot"]}), group="needs",
+                    section="needs", key=f"post-failed:{post['id']}", run=post["run_id"], replace=True)
+
+    def _spaced_carousel(self, post_id: Any) -> dict[str, Any] | None:
+        """The waiting carousel a QF-73 alert's button names, while the plan still keeps it from a slot, or it waited
+        for spacing, or you chose Post anyway for it."""
+        from src.posting_view import spacing_wait
+        post = next((p for p in self.db.list_scheduled_posts(("waiting",)) if str(p["id"]) == str(post_id)), None)
+        if post is None or post["kind"] != "carousel":
+            return None
+        detail = post.get("detail") or {}
+        return post if (spacing_wait(self.db, post) or detail.get("waiting_for") == "spacing"
+                        or detail.get("spacing_override") or isinstance(detail.get("spacing_why"), dict)) else None
+
+    def post_carousel_anyway(self, post_id: Any) -> str:
+        """The spacing alert's ▶️ Post anyway (QF-73): spacing is set aside for this one carousel, which goes first
+        at the slot the carousel plan then gives it (posting_view.post_anyway_outcome), and the reply names that
+        slot; the checks every carousel passes there (QF-81 draw and audit, the approved review, its slides) still
+        apply. When a carousel you chose to post anyway earlier holds the only slot, nothing is changed and the reply
+        says so (the first choice keeps its slot).
+
+        The reply is a notifications.Outcome (UI-01): done only when spacing is set aside and the plan gives it a
+        slot, so its item closes then and stays open, saying why, on every refusal."""
+        from src.notifications import Outcome
+        from src.posting_view import carousel_outlook, post_anyway_outcome
+        post = self._spaced_carousel(post_id)
+        if post is None:
+            return Outcome("🖼 That carousel is not waiting for sensitive-topic spacing any more: see Posting.",
+                           done=False)
+        label = html.escape(self.db.run_label(post["run_id"]))
+        now = datetime.now(UTC)
+        outlook = carousel_outlook(self.db, now)
+        outcome = post_anyway_outcome(self.db, post, outlook=outlook)
+        reel_at = post_schedule.carousel_reel(self.db, post)[1]
+        deadline = html.escape(post_schedule.fmt(post_schedule.carousel_deadline(reel_at)))
+        waiting = {p["id"]: p for p in self.db.list_scheduled_posts(("waiting",))}
+        if outcome["blocked_by"]:
+            other = waiting.get(outcome["blocked_by"])
+            held = outlook["plan"].get(outcome["blocked_by"])
+            return Outcome(f"🖼 The carousel of {label} can't take that slot: the carousel of "
+                           f"{html.escape(self.db.run_label(other['run_id']) if other else 'another episode')}, which "
+                           "you chose to post anyway first, holds its only carousel slot"
+                           + (f", {html.escape(post_schedule.fmt(held))}" if held else "")
+                           + f". Nothing was changed. If you do nothing, it expires at its deadline, {deadline}.",
+                           done=False)
+        slot = outcome["slot"]
+        if not slot:
+            return Outcome(f"🖼 The carousel of {label} has no carousel slot left before its deadline, so it can't "
+                           "post.", done=False)
+        if not (post.get("detail") or {}).get("spacing_override"):
+            self.db.update_scheduled_post(post["id"], "waiting", detail={
+                **(post.get("detail") or {}), "spacing_override": True, "spacing_override_at": now.isoformat(),
+                "priority": True})
+        first = post_schedule.first_carousel_slot(reel_at, now=now - MISSED_SLOT_GRACE)
+        where = "its next carousel slot, " if slot == first else ""
+        gone = [html.escape(self.db.run_label(waiting[pid]["run_id"])) for pid in outcome["displaced"] if pid in waiting]
+        return Outcome(f"▶️ The carousel of {label} posts at {where}{html.escape(post_schedule.fmt(slot))}, if its "
+                       "checks pass. Sensitive-topic spacing is set aside for this carousel only."
+                       + (f" The carousel of {', '.join(gone)} gives up that slot and has none left before its "
+                          "deadline: you will get a notice for it." if gone else ""), done=True)
+
+    def expire_spaced_carousel(self, post_id: Any) -> str:
+        """The alert's ⏹ Let it expire (QF-73): it expires now, its booking recording why. The reply is a
+        notifications.Outcome (UI-01): done only when it expired."""
+        from src.notifications import Outcome
+        from src.posting_view import SPACING, spacing_wait
+        post = self._spaced_carousel(post_id)
+        if post is None:
+            return Outcome("🖼 That carousel is not waiting for sensitive-topic spacing any more: see Posting.",
+                           done=False)
+        wait = spacing_wait(self.db, post) or {}
+        self.db.update_scheduled_post(post["id"], "expired", detail={
+            **(post.get("detail") or {}), **({"spacing_why": wait["why"]} if wait.get("why") else {}),
+            "reason": SPACING, "by": "operator", "expired_at": datetime.now(UTC).isoformat()})
+        return Outcome(f"⏹ The carousel of {html.escape(self.db.run_label(post['run_id']))} won't post: you let it "
+                       f"expire ({SPACING}). Its Reel and other posts are not affected.", done=True)
 
     def _post_carousel_if_due(self, now: datetime) -> None:
+        self._watch_carousel_spacing(now)   # QF-73: a carousel spacing leaves no slot for is said, never silent
         local = now.astimezone(post_schedule.tz())
         slot = post_schedule.carousel_time(local.date())
         if not slot or not slot <= now < slot + MISSED_SLOT_GRACE:
@@ -3316,23 +4241,294 @@ class PipelineCoordinator:
         if self.db.get_setting("carousel_posted_on") == local.date().isoformat():
             return
         waiting = [p for p in self.db.list_scheduled_posts(("waiting",)) if self._may_post(p["run_id"])]
-        for post in waiting:  # a week-old carousel is stale next to newer Reels
-            if now - datetime.fromisoformat(post["created_at"]) > timedelta(days=7):
-                self.db.update_scheduled_post(post["id"], "expired")
-        ready = [(p, self.db.get_run(p["run_id"])) for p in waiting
-                 if now - datetime.fromisoformat(p["created_at"]) <= timedelta(days=7)]
-        ready = [(p, r) for p, r in ready if r and r["status"] == "published"
-                 and self._reel_posted_before(p["run_id"], now - CAROUSEL_GAP)]
-        if not ready:
+        ready = []
+        # One rule with Posting and the booking's confirmation (post_schedule.carousel_may_take), measured at the
+        # slot: from 48 h after its Reel posted (or its slot, while it hasn't) to its deadline, 7 days after it or its
+        # first carousel slot when later
+        for post in waiting:
+            state, reel_at = post_schedule.carousel_reel(self.db, post)
+            if post_schedule.carousel_expired(slot, reel_at):  # a week-old carousel is stale next to newer Reels
+                self.db.update_scheduled_post(post["id"], "expired", detail=self._spacing_expiry(post, now))
+            elif state == "posted" and post_schedule.carousel_may_take(slot, reel_at):
+                run = self.db.get_run(post["run_id"])
+                # QF-73: a sensitive topic's carousel too close to another sensitive topic's post waits for a later
+                # slot (it stays waiting, its reason recorded; another ready episode may take this one), unless you
+                # chose Post anyway for it
+                if run and run["status"] == "published" and not self._spacing_holds(post, run, slot):
+                    ready.append((post, run))
+        from src import carousel_lazy
+        # the newest topic; a carousel the operator asked to redraw after a hold goes first (QF-81). One that no
+        # longer matches the review you approved (QF-81b) can never post: it is set aside before the slot is taken,
+        # so the next ready episode takes the slot in its place. So can one with nothing left to post (QF-81c): its
+        # slides gone (any of them: QF-81d), or (booked undrawn) its plan missing, unreadable, corrupt or without a
+        # photo to draw; it is held with one alert.
+        for post, run in sorted(ready, key=lambda pr: (bool((pr[0].get("detail") or {}).get("priority")), pr[0]["id"]),
+                                reverse=True):
+            run_dir = Path(run["master_video_path"]).parent
+            if post["files"]:
+                # a drawn booking posts exactly the deck it booked, or nothing (QF-81d): never what is left of it
+                gone = [f for f in post["files"] if not Path(f).is_file()]
+                if gone:
+                    where = Path(post["files"][0]).parent.name
+                    self._hold_carousel(post, carousel_lazy.CarouselHeld(
+                        f"its {len(post['files'])} slides in {where}/ are no longer on disk"
+                        if len(gone) == len(post["files"]) else
+                        f"{len(gone)} of its {len(post['files'])} slides in {where}/ are no longer on disk "
+                        f"({', '.join(Path(f).name for f in gone[:3])}{', …' if len(gone) > 3 else ''}), so the rest "
+                        f"is not the carousel you approved"), final=True)
+                    continue
+                broken = self._approval_broken(post["run_id"])   # its slides' bytes, bound by the review card
+                if not broken:
+                    break
+                self._hold_carousel(post, carousel_lazy.CarouselHeld(broken), binding=True)
+                continue
+            missing = carousel_lazy.plan_problem(run_dir)
+            if missing:
+                self._hold_carousel(post, carousel_lazy.CarouselHeld(missing), final=True)
+                continue
+            broken = self._approval_broken(post["run_id"])
+            if not broken:
+                break
+            self._hold_carousel(post, carousel_lazy.CarouselHeld(broken), binding=True)
+        else:
             return
-        post, run = max(ready, key=lambda pr: pr[0]["id"])  # the newest topic
+        taken_on = self.db.get_setting("carousel_posted_on")
         self.db.set_setting("carousel_posted_on", local.date().isoformat())  # before posting: never twice a day
+        if not post["files"]:
+            # Only the episode that takes the slot is drawn (QF-81), or its preview's drawing reused when nothing
+            # changed; the slot is taken first, so a held carousel is never drawn again the same day, nor again by
+            # itself later: the operator's "Redraw" button books it for the next slot.
+            missing = broken = None
+            try:
+                from src.publication_lock import publication_lock
+                with publication_lock(self.db.db_path, "carousel:" + post["run_id"], wait=900):
+                    # checked again under the lock (QF-81c): a plan changed or removed while the lock was awaited is
+                    # never drawn
+                    missing = carousel_lazy.plan_problem(run_dir)
+                    broken = None if missing else self._approval_broken(post["run_id"])
+                    if not (missing or broken):
+                        files = carousel_lazy.render(run_dir, run["script_payload"], self.multiformat_gen,
+                                                     QualityAuditor())
+            except (carousel_lazy.CarouselHeld, ValueError) as e:
+                self._hold_carousel(post, e)
+                return
+            except OSError as e:   # a file that could not be read, written or installed: held, with the reason
+                self._hold_carousel(post, carousel_lazy.CarouselHeld(f"its slides could not be drawn or installed ({e})"))
+                return
+            if missing or broken:   # nothing was drawn or posted: the slot is left to the next ready episode
+                self._hold_carousel(post, carousel_lazy.CarouselHeld(missing or broken), binding=bool(broken),
+                                    final=bool(missing))
+                self.db.set_setting("carousel_posted_on", taken_on or "")
+                return
+            self.db.update_scheduled_post(post["id"], "waiting", files=files)
+            post = {**post, "files": files}
         self._post_photos(post, run, "carousel")
+
+    def _approved_fingerprint(self, run_id: str) -> str | None:
+        """The run's review fingerprint when it is still the one on the review card you approved (QF-110: the
+        copy, video, cover, Stories and carousel unchanged since), else None."""
+        from src.telegram_state import get, review_fingerprint
+        approval = self.db.get_approval(run_id) or {}
+        if approval.get("decision") != "approved" or approval.get("telegram_message_id") is None:
+            return None
+        try:
+            shown = get(self.db, "review-card", f"{run_id}:{approval['telegram_message_id']}")
+            now = review_fingerprint(self.db, run_id)
+        except Exception:  # noqa: BLE001 - no card record (a command-line database) or a file missing: no binding
+            return None
+        return now if shown and shown == now else None
+
+    def _approval_broken(self, run_id: str) -> str | None:
+        """Why the run no longer matches the review card you approved (QF-81b), or None. Only a Telegram approval
+        whose card fingerprint was recorded binds (as _approved_fingerprint): an approval with no card record (the
+        command line, the auto-approve flag) is not bound, as before."""
+        from src.telegram_state import get, review_fingerprint
+        approval = self.db.get_approval(run_id) or {}
+        if approval.get("decision") != "approved" or approval.get("telegram_message_id") is None:
+            return None
+        shown = get(self.db, "review-card", f"{run_id}:{approval['telegram_message_id']}")
+        if not shown:
+            return None
+        try:
+            now = review_fingerprint(self.db, run_id)
+        except Exception as e:  # noqa: BLE001 - a reviewed file missing or unreadable: held, with the reason
+            return f"a file of the review you approved can no longer be read ({e})"
+        if now != shown:
+            return "its plan or files changed after you approved the review, so it is not the carousel you approved"
+        return None
+
+    RECHECK_WAIT_PREFIX = "fact_recheck_wait:"
+    RECHECK_MAX_TRIES = 6            # then it waits for Post now (which tries once more)
+    RECHECK_FIRST_WAIT_S = 300       # doubling: 5, 10, 20, 40, 80 min
+
+    def _recheck_facts(self, run: dict[str, Any], retry_now: bool = False) -> None:
+        """QF-110: a fact review made before a code update changed the checkers' rules or the copy's fingerprint is
+        checked again under the current rules, on the copy you approved (never another), once per copy and rules;
+        the signed result, pass or fail, is kept beside the master (fact_evidence.RECHECK_FILE) for the release gate.
+        A changed sheet, reference file or copy is not re-checked: the gate blocks it. A checker that gives no verdict
+        (quota, rate limit, outage) raises RecheckUnavailable and nothing is stored: the booking is held and tried
+        again after a doubling wait, at most RECHECK_MAX_TRIES times (Post now tries once more). While a run is being
+        made the checkers are left to it (the free tier stays serial): the re-check waits and the booking is held."""
+        from src import fact_evidence as fe
+        payload = run.get("script_payload") or {}
+        payload = {**payload, "topic_id": payload.get("topic_id") or run.get("topic_id")}   # a documentary's has none
+        if not run.get("master_video_path") or not fe.fact_review_problem(payload) or not fe.drift_only(payload):
+            return
+        approved = self._approved_fingerprint(run["run_id"])
+        if not approved:
+            return
+        path = Path(run["master_video_path"]).parent / fe.RECHECK_FILE
+        try:
+            if fe.recheck_matches(payload, json.loads(path.read_text(encoding="utf-8")), approved):
+                return
+        except (OSError, ValueError):
+            pass
+        key = self.RECHECK_WAIT_PREFIX + run["run_id"]
+        try:
+            state = json.loads(self.db.get_setting(key) or "{}")
+        except ValueError:
+            state = {}
+        if self.db.get_active_progress() is not None:
+            raise fe.RecheckUnavailable("a run is using the checkers now; checked when it has finished")
+        if not retry_now:
+            if int(state.get("tries") or 0) >= self.RECHECK_MAX_TRIES:
+                raise fe.RecheckUnavailable(f"the checkers gave no verdict {state['tries']} times; tap Post now to try "
+                                            "once more")
+            if float(state.get("next_at") or 0) > time.time():
+                raise fe.RecheckUnavailable(str(state.get("why") or "waiting before the next try"))
+        from src import trace_check
+        models = trace_check.checker_models()
+        try:
+            rec = fe.run_recheck(payload, approved)
+        except fe.RecheckUnavailable as e:
+            tries = int(state.get("tries") or 0) + 1
+            self.db.set_setting(key, json.dumps({"tries": tries, "why": str(e)[:200],
+                                                 "next_at": time.time() + self.RECHECK_FIRST_WAIT_S * 2 ** (tries - 1)}))
+            raise
+        self.db.set_setting(key, "")
+        from src.atomic_files import write_json
+        write_json(path, rec)
+        log.info("Fact check of %s made before a code update, checked again under the current rules: %s.",
+                 run["run_id"], "passed" if rec.get("passed") else "did not pass")
+        paid = not all("gemini" in str(m).lower() for m in models.values())
+        _notice(self, f"🔎 <b>Fact check run again</b> for {html.escape(self.db.run_label(run['run_id']))} before it "
+                    "posts (a code update since you approved it): trace check "
+                    f"({html.escape(str(models.get('trace_check')))}) and evidence check "
+                    f"({html.escape(str(models.get('evidence_check')))}), "
+                    + ("paid API calls" if paid else "free tier") + ". "
+                    + ("Passed." if rec.get("passed") else "It did not pass, so the Reel is held."), section="info")
+
+    def _require_release(self, run: dict[str, Any], dry_run: bool = False, retry_now: bool = False) -> dict[str, Any]:
+        """The release gate, after the fact re-check a code update calls for (QF-110)."""
+        from src.release import require_release
+        if not dry_run:
+            self._recheck_facts(run, retry_now=retry_now)
+        return require_release(run, dry_run=dry_run)
+
+    def _hold_carousel(self, post: dict[str, Any], held: Exception, binding: bool = False,
+                       final: bool = False) -> None:
+        """A carousel its slot could not post (carousel_lazy): its booking says why, and one alert gives every
+        finding of its drawing and the button that redraws it and posts it in the next slot.
+
+        binding: it no longer matches the review you approved (QF-81b). Its Reel is posted, so that review cannot be
+        approved again and a redraw would only hold it again: the alert says it will not post and offers only its
+        Details (and the 🏠 every notice has).
+
+        final: nothing is left to draw or post from (QF-81c: its slides gone, all or some (QF-81d), or its plan missing,
+        unreadable, corrupt or without a photo to draw), so a redraw cannot help either: the same alert, naming what
+        is missing."""
+        from src import carousel_lazy
+        if binding or final:
+            self.db.update_scheduled_post(post["id"], "failed", detail={
+                "error": f"held at its slot: {held}", "held": True, ("binding" if binding else "final"): True})
+            _notice(self, f"❌ <b>Carousel not posted</b> for {html.escape(self.db.run_label(post['run_id']))}: "
+                    f"{html.escape(str(held)[:400])}." + chr(10) * 2
+                    + "This carousel will not post. Nothing was posted, and its Reel and other posts are not "
+                      "affected.",
+                    buttons=[[{"text": "📋 Details", "callback_data": f"cpost:{self.db.run_key(post['run_id'])}"}]],
+                    section="needs", key=f"post-failed:{post['id']}", run=post["run_id"], replace=True)
+            return
+        record = getattr(held, "record", None) or {}
+        self.db.update_scheduled_post(post["id"], "failed", detail={"error": f"held at its slot: {held}", "held": True})
+        found = carousel_lazy.summary(record, limit=2400)
+        # The clean chat (UI-01): one Needs-you item per held booking (its key), its Redraw an item action that
+        # closes it only when redraw_carousel says it was done (notifications.Outcome); the earlier chat's message
+        # is sent exactly as before (say() leaves the item fields out with the switch off).
+        _notice(self, f"❌ <b>Carousel held</b> for {html.escape(self.db.run_label(post['run_id']))}: "
+                f"{html.escape(str(held)[:400])}" + (chr(10) * 2 + html.escape(found) if found else "")
+                + chr(10) * 2 + "Nothing was posted. Redraw it once the cause is dealt with; it then posts in the "
+                  "next carousel slot, ahead of newer episodes.",
+                buttons=[[{"text": "🔁 Redraw and post next slot", "callback_data": f"carredraw:{post['id']}"}]],
+                section="needs", key=f"post-failed:{post['id']}", run=post["run_id"], replace=True)
+
+    def redraw_carousel(self, post_id: Any) -> str:
+        """The hold alert's 🔁: the held carousel's drawing is discarded and it waits again, first in line for the
+        next carousel slot inside its window, where it is drawn afresh and audited before it posts (QF-81).
+
+        The reply is a notifications.Outcome (UI-01): done only when it waits again for a slot, so the hold's item
+        closes then and stays open, saying why, on every refusal."""
+        from src import carousel_lazy
+        from src.notifications import Outcome
+        post = next((p for p in self.db.list_scheduled_posts(("failed",)) if str(p["id"]) == str(post_id)), None)
+        if post is None or post["kind"] != "carousel" or not (post.get("detail") or {}).get("held"):
+            return Outcome("🖼 That carousel is not held any more: see Posting.", done=False)
+        run = self.db.get_run(post["run_id"]) or {}
+        if not run.get("master_video_path"):
+            return Outcome("🖼 That episode has no run folder to draw from.", done=False)
+        if post["files"] and post["detail"].get("final"):   # QF-81d: a redraw makes a new deck, not the one booked
+            return Outcome(f"🖼 The carousel of {html.escape(self.db.run_label(post['run_id']))} can't be redrawn: "
+                           "its booked slides are gone, and a new drawing would not be the carousel you approved. It "
+                           "will not post, and nothing was changed.", done=False)
+        broken = self._approval_broken(post["run_id"])
+        if broken:   # QF-81b: it would only be held again at its slot, and take that slot from a newer episode
+            return Outcome(f"🖼 The carousel of {html.escape(self.db.run_label(post['run_id']))} can't be redrawn: "
+                           f"{html.escape(broken)}. It will not post, and nothing was changed.", done=False)
+        missing = carousel_lazy.plan_problem(Path(run["master_video_path"]).parent)
+        if missing:  # QF-81c: a redraw draws from this plan, so it would only be held again
+            return Outcome(f"🖼 The carousel of {html.escape(self.db.run_label(post['run_id']))} can't be redrawn: "
+                           f"{html.escape(missing)}. It will not post, and nothing was changed.", done=False)
+        carousel_lazy.discard(Path(run["master_video_path"]).parent)
+        self.db.update_scheduled_post(post["id"], "waiting", files=[],
+                                      detail={"redraw": True, "priority": True, "held_before": post["detail"].get("error")})
+        car = post_schedule.first_carousel_slot(post_schedule.carousel_reel(self.db, post)[1],
+                                                now=datetime.now().astimezone())
+        label = html.escape(self.db.run_label(post["run_id"]))
+        if not car:
+            self.db.update_scheduled_post(post["id"], "expired")
+            return Outcome(f"🖼 The carousel of {label} has no carousel slot left in its window, so it won't post.",
+                           done=False)
+        return Outcome(f"🔁 The carousel of {label} is drawn again and posts {html.escape(post_schedule.fmt(car))}, if "
+                       "its checks pass.", done=True)
+
+    def preview_carousel(self, run_id: str) -> dict[str, Any]:
+        """The review card's 🖼 Preview carousel: both copies drawn and audited as the slot would (carousel_lazy.draw;
+        reused while nothing changed, so the slot reuses it too). Returns the drawing's record with "run_dir"."""
+        from src import carousel_lazy
+        from src.publication_lock import publication_lock
+        run = self.db.get_run(run_id) or {}
+        if not run.get("master_video_path"):
+            raise ValueError("This run has no run folder.")
+        run_dir = Path(run["master_video_path"]).parent
+        if not carousel_lazy.planned(run_dir):
+            raise ValueError("This run has no carousel to preview.")
+        with publication_lock(self.db.db_path, "carousel:" + run_id, wait=900):
+            record = carousel_lazy.draw(run_dir, run.get("script_payload") or {}, self.multiformat_gen, QualityAuditor())
+        return {**record, "run_dir": str(run_dir)}
 
     def publish_run(self, run_id: str, dry_run: bool = False, previous_status: str = "queued") -> Dict[str, Any]:
         from src.publication_lock import publication_lock
         with publication_lock(self.db.db_path, run_id, wait=30):
             return self._publish_run_locked(run_id, dry_run, previous_status)
+
+    def _timed_upload(self, run: dict[str, Any], upload):
+        """An upload, timed as the run's "upload" stage; its stage budgets are checked once it ends (QF-74)."""
+        from src.stage_timer import file_findings
+        run_dir = Path(run["master_video_path"]).parent
+        try:
+            with StageTimer(run_dir).stage("upload"):
+                return upload()
+        finally:
+            file_findings(self.db, run["run_id"], run_dir)
 
     def _publish_run_locked(self, run_id: str, dry_run: bool = False, previous_status: str = "queued") -> Dict[str, Any]:
         self._check_cancel(run_id)
@@ -3351,9 +4547,9 @@ class PipelineCoordinator:
         if profile not in ("reel_9x16", "deep_dive_16x9"):
             raise ValueError("No uploader is configured for this delivery profile; use the exported artifacts.")
         if not dry_run and payload.get("origin") == "curated" and not payload.get("human_reviewed"):
-            raise ValueError("This run used an unreviewed curated script; it can only be published after review.")
-        from src.release import require_release
-        require_release(run, dry_run=dry_run)
+            from src.release import ReleaseBlocked
+            raise ReleaseBlocked("This run used an unreviewed curated script; it can only be published after review.")
+        self._require_release(run, dry_run=dry_run)
         envelope = self.publisher.build_envelope(
             run_id, Path(run["master_video_path"]), Path(run["thumbnail_cover_path"]),
             Path(run["thumbnail_grid_path"]), payload,
@@ -3362,9 +4558,11 @@ class PipelineCoordinator:
         if dry_run:
             self.db.update_run(run_id, "approved")
         elif not self.db.claim_publication(run_id):
-            raise ValueError("Publication was already claimed or this run is not ready")
+            # QF-73: a sensitive topic too close to another one is refused with that reason
+            raise ValueError(self.db.topic_problem(run["topic_id"], run_id=run_id, spacing_only=True)
+                             or "Publication was already claimed or this run is not ready")
         try:
-            pub = self.publisher.publish_reel(envelope, dry_run=dry_run)
+            pub = self._timed_upload(run, lambda: self.publisher.publish_reel(envelope, dry_run=dry_run))
         except Exception as exc:
             if not dry_run:
                 self.db.update_run(run_id, "publish_unknown", error=type(exc).__name__)
@@ -3374,23 +4572,29 @@ class PipelineCoordinator:
             raise
         status = pub["status"]
         receipt = None
-        if config.TELEGRAM_CARDS_V2 and hasattr(self, "telegram_bot") and hasattr(self.telegram_bot, "create_publish_receipt"):
-            receipt = self.telegram_bot.create_publish_receipt(run_id, payload.get("title", tid))
+        shorts = config.YOUTUBE_SHORTS and profile == "reel_9x16"
+        if (status == "published" and config.TELEGRAM_CARDS_V2 and hasattr(self, "telegram_bot")
+                and hasattr(self.telegram_bot, "create_publish_receipt")):
+            # Made once the Reel's outcome is known, from what was attempted: each platform live or failed as it
+            # came out, the Short listed only when it will be attempted (it showed every platform "live", and
+            # "Reel & Short" with Shorts off or failed: UI-02). A Reel that failed outright has the alert below.
+            receipt = self.telegram_bot.create_publish_receipt(
+                run_id, payload.get("title", tid), platforms=_receipt_platforms(envelope["platforms"], shorts),
+                initial=_receipt_outcomes(pub, envelope["platforms"]))
 
         if status == "published":
             self.db.update_run(run_id, "published")
             self.topic_engine.record_status(tid, "published", run_id=run_id)
             log.info("Published %s.", run_id)
-            urls = pub.get("post_urls") or pub.get("post_ids") or {}
-            if receipt:
-                receipt.update_platform("instagram", "live", url=urls.get("instagram"))
-                receipt.update_platform("facebook", "live", url=urls.get("facebook"))
-            else:
-                links = "\n".join(f"{html.escape(k)}: {html.escape(str(v))}" for k, v in urls.items())
-                missing = pub.get("missing_platforms")
-                warn = (f"\n⚠️ Not posted to {html.escape(', '.join(missing))}: {html.escape(str(pub.get('error', ''))[:300])}"
-                        if missing else "")
-                self._alert(f"✅ <b>Published</b>\n\n<b>{html.escape(payload.get('title', tid))}</b>\n\n{links}{warn}")
+            if not receipt:
+                urls, missed = pub.get("post_urls") or {}, _missing_reasons(pub)
+                links = "\n".join(f"✅ {html.escape(_PLATFORM_NAMES.get(p, p))}: {html.escape(str(urls.get(p) or 'posted'))}"
+                                  for p in envelope["platforms"] if p not in missed)
+                failed = "".join(f"\n{_failed_line(p, why)}" for p, why in missed.items())
+                head = "⚠️ <b>Posted with problems</b>" if failed else "✅ <b>Published</b>"
+                _notice(self, f"{head}\n\n<b>{html.escape(payload.get('title', tid))}</b>\n\n{links}{failed}",
+                            section="needs" if failed else "info", key=f"posted:{run_id}", run=run_id, replace=True,
+                             actions=self._episode_action(run_id) if failed else None)
         elif status == "simulated":
             self.db.update_run(run_id, "simulated")
             self.topic_engine.record_status(tid, previous_status, run_id=run_id)
@@ -3433,41 +4637,57 @@ class PipelineCoordinator:
             self.topic_engine.record_status(tid, "failed", run_id=run_id)
             log.error("Publishing failed for %s: %s", run_id, pub.get("error"))
             self._alert(f"❌ <b>Publish failed</b>\n\n<b>{html.escape(self.db.run_label(run_id))}</b>\n<blockquote expandable>{html.escape(str(pub.get('error') or 'no error details were returned')[:500])}</blockquote>\nNothing was posted. The topic goes back in the queue for a retry.",
-                        group="needs")
+                        group="needs", key=f"fail:{run_id}", run=run_id,
+                        actions=[{"text": "Details", "callback_data": f"chist:{self.db.run_key(run_id)}"}])
         if profile == "reel_9x16" and status == "published" and not dry_run:
             self._facebook_finishing(run_id)  # its cover and captions on Facebook, as soon as it is up
-        if config.YOUTUBE_SHORTS and profile == "reel_9x16" and status in ("published", "simulated"):
-            pub["youtube_short"] = short = self.publisher.publish_short(envelope, dry_run=dry_run)
+        if shorts and status in ("published", "simulated"):
+            pub["youtube_short"] = short = self._timed_upload(
+                run, lambda: self.publisher.publish_short(envelope, dry_run=dry_run))
             if short["status"] == "published":
                 if receipt:
                     yt_urls = list(short.get("post_urls", {}).values())
                     receipt.update_platform("youtube", "live", url=yt_urls[0] if yt_urls else None)
                 else:
                     links = "\n".join(html.escape(str(v)) for v in short.get("post_urls", {}).values())
-                    self._alert(f"▶️ <b>YouTube Short posted</b> ({html.escape(config.YOUTUBE_SHORTS_PRIVACY)})\n"
-                                f"<b>{html.escape(payload.get('title', tid))}</b>\n{links}")
+                    _notice(self, f"▶️ <b>YouTube Short posted</b> ({html.escape(config.YOUTUBE_SHORTS_PRIVACY)})\n"
+                                f"<b>{html.escape(payload.get('title', tid))}</b>\n{links}", section="info", run=run_id)
+            elif short["status"] == "skipped" and receipt:   # no uploader set up: not attempted, said in plain words
+                receipt.update_platform("youtube", "skipped", error="no account that can upload Shorts is set up")
             elif short["status"] in ("failed", "unknown"):
                 if receipt:
-                    receipt.update_platform("youtube", "failed", error=str(short.get("error", "")))
+                    receipt.update_platform("youtube", short["status"], error=str(short.get("error", "")))
                 else:
                     # The Reel stands either way; an unknown Short is checked by hand, never re-sent blindly.
-                    self._alert(f"⚠️ <b>YouTube Short {'unconfirmed' if short['status'] == 'unknown' else 'not posted'}</b>\n"
+                    _notice(self, f"⚠️ <b>YouTube Short {'unconfirmed' if short['status'] == 'unknown' else 'not posted'}</b>\n"
                                 f"<b>{html.escape(payload.get('title', tid))}</b>: the Reel is unaffected.\n"
-                                f"{html.escape(str(short.get('error', ''))[:300])}")
+                                f"{html.escape(str(short.get('error', ''))[:300])}", section="needs", run=run_id,
+                                 actions=self._episode_action(run_id))
         if receipt and status == "published":
-            receipt.finalize(stories_delay_minutes=config.STORY_DELAY_MINUTES, carousel_slot="next slot")
+            # Its Stories and carousel as booked, never a fixed promise (it said "in 45 minutes" and "its next
+            # slot" whether or not any was booked: UI-02); Posting has their times.
+            booked = {p["kind"] for p in self.db.list_scheduled_posts(("pending", "waiting"), run_id=run_id)}
+            follow = [name for kind, name in (("story", "Stories"), ("carousel", "carousel")) if kind in booked]
+            receipt.finalize(follow_up=f"◽ Its {' and '.join(follow)} follow as booked (see Posting)." if follow else "")
         if dry_run and profile == "reel_9x16" and status == "simulated":
             # A live approval books the Stories and the carousel for their slots; a dry run skipped them
             # entirely, so it never tested them. They are simulated here, each request as it would be sent.
             run_dir = Path(run["master_video_path"]).parent
-            stories = sorted(str(p) for p in (run_dir / "stories").glob("story_*.jpg"))
+            from src.release import story_frames
+            stories = [str(p) for p in story_frames(run_dir)]
             slides = sorted(str(p) for p in (run_dir / "carousel").glob("carousel_slide_*.jpg"))
             if stories:
                 pub["stories"] = self.publisher.publish_photos(run_id, tid, "story", stories, dry_run=True)
+            from src import carousel_lazy
+            if carousel_lazy.planned(run_dir) and not slides:   # drawn only when it takes a real slot (QF-81)
+                pub["carousel"] = {"status": "deferred", "reason": "drawn only when it takes a carousel slot"}
             if slides:
-                caption, comment = self._carousel_post(payload, slides)
-                pub["carousel"] = self.publisher.publish_photos(run_id, tid, "carousel", slides, caption=caption,
-                                                                dry_run=True, **({"first_comment": comment} if comment else {}))
+                try:
+                    caption, comment = self._carousel_request(run_id, payload, slides)
+                    pub["carousel"] = self.publisher.publish_photos(run_id, tid, "carousel", slides, caption=caption,
+                                                                    dry_run=True, **({"first_comment": comment} if comment else {}))
+                except ValueError as e:   # its caption is not the one the review card showed (QF-43)
+                    pub["carousel"] = {"status": "failed", "error": str(e)}
         self._stamp_review(run_id, status, pub)
         return {"status": status, "publish_result": pub}
 
@@ -3481,11 +4701,20 @@ class PipelineCoordinator:
                 if (pub.get("carousel") or {}).get("status") == "simulated":
                     done.append("carousel" + (" (Instagram and Facebook copies)" if pub["carousel"].get("planned_parts", 0) > 1 else ""))
                 text = "✅ <b>Approved · dry run</b>: nothing was posted. Simulated: " + ", ".join(done) + "."
+                if (pub.get("carousel") or {}).get("status") == "deferred":
+                    text += " The carousel is drawn only when it takes a carousel slot, so a dry run does not draw it."
             elif status == "published":
                 urls = dict(pub.get("post_urls") or {})
                 for url in ((pub.get("youtube_short") or {}).get("post_urls") or {}).values():
                     urls["youtube short"] = url
-                text = "✅ <b>Approved · posted</b>" + "".join(f"\n• {html.escape(k)}: {html.escape(str(v))}" for k, v in urls.items())
+                problems = dict(_missing_reasons(pub))
+                short = pub.get("youtube_short") or {}
+                if short.get("status") in ("failed", "unknown"):
+                    problems["youtube short"] = ("not confirmed: " if short["status"] == "unknown" else "") + str(short.get("error") or "")
+                # The outcome as it is: a platform that failed is named, never folded into "posted" (UI-02)
+                text = (("⚠️ <b>Approved · posted with problems</b>" if problems else "✅ <b>Approved · posted</b>")
+                        + "".join(f"\n✅ {html.escape(_PLATFORM_NAMES.get(k, k))}: {html.escape(str(v))}" for k, v in urls.items())
+                        + "".join(f"\n{_failed_line(k, why)}" for k, why in problems.items()))
             elif status == "unknown":
                 text = ("⚠️ <b>Approved · publish unconfirmed</b>: check the accounts, then answer the "
                         "PUBLISH UNCONFIRMED alert (It posted / It didn't post).")  # it sits above the panel
@@ -3510,6 +4739,108 @@ def with_earlier_rejections(notes: str, earlier: List[str]) -> str:
             "If the topic's framing depends on one, frame it with facts the research notes do support:\n" + history)
 
 
+_undo_clock = time.time    # the Undo window's clock and wait (tests replace them)
+_undo_sleep = time.sleep
+UNDO_POLL_SECONDS = 2.0
+
+
+def undone_before_acting(db, run_id: str, decision: str, bot=None) -> bool:
+    """Claims the review's decision before acting on it (REVIEW_CLAIM_PREFIX: its decision time), then reads
+    it again: True when the card's Undo reopened it first, so the wait goes on. The undo
+    (db.undo_review_decision) refuses once the claim holds the decision's time; both are single writes, so
+    exactly one of them wins (a V2 Undo reopened runs already published: UI-02).
+
+    A decision tapped on a V2 review card is claimed only once its Undo window (config.REVIEW_UNDO_MINUTES) has
+    passed, so the card's Undo works for the whole window it offers (it lasted one 5 s poll: review 1 of UI-02).
+    The wait reads the decision again every UNDO_POLL_SECONDS meanwhile. On the claim the card's Undo button is
+    removed (`bot.close_undo`)."""
+    if not (hasattr(db, "get_approval") and hasattr(db, "set_setting")):
+        return False
+    approval = db.get_approval(run_id) or {}
+    stamp = str(approval.get("decision_timestamp") or "")
+    if approval.get("decision") != decision:
+        return _reopened(approval)
+    if not stamp:
+        return False
+    from src.telegram_bot import undo_until, v2_card_decision
+
+    def changed(now: dict) -> bool:
+        return now.get("decision") != decision or str(now.get("decision_timestamp") or "") != stamp
+
+    v2 = v2_card_decision(db, run_id, approval)
+    until = undo_until(approval) if v2 else None
+    if until is not None and _undo_clock() < until:
+        log.info("The %s of %s can be undone on its card until its window ends; acting after it.", decision, run_id)
+    while until is not None and _undo_clock() < until:
+        _undo_sleep(max(0.0, min(UNDO_POLL_SECONDS, until - _undo_clock())))
+        now = db.get_approval(run_id) or {}
+        if changed(now):
+            log.info("The %s of %s was undone on its card before it was acted on; waiting again.", decision, run_id)
+            return bool(now)
+    db.set_setting(REVIEW_CLAIM_PREFIX + run_id, stamp)
+    now = db.get_approval(run_id) or {}
+    if changed(now) and _reopened(now):
+        log.info("The %s of %s was undone on its card before it was acted on; waiting again.", decision, run_id)
+        return True
+    if v2 and bot is not None and hasattr(bot, "close_undo"):
+        bot.close_undo(run_id)      # claimed: no Undo stays tappable
+    return False
+
+
+def slot_clock(db, run_id: str) -> datetime | None:
+    """The time an approved Reel's slot is picked from: its decision's time when that was at most the Undo window and
+    half an hour ago (the window was sized for a slot from then: _approval_window), otherwise None (now)."""
+    try:
+        decided = datetime.fromisoformat(str((db.get_approval(run_id) or {}).get("decision_timestamp")))
+    except (TypeError, ValueError, AttributeError):
+        return None
+    if decided.tzinfo is None:
+        return None
+    age = datetime.fromtimestamp(_undo_clock()).astimezone() - decided
+    return decided if timedelta(0) <= age <= timedelta(minutes=float(config.REVIEW_UNDO_MINUTES) + 30) else None
+
+
+def _reopened(approval: dict[str, Any]) -> bool:
+    """The review changed after the wait read its decision: an Undo reopened it, or it was decided again since."""
+    return approval.get("decided_by") == UNDONE_BY or approval.get("decision") not in (None, "pending") and bool(approval)
+
+
+_PLATFORM_NAMES = {"instagram": "Instagram", "facebook": "Facebook", "youtube": "YouTube",
+                   "youtube short": "YouTube Short"}
+
+
+def _missing_reasons(pub: dict[str, Any]) -> dict[str, str]:
+    """{platform: why it was not posted} for each platform a published Reel missed (publisher.platform_errors,
+    or the merged error for a result recorded before it)."""
+    reasons = pub.get("platform_errors") or {}
+    return {p: str(reasons.get(p) or pub.get("error") or "no reason was returned") for p in pub.get("missing_platforms") or []}
+
+
+def _failed_line(platform: str, reason: str) -> str:
+    """'❌ Instagram: <plain reason>' (HTML)."""
+    from src.telegram_bot import plain_reason
+    return f"❌ {html.escape(_PLATFORM_NAMES.get(platform, platform))}: {html.escape(plain_reason(reason))}"
+
+
+def _receipt_platforms(requested: list[str], shorts: bool) -> list[str]:
+    """The publish receipt's rows: what was attempted, in order (a documentary's YouTube video is "youtube-video";
+    "youtube" is the Reel's Short, listed only when it will be attempted)."""
+    rows = [p for p in ("instagram", "facebook") if p in requested]
+    rows += ["youtube-video"] if "youtube" in requested else []
+    return rows + (["youtube"] if shorts and rows and "youtube" not in requested else [])
+
+
+def _receipt_outcomes(pub: dict[str, Any], requested: list[str]) -> dict[str, dict[str, Any]]:
+    """The receipt's first state from a published result: each requested platform it did not miss is live (with
+    its link when one was returned), each missed one failed with its reason."""
+    urls, missed = pub.get("post_urls") or {}, _missing_reasons(pub)
+    row = {"youtube": "youtube-video"}
+    out = {row.get(p, p): {"status": "live", "url": urls.get(p) if isinstance(urls.get(p), str) else None}
+           for p in requested if p not in missed}
+    out.update({row.get(p, p): {"status": "failed", "error": why} for p, why in missed.items()})
+    return out
+
+
 def _write_result(path: Optional[str], result: Dict[str, Any]) -> None:
     """The worker's outcome for the daemon that started it (never fails the run)."""
     if not path:
@@ -3518,6 +4849,24 @@ def _write_result(path: Optional[str], result: Dict[str, Any]) -> None:
         Path(path).write_text(json.dumps(result, default=str), encoding="utf-8")
     except OSError as e:
         log.warning("Could not write the run result to %s: %s", path, e)
+
+
+def proposal_notice(bot, db, proposal: dict[str, Any]) -> None:
+    """A ready improvement proposal for the operator. The clean chat makes the night's proposals one item,
+    "🧭 3 improvement proposals" with 🧭 Improvements (design §6.1.3: the 29 Oct three-card complaint); otherwise
+    each is its own card with its buttons."""
+    from src import improve
+    if not config.TELEGRAM_CLEAN_CHAT:
+        text, buttons = improve.card(proposal)
+        bot.notify(text, buttons=buttons, silent=True, record_alert=False, group="needs")
+        return
+    # The proposals item is a condition item (UI-01b): it follows the ledger, and resolves itself once every
+    # proposal is decided.
+    from src import notice_conditions
+    notice_conditions.sync(db)
+    kick = getattr(getattr(bot, "layout", None), "kick", None)
+    if callable(kick):
+        kick()
 
 
 POLL_BACKOFF_SECONDS, POLL_BACKOFF_MAX = 10, 120
@@ -3546,7 +4895,7 @@ def poll_loop(bot, handler) -> None:
                 time.sleep(POLL_BACKOFF_SECONDS)
 
 
-REMAKE_STATUSES = ("failed", "rejected", "regenerate")  # runs with a video that Re-render makes again without paying twice
+REMAKE_STATUSES = ("failed", "timed_out", "rejected", "regenerate")  # runs with a video that Re-render makes again without paying twice
 PROMOTABLE_STATUSES = ("simulated", "approved")  # a finished dry run that "Post for real" may publish
 PROMOTED_PREFIX = "promoted:"  # setting: the run was promoted to real posting (and when)
 # Whether the posting process posts only promoted runs (a dry-run daemon or bot), so Posting and Slots show what
@@ -3568,6 +4917,31 @@ def graph_reason(error: Exception) -> str:
     text = str(error)
     found = re.search(r"""['"]message['"]:\s*['"](.+?)['"],\s*['"](?:type|code)['"]""", text)
     return (found[1] if found else text)[:300]
+
+
+LAYOUT_HELD_DIR = "held"   # a held deck's frames, under its own folder: out of the posting globs (non-recursive)
+
+
+def hold_layout_error(future, run_dir: Path, folder: str, payload: dict[str, Any]) -> list[Path]:
+    """`future`'s slides, or [] when the deck raised typography.LayoutError (QF-23: its checked copy fits no
+    permitted layout whole): that deck alone is held. The error is logged, the frames it had saved are moved to
+    <folder>/held/ (the posting globs and the Facebook copy's file check then find none), and payload["layout_holds"]
+    records it for the review card. Any other error propagates."""
+    from src.typography import LayoutError
+    try:
+        return future.result()
+    except LayoutError as e:
+        log.error("%s held: its text cannot be set whole (%s); the run goes on without it.", folder, e)
+        src = Path(run_dir) / folder
+        moved = []
+        if src.is_dir():
+            dst = src / LAYOUT_HELD_DIR
+            dst.mkdir(exist_ok=True)
+            for p in sorted(src.glob("*.jpg")):
+                shutil.move(str(p), str(dst / p.name))
+                moved.append(p.name)
+        payload.setdefault("layout_holds", []).append({"deck": folder, "error": str(e), "moved": moved})
+        return []
 
 
 def prepared_still(path):
@@ -3741,14 +5115,68 @@ def rerender_started(db, run_id: str) -> str:
             "(a stage whose inputs changed, or a voiceover outside the length limits, is made again). Its progress shows here.")
 
 
+def rerender_reply(coordinator, run_id: str, launch) -> "notifications.Outcome":
+    """Re-render's reply with its outcome (notifications.Outcome): refused, a run already in progress, or started.
+    `launch(extra)` starts it and returns an Outcome that is not done when it could not start. The outcome is the
+    handler's own, never read from the reply's words (a topic called "Notre-Dame" is not a refusal)."""
+    refusal = coordinator.rerender_refusal(run_id)
+    if refusal:
+        return notifications.Outcome(f"🔁 {html.escape(refusal)}", done=False)
+    started = launch(coordinator.remake_args(run_id))
+    if getattr(started, "done", True) is False:
+        return started
+    return notifications.Outcome(rerender_started(coordinator.db, run_id), done=True)
+
+
+UPDATES_BUSY = "A production run is in progress; try again when it finishes."
+UPDATES_STARTED = "🧰 Applying updates on a branch and running the tests. I'll report back."
+UPDATES_ITEM_KEY = "maintenance:apply"   # the Needs-you item offering 🧰 Apply updates
+
+
+def apply_updates_reply(busy: bool, start) -> "notifications.Outcome":
+    """🧰 Apply updates' reply with its outcome: refused in production or while a production run is in progress
+    (its item stays open, saying why), else started in the background."""
+    from src import maintenance
+    if not maintenance.apply_allowed():  # an old Apply button pressed in production
+        return notifications.Outcome(html.escape(maintenance.PRODUCTION_REFUSAL), done=False)
+    if busy:
+        return notifications.Outcome(UPDATES_BUSY, done=False)
+    start()
+    return notifications.Outcome(UPDATES_STARTED, done=True)
+
+
+def say_update_report(bot, plan) -> None:
+    """The weekly update report (design §8: every sender writes into the notifications panel, never a message).
+    With something to apply outside production it is a Needs-you item whose action is 🧰 Apply updates; otherwise an
+    info item until next week's, and an Apply item still open is resolved (nothing is left to apply)."""
+    from src import maintenance
+    buttons = maintenance.apply_buttons(plan)  # none in production: updates arrive as a signed release
+    if buttons:
+        notifications.say(bot.notify, maintenance.report_text(plan), buttons=[buttons], group="needs",
+                          key=UPDATES_ITEM_KEY, replace=True, record_alert=False)
+        return
+    if config.TELEGRAM_CLEAN_CHAT:
+        notifications.close_key(bot.db, UPDATES_ITEM_KEY)
+    bot.notify(maintenance.report_text(plan), transient=True, ttl_minutes=10070, group="info",  # until next week's
+               key="maintenance:weekly")
+
+
+
 def run_in_worker(content_format: str, dry_run: bool, schedule_posts: bool, timeout: Optional[float] = None,
-                  extra: Optional[List[str]] = None, resume: Optional[str] = None) -> Dict[str, Any]:
+                  extra: Optional[List[str]] = None, resume: Optional[str] = None, db=None) -> Dict[str, Any]:
     """Runs one production cycle in its own process (main.py run), as the development bot already does.
     A native crash in a run (2026-10-23: a GPU library brought a worker down) then costs that run only,
     not the daemon with its bot and schedule. The daemon's poller keeps handling Telegram; the worker
     reads decisions from the database (--background-polling). Returns the worker's result, with
-    "crashed" (and the exit code) when it ended without writing one."""
+    "crashed" (and the exit code) when it ended without writing one, and "timed_out" with stopped=True when
+    its production outran the deadline plus its grace without stopping itself (src/worker_deadline.py):
+    `timeout` seconds of production, review waits excluded (default: config.run_deadline_limits)."""
     import tempfile
+    import uuid
+    limit = config.run_deadline_limits()[1] if timeout is None else timeout
+    if not 0 < limit < float("inf"):
+        raise ValueError("The worker's limit must be a positive number of seconds")
+    attempt = uuid.uuid4().hex  # the runs this worker claims carry it (claim_run); nothing else is ever stopped
     fd, result_path = tempfile.mkstemp(prefix="rr-run-", suffix=".json")
     os.close(fd)
     # `resume`: re-render that failed run in place (its script, voice and clips are reused).
@@ -3756,15 +5184,23 @@ def run_in_worker(content_format: str, dry_run: bool, schedule_posts: bool, time
     cmd = ([sys.executable, "-u", "main.py", *command, "--background-polling", "--result-file", result_path]
            + (["--dry-run"] if dry_run else []) + (["--schedule-posts"] if schedule_posts else []) + list(extra or []))
     try:
-        proc = subprocess.run(cmd, cwd=str(config.BASE_DIR), stdout=subprocess.DEVNULL, stderr=subprocess.PIPE,
-                              text=True, encoding="utf-8", errors="replace", timeout=timeout)
+        proc = subprocess.Popen(cmd, cwd=str(config.BASE_DIR), stdout=subprocess.DEVNULL, stderr=subprocess.PIPE,
+                                text=True, encoding="utf-8", errors="replace",
+                                env=dict(os.environ, RELIC_WORKER_ATTEMPT=attempt), **worker_deadline.launch_options())
+        try:
+            _, stderr, stopped = worker_deadline.supervise(proc, limit, db, attempt)
+        except BaseException:  # never leave an unsupervised worker behind
+            worker_deadline.stop_worker_tree(proc)
+            raise
+        if stopped:
+            return {"status": "timed_out", "stopped": True, "attempt": attempt, "exit_code": proc.returncode}
         try:
             result = json.loads(Path(result_path).read_text(encoding="utf-8") or "{}")
         except (OSError, ValueError):
             result = {}
         if not result:  # no result written: the process died (a native crash ends it without one)
             result = {"status": "crashed", "exit_code": proc.returncode,
-                      "stderr_tail": "\n".join((proc.stderr or "").strip().splitlines()[-8:])}
+                      "stderr_tail": "\n".join((stderr or "").strip().splitlines()[-8:])}
         result["exit_code"] = proc.returncode
         return result
     finally:
@@ -3839,7 +5275,7 @@ def announce_release(db: PipelineDatabase, bot, startup: bool = False) -> Option
         except Exception as e:  # a clear never stops the daemon starting
             log.warning("Could not clear the chat after the release: %s", e)
         return text
-    bot.notify(text, group="info")
+    bot.notify(text, group="info", key="policy:weekly")
     return None
 
 
@@ -3874,10 +5310,12 @@ def reconcile_interrupted_runs(db: PipelineDatabase, topic_engine=None) -> List[
                 continue
             if (datetime.now(timezone.utc) - started).total_seconds() < INTERRUPTED_GRACE_SECONDS:
                 continue
-        db.update_run(run_id, "failed", error="Interrupted: the process making it ended (crash or stop) before it finished.")
+        from src.telegram_bot import INTERRUPTED_ERROR
+        db.update_run(run_id, "failed", error=INTERRUPTED_ERROR)
         db.clear_active_progress(run_id)
         if topic_engine is not None and row["topic_id"]:
             topic_engine.record_status(row["topic_id"], "queued", run_id=run_id)
+        worker_deadline.forget(db, run_id)  # its process cannot release it any more (QF-74)
         log.warning("Run %s was interrupted (its process ended); marked failed, topic back in the queue.", run_id)
         done.append(run_id)
     return done
@@ -3890,9 +5328,13 @@ def claim_run(db, run_id: str) -> None:
     """Records this process (pid and creation identity) as the one making run_id, until it releases it or
     ends. Another process never resumes a review wait for a run a live process owns (resume_reviews)."""
     from src.process_state import identity
+    worker_deadline.mark_started(run_id)  # its production deadline counts from here (src/worker_deadline.py)
+    now = datetime.now(timezone.utc).isoformat()
     try:
+        # attempt: the supervisor that launched this worker finds its runs by it (worker_deadline.owned_runs)
         db.set_setting(RUN_OWNER_PREFIX + run_id, json.dumps({"pid": os.getpid(), "identity": identity(os.getpid()),
-                                                              "at": datetime.now(timezone.utc).isoformat()}))
+                                                              "attempt": config.WORKER_ATTEMPT_ID, "at": now}))
+        db.set_setting(worker_deadline.STARTED_PREFIX + run_id, now)  # the slot it was made for (missed_slot_notice)
     except Exception as e:  # never fails the run; the review lock still guards the act itself
         log.warning("Could not record the owner of %s: %s", run_id, e)
 
@@ -3903,6 +5345,7 @@ def release_run(db, run_id: str) -> None:
         record = json.loads(db.get_setting(RUN_OWNER_PREFIX + run_id) or "{}")
         if record.get("pid") == os.getpid():
             db.set_setting(RUN_OWNER_PREFIX + run_id, "")
+            worker_deadline.release(db, run_id)  # its deadline bookkeeping ends with the run (QF-74)
     except Exception as e:
         log.debug("Could not release the owner of %s: %s", run_id, e)
 
@@ -3977,15 +5420,42 @@ def resume_reviews(coordinator, follow, waiting: Optional[set] = None, decided_o
 
 
 def _report_interrupted(coordinator, bot) -> None:
+    import sqlite3
+    try:   # once per database: the runs made before music_selections existed (QF-84), so their publications count
+        filled = coordinator.db.backfill_music_selections(OUTPUT_DIR)
+        if filled:
+            log.info("Music selections recorded for %d earlier run(s).", filled)
+    except (OSError, ValueError, AttributeError, sqlite3.Error) as e:   # AttributeError: a stand-in database
+        log.warning("Could not record the earlier runs' music selections: %s", e)
     try:
         stale = reconcile_interrupted_runs(coordinator.db, coordinator.topic_engine)
     except Exception as e:
         log.warning("Could not reconcile interrupted runs: %s", e)
         return
-    if stale:
+    if stale and config.TELEGRAM_CLEAN_CHAT:
+        say_interrupted(coordinator.db, bot, stale)
+    elif stale:
         bot.notify("⚠️ <b>Interrupted run(s) cleared</b>: the process making them ended before they finished. "
                    "Nothing was posted; the topics are back in the queue.\n"
                    + "\n".join(f"• {html.escape(coordinator.db.run_label(r))}" for r in stale), group="needs")
+
+
+def _notice(owner, text: str, **item: Any) -> None:
+    """A coordinator's notice with its clean-chat item fields (section, key, run, replace, actions: UI-01), through
+    its _alert. A stand-in owner or _alert (tests use a namespace holding a list's append) gets what it takes."""
+    notifications.say(owner._alert, text, **item)
+
+
+def say_interrupted(db, bot, runs: List[str], why: str = "") -> None:
+    """The clean chat (UI-01): each run whose process ended before it finished is the Needs-you item "⚠️ Run
+    interrupted · <run>" under its failure key fail:<run>, so a worker crash, the reaper and the start-up clearing
+    are one item for one run, never three (design §5.6, §10.2)."""
+    for run_id in runs:
+        notifications.say(bot.notify, f"⚠️ <b>Run interrupted</b> · {html.escape(db.run_label(run_id))}\n\n"
+                        "The process making it ended before it finished. Nothing was posted; the topic is back in "
+                        "the queue." + (f" {why}" if why else ""),
+            group="needs", key=f"fail:{run_id}", run=run_id, replace=True,
+            actions=notifications.failure_actions(db, run_id))
 
 
 def prebuild_candidates(db: PipelineDatabase, n: int) -> list:
@@ -4009,6 +5479,45 @@ def prebuild_candidates(db: PipelineDatabase, n: int) -> list:
     return out
 
 
+def new_version(coordinator: "PipelineCoordinator", run_id: str, rerender, busy=lambda: False) -> str:
+    """♻️ Make a new version of an episode whose booking was blocked (QF-110): its bookings are cancelled and it is
+    remade from this run (Re-render), then it comes to review like any new version. Every refusal comes first: while
+    a run is being made (`busy`) nothing is cancelled."""
+    if busy():
+        return "♻️ A run is in progress; make the new version when it has finished (nothing was changed)."
+    refusal = coordinator.prepare_new_version(run_id)
+    return f"♻️ {html.escape(refusal)}" if refusal else rerender(run_id)
+
+
+def _error_words(error: Exception) -> str:
+    """An error as said to the operator and compared for "said once": its type and first line, with object
+    addresses, long numbers and ids taken out (a network error carries a new address every minute)."""
+    text = str(error).strip().splitlines()[0] if str(error).strip() else ""
+    text = re.sub(r"0x[0-9a-fA-F]+", "0x…", text)
+    text = re.sub(r"\b[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\b", "…", text)
+    text = re.sub(r"\b\d{5,}\b", "…", text)
+    return f"{type(error).__name__}: {text}"[:300]
+
+
+POSTING_ERROR_KEY = "posting_error_said"
+
+
+def say_posting_error(db, bot, error: Exception | None) -> None:
+    """A posting pass's error is said once, and again only when it changes or after a pass that worked (QF-110:
+    one blocked Reel was reported about once a minute for days). `error` None: the pass worked."""
+    said = "" if error is None else _error_words(error)
+    try:
+        if (db.get_setting(POSTING_ERROR_KEY) or "") == said:
+            return
+        db.set_setting(POSTING_ERROR_KEY, said)
+    except Exception as e:  # noqa: BLE001 - a database that cannot be read still gets the message said
+        log.debug("Posting error state not kept: %s", e)
+    if error is not None:
+        bot.notify(f"⚠️ Scheduled posting hit an error: {html.escape(str(error)[:300])}\n\nIt is tried again each "
+                   "minute; you'll hear again only if the error changes.", group="needs", key="posting-error",
+                   actions=[{"text": "🗓️ Posting", "callback_data": "cposts:"}])
+
+
 def start_post_ticker(coordinator: "PipelineCoordinator", bot) -> threading.Thread:
     """Bot mode's scheduled posting: every minute, publish what is due (held while paused),
     as the daemon's post_due job does."""
@@ -4019,20 +5528,22 @@ def start_post_ticker(coordinator: "PipelineCoordinator", bot) -> threading.Thre
                 continue
             try:
                 coordinator.post_due()
+                say_posting_error(coordinator.db, bot, None)
             except Exception as e:
                 log.exception("Posting scheduled items failed: %s", e)
-                bot.notify(f"⚠️ Scheduled posting hit an error: {html.escape(str(e)[:300])}", group="needs")
+                say_posting_error(coordinator.db, bot, e)
 
     thread = threading.Thread(target=tick, name="post-due", daemon=True)
     thread.start()
     return thread
 
 
-def _proposal_trigger(db: PipelineDatabase, bot) -> Any:
-    """Research is an operator job: cancellable and tied to its originating panel."""
+def _proposal_trigger(db: PipelineDatabase, bot, n: int | None = None) -> Any:
+    """Research is an operator job: cancellable and tied to its originating panel. `n`: the ideas it proposes
+    (propose()'s default when None)."""
     def work():
         from src import topic_proposer
-        proposals = topic_proposer.propose(db)
+        proposals = topic_proposer.propose(db) if n is None else topic_proposer.propose(db, n)
         text = (f"💡 Research complete: {len(proposals)} new idea(s). Open Waiting ideas to review them."
                 if proposals else "💡 No new verified topic ideas this time.")
         return text, [[{"text": "Waiting ideas", "callback_data": "cprop:"}],
@@ -4123,6 +5634,10 @@ def main(argv=None) -> int:
     send_p = review_sub.add_parser("send", help="Re-send the Telegram review card for a timed-out run and wait")
     send_p.add_argument("run_id")
     send_p.add_argument("--dry-run", action="store_true")
+    flash_p = review_sub.add_parser("clear-flash", help="Clear a held possible flash after looking at it (QF-88)")
+    flash_p.add_argument("run_id")
+    flash_p.add_argument("--looked", action="store_true",
+                         help="I watched the held stretch and nothing in it flashes more than 3 times a second")
     pub_p = review_sub.add_parser("publish", help="Publish a rendered run that was never published")
     pub_p.add_argument("run_id")
     pub_p.add_argument("--dry-run", action="store_true")
@@ -4246,6 +5761,9 @@ def main(argv=None) -> int:
         plan = maintenance.check()
         print(re.sub(r"<[^>]+>", "", maintenance.report_text(plan)))
         if args.apply:
+            if not maintenance.apply_allowed():
+                print(maintenance.PRODUCTION_REFUSAL)
+                return 1
             try:
                 print(maintenance.apply(plan))
             except Exception as e:
@@ -4272,6 +5790,7 @@ def main(argv=None) -> int:
         coordinator = PipelineCoordinator(db=db, schedule_posts=POST_SCHEDULING)
         bot = coordinator.telegram_bot
         _report_interrupted(coordinator, bot)  # runs left "producing" by a process that ended
+        record_run_mode(db, config.BOT_RUNS_DRY)  # the dashboard masthead says whether these runs post
         if not bot.is_configured():
             print("Telegram is not configured (TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID / TELEGRAM_APPROVER_IDS; "
                   "the chat and approvers must identify people, not the bot).")
@@ -4290,7 +5809,9 @@ def main(argv=None) -> int:
                 try:
                     result = coordinator.request_approval(run_id, resend=resend)
                 except Exception as e:
-                    bot.notify(f"⚠️ Couldn't {'re-send' if resend else 'resume'} the review: {html.escape(str(e)[:300])}", group="needs")
+                    notifications.say(bot.notify, f"⚠️ Couldn't {'re-send' if resend else 'resume'} the review: {html.escape(str(e)[:300])}",
+                        group="needs", key=f"review-lost:{run_id}", run=run_id,
+                        actions=[{"text": "Resend for review", "callback_data": f"resend:{coordinator.db.run_key(run_id)}"}])
                     return
                 finally:
                     if owner:
@@ -4313,13 +5834,19 @@ def main(argv=None) -> int:
             nonlocal worker_proc
             if run_lock.locked() or (worker_proc is not None and worker_proc.poll() is None):
                 pid_info = f" (PID {worker_proc.pid})" if worker_proc else ""
-                return f"A production run is already in progress{pid_info}. Watch Telegram for progress updates."
+                return notifications.Outcome(f"A production run is already in progress{pid_info}. Watch Telegram "
+                                             "for progress updates.", done=False)
 
-            def monitor_worker(proc):
+            def monitor_worker(proc, attempt, limits):
+                deadline, hard_stop = limits  # seconds: the worker's deadline, and that plus its grace
                 with run_lock:
                     log.info("Isolated production worker PID %d started.", proc.pid)
-                    stdout, stderr = proc.communicate()
+                    # Bounded: a worker that outruns its deadline and grace is stopped (src/worker_deadline.py)
+                    stdout, stderr, stopped = worker_deadline.supervise(proc, hard_stop, coordinator.db, attempt)
                     rc = proc.returncode
+                    if stopped:
+                        worker_deadline.finalize_stopped_worker(coordinator.db, attempt, bot.notify, deadline / 60,
+                                                                (hard_stop - deadline) / 60, bot.finish_progress_card)
                     if rc != 0:
                         log.error("Production worker PID %d failed with code %d:\n%s", proc.pid, rc, stdout or stderr)
                     else:
@@ -4331,7 +5858,10 @@ def main(argv=None) -> int:
                     except Exception as e:
                         log.warning("Could not check for an interrupted run: %s", e)
                         cleared = []
-                    if cleared:
+                    if cleared and config.TELEGRAM_CLEAN_CHAT:
+                        say_interrupted(coordinator.db, bot, cleared, f"Its worker process ended (exit {rc}"
+                                        + (f" / 0x{rc & 0xFFFFFFFF:08X}" if isinstance(rc, int) and rc else "") + ").")
+                    elif cleared:
                         bot.notify(f"💥 <b>The run's worker process ended without finishing</b> (exit {rc}"
                                    + (f" / 0x{rc & 0xFFFFFFFF:08X}" if isinstance(rc, int) and rc else "")
                                    + "). Nothing was posted; the run was cleared and its topic is back in the queue.", group="needs")
@@ -4352,7 +5882,12 @@ def main(argv=None) -> int:
                         db.set_setting(PRODUCE_KEY, "0")
                         bot.notify("⏹ Batch production stopped: the last episode did not finish cleanly.", group="runs")
 
+            import uuid
+
             from src.config import BASE_DIR
+            environment = config.worker_environment()  # an .env edit applies from the next run, not the next restart
+            limits = config.run_deadline_limits(environment)  # the deadline this worker reads, and that plus its grace
+            attempt = environment["RELIC_WORKER_ATTEMPT"] = uuid.uuid4().hex  # the runs it claims carry it
             # With posting slots on, the worker books the approved Reel like the daemon does.
             command = ["resume", resume, "--require-live"] if resume else ["run", "--require-live", "--format", content_format]
             worker_proc = subprocess.Popen(
@@ -4360,21 +5895,20 @@ def main(argv=None) -> int:
                 + (["--dry-run"] if config.BOT_RUNS_DRY else [])  # nothing posts from a bot-started run by default
                 + (["--schedule-posts"] if POST_SCHEDULING else []) + list(extra or []),
                 cwd=str(BASE_DIR),
-                env=config.worker_environment(),  # an .env edit applies from the next run, not the next restart
+                env=environment,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
                 text=True,
+                **worker_deadline.launch_options(),
             )
-            threading.Thread(target=monitor_worker, args=(worker_proc,), name="worker-monitor", daemon=True).start()
-            return f"🎬 Production run launched in isolated worker (PID {worker_proc.pid}). Live progress updates will stream here."
+            threading.Thread(target=monitor_worker, args=(worker_proc, attempt, limits), name="worker-monitor",
+                             daemon=True).start()
+            return notifications.Outcome(f"🎬 Production run launched in isolated worker (PID {worker_proc.pid}). Live "
+                                         "progress updates will stream here.", done=True)
 
         def rerender_in_bot(run_id: str) -> str:
-            refusal = coordinator.rerender_refusal(run_id)
-            if refusal:
-                return f"🔁 {html.escape(refusal)}"
-            extra = coordinator.remake_args(run_id)
-            started = launch_worker(extra=extra) if extra else launch_worker(resume=run_id)
-            return started if "already in progress" in started else rerender_started(db, run_id)
+            return rerender_reply(coordinator, run_id, lambda extra: launch_worker(extra=extra) if extra
+                                  else launch_worker(resume=run_id))
 
         PRODUCE_KEY = "produce_remaining"  # episodes still to start in a /produce batch
 
@@ -4413,8 +5947,14 @@ def main(argv=None) -> int:
                          "fbcaptions": getattr(coordinator, "add_facebook_captions", None),
                          "fbcover": getattr(coordinator, "set_facebook_cover", None),
                          "rebook": getattr(coordinator, "rebook_followers", None),
+                         "newversion": lambda run_id: new_version(coordinator, run_id, rerender_in_bot,
+                                                                  busy=lambda: db.get_active_progress() is not None),
                          "ytthumb": getattr(coordinator, "set_youtube_thumbnail", None),
-                         "ytshort": getattr(coordinator, "post_youtube_short", None)},
+                         "ytshort": getattr(coordinator, "post_youtube_short", None),
+                         "carpreview": getattr(coordinator, "preview_carousel", None),
+                         "carredraw": getattr(coordinator, "redraw_carousel", None),
+                         "carspace": getattr(coordinator, "post_carousel_anyway", None),
+                         "carexpire": getattr(coordinator, "expire_spaced_carousel", None)},
             produce_batch=produce_batch,
         )
         if POST_SCHEDULING:  # what this mode books, it also posts when due
@@ -4434,8 +5974,12 @@ def main(argv=None) -> int:
                 except Exception as e:
                     log.debug("Review sweep failed: %s", e)
         threading.Thread(target=sweep_reviews, name="review-sweep", daemon=True).start()
-        from src.control import startup_dashboard_card
-        card_text, card_buttons = startup_dashboard_card(db, mode="bot", assets_dir=config.ASSETS_DIR)
+        from src.control import startup_dashboard_card, when_pools_counted
+        # QF-115: drawn at once; the photo sets it has not counted yet are counted in the background, and the card is
+        # built again by this builder (its started line kept) once they are
+        bot.startup_card = lambda: startup_dashboard_card(db, mode="bot", assets_dir=config.ASSETS_DIR)
+        when_pools_counted(getattr(bot, "pools_counted", None))
+        card_text, card_buttons = bot.startup_card()
         bot.warm_up()
         bot.show_dashboard(card_text, card_buttons)
         # This loop owns getUpdates. A review wait this process runs itself (Resend) must read decisions
@@ -4446,7 +5990,13 @@ def main(argv=None) -> int:
         try:
             poll_loop(bot, handler)
         except KeyboardInterrupt:
-            bot.notify("🔴 <b>Studio Control Center Offline</b> • Service stopped.", record_alert=False, group="info")
+            if config.TELEGRAM_CLEAN_CHAT:
+                # UI-01f (design §7.3): the dashboard's footer and the service-state item; the panel is drawn once
+                # more and the renderer lease given up (close_layout's job), so the next start renders at once
+                bot.service_stopped()
+            else:
+                bot.notify("🔴 <b>Studio Control Center Offline</b> • Service stopped.", record_alert=False,
+                           group="info", key="service-state")
         return 0
 
     if args.command == "daemon":
@@ -4460,6 +6010,7 @@ def main(argv=None) -> int:
         coordinator = PipelineCoordinator(schedule_posts=True)
         bot = coordinator.telegram_bot
         _report_interrupted(coordinator, bot)  # nothing runs in this process yet: any "producing" run is orphaned
+        record_run_mode(coordinator.db, bool(args.dry_run))  # the masthead: 📡 LIVE posting or 🧪 dry run
         release_note = None  # after an installed release: the notice that opens the one dashboard panel
         try:  # leases left by the previous process; the schedule the release deployer keeps clear of
             clear_busy_leases(coordinator.db)
@@ -4515,7 +6066,7 @@ def main(argv=None) -> int:
             if not manual and is_paused(coordinator.db):
                 log.info("Scheduled run skipped: paused.")
                 bot.notify("⏸ Scheduled run skipped (paused). Send /resume to re-enable.",
-                           transient=True, ttl_minutes=23 * 60 + 50, group="runs")
+                           transient=True, ttl_minutes=23 * 60 + 50, group="runs", key="paused-skip")
                 return
             if not run_lock.acquire(blocking=False):
                 log.warning("A run is already in progress; skipping.")
@@ -4525,7 +6076,7 @@ def main(argv=None) -> int:
                 # Each run in its own process: a crash costs the run, never the daemon (its bot and schedule).
                 with busy_lease(coordinator.db, "the production run"):
                     result = run_in_worker(content_format, dry_run=args.dry_run, schedule_posts=POST_SCHEDULING, extra=extra,
-                                           resume=resume)
+                                           resume=resume)  # supervised against this process's database
                 status = result.get("status")
                 if status in ("published", "simulated", "rejected", "scheduled"):
                     ping_healthcheck()
@@ -4539,15 +6090,28 @@ def main(argv=None) -> int:
                                    "(repeating topics risks Meta's unoriginal-content rules).",
                                    [{"text": "💡 Propose new topics", "callback_data": "propose:"}], group="needs")
                 elif status == "refused":  # a re-render the run's state no longer allows
-                    bot.notify(f"🔁 <b>Re-render not started</b>: {html.escape(str(result.get('error', '')))}", group="needs")
+                    run_ref = coordinator.db.resolve_run(resume) if resume else None
+                    notifications.say(bot.notify, f"🔁 <b>Re-render not started</b>: {html.escape(str(result.get('error', '')))}", group="needs",
+                        key=f"fail:{run_ref}" if run_ref else None, run=run_ref,
+                        actions=[{"text": "Details", "callback_data": f"chist:{coordinator.db.run_key(run_ref)}"}] if run_ref else None)
+                elif status == "timed_out" and result.get("stopped"):  # the worker did not stop itself at its deadline
+                    deadline, hard_stop = config.run_deadline_limits()
+                    worker_deadline.finalize_stopped_worker(coordinator.db, result["attempt"], bot.notify, deadline / 60,
+                                                            (hard_stop - deadline) / 60, bot.finish_progress_card)
                 elif status == "crashed":
                     code = result.get("exit_code")
                     log.error("Run worker crashed (exit %s); the daemon carries on.\n%s", code, result.get("stderr_tail", ""))
                     cleared = reconcile_interrupted_runs(coordinator.db, coordinator.topic_engine)
-                    bot.notify(f"💥 <b>The run's worker process crashed</b> (exit {html.escape(str(code))}"
-                               + (f" / 0x{int(code) & 0xFFFFFFFF:08X}" if isinstance(code, int) else "")
-                               + "). Nothing was posted; the daemon, its bot and the schedule are unaffected."
-                               + (" The run was cleared and its topic is back in the queue." if cleared else ""), group="needs")
+                    if cleared and config.TELEGRAM_CLEAN_CHAT:   # the run's own item (one item for one failure)
+                        say_interrupted(coordinator.db, bot, cleared, f"Its worker process crashed (exit {html.escape(str(code))}"
+                                        + (f" / 0x{int(code) & 0xFFFFFFFF:08X}" if isinstance(code, int) else "")
+                                        + "); the daemon, its bot and the schedule are unaffected.")
+                    else:
+                        notifications.say(bot.notify, f"💥 <b>The run's worker process crashed</b> (exit {html.escape(str(code))}"
+                            + (f" / 0x{int(code) & 0xFFFFFFFF:08X}" if isinstance(code, int) else "")
+                            + "). Nothing was posted; the daemon, its bot and the schedule are unaffected."
+                            + (" The run was cleared and its topic is back in the queue." if cleared else ""), group="needs",
+                            key="worker-crash", actions=[{"text": "📊 Status", "callback_data": "cstat:"}])
             except BaseException as e:  # keep the daemon alive; the run is already recorded and alerted
                 log.exception("Run failed: %s", e)
             finally:
@@ -4583,20 +6147,33 @@ def main(argv=None) -> int:
             # health check still hears from the daemon.
             from src.control import record_heartbeat
             record_heartbeat(coordinator.db)
+            backup_check()
             bot.show_dashboard()
             ping_healthcheck()
 
+        def backup_check():
+            # The backup worker's receipt, read hourly: a stale snapshot, lapsed drill or missing hourly copy is a
+            # Needs-you notice once a day per set of alerts (QF-72). Production only; dev has no backup worker.
+            from src.backup_health import monitored, notify_stale
+            try:
+                if monitored():
+                    notify_stale(coordinator.db, bot)
+            except Exception as e:  # noqa: BLE001 - never in the way of the heartbeat it runs inside
+                log.warning("Backup freshness check failed: %s", e)
+
         scheduler.add_job(heartbeat, CronTrigger(hour=hb_hour, minute=hb_minute, timezone=TIMEZONE),
                           max_instances=1, coalesce=True, misfire_grace_time=3600)
+        scheduler.add_job(backup_check, "interval", hours=1, max_instances=1, coalesce=True)
 
         def post_due():
             if is_paused(coordinator.db):
                 return  # held; slots missed while paused move to the next free slot on resume
             try:
                 coordinator.post_due()
+                say_posting_error(coordinator.db, bot, None)
             except Exception as e:
                 log.exception("Posting scheduled items failed: %s", e)
-                bot.notify(f"⚠️ Scheduled posting hit an error: {html.escape(str(e)[:300])}", group="needs")
+                say_posting_error(coordinator.db, bot, e)
 
         def report_release():  # a release refused before the stop window causes no restart to announce it
             try:
@@ -4633,7 +6210,7 @@ def main(argv=None) -> int:
                 from src.control import deployer_notice
                 notice = deployer_notice(coordinator.db)
                 if notice:
-                    bot.notify(notice, silent=True, record_alert=False, group="info")
+                    bot.notify(notice, silent=True, record_alert=False, group="info", key="release")
             except Exception as e:
                 log.debug("Deployer status check failed: %s", e)
 
@@ -4652,13 +6229,7 @@ def main(argv=None) -> int:
             except Exception as e:
                 bot.notify(f"🧰 Weekly update check failed: {html.escape(str(e)[:300])}", group="info")
                 return
-            buttons = [{"text": "🧰 Apply updates", "callback_data": "upd:apply"}] if plan.applicable else None
-            if buttons:
-                bot._api("sendMessage", data={"chat_id": bot.chat_id, "parse_mode": "HTML",
-                                              "text": maintenance.report_text(plan),
-                                              "reply_markup": json.dumps({"inline_keyboard": [buttons]})})
-            else:
-                bot.notify(maintenance.report_text(plan), transient=True, ttl_minutes=10070, group="info")  # until next week's
+            say_update_report(bot, plan)   # an item of the notifications panel, never a message of its own
 
         scheduler.add_job(weekly_update_check, CronTrigger(day_of_week="mon", hour=hb_hour, minute=hb_minute + 5 if hb_minute < 55 else 0,
                                                            timezone=TIMEZONE), max_instances=1, coalesce=True, misfire_grace_time=3600)
@@ -4667,9 +6238,10 @@ def main(argv=None) -> int:
 
         def weekly_policy_watch():
             try:
-                bot.notify(policy_watch.digest_text(policy_watch.check(coordinator.db)), transient=True, ttl_minutes=10070, group="info")
+                bot.notify(policy_watch.digest_text(policy_watch.check(coordinator.db)), transient=True, ttl_minutes=10070, group="info",
+                           key="policy:weekly")
             except Exception as e:
-                bot.notify(f"📜 Weekly policy watch failed: {html.escape(str(e)[:300])}", group="info")
+                bot.notify(f"📜 Weekly policy watch failed: {html.escape(str(e)[:300])}", group="info", key="policy:weekly")
 
         scheduler.add_job(weekly_policy_watch, CronTrigger(day_of_week="wed", hour=hb_hour, minute=hb_minute,
                                                            timezone=TIMEZONE), max_instances=1, coalesce=True,
@@ -4686,7 +6258,9 @@ def main(argv=None) -> int:
                 try:
                     result = coordinator.request_approval(run_id, dry_run=args.dry_run, resend=resend)
                 except Exception as e:
-                    bot.notify(f"⚠️ Couldn't {'re-send' if resend else 'resume'} the review: {html.escape(str(e)[:300])}", group="needs")
+                    notifications.say(bot.notify, f"⚠️ Couldn't {'re-send' if resend else 'resume'} the review: {html.escape(str(e)[:300])}",
+                        group="needs", key=f"review-lost:{run_id}", run=run_id,
+                        actions=[{"text": "Resend for review", "callback_data": f"resend:{coordinator.db.run_key(run_id)}"}])
                     return
                 finally:
                     if owner:
@@ -4721,7 +6295,8 @@ def main(argv=None) -> int:
                     from src.asset_pipeline import not_ready_reason  # the live reason, by the video's own count
                     lines = [f"• {html.escape(t['title'])}: {html.escape(not_ready_reason(t['id']))}" for t in not_ready]
                     bot.notify("🖼 <b>Photo sets not ready</b>\n\nThese upcoming topics will be skipped until "
-                               "they have approved photos:\n" + "\n".join(lines), silent=True, group="needs")
+                               "they have approved photos:\n" + "\n".join(lines), silent=True, group="needs",
+                               key="photos-not-ready", actions=[{"text": "🖼 Pictures", "callback_data": "cimages:"}])
             except Exception as e:
                 log.warning("Nightly photo pool preparation failed: %s", e)
             for t in prebuild_candidates(coordinator.db, 3):
@@ -4730,13 +6305,19 @@ def main(argv=None) -> int:
                         fact_sheet.build(t)
                 except Exception as e:
                     log.warning("Fact sheet pre-build failed for %s: %s", t["id"], e)
-                    bot.notify(f"🧾 Couldn't build the fact sheet for {html.escape(t['title'])}: {html.escape(str(e)[:200])}", group="needs")
+                    bot.notify(f"🧾 Couldn't build the fact sheet for {html.escape(t['title'])}: {html.escape(str(e)[:200])}", group="needs",
+                               key=f"fact-sheet:{t['id']}", actions=[{"text": "Details", "callback_data": "cstat:"}])
 
         scheduler.add_job(prebuild_fact_sheets, CronTrigger(hour=3, minute=0, timezone=TIMEZONE),
                           max_instances=1, coalesce=True, misfire_grace_time=6 * 3600)
-        scheduler.add_job(propose_topics.run_now, CronTrigger(day_of_week="fri", hour=hb_hour, minute=hb_minute,
-                                                              timezone=TIMEZONE), max_instances=1, coalesce=True,
-                          misfire_grace_time=3600)
+        # Nightly (QF-73): research proposes ideas for your Add while the queue is short, at most
+        # TOPIC_RESEARCH_RUNS_PER_WEEK times a week (1: the weekly run it replaces, so spend does not rise).
+        from src.topic_policy import nightly_proposals
+        nightly_research = _proposal_trigger(coordinator.db, bot, config.TOPIC_NIGHTLY_PROPOSALS)
+        proposal_hour, proposal_minute = (int(x) for x in config.TOPIC_PROPOSAL_TIME.split(":"))
+        scheduler.add_job(lambda: nightly_proposals(coordinator.db, nightly_research.run_now),
+                          CronTrigger(hour=proposal_hour, minute=proposal_minute, timezone=TIMEZONE),
+                          max_instances=1, coalesce=True, misfire_grace_time=3600)
 
         def improvement_cycle():
             """Nightly: recurring findings become proposals; candidate writing rules are tested on the
@@ -4757,14 +6338,14 @@ def main(argv=None) -> int:
                 problems = accounts.check(coordinator.db, force=True).get("problems") or []
                 if problems:
                     bot.notify("⚠️ <b>Publishing accounts</b>\n" + "\n".join(f"• {html.escape(p)}" for p in problems),
-                               silent=True, group="needs")
+                               silent=True, group="needs", key="accounts",
+                               actions=[{"text": "🔗 Accounts", "callback_data": "caccounts:"}])
             except Exception as e:
                 log.warning("Account check failed: %s", e)
             try:
                 for p in improve.make_proposals(coordinator.db):
                     if p["status"] == "ready":
-                        text, buttons = improve.card(p)
-                        bot.notify(text, buttons=buttons, silent=True, record_alert=False, group="needs")
+                        proposal_notice(bot, coordinator.db, p)
                 if improve.proposals(coordinator.db, "testing") and run_lock.acquire(blocking=False):
                     try:
                         from scripts.eval_prompts import run_candidates
@@ -4773,8 +6354,7 @@ def main(argv=None) -> int:
                         run_lock.release()
                     for p in improve.update_gates(coordinator.db, rows):
                         if p["status"] == "ready":
-                            text, buttons = improve.card(p)
-                            bot.notify(text, buttons=buttons, silent=True, record_alert=False, group="needs")
+                            proposal_notice(bot, coordinator.db, p)
             except Exception as e:
                 # Said in Telegram: the cycle failed every night on production for days as a log line only
                 # (2026-10-24). A broken improvement loop is itself something that needs you.
@@ -4791,7 +6371,8 @@ def main(argv=None) -> int:
                 from src.control import record_weekly_digest
                 record_weekly_digest(coordinator.db, improve.digest_text(coordinator.db))
                 bot.show_dashboard()
-                bot.nudge("🔔 Dashboard updated: this week's digest is ready.")
+                from src import notice_conditions
+                notice_conditions.announce_digest(coordinator.db, bot)
             except Exception as e:
                 log.warning("Weekly digest failed: %s", e)
 
@@ -4827,18 +6408,16 @@ def main(argv=None) -> int:
         threading.Thread(target=check_accounts_now, name="account-check", daemon=True).start()
 
         def apply_updates() -> str:
-            if run_lock.locked():
-                return "A production run is in progress; try again when it finishes."
-
             def work():
                 with run_lock, busy_lease(coordinator.db, "package updates"):  # never under a running production cycle
                     try:
                         bot.notify(maintenance.apply(maintenance.check()), group="info")
                     except Exception as e:
-                        bot.notify(f"❌ Updates not applied (rolled back): {html.escape(str(e)[:500])}", group="needs")
+                        bot.notify(f"❌ Updates not applied (rolled back): {html.escape(str(e)[:500])}", group="needs",
+                                   key="updates", actions=[{"text": "Details", "callback_data": "cstat:"}])
 
-            threading.Thread(target=work, name="apply-updates", daemon=True).start()
-            return "🧰 Applying updates on a branch and running the tests. I'll report back."
+            return apply_updates_reply(run_lock.locked(), threading.Thread(target=work, name="apply-updates",
+                                                                           daemon=True).start)
 
         def trigger_run(content_format: str = "reel", extra: Optional[List[str]] = None) -> str:
             if run_lock.locked():
@@ -4850,17 +6429,16 @@ def main(argv=None) -> int:
             return "🎬 Starting a run now. You'll get the review card when it's rendered; nothing posts without your approval."
 
         def rerender_run(run_id: str) -> str:
-            refusal = coordinator.rerender_refusal(run_id)
-            if refusal:
-                return f"🔁 {html.escape(refusal)}"
-            if run_lock.locked():
-                return "🔁 A run is already in progress; Re-render this one when it has finished."
-            extra = coordinator.remake_args(run_id)
-            if extra:  # rejected: a regeneration with the recorded reason, reusing what was paid for
-                scheduler.add_job(production_run, kwargs={"manual": True, "extra": extra})
-            else:
-                scheduler.add_job(production_run, kwargs={"manual": True, "resume": run_id})
-            return rerender_started(coordinator.db, run_id)
+            def launch(extra: list[str]):
+                if run_lock.locked():
+                    return notifications.Outcome("🔁 A run is already in progress; Re-render this one when it has "
+                                                 "finished.", done=False)
+                if extra:  # rejected: a regeneration with the recorded reason, reusing what was paid for
+                    scheduler.add_job(production_run, kwargs={"manual": True, "extra": extra})
+                else:
+                    scheduler.add_job(production_run, kwargs={"manual": True, "resume": run_id})
+                return None
+            return rerender_reply(coordinator, run_id, launch)
 
         bot.next_run_func = next_run
         handler = make_command_handler(coordinator.db, next_run, trigger_run, send_photo=bot.send_photo, send_audio=bot.send_audio, send_message=lambda text, buttons=None: bot.notify(text, buttons=buttons, record_alert=False, group="studio"), delete_message=bot.delete_message,
@@ -4882,8 +6460,15 @@ def main(argv=None) -> int:
                          "fbcaptions": getattr(coordinator, "add_facebook_captions", None),
                          "fbcover": getattr(coordinator, "set_facebook_cover", None),
                          "rebook": getattr(coordinator, "rebook_followers", None),
+                         "newversion": lambda run_id: new_version(coordinator, run_id, rerender_run,
+                                                                  busy=lambda: run_lock.locked()
+                                                                  or coordinator.db.get_active_progress() is not None),
                          "ytthumb": getattr(coordinator, "set_youtube_thumbnail", None),
-                         "ytshort": getattr(coordinator, "post_youtube_short", None)},
+                         "ytshort": getattr(coordinator, "post_youtube_short", None),
+                         "carpreview": getattr(coordinator, "preview_carousel", None),
+                         "carredraw": getattr(coordinator, "redraw_carousel", None),
+                         "carspace": getattr(coordinator, "post_carousel_anyway", None),
+                         "carexpire": getattr(coordinator, "expire_spaced_carousel", None)},
                                        produce_batch=produce_batch)
 
         def poll_telegram():
@@ -4903,17 +6488,28 @@ def main(argv=None) -> int:
 
         log.info("Daemon scheduled daily at %s (%s); heartbeat at %s. Ctrl+C to stop.", args.time, TIMEZONE, HEARTBEAT_TIME)
         try:
-            from src.control import startup_dashboard_card
-            card_text, card_buttons = startup_dashboard_card(coordinator.db, mode="daemon", time_str=args.time, timezone_str=TIMEZONE, assets_dir=config.ASSETS_DIR)
-            if args.dry_run:
-                card_text = card_text.replace("\n\n", "\n\n🧪 <b>Validation mode</b>: runs, reviews and approvals work, but nothing is posted.\n\n", 1)
-            if release_note:  # the chat was just cleared: the release leads the panel (one panel, not two)
-                card_text = card_text.replace("\n\n", f"\n\n{release_note}\n\n", 1)
+            from src.control import startup_dashboard_card, when_pools_counted
+
+            def startup_card():
+                card_text, card_buttons = startup_dashboard_card(coordinator.db, mode="daemon", time_str=args.time, timezone_str=TIMEZONE, assets_dir=config.ASSETS_DIR)
+                if args.dry_run:
+                    card_text = card_text.replace("\n\n", "\n\n🧪 <b>Validation mode</b>: runs, reviews and approvals work, but nothing is posted.\n\n", 1)
+                if release_note:  # the chat was just cleared: the release leads the panel (one panel, not two)
+                    card_text = card_text.replace("\n\n", f"\n\n{release_note}\n\n", 1)
+                return card_text, card_buttons
+            # QF-115: built again by the same builder once the photo sets it had not counted yet are counted
+            bot.startup_card = startup_card
+            when_pools_counted(getattr(bot, "pools_counted", None))
+            card_text, card_buttons = startup_card()
             scheduler.add_job(lambda: bot.show_dashboard(card_text, card_buttons))
             scheduler.start()
         except (KeyboardInterrupt, SystemExit):
             log.info("Daemon stopped.")
-            bot.notify("🔴 <b>Production Daemon Offline</b> • Scheduled runs stopped.", record_alert=False, group="info")
+            if config.TELEGRAM_CLEAN_CHAT:
+                bot.service_stopped()   # UI-01f: footer, service-state item, the lease given up (design §7.3)
+            else:
+                bot.notify("🔴 <b>Production Daemon Offline</b> • Scheduled runs stopped.", record_alert=False,
+                           group="info", key="service-state")
         return 0
 
     if args.command == "review":
@@ -4948,6 +6544,38 @@ def main(argv=None) -> int:
                 print(f"{args.run_id}: no pending approval (current: {appr and appr['decision']}). "
                       f"To publish a finished run, use `review publish {args.run_id}`.")
                 return 1
+        elif args.review_action == "clear-flash":
+            from src.release import (
+                clear_flash_hold,
+                flash_failure,
+                held_flash,
+                write_release_report,
+            )
+            run = db.get_run(args.run_id)
+            if not run or not run.get("master_video_path"):
+                print(f"Unknown run or no rendered video: {args.run_id}")
+                return 1
+            report = write_release_report(run, dry_run=False)
+            failing = flash_failure(report)
+            if failing:     # QF-88 round 7: a failing flash is a hazard, never cleared by a look
+                print(f"Refusing: {args.run_id} fails the flash check, so it cannot be cleared; re-render it "
+                      f"without that flashing.\n  {failing}")
+                return 1
+            held = held_flash(report)
+            if not held:
+                print(f"{args.run_id}: no flash stretch is held for this master; nothing to clear.")
+                return 1
+            flash = next(c for c in report["checks"] if c["name"] == "picture_flash")
+            run_dir = Path(run["master_video_path"]).parent
+            print(flash["detail"])
+            for sheet in flash.get("contact_sheets") or []:
+                print(f"  contact sheet: {run_dir / sheet['path']}")
+            if not args.looked:
+                print("Not cleared. Watch the stretch, then run this again with --looked to clear it.")
+                return 1
+            clear_flash_hold(run_dir, report, by="cli")
+            print(f"{args.run_id}: the held stretch is cleared for these bytes. Approve it on the card or with "
+                  f"`review approve {args.run_id}`.")
         elif args.review_action == "send":
             try:
                 res = PipelineCoordinator(db).request_approval(args.run_id, dry_run=args.dry_run)
@@ -5046,6 +6674,11 @@ def main(argv=None) -> int:
         elif args.assets_action == "approve":
             try:
                 print(approve_set(ASSETS_DIR / args.topic_id, MIN_SCENE_IMAGES))
+                # Said at approval: a thin topic is demoted at selection (src/topic_engine.image_gate).
+                from src.topic_engine import image_gate
+                gate = image_gate({"id": args.topic_id})
+                if gate:
+                    print(f"Note: {args.topic_id} will be made after better-stocked topics: {gate}.")
             except ValueError as e:
                 print(e)
                 return 1

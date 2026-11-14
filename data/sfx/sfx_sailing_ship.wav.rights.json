@@ -1,5 +1,5 @@
 {
-  "path": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\data\\sfx\\sfx_sailing_ship.wav",
+  "path": "data/sfx/sfx_sailing_ship.wav",
   "sha256": "bd9440c2b3d2aa3109da1d2b4f2bc6a898678c3544b190dd840f2190ab500b01",
   "provider": "elevenlabs-sound-effects",
   "plan": "creator",

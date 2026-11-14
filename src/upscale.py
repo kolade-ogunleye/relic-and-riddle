@@ -31,6 +31,7 @@ from typing import List, Optional, Tuple, Union
 from PIL import Image
 
 from .config import BASE_DIR, REALESRGAN_BIN, VIDEO_WIDTH, VIDEO_HEIGHT
+from .trusted_image import open_trusted
 from .typography import is_video
 
 log = logging.getLogger(__name__)
@@ -130,7 +131,7 @@ def _cache_path(path: Path, name: str) -> Path:
     model_name = "realesrgan-x4plus" if name in ("onnx", "ncnn") else "lanczos3-unsharp-polish"
     digest = fingerprint({"source": file_inputs([path]), "tool": file_inputs(tool_files),
                           "target_crop_width": TARGET_CROP_WIDTH, "model": model_name, "backend": name})[:16]
-    return CACHE_DIR / f"{path.stem}_{digest}.jpg"
+    return CACHE_DIR / f"{path.stem}_{digest}.png"
 
 
 def _onnx_session():
@@ -142,12 +143,8 @@ def _onnx_session():
     with _session_lock:
         if _session is not None:
             return _session
-        import onnxruntime as ort
-        available = ort.get_available_providers()
-        providers = [p for p in ("DmlExecutionProvider", "CPUExecutionProvider") if p in available]
-        options = ort.SessionOptions()
-        options.log_severity_level = 3
-        _session = ort.InferenceSession(str(ONNX_MODEL), sess_options=options, providers=providers)
+        from .onnx_session import create_session
+        _session = create_session(ONNX_MODEL)
         log.info("Real-ESRGAN ONNX session on %s", _session.get_providers()[0])
     return _session
 
@@ -206,14 +203,9 @@ def _upscale_ncnn(path: Path, tmp: Path) -> Image.Image:
     finally:
         if in_file is not None:
             in_file.unlink(missing_ok=True)
-    # Our own 4x output of a wide still can exceed Pillow's decompression-bomb limit
-    limit, Image.MAX_IMAGE_PIXELS = Image.MAX_IMAGE_PIXELS, None
-    try:
-        im = Image.open(tmp)
-        im.load()
-    finally:
-        Image.MAX_IMAGE_PIXELS = limit
-    return im
+    # Our own 4x output of a wide still can exceed Pillow's decompression-bomb limit: decoded under its own limit
+    # (at most the source still, scaled: a clamped input is smaller), never by lifting the process-wide one
+    return open_trusted(tmp, w * h * SCALE * SCALE)
 
 
 def _upscale_cpu_polish(path: Path) -> Image.Image:
@@ -240,6 +232,9 @@ def _upscale_cpu_polish(path: Path) -> Image.Image:
 def ensure_resolution(path: Path) -> Path:
     """Returns a version of `path` sharp enough for the video (cached), or `path` itself."""
     path = Path(path)
+    from .image_presentation import full_image, prepared_source
+    if full_image(path):
+        return prepared_source(path)
     if not needs_upscale(path):
         return path
 
@@ -273,7 +268,7 @@ def ensure_resolution(path: Path) -> Path:
 
 def _try_backend(name: str, path: Path, out: Path) -> Optional[Path]:
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
-    tmp = out.with_suffix(".png")
+    tmp = out.with_name(out.stem + ".backend.png")
     try:
         if name == "cpu_lanczos_polish":
             im = _upscale_cpu_polish(path)
@@ -288,7 +283,7 @@ def _try_backend(name: str, path: Path, out: Path) -> Optional[Path]:
             scale = min(1.0, TARGET_CROP_WIDTH / max(1, vertical_crop_width(im.size)))
             if scale < 1.0:
                 im = im.resize((round(im.width * scale), round(im.height * scale)), Image.LANCZOS)
-            im.save(out, "JPEG", quality=95)
+            im.save(out, "PNG")
         log.info("Upscaled %s -> %s (%s)", path.name, out.name, name)
         from .lineage import record_derived
         model_name = "lanczos-3-unsharp-polish" if name == "cpu_lanczos_polish" else "realesrgan-x4plus"

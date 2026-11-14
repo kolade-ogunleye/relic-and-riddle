@@ -79,7 +79,15 @@ def review_fingerprint(db, run_id):
     if (root / "review_proxy.mp4").is_file():
         paths.add(root / "review_proxy.mp4")
     paths.update((root / "stories").glob("story_*.jpg"))
-    paths.update((root / "carousel").glob("carousel_slide_*.jpg"))
+    from .carousel_lazy import PLAN, planned
+    # A planned carousel (QF-81) is drawn after review, at its slot: its slides were never on the card and are bound
+    # by its own plan and audit, so installing them leaves the approved fingerprint (QF-110) as it was. The plan
+    # itself (its photos and their SHA-256s, its posters and its copy's digest) is bound in their place (QF-81b): it
+    # is written once while the run is made, before its card, so a plan changed after approval breaks the binding.
+    if planned(root):
+        paths.add(root / PLAN)
+    else:
+        paths.update((root / "carousel").glob("carousel_slide_*.jpg"))
     for path in sorted(paths):
         if not path.is_file() or not path.resolve().is_relative_to(root):
             raise ValueError("A review artifact is missing or outside the run folder")

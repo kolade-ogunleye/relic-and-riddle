@@ -1,0 +1,80 @@
+{
+  "commit": "116cd0068b69e02a2f2e8d94631ddb3e5a785853",
+  "measurement": "generated MatMul 1024x1024 float32; 3 warmups, 15 measured; machine-specific",
+  "production_callers_with_integrated_first": [
+    [
+      [
+        "DmlExecutionProvider",
+        {
+          "device_id": "1"
+        }
+      ],
+      "CPUExecutionProvider"
+    ],
+    [
+      [
+        "DmlExecutionProvider",
+        {
+          "device_id": "1"
+        }
+      ],
+      "CPUExecutionProvider"
+    ]
+  ],
+  "both_callers_choose_discrete": true,
+  "machine": {
+    "available": true,
+    "auto_adapter": {
+      "index": 1,
+      "name": "NVIDIA RTX 5000 Ada Generation Laptop GPU"
+    },
+    "timings": [
+      {
+        "index": 0,
+        "name": "Intel(R) UHD Graphics",
+        "discrete": false,
+        "software": false,
+        "providers": [
+          "DmlExecutionProvider",
+          "CPUExecutionProvider"
+        ],
+        "status": "ok",
+        "median_ms": 78.422,
+        "samples": 15
+      },
+      {
+        "index": 1,
+        "name": "NVIDIA RTX 5000 Ada Generation Laptop GPU",
+        "discrete": true,
+        "software": false,
+        "providers": [
+          "DmlExecutionProvider",
+          "CPUExecutionProvider"
+        ],
+        "status": "ok",
+        "median_ms": 7.718,
+        "samples": 15
+      },
+      {
+        "index": 2,
+        "name": "Intel(R) UHD Graphics",
+        "discrete": false,
+        "software": false,
+        "providers": [
+          "DmlExecutionProvider",
+          "CPUExecutionProvider"
+        ],
+        "status": "ok",
+        "median_ms": 16.994,
+        "samples": 15
+      },
+      {
+        "index": 3,
+        "name": "Microsoft Basic Render Driver",
+        "discrete": false,
+        "software": true,
+        "status": "software excluded"
+      }
+    ]
+  }
+}

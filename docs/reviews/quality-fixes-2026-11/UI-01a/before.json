@@ -1,0 +1,14 @@
+{
+ "alert_lines_over_40_characters": 19,
+ "alerts_that_rang": 22,
+ "item_action_taps_that_sent_a_message": null,
+ "messages_left_in_chat": 24,
+ "messages_left_other_than_the_panel": 24,
+ "needs_you_senders_without_actions": 14,
+ "notices_sent_by_senders": 24,
+ "panel_header": null,
+ "pinned_panels": 0,
+ "refused_apply_updates_that_lost_their_item": null,
+ "refused_item_actions_that_lost_their_item": null,
+ "telegram_sends_outside_the_panels": 1
+}

@@ -5,7 +5,7 @@
 - Sound plan: candidate usable=True; agreement with reference 50% (reference vs itself 83%)
 
 **Q: Why did the release gate hold or pass this run?**
-- reference: According to release_report.json, the run requires attention because the asset_rights check has a status of "needs_review" for "C:\Users\omokolade\GitHub\relic-and-riddle\output\run_kailasa_temple_monolith_1792524470\motion\motion_01.mp4". All other checks in release_report.json passed, including caption_length, facts, dimensions, duration, channels, sample_rate, loudness, true_peak, sync_drift, provenance, image_attribution, voiceover_rights, ambient_bed_rights, font_rights, composition_inputs, visual_checks, and thumbnail paths.
+- reference: According to release_report.json, the run requires attention because the asset_rights check has a status of "needs_review" for "output/run_kailasa_temple_monolith_1792524470/motion/motion_01.mp4". All other checks in release_report.json passed, including caption_length, facts, dimensions, duration, channels, sample_rate, loudness, true_peak, sync_drift, provenance, image_attribution, voiceover_rights, ambient_bed_rights, font_rights, composition_inputs, visual_checks, and thumbnail paths.
 - candidate: failed (Gemini is temporarily overloaded (HTTP 503); try again later.)
 
 **Q: Was AI motion used, and why or why not?**

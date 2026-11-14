@@ -74,6 +74,12 @@ def _stated_name(text: str) -> str:
 
 
 def author_name(record) -> str:
+    """The author a credit prints: _stated_author, sanitised (QF-42: an artist field that is an e-mail address
+    or carries a link, handle or hashtag publishes none of it), "Unknown" when nothing is left."""
+    return sanitise_credit_text(_stated_author(record)) or "Unknown"
+
+
+def _stated_author(record) -> str:
     """Who to credit for a photo, from its credits entry: the name the artist field states ("taken by X",
     "Photo by X", "© X", a Commons user page), else the field as it is when it is a plain name (so existing credit
     lines do not change), else the one short phrase left once its notices to re-users are dropped, else the
@@ -121,20 +127,153 @@ def author_name(record) -> str:
     return "Unknown"
 
 
+# What a credit's text fields may not carry into a post (QF-42, project review 2026-11-05): the Commons Artist and
+# file title are whatever the uploader wrote, and they were published verbatim, so a title "File:x t.ly/y #tag"
+# put a link and a hashtag in the caption and an artist field that is an e-mail address published it. Removed
+# from the author, title and licence fields; the source page and licence URL keep their own slots.
+_EMAIL = re.compile(r"[\w.+-]+@[\w-]+(?:\.[\w-]+)+", re.IGNORECASE)
+_WEB = re.compile(r"(?:\b[a-z][a-z0-9+.-]*:)?//\S+|\bwww\.\S+|"                     # scheme or www
+                  r"\b(?:[a-z0-9-]+\.)+[a-z]{2,}/\S*|"                                # host/path: "t.ly/y"
+                  r"\b(?:[a-z0-9-]+\.)+(?:com|org|net|info|biz|io|ly|co|me|tv|app|dev|link|site|online|"
+                  r"xyz|gl|gg|to|cc|us|uk|de|fr|ru|it|nl|es|pl|tr|eu|in|jp|cn|br|au|ca)\b(?![\w-])", re.IGNORECASE)
+_HANDLE = re.compile(r"(?<!\w)[@#]+(?!\d+\b)[\w.-]*")                                   # @user, #tag, a lone # or @
+_NUMBER_SIGN = re.compile(r"(?<!\w)#+(?=\d+\b)")                                    # "Room #3": the number stays
+TITLE_MAX = 60  # a credit names the file, it does not reprint an uploader's sentence (QF-42)
+
+
+def sanitise_credit_text(text) -> str:
+    """`text` for a credit's author, title or licence field: one line, without e-mail addresses, links,
+    @handles, hashtags or a "|" (the credit's field separator), "" when nothing is left."""
+    text = " ".join(str(text or "").split())
+    for pattern in (_EMAIL, _WEB, _HANDLE):
+        text = pattern.sub(" ", text)
+    text = _NUMBER_SIGN.sub("", text)
+    text = " ".join(text.replace("|", "/").split())
+    return re.sub(r"^[\s:;,.\-–—/]+|[\s:;,\-–—/(]+$", "", text)
+
+
+def credit_title(record) -> str:
+    """The file's title as a credit prints it: sanitised, at most TITLE_MAX characters (cut at a word, with
+    "…"), "Unknown" when nothing is left."""
+    title = sanitise_credit_text((record or {}).get("title"))
+    if len(title) > TITLE_MAX:
+        cut = title[:TITLE_MAX - 1]
+        title = (cut.rsplit(" ", 1)[0] if " " in cut.strip() else cut).rstrip(" ,;:-–—/(") + "…"
+    return title or "Unknown"
+
+
+def _credit_url(value) -> str:
+    """A source page or licence URL as the credit prints it: one http(s) URL, else "Unknown"."""
+    url = str(value or "").strip()
+    return url if re.fullmatch(r"https?://[^\s|<>\"]+", url, re.IGNORECASE) else "Unknown"
+
+
+def credit_line_problems(line: str) -> list:
+    """Why a published image credit line is unsafe, [] when it is not: a link, address, handle or hashtag in its
+    author, title or licence, a source or licence slot that is not one http(s) URL, or a banned phrase."""
+    if not line.startswith("📷"):
+        return []
+    fields = [f.strip() for f in line.removeprefix("📷").split(" | ")]
+    text, urls = (fields[:3], fields[3:]) if len(fields) == 5 else (fields, [])
+    problems = [f"{what} in the credit text: {m.group(0)!r}" for what, pattern in
+                (("an e-mail address", _EMAIL), ("a link", _WEB), ("a handle or hashtag", _HANDLE))
+                for f in text for m in [pattern.search(f)] if m]
+    problems += [f"not a source or licence URL: {u!r}" for u in urls if u != "Unknown" and _credit_url(u) != u]
+    from .script_engine import find_banned_tropes
+    problems += [f"banned phrase in the credit: {t!r}" for t in find_banned_tropes(" ".join(text))]
+    return problems
+
+
+def _credit_fields(line: str) -> list:
+    """The five fields of a 📷 credit line in asset_attribution's shape, [] for any other line."""
+    line = (line or "").strip()
+    if not line.startswith("📷"):
+        return []
+    fields = [f.strip() for f in line.removeprefix("📷").split(" | ")]
+    return fields if len(fields) == 5 else []
+
+
+def rewrite_credit_line(line: str) -> str:
+    """A 📷 credit line as asset_attribution writes it now, built from the line's own fields: a line written before
+    QF-42 (a raw artist, an uncapped title, a link or hashtag in the title) comes back sanitised and capped, the same
+    line asset_attribution prints for its record. Any other line is returned as it is."""
+    fields = _credit_fields(line)
+    if not fields:
+        return line
+    author, title, licence, source, licence_url = fields
+    return "📷 " + " | ".join([sanitise_credit_text(author) or "Unknown", credit_title({"title": title}),
+                               sanitise_credit_text(licence) or "Unknown", _credit_url(source),
+                               _credit_url(licence_url)])
+
+
+def rewrite_credit_lines(text: str) -> str:
+    """`text` with every 📷 credit line rewritten (rewrite_credit_line) and a credit line that then repeats an
+    earlier one dropped: a run written before QF-42 carries its old lines, and a regeneration put them back next to
+    the new ones (review of QF-42, 2026-11-05). Lines that are not credits are kept as they are."""
+    out, seen = [], set()
+    for line in (text or "").splitlines():
+        if _credit_fields(line):
+            line = rewrite_credit_line(line)
+            if line in seen:
+                continue
+            seen.add(line)
+        out.append(line)
+    return "\n".join(out) + ("\n" if (text or "").endswith("\n") else "")
+
+
+CREDITED_TEXT_FIELDS = ("caption", "description", "carousel_caption", "first_comment")
+
+
+def rewrite_payload_credits(payload: dict[str, Any]) -> dict[str, Any]:
+    """`payload` with the credit lines of its public text fields rewritten in place (rewrite_credit_lines)."""
+    for field in CREDITED_TEXT_FIELDS:
+        if isinstance(payload.get(field), str):
+            payload[field] = rewrite_credit_lines(payload[field])
+    return payload
+
+
+def credit_present(record, text: str) -> bool:
+    """Whether `text` credits `record`: its credit line as asset_attribution prints it, or a line written before
+    QF-42 that rewrites to it (the release gate's old safe form: a run waiting for approval when this change is
+    deployed keeps Approve; credit_line_problems still fails such a line when it carries a link, address, handle
+    or hashtag)."""
+    line = asset_attribution(record)
+    if not line or line in (text or ""):
+        return True
+    return any(rewrite_credit_line(old) == line for old in (text or "").splitlines() if _credit_fields(old))
+
+
 def asset_attribution(record):
     if not needs_attribution(record):
         return ""
     # One line whatever the source: a newline in a field put the rest of the credit in the caption without
     # the 📷 prefix, where it counted as public prose and failed the facts check (development, 2026-10-26; audit 2026-10-28)
     # The author is the name the artist field states, not the whole field (author_name; design review 2026-10-29).
-    return "📷 " + " | ".join(" ".join(str((author_name(record) if key == "artist" else record.get(key)) or "Unknown").split())
-                              for key in ("artist", "title", "license", "source_url", "license_url"))
+    # Author, title and licence are sanitised and the title capped (QF-42): no link, address, handle or hashtag
+    # of an uploader's reaches the post; the source page and licence keep their URL slots.
+    return "📷 " + " | ".join([author_name(record), credit_title(record),
+                               sanitise_credit_text(record.get("license")) or "Unknown",
+                               _credit_url(record.get("source_url")), _credit_url(record.get("license_url"))])
+
+
+def _reference_records(data) -> list[dict[str, Any]]:
+    """The reference images the run's illustrations were drawn from, as credit records (an attribution licence's
+    terms reach the drawing made from it)."""
+    return [{"artist": r.get("artist") or "Unknown", "title": r.get("title"), "license": r.get("licence"),
+             "source_url": r.get("url"), "license_url": r.get("license_url")}
+            for record in data.get("assets", []) for r in (record.get("illustration") or {}).get("references") or []
+            if isinstance(r, dict)]
 
 
 def add_provenance_attributions(payload, ledger):
     data = json.loads(Path(ledger).read_text(encoding="utf-8"))
+    # Credit lines already in the copy (a regeneration's held lines, a run written before QF-42) are rewritten
+    # first, so the line added below is not a second copy of an old one.
+    rewrite_payload_credits(payload)
     credits_to_add = [asset_attribution(record) for record in data.get("assets", []) if asset_attribution(record)]
-    if any(is_share_alike(record.get("license", "")) for record in data.get("assets", [])):
+    credits_to_add += [line for line in (asset_attribution(r) for r in _reference_records(data))
+                       if line and line not in credits_to_add]
+    if any(is_share_alike(record.get("license", "")) for record in data.get("assets", []) + _reference_records(data)):
         credits_to_add.insert(0, SHARE_ALIKE_NOTICE)
     if not credits_to_add:
         return payload
@@ -253,14 +392,39 @@ def generate_provenance_ledger(
                     for c in declared_credits) for source in declared_sources)
                 record["embedded_source_credits"] = declared_credits
         in_house_gap_art = path.name.startswith("gap_gen_")
+        illustration_credit = ""
         if in_house_gap_art:
             original_drawing = True
+            # A generated illustration says so (2026-11-02, illustration panel): its model and what it was drawn
+            # from. The "origin" value stays (tests/test_gap_engine.py locks it); "illustration" carries the detail.
+            try:
+                inputs = (json.loads(sidecar(path).read_text(encoding="utf-8")).get("settings") or {}).get("inputs") or {}
+            except (OSError, ValueError, AttributeError):
+                inputs = {}
+            model = str(inputs.get("model") or "an image model")
+            based_on = ", ".join(str(d) for d in inputs.get("descriptors") or [])
+            # The reference images it was drawn from (reliable depiction, 2026-11-02), so a reviewer can trace it:
+            # "based on: <reference title>, <licence>".
+            refs = [r for r in inputs.get("references") or [] if isinstance(r, dict)]
+            if refs:
+                based_on = "; ".join(f"{r.get('title') or Path(str(r.get('path') or '')).name}, "
+                                     f"{r.get('licence') or 'licence unknown'}" for r in refs)
+            record["illustration"] = {"origin": "ai_illustration", "model": model,
+                                      "based_on": f"based on: {based_on}" if based_on else "",
+                                      "fact_ids": list(inputs.get("fact_ids") or [])}
+            if refs:
+                record["illustration"]["references"] = [
+                    {k: r.get(k) for k in ("title", "licence", "license_url", "url", "source", "artist", "path", "sha256")}
+                    for r in refs]
+            illustration_credit = f"AI illustration ({model})" + (f", based on: {based_on}" if based_on else "")
         record["origin"] = "archaeological_reconstruction" if in_house_gap_art else ("original_drawing" if original_drawing else "source_media")
         record["source_paths"] = [str(source) for source in source_paths]
         record.update({"file": path.name, "title": rec.get("title", path.stem),
-                       "artist": rec.get("artist") or ("In-House Archaeological Reconstruction" if in_house_gap_art else None),
-                       "license": rec.get("license") or ("Proprietary In-House" if in_house_gap_art else None),
+                       "artist": rec.get("artist") or (illustration_credit if in_house_gap_art else None),
+                       "license": rec.get("license") or ("AI-generated illustration, not a photograph" if in_house_gap_art else None),
                        "license_url": rec.get("license_url"), "source_url": rec.get("source_url"),
+                       "worldwide_basis": _effective_basis(rec),
+                       "license_verified_at": rec.get("license_verified_at"),
                        "attribution_required": False if in_house_gap_art else requires_attribution,
                        "rights_status": "verified" if rights_known or original_drawing or embedded_rights_verified or in_house_gap_art else "unverified"})
         assets.append(record)
@@ -366,7 +530,7 @@ def hold_attribution(payload: Dict[str, Any]) -> tuple:
 def restore_attribution(payload: Dict[str, Any], held: Dict[str, List[str]]) -> Dict[str, Any]:
     """`payload` with the credit lines hold_attribution took out appended again, in their order, where missing."""
     for field, lines in (held or {}).items():
-        if isinstance(payload.get(field), str):
+        if isinstance(payload.get(field), str):  # the render rewrites them (add_provenance_attributions, QF-42)
             payload[field] = keep_attribution("\n".join(lines), payload[field])
     return payload
 
@@ -399,12 +563,22 @@ def is_share_alike(short_name: str) -> bool:
 _PUBLIC_DOMAIN = re.compile(r"^(public domain|pd\b|pd-|cc0)", re.IGNORECASE)
 
 
+def _effective_basis(rec: dict[str, Any]) -> dict[str, Any] | None:
+    from .image_rights import effective_basis
+    return effective_basis(rec) or rec.get("worldwide_basis")
+
+
 def rights_evidence_ok(rec: Dict[str, Any]) -> bool:
     """An allowed licence with its evidence: the source page, and the licence's URL. Public domain and CC0
     have no licence to link to, so their source page (where the status is documented) is the evidence;
     three public-domain Commons images were held for review for lacking a URL (production, 2026-10-23)."""
     licence = str(rec.get("license", "") or "")
     if not (license_allowed(licence) and rec.get("source_url")):
+        return False
+    from .image_rights import rights_held
+    if rights_held(rec):  # public domain needs a worldwide basis: stored, or read from the record's own evidence
+        return False
+    if rec.get("provider") == "openverse" and not rec.get("license_verified_at"):
         return False
     return bool(rec.get("license_url")) or bool(_PUBLIC_DOMAIN.match(licence.strip()))
 
@@ -487,6 +661,7 @@ def write_contact_sheet(
     """Grid of the set's images with tile numbers and optional storyboard beat context."""
     from PIL import Image, ImageDraw
 
+    from .font_engine import choose_face, plain_face
     from .typography import get_font
 
     ordered_items = sheet_order(topic_dir, images, storyboards)
@@ -528,7 +703,11 @@ def write_contact_sheet(
             banner_h = 42
             draw.rectangle([x + 4, y + cell_h - banner_h - 4, x + cell_w - 4, y + cell_h - 4], fill=(0, 0, 0))
             snippet = why if len(why) <= 52 else why[:49].rsplit(" ", 1)[0] + "…"
-            draw.text((x + 12, y + cell_h - banner_h // 2 - 4), snippet, font=font_text, fill=(241, 245, 249), anchor="lm")
+            # QF-94: an archive title no bundled face draws (a CJK or Arabic file name) on this operator sheet is
+            # drawn as before, its missing letters as visible .notdef boxes, in the face itself (plain_face): never a
+            # failed sheet, and never a refusal recorded on the run's review card (QF-94b), since it is drawn
+            face = font_text if choose_face(snippet, font_text) is not None else plain_face(font_text)
+            draw.text((x + 12, y + cell_h - banner_h // 2 - 4), snippet, font=face, fill=(241, 245, 249), anchor="lm")
 
     path = topic_dir / CONTACT_SHEET
     sheet.save(path, quality=85)
@@ -542,6 +721,10 @@ def approve_set(topic_dir: Path, min_images: int) -> str:
     credits = load_credits(topic_dir)
     if len(credits["images"]) < min_images:
         raise ValueError(f"Only {len(credits['images'])} images; need {min_images}. Re-run the fetcher to refill.")
+    from . import photo_pool
+    photo_pool.refresh(topic_dir, credits["images"])
+    diversity = photo_pool.assess(credits["images"])
+    credits["pool_diversity"] = diversity
     credits["reviewed"] = True
     credits["reviewed_by"] = "operator"  # a human decision: automatic review never overrides it
     save_credits(topic_dir, credits)
@@ -554,6 +737,8 @@ def approve_set(topic_dir: Path, min_images: int) -> str:
         if r["pending"] else
         f" A video cannot use it yet: {readiness_text(credits['images'], min_images)}. Keep a photo with "
         f"/photos N keep or add photos that show the topic itself.")
+    if not diversity["ok"]:
+        note += " Diversity notice: " + "; ".join(diversity["problems"]) + "."
     return f"Approved {len(credits['images'])} images for {topic_dir.name}." + note
 
 

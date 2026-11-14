@@ -88,7 +88,20 @@ def check_database(path):
             raise BackupError("SQLite snapshot has broken foreign keys")
 
 
-def create_snapshot(root, spool, key, *, environment, excluded=()):
+def database_profile(path):
+    """Schema digest and per-table row counts: what a test restore must reproduce."""
+    import hashlib
+    with closing(sqlite3.connect(Path(path).resolve().as_uri() + "?mode=ro", uri=True)) as database:
+        schema = database.execute("SELECT type, name, tbl_name, COALESCE(sql, '') FROM sqlite_master "
+                                  "ORDER BY type, name").fetchall()
+        tables = [name for kind, name, _, _ in schema if kind == "table" and not name.startswith("sqlite_")]
+        rows = {name: database.execute('SELECT COUNT(*) FROM "' + name.replace('"', '""') + '"').fetchone()[0]
+                for name in tables}
+    return {"schema_sha256": hashlib.sha256(json.dumps(schema).encode("utf-8")).hexdigest(), "table_rows": rows}
+
+
+def create_snapshot(root, spool, key, *, environment, excluded=(), database_only=False):
+    """A full recovery archive, or (database_only) an archive of the same format holding only data/pipeline.db."""
     import hashlib
     root, spool = Path(root).resolve(), Path(spool).resolve()
     if environment not in {"development", "production"}:
@@ -106,14 +119,20 @@ def create_snapshot(root, spool, key, *, environment, excluded=()):
     staging = Path(tempfile.mkdtemp(dir=spool, prefix=".staging-"))
     final = spool / snapshot_id
     manifest = {"schema": 1, "snapshot_id": snapshot_id, "environment": environment,
-                "source_root": str(root), "created_at": now(), "key_id": key_id(key), "files": []}
+                "source_root": str(root), "created_at": now(), "key_id": key_id(key), "files": [],
+                "kind": "database" if database_only else "full"}
     try:
         # SQLite's online backup includes committed WAL state without copying a live .db.
         with closing(sqlite3.connect(db_path.resolve().as_uri() + "?mode=ro", uri=True)) as source, \
                 closing(sqlite3.connect(staging / "database.db")) as backup:
             source.backup(backup)
+            # The copy is private and complete: a rollback journal means the checks below open it without
+            # leaving -wal/-shm files behind in the spool. Restored copies reopen in WAL as usual.
+            backup.execute("PRAGMA journal_mode=DELETE")
         check_database(staging / "database.db")
-        files = list(snapshot_files(root, excluded=excluded)) + [("data/pipeline.db", staging / "database.db")]
+        profile = database_profile(staging / "database.db") if database_only else None
+        files = [] if database_only else list(snapshot_files(root, excluded=excluded))
+        files.append(("data/pipeline.db", staging / "database.db"))
         archive = staging / "snapshot.zip"
         with zipfile.ZipFile(archive, "x", compression=zipfile.ZIP_STORED, allowZip64=True) as bundle:
             for name, source in files:
@@ -138,7 +157,9 @@ def create_snapshot(root, spool, key, *, environment, excluded=()):
         record = {"schema": 1, "snapshot_id": snapshot_id, "environment": environment,
                   "created_at": manifest["created_at"], "state": "staged", "key_id": key_id(key),
                   "sha256": sha256_file(encrypted), "size": encrypted.stat().st_size,
-                  "file_count": len(manifest["files"]), "attempts": 0}
+                  "file_count": len(manifest["files"]), "attempts": 0, "kind": manifest["kind"]}
+        if profile:
+            record["database"] = profile
         atomic_json(staging / "job.json", record)
         os.replace(staging, final)
         return record | {"directory": str(final)}

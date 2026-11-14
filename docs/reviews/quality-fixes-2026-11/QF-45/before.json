@@ -1,0 +1,15 @@
+{
+  "drafts_with_hash_or_http": 5,
+  "drafts_with_hash_or_http_kept": 5,
+  "drafts_breaking_other_grammar": 6,
+  "drafts_breaking_other_grammar_kept": 6,
+  "drafts_in_grammar": 4,
+  "drafts_in_grammar_kept": 4,
+  "examples_fenced_in_prompt": false,
+  "literal_tag_from_example_in_prompt": true,
+  "provenance_on_adopt_card": false,
+  "adopt_card_rule_line": "Proposed writing rule: <i>Never ask a yes/no poll question.</i>",
+  "adopt_card_provenance_line": null,
+  "code": "src/improve.py",
+  "acceptance_met": false
+}

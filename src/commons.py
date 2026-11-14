@@ -20,7 +20,7 @@ import requests
 from PIL import Image, ImageOps
 
 from . import config  # every setting is read once, in config (COMMONS_CONTACT came out empty when read here first)
-from .credits import license_allowed, normalize
+from .credits import license_allowed, normalize, sanitise_credit_text
 
 log = logging.getLogger(__name__)
 
@@ -34,6 +34,20 @@ HEADERS = {"User-Agent": "RelicAndRiddleBot/1.0 (" + (f"{_CONTACT}; " if _CONTAC
 MAXLAG = 5
 MIN_PIXELS = 1_500_000
 MIN_HEIGHT = 1000
+MIN_VERTICAL_CROP = 1080
+NATIVE_VERTICAL_CROP = 1350
+
+
+def vertical_crop_width(width: int, height: int) -> int:
+    """Usable source pixels across a 9:16 crop, before any upscaling."""
+    return max(0, int(min(width, height * 9 / 16)))
+
+
+def crop_rank(cand: dict) -> float:
+    w, h = cand.get("width", 0), cand.get("height", 0)
+    aspect = w / h if h else 0
+    bonus = 1.10 if any(abs(aspect - ratio) <= 0.03 for ratio in (3 / 4, 4 / 5, 1)) else 1.0
+    return vertical_crop_width(w, h) * bonus
 
 
 def _maxlagged(resp: requests.Response) -> bool:
@@ -46,26 +60,38 @@ def _maxlagged(resp: requests.Response) -> bool:
         return False
 
 
-def _get(url: str, params: Optional[dict] = None, timeout: float = 60, max_wait: int = 60) -> requests.Response:
+def _get(url: str, params: Optional[dict] = None, timeout: float = 60, max_wait: int = 60,
+         allow_redirects: bool = True, stream: bool = False) -> requests.Response:
     """GET following Wikimedia's API etiquette: one request at a time with a pause between,
-    maxlag on API calls, and backoff that honours Retry-After on 429/503 and maxlag refusals."""
+    maxlag on API calls, and backoff that honours Retry-After on 429/503 and maxlag refusals.
+    `allow_redirects=False` hands a redirect back unfollowed (download_jpeg checks each hop itself).
+    Streamed download bodies are left unread for _capped_body, including JSON responses."""
+    hops = {} if allow_redirects else {"allow_redirects": False}
     resp = None
     started = time.monotonic()
     if url == API:
         params = {**(params or {}), "maxlag": MAXLAG}
     for attempt in range(5):
         time.sleep(1.0)
-        resp = requests.get(url, params=params, headers=HEADERS, timeout=timeout)
-        if resp.status_code not in (429, 503) and not _maxlagged(resp):
-            resp.raise_for_status()
+        resp = requests.get(url, params=params, headers=HEADERS, timeout=timeout, **hops,
+                            **({"stream": True} if stream else {}))
+        if resp.status_code not in (429, 503) and (stream or not _maxlagged(resp)):
+            try:
+                resp.raise_for_status()
+            except requests.RequestException:
+                if stream:
+                    resp.close()
+                raise
             return resp
         retry_after = resp.headers.get("Retry-After", "")
+        if stream:
+            resp.close()
         wait = int(retry_after) if retry_after.isdigit() else 15 * 2 ** attempt
         if wait + (time.monotonic() - started) > max_wait:
             break  # don't hang for hours; re-run later (or set COMMONS_CONTACT)
         log.info("Commons rate limited; waiting %ss as requested", wait)
         time.sleep(wait + 1)  # retrying before Retry-After expires only extends the block
-    if _maxlagged(resp):
+    if not stream and _maxlagged(resp):
         raise requests.RequestException("Commons asked automated clients to wait (maxlag); try again later.")
     resp.raise_for_status()
     return resp
@@ -202,7 +228,9 @@ def search(query: str, limit: int = 50, max_wait: int = 60) -> list:
     params = {
         "action": "query", "format": "json", "generator": "search",
         "gsrsearch": f"{query} filetype:bitmap", "gsrnamespace": 6, "gsrlimit": limit,
-        "prop": "imageinfo|categories", "iiprop": "url|size|mime|extmetadata", "iiurlheight": 2880,
+        "prop": "imageinfo|categories|templates", "iiprop": "url|size|mime|extmetadata", "iiurlheight": 2880,
+        "tllimit": "max", "tltemplates": "Template:PD-old-70|Template:PD-old-80|Template:PD-old-90|Template:PD-old-100|"
+            "Template:PD-old-70-expired|Template:PD-old-100-expired|Template:PD-US-expired|Template:PD-Art|Template:PD-old-auto-expired",
         "clcategories": "|".join(GRADE_CATEGORIES), "cllimit": "max",
         # Credit and Attribution name the author when Artist does not (Wellcome Collection files, see _author).
         "iiextmetadatafilter": "LicenseShortName|Artist|Credit|Attribution|LicenseUrl|AttributionRequired|DateTimeOriginal|"
@@ -316,7 +344,8 @@ def _fullness(category: str, words: List[str]) -> int:
 
 
 def topic_anchor(topic: dict, place: str = "", photos: Optional[List[dict]] = None,
-                 aliases: Optional[List[str]] = None, max_wait: int = 30) -> Optional[dict]:
+                 aliases: Optional[List[str]] = None, max_wait: int = 30,
+                 subject_anchor: dict | None = None, category_search=None) -> Optional[dict]:
     """What widened searches are restricted to, for `topic` (or a beat about `place`, another site): {"kind":
     "category", "name", "deep"}, a Commons category with files whose words the topic's title, id, other names
     (`aliases`, e.g. its image queries) and place name together; else {"kind": "near", "lat", "lon"} from the
@@ -335,6 +364,12 @@ def topic_anchor(topic: dict, place: str = "", photos: Optional[List[dict]] = No
         other name), then the order found.
     Kept in this process's memory for up to a day (lost on a restart; an empty answer is asked again within the
     hour, it may have been a failed search)."""
+    if subject_anchor and not place:
+        qid, category = subject_anchor.get("qid", ""), subject_anchor.get("category", "")
+        if re.fullmatch(r"Q[1-9][0-9]*", str(qid)) and isinstance(category, str) and category.strip():
+            return {"kind": "category", "name": category.removeprefix("Category:").strip(),
+                    "deep": False, "qid": qid}
+    category_search = category_search or find_categories
     loc = topic.get("location") or {}
     place = (place or "").strip()
     key = (topic.get("id"), place)
@@ -364,7 +399,7 @@ def topic_anchor(topic: dict, place: str = "", photos: Optional[List[dict]] = No
     try:
         order = 0
         for rank, q in enumerate(dict.fromkeys(q.strip() for q in queries if q.strip())):
-            for cat in find_categories(q, limit=5, max_wait=max_wait):
+            for cat in category_search(q, limit=5, max_wait=max_wait):
                 order += 1
                 if cat in scored:
                     continue
@@ -558,7 +593,7 @@ def photo_year(raw: str) -> Optional[int]:
 
 
 def candidates(pages: list, keywords: List[str], allow_sa: bool = False, min_pixels: int = MIN_PIXELS,
-               min_height: int = MIN_HEIGHT) -> Iterator[dict]:
+               min_height: int = MIN_HEIGHT, essential_titles: dict | None = None) -> Iterator[dict]:
     """Relevant (title contains a keyword), openly licensed, high-enough-resolution images.
     Prioritizes the original full-resolution master file up to 35MB, falling back to 4K preview."""
     keywords = [normalize(k) for k in keywords]
@@ -572,8 +607,19 @@ def candidates(pages: list, keywords: List[str], allow_sa: bool = False, min_pix
             continue
         if not license_allowed(licence, allow_sa):
             continue
+        from .image_rights import commons_basis, public_domain
+        rights_basis = commons_basis(page, meta, info.get("descriptionurl", ""))
+        if public_domain(licence) and not rights_basis:
+            continue
         w, h = info.get("width", 0), info.get("height", 0)
-        if w * h < min_pixels or (h < min_height and w < min_height):
+        essential = (essential_titles or {}).get(page["title"], "")
+        if not isinstance(essential, str):
+            essential = ""
+        essential = essential.strip()
+        if w <= 0 or h <= 0:
+            continue
+        if not essential and (w * h < min_pixels or (h < min_height and w < min_height)
+                              or vertical_crop_width(w, h) < MIN_VERTICAL_CROP):
             continue
 
         # The original file: Wikimedia's cached 2880-px rendition measured 32-37 dB PSNR against it at
@@ -581,11 +627,23 @@ def candidates(pages: list, keywords: List[str], allow_sa: bool = False, min_pix
         # at a time with a pause between; only files over 35 MB use the rendition.
         orig_url = info.get("url")
         target_url = orig_url if orig_url and 0 < info.get("size", 0) <= 35_000_000 else (info.get("thumburl") or orig_url)
+        # A width-limited rendition can discard the height a portrait crop needs.
+        # Prefer the original when it improves crop headroom and fits the byte cap.
+        if target_url != orig_url:
+            th = info.get("thumbheight") or min(h, 2880)  # search requests iiurlheight=2880
+            tw = info.get("thumbwidth") or int(w * th / h)
+            if (vertical_crop_width(tw, th) < NATIVE_VERTICAL_CROP
+                    and orig_url and 0 < info.get("size", 0) <= config.COMMONS_DOWNLOAD_MAX_MB * 1024 * 1024):
+                target_url = orig_url
+            else:
+                w, h = tw, th
+        if not essential and vertical_crop_width(w, h) < MIN_VERTICAL_CROP:
+            continue
 
         # A CC BY file nobody can be credited for is refused here, with the reason, rather than fetched,
         # shown on the review card and then failing the release's rights check (development, 2026-10-26;
         # audit 2026-10-28).
-        artist = _author(meta)
+        artist = sanitise_credit_text(_author(meta)) or "Unknown"  # no e-mail, link, handle or hashtag kept (QF-42)
         if _needs_named_author(licence) and (artist == "Unknown" or len(artist) > MAX_AUTHOR):
             log.info("Commons: skipped %s: %s needs a named author and its Artist, Attribution and Credit "
                      "name nobody", page["title"], licence)
@@ -598,11 +656,13 @@ def candidates(pages: list, keywords: List[str], allow_sa: bool = False, min_pix
             "artist": artist,
             "license": licence,
             "license_url": meta.get("LicenseUrl", {}).get("value", ""),
+            **({"worldwide_basis": rights_basis} if rights_basis else {}),
             "attribution_required": meta.get("AttributionRequired", {}).get("value", "true") != "false",
             "year": photo_year(meta.get("DateTimeOriginal", {}).get("value", "")),
             "width": w,
             "height": h,
             "grade": grade(page),
+            **({"essential_reason": essential, "presentation": "full_image"} if essential else {}),
             # What the file says it shows: used to rank relevance and to caption it for the planner.
             "description": _plain(meta.get("ImageDescription", {}).get("value", ""))[:400],
             "categories": [c for c in _plain(meta.get("Categories", {}).get("value", "")).split("|") if c][:15],
@@ -665,12 +725,112 @@ def caption(cand: dict, max_len: int = 160) -> str:
 
 def best_first(cands: List[dict], keywords: Optional[List[str]] = None, place: Optional[dict] = None) -> List[dict]:
     """Openly licensed before CC BY-SA (a video using a BY-SA image must itself be BY-SA), then most relevant
-    (metadata, see relevance()), then resolution; ties keep search order."""
+    (metadata, see relevance()), then usable 9:16 crop with a portrait/square bonus; ties keep search order."""
     from .credits import is_share_alike
     for c in cands:
         c["relevance"] = round(relevance(c, keywords or [], place), 2)
     return sorted(cands, key=lambda c: (is_share_alike(c.get("license", "")), -c["relevance"],
-                                        -(c.get("width", 0) * c.get("height", 0))))
+                                        -crop_rank(c)))
+
+
+def _capped_body(resp, cap: int) -> bytes:
+    """A downloaded body of at most cap bytes, read no further than cap + one 64 KiB chunk: ValueError past it (or when the
+    server declares more). A response already read (no iter_content) is measured as it is."""
+    declared = str((getattr(resp, "headers", None) or {}).get("Content-Length", "")).strip()
+    if declared.isdigit() and int(declared) > cap:
+        close = getattr(resp, "close", None)
+        if callable(close):
+            close()
+        raise ValueError(f"Download too large: {int(declared):,} bytes declared (cap {cap:,})")
+    if not hasattr(resp, "iter_content"):
+        body = resp.content
+    else:
+        parts, size = [], 0
+        try:
+            for chunk in resp.iter_content(1 << 16):
+                parts.append(chunk)
+                size += len(chunk)
+                if size > cap:
+                    break
+        finally:
+            resp.close()
+        body = b"".join(parts)
+    if len(body) > cap:
+        raise ValueError(f"Download too large: over {cap:,} bytes (cap)")
+    return body
+
+
+# A kept JPEG source (QF-13) keeps only the segments that decode it: JFIF (APP0), the ICC profile (APP2) and Adobe's
+# colour transform (APP14). EXIF, XMP, IPTC, comments and every other APPn are dropped, as the re-encode dropped them.
+JPEG_KEPT_SEGMENTS = {0xE0, 0xE2, 0xEE}
+
+
+def strip_jpeg_metadata(data: bytes) -> bytes:
+    """`data` (a JPEG) without its metadata segments and without anything after its end-of-image marker (a
+    motion-photo video, a vendor trailer): the coded image (tables, frame, every scan of a progressive file) byte
+    for byte, ending at EOI. ValueError when the marker structure cannot be read."""
+    if data[:2] != b"\xff\xd8":
+        raise ValueError("not a JPEG")
+    out, i, n, scanned = bytearray(data[:2]), 2, len(data), False
+    while i + 1 < n:
+        if data[i] != 0xFF:
+            raise ValueError("bad JPEG marker")
+        marker = data[i + 1]
+        if marker == 0xFF:      # fill byte
+            i += 1
+            continue
+        if marker == 0xD9:      # end of image: whatever follows is not the picture
+            if not scanned:
+                raise ValueError("no scan in JPEG")
+            out += data[i:i + 2]
+            return bytes(out)
+        length = int.from_bytes(data[i + 2:i + 4], "big")
+        if length < 2 or i + 2 + length > n:
+            raise ValueError("truncated JPEG segment")
+        if not (0xE0 <= marker <= 0xEF or marker == 0xFE) or marker in JPEG_KEPT_SEGMENTS:
+            out += data[i:i + 2 + length]
+        i += 2 + length
+        if marker == 0xDA:      # start of scan: its entropy-coded data runs to the next real marker
+            scanned, j = True, i
+            while True:
+                j = data.find(b"\xff", j)
+                if j < 0 or j + 1 >= n:
+                    raise ValueError("unterminated JPEG scan")
+                following = data[j + 1]
+                if following == 0x00 or 0xD0 <= following <= 0xD7:   # a stuffed byte or a restart marker
+                    j += 2
+                elif following == 0xFF:                               # fill before a marker
+                    j += 1
+                else:
+                    break
+            out += data[i:j]
+            i = j
+    raise ValueError("no end of image in JPEG")
+
+
+def kept_jpeg(data: bytes, raw: Image.Image) -> bytes | None:
+    """The stripped source bytes when the download can be kept as it was served (an RGB or greyscale JPEG that
+    needs no rotation and decodes to exactly the same pixels once stripped), else None (it is decoded to PNG)."""
+    if raw.format != "JPEG" or raw.mode not in ("RGB", "L") or raw.getexif().get(0x0112, 1) != 1:
+        return None
+    try:
+        stripped = strip_jpeg_metadata(data)
+        with Image.open(io.BytesIO(data)) as a, Image.open(io.BytesIO(stripped)) as b:
+            if a.mode != b.mode or a.size != b.size or a.tobytes() != b.tobytes():
+                return None
+    except (ValueError, OSError):
+        return None
+    return stripped
+
+
+def stored(dest: Path) -> Path:
+    """The file download_jpeg wrote for `dest`: for a lossless (.png) destination, the kept JPEG beside it when the
+    source was kept, else `dest` itself."""
+    dest = Path(dest)
+    if dest.suffix.lower() != ".png" or dest.is_file():
+        return dest
+    kept = dest.with_suffix(".jpg")
+    return kept if kept.is_file() else dest
 
 
 def download_jpeg(
@@ -679,11 +839,26 @@ def download_jpeg(
     max_wait: int = 30,
     min_pixels: Optional[int] = None,
     min_height: Optional[int] = None,
-) -> None:
-    resp = _get(url, timeout=30, max_wait=max_wait)
-    with Image.open(io.BytesIO(resp.content)) as im:
+    provider: str | None = None,
+    min_crop_width: int | None = None,
+    preserve_source: bool = False,
+) -> tuple[int, int]:
+    """The picture at `url` saved at `dest`. A `.png` destination is lossless (QF-13): an upright baseline or
+    progressive RGB/greyscale JPEG keeps its own bytes, metadata stripped (JPEG_KEPT_SEGMENTS), at
+    dest.with_suffix(".jpg"); anything that must be decoded (an EXIF rotation, CMYK, a palette, a TIFF/PNG/WebP
+    source) is written as PNG at `dest`. stored(dest) is the file written. A `.jpg` destination (a legacy caller)
+    is re-encoded as before. The URL comes from a search answer (QF-44): it and every
+    redirect hop must be HTTPS on `provider`'s hosts (footage.ALLOWED_HOSTS; any still-image provider's fixed hosts
+    when None) and public (src/url_guard). Raises ValueError (url_guard.RefusedURL) for any other URL."""
+    from . import url_guard
+    from .footage import url_allowed
+    resp = url_guard.follow(url, lambda u, **kw: _get(u, timeout=30, max_wait=max_wait, stream=True, **kw),
+                            allowed=lambda u: url_allowed(u, provider))
+    # Untrusted bodies above the cap are refused; accepted bytes keep Pillow's own pixel limit.
+    data = _capped_body(resp, config.COMMONS_DOWNLOAD_MAX_MB * 1024 * 1024)
+    with Image.open(io.BytesIO(data)) as im:
         im.verify()  # reject corrupt / non-image payloads
-    with Image.open(io.BytesIO(resp.content)) as raw:
+    with Image.open(io.BytesIO(data)) as raw:
         # Upright first: re-encoding drops the EXIF orientation, and a portrait photo stored sideways with a
         # rotate flag reached a video turned over (Unfinished Obelisk, beat 10, 2026-10-25).
         im = ImageOps.exif_transpose(raw)
@@ -692,4 +867,23 @@ def download_jpeg(
             raise ValueError(f"Resolution too low: {w}x{h} ({w*h:,} px < {min_pixels:,})")
         if min_height and (h < min_height and w < min_height):
             raise ValueError(f"Dimensions too small: {w}x{h} (both edges < {min_height})")
-        im.convert("RGB").save(dest, "JPEG", quality=92)  # re-encode: strips metadata and odd formats
+        if min_crop_width and vertical_crop_width(w, h) < min_crop_width:
+            raise ValueError(f"9:16 crop too small: {vertical_crop_width(w, h)} px < {min_crop_width}")
+        if Path(dest).suffix.lower() == ".png":
+            kept = Path(dest).with_suffix(".jpg")
+            stripped = kept_jpeg(data, raw)
+            for stale in (Path(dest), kept):
+                stale.unlink(missing_ok=True)   # exactly one of the two names is the download
+            if stripped is not None:
+                kept.write_bytes(stripped)      # the source's own coded pixels: no decode, no new generation
+                dest = kept
+            else:
+                im.convert("RGB").save(dest, "PNG")  # decoded once, stored without quantization or subsampling
+        else:
+            im.convert("RGB").save(dest, "JPEG", quality=92)  # re-encode: strips metadata and odd formats
+        from .photo_quality import record_source
+        record_source(dest, data)
+        if preserve_source:
+            # Archive accepted original bytes separately; the upright derivative enters the pool.
+            Path(str(dest) + ".source").write_bytes(data)
+        return w, h

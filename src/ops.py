@@ -14,7 +14,6 @@ import re
 import shutil
 import socket
 import subprocess
-import time
 from logging.handlers import RotatingFileHandler
 from datetime import datetime, timezone
 from pathlib import Path
@@ -48,22 +47,34 @@ class SecretMasker:
         "HEALTHCHECK_PING_URL",  # the ping URL itself is the credential
         "SMITHSONIAN_API_KEY",
         "EUROPEANA_API_KEY",
+        "FLICKR_API_KEY",
         "GEMINI_FREE_API_KEY_SPARE",  # were missing: an error carrying either was shown unmasked
         "GROQ_API_KEY",
+        "YOUTUBE_ANALYTICS_CLIENT_ID",  # the three YouTube Analytics credentials (src/youtube_analytics.py)
+        "YOUTUBE_ANALYTICS_CLIENT_SECRET",
+        "YOUTUBE_ANALYTICS_REFRESH_TOKEN",
+        "FACT_RECORD_KEY",  # signs fact-check records (src/record_signing.py): never shown, even in part
     )
 
     @property
     def sensitive_tokens(self):
         # Read at each use, not once at start: a credential taken from .env while the daemon runs
         # (env_sync.pick_up_credentials) is masked from its first log line
-        return [v for v in (getattr(config, n, "") for n in self.SECRET_NAMES) if is_configured(v) and len(v) > 4]
+        tokens = [v for v in (getattr(config, n, "") for n in self.SECRET_NAMES) if is_configured(v) and len(v) > 4]
+        # the record key is masked whatever it holds (review 2026-11-03, round 4: a short or "your_" key was shown):
+        # such a key is never used to sign (record_signing.MIN_KEY_BYTES), but it is still not printed
+        key = str(getattr(config, "FACT_RECORD_KEY", "") or "").strip()
+        if len(key) >= 4 and key not in tokens:
+            tokens.append(key)
+        return sorted(tokens, key=len, reverse=True)   # a longer secret is masked before one it contains
 
     def mask(self, text: str) -> str:
         if not text:
             return text
         sanitized = str(text)
+        whole = str(getattr(config, "FACT_RECORD_KEY", "") or "")
         for token in self.sensitive_tokens:
-            replacement = token[:3] + "..." + token[-3:] if len(token) > 12 else "***"
+            replacement = token[:3] + "..." + token[-3:] if len(token) > 12 and token != whole else "***"
             sanitized = sanitized.replace(token, replacement)
         sanitized = _GOOGLE_KEY_RE.sub("AIza***", sanitized)
         return _TELEGRAM_TOKEN_RE.sub("bot***", sanitized)
@@ -114,53 +125,24 @@ log = logging.getLogger(__name__)
 
 
 class AssetLifecycleManager:
-    """Maintains storage hygiene by pruning intermediate scratch files older than retention_days."""
+    """Maintains storage hygiene by freeing the intermediate scratch of FINISHED runs older than retention_days
+    (src/retention.py, QF-110): a run with a live booking or an open review, or one still being made, is never
+    touched. Narration, bed, master and every record are kept for every run."""
 
-    # Narration and bed are kept: a run's release check and rights evidence need them (a run can
-    # wait weeks for approval or a slot, and published runs may need them in a dispute).
-    SCRATCH_PATTERNS = ("*temp*", "*.tmp")
-    SCRATCH_DIRS = ("motion", "parallax", "qa_frames", "stage_cache", "audit")
+    # Freed by an explicit allowlist (src/retention.py): the "*temp*" pattern this class used deleted the master of
+    # every topic named "...temple...". Narration and bed are kept: a run's release check and rights evidence need
+    # them (a run can wait weeks for approval or a slot, and published runs may need them in a dispute).
 
-    def __init__(self, output_dir: Path = OUTPUT_DIR, retention_days: int = 7):
+    def __init__(self, output_dir: Path = OUTPUT_DIR, retention_days: int = 7, db=None):
         self.output_dir = output_dir
         self.retention_days = retention_days
+        self.db = db   # the pipeline's records, which say which runs are pending (None: none is known to be)
 
     def purge_intermediate_assets(self) -> Dict[str, Any]:
-        cutoff_sec = time.time() - self.retention_days * 86400
-        purged_files = 0
-        reclaimed_bytes = 0
-
-        for run_dir in self.output_dir.iterdir():
-            if not (run_dir.is_dir() and run_dir.name.startswith("run_")):
-                continue
-            if run_dir.stat().st_mtime >= cutoff_sec:
-                continue
-            # Purge loose scratch patterns
-            for pattern in self.SCRATCH_PATTERNS:
-                for f in run_dir.glob(pattern):
-                    try:
-                        size = f.stat().st_size
-                        f.unlink()
-                        purged_files += 1
-                        reclaimed_bytes += size
-                    except OSError as e:
-                        log.warning("Could not purge %s: %s", f, e)
-            # Purge intermediate scratch directories (motion, parallax, qa_frames, etc.)
-            for d_name in self.SCRATCH_DIRS:
-                s_dir = run_dir / d_name
-                if s_dir.is_dir():
-                    try:
-                        for sf in s_dir.rglob("*"):
-                            if sf.is_file():
-                                reclaimed_bytes += sf.stat().st_size
-                                purged_files += 1
-                        shutil.rmtree(s_dir)
-                    except OSError as e:
-                        log.warning("Could not remove scratch directory %s: %s", s_dir, e)
-
-        mb_reclaimed = reclaimed_bytes / (1024 * 1024)
-        log.info("Purged %d intermediate files (%.2f MB reclaimed).", purged_files, mb_reclaimed)
-        return {"purged_count": purged_files, "mb_reclaimed": round(mb_reclaimed, 2)}
+        from .retention import free_run_intermediates
+        result = free_run_intermediates(self.output_dir, self.db, self.retention_days)
+        return {"purged_count": result["purged_count"], "mb_reclaimed": result["mb_reclaimed"],
+                "runs": result["runs"], "protected": result["protected"]}
 
 
 class PreFlightHealthChecker:
@@ -355,6 +337,8 @@ class RunLog:
         root.addHandler(handler)
         self.handler = handler
         _run_dir_for_evidence = self.run_dir
+        from .font_engine import LEDGER_NAME, set_glyph_ledger
+        set_glyph_ledger(self.run_dir / LEDGER_NAME)   # fallback faces and refused fields, for the review card (QF-94)
         return self
 
     def stop(self) -> None:
@@ -369,11 +353,14 @@ class RunLog:
         self.handler, self._restore = None, []
         if _run_dir_for_evidence == self.run_dir:
             _run_dir_for_evidence = None
+            from .font_engine import set_glyph_ledger
+            set_glyph_ledger(None)
 
 
 def record_llm_call(task: str, model: str, seconds: float, tokens_in: int = 0, tokens_out: int = 0,
-                    outcome: str = "ok", role: str = "", searches: int = 0) -> None:
-    """One line per model call in the current run's llm_calls.jsonl. Never raises."""
+                    outcome: str = "ok", role: str = "", searches: int = 0, attempts: list | None = None) -> None:
+    """One line per model call in the current run's llm_calls.jsonl. Never raises. `attempts`: each request of
+    a free-model call in order ({"key", "status", "seconds"}, and "waited": the backoff slept before it)."""
     run_dir = _run_dir_for_evidence
     if run_dir is None:
         return
@@ -382,6 +369,8 @@ def record_llm_call(task: str, model: str, seconds: float, tokens_in: int = 0, t
                 "seconds": round(seconds, 2), "tokens_in": tokens_in, "tokens_out": tokens_out, "outcome": outcome}
         if searches:
             line["searches"] = searches
+        if attempts:
+            line["attempts"] = attempts
         with (run_dir / "llm_calls.jsonl").open("a", encoding="utf-8") as f:
             f.write(json.dumps(line) + "\n")
     except (OSError, TypeError, ValueError) as e:

@@ -1,0 +1,130 @@
+{
+ "map_hal_saflieni_hypogeum_reel": {
+  "changed_px": 8854,
+  "changed_share_of_frame": 0.0043,
+  "changed_within_1px_of_an_edge": 0.7881,
+  "max_change_away_from_edges": 7,
+  "home_rim": {
+   "before": {
+    "peak": 184.7,
+    "interior": 137.0,
+    "excess": 47.7,
+    "width_px": 1.349,
+    "coast_len_px": 1675.5
+   },
+   "after": {
+    "peak": 185.0,
+    "interior": 137.0,
+    "excess": 48.0,
+    "width_px": 1.354,
+    "coast_len_px": 1660.2
+   }
+  }
+ },
+ "map_kailasa_temple_monolith_wide": {
+  "changed_px": 71075,
+  "changed_share_of_frame": 0.0343,
+  "changed_within_1px_of_an_edge": 0.9448,
+  "max_change_away_from_edges": 4,
+  "home_rim": {
+   "before": {
+    "peak": 189.2,
+    "interior": 135.1,
+    "excess": 54.1,
+    "width_px": 1.36,
+    "coast_len_px": 6266.3
+   },
+   "after": {
+    "peak": 188.8,
+    "interior": 135.1,
+    "excess": 53.7,
+    "width_px": 1.368,
+    "coast_len_px": 6220.5
+   }
+  }
+ },
+ "map_flannan_isle_lighthouse_disappearance_reel": {
+  "changed_px": 147957,
+  "changed_share_of_frame": 0.0714,
+  "changed_within_1px_of_an_edge": 0.7732,
+  "max_change_away_from_edges": 11,
+  "home_rim": {
+   "before": {
+    "peak": 178.2,
+    "interior": 133.2,
+    "excess": 45.0,
+    "width_px": 1.697,
+    "coast_len_px": 7464.3
+   },
+   "after": {
+    "peak": 178.6,
+    "interior": 133.5,
+    "excess": 45.1,
+    "width_px": 1.695,
+    "coast_len_px": 7386.2
+   }
+  }
+ },
+ "map_camp_century_nuclear_ice_city_reel": {
+  "changed_px": 190146,
+  "changed_share_of_frame": 0.0917,
+  "changed_within_1px_of_an_edge": 0.925,
+  "max_change_away_from_edges": 8,
+  "home_rim": {
+   "before": {
+    "peak": 200.1,
+    "interior": 135.7,
+    "excess": 64.4,
+    "width_px": 1.661,
+    "coast_len_px": 10086.0
+   },
+   "after": {
+    "peak": 200.0,
+    "interior": 135.7,
+    "excess": 64.3,
+    "width_px": 1.661,
+    "coast_len_px": 9870.3
+   }
+  }
+ },
+ "map_odessa_catacombs_reel": {
+  "changed_px": 135814,
+  "changed_share_of_frame": 0.0655,
+  "changed_within_1px_of_an_edge": 0.9602,
+  "max_change_away_from_edges": 22,
+  "home_rim": {
+   "before": {
+    "peak": 192.6,
+    "interior": 135.7,
+    "excess": 56.9,
+    "width_px": 1.37,
+    "coast_len_px": 3824.7
+   },
+   "after": {
+    "peak": 193.0,
+    "interior": 135.7,
+    "excess": 57.3,
+    "width_px": 1.433,
+    "coast_len_px": 3909.5
+   }
+  }
+ },
+ "scale_wieliczka_salt_mine_reel": {
+  "changed_px": 4934,
+  "changed_share_of_frame": 0.0024,
+  "changed_within_1px_of_an_edge": 1.0,
+  "max_change_away_from_edges": 0
+ },
+ "scale_unfinished_obelisk_aswan_wide": {
+  "changed_px": 10026,
+  "changed_share_of_frame": 0.0048,
+  "changed_within_1px_of_an_edge": 0.9999,
+  "max_change_away_from_edges": 4
+ },
+ "numbers_unfinished_obelisk_aswan_reel": {
+  "changed_px": 40,
+  "changed_share_of_frame": 0.0,
+  "changed_within_1px_of_an_edge": 1.0,
+  "max_change_away_from_edges": 0
+ }
+}

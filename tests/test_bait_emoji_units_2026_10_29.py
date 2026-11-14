@@ -78,7 +78,7 @@ def test_emoji_and_characters_the_font_cannot_draw_are_removed():
     assert drawable("A marvel 🌍.", "Montserrat") == "A marvel."
     assert drawable("✨Wow✨ it works", "Anton") == "Wow it works"
     assert drawable("Café — 1°C → ½", "Montserrat") == "Café — 1°C → ½"           # real glyphs are kept
-    assert drawable("Café → ½", "Cinzel") == "Café ½"                             # Cinzel has no arrow
+    assert drawable("Café → ½", "Cinzel") == "Café → ½"     # Cinzel has no arrow: set in a face that has (QF-94)
     assert drawable("Plain ASCII, kept as it is.", "Montserrat") == "Plain ASCII, kept as it is."
     d = ImageDraw.Draw(Image.new("RGB", (8, 8)))
     lines, _, _ = fit_text(d, "Earth from orbit 🚀🌍", "Montserrat", 40, 900, 2, 30)
@@ -147,7 +147,19 @@ LONG = [{"value": "1,200,000 TONS", "label": "Of volcanic stone removed from the
                                                 "laboratories and published surveys of the formation"}]
 
 
+FITTING = [{"value": "1,200,000 TONS", "label": "Of volcanic stone removed by hand"},
+           {"value": "94–104M YEARS AGO", "label": "Measured carbonatite rock cooling age"}]
+
+
 @pytest.mark.parametrize("cards", [LONG, LONG[:1], LONG[1:]], ids=["two", "one", "second"])
+def test_oversized_number_card_copy_is_refused_whole(cards, tmp_path, monkeypatch):
+    monkeypatch.setattr(graphics, "_encode", lambda *_a, **_k: pytest.fail("Truncated facts must never be encoded"))
+    with pytest.raises(ValueError, match="Checked copy does not fit"):
+        graphics.render_stat_cards(cards, tmp_path / "n.mp4")
+    assert not list(tmp_path.iterdir())
+
+
+@pytest.mark.parametrize("cards", [FITTING, FITTING[:1], FITTING[1:]], ids=["two", "one", "second"])
 def test_a_number_cards_text_ends_above_the_caption_gap(cards, tmp_path, monkeypatch):
     bottom = safe_zones.graphics_box()[3]
     assert bottom == graphics.TEXT_BOTTOM == 1058
@@ -173,7 +185,8 @@ def test_a_number_cards_text_ends_above_the_caption_gap(cards, tmp_path, monkeyp
         # the second card's figure is drawn a digit at a time; its first characters are the second card's first boxes
         first_count = sum(1 for t, _ in boxes if len(t) > 1 and t in cards[0]["label"].upper())
         first_lines = [b for t, b in boxes if len(t) > 1 and t in cards[0]["label"].upper()]
-        second_num = graphics.figure_parts(cards[1]["value"].upper())["num"]
+        # round 4: a range's dash is a drawn rule, not a planned character
+        second_num = graphics.figure_parts(cards[1]["value"].upper())["num"].replace("\u2013", "").replace("-", "")
         start = next(i for i in range(len(boxes)) if "".join(t for t, _ in boxes[i:i + len(second_num)]) == second_num)
         second = [b for _, b in boxes[start:start + len(second_num)]]
         assert first_count and max(b[3] for b in first_lines) < min(b[1] for b in second)
@@ -181,23 +194,26 @@ def test_a_number_cards_text_ends_above_the_caption_gap(cards, tmp_path, monkeyp
 
 def test_a_two_unit_card_counts_both_units_on_the_frame(tmp_path, monkeypatch):
     # Since 2026-10-29 the card draws "280 FT (85 M)" as the figure (digit by digit, on fixed cells), its unit, and
-    # the bracketed figure under the label in the data face; both figures count on every frame. Each frame's two
-    # counted figures are read back from the draw calls: the digits, then the "M" line.
-    seen = []
-    real = graphics._text
-    monkeypatch.setattr(graphics, "_text", lambda d, xy, text, font, fill, anchor="la":
-                        seen.append(text) or real(d, xy, text, font, fill, anchor))
+    # the bracketed figure under the label in the data face; both figures count on every frame.
+    # Round 4 (2026-11-02): no count-up, so every string the render draws (ImageDraw.text, the lowest draw call,
+    # across all its frames) that is a figure is one of the final figure's.
+    # Round 4 review 4 (2026-11-02): read back from what the render drew and recorded, not from the literal (the
+    # previous last line asserted on "280 FT (85 M)" itself): the last frame's measured plates name the same depth
+    # in both units.
+    drawn = _spy_text(monkeypatch)
+    recorded = {}
+    real_record = graphics.record_contrast
+
+    def spy_record(path, frame, plates):
+        recorded.update({name: pl.text for name, pl in plates if pl is not None and not pl.empty})
+        return real_record(path, frame, plates)
+    monkeypatch.setattr(graphics, "record_contrast", spy_record)
     monkeypatch.setattr(graphics, "_encode", lambda frames, out, n, width=1080, height=1920:
                         [f for _, f in zip(range(n), frames)] and out)
     graphics.render_stat_cards([{"value": "280 FT (85 M)", "label": "Depth"}], tmp_path / "n.mp4", narration=DERINKUYU)
-    values, digits = [], ""
-    for t in seen:
-        if len(t) == 1:
-            digits += t
-        elif t.endswith(" M"):
-            values.append(f"{digits} FT ({t})")
-            digits = ""
-    assert values[-1] == "280 FT (85 M)"
-    for v in values:                                   # every frame: the two figures are the same depth
-        ft, m = (int(x) for x in re.findall(r"\d+", v))
-        assert abs(ft * 0.3048 - m) <= 1.5, v
+    figures = [t for t in drawn if re.fullmatch(r"[\d,.]+( ?[A-Z]+)?", t)]
+    assert figures and set(figures) <= {"2", "8", "0", "85 M"}, sorted(set(figures))
+    assert {"2", "8", "0", "85 M"} <= set(figures)                   # every one of them drawn
+    assert (recorded["figure"], recorded["unit"], recorded["secondary"]) == ("280", "FT", "85 M")
+    ft, m = int(recorded["figure"]), int(re.match(r"\d+", recorded["secondary"]).group())
+    assert abs(ft * 0.3048 - m) <= 1.5, (ft, m)                     # the two drawn units: the same depth

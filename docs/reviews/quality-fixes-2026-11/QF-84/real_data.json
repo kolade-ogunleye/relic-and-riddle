@@ -1,0 +1,415 @@
+{
+ "tracks": [
+  {
+   "file": "mysterious/mysterious_ambient_ab278746.mp3",
+   "mood": "mysterious",
+   "reviewed": true,
+   "creator": "dlolbful",
+   "license": "cc0",
+   "duration_s": 69.9,
+   "integrated_lufs": -21.0,
+   "lra_lu": 11.6,
+   "true_peak_dbtp": -0.3,
+   "sub120_share": 0.001,
+   "quiet_seconds_first_60": 0
+  },
+  {
+   "file": "mysterious/mystery_ambient_documentaries_mysterious_42c8b27a.mp3",
+   "mood": "mysterious",
+   "reviewed": true,
+   "creator": "UNIVERSFIELD",
+   "license": "by",
+   "duration_s": 67.6,
+   "integrated_lufs": -21.9,
+   "lra_lu": 6.4,
+   "true_peak_dbtp": -11.4,
+   "sub120_share": 0.001,
+   "quiet_seconds_first_60": 0
+  },
+  {
+   "file": "mysterious/creepy_sadness_749d8bad.mp3",
+   "mood": "mysterious",
+   "reviewed": true,
+   "creator": "burning-mir",
+   "license": "cc0",
+   "duration_s": 152.6,
+   "integrated_lufs": -21.6,
+   "lra_lu": 10.5,
+   "true_peak_dbtp": -3.4,
+   "sub120_share": 0.649,
+   "quiet_seconds_first_60": 1
+  },
+  {
+   "file": "mysterious/space_atmosphere_03_remastered_wav_21aefbca.mp3",
+   "mood": "mysterious",
+   "reviewed": true,
+   "creator": "MATRIXXX_",
+   "license": "cc0",
+   "duration_s": 99.3,
+   "integrated_lufs": -32.5,
+   "lra_lu": 5.0,
+   "true_peak_dbtp": -6.3,
+   "sub120_share": 0.995,
+   "quiet_seconds_first_60": 0
+  },
+  {
+   "file": "epic/epic_orchestra_b80fd751.mp3",
+   "mood": "epic",
+   "reviewed": true,
+   "creator": "edtijo",
+   "license": "cc0",
+   "duration_s": 217.2,
+   "integrated_lufs": -16.7,
+   "lra_lu": 4.6,
+   "true_peak_dbtp": -2.2,
+   "sub120_share": 0.369,
+   "quiet_seconds_first_60": 0
+  },
+  {
+   "file": "epic/epic_heroic_orchestral_dramatic_mp3_c666607b.mp3",
+   "mood": "epic",
+   "reviewed": true,
+   "creator": "SoundFlakes",
+   "license": "by",
+   "duration_s": 87.6,
+   "integrated_lufs": -14.4,
+   "lra_lu": 7.1,
+   "true_peak_dbtp": -0.6,
+   "sub120_share": 0.579,
+   "quiet_seconds_first_60": 1
+  },
+  {
+   "file": "epic/dramatic_increasing_beeb91cc.mp3",
+   "mood": "epic",
+   "reviewed": true,
+   "creator": "tyops",
+   "license": "by",
+   "duration_s": 96.4,
+   "integrated_lufs": -12.8,
+   "lra_lu": 11.7,
+   "true_peak_dbtp": -0.3,
+   "sub120_share": 0.606,
+   "quiet_seconds_first_60": 0
+  },
+  {
+   "file": "epic/epic_orchestral_strings_6de166bd.mp3",
+   "mood": "epic",
+   "reviewed": true,
+   "creator": "TheoJT",
+   "license": "by",
+   "duration_s": 58.5,
+   "integrated_lufs": -17.6,
+   "lra_lu": 16.5,
+   "true_peak_dbtp": -0.7,
+   "sub120_share": 0.0,
+   "quiet_seconds_first_60": 9
+  },
+  {
+   "file": "melancholic/melancholic_piano_music_mp3_c0c2ed68.mp3",
+   "mood": "melancholic",
+   "reviewed": true,
+   "creator": "ZHRØ",
+   "license": "cc0",
+   "duration_s": 116.2,
+   "integrated_lufs": -28.2,
+   "lra_lu": 18.1,
+   "true_peak_dbtp": -11.9,
+   "sub120_share": 0.305,
+   "quiet_seconds_first_60": 5
+  },
+  {
+   "file": "melancholic/melancholic_piano_bf2b6597.mp3",
+   "mood": "melancholic",
+   "reviewed": true,
+   "creator": "Alexander Blu",
+   "license": "by",
+   "duration_s": 212.6,
+   "integrated_lufs": -17.5,
+   "lra_lu": 2.9,
+   "true_peak_dbtp": -3.0,
+   "sub120_share": 0.082,
+   "quiet_seconds_first_60": 0
+  },
+  {
+   "file": "melancholic/sad_heaven_piano_3_0046330f.mp3",
+   "mood": "melancholic",
+   "reviewed": true,
+   "creator": "PSOVOD",
+   "license": "by",
+   "duration_s": 75.1,
+   "integrated_lufs": -27.8,
+   "lra_lu": 15.6,
+   "true_peak_dbtp": -12.5,
+   "sub120_share": 0.02,
+   "quiet_seconds_first_60": 5
+  },
+  {
+   "file": "melancholic/piano_improvisation_2_332645c6.mp3",
+   "mood": "melancholic",
+   "reviewed": true,
+   "creator": "unfa",
+   "license": "cc0",
+   "duration_s": 158.9,
+   "integrated_lufs": -35.7,
+   "lra_lu": 22.4,
+   "true_peak_dbtp": -13.9,
+   "sub120_share": 0.003,
+   "quiet_seconds_first_60": 7
+  },
+  {
+   "file": "tense/thriller_documentary_pack_1_7fddc5b5.mp3",
+   "mood": "tense",
+   "reviewed": true,
+   "creator": "dekstromoramid",
+   "license": "cc0",
+   "duration_s": 119.3,
+   "integrated_lufs": -22.3,
+   "lra_lu": 0.7,
+   "true_peak_dbtp": -14.6,
+   "sub120_share": 0.244,
+   "quiet_seconds_first_60": 0
+  },
+  {
+   "file": "tense/horror_suspense_drone_texture_a1f075a7.mp3",
+   "mood": "tense",
+   "reviewed": true,
+   "creator": "Hybrid_V",
+   "license": "by",
+   "duration_s": 65.7,
+   "integrated_lufs": -10.3,
+   "lra_lu": 0.2,
+   "true_peak_dbtp": -0.3,
+   "sub120_share": 0.995,
+   "quiet_seconds_first_60": 0
+  },
+  {
+   "file": "tense/rhythmic_suspense_drums_mp3_ccc86b6d.mp3",
+   "mood": "tense",
+   "reviewed": true,
+   "creator": "13NHarri",
+   "license": "by",
+   "duration_s": 376.6,
+   "integrated_lufs": -24.0,
+   "lra_lu": 9.4,
+   "true_peak_dbtp": -0.5,
+   "sub120_share": 1.0,
+   "quiet_seconds_first_60": 0
+  },
+  {
+   "file": "tense/scaryscape_voicestringcalling_wav_5c341626.mp3",
+   "mood": "tense",
+   "reviewed": true,
+   "creator": "suonho",
+   "license": "by",
+   "duration_s": 86.3,
+   "integrated_lufs": -16.3,
+   "lra_lu": 11.0,
+   "true_peak_dbtp": -0.3,
+   "sub120_share": 0.799,
+   "quiet_seconds_first_60": 0
+  },
+  {
+   "file": "mysterious/soundscape1_freesound_wav_79077a72.mp3",
+   "mood": "mysterious",
+   "reviewed": true,
+   "creator": "Thoribass",
+   "license": "by",
+   "duration_s": 144.1,
+   "integrated_lufs": -12.5,
+   "lra_lu": 12.4,
+   "true_peak_dbtp": -0.1,
+   "sub120_share": 0.004,
+   "quiet_seconds_first_60": 2
+  },
+  {
+   "file": "melancholic/disabled_emotions_suite_part_5_2cb29e99.mp3",
+   "mood": "melancholic",
+   "reviewed": true,
+   "creator": "zero-project",
+   "license": "by",
+   "duration_s": 255.4,
+   "integrated_lufs": -16.8,
+   "lra_lu": 11.6,
+   "true_peak_dbtp": -0.8,
+   "sub120_share": 0.08,
+   "quiet_seconds_first_60": 0
+  },
+  {
+   "file": "tense/scaryscape_voxuffering_wav_36a351d3.mp3",
+   "mood": "tense",
+   "reviewed": true,
+   "creator": "suonho",
+   "license": "by",
+   "duration_s": 86.3,
+   "integrated_lufs": -17.5,
+   "lra_lu": 12.4,
+   "true_peak_dbtp": -0.2,
+   "sub120_share": 0.355,
+   "quiet_seconds_first_60": 0
+  },
+  {
+   "file": "melancholic/4_moments_reprise_d0aaf1e7.mp3",
+   "mood": "melancholic",
+   "reviewed": true,
+   "creator": "Keffy Kay",
+   "license": "by",
+   "duration_s": 271.4,
+   "integrated_lufs": -8.3,
+   "lra_lu": 2.1,
+   "true_peak_dbtp": -0.8,
+   "sub120_share": 0.573,
+   "quiet_seconds_first_60": 0
+  },
+  {
+   "file": "tense/scaryscape_thrillfeedcussions_wav_a519e572.mp3",
+   "mood": "tense",
+   "reviewed": true,
+   "creator": "suonho",
+   "license": "by",
+   "duration_s": 86.3,
+   "integrated_lufs": -14.8,
+   "lra_lu": 9.1,
+   "true_peak_dbtp": -0.3,
+   "sub120_share": 0.448,
+   "quiet_seconds_first_60": 0
+  },
+  {
+   "file": "epic/epic_symphonic_dubstep_mp3_baa77d3c.mp3",
+   "mood": "epic",
+   "reviewed": false,
+   "creator": "SoundFlakes",
+   "license": "by",
+   "duration_s": 121.4,
+   "integrated_lufs": -9.4,
+   "lra_lu": 7.3,
+   "true_peak_dbtp": 1.0,
+   "sub120_share": 0.462,
+   "quiet_seconds_first_60": 1
+  },
+  {
+   "file": "epic/ww2_1945_action_loop_wav_5d248b6c.mp3",
+   "mood": "epic",
+   "reviewed": false,
+   "creator": "X3nus",
+   "license": "by",
+   "duration_s": 96.0,
+   "integrated_lufs": -10.6,
+   "lra_lu": 2.9,
+   "true_peak_dbtp": 1.0,
+   "sub120_share": 0.079,
+   "quiet_seconds_first_60": 0
+  },
+  {
+   "file": "epic/orchestral_strings_warm_a_wav_c584755a.mp3",
+   "mood": "epic",
+   "reviewed": false,
+   "creator": "InspectorJ",
+   "license": "by",
+   "duration_s": 54.0,
+   "integrated_lufs": -16.3,
+   "lra_lu": 8.3,
+   "true_peak_dbtp": -1.7,
+   "sub120_share": 0.173,
+   "quiet_seconds_first_60": 9
+  }
+ ],
+ "library": {
+  "tracks": 24,
+  "reviewed_by_mood": {
+   "mysterious": 5,
+   "epic": 4,
+   "melancholic": 6,
+   "tense": 6
+  },
+  "creators": 21,
+  "legacy_uses_by_mood": {
+   "epic": 17,
+   "melancholic": 0,
+   "mysterious": 360,
+   "tense": 8
+  }
+ },
+ "dev": {
+  "runs_with_selection": 33,
+  "selection_moods": {
+   "mysterious": 21,
+   "epic": 8,
+   "tense": 4
+  },
+  "selection_sources": {
+   "library": 33
+  },
+  "distinct_tracks_selected": 12,
+  "max_selection_mood_share": 0.636,
+  "sound_plans": {
+   "plan": 34
+  },
+  "runs_with_timed_words": 35,
+  "mood_classifier_calls": {
+   "ok": 18
+  },
+  "selection_moods_where_the_classifier_answered": {
+   "mysterious": 11,
+   "tense": 3,
+   "epic": 4
+  },
+  "publications": {
+   "dry-run/simulated": 10,
+   "youtube-shorts/simulated": 7,
+   "upload-post:story/simulated": 21,
+   "upload-post:carousel/simulated": 14
+  },
+  "reel_published_runs": 0,
+  "published_with_library_music": 0,
+  "published_moods": {},
+  "max_published_mood_share": null,
+  "reviewed_tracks": 21,
+  "reviewed_tracks_with_a_published_use": 0
+ },
+ "prod": {
+  "runs_with_selection": 34,
+  "selection_moods": {
+   "mysterious": 23,
+   "epic": 10,
+   "tense": 1
+  },
+  "selection_sources": {
+   "library": 34
+  },
+  "distinct_tracks_selected": 10,
+  "max_selection_mood_share": 0.676,
+  "sound_plans": {
+   "plan": 34
+  },
+  "runs_with_timed_words": 34,
+  "publications": {
+   "upload-post/published": 6,
+   "youtube-shorts/published": 6,
+   "upload-post:story/published": 15,
+   "upload-post:story/unknown": 1,
+   "upload-post/failed": 1,
+   "reel-retry/published": 1,
+   "youtube-shorts/failed": 1,
+   "facebook:cover/published": 6,
+   "facebook:captions/failed": 1,
+   "facebook:captions/published": 6,
+   "upload-post:carousel/published": 8,
+   "youtube:thumbnail/published": 3
+  },
+  "reel_published_runs": 6,
+  "published_with_library_music": 6,
+  "published_moods": {
+   "mysterious": 4,
+   "epic": 2
+  },
+  "max_published_mood_share": 0.667,
+  "reviewed_tracks": 21,
+  "reviewed_tracks_with_a_published_use": 5,
+  "backfill": {
+   "runs_filled": 34,
+   "runs_filled_on_a_second_start": 0,
+   "published_uses": 6,
+   "tracks_with_a_published_use": 5
+  }
+ }
+}

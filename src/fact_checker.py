@@ -76,7 +76,11 @@ class ClaimFactChecker:
         if script_payload.get("origin") == "curated" and script_payload.get("sources"):
             n = len(script_payload["sources"])
             if script_payload.get("human_reviewed"):
-                return True, 100.0, [], f"Human-reviewed curated script with {n} cited sources (automated check unavailable)."
+                # A pass of this stage only: a person's review is never a fact check (operator decision
+                # 2026-11-04), so no confidence is claimed and the final copy is checked by the automated
+                # checkers (main._verify_final_copy) before any fact review is recorded.
+                return True, 0.0, [], (f"Human-reviewed curated script with {n} cited sources; the automated fact "
+                                       "check runs on its final copy.")
             if allow_unreviewed_curated:
                 return True, 0.0, [], f"UNREVIEWED curated script with {n} sources; allowed for dry run only."
             return False, 0.0, [], "Curated script has not been reviewed by a human (_reviewed_by_human) and no automated check is available."
@@ -88,12 +92,6 @@ class ClaimFactChecker:
         on_screen = [payload["thumbnail"][k] for k in ("eyebrow", "line1", "line2", "tagline")]
         on_screen += [f"{s['line1']} {s['line2']}. {s['body']}" for s in payload["story_slides"]]
         on_screen += [f"{c['heading']}: {c['body']}" for c in payload["carousel_slides"]]
-        from .graphics import diagram_labels, diagram_title
-        for key, kind in (("rolling_stone_defense", "defense"), ("ventilation_airflow", "ventilation")):
-            if payload.get(key):
-                spec = payload[key]
-                on_screen.append("Diagram: " + diagram_title(kind, spec) + " " +
-                                 " | ".join(diagram_labels(kind, spec).values()))
         # Animated graphics (src/graphics.py) show these as fact; check them like any on-screen text.
         from .graphics import year_text
         on_screen += [f"Timeline: {year_text(e['year'], e.get('approximate', False))} - {e['label']}"

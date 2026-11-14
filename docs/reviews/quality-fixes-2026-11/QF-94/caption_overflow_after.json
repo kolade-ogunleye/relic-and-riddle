@@ -1,0 +1,355 @@
+{
+ "9:16": {
+  "Αθήνα wrote": {
+   "phrases": 1,
+   "plate_w": 515,
+   "plate_x": [
+    282,
+    797
+   ],
+   "ink_x": [
+    238,
+    842
+   ],
+   "ink_w": 604,
+   "past_plate_left": 44,
+   "past_plate_right": 45,
+   "frame_w": 1080,
+   "glyphs_not_in_face": 1,
+   "fontselect": [
+    "Anton, 400, 0 -> Anton-Regular",
+    "Anton, 700, 0 -> Anton-Regular",
+    "Anton, 700, 0 -> Arial-BoldMT"
+   ]
+  },
+  "Αγία Σοφία": {
+   "phrases": 1,
+   "plate_w": 503,
+   "plate_x": [
+    288,
+    791
+   ],
+   "ink_x": [
+    228,
+    851
+   ],
+   "ink_w": 623,
+   "past_plate_left": 60,
+   "past_plate_right": 60,
+   "frame_w": 1080,
+   "glyphs_not_in_face": 1,
+   "fontselect": [
+    "Anton, 400, 0 -> Anton-Regular",
+    "Anton, 700, 0 -> Anton-Regular",
+    "Anton, 700, 0 -> Arial-BoldMT"
+   ]
+  },
+  "Москва 1941": {
+   "phrases": 1,
+   "plate_w": 509,
+   "plate_x": [
+    287,
+    796
+   ],
+   "ink_x": [
+    233,
+    854
+   ],
+   "ink_w": 621,
+   "past_plate_left": 54,
+   "past_plate_right": 58,
+   "frame_w": 1080,
+   "glyphs_not_in_face": 1,
+   "fontselect": [
+    "Anton, 400, 0 -> Anton-Regular",
+    "Anton, 700, 0 -> Anton-Regular",
+    "Anton, 700, 0 -> Arial-BoldMT"
+   ]
+  },
+  "Γνώθι σαυτόν": {
+   "phrases": 1,
+   "plate_w": 583,
+   "plate_x": [
+    249,
+    832
+   ],
+   "ink_x": [
+    166,
+    915
+   ],
+   "ink_w": 749,
+   "past_plate_left": 83,
+   "past_plate_right": 83,
+   "frame_w": 1080,
+   "glyphs_not_in_face": 1,
+   "fontselect": [
+    "Anton, 400, 0 -> Anton-Regular",
+    "Anton, 700, 0 -> Anton-Regular",
+    "Anton, 700, 0 -> Arial-BoldMT"
+   ]
+  },
+  "the Παρθενών temple": {
+   "phrases": 1,
+   "plate_w": 648,
+   "plate_x": [
+    216,
+    864
+   ],
+   "ink_x": [
+    151,
+    928
+   ],
+   "ink_w": 777,
+   "past_plate_left": 65,
+   "past_plate_right": 64,
+   "frame_w": 1080,
+   "glyphs_not_in_face": 1,
+   "fontselect": [
+    "Anton, 400, 0 -> Anton-Regular",
+    "Anton, 700, 0 -> Anton-Regular",
+    "Anton, 700, 0 -> Arial-BoldMT"
+   ]
+  },
+  "Κωνσταντινούπολη": {
+   "phrases": 1,
+   "plate_w": 688,
+   "plate_x": [
+    196,
+    884
+   ],
+   "ink_x": [
+    89,
+    992
+   ],
+   "ink_w": 903,
+   "past_plate_left": 107,
+   "past_plate_right": 108,
+   "frame_w": 1080,
+   "glyphs_not_in_face": 1,
+   "fontselect": [
+    "Anton, 400, 0 -> Anton-Regular",
+    "Anton, 700, 0 -> Anton-Regular",
+    "Anton, 700, 0 -> Arial-BoldMT"
+   ]
+  },
+  "Counterrevolutionaries": {
+   "phrases": 1,
+   "plate_w": 690,
+   "plate_x": [
+    195,
+    885
+   ],
+   "ink_x": [
+    223,
+    858
+   ],
+   "ink_w": 635,
+   "past_plate_left": -28,
+   "past_plate_right": -27,
+   "frame_w": 1080,
+   "glyphs_not_in_face": 0,
+   "fontselect": [
+    "Anton, 400, 0 -> Anton-Regular",
+    "Anton, 700, 0 -> Anton-Regular"
+   ]
+  },
+  "Ibn ابن wrote": {
+   "phrases": 1,
+   "plate_w": 440,
+   "plate_x": [
+    320,
+    760
+   ],
+   "ink_x": [
+    345,
+    737
+   ],
+   "ink_w": 392,
+   "past_plate_left": -25,
+   "past_plate_right": -23,
+   "frame_w": 1080,
+   "glyphs_not_in_face": 1,
+   "fontselect": [
+    "Anton, 400, 0 -> Anton-Regular",
+    "Anton, 700, 0 -> Anton-Regular",
+    "Anton, 700, 0 -> Arial-BoldMT"
+   ]
+  }
+ },
+ "16:9": {
+  "Αθήνα wrote": {
+   "phrases": 1,
+   "plate_w": 383,
+   "plate_x": [
+    768,
+    1151
+   ],
+   "ink_x": [
+    762,
+    1156
+   ],
+   "ink_w": 394,
+   "past_plate_left": 6,
+   "past_plate_right": 5,
+   "frame_w": 1920,
+   "glyphs_not_in_face": 1,
+   "fontselect": [
+    "Montserrat, 400, 0 -> Montserrat-Bold",
+    "Montserrat, 700, 0 -> Arial-BoldMT",
+    "Montserrat, 700, 0 -> Montserrat-Bold"
+   ]
+  },
+  "Αγία Σοφία": {
+   "phrases": 1,
+   "plate_w": 345,
+   "plate_x": [
+    788,
+    1133
+   ],
+   "ink_x": [
+    772,
+    1146
+   ],
+   "ink_w": 374,
+   "past_plate_left": 16,
+   "past_plate_right": 13,
+   "frame_w": 1920,
+   "glyphs_not_in_face": 1,
+   "fontselect": [
+    "Montserrat, 400, 0 -> Montserrat-Bold",
+    "Montserrat, 700, 0 -> Arial-BoldMT",
+    "Montserrat, 700, 0 -> Montserrat-Bold"
+   ]
+  },
+  "Москва 1941": {
+   "phrases": 1,
+   "plate_w": 392,
+   "plate_x": [
+    764,
+    1156
+   ],
+   "ink_x": [
+    797,
+    1123
+   ],
+   "ink_w": 326,
+   "past_plate_left": -33,
+   "past_plate_right": -33,
+   "frame_w": 1920,
+   "glyphs_not_in_face": 0,
+   "fontselect": [
+    "Montserrat, 400, 0 -> Montserrat-Bold",
+    "Montserrat, 700, 0 -> Montserrat-Bold"
+   ]
+  },
+  "Γνώθι σαυτόν": {
+   "phrases": 1,
+   "plate_w": 410,
+   "plate_x": [
+    755,
+    1165
+   ],
+   "ink_x": [
+    729,
+    1195
+   ],
+   "ink_w": 466,
+   "past_plate_left": 26,
+   "past_plate_right": 30,
+   "frame_w": 1920,
+   "glyphs_not_in_face": 1,
+   "fontselect": [
+    "Montserrat, 400, 0 -> Montserrat-Bold",
+    "Montserrat, 700, 0 -> Arial-BoldMT",
+    "Montserrat, 700, 0 -> Montserrat-Bold"
+   ]
+  },
+  "the Παρθενών temple": {
+   "phrases": 1,
+   "plate_w": 612,
+   "plate_x": [
+    654,
+    1266
+   ],
+   "ink_x": [
+    625,
+    1294
+   ],
+   "ink_w": 669,
+   "past_plate_left": 29,
+   "past_plate_right": 28,
+   "frame_w": 1920,
+   "glyphs_not_in_face": 1,
+   "fontselect": [
+    "Montserrat, 400, 0 -> Montserrat-Bold",
+    "Montserrat, 700, 0 -> Arial-BoldMT",
+    "Montserrat, 700, 0 -> Montserrat-Bold"
+   ]
+  },
+  "Κωνσταντινούπολη": {
+   "phrases": 1,
+   "plate_w": 560,
+   "plate_x": [
+    680,
+    1240
+   ],
+   "ink_x": [
+    637,
+    1284
+   ],
+   "ink_w": 647,
+   "past_plate_left": 43,
+   "past_plate_right": 44,
+   "frame_w": 1920,
+   "glyphs_not_in_face": 1,
+   "fontselect": [
+    "Montserrat, 400, 0 -> Montserrat-Bold",
+    "Montserrat, 700, 0 -> Arial-BoldMT",
+    "Montserrat, 700, 0 -> Montserrat-Bold"
+   ]
+  },
+  "Counterrevolutionaries": {
+   "phrases": 1,
+   "plate_w": 688,
+   "plate_x": [
+    616,
+    1304
+   ],
+   "ink_x": [
+    647,
+    1274
+   ],
+   "ink_w": 627,
+   "past_plate_left": -31,
+   "past_plate_right": -30,
+   "frame_w": 1920,
+   "glyphs_not_in_face": 0,
+   "fontselect": [
+    "Montserrat, 400, 0 -> Montserrat-Bold",
+    "Montserrat, 700, 0 -> Montserrat-Bold"
+   ]
+  },
+  "Ibn ابن wrote": {
+   "phrases": 1,
+   "plate_w": 427,
+   "plate_x": [
+    746,
+    1173
+   ],
+   "ink_x": [
+    788,
+    1135
+   ],
+   "ink_w": 347,
+   "past_plate_left": -42,
+   "past_plate_right": -38,
+   "frame_w": 1920,
+   "glyphs_not_in_face": 1,
+   "fontselect": [
+    "Montserrat, 400, 0 -> Montserrat-Bold",
+    "Montserrat, 700, 0 -> Arial-BoldMT",
+    "Montserrat, 700, 0 -> Montserrat-Bold"
+   ]
+  }
+ }
+}

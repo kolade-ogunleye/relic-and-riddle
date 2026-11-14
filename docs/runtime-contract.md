@@ -16,11 +16,12 @@ python scripts/service_runtime.py backup-cycle --settings C:\approved\launch.jso
 python scripts/service_runtime.py backup-restore --settings C:\approved\launch.json --snapshot-id production-YYYYMMDDTHHMMSSZ-0123456789ab
 ```
 
-These are separate processes/identities. `pipeline` retains `daemon --dry-run` and
-does not schedule API backups, load backup credentials or change paid-provider
-flags. The backup process alone reads its custody files. None of these commands
-register tasks, change ACLs, select a Windows account, send operator messages or
-enable live publication.
+These are separate processes/identities. `pipeline` runs `daemon` live (the
+operator activated production on 2026-10-25: every run is a posting candidate and
+approval still decides) and does not schedule API backups, load backup credentials
+or change paid-provider flags. The backup process alone reads its custody files.
+None of these commands register tasks, change ACLs, select a Windows account, send
+operator messages or change the posting mode.
 
 The manifest accepts the existing lab adapter's nine fields:
 `app_root`, `maintenance_root`, `runtime_root`, `backup_key_file`,
@@ -45,8 +46,9 @@ unchanged, never replaces an existing cache, and does not require custody-folder
 write permission. Launchers must not manipulate MSAL private state or print token
 values. An expired/revoked grant requires explicit application enrollment.
 
-`backup-cycle` captures at most one full snapshot per UTC day and retries queued
-uploads. Its v1 JSON result includes `cycle_verified`, `state`, `pending_jobs`,
+`backup-cycle` captures at most one full snapshot per UTC day, an hourly verified
+SQLite copy kept in the spool, retries queued uploads and applies local retention
+(docs/backup.md); it then writes the redacted status receipt the pipeline reads. Its v1 JSON result includes `cycle_verified`, `state`, `pending_jobs`,
 `latest_snapshot_id` and `verification`. Success requires no pending jobs, no busy
 worker result and a downloaded-SHA-256-verified snapshot captured within 26 hours
 (at most five minutes in the future for clock skew). This policy now lives in

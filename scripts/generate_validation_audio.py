@@ -7,7 +7,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from src.audio_engine import AudioEngine
+from src.audio_engine import VOICEOVER_FILE, AudioEngine, rights_file, voiceover_file
 from src.audio_provenance import inspect_audio_rights, record_bed, record_voice
 from src.checkpoints import Checkpoints, file_inputs
 from src.delivery_profiles import get_delivery_profile
@@ -26,15 +26,16 @@ def main():
         raise ValueError("A current successful fact review is required")
     engine = AudioEngine()
     checkpoint = Checkpoints(root / "stage_cache" / "validation_audio")
-    voice, words_path = root / "voiceover.mp3", root / "words.json"
+    voice, words_path = voiceover_file(root), root / "words.json"
     inputs = {"script": payload["narration_script"], "voice": engine.voice, "rate": engine.rate,
               "pitch": engine.pitch, "eleven_voice": engine.eleven_voice}
     matching = inspect_audio_rights(voice, "voice", "", script=payload["narration_script"])[0]
     if not checkpoint.reusable("voice", inputs) and not (args.reuse_existing and matching and words_path.is_file()):
+        voice = root / VOICEOVER_FILE  # a new take is always the WAV (QF-08)
         words = engine.generate_narration(payload["narration_script"], voice, licensed_only=True)
         words_path.write_text(json.dumps(words, indent=2), encoding="utf-8")
         record_voice(voice, engine.last_provider, engine.last_licensed, payload["narration_script"])
-    checkpoint.complete("voice", inputs, [voice, words_path, voice.with_suffix(".mp3.rights.json")])
+    checkpoint.complete("voice", inputs, [voice, words_path, rights_file(voice)])
     words = json.loads(words_path.read_text(encoding="utf-8"))
     duration = engine.get_duration(voice)
     profile = get_delivery_profile(payload["delivery_profile"])

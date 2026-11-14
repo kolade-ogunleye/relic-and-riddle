@@ -177,8 +177,10 @@ def test_a_long_name_stays_within_three_lines_and_a_missing_glyph_is_reported(tm
     credit = lay.meta["photo_credit"]
     assert len(credit["drawn"]) <= 3 and credit["complete"] and lay.problems() == []
     cjk = _topic(tmp_path, dict(BY_SA, artist="山田太郎"), "cjk.jpg")
-    _, lay = MultiFormatGenerator()._render_story_frame(cjk, SLIDE, 1, 3, {})
-    assert lay.meta["photo_credit"]["complete"] is False                   # the release report then flags it
+    # QF-94: no bundled face draws the name, so the frame is refused with the reason, never drawn without its author
+    from src.font_engine import GlyphRefused
+    with pytest.raises(GlyphRefused, match="CJK"):
+        MultiFormatGenerator()._render_story_frame(cjk, SLIDE, 1, 3, {})
 
 
 def _payload():
@@ -195,14 +197,14 @@ def test_the_sequence_records_what_it_credited_and_the_report_asserts_it(tmp_pat
     frames = gen.generate_story_sequence(sa, _payload(), out, scene_images=[sa, cc0])
     report = story_credit_report(frames)
     assert report["problems"] == []
-    assert [c["frame"] for c in report["credited"]] == ["story_01_hook.jpg", "story_03_question.jpg"]
+    assert [c["frame"] for c in report["credited"]] == ["story_01_hook.jpg"]  # no third frame (QF-80)
     manifest = json.loads((out / "companion_posting.json").read_text(encoding="utf-8"))
     assert manifest["story_credits"]["story_02_reveal.jpg"] == []
     assert manifest["story_credits"]["story_01_hook.jpg"][0].startswith("Photo: Wolfgang Moroder")
     for frame in frames:
         assert still_layout.check(frame) == []
     # The tighter redraw keeps the credit
-    entry = redraw_story_frame(frames[2], still_layout.load(frames[2])["recipe"])
+    entry = redraw_story_frame(frames[0], still_layout.load(frames[0])["recipe"])  # the credited hook (QF-80)
     assert "photo_credit" in [e["name"] for e in entry["elements"]] and not entry["problems"]
     assert story_credit_report(frames)["problems"] == []
     # A frame drawn without its credit (as before this change) is a problem for the release report

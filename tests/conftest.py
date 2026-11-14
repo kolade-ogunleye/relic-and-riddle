@@ -22,6 +22,8 @@ def default_licences(monkeypatch):
     # Nor the developer's formats, Shorts switch or retry waits (a test never sleeps a real minute).
     monkeypatch.setattr(config, "VIDEO_FORMATS", ["reel"])
     monkeypatch.setattr(config, "YOUTUBE_SHORTS", False)
+    monkeypatch.setattr(config, "LOOP_FOLLOW_OVERLAY", False)   # QF-83's FOLLOW: its own tests turn it on
+    monkeypatch.setattr(config, "TELEGRAM_CLEAN_CHAT", False)   # UI-01's clean chat: the test_ui01* tests turn it on
     monkeypatch.setattr(config, "SCENE_PLAN_RETRY_SECONDS", 0.0)
     monkeypatch.setattr(config, "PICTURE_CHECK_RETRY_SECONDS", 0.0)
     # Nor the deployment's model and dry-run choices: production's FREE_TIER_HEAVY=false and
@@ -41,6 +43,26 @@ def default_licences(monkeypatch):
 def no_claude(monkeypatch):
     """Tests never call the real API unless they patch it in explicitly."""
     monkeypatch.setattr("src.llm.ANTHROPIC_API_KEY", "")
+
+
+@pytest.fixture(autouse=True)
+def root_logging_restored():
+    """Each test leaves the root logger as it found it (its handlers, level and the _pipeline_configured flag; the
+    levels setup_logging sets on noisy library loggers are not restored and need not be). ops.setup_logging() (run by main.main) adds a
+    StreamHandler bound to the sys.stderr of the moment, which under pytest is the test's capture; once pytest
+    closes it, a later test on the same worker that logs or flushes root handlers raised "I/O operation on closed
+    file" (test_integrity_gates, after test_script_library or test_regenerate_reason; QF-96, 2026-11-10)."""
+    import logging
+    root = logging.getLogger()
+    handlers, level = list(root.handlers), root.level
+    configured = getattr(root, "_pipeline_configured", None)
+    yield
+    for handler in [h for h in root.handlers if h not in handlers]:
+        root.removeHandler(handler)
+        handler.close()
+    root.setLevel(level)
+    # False, not deleted: setup_logging reads it with a False default, and a test's monkeypatch may still undo it.
+    root._pipeline_configured = bool(configured)
 
 
 @pytest.fixture(autouse=True)
@@ -95,6 +117,39 @@ def no_real_services(monkeypatch):
     monkeypatch.setattr(audio_engine, "measure_spoken_seconds", lambda text, speed=1.0: None)
 
 
+TEST_FACT_RECORD_KEY = "test-only-fact-record-key-0123456789abcdef"
+
+
+@pytest.fixture(autouse=True)
+def fact_record_key(no_real_services, monkeypatch):
+    """Fact-check records are signed under FACT_RECORD_KEY (src/record_signing.py): tests sign and verify under this
+    test key, never a developer's .env key (no_real_services blanks the real one first). A test of a missing or
+    rotated key sets config.FACT_RECORD_KEY itself."""
+    from src import config, record_signing
+    monkeypatch.setattr(config, "FACT_RECORD_KEY", TEST_FACT_RECORD_KEY)
+    monkeypatch.setattr(record_signing, "_warned", set())
+    return TEST_FACT_RECORD_KEY
+
+
+def stamp_as_checked(payload, sheet_path):
+    """The fact review as main._verify_final_copy records it after both (mocked) checkers passed on the payload's
+    copy, with their signed runs (operator decision 2026-11-04: record_fact_review refuses a stamp without them).
+    For tests whose subject is not the checkers themselves."""
+    from src.fact_evidence import stamp_checked_review
+    audit = {"claim": "mocked", "where": "title", "fact_ids": [], "claim_type": "rhetorical_framing",
+             "verdict": "traced", "note": ""}
+    stamp_checked_review(payload, sheet_path, (True, 100.0, [audit], "mock trace check"),
+                         ("pass", 100.0, [dict(audit, verdict="supported", quote_ids=[])], "mock evidence check"),
+                         {"trace_check": "mock-trace", "evidence_check": "mock-evidence"})
+    return payload
+
+
+@pytest.fixture
+def checked_stamp():
+    """stamp_as_checked, as a fixture."""
+    return stamp_as_checked
+
+
 @pytest.fixture(autouse=True)
 def no_stale_slowdown(monkeypatch):
     """The slow-step note (src/slowdown.py) is process-wide: one test's "free model busy" showed on a later test's
@@ -142,6 +197,7 @@ def no_repo_writes(monkeypatch, tmp_path_factory):
     sandbox = tmp_path_factory.mktemp("repo_writes")
     monkeypatch.setattr("src.config.ISSUES_DIR", sandbox / "issues")
     monkeypatch.setattr("src.config.LOG_DIR", sandbox / "logs")
+    monkeypatch.setattr("src.config.BACKUP_STATUS_FILE", sandbox / "backup-status.json")  # never data/'s receipt
     monkeypatch.setattr("src.env_sync.ROOT", sandbox)  # a daemon started by a test never touches the real .env
     monkeypatch.setattr("src.audio_engine.PACE_FILE", sandbox / "voice_pace.json")
     monkeypatch.setattr("src.colour_balance.CACHE_DIR", sandbox / "colour_balance")  # balanced copies of test photos
@@ -150,7 +206,7 @@ def no_repo_writes(monkeypatch, tmp_path_factory):
     # A test that spends a budget to its cap must not mark the real environment's provider as shut.
     monkeypatch.setattr("src.provider_status._file", lambda: sandbox / "provider_status.json")
     # Pool preparation fetches in a child process the socket block can't reach; tests opt in.
-    monkeypatch.setattr("src.asset_pipeline.ensure_pool", lambda topic, assets_dir=None: True)
+    monkeypatch.setattr("src.asset_pipeline.ensure_pool", lambda topic, assets_dir=None, beats=None: True)
     library = sandbox / "library.json"
     if music.LIBRARY.exists():
         library.write_bytes(music.LIBRARY.read_bytes())
@@ -186,6 +242,19 @@ def db(tmp_path):
 def curated_payload():
     data = json.loads(CURATED.read_text(encoding="utf-8"))
     payload = {k: v for k, v in data.items() if not k.startswith("_")}
+    # Positive guardrail fixture: keep the curated facts with an admissible hook.
+    # The repository's older curated file itself is still checked as supplied.
+    opening = "In Cappadocia, a house renovation in 1963 revealed an underground tunnel."
+    payload["narration_script"] = opening + " " + payload["narration_script"].split(". ", 1)[1]
+    payload["hook_sentence"] = opening
+    # QF-16: the curated penultimate sentence ("Its earliest tunnels may be nearly three thousand years old, and ...")
+    # is qualified, so it would get the one hedge edit and ship flagged; the positive fixture's payoff is the same
+    # sentence's other supplied fact, unhedged. The repository's curated file itself still faces the real rule.
+    sentences = payload["narration_script"].split(". ")
+    sentences[-2] = "Byzantine-era Christians later expanded its tunnels to hide from raids"
+    payload["narration_script"] = ". ".join(sentences)
+    # QF-15: the penultimate sentence is the payoff; it names the opening's "tunnel".
+    payload["payoff_sentence"] = payload["narration_script"].split(". ")[-2] + "."
     payload.update({"topic_id": "derinkuyu_underground_city", "origin": "curated",
                     "location": {"name": "Derinkuyu", "country": "Turkey"}})
     return payload

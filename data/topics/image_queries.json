@@ -1,135 +1,476 @@
 {
-  "_doc": "Wikimedia Commons search terms per topic for scripts/fetch_commons_images.py. A file is kept only if its title contains one of the keywords (case- and accent-insensitive) and no 'exclude' term appears in its title, description or categories (for namesakes, e.g. Zhang Heng the boatman). Topics without an entry are skipped.",
+  "_doc": "Wikimedia Commons search terms per topic for scripts/fetch_commons_images.py. A file is kept only if its title contains one of the keywords (case- and accent-insensitive) and no 'exclude' term appears in its title, description or categories (for namesakes, e.g. Zhang Heng the boatman). Topics without an entry are skipped. Optional per topic: 'qid' and 'wikidata_title' (the curated Wikidata item; never a first search hit), 'languages' (its local-language label is searched too) and 'shot_queries' (six or more searches over four or more shot types; src/photo_queries.py). These add searches only: the keywords and exclusions above still decide which files are admitted.",
   "derinkuyu_underground_city": {
     "queries": ["Derinkuyu underground city", "Derinkuyu tunnel", "Derinkuyu rolling stone door", "Derinkuyu ventilation shaft"],
     "keywords": ["derinkuyu"],
-    "exclude": ["kirche", "church", "telephone", "street", "mosque"]
+    "exclude": ["kirche", "church", "telephone", "street", "mosque"],
+    "wikidata_title": "Underground City of Derinkuyu",
+    "qid": "Q1328958",
+    "languages": ["tr"],
+    "shot_queries": [
+      {"query": "Derinkuyu underground city overview", "shot_type": "wide"},
+      {"query": "Derinkuyu tunnel interior", "shot_type": "interior"},
+      {"query": "Derinkuyu rolling stone door detail", "shot_type": "detail"},
+      {"query": "Derinkuyu visitors", "shot_type": "people-scale"},
+      {"query": "Derinkuyu old photograph", "shot_type": "archival"},
+      {"query": "Derinkuyu ventilation shaft", "shot_type": "detail"}
+    ]
   },
   "roman_self_healing_concrete": {
     "queries": ["Roman concrete", "opus caementicium", "Caesarea Maritima harbour", "Pantheon Rome dome interior", "Trajan's Market Rome concrete vaults", "Baths of Caracalla ruins concrete", "Portus Roman harbour", "Baiae Roman ruins underwater", "pozzolana Pozzuoli", "Pantheon Rome exterior portico"],
-    "keywords": ["roman concrete", "opus caementicium", "caementicium", "caesarea", "pantheon", "pozzolan", "trajan", "caracalla", "portus", "baiae", "pozzuoli", "pozzolana", "baths of"]
+    "keywords": ["roman concrete", "opus caementicium", "caementicium", "caesarea", "pantheon", "pozzolan", "trajan", "caracalla", "portus", "baiae", "pozzuoli", "pozzolana", "baths of"],
+    "wikidata_title": "Roman concrete",
+    "qid": "Q610076",
+    "languages": ["it"],
+    "shot_queries": [
+      {"query": "Roman concrete wall overview", "shot_type": "wide"},
+      {"query": "Pantheon Rome dome interior", "shot_type": "interior"},
+      {"query": "Roman concrete aggregate detail", "shot_type": "detail"},
+      {"query": "Roman concrete archaeologists", "shot_type": "people-scale"},
+      {"query": "Roman concrete historical engraving", "shot_type": "archival"},
+      {"query": "Caesarea Roman harbour concrete", "shot_type": "detail"}
+    ]
   },
   "kailasa_temple_monolith": {
     "queries": ["Kailasa temple Ellora", "Ellora Cave 16", "Kailasanatha Ellora"],
-    "keywords": ["kailasa", "kailash", "ellora"]
+    "keywords": ["kailasa", "kailash", "ellora"],
+    "wikidata_title": "Kailasa Temple, Ellora",
+    "qid": "Q1268562",
+    "languages": ["hi"],
+    "shot_queries": [
+      {"query": "Kailasa Ellora temple overview", "shot_type": "wide"},
+      {"query": "Kailasa Ellora cave interior", "shot_type": "interior"},
+      {"query": "Kailasa Ellora Ravana sculpture detail", "shot_type": "detail"},
+      {"query": "Kailasa Ellora visitors", "shot_type": "people-scale"},
+      {"query": "Kailasa Ellora historical engraving", "shot_type": "archival"},
+      {"query": "Kailasa Ellora aerial view", "shot_type": "detail"}
+    ]
   },
   "antikythera_mechanism": {
     "queries": ["Antikythera mechanism"],
-    "keywords": ["antikythera"]
+    "keywords": ["antikythera"],
+    "wikidata_title": "Antikythera mechanism",
+    "qid": "Q182324",
+    "languages": ["el"],
+    "shot_queries": [
+      {"query": "Antikythera mechanism fragments overview", "shot_type": "wide"},
+      {"query": "Antikythera mechanism museum interior", "shot_type": "interior"},
+      {"query": "Antikythera mechanism gear teeth detail", "shot_type": "detail"},
+      {"query": "Antikythera mechanism museum visitors", "shot_type": "people-scale"},
+      {"query": "Antikythera mechanism historical photograph", "shot_type": "archival"},
+      {"query": "Antikythera mechanism inscriptions detail", "shot_type": "detail"}
+    ]
   },
   "gobekli_tepe_enclosure_d": {
     "queries": ["Göbekli Tepe"],
-    "keywords": ["gobekli"]
+    "keywords": ["gobekli"],
+    "wikidata_title": "Göbekli Tepe",
+    "qid": "Q214944",
+    "languages": ["tr"],
+    "shot_queries": [
+      {"query": "Göbekli Tepe enclosure D overview", "shot_type": "wide"},
+      {"query": "Göbekli Tepe shelter interior", "shot_type": "interior"},
+      {"query": "Göbekli Tepe pillar 43 detail", "shot_type": "detail"},
+      {"query": "Göbekli Tepe visitors", "shot_type": "people-scale"},
+      {"query": "Göbekli Tepe excavation historical photograph", "shot_type": "archival"},
+      {"query": "Göbekli Tepe T pillars", "shot_type": "detail"}
+    ]
   },
   "damascus_steel_nanotubes": {
     "queries": ["Damascus steel", "wootz steel", "watered steel", "shamshir", "crucible steel blade"],
     "keywords": ["damascus steel", "wootz", "damascene", "watered steel", "shamshir", "crucible steel"],
-    "exclude": ["pattern welded", "pattern-welded", "hunting knife", "dragon blade", "kitchen", "modern"]
+    "exclude": ["pattern welded", "pattern-welded", "hunting knife", "dragon blade", "kitchen", "modern"],
+    "wikidata_title": "Damascus steel",
+    "qid": "Q475736",
+    "languages": ["fa"],
+    "shot_queries": [
+      {"query": "Damascus steel blade overview", "shot_type": "wide"},
+      {"query": "Damascus steel museum display", "shot_type": "interior"},
+      {"query": "Damascus steel watered pattern detail", "shot_type": "detail"},
+      {"query": "Damascus steel sword maker", "shot_type": "people-scale"},
+      {"query": "Damascus steel historical shamshir", "shot_type": "archival"},
+      {"query": "Wootz steel microstructure detail", "shot_type": "detail"}
+    ]
   },
   "camp_century_nuclear_ice_city": {
     "queries": ["Camp Century", "Project Iceworm"],
-    "keywords": ["camp century", "iceworm"]
+    "keywords": ["camp century", "iceworm"],
+    "wikidata_title": "Camp Century",
+    "qid": "Q2512856",
+    "languages": ["da"],
+    "shot_queries": [
+      {"query": "Camp Century aerial overview", "shot_type": "wide"},
+      {"query": "Camp Century tunnel interior", "shot_type": "interior"},
+      {"query": "Camp Century reactor detail", "shot_type": "detail"},
+      {"query": "Camp Century soldiers", "shot_type": "people-scale"},
+      {"query": "Camp Century 1960 construction photograph", "shot_type": "archival"},
+      {"query": "Camp Century main trench", "shot_type": "detail"}
+    ]
   },
   "hal_saflieni_hypogeum": {
     "queries": ["Hal Saflieni Hypogeum", "Hypogeum Paola Malta"],
-    "keywords": ["hypogeum", "saflieni"]
+    "keywords": ["hypogeum", "saflieni"],
+    "wikidata_title": "Ħal Saflieni Hypogeum",
+    "qid": "Q755514",
+    "languages": ["mt"],
+    "shot_queries": [
+      {"query": "Hal Saflieni Hypogeum entrance", "shot_type": "wide"},
+      {"query": "Hal Saflieni Hypogeum chamber interior", "shot_type": "interior"},
+      {"query": "Hal Saflieni Hypogeum red ochre detail", "shot_type": "detail"},
+      {"query": "Hal Saflieni Hypogeum archaeologists", "shot_type": "people-scale"},
+      {"query": "Hal Saflieni Hypogeum historical plan", "shot_type": "archival"},
+      {"query": "Hal Saflieni Hypogeum oracle chamber", "shot_type": "detail"}
+    ]
   },
   "greek_fire_siphon": {
     "queries": ["Madrid Skylitzes Greek fire", "Skylitzes Matritensis", "Byzantine dromon", "Byzantine navy"],
-    "keywords": ["skylitzes", "dromon", "byzantine navy", "byzantine ship", "byzantine fleet"]
+    "keywords": ["skylitzes", "dromon", "byzantine navy", "byzantine ship", "byzantine fleet"],
+    "wikidata_title": "Greek fire",
+    "qid": "Q179537",
+    "languages": ["el"],
+    "shot_queries": [
+      {"query": "Byzantine dromon Greek fire", "shot_type": "wide"},
+      {"query": "Greek fire siphon museum display", "shot_type": "interior"},
+      {"query": "Greek fire siphon detail", "shot_type": "detail"},
+      {"query": "Greek fire reenactment crew", "shot_type": "people-scale"},
+      {"query": "Madrid Skylitzes Greek fire manuscript", "shot_type": "archival"},
+      {"query": "Byzantine navy historical illustration", "shot_type": "detail"}
+    ]
   },
   "unfinished_obelisk_aswan": {
     "queries": ["Unfinished obelisk Aswan"],
-    "keywords": ["unfinished obelisk"]
+    "keywords": ["unfinished obelisk"],
+    "wikidata_title": "Unfinished obelisk",
+    "qid": "Q735438",
+    "languages": ["ar"],
+    "shot_queries": [
+      {"query": "Unfinished obelisk Aswan quarry overview", "shot_type": "wide"},
+      {"query": "Unfinished obelisk Aswan trench", "shot_type": "wide"},
+      {"query": "Unfinished obelisk Aswan tool marks detail", "shot_type": "detail"},
+      {"query": "Unfinished obelisk Aswan visitors", "shot_type": "people-scale"},
+      {"query": "Unfinished obelisk Aswan historical photograph", "shot_type": "archival"},
+      {"query": "Unfinished obelisk Aswan granite detail", "shot_type": "detail"}
+    ]
   },
   "piri_reis_1513_map": {
     "queries": ["Piri Reis map"],
-    "keywords": ["piri reis"]
+    "keywords": ["piri reis"],
+    "wikidata_title": "Piri Reis map",
+    "qid": "Q1128599",
+    "languages": ["tr"],
+    "shot_queries": [
+      {"query": "Piri Reis 1513 map complete", "shot_type": "wide"},
+      {"query": "Piri Reis map museum display", "shot_type": "interior"},
+      {"query": "Piri Reis map coastline detail", "shot_type": "detail"},
+      {"query": "Piri Reis map museum visitors", "shot_type": "people-scale"},
+      {"query": "Piri Reis map historical scan", "shot_type": "archival"},
+      {"query": "Piri Reis map compass detail", "shot_type": "detail"}
+    ]
   },
   "flannan_isle_lighthouse_disappearance": {
     "queries": ["Flannan Isles lighthouse", "Flannan Isles", "Eilean Mor Flannan"],
     "keywords": ["flannan isle", "flannan lighthouse", "eilean mor"],
-    "exclude": ["st. patrick", "st flannan", "saint flannan", "stained glass", "honan", "killaloe"]
+    "exclude": ["st. patrick", "st flannan", "saint flannan", "stained glass", "honan", "killaloe"],
+    "wikidata_title": "Flannan Isles Lighthouse",
+    "qid": "Q15217844",
+    "languages": ["gd"],
+    "shot_queries": [
+      {"query": "Flannan Isles lighthouse overview", "shot_type": "wide"},
+      {"query": "Flannan Isles lighthouse lantern interior", "shot_type": "interior"},
+      {"query": "Flannan Isles lighthouse stairs detail", "shot_type": "detail"},
+      {"query": "Flannan Isles lighthouse keepers", "shot_type": "people-scale"},
+      {"query": "Flannan Isles lighthouse historical photograph", "shot_type": "archival"},
+      {"query": "Eilean Mor Flannan landing", "shot_type": "detail"}
+    ]
   },
   "trepanation_miracle": {
     "queries": ["trepanation skull", "trepanned skull", "trephination skull", "trepanation"],
-    "keywords": ["trepan", "trephin"]
+    "keywords": ["trepan", "trephin"],
+    "wikidata_title": "Trepanation",
+    "qid": "Q472953",
+    "languages": ["es"],
+    "shot_queries": [
+      {"query": "Ancient trepanation skull overview", "shot_type": "wide"},
+      {"query": "Trepanation skull museum display", "shot_type": "interior"},
+      {"query": "Trepanation skull healed edge detail", "shot_type": "detail"},
+      {"query": "Trepanation archaeological researcher", "shot_type": "people-scale"},
+      {"query": "Trepanation historical engraving", "shot_type": "archival"},
+      {"query": "Trepanation ancient tools detail", "shot_type": "detail"}
+    ]
   },
   "nazca_lines_runway_paradox": {
     "queries": ["Nazca lines", "Nazca hummingbird", "Nasca lines aerial", "Nazca geoglyph"],
     "keywords": ["nazca line", "nasca line", "geoglyph", "nazca hummingbird", "nazca astronaut", "nazca monkey"],
-    "exclude": ["plaza de armas", "panamericana", "cemetery", "hotel", "street"]
+    "exclude": ["plaza de armas", "panamericana", "cemetery", "hotel", "street"],
+    "wikidata_title": "Nazca Lines",
+    "qid": "Q2620036",
+    "languages": ["es"],
+    "shot_queries": [
+      {"query": "Nazca lines aerial overview", "shot_type": "wide"},
+      {"query": "Nazca lines interpretation centre interior", "shot_type": "interior"},
+      {"query": "Nazca lines ground detail", "shot_type": "detail"},
+      {"query": "Nazca lines surveyors", "shot_type": "people-scale"},
+      {"query": "Nazca lines historical aerial photograph", "shot_type": "archival"},
+      {"query": "Nazca hummingbird geoglyph", "shot_type": "detail"}
+    ]
   },
   "sunken_city_of_heracleion": {
     "queries": ["Thonis-Heracleion", "Heracleion", "Sunken cities Egypt exhibition", "Abu Qir Bay"],
     "keywords": ["heracleion", "thonis-heracleion", "thonis heracleion", "abu qir", "aboukir", "sunken cities", "canopus"],
-    "exclude": ["zutphen", "drogenap", "crete", "zakros", "iraklio", "knossos"]
+    "exclude": ["zutphen", "drogenap", "crete", "zakros", "iraklio", "knossos"],
+    "wikidata_title": "Heracleion",
+    "qid": "Q1607758",
+    "languages": ["ar"],
+    "shot_queries": [
+      {"query": "Thonis Heracleion underwater overview", "shot_type": "wide"},
+      {"query": "Thonis Heracleion museum display", "shot_type": "interior"},
+      {"query": "Thonis Heracleion stele inscription detail", "shot_type": "detail"},
+      {"query": "Thonis Heracleion divers", "shot_type": "people-scale"},
+      {"query": "Thonis Heracleion excavation photograph", "shot_type": "archival"},
+      {"query": "Thonis Heracleion statues", "shot_type": "detail"}
+    ]
   },
   "zhang_heng_seismoscope": {
     "queries": ["Zhang Heng seismoscope", "Houfeng Didong Yi", "Zhang Heng"],
     "keywords": ["zhang heng", "seismoscope", "houfeng", "seismograph"],
-    "exclude": ["boatman", "senkaji", "suikoden", "kuniyoshi", "ziyi", "108 heroes", "108 heroes", "heroes"]
+    "exclude": ["boatman", "senkaji", "suikoden", "kuniyoshi", "ziyi", "108 heroes", "108 heroes", "heroes"],
+    "wikidata_title": "Houfeng Didong Yi",
+    "qid": "Q15391579",
+    "languages": ["zh"],
+    "shot_queries": [
+      {"query": "Houfeng Didong Yi seismoscope overview", "shot_type": "wide"},
+      {"query": "Houfeng Didong Yi museum display", "shot_type": "interior"},
+      {"query": "Houfeng Didong Yi dragon head detail", "shot_type": "detail"},
+      {"query": "Houfeng Didong Yi museum visitors", "shot_type": "people-scale"},
+      {"query": "Houfeng Didong Yi historical diagram", "shot_type": "archival"},
+      {"query": "Houfeng Didong Yi mechanism detail", "shot_type": "detail"}
+    ]
   },
   "voynich_manuscript": {
     "queries": ["Voynich manuscript"],
-    "keywords": ["voynich"]
+    "keywords": ["voynich"],
+    "wikidata_title": "Voynich manuscript",
+    "qid": "Q179492",
+    "languages": ["it"],
+    "shot_queries": [
+      {"query": "Voynich manuscript complete folio", "shot_type": "wide"},
+      {"query": "Voynich manuscript Beinecke display", "shot_type": "interior"},
+      {"query": "Voynich manuscript script detail", "shot_type": "detail"},
+      {"query": "Voynich manuscript researcher", "shot_type": "people-scale"},
+      {"query": "Voynich manuscript historical facsimile", "shot_type": "archival"},
+      {"query": "Voynich manuscript diagram detail", "shot_type": "detail"}
+    ]
   },
   "odessa_catacombs": {
     "queries": ["Odessa catacombs", "Odesa catacombs"],
-    "keywords": ["catacomb"]
+    "keywords": ["catacomb"],
+    "wikidata_title": "Odesa Catacombs",
+    "qid": "Q375856",
+    "languages": ["uk"],
+    "shot_queries": [
+      {"query": "Odessa catacombs entrance overview", "shot_type": "wide"},
+      {"query": "Odessa catacombs tunnel interior", "shot_type": "interior"},
+      {"query": "Odessa catacombs inscriptions detail", "shot_type": "detail"},
+      {"query": "Odessa catacombs tour visitors", "shot_type": "people-scale"},
+      {"query": "Odessa catacombs wartime photograph", "shot_type": "archival"},
+      {"query": "Odessa catacombs chamber", "shot_type": "detail"}
+    ]
   },
   "richat_structure_sahara_eye": {
     "queries": ["Richat Structure", "Eye of the Sahara"],
-    "keywords": ["richat", "eye of the sahara", "guelb"]
+    "keywords": ["richat", "eye of the sahara", "guelb"],
+    "wikidata_title": "Richat Structure",
+    "qid": "Q744591",
+    "languages": ["ar"],
+    "shot_queries": [
+      {"query": "Richat Structure satellite overview", "shot_type": "wide"},
+      {"query": "Richat Structure rock formations", "shot_type": "wide"},
+      {"query": "Richat Structure geology detail", "shot_type": "detail"},
+      {"query": "Richat Structure field researchers", "shot_type": "people-scale"},
+      {"query": "Richat Structure historical aerial photograph", "shot_type": "archival"},
+      {"query": "Richat Structure concentric ridges", "shot_type": "detail"}
+    ]
   },
   "amber_room_heist": {
     "queries": ["Amber Room", "Amber Room Catherine Palace", "Bernsteinzimmer"],
-    "keywords": ["amber room", "bernsteinzimmer"]
+    "keywords": ["amber room", "bernsteinzimmer"],
+    "wikidata_title": "Amber Room",
+    "qid": "Q157012",
+    "languages": ["ru"],
+    "shot_queries": [
+      {"query": "Amber Room complete overview", "shot_type": "wide"},
+      {"query": "Amber Room Catherine Palace interior", "shot_type": "interior"},
+      {"query": "Amber Room mosaic detail", "shot_type": "detail"},
+      {"query": "Amber Room visitors", "shot_type": "people-scale"},
+      {"query": "Amber Room prewar photograph", "shot_type": "archival"},
+      {"query": "Amber Room amber panel detail", "shot_type": "detail"}
+    ]
   },
   "gol_gumbaz_whispering_gallery": {
     "queries": ["Gol Gumbaz"],
-    "keywords": ["gol gumbaz", "gol gumbad"]
+    "keywords": ["gol gumbaz", "gol gumbad"],
+    "wikidata_title": "Gol Gumbaz",
+    "qid": "Q192295",
+    "languages": ["kn"],
+    "shot_queries": [
+      {"query": "Gol Gumbaz exterior overview", "shot_type": "wide"},
+      {"query": "Gol Gumbaz whispering gallery interior", "shot_type": "interior"},
+      {"query": "Gol Gumbaz mihrab detail", "shot_type": "detail"},
+      {"query": "Gol Gumbaz visitors", "shot_type": "people-scale"},
+      {"query": "Gol Gumbaz historical engraving", "shot_type": "archival"},
+      {"query": "Gol Gumbaz dome overview", "shot_type": "detail"}
+    ]
   },
   "tunguska_event_1908": {
     "queries": ["Tunguska event", "Tunguska 1908", "Tunguska Kulik expedition"],
-    "keywords": ["tunguska"]
+    "keywords": ["tunguska"],
+    "wikidata_title": "Tunguska event",
+    "qid": "Q125953",
+    "languages": ["ru"],
+    "shot_queries": [
+      {"query": "Tunguska event forest overview", "shot_type": "wide"},
+      {"query": "Tunguska event expedition camp", "shot_type": "wide"},
+      {"query": "Tunguska fallen trees detail", "shot_type": "detail"},
+      {"query": "Tunguska Kulik expedition party", "shot_type": "people-scale"},
+      {"query": "Tunguska 1927 expedition photograph", "shot_type": "archival"},
+      {"query": "Tunguska event aerial survey", "shot_type": "detail"}
+    ]
   },
   "claw_of_archimedes": {
     "queries": ["Claw of Archimedes", "Archimedes Syracuse", "Siege of Syracuse 212 BC", "Ortygia Syracuse Sicily"],
-    "keywords": ["archimedes", "ortygia", "ortigia", "siracusa", "siege of syracuse"]
+    "keywords": ["archimedes", "ortygia", "ortigia", "siracusa", "siege of syracuse"],
+    "wikidata_title": "Claw of Archimedes",
+    "qid": "Q146938",
+    "languages": ["it"],
+    "shot_queries": [
+      {"query": "Claw of Archimedes model overview", "shot_type": "wide"},
+      {"query": "Claw of Archimedes museum display", "shot_type": "interior"},
+      {"query": "Claw of Archimedes mechanism detail", "shot_type": "detail"},
+      {"query": "Claw of Archimedes reconstruction engineers", "shot_type": "people-scale"},
+      {"query": "Claw of Archimedes historical engraving", "shot_type": "archival"},
+      {"query": "Siege of Syracuse ancient walls", "shot_type": "detail"}
+    ]
   },
   "dyatlov_pass_incident": {
     "queries": ["Dyatlov Pass", "Dyatlov group", "Kholat Syakhl"],
-    "keywords": ["dyatlov", "kholat"]
+    "keywords": ["dyatlov", "kholat"],
+    "wikidata_title": "Dyatlov Pass incident",
+    "qid": "Q814484",
+    "languages": ["ru"],
+    "shot_queries": [
+      {"query": "Dyatlov Pass overview", "shot_type": "wide"},
+      {"query": "Dyatlov Pass museum interior", "shot_type": "interior"},
+      {"query": "Dyatlov Pass tent detail", "shot_type": "detail"},
+      {"query": "Dyatlov hiking group", "shot_type": "people-scale"},
+      {"query": "Dyatlov Pass diary historical photograph", "shot_type": "archival"},
+      {"query": "Dyatlov Pass search camp", "shot_type": "detail"}
+    ]
   },
   "lycurgus_cup_nanotech": {
     "queries": ["Lycurgus Cup"],
-    "keywords": ["lycurgus cup"]
+    "keywords": ["lycurgus cup"],
+    "wikidata_title": "Lycurgus Cup",
+    "qid": "Q3000066",
+    "languages": ["en"],
+    "shot_queries": [
+      {"query": "Lycurgus Cup complete overview", "shot_type": "wide"},
+      {"query": "Lycurgus Cup museum display", "shot_type": "interior"},
+      {"query": "Lycurgus Cup relief detail", "shot_type": "detail"},
+      {"query": "Lycurgus Cup curator", "shot_type": "people-scale"},
+      {"query": "Lycurgus Cup historical catalogue", "shot_type": "archival"},
+      {"query": "Lycurgus Cup rim detail", "shot_type": "detail"}
+    ]
   },
   "wieliczka_salt_mine": {
     "queries": ["Wieliczka salt mine chapel", "Wieliczka Salt Mine", "St. Kinga's Chapel Wieliczka"],
     "keywords": ["wieliczka"],
-    "exclude": ["court", "street", "city park", "railway station", "town hall", "market square"]
+    "exclude": ["court", "street", "city park", "railway station", "town hall", "market square"],
+    "wikidata_title": "Wieliczka Salt Mine",
+    "qid": "Q454019",
+    "languages": ["pl"],
+    "shot_queries": [
+      {"query": "Wieliczka salt mine shaft overview", "shot_type": "wide"},
+      {"query": "Wieliczka salt mine chapel interior", "shot_type": "interior"},
+      {"query": "Wieliczka salt chandelier detail", "shot_type": "detail"},
+      {"query": "Wieliczka salt mine miners", "shot_type": "people-scale"},
+      {"query": "Wieliczka salt mine historical engraving", "shot_type": "archival"},
+      {"query": "Wieliczka salt mine tunnel", "shot_type": "detail"}
+    ]
   },
   "great_wall_of_gorgan": {
     "queries": ["Great Wall of Gorgan", "Gorgan Wall", "Alexander's Wall Gorgan"],
     "keywords": ["great wall of gorgan", "gorgan wall", "wall of gorgan"],
-    "exclude": ["skyline", "forest", "jangal", "newspaper", "igor", "shahrood", "alangdarre", "street", "university", "snake", "folio", "bodleian"]
+    "exclude": ["skyline", "forest", "jangal", "newspaper", "igor", "shahrood", "alangdarre", "street", "university", "snake", "folio", "bodleian"],
+    "wikidata_title": "Great Wall of Gorgan",
+    "qid": "Q739507",
+    "languages": ["fa"],
+    "shot_queries": [
+      {"query": "Great Wall of Gorgan aerial overview", "shot_type": "wide"},
+      {"query": "Great Wall of Gorgan excavation trench", "shot_type": "wide"},
+      {"query": "Great Wall of Gorgan brickwork detail", "shot_type": "detail"},
+      {"query": "Great Wall of Gorgan archaeologists", "shot_type": "people-scale"},
+      {"query": "Great Wall of Gorgan historical map", "shot_type": "archival"},
+      {"query": "Great Wall of Gorgan ruins", "shot_type": "detail"}
+    ]
   },
   "dancing_plague_1518": {
     "queries": ["dancing mania", "Pilgrims dancing Molenbeek", "dancing plague 1518", "choreomania"],
-    "keywords": ["dancing mania", "dance mania", "dancing plague", "choreomania", "molenbeek", "st. vitus dance", "saint vitus dance"]
+    "keywords": ["dancing mania", "dance mania", "dancing plague", "choreomania", "molenbeek", "st. vitus dance", "saint vitus dance"],
+    "wikidata_title": "Dancing plague of 1518",
+    "qid": "Q3295141",
+    "languages": ["fr"],
+    "shot_queries": [
+      {"query": "Strasbourg dancing plague historical city", "shot_type": "wide"},
+      {"query": "Dancing plague museum display", "shot_type": "interior"},
+      {"query": "Dancing mania engraving detail", "shot_type": "detail"},
+      {"query": "Pilgrims dancing Molenbeek", "shot_type": "people-scale"},
+      {"query": "Dancing plague 1518 historical engraving", "shot_type": "archival"},
+      {"query": "Saint Vitus dance manuscript", "shot_type": "detail"}
+    ]
   },
   "baltic_sea_anomaly": {
     "queries": ["Baltic Sea anomaly", "Ocean X Team"],
-    "keywords": ["baltic sea anomaly", "ocean x"]
+    "keywords": ["baltic sea anomaly", "ocean x"],
+    "wikidata_title": "Baltic Sea anomaly",
+    "qid": "Q3875080",
+    "languages": ["sv"],
+    "shot_queries": [
+      {"query": "Baltic Sea anomaly sonar overview", "shot_type": "wide"},
+      {"query": "Ocean X expedition control room", "shot_type": "interior"},
+      {"query": "Baltic Sea anomaly sonar detail", "shot_type": "detail"},
+      {"query": "Ocean X Team divers", "shot_type": "people-scale"},
+      {"query": "Ocean X Baltic Sea expedition archive", "shot_type": "archival"},
+      {"query": "Ocean X expedition survey vessel", "shot_type": "detail"}
+    ]
   },
   "acoustic_kitty_cia": {
     "queries": ["CIA Original Headquarters Building", "CIA headquarters Langley"],
-    "keywords": ["original headquarters building", "cia headquarters", "acoustic kitty"]
+    "keywords": ["original headquarters building", "cia headquarters", "acoustic kitty"],
+    "wikidata_title": "Acoustic Kitty",
+    "qid": "Q2739742",
+    "languages": ["en"],
+    "shot_queries": [
+      {"query": "CIA Original Headquarters Building overview", "shot_type": "wide"},
+      {"query": "CIA espionage museum interior", "shot_type": "interior"},
+      {"query": "Acoustic Kitty microphone detail", "shot_type": "detail"},
+      {"query": "Acoustic Kitty research technician", "shot_type": "people-scale"},
+      {"query": "Acoustic Kitty declassified document", "shot_type": "archival"},
+      {"query": "CIA headquarters Langley exterior", "shot_type": "detail"}
+    ]
   },
   "singing_colossi_of_memnon": {
     "queries": ["Colossi of Memnon Luxor", "Colossi of Memnon David Roberts lithograph", "Colossi of Memnon graffiti inscriptions"],
-    "keywords": ["memnon", "colossi", "amenhotep", "luxor"]
+    "keywords": ["memnon", "colossi", "amenhotep", "luxor"],
+    "wikidata_title": "Colossi of Memnon",
+    "qid": "Q750209",
+    "languages": ["ar"],
+    "shot_queries": [
+      {"query": "Colossi of Memnon complete overview", "shot_type": "wide"},
+      {"query": "Colossi of Memnon statue side view", "shot_type": "wide"},
+      {"query": "Colossi of Memnon inscriptions detail", "shot_type": "detail"},
+      {"query": "Colossi of Memnon visitors", "shot_type": "people-scale"},
+      {"query": "Colossi of Memnon David Roberts lithograph", "shot_type": "archival"},
+      {"query": "Colossi of Memnon pedestal detail", "shot_type": "detail"}
+    ]
   }
 }

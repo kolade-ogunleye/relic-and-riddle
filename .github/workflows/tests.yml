@@ -13,9 +13,24 @@ jobs:
         with:
           python-version: "3.11"
           cache: pip
-      - run: sudo apt-get update && sudo apt-get install -y libsndfile1 ffmpeg
-      - run: pip install -r requirements.txt
+      - run: sudo apt-get update && sudo apt-get install -y libsndfile1 ffmpeg libfribidi0 libfontconfig1 libgl1 libegl1
+      - name: uv (the version pyproject.toml requires)
+        run: pip install uv==0.13.7
+      - name: The lock is current for pyproject.toml
+        run: uv lock --check
+      - name: Install the hashed lock (requirements.txt and the dev group)
+        run: |
+          uv export --locked --all-groups --no-emit-project --format requirements-txt -o "$RUNNER_TEMP/locked.txt"
+          pip install --require-hashes -r "$RUNNER_TEMP/locked.txt"
+      - name: requirements.txt (the production install source) agrees with uv.lock
+        run: python scripts/check_lock.py
+      - name: Dependency advisories (fails on any advisory)
+        run: python -m pip_audit --strict --require-hashes --disable-pip --progress-spinner off -r "$RUNNER_TEMP/locked.txt"
+      - name: Dev tools
+        run: python -m ruff --version
+      - name: Topic bank editorial lint (QF-73)
+        run: python scripts/lint_topic_bank.py
       - run: python -m pytest -q -n 4
-      - name: Preserved Windows adapter tests
-        working-directory: deployment/windows/handoff
-        run: python -m unittest discover -s tests/python -p test_content_runtime.py -v
+      - name: Windows launcher adapter tests (the installed runtime/ copy)
+        working-directory: deployment/windows/runtime
+        run: python -m unittest discover -s tests -p "test_*.py" -v

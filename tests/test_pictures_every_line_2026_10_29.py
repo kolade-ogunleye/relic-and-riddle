@@ -18,7 +18,7 @@ import main
 from src import beat_images, config, image_review, improve, motion, museum_sources, prevoice_lines, scene_planner
 from src.models import BeatQuery
 
-HOOK = "Deep under the plain lies a city carved into soft rock."
+HOOK = "Under the plain, a city descends eight levels into soft rock."
 SHAFT = "Ventilation shafts carried fresh air down eight levels."
 STORES = "Families kept their livestock and food supplies far below."
 WARS = "During the long wars, whole sections were sealed off."
@@ -125,6 +125,28 @@ def test_a_pictures_rewording_that_touches_another_line_is_refused(world):
     assert "changed other lines too" in out["picture_lines_note"]
 
 
+def test_a_kept_pre_rule_opening_over_the_cap_is_not_reworded_for_its_pictures(world):
+    """QF-14: a kept script written before the hook rule opens over its 12-word cap (a blocking fault). Its rewording
+    would be refused at its opening, and a pictures regeneration refuses any change outside the asked lines: no call
+    is spent."""
+    world.coord._operator_feedback = {"reason": "pictures"}
+    pre_rule = "Deep under the quiet plain of the region lies an old city carved into soft rock."   # 16 words
+    original = _payload(SCRIPT.replace(HOOK, pre_rule))
+    out = world.check(original, kept_words=True)
+    assert world.revisions == [] and out["narration_script"] == original["narration_script"]
+    assert set(out[prevoice_lines.STAGE]["left"]) == {STORES, WARS}
+
+
+def test_a_kept_opening_with_only_a_weak_signal_is_still_reworded_for_its_pictures(world):
+    """A weak signal alone does not block (operator ruling 2026-11-10): the kept script gets its pictures rewording as
+    before QF-14, and its opening stays word for word."""
+    world.coord._operator_feedback = {"reason": "pictures"}
+    signal_only = "Deep under the plain lies a city carved into soft rock."   # no signal in its first 8 tokens
+    out = world.check(_payload(SCRIPT.replace(HOOK, signal_only)), kept_words=True)
+    assert len(world.revisions) == 1 and out["narration_script"].startswith(signal_only)
+    assert STORES_REWORDED in out["narration_script"]
+
+
 @pytest.mark.parametrize("reason", ["sound", "voice", "cover_kept"])
 def test_another_kept_reason_still_keeps_the_words_and_asks_nothing(world, reason):
     world.coord._operator_feedback = {"reason": reason}
@@ -222,7 +244,8 @@ def test_a_failed_museum_is_not_cached_and_rests(tmp_path, monkeypatch):
 def test_line_sources_need_their_keys(monkeypatch):
     monkeypatch.setattr(config, "SMITHSONIAN_API_KEY", "")
     monkeypatch.setattr(config, "EUROPEANA_API_KEY", "k")
-    assert museum_sources.line_sources() == ("met", "nasa", "europeana")   # no DEMO_KEY in a pipeline
+    # item 5 (2026-11-03): the Library of Congress is on by default (was ("met", "nasa", "europeana"))
+    assert museum_sources.line_sources() == ("met", "nasa", "europeana", "loc")   # no DEMO_KEY in a pipeline
 
 
 def _search_world(tmp_path, monkeypatch, commons_found):
@@ -230,7 +253,7 @@ def _search_world(tmp_path, monkeypatch, commons_found):
     monkeypatch.setattr(beat_images.commons, "candidates", lambda results, kws, sa: iter(list(commons_found)))
 
     def fetch(url, dest, **k):
-        Image.new("RGB", (40, 40), (90, 80, 70)).save(dest, "JPEG")
+        Image.new("RGB", (40, 40), (90, 80, 70)).save(Path(dest).with_suffix(".jpg"), "JPEG")   # a JPEG source is kept (QF-13)
     monkeypatch.setattr(beat_images.commons, "download_jpeg", fetch)
     looked = []
 
@@ -361,7 +384,7 @@ def _recorded(tmp_path, title, review):
 
 def test_the_photo_review_says_what_can_move_and_can_move_reads_it_first(tmp_path):
     assert "can_move" in image_review.PhotoVerdict.model_fields and "can_move" in image_review.SYSTEM
-    assert image_review.PhotoVerdict(index=1, shows_topic="yes", usable=True, safe=True, reason="r").can_move is None
+    assert image_review.PhotoVerdict(quality=3, depiction="original", index=1, shows_topic="yes", usable=True, safe=True, reason="r").can_move is None
     base = {"shows_topic": "yes", "usable": True, "safe": True, "reason": "a view"}
     assert motion.can_move(_recorded(tmp_path, "lake water", {**base, "can_move": False})) is False
     assert motion.can_move(_recorded(tmp_path, "stone wall", {**base, "can_move": True})) is True

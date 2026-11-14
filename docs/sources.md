@@ -88,7 +88,16 @@ https://ai.google.dev/gemini-api/docs/pricing
 ## Map and graphics data
 - Natural Earth (https://www.naturalearthdata.com/about/terms-of-use/): "All versions of Natural Earth
   raster + vector map data ... are in the public domain"; commercial use invited; "Crediting the
-  authors is unnecessary". We use 1:50m admin-0 countries v5.1.2 (`scripts/fetch_geodata.py`).
+  authors is unnecessary". We use 1:50m admin-0 countries v5.1.2 (`scripts/fetch_geodata.py`) and the
+  shaded relief raster SR_HR (1:10m) or SR_50M (1:50m) from naciscdn.org (`scripts/fetch_relief.py`),
+  the 1:10m marine polygons (`ne_10m_geography_marine_polys`, `scripts/fetch_marine.py`: the seas the maps
+  name, each only inside its own polygon: its rings densified to 1-degree edges and the North/South Atlantic and
+  Pacific split at the equator, as the IHO divides them), the 1:50m Antarctic ice shelves (`ne_50m_antarctic_ice_shelves_polys`,
+  `scripts/fetch_marine.py`: drawn as Antarctica's ground) and the 1:10m admin-0 map subunits
+  (`ne_10m_admin_0_map_subunits`, `scripts/fetch_geodata.py --10m`: the locator close-up's land, grouped into
+  the entities a map names: an admin-0 country, a map unit with its own ISO code such as Tokelau, or a
+  dependency's part lying apart from the rest such as Ascension or Tristan da Cunha; the site's home is the entity
+  whose polygon holds it, named by its own name field written out, accents folded), all from naciscdn.org.
 - Wikidata (https://www.wikidata.org/wiki/Wikidata:Licensing): structured data is CC0. Coordinates
   (P625) are accepted only inside the topic's country (src/geo.py). API etiquette
   (https://www.mediawiki.org/wiki/API:Etiquette): identifying User-Agent, serial requests, maxlag, cache.

@@ -32,7 +32,7 @@ from . import audio_engine, config
 from .fact_checker import ClaimFactChecker
 from . import free_llm
 from .llm import LLMError, claude_available, format_sources, research, structured_call, task as llm_task
-from . import fact_sheet, improve, trace_check
+from . import fact_sheet, improve, prompt_fence, trace_check
 from .models import (CarouselSlide, DeepDivePackage, DocumentaryAct, GraphicsPlan, Poll, ScriptCore, ScriptPackage,
                      Source, StorySlide, ThumbnailCopy)
 
@@ -44,28 +44,42 @@ class ScriptUnavailableError(RuntimeError):
     pass
 
 
-HOOK_MAX_WORDS = 14  # the first sentence lands inside the two seconds viewers decide in (hook_problems)
+HOOK_MAX_WORDS = config.HOOK_MAX_WORDS
+# What the hook rule accepts, said to the writer, the opening edit and every rewrite (QF-14 round 4: a refusal names
+# what passes, so one edit can comply). Each example passes hook_signal (tests/test_qf14_hook_enforcement.py). Worded
+# without the plural "words", which improve.classify files under script.length.
+HOOK_FORMS = (f"A hook passes with one of these among its first {config.HOOK_SIGNAL_WITHIN} spoken tokens, in a first "
+              f"sentence of at most {config.HOOK_MAX_WORDS}: a number ('80 million trees', 'thirty-six hours', "
+              "'a single cliff', 'the first'); a superlative ('the largest obelisk', 'the most precise gears', 'the only "
+              "map', \"the world's oldest\"); a comparison ('older than Stonehenge', 'more than 600 entrances', "
+              "'predates writing'); a contrast ('no crater', 'never read', 'without mortar', 'couldn't', 'yet', 'but', "
+              "'despite', 'before farming', 'still stands', 'vanished', 'unknown'); a span of time ('for centuries', "
+              "'two millennia'); or a question that starts on its question word ('How did...?', 'Why does...?'). "
+              "Vague size ('massive', 'immense', 'colossal') does not count. Keep it a verified fact.")
 
 SYSTEM_PROMPT = """You are a documentary scriptwriter producing short vertical Reels (1080x1920) for Facebook and Instagram in the "Historical Curiosities & Ancient Marvels" niche. Accuracy is the brand: viewers and Meta's integrity systems punish fabricated or exaggerated history, so every factual statement you write must be something you have confirmed with web search.
 
 Editorial rules:
 - Narration is {WORDS_MIN}-{WORDS_MAX} spoken words (about {SECONDS_MIN}-{SECONDS_MAX} seconds spoken). Hard maximum {WORDS_MAX}. Long words take longer to say: prefer plain, short words, or the script runs long even inside the word range.
-- Exactly five beats, tailored to the topic archetype (Knowledge Bomb & Forensic Reality schema):
+- Story order, tailored to the topic archetype: hook -> stake -> two or three concrete reveals -> payoff -> loop.
+  Every sentence serves one of these roles; never add a generic modern-relevance paragraph (why it matters to modern
+  science, engineering or the planet today).
   (1) Category-Aware Cinematic Hook in the first 3 seconds (Beat 1):
       - Megastructures: Impossible Architectural Contrast or Subterranean Paradox (e.g. ancient structures enduring while modern ones crumble, or whole communities living deep underground).
       - Relic Artifacts: Precision Beyond Its Era (micro-mechanics, astronomical gear trains, or metallurgy more refined than its period is known for), stated as documented fact, never as "lost" or impossible technology.
       - Riddle Events & Cataclysms: Sudden Forensic Anomaly (stark physical devastation, colossal atmospheric shockwave, zero impact crater, or vanished expeditions).
       NEVER start Beat 1 with greetings ('Hey guys'), generic rhetorical questions ('Have you ever wondered'), or robotic hedge words ('Estimated,', 'Approximately,'). Hook the audience immediately with an arresting, tangible reality.
-      Lead with the mystery: viewers decide in under two seconds. The first sentence is at most {HOOK_WORDS} words and delivers the impossible fact, or poses the riddle, within its first 8 words: a stark claim carrying a number or a scale (e.g. "They carved a 100-foot temple out of a single rock, starting from the top.") or a visual-challenge question the opening picture poses (e.g. "How do you carve a temple from the top down?"). Never open on a label that names the subject before the mystery ("This massive X was...", "This is the...", "Meet the...", "Here is...", "X is a..."). The hook is a verified fact like every other sentence.
-  (2) Forensic Evidence & Underlying Mechanism (Beat 2): Concrete physical evidence, exact metrics, tree rings, seismic data, metallurgy, materials, or gears.
-  (3) Epistemic Integrity & Leading Hypotheses (Beat 3): Where figures or causes are debated, present the leading scientific hypotheses with fluent, natural phrasing (e.g. 'physicists calculate that...', 'physical models suggest roughly...', 'ranging between X and Y').
-  (4) Civilizational / Modern Relevance & High Stakes (Beat 4): Why this anomaly matters to modern science, engineering, or planetary resilience.
-  (5) Standalone Loop Takeaway (Beat 5): An impactful concluding sentence leading back naturally into the opening hook so the video loops seamlessly.
+      Lead with the mystery: viewers decide in under two seconds. The first sentence is at most {HOOK_WORDS} words and delivers the impossible fact, or poses the riddle, within its first 8 words ({HOOK_FORMS}): a stark claim carrying a number or a scale (e.g. "They carved a 100-foot temple from one rock, starting at the top.") or a visual-challenge question the opening picture poses (e.g. "How do you carve a temple from the top down?"). Never open on a label that names the subject before the mystery ("This massive X was...", "This is the...", "Meet the...", "Here is...", "X is a..."). The hook is a verified fact like every other sentence.
+  (2) Stake: the concrete human or physical consequence behind the hook, from verified facts (what was built, lost, risked or survived).
+  (3) Two or three reveals: concrete physical evidence or mechanisms (exact metrics, materials, gears, seismic data) that progressively answer the opening. Where a figure or cause is debated, keep its verified range or hedge inside the reveal with fluent, natural phrasing (e.g. 'physical models suggest roughly...', 'ranging between X and Y'), never as a separate academic-debate paragraph.
+  (4) Payoff: the penultimate sentence answers the opening's question or resolves its tension. Return it word for word as payoff_sentence. It names again at least one noun the first sentence names, the same word ("the dome" again, not "the structure"); a shared verb, adjective or number does not count, and repeating the first sentence is not its answer.
+  (5) Loop: closing_sentence, the final sentence, follows the payoff and leads back naturally into the opening hook so the video loops seamlessly.
 - Hard ban on robotic sentence prefixes: NEVER start sentences with 'Estimated,' or 'Approximately,'. Integrate hedges naturally into the narrative flow.
 - Hard ban on academic paper citation chaff: do NOT use phrases like "A study in [year] reported...", "Researchers drilled...", "Geologist [Name] stated...", or "According to historians...". Present verified physical, chemical, and historical facts directly and authoritatively.
 - Hard ban on research meta-commentary: NEVER discuss the state of records, studies, or sources in the narration (e.g. do NOT say "popular sources give shallower figures", "there is no official figure for...", "records do not specify", or "sources disagree"). Instead, present the physical and historical realities directly with natural in-situ hedges (e.g. "carved roughly X feet (Y m) down", "an estimated N residents", or "ranging between A and B meters", using the sourced figures).
 - Never end on a trailing word such as "when", "until", "because", "and", "that", "the" or "of".
 - Use numbers only when sources support them. Where sources disagree, say "about", "up to", "estimated", or name the range. State the hedged physical reality directly.
+- Hedge placement: a DISPUTED fact (and any "by one estimate"/"by one account") belongs in the body, never in the first sentence, the payoff or the final loop sentence; open, pay off and close on undisputed facts or a question. Keep those three sentences free of qualifiers ("roughly", "most likely", "suggests"). Never drop a needed qualifier to make a claim sound certain: move the whole qualified claim into the body instead.
 - No conspiracy or pseudo-archaeology framing (aliens, lost super-civilizations, etc.).
 - Topic notes supplied by the user may contain errors or exaggerations. Check them; do not repeat them unverified.
 - On-screen copy is short and uppercase-friendly: thumbnail lines at most 22 characters, story and carousel headings at most 26 characters, bodies at most 90 characters.
@@ -80,7 +94,8 @@ SYSTEM_PROMPT = (SYSTEM_PROMPT.replace("{WORDS_MIN}", str(TARGET_WORD_COUNT_MIN)
                  .replace("{WORDS_MAX}", str(TARGET_WORD_COUNT_MAX))
                  .replace("{SECONDS_MIN}", f"{TARGET_DURATION_MIN:g}")
                  .replace("{SECONDS_MAX}", f"{TARGET_DURATION_MAX:g}")
-                 .replace("{HOOK_WORDS}", str(HOOK_MAX_WORDS)))
+                 .replace("{HOOK_WORDS}", str(HOOK_MAX_WORDS))
+                 .replace("{HOOK_FORMS}", HOOK_FORMS))
 
 RESEARCH_SYSTEM = """You are a research assistant for a history documentary team. Use web search to establish what reliable sources (scholarship, museums, heritage bodies, reputable encyclopedias and press) say about the topic. Report concrete, citable facts with numbers and dates, note where sources disagree and give the range, flag popular claims that are myths or exaggerations, and identify the genuine open questions. Be concise and factual."""
 
@@ -100,7 +115,8 @@ Location: {location}
 Topic notes (unverified): {key_facts}
 
 Requirements:
-- narration: open on the verified facts' most surprising discovery or human-stakes fact (the mystery first: viewers decide in under two seconds), never on a list of measurements; the first sentence at most 14 words. Place the site for the viewer ({location}: its region or country, not only its own name) within the first 3 sentences. Never put a unit conversion or an aside in brackets: the voice does not say it. The title, the caption and the narration tell the same story: a figure, year or discovery the title or caption leads with is told in the narration too. Word budget by role: the hook (at most 14 words) carries the discovery or mystery and, ideally, the place; the place is named inside an existing sentence ("Beneath a house in <place>, <country>, ..."), never as a sentence added for it; then 3-4 fact sentences; then the closing sentence; the total inside the Length range below. The discovery-first opening replaces measurement sentences, it is not added to them; one hedge may cover two related figures.
+- narration: open on the verified facts' most surprising discovery or human-stakes fact (the mystery first: viewers decide in under two seconds), never on a list of measurements; the first sentence at most 12 words. Place the site for the viewer ({location}: its region or country, not only its own name) within the first 3 sentences. Never put a unit conversion or an aside in brackets: the voice does not say it. The title, the caption and the narration tell the same story: a figure, year or discovery the title or caption leads with is told in the narration too. Word budget by role: the hook (at most 12 words) carries the discovery or mystery and, ideally, the place; the place is named inside an existing sentence ("Beneath a house in <place>, <country>, ..."), never as a sentence added for it; then the stake and 2-3 concrete reveals; then the payoff (payoff_sentence) answering the hook with one of its nouns; then the closing loop sentence; the total inside the Length range below. The discovery-first opening replaces measurement sentences, it is not added to them; one hedge may cover two related figures.
+- thumbnail: the cover's words, shared by every cover style, the carousel and the YouTube thumbnail: eyebrow (a short kicker), line1 and line2 (the headline) and tagline (the deck under it), each at most 22 characters. A figure in them follows the headline rule: an undisputed figure as the facts give it; a disputed one never as one number taken from its range: as the facts' own span in the same unit (both ends stated), as a floor at or below the lowest figure ("1,000+"), or not at all (a headline without the figure); none that only one estimate gives. A size says what it measures, in the facts' own word ("144 FT ACROSS" for a diameter, "280 FT DEEP"), never a bare "144-FOOT". A line that shortens a fact keeps every word that limits it: "NO IRON CLAMPS" where the fact says "without the use of iron clamps", never "BUILT WITHOUT CLAMPS"; a superlative keeps its place and time ("ONCE THE REGION'S LARGEST"). A year says what happened in it, in the facts' word for that year ("FOUND 1963" where the facts say "rediscovered in 1963"), never bare beside a place (a city's name and a bare year read as its founding date). The deck poses the open question or the stake from a verified fact, never gives away the answer the video builds to ("CARVED BY NATURE" ends the riddle before it starts); leave the tagline empty rather than restate the headline.
 - title: the Facebook Reel title shown under the video: at most 60 characters, specific and intriguing (a name, a number or a tension, not a label like "The History of X"); at most one relevant emoji.
 - caption: written like a magazine editor, not a template. First line: a curiosity-driven line of at most 110 characters (a hard limit of 125 is shown before "more"; stay well under it) that is NOT the narration's hook sentence. Then 2-3 short sentences that add context the video doesn't say (a detail, a consequence, a name), with the place worked naturally into the prose. Then one genuine question to the audience. Then the hashtags on the last line. Use 1-3 relevant emoji where they add warmth or meaning (for example one at the end of the first line and one on the question), never as labels or bullet markers, and no "📍" lines. Under 1,600 characters.
 - carousel_caption: a separate caption for the 7-slide carousel of the same topic, different wording from the Reel caption (not a rephrase of its first line): a short invitation to look through the slides ("Swipe through ..." is fine; never say which way), one fresh detail, one question, then the same hashtags. Use 1-3 relevant emoji where they add warmth or meaning, as in the caption (never a pointing hand or an arrow). Under 800 characters. It is posted as Instagram's carousel and as Facebook's photo grid, which place the caption and the photos differently.
@@ -121,8 +137,9 @@ Sub-theme: {sub_theme}
 Location: {location}
 
 Requirements:
-- narration: open on the verified facts' most surprising discovery, central anomaly, or human-stakes tension (the mystery first: viewers decide in under two seconds), never on a list of measurements; the first sentence at most 14 words. Build the opening hook strictly from verified facts or genuine open debates; never invent unverified framing. Place the site for the viewer ({location}: its region or country, not only its own name) within the first 3 sentences. Never put a unit conversion or an aside in brackets: the voice does not say it. The title, the caption and the narration tell the same story: a figure, year or discovery the title or caption leads with is told in the narration too. Word budget by role: the hook (at most 14 words) carries the discovery or mystery and, ideally, the place; the place is named inside an existing sentence ("Beneath a house in <place>, <country>, ..."), never as a sentence added for it; then 3-4 fact sentences; then the closing sentence; the total inside the Length range below. The discovery-first opening replaces measurement sentences, it is not added to them; one hedge may cover two related figures.
+- narration: open on the verified facts' most surprising discovery, central anomaly, or human-stakes tension (the mystery first: viewers decide in under two seconds), never on a list of measurements; the first sentence at most 12 words. Build the opening hook strictly from verified facts or genuine open debates; never invent unverified framing. Place the site for the viewer ({location}: its region or country, not only its own name) within the first 3 sentences. Never put a unit conversion or an aside in brackets: the voice does not say it. The title, the caption and the narration tell the same story: a figure, year or discovery the title or caption leads with is told in the narration too. Word budget by role: the hook (at most 12 words) carries the discovery or mystery and, ideally, the place; the place is named inside an existing sentence ("Beneath a house in <place>, <country>, ..."), never as a sentence added for it; then the stake and 2-3 concrete reveals; then the payoff (payoff_sentence) answering the hook with one of its nouns; then the closing loop sentence; the total inside the Length range below. The discovery-first opening replaces measurement sentences, it is not added to them; one hedge may cover two related figures.
 - sentence_trace: For every single sentence in the narration_script, provide an entry in sentence_trace: the exact sentence text, the supporting fact_ids from <verified_facts> (e.g. ["F1"], ["F3"]), and trace_type ("domain_fact", "open_historical_debate", "epistemic_negation", or "rhetorical_framing"). If a sentence expresses an open debate or rhetorical question without a specific fact, set fact_ids=[] and set trace_type accordingly.
+- thumbnail: the cover's words, shared by every cover style, the carousel and the YouTube thumbnail: eyebrow (a short kicker), line1 and line2 (the headline) and tagline (the deck under it), each at most 22 characters. A figure in them follows the headline rule: an undisputed figure as the facts give it; a disputed one never as one number taken from its range: as the facts' own span in the same unit (both ends stated), as a floor at or below the lowest figure ("1,000+"), or not at all (a headline without the figure); none that only one estimate gives. A size says what it measures, in the facts' own word ("144 FT ACROSS" for a diameter, "280 FT DEEP"), never a bare "144-FOOT". A line that shortens a fact keeps every word that limits it: "NO IRON CLAMPS" where the fact says "without the use of iron clamps", never "BUILT WITHOUT CLAMPS"; a superlative keeps its place and time ("ONCE THE REGION'S LARGEST"). A year says what happened in it, in the facts' word for that year ("FOUND 1963" where the facts say "rediscovered in 1963"), never bare beside a place (a city's name and a bare year read as its founding date). The deck poses the open question or the stake from a verified fact, never gives away the answer the video builds to ("CARVED BY NATURE" ends the riddle before it starts); leave the tagline empty rather than restate the headline.
 - title: the Facebook Reel title shown under the video: at most 60 characters, specific and intriguing (a name, a number or a tension, not a label like "The History of X"); at most one relevant emoji.
 - caption: written like a magazine editor, not a template. First line: a curiosity-driven line of at most 110 characters (a hard limit of 125 is shown before "more"; stay well under it) that is NOT the narration's hook sentence. Then 2-3 short sentences that add context the video doesn't say (a detail, a consequence, a name), with the place worked naturally into the prose. Then one genuine question to the audience. Then the hashtags on the last line. Use 1-3 relevant emoji where they add warmth or meaning (for example one at the end of the first line and one on the question), never as labels or bullet markers, and no "📍" lines. Under 1,600 characters.
 - carousel_caption: a separate caption for the 7-slide carousel of the same topic, different wording from the Reel caption (not a rephrase of its first line): a short invitation to look through the slides ("Swipe through ..." is fine; never say which way), one fresh detail, one question, then the same hashtags. Use 1-3 relevant emoji where they add warmth or meaning, as in the caption (never a pointing hand or an arrow). Under 800 characters. It is posted as Instagram's carousel and as Facebook's photo grid, which place the caption and the photos differently.
@@ -179,7 +196,9 @@ List sources only from retrieved_sources."""
 
 REVISE_SYSTEM = """You fix a short history video package so it passes fact-checking. For each finding, replace ONLY
 the rejected sentence or phrase: hedge it naturally using fluent English (e.g. 'models suggest', 'scientists calculate', 'roughly'), or replace it with a verified
-fact, or remove it. CRITICAL: NEVER prepend robotic prefixes like 'Estimated,' or 'Approximately,' to fix a sentence.
+fact, or remove it. A hedged claim stays in the body: never in the first sentence, the payoff or the final loop sentence.
+Instead of hedging one of those three, move the claim with its hedge into the body and use an undisputed fact there.
+CRITICAL: NEVER prepend robotic prefixes like 'Estimated,' or 'Approximately,' to fix a sentence.
 CRITICAL GROUNDING IN REVISIONS:
 When replacing or fixing an untraced claim, you must ONLY use vocabulary, dates, measurements, and statements that exist in <verified_facts>.
 DO NOT introduce outside parametric memory or unlisted adjectives (e.g. do not introduce terms like 'alkaline', 'volcanic', or unlisted builder names unless they appear in <verified_facts>).
@@ -188,11 +207,13 @@ Titles and on-screen covers are intrigue headlines and must NEVER be hedged with
 Return exact find/replace edits: "find" must be copied character-for-character from the draft
 (a whole sentence or phrase), "replace" is its new text ("" to delete). Fix every place the claim appears
 (narration, caption, title, on-screen text, slides, stories, graphics). Never add facts that are not verified.
-If you change the narration's last sentence, apply the same edit to closing_sentence.
+If you change the narration's last sentence, apply the same edit to closing_sentence. payoff_sentence is the
+narration's penultimate sentence word for word: an edit of that sentence changes payoff_sentence with it.
 A LENGTH finding names a word window for the narration. Too short: add one or two sentences made only of
-verified facts, placed before the closing sentence ("find" = the sentence before it, "replace" = that sentence
-followed by the new ones). Too long: remove or condense sentences until the narration is inside the window.
-Keep the closing sentence and every other field as they are.
+verified facts, placed before the payoff ("target" = "narration_script", "find" = the payoff sentence, "replace" =
+the new sentences followed by that same payoff sentence; payoff_sentence stays as it is). Too long: remove or
+condense sentences until the narration is inside the window. Keep the payoff, the closing sentence and every other
+field as they are.
 A REPEAT finding names a phrase the narration says twice: reword the later sentence ("find" = that whole sentence) so
 the phrase is said once, keeping its facts and its hedge (one hedge can cover two related figures). Never let an edit
 say again a phrase the narration already says (the REPEATS list), and keep every disputed figure's hedge wherever the
@@ -202,8 +223,13 @@ sentences, open on the story the title and caption tell, or cut the first senten
 each with verified facts only and every hedge kept. Never add a sentence for it: name the place inside an existing
 sentence ("Beneath a house in <place>, <country>, ..."), and let the discovery replace a measurement sentence. If the
 first sentence changes, apply the same edit to hook_sentence.
-WORD BUDGET (every edit keeps it): the hook at most 14 words, 3-4 fact sentences, the closing sentence, the total
-inside the word window a LENGTH finding names.
+A PAYOFF finding is about the narration's penultimate sentence: it answers the opening (its question or its tension)
+with verified facts and names again one of the first sentence's nouns, the same word. Edit that sentence ("find" = the
+whole sentence), keeping it the penultimate one; never add a sentence for it. When the penultimate sentence already
+does this and only payoff_sentence is missing or wrong, set it: "target" = "payoff_sentence", "find" = "", "replace" =
+that sentence word for word.
+WORD BUDGET (every edit keeps it): the hook at most 12 words, the stake and 2-3 reveals, the payoff, the closing loop
+sentence, the total inside the word window a LENGTH finding names.
 GRAPHICS (stat cards, timeline, scale, cross-section, route, photo labels, emphasis words) are listed under <graphics>,
 one field per line by its path. To change one, set "target" to that path ("stat_cards[2].value") with "find" = the
 text in that field and "replace" = its new text; to remove a whole entry, set "target" to the entry ("stat_cards[2]")
@@ -215,7 +241,9 @@ must be words the narration says: if an edit takes one out of the narration, cha
 class Edit(BaseModel):
     find: str
     replace: str
-    target: Optional[str] = None   # a graphic field or entry by its <graphics> path ("stat_cards[2].value")
+    # a graphic field or entry by its <graphics> path ("stat_cards[2].value"); "narration_script" for a sentence
+    # inserted before the payoff; "payoff_sentence" to mark the payoff
+    target: Optional[str] = None
 
 
 class Edits(BaseModel):
@@ -746,7 +774,8 @@ def mandatory_hedges_note(sheet: Optional[Dict[str, Any]], texts: Optional[List[
     return ("\n\nMANDATORY HEDGES: these figures are disputed. Every text that states one keeps its hedge, or an "
             "equivalent (\"about\", \"roughly\", \"an estimated\", \"up to\", a range): the narration, the caption, "
             "the carousel caption, the first comment, every story and carousel slide, and every graphic (titles and "
-            "covers are exempt). A flat figure anywhere is rejected. GRAPHICS too: a stat card's value or label, a "
+            "covers are exempt). In the narration they stay in the body: never the first sentence, the payoff or the final loop "
+            "sentence. A flat figure anywhere is rejected. GRAPHICS too: a stat card's value or label, a "
             "timeline entry, the scale figure, a cross-section depth, a route or photo label that states a disputed "
             "figure or range carries the hedge in its own text (\"about 280 ft\", \"up to <N> levels\") or is marked "
             "approximate; one that cannot carry it is left out of the graphics. Never the same hedge twice in one text: two "
@@ -1016,7 +1045,7 @@ def without_blocked_sentences(payload: Dict[str, Any], notes: str) -> Optional[D
     story or carousel slide's body; a graphic's entry is dropped (a claim outside the narration still rejected the
     script: dev, Paracas, 2026-10-26). Nothing is written, so nothing new can be claimed. Headlines (title, cover,
     slide headings, poll) and set pieces (the hook, the closing sentence, each caption's first line, a body's only
-    sentence) are never removed: a blocked claim there means no trim. The result must pass every check again
+    sentence, the payoff) are never removed: a blocked claim there means no trim. The result must pass every check again
     (structure, spoken length and both fact checkers), so a gap that leaves it too short, or a claim repeated in
     other words, still fails."""
     quoted = f" {_norm_words(notes)} "  # whole words: a sentence must appear in the notes word for word
@@ -1068,6 +1097,7 @@ def without_blocked_sentences(payload: Dict[str, Any], notes: str) -> Optional[D
     thumb = payload.get("thumbnail") or {}
     fixed = [("the title", payload.get("title")), ("the hook", payload.get("hook_sentence")),
              ("the closing sentence", payload.get("closing_sentence")),
+             ("the payoff", payload.get("payoff_sentence")),   # QF-15: a trim never takes the payoff
              ("the cover", " ".join(str(thumb.get(k) or "") for k in ("eyebrow", "line1", "line2", "tagline"))),
              ("the poll", (payload.get("poll") or {}).get("question"))]
     # A heading as each checker reads it: "line1 line2" (the first checker), and after the kicker (the second).
@@ -1362,15 +1392,69 @@ def repair_poll(question: str, options: List[str], narration: str = "") -> Optio
 # On the operator's Reel: "Lead with the mystery ... the initial phrase 'This Massive Hindu' doesn't immediately
 # reveal the mystery"; viewers decide in under two seconds and about 71% had scrolled away by the fourth. The
 # first caption burst is the first two to five words of the first sentence (video_composer's partition), so the
-# sentence itself has to open on the fact or the riddle. Checked on a writer's new drafts (draft_problems), and
-# sent back with whatever else a rewrite fixes, at no extra call: a draft whose only fault is its opening is
-# kept and the finding recorded (HOOK_FORCES_REWRITE), and kept and library scripts written before the rule
-# stay usable (validate_structure leaves the opening alone) rather than being paid for again.
+# sentence itself has to open on the fact or the riddle. QF-14: every hook fault blocks. A writer's draft gets the one
+# targeted opening edit (_edit_story) and a rewrite only when that fails; verify_claims refuses a curated or cached
+# script with one, and a library script is edited before use (main.py _script_from_library). It is a lexical floor
+# (form and position), not a judge of how interesting the fact is.
 HOOK_PROBLEM = "Hook: "         # every hook problem starts so; the writer loop recognises them
-HOOK_FORCES_REWRITE = False     # True: a weak opening alone costs a writer rewrite
+# Operator ruling 2026-11-10 (decisions/QF-14-hook-rule.md): the 12-word cap and a label opening block; a missing
+# signal in the first 8 tokens gets the one opening edit and then ships, flagged on the review card
+# (hook_signal_note), until a semantic hook judge exists (QF-17). Its finding starts so (a hook problem too).
+HOOK_SIGNAL_PROBLEM = HOOK_PROBLEM + "weak signal: "
 HOOK_NUMBER_WITHIN = 4          # a "This X was" opening is a stark claim when its number comes this early
 _NUMBER_WORDS = set("""two three four five six seven eight nine ten eleven twelve twenty thirty forty fifty sixty
 hundred hundreds thousand thousands million millions billion billions dozen dozens half""".split())
+# The signal a hook carries within its first HOOK_SIGNAL_WITHIN words (config), by grammatical category, never a
+# topic's words (QF-14 round 4: each category covers its grammar, not the examples a corpus happened to hold):
+# - number: a digit, a number word (hyphenated parts count: "thirty-six"), a singular count ("one", "single", "sole",
+#   "lone") or an ordinal of rank ("first");
+# - scale: a superlative (an -est form of a dimension or age adjective, an irregular one, "most"/"least" before a
+#   word, "only", "world's"), a comparison ("<comparative> than", "more/less/fewer than", "predates", "outlasted"), or
+#   a span of time too long to picture ("decades", "centuries", "millennia");
+# - contrast: a negation ("no", "never", "without", any "n't"), an adversative ("yet", "but", "despite", "although"),
+#   an earlier-than marker ("before", "until"), persistence ("still"), a vanishing or surviving verb, or the unknown
+#   ("unknown", "unsolved", "unread");
+# - question: a sentence that starts on its question word.
+# Left out on purpose: vague size adjectives ("massive", "immense", "colossal"; "This massive Hindu temple" is the
+# opening the rule was made for), and "after", which orders events forward and opens the scene-setting lead-in
+# ("After the war, ...") that QF-73 found on the topic bank's date-first hooks.
+_DIMENSIONS = ("old", "young", "large", "small", "big", "long", "short", "tall", "deep", "high", "low", "heavy",
+               "light", "strong", "weak", "hard", "soft", "fast", "slow", "early", "late", "wide", "narrow", "thick",
+               "thin", "bright", "dark", "hot", "cold", "great", "rare", "fine", "dense", "far", "near", "steep",
+               "vast")
+
+
+def _degree(base: str, suffix: str) -> str:
+    """The comparative (suffix "er") or superlative ("est") of a one- or two-syllable adjective."""
+    if base.endswith("e"):
+        return base + suffix[1:]
+    if base.endswith("y") and base[-2] not in "aeiou":
+        return base[:-1] + "i" + suffix
+    if base in ("big", "hot", "thin", "fat", "wet", "sad"):
+        return base + base[-1] + suffix
+    return base + suffix
+
+
+_SUPERLATIVES = {_degree(b, "est") for b in _DIMENSIONS} | {"best", "worst", "least", "most", "only", "first"}
+_COMPARATIVES = {_degree(b, "er") for b in _DIMENSIONS} | {"more", "less", "fewer", "better", "worse", "further",
+                                                          "farther", "rather"}
+# "most"/"least" before these is a quantity ("most of the city"), not a superlative
+_NOT_DEGREE = {"of", "the", "a", "an", "is", "are", "was", "were", "have", "had", "people", "visitors", "scholars"}
+_HOOK_SIGNALS = {
+    "number": _NUMBER_WORDS | {"one", "zero", "seventy", "eighty", "ninety", "thirteen", "fourteen", "fifteen",
+                               "sixteen", "seventeen", "eighteen", "nineteen", "first", "twice", "single", "sole",
+                               "lone"},
+    "contrast": {"no", "not", "never", "nothing", "nobody", "none", "nor", "neither", "nowhere", "without", "cannot",
+                 "yet", "but", "despite", "although", "though", "instead", "unlike", "before", "until", "still",
+                 "vanished", "vanish", "vanishes", "disappeared", "survived", "survives", "survive", "outlasted",
+                 "outlived", "defied", "defies", "unknown", "unsolved", "unexplained", "unread", "undeciphered",
+                 "unidentified", "impossible"},
+    # comparative verbs: a comparison stated as a verb
+    "scale": _SUPERLATIVES - {"most", "least", "first"} | {"predates", "predated", "predate", "outlasts", "decades",
+                                                         "centuries", "millennia", "millennium"},
+}
+_HOOK_QUESTION = re.compile(r"^(?:how|why|what|who|whom|whose|where|when|which|can|could|did|does|do|is|are|was"
+                            r"|were|would|will|should|has|have|had)\b", re.IGNORECASE)
 # Openings that name or introduce before they say anything: never a hook, whatever follows.
 _LABEL_OPENERS = re.compile(
     r"^(?:this\s+is|these\s+are|that\s+is|those\s+are|here(?:'s|’s|\s+is|\s+are)|meet|welcome\s+to|introducing"
@@ -1627,6 +1711,33 @@ def _ages(fact: Dict[str, Any], year: int) -> List[float]:
     return ages
 
 
+def _stated_spans(text: str, facts: list[dict[str, Any]]) -> set:
+    """The indices (in _figures(text)'s order) of the two ends of each span ("40-50 KM", "94 to 104 million years")
+    that one disputed fact states end for end in the same unit: a disputed figure may stand in a headline as the
+    sheet's own span (round-3 panel, 2026-11-02), never as one number taken from it. A span with an end the sheet
+    gives only in another unit ("25-31 MILES" over "40 km (25 mi)" and "almost 50 km") is not stated; nor is one
+    from a fact only one estimate gives."""
+    marks = list(_FIGURE.finditer(text or ""))
+    figs = _figures(text)
+    if len(marks) != len(figs):
+        return set()
+    stated = set()
+    for i in range(len(figs) - 1):
+        a, b = figs[i], figs[i + 1]
+        if not (a.kind and a.kind == b.kind and _RANGE_JOIN.fullmatch(text[marks[i].end():marks[i + 1].start()])):
+            continue
+        size = _UNIT_SIZES.get(a.unit or "", (None, None))[1]
+        for f in facts:
+            if not f.get("disputed") or _SINGLE_ESTIMATE.search(f.get("hedge") or ""):
+                continue
+            vs = [v for v in _figures(f"{f.get('statement', '')} {f.get('hedge', '')}")
+                  if v.kind == a.kind and _UNIT_SIZES.get(v.unit or "", (None, None))[1] == size]
+            if all(any(abs(n.value - v.value) <= 1e-9 * max(1.0, v.value) for v in vs) for n in (a, b)):
+                stated |= {i, i + 1}
+                break
+    return stated
+
+
 def headline_problems(pkg: ScriptPackage, sheet: Optional[Dict[str, Any]] = None) -> List[str]:
     """Each headline field whose figures the verified sheet does not support as stated (see above)."""
     if sheet is None:
@@ -1640,7 +1751,8 @@ def headline_problems(pkg: ScriptPackage, sheet: Optional[Dict[str, Any]] = None
     problems = []
     for field, text in _headline_texts(pkg).items():
         wrong = []
-        for n in _figures(text):
+        spans = _stated_spans(text, facts)
+        for i, n in enumerate(_figures(text)):
             if n.value < HEADLINE_MIN or n.bare_name:
                 continue
             related = [f for f, vs in figures if any(_related(n, v) for v in vs)]
@@ -1651,6 +1763,8 @@ def headline_problems(pkg: ScriptPackage, sheet: Optional[Dict[str, Any]] = None
                 continue
             if any(_same(n, v) for f, vs in figures if f in related and not f.get("disputed") for v in vs):
                 continue   # an undisputed, verified figure, said as it is
+            if i in spans:
+                continue   # a disputed figure said as the sheet's own span, in the unit the sheet gives it
             # An age worked out from an undisputed date ("2,000-year-old" for 100 BC), never more than it
             if n.kind == "years" and any(0.8 * age <= n.value <= age * 1.0001 for f in facts
                                          if not f.get("disputed") for age in _ages(f, year)):
@@ -1664,18 +1778,19 @@ def headline_problems(pkg: ScriptPackage, sheet: Optional[Dict[str, Any]] = None
                 wrong.append(f"{_said(n.value)}+ (above the sourced minimum {lowest:,.0f})")
                 continue
             disputed = any(f.get("disputed") for f in related)
-            wrong.append(f"{_said(n.value)} ({'disputed: say it as a floor at or below the sourced minimum, e.g. a round number with +' if disputed else 'not in the verified facts'})")
+            wrong.append(f"{_said(n.value)} ({'disputed: never one number; say the span the sheet states, in its unit, or a floor at or below the sourced minimum, e.g. a round number with +, or leave the figure out' if disputed else 'not in the verified facts'})")
         if wrong:
             problems.append(f"{HEADLINE_PROBLEM}{field}: " + "; ".join(wrong) + ". A headline states only verified "
-                            "figures: an undisputed one as it is, a disputed one as a floor at or below its range's "
-                            "minimum (\"1,000+\"), none that only one estimate gives.")
+                            "figures: an undisputed one as it is, a disputed one as the sheet's own span in the same "
+                            "unit or as a floor at or below its range's minimum (\"1,000+\"), none that only one "
+                            "estimate gives.")
     return problems
 
 
 def _opening_faults(problems: List[str]) -> List[str]:
-    """The faults one edit of the opening fixes: the story problems and a first sentence over HOOK_MAX_WORDS."""
-    return [p for p in problems or [] if p.startswith(STORY_PROBLEM)
-            or (p.startswith(HOOK_PROBLEM) and "-word sentence" in p)]
+    """All hook faults, the opening's existing story faults, the payoff's faults (QF-15) and the close's hedges (QF-16)
+    share one edit."""
+    return [p for p in problems or [] if p.startswith((STORY_PROBLEM, HOOK_PROBLEM, PAYOFF_PROBLEM, HEDGE_PROBLEM))]
 
 
 def story_problems(pkg: ScriptPackage, topic: Optional[Dict[str, Any]] = None) -> List[str]:
@@ -1685,12 +1800,31 @@ def story_problems(pkg: ScriptPackage, topic: Optional[Dict[str, Any]] = None) -
     return place_problems(pkg.narration_script, topic) + told_story_problems(pkg)
 
 
+def hook_signal(first: str) -> str | None:
+    """The kind of signal ("number", "contrast", "scale" or "question") the sentence carries within its first
+    HOOK_SIGNAL_WITHIN spoken words, or None (the categories above _HOOK_SIGNALS). A question is one that starts on
+    its question word; "most"/"least" count before a word, a comparative before "than" inside the same span."""
+    if "?" in first and _HOOK_QUESTION.match(first.lstrip("\"'“‘¿¡")):
+        return "question"
+    words = [w.strip(".,;:!?\"'“”‘’()").lower().replace("’", "'") for w in _spoken_words(first)[:config.HOOK_SIGNAL_WITHIN]]
+    for i, bare in enumerate(words):
+        if re.search(r"\d", bare) or any(part in _HOOK_SIGNALS["number"] for part in bare.split("-")):
+            return "number"
+        if bare in _HOOK_SIGNALS["contrast"] or bare.endswith("n't"):
+            return "contrast"
+        if (bare in _HOOK_SIGNALS["scale"] or bare == "world's" or (bare in ("most", "least") and i + 1 < len(words) and words[i + 1] not in _NOT_DEGREE)
+                or (bare in _COMPARATIVES and "than" in words[i + 1:i + 3])):
+            return "scale"
+    return None
+
+
 def hook_problems(narration: str) -> List[str]:
-    """Why the narration's first sentence is not a hook: it opens on a label rather than the fact or the riddle,
-    or it runs past HOOK_MAX_WORDS. A question or a stark claim with an early number passes."""
+    """Why the narration's first sentence is not a hook: it opens on a label rather than the fact or the riddle, it
+    runs past HOOK_MAX_WORDS, or no number, scale, contrast or question arrives within its first HOOK_SIGNAL_WITHIN
+    words. Each is blocking (blocking_problems) and fixed by the one opening edit (_opening_faults)."""
     first = _first_sentence(narration)
     if not first:
-        return []
+        return [f"{HOOK_PROBLEM}the narration has no opening sentence."]
     words = _spoken_words(first)
     head = " ".join(words[:5])
     early_number = any(re.search(r"\d", w) or w.strip(".,;:!?\"'“”‘’").lower() in _NUMBER_WORDS
@@ -1706,8 +1840,116 @@ def hook_problems(narration: str) -> List[str]:
         # Worded without "words" or "seconds", which improve.classify files under script.length.
         problems.append(f"{HOOK_PROBLEM}the first sentence is a {len(words)}-word sentence; a hook lands in "
                         f"{HOOK_MAX_WORDS} or fewer, since viewers decide almost at once. Cut or split it, keeping "
-                        "the fact or the riddle at its start.")
+                        f"the fact or the riddle at its start and a signal in its first {config.HOOK_SIGNAL_WITHIN}.")
+    if hook_signal(first) is None:
+        # Worded without "words" as well (improve.classify).
+        problems.append(f"{HOOK_SIGNAL_PROBLEM}the first {config.HOOK_SIGNAL_WITHIN} spoken tokens of the first sentence "
+                        f"('{' '.join(words[:config.HOOK_SIGNAL_WITHIN])} ...') carry no accepted signal. {HOOK_FORMS}")
     return problems
+
+
+PAYOFF_PROBLEM = "Payoff: "   # every payoff problem starts so
+# Operator ruling 2026-11-10 (decisions/QF-15-payoff-rule.md, option C): a missing, misplaced or hook-repeating payoff
+# blocks after its one repair edit; a payoff that names none of the opening's nouns gets that one edit and then ships,
+# flagged on the review card (payoff_note), until a semantic judge exists (QF-17). Its finding starts so.
+PAYOFF_NOUN_PROBLEM = PAYOFF_PROBLEM + "weak link: "
+
+
+def payoff_problems(narration: str, payoff: str) -> list[str]:
+    """Why the narration has no payoff the rule accepts (QF-15): payoff_sentence missing, not the narration's
+    penultimate sentence word for word, the opening said again, or no noun shared with the narration's own first
+    sentence (narrative_payoff.shared_nouns: a noun in one, a noun or an adjective in the other). A structural floor:
+    whether the sentence really answers the opening is not judged here (measured on the real corpus in
+    docs/reviews/quality-fixes-2026-11/QF-15). The one edit that takes the opening's faults takes these too
+    (_opening_faults), before any rewrite. Each structural fault blocks, and so does an unavailable offline model
+    (fails closed); a missing shared noun alone does not (PAYOFF_NOUN_PROBLEM: flagged on the card, payoff_note)."""
+    payoff = " ".join((payoff or "").split())
+    if not payoff:
+        return [(f"{PAYOFF_PROBLEM}payoff_sentence is missing. The penultimate sentence is the payoff: it answers the "
+                 "opening (its question or its tension) and names one of the first sentence's nouns again; "
+                 "payoff_sentence holds it word for word.")]
+    sentences = _split_sentences(narration)
+    if len(sentences) < 3 or payoff != " ".join(sentences[-2].split()):
+        return [(f"{PAYOFF_PROBLEM}payoff_sentence is not the narration's penultimate sentence word for word. The "
+                 "payoff comes right before the final loop sentence, and payoff_sentence holds it as spoken.")]
+    hook = sentences[0]
+    if _norm_words(payoff) == _norm_words(hook):
+        return [f"{PAYOFF_PROBLEM}the payoff says the opening again; it answers the opening with verified evidence."]
+    try:
+        from .narrative_payoff import shared_nouns
+        if shared_nouns(hook, payoff):
+            return []
+    except (ImportError, OSError, ValueError, KeyError, RuntimeError) as e:
+        log.warning("The offline noun model is unavailable (%s); the payoff is held.", e)
+        return [f"{PAYOFF_PROBLEM}the offline noun check is unavailable, so the payoff cannot be checked; held."]
+    return [(f"{PAYOFF_NOUN_PROBLEM}the payoff (\"{payoff[:80]}\") names none of the first sentence's nouns. Name the "
+             "opening's subject again, the same word (\"the dome\" again, not \"the structure\"), in a sentence that "
+             "answers the opening; a shared verb, adjective or number does not count.")]
+
+
+HEDGE_PROBLEM = "Hedge: "   # every hedge-placement problem starts so (QF-16)
+# Operator ruling 2026-11-11 (decisions/QF-16-question.md, option P3, under delegation): in the opening, the payoff and
+# the final loop sentence, a disputed fact of the run's own sheet blocks after the one shared repair edit; any other
+# qualifier there gets that edit and then ships flagged on the review card (hedge_note). A question is exempt. Body
+# qualifiers are the writer's: neither blocked nor flagged. Its flag-only finding starts so.
+HEDGE_WORDING_PROBLEM = HEDGE_PROBLEM + "qualified: "
+_UNSET_SHEET = object()
+
+
+def _close_sentences(narration: str) -> list[tuple[str, str]]:
+    """(where, sentence) for the narration's opening, payoff (penultimate) and final loop sentence."""
+    parts = _split_sentences(narration)
+    out = [("opening", parts[0])] if parts else []
+    if len(parts) >= 3:
+        out.append(("payoff", parts[-2]))
+    if len(parts) >= 2:
+        out.append(("closing loop", parts[-1]))
+    return out
+
+
+def hedge_problems(narration: str, sheet: Any = _UNSET_SHEET) -> list[str]:
+    """Hedges where the narration must stand on undisputed facts (QF-16): its opening, its payoff and its final loop.
+    A disputed fact there (the automatic hedge's lead, or a figure only a disputed fact of `sheet` states; the draft's
+    sheet when none is passed) blocks after the one repair edit (_opening_faults); any other qualifier there
+    (narrative_hedges.markers) is HEDGE_WORDING_PROBLEM: the same edit, then flagged (hedge_note). Questions are exempt;
+    body sentences are not read."""
+    from . import narrative_hedges
+    if sheet is _UNSET_SHEET:
+        sheet = _draft_sheet.get()
+        sheet = sheet() if callable(sheet) else sheet
+    problems = []
+    for where, sentence in _close_sentences(narration):
+        if narrative_hedges.is_question(sentence):
+            continue
+        quoted = sentence if len(sentence) <= 100 else sentence[:97] + "..."
+        why = narrative_hedges.carries_disputed(sentence, sheet)
+        if why:
+            problems.append(f"{HEDGE_PROBLEM}the {where} (\"{quoted}\") states a disputed fact ({why}). Move that claim, "
+                            f"with its hedge, into the body, and give the {where} an undisputed fact (or a question).")
+            continue
+        found = narrative_hedges.markers(sentence)
+        if found:
+            problems.append(f"{HEDGE_WORDING_PROBLEM}the {where} (\"{quoted}\") is qualified (\"{found[0][0]}\"). State "
+                            "an undisputed fact there without the qualifier, or move the qualified claim into the body.")
+    return problems
+
+
+def _hedge_keys(narration: str) -> set:
+    """The normalised close sentences: what "the same sentence" means for a qualifier's one repair edit."""
+    return {" ".join(sentence.lower().split()) for _, sentence in _close_sentences(narration)}
+
+
+def hedge_note(narration: str, sheet: Any = _UNSET_SHEET) -> str:
+    """The review card's flag for an opening, payoff or loop that ships qualified (after its one repair edit), or "":
+    the sentences and why, for the operator to judge (QF-16, not a publishable field)."""
+    flagged = [p for p in hedge_problems(narration, sheet) if p.startswith(HEDGE_WORDING_PROBLEM)]
+    if not flagged:
+        return ""
+    where = [w for w, _ in _close_sentences(narration) if any(p.startswith(f"{HEDGE_WORDING_PROBLEM}the {w} (")
+                                                             for p in flagged)]
+    lines = " ".join(f"“{x}”" for w, x in _close_sentences(narration) if w in where)
+    return (f"⚠️ Hedged {' and '.join(where)}: {lines} keeps a qualifier, and the one repair edit did not remove it. "
+            "Judge whether it should stand on a firmer fact.")
 
 
 # ---------------------------------------------------------------- engagement bait
@@ -1831,7 +2073,7 @@ STORY_OVERFLOW = re.compile(r"^Story slide (\d)'s body takes \d+ lines on the fr
 
 def validate_structure(pkg: ScriptPackage) -> List[str]:
     """Returns a list of problems; empty means the package is structurally publishable. The opening's hook rule
-    is a new draft's (draft_problems)."""
+    is separate: a new draft's (draft_problems) and verify_claims's, for a curated or cached script."""
     problems = []
     for field, text in _bait_fields(pkg):
         bait = engagement_bait(text)
@@ -2160,6 +2402,7 @@ _COPY_PREFIXES = (
     ("The poll", ("poll",)), ("Poll options", ("poll",)),
     (HEADLINE_PROBLEM + "title", ("title",)), (HEADLINE_PROBLEM + "thumbnail", ("thumbnail",)),
     (HEADLINE_PROBLEM + "caption", ("caption",)),
+    (trace_check.COVER_PROBLEM, ("thumbnail",)),   # a cover line that drops a limit or a size's measure
 )
 _BAIT_FIELD = re.compile(r"^Engagement bait in the (title|caption|carousel_caption|first_comment|share_line|poll"
                          r"|story slide \d+|carousel slide \d+) \(")
@@ -2220,7 +2463,10 @@ without its hedge. Each field you return replaces the old one whole and must fol
 only the fields you were given; the narration is shown for context and is not yours to change. A title or caption
 leads with the story the narration tells (its discovery, figures and place), never one it does not. A headline
 (title, cover, the caption's first line) states only verified figures: an undisputed one as it is, a disputed one as a
-floor at or below its range's minimum ("1,000+"), none that only one estimate gives (reword it without the figure)."""
+floor at or below its range's minimum ("1,000+") or the sheet's own span in the same unit, none that only one estimate gives
+(reword it without the figure). On the cover, a size says what it measures in the facts' word ("144 FT ACROSS"), and a
+shortened line keeps every word that limits the claim ("NO IRON CLAMPS", never "BUILT WITHOUT CLAMPS" for "without iron clamps");
+a year says what happened in it in the facts' word ("FOUND 1963" for "rediscovered in 1963"), never bare beside a place."""
 
 
 class _CopyEdit(BaseModel):
@@ -2315,19 +2561,109 @@ def draft_problems(pkg: ScriptPackage) -> List[str]:
     structure passed, a draft sent back for its structure came back the wrong length, and that cost the next
     attempt too (production, Hal Saflieni 2026-10-27)."""
     return (validate_structure(pkg) + spoken_length_problems(pkg) + hook_problems(pkg.narration_script)
-            + story_problems(pkg) + headline_problems(pkg))
+            + payoff_problems(pkg.narration_script, pkg.payoff_sentence) + hedge_problems(pkg.narration_script)
+            + story_problems(pkg) + headline_problems(pkg) + cover_problems(pkg))
+
+
+def cover_problems(pkg: ScriptPackage, sheet: dict[str, Any] | None = None) -> list[str]:
+    """The cover's words held to the run's verified sheet (trace_check.cover_copy_problems: a shortened line keeps every
+    word that limits its fact; a size says what it measures), at draft time so the copy edit fixes them; the
+    finished payload meets the same rule in the fact check (trace_check.headline_gate). Round-3 panel, 2026-11-02."""
+    if sheet is None:
+        sheet = _draft_sheet.get()
+        sheet = sheet() if callable(sheet) else sheet
+    if not (sheet or {}).get("facts") or pkg.thumbnail is None:
+        return []
+    return trace_check.cover_copy_problems({"thumbnail": pkg.thumbnail}, sheet)
 
 
 def blocking_problems(problems: List[str]) -> List[str]:
-    """The problems that send a draft back: all of them, less the hook rule's unless HOOK_FORCES_REWRITE (those
-    ride along with a rewrite that happens anyway)."""
-    kept = (STORY_PROBLEM,) if HOOK_FORCES_REWRITE else (HOOK_PROBLEM, STORY_PROBLEM)
-    return [p for p in problems if not p.startswith(kept)]
+    """The problems that send a draft back: all of them but the story findings and a weak hook signal, which get the
+    one opening edit (_edit_story) and are then recorded (_note_kept_hook; the signal on the review card,
+    hook_signal_note). The hook's cap and a label opening block (QF-14, operator ruling 2026-11-10), and so does a
+    missing, misplaced or hook-repeating payoff (QF-15, operator ruling 2026-11-10), after the same one edit; a payoff
+    that names none of the opening's nouns ships flagged (payoff_note). QF-16 (ruling 2026-11-11): a disputed fact in
+    the opening, payoff or loop blocks after that edit; another qualifier there ships flagged (hedge_note)."""
+    return [p for p in problems
+            if not p.startswith((STORY_PROBLEM, HOOK_SIGNAL_PROBLEM, PAYOFF_NOUN_PROBLEM, HEDGE_WORDING_PROBLEM))]
+
+
+def hook_signal_note(narration: str) -> str:
+    """The review card's flag for an opening that ships without a signal in its first HOOK_SIGNAL_WITHIN tokens (after
+    its one opening edit), or "": the opening and why, for the operator to judge (not a publishable field)."""
+    if not any(p.startswith(HOOK_SIGNAL_PROBLEM) for p in hook_problems(narration)):
+        return ""
+    return (f"⚠️ Weak hook signal: “{_first_sentence(narration)}” has no number, superlative, comparison, contrast or "
+            f"question in its first {config.HOOK_SIGNAL_WITHIN} spoken tokens, and the one opening edit did not add one. "
+            "Judge whether the opening holds.")
+
+
+def payoff_note(narration: str, payoff: str) -> str:
+    """The review card's flag for a payoff that ships naming none of the opening's nouns (after its one repair edit),
+    or "": the payoff and why, for the operator to judge (QF-15, operator ruling 2026-11-10; not a publishable
+    field)."""
+    if not any(p.startswith(PAYOFF_NOUN_PROBLEM) for p in payoff_problems(narration, payoff)):
+        return ""
+    return (f"⚠️ Weak payoff: “{' '.join((payoff or '').split())}” names none of the opening's nouns, and the one payoff "
+            "edit did not add one. Judge whether it answers the opening.")
+
+
+def _payoff_key(narration: str) -> str:
+    """The narration's penultimate sentence, normalised: what "the same payoff" means for the one repair edit."""
+    parts = _split_sentences(narration)
+    return " ".join(parts[-2].lower().split()) if len(parts) >= 3 else ""
+
+
+def _opening_key(narration: str) -> str:
+    """The narration's first sentence, normalised: what "the same opening" means for the one repair edit."""
+    return " ".join(_first_sentence(narration).lower().split())
+
+
+def opening_edit_findings(faults: list[str]) -> str:
+    """The findings the one opening edit is given (_edit_story; a library script's hook, main.py). Payoff faults
+    (QF-15) ride in the same call, after the opening's, with the penultimate sentence as the one more sentence it may
+    change; without any, the text is the opening edit's alone."""
+    payoff = [f for f in faults if f.startswith(PAYOFF_PROBLEM)]
+    hedges = [f for f in faults if f.startswith(HEDGE_PROBLEM)]
+    faults = [f for f in faults if not f.startswith((PAYOFF_PROBLEM, HEDGE_PROBLEM))]
+    hook = (" " + HOOK_FORMS) if any(f.startswith(HOOK_PROBLEM) for f in faults) and HOOK_FORMS not in " ".join(faults) else ""
+    opening = ("OPENING: " + " ".join(faults) + hook + f" Edit only what these need: the narration's first "
+               f"{PLACE_WITHIN} sentences (a new first sentence of at most {HOOK_MAX_WORDS} words keeps its facts "
+               "and hedges), and for a story the title and caption tell, the narration's opening or else the title "
+               "and the caption's first line. Keep the length and every other sentence"
+               + (", but for the sentences below." if payoff or hedges else ".")) if faults else ""
+    if payoff:
+        opening = ((opening + " " if opening else "") + "PAYOFF: " + " ".join(payoff) + " Edit only the "
+                   "narration's penultimate sentence for these (or, when it already answers the opening with one of the "
+                   "first sentence's nouns, only payoff_sentence), with verified facts and every hedge kept; "
+                   "payoff_sentence is that sentence word for word. If the first sentence changes, the payoff still names "
+                   "one of its nouns. Never add a sentence, and keep the length.")
+    if hedges:
+        # QF-16: the sentence named (the first, the penultimate or the last) is the one more the edit may change,
+        # with one body sentence that takes the qualified claim
+        opening = ((opening + " " if opening else "") + "HEDGE: " + " ".join(hedges) + " Edit only the sentences "
+                   "named and at most one body sentence: the qualified claim, with its hedge, goes into that body "
+                   "sentence, and the named sentence becomes an undisputed verified fact (or a question). Never delete "
+                   "a needed hedge to make a claim sound certain. If the penultimate sentence changes, payoff_sentence "
+                   "is it word for word. Never add a sentence, and keep the length.")
+    return opening
+
+
+def _length_edit_fixes(problem: str) -> bool:
+    """A fault the length edit path fixes without a rewrite: the spoken length, a repeated phrase (the same edit
+    rewords it), the hook or the payoff (the opening edit after it, _fit_length_by_editing). Before QF-14 the hook was
+    advisory here; counted as blocking without this, a long draft with a long first sentence cost a full rewrite, and
+    so would a long draft with a payoff fault (QF-15)."""
+    return "when spoken" in problem or problem.startswith((REPEAT_PROBLEM, HOOK_PROBLEM, PAYOFF_PROBLEM, HEDGE_PROBLEM))
 
 
 def _note_kept_hook(problems: List[str]) -> None:
-    """A draft kept with a weak opening: said in the log and the findings ledger (script.hook)."""
-    weak = [p for p in problems if p.startswith((HOOK_PROBLEM, STORY_PROBLEM))]
+    """A draft kept with a story finding or a weak hook signal on its opening (after its one opening edit): said in
+    the log and the findings ledger (script.hook); the signal is also flagged on the review card (hook_signal_note),
+    and so is a payoff naming none of the opening's nouns (payoff_note, QF-15). The hook's cap and a label block, so
+    neither is ever kept."""
+    weak = [p for p in problems
+            if p.startswith((HOOK_PROBLEM, STORY_PROBLEM, PAYOFF_NOUN_PROBLEM, HEDGE_WORDING_PROBLEM))]
     if weak:
         log.info("Draft kept with an opening the hook rule would rewrite: %s", " ".join(weak)[:300])
         improve.note_problems(weak, "structure")
@@ -2353,6 +2689,10 @@ class ScriptEngine:
                         previous: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """The run's script (see _generate_script), with the length window kept over its drafts: started afresh
         by a run's first call, carried on by its revisions (`previous`)."""
+        # production with no usable FACT_RECORD_KEY stops before the writer's call is spent: no fact review could be
+        # signed, so nothing would publish (operator decision A; review 2026-11-03, round 4)
+        from .fact_evidence import require_signing_key
+        require_signing_key()
         key = (topic.get("id"), getattr(self, "length_run", None))
         if previous is None or _length_history["key"] != key:
             begin_length_history(key)
@@ -2386,7 +2726,20 @@ class ScriptEngine:
             sheet = self._sheet(topic) if previous is not None and previous.get("fact_sheet") else None
             if revision_notes and previous and sheet:
                 try:
+                    # The revised script's opening already had its one repair edit, or never needed one: a revision
+                    # that keeps it sends no new signal-only opening edit (_edit_story).
+                    self.__dict__.setdefault("_openings_tried", set()).add(
+                        _opening_key(previous.get("narration_script") or ""))
+                    # likewise its payoff (QF-15): a revision that keeps it sends no new noun-only payoff edit
+                    self.__dict__.setdefault("_payoffs_tried", set()).add(
+                        _payoff_key(previous.get("narration_script") or ""))
+                    # and its close's qualifiers (QF-16): kept sentences get no new flag-only hedge edit
+                    self.__dict__.setdefault("_hedges_tried", set()).update(
+                        _hedge_keys(previous.get("narration_script") or ""))
                     pkg = self._revise_surgically(previous, revision_notes, sheet)
+                    if pkg is not None and any(k in revision_notes for k in ("OPENING:", "PAYOFF:", "HEDGE:")):
+                        # this revision was the one opening edit (a library script's hook or payoff): not asked again
+                        self.__dict__.setdefault("_story_tried", set()).add(pkg.narration_script)
                 except LLMError as e:
                     log.warning("Surgical revision failed (%s); rewriting the draft.", e)
                     pkg = None
@@ -2397,8 +2750,7 @@ class ScriptEngine:
                     # lines"; 2026-10-29: a caption line and a poll).
                     pkg, problems = self._narrow_edits(pkg, draft_problems(pkg), sheet)
                     problems = blocking_problems(problems)
-                    if (problems and any("when spoken" in p for p in problems)
-                            and all("when spoken" in p or p.startswith(REPEAT_PROBLEM) for p in problems)):
+                    if problems and any("when spoken" in p for p in problems) and all(map(_length_edit_fixes, problems)):
                         # The revision changed the length (production, Derinkuyu 2026-10-29: 112 words, 53.8 s):
                         # edited to the window, not the whole fact-checked draft rewritten.
                         fitted = self._fit_length_by_editing(pkg, problems, topic, "")
@@ -2455,8 +2807,7 @@ class ScriptEngine:
                 self.last_draft_problems.append(f"draft {attempt}: {_short_reason(problems)}")
                 last_problems = problems
                 improve.note_problems(problems, "structure")
-                if (any("when spoken" in p for p in blocking)
-                        and all("when spoken" in p or p.startswith(REPEAT_PROBLEM) for p in blocking)):
+                if any("when spoken" in p for p in blocking) and all(map(_length_edit_fixes, blocking)):
                     # Only the length is off (with, at most, a repeated phrase the same edit rewords): the draft is edited to the window (one short call), not written
                     # again from scratch (a rewrite took 2 min 46 s and came out at the writer's usual length
                     # again; production, 2026-10-24).
@@ -2487,6 +2838,9 @@ class ScriptEngine:
             log.info("Using curated script for '%s' (human reviewed: %s).", topic["id"], reviewed)
             payload = self._finalize(pkg, topic, origin="curated")
             payload["human_reviewed"] = reviewed
+            review = curated_human_review(topic["id"]) if reviewed else None
+            if review:   # who reviewed it and when, signed apart; never counted as a fact check
+                payload["human_review"] = review
             if last_problems or writer_error:  # why the writer's drafts were not used, for the run's record
                 payload["writer_failure"] = (
                     f"The script writer ({writer_origin()}) could not be reached: {writer_error[:300]}" if writer_error
@@ -2543,6 +2897,24 @@ class ScriptEngine:
             find_str = e.find.strip()
             replace_str = e.replace.strip()
             target = (getattr(e, "target", None) or "").strip()
+            if target == "narration_script":
+                # QF-15: a sentence inserted before the payoff (a LENGTH edit), in the narration alone: a search of the
+                # whole draft would also rewrite payoff_sentence, which holds the same words.
+                narration = draft.get(target) or ""
+                if not find_str or narration.count(find_str) != 1:
+                    log.warning("Narration edit has no unique match in the narration; rewriting instead.")
+                    return None
+                draft[target] = narration.replace(find_str, replace_str, 1)
+                text = json.dumps(draft, ensure_ascii=False)
+                continue
+            if target == "payoff_sentence":
+                # QF-15: the payoff marked as the sentence it is, its words unchanged (payoff_problems checks them)
+                if find_str and find_str != (draft.get(target) or "").strip():
+                    log.warning("Payoff edit does not match payoff_sentence; rewriting instead.")
+                    return None
+                draft[target] = replace_str
+                text = json.dumps(draft, ensure_ascii=False)
+                continue
             # A graphic is edited by its fields (graphic_edit): by the path the edit names, or the entry a JSON
             # fragment in "find" quotes; a text search of the serialized draft cannot find a field's JSON.
             if target or _JSON_PAIR.search(find_str):
@@ -2654,7 +3026,9 @@ class ScriptEngine:
         if sheet is None:
             return None
         try:
-            length = [p for p in problems if not p.startswith(REPEAT_PROBLEM)]
+            # the hook and the payoff are left to the opening edit below, on the fitted words (_narrow_edits)
+            length = [p for p in problems
+                      if not p.startswith((REPEAT_PROBLEM, HOOK_PROBLEM, PAYOFF_PROBLEM, HEDGE_PROBLEM))]
             repeats = [p for p in problems if p.startswith(REPEAT_PROBLEM)]
             fitted = self._revise_surgically(pkg.model_dump(), "LENGTH: " + " ".join(length)
                                              + (" REPEAT: " + " ".join(repeats) if repeats else ""), sheet)
@@ -2765,7 +3139,7 @@ class ScriptEngine:
         except ValidationError as e:
             log.warning("Copy edit broke the draft (%s); rewriting.", e)
             return None
-        kept = ("narration_script", "hook_sentence", "closing_sentence", "sources", *GRAPHICS_FIELDS)
+        kept = ("narration_script", "hook_sentence", "closing_sentence", "payoff_sentence", "sources", *GRAPHICS_FIELDS)
         if any(getattr(fixed, k) != getattr(pkg, k) for k in kept):  # never: the edit holds none of them
             log.warning("Copy edit changed the narration or graphics; rewriting the draft.")
             return None
@@ -2789,15 +3163,19 @@ class ScriptEngine:
             return blocking_problems(problems)
 
         def narrow(p: str) -> bool:
-            return "when spoken" in p or p.startswith(REPEAT_PROBLEM) or copy_problem_fields(p, pkg) is not None
+            return ("when spoken" in p or p.startswith((REPEAT_PROBLEM, HOOK_PROBLEM, PAYOFF_PROBLEM, HEDGE_PROBLEM))
+                    or copy_problem_fields(p, pkg) is not None)
 
         if (sheet is not None and _opening_faults(problems) and all(narrow(p) for p in blocking())
                 and not any("when spoken" in p for p in blocking())):   # after a length edit, on its words
-            # The site unplaced, a story the narration does not tell, a hook over its length: one short edit of the
-            # opening (production Derinkuyu 2026-10-29: these were only warned about), not a rewrite.
+            # The site unplaced, a story the narration does not tell, a hook over its length, a payoff that does not
+            # name the opening's noun (QF-15): one short edit of the opening and the payoff (production Derinkuyu
+            # 2026-10-29: these were only warned about), not a rewrite.
             edited = self._edit_story(pkg, problems, sheet)
             if edited is not None:
                 pkg, problems = edited, draft_problems(edited)
+            elif any(p.startswith((HOOK_PROBLEM, PAYOFF_PROBLEM, HEDGE_PROBLEM)) for p in blocking()):
+                return pkg, problems   # a fault the edit could not fix sends the draft back: no further edit is spent
         if not blocking() or not all(narrow(p) for p in blocking()):
             return pkg, problems
         if any(STORY_OVERFLOW.match(p) for p in blocking()):
@@ -2809,6 +3187,8 @@ class ScriptEngine:
         for p in copy:
             if p.startswith(HEADLINE_PROBLEM):   # a figure the sheet does not support: a finding, then the copy edit
                 improve.note("script.headline_figure", p[:300], "structure")
+            elif p.startswith(trace_check.COVER_PROBLEM):   # a dropped limit or an unmeasured size, likewise
+                improve.note("script.cover_copy", p[:300], "structure")
         if copy and sheet is not None and all(narrow(p) for p in blocking()):
             edited = self._edit_copy(pkg, copy, sheet)
             if edited is not None:
@@ -2821,21 +3201,37 @@ class ScriptEngine:
 
     def _edit_story(self, pkg: ScriptPackage, problems: List[str], sheet: Dict[str, Any]) -> Optional[ScriptPackage]:
         """The opening's faults (_opening_faults: the site not placed in the first sentences, a story the title and
-        caption tell that the narration does not, a first sentence over HOOK_MAX_WORDS) fixed by one surgical edit
+        caption tell that the narration does not, a first sentence over HOOK_MAX_WORDS) and the payoff's (QF-15: the
+        penultimate sentence is the one more it may change) fixed by one surgical edit
         with the verified facts and the mandatory hedges, or None when the edit fails, fixes none of them or brings
         a new blocking fault (other than the length, which the caller edits as it would any other draft's). Asked
-        once per narration. The result is fact-checked in full like any draft."""
+        once per narration. A weak hook signal alone is asked once per opening (QF-14, operator ruling: one repair edit):
+        a later revision whose first sentence is unchanged (a fact-check round, a line-picture rewording, the final
+        copy's revision) sends no new opening edit; a new first sentence may get its own. A payoff naming none of the
+        opening's nouns is likewise asked once per payoff sentence (QF-15). The result is fact-checked in full like any
+        draft."""
         faults = _opening_faults(problems)
         tried = self.__dict__.setdefault("_story_tried", set())
         if not faults or pkg.narration_script in tried:
             return None
+        opening, payoff = _opening_key(pkg.narration_script), _payoff_key(pkg.narration_script)
+        openings = self.__dict__.setdefault("_openings_tried", set())
+        payoffs = self.__dict__.setdefault("_payoffs_tried", set())
+        hedges = self.__dict__.setdefault("_hedges_tried", set())
+        closes = _hedge_keys(pkg.narration_script)
+        # The faults that ship flagged (a weak signal, a payoff naming no opening noun, a qualified close) get one edit
+        # per opening, payoff and close sentence: none when each one's sentence already had it (QF-14; QF-15 and QF-16
+        # operator rulings).
+        if all((f.startswith(HOOK_SIGNAL_PROBLEM) and opening in openings)
+               or (f.startswith(PAYOFF_NOUN_PROBLEM) and payoff in payoffs)
+               or (f.startswith(HEDGE_WORDING_PROBLEM) and closes <= hedges) for f in faults):
+            return None
         tried.add(pkg.narration_script)
-        findings = ("OPENING: " + " ".join(faults) + f" Edit only what these need: the narration's first "
-                    f"{PLACE_WITHIN} sentences (a new first sentence of at most {HOOK_MAX_WORDS} words keeps its facts "
-                    "and hedges), and for a story the title and caption tell, the narration's opening or else the title "
-                    "and the caption's first line. Keep the length and every other sentence.")
+        openings.add(opening)
+        payoffs.add(payoff)
+        hedges.update(closes)
         try:
-            edited = self._revise_surgically(pkg.model_dump(), findings, sheet)
+            edited = self._revise_surgically(pkg.model_dump(), opening_edit_findings(faults), sheet)
         except LLMError as e:
             log.warning("Opening edit failed (%s); the draft goes on as it was.", e)
             return None
@@ -2951,8 +3347,10 @@ class ScriptEngine:
                         seen_q.add(q_text)
                         evidence_listing.append(f"- \"{q_text[:400]}\"")
             evidence_block = "\n".join(evidence_listing[:35])
+            mark = prompt_fence.new_token()   # quoted web text, its tags escaped, inside this call's fence (QF-41)
             raw_evidence_str = (
-                f"\n\n<raw_evidence_quotes>\n{evidence_block}\n</raw_evidence_quotes>\n"
+                "\n\n" + prompt_fence.fence_note(mark) + "\n"
+                + prompt_fence.fence("raw_evidence_quotes", evidence_block, mark) + "\n"
                 if evidence_block else ""
             )
 
@@ -2980,7 +3378,12 @@ class ScriptEngine:
                 + "Use only facts supported by the research notes. List sources only from retrieved_sources."
                 + feedback
             )
-        core = _structured(SYSTEM_PROMPT, prompt + length_target_note(), ScriptCore, effort="high")
+        from .engagement_learning import steer_note as engagement_steer
+        from .hook_learning import steer_note
+        steers = steer_note(topic.get("hook_form")) + engagement_steer(topic.get("engagement_forms"))
+        core = _structured(SYSTEM_PROMPT, prompt + steers + length_target_note(), ScriptCore, effort="high")
+        if sheet is not None:
+            prompt_fence.check_reply(core, mark)
         if spoken_length_problems(ScriptPackage(**core.model_dump())):
             # This draft will be sent back for its length: graphics are planned only for one that can be kept.
             return ScriptPackage(**core.model_dump())
@@ -3004,9 +3407,10 @@ class ScriptEngine:
         payload = pkg.model_dump()
         # A surgical edit can leave a space before a full stop ("a cataclysm struck ." was voiced and captioned
         # on the Tunguska development run, 2026-10-25): tidied in every public text before the checks.
-        for key in ("narration_script", "hook_sentence", "closing_sentence", "caption", "carousel_caption", "first_comment"):
+        for key in ("narration_script", "hook_sentence", "closing_sentence", "payoff_sentence", "caption",
+                    "carousel_caption", "first_comment"):
             if isinstance(payload.get(key), str):
-                if key in ("narration_script", "hook_sentence", "closing_sentence"):
+                if key in ("narration_script", "hook_sentence", "closing_sentence", "payoff_sentence"):
                     payload[key] = spoken_narration(payload[key])   # its words are what the voice says
                 payload[key] = re.sub(r"[ \t]+([.,;:!?])", r"\1", payload[key])
         payload.update({
@@ -3033,21 +3437,28 @@ class ScriptEngine:
         except ValidationError as e:
             return False, script_payload, f"REJECTED: payload does not match schema: {e.error_count()} errors."
 
-        problems = validate_structure(pkg) or spoken_length_problems(pkg)
+        sheet = fact_sheet.load(script_payload.get("topic_id", ""), max_age_days=3650) if script_payload.get("fact_sheet") else None
+        problems = (validate_structure(pkg) or spoken_length_problems(pkg)
+                    or blocking_problems(hook_problems(pkg.narration_script)
+                                         + payoff_problems(pkg.narration_script, pkg.payoff_sentence)
+                                         + hedge_problems(pkg.narration_script, sheet)))
         if problems:
             return False, script_payload, "REJECTED: " + " ".join(problems)
 
-        sheet = fact_sheet.load(script_payload.get("topic_id", ""), max_age_days=3650) if script_payload.get("fact_sheet") else None
         if sheet is not None:  # written from verified facts: trace every claim to them (same evidence each time)
             passed, confidence, audits, msg = trace_check.check(script_payload, sheet)
             disputed = sum(f["disputed"] for f in sheet["facts"])
             script_payload["fact_sheet_note"] = (f"🧾 Written from a verified fact sheet: {len(sheet['facts'])} facts with quoted "
-                                                 f"evidence ({disputed} disputed, used only with their hedges)")
+                                                 f"evidence ({disputed} disputed, used only with their hedges)"
+                                                 + (f"; {line}" if (line := fact_sheet.sources_line(sheet)) else ""))
         elif free_llm.enabled():
             # No fact sheet and no paid checks: only a human-reviewed curated script (or a dry run) may pass.
             if script_payload.get("origin") == "curated" and (script_payload.get("human_reviewed") or allow_unreviewed_curated):
+                # A pass of this stage only, never a fact check (operator decision 2026-11-04): no fact review is
+                # recorded for it, and its final copy goes through trace_check and evidence_check like every
+                # script's (main._verify_final_copy) before one is.
                 passed, confidence, audits = True, 0.0, []
-                msg = "Curated script (" + ("human reviewed" if script_payload.get("human_reviewed") else "UNREVIEWED; dry run only") + ")."
+                msg = "Curated script (" + ("human reviewed" if script_payload.get("human_reviewed") else "UNREVIEWED; dry run only") + "); the automated fact check runs on its final copy."
             else:
                 why = ("The curated script is not human-reviewed, so only a dry run may use it"
                        if script_payload.get("origin") == "curated" else "No verified fact sheet; the free engine fails closed")
@@ -3225,3 +3636,22 @@ For each act, include claim_fact_ids identifying the facts it uses.
 Apply the same factual standard to the YouTube title, description, tags, and debate question.
 Descriptions may contain chapter labels, but timestamps must be derived from actual audio later rather than presented as measured timings.
 Return the requested structured documentary package."""
+
+
+def curated_human_review(topic_id: str) -> Optional[Dict[str, Any]]:
+    """The signed record of a person's review of the topic's curated script (fact_evidence.human_review_record):
+    who (_reviewed_by) and when (_reviewed_at), as the script file states them, bound to that file's content. None
+    when the file is missing, unreadable or not marked _reviewed_by_human. The record is shown by the release gate
+    and never stands in for the automated fact check (operator decision, 2026-11-04)."""
+    import hashlib
+    from .fact_evidence import human_review_record
+    path = CURATED_SCRIPTS_DIR / f"{topic_id}.json"
+    try:
+        raw = path.read_bytes()
+        data = json.loads(raw)
+    except (OSError, ValueError):
+        return None
+    if not isinstance(data, dict) or data.get("_reviewed_by_human") is not True:
+        return None
+    return human_review_record(topic_id, data.get("_reviewed_by") or "", data.get("_reviewed_at") or "",
+                               hashlib.sha256(raw.replace(b"\r\n", b"\n")).hexdigest())

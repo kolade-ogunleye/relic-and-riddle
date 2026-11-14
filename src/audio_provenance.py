@@ -19,10 +19,22 @@ def record_voice(path, provider, licensed, script):
     return record
 
 
+def tracked_path(path) -> str:
+    """A path inside the checkout as it is tracked (repo-relative, POSIX), so a committed record names no machine or
+    user (QF-49); a path outside the checkout stays absolute."""
+    from .config import BASE_DIR
+    resolved = Path(path).resolve()
+    try:
+        return resolved.relative_to(BASE_DIR).as_posix()
+    except ValueError:
+        return str(resolved)
+
+
 def record_sfx(path, provider, prompt, plan, commercial):
-    """Rights evidence for one sound-effect file, bound to its exact bytes."""
+    """Rights evidence for one sound-effect file, bound to its exact bytes (sfx_rights checks the hash, not the path).
+    The record is committed with data/sfx, so its path is the tracked one."""
     path = Path(path)
-    record = {"path": str(path.resolve()), "sha256": sha256_file(path), "provider": provider, "plan": plan,
+    record = {"path": tracked_path(path), "sha256": sha256_file(path), "provider": provider, "plan": plan,
               "prompt": prompt, "commercial_license_recorded": commercial is True}
     if not record["sha256"]:
         raise ValueError("Cannot record an absent sound effect")

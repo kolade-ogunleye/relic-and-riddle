@@ -1,0 +1,304 @@
+{
+ "clip_frames": 1260,
+ "compared_with_before": 91,
+ "differing": [],
+ "differing_items": 0,
+ "digests": {
+  "audio/FLAC_PCM_16/file": {
+   "sha256": "74eb1b3971d8471915921071b01746006af6cbd90ff8a78aae2a86ce71a351c8"
+  },
+  "audio/FLAC_PCM_16/read": {
+   "sha256": "9079c7b1fe5abf71739bd330af3ce2c22fb59f4c1b67346c3e2a019b6bc02395"
+  },
+  "audio/WAV_FLOAT/file": {
+   "sha256": "4848d8118e16541c8e0104b3bcb3960166f4ec30a7b25c673d4ab5567a1078a4"
+  },
+  "audio/WAV_FLOAT/read": {
+   "sha256": "9985fb76f9200374eca63fd2cdd47dfb64d27e3a55a4b194c145f7015032a8ba"
+  },
+  "audio/WAV_PCM_16/file": {
+   "sha256": "5cca8701c3401692080670e02b94f0bb4c01644bbe66e9206fbcf40dabd4ce87"
+  },
+  "audio/WAV_PCM_16/read": {
+   "sha256": "5bbaa8fd444a85b546ac6c59eb11f47c997e36ceb6cc07ced38d6f934eeb47df"
+  },
+  "audio/WAV_PCM_24/file": {
+   "sha256": "53d5031a318c823db2d04d433b8f5d0d331cf16d33c6b373984a5a733fcf8a3d"
+  },
+  "audio/WAV_PCM_24/read": {
+   "sha256": "27b2c17ab3322e0f924f989d23ce667c49eba89303e373803836ae671a4cb0d1"
+  },
+  "fonts/Anton-Regular.ttf/glyph_font_data": {
+   "sha256": "d207a11309ad734efa85b37e56702cb43e32fdab1cfc165131bd8652524ae0a3"
+  },
+  "fonts/Anton-Regular.ttf/inspect_font": {
+   "sha256": "facb4f499d1981c56100e0ebf8a70f9aab4473a6e02d3cea803cb17c756ebcf9"
+  },
+  "fonts/Cinzel-Variable.ttf/glyph_font_data": {
+   "sha256": "d8acfd2ec850a4aa4c548100ee821292e248aa3b228ced5b56b0a25764355c84"
+  },
+  "fonts/Cinzel-Variable.ttf/inspect_font": {
+   "sha256": "4ea555875bc57050c625c5851e9cdaadcf59033e75f8b48bc12ab30d86951b73"
+  },
+  "fonts/IBMPlexMono-Medium.ttf/glyph_font_data": {
+   "sha256": "9c16081446782c00259cdc4ddebac892213aee0e1b5a6e9c444c2db22943db73"
+  },
+  "fonts/IBMPlexMono-Medium.ttf/inspect_font": {
+   "sha256": "30653cf2e91c71342ce9aae01290ac6a5210490f731b6f8cdaf287caaaf952b0"
+  },
+  "fonts/IBMPlexMono-SemiBold.ttf/glyph_font_data": {
+   "sha256": "f3b64e2ad6ea1bf860aad3a0d72c2efc1ac27f908f32c63c65dbc93008b37cd9"
+  },
+  "fonts/IBMPlexMono-SemiBold.ttf/inspect_font": {
+   "sha256": "2c0ab72f68b779cccdc2349966ba23d131513976633108c0f8ae00f3a6d3acf1"
+  },
+  "fonts/Montserrat-Variable.ttf/glyph_font_data": {
+   "sha256": "b952c9876715b9c6509b483749e17e2bc92288fd6790b198d16b03a6683b49cf"
+  },
+  "fonts/Montserrat-Variable.ttf/inspect_font": {
+   "sha256": "bd477df62fd156a50dc50722aceb919ff9cffc6d8ff77f580f6a0c0071604a74"
+  },
+  "fonts/NotoSans-LGC.ttf/glyph_font_data": {
+   "sha256": "6c199ed16dedf844058fa98a804fb9795e23664e375bb35f617ffc394ea286b5"
+  },
+  "fonts/NotoSans-LGC.ttf/inspect_font": {
+   "sha256": "9b66cf4d19d9aa86afdf7e587cc247474113d17c2023ba9de50e378390876a2f"
+  },
+  "fonts/NotoSerif-LGC.ttf/glyph_font_data": {
+   "sha256": "20a6680a408ad412ab6d9e675da66395f348bbeeca3dcdd1794c5dc58fb62514"
+  },
+  "fonts/NotoSerif-LGC.ttf/inspect_font": {
+   "sha256": "fda14e65d37ec66341158642a77ad70c5cb027cd86270be183ca2a872d8e607c"
+  },
+  "gol_gumbaz/captions_1080x1920/ass": {
+   "sha256": "2a697a89c050919b4d71a14728a4c593ca5328c7f358dc95b1ebd6361632a910"
+  },
+  "gol_gumbaz/captions_1080x1920/frame_0.555": {
+   "sha256": "0dd8664df73981c26954c9826e6bb34bbc75478ee67185cee455abc5800353d9"
+  },
+  "gol_gumbaz/captions_1080x1920/frame_1.390": {
+   "sha256": "0e7d43f38de158ce4749042ea6388672030ed18365825d1a13d84bf57acc34ac"
+  },
+  "gol_gumbaz/captions_1080x1920/frame_1.645": {
+   "sha256": "0e7d43f38de158ce4749042ea6388672030ed18365825d1a13d84bf57acc34ac"
+  },
+  "gol_gumbaz/captions_1920x1080/ass": {
+   "sha256": "4249439bebe032a167c77c65d8a3905fd537d43e5f08ac3d8e8ddb4b945cd182"
+  },
+  "gol_gumbaz/captions_1920x1080/frame_0.845": {
+   "sha256": "0f5bff3c0e07a0a3e78169fc5afdbee41ca771601f995e56d83c36a28225d8af"
+  },
+  "gol_gumbaz/captions_1920x1080/frame_3.755": {
+   "sha256": "77a7e7bda74de4795cde405c82452fd7cb7a9800f4b7de853e6490c4fb9a2d08"
+  },
+  "gol_gumbaz/captions_1920x1080/frame_7.000": {
+   "sha256": "6d2b57c95e240baca235a43206be1d120690ec89b1a8dd7f6dae6436f15f02fd"
+  },
+  "gol_gumbaz/cover_badge": {
+   "sha256": "5242f666401e358c9246f14d4bf905a917011acb09260bdb5862fe674c1918c6"
+  },
+  "gol_gumbaz/cover_badge_grid": {
+   "sha256": "9605f97d12844e826432432e7a1b4bcc2a8716257c11da3c79f7bea7c3cee326"
+  },
+  "gol_gumbaz/cover_depth_sandwich": {
+   "sha256": "c7d07d3926d62f94bd4007a4e1dada900c5a28095f39f392acf24ce7cb71199c"
+  },
+  "gol_gumbaz/cover_depth_sandwich_grid": {
+   "sha256": "3fc7811b91e62fd4cb0a87b0b738e20bf0efb0dec59aa158040cf8a99c048ecd"
+  },
+  "gol_gumbaz/cover_lower_third": {
+   "sha256": "82564737e8eef07c3ba751853110c697c2adb271253e0535e8c73106b504c476"
+  },
+  "gol_gumbaz/cover_lower_third_grid": {
+   "sha256": "8e02e1c9735d4bb02e2615930fb9248b0a4406459f3db8c12f803da8cf66960c"
+  },
+  "gol_gumbaz/cover_minimal": {
+   "sha256": "c2c35bd216e489ccb880e75f3eeb25cc718598995a9e02c694186f173ad312b6"
+  },
+  "gol_gumbaz/cover_minimal_grid": {
+   "sha256": "24cfab46a0924191bf8aad62c17ef702d5f9e78e896de2bf4ef7a72ac5f44459"
+  },
+  "gol_gumbaz/cover_monument": {
+   "sha256": "6bf58cc2e05efa45d18fe9ca2fe738ea92f66440b19d5979d64708b4e366839d"
+  },
+  "gol_gumbaz/cover_monument_grid": {
+   "sha256": "5c6ad6966b40e7bd9414e691e7f415b66ec2b6052d6cf9fb4048d7929ac37d51"
+  },
+  "gol_gumbaz/graphic_map/clip": {
+   "frames": 180,
+   "sha256": "8fbab21dd787873b41a9f17b5ff65ad3efe01cfca9748141935e628be29615c3"
+  },
+  "gol_gumbaz/graphic_map/still": {
+   "sha256": "3a3077f81a7db2e2f41af70385906a61aed2c99ae2291f4c6d63e5294c6efc47"
+  },
+  "gol_gumbaz/graphic_numbers/clip": {
+   "frames": 180,
+   "sha256": "a858f242be48d817e5a3b19b47edf925f5775e8659491bad8fd6dffc6c362d84"
+  },
+  "gol_gumbaz/graphic_numbers/still": {
+   "sha256": "edb3281c6e4040b181a7f72b80f217fd78a00b3eddc3f327878c0a3c44eff81b"
+  },
+  "memnon/captions_1080x1920/ass": {
+   "sha256": "f4479620c1296af4231b0ee34e5c704cf235dc82b19fb084db26a8a4a77c96eb"
+  },
+  "memnon/captions_1080x1920/frame_0.900": {
+   "sha256": "75071b5f1527ee52a12fe006f5335b37632485c17059c6cc90f4b213bf4fff18"
+  },
+  "memnon/captions_1080x1920/frame_1.825": {
+   "sha256": "d5874bf10cee32142e484b71d1e2122bb89362384097ed5983fe9ec1100b0834"
+  },
+  "memnon/captions_1080x1920/frame_2.085": {
+   "sha256": "2f88478bad1edd3aa03f485a9a3a9fb2b1273ab9f582d41546fa317b290a23a0"
+  },
+  "memnon/captions_1920x1080/ass": {
+   "sha256": "6402d26146ff6bb45e80209f5163b931f5ddcf70b3c48147014d31f73d192536"
+  },
+  "memnon/captions_1920x1080/frame_0.910": {
+   "sha256": "e29edd2bfafd8b287fd1aa85ae0b0f1cab924947c1372d3087782fb385f42d2d"
+  },
+  "memnon/captions_1920x1080/frame_2.795": {
+   "sha256": "a58a91f5387284fa84dfb613a2d590c0fdb1b307e443264d5e90f8342f4784b4"
+  },
+  "memnon/captions_1920x1080/frame_4.960": {
+   "sha256": "f741883a9dfe3a4c20b39aa346a6fac382ee6f21375863ce38dca28ebca906a3"
+  },
+  "memnon/cover_badge": {
+   "sha256": "96b57eb5486fa9bffa98d6ed39ec6f18e9594cd282d4da6ad777c260297f7f67"
+  },
+  "memnon/cover_badge_grid": {
+   "sha256": "8013af0724ad135b7b9d89f55f47785bee82ab6428afcb775722c9765b55f13d"
+  },
+  "memnon/cover_depth_sandwich": {
+   "sha256": "3dd2145e2d7951f91e93419fc5d75b72d81836da8131fb80a7171738dfa8d4b2"
+  },
+  "memnon/cover_depth_sandwich_grid": {
+   "sha256": "10154c6b28fc03657a95c243a0fd7aaaa41da8693361ec40a11205d6528bb44b"
+  },
+  "memnon/cover_lower_third": {
+   "sha256": "64ce9b5c2090137e2fd79f857423f38741250437db0d3328002fb2f07288204e"
+  },
+  "memnon/cover_lower_third_grid": {
+   "sha256": "ca94afac1a7bc92ac079eaf20eedb8e015c8cd7e4e9def4ffc62be93ad743940"
+  },
+  "memnon/cover_minimal": {
+   "sha256": "13a2620c9a24a8ff547fd31f7e8588d7a4d3175e73897978a50217e42ae9234e"
+  },
+  "memnon/cover_minimal_grid": {
+   "sha256": "90b87afa305f0c51303a239f81e4dbc5730ade548bcf393bda18354e1dc0e4c8"
+  },
+  "memnon/cover_monument": {
+   "sha256": "96b57eb5486fa9bffa98d6ed39ec6f18e9594cd282d4da6ad777c260297f7f67"
+  },
+  "memnon/cover_monument_grid": {
+   "sha256": "8013af0724ad135b7b9d89f55f47785bee82ab6428afcb775722c9765b55f13d"
+  },
+  "memnon/graphic_map/clip": {
+   "frames": 180,
+   "sha256": "482fa7a04a650459f5fc19f5df128d6b5c7a67f7add478782cfa80acb4df1728"
+  },
+  "memnon/graphic_map/still": {
+   "sha256": "025b34f5cdf763ea07c7b1c4febe8614385609fccdf98dfbd0293e3c177999a7"
+  },
+  "memnon/graphic_numbers/clip": {
+   "frames": 180,
+   "sha256": "5eac6cd31e4ab1d03e2851e06ad9c3ecad0b931f07f8a9f39abdcca4d84cfeab"
+  },
+  "memnon/graphic_numbers/still": {
+   "sha256": "f7dc3f418f5142e297a89b41d89d0a8954dd900e413fce14cb2de5db2a07d31a"
+  },
+  "memnon/graphic_scale/clip": {
+   "drawn": false
+  },
+  "memnon/graphic_timeline/clip": {
+   "frames": 180,
+   "sha256": "b03266bb726e57e69bfbed6a498f6a19d63f1287320d863bdb2b1d1bf4a5bb93"
+  },
+  "memnon/graphic_timeline/still": {
+   "sha256": "0eda3e3f257f2042a7e7d931d9a59b3aff371110247c1a4fb5f46f6ef891d3d1"
+  },
+  "wieliczka/captions_1080x1920/ass": {
+   "sha256": "eca3c4bea1679c824fcf8e0b29c73c5b08dede85a7592ff55aa185179c44b1ff"
+  },
+  "wieliczka/captions_1080x1920/frame_0.415": {
+   "sha256": "4f7781d392d5c9ff39377b3ad3481b65409b519861605369600fc3304f49db92"
+  },
+  "wieliczka/captions_1080x1920/frame_0.925": {
+   "sha256": "4cc3a49587a1a2c4a61851e0b2140689e98d7c95e6a39c6521c1633966520777"
+  },
+  "wieliczka/captions_1080x1920/frame_1.195": {
+   "sha256": "0d407cc2d2daf314449e5b337cdf61f22ff0b05de6ad939677217c1ca8228fce"
+  },
+  "wieliczka/captions_1920x1080/ass": {
+   "sha256": "8d49db1da154dd110cc3368945c2d6bdd5afa58b27cf02c952aed5980a12945d"
+  },
+  "wieliczka/captions_1920x1080/frame_1.160": {
+   "sha256": "3259ea5b52135751b1e87085a21bbea4d8200bf85711d96198b0a7a10f746bb5"
+  },
+  "wieliczka/captions_1920x1080/frame_3.410": {
+   "sha256": "fced35744e473124ebca70368f486636d4e7b8a375dc56ac11620ad798bc8b69"
+  },
+  "wieliczka/captions_1920x1080/frame_5.470": {
+   "sha256": "4b2271bcbb86ace6f8110b13cbe4e72f747977c6e10e0f398db02337eede1190"
+  },
+  "wieliczka/cover_badge": {
+   "sha256": "7b48f742fcda726b68af588b41e0ef23783ddfecd6b295a9afe049d00dbae318"
+  },
+  "wieliczka/cover_badge_grid": {
+   "sha256": "cf6c81eb4d1e50cb23aaf83091fdaa940e25c4ed524fa830b0b133d6e1ec747c"
+  },
+  "wieliczka/cover_depth_sandwich": {
+   "sha256": "596ca3de2ce284c10cc341aaf4c9f185686d81b107bc7b477ee6b5aed4a4df46"
+  },
+  "wieliczka/cover_depth_sandwich_grid": {
+   "sha256": "701a6d5daa6ebf8add8b277f09e06baab8c61d882075ec2bfd6bdff9779ce9e8"
+  },
+  "wieliczka/cover_lower_third": {
+   "sha256": "4d26f7f73ea3cae1d005ef65747382c6fb4b48c2976c09eddb8ae649ffbc4245"
+  },
+  "wieliczka/cover_lower_third_grid": {
+   "sha256": "737ecfc4728d28162dce6a54cc6b063f715b94ae4908c4a05ee8cd816f23565e"
+  },
+  "wieliczka/cover_minimal": {
+   "sha256": "d5a78c9a4ff481432e219ee0ed63c07e4770096a5514c083f62bd4c0d963bf08"
+  },
+  "wieliczka/cover_minimal_grid": {
+   "sha256": "d63a476692a96223656188b8749bf0d606aa1cafceef4b796d85dc42061342a2"
+  },
+  "wieliczka/cover_monument": {
+   "sha256": "e4f8aed10f6391f850221340998ae20c3b6631c4954073e66e93d0a6d55573b0"
+  },
+  "wieliczka/cover_monument_grid": {
+   "sha256": "08b89e4acb7ccfef81645b00c49df4f982e3aa7416e3a8124181291683ab59a6"
+  },
+  "wieliczka/graphic_map/clip": {
+   "frames": 180,
+   "sha256": "1146af71eb5c57262b4b21fdffe94399a4de102996c241418eb7cb9be7940249"
+  },
+  "wieliczka/graphic_map/still": {
+   "sha256": "cfbd682ebecf9a1d0e8153e6c72e3e2510e788e9e9f8a38faa1eb897d34494d8"
+  },
+  "wieliczka/graphic_scale/clip": {
+   "frames": 180,
+   "sha256": "28d568429aba07f6235f0e0f06f26a38ab5f3354e00f0275387e89d6d34cd0d4"
+  },
+  "wieliczka/graphic_scale/still": {
+   "sha256": "766928969d1c465a7d1c6e6a17bcf767ff8ccf95dd5416d277a79295cab9b896"
+  }
+ },
+ "items": 91,
+ "versions": {
+  "anthropic": "1.13.0",
+  "fonttools": "4.68.0",
+  "libsndfile": "1.2.2",
+  "numpy": "2.4.6",
+  "opencv-python-headless": "4.14.0.94",
+  "pillow": "13.0.0",
+  "pydantic": "2.14.3",
+  "pydantic-core": "2.50.4",
+  "pytest": "9.2.0",
+  "ruff": "0.17.5",
+  "skia-python": "144.1",
+  "soundfile": "0.14.0",
+  "uharfbuzz": "0.57.0"
+ }
+}

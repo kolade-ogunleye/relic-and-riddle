@@ -35,7 +35,7 @@ jobs:
           test "$(command -v ffprobe)" = "$RUNNER_TEMP/ffmpeg/ffprobe"
           python scripts/check_ffmpeg.py
       - name: uv (the version pyproject.toml requires)
-        run: pip install uv==0.13.7
+        run: pip install uv==0.13.8
       - name: The lock is current for pyproject.toml
         run: uv lock --check
       - name: Install the hashed lock (requirements.txt and the dev group)

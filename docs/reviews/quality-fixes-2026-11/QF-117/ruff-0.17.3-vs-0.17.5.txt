@@ -1,0 +1,7 @@
+# ruff check --isolated --no-cache --output-format concise .   (the whole tree at the parent, 981b0326; no ruff configuration)
+ruff 0.17.3: Found 4640 errors.
+ruff 0.17.5: Found 4641 errors.
+# findings 0.17.5 reports that 0.17.3 does not (diff of the two outputs):
+> src/control.py:3100:13: SIM102 Use a single `if` statement instead of nested `if` statements
+# findings 0.17.3 reports that 0.17.5 does not:
+none

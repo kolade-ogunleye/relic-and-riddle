@@ -545,7 +545,13 @@ def test_the_audit_trail_is_written_and_replays_without_a_model(tmp_path, monkey
         raise AssertionError("replay called a model")
     monkeypatch.setattr(free_llm, "call", no_model)
     callouts.replay(tmp_path / "g" / "graphic_labels.mp4.audit.json", tmp_path / "again.mp4")
-    assert [p[:3] for p in seen["points"]] == pytest.approx([p[:3] for p in first["points"]])
+    got, want = [p[:3] for p in seen["points"]], [p[:3] for p in first["points"]]
+    assert len(got) == len(want)
+    assert [p[0] for p in got] == [p[0] for p in want]                    # labels: exact, same order
+    assert all(g[1:] == pytest.approx(w[1:]) for g, w in zip(got, want, strict=True))
+    # pytest 9.0.3 fell back to exact equality for each (label, x, y) tuple; pytest 9.2.0 refuses the nested
+    # list, so the exact comparison it really made is kept as well: nothing is loosened by the rewrite
+    assert got == want
     assert seen["reveal"] == first["reveal"]
 
 

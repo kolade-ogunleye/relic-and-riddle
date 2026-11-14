@@ -788,7 +788,8 @@ def test_a_plain_carousel_post_anyway_displaces_is_shown_and_said_truthfully(car
     _another(db, tmp_path, "r3", "2", monday)
     _passes(carousel_week, frozen, monday, 2)
     a, r3 = _carousel(db, "r0"), _carousel(db, "r3")
-    assert len(_needs(carousel_week)) == 1
+    # QF-73b: the fixture's older plain r2 loses Thursday to the newer r3: said, not left to a silent expiry
+    assert sorted(_named(db, "r2", t) for t, _b, _g in _needs(carousel_week)) == [False, True]
     reply = carousel_week.post_carousel_anyway(a["id"])
     assert "Thu 09 May" in reply and _named(db, "r3", reply)
     plan = posting_view.carousel_plan(db)
@@ -801,7 +802,8 @@ def test_a_plain_carousel_post_anyway_displaces_is_shown_and_said_truthfully(car
     assert carousel_week.posted == [("r0", "Thu")]
     r3 = _carousel(db, "r3")
     assert r3["status"] == "expired" and r3["detail"]["reason"] == "sensitive-topic spacing"
-    said = [text for text, _b, _g in _needs(carousel_week) if _named(db, "r3", text)]
+    # QF-73b: r2's own notice names r3 (the newer carousel taking its slot): r3's notices are those with its buttons
+    said = [text for text, b, _g in _needs(carousel_week) if f"carexpire:{r3['id']}" in str(b)]
     assert len(said) == 1 and "chose to post anyway" in said[0]
     words = posting_view.status_words(db, r3)
     assert "chose to post anyway" in words and not _wrong_reason(words)
@@ -835,7 +837,10 @@ def test_an_unconfirmed_sensitive_publication_raises_no_spacing_alert(carousel_w
         db, _carousel(db, "r0"), posting_view.carousel_plan(db))
     db.update_run("r1", "approved")
     _passes(carousel_week, frozen, monday + timedelta(hours=6), 9 * 24)
-    assert ("r0", "Thu") in carousel_week.posted and _needs(carousel_week) == []
+    assert ("r0", "Thu") in carousel_week.posted
+    # no spacing notice; QF-73b: the older plain r2, which loses its only slot to the newer r0, is said once
+    assert [(_named(db, "r2", t), "Carousel without a slot" in t) for t, _b, _g in _needs(carousel_week)] == [
+        (True, True)]
 
 
 # ------------------------------------------------------------------ proposals and intake

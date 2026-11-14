@@ -13,7 +13,27 @@ jobs:
         with:
           python-version: "3.11"
           cache: pip
-      - run: sudo apt-get update && sudo apt-get install -y libsndfile1 ffmpeg libfribidi0 libfontconfig1 libgl1 libegl1
+      - run: sudo apt-get update && sudo apt-get install -y libsndfile1 libfribidi0 libfontconfig1 libgl1 libegl1
+      # QF-116: the FFmpeg release development and production run (8.1, docs/deployment.md step 5), not the runner's
+      # apt ffmpeg. A BtbN FFmpeg-Builds static GPL build (libass, HarfBuzz, FriBidi, FreeType, fontconfig, libx264,
+      # libvmaf) from a month-end autobuild release (kept two years); pinned by URL and SHA-256.
+      - name: FFmpeg 8.1 (pinned static build, SHA-256 verified)
+        env:
+          FFMPEG_URL: https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2026-03-31-13-11/ffmpeg-n8.1-7-ga3475e2554-linux64-gpl-8.1.tar.xz
+          FFMPEG_SHA256: 86aa72199be1f828fa895e1c854e27241a66e038ba23b091ae3b78b5f00814ac
+        run: |
+          set -euo pipefail
+          curl -fsSL --retry 3 --proto '=https' --tlsv1.2 -o "$RUNNER_TEMP/ffmpeg.tar.xz" "$FFMPEG_URL"
+          echo "$FFMPEG_SHA256  $RUNNER_TEMP/ffmpeg.tar.xz" | sha256sum --check --strict
+          mkdir "$RUNNER_TEMP/ffmpeg"
+          tar -xJf "$RUNNER_TEMP/ffmpeg.tar.xz" -C "$RUNNER_TEMP/ffmpeg" --strip-components=2 --wildcards '*/bin/ffmpeg' '*/bin/ffprobe'
+          echo "$RUNNER_TEMP/ffmpeg" >> "$GITHUB_PATH"
+      - name: ffmpeg is the 8.1 release with every filter, encoder and format src/ uses
+        run: |
+          echo "ffmpeg: $(command -v ffmpeg), ffprobe: $(command -v ffprobe)"
+          test "$(command -v ffmpeg)" = "$RUNNER_TEMP/ffmpeg/ffmpeg"
+          test "$(command -v ffprobe)" = "$RUNNER_TEMP/ffmpeg/ffprobe"
+          python scripts/check_ffmpeg.py
       - name: uv (the version pyproject.toml requires)
         run: pip install uv==0.13.7
       - name: The lock is current for pyproject.toml

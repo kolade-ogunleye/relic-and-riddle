@@ -1,0 +1,9 @@
+{
+  "ci_apt_installs_ffmpeg": true,
+  "ci_pinned_url": null,
+  "ci_pinned_sha256": null,
+  "ci_pinned_release": null,
+  "ci_url_is_fixed_release_tag": false,
+  "ci_hash_verified_before_unpack": false,
+  "ci_runs_version_and_filter_check_before_pytest": false
+}

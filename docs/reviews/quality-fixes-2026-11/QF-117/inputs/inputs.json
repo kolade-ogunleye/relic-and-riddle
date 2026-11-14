@@ -1,0 +1,1742 @@
+{
+ "runs": {
+  "memnon": {
+   "stat_cards": [
+    {
+     "value": "estimated 720 tons",
+     "label": "weight of each colossus"
+    },
+    {
+     "value": "1350 BC",
+     "label": "standing since"
+    }
+   ],
+   "scale_fact": {
+    "value": 60.0,
+    "unit": "ft",
+    "dimension": "height",
+    "subject": "Colossi of Memnon",
+    "approximate": false
+   },
+   "timeline": [
+    {
+     "year": -1350,
+     "approximate": false,
+     "label": "Colossi carved for Amenhotep III"
+    },
+    {
+     "year": -27,
+     "approximate": false,
+     "label": "Earthquake shatters northern colossus"
+    },
+    {
+     "year": 196,
+     "approximate": false,
+     "label": "Last recorded vocalization"
+    },
+    {
+     "year": 199,
+     "approximate": true,
+     "label": "Upper tiers reconstructed"
+    }
+   ],
+   "thumbnail": {
+    "eyebrow": "THEBAN NECROPOLIS",
+    "line1": "THE SINGING",
+    "line2": "720-TON TITAN",
+    "tagline": "VOICE OF THE DESERT"
+   },
+   "narration_script": "In 27 BC, a major earthquake shattered the northern colossus, collapsing the statue from the waist up and cracking its lower half. Following the earthquake damage, the northern monument became famous throughout the ancient world for emitting a reported cry at dawn. Reaching a total height of 60 feet (18 m) including their 13-foot (4 m) pedestals, each colossus weighs an estimated 720 tons. The last reliable historical record of the statue vocalizing dates to the year 196 AD. Local tradition dates the reconstruction of the statue's upper tiers to around 199 AD. Still, the colossi have stood since 1350 BC, originally carved to guard the memorial temple where Amenhotep III was worshipped.",
+   "emphasis_words": [
+    "27 BC",
+    "720 tons",
+    "Amenhotep III"
+   ],
+   "place": {
+    "lat": 25.720555555556,
+    "lon": 32.610555555556,
+    "qid": "Q750209",
+    "country": "Egypt",
+    "label": "Colossi of Memnon",
+    "approximate": false
+   },
+   "palette": {
+    "accent": [
+     92,
+     138,
+     204
+    ],
+    "accent_hex": "#5C8ACC",
+    "grade_bias": -0.013
+   },
+   "hero": "hero_memnon.jpg",
+   "words": [
+    {
+     "word": "In",
+     "start": 0.089291,
+     "dur": 0.102041
+    },
+    {
+     "word": "27",
+     "start": 0.204083,
+     "dur": 0.58675
+    },
+    {
+     "word": "BC,",
+     "start": 0.803562,
+     "dur": 0.522958
+    },
+    {
+     "word": "a",
+     "start": 1.86225,
+     "dur": 0.05
+    },
+    {
+     "word": "major",
+     "start": 1.91327,
+     "dur": 0.459187
+    },
+    {
+     "word": "earthquake",
+     "start": 2.385208,
+     "dur": 0.484687
+    },
+    {
+     "word": "shattered",
+     "start": 2.882645,
+     "dur": 0.471937
+    },
+    {
+     "word": "the",
+     "start": 3.367354,
+     "dur": 0.07652
+    },
+    {
+     "word": "northern",
+     "start": 3.456625,
+     "dur": 0.382645
+    },
+    {
+     "word": "colossus,",
+     "start": 3.852041,
+     "dur": 0.66327
+    },
+    {
+     "word": "collapsing",
+     "start": 5.06377,
+     "dur": 0.49745800000000007
+    },
+    {
+     "word": "the",
+     "start": 5.573979,
+     "dur": 0.07652
+    },
+    {
+     "word": "statue",
+     "start": 5.66327,
+     "dur": 0.522958
+    },
+    {
+     "word": "from",
+     "start": 6.198979,
+     "dur": 0.140312
+    },
+    {
+     "word": "the",
+     "start": 6.352041,
+     "dur": 0.089291
+    },
+    {
+     "word": "waist",
+     "start": 6.454083,
+     "dur": 0.357145
+    },
+    {
+     "word": "up",
+     "start": 6.823979,
+     "dur": 0.216833
+    },
+    {
+     "word": "and",
+     "start": 7.155604,
+     "dur": 0.102041
+    },
+    {
+     "word": "cracking",
+     "start": 7.270416,
+     "dur": 0.548479
+    },
+    {
+     "word": "its",
+     "start": 7.831625,
+     "dur": 0.140312
+    },
+    {
+     "word": "lower",
+     "start": 7.984687,
+     "dur": 0.306125
+    },
+    {
+     "word": "half.",
+     "start": 8.303562,
+     "dur": 0.433666
+    },
+    {
+     "word": "Following",
+     "start": 9.145416,
+     "dur": 0.522958
+    },
+    {
+     "word": "the",
+     "start": 9.681125,
+     "dur": 0.06377
+    },
+    {
+     "word": "earthquake",
+     "start": 9.757645,
+     "dur": 0.484687
+    },
+    {
+     "word": "damage,",
+     "start": 10.255104,
+     "dur": 0.586729
+    },
+    {
+     "word": "the",
+     "start": 11.147958,
+     "dur": 0.11479100000000002
+    },
+    {
+     "word": "northern",
+     "start": 11.2755,
+     "dur": 0.357145
+    },
+    {
+     "word": "monument",
+     "start": 11.645416,
+     "dur": 0.484687
+    },
+    {
+     "word": "became",
+     "start": 12.142854,
+     "dur": 0.331625
+    },
+    {
+     "word": "famous",
+     "start": 12.48725,
+     "dur": 0.573979
+    },
+    {
+     "word": "throughout",
+     "start": 13.073979,
+     "dur": 0.4081659999999999
+    },
+    {
+     "word": "the",
+     "start": 13.494895,
+     "dur": 0.06377
+    },
+    {
+     "word": "ancient",
+     "start": 13.571437,
+     "dur": 0.395416
+    },
+    {
+     "word": "world",
+     "start": 13.979583,
+     "dur": 0.395416
+    },
+    {
+     "word": "for",
+     "start": 14.38775,
+     "dur": 0.191333
+    },
+    {
+     "word": "emitting",
+     "start": 14.591833,
+     "dur": 0.369895
+    },
+    {
+     "word": "a",
+     "start": 14.974479,
+     "dur": 0.07652
+    },
+    {
+     "word": "reported",
+     "start": 15.06377,
+     "dur": 0.484687
+    },
+    {
+     "word": "cry",
+     "start": 15.561229,
+     "dur": 0.331625
+    },
+    {
+     "word": "at",
+     "start": 15.905604,
+     "dur": 0.114791
+    },
+    {
+     "word": "dawn.",
+     "start": 16.033166,
+     "dur": 0.446437
+    },
+    {
+     "word": "Reaching",
+     "start": 16.88775,
+     "dur": 0.344395
+    },
+    {
+     "word": "a",
+     "start": 17.244895,
+     "dur": 0.06377
+    },
+    {
+     "word": "total",
+     "start": 17.321437,
+     "dur": 0.357145
+    },
+    {
+     "word": "height",
+     "start": 17.691333,
+     "dur": 0.344395
+    },
+    {
+     "word": "of",
+     "start": 18.048479,
+     "dur": 0.089291
+    },
+    {
+     "word": "60",
+     "start": 18.1505,
+     "dur": 0.242347
+    },
+    {
+     "word": "feet",
+     "start": 18.392847,
+     "dur": 0.484694
+    },
+    {
+     "word": "including",
+     "start": 18.890312,
+     "dur": 0.471937
+    },
+    {
+     "word": "their",
+     "start": 19.375,
+     "dur": 0.153062
+    },
+    {
+     "word": "13-foot",
+     "start": 19.540812,
+     "dur": 0.6417394375000001
+    },
+    {
+     "word": "pedestals,",
+     "start": 20.1825514375,
+     "dur": 0.8250935625
+    },
+    {
+     "word": "each",
+     "start": 21.645416,
+     "dur": 0.229583
+    },
+    {
+     "word": "colossus",
+     "start": 21.88775,
+     "dur": 0.522958
+    },
+    {
+     "word": "weighs",
+     "start": 22.423479,
+     "dur": 0.38264499999999996
+    },
+    {
+     "word": "an",
+     "start": 22.818875,
+     "dur": 0.165812
+    },
+    {
+     "word": "estimated",
+     "start": 22.997458,
+     "dur": 0.548479
+    },
+    {
+     "word": "720",
+     "start": 23.558666,
+     "dur": 1.071417
+    },
+    {
+     "word": "tons.",
+     "start": 24.642854,
+     "dur": 0.522958
+    },
+    {
+     "word": "The",
+     "start": 25.561229,
+     "dur": 0.089291
+    },
+    {
+     "word": "last",
+     "start": 25.66327,
+     "dur": 0.433666
+    },
+    {
+     "word": "reliable",
+     "start": 26.109687,
+     "dur": 0.548479
+    },
+    {
+     "word": "historical",
+     "start": 26.670916,
+     "dur": 0.61225
+    },
+    {
+     "word": "record",
+     "start": 27.295916,
+     "dur": 0.4846869999999999
+    },
+    {
+     "word": "of",
+     "start": 27.793375,
+     "dur": 0.127541
+    },
+    {
+     "word": "the",
+     "start": 27.933666,
+     "dur": 0.07652
+    },
+    {
+     "word": "statue",
+     "start": 28.022958,
+     "dur": 0.561229
+    },
+    {
+     "word": "vocalizing",
+     "start": 28.596937,
+     "dur": 0.67602
+    },
+    {
+     "word": "dates",
+     "start": 29.285708,
+     "dur": 0.382645
+    },
+    {
+     "word": "to",
+     "start": 29.681125,
+     "dur": 0.127541
+    },
+    {
+     "word": "the",
+     "start": 29.821437,
+     "dur": 0.07652
+    },
+    {
+     "word": "year",
+     "start": 29.910708,
+     "dur": 0.344395
+    },
+    {
+     "word": "196",
+     "start": 30.267854,
+     "dur": 0.905604
+    },
+    {
+     "word": "AD.",
+     "start": 31.186229,
+     "dur": 0.408166
+    },
+    {
+     "word": "Local",
+     "start": 32.002541,
+     "dur": 0.331625
+    },
+    {
+     "word": "tradition",
+     "start": 32.346937,
+     "dur": 0.49745800000000007
+    },
+    {
+     "word": "dates",
+     "start": 32.8571449,
+     "dur": 0.382645
+    },
+    {
+     "word": "the",
+     "start": 33.252541,
+     "dur": 0.089291
+    },
+    {
+     "word": "reconstruction",
+     "start": 33.354583,
+     "dur": 0.829083
+    },
+    {
+     "word": "of",
+     "start": 34.196437,
+     "dur": 0.140312
+    },
+    {
+     "word": "the",
+     "start": 34.349479,
+     "dur": 0.07652
+    },
+    {
+     "word": "statue's",
+     "start": 34.4387699,
+     "dur": 0.573979
+    },
+    {
+     "word": "upper",
+     "start": 35.0255,
+     "dur": 0.255104
+    },
+    {
+     "word": "tiers",
+     "start": 35.293375,
+     "dur": 0.47193699999999994
+    },
+    {
+     "word": "to",
+     "start": 35.778062,
+     "dur": 0.114791
+    },
+    {
+     "word": "around",
+     "start": 35.905604,
+     "dur": 0.43366599999999994
+    },
+    {
+     "word": "199",
+     "start": 36.352041,
+     "dur": 0.8163329999999999
+    },
+    {
+     "word": "AD.",
+     "start": 37.181125,
+     "dur": 0.433666
+    },
+    {
+     "word": "Still,",
+     "start": 38.022958,
+     "dur": 0.49745800000000007
+    },
+    {
+     "word": "the",
+     "start": 38.686229,
+     "dur": 0.089291
+    },
+    {
+     "word": "colossi",
+     "start": 38.7882699,
+     "dur": 0.510208
+    },
+    {
+     "word": "have",
+     "start": 39.311229,
+     "dur": 0.127541
+    },
+    {
+     "word": "stood",
+     "start": 39.4515199,
+     "dur": 0.306125
+    },
+    {
+     "word": "since",
+     "start": 39.770416,
+     "dur": 0.6448266666666667
+    },
+    {
+     "word": "1350",
+     "start": 40.415242666666664,
+     "dur": 0.5158613333333333
+    },
+    {
+     "word": "BC,",
+     "start": 40.943875,
+     "dur": 0.510208
+    },
+    {
+     "word": "originally",
+     "start": 42.142854,
+     "dur": 0.459187
+    },
+    {
+     "word": "carved",
+     "start": 42.614791,
+     "dur": 0.420916
+    },
+    {
+     "word": "to",
+     "start": 43.048458,
+     "dur": 0.102041
+    },
+    {
+     "word": "guard",
+     "start": 43.1632699,
+     "dur": 0.318875
+    },
+    {
+     "word": "the",
+     "start": 43.4948949,
+     "dur": 0.05102
+    },
+    {
+     "word": "memorial",
+     "start": 43.558666,
+     "dur": 0.497458
+    },
+    {
+     "word": "temple",
+     "start": 44.068875,
+     "dur": 0.43366599999999994
+    },
+    {
+     "word": "where",
+     "start": 44.515312,
+     "dur": 0.267854
+    },
+    {
+     "word": "Amenhotep",
+     "start": 44.795916,
+     "dur": 0.68877
+    },
+    {
+     "word": "the",
+     "start": 45.497458,
+     "dur": 0.089291
+    },
+    {
+     "word": "Third",
+     "start": 45.599479,
+     "dur": 0.42091599999999996
+    },
+    {
+     "word": "was",
+     "start": 46.033166,
+     "dur": 0.153062
+    },
+    {
+     "word": "worshipped.",
+     "start": 46.198979,
+     "dur": 0.548479
+    }
+   ]
+  },
+  "gol_gumbaz": {
+   "stat_cards": [
+    {
+     "value": "Est. 144 ft (44 m)",
+     "label": "External dome diameter"
+    }
+   ],
+   "scale_fact": null,
+   "timeline": null,
+   "thumbnail": {
+    "eyebrow": "ANCIENT ACOUSTICS",
+    "line1": "THE 144-FOOT",
+    "line2": "WHISPERING DOME",
+    "tagline": "BUILT WITHOUT RINGS"
+   },
+   "narration_script": "Can a quiet whisper travel across an estimated 144-foot (44 m) masonry dome? Inside the dark gray basalt mausoleum of Gol Gumbaz in Bijapur, sound waves are guided continuously along the curved boundary of a prominent whispering gallery. This massive dome combines bricks of varying dimensions with lime mortar, gaining structural integrity without metal tension rings on pendentive systems attributed to Central Asian traditions. Construction began in the early 17th century and ceased in 1656 upon Mohammad Adil Shah's death, leaving several decorative elements unfinished. Yet the unfinished monument still prompts modern builders to wonder how ancient masonry mastered acoustics so completely.",
+   "emphasis_words": [
+    "Gol Gumbaz",
+    "Bijapur",
+    "1656"
+   ],
+   "place": {
+    "lat": 16.82442,
+    "lon": 75.71537,
+    "qid": "Q3636023",
+    "country": "India",
+    "label": "Bijapur",
+    "approximate": false
+   },
+   "palette": {
+    "accent": [
+     120,
+     190,
+     255
+    ],
+    "accent_hex": "#78BEFF",
+    "grade_bias": 0.006
+   },
+   "hero": "hero_gol_gumbaz.jpg",
+   "words": [
+    {
+     "word": "Can",
+     "start": 0.089291,
+     "dur": 0.140312
+    },
+    {
+     "word": "a",
+     "start": 0.242354,
+     "dur": 0.06377
+    },
+    {
+     "word": "quiet",
+     "start": 0.318875,
+     "dur": 0.484687
+    },
+    {
+     "word": "whisper",
+     "start": 0.816333,
+     "dur": 0.344395
+    },
+    {
+     "word": "travel",
+     "start": 1.173479,
+     "dur": 0.535708
+    },
+    {
+     "word": "across",
+     "start": 1.734687,
+     "dur": 0.497458
+    },
+    {
+     "word": "an",
+     "start": 2.244895,
+     "dur": 0.140312
+    },
+    {
+     "word": "estimated",
+     "start": 2.397958,
+     "dur": 0.63775
+    },
+    {
+     "word": "144-foot",
+     "start": 3.048479,
+     "dur": 1.0816330666666665
+    },
+    {
+     "word": "masonry",
+     "start": 4.130112066666666,
+     "dur": 0.9464289333333332
+    },
+    {
+     "word": "dome?",
+     "start": 5.089291,
+     "dur": 0.408166
+    },
+    {
+     "word": "Inside",
+     "start": 5.905604,
+     "dur": 0.471937
+    },
+    {
+     "word": "the",
+     "start": 6.390312,
+     "dur": 0.102041
+    },
+    {
+     "word": "dark",
+     "start": 6.505104,
+     "dur": 0.293375
+    },
+    {
+     "word": "gray",
+     "start": 6.811229,
+     "dur": 0.293375
+    },
+    {
+     "word": "basalt",
+     "start": 7.117354,
+     "dur": 0.43366599999999994
+    },
+    {
+     "word": "mausoleum",
+     "start": 7.56377,
+     "dur": 0.6505
+    },
+    {
+     "word": "of",
+     "start": 8.227041,
+     "dur": 0.127541
+    },
+    {
+     "word": "Gol",
+     "start": 8.367354,
+     "dur": 0.43366599999999994
+    },
+    {
+     "word": "Gumbaz",
+     "start": 8.81377,
+     "dur": 0.535708
+    },
+    {
+     "word": "in",
+     "start": 9.36225,
+     "dur": 0.153062
+    },
+    {
+     "word": "Bijapur,",
+     "start": 9.528062,
+     "dur": 0.67602
+    },
+    {
+     "word": "sound",
+     "start": 10.943875,
+     "dur": 0.344395
+    },
+    {
+     "word": "waves",
+     "start": 11.30102,
+     "dur": 0.344395
+    },
+    {
+     "word": "are",
+     "start": 11.658166,
+     "dur": 0.140312
+    },
+    {
+     "word": "guided",
+     "start": 11.811229,
+     "dur": 0.3698949999999999
+    },
+    {
+     "word": "continuously",
+     "start": 12.193875,
+     "dur": 0.8928540000000001
+    },
+    {
+     "word": "along",
+     "start": 13.11225,
+     "dur": 0.344395
+    },
+    {
+     "word": "the",
+     "start": 13.469395,
+     "dur": 0.089291
+    },
+    {
+     "word": "curved",
+     "start": 13.571437,
+     "dur": 0.38264499999999996
+    },
+    {
+     "word": "boundary",
+     "start": 13.966833,
+     "dur": 0.535708
+    },
+    {
+     "word": "of",
+     "start": 14.579083,
+     "dur": 0.102041
+    },
+    {
+     "word": "a",
+     "start": 14.693875,
+     "dur": 0.07652
+    },
+    {
+     "word": "prominent",
+     "start": 14.783166,
+     "dur": 0.522958
+    },
+    {
+     "word": "whispering",
+     "start": 15.318875,
+     "dur": 0.47193699999999994
+    },
+    {
+     "word": "gallery.",
+     "start": 15.803562,
+     "dur": 0.522958
+    },
+    {
+     "word": "This",
+     "start": 16.734687,
+     "dur": 0.165812
+    },
+    {
+     "word": "massive",
+     "start": 16.91327,
+     "dur": 0.484687
+    },
+    {
+     "word": "dome",
+     "start": 17.410708,
+     "dur": 0.242354
+    },
+    {
+     "word": "combines",
+     "start": 17.665812,
+     "dur": 0.561229
+    },
+    {
+     "word": "bricks",
+     "start": 18.239791,
+     "dur": 0.38264499999999996
+    },
+    {
+     "word": "of",
+     "start": 18.635208,
+     "dur": 0.114791
+    },
+    {
+     "word": "varying",
+     "start": 18.76275,
+     "dur": 0.369895
+    },
+    {
+     "word": "dimensions",
+     "start": 19.145416,
+     "dur": 0.548479
+    },
+    {
+     "word": "with",
+     "start": 19.706625,
+     "dur": 0.153062
+    },
+    {
+     "word": "lime",
+     "start": 19.872458,
+     "dur": 0.280604
+    },
+    {
+     "word": "mortar,",
+     "start": 20.165812,
+     "dur": 0.408166
+    },
+    {
+     "word": "gaining",
+     "start": 21.211729,
+     "dur": 0.344395
+    },
+    {
+     "word": "structural",
+     "start": 21.568875,
+     "dur": 0.47193699999999994
+    },
+    {
+     "word": "integrity",
+     "start": 22.053562,
+     "dur": 0.535708
+    },
+    {
+     "word": "without",
+     "start": 22.602041,
+     "dur": 0.357145
+    },
+    {
+     "word": "metal",
+     "start": 22.971937,
+     "dur": 0.255104
+    },
+    {
+     "word": "tension",
+     "start": 23.239791,
+     "dur": 0.408166
+    },
+    {
+     "word": "rings",
+     "start": 23.660708,
+     "dur": 0.331625
+    },
+    {
+     "word": "on",
+     "start": 24.005104,
+     "dur": 0.165812
+    },
+    {
+     "word": "pendentive",
+     "start": 24.183666,
+     "dur": 0.459187
+    },
+    {
+     "word": "systems",
+     "start": 24.655604,
+     "dur": 0.484687
+    },
+    {
+     "word": "attributed",
+     "start": 25.165812,
+     "dur": 0.535708
+    },
+    {
+     "word": "to",
+     "start": 25.714291,
+     "dur": 0.089291
+    },
+    {
+     "word": "Central",
+     "start": 25.816333,
+     "dur": 0.420916
+    },
+    {
+     "word": "Asian",
+     "start": 26.25,
+     "dur": 0.267854
+    },
+    {
+     "word": "traditions.",
+     "start": 26.530604,
+     "dur": 0.70152
+    },
+    {
+     "word": "Construction",
+     "start": 27.640312,
+     "dur": 0.586729
+    },
+    {
+     "word": "began",
+     "start": 28.239791,
+     "dur": 0.382645
+    },
+    {
+     "word": "in",
+     "start": 28.635208,
+     "dur": 0.127541
+    },
+    {
+     "word": "the",
+     "start": 28.7755,
+     "dur": 0.06377
+    },
+    {
+     "word": "early",
+     "start": 28.852041,
+     "dur": 0.331625
+    },
+    {
+     "word": "17th",
+     "start": 29.196437,
+     "dur": 0.497458
+    },
+    {
+     "word": "century",
+     "start": 29.706625,
+     "dur": 0.535708
+    },
+    {
+     "word": "and",
+     "start": 30.318875,
+     "dur": 0.127541
+    },
+    {
+     "word": "ceased",
+     "start": 30.459187,
+     "dur": 0.408166
+    },
+    {
+     "word": "in",
+     "start": 30.880104,
+     "dur": 0.39115933333333336
+    },
+    {
+     "word": "1656",
+     "start": 31.271263333333334,
+     "dur": 0.7823186666666667
+    },
+    {
+     "word": "upon",
+     "start": 32.066333,
+     "dur": 0.331625
+    },
+    {
+     "word": "Mohammad",
+     "start": 32.410708,
+     "dur": 0.420916
+    },
+    {
+     "word": "Adil",
+     "start": 32.8443949,
+     "dur": 0.331625
+    },
+    {
+     "word": "Shah's",
+     "start": 33.1887699,
+     "dur": 0.3698949999999999
+    },
+    {
+     "word": "death,",
+     "start": 33.571437,
+     "dur": 0.433666
+    },
+    {
+     "word": "leaving",
+     "start": 34.604583,
+     "dur": 0.344395
+    },
+    {
+     "word": "several",
+     "start": 34.961729,
+     "dur": 0.420916
+    },
+    {
+     "word": "decorative",
+     "start": 35.395416,
+     "dur": 0.433666
+    },
+    {
+     "word": "elements",
+     "start": 35.841833,
+     "dur": 0.459187
+    },
+    {
+     "word": "unfinished.",
+     "start": 36.3265199,
+     "dur": 0.714291
+    },
+    {
+     "word": "Yet",
+     "start": 37.461729,
+     "dur": 0.24235400000000004
+    },
+    {
+     "word": "the",
+     "start": 37.716833,
+     "dur": 0.102041
+    },
+    {
+     "word": "unfinished",
+     "start": 37.831625,
+     "dur": 0.63775
+    },
+    {
+     "word": "monument",
+     "start": 38.4821449,
+     "dur": 0.522958
+    },
+    {
+     "word": "still",
+     "start": 39.017854,
+     "dur": 0.331625
+    },
+    {
+     "word": "prompts",
+     "start": 39.36225,
+     "dur": 0.484687
+    },
+    {
+     "word": "modern",
+     "start": 39.859687,
+     "dur": 0.395416
+    },
+    {
+     "word": "builders",
+     "start": 40.267854,
+     "dur": 0.497458
+    },
+    {
+     "word": "to",
+     "start": 40.778062,
+     "dur": 0.127541
+    },
+    {
+     "word": "wonder",
+     "start": 40.918375,
+     "dur": 0.395416
+    },
+    {
+     "word": "how",
+     "start": 41.3265199,
+     "dur": 0.267854
+    },
+    {
+     "word": "ancient",
+     "start": 41.6071449,
+     "dur": 0.420916
+    },
+    {
+     "word": "masonry",
+     "start": 42.040812,
+     "dur": 0.446437
+    },
+    {
+     "word": "mastered",
+     "start": 42.5,
+     "dur": 0.446437
+    },
+    {
+     "word": "acoustics",
+     "start": 42.959187,
+     "dur": 0.548479
+    },
+    {
+     "word": "so",
+     "start": 43.520416,
+     "dur": 0.191333
+    },
+    {
+     "word": "completely.",
+     "start": 43.724479,
+     "dur": 0.66327
+    }
+   ]
+  },
+  "wieliczka": {
+   "stat_cards": null,
+   "scale_fact": {
+    "value": 327.0,
+    "unit": "m",
+    "dimension": "depth",
+    "subject": "Wieliczka Salt Mine",
+    "approximate": true
+   },
+   "timeline": null,
+   "thumbnail": {
+    "eyebrow": "SUBTERRANEAN MARVEL",
+    "line1": "CARVED FROM",
+    "line2": "SOLID SALT",
+    "tagline": "327 METERS DOWN"
+   },
+   "narration_script": "Near Kraków in southern Poland, the mine's rock salt naturally displays various shades of grey, resembling unpolished granite rather than white crystalline salt. Engineering surveys and heritage records place the total extent of underground galleries between 287 and 300 kilometers. By one estimate, underground miners carved four chapels and dozens of statues directly out of the native rock salt. Wieliczka was designated as one of the original UNESCO World Heritage Sites in 1978. Artificial ventilation introduced in the late nineteenth century brought humidity into the mine, threatening severe damage to the carved salt sculptures. Today, the subterranean chapels feature chandeliers carved out of natural rock salt.",
+   "emphasis_words": [
+    "Kraków",
+    "rock salt",
+    "Wieliczka"
+   ],
+   "place": {
+    "lat": 49.989444444444,
+    "lon": 20.066111111111,
+    "qid": "Q472621",
+    "country": "Poland",
+    "label": "Wieliczka",
+    "approximate": false
+   },
+   "palette": {
+    "accent": [
+     89,
+     147,
+     204
+    ],
+    "accent_hex": "#5993CC",
+    "grade_bias": 0.041
+   },
+   "hero": "hero_wieliczka.jpg",
+   "words": [
+    {
+     "word": "Near",
+     "start": 0.07652,
+     "dur": 0.242354
+    },
+    {
+     "word": "Kraków",
+     "start": 0.331625,
+     "dur": 0.548479
+    },
+    {
+     "word": "in",
+     "start": 0.892854,
+     "dur": 0.178562
+    },
+    {
+     "word": "southern",
+     "start": 1.0841869,
+     "dur": 0.344395
+    },
+    {
+     "word": "Poland,",
+     "start": 1.441333,
+     "dur": 0.43366599999999994
+    },
+    {
+     "word": "the",
+     "start": 2.372458,
+     "dur": 0.07652
+    },
+    {
+     "word": "mine's",
+     "start": 2.461729,
+     "dur": 0.3698949999999999
+    },
+    {
+     "word": "rock",
+     "start": 2.844395,
+     "dur": 0.267854
+    },
+    {
+     "word": "salt",
+     "start": 3.125,
+     "dur": 0.357145
+    },
+    {
+     "word": "naturally",
+     "start": 3.494895,
+     "dur": 0.484687
+    },
+    {
+     "word": "displays",
+     "start": 3.992354,
+     "dur": 0.573979
+    },
+    {
+     "word": "various",
+     "start": 4.579083,
+     "dur": 0.446437
+    },
+    {
+     "word": "shades",
+     "start": 5.03827,
+     "dur": 0.344395
+    },
+    {
+     "word": "of",
+     "start": 5.395416,
+     "dur": 0.07652
+    },
+    {
+     "word": "grey,",
+     "start": 5.484687,
+     "dur": 0.318875
+    },
+    {
+     "word": "resembling",
+     "start": 6.492354,
+     "dur": 0.548479
+    },
+    {
+     "word": "unpolished",
+     "start": 7.053562,
+     "dur": 0.5995
+    },
+    {
+     "word": "granite",
+     "start": 7.665812,
+     "dur": 0.408166
+    },
+    {
+     "word": "rather",
+     "start": 8.278062,
+     "dur": 0.255104
+    },
+    {
+     "word": "than",
+     "start": 8.545916,
+     "dur": 0.165812
+    },
+    {
+     "word": "white",
+     "start": 8.7245,
+     "dur": 0.318875
+    },
+    {
+     "word": "crystalline",
+     "start": 9.056125,
+     "dur": 0.522958
+    },
+    {
+     "word": "salt.",
+     "start": 9.591833,
+     "dur": 0.420916
+    },
+    {
+     "word": "Engineering",
+     "start": 10.420916,
+     "dur": 0.573979
+    },
+    {
+     "word": "surveys",
+     "start": 11.007645,
+     "dur": 0.5995
+    },
+    {
+     "word": "and",
+     "start": 11.619895,
+     "dur": 0.11479100000000002
+    },
+    {
+     "word": "heritage",
+     "start": 11.747458,
+     "dur": 0.459187
+    },
+    {
+     "word": "records",
+     "start": 12.219395,
+     "dur": 0.522958
+    },
+    {
+     "word": "place",
+     "start": 12.755104,
+     "dur": 0.395416
+    },
+    {
+     "word": "the",
+     "start": 13.16327,
+     "dur": 0.102041
+    },
+    {
+     "word": "total",
+     "start": 13.278062,
+     "dur": 0.369895
+    },
+    {
+     "word": "extent",
+     "start": 13.660708,
+     "dur": 0.497458
+    },
+    {
+     "word": "of",
+     "start": 14.170916,
+     "dur": 0.178562
+    },
+    {
+     "word": "underground",
+     "start": 14.375,
+     "dur": 0.510208
+    },
+    {
+     "word": "galleries",
+     "start": 14.897958,
+     "dur": 0.535708
+    },
+    {
+     "word": "between",
+     "start": 15.446437,
+     "dur": 0.369895
+    },
+    {
+     "word": "287",
+     "start": 15.829083,
+     "dur": 1.122458
+    },
+    {
+     "word": "and",
+     "start": 16.964291,
+     "dur": 0.140312
+    },
+    {
+     "word": "300",
+     "start": 17.117354,
+     "dur": 0.49743699999999996
+    },
+    {
+     "word": "kilometers.",
+     "start": 17.627541,
+     "dur": 0.727041
+    },
+    {
+     "word": "By",
+     "start": 18.76275,
+     "dur": 0.153062
+    },
+    {
+     "word": "one",
+     "start": 18.928562,
+     "dur": 0.306125
+    },
+    {
+     "word": "estimate,",
+     "start": 19.247458,
+     "dur": 0.625
+    },
+    {
+     "word": "underground",
+     "start": 20.255104,
+     "dur": 0.522958
+    },
+    {
+     "word": "miners",
+     "start": 20.790812,
+     "dur": 0.459187
+    },
+    {
+     "word": "carved",
+     "start": 21.26275,
+     "dur": 0.395416
+    },
+    {
+     "word": "four",
+     "start": 21.670916,
+     "dur": 0.229583
+    },
+    {
+     "word": "chapels",
+     "start": 21.91327,
+     "dur": 0.561229
+    },
+    {
+     "word": "and",
+     "start": 22.48725,
+     "dur": 0.153062
+    },
+    {
+     "word": "dozens",
+     "start": 22.653062,
+     "dur": 0.395416
+    },
+    {
+     "word": "of",
+     "start": 23.061229,
+     "dur": 0.07652
+    },
+    {
+     "word": "statues",
+     "start": 23.1505,
+     "dur": 0.6122500000000001
+    },
+    {
+     "word": "directly",
+     "start": 23.7755,
+     "dur": 0.535708
+    },
+    {
+     "word": "out",
+     "start": 24.323979,
+     "dur": 0.204083
+    },
+    {
+     "word": "of",
+     "start": 24.540812,
+     "dur": 0.089291
+    },
+    {
+     "word": "the",
+     "start": 24.642854,
+     "dur": 0.07652
+    },
+    {
+     "word": "native",
+     "start": 24.732145,
+     "dur": 0.344395
+    },
+    {
+     "word": "rock",
+     "start": 25.089291,
+     "dur": 0.229583
+    },
+    {
+     "word": "salt.",
+     "start": 25.331625,
+     "dur": 0.471937
+    },
+    {
+     "word": "Wieliczka",
+     "start": 26.224479,
+     "dur": 0.63775
+    },
+    {
+     "word": "was",
+     "start": 26.875,
+     "dur": 0.204083
+    },
+    {
+     "word": "designated",
+     "start": 27.091833,
+     "dur": 0.790812
+    },
+    {
+     "word": "as",
+     "start": 27.908166,
+     "dur": 0.204083
+    },
+    {
+     "word": "one",
+     "start": 28.125,
+     "dur": 0.165812
+    },
+    {
+     "word": "of",
+     "start": 28.303562,
+     "dur": 0.089291
+    },
+    {
+     "word": "the",
+     "start": 28.405604,
+     "dur": 0.102041
+    },
+    {
+     "word": "original",
+     "start": 28.520416,
+     "dur": 0.548479
+    },
+    {
+     "word": "UNESCO",
+     "start": 29.081625,
+     "dur": 0.548479
+    },
+    {
+     "word": "World",
+     "start": 29.642854,
+     "dur": 0.306125
+    },
+    {
+     "word": "Heritage",
+     "start": 29.961729,
+     "dur": 0.446437
+    },
+    {
+     "word": "Sites",
+     "start": 30.420916,
+     "dur": 0.4081659999999999
+    },
+    {
+     "word": "in",
+     "start": 30.854583,
+     "dur": 0.4166666666666667
+    },
+    {
+     "word": "1978.",
+     "start": 31.27124966666667,
+     "dur": 0.8333333333333334
+    },
+    {
+     "word": "Artificial",
+     "start": 32.5255,
+     "dur": 0.49745800000000007
+    },
+    {
+     "word": "ventilation",
+     "start": 33.035708,
+     "dur": 0.5995
+    },
+    {
+     "word": "introduced",
+     "start": 33.647958,
+     "dur": 0.6505
+    },
+    {
+     "word": "in",
+     "start": 34.311229,
+     "dur": 0.114791
+    },
+    {
+     "word": "the",
+     "start": 34.4387699,
+     "dur": 0.102041
+    },
+    {
+     "word": "late",
+     "start": 34.553562,
+     "dur": 0.242354
+    },
+    {
+     "word": "nineteenth",
+     "start": 34.808666,
+     "dur": 0.446437
+    },
+    {
+     "word": "century",
+     "start": 35.267854,
+     "dur": 0.497458
+    },
+    {
+     "word": "brought",
+     "start": 35.778062,
+     "dur": 0.242354
+    },
+    {
+     "word": "humidity",
+     "start": 36.033166,
+     "dur": 0.5995
+    },
+    {
+     "word": "into",
+     "start": 36.645416,
+     "dur": 0.216833
+    },
+    {
+     "word": "the",
+     "start": 36.875,
+     "dur": 0.089291
+    },
+    {
+     "word": "mine,",
+     "start": 36.977041,
+     "dur": 0.471937
+    },
+    {
+     "word": "threatening",
+     "start": 38.022958,
+     "dur": 0.48468700000000003
+    },
+    {
+     "word": "severe",
+     "start": 38.520416,
+     "dur": 0.43366599999999994
+    },
+    {
+     "word": "damage",
+     "start": 38.966833,
+     "dur": 0.535708
+    },
+    {
+     "word": "to",
+     "start": 39.515312,
+     "dur": 0.089291
+    },
+    {
+     "word": "the",
+     "start": 39.617354,
+     "dur": 0.089291
+    },
+    {
+     "word": "carved",
+     "start": 39.7193949,
+     "dur": 0.357145
+    },
+    {
+     "word": "salt",
+     "start": 40.089291,
+     "dur": 0.293375
+    },
+    {
+     "word": "sculptures.",
+     "start": 40.395416,
+     "dur": 0.67602
+    },
+    {
+     "word": "Today,",
+     "start": 41.479583,
+     "dur": 0.522958
+    },
+    {
+     "word": "the",
+     "start": 42.270416,
+     "dur": 0.102041
+    },
+    {
+     "word": "subterranean",
+     "start": 42.385208,
+     "dur": 0.67602
+    },
+    {
+     "word": "chapels",
+     "start": 43.073979,
+     "dur": 0.459187
+    },
+    {
+     "word": "feature",
+     "start": 43.545916,
+     "dur": 0.382645
+    },
+    {
+     "word": "chandeliers",
+     "start": 43.941333,
+     "dur": 0.790812
+    },
+    {
+     "word": "carved",
+     "start": 44.7448949,
+     "dur": 0.471937
+    },
+    {
+     "word": "out",
+     "start": 45.242354,
+     "dur": 0.24235400000000004
+    },
+    {
+     "word": "of",
+     "start": 45.497458,
+     "dur": 0.114791
+    },
+    {
+     "word": "natural",
+     "start": 45.625,
+     "dur": 0.471937
+    },
+    {
+     "word": "rock",
+     "start": 46.109687,
+     "dur": 0.242354
+    },
+    {
+     "word": "salt.",
+     "start": 46.364791,
+     "dur": 0.459187
+    }
+   ]
+  }
+ }
+}

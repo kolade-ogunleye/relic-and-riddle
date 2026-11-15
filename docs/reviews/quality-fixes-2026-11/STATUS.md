@@ -166,7 +166,8 @@ QF-45 after it.
 |---|---|---|---|---|---|---|
 | QF-27 | pyproject + ruff + pyright + pre-commit + CI matrix | todo | | new lint findings blocked; Windows + py3.13 CI | QF-27/ | |
 | QF-28 | pydantic-settings config | todo | | env vars typed and validated | QF-28/ | |
-| QF-29 | Fold dated tests; golden images | todo | | dated files; getsource asserts; golden diffs per graphic | QF-29/ | |
+| QF-29 | Fold dated tests (split 2026-11-15: the golden images are QF-29a; folding the dated tests is left for later) | todo | | dated files; getsource asserts | QF-29/ | |
+| QF-29a | Golden images for frozen designs: a golden per frozen design, pixel-exact on the same toolchain, "toolchain changed: re-validate" otherwise, diff boards (no design frozen yet: proved on two proof fixtures) | done | this commit | proof fixtures (YouTube thumbnail still; end card through the production encoder, 2 frame samples): planted changes caught 0 -> 4 of 4 (1-px text shift and six-level colour change, still and video, exact); toolchain changes caught 0 -> 2 of 2 (raqm version with identical pixels; x264 on another machine's thread count); unchanged re-renders passing 4 of 4; dHash misses 3 of 4 plants; a design change under a new toolchain accepted as a variant 1 -> 0 (review probes refused: a src/brand.py edit, dirty or committed, and a registry-only designs.py edit; only golden data, a golden's manifest and images, is exempt; identical pixels still accepted from any commit); NumPy SIMD dispatch information only (X86_V3 off: both fixtures pixel-identical); storage per golden half-size lossless WebP 80 KB still / 178 KB video (full PNG 247 / 476 KB) | QF-29a/ | tests/test_qf29_golden_images.py |
 | QF-30 | import-linter, structlog, signals, tenacity, LFS | todo | | contracts; run_id logs; ffmpeg children terminated | QF-30/ | |
 
 ### Phase 5b - engineering floor (sweep)

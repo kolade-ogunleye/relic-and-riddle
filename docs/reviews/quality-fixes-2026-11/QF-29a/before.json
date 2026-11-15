@@ -1,0 +1,7 @@
+{
+ "golden_tests": 0,
+ "mechanism": false,
+ "planted_changes_caught": "0 of 4",
+ "toolchain_changes_caught": "0 of 2",
+ "unchanged_reruns_passing": "n/a (no goldens)"
+}

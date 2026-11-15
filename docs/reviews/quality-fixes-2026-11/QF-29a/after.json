@@ -1,0 +1,230 @@
+{
+ "mechanism": true,
+ "planted_changes_caught": "4 of 4",
+ "proof.end-card.gol-gumbaz.9x16": {
+  "numpy_simd_x86_v3_off": {
+   "dispatch": [
+    "X86_V2"
+   ],
+   "pixels_identical": true,
+   "same_fingerprint": true
+  },
+  "plant_colour": {
+   "dhash_differs": [
+    false,
+    false
+   ],
+   "stats": {
+    "f00007": {
+     "block_bias": 2.39,
+     "box": [
+      0,
+      208,
+      540,
+      960
+     ],
+     "changed_share": 0.269072,
+     "mean": 0.4313,
+     "over_level_share": 0.0,
+     "peak": 14,
+     "within_tolerance": true
+    },
+    "f00014": {
+     "block_bias": 5.89,
+     "box": [
+      0,
+      0,
+      540,
+      960
+     ],
+     "changed_share": 0.211167,
+     "mean": 0.401,
+     "over_level_share": 4.1e-05,
+     "peak": 43,
+     "within_tolerance": false
+    }
+   },
+   "status": "design-changed",
+   "under_new_toolchain": "the pixels differ BEYOND the tolerance (f00007: 26.9072% of pixels changed, peak 14; f00014: 21.1167% of pixels changed, peak 43): the design looks changed as well; re-validate the design before accepting anything."
+  },
+  "plant_shift": {
+   "dhash_differs": [
+    true,
+    true
+   ],
+   "stats": {
+    "f00007": {
+     "block_bias": 3.45,
+     "box": [
+      0,
+      208,
+      540,
+      960
+     ],
+     "changed_share": 0.270741,
+     "mean": 0.5156,
+     "over_level_share": 0.001753,
+     "peak": 65,
+     "within_tolerance": false
+    },
+    "f00014": {
+     "block_bias": 8.09,
+     "box": [
+      0,
+      176,
+      540,
+      960
+     ],
+     "changed_share": 0.181543,
+     "mean": 0.5296,
+     "over_level_share": 0.002404,
+     "peak": 139,
+     "within_tolerance": false
+    }
+   },
+   "status": "design-changed",
+   "under_new_toolchain": "the pixels differ BEYOND the tolerance (f00007: 27.0741% of pixels changed, peak 65; f00014: 18.1543% of pixels changed, peak 139): the design looks changed as well; re-validate the design before accepting anything."
+  },
+  "plant_threads": {
+   "stats": {
+    "f00007": {
+     "block_bias": 1.62,
+     "box": [
+      0,
+      0,
+      540,
+      960
+     ],
+     "changed_share": 0.361925,
+     "mean": 0.5814,
+     "over_level_share": 0.0,
+     "peak": 15,
+     "within_tolerance": true
+    },
+    "f00014": {
+     "block_bias": 2.18,
+     "box": [
+      0,
+      0,
+      540,
+      960
+     ],
+     "changed_share": 0.237531,
+     "mean": 0.4314,
+     "over_level_share": 0.0,
+     "peak": 24,
+     "within_tolerance": true
+    }
+   },
+   "status": "toolchain-changed",
+   "x264_threads": 6
+  },
+  "storage_choices_bytes": {
+   "dhash_plus_8_crops_png": 27667,
+   "full_png": 476375,
+   "full_webp_lossless": 313562,
+   "half_png": 247895,
+   "half_webp_lossless": 177524
+  },
+  "stored_bytes": 180340,
+  "toolchain": "f7a818b9880e50c0",
+  "unchanged_reruns": [
+   {
+    "status": "pass"
+   },
+   {
+    "status": "pass"
+   }
+  ],
+  "x264_threads": 48
+ },
+ "proof.youtube-thumbnail.gol-gumbaz.16x9": {
+  "numpy_simd_x86_v3_off": {
+   "dispatch": [
+    "X86_V2"
+   ],
+   "pixels_identical": true,
+   "same_fingerprint": true
+  },
+  "plant_colour": {
+   "dhash_differs": [
+    false
+   ],
+   "stats": {
+    "thumbnail": {
+     "block_bias": 6.0,
+     "box": [
+      48,
+      35,
+      373,
+      325
+     ],
+     "changed_share": 0.042365,
+     "mean": 0.2385,
+     "over_level_share": 0.0,
+     "peak": 6,
+     "within_tolerance": false
+    }
+   },
+   "status": "design-changed",
+   "under_new_toolchain": "the pixels differ BEYOND the tolerance (thumbnail: 4.2365% of pixels changed, peak 6): the design looks changed as well; re-validate the design before accepting anything."
+  },
+  "plant_shift": {
+   "dhash_differs": [
+    false
+   ],
+   "stats": {
+    "thumbnail": {
+     "block_bias": 7.1,
+     "box": [
+      48,
+      0,
+      673,
+      540
+     ],
+     "changed_share": 0.128515,
+     "mean": 1.0755,
+     "over_level_share": 0.011389,
+     "peak": 114,
+     "within_tolerance": false
+    }
+   },
+   "status": "design-changed",
+   "under_new_toolchain": "the pixels differ BEYOND the tolerance (thumbnail: 12.8515% of pixels changed, peak 114): the design looks changed as well; re-validate the design before accepting anything."
+  },
+  "storage_choices_bytes": {
+   "dhash_plus_8_crops_png": 13637,
+   "full_png": 247019,
+   "full_webp_lossless": 172724,
+   "half_png": 117486,
+   "half_webp_lossless": 80390
+  },
+  "stored_bytes": 82093,
+  "toolchain": "4a0918c143b7f42c",
+  "toolchain_raqm_change": {
+   "message": "proof.youtube-thumbnail.gol-gumbaz.16x9: toolchain changed: re-validate. This render's toolchain 4a0918c143b7f42c is not one the golden accepted (44ed3bb0e762f0e3); against 44ed3bb0e762f0e3: pillow_libs.raqm: '0.10.1' -> '0.11.0'. the pixels are identical to accepted variant 44ed3bb0e762f0e3: accept this toolchain with `scripts/goldens.py accept-toolchain proof.youtube-thumbnail.gol-gumbaz.16x9`.",
+   "status": "toolchain-changed"
+  },
+  "unchanged_reruns": [
+   {
+    "status": "pass"
+   },
+   {
+    "status": "pass"
+   }
+  ]
+ },
+ "reference": {
+  "format": "webp",
+  "scale": 2
+ },
+ "tolerance": {
+  "block": 16,
+  "block_bias": 3.0,
+  "level": 24,
+  "peak": 96,
+  "share_max": 0.0005
+ },
+ "toolchain_changes_caught": "2 of 2",
+ "unchanged_reruns_passing": "4 of 4"
+}

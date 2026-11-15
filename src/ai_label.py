@@ -26,6 +26,7 @@ Facebook photo posts and Stories have no AI-label field, so a Facebook photo pos
 from __future__ import annotations
 
 import json
+import os
 from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
@@ -101,6 +102,84 @@ def trace(path: Any, credits_needed: bool = True, _seen: frozenset = frozenset()
     if credits_needed and path.suffix.lower() in IMAGE_SUFFIXES and not _credited(path):
         return "unknown", f"a picture with no credit or lineage record ({name})"
     return "real", ""
+
+
+def is_ai_picture(path: Any) -> bool:
+    """Whether a still is AI-made by its name or its records (trace's "ai"): an image_gen illustration (gap_gen_,
+    gen_), a copy whose lineage reaches one, an AI motion clip or anything a record calls AI-generated. Such a still
+    is never a Story frame, a carousel slide or a strong shot (QF-65c). A still that cannot be traced is not one
+    here (the label's own fail-closed rule covers it); a trace that raises, or a lineage record on its chain that
+    cannot be read (a corrupt copy record: review 1), counts as AI (fails closed)."""
+    try:
+        verdict, why = trace(path, credits_needed=False)
+    except Exception:  # noqa: BLE001 - an unreadable record never lets a picture through as real
+        return True
+    return verdict == "ai" or (verdict == "unknown" and why.startswith("the record of ")
+                               and why.endswith(" cannot be read"))
+
+
+def real_stills(paths: Iterable[Any]) -> tuple[list[Any], list[Any]]:
+    """(the stills that are not AI-made, the AI-made ones left out), each in the order given (is_ai_picture)."""
+    kept: list[Any] = []
+    left: list[Any] = []
+    for p in paths or []:
+        (left if is_ai_picture(p) else kept).append(p)
+    return kept, left
+
+
+def ai_source(path: Any, _seen: frozenset = frozenset()) -> Path | None:
+    """The AI-made picture `path` is, or was made from through its lineage records (where trace's "ai" stops: an
+    image_gen illustration, an AI motion clip, a record calling itself AI-generated), or None."""
+    from .lineage import sidecar
+    try:
+        path = Path(str(path))
+        if path.stem.startswith(ILLUSTRATION_PREFIXES):
+            return path
+        if path in _seen or not path.is_file():
+            return None
+        rec = json.loads(sidecar(path).read_text(encoding="utf-8"))
+    except (TypeError, OSError, ValueError):
+        return None
+    if not isinstance(rec, dict):
+        return None
+    settings = rec.get("settings") if isinstance(rec.get("settings"), dict) else {}
+    inputs = settings.get("inputs") if isinstance(settings.get("inputs"), dict) else {}
+    if (rec.get("operation") == "ai_motion" or settings.get("ai_generated") is True
+            or inputs.get("origin") == "ai_illustration"):
+        return path
+    for source in rec.get("sources") if isinstance(rec.get("sources"), list) else []:
+        src = Path(str(source.get("path") or "")) if isinstance(source, dict) else None
+        if src is not None and str(src) and src.suffix.lower() in MEDIA_SUFFIXES:
+            found = ai_source(src, _seen | {path})
+            if found is not None:
+                return found
+    return None
+
+
+def distinct_ai_pictures(paths: Iterable[Any]) -> list[Path]:
+    """Each AI-made picture among `paths` once, in order: a copy (a prepared hero, an upscaled still) and the
+    illustration it was made from count as one, named by that illustration (ai_source); otherwise by its path."""
+    out: dict[str, Path] = {}
+    for p in paths or []:
+        try:
+            src = ai_source(p) or Path(str(p))
+        except Exception:  # noqa: BLE001 - a path that cannot be followed is counted as itself
+            src = Path(str(p))
+        out.setdefault(os.path.normcase(os.path.abspath(str(src))), src)
+    return list(out.values())
+
+
+def no_real_photo_reason(left_out: list[Any], what: str) -> str:
+    """The plain reason a Story or carousel is not made: every picture it could use is AI-made (QF-65c). Each
+    AI picture is counted and named once (distinct_ai_pictures: a hero that is also a scene still, or a copy of
+    one, is the same picture)."""
+    pictures = distinct_ai_pictures(left_out)
+    if not pictures:
+        return f"no photo to draw the {what} on"
+    names = ", ".join(p.name for p in pictures[:2]) + (f" and {len(pictures) - 2} more"
+                                                       if len(pictures) > 2 else "")
+    return (f"no real photo to draw the {what} on: {len(pictures)} AI-made picture(s) left out ({names}); "
+            "an AI picture is never a Story frame or a carousel slide")
 
 
 def _result(ai: list[str], unknown: list[str], setting: bool) -> dict[str, Any]:

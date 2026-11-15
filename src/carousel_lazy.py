@@ -113,9 +113,12 @@ def plan(run_dir: Path | str, stills: list[Path], payload: dict[str, Any]) -> di
     if not payload.get("carousel_slides"):
         (run_dir / PLAN).unlink(missing_ok=True)
         return None
-    photos = [Path(p) for p in stills if not is_video(Path(p))]
+    from .ai_label import real_stills
+    photos, left_out = real_stills([Path(p) for p in stills if not is_video(Path(p))])   # never an AI picture (QF-65c)
     record = {"version": 2, "stills": [{"path": str(p), "sha256": _sha256(p)} for p in photos if p.is_file()],
               "posters": _posters(run_dir), "fields_sha256": _fields(payload)}
+    if left_out:
+        record["ai_left_out"] = [str(p) for p in left_out]
     run_dir.mkdir(parents=True, exist_ok=True)
     (run_dir / PLAN).write_text(json.dumps(record, indent=1, ensure_ascii=False), encoding="utf-8", newline="\n")
     return record
@@ -131,13 +134,18 @@ def _read_plan(run_dir: Path) -> tuple[dict[str, Any], list[tuple[Path, str]]]:
     return record, entries
 
 
-def _no_deck(entries: list[tuple[Path, str]]) -> str | None:
+def _no_deck(entries: list[tuple[Path, str]], ai_left_out: list[Any] = ()) -> str | None:
     """Why the plan's photos cannot make a deck, or None: fewer stills than MIN_STILLS once the entries the renderer
-    drops (a video, an empty path) are left out. generate_carousel_sequence draws stills only."""
+    drops (a video, an empty path, an AI-made picture: QF-65c) are left out. generate_carousel_sequence draws real
+    stills only. `ai_left_out`: the AI pictures `plan` already left out of the plan (its "ai_left_out")."""
+    from .ai_label import no_real_photo_reason, real_stills
     from .typography import is_video
-    usable = [p for p, _ in entries if str(p) not in ("", ".") and not is_video(p)]
+    usable, ai = real_stills([p for p, _ in entries if str(p) not in ("", ".") and not is_video(p)])
     if len(usable) >= MIN_STILLS:
         return None
+    ai = [*ai_left_out, *ai]
+    if not usable and ai:
+        return "its " + no_real_photo_reason(ai, "carousel").replace("no real photo", "plan records no real photo", 1)
     if not usable:
         return "its plan records no photo of the topic" + (f" (its {len(entries)} entries are not stills)"
                                                            if entries else "")
@@ -152,16 +160,31 @@ def plan_problem(run_dir: Path | str) -> str | None:
     if not planned(run_dir):
         return f"its plan ({PLAN}) is missing, so its slides cannot be drawn"
     try:
-        _, entries = _read_plan(run_dir)
+        record, entries = _read_plan(run_dir)
     except CarouselHeld as e:
         return str(e)
-    return _no_deck(entries)
+    return _no_deck(entries, record.get("ai_left_out") or [])
+
+
+def no_real_photo(run_dir: Path | str) -> str | None:
+    """plan_problem's reason when the plan left out AI-made pictures (its "ai_left_out") and cannot make a deck
+    without them, else None (QF-65c): known when the run is made, so the review card says the carousel is held
+    and its "Also posted" list does not promise slides."""
+    run_dir = Path(run_dir)
+    if not planned(run_dir):
+        return None
+    try:
+        record, _ = _read_plan(run_dir)
+    except CarouselHeld:
+        return None
+    return plan_problem(run_dir) if record.get("ai_left_out") else None
 
 
 def _checked_stills(run_dir: Path, payload: dict[str, Any]) -> list[Path]:
     """The plan's photos, after checking that nothing it recorded changed; raises CarouselHeld otherwise."""
+    from .ai_label import is_ai_picture
     record, entries = _read_plan(run_dir)
-    no_deck = _no_deck(entries)
+    no_deck = _no_deck(entries, record.get("ai_left_out") or [])
     if no_deck:
         raise CarouselHeld(no_deck)
     for path, digest in entries:
@@ -176,7 +199,7 @@ def _checked_stills(run_dir: Path, payload: dict[str, Any]) -> list[Path]:
             raise CarouselHeld(f"its diagram poster {changed[0]} changed since the run was made")
     if "fields_sha256" in record and record["fields_sha256"] != _fields(payload):
         raise CarouselHeld("its carousel cards changed since the run was made")
-    return [path for path, _ in entries]
+    return [path for path, _ in entries if not is_ai_picture(path)]   # a plan made before QF-65c may list one
 
 
 def _code_digest(root: Path) -> dict[str, str]:

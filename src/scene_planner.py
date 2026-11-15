@@ -135,9 +135,11 @@ def _photo_entry(p: Path) -> Optional[Dict[str, Any]]:
 def strong_shot(p: Path) -> bool:
     """A still that may open the video or be animated: a Topic or Kept photo by its record, or a photo you supplied
     (no credits.json beside it or its sources). Never a context shot, a photo found for one line, or one never looked
-    at: Nazca on production (2026-10-28) opened on, and animated, a context photo of the highway through the desert."""
+    at: Nazca on production (2026-10-28) opened on, and animated, a context photo of the highway through the desert.
+    Never an AI-made picture either (an illustration has no credits.json and passed as one you supplied; QF-65c)."""
+    from .ai_label import is_ai_picture
     from .image_presentation import full_image
-    if is_video(Path(p)) or full_image(Path(p)):
+    if is_video(Path(p)) or is_illustration(Path(p)) or is_ai_picture(Path(p)) or full_image(Path(p)):
         return False
     from .beat_images import intrusion_noted
     if intrusion_noted(p):  # a wing or frame the screen saw and could not crop away (dev run, 2026-10-28)

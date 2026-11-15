@@ -531,19 +531,34 @@ class PhotoMatchFailed(RuntimeError):
     """The carousel's photos could not be matched to its slides (MultiFormatGenerator._match_photos, strict)."""
 
 
+class NoRealPhotos(RuntimeError):
+    """A Story or carousel has no real photo to be drawn on: every picture it could use is AI-made (QF-65c). It is
+    not made (held with this reason), never padded with an illustration."""
+
+
 class MultiFormatGenerator:
     def generate_story_sequence(self, hero_img_path: Path, script_payload: Dict[str, Any], output_dir: Path,
                                 scene_images: List[Path] = None) -> List[Path]:
         """Two Story frames, each on its own matched photo: hook and reveal (STORY_FRAMES; QF-80). The script's
         third slide, the poll's question, is not drawn: the native poll sticker can't be posted through the API.
         Text sits on the calmest band of the photo inside Story-safe zones (clear of the profile bar
-        at the top and the reply bar at the bottom), over a soft gradient rather than a box."""
+        at the top and the reply bar at the bottom), over a soft gradient rather than a box.
+        An AI-made picture (ai_label.is_ai_picture: an illustration, or a copy of one) is never a frame, the hero
+        fallback included; with no real photo left, NoRealPhotos is raised and no frame is drawn (QF-65c)."""
+        from .ai_label import is_ai_picture, no_real_photo_reason, real_stills
         out_dir = output_dir / "stories"
         out_dir.mkdir(parents=True, exist_ok=True)
-        stills = [p for p in (scene_images or []) if not is_video(p)] or [hero_img_path]
+        stills, left_out = real_stills([p for p in (scene_images or []) if not is_video(p)])
+        hero_real = bool(hero_img_path) and not is_video(hero_img_path) and not is_ai_picture(hero_img_path)
+        if hero_img_path and not hero_real and not is_video(hero_img_path):
+            left_out.append(hero_img_path)
+        stills = stills or ([hero_img_path] if hero_real else [])
+        if not stills:
+            raise NoRealPhotos(no_real_photo_reason(left_out, "Story frames"))
         slides_data = script_payload["story_slides"][:len(STORY_FRAMES)]
         cards = [{"heading": f"{s['line1']} {s['line2']}", "body": s["body"]} for s in slides_data]
-        photos = self._match_photos(cards, stills) if len(stills) > 1 else [hero_img_path] * len(cards)
+        photos = (self._match_photos(cards, stills) if len(stills) > 1
+                  else [hero_img_path if hero_real else stills[0]] * len(cards))
         names = list(STORY_FRAMES)
         for name in RETIRED_STORY_FRAMES:  # an earlier render's poll frame in this folder is not left beside them
             (out_dir / name).unlink(missing_ok=True)
@@ -966,7 +981,10 @@ class MultiFormatGenerator:
         Instagram and Facebook copies were matched separately, in parallel, and showed different photos for the
         same slide). The match is kept in carousel_photos.json beside the copies; the second copy to be drawn
         waits for the first and reuses it, and a later redraw of one copy reuses it while the cards and the
-        photo pool are the same. A run drawn before the record existed reuses the other copy's recorded photos."""
+        photo pool are the same. A run drawn before the record existed reuses the other copy's recorded photos.
+        A kept or recorded match showing an AI-made picture is never reused (QF-65c): the slides are matched again
+        from `stills`."""
+        from .ai_label import is_ai_picture
         output_dir = Path(output_dir)
         record = output_dir / CAROUSEL_PHOTOS
         key = {"cards": [f"{c.get('heading', '')}|{c.get('body', '')}" for c in cards],
@@ -977,10 +995,14 @@ class MultiFormatGenerator:
             except (OSError, ValueError):
                 kept = {}
             chosen = [Path(x) for x in kept.get("photos") or []]
-            if kept.get("key") == key and len(chosen) == len(cards) and all(x.is_file() for x in chosen):
+            if (kept.get("key") == key and len(chosen) == len(cards) and all(x.is_file() for x in chosen)
+                    and not any(is_ai_picture(x) for x in chosen)):
                 return chosen
-            chosen = _recorded_photos(output_dir, cards) or (self._match_photos(cards, stills, strict=True) if strict
-                                                             else self._match_photos(cards, stills))
+            recorded = _recorded_photos(output_dir, cards)
+            if any(is_ai_picture(x) for x in recorded):
+                recorded = []
+            chosen = recorded or (self._match_photos(cards, stills, strict=True) if strict
+                                  else self._match_photos(cards, stills))
             try:
                 output_dir.mkdir(parents=True, exist_ok=True)
                 record.write_text(json.dumps({"key": key, "photos": [str(x) for x in chosen]}, indent=1,
@@ -1952,11 +1974,16 @@ class MultiFormatGenerator:
         `graphics`: the run's graphics (graphic_*.mp4, each with its .jpg poster beside it; default: those in
         output_dir/graphics). When one is an explanatory drawing (DIAGRAM_KINDS), slide 3 or 4 shows it instead of
         a photo (carousel_diagram), the same slide in both copies; without one nothing changes.
-        `strict_match`: a failed photo match raises PhotoMatchFailed instead of rotating the photos (QF-81)."""
+        `strict_match`: a failed photo match raises PhotoMatchFailed instead of rotating the photos (QF-81).
+        An AI-made picture (ai_label.is_ai_picture) is never a slide's photo; with no real photo left, NoRealPhotos
+        is raised and no slide is drawn (QF-65c)."""
         from . import still_layout
+        from .ai_label import no_real_photo_reason, real_stills
         out_dir = output_dir / ("carousel_fb" if facebook else "carousel")
         out_dir.mkdir(parents=True, exist_ok=True)
-        stills = [p for p in scene_images if not is_video(p)]
+        stills, left_out = real_stills([p for p in scene_images if not is_video(p)])
+        if not stills:
+            raise NoRealPhotos(no_real_photo_reason(left_out, "carousel"))
         cards = script_payload["carousel_slides"]
         poll = script_payload.get("poll") or {}
         total = len(cards)

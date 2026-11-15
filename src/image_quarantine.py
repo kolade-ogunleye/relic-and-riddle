@@ -31,9 +31,11 @@ argument, so the earlier calls raised and every candidate was rejected unlooked-
 
 from __future__ import annotations
 
+import contextvars
 import logging
 import re
-from collections.abc import Sequence
+from collections.abc import Iterator, Sequence
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
 
@@ -56,6 +58,33 @@ MIN_SHORT_SIDE = 1080
 MAX_UPSCALE = 1.5
 PHASH_MIN_DISTANCE = 12
 _WORD = re.compile(r"[A-Za-z]{3,}")
+_VERDICTS: contextvars.ContextVar[list[dict[str, Any]] | None] = contextvars.ContextVar("illustration_verdicts",
+                                                                                       default=None)
+
+
+@contextmanager
+def watch_verdicts() -> Iterator[list[dict[str, Any]]]:
+    """Collects, for the candidate scored inside the block (this thread or task only), every judge's answer: the
+    vision rubric's and the reference comparison's structured verdicts as returned, or why none came (QF-65c: the
+    illustration's provenance record keeps the chosen candidate's verdicts)."""
+    records: list[dict[str, Any]] = []
+    token = _VERDICTS.set(records)
+    try:
+        yield records
+    finally:
+        _VERDICTS.reset(token)
+
+
+def _note_verdict(judge: str, verdict: Any = None, error: str = "") -> None:
+    records = _VERDICTS.get()
+    if records is None:
+        return
+    entry: dict[str, Any] = {"judge": judge, "model": vision_models().get(judge)}
+    if verdict is not None:
+        entry["verdict"] = verdict.model_dump(mode="json")
+    else:
+        entry["error"] = error
+    records.append(entry)
 
 
 # ------------------------------------------------------------------ the legacy three-stage gate
@@ -309,9 +338,12 @@ def vision_rubric(image_path: Path, spec: dict[str, Any]) -> tuple[bool, str]:
         v = free_llm.structured(system, [prompt, _image(image_path)], IllustrationVerdict, role=DESCRIPTOR_ROLE,
                                 task_class="light")
     except Exception as e:  # noqa: BLE001 - fail closed on any checker failure
+        _note_verdict("descriptor", error=f"the vision check failed: {e}")
         return False, f"the vision check failed: {e}"
     if not isinstance(v, IllustrationVerdict):
+        _note_verdict("descriptor", error="the vision check returned no verdict")
         return False, "the vision check returned no verdict"
+    _note_verdict("descriptor", v)
     shown = {d.descriptor.strip().lower(): d.shown for d in v.descriptors}
     missing = [d for d in required if not shown.get(d.strip().lower(), False)]
     problems = ([f"not shown: {', '.join(missing)}"] if missing else []) + [
@@ -430,9 +462,12 @@ def reference_check(image_path: Path, references: Sequence[Path], spec: dict[str
         v = free_llm.structured(system, [prompt, *blocks], ReferenceComparison, role=REFERENCE_ROLE,
                                 task_class="light")
     except Exception as e:  # noqa: BLE001 - fail closed on any checker failure
+        _note_verdict("reference", error=f"the reference comparison failed: {e}")
         return False, f"the reference comparison failed: {e}"
     if not isinstance(v, ReferenceComparison):
+        _note_verdict("reference", error="the reference comparison returned no verdict")
         return False, "the reference comparison returned no verdict"
+    _note_verdict("reference", v)
     problems = [msg for bad, msg in ((not v.same_object, "not the same object as the reference"),
                                      (not v.same_count_of_parts, "a different number of structural parts"),
                                      (not v.same_shapes, "different shapes"),

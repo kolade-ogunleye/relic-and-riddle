@@ -5,7 +5,8 @@ Usage: python evidence.py BASE_ROOT NEW_ROOT RUN_DIR OUT_DIR
 RUN_DIR is a dev run (output/run_*, read only) whose Reel opened on an AI hook clip (motion/motion_01.mp4); its
 photographs (the parallax clips' own sources, from their lineage) are composed as stills on the push, pull, drift and
 push presets, ending on the loop bridge, exactly as compose_video moves stills when a shot is not a parallax clip.
-Each root renders in its own process. The motion is read back from the delivered H.264 master by tracking corners
+Each root renders in its own process, on production's H.264 encoder (QF-22b: encoding.delivery_video_encoder(), or
+the same libx264 arguments set as the encoder probe's result on a tree from before QF-134). The motion is read back from the delivered H.264 master by tracking corners
 (pyramidal Lucas-Kanade, sub-pixel) through each shot: per frame, the median distance the tracked points moved.
 Writes OUT_DIR/evidence.json, a trace chart per shot and, per shot and root, a strip of its first, middle and
 last frame (half size, JPEG <= 300 KB).
@@ -32,7 +33,11 @@ root, work, spec = Path(sys.argv[1]), Path(sys.argv[2]), json.loads(sys.argv[3])
 os.environ["RELIC_APP_ROOT"] = str(work / "app")
 sys.path.insert(0, str(root))
 import numpy as np, soundfile as sf
-from src import end_card
+from src import encoding, end_card
+from src.config import VIDEO_CRF, VIDEO_PRESET
+delivery = getattr(encoding, "delivery_video_encoder", None)
+encoding._DETECTED_ENCODER = (list(delivery()) if delivery else
+                              ["-c:v", "libx264", "-preset", VIDEO_PRESET, "-crf", str(VIDEO_CRF)])
 from src.audio_engine import AudioEngine
 from src.video_composer import VideoComposer
 vo_dur = sum(spec["durations"])
@@ -48,7 +53,8 @@ bed = AudioEngine().generate_ambient_bed(vo_dur + end_card.bed_tail(True), work 
 master = work / "master.mp4"
 VideoComposer().compose_video([Path(p) for p in spec["scenes"]], voice, bed, [], vo_dur, master,
                               durations=spec["durations"], end_card="Send this.")
-print(json.dumps(json.loads(master.with_suffix(".composition.json").read_text(encoding="utf-8"))["end_card"]))
+seam = json.loads(master.with_suffix(".composition.json").read_text(encoding="utf-8"))["end_card"]
+print(json.dumps({**seam, "encoder": encoding._DETECTED_ENCODER}))
 '''
 
 
@@ -161,7 +167,7 @@ def main(base: Path, new: Path, run: Path, out: Path) -> None:
                 cuts = [round(sum(durations[:k + 1]) * FPS) for k in range(3)]
                 bounds = [0, *cuts, round(sum(durations) * FPS)]
                 shots = [track(gray, a + 1, b - 2) for a, b in pairwise(bounds)]
-                row[reel] = {"seam": {k: seam.get(k) for k in ("variant", "push", "close_zoom", "open_push",
+                row[reel] = {"encoder": seam.get("encoder"), "seam": {k: seam.get(k) for k in ("variant", "push", "close_zoom", "open_push",
                                                                  "max_step_L", "mad_last")},
                              "shots": [summary(s) for s in shots], "steps": shots}
                 for k, (a, b) in enumerate(pairwise(bounds)):   # each shot's first, middle and last frame

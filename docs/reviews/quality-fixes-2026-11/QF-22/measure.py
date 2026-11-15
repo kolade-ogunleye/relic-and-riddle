@@ -15,7 +15,12 @@ Per path: repeated steps (a frame that does not move while the shot moves), reve
 largest change of step between neighbouring frames ("jerk": a whole- or half-pixel tick shows as a jerk near the tick
 size; a smooth move's jerk is a small fraction of a pixel). Acceptance (STATUS.md): every trace monotone, no integer
 steps: no repeated or reverse step, jerk under 0.25 px on the drawn paths and under 0.35 px on the H.264 composer
-traces (their measured encode noise is below 0.1 px; a half-pixel tick of the old 2x zoompan render measures 0.5).
+traces (a half-pixel tick of the old 2x zoompan render measures 0.5).
+
+Encoder (QF-22b): every H.264 encode runs on production's encoder, encoding.delivery_video_encoder() (libx264 at the
+locked preset and CRF, QF-134); a tree from before QF-134 picked its encoder by an NVENC probe, so the probe's cache is
+set to the same arguments first (pin_encoder) and the composer rows reproduce on every machine and tree. The encoder
+used is recorded in the output ("encoder").
 """
 
 import hashlib
@@ -53,6 +58,17 @@ def isolate(root: Path, app: Path) -> None:
     socket.create_connection = no_network
     socket.socket.connect = no_network
     sys.path.insert(0, str(root))
+
+
+def pin_encoder() -> list[str]:
+    """Production's H.264 encoder for every encode of this measure, on any tree: delivery_video_encoder() where it
+    exists (QF-134), else the same libx264 arguments; the probe's cache is set to it so no NVENC probe can choose."""
+    from src import encoding
+    from src.config import VIDEO_CRF, VIDEO_PRESET
+    delivery = getattr(encoding, "delivery_video_encoder", None)
+    args = list(delivery()) if delivery else ["-c:v", "libx264", "-preset", VIDEO_PRESET, "-crf", str(VIDEO_CRF)]
+    encoding._DETECTED_ENCODER = list(args)
+    return args
 
 
 def edge_line(width: int, at: float) -> np.ndarray:
@@ -213,6 +229,7 @@ def main(root: Path) -> None:
         app = Path(directory) / "app"
         app.mkdir()
         isolate(root, app)
+        encoder = pin_encoder()
         drawn = drawn_paths(root)
         work = Path(directory) / "work"
         work.mkdir()
@@ -222,7 +239,7 @@ def main(root: Path) -> None:
     def ok(name, row):
         bound = 0.35 if name.startswith("composer_") else 0.25
         return row["repeated_steps"] == 0 and row["reverse_steps"] == 0 and row["max_jerk_px"] < bound
-    result = {"schema_version": 2,
+    result = {"schema_version": 3, "encoder": encoder,
               "source_sha256": {n: hashlib.sha256((root / n).read_bytes()).hexdigest()
                                 for n in SOURCES if (root / n).is_file()},
               "paths": traces, "loop_seam_record": composer.get("loop_seam_record"),

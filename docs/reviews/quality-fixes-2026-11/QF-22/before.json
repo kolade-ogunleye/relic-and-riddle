@@ -1,5 +1,13 @@
 {
-  "schema_version": 2,
+  "schema_version": 3,
+  "encoder": [
+    "-c:v",
+    "libx264",
+    "-preset",
+    "slow",
+    "-crf",
+    "18"
+  ],
   "source_sha256": {
     "src/video_composer.py": "d154f6c4510206999a4a7fe27ad46ae0fd052903472b8d10c22fea5ae2948c86",
     "src/graphics.py": "6f3fe6c99930d364d18dda2f3a9c90a42d7511b66b1d3770740bfbe33d92004e",
@@ -75,43 +83,43 @@
     },
     "composer_still_0_push": {
       "samples": 59,
-      "travel_px": 0.012,
-      "repeated_steps": 43,
-      "reverse_steps": 6,
-      "max_step_px": 0.0339,
-      "max_jerk_px": 0.0263
+      "travel_px": 0.004,
+      "repeated_steps": 44,
+      "reverse_steps": 8,
+      "max_step_px": 0.0727,
+      "max_jerk_px": 0.1454
     },
     "composer_still_1_pull": {
       "samples": 59,
-      "travel_px": 30.739,
+      "travel_px": 30.738,
       "repeated_steps": 0,
       "reverse_steps": 3,
-      "max_step_px": 1.3191,
-      "max_jerk_px": 1.1299
+      "max_step_px": 1.3424,
+      "max_jerk_px": 1.0805
     },
     "composer_still_2_drift": {
       "samples": 59,
-      "travel_px": 0.043,
-      "repeated_steps": 43,
-      "reverse_steps": 7,
-      "max_step_px": 0.0428,
-      "max_jerk_px": 0.0601
+      "travel_px": 0.007,
+      "repeated_steps": 52,
+      "reverse_steps": 3,
+      "max_step_px": 0.0276,
+      "max_jerk_px": 0.0276
     },
     "composer_still_3_push": {
       "samples": 59,
-      "travel_px": 0.058,
-      "repeated_steps": 40,
-      "reverse_steps": 9,
-      "max_step_px": 0.0766,
-      "max_jerk_px": 0.1004
+      "travel_px": 0.007,
+      "repeated_steps": 55,
+      "reverse_steps": 1,
+      "max_step_px": 0.0329,
+      "max_jerk_px": 0.0593
     },
     "composer_hook_clip_push": {
       "samples": 59,
-      "travel_px": 20.193,
+      "travel_px": 20.192,
       "repeated_steps": 0,
       "reverse_steps": 13,
-      "max_step_px": 0.6817,
-      "max_jerk_px": 1.1337
+      "max_step_px": 0.7557,
+      "max_jerk_px": 1.267
     }
   },
   "loop_seam_record": {
@@ -120,7 +128,7 @@
     "close_zoom": 1.12,
     "open_push": 0.0016,
     "max_step_L": 7.93,
-    "mad_last": 0.64
+    "mad_last": 0.94
   },
   "failing_paths": [
     "composer_hook_clip_push",

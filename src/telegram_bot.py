@@ -259,6 +259,14 @@ def _plain(text: Any) -> str:
     return html.unescape(re.sub(r"<[^>]+>", "", str(text or ""))).strip()
 
 
+def voice_overclaim_flag(run_id: str) -> str:
+    """The review card's line for a run whose saved voice record says "licensed" for a voice the licence table
+    does not license (QF-127: a master voiced by Azure before its tier was recorded), or ""."""
+    from .config import OUTPUT_DIR
+    from .voice_licence import overclaim_flag
+    return overclaim_flag(_run_json(Path(OUTPUT_DIR) / str(run_id), "voice.json")) if run_id else ""
+
+
 def _run_json(run_dir: Path | None, name: str) -> dict[str, Any]:
     """A run's JSON record, or {} when it is missing or unreadable."""
     try:
@@ -2291,7 +2299,10 @@ class TelegramApprovalBot:
                 for x, w in zip(script_payload["trimmed_sentences"], where)))
         if script_payload.get("picture_lines_note"):  # lines checked against the photos before the voice (2026-10-28)
             text += "\n" + _format_note(script_payload["picture_lines_note"])
-        if script_payload.get("voice_note"):
+        voice_flag = voice_overclaim_flag(run_id)   # QF-127: a saved "licensed" the licence table denies
+        if voice_flag:   # in place of the saved note, which still says "Commercially Licensed"
+            text += "\n" + html.escape(voice_flag)
+        elif script_payload.get("voice_note"):
             text += "\n" + _format_note(script_payload["voice_note"])
         if script_payload.get("music_note"):
             text += "\n" + _format_note(script_payload["music_note"])
@@ -2865,7 +2876,12 @@ class TelegramApprovalBot:
         # The gate's own findings (as release_lines words them for the live card) and the run's notes
         found = [line[2:].strip() for line in _plain(TelegramApprovalBot.release_lines(release)).splitlines()
                  if line.startswith("• ")]
-        found += [_plain(payload[k]) for k in V2_NOTE_KEYS if payload.get(k) and _plain(payload[k])]
+        from .voice_licence import NOT_LICENSED, overclaim_flag, record_licensed
+        voice_flag = overclaim_flag(_run_json(run_dir, "voice.json"))   # QF-127: a saved "licensed" the table denies
+        found += [_plain(payload[k]) for k in V2_NOTE_KEYS if payload.get(k) and _plain(payload[k])
+                  and not (voice_flag and k == "voice_note")]   # the saved note still says "Commercially Licensed"
+        if voice_flag:   # said among the findings, not only in the details row
+            found.append(voice_flag)
         if found:
             blocks.append({"type": "details", "summary": f"🔎 Findings and notes · {len(found)}",
                            "blocks": [{"type": "list", "items": [{"blocks": [{"type": "paragraph", "text": f}]}
@@ -2896,7 +2912,8 @@ class TelegramApprovalBot:
         voice = _run_json(run_dir, "voice.json")
         if voice.get("provider"):
             details.append(row("Voice", f"{V2_VOICE_NAMES.get(voice['provider'], voice['provider'])} · "
-                                        + ("licensed" if voice.get("licensed") else "not licensed")))
+                                        + ("licensed" if record_licensed(voice) else
+                                           NOT_LICENSED if voice.get("licensed") else "not licensed")))
         music = str(_run_json(run_dir, "music_selection.json").get("credit") or "")
         music = re.sub(r"^\W*Music:\s*", "", music).strip()
         if music:

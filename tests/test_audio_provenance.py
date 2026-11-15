@@ -6,7 +6,7 @@ def test_voice_evidence_is_bound_to_audio(tmp_path):
     voice.write_bytes(b"voice")
     record_voice(voice, "edge-tts", False, "script")
     assert not inspect_audio_rights(voice, "voice", "")[0]
-    record_voice(voice, "azure", True, "script")
+    record_voice(voice, "elevenlabs", True, "script")
     assert inspect_audio_rights(voice, "voice", "")[0]
     assert not inspect_audio_rights(voice, "voice", "", script="changed script")[0]
     voice.write_bytes(b"replacement")

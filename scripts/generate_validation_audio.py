@@ -34,7 +34,8 @@ def main():
         voice = root / VOICEOVER_FILE  # a new take is always the WAV (QF-08)
         words = engine.generate_narration(payload["narration_script"], voice, licensed_only=True)
         words_path.write_text(json.dumps(words, indent=2), encoding="utf-8")
-        record_voice(voice, engine.last_provider, engine.last_licensed, payload["narration_script"])
+        record_voice(voice, engine.last_provider, engine.last_licensed, payload["narration_script"],
+                     tier=engine.last_tier, plan_status=engine.last_plan_status)
     checkpoint.complete("voice", inputs, [voice, words_path, rights_file(voice)])
     words = json.loads(words_path.read_text(encoding="utf-8"))
     duration = engine.get_duration(voice)

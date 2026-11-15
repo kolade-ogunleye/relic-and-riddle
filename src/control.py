@@ -518,7 +518,14 @@ def check_azure_speech() -> dict:
     try:
         r = requests.post(url, headers={"Ocp-Apim-Subscription-Key": AZURE_SPEECH_KEY}, timeout=3)
         if r.status_code == 200:
-            return {"configured": True, "ok": True, "region": region, "status": f"Ready (licensed fallback · {region})"}
+            # QF-127: a working key is a licensed fallback only on a paid tier the operator declared
+            from . import voice_licence
+            tier = voice_licence.azure_tier()
+            if voice_licence.licensed("azure", tier):
+                return {"configured": True, "ok": True, "licensed": True, "region": region,
+                        "status": f"Ready (licensed fallback · {tier.upper()} · {region})"}
+            return {"configured": True, "ok": True, "licensed": False, "region": region,
+                    "status": f"Ready (test runs only: {tier.upper()} has no commercial licence · {region})"}
         elif r.status_code == 401:
             return {"configured": True, "ok": False, "region": region, "status": f"❌ 401 Auth Error (invalid key or wrong region: {region})"}
         else:
@@ -540,17 +547,46 @@ def quota_lines(voice_quota: Optional[dict]) -> List[str]:
             lines.append(f"Azure Speech: {az['status']}")
             if not az.get("ok"):
                 lines.append("🚨 <b>Voice alert:</b> Azure Speech has auth errors and ElevenLabs is unconfigured. " + _sentence(_unlicensed_consequence()))
+            elif not az.get("licensed"):
+                lines.append("🚨 <b>Licence alert:</b> no commercially licensed voice is set up. " + _sentence(_unlicensed_consequence()))
         return lines
 
     left = max(0, voice_quota["limit"] - voice_quota["used"])
     reset = ""
     if voice_quota.get("resets"):
         reset = ", resets " + show_time(int(voice_quota["resets"]), "%d %b")
+    from . import voice_licence
+    plan_ok, plan_basis = voice_licence.elevenlabs_licence(voice_quota)
+    if not plan_ok:
+        # QF-127: characters on a plan the licence table does not license are not Reels to come. No "(~N Reels)";
+        # the Licence alert gives the basis and what happens to a real run.
+        az_licensed = bool(az.get("ok") and az.get("licensed"))
+        gate = bool(config.VOICE_REQUIRE_LICENSED)
+        line = (f"ElevenLabs ({html.escape(str(voice_quota.get('tier') or 'plan not read'))}): {left:,} of "
+                f"{voice_quota['limit']:,} characters left{reset}")
+        if gate:
+            lines.append(f"⚠️ {line}. Not used for real runs: no commercial licence on this plan.")
+        else:   # the gate is off: a real run is voiced on this plan while it has characters, then by a test voice
+            after = (f"runs use Azure Speech ({az.get('region')}), which has no commercial licence on its tier."
+                     if az.get("ok") and not az_licensed else
+                     f"runs use Azure Speech ({az.get('region')})." if az_licensed else _unlicensed_consequence())
+            lines.append(f"⚠️ {line}. No commercial licence on this plan. When it runs out: {after}")
+        if az.get("configured"):
+            lines.append(f"Azure Speech: {az['status']}")
+        alert = f"🚨 <b>Licence alert:</b> {html.escape(plan_basis)}. "
+        if not gate:
+            lines.append(alert + "The licence gate is off (VOICE_REQUIRE_LICENSED=false): real runs are voiced on "
+                                 "this plan, and may be posted with it.")
+        elif az_licensed:
+            lines.append(alert + f"Real runs are voiced by Azure Speech ({az.get('region')}) instead.")
+        else:
+            lines.append(alert + _sentence(_unlicensed_consequence()))
+        return lines
     line = (f"ElevenLabs ({html.escape(str(voice_quota.get('tier')))}): {left:,} of {voice_quota['limit']:,} "
             f"characters left (~{left // SCRIPT_CHARS} Reels){reset}")
 
     if left < 3 * SCRIPT_CHARS:
-        if az.get("ok"):
+        if az.get("ok") and az.get("licensed"):
             lines.append(f"⚠️ {line}. Falls back to Azure Speech ({az.get('region')}) when exhausted.")
         else:
             lines.append(f"⚠️ {line}. When it runs out: " + _unlicensed_consequence())
@@ -559,7 +595,7 @@ def quota_lines(voice_quota: Optional[dict]) -> List[str]:
 
     if az.get("configured"):
         lines.append(f"Azure Speech: {az['status']}")
-        if left < 3 * SCRIPT_CHARS and not az.get("ok"):
+        if left < 3 * SCRIPT_CHARS and not (az.get("ok") and az.get("licensed")):
             lines.append("🚨 <b>Licence alert:</b> both ElevenLabs and Azure Speech are unavailable. " + _sentence(_unlicensed_consequence()))
 
     return lines
@@ -625,7 +661,7 @@ def _sentence(text: str) -> str:
 
 def _unlicensed_consequence() -> str:
     from . import config
-    return ("real runs stop (a licensed voice is required); dry runs use the free test voice."
+    return ("real runs are held (a licensed voice is required); dry runs use the free test voice."
             if config.VOICE_REQUIRE_LICENSED else "runs use the free edge-tts voice, which is not licensed for monetized posts.")
 
 
@@ -907,7 +943,7 @@ def status_text(db: PipelineDatabase, next_run: Optional[str], voice_quota: Opti
 
     lines += ["", "<b>Budgets and voices this month</b>"]
     lines += [f"• {line.replace(' this month', '')}"
-              for line in spend_lines(db) + quota_lines(voice_quota)]
+              for line in spend_lines(db) + quota_lines(voice_quota) + voice_gate_lines(db)]
 
     from . import accounts
     lines += ["", "<b>Accounts and issues</b>", "• " + accounts.status_line(db).replace("Publishing accounts: ", "Publishing: ")]
@@ -1674,6 +1710,25 @@ def record_run_mode(db: PipelineDatabase, dry_run: bool) -> None:
         db.set_setting(RUNS_DRY_KEY, "true" if dry_run else "false")
     except (sqlite3.Error, OSError, AttributeError) as e:  # a stand-in database without settings
         log.debug("Run mode not recorded: %s", e)
+
+
+def runs_are_dry(db: PipelineDatabase) -> bool:
+    """Whether the runs of the service on this database are dry runs: the mode its bot or daemon recorded at its
+    start, else the bot's setting (BOT_RUNS_DRY)."""
+    from . import config
+    try:
+        recorded = db.get_setting(RUNS_DRY_KEY)
+    except (sqlite3.Error, OSError, AttributeError):
+        recorded = None
+    return {"true": True, "false": False}.get(recorded or "", bool(config.BOT_RUNS_DRY))
+
+
+def voice_gate_lines(db: PipelineDatabase) -> list[str]:
+    """The status screen's voice section while VOICE_REQUIRE_LICENSED=false on a service whose runs are real
+    (QF-127): one line saying the licence gate is off and how to turn it on. Nothing on a dry-run service."""
+    from . import voice_licence
+    note = voice_licence.gate_off_note(dry=runs_are_dry(db))
+    return [f"🚨 <b>Licence alert:</b> {html.escape(note)}"] if note else []
 
 
 def run_mode_label(db: PipelineDatabase) -> str:

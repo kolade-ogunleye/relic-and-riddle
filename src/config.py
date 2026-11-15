@@ -269,7 +269,7 @@ except ValueError:
 # A narration a little over the time limit is spoken up to this much faster instead of being rewritten
 # (each rewrite is a full model call and can overshoot both ways). 1.08 = at most 8% faster.
 SPEECH_SPEEDUP_MAX = max(1.0, min(1.15, float(os.getenv("SPEECH_SPEEDUP_MAX") or 1.08)))
-# Dry runs voice with the free licensed voice (Azure F0) so tests don't spend ElevenLabs credits.
+# Dry runs voice with the free test voice (Azure F0, or edge-tts) so tests don't spend ElevenLabs credits.
 ELEVENLABS_IN_DRY_RUNS = os.getenv("ELEVENLABS_IN_DRY_RUNS", "false").lower() in ("true", "1", "yes")
 # Dry runs skip the paid AI motion clip (Veo/Kling) unless this is on: on, a dry run looks like the live
 # product (within MEDIA_MONTHLY_BUDGET_USD), so validation shows what will actually be posted.
@@ -630,9 +630,12 @@ GENERATIVE_GAP_FILLING = os.getenv("GENERATIVE_GAP_FILLING", "true").lower() in 
 MAX_GAP_IMAGES_PER_RUN = int(os.getenv("MAX_GAP_IMAGES_PER_RUN", "2"))
 VOICE_REQUIRE_LICENSED = os.getenv("VOICE_REQUIRE_LICENSED", "true").lower() in ("true", "1", "yes")  # real runs need a commercial voice licence
 NARRATOR_VOICE = (os.getenv("NARRATOR_VOICE") or "en-US-BrianMultilingualNeural").strip()
-# Licensed free voice fallback: Azure Speech (F0 tier: 0.5M characters/month), same voice.
+# Azure Speech, same voice. The free F0 tier (0.5M characters/month) carries no commercial output rights, so it
+# voices dry runs only (QF-127). AZURE_SPEECH_TIER declares the resource's pricing tier as the Azure portal shows
+# it: only a declared paid tier (S0) lets Azure voice a real run (src/voice_licence.py). Default F0.
 AZURE_SPEECH_KEY = (os.getenv("AZURE_SPEECH_KEY") or "").strip()
 AZURE_SPEECH_REGION = (os.getenv("AZURE_SPEECH_REGION") or "eastus").strip()
+AZURE_SPEECH_TIER = (os.getenv("AZURE_SPEECH_TIER") or "F0").strip().upper()
 NARRATOR_RATE = (os.getenv("NARRATOR_RATE") or "-2%").strip()
 NARRATOR_PITCH = (os.getenv("NARRATOR_PITCH") or "-2Hz").strip()
 

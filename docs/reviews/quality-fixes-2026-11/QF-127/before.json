@@ -1,0 +1,37 @@
+{
+ "dry_runs": {
+  "cases": 64,
+  "marked_licensed_but_unlicensed": 32,
+  "voiced_by": {
+   "azure": 48,
+   "edge-tts": 16
+  },
+  "voiced_unlicensed": 48
+ },
+ "publish": {
+  "gate_off": {
+   "licensed_uploaded": 6,
+   "not_published_asked": 54,
+   "not_published_said_posted": 0,
+   "unlicensed_on_record": 0,
+   "unlicensed_uploaded": 18,
+   "uploads_asked": 24
+  },
+  "gate_on": {
+   "licensed_uploaded": 6,
+   "unlicensed_uploaded": 16,
+   "uploads_asked": 24
+  }
+ },
+ "real_runs": {
+  "cases": 64,
+  "held_saying_free_plan_for_another_plan": 2,
+  "marked_licensed_but_unlicensed": 36,
+  "voiced_by": {
+   "azure": 39,
+   "elevenlabs": 15,
+   "held (no licensed voice)": 10
+  },
+  "voiced_unlicensed": 36
+ }
+}

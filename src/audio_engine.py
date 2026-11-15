@@ -3,10 +3,11 @@ src/audio_engine.py
 ===================
 Narration and ambient bed.
 1. Voice, best first, with word timings from each provider:
-     ElevenLabs (character timestamps) -> Azure Speech (word-boundary events, licensed,
-     free F0 tier) -> edge-tts (dry runs only: no commercial licence).
-   Real (non-dry) runs use only licensed voices: ElevenLabs on a paid plan (the Free plan
-   has no commercial licence) or Azure. With neither, the run stops (NoLicensedVoice).
+     ElevenLabs (character timestamps) -> Azure Speech (word-boundary events) -> edge-tts.
+   Real (non-dry) runs use only a provider and tier recorded as commercially licensed
+   (src/voice_licence.py, QF-127): ElevenLabs on a paid plan, or Azure Speech on a paid tier the
+   operator declared (AZURE_SPEECH_TIER). Azure's free F0 tier and edge-tts voice dry runs only.
+   With no licensed voice the run is held (NoLicensedVoice) and nothing is posted.
 2. Word timings for the kinetic karaoke captions.
 3. Ambient bed: 55 Hz + 82.5 Hz drone with diegetic hammer (t=0) and stone-door SFX.
 Final mixing, ducking and loudness mastering happen in src/video_composer.py.
@@ -27,13 +28,14 @@ import numpy as np
 import requests
 import soundfile as sf
 
-from . import sfx_palette
+from . import sfx_palette, voice_licence
 from .foley_engine import FoleyEngine
 from .stem_composer import StemComposer
 from .voice_prosody import VoiceProsody
 from .config import (
     AZURE_SPEECH_KEY,
     AZURE_SPEECH_REGION,
+    AZURE_SPEECH_TIER,
     NARRATOR_VOICE,
     NARRATOR_RATE,
     NARRATOR_PITCH,
@@ -421,6 +423,7 @@ class AudioEngine:
         eleven_voice: Optional[str] = None,
         azure_key: Optional[str] = None,
         azure_region: Optional[str] = None,
+        azure_tier: str | None = None,
     ):
         self.voice = voice
         self.last_sfx_sources: List[Dict[str, Any]] = []
@@ -432,6 +435,8 @@ class AudioEngine:
         self.eleven_voice = eleven_voice if eleven_voice is not None else ELEVENLABS_VOICE_ID
         self.azure_key = azure_key if azure_key is not None else AZURE_SPEECH_KEY
         self.azure_region = azure_region if azure_region is not None else AZURE_SPEECH_REGION
+        # The declared pricing tier of the Speech resource (QF-127): F0 unless the operator declared a paid one.
+        self.azure_tier = azure_tier if azure_tier is not None else AZURE_SPEECH_TIER
 
     @staticmethod
     def eleven_payload(text: str, model: str, speed: float = 1.0) -> Dict[str, Any]:
@@ -580,9 +585,12 @@ class AudioEngine:
         words.sort(key=lambda w: w["start"])
         return words
 
-    # Set after each narration: which provider voiced it, whether it is commercially licensed,
-    # and why a better provider was skipped.
+    # Set after each narration: which provider and tier voiced it, whether that is commercially licensed
+    # (voice_licence's record for the provider and tier, QF-127) and why a better provider was skipped.
     last_provider: str = ""
+    last_tier: str = ""
+    last_plan_status: str | None = None   # ElevenLabs' subscription status at the take; None when none was read
+    last_licence_basis: str = ""
 
     @staticmethod
     def preferred_provider(allow_paid: bool) -> str:
@@ -597,8 +605,19 @@ class AudioEngine:
 
     def eleven_licensed(self) -> bool:
         """ElevenLabs output is licensed for commercial use only on a paid plan."""
-        quota = self.voice_quota()
-        return bool(quota and quota.get("tier") and quota["tier"] != "free")
+        return voice_licence.elevenlabs_licence(self.voice_quota())[0]
+
+    def azure_licensed(self) -> bool:
+        """Azure Speech output is licensed only on a paid tier the operator declared (never because a key is set)."""
+        return voice_licence.licensed("azure", self.azure_tier)
+
+    def _voiced_by(self, provider: str, tier: Any, status: Any = None) -> None:
+        """Records who voiced the take: the provider, its tier (for ElevenLabs also the subscription's status,
+        when its API gave one) and their recorded licence status."""
+        self.last_provider = provider
+        self.last_tier = tier.strip().lower() if isinstance(tier, str) else ""
+        self.last_plan_status = status.strip().lower() if isinstance(status, str) else None
+        self.last_licensed, self.last_licence_basis = voice_licence.licence(provider, tier, status)
 
     def generate_narration(self, text: str, output_path: Path, licensed_only: bool = False,
                            allow_paid: bool = True, speed: float = 1.0) -> Words:
@@ -617,12 +636,16 @@ class AudioEngine:
             if not allow_paid:  # a test run on the free voice by design, not a fallback
                 return None
             quota = self.voice_quota()
-            licensed = bool(quota and quota.get("tier") and quota["tier"] != "free")
+            licensed, basis = voice_licence.elevenlabs_licence(quota)   # plan name and status against the table
             self.eleven_tier = (quota or {}).get("tier")   # picks the output format the plan offers (QF-08)
+            plan_status = (quota or {}).get("status") if "status" in (quota or {}) else None
             has_quota_nums = bool(quota and "limit" in quota and "used" in quota)
             remaining = (quota["limit"] - quota["used"]) if has_quota_nums else None
             if licensed_only and not licensed:
-                reasons.append("ElevenLabs is on the Free plan (no commercial licence)")
+                plan = self.eleven_tier.strip().lower() if isinstance(self.eleven_tier, str) else ""
+                # "Free plan" only when ElevenLabs said so. A plan that could not be read (the call failed, or it
+                # named none), one the table does not know and one not paid for now are each said as they are (QF-127)
+                reasons.append("ElevenLabs is on the Free plan (no commercial licence)" if plan == "free" else basis)
                 return None
             if has_quota_nums and remaining is not None and remaining < len(text):
                 reasons.append(f"ElevenLabs balance exhausted ({remaining} chars left; need {len(text)})")
@@ -632,7 +655,7 @@ class AudioEngine:
                 log.info("Synthesizing voiceover via ElevenLabs (%s)...", self.eleven_voice)
                 eleven_text = VoiceProsody.apply_prosody_elevenlabs(text)
                 words = self._generate_elevenlabs(eleven_text, output_path)
-                self.last_provider, self.last_licensed = "elevenlabs", licensed
+                self._voiced_by("elevenlabs", self.eleven_tier, plan_status)
                 return spoken_only(align_words_with_script(orig_text, words))
             except Exception as e:
                 status = getattr(getattr(e, "response", None), "status_code", None)
@@ -643,13 +666,16 @@ class AudioEngine:
         def _try_azure():
             if not (is_configured(self.azure_key) and is_configured(self.azure_region)):
                 return None
+            if licensed_only and not self.azure_licensed():   # QF-127: a configured key is not a licence
+                reasons.append(voice_licence.licence("azure", self.azure_tier)[1])
+                return None
             try:
                 log.info("Synthesizing voiceover via Azure Speech (%s)...", self.voice)
                 azure_text = VoiceProsody.apply_prosody_azure(text)
                 words = self._generate_azure(azure_text, output_path)
                 if not words:
                     raise RuntimeError("Azure Speech returned no word boundaries")
-                self.last_provider, self.last_licensed = "azure", True
+                self._voiced_by("azure", self.azure_tier)
                 self.fallback_reason = "; ".join(reasons)
                 return spoken_only(align_words_with_script(orig_text, words))
             except Exception as e:
@@ -657,7 +683,7 @@ class AudioEngine:
                 log.warning("Azure Speech failed (%s); trying the next voice.", e)
                 return None
 
-        # Order providers by VOICE_PREFER ("azure" free commercial tier first vs "elevenlabs" paid score first)
+        # Order providers by VOICE_PREFER ("azure" first vs "elevenlabs" first); a real run skips an unlicensed one
         providers_order = [_try_azure, _try_elevenlabs] if VOICE_PREFER == "azure" else [_try_elevenlabs, _try_azure]
         for provider_fn in providers_order:
             res = provider_fn()
@@ -667,14 +693,14 @@ class AudioEngine:
         self.fallback_reason = "; ".join(reasons)
         if licensed_only:
             raise NoLicensedVoice("No commercially licensed voice is available: "
-                                  + (self.fallback_reason or "set up ElevenLabs (paid plan) or Azure Speech") + ".")
+                                  + (self.fallback_reason or "set up ElevenLabs on a paid plan") + ".")
 
         log.info("Synthesizing voiceover via edge-tts (%s; test runs only)...", self.voice)
         edge_text = VoiceProsody.prepare_speech_text(text, "edge-tts")
         words = asyncio.run(self._generate_edge_tts(edge_text, output_path))
         if not words:
             raise RuntimeError("edge-tts returned no word boundaries; captions cannot be timed.")
-        self.last_provider, self.last_licensed = "edge-tts", False
+        self._voiced_by("edge-tts", "")
         return spoken_only(align_words_with_script(orig_text, words))
 
     def voice_quota(self) -> Optional[Dict[str, Any]]:
@@ -686,7 +712,13 @@ class AudioEngine:
                              headers={"xi-api-key": self.eleven_key}, timeout=20)
             r.raise_for_status()
             j = r.json()
-            return {"tier": j.get("tier"), "used": int(j.get("character_count") or 0),
+            # tier: a free-form plan name ("starter"); status: trialing, active, incomplete, past_due, free or
+            # free_disabled (ElevenLabs API reference, GET /v1/user/subscription). Both are kept as text, trimmed
+            # and lower case; an answer with no status is "not reported", which is not a paid state (QF-127).
+            tier, status = j.get("tier"), j.get("status")
+            return {"tier": tier.strip().lower() if isinstance(tier, str) else None,
+                    "status": (status.strip().lower() if isinstance(status, str) else "") or "not reported",
+                    "used": int(j.get("character_count") or 0),
                     "limit": int(j.get("character_limit") or 0), "resets": j.get("next_character_count_reset_unix")}
         except Exception as e:
             log.warning("Could not read ElevenLabs quota: %s", e)

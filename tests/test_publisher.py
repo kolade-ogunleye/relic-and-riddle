@@ -305,7 +305,7 @@ def test_licensed_voice_allows_live_publication(monkeypatch, run, envelope, tmp_
     run_dir = tmp_path / "r1"
     run_dir.mkdir(parents=True, exist_ok=True)
     import json
-    (run_dir / "voice.json").write_text(json.dumps({"provider": "azure", "licensed": True}), encoding="utf-8")
+    (run_dir / "voice.json").write_text(json.dumps({"provider": "elevenlabs", "licensed": True}), encoding="utf-8")
     pub = _stub("a")
     res = MetaPublisher(run, [pub]).publish_reel(envelope, dry_run=False)
     assert res["status"] == "published"

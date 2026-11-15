@@ -44,6 +44,7 @@ SLOT = "review"
 STATE = "review-panel"              # telegram_state namespace: each delivered review's record (files, file ids)
 CAPTION_LIMIT = 1024                # Telegram's caption, after entities (F9)
 ROOM = 1000                         # what a face's text may use: a margin for the head line's digits
+SENSITIVE_CHIP = "Sensitive topic · "   # topic_policy.sensitivity_note's chip (QF-73), in the topic's origin note
 REASON_SECONDS = 300                # the reason step restores itself after this (design §6.5.1)
 REJECT_NOTE_SECONDS = 120           # a note after a Reject's reason can be typed this long
 INPUT_SECONDS = 600                 # Edit text and In my words wait this long (as today's /ask, 600 s)
@@ -575,14 +576,28 @@ class ReviewPanel:
         length = measured_length(release)
         from .release import check_problems
         found = [f"{c['name']}: {p}" for c in open_checks for p in check_problems(c)]
-        from .telegram_bot import V2_NOTE_KEYS
-        notes = found + [_plain(payload[k]) for k in V2_NOTE_KEYS if payload.get(k) and _plain(payload[k])]
+        from .telegram_bot import V2_NOTE_KEYS, _run_json
+        from .voice_licence import gate_on, overclaim_flag
+        # QF-127: a saved "licensed" the licence table denies (a master voiced by Azure before its tier was recorded)
+        # leads the notes, in place of the saved note that still says "Commercially Licensed"
+        # The panel's note is the flag's short form (the lede says what Approve does; the live card and the V2 card
+        # carry the whole sentence), and with it the note that holds the sensitivity chip (QF-73) comes next: the
+        # two lines the panel must show stand before any note that may be cut for room.
+        voice_flag = overclaim_flag(_run_json(_run_dir(self.db, view["run"]), "voice.json"), short=True)
+        kept = [_plain(payload[k]) for k in V2_NOTE_KEYS
+                if payload.get(k) and _plain(payload[k]) and not (voice_flag and k == "voice_note")]
+        chip = [n for n in kept if voice_flag and SENSITIVE_CHIP in n]
+        notes = ([voice_flag] if voice_flag else []) + chip + found + [n for n in kept if n not in chip]
         if not release or not release.get("checks"):
             lede = "⚠️ <b>Release gate not run yet</b>"
         elif stop:
             lede = f"⛔ <b>Can't be approved yet</b> · {len(stop)} check{'s block' if len(stop) != 1 else ' blocks'} it"
         elif open_checks:
             lede = f"⚠️ <b>Needs review before a live post</b> · {len(open_checks)} open check{'s' if len(open_checks) != 1 else ''}"
+        elif voice_flag:
+            # with the gate off the flag itself says a real post would go out
+            lede = ("⚠️ <b>Voice not commercially licensed</b> · "
+                    + ("Approve will not post it" if gate_on() else "the licence gate is off"))
         else:
             lede = "✅ <b>Ready to approve</b>" + (f" · {len(notes)} note{'s' if len(notes) != 1 else ''} to check" if notes else "")
         regen = self.db.get_setting("regenerating:" + view["run"])
@@ -608,7 +623,8 @@ class ReviewPanel:
             facts.append(f"{pictures} picture{'s' if pictures != 1 else ''}")
         rights = [c for c in (release or {}).get("checks") or [] if "rights" in str(c.get("name"))]
         if rights:
-            facts.append("rights " + ("✅" if all(c.get("status") == "pass" for c in rights) else "⚠️"))
+            # QF-127: a report saved before the licence table still passes the voice's rights; with the flag, never ✅
+            facts.append("rights " + ("✅" if all(c.get("status") == "pass" for c in rights) and not voice_flag else "⚠️"))
         if facts:
             lines.append(" · ".join(facts))
         text = "\n".join(lines) + notice

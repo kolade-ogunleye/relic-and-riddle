@@ -646,9 +646,11 @@ def test_undo_approval_from_the_item_closes_it_only_when_undone(db, tmp_path, mo
 
 def test_the_thirty_minute_reminder_alert_starts_with_its_alarm_clock(db, tmp_path, monkeypatch):
     """Review 1 of UI-01e, non-blocking 2: design §9 and mock-up 3 show "⏰ Review closes 16:40 · <title>"."""
-    from src import notice_conditions
+    from src import control, notice_conditions
     bot, fake = make_bot(db, monkeypatch)
     monkeypatch.setattr(notice_conditions, "current", REAL_CONDITIONS)   # the reviews item is a real condition
+    # the photo sets counted before the first tick (QF-137): no count finishes later and joins the alert as an item
+    control.ready_pools(db, [t for t in db.list_all_topics() if t.get("status") == "queued"])
     root, payload = a_review(db, tmp_path, monkeypatch, "rm")
     deliver(bot, db, root, payload, "rm")
     notice_conditions.sync(db)

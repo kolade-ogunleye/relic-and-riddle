@@ -175,6 +175,7 @@ QF-45 after it.
 |---|---|---|---|---|---|---|
 | QF-75 | CI runs the maps and Windows; skip ceiling | todo | | skipped <= 25; Windows job green | QF-75/ | |
 | QF-76 | Deployer installs hashed, no network fallback | todo | | Pester asserts --require-hashes; CI fails if lock != requirements | QF-76/ | |
+| QF-137 | Tests that tick the layout do not race the background photo-set counter (QF-135 shard 6) | done | this commit | measure.py, each test in a new process, a2ed7fe1 -> this commit: the 3 layout tests that tick twice, alone (cold count) 0 -> 3 of 3 pass; count forced to finish between ticks 0 -> 3 of 3; count still running 3 -> 3 of 3; count state left by an earlier test gone 0 -> 1 of 1; tests only, no skip/xfail/loosened assertion | QF-137/ | tests/test_qf137_photo_count_isolation.py |
 
 ### Phase 6 - monetization and niches
 

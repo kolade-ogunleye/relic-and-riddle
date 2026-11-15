@@ -16,11 +16,13 @@ from typing import Any, Dict, List, Optional, Tuple
 from . import post_schedule
 from .control import (HOME, LIST_PAGE, POST_ICON, POST_NAME, _episode_bookings, _post_links, _when, clip_words,
                       is_paused, number_buttons, pager)
+from .notifications import QUOTE_LIMIT
 
 STATUS = {"pending": "booked", "waiting": "waits for its slot", "published": "posted", "failed": "didn't post",
           "unknown": "not sure it posted: check the platform", "cancelled": "cancelled",
           "expired": "expired (it waited over 7 days)", "blocked": "held: it can't post as it is"}
 SPACING = "sensitive-topic spacing"   # QF-73: why a sensitive topic's carousel waits, and why it expired
+HELD_NOTE = QUOTE_LIMIT   # a held carousel's reason on Details: whole up to an item's folded text (LAND-32 port 2)
 KIND_ICON = {"reel": "🎬", "story": "📱", "carousel": "🖼"}
 # Why a booking was cancelled, in the operator's words (a bare "cancelled" gave no idea what had happened or
 # whether anything was needed: operator, 2026-10-27, Göbekli Tepe's Stories)
@@ -65,9 +67,25 @@ def _short_thumbnail(pubs, shorts) -> str:
     return "not set" + (" (YouTube needs the channel verified: youtube.com/verify)" if "403" in error else "")
 
 
+def expiry_words(p: dict[str, Any]) -> str:
+    """Why an expired booking expired, as its expiry recorded it (UI-01g round 3: a carousel held at its slot with
+    no carousel slot left in its window, found by the posting loop or by a Redraw tap), with the end of its window;
+    "" for a booking whose expiry recorded no reason (it waited past its deadline: STATUS's words) and for
+    sensitive-topic spacing, which status_words words from its own record. Only a reason the expiry itself wrote
+    (with its expired_at) counts, never one left in the detail from before."""
+    detail = p.get("detail") or {}
+    reason = str(detail.get("reason") or "")
+    if p["status"] != "expired" or not detail.get("expired_at") or not reason or reason == SPACING:
+        return ""
+    end = _dt(detail.get("window_end"))
+    return reason + (f" (until {post_schedule.fmt(end)})" if end else "")
+
+
 def status_words(db, p: Dict[str, Any], on_episode: bool = False) -> str:
     """A booking's state as the operator reads it; a cancelled one says why and what can be done."""
     words = STATUS.get(p["status"], p["status"])
+    if expiry_words(p):   # UI-01g round 3: its true reason, not "it waited over 7 days"
+        return "expired: " + expiry_words(p)
     if p["status"] == "expired" and (p.get("detail") or {}).get("reason") == SPACING:   # QF-73: its true reason
         why = (p.get("detail") or {}).get("spacing_why")
         why = why if isinstance(why, dict) else None
@@ -161,7 +179,9 @@ def post_error(detail: Dict[str, Any]) -> str:
     if failed:
         names = ", ".join(p.capitalize().replace("Youtube", "YouTube") for p in failed)
         return f"{names} didn't post; the others did"
-    return clip_words(str(detail.get("error") or detail.get("reason") or ""), 300)
+    # A carousel held at its slot keeps its reason whole up to an item's folded text (LAND-32 port 2): a "Carousel
+    # not posted" item that has to cut a long reason says the whole of it is here, one tap away.
+    return clip_words(str(detail.get("error") or detail.get("reason") or ""), HELD_NOTE if detail.get("held") else 300)
 
 
 def _spacing_reason(db, post: dict[str, Any], slot: datetime) -> str:
@@ -493,6 +513,8 @@ def posting_episode(db, run_id: str) -> Tuple[str, List[List[Dict[str, str]]]]:
         elif p["status"] != "blocked" and detail.get("reason") != SPACING:   # a blocked one lists its reasons below;
             # a carousel expired for spacing says so in its status
             note = post_error(detail)
+            if expiry_words(p) and note == clip_words(str(detail.get("reason")), 300):
+                note = ""   # its status already says why it expired
             if note:  # only while it matters: a published post no longer shows its earlier error
                 lines.append(f"  <i>{e(note)}</i>")
         if p["kind"] == "reel" and p["status"] == "blocked":
@@ -539,8 +561,11 @@ def posting_episode(db, run_id: str) -> Tuple[str, List[List[Dict[str, str]]]]:
             spaced = any(x["status"] == "expired" and (x.get("detail") or {}).get("reason") == SPACING
                          for x in followers)   # QF-73: its own line gives the reason; nothing was cancelled
             if not spaced and not any(x["status"] in ("pending", "waiting", "published", "unknown") for x in followers):
-                # the Reel posted after all (a retry), its Stories and carousel cancelled with the failed slot
-                lines.append("  Stories and carousel: " + ("cancelled with the failed slot" if followers else "not booked"))
+                # the Reel posted after all (a retry), its Stories and carousel cancelled with the failed slot; one
+                # whose expiry recorded why (UI-01g round 3) was not cancelled: its own line below says why
+                lines.append("  Stories and carousel: " + (
+                    "not posted (see below)" if any(expiry_words(x) for x in followers)
+                    else "cancelled with the failed slot" if followers else "not booked"))
                 buttons.append([{"text": "📱 Book Stories and carousel again", "callback_data": f"rebook:{key}"}])
     return "\n".join(lines), buttons + [[{"text": "← Posting", "callback_data": "cposts:"}]]
 

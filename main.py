@@ -27,6 +27,7 @@ import json
 import re
 import os
 import shutil
+import sqlite3
 import subprocess
 import threading
 import logging
@@ -191,6 +192,8 @@ class CarouselCreditHold(ValueError):
     the Redraw button when one can be made."""
 
     REDRAW = "A redraw gives its slides records, so its caption credits only the photos they show"
+    RESTORE = ("Restore or correct the photo's credit record (credits.json beside the photo) first; a redraw "
+               "then credits the photo from it")
 
     def __init__(self, reason: str, *, final: bool = False, redraw: str = "") -> None:
         super().__init__(reason)
@@ -4152,8 +4155,7 @@ class PipelineCoordinator:
                 unread += 1
             else:
                 from_ledger += found
-        restore = ("Restore or correct the photo's credit record (credits.json beside the photo) first; a redraw "
-                   "then credits the photo from it")
+        restore = CarouselCreditHold.RESTORE
         if unread:
             # The run's other credits are no credit for this photo, so the caption is not filled from them: held.
             ledger_file = shown[0].parent.parent / "provenance.json"
@@ -4383,6 +4385,104 @@ class PipelineCoordinator:
             self.db.update_scheduled_post(post["id"], "waiting", detail=detail)
             post["detail"] = detail
 
+    def _booking_item_open(self, post: dict[str, Any]) -> bool:
+        """Whether the clean chat still shows this booking's Needs-you item (UI-01g): only then is its notice
+        brought up to date. The earlier chat (switch off) has no items: its notice is sent once, as before."""
+        if not config.TELEGRAM_CLEAN_CHAT:
+            return False
+        try:
+            return notifications.has_open(self.db, f"post-failed:{post['id']}")
+        except (sqlite3.Error, OSError) as e:  # the database could not be read: not known, the notice is left as it is
+            log.warning("Could not read the notice of booking %s: %s", post["id"], e)
+            return False
+
+    def _withdraw_booking_notice(self, post: dict[str, Any]) -> None:
+        """UI-01g: a waiting carousel's "no slot before its deadline" notice is withdrawn once the carousel plan gives
+        it a slot again (the carousel that took its slot was cancelled, posted elsewhere or expired). Its item said
+        it has no slot, who takes it and that it expires if nothing is done, and offered Let it expire: none of that
+        is so any more, so the item is closed as resolved, and what the booking keeps of the notice (that it was
+        raised, what it offered) is cleared: if the slot is lost again, the notice is raised again, as new. Only a
+        waiting booking comes here (the same key carries a held carousel's notice, whose booking is "failed"). The
+        earlier chat (switch off) has no item to withdraw and its notice is said once, as before: nothing changes."""
+        detail = dict(post.get("detail") or {})
+        said = [k for k in ("slot_alert", "spacing_alert", "notice_offer") if k in detail]
+        if not said or not config.TELEGRAM_CLEAN_CHAT:
+            return
+        try:
+            notifications.close_key(self.db, f"post-failed:{post['id']}")
+        except (sqlite3.Error, OSError) as e:  # not closed: the booking still says it was raised; the next pass tries again
+            log.warning("Could not withdraw the notice of booking %s: %s", post["id"], e)
+            return
+        for k in said:
+            detail.pop(k)
+        self.db.update_scheduled_post(post["id"], "waiting", detail=detail)
+        post["detail"] = detail
+
+    def _expire_held_carousels(self, now: datetime) -> None:
+        """UI-01g: a carousel held at its slot (QF-81) with no carousel slot left in its window can no longer be
+        redrawn into a slot: its booking expires (the rule redraw_carousel applies on a tap), at the first pass of
+        the posting loop after its last slot, and its item, while it is still open, is written again in place with
+        what happened and without the Redraw: it said "Redraw it ...; it then posts in the next carousel slot",
+        which had stopped being true. The last slot can come before the window's end (and the hold itself can be at
+        that last slot), so the item says that no slot is left and until when the window runs, never that the
+        window "ended". While a slot is left nothing changes. A hold that already says "This carousel will not
+        post" (binding, final) is left as it is. Clean chat only: with the switch off the earlier chat's message
+        and its booking stay exactly as before."""
+        if not config.TELEGRAM_CLEAN_CHAT:
+            return
+        for post in self.db.list_scheduled_posts(("failed",)):
+            detail = post.get("detail") or {}
+            if post["kind"] != "carousel" or not detail.get("held") or detail.get("binding") or detail.get("final"):
+                continue
+            reel_at = post_schedule.carousel_reel(self.db, post)[1]
+            if post_schedule.first_carousel_slot(reel_at, now=now):
+                continue
+            ended = post_schedule.carousel_deadline(reel_at)
+            open_ = self._booking_item_open(post)
+            # LAND-32 port 2: a credit hold (QF-126) stored its reason with what a Redraw does about it. This carousel
+            # will not post and nothing offers a Redraw any more, so its reason is kept without that advice (the
+            # item and Details' note both say it so).
+            why = self._held_reason(detail)
+            self.db.update_scheduled_post(post["id"], "expired", detail={
+                **detail, "reason": "held at its slot, and no carousel slot was left in its window",
+                **({"error": f"held at its slot: {why}"} if why else {}),
+                "window_end": ended.isoformat(), "expired_at": now.isoformat()})   # Posting says why (round 3)
+            log.info("Carousel %s of %s expired: held at its slot, no carousel slot left in its window.",
+                     post["id"], post["run_id"])
+            if not open_:   # dismissed: it is not brought back
+                continue
+            label = html.escape(self.db.run_label(post["run_id"]))
+            until = html.escape(post_schedule.fmt(ended))
+
+            def item(said: str, label: str = label, until: str = until) -> str:
+                return (f"❌ <b>Carousel not posted</b> for {label}: it was held at its slot"
+                        + (f" ({html.escape(said)})" if said else "")
+                        + f", and no carousel slot is left in its window (until {until})." + chr(10) * 2
+                        + "This carousel will not post. Nothing was posted, and its Reel and other posts are not "
+                          "affected.")
+
+            # The reason is quoted whole when the item's folded text (notifications.QUOTE_LIMIT) holds it beside the
+            # rest of the item, else it ends at a word with an ellipsis and says where the whole of it is: Details
+            # (posting_view.post_error keeps a held carousel's reason whole up to that same limit). Never mid-word.
+            room = notifications.QUOTE_LIMIT - len(" ".join(notifications.plain(item("x")).split())) + 1
+            if len(why) > room:
+                from src.posting_view import HELD_NOTE
+                where = ("; the whole reason is on Details" if len(why) <= HELD_NOTE
+                         else "; more of the reason is on Details")
+                why = clip_words(why, room - len(where)) + where
+            _notice(self, item(why),
+                    buttons=[[{"text": "📋 Details", "callback_data": f"cpost:{self.db.run_key(post['run_id'])}"}]],
+                    section="needs", key=f"post-failed:{post['id']}", run=post["run_id"], replace=True)
+
+    @staticmethod
+    def _held_reason(detail: dict[str, Any]) -> str:
+        """Why a carousel was held at its slot, as its booking recorded it, without the Redraw advice a credit hold
+        (QF-126) stored beside its reason: said only where a Redraw is offered."""
+        why = str(detail.get("error") or "").removeprefix("held at its slot: ").strip()
+        for action in (CarouselCreditHold.REDRAW, CarouselCreditHold.RESTORE):
+            why = why.removesuffix(". " + action)
+        return why
+
     def _close_booking_item(self, post: dict[str, Any]) -> None:
         """QF-73b: a carousel's Needs-you item (its spacing or no-slot notice, under its booking's key) is answered
         once the carousel posts or expires: it is closed as resolved, never left open with buttons that no longer
@@ -4427,6 +4527,7 @@ class PipelineCoordinator:
             outlook = outlook or carousel_outlook(self.db, now, may_post=self._may_post)
             wait = outlook["waits"].get(post["id"])
             if not wait or wait["earliest"] or wait["state"] != "posted":
+                self._withdraw_booking_notice(post)   # UI-01g: the plan gives it a slot again
                 continue
             detail = dict(post.get("detail") or {})
             record = {"spacing_why": wait["why"], "deadline": wait["deadline"].isoformat()}
@@ -4442,11 +4543,20 @@ class PipelineCoordinator:
                 detail.update(record)
                 self.db.update_scheduled_post(post["id"], "waiting", detail=detail)
             flag = "spacing_alert" if wait["kind"] == "spacing" else "slot_alert"
-            if wait["unconfirmed"] or detail.get(flag):
+            raised = bool(detail.get(flag))
+            if wait["unconfirmed"] or (raised and not self._booking_item_open(post)):
                 continue
             outcome = ({"slot": None, "blocked_by": None} if wait["override"]
                        else post_anyway_outcome(self.db, post, outlook=outlook))
-            detail[flag] = now.isoformat()
+            # UI-01g: what the notice says (the cause, the slot Post anyway would give it, or who holds that slot).
+            # The clean chat's item is written again when that is no longer so (another carousel's Post anyway took
+            # the slot it named), so an open notice never offers a slot it cannot have; an unchanged one is left.
+            offer = [wait["kind"], bool(wait["lost"]), why_words(wait["why"]),
+                     outcome["slot"].isoformat() if outcome["slot"] else None, outcome["blocked_by"]]
+            if raised and detail.get("notice_offer") == offer:
+                continue
+            detail.setdefault(flag, now.isoformat())
+            detail["notice_offer"] = offer
             self.db.update_scheduled_post(post["id"], "waiting", detail=detail)
             label = html.escape(self.db.run_label(post["run_id"]))
             deadline = html.escape(post_schedule.fmt(wait["deadline"]))
@@ -4573,6 +4683,7 @@ class PipelineCoordinator:
 
     def _post_carousel_if_due(self, now: datetime) -> None:
         self._watch_carousel_spacing(now)   # QF-73: a carousel spacing leaves no slot for is said, never silent
+        self._expire_held_carousels(now)    # UI-01g: a held carousel past its window stops offering a Redraw
         local = now.astimezone(post_schedule.tz())
         slot = post_schedule.carousel_time(local.date())
         if not slot or not slot <= now < slot + MISSED_SLOT_GRACE:
@@ -4858,16 +4969,25 @@ class PipelineCoordinator:
                            f"{html.escape(missing)}. It will not post, and nothing was changed.", done=False)
         carousel_lazy.discard(Path(run["master_video_path"]).parent)
         now = datetime.now().astimezone()
-        self.db.update_scheduled_post(post["id"], "waiting", files=[],
-                                      detail={"redraw": True, "priority": True, "priority_at": now.isoformat(),
-                                              "held_before": post["detail"].get("error")})
-        car = post_schedule.first_carousel_slot(post_schedule.carousel_reel(self.db, post)[1], now=now)
+        again = {"redraw": True, "priority": True, "priority_at": now.isoformat(),
+                 "held_before": post["detail"].get("error")}
+        self.db.update_scheduled_post(post["id"], "waiting", files=[], detail=again)
+        reel_at = post_schedule.carousel_reel(self.db, post)[1]
+        car = post_schedule.first_carousel_slot(reel_at, now=now)
         if car:   # QF-73b: the slot the carousel plan gives it (a carousel chosen first keeps its own), when it has one
             from src.posting_view import carousel_outlook
             car = carousel_outlook(self.db, now, may_post=self._may_post)["plan"].get(post["id"]) or car
         label = html.escape(self.db.run_label(post["run_id"]))
         if not car:
-            self.db.update_scheduled_post(post["id"], "expired")
+            # UI-01g round 3: the expiry records why, so Posting says so ("expired: ..."), not "it waited over 7
+            # days" (a carousel held at its slot can be past its window well before 7 days after its Reel)
+            self.db.update_scheduled_post(post["id"], "expired", detail={
+                **again, "reason": "held at its slot, and a Redraw found no carousel slot left in its window",
+                "window_end": post_schedule.carousel_deadline(reel_at).isoformat(), "expired_at": now.isoformat()})
+            # UI-01g: the booking has expired, so its hold item goes with it (as a carousel's notice does when it
+            # posts or expires: QF-73b). It is never left open offering a Redraw that can no longer work; this
+            # reply says why, and Posting shows the booking as expired.
+            self._close_booking_item(post)
             return Outcome(f"🖼 The carousel of {label} has no carousel slot left in its window, so it won't post.",
                            done=False)
         return Outcome(f"🔁 The carousel of {label} is drawn again and posts {html.escape(post_schedule.fmt(car))}, if "

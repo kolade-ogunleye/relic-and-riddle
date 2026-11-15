@@ -2043,9 +2043,7 @@ def carousel_preview_screen(db: PipelineDatabase, args: str, preview: Callable[[
     slides = (record.get("slides") or {}).get("carousel") or []
     alts = record.get("alts") or {}
     label = html.escape(db.run_label(run_id))
-    held = record.get("held")
-    verdict = (f"⛔ Held: {html.escape(str(held)[:300])}. It will not post like this." if held else
-               "✅ Its checks pass: this is what posts when it takes its carousel slot.")
+    verdict = carousel_preview_verdict(record)
     found = summary(record, limit=500)
     if not slides:
         text = f"🖼 <b>Carousel preview</b> · {label}" + nl * 2 + verdict + (nl * 2 + html.escape(found) if found else "")
@@ -2070,9 +2068,65 @@ def carousel_preview_screen(db: PipelineDatabase, args: str, preview: Callable[[
     return caption, buttons + [[HOME]]
 
 
+def carousel_preview_verdict(record: dict[str, Any]) -> str:
+    """Whether the drawing would post, in the preview's words (the dashboard's preview and the review panel's)."""
+    held = record.get("held")
+    return (f"⛔ Held: {html.escape(str(held)[:300])}. It will not post like this." if held else
+            "✅ Its checks pass: this is what posts when it takes its carousel slot.")
+
+
+def carousel_preview_pages(db: PipelineDatabase, ref: str, preview: Callable[[str], dict[str, Any]] | None) -> dict[str, Any]:
+    """The review panel's carousel preview (UI-01g): the same drawing as ccar (`preview`, QF-81), as that panel's
+    pages: both copies on one sheet with the verdict and every finding, then each Instagram slide with its alt text
+    (and Facebook's, where it differs). {"pages": [{"path", "caption"}], "note": what to say when there is no
+    picture to show}. Draws nothing in Telegram."""
+    from .carousel_lazy import SHEET, STAGE, summary
+    nl = chr(10)
+    if preview is None:
+        return {"pages": [], "note": "The carousel preview works while the bot or daemon is running."}
+    try:
+        record = preview(db.resolve_run(ref.strip()))
+    except ValueError as e:
+        return {"pages": [], "note": html.escape(str(e))}
+    stage = Path(record["run_dir"]) / STAGE
+    slides = (record.get("slides") or {}).get("carousel") or []
+    alts = record.get("alts") or {}
+    verdict = carousel_preview_verdict(record)
+    found = summary(record, limit=500)
+    pages: list[dict[str, str]] = []
+    if slides and (stage / SHEET).is_file():
+        pages.append({"path": str(stage / SHEET), "caption": verdict + nl + f"{len(slides)} slides: Instagram above, "
+                      "Facebook's grid copy below; ▶ for each slide and its alt text."
+                      + (nl * 2 + html.escape(found) if found else "")})
+    for n, slide in enumerate(slides, 1):
+        path = stage / "carousel" / slide["name"]
+        if not path.is_file():
+            continue
+        ig = (alts.get("carousel") or [""] * len(slides))[n - 1]
+        fb_alts = alts.get("carousel_fb") or []
+        fb = fb_alts[n - 1] if n - 1 < len(fb_alts) else ig
+        pages.append({"path": str(path), "caption": f"Slide {n} of {len(slides)}" + nl
+                      + f"Alt text (Instagram): {html.escape(ig or 'none')}"
+                      + (nl + f"Alt text (Facebook): {html.escape(fb)}" if fb != ig else "")})
+    return {"pages": pages, "note": verdict + (nl * 2 + html.escape(found) if found else "")}
+
+
 NOTICES_SHOWN = 15   # items listed on 📊 Status › 🗒️ Notices
 NOTICE_STATES = {"open": "in the panel", "handled": "handled", "dismissed": "dismissed", "dropped": "dropped from the panel",
-                 "resolved": "dealt with"}
+                 "resolved": "dealt with", "expired": "left the panel by its time"}
+
+
+def _service_seen(db) -> None:
+    """The operator opened 🗓 Posting or 📚 History (a tap or a typed command): the clean chat's "Back online" item,
+    which asks for that look after an outage, is dealt with (UI-01g, operator 2026-11-14). The screen is drawn
+    whether or not the item could be closed."""
+    if not config.TELEGRAM_CLEAN_CHAT:
+        return
+    try:
+        from . import notifications as notes
+        notes.service_seen(db)
+    except (sqlite3.Error, OSError) as e:  # the item stays open and says so; the screen asked for comes first
+        log.warning("Could not close the Back online item: %s", e)
 
 
 def notices_screen(db, args: str = "") -> tuple[str, list[list[dict[str, str]]]]:
@@ -2100,7 +2154,7 @@ def notices_screen(db, args: str = "") -> tuple[str, list[list[dict[str, str]]]]
                "included." if items else f"Nothing in the last {notes.RETAIN_DAYS} days.")
     text = "\n\n".join(x for x in (title("🗒️", "Notices", summary), note, "\n\n".join(lines)) if x)
     rows = [[button(f"↩️ Restore: {item['title']}", f"cnotices:restore {item['id']}")]
-            for item in items if item["state"] in (notes.DISMISSED, notes.DROPPED)][:5]
+            for item in items if item["state"] in (notes.DISMISSED, notes.DROPPED, notes.EXPIRED)][:5]
     return text, with_nav(rows, "cstat:")
 
 
@@ -2863,6 +2917,7 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             body = record["text"] if record else "📰 <b>Weekly digest</b>\nNone yet: it comes on Monday mornings."
             return body, [[HOME]]
         if command in ("history", "chistory"):  # typed /reviews history opens Review history
+            _service_seen(db)   # UI-01g: "Back online" asked for this look
             text, buttons = review_history(db, int(args) if args.strip().isdigit() else 0)
             return text, buttons + [[HOME]]
         if command == "chist":
@@ -3193,6 +3248,7 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
                     "This is the one action that publishes; the daily runs stay in dry-run mode.",
                     buttons + [[HOME]])
         if command in ("posts", "cposts"):
+            _service_seen(db)   # UI-01g: "Back online" asked for this look
             text, buttons = posting_panel(db, int(args) if args.strip().isdigit() else 0)
             return text, buttons + [[HOME]]
         if command == "cslots":  # the coming week's slots, booked or free (review, 2026-10-25)
@@ -3697,4 +3753,6 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
                         raise ValueError("This topic is producing; images cannot be changed or approved")
                 return original_handle(command, args)
         return original_handle(command, args)
+    # UI-01g: the review panel draws the carousel preview in itself; it asks for the pages here (never a command)
+    guarded_handle.carousel_pages = lambda ref: carousel_preview_pages(db, ref, (run_actions or {}).get("carpreview"))
     return guarded_handle

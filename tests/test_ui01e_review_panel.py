@@ -717,9 +717,10 @@ def test_the_panel_states_the_ai_label_the_media_approve_posts_decide(db, tmp_pa
     assert "in the reply" not in summary                                    # the panel has no reply under it
 
 
-def test_a_carousel_drawn_at_its_slot_is_previewed_from_posts_in_the_dashboard(db, tmp_path, monkeypatch):
+def test_a_carousel_drawn_at_its_slot_is_previewed_from_posts_inside_the_panel(db, tmp_path, monkeypatch):
     """QF-81's 🖼 Preview carousel (the live card's button, which the Posts text names) is on the panel's Posts tab;
-    its preview is drawn in the dashboard, and the review panel's video and caption stay as they were."""
+    its preview is drawn in the review panel itself (UI-01g: it was drawn in the dashboard), and the dashboard stays
+    as it was."""
     from src import carousel_lazy
     from src.control import make_command_handler
     from src.notifications import plain
@@ -732,7 +733,7 @@ def test_a_carousel_drawn_at_its_slot_is_previewed_from_posts_in_the_dashboard(d
     assert ["🖼 Preview carousel"] not in labels(fake, mid)            # Summary keeps its rows (UI-01e)
     tap(bot, f"rvt:{key}:pst", mid)
     preview = [b for row in rows(fake, mid) for b in row if b["text"] == "🖼 Preview carousel"]
-    assert preview == [{"text": "🖼 Preview carousel", "callback_data": f"ccar:{key}"}]
+    assert preview == [{"text": "🖼 Preview carousel", "callback_data": f"rvx:{key}"}]
     pages, seen = [caption(fake, mid)], 1
     while any(b["text"] == "▶" for row in rows(fake, mid) for b in row):
         seen += 1
@@ -748,13 +749,41 @@ def test_a_carousel_drawn_at_its_slot_is_previewed_from_posts_in_the_dashboard(d
         "carpreview": lambda run_id: drawn.append(run_id) or {
             "run_dir": str(root), "slides": {"carousel": [{"name": "carousel_slide_01.jpg"}]},
             "alts": {"carousel": ["A slide."]}}})
-    monkeypatch.setattr(bot, "start_operator_job", lambda title, work, **k: work())
-    panel_before = dict(fake.messages[mid])
+    monkeypatch.setattr(bot, "_background", lambda: type("Now", (), {"submit": lambda self, work: work()})())
+    dashboard_before = dict(fake.messages[dash])
     sends = len([m for m, _ in fake.calls if m.startswith("send")])
     bot._process_update({"callback_query": {"id": "cq-car", "from": {"id": 7}, "data": preview[0]["callback_data"],
                                             "message": {"message_id": mid, "chat": {"id": 100}}}}, handler)
     assert drawn == ["car"]
-    media = [d for m, d in fake.calls if m == "editMessageMedia" and int(d["message_id"]) == dash]
-    assert media and json.loads(media[-1]["media"])["caption"].startswith("🖼 <b>Carousel preview</b>")
-    assert fake.messages[mid] == panel_before                         # the review panel is never drawn over
+    media = [d for m, d in fake.calls if m == "editMessageMedia" and int(d["message_id"]) == mid]
+    assert media and json.loads(media[-1]["media"])["type"] == "photo"
+    assert json.loads(media[-1]["media"])["caption"].startswith("<b>🎬 Review 1 of 1 · Carousel preview 1 of 2</b>")
+    assert fake.messages[dash] == dashboard_before                    # the dashboard is not drawn over (UI-01g)
     assert len([m for m, _ in fake.calls if m.startswith("send")]) == sends
+
+
+def test_a_screen_asked_for_from_the_review_panel_opens_in_the_dashboard_and_the_panel_is_left(db, tmp_path, monkeypatch):
+    """🎨 Covers on Summary is a dashboard screen (ccov: telegram_bot.PANEL_ACTIONS): it is drawn in the dashboard, and
+    the review panel's video, caption and keyboard stay as they were. (The Preview carousel test asserted this until
+    UI-01g moved the preview into the panel; Covers is the screen that still takes this path.)"""
+    bot, fake = make_bot(db, monkeypatch)
+    dash = bot.show_dashboard("🏛️ home", [[{"text": "x", "callback_data": "cdash:"}]])
+    root, payload = a_review(db, tmp_path, monkeypatch, "cov")
+    mid = deliver(bot, db, root, payload, "cov")
+    key = db.run_key("cov")
+    covers = [b["callback_data"] for row in rows(fake, mid) for b in row if b["text"] == "🎨 Covers"]
+    assert covers == [f"ccov:{key}"]
+    asked = []
+
+    def handler(action, args):                                        # the screen's own content is its own test
+        asked.append((action, args))
+        return "🎨 <b>Covers</b> · three to choose from", [[{"text": "Cover 1", "callback_data": f"covpick:{key}"}]]
+    panel_before = dict(fake.messages[mid])
+    dashboard_before = dict(fake.messages[dash])
+    bot._process_update({"callback_query": {"id": "cq-cov", "from": {"id": 7}, "data": covers[0],
+                                            "message": {"message_id": mid, "chat": {"id": 100}}}}, handler)
+    dashboard = bot._current_panel(dash)
+    assert asked == [("covers", key)]                                 # ccov is the Covers command
+    assert fake.messages[dashboard] != dashboard_before               # the screen opened in the dashboard
+    assert "three to choose from" in fake.messages[dashboard]["text"]
+    assert fake.messages[mid] == panel_before                         # the review panel is never drawn over

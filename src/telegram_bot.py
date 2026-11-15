@@ -3954,7 +3954,9 @@ class TelegramApprovalBot:
             elif not verb:
                 notes.set_view(self.db, came_from, item["id"], came_from)
             elif item["state"] != notes.OPEN:
-                answer = "This has been dealt with."
+                # UI-01g: the toast says what the item's page says (an info item that left by its time moved to
+                # Notices; it was not "dealt with")
+                answer = notes.GONE_WORDS.get(item["state"], notes.GONE_WORDS[""])
                 notes.set_view(self.db, came_from, item["id"], came_from)
             elif verb == notes.DISMISS:
                 notes.close(self.db, item["id"], notes.DISMISSED)
@@ -5619,8 +5621,13 @@ class TelegramApprovalBot:
                     # A screen asked for from the review panel (UI-01e: 🖼 Preview carousel, QF-81; 🎨 Covers) is
                     # drawn in the dashboard: the review panel's video and caption are never drawn over.
                     opened = self._typed_panel()
-                    if opened:
-                        msg_id, is_media = opened[0], opened[1]
+                    if not opened:
+                        # UI-01g: the dashboard could not be drawn (a Telegram failure): the screen is refused and
+                        # the panel says so. It is never drawn in the review panel's own message, over its video.
+                        log.warning('The %s screen asked for from the review panel was not opened: no dashboard.', action)
+                        self.review.say("That screen couldn't be opened: the dashboard could not be drawn. Try again.")
+                        return
+                    msg_id, is_media = opened[0], opened[1]
                 if action in {'jobs', 'jobcancel'}:
                     note = ''
                     cancelled = cq.get('_cancelled') if action == 'jobs' else (self.jobs.cancel(target) if action == 'jobcancel' else None)

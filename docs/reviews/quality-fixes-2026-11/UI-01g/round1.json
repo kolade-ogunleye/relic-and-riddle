@@ -1,0 +1,52 @@
+{
+ "check_time_edits": {
+  "conditions_checked_every_seconds": 20,
+  "edits_a_day_at_that_rate": 1440,
+  "edits_of_the_pinned_panel_with_nothing_changed": 360,
+  "hours": 6,
+  "oldest_time_the_condition_item_showed_minutes": 0.7,
+  "says_still_true_at_the_end": true
+ },
+ "paging": {
+  "most_items_on_a_page_with_the_page_size_at_12": 10,
+  "numbers_there_are": 10,
+  "pages_numbered_from_1_with_each_button_on_its_own_item": 10,
+  "pages_of_50_items": 10
+ },
+ "review_panel": {
+  "caption_limit": 1024,
+  "carousel_preview_from_the_review_panel_is_drawn_in": "the review panel",
+  "summary_caption_characters": 748,
+  "summary_caption_characters_with_a_2700_character_note": 945
+ },
+ "service_state": {
+  "outage_clean_stop_start_after_20_seconds": {
+   "item_is_under_needs_you": true,
+   "its_page_still_asks_to_check_posting_and_history": false,
+   "panel_of_the_running_bot_says_bot_stopped": true,
+   "panel_says_back_online": false
+  },
+  "outage_clean_stop_start_after_5_minutes": {
+   "item_is_under_needs_you": true,
+   "its_page_still_asks_to_check_posting_and_history": false,
+   "panel_of_the_running_bot_says_bot_stopped": false,
+   "panel_says_back_online": true
+  },
+  "stopped_13_hours_another_process_draws": {
+   "panel_still_says_bot_stopped": false
+  }
+ },
+ "timeline": {
+  "approved_item_time_moved_when_its_undo_ended": false,
+  "approved_item_with_a_30_hour_undo_stayed_hours": 29.8,
+  "back_online_stayed_hours": 11.8,
+  "condition_items_saying_still_true_checked_at_the_end": 2,
+  "hours": 48,
+  "info_items_in_the_panel_at_the_end_written_over_a_day_before": 0,
+  "items_that_left_by_time_kept_on_notices": 5,
+  "longest_an_info_item_without_a_working_undo_stayed_hours": 23.8,
+  "needs_you_items_at_the_end": 3,
+  "needs_you_items_at_the_start": 3,
+  "oldest_time_a_condition_item_showed_minutes": 0.7
+ }
+}

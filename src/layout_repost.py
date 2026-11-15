@@ -58,6 +58,11 @@ SWEPT_KEY = "layout-swept-at"
 SWEPT_UPTO_KEY = "layout-swept-upto"   # the newest id the last sweep reached
 MIGRATED_KEY = "layout-migrated"         # set once the earlier layout's messages have been cleaned (§13)
 STOPPED_KEY = "service-stopped"          # {"at": epoch, "planned": true}: a clean stop, for the "back" item
+# "Back online" after an unplanned outage asks for this look; the request is carried through a later clean stop
+# and start until it is answered (UI-01g)
+OUTAGE_STILL = ("Still to check after the earlier outage: 🗓️ Posting and 📜 History, for a run the schedule may "
+                "have missed.")
+OUTAGE_ACTIONS = [{"text": "🗓️ Posting", "callback_data": "cposts:"}]
 SEND_GAP_SECONDS = 1.1                   # one send per 1.1 s (F10)
 SWEEP_SECONDS = 3600.0
 SWEEP_LIMIT = 1000
@@ -604,14 +609,20 @@ class Repost:
 
     # ---------------------------------------------------------- stop and back (design §7.3)
     def stopping(self) -> None:
-        """A clean stop: the dashboard's footer and the service-state item say the bot is stopped."""
+        """A clean stop: the dashboard's footer and the service-state item say the bot is stopped. An outage's
+        request the operator has not answered yet (the Needs-you "Back online": check Posting and History) is never
+        written over by it: the item then says the bot is stopped and still carries that request (UI-01g)."""
         from . import notifications as notes
         from .local_time import show
         now = self.layout.clock()
         self.db.set_setting(STOPPED_KEY, json.dumps({"at": now, "planned": True}))
         line = f"⏸️ Bot stopped {show(now, '%H:%M')} · buttons work again when it is back"
-        notes.say(self.bot.notify, f"⏸️ <b>Bot stopped</b>\n\n{line.split(' · ', 1)[1].capitalize()}",
-                  group="info", section=notes.INFO, key="service-state", replace=True, record_alert=False)
+        text = f"⏸️ <b>{notes.STOPPED_TITLE}</b>\n\n{line.split(' · ', 1)[1].capitalize()}"
+        if self._outage_unanswered():
+            self._carry_request(f"{text}.\n\n{OUTAGE_STILL}")
+        else:
+            notes.say(self.bot.notify, text, group="info", section=notes.INFO, key=notes.SERVICE_KEY, replace=True,
+                      record_alert=False)
         self.bot.stopped_footer(line)   # under the dashboard lock, released before _lock is taken (lock order)
         try:
             with self.layout._lock:
@@ -619,26 +630,59 @@ class Repost:
         except Exception as e:  # noqa: BLE001 - the item is recorded; the next start draws it
             log.debug("Notifications panel not drawn at the stop: %s", e)
 
+    def _outage_unanswered(self) -> bool:
+        """Whether the service-state item in the panel is a Needs-you one: an unplanned outage's request to check
+        Posting and History that the operator has neither answered (opening either closes it) nor dismissed. Only
+        that request is ever written under this key as Needs you, and every text written over it carries it on."""
+        from . import notifications as notes
+        return (notes.open_item(self.db, notes.SERVICE_KEY) or {}).get("section") == notes.NEEDS
+
+    def _carry_request(self, text: str) -> None:
+        """Writes the service-state item again with an unanswered outage's request still in it: Needs you, its
+        Posting button kept, and silently (it rang when the outage was reported; a stop or a start rings nothing
+        for it)."""
+        from . import notifications as notes
+        emoji, title, _subject, body = notes.parse(text)
+        notes.post(self.db, notes.NEEDS, notes.SERVICE_KEY, title, body, emoji=emoji, actions=OUTAGE_ACTIONS,
+                   replace=True, ring=False)
+        self.layout.kick()
+
     def back(self, last_poll: float | None) -> None:
         """At start: the service-state item says the bot is back and how long it was down. A planned stop rings
-        nothing; an unplanned outage of more than 15 minutes is a Needs-you item (the schedule may have missed a run)."""
+        nothing; an unplanned outage of more than 15 minutes is a Needs-you item (the schedule may have missed a run).
+
+        UI-01g: after any start the item either says the bot is back (and what to check, while an outage's request
+        is unanswered) or is closed. "Bot stopped" never stays in the panel of a running bot, and an unanswered
+        request is carried through every stop and start until Posting or History is opened (or it is dismissed)."""
         from . import notifications as notes
         now = self.layout.clock()
         stopped = _json(self.db, STOPPED_KEY, {}) or {}
         since = float(stopped.get("at") or last_poll or 0)
+        asked = self._outage_unanswered()
+        said_stopped = (notes.open_item(self.db, notes.SERVICE_KEY) or {}).get("title") == notes.STOPPED_TITLE
         if not since or now - since < 60:
             self.db.set_setting(STOPPED_KEY, "")
+            # A restart inside a minute says nothing new, but "Bot stopped" is no longer true: with a request still
+            # unanswered it becomes "Back online" with that request, else it is closed. Any other item is left.
+            if said_stopped and asked:
+                self._carry_request(f"🟢 <b>Back online</b>\n\nRestarted. {OUTAGE_STILL}")
+            elif said_stopped:
+                notes.close_key(self.db, notes.SERVICE_KEY, notes.RESOLVED)
             return
         planned = bool(stopped.get("planned"))
         down = int(now - since)
         hours, minutes = divmod(down // 60, 60)
         said = (f"{hours} h {minutes} min" if hours else f"{minutes} min")
         unplanned_long = not planned and down > 15 * 60
+        if planned and asked:   # a clean stop over an unanswered request: the request stays, and nothing rings
+            self._carry_request(f"🟢 <b>Back online</b>\n\nWas down {said}. {OUTAGE_STILL}")
+            self.db.set_setting(STOPPED_KEY, "")
+            return
+        needs = unplanned_long or asked   # an unanswered request stays Needs you, with its button
         # Said through the senders' path (notifications.say, bot.notify: UI-01a); a Needs-you item rings, info does not
         notes.say(self.bot.notify, "🟢 <b>Back online</b>\n\n" + f"Was down {said}."
                   + ("" if planned else " It stopped without a clean shutdown; check 🗓️ Posting and 📜 History for a "
                                         "run the schedule may have missed."),
-                  group="needs" if unplanned_long else "info", section=notes.NEEDS if unplanned_long else notes.INFO,
-                  key="service-state", replace=True, record_alert=False,
-                  actions=[{"text": "🗓️ Posting", "callback_data": "cposts:"}] if unplanned_long else None)
+                  group="needs" if needs else "info", section=notes.NEEDS if needs else notes.INFO,
+                  key=notes.SERVICE_KEY, replace=True, record_alert=False, actions=OUTAGE_ACTIONS if needs else None)
         self.db.set_setting(STOPPED_KEY, "")

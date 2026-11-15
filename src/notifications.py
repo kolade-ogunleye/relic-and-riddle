@@ -19,11 +19,14 @@ import hashlib
 import html
 import inspect
 import json
+import logging
 import re
+import sqlite3
 import time
 from collections.abc import Sequence
 from typing import Any, Self
 
+log = logging.getLogger(__name__)
 NEEDS, INFO = "needs", "info"
 KEEP = 50                  # items the panel shows; the oldest info items go first, Needs you never
 RETAIN_DAYS = 90           # every row's life in the database (the Notices screen), as alerts had
@@ -38,8 +41,14 @@ NOTE_LIMIT = 200           # why an action was not done, on the item's page
 PUSH_REPEAT_SECONDS = 6 * 3600   # an open item's key rings again only after this
 UNDO_SECONDS = 30          # Dismiss all info can be undone this long
 RETURN_SECONDS = 120       # the panel returns to list page 1 after this without a tap
+INFO_SECONDS = 24 * 3600   # an info item leaves the panel by itself this long after it was last written (UI-01g)
+BACK_ONLINE_SECONDS = 12 * 3600   # ... and the info "Back online" after this (a night), or once Posting or History opens
+CHECK_FRESH_SECONDS = 120  # a condition's last check counts as "still true" this long (it is checked every 20 s)
+CHECK_SHOWN_SECONDS = 300  # the panel is written again for a newer check time alone once the one shown is this old
+SERVICE_KEY = "service-state"   # "Bot stopped" and "Back online": one item, the newer replaces the older
+STOPPED_TITLE = "Bot stopped"   # ... the one that leaves only when the bot is back, never by time
 # Keys whose newer item replaces the older text instead of counting it (design §6.1.3).
-REPLACEABLE = ("digest:", "maintenance:", "policy:", "service-state", "release")
+REPLACEABLE = ("digest:", "maintenance:", "policy:", SERVICE_KEY, "release")
 CIRCLED = "①②③④⑤⑥⑦⑧⑨⑩"
 REVISION_KEY = "notifications-rev"
 VIEW_KEY = "notifications-view"
@@ -49,6 +58,10 @@ FAIL_PREFIX = "fail:"       # a run's failure item: fail:<run>
 LATE_PREFIX = "cond:late:"  # the late-failure condition for a run (notice_conditions)
 DISMISS = "x"              # the verb of an item page's Dismiss button: n:<id>:x
 OPEN, HANDLED, DISMISSED, DROPPED, RESOLVED = "open", "handled", "dismissed", "dropped", "resolved"
+EXPIRED = "expired"        # an info item past its time: out of the panel, on Notices for RETAIN_DAYS (UI-01g)
+# What an item no longer in the panel says on its page, and to a tap on one of its buttons (the same words)
+GONE_WORDS = {EXPIRED: "This is older info: it moved to 📊 Status › 🗒️ Notices.", "": "This has been dealt with."}
+CONDITION_PREFIX = "cond:"  # a condition item's key (notice_conditions): derived from the state, not sent
 
 _ready: set = set()
 
@@ -82,7 +95,8 @@ def ensure(db) -> None:
         conn.execute("CREATE INDEX IF NOT EXISTS idx_notifications_state ON notifications(state, updated_at)")
         have = {r[1] for r in conn.execute("PRAGMA table_info(notifications)")}
         for column, decl in (("alert", "TEXT"), ("cond_count", "INTEGER"),   # UI-01b: condition items
-                             ("note", "TEXT")):   # why the item's last action was not done (shown on its page)
+                             ("note", "TEXT"),    # why the item's last action was not done (shown on its page)
+                             ("checked_at", "REAL")):   # UI-01g: when a condition item was last found to hold
             if column not in have:
                 conn.execute(f"ALTER TABLE notifications ADD COLUMN {column} {decl}")
     _ready.add(path)
@@ -115,11 +129,13 @@ def replaceable(key: str) -> bool:
 def post(db, section: str, key: str, title: str, body: str = "", *, emoji: str = "", subject: str = "",
          actions: Sequence[dict[str, str]] = (), run: str | None = None, replace: bool = False,
          now: float | None = None, ring: bool | None = None, alert: str | None = None,
-         cond_count: int | None = None) -> dict[str, Any]:
+         cond_count: int | None = None, keep_time: bool = False) -> dict[str, Any]:
     """Writes one item and bumps the panel's revision; it never sends. Returns {"id", "push"}: push is True when
     the item should ring (a Needs-you item added, reopened or escalated, its key quiet for 6 h). `ring` overrides
     that rule for an item that is still open (a condition whose count rose rings, an unchanged one does not);
-    `alert` is the alert's own line when it differs from the title."""
+    `alert` is the alert's own line when it differs from the title. `keep_time` leaves an open item's time as it
+    was: for a writer that only takes something away (an Undo whose time is up), so the item neither looks new
+    nor starts its day in the panel again (UI-01g)."""
     if section not in (NEEDS, INFO):
         raise ValueError(f"a notification needs a section (needs or info), not {section!r}")
     ensure(db)
@@ -149,7 +165,8 @@ def post(db, section: str, key: str, title: str, body: str = "", *, emoji: str =
             conn.execute("""UPDATE notifications SET section = ?, emoji = ?, title = ?, subject = ?, body = ?, actions = ?,
                             run_id = COALESCE(?, run_id), count = ?, updated_at = ?, pushed_at = ?,
                             push_pending = MAX(push_pending, ?), alert = ?, cond_count = ?, note = NULL WHERE id = ?""",
-                         (kept_section, emoji, title, subject, body, payload, run, count, now,
+                         (kept_section, emoji, title, subject, body, payload, run, count,
+                          float(item["updated_at"]) if keep_time else now,
                           now if push else item["pushed_at"], int(push), alert, cond_count, item["id"]))
             item_id = item["id"]
         else:
@@ -211,6 +228,74 @@ def has_open(db, key: str) -> bool:
     with db._conn() as conn:
         return conn.execute("SELECT 1 FROM notifications WHERE dedupe_key = ? AND state = 'open' LIMIT 1",
                             (key,)).fetchone() is not None
+
+
+def open_item(db, key: str) -> dict[str, Any] | None:
+    """The open item of a key, or None: for a sender that brings its own item up to date (UI-01g)."""
+    ensure(db)
+    with db._conn() as conn:
+        row = conn.execute("SELECT * FROM notifications WHERE dedupe_key = ? AND state = 'open' ORDER BY id DESC LIMIT 1",
+                           (key,)).fetchone()
+    return _row(row) if row else None
+
+
+def checked(db, keys: Sequence[str], now: float | None = None) -> None:
+    """The condition items of these keys were found to hold just now (notice_conditions.sync): their open items
+    say "still true · checked HH:MM". Not a new revision: the renderer compares what it would draw."""
+    keys = [k for k in keys if k]
+    if not keys:
+        return
+    ensure(db)
+    with db._conn() as conn:
+        conn.execute(f"UPDATE notifications SET checked_at = ? WHERE state = 'open' AND dedupe_key IN "
+                     f"({', '.join('?' * len(keys))})", (time.time() if now is None else now, *keys))
+
+
+def expire(db, now: float | None = None, held=None) -> int:
+    """Info leaves the panel by itself (UI-01g, operator 2026-11-14): an info item INFO_SECONDS after it was last
+    written, the info "Back online" after BACK_ONLINE_SECONDS. Its row stays on Notices for RETAIN_DAYS, with
+    Restore. Never a Needs-you item (it stays until handled or its condition clears), never a condition item
+    (it leaves when its condition does), and never "Bot stopped" (it is true until the bot is back: only the start
+    takes it away, whoever draws the panel meanwhile). `held(item)` keeps an item whose action still has time of
+    its own (an Approve's Undo before its slot). An item written again since it was read here is left: the update
+    asks again that it is as old as when it was chosen. Returns how many left."""
+    ensure(db)
+    now = time.time() if now is None else now
+    with db._conn() as conn:
+        rows = conn.execute("SELECT * FROM notifications WHERE state = 'open' AND section = 'info' AND updated_at <= ?",
+                            (now - min(INFO_SECONDS, BACK_ONLINE_SECONDS),)).fetchall()
+    gone = []
+    for item in map(_row, rows):
+        key = str(item.get("dedupe_key") or "")
+        if key.startswith(CONDITION_PREFIX) or (key == SERVICE_KEY and item.get("title") == STOPPED_TITLE):
+            continue
+        limit = BACK_ONLINE_SECONDS if key == SERVICE_KEY else INFO_SECONDS
+        if now - float(item["updated_at"]) < limit:
+            continue
+        try:
+            kept = held is not None and bool(held(item))
+        except (sqlite3.Error, OSError, ValueError, TypeError, KeyError) as e:
+            # its Undo could not be looked up (the database, or a record that does not read): not known, so the
+            # item stays; a live Undo is never taken away by a failed lookup, and the next round asks again
+            log.warning("Could not look up the Undo of item %s; it stays in the panel: %s", item["id"], e)
+            kept = True
+        if not kept:
+            gone.append((item["id"], now - limit))
+    left = 0
+    if gone:
+        with db._conn() as conn:
+            for item_id, cutoff in gone:
+                left += conn.execute("UPDATE notifications SET state = ?, closed_at = ? WHERE id = ? AND state = 'open' "
+                                     "AND section = 'info' AND updated_at <= ?", (EXPIRED, now, item_id, cutoff)).rowcount
+    if left:
+        bump(db)
+    return left
+
+
+def service_seen(db) -> int:
+    """The operator opened 🗓 Posting or 📚 History: "Back online" asked for exactly that look (or only said the bot
+    is back), so its item is dealt with (UI-01g). Returns how many items closed."""
+    return close_key(db, SERVICE_KEY, HANDLED)
 
 
 def get(db, item_id: int) -> dict[str, Any] | None:
@@ -310,11 +395,12 @@ def note(db, item_id: int, text: str) -> None:
 
 
 def restore(db, item_id: int) -> bool:
-    """Puts a dismissed, dropped or handled item back in the panel (Notices › Restore)."""
+    """Puts a dismissed, dropped, expired or handled item back in the panel (Notices › Restore); an info item's day
+    in the panel starts again."""
     ensure(db)
     with db._conn() as conn:
         cur = conn.execute("""UPDATE notifications SET state = 'open', closed_at = NULL, updated_at = ?
-                              WHERE id = ? AND state IN ('dismissed', 'dropped', 'handled')""",
+                              WHERE id = ? AND state IN ('dismissed', 'dropped', 'handled', 'expired')""",
                            (time.time(), int(item_id)))
         if cur.rowcount:
             _retain(conn, time.time())
@@ -484,8 +570,40 @@ def when(ts: float, now: float) -> str:
     return f'<tg-time unix="{int(ts)}" format="{"r" if recent_ else "wt"}">{html.escape(fallback)}</tg-time>'
 
 
+def checked_line(item: dict[str, Any], now: float) -> str:
+    """A condition item's time (UI-01g, operator 2026-11-14): not when it was first raised, which makes a current
+    item look old, but when it was last found to hold: "still true · checked Sat 14:32". The weekday is always
+    there (the entity's format is the one the panel already uses for a day and a time), so a panel nobody has
+    drawn for days cannot pass for today's. A check older than CHECK_FRESH_SECONDS claims nothing: "not checked
+    since …" (the conditions could not be derived, or one is still being counted)."""
+    from .local_time import show
+    at = float(item.get("checked_at") or item["updated_at"])
+    minute = int(at) // 60 * 60   # the minute it shows: a check every 20 s is then at most one edit a minute
+    stamp = f'<tg-time unix="{minute}" format="wt">{html.escape(show(minute, "%a %H:%M"))}</tg-time>'
+    return f"still true · checked {stamp}" if now - at < CHECK_FRESH_SECONDS else f"not checked since {stamp}"
+
+
+_CHECKED = re.compile(r'(still true · checked <tg-time unix=")(\d+)("[^>]*>)[^<]*(</tg-time>)')
+
+
+def check_times(text: str) -> list[int]:
+    """The check times a drawn panel shows on its "still true" lines (each is the minute of a real check)."""
+    return [int(m[2]) for m in _CHECKED.finditer(str(text or ""))]
+
+
+def only_check_times_differ(drawn: str, text: str) -> bool:
+    """Whether a new render of the panel differs from the one drawn in nothing but the time of the last check on
+    its "still true" lines (operator ruling, 2026-11-14): such a render is drawn only once the time on screen is
+    CHECK_SHOWN_SECONDS old (telegram_layout.Layout.draw_notifications). Everything else is a real change and is
+    drawn at once: an item added, closed or written again, a count, a page, and "still true" becoming "not checked
+    since" (that line is not matched here, so a check that stopped is said within CHECK_FRESH_SECONDS as before)."""
+    blank = r"\g<1>\g<3>\g<4>"
+    return drawn != text and _CHECKED.sub(blank, str(drawn or "")) == _CHECKED.sub(blank, str(text or ""))
+
+
 def _meta(item: dict[str, Any], now: float, run_key=None) -> str:
-    parts = [when(float(item["updated_at"]), now)]
+    condition = str(item.get("dedupe_key") or "").startswith(CONDITION_PREFIX)
+    parts = [checked_line(item, now) if condition else when(float(item["updated_at"]), now)]
     if item.get("run_id"):
         parts.append(f"run {html.escape(str(run_key(item['run_id']) if run_key else item['run_id']))}")
     if int(item.get("count") or 1) > 1:
@@ -515,13 +633,14 @@ def list_entry(n: int, item: dict[str, Any], now: float, run_key=None) -> str:
 def pages(items: Sequence[dict[str, Any]], now: float, run_key=None) -> list[list[dict[str, Any]]]:
     """Items packed into list pages: at most 5 a page and 3,600 characters with the header and headings; an item
     is never split across pages, and Needs you comes first (the items' order). The HTML is counted, not only the
-    text Telegram shows, so the presentation layer's 4,000-character cut never shortens a page."""
+    text Telegram shows, so the presentation layer's 4,000-character cut never shortens a page. A page never holds
+    more items than there are numbers (CIRCLED): every item has its own number and its own button (UI-01g)."""
     out: list[list[dict[str, Any]]] = []
     page: list[dict[str, Any]] = []
     size = 80  # the header, the page line and the section headings
     for item in items:
         cost = len(list_entry(0, item, now, run_key)) + 24
-        if page and (len(page) >= PAGE_ITEMS or size + cost > PAGE_CHARS):
+        if page and (len(page) >= min(PAGE_ITEMS, len(CIRCLED)) or size + cost > PAGE_CHARS):
             out.append(page)
             page, size = [], 80
         page.append(item)
@@ -647,8 +766,9 @@ def action_label(action: dict[str, str]) -> str:
 def _item_page(item, items, head, now, run_key, came_from):
     open_ = item["state"] == OPEN
     back = [{"text": "← Back to list", "callback_data": f"np:{came_from}"}]
-    if not open_:
-        return head + "\n\n" + _heading(item) + "\n✅ This has been dealt with.", [back]
+    if not open_:   # an item that left by its time while its page was open is said as what happened
+        mark = "🗒️" if item["state"] == EXPIRED else "✅"
+        return head + "\n\n" + _heading(item) + f"\n{mark} {GONE_WORDS.get(item['state'], GONE_WORDS[''])}", [back]
     same = [i for i in items if i["section"] == item["section"]]
     where = next((n for n, i in enumerate(same, 1) if i["id"] == item["id"]), 1)
     place = f"<i>{'Needs you' if item['section'] == NEEDS else 'Info'} · {where} of {len(same)}</i>"
@@ -658,7 +778,7 @@ def _item_page(item, items, head, now, run_key, came_from):
     from .telegram_ui import label
     verbs = [{"text": label(action_label(a)), "callback_data": f"n:{item['id']}:{action_ref(a)}"}
              for a in item["actions"]]
-    if not str(item.get("dedupe_key", "")).startswith("cond:"):   # a condition resolves itself: no Dismiss
+    if not str(item.get("dedupe_key", "")).startswith(CONDITION_PREFIX):   # a condition resolves itself: no Dismiss
         verbs.append({"text": "Dismiss", "callback_data": f"n:{item['id']}:{DISMISS}"})
     rows = [verbs[k:k + 3] for k in range(0, len(verbs), 3)]
     return "\n\n".join(parts), rows + [back]

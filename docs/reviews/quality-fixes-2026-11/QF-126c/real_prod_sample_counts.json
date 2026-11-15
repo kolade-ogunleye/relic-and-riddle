@@ -1,0 +1,43 @@
+{
+ "before": {
+  "runs": 19,
+  "frames": 38,
+  "credited_frames": 34,
+  "complete": 0,
+  "fits": null,
+  "no_layout_problem": 34,
+  "text_above_credit": 34,
+  "photo_missing": 0,
+  "page_ids_known": 0
+ },
+ "after_no_page_ids": {
+  "runs": 19,
+  "frames": 38,
+  "credited_frames": 34,
+  "complete": 34,
+  "fits": 25,
+  "no_layout_problem": 34,
+  "text_above_credit": 34,
+  "photo_missing": 0,
+  "page_ids_known": 0
+ },
+ "after_page_id_for_every_page_nine_digits": {
+  "runs": 19,
+  "frames": 38,
+  "credited_frames": 34,
+  "complete": 34,
+  "fits": 34,
+  "no_layout_problem": 34,
+  "text_above_credit": 34,
+  "photo_missing": 0,
+  "page_ids_known": 239
+ },
+ "pools": {
+  "topics": 16,
+  "photos_needing_credit": 176,
+  "fit_page_id_nine_digits": 169,
+  "fit_full_address": 110,
+  "topics_story_held_page_id": 0,
+  "topics_story_held_full_address": 0
+ }
+}

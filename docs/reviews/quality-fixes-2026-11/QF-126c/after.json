@@ -1,0 +1,25 @@
+{
+ "commit_has_story_credit_fit": true,
+ "pools": {
+  "photos": 166,
+  "complete": 166,
+  "missing": {},
+  "fits_page_id": 165,
+  "fits_full_address": 103,
+  "lines_px_page_id": {
+   "4 lines at 22 px": 32,
+   "4 lines at 24 px": 33,
+   "4 lines at 26 px": 54,
+   "5 lines at 22 px": 17,
+   "5 lines at 24 px": 1,
+   "5 lines at 26 px": 28,
+   "does not fit": 1
+  },
+  "never_cut": 166,
+  "topics_with_photos": 27,
+  "topics_story_held": {
+   "page_id": [],
+   "full_address": []
+  }
+ }
+}

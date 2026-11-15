@@ -19,10 +19,10 @@ from typing import Any, Dict, List, Tuple
 from PIL import Image, ImageDraw
 
 from .config import VIDEO_WIDTH, VIDEO_HEIGHT
-from .font_engine import GlyphRefused, surface
+from .font_engine import GlyphRefused, choose_face, surface
 from .typography import (balanced_wrap, cap_height, drawable, field_font, fit_font, fit_line, fit_text, cover_crop, get_font,
                          is_video, plan_text, probe_text, record_contrast, spoken_units, text_size, tracked_width,
-                         wrap_text, TextFitError)
+                         wrap_text, LayoutError, TextFitError)
 from . import brand
 
 log = logging.getLogger(__name__)
@@ -538,23 +538,40 @@ class NoRealPhotos(RuntimeError):
 
 class MultiFormatGenerator:
     def generate_story_sequence(self, hero_img_path: Path, script_payload: Dict[str, Any], output_dir: Path,
-                                scene_images: List[Path] = None) -> List[Path]:
+                                scene_images: List[Path] = None, lookup=None) -> List[Path]:
         """Two Story frames, each on its own matched photo: hook and reveal (STORY_FRAMES; QF-80). The script's
         third slide, the poll's question, is not drawn: the native poll sticker can't be posted through the API.
         Text sits on the calmest band of the photo inside Story-safe zones (clear of the profile bar
         at the top and the reply bar at the bottom), over a soft gradient rather than a box.
         An AI-made picture (ai_label.is_ai_picture: an illustration, or a copy of one) is never a frame, the hero
-        fallback included; with no real photo left, NoRealPhotos is raised and no frame is drawn (QF-65c)."""
+        fallback included; with no real photo left, NoRealPhotos is raised and no frame is drawn (QF-65c).
+        A photo whose credit cannot be set whole and legibly on a frame is not used either (QF-126c,
+        story_credit_fits); with none left, StoryCreditFitError holds the Story. `lookup`: the Commons page-id lookup
+        (credits.short_link_lookup()) for the shortest address of a photo's page, recorded in the run's folder; None
+        uses only the ids already recorded there."""
         from .ai_label import is_ai_picture, no_real_photo_reason, real_stills
+        from .credits import find_page_ids, source_page_ids
         out_dir = output_dir / "stories"
         out_dir.mkdir(parents=True, exist_ok=True)
         stills, left_out = real_stills([p for p in (scene_images or []) if not is_video(p)])
         hero_real = bool(hero_img_path) and not is_video(hero_img_path) and not is_ai_picture(hero_img_path)
         if hero_img_path and not hero_real and not is_video(hero_img_path):
             left_out.append(hero_img_path)
-        stills = stills or ([hero_img_path] if hero_real else [])
-        if not stills:
+        if not stills and not hero_real:
             raise NoRealPhotos(no_real_photo_reason(left_out, "Story frames"))
+        candidates = list(dict.fromkeys(stills + ([hero_img_path] if hero_real else [])))
+        if lookup is not None:
+            find_page_ids(output_dir, [photo_credit(p) for p in candidates], lookup)
+        pages = source_page_ids(output_dir)
+        creditable = {p for p in candidates if story_credit_fits(p, pages)}
+        if not creditable:
+            raise StoryCreditFitError(len(candidates))
+        if len(creditable) < len(candidates):
+            log.info("Story frames: %d photo(s) left out, their credit too long to set whole on a frame: %s",
+                     len(candidates) - len(creditable), ", ".join(Path(p).name for p in candidates if p not in creditable))
+        stills = [p for p in stills if p in creditable]
+        hero_real = hero_real and hero_img_path in creditable
+        stills = stills or ([hero_img_path] if hero_real else [])
         slides_data = script_payload["story_slides"][:len(STORY_FRAMES)]
         cards = [{"heading": f"{s['line1']} {s['line2']}", "body": s["body"]} for s in slides_data]
         photos = (self._match_photos(cards, stills) if len(stills) > 1
@@ -578,7 +595,8 @@ class MultiFormatGenerator:
             try:
                 with surface(f"Story frame {i + 1}"):
                     base, lay, attempts = still_layout.drawn(
-                        lambda tight: self._render_story_frame(photos[i], slide, i, len(slides_data), poll, tight=tight))
+                        lambda tight: self._render_story_frame(photos[i], slide, i, len(slides_data), poll, tight=tight,
+                                                             **({"pages": pages} if pages else {})))
             except GlyphRefused as e:
                 # QF-94: a field on this frame (its copy, or its photo's credit) no bundled face can draw: the frame
                 # is refused, never drawn with a letter (or an author's name) missing. The run's glyph ledger
@@ -643,7 +661,7 @@ class MultiFormatGenerator:
         return slides
 
     def _render_story_frame(self, photo: Path, slide: Dict[str, Any], i: int, count: int, poll: Dict[str, Any],
-                            tight: bool = False):
+                            tight: bool = False, pages: dict[str, int] | None = None):
         """One Story frame and its measured layout (visual overhaul, 2026-10-29): a left-aligned editorial column
         at STORY_MARGIN, a kicker (gold bar, tracked gold capitals), a two-tone Anton title (bone, then gold), the
         Montserrat body in balanced lines, and on the first frame the pointer to the Reel. Every block is measured
@@ -653,7 +671,7 @@ class MultiFormatGenerator:
         the pixels touching its glyphs), the ratio recorded with its box for the post-draw check (still_layout).
         `tight`: the second, tighter fit (smaller title and kicker). A photo whose licence asks for attribution is
         credited at the foot of the box (story_credit), recorded as the `photo_credit` element and in the frame's
-        layout.json entry."""
+        layout.json entry. `pages`: the run's known Commons page ids (the credit's source address, QF-126c)."""
         from .safe_zones import safe_box
         from .still_layout import Layout
         sx0, sy0, sx1, sy1 = safe_box("story", VIDEO_WIDTH, VIDEO_HEIGHT)
@@ -670,17 +688,16 @@ class MultiFormatGenerator:
         # above the reply bar and clear of the poll sticker's room, which both sit lower. Set in the data face (IBM
         # Plex Mono), left-aligned on the text column; its backing is shaded only as far as 4.5:1 needs, before any
         # text is drawn; the frame's text block then stays above it.
-        credit = dict(story_credit(photo))
+        credit = dict(story_credit(photo, pages))
         text_floor = sy1
         c_fill = brand.STONE_LT
         if credit["required"]:
-            for c_px in range(STORY_CREDIT_PX, STORY_CREDIT_MIN_PX - 1, -2):  # at most three lines, never under 22 px
-                # the credit's lines in one face (QF-94): a fallback face for all of them when one needs it
-                font_c = field_font("\n".join(credit["lines"]), get_font(brand.DATA_FONT, c_px, weight=500))
-                c_drawn = [ln for line in credit["lines"] for ln in _credit_wrap(d, drawable(line, font_c), font_c, max_w)]
-                if len(c_drawn) <= STORY_CREDIT_LINES:
-                    break
-            c_lead = round(c_px * STORY_CREDIT_LEADING / STORY_CREDIT_PX)
+            # at most STORY_CREDIT_LINES lines, never under 22 px; "fits" False when it takes more (QF-126c: the
+            # Story does not choose such a photo; a redraw that meets one draws it whole and the report holds it)
+            setting = story_credit_fit(d, credit["lines"], max_w)
+            c_px, font_c, c_drawn = setting["px"], setting["font"], setting["drawn"]
+            credit["fits"] = setting["fits"]
+            c_lead = _story_credit_lead(c_px)
             c_bottom = sy1 - 10
             c_top = c_bottom - len(c_drawn) * c_lead
             c_w = max(text_size(d, ln, font_c)[0] for ln in c_drawn)
@@ -875,11 +892,7 @@ class MultiFormatGenerator:
         from .still_layout import union
         ux0, uy0, ux1, uy1 = union([tuple(e["box"]) for e in lay.elements])
         if credit["required"]:  # drawn last, recorded as its own element (text_box stays the frame's text block)
-            plates = []
-            for k, ln in enumerate(c_drawn):
-                plate = plan_text(im, (x, c_top + k * c_lead), ln, font_c, c_fill, "la", halo_px=9)
-                im = plate.draw(im)
-                plates.append(plate)
+            im, plates = story_credit_plates(im, x, c_top, c_lead, c_drawn, font_c, c_fill)
             lay.plates["photo_credit"] = plates
             credit["box"] = list(record_contrast(lay, "photo_credit", plates))
             # The credit's ratio as drawn: the lowest of its lines on the pixels touching their glyphs.
@@ -2312,8 +2325,12 @@ def carousel_credits(slides: List[Path]) -> Tuple[List[str], bool]:
 # says); a BY-SA photo makes the frame an adaptation under BY-SA, which it then states, as the slides and the video do.
 STORY_CREDIT_PX = 26        # ~9.5 pt on a phone: small, and read at a glance like a printed photo credit
 STORY_CREDIT_LEADING = 34
-STORY_CREDIT_MIN_PX = 22    # a long name or a share-alike notice is set smaller before it takes a fourth line
-STORY_CREDIT_LINES = 3
+STORY_CREDIT_MIN_PX = 22    # a credit is set smaller before it takes another line
+# QF-126c: the complete credit (the title, the author, the address of the photo's page, the licence's name and
+# address, the note of changes; a BY-SA frame's own licence) takes three to five lines of the 912 px column: the
+# fewest that hold it at 22 px or more, at most five (measured on the real photo pools, README of
+# docs/reviews/quality-fixes-2026-11/QF-126c). A photo whose credit needs more is not used on a frame.
+STORY_CREDIT_LINES = 5
 STORY_CREDIT_GAP = 28       # between the frame's text block and the credit (the credit's backing fades over 18 px)
 STORY_CREDIT_CONTRAST = 4.5  # WCAG AA for small text, against the pixels under the line
 STORY_ADAPTED = "adapted: cropped, with text added"
@@ -2324,10 +2341,54 @@ def _short_url(url: str) -> str:
     return re.sub(r"^(?:https?:)?//(?:www\.)?", "", str(url or "").strip()).rstrip("/")
 
 
-def story_credit(photo) -> Dict[str, Any]:
+# QF-126c (operator, 2026-11-14: "follow the best practice"): the frame's credit follows Creative Commons' recommended
+# attribution, TASL: the Title (where the record supplies one), the Author, the Source (a frame has no link, so the
+# address of the photo's page as text, the shortest official one) and the Licence's name and address, with the
+# note of what was changed. CC BY 2.0-3.0 s4(b) ask for the title "if supplied" and the URI the licensor specifies
+# for the work; 4.0 s3(a)(1) for a URI or hyperlink to the material "to the extent reasonably practicable". The
+# title is the file's own, whole (sanitised as every credit's text is: credits.sanitise_credit_text; not capped at
+# credits.TITLE_MAX with "…" as a caption line is: a frame never carries a cut credit), without Commons' "File:"
+# namespace and the file's type, which name the page and not the work. The source is the page by its Commons page
+# id when the Commons API gave one for that very page (credits.short_source_url, QF-126b:
+# https://commons.wikimedia.org/?curid=<id>, MediaWiki's own address for a page; never a third party's shortener),
+# else the page's address as recorded; both without the scheme, as a printed address is written. A credit that cannot be set whole and legibly (story_credit_fit:
+# at most STORY_CREDIT_LINES lines of the text column, at STORY_CREDIT_MIN_PX or more) is never cut: the Story does
+# not use that photo (story_credit_fits), and a frame drawn with one anyway is a release problem.
+_FILE_TITLE = re.compile(r"^\s*File:\s*|\.(?:jpe?g|png|tiff?|webp|gif|svg|tif)\s*$", re.IGNORECASE)
+
+
+def _story_title(entry: dict[str, Any]) -> str:
+    """The photo's title as the frame prints it, whole, "" when the record supplies none."""
+    from .credits import sanitise_credit_text
+    return sanitise_credit_text(_FILE_TITLE.sub("", _FILE_TITLE.sub("", str(entry.get("title") or ""))))
+
+
+def _story_source(entry: dict[str, Any], pages: dict[str, int] | None) -> str:
+    """The photo's page as the frame prints it: by its Commons page id when one is known, else as recorded; "" when
+    the record has no http(s) link. Percent-escapes are written as the letters they stand for (as a browser shows
+    the address) unless that would put a space or a control character in it."""
+    from urllib.parse import unquote
+
+    from .credits import short_source_url
+    url = str(entry.get("source_url") or "")
+    page = (pages or {}).get(url) if not entry.get("pageid") else entry.get("pageid")
+    link = short_source_url({**entry, "pageid": page} if page else entry)
+    if link == "Unknown":
+        return ""
+    readable = unquote(link)
+    return _short_url(readable if not re.search(r"[\s\x00-\x1f\x7f]", readable) else link)
+
+
+def story_credit(photo, pages: dict[str, int] | None = None) -> dict[str, Any]:
     """What a Story frame showing `photo` must credit on itself: {"required", "lines", ...}. Public-domain and CC0
-    photos need none, and our own graphics and maps have no credits entry (their map data is public domain)."""
-    from .credits import author_name, is_share_alike, needs_attribution
+    photos need none, and our own graphics and maps have no credits entry (their map data is public domain).
+    `pages`: {source link: Commons page id} known for the run (credits.source_page_ids)."""
+    from .credits import (
+        author_name,
+        is_share_alike,
+        licence_link_key,
+        needs_attribution,
+    )
     entry = photo_credit(Path(photo)) if photo else {}
     if not entry:
         return {"required": False, "reason": "no credits entry (our own graphic, or a photo with no record)", "lines": []}
@@ -2335,27 +2396,139 @@ def story_credit(photo) -> Dict[str, Any]:
     if not needs_attribution(entry):
         return {"required": False, "reason": "licence asks for no attribution", "license": licence, "lines": []}
     author, share_alike, url = author_name(entry), is_share_alike(licence), _short_url(entry.get("license_url"))
-    lines = [f"Photo: {author} · {licence} · {STORY_ADAPTED}"]
+    title, source = _story_title(entry), _story_source(entry, pages)
     # An adaptation carries the address of the licence it is under (BY-SA 3.0 s4(b), 4.0 s3(b)): for a BY-SA photo
-    # that is BY-SA 4.0, the frame's own; a BY photo's frame gives the photo's licence address (BY 4.0 s3(a)(1)(C)).
+    # that is BY-SA 4.0, the frame's own, which it states on its own line; the photo's licence and its address are
+    # named too (4.0 s3(a)(1)(C)), once when the two are the same address.
+    frame_sa = share_alike and url and licence_link_key("https://" + url) == licence_link_key("https://" + STORY_SHARE_ALIKE[1])
+    licence_part = licence if (frame_sa or not url) else f"{licence} {url}"
+    parts = [f"Photo: “{title}” by {author}" if title else f"Photo: {author}"]
+    parts += [source] if source else []
+    parts += [licence_part, STORY_ADAPTED]
+    lines = [" · ".join(parts)]
     if share_alike:
         lines.append(f"This frame: {STORY_SHARE_ALIKE[0]} · {STORY_SHARE_ALIKE[1]}")
-    elif url:
-        lines.append(url)
-    return {"required": True, "author": author, "license": licence, "license_url": entry.get("license_url") or "",
-            "share_alike": share_alike, "source_url": entry.get("source_url") or "", "lines": lines}
+    return {"required": True, "title": title, "author": author, "license": licence,
+            "license_url": entry.get("license_url") or "", "share_alike": share_alike,
+            "source_url": entry.get("source_url") or "", "source": source, "lines": lines}
 
 
-def _credit_wrap(d, line: str, font, width: int) -> List[str]:
+def _credit_wrap(d, line: str, font, width: int, break_addresses: bool = False) -> list[str]:
     """A credit line wrapped at its " · " breaks first (so "adapted: cropped, with text added" is never split from
-    itself), and word by word only inside a part that is wider than the line on its own."""
-    out: List[str] = []
+    itself), and word by word only inside a part that is wider than the line on its own. `break_addresses`: an
+    address wider than the line on its own is broken where a printed address may be (QF-126c): after a "/", before
+    a "_", "-", "." or "?" (as style guides break a URL)."""
+    out: list[str] = []
     for part in line.split(" · "):
         if out and text_size(d, f"{out[-1]} · {part}", font)[0] <= width:
             out[-1] = f"{out[-1]} · {part}"
         else:
-            out += wrap_text(d, part, font, width)
+            for ln in wrap_text(d, part, font, width):
+                out += _break_address(d, ln, font, width) if break_addresses else [ln]
     return out
+
+
+_ADDRESS_BREAK = re.compile(r"(?<=/)(?=[^/])|(?=[_\-.?])")
+
+
+def _break_address(d, line: str, font, width: int) -> list[str]:
+    """`line` (one wrapped line) as it is when it fits; else, when it is an address (one word with a "/"), in pieces
+    broken at _ADDRESS_BREAK, each line filled as far as it goes."""
+    if text_size(d, line, font)[0] <= width or " " in line or "/" not in line:
+        return [line]
+    out: list[str] = []
+    for piece in _ADDRESS_BREAK.split(line):
+        if out and text_size(d, out[-1] + piece, font)[0] <= width:
+            out[-1] += piece
+        elif piece:
+            out.append(piece)
+    return out
+
+
+def story_credit_fit(d, lines: list[str], width: int | None = None, probe: bool = False) -> dict[str, Any]:
+    """How a credit's `lines` are set at the foot of a Story frame: {"px", "font", "drawn", "fits"}. The fewest drawn
+    lines, each within the text column, at any size from STORY_CREDIT_PX down to STORY_CREDIT_MIN_PX (a credit is set
+    smaller before it takes another line), then the largest size that keeps that count; at most STORY_CREDIT_LINES.
+    At the floor otherwise, with "fits" False (QF-126c: never cut, never smaller). GlyphRefused when no bundled face
+    can draw it (QF-94). `probe`: a measurement before any frame is drawn (story_credit_fits), which records no glyph
+    event (font_engine.choose_face): only a frame that is drawn records its fallback or its refusal."""
+    width = width or story_body_width()
+    trials = []
+    # every size with each address whole, then the floor with an address too wide for the line broken across lines
+    sizes = [(c_px, False) for c_px in range(STORY_CREDIT_PX, STORY_CREDIT_MIN_PX - 1, -2)] + [(STORY_CREDIT_MIN_PX, True)]
+    for c_px, broken in sizes:
+        # the credit's lines in one face (QF-94): a fallback face for all of them when one needs it
+        base = get_font(brand.DATA_FONT, c_px, weight=500)
+        font_c = choose_face("\n".join(lines), base) if probe else field_font("\n".join(lines), base)
+        if font_c is None:
+            raise GlyphRefused("\n".join(lines), Path(str(base.path)).name, "")
+        c_drawn = [ln for line in lines
+                   for ln in _credit_wrap(d, line if probe else drawable(line, font_c), font_c, width, broken)]
+        whole = all(text_size(d, ln, font_c)[0] <= width for ln in c_drawn)
+        trials.append({"px": c_px, "font": font_c, "drawn": c_drawn, "broken": broken,
+                       "fits": whole and len(c_drawn) <= STORY_CREDIT_LINES})
+    fitting = [t for t in trials if t["fits"]]
+    # every address whole first, then the fewest lines, then the largest size (the trials run from the largest size
+    # down; min keeps the first)
+    chosen = min(fitting, key=lambda t: (t["broken"], len(t["drawn"]))) if fitting else trials[-1]
+    if chosen["fits"]:
+        # the setting is planned as the frame plans it (story_credit_plates), so a setting judged to fit is one the
+        # frame can draw: the probe and the drawing never disagree (QF-126c review 1)
+        # on a band as tall as the credit and its halo (each plate is planned on its own crop), in ink: the halo
+        # search is the frame's to make on its photo; this plans the same glyph masks and measures them
+        lead = _story_credit_lead(chosen["px"])
+        try:
+            story_credit_plates(Image.new("RGB", (VIDEO_WIDTH, lead * len(chosen["drawn"]) + 120), brand.INK),
+                                STORY_MARGIN, 60, lead, chosen["drawn"], chosen["font"], brand.STONE_LT)
+        except (TypeError, ValueError):
+            chosen = dict(chosen, fits=False)
+    return chosen
+
+
+def _story_credit_lead(px: int) -> int:
+    return round(px * STORY_CREDIT_LEADING / STORY_CREDIT_PX)
+
+
+def story_credit_plates(im: Image.Image, x: int, top: int, lead: int, lines: list[str], font, fill):
+    """(the image with the credit's `lines` drawn from `top`, their plates). Each line is planned as the graphics
+    plan a light face too thin for typography.ring_contrast to read its own interior (graphics._plan_thin): at the
+    22 px floor a short line ("by Pinakpani") of IBM Plex Mono 500 has strokes about 2 px wide and no eroded
+    interior, so it is measured against its drawn colour, its halo raised until it reaches the target, as a map's
+    neighbour names are (QF-126c review 1: plan_text raised TypeError there)."""
+    from .graphics import _plan_thin
+    plates = []
+    for k, ln in enumerate(lines):
+        plate = _plan_thin(im, (x, top + k * lead), ln, font, fill, "la", halo_px=9)
+        im = plate.draw(im)
+        plates.append(plate)
+    return im, plates
+
+
+def story_credit_fits(photo, pages: dict[str, int] | None = None) -> bool:
+    """Whether a Story frame on `photo` can carry the credit its licence asks for whole and legibly (a photo that asks
+    for none always can). A credit no bundled face can draw is left to the frame's own refusal (QF-94: the frame is
+    refused with the reason and the operator decides), as before this check."""
+    credit = story_credit(photo, pages)
+    if not credit["required"]:
+        return True
+    if not (credit["source"] and credit["license_url"]):   # no page or licence address to give: not complete
+        return False
+    try:
+        return story_credit_fit(ImageDraw.Draw(Image.new("RGB", (8, 8))), credit["lines"], probe=True)["fits"]
+    except GlyphRefused:
+        return True
+
+
+class StoryCreditFitError(LayoutError):
+    """No photo the Story frames could use has a credit that can be set whole and legibly on a frame (QF-126c): the
+    Story is held (main.hold_layout_error, the review card's "its text would not fit whole") rather than drawn with
+    a credit cut or set below the type floor."""
+
+    def __init__(self, photos: int):
+        self.photos = photos
+        super().__init__(f"the photo credit of each of its {photos} photo(s) cannot be set whole: more than "
+                         f"{STORY_CREDIT_LINES} lines at {STORY_CREDIT_MIN_PX} px, or no address for its page or "
+                         f"its licence")
 
 
 def _contrast(im: Image.Image, box, text_rgb) -> float:
@@ -2371,6 +2544,8 @@ def story_credit_report(frames: List[Path]) -> Dict[str, Any]:
     """For the release report: {"credited": [{"frame", "lines"}], "problems": [...]}. Every frame whose photo's
     licence asks for attribution must carry that credit, drawn whole, at the contrast it needs; a frame without its
     layout record cannot show what it credited, which is a problem too."""
+    from .credits import source_page_ids
+    from .hold_advice import STORY_REDRAW
     credited, problems = [], []
     by_dir: Dict[str, Dict[str, Any]] = {}
     for frame in [Path(f) for f in frames]:
@@ -2385,17 +2560,27 @@ def story_credit_report(frames: List[Path]) -> Dict[str, Any]:
         if not photo or drawn is None:
             problems.append(f"{frame.name}: no layout record of its photo and credit (drawn before 2026-10-29?)")
             continue
-        expected = story_credit(photo)
+        # The photo's page by its id or by its recorded address (QF-126c): either is its complete credit, so a
+        # frame drawn before an id was found is not held for it.
+        expected = story_credit(photo, source_page_ids(frame.parent.parent))
         if not expected["required"]:
             continue
-        if drawn.get("lines") != expected["lines"]:
-            problems.append(f"{frame.name}: the frame credits {drawn.get('lines')}, its photo needs {expected['lines']}")
+        if drawn.get("lines") not in (expected["lines"], story_credit(photo)["lines"]):
+            # a frame drawn before its credit took its present form (QF-126c) is drawn again, never posted as it is;
+            # the cause and what is needed first, the lines after, so a notice cut short keeps them (review 1)
+            problems.append(f"{frame.name}: drawn with another credit than its photo needs (an older form{STORY_REDRAW}; "
+                            f"it credits {drawn.get('lines')}, its photo needs {expected['lines']}")
+        elif (drawn.get("fits") is False or len(drawn.get("drawn") or []) > STORY_CREDIT_LINES
+              or int(drawn.get("px") or 0) < STORY_CREDIT_MIN_PX):
+            problems.append(f"{frame.name}: its photo's credit takes {len(drawn.get('drawn') or [])} lines at "
+                            f"{drawn.get('px')} px, more than {STORY_CREDIT_LINES} at {STORY_CREDIT_MIN_PX} px or more "
+                            f"(the frame needs a photo whose credit fits{STORY_REDRAW}")
         elif not drawn.get("complete"):
             problems.append(f"{frame.name}: the credit could not be drawn whole (a character the font lacks): {drawn.get('drawn')}")
         elif float(drawn.get("contrast") or 0) < STORY_CREDIT_CONTRAST:
             problems.append(f"{frame.name}: the credit's contrast is {drawn.get('contrast')}:1, under {STORY_CREDIT_CONTRAST}:1")
         else:
-            credited.append({"frame": frame.name, "lines": expected["lines"]})
+            credited.append({"frame": frame.name, "lines": drawn.get("lines")})
     return {"credited": credited, "problems": problems}
 
 
@@ -2684,9 +2869,11 @@ def redraw_story_frame(path: Path, recipe: Dict[str, Any]) -> Dict[str, Any]:
     """Draws one Story frame again with the tighter fit, from its kept recipe, in place (still_vision: the
     look reported its text cut off or overlapping); updates layout.json and the frame's layout record."""
     from . import still_layout
+    from .credits import source_page_ids
     gen = MultiFormatGenerator()
     im, lay = gen._render_story_frame(Path(recipe["photo"]), recipe["slide"], int(recipe["index"]), int(recipe["count"]),
-                                      recipe.get("poll") or {}, tight=True)
+                                      recipe.get("poll") or {}, tight=True,
+                                      pages=source_page_ids(Path(path).parent.parent))
     im.save(path, quality=95)
     _delivered_contrast(lay, path)
     layout_file = Path(path).parent / "layout.json"

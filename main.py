@@ -3394,7 +3394,8 @@ class PipelineCoordinator:
                             "copy": {key: payload.get(key) for key in ("title", "thumbnail", "story_slides", "carousel_slides", "poll", "share_line")},
                             "rules": file_inputs([Path("src/visual_engine.py"), Path("src/multi_format.py"),
                                                   Path("src/typography.py"), Path("src/config.py"), Path("src/safe_zones.py"),
-                                                  Path("src/script_engine.py"), Path("src/still_layout.py")]),
+                                                  Path("src/script_engine.py"), Path("src/still_layout.py"),
+                                                  Path("src/credits.py")]),   # a Story frame's credit (QF-126c)
                             "fonts": file_inputs([FONTS_DIR / name for name in (*FONT_FILES.values(),
                                                                                 *FALLBACK_FILES.values())])}
         if getattr(self, "progress_msg_id", None):
@@ -3422,9 +3423,11 @@ class PipelineCoordinator:
             fut_thumb = pool.submit(cached_artifacts, run_dir, "thumbnails", packaging_inputs,
                                     lambda: on_surface("cover", self.visual_engine.generate_thumbnails, hero_img,
                                                        payload, run_dir, style=style))
+            from src.credits import short_link_lookup
             fut_story = pool.submit(cached_artifacts, run_dir, "stories", packaging_inputs,
                                     lambda: self.multiformat_gen.generate_story_sequence(
-                                        hero_img, payload, run_dir, scene_images=strong_media + ai_left_out))
+                                        hero_img, payload, run_dir, scene_images=strong_media + ai_left_out,
+                                        lookup=short_link_lookup()))   # QF-126c: the photo page's shortest address
             from src import art_direction
             art = art_direction.record(run_dir, hero_img)  # the topic's accent and grade bias, recorded in palette.json
             payload["art_direction"] = art
@@ -4432,13 +4435,26 @@ class PipelineCoordinator:
         if kind == "story":   # frames redrawn after booking must still carry their photo credits (2026-10-29)
             from src.hold_advice import BOOKED, for_surface
             from src.release import story_credit_problems
-            # in a booking's words (UI-01h): this notice offers Retry, not a redraw
+            # in a booking's words (UI-01h): the notice offers Details (its Make a new version and Cancel booking),
+            # not a redraw; a Retry would fail the same way, as the frames are what is wrong (QF-126c review 1)
             problems = [for_surface(p, BOOKED) for p in story_credit_problems(Path(files[0]).parent.parent) or []]
             if problems:
-                self.db.update_scheduled_post(post["id"], "failed", detail={"error": "Story credits: " + "; ".join(problems)})
-                _notice(self, f"❌ Stories not posted for {html.escape(self.db.run_label(post['run_id']))}: "
-                            + html.escape("; ".join(problems)[:300]), section="needs", key=f"post-failed:{post['id']}",
-                             actions=[{"text": "Retry", "callback_data": f"retrypost:{post['id']}"}])
+                why = "; ".join(problems)
+                # the whole reason stays on Details (posting_view.post_error keeps it whole up to an item's folded
+                # text); the notice quotes it whole when it fits, else to a word with "…" and says where the rest is:
+                # each problem leads with its cause and what is needed, so the cut never takes them (QF-126c)
+                self.db.update_scheduled_post(post["id"], "failed", detail={"error": "Story credits: " + why,
+                                                                            "whole_reason": True})
+                head = f"❌ <b>Stories not posted</b> for {html.escape(self.db.run_label(post['run_id']))}: "
+                from src.posting_view import HELD_NOTE
+                room = notifications.QUOTE_LIMIT - len(" ".join(notifications.plain(head).split()))
+                if len(why) > room:
+                    where = ("; the whole reason is on Details" if len("Story credits: " + why) <= HELD_NOTE
+                             else "; more of the reason is on Details")
+                    why = clip_words(why, room - len(where)) + where
+                _notice(self, head + html.escape(why), section="needs", key=f"post-failed:{post['id']}",
+                        run=post["run_id"], replace=True,
+                        buttons=[[{"text": "📋 Details", "callback_data": f"cpost:{self.db.run_key(post['run_id'])}"}]])
                 return "failed"
         try:
             caption, comment = (self._carousel_request(post["run_id"], run["script_payload"], files) if kind == "carousel"

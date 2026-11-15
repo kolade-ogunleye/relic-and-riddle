@@ -12,8 +12,9 @@ import pytest
 from PIL import Image
 
 from src import credits, safe_zones, still_layout
-from src.multi_format import (POLL_STICKER_ROOM, STORY_CREDIT_CONTRAST, STORY_CREDIT_MIN_PX, MultiFormatGenerator,
-                              redraw_story_frame, story_credit, story_credit_report)
+from src.multi_format import (POLL_STICKER_ROOM, STORY_CREDIT_CONTRAST, STORY_CREDIT_LINES, STORY_CREDIT_MIN_PX,
+                              MultiFormatGenerator, redraw_story_frame, story_credit, story_credit_fits,
+                              story_credit_report)
 
 MORODER = ("This Photo was taken by Wolfgang Moroder.  \n\nFeel free to use my photos, but please mention me as the author "
            "and send me a  message. \n\n\n\nThis image is not in the public domain. Please respect the copyright "
@@ -117,12 +118,16 @@ def _topic(tmp_path, entry, name="p.jpg", colour=None):
 def test_what_each_licence_asks_the_frame_to_say(tmp_path):
     sa = story_credit(_topic(tmp_path, BY_SA, "sa.jpg"))
     assert sa["required"] and sa["share_alike"] and sa["author"] == "Wolfgang Moroder"
-    assert sa["lines"] == ["Photo: Wolfgang Moroder · CC BY-SA 3.0 · adapted: cropped, with text added",
+    # QF-126c (operator, 2026-11-14: "follow the best practice"): title, author, source, licence and its address
+    # the title without "File:" and ".jpg", the page's address without its scheme (both from the record above)
+    title, page = BY_SA["title"][len("File:"):-len(".jpg")], BY_SA["source_url"][len("https://"):]
+    assert sa["lines"] == [(f"Photo: “{title}” by Wolfgang Moroder · {page} · CC BY-SA 3.0 "
+                            "creativecommons.org/licenses/by-sa/3.0 · adapted: cropped, with text added"),
                            "This frame: CC BY-SA 4.0 · creativecommons.org/licenses/by-sa/4.0"]
     by = story_credit(_topic(tmp_path, dict(BY_SA, artist="Arian Zwegers", license="CC BY 2.0",
                                             license_url="https://creativecommons.org/licenses/by/2.0/"), "by.jpg"))
-    assert by["lines"] == ["Photo: Arian Zwegers · CC BY 2.0 · adapted: cropped, with text added",
-                           "creativecommons.org/licenses/by/2.0"]
+    assert by["lines"] == [(f"Photo: “{title}” by Arian Zwegers · {page} · CC BY 2.0 "
+                            "creativecommons.org/licenses/by/2.0 · adapted: cropped, with text added")]
     # Openverse leaves attribution_required unset: a CC BY licence still asks for it
     assert story_credit(_topic(tmp_path, dict(BY_SA, attribution_required=None), "ov.jpg"))["required"]
     assert not story_credit(_topic(tmp_path, CC0, "cc0.jpg"))["required"]
@@ -170,12 +175,18 @@ def test_a_cc0_or_unrecorded_photo_gets_no_credit_and_the_frame_is_unchanged(tmp
     assert np.array_equal(np.asarray(a), np.asarray(b))
 
 
-def test_a_long_name_stays_within_three_lines_and_a_missing_glyph_is_reported(tmp_path):
+def test_a_credit_longer_than_its_lines_is_drawn_whole_and_known_and_a_missing_glyph_is_reported(tmp_path):
+    # QF-126c: the complete credit of a long name under BY-SA takes more than STORY_CREDIT_LINES lines even at the
+    # floor; it is never cut: drawn whole, recorded as not fitting, and such a photo is not chosen for a frame
     long_name = dict(BY_SA, artist="Tilemahos Efthimiadis from Athens, Greece, with the Hellenic Maritime Museum")
     photo = _topic(tmp_path, long_name, "long.jpg")
     _, lay = MultiFormatGenerator()._render_story_frame(photo, SLIDE, 1, 3, {})
     credit = lay.meta["photo_credit"]
-    assert len(credit["drawn"]) <= 3 and credit["complete"] and lay.problems() == []
+    assert not credit["fits"] and credit["complete"] and credit["px"] == STORY_CREDIT_MIN_PX
+    assert len(credit["drawn"]) > STORY_CREDIT_LINES
+    words = [[w for w in " ".join(x).split() if w != "·"] for x in (credit["drawn"], credit["lines"])]
+    assert words[0] == words[1]
+    assert not story_credit_fits(photo) and story_credit_fits(_topic(tmp_path, BY_SA, "short.jpg"))
     cjk = _topic(tmp_path, dict(BY_SA, artist="山田太郎"), "cjk.jpg")
     # QF-94: no bundled face draws the name, so the frame is refused with the reason, never drawn without its author
     from src.font_engine import GlyphRefused
@@ -200,7 +211,8 @@ def test_the_sequence_records_what_it_credited_and_the_report_asserts_it(tmp_pat
     assert [c["frame"] for c in report["credited"]] == ["story_01_hook.jpg"]  # no third frame (QF-80)
     manifest = json.loads((out / "companion_posting.json").read_text(encoding="utf-8"))
     assert manifest["story_credits"]["story_02_reveal.jpg"] == []
-    assert manifest["story_credits"]["story_01_hook.jpg"][0].startswith("Photo: Wolfgang Moroder")
+    assert manifest["story_credits"]["story_01_hook.jpg"][0].startswith(
+        f"Photo: “{BY_SA['title'][len('File:'):-len('.jpg')]}” by Wolfgang Moroder")   # QF-126c: the title first
     for frame in frames:
         assert still_layout.check(frame) == []
     # The tighter redraw keeps the credit

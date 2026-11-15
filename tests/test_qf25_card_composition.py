@@ -221,7 +221,7 @@ def test_verified_hook_reaches_the_native_master_with_all_voice_and_caption_word
              for i, word in enumerate(["We", "approach", "the", "ring", "quietly."])]
     original = copy.deepcopy(words)
     encoder = lambda: ["-c:v", "libx264", "-preset", "ultrafast", "-crf", "18"]
-    monkeypatch.setattr(encoding, "get_video_encoder", encoder)
+    monkeypatch.setattr(encoding, "delivery_video_encoder", encoder)
     monkeypatch.setattr(vc, "_get_video_encoder", encoder)
     card_composition.make_all({"design_card_sheet": str(source)}, tmp_path / "cards", photo=photo, words=words)
     hook = card_composition.opening_card(tmp_path / "cards")
@@ -319,7 +319,7 @@ def _assert_checked_card_native(tmp_path, monkeypatch, kind, width=1920, height=
     source.write_text(json.dumps(sheet), encoding="utf-8")
     payload["design_card_sheet"] = str(source)
     encoder = lambda: ["-c:v", "libx264", "-preset", "ultrafast", "-crf", "18"]
-    monkeypatch.setattr(encoding, "get_video_encoder", encoder)
+    monkeypatch.setattr(encoding, "delivery_video_encoder", encoder)
     monkeypatch.setattr(vc, "_get_video_encoder", encoder)
     monkeypatch.setattr(scene_planner.free_llm, "enabled", lambda: False)
     monkeypatch.setattr(scene_planner, "claude_available", lambda: False)

@@ -253,12 +253,9 @@ class LayoutConstraintSolver:
 def _encode(frames: Iterable[Image.Image], out: Path, n: int, width: int = VIDEO_WIDTH, height: int = VIDEO_HEIGHT) -> Path:
     """Raw RGB frames piped to ffmpeg (local only) -> H.264 MP4 + poster JPEG of the last frame."""
     out.parent.mkdir(parents=True, exist_ok=True)
-    from .encoding import BT709_FLAGS, RGB_TO_BT709
-    try:
-        from .encoding import get_video_encoder
-        enc_args = get_video_encoder()
-    except Exception:  # noqa: BLE001  any encoder probe failure falls back to software x264
-        enc_args = ["-c:v", "libx264", "-preset", "medium", "-crf", "17"]
+    from .encoding import BT709_FLAGS, RGB_TO_BT709, delivery_video_encoder
+    # the production encoder on every machine (QF-134): a graphic clip is part of the delivered master
+    enc_args = delivery_video_encoder()
     # BT.709 limited range, tagged (QF-01): swscale's default matrix is BT.601 and the master is BT.709.
     cmd = ["ffmpeg", "-y", "-v", "error", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{width}x{height}", "-r", str(VIDEO_FPS),
            "-i", "-", "-frames:v", str(n), "-vf", RGB_TO_BT709, *enc_args, *BT709_FLAGS, "-pix_fmt", "yuv420p", str(out)]
@@ -11557,9 +11554,9 @@ def make_all(payload: dict[str, Any], topic: dict[str, Any], work_dir: Path, pho
             source_files.append(REFERENCE_FILE)
         if name in ("map", "route"):
             source_files += [p for p in (geo.COUNTRIES_FILE, geo.RELIEF_FILE) if p.is_file()]
-        from .encoding import get_video_encoder
+        from .encoding import delivery_video_encoder
         inputs = {"sources": file_inputs(source_files), "place": place, "width": width,
-                  "height": height, "fps": VIDEO_FPS, "encoder": get_video_encoder(),
+                  "height": height, "fps": VIDEO_FPS, "encoder": delivery_video_encoder(),
                   "spec": {key: payload.get(key) for key in ("stat_cards", "cross_section", "route",
                            "timeline", "scale_fact")}}
         if name in ("numbers", "map"):  # figures (a map's scale bar) in the narration's units (2026-10-29)

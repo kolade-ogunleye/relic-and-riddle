@@ -17,8 +17,8 @@ and 16:9 (1920x1080), through the tree's own then_now._encode (the clip as it sh
 moments are kept (THEN alone, mid wipe, NOW whole at the hold, the split hold at frame 165, the last frame).
 record_contrast is replaced by a recorder of each line's planned / drawn ratio and halo.
 Freeze panel round 2 (T11): the clip then goes through the delivered chain (the master's own picture filter,
-video_composer.film_grade_filter + noise=alls=8:allf=t+u, encoded with encoding.get_video_encoder(), then libx264
-CRF 26), and each moment is decoded from it (frame_<moment>_enc.png). meta.json carries the delivered glow-fall
+video_composer.film_grade_filter + noise=alls=8:allf=t+u, encoded with encoding.delivery_video_encoder(), the
+master's encoder on every machine since QF-134, then libx264 CRF 26), and each moment is decoded from it (frame_<moment>_enc.png). meta.json carries the delivered glow-fall
 numbers (p90 vertical flat run, max smoothed step, monotonicity), the darkened-area ratio (T2e), the colour
 fidelity (T3d), the group schedule check (T5), the type mode per marker, the pair's halo, glow steps, the 9:16 side,
 the framing (zoom, trims) and whether the inputs were registered. Two ink-off variants (INK_ON_PAPER False:
@@ -191,22 +191,14 @@ def save_jpeg(im, path: Path, q: int = 88) -> None:
 
 # ---------------------------------------------------------------- the delivered chain (T3)
 def delivered_chain(clip: Path, work: Path) -> tuple[Path, Path, str]:
-    """(master, delivered) mp4s: the master's own picture filter (imported, not copied) and encoder, then libx264
+    """(master, delivered) mp4s: the master's own picture filter (imported, not copied) and the master's own encoder
+    (encoding.delivery_video_encoder: libx264 slow CRF 18 on every machine, QF-134; no hardware probe), then libx264
     CRF 26 (the platform-like re-encode); and the encoder used."""
-    from src.encoding import get_video_encoder
+    from src.encoding import delivery_video_encoder
     from src.video_composer import film_grade_filter
     work.mkdir(parents=True, exist_ok=True)
-    from src import encoding
     vf = f"format=yuv420p,{film_grade_filter(0.0, out_dir=work)},format=yuv420p,noise=alls=8:allf=t+u"
-    enc = get_video_encoder()
-    # Review round 2: encoding's NVENC probe has a 3 s timeout, which a loaded machine misses (6 of 10 jobs fell
-    # back to libx264 CRF 18). The probe is the master's own; it is only asked again, never bypassed.
-    for _ in range(8):
-        if "h264_nvenc" in enc:
-            break
-        encoding._DETECTED_ENCODER = None
-        time.sleep(2)
-        enc = get_video_encoder()
+    enc = delivery_video_encoder()
     master, final = work / "master.mp4", work / "delivered.mp4"
     subprocess.run(["ffmpeg", "-y", "-v", "error", "-i", str(clip), "-vf", vf, *enc, "-pix_fmt", "yuv420p", str(master)],
                    check=True, timeout=600, capture_output=True)

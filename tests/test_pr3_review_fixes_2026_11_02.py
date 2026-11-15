@@ -112,7 +112,7 @@ def test_the_timeline_records_and_tracks_its_backdrop_photo(tmp_path, monkeypatc
     from src.lineage import sidecar
 
     monkeypatch.setattr(graphics.geo, "locate", lambda topic: None)
-    monkeypatch.setattr("src.encoding.get_video_encoder", lambda: ["-c:v", "libx264"])
+    monkeypatch.setattr("src.encoding.delivery_video_encoder", lambda: ["-c:v", "libx264"])
     calls = []
 
     def render(spec, path, **kwargs):

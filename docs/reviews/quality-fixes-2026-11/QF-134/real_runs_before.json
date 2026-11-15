@@ -1,0 +1,41 @@
+{
+  "scan": {
+    "master": {
+      "NVENC": 30
+    },
+    "graphic clip": {
+      "NVENC": 65
+    }
+  },
+  "rerender": [
+    {
+      "case": 1,
+      "scenes": 7,
+      "narration_s": 43.85,
+      "master_s": 44.87,
+      "compose_wall_s": 197.9,
+      "video_encodes": [
+        "-c:v h264_nvenc -preset p4 -cq 21",
+        "-c:v h264_nvenc -preset p1 -cq 12",
+        "-c:v h264_nvenc -preset p4 -cq 21"
+      ],
+      "master_stream": "NVENC (no x264 settings in the stream)",
+      "manifest_video_encoder": null,
+      "end_card": "loop_bridge_v1"
+    },
+    {
+      "case": 2,
+      "scenes": 8,
+      "narration_s": 44.76,
+      "master_s": 45.77,
+      "compose_wall_s": 226.5,
+      "video_encodes": [
+        "-c:v h264_nvenc -preset p1 -cq 12",
+        "-c:v h264_nvenc -preset p4 -cq 21"
+      ],
+      "master_stream": "NVENC (no x264 settings in the stream)",
+      "manifest_video_encoder": null,
+      "end_card": "loop_bridge_v1"
+    }
+  ]
+}

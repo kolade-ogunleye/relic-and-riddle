@@ -394,11 +394,18 @@ def find_source_links(ledger: Path, lookup) -> int:
     """Looks up the Commons page id of every photo the run must credit whose id is not yet known, with `lookup`
     ({source link} -> {source link: page id}; commons.file_page_ids), and records them beside the ledger. Returns how
     many were found. A lookup that fails finds none: the credits then keep the links they have."""
-    run_dir = Path(ledger).parent
     data = json.loads(Path(ledger).read_text(encoding="utf-8"))
+    return find_page_ids(Path(ledger).parent, list(data.get("assets", [])) + _reference_records(data), lookup)
+
+
+def find_page_ids(run_dir: Path, records: list, lookup) -> int:
+    """find_source_links for any credit records (a Story's photos, QF-126c, before the run has a ledger): the Commons
+    page id of each Commons photo among `records` whose licence asks for a credit and whose id is not yet known,
+    recorded in the run's folder (SOURCE_LINKS_FILE). Returns how many were found; a failed lookup finds none."""
+    run_dir = Path(run_dir)
     known = source_page_ids(run_dir)
-    wanted = sorted({str(r.get("source_url")) for r in list(data.get("assets", [])) + _reference_records(data)
-                     if needs_attribution(r) and commons_file_title(r.get("source_url"))
+    wanted = sorted({str(r.get("source_url")) for r in records
+                     if isinstance(r, dict) and needs_attribution(r) and commons_file_title(r.get("source_url"))
                      and not r.get("pageid") and str(r.get("source_url")) not in known})
     if not wanted:
         return 0

@@ -182,7 +182,9 @@ def post_error(detail: Dict[str, Any]) -> str:
         return f"{names} didn't post; the others did"
     # A carousel held at its slot keeps its reason whole up to an item's folded text (LAND-32 port 2): a "Carousel
     # not posted" item that has to cut a long reason says the whole of it is here, one tap away.
-    return clip_words(str(detail.get("error") or detail.get("reason") or ""), HELD_NOTE if detail.get("held") else 300)
+    # A Story not posted for its frames' credits (QF-126c) keeps its reason whole the same way.
+    return clip_words(str(detail.get("error") or detail.get("reason") or ""),
+                      HELD_NOTE if detail.get("held") or detail.get("whole_reason") else 300)
 
 
 def _spacing_reason(db, post: dict[str, Any], slot: datetime) -> str:

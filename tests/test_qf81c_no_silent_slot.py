@@ -97,6 +97,9 @@ def _drawn_booking(c, tmp_path, payload, slides=2):
     old = tmp_path / "old"
     files = [_photo(old / "carousel" / f"carousel_slide_{n:02d}.jpg", 30 * n) for n in range(1, slides + 1)]
     (old / "m.mp4").write_bytes(b"0")
+    # QF-126: a rendered run has a provenance ledger; this one asks no credit
+    from run_ledgers import write_ledger
+    write_ledger(old)
     c.db.create_run("old", "01_topic")
     c.db.update_run("old", "published", script_payload=dict(payload, topic_id="01_topic"),
                     master_video_path=old / "m.mp4", thumbnail_cover_path=old / "m.mp4")

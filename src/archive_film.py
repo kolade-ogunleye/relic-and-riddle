@@ -100,6 +100,11 @@ def archive_candidates(query: str, keywords: List[str], limit: int = 6) -> Tuple
         text = " ".join([str(meta.get("title", ""))] + [str(s) for s in subjects])
         if collections & BROADCAST or not rights or not license_allowed(rights[0]) or not _relevant(text, keywords):
             continue  # confirmed from the item's own record, not the search index
+        from .source_policy import blocked_source
+        if blocked_source({"license": rights[0], "source_url": f"https://archive.org/details/{doc['identifier']}",
+                           "creator": str(meta.get("creator") or ""), "credit": str(meta.get("source") or ""),
+                           "collections": sorted(str(c) for c in collections if c)}):
+            continue  # an excluded source (QF-126)
         best = _best_file(record.get("files") or [])
         if not best:
             continue

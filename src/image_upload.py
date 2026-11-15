@@ -106,6 +106,10 @@ class ImageUpload:
             raise ValueError(PROMPTS[stage])
         if stage in ("source", "licence_url") and (urlparse(value).scheme not in {"http", "https"} or not urlparse(value).netloc):
             raise ValueError("Send a public HTTP(S) URL, or Cancel")
+        if stage == "source":   # an excluded source is refused where it is named (QF-126); one that a licence
+            # can clear (ESA under CC BY-SA 3.0 IGO) is decided with the licence, when the image is added
+            from .source_policy import refuse_blocked
+            refuse_blocked({"source_url": value, "license": "CC BY-SA 3.0 IGO"})
         if stage == "licence" and not license_allowed(value):
             raise ValueError("Supported licences are PD, CC0 and CC BY (CC BY-SA when enabled); approval still requires human review")
         if stage == "licence" and state["rights"].get("own_work"):

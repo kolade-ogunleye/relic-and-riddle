@@ -607,6 +607,13 @@ def candidates(pages: list, keywords: List[str], allow_sa: bool = False, min_pix
             continue
         if not license_allowed(licence, allow_sa):
             continue
+        from .source_policy import blocked_source
+        if blocked_source({"license": licence, "source_url": info.get("descriptionurl", ""),
+                           "license_url": meta.get("LicenseUrl", {}).get("value", ""),
+                           "credit": meta.get("Credit", {}).get("value", ""),
+                           "artist": meta.get("Artist", {}).get("value", ""),
+                           "categories": meta.get("Categories", {}).get("value", "")}):
+            continue   # an excluded source (QF-126), whatever licence its file page states
         from .image_rights import commons_basis, public_domain
         rights_basis = commons_basis(page, meta, info.get("descriptionurl", ""))
         if public_domain(licence) and not rights_basis:

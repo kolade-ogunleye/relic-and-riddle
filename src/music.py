@@ -82,6 +82,16 @@ def load_library(available_only: bool = True) -> List[Dict[str, Any]]:
     return [t for t in tracks if (MUSIC_DIR / t["file"]).exists()] if available_only else tracks
 
 
+GENERATED_FILE = "music_elevenlabs.mp3"   # the per-run score's file name (music_for)
+
+
+def generated_music(track: dict[str, Any]) -> bool:
+    """Whether a library record is a generated score rather than a licensed download: its source or provider is
+    ElevenLabs, or its file is a run's generated score."""
+    named = " ".join(str(track.get(k) or "") for k in ("source", "provider", "source_url", "creator")).lower()
+    return "elevenlabs" in named or Path(str(track.get("file") or "")).name == GENERATED_FILE
+
+
 def rotation_path() -> Path:
     return LIBRARY.parent / "rotation.json"
 
@@ -99,7 +109,7 @@ def retired_tracks() -> dict[str, str]:
 def in_rotation(track: dict[str, Any], retired: dict[str, str] | None = None) -> bool:
     """Approved and not retired by rotation.json."""
     retired = retired_tracks() if retired is None else retired
-    return bool(track.get("reviewed")) and track.get("file") not in retired
+    return bool(track.get("reviewed")) and track.get("file") not in retired and not generated_music(track)
 
 
 def save_library(tracks: List[Dict[str, Any]]) -> None:
@@ -120,6 +130,12 @@ def save_library(tracks: List[Dict[str, Any]]) -> None:
 def register_download(track, content):
     """Merge a download without replacing intervening operator decisions."""
     from .publication_lock import publication_lock
+    from .source_policy import refuse_blocked
+    refuse_blocked(track)   # an excluded source (BBC Sound Effects/RemArc, ...) never enters the library (QF-126)
+    if generated_music(track):
+        # ElevenLabs Music terms forbid building a music library from generated tracks (catalogue audit 2026-11-14,
+        # R4): a score is made for one video, in that run's folder (music_for), and is never kept for reuse.
+        raise ValueError("Not accepted: generated music is made per video and is never stored as a library track.")
     with publication_lock(LIBRARY, "music-library"):
         tracks = load_library(available_only=False)
         if any(t.get("source_url") == track["source_url"] for t in tracks):
@@ -246,10 +262,39 @@ def license_name(track: Dict[str, Any]) -> str:
     return f"{lic} {track.get('license_version', '')}".strip()
 
 
-def credit_line(track: Dict[str, Any]) -> str:
-    if track.get("license", "").lower().startswith("cc0"):
+# CC BY 4.0 s.3(a)(1)(B): say that the material was modified. Every bed is cut to the narration's length, looped with
+# a crossfade and mixed under the voice (audio_engine._loop_with_crossfade, stem_composer), so every music credit
+# says so (QF-126; catalogue audit 2026-11-14, R3).
+MUSIC_EDITED = "edited: cut, looped and mixed"
+_NO_ATTRIBUTION = ("cc0", "pdm", "pd", "public domain", "publicdomain")   # nothing to credit, and never called CC BY
+
+
+def attribution_licence(track: dict[str, Any]) -> str:
+    """The licence a track's credit names ("CC BY 4.0"), "" when it asks for no credit (CC0, public domain). The
+    library stores Openverse's form ("by" / "4.0"); a bed's rights record stores the name whole ("CC BY 4.0")."""
+    raw = " ".join(str(track.get("license") or "").split())
+    low = raw.lower()
+    if not low or low.startswith(_NO_ATTRIBUTION):
         return ""
-    return f"🎵 Music: “{track['title']}” by {track['creator']} ({license_name(track)})"
+    name = license_name(track)
+    version = str(track.get("license_version") or "").strip()
+    return raw.upper() if version and low.endswith(version.lower()) else name
+
+
+def credit_line(track: Dict[str, Any]) -> str:
+    """The credit a post carries for a library track whose licence asks for one, complete as CC BY 4.0 s.3(a)(1)
+    asks (QF-126): title, author, licence name, the source page, the licence's address, and that it was edited.
+    "" for CC0 and public-domain tracks. A missing address prints "Unknown", which the release gate holds
+    (credits.credit_reach_problems): a credit is never shortened to fit."""
+    licence = attribution_licence(track)
+    if not licence:
+        return ""
+    from .credits import _credit_url
+
+    def named(value):   # one line, and no "|": it separates the credit's fields
+        return " ".join(str(value or "").replace("|", "/").split()) or "Unknown"
+    return " | ".join([f"🎵 Music: “{named(track.get('title'))}” by {named(track.get('creator'))}", licence,
+                       _credit_url(track.get("source_url")), _credit_url(track.get("license_url")), MUSIC_EDITED])
 
 
 # ------------------------------------------------------------------ ElevenLabs
@@ -326,7 +371,7 @@ def music_for(payload: Dict[str, Any], seconds: float, work_dir: Path, voice_quo
         if not (is_configured(ELEVENLABS_API_KEY) and elevenlabs_paid(voice_quota)):
             return None
         try:
-            path = generate_elevenlabs(mood, seconds + 1, work_dir / "music_elevenlabs.mp3")
+            path = generate_elevenlabs(mood, seconds + 1, work_dir / GENERATED_FILE)
             log.info("Music: ElevenLabs score (%s).", mood)
             return {"path": path, "paths": [path], "source": "elevenlabs", "mood": mood, "mood_record": mood_record,
                     "credit": "", "file": ""}

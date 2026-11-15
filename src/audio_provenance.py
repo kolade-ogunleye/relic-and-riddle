@@ -145,7 +145,13 @@ def inspect_audio_rights(path, kind, caption, script=None):
         sources_valid = all(s.get("sha256") and sha256_file(Path(s["path"])) == s["sha256"]
                             for s in record.get("sources", []))
         attribution = record.get("required_attribution", "")
-        return bool(record.get("rights_status") == "verified" and sources_valid and
-                    (not attribution or attribution in caption)), record
+        # The caption carries the credit as recorded, or (QF-126) the complete line of each track that asks for one:
+        # a bed recorded before QF-126 names the short line, which the complete one replaces in the copy.
+        from .music import credit_line
+        complete = [line for line in (credit_line(s) for s in record.get("sources", [])
+                                      if isinstance(s, dict) and s.get("title")) if line]
+        have = {line.strip() for line in (caption or "").splitlines()}
+        credited = not attribution or attribution in caption or (bool(complete) and all(c in have for c in complete))
+        return bool(record.get("rights_status") == "verified" and sources_valid and credited), record
     except (OSError, ValueError, KeyError, TypeError):
         return False, "Audio rights evidence missing or malformed"

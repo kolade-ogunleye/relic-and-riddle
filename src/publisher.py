@@ -705,6 +705,16 @@ class MetaPublisher:
                                                  publishable.topic_for(self.db, script_payload["topic_id"]),
                                                  ai_label=label)
         publishable.check_envelope(metadata, record, youtube=(platforms or []) == ["youtube"])
+        # QF-126: the strings as they are sent must carry every credit the run's licences ask for, whole; a post
+        # whose credits do not fit is not sent (the release gate reads the same before the hashtags are final).
+        ledger = Path(video_path).parent / "provenance.json"
+        if ledger.is_file():
+            from .credits import ledger_credit_problems
+            unmet = ledger_credit_problems(ledger, *publishable.credit_texts(metadata, (platforms or []) == ["youtube"]))
+            if unmet:   # no retry changes it: a blocked booking with the reason, not one tried again each pass
+                from .release import ReleaseBlocked
+                raise ReleaseBlocked("Not posted: a licence credit is missing from the text to be posted. "
+                                     + " ".join(unmet))
         return {
             "run_id": run_id,
             "topic_id": script_payload["topic_id"],

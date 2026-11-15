@@ -178,6 +178,24 @@ def warn_missing_raqm() -> List[str]:
     return [line]
 
 
+class CarouselCreditHold(ValueError):
+    """A carousel that cannot carry the photo credits its licences ask for as it is drawn (QF-126): not posted, and
+    held (PipelineCoordinator._hold_carousel) with the hold alert's Redraw when a redraw can be made, and as a
+    carousel that will not post when it cannot (no plan to draw from). A ValueError, so every caller that refuses
+    a carousel request still does. Its message is the reason, without the action.
+
+    final: no redraw can help (the same photos ask the same credits under the caption its review approved), so it
+    is held as a carousel that will not post, whatever its plan. redraw: what a redraw does about it, said beside
+    the Redraw button when one can be made."""
+
+    REDRAW = "A redraw gives its slides records, so its caption credits only the photos they show"
+
+    def __init__(self, reason: str, *, final: bool = False, redraw: str = "") -> None:
+        super().__init__(reason)
+        self.final = final
+        self.redraw = redraw or self.REDRAW
+
+
 class PipelineCoordinator:
     def __init__(self, db: Optional[PipelineDatabase] = None, schedule_posts: bool = False):
         # schedule_posts: approved Reels wait for their posting slot (daemon); otherwise post at once (CLI).
@@ -1305,6 +1323,15 @@ class PipelineCoordinator:
         # comment), so a run the gate's credit_lines check holds for an old line can be fixed here.
         from src.credits import rewrite_payload_credits
         rewrite_payload_credits(payload)
+        # ... and the credits the run's licences ask for are written again from its ledger (QF-126): a caption
+        # shortened so its credits fit gets them, and a music credit written before QF-126 becomes the complete line.
+        ledger = Path(run["master_video_path"]).parent / "provenance.json"
+        if ledger.is_file():
+            from src.credits import add_provenance_attributions
+            try:
+                add_provenance_attributions(payload, ledger)
+            except (OSError, ValueError, TypeError, AttributeError) as e:   # the release gate says what is missing
+                log.warning("Credits not rewritten from the ledger after the edit: %s", e)
         labels = [f.replace("_", " ") for f in changes]  # "title, carousel caption and caption"
         names = labels[0] if len(labels) == 1 else ", ".join(labels[:-1]) + " and " + labels[-1]
         topic = self.topic_engine.get_topic_by_id(run["topic_id"]) or {"id": run["topic_id"]}
@@ -1357,6 +1384,8 @@ class PipelineCoordinator:
             run_dir = OUTPUT_DIR / run_id
             proxy = run_dir / "review_proxy.mp4"
             video = proxy if proxy.exists() else Path(run["master_video_path"])
+            # QF-126: the card shows, and Approve posts, the copy with its credits
+            run = PipelineCoordinator._recredited(self, run)
             self.telegram_bot.send_approval_request(video, Path(run["thumbnail_cover_path"]), run["script_payload"], run_id)
         decision, acted = self._decide_review(run_id, lambda d: self._after_approval(run_id, dry_run=dry_run)
                                               if d == "approved" else self._settle_decision(run_id, run["topic_id"], d))
@@ -1365,6 +1394,36 @@ class PipelineCoordinator:
         if decision == "approved":
             return {"run_id": run_id, "decision": decision, **(acted or {"already_acted": True})}
         return {"run_id": run_id, "decision": decision, "status": decision, "topic_id": run["topic_id"]}
+
+    def _recredited(self, run: dict[str, Any]) -> dict[str, Any]:
+        """`run` with the credits its licences ask for written again from its ledger, saved when that changed its
+        copy (QF-126): a run rendered before a credit was asked for (the adapted notice, the complete music line)
+        gets it when its review is sent again, so the release gate holds only a run whose credits cannot fit. The
+        writing is the render's own (credits.add_provenance_attributions) and changes nothing on a second pass. A
+        run without a readable ledger is returned as it is (the gate says so)."""
+        import copy
+
+        from src.credits import add_provenance_attributions
+        payload = run.get("script_payload")
+        ledger = Path(run.get("master_video_path") or "").parent / "provenance.json"
+        if not isinstance(payload, dict) or not run.get("master_video_path") or not ledger.is_file():
+            return run
+        credited = copy.deepcopy(payload)
+        try:
+            add_provenance_attributions(credited, ledger)
+        except (OSError, ValueError, TypeError, AttributeError, KeyError) as e:
+            log.warning("Credits not written again for %s before its review: %s", run.get("run_id"), e)
+            return run
+        if credited == payload:
+            return run
+        self.db.update_run(run["run_id"], "pending_approval", script_payload=credited)
+        from src.atomic_files import write_json
+        try:
+            write_json(ledger.parent / "script_metadata.json", credited)
+        except OSError as e:
+            log.warning("script_metadata.json not rewritten for %s: %s", run.get("run_id"), e)
+        log.info("Credits written again from the ledger for %s before its review was sent.", run.get("run_id"))
+        return {**run, "script_payload": credited}
 
     REVIEW_ACTED_PREFIX = "review-acted:"
 
@@ -3972,15 +4031,172 @@ class PipelineCoordinator:
     def _carousel_request(self, run_id: str, payload: dict[str, Any], slides: list[str]) -> tuple[str, str]:
         """(caption, first comment) the carousel posts: its caption as the run's review card showed it (the
         hashtags from the topic's list; publishable.carousel_post_base raises ValueError when the card showed
-        another), then the photo credits (_carousel_post). QF-43."""
+        another), then the photo credits (_carousel_post). QF-43.
+
+        QF-126: every credit a licence asks for is in the caption, or the carousel is not posted
+        (CarouselCreditHold). A shown photo is credited from its own record (credits.json beside it); one whose
+        record cannot be read (the file missing or damaged, a derived copy's lineage file gone) from the run's
+        ledger, where its record decides. When neither says what that photo asks, the carousel is held: the credits
+        of the run's other photos do not credit it (a carousel may show a photo its Reel did not use, which the
+        ledger then does not hold). When a slide has no record of what it shows, the caption credits every photo of
+        the run (_ledger_credited_carousel) or the carousel is held."""
         from src import publishable
         _, final = publishable.carousel_post_base(payload, self.db, run_id,
                                                   (self.db.get_run(run_id) or {}).get("topic_id", ""))
-        return self._carousel_post(payload, slides, hashtags=final)
+        # A first comment is posted after the carousel and its failure does not fail the post
+        # (publisher.publish_photos), so a credit moved there could be lost with the carousel already public; lines
+        # that fit neither the caption nor the comment were left out with a log line only.
+        from src.credits import (
+            _credit_subject,
+            asset_attribution,
+            incomplete_credit,
+            is_share_alike,
+            ledger_photo_credits,
+        )
+        from src.multi_format import (
+            CAROUSEL_ADAPTED,
+            CAROUSEL_SHARE_ALIKE,
+            carousel_credits,
+            photo_credit,
+            slide_photos,
+        )
+        shown = self._carousel_slides(slides)
+        slide_lines, readable = carousel_credits(shown)
+        entries: list[dict[str, Any]] = []
+        from_ledger: list[dict[str, Any]] = []
+        unread, ledger = 0, None
+        for photo in dict.fromkeys(photo for slide in shown for photo in slide_photos(slide)):
+            entry = photo_credit(photo)
+            if entry:
+                entries.append(entry)
+                continue
+            # Review of QF-126, round 2: a photo without a readable entry was skipped, and the carousel went out
+            # without its credit. The run's ledger recorded the photo when the Reel was made: its record decides.
+            if ledger is None:
+                ledger = self._run_ledger(shown[0].parent.parent) or {}
+            try:
+                found = ledger_photo_credits(ledger, photo) if ledger else None
+            except (TypeError, AttributeError, ValueError):
+                found = None
+            if found is None:
+                unread += 1
+            else:
+                from_ledger += found
+        restore = ("Restore or correct the photo's credit record (credits.json beside the photo) first; a redraw "
+                   "then credits the photo from it")
+        if unread:
+            # The run's other credits are no credit for this photo, so the caption is not filled from them: held.
+            ledger_file = shown[0].parent.parent / "provenance.json"
+            state = ("is missing" if not ledger_file.is_file()
+                     else "could not be read" if self._run_ledger(ledger_file.parent) is None
+                     else f"does not hold {'that photo' if unread == 1 else 'those photos'} with a licence")
+            raise CarouselCreditHold(
+                f"the credit record of {unread} of its photos (credits.json beside the photo) cannot be read, and "
+                f"the episode's provenance record {state}, so nothing says what credit "
+                f"{'its licence asks' if unread == 1 else 'their licences ask'}", redraw=restore)
+        for entry in entries + from_ledger:
+            item = {"kind": "image", "line": asset_attribution(entry), "record": entry}
+            lacking = incomplete_credit(item, regenerate=False) if item["line"] else ""
+            if lacking:
+                raise CarouselCreditHold(f"the credit of a photo it shows ({_credit_subject(item)}) lacks {lacking}, "
+                                         "which its licence asks for", redraw=restore)
+        if from_ledger:
+            notices = (CAROUSEL_SHARE_ALIKE, CAROUSEL_ADAPTED)
+            photo_lines = [ln for ln in slide_lines if ln not in notices]
+            photo_lines += [ln for ln in dict.fromkeys(asset_attribution(r) for r in from_ledger)
+                            if ln and ln not in photo_lines]
+            share_alike = CAROUSEL_SHARE_ALIKE in slide_lines or any(
+                is_share_alike(r.get("license") or "") for r in from_ledger)
+            slide_lines = (([CAROUSEL_SHARE_ALIKE] if share_alike else []) + photo_lines
+                           + ([CAROUSEL_ADAPTED] if photo_lines else []))
+        caption, comment = self._carousel_post(payload, slides, hashtags=final, credits=(slide_lines, readable))
+        if shown and not readable:
+            caption, comment = self._ledger_credited_carousel(caption, comment, shown)
+        have = {ln.strip() for ln in caption.splitlines()}
+        outside = [ln for ln in slide_lines if ln.strip() not in have]
+        outside += [ln for ln in comment.splitlines() if ln.strip() and ln not in outside and ln.strip() not in have]
+        if outside:
+            # Review of QF-126, round 2: this carousel's review is approved and its Reel posted, so its caption
+            # cannot be edited any more, and a redraw shows the same photos: nothing makes these credits fit.
+            raise CarouselCreditHold(
+                f"{len(outside)} credit line(s) of its photos ({len(chr(10).join(outside)):,} characters) do not fit "
+                f"its caption ({len(caption):,} of {self.CAROUSEL_CAPTION_MAX:,} characters used). A credit its "
+                "licence asks for is never shortened, left out or moved to a comment, and the caption was approved "
+                "with its review and cannot be changed now", final=True)
+        return caption, comment
+
+    @staticmethod
+    def _run_ledger(run_dir: Path) -> dict[str, Any] | None:
+        """A run folder's provenance ledger, None when it is missing or cannot be read."""
+        try:
+            data = json.loads((Path(run_dir) / "provenance.json").read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            return None
+        return data if isinstance(data, dict) else None
+
+    def _ledger_credited_carousel(self, caption: str, comment: str, shown: list[Path]) -> tuple[str, str]:
+        """(caption, "") for a carousel with a slide that has no record (drawn before slide records were kept), which
+        cannot say whose photo it shows: the caption credits every photo of its run, from the run's ledger
+        (credits.required_credits: a superset of what the slides show), with the slides' own share-alike and
+        adapted notices, in place of the Reel caption's summary line it borrowed ("Images via ...: name (licence)":
+        no title, no link). Raises CarouselCreditHold when the ledger is missing or cannot be read, a credit is
+        incomplete, or the credits do not fit the caption (review of QF-126, round 1; ruled 2026-11-14: never posted
+        without). What can be done about it is said by the caller (_post_photos: a redraw, whose new slides keep
+        records, when the run has a plan to draw from).
+
+        A run folder with no ledger file is held whatever its copy says (review of QF-126, round 2, and its
+        ruling 1): the copy's own credit lines are never taken as the whole set, and a copy without one cannot
+        show that no credit is asked."""
+        from src.credits import (
+            _credit_subject,
+            incomplete_credit,
+            required_credits,
+            split_attribution,
+        )
+        from src.multi_format import CAROUSEL_ADAPTED, CAROUSEL_SHARE_ALIKE
+        run_dir = shown[0].parent.parent
+        why = "its slides were drawn before slide records were kept, so it must credit every photo of its episode"
+        if not (run_dir / "provenance.json").is_file():
+            raise CarouselCreditHold(f"{why}, and the episode's provenance record is missing")
+        try:
+            asked = required_credits(json.loads((run_dir / "provenance.json").read_text(encoding="utf-8")), run_dir)
+        except (OSError, ValueError, TypeError, AttributeError, KeyError) as e:
+            raise CarouselCreditHold(f"{why}, and the episode's provenance record could not be read "
+                                     f"({type(e).__name__})") from e
+        photos = [item for item in asked if item["kind"] == "image"]
+        for item in photos:
+            lacking = incomplete_credit(item, regenerate=False)
+            if lacking:
+                raise CarouselCreditHold(f"{why}, and the credit of one lacks {lacking} ({_credit_subject(item)})")
+        if not photos:   # nothing in the episode asks for a photo credit
+            return caption, comment
+        body, held = split_attribution(caption)
+        held += [ln for ln in comment.splitlines() if ln.strip()]
+        notices = (CAROUSEL_SHARE_ALIKE, CAROUSEL_ADAPTED)
+        lines = ([CAROUSEL_SHARE_ALIKE] if any(i["kind"] == "share_alike" for i in asked) or CAROUSEL_SHARE_ALIKE in held
+                 else []) + [item["line"] for item in photos]
+        lines += [ln for ln in held if ln not in notices and not ln.startswith(beat_images.CREDIT_PREFIXES)]
+        lines = list(dict.fromkeys(ln.strip() for ln in lines)) + [CAROUSEL_ADAPTED]
+        credited = body.rstrip() + chr(10) * 2 + chr(10).join(lines)
+        if len(credited) > self.CAROUSEL_CAPTION_MAX:
+            raise CarouselCreditHold(
+                f"{why} ({len(photos)} photo credit line(s)), and with them its caption is {len(credited):,} "
+                f"characters, over the {self.CAROUSEL_CAPTION_MAX:,} a caption takes")
+        return credited, ""
+
+    @staticmethod
+    def _carousel_slides(slides: list[str] | None) -> list[Path]:
+        """The slides whose photos a carousel's one caption credits: Instagram's and, when the run made one,
+        Facebook's copy (a carousel packaged before rc68 matched its photos apart)."""
+        slides = [Path(s) for s in slides or []]
+        if slides and (slides[0].parent.parent / "carousel_fb").is_dir():
+            slides += sorted((slides[0].parent.parent / "carousel_fb").glob("carousel_slide_*.jpg"))
+        return slides
 
     @staticmethod
     def _carousel_post(payload: Dict[str, Any], slides: Optional[List[str]] = None,
-                       hashtags: list[str] | None = None) -> Tuple[str, str]:
+                       hashtags: list[str] | None = None,
+                       credits: tuple[list[str], bool] | None = None) -> Tuple[str, str]:
         """(caption, first comment) for a carousel. The caption is the carousel's own text (Meta and Upload-Post
         flag duplicate captions; older scripts without one fall back to the Reel caption), with no hashtag outside
         `hashtags` when given (publishable.carousel_base: the topic's list, as the review card shows), then a credit line
@@ -3988,18 +4204,16 @@ class PipelineCoordinator:
         slide's record): the Reel caption's first credit line covered neither every photo nor only these
         (platform audit, 2026-10-28). Credits that would take the caption over Instagram's 2,200 characters go
         in the first comment instead. A slide without a record (drawn before records were kept) adds the Reel
-        caption's summary credit line, as before."""
+        caption's summary credit line, as before. `credits`: the slides' credit lines and whether every one could
+        be read, when the caller has them (_carousel_request, which also reads the run's ledger: QF-126)."""
         from src.multi_format import carousel_credits
         if hashtags is not None:
             from src.publishable import carousel_base
             base = carousel_base(payload, hashtags)
         else:
             base = (payload.get("carousel_caption") or "").strip() or payload.get("caption", "")
-        slides = [Path(s) for s in slides or []]
-        if slides and (slides[0].parent.parent / "carousel_fb").is_dir():  # one caption goes to both platforms:
-            # credit what Facebook's copy shows as well (a carousel packaged before rc68 matched its photos apart)
-            slides += sorted((slides[0].parent.parent / "carousel_fb").glob("carousel_slide_*.jpg"))
-        lines, readable = carousel_credits(slides)
+        slides = PipelineCoordinator._carousel_slides(slides)   # one caption goes to both platforms
+        lines, readable = credits if credits is not None else carousel_credits(slides)
         if not readable:  # some slide has no record: the Reel caption's summary line covers what it showed
             from src.credits import CREDIT_ADAPTED
             from src.multi_format import CAROUSEL_ADAPTED
@@ -4039,6 +4253,22 @@ class PipelineCoordinator:
         try:
             caption, comment = (self._carousel_request(post["run_id"], run["script_payload"], files) if kind == "carousel"
                                 else ("", ""))
+        except CarouselCreditHold as e:   # QF-126: never posted without its credits
+            # A redraw is offered when one can be made and can help: it gives the slides records, so the caption
+            # then credits only the photos they show (or reads a credit record that was restored). A run drawn
+            # before carousels were planned (QF-81) has nothing to redraw from, and the Redraw button would only
+            # answer that: said here instead, as a carousel that will not post. Credits that are incomplete or do
+            # not fit beside the slides' own records (e.final) are the same after any redraw, and the caption was
+            # approved with its review: that carousel will not post either, and no button says otherwise.
+            from src import carousel_lazy
+            no_plan = None if e.final else carousel_lazy.plan_problem(Path(files[0]).parent.parent)
+            if e.final:
+                self._hold_carousel(post, e, final=True)
+            elif no_plan:
+                self._hold_carousel(post, CarouselCreditHold(f"{e}. It cannot be redrawn: {no_plan}"), final=True)
+            else:
+                self._hold_carousel(post, CarouselCreditHold(f"{e}. {e.redraw}"))
+            return "failed"
         except ValueError as e:   # its caption is not the one the review card showed (QF-43)
             self.db.update_scheduled_post(post["id"], "failed", detail={"error": str(e)})
             _notice(self, f"❌ Carousel not posted for {html.escape(self.db.run_label(post['run_id']))}: "
@@ -4505,11 +4735,13 @@ class PipelineCoordinator:
         unreadable, corrupt or without a photo to draw), so a redraw cannot help either: the same alert, naming what
         is missing."""
         from src import carousel_lazy
+        # A credit hold's reason is written to be read whole (QF-126): it is never cut inside a clause.
+        why = str(held) if isinstance(held, CarouselCreditHold) else str(held)[:400]
         if binding or final:
             self.db.update_scheduled_post(post["id"], "failed", detail={
                 "error": f"held at its slot: {held}", "held": True, ("binding" if binding else "final"): True})
             _notice(self, f"❌ <b>Carousel not posted</b> for {html.escape(self.db.run_label(post['run_id']))}: "
-                    f"{html.escape(str(held)[:400])}." + chr(10) * 2
+                    f"{html.escape(why)}." + chr(10) * 2
                     + "This carousel will not post. Nothing was posted, and its Reel and other posts are not "
                       "affected.",
                     buttons=[[{"text": "📋 Details", "callback_data": f"cpost:{self.db.run_key(post['run_id'])}"}]],
@@ -4522,7 +4754,7 @@ class PipelineCoordinator:
         # closes it only when redraw_carousel says it was done (notifications.Outcome); the earlier chat's message
         # is sent exactly as before (say() leaves the item fields out with the switch off).
         _notice(self, f"❌ <b>Carousel held</b> for {html.escape(self.db.run_label(post['run_id']))}: "
-                f"{html.escape(str(held)[:400])}" + (chr(10) * 2 + html.escape(found) if found else "")
+                f"{html.escape(why)}" + (chr(10) * 2 + html.escape(found) if found else "")
                 + chr(10) * 2 + "Nothing was posted. Redraw it once the cause is dealt with; it then posts in the "
                   "next carousel slot, ahead of newer episodes.",
                 buttons=[[{"text": "🔁 Redraw and post next slot", "callback_data": f"carredraw:{post['id']}"}]],

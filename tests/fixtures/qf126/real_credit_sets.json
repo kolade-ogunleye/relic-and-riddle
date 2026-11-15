@@ -1,0 +1,178 @@
+{
+ "note": "The longest sets of credits real runs must carry (QF-126). dev_*: the records of two development runs (photos from Wikimedia Commons and a library music track, as their ledgers hold them). production_longest: the production sample's longest set as counts only (the length of each credit line).",
+ "dev_longest": {
+  "run": "run_trepanation_miracle_1792995462",
+  "images": [
+   {
+    "artist": "Unknown",
+    "title": "File:Edinburgh Skull, trepanning showing hole in back of skull Wellcome M0009393.jpg",
+    "license": "CC BY 4.0",
+    "license_url": "https://creativecommons.org/licenses/by/4.0",
+    "source_url": "https://commons.wikimedia.org/wiki/File:Edinburgh_Skull,_trepanning_showing_hole_in_back_of_skull_Wellcome_M0009393.jpg",
+    "attribution_required": true
+   },
+   {
+    "artist": "Unknown",
+    "title": "File:A human skull showing signs of Trepanning. Wellcome L0035689.jpg",
+    "license": "CC BY 4.0",
+    "license_url": "https://creativecommons.org/licenses/by/4.0",
+    "source_url": "https://commons.wikimedia.org/wiki/File:A_human_skull_showing_signs_of_Trepanning._Wellcome_L0035689.jpg",
+    "attribution_required": true
+   },
+   {
+    "artist": "Unknown",
+    "title": "File:A human skull showing signs of Trepanning. Wellcome L0035690.jpg",
+    "license": "CC BY 4.0",
+    "license_url": "https://creativecommons.org/licenses/by/4.0",
+    "source_url": "https://commons.wikimedia.org/wiki/File:A_human_skull_showing_signs_of_Trepanning._Wellcome_L0035690.jpg",
+    "attribution_required": true
+   },
+   {
+    "artist": "Unknown",
+    "title": "File:Human skull illustrating different methods of trephination o Wellcome L0058796.jpg",
+    "license": "CC BY 4.0",
+    "license_url": "https://creativecommons.org/licenses/by/4.0",
+    "source_url": "https://commons.wikimedia.org/wiki/File:Human_skull_illustrating_different_methods_of_trephination_o_Wellcome_L0058796.jpg",
+    "attribution_required": true
+   },
+   {
+    "artist": "Unknown",
+    "title": "File:Piece of skull used in a trephination experiment with an obs Wellcome L0058784.jpg",
+    "license": "CC BY 4.0",
+    "license_url": "https://creativecommons.org/licenses/by/4.0",
+    "source_url": "https://commons.wikimedia.org/wiki/File:Piece_of_skull_used_in_a_trephination_experiment_with_an_obs_Wellcome_L0058784.jpg",
+    "attribution_required": true
+   },
+   {
+    "artist": "Unknown",
+    "title": "File:Human skull illustrating different methods of trephination o Wellcome L0058798.jpg",
+    "license": "CC BY 4.0",
+    "license_url": "https://creativecommons.org/licenses/by/4.0",
+    "source_url": "https://commons.wikimedia.org/wiki/File:Human_skull_illustrating_different_methods_of_trephination_o_Wellcome_L0058798.jpg",
+    "attribution_required": true
+   },
+   {
+    "artist": "Unknown",
+    "title": "File:Diorama showing trephination in Neolithic times, England, 19 Wellcome L0058021.jpg",
+    "license": "CC BY 4.0",
+    "license_url": "https://creativecommons.org/licenses/by/4.0",
+    "source_url": "https://commons.wikimedia.org/wiki/File:Diorama_showing_trephination_in_Neolithic_times,_England,_19_Wellcome_L0058021.jpg",
+    "attribution_required": true
+   },
+   {
+    "artist": "Unknown",
+    "title": "File:Piece of skull showing a trephination experiment using a sha Wellcome L0058785.jpg",
+    "license": "CC BY 4.0",
+    "license_url": "https://creativecommons.org/licenses/by/4.0",
+    "source_url": "https://commons.wikimedia.org/wiki/File:Piece_of_skull_showing_a_trephination_experiment_using_a_sha_Wellcome_L0058785.jpg",
+    "attribution_required": true
+   },
+   {
+    "artist": "Unknown",
+    "title": "File:Trephined skullin showing different stages of healing Wellcome L0004561.jpg",
+    "license": "CC BY 4.0",
+    "license_url": "https://creativecommons.org/licenses/by/4.0",
+    "source_url": "https://commons.wikimedia.org/wiki/File:Trephined_skullin_showing_different_stages_of_healing_Wellcome_L0004561.jpg",
+    "attribution_required": true
+   },
+   {
+    "artist": "Unknown",
+    "title": "File:A human skull showing signs of Trepanning. Wellcome L0035688.jpg",
+    "license": "CC BY 4.0",
+    "license_url": "https://creativecommons.org/licenses/by/4.0",
+    "source_url": "https://commons.wikimedia.org/wiki/File:A_human_skull_showing_signs_of_Trepanning._Wellcome_L0035688.jpg",
+    "attribution_required": true
+   }
+  ],
+  "music": []
+ },
+ "dev_longest_with_music": {
+  "run": "run_amber_room_heist_1792790550",
+  "images": [
+   {
+    "artist": "Sunny365days",
+    "title": "File:Reconstructed Amber Room IMG 6163 12.jpg",
+    "license": "CC BY 4.0",
+    "license_url": "https://creativecommons.org/licenses/by/4.0",
+    "source_url": "https://commons.wikimedia.org/wiki/File:Reconstructed_Amber_Room_IMG_6163_12.jpg",
+    "attribution_required": true
+   },
+   {
+    "artist": "giggel",
+    "title": "File:Russland - St. Petersburg - Das Bernsteinzimmer - Panoramafoto vom 11.Mai 2012 - The Amber Room panoramic photo from May 11, 2012 - Панорамные фото Янтарная комната с 11 мая 2012 го - panoramio.jpg",
+    "license": "CC BY 3.0",
+    "license_url": "https://creativecommons.org/licenses/by/3.0",
+    "source_url": "https://commons.wikimedia.org/wiki/File:Russland_-_St._Petersburg_-_Das_Bernsteinzimmer_-_Panoramafoto_vom_11.Mai_2012_-_The_Amber_Room_panoramic_photo_from_May_11,_2012_-_%D0%9F%D0%B0%D0%BD%D0%BE%D1%80%D0%B0%D0%BC%D0%BD%D1%8B%D0%B5_%D1%84%D0%BE%D1%82%D0%BE_%D0%AF%D0%BD%D1%82%D0%B0%D1%80%D0%BD%D0%B0%D1%8F_%D0%BA%D0%BE%D0%BC%D0%BD%D0%B0%D1%82%D0%B0_%D1%81_11_%D0%BC%D0%B0%D1%8F_2012_%D0%B3%D0%BE_-_panoramio.jpg",
+    "attribution_required": true
+   },
+   {
+    "artist": "Sunny365days",
+    "title": "File:Reconstructed Amber Room IMG 6222 07.jpg",
+    "license": "CC BY 4.0",
+    "license_url": "https://creativecommons.org/licenses/by/4.0",
+    "source_url": "https://commons.wikimedia.org/wiki/File:Reconstructed_Amber_Room_IMG_6222_07.jpg",
+    "attribution_required": true
+   },
+   {
+    "artist": "Sunny365days",
+    "title": "File:Reconstructed Amber Room IMG 6163 11.jpg",
+    "license": "CC BY 4.0",
+    "license_url": "https://creativecommons.org/licenses/by/4.0",
+    "source_url": "https://commons.wikimedia.org/wiki/File:Reconstructed_Amber_Room_IMG_6163_11.jpg",
+    "attribution_required": true
+   },
+   {
+    "artist": "Sergey A. Demidov",
+    "title": "File:20230518 Reconstructed Amber Room 02.jpg",
+    "license": "CC BY 4.0",
+    "license_url": "https://creativecommons.org/licenses/by/4.0",
+    "source_url": "https://commons.wikimedia.org/wiki/File:20230518_Reconstructed_Amber_Room_02.jpg",
+    "attribution_required": true
+   },
+   {
+    "artist": "ftrc",
+    "title": "File:WW2 Bunker Museum (Blindage Museum Музей Бункер Battle of Königsberg Museum) Kaliningrad, Russia 2017-10-29 - 43456623775.jpg",
+    "license": "CC BY-SA 2.0",
+    "license_url": "https://creativecommons.org/licenses/by-sa/2.0",
+    "source_url": "https://commons.wikimedia.org/wiki/File:WW2_Bunker_Museum_(Blindage_Museum_%D0%9C%D1%83%D0%B7%D0%B5%D0%B9_%D0%91%D1%83%D0%BD%D0%BA%D0%B5%D1%80_Battle_of_K%C3%B6nigsberg_Museum)_Kaliningrad,_Russia_2017-10-29_-_43456623775.jpg",
+    "attribution_required": true
+   },
+   {
+    "artist": "ftrc",
+    "title": "File:WW2 Bunker Museum (Blindage Museum Музей Бункер Battle of Königsberg Museum) Kaliningrad, Russia 2017-10-29 - 43646225214.jpg",
+    "license": "CC BY-SA 2.0",
+    "license_url": "https://creativecommons.org/licenses/by-sa/2.0",
+    "source_url": "https://commons.wikimedia.org/wiki/File:WW2_Bunker_Museum_(Blindage_Museum_%D0%9C%D1%83%D0%B7%D0%B5%D0%B9_%D0%91%D1%83%D0%BD%D0%BA%D0%B5%D1%80_Battle_of_K%C3%B6nigsberg_Museum)_Kaliningrad,_Russia_2017-10-29_-_43646225214.jpg",
+    "attribution_required": true
+   }
+  ],
+  "music": [
+   {
+    "title": "Mystery Ambient Documentaries Mysterious Places",
+    "creator": "UNIVERSFIELD",
+    "license": "CC BY 4.0",
+    "license_version": "4.0",
+    "license_url": "https://creativecommons.org/licenses/by/4.0/",
+    "source_url": "https://freesound.org/people/UNIVERSFIELD/sounds/697084",
+    "source": "freesound"
+   }
+  ]
+ },
+ "production_longest": {
+  "share_alike": false,
+  "image_line_lengths": [
+   248,
+   267,
+   248,
+   278,
+   236,
+   223,
+   248,
+   249,
+   236
+  ],
+  "music_line_lengths": [
+   187
+  ]
+ }
+}

@@ -200,6 +200,36 @@ def card_copy(meta: dict[str, Any], youtube: bool = False) -> dict[str, str]:
     return out
 
 
+REEL_CAPTION = "Reel caption (Instagram and Facebook)"
+SHORT_DESCRIPTION = "YouTube Short description"
+YOUTUBE_DESCRIPTION = "YouTube description"
+
+
+def credit_texts(meta: dict[str, Any], youtube: bool = False) -> tuple[dict[str, str], dict[str, int]]:
+    """({the text each platform receives that must carry the post's licence credits: the exact string, from the
+    publishers' own field builders}, {name: the platform's character limit}), for credits.credit_reach_problems
+    (QF-126). The Reel's one caption is Instagram's caption and Facebook's text; its Short's description is the
+    caption with the hashtags; the documentary posts its description to YouTube."""
+    from .credits import CAPTION_MAX, YOUTUBE_DESCRIPTION_MAX
+    from .publisher import reel_fields, youtube_fields, youtube_short_fields
+    if youtube:
+        return ({YOUTUBE_DESCRIPTION: youtube_fields(meta)["description"]}, {YOUTUBE_DESCRIPTION: YOUTUBE_DESCRIPTION_MAX})
+    return ({REEL_CAPTION: reel_fields(meta)["caption"], SHORT_DESCRIPTION: youtube_short_fields(meta)["description"]},
+            {REEL_CAPTION: CAPTION_MAX, SHORT_DESCRIPTION: YOUTUBE_DESCRIPTION_MAX})
+
+
+def payload_credit_texts(payload: dict[str, Any], youtube: bool = False) -> tuple[dict[str, str], dict[str, int]]:
+    """credit_texts for a payload as the release gate reads it, before the topic's hashtag list is applied (the gate
+    has no topic record): the copy with its illustration disclosure, through the same builders. The envelope is
+    checked again with its exact strings when it is built (publisher.MetaPublisher.build_envelope)."""
+    from .publisher import with_disclosure
+    description = str(payload.get("description") or "")
+    return credit_texts({"title": str(payload.get("title") or ""), "youtube_title": str(payload.get("youtube_title") or ""),
+                         "caption": with_disclosure(str(payload.get("caption") or ""), payload),
+                         "description": with_disclosure(description, payload) if description else "",
+                         "hashtags": [str(t) for t in payload.get("hashtags") or []]}, youtube)
+
+
 CAROUSEL_PLATFORMS = ("instagram", "facebook")   # each gets its own carousel request (publisher.publish_photos)
 
 

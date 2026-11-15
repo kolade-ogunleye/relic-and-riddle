@@ -44,6 +44,10 @@ def parse_caption(args):
 def add_image(db, assets_dir, ref, rights, content, uploaded_by):
     if len(content) > MAX_BYTES:
         raise ValueError("Image exceeds the 20 MiB upload limit")
+    from .source_policy import refuse_blocked
+    refuse_blocked({"source_url": rights.get("source", ""), "license": rights.get("licence", ""),
+                    "license_url": rights.get("licence_url", ""),
+                    "author": rights.get("author", "")})   # an excluded source, whatever licence was typed (QF-126)
     topic = topic_for(db, ref)
     with exclusive(db.db_path, "topic-images:" + topic["id"]) as acquired:
         if not acquired:

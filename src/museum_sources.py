@@ -51,6 +51,7 @@ from . import config
 from .commons import HEADERS
 from .credits import normalize
 from .image_rights import basis, public_domain, recorded_basis_ok
+from .source_policy import blocked_source
 
 log = logging.getLogger(__name__)
 
@@ -442,7 +443,7 @@ def search_all(query: str, keywords: list[str], sources: tuple | None = None) ->
         if name == "openverse" and not config.MUSEUM_OPENVERSE_ENABLED:
             continue
         for cand in SOURCES[name](query):
-            if _names_subject(cand, kws):
+            if _names_subject(cand, kws) and not blocked_source(cand):   # an excluded source is never offered (QF-126)
                 out.append(cand)
     return out
 
@@ -525,7 +526,8 @@ def cached_search(query: str, keywords: List[str], sources: Optional[tuple] = No
         out += [dict(c) for c in found if isinstance(c, dict) and c.get("download_url")
                 and (not public_domain(str(c.get("license") or "")) or recorded_basis_ok(c))
                 and (name != "openverse" or c.get("license_verified_at"))
-                and license_allowed(str(c.get("license") or "")) and _names_subject(c, kws)]
+                and license_allowed(str(c.get("license") or "")) and _names_subject(c, kws)
+                and not blocked_source(c)]   # an excluded source (QF-126), a cached answer included
     if fresh:
         try:
             with _cache_lock:   # read again: another line's search may have written meanwhile

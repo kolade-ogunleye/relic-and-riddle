@@ -186,8 +186,9 @@ class PreFlightHealthChecker:
         except OSError:
             return False, "No active internet connection detected"
 
-    def check_live_credentials(self) -> Tuple[bool, str]:
-        """Everything an unattended production cycle needs."""
+    def check_live_credentials(self, dry_run: bool = False) -> Tuple[bool, str]:
+        """Everything an unattended production cycle needs. The voice: a real run needs one recorded as commercially
+        licensed (QF-127); a dry run (`dry_run`) is voiced by any configured voice, as it always was."""
         missing = []
         if config.SCRIPT_ENGINE == "claude" and not is_configured(config.ANTHROPIC_API_KEY):
             missing.append("ANTHROPIC_API_KEY (script writing + fact checking)")
@@ -204,21 +205,45 @@ class PreFlightHealthChecker:
         graph = is_configured(config.META_ACCESS_TOKEN) and is_configured(config.META_IG_ACCOUNT_ID)
         if not (upload_post or graph):
             missing.append("a publisher (UPLOAD_POST_API_KEY+UPLOAD_POST_USER or META_ACCESS_TOKEN+META_IG_ACCOUNT_ID)")
-        azure = is_configured(config.AZURE_SPEECH_KEY) and is_configured(config.AZURE_SPEECH_REGION)
+        # QF-127: a configured Azure key is not a licence. For a real run Azure counts only on a paid tier the
+        # operator declared; a dry run takes the key as its test voice.
+        from . import voice_licence
+        azure = (is_configured(config.AZURE_SPEECH_KEY) and is_configured(config.AZURE_SPEECH_REGION)
+                 and (dry_run or voice_licence.licensed("azure", voice_licence.azure_tier())))
         if not azure:
             from .audio_engine import AudioEngine  # only when needed: asks ElevenLabs for the plan
-            if not (is_configured(config.ELEVENLABS_API_KEY) and AudioEngine().eleven_licensed()):
-                missing.append("a commercially licensed voice (ElevenLabs on a paid plan, or AZURE_SPEECH_KEY+"
-                               "AZURE_SPEECH_REGION); ElevenLabs Free and edge-tts are for test runs only")
+            if not (is_configured(config.ELEVENLABS_API_KEY) and self._eleven_usable(AudioEngine().voice_quota(), dry_run)):
+                missing.append("a voice (AZURE_SPEECH_KEY+AZURE_SPEECH_REGION, or ElevenLabs on a paid plan)" if dry_run else
+                               "a commercially licensed voice (ElevenLabs on a paid plan, or Azure Speech on a paid "
+                               "tier declared with AZURE_SPEECH_TIER); ElevenLabs Free, Azure F0 and edge-tts are "
+                               "for test runs only")
         if missing:
             return False, "Missing: " + "; ".join(missing)
         return True, "Script, approval and publishing credentials configured"
 
+    @staticmethod
+    def _eleven_usable(quota: Any, dry_run: bool) -> bool:
+        """Whether the ElevenLabs plan passes the pre-flight: for a real run, the licence table's answer for the
+        plan and its status (QF-127); for a dry run, the rule from before the table (any plan but Free)."""
+        from . import voice_licence
+        if not dry_run:
+            return voice_licence.elevenlabs_licence(quota)[0]
+        tier = (quota or {}).get("tier")
+        return bool(tier) and tier != "free"
+
+    def voice_gate_note(self, dry_run: bool = False) -> tuple[bool, str] | None:
+        """The pre-flight's note while VOICE_REQUIRE_LICENSED=false and the run is real (QF-127): shown, never a
+        reason not to start. None with the gate on or for a dry run."""
+        from . import voice_licence
+        note = voice_licence.gate_off_note(dry=dry_run)
+        return (False, note) if note else None
+
     NARRATION_CHARS = 900  # a 115-word script with its punctuation, rounded up
 
-    def probe_live_services(self) -> Tuple[bool, str]:
+    def probe_live_services(self, dry_run: bool = False) -> Tuple[bool, str]:
         """Light real calls proving the credentials work (presence alone said "OK" while Azure
-        returned 401). Nothing is generated or billed."""
+        returned 401). Nothing is generated or billed. A real run needs a working voice recorded as commercially
+        licensed (QF-127); a dry run (`dry_run`) needs any working voice, as it always did."""
         problems, notes = [], []
         azure_ok = False
         if is_configured(config.AZURE_SPEECH_KEY) and is_configured(config.AZURE_SPEECH_REGION):
@@ -228,6 +253,11 @@ class PreFlightHealthChecker:
                 azure_ok = r.status_code == 200
                 (notes if azure_ok else problems).append(
                     "Azure Speech key OK" if azure_ok else f"Azure Speech rejected the key/region (HTTP {r.status_code})")
+                from . import voice_licence
+                if azure_ok and not voice_licence.licensed("azure", voice_licence.azure_tier()):
+                    # QF-127: a working key on the free tier is a test voice, not a licensed one. It voices a dry run.
+                    azure_ok = dry_run
+                    notes.append(f"Azure Speech is on {voice_licence.azure_tier().upper()}: test runs only")
             except requests.RequestException as e:
                 problems.append(f"Azure Speech unreachable ({type(e).__name__})")
         eleven_ok = False
@@ -235,15 +265,24 @@ class PreFlightHealthChecker:
             from .audio_engine import AudioEngine
             quota = AudioEngine().voice_quota() or {}
             left = quota.get("limit", 0) - quota.get("used", 0)
-            paid = bool(quota.get("tier")) and quota["tier"] != "free"
+            paid = self._eleven_usable(quota, dry_run)
             eleven_ok = paid and left >= self.NARRATION_CHARS
             if eleven_ok:
                 notes.append(f"ElevenLabs {quota['tier']} plan OK ({left} characters left)")
             else:
-                problems.append(f"ElevenLabs is not usable for a licensed voice ({quota.get('tier') or 'unknown'} plan, "
-                                f"{left} characters left)")
+                # a paid-looking plan the table does not license (not one of ElevenLabs' paid plans, or its
+                # subscription not active) is said with that reason (QF-127)
+                from . import voice_licence
+                licensed, basis = voice_licence.elevenlabs_licence(quota)
+                why = "" if dry_run or licensed or (quota.get("tier") or "free") == "free" else f": {basis}"
+                if not quota.get("tier") and not dry_run:
+                    # the subscription could not be read: neither a plan nor a balance is known, so none is said
+                    problems.append(f"ElevenLabs is not usable for a licensed voice: {basis}")
+                else:
+                    problems.append(f"ElevenLabs is not usable for a licensed voice ({quota.get('tier') or 'unknown'} "
+                                    f"plan, {left} characters left){why}")
         if not (azure_ok or eleven_ok):
-            problems.insert(0, "No working commercially licensed voice")
+            problems.insert(0, "No working voice" if dry_run else "No working commercially licensed voice")
         if is_configured(config.GEMINI_API_KEY) and config.GEMINI_API_KEY == config.GEMINI_FREE_API_KEY:
             problems.append("GEMINI_API_KEY and GEMINI_FREE_API_KEY are the same key: the free path could be billed, "
                             "or paid features run on free-tier limits")
@@ -264,22 +303,27 @@ class PreFlightHealthChecker:
             return False, "; ".join(problems)
         return True, "; ".join(notes) or "Live services answered"
 
-    def run_all(self, require_live: bool = False) -> Dict[str, Any]:
+    def run_all(self, require_live: bool = False, dry_run: bool = False) -> Dict[str, Any]:
+        """`dry_run`: the run this pre-flight is for is a dry run, so the voice it needs is any configured one; a
+        real run (and `health --live`) needs a commercially licensed voice (QF-127)."""
         results = {
             "ffmpeg": self.check_ffmpeg(),
             "ffprobe": self.check_ffprobe(),
             "disk": self.check_disk_space(),
             "fonts": self.check_fonts(),
             "network": self.check_network(),
-            "credentials": self.check_live_credentials(),
+            "credentials": self.check_live_credentials(dry_run=dry_run),
         }
+        gate_note = self.voice_gate_note(dry_run)
+        if gate_note:   # VOICE_REQUIRE_LICENSED=false on a real run: said with the checks, never required
+            results["voice gate"] = gate_note
         if config.BACKUP_ENABLED and config.BACKUP_TRANSPORT == "onedrive-api":
             from .backup_runtime import check_readiness
             results["backup"] = check_readiness() if require_live else (
                 True, "API backup configured; use health --live to verify cloud and restore evidence")
         if require_live:  # prove the credentials work before a live run spends anything
-            results["services"] = self.probe_live_services()
-        required = [k for k in results if k != "credentials" or require_live]
+            results["services"] = self.probe_live_services(dry_run=dry_run)
+        required = [k for k in results if k != "voice gate" and (k != "credentials" or require_live)]
         return {
             "all_passed": all(results[k][0] for k in required),
             "details": {

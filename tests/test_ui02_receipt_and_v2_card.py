@@ -340,8 +340,14 @@ def test_v2_card_from_a_real_run_shows_only_values_traceable_to_its_files(db, tm
     findings = next(b for b in blocks if b.get("summary", "").startswith("🔎 Findings"))
     problems = [p for c in report["checks"] for p in check_problems(c)] + [p for c in report["checks"] for p in check_problems(c, "notes")]
     notes = [str(payload[k]) for k in payload if k.endswith("_note") and payload[k]]
-    for item in findings["blocks"][0]["items"]:
-        text = item["blocks"][0]["text"]
+    # ... or the licence table's reading of the run's own voice.json (QF-127: an Azure take saved as "licensed")
+    from src.voice_licence import overclaim_flag
+    voice_flag = overclaim_flag(json.loads(files["voice.json"]))
+    said = [item["blocks"][0]["text"] for item in findings["blocks"][0]["items"]]
+    assert voice_flag and said.count(voice_flag) == 1 and not any("Commercially Licensed" in s for s in said)
+    for text in said:
+        if text == voice_flag:
+            continue
         assert any(p in text for p in problems) or any(text.split(": ", 1)[-1][:40] in re.sub(r"<[^>]+>", "", n) for n in notes), text
     # what Approve posts is the record saved for the envelope check (QF-43), from the run's own copy
     again = publishable.card_record(payload, db, run_dir=root, topic_id=payload["topic_id"], posting=posted["posting"])
@@ -352,7 +358,7 @@ def test_v2_card_from_a_real_run_shows_only_values_traceable_to_its_files(db, tm
     details = next(b for b in blocks if b.get("summary") == "Run details")["blocks"][0]["cells"]
     rows = {r[0]["text"]["text"]: r[1]["text"] for r in details}
     voice, music = json.loads(files["voice.json"]), json.loads(files["music_selection.json"])
-    assert rows["Voice"] == "Azure Speech · licensed" and voice == {"provider": "azure", "licensed": True}
+    assert rows["Voice"] == "Azure Speech · voice not commercially licensed" and voice == {"provider": "azure", "licensed": True}
     assert rows["Music"] in music["credit"] and music["tracks"][0]["creator"] in rows["Music"]
     from src.telegram_bot import origin_label
     assert rows["Written by"] == origin_label(payload["origin"])

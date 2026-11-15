@@ -41,8 +41,9 @@ def test_paid_elevenlabs_is_used_and_licensed(monkeypatch, tmp_path):
 
 def test_free_elevenlabs_is_skipped_in_real_runs(monkeypatch, tmp_path):
     eng, calls = engine(monkeypatch, tier="free")
-    eng.generate_narration("x", tmp_path / "v.mp3", licensed_only=True)
-    assert calls == ["azure"] and eng.last_provider == "azure" and "Free plan" in eng.fallback_reason
+    with pytest.raises(NoLicensedVoice):   # QF-127: Azure's free tier is no licensed fallback (decisions QF-127, A)
+        eng.generate_narration("x", tmp_path / "v.mp3", licensed_only=True)
+    assert calls == [] and eng.last_provider == "" and "Free plan" in eng.fallback_reason
 
 
 def test_free_elevenlabs_is_fine_for_test_runs_but_marked_unlicensed(monkeypatch, tmp_path):
@@ -53,8 +54,9 @@ def test_free_elevenlabs_is_fine_for_test_runs_but_marked_unlicensed(monkeypatch
 
 def test_elevenlabs_failure_falls_back_to_azure(monkeypatch, tmp_path):
     eng, calls = engine(monkeypatch, tier="creator", eleven_ok=False)
-    eng.generate_narration("x", tmp_path / "v.mp3", licensed_only=True)
-    assert calls == ["elevenlabs", "azure"] and eng.last_licensed
+    with pytest.raises(NoLicensedVoice):   # QF-127: a real run never falls back to Azure's free tier
+        eng.generate_narration("x", tmp_path / "v.mp3", licensed_only=True)
+    assert calls == ["elevenlabs"] and not eng.last_licensed
 
 
 def test_no_licensed_voice_stops_a_real_run(monkeypatch, tmp_path):
@@ -106,10 +108,11 @@ def test_elevenlabs_quota_exhausted_routes_to_azure(monkeypatch, tmp_path):
 
     # 150 characters of narration exceeds 50 characters remaining
     text = "A" * 150
-    eng.generate_narration(text, tmp_path / "v.mp3", licensed_only=True)
-    # ElevenLabs should NOT have been called; cleanly routed to Azure
-    assert calls == ["azure"]
-    assert eng.last_provider == "azure"
+    with pytest.raises(NoLicensedVoice):   # QF-127: not routed to Azure's free tier; the run is held
+        eng.generate_narration(text, tmp_path / "v.mp3", licensed_only=True)
+    # ElevenLabs should NOT have been called, and neither is Azure
+    assert calls == []
+    assert eng.last_provider == ""
     assert "balance exhausted" in eng.fallback_reason
 
 
@@ -170,7 +173,7 @@ def test_voice_prefer_azure_selects_azure_first(monkeypatch, tmp_path):
     monkeypatch.setattr(eng, "_generate_elevenlabs", lambda text, path: calls.append("elevenlabs") or [{"word": "Test", "start": 0.0, "dur": 0.5}])
 
     eng.generate_narration("Test narration", tmp_path / "vo.wav", licensed_only=True)
-    assert eng.last_provider == "azure"
-    assert calls == ["azure"]
+    assert eng.last_provider == "elevenlabs"   # QF-127: preferred, but its free tier never voices a real run
+    assert calls == ["elevenlabs"]
 
 

@@ -6,12 +6,20 @@ from pathlib import Path
 from .credits import license_allowed, sha256_file
 
 
-def record_voice(path, provider, licensed, script):
+def record_voice(path, provider, licensed, script, tier=None, plan_status=None):
+    """The voiceover's rights record: who voiced it, on which tier (for ElevenLabs also the subscription's status
+    at the take, when one was read), and their recorded licence status (voice_licence, QF-127). `licensed` alone
+    never makes a take licensed: the provider and tier must be. With no tier given the record is judged as one
+    made before the tier was saved (an Azure take is then not licensed)."""
     from .checkpoints import fingerprint
+    from .voice_licence import record_licence
     path = Path(path)
+    named = {"provider": provider, **({} if tier is None else {"tier": str(tier).strip().lower()}),
+             **({} if tier is None or plan_status is None else {"plan_status": str(plan_status).strip().lower()})}
+    ok, basis = record_licence({**named, "commercial_license_recorded": licensed is True})
     record = {"path": str(path.resolve()), "sha256": sha256_file(path),
-              "provider": provider, "commercial_license_recorded": licensed is True,
-              "script_fingerprint": fingerprint(script)}
+              **named, "commercial_license_recorded": ok,
+              "licence_basis": basis, "script_fingerprint": fingerprint(script)}
     if not record["sha256"]:
         raise ValueError("Cannot record absent narration")
     with open(path.with_suffix(path.suffix + ".rights.json"), "w", encoding="utf-8", newline="\n") as handle:  # LF: the repository refuses CRLF
@@ -141,7 +149,13 @@ def inspect_audio_rights(path, kind, caption, script=None):
                 from .checkpoints import fingerprint
                 if record.get("script_fingerprint") != fingerprint(script):
                     return False, "Narration was generated for a different script"
-            return record.get("commercial_license_recorded") is True, record
+            # QF-127: the record is read against the per-provider/tier table, so a take marked licensed only
+            # because an Azure key was configured does not pass.
+            from .voice_licence import NOT_LICENSED, record_licence
+            ok, basis = record_licence(record)
+            if not ok and record.get("commercial_license_recorded") is True:   # the record claims what the table denies
+                return False, f"{NOT_LICENSED.capitalize()}: {basis}"
+            return ok, record
         sources_valid = all(s.get("sha256") and sha256_file(Path(s["path"])) == s["sha256"]
                             for s in record.get("sources", []))
         attribution = record.get("required_attribution", "")

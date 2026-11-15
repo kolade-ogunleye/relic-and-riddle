@@ -211,6 +211,19 @@ def evidence(db: PipelineDatabase, run: Optional[Dict[str, Any]]) -> Dict[str, A
             data = _read(run_dir / name)
             if data is not None:
                 ev[name] = data.get("checks", data) if name == "release_report.json" else data
+        # QF-127: a saved "licensed" the licence table denies (a master voiced by Azure before its tier was recorded)
+        # is given as it reads now, so an answer never repeats the saved note's "Commercially Licensed".
+        from . import voice_licence
+        voice_flag = voice_licence.overclaim_flag(ev.get("voice.json"))
+        if voice_flag:
+            ev["review card notes"]["voice_note"] = voice_flag
+            ev["voice.json"] = {**ev["voice.json"], "licensed": False, "licensed_as_saved": True,
+                                "licence_basis": voice_licence.record_licence(ev["voice.json"])[1]}
+            if isinstance(ev.get("release_report.json"), list):   # its saved voice-rights check passed on that claim
+                ev["release_report.json"] = [
+                    {**c, "status": "needs_review", "status_as_saved": "pass", "detail": voice_flag}
+                    if isinstance(c, dict) and c.get("name") == "voiceover_rights" and c.get("status") == "pass" else c
+                    for c in ev["release_report.json"]]
         motion_dir = run_dir / "motion"
         if motion_dir.is_dir():
             ev["motion files"] = sorted(p.name for p in motion_dir.iterdir())

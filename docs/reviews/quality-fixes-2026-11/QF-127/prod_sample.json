@@ -1,0 +1,31 @@
+{
+ "by_provider": {
+  "azure": {
+   "flagged": 1,
+   "licensed_now": 0,
+   "marked_licensed": 1,
+   "names_a_tier": 0,
+   "runs": 1
+  },
+  "elevenlabs": {
+   "flagged": 0,
+   "licensed_now": 33,
+   "marked_licensed": 33,
+   "names_a_tier": 0,
+   "runs": 33
+  }
+ },
+ "measured": "2026-11-14, the production sample of 2026-11-08 (read-only, counts only), with the table of this commit",
+ "rights_records": {
+  "azure": {
+   "licensed_now": 0,
+   "records": 1
+  },
+  "elevenlabs": {
+   "licensed_now": 33,
+   "records": 33
+  }
+ },
+ "runs": 34,
+ "runs_with_a_voice_record": 34
+}

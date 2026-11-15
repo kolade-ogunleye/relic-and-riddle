@@ -55,6 +55,8 @@ from src.fact_sheet import FactStarvedTopicError
 from src.stage_timer import StageTimer
 from src.improve import REASONS, SCRIPT_REASONS
 from src.operator_jobs import JobCancelled
+from src.audio_engine import NoLicensedVoice
+from src import voice_licence
 
 log = logging.getLogger("pipeline")
 
@@ -231,7 +233,8 @@ class PipelineCoordinator:
         if allowed != content_format:
             log.info("Run format %s narrowed to %s by VIDEO_FORMATS.", content_format, allowed)
         content_format = allowed
-        health = self.health_checker.run_all(require_live=require_live)
+        # QF-127: the pre-flight's licensed-voice requirement is a real run's; a dry run is voiced by any voice
+        health = self.health_checker.run_all(require_live=require_live, dry_run=dry_run)
         for k, v in health["details"].items():
             log.info("Health %-11s %s %s", k, "OK " if v["passed"] else ("FAIL" if v["required"] else "warn"), v["msg"])
         if config.FONT_SIZE == 72:   # the caption size before 2026-11-03, most likely an old .env line
@@ -344,6 +347,11 @@ class PipelineCoordinator:
                 log.info("Auto-advancing to next topic '%s'...", next_t['id'])
                 return self.run_cycle(next_t["id"], auto_approve, dry_run, require_live, content_format)
             return {"status": "skipped", "reason": "fact_starved", "topic_id": tid}
+        except NoLicensedVoice as e:   # held, never voiced by an unlicensed provider (QF-127)
+            card, self.progress_msg_id = getattr(self, "progress_msg_id", None), None
+            held = self._hold_for_voice(run_id, tid, topic["title"], e, card=card)
+            self._collect_findings(run_id, run_dir, tid, error=f"NoLicensedVoice: {e}")
+            return held
         except Exception as e:
             self.db.update_run(run_id, "failed", error=f"{type(e).__name__}: {e}")
             self.topic_engine.record_status(tid, "failed", run_id=run_id)
@@ -438,6 +446,33 @@ class PipelineCoordinator:
             self.telegram_bot.update_progress_card(self.progress_msg_id, step, 5, title, run_id, text)
         except Exception as e:
             log.debug("Progress note not shown: %s", e)
+
+    def _hold_for_voice(self, run_id: str, tid: str, title: str, error: Exception, card: Any = None,
+                        set_topic_aside: bool = True) -> dict[str, Any]:
+        """A real run with no commercially licensed voice (QF-127: ElevenLabs on a paid plan, or Azure Speech on a
+        declared paid tier) is held: nothing is voiced by an unlicensed voice, approved or posted, and the run
+        says so once, as the Needs-you item of its own key (fail:<run>, so the progress panel's ending and this
+        notice are one item). Its script and checkpoints are kept: Re-render continues once a licensed voice is back."""
+        reason = str(error)
+        self.db.update_run(run_id, "failed", error=f"NoLicensedVoice: {reason}")
+        if set_topic_aside:
+            self.topic_engine.record_status(tid, "failed", run_id=run_id)
+        log.warning("Run %s held: %s", run_id, reason)
+        card_shown = False
+        try:   # the card first: in the clean chat its ending files the run's failure item, which the notice replaces
+            if card:
+                card_shown = bool(self.telegram_bot.finish_progress_card(card, title, run_id, success=False, error=reason))
+        finally:   # the hold is said whether or not the card could be finished
+            if config.TELEGRAM_CLEAN_CHAT or not card_shown:   # the earlier chat's failure card already says it
+                _notice(self, f"🛑 <b>Held: no licensed voice</b>\n\n<b>{html.escape(self.db.run_label(run_id))}</b>\n"
+                              f"<blockquote expandable>{html.escape(reason[:600])}</blockquote>\n"
+                              "Nothing was voiced by an unlicensed voice, approved or posted: a real run is voiced "
+                              "only by a commercially licensed voice (ElevenLabs on a paid plan). Restore it, then "
+                              "Re-render: the script is kept.",
+                        group="needs", section="needs", key=f"fail:{run_id}", run=run_id, replace=True,
+                        actions=notifications.failure_actions(self.db, run_id))
+            ping_healthcheck("/fail")
+        return {"status": "held", "reason": "no_licensed_voice", "run_id": run_id, "topic_id": tid, "error": reason}
 
     def _finish_progress(self, title: str, run_id: str, success: bool, error: str = "") -> None:
         """Ends the run's progress card and its 'in production' record (idempotent)."""
@@ -866,7 +901,14 @@ class PipelineCoordinator:
             words_path = run_dir / "words.json"
             voice_inputs = self.voice_inputs(raw_narration, dry_run)
             licensed_req, allow_paid = voice_inputs["licensed_only"], voice_inputs["allow_paid"]
-            if checkpoints.reusable("deep_voice", voice_inputs):
+            kept_take = checkpoints.reusable("deep_voice", voice_inputs)
+            if kept_take and licensed_req:   # QF-127: a real run keeps a take only if the licence table licenses it
+                try:
+                    kept_rights = json.loads(rights_file(vo_path).read_text(encoding="utf-8"))
+                except (OSError, ValueError):
+                    kept_rights = {}
+                kept_take = voice_licence.record_licensed(kept_rights)
+            if kept_take:
                 words = json.loads(words_path.read_text(encoding="utf-8"))
                 vo_dur = self.audio_engine.get_duration(vo_path)
                 log.info("Deep-Dive Voiceover: reusing existing audio (%.2fs, %d words timed)", vo_dur, len(words))
@@ -879,7 +921,9 @@ class PipelineCoordinator:
                 vo_dur = self.audio_engine.get_duration(vo_path)
                 log.info("Deep-Dive Voiceover: %.2fs (%d words timed)", vo_dur, len(words))
                 from src.audio_provenance import record_voice
-                record_voice(vo_path, self.audio_engine.last_provider, self.audio_engine.last_licensed, raw_narration)
+                record_voice(vo_path, self.audio_engine.last_provider, self.audio_engine.last_licensed, raw_narration,
+                             tier=getattr(self.audio_engine, "last_tier", None),
+                             plan_status=getattr(self.audio_engine, "last_plan_status", None))
                 checkpoints.complete("deep_voice", voice_inputs,
                                      [vo_path, words_path, rights_file(vo_path)])
 
@@ -1053,6 +1097,10 @@ class PipelineCoordinator:
         except JobCancelled:
             finish(False, "Cancelled by operator")
             return {"status": "cancelled", "run_id": run_id, "topic_id": tid}
+        except NoLicensedVoice as e:   # held, never voiced by an unlicensed provider (QF-127)
+            held = self._hold_for_voice(run_id, tid, card_title, e, card=card, set_topic_aside=False)
+            self._collect_findings(run_id, run_dir, tid, error=f"NoLicensedVoice: {e}")
+            return {**held, "parent_run_id": parent_run_id}
         except Exception as e:
             log.error("Deep-dive production failed for run %s: %s", run_id, e, exc_info=True)
             self.db.update_run(run_id, "failed", error=f"{type(e).__name__}: {e}")
@@ -1235,7 +1283,11 @@ class PipelineCoordinator:
         self.db.update_run(run_id, "published")
         self.db.record_publication(run["topic_id"], run_id, "manual-confirmation", "published", {"confirmed_by": "human"})
         self.topic_engine.record_status(run["topic_id"], "published", run_id=run_id)
-        return f"✅ Recorded as published: {html.escape(self.db.run_label(run_id))}"
+        # QF-127: an upload the licence gate let through while switched off is on the record as posted only now
+        confirm = getattr(getattr(self, "publisher", None), "voice_posted_confirmed", None)
+        said = confirm(run_id, "Reel") if callable(confirm) else ""
+        return (f"✅ Recorded as published: {html.escape(self.db.run_label(run_id))}"
+                + (f"\n⚠️ {html.escape(said)}" if said else ""))
 
     def confirm_not_posted(self, run_id: str) -> str:
         """Human confirmed an 'unknown' publish did not go live: requeue the topic for a retry."""
@@ -1548,6 +1600,11 @@ class PipelineCoordinator:
         except worker_deadline.RunDeadlineExceeded as e:  # stopped at its deadline (_stop_at_deadline), files kept
             self._collect_findings(run_id, run_dir, topic["id"], error=f"RunDeadlineExceeded: {e}")
             return {"status": "timed_out", "run_id": run_id, "topic_id": topic["id"]}
+        except NoLicensedVoice as e:   # held, never voiced by an unlicensed provider (QF-127)
+            card, self.progress_msg_id = getattr(self, "progress_msg_id", None), None
+            held = self._hold_for_voice(run_id, topic["id"], topic["title"], e, card=card)
+            self._collect_findings(run_id, run_dir, topic["id"], error=f"NoLicensedVoice: {e}")
+            return held
         except Exception as e:
             self.db.update_run(run_id, "failed", error=f"{type(e).__name__}: {e}")
             self.topic_engine.record_status(topic["id"], "failed", run_id=run_id)
@@ -1991,10 +2048,14 @@ class PipelineCoordinator:
             return "▶️ YouTube Shorts are turned off (YOUTUBE_SHORTS)."
         envelope = self.publisher.build_envelope(run_id, Path(run["master_video_path"]), Path(run["thumbnail_cover_path"]),
                                                  Path(run["thumbnail_grid_path"]), run["script_payload"])
-        short = self.publisher.publish_short(envelope, dry_run=False)
+        short = self.publisher.publish_short(envelope, dry_run=False)   # behind the voice licence gate (QF-127)
         if short.get("status") == "published":
             links = " ".join(html.escape(str(v)) for v in (short.get("post_urls") or {}).values())
-            return f"▶️ YouTube Short posted ({html.escape(config.YOUTUBE_SHORTS_PRIVACY)}). {links}"
+            return (f"▶️ YouTube Short posted ({html.escape(config.YOUTUBE_SHORTS_PRIVACY)}). {links}"
+                    + _voice_gate_off_line(self.publisher, run_id, "YouTube Short"))
+        if short.get("status") == "blocked_unlicensed":   # the master's voice: nothing was uploaded
+            return (f"▶️ YouTube Short {html.escape(str(short.get('error') or 'not posted')[:400])}. "
+                    + html.escape(voice_licence.recovery()))
         return f"▶️ YouTube Short not posted ({html.escape(str(short.get('status')))}): {html.escape(str(short.get('error') or '')[:300])}"
 
     def retry_reel(self, run_id: str) -> str:
@@ -2048,7 +2109,8 @@ class PipelineCoordinator:
             short = ""
             if config.YOUTUBE_SHORTS and (payload.get("delivery_profile") or "reel_9x16") == "reel_9x16":
                 short = "\n" + self.post_youtube_short(run_id)   # it went only with a publish that succeeded first time
-            return f"🔁 Reel re-sent to {', '.join(platforms)} for {label}: posted. {links}{then}{short}"
+            said = _voice_gate_off_line(self.publisher, run_id, "Reel")   # QF-127: re-sent with the licence gate off
+            return f"🔁 Reel re-sent to {', '.join(platforms)} for {label}: posted. {links}{then}{said}{short}"
         return f"🔁 Reel retry on {', '.join(platforms)} ended with status '{html.escape(str(res.get('status')))}': {html.escape(str(res.get('error') or '')[:200])}"
 
     def promote_run(self, run_id: str, now: bool = False) -> str:
@@ -2108,10 +2170,13 @@ class PipelineCoordinator:
     def voice_reusable(checkpoints, voice_inputs: Dict[str, Any], saved_voice: Dict[str, Any], dry_run: bool) -> bool:
         """Whether the run's voiceover is kept. A real run never reuses an unlicensed (test) voiceover; a
         licensed one already paid for this exact script satisfies any run (a resume with paid voice off
-        re-voiced it with the free voice, and a live run would have paid for it again)."""
+        re-voiced it with the free voice, and a live run would have paid for it again). Licensed is the saved
+        record read against the per-provider/tier table (QF-127): an Azure take marked licensed before the tier
+        was saved is a test voice."""
+        kept_licensed = voice_licence.record_licensed(saved_voice)
         if checkpoints.reusable("voice", voice_inputs):
-            return dry_run or not config.VOICE_REQUIRE_LICENSED or bool(saved_voice.get("licensed"))
-        if saved_voice.get("licensed") and any(
+            return dry_run or not config.VOICE_REQUIRE_LICENSED or kept_licensed
+        if kept_licensed and any(
                 checkpoints.reusable("voice", {**voice_inputs, "allow_paid": True, "licensed_only": lic}) for lic in (True, False)):
             log.info("Keeping the licensed voiceover already made for this script.")
             return True
@@ -2304,19 +2369,24 @@ class PipelineCoordinator:
             # never time-stretched (the operator heard a 4% stretch as awkward, 2026-10-25).
             words, speech_speed = self._fit_take(vo_path, words, speech_speed, voice_at, voice_inputs)
             words_path.write_text(json.dumps(words), encoding="utf-8")
+            v_tier = getattr(self.audio_engine, "last_tier", None)   # QF-127: the tier and the basis of the status
+            v_plan = None if v_tier is None else getattr(self.audio_engine, "last_plan_status", None)
             voice_path.write_text(json.dumps({"provider": self.audio_engine.last_provider,
+                                              **({} if v_tier is None else {"tier": v_tier}),
+                                              **({} if v_plan is None else {"plan_status": v_plan}),
                                               "licensed": self.audio_engine.last_licensed,
+                                              "licence_basis": getattr(self.audio_engine, "last_licence_basis", ""),
                                               **({"first_take": self.last_take_band}
                                                  if getattr(self, "last_take_band", None) else {})}), encoding="utf-8")
             from src.audio_provenance import record_voice
             record_voice(vo_path, self.audio_engine.last_provider, self.audio_engine.last_licensed,
-                         payload["narration_script"])
+                         payload["narration_script"], tier=v_tier, plan_status=v_plan)
             checkpoints.complete("voice", voice_inputs, [vo_path, words_path, voice_path])
             if self.audio_engine.fallback_reason:
                 r_label = html.escape(self.db.run_label(run_id))
                 _notice(self, f"🔁 <b>Voice fallback</b>\n\n<b>{r_label}</b>\n\n{html.escape(self.audio_engine.fallback_reason)}\n\nVoiced by: <b>{html.escape(self.audio_engine.last_provider)}</b>.", section="info")
         v_prov = (saved_voice.get("provider") if reusable else self.audio_engine.last_provider) or "unknown"
-        v_lic = saved_voice.get("licensed") if reusable else self.audio_engine.last_licensed
+        v_lic = voice_licence.record_licensed(saved_voice) if reusable else self.audio_engine.last_licensed
         lic_badge = "🟢 Commercially Licensed" if v_lic else "🟡 Unlicensed (Review / Test Only)"
         payload["voice_note"] = (f"🎙️ Voice: {v_prov.title()} ({lic_badge})"
                                  + (f", read {round((speech_speed - 1) * 100)}% faster to fit the time limit"
@@ -4663,7 +4733,9 @@ class PipelineCoordinator:
                                   for p in envelope["platforms"] if p not in missed)
                 failed = "".join(f"\n{_failed_line(p, why)}" for p, why in missed.items())
                 head = "⚠️ <b>Posted with problems</b>" if failed else "✅ <b>Published</b>"
-                _notice(self, f"{head}\n\n<b>{html.escape(payload.get('title', tid))}</b>\n\n{links}{failed}",
+                # QF-127: posted with the gate off and an unlicensed voice
+                said = _voice_gate_off_line(self.publisher, run_id)
+                _notice(self, f"{head}\n\n<b>{html.escape(payload.get('title', tid))}</b>\n\n{links}{failed}{said}",
                             section="needs" if failed else "info", key=f"posted:{run_id}", run=run_id, replace=True,
                              actions=self._episode_action(run_id) if failed else None)
         elif status == "simulated":
@@ -4681,7 +4753,8 @@ class PipelineCoordinator:
                 f"Voice used: <code>{html.escape(str(pub.get('provider', 'unlicensed')))}</code> (Unlicensed)\n\n"
                 f"Meta Content Monetization Program (CMP) policies prohibit commercial publishing without a commercial license.\n\n"
                 f"👉 <i>Options:</i>\n"
-                f"• Configure an active Azure Speech key or ElevenLabs paid plan\n"
+                f"• Voice it again with ElevenLabs on a paid plan (Azure's free tier and edge-tts are test voices). "
+                f"{html.escape(voice_licence.recovery())}\n"
                 f"• Or execute a simulated publish for testing",
                 buttons=[
                     {"text": "🧪 Simulate Publish Only", "callback_data": f"simpub:{key}"},
@@ -4727,9 +4800,10 @@ class PipelineCoordinator:
                                 f"<b>{html.escape(payload.get('title', tid))}</b>\n{links}", section="info", run=run_id)
             elif short["status"] == "skipped" and receipt:   # no uploader set up: not attempted, said in plain words
                 receipt.update_platform("youtube", "skipped", error="no account that can upload Shorts is set up")
-            elif short["status"] in ("failed", "unknown"):
+            elif short["status"] in ("failed", "unknown", "blocked_unlicensed"):
                 if receipt:
-                    receipt.update_platform("youtube", short["status"], error=str(short.get("error", "")))
+                    receipt.update_platform("youtube", "unknown" if short["status"] == "unknown" else "failed",
+                                            error=str(short.get("error", "")))
                 else:
                     # The Reel stands either way; an unknown Short is checked by hand, never re-sent blindly.
                     _notice(self, f"⚠️ <b>YouTube Short {'unconfirmed' if short['status'] == 'unknown' else 'not posted'}</b>\n"
@@ -4742,7 +4816,8 @@ class PipelineCoordinator:
             # slot" whether or not any was booked: UI-02); Posting has their times.
             booked = {p["kind"] for p in self.db.list_scheduled_posts(("pending", "waiting"), run_id=run_id)}
             follow = [name for kind, name in (("story", "Stories"), ("carousel", "carousel")) if kind in booked]
-            receipt.finalize(follow_up=f"◽ Its {' and '.join(follow)} follow as booked (see Posting)." if follow else "")
+            receipt.finalize(follow_up=(f"◽ Its {' and '.join(follow)} follow as booked (see Posting)." if follow else "")
+                             + _voice_gate_off_line(self.publisher, run_id, lead="\n" if follow else ""))
         if dry_run and profile == "reel_9x16" and status == "simulated":
             # A live approval books the Stories and the carousel for their slots; a dry run skipped them
             # entirely, so it never tested them. They are simulated here, each request as it would be sent.
@@ -4783,12 +4858,13 @@ class PipelineCoordinator:
                     urls["youtube short"] = url
                 problems = dict(_missing_reasons(pub))
                 short = pub.get("youtube_short") or {}
-                if short.get("status") in ("failed", "unknown"):
+                if short.get("status") in ("failed", "unknown", "blocked_unlicensed"):
                     problems["youtube short"] = ("not confirmed: " if short["status"] == "unknown" else "") + str(short.get("error") or "")
                 # The outcome as it is: a platform that failed is named, never folded into "posted" (UI-02)
                 text = (("⚠️ <b>Approved · posted with problems</b>" if problems else "✅ <b>Approved · posted</b>")
                         + "".join(f"\n✅ {html.escape(_PLATFORM_NAMES.get(k, k))}: {html.escape(str(v))}" for k, v in urls.items())
-                        + "".join(f"\n{_failed_line(k, why)}" for k, why in problems.items()))
+                        + "".join(f"\n{_failed_line(k, why)}" for k, why in problems.items())
+                        + _voice_gate_off_line(getattr(self, "publisher", None), run_id))
             elif status == "unknown":
                 text = ("⚠️ <b>Approved · publish unconfirmed</b>: check the accounts, then answer the "
                         "PUBLISH UNCONFIRMED alert (It posted / It didn't post).")  # it sits above the panel
@@ -4894,6 +4970,39 @@ def _failed_line(platform: str, reason: str) -> str:
     """'❌ Instagram: <plain reason>' (HTML)."""
     from src.telegram_bot import plain_reason
     return f"❌ {html.escape(_PLATFORM_NAMES.get(platform, platform))}: {html.escape(plain_reason(reason))}"
+
+
+def _voice_gate_off_line(publisher: Any, run_id: str, what: str = "", lead: str = "\n") -> str:
+    """The receipt's line for an upload of this run that went out with a voice the licence table does not license
+    because the gate is switched off, as the publisher noted it once the upload had returned published
+    (publisher.MetaPublisher.voice_posted, QF-127), as HTML; "" for any other upload, and for one that did not
+    publish. `what`: "Reel" or "YouTube Short"; by default the Reel's note, else
+    the Short's."""
+    notes = (getattr(publisher, "voice_notes", None) or {}).get(run_id) or {}
+    said = notes.get(what) if what else (notes.get("Reel") or notes.get("YouTube Short"))
+    return f"{lead}⚠️ {html.escape(str(said))}" if said else ""
+
+
+def say_voice_gate(db, bot, dry_run: bool) -> None:
+    """At a service's start (QF-127): with VOICE_REQUIRE_LICENSED=false on a process whose runs are real, the one
+    Needs-you item "Voice licence gate is off" (key voice-gate-off, replaced, never stacked); with the gate on, or
+    on a dry-run process (`dry_run`: the mode the bot or the daemon starts its runs in), nothing is said and an
+    earlier item is resolved. Never stops a start: what the store or the sender can raise is logged."""
+    import sqlite3
+
+    import requests
+    try:
+        note = voice_licence.gate_off_note(dry=bool(dry_run))
+        if note:
+            notifications.say(bot.notify, "⚠️ <b>Voice licence gate is off</b>\n\n" + html.escape(note)
+                              + " Until then every real post that goes out with such a voice is recorded in the "
+                                "audit log and marked on its receipt.",
+                              group="needs", section="needs", key=voice_licence.GATE_OFF_KEY, replace=True,
+                              actions=[{"text": "📊 Status", "callback_data": "cstat:"}])
+        elif config.TELEGRAM_CLEAN_CHAT:
+            notifications.close_key(db, voice_licence.GATE_OFF_KEY)
+    except (sqlite3.Error, OSError, AttributeError, requests.RequestException) as e:   # a notice never stops a start
+        log.warning("The voice licence gate's state was not said: %s", e)
 
 
 def _receipt_platforms(requested: list[str], shorts: bool) -> list[str]:
@@ -5865,6 +5974,7 @@ def main(argv=None) -> int:
         bot = coordinator.telegram_bot
         _report_interrupted(coordinator, bot)  # runs left "producing" by a process that ended
         record_run_mode(db, config.BOT_RUNS_DRY)  # the dashboard masthead says whether these runs post
+        say_voice_gate(db, bot, config.BOT_RUNS_DRY)  # QF-127: a real process with the licence gate off says so
         if not bot.is_configured():
             print("Telegram is not configured (TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID / TELEGRAM_APPROVER_IDS; "
                   "the chat and approvers must identify people, not the bot).")
@@ -6085,6 +6195,7 @@ def main(argv=None) -> int:
         bot = coordinator.telegram_bot
         _report_interrupted(coordinator, bot)  # nothing runs in this process yet: any "producing" run is orphaned
         record_run_mode(coordinator.db, bool(args.dry_run))  # the masthead: 📡 LIVE posting or 🧪 dry run
+        say_voice_gate(coordinator.db, bot, bool(args.dry_run))  # QF-127: one Needs-you item while the gate is off
         release_note = None  # after an installed release: the notice that opens the one dashboard panel
         try:  # leases left by the previous process; the schedule the release deployer keeps clear of
             clear_busy_leases(coordinator.db)

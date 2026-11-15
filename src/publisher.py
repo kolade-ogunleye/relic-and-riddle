@@ -720,6 +720,98 @@ class MetaPublisher:
             "created_at": _now(),
         }
 
+    def voice_gate(self, run_id: str, what: str = "Reel") -> dict[str, Any]:
+        """The voice licence gate of a real upload (QF-127), one function for every path that sends a master's
+        audio to a platform: publish_reel (Facebook, Instagram, the documentary's YouTube video, a retry) and
+        publish_short (the YouTube Short, with the Reel or by its own action). The run's voice.json is read
+        against the licence table (voice_licence.record_licence): what the record claims never decides alone, and
+        a missing or unreadable record is not licensed.
+
+        Returns {"licensed", "blocked", "provider", "basis", "error", "note", "why"}. A licensed voice passes. An
+        unlicensed one is blocked while VOICE_REQUIRE_LICENSED is on (audit event publish_blocked_unlicensed_voice,
+        "error" says why). With the switch off the upload goes on as before, with the result it always had, and
+        that is on the record as what it is at this moment: audit event publish_unlicensed_voice_gate_off
+        ("allowed"), its text "<what> upload allowed with ...". Nothing here says "posted": the upload has not
+        happened yet and may fail. voice_posted records the post, and keeps the receipt's note, once the upload
+        returned published; an earlier note of this run and kind is dropped here."""
+        from . import voice_licence
+        notes = self.__dict__.setdefault("voice_notes", {})
+        notes.get(run_id, {}).pop(what, None)
+        record, unreadable = voice_licence.run_record(config.OUTPUT_DIR / run_id)
+        is_licensed, basis = voice_licence.record_licence(record)
+        provider = record.get("provider", "unknown")
+        out = {"licensed": is_licensed, "blocked": False, "provider": provider, "basis": unreadable or basis,
+               "error": "", "note": "", "why": ""}
+        if is_licensed:
+            return out
+        why = unreadable or f"{provider}: {basis}"
+        if voice_licence.gate_on():
+            if what != "Reel":
+                out["error"] = f"not posted: {voice_licence.NOT_LICENSED} ({why})"
+            elif unreadable:
+                out["error"] = ("Commercial Voice License Required: the licence of this Reel's voice cannot be "
+                                f"confirmed: {unreadable}. Re-voice or resend the run.")
+            else:
+                out["error"] = (
+                    f"Commercial Voice License Required: This Reel was voiced using {provider} (unlicensed: "
+                    f"{basis}). "
+                    "Meta Content Monetization Program (CMP) policies prohibit commercial publishing without "
+                    "a commercial license. Voice it again with ElevenLabs on a paid plan, "
+                    "or execute a simulated publish.")
+            out["blocked"] = True
+            log.warning("Publishing BLOCKED for %s (%s): %s", run_id, what, out["error"])
+            action, status, reason = voice_licence.AUDIT_BLOCKED, "blocked", out["error"]
+        else:
+            out["why"] = why
+            out["note"] = (f"{what} upload allowed with a {voice_licence.NOT_LICENSED} ({why}): "
+                           f"{voice_licence.GATE_OFF}")
+            log.warning("Upload of %s allowed with an unlicensed voice: %s", run_id, out["note"])
+            action, status, reason = voice_licence.AUDIT_GATE_OFF, "allowed", out["note"]
+        self._audit_voice(action, status, run_id, provider, what, reason)
+        return out
+
+    def _audit_voice(self, action: str, status: str, run_id: str, provider: Any, what: str, reason: str,
+                     **more: Any) -> None:
+        try:
+            self.db.record_audit_event(
+                user_id="system", action=action, status=status,
+                payload=json.dumps({"run_id": run_id, "provider": provider, "what": what, "reason": reason, **more}),
+                username="publisher_gate")
+        except Exception as e:  # auditing must not change the publish outcome, but say so
+            log.warning("Could not record the voice gate's finding in the audit log: %s", e)
+
+    def voice_posted(self, run_id: str, what: str, gate: dict[str, Any], **more: Any) -> str:
+        """Called only once an upload the gate allowed has returned published (QF-127): for a voice the licence
+        table does not license (the switch is off) the post is recorded (audit event
+        published_unlicensed_voice_gate_off, status "published") and the note "<what> posted with ..." is kept in
+        self.voice_notes ({run: {what: note}}) for the receipt (main._voice_gate_off_line). A licensed voice: "",
+        nothing recorded. An upload that failed, was skipped or whose outcome is unknown never reaches this."""
+        from . import voice_licence
+        if not gate.get("why"):
+            return ""
+        note = f"{what} posted with a {voice_licence.NOT_LICENSED} ({gate['why']}): {voice_licence.GATE_OFF}"
+        self.__dict__.setdefault("voice_notes", {}).setdefault(run_id, {})[what] = note
+        log.warning("%s of %s went out with an unlicensed voice: %s", what, run_id, note)
+        self._audit_voice(voice_licence.AUDIT_POSTED_GATE_OFF, "published", run_id, gate.get("provider"), what, note,
+                          **more)
+        return note
+
+    def voice_posted_confirmed(self, run_id: str, what: str = "Reel") -> str:
+        """The operator confirmed that an upload of unknown outcome did go up (main.confirm_posted). When the
+        run's voice is not licensed and the switch is off (the only way such an upload was allowed), the post is
+        recorded and noted as voice_posted does; else "". The record is read again: the gate's own finding was
+        made in a process that may have ended since."""
+        from . import voice_licence
+        if voice_licence.gate_on():
+            return ""
+        record, unreadable = voice_licence.run_record(config.OUTPUT_DIR / run_id)
+        is_licensed, basis = voice_licence.record_licence(record)
+        if is_licensed:
+            return ""
+        provider = record.get("provider", "unknown")
+        return self.voice_posted(run_id, what, {"why": unreadable or f"{provider}: {basis}", "provider": provider},
+                                 confirmed_by="operator")
+
     def publish_reel(self, envelope: Dict[str, Any], dry_run: bool = False) -> Dict[str, Any]:
         if not dry_run:
             _assert_recovery_unlocked()
@@ -731,41 +823,10 @@ class MetaPublisher:
             log.info("Dry run: nothing was published.")
             return res
 
-        # Zero-Trust Commercial Voice License Gate
-        if getattr(config, "VOICE_REQUIRE_LICENSED", True):
-            from .config import OUTPUT_DIR
-            voice_path = OUTPUT_DIR / run_id / "voice.json"
-            voice_meta, unreadable = {}, ""
-            if not voice_path.is_file():
-                unreadable = "its voice record (voice.json) is missing"
-            else:
-                try:
-                    voice_meta = json.loads(voice_path.read_text(encoding="utf-8"))
-                except (OSError, ValueError) as e:  # still blocked (fails closed), but for the true reason
-                    unreadable = f"its voice record (voice.json) could not be read ({e})"
-            is_licensed = voice_meta.get("licensed", False)
-            provider = voice_meta.get("provider", "unknown")
-            if not is_licensed:
-                err_msg = (
-                    f"Commercial Voice License Required: the licence of this Reel's voice cannot be confirmed: "
-                    f"{unreadable}. Re-voice or resend the run." if unreadable else
-                    f"Commercial Voice License Required: This Reel was voiced using {provider} (unlicensed). "
-                    "Meta Content Monetization Program (CMP) policies prohibit commercial publishing without "
-                    "a commercial license. Please configure a valid Azure Speech key or ElevenLabs paid plan, "
-                    "or execute a simulated publish."
-                )
-                log.warning("Publishing BLOCKED for %s: %s", run_id, err_msg)
-                try:
-                    self.db.record_audit_event(
-                        user_id="system",
-                        action="publish_blocked_unlicensed_voice",
-                        status="blocked",
-                        payload=json.dumps({"run_id": run_id, "provider": provider, "reason": err_msg}),
-                        username="publisher_gate",
-                    )
-                except Exception as e:  # auditing must not change the publish outcome, but say so
-                    log.warning("Could not record the blocked publish in the audit log: %s", e)
-                return {"status": "blocked_unlicensed", "error": err_msg, "provider": provider}
+        # Zero-Trust Commercial Voice License Gate: the one gate of every upload of a master's audio (QF-127)
+        gate = self.voice_gate(run_id, "Reel")
+        if gate["blocked"]:
+            return {"status": "blocked_unlicensed", "error": gate["error"], "provider": gate["provider"]}
 
         # Each requested platform is posted at most once: a publisher only handles the
         # platforms still remaining that it supports (Upload-Post: both; direct APIs: one each).
@@ -796,6 +857,8 @@ class MetaPublisher:
                 failed, ok = getattr(e, "failed", {}) or {}, getattr(e, "ok", {}) or {}  # a partial names its sides
                 self.db.record_publication(tid, run_id, pub.name, "unknown", {"error": str(e), "failed": failed, "ok": ok,
                                                                                "platforms": sorted(covers)})
+                if done:   # an earlier publisher did post it: that much is known (QF-127)
+                    self.voice_posted(run_id, "Reel", gate, channel="+".join(r["channel"] for r in done))
                 return {"status": "unknown", "channel": pub.name, "error": str(e), "published": done, "failed": failed, "ok": ok}
             if not remaining:
                 break
@@ -803,6 +866,7 @@ class MetaPublisher:
         if done:
             merged = {"status": "published", "channel": "+".join(r["channel"] for r in done),
                       "post_urls": {}, "post_ids": {}, "results": done}
+            self.voice_posted(run_id, "Reel", gate, channel=merged["channel"])   # QF-127: only now is it "posted"
             for r in done:
                 merged["post_urls"].update(r.get("post_urls") or {})
                 merged["post_ids"].update(r.get("post_ids") or {})
@@ -822,6 +886,11 @@ class MetaPublisher:
             self.db.record_publication(tid, run_id, "youtube-shorts", "simulated", {"privacy": config.YOUTUBE_SHORTS_PRIVACY})
             log.info("Dry run: the YouTube Short was not uploaded.")
             return {"status": "simulated"}
+        # The same gate as the Reel's (QF-127): the Short is the same master, so the same voice. The YouTube
+        # Short action reaches this without publish_reel (main.post_youtube_short).
+        gate = self.voice_gate(run_id, "YouTube Short")
+        if gate["blocked"]:
+            return {"status": "blocked_unlicensed", "error": gate["error"], "provider": gate["provider"]}
         uploader = next((p for p in self.publishers if hasattr(p, "publish_short")), None)
         try:
             if uploader is None:
@@ -839,6 +908,7 @@ class MetaPublisher:
         # No thumbnail request follows (QF-83): the Shorts feed shows a frame of the video, which only the YouTube
         # app can change; the standard thumbnail stays a manual button (main.set_youtube_thumbnail).
         self.db.record_publication(tid, run_id, "youtube-shorts", "published", res)
+        self.voice_posted(run_id, "YouTube Short", gate)   # QF-127: only now is it "posted"
         return {"status": "published", "post_urls": res.get("post_urls") or {}}
 
     def publish_photos(self, run_id: str, topic_id: str, kind: str, photos: List[str], caption: str = "",

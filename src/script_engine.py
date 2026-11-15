@@ -300,7 +300,7 @@ def find_banned_tropes(text: str) -> List[str]:
     return [t for t in BANNED_TROPES if re.search(r"\b" + re.escape(t) + r"\b", checked, re.IGNORECASE)]
 
 
-# The licensed voice (Azure) may differ slightly from the edge-tts measurement of the same neural
+# The run's voice (Azure Speech) may differ slightly from the edge-tts measurement of the same neural
 # voice, so a script must measure a little inside the ceiling.
 _MEASURE_MARGIN_SEC = 0.5
 

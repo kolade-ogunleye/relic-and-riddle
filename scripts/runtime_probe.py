@@ -80,7 +80,10 @@ def probe_voices(work):
     import soundfile as sf
     text = "Production voice check. This short recording verifies narration access."
     results = {}
-    for provider in ("elevenlabs", "azure"):
+    # QF-127: Azure is sampled only on a declared paid tier; its free tier is a test voice, not a production one.
+    from src import voice_licence
+    azure_licensed = voice_licence.licensed("azure", voice_licence.azure_tier())
+    for provider in ("elevenlabs", "azure") if azure_licensed else ("elevenlabs",):
         configured = config.is_configured(config.ELEVENLABS_API_KEY if provider == "elevenlabs" else config.AZURE_SPEECH_KEY)
         if not configured:
             results[provider] = {"passed": False, "reason": "Not configured"}

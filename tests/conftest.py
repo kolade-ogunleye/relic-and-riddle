@@ -99,6 +99,9 @@ def no_real_services(monkeypatch):
     monkeypatch.setattr("src.audio_engine.ELEVENLABS_API_KEY", "")
     monkeypatch.setattr("src.audio_engine.AZURE_SPEECH_KEY", "")
     monkeypatch.setattr("src.audio_engine.AZURE_SPEECH_REGION", "")
+    # The code's default (QF-127): a developer's .env never declares a paid Azure tier for the tests.
+    monkeypatch.setattr("src.config.AZURE_SPEECH_TIER", "F0")
+    monkeypatch.setattr("src.audio_engine.AZURE_SPEECH_TIER", "F0")
     monkeypatch.setattr("src.control.HEALTHCHECK_PING_URL", "")
     # Every credential the log masker knows, blanked in config too: a failing test once printed a real key.
     from src import config as _config

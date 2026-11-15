@@ -14,7 +14,8 @@ Now every post's flag is derived from the records of the files it shows, and the
                   illustrated beats and the cover; on = the setting, or any AI or unknown media (fails closed)
   assess_photos   a Story frame or carousel slides: the photos each still's record says it shows; facebook_hold
                   when they show AI media, or when a still has no record and its run's video is not wholly real
-                  (QF-65b, fail closed)
+                  (QF-65b, fail closed); a scene whose file or record is gone is verified against the run's
+                  provenance.json, bound by sha256 (QF-65d)
   card_line       the review card's line: whether the label is on, and why
 
 What each platform takes (cited in docs/reviews/quality-fixes-2026-11/QF-65a/README.md): Instagram's is_ai_generated
@@ -190,7 +191,9 @@ def _record_less_hold(stills: list[Any]) -> list[str]:
     photo posts (QF-65b; operator decision 2026-11-12: fail closed). Such a still is judged by its run's video (the
     run folder holding its stories/ or carousel/ folder): the master's scenes, from its composition manifest, and
     the picture check's illustrated beats. It goes to Facebook only when every one of them traces to real media;
-    AI media, media that cannot be traced, or no readable video record keep it off. [] when none is held."""
+    AI media, media that cannot be traced, or no readable video record keep it off. A scene whose own file or
+    record is gone (an older run's parallax/ clips) is verified against the run's provenance.json instead
+    (_ledger_scene, QF-65d), never by a lookup elsewhere. [] when none is held."""
     reasons: list[str] = []
     by_run: dict[Path, str] = {}
     for still in stills:
@@ -202,17 +205,210 @@ def _record_less_hold(stills: list[Any]) -> list[str]:
             payload = None
         manifests = sorted(run.glob("*.composition.json")) if run.is_dir() else []
         if not manifests:
-            reasons.append(f"a still with no record ({name}) and no video record to judge it by")
+            reasons.append(f"a still with no record ({name}) and no video record to judge it by"
+                           + _ledger_ai_note(run))
             continue
         for manifest in manifests:
             master = manifest.with_name(manifest.name[:-len(".composition.json")] + ".mp4")
             label = assess_video(master, payload if isinstance(payload, dict) else None, setting=False)
+            if label["unknown"] and not label["ai_media"]:
+                label = _ledger_video(run, manifest, label)
             if label["ai_media"] or label["unknown"]:
                 reasons.append(f"a still with no record ({name}) from a video "
                                + ("showing AI media" if label["ai_media"] else "not wholly traceable")
                                + f": {label['reasons'][0]}")
                 break
     return reasons
+
+
+LEDGER_NOTE = "provenance.json"
+PHOTO_CLIP = ("parallax", "scene_")     # src/parallax.py: a camera move over one still, never a generated picture
+OWN_GRAPHIC = ("graphics", "graphic_")  # src/graphics.py: our own drawing (a map, a timeline, a number card)
+MOTION_DIR, MOTION_PREFIX = "motion", "motion_"   # src/motion.py: AI motion clips and their anchor frames
+
+
+def _parts(path: Any) -> list[str]:
+    """A recorded path's parts, whichever machine's separators it was written with."""
+    return [p for p in str(path or "").replace(chr(92), "/").split("/") if p]
+
+
+def _key(path: Any) -> str:
+    return "/".join(_parts(path)).lower()
+
+
+def _ledger_video(run: Path, manifest: Path, label: dict[str, Any]) -> dict[str, Any]:
+    """`label` (assess_video's, with media that cannot be traced and no AI media) after its untraced scenes are
+    verified against the run's provenance ledger (QF-65d). The ledger records each composited file with its sha256,
+    the pictures it was made from with theirs, and the photo's licence record; the composition manifest's own
+    checksum, recorded there, binds the scenes' checksums to it. A scene the ledger verifies counts as real; one it
+    shows to be AI makes the video AI; any other stays untraceable, with the reason the ledger gives."""
+    try:
+        scenes = json.loads(manifest.read_text(encoding="utf-8")).get("scenes")
+    except (OSError, ValueError, AttributeError):
+        scenes = None
+    if not isinstance(scenes, dict) or not scenes:   # a list records no checksum: nothing binds it to the ledger
+        return label
+    ledger = _ledger(run, manifest)
+    ai: list[str] = []
+    unknown: list[str] = []
+    for scene, recorded in scenes.items():
+        verdict, why = trace(scene)
+        if verdict == "unknown":
+            found, because = _ledger_scene(run, scene, str(recorded or ""), ledger)
+            if found == "ai":
+                verdict, why = found, because
+            elif found == "unknown":
+                why = f"{why}, and {LEDGER_NOTE} cannot verify it: {because}"
+            else:
+                verdict = found
+        _collect([(verdict, why)], ai, unknown)
+    return _result(ai, unknown, False)
+
+
+def _ledger_ai_note(run: Path) -> str:
+    """For a run with no video record: the AI media its provenance.json lists, said to the operator (the hold does
+    not depend on it; with no manifest nothing binds the ledger to the video). "" when it lists none or is gone."""
+    try:
+        assets = json.loads((run / LEDGER_NOTE).read_text(encoding="utf-8")).get("assets")
+    except (OSError, ValueError, AttributeError):
+        return ""
+    named = []
+    for asset in assets if isinstance(assets, list) else []:
+        parts = [p.lower() for p in _parts(asset.get("path") if isinstance(asset, dict) else "")]
+        if parts and (parts[-1].startswith(MOTION_PREFIX) or parts[-2:-1] == [MOTION_DIR]):
+            named.append(f"AI motion clip ({_parts(asset['path'])[-1]})")
+        elif parts and (Path(parts[-1]).stem.startswith(ILLUSTRATION_PREFIXES)
+                        or asset.get("origin") == "archaeological_reconstruction" or asset.get("illustration")):
+            named.append(f"AI illustration ({_parts(asset['path'])[-1]})")
+    return f"; its {LEDGER_NOTE} lists {', '.join(dict.fromkeys(named))}" if named else ""
+
+
+def _ledger(run: Path, manifest: Path) -> dict[str, Any]:
+    """The run's provenance ledger for this video: {"data", "root" (the app tree's path parts as the ledger
+    recorded them), "problem" ("" or why it cannot verify the video: missing, unreadable, or recorded for other bytes
+    of the composition manifest or the master), "hashes" (a cache)}."""
+    from .credits import sha256_file
+    out: dict[str, Any] = {"data": {}, "root": None, "problem": "", "hashes": {}}
+    try:
+        data = json.loads((run / LEDGER_NOTE).read_text(encoding="utf-8"))
+    except OSError:
+        return {**out, "problem": "the run has none"}
+    except ValueError:
+        data = None
+    if not isinstance(data, dict):
+        return {**out, "problem": "it cannot be read"}
+    recorded = data.get("composition_manifest") if isinstance(data.get("composition_manifest"), dict) else {}
+    if not recorded.get("sha256"):
+        return {**out, "problem": "it records no checksum for the video's manifest"}
+    if recorded["sha256"] != sha256_file(manifest):
+        return {**out, "problem": f"the video's manifest ({manifest.name}) is not the one it recorded (checksum mismatch)"}
+    try:
+        master_sum = json.loads(manifest.read_text(encoding="utf-8")).get("master_sha256")
+    except (OSError, ValueError, AttributeError):
+        master_sum = None
+    master = data.get("master_video") if isinstance(data.get("master_video"), dict) else {}
+    if master_sum and master.get("sha256") and master_sum != master["sha256"]:
+        return {**out, "problem": "it records another master video (checksum mismatch)"}
+    parts = _parts(recorded.get("path"))
+    names = [p.lower() for p in parts]
+    root = next((parts[:i] for i in range(len(names) - 1) if names[i:i + 2] == ["output", run.name.lower()]), None)
+    return {**out, "data": data, "root": root}
+
+
+def _here(run: Path, ledger: dict[str, Any], recorded: Any) -> Path | None:
+    """The file a ledger path names, on this machine: as recorded, else at the same place under this app tree (a
+    ledger written on another machine, or before the folder moved, records that tree's root). None when neither is
+    a file. Only a checksum then decides that it is the recorded file."""
+    path = Path(str(recorded))
+    if path.is_file():
+        return path
+    root, parts = ledger.get("root"), _parts(recorded)
+    if not root or [p.lower() for p in parts[:len(root)]] != [p.lower() for p in root] or len(parts) <= len(root):
+        return None
+    local = run.parent.parent.joinpath(*parts[len(root):])
+    return local if local.is_file() else None
+
+
+def _ledger_scene(run: Path, scene: Any, recorded: str, ledger: dict[str, Any]) -> tuple[str, str]:
+    """("ai" | "real" | "unknown", why) for one scene of the video whose file or record is gone, from the ledger
+    (QF-65d). AI when the scene is an AI motion clip (src/motion.py writes them to motion/ as motion_NN) or the
+    ledger records an AI illustration in it. Real only when every link is bound by sha256 and nothing in it is AI:
+    - the ledger's entry for the scene has the checksum the manifest records (and the file, if still here, has it);
+    - the scene is one of this run's parallax clips (a camera move over one still) or our own graphics;
+    - every picture it was made from has a recorded checksum, none is an AI illustration, each one still here has
+      the recorded bytes and is not AI by its own record, and at least one is here to check (the anchor);
+    - its licence record names a free licence and the photo's source, and the author and title when it asks for
+      credit."""
+    from .credits import license_allowed, needs_attribution, sha256_file
+    hashes = ledger["hashes"]
+
+    def digest(path: Path) -> str:
+        if str(path) not in hashes:
+            hashes[str(path)] = sha256_file(path)
+        return hashes[str(path)]
+
+    def motion(path: Any) -> bool:
+        parts = [p.lower() for p in _parts(path)]
+        return bool(parts) and (parts[-1].startswith(MOTION_PREFIX) or parts[-2:-1] == [MOTION_DIR])
+
+    parts = [p.lower() for p in _parts(scene)]
+    name = _parts(scene)[-1] if parts else str(scene)
+    if motion(scene):   # AI whatever else is recorded: its own record, which says so, is the file that is gone
+        return "ai", f"AI motion clip ({name}, in {LEDGER_NOTE})"
+    if ledger["problem"]:
+        return "unknown", ledger["problem"]
+    if not recorded:
+        return "unknown", f"the manifest records no checksum for {name}"
+    entry = next((a for a in ledger["data"].get("assets") or []
+                  if isinstance(a, dict) and _key(a.get("path")) == _key(scene)), None)
+    if entry is None:
+        return "unknown", f"no record of {name}"
+    sources = [str(s) for s in entry.get("source_paths") or [] if _parts(s)]
+    pictures = [s for s in sources if Path(_parts(s)[-1]).suffix.lower() in IMAGE_SUFFIXES]
+    if any(motion(s) for s in sources):
+        return "ai", f"AI motion clip ({name}, made from {_parts(next(s for s in sources if motion(s)))[-1]})"
+    drawn = [s for s in pictures if Path(_parts(s)[-1]).stem.startswith(ILLUSTRATION_PREFIXES)]
+    if drawn or entry.get("origin") == "archaeological_reconstruction" or entry.get("illustration") \
+            or Path(name).stem.startswith(ILLUSTRATION_PREFIXES):
+        return "ai", f"AI illustration ({_parts(drawn[0])[-1] if drawn else name}, in {LEDGER_NOTE})"
+    if str(entry.get("sha256") or "") != recorded:
+        return "unknown", f"it records other bytes for {name} (checksum mismatch)"
+    present = _here(run, ledger, scene)
+    if present is not None and digest(present) != recorded:
+        return "unknown", f"{name} here is not the recorded file (checksum mismatch)"
+    in_run = len(parts) > 2 and parts[-3] == run.name.lower()
+    photo_clip = in_run and parts[-2] == PHOTO_CLIP[0] and parts[-1].startswith(PHOTO_CLIP[1])
+    graphic = in_run and parts[-2] == OWN_GRAPHIC[0] and parts[-1].startswith(OWN_GRAPHIC[1])
+    if not (photo_clip or graphic):
+        return "unknown", f"it does not show what made {name}"
+    if photo_clip and not pictures:
+        return "unknown", f"it records no photo for {name}"
+    sums = {_key(d.get("path")): str(d.get("sha256") or "")
+            for d in ledger["data"].get("derived_sources") or [] if isinstance(d, dict)}
+    anchored = False
+    for source in pictures:
+        source_name = _parts(source)[-1]
+        recorded_sum = sums.get(_key(source)) or ""
+        if not recorded_sum:
+            return "unknown", f"it records no checksum for {source_name}"
+        local = _here(run, ledger, source)
+        if local is None:
+            continue   # an intermediate copy (cache/) that is gone; its checksum stays recorded
+        if digest(local) != recorded_sum:
+            return "unknown", f"{source_name} here is not the recorded photo (checksum mismatch)"
+        if trace(local, credits_needed=False)[0] == "ai":
+            return "ai", f"AI media ({source_name}, by its own record)"
+        anchored = True
+    if pictures and not anchored:
+        return "unknown", f"none of the pictures {name} was made from is here to check"
+    if pictures:
+        artist = str(entry.get("artist") or "").strip()
+        credited = license_allowed(str(entry.get("license") or ""), allow_share_alike=True) and bool(entry.get("source_url"))
+        if credited and needs_attribution(entry):
+            credited = bool(entry.get("title")) and bool(artist) and artist.lower() != "unknown"
+        if not credited:
+            return "unknown", f"the licence record of {name}'s photo is incomplete"
+    return "real", ""
 
 
 def _why(label: dict[str, Any]) -> str:

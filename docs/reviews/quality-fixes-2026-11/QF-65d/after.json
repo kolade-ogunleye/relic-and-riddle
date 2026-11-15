@@ -1,0 +1,150 @@
+{
+ "fixture_older_runs": {
+  "story_verified": {
+   "facebook": true,
+   "instagram_flagged": true,
+   "held_reason": ""
+  },
+  "carousel_verified": {
+   "facebook": true,
+   "instagram_flagged": true,
+   "held_reason": ""
+  },
+  "story_verified_from_another_machine": {
+   "facebook": true,
+   "instagram_flagged": true,
+   "held_reason": ""
+  },
+  "carousel_verified_from_another_machine": {
+   "facebook": true,
+   "instagram_flagged": true,
+   "held_reason": ""
+  },
+  "story_ai_motion_clip": {
+   "facebook": false,
+   "instagram_flagged": true,
+   "held_reason": "not posted to Facebook, which has no AI label for photo posts: a still with no record (story_02.jpg) from a video showing AI media: AI motion clip (motion_01.mp4, in provenance.json)"
+  },
+  "carousel_ai_motion_clip": {
+   "facebook": false,
+   "instagram_flagged": true,
+   "held_reason": "not posted to Facebook, which has no AI label for photo posts: a still with no record (carousel_slide_01.jpg) from a video showing AI media: AI motion clip (motion_01.mp4, in provenance.json)"
+  },
+  "story_ai_illustration_parallax": {
+   "facebook": false,
+   "instagram_flagged": true,
+   "held_reason": "not posted to Facebook, which has no AI label for photo posts: a still with no record (story_02.jpg) from a video showing AI media: AI illustration (gap_gen_beat04.jpg, in provenance.json)"
+  },
+  "carousel_ai_illustration_parallax": {
+   "facebook": false,
+   "instagram_flagged": true,
+   "held_reason": "not posted to Facebook, which has no AI label for photo posts: a still with no record (carousel_slide_01.jpg) from a video showing AI media: AI illustration (gap_gen_beat04.jpg, in provenance.json)"
+  },
+  "story_illustrated_beat": {
+   "facebook": false,
+   "instagram_flagged": true,
+   "held_reason": "not posted to Facebook, which has no AI label for photo posts: a still with no record (story_02.jpg) from a video showing AI media: AI illustration (beat 3)"
+  },
+  "carousel_illustrated_beat": {
+   "facebook": false,
+   "instagram_flagged": true,
+   "held_reason": "not posted to Facebook, which has no AI label for photo posts: a still with no record (carousel_slide_01.jpg) from a video showing AI media: AI illustration (beat 3)"
+  },
+  "story_photo_replaced": {
+   "facebook": false,
+   "instagram_flagged": true,
+   "held_reason": "not posted to Facebook, which has no AI label for photo posts: a still with no record (story_02.jpg) from a video not wholly traceable: scene_01.mp4 is missing, and provenance.json cannot verify it: 01_commons.jpg here is not the recorded photo (checksum mismatch)"
+  },
+  "carousel_photo_replaced": {
+   "facebook": false,
+   "instagram_flagged": true,
+   "held_reason": "not posted to Facebook, which has no AI label for photo posts: a still with no record (carousel_slide_01.jpg) from a video not wholly traceable: scene_01.mp4 is missing, and provenance.json cannot verify it: 01_commons.jpg here is not the recorded photo (checksum mismatch)"
+  },
+  "story_photo_gone": {
+   "facebook": false,
+   "instagram_flagged": true,
+   "held_reason": "not posted to Facebook, which has no AI label for photo posts: a still with no record (story_02.jpg) from a video not wholly traceable: scene_01.mp4 is missing, and provenance.json cannot verify it: none of the pictures scene_01.mp4 was made from is here to check"
+  },
+  "carousel_photo_gone": {
+   "facebook": false,
+   "instagram_flagged": true,
+   "held_reason": "not posted to Facebook, which has no AI label for photo posts: a still with no record (carousel_slide_01.jpg) from a video not wholly traceable: scene_01.mp4 is missing, and provenance.json cannot verify it: none of the pictures scene_01.mp4 was made from is here to check"
+  },
+  "story_no_ledger": {
+   "facebook": false,
+   "instagram_flagged": true,
+   "held_reason": "not posted to Facebook, which has no AI label for photo posts: a still with no record (story_02.jpg) from a video not wholly traceable: scene_01.mp4 is missing, and provenance.json cannot verify it: the run has none"
+  },
+  "carousel_no_ledger": {
+   "facebook": false,
+   "instagram_flagged": true,
+   "held_reason": "not posted to Facebook, which has no AI label for photo posts: a still with no record (carousel_slide_01.jpg) from a video not wholly traceable: scene_01.mp4 is missing, and provenance.json cannot verify it: the run has none"
+  },
+  "story_unreadable_ledger": {
+   "facebook": false,
+   "instagram_flagged": true,
+   "held_reason": "not posted to Facebook, which has no AI label for photo posts: a still with no record (story_02.jpg) from a video not wholly traceable: scene_01.mp4 is missing, and provenance.json cannot verify it: it cannot be read"
+  },
+  "carousel_unreadable_ledger": {
+   "facebook": false,
+   "instagram_flagged": true,
+   "held_reason": "not posted to Facebook, which has no AI label for photo posts: a still with no record (carousel_slide_01.jpg) from a video not wholly traceable: scene_01.mp4 is missing, and provenance.json cannot verify it: it cannot be read"
+  },
+  "story_manifest_edited": {
+   "facebook": false,
+   "instagram_flagged": true,
+   "held_reason": "not posted to Facebook, which has no AI label for photo posts: a still with no record (story_02.jpg) from a video not wholly traceable: scene_01.mp4 is missing, and provenance.json cannot verify it: the video's manifest (topic_master.composition.json) is not the one it recorded (checksum mismatch)"
+  },
+  "carousel_manifest_edited": {
+   "facebook": false,
+   "instagram_flagged": true,
+   "held_reason": "not posted to Facebook, which has no AI label for photo posts: a still with no record (carousel_slide_01.jpg) from a video not wholly traceable: scene_01.mp4 is missing, and provenance.json cannot verify it: the video's manifest (topic_master.composition.json) is not the one it recorded (checksum mismatch)"
+  },
+  "story_clip_bytes_differ": {
+   "facebook": false,
+   "instagram_flagged": true,
+   "held_reason": "not posted to Facebook, which has no AI label for photo posts: a still with no record (story_02.jpg) from a video not wholly traceable: scene_01.mp4 is missing, and provenance.json cannot verify it: it records other bytes for scene_01.mp4 (checksum mismatch)"
+  },
+  "carousel_clip_bytes_differ": {
+   "facebook": false,
+   "instagram_flagged": true,
+   "held_reason": "not posted to Facebook, which has no AI label for photo posts: a still with no record (carousel_slide_01.jpg) from a video not wholly traceable: scene_01.mp4 is missing, and provenance.json cannot verify it: it records other bytes for scene_01.mp4 (checksum mismatch)"
+  },
+  "story_incomplete_licence": {
+   "facebook": false,
+   "instagram_flagged": true,
+   "held_reason": "not posted to Facebook, which has no AI label for photo posts: a still with no record (story_02.jpg) from a video not wholly traceable: scene_01.mp4 is missing, and provenance.json cannot verify it: the licence record of scene_01.mp4's photo is incomplete"
+  },
+  "carousel_incomplete_licence": {
+   "facebook": false,
+   "instagram_flagged": true,
+   "held_reason": "not posted to Facebook, which has no AI label for photo posts: a still with no record (carousel_slide_01.jpg) from a video not wholly traceable: scene_01.mp4 is missing, and provenance.json cannot verify it: the licence record of scene_01.mp4's photo is incomplete"
+  }
+ },
+ "acceptance_met": true,
+ "runs": {
+  "folder_1": {
+   "photo_posts_checked": 87,
+   "with_a_still_without_record": 66,
+   "kept_off_facebook": 6,
+   "kept_off_facebook_with_a_still_without_record": 6,
+   "with_a_still_without_record_sent_to_facebook": 60,
+   "kept_off_by_reason": {
+    "no_video_record": 4,
+    "no_video_record:provenance_lists_ai_media": 2
+   }
+  },
+  "folder_2": {
+   "photo_posts_checked": 102,
+   "with_a_still_without_record": 45,
+   "kept_off_facebook": 45,
+   "kept_off_facebook_with_a_still_without_record": 45,
+   "with_a_still_without_record_sent_to_facebook": 0,
+   "kept_off_by_reason": {
+    "ai_media:ai_motion_clip": 39,
+    "no_video_record:provenance_lists_ai_media": 3,
+    "provenance_checksum_mismatch": 3
+   }
+  }
+ }
+}

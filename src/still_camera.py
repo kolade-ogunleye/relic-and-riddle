@@ -67,16 +67,16 @@ STALE_SECONDS = 6 * 3600
 
 
 def ensure_disk(directory: Path, frames: int, size) -> None:
-    """Refuse a render whose camera clips would not fit: RuntimeError naming what is needed and what is free."""
-    directory = Path(directory)
-    probe = directory
+    """Refuse a render whose camera clips would not fit: RuntimeError naming what is needed and what is free, in
+    GiB, on the existing folder the clips go under (the camera folder itself is not created yet)."""
+    probe = Path(directory)
     while not probe.exists() and probe != probe.parent:
         probe = probe.parent
     free = shutil.disk_usage(probe).free
     need = int(frames * size[0] * size[1] * DISK_BYTES_PER_PIXEL) + DISK_RESERVE
     if free < need:
-        raise RuntimeError(f"The still camera needs {need / 1024 ** 3:.1f} GB free in {directory.name} for "
-                           f"{frames} frames ({free / 1024 ** 3:.1f} GB free)")
+        raise RuntimeError(f"The still camera needs {need / 1024 ** 3:.1f} GiB free in {probe.name or probe} for "
+                           f"{frames} frames ({free / 1024 ** 3:.1f} GiB free)")
 
 
 def sweep_stale(directory: Path, now: float | None = None) -> list[Path]:
@@ -328,7 +328,9 @@ def render_clip(source, output, duration, size, fps, *, preset="push", focal=(0.
         work, factor = working_copy(image, size)
         images = ((work, factor) for _ in range(frames))
     output.parent.mkdir(parents=True, exist_ok=True)
-    handle, temporary = tempfile.mkstemp(dir=output.parent, suffix=".mkv")
+    # `<stem>.camera-` prefix: a splice writes into the run folder itself, and sweep_stale matches only `*.camera-*`,
+    # so a hard kill mid-encode must not leave an unmatched tmpXXXX.mkv (one beat's FFV1, about 0.3 GB) there.
+    handle, temporary = tempfile.mkstemp(dir=output.parent, prefix=f"{output.stem}.camera-", suffix=".mkv")
     os.close(handle)
     vf = f"format=gbrp16le,{grade},{RGB_TO_BT709}" if grade else RGB_TO_BT709
     try:

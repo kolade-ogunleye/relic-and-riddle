@@ -34,8 +34,9 @@ Acceptance (STATUS.md): edge-position trace monotone, no integer steps.
   from a working copy at most 2x the frame (the old render size) and written to a lossless FFV1 clip in the graph's
   own format (the stills' tone curve, then the BT.709 conversion the graph used to do itself); the clips live in a
   per-render folder that is removed after the graph runs. Before rendering, the free disk is checked against
-  1.25 B/px for every camera frame plus 2 GB (refused with the figures when short); a folder or clip a killed render
-  left (`*.camera-*`, older than 6 h) is swept at the next compose or splice in that run folder.
+  1.25 B/px for every camera frame plus 2 GiB (refused when short, with the figures in GiB and the run folder's
+  name); a folder or clip a killed render left (`*.camera-*`, older than 6 h, including a splice's temporary clip,
+  `<stem>.camera-*.mkv`, QF-22b) is swept at the next compose or splice in that run folder.
 - `video_composer.loop_motion` reads the seam from the same camera model with compose_video's exact frame counts,
   and compose_video passes the bridge what the rendered cameras really did (`seam_from_cameras`).
 - Cache keys: the master checkpoints (main.py) and the graphics clip cache include `camera_motion.py` /
@@ -52,7 +53,12 @@ steps"), the callouts' push stays linear ("so loupe_mag holds"), the timeline dr
 linear ("so no frame is frozen" / "a card never sits static"), the end card keeps its ease-out from the moving last
 frame. Smoothstep replaces the composer's linear-with-a-cap moves, the only ones with a stop inside a shot.
 
-## Measurements (`measure.py`, generated inputs; before = 1ab9aded, after = this commit)
+## Measurements (`measure.py`, generated inputs; before = 1ab9aded, after = e49616fc with QF-22b)
+
+Every H.264 encode runs on production's encoder, `encoding.delivery_video_encoder()` (libx264, preset slow, CRF 18;
+QF-134), on both trees (QF-22b: the base picked its encoder by an NVENC probe, so the measure sets the probe's result
+to the same arguments; the output records `"encoder"`). Two runs on the after tree gave byte-identical output. The
+figures first committed here were measured on NVENC or on a probe fallback and did not reproduce (QF-22 review 2).
 
 Drawn paths: 181 frames of each consumer's own function and time curve on a float soft edge (tanh, 3 px).
 
@@ -72,16 +78,18 @@ clip, traced on the delivered H.264 file (16-row band, each shot's middle 80%).
 
 | shot | travel px | repeated / reverse | jerk px |
 |---|---|---|---|
-| still 0, push (opening) | 0.01 -> 24.2 | 43 / 6 -> 0 / 0 | 0.03 -> 0.10 |
-| still 1, pull | 30.7 -> 35.9 | 0 / 3 -> 0 / 0 | 1.13 -> 0.11 |
-| still 2, drift | 0.04 -> 32.8 | 43 / 7 -> 0 / 0 | 0.06 -> 0.15 |
-| still 3, push (closing) | 0.06 -> 24.2 | 40 / 9 -> 0 / 0 | 0.10 -> 0.19 |
-| AI hook clip push | 20.2 -> 21.9 | 0 / 13 -> 0 / 0 | 1.13 -> 0.17 |
+| still 0, push (opening) | 0.00 -> 24.3 | 44 / 8 -> 0 / 0 | 0.15 -> 0.16 |
+| still 1, pull | 30.7 -> 35.8 | 0 / 3 -> 0 / 0 | 1.08 -> 0.27 |
+| still 2, drift | 0.01 -> 33.0 | 52 / 3 -> 0 / 0 | 0.03 -> 0.26 |
+| still 3, push (closing) | 0.01 -> 24.2 | 55 / 1 -> 0 / 0 | 0.06 -> 0.16 |
+| AI hook clip push | 20.2 -> 21.9 | 0 / 13 -> 0 / 0 | 1.27 -> 0.17 |
 
 `acceptance_met` false -> true; failing paths 9 -> 0. Loop seam record (stills Reel): variant loop_bridge_v1
-both; push 0.0016 -> 0.0 and open_push 0.0016 -> 0.0 (the stills end and start at rest); max_step_L 7.93 -> 7.97,
-mad_last 0.64 -> 0.90 (gate < 8). A jerk under 0.2 px on the composer traces is the H.264 encode's noise on a static
-edge; the base's 0.03-0.10 on push and drift is the noise of a shot that does not move.
+both; push 0.0016 -> 0.0 and open_push 0.0016 -> 0.0 (the stills end and start at rest); max_step_L 7.93 -> 8.34
+(gate <= 25), mad_last 0.94 -> 0.92 (gate < 8). The composer traces' jerk, up to 0.27 px on production's libx264
+(under the 0.35 px bound), is the H.264 encode's noise: the camera's frames are the same lossless FFV1 clip whatever
+encodes the master, and the same Reel measured 0.10-0.13 px on NVENC and 0.17-0.25 px on the probe's libx264 fallback
+(review 2). The base's 0.03-0.15 on push and drift is the noise of a shot that does not move.
 
 A finding the trace exposed: on the base, the push and drift stills did not move at all in the delivered master
 (travel 0.01-0.06 px). zoompan's `pzoom` is the previous *input* frame's zoom, and a still is one input frame
@@ -95,26 +103,26 @@ frame. The extents kept here (`endpoint_for`) are the ones the old expressions w
 `python evidence.py <base root> <new root> output/run_nazca_lines_runway_paradox_1793247464 <this folder>`: that dev
 run's own AI hook clip (motion_01.mp4) and the photographs its parallax clips were made from (beat02_1, 04, 08, 10),
 composed 2.5 s a shot by each commit's own compose_video (the path a still takes when it is not a parallax clip),
-read only. Motion is read back from the delivered master by tracking corners (Lucas-Kanade, sub-pixel) above the
+read only, on production's encoder (before = 1ab9aded, after = e49616fc with QF-22b; re-rendered by QF-22b). Motion is read back from the delivered master by tracking corners (Lucas-Kanade, sub-pixel) above the
 caption band: per shot, frames of the middle two thirds that do not move (< 0.05 px) and the largest frame-to-frame
 change of speed.
 
 | reel, shot | held frames (of 48) | jerk px | mean px/frame |
 |---|---|---|---|
-| hook reel, AI hook clip | 0 -> 0 | 1.21 -> 0.15 | 0.84 -> 0.65 |
-| hook reel, pull (beat02_1) | 0 -> 0 | 0.65 -> 0.11 | 0.55 -> 0.45 |
-| hook reel, drift (04) | 48 -> 0 | 0.49 -> 0.12 | 0.03 -> 0.42 |
-| hook reel, push closing (08) | 48 -> 0 | 0.01 -> 0.09 | 0.00 -> 0.83 |
-| still reel, push opening (beat02_1) | 48 -> 0 | 0.01 -> 0.22 | 0.00 -> 0.51 |
-| still reel, pull (04) | 0 -> 0 | 0.46 -> 0.07 | 0.47 -> 0.35 |
-| still reel, drift (08) | 48 -> 0 | 0.50 -> 0.15 | 0.02 -> 0.75 |
-| still reel, push closing (10) | 48 -> 0 | 0.01 -> 0.09 | 0.00 -> 0.85 |
+| hook reel, AI hook clip | 0 -> 0 | 1.19 -> 0.15 | 0.82 -> 0.66 |
+| hook reel, pull (beat02_1) | 0 -> 0 | 0.65 -> 0.13 | 0.56 -> 0.46 |
+| hook reel, drift (04) | 48 -> 0 | 0.50 -> 0.12 | 0.02 -> 0.41 |
+| hook reel, push closing (08) | 48 -> 0 | 0.01 -> 0.13 | 0.00 -> 0.85 |
+| still reel, push opening (beat02_1) | 48 -> 0 | 0.00 -> 0.11 | 0.00 -> 0.49 |
+| still reel, pull (04) | 0 -> 0 | 0.47 -> 0.13 | 0.44 -> 0.33 |
+| still reel, drift (08) | 48 -> 0 | 0.50 -> 0.21 | 0.02 -> 0.77 |
+| still reel, push closing (10) | 48 -> 0 | 0.01 -> 0.12 | 0.00 -> 0.85 |
 
 `trace_<reel>_shot<k>.jpg`: per-frame motion, before (red: zoompan's ticks, or a flat zero where the shot did not
 move) against after (blue: a smooth rise and settle). `strip_<reel>_shot<k>_<before|after>.jpg`: the first, middle and last frame of each
 shot at half size (540x960, each JPEG <= 300 KB), showing each shot keeps its framing and reaches a comparable extent. Seam records: hook
-reel push 0.0016 -> 0.0 (the closing still now ends at rest), open_push 0.0016 both, mad_last 2.96 -> 3.09; still reel
-push and open_push 0.0 both (the gate's still fallback on the base, at rest by design here), mad_last 1.22 -> 1.19.
+reel push 0.0016 -> 0.0 (the closing still now ends at rest), open_push 0.0016 both, mad_last 3.19 both; still reel
+push and open_push 0.0 both (the gate's still fallback on the base, at rest by design here), mad_last 1.23 -> 1.11.
 
 ## Tests
 

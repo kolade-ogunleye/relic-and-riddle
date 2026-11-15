@@ -179,7 +179,7 @@ def test_a_render_that_would_not_fit_on_the_disk_is_refused(tmp_path, monkeypatc
     usage = collections.namedtuple("usage", "total used free")
     monkeypatch.setattr(still_camera.shutil, "disk_usage", lambda _p: usage(10 ** 12, 0, 3 * 1024 ** 3))
     still_camera.ensure_disk(tmp_path / "x.camera-1", 100, (1080, 1920))       # 0.24 GB + reserve fits in 3 GB
-    with pytest.raises(RuntimeError, match="GB free"):
+    with pytest.raises(RuntimeError, match="GiB free"):
         still_camera.ensure_disk(tmp_path / "x.camera-1", 1800, (1080, 1920))  # a 60 s Reel of stills: 4.3 GB
 
 

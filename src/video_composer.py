@@ -3273,10 +3273,14 @@ def _audio_chain(vo_idx: int, bg_idx: int, pad: float = 0.0, card_at: Optional[f
     branches are padded without end, so no EOF reaches either filter, and the mix is cut by sample count."""
     exact = None if end is None else round(end * AUDIO_SAMPLE_RATE)
     pad_filter = "apad," if exact is not None else (f"apad=pad_dur={pad:.3f}," if pad > 0 else "")
-    bed_pad = ",apad" if exact is not None else ""
+    # The bed and the key are padded without end in every mix, so neither reaches sidechaincompress with an EOF
+    # (QF-118: without `end` the key's EOF raced the bed's queued samples, and the bed's level in a 1 s mix varied
+    # from run to run, side RMS 0.085-0.099 over 35 runs on ffmpeg 8.1, 0.047 once on CI). The mix then ends where
+    # the voice (and its finite pad) ends, by amix=duration=first, or by sample count at `end`.
+    bed_pad = ",apad"
     # the key is padded after its hold, not before: the hold ends with the narration, so the bed comes back up as the
     # voice ends (the loop bridge is the bed's own) instead of DUCK_HOLD_S later
-    key_pad = f",{pad_filter[:-1]}" if pad_filter else ""
+    key_pad = ",apad"
     cut = f",atrim=end_sample={exact}" if exact is not None else ""
     card_filter = ""
     if card_at is not None and card_db:

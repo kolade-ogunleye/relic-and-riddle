@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "graphs": {
+    "grid": {
+      "voice_seconds": [
+        3.0,
+        12.345,
+        47.21,
+        61.234,
+        120.0
+      ],
+      "card_db": [
+        0.0,
+        1.5,
+        -2.6
+      ],
+      "gain_db": [
+        -3.2,
+        0.0,
+        4.75
+      ],
+      "first_audio_input": [
+        1,
+        7,
+        23
+      ]
+    },
+    "production_graphs": 585,
+    "identical": 585,
+    "same_count": true
+  }
+}

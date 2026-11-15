@@ -122,8 +122,11 @@ def test_the_chain_cuts_by_sample_count_with_no_eof_inside_the_mix():
     fade = round(EDGE * SR)
     assert tail == (f",asetpts=N/SR/TB,afade=t=out:ss={N - fade}:ns={fade}"
                     f",apad=whole_len={N},atrim=end_sample={N}")
-    # no end: the 16:9 and measurement chains are unchanged
-    assert "atrim" not in _audio_chain(0, 1, 0.0) and "apad" not in _audio_chain(0, 1, 0.0)
+    # no end: no cut and no pad on the voice; the bed and the key run on without end, so no EOF reaches the
+    # sidechain either (QF-118: that EOF race made the open mix nondeterministic)
+    open_chain = _audio_chain(0, 1, 0.0)
+    assert "atrim" not in open_chain and "[v_main]equalizer" in open_chain
+    assert ",apad[bg_carved]" in open_chain and ",apad[v_key]" in open_chain
     assert f"apad=pad_dur={end_card.LOOP_SECONDS:.3f}," in _audio_chain(0, 1, end_card.LOOP_SECONDS)
 
 

@@ -1,0 +1,450 @@
+{
+ "development_runs": {
+  "runs_asking_a_credit": 28,
+  "photos_to_credit": 161,
+  "music_tracks_to_credit": 10,
+  "credit_characters": {
+   "one_line_a_photo": {
+    "all_runs": 41755,
+    "longest_run": 2532,
+    "runs_over_1500": 16
+   },
+   "one_line_a_licence_full_links": {
+    "all_runs": 33766,
+    "longest_run": 2171,
+    "runs_over_1500": 6
+   },
+   "one_line_a_licence_page_id_links": {
+    "all_runs": 25894,
+    "longest_run": 1505,
+    "runs_over_1500": 1
+   }
+  },
+  "one_line_a_photo_characters_by_part": {
+   "author": 2387,
+   "title": 7598,
+   "licence_name": 1575,
+   "page_link": 15447,
+   "licence_link": 7081,
+   "marks_and_separators": 2576
+  },
+  "credited_full_links": {
+   "held_for_credits": 5,
+   "sent": 23,
+   "sent_with_every_credit_complete_in_every_text": 23,
+   "sent_lacking_a_credit": 0,
+   "texts_sent_over_their_limit": 0,
+   "credit_lines_cut_in_texts_sent": 0,
+   "photo_credits_in_texts_sent": {
+    "asked": 122,
+    "author": 122,
+    "title": 122,
+    "page_link": 122,
+    "licence_name": 122,
+    "licence_link": 122,
+    "complete": 122
+   },
+   "notices_and_music_in_texts_sent": {
+    "asked": 38,
+    "carried": 38
+   },
+   "runs_using_one_line_a_licence": 9,
+   "links_by_page_id": 0,
+   "links_by_page_id_not_the_photos_page": 0,
+   "lookups": 0,
+   "held_runs_with_a_credit_line_cut": 0
+  },
+  "credited": {
+   "held_for_credits": 1,
+   "sent": 27,
+   "sent_with_every_credit_complete_in_every_text": 27,
+   "sent_lacking_a_credit": 0,
+   "texts_sent_over_their_limit": 0,
+   "credit_lines_cut_in_texts_sent": 0,
+   "photo_credits_in_texts_sent": {
+    "asked": 154,
+    "author": 154,
+    "title": 154,
+    "page_link": 154,
+    "licence_name": 154,
+    "licence_link": 154,
+    "complete": 154
+   },
+   "notices_and_music_in_texts_sent": {
+    "asked": 47,
+    "carried": 47
+   },
+   "runs_using_one_line_a_licence": 13,
+   "links_by_page_id": 32,
+   "links_by_page_id_not_the_photos_page": 0,
+   "lookups": 5,
+   "held_runs_with_a_credit_line_cut": 0
+  },
+  "per_run": [
+   {
+    "run": "run_amber_room_heist_1792790550",
+    "photos": 7,
+    "licences": 3,
+    "authors": 4,
+    "credit_characters": {
+     "one_line_a_photo": 2460,
+     "one_line_a_licence_full_links": 2171,
+     "one_line_a_licence_page_id_links": 1310
+    },
+    "credited_full_links": "held",
+    "credited": "sent"
+   },
+   {
+    "run": "run_amber_room_heist_1792801257",
+    "photos": 7,
+    "licences": 3,
+    "authors": 5,
+    "credit_characters": {
+     "one_line_a_photo": 2178,
+     "one_line_a_licence_full_links": 1896,
+     "one_line_a_licence_page_id_links": 1145
+    },
+    "credited_full_links": "held",
+    "credited": "sent"
+   },
+   {
+    "run": "run_amber_room_heist_1792805842",
+    "photos": 6,
+    "licences": 2,
+    "authors": 4,
+    "credit_characters": {
+     "one_line_a_photo": 1814,
+     "one_line_a_licence_full_links": 1540,
+     "one_line_a_licence_page_id_links": 837
+    },
+    "credited_full_links": "sent",
+    "credited": "sent"
+   },
+   {
+    "run": "run_gol_gumbaz_whispering_gallery_1793278143",
+    "photos": 8,
+    "licences": 3,
+    "authors": 3,
+    "credit_characters": {
+     "one_line_a_photo": 2114,
+     "one_line_a_licence_full_links": 1750,
+     "one_line_a_licence_page_id_links": 1366
+    },
+    "credited_full_links": "held",
+    "credited": "sent"
+   },
+   {
+    "run": "run_greek_fire_siphon_1792735284_short",
+    "photos": 3,
+    "licences": 1,
+    "authors": 2,
+    "credit_characters": {
+     "one_line_a_photo": 656,
+     "one_line_a_licence_full_links": 524,
+     "one_line_a_licence_page_id_links": 432
+    },
+    "credited_full_links": "sent",
+    "credited": "sent"
+   },
+   {
+    "run": "run_hal_saflieni_hypogeum_1792949304",
+    "photos": 6,
+    "licences": 1,
+    "authors": 1,
+    "credit_characters": {
+     "one_line_a_photo": 1556,
+     "one_line_a_licence_full_links": 1178,
+     "one_line_a_licence_page_id_links": 784
+    },
+    "credited_full_links": "sent",
+    "credited": "sent"
+   },
+   {
+    "run": "run_kailasa_temple_monolith_1792524470",
+    "photos": 5,
+    "licences": 2,
+    "authors": 3,
+    "credit_characters": {
+     "one_line_a_photo": 1285,
+     "one_line_a_licence_full_links": 1071,
+     "one_line_a_licence_page_id_links": 777
+    },
+    "credited_full_links": "sent",
+    "credited": "sent"
+   },
+   {
+    "run": "run_nazca_lines_runway_paradox_1792961797",
+    "photos": 7,
+    "licences": 3,
+    "authors": 4,
+    "credit_characters": {
+     "one_line_a_photo": 1598,
+     "one_line_a_licence_full_links": 1301,
+     "one_line_a_licence_page_id_links": 1039
+    },
+    "credited_full_links": "sent",
+    "credited": "sent"
+   },
+   {
+    "run": "run_nazca_lines_runway_paradox_1793247464",
+    "photos": 6,
+    "licences": 3,
+    "authors": 4,
+    "credit_characters": {
+     "one_line_a_photo": 1374,
+     "one_line_a_licence_full_links": 1153,
+     "one_line_a_licence_page_id_links": 942
+    },
+    "credited_full_links": "sent",
+    "credited": "sent"
+   },
+   {
+    "run": "run_nazca_lines_runway_paradox_1793251266",
+    "photos": 7,
+    "licences": 3,
+    "authors": 4,
+    "credit_characters": {
+     "one_line_a_photo": 1598,
+     "one_line_a_licence_full_links": 1301,
+     "one_line_a_licence_page_id_links": 1039
+    },
+    "credited_full_links": "sent",
+    "credited": "sent"
+   },
+   {
+    "run": "run_nazca_lines_runway_paradox_1793262388",
+    "photos": 8,
+    "licences": 3,
+    "authors": 4,
+    "credit_characters": {
+     "one_line_a_photo": 1879,
+     "one_line_a_licence_full_links": 1497,
+     "one_line_a_licence_page_id_links": 1165
+    },
+    "credited_full_links": "sent",
+    "credited": "sent"
+   },
+   {
+    "run": "run_nazca_lines_runway_paradox_1793267092",
+    "photos": 6,
+    "licences": 3,
+    "authors": 4,
+    "credit_characters": {
+     "one_line_a_photo": 1423,
+     "one_line_a_licence_full_links": 1199,
+     "one_line_a_licence_page_id_links": 960
+    },
+    "credited_full_links": "sent",
+    "credited": "sent"
+   },
+   {
+    "run": "run_odessa_catacombs_1792970549",
+    "photos": 8,
+    "licences": 2,
+    "authors": 2,
+    "credit_characters": {
+     "one_line_a_photo": 1808,
+     "one_line_a_licence_full_links": 1358,
+     "one_line_a_licence_page_id_links": 1358
+    },
+    "credited_full_links": "sent",
+    "credited": "sent"
+   },
+   {
+    "run": "run_odessa_catacombs_1793098390",
+    "photos": 8,
+    "licences": 2,
+    "authors": 2,
+    "credit_characters": {
+     "one_line_a_photo": 1588,
+     "one_line_a_licence_full_links": 1138,
+     "one_line_a_licence_page_id_links": 1138
+    },
+    "credited_full_links": "sent",
+    "credited": "sent"
+   },
+   {
+    "run": "run_odessa_catacombs_1793100750",
+    "photos": 8,
+    "licences": 2,
+    "authors": 2,
+    "credit_characters": {
+     "one_line_a_photo": 1599,
+     "one_line_a_licence_full_links": 1149,
+     "one_line_a_licence_page_id_links": 1149
+    },
+    "credited_full_links": "sent",
+    "credited": "sent"
+   },
+   {
+    "run": "run_richat_structure_sahara_eye_1792737039_short",
+    "photos": 5,
+    "licences": 1,
+    "authors": 2,
+    "credit_characters": {
+     "one_line_a_photo": 1180,
+     "one_line_a_licence_full_links": 876,
+     "one_line_a_licence_page_id_links": 672
+    },
+    "credited_full_links": "sent",
+    "credited": "sent"
+   },
+   {
+    "run": "run_richat_structure_sahara_eye_1792740961_long",
+    "photos": 5,
+    "licences": 1,
+    "authors": 2,
+    "credit_characters": {
+     "one_line_a_photo": 1180,
+     "one_line_a_licence_full_links": 876,
+     "one_line_a_licence_page_id_links": 672
+    },
+    "credited_full_links": "sent",
+    "credited": "sent"
+   },
+   {
+    "run": "run_richat_structure_sahara_eye_1792778206",
+    "photos": 2,
+    "licences": 1,
+    "authors": 2,
+    "credit_characters": {
+     "one_line_a_photo": 505,
+     "one_line_a_licence_full_links": 442,
+     "one_line_a_licence_page_id_links": 370
+    },
+    "credited_full_links": "sent",
+    "credited": "sent"
+   },
+   {
+    "run": "run_richat_structure_sahara_eye_1793272675",
+    "photos": 3,
+    "licences": 1,
+    "authors": 2,
+    "credit_characters": {
+     "one_line_a_photo": 987,
+     "one_line_a_licence_full_links": 829,
+     "one_line_a_licence_page_id_links": 681
+    },
+    "credited_full_links": "sent",
+    "credited": "sent"
+   },
+   {
+    "run": "run_richat_structure_sahara_eye_1793474843",
+    "photos": 1,
+    "licences": 1,
+    "authors": 1,
+    "credit_characters": {
+     "one_line_a_photo": 259,
+     "one_line_a_licence_full_links": 256,
+     "one_line_a_licence_page_id_links": 229
+    },
+    "credited_full_links": "sent",
+    "credited": "sent"
+   },
+   {
+    "run": "run_roman_self_healing_concrete_1793163918",
+    "photos": 3,
+    "licences": 2,
+    "authors": 3,
+    "credit_characters": {
+     "one_line_a_photo": 610,
+     "one_line_a_licence_full_links": 544,
+     "one_line_a_licence_page_id_links": 490
+    },
+    "credited_full_links": "sent",
+    "credited": "sent"
+   },
+   {
+    "run": "run_singing_colossi_of_memnon_1792952878",
+    "photos": 4,
+    "licences": 2,
+    "authors": 3,
+    "credit_characters": {
+     "one_line_a_photo": 1080,
+     "one_line_a_licence_full_links": 932,
+     "one_line_a_licence_page_id_links": 801
+    },
+    "credited_full_links": "sent",
+    "credited": "sent"
+   },
+   {
+    "run": "run_trepanation_miracle_1792995462",
+    "photos": 10,
+    "licences": 1,
+    "authors": 1,
+    "credit_characters": {
+     "one_line_a_photo": 2532,
+     "one_line_a_licence_full_links": 1908,
+     "one_line_a_licence_page_id_links": 1202
+    },
+    "credited_full_links": "held",
+    "credited": "sent"
+   },
+   {
+    "run": "run_tunguska_event_1908_1792930600",
+    "photos": 5,
+    "licences": 1,
+    "authors": 2,
+    "credit_characters": {
+     "one_line_a_photo": 1404,
+     "one_line_a_licence_full_links": 1113,
+     "one_line_a_licence_page_id_links": 862
+    },
+    "credited_full_links": "sent",
+    "credited": "sent"
+   },
+   {
+    "run": "run_unfinished_obelisk_aswan_1792985912",
+    "photos": 6,
+    "licences": 1,
+    "authors": 2,
+    "credit_characters": {
+     "one_line_a_photo": 1870,
+     "one_line_a_licence_full_links": 1407,
+     "one_line_a_licence_page_id_links": 1043
+    },
+    "credited_full_links": "sent",
+    "credited": "sent"
+   },
+   {
+    "run": "run_unfinished_obelisk_aswan_1792993374",
+    "photos": 5,
+    "licences": 1,
+    "authors": 2,
+    "credit_characters": {
+     "one_line_a_photo": 1631,
+     "one_line_a_licence_full_links": 1268,
+     "one_line_a_licence_page_id_links": 949
+    },
+    "credited_full_links": "sent",
+    "credited": "sent"
+   },
+   {
+    "run": "run_unfinished_obelisk_aswan_1793056896",
+    "photos": 5,
+    "licences": 1,
+    "authors": 2,
+    "credit_characters": {
+     "one_line_a_photo": 1659,
+     "one_line_a_licence_full_links": 1296,
+     "one_line_a_licence_page_id_links": 977
+    },
+    "credited_full_links": "sent",
+    "credited": "sent"
+   },
+   {
+    "run": "run_wieliczka_salt_mine_1792974672",
+    "photos": 7,
+    "licences": 5,
+    "authors": 7,
+    "credit_characters": {
+     "one_line_a_photo": 1928,
+     "one_line_a_licence_full_links": 1793,
+     "one_line_a_licence_page_id_links": 1505
+    },
+    "credited_full_links": "held",
+    "credited": "held"
+   }
+  ]
+ }
+}

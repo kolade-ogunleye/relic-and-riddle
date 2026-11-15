@@ -97,6 +97,33 @@ def _get(url: str, params: Optional[dict] = None, timeout: float = 60, max_wait:
     return resp
 
 
+def file_page_ids(source_urls, max_wait: int = 20) -> dict[str, int]:
+    """{source link: page id} for the Commons file pages among `source_urls` (QF-126b: a credit may name a file's
+    page by its id, https://commons.wikimedia.org/?curid=<id>, MediaWiki's own address for a page). One API query
+    for every 50 titles. A link is given an id only when the API returns a page in the File namespace for the title
+    the link names, following a rename's redirect to the page itself; a missing page, or any other answer, gets none."""
+    from .credits import commons_file_title
+    titles = {url: commons_file_title(url) for url in dict.fromkeys(str(u) for u in source_urls or [])}
+    wanted = sorted({t for t in titles.values() if t})
+    found: dict[str, int] = {}
+    for start in range(0, len(wanted), 50):
+        batch = wanted[start:start + 50]
+        query = _get(API, {"action": "query", "format": "json", "formatversion": 2, "redirects": 1,
+                           "titles": "|".join(batch)}, timeout=30, max_wait=max_wait).json().get("query") or {}
+        moved = {str(r.get("from")): str(r.get("to")) for key in ("normalized", "redirects")
+                 for r in query.get(key) or [] if isinstance(r, dict)}
+        pages = {str(p.get("title")): p.get("pageid") for p in query.get("pages") or []
+                 if isinstance(p, dict) and p.get("ns") == 6 and not p.get("missing") and not p.get("invalid")}
+        for title in batch:
+            target, hops = title, 0
+            while target in moved and hops < 4:   # normalised, then a rename's redirect
+                target, hops = moved[target], hops + 1
+            page = pages.get(target)
+            if isinstance(page, int) and not isinstance(page, bool) and page > 0:
+                found[title] = page
+    return {url: found[title] for url, title in titles.items() if title in found}
+
+
 # Block-level tags end a phrase: they become a space, so "<li>Gallery</li><li>Wellcome" stays two words.
 _BLOCK_TAG = re.compile(r"<\s*/?\s*(?:br|p|div|li|ul|ol|dl|dd|dt|tr|td|th|table|h\d)\b[^>]*>", re.I)
 
@@ -660,6 +687,8 @@ def candidates(pages: list, keywords: List[str], allow_sa: bool = False, min_pix
             "title": page["title"],
             "download_url": target_url,
             "source_url": info.get("descriptionurl", ""),
+            # the file page's id (QF-126b): a credit may name the page by it (credits.short_source_url)
+            **({"pageid": page["pageid"]} if isinstance(page.get("pageid"), int) and page["pageid"] > 0 else {}),
             "artist": artist,
             "license": licence,
             "license_url": meta.get("LicenseUrl", {}).get("value", ""),

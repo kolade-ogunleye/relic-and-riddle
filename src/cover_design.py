@@ -114,7 +114,7 @@ MONUMENT_SCRIM, MONUMENT_SCRIM_FEATHER = 0.6, 200    # round 3: the type stack's
                                                      # r5: a Gaussian falloff over 200 px (no visible edge)
 DIM_WORD_PX, DIM_WORD_TRACK = 38, 2.0                # the claim's dimension word under the monument's unit
 QUALIFIER_GAP, QUALIFIER_TRACK = 24, 3.0             # the qualifier kicker's foot to the figure's cap line
-QUALIFIER_FONT, QUALIFIER_WEIGHT = "Montserrat", 800  # the eyebrow's face (r5 review: in IBM Plex Mono the period took
+QUALIFIER_WEIGHT = 800                               # brand.TEXT_FONT: the eyebrow's face (r5 review: in IBM Plex Mono the period took
                                                       # a full monospace cell and "EST." read as "EST .")
 EYEBROW_QUALIFIER_GAP = 44                           # the eyebrow's ink foot to the qualifier's cap line (was ~20)
 GRID_WIDTHS = (124, 180)                             # the profile grid's tile widths on phones (3:4 crop)
@@ -142,7 +142,7 @@ def _tagline_lines(measure, text, width, size, minimum=TAGLINE_MIN):
     """The deck on one line in Montserrat with TAGLINE_TRACK between letters: the room is reduced by the tracking,
     as the eyebrow's is (_eyebrow_lines). Returns (lines, font, shortened)."""
     room = width - TAGLINE_TRACK * max(0, len(text) - 1)
-    return fit_text(measure, text, "Montserrat", max(minimum, size), int(room), 1, minimum, sentences=False)
+    return fit_text(measure, text, brand.TEXT_FONT, max(minimum, size), int(room), 1, minimum, sentences=False)
 
 
 def redundant_tagline(copy):
@@ -196,7 +196,7 @@ def _eyebrow_lines(measure, text, width, size=EYEBROW_PX):
     """The eyebrow on one line in Montserrat 800 with EYEBROW_TRACK between letters, never under EYEBROW_MIN
     (refused there, QF-23: TextFitError). Returns (lines, font, shortened)."""
     room = width - EYEBROW_TRACK * max(0, len(text) - 1)
-    return fit_text(measure, text, "Montserrat", max(EYEBROW_MIN, size), int(room), 1, EYEBROW_MIN,
+    return fit_text(measure, text, brand.TEXT_FONT, max(EYEBROW_MIN, size), int(room), 1, EYEBROW_MIN,
                     sentences=False, weight=800)
 
 
@@ -230,11 +230,11 @@ def _rows(im, copy, width, style, tight, figure=None):
     paper = style == "depth_sandwich"
     # Two-tone everywhere it applies (2026-11-02): the second title line is gold on ink; ink on the paper card.
     specs = [
-        ("eyebrow", "eyebrow", "Montserrat", EYEBROW_PX, EYEBROW_MIN, brand.GOLD, 22),
-        ("title_1", "line1", "Anton", sizes[0], 64, brand.BONE, 10),
-        ("title_2", "line2", "Anton", sizes[1], 64,
+        ("eyebrow", "eyebrow", brand.TEXT_FONT, EYEBROW_PX, EYEBROW_MIN, brand.GOLD, 22),
+        ("title_1", "line1", brand.DISPLAY_FONT, sizes[0], 64, brand.BONE, 10),
+        ("title_2", "line2", brand.DISPLAY_FONT, sizes[1], 64,
          brand.GOLD if style in ("badge", "minimal") else brand.BONE, 26),
-        ("tagline", "tagline", "Montserrat", TAGLINE_PX, TAGLINE_MIN, brand.STONE_LT, 0),
+        ("tagline", "tagline", brand.TEXT_FONT, TAGLINE_PX, TAGLINE_MIN, brand.STONE_LT, 0),
     ]
     rows, shortened = [], []
     hedge = hedge_line(copy, figure)
@@ -333,7 +333,7 @@ def _paint(im, rows, x, top, centered, lay):
     return im
 
 
-BRAND_TEXT = "RELIC & RIDDLE"
+# the masthead's words: brand.MASTHEAD (read when drawn; BRAND_TEXT below for its readers)
 BRAND_PX, BRAND_TRACK = 64, 4.0
 BRAND_TOP = 462     # the masthead's ascender line, the same band in the grid's square on every style
 MINIMAL_GAPS = (40, 22)   # minimal: masthead foot -> eyebrow caps, eyebrow foot -> title caps (ink to ink)
@@ -352,7 +352,7 @@ def _mast_scrim(im, lay, xy, font, plate):
     with a halo of at most MAST_HALO_MAX; the original plan when no band up to the strongest does (a pure-white
     striped sky keeps the full halo: legibility first)."""
     import numpy as np
-    box = font.getbbox(BRAND_TEXT, anchor="lt")
+    box = font.getbbox(brand.MASTHEAD, anchor="lt")
     y0, y1 = xy[1] + box[1] - 6, xy[1] + box[3] + 6
     # The band eases out from the masthead's cap centre, not its foot (r5 review, 2026-11-02): eased from the
     # foot it had only the 40-60 px left above a full-width photo, a flat dark plateau then a fast ramp, read as
@@ -375,7 +375,7 @@ def _mast_scrim(im, lay, xy, font, plate):
         layer = Image.new("RGBA", im.size, brand.INK + (255,))
         layer.putalpha(Image.fromarray((v * strength * 255).astype("uint8")[:, None]).resize(im.size))
         trial = Image.alpha_composite(im.convert("RGBA"), layer)
-        p = plan_text(trial, xy, BRAND_TEXT, font, brand.BONE, "lt", BRAND_TRACK, halo_px=24, min_halo=0.0,
+        p = plan_text(trial, xy, brand.MASTHEAD, font, brand.BONE, "lt", BRAND_TRACK, halo_px=24, min_halo=0.0,
                       shadow=True, max_halo=MAST_HALO_MAX)
         if p.contrast is not None and p.contrast >= brand.PLACE_TARGET:
             if lay is not None:
@@ -383,6 +383,16 @@ def _mast_scrim(im, lay, xy, font, plate):
             return trial, p
         strength += MAST_SCRIM[2]
     return im, plate
+
+
+_BRAND_NAMES = {"BRAND_TEXT": "MASTHEAD", "QUALIFIER_FONT": "TEXT_FONT"}
+
+
+def __getattr__(name: str):
+    """A brand string or face this module bound at import before QF-35a: the active brand's (src/brand.py), now."""
+    if name in _BRAND_NAMES:
+        return getattr(brand, _BRAND_NAMES[name])
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
 def _brand(im, lay, centered=False, paper=False, left=None, centre=540, grid_delivery=False):
@@ -398,14 +408,14 @@ def _brand(im, lay, centered=False, paper=False, left=None, centre=540, grid_del
     cap height there is at least MASTHEAD_GRID_CAP px; under it the masthead is absent (at BRAND_PX it is about
     5 px: a smear, not a mark) and lay.meta["masthead"] says why. The grid proof holds a drawn one to the same floor.
     """
-    font = get_font("Cinzel", BRAND_PX, weight=700)
+    font = get_font(brand.MASTHEAD_FONT, BRAND_PX, weight=700)
     if grid_delivery and cap_h_of(font) * GRID_SCALE[0] < MASTHEAD_GRID_CAP:
         if lay is not None:
             lay.meta["masthead"] = {"shown": False, "cap_124": round(cap_h_of(font) * GRID_SCALE[0], 1),
                                     "reason": f"under {MASTHEAD_GRID_CAP} px cap height at profile-grid size"}
         return im
     measure = ImageDraw.Draw(im)
-    name_w = text_size(measure, BRAND_TEXT, font)[0] + BRAND_TRACK * (len(BRAND_TEXT) - 1)
+    name_w = text_size(measure, brand.MASTHEAD, font)[0] + BRAND_TRACK * (len(brand.MASTHEAD) - 1)
     group = 2 * MARK_R + MARK_GAP + name_w
     # One place on every style (2026-11-02 design review: it moved between left and centre): centred on the
     # canvas, the same band in the profile grid's square on every tile.
@@ -418,13 +428,13 @@ def _brand(im, lay, centered=False, paper=False, left=None, centre=540, grid_del
     cx = x0 + MARK_R
     xy = (x0 + 2 * MARK_R + MARK_GAP, top)
     if paper:
-        im, plate = place_text(im, xy, BRAND_TEXT, font, brand.INK,
+        im, plate = place_text(im, xy, brand.MASTHEAD, font, brand.INK,
                                anchor="lt", track=BRAND_TRACK, halo_px=0, shadow=False)
         mark, edge = brand.GOLD_DIM, None
     else:
         # A 40 px halo allowed to reach full strength is what clears brand.PLACE_TARGET on a pure-white sky;
         # the 0.35 floor keeps busy texture off the glyph edges.
-        plate = plan_text(im, xy, BRAND_TEXT, font, brand.BONE, "lt", BRAND_TRACK,
+        plate = plan_text(im, xy, brand.MASTHEAD, font, brand.BONE, "lt", BRAND_TRACK,
                           halo_px=40, min_halo=0.35, shadow=True, max_halo=1.0)
         if plate.halo > MAST_HALO_MAX:
             # Round 3: over a bright sky the glyph-shaped halo grew into a grey rounded box. An eased INK band
@@ -588,7 +598,7 @@ INSET_FEATHER_MAX = 120     # the inset window's widest edge fade (each edge wit
 
 def _brand_foot():
     """The masthead's ink foot (y) on every style."""
-    return BRAND_TOP + get_font("Cinzel", BRAND_PX, weight=700).getbbox(BRAND_TEXT, anchor="lt")[3]
+    return BRAND_TOP + get_font(brand.MASTHEAD_FONT, BRAND_PX, weight=700).getbbox(brand.MASTHEAD, anchor="lt")[3]
 
 
 def _photograph(im, source, aperture, lay, bottom=False):
@@ -947,7 +957,7 @@ def _monument(im, copy, lay, tight, source, focus, figure=None):
     factor = 0.88 if tight else 1.0
     from .typography import fit_font, tracked_width
     # The unit block right of the figure: the unit, and under it the claim's dimension word (one or two lines).
-    dim_font = get_font("Montserrat", DIM_WORD_PX, weight=700)
+    dim_font = get_font(brand.TEXT_FONT, DIM_WORD_PX, weight=700)
     dim_lines = []
     if dimension:
         words = dimension.split()
@@ -956,8 +966,8 @@ def _monument(im, copy, lay, tight, source, focus, figure=None):
     dim_w = max([tracked_width(t, dim_font, DIM_WORD_TRACK) for t in dim_lines] or [0])
     reserve = max(240, int(dim_w) + 22) if unit else 0
     # The figure: as large as fits the width, up to 420 px (it is the cover's one idea).
-    num_font = fit_font(measure, number, "Anton", int(420 * factor), width - reserve, 160)
-    unit_font = get_font("Anton", max(72, int(num_font.size * 0.33)))
+    num_font = fit_font(measure, number, brand.DISPLAY_FONT, int(420 * factor), width - reserve, 160)
+    unit_font = get_font(brand.DISPLAY_FONT, max(72, int(num_font.size * 0.33)))
     # The qualifier kicker, one line read in the 124 px profile grid (QUALIFIER_GRID_CAP, _qualifier_fit).
     q_lines, q_font, q_track = q_fit if q_fit else ([], None, QUALIFIER_TRACK)
     eyebrow_rows, title_rows, tag_rows = [], [], []
@@ -968,11 +978,11 @@ def _monument(im, copy, lay, tight, source, focus, figure=None):
         # One size for both title lines: the largest at which each fits on one line (down to 64 px), each kept
         # as its own element (title_1, title_2) as in every other style; a line too long even then wraps.
         size = int(104 * factor)
-        while size > 64 and any(text_size(measure, t, get_font("Anton", size))[0] > width for _, t in titles):
+        while size > 64 and any(text_size(measure, t, get_font(brand.DISPLAY_FONT, size))[0] > width for _, t in titles):
             size -= 2
         shortened = []
         for name, text in titles:
-            lines, f_t, short = fit_text(measure, text, "Anton", size, width, 2, min(size, 64), sentences=False)
+            lines, f_t, short = fit_text(measure, text, brand.DISPLAY_FONT, size, width, 2, min(size, 64), sentences=False)
             # Two-tone when both title lines are left (2026-11-02): the second in gold, like the figure above it.
             colour = brand.GOLD if name == "title_2" and len(titles) > 1 else brand.BONE
             title_rows += [(name, line, f_t, colour) for line in lines]
@@ -1013,7 +1023,7 @@ def _monument(im, copy, lay, tight, source, focus, figure=None):
     stack_right = min(1080, margin + max(widths))
     # Round 4: the box runs one deck cap height past the last line, so the STONE_LT deck sits on a dark field
     # over a pale facade and does not lean on its halo.
-    scrim_foot = 1434 + (cap_h_of(tag_rows[-1][1]) if tag_rows else cap_h_of(get_font("Montserrat", TAGLINE_PX)))
+    scrim_foot = 1434 + (cap_h_of(tag_rows[-1][1]) if tag_rows else cap_h_of(get_font(brand.TEXT_FONT, TAGLINE_PX)))
     im = _scrim(im, (margin, top, stack_right, scrim_foot), MONUMENT_SCRIM, MONUMENT_SCRIM_FEATHER)
     if lay is not None:
         lay.meta["scrim"] = {"box": [margin, top, stack_right, scrim_foot], "strength": MONUMENT_SCRIM,
@@ -1098,9 +1108,9 @@ def _qualifier_fit(text, width=MONUMENT_MEASURE):
     112 px kicker lines made the hedge the cover's second-largest mark and pushed the subject out of frame."""
     from .typography import tracked_width
     size = 60
-    while cap_h_of(get_font(QUALIFIER_FONT, size, weight=QUALIFIER_WEIGHT)) * GRID_SCALE[0] < QUALIFIER_GRID_CAP:
+    while cap_h_of(get_font(brand.TEXT_FONT, size, weight=QUALIFIER_WEIGHT)) * GRID_SCALE[0] < QUALIFIER_GRID_CAP:
         size += 2
-    font = get_font(QUALIFIER_FONT, size, weight=QUALIFIER_WEIGHT)
+    font = get_font(brand.TEXT_FONT, size, weight=QUALIFIER_WEIGHT)
     for track in (QUALIFIER_TRACK, 0.0):
         if tracked_width(text, font, track) <= width:
             return [text], font, track
@@ -1239,7 +1249,7 @@ def _render(im, copy, style, lay, tight, source, focus, figure):
                 continue   # r7: the hedge holds its grid floor (it carries the figure's qualifier)
             # The eyebrow and the subline keep their floors (36 and 32 px): they are what vanished in the grid.
             floor = {"eyebrow": EYEBROW_MIN, "qualifier": EYEBROW_MIN, "tagline": TAGLINE_MIN}.get(row["name"], 24)
-            row["font"] = get_font("Anton" if row["name"].startswith("title") else "Montserrat",
+            row["font"] = get_font(brand.DISPLAY_FONT if row["name"].startswith("title") else brand.TEXT_FONT,
                                    max(floor, int(row["font"].size * scale)),
                                    weight=800 if row["name"] in ("eyebrow", "qualifier") else None)
             row["height"] = text_size(ImageDraw.Draw(im), row["text"], row["font"])[1]
@@ -1284,7 +1294,7 @@ def _render(im, copy, style, lay, tight, source, focus, figure):
 
         def off(r):
             return r["font"].getbbox(r["text"], anchor="lt")[1]
-        brand_foot = BRAND_TOP + get_font("Cinzel", BRAND_PX, weight=700).getbbox(BRAND_TEXT, anchor="lt")[3]
+        brand_foot = BRAND_TOP + get_font(brand.MASTHEAD_FONT, BRAND_PX, weight=700).getbbox(brand.MASTHEAD, anchor="lt")[3]
         top = brand_foot + MINIMAL_GAPS[0] - (off(rows[0]) if rows else 0)
         for a, b in pairwise(rows):
             if a["name"] == "eyebrow" and b["name"] != "eyebrow":

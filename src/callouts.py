@@ -29,16 +29,13 @@ from typing import Any, Literal
 from PIL import Image, ImageDraw, ImageFilter
 from pydantic import BaseModel, Field
 
-from . import safe_zones
-from .brand import BONE, INK
+from . import brand, safe_zones
 from .camera_motion import sample as camera_sample
 from .config import VIDEO_FPS, VIDEO_HEIGHT, VIDEO_WIDTH
 from .graphics import (
     CLIP_SECONDS,
-    GOLD,
     TEXT_BOTTOM,
     TEXT_TOP,
-    WHITE,
     _ease,
     _ease_io,
     _encode,
@@ -57,6 +54,17 @@ from .typography import (
 )
 
 log = logging.getLogger(__name__)
+
+# Colours are the active brand's (src/brand.py), read when drawn (QF-35a); the names this module bound at import
+# before are served to their readers by __getattr__ (WHITE is BONE).
+_BRAND_NAMES = {"BONE": "BONE", "INK": "INK", "GOLD": "GOLD", "WHITE": "BONE"}
+
+
+def __getattr__(name: str):
+    """A colour this module bound at import before QF-35a: the active brand's, read now."""
+    if name in _BRAND_NAMES:
+        return getattr(brand, _BRAND_NAMES[name])
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 W, H = VIDEO_WIDTH, VIDEO_HEIGHT
 MAX_PHOTOS = 6
 MAX_LABELS = 3   # panel round 3: four labels crowded the frame with near-crossing leaders; three at most
@@ -658,7 +666,7 @@ def _shapes(measure: ImageDraw.ImageDraw, label: str, fmt: str, top: int | None 
     words = text.split()
     sizes = [s for s in label_sizes(fmt) if top is None or s <= top] or label_sizes(fmt)[-1:]
     for s in sizes:
-        font = get_font("Montserrat", s, weight=700)
+        font = get_font(brand.TEXT_FONT, s, weight=700)
         track = LABEL_TRACK * s
         out = []
         if len(text) <= LABEL_MAX_CHARS and _tracked(measure, text, font, track) <= max_w:
@@ -674,7 +682,7 @@ def _shapes(measure: ImageDraw.ImageDraw, label: str, fmt: str, top: int | None 
             out.append(best[1])
         if out:
             return [_Shape(lines, font, track, fmt, measure) for lines in out]
-    font = get_font("Montserrat", sizes[-1], weight=700)   # nothing fits: the smallest size, on two lines
+    font = get_font(brand.TEXT_FONT, sizes[-1], weight=700)   # nothing fits: the smallest size, on two lines
     mid = max(1, len(words) // 2)
     lines = [" ".join(words[:mid]), " ".join(words[mid:])] if len(words) > 1 else [text]
     return [_Shape(lines, font, LABEL_TRACK * sizes[-1], fmt, measure)]
@@ -1760,8 +1768,8 @@ def _loupe(im: Image.Image, src: Image.Image, cx: float, cy: float, r: int, a: f
     ImageDraw.Draw(gold).ellipse([cx - (r + 1.5) * SS, cy - (r + 1.5) * SS, cx + (r + 1.5) * SS, cy + (r + 1.5) * SS],
                                  outline=255, width=2 * SS)
     lut = _lut(a)
-    im.paste(INK, (*xy, xy[0] + size, xy[1] + size), ink.reduce(SS).point(lut))
-    im.paste(GOLD, (*xy, xy[0] + size, xy[1] + size), gold.reduce(SS).point(lut))
+    im.paste(brand.INK, (*xy, xy[0] + size, xy[1] + size), ink.reduce(SS).point(lut))
+    im.paste(brand.GOLD, (*xy, xy[0] + size, xy[1] + size), gold.reduce(SS).point(lut))
     return im
 
 
@@ -2433,12 +2441,12 @@ def render(photo: Path, points: list[tuple], out: Path, width: int = VIDEO_WIDTH
             drawn[k] = gold
             # an older label fades as a whole mark (its casing with its gold), so its gold keeps its hue over the
             # photo instead of darkening to brown over its own ink casing
-            _blit(im, INK, ink, arts[k].ox + dx, arts[k].oy + dy, st["casing"] / 255 * st["dim"])
+            _blit(im, brand.INK, ink, arts[k].ox + dx, arts[k].oy + dy, st["casing"] / 255 * st["dim"])
         for k, st, dx, dy in live:   # every leader and marker gold, and the landing ripple
             a = arts[k]
-            _blit(im, GOLD, drawn[k], a.ox + dx, a.oy + dy, st["dim"])
+            _blit(im, brand.GOLD, drawn[k], a.ox + dx, a.oy + dy, st["dim"])
             if st["ripple"]:
-                _blit(im, GOLD, a.ripple(st["ripple"][0]), a.ox + dx, a.oy + dy, st["ripple"][1] * st["dim"])
+                _blit(im, brand.GOLD, a.ripple(st["ripple"][0]), a.ox + dx, a.oy + dy, st["ripple"][1] * st["dim"])
         for k, st, dx, dy in live:   # every plate, bar and text
             a = arts[k]
             if drew is not None:
@@ -2449,14 +2457,14 @@ def render(photo: Path, points: list[tuple], out: Path, width: int = VIDEO_WIDTH
                            "text_at": (a.ox + dx + nx * st["text_off"], a.oy + dy + ny * st["text_off"])}
             if st["plate"] > 0:
                 _, fill, hair = a.plate(st["plate"])
-                _blit(im, INK, fill, a.ox + dx, a.oy + dy, PLATE_ALPHA / 255 * st["plate_a"])
-                _blit(im, BONE, hair, a.ox + dx, a.oy + dy, HAIRLINE_ALPHA / 255 * st["plate_a"])
+                _blit(im, brand.INK, fill, a.ox + dx, a.oy + dy, PLATE_ALPHA / 255 * st["plate_a"])
+                _blit(im, brand.BONE, hair, a.ox + dx, a.oy + dy, HAIRLINE_ALPHA / 255 * st["plate_a"])
             if st["bar"] > 0:
-                _blit(im, GOLD, a.bar(st["bar"]), a.ox + dx, a.oy + dy, st["dim"] * st["plate_a"])
+                _blit(im, brand.GOLD, a.bar(st["bar"]), a.ox + dx, a.oy + dy, st["dim"] * st["plate_a"])
             if st["text_a"] > 0 and not skip_text:
                 nx, ny = NORMAL[labels[k]["attach"]]
                 off = st["text_off"]
-                _blit(im, WHITE, a.text(), a.ox + dx + nx * off, a.oy + dy + ny * off, st["text_a"])
+                _blit(im, brand.BONE, a.text(), a.ox + dx + nx * off, a.oy + dy + ny * off, st["text_a"])
         for k, st, dx, dy in live:   # the loupe insets
             lab = labels[k]
             if lab["loupe"] and view is not None and st["loupe_a"] > 0:
@@ -2494,7 +2502,7 @@ def render(photo: Path, points: list[tuple], out: Path, width: int = VIDEO_WIDTH
                                    a.oy + round(dy) + a.h)))
         for j, line in enumerate(lab["lines"]):
             xy = (lab["text_x"] - a.ox, lab["text_y"][j] - a.oy)
-            plans = [plan_text(gr, xy, line, lab["font"], WHITE, anchor=lab["anchor"], track=lab["track"])
+            plans = [plan_text(gr, xy, line, lab["font"], brand.BONE, anchor=lab["anchor"], track=lab["track"])
                      for gr in grounds]
             a.plates.append(max(plans, key=lambda q: (q.halo, -(q.contrast if q.contrast is not None else 99.0))))
 

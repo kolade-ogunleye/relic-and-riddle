@@ -47,10 +47,23 @@ MARK_LIGHTNESS_WEIGHT = 1.5
 NOTE_BAND = (3, 9)       # px outside a mark: the ground it is read against
 SAMPLE_SIDE = 960        # the picture is read at most this many px on its long side
 
-# Map tints are graphics.LAND_TINT and HOME_TINT (kept here so this module does not import the renderer).
-LAND_TINT, HOME_TINT = (88, 92, 100), (168, 137, 81)
-ROLES = {"gold": brand.GOLD, "teal": brand.TEAL, "coral": brand.CORAL, "home_fill": HOME_TINT,
-         "land": LAND_TINT}
+
+def _roles() -> dict:
+    """The meaning roles in the active brand (QF-35a: read when checked, so a second brand is checked in its own
+    colours). The map tints are the brand's LAND_TINT and HOME_TINT, the ones graphics draws."""
+    return {"gold": brand.GOLD, "teal": brand.TEAL, "coral": brand.CORAL, "home_fill": brand.HOME_TINT,
+            "land": brand.LAND_TINT}
+
+
+def __getattr__(name: str):
+    """ROLES, LAND_TINT and HOME_TINT, constants before QF-35a: the active brand's, now."""
+    if name == "ROLES":
+        return _roles()
+    if name in ("LAND_TINT", "HOME_TINT"):
+        return getattr(brand, name)
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
+
 # The figure gold against the accent structure ("so figures and structure never merge": art_direction), the chart
 # series against each other, and the map's home country against its neighbours.
 MEANING_PAIRS = (("gold", "accent"), ("gold", "teal"), ("gold", "coral"), ("teal", "coral"), ("home_fill", "land"))
@@ -128,7 +141,7 @@ def pair_distance(a_rgb, b_rgb) -> dict:
 
 def roles_for(accent) -> dict:
     """The roles of a graphic drawn with this run's accent (one role per distinct colour)."""
-    roles = dict(ROLES)
+    roles = _roles()
     accent = tuple(int(c) for c in accent) if accent is not None else None
     if accent and accent not in {tuple(v) for v in roles.values()}:
         roles["accent"] = accent
@@ -203,7 +216,7 @@ def check(image, accent=None, kind=None) -> dict:
 def accent_problem(accent) -> str | None:
     """Why an accent would merge with the figure gold for a colour-blind viewer, else None (the gate's own pair
     rule, on the nominal colours: art_direction rejects such an accent at the source)."""
-    dist = pair_distance(accent, ROLES["gold"])
+    dist = pair_distance(accent, brand.GOLD)
     worst = min(dist, key=dist.get)
     if dist[worst] < MIN_DE00:
         return f"{dist[worst]:.1f} dE00 from the figure gold under {worst} (needs {MIN_DE00:.0f})"

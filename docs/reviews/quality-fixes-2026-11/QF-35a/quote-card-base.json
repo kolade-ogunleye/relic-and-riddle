@@ -1,0 +1,23 @@
+{
+ "default": {
+  "quote 169": {
+   "faces": [
+    "IBM Plex Mono",
+    "Montserrat"
+   ],
+   "frames": 180,
+   "sha256": "7156ceeb7c367022ce341f758593c3cec23886f8f8fa6167b9fdeb86ddd9e4f0",
+   "today_gold_fills": 3
+  },
+  "quote 916": {
+   "faces": [
+    "IBM Plex Mono",
+    "Montserrat"
+   ],
+   "frames": 180,
+   "sha256": "d7f51b47b41d4245b489ed368be6a16f0dc1cd02bdd131941556c9d78532d713",
+   "today_gold_fills": 3
+  }
+ },
+ "schema": 1
+}

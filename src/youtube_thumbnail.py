@@ -48,8 +48,8 @@ TITLE_GAP_EM = 0.08       # the figure's baseline to the title's caps, in title 
 DIM_PX = 44               # the claim's dimension word under the unit (figure_dim)
 QUAL_PX = 96              # the copy's qualifier over the figure (figure_qualifier), at least; raised until it
                           # keeps LINE_FLOOR px of cap height at 168 px wide
-QUAL_CONDENSED = "Anton"   # r7: the kicker's face when one word cannot hold the floor in Montserrat (_qual_font)
-QUAL_FONT, QUAL_WEIGHT, QUAL_TRACK = "Montserrat", 800, 3   # the covers' eyebrow face (r5 review: in IBM Plex Mono
+# brand.DISPLAY_FONT: r7: the kicker's face when one word cannot hold the floor in the text face (_qual_font)
+QUAL_WEIGHT, QUAL_TRACK = 800, 3   # brand.TEXT_FONT, the covers' eyebrow face (r5 review: in IBM Plex Mono
                                                             # the period took a full cell, "EST ." with a gap)
 DIM_TITLE_GAP = 40        # px of clear field from the dimension word's baseline to the title's cap line
 PLATE_TARGET = 5.1        # every line's planned ratio at full size ...
@@ -223,9 +223,9 @@ def _qual_font(text: str, width: float):
     cap floor: one word cannot break, and the column beside a reviewed feature is ~660 px ("ESTIMATED" in
     Montserrat 800 is 710, "REDISCOVERED" 975). None when no such setting fits `width`."""
     size = QUAL_PX
-    while cap_height(get_font(QUAL_FONT, size, weight=QUAL_WEIGHT)) * FEED_WIDTHS[0] / W < LINE_FLOOR:
+    while cap_height(get_font(brand.TEXT_FONT, size, weight=QUAL_WEIGHT)) * FEED_WIDTHS[0] / W < LINE_FLOOR:
         size += 4
-    font = get_font(QUAL_FONT, size, weight=QUAL_WEIGHT)
+    font = get_font(brand.TEXT_FONT, size, weight=QUAL_WEIGHT)
     for track in (QUAL_TRACK, 0):
         if tracked_width(text, font, track) <= width:
             return [text], font, track
@@ -239,9 +239,9 @@ def _qual_font(text: str, width: float):
     if best:
         return best[1], font, QUAL_TRACK
     size = QUAL_PX
-    while cap_height(get_font(QUAL_CONDENSED, size)) * FEED_WIDTHS[0] / W < LINE_FLOOR:
+    while cap_height(get_font(brand.DISPLAY_FONT, size)) * FEED_WIDTHS[0] / W < LINE_FLOOR:
         size += 2
-    condensed = get_font(QUAL_CONDENSED, size)
+    condensed = get_font(brand.DISPLAY_FONT, size)
     for track in (QUAL_TRACK, 0):
         if tracked_width(text, condensed, track) <= width:
             return [text], condensed, track
@@ -297,10 +297,10 @@ def _render(source, copy, focus, meta, figure, youtube_title, illustration, targ
     plates = []
 
     # The masthead: the gold diamond, then the name in gold Cinzel Bold, top-left.
-    f_brand = get_font("Cinzel", BRAND_PX, weight=700)
+    f_brand = get_font(brand.MASTHEAD_FONT, BRAND_PX, weight=700)
     r, gap, top = BRAND_R, BRAND_GAP, 72
     cy = top + cap_height(f_brand) / 2
-    name = plan_text(im, (LEFT + 2 * r + gap, top + cap_height(f_brand)), "RELIC & RIDDLE", f_brand, brand.GOLD,
+    name = plan_text(im, (LEFT + 2 * r + gap, top + cap_height(f_brand)), brand.MASTHEAD, f_brand, brand.GOLD,
                      "ls", BRAND_TRACK, halo_px=40, min_halo=0.35, max_halo=1.0)
     im = name.draw(im)
     d = ImageDraw.Draw(im)
@@ -397,14 +397,14 @@ def _render(source, copy, focus, meta, figure, youtube_title, illustration, targ
                 meta["title_overlap"] = True
         title = typeset(title)
         # The numeral fills its column up to NUM_MAX.
-        f_num = fit_font(measure, number, "Anton", NUM_MAX, width - (300 if unit else 0), 160)
-        f_unit = get_font("Anton", max(80, int(f_num.size * UNIT_RATIO)))
-        f_dim = get_font("Montserrat", DIM_PX, weight=700)
+        f_num = fit_font(measure, number, brand.DISPLAY_FONT, NUM_MAX, width - (300 if unit else 0), 160)
+        f_unit = get_font(brand.DISPLAY_FONT, max(80, int(f_num.size * UNIT_RATIO)))
+        f_dim = get_font(brand.TEXT_FONT, DIM_PX, weight=700)
         dim_lines = (dimension.split() if dimension and measure.textlength(dimension, font=f_dim) > 300 else (
             [dimension] if dimension else []))[:2] if unit else []
         q_lines, f_q, q_track = q_fit if (q_fit and qualifier) else ([], None, QUAL_TRACK)
         num_w = measure.textlength(number, font=f_num)
-        f_t = fit_font(measure, title, "Anton", 150, width, 90) if title else None
+        f_t = fit_font(measure, title, brand.DISPLAY_FONT, 150, width, 90) if title else None
         gap_t = round(TITLE_GAP_EM * f_t.size) if f_t else 0
         if dim_lines:   # the dimension word ends on the figure's baseline: the title keeps clear of it (r5: ~12 px)
             gap_t = max(gap_t, DIM_TITLE_GAP)
@@ -475,16 +475,16 @@ def _render(source, copy, focus, meta, figure, youtube_title, illustration, targ
         lines = [(typeset(t), c) for t, c in ((l1, brand.BONE), (l2, brand.GOLD)) if t]
         h_lines, f_h, h_track = h_fit if (hedge and h_fit) else ([], None, QUAL_TRACK)
         size = 190
-        while size > 96 and any(measure.textlength(t, font=get_font("Anton", size)) > width for t, _ in lines):
+        while size > 96 and any(measure.textlength(t, font=get_font(brand.DISPLAY_FONT, size)) > width for t, _ in lines):
             size -= 4
-        f = get_font("Anton", size)
+        f = get_font(brand.DISPLAY_FONT, size)
         pitch = int(cap_height(f) * 1.18)
         h_h = (len(h_lines) * cap_height(f_h) + (len(h_lines) - 1) * QUAL_LEADING + HEDGE_GAP) if f_h else 0
         f_k = None
         if kicker:
             # The filled line sits over the kept one as a kicker, in bone Anton at most KICKER_RATIO of its size:
             # the kept line stays the hero at full size (at one shared size both fell under the feed floor).
-            f_k = fit_font(measure, kicker, "Anton", int(size * KICKER_RATIO), width, 72)
+            f_k = fit_font(measure, kicker, brand.DISPLAY_FONT, int(size * KICKER_RATIO), width, 72)
             h_h += cap_height(f_k) + KICKER_GAP
         y = round(centre - (pitch * (len(lines) - 1) + cap_height(f) + h_h) / 2 + h_h + cap_height(f))
         if f_k:

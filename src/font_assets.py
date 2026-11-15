@@ -1,6 +1,6 @@
 """Caption faces derived locally from the bundled, licensed sources (QF-87).
 
-libass applies no OpenType feature a subtitle asks for, and selects no instance of a variable font. Two faces are
+libass applies no OpenType feature a subtitle asks for, and selects no instance of a variable font. These faces are
 therefore derived with fontTools from the files in fonts/, never downloaded and never committed:
 
 - CAPTION_FAMILY ("RR Caption"): Anton with its own `smcp` glyphs as the default forms of its lower case (each
@@ -8,6 +8,13 @@ therefore derived with fontTools from the files in fonts/, never downloaded and 
   narration's case and accents in true small capitals; no outline or advance is changed and no capital is scaled.
 - WIDE_FAMILY ("RR Sans"): the static weight-700 instance of the one Montserrat source (Montserrat-Variable.ttf),
   the 16:9 caption face (the second Montserrat file, Montserrat-Bold.ttf, is gone).
+- WIDE_SERIF_FAMILY ("RR Serif"): the static weight-700 instance of Cinzel-Variable.ttf, the 16:9 caption face of a
+  brand that names Cinzel in its caption_wide role (QF-35a: the role decides the face libass draws,
+  video_composer._wide_caption_family); the default brand never builds it.
+- WIDE_SEMIBOLD_FAMILY ("RR Sans SemiBold") and SERIF_SEMIBOLD_FAMILY ("RR Serif SemiBold"): the static weight-600
+  instances of the Montserrat and Cinzel sources, the AI-reconstruction badge's face (measured at 600) for a brand
+  that names one of them in its badge role (QF-35a round 2: video_composer._badge_family); the default brand's badge
+  face, IBM Plex Mono, is static and never builds them.
 
 Each is built once per source/builder identity into BASE_DIR/cache/font_instances/<key>/, beside a copy of the
 source's OFL notice and a licence record naming its source and hashes (font_evidence.font_rights checks both), and
@@ -33,8 +40,14 @@ from .font_evidence import font_rights
 
 CAPTION_FAMILY = "RR Caption"
 WIDE_FAMILY = "RR Sans"
+WIDE_SERIF_FAMILY = "RR Serif"
+WIDE_SEMIBOLD_FAMILY = "RR Sans SemiBold"
+SERIF_SEMIBOLD_FAMILY = "RR Serif SemiBold"
 DERIVED_FAMILIES = {CAPTION_FAMILY: ("Anton-Regular.ttf", "smcp"),
-                    WIDE_FAMILY: ("Montserrat-Variable.ttf", "wght700")}
+                    WIDE_FAMILY: ("Montserrat-Variable.ttf", "wght700"),
+                    WIDE_SERIF_FAMILY: ("Cinzel-Variable.ttf", "wght700"),
+                    WIDE_SEMIBOLD_FAMILY: ("Montserrat-Variable.ttf", "wght600"),
+                    SERIF_SEMIBOLD_FAMILY: ("Cinzel-Variable.ttf", "wght600")}
 
 
 def _same(path: Path, data: bytes) -> bool:
@@ -118,8 +131,9 @@ def derived_font(family: str, fonts_dir: Path = FONTS_DIR) -> Path:
         return path
     directory.mkdir(parents=True, exist_ok=True)
     with TTFont(source, recalcTimestamp=False) as font:
-        if operation == "wght700":
-            font = instantiateVariableFont(font, {"wght": 700}, inplace=True)
+        weight = int(operation[4:]) if operation.startswith("wght") else None
+        if weight is not None:
+            font = instantiateVariableFont(font, {"wght": weight}, inplace=True)
             font.recalcTimestamp = False
         else:
             _small_caps_cmap(font, source)
@@ -132,7 +146,7 @@ def derived_font(family: str, fonts_dir: Path = FONTS_DIR) -> Path:
     record = {**source_rights, "file": path.name, "sha256": sha256_file(path),
               "license_file": "OFL.txt", "derived_from": str(source.resolve()), **identity,
               "derivation": "real small-cap glyphs as default lowercase forms" if operation == "smcp"
-                            else "static weight700 instance of the sole shipped variable source"}
+                            else f"static weight{operation[4:]} instance of its shipped variable source"}
     _replace_file(directory / "license_evidence.json",
                   (json.dumps({"fonts": [record]}, indent=2) + "\n").encode("utf-8"))
     return path

@@ -26,12 +26,24 @@ from PIL import Image
 
 log = logging.getLogger(__name__)
 
-from .brand import GOLD  # the brand's one gold (src/brand.py, 2026-10-29); #FFD700 until then
-# The fallback accent is the brand's TEAL (src/brand.py; 2026-11-01 design review: the old #78BEFF sky blue was
-# no brand token): a cool complement to gold, 8.6:1 on the ink ground.
-from .brand import TEAL
-DEFAULT_PALETTE: Dict[str, Any] = {"accent": TEAL, "accent_hex": "#{:02X}{:02X}{:02X}".format(*TEAL),
-                                   "source": "default (cool complement to gold)"}
+from . import brand  # the brand's one gold (src/brand.py, 2026-10-29; #FFD700 until then), read when used (QF-35a)
+
+
+def _default_palette() -> Dict[str, Any]:
+    """The fallback accent: the brand's ACCENT role, its TEAL (2026-11-01 design review: the old #78BEFF sky blue was
+    no brand token), a cool complement to gold, 8.6:1 on the ink ground."""
+    accent = brand.ACCENT
+    return {"accent": accent, "accent_hex": "#{:02X}{:02X}{:02X}".format(*accent),
+            "source": "default (cool complement to gold)"}
+
+
+def __getattr__(name: str):
+    """DEFAULT_PALETTE, the fallback palette this module bound at import before QF-35a: the active brand's, now."""
+    if name == "DEFAULT_PALETTE":
+        return _default_palette()
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
+
 READABLE_FRACTION = 0.022          # the smallest text, as a fraction of the frame height
 MIN_CONTRAST = 4.5                 # accent against the dark backdrop (WCAG AA for text)
 GOLD_HUE_CLEARANCE = 35.0          # degrees of hue the accent keeps from gold
@@ -45,7 +57,7 @@ def use_palette(palette: Optional[Dict[str, Any]]) -> None:
 
 
 def palette() -> Dict[str, Any]:
-    return _palette.get() or DEFAULT_PALETTE
+    return _palette.get() or _default_palette()
 
 
 def accent() -> Tuple[int, int, int]:
@@ -60,7 +72,8 @@ def _luminance(rgb: Tuple[int, int, int]) -> float:
     return 0.2126 * r + 0.7152 * g + 0.0722 * b
 
 
-def contrast(rgb: Tuple[int, int, int], against: Tuple[int, int, int] = (12, 12, 14)) -> float:
+def contrast(rgb: Tuple[int, int, int], against: tuple[int, int, int] | None = None) -> float:
+    against = brand.ACCENT_BACKDROP if against is None else against
     l1, l2 = _luminance(rgb), _luminance(against)
     hi, lo = max(l1, l2), min(l1, l2)
     return (hi + 0.05) / (lo + 0.05)
@@ -88,7 +101,7 @@ def palette_from(hero: Optional[Path]) -> Dict[str, Any]:
     """The topic's accent from its hero photograph; never raises (a missing or unreadable photo gives the
     default). The record says where the colour came from."""
     if not hero or not Path(hero).is_file():
-        return dict(DEFAULT_PALETTE)
+        return _default_palette()
     try:
         with Image.open(hero) as im:
             small = im.convert("RGB").resize((96, 96))
@@ -97,8 +110,8 @@ def palette_from(hero: Optional[Path]) -> Dict[str, Any]:
             pal = quantized.getpalette() or []
     except Exception as e:
         log.debug("Palette not sampled from %s (%s); default used.", hero, e)
-        return dict(DEFAULT_PALETTE)
-    gold_hue = colorsys.rgb_to_hsv(*(c / 255.0 for c in GOLD))[0] * 360.0
+        return _default_palette()
+    gold_hue = colorsys.rgb_to_hsv(*(c / 255.0 for c in brand.GOLD))[0] * 360.0
     clear, near = [], []                  # saturated hues clear of gold; saturated hues near gold (sand, bronze, fire)
     for count, index in counts:
         rgb = tuple(pal[index * 3:index * 3 + 3])
@@ -131,9 +144,9 @@ def palette_from(hero: Optional[Path]) -> Dict[str, Any]:
                     "source": f"complement of the dominant warm hue in {Path(hero).name} (too close to gold to use as is)"}
         log.info("Accent #%02X%02X%02X passed over: %s.", *lifted, why)
     if clear or near:
-        return dict(DEFAULT_PALETTE, source=f"default: no sampled hue in {Path(hero).name} stays clear of gold "
+        return dict(_default_palette(), source=f"default: no sampled hue in {Path(hero).name} stays clear of gold "
                                             "for colour-blind viewers")
-    return dict(DEFAULT_PALETTE, source=f"default: no saturated hue in {Path(hero).name}")
+    return dict(_default_palette(), source=f"default: no saturated hue in {Path(hero).name}")
 
 
 def type_scale(width: int, height: int) -> Dict[str, int]:

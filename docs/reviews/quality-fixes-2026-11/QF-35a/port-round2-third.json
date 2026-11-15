@@ -1,0 +1,147 @@
+{
+ "brand": "third",
+ "count": 24,
+ "errors": {},
+ "graphic_runs": {
+  "map": [
+   "run_amber_room_heist_1792790550",
+   "run_damascus_steel_nanotubes_1792732472_short",
+   "run_gol_gumbaz_whispering_gallery_1793278143",
+   "run_greek_fire_siphon_1792735284_short",
+   "run_hal_saflieni_hypogeum_1792949304",
+   "run_kailasa_temple_monolith_1792524470",
+   "run_nazca_lines_runway_paradox_1792961797",
+   "run_odessa_catacombs_1792970549",
+   "run_richat_structure_sahara_eye_1792737039_short",
+   "run_roman_self_healing_concrete_1793161347",
+   "run_singing_colossi_of_memnon_1792952878",
+   "run_trepanation_miracle_1792995462",
+   "run_tunguska_event_1908_1792930600",
+   "run_unfinished_obelisk_aswan_1792985912",
+   "run_voynich_manuscript_1792965308",
+   "run_wieliczka_salt_mine_1792974672"
+  ],
+  "numbers": [
+   "run_amber_room_heist_1792790550",
+   "run_damascus_steel_nanotubes_1792732472_short",
+   "run_gol_gumbaz_whispering_gallery_1793278143",
+   "run_hal_saflieni_hypogeum_1792949304",
+   "run_nazca_lines_runway_paradox_1792961797",
+   "run_odessa_catacombs_1792970549",
+   "run_richat_structure_sahara_eye_1792737039_short",
+   "run_singing_colossi_of_memnon_1792952878",
+   "run_trepanation_miracle_1792995462",
+   "run_tunguska_event_1908_1792930600",
+   "run_unfinished_obelisk_aswan_1792993374",
+   "run_voynich_manuscript_1792965308"
+  ],
+  "scale": [
+   "run_unfinished_obelisk_aswan_1792993374",
+   "run_wieliczka_salt_mine_1792974672"
+  ],
+  "timeline": [
+   "run_amber_room_heist_1792790550",
+   "run_hal_saflieni_hypogeum_1792949304",
+   "run_nazca_lines_runway_paradox_1792961797",
+   "run_richat_structure_sahara_eye_1793272675",
+   "run_roman_self_healing_concrete_1793161347",
+   "run_singing_colossi_of_memnon_1792952878"
+  ]
+ },
+ "seconds": {
+  "captions": 8.69,
+  "thennow roman_self_healing_concrete 169": 60.7,
+  "thennow roman_self_healing_concrete 916": 71.16,
+  "thennow singing_colossi_of_memnon 169": 57.09,
+  "thennow singing_colossi_of_memnon 916": 61.89
+ },
+ "src_sha256": "3d8a8648d31dca43",
+ "surfaces": {
+  "captions__amber_room_heist__ass": {
+   "sha256": "40fae77c8dae4d390f2bffe75b835accc64654c9d5fe585b3183fe20cf5c9c50"
+  },
+  "captions__amber_room_heist__badge__ass": {
+   "sha256": "21c8ba21f6dfd760c6f0d7bb1acfccb9eb247b0e204a81d9414dfdde580cb4a2"
+  },
+  "captions__amber_room_heist__badge__frame": {
+   "frames": 1,
+   "sha256": "97355a0113b30d24d8de70eac1f3c4425f98b2c59ba6fd9a150774ac2d028075"
+  },
+  "captions__amber_room_heist__frame": {
+   "frames": 1,
+   "sha256": "fee506d4bd0f92c1d1c903152585f7a3d825feb074f52b7f7364539a019dc9ae"
+  },
+  "captions__gol_gumbaz_whispering_gallery__ass": {
+   "sha256": "a0f38757aa8899f4512f64c5e66c5a1786323f5997cecd84b73da3d66770f01a"
+  },
+  "captions__gol_gumbaz_whispering_gallery__badge__ass": {
+   "sha256": "8d28b00052525f9dfa78be035249ff2e81c6adb6b3794e11de209a02fa6cf94b"
+  },
+  "captions__gol_gumbaz_whispering_gallery__badge__frame": {
+   "frames": 1,
+   "sha256": "afd082f9320501a5f2895ba2490008648c8d9d2a7231d7aaa89d17b2669dc611"
+  },
+  "captions__gol_gumbaz_whispering_gallery__frame": {
+   "frames": 1,
+   "sha256": "1a4514928b3b257685bfe031235797c5dab8c78d7eab3bd799335853b1914abd"
+  },
+  "captions__richat_structure_sahara_eye__ass": {
+   "sha256": "b7e29c0a5ad744c4225063b8980b4f4f51bfe6c9bf0f9d90106c9dc0efb3d870"
+  },
+  "captions__richat_structure_sahara_eye__badge__ass": {
+   "sha256": "162d424c3c4245b2cf4ca1899172f075aa1e2fb9e60d854a1146c4363edc1472"
+  },
+  "captions__richat_structure_sahara_eye__badge__frame": {
+   "frames": 1,
+   "sha256": "b8674898785531107e7ccc2b42b4cabc8bd84d08d55a5caba88cdc5cf0496a9c"
+  },
+  "captions__richat_structure_sahara_eye__frame": {
+   "frames": 1,
+   "sha256": "8bca53a69241cadf14ca629364f1a48d3e8aac1eb3143a2bffb9af805fbc88f7"
+  },
+  "captions__tunguska_event_1908__ass": {
+   "sha256": "b11478b92dc79c603635786f4306c79cc2688bea65a05f3c3de647726fc3f740"
+  },
+  "captions__tunguska_event_1908__badge__ass": {
+   "sha256": "0355484c82226fd1afda235adb5d7d162adeffd1845bd71fe019945799fd37a3"
+  },
+  "captions__tunguska_event_1908__badge__frame": {
+   "frames": 1,
+   "sha256": "9ae331be0d5d0f441b1030aafca360c4c7c5e447c6db67e87f2e321f33ce20d6"
+  },
+  "captions__tunguska_event_1908__frame": {
+   "frames": 1,
+   "sha256": "7b2f4dd7f6b5b9092acf9be27687110010574401b11aa07912d1c19e588e4fbf"
+  },
+  "captions__voynich_manuscript__ass": {
+   "sha256": "e387b449e061e0e70a17ea9f94c5f83cee8e9ab7864269a1515e385e2f0da4eb"
+  },
+  "captions__voynich_manuscript__badge__ass": {
+   "sha256": "4ee999feb96660ef8a5017c50f31d386e6f859a11b3cc251076e99de2714d0ca"
+  },
+  "captions__voynich_manuscript__badge__frame": {
+   "frames": 1,
+   "sha256": "2672b56f3c3174e0ce11fef8475acfdb25b6e4b9142faa20d56a9178c76f5d75"
+  },
+  "captions__voynich_manuscript__frame": {
+   "frames": 1,
+   "sha256": "b7188bc7e2848fd950061a285796e371492d222d7c12876052173276835d936c"
+  },
+  "thennow__roman_self_healing_concrete__169": {
+   "frames": 180,
+   "sha256": "0940ecb3c84a8a5e98f741aa71607e4e6574f6349b0615a5089b026ec9a21720"
+  },
+  "thennow__roman_self_healing_concrete__916": {
+   "frames": 180,
+   "sha256": "15c2ac0b1efc538b9765fb0edb7f170dabce3b9b787813a8f3a0fcb9e6e7311b"
+  },
+  "thennow__singing_colossi_of_memnon__169": {
+   "frames": 180,
+   "sha256": "6329093ce0fcc7838554c5fb2b1532311372645df372c1a44e0224d99d72fbe7"
+  },
+  "thennow__singing_colossi_of_memnon__916": {
+   "frames": 180,
+   "sha256": "980b73a3f4590d1e174cc0bd1f4e0e7cd755a664c469dcb9974c9da23632412b"
+  }
+ }
+}

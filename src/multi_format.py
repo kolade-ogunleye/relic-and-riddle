@@ -27,11 +27,17 @@ from . import brand
 
 log = logging.getLogger(__name__)
 
-# Brand tokens (src/brand.py, visual overhaul 2026-10-29): one gold across every surface, bone text, ink grounds.
-GOLD = brand.GOLD
-WHITE = brand.BONE
-LIGHT = brand.BONE
-INK = brand.INK
+# Brand tokens (src/brand.py, visual overhaul 2026-10-29): one gold across every surface, bone text, ink grounds,
+# read as brand.<ROLE> when drawn (QF-35a role tokens); the names this module bound at import before are served from
+# the active brand by __getattr__ (WHITE and LIGHT are BONE).
+_BRAND_NAMES = {"GOLD": "GOLD", "WHITE": "BONE", "LIGHT": "BONE", "INK": "INK"}
+
+
+def __getattr__(name: str):
+    """A colour name this module exported before QF-35a: the active brand's role (src/brand.py), read now."""
+    if name in _BRAND_NAMES:
+        return getattr(brand, _BRAND_NAMES[name])
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
 # The poll frame's room for the native poll sticker, which the operator places when posting (y range on the
@@ -186,7 +192,7 @@ def scrim(im: Image.Image, y0: float, y1: float, feather: int = 300, target: flo
     the rest, line by line."""
     import numpy as np
     W, H = im.size
-    colour = colour or INK
+    colour = colour or brand.INK
     a = np.asarray(im.convert("RGB"), dtype=np.float32) / 255.0
     band = a[max(0, int(y0)):max(int(y0) + 1, int(y1))] @ np.array([0.2126, 0.7152, 0.0722], np.float32)
     p = float(np.percentile(band, pct)) if band.size else 0.0
@@ -240,7 +246,7 @@ def gold_clash(im: Image.Image, box, gold=None) -> float:
     import colorsys
 
     import numpy as np
-    gold = gold or GOLD
+    gold = gold or brand.GOLD
     gh, gs, _ = colorsys.rgb_to_hsv(*(c / 255 for c in gold))
     hsv = np.asarray(_ring(im.convert("RGB"), box).convert("HSV"), dtype=np.float32) / 255.0
     if not hsv.size:
@@ -257,7 +263,7 @@ def story_ground(base: Image.Image, d, rows, x: float, top: float, block: float)
     is set in bone (its fill changed, nothing else)."""
     def boxes(gold: bool):
         return [d.textbbox((x + r[6], top + r[1]), r[2], font=r[3], anchor="ls") for r in rows
-                if r[2] and ((r[4] == GOLD) if gold else True)]
+                if r[2] and ((r[4] == brand.GOLD) if gold else True)]
     every, golds = boxes(False), boxes(True)
     for target in STORY_SCRIM_STEPS:
         shaded = scrim(base, top - 40, top + block + 30, feather=320, target=target)
@@ -267,7 +273,7 @@ def story_ground(base: Image.Image, d, rows, x: float, top: float, block: float)
             break
     record = {"scrim_target": target, "energy": energy, "gold_clash": clash, "gold_to_bone": False}
     if clash >= GOLD_CLASH_SHARE:
-        rows = [(r[0], r[1], r[2], r[3], WHITE if r[4] == GOLD else r[4], r[5], r[6]) for r in rows]
+        rows = [(r[0], r[1], r[2], r[3], brand.BONE if r[4] == brand.GOLD else r[4], r[5], r[6]) for r in rows]
         record["gold_to_bone"] = True
         log.info("Story gold line set in bone: its ground is gold (%.0f%% of its ring).", clash * 100)
     return shaded, rows, record
@@ -307,7 +313,7 @@ def masthead_scrim(im: Image.Image, box, text_rgb, target: float | None = None, 
 
     def shaded(strength: float) -> Image.Image:
         mask = Image.fromarray((ramp * 255 * strength).astype(np.uint8).reshape(H, 1)).resize((W, H))
-        layer = Image.new("RGBA", im.size, tuple(INK) + (255,))
+        layer = Image.new("RGBA", im.size, tuple(brand.INK) + (255,))
         layer.putalpha(mask)
         return Image.alpha_composite(im.convert("RGBA"), layer).convert(im.mode)
     cap = min(1.0, 0.85 / max(at_box, 1e-3))
@@ -339,7 +345,7 @@ def draw_kicker(im: Image.Image, x: float, baseline: float, text: str, font, col
     """A kicker: a short gold rule at mid-cap height, then the words in tracked gold capitals (the covers'
     eyebrow). A label, never a pill or a button. A cap-height vertical bar read as a letter I before the words
     ("I DID YOU KNOW?", 2026-10-29), so the rule lies flat."""
-    colour = colour or GOLD
+    colour = colour or brand.GOLD
     ch = cap_height(font)
     bar_w, gap = max(8, round(ch * KICKER_RULE)), round(ch * KICKER_GAP)
     thick = max(3, round(ch * 0.16))
@@ -377,7 +383,7 @@ def story_body_lines(body: str, asks_poll: bool = False) -> int:
     if not body.strip():
         return 0
     d = ImageDraw.Draw(Image.new("RGB", (8, 8)))
-    return len(wrap_text(d, " ".join(body.split()), get_font("Montserrat", STORY_BODY_PX), story_body_width()))
+    return len(wrap_text(d, " ".join(body.split()), get_font(brand.TEXT_FONT, STORY_BODY_PX), story_body_width()))
 
 
 _AUXILIARY = re.compile(r"^(?:would|will|do|does|did|is|are|was|were|can|could|should|shall|have|has|had|may|might|"
@@ -486,7 +492,7 @@ def _rel_luminance(rgb) -> float:
     return 0.2126 * ch(r) + 0.7152 * ch(g) + 0.0722 * ch(b)
 
 
-def ensure_legible(im: Image.Image, box: Tuple[int, int, int, int], text_rgb=(235, 235, 235),
+def ensure_legible(im: Image.Image, box: Tuple[int, int, int, int], text_rgb=None,
                    target: float = 4.5, feather: int = 60) -> Image.Image:
     """Darkens the area behind a block of light text until the text reaches WCAG contrast `target`
     against the bright end of the background there (its 90th-percentile luminance), with feathered
@@ -501,6 +507,7 @@ def ensure_legible(im: Image.Image, box: Tuple[int, int, int, int], text_rgb=(23
         lin = np.where(v <= 0.03928, v / 12.92, ((v + 0.055) / 1.055) ** 2.4)
         return float(np.percentile(lin @ weights, 90))
 
+    text_rgb = brand.LEGIBLE_TEXT if text_rgb is None else text_rgb   # the light text assumed (#EBEBEB)
     needed = (_rel_luminance(text_rgb) + 0.05) / target - 0.05  # the brightest background that still gives `target`
     if bright_end(0.0) <= needed:
         return im
@@ -695,15 +702,15 @@ class MultiFormatGenerator:
         # size in balanced lines. The reveal frame with a measured figure is set as the covers' monument instead:
         # the figure huge in gold, its unit (and what the line says of it) under it, the other line as the title.
         k_px = 34 if tight else 40
-        font_k = get_font("Montserrat", k_px, weight=800)
+        font_k = get_font(brand.TEXT_FONT, k_px, weight=800)
         while kicker and kicker_width(kicker, font_k) > max_w and font_k.size > 24:
-            font_k = get_font("Montserrat", font_k.size - 2, weight=800)
+            font_k = get_font(brand.TEXT_FONT, font_k.size - 2, weight=800)
         kicker, k_short = _fit_kicker(kicker, font_k, max_w)
         cap_k = cap_height(font_k)
         hero = story_figure(l1, l2) if i == 1 and not asks_poll else None
         b_step = round(STORY_BODY_PX * 1.36)
         b_gap = round(STORY_BODY_PX * 1.62)                       # title's baseline to the body's first baseline
-        font_p = get_font("Montserrat", 32 if tight else 36, weight=800)
+        font_p = get_font(brand.TEXT_FONT, 32 if tight else 36, weight=800)
         sticker = STORY_STICKER_H if asks_poll else 0
         room = text_floor - (sy0 + 30)                           # the height the whole block may take
 
@@ -714,13 +721,13 @@ class MultiFormatGenerator:
             if hero:
                 # The qualifier and the unit are one matched pair (round 3, 2026-11-02): one face, one size, in bone, so
                 # the numeral is the frame's single gold read and three type tiers no longer stack around one number.
-                f_fig = fit_font(d, hero["number"], "Anton", round(size * STORY_FIGURE_RATIO), STORY_TITLE_W, 160)
-                f_unit = get_font("Anton", max(56, round(f_fig.size * STORY_FIGURE_PAIR)))
+                f_fig = fit_font(d, hero["number"], brand.DISPLAY_FONT, round(size * STORY_FIGURE_RATIO), STORY_TITLE_W, 160)
+                f_unit = get_font(brand.DISPLAY_FONT, max(56, round(f_fig.size * STORY_FIGURE_PAIR)))
                 q_font = f_unit
-                f_title = get_font("Anton", round(size * 0.66))
+                f_title = get_font(brand.DISPLAY_FONT, round(size * 0.66))
                 for ln in balanced_wrap(d, hero["title"], f_title, STORY_TITLE_W) if hero["title"] else []:
                     y += cap_height(f_title) if not out else round(cap_height(f_title) * 1.13)
-                    out.append(("title_1", y, ln, f_title, WHITE, 0))
+                    out.append(("title_1", y, ln, f_title, brand.BONE, 0))
                 # Round 4 (2026-11-02): the qualifier sits inline before the numeral, on its baseline, at the unit's
                 # size ("ABOUT 280"): on a line of its own it read as a one-word headline line. Stacked above the
                 # numeral only when the inline pair is wider than the title's measure.
@@ -729,18 +736,18 @@ class MultiFormatGenerator:
                 inline = bool(hero["qualifier"]) and q_w + d.textlength(hero["number"], font=f_fig) <= STORY_TITLE_W
                 if hero["qualifier"] and not inline:
                     y += (34 if out else 0) + cap_height(q_font)
-                    out.append(("figure_qualifier", y, hero["qualifier"], q_font, WHITE, 0))
+                    out.append(("figure_qualifier", y, hero["qualifier"], q_font, brand.BONE, 0))
                 y += (STORY_FIGURE_GAP if out else 0) + cap_height(f_fig)
                 if inline:
-                    out.append(("figure_qualifier", y, hero["qualifier"], q_font, WHITE, 0))
-                out.append(("figure", y, hero["number"], f_fig, GOLD, round(q_w) if inline else 0))
+                    out.append(("figure_qualifier", y, hero["qualifier"], q_font, brand.BONE, 0))
+                out.append(("figure", y, hero["number"], f_fig, brand.GOLD, round(q_w) if inline else 0))
                 if hero["unit"]:
                     y += STORY_FIGURE_GAP + cap_height(f_unit)
                     # Under the numeral it measures (inline: indented past the qualifier, so "FT DEEP" reads with "280").
-                    out.append(("figure_unit", y, hero["unit"], f_unit, WHITE, round(q_w) if inline else 0))
+                    out.append(("figure_unit", y, hero["unit"], f_unit, brand.BONE, round(q_w) if inline else 0))
                 return out, y
-            f = get_font("Anton", size)
-            for name, text, fill in (("title_1", l1, WHITE), ("title_2", l2, GOLD)):
+            f = get_font(brand.DISPLAY_FONT, size)
+            for name, text, fill in (("title_1", l1, brand.BONE), ("title_2", l2, brand.GOLD)):
                 for ln in (balanced_wrap(d, text, f, STORY_TITLE_W) if wrap else [text]) if text else []:
                     y += cap_height(f) if not out else round(cap_height(f) * 1.13)
                     out.append((name, y, ln, f, fill, 0))
@@ -758,7 +765,7 @@ class MultiFormatGenerator:
         # it: the title gives way first; a body past any title's room keeps the script's three-line budget.
         trials = ([(sz, False) for sz in range(t_size, round(t_size * STORY_ONE_LINE) - 1, -2)]
                   + [(sz, True) for sz in range(t_size, t_min - 1, -2)])
-        f_body = get_font("Montserrat", STORY_BODY_PX, weight=STORY_BODY_WEIGHT)
+        f_body = get_font(brand.TEXT_FONT, STORY_BODY_PX, weight=STORY_BODY_WEIGHT)
         n_body = len(wrap_text(d, " ".join(body.split()), f_body, max_w)) if body.strip() else 0
 
         def choose(sticker_h: int, lines: int):
@@ -786,23 +793,23 @@ class MultiFormatGenerator:
         t_rows, t_height = title_plan(size, wrap)
         s1 = s2 = False
         if not fits((t_rows, t_height)):   # even the floor does not fit: one line each, whole or refused (QF-23)
-            l1, font_t, s1 = fit_line(d, l1, "Anton", t_min, STORY_TITLE_W, t_min)
-            l2, _, s2 = fit_line(d, l2, "Anton", t_min, STORY_TITLE_W, t_min)
+            l1, font_t, s1 = fit_line(d, l1, brand.DISPLAY_FONT, t_min, STORY_TITLE_W, t_min)
+            l2, _, s2 = fit_line(d, l2, brand.DISPLAY_FONT, t_min, STORY_TITLE_W, t_min)
             hero = None
             ct = cap_height(font_t)
-            t_rows = [r for r in (("title_1", ct, l1, font_t, WHITE, 0),
-                                  ("title_2", ct + round(ct * 1.13), l2, font_t, GOLD, 0)) if r[2]]
+            t_rows = [r for r in (("title_1", ct, l1, font_t, brand.BONE, 0),
+                                  ("title_2", ct + round(ct * 1.13), l2, font_t, brand.GOLD, 0)) if r[2]]
             t_height = t_rows[-1][1] if t_rows else 0
         n_room = max(1, (room - fixed - t_height - b_gap - 16) // b_step + 1)   # 16: the last line's descenders
-        body_lines, font_b, b_short = [], get_font("Montserrat", STORY_BODY_PX, weight=STORY_BODY_WEIGHT), False
+        body_lines, font_b, b_short = [], get_font(brand.TEXT_FONT, STORY_BODY_PX, weight=STORY_BODY_WEIGHT), False
         # Never smaller than its design size (operator, 2026-10-25). The script stage keeps each body within three
         # lines at this size (story_body_lines); a longer one takes more lines while the box has room, and the frame
         # is refused when it has none (QF-23: TextFitError, never cut at a sentence or a word).
         if body.strip():
-            body_lines, font_b, b_short = probe_text(d, body, "Montserrat", STORY_BODY_PX, max_w, STORY_BODY_LINES,
+            body_lines, font_b, b_short = probe_text(d, body, brand.TEXT_FONT, STORY_BODY_PX, max_w, STORY_BODY_LINES,
                                                    STORY_BODY_PX, quiet=True, weight=STORY_BODY_WEIGHT)
             if b_short:
-                body_lines, font_b, b_short = fit_text(d, body, "Montserrat", STORY_BODY_PX, max_w,
+                body_lines, font_b, b_short = fit_text(d, body, brand.TEXT_FONT, STORY_BODY_PX, max_w,
                                                        max(STORY_BODY_LINES, n_room), STORY_BODY_PX,
                                                        weight=STORY_BODY_WEIGHT)
         lay.shortened = [n for n, short in (("kicker", k_short), ("title_1", s1), ("title_2", s2), ("body", b_short)) if short]
@@ -820,12 +827,12 @@ class MultiFormatGenerator:
         title_base = y
         for j, line in enumerate(body_lines):
             y = title_base + b_gap + j * b_step
-            rows.append(("body", y, line, font_b, LIGHT, 0, 0))
+            rows.append(("body", y, line, font_b, brand.BONE, 0, 0))
         if i == 0:  # No arrow on the pointer (operator, 2026-10-28): the words say where to go.
             y += 96
             # In bone (2026-11-01): gold is the frame's one first read (the title's second line); the kicker's
             # gold rule and capitals are the brand's kicker, and a third gold line competed with both.
-            rows.append(("reel_pointer", y, "FULL STORY IN OUR NEW REEL", font_p, WHITE, font_p.size * 0.11, 0))
+            rows.append(("reel_pointer", y, "FULL STORY IN OUR NEW REEL", font_p, brand.BONE, font_p.size * 0.11, 0))
         bottom = max([d.textbbox((x, yy), txt, font=f, anchor="ls")[3] for _, yy, txt, f, _, _, _ in rows]
                      + ([sticker_at + sticker] if sticker else []))
         block = bottom
@@ -845,7 +852,7 @@ class MultiFormatGenerator:
             lay.protected = [{"name": "poll_sticker_room", "box": [int(v) for v in room_box]}]
             lay.meta_room = [int(v) for v in room_box]
         if kicker:
-            im, k_box = draw_kicker(im, x, top + cap_k, kicker, font_k, GOLD, lay, plates=lay.plates)
+            im, k_box = draw_kicker(im, x, top + cap_k, kicker, font_k, brand.GOLD, lay, plates=lay.plates)
         by_name: dict[str, list] = {}
         for name, yy, txt, f, fill, track, dx in rows:
             plate = plan_text(im, (x + dx, top + yy), txt, f, fill, "ls", track=track)
@@ -1054,15 +1061,19 @@ class MultiFormatGenerator:
         x0: int,
         y0: int,
         font: Any,
-        text_color: Any = GOLD,
-        border_color: Any = GOLD,
-        fill_color: Any = (12, 16, 22, 230),
+        text_color: Any = None,
+        border_color: Any = None,
+        fill_color: Any = None,
         pad_x: int = 18,
         pad_y: int = 8,
         radius: int = 4,
         border_width: int = 1,
     ) -> Tuple[int, int, int, int]:
-        """Draws an editorial badge/pill with mathematically centered horizontal and vertical text alignment."""
+        """Draws an editorial badge/pill with mathematically centered horizontal and vertical text alignment (by
+        default gold text and border on the brand's PLATE at alpha 230)."""
+        text_color = brand.GOLD if text_color is None else text_color
+        border_color = brand.GOLD if border_color is None else border_color
+        fill_color = (*brand.PLATE, 230) if fill_color is None else fill_color
         bbox = d.textbbox((0, 0), text, font=font, anchor="mm")
         tw = bbox[2] - bbox[0]
         th = bbox[3] - bbox[1]
@@ -1118,7 +1129,7 @@ class MultiFormatGenerator:
     def _header_bottom(self, d: ImageDraw.ImageDraw, cw: int, tight: bool) -> int:
         """The bottom of the header band: the brand, top-left."""
         px = self._px(cw)
-        b = d.textbbox((px(80), px(self.HEADER_Y)), "RELIC & RIDDLE", font=get_font("Montserrat", px.exact(28)), anchor="lt",
+        b = d.textbbox((px(80), px(self.HEADER_Y)), brand.MASTHEAD, font=get_font(brand.TEXT_FONT, px.exact(28)), anchor="lt",
                        stroke_width=px.exact(2))
         return b[3] + (px(10) if tight else 0)
 
@@ -1142,28 +1153,30 @@ class MultiFormatGenerator:
         b_size = b_spec
         if tight:
             h_size, b_size = int(h_size * 0.88), int(b_size * 0.9)
-        h_lines, font_h, h_short = probe_text(d, heading, "Anton", h_size, width, 1, h_min, stroke=h_stroke, sentences=False,
+        h_lines, font_h, h_short = probe_text(d, heading, brand.DISPLAY_FONT, h_size, width, 1, h_min, stroke=h_stroke, sentences=False,
                                             quiet=True)
         if h_short:
-            h_lines, font_h, h_short = fit_text(d, heading, "Anton", h_size, width, 2, h_min, stroke=h_stroke, sentences=False)
+            h_lines, font_h, h_short = fit_text(d, heading, brand.DISPLAY_FONT, h_size, width, 2, h_min, stroke=h_stroke, sentences=False)
         h_height = len(h_lines) * int(font_h.size * h_pitch)
         b_min = max(28, int(b_size * 0.8))
         b_step = int(round(b_size * 1.38))
         left = room - h_height
         max_lines = max(1, min(body_max, (left - int(b_size * 1.25)) // b_step + 1)) if left > b_size else 1
-        b_lines, font_b, b_short = fit_text(d, body, "Montserrat", b_size, width, max_lines, b_min, stroke=b_stroke) \
-            if body.strip() else ([], get_font("Montserrat", b_size), False)
+        b_lines, font_b, b_short = fit_text(d, body, brand.TEXT_FONT, b_size, width, max_lines, b_min, stroke=b_stroke) \
+            if body.strip() else ([], get_font(brand.TEXT_FONT, b_size), False)
         fpx = getattr(px, "exact", px)
-        font_h, font_b = get_font("Anton", fpx(font_h.size)), get_font("Montserrat", fpx(font_b.size))
+        font_h, font_b = get_font(brand.DISPLAY_FONT, fpx(font_h.size)), get_font(brand.TEXT_FONT, fpx(font_b.size))
         h_step, b_step = int(font_h.size * h_pitch), int(round(font_b.size * 1.38))
         shortened = (["heading"] if h_short else []) + (["body"] if b_short else [])
         return {"h_lines": h_lines, "font_h": font_h, "h_step": h_step, "b_lines": b_lines, "font_b": font_b,
                 "b_step": b_step, "height": len(h_lines) * h_step + len(b_lines) * b_step, "shortened": shortened}
 
-    def _draw_panel(self, d, lay, plan, x: int, y: int, h_fill=WHITE, b_fill=LIGHT, h_stroke=0, b_stroke=0,
+    def _draw_panel(self, d, lay, plan, x: int, y: int, h_fill=None, b_fill=None, h_stroke=0, b_stroke=0,
                     h_stroke_fill=None, b_stroke_fill=None, gap: int = 0, px=round) -> int:
         """Draws a planned heading and body from `y`; records each as one block; returns the y below them.
-        Strokes and `gap` are design px, drawn through `px` (_px)."""
+        Strokes and `gap` are design px, drawn through `px` (_px). The fills default to the brand's BONE."""
+        h_fill = brand.BONE if h_fill is None else h_fill
+        b_fill = brand.BONE if b_fill is None else b_fill
         exact = getattr(px, "exact", px)
         h_stroke, b_stroke, gap = exact(h_stroke), exact(b_stroke), px(gap)
         hk = {"stroke_width": h_stroke, "stroke_fill": h_stroke_fill} if h_stroke else {}
@@ -1301,14 +1314,14 @@ class MultiFormatGenerator:
         lines = self.BODY_LINES_TWO_LINE_FRAME if two else self.BODY_LINES_ONE_LINE_FRAME
         first_body = last - (lines - 1) * step
         spec = self.CONTENT_HEADING_FB if facebook else self.CONTENT_HEADING
-        h = get_font("Anton", fx(spec[0]))
+        h = get_font(brand.DISPLAY_FONT, fx(spec[0]))
         h_last = first_body - round(b_size * 2.0)
         hb = h_last
         if two:
             # The second heading line: at Facebook's floor (2026-11-02), at Instagram's design size (round 3: at its
             # floor the two-line "IMPACT THEORY / DISPROVED" missed the frame by a few px and dropped to bottom-aligned).
             second = spec[1] if facebook else spec[0]
-            hb = h_last - round(cap_height(get_font("Anton", fx(second))) * 1.13)
+            hb = h_last - round(cap_height(get_font(brand.DISPLAY_FONT, fx(second))) * 1.13)
         return {"kicker": hb - cap_height(h) - px(26), "heading": hb, "heading_last": h_last,
                 "heading_lines": 2 if two else 1}
 
@@ -1360,7 +1373,7 @@ class MultiFormatGenerator:
         first = fallback = None
         w = width
         while w >= px(420):
-            got = self._fit_text(d, body, "Montserrat", int(size), w, max_lines, int(min(floor, size)), px=px,
+            got = self._fit_text(d, body, brand.TEXT_FONT, int(size), w, max_lines, int(min(floor, size)), px=px,
                                  quiet=True, trial=True)
             lines, _, short = got
             first = first or got
@@ -1372,7 +1385,7 @@ class MultiFormatGenerator:
             w -= px(16)
         chosen = fallback or first
         if chosen[2]:   # shortened even so: fitted once more at the full measure, logged
-            return self._fit_text(d, body, "Montserrat", int(size), width, max_lines, int(min(floor, size)), px=px)
+            return self._fit_text(d, body, brand.TEXT_FONT, int(size), width, max_lines, int(min(floor, size)), px=px)
         return chosen
 
     def _rows(self, d, px, heading: str, body: str, width: int, kicker: str = "", stat: str = "", h_spec=(112, 60),
@@ -1388,10 +1401,10 @@ class MultiFormatGenerator:
         body_spec = body_spec or self.BODY_SPEC
         rows, y, short = [], 0, []
         if kicker:
-            fk = get_font("Montserrat", fx(34 * scale), weight=800)
+            fk = get_font(brand.TEXT_FONT, fx(34 * scale), weight=800)
             text, ks = _fit_kicker(kicker, fk, width)
             y += cap_height(fk)
-            rows.append({"name": "kicker", "text": text, "font": fk, "fill": GOLD, "y": y, "kicker": True})
+            rows.append({"name": "kicker", "text": text, "font": fk, "fill": brand.GOLD, "y": y, "kicker": True})
             y += px(26 * scale)
             short += ["kicker"] if ks else []
         if stat:
@@ -1399,7 +1412,7 @@ class MultiFormatGenerator:
             num, unit = m.group(1), m.group(2).strip()
             size, stacked = 225 * scale, []
             while True:
-                fs, fu = get_font("Anton", fx(size)), get_font("Anton", fx(max(40, size * 0.42)))
+                fs, fu = get_font(brand.DISPLAY_FONT, fx(size)), get_font(brand.DISPLAY_FONT, fx(max(40, size * 0.42)))
                 w = d.textlength(num, font=fs) + (px(18) + d.textlength(unit, font=fu) if unit else 0)
                 if w <= width or size <= 96:
                     break
@@ -1408,8 +1421,8 @@ class MultiFormatGenerator:
                     # figure's baseline, rather than shrinking the figure or adding a row under it (round 3).
                     size = 225 * scale
                     while size > 96:
-                        fs = get_font("Anton", fx(size))
-                        fu = get_font("Anton", fx(max(40, size * 0.3)))
+                        fs = get_font(brand.DISPLAY_FONT, fx(size))
+                        fu = get_font(brand.DISPLAY_FONT, fx(max(40, size * 0.3)))
                         halves = [h for h in split_balanced(unit) if h]
                         lw = max(d.textlength(h, font=fu) for h in halves)
                         if d.textlength(num, font=fs) + px(22) + lw <= width:
@@ -1419,27 +1432,27 @@ class MultiFormatGenerator:
                     break
                 size -= 6
             y += cap_height(fs)
-            rows.append({"name": "stat", "text": num, "font": fs, "fill": GOLD, "y": y})
+            rows.append({"name": "stat", "text": num, "font": fs, "fill": brand.GOLD, "y": y})
             if unit and stacked:
                 ux = int(d.textlength(num, font=fs)) + px(22)
                 step = round(cap_height(fu) * 1.25)
                 for j, half in enumerate(stacked):
-                    rows.append({"name": "stat", "text": half, "font": fu, "fill": WHITE,
+                    rows.append({"name": "stat", "text": half, "font": fu, "fill": brand.BONE,
                                  "y": y - (len(stacked) - 1 - j) * step, "x": ux})
             elif unit:
-                rows.append({"name": "stat", "text": unit, "font": fu, "fill": WHITE, "y": y,
+                rows.append({"name": "stat", "text": unit, "font": fu, "fill": brand.BONE, "y": y,
                              "x": int(d.textlength(num, font=fs)) + px(18)})
             y += px(30 * scale)
         h_lines, font_h, h_short, use_two = None, None, False, False
         if facebook_heading:
             spec = self.CONTENT_HEADING_FB if getattr(_render_state, "facebook", False) else self.CONTENT_HEADING
             hi, lo = (int(v * scale) for v in spec)
-            one = self._fit_text(d, heading, "Anton", hi, width, 1, lo, px=px, sentences=False, quiet=True, trial=True)
+            one = self._fit_text(d, heading, brand.DISPLAY_FONT, hi, width, 1, lo, px=px, sentences=False, quiet=True, trial=True)
             if not one[2]:
                 h_lines, font_h = one[0], one[1]
             elif len(heading.split()) > 1:
                 halves = [h for h in split_balanced(heading) if h]
-                fits = [self._fit_text(d, h, "Anton", hi, width, 1, lo, px=px, sentences=False, quiet=True, trial=True)
+                fits = [self._fit_text(d, h, brand.DISPLAY_FONT, hi, width, 1, lo, px=px, sentences=False, quiet=True, trial=True)
                         for h in halves]
                 if not any(f[2] for f in fits):
                     font_h = min((f[1] for f in fits), key=lambda f: f.size)
@@ -1449,29 +1462,29 @@ class MultiFormatGenerator:
             if use_two and two_tone == "wrap":
                 # Content slides (2026-11-02): two-tone only when the heading needs two lines anyway; a heading that
                 # fits one line stays one bone line ("25+ MILES WIDE" is one figure, not two thoughts).
-                use_two = self._fit_text(d, heading, "Anton", int(h_spec[0] * scale), width, 1, int(h_spec[1] * scale),
+                use_two = self._fit_text(d, heading, brand.DISPLAY_FONT, int(h_spec[0] * scale), width, 1, int(h_spec[1] * scale),
                                          px=px, sentences=False, quiet=True, trial=True)[2]
             if use_two:
                 # Two-tone: two balanced lines, each as large as the narrower of the two allows (one size for both).
                 halves = [h for h in split_balanced(heading) if h]
-                fits = [self._fit_text(d, h, "Anton", int(h_spec[0] * scale), width, 1, int(h_spec[1] * scale), px=px,
+                fits = [self._fit_text(d, h, brand.DISPLAY_FONT, int(h_spec[0] * scale), width, 1, int(h_spec[1] * scale), px=px,
                                        sentences=False, quiet=True) for h in halves]
                 font_h = min((f[1] for f in fits), key=lambda f: f.size)
                 h_short = any(f[2] for f in fits)
                 h_lines = [f[0][0] if f[0] else "" for f in fits]
             else:
-                h_lines, font_h, h_short = self._fit_text(d, heading, "Anton", int(h_spec[0] * scale), width, 1,
+                h_lines, font_h, h_short = self._fit_text(d, heading, brand.DISPLAY_FONT, int(h_spec[0] * scale), width, 1,
                                                           int(h_spec[1] * scale), px=px, sentences=False, quiet=True,
                                                           trial=True)
                 if h_short:
-                    h_lines, font_h, h_short = self._fit_text(d, heading, "Anton", int(h_spec[0] * scale), width, 2,
+                    h_lines, font_h, h_short = self._fit_text(d, heading, brand.DISPLAY_FONT, int(h_spec[0] * scale), width, 2,
                                                               int(h_spec[1] * scale * 0.9), px=px, sentences=False)
         h_lines = [drop_break_comma(t) if j < len(h_lines) - 1 else t for j, t in enumerate(h_lines)]
         ch = cap_height(font_h)
         for j, line in enumerate(h_lines):
             y += ch if j == 0 else round(ch * 1.13)
             rows.append({"name": "heading", "text": line, "font": font_h,
-                         "fill": GOLD if (use_two and j == len(h_lines) - 1) else WHITE, "y": y})
+                         "fill": brand.GOLD if (use_two and j == len(h_lines) - 1) else brand.BONE, "y": y})
         short += ["heading"] if h_short else []
         if body.strip():
             b_size = body_spec[0] * scale
@@ -1479,7 +1492,7 @@ class MultiFormatGenerator:
             step = round(font_b.size * self.BODY_LEADING)
             y += round(font_b.size * 2.0)
             for j, line in enumerate(b_lines_):
-                rows.append({"name": "body", "text": line, "font": font_b, "fill": LIGHT, "y": y + j * step})
+                rows.append({"name": "body", "text": line, "font": font_b, "fill": brand.BONE, "y": y + j * step})
             short += ["body"] if b_short else []
         return rows, short
 
@@ -1685,11 +1698,11 @@ class MultiFormatGenerator:
         def with_share(rows, scale):
             if not share:
                 return rows
-            lines, f_share, sh_short = self._fit_text(d, share, "Montserrat", int(36 * scale), width, 2, 28, px=px,
+            lines, f_share, sh_short = self._fit_text(d, share, brand.TEXT_FONT, int(36 * scale), width, 2, 28, px=px,
                                                       weight=SHARE_WEIGHT)
             # Round 4 (2026-11-02): the ask one weight above the question (SHARE_WEIGHT), a second voice, and
             # a full body line of air above its gold rule (at one weight and 46 px the two read as one block).
-            f_share = get_font("Montserrat", f_share.size, weight=SHARE_WEIGHT)
+            f_share = get_font(brand.TEXT_FONT, f_share.size, weight=SHARE_WEIGHT)
             # Its break as the body's (round 4 review): never a line ending on "a" or "and" where another fits.
             lines = even_rag(d, lines, f_share, width, max([self.BODY_MEASURE] + [len(ln) for ln in lines]))
             if sh_short and lay is not None and "share" not in lay.shortened:
@@ -1699,7 +1712,7 @@ class MultiFormatGenerator:
             rule["y"] = last + body_step + px(16 * scale)           # the rule's top, relative to the stack
             y = rule["y"] + px(6) + px(26 * scale) + cap_height(f_share)
             step = round(f_share.size * 1.38)
-            return rows + [{"name": "share", "text": ln, "font": f_share, "fill": WHITE, "y": y + j * step}
+            return rows + [{"name": "share", "text": ln, "font": f_share, "fill": brand.BONE, "y": y + j * step}
                            for j, ln in enumerate(lines)]
 
         # Round 3 (2026-11-02): over a warm or gold photo the gold line has no hue contrast ("HIDDEN MARVELS" in gold
@@ -1711,7 +1724,7 @@ class MultiFormatGenerator:
         if share_box and "y" in rule:
             # The gold rule: 6 design px tall, 96 wide, its own height above the share line's first cap.
             top = share_box[1] - px(26) - px(6)
-            ImageDraw.Draw(im).rectangle([px(self.MARGIN), top, px(self.MARGIN) + px(96), top + px(6) - 1], fill=GOLD)
+            ImageDraw.Draw(im).rectangle([px(self.MARGIN), top, px(self.MARGIN) + px(96), top + px(6) - 1], fill=brand.GOLD)
         return im
 
     def _render_diagram(self, poster: Path, card: dict[str, Any], index: int, cw: int, chh: int,
@@ -1886,7 +1899,7 @@ class MultiFormatGenerator:
                      protected=[("instagram_counter", self._ig_counter(cw))])
         lay.plates = {}
         px = self._px(cw)
-        f_small = get_font("Montserrat", px.exact(28))
+        f_small = get_font(brand.TEXT_FONT, px.exact(28))
         if archetype == "cover":
             im = self._render_cover(photo, card, cw, chh, lay=lay, tight=tight)
         elif archetype == "immersive":
@@ -1909,7 +1922,7 @@ class MultiFormatGenerator:
         # before), drawn at a measured contrast like every other line (a halo where the photo is bright), never on
         # a pill.
         from .cover_design import MARK_GAP, MARK_R
-        brand_font = get_font("Cinzel", px.exact(40), weight=700)
+        brand_font = get_font(brand.MASTHEAD_FONT, px.exact(40), weight=700)
         r, gap = px(MARK_R), px(MARK_GAP)
         # On the Facebook cover (the collage's 2:3 hero tile) the masthead keeps the cover's inset too (round 4: its
         # diamond fell outside the tile's crop at x 107).
@@ -1918,16 +1931,16 @@ class MultiFormatGenerator:
         # Round 3 (2026-11-02): where the photo is too bright behind the masthead, a soft ink gradient from the top
         # edge, deep only as far as the masthead's planned ratio needs, takes the place of a 36 px halo per line
         # (a dark smudge over Richat's blue sky). The line's own halo then does only what is left.
-        im = masthead_scrim(im.convert("RGB"), (x0, base - cap_height(brand_font), x0 + px(520), base), WHITE,
+        im = masthead_scrim(im.convert("RGB"), (x0, base - cap_height(brand_font), x0 + px(520), base), brand.BONE,
                             feather=px(300))
-        plate = plan_text(im, (x0 + 2 * r + gap, base), "RELIC & RIDDLE", brand_font, WHITE,
+        plate = plan_text(im, (x0 + 2 * r + gap, base), brand.MASTHEAD, brand_font, brand.BONE,
                           "ls", track=px(3), min_halo=0.6 if tight else 0.0, target=MASTHEAD_TARGET)
         im = plate.draw(im.convert("RGB"))
         cx, cy = x0 + r, base - cap_height(brand_font) / 2
         diamond = [(cx, cy - r), (cx + r, cy), (cx, cy + r), (cx - r, cy)]
         d = ImageDraw.Draw(im)
-        d.polygon(diamond, outline=INK, width=max(2, px(3)))
-        d.polygon(diamond, fill=GOLD)
+        d.polygon(diamond, outline=brand.INK, width=max(2, px(3)))
+        d.polygon(diamond, fill=brand.GOLD)
         # One header element, as before: its box takes in the mark.
         bx = plate.box
         lay.add("header_brand", (min(bx[0], cx - r), min(bx[1], cy - r), max(bx[2], cx + r), max(bx[3], cy + r)))
@@ -2650,7 +2663,7 @@ def _font_family(font) -> str:
     if getattr(font, "_rr_family", None):      # a brand face, or a fallback face standing in for one (QF-94)
         return font._rr_family
     base = Path(getattr(font, "path", "") or "").name
-    return next((n for n, f in FONT_FILES.items() if f == base), "Montserrat")
+    return next((n for n, f in FONT_FILES.items() if f == base), brand.TEXT_FONT)
 
 
 def redraw_story_frame(path: Path, recipe: Dict[str, Any]) -> Dict[str, Any]:
@@ -2740,7 +2753,7 @@ def swipe_strip(im: Image.Image, lay, strip: dict[str, Any]) -> Image.Image:
             return im
     im = im.convert("RGB")
     if box[2] > box[0]:
-        ImageDraw.Draw(im).rectangle([box[0], box[1], box[2] - 1, box[3] - 1], fill=GOLD)
+        ImageDraw.Draw(im).rectangle([box[0], box[1], box[2] - 1, box[3] - 1], fill=brand.GOLD)
     lay.meta["swipe_strip"] = {"side": strip.get("side"), "box": box}
     return im
 

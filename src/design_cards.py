@@ -37,16 +37,7 @@ import numpy as np
 from PIL import Image, ImageDraw, ImageOps
 
 from . import brand
-from .brand import (
-    BONE,
-    DATA_FONT,
-    GOLD,
-    INK,
-    PLACE_TARGET,
-    RGB,
-    STONE_LT,
-    TEXT_CONTRAST,
-)
+from .brand import PLACE_TARGET, RGB, TEXT_CONTRAST
 from .config import CAPTION_READ_BASE, CAPTION_READ_PER_CHAR, VIDEO_FPS
 from .cover_design import (
     EYEBROW_PX,
@@ -171,7 +162,7 @@ HOOK_MEASURE_CENTRED = HOOK_MEASURE                  # centred on HOOK_CENTRE_X,
 HOOK_EYEBROW_ALPHA = 0.8    # freeze panel H2: the eyebrow in BONE at this alpha, so the claim holds the only gold type
 HOOK_SCRIM_HUE = (15.0, 55.0)   # freeze panel H5: a warm, saturated ground under the block (hue degrees, saturation
 HOOK_SCRIM_SAT = 90             # of 255) gets a soft radial INK scrim behind it
-HOOK_SCRIM_FILL = INK       # the house INK (the panel's #0B0D10 is not a brand token)
+# the scrim's fill: the house INK (the panel's #0B0D10 is not a brand token), read when drawn (HOOK_SCRIM_FILL)
 HOOK_SCRIM_ALPHA = 0.55
 HOOK_SCRIM_REACH = 120      # design px past the block
 MASTHEAD_FOOT_AIR = 523     # a disclosure plate above this collides with the masthead (the 64 px masthead's foot + 14)
@@ -185,7 +176,7 @@ def hook_masthead_shown() -> bool:
     """QF-87 (lander ruling 2026-11-13: the row's rule reaches the Reel's first frame): the hook frame draws its
     masthead only at cover_design.MASTHEAD_GRID_CAP px cap height at the 124 px profile-grid tile, else none (the
     64 px masthead is 5.2 px there). The card is never refused for it; its geometry is unchanged without it."""
-    cap = -get_font("Cinzel", HOOK_BRAND_PX, weight=700).getbbox("H", anchor="ls")[1]
+    cap = -get_font(brand.MASTHEAD_FONT, HOOK_BRAND_PX, weight=700).getbbox("H", anchor="ls")[1]
     return cap * GRID_SCALE[0] >= MASTHEAD_GRID_CAP
 HOOK_PLATE_FEATHER = 64     # freeze panel H6 (4): design px over which the plate's top and bottom edges feather
 EYEBROW_SCRIM_AIR = 56      # design px: the hook's wash is flat from this far above the eyebrow rule
@@ -219,8 +210,8 @@ NUMBER_WORDS = frozenset((
     "million", "millions", "billion", "billions", "trillion", "trillions", "twice", "thrice"))
 _TITLE_PREFIX = re.compile(r"^(act|part|chapter|section)\s*\d+\s*[:.\-–]", re.IGNORECASE)
 _PROBE = ImageDraw.Draw(Image.new("L", (8, 8)))
-_ROLE_FACE = {"claim": ("Anton", None), "title": ("Anton", None), "fact": ("Montserrat", 700),
-              "eyebrow": ("Montserrat", 800), "myth": ("Montserrat", 600)}
+_ROLE_FACE = {"claim": ("display", None), "title": ("display", None), "fact": ("text", 700),
+              "eyebrow": ("text", 800), "myth": ("text", 600)}   # brand font roles (QF-35a), the family read when checked
 
 
 class CardRefused(ValueError):
@@ -594,7 +585,7 @@ class _LinePlate:
         self.cut = tuple(cut)
         self.text = "".join(p.text for p in parts)
         self.font = self.parts[0].font if self.parts else None
-        self.fill = self.parts[0].fill if self.parts else BONE
+        self.fill = self.parts[0].fill if self.parts else brand.BONE
         self.halo = max([p.halo for p in self.parts] or [0.0])
         self.box = _union([p.box for p in self.parts]) if self.parts else (0, 0, 0, 0)
         composed = ground.convert("RGB").copy()
@@ -900,7 +891,7 @@ def _glyphs_ok(t: str, face: str, weight: int | None) -> None:
     be removed or no bundled face can draw a character (its reason on the card's record)."""
     from .font_engine import GlyphRefused
     font = get_font(face, 40, weight=weight)
-    for s in (t, t.upper()) if face == "Anton" else (t,):
+    for s in (t, t.upper()) if face == brand.DISPLAY_FONT else (t,):
         try:
             if drawable(s, font) != s:
                 raise CardRefused(f"{face} cannot draw every glyph of {t!r}")
@@ -932,7 +923,8 @@ def ground_text(text: str, sheet: dict, fact_ids: Sequence[str], *, role: str,
     if "…" in raw or "..." in raw:
         raise CardRefused(f"{role} carries an ellipsis")
     t = typeset(raw)
-    face, weight = _ROLE_FACE[role]
+    face_role, weight = _ROLE_FACE[role]
+    face = brand.active().font(face_role)
     _glyphs_ok(t, face, weight)
     low_tokens = _words(t)
     if role == "title" and not fact_ids and (any(ch.isdigit() for ch in t)
@@ -1312,13 +1304,13 @@ class _Card:
         plan = self._plan
         if gold_from is not None and 0 < gold_from < len(text):
             # a second run on the same baseline (the hook's one-line claim: its last word in GOLD, freeze panel H2)
-            parts = [(text[:gold_from], fill), (text[gold_from:], GOLD)]
+            parts = [(text[:gold_from], fill), (text[gold_from:], brand.GOLD)]
             plates = [plan(X0 + f.getlength(text[:sum(len(s) for s, _ in parts[:j])]), Y, s, f, c, 0.0, tgt,
                            halo_px) for j, (s, c) in enumerate(parts) if s.strip()]
         elif gold_tail and text.endswith("”") and len(text) > 1:
             # the quote's closing mark in the opening mark's GOLD (review 2026-11-03, second round: a GOLD opening
             # mark over a small BONE closing one read as two different marks)
-            parts = [(text[:-1], fill), ("”", GOLD)]
+            parts = [(text[:-1], fill), ("”", brand.GOLD)]
             plates = [plan(X0 + f.getlength(text[:sum(len(s) for s, _ in parts[:j])]), Y, s, f, c, 0.0, tgt,
                            halo_px) for j, (s, c) in enumerate(parts) if s.strip()]
         elif runs:
@@ -1331,7 +1323,7 @@ class _Card:
                     end = max(end, fm.end())
                 if m.start() > pos:
                     parts.append((text[pos:m.start()], fill))
-                parts.append((text[m.start():end], GOLD))
+                parts.append((text[m.start():end], brand.GOLD))
                 pos = end
             if pos < len(text):
                 parts.append((text[pos:], fill))
@@ -1369,7 +1361,7 @@ class _Card:
         same halo search measured by _ratio against the fill colour. Decided before the call, from the glyph mask
         itself, so no error from plan_text is ever swallowed (round 1 review 13)."""
         from .typography import TextPlate
-        p = TextPlate(drawable(text, font), font, fill, (x, y), "ls", track, 0, INK,
+        p = TextPlate(drawable(text, font), font, fill, (x, y), "ls", track, 0, brand.INK,
                       int(min(31, max(21, font.size // 3))), False, self.ground.size)
         if p.empty or int(_erode3(p.glyphs > 127).sum()) > 30:
             return plan_text(self.ground, (x, y), text, font, fill, "ls", track=track, target=target, halo_px=halo_px)
@@ -1410,7 +1402,7 @@ def _kicker(card: _Card, name: str, label: str, x: float, rule_top: float, rule_
     16:9 KICKER_WIDE_PX/5)."""
     px, track, drop = [KICKER_WIDE_PX, 5, MYTH_KICK[True]] if card.geo.wide else [40, 6, MYTH_KICK[False]]
     card.rect(f"{name}_rule", (x, rule_top, x + 44, rule_top + 4), rule_fill, ("ease", *wipe), "x")
-    card.text(f"{name}_label", label, "Montserrat", 800, px, text_fill, x, rule_top + drop, ("ease", *reveal),
+    card.text(f"{name}_label", label, brand.TEXT_FONT, 800, px, text_fill, x, rule_top + drop, ("ease", *reveal),
               "kicker", track=track)
 
 
@@ -1438,7 +1430,7 @@ def _ground(photo: Path | None, geo: _Geo, last_t: float, dim: float = 0.0
             ) -> tuple[Image.Image, GroundDrift, Image.Image]:
     ground = timeline_backdrop(photo, geo.width, geo.height)
     if dim > 0:
-        ground = Image.blend(ground, Image.new("RGB", ground.size, INK), dim)
+        ground = Image.blend(ground, Image.new("RGB", ground.size, brand.INK), dim)
     drift = GroundDrift(ground)
     return ground, drift, drift(last_t)
 
@@ -1480,11 +1472,13 @@ def _accented(text: str) -> bool:
     return any(len(unicodedata.normalize("NFD", ch)) > 1 for ch in text if ch.isalpha())
 
 
-def _lead(lines: Sequence[str], P: int, step: int, cap: int, face: str = "Anton", weight: int | None = None
+def _lead(lines: Sequence[str], P: int, step: int, cap: int, face: str | None = None, weight: int | None = None
           ) -> list[int]:
     """Freeze panel A1: each line's baseline offset from the first (0, ...): the step above a line whose ink top
     rises above the cap height (an accent) grows to max(step, cap + rise + ACCENT_AIR), so its marks never touch the
-    line above; every other step stays `step`, so unaccented text plans exactly as before."""
+    line above; every other step stays `step`, so unaccented text plans exactly as before. `face`: the brand's
+    display face by default."""
+    face = brand.DISPLAY_FONT if face is None else face
     out, acc = [0], 0
     f = None
     for ln in lines[1:]:
@@ -1531,6 +1525,31 @@ def _w1_ladder(sizes: Sequence[int], wrap: Callable[[int], list[str] | None]) ->
     return None
 
 
+def _strike_back() -> RGB:
+    return _mix(brand.GOLD, brand.INK, 0.28)
+
+
+def _source_fill() -> RGB:
+    return _mix(brand.STONE_LT, brand.BONE, 0.285)
+
+
+def _source_label_fill() -> RGB:
+    return _mix(brand.STONE, brand.INK, 0.083)
+
+
+_BRAND_NAMES = {"BONE": lambda: brand.BONE, "GOLD": lambda: brand.GOLD, "INK": lambda: brand.INK,
+                "STONE_LT": lambda: brand.STONE_LT, "DATA_FONT": lambda: brand.DATA_FONT,
+                "HOOK_SCRIM_FILL": lambda: brand.INK, "STRIKE_BACK": _strike_back, "SOURCE_FILL": _source_fill,
+                "SOURCE_LABEL_FILL": _source_label_fill}
+
+
+def __getattr__(name: str):
+    """A colour this module bound at import before QF-35a: computed from the active brand (src/brand.py) now."""
+    if name in _BRAND_NAMES:
+        return _BRAND_NAMES[name]()
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
+
 def _mix(a: RGB, b: RGB, q: float) -> RGB:
     return tuple(_rhu(x + (y - x) * q) for x, y in zip(a, b))
 
@@ -1544,14 +1563,14 @@ def _sat_under(im: Image.Image, box: Sequence[int]) -> float:
 def _numeral_column(total: int) -> int:
     """16:9 (freeze panel C2): design px of the widest numeral this video shows (1..total, Anton at the numeral's
     px), so the numeral's right edge, the divider and the title stand at one x on every chapter of the video."""
-    f = get_font("Anton", CHAPTER_NUMERAL_PX[True])
+    f = get_font(brand.DISPLAY_FONT, CHAPTER_NUMERAL_PX[True])
     return max(_width(str(k), f) for k in range(1, max(1, total) + 1))
 
 
 def _numeral_tall(total: int) -> int:
     """16:9 (C5): design px of the tallest numeral ink of 1..total at the numeral's px (311 for a 5-act video), one
     per video, so every chapter of the video sets its title by the same rule."""
-    f = get_font("Anton", CHAPTER_NUMERAL_PX[True])
+    f = get_font(brand.DISPLAY_FONT, CHAPTER_NUMERAL_PX[True])
     return max(-_ink(str(k), f)[1] for k in range(1, max(1, total) + 1))
 
 
@@ -1609,7 +1628,7 @@ def plan_chapter_card(spec: ChapterCard, sheet: dict, width: int = 1080, height:
     t = t.upper()
     num = str(spec.number)
     total_t = f"/ {spec.total}" if spec.total >= 2 else ""      # C1: the chapter count is structural (ChapterCard.total)
-    f_num = get_font("Anton", CHAPTER_NUMERAL_PX[geo.wide])
+    f_num = get_font(brand.DISPLAY_FONT, CHAPTER_NUMERAL_PX[geo.wide])
     num_ink = _ink(num, f_num)
     # 16:9 (C2): the numeral right-aligned on a column fixed per video; the divider a fixed CHAPTER_GAP after that
     # column, and the title the same gap after the divider. Freeze panel C5 (operator decision): the "/ N" stands on
@@ -1631,7 +1650,7 @@ def plan_chapter_card(spec: ChapterCard, sheet: dict, width: int = 1080, height:
         # CHAPTER_WIDE_TWO size whose two lines stand at most CHAPTER_TALL_SLACK taller than the numeral's own ink
         # (C2, C5), under W2
         for P in CHAPTER_WIDE_ONE:
-            lines = _design_wrap(t, "Anton", None, P, measure, 1, geo)
+            lines = _design_wrap(t, brand.DISPLAY_FONT, None, P, measure, 1, geo)
             if lines:
                 fit = (P, lines)
                 break
@@ -1642,14 +1661,14 @@ def plan_chapter_card(spec: ChapterCard, sheet: dict, width: int = 1080, height:
             # on down the ladder to its 96 px floor, its first cap top still on the numeral's ink top
             # (_chapter_wide_rise); only a title that does not fit two lines at the floor is refused
             two = [P for P in CHAPTER_WIDE_TWO if _chapter_wide_two_ok(P, col_tall)]
-            fit = _w1_ladder(two, lambda P: _design_wrap(t, "Anton", None, P, measure, 2, geo, even=True))
+            fit = _w1_ladder(two, lambda P: _design_wrap(t, brand.DISPLAY_FONT, None, P, measure, 2, geo, even=True))
             if fit is None:
                 raise CardRefused(f"the 16:9 title does not fit two lines at {two[-1] if two else '-'} px, the "
                                   f"type floor", code="no_fit")
     if fit is None:
         refused = None
         try:
-            fit = _w1_ladder(sizes, lambda P: _design_wrap(t, "Anton", None, P, measure, 2, geo, even=True))
+            fit = _w1_ladder(sizes, lambda P: _design_wrap(t, brand.DISPLAY_FONT, None, P, measure, 2, geo, even=True))
         except CardRefused as e:
             if geo.wide:
                 raise
@@ -1660,7 +1679,7 @@ def plan_chapter_card(spec: ChapterCard, sheet: dict, width: int = 1080, height:
             room = CHAPTER_TALL_BOX[1] - CHAPTER_TALL_BOX[0] - CHAPTER_INK_FOOT
 
             def three(P: int) -> list[str] | None:
-                ls = _design_wrap(t, "Anton", None, P, measure, 3, geo, even=True)
+                ls = _design_wrap(t, brand.DISPLAY_FONT, None, P, measure, 3, geo, even=True)
                 if not ls or len(ls) != 3:
                     return None
                 return ls if _chapter_tall_block(P, ls)[0] <= room else None
@@ -1727,28 +1746,28 @@ def _chapter_compose(spec: ChapterCard, geo: _Geo, rest: Image.Image, drift: Any
     anchors: dict[str, Any] = {"title_px": P, "title_lines": list(lines)}
     provenance = {"title": prov}
     npx = CHAPTER_NUMERAL_PX[geo.wide]
-    f_num = get_font("Anton", npx)
+    f_num = get_font(brand.DISPLAY_FONT, npx)
     t0, dt = CHAPTER_TITLE_T0[geo.wide], CHAPTER_TITLE_STAGGER[geo.wide]
     if not geo.wide:
         H, _, R = _chapter_tall_block(P, lines)
         Bn = R + 340
         first = Bn + 56 + cap
-        _kicker(card, "kicker", "CHAPTER", TALL_LEFT, R, GOLD, GOLD, (0.10, 0.30), (0.15, REVEAL))
+        _kicker(card, "kicker", "CHAPTER", TALL_LEFT, R, brand.GOLD, brand.GOLD, (0.10, 0.30), (0.15, REVEAL))
         n_start, num_x = 0.25, TALL_LEFT
-        card.text("numeral", num, "Anton", None, npx, GOLD, num_x, Bn, ("ease", n_start, REVEAL), "display",
+        card.text("numeral", num, brand.DISPLAY_FONT, None, npx, brand.GOLD, num_x, Bn, ("ease", n_start, REVEAL), "display",
                   rise=False, settle=(n_start, FIGURE_SETTLE))
         baselines = [first + o for o in off]
         for k, (ln, b) in enumerate(zip(lines, baselines)):
-            card.text(f"title_{k}", ln, "Anton", None, P, BONE, TALL_LEFT, b, ("ease", t0 + dt * k, REVEAL, TITLE_ALPHA),
+            card.text(f"title_{k}", ln, brand.DISPLAY_FONT, None, P, brand.BONE, TALL_LEFT, b, ("ease", t0 + dt * k, REVEAL, TITLE_ALPHA),
                       "display")
         anchors.update(R=R, Bn=Bn, title_baselines=baselines, block_centre=round(R + H / 2, 1), block_h=H)
         if total_t:
             # C6: the chapter count after the numeral in the kicker's GOLD, baseline-aligned, revealed after the
             # numeral's settle
             tot_x = num_x + _width(num, f_num) + CHAPTER_TOTAL_GAP
-            card.text("total", total_t, "Anton", None, CHAPTER_TOTAL_PX[False], GOLD, tot_x, Bn,
+            card.text("total", total_t, brand.DISPLAY_FONT, None, CHAPTER_TOTAL_PX[False], brand.GOLD, tot_x, Bn,
                       ("ease", CHAPTER_TOTAL_T0, REVEAL), "display", rise=False, target=CHAPTER_TOTAL_TARGET)
-            anchors["total_fill"] = brand.hex_colour(GOLD)
+            anchors["total_fill"] = brand.hex_colour(brand.GOLD)
             anchors["total_placement"] = "after_numeral"
     else:
         rise = _chapter_wide_rise(off, P, col_tall)
@@ -1760,12 +1779,12 @@ def _chapter_compose(spec: ChapterCard, geo: _Geo, rest: Image.Image, drift: Any
         # freeze panel C4: the 16:9 reveal paced to its 3.5 s card
         n_start = 0.30
         num_x = edge - _width(num, f_num)        # C2: right-aligned on the video's numeral column
-        card.text("numeral", num, "Anton", None, npx, GOLD, num_x, Bn, ("ease", n_start, REVEAL), "display",
+        card.text("numeral", num, brand.DISPLAY_FONT, None, npx, brand.GOLD, num_x, Bn, ("ease", n_start, REVEAL), "display",
                   rise=False, settle=(n_start, FIGURE_SETTLE))
         div = (div_x, Bn - 310, div_x + 2, Bn)
         fill = _divider_fill(card, div)
         card.rect("divider", div, fill, ("ease", 0.55, 0.45), "y", role="divider")
-        _kicker(card, "kicker", "CHAPTER", title_x, K - MYTH_KICK[True], GOLD, GOLD, (0.20, 0.40), (0.20, 0.40))
+        _kicker(card, "kicker", "CHAPTER", title_x, K - MYTH_KICK[True], brand.GOLD, brand.GOLD, (0.20, 0.40), (0.20, 0.40))
         if total_t:
             # freeze panel C5 (operator decision): the chapter count on the kicker line, in the kicker's own face,
             # tracking and GOLD, CHAPTER_TOTAL_KICK_GAP after the label's ink, revealed with it; never the numeral
@@ -1780,17 +1799,17 @@ def _chapter_compose(spec: ChapterCard, geo: _Geo, rest: Image.Image, drift: Any
                 CHAPTER_TOTAL_TARGET]
             for i, tgt in enumerate(targets):
                 try:
-                    card.text("total", total_t, "Montserrat", 800, KICKER_WIDE_PX, GOLD, tx, K, ("ease", 0.20, 0.40),
+                    card.text("total", total_t, brand.TEXT_FONT, 800, KICKER_WIDE_PX, brand.GOLD, tx, K, ("ease", 0.20, 0.40),
                               "kicker", track=5, target=tgt,
                               halo_px=max(21, round(CHAPTER_TOTAL_HALO_PX * geo.k)))
                     break
                 except CardRefused:
                     if i == len(targets) - 1:
                         raise
-            anchors["total_fill"] = brand.hex_colour(GOLD)
+            anchors["total_fill"] = brand.hex_colour(brand.GOLD)
             anchors["total_placement"] = "kicker"
         for k, (ln, b) in enumerate(zip(lines, baselines)):
-            card.text(f"title_{k}", ln, "Anton", None, P, BONE, title_x, b, ("ease", t0 + dt * k, 0.50, TITLE_ALPHA),
+            card.text(f"title_{k}", ln, brand.DISPLAY_FONT, None, P, brand.BONE, title_x, b, ("ease", t0 + dt * k, 0.50, TITLE_ALPHA),
                       "display")
         anchors.update(Bn=Bn, K=K, title_baselines=baselines, divider_x=div_x, title_x=title_x,
                        divider_fill=brand.hex_colour(fill), numeral_right=edge)
@@ -1924,7 +1943,7 @@ def plan_myth_fact(spec: MythFact, sheet: dict, width: int = 1080, height: int =
         raise CardRefused(f"the fact {hit!r} states the myth's words as true: the card would strike out a fact",
                           code="affirmed_myth")
     myth = typeset(myth)
-    _glyphs_ok(myth, "Montserrat", 600)
+    _glyphs_ok(myth, brand.TEXT_FONT, 600)
     fact_t = ground_text(fact_t, sheet, [fid], role="fact")
     if not {w for w in _content(myth) if len(w) >= 4} & {w for w in _content(fact_t) if len(w) >= 4}:
         raise CardRefused("the myth and the fact share no content word")
@@ -1935,7 +1954,7 @@ def plan_myth_fact(spec: MythFact, sheet: dict, width: int = 1080, height: int =
     prov_f = {**prov_m, "part": "correction"}
     spec = MythFact(myth, fid, fact_t, fid, spec.photo, spec.fact_at, spec.myth_src)
     m_draw, f_draw = myth.upper(), fact_t.upper()
-    _glyphs_ok(m_draw, "Anton", None)
+    _glyphs_ok(m_draw, brand.DISPLAY_FONT, None)
     fit = _myth_fit(m_draw, f_draw, host, geo)
     if fit is None:
         raise CardRefused("the myth or the fact runs past its line limit at the floor size"
@@ -1943,7 +1962,7 @@ def plan_myth_fact(spec: MythFact, sheet: dict, width: int = 1080, height: int =
     P, m_lines, f_lines, host, omitted, Pm, compact = fit
     nm, nf = len(m_lines), len(f_lines)
     # the pen (freeze panel M6): one stroke per myth line, each timed to its width
-    pen = _pen_schedule([_width(ln, get_font("Anton", geo.px(Pm))) for ln in m_lines])
+    pen = _pen_schedule([_width(ln, get_font(brand.DISPLAY_FONT, geo.px(Pm))) for ln in m_lines])
     pen_total = pen[2]
     # timing (freeze panel M7): the myth lands, holds for its read (at most MYTH_READ_MAX), steps back under the
     # strike, then the fact lands and holds for its own read from its first line
@@ -1974,14 +1993,14 @@ def plan_myth_fact(spec: MythFact, sheet: dict, width: int = 1080, height: int =
                 mid = (lo + hi) / 2
                 lo, hi = (mid, hi) if _ease_io(mid) < q else (lo, mid)
             return t_f + STEP_BACK * hi
-        f_lab = get_font("Montserrat", KICKER_WIDE_PX if geo.wide else 40, weight=800)
-        f_fact = get_font("Anton", P)
+        f_lab = get_font(brand.TEXT_FONT, KICKER_WIDE_PX if geo.wide else 40, weight=800)
+        f_fact = get_font(brand.DISPLAY_FONT, P)
         fk_rule = need(R_b + F_rel + 4)
         fk_label = need(R_b + F_rel + MYTH_KICK[False] + _ink("FACT", f_lab)[3])
         fact_starts = [max(t0, need(R_b + b + _ink(ln, f_fact)[3]))
                        for t0, b, ln in zip(fact_starts, f_rel, f_lines)]
         if host:
-            f_src = get_font(DATA_FONT, SOURCE_PX[False], weight=SOURCE_WEIGHT)
+            f_src = get_font(brand.DATA_FONT, SOURCE_PX[False], weight=SOURCE_WEIGHT)
             t_src = max(fact_starts[-1] + 0.20, need(R_b + src_rel + max(_ink(host, f_src)[3], 12)))
     rest_f = max(t_f + STEP_BACK, t_f + REVEAL, fact_starts[-1] + REVEAL, (t_src + REVEAL) if host else 0.0,
                  fk_label + REVEAL)
@@ -2049,7 +2068,7 @@ FACT_STEP = 1.0
 MYTH_READ_MAX = 2.00               # s: the myth's read before the strike, at most (freeze panel M11; M7 2.60)
 MYTH_READ_MIN = 1.00               # s: and at least (M11: was 1.20)
 FACT_REST_HOLD = 1.50              # s: the whole card held at rest at least this before the transition
-STRIKE_BACK = _mix(GOLD, INK, 0.28)   # freeze panel M5: the strike's stepped-back colour, #B18728 (GOLD 72 / INK 28)
+# STRIKE_BACK, _strike_back(): freeze panel M5: the strike's stepped-back colour, #B18728 (GOLD 72 / INK 28)
 STRIKE_KEYLINE = 1                 # design px of INK directly above and below the bar (M11: was 2)
 STRIKE_THICK = (0.08, 5, 10)       # the bar: clamp(round(0.08 x Pm), 5, 10) design px (M11: was 0.10, 6..12)
 MYTH_PANEL_OPEN = 120              # 9:16 (M11): design px under the last myth baseline the INK panel's foot stands
@@ -2085,7 +2104,10 @@ def _pen_schedule(widths: Sequence[float]) -> tuple[list[float], list[float], fl
 
 @lru_cache(maxsize=64)
 def _cap(px: int) -> int:
-    return -get_font("Anton", px).getbbox("H", anchor="ls")[1]
+    return -get_font(brand.DISPLAY_FONT, px).getbbox("H", anchor="ls")[1]
+
+
+brand.on_change(_cap.cache_clear)   # a measure in the display face: dropped when the brand changes
 
 
 def myth_px(P: int, wide: bool, ratio: float | None = None) -> int:
@@ -2146,13 +2168,13 @@ STRIKE_OVERHANG = 0.06      # x the myth's px: the strike runs this far past eac
 # freeze panel 2026-11-04 (M9): the source line and its chrome label
 SOURCE_PX = {False: 38, True: 38}      # freeze panel M12 (was 34 / 36)
 SOURCE_WEIGHT = 600
-SOURCE_FILL = _mix(STONE_LT, BONE, 0.285)              # #C9C2B5
+# SOURCE_FILL, _source_fill(): #C9C2B5 (STONE_LT and BONE)
 SOURCE_TARGET = 7.0         # the source domain's drawn contrast
 SOURCE_LABEL = "SOURCE"     # design chrome, like MYTH and FACT: never card text
 SOURCE_LABEL_PX = {False: 28, True: 28}      # freeze panel M12 (was 24 / 26)
 SOURCE_LABEL_TARGET = 7.0   # M12: the label is planned at this, not PLACE_TARGET
 SOURCE_LABEL_TRACK = 0.18   # em
-SOURCE_LABEL_FILL = _mix(brand.STONE, INK, 0.083)      # #8E887B (the panel's #8E887D, from the tokens)
+# SOURCE_LABEL_FILL, _source_label_fill(): #8E887B (the panel's #8E887D, from the tokens)
 SOURCE_LABEL_GAP = 14       # design px from the label's ink to the domain
 
 
@@ -2162,22 +2184,22 @@ def _overhang(Pm: int) -> int:
 
 
 def _source_label_font(geo: _Geo):
-    return get_font("Montserrat", geo.px(SOURCE_LABEL_PX[geo.wide]), weight=800)
+    return get_font(brand.TEXT_FONT, geo.px(SOURCE_LABEL_PX[geo.wide]), weight=800)
 
 
 def _source_width(host: str, geo: _Geo) -> int:
     """Frame px the source line takes: the SOURCE label, its gap and the domain."""
     lf = _source_label_font(geo)
     label = _tracked_width(SOURCE_LABEL, lf, SOURCE_LABEL_TRACK * lf.size)
-    return round(label) + geo.px(SOURCE_LABEL_GAP) + _width(host, get_font(DATA_FONT, geo.px(SOURCE_PX[geo.wide]),
+    return round(label) + geo.px(SOURCE_LABEL_GAP) + _width(host, get_font(brand.DATA_FONT, geo.px(SOURCE_PX[geo.wide]),
                                                                           weight=SOURCE_WEIGHT))
 
 
 def _myth_wrap(m_draw: str, pm: int, m_meas: int, m_lim: int, geo: _Geo) -> list[str] | None:
     """The myth's lines at `pm`, broken inside the measure less the strike's overhang on both sides (T1), unless that
     costs a line the full measure does not (the clamp to the zone then trims the overhang instead)."""
-    full = _design_wrap(m_draw, "Anton", None, pm, m_meas, m_lim, geo, even=True)
-    held = _design_wrap(m_draw, "Anton", None, pm, m_meas - 2 * math.ceil(STRIKE_OVERHANG * pm), m_lim, geo,
+    full = _design_wrap(m_draw, brand.DISPLAY_FONT, None, pm, m_meas, m_lim, geo, even=True)
+    held = _design_wrap(m_draw, brand.DISPLAY_FONT, None, pm, m_meas - 2 * math.ceil(STRIKE_OVERHANG * pm), m_lim, geo,
                         even=True)
     if held and full and len(held) == len(full) and _stop_end(held) != _stop_end(full):
         # freeze panel W2: of two wraps with one line count, the one with no stop-word end (the strike's clamp then
@@ -2214,14 +2236,14 @@ def _myth_fit(m_draw: str, f_draw: str, host: str | None, geo: _Geo):
         return ok(_myth_wrap(m_draw, pm, m_meas, lim, geo))
 
     def fwrap(P: int, lim: int) -> list[str] | None:
-        return ok(_design_wrap(f_draw, "Anton", None, P, f_meas, lim, geo, even=True, cohesive=True))
+        return ok(_design_wrap(f_draw, brand.DISPLAY_FONT, None, P, f_meas, lim, geo, even=True, cohesive=True))
 
     def lone(lines: list[str], text: str, pm: int | None = None) -> bool:
         def alone(ln: str) -> bool:
             w = ln.split()
             if len(w) == 1 and pm is not None and geo.wide and (
                     len(w[0].strip(".,;:")) >= LONE_WORD_CHARS
-                    or _width(ln, get_font("Anton", pm)) >= LONE_WORD_SHARE * m_meas):
+                    or _width(ln, get_font(brand.DISPLAY_FONT, pm)) >= LONE_WORD_SHARE * m_meas):
                 return False      # M2: a long word fills its line, it is not left alone
             return len(w) == 1 or all(x.lower().strip(".,;:") in _STOP for x in w)
         return len(lines) > 1 and len(text.split()) >= 4 and any(alone(ln) for ln in lines)
@@ -2580,7 +2602,7 @@ def _photo_outside(photo: Path | None, geo: _Geo, y1: float, top: float | None =
     above = np.clip(geo.y(top) - Y + 0.5, 0, 1) if top is not None else np.zeros_like(Y)
     m = np.maximum(below, above)                               # 1 outside the panel, 0 inside, one pixel between
     p = np.asarray(pic, np.float32)
-    ink = np.asarray(INK, np.float32)[None, None, :]
+    ink = np.asarray(brand.INK, np.float32)[None, None, :]
     shaded = p * (1 - MYTH_OUT_SHADE) + ink * MYTH_OUT_SHADE
     mask = Image.fromarray(np.clip(np.repeat(m[:, None], W, axis=1) * 255 + 0.5, 0, 255).astype(np.uint8), "L")
     return Image.fromarray(np.clip(shaded + 0.5, 0, 255).astype(np.uint8), "RGB"), mask
@@ -2605,11 +2627,11 @@ def _myth_compose(spec: MythFact, geo: _Geo, P: int, m_lines: list[str], f_lines
     F = R + F_rel
     s_base = R + src_rel
     # a "misleading" myth is labelled so and struck with a broken pen (MYTH_DASH), never drawn as a false one
-    _kicker(card, "myth", MISLEADING_LABEL if misleading else "MYTH", mx, M, STONE_LT, STONE_LT, (0.20, 0.30),
+    _kicker(card, "myth", MISLEADING_LABEL if misleading else "MYTH", mx, M, brand.STONE_LT, brand.STONE_LT, (0.20, 0.30),
             (0.20, REVEAL))
     myth_items = []
     for k, (ln, b) in enumerate(zip(m_lines, m_base)):
-        it = card.text(f"myth_{k}", ln, "Anton", None, Pm, BONE, mx, b, ("ease", 0.25 + 0.08 * k, REVEAL),
+        it = card.text(f"myth_{k}", ln, brand.DISPLAY_FONT, None, Pm, brand.BONE, mx, b, ("ease", 0.25 + 0.08 * k, REVEAL),
                        "display", record=True)
         it["back"] = (t_f, STEP_BACK)
         myth_items.append(it)
@@ -2619,7 +2641,7 @@ def _myth_compose(spec: MythFact, geo: _Geo, P: int, m_lines: list[str], f_lines
     th = geo.px(min(STRIKE_THICK[2], max(STRIKE_THICK[1], round(STRIKE_THICK[0] * Pm))))   # M11
     keyline = geo.px(STRIKE_KEYLINE)
     casing = 0
-    cap = -get_font("Anton", geo.px(Pm)).getbbox("H", anchor="ls")[1]
+    cap = -get_font(brand.DISPLAY_FONT, geo.px(Pm)).getbbox("H", anchor="ls")[1]
     if geo.wide:
         z_left, z_right = geo.x(MYTH_X[True][0]), geo.x(fx - MYTH_DIVIDER_AIR) - geo.px(16)
     else:
@@ -2639,12 +2661,12 @@ def _myth_compose(spec: MythFact, geo: _Geo, P: int, m_lines: list[str], f_lines
     starts, durs, pen_total = tm["pen"]
     dash = (geo.px(round(MYTH_DASH[0] * Pm)), geo.px(round(MYTH_DASH[1] * Pm))) if misleading else None
     strike = {"type": "strike", "name": "strike", "segs": segs, "casing": casing, "keyline": keyline, "t0": t_s,
-              "names": [], "dash": dash, "back": (t_f, STEP_BACK), "fill": GOLD, "fill_back": STRIKE_BACK}
+              "names": [], "dash": dash, "back": (t_f, STEP_BACK), "fill": brand.GOLD, "fill_back": _strike_back()}
     contrast_twins = []
     for k, (it, sg) in enumerate(zip(myth_items, segs)):
         twins = []
         for pl in it["parts"]:
-            tw = _twin(rest, pl, STONE_LT)
+            tw = _twin(rest, pl, brand.STONE_LT)
             if tw.contrast is None or tw.contrast < PLACE_TARGET or not tw.light:
                 tw.light = True
                 tw.solve(rest, PLACE_TARGET, min_halo=pl.halo)
@@ -2657,7 +2679,7 @@ def _myth_compose(spec: MythFact, geo: _Geo, P: int, m_lines: list[str], f_lines
         contrast_twins.append((f"myth_{k}", masked))
         name = f"strike_{k}"
         t0 = t_s + starts[k]
-        card.elements.append(Element(name, "mark", "", "", None, 0, GOLD, (float(sg[0]), float(sg[2])), "", 0.0,
+        card.elements.append(Element(name, "mark", "", "", None, 0, brand.GOLD, (float(sg[0]), float(sg[2])), "", 0.0,
                                      (sg[0], sg[2], sg[1], sg[3]), round(t0, 4), round(t0 + durs[k], 4)))
         card.motion[name] = ("pen", t0, durs[k])
         card.timeline[name] = (round(t0, 4), round(t0 + durs[k], 4))
@@ -2669,10 +2691,10 @@ def _myth_compose(spec: MythFact, geo: _Geo, P: int, m_lines: list[str], f_lines
     card.items.append(strike)
     card.contrast = [(n, p) for n, p in card.contrast if not n.startswith("myth_") or n == "myth_label"]
     card.contrast += contrast_twins
-    _kicker(card, "fact", "FACT", fx, F, GOLD, GOLD, (tm.get("fk_rule", t_f), REVEAL),
+    _kicker(card, "fact", "FACT", fx, F, brand.GOLD, brand.GOLD, (tm.get("fk_rule", t_f), REVEAL),
             (tm.get("fk_label", t_f), REVEAL))
     for k, (ln, b) in enumerate(zip(f_lines, f_base)):
-        card.text(f"fact_{k}", ln, "Anton", None, P, BONE, fx, b, ("ease", fact_starts[k], REVEAL), "display",
+        card.text(f"fact_{k}", ln, brand.DISPLAY_FONT, None, P, brand.BONE, fx, b, ("ease", fact_starts[k], REVEAL), "display",
                   runs=True)
     if host:
         # freeze panel M9: the SOURCE label (design chrome, like MYTH and FACT) then the signed field's host
@@ -2681,8 +2703,8 @@ def _myth_compose(spec: MythFact, geo: _Geo, P: int, m_lines: list[str], f_lines
         # photo opening under the block), it steps toward the domain's colour in 10 % steps until it reads
         for i in range(11):
             try:
-                card.text("source_label", SOURCE_LABEL, "Montserrat", 800, lpx,
-                          _mix(SOURCE_LABEL_FILL, SOURCE_FILL, 0.1 * i), fx, s_base, ("ease", t_src, REVEAL), "chrome",
+                card.text("source_label", SOURCE_LABEL, brand.TEXT_FONT, 800, lpx,
+                          _mix(_source_label_fill(), _source_fill(), 0.1 * i), fx, s_base, ("ease", t_src, REVEAL), "chrome",
                           track=SOURCE_LABEL_TRACK * lpx, target=SOURCE_LABEL_TARGET)
                 break
             except CardRefused:
@@ -2690,7 +2712,7 @@ def _myth_compose(spec: MythFact, geo: _Geo, P: int, m_lines: list[str], f_lines
                     raise
         lab = card.elements[-1].box
         sx = (lab[2] + geo.px(SOURCE_LABEL_GAP) - geo._ox) / geo.k
-        card.text("source", host, DATA_FONT, SOURCE_WEIGHT, SOURCE_PX[geo.wide], SOURCE_FILL, sx, s_base,
+        card.text("source", host, brand.DATA_FONT, SOURCE_WEIGHT, SOURCE_PX[geo.wide], _source_fill(), sx, s_base,
                   ("ease", t_src, REVEAL), "data", target=SOURCE_TARGET)
     div_fill = None
     if geo.wide:
@@ -3300,12 +3322,12 @@ def plan_quote_card(spec: QuoteCard, sheet: dict, width: int = 1080, height: int
     geo = _Geo(width, height)
     text, _, qf = _quote_gates(spec, sheet, geo.wide)
     body = typeset(text) + "”"
-    _glyphs_ok(body, "Montserrat", 600)
-    _glyphs_ok("“", "Montserrat", 600)   # both marks one face and one GOLD (review 2026-11-03, second round)
+    _glyphs_ok(body, brand.TEXT_FONT, 600)
+    _glyphs_ok("“", brand.TEXT_FONT, 600)   # both marks one face and one GOLD (review 2026-11-03, second round)
     # the 44 px GOLD rule above it is the attribution's dash (round 1 review 9: "— " under the rule read as two
     # stacked dashes), so the speaker is drawn bare
     speaker = " ".join(qf["speaker"]["name"].split()).upper()
-    _glyphs_ok(speaker, "Montserrat", 800)
+    _glyphs_ok(speaker, brand.TEXT_FONT, 800)
     host = display_host((urlparse(str(qf["source_url"])).hostname or "").lower()).upper() or None
     parts = [qf["speaker"].get("role") or "", qf.get("work") or "", typeset(str(qf.get("date") or ""))]
     if geo.wide:
@@ -3320,20 +3342,20 @@ def plan_quote_card(spec: QuoteCard, sheet: dict, width: int = 1080, height: int
         measure = TALL_RIGHT - TALL_LEFT
         sp_px, sp_track = 40, 6
         ci_px = 30
-    f_ci = get_font(DATA_FONT, geo.px(ci_px), weight=500)
-    f_sp = get_font("Montserrat", geo.px(sp_px), weight=800)
+    f_ci = get_font(brand.DATA_FONT, geo.px(ci_px), weight=500)
+    f_sp = get_font(brand.TEXT_FONT, geo.px(sp_px), weight=800)
     sp_lines, sp_track = _speaker_lines(speaker, f_sp, sp_track, geo.k, geo.px(measure))
     if sp_lines is None:
         raise CardRefused("the speaker does not fit two lines at the kicker floor")
     sp_step = SPEAKER_STEP[geo.wide]
     sp_extra = sp_step * (len(sp_lines) - 1)
-    cite = _citation_lines(parts, host, get_font(DATA_FONT, ci_px, weight=500), measure)
+    cite = _citation_lines(parts, host, get_font(brand.DATA_FONT, ci_px, weight=500), measure)
     if cite is not None and geo.k != 1 and any(_width(c, f_ci) > geo.px(measure) for c in cite):
         cite = _citation_lines(parts, host, f_ci, geo.px(measure))
     if cite is None:
         raise CardRefused("the citation does not fit two lines, even without its source")
     for c in cite:
-        _glyphs_ok(c, DATA_FONT, 500)
+        _glyphs_ok(c, brand.DATA_FONT, 500)
     citation = cite[0] if cite else ""
     # review 2026-11-03 (4): the largest size that fits, full stop. A smaller size is never taken to save a line
     # (the 25 % "unwrap" rule set a 75-character quote at 58 px); an extra line is preferred, down to the floor.
@@ -3342,7 +3364,7 @@ def plan_quote_card(spec: QuoteCard, sheet: dict, width: int = 1080, height: int
         cap_lines = max_lines if geo.wide else QUOTE_LINES_LARGE
         if P > QUOTE_SHORT_PX[geo.wide]:
             cap_lines = QUOTE_SHORT_LINES
-        lines = _design_wrap(body, "Montserrat", 600, P, measure, cap_lines, geo)
+        lines = _design_wrap(body, brand.TEXT_FONT, 600, P, measure, cap_lines, geo)
         if not lines:
             continue
         if geo.wide:
@@ -3383,27 +3405,27 @@ def plan_quote_card(spec: QuoteCard, sheet: dict, width: int = 1080, height: int
     card = _Card("quote", geo, rest)
     if geo.wide:      # the hanging mark scales with a large short quote (200 px sat under 144 px type)
         mark_px = max(mark_px, 2 * P)
-    f_mark = get_font("Montserrat", geo.px(mark_px), weight=600)
+    f_mark = get_font(brand.TEXT_FONT, geo.px(mark_px), weight=600)
     ink = _ink("“", f_mark)
     mark_base = geo.y(M) - ink[1]
     mark_x = geo.x(x_mark)
-    card.text("quote_mark", "“", "Montserrat", 600, mark_px, GOLD, (mark_x - geo._ox) / geo.k,
+    card.text("quote_mark", "“", brand.TEXT_FONT, 600, mark_px, brand.GOLD, (mark_x - geo._ox) / geo.k,
               (mark_base - geo._oy) / geo.k, ("ease", 0.20, REVEAL), "mark", rise=False, settle=(0.20, FIGURE_SETTLE),
               record=False, target=NONTEXT_MIN, pivot_top=True, kind="mark")
     qp = card.items[-1]["parts"][0]
     card.marks.append(("quote_mark", _plate_mask(qp, rest.size)))
     baselines = [first + k * step for k in range(n)]
     for k, (ln, b) in enumerate(zip(lines, baselines)):
-        card.text(f"quote_{k}", ln, "Montserrat", 600, P, BONE, x_text, b, ("ease", 0.40, REVEAL), "running",
+        card.text(f"quote_{k}", ln, brand.TEXT_FONT, 600, P, brand.BONE, x_text, b, ("ease", 0.40, REVEAL), "running",
                   gold_tail=k == n - 1)
     rule_top = baselines[-1] + r_drop
-    card.rect("rule", (x_text, rule_top, x_text + 44, rule_top + 4), GOLD, ("ease", 0.30, 0.30), "x")
+    card.rect("rule", (x_text, rule_top, x_text + 44, rule_top + 4), brand.GOLD, ("ease", 0.30, 0.30), "x")
     sp_base = rule_top + sp_drop
     for j, sl in enumerate(sp_lines):
-        card.text("speaker" if j == 0 else f"speaker_{j}", sl, "Montserrat", 800, sp_px, GOLD, x_text,
+        card.text("speaker" if j == 0 else f"speaker_{j}", sl, brand.TEXT_FONT, 800, sp_px, brand.GOLD, x_text,
                   sp_base + j * sp_step, ("ease", 0.30, REVEAL), "kicker", track=sp_track)
     for j, c in enumerate(cite):
-        card.text("citation" if j == 0 else f"citation_{j}", c, DATA_FONT, 500, ci_px, STONE_LT, x_text,
+        card.text("citation" if j == 0 else f"citation_{j}", c, brand.DATA_FONT, 500, ci_px, brand.STONE_LT, x_text,
                   sp_base + sp_extra + ci_drop + j * ci_step, ("ease", 0.30, REVEAL), "data")
     if not geo.wide:
         bottom = max(e.box[3] for e in card.elements)
@@ -3497,12 +3519,12 @@ def _rule_halo(bg: Image.Image, under: Image.Image, rule: Sequence[int],
     while True:
         layer = under
         if strength > 0:
-            ink = Image.new("RGBA", size, INK + (255,))
+            ink = Image.new("RGBA", size, brand.INK + (255,))
             ink.putalpha(soft.point(lambda v, a=strength: int(v * a)))
             layer = Image.alpha_composite(under, ink)
         ground = Image.alpha_composite(base, layer).convert("RGB")
         probe = ground.copy()
-        probe.paste(GOLD, (0, 0), mask)
+        probe.paste(brand.GOLD, (0, 0), mask)
         v = nontext_contrast(probe, mask, ground=ground)
         if v is None or v >= NONTEXT_MIN or strength >= 0.95:
             return layer
@@ -3519,7 +3541,7 @@ def _band_layer(size: tuple[int, int], band: Sequence[int], strength: float) -> 
     d = np.where(yy < y0, (y0 - yy) / up, np.where(yy > mid, (yy - mid) / down, 0))
     v = np.clip(1 - d, 0, 1)
     v = v * v * (3 - 2 * v)
-    layer = Image.new("RGBA", size, INK + (255,))
+    layer = Image.new("RGBA", size, brand.INK + (255,))
     layer.putalpha(Image.fromarray((v * strength * 255).astype("uint8")[:, None]).resize(size))
     return layer
 
@@ -3566,7 +3588,7 @@ def _halo_field(size: tuple[int, int], plates: Sequence[Any], px: float) -> np.n
 
 def _halo_layer(field: np.ndarray, strength: float) -> Image.Image:
     h, w = field.shape
-    layer = Image.new("RGBA", (w, h), INK + (255,))
+    layer = Image.new("RGBA", (w, h), brand.INK + (255,))
     layer.putalpha(Image.fromarray(np.clip(field * strength * 255.0, 0, 255).astype(np.uint8)))
     return layer
 
@@ -3652,7 +3674,7 @@ def _wash_layer(size: tuple[int, int], y0: float, y1: float, strength: float, x1
         u = u * u * (3 - 2 * u)
         hx = 1 - (1 - HOOK_WASH_FLOOR) * u
     a = np.clip(v[:, None] * hx[None, :] * strength * 255.0, 0, 255).astype("uint8")
-    layer = Image.new("RGBA", size, INK + (255,))
+    layer = Image.new("RGBA", size, brand.INK + (255,))
     layer.putalpha(Image.fromarray(a))
     return layer
 
@@ -3689,7 +3711,7 @@ def _plate_layer(size: tuple[int, int], y0: float, y1: float, strength: float, f
     else:
         v = np.clip(np.minimum(yy - y0, y1 - yy) + 0.5, 0, 1)
     a = np.clip(v[:, None] * strength * 255.0 + np.zeros((1, size[0]), np.float32), 0, 255).astype("uint8")
-    layer = Image.new("RGBA", size, INK + (255,))
+    layer = Image.new("RGBA", size, brand.INK + (255,))
     layer.putalpha(Image.fromarray(a))
     return layer
 
@@ -3749,8 +3771,7 @@ def _hook_scrim(bg: Image.Image, box: Sequence[float], rows: Sequence[tuple],
 
 
 def _mast_band(plate: Any) -> tuple[float, float]:
-    from .cover_design import BRAND_TEXT
-    box = plate.font.getbbox(BRAND_TEXT, anchor="lt")
+    box = plate.font.getbbox(brand.MASTHEAD, anchor="lt")
     return plate.xy[1] + box[1] - 6, plate.xy[1] + box[3] + 6
 
 
@@ -3761,14 +3782,13 @@ def _hook_masthead(bg: Image.Image, under: Image.Image, plate: Any, crisp: bool 
     luminance calls for, under which it reaches HOOK_TARGET with its own whole-frame halo field (_halo_field, so
     no crop-edge box: round 3 review 4) at most HOOK_HALO_SOFT; else the strongest band with the halo free to
     reach 1.0. The plate itself draws no halo."""
-    from .cover_design import BRAND_TEXT
     font, xy = plate.font, plate.xy
-    box = font.getbbox(BRAND_TEXT, anchor="lt")
+    box = font.getbbox(brand.MASTHEAD, anchor="lt")
     band = (xy[1] + box[1] - 6, xy[1] + box[3] + 6)
     base_rgba = bg.convert("RGBA")
     base = Image.alpha_composite(base_rgba, under)
     lum = _ground_lum(base, plate.box)
-    p = plan_text(base.convert("RGB"), xy, BRAND_TEXT, font, BONE, "lt", plate.track, target=HOOK_TARGET,
+    p = plan_text(base.convert("RGB"), xy, brand.MASTHEAD, font, brand.BONE, "lt", plate.track, target=HOOK_TARGET,
                   halo_px=0, min_halo=0.0, shadow=True, max_halo=0.0)
     field = _halo_field(bg.size, [p], font.size)
     steps = _steps_from(lum, MAST_BAND_START, MAST_BAND_STEPS)
@@ -3797,8 +3817,8 @@ def _hook_masthead(bg: Image.Image, under: Image.Image, plate: Any, crisp: bool 
 
 def _hook_mast_foot() -> int:
     """Freeze panel H6: the hook masthead's ink foot (y), measured from the drawn masthead's font."""
-    from .cover_design import BRAND_TEXT, BRAND_TOP
-    return BRAND_TOP + get_font("Cinzel", HOOK_BRAND_PX, weight=700).getbbox(BRAND_TEXT, anchor="lt")[3]
+    from .cover_design import BRAND_TOP
+    return BRAND_TOP + get_font(brand.MASTHEAD_FONT, HOOK_BRAND_PX, weight=700).getbbox(brand.MASTHEAD, anchor="lt")[3]
 
 
 def _hook_claim(spec: HookFrame, sheet: dict, payload: Mapping[str, Any] | None
@@ -3898,7 +3918,7 @@ def _radial_scrim(size: tuple[int, int], box: Sequence[float], reach: float, alp
     d = np.sqrt(dx * dx + dy * dy)
     x = np.clip(1.0 - d / max(1.0, reach), 0.0, 1.0)
     m = x * x * (3 - 2 * x) * alpha
-    layer = Image.new("RGBA", size, HOOK_SCRIM_FILL + (0,))
+    layer = Image.new("RGBA", size, brand.INK + (0,))
     layer.putalpha(Image.fromarray(np.clip(m * 255 + 0.5, 0, 255).astype(np.uint8), "L"))
     return layer
 
@@ -3947,7 +3967,7 @@ def plan_hook_frame(spec: HookFrame, sheet: dict, width: int = 1080, height: int
         for n_l in sorted(HOOK_SIZES):
             try:
                 got = _w1_ladder(HOOK_SIZES[n_l], lambda P: (lambda ls: ls if ls and len(ls) == n_l else None)(
-                    _wrap(upper, get_font("Anton", P), measure, n_l, min_lines=n_l, even=n_l > 1)))
+                    _wrap(upper, get_font(brand.DISPLAY_FONT, P), measure, n_l, min_lines=n_l, even=n_l > 1)))
             except CardRefused as e:
                 refused = refused or e
                 continue
@@ -3968,7 +3988,7 @@ def plan_hook_frame(spec: HookFrame, sheet: dict, width: int = 1080, height: int
             for px in HOOK_SIZES[n_l]:
                 if n_l == len(first[1]) and px >= first[0]:
                     continue
-                ls = _wrap(upper, get_font("Anton", px), measure, n_l, min_lines=n_l, even=n_l > 1)
+                ls = _wrap(upper, get_font(brand.DISPLAY_FONT, px), measure, n_l, min_lines=n_l, even=n_l > 1)
                 if ls and len(ls) == n_l and not _stop_end(ls):     # W2: never a stop-word end
                     out.append((px, ls))
         return out
@@ -3976,8 +3996,8 @@ def plan_hook_frame(spec: HookFrame, sheet: dict, width: int = 1080, height: int
     if not cands:
         raise CardRefused("the claim does not fit three lines at 112 px")
     P, lines = cands[0]
-    f_claim = get_font("Anton", P)
-    f_eb = get_font("Montserrat", EYEBROW_PX, weight=800)
+    f_claim = get_font(brand.DISPLAY_FONT, P)
+    f_eb = get_font(brand.TEXT_FONT, EYEBROW_PX, weight=800)
     geo = _hook_geometry(len(lines), P, bool(eyebrow), lines=lines)
     focus = tuple(spec.focus) if spec.focus else _focus_frame(photo, size)
 
@@ -4005,7 +4025,7 @@ def plan_hook_frame(spec: HookFrame, sheet: dict, width: int = 1080, height: int
     mast_foot = _hook_mast_foot()
     top_block = mast_foot + HOOK_TOP_AIR       # H6: re-measured from the drawn masthead (565 under the 64 px one)
     for P, lines in cands:
-        f_claim = get_font("Anton", P)
+        f_claim = get_font(brand.DISPLAY_FONT, P)
         geo = _hook_geometry(len(lines), P, bool(eyebrow), lines=lines)
         if not (focus and _overlap(focus, block_box(geo)) > FOCUS_OVERLAP):
             position = "normal"
@@ -4038,7 +4058,7 @@ def plan_hook_frame(spec: HookFrame, sheet: dict, width: int = 1080, height: int
         if c_fit and _ground_lum(bg, box_n) >= HOOK_PLATE_LUM:
             kept = (P, lines, f_claim)
             P, lines = c_fit
-            f_claim = get_font("Anton", P)
+            f_claim = get_font(brand.DISPLAY_FONT, P)
             g_c = _hook_geometry(len(lines), P, bool(eyebrow), lines=lines)
             g_top = _hook_geometry(len(lines), P, bool(eyebrow), lines=lines,
                                    L=1010 - (g_c["block_top"] - top_block))
@@ -4057,7 +4077,7 @@ def plan_hook_frame(spec: HookFrame, sheet: dict, width: int = 1080, height: int
     if mast_shown:
         _brand(bg.copy(), lay, left=None if centred else TALL_LEFT, centre=cx)
     else:
-        cap = -get_font("Cinzel", HOOK_BRAND_PX, weight=700).getbbox("H", anchor="ls")[1]
+        cap = -get_font(brand.MASTHEAD_FONT, HOOK_BRAND_PX, weight=700).getbbox("H", anchor="ls")[1]
         lay.meta["masthead"] = {"shown": False, "cap_124": round(cap * GRID_SCALE[0], 1),
                                 "reason": f"under {MASTHEAD_GRID_CAP} px cap height at profile-grid size"}
     xs = [line_x(ln, centred) for ln in lines]
@@ -4067,13 +4087,13 @@ def plan_hook_frame(spec: HookFrame, sheet: dict, width: int = 1080, height: int
     rows = []
     for k, (ln, x, b) in enumerate(zip(lines, xs, geo["baselines"])):
         if k == gold_k and gold_from:
-            rows += [(ln[:gold_from], "Anton", None, P, BONE, x, b, 0.0),
-                     (ln[gold_from:], "Anton", None, P, GOLD, x + f_claim.getlength(ln[:gold_from]), b, 0.0)]
+            rows += [(ln[:gold_from], brand.DISPLAY_FONT, None, P, brand.BONE, x, b, 0.0),
+                     (ln[gold_from:], brand.DISPLAY_FONT, None, P, brand.GOLD, x + f_claim.getlength(ln[:gold_from]), b, 0.0)]
         else:
-            rows.append((ln, "Anton", None, P, GOLD if k in gold_ks else BONE, x, b, 0.0))
+            rows.append((ln, brand.DISPLAY_FONT, None, P, brand.GOLD if k in gold_ks else brand.BONE, x, b, 0.0))
     eb_row = eb_box = None
     if eyebrow:
-        eb_row = (eyebrow, "Montserrat", 800, EYEBROW_PX, BONE, eb_x, geo["E"], EYEBROW_TRACK)
+        eb_row = (eyebrow, brand.TEXT_FONT, 800, EYEBROW_PX, brand.BONE, eb_x, geo["E"], EYEBROW_TRACK)
         eb_box = (eb_x - 8, geo["E"] - 54, eb_x + 8 + eb_w, geo["E"] + 10)
     # with an eyebrow the scrim starts EYEBROW_SCRIM_AIR above its rule (round 1 review 6: 24 px left the GOLD rule
     # on the scrim's soft edge, 1.7-2.5 on bright, white and busy photos)
@@ -4131,27 +4151,27 @@ def plan_hook_frame(spec: HookFrame, sheet: dict, width: int = 1080, height: int
     top = Image.new("RGBA", size, (0, 0, 0, 0))
     md, td = ImageDraw.Draw(marks), ImageDraw.Draw(top)
     if diamond:
-        td.polygon(diamond, outline=INK + (255,), width=3)
-        td.polygon(diamond, fill=GOLD + (255,))
+        td.polygon(diamond, outline=brand.INK + (255,), width=3)
+        td.polygon(diamond, fill=brand.GOLD + (255,))
     # no GOLD rule along the panel's foot (review 2026-11-03, round 4: it vanished against a yellow wall); the
     # panel's accents are the diamond and the GOLD last line, both on the INK
     card = _Card("hook", _Geo(width, height), ground0, target=HOOK_TARGET)
     hook = ("hook",)
     plates: list[Any] = []
     if mast_shown:
-        card._el("brand", "text", brand_plate.text, "Cinzel", 700, brand_plate.font.size, BONE, brand_plate.xy,
+        card._el("brand", "text", brand_plate.text, brand.MASTHEAD_FONT, 700, brand_plate.font.size, brand.BONE, brand_plate.xy,
                  "lt", brand_plate.track, brand_plate.box, hook)
         card.roles["brand"], card.drawn["brand"] = "masthead", brand_plate.text
-        card._el("brand_mark", "mark", "", "", None, 0, GOLD, (mcx, mcy), "", 0.0, tuple(mark_box), hook)
+        card._el("brand_mark", "mark", "", "", None, 0, brand.GOLD, (mcx, mcy), "", 0.0, tuple(mark_box), hook)
         card.roles["brand_mark"] = "mark"
         plates.append(brand_plate)
     lay_plates: dict[str, list] = {"title_1": [], "title_2": []}
     if rule:
         E = geo["E"]
-        td.rectangle([rule[0], rule[1], rule[2] - 1, rule[3] - 1], fill=GOLD + (255,))
-        card._el("eyebrow_rule", "mark", "", "", None, 0, GOLD, rule[:2], "", 0.0, rule, hook)
+        td.rectangle([rule[0], rule[1], rule[2] - 1, rule[3] - 1], fill=brand.GOLD + (255,))
+        card._el("eyebrow_rule", "mark", "", "", None, 0, brand.GOLD, rule[:2], "", 0.0, rule, hook)
         card.roles["eyebrow_rule"] = "rule"
-        it = card.text("eyebrow", eyebrow, "Montserrat", 800, EYEBROW_PX, BONE, eb_x, E, hook, "kicker",
+        it = card.text("eyebrow", eyebrow, brand.TEXT_FONT, 800, EYEBROW_PX, brand.BONE, eb_x, E, hook, "kicker",
                        track=EYEBROW_TRACK, rise=False, halo_px=0)
         for p in it["parts"]:
             p.alpha_scale = HOOK_EYEBROW_ALPHA      # H2: BONE at 80 %, the claim holds the only gold type
@@ -4160,11 +4180,11 @@ def plan_hook_frame(spec: HookFrame, sheet: dict, width: int = 1080, height: int
     n = len(lines)
     for k, (ln, x, b) in enumerate(zip(lines, xs, geo["baselines"])):
         gold = k in gold_ks and not gold_from
-        it = card.text(f"title_{k}", ln, "Anton", None, P, GOLD if gold else BONE, x, b, hook, "display", rise=False,
+        it = card.text(f"title_{k}", ln, brand.DISPLAY_FONT, None, P, brand.GOLD if gold else brand.BONE, x, b, hook, "display", rise=False,
                        halo_px=0, gold_from=gold_from if k == gold_k else None)
         plates += it["parts"]
         for p in it["parts"]:
-            lay_plates["title_2" if p.fill == GOLD else "title_1"].append(p)
+            lay_plates["title_2" if p.fill == brand.GOLD else "title_1"].append(p)
     if not lay_plates["title_2"]:
         del lay_plates["title_2"]
     lay.meta.setdefault("plates", {}).update(lay_plates)
@@ -4176,13 +4196,13 @@ def plan_hook_frame(spec: HookFrame, sheet: dict, width: int = 1080, height: int
         prov = lay.meta["provenance"]["plate"]
         if mast_shown and prov[1] < mast_foot + MASTHEAD_FOOT_PAD:
             raise CardRefused("the disclosure would collide with the masthead")
-        md.rectangle([prov[0], prov[1], prov[2], prov[3]], fill=INK + (255,))
+        md.rectangle([prov[0], prov[1], prov[2], prov[3]], fill=brand.INK + (255,))
         pp = lay.meta["plates"]["provenance"][0]
         if pp.contrast is None or pp.contrast < HOOK_TARGET:
             raise CardRefused(f"the disclosure reaches only {pp.contrast}")
-        card._el("provenance_plate", "mark", "", "", None, 0, INK, prov[:2], "", 0.0, tuple(prov), hook)
+        card._el("provenance_plate", "mark", "", "", None, 0, brand.INK, prov[:2], "", 0.0, tuple(prov), hook)
         card.roles["provenance_plate"] = "mark"
-        card._el("provenance", "text", pp.text, DATA_FONT, 600, pp.font.size, STONE_LT, pp.xy, "ls", 1.0, pp.box, hook)
+        card._el("provenance", "text", pp.text, brand.DATA_FONT, 600, pp.font.size, brand.STONE_LT, pp.xy, "ls", 1.0, pp.box, hook)
         card.roles["provenance"], card.drawn["provenance"] = "data", pp.text
         plates.append(pp)
     r_ = {"hook": True, "bg": bg, "under": under, "marks": marks, "top": top, "plates": plates, "last_t": 0.0}
@@ -4303,7 +4323,7 @@ def frame_at(plan: CardPlan, i: int, *, freeze_drift: bool = False) -> Image.Ima
                 im.paste(it["fill"], (x0, y0, x1, y1))
         elif it["type"] == "strike":
             c, kl = it["casing"], it.get("keyline", 0)
-            fill = it.get("fill", GOLD)
+            fill = it.get("fill", brand.GOLD)
             if it.get("back"):      # freeze panel M5: GOLD under the pen, then stepped back with the myth
                 q = _ease((t - it["back"][0]) / it["back"][1])
                 fill = tuple(_rhu(a + (b - a) * q) for a, b in zip(fill, it["fill_back"]))
@@ -4314,10 +4334,10 @@ def frame_at(plan: CardPlan, i: int, *, freeze_drift: bool = False) -> Image.Ima
                 xe = x0 + _rhu((x1 - x0) * p)
                 for a, b in _dashes(x0, xe, it.get("dash"), x1):
                     if c:
-                        im.paste(INK, (a - c, top - c, b + c, bot + c))
+                        im.paste(brand.INK, (a - c, top - c, b + c, bot + c))
                     if kl:
-                        im.paste(INK, (a, top - kl, b, top))
-                        im.paste(INK, (a, bot, b, bot + kl))
+                        im.paste(brand.INK, (a, top - kl, b, top))
+                        im.paste(brand.INK, (a, bot, b, bot + kl))
                     im.paste(fill, (a, top, b, bot))
         else:
             a = _alpha(motion[it["name"]], t)

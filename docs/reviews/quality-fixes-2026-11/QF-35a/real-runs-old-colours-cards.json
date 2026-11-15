@@ -1,0 +1,468 @@
+{
+ "surfaces": 26,
+ "groups": {
+  "card": 26
+ },
+ "only_default": [
+  "bridge__1_wieliczka_salt_mine",
+  "bridge__2_unfinished_obelisk_aswan",
+  "bridge__3_nazca_lines_runway_paradox",
+  "bridge__4_odessa_catacombs",
+  "bridge__5_nazca_lines_runway_paradox",
+  "bridge_follow__1_wieliczka_salt_mine",
+  "bridge_follow__2_unfinished_obelisk_aswan",
+  "bridge_follow__3_nazca_lines_runway_paradox",
+  "bridge_follow__4_odessa_catacombs",
+  "bridge_follow__5_nazca_lines_runway_paradox",
+  "callouts__reference_pair__916",
+  "captions__amber_room_heist__frame",
+  "captions__gol_gumbaz_whispering_gallery__frame",
+  "captions__tunguska_event_1908__frame",
+  "captions__voynich_manuscript__frame",
+  "cover__amber_room_heist__grid",
+  "cover__amber_room_heist__reel",
+  "cover__amber_room_heist__youtube",
+  "cover__greek_fire_siphon__grid",
+  "cover__greek_fire_siphon__reel",
+  "cover__greek_fire_siphon__youtube",
+  "cover__richat_structure_sahara_eye__grid",
+  "cover__richat_structure_sahara_eye__reel",
+  "cover__richat_structure_sahara_eye__youtube",
+  "cover__tunguska_event_1908__grid",
+  "cover__tunguska_event_1908__reel",
+  "cover__tunguska_event_1908__youtube",
+  "cover__wieliczka_salt_mine__grid",
+  "cover__wieliczka_salt_mine__reel",
+  "cover__wieliczka_salt_mine__youtube",
+  "cross_section__test_spec__169",
+  "cross_section__test_spec__916",
+  "endcard__1_wieliczka_salt_mine",
+  "endcard__2_unfinished_obelisk_aswan",
+  "endcard__3_nazca_lines_runway_paradox",
+  "endcard__4_odessa_catacombs",
+  "endcard__5_nazca_lines_runway_paradox",
+  "endscreen__0_richat_structure_sahara_eye",
+  "endscreen__6_wieliczka_salt_mine",
+  "endscreen__7_unfinished_obelisk_aswan",
+  "endscreen__8_roman_self_healing_concrete",
+  "map__amber_room_heist_1792790550__169",
+  "map__amber_room_heist_1792790550__916",
+  "map__damascus_steel_nanotubes_1792732472_short__169",
+  "map__damascus_steel_nanotubes_1792732472_short__916",
+  "map__gol_gumbaz_whispering_gallery_1793278143__169",
+  "map__gol_gumbaz_whispering_gallery_1793278143__916",
+  "map__greek_fire_siphon_1792735284_short__916",
+  "map__hal_saflieni_hypogeum_1792949304__916",
+  "map__kailasa_temple_monolith_1792524470__916",
+  "map__nazca_lines_runway_paradox_1792961797__916",
+  "map__odessa_catacombs_1792970549__916",
+  "map__richat_structure_sahara_eye_1792737039_short__916",
+  "map__roman_self_healing_concrete_1793161347__916",
+  "map__singing_colossi_of_memnon_1792952878__916",
+  "map__trepanation_miracle_1792995462__916",
+  "map__tunguska_event_1908_1792930600__916",
+  "map__unfinished_obelisk_aswan_1792985912__916",
+  "map__voynich_manuscript_1792965308__916",
+  "map__wieliczka_salt_mine_1792974672__916",
+  "numbers__amber_room_heist_1792790550__169",
+  "numbers__amber_room_heist_1792790550__916",
+  "numbers__damascus_steel_nanotubes_1792732472_short__169",
+  "numbers__damascus_steel_nanotubes_1792732472_short__916",
+  "numbers__gol_gumbaz_whispering_gallery_1793278143__169",
+  "numbers__gol_gumbaz_whispering_gallery_1793278143__916",
+  "numbers__hal_saflieni_hypogeum_1792949304__916",
+  "numbers__nazca_lines_runway_paradox_1792961797__916",
+  "numbers__odessa_catacombs_1792970549__916",
+  "numbers__richat_structure_sahara_eye_1792737039_short__916",
+  "numbers__singing_colossi_of_memnon_1792952878__916",
+  "numbers__trepanation_miracle_1792995462__916",
+  "numbers__tunguska_event_1908_1792930600__916",
+  "numbers__unfinished_obelisk_aswan_1792993374__916",
+  "numbers__voynich_manuscript_1792965308__916",
+  "route__amber_room_heist_1792801257_new_stops__169",
+  "route__amber_room_heist_1792801257_new_stops__916",
+  "scale__unfinished_obelisk_aswan_1792993374__169",
+  "scale__unfinished_obelisk_aswan_1792993374__916",
+  "scale__wieliczka_salt_mine_1792974672__169",
+  "scale__wieliczka_salt_mine_1792974672__916",
+  "social__gol_gumbaz_whispering_gallery_1793278143__carousel_carousel_slide_01",
+  "social__gol_gumbaz_whispering_gallery_1793278143__carousel_carousel_slide_02",
+  "social__gol_gumbaz_whispering_gallery_1793278143__carousel_carousel_slide_03",
+  "social__gol_gumbaz_whispering_gallery_1793278143__carousel_carousel_slide_04",
+  "social__gol_gumbaz_whispering_gallery_1793278143__carousel_carousel_slide_05",
+  "social__gol_gumbaz_whispering_gallery_1793278143__carousel_carousel_slide_06",
+  "social__gol_gumbaz_whispering_gallery_1793278143__carousel_carousel_slide_07",
+  "social__gol_gumbaz_whispering_gallery_1793278143__fb_carousel_slide_01",
+  "social__gol_gumbaz_whispering_gallery_1793278143__fb_carousel_slide_02",
+  "social__gol_gumbaz_whispering_gallery_1793278143__fb_carousel_slide_03",
+  "social__gol_gumbaz_whispering_gallery_1793278143__fb_carousel_slide_04",
+  "social__gol_gumbaz_whispering_gallery_1793278143__fb_carousel_slide_05",
+  "social__gol_gumbaz_whispering_gallery_1793278143__fb_carousel_slide_06",
+  "social__gol_gumbaz_whispering_gallery_1793278143__fb_carousel_slide_07",
+  "social__gol_gumbaz_whispering_gallery_1793278143__story_story_01_hook",
+  "social__gol_gumbaz_whispering_gallery_1793278143__story_story_02_reveal",
+  "social__gol_gumbaz_whispering_gallery_1793278143__story_story_03_question",
+  "social__nazca_lines_runway_paradox_1793247464__carousel_carousel_slide_01",
+  "social__nazca_lines_runway_paradox_1793247464__carousel_carousel_slide_02",
+  "social__nazca_lines_runway_paradox_1793247464__carousel_carousel_slide_03",
+  "social__nazca_lines_runway_paradox_1793247464__carousel_carousel_slide_04",
+  "social__nazca_lines_runway_paradox_1793247464__carousel_carousel_slide_05",
+  "social__nazca_lines_runway_paradox_1793247464__carousel_carousel_slide_06",
+  "social__nazca_lines_runway_paradox_1793247464__carousel_carousel_slide_07",
+  "social__nazca_lines_runway_paradox_1793247464__fb_carousel_slide_01",
+  "social__nazca_lines_runway_paradox_1793247464__fb_carousel_slide_02",
+  "social__nazca_lines_runway_paradox_1793247464__fb_carousel_slide_03",
+  "social__nazca_lines_runway_paradox_1793247464__fb_carousel_slide_04",
+  "social__nazca_lines_runway_paradox_1793247464__fb_carousel_slide_05",
+  "social__nazca_lines_runway_paradox_1793247464__fb_carousel_slide_06",
+  "social__nazca_lines_runway_paradox_1793247464__fb_carousel_slide_07",
+  "social__nazca_lines_runway_paradox_1793247464__story_story_01_hook",
+  "social__nazca_lines_runway_paradox_1793247464__story_story_02_reveal",
+  "social__nazca_lines_runway_paradox_1793247464__story_story_03_question",
+  "social__nazca_lines_runway_paradox_1793251266__carousel_carousel_slide_01",
+  "social__nazca_lines_runway_paradox_1793251266__carousel_carousel_slide_02",
+  "social__nazca_lines_runway_paradox_1793251266__carousel_carousel_slide_03",
+  "social__nazca_lines_runway_paradox_1793251266__carousel_carousel_slide_04",
+  "social__nazca_lines_runway_paradox_1793251266__carousel_carousel_slide_05",
+  "social__nazca_lines_runway_paradox_1793251266__carousel_carousel_slide_06",
+  "social__nazca_lines_runway_paradox_1793251266__carousel_carousel_slide_07",
+  "social__nazca_lines_runway_paradox_1793251266__fb_carousel_slide_01",
+  "social__nazca_lines_runway_paradox_1793251266__fb_carousel_slide_02",
+  "social__nazca_lines_runway_paradox_1793251266__fb_carousel_slide_03",
+  "social__nazca_lines_runway_paradox_1793251266__fb_carousel_slide_04",
+  "social__nazca_lines_runway_paradox_1793251266__fb_carousel_slide_05",
+  "social__nazca_lines_runway_paradox_1793251266__fb_carousel_slide_06",
+  "social__nazca_lines_runway_paradox_1793251266__fb_carousel_slide_07",
+  "social__nazca_lines_runway_paradox_1793251266__story_story_01_hook",
+  "social__nazca_lines_runway_paradox_1793251266__story_story_02_reveal",
+  "social__nazca_lines_runway_paradox_1793251266__story_story_03_question",
+  "social__richat_structure_sahara_eye_1793272675__carousel_carousel_slide_01",
+  "social__richat_structure_sahara_eye_1793272675__carousel_carousel_slide_02",
+  "social__richat_structure_sahara_eye_1793272675__carousel_carousel_slide_03",
+  "social__richat_structure_sahara_eye_1793272675__carousel_carousel_slide_04",
+  "social__richat_structure_sahara_eye_1793272675__carousel_carousel_slide_05",
+  "social__richat_structure_sahara_eye_1793272675__carousel_carousel_slide_06",
+  "social__richat_structure_sahara_eye_1793272675__carousel_carousel_slide_07",
+  "social__richat_structure_sahara_eye_1793272675__fb_carousel_slide_01",
+  "social__richat_structure_sahara_eye_1793272675__fb_carousel_slide_02",
+  "social__richat_structure_sahara_eye_1793272675__fb_carousel_slide_03",
+  "social__richat_structure_sahara_eye_1793272675__fb_carousel_slide_04",
+  "social__richat_structure_sahara_eye_1793272675__fb_carousel_slide_05",
+  "social__richat_structure_sahara_eye_1793272675__fb_carousel_slide_06",
+  "social__richat_structure_sahara_eye_1793272675__fb_carousel_slide_07",
+  "social__richat_structure_sahara_eye_1793272675__story_story_01_hook",
+  "social__richat_structure_sahara_eye_1793272675__story_story_02_reveal",
+  "social__richat_structure_sahara_eye_1793272675__story_story_03_question",
+  "thennow__roman_self_healing_concrete__169",
+  "thennow__roman_self_healing_concrete__916",
+  "thennow__singing_colossi_of_memnon__169",
+  "thennow__singing_colossi_of_memnon__916",
+  "timeline__amber_room_heist_1792790550__169",
+  "timeline__amber_room_heist_1792790550__916",
+  "timeline__hal_saflieni_hypogeum_1792949304__169",
+  "timeline__hal_saflieni_hypogeum_1792949304__916",
+  "timeline__nazca_lines_runway_paradox_1792961797__169",
+  "timeline__nazca_lines_runway_paradox_1792961797__916",
+  "timeline__richat_structure_sahara_eye_1793272675__916",
+  "timeline__roman_self_healing_concrete_1793161347__916",
+  "timeline__singing_colossi_of_memnon_1792952878__916"
+ ],
+ "marks": {
+  "roles": 17,
+  "today_px_in_default_frames": 3921964,
+  "today_px_in_test_brand_frames": 10,
+  "excess_px": 0,
+  "test_brand_px_in_its_own_frames": 3918573
+ },
+ "roles": {
+  "INK": {
+   "class": "ground",
+   "default": 31260,
+   "test_brand": 0,
+   "excess": 0,
+   "own_in_default": 140,
+   "own_in_test_brand": 31400,
+   "surfaces_with_excess": []
+  },
+  "INK2": {
+   "class": "ground",
+   "default": 0,
+   "test_brand": 0,
+   "excess": 0,
+   "own_in_default": 12747,
+   "own_in_test_brand": 12235,
+   "surfaces_with_excess": []
+  },
+  "BONE": {
+   "class": "mark",
+   "default": 2983645,
+   "test_brand": 1,
+   "excess": 0,
+   "own_in_default": 0,
+   "own_in_test_brand": 2983644,
+   "surfaces_with_excess": []
+  },
+  "STONE_LT": {
+   "class": "mark",
+   "default": 529786,
+   "test_brand": 1,
+   "excess": 0,
+   "own_in_default": 1,
+   "own_in_test_brand": 529786,
+   "surfaces_with_excess": []
+  },
+  "GOLD": {
+   "class": "mark",
+   "default": 400900,
+   "test_brand": 1,
+   "excess": 0,
+   "own_in_default": 0,
+   "own_in_test_brand": 403856,
+   "surfaces_with_excess": []
+  },
+  "GOLD_DIM": {
+   "class": "mark",
+   "default": 7534,
+   "test_brand": 0,
+   "excess": 0,
+   "own_in_default": 0,
+   "own_in_test_brand": 1240,
+   "surfaces_with_excess": []
+  },
+  "LAND": {
+   "class": "ground",
+   "default": 349,
+   "test_brand": 349,
+   "excess": 0,
+   "own_in_default": 392,
+   "own_in_test_brand": 545,
+   "surfaces_with_excess": []
+  },
+  "HOME": {
+   "class": "mark",
+   "default": 2,
+   "test_brand": 2,
+   "excess": 0,
+   "own_in_default": 0,
+   "own_in_test_brand": 0,
+   "surfaces_with_excess": []
+  },
+  "BORDER": {
+   "class": "mark",
+   "default": 0,
+   "test_brand": 0,
+   "excess": 0,
+   "own_in_default": 15,
+   "own_in_test_brand": 5,
+   "surfaces_with_excess": []
+  },
+  "GRID": {
+   "class": "ground",
+   "default": 0,
+   "test_brand": 0,
+   "excess": 0,
+   "own_in_default": 25086,
+   "own_in_test_brand": 25027,
+   "surfaces_with_excess": []
+  },
+  "LAND_TINT": {
+   "class": "mark",
+   "default": 0,
+   "test_brand": 0,
+   "excess": 0,
+   "own_in_default": 46,
+   "own_in_test_brand": 12,
+   "surfaces_with_excess": []
+  },
+  "HOME_TINT": {
+   "class": "mark",
+   "default": 1,
+   "test_brand": 1,
+   "excess": 0,
+   "own_in_default": 0,
+   "own_in_test_brand": 0,
+   "surfaces_with_excess": []
+  },
+  "SEA_TOP": {
+   "class": "ground",
+   "default": 0,
+   "test_brand": 0,
+   "excess": 0,
+   "own_in_default": 15,
+   "own_in_test_brand": 15,
+   "surfaces_with_excess": []
+  },
+  "SEA_DEEP": {
+   "class": "ground",
+   "default": 0,
+   "test_brand": 0,
+   "excess": 0,
+   "own_in_default": 27,
+   "own_in_test_brand": 27,
+   "surfaces_with_excess": []
+  },
+  "GLOBE_LAND": {
+   "class": "mark",
+   "default": 46,
+   "test_brand": 2,
+   "excess": 0,
+   "own_in_default": 0,
+   "own_in_test_brand": 15,
+   "surfaces_with_excess": []
+  },
+  "WATER_FILL": {
+   "class": "mark",
+   "default": 0,
+   "test_brand": 0,
+   "excess": 0,
+   "own_in_default": 1,
+   "own_in_test_brand": 1,
+   "surfaces_with_excess": []
+  },
+  "PANEL": {
+   "class": "ground",
+   "default": 3,
+   "test_brand": 3,
+   "excess": 0,
+   "own_in_default": 3,
+   "own_in_test_brand": 35015,
+   "surfaces_with_excess": []
+  },
+  "HATCH": {
+   "class": "mark",
+   "default": 0,
+   "test_brand": 0,
+   "excess": 0,
+   "own_in_default": 13,
+   "own_in_test_brand": 9,
+   "surfaces_with_excess": []
+  },
+  "TALL_LABEL_FILL": {
+   "class": "mark",
+   "default": 50,
+   "test_brand": 2,
+   "excess": 0,
+   "own_in_default": 0,
+   "own_in_test_brand": 5,
+   "surfaces_with_excess": []
+  },
+  "EARTH": {
+   "class": "ground",
+   "default": 3283,
+   "test_brand": 1934,
+   "excess": 9,
+   "own_in_default": 0,
+   "own_in_test_brand": 0,
+   "surfaces_with_excess": [
+    [
+     "card__myth_long_et__amber__169",
+     9
+    ]
+   ]
+  },
+  "EARTH_LINE": {
+   "class": "ground",
+   "default": 2976,
+   "test_brand": 2756,
+   "excess": 0,
+   "own_in_default": 0,
+   "own_in_test_brand": 0,
+   "surfaces_with_excess": []
+  },
+  "ROCK_TOP": {
+   "class": "ground",
+   "default": 20091,
+   "test_brand": 18019,
+   "excess": 66,
+   "own_in_default": 296,
+   "own_in_test_brand": 296,
+   "surfaces_with_excess": [
+    [
+     "card__myth_richat__amber__169",
+     34
+    ],
+    [
+     "card__myth_long_et__amber__169",
+     23
+    ],
+    [
+     "card__chapter_act4__amber__916",
+     4
+    ],
+    [
+     "card__chapter_act1__amber__916",
+     3
+    ],
+    [
+     "card__chapter_act1__richat__169",
+     1
+    ],
+    [
+     "card__chapter_act4__richat__916",
+     1
+    ]
+   ]
+  },
+  "ROCK_DEEP": {
+   "class": "ground",
+   "default": 23122,
+   "test_brand": 21372,
+   "excess": 8,
+   "own_in_default": 36182,
+   "own_in_test_brand": 35764,
+   "surfaces_with_excess": [
+    [
+     "card__chapter_act1__amber__916",
+     2
+    ],
+    [
+     "card__chapter_act4__amber__916",
+     2
+    ],
+    [
+     "card__chapter_act1__amber__169",
+     1
+    ],
+    [
+     "card__chapter_act1__obelisk__169",
+     1
+    ],
+    [
+     "card__chapter_act4__amber__169",
+     1
+    ],
+    [
+     "card__myth_richat__amber__169",
+     1
+    ]
+   ]
+  },
+  "PLATE": {
+   "class": "ground",
+   "default": 0,
+   "test_brand": 0,
+   "excess": 0,
+   "own_in_default": 33,
+   "own_in_test_brand": 33,
+   "surfaces_with_excess": []
+  },
+  "GLOW_INK": {
+   "class": "ground",
+   "default": 23,
+   "test_brand": 23,
+   "excess": 0,
+   "own_in_default": 0,
+   "own_in_test_brand": 0,
+   "surfaces_with_excess": []
+  },
+  "ACCENT_BACKDROP": {
+   "class": "ground",
+   "default": 4,
+   "test_brand": 4,
+   "excess": 0,
+   "own_in_default": 20328,
+   "own_in_test_brand": 15096,
+   "surfaces_with_excess": []
+  }
+ }
+}

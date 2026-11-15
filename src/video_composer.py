@@ -34,7 +34,6 @@ from PIL import Image, ImageFilter
 from .config import (
     AUDIO_SAMPLE_RATE,
     FONTS_DIR,
-    FONT_NAME,
     FONT_SIZE,
     FONT_SIZE_ASS,
     CAPTION_MARGIN_V,
@@ -48,12 +47,11 @@ from .config import (
     CAPTION_PAD_Y,
     CAPTION_BORDER_RADIUS,
     EMPHASIS_POP,
-    COL_BACK,  # the pill; the text colours are the brand's (below)
+    COL_BACK as _PLATE_ASS,  # the pill: its alpha (the colour is the brand's INK, below)
     CAPTION_LEAD_FRAMES,
     CAPTION_PAUSE_GAP,
     CAPTION_PAUSE_TAIL,
     CAPTION_MIN_CHUNK,
-    CAPTION_WIDE_FONT,
     CAPTION_WIDE_SIZE,
     CAPTION_WIDE_MARGIN_V,
     CAPTION_WIDE_MAX_CHARS,
@@ -98,7 +96,6 @@ from .config import (
     SIDECAR_MAX_LINES,
     SIDECAR_MIN_CUE,
     SIDECAR_MAX_CUE,
-    RECON_FONT,
     RECON_SIZE_PORTRAIT,
     RECON_SIZE_WIDE,
     RECON_PLATE_ALPHA,
@@ -116,9 +113,41 @@ from . import brand as _brand
 # stays the pill: measured on graded frames of three topics (docs/reviews/brand-overhaul-2026-10-29), the pill
 # kept spoken words at 9.1:1 or better and gold at 6.0:1, where the critic's stroke-and-halo fell to 4.07:1 and
 # 2.56:1 on bright desert; the old grey upcoming words read 3.70:1 on the pill, so they are light stone now.
-COL_ACTIVE = COL_PAST = _brand.ass_colour(_brand.BONE)
-COL_EMPHASIS = _brand.ass_colour(_brand.GOLD)
-COL_FUTURE = _brand.ass_colour(_brand.STONE_LT)
+# Read from the active brand when a caption file is written (QF-35a role tokens): COL_ACTIVE and COL_PAST are BONE,
+# COL_EMPHASIS GOLD, COL_FUTURE STONE_LT, COL_BACK the INK plate at config.COL_BACK's alpha; the 9:16 caption face is
+# brand.CAPTION_FONT (config.FONT_NAME by default) and the 16:9 one brand.CAPTION_WIDE_FONT (config.CAPTION_WIDE_FONT).
+
+
+def _col_active() -> str:
+    return _brand.ass_colour(_brand.BONE)
+
+
+def _col_past() -> str:
+    return _brand.ass_colour(_brand.BONE)
+
+
+def _col_emphasis() -> str:
+    return _brand.ass_colour(_brand.GOLD)
+
+
+def _col_future() -> str:
+    return _brand.ass_colour(_brand.STONE_LT)
+
+
+def _col_back() -> str:
+    return _brand.ass_colour(_brand.INK, int(_PLATE_ASS.strip("&Hh")[:2], 16))
+
+
+_BRAND_NAMES = {"COL_ACTIVE": _col_active, "COL_PAST": _col_past, "COL_EMPHASIS": _col_emphasis,
+                "COL_FUTURE": _col_future, "COL_BACK": _col_back, "FONT_NAME": lambda: _brand.CAPTION_FONT,
+                "CAPTION_WIDE_FONT": lambda: _brand.CAPTION_WIDE_FONT, "RECON_FONT": lambda: _brand.BADGE_FONT}
+
+
+def __getattr__(name: str):
+    """A caption colour or face this module bound at import before QF-35a: the active brand's, read now."""
+    if name in _BRAND_NAMES:
+        return _BRAND_NAMES[name]()
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 # Upcoming words (caption review round 2, 2026-11-02, finding 2): light stone against bone was about 25% apart in
 # luminance, so the spoken word barely stood out. They are now drawn fully transparent: they keep their place in
 # the line (no reflow as words appear) and show only when spoken. COL_FUTURE stays their (invisible) colour.
@@ -360,12 +389,58 @@ def _caption_family() -> str:
     """The family a 9:16 caption is drawn and measured in: with CAPTION_SMALL_CAPS the derived caption face
     (font_assets.CAPTION_FAMILY, Anton with its smcp glyphs as the default lower case: libass applies no OpenType
     feature a script asks for), else FONT_NAME. The small capitals exist for Anton only."""
-    from .font_assets import CAPTION_FAMILY
+    from .font_assets import CAPTION_FAMILY, DERIVED_FAMILIES
+    from .typography import FONT_FILES
+    family = _brand.CAPTION_FONT
     if CAPTION_SMALL_CAPS:
-        if FONT_NAME != "Anton":
+        if FONT_FILES.get(family) != DERIVED_FAMILIES[CAPTION_FAMILY][0]:
             raise ValueError("True caption small caps require the approved Anton-derived face")
         return CAPTION_FAMILY
-    return FONT_NAME
+    return family
+
+
+def _wide_caption_family() -> str:
+    """The family libass draws a 16:9 caption in, from the brand's caption_wide role (the family the line is measured
+    in: brand.CAPTION_WIDE_FONT at weight 700). libass sets no variation axes, so a role whose bundled file is a
+    variable source draws in the static 700 instance derived from it (font_assets.DERIVED_FAMILIES: Montserrat ->
+    WIDE_FAMILY, today's face; Cinzel -> WIDE_SERIF_FAMILY); a static family draws as it is (compose_video's
+    libass_font_problems refuses one with no face near 700). A variable family with no derived 700 instance is
+    refused: libass would draw its default instance, not the one the plate is measured in."""
+    from .font_assets import DERIVED_FAMILIES
+    from .font_engine import inspect_font
+    from .typography import FONT_FILES, STATIC_WEIGHTS
+    family = _brand.CAPTION_WIDE_FONT
+    if family in DERIVED_FAMILIES:
+        return family
+    for derived, (source, operation) in DERIVED_FAMILIES.items():
+        if operation == "wght700" and FONT_FILES.get(family) == source:
+            return derived
+    if family in STATIC_WEIGHTS or family in FONT_FILES and not inspect_font(str(FONTS_DIR / FONT_FILES[family])).axes:
+        return family
+    raise ValueError(f"The 16:9 caption face {family!r} has no static instance libass can draw at the measured weight "
+                     "(a variable font with no derived face in font_assets.DERIVED_FAMILIES, or not a bundled family)")
+
+
+def _badge_family() -> str:
+    """The family libass draws the AI-reconstruction badge in, from the brand's badge role (measured at weight 600):
+    a role whose bundled file is a variable source draws its derived static 600 instance (font_assets.DERIVED_FAMILIES:
+    Montserrat -> RR Sans SemiBold, Cinzel -> RR Serif SemiBold; QF-35a round 2: libass sets no variation axes, so the
+    variable file drew its default 400 instance, thickened, under a plate measured at 600); a static family draws as
+    itself (the default, IBM Plex Mono). Any other is refused."""
+    from .font_assets import DERIVED_FAMILIES
+    from .font_engine import inspect_font
+    from .typography import FONT_FILES, STATIC_WEIGHTS
+    family = _brand.BADGE_FONT
+    if family in DERIVED_FAMILIES:
+        return family
+    for derived, (source, operation) in DERIVED_FAMILIES.items():
+        if operation == "wght600" and FONT_FILES.get(family) == source:
+            return derived
+    if family in STATIC_WEIGHTS or family in FONT_FILES and not inspect_font(str(FONTS_DIR / FONT_FILES[family])).axes:
+        return family
+    raise ValueError(f"The reconstruction badge face {family!r} has no static instance libass can draw at the measured "
+                     "weight (a variable font with no derived face in font_assets.DERIVED_FAMILIES, or not a bundled "
+                     "family)")
 
 
 @lru_cache(maxsize=16)
@@ -1794,14 +1869,14 @@ def format_word_caption(
     ease = f"{{\\alpha&HFF&\\t(0,{int(ease_ms)},\\alpha&H00&)}}" if is_spoken_now and ease_ms > 0 else ""
     # Freeze pass C11 (2026-11-04): gold is on the key term's letters and figures; its trailing punctuation is bone
     # K1: a quote mark before a gold word is bone too
-    lead, core, tail = gold_parts(clean) if is_key and colour == COL_EMPHASIS else ("", clean, "")
+    lead, core, tail = gold_parts(clean) if is_key and colour == _col_emphasis() else ("", clean, "")
     if not enable_small_caps:
-        out = ease + (f"{{\\c{COL_PAST}}}{lead}" if lead else "") + f"{{\\c{colour}\\fscx100\\fscy100}}{core.upper()}"
-        return out + (f"{{\\c{COL_PAST}}}{tail}" if tail else "")
-    out = ease + (f"{{\\c{COL_PAST}\\fscx100\\fscy100}}{lead}" if lead else "")
+        out = ease + (f"{{\\c{_col_past()}}}{lead}" if lead else "") + f"{{\\c{colour}\\fscx100\\fscy100}}{core.upper()}"
+        return out + (f"{{\\c{_col_past()}}}{tail}" if tail else "")
+    out = ease + (f"{{\\c{_col_past()}\\fscx100\\fscy100}}{lead}" if lead else "")
     out += f"{{\\c{colour}\\fscx100\\fscy100}}{core}"
     if tail:
-        out += f"{{\\c{COL_PAST}\\fscx100\\fscy100}}{tail}"
+        out += f"{{\\c{_col_past()}\\fscx100\\fscy100}}{tail}"
     return out
 
 
@@ -3460,13 +3535,16 @@ def _ass_alpha(colour: str) -> float:
     return int(digits[:2], 16) / 255.0 if len(digits) == 8 else 0.0
 
 
-def caption_contrast_record(bursts: list[dict[str, Any]], plate: str = COL_BACK, text: str = COL_PAST,
-                            emphasis: str = COL_EMPHASIS) -> dict[str, Any]:
+def caption_contrast_record(bursts: list[dict[str, Any]], plate: str | None = None, text: str | None = None,
+                            emphasis: str | None = None) -> dict[str, Any]:
     """WCAG ratios of the colours the caption file draws (its text, emphasis and plate ASS colours, so a change
     to any of them is measured) on the plate, the plate's alpha composited over the worst-case ground: white,
     unless the plate is lighter than mid-grey, then black. One text element per burst, and a gold one where the
     burst shows gold. `bursts`: {"burst", "text", "gold"} rows."""
     from .typography import contrast_ratio, rel_luminance
+    plate = _col_back() if plate is None else plate
+    text = _col_past() if text is None else text
+    emphasis = _col_emphasis() if emphasis is None else emphasis
     alpha = _ass_alpha(plate)
     fill = _ass_rgb(plate)
     ground_name, ground = ("white", (255, 255, 255)) if rel_luminance(fill) < 0.18 else ("black", (0, 0, 0))
@@ -3555,7 +3633,7 @@ def _fits_wide(phrase: Any, max_width: int, max_chars: int | None = CAPTION_WIDE
     text = " ".join(_phrase_words(phrase))
     if max_chars is not None and len(text) > max_chars:
         return False
-    font = get_font(CAPTION_WIDE_FONT, CAPTION_WIDE_SIZE, weight=700)
+    font = get_font(_brand.CAPTION_WIDE_FONT, CAPTION_WIDE_SIZE, weight=700)
     return unkerned_length(font, text) + 2 * CAPTION_PAD_X <= max_width
 
 
@@ -4088,23 +4166,32 @@ class VideoComposer:
         Freeze pass G1: with `graphic_clips` ((start, end, clip) as caption_graphic_clips reads them), a 9:16 burst
         over a graphic whose text reaches into its plate (graphic_caption_intrusion) draws its plate near-opaque
         (CAPTION_GUARD_ALPHA); each is listed in self.last_caption_graphic_overlap and logged as a warning.
-        Supports both 9:16 vertical (Reels) and 16:9 widescreen (Documentaries: one Montserrat Bold line, in the
-        static 700 instance derived from the one Montserrat source, font_assets.WIDE_FAMILY). Either derived face is
-        embedded in the ASS file ([Fonts]), so libass draws it without an installed font.
+        Supports both 9:16 vertical (Reels) and 16:9 widescreen (Documentaries: one line in the brand's caption_wide
+        face at 700, by default Montserrat Bold drawn in the static 700 instance derived from the one Montserrat
+        source, font_assets.WIDE_FAMILY: _wide_caption_family). Either derived face is embedded in the ASS file
+        ([Fonts]), so libass draws it without an installed font.
         """
         from .font_assets import (
             DERIVED_FAMILIES,
-            WIDE_FAMILY,
             ass_embedded_font,
             derived_font,
         )
         from .typography import get_font
         is_widescreen = width > height
-        caption_family = WIDE_FAMILY if is_widescreen else _caption_family()
+        caption_family = _wide_caption_family() if is_widescreen else _caption_family()
         # QF-94: a word no bundled face draws is on the review card under "captions" (libass draws it)
         _record_caption_faces(words, caption_family, upper=not is_widescreen and not CAPTION_SMALL_CAPS)
         # the face the captions are measured in (typography.get_font: derived from the bundled fonts), embedded
         embedded_font = derived_font(caption_family) if caption_family in DERIVED_FAMILIES else None
+        # the badge's face (QF-35a round 2): drawn in the face it is measured in, embedded when derived and on screen
+        try:
+            badge_family = _badge_family()
+        except ValueError:
+            if reconstruction_intervals:
+                raise
+            badge_family = _brand.BADGE_FONT     # round 3: no badge is drawn, so its unused style names the role's face
+        embedded_badge = (derived_font(badge_family) if badge_family in DERIVED_FAMILIES and reconstruction_intervals
+                          else None)
         if is_widescreen:
             eff_margin_v = margin_v if margin_v is not None else round(CAPTION_WIDE_MARGIN_V * height / 1080)
         else:
@@ -4116,25 +4203,25 @@ class VideoComposer:
 
         if is_widescreen:
             wide_px = round(CAPTION_WIDE_SIZE * height / 1080)
-            wide_fs = ass_font_size(CAPTION_WIDE_FONT, wide_px, 700)
+            wide_fs = ass_font_size(_brand.CAPTION_WIDE_FONT, wide_px, 700)
             badge_px = round(RECON_SIZE_WIDE * height / 1080)
-            badge_fs = ass_font_size(RECON_FONT, badge_px, 600)
+            badge_fs = ass_font_size(_brand.BADGE_FONT, badge_px, 600)
             styles = (
-                f"Style: CapText,{caption_family},{wide_fs},{COL_PAST},&H000000FF,&H00000000,&H00000000,-1,0,0,0,100,100,0,0,1,0,0,5,0,0,0,1\n"
-                f"Style: CapBox,{caption_family},{wide_fs},{COL_BACK},&H000000FF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,7,0,0,0,1\n"
-                f"Style: ReconBadge,{RECON_FONT},{badge_fs},{COL_ACTIVE},&H000000FF,&H00000000,&H00000000,-1,0,0,0,100,100,1.5,0,1,0,0,7,0,0,0,1\n"
-                f"Style: ReconPlate,{RECON_FONT},{badge_fs},{recon_plate},&H000000FF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,7,0,0,0,1\n"
+                f"Style: CapText,{caption_family},{wide_fs},{_col_past()},&H000000FF,&H00000000,&H00000000,-1,0,0,0,100,100,0,0,1,0,0,5,0,0,0,1\n"
+                f"Style: CapBox,{caption_family},{wide_fs},{_col_back()},&H000000FF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,7,0,0,0,1\n"
+                f"Style: ReconBadge,{badge_family},{badge_fs},{_col_active()},&H000000FF,&H00000000,&H00000000,-1,0,0,0,100,100,1.5,0,1,0,0,7,0,0,0,1\n"
+                f"Style: ReconPlate,{badge_family},{badge_fs},{recon_plate},&H000000FF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,7,0,0,0,1\n"
             )
         else:
             badge_px = RECON_SIZE_PORTRAIT
-            badge_fs = ass_font_size(RECON_FONT, badge_px, 600)
+            badge_fs = ass_font_size(_brand.BADGE_FONT, badge_px, 600)
             # CapText Bold 0 (QF-87): Anton has one weight (400); Bold -1 asked libass for 700, and libass thickened
             # the outlines synthetically (about 10% more ink than the face draws). The caption face draws as designed.
             styles = (
-                f"Style: CapText,{caption_family},{FONT_SIZE_ASS},{COL_PAST},&H000000FF,&H00000000,&H00000000,0,0,0,0,100,100,{REEL_LETTER_SPACING:g},0,1,0,0,5,0,0,0,1\n"
-                f"Style: CapBox,{caption_family},{FONT_SIZE_ASS},{COL_BACK},&H000000FF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,7,0,0,0,1\n"
-                f"Style: ReconBadge,{RECON_FONT},{badge_fs},{COL_ACTIVE},&H000000FF,&H00000000,&H00000000,-1,0,0,0,100,100,1.5,0,1,0,0,7,0,0,0,1\n"
-                f"Style: ReconPlate,{RECON_FONT},{badge_fs},{recon_plate},&H000000FF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,7,0,0,0,1\n"
+                f"Style: CapText,{caption_family},{FONT_SIZE_ASS},{_col_past()},&H000000FF,&H00000000,&H00000000,0,0,0,0,100,100,{REEL_LETTER_SPACING:g},0,1,0,0,5,0,0,0,1\n"
+                f"Style: CapBox,{caption_family},{FONT_SIZE_ASS},{_col_back()},&H000000FF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,7,0,0,0,1\n"
+                f"Style: ReconBadge,{badge_family},{badge_fs},{_col_active()},&H000000FF,&H00000000,&H00000000,-1,0,0,0,100,100,1.5,0,1,0,0,7,0,0,0,1\n"
+                f"Style: ReconPlate,{badge_family},{badge_fs},{recon_plate},&H000000FF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,7,0,0,0,1\n"
             )
         # YCbCr Matrix: None (QF-02): the captions are drawn on the 16-bit RGB picture, so libass writes the colours as
         # they are and the master's one BT.709 conversion encodes them; a TV.709 header (QF-01, drawn on BT.709 YUV)
@@ -4195,11 +4282,11 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             has_key = any(base + j in key for j in range(len(phrase)))
             shown = _phrase_words(phrase)
             if is_widescreen:
-                font = get_font(CAPTION_WIDE_FONT, wide_px, weight=700)
+                font = get_font(_brand.CAPTION_WIDE_FONT, wide_px, weight=700)
                 text_w = unkerned_length(font, " ".join(_ass_escape(w) for w in shown))   # as libass draws it
                 shrink = min(1.0, (max_caption_width - 2 * CAPTION_PAD_X) / max(1.0, text_w))
                 size_tag = f"{{\\fs{int(wide_fs * shrink)}}}" if shrink < 1.0 else ""
-                cap_top, desc_bottom = (v * shrink for v in _ink_band(CAPTION_WIDE_FONT, wide_px, wide_fs, 700))
+                cap_top, desc_bottom = (v * shrink for v in _ink_band(_brand.CAPTION_WIDE_FONT, wide_px, wide_fs, 700))
                 box_w = round(text_w * shrink + CAPTION_PAD_X * 2)
                 box_h = round(desc_bottom - cap_top + CAPTION_PAD_Y * 2)
                 box_y = height - eff_margin_v - box_h
@@ -4315,10 +4402,10 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                 # Layer 1, 16:9: the whole burst at once, still, from show to hide
                 def _wide_word(ji: int, w: str) -> str:
                     if ji not in gold_words:
-                        return f"{{\\c{COL_PAST}}}{_ass_escape(w)}"
+                        return f"{{\\c{_col_past()}}}{_ass_escape(w)}"
                     lead, core, tail = gold_parts(_ass_escape(w))   # C11/K1: its punctuation and quotes are bone
-                    return ((f"{{\\c{COL_PAST}}}{lead}" if lead else "") + f"{{\\c{COL_EMPHASIS}}}{core}"
-                            + (f"{{\\c{COL_PAST}}}{tail}" if tail else ""))
+                    return ((f"{{\\c{_col_past()}}}{lead}" if lead else "") + f"{{\\c{_col_emphasis()}}}{core}"
+                            + (f"{{\\c{_col_past()}}}{tail}" if tail else ""))
                 line = " ".join(_wide_word(ji, w) for ji, w in enumerate(shown))
                 raw_events.append((1, show, hide, "CapText", f"{pos}{g['size_tag']}{line}"))
                 continue
@@ -4340,9 +4427,9 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                         disp_word = shown[ji]
                         is_key = ji in gold_words and wi >= gold_from[ji]
                         if ji > wi:
-                            colour = COL_FUTURE
+                            colour = _col_future()
                         else:
-                            colour = COL_EMPHASIS if is_key else COL_PAST if ji < wi else COL_ACTIVE
+                            colour = _col_emphasis() if is_key else _col_past() if ji < wi else _col_active()
                         word_ass = format_word_caption(disp_word, colour=colour, is_key=is_key,
                                                        is_spoken_now=(ji == wi), has_key=bool(gold_words),
                                                        ease_ms=0 if whole else CAPTION_WORD_EASE_MS)
@@ -4369,8 +4456,8 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             # caption review of 2026-11-02 (operator approved moving it).
             scale = height / 1080 if is_widescreen else 1
             pad_x, pad_y = round(14 * scale), round(8 * scale)
-            b_top, b_bottom = _ink_band(RECON_FONT, badge_px, badge_fs, 600)
-            tw = unkerned_length(get_font(RECON_FONT, badge_px, weight=600), label) + 1.5 * len(label)
+            b_top, b_bottom = _ink_band(_brand.BADGE_FONT, badge_px, badge_fs, 600)
+            tw = unkerned_length(get_font(_brand.BADGE_FONT, badge_px, weight=600), label) + 1.5 * len(label)
             if is_widescreen:
                 x0, y0 = round(0.05 * width), round(0.05 * height)
             else:
@@ -4389,6 +4476,13 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 
         if embedded_font:
             header = header.replace("[Events]", ass_embedded_font(embedded_font) + "\n[Events]")
+        if embedded_badge and embedded_badge != embedded_font:
+            fonts = ass_embedded_font(embedded_badge)
+            if "[Fonts]" in header:                              # one [Fonts] section holds both faces
+                fonts = fonts.split("\n", 1)[1]
+                header = header.replace("\n[Events]", fonts + "\n[Events]", 1)
+            else:
+                header = header.replace("[Events]", fonts + "\n[Events]")
         lines = [header]
         for layer, ts, te, style, txt in raw_events:
             ts, te = ts + timeline_offset_s, te + timeline_offset_s
@@ -4629,11 +4723,11 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         width, height = profile.width, profile.height
         from .checkpoints import file_inputs, fingerprint
         from .credits import sha256_file
-        from .font_assets import DERIVED_FAMILIES, WIDE_FAMILY, derived_font
+        from .font_assets import DERIVED_FAMILIES, derived_font
         from .typography import bundled_font_files, font_file
         extra_sources = [opening_card] if opening_card else []
         source_inputs = file_inputs([*scene_images, vo_path, bed_path, *extra_sources])
-        caption_family = WIDE_FAMILY if width > height else _caption_family()
+        caption_family = _wide_caption_family() if width > height else _caption_family()
         try:
             derived_caption = (derived_font(caption_family, self.fonts_dir) if caption_family in DERIVED_FAMILIES
                                else self.fonts_dir / font_file(caption_family))
@@ -4705,6 +4799,24 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         font_problems = libass_font_problems(self.fonts_dir, [caption_font], [derived_caption])
         if font_problems:
             raise RenderError("Captions would not draw in the bundled font: " + "; ".join(font_problems))
+        # the AI-reconstruction badge (QF-35a round 2): its style asks bold (700) and its plate is measured at 600, so
+        # the face libass finds must weigh within 150 of 700 (no synthetic weight). A static face libass cannot find by
+        # its family name (the default IBM Plex Mono: its files are named "IBM Plex Mono SmBld" / "Medm") draws in a
+        # system face: that is 1599d93b's, logged as its own row, so a missing name is refused only for a derived
+        # badge face, which this module embeds.
+        # Round 3: checked only when the badge is drawn (recon_intervals, the condition build_subtitles draws and
+        # embeds it on): a composition with no reconstruction never draws the badge face.
+        if recon_intervals:
+            try:
+                badge_family = _badge_family()
+                badge_extra = [derived_font(badge_family, self.fonts_dir)] if badge_family in DERIVED_FAMILIES else []
+            except (OSError, ValueError) as exc:
+                raise RenderError("The reconstruction badge would not draw in the bundled font: " + str(exc)) from exc
+            badge_problems = [p for p in libass_font_problems(self.fonts_dir, [(badge_family, 700)], badge_extra)
+                              if badge_extra or not p.startswith("no bundled font is named")]
+            if badge_problems:
+                raise RenderError("The reconstruction badge would not draw in the bundled font: "
+                                  + "; ".join(badge_problems))
         from . import end_card as card_mod
         card = bool((end_card or "").strip()) and width < height
         card_seconds = card_mod.LOOP_SECONDS if card else 0.0   # the loop bridge (card_mod.SECONDS until 2026-11-03)
@@ -5225,3 +5337,10 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         ])
         log.info("Review proxy: %s (%.1f MB)", proxy_path.name, os.path.getsize(proxy_path) / (1024 * 1024))
         return proxy_path
+
+
+# The caption measures cached by words alone are taken in the caption face (_caption_family): dropped when the brand
+# changes, so a brand with another caption face never reads the previous one's (QF-35a).
+for _cached in (_glyph_box, _libass_line, _caption_line_run, _caption_line_ink, _two_line_options, _two_line_cached,
+                _reel_caption_lines):
+    _brand.on_change(_cached.cache_clear)

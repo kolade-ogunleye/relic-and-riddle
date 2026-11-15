@@ -1,0 +1,16 @@
+{
+ "base": "1599d93b",
+ "default_rerender": {
+  "surfaces": 66,
+  "identical_to_base": 66,
+  "differing": [],
+  "errors": 0,
+  "src_sha256": "3d8a8648d31dca43",
+  "jobs": "r2/jobs-default.txt: thennow, captions, 20 random jobs (seed 35202)"
+ },
+ "third_rerender": {
+  "surfaces": 24,
+  "errors": 0,
+  "src_sha256": "3d8a8648d31dca43"
+ }
+}

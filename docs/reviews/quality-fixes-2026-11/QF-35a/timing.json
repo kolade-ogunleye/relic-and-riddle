@@ -1,0 +1,79 @@
+{
+ "note": "timing.py run on the base tree (8ae083c8) and on this row's tree in turn, twice (base, row, base, row), one warm-up and one timed run per surface each time, on a busy machine; seconds",
+ "runs": [
+  {
+   "tree": "base",
+   "seconds": {
+    "captions 916 (file)": 0.332,
+    "card chapter_act5 916": 8.16,
+    "cross_section 916": 60.83,
+    "endcard 916": 71.833
+   },
+   "frames": {
+    "captions 916 (file)": 0,
+    "card chapter_act5 916": 75,
+    "cross_section 916": 180,
+    "endcard 916": 87
+   }
+  },
+  {
+   "tree": "row",
+   "seconds": {
+    "captions 916 (file)": 0.328,
+    "card chapter_act5 916": 8.336,
+    "cross_section 916": 67.579,
+    "endcard 916": 62.924
+   },
+   "frames": {
+    "captions 916 (file)": 0,
+    "card chapter_act5 916": 75,
+    "cross_section 916": 180,
+    "endcard 916": 87
+   }
+  },
+  {
+   "tree": "base",
+   "seconds": {
+    "captions 916 (file)": 0.298,
+    "card chapter_act5 916": 8.082,
+    "cross_section 916": 83.247,
+    "endcard 916": 75.125
+   },
+   "frames": {
+    "captions 916 (file)": 0,
+    "card chapter_act5 916": 75,
+    "cross_section 916": 180,
+    "endcard 916": 87
+   }
+  },
+  {
+   "tree": "row",
+   "seconds": {
+    "captions 916 (file)": 0.434,
+    "card chapter_act5 916": 7.948,
+    "cross_section 916": 62.677,
+    "endcard 916": 73.132
+   },
+   "frames": {
+    "captions 916 (file)": 0,
+    "card chapter_act5 916": 75,
+    "cross_section 916": 180,
+    "endcard 916": 87
+   }
+  }
+ ],
+ "best": {
+  "base": {
+   "captions 916 (file)": 0.298,
+   "card chapter_act5 916": 8.082,
+   "cross_section 916": 60.83,
+   "endcard 916": 71.833
+  },
+  "row": {
+   "captions 916 (file)": 0.328,
+   "card chapter_act5 916": 7.948,
+   "cross_section 916": 62.677,
+   "endcard 916": 62.924
+  }
+ }
+}

@@ -1,0 +1,53 @@
+{
+ "after_configure_none": {
+  "digest": "b8f8c4622757a7c495680af35ca5956f8db4c0033ee84868324dc56c662ec10c"
+ },
+ "captions_case": "gol_gumbaz_whispering_gallery",
+ "checks": {
+  "16:9 captions drawn in RR Serif (Cinzel 700), embedded": true,
+  "badge in Cinzel at its measured 600 (RR Serif SemiBold, embedded; round 2), both formats": true,
+  "captions: no default text colour, the third brand's present (both formats)": true,
+  "card display measure changed": true,
+  "colour-vision gold is the third brand's": true,
+  "configure replaced the default": true,
+  "configure(None) restores the default exactly": true,
+  "dense timeline years in Cinzel": true,
+  "end card changed": true,
+  "end card holds no default mark colour exactly where the default frame did not (excess px)": true,
+  "end card masthead is the third brand's": true,
+  "fallback accent is the third brand's": true,
+  "then-and-now kicker size and glow fall measured in the third brand's faces (round 2), as a fresh import under it gives": true
+ },
+ "default": {
+  "badge_face": "IBM Plex Mono",
+  "caption_169_face": "RR Sans",
+  "dense_year_face": "Anton",
+  "digest": "b8f8c4622757a7c495680af35ca5956f8db4c0033ee84868324dc56c662ec10c"
+ },
+ "end_card_case": "richat_structure_sahara_eye",
+ "fresh_import_under_third_then_now": [
+  44,
+  28
+ ],
+ "pass": true,
+ "then_now_default": [
+  46,
+  38
+ ],
+ "third": {
+  "badge_face": "RR Serif SemiBold",
+  "caption_169_face": "RR Serif",
+  "default_colour_px_on_end_card": {},
+  "dense_year_face": "Cinzel",
+  "digest": "24cdbf94c8c8ff82e1453ee9d0efd00ae11aae3ff06347203c2d5a77dd31b3e9",
+  "same_in_default_end_card": {
+   "BONE": 10209,
+   "GOLD": 6952
+  },
+  "then_now": [
+   44,
+   28
+  ]
+ },
+ "tree": "<the port worktree>"
+}

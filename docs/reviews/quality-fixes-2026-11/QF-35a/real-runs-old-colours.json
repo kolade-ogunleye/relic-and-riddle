@@ -1,0 +1,917 @@
+{
+ "surfaces": 162,
+ "groups": {
+  "bridge": 5,
+  "bridge_follow": 5,
+  "callouts": 1,
+  "captions": 4,
+  "cover": 15,
+  "cross_section": 2,
+  "endcard": 5,
+  "endscreen": 4,
+  "map": 19,
+  "numbers": 15,
+  "route": 2,
+  "scale": 4,
+  "social": 68,
+  "thennow": 4,
+  "timeline": 9
+ },
+ "only_default": [
+  "card__chapter_act1__amber__169",
+  "card__chapter_act1__amber__916",
+  "card__chapter_act1__obelisk__169",
+  "card__chapter_act1__obelisk__916",
+  "card__chapter_act1__richat__169",
+  "card__chapter_act1__richat__916",
+  "card__chapter_act4__amber__169",
+  "card__chapter_act4__amber__916",
+  "card__chapter_act4__obelisk__169",
+  "card__chapter_act4__obelisk__916",
+  "card__chapter_act4__richat__169",
+  "card__chapter_act4__richat__916",
+  "card__hook__amber__916",
+  "card__hook__obelisk__916",
+  "card__myth_long_et__amber__169",
+  "card__myth_long_et__amber__916",
+  "card__myth_long_et__obelisk__169",
+  "card__myth_long_et__obelisk__916",
+  "card__myth_long_et__richat__169",
+  "card__myth_long_et__richat__916",
+  "card__myth_richat__amber__169",
+  "card__myth_richat__amber__916",
+  "card__myth_richat__obelisk__169",
+  "card__myth_richat__obelisk__916",
+  "card__myth_richat__richat__169",
+  "card__myth_richat__richat__916"
+ ],
+ "marks": {
+  "roles": 17,
+  "today_px_in_default_frames": 14949283,
+  "today_px_in_test_brand_frames": 3475,
+  "excess_px": 555,
+  "test_brand_px_in_its_own_frames": 10159354
+ },
+ "roles": {
+  "INK": {
+   "class": "ground",
+   "default": 55701653,
+   "test_brand": 97,
+   "excess": 3,
+   "own_in_default": 2132,
+   "own_in_test_brand": 61528448,
+   "surfaces_with_excess": [
+    [
+     "social__nazca_lines_runway_paradox_1793247464__carousel_carousel_slide_02",
+     1
+    ],
+    [
+     "social__nazca_lines_runway_paradox_1793247464__carousel_carousel_slide_06",
+     1
+    ],
+    [
+     "social__nazca_lines_runway_paradox_1793251266__carousel_carousel_slide_02",
+     1
+    ]
+   ]
+  },
+  "INK2": {
+   "class": "ground",
+   "default": 31551082,
+   "test_brand": 283,
+   "excess": 24,
+   "own_in_default": 487,
+   "own_in_test_brand": 33221665,
+   "surfaces_with_excess": [
+    [
+     "cross_section__test_spec__916",
+     11
+    ],
+    [
+     "cross_section__test_spec__169",
+     6
+    ],
+    [
+     "social__gol_gumbaz_whispering_gallery_1793278143__carousel_carousel_slide_01",
+     2
+    ],
+    [
+     "social__nazca_lines_runway_paradox_1793247464__carousel_carousel_slide_01",
+     2
+    ],
+    [
+     "social__nazca_lines_runway_paradox_1793247464__fb_carousel_slide_01",
+     2
+    ],
+    [
+     "social__gol_gumbaz_whispering_gallery_1793278143__fb_carousel_slide_01",
+     1
+    ]
+   ]
+  },
+  "BONE": {
+   "class": "mark",
+   "default": 8049488,
+   "test_brand": 27,
+   "excess": 0,
+   "own_in_default": 7,
+   "own_in_test_brand": 5269101,
+   "surfaces_with_excess": []
+  },
+  "STONE": {
+   "class": "mark",
+   "default": 349570,
+   "test_brand": 362,
+   "excess": 41,
+   "own_in_default": 7,
+   "own_in_test_brand": 252473,
+   "surfaces_with_excess": [
+    [
+     "social__nazca_lines_runway_paradox_1793247464__fb_carousel_slide_02",
+     4
+    ],
+    [
+     "social__nazca_lines_runway_paradox_1793251266__fb_carousel_slide_02",
+     4
+    ],
+    [
+     "social__nazca_lines_runway_paradox_1793251266__fb_carousel_slide_06",
+     3
+    ],
+    [
+     "social__gol_gumbaz_whispering_gallery_1793278143__story_story_01_hook",
+     2
+    ],
+    [
+     "social__nazca_lines_runway_paradox_1793247464__carousel_carousel_slide_06",
+     2
+    ],
+    [
+     "social__nazca_lines_runway_paradox_1793247464__carousel_carousel_slide_07",
+     2
+    ],
+    [
+     "social__nazca_lines_runway_paradox_1793247464__fb_carousel_slide_03",
+     2
+    ],
+    [
+     "social__nazca_lines_runway_paradox_1793247464__fb_carousel_slide_06",
+     2
+    ]
+   ]
+  },
+  "STONE_LT": {
+   "class": "mark",
+   "default": 374345,
+   "test_brand": 283,
+   "excess": 15,
+   "own_in_default": 9,
+   "own_in_test_brand": 365039,
+   "surfaces_with_excess": [
+    [
+     "social__gol_gumbaz_whispering_gallery_1793278143__fb_carousel_slide_03",
+     2
+    ],
+    [
+     "bridge__2_unfinished_obelisk_aswan",
+     1
+    ],
+    [
+     "bridge__3_nazca_lines_runway_paradox",
+     1
+    ],
+    [
+     "bridge_follow__2_unfinished_obelisk_aswan",
+     1
+    ],
+    [
+     "bridge_follow__3_nazca_lines_runway_paradox",
+     1
+    ],
+    [
+     "social__gol_gumbaz_whispering_gallery_1793278143__carousel_carousel_slide_02",
+     1
+    ],
+    [
+     "social__gol_gumbaz_whispering_gallery_1793278143__carousel_carousel_slide_03",
+     1
+    ],
+    [
+     "social__gol_gumbaz_whispering_gallery_1793278143__fb_carousel_slide_02",
+     1
+    ]
+   ]
+  },
+  "GOLD": {
+   "class": "mark",
+   "default": 5739356,
+   "test_brand": 0,
+   "excess": 0,
+   "own_in_default": 0,
+   "own_in_test_brand": 3840490,
+   "surfaces_with_excess": []
+  },
+  "GOLD_DIM": {
+   "class": "mark",
+   "default": 85764,
+   "test_brand": 7,
+   "excess": 0,
+   "own_in_default": 0,
+   "own_in_test_brand": 84385,
+   "surfaces_with_excess": []
+  },
+  "LAND": {
+   "class": "ground",
+   "default": 6670,
+   "test_brand": 450,
+   "excess": 14,
+   "own_in_default": 3794,
+   "own_in_test_brand": 35412,
+   "surfaces_with_excess": [
+    [
+     "cross_section__test_spec__169",
+     6
+    ],
+    [
+     "cross_section__test_spec__916",
+     4
+    ],
+    [
+     "cover__richat_structure_sahara_eye__grid",
+     1
+    ],
+    [
+     "cover__wieliczka_salt_mine__grid",
+     1
+    ],
+    [
+     "social__richat_structure_sahara_eye_1793272675__carousel_carousel_slide_07",
+     1
+    ],
+    [
+     "social__richat_structure_sahara_eye_1793272675__fb_carousel_slide_07",
+     1
+    ]
+   ]
+  },
+  "HOME": {
+   "class": "mark",
+   "default": 123,
+   "test_brand": 350,
+   "excess": 234,
+   "own_in_default": 9,
+   "own_in_test_brand": 3,
+   "surfaces_with_excess": [
+    [
+     "social__richat_structure_sahara_eye_1793272675__carousel_carousel_slide_03",
+     173
+    ],
+    [
+     "social__richat_structure_sahara_eye_1793272675__fb_carousel_slide_03",
+     59
+    ],
+    [
+     "social__richat_structure_sahara_eye_1793272675__carousel_carousel_slide_02",
+     1
+    ],
+    [
+     "social__richat_structure_sahara_eye_1793272675__fb_carousel_slide_02",
+     1
+    ]
+   ]
+  },
+  "BORDER": {
+   "class": "mark",
+   "default": 270,
+   "test_brand": 102,
+   "excess": 34,
+   "own_in_default": 2653,
+   "own_in_test_brand": 1480,
+   "surfaces_with_excess": [
+    [
+     "social__gol_gumbaz_whispering_gallery_1793278143__carousel_carousel_slide_05",
+     10
+    ],
+    [
+     "social__gol_gumbaz_whispering_gallery_1793278143__carousel_carousel_slide_06",
+     5
+    ],
+    [
+     "social__gol_gumbaz_whispering_gallery_1793278143__fb_carousel_slide_05",
+     5
+    ],
+    [
+     "social__nazca_lines_runway_paradox_1793247464__story_story_01_hook",
+     4
+    ],
+    [
+     "social__gol_gumbaz_whispering_gallery_1793278143__carousel_carousel_slide_07",
+     3
+    ],
+    [
+     "social__gol_gumbaz_whispering_gallery_1793278143__fb_carousel_slide_07",
+     3
+    ],
+    [
+     "social__gol_gumbaz_whispering_gallery_1793278143__carousel_carousel_slide_04",
+     1
+    ],
+    [
+     "social__gol_gumbaz_whispering_gallery_1793278143__fb_carousel_slide_04",
+     1
+    ]
+   ]
+  },
+  "GRID": {
+   "class": "ground",
+   "default": 3736,
+   "test_brand": 669,
+   "excess": 470,
+   "own_in_default": 865,
+   "own_in_test_brand": 59800,
+   "surfaces_with_excess": [
+    [
+     "endscreen__8_roman_self_healing_concrete",
+     294
+    ],
+    [
+     "cross_section__test_spec__916",
+     132
+    ],
+    [
+     "cross_section__test_spec__169",
+     37
+    ],
+    [
+     "social__nazca_lines_runway_paradox_1793247464__carousel_carousel_slide_01",
+     2
+    ],
+    [
+     "social__nazca_lines_runway_paradox_1793247464__fb_carousel_slide_01",
+     2
+    ],
+    [
+     "social__gol_gumbaz_whispering_gallery_1793278143__fb_carousel_slide_02",
+     1
+    ],
+    [
+     "social__nazca_lines_runway_paradox_1793247464__story_story_02_reveal",
+     1
+    ],
+    [
+     "social__nazca_lines_runway_paradox_1793251266__story_story_02_reveal",
+     1
+    ]
+   ]
+  },
+  "LAND_TINT": {
+   "class": "mark",
+   "default": 259980,
+   "test_brand": 68,
+   "excess": 36,
+   "own_in_default": 1119,
+   "own_in_test_brand": 261179,
+   "surfaces_with_excess": [
+    [
+     "social__gol_gumbaz_whispering_gallery_1793278143__carousel_carousel_slide_07",
+     11
+    ],
+    [
+     "social__gol_gumbaz_whispering_gallery_1793278143__fb_carousel_slide_07",
+     11
+    ],
+    [
+     "social__richat_structure_sahara_eye_1793272675__carousel_carousel_slide_01",
+     5
+    ],
+    [
+     "social__richat_structure_sahara_eye_1793272675__fb_carousel_slide_01",
+     4
+    ],
+    [
+     "social__gol_gumbaz_whispering_gallery_1793278143__fb_carousel_slide_06",
+     2
+    ],
+    [
+     "social__nazca_lines_runway_paradox_1793247464__story_story_01_hook",
+     1
+    ],
+    [
+     "social__nazca_lines_runway_paradox_1793247464__story_story_02_reveal",
+     1
+    ],
+    [
+     "social__nazca_lines_runway_paradox_1793251266__story_story_02_reveal",
+     1
+    ]
+   ]
+  },
+  "HOME_TINT": {
+   "class": "mark",
+   "default": 5752,
+   "test_brand": 0,
+   "excess": 0,
+   "own_in_default": 14,
+   "own_in_test_brand": 8998,
+   "surfaces_with_excess": []
+  },
+  "SEA_TOP": {
+   "class": "ground",
+   "default": 104,
+   "test_brand": 37,
+   "excess": 3,
+   "own_in_default": 194,
+   "own_in_test_brand": 1675,
+   "surfaces_with_excess": [
+    [
+     "social__nazca_lines_runway_paradox_1793247464__carousel_carousel_slide_01",
+     1
+    ],
+    [
+     "social__nazca_lines_runway_paradox_1793247464__fb_carousel_slide_01",
+     1
+    ],
+    [
+     "social__richat_structure_sahara_eye_1793272675__carousel_carousel_slide_01",
+     1
+    ]
+   ]
+  },
+  "SEA_DEEP": {
+   "class": "ground",
+   "default": 27930,
+   "test_brand": 38,
+   "excess": 10,
+   "own_in_default": 220,
+   "own_in_test_brand": 27844,
+   "surfaces_with_excess": [
+    [
+     "social__richat_structure_sahara_eye_1793272675__fb_carousel_slide_01",
+     6
+    ],
+    [
+     "social__richat_structure_sahara_eye_1793272675__carousel_carousel_slide_01",
+     4
+    ]
+   ]
+  },
+  "GLOBE_LAND": {
+   "class": "mark",
+   "default": 1063,
+   "test_brand": 1065,
+   "excess": 92,
+   "own_in_default": 12,
+   "own_in_test_brand": 43,
+   "surfaces_with_excess": [
+    [
+     "social__nazca_lines_runway_paradox_1793251266__carousel_carousel_slide_01",
+     19
+    ],
+    [
+     "social__nazca_lines_runway_paradox_1793251266__fb_carousel_slide_01",
+     19
+    ],
+    [
+     "social__nazca_lines_runway_paradox_1793247464__carousel_carousel_slide_01",
+     8
+    ],
+    [
+     "social__nazca_lines_runway_paradox_1793247464__fb_carousel_slide_01",
+     8
+    ],
+    [
+     "social__nazca_lines_runway_paradox_1793247464__fb_carousel_slide_06",
+     5
+    ],
+    [
+     "social__nazca_lines_runway_paradox_1793247464__fb_carousel_slide_05",
+     4
+    ],
+    [
+     "social__nazca_lines_runway_paradox_1793251266__fb_carousel_slide_05",
+     4
+    ],
+    [
+     "social__gol_gumbaz_whispering_gallery_1793278143__carousel_carousel_slide_03",
+     2
+    ]
+   ]
+  },
+  "GOLD_LIGHT": {
+   "class": "mark",
+   "default": 8,
+   "test_brand": 4,
+   "excess": 0,
+   "own_in_default": 0,
+   "own_in_test_brand": 0,
+   "surfaces_with_excess": []
+  },
+  "WATER_FILL": {
+   "class": "mark",
+   "default": 0,
+   "test_brand": 0,
+   "excess": 0,
+   "own_in_default": 8,
+   "own_in_test_brand": 14,
+   "surfaces_with_excess": []
+  },
+  "PANEL": {
+   "class": "ground",
+   "default": 6419,
+   "test_brand": 984,
+   "excess": 327,
+   "own_in_default": 520,
+   "own_in_test_brand": 1364,
+   "surfaces_with_excess": [
+    [
+     "social__gol_gumbaz_whispering_gallery_1793278143__fb_carousel_slide_06",
+     127
+    ],
+    [
+     "social__gol_gumbaz_whispering_gallery_1793278143__carousel_carousel_slide_06",
+     124
+    ],
+    [
+     "cross_section__test_spec__916",
+     34
+    ],
+    [
+     "social__richat_structure_sahara_eye_1793272675__carousel_carousel_slide_01",
+     9
+    ],
+    [
+     "social__richat_structure_sahara_eye_1793272675__story_story_01_hook",
+     9
+    ],
+    [
+     "cross_section__test_spec__169",
+     4
+    ],
+    [
+     "social__gol_gumbaz_whispering_gallery_1793278143__fb_carousel_slide_05",
+     4
+    ],
+    [
+     "social__richat_structure_sahara_eye_1793272675__carousel_carousel_slide_07",
+     4
+    ]
+   ]
+  },
+  "HATCH": {
+   "class": "mark",
+   "default": 11,
+   "test_brand": 9,
+   "excess": 6,
+   "own_in_default": 356,
+   "own_in_test_brand": 664,
+   "surfaces_with_excess": [
+    [
+     "social__gol_gumbaz_whispering_gallery_1793278143__fb_carousel_slide_05",
+     2
+    ],
+    [
+     "social__richat_structure_sahara_eye_1793272675__fb_carousel_slide_06",
+     2
+    ],
+    [
+     "social__gol_gumbaz_whispering_gallery_1793278143__fb_carousel_slide_02",
+     1
+    ],
+    [
+     "social__richat_structure_sahara_eye_1793272675__fb_carousel_slide_01",
+     1
+    ]
+   ]
+  },
+  "SCALE_LINE": {
+   "class": "mark",
+   "default": 11128,
+   "test_brand": 813,
+   "excess": 66,
+   "own_in_default": 45,
+   "own_in_test_brand": 10650,
+   "surfaces_with_excess": [
+    [
+     "thennow__singing_colossi_of_memnon__169",
+     58
+    ],
+    [
+     "thennow__singing_colossi_of_memnon__916",
+     6
+    ],
+    [
+     "social__richat_structure_sahara_eye_1793272675__story_story_03_question",
+     2
+    ]
+   ]
+  },
+  "TALL_LABEL_FILL": {
+   "class": "mark",
+   "default": 72425,
+   "test_brand": 385,
+   "excess": 31,
+   "own_in_default": 17,
+   "own_in_test_brand": 64835,
+   "surfaces_with_excess": [
+    [
+     "social__nazca_lines_runway_paradox_1793247464__carousel_carousel_slide_01",
+     4
+    ],
+    [
+     "social__nazca_lines_runway_paradox_1793247464__fb_carousel_slide_01",
+     4
+    ],
+    [
+     "social__nazca_lines_runway_paradox_1793247464__fb_carousel_slide_03",
+     4
+    ],
+    [
+     "social__nazca_lines_runway_paradox_1793251266__fb_carousel_slide_03",
+     4
+    ],
+    [
+     "social__nazca_lines_runway_paradox_1793251266__carousel_carousel_slide_01",
+     3
+    ],
+    [
+     "social__nazca_lines_runway_paradox_1793251266__fb_carousel_slide_01",
+     3
+    ],
+    [
+     "social__nazca_lines_runway_paradox_1793247464__fb_carousel_slide_06",
+     2
+    ],
+    [
+     "bridge__3_nazca_lines_runway_paradox",
+     1
+    ]
+   ]
+  },
+  "EARTH": {
+   "class": "ground",
+   "default": 349277,
+   "test_brand": 8048,
+   "excess": 7768,
+   "own_in_default": 377,
+   "own_in_test_brand": 348725,
+   "surfaces_with_excess": [
+    [
+     "endcard__1_wieliczka_salt_mine",
+     3206
+    ],
+    [
+     "endscreen__6_wieliczka_salt_mine",
+     1591
+    ],
+    [
+     "endcard__2_unfinished_obelisk_aswan",
+     591
+    ],
+    [
+     "social__gol_gumbaz_whispering_gallery_1793278143__story_story_01_hook",
+     527
+    ],
+    [
+     "social__gol_gumbaz_whispering_gallery_1793278143__carousel_carousel_slide_01",
+     462
+    ],
+    [
+     "social__gol_gumbaz_whispering_gallery_1793278143__fb_carousel_slide_01",
+     421
+    ],
+    [
+     "social__gol_gumbaz_whispering_gallery_1793278143__carousel_carousel_slide_03",
+     121
+    ],
+    [
+     "social__gol_gumbaz_whispering_gallery_1793278143__fb_carousel_slide_03",
+     121
+    ]
+   ]
+  },
+  "EARTH_LINE": {
+   "class": "ground",
+   "default": 818,
+   "test_brand": 2707,
+   "excess": 2130,
+   "own_in_default": 198,
+   "own_in_test_brand": 854,
+   "surfaces_with_excess": [
+    [
+     "endcard__1_wieliczka_salt_mine",
+     488
+    ],
+    [
+     "social__richat_structure_sahara_eye_1793272675__story_story_02_reveal",
+     291
+    ],
+    [
+     "endscreen__6_wieliczka_salt_mine",
+     266
+    ],
+    [
+     "social__gol_gumbaz_whispering_gallery_1793278143__story_story_01_hook",
+     161
+    ],
+    [
+     "social__gol_gumbaz_whispering_gallery_1793278143__carousel_carousel_slide_01",
+     160
+    ],
+    [
+     "social__gol_gumbaz_whispering_gallery_1793278143__carousel_carousel_slide_04",
+     134
+    ],
+    [
+     "endscreen__0_richat_structure_sahara_eye",
+     132
+    ],
+    [
+     "social__gol_gumbaz_whispering_gallery_1793278143__fb_carousel_slide_04",
+     129
+    ]
+   ]
+  },
+  "ROCK_TOP": {
+   "class": "ground",
+   "default": 15507,
+   "test_brand": 37492,
+   "excess": 34754,
+   "own_in_default": 4161,
+   "own_in_test_brand": 14182,
+   "surfaces_with_excess": [
+    [
+     "endcard__5_nazca_lines_runway_paradox",
+     13473
+    ],
+    [
+     "endscreen__8_roman_self_healing_concrete",
+     4656
+    ],
+    [
+     "social__gol_gumbaz_whispering_gallery_1793278143__story_story_03_question",
+     3915
+    ],
+    [
+     "endscreen__0_richat_structure_sahara_eye",
+     2653
+    ],
+    [
+     "social__nazca_lines_runway_paradox_1793247464__story_story_03_question",
+     1695
+    ],
+    [
+     "social__nazca_lines_runway_paradox_1793251266__story_story_03_question",
+     1695
+    ],
+    [
+     "social__gol_gumbaz_whispering_gallery_1793278143__story_story_01_hook",
+     491
+    ],
+    [
+     "social__gol_gumbaz_whispering_gallery_1793278143__fb_carousel_slide_06",
+     442
+    ]
+   ]
+  },
+  "ROCK_DEEP": {
+   "class": "ground",
+   "default": 151611,
+   "test_brand": 3084,
+   "excess": 2651,
+   "own_in_default": 48457,
+   "own_in_test_brand": 132949,
+   "surfaces_with_excess": [
+    [
+     "social__gol_gumbaz_whispering_gallery_1793278143__fb_carousel_slide_06",
+     1091
+    ],
+    [
+     "social__gol_gumbaz_whispering_gallery_1793278143__carousel_carousel_slide_06",
+     1063
+    ],
+    [
+     "social__richat_structure_sahara_eye_1793272675__story_story_01_hook",
+     133
+    ],
+    [
+     "social__gol_gumbaz_whispering_gallery_1793278143__carousel_carousel_slide_07",
+     96
+    ],
+    [
+     "social__gol_gumbaz_whispering_gallery_1793278143__fb_carousel_slide_07",
+     96
+    ],
+    [
+     "social__gol_gumbaz_whispering_gallery_1793278143__carousel_carousel_slide_04",
+     23
+    ],
+    [
+     "social__gol_gumbaz_whispering_gallery_1793278143__fb_carousel_slide_04",
+     23
+    ],
+    [
+     "social__nazca_lines_runway_paradox_1793247464__carousel_carousel_slide_04",
+     18
+    ]
+   ]
+  },
+  "PLATE": {
+   "class": "ground",
+   "default": 1409,
+   "test_brand": 146,
+   "excess": 32,
+   "own_in_default": 188,
+   "own_in_test_brand": 3639,
+   "surfaces_with_excess": [
+    [
+     "social__richat_structure_sahara_eye_1793272675__story_story_03_question",
+     32
+    ]
+   ]
+  },
+  "GLOW_INK": {
+   "class": "ground",
+   "default": 309,
+   "test_brand": 3725,
+   "excess": 3426,
+   "own_in_default": 660,
+   "own_in_test_brand": 88,
+   "surfaces_with_excess": [
+    [
+     "endcard__2_unfinished_obelisk_aswan",
+     1273
+    ],
+    [
+     "endcard__4_odessa_catacombs",
+     653
+    ],
+    [
+     "social__gol_gumbaz_whispering_gallery_1793278143__story_story_01_hook",
+     439
+    ],
+    [
+     "social__richat_structure_sahara_eye_1793272675__fb_carousel_slide_02",
+     230
+    ],
+    [
+     "social__richat_structure_sahara_eye_1793272675__carousel_carousel_slide_02",
+     213
+    ],
+    [
+     "social__gol_gumbaz_whispering_gallery_1793278143__carousel_carousel_slide_01",
+     123
+    ],
+    [
+     "social__gol_gumbaz_whispering_gallery_1793278143__fb_carousel_slide_01",
+     102
+    ],
+    [
+     "endscreen__7_unfinished_obelisk_aswan",
+     67
+    ]
+   ]
+  },
+  "ACCENT_BACKDROP": {
+   "class": "ground",
+   "default": 10964,
+   "test_brand": 2954,
+   "excess": 2091,
+   "own_in_default": 1258,
+   "own_in_test_brand": 1335,
+   "surfaces_with_excess": [
+    [
+     "cross_section__test_spec__916",
+     1104
+    ],
+    [
+     "cross_section__test_spec__169",
+     399
+    ],
+    [
+     "social__gol_gumbaz_whispering_gallery_1793278143__fb_carousel_slide_06",
+     182
+    ],
+    [
+     "social__gol_gumbaz_whispering_gallery_1793278143__carousel_carousel_slide_06",
+     150
+    ],
+    [
+     "social__gol_gumbaz_whispering_gallery_1793278143__carousel_carousel_slide_04",
+     115
+    ],
+    [
+     "social__gol_gumbaz_whispering_gallery_1793278143__fb_carousel_slide_04",
+     115
+    ],
+    [
+     "social__nazca_lines_runway_paradox_1793247464__carousel_carousel_slide_04",
+     5
+    ],
+    [
+     "social__nazca_lines_runway_paradox_1793247464__fb_carousel_slide_04",
+     5
+    ]
+   ]
+  }
+ }
+}

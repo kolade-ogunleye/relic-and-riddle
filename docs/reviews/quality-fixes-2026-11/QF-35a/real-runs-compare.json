@@ -1,0 +1,52 @@
+{
+ "src_sha256_base_head": [
+  "08a64e538b468979",
+  "8c6ab4206eb6ec2d"
+ ],
+ "surfaces_compared": 194,
+ "frames_compared": 16209,
+ "identical": 194,
+ "differing": [],
+ "only_base": [],
+ "only_head": [],
+ "errors_base": [],
+ "errors_head": [],
+ "seconds_base": 4817.4,
+ "seconds_head": 4874.0,
+ "second_brand": {
+  "surfaces": 194,
+  "drawn": 167,
+  "differs_from_default": 167,
+  "same_as_default": [],
+  "refused": {
+   "card__chapter_act1__amber__169": "the 16:9 title does not fit two lines at 96 px, the type floor",
+   "card__chapter_act1__amber__916": "the title does not fit two lines at the floor size",
+   "card__chapter_act1__obelisk__169": "the 16:9 title does not fit two lines at 96 px, the type floor",
+   "card__chapter_act1__obelisk__916": "the title does not fit two lines at the floor size",
+   "card__chapter_act1__richat__169": "the 16:9 title does not fit two lines at 96 px, the type floor",
+   "card__chapter_act1__richat__916": "the title does not fit two lines at the floor size",
+   "card__chapter_act4__amber__169": "the 16:9 title does not fit two lines at 96 px, the type floor",
+   "card__chapter_act4__amber__916": "the title does not fit two lines at the floor size",
+   "card__chapter_act4__obelisk__169": "the 16:9 title does not fit two lines at 96 px, the type floor",
+   "card__chapter_act4__obelisk__916": "the title does not fit two lines at the floor size",
+   "card__chapter_act4__richat__169": "the 16:9 title does not fit two lines at 96 px, the type floor",
+   "card__chapter_act4__richat__916": "the title does not fit two lines at the floor size",
+   "card__hook__amber__916": "the claim does not fit three lines at 112 px",
+   "card__hook__obelisk__916": "the claim does not fit three lines at 112 px",
+   "card__hook__richat__916": "the photo would be enlarged 3.08x (max 2.0)",
+   "card__myth_long_et__amber__169": "the myth or the fact runs past its line limit at the floor size with its source line kept",
+   "card__myth_long_et__amber__916": "the myth or the fact runs past its line limit at the floor size with its source line kept",
+   "card__myth_long_et__obelisk__169": "the myth or the fact runs past its line limit at the floor size with its source line kept",
+   "card__myth_long_et__obelisk__916": "the myth or the fact runs past its line limit at the floor size with its source line kept",
+   "card__myth_long_et__richat__169": "the myth or the fact runs past its line limit at the floor size with its source line kept",
+   "card__myth_long_et__richat__916": "the myth or the fact runs past its line limit at the floor size with its source line kept",
+   "card__myth_richat__amber__169": "the myth or the fact runs past its line limit at the floor size with its source line kept",
+   "card__myth_richat__amber__916": "the myth or the fact runs past its line limit at the floor size with its source line kept",
+   "card__myth_richat__obelisk__169": "the myth or the fact runs past its line limit at the floor size with its source line kept",
+   "card__myth_richat__obelisk__916": "the myth or the fact runs past its line limit at the floor size with its source line kept",
+   "card__myth_richat__richat__169": "the myth or the fact runs past its line limit at the floor size with its source line kept",
+   "card__myth_richat__richat__916": "the myth or the fact runs past its line limit at the floor size with its source line kept"
+  },
+  "errors": {}
+ }
+}

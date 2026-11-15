@@ -6,6 +6,8 @@ from math import ceil
 
 from PIL import Image, ImageDraw
 
+from . import brand  # the faces are read when a timeline is planned (QF-35a)
+
 
 def plan(events, width, height):
     key = tuple((int(event["year"]), str(event["label"]), bool(event.get("approximate"))) for event in events)
@@ -21,8 +23,8 @@ def _plan(key, width, height):
     box = g.safe_zones.graphics_box(width, height)
     spine = g.inset_x0(width, height) + round(16 * width / g.VIDEO_WIDTH)
     left = spine + round(56 * width / g.VIDEO_WIDTH)
-    font = get_font("Montserrat", g.TALL_LABEL_MIN_PX, weight=g.TALL_LABEL_WEIGHT)
-    gap_font = get_font("Montserrat", g.SPAN_MIN_PX, weight=g.TALL_SPAN_WEIGHT)
+    font = get_font(brand.TEXT_FONT, g.TALL_LABEL_MIN_PX, weight=g.TALL_LABEL_WEIGHT)
+    gap_font = get_font(brand.TEXT_FONT, g.SPAN_MIN_PX, weight=g.TALL_SPAN_WEIGHT)
     label_cap, gap_cap = g.cap_height(font), g.cap_height(gap_font)
     track, pitch = g.tall_track(font.size), round(font.size * g.TALL_LEADING)
     probe = ImageDraw.Draw(Image.new("L", (8, 8)))
@@ -34,7 +36,7 @@ def _plan(key, width, height):
         if cache_key in fitted:
             return fitted[cache_key]
         for rows in range(1, g.TALL_LABEL_ROWS_MAX + 1):
-            lines, _font, short = g._probe_tracked(probe, text.upper(), "Montserrat", font.size,
+            lines, _font, short = g._probe_tracked(probe, text.upper(), brand.TEXT_FONT, font.size,
                                                   measure - g.TALL_INK_RESERVE, rows, font.size, track,
                                                   weight=g.TALL_LABEL_WEIGHT, quiet=True)
             if short:
@@ -54,7 +56,7 @@ def _plan(key, width, height):
     best = None
     best_rank = None
     for year_px in range(128, 1, -1):
-        year_font = get_font("Anton", year_px)
+        year_font = get_font(brand.DISPLAY_FONT, year_px)
         cap = g.cap_height(year_font)
         if cap < g.TALL_YEAR_RATIO_LAST * label_cap:
             break
@@ -136,9 +138,9 @@ def _fits_both_formats(key):
     events = [{"year": year, "label": label, "approximate": approximate} for year, label, approximate in key]
     if plan(events, 1080, 1920) is None:
         return False
-    label = get_font("Montserrat", 34, weight=800)
-    year = get_font("Anton", 72)
-    span_font = get_font("Montserrat", g.WIDE_SPAN_MIN_PX, weight=700)
+    label = get_font(brand.TEXT_FONT, 34, weight=800)
+    year = get_font(brand.DISPLAY_FONT, 72)
+    span_font = get_font(brand.TEXT_FONT, g.WIDE_SPAN_MIN_PX, weight=700)
     widths = []
     year_widths = []
     for event in events:
@@ -183,6 +185,11 @@ def _fits_both_formats(key):
     return g._render_timeline_wide(events, None, 1920, 1080, None, _capacity_only=True)
 
 
+# both plans are measures in the brand faces, keyed without the family: dropped when the brand changes (QF-35a)
+brand.on_change(_plan.cache_clear)
+brand.on_change(_fits_both_formats.cache_clear)
+
+
 def render(events, out, width, height, photo, layout):
     from . import graphics as g
 
@@ -225,8 +232,8 @@ def render(events, out, width, height, photo, layout):
         descent = g.span_descent(text, gap_font)
         slack = next_top - bottom - layout["above"] - g.cap_height(gap_font) - layout["below"] - descent
         gap_y = next_top - layout["below"] - descent - max(0, slack) / 3
-        plate = g.plan_text(ground, (g.tall_left_x(left, gap_y, text, gap_font, 2), gap_y), text,
-                            gap_font, g.brand.STONE, "ls", track=2)
+        plate = g._plan_thin(ground, (g.tall_left_x(left, gap_y, text, gap_font, 2), gap_y), text,
+                             gap_font, g.brand.STONE, "ls", halo_px=None, track=2)
         gaps.append((index + 1, plate))
         plates.append((f"gap{index + 1}", plate))
 

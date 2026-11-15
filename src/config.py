@@ -715,8 +715,8 @@ SIDECAR_MAX_LINES = 2
 SIDECAR_MIN_CUE = 1.2
 SIDECAR_MAX_CUE = 7.0
 
-# The AI-reconstruction disclosure badge (round 2, finding 8): the data font, bone on an INK plate.
-RECON_FONT = "IBM Plex Mono"
+# The AI-reconstruction disclosure badge (round 2, finding 8): the data font, bone on an INK plate. Its face is the
+# brand's badge role (src/brand.py, the data face by default; config.RECON_FONT until QF-35a's port).
 RECON_SIZE_PORTRAIT = 30  # the 9:16 size once tests/test_gap_engine.py lets the badge move (it locks \fs22)
 RECON_SIZE_WIDE = 26
 RECON_PLATE_ALPHA = 0x26  # ~85% opacity

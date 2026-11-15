@@ -15,21 +15,204 @@ STONE / STONE_LT are secondary text (credits, gaps, notes); TEAL and CORAL are o
 series. DATA_FONT names the fixed-pitch family used for figures and data (typography.get_font), so a count-up's
 digits do not jitter and a credit reads as a printed photo credit.
 """
+from collections.abc import Iterator, Mapping
+from contextlib import contextmanager
+from dataclasses import dataclass, field
+from types import MappingProxyType
 from typing import Tuple
 
 RGB = Tuple[int, int, int]
 
-INK: RGB = (11, 14, 18)          # #0B0E12, the ground
-INK2: RGB = (21, 24, 30)         # #15181E, a panel one step up from the ground
-BONE: RGB = (243, 237, 226)      # #F3EDE2, text
-STONE: RGB = (154, 147, 133)     # #9A9385, quiet secondary text
-STONE_LT: RGB = (184, 177, 163)  # #B8B1A3, secondary text that must still read at small sizes
-GOLD: RGB = (242, 182, 48)       # #F2B630, figures, accents, the active caption word
-GOLD_DIM: RGB = (138, 106, 30)   # #8A6A1E, a gold line that sits behind text (a timeline spine)
-TEAL: RGB = (79, 179, 191)       # #4FB3BF, a chart's second series
-CORAL: RGB = (232, 115, 90)      # #E8735A, a chart's third series
+# Role tokens (QF-35a, design-freeze ruling Q11, 2026-11-10): the palette, the font families and the masthead strings
+# of the frozen designs live in ONE brand configuration object (BrandConfig), read when a design is drawn, never
+# copied at import. `brand.GOLD`, `brand.DISPLAY_FONT` and `brand.MASTHEAD` are looked up in the active configuration
+# on every read (the module __getattr__ below), so a second brand renders through the same code
+# (`with brand.use(cfg): ...`). A design module reads them as `brand.<ROLE>` inside a function: `from .brand import
+# GOLD` or a module-level copy would freeze today's value (tests/test_qf35a_role_tokens.py scans for both).
+#
+# Palette roles: the brand tokens (the critic's measured palette, 2026-10-29), then the design roles that were
+# literals in the design modules until QF-35a, each value unchanged. A value may name another role (an alias), so a
+# palette that changes INK also moves SEA.
+BRAND_PALETTE: Mapping[str, RGB | str] = MappingProxyType({
+    "INK": (11, 14, 18),          # #0B0E12, the ground
+    "INK2": (21, 24, 30),         # #15181E, a panel one step up from the ground
+    "BONE": (243, 237, 226),      # #F3EDE2, text
+    "STONE": (154, 147, 133),     # #9A9385, quiet secondary text
+    "STONE_LT": (184, 177, 163),  # #B8B1A3, secondary text that must still read at small sizes
+    "GOLD": (242, 182, 48),       # #F2B630, figures, accents, the active caption word
+    "GOLD_DIM": (138, 106, 30),   # #8A6A1E, a gold line that sits behind text (a timeline spine)
+    "TEAL": (79, 179, 191),       # #4FB3BF, a chart's second series; the art direction's fallback accent
+    "CORAL": (232, 115, 90),      # #E8735A, a chart's third series
+    # maps and globes (graphics.py)
+    "SEA": "INK",                 # the sea is the ground
+    "LAND": (40, 43, 48),
+    "HOME": (92, 74, 42),
+    "BORDER": (96, 98, 104),
+    "GRID": (24, 28, 34),
+    "LAND_TINT": (88, 92, 100),   # the relief map's other land (round 6)
+    "HOME_TINT": (168, 137, 81),  # the relief map's home country (round 6)
+    "SEA_TOP": (14, 22, 34),      # the relief map's sea gradient, top
+    "SEA_DEEP": (7, 11, 19),      # and bottom
+    "MAP_NAME": "STONE_LT",       # a neighbour's name (round 6)
+    "MAP_BORDER": "STONE",        # a neighbour's border (round 3)
+    "COUNTRY_OUT_FILL": "STONE_LT",   # a country named outside its fill
+    "GLOBE_LAND": (176, 170, 160),    # the context globe's other land (round 6)
+    "GLOBE_LIMB": "GOLD",         # the globe's 2 px limb (round 6 review)
+    "NEUTRAL_LAND": (57, 61, 64),     # a neutral (disputed or unmatched) ground on the globe and relief map (QF-20)
+    "NEUTRAL_EDGE": (154, 160, 164),  # and its dashed border
+    "GOLD_LIGHT": (250, 214, 120),    # the home coast's inner edge (round 6)
+    "WATER_FILL": (110, 155, 166),    # a water body's name
+    "PANEL": (10, 10, 12),        # the map title pill (alpha in the caller)
+    "HATCH": (100, 115, 130),     # the cross-hatching stroke (alpha in the caller)
+    # timelines, scales, sections (graphics.py)
+    "SCALE_LINE": (232, 227, 218),    # #E8E3DA, the scale ruler's line, ticks and labels
+    "TALL_LABEL_FILL": (189, 182, 170),   # #BDB6AA, a 9:16 timeline label (round 6)
+    "EARTH": (38, 31, 24),        # the cross-section's ground
+    "EARTH_LINE": (52, 43, 33),   # and its strata
+    "ROCK_TOP": (36, 31, 27),     # the carved-rock ground's banded rock, at the surface
+    "ROCK_DEEP": (18, 17, 17),    # and deepest
+    # social frames (multi_format.py)
+    "LEGIBLE_TEXT": (235, 235, 235),  # ensure_legible's assumed text colour
+    "PLATE": (12, 16, 22),        # a text plate (alpha in the caller)
+    # then-and-now (then_now.py)
+    "GLOW_INK": (30, 22, 16),     # #1E1610, the year label's glow
+    # art direction (art_direction.py)
+    "ACCENT_BACKDROP": (12, 12, 14),  # the dark backdrop an accent's contrast is measured on
+    "ACCENT": "TEAL",             # the fallback accent when the hero has no usable hue
+})
 
-DATA_FONT = "IBM Plex Mono"      # typography.get_font family: Medium 500 and SemiBold 600, OFL 1.1 (fonts/)
+# Font roles: families registered in typography.FONT_FILES (or font_assets.DERIVED_FAMILIES). None reads the
+# configured setting (src/config.py: FONT_NAME for the 9:16 caption, CAPTION_WIDE_FONT for the 16:9 burn-in); a value
+# that names another role is that role's family (an alias, so a brand that changes the data face moves the badge).
+BRAND_FONTS: Mapping[str, str | None] = MappingProxyType({
+    "display": "Anton",           # titles, headlines, card claims
+    "masthead": "Cinzel",         # the masthead's serif
+    "text": "Montserrat",         # kickers, labels, bodies, eyebrows
+    "data": "IBM Plex Mono",      # figures, units, scale bars, credits (Medium 500 and SemiBold 600, OFL 1.1, fonts/)
+    "caption": None,              # the 9:16 caption family (config.FONT_NAME)
+    "caption_wide": None,         # the 16:9 burn-in family (config.CAPTION_WIDE_FONT)
+    "badge": "data",              # the AI-reconstruction badge on the captions (config.RECON_FONT until the port)
+})
+
+# Strings: the masthead and the end card's brand lines.
+BRAND_TEXT: Mapping[str, str] = MappingProxyType({
+    "masthead": "RELIC & RIDDLE",
+    "follow": "FOLLOW FOR THE NEXT RELIC",        # the end card's follow line
+    "handoff": "The next riddle is right here.",  # the 16:9 end screen's hand-off to the watch-next slot
+})
+
+
+@dataclass(frozen=True)
+class BrandConfig:
+    """One brand's role tokens: `palette` (role -> RGB, or another role's name), `fonts` (role -> family; None reads
+    the configured setting) and `text` (the masthead and the end card's lines). Every role of the default must be
+    defined; `derive` gives a copy with some roles replaced."""
+    name: str = "Relic & Riddle"
+    palette: Mapping[str, RGB | str] = field(default_factory=lambda: BRAND_PALETTE)
+    fonts: Mapping[str, str | None] = field(default_factory=lambda: BRAND_FONTS)
+    text: Mapping[str, str] = field(default_factory=lambda: BRAND_TEXT)
+
+    def __post_init__(self) -> None:
+        for attr, base in (("palette", BRAND_PALETTE), ("fonts", BRAND_FONTS), ("text", BRAND_TEXT)):
+            value = getattr(self, attr)
+            missing = sorted(set(base) - set(value))
+            if missing:
+                raise ValueError(f"brand {self.name!r}: {attr} lacks the roles {missing}")
+            object.__setattr__(self, attr, MappingProxyType(dict(value)))
+        for role in self.palette:
+            self.colour(role)
+        for role in self.fonts:
+            self._font_role(role)
+
+    def derive(self, name: str, palette: Mapping | None = None, fonts: Mapping | None = None,
+               text: Mapping | None = None) -> "BrandConfig":
+        return BrandConfig(name, {**self.palette, **(palette or {})}, {**self.fonts, **(fonts or {})},
+                           {**self.text, **(text or {})})
+
+    def colour(self, role: str) -> RGB:
+        value, seen = self.palette[role], {role}
+        while isinstance(value, str):
+            if value in seen:
+                raise ValueError(f"brand {self.name!r}: palette alias loop at {role}")
+            seen.add(value)
+            value = self.palette[value]
+        return (int(value[0]), int(value[1]), int(value[2]))
+
+    def _font_role(self, role: str) -> str:
+        """The role whose family `role` reads (itself, or the end of its alias chain)."""
+        seen = {role}
+        while (family := self.fonts[role]) in self.fonts:
+            if family in seen:
+                raise ValueError(f"brand {self.name!r}: font alias loop at {role}")
+            seen.add(family)
+            role = family
+        return role
+
+    def font(self, role: str) -> str:
+        role = self._font_role(role)
+        family = self.fonts[role]
+        if family is None:
+            from . import config
+            family = {"caption": config.FONT_NAME, "caption_wide": config.CAPTION_WIDE_FONT}[role]
+        return family
+
+
+DEFAULT_BRAND = BrandConfig()
+_active: BrandConfig = DEFAULT_BRAND
+_on_change: list = []
+
+
+def on_change(clear) -> None:
+    """Call `clear()` whenever the active brand changes: a cache a design module keeps of a measure taken in a brand
+    face (keyed without the family) registers its cache_clear here, so it never serves the previous brand's."""
+    _on_change.append(clear)
+
+
+def active() -> BrandConfig:
+    """The brand configuration every design reads now."""
+    return _active
+
+
+def configure(config: BrandConfig | None) -> BrandConfig:
+    """Make `config` (None: the default) the active brand for the whole process; returns the one it replaced."""
+    global _active
+    previous, _active = _active, config or DEFAULT_BRAND
+    if _active is not previous:
+        for clear in _on_change:
+            clear()
+    return previous
+
+
+@contextmanager
+def use(config: BrandConfig) -> Iterator[BrandConfig]:
+    """Draw with `config` inside the block (process-wide, so the graphics' frame threads see it too)."""
+    previous = configure(config)
+    try:
+        yield config
+    finally:
+        configure(previous)
+
+
+FONT_ROLES = {"DISPLAY_FONT": "display", "MASTHEAD_FONT": "masthead", "TEXT_FONT": "text", "DATA_FONT": "data",
+              "CAPTION_FONT": "caption", "CAPTION_WIDE_FONT": "caption_wide", "BADGE_FONT": "badge"}
+TEXT_ROLES = {"MASTHEAD": "masthead", "FOLLOW_LINE": "follow", "HANDOFF_LINE": "handoff"}
+
+
+def __getattr__(name: str):
+    """`brand.GOLD`, `brand.DISPLAY_FONT`, `brand.MASTHEAD`: the active brand's role at the moment of the read."""
+    cfg = _active
+    if name in cfg.palette:
+        return cfg.colour(name)
+    if name in FONT_ROLES:
+        return cfg.font(FONT_ROLES[name])
+    if name in TEXT_ROLES:
+        return cfg.text[TEXT_ROLES[name]]
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
+
+def __dir__():
+    return sorted(set(globals()) | set(_active.palette) | set(FONT_ROLES) | set(TEXT_ROLES))
+
 
 TEXT_CONTRAST = 4.5              # WCAG AA: every text element, measured on the delivered pixels
 PLACE_TARGET = 4.8               # what place_text aims for, so JPEG and the master's conversions still leave >= 4.5

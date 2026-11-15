@@ -22,16 +22,14 @@ import requests
 from PIL import Image, ImageDraw
 from pydantic import BaseModel
 
-from . import commons, config, safe_zones, url_guard
-from .brand import BONE, DATA_FONT, INK, PLACE_TARGET, rgba
+from . import brand, commons, config, safe_zones, url_guard
+from .brand import PLACE_TARGET, rgba
 from .camera_motion import kenburns
 from .config import VIDEO_FPS, VIDEO_HEIGHT, VIDEO_WIDTH
 from .credits import normalize
 from .graphics import (
     CLIP_SECONDS,
-    GOLD,
     TEXT_TOP,
-    WHITE,
     _ease,
     _ease_io,
     get_text_box,
@@ -43,6 +41,23 @@ from .typography import TextPlate, _draw_tracked, cap_height, full_halo_pad, get
 from .upscale import ensure_resolution
 
 log = logging.getLogger(__name__)
+
+# Colours are the active brand's (src/brand.py), read when drawn (QF-35a); the names this module bound at import
+# before are served to their readers by __getattr__ (WHITE is BONE).
+_BRAND_NAMES = {"BONE": "BONE", "INK": "INK", "GOLD": "GOLD", "WHITE": "BONE", "DATA_FONT": "DATA_FONT",
+                "GLOW_INK": "GLOW_INK"}
+
+
+def __getattr__(name: str):
+    """A colour or face this module bound at import before QF-35a: the active brand's, read now; and the measures
+    taken in a brand face (KICKER_PX, BAND_FALL), measured in the active brand's face when read (QF-35a round 2)."""
+    if name in _BRAND_NAMES:
+        return getattr(brand, _BRAND_NAMES[name])
+    if name == "KICKER_PX":
+        return kicker_px()
+    if name == "BAND_FALL":
+        return band_fall(1080, 1920)
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 W, H = VIDEO_WIDTH, VIDEO_HEIGHT
 OLD_BEFORE, NEW_FROM = 1960, 2000
 # Archive/catalogue words in old photo titles that would derail a search for the same subject today.
@@ -385,15 +400,21 @@ KICKER_GAP_WIDE = 24
 KICKER_TRACK = {"portrait": 0.15, "landscape": 0.118}   # the kicker's letter spacing, as a share of its size
 
 
+@lru_cache(maxsize=8)
 def _kicker_px_for_cap(cap: int) -> int:
     """The smallest kicker size whose measured "THEN" cap height (its ink above the baseline) is at least `cap`."""
     for px in range(24, 96):
-        if -get_font(DATA_FONT, px, weight=600).getbbox("THEN", anchor="ls")[1] >= cap:
+        if -get_font(brand.DATA_FONT, px, weight=600).getbbox("THEN", anchor="ls")[1] >= cap:
             return px
     return 96
 
 
-KICKER_PX = {"portrait": 48, "landscape": _kicker_px_for_cap(KICKER_CAP_WIDE)}
+def kicker_px() -> dict[str, int]:
+    """The kicker's size per orientation: 48 on 9:16; on 16:9 the size whose THEN cap reaches KICKER_CAP_WIDE in the
+    active brand's data face (measured when drawn, QF-35a round 2: a value taken at import kept the first brand's)."""
+    return {"portrait": 48, "landscape": _kicker_px_for_cap(KICKER_CAP_WIDE)}
+
+
 # The kicker sits on the year as one lock-up: on 9:16 the year's anchor YEAR_OFFSET kicker sizes below the
 # kicker's. Each left-set line's first ink starts at the marker's x and each right-set line's last ink ends on it
 # (optical alignment measured from the drawn glyphs), so THEN, NOW and every leading digit line up. On 9:16 the NOW
@@ -808,8 +829,8 @@ def draw_divider(im: Image.Image, pos: float) -> Image.Image:
         return [lo, 0, hi, height - 1] if axis == 0 else [0, lo, width - 1, hi]
     d = ImageDraw.Draw(im, "RGBA")
     for lo, hi in ((p - half - KEYLINE_W, p - half - 1), (p + half + 1, p + half + KEYLINE_W)):
-        d.rectangle(band(lo, hi), fill=rgba(INK, KEYLINE_ALPHA))
-    d.rectangle(band(p - half, p + half), fill=rgba(BONE))
+        d.rectangle(band(lo, hi), fill=rgba(brand.INK, KEYLINE_ALPHA))
+    d.rectangle(band(p - half, p + half), fill=rgba(brand.BONE))
     return im
 
 
@@ -901,8 +922,8 @@ def join_blurred(then_im: Image.Image, now_im: Image.Image, pos: float, dpos: fl
         b = b_band
         out = b + (a - b) * mb
         ka = KEYLINE_ALPHA / 255.0
-        out = (out * (1.0 - bb - kb * ka) + np.asarray(BONE, np.float32) * bb
-               + np.asarray(INK, np.float32) * (ka * kb))
+        out = (out * (1.0 - bb - kb * ka) + np.asarray(brand.BONE, np.float32) * bb
+               + np.asarray(brand.INK, np.float32) * (ka * kb))
         out_im.paste(Image.fromarray(np.clip(np.round(out), 0, 255).astype(np.uint8), "RGB"), box[:2])
     return out_im
 
@@ -921,7 +942,7 @@ def marker_xy(which: str, width: int, height: int, side: str = "left", word: str
     x, anchor = (x1 - 18, "rt") if side == "right" else (x0 + 18, "lt")
     if which == "then":
         return x, max(y0 + 42, TEXT_TOP), anchor
-    kicker = get_font(DATA_FONT, KICKER_PX["portrait"], weight=600)
+    kicker = get_font(brand.DATA_FONT, kicker_px()["portrait"], weight=600)
     return x, split + NOW_DROP - kicker.getbbox(word or "NOW", anchor="lt")[1], anchor
 
 
@@ -965,13 +986,13 @@ def marker_lines(which: str, year: int, width: int, height: int, word: str | Non
     word = word or which.upper()
     x, y, anchor = marker_xy(which, width, height, side, word)
     key = "landscape" if width > height else "portrait"
-    kicker = get_font(DATA_FONT, KICKER_PX[key], weight=600)
-    figure = get_font("Anton", YEAR_PX[key])
-    track = KICKER_PX[key] * KICKER_TRACK[key]
+    kicker = get_font(brand.DATA_FONT, kicker_px()[key], weight=600)
+    figure = get_font(brand.DISPLAY_FONT, YEAR_PX[key])
+    track = kicker_px()[key] * KICKER_TRACK[key]
     if key == "landscape":
         fy = y + _ink(kicker, word, track)[3] + KICKER_GAP_WIDE - _ink(figure, str(year))[1]
     else:
-        fy = y + round(KICKER_PX[key] * YEAR_OFFSET)
+        fy = y + round(kicker_px()[key] * YEAR_OFFSET)
     if anchor[0] == "r":
         return ((x - _ink(kicker, word, track, "rt")[2], y), (x - _ink(figure, str(year), 0, "rt")[2], fy), anchor)
     column = x + _ink_left(kicker, "THEN")
@@ -1021,7 +1042,11 @@ CLOUD_Y = 180.0
 @lru_cache(maxsize=4)
 def year_cap(key: str) -> int:
     """The measured cap height of the Anton year at YEAR_PX[key]."""
-    return cap_height(get_font("Anton", YEAR_PX[key]))
+    return cap_height(get_font(brand.DISPLAY_FONT, YEAR_PX[key]))
+
+
+brand.on_change(year_cap.cache_clear)   # a measure in the display face: dropped when the brand changes
+brand.on_change(_kicker_px_for_cap.cache_clear)   # the kicker size measured in the data face (round 2)
 
 
 def band_fall(width: int, height: int) -> int:
@@ -1043,18 +1068,19 @@ def glow_fall(width: int, height: int, depth: float = 0.0, ground_y: float | Non
     base = band_fall(width, height)
     if ground_y is None or depth <= 0:
         return base
-    ink_y = 0.299 * GLOW_INK[0] + 0.587 * GLOW_INK[1] + 0.114 * GLOW_INK[2]
+    ink_y = 0.299 * brand.GLOW_INK[0] + 0.587 * brand.GLOW_INK[1] + 0.114 * brand.GLOW_INK[2]
     return max(base, math.ceil(1.5 * depth * max(0.0, ground_y - ink_y) / GLOW_MAX_STEP))
 
 
-BAND_FALL = band_fall(1080, 1920)   # the longer fall (9:16): the furthest any glow reaches
+# BAND_FALL (module __getattr__): band_fall(1080, 1920), the longer fall (9:16), the furthest any glow reaches;
+# measured in the active brand's display face when read (QF-35a round 2).
 # The glow's distance is a soft minimum over the marker's lines (each line's own distance field, combined as
 # -K ln sum exp(-d / K)), so where the short kicker meets the wider year the glow's outline is rounded, not a
 # crease. The glow is a warm ink (GLOW_INK), composited in float with a static TPDF dither (T3: GLOW_DITHER_LSB
 # video codes, one value per 2 x 2 cell, the same on all three channels and every frame, only where the glow is
 # partial) so a shallow ramp on a smooth sky does not terrace after the delivery encode.
 GLOW_SMOOTH_K = 16.0
-GLOW_INK = (30, 22, 16)             # #1E1610
+# brand.GLOW_INK: #1E1610
 GLOW_DITHER_SEED = 1925
 GLOW_DITHER_LSB = 1.75              # TPDF peak, in limited-range video codes (x 255 / 219 in RGB codes)
 # Freeze panel 2026-11-04 (T1): ink type on paper, per marker. The box round a marker's kicker and year (their
@@ -1139,7 +1165,7 @@ def _lines_distance(w: int, h: int, boxes: tuple, reach: int = 0) -> Any:
     the lines; beyond the glow's reach it is left far."""
     import numpy as np
     k = GLOW_SMOOTH_K
-    grow = max(BAND_PAD + BAND_FALL, reach) + 8 * k
+    grow = max(BAND_PAD + band_fall(1080, 1920), reach) + 8 * k
     x0, y0 = max(0, int(min(b[0] for b in boxes) - grow)), max(0, int(min(b[1] for b in boxes) - grow))
     x1, y1 = min(w, int(max(b[2] for b in boxes) + grow)), min(h, int(max(b[3] for b in boxes) + grow))
     out = np.full((h, w), float(w + h))
@@ -1280,7 +1306,7 @@ def _shade(im: Image.Image, mask: Any, alpha: float = 1.0, bbox: tuple[int, int,
     else:
         a = np.asarray(mask[y0:y1, x0:x1], np.float32)[..., None] * np.float32(min(1.0, alpha))
     base = np.asarray(rgb.crop(bb), np.float32)
-    out = base * (1 - a) + np.asarray(GLOW_INK, np.float32) * a
+    out = base * (1 - a) + np.asarray(brand.GLOW_INK, np.float32) * a
     out += _glow_dither(*im.size)[y0:y1, x0:x1] * ((a > 0) & (a < 1))
     rgb.paste(Image.fromarray(np.clip(np.round(out), 0, 255).astype(np.uint8), "RGB"), (x0, y0))
     return rgb
@@ -1419,9 +1445,9 @@ def render(old: Path, old_year: int, new: Path, new_year: int, out: Path, width:
     a_src, b_src, framing = frame_pair(old, new, width, height)
     n = int(CLIP_SECONDS * VIDEO_FPS)
     key = "landscape" if width > height else "portrait"
-    kicker_font = get_font(DATA_FONT, KICKER_PX[key], weight=600)
-    year_font = get_font("Anton", YEAR_PX[key])
-    track = KICKER_PX[key] * KICKER_TRACK[key]
+    kicker_font = get_font(brand.DATA_FONT, kicker_px()[key], weight=600)
+    year_font = get_font(brand.DISPLAY_FONT, YEAR_PX[key])
+    track = kicker_px()[key] * KICKER_TRACK[key]
     split = _split_at(width, height)
     edge = max(width, height)
     srcs = {"then": a_src, "now": b_src}
@@ -1437,7 +1463,7 @@ def render(old: Path, old_year: int, new: Path, new_year: int, out: Path, width:
 
     def ink_boxes(which: str, ln: tuple) -> list:
         kxy, fxy, anchor = ln
-        return [TextPlate(text, font, WHITE, xy, anchor, tr, 0, INK, 0, False, size).box
+        return [TextPlate(text, font, brand.BONE, xy, anchor, tr, 0, brand.INK, 0, False, size).box
                 for text, font, xy, tr in ((words[which], kicker_font, kxy, track), (str(years[which]), year_font, fxy, 0))]
 
     def padded(boxes: list, pad: int, clip: tuple) -> tuple:
@@ -1481,8 +1507,8 @@ def render(old: Path, old_year: int, new: Path, new_year: int, out: Path, width:
         if not (INK_ON_PAPER and gate[w]["ok"]):
             continue
         kxy, fxy, anchor = lines[w]
-        ps = [_marker_plate(split0, alone0[w], kxy, words[w], kicker_font, INK, anchor, track, halo_px=0, min_halo=0.0),
-              _marker_plate(split0, alone0[w], fxy, str(years[w]), year_font, INK, anchor, 0, halo_px=0, min_halo=0.0)]
+        ps = [_marker_plate(split0, alone0[w], kxy, words[w], kicker_font, brand.INK, anchor, track, halo_px=0, min_halo=0.0),
+              _marker_plate(split0, alone0[w], fxy, str(years[w]), year_font, brand.INK, anchor, 0, halo_px=0, min_halo=0.0)]
         if short(ps, split0, alone0[w]) or min(p.contrast or 0 for p in ps) < INK_TARGET:
             log.info("Then-and-now: ink type on paper plans %s for %s (under %.1f); bone/gold type instead.",
                      "/".join(f"{p.contrast or 0:.2f}" for p in ps), w, INK_TARGET)
@@ -1494,7 +1520,7 @@ def render(old: Path, old_year: int, new: Path, new_year: int, out: Path, width:
     steps: dict[str, str] = {}
     depth: dict[str, float] = {}
     colours: dict[str, Any] = {}
-    pair_colour: list[Any] = [WHITE if len(rest) == 1 and plates else None]
+    pair_colour: list[Any] = [brand.BONE if len(rest) == 1 and plates else None]
 
     def split_shaded() -> Image.Image:
         if not shades:
@@ -1509,13 +1535,13 @@ def render(old: Path, old_year: int, new: Path, new_year: int, out: Path, width:
     def plan_marker(which: str, split_im: Image.Image, alone_im: Image.Image, max_halo: float) -> list:
         kxy, fxy, anchor = lines[which]
         # Gold, unless a bright sky keeps it under 4.5:1 at a full halo: then bone, which clears it there.
-        for colour in ((pair_colour[0],) if pair_colour[0] is not None else (GOLD, WHITE)):
+        for colour in ((pair_colour[0],) if pair_colour[0] is not None else (brand.GOLD, brand.BONE)):
             kicker = _marker_plate(split_im, alone_im, kxy, words[which], kicker_font, colour, anchor, track,
                                    halo_px=KICKER_HALO, min_halo=0.5, target=PLACE_TARGET + 0.6, max_halo=max_halo)
             colours[which] = colour
             if (kicker.contrast or 0) >= PLACE_TARGET and (kicker.measure(alone_im) or 0) >= PLACE_TARGET:
                 break
-        figure = _marker_plate(split_im, alone_im, fxy, str(years[which]), year_font, WHITE, anchor, 0, halo_px=None,
+        figure = _marker_plate(split_im, alone_im, fxy, str(years[which]), year_font, brand.BONE, anchor, 0, halo_px=None,
                                min_halo=0.35, max_halo=max_halo)
         return [kicker, figure]
 
@@ -1561,7 +1587,7 @@ def render(old: Path, old_year: int, new: Path, new_year: int, out: Path, width:
     if rest:
         planned = plan_all()
         if len(rest) == 2 and len({colours[w] for w in rest}) > 1:   # one gold, one bone: both bone
-            pair_colour[0] = WHITE
+            pair_colour[0] = brand.BONE
             planned = plan_all()
         # One halo for the pair (T2): the largest any bone/gold line needed, at least PAIR_HALO_FLOOR.
         halo_h = max(p.halo for w in rest for p in planned[w])
@@ -1608,7 +1634,7 @@ def render(old: Path, old_year: int, new: Path, new_year: int, out: Path, width:
                     break
             bad = resolve_pair()
         for w in rest:
-            plates[w], mode[w] = planned[w], ("gold" if colours[w] == GOLD else "bone")
+            plates[w], mode[w] = planned[w], ("gold" if colours[w] == brand.GOLD else "bone")
     else:
         halo_h = 0.0
     log.info("Then-and-now type: THEN %s, NOW %s (%s); halo %.2f; %s.", mode["then"], mode["now"],

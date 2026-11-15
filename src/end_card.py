@@ -42,9 +42,19 @@ SECONDS = 2.9            # the card's length after the narration
 FPS = 30
 WIDTH, HEIGHT = 1080, 1920
 WHOOSH_AT, BELL_AT = 0.0, 1.95   # seconds into the card
-BRAND = "RELIC & RIDDLE"
-FOLLOW = "FOLLOW FOR THE NEXT RELIC"
-GOLD, WHITE, INK = brand.GOLD, brand.BONE, brand.INK   # brand tokens; #D4AF37 gold until 2026-10-29
+# The masthead, the follow line (FOLLOW), the 16:9 hand-off (HANDOFF) and the colours (#D4AF37 gold until
+# 2026-10-29) are the active brand's (src/brand.py), read when drawn (QF-35a); the names below serve their readers.
+_BRAND_NAMES = {"BRAND": "MASTHEAD", "FOLLOW": "FOLLOW_LINE", "HANDOFF": "HANDOFF_LINE", "GOLD": "GOLD", "WHITE": "BONE",
+                "INK": "INK"}
+
+
+def __getattr__(name: str):
+    """A brand string or colour this module bound at import before QF-35a: the active brand's, read now."""
+    if name in _BRAND_NAMES:
+        return getattr(brand, _BRAND_NAMES[name])
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
+
 BAND = (0.26, 0.66)      # the rows the card's text occupies
 TARGETS = {"band": 30.0, "band_std": 12.0, "outside": 40.0}   # 0-255 luminance after the dim
 TOP = 780                # y of the share line's first row (9:16)
@@ -70,8 +80,7 @@ END_SCREEN_VIDEO_SLOTS = ("video", "video2")
 YOUTUBE_TIMESTAMP_ZONE = (1620, 950, 1920, 1080)   # the player's timestamp and controls (1920x1080 px)
 END_SCREEN_GAP = 60
 # The 16:9 hand-off (panel round 4): YouTube's own line, pointing the eye at the watch-next slot. A fixed brand line
-# with no topic claim (the Reel's share ask stays on the 9:16 bridge and in the captions).
-HANDOFF = "The next riddle is right here."
+# with no topic claim (the Reel's share ask stays on the 9:16 bridge and in the captions): brand.HANDOFF_LINE.
 LANDSCAPE_SHARE_SIZES = (64, 60, 56)
 LANDSCAPE_MASTHEAD_W = 620
 LANDSCAPE_PUSH = 0.02    # the 16:9 push over END_SCREEN_SECONDS, easing to rest (panel round 3: YouTube's tiles sit
@@ -212,19 +221,19 @@ def says_follow(text: str) -> bool:
 def _masthead(max_w: int) -> dict[str, Any]:
     """The cover's masthead (src/cover_design.py _brand: the gold diamond, then RELIC & RIDDLE in tracked Cinzel
     Bold bone), scaled up from the cover's 64 px to the largest size whose group fits MASTHEAD_W and `max_w`."""
-    from .cover_design import BRAND_PX, BRAND_TEXT, BRAND_TRACK, MARK_GAP, MARK_R
+    from .cover_design import BRAND_PX, BRAND_TRACK, MARK_GAP, MARK_R
     goal = min(MASTHEAD_W, max_w)
     best = None
     for size in range(BRAND_PX, 140):
         k = size / BRAND_PX
-        font = get_font("Cinzel", size, weight=700)
+        font = get_font(brand.MASTHEAD_FONT, size, weight=700)
         track = BRAND_TRACK * k
         r, gap = round(MARK_R * k), round(MARK_GAP * k)
-        name_w = tracked_width(BRAND_TEXT, font, track)
+        name_w = tracked_width(brand.MASTHEAD, font, track)
         group = 2 * r + gap + name_w
         if group > goal and best is not None:
             break
-        best = {"text": BRAND_TEXT, "font": font, "track": track, "mark_r": r, "gap": gap, "width": round(group),
+        best = {"text": brand.MASTHEAD, "font": font, "track": track, "mark_r": r, "gap": gap, "width": round(group),
                 "size": size}
     return best
 
@@ -247,7 +256,7 @@ def layout(share: str, width: int = WIDTH, height: int = HEIGHT) -> dict[str, An
     subscribe button (END_SCREEN_SLOTS); no follow line (the subscribe element asks)."""
     from .typography import drawable, field_font
     landscape = width > height
-    words = drawable(share, "Montserrat").split() or ["…"]  # no emoji or missing-glyph boxes (2026-10-29)
+    words = drawable(share, brand.TEXT_FONT).split() or ["…"]  # no emoji or missing-glyph boxes (2026-10-29)
     floor = None   # 16:9: the lowest the text column may reach (above the subscribe slot)
     cx = width / 2
     if landscape:
@@ -265,7 +274,7 @@ def layout(share: str, width: int = WIDTH, height: int = HEIGHT) -> dict[str, An
     for max_lines, sizes in plan:
         for size in sizes:
             # the share line's words are planned one by one: all in the line's face (QF-94)
-            share_font = field_font(" ".join(words), get_font("Montserrat", size, weight=SHARE_WEIGHT))
+            share_font = field_font(" ".join(words), get_font(brand.TEXT_FONT, size, weight=SHARE_WEIGHT))
             lines = _balanced(words, share_font, max_w, max_lines)
             if lines and floor is not None and top0 + len(lines) * round(size * 1.24) > floor:
                 lines = None   # it would run into the subscribe slot: fewer lines or a smaller size
@@ -285,8 +294,8 @@ def layout(share: str, width: int = WIDTH, height: int = HEIGHT) -> dict[str, An
     follow = not landscape and not says_follow(share)
     follow_font = spacing = follow_w = None
     for size in FOLLOW_SIZES:  # the largest follow line that fits the safe width
-        follow_font, spacing = get_font("Montserrat", size, weight=800), size * FOLLOW_TRACK
-        follow_w = _tracked_width(follow_font, FOLLOW, spacing)
+        follow_font, spacing = get_font(brand.TEXT_FONT, size, weight=800), size * FOLLOW_TRACK
+        follow_w = _tracked_width(follow_font, brand.FOLLOW_LINE, spacing)
         if follow_w <= max_w - 20:
             break
     cap = mast["font"].getbbox("R", anchor="lt")
@@ -297,7 +306,7 @@ def layout(share: str, width: int = WIDTH, height: int = HEIGHT) -> dict[str, An
         rule = (x0, x0 + 240)
         top = rule_y + 70
         align_x = x0
-    ink = probe.textbbox((0, 0), FOLLOW, font=follow_font)
+    ink = probe.textbbox((0, 0), brand.FOLLOW_LINE, font=follow_font)
     if not landscape:   # the group (masthead cap top to the last line's ink) centred in the Reel box, inside it
         _, by0, _, by1 = REEL.box(width, height)
         g_top = MAST_TOP + cap[1]
@@ -345,7 +354,7 @@ def fit_dim(base: Image.Image) -> Tuple[np.ndarray, np.ndarray, Dict[str, float]
     soft = np.asarray(base.convert("L").filter(ImageFilter.GaussianBlur(14)), dtype=np.float32)
     weight = soften * (0.55 + 0.45 * bump)
     seen = lum * (1 - weight) + soft * weight
-    ink = float(np.mean(INK))
+    ink = float(np.mean(brand.INK))
     for floor in np.arange(0.50, 0.92, 0.02):
         for peak in np.arange(0.86, 0.975, 0.01):
             shape = np.clip(floor + (peak - floor) * bump, 0, 0.97)
@@ -395,16 +404,16 @@ def _mark(d: ImageDraw.ImageDraw, lay: dict[str, Any], a: float, r_draw: float) 
     r = lay["masthead"]["mark_r"]
     if a > 0:
         diamond = [(cx, cy - r), (cx + r, cy), (cx, cy + r), (cx - r, cy)]
-        d.polygon(diamond, outline=(*INK, int(255 * a)), width=3)
-        d.polygon(diamond, fill=(*GOLD, int(255 * a)))
+        d.polygon(diamond, outline=(*brand.INK, int(255 * a)), width=3)
+        d.polygon(diamond, fill=(*brand.GOLD, int(255 * a)))
     if r_draw > 0:
         x0, x1 = lay["rule"]
         y = lay["rule_y"]
         if lay["landscape"]:
-            d.line([(x0, y), (x0 + (x1 - x0) * r_draw, y)], fill=(*GOLD, 235), width=4)
+            d.line([(x0, y), (x0 + (x1 - x0) * r_draw, y)], fill=(*brand.GOLD, 235), width=4)
         else:
             mid, half = (x0 + x1) / 2, (x1 - x0) / 2 * r_draw
-            d.line([(mid - half, y), (mid + half, y)], fill=(*GOLD, 235), width=4)
+            d.line([(mid - half, y), (mid + half, y)], fill=(*brand.GOLD, 235), width=4)
 
 
 def landscape_zoom_at(t: float) -> float:
@@ -510,11 +519,11 @@ def frames(last: Image.Image, share: str, stats: dict[str, Any] | None = None, *
         cols = _scrim(width)[None, :]
         shape, soften_w = shape * cols, soften_w * cols
     soft_base = base.filter(ImageFilter.GaussianBlur(14))
-    text = HANDOFF if landscape and handoff else share
+    text = brand.HANDOFF_LINE if landscape and handoff else share
     lay = layout(text, width, height)
     mast = lay["masthead"]
     total = round(seconds * FPS)
-    ink = np.array(INK, np.float32)
+    ink = np.array(brand.INK, np.float32)
 
     def ground(t: float) -> Image.Image:
         z = landscape_zoom_at(t) if landscape else zoom_at(t)
@@ -526,16 +535,16 @@ def frames(last: Image.Image, share: str, stats: dict[str, Any] | None = None, *
 
     # Every line is planned on the card's last frame (the ground at rest) and drawn from that plan on each frame.
     rest = ground((total - 1) / FPS)
-    brand_plate = plan_text(rest, lay["masthead_xy"], mast["text"], mast["font"], WHITE, "lt", mast["track"])
+    brand_plate = plan_text(rest, lay["masthead_xy"], mast["text"], mast["font"], brand.BONE, "lt", mast["track"])
     words = _word_xs(lay, width)
-    word_plates = [plan_text(rest, (round(x), y), w, lay["share_font"], WHITE) for _, _, w, x, y in words]
-    follow_plate = (plan_text(rest, (lay["centre_x"], lay["follow_y"]), FOLLOW, lay["follow_font"], GOLD, "ma", lay["spacing"])
+    word_plates = [plan_text(rest, (round(x), y), w, lay["share_font"], brand.BONE) for _, _, w, x, y in words]
+    follow_plate = (plan_text(rest, (lay["centre_x"], lay["follow_y"]), brand.FOLLOW_LINE, lay["follow_font"], brand.GOLD, "ma", lay["spacing"])
                     if lay["follow"] else None)
     extras = end_screen_extras(width) if landscape else None
     kicker_plate = credits_plate = None
     if extras:
         k = extras["kicker"]
-        kicker_plate = plan_text(rest, k["xy"], k["text"], k["font"], GOLD, "ls", k["track"])
+        kicker_plate = plan_text(rest, k["xy"], k["text"], k["font"], brand.GOLD, "ls", k["track"])
         if credits:
             c = extras["credits"]
             credits_plate = plan_text(rest, c["xy"], c["text"], c["font"], brand.STONE_LT, "ls", c["track"])
@@ -547,7 +556,7 @@ def frames(last: Image.Image, share: str, stats: dict[str, Any] | None = None, *
                      size=[width, height], seconds=seconds, masthead_top=lay["masthead_top"], text=text)
         if landscape:
             stats.update(kicker=KICKER, slot_frames=bool(slot_frames), credits_line=bool(credits),
-                         push=LANDSCAPE_PUSH, handoff=text == HANDOFF,
+                         push=LANDSCAPE_PUSH, handoff=text == brand.HANDOFF_LINE,
                          layout_problems=end_screen_problems(lay, width, credits=credits))
     for i in range(total):
         t = i / FPS
@@ -681,7 +690,7 @@ def loop_bridge(last: Image.Image, first: Image.Image, share: str,
     b_img = first.convert("RGB")
     shape, _, dim = fit_dim(a_img)
     shape = (shape * LOOP_DIM)[..., None]
-    ink = np.array(INK, np.float32)
+    ink = np.array(brand.INK, np.float32)
     total = round(LOOP_SECONDS * FPS)
     t_in = LOOP_TIMES["in"]
     n_cf = round(cf * FPS)
@@ -705,7 +714,7 @@ def loop_bridge(last: Image.Image, first: Image.Image, share: str,
         for li, ln in enumerate(lines):
             s = " ".join(ln)
             x = lay["centre_x"] - probe.textlength(s, font=lay["share_font"]) / 2
-            plates.append(plan_text(held, (round(x), top + li * line_h), s, lay["share_font"], WHITE))
+            plates.append(plan_text(held, (round(x), top + li * line_h), s, lay["share_font"], brand.BONE))
     mix_at = _seam_curve(n_cf, 1 - 1 / total)
     hold_i = min(range(total), key=lambda k: abs(k / FPS - t_hold))
     prev_l = mean_lstar(a_img)
@@ -773,14 +782,14 @@ def _follow_plate(a_img: Image.Image, b_img: Image.Image, a_rate: float, open_pu
     the two endpoint frames only, 3 of 31 production endings measured under 4.5:1 mid-crossfade (QF-83 real_data)."""
     from .typography import cap_height, full_halo_pad, plan_text
     width, height = a_img.size
-    font = get_font("Montserrat", LOOP_FOLLOW_SIZE, weight=800)
+    font = get_font(brand.TEXT_FONT, LOOP_FOLLOW_SIZE, weight=800)
     spacing = LOOP_FOLLOW_SIZE * FOLLOW_TRACK
     y = round(LOOP_CENTRE * height + cap_height(font) / 2)        # its baseline: the caps centred on LOOP_CENTRE
     up = [i for i in range(total) if follow_alpha(i, total) >= 1.0]
     grounds = [_pushed(a_img, 1 + a_rate * (i + 1), width, height) for i in (up[0], up[-1])]
     grounds += [_pulled(b_img, 1 + open_push * (i - total), width, height) for i in (up[0], up[-1])]
     lightest = Image.fromarray(np.maximum.reduce(grounds).clip(0, 255).astype(np.uint8))
-    plate = plan_text(lightest, (reel_column(width, height)[0], y), LOOP_FOLLOW, font, WHITE, "ms", spacing, halo_px=LOOP_FOLLOW_HALO,
+    plate = plan_text(lightest, (reel_column(width, height)[0], y), LOOP_FOLLOW, font, brand.BONE, "ms", spacing, halo_px=LOOP_FOLLOW_HALO,
                       halo_pad=full_halo_pad(LOOP_FOLLOW_HALO), max_halo=1.0)
     if plate.empty:
         return None, "the word did not render"

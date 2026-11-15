@@ -1,0 +1,2875 @@
+{
+ "note": "The development runs whose licences ask for a credit (QF-126b), as their run folders hold them: the copy as stored (script_metadata.json: caption, title, hashtags; the description of a documentary), the credit fields of each ledger asset that has a licence (provenance.json) and the music bed's sources (its rights record). Read-only extract; no production data.",
+ "runs": [
+  {
+   "run": "run_amber_room_heist_1792790550",
+   "payload": {
+    "caption": "Gilded palace chamber vanished into thin air during wartime chaos.\n✨ Attempts were made to conceal the fragile amber walls from invading German forces behind mundane wallpaper inside the Catherine Palace at Tsarskoye Selo near Saint Petersburg, Russia. By one estimate, following eighteenth-century expansions, the completed room covered more than 55 square metres and contained over 6 tonnes of amber. In early 1944, as Allied forces advanced, the room was disassembled and packed into crates for storage in the Königsberg Castle basement before all documentation ended. Do you believe the lost crates survived in a secret bunker, or were they lost to the firestorms of war?\n\n🎵 Music: “Mystery Ambient Documentaries Mysterious Places” by UNIVERSFIELD (CC BY 4.0)\n🎬 This video is licensed CC BY-SA 4.0: https://creativecommons.org/licenses/by-sa/4.0/\n📷 Sunny365days | File:Reconstructed Amber Room IMG 6163 12.jpg | CC BY 4.0 | https://commons.wikimedia.org/wiki/File:Reconstructed_Amber_Room_IMG_6163_12.jpg | https://creativecommons.org/licenses/by/4.0\n📷 giggel | File:Russland - St. Petersburg - Das Bernsteinzimmer - Panoramafoto vom 11.Mai 2012 - The Amber Room panoramic photo from May 11, 2012 - Панорамные фото Янтарная комната с 11 мая 2012 го - panoramio.jpg | CC BY 3.0 | https://commons.wikimedia.org/wiki/File:Russland_-_St._Petersburg_-_Das_Bernsteinzimmer_-_Panoramafoto_vom_11.Mai_2012_-_The_Amber_Room_panoramic_photo_from_May_11,_2012_-_%D0%9F%D0%B0%D0%BD%D0%BE%D1%80%D0%B0%D0%BC%D0%BD%D1%8B%D0%B5_%D1%84%D0%BE%D1%82%D0%BE_%D0%AF%D0%BD%D1%82%D0%B0%D1%80%D0%BD%D0%B0%D1%8F_%D0%BA%D0%BE%D0%BC%D0%BD%D0%B0%D1%82%D0%B0_%D1%81_11_%D0%BC%D0%B0%D1%8F_2012_%D0%B3%D0%BE_-_panoramio.jpg | https://creativecommons.org/licenses/by/3.0\n📷 Sunny365days | File:Reconstructed Amber Room IMG 6222 07.jpg | CC BY 4.0 | https://commons.wikimedia.org/wiki/File:Reconstructed_Amber_Room_IMG_6222_07.jpg | https://creativecommons.org/licenses/by/4.0",
+    "title": "The 6-Ton Amber Room Stolen in 36 Hours",
+    "hashtags": [
+     "#AmberRoom",
+     "#CatherinePalace",
+     "#Pushkin",
+     "#WWIIHistory",
+     "#LostTreasures"
+    ],
+    "delivery_profile": "reel_9x16"
+   },
+   "assets": [
+    {
+     "title": "File:Catherine Palace interior - Amber Room (1).jpg",
+     "artist": "Branson DeCou",
+     "license": "Public domain",
+     "license_url": "",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Catherine_Palace_interior_-_Amber_Room_(1).jpg",
+     "attribution_required": false
+    },
+    {
+     "title": "File:Reconstructed Amber Room IMG 6163 12.jpg",
+     "artist": "Sunny365days",
+     "license": "CC BY 4.0",
+     "license_url": "https://creativecommons.org/licenses/by/4.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Reconstructed_Amber_Room_IMG_6163_12.jpg",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Russland - St. Petersburg - Das Bernsteinzimmer - Panoramafoto vom 11.Mai 2012 - The Amber Room panoramic photo from May 11, 2012 - Панорамные фото Янтарная комната с 11 мая 2012 го - panoramio.jpg",
+     "artist": "giggel",
+     "license": "CC BY 3.0",
+     "license_url": "https://creativecommons.org/licenses/by/3.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Russland_-_St._Petersburg_-_Das_Bernsteinzimmer_-_Panoramafoto_vom_11.Mai_2012_-_The_Amber_Room_panoramic_photo_from_May_11,_2012_-_%D0%9F%D0%B0%D0%BD%D0%BE%D1%80%D0%B0%D0%BC%D0%BD%D1%8B%D0%B5_%D1%84%D0%BE%D1%82%D0%BE_%D0%AF%D0%BD%D1%82%D0%B0%D1%80%D0%BD%D0%B0%D1%8F_%D0%BA%D0%BE%D0%BC%D0%BD%D0%B0%D1%82%D0%B0_%D1%81_11_%D0%BC%D0%B0%D1%8F_2012_%D0%B3%D0%BE_-_panoramio.jpg",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Catherine Palace interior - Amber Room (2).jpg",
+     "artist": "Branson DeCou",
+     "license": "Public domain",
+     "license_url": "",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Catherine_Palace_interior_-_Amber_Room_(2).jpg",
+     "attribution_required": false
+    },
+    {
+     "title": "File:Reconstructed Amber Room IMG 6163 12.jpg",
+     "artist": "Sunny365days",
+     "license": "CC BY 4.0",
+     "license_url": "https://creativecommons.org/licenses/by/4.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Reconstructed_Amber_Room_IMG_6163_12.jpg",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Andrey Zeest - Amber Room (autochrome).jpg",
+     "artist": "Андрей Андреевич Зеест",
+     "license": "Public domain",
+     "license_url": "",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Andrey_Zeest_-_Amber_Room_(autochrome).jpg",
+     "attribution_required": false
+    },
+    {
+     "title": "File:Reconstructed Amber Room IMG 6222 07.jpg",
+     "artist": "Sunny365days",
+     "license": "CC BY 4.0",
+     "license_url": "https://creativecommons.org/licenses/by/4.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Reconstructed_Amber_Room_IMG_6222_07.jpg",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Reconstructed Amber Room IMG 6163 11.jpg",
+     "artist": "Sunny365days",
+     "license": "CC BY 4.0",
+     "license_url": "https://creativecommons.org/licenses/by/4.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Reconstructed_Amber_Room_IMG_6163_11.jpg",
+     "attribution_required": true
+    },
+    {
+     "title": "File:20230518 Reconstructed Amber Room 02.jpg",
+     "artist": "Sergey A. Demidov",
+     "license": "CC BY 4.0",
+     "license_url": "https://creativecommons.org/licenses/by/4.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:20230518_Reconstructed_Amber_Room_02.jpg",
+     "attribution_required": true
+    },
+    {
+     "title": "File:WW2 Bunker Museum (Blindage Museum Музей Бункер Battle of Königsberg Museum) Kaliningrad, Russia 2017-10-29 - 43456623775.jpg",
+     "artist": "ftrc",
+     "license": "CC BY-SA 2.0",
+     "license_url": "https://creativecommons.org/licenses/by-sa/2.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:WW2_Bunker_Museum_(Blindage_Museum_%D0%9C%D1%83%D0%B7%D0%B5%D0%B9_%D0%91%D1%83%D0%BD%D0%BA%D0%B5%D1%80_Battle_of_K%C3%B6nigsberg_Museum)_Kaliningrad,_Russia_2017-10-29_-_43456623775.jpg",
+     "attribution_required": true
+    },
+    {
+     "title": "File:WW2 Bunker Museum (Blindage Museum Музей Бункер Battle of Königsberg Museum) Kaliningrad, Russia 2017-10-29 - 43646225214.jpg",
+     "artist": "ftrc",
+     "license": "CC BY-SA 2.0",
+     "license_url": "https://creativecommons.org/licenses/by-sa/2.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:WW2_Bunker_Museum_(Blindage_Museum_%D0%9C%D1%83%D0%B7%D0%B5%D0%B9_%D0%91%D1%83%D0%BD%D0%BA%D0%B5%D1%80_Battle_of_K%C3%B6nigsberg_Museum)_Kaliningrad,_Russia_2017-10-29_-_43646225214.jpg",
+     "attribution_required": true
+    }
+   ],
+   "music": [
+    {
+     "title": "Mystery Ambient Documentaries Mysterious Places",
+     "creator": "UNIVERSFIELD",
+     "license": "CC BY 4.0",
+     "license_version": "4.0",
+     "license_url": "https://creativecommons.org/licenses/by/4.0/",
+     "source_url": "https://freesound.org/people/UNIVERSFIELD/sounds/697084"
+    }
+   ]
+  },
+  {
+   "run": "run_amber_room_heist_1792801257",
+   "payload": {
+    "caption": "An entire palace room of carved gemstone vanished without a trace during wartime. 👑\n\nOriginally gifted in 1716 by Prussia's King Frederick William I to Tsar Peter the Great, the chamber was expanded inside the Catherine Palace at Tsarskoye Selo using mirrors and gilded accents. Decades later, wartime looting erased its trail.\n\nDo you believe the lost crates survived in hiding, or were they destroyed in 1944? 🔍\n\n#AmberRoom #CatherinePalace #RussianHistory #WWIIHistory\n\n\n🎬 This video is licensed CC BY-SA 4.0: https://creativecommons.org/licenses/by-sa/4.0/\n\n📷 Andrey Korchagin from St. Petersburg, Russia | File:Ekaterininsky Palace. Tsarskoe Selo. (34760026411).jpg | CC BY-SA 2.0 | https://commons.wikimedia.org/wiki/File:Ekaterininsky_Palace._Tsarskoe_Selo._(34760026411).jpg | https://creativecommons.org/licenses/by-sa/2.0\n\n📷 Sunny365days | File:Reconstructed Amber Room IMG 6163 12.jpg | CC BY 4.0 | https://commons.wikimedia.org/wiki/File:Reconstructed_Amber_Room_IMG_6163_12.jpg | https://creativecommons.org/licenses/by/4.0\n\n📷 Sergey A. Demidov | File:20230518 Reconstructed Amber Room 12.jpg | CC BY 4.0 | https://commons.wikimedia.org/wiki/File:20230518_Reconstructed_Amber_Room_12.jpg | https://creativecommons.org/licenses/by/4.0\n\n📷 Sunny365days | File:Reconstructed Amber Room IMG 6182 15.jpg | CC BY 4.0 | https://commons.wikimedia.org/wiki/File:Reconstructed_Amber_Room_IMG_6182_15.jpg | https://creativecommons.org/licenses/by/4.0\n\n📷 Sergey A. Demidov | File:20230518 Reconstructed Amber Room 20.jpg | CC BY 4.0 | https://commons.wikimedia.org/wiki/File:20230518_Reconstructed_Amber_Room_20.jpg | https://creativecommons.org/licenses/by/4.0\n\n📷 Edgar El | File:Mosaik im Bernsteinzimmer - Mosaic in the Amber Room - Мозаика Янтарной комнаты - panoramio.jpg | CC BY 3.0 | https://commons.wikimedia.org/wiki/File:Mosaik_im_Bernsteinzimmer_-_Mosaic_in_the_Amber_Room_-_%D0%9C%D0%BE%D0%B7%D0%B0%D0%B8%D0%BA%D0%B0_%D0%AF%D0%BD%D1%82%D0%B0%D1%80%D0%BD%D0%BE%D0%B9_%D0%BA%D0%BE%D0%BC%D0%BD%D0%B0%D1%82%D1%8B_-_panoramio.jpg | https://creativecommons.org/licenses/by/3.0",
+    "title": "The Lost Amber Room Heist 🏛️",
+    "hashtags": [
+     "#AmberRoom",
+     "#CatherinePalace",
+     "#RussianHistory",
+     "#WWIIHistory"
+    ],
+    "delivery_profile": "reel_9x16"
+   },
+   "assets": [
+    {
+     "title": "File:Catherine Palace interior - Amber Room (2).jpg",
+     "artist": "Branson DeCou",
+     "license": "Public domain",
+     "license_url": "",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Catherine_Palace_interior_-_Amber_Room_(2).jpg",
+     "attribution_required": false
+    },
+    {
+     "title": "File:Ekaterininsky Palace. Tsarskoe Selo. (34760026411).jpg",
+     "artist": "Andrey Korchagin from St. Petersburg, Russia",
+     "license": "CC BY-SA 2.0",
+     "license_url": "https://creativecommons.org/licenses/by-sa/2.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Ekaterininsky_Palace._Tsarskoe_Selo._(34760026411).jpg",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Reconstructed Amber Room IMG 6163 12.jpg",
+     "artist": "Sunny365days",
+     "license": "CC BY 4.0",
+     "license_url": "https://creativecommons.org/licenses/by/4.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Reconstructed_Amber_Room_IMG_6163_12.jpg",
+     "attribution_required": true
+    },
+    {
+     "title": "File:20230518 Reconstructed Amber Room 12.jpg",
+     "artist": "Sergey A. Demidov",
+     "license": "CC BY 4.0",
+     "license_url": "https://creativecommons.org/licenses/by/4.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:20230518_Reconstructed_Amber_Room_12.jpg",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Reconstructed Amber Room IMG 6182 15.jpg",
+     "artist": "Sunny365days",
+     "license": "CC BY 4.0",
+     "license_url": "https://creativecommons.org/licenses/by/4.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Reconstructed_Amber_Room_IMG_6182_15.jpg",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Catherine Palace interior - Amber Room (1).jpg",
+     "artist": "Branson DeCou",
+     "license": "Public domain",
+     "license_url": "",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Catherine_Palace_interior_-_Amber_Room_(1).jpg",
+     "attribution_required": false
+    },
+    {
+     "title": "File:20230518 Reconstructed Amber Room 20.jpg",
+     "artist": "Sergey A. Demidov",
+     "license": "CC BY 4.0",
+     "license_url": "https://creativecommons.org/licenses/by/4.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:20230518_Reconstructed_Amber_Room_20.jpg",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Mosaik im Bernsteinzimmer - Mosaic in the Amber Room - Мозаика Янтарной комнаты - panoramio.jpg",
+     "artist": "Edgar El",
+     "license": "CC BY 3.0",
+     "license_url": "https://creativecommons.org/licenses/by/3.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Mosaik_im_Bernsteinzimmer_-_Mosaic_in_the_Amber_Room_-_%D0%9C%D0%BE%D0%B7%D0%B0%D0%B8%D0%BA%D0%B0_%D0%AF%D0%BD%D1%82%D0%B0%D1%80%D0%BD%D0%BE%D0%B9_%D0%BA%D0%BE%D0%BC%D0%BD%D0%B0%D1%82%D1%8B_-_panoramio.jpg",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Russland - St. Petersburg - Das Bernsteinzimmer - Panoramafoto vom 11.Mai 2012 - The Amber Room panoramic photo from May 11, 2012 - Панорамные фото Янтарная комната с 11 мая 2012 го - panoramio.jpg",
+     "artist": "giggel",
+     "license": "CC BY 3.0",
+     "license_url": "https://creativecommons.org/licenses/by/3.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Russland_-_St._Petersburg_-_Das_Bernsteinzimmer_-_Panoramafoto_vom_11.Mai_2012_-_The_Amber_Room_panoramic_photo_from_May_11,_2012_-_%D0%9F%D0%B0%D0%BD%D0%BE%D1%80%D0%B0%D0%BC%D0%BD%D1%8B%D0%B5_%D1%84%D0%BE%D1%82%D0%BE_%D0%AF%D0%BD%D1%82%D0%B0%D1%80%D0%BD%D0%B0%D1%8F_%D0%BA%D0%BE%D0%BC%D0%BD%D0%B0%D1%82%D0%B0_%D1%81_11_%D0%BC%D0%B0%D1%8F_2012_%D0%B3%D0%BE_-_panoramio.jpg",
+     "attribution_required": true
+    }
+   ],
+   "music": [
+    {
+     "title": "creepy sadness",
+     "creator": "burning-mir",
+     "license": "cc0",
+     "license_version": "1.0",
+     "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+     "source_url": "https://freesound.org/people/burning-mir/sounds/181222"
+    }
+   ]
+  },
+  {
+   "run": "run_amber_room_heist_1792805842",
+   "payload": {
+    "caption": "By one estimate, over six tonnes of carved amber vanished during the chaos of World War II. 👑\nKing Frederick William I of Prussia originally presented the amber panels to Tsar Peter the Great in 1716 before they were installed at the Catherine Palace. While Soviet curators failed to hide the chamber behind wallpaper, craftsmen later spent decades building a complete reconstruction that was inaugurated in 2003. Do you think remnants of the original panels still survive in hidden bunkers today? 🔍\n\n#AmberRoom #CatherinePalace #Pushkin #WWIIHistory #RussianHistory\n\n\n📷 Sunny365days | File:Reconstructed Amber Room IMG 6163 12.jpg | CC BY 4.0 | https://commons.wikimedia.org/wiki/File:Reconstructed_Amber_Room_IMG_6163_12.jpg | https://creativecommons.org/licenses/by/4.0\n\n📷 Sergey A. Demidov | File:20230518 Reconstructed Amber Room 12.jpg | CC BY 4.0 | https://commons.wikimedia.org/wiki/File:20230518_Reconstructed_Amber_Room_12.jpg | https://creativecommons.org/licenses/by/4.0\n\n📷 giggel | File:Russland - St. Petersburg - Das Bernsteinzimmer - Panoramafoto vom 11.Mai 2012 - The Amber Room panoramic photo from May 11, 2012 - Панорамные фото Янтарная комната с 11 мая 2012 го - panoramio.jpg | CC BY 3.0 | https://commons.wikimedia.org/wiki/File:Russland_-_St._Petersburg_-_Das_Bernsteinzimmer_-_Panoramafoto_vom_11.Mai_2012_-_The_Amber_Room_panoramic_photo_from_May_11,_2012_-_%D0%9F%D0%B0%D0%BD%D0%BE%D1%80%D0%B0%D0%BC%D0%BD%D1%8B%D0%B5_%D1%84%D0%BE%D1%82%D0%BE_%D0%AF%D0%BD%D1%82%D0%B0%D1%80%D0%BD%D0%B0%D1%8F_%D0%BA%D0%BE%D0%BC%D0%BD%D0%B0%D1%82%D0%B0_%D1%81_11_%D0%BC%D0%B0%D1%8F_2012_%D0%B3%D0%BE_-_panoramio.jpg | https://creativecommons.org/licenses/by/3.0\n\n📷 Sunny365days | File:Reconstructed Amber Room IMG 6222 07.jpg | CC BY 4.0 | https://commons.wikimedia.org/wiki/File:Reconstructed_Amber_Room_IMG_6222_07.jpg | https://creativecommons.org/licenses/by/4.0\n\n📷 Sunny365days | File:Reconstructed Amber Room IMG 6163 11.jpg | CC BY 4.0 | https://commons.wikimedia.org/wiki/File:Reconstructed_Amber_Room_IMG_6163_11.jpg | https://creativecommons.org/licenses/by/4.0",
+    "title": "Vanished: Russia's Lost Amber Room 👑",
+    "hashtags": [
+     "#AmberRoom",
+     "#CatherinePalace",
+     "#Pushkin",
+     "#WWIIHistory",
+     "#RussianHistory"
+    ],
+    "delivery_profile": "reel_9x16"
+   },
+   "assets": [
+    {
+     "title": "File:Reconstructed Amber Room IMG 6163 12.jpg",
+     "artist": "Sunny365days",
+     "license": "CC BY 4.0",
+     "license_url": "https://creativecommons.org/licenses/by/4.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Reconstructed_Amber_Room_IMG_6163_12.jpg",
+     "attribution_required": true
+    },
+    {
+     "title": "File:20230518 Reconstructed Amber Room 12.jpg",
+     "artist": "Sergey A. Demidov",
+     "license": "CC BY 4.0",
+     "license_url": "https://creativecommons.org/licenses/by/4.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:20230518_Reconstructed_Amber_Room_12.jpg",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Russland - St. Petersburg - Das Bernsteinzimmer - Panoramafoto vom 11.Mai 2012 - The Amber Room panoramic photo from May 11, 2012 - Панорамные фото Янтарная комната с 11 мая 2012 го - panoramio.jpg",
+     "artist": "giggel",
+     "license": "CC BY 3.0",
+     "license_url": "https://creativecommons.org/licenses/by/3.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Russland_-_St._Petersburg_-_Das_Bernsteinzimmer_-_Panoramafoto_vom_11.Mai_2012_-_The_Amber_Room_panoramic_photo_from_May_11,_2012_-_%D0%9F%D0%B0%D0%BD%D0%BE%D1%80%D0%B0%D0%BC%D0%BD%D1%8B%D0%B5_%D1%84%D0%BE%D1%82%D0%BE_%D0%AF%D0%BD%D1%82%D0%B0%D1%80%D0%BD%D0%B0%D1%8F_%D0%BA%D0%BE%D0%BC%D0%BD%D0%B0%D1%82%D0%B0_%D1%81_11_%D0%BC%D0%B0%D1%8F_2012_%D0%B3%D0%BE_-_panoramio.jpg",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Catherine Palace interior - Amber Room (2).jpg",
+     "artist": "Branson DeCou",
+     "license": "Public domain",
+     "license_url": "",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Catherine_Palace_interior_-_Amber_Room_(2).jpg",
+     "attribution_required": false
+    },
+    {
+     "title": "File:Catherine Palace interior - Amber Room (1).jpg",
+     "artist": "Branson DeCou",
+     "license": "Public domain",
+     "license_url": "",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Catherine_Palace_interior_-_Amber_Room_(1).jpg",
+     "attribution_required": false
+    },
+    {
+     "title": "File:Reconstructed Amber Room IMG 6163 12.jpg",
+     "artist": "Sunny365days",
+     "license": "CC BY 4.0",
+     "license_url": "https://creativecommons.org/licenses/by/4.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Reconstructed_Amber_Room_IMG_6163_12.jpg",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Reconstructed Amber Room IMG 6222 07.jpg",
+     "artist": "Sunny365days",
+     "license": "CC BY 4.0",
+     "license_url": "https://creativecommons.org/licenses/by/4.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Reconstructed_Amber_Room_IMG_6222_07.jpg",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Reconstructed Amber Room IMG 6163 11.jpg",
+     "artist": "Sunny365days",
+     "license": "CC BY 4.0",
+     "license_url": "https://creativecommons.org/licenses/by/4.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Reconstructed_Amber_Room_IMG_6163_11.jpg",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Mosaik im Bernsteinzimmer - Mosaic in the Amber Room - Мозаика Янтарной комнаты - panoramio.jpg",
+     "artist": "Edgar El",
+     "license": "CC BY 3.0",
+     "license_url": "https://creativecommons.org/licenses/by/3.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Mosaik_im_Bernsteinzimmer_-_Mosaic_in_the_Amber_Room_-_%D0%9C%D0%BE%D0%B7%D0%B0%D0%B8%D0%BA%D0%B0_%D0%AF%D0%BD%D1%82%D0%B0%D1%80%D0%BD%D0%BE%D0%B9_%D0%BA%D0%BE%D0%BC%D0%BD%D0%B0%D1%82%D1%8B_-_panoramio.jpg",
+     "attribution_required": true
+    }
+   ],
+   "music": [
+    {
+     "title": "Space Atmosphere 03 Remastered.wav",
+     "creator": "MATRIXXX_",
+     "license": "cc0",
+     "license_version": "1.0",
+     "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+     "source_url": "https://freesound.org/people/MATRIXXX_/sounds/660109"
+    }
+   ]
+  },
+  {
+   "run": "run_gol_gumbaz_whispering_gallery_1793278143",
+   "payload": {
+    "caption": "Sound travels along curved stone in ways modern halls still strive to replicate.\n🏛️ Inside Gol Gumbaz in Bijapur, Karnataka, lime mortar binds massive brick layers without a single metal tension ring. By one estimate, its central dome reached an external diameter of 144 feet (44 m), making it the largest unsupported dome in India when work ceased in 1656. Pendentive arches drawn from Central Asian architectural traditions carry the entire weight. Did seventeenth-century builders plan this sound phenomenon or discover it by chance? 🤔 Send this to an acoustic architecture fan, and follow for our next ancient marvel! 🏛️\n\n#GolGumbaz #Bijapur #AncientEngineering #IndianArchitecture\n\n🎵 Music: “soundscape1-freesound.wav” by Thoribass (CC BY 4.0)\n\n\n🎬 This video is licensed CC BY-SA 4.0: https://creativecommons.org/licenses/by-sa/4.0/\n\n📷 Pinakpani | File:Gol Gumbaz, the mausoleum of Mohammed Adil Shah, in Vijaypura 15.jpg | CC BY 4.0 | https://commons.wikimedia.org/wiki/File:Gol_Gumbaz,_the_mausoleum_of_Mohammed_Adil_Shah,_in_Vijaypura_15.jpg | https://creativecommons.org/licenses/by/4.0\n\n📷 Pinakpani | File:Interior of Gol Gumbaz building in Vijaypura, Karnataka 08.jpg | CC BY 4.0 | https://commons.wikimedia.org/wiki/File:Interior_of_Gol_Gumbaz_building_in_Vijaypura,_Karnataka_08.jpg | https://creativecommons.org/licenses/by/4.0\n\n📷 Pinakpani | File:Interior of Gol Gumbaz building in Vijaypura, Karnataka 07.jpg | CC BY 4.0 | https://commons.wikimedia.org/wiki/File:Interior_of_Gol_Gumbaz_building_in_Vijaypura,_Karnataka_07.jpg | https://creativecommons.org/licenses/by/4.0\n\n📷 Santoshsmalagi | File:Inside the Dome Gol Gumbaz.JPG | CC BY-SA 3.0 | https://commons.wikimedia.org/wiki/File:Inside_the_Dome_Gol_Gumbaz.JPG | https://creativecommons.org/licenses/by-sa/3.0\n\n📷 Pinakpani | File:Interior of Gol Gumbaz building in Vijaypura, Karnataka 16.jpg | CC BY 4.0 | https://commons.wikimedia.org/wiki/File:Interior_of_Gol_Gumbaz_building_in_Vijaypura,_Karnataka_16.jpg | https://creativecommons.org/licenses/by/4.0",
+    "title": "The 144-Foot Whispering Vault of Gol Gumbaz 🏛️",
+    "hashtags": [
+     "#GolGumbaz",
+     "#Bijapur",
+     "#AncientEngineering",
+     "#IndianArchitecture"
+    ],
+    "delivery_profile": "reel_9x16"
+   },
+   "assets": [
+    {
+     "title": "File:Gol Gumbaz, the mausoleum of Mohammed Adil Shah, in Vijaypura 15.jpg",
+     "artist": "Pinakpani",
+     "license": "CC BY 4.0",
+     "license_url": "https://creativecommons.org/licenses/by/4.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Gol_Gumbaz,_the_mausoleum_of_Mohammed_Adil_Shah,_in_Vijaypura_15.jpg",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Interior of Gol Gumbaz building in Vijaypura, Karnataka 08.jpg",
+     "artist": "Pinakpani",
+     "license": "CC BY 4.0",
+     "license_url": "https://creativecommons.org/licenses/by/4.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Interior_of_Gol_Gumbaz_building_in_Vijaypura,_Karnataka_08.jpg",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Interior of Gol Gumbaz building in Vijaypura, Karnataka 07.jpg",
+     "artist": "Pinakpani",
+     "license": "CC BY 4.0",
+     "license_url": "https://creativecommons.org/licenses/by/4.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Interior_of_Gol_Gumbaz_building_in_Vijaypura,_Karnataka_07.jpg",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Inside the Dome Gol Gumbaz.JPG",
+     "artist": "Santoshsmalagi",
+     "license": "CC BY-SA 3.0",
+     "license_url": "https://creativecommons.org/licenses/by-sa/3.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Inside_the_Dome_Gol_Gumbaz.JPG",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Interior of Gol Gumbaz building in Vijaypura, Karnataka 16.jpg",
+     "artist": "Pinakpani",
+     "license": "CC BY 4.0",
+     "license_url": "https://creativecommons.org/licenses/by/4.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Interior_of_Gol_Gumbaz_building_in_Vijaypura,_Karnataka_16.jpg",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Bijapur Gol Gumbaz.jpg",
+     "artist": "Bharat Galagali",
+     "license": "CC BY-SA 4.0",
+     "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Bijapur_Gol_Gumbaz.jpg",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Interior of Gol Gumbaz building in Vijaypura, Karnataka 04.jpg",
+     "artist": "Pinakpani",
+     "license": "CC BY 4.0",
+     "license_url": "https://creativecommons.org/licenses/by/4.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Interior_of_Gol_Gumbaz_building_in_Vijaypura,_Karnataka_04.jpg",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Interior of Gol Gumbaz building in Vijaypura, Karnataka 10.jpg",
+     "artist": "Pinakpani",
+     "license": "CC BY 4.0",
+     "license_url": "https://creativecommons.org/licenses/by/4.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Interior_of_Gol_Gumbaz_building_in_Vijaypura,_Karnataka_10.jpg",
+     "attribution_required": true
+    }
+   ],
+   "music": [
+    {
+     "title": "soundscape1-freesound.wav",
+     "creator": "Thoribass",
+     "license": "CC BY 4.0",
+     "license_version": "4.0",
+     "license_url": "https://creativecommons.org/licenses/by/4.0/",
+     "source_url": "https://freesound.org/people/Thoribass/sounds/320839"
+    }
+   ]
+  },
+  {
+   "run": "run_greek_fire_siphon_1792735284_short",
+   "payload": {
+    "caption": "Medieval sailors faced a burning liquid that water simply could not stop. 🔥\n\nDefenders shielded wooden siege engines and hoardings against thermal attacks by draping them with soaked hides. Artillery engines hurled breakable containers, barrels, and fire pots filled with Greek fire, pitch, and other flammable compounds.\n\nCould your defenses withstand an inferno that seawater only helps spread? ⚔️\n\n#ByzantineEmpire #GreekFire #MedievalHistory #NavalWarfare\n\n📷 Images via Wikimedia Commons: Eva Mária Ondová (CC BY 4.0); Bukvoed (CC BY 4.0)\n\n📷 Bukvoed | File:Haifa-maritime-museum-Byzantine-Dromon-9c-2.jpg | CC BY 4.0 | https://commons.wikimedia.org/wiki/File:Haifa-maritime-museum-Byzantine-Dromon-9c-2.jpg | https://creativecommons.org/licenses/by/4.0\n\n📷 Eva Mária Ondová | File:DromonEB01.jpg | CC BY 4.0 | https://commons.wikimedia.org/wiki/File:DromonEB01.jpg | https://creativecommons.org/licenses/by/4.0\n\n📷 Bukvoed | File:Haifa-maritime-museum-Byzantine-Dromon-9c-3.jpg | CC BY 4.0 | https://commons.wikimedia.org/wiki/File:Haifa-maritime-museum-Byzantine-Dromon-9c-3.jpg | https://creativecommons.org/licenses/by/4.0",
+    "title": "The 10th-Century Weapon That Water Could Not Quench 🔥",
+    "hashtags": [
+     "#ByzantineEmpire",
+     "#GreekFire",
+     "#MedievalHistory",
+     "#NavalWarfare"
+    ],
+    "delivery_profile": "reel_9x16"
+   },
+   "assets": [
+    {
+     "title": "File:Greekfire-madridskylitzes1.jpg",
+     "artist": "Unknown authorUnknown author",
+     "license": "Public domain",
+     "license_url": "",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Greekfire-madridskylitzes1.jpg",
+     "attribution_required": false
+    },
+    {
+     "title": "File:Haifa-maritime-museum-Byzantine-Dromon-9c-2.jpg",
+     "artist": "Bukvoed",
+     "license": "CC BY 4.0",
+     "license_url": "https://creativecommons.org/licenses/by/4.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Haifa-maritime-museum-Byzantine-Dromon-9c-2.jpg",
+     "attribution_required": true
+    },
+    {
+     "title": "File:DromonEB01.jpg",
+     "artist": "Eva Mária Ondová",
+     "license": "CC BY 4.0",
+     "license_url": "https://creativecommons.org/licenses/by/4.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:DromonEB01.jpg",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Model of a Byzantine warship (dromon) at Athens War Museum on 12 April 2019.jpg",
+     "artist": "George E. Koronaios",
+     "license": "CC0",
+     "license_url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Model_of_a_Byzantine_warship_(dromon)_at_Athens_War_Museum_on_12_April_2019.jpg",
+     "attribution_required": false
+    },
+    {
+     "title": "File:Greekfire-madridskylitzes1.jpg",
+     "artist": "Unknown authorUnknown author",
+     "license": "Public domain",
+     "license_url": "",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Greekfire-madridskylitzes1.jpg",
+     "attribution_required": false
+    },
+    {
+     "title": "File:Haifa-maritime-museum-Byzantine-Dromon-9c-3.jpg",
+     "artist": "Bukvoed",
+     "license": "CC BY 4.0",
+     "license_url": "https://creativecommons.org/licenses/by/4.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Haifa-maritime-museum-Byzantine-Dromon-9c-3.jpg",
+     "attribution_required": true
+    },
+    {
+     "title": "File:MadridSkylitzesFol34v.jpg",
+     "artist": "from the Middle Ages, unknown",
+     "license": "Public domain",
+     "license_url": "",
+     "source_url": "https://commons.wikimedia.org/wiki/File:MadridSkylitzesFol34v.jpg",
+     "attribution_required": false
+    },
+    {
+     "title": "File:Haifa-maritime-museum-Byzantine-Dromon-9c-2.jpg",
+     "artist": "Bukvoed",
+     "license": "CC BY 4.0",
+     "license_url": "https://creativecommons.org/licenses/by/4.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Haifa-maritime-museum-Byzantine-Dromon-9c-2.jpg",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Model of a Byzantine warship (dromon) at Athens War Museum on 12 April 2019.jpg",
+     "artist": "George E. Koronaios",
+     "license": "CC0",
+     "license_url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Model_of_a_Byzantine_warship_(dromon)_at_Athens_War_Museum_on_12_April_2019.jpg",
+     "attribution_required": false
+    },
+    {
+     "title": "File:Greekfire-madridskylitzes1.jpg",
+     "artist": "Unknown authorUnknown author",
+     "license": "Public domain",
+     "license_url": "",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Greekfire-madridskylitzes1.jpg",
+     "attribution_required": false
+    }
+   ],
+   "music": [
+    {
+     "title": "Epic Orchestra",
+     "creator": "edtijo",
+     "license": "cc0",
+     "license_version": "1.0",
+     "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+     "source_url": "https://freesound.org/people/edtijo/sounds/218744"
+    }
+   ]
+  },
+  {
+   "run": "run_hal_saflieni_hypogeum_1792949304",
+   "payload": {
+    "caption": "A three-level city of the dead lay hidden beneath Malta for thousands of years 🏛️\n\nPrehistoric builders in Paola, Malta carved this subterranean monument across three superimposed underground levels using only antlers, chert, flint, and obsidian. The chambers held the remains of approximately 7,000 individuals, utilized from around 4000 B.C. to 2500 B.C. It remained unseen until 1902, when workers cutting cisterns broke through the rock ceiling.\n\nWould you descend into an ancient underground necropolis carved entirely by hand? ⏳\n\n#HalSaflieni #AncientMalta #MalteseArchaeology #SubterraneanHistory\n\n📷 Images via Wikimedia Commons: xiquinhosilva (CC BY 2.0)\n\n📷 xiquinhosilva | File:Hal Saflieni Hypogeum – Middle Level – The Holy of Holies.jpg | CC BY 2.0 | https://commons.wikimedia.org/wiki/File:Hal_Saflieni_Hypogeum_%E2%80%93_Middle_Level_%E2%80%93_The_Holy_of_Holies.jpg | https://creativecommons.org/licenses/by/2.0\n\n📷 xiquinhosilva | File:Hal Saflieni Hypogeum – Upper Level.jpg | CC BY 2.0 | https://commons.wikimedia.org/wiki/File:Hal_Saflieni_Hypogeum_%E2%80%93_Upper_Level.jpg | https://creativecommons.org/licenses/by/2.0\n\n📷 xiquinhosilva | File:Hal Saflieni Hypogeum – Middle Level – The Central Chamber.jpg | CC BY 2.0 | https://commons.wikimedia.org/wiki/File:Hal_Saflieni_Hypogeum_%E2%80%93_Middle_Level_%E2%80%93_The_Central_Chamber.jpg | https://creativecommons.org/licenses/by/2.0\n\n📷 xiquinhosilva | File:Hal Saflieni Hypogeum – Wall paintings in the Oracle Chamber.jpg | CC BY 2.0 | https://commons.wikimedia.org/wiki/File:Hal_Saflieni_Hypogeum_%E2%80%93_Wall_paintings_in_the_Oracle_Chamber.jpg | https://creativecommons.org/licenses/by/2.0\n\n📷 xiquinhosilva | File:Hal Saflieni Hypogeum – Middle Level – The Decorated Chamber.jpg | CC BY 2.0 | https://commons.wikimedia.org/wiki/File:Hal_Saflieni_Hypogeum_%E2%80%93_Middle_Level_%E2%80%93_The_Decorated_Chamber.jpg | https://creativecommons.org/licenses/by/2.0\n\n📷 xiquinhosilva | File:Hal Saflieni Hypogeum – Oracle Chamber – The Oracle Hole.jpg | CC BY 2.0 | https://commons.wikimedia.org/wiki/File:Hal_Saflieni_Hypogeum_%E2%80%93_Oracle_Chamber_%E2%80%93_The_Oracle_Hole.jpg | https://creativecommons.org/licenses/by/2.0",
+    "title": "Malta's 7,000-Body Underground Necropolis 🏛️",
+    "hashtags": [
+     "#HalSaflieni",
+     "#AncientMalta",
+     "#MalteseArchaeology",
+     "#SubterraneanHistory"
+    ],
+    "delivery_profile": "reel_9x16"
+   },
+   "assets": [
+    {
+     "title": "File:Hal Saflieni Hypogeum – Middle Level – The Holy of Holies.jpg",
+     "artist": "xiquinhosilva",
+     "license": "CC BY 2.0",
+     "license_url": "https://creativecommons.org/licenses/by/2.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Hal_Saflieni_Hypogeum_%E2%80%93_Middle_Level_%E2%80%93_The_Holy_of_Holies.jpg",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Hal Saflieni Hypogeum – Upper Level.jpg",
+     "artist": "xiquinhosilva",
+     "license": "CC BY 2.0",
+     "license_url": "https://creativecommons.org/licenses/by/2.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Hal_Saflieni_Hypogeum_%E2%80%93_Upper_Level.jpg",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Hal Saflieni Hypogeum – Middle Level – The Central Chamber.jpg",
+     "artist": "xiquinhosilva",
+     "license": "CC BY 2.0",
+     "license_url": "https://creativecommons.org/licenses/by/2.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Hal_Saflieni_Hypogeum_%E2%80%93_Middle_Level_%E2%80%93_The_Central_Chamber.jpg",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Hal Saflieni Hypogeum – Wall paintings in the Oracle Chamber.jpg",
+     "artist": "xiquinhosilva",
+     "license": "CC BY 2.0",
+     "license_url": "https://creativecommons.org/licenses/by/2.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Hal_Saflieni_Hypogeum_%E2%80%93_Wall_paintings_in_the_Oracle_Chamber.jpg",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Hal Saflieni Hypogeum – Middle Level – The Decorated Chamber.jpg",
+     "artist": "xiquinhosilva",
+     "license": "CC BY 2.0",
+     "license_url": "https://creativecommons.org/licenses/by/2.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Hal_Saflieni_Hypogeum_%E2%80%93_Middle_Level_%E2%80%93_The_Decorated_Chamber.jpg",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Hal Saflieni Hypogeum – Middle Level – The Holy of Holies.jpg",
+     "artist": "xiquinhosilva",
+     "license": "CC BY 2.0",
+     "license_url": "https://creativecommons.org/licenses/by/2.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Hal_Saflieni_Hypogeum_%E2%80%93_Middle_Level_%E2%80%93_The_Holy_of_Holies.jpg",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Hal Saflieni Hypogeum – Middle Level – The Holy of Holies.jpg",
+     "artist": "xiquinhosilva",
+     "license": "CC BY 2.0",
+     "license_url": "https://creativecommons.org/licenses/by/2.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Hal_Saflieni_Hypogeum_%E2%80%93_Middle_Level_%E2%80%93_The_Holy_of_Holies.jpg",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Hal Saflieni Hypogeum – Oracle Chamber – The Oracle Hole.jpg",
+     "artist": "xiquinhosilva",
+     "license": "CC BY 2.0",
+     "license_url": "https://creativecommons.org/licenses/by/2.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Hal_Saflieni_Hypogeum_%E2%80%93_Oracle_Chamber_%E2%80%93_The_Oracle_Hole.jpg",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Hypogeum enter.JPG",
+     "artist": "Andrey BG",
+     "license": "Public domain",
+     "license_url": "",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Hypogeum_enter.JPG",
+     "attribution_required": false
+    }
+   ],
+   "music": [
+    {
+     "title": "Mysterious Ambient",
+     "creator": "dlolbful",
+     "license": "cc0",
+     "license_version": "1.0",
+     "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+     "source_url": "https://freesound.org/people/dlolbful/sounds/494319"
+    }
+   ]
+  },
+  {
+   "run": "run_kailasa_temple_monolith_1792524470",
+   "payload": {
+    "caption": "Instead of assembling stones from the ground, ancient masons sculpted an entire sanctuary straight out of a mountain cliff. ⚡\n\nCarved at the Ellora Caves in India, the primary shrine utilized the architectural prototype of the Virupaksha Temple at Pattadakal. An ancient Vadodara copper-plate inscription proclaims that the temple was so astonishing that both the gods and its own architect marveled at its creation. The edifice also incorporates distinct Chalukya and Pallava artistic styles directly into the monument.\n\nDoes carving directly into bedrock demand greater architectural mastery than building upward? 🏛️\n\n#ElloraCaves #AncientArchitecture #KailasaTemple #IndianHistory\n\n📷 Images via Wikimedia Commons: Anjan Kumar Kundu (CC BY 4.0); Vyacheslav Argenberg (CC BY 4.0); Hiroki Ogawa (CC BY 3.0)\n\n📷 Hiroki Ogawa | File:Kailasa Temple Cave 16 Hindu Cave Ellora Caves India - panoramio (5).jpg | CC BY 3.0 | https://commons.wikimedia.org/wiki/File:Kailasa_Temple_Cave_16_Hindu_Cave_Ellora_Caves_India_-_panoramio_(5).jpg | https://creativecommons.org/licenses/by/3.0\n\n📷 Hiroki Ogawa | File:Kailasa Temple Cave 16 Hindu Cave Ellora Caves India - panoramio (11).jpg | CC BY 3.0 | https://commons.wikimedia.org/wiki/File:Kailasa_Temple_Cave_16_Hindu_Cave_Ellora_Caves_India_-_panoramio_(11).jpg | https://creativecommons.org/licenses/by/3.0\n\n📷 Hiroki Ogawa | File:Kailasa Temple Cave 16 Hindu Cave Ellora Caves India - panoramio (7).jpg | CC BY 3.0 | https://commons.wikimedia.org/wiki/File:Kailasa_Temple_Cave_16_Hindu_Cave_Ellora_Caves_India_-_panoramio_(7).jpg | https://creativecommons.org/licenses/by/3.0\n\n📷 Vyacheslav Argenberg | File:Ellora Caves, India, Kailasanatha Temple 2.jpg | CC BY 4.0 | https://commons.wikimedia.org/wiki/File:Ellora_Caves,_India,_Kailasanatha_Temple_2.jpg | https://creativecommons.org/licenses/by/4.0\n\n📷 Anjan Kumar Kundu | File:Premises of Cave no 16, Ellora, Maharashtra, India 46.jpg | CC BY 4.0 | https://commons.wikimedia.org/wiki/File:Premises_of_Cave_no_16,_Ellora,_Maharashtra,_India_46.jpg | https://creativecommons.org/licenses/by/4.0",
+    "title": "Carved from the Top Down: The Cave 16 Monolith 🪨",
+    "hashtags": [
+     "#ElloraCaves",
+     "#AncientArchitecture",
+     "#KailasaTemple",
+     "#IndianHistory"
+    ],
+    "delivery_profile": "reel_9x16"
+   },
+   "assets": [
+    {
+     "title": "File:Kailasa Temple Cave 16 Hindu Cave Ellora Caves India - panoramio (5).jpg",
+     "artist": "Hiroki Ogawa",
+     "license": "CC BY 3.0",
+     "license_url": "https://creativecommons.org/licenses/by/3.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Kailasa_Temple_Cave_16_Hindu_Cave_Ellora_Caves_India_-_panoramio_(5).jpg",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Kailasa Temple Cave 16 Hindu Cave Ellora Caves India - panoramio (11).jpg",
+     "artist": "Hiroki Ogawa",
+     "license": "CC BY 3.0",
+     "license_url": "https://creativecommons.org/licenses/by/3.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Kailasa_Temple_Cave_16_Hindu_Cave_Ellora_Caves_India_-_panoramio_(11).jpg",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Kailasa Temple Cave 16 Hindu Cave Ellora Caves India - panoramio (7).jpg",
+     "artist": "Hiroki Ogawa",
+     "license": "CC BY 3.0",
+     "license_url": "https://creativecommons.org/licenses/by/3.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Kailasa_Temple_Cave_16_Hindu_Cave_Ellora_Caves_India_-_panoramio_(7).jpg",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Ellora Caves, India, Kailasanatha Temple 2.jpg",
+     "artist": "Vyacheslav Argenberg",
+     "license": "CC BY 4.0",
+     "license_url": "https://creativecommons.org/licenses/by/4.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Ellora_Caves,_India,_Kailasanatha_Temple_2.jpg",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Premises of Cave no 16, Ellora, Maharashtra, India 46.jpg",
+     "artist": "Anjan Kumar Kundu",
+     "license": "CC BY 4.0",
+     "license_url": "https://creativecommons.org/licenses/by/4.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Premises_of_Cave_no_16,_Ellora,_Maharashtra,_India_46.jpg",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Small temple in side the Kailasa Temple, Ellora, cave (16).jpg",
+     "artist": "K.Venkataramana",
+     "license": "CC0",
+     "license_url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Small_temple_in_side_the_Kailasa_Temple,_Ellora,_cave_(16).jpg",
+     "attribution_required": false
+    }
+   ],
+   "music": [
+    {
+     "title": "Mysterious Ambient",
+     "creator": "dlolbful",
+     "license": "cc0",
+     "license_version": "1.0",
+     "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+     "source_url": "https://freesound.org/people/dlolbful/sounds/494319"
+    }
+   ]
+  },
+  {
+   "run": "run_nazca_lines_runway_paradox_1792961797",
+   "payload": {
+    "caption": "Shallow desert trenches etched two millennia ago still endure under the sun 🏜️\n\nInscribed on the UNESCO World Heritage List in 1994, the complex spans the Paracas and Nazca cultures between 500 BC and 500 AD. By one estimate, among over 70 figurative animal designs, the hummingbird measures 93 meters long while the condor spans 134 meters across southern Peru.\n\nDid early builders intend these colossal earthworks for earthly ceremonies or for the sky above? 🤔\n\n#NazcaLines #AncientPeru #ArchaeologyLovers #Geoglyphs\n\n📷 Images via Wikimedia Commons: Pavel Špindler (CC BY 3.0); Unukorno (CC BY 3.0); Y.Shishido (CC BY 2.5); Diego Delso (CC BY-SA 4.0)\n\n🎬 This video is licensed CC BY-SA 4.0: https://creativecommons.org/licenses/by-sa/4.0/\n\n📷 Pavel Špindler | File:Nasca - Triangulos - panoramio.jpg | CC BY 3.0 | https://commons.wikimedia.org/wiki/File:Nasca_-_Triangulos_-_panoramio.jpg | https://creativecommons.org/licenses/by/3.0\n\n📷 Diego Delso | File:Líneas de Nazca, Nazca, Perú, 2015-07-29, DD 52.JPG | CC BY-SA 4.0 | https://commons.wikimedia.org/wiki/File:L%C3%ADneas_de_Nazca,_Nazca,_Per%C3%BA,_2015-07-29,_DD_52.JPG | https://creativecommons.org/licenses/by-sa/4.0\n\n📷 Y.Shishido | File:Nazca Lines from 3m in height.JPG | CC BY 2.5 | https://commons.wikimedia.org/wiki/File:Nazca_Lines_from_3m_in_height.JPG | https://creativecommons.org/licenses/by/2.5\n\n📷 Pavel Špindler | File:Náhorní plošina Nasca - panoramio (1).jpg | CC BY 3.0 | https://commons.wikimedia.org/wiki/File:N%C3%A1horn%C3%AD_plo%C5%A1ina_Nasca_-_panoramio_(1).jpg | https://creativecommons.org/licenses/by/3.0\n\n📷 Pavel Špindler | File:Nasca - Colibri - kolibřík - panoramio.jpg | CC BY 3.0 | https://commons.wikimedia.org/wiki/File:Nasca_-_Colibri_-_kolib%C5%99%C3%ADk_-_panoramio.jpg | https://creativecommons.org/licenses/by/3.0\n\n📷 Unukorno | File:Nazca Lines Hummingbird.jpg | CC BY 3.0 | https://commons.wikimedia.org/wiki/File:Nazca_Lines_Hummingbird.jpg | https://creativecommons.org/licenses/by/3.0\n\n📷 Pavel Špindler | File:Nasca - Astronaut - panoramio.jpg | CC BY 3.0 | https://commons.wikimedia.org/wiki/File:Nasca_-_Astronaut_-_panoramio.jpg | https://creativecommons.org/licenses/by/3.0",
+    "title": "The Nazca Desert Lines That Defied Wind 🏜️",
+    "hashtags": [
+     "#NazcaLines",
+     "#AncientPeru",
+     "#ArchaeologyLovers",
+     "#Geoglyphs"
+    ],
+    "delivery_profile": "reel_9x16"
+   },
+   "assets": [
+    {
+     "title": "File:Nasca - Triangulos - panoramio.jpg",
+     "artist": "Pavel Špindler",
+     "license": "CC BY 3.0",
+     "license_url": "https://creativecommons.org/licenses/by/3.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Nasca_-_Triangulos_-_panoramio.jpg",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Líneas de Nazca, Nazca, Perú, 2015-07-29, DD 52.JPG",
+     "artist": "Diego Delso",
+     "license": "CC BY-SA 4.0",
+     "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:L%C3%ADneas_de_Nazca,_Nazca,_Per%C3%BA,_2015-07-29,_DD_52.JPG",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Nazca Lines from 3m in height.JPG",
+     "artist": "Y.Shishido",
+     "license": "CC BY 2.5",
+     "license_url": "https://creativecommons.org/licenses/by/2.5",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Nazca_Lines_from_3m_in_height.JPG",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Náhorní plošina Nasca - panoramio (1).jpg",
+     "artist": "Pavel Špindler",
+     "license": "CC BY 3.0",
+     "license_url": "https://creativecommons.org/licenses/by/3.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:N%C3%A1horn%C3%AD_plo%C5%A1ina_Nasca_-_panoramio_(1).jpg",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Nasca - Colibri - kolibřík - panoramio.jpg",
+     "artist": "Pavel Špindler",
+     "license": "CC BY 3.0",
+     "license_url": "https://creativecommons.org/licenses/by/3.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Nasca_-_Colibri_-_kolib%C5%99%C3%ADk_-_panoramio.jpg",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Nasca - Triangulos - panoramio.jpg",
+     "artist": "Pavel Špindler",
+     "license": "CC BY 3.0",
+     "license_url": "https://creativecommons.org/licenses/by/3.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Nasca_-_Triangulos_-_panoramio.jpg",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Nazca Lines Hummingbird.jpg",
+     "artist": "Unukorno",
+     "license": "CC BY 3.0",
+     "license_url": "https://creativecommons.org/licenses/by/3.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Nazca_Lines_Hummingbird.jpg",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Nasca - Astronaut - panoramio.jpg",
+     "artist": "Pavel Špindler",
+     "license": "CC BY 3.0",
+     "license_url": "https://creativecommons.org/licenses/by/3.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Nasca_-_Astronaut_-_panoramio.jpg",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Nasca - Triangulos - panoramio.jpg",
+     "artist": "Pavel Špindler",
+     "license": "CC BY 3.0",
+     "license_url": "https://creativecommons.org/licenses/by/3.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Nasca_-_Triangulos_-_panoramio.jpg",
+     "attribution_required": true
+    }
+   ],
+   "music": [
+    {
+     "title": "creepy sadness",
+     "creator": "burning-mir",
+     "license": "cc0",
+     "license_version": "1.0",
+     "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+     "source_url": "https://freesound.org/people/burning-mir/sounds/181222"
+    }
+   ]
+  },
+  {
+   "run": "run_nazca_lines_runway_paradox_1793247464",
+   "payload": {
+    "caption": "Centuries before flight, ancient surveyors drew giant figures straight into the Peruvian soil. 🏜️\n\nIn the arid Nazca Desert of southern Peru, the geoglyphs were created between 500 BC and 500 AD, spanning the earlier Paracas phase and the subsequent Nazca phase. UNESCO inscribed the lines and geoglyphs on the World Heritage List in 1994 under cultural criteria one, three, and four.\n\nDo you think these giant drawings were created primarily for ritual ceremonies or astronomical tracking? ✨\n\nSend this to an ancient engineering fan, and follow for the next marvel.\n\n#NazcaLines #AncientPeru #Archaeology #WorldHeritage\n\n📷 Images via Wikimedia Commons and partner archives: Pavel Špindler (CC BY 3.0); Unukorno (CC BY 3.0); Y.Shishido (CC BY 2.5); Diego Delso (CC BY-SA 4.0) · adapted: cropped, with motion and text added\n\n🎬 This video is licensed CC BY-SA 4.0: https://creativecommons.org/licenses/by-sa/4.0/\n\n📷 Unukorno | File:Nazca Lines Hummingbird.jpg | CC BY 3.0 | https://commons.wikimedia.org/wiki/File:Nazca_Lines_Hummingbird.jpg | https://creativecommons.org/licenses/by/3.0\n\n📷 Y.Shishido | File:Nazca Lines from 3m in height.JPG | CC BY 2.5 | https://commons.wikimedia.org/wiki/File:Nazca_Lines_from_3m_in_height.JPG | https://creativecommons.org/licenses/by/2.5\n\n📷 Diego Delso | File:Líneas de Nazca, Nazca, Perú, 2015-07-29, DD 52.JPG | CC BY-SA 4.0 | https://commons.wikimedia.org/wiki/File:L%C3%ADneas_de_Nazca,_Nazca,_Per%C3%BA,_2015-07-29,_DD_52.JPG | https://creativecommons.org/licenses/by-sa/4.0\n\n📷 Pavel Špindler | File:Nasca - Triangulos - panoramio.jpg | CC BY 3.0 | https://commons.wikimedia.org/wiki/File:Nasca_-_Triangulos_-_panoramio.jpg | https://creativecommons.org/licenses/by/3.0\n\n📷 Pavel Špindler | File:Nasca - Astronaut - panoramio.jpg | CC BY 3.0 | https://commons.wikimedia.org/wiki/File:Nasca_-_Astronaut_-_panoramio.jpg | https://creativecommons.org/licenses/by/3.0\n\n📷 Pavel Špindler | File:Nasca - Colibri - kolibřík - panoramio.jpg | CC BY 3.0 | https://commons.wikimedia.org/wiki/File:Nasca_-_Colibri_-_kolib%C5%99%C3%ADk_-_panoramio.jpg | https://creativecommons.org/licenses/by/3.0",
+    "title": "Lines Drawn Without Wings 🏜️",
+    "hashtags": [
+     "#NazcaLines",
+     "#AncientPeru",
+     "#Archaeology",
+     "#WorldHeritage"
+    ],
+    "delivery_profile": "reel_9x16"
+   },
+   "assets": [
+    {
+     "title": "File:Nazca Lines Hummingbird.jpg",
+     "artist": "Unukorno",
+     "license": "CC BY 3.0",
+     "license_url": "https://creativecommons.org/licenses/by/3.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Nazca_Lines_Hummingbird.jpg",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Nazca Lines from 3m in height.JPG",
+     "artist": "Y.Shishido",
+     "license": "CC BY 2.5",
+     "license_url": "https://creativecommons.org/licenses/by/2.5",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Nazca_Lines_from_3m_in_height.JPG",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Nazca Lines from 3m in height.JPG",
+     "artist": "Y.Shishido",
+     "license": "CC BY 2.5",
+     "license_url": "https://creativecommons.org/licenses/by/2.5",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Nazca_Lines_from_3m_in_height.JPG",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Líneas de Nazca, Nazca, Perú, 2015-07-29, DD 52.JPG",
+     "artist": "Diego Delso",
+     "license": "CC BY-SA 4.0",
+     "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:L%C3%ADneas_de_Nazca,_Nazca,_Per%C3%BA,_2015-07-29,_DD_52.JPG",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Vessel with hummingbirds, Nasca, Peru, ceramic - Meso-American collection - Peabody Museum, Harvard University - DSC05943.jpg",
+     "artist": "Daderot",
+     "license": "Public domain",
+     "license_url": "",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Vessel_with_hummingbirds,_Nasca,_Peru,_ceramic_-_Meso-American_collection_-_Peabody_Museum,_Harvard_University_-_DSC05943.jpg",
+     "attribution_required": false
+    },
+    {
+     "title": "File:Nasca - Triangulos - panoramio.jpg",
+     "artist": "Pavel Špindler",
+     "license": "CC BY 3.0",
+     "license_url": "https://creativecommons.org/licenses/by/3.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Nasca_-_Triangulos_-_panoramio.jpg",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Nasca - Triangulos - panoramio.jpg",
+     "artist": "Pavel Špindler",
+     "license": "CC BY 3.0",
+     "license_url": "https://creativecommons.org/licenses/by/3.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Nasca_-_Triangulos_-_panoramio.jpg",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Nasca - Astronaut - panoramio.jpg",
+     "artist": "Pavel Špindler",
+     "license": "CC BY 3.0",
+     "license_url": "https://creativecommons.org/licenses/by/3.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Nasca_-_Astronaut_-_panoramio.jpg",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Nasca - Triangulos - panoramio.jpg",
+     "artist": "Pavel Špindler",
+     "license": "CC BY 3.0",
+     "license_url": "https://creativecommons.org/licenses/by/3.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Nasca_-_Triangulos_-_panoramio.jpg",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Nasca - Colibri - kolibřík - panoramio.jpg",
+     "artist": "Pavel Špindler",
+     "license": "CC BY 3.0",
+     "license_url": "https://creativecommons.org/licenses/by/3.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Nasca_-_Colibri_-_kolib%C5%99%C3%ADk_-_panoramio.jpg",
+     "attribution_required": true
+    }
+   ],
+   "music": [
+    {
+     "title": "Space Atmosphere 03 Remastered.wav",
+     "creator": "MATRIXXX_",
+     "license": "cc0",
+     "license_version": "1.0",
+     "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+     "source_url": "https://freesound.org/people/MATRIXXX_/sounds/660109"
+    }
+   ]
+  },
+  {
+   "run": "run_nazca_lines_runway_paradox_1793251266",
+   "payload": {
+    "caption": "Centuries before flight, ancient surveyors drew giant figures straight into the Peruvian soil. 🏜️\n\nIn the arid Nazca Desert of southern Peru, the geoglyphs were created between 500 BC and 500 AD, spanning the earlier Paracas phase and the subsequent Nazca phase. UNESCO inscribed the lines and geoglyphs on the World Heritage List in 1994 under cultural criteria one, three, and four.\n\nDo you think these giant drawings were created primarily for ritual ceremonies or astronomical tracking? ✨\n\nSend this to an ancient engineering fan, and follow for the next marvel.\n\n#NazcaLines #AncientPeru #Archaeology #WorldHeritage\n\n\n🎬 This video is licensed CC BY-SA 4.0: https://creativecommons.org/licenses/by-sa/4.0/\n\n📷 Unukorno | File:Nazca Lines Hummingbird.jpg | CC BY 3.0 | https://commons.wikimedia.org/wiki/File:Nazca_Lines_Hummingbird.jpg | https://creativecommons.org/licenses/by/3.0\n\n📷 Y.Shishido | File:Nazca Lines from 3m in height.JPG | CC BY 2.5 | https://commons.wikimedia.org/wiki/File:Nazca_Lines_from_3m_in_height.JPG | https://creativecommons.org/licenses/by/2.5\n\n📷 Pavel Špindler | File:Náhorní plošina Nasca - panoramio (1).jpg | CC BY 3.0 | https://commons.wikimedia.org/wiki/File:N%C3%A1horn%C3%AD_plo%C5%A1ina_Nasca_-_panoramio_(1).jpg | https://creativecommons.org/licenses/by/3.0\n\n📷 Pavel Špindler | File:Nasca - Triangulos - panoramio.jpg | CC BY 3.0 | https://commons.wikimedia.org/wiki/File:Nasca_-_Triangulos_-_panoramio.jpg | https://creativecommons.org/licenses/by/3.0\n\n📷 Pavel Špindler | File:Nasca - Colibri - kolibřík - panoramio.jpg | CC BY 3.0 | https://commons.wikimedia.org/wiki/File:Nasca_-_Colibri_-_kolib%C5%99%C3%ADk_-_panoramio.jpg | https://creativecommons.org/licenses/by/3.0\n\n📷 Pavel Špindler | File:Nasca - Astronaut - panoramio.jpg | CC BY 3.0 | https://commons.wikimedia.org/wiki/File:Nasca_-_Astronaut_-_panoramio.jpg | https://creativecommons.org/licenses/by/3.0\n\n📷 Diego Delso | File:Líneas de Nazca, Nazca, Perú, 2015-07-29, DD 52.JPG | CC BY-SA 4.0 | https://commons.wikimedia.org/wiki/File:L%C3%ADneas_de_Nazca,_Nazca,_Per%C3%BA,_2015-07-29,_DD_52.JPG | https://creativecommons.org/licenses/by-sa/4.0",
+    "title": "Lines Drawn Without Wings 🏜️",
+    "hashtags": [
+     "#NazcaLines",
+     "#AncientPeru",
+     "#Archaeology",
+     "#WorldHeritage"
+    ],
+    "delivery_profile": "reel_9x16"
+   },
+   "assets": [
+    {
+     "title": "File:Nazca Lines Hummingbird.jpg",
+     "artist": "Unukorno",
+     "license": "CC BY 3.0",
+     "license_url": "https://creativecommons.org/licenses/by/3.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Nazca_Lines_Hummingbird.jpg",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Nazca Lines from 3m in height.JPG",
+     "artist": "Y.Shishido",
+     "license": "CC BY 2.5",
+     "license_url": "https://creativecommons.org/licenses/by/2.5",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Nazca_Lines_from_3m_in_height.JPG",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Nazca Lines from 3m in height.JPG",
+     "artist": "Y.Shishido",
+     "license": "CC BY 2.5",
+     "license_url": "https://creativecommons.org/licenses/by/2.5",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Nazca_Lines_from_3m_in_height.JPG",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Náhorní plošina Nasca - panoramio (1).jpg",
+     "artist": "Pavel Špindler",
+     "license": "CC BY 3.0",
+     "license_url": "https://creativecommons.org/licenses/by/3.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:N%C3%A1horn%C3%AD_plo%C5%A1ina_Nasca_-_panoramio_(1).jpg",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Vessel with hummingbirds, Nasca, Peru, ceramic - Meso-American collection - Peabody Museum, Harvard University - DSC05943.jpg",
+     "artist": "Daderot",
+     "license": "Public domain",
+     "license_url": "",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Vessel_with_hummingbirds,_Nasca,_Peru,_ceramic_-_Meso-American_collection_-_Peabody_Museum,_Harvard_University_-_DSC05943.jpg",
+     "attribution_required": false
+    },
+    {
+     "title": "File:Nasca - Triangulos - panoramio.jpg",
+     "artist": "Pavel Špindler",
+     "license": "CC BY 3.0",
+     "license_url": "https://creativecommons.org/licenses/by/3.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Nasca_-_Triangulos_-_panoramio.jpg",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Nasca - Colibri - kolibřík - panoramio.jpg",
+     "artist": "Pavel Špindler",
+     "license": "CC BY 3.0",
+     "license_url": "https://creativecommons.org/licenses/by/3.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Nasca_-_Colibri_-_kolib%C5%99%C3%ADk_-_panoramio.jpg",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Nazca Lines Hummingbird.jpg",
+     "artist": "Unukorno",
+     "license": "CC BY 3.0",
+     "license_url": "https://creativecommons.org/licenses/by/3.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Nazca_Lines_Hummingbird.jpg",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Nasca - Astronaut - panoramio.jpg",
+     "artist": "Pavel Špindler",
+     "license": "CC BY 3.0",
+     "license_url": "https://creativecommons.org/licenses/by/3.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Nasca_-_Astronaut_-_panoramio.jpg",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Líneas de Nazca, Nazca, Perú, 2015-07-29, DD 52.JPG",
+     "artist": "Diego Delso",
+     "license": "CC BY-SA 4.0",
+     "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:L%C3%ADneas_de_Nazca,_Nazca,_Per%C3%BA,_2015-07-29,_DD_52.JPG",
+     "attribution_required": true
+    }
+   ],
+   "music": [
+    {
+     "title": "Space Atmosphere 03 Remastered.wav",
+     "creator": "MATRIXXX_",
+     "license": "cc0",
+     "license_version": "1.0",
+     "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+     "source_url": "https://freesound.org/people/MATRIXXX_/sounds/660109"
+    }
+   ]
+  },
+  {
+   "run": "run_nazca_lines_runway_paradox_1793262388",
+   "payload": {
+    "caption": "Centuries before flight, ancient surveyors drew giant figures straight into the Peruvian soil. 🏜️\n\nIn the arid Nazca Desert of southern Peru, the geoglyphs were created between 500 BC and 500 AD, spanning the earlier Paracas phase and the subsequent Nazca phase. UNESCO inscribed the lines and geoglyphs on the World Heritage List in 1994 under cultural criteria one, three, and four.\n\nDo you think these giant drawings were created primarily for ritual ceremonies or astronomical tracking? ✨\n\nSend this to an ancient engineering fan, and follow for the next marvel.\n\n#NazcaLines #AncientPeru #Archaeology #WorldHeritage\n\n\n🎬 This video is licensed CC BY-SA 4.0: https://creativecommons.org/licenses/by-sa/4.0/\n\n📷 Unukorno | File:Nazca Lines Hummingbird.jpg | CC BY 3.0 | https://commons.wikimedia.org/wiki/File:Nazca_Lines_Hummingbird.jpg | https://creativecommons.org/licenses/by/3.0\n\n📷 Diego Delso | File:Líneas de Nazca, Nazca, Perú, 2015-07-29, DD 46.JPG | CC BY-SA 4.0 | https://commons.wikimedia.org/wiki/File:L%C3%ADneas_de_Nazca,_Nazca,_Per%C3%BA,_2015-07-29,_DD_46.JPG | https://creativecommons.org/licenses/by-sa/4.0\n\n📷 Y.Shishido | File:Nazca Lines from 3m in height.JPG | CC BY 2.5 | https://commons.wikimedia.org/wiki/File:Nazca_Lines_from_3m_in_height.JPG | https://creativecommons.org/licenses/by/2.5\n\n📷 Pavel Špindler | File:Nasca - Triangulos - panoramio.jpg | CC BY 3.0 | https://commons.wikimedia.org/wiki/File:Nasca_-_Triangulos_-_panoramio.jpg | https://creativecommons.org/licenses/by/3.0\n\n📷 Diego Delso | File:Líneas de Nazca, Nazca, Perú, 2015-07-29, DD 55.JPG | CC BY-SA 4.0 | https://commons.wikimedia.org/wiki/File:L%C3%ADneas_de_Nazca,_Nazca,_Per%C3%BA,_2015-07-29,_DD_55.JPG | https://creativecommons.org/licenses/by-sa/4.0\n\n📷 Pavel Špindler | File:Nasca - Astronaut - panoramio.jpg | CC BY 3.0 | https://commons.wikimedia.org/wiki/File:Nasca_-_Astronaut_-_panoramio.jpg | https://creativecommons.org/licenses/by/3.0\n\n📷 Diego Delso | File:Líneas de Nazca, Nazca, Perú, 2015-07-29, DD 51.JPG | CC BY-SA 4.0 | https://commons.wikimedia.org/wiki/File:L%C3%ADneas_de_Nazca,_Nazca,_Per%C3%BA,_2015-07-29,_DD_51.JPG | https://creativecommons.org/licenses/by-sa/4.0",
+    "title": "Lines Drawn Without Wings 🏜️",
+    "hashtags": [
+     "#NazcaLines",
+     "#AncientPeru",
+     "#Archaeology",
+     "#WorldHeritage"
+    ],
+    "delivery_profile": "reel_9x16"
+   },
+   "assets": [
+    {
+     "title": "File:Nazca Lines Hummingbird.jpg",
+     "artist": "Unukorno",
+     "license": "CC BY 3.0",
+     "license_url": "https://creativecommons.org/licenses/by/3.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Nazca_Lines_Hummingbird.jpg",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Líneas de Nazca, Nazca, Perú, 2015-07-29, DD 46.JPG",
+     "artist": "Diego Delso",
+     "license": "CC BY-SA 4.0",
+     "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:L%C3%ADneas_de_Nazca,_Nazca,_Per%C3%BA,_2015-07-29,_DD_46.JPG",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Nazca Lines from 3m in height.JPG",
+     "artist": "Y.Shishido",
+     "license": "CC BY 2.5",
+     "license_url": "https://creativecommons.org/licenses/by/2.5",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Nazca_Lines_from_3m_in_height.JPG",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Nazca Lines from 3m in height.JPG",
+     "artist": "Y.Shishido",
+     "license": "CC BY 2.5",
+     "license_url": "https://creativecommons.org/licenses/by/2.5",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Nazca_Lines_from_3m_in_height.JPG",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Nasca - Triangulos - panoramio.jpg",
+     "artist": "Pavel Špindler",
+     "license": "CC BY 3.0",
+     "license_url": "https://creativecommons.org/licenses/by/3.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Nasca_-_Triangulos_-_panoramio.jpg",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Nasca - Triangulos - panoramio.jpg",
+     "artist": "Pavel Špindler",
+     "license": "CC BY 3.0",
+     "license_url": "https://creativecommons.org/licenses/by/3.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Nasca_-_Triangulos_-_panoramio.jpg",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Líneas de Nazca, Nazca, Perú, 2015-07-29, DD 55.JPG",
+     "artist": "Diego Delso",
+     "license": "CC BY-SA 4.0",
+     "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:L%C3%ADneas_de_Nazca,_Nazca,_Per%C3%BA,_2015-07-29,_DD_55.JPG",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Nasca - Astronaut - panoramio.jpg",
+     "artist": "Pavel Špindler",
+     "license": "CC BY 3.0",
+     "license_url": "https://creativecommons.org/licenses/by/3.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Nasca_-_Astronaut_-_panoramio.jpg",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Líneas de Nazca, Nazca, Perú, 2015-07-29, DD 51.JPG",
+     "artist": "Diego Delso",
+     "license": "CC BY-SA 4.0",
+     "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:L%C3%ADneas_de_Nazca,_Nazca,_Per%C3%BA,_2015-07-29,_DD_51.JPG",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Líneas de Nazca, Nazca, Perú, 2015-07-29, DD 53.JPG",
+     "artist": "Diego Delso",
+     "license": "CC BY-SA 4.0",
+     "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:L%C3%ADneas_de_Nazca,_Nazca,_Per%C3%BA,_2015-07-29,_DD_53.JPG",
+     "attribution_required": true
+    }
+   ],
+   "music": [
+    {
+     "title": "Space Atmosphere 03 Remastered.wav",
+     "creator": "MATRIXXX_",
+     "license": "cc0",
+     "license_version": "1.0",
+     "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+     "source_url": "https://freesound.org/people/MATRIXXX_/sounds/660109"
+    }
+   ]
+  },
+  {
+   "run": "run_nazca_lines_runway_paradox_1793267092",
+   "payload": {
+    "caption": "Centuries before flight, ancient surveyors drew giant figures straight into the Peruvian soil. 🏜️\n\nIn the arid Nazca Desert of southern Peru, the geoglyphs were created between 500 BC and 500 AD, spanning the earlier Paracas phase and the subsequent Nazca phase. UNESCO inscribed the lines and geoglyphs on the World Heritage List in 1994 under cultural criteria one, three, and four.\n\nDo you think these giant drawings were created primarily for ritual ceremonies or astronomical tracking? ✨\n\nSend this to an ancient engineering fan, and follow for the next marvel.\n\n#NazcaLines #AncientPeru #Archaeology #WorldHeritage\n\n📷 Images via Wikimedia Commons and partner archives: Pavel Špindler (CC BY 3.0); Unukorno (CC BY 3.0); Y.Shishido (CC BY 2.5); Diego Delso (CC BY-SA 4.0) · adapted: cropped, with motion and text added\n\n🎬 This video is licensed CC BY-SA 4.0: https://creativecommons.org/licenses/by-sa/4.0/\n\n📷 Unukorno | File:Nazca Lines Hummingbird.jpg | CC BY 3.0 | https://commons.wikimedia.org/wiki/File:Nazca_Lines_Hummingbird.jpg | https://creativecommons.org/licenses/by/3.0\n\n📷 Y.Shishido | File:Nazca Lines from 3m in height.JPG | CC BY 2.5 | https://commons.wikimedia.org/wiki/File:Nazca_Lines_from_3m_in_height.JPG | https://creativecommons.org/licenses/by/2.5\n\n📷 Pavel Špindler | File:Nasca - Triangulos - panoramio.jpg | CC BY 3.0 | https://commons.wikimedia.org/wiki/File:Nasca_-_Triangulos_-_panoramio.jpg | https://creativecommons.org/licenses/by/3.0\n\n📷 Diego Delso | File:Líneas de Nazca, Nazca, Perú, 2015-07-29, DD 43.JPG | CC BY-SA 4.0 | https://commons.wikimedia.org/wiki/File:L%C3%ADneas_de_Nazca,_Nazca,_Per%C3%BA,_2015-07-29,_DD_43.JPG | https://creativecommons.org/licenses/by-sa/4.0\n\n📷 Pavel Špindler | File:Nasca - Colibri - kolibřík - panoramio.jpg | CC BY 3.0 | https://commons.wikimedia.org/wiki/File:Nasca_-_Colibri_-_kolib%C5%99%C3%ADk_-_panoramio.jpg | https://creativecommons.org/licenses/by/3.0\n\n📷 Diego Delso | File:Líneas de Nazca, Nazca, Perú, 2015-07-29, DD 52.JPG | CC BY-SA 4.0 | https://commons.wikimedia.org/wiki/File:L%C3%ADneas_de_Nazca,_Nazca,_Per%C3%BA,_2015-07-29,_DD_52.JPG | https://creativecommons.org/licenses/by-sa/4.0",
+    "title": "Lines Drawn Without Wings 🏜️",
+    "hashtags": [
+     "#NazcaLines",
+     "#AncientPeru",
+     "#Archaeology",
+     "#WorldHeritage"
+    ],
+    "delivery_profile": "reel_9x16"
+   },
+   "assets": [
+    {
+     "title": "File:Nazca Lines Hummingbird.jpg",
+     "artist": "Unukorno",
+     "license": "CC BY 3.0",
+     "license_url": "https://creativecommons.org/licenses/by/3.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Nazca_Lines_Hummingbird.jpg",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Nazca Lines from 3m in height.JPG",
+     "artist": "Y.Shishido",
+     "license": "CC BY 2.5",
+     "license_url": "https://creativecommons.org/licenses/by/2.5",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Nazca_Lines_from_3m_in_height.JPG",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Nazca Lines from 3m in height.JPG",
+     "artist": "Y.Shishido",
+     "license": "CC BY 2.5",
+     "license_url": "https://creativecommons.org/licenses/by/2.5",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Nazca_Lines_from_3m_in_height.JPG",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Nasca - Triangulos - panoramio.jpg",
+     "artist": "Pavel Špindler",
+     "license": "CC BY 3.0",
+     "license_url": "https://creativecommons.org/licenses/by/3.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Nasca_-_Triangulos_-_panoramio.jpg",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Nazca Lines Hummingbird.jpg",
+     "artist": "Unukorno",
+     "license": "CC BY 3.0",
+     "license_url": "https://creativecommons.org/licenses/by/3.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Nazca_Lines_Hummingbird.jpg",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Nazca Lines Hummingbird.jpg",
+     "artist": "Unukorno",
+     "license": "CC BY 3.0",
+     "license_url": "https://creativecommons.org/licenses/by/3.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Nazca_Lines_Hummingbird.jpg",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Líneas de Nazca, Nazca, Perú, 2015-07-29, DD 43.JPG",
+     "artist": "Diego Delso",
+     "license": "CC BY-SA 4.0",
+     "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:L%C3%ADneas_de_Nazca,_Nazca,_Per%C3%BA,_2015-07-29,_DD_43.JPG",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Nasca - Colibri - kolibřík - panoramio.jpg",
+     "artist": "Pavel Špindler",
+     "license": "CC BY 3.0",
+     "license_url": "https://creativecommons.org/licenses/by/3.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Nasca_-_Colibri_-_kolib%C5%99%C3%ADk_-_panoramio.jpg",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Nazca Lines Labyrinth Peru.jpg",
+     "artist": "SiGarb",
+     "license": "Public domain",
+     "license_url": "",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Nazca_Lines_Labyrinth_Peru.jpg",
+     "attribution_required": false
+    },
+    {
+     "title": "File:Líneas de Nazca, Nazca, Perú, 2015-07-29, DD 52.JPG",
+     "artist": "Diego Delso",
+     "license": "CC BY-SA 4.0",
+     "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:L%C3%ADneas_de_Nazca,_Nazca,_Per%C3%BA,_2015-07-29,_DD_52.JPG",
+     "attribution_required": true
+    }
+   ],
+   "music": [
+    {
+     "title": "Space Atmosphere 03 Remastered.wav",
+     "creator": "MATRIXXX_",
+     "license": "cc0",
+     "license_version": "1.0",
+     "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+     "source_url": "https://freesound.org/people/MATRIXXX_/sounds/660109"
+    }
+   ]
+  },
+  {
+   "run": "run_odessa_catacombs_1792970549",
+   "payload": {
+    "caption": "A secret subterranean world sheltered fighters beneath the Black Sea coast. ⚓\n\nOn July 29, 1941, official Soviet directives ordered the formation of partisan detachments in occupied territory. Following enemy aerial bombing and siege in Ukraine, Soviet resistance partisans took cover in the Odesa catacombs to wage guerrilla operations. On May 30, 1942, the Central Headquarters of the Partisan Movement was established under Stavka to coordinate these underground fighters.\n\nCould any modern stronghold ever replicate this subterranean resistance? 🛡️\n\nShare this with a friend who loves wartime history, and follow for more stories! ⚓\n\n#Odesa #WorldWarII #SovietPartisans #Catacombs #MilitaryHistory\n\n🎵 Music: “scaryscape_thrillfeedcussions.wav” by suonho (CC BY 4.0)\n\n\n🎬 This video is licensed CC BY-SA 4.0: https://creativecommons.org/licenses/by-sa/4.0/\n\n📷 Marion Golsteijn | Odessa Catacombs Monument | CC BY-SA 3.0 | https://commons.wikimedia.org/w/index.php?curid=10319696 | https://creativecommons.org/licenses/by-sa/3.0/\n\n📷 Galvm | Odesa-Odesa catacombs natural monument in 2025-04 | CC BY-SA 4.0 | https://commons.wikimedia.org/w/index.php?curid=195736078 | https://creativecommons.org/licenses/by-sa/4.0/\n\n📷 Galvm | Odesa-Odesa catacombs natural monument in 2025-05 | CC BY-SA 4.0 | https://commons.wikimedia.org/w/index.php?curid=195736079 | https://creativecommons.org/licenses/by-sa/4.0/\n\n📷 Galvm | Odesa-Catacombs of Moldovanka-entrance hallway-1 | CC BY-SA 4.0 | https://commons.wikimedia.org/w/index.php?curid=177638902 | https://creativecommons.org/licenses/by-sa/4.0/\n\n📷 Galvm | Odesa-Catacombs of Moldovanka-inside-2 | CC BY-SA 4.0 | https://commons.wikimedia.org/w/index.php?curid=177638908 | https://creativecommons.org/licenses/by-sa/4.0/\n\n📷 Galvm | Odesa-Catacombs of Moldovanka-inside-5 | CC BY-SA 4.0 | https://commons.wikimedia.org/w/index.php?curid=177638912 | https://creativecommons.org/licenses/by-sa/4.0/\n\n📷 Galvm | Odesa-Odesa catacombs natural monument in 2025-07 | CC BY-SA 4.0 | https://commons.wikimedia.org/w/index.php?curid=195736086 | https://creativecommons.org/licenses/by-sa/4.0/",
+    "title": "The Secret Labyrinth Beneath Odesa ⚓",
+    "hashtags": [
+     "#Odesa",
+     "#WorldWarII",
+     "#SovietPartisans",
+     "#Catacombs",
+     "#MilitaryHistory"
+    ],
+    "delivery_profile": "reel_9x16"
+   },
+   "assets": [
+    {
+     "title": "Odessa Catacombs Monument",
+     "artist": "Marion Golsteijn",
+     "license": "CC BY-SA 3.0",
+     "license_url": "https://creativecommons.org/licenses/by-sa/3.0/",
+     "source_url": "https://commons.wikimedia.org/w/index.php?curid=10319696",
+     "attribution_required": true
+    },
+    {
+     "title": "Odesa-Odesa catacombs natural monument in 2025-04",
+     "artist": "Galvm",
+     "license": "CC BY-SA 4.0",
+     "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+     "source_url": "https://commons.wikimedia.org/w/index.php?curid=195736078",
+     "attribution_required": true
+    },
+    {
+     "title": "Odesa-Odesa catacombs natural monument in 2025-05",
+     "artist": "Galvm",
+     "license": "CC BY-SA 4.0",
+     "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+     "source_url": "https://commons.wikimedia.org/w/index.php?curid=195736079",
+     "attribution_required": true
+    },
+    {
+     "title": "Odesa-Catacombs of Moldovanka-entrance hallway-1",
+     "artist": "Galvm",
+     "license": "CC BY-SA 4.0",
+     "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+     "source_url": "https://commons.wikimedia.org/w/index.php?curid=177638902",
+     "attribution_required": true
+    },
+    {
+     "title": "Odessa Catacombs Monument",
+     "artist": "Marion Golsteijn",
+     "license": "CC BY-SA 3.0",
+     "license_url": "https://creativecommons.org/licenses/by-sa/3.0/",
+     "source_url": "https://commons.wikimedia.org/w/index.php?curid=10319696",
+     "attribution_required": true
+    },
+    {
+     "title": "Odesa-Catacombs of Moldovanka-inside-2",
+     "artist": "Galvm",
+     "license": "CC BY-SA 4.0",
+     "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+     "source_url": "https://commons.wikimedia.org/w/index.php?curid=177638908",
+     "attribution_required": true
+    },
+    {
+     "title": "Odesa-Catacombs of Moldovanka-inside-5",
+     "artist": "Galvm",
+     "license": "CC BY-SA 4.0",
+     "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+     "source_url": "https://commons.wikimedia.org/w/index.php?curid=177638912",
+     "attribution_required": true
+    },
+    {
+     "title": "Odesa-Odesa catacombs natural monument in 2025-07",
+     "artist": "Galvm",
+     "license": "CC BY-SA 4.0",
+     "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+     "source_url": "https://commons.wikimedia.org/w/index.php?curid=195736086",
+     "attribution_required": true
+    },
+    {
+     "title": "Odesa-Odesa catacombs natural monument in 2025-02",
+     "artist": "Galvm",
+     "license": "CC BY-SA 4.0",
+     "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+     "source_url": "https://commons.wikimedia.org/w/index.php?curid=195736072",
+     "attribution_required": true
+    }
+   ],
+   "music": [
+    {
+     "title": "scaryscape_thrillfeedcussions.wav",
+     "creator": "suonho",
+     "license": "CC BY 4.0",
+     "license_version": "4.0",
+     "license_url": "https://creativecommons.org/licenses/by/4.0/",
+     "source_url": "https://freesound.org/people/suonho/sounds/58960"
+    }
+   ]
+  },
+  {
+   "run": "run_odessa_catacombs_1793098390",
+   "payload": {
+    "caption": "A secret subterranean world sheltered fighters beneath the Black Sea coast. ⚓\n\nOn July 29, 1941, official Soviet directives ordered the formation of partisan detachments in occupied territory. Following enemy aerial bombing and siege in Ukraine, Soviet resistance partisans took cover in the Odesa catacombs to wage guerrilla operations. On May 30, 1942, the Central Headquarters of the Partisan Movement was established under Stavka to coordinate these underground fighters.\n\nCould any modern stronghold ever replicate this subterranean resistance? 🛡️\n\nShare this with a friend who loves wartime history, and follow for more stories! ⚓\n\n#Odesa #WorldWarII #SovietPartisans #Catacombs #MilitaryHistory\n\n\n🎬 This video is licensed CC BY-SA 4.0: https://creativecommons.org/licenses/by-sa/4.0/\n\n📷 Marion Golsteijn | Odessa Catacombs Monument | CC BY-SA 3.0 | https://commons.wikimedia.org/w/index.php?curid=10319696 | https://creativecommons.org/licenses/by-sa/3.0/\n\n📷 Galvm | Odesa-Catacombs of Moldovanka-inside-8 | CC BY-SA 4.0 | https://commons.wikimedia.org/w/index.php?curid=177638920 | https://creativecommons.org/licenses/by-sa/4.0/\n\n📷 Galvm | Odesa-Catacombs of Moldovanka-inside-2 | CC BY-SA 4.0 | https://commons.wikimedia.org/w/index.php?curid=177638908 | https://creativecommons.org/licenses/by-sa/4.0/\n\n📷 Galvm | Odesa-Catacombs of Moldovanka-entrance hallway-1 | CC BY-SA 4.0 | https://commons.wikimedia.org/w/index.php?curid=177638902 | https://creativecommons.org/licenses/by-sa/4.0/\n\n📷 Galvm | Odesa-Catacombs of Moldovanka-inside-4 | CC BY-SA 4.0 | https://commons.wikimedia.org/w/index.php?curid=177638911 | https://creativecommons.org/licenses/by-sa/4.0/\n\n📷 Galvm | Odesa-Catacombs of Moldovanka-inside-5 | CC BY-SA 4.0 | https://commons.wikimedia.org/w/index.php?curid=177638912 | https://creativecommons.org/licenses/by-sa/4.0/\n\n📷 Galvm | Odesa-Odesa catacombs natural monument in 2025-07 | CC BY-SA 4.0 | https://commons.wikimedia.org/w/index.php?curid=195736086 | https://creativecommons.org/licenses/by-sa/4.0/",
+    "title": "The Secret Labyrinth Beneath Odesa ⚓",
+    "hashtags": [
+     "#Odesa",
+     "#WorldWarII",
+     "#SovietPartisans",
+     "#Catacombs",
+     "#MilitaryHistory"
+    ],
+    "delivery_profile": "reel_9x16"
+   },
+   "assets": [
+    {
+     "title": "Odessa Catacombs Monument",
+     "artist": "Marion Golsteijn",
+     "license": "CC BY-SA 3.0",
+     "license_url": "https://creativecommons.org/licenses/by-sa/3.0/",
+     "source_url": "https://commons.wikimedia.org/w/index.php?curid=10319696",
+     "attribution_required": true
+    },
+    {
+     "title": "Odesa-Catacombs of Moldovanka-inside-8",
+     "artist": "Galvm",
+     "license": "CC BY-SA 4.0",
+     "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+     "source_url": "https://commons.wikimedia.org/w/index.php?curid=177638920",
+     "attribution_required": true
+    },
+    {
+     "title": "Odesa-Catacombs of Moldovanka-inside-2",
+     "artist": "Galvm",
+     "license": "CC BY-SA 4.0",
+     "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+     "source_url": "https://commons.wikimedia.org/w/index.php?curid=177638908",
+     "attribution_required": true
+    },
+    {
+     "title": "Odesa-Catacombs of Moldovanka-entrance hallway-1",
+     "artist": "Galvm",
+     "license": "CC BY-SA 4.0",
+     "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+     "source_url": "https://commons.wikimedia.org/w/index.php?curid=177638902",
+     "attribution_required": true
+    },
+    {
+     "title": "Odessa Catacombs Monument",
+     "artist": "Marion Golsteijn",
+     "license": "CC BY-SA 3.0",
+     "license_url": "https://creativecommons.org/licenses/by-sa/3.0/",
+     "source_url": "https://commons.wikimedia.org/w/index.php?curid=10319696",
+     "attribution_required": true
+    },
+    {
+     "title": "Odesa-Catacombs of Moldovanka-inside-4",
+     "artist": "Galvm",
+     "license": "CC BY-SA 4.0",
+     "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+     "source_url": "https://commons.wikimedia.org/w/index.php?curid=177638911",
+     "attribution_required": true
+    },
+    {
+     "title": "Odesa-Catacombs of Moldovanka-inside-5",
+     "artist": "Galvm",
+     "license": "CC BY-SA 4.0",
+     "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+     "source_url": "https://commons.wikimedia.org/w/index.php?curid=177638912",
+     "attribution_required": true
+    },
+    {
+     "title": "Odesa-Odesa catacombs natural monument in 2025-07",
+     "artist": "Galvm",
+     "license": "CC BY-SA 4.0",
+     "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+     "source_url": "https://commons.wikimedia.org/w/index.php?curid=195736086",
+     "attribution_required": true
+    },
+    {
+     "title": "Odesa-Odesa catacombs natural monument in 2025-02",
+     "artist": "Galvm",
+     "license": "CC BY-SA 4.0",
+     "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+     "source_url": "https://commons.wikimedia.org/w/index.php?curid=195736072",
+     "attribution_required": true
+    }
+   ],
+   "music": [
+    {
+     "title": "Thriller Documentary Pack #1",
+     "creator": "dekstromoramid",
+     "license": "cc0",
+     "license_version": "1.0",
+     "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+     "source_url": "https://freesound.org/people/dekstromoramid/sounds/435370"
+    }
+   ]
+  },
+  {
+   "run": "run_odessa_catacombs_1793100750",
+   "payload": {
+    "caption": "A secret subterranean world sheltered fighters beneath the Black Sea coast. ⚓\n\nOn July 29, 1941, official Soviet directives ordered the formation of partisan detachments in occupied territory. Following enemy aerial bombing and siege in Ukraine, Soviet resistance partisans took cover in the Odesa catacombs to wage guerrilla operations. On May 30, 1942, the Central Headquarters of the Partisan Movement was established under Stavka to coordinate these underground fighters.\n\nCould any modern stronghold ever replicate this subterranean resistance? 🛡️\n\nShare this with a friend who loves wartime history, and follow for more stories! ⚓\n\n#Odesa #WorldWarII #SovietPartisans #Catacombs #MilitaryHistory\n\n\n🎬 This video is licensed CC BY-SA 4.0: https://creativecommons.org/licenses/by-sa/4.0/\n\n📷 Galvm | Odesa-Catacombs of Moldovanka-entrance | CC BY-SA 4.0 | https://commons.wikimedia.org/w/index.php?curid=177638903 | https://creativecommons.org/licenses/by-sa/4.0/\n\n📷 Galvm | Odesa-Odesa catacombs natural monument in 2025-01 | CC BY-SA 4.0 | https://commons.wikimedia.org/w/index.php?curid=195736075 | https://creativecommons.org/licenses/by-sa/4.0/\n\n📷 Galvm | Odesa-Odesa catacombs natural monument in 2025-02 | CC BY-SA 4.0 | https://commons.wikimedia.org/w/index.php?curid=195736072 | https://creativecommons.org/licenses/by-sa/4.0/\n\n📷 Galvm | Odesa-Catacombs of Moldovanka-entrance hallway-1 | CC BY-SA 4.0 | https://commons.wikimedia.org/w/index.php?curid=177638902 | https://creativecommons.org/licenses/by-sa/4.0/\n\n📷 Marion Golsteijn | Odessa Catacombs Monument | CC BY-SA 3.0 | https://commons.wikimedia.org/w/index.php?curid=10319696 | https://creativecommons.org/licenses/by-sa/3.0/\n\n📷 Galvm | Odesa-Odesa catacombs natural monument in 2025-07 | CC BY-SA 4.0 | https://commons.wikimedia.org/w/index.php?curid=195736086 | https://creativecommons.org/licenses/by-sa/4.0/\n\n📷 Galvm | Odesa-Catacombs of Moldovanka-inside-5 | CC BY-SA 4.0 | https://commons.wikimedia.org/w/index.php?curid=177638912 | https://creativecommons.org/licenses/by-sa/4.0/",
+    "title": "The Secret Labyrinth Beneath Odesa ⚓",
+    "hashtags": [
+     "#Odesa",
+     "#WorldWarII",
+     "#SovietPartisans",
+     "#Catacombs",
+     "#MilitaryHistory"
+    ],
+    "delivery_profile": "reel_9x16"
+   },
+   "assets": [
+    {
+     "title": "Odesa-Catacombs of Moldovanka-entrance",
+     "artist": "Galvm",
+     "license": "CC BY-SA 4.0",
+     "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+     "source_url": "https://commons.wikimedia.org/w/index.php?curid=177638903",
+     "attribution_required": true
+    },
+    {
+     "title": "Odesa-Odesa catacombs natural monument in 2025-01",
+     "artist": "Galvm",
+     "license": "CC BY-SA 4.0",
+     "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+     "source_url": "https://commons.wikimedia.org/w/index.php?curid=195736075",
+     "attribution_required": true
+    },
+    {
+     "title": "Odesa-Odesa catacombs natural monument in 2025-02",
+     "artist": "Galvm",
+     "license": "CC BY-SA 4.0",
+     "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+     "source_url": "https://commons.wikimedia.org/w/index.php?curid=195736072",
+     "attribution_required": true
+    },
+    {
+     "title": "Odesa-Catacombs of Moldovanka-entrance hallway-1",
+     "artist": "Galvm",
+     "license": "CC BY-SA 4.0",
+     "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+     "source_url": "https://commons.wikimedia.org/w/index.php?curid=177638902",
+     "attribution_required": true
+    },
+    {
+     "title": "Odessa Catacombs Monument",
+     "artist": "Marion Golsteijn",
+     "license": "CC BY-SA 3.0",
+     "license_url": "https://creativecommons.org/licenses/by-sa/3.0/",
+     "source_url": "https://commons.wikimedia.org/w/index.php?curid=10319696",
+     "attribution_required": true
+    },
+    {
+     "title": "Odesa-Odesa catacombs natural monument in 2025-07",
+     "artist": "Galvm",
+     "license": "CC BY-SA 4.0",
+     "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+     "source_url": "https://commons.wikimedia.org/w/index.php?curid=195736086",
+     "attribution_required": true
+    },
+    {
+     "title": "Odesa-Catacombs of Moldovanka-inside-5",
+     "artist": "Galvm",
+     "license": "CC BY-SA 4.0",
+     "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+     "source_url": "https://commons.wikimedia.org/w/index.php?curid=177638912",
+     "attribution_required": true
+    },
+    {
+     "title": "Odesa-Catacombs of Moldovanka-inside-2",
+     "artist": "Galvm",
+     "license": "CC BY-SA 4.0",
+     "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+     "source_url": "https://commons.wikimedia.org/w/index.php?curid=177638908",
+     "attribution_required": true
+    },
+    {
+     "title": "Odessa Catacombs Monument",
+     "artist": "Marion Golsteijn",
+     "license": "CC BY-SA 3.0",
+     "license_url": "https://creativecommons.org/licenses/by-sa/3.0/",
+     "source_url": "https://commons.wikimedia.org/w/index.php?curid=10319696",
+     "attribution_required": true
+    }
+   ],
+   "music": [
+    {
+     "title": "Thriller Documentary Pack #1",
+     "creator": "dekstromoramid",
+     "license": "cc0",
+     "license_version": "1.0",
+     "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+     "source_url": "https://freesound.org/people/dekstromoramid/sounds/435370"
+    }
+   ]
+  },
+  {
+   "run": "run_richat_structure_sahara_eye_1792737039_short",
+   "payload": {
+    "caption": "A massive geological bullseye stretches across the Sahara desert 👁️\n\nIn October 2022, the International Union of Geological Sciences selected the Richat Structure as one of the world's first 100 geological heritage sites. By one estimate, archaeological surveys have recovered prehistoric stone tools dating between 145,000 and 29,000 years ago. Claims identifying the formation as Atlantis remain unsubstantiated fringe theories contradicted by its ancient geology.\n\nWhat ancient natural wonder would you most want to see from orbit? 🛰️\n\n#RichatStructure #EyeOfTheSahara #Mauritania #GeologyLovers #EarthFromSpace\n\n📷 Images via Wikimedia Commons: SentinelHub (CC BY 2.0); Pierre Markuse from Hamm, Germany (CC BY 2.0)\n\n📷 SentinelHub | File:Richat Structure, Mauritania.png | CC BY 2.0 | https://commons.wikimedia.org/wiki/File:Richat_Structure,_Mauritania.png | https://creativecommons.org/licenses/by/2.0\n\n📷 SentinelHub | File:Eye of the Sahara (49141999011).png | CC BY 2.0 | https://commons.wikimedia.org/wiki/File:Eye_of_the_Sahara_(49141999011).png | https://creativecommons.org/licenses/by/2.0\n\n📷 Pierre Markuse from Hamm, Germany | File:Richat Structure S2A 432 crop 10 (32159877843).jpg | CC BY 2.0 | https://commons.wikimedia.org/wiki/File:Richat_Structure_S2A_432_crop_10_(32159877843).jpg | https://creativecommons.org/licenses/by/2.0\n\n📷 Pierre Markuse from Hamm, Germany | File:Richat Structure S2A 1282 crop 10 (32820057612).jpg | CC BY 2.0 | https://commons.wikimedia.org/wiki/File:Richat_Structure_S2A_1282_crop_10_(32820057612).jpg | https://creativecommons.org/licenses/by/2.0\n\n📷 SentinelHub | File:Richat Structure, Mauritania - 6 January 2023 (52616008386).jpg | CC BY 2.0 | https://commons.wikimedia.org/wiki/File:Richat_Structure,_Mauritania_-_6_January_2023_(52616008386).jpg | https://creativecommons.org/licenses/by/2.0",
+    "title": "The Giant Desert Bullseye Seen From Space 🌍",
+    "hashtags": [
+     "#RichatStructure",
+     "#EyeOfTheSahara",
+     "#Mauritania",
+     "#GeologyLovers",
+     "#EarthFromSpace"
+    ],
+    "delivery_profile": "reel_9x16"
+   },
+   "assets": [
+    {
+     "title": "File:Richat Structure, Mauritania.png",
+     "artist": "SentinelHub",
+     "license": "CC BY 2.0",
+     "license_url": "https://creativecommons.org/licenses/by/2.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Richat_Structure,_Mauritania.png",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Eye of the Sahara (49141999011).png",
+     "artist": "SentinelHub",
+     "license": "CC BY 2.0",
+     "license_url": "https://creativecommons.org/licenses/by/2.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Eye_of_the_Sahara_(49141999011).png",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Richat Structure S2A 432 crop 10 (32159877843).jpg",
+     "artist": "Pierre Markuse from Hamm, Germany",
+     "license": "CC BY 2.0",
+     "license_url": "https://creativecommons.org/licenses/by/2.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Richat_Structure_S2A_432_crop_10_(32159877843).jpg",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Richat Structure S2A 1282 crop 10 (32820057612).jpg",
+     "artist": "Pierre Markuse from Hamm, Germany",
+     "license": "CC BY 2.0",
+     "license_url": "https://creativecommons.org/licenses/by/2.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Richat_Structure_S2A_1282_crop_10_(32820057612).jpg",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Richat Structure, Mauritania - 6 January 2023 (52616008386).jpg",
+     "artist": "SentinelHub",
+     "license": "CC BY 2.0",
+     "license_url": "https://creativecommons.org/licenses/by/2.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Richat_Structure,_Mauritania_-_6_January_2023_(52616008386).jpg",
+     "attribution_required": true
+    },
+    {
+     "title": "File:The \"Eye of the Sahara\" in the African nation of Mauritania (iss069e005536).jpg",
+     "artist": "NASA Johnson Space Center",
+     "license": "Public domain",
+     "license_url": "",
+     "source_url": "https://commons.wikimedia.org/wiki/File:The_%22Eye_of_the_Sahara%22_in_the_African_nation_of_Mauritania_(iss069e005536).jpg",
+     "attribution_required": false
+    },
+    {
+     "title": "File:The \"Eye of the Sahara\" in the African nation of Mauritania (iss069e005471).jpg",
+     "artist": "NASA Johnson Space Center",
+     "license": "Public domain",
+     "license_url": "",
+     "source_url": "https://commons.wikimedia.org/wiki/File:The_%22Eye_of_the_Sahara%22_in_the_African_nation_of_Mauritania_(iss069e005471).jpg",
+     "attribution_required": false
+    },
+    {
+     "title": "File:Richat Structure, Mauritania.png",
+     "artist": "SentinelHub",
+     "license": "CC BY 2.0",
+     "license_url": "https://creativecommons.org/licenses/by/2.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Richat_Structure,_Mauritania.png",
+     "attribution_required": true
+    },
+    {
+     "title": "File:ISS-59 Richat Structure (2).jpg",
+     "artist": "NASA",
+     "license": "Public domain",
+     "license_url": "",
+     "source_url": "https://commons.wikimedia.org/wiki/File:ISS-59_Richat_Structure_(2).jpg",
+     "attribution_required": false
+    },
+    {
+     "title": "File:ISS-59 Eye of Sahara with the Richat Structure in Mauritania.jpg",
+     "artist": "NASA",
+     "license": "Public domain",
+     "license_url": "",
+     "source_url": "https://commons.wikimedia.org/wiki/File:ISS-59_Eye_of_Sahara_with_the_Richat_Structure_in_Mauritania.jpg",
+     "attribution_required": false
+    }
+   ],
+   "music": [
+    {
+     "title": "Mysterious Ambient",
+     "creator": "dlolbful",
+     "license": "cc0",
+     "license_version": "1.0",
+     "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+     "source_url": "https://freesound.org/people/dlolbful/sounds/494319"
+    }
+   ]
+  },
+  {
+   "run": "run_richat_structure_sahara_eye_1792740961_long",
+   "payload": {
+    "caption": "The Richat Structure: The Eye of the Sahara\n\nAn investigative examination of the Richat Structure on the Adrar Plateau in Mauritania. This documentary details the physical dimensions, geological origins, the disproven impact crater theory, and archaeological findings across the formation.\n\nChapters:\n- Introduction: A Desert Landmark from Space\n- Documented Physical Architecture\n- Origin Debates and Rock Dating\n- Archaeological Evidence and Refuted Claims\n- International Heritage Recognition\n\nCHAPTERS:\n0:00 Act 1 - Introduction: A Desert Landmark from Space\n0:33 Act 2 - Documented Physical Architecture\n1:17 Act 3 - Origin Debates and Rock Dating\n1:51 Act 4 - Archaeological Evidence and Refuted Claims\n2:41 Act 5 - International Heritage Recognition\n\n📷 SentinelHub | File:Richat Structure, Mauritania.png | CC BY 2.0 | https://commons.wikimedia.org/wiki/File:Richat_Structure,_Mauritania.png | https://creativecommons.org/licenses/by/2.0\n\n📷 SentinelHub | File:Eye of the Sahara (49141999011).png | CC BY 2.0 | https://commons.wikimedia.org/wiki/File:Eye_of_the_Sahara_(49141999011).png | https://creativecommons.org/licenses/by/2.0\n\n📷 Pierre Markuse from Hamm, Germany | File:Richat Structure S2A 432 crop 10 (32159877843).jpg | CC BY 2.0 | https://commons.wikimedia.org/wiki/File:Richat_Structure_S2A_432_crop_10_(32159877843).jpg | https://creativecommons.org/licenses/by/2.0\n\n📷 Pierre Markuse from Hamm, Germany | File:Richat Structure S2A 1282 crop 10 (32820057612).jpg | CC BY 2.0 | https://commons.wikimedia.org/wiki/File:Richat_Structure_S2A_1282_crop_10_(32820057612).jpg | https://creativecommons.org/licenses/by/2.0\n\n📷 SentinelHub | File:Richat Structure, Mauritania - 6 January 2023 (52616008386).jpg | CC BY 2.0 | https://commons.wikimedia.org/wiki/File:Richat_Structure,_Mauritania_-_6_January_2023_(52616008386).jpg | https://creativecommons.org/licenses/by/2.0",
+    "title": "The Richat Structure: The Eye of the Sahara",
+    "hashtags": [],
+    "delivery_profile": "deep_dive_16x9",
+    "description": "An investigative examination of the Richat Structure on the Adrar Plateau in Mauritania. This documentary details the physical dimensions, geological origins, the disproven impact crater theory, and archaeological findings across the formation.\n\nChapters:\n- Introduction: A Desert Landmark from Space\n- Documented Physical Architecture\n- Origin Debates and Rock Dating\n- Archaeological Evidence and Refuted Claims\n- International Heritage Recognition\n\nCHAPTERS:\n0:00 Act 1 - Introduction: A Desert Landmark from Space\n0:33 Act 2 - Documented Physical Architecture\n1:17 Act 3 - Origin Debates and Rock Dating\n1:51 Act 4 - Archaeological Evidence and Refuted Claims\n2:41 Act 5 - International Heritage Recognition\n\n📷 SentinelHub | File:Richat Structure, Mauritania.png | CC BY 2.0 | https://commons.wikimedia.org/wiki/File:Richat_Structure,_Mauritania.png | https://creativecommons.org/licenses/by/2.0\n\n📷 SentinelHub | File:Eye of the Sahara (49141999011).png | CC BY 2.0 | https://commons.wikimedia.org/wiki/File:Eye_of_the_Sahara_(49141999011).png | https://creativecommons.org/licenses/by/2.0\n\n📷 Pierre Markuse from Hamm, Germany | File:Richat Structure S2A 432 crop 10 (32159877843).jpg | CC BY 2.0 | https://commons.wikimedia.org/wiki/File:Richat_Structure_S2A_432_crop_10_(32159877843).jpg | https://creativecommons.org/licenses/by/2.0\n\n📷 Pierre Markuse from Hamm, Germany | File:Richat Structure S2A 1282 crop 10 (32820057612).jpg | CC BY 2.0 | https://commons.wikimedia.org/wiki/File:Richat_Structure_S2A_1282_crop_10_(32820057612).jpg | https://creativecommons.org/licenses/by/2.0\n\n📷 SentinelHub | File:Richat Structure, Mauritania - 6 January 2023 (52616008386).jpg | CC BY 2.0 | https://commons.wikimedia.org/wiki/File:Richat_Structure,_Mauritania_-_6_January_2023_(52616008386).jpg | https://creativecommons.org/licenses/by/2.0",
+    "youtube_title": "The Richat Structure: Geological Evidence and Scientific Origins"
+   },
+   "assets": [
+    {
+     "title": "File:Richat Structure, Mauritania.png",
+     "artist": "SentinelHub",
+     "license": "CC BY 2.0",
+     "license_url": "https://creativecommons.org/licenses/by/2.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Richat_Structure,_Mauritania.png",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Eye of the Sahara (49141999011).png",
+     "artist": "SentinelHub",
+     "license": "CC BY 2.0",
+     "license_url": "https://creativecommons.org/licenses/by/2.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Eye_of_the_Sahara_(49141999011).png",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Richat Structure S2A 432 crop 10 (32159877843).jpg",
+     "artist": "Pierre Markuse from Hamm, Germany",
+     "license": "CC BY 2.0",
+     "license_url": "https://creativecommons.org/licenses/by/2.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Richat_Structure_S2A_432_crop_10_(32159877843).jpg",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Richat Structure S2A 1282 crop 10 (32820057612).jpg",
+     "artist": "Pierre Markuse from Hamm, Germany",
+     "license": "CC BY 2.0",
+     "license_url": "https://creativecommons.org/licenses/by/2.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Richat_Structure_S2A_1282_crop_10_(32820057612).jpg",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Richat Structure, Mauritania - 6 January 2023 (52616008386).jpg",
+     "artist": "SentinelHub",
+     "license": "CC BY 2.0",
+     "license_url": "https://creativecommons.org/licenses/by/2.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Richat_Structure,_Mauritania_-_6_January_2023_(52616008386).jpg",
+     "attribution_required": true
+    },
+    {
+     "title": "File:The \"Eye of the Sahara\" in the African nation of Mauritania (iss069e005536).jpg",
+     "artist": "NASA Johnson Space Center",
+     "license": "Public domain",
+     "license_url": "",
+     "source_url": "https://commons.wikimedia.org/wiki/File:The_%22Eye_of_the_Sahara%22_in_the_African_nation_of_Mauritania_(iss069e005536).jpg",
+     "attribution_required": false
+    },
+    {
+     "title": "File:The \"Eye of the Sahara\" in the African nation of Mauritania (iss069e005471).jpg",
+     "artist": "NASA Johnson Space Center",
+     "license": "Public domain",
+     "license_url": "",
+     "source_url": "https://commons.wikimedia.org/wiki/File:The_%22Eye_of_the_Sahara%22_in_the_African_nation_of_Mauritania_(iss069e005471).jpg",
+     "attribution_required": false
+    },
+    {
+     "title": "File:The \"Eye of the Sahara\" in the African nation of Mauritania (iss069e005526).jpg",
+     "artist": "NASA Johnson Space Center",
+     "license": "Public domain",
+     "license_url": "",
+     "source_url": "https://commons.wikimedia.org/wiki/File:The_%22Eye_of_the_Sahara%22_in_the_African_nation_of_Mauritania_(iss069e005526).jpg",
+     "attribution_required": false
+    },
+    {
+     "title": "File:ISS-59 Richat Structure (2).jpg",
+     "artist": "NASA",
+     "license": "Public domain",
+     "license_url": "",
+     "source_url": "https://commons.wikimedia.org/wiki/File:ISS-59_Richat_Structure_(2).jpg",
+     "attribution_required": false
+    },
+    {
+     "title": "File:ISS-59 Eye of Sahara with the Richat Structure in Mauritania.jpg",
+     "artist": "NASA",
+     "license": "Public domain",
+     "license_url": "",
+     "source_url": "https://commons.wikimedia.org/wiki/File:ISS-59_Eye_of_Sahara_with_the_Richat_Structure_in_Mauritania.jpg",
+     "attribution_required": false
+    },
+    {
+     "title": "File:ISS-61 Richat Structure (1).jpg",
+     "artist": "NASA",
+     "license": "Public domain",
+     "license_url": "",
+     "source_url": "https://commons.wikimedia.org/wiki/File:ISS-61_Richat_Structure_(1).jpg",
+     "attribution_required": false
+    },
+    {
+     "title": "File:ISS-59 Richat Structure (1).jpg",
+     "artist": "NASA",
+     "license": "Public domain",
+     "license_url": "",
+     "source_url": "https://commons.wikimedia.org/wiki/File:ISS-59_Richat_Structure_(1).jpg",
+     "attribution_required": false
+    },
+    {
+     "title": "File:Richat Structure by Landsat 7.jpg",
+     "artist": "USGS/EROS/NASA Landsat",
+     "license": "Public domain",
+     "license_url": "",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Richat_Structure_by_Landsat_7.jpg",
+     "attribution_required": false
+    },
+    {
+     "title": "File:AS09-19-3050 Richat Structure.jpg",
+     "artist": "James Stuby based on NASA image",
+     "license": "Public domain",
+     "license_url": "",
+     "source_url": "https://commons.wikimedia.org/wiki/File:AS09-19-3050_Richat_Structure.jpg",
+     "attribution_required": false
+    },
+    {
+     "title": "File:ISS-42 Richat Structure, Eye of the Sahara.jpg",
+     "artist": "NASA",
+     "license": "Public domain",
+     "license_url": "",
+     "source_url": "https://commons.wikimedia.org/wiki/File:ISS-42_Richat_Structure,_Eye_of_the_Sahara.jpg",
+     "attribution_required": false
+    },
+    {
+     "title": "File:ISS-42 Richat Structure.jpg",
+     "artist": "NASA",
+     "license": "Public domain",
+     "license_url": "",
+     "source_url": "https://commons.wikimedia.org/wiki/File:ISS-42_Richat_Structure.jpg",
+     "attribution_required": false
+    },
+    {
+     "title": "File:ISS-66 Richat structure, Mauritania.jpg",
+     "artist": "NASA",
+     "license": "Public domain",
+     "license_url": "",
+     "source_url": "https://commons.wikimedia.org/wiki/File:ISS-66_Richat_structure,_Mauritania.jpg",
+     "attribution_required": false
+    },
+    {
+     "title": "File:Richat Structure ISS030-E-12516.jpg",
+     "artist": "NASA",
+     "license": "Public domain",
+     "license_url": "",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Richat_Structure_ISS030-E-12516.jpg",
+     "attribution_required": false
+    },
+    {
+     "title": "File:Richat Structure from Gemini IV.jpg",
+     "artist": "NASA/Gemini 4",
+     "license": "Public domain",
+     "license_url": "",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Richat_Structure_from_Gemini_IV.jpg",
+     "attribution_required": false
+    }
+   ],
+   "music": []
+  },
+  {
+   "run": "run_richat_structure_sahara_eye_1792778206",
+   "payload": {
+    "caption": "Orbiting astronauts rely on a massive bulls-eye carved deep into the Mauritanian sands 🛰\n\nConcentric gabbroic ring dikes frame the complex near Ouadane on the Adrar Plateau, featuring an inner ring about 98 feet (30 m) wide and an outer ring about 230 feet (70 m) wide. Prehistoric human habitation is evidenced across the area by exceptional accumulations of Acheulean artifacts alongside Middle Stone Age Aterian tools dating from roughly 145,000 to 29,000 years ago.\n\nWould you travel deep into the Sahara to stand inside this colossal geologic wonder? 🤔\n\n#RichatStructure #SaharaDesert #Mauritania #GeologyLovers #AncientEarth\n\n📷 Images via Wikimedia Commons: SentinelHub (CC BY 2.0); Pierre Markuse from Hamm, Germany (CC BY 2.0)\n\n📷 Pierre Markuse from Hamm, Germany | File:Richat Structure S2A 432 crop 10 (32159877843).jpg | CC BY 2.0 | https://commons.wikimedia.org/wiki/File:Richat_Structure_S2A_432_crop_10_(32159877843).jpg | https://creativecommons.org/licenses/by/2.0\n\n📷 SentinelHub | File:Richat Structure, Mauritania.png | CC BY 2.0 | https://commons.wikimedia.org/wiki/File:Richat_Structure,_Mauritania.png | https://creativecommons.org/licenses/by/2.0",
+    "title": "25-Mile Sahara Eye; first comment: What do you think, guys?",
+    "hashtags": [
+     "#RichatStructure",
+     "#SaharaDesert",
+     "#Mauritania",
+     "#GeologyLovers",
+     "#AncientEarth"
+    ],
+    "delivery_profile": "reel_9x16"
+   },
+   "assets": [
+    {
+     "title": "File:The \"Eye of the Sahara\" in the African nation of Mauritania (iss069e005536).jpg",
+     "artist": "NASA Johnson Space Center",
+     "license": "Public domain",
+     "license_url": "",
+     "source_url": "https://commons.wikimedia.org/wiki/File:The_%22Eye_of_the_Sahara%22_in_the_African_nation_of_Mauritania_(iss069e005536).jpg",
+     "attribution_required": false
+    },
+    {
+     "title": "File:Richat Structure S2A 432 crop 10 (32159877843).jpg",
+     "artist": "Pierre Markuse from Hamm, Germany",
+     "license": "CC BY 2.0",
+     "license_url": "https://creativecommons.org/licenses/by/2.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Richat_Structure_S2A_432_crop_10_(32159877843).jpg",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Richat Structure by Landsat 7.jpg",
+     "artist": "USGS/EROS/NASA Landsat",
+     "license": "Public domain",
+     "license_url": "",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Richat_Structure_by_Landsat_7.jpg",
+     "attribution_required": false
+    },
+    {
+     "title": "File:ISS-66 Richat structure, Mauritania.jpg",
+     "artist": "NASA",
+     "license": "Public domain",
+     "license_url": "",
+     "source_url": "https://commons.wikimedia.org/wiki/File:ISS-66_Richat_structure,_Mauritania.jpg",
+     "attribution_required": false
+    },
+    {
+     "title": "File:Richat Structure ISS030-E-12516.jpg",
+     "artist": "NASA",
+     "license": "Public domain",
+     "license_url": "",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Richat_Structure_ISS030-E-12516.jpg",
+     "attribution_required": false
+    },
+    {
+     "title": "File:Richat Structure, Mauritania.png",
+     "artist": "SentinelHub",
+     "license": "CC BY 2.0",
+     "license_url": "https://creativecommons.org/licenses/by/2.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Richat_Structure,_Mauritania.png",
+     "attribution_required": true
+    },
+    {
+     "title": "File:ISS-61 Richat Structure (1).jpg",
+     "artist": "NASA",
+     "license": "Public domain",
+     "license_url": "",
+     "source_url": "https://commons.wikimedia.org/wiki/File:ISS-61_Richat_Structure_(1).jpg",
+     "attribution_required": false
+    },
+    {
+     "title": "File:ISS-59 Richat Structure (1).jpg",
+     "artist": "NASA",
+     "license": "Public domain",
+     "license_url": "",
+     "source_url": "https://commons.wikimedia.org/wiki/File:ISS-59_Richat_Structure_(1).jpg",
+     "attribution_required": false
+    }
+   ],
+   "music": [
+    {
+     "title": "Epic Orchestra",
+     "creator": "edtijo",
+     "license": "cc0",
+     "license_version": "1.0",
+     "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+     "source_url": "https://freesound.org/people/edtijo/sounds/218744"
+    }
+   ]
+  },
+  {
+   "run": "run_richat_structure_sahara_eye_1793272675",
+   "payload": {
+    "caption": "A colossal concentric bullseye marks the vast Sahara desert from space.\n🌍 Near Ouadane on the Adrar Plateau of Mauritania, prehistoric hunters once traversed these ridges, leaving Stone Age tools dating between roughly 145,000 and 29,000 years ago. By one estimate, thousands of prehistoric stone burial mounds built in distinct architectural styles also line the formation's protruding dikes. Field geology confirms this ancient natural inland dome is not Plato's Atlantis. What natural landscape on Earth looks most extraordinary to you from orbit? 🛰️ Send this to a space enthusiast you know, and follow for the next natural marvel.\n\n#RichatStructure #Mauritania #GeologyLovers #SaharaDesert\n\n🎵 Music: “Epic Orchestral Strings” by TheoJT (CC BY 4.0)\n\n📷 Images via Wikimedia Commons and partner archives: SentinelHub (CC BY 2.0); Pierre Markuse from Hamm, Germany (CC BY 2.0) · adapted: cropped, with motion and text added\n\n📷 SentinelHub | File:Richat Structure, Mauritania - 6 January 2023 (52616008386).jpg | CC BY 2.0 | https://commons.wikimedia.org/wiki/File:Richat_Structure,_Mauritania_-_6_January_2023_(52616008386).jpg | https://creativecommons.org/licenses/by/2.0\n\n📷 Pierre Markuse from Hamm, Germany | File:Richat Structure S2A 432 crop 10 (32159877843).jpg | CC BY 2.0 | https://commons.wikimedia.org/wiki/File:Richat_Structure_S2A_432_crop_10_(32159877843).jpg | https://creativecommons.org/licenses/by/2.0\n\n📷 Pierre Markuse from Hamm, Germany | File:Richat Structure S2A 1282 crop 10 (32820057612).jpg | CC BY 2.0 | https://commons.wikimedia.org/wiki/File:Richat_Structure_S2A_1282_crop_10_(32820057612).jpg | https://creativecommons.org/licenses/by/2.0",
+    "title": "The Desert Bullseye Visible From Orbit 👁️",
+    "hashtags": [
+     "#RichatStructure",
+     "#Mauritania",
+     "#GeologyLovers",
+     "#SaharaDesert"
+    ],
+    "delivery_profile": "reel_9x16"
+   },
+   "assets": [
+    {
+     "title": "File:Richat Structure, Mauritania - 6 January 2023 (52616008386).jpg",
+     "artist": "SentinelHub",
+     "license": "CC BY 2.0",
+     "license_url": "https://creativecommons.org/licenses/by/2.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Richat_Structure,_Mauritania_-_6_January_2023_(52616008386).jpg",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Richat Structure S2A 432 crop 10 (32159877843).jpg",
+     "artist": "Pierre Markuse from Hamm, Germany",
+     "license": "CC BY 2.0",
+     "license_url": "https://creativecommons.org/licenses/by/2.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Richat_Structure_S2A_432_crop_10_(32159877843).jpg",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Richat Structure S2A 1282 crop 10 (32820057612).jpg",
+     "artist": "Pierre Markuse from Hamm, Germany",
+     "license": "CC BY 2.0",
+     "license_url": "https://creativecommons.org/licenses/by/2.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Richat_Structure_S2A_1282_crop_10_(32820057612).jpg",
+     "attribution_required": true
+    },
+    {
+     "title": "File:The \"Eye of the Sahara\" in the African nation of Mauritania (iss069e005536).jpg",
+     "artist": "NASA Johnson Space Center",
+     "license": "Public domain",
+     "license_url": "",
+     "source_url": "https://commons.wikimedia.org/wiki/File:The_%22Eye_of_the_Sahara%22_in_the_African_nation_of_Mauritania_(iss069e005536).jpg",
+     "attribution_required": false
+    },
+    {
+     "title": "File:ISS-59 Richat Structure (2).jpg",
+     "artist": "NASA",
+     "license": "Public domain",
+     "license_url": "",
+     "source_url": "https://commons.wikimedia.org/wiki/File:ISS-59_Richat_Structure_(2).jpg",
+     "attribution_required": false
+    },
+    {
+     "title": "File:Richat Structure from Gemini IV.jpg",
+     "artist": "NASA/Gemini 4",
+     "license": "Public domain",
+     "license_url": "",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Richat_Structure_from_Gemini_IV.jpg",
+     "attribution_required": false
+    },
+    {
+     "title": "File:The \"Eye of the Sahara\" in the African nation of Mauritania (iss069e005471).jpg",
+     "artist": "NASA Johnson Space Center",
+     "license": "Public domain",
+     "license_url": "",
+     "source_url": "https://commons.wikimedia.org/wiki/File:The_%22Eye_of_the_Sahara%22_in_the_African_nation_of_Mauritania_(iss069e005471).jpg",
+     "attribution_required": false
+    },
+    {
+     "title": "File:ISS-61 Richat Structure (1).jpg",
+     "artist": "NASA",
+     "license": "Public domain",
+     "license_url": "",
+     "source_url": "https://commons.wikimedia.org/wiki/File:ISS-61_Richat_Structure_(1).jpg",
+     "attribution_required": false
+    },
+    {
+     "title": "File:Richat Structure ISS030-E-12516.jpg",
+     "artist": "NASA",
+     "license": "Public domain",
+     "license_url": "",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Richat_Structure_ISS030-E-12516.jpg",
+     "attribution_required": false
+    },
+    {
+     "title": "File:ISS-59 Richat Structure (1).jpg",
+     "artist": "NASA",
+     "license": "Public domain",
+     "license_url": "",
+     "source_url": "https://commons.wikimedia.org/wiki/File:ISS-59_Richat_Structure_(1).jpg",
+     "attribution_required": false
+    }
+   ],
+   "music": [
+    {
+     "title": "Epic Orchestral Strings",
+     "creator": "TheoJT",
+     "license": "CC BY 4.0",
+     "license_version": "4.0",
+     "license_url": "https://creativecommons.org/licenses/by/4.0/",
+     "source_url": "https://freesound.org/people/TheoJT/sounds/511196"
+    }
+   ]
+  },
+  {
+   "run": "run_richat_structure_sahara_eye_1793474843",
+   "payload": {
+    "caption": "A colossal stone dome in the Sahara was once suspected to be a cosmic impact crater 🌍\nGeological field surveys record the feature at 40 kilometres across near Ouadane in Mauritania, though satellite observations describe it as spanning almost 50 kilometres. By one estimate, thousands of prehistoric stone burial mounds line the protruding dikes of the formation. Although fringe theories claim this was the lost city of Atlantis, geological reality refutes it as an ancient terrestrial dome rather than a sunken island. What other natural formations on Earth look remarkably engineered? 🤔 Send this to a friend who loves geology, and follow for the next ancient wonder.\n\n#RichatStructure #EyeOfTheSahara #Mauritania #AncientGeology #EarthScience\n\n📷 Images via Wikimedia Commons and partner archives: SentinelHub (CC BY 2.0); Pierre Markuse from Hamm, Germany (CC BY 2.0) · adapted: cropped, with motion and text added\n\n📷 SentinelHub | File:Richat Structure, Mauritania.png | CC BY 2.0 | https://commons.wikimedia.org/wiki/File:Richat_Structure,_Mauritania.png | https://creativecommons.org/licenses/by/2.0",
+    "title": "The Giant Desert Bullseye Visible From Orbit 👁️",
+    "hashtags": [
+     "#RichatStructure",
+     "#EyeOfTheSahara",
+     "#Mauritania",
+     "#AncientGeology",
+     "#EarthScience"
+    ],
+    "delivery_profile": "reel_9x16"
+   },
+   "assets": [
+    {
+     "title": "File:Richat Structure, Mauritania.png",
+     "artist": "SentinelHub",
+     "license": "CC BY 2.0",
+     "license_url": "https://creativecommons.org/licenses/by/2.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Richat_Structure,_Mauritania.png",
+     "attribution_required": true
+    },
+    {
+     "title": "File:ISS-59 Eye of Sahara with the Richat Structure in Mauritania.jpg",
+     "artist": "NASA",
+     "license": "Public domain",
+     "license_url": "",
+     "source_url": "https://commons.wikimedia.org/wiki/File:ISS-59_Eye_of_Sahara_with_the_Richat_Structure_in_Mauritania.jpg",
+     "attribution_required": false
+    },
+    {
+     "title": "File:Richat Structure ISS030-E-12516.jpg",
+     "artist": "NASA",
+     "license": "Public domain",
+     "license_url": "",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Richat_Structure_ISS030-E-12516.jpg",
+     "attribution_required": false
+    },
+    {
+     "title": "File:ISS-59 Richat Structure (1).jpg",
+     "artist": "NASA",
+     "license": "Public domain",
+     "license_url": "",
+     "source_url": "https://commons.wikimedia.org/wiki/File:ISS-59_Richat_Structure_(1).jpg",
+     "attribution_required": false
+    },
+    {
+     "title": "File:ISS-59 Richat Structure (1).jpg",
+     "artist": "NASA",
+     "license": "Public domain",
+     "license_url": "",
+     "source_url": "https://commons.wikimedia.org/wiki/File:ISS-59_Richat_Structure_(1).jpg",
+     "attribution_required": false
+    },
+    {
+     "title": "File:Richat Structure, Mauritania.png",
+     "artist": "SentinelHub",
+     "license": "CC BY 2.0",
+     "license_url": "https://creativecommons.org/licenses/by/2.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Richat_Structure,_Mauritania.png",
+     "attribution_required": true
+    },
+    {
+     "title": "File:ISS-66 Richat structure, Mauritania.jpg",
+     "artist": "NASA",
+     "license": "Public domain",
+     "license_url": "",
+     "source_url": "https://commons.wikimedia.org/wiki/File:ISS-66_Richat_structure,_Mauritania.jpg",
+     "attribution_required": false
+    },
+    {
+     "title": "File:The \"Eye of the Sahara\" in the African nation of Mauritania (iss069e005526).jpg",
+     "artist": "NASA Johnson Space Center",
+     "license": "Public domain",
+     "license_url": "",
+     "source_url": "https://commons.wikimedia.org/wiki/File:The_%22Eye_of_the_Sahara%22_in_the_African_nation_of_Mauritania_(iss069e005526).jpg",
+     "attribution_required": false
+    },
+    {
+     "title": "File:ISS-59 Richat Structure (2).jpg",
+     "artist": "NASA",
+     "license": "Public domain",
+     "license_url": "",
+     "source_url": "https://commons.wikimedia.org/wiki/File:ISS-59_Richat_Structure_(2).jpg",
+     "attribution_required": false
+    }
+   ],
+   "music": [
+    {
+     "title": "Epic Orchestra",
+     "creator": "edtijo",
+     "license": "cc0",
+     "license_version": "1.0",
+     "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+     "source_url": "https://freesound.org/people/edtijo/sounds/218744"
+    }
+   ]
+  },
+  {
+   "run": "run_roman_self_healing_concrete_1793163918",
+   "payload": {
+    "caption": "Ancient Roman structures outlast modern construction by centuries. 🏛️\n\nAncient builders placed seawalls, docks, and sewers that endured exceptionally harsh marine conditions and earthquake zones. At the Pantheon in Rome, Italy, the world's largest unreinforced concrete dome still stands intact after being dedicated in AD 128. How did ancient builders create materials more durable than modern concrete? 🌊\n\nSend this to a friend fascinated by ancient engineering, and follow for the next marvel.\n\n#Pantheon #RomanEngineering #AncientRome #AncientArchitecture\n\n📷 Images via Wikimedia Commons: Michael Wilson from York, United Kingdom (CC BY 2.0); Tiia Monto (CC BY 4.0); NateBergin (CC BY 4.0); Jean-Christophe BENOIST (CC BY 2.5); User:Kleuske (CC BY 2.5); Deb Nystrom from Ann Arbor, Michigan, USA (CC BY 2.0)\n🎥 Footage: Encyclopedia Britannica (Public domain) via the Internet Archive\n\n📷 Tiia Monto | File:Roman concrete.jpg | CC BY 4.0 | https://commons.wikimedia.org/wiki/File:Roman_concrete.jpg | https://creativecommons.org/licenses/by/4.0\n\n📷 NateBergin | File:02 Pantheon Dome.jpg | CC BY 4.0 | https://commons.wikimedia.org/wiki/File:02_Pantheon_Dome.jpg | https://creativecommons.org/licenses/by/4.0\n\n📷 Michael Wilson from York, United Kingdom | File:Ancient Roman concrete vault.jpg | CC BY 2.0 | https://commons.wikimedia.org/wiki/File:Ancient_Roman_concrete_vault.jpg | https://creativecommons.org/licenses/by/2.0",
+    "title": "Rome’s Two-Millennium Concrete Mystery 🏛️",
+    "hashtags": [
+     "#Pantheon",
+     "#RomanEngineering",
+     "#AncientRome",
+     "#AncientArchitecture"
+    ],
+    "delivery_profile": "reel_9x16"
+   },
+   "assets": [
+    {
+     "title": "File:Roman concrete.jpg",
+     "artist": "Tiia Monto",
+     "license": "CC BY 4.0",
+     "license_url": "https://creativecommons.org/licenses/by/4.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Roman_concrete.jpg",
+     "attribution_required": true
+    },
+    {
+     "title": "File:02 Pantheon Dome.jpg",
+     "artist": "NateBergin",
+     "license": "CC BY 4.0",
+     "license_url": "https://creativecommons.org/licenses/by/4.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:02_Pantheon_Dome.jpg",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Aqua virgo planlatium.jpg",
+     "artist": "? / Coldeel",
+     "license": "Public domain",
+     "license_url": "",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Aqua_virgo_planlatium.jpg",
+     "attribution_required": false
+    },
+    {
+     "title": "Reconstruction of the Pantheon in Rome, seen from the side, cut away to reveal the interior (The Met 399993)",
+     "artist": "Anonymous",
+     "license": "CC0",
+     "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+     "source_url": "https://www.metmuseum.org/art/collection/search/399993",
+     "attribution_required": false
+    },
+    {
+     "title": "File:Pantheon (Rome) - Dome interior (11640909363).jpg",
+     "artist": "gnuckx",
+     "license": "CC0",
+     "license_url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Pantheon_(Rome)_-_Dome_interior_(11640909363).jpg",
+     "attribution_required": false
+    },
+    {
+     "title": "File:Ancient Roman concrete vault.jpg",
+     "artist": "Michael Wilson from York, United Kingdom",
+     "license": "CC BY 2.0",
+     "license_url": "https://creativecommons.org/licenses/by/2.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Ancient_Roman_concrete_vault.jpg",
+     "attribution_required": true
+    },
+    {
+     "title": "Pompeii And Vesuvius",
+     "artist": "Encyclopedia Britannica",
+     "license": "Public domain",
+     "license_url": "http://creativecommons.org/publicdomain/mark/1.0/",
+     "source_url": "https://archive.org/details/PompeiiAndVesuvius",
+     "attribution_required": false
+    },
+    {
+     "title": "File:Roman Pantheon interior dome intrados, 1892.jpg",
+     "artist": "Unknown authorUnknown author",
+     "license": "Public domain",
+     "license_url": "",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Roman_Pantheon_interior_dome_intrados,_1892.jpg",
+     "attribution_required": false
+    },
+    {
+     "title": "File:Dome Interior of the Pantheon, Rome.jpg",
+     "artist": "Julian Lupyan",
+     "license": "CC0",
+     "license_url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Dome_Interior_of_the_Pantheon,_Rome.jpg",
+     "attribution_required": false
+    },
+    {
+     "title": "File:Pantheon, Roma, LZ, IT.jpg",
+     "artist": "Warren LeMay",
+     "license": "CC0",
+     "license_url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Pantheon,_Roma,_LZ,_IT.jpg",
+     "attribution_required": false
+    }
+   ],
+   "music": [
+    {
+     "title": "creepy sadness",
+     "creator": "burning-mir",
+     "license": "cc0",
+     "license_version": "1.0",
+     "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+     "source_url": "https://freesound.org/people/burning-mir/sounds/181222"
+    }
+   ]
+  },
+  {
+   "run": "run_singing_colossi_of_memnon_1792952878",
+   "payload": {
+    "caption": "For centuries, travelers gathered at dawn across Egypt's Theban Necropolis to witness stone make a sound. 🌅\n\nIn November 130 AD, the poet Julia Balbilla inscribed poetry on the colossus commemorating multiple hearings of the sound during an imperial visit with Emperor Hadrian. Local tradition dates the reconstruction of the statue's upper tiers to around 199 AD, attributing the repair to Roman Emperor Septimius Severus. By one estimate, the base of the vocal colossus preserves approximately 90 surviving traveler inscriptions testifying whether or not the visitor heard the sound.\n\nWould you travel across an empire just to hear a shattered stone speak at dawn? 🏛️\n\n#ColossiOfMemnon #AncientEgypt #Luxor #RomanEmpire #Archaeology\n\n🎵 Music: “Mystery Ambient Documentaries Mysterious Places” by UNIVERSFIELD (CC BY 4.0)\n\n📷 Images via Wikimedia Commons: Marc Ryckaert (MJJR) (CC BY 3.0); Unknown (CC BY 4.0); Ray in Manila (CC BY 2.0); Olaf Tausch (CC BY 3.0)\n\n📷 Marc Ryckaert (MJJR) | File:Colossi of Memnon R02.jpg | CC BY 3.0 | https://commons.wikimedia.org/wiki/File:Colossi_of_Memnon_R02.jpg | https://creativecommons.org/licenses/by/3.0\n\n📷 Unknown | File:Colossal statues of Memnon, seen during the flooding of the Wellcome V0049353.jpg | CC BY 4.0 | https://commons.wikimedia.org/wiki/File:Colossal_statues_of_Memnon,_seen_during_the_flooding_of_the_Wellcome_V0049353.jpg | https://creativecommons.org/licenses/by/4.0\n\n📷 Marc Ryckaert (MJJR) | File:Colossi of Memnon R01.jpg | CC BY 3.0 | https://commons.wikimedia.org/wiki/File:Colossi_of_Memnon_R01.jpg | https://creativecommons.org/licenses/by/3.0\n\n📷 Olaf Tausch | File:Kom el-Hettan 14.jpg | CC BY 3.0 | https://commons.wikimedia.org/wiki/File:Kom_el-Hettan_14.jpg | https://creativecommons.org/licenses/by/3.0",
+    "title": "Why Did This 720-Ton Titan Sing at Dawn? 🌅",
+    "hashtags": [
+     "#ColossiOfMemnon",
+     "#AncientEgypt",
+     "#Luxor",
+     "#RomanEmpire",
+     "#Archaeology"
+    ],
+    "delivery_profile": "reel_9x16"
+   },
+   "assets": [
+    {
+     "title": "File:Colossi of Memnon R02.jpg",
+     "artist": "Marc Ryckaert (MJJR)",
+     "license": "CC BY 3.0",
+     "license_url": "https://creativecommons.org/licenses/by/3.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Colossi_of_Memnon_R02.jpg",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Theban region, Colossi of Memnon, 19th century pictures, 1870-1888, photo 5 of 5 - Archivio fotografico Museo Egizio, Turin INV26 009.jpg",
+     "artist": "Antonio Beato",
+     "license": "CC0",
+     "license_url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Theban_region,_Colossi_of_Memnon,_19th_century_pictures,_1870-1888,_photo_5_of_5_-_Archivio_fotografico_Museo_Egizio,_Turin_INV26_009.jpg",
+     "attribution_required": false
+    },
+    {
+     "title": "File:Colossi of Memnon, Egypt 14.jpg",
+     "artist": "ولاء",
+     "license": "Public domain",
+     "license_url": "",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Colossi_of_Memnon,_Egypt_14.jpg",
+     "attribution_required": false
+    },
+    {
+     "title": "File:Colossal statues of Memnon, seen during the flooding of the Wellcome V0049353.jpg",
+     "artist": "Unknown",
+     "license": "CC BY 4.0",
+     "license_url": "https://creativecommons.org/licenses/by/4.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Colossal_statues_of_Memnon,_seen_during_the_flooding_of_the_Wellcome_V0049353.jpg",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Colossi of Memnon, Egypt 27.jpg",
+     "artist": "ولاء",
+     "license": "Public domain",
+     "license_url": "",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Colossi_of_Memnon,_Egypt_27.jpg",
+     "attribution_required": false
+    },
+    {
+     "title": "File:Colossi of Memnon (1876).jpg",
+     "artist": "William de Wiveleslie Abney",
+     "license": "Public domain",
+     "license_url": "",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Colossi_of_Memnon_(1876).jpg",
+     "attribution_required": false
+    },
+    {
+     "title": "File:Colossi of Memnon R01.jpg",
+     "artist": "Marc Ryckaert (MJJR)",
+     "license": "CC BY 3.0",
+     "license_url": "https://creativecommons.org/licenses/by/3.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Colossi_of_Memnon_R01.jpg",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Colossi of Memnon R01.jpg",
+     "artist": "Marc Ryckaert (MJJR)",
+     "license": "CC BY 3.0",
+     "license_url": "https://creativecommons.org/licenses/by/3.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Colossi_of_Memnon_R01.jpg",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Kom el-Hettan 14.jpg",
+     "artist": "Olaf Tausch",
+     "license": "CC BY 3.0",
+     "license_url": "https://creativecommons.org/licenses/by/3.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Kom_el-Hettan_14.jpg",
+     "attribution_required": true
+    }
+   ],
+   "music": [
+    {
+     "title": "Mystery Ambient Documentaries Mysterious Places",
+     "creator": "UNIVERSFIELD",
+     "license": "CC BY 4.0",
+     "license_version": "4.0",
+     "license_url": "https://creativecommons.org/licenses/by/4.0/",
+     "source_url": "https://freesound.org/people/UNIVERSFIELD/sounds/697084"
+    }
+   ]
+  },
+  {
+   "run": "run_trepanation_miracle_1792995462",
+   "payload": {
+    "caption": "Long before modern operating rooms, prehistoric healers performed ancient cranial surgery 🌿\n\nBy one estimate, across various areas of Peru, ancient trepanned skulls were discovered at unusually high rates, representing between 11 and 40 percent of recovered crania. Many of these delicate interventions were performed after cranial trauma caused by prehistoric weapons capable of inflicting severe fractures. Would you have trusted an ancient surgeon with a flint blade? 💭\n\nSend this to someone fascinated by ancient medicine, and follow for the next marvel.\n\n#AncientMedicine #Paracas #Archaeology #PrehistoricSurgery\n\n\n📷 Unknown | File:Edinburgh Skull, trepanning showing hole in back of skull Wellcome M0009393.jpg | CC BY 4.0 | https://commons.wikimedia.org/wiki/File:Edinburgh_Skull,_trepanning_showing_hole_in_back_of_skull_Wellcome_M0009393.jpg | https://creativecommons.org/licenses/by/4.0\n\n📷 Unknown | File:A human skull showing signs of Trepanning. Wellcome L0035689.jpg | CC BY 4.0 | https://commons.wikimedia.org/wiki/File:A_human_skull_showing_signs_of_Trepanning._Wellcome_L0035689.jpg | https://creativecommons.org/licenses/by/4.0\n\n📷 Unknown | File:A human skull showing signs of Trepanning. Wellcome L0035690.jpg | CC BY 4.0 | https://commons.wikimedia.org/wiki/File:A_human_skull_showing_signs_of_Trepanning._Wellcome_L0035690.jpg | https://creativecommons.org/licenses/by/4.0\n\n📷 Unknown | File:Human skull illustrating different methods of trephination o Wellcome L0058796.jpg | CC BY 4.0 | https://commons.wikimedia.org/wiki/File:Human_skull_illustrating_different_methods_of_trephination_o_Wellcome_L0058796.jpg | https://creativecommons.org/licenses/by/4.0\n\n📷 Unknown | File:Piece of skull used in a trephination experiment with an obs Wellcome L0058784.jpg | CC BY 4.0 | https://commons.wikimedia.org/wiki/File:Piece_of_skull_used_in_a_trephination_experiment_with_an_obs_Wellcome_L0058784.jpg | https://creativecommons.org/licenses/by/4.0",
+    "title": "Surviving Ancient Skull Surgery 🧠",
+    "hashtags": [
+     "#AncientMedicine",
+     "#Paracas",
+     "#Archaeology",
+     "#PrehistoricSurgery"
+    ],
+    "delivery_profile": "reel_9x16"
+   },
+   "assets": [
+    {
+     "title": "File:Edinburgh Skull, trepanning showing hole in back of skull Wellcome M0009393.jpg",
+     "artist": "Unknown",
+     "license": "CC BY 4.0",
+     "license_url": "https://creativecommons.org/licenses/by/4.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Edinburgh_Skull,_trepanning_showing_hole_in_back_of_skull_Wellcome_M0009393.jpg",
+     "attribution_required": true
+    },
+    {
+     "title": "File:A human skull showing signs of Trepanning. Wellcome L0035689.jpg",
+     "artist": "Unknown",
+     "license": "CC BY 4.0",
+     "license_url": "https://creativecommons.org/licenses/by/4.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:A_human_skull_showing_signs_of_Trepanning._Wellcome_L0035689.jpg",
+     "attribution_required": true
+    },
+    {
+     "title": "File:A human skull showing signs of Trepanning. Wellcome L0035690.jpg",
+     "artist": "Unknown",
+     "license": "CC BY 4.0",
+     "license_url": "https://creativecommons.org/licenses/by/4.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:A_human_skull_showing_signs_of_Trepanning._Wellcome_L0035690.jpg",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Human skull illustrating different methods of trephination o Wellcome L0058796.jpg",
+     "artist": "Unknown",
+     "license": "CC BY 4.0",
+     "license_url": "https://creativecommons.org/licenses/by/4.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Human_skull_illustrating_different_methods_of_trephination_o_Wellcome_L0058796.jpg",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Piece of skull used in a trephination experiment with an obs Wellcome L0058784.jpg",
+     "artist": "Unknown",
+     "license": "CC BY 4.0",
+     "license_url": "https://creativecommons.org/licenses/by/4.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Piece_of_skull_used_in_a_trephination_experiment_with_an_obs_Wellcome_L0058784.jpg",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Human skull illustrating different methods of trephination o Wellcome L0058798.jpg",
+     "artist": "Unknown",
+     "license": "CC BY 4.0",
+     "license_url": "https://creativecommons.org/licenses/by/4.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Human_skull_illustrating_different_methods_of_trephination_o_Wellcome_L0058798.jpg",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Diorama showing trephination in Neolithic times, England, 19 Wellcome L0058021.jpg",
+     "artist": "Unknown",
+     "license": "CC BY 4.0",
+     "license_url": "https://creativecommons.org/licenses/by/4.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Diorama_showing_trephination_in_Neolithic_times,_England,_19_Wellcome_L0058021.jpg",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Piece of skull showing a trephination experiment using a sha Wellcome L0058785.jpg",
+     "artist": "Unknown",
+     "license": "CC BY 4.0",
+     "license_url": "https://creativecommons.org/licenses/by/4.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Piece_of_skull_showing_a_trephination_experiment_using_a_sha_Wellcome_L0058785.jpg",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Diorama showing trephination in Neolithic times, England, 19 Wellcome L0058021.jpg",
+     "artist": "Unknown",
+     "license": "CC BY 4.0",
+     "license_url": "https://creativecommons.org/licenses/by/4.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Diorama_showing_trephination_in_Neolithic_times,_England,_19_Wellcome_L0058021.jpg",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Trephined skullin showing different stages of healing Wellcome L0004561.jpg",
+     "artist": "Unknown",
+     "license": "CC BY 4.0",
+     "license_url": "https://creativecommons.org/licenses/by/4.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Trephined_skullin_showing_different_stages_of_healing_Wellcome_L0004561.jpg",
+     "attribution_required": true
+    },
+    {
+     "title": "File:A human skull showing signs of Trepanning. Wellcome L0035688.jpg",
+     "artist": "Unknown",
+     "license": "CC BY 4.0",
+     "license_url": "https://creativecommons.org/licenses/by/4.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:A_human_skull_showing_signs_of_Trepanning._Wellcome_L0035688.jpg",
+     "attribution_required": true
+    }
+   ],
+   "music": [
+    {
+     "title": "Mysterious Ambient",
+     "creator": "dlolbful",
+     "license": "cc0",
+     "license_version": "1.0",
+     "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+     "source_url": "https://freesound.org/people/dlolbful/sounds/494319"
+    }
+   ]
+  },
+  {
+   "run": "run_tunguska_event_1908_1792930600",
+   "payload": {
+    "caption": "A Siberian forest vanished under a blinding blast. 💥\n\nNear the Podkamennaya Tunguska River in Central Siberia, physical models suggest the incoming celestial body measured roughly 160 to 200 feet (50 to 60 meters) across. Wood samples from surviving trees near the epicenter revealed deformed tracheid cells and light rings in 1908, followed by 4 to 5 years of suppressed growth. Scientists calculate the airburst released between 10 and 15 megatons of TNT without leaving behind an identified cosmic fragment.\n\nCould modern civilization withstand a silent cosmic airburst over an urban center today? 🌌\n\n#Tunguska #Siberia #Astronomy #MeteorImpact #ScienceHistory\n\n🎵 Music: “soundscape1-freesound.wav” by Thoribass (CC BY 4.0)\n\n📷 Images via Wikimedia Commons: Artyom Svetlov (CC BY 4.0); Merikanto (CC BY 4.0); jxandreani (CC BY 2.0)\n\n📷 Artyom Svetlov | File:Moscow State University Tunguska event 2014-01 1389528722.JPG | CC BY 4.0 | https://commons.wikimedia.org/wiki/File:Moscow_State_University_Tunguska_event_2014-01_1389528722.JPG | https://creativecommons.org/licenses/by/4.0\n\n📷 Artyom Svetlov | File:Moscow State University Tunguska event 2014-01 1389528710.JPG | CC BY 4.0 | https://commons.wikimedia.org/wiki/File:Moscow_State_University_Tunguska_event_2014-01_1389528710.JPG | https://creativecommons.org/licenses/by/4.0\n\n📷 Merikanto | File:Tunguska explosion effect areas 1.png | CC BY 4.0 | https://commons.wikimedia.org/wiki/File:Tunguska_explosion_effect_areas_1.png | https://creativecommons.org/licenses/by/4.0\n\n📷 Artyom Svetlov | File:Moscow State University Tunguska event 2014-01 1389528699.JPG | CC BY 4.0 | https://commons.wikimedia.org/wiki/File:Moscow_State_University_Tunguska_event_2014-01_1389528699.JPG | https://creativecommons.org/licenses/by/4.0\n\n📷 Artyom Svetlov | File:Moscow State University Tunguska event 2014-01 1389528719.JPG | CC BY 4.0 | https://commons.wikimedia.org/wiki/File:Moscow_State_University_Tunguska_event_2014-01_1389528719.JPG | https://creativecommons.org/licenses/by/4.0",
+    "title": "Flattened 830 Square Miles 💥",
+    "hashtags": [
+     "#Tunguska",
+     "#Siberia",
+     "#Astronomy",
+     "#MeteorImpact",
+     "#ScienceHistory"
+    ],
+    "delivery_profile": "reel_9x16"
+   },
+   "assets": [
+    {
+     "title": "File:Moscow State University Tunguska event 2014-01 1389528722.JPG",
+     "artist": "Artyom Svetlov",
+     "license": "CC BY 4.0",
+     "license_url": "https://creativecommons.org/licenses/by/4.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Moscow_State_University_Tunguska_event_2014-01_1389528722.JPG",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Tunguska event effect areas 3.png",
+     "artist": "own work and chatGPT 4o and 3 AI",
+     "license": "Public domain",
+     "license_url": "",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Tunguska_event_effect_areas_3.png",
+     "attribution_required": false
+    },
+    {
+     "title": "File:Moscow State University Tunguska event 2014-01 1389528710.JPG",
+     "artist": "Artyom Svetlov",
+     "license": "CC BY 4.0",
+     "license_url": "https://creativecommons.org/licenses/by/4.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Moscow_State_University_Tunguska_event_2014-01_1389528710.JPG",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Tunguska Ereignis-1.jpg",
+     "artist": "Leonid Kulik, the expedition to the Tunguska event",
+     "license": "Public domain",
+     "license_url": "",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Tunguska_Ereignis-1.jpg",
+     "attribution_required": false
+    },
+    {
+     "title": "File:Tunguska Ereignis-1.jpg",
+     "artist": "Leonid Kulik, the expedition to the Tunguska event",
+     "license": "Public domain",
+     "license_url": "",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Tunguska_Ereignis-1.jpg",
+     "attribution_required": false
+    },
+    {
+     "title": "File:Tunguska event in east siberia map 2.png",
+     "artist": "ChatGPT 3 and 4o AI",
+     "license": "Public domain",
+     "license_url": "",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Tunguska_event_in_east_siberia_map_2.png",
+     "attribution_required": false
+    },
+    {
+     "title": "File:Tunguska explosion effect areas 1.png",
+     "artist": "Merikanto",
+     "license": "CC BY 4.0",
+     "license_url": "https://creativecommons.org/licenses/by/4.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Tunguska_explosion_effect_areas_1.png",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Moscow State University Tunguska event 2014-01 1389528699.JPG",
+     "artist": "Artyom Svetlov",
+     "license": "CC BY 4.0",
+     "license_url": "https://creativecommons.org/licenses/by/4.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Moscow_State_University_Tunguska_event_2014-01_1389528699.JPG",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Moscow State University Tunguska event 2014-01 1389528719.JPG",
+     "artist": "Artyom Svetlov",
+     "license": "CC BY 4.0",
+     "license_url": "https://creativecommons.org/licenses/by/4.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Moscow_State_University_Tunguska_event_2014-01_1389528719.JPG",
+     "attribution_required": true
+    }
+   ],
+   "music": [
+    {
+     "title": "soundscape1-freesound.wav",
+     "creator": "Thoribass",
+     "license": "CC BY 4.0",
+     "license_version": "4.0",
+     "license_url": "https://creativecommons.org/licenses/by/4.0/",
+     "source_url": "https://freesound.org/people/Thoribass/sounds/320839"
+    }
+   ]
+  },
+  {
+   "run": "run_unfinished_obelisk_aswan_1792985912",
+   "payload": {
+    "caption": "The largest obelisk ever attempted by the ancient Egyptians never even left the bedrock where it was carved. 🗿\n\nCommissioned during the New Kingdom, the monument was possibly ordered by Queen Hatshepsut for Karnak before multiple cracks halted the chisels. Covered by desert sands for thousands of years in Aswan, it lay hidden until excavation revealed the immense pit. In 2005, archaeologists even discovered another partly worked obelisk base nearby.\n\nCould ancient engineers have moved this stone if it hadn't cracked? 🤔\n\nSend this to a friend fascinated by ancient engineering, and follow for the next marvel.\n\n#AncientEgypt #Aswan #AncientEngineering #EgyptianArchaeology\n\n🎵 Music: “Dramatic Increasing” by tyops (CC BY 4.0)\n\n\n📷 David Berkowitz from New York, NY, USA | File:Unfinished Obelisk - Aswan - Egypt (4058821616).jpg | CC BY 2.0 | https://commons.wikimedia.org/wiki/File:Unfinished_Obelisk_-_Aswan_-_Egypt_(4058821616).jpg | https://creativecommons.org/licenses/by/2.0\n\n📷 Jorge Láscar from Melbourne, Australia | File:The largest know ancient obelisk - Unfinished Obelisk would have been 32m. high (14284036359).jpg | CC BY 2.0 | https://commons.wikimedia.org/wiki/File:The_largest_know_ancient_obelisk_-_Unfinished_Obelisk_would_have_been_32m._high_(14284036359).jpg | https://creativecommons.org/licenses/by/2.0\n\n📷 David Berkowitz from New York, NY, USA | File:Unfinished Obelisk - Aswan - Egypt (4058823772).jpg | CC BY 2.0 | https://commons.wikimedia.org/wiki/File:Unfinished_Obelisk_-_Aswan_-_Egypt_(4058823772).jpg | https://creativecommons.org/licenses/by/2.0\n\n📷 David Berkowitz from New York, NY, USA | File:Unfinished Obelisk - Aswan - Egypt (4058822838).jpg | CC BY 2.0 | https://commons.wikimedia.org/wiki/File:Unfinished_Obelisk_-_Aswan_-_Egypt_(4058822838).jpg | https://creativecommons.org/licenses/by/2.0\n\n📷 David Berkowitz from New York, NY, USA | File:Unfinished Obelisk - Aswan - Egypt (4058081723).jpg | CC BY 2.0 | https://commons.wikimedia.org/wiki/File:Unfinished_Obelisk_-_Aswan_-_Egypt_(4058081723).jpg | https://creativecommons.org/licenses/by/2.0",
+    "title": "Egypt’s 1,200-Ton Quarry Monster 🗿",
+    "hashtags": [
+     "#AncientEgypt",
+     "#Aswan",
+     "#AncientEngineering",
+     "#EgyptianArchaeology"
+    ],
+    "delivery_profile": "reel_9x16"
+   },
+   "assets": [
+    {
+     "title": "File:The Unfinished Obelisk, Aswan, AG, EGY (48027111541).jpg",
+     "artist": "Warren LeMay from Cullowhee, NC, United States",
+     "license": "CC0",
+     "license_url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+     "source_url": "https://commons.wikimedia.org/wiki/File:The_Unfinished_Obelisk,_Aswan,_AG,_EGY_(48027111541).jpg",
+     "attribution_required": false
+    },
+    {
+     "title": "File:Unfinished Obelisk - Aswan - Egypt (4058821616).jpg",
+     "artist": "David Berkowitz from New York, NY, USA",
+     "license": "CC BY 2.0",
+     "license_url": "https://creativecommons.org/licenses/by/2.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Unfinished_Obelisk_-_Aswan_-_Egypt_(4058821616).jpg",
+     "attribution_required": true
+    },
+    {
+     "title": "File:The Unfinished Obelisk, Aswan, AG, EGY (48027219692).jpg",
+     "artist": "Warren LeMay from Cullowhee, NC, United States",
+     "license": "CC0",
+     "license_url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+     "source_url": "https://commons.wikimedia.org/wiki/File:The_Unfinished_Obelisk,_Aswan,_AG,_EGY_(48027219692).jpg",
+     "attribution_required": false
+    },
+    {
+     "title": "File:The largest know ancient obelisk - Unfinished Obelisk would have been 32m. high (14284036359).jpg",
+     "artist": "Jorge Láscar from Melbourne, Australia",
+     "license": "CC BY 2.0",
+     "license_url": "https://creativecommons.org/licenses/by/2.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:The_largest_know_ancient_obelisk_-_Unfinished_Obelisk_would_have_been_32m._high_(14284036359).jpg",
+     "attribution_required": true
+    },
+    {
+     "title": "File:The Unfinished Obelisk, Aswan, AG, EGY (48027107416).jpg",
+     "artist": "Warren LeMay from Cullowhee, NC, United States",
+     "license": "CC0",
+     "license_url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+     "source_url": "https://commons.wikimedia.org/wiki/File:The_Unfinished_Obelisk,_Aswan,_AG,_EGY_(48027107416).jpg",
+     "attribution_required": false
+    },
+    {
+     "title": "File:Unfinished Obelisk - Aswan - Egypt (4058823772).jpg",
+     "artist": "David Berkowitz from New York, NY, USA",
+     "license": "CC BY 2.0",
+     "license_url": "https://creativecommons.org/licenses/by/2.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Unfinished_Obelisk_-_Aswan_-_Egypt_(4058823772).jpg",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Unfinished Obelisk - Aswan - Egypt (4058822838).jpg",
+     "artist": "David Berkowitz from New York, NY, USA",
+     "license": "CC BY 2.0",
+     "license_url": "https://creativecommons.org/licenses/by/2.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Unfinished_Obelisk_-_Aswan_-_Egypt_(4058822838).jpg",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Unfinished Obelisk - Aswan - Egypt (4058081723).jpg",
+     "artist": "David Berkowitz from New York, NY, USA",
+     "license": "CC BY 2.0",
+     "license_url": "https://creativecommons.org/licenses/by/2.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Unfinished_Obelisk_-_Aswan_-_Egypt_(4058081723).jpg",
+     "attribution_required": true
+    },
+    {
+     "title": "File:The largest know ancient obelisk - Unfinished Obelisk would have been 32m. high (14470651075).jpg",
+     "artist": "Jorge Láscar from Melbourne, Australia",
+     "license": "CC BY 2.0",
+     "license_url": "https://creativecommons.org/licenses/by/2.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:The_largest_know_ancient_obelisk_-_Unfinished_Obelisk_would_have_been_32m._high_(14470651075).jpg",
+     "attribution_required": true
+    }
+   ],
+   "music": [
+    {
+     "title": "Dramatic Increasing",
+     "creator": "tyops",
+     "license": "CC BY 4.0",
+     "license_version": "4.0",
+     "license_url": "https://creativecommons.org/licenses/by/4.0/",
+     "source_url": "https://freesound.org/people/tyops/sounds/415123"
+    }
+   ]
+  },
+  {
+   "run": "run_unfinished_obelisk_aswan_1792993374",
+   "payload": {
+    "caption": "Egypt's most ambitious obelisk never left its cradle in the stone 🪨\n\nCommissioned during the New Kingdom, the monument was possibly ordered by Queen Hatshepsut for the Temple of Amun at Karnak. After fractures halted work in Aswan, windblown sands concealed the monolith for thousands of years until its excavation in the early twentieth century.\n\nCould ancient engineers have lifted over 1,000 tonnes if the granite had not fractured? 🏛️\n\nSend this to a friend who loves ancient engineering, and follow for the next marvel.\n\n#AncientEgypt #Aswan #EgyptianArchaeology #AncientEngineering\n\n🎵 Music: “soundscape1-freesound.wav” by Thoribass (CC BY 4.0)\n\n\n📷 David Berkowitz from New York, NY, USA | File:Unfinished Obelisk - Aswan - Egypt (4058821616).jpg | CC BY 2.0 | https://commons.wikimedia.org/wiki/File:Unfinished_Obelisk_-_Aswan_-_Egypt_(4058821616).jpg | https://creativecommons.org/licenses/by/2.0\n\n📷 Jorge Láscar from Melbourne, Australia | File:The largest know ancient obelisk - Unfinished Obelisk would have been 32m. high (14284036359).jpg | CC BY 2.0 | https://commons.wikimedia.org/wiki/File:The_largest_know_ancient_obelisk_-_Unfinished_Obelisk_would_have_been_32m._high_(14284036359).jpg | https://creativecommons.org/licenses/by/2.0\n\n📷 David Berkowitz from New York, NY, USA | File:Unfinished Obelisk - Aswan - Egypt (4058823772).jpg | CC BY 2.0 | https://commons.wikimedia.org/wiki/File:Unfinished_Obelisk_-_Aswan_-_Egypt_(4058823772).jpg | https://creativecommons.org/licenses/by/2.0\n\n📷 Jorge Láscar from Melbourne, Australia | File:The largest know ancient obelisk - Unfinished Obelisk would have been 32m. high (14470651075).jpg | CC BY 2.0 | https://commons.wikimedia.org/wiki/File:The_largest_know_ancient_obelisk_-_Unfinished_Obelisk_would_have_been_32m._high_(14470651075).jpg | https://creativecommons.org/licenses/by/2.0\n\n📷 David Berkowitz from New York, NY, USA | File:Unfinished Obelisk - Aswan - Egypt (4058822838).jpg | CC BY 2.0 | https://commons.wikimedia.org/wiki/File:Unfinished_Obelisk_-_Aswan_-_Egypt_(4058822838).jpg | https://creativecommons.org/licenses/by/2.0",
+    "title": "Why Egypt Abandoned Its Largest Megalith ⚡",
+    "hashtags": [
+     "#AncientEgypt",
+     "#Aswan",
+     "#EgyptianArchaeology",
+     "#AncientEngineering"
+    ],
+    "delivery_profile": "reel_9x16"
+   },
+   "assets": [
+    {
+     "title": "File:The Unfinished Obelisk, Aswan, AG, EGY (48027111541).jpg",
+     "artist": "Warren LeMay from Cullowhee, NC, United States",
+     "license": "CC0",
+     "license_url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+     "source_url": "https://commons.wikimedia.org/wiki/File:The_Unfinished_Obelisk,_Aswan,_AG,_EGY_(48027111541).jpg",
+     "attribution_required": false
+    },
+    {
+     "title": "File:The Unfinished Obelisk, Aswan, AG, EGY (48027219692).jpg",
+     "artist": "Warren LeMay from Cullowhee, NC, United States",
+     "license": "CC0",
+     "license_url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+     "source_url": "https://commons.wikimedia.org/wiki/File:The_Unfinished_Obelisk,_Aswan,_AG,_EGY_(48027219692).jpg",
+     "attribution_required": false
+    },
+    {
+     "title": "File:The Unfinished Obelisk, Aswan, AG, EGY (48027107416).jpg",
+     "artist": "Warren LeMay from Cullowhee, NC, United States",
+     "license": "CC0",
+     "license_url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+     "source_url": "https://commons.wikimedia.org/wiki/File:The_Unfinished_Obelisk,_Aswan,_AG,_EGY_(48027107416).jpg",
+     "attribution_required": false
+    },
+    {
+     "title": "File:Unfinished Obelisk - Aswan - Egypt (4058821616).jpg",
+     "artist": "David Berkowitz from New York, NY, USA",
+     "license": "CC BY 2.0",
+     "license_url": "https://creativecommons.org/licenses/by/2.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Unfinished_Obelisk_-_Aswan_-_Egypt_(4058821616).jpg",
+     "attribution_required": true
+    },
+    {
+     "title": "File:The Unfinished Obelisk, Aswan, AG, EGY (48027111541).jpg",
+     "artist": "Warren LeMay from Cullowhee, NC, United States",
+     "license": "CC0",
+     "license_url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+     "source_url": "https://commons.wikimedia.org/wiki/File:The_Unfinished_Obelisk,_Aswan,_AG,_EGY_(48027111541).jpg",
+     "attribution_required": false
+    },
+    {
+     "title": "File:The largest know ancient obelisk - Unfinished Obelisk would have been 32m. high (14284036359).jpg",
+     "artist": "Jorge Láscar from Melbourne, Australia",
+     "license": "CC BY 2.0",
+     "license_url": "https://creativecommons.org/licenses/by/2.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:The_largest_know_ancient_obelisk_-_Unfinished_Obelisk_would_have_been_32m._high_(14284036359).jpg",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Unfinished Obelisk - Aswan - Egypt (4058823772).jpg",
+     "artist": "David Berkowitz from New York, NY, USA",
+     "license": "CC BY 2.0",
+     "license_url": "https://creativecommons.org/licenses/by/2.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Unfinished_Obelisk_-_Aswan_-_Egypt_(4058823772).jpg",
+     "attribution_required": true
+    },
+    {
+     "title": "File:The largest know ancient obelisk - Unfinished Obelisk would have been 32m. high (14470651075).jpg",
+     "artist": "Jorge Láscar from Melbourne, Australia",
+     "license": "CC BY 2.0",
+     "license_url": "https://creativecommons.org/licenses/by/2.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:The_largest_know_ancient_obelisk_-_Unfinished_Obelisk_would_have_been_32m._high_(14470651075).jpg",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Unfinished Obelisk - Aswan - Egypt (4058822838).jpg",
+     "artist": "David Berkowitz from New York, NY, USA",
+     "license": "CC BY 2.0",
+     "license_url": "https://creativecommons.org/licenses/by/2.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Unfinished_Obelisk_-_Aswan_-_Egypt_(4058822838).jpg",
+     "attribution_required": true
+    }
+   ],
+   "music": [
+    {
+     "title": "soundscape1-freesound.wav",
+     "creator": "Thoribass",
+     "license": "CC BY 4.0",
+     "license_version": "4.0",
+     "license_url": "https://creativecommons.org/licenses/by/4.0/",
+     "source_url": "https://freesound.org/people/Thoribass/sounds/320839"
+    }
+   ]
+  },
+  {
+   "run": "run_unfinished_obelisk_aswan_1793056896",
+   "payload": {
+    "caption": "Structural cracks stopped ancient Egypt's largest monument in its tracks. ⛏️\n\nCommissioned during the New Kingdom, this colossal monolith was possibly ordered by Queen Hatshepsut for the Temple of Amun at Karnak. Archaeologists uncovered the titan in Aswan after it spent thousands of years buried under drifting sand. An unfinished obelisk base and ancient rock carvings discovered nearby confirm how intensively workers quarried this site.\n\nCould ancient engineers have ever extracted a stone this massive, or was failure inevitable? 🏛️\n\nSend this to a friend who loves ancient engineering, and follow for the next marvel.\n\n#AncientEgypt #Aswan #AncientEngineering #EgyptianArchaeology\n\n🎵 Music: “Mystery Ambient Documentaries Mysterious Places” by UNIVERSFIELD (CC BY 4.0)\n\n\n📷 David Berkowitz from New York, NY, USA | File:Unfinished Obelisk - Aswan - Egypt (4058821616).jpg | CC BY 2.0 | https://commons.wikimedia.org/wiki/File:Unfinished_Obelisk_-_Aswan_-_Egypt_(4058821616).jpg | https://creativecommons.org/licenses/by/2.0\n\n📷 David Berkowitz from New York, NY, USA | File:Unfinished Obelisk - Aswan - Egypt (4058823772).jpg | CC BY 2.0 | https://commons.wikimedia.org/wiki/File:Unfinished_Obelisk_-_Aswan_-_Egypt_(4058823772).jpg | https://creativecommons.org/licenses/by/2.0\n\n📷 Jorge Láscar from Melbourne, Australia | File:The largest know ancient obelisk - Unfinished Obelisk would have been 32m. high (14470651075).jpg | CC BY 2.0 | https://commons.wikimedia.org/wiki/File:The_largest_know_ancient_obelisk_-_Unfinished_Obelisk_would_have_been_32m._high_(14470651075).jpg | https://creativecommons.org/licenses/by/2.0\n\n📷 Jorge Láscar from Melbourne, Australia | File:The largest know ancient obelisk - Unfinished Obelisk would have been 32m. high (14284036359).jpg | CC BY 2.0 | https://commons.wikimedia.org/wiki/File:The_largest_know_ancient_obelisk_-_Unfinished_Obelisk_would_have_been_32m._high_(14284036359).jpg | https://creativecommons.org/licenses/by/2.0",
+    "title": "Egypt's Largest Obelisk Trapped in Bedrock ⛏️",
+    "hashtags": [
+     "#AncientEgypt",
+     "#Aswan",
+     "#AncientEngineering",
+     "#EgyptianArchaeology"
+    ],
+    "delivery_profile": "reel_9x16"
+   },
+   "assets": [
+    {
+     "title": "File:The Unfinished Obelisk, Aswan, AG, EGY (48027219692).jpg",
+     "artist": "Warren LeMay from Cullowhee, NC, United States",
+     "license": "CC0",
+     "license_url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+     "source_url": "https://commons.wikimedia.org/wiki/File:The_Unfinished_Obelisk,_Aswan,_AG,_EGY_(48027219692).jpg",
+     "attribution_required": false
+    },
+    {
+     "title": "File:The Unfinished Obelisk, Aswan, AG, EGY (48027107416).jpg",
+     "artist": "Warren LeMay from Cullowhee, NC, United States",
+     "license": "CC0",
+     "license_url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+     "source_url": "https://commons.wikimedia.org/wiki/File:The_Unfinished_Obelisk,_Aswan,_AG,_EGY_(48027107416).jpg",
+     "attribution_required": false
+    },
+    {
+     "title": "File:The Unfinished Obelisk, Aswan, AG, EGY (48027111541).jpg",
+     "artist": "Warren LeMay from Cullowhee, NC, United States",
+     "license": "CC0",
+     "license_url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+     "source_url": "https://commons.wikimedia.org/wiki/File:The_Unfinished_Obelisk,_Aswan,_AG,_EGY_(48027111541).jpg",
+     "attribution_required": false
+    },
+    {
+     "title": "File:Unfinished Obelisk - Aswan - Egypt (4058821616).jpg",
+     "artist": "David Berkowitz from New York, NY, USA",
+     "license": "CC BY 2.0",
+     "license_url": "https://creativecommons.org/licenses/by/2.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Unfinished_Obelisk_-_Aswan_-_Egypt_(4058821616).jpg",
+     "attribution_required": true
+    },
+    {
+     "title": "File:The Unfinished Obelisk, Aswan, AG, EGY (48027111541).jpg",
+     "artist": "Warren LeMay from Cullowhee, NC, United States",
+     "license": "CC0",
+     "license_url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+     "source_url": "https://commons.wikimedia.org/wiki/File:The_Unfinished_Obelisk,_Aswan,_AG,_EGY_(48027111541).jpg",
+     "attribution_required": false
+    },
+    {
+     "title": "File:Unfinished Obelisk - Aswan - Egypt (4058823772).jpg",
+     "artist": "David Berkowitz from New York, NY, USA",
+     "license": "CC BY 2.0",
+     "license_url": "https://creativecommons.org/licenses/by/2.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Unfinished_Obelisk_-_Aswan_-_Egypt_(4058823772).jpg",
+     "attribution_required": true
+    },
+    {
+     "title": "File:The largest know ancient obelisk - Unfinished Obelisk would have been 32m. high (14470651075).jpg",
+     "artist": "Jorge Láscar from Melbourne, Australia",
+     "license": "CC BY 2.0",
+     "license_url": "https://creativecommons.org/licenses/by/2.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:The_largest_know_ancient_obelisk_-_Unfinished_Obelisk_would_have_been_32m._high_(14470651075).jpg",
+     "attribution_required": true
+    },
+    {
+     "title": "File:The largest know ancient obelisk - Unfinished Obelisk would have been 32m. high (14284036359).jpg",
+     "artist": "Jorge Láscar from Melbourne, Australia",
+     "license": "CC BY 2.0",
+     "license_url": "https://creativecommons.org/licenses/by/2.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:The_largest_know_ancient_obelisk_-_Unfinished_Obelisk_would_have_been_32m._high_(14284036359).jpg",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Unfinished Obelisk - Aswan - Egypt (4058822838).jpg",
+     "artist": "David Berkowitz from New York, NY, USA",
+     "license": "CC BY 2.0",
+     "license_url": "https://creativecommons.org/licenses/by/2.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Unfinished_Obelisk_-_Aswan_-_Egypt_(4058822838).jpg",
+     "attribution_required": true
+    }
+   ],
+   "music": [
+    {
+     "title": "Mystery Ambient Documentaries Mysterious Places",
+     "creator": "UNIVERSFIELD",
+     "license": "CC BY 4.0",
+     "license_version": "4.0",
+     "license_url": "https://creativecommons.org/licenses/by/4.0/",
+     "source_url": "https://freesound.org/people/UNIVERSFIELD/sounds/697084"
+    }
+   ]
+  },
+  {
+   "run": "run_wieliczka_salt_mine_1792974672",
+   "payload": {
+    "caption": "Centuries of subterranean carving created a massive sanctuary hidden beneath Poland. ⛏️\n\nThe Wieliczka Salt Mine is located in the town of Wieliczka, near Kraków in southern Poland. By one estimate, the mine excavations descend to a maximum depth of 327 meters below the surface, while engineering surveys and heritage records place the total extent of underground galleries between 287 and 300 kilometers.\n\nWould you descend hundreds of meters underground to explore these salt chambers? ✨\n\nShare this with a friend who loves underground marvels, and follow for the next story! ⛏️\n\n#Wieliczka #SaltMine #PolandHistory #SubterraneanMarvels\n\n🎵 Music: “Epic_Heroic_Orchestral_Dramatic.mp3” by SoundFlakes (CC BY 4.0)\n\nMore of my work can be found in my personal gallery. (CC BY-SA 3.0); Alessandro Caproni from Munich, Deutschland (CC BY 2.0); Noaśka (CC BY-SA 3.0 pl); Pdel21 (CC BY-SA 4.0)\n\n🎬 This video is licensed CC BY-SA 4.0: https://creativecommons.org/licenses/by-sa/4.0/\n\n📷 Gerd Eichmann | File:Salzbergwerk Wieliczka-40-Kirche-2014-gje.jpg | CC BY 4.0 | https://commons.wikimedia.org/wiki/File:Salzbergwerk_Wieliczka-40-Kirche-2014-gje.jpg | https://creativecommons.org/licenses/by/4.0\n\n📷 Klearchos Kapoutsis from Santorini, Greece | File:Kopalnia soli Wieliczka (3790545944).jpg | CC BY 2.0 | https://commons.wikimedia.org/wiki/File:Kopalnia_soli_Wieliczka_(3790545944).jpg | https://creativecommons.org/licenses/by/2.0\n\n📷 Arian Zwegers | File:Wieliczka, St Kingas Chapel (6467348331).jpg | CC BY 2.0 | https://commons.wikimedia.org/wiki/File:Wieliczka,_St_Kingas_Chapel_(6467348331).jpg | https://creativecommons.org/licenses/by/2.0\n\n📷 Pdel21 | File:Wieliczka UNESCO Plaque.jpg | CC BY-SA 4.0 | https://commons.wikimedia.org/wiki/File:Wieliczka_UNESCO_Plaque.jpg | https://creativecommons.org/licenses/by-sa/4.0\n\n📷 I would appreciate being notified if you use my work outside Wikimedia.\nMore of my work can be found in my personal gallery. | File:Wieliczka, Solné doly, chodba.JPG | CC BY-SA 3.0 | https://commons.wikimedia.org/wiki/File:Wieliczka,_Soln%C3%A9_doly,_chodba.JPG | http://creativecommons.org/licenses/by-sa/3.0/",
+    "title": "Poland's Underground Salt Cathedral ⛏️",
+    "hashtags": [
+     "#Wieliczka",
+     "#SaltMine",
+     "#PolandHistory",
+     "#SubterraneanMarvels"
+    ],
+    "delivery_profile": "reel_9x16"
+   },
+   "assets": [
+    {
+     "title": "File:Salzbergwerk Wieliczka-40-Kirche-2014-gje.jpg",
+     "artist": "Gerd Eichmann",
+     "license": "CC BY 4.0",
+     "license_url": "https://creativecommons.org/licenses/by/4.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Salzbergwerk_Wieliczka-40-Kirche-2014-gje.jpg",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Kopalnia soli Wieliczka (3790545944).jpg",
+     "artist": "Klearchos Kapoutsis from Santorini, Greece",
+     "license": "CC BY 2.0",
+     "license_url": "https://creativecommons.org/licenses/by/2.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Kopalnia_soli_Wieliczka_(3790545944).jpg",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Kopalnia soli Wieliczka 001.JPG",
+     "artist": "Janericloebe",
+     "license": "Public domain",
+     "license_url": "",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Kopalnia_soli_Wieliczka_001.JPG",
+     "attribution_required": false
+    },
+    {
+     "title": "File:Wieliczka, St Kingas Chapel (6467348331).jpg",
+     "artist": "Arian Zwegers",
+     "license": "CC BY 2.0",
+     "license_url": "https://creativecommons.org/licenses/by/2.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Wieliczka,_St_Kingas_Chapel_(6467348331).jpg",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Wieliczka UNESCO Plaque.jpg",
+     "artist": "Pdel21",
+     "license": "CC BY-SA 4.0",
+     "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Wieliczka_UNESCO_Plaque.jpg",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Wieliczka, Solné doly, chodba.JPG",
+     "artist": "I would appreciate being notified if you use my work outside Wikimedia.\nMore of my work can be found in my personal gallery.",
+     "license": "CC BY-SA 3.0",
+     "license_url": "http://creativecommons.org/licenses/by-sa/3.0/",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Wieliczka,_Soln%C3%A9_doly,_chodba.JPG",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Last Supper, St Kinga's Chapel, Wielickza - Alessandro Caproni.jpg",
+     "artist": "Alessandro Caproni from Munich, Deutschland",
+     "license": "CC BY 2.0",
+     "license_url": "https://creativecommons.org/licenses/by/2.0",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Last_Supper,_St_Kinga%27s_Chapel,_Wielickza_-_Alessandro_Caproni.jpg",
+     "attribution_required": true
+    },
+    {
+     "title": "File:Wieliczka.Kopalnia soli.Kryształowy Żyrandol(2).jpg",
+     "artist": "Noaśka",
+     "license": "CC BY-SA 3.0 pl",
+     "license_url": "https://creativecommons.org/licenses/by-sa/3.0/pl/deed.en",
+     "source_url": "https://commons.wikimedia.org/wiki/File:Wieliczka.Kopalnia_soli.Kryszta%C5%82owy_%C5%BByrandol(2).jpg",
+     "attribution_required": true
+    }
+   ],
+   "music": [
+    {
+     "title": "Epic_Heroic_Orchestral_Dramatic.mp3",
+     "creator": "SoundFlakes",
+     "license": "CC BY 4.0",
+     "license_version": "4.0",
+     "license_url": "https://creativecommons.org/licenses/by/4.0/",
+     "source_url": "https://freesound.org/people/SoundFlakes/sounds/423499"
+    }
+   ]
+  }
+ ]
+}

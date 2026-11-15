@@ -1,0 +1,166 @@
+{
+ "development_runs": {
+  "runs_asking_a_credit": 28,
+  "photos_to_credit": 161,
+  "music_tracks_to_credit": 10,
+  "credit_characters": {
+   "one_line_a_photo": {
+    "all_runs": 41755,
+    "longest_run": 2532,
+    "runs_over_1500": 16
+   },
+   "one_line_a_licence_full_links": {
+    "all_runs": 33766,
+    "longest_run": 2171,
+    "runs_over_1500": 6
+   },
+   "one_line_a_licence_page_id_links": {
+    "all_runs": 25894,
+    "longest_run": 1505,
+    "runs_over_1500": 1
+   }
+  },
+  "one_line_a_photo_characters_by_part": {
+   "author": 2387,
+   "title": 7598,
+   "licence_name": 1575,
+   "page_link": 15447,
+   "licence_link": 7081,
+   "marks_and_separators": 2576
+  },
+  "credited_full_links": {
+   "held_for_credits": 5,
+   "sent": 23,
+   "sent_with_every_credit_complete_in_every_text": 23,
+   "sent_lacking_a_credit": 0,
+   "texts_sent_over_their_limit": 0,
+   "credit_lines_cut_in_texts_sent": 0,
+   "photo_credits_in_texts_sent": {
+    "asked": 122,
+    "author": 122,
+    "title": 122,
+    "page_link": 122,
+    "licence_name": 122,
+    "licence_link": 122,
+    "complete": 122
+   },
+   "notices_and_music_in_texts_sent": {
+    "asked": 38,
+    "carried": 38
+   },
+   "runs_using_one_line_a_licence": 9,
+   "links_by_page_id": 0,
+   "links_by_page_id_not_the_photos_page": 0,
+   "lookups": 0,
+   "held_runs_with_a_credit_line_cut": 0
+  },
+  "credited": {
+   "held_for_credits": 1,
+   "sent": 27,
+   "sent_with_every_credit_complete_in_every_text": 27,
+   "sent_lacking_a_credit": 0,
+   "texts_sent_over_their_limit": 0,
+   "credit_lines_cut_in_texts_sent": 0,
+   "photo_credits_in_texts_sent": {
+    "asked": 154,
+    "author": 154,
+    "title": 154,
+    "page_link": 154,
+    "licence_name": 154,
+    "licence_link": 154,
+    "complete": 154
+   },
+   "notices_and_music_in_texts_sent": {
+    "asked": 47,
+    "carried": 47
+   },
+   "runs_using_one_line_a_licence": 13,
+   "links_by_page_id": 32,
+   "links_by_page_id_not_the_photos_page": 0,
+   "lookups": 5,
+   "held_runs_with_a_credit_line_cut": 0
+  }
+ },
+ "production_sample_runs": {
+  "runs_asking_a_credit": 32,
+  "photos_to_credit": 174,
+  "music_tracks_to_credit": 15,
+  "credit_characters": {
+   "one_line_a_photo": {
+    "all_runs": 45079,
+    "longest_run": 2511,
+    "runs_over_1500": 16
+   },
+   "one_line_a_licence_full_links": {
+    "all_runs": 37478,
+    "longest_run": 2052,
+    "runs_over_1500": 8
+   },
+   "one_line_a_licence_page_id_links": {
+    "all_runs": 30223,
+    "longest_run": 1596,
+    "runs_over_1500": 2
+   }
+  },
+  "one_line_a_photo_characters_by_part": {
+   "author": 2905,
+   "title": 8019,
+   "licence_name": 1788,
+   "page_link": 15434,
+   "licence_link": 7779,
+   "marks_and_separators": 2784
+  },
+  "credited_full_links": {
+   "held_for_credits": 7,
+   "sent": 25,
+   "sent_with_every_credit_complete_in_every_text": 25,
+   "sent_lacking_a_credit": 0,
+   "texts_sent_over_their_limit": 0,
+   "credit_lines_cut_in_texts_sent": 0,
+   "photo_credits_in_texts_sent": {
+    "asked": 117,
+    "author": 117,
+    "title": 117,
+    "page_link": 117,
+    "licence_name": 117,
+    "licence_link": 117,
+    "complete": 117
+   },
+   "notices_and_music_in_texts_sent": {
+    "asked": 40,
+    "carried": 40
+   },
+   "runs_using_one_line_a_licence": 7,
+   "links_by_page_id": 0,
+   "links_by_page_id_not_the_photos_page": 0,
+   "lookups": 0,
+   "held_runs_with_a_credit_line_cut": 0
+  },
+  "credited": {
+   "held_for_credits": 1,
+   "sent": 31,
+   "sent_with_every_credit_complete_in_every_text": 31,
+   "sent_lacking_a_credit": 0,
+   "texts_sent_over_their_limit": 0,
+   "credit_lines_cut_in_texts_sent": 0,
+   "photo_credits_in_texts_sent": {
+    "asked": 166,
+    "author": 166,
+    "title": 166,
+    "page_link": 166,
+    "licence_name": 166,
+    "licence_link": 166,
+    "complete": 166
+   },
+   "notices_and_music_in_texts_sent": {
+    "asked": 55,
+    "carried": 55
+   },
+   "runs_using_one_line_a_licence": 13,
+   "links_by_page_id": 37,
+   "links_by_page_id_not_the_photos_page": 0,
+   "lookups": 7,
+   "held_runs_with_a_credit_line_cut": 0
+  }
+ }
+}

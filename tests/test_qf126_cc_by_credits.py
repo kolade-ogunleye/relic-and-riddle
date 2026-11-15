@@ -111,12 +111,26 @@ def _asked(credit_set):
     return photos + tracks
 
 
+def _on_line(line, mark, parts):
+    """Whether one line of its kind carries every part of a credit: the one-photo line, or (QF-126b) the compact
+    line of the photo's licence, which opens with the licence's name and link, names each author once and quotes
+    each title before the link to its page."""
+    if not line.startswith(mark):
+        return False
+    if all(str(p) in line for p in parts):
+        return True
+    if mark != "📷":
+        return False
+    author, title, licence, source, licence_url = (str(p) for p in parts)
+    return (line.startswith(f"📷 {licence} {licence_url.rstrip('/')}") and f"“{title}” {source}" in line
+            and (f"| {author}: “" in line))
+
+
 def _carried(text, credit_set):
     """How many of the set's credits `text` carries whole (every part on one line of its kind), and whether a line
     says the photos were adapted."""
     lines = text.splitlines()
-    whole = sum(any(line.startswith(mark) and all(str(p) in line for p in parts) for line in lines)
-                for mark, parts in _asked(credit_set))
+    whole = sum(any(_on_line(line, mark, parts) for line in lines) for mark, parts in _asked(credit_set))
     adapted = not credit_set["images"] or any("adapted" in line and line.startswith(("📷", "🎬")) for line in lines)
     return whole, adapted
 
@@ -177,17 +191,18 @@ def test_a_public_domain_or_cc0_photo_is_not_credited_as_cc_by(tmp_path):
 
 @pytest.mark.parametrize("name", ["dev_longest", "dev_longest_with_music", "production_longest"])
 def test_a_reel_carries_every_credit_whole_on_each_platform_or_is_held(name, tmp_path, db, monkeypatch):
-    """The longest real credit sets (2,400 to 2,550 characters of credits) do not fit Instagram's 2,200-character
-    caption beside any caption: the Reel is held with the reason and nothing is posted, never posted without them.
-    The same sets cut to what fits are posted with every credit whole in Instagram's and Facebook's caption and
-    in the Short's description."""
+    """The longest real credit sets (2,400 to 2,550 characters as one line a photo) beside a caption that leaves
+    them no room: the Reel is held with the reason and nothing is posted, never posted without them. (Before QF-126b
+    they fitted beside no caption at all; one line a licence, they fit beside a short one.) The same sets, as much
+    of them as fits beside a short caption, are posted with every credit whole in Instagram's and Facebook's caption
+    and in the Short's description."""
     from src import publishable
     credit_set = _set(name)
     payload = {"caption": BODY, "description": "", "delivery_profile": "reel", "title": "The stair",
                "hashtags": ["#History", "#Archaeology", "#AncientWorld"], "topic_id": "t1"}
-    run = _run(tmp_path / "whole", credit_set, payload)
+    run = _run(tmp_path / "whole", credit_set, dict(payload, caption=BODY + "\n" + "A long caption. " * 70))
     held, why = _held(run)
-    assert held, "the longest real set cannot fit a 2,200-character caption: the Reel must be held"
+    assert held, "the longest real set cannot fit beside a 1,300-character caption: the Reel must be held"
     assert "Reel caption (Instagram and Facebook) and YouTube Short description: " in why
     assert "required credit(s) are not in it" in why and "characters over the platform's 2,200" in why
     with pytest.raises(ValueError, match="Not posted: a licence credit is missing") as refused:
@@ -224,7 +239,9 @@ def test_what_the_gate_holds_is_what_the_caption_lacks_and_an_edit_that_makes_ro
     Edit does: add_provenance_attributions writes the credits again) clears the hold."""
     from src.credits import add_provenance_attributions
     credit_set = {"images": SETS["dev_longest"]["images"][:6], "music": SETS["dev_longest_with_music"]["music"]}
-    payload = {"caption": BODY + "\n" + "A long caption. " * 60, "description": "", "delivery_profile": "reel",
+    # 70 (was 60): beside 60, the six photos fit one line a licence with page-id links, which a re-send or an Edit
+    # writes, so the hold now says "They fit" (QF-126b round 3); 70 is over even with the longest page ids
+    payload = {"caption": BODY + "\n" + "A long caption. " * 70, "description": "", "delivery_profile": "reel",
                "title": "The stair"}
     run = _run(tmp_path, credit_set, payload)
     held, why = _held(run)
@@ -654,11 +671,12 @@ def test_credits_that_do_not_fit_beside_slide_records_hold_a_carousel_that_will_
     if planned:
         monkeypatch.setattr(carousel_lazy, "plan_problem", lambda run_dir: None)
     post = {"id": 7, "run_id": "r1", "kind": "carousel", "files": slides}
-    run = {"script_payload": {"carousel_caption": "Swipe through the rooms. " + "x" * 1900}, "topic_id": "t1"}
+    # QF-126b: beside 1,925 characters the two photos fit one line a licence (test_qf126b); beside 2,015 they do not
+    run = {"script_payload": {"carousel_caption": "Swipe through the rooms. " + "x" * 1990}, "topic_id": "t1"}
     assert main.PipelineCoordinator._post_photos(coordinator, post, run, "carousel") == "failed"
     (text, kw), = said
-    assert text.startswith("❌ <b>Carousel not posted</b> for The stair: 3 credit line(s) of its photos (")
-    assert "do not fit its caption (1,925 of 2,200 characters used)" in text
+    assert text.startswith("❌ <b>Carousel not posted</b> for The stair: 2 credit line(s) of its photos (")
+    assert "do not fit its caption (2,015 of 2,200 characters used)" in text
     assert "the caption was approved with its review and cannot be changed now." in text
     assert text.endswith("This carousel will not post. Nothing was posted, and its Reel and other posts are not affected.")
     assert "Edit" not in text and "etry" not in text and "edraw" not in text
@@ -1070,7 +1088,9 @@ def test_a_copy_written_before_the_rule_whose_credits_fit_is_never_told_to_short
 
 def test_a_copy_whose_credits_cannot_fit_is_still_told_so_after_it_is_credited_again(tmp_path):
     credit_set = _set("dev_longest")
-    run = _run(tmp_path, credit_set, {"caption": BODY, "description": "", "delivery_profile": "reel", "title": "T"})
+    # QF-126b: one line a licence, this set fits beside a short caption; beside a long one it still cannot
+    run = _run(tmp_path, credit_set, {"caption": BODY + "\n" + "A long caption. " * 70, "description": "",
+                                      "delivery_profile": "reel", "title": "T"})
     held, why = _held(run)
     assert held and "characters over the platform's 2,200" in why and "They fit" not in why
     coordinator = _coordinator()

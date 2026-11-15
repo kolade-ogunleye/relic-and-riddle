@@ -1,0 +1,82 @@
+{
+ "dev": {
+  "recordless": {
+   "carousels": 22,
+   "sent_complete": 18,
+   "sent_lacking": 0,
+   "sent_compact": 0,
+   "held_final_do_not_fit": 0,
+   "held_other": {
+    "over 2,200": 3,
+    "incomplete": 1
+   },
+   "longest_sent": 2074
+  },
+  "recorded": {
+   "carousels": 7,
+   "sent_complete": 7,
+   "sent_lacking": 0,
+   "sent_compact": 0,
+   "held_final_do_not_fit": 0,
+   "held_other": {},
+   "longest_sent": 1987
+  },
+  "recordless_no_ledger": {
+   "carousels": 2,
+   "sent_complete": 0,
+   "sent_lacking": 0,
+   "sent_compact": 0,
+   "held_final_do_not_fit": 0,
+   "held_other": {
+    "ledger missing": 2
+   },
+   "longest_sent": 0
+  }
+ },
+ "prod_raw": {
+  "recordless": {
+   "carousels": 15,
+   "sent_complete": 14,
+   "sent_lacking": 0,
+   "sent_compact": 0,
+   "held_final_do_not_fit": 0,
+   "held_other": {
+    "over 2,200": 1
+   },
+   "longest_sent": 2046
+  },
+  "recorded": {
+   "carousels": 19,
+   "sent_complete": 2,
+   "sent_lacking": 0,
+   "sent_compact": 0,
+   "held_final_do_not_fit": 0,
+   "held_other": {
+    "photo in neither record": 17
+   },
+   "longest_sent": 1801
+  }
+ },
+ "prod_relocated": {
+  "recordless": {
+   "carousels": 15,
+   "sent_complete": 14,
+   "sent_lacking": 0,
+   "sent_compact": 0,
+   "held_final_do_not_fit": 0,
+   "held_other": {
+    "over 2,200": 1
+   },
+   "longest_sent": 2046
+  },
+  "recorded": {
+   "carousels": 19,
+   "sent_complete": 17,
+   "sent_lacking": 0,
+   "sent_compact": 0,
+   "held_final_do_not_fit": 2,
+   "held_other": {},
+   "longest_sent": 2137
+  }
+ }
+}

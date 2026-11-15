@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "dev_masters": {
+    "masters": 29,
+    "made_first": "2026-10-22",
+    "made_last": "2026-10-31",
+    "made_on_or_after_2026_11_04": 0,
+    "mono": 0,
+    "side_rms_min": 0.028,
+    "tail_zero_over_5ms": 6,
+    "tail_zero_ms_min": 9.3,
+    "tail_zero_ms_max": 36.0,
+    "failing_audio_check": 0
+  }
+}

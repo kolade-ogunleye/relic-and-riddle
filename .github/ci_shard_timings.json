@@ -1,0 +1,2880 @@
+{
+ "suite": {
+  "skipped": 387,
+  "runs": [
+   "43750859188",
+   "43754490252"
+  ]
+ },
+ "files": {
+  "tests/test_analytics_dashboard_2026_10_28.py": {
+   "seconds": 2.97,
+   "skipped": 0
+  },
+  "tests/test_archive_film.py": {
+   "seconds": 0.02,
+   "skipped": 0
+  },
+  "tests/test_archive_film_e2e.py": {
+   "seconds": 18.29,
+   "skipped": 0
+  },
+  "tests/test_art_direction.py": {
+   "seconds": 0.7,
+   "skipped": 0
+  },
+  "tests/test_asset_pipeline.py": {
+   "seconds": 0.07,
+   "skipped": 0
+  },
+  "tests/test_attribution_evidence.py": {
+   "seconds": 0.01,
+   "skipped": 0
+  },
+  "tests/test_audience.py": {
+   "seconds": 0.17,
+   "skipped": 0
+  },
+  "tests/test_audience_chart_2026_10_29.py": {
+   "seconds": 3.35,
+   "skipped": 0
+  },
+  "tests/test_audience_graph_2026_10_28.py": {
+   "seconds": 0.54,
+   "skipped": 0
+  },
+  "tests/test_audio_engine_v3.py": {
+   "seconds": 0.61,
+   "skipped": 0
+  },
+  "tests/test_audio_provenance.py": {
+   "seconds": 0.03,
+   "skipped": 0
+  },
+  "tests/test_audit_gaps_2026_10_28.py": {
+   "seconds": 7.07,
+   "skipped": 0
+  },
+  "tests/test_backup.py": {
+   "seconds": 0.01,
+   "skipped": 0
+  },
+  "tests/test_backup_auth.py": {
+   "seconds": 0.08,
+   "skipped": 0
+  },
+  "tests/test_backup_queue.py": {
+   "seconds": 0.28,
+   "skipped": 0
+  },
+  "tests/test_backup_recovery.py": {
+   "seconds": 0.17,
+   "skipped": 0
+  },
+  "tests/test_bait_emoji_units_2026_10_29.py": {
+   "seconds": 105.05,
+   "skipped": 0
+  },
+  "tests/test_beat_images.py": {
+   "seconds": 7.16,
+   "skipped": 0
+  },
+  "tests/test_beat_retention_2026_11_01.py": {
+   "seconds": 0.03,
+   "skipped": 0
+  },
+  "tests/test_blocked_sentence_trim.py": {
+   "seconds": 0.16,
+   "skipped": 0
+  },
+  "tests/test_bot_hardening.py": {
+   "seconds": 1.38,
+   "skipped": 0
+  },
+  "tests/test_brand_overhaul_2026_10_29.py": {
+   "seconds": 62.08,
+   "skipped": 0
+  },
+  "tests/test_broken_paths.py": {
+   "seconds": 0.48,
+   "skipped": 2
+  },
+  "tests/test_callouts_exit_2026_11_03.py": {
+   "seconds": 193.01,
+   "skipped": 0
+  },
+  "tests/test_callouts_thennow_endcard_2026_11_02.py": {
+   "seconds": 339.4,
+   "skipped": 0
+  },
+  "tests/test_callouts_v2_2026_11_02.py": {
+   "seconds": 87.43,
+   "skipped": 0
+  },
+  "tests/test_callouts_v3_2026_11_02.py": {
+   "seconds": 360.67,
+   "skipped": 0
+  },
+  "tests/test_callouts_v4_2026_11_03.py": {
+   "seconds": 51.98,
+   "skipped": 0
+  },
+  "tests/test_caption_contrast_end_card_2026_10_30.py": {
+   "seconds": 0.0,
+   "skipped": 0
+  },
+  "tests/test_caption_emphasis.py": {
+   "seconds": 0.44,
+   "skipped": 0
+  },
+  "tests/test_caption_names_2026_11_04.py": {
+   "seconds": 0.26,
+   "skipped": 0
+  },
+  "tests/test_caption_strip_2026_11_01.py": {
+   "seconds": 0.8,
+   "skipped": 0
+  },
+  "tests/test_captions_round2_2026_11_02.py": {
+   "seconds": 2.23,
+   "skipped": 0
+  },
+  "tests/test_card_and_resume_2026_10_29.py": {
+   "seconds": 0.28,
+   "skipped": 0
+  },
+  "tests/test_card_fields_2026_11_03.py": {
+   "seconds": 1.32,
+   "skipped": 0
+  },
+  "tests/test_carousel_1440_2026_10_28.py": {
+   "seconds": 133.86,
+   "skipped": 0
+  },
+  "tests/test_carousel_chrome_2026_10_28.py": {
+   "seconds": 59.93,
+   "skipped": 0
+  },
+  "tests/test_carousel_content_2026_10_28.py": {
+   "seconds": 288.78,
+   "skipped": 0
+  },
+  "tests/test_carousel_facebook.py": {
+   "seconds": 3.06,
+   "skipped": 0
+  },
+  "tests/test_carousel_rhythm_2026_11_01.py": {
+   "seconds": 0.01,
+   "skipped": 0
+  },
+  "tests/test_carousel_waits_for_graphics_2026_11_02.py": {
+   "seconds": 0.45,
+   "skipped": 0
+  },
+  "tests/test_carousel_window_2026_11_03.py": {
+   "seconds": 116.08,
+   "skipped": 0
+  },
+  "tests/test_chart_and_story_release_2026_10_29.py": {
+   "seconds": 1.26,
+   "skipped": 0
+  },
+  "tests/test_chat_tidiness.py": {
+   "seconds": 0.52,
+   "skipped": 0
+  },
+  "tests/test_checkpoints.py": {
+   "seconds": 0.03,
+   "skipped": 0
+  },
+  "tests/test_colour_v5_still_grade_2026_10_29.py": {
+   "seconds": 0.55,
+   "skipped": 0
+  },
+  "tests/test_commons_credit_2026_10_28.py": {
+   "seconds": 0.02,
+   "skipped": 0
+  },
+  "tests/test_commons_widen_2026_10_28.py": {
+   "seconds": 2.08,
+   "skipped": 0
+  },
+  "tests/test_concurrency.py": {
+   "seconds": 1.55,
+   "skipped": 0
+  },
+  "tests/test_concurrency_safety.py": {
+   "seconds": 0.06,
+   "skipped": 0
+  },
+  "tests/test_control.py": {
+   "seconds": 1.83,
+   "skipped": 0
+  },
+  "tests/test_copy_edit_2026_10_29.py": {
+   "seconds": 1.27,
+   "skipped": 0
+  },
+  "tests/test_cover_ambient_2026_11_01.py": {
+   "seconds": 1.44,
+   "skipped": 0
+  },
+  "tests/test_cover_brand_legibility_2026_11_01.py": {
+   "seconds": 6.19,
+   "skipped": 0
+  },
+  "tests/test_cover_composition_2026_11_01.py": {
+   "seconds": 10.32,
+   "skipped": 0
+  },
+  "tests/test_cover_monument_2026_11_01.py": {
+   "seconds": 2.58,
+   "skipped": 0
+  },
+  "tests/test_cover_refresh_2026_11_01.py": {
+   "seconds": 14.07,
+   "skipped": 0
+  },
+  "tests/test_cover_seam_2026_11_02.py": {
+   "seconds": 3.82,
+   "skipped": 0
+  },
+  "tests/test_cover_selector_2026_11_01.py": {
+   "seconds": 0.41,
+   "skipped": 0
+  },
+  "tests/test_cover_style_audience_2026_11_01.py": {
+   "seconds": 0.12,
+   "skipped": 0
+  },
+  "tests/test_cover_units_2026_10_29.py": {
+   "seconds": 0.0,
+   "skipped": 0
+  },
+  "tests/test_covers.py": {
+   "seconds": 4.46,
+   "skipped": 0
+  },
+  "tests/test_covers_carousel_round2_2026_11_02.py": {
+   "seconds": 72.84,
+   "skipped": 0
+  },
+  "tests/test_credits.py": {
+   "seconds": 0.09,
+   "skipped": 0
+  },
+  "tests/test_daemon_wiring.py": {
+   "seconds": 0.91,
+   "skipped": 0
+  },
+  "tests/test_db.py": {
+   "seconds": 0.46,
+   "skipped": 0
+  },
+  "tests/test_delivery_and_visual.py": {
+   "seconds": 1.09,
+   "skipped": 0
+  },
+  "tests/test_design_cards_2026_11_03.py": {
+   "seconds": 300.04,
+   "skipped": 0
+  },
+  "tests/test_diagrams_2026_11_02.py": {
+   "seconds": 59.17,
+   "skipped": 0
+  },
+  "tests/test_documentary_general.py": {
+   "seconds": 0.14,
+   "skipped": 0
+  },
+  "tests/test_documentary_review_card.py": {
+   "seconds": 0.04,
+   "skipped": 0
+  },
+  "tests/test_dual_format.py": {
+   "seconds": 5.01,
+   "skipped": 0
+  },
+  "tests/test_duration_estimate.py": {
+   "seconds": 0.15,
+   "skipped": 0
+  },
+  "tests/test_empirical_claims.py": {
+   "seconds": 0.02,
+   "skipped": 0
+  },
+  "tests/test_encoded_audio.py": {
+   "seconds": 0.75,
+   "skipped": 0
+  },
+  "tests/test_encoding.py": {
+   "seconds": 0.1,
+   "skipped": 0
+  },
+  "tests/test_end_card.py": {
+   "seconds": 115.29,
+   "skipped": 1
+  },
+  "tests/test_engagement_learning_2026_11_01.py": {
+   "seconds": 0.08,
+   "skipped": 0
+  },
+  "tests/test_env_reconcile.py": {
+   "seconds": 0.18,
+   "skipped": 0
+  },
+  "tests/test_env_sync_repeated_2026_10_28.py": {
+   "seconds": 0.01,
+   "skipped": 0
+  },
+  "tests/test_europeana.py": {
+   "seconds": 0.02,
+   "skipped": 0
+  },
+  "tests/test_eval_harness.py": {
+   "seconds": 0.03,
+   "skipped": 0
+  },
+  "tests/test_eval_prompts.py": {
+   "seconds": 0.0,
+   "skipped": 0
+  },
+  "tests/test_facebook_standalone_2026_11_01.py": {
+   "seconds": 10.96,
+   "skipped": 0
+  },
+  "tests/test_fact_check_every_script_2026_11_04.py": {
+   "seconds": 0.45,
+   "skipped": 0
+  },
+  "tests/test_fact_evidence.py": {
+   "seconds": 0.02,
+   "skipped": 0
+  },
+  "tests/test_fact_sheet.py": {
+   "seconds": 0.75,
+   "skipped": 0
+  },
+  "tests/test_film_grade_2026_10_29.py": {
+   "seconds": 0.42,
+   "skipped": 0
+  },
+  "tests/test_findings_classifier_2026_10_28.py": {
+   "seconds": 0.82,
+   "skipped": 0
+  },
+  "tests/test_font_evidence.py": {
+   "seconds": 0.01,
+   "skipped": 0
+  },
+  "tests/test_footage.py": {
+   "seconds": 0.12,
+   "skipped": 0
+  },
+  "tests/test_free_engine.py": {
+   "seconds": 0.99,
+   "skipped": 0
+  },
+  "tests/test_free_llm.py": {
+   "seconds": 0.03,
+   "skipped": 0
+  },
+  "tests/test_freeze_captions_2026_11_04.py": {
+   "seconds": 46.18,
+   "skipped": 0
+  },
+  "tests/test_freeze_cards_2026_11_04.py": {
+   "seconds": 527.82,
+   "skipped": 2
+  },
+  "tests/test_freeze_thennow_2026_11_04.py": {
+   "seconds": 715.62,
+   "skipped": 27
+  },
+  "tests/test_gap_engine.py": {
+   "seconds": 0.37,
+   "skipped": 0
+  },
+  "tests/test_geo_data_files_2026_11_03.py": {
+   "seconds": 0.5,
+   "skipped": 0
+  },
+  "tests/test_geo_polylabel_2026_11_03.py": {
+   "seconds": 0.07,
+   "skipped": 1
+  },
+  "tests/test_globe_relief_2026_11_03.py": {
+   "seconds": 0.2,
+   "skipped": 5
+  },
+  "tests/test_graphic_cache.py": {
+   "seconds": 0.06,
+   "skipped": 0
+  },
+  "tests/test_graphic_match.py": {
+   "seconds": 0.03,
+   "skipped": 0
+  },
+  "tests/test_graphic_semantics.py": {
+   "seconds": 0.01,
+   "skipped": 0
+  },
+  "tests/test_graphics.py": {
+   "seconds": 260.89,
+   "skipped": 3
+  },
+  "tests/test_graphics_16x9_2026_11_02.py": {
+   "seconds": 76.73,
+   "skipped": 0
+  },
+  "tests/test_groq.py": {
+   "seconds": 0.03,
+   "skipped": 0
+  },
+  "tests/test_heading_break_comma_2026_11_02.py": {
+   "seconds": 0.01,
+   "skipped": 0
+  },
+  "tests/test_health_probes.py": {
+   "seconds": 0.01,
+   "skipped": 0
+  },
+  "tests/test_held_and_protected.py": {
+   "seconds": 0.2,
+   "skipped": 0
+  },
+  "tests/test_hero_photo_2026_11_01.py": {
+   "seconds": 1.0,
+   "skipped": 0
+  },
+  "tests/test_hook_2026_10_28.py": {
+   "seconds": 1.51,
+   "skipped": 0
+  },
+  "tests/test_hook_learning_2026_11_01.py": {
+   "seconds": 0.05,
+   "skipped": 0
+  },
+  "tests/test_hook_soft_check_and_youtube_2026_11_01.py": {
+   "seconds": 0.25,
+   "skipped": 0
+  },
+  "tests/test_illustration_fidelity_2026_11_02.py": {
+   "seconds": 10.28,
+   "skipped": 0
+  },
+  "tests/test_illustration_followups_2026_11_02.py": {
+   "seconds": 0.33,
+   "skipped": 0
+  },
+  "tests/test_illustration_tier_2026_11_02.py": {
+   "seconds": 8.84,
+   "skipped": 0
+  },
+  "tests/test_image_ranking.py": {
+   "seconds": 0.17,
+   "skipped": 0
+  },
+  "tests/test_image_review.py": {
+   "seconds": 0.2,
+   "skipped": 0
+  },
+  "tests/test_improve.py": {
+   "seconds": 0.37,
+   "skipped": 0
+  },
+  "tests/test_integrity_gates.py": {
+   "seconds": 1.46,
+   "skipped": 1
+  },
+  "tests/test_isolation.py": {
+   "seconds": 0.04,
+   "skipped": 0
+  },
+  "tests/test_landmarks_2026_11_02.py": {
+   "seconds": 12.65,
+   "skipped": 0
+  },
+  "tests/test_length_history_2026_10_29.py": {
+   "seconds": 0.66,
+   "skipped": 0
+  },
+  "tests/test_length_window_2026_10_28.py": {
+   "seconds": 0.23,
+   "skipped": 0
+  },
+  "tests/test_lineage.py": {
+   "seconds": 0.02,
+   "skipped": 0
+  },
+  "tests/test_llm_resilience.py": {
+   "seconds": 0.08,
+   "skipped": 0
+  },
+  "tests/test_loc_rights_2026_11_02.py": {
+   "seconds": 0.0,
+   "skipped": 0
+  },
+  "tests/test_local_time.py": {
+   "seconds": 0.04,
+   "skipped": 0
+  },
+  "tests/test_log_hygiene.py": {
+   "seconds": 0.2,
+   "skipped": 0
+  },
+  "tests/test_loop_seam_and_captions_2026_11_03.py": {
+   "seconds": 73.79,
+   "skipped": 0
+  },
+  "tests/test_loop_seam_exact_end_2026_11_04.py": {
+   "seconds": 3.35,
+   "skipped": 0
+  },
+  "tests/test_maintenance.py": {
+   "seconds": 0.01,
+   "skipped": 0
+  },
+  "tests/test_map_marker_2026_11_03.py": {
+   "seconds": 75.77,
+   "skipped": 0
+  },
+  "tests/test_map_rewording_timeline_2026_10_29.py": {
+   "seconds": 6.88,
+   "skipped": 0
+  },
+  "tests/test_margin_encroachment_fix_2026_10_30.py": {
+   "seconds": 0.52,
+   "skipped": 0
+  },
+  "tests/test_media_and_llm.py": {
+   "seconds": 1.15,
+   "skipped": 0
+  },
+  "tests/test_monument_dimension_2026_11_02.py": {
+   "seconds": 1.2,
+   "skipped": 0
+  },
+  "tests/test_motion.py": {
+   "seconds": 20.6,
+   "skipped": 0
+  },
+  "tests/test_motion_hook_2026_10_29.py": {
+   "seconds": 60.98,
+   "skipped": 0
+  },
+  "tests/test_motion_hook_advanced.py": {
+   "seconds": 0.72,
+   "skipped": 0
+  },
+  "tests/test_museum_sources.py": {
+   "seconds": 0.01,
+   "skipped": 0
+  },
+  "tests/test_music.py": {
+   "seconds": 1.69,
+   "skipped": 0
+  },
+  "tests/test_music_library_write_2026_11_02.py": {
+   "seconds": 0.0,
+   "skipped": 0
+  },
+  "tests/test_myth_source_2026_11_04.py": {
+   "seconds": 18.85,
+   "skipped": 0
+  },
+  "tests/test_no_cut_text.py": {
+   "seconds": 1.36,
+   "skipped": 0
+  },
+  "tests/test_no_operator_identifiers.py": {
+   "seconds": 5.61,
+   "skipped": 0
+  },
+  "tests/test_no_topic_hardcoding.py": {
+   "seconds": 6.12,
+   "skipped": 0
+  },
+  "tests/test_number_cards.py": {
+   "seconds": 0.0,
+   "skipped": 0
+  },
+  "tests/test_onedrive_backup.py": {
+   "seconds": 0.09,
+   "skipped": 0
+  },
+  "tests/test_operator_batch_2026_11_03.py": {
+   "seconds": 248.19,
+   "skipped": 0
+  },
+  "tests/test_operator_chat_fixes_2026_10_25.py": {
+   "seconds": 0.31,
+   "skipped": 0
+  },
+  "tests/test_operator_jobs_upload.py": {
+   "seconds": 0.88,
+   "skipped": 0
+  },
+  "tests/test_operator_navigation.py": {
+   "seconds": 2.31,
+   "skipped": 0
+  },
+  "tests/test_orchestrator.py": {
+   "seconds": 0.69,
+   "skipped": 0
+  },
+  "tests/test_paid_asset_reuse.py": {
+   "seconds": 0.14,
+   "skipped": 0
+  },
+  "tests/test_paid_fallback.py": {
+   "seconds": 0.06,
+   "skipped": 0
+  },
+  "tests/test_panel_digest.py": {
+   "seconds": 0.52,
+   "skipped": 0
+  },
+  "tests/test_parallax.py": {
+   "seconds": 0.01,
+   "skipped": 1
+  },
+  "tests/test_photo_orientation.py": {
+   "seconds": 1.72,
+   "skipped": 0
+  },
+  "tests/test_photo_readiness_2026_10_28.py": {
+   "seconds": 1.27,
+   "skipped": 0
+  },
+  "tests/test_picture_checks_2026_10_29.py": {
+   "seconds": 2.16,
+   "skipped": 0
+  },
+  "tests/test_picture_coverage_2026_11_02.py": {
+   "seconds": 3.4,
+   "skipped": 0
+  },
+  "tests/test_picture_side_and_graphic_edits_2026_10_29.py": {
+   "seconds": 0.36,
+   "skipped": 0
+  },
+  "tests/test_pictures_every_line_2026_10_29.py": {
+   "seconds": 0.1,
+   "skipped": 0
+  },
+  "tests/test_plan_review_2026_10_28.py": {
+   "seconds": 0.36,
+   "skipped": 0
+  },
+  "tests/test_policy_watch.py": {
+   "seconds": 0.02,
+   "skipped": 0
+  },
+  "tests/test_poll_repair.py": {
+   "seconds": 1.05,
+   "skipped": 0
+  },
+  "tests/test_post_candidate.py": {
+   "seconds": 0.14,
+   "skipped": 0
+  },
+  "tests/test_post_schedule.py": {
+   "seconds": 0.85,
+   "skipped": 0
+  },
+  "tests/test_posting_panel.py": {
+   "seconds": 0.95,
+   "skipped": 0
+  },
+  "tests/test_pr3_review_fixes_2026_11_02.py": {
+   "seconds": 7.33,
+   "skipped": 0
+  },
+  "tests/test_prevoice_lines_2026_10_28.py": {
+   "seconds": 0.14,
+   "skipped": 0
+  },
+  "tests/test_privacy.py": {
+   "seconds": 0.02,
+   "skipped": 0
+  },
+  "tests/test_privacy_blur_2026_10_28.py": {
+   "seconds": 0.36,
+   "skipped": 2
+  },
+  "tests/test_production_reset.py": {
+   "seconds": 0.15,
+   "skipped": 0
+  },
+  "tests/test_progress_notes.py": {
+   "seconds": 0.01,
+   "skipped": 0
+  },
+  "tests/test_protected_lines_wiring_2026_11_02.py": {
+   "seconds": 0.01,
+   "skipped": 0
+  },
+  "tests/test_provider_status_and_health.py": {
+   "seconds": 0.12,
+   "skipped": 0
+  },
+  "tests/test_public_commands.py": {
+   "seconds": 0.16,
+   "skipped": 0
+  },
+  "tests/test_publication_recovery.py": {
+   "seconds": 0.07,
+   "skipped": 0
+  },
+  "tests/test_publisher.py": {
+   "seconds": 0.66,
+   "skipped": 0
+  },
+  "tests/test_qa_graphics_2026_10_27.py": {
+   "seconds": 0.15,
+   "skipped": 0
+  },
+  "tests/test_qf01_colour_matrix.py": {
+   "seconds": 32.1,
+   "skipped": 0
+  },
+  "tests/test_qf02_16bit_grade.py": {
+   "seconds": 32.6,
+   "skipped": 0
+  },
+  "tests/test_qf03_grain_removed.py": {
+   "seconds": 16.05,
+   "skipped": 0
+  },
+  "tests/test_qf04_beat_cuts.py": {
+   "seconds": 73.69,
+   "skipped": 0
+  },
+  "tests/test_qf05_whoosh_placement.py": {
+   "seconds": 4.65,
+   "skipped": 0
+  },
+  "tests/test_qf06_sfx_body_headroom.py": {
+   "seconds": 31.85,
+   "skipped": 0
+  },
+  "tests/test_qf07_ducking.py": {
+   "seconds": 0.61,
+   "skipped": 0
+  },
+  "tests/test_qf08_voice_pcm_seed.py": {
+   "seconds": 1.09,
+   "skipped": 0
+  },
+  "tests/test_qf09_image_limits.py": {
+   "seconds": 0.03,
+   "skipped": 0
+  },
+  "tests/test_qf09_lockfile.py": {
+   "seconds": 0.29,
+   "skipped": 0
+  },
+  "tests/test_qf10_picture_gate.py": {
+   "seconds": 11.73,
+   "skipped": 0
+  },
+  "tests/test_qf10b_old_master_note.py": {
+   "seconds": 46.65,
+   "skipped": 0
+  },
+  "tests/test_qf110_posting_survives_updates.py": {
+   "seconds": 2.34,
+   "skipped": 0
+  },
+  "tests/test_qf115_startup_pool_count.py": {
+   "seconds": 14.25,
+   "skipped": 0
+  },
+  "tests/test_qf116_ci_ffmpeg.py": {
+   "seconds": 2.73,
+   "skipped": 0
+  },
+  "tests/test_qf117_patch_bumps.py": {
+   "seconds": 0.06,
+   "skipped": 0
+  },
+  "tests/test_qf11_audio_qa.py": {
+   "seconds": 14.42,
+   "skipped": 0
+  },
+  "tests/test_qf126_cc_by_credits.py": {
+   "seconds": 6.48,
+   "skipped": 0
+  },
+  "tests/test_qf126b_credits_fit.py": {
+   "seconds": 2.31,
+   "skipped": 0
+  },
+  "tests/test_qf127_voice_licence_gate.py": {
+   "seconds": 13.25,
+   "skipped": 0
+  },
+  "tests/test_qf135_ci_shards.py": {
+   "seconds": 0.14,
+   "skipped": 0
+  },
+  "tests/test_qf13_lossless_intermediates.py": {
+   "seconds": 1.4,
+   "skipped": 0
+  },
+  "tests/test_qf14_hook_enforcement.py": {
+   "seconds": 2.2,
+   "skipped": 0
+  },
+  "tests/test_qf15_narrative_payoff.py": {
+   "seconds": 1.78,
+   "skipped": 0
+  },
+  "tests/test_qf16_hedge_rule.py": {
+   "seconds": 1.61,
+   "skipped": 0
+  },
+  "tests/test_qf20_frame_coverage.py": {
+   "seconds": 0.02,
+   "skipped": 0
+  },
+  "tests/test_qf20_framing_speed.py": {
+   "seconds": 0.66,
+   "skipped": 4
+  },
+  "tests/test_qf20_map_geometry.py": {
+   "seconds": 19.31,
+   "skipped": 0
+  },
+  "tests/test_qf20_neighbour_layout.py": {
+   "seconds": 0.0,
+   "skipped": 6
+  },
+  "tests/test_qf20_rulings.py": {
+   "seconds": 1.6,
+   "skipped": 17
+  },
+  "tests/test_qf21_opentype.py": {
+   "seconds": 7.97,
+   "skipped": 0
+  },
+  "tests/test_qf22_camera_motion.py": {
+   "seconds": 0.31,
+   "skipped": 0
+  },
+  "tests/test_qf22_still_camera.py": {
+   "seconds": 5.76,
+   "skipped": 0
+  },
+  "tests/test_qf23_checked_copy.py": {
+   "seconds": 13.8,
+   "skipped": 0
+  },
+  "tests/test_qf24_full_frame.py": {
+   "seconds": 38.99,
+   "skipped": 0
+  },
+  "tests/test_qf24_route_neighbours.py": {
+   "seconds": 1.89,
+   "skipped": 6
+  },
+  "tests/test_qf24_surfaces.py": {
+   "seconds": 24.04,
+   "skipped": 0
+  },
+  "tests/test_qf25_card_composition.py": {
+   "seconds": 493.68,
+   "skipped": 0
+  },
+  "tests/test_qf25_cards_composed.py": {
+   "seconds": 85.11,
+   "skipped": 0
+  },
+  "tests/test_qf26_aa_geometry.py": {
+   "seconds": 13.07,
+   "skipped": 0
+  },
+  "tests/test_qf40_tier_gated_corroboration.py": {
+   "seconds": 0.09,
+   "skipped": 0
+  },
+  "tests/test_qf41_injection_fence.py": {
+   "seconds": 0.14,
+   "skipped": 0
+  },
+  "tests/test_qf42_caption_room.py": {
+   "seconds": 0.03,
+   "skipped": 0
+  },
+  "tests/test_qf42_credit_lines.py": {
+   "seconds": 0.37,
+   "skipped": 0
+  },
+  "tests/test_qf43_publishable_card.py": {
+   "seconds": 1.87,
+   "skipped": 0
+  },
+  "tests/test_qf44_ssrf_guard.py": {
+   "seconds": 0.2,
+   "skipped": 0
+  },
+  "tests/test_qf45_rule_grammar.py": {
+   "seconds": 0.13,
+   "skipped": 0
+  },
+  "tests/test_qf46_illustration_spend.py": {
+   "seconds": 0.08,
+   "skipped": 0
+  },
+  "tests/test_qf47_dry_run_docs.py": {
+   "seconds": 0.17,
+   "skipped": 0
+  },
+  "tests/test_qf48_apply_refused_in_production.py": {
+   "seconds": 0.01,
+   "skipped": 0
+  },
+  "tests/test_qf49_identifier_scrub.py": {
+   "seconds": 1.68,
+   "skipped": 0
+  },
+  "tests/test_qf50_local_face_verify.py": {
+   "seconds": 0.83,
+   "skipped": 0
+  },
+  "tests/test_qf51_config_drift.py": {
+   "seconds": 0.01,
+   "skipped": 0
+  },
+  "tests/test_qf52_crop_floor.py": {
+   "seconds": 45.05,
+   "skipped": 0
+  },
+  "tests/test_qf52_essential_images.py": {
+   "seconds": 0.61,
+   "skipped": 0
+  },
+  "tests/test_qf53_pool_diversity.py": {
+   "seconds": 1.8,
+   "skipped": 0
+  },
+  "tests/test_qf53b_real_pools.py": {
+   "seconds": 0.41,
+   "skipped": 0
+  },
+  "tests/test_qf54a_photo_search.py": {
+   "seconds": 0.55,
+   "skipped": 0
+  },
+  "tests/test_qf55_category_anchor.py": {
+   "seconds": 5.14,
+   "skipped": 0
+  },
+  "tests/test_qf56_photo_merit.py": {
+   "seconds": 28.58,
+   "skipped": 0
+  },
+  "tests/test_qf57_image_rights.py": {
+   "seconds": 0.19,
+   "skipped": 0
+  },
+  "tests/test_qf58_photo_readiness.py": {
+   "seconds": 0.35,
+   "skipped": 0
+  },
+  "tests/test_qf58b_crop_holds.py": {
+   "seconds": 2.19,
+   "skipped": 0
+  },
+  "tests/test_qf60_reconstruction_verdict.py": {
+   "seconds": 0.39,
+   "skipped": 0
+  },
+  "tests/test_qf60b_reconstruction_reason.py": {
+   "seconds": 1.72,
+   "skipped": 0
+  },
+  "tests/test_qf61_illustration_counts.py": {
+   "seconds": 1.02,
+   "skipped": 0
+  },
+  "tests/test_qf65a_ai_label.py": {
+   "seconds": 1.02,
+   "skipped": 0
+  },
+  "tests/test_qf65b_ai_label_follow_up.py": {
+   "seconds": 0.3,
+   "skipped": 0
+  },
+  "tests/test_qf65d_older_stills_provenance.py": {
+   "seconds": 0.62,
+   "skipped": 0
+  },
+  "tests/test_qf72_backup_freshness.py": {
+   "seconds": 2.63,
+   "skipped": 0
+  },
+  "tests/test_qf73_topic_bank.py": {
+   "seconds": 42.72,
+   "skipped": 0
+  },
+  "tests/test_qf73b_carousel_spacing.py": {
+   "seconds": 62.52,
+   "skipped": 0
+  },
+  "tests/test_qf74_run_deadlines.py": {
+   "seconds": 1.26,
+   "skipped": 0
+  },
+  "tests/test_qf79_eval_harness.py": {
+   "seconds": 0.02,
+   "skipped": 0
+  },
+  "tests/test_qf79_script_inventory.py": {
+   "seconds": 1.22,
+   "skipped": 0
+  },
+  "tests/test_qf80_story_poll_frame.py": {
+   "seconds": 1.3,
+   "skipped": 0
+  },
+  "tests/test_qf81_lazy_carousels.py": {
+   "seconds": 20.85,
+   "skipped": 0
+  },
+  "tests/test_qf81b_plan_fingerprint.py": {
+   "seconds": 1.58,
+   "skipped": 0
+  },
+  "tests/test_qf81c_no_silent_slot.py": {
+   "seconds": 4.8,
+   "skipped": 0
+  },
+  "tests/test_qf82_cover_freeze.py": {
+   "seconds": 2.05,
+   "skipped": 0
+  },
+  "tests/test_qf83_shorts_follow.py": {
+   "seconds": 141.51,
+   "skipped": 0
+  },
+  "tests/test_qf84_music_mood_uses.py": {
+   "seconds": 1.33,
+   "skipped": 0
+  },
+  "tests/test_qf86_photo_grade.py": {
+   "seconds": 197.96,
+   "skipped": 0
+  },
+  "tests/test_qf87_fonts.py": {
+   "seconds": 115.61,
+   "skipped": 0
+  },
+  "tests/test_qf88_accessibility_gates.py": {
+   "seconds": 206.41,
+   "skipped": 0
+  },
+  "tests/test_qf93_directml_device.py": {
+   "seconds": 0.06,
+   "skipped": 0
+  },
+  "tests/test_qf94_glyph_fallback.py": {
+   "seconds": 8.82,
+   "skipped": 0
+  },
+  "tests/test_qf96_root_logging.py": {
+   "seconds": 0.01,
+   "skipped": 0
+  },
+  "tests/test_qf98_free_writer_overload.py": {
+   "seconds": 0.42,
+   "skipped": 0
+  },
+  "tests/test_quality_audit.py": {
+   "seconds": 0.99,
+   "skipped": 0
+  },
+  "tests/test_quality_ceiling.py": {
+   "seconds": 4.92,
+   "skipped": 0
+  },
+  "tests/test_queue_batch_2026_10_28.py": {
+   "seconds": 0.09,
+   "skipped": 0
+  },
+  "tests/test_r3_callouts_2026_11_02.py": {
+   "seconds": 106.23,
+   "skipped": 0
+  },
+  "tests/test_r3_captions_2026_11_02.py": {
+   "seconds": 2.48,
+   "skipped": 0
+  },
+  "tests/test_r3_covers_2026_11_02.py": {
+   "seconds": 25.45,
+   "skipped": 0
+  },
+  "tests/test_r3_endcard_2026_11_02.py": {
+   "seconds": 310.23,
+   "skipped": 0
+  },
+  "tests/test_r3_facts_chart_2026_11_02.py": {
+   "seconds": 1.18,
+   "skipped": 0
+  },
+  "tests/test_r3_graphics_2026_11_02.py": {
+   "seconds": 190.79,
+   "skipped": 0
+  },
+  "tests/test_r3_social_2026_11_02.py": {
+   "seconds": 56.96,
+   "skipped": 0
+  },
+  "tests/test_r4_callouts_2026_11_02.py": {
+   "seconds": 377.88,
+   "skipped": 1
+  },
+  "tests/test_r4_captions_2026_11_02.py": {
+   "seconds": 3.56,
+   "skipped": 0
+  },
+  "tests/test_r4_covers_2026_11_02.py": {
+   "seconds": 30.46,
+   "skipped": 0
+  },
+  "tests/test_r4_endcard_2026_11_02.py": {
+   "seconds": 162.6,
+   "skipped": 0
+  },
+  "tests/test_r4_facts_chart_2026_11_02.py": {
+   "seconds": 0.45,
+   "skipped": 0
+  },
+  "tests/test_r4_graphics_2026_11_02.py": {
+   "seconds": 3381.3,
+   "skipped": 0
+  },
+  "tests/test_r4_social_2026_11_02.py": {
+   "seconds": 10.84,
+   "skipped": 0
+  },
+  "tests/test_raqm_layout_2026_11_05.py": {
+   "seconds": 0.01,
+   "skipped": 0
+  },
+  "tests/test_regenerate_reason_2026_10_28.py": {
+   "seconds": 0.35,
+   "skipped": 0
+  },
+  "tests/test_regeneration_effects.py": {
+   "seconds": 0.27,
+   "skipped": 0
+  },
+  "tests/test_release_blocked_review.py": {
+   "seconds": 1.14,
+   "skipped": 0
+  },
+  "tests/test_release_gate.py": {
+   "seconds": 0.47,
+   "skipped": 0
+  },
+  "tests/test_release_gate_hook_graphic_2026_10_29.py": {
+   "seconds": 0.11,
+   "skipped": 0
+  },
+  "tests/test_release_info.py": {
+   "seconds": 0.37,
+   "skipped": 0
+  },
+  "tests/test_release_integrity.py": {
+   "seconds": 0.12,
+   "skipped": 0
+  },
+  "tests/test_repeat_and_hedge_edits_2026_10_28.py": {
+   "seconds": 0.25,
+   "skipped": 0
+  },
+  "tests/test_rerender.py": {
+   "seconds": 0.68,
+   "skipped": 0
+  },
+  "tests/test_reset_database.py": {
+   "seconds": 0.2,
+   "skipped": 0
+  },
+  "tests/test_resume_points.py": {
+   "seconds": 0.08,
+   "skipped": 0
+  },
+  "tests/test_review_fixes_2026_10_25.py": {
+   "seconds": 0.4,
+   "skipped": 0
+  },
+  "tests/test_review_history.py": {
+   "seconds": 0.26,
+   "skipped": 0
+  },
+  "tests/test_review_once_map_labels_2026_10_29.py": {
+   "seconds": 0.68,
+   "skipped": 1
+  },
+  "tests/test_review_package.py": {
+   "seconds": 0.4,
+   "skipped": 0
+  },
+  "tests/test_review_rounds_2026_10_28.py": {
+   "seconds": 0.51,
+   "skipped": 0
+  },
+  "tests/test_round10_review_2026_11_04.py": {
+   "seconds": 0.05,
+   "skipped": 7
+  },
+  "tests/test_round11_review_2026_11_04.py": {
+   "seconds": 0.62,
+   "skipped": 25
+  },
+  "tests/test_round12_review_2026_11_04.py": {
+   "seconds": 66.69,
+   "skipped": 13
+  },
+  "tests/test_round13_review_2026_11_04.py": {
+   "seconds": 69.23,
+   "skipped": 104
+  },
+  "tests/test_round14_review_2026_11_04.py": {
+   "seconds": 88.01,
+   "skipped": 56
+  },
+  "tests/test_round15_review_2026_11_05.py": {
+   "seconds": 142.91,
+   "skipped": 61
+  },
+  "tests/test_round16_review_2026_11_05.py": {
+   "seconds": 95.42,
+   "skipped": 17
+  },
+  "tests/test_round2_precision_2026_11_02.py": {
+   "seconds": 0.0,
+   "skipped": 0
+  },
+  "tests/test_round6_review_2026_11_03.py": {
+   "seconds": 0.42,
+   "skipped": 3
+  },
+  "tests/test_round7_review_2026_11_03.py": {
+   "seconds": 75.71,
+   "skipped": 6
+  },
+  "tests/test_round8_review_2026_11_03.py": {
+   "seconds": 8.83,
+   "skipped": 4
+  },
+  "tests/test_round9_review_2026_11_04.py": {
+   "seconds": 17.82,
+   "skipped": 3
+  },
+  "tests/test_run_evidence.py": {
+   "seconds": 0.09,
+   "skipped": 0
+  },
+  "tests/test_runtime_fixes_2026_10_25.py": {
+   "seconds": 1.28,
+   "skipped": 0
+  },
+  "tests/test_runtime_fixes_2026_10_25b.py": {
+   "seconds": 0.13,
+   "skipped": 0
+  },
+  "tests/test_runtime_probe.py": {
+   "seconds": 0.01,
+   "skipped": 0
+  },
+  "tests/test_safe_zones.py": {
+   "seconds": 154.71,
+   "skipped": 1
+  },
+  "tests/test_scale_bar_2026_11_03.py": {
+   "seconds": 0.18,
+   "skipped": 1
+  },
+  "tests/test_scale_graphic_2026_11_01.py": {
+   "seconds": 45.32,
+   "skipped": 0
+  },
+  "tests/test_scale_spacing_2026_11_02.py": {
+   "seconds": 92.73,
+   "skipped": 0
+  },
+  "tests/test_scene_plan_resilience.py": {
+   "seconds": 0.02,
+   "skipped": 0
+  },
+  "tests/test_scene_planning.py": {
+   "seconds": 0.03,
+   "skipped": 0
+  },
+  "tests/test_screen_fixes_2026_10_25.py": {
+   "seconds": 0.34,
+   "skipped": 0
+  },
+  "tests/test_script_guardrail.py": {
+   "seconds": 0.33,
+   "skipped": 0
+  },
+  "tests/test_script_library.py": {
+   "seconds": 0.39,
+   "skipped": 0
+  },
+  "tests/test_script_rounds.py": {
+   "seconds": 0.14,
+   "skipped": 0
+  },
+  "tests/test_second_check.py": {
+   "seconds": 0.04,
+   "skipped": 0
+  },
+  "tests/test_self_audit.py": {
+   "seconds": 0.1,
+   "skipped": 0
+  },
+  "tests/test_service_runtime.py": {
+   "seconds": 0.11,
+   "skipped": 0
+  },
+  "tests/test_settings_inventory.py": {
+   "seconds": 3.72,
+   "skipped": 0
+  },
+  "tests/test_sfx_cues.py": {
+   "seconds": 0.01,
+   "skipped": 0
+  },
+  "tests/test_sfx_rights.py": {
+   "seconds": 0.11,
+   "skipped": 0
+  },
+  "tests/test_share_follow.py": {
+   "seconds": 0.26,
+   "skipped": 0
+  },
+  "tests/test_shot_pool_2026_10_28.py": {
+   "seconds": 1.86,
+   "skipped": 0
+  },
+  "tests/test_signed_records_2026_11_03.py": {
+   "seconds": 24.52,
+   "skipped": 0
+  },
+  "tests/test_sound_plan.py": {
+   "seconds": 0.64,
+   "skipped": 0
+  },
+  "tests/test_source_label_findings_2026_10_29.py": {
+   "seconds": 0.01,
+   "skipped": 0
+  },
+  "tests/test_splice_stream.py": {
+   "seconds": 0.01,
+   "skipped": 0
+  },
+  "tests/test_still_layout_2026_10_28.py": {
+   "seconds": 54.05,
+   "skipped": 0
+  },
+  "tests/test_still_vision.py": {
+   "seconds": 0.09,
+   "skipped": 0
+  },
+  "tests/test_story_credits_2026_10_29.py": {
+   "seconds": 5.87,
+   "skipped": 0
+  },
+  "tests/test_story_gold_2026_11_01.py": {
+   "seconds": 0.24,
+   "skipped": 0
+  },
+  "tests/test_story_motion_colour_2026_10_29.py": {
+   "seconds": 0.62,
+   "skipped": 0
+  },
+  "tests/test_storyboard.py": {
+   "seconds": 0.07,
+   "skipped": 0
+  },
+  "tests/test_substrate_compositor.py": {
+   "seconds": 0.08,
+   "skipped": 0
+  },
+  "tests/test_telegram_and_ops.py": {
+   "seconds": 0.51,
+   "skipped": 0
+  },
+  "tests/test_telegram_cards_v2.py": {
+   "seconds": 1.74,
+   "skipped": 0
+  },
+  "tests/test_telegram_operator_fixes.py": {
+   "seconds": 0.6,
+   "skipped": 0
+  },
+  "tests/test_telegram_presentation.py": {
+   "seconds": 0.45,
+   "skipped": 0
+  },
+  "tests/test_telegram_release_safety.py": {
+   "seconds": 8.39,
+   "skipped": 0
+  },
+  "tests/test_telegram_ux.py": {
+   "seconds": 0.5,
+   "skipped": 0
+  },
+  "tests/test_text_crop_2026_10_28.py": {
+   "seconds": 6.39,
+   "skipped": 1
+  },
+  "tests/test_thennow_paper_2026_11_04.py": {
+   "seconds": 100.12,
+   "skipped": 0
+  },
+  "tests/test_timeline_hierarchy_2026_11_03.py": {
+   "seconds": 1357.17,
+   "skipped": 0
+  },
+  "tests/test_timeline_ink_2026_11_03.py": {
+   "seconds": 15.53,
+   "skipped": 0
+  },
+  "tests/test_timeline_scale_2026_11_01.py": {
+   "seconds": 8.26,
+   "skipped": 0
+  },
+  "tests/test_timeline_v2_2026_11_02.py": {
+   "seconds": 43.0,
+   "skipped": 0
+  },
+  "tests/test_topic_origin.py": {
+   "seconds": 0.01,
+   "skipped": 0
+  },
+  "tests/test_topic_proposer.py": {
+   "seconds": 0.3,
+   "skipped": 0
+  },
+  "tests/test_trace_false_positives_2026_10_29.py": {
+   "seconds": 0.75,
+   "skipped": 0
+  },
+  "tests/test_ui01a_notifications_panel.py": {
+   "seconds": 16.27,
+   "skipped": 0
+  },
+  "tests/test_ui01b_dashboard_in_place.py": {
+   "seconds": 11.05,
+   "skipped": 0
+  },
+  "tests/test_ui01c_progress_panel.py": {
+   "seconds": 3.67,
+   "skipped": 0
+  },
+  "tests/test_ui01d_operator_messages_leave.py": {
+   "seconds": 4.01,
+   "skipped": 0
+  },
+  "tests/test_ui01e_review_panel.py": {
+   "seconds": 10.22,
+   "skipped": 0
+  },
+  "tests/test_ui01f_repost.py": {
+   "seconds": 32.88,
+   "skipped": 0
+  },
+  "tests/test_ui01g_panel_followups.py": {
+   "seconds": 47.19,
+   "skipped": 0
+  },
+  "tests/test_ui02_receipt_and_v2_card.py": {
+   "seconds": 5.97,
+   "skipped": 0
+  },
+  "tests/test_ui_consistency.py": {
+   "seconds": 0.44,
+   "skipped": 0
+  },
+  "tests/test_ui_overhaul.py": {
+   "seconds": 0.4,
+   "skipped": 0
+  },
+  "tests/test_unesco_and_upgrades.py": {
+   "seconds": 0.06,
+   "skipped": 5
+  },
+  "tests/test_unesco_cache_2026_10_29.py": {
+   "seconds": 0.02,
+   "skipped": 0
+  },
+  "tests/test_upscale.py": {
+   "seconds": 4.23,
+   "skipped": 0
+  },
+  "tests/test_validation_archive.py": {
+   "seconds": 0.17,
+   "skipped": 0
+  },
+  "tests/test_verdicts_and_rights.py": {
+   "seconds": 0.03,
+   "skipped": 0
+  },
+  "tests/test_video_formats_and_shorts.py": {
+   "seconds": 0.06,
+   "skipped": 0
+  },
+  "tests/test_vignette_graphics_2026_11_02.py": {
+   "seconds": 0.07,
+   "skipped": 0
+  },
+  "tests/test_vignette_sar_2026_11_04.py": {
+   "seconds": 0.09,
+   "skipped": 0
+  },
+  "tests/test_visual_gate_2026_10_28.py": {
+   "seconds": 0.55,
+   "skipped": 0
+  },
+  "tests/test_voice_chain.py": {
+   "seconds": 0.27,
+   "skipped": 0
+  },
+  "tests/test_voice_config.py": {
+   "seconds": 0.02,
+   "skipped": 0
+  },
+  "tests/test_voice_refit.py": {
+   "seconds": 2.98,
+   "skipped": 0
+  },
+  "tests/test_youtube_thumbnail_2026_11_01.py": {
+   "seconds": 5.29,
+   "skipped": 0
+  }
+ },
+ "tests": {
+  "tests/test_archive_film_e2e.py::test_a_cc_by_film_needs_its_creator_named_to_pass": 9.04,
+  "tests/test_archive_film_e2e.py::test_an_approved_film_is_cut_whole_passes_the_rights_check_and_is_credited": 7.87,
+  "tests/test_audit_gaps_2026_10_28.py::test_an_older_edit_never_replaces_a_newer_one_held": 3.54,
+  "tests/test_bait_emoji_units_2026_10_29.py::test_a_number_cards_text_ends_above_the_caption_gap[one]": 22.85,
+  "tests/test_bait_emoji_units_2026_10_29.py::test_a_number_cards_text_ends_above_the_caption_gap[second]": 19.88,
+  "tests/test_bait_emoji_units_2026_10_29.py::test_a_number_cards_text_ends_above_the_caption_gap[two]": 33.32,
+  "tests/test_bait_emoji_units_2026_10_29.py::test_a_two_unit_card_counts_both_units_on_the_frame": 15.54,
+  "tests/test_bait_emoji_units_2026_10_29.py::test_the_number_card_and_carousel_use_the_narration_unit": 12.04,
+  "tests/test_beat_images.py::test_a_beat_about_another_place_is_ranked_by_that_place_not_by_distance_from_the_site": 6.04,
+  "tests/test_brand_overhaul_2026_10_29.py::test_end_card_lines_measure_on_its_last_frame": 30.53,
+  "tests/test_brand_overhaul_2026_10_29.py::test_number_card_fits_the_box_and_measures_on_the_graded_frame": 14.93,
+  "tests/test_brand_overhaul_2026_10_29.py::test_timeline_four_events_one_line_labels_above_the_caption_band": 6.81,
+  "tests/test_callouts_exit_2026_11_03.py::test_a_plate_is_never_visible_without_its_text_through_the_exit[169]": 100.8,
+  "tests/test_callouts_exit_2026_11_03.py::test_a_plate_is_never_visible_without_its_text_through_the_exit[916]": 92.21,
+  "tests/test_callouts_thennow_endcard_2026_11_02.py::test_callout_leader_meets_the_centre_of_its_label_edge": 7.63,
+  "tests/test_callouts_thennow_endcard_2026_11_02.py::test_callout_plates_stay_in_the_reel_text_box": 7.58,
+  "tests/test_callouts_thennow_endcard_2026_11_02.py::test_callouts_clip_records_label_contrast_and_haloed_leader": 84.15,
+  "tests/test_callouts_thennow_endcard_2026_11_02.py::test_the_16x9_end_screen_keeps_youtube_slots_clear": 100.88,
+  "tests/test_callouts_thennow_endcard_2026_11_02.py::test_the_card_never_says_follow_twice": 31.9,
+  "tests/test_callouts_thennow_endcard_2026_11_02.py::test_the_loop_bridge_resolves_into_the_first_frame": 9.69,
+  "tests/test_callouts_thennow_endcard_2026_11_02.py::test_then_now_last_frame_keeps_both_years_at_measured_contrast[16x9]": 44.49,
+  "tests/test_callouts_thennow_endcard_2026_11_02.py::test_then_now_last_frame_keeps_both_years_at_measured_contrast[9x16]": 52.12,
+  "tests/test_callouts_v2_2026_11_02.py::test_leader_meets_the_centre_of_a_plate_edge_never_a_corner[points1-size1]": 10.75,
+  "tests/test_callouts_v2_2026_11_02.py::test_leader_meets_the_centre_of_a_plate_edge_never_a_corner[points2-size2]": 8.34,
+  "tests/test_callouts_v2_2026_11_02.py::test_most_labels_attach_top_or_bottom_and_leaders_are_mostly_vertical": 10.09,
+  "tests/test_callouts_v2_2026_11_02.py::test_one_alignment_rule_centred_on_top_bottom_flush_toward_a_side_leader[points0-size0]": 10.16,
+  "tests/test_callouts_v2_2026_11_02.py::test_one_alignment_rule_centred_on_top_bottom_flush_toward_a_side_leader[points1-size1]": 9.75,
+  "tests/test_callouts_v2_2026_11_02.py::test_plates_keep_24px_apart_and_off_every_dot_inside_the_text_box[points0-size0]": 9.96,
+  "tests/test_callouts_v2_2026_11_02.py::test_plates_keep_24px_apart_and_off_every_dot_inside_the_text_box[points1-size1]": 8.34,
+  "tests/test_callouts_v2_2026_11_02.py::test_source_drops_a_pair_the_gate_rejects": 2.27,
+  "tests/test_callouts_v3_2026_11_02.py::test_a_label_under_3_to_1_after_every_guard_step_is_dropped": 56.72,
+  "tests/test_callouts_v3_2026_11_02.py::test_a_tier_b_outline_on_a_beige_wall_reads_gold_at_3_to_1": 43.6,
+  "tests/test_callouts_v3_2026_11_02.py::test_contrast_holds_at_the_dimmed_values": 58.23,
+  "tests/test_callouts_v3_2026_11_02.py::test_fewer_than_two_labels_over_3_to_1_is_no_graphic": 14.88,
+  "tests/test_callouts_v3_2026_11_02.py::test_no_leader_gold_inside_any_plate_and_the_plate_is_opaque_ink": 51.67,
+  "tests/test_callouts_v3_2026_11_02.py::test_the_lift_shadow_never_darkens_another_labels_gold": 117.77,
+  "tests/test_callouts_v4_2026_11_03.py::test_an_off_centre_dot_keeps_its_objects_whole_box_clear[points1-size1-False]": 4.83,
+  "tests/test_callouts_v4_2026_11_03.py::test_an_off_centre_dot_keeps_its_objects_whole_box_clear[points2-size2-True]": 3.7,
+  "tests/test_callouts_v4_2026_11_03.py::test_render_accepts_the_reference_916_pair": 24.1,
+  "tests/test_callouts_v4_2026_11_03.py::test_the_audit_records_the_model_that_served_not_the_configured_one": 2.07,
+  "tests/test_callouts_v4_2026_11_03.py::test_the_audit_records_three_location_passes_and_distinct_served_models": 2.06,
+  "tests/test_callouts_v4_2026_11_03.py::test_the_large_dome_916_gets_a_graphic_with_every_rule_kept": 2.91,
+  "tests/test_callouts_v4_2026_11_03.py::test_the_reference_916_pair_gets_a_clean_layout": 2.05,
+  "tests/test_carousel_1440_2026_10_28.py::test_a_1080_canvas_draws_every_recorded_case_cleanly": 28.81,
+  "tests/test_carousel_1440_2026_10_28.py::test_a_worst_case_slide_stays_far_under_metas_8_mb": 10.06,
+  "tests/test_carousel_1440_2026_10_28.py::test_every_archetype_normal_and_tight_both_copies_lays_out_cleanly_at_1440": 51.92,
+  "tests/test_carousel_1440_2026_10_28.py::test_slides_are_1440x1800_on_both_copies_and_pass_every_check": 14.97,
+  "tests/test_carousel_1440_2026_10_28.py::test_the_1440_layout_is_the_1080_layout_at_four_thirds": 10.59,
+  "tests/test_carousel_1440_2026_10_28.py::test_the_overlong_card_refuses_its_deck_rather_than_drawing_it_shortened": 17.34,
+  "tests/test_carousel_chrome_2026_10_28.py::test_facebooks_grid_copy_never_says_swipe_on_a_slide": 15.77,
+  "tests/test_carousel_chrome_2026_10_28.py::test_no_slide_chrome_on_either_copy": 16.89,
+  "tests/test_carousel_chrome_2026_10_28.py::test_nothing_lies_under_instagrams_counter_and_every_check_passes": 24.71,
+  "tests/test_carousel_content_2026_10_28.py::test_a_dry_run_records_alt_text_first_comment_and_facebooks_four": 20.37,
+  "tests/test_carousel_content_2026_10_28.py::test_a_run_drawn_before_the_record_reuses_the_other_copys_photos": 18.03,
+  "tests/test_carousel_content_2026_10_28.py::test_a_stat_slide_shows_the_cards_own_figure_and_no_verified_badge": 2.19,
+  "tests/test_carousel_content_2026_10_28.py::test_alt_text_says_what_the_photo_shows_and_what_the_slide_says": 42.96,
+  "tests/test_carousel_content_2026_10_28.py::test_both_copies_show_the_same_photos_matched_once": 41.44,
+  "tests/test_carousel_content_2026_10_28.py::test_credits_that_do_not_fit_the_caption_go_in_the_first_comment": 7.86,
+  "tests/test_carousel_content_2026_10_28.py::test_every_archetype_lays_out_cleanly_without_its_badge[blueprint]": 11.31,
+  "tests/test_carousel_content_2026_10_28.py::test_every_archetype_lays_out_cleanly_without_its_badge[colossal_stat]": 10.65,
+  "tests/test_carousel_content_2026_10_28.py::test_every_archetype_lays_out_cleanly_without_its_badge[comparison]": 12.29,
+  "tests/test_carousel_content_2026_10_28.py::test_every_archetype_lays_out_cleanly_without_its_badge[cover]": 13.64,
+  "tests/test_carousel_content_2026_10_28.py::test_every_archetype_lays_out_cleanly_without_its_badge[debate]": 13.06,
+  "tests/test_carousel_content_2026_10_28.py::test_every_archetype_lays_out_cleanly_without_its_badge[editorial_split]": 15.39,
+  "tests/test_carousel_content_2026_10_28.py::test_every_archetype_lays_out_cleanly_without_its_badge[immersive]": 11.95,
+  "tests/test_carousel_content_2026_10_28.py::test_every_photo_that_needs_credit_is_credited_in_the_caption": 7.91,
+  "tests/test_carousel_content_2026_10_28.py::test_facebook_gets_the_cover_two_content_slides_and_the_closing_slide": 18.35,
+  "tests/test_carousel_content_2026_10_28.py::test_no_slide_states_a_qualifier_its_card_does_not": 19.26,
+  "tests/test_carousel_content_2026_10_28.py::test_upload_post_gets_alt_text_per_photo_for_carousels_and_none_for_stories": 22.12,
+  "tests/test_commons_widen_2026_10_28.py::test_the_beat_search_widens_within_the_topics_category_and_keeps_every_filter": 2.03,
+  "tests/test_cover_composition_2026_11_01.py::test_reviewed_feature_keeps_its_colour_and_clearance_on_redraw[badge]": 2.44,
+  "tests/test_cover_composition_2026_11_01.py::test_reviewed_feature_keeps_its_colour_and_clearance_on_redraw[lower_third]": 2.01,
+  "tests/test_cover_refresh_2026_11_01.py::test_cover_redraw_keeps_delivered_contrast_metadata[monument]": 2.4,
+  "tests/test_covers.py::test_every_cover_style_renders_both_formats": 3.21,
+  "tests/test_covers_carousel_round2_2026_11_02.py::test_a_run_with_an_explanatory_graphic_gets_one_diagram_slide_in_both_copies": 15.9,
+  "tests/test_covers_carousel_round2_2026_11_02.py::test_content_slides_share_their_kicker_and_heading_baselines[False]": 12.51,
+  "tests/test_covers_carousel_round2_2026_11_02.py::test_content_slides_share_their_kicker_and_heading_baselines[True]": 11.87,
+  "tests/test_covers_carousel_round2_2026_11_02.py::test_facebook_headings_are_set_at_140_px_where_they_fit": 3.05,
+  "tests/test_covers_carousel_round2_2026_11_02.py::test_thumbnail_masthead_figure_and_word_budget": 2.43,
+  "tests/test_covers_carousel_round2_2026_11_02.py::test_without_a_graphic_poster_the_carousel_is_unchanged": 8.94,
+  "tests/test_design_cards_2026_11_03.py::test_169_cards_survive_bright_photos[busy]": 4.83,
+  "tests/test_design_cards_2026_11_03.py::test_169_cards_survive_bright_photos[sky]": 5.44,
+  "tests/test_design_cards_2026_11_03.py::test_169_cards_survive_bright_photos[warm]": 4.43,
+  "tests/test_design_cards_2026_11_03.py::test_boxes_16x9[size0]": 2.57,
+  "tests/test_design_cards_2026_11_03.py::test_boxes_9x16[size0]": 4.3,
+  "tests/test_design_cards_2026_11_03.py::test_determinism": 3.76,
+  "tests/test_design_cards_2026_11_03.py::test_exact_anchors": 4.34,
+  "tests/test_design_cards_2026_11_03.py::test_generated_hook_drops_the_eyebrow": 2.04,
+  "tests/test_design_cards_2026_11_03.py::test_hook_bright_grounds_grade": 18.57,
+  "tests/test_design_cards_2026_11_03.py::test_hook_diamond_stays_visible": 3.69,
+  "tests/test_design_cards_2026_11_03.py::test_hook_eyebrow_rule_on_bright_photos[noise]": 2.28,
+  "tests/test_design_cards_2026_11_03.py::test_hook_halos_drawn_under_every_line": 5.18,
+  "tests/test_design_cards_2026_11_03.py::test_hook_has_no_glow_and_opens_right": 2.96,
+  "tests/test_design_cards_2026_11_03.py::test_hook_masthead_planned_at_hook_target": 4.36,
+  "tests/test_design_cards_2026_11_03.py::test_hook_poster_is_frame0": 11.47,
+  "tests/test_design_cards_2026_11_03.py::test_hook_scrim_sized_to_the_ground": 4.57,
+  "tests/test_design_cards_2026_11_03.py::test_hook_wash_has_no_box_and_no_heavy_glow": 3.64,
+  "tests/test_design_cards_2026_11_03.py::test_myth_169_block_is_centred[size0]": 2.56,
+  "tests/test_design_cards_2026_11_03.py::test_myth_169_fact_limit_is_reachable": 2.09,
+  "tests/test_design_cards_2026_11_03.py::test_myth_169_short_myth_on_one_line": 4.92,
+  "tests/test_design_cards_2026_11_03.py::test_myth_card_ground_and_strike": 3.04,
+  "tests/test_design_cards_2026_11_03.py::test_myth_card_is_display_type": 6.18,
+  "tests/test_design_cards_2026_11_03.py::test_myth_timing": 2.2,
+  "tests/test_design_cards_2026_11_03.py::test_no_forbidden_colours": 4.35,
+  "tests/test_design_cards_2026_11_03.py::test_nontext_marks": 14.68,
+  "tests/test_design_cards_2026_11_03.py::test_planned_contrast[sky]": 5.29,
+  "tests/test_design_cards_2026_11_03.py::test_planned_contrast[warm]": 5.47,
+  "tests/test_design_cards_2026_11_03.py::test_qualifier_rewraps_instead_of_refusing": 14.84,
+  "tests/test_design_cards_2026_11_03.py::test_render_smoke_chapter": 7.7,
+  "tests/test_design_cards_2026_11_03.py::test_render_smoke_hook": 23.64,
+  "tests/test_design_cards_2026_11_03.py::test_render_smoke_mythfact": 17.64,
+  "tests/test_design_cards_2026_11_03.py::test_render_smoke_quote": 16.4,
+  "tests/test_design_cards_2026_11_03.py::test_rest_tail": 5.13,
+  "tests/test_design_cards_2026_11_03.py::test_small_glyph_path_is_narrow": 3.01,
+  "tests/test_design_cards_2026_11_03.py::test_toned_grounds_on_flat_bright_photos": 13.46,
+  "tests/test_design_cards_2026_11_03.py::test_type_floors": 9.56,
+  "tests/test_diagrams_2026_11_02.py::test_every_element_measures_at_least_4_5_to_1[section]": 29.75,
+  "tests/test_diagrams_2026_11_02.py::test_landscape_diagrams_still_render": 29.41,
+  "tests/test_dual_format.py::test_widescreen_subtitle_geometry": 4.97,
+  "tests/test_end_card.py::test_a_busy_frame_is_softened_and_a_plain_one_is_not": 2.35,
+  "tests/test_end_card.py::test_a_carded_master_passes_the_release_media_checks": 79.27,
+  "tests/test_end_card.py::test_the_card_runs_its_length_and_starts_on_the_last_frame": 29.16,
+  "tests/test_facebook_standalone_2026_11_01.py::test_facebook_photos_name_the_subject_and_instagram_slides_do_not": 6.81,
+  "tests/test_facebook_standalone_2026_11_01.py::test_facebook_text_survives_a_square_grid_tile": 4.15,
+  "tests/test_freeze_captions_2026_11_04.py::test_caption_measure_is_unkerned": 4.13,
+  "tests/test_freeze_captions_2026_11_04.py::test_compose_video_draws_the_helper_vignette": 3.31,
+  "tests/test_freeze_captions_2026_11_04.py::test_head_regression_gate": 3.42,
+  "tests/test_freeze_captions_2026_11_04.py::test_reel_measure_matches_libass_ink": 3.9,
+  "tests/test_freeze_captions_2026_11_04.py::test_sidecar_cue_ends": 2.3,
+  "tests/test_freeze_captions_2026_11_04.py::test_sidecar_cue_keeps_a_new_clause_and_ago": 2.33,
+  "tests/test_freeze_captions_2026_11_04.py::test_sidecar_keeps_each_name_bond_in_one_cue": 2.09,
+  "tests/test_freeze_captions_2026_11_04.py::test_wide_gold_comma_is_bone_and_figures_stay_gold": 2.44,
+  "tests/test_freeze_cards_2026_11_04.py::test_a1_konigsberg_hook": 3.21,
+  "tests/test_freeze_cards_2026_11_04.py::test_c2_numeral_column_fixed_per_video": 2.06,
+  "tests/test_freeze_cards_2026_11_04.py::test_c5_total_and_column": 3.29,
+  "tests/test_freeze_cards_2026_11_04.py::test_d1_every_richat_act_is_drawn[size1]": 2.45,
+  "tests/test_freeze_cards_2026_11_04.py::test_h1_claim_size_by_line_count[busy]": 3.76,
+  "tests/test_freeze_cards_2026_11_04.py::test_h1_claim_size_by_line_count[dark]": 3.14,
+  "tests/test_freeze_cards_2026_11_04.py::test_h1_claim_size_by_line_count[noise]": 4.73,
+  "tests/test_freeze_cards_2026_11_04.py::test_h1_claim_size_by_line_count[sky]": 3.17,
+  "tests/test_freeze_cards_2026_11_04.py::test_h1_claim_size_by_line_count[smooth]": 3.18,
+  "tests/test_freeze_cards_2026_11_04.py::test_h1_claim_size_by_line_count[warm]": 3.11,
+  "tests/test_freeze_cards_2026_11_04.py::test_h5_drawn_contrast[noise]": 2.12,
+  "tests/test_freeze_cards_2026_11_04.py::test_h6_plate_flush_left_and_feathered": 2.09,
+  "tests/test_freeze_cards_2026_11_04.py::test_m0_card_that_fits_only_bare_is_refused": 20.91,
+  "tests/test_freeze_cards_2026_11_04.py::test_m0_long_myths_keep_their_source[m1]": 11.71,
+  "tests/test_freeze_cards_2026_11_04.py::test_m0_no_hosted_tall_plan_omits_its_source[m2]": 10.97,
+  "tests/test_freeze_cards_2026_11_04.py::test_m10_symmetric_overhang[m2]": 2.17,
+  "tests/test_freeze_cards_2026_11_04.py::test_m10_wide_columns": 4.75,
+  "tests/test_freeze_cards_2026_11_04.py::test_m11_panel_foot_opens": 3.1,
+  "tests/test_freeze_cards_2026_11_04.py::test_m11_pen_and_read": 5.77,
+  "tests/test_freeze_cards_2026_11_04.py::test_m11_strike_bar[size0]": 3.31,
+  "tests/test_freeze_cards_2026_11_04.py::test_m12_correction_note": 11.38,
+  "tests/test_freeze_cards_2026_11_04.py::test_m12_source_line[size0]": 29.37,
+  "tests/test_freeze_cards_2026_11_04.py::test_m12_source_line[size1]": 9.59,
+  "tests/test_freeze_cards_2026_11_04.py::test_m1_long_tall_myths_on_every_ground[m0-busy]": 2.89,
+  "tests/test_freeze_cards_2026_11_04.py::test_m1_long_tall_myths_on_every_ground[m0-smooth]": 2.61,
+  "tests/test_freeze_cards_2026_11_04.py::test_m1_long_tall_myths_on_every_ground[m0-warm]": 2.58,
+  "tests/test_freeze_cards_2026_11_04.py::test_m1_long_tall_myths_on_every_ground[m1-busy]": 12.56,
+  "tests/test_freeze_cards_2026_11_04.py::test_m1_long_tall_myths_on_every_ground[m1-dark]": 12.49,
+  "tests/test_freeze_cards_2026_11_04.py::test_m1_long_tall_myths_on_every_ground[m1-noise]": 16.83,
+  "tests/test_freeze_cards_2026_11_04.py::test_m1_long_tall_myths_on_every_ground[m1-sky]": 12.44,
+  "tests/test_freeze_cards_2026_11_04.py::test_m1_long_tall_myths_on_every_ground[m1-smooth]": 15.5,
+  "tests/test_freeze_cards_2026_11_04.py::test_m1_long_tall_myths_on_every_ground[m1-warm]": 13.78,
+  "tests/test_freeze_cards_2026_11_04.py::test_m1_never_under_76_with_a_host": 45.85,
+  "tests/test_freeze_cards_2026_11_04.py::test_m1_refusal_code": 25.58,
+  "tests/test_freeze_cards_2026_11_04.py::test_m2_long_word_is_not_lone": 2.03,
+  "tests/test_freeze_cards_2026_11_04.py::test_m2_wide_long_myth_keeps_its_size": 2.06,
+  "tests/test_freeze_cards_2026_11_04.py::test_m2_wide_no_regression": 2.32,
+  "tests/test_freeze_cards_2026_11_04.py::test_m3_wide_columns_share_their_rules[m3]": 2.16,
+  "tests/test_freeze_cards_2026_11_04.py::test_m5_strike_geometry_and_colour[false-size1]": 2.02,
+  "tests/test_freeze_cards_2026_11_04.py::test_m6_per_line_pen": 3.51,
+  "tests/test_freeze_cards_2026_11_04.py::test_m7_longest_wide_card_plans": 7.77,
+  "tests/test_freeze_cards_2026_11_04.py::test_m9_source_line[size0]": 9.02,
+  "tests/test_freeze_cards_2026_11_04.py::test_m9_source_line[size1]": 5.55,
+  "tests/test_freeze_cards_2026_11_04.py::test_r2_myth_fit_steps_down_for_a_weak_end[size0]": 5.28,
+  "tests/test_freeze_cards_2026_11_04.py::test_r2_myth_fit_steps_down_for_a_weak_end[size1]": 3.36,
+  "tests/test_freeze_cards_2026_11_04.py::test_r4_cohesive_fact_wrap": 8.71,
+  "tests/test_freeze_cards_2026_11_04.py::test_r4_tall_long_myth_draws_1969": 3.14,
+  "tests/test_freeze_cards_2026_11_04.py::test_t1_strike_overhang_clamped_to_the_zone[size0]": 16.39,
+  "tests/test_freeze_cards_2026_11_04.py::test_t1_strike_overhang_clamped_to_the_zone[size1]": 14.76,
+  "tests/test_freeze_cards_2026_11_04.py::test_t1_strike_overhang_clamped_to_the_zone[size2]": 4.06,
+  "tests/test_freeze_cards_2026_11_04.py::test_t1_strike_overhang_clamped_to_the_zone[size3]": 2.4,
+  "tests/test_freeze_cards_2026_11_04.py::test_w1_breaks": 13.82,
+  "tests/test_freeze_cards_2026_11_04.py::test_w2_every_fixture_line_end[size0]": 21.85,
+  "tests/test_freeze_cards_2026_11_04.py::test_w2_every_fixture_line_end[size1]": 13.27,
+  "tests/test_freeze_cards_2026_11_04.py::test_w2_richat_myth_breaks[longest]": 2.15,
+  "tests/test_freeze_thennow_2026_11_04.py::test_a_busy_light_map_stays_on_the_bone_path": 33.28,
+  "tests/test_freeze_thennow_2026_11_04.py::test_a_label_the_divider_crosses_is_not_drawn[16x9]": 21.79,
+  "tests/test_freeze_thennow_2026_11_04.py::test_a_label_the_divider_crosses_is_not_drawn[9x16]": 20.11,
+  "tests/test_freeze_thennow_2026_11_04.py::test_a_line_art_ground_takes_the_bone_path": 34.24,
+  "tests/test_freeze_thennow_2026_11_04.py::test_a_registered_pair_keeps_one_window": 6.21,
+  "tests/test_freeze_thennow_2026_11_04.py::test_at_rest_the_now_label_stays_below_the_divider": 32.92,
+  "tests/test_freeze_thennow_2026_11_04.py::test_ink_markers_on_paper_have_no_glow_and_read_at_7[16x9]": 28.64,
+  "tests/test_freeze_thennow_2026_11_04.py::test_ink_markers_on_paper_have_no_glow_and_read_at_7[9x16]": 28.77,
+  "tests/test_freeze_thennow_2026_11_04.py::test_ink_type_is_a_design_constant_that_can_be_turned_off": 31.58,
+  "tests/test_freeze_thennow_2026_11_04.py::test_no_stepped_rectangle_round_a_label_on_a_near_white_photo[paper-16x9]": 26.29,
+  "tests/test_freeze_thennow_2026_11_04.py::test_no_stepped_rectangle_round_a_label_on_a_near_white_photo[paper-9x16]": 22.01,
+  "tests/test_freeze_thennow_2026_11_04.py::test_no_stepped_rectangle_round_a_label_on_a_near_white_photo[ramp-16x9]": 21.83,
+  "tests/test_freeze_thennow_2026_11_04.py::test_no_stepped_rectangle_round_a_label_on_a_near_white_photo[ramp-9x16]": 25.41,
+  "tests/test_freeze_thennow_2026_11_04.py::test_no_stepped_rectangle_round_a_label_on_a_near_white_photo[white-16x9]": 24.72,
+  "tests/test_freeze_thennow_2026_11_04.py::test_no_stepped_rectangle_round_a_label_on_a_near_white_photo[white-9x16]": 22.18,
+  "tests/test_freeze_thennow_2026_11_04.py::test_one_pale_photo_and_one_dark_one_take_ink_and_bone": 36.27,
+  "tests/test_freeze_thennow_2026_11_04.py::test_paper_grounds_take_ink_type_with_no_glow_and_no_halo[16x9]": 44.69,
+  "tests/test_freeze_thennow_2026_11_04.py::test_paper_grounds_take_ink_type_with_no_glow_and_no_halo[9x16]": 43.74,
+  "tests/test_freeze_thennow_2026_11_04.py::test_render_draws_now_or_later[years0-NOW]": 3.63,
+  "tests/test_freeze_thennow_2026_11_04.py::test_render_draws_now_or_later[years1-LATER]": 2.69,
+  "tests/test_freeze_thennow_2026_11_04.py::test_render_draws_now_or_later[years2-LATER]": 2.96,
+  "tests/test_freeze_thennow_2026_11_04.py::test_slow_frames_are_byte_identical_with_the_blur_off": 47.07,
+  "tests/test_freeze_thennow_2026_11_04.py::test_the_916_markers_take_the_quieter_side[False-left]": 2.58,
+  "tests/test_freeze_thennow_2026_11_04.py::test_the_916_markers_take_the_quieter_side[True-right]": 2.73,
+  "tests/test_freeze_thennow_2026_11_04.py::test_the_kicker_sits_tight_on_the_year[16x9]": 41.39,
+  "tests/test_freeze_thennow_2026_11_04.py::test_the_kicker_sits_tight_on_the_year[9x16]": 35.79,
+  "tests/test_freeze_thennow_2026_11_04.py::test_the_panel_measured_points_no_longer_step": 31.72,
+  "tests/test_freeze_thennow_2026_11_04.py::test_the_row_under_the_divider_is_not_shaded": 28.11,
+  "tests/test_freeze_thennow_2026_11_04.py::test_then_fades_in_between_0_1_and_0_4_s": 4.61,
+  "tests/test_graphics.py::test_cross_section_landscape_and_vertical": 58.25,
+  "tests/test_graphics.py::test_cross_section_shows_a_level_at_the_full_depth": 15.62,
+  "tests/test_graphics.py::test_stat_cards_and_scale_landscape": 122.8,
+  "tests/test_graphics.py::test_then_now_first_frame_has_no_recent_year_badge": 51.53,
+  "tests/test_graphics.py::test_timeline_clip_has_poster_and_full_length": 12.64,
+  "tests/test_graphics_16x9_2026_11_02.py::test_no_two_words_collide[section]": 12.5,
+  "tests/test_graphics_16x9_2026_11_02.py::test_only_payload_words_are_drawn[timeline]": 41.94,
+  "tests/test_graphics_16x9_2026_11_02.py::test_vertical_count_up_figure_is_measured_as_one_element_on_gold_rock[1,200,000 TONS]": 10.34,
+  "tests/test_graphics_16x9_2026_11_02.py::test_vertical_count_up_figure_is_measured_as_one_element_on_gold_rock[94-104M years ago]": 6.82,
+  "tests/test_graphics_16x9_2026_11_02.py::test_vertical_section_ruler_also_reaches_300": 2.66,
+  "tests/test_illustration_tier_2026_11_02.py::test_the_cache_is_keyed_by_the_line_not_the_beat": 2.88,
+  "tests/test_landmarks_2026_11_02.py::test_an_old_payload_with_retired_keys_still_renders_its_other_graphics": 4.15,
+  "tests/test_landmarks_2026_11_02.py::test_drawings_use_brand_colours_and_shade_one_side[R_PYRAMID]": 2.25,
+  "tests/test_landmarks_2026_11_02.py::test_drawings_use_brand_colours_and_shade_one_side[R_US_HEIGHT]": 2.33,
+  "tests/test_loop_seam_and_captions_2026_11_03.py::test_the_delivered_master_loops_without_a_level_step_or_a_click": 73.04,
+  "tests/test_map_marker_2026_11_03.py::test_an_approximate_place_draws_no_marker[dot]": 11.93,
+  "tests/test_map_marker_2026_11_03.py::test_an_approximate_place_draws_no_marker[leader]": 11.03,
+  "tests/test_map_marker_2026_11_03.py::test_an_approximate_place_draws_no_marker[pin]": 10.31,
+  "tests/test_map_marker_2026_11_03.py::test_every_style_names_the_site_nearest_and_the_country_away[dot-16x9]": 4.59,
+  "tests/test_map_marker_2026_11_03.py::test_every_style_names_the_site_nearest_and_the_country_away[dot-9x16]": 6.26,
+  "tests/test_map_marker_2026_11_03.py::test_every_style_names_the_site_nearest_and_the_country_away[leader-16x9]": 5.69,
+  "tests/test_map_marker_2026_11_03.py::test_every_style_names_the_site_nearest_and_the_country_away[leader-9x16]": 6.33,
+  "tests/test_map_marker_2026_11_03.py::test_every_style_names_the_site_nearest_and_the_country_away[pin-16x9]": 5.87,
+  "tests/test_map_marker_2026_11_03.py::test_every_style_names_the_site_nearest_and_the_country_away[pin-9x16]": 9.28,
+  "tests/test_map_marker_2026_11_03.py::test_routes_draw_dots_only_under_the_pin_style": 4.25,
+  "tests/test_map_rewording_timeline_2026_10_29.py::test_the_timeline_is_drawn_and_revealed_earliest_first": 6.82,
+  "tests/test_motion.py::test_an_accepted_clip_leaves_its_measurements_beside_it": 12.47,
+  "tests/test_motion.py::test_rejected_clip_is_kept_with_its_measurements": 7.58,
+  "tests/test_motion_hook_2026_10_29.py::test_a_changed_clip_is_measured_again_whatever_its_record_says": 7.1,
+  "tests/test_motion_hook_2026_10_29.py::test_a_faithful_still_clip_is_rejected_and_kept": 5.28,
+  "tests/test_motion_hook_2026_10_29.py::test_a_moving_clip_is_still_carried_over_and_measured_once": 5.09,
+  "tests/test_motion_hook_2026_10_29.py::test_a_still_clip_is_not_carried_into_the_re_render": 4.5,
+  "tests/test_motion_hook_2026_10_29.py::test_an_accepted_clip_records_its_motion_gate_and_hash": 5.4,
+  "tests/test_motion_hook_2026_10_29.py::test_this_runs_own_still_clip_on_disk_is_rejected_on_resume": 3.28,
+  "tests/test_motion_hook_2026_10_29.py::test_visible_motion_passes_and_a_near_still_does_not[pan 3%]": 2.11,
+  "tests/test_motion_hook_2026_10_29.py::test_visible_motion_passes_and_a_near_still_does_not[push 2%]": 2.11,
+  "tests/test_motion_hook_2026_10_29.py::test_visible_motion_passes_and_a_near_still_does_not[ripples]": 2.18,
+  "tests/test_motion_hook_2026_10_29.py::test_visible_motion_passes_and_a_near_still_does_not[still]": 20.22,
+  "tests/test_myth_source_2026_11_04.py::test_never_drawn_without_its_source": 14.58,
+  "tests/test_no_operator_identifiers.py::test_every_allowlisted_line_is_still_there_and_justified": 2.67,
+  "tests/test_no_operator_identifiers.py::test_no_operator_or_infrastructure_identifier_is_tracked": 2.94,
+  "tests/test_no_topic_hardcoding.py::test_no_code_path_names_a_topic": 6.12,
+  "tests/test_operator_batch_2026_11_03.py::test_a_bridge_that_fails_its_gate_is_dropped_with_a_warning": 55.91,
+  "tests/test_operator_batch_2026_11_03.py::test_a_bridge_that_hitches_with_its_push_ships_without_it": 73.49,
+  "tests/test_operator_batch_2026_11_03.py::test_a_dropped_bridge_master_is_re_levelled_to_target": 53.45,
+  "tests/test_operator_batch_2026_11_03.py::test_a_reel_master_ends_on_the_bridge_and_loops_into_its_first_frame": 58.49,
+  "tests/test_operator_batch_2026_11_03.py::test_the_gate_note_says_what_the_reel_does_instead": 5.89,
+  "tests/test_picture_checks_2026_10_29.py::test_a_beat_stops_after_four_photos_in_a_row_are_set_aside": 2.01,
+  "tests/test_pr3_review_fixes_2026_11_02.py::test_the_closing_slide_names_its_subject_and_concurrent_copies_keep_theirs": 5.43,
+  "tests/test_qf01_colour_matrix.py::test_an_untagged_sd_film_is_read_as_bt601_and_delivered_bt709": 6.94,
+  "tests/test_qf01_colour_matrix.py::test_the_gold_caption_word_is_bt709_brand_gold_in_the_master": 5.43,
+  "tests/test_qf01_colour_matrix.py::test_the_graded_master_is_the_grade_in_rgb_converted_once_with_bt709": 6.95,
+  "tests/test_qf01_colour_matrix.py::test_the_master_delivers_bt709_red_from_a_still_and_a_graphic": 12.55,
+  "tests/test_qf02_16bit_grade.py::test_a_shadow_ramp_keeps_its_levels_through_grade_lut_vignette_and_captions": 17.24,
+  "tests/test_qf02_16bit_grade.py::test_black_is_video_black_through_one_tone_stage[deep_dive-size1]": 8.11,
+  "tests/test_qf02_16bit_grade.py::test_black_is_video_black_through_one_tone_stage[reel-size0]": 7.25,
+  "tests/test_qf03_grain_removed.py::test_a_static_picture_stays_static_in_the_master": 3.08,
+  "tests/test_qf03_grain_removed.py::test_concurrent_renders_keep_the_audio_and_container_identical": 5.44,
+  "tests/test_qf03_grain_removed.py::test_two_renders_of_the_same_inputs_are_byte_identical": 7.42,
+  "tests/test_qf04_beat_cuts.py::test_hard_cuts_land_on_every_beat_without_transition_overlap[False]": 16.95,
+  "tests/test_qf04_beat_cuts.py::test_hard_cuts_land_on_every_beat_without_transition_overlap[True]": 19.0,
+  "tests/test_qf04_beat_cuts.py::test_only_an_explicit_act_change_has_an_eight_frame_dissolve[False]": 19.53,
+  "tests/test_qf04_beat_cuts.py::test_only_an_explicit_act_change_has_an_eight_frame_dissolve[True]": 18.2,
+  "tests/test_qf05_whoosh_placement.py::test_a_reel_bed_whooshes_at_most_twice_only_on_its_scene_cuts_6_db_under": 3.33,
+  "tests/test_qf06_sfx_body_headroom.py::test_a_pile_up_of_effects_leaves_the_master_limiter_and_the_narration_alone": 28.86,
+  "tests/test_qf06_sfx_body_headroom.py::test_every_effect_enters_the_bed_at_one_peak_before_its_cue_gain": 2.31,
+  "tests/test_qf10_picture_gate.py::test_codec_ringing_on_a_halftone_passes_but_a_full_range_picture_tagged_limited_fails": 2.2,
+  "tests/test_qf10b_old_master_note.py::test_every_render_writes_full_image_spans[deep_dive]": 21.1,
+  "tests/test_qf10b_old_master_note.py::test_every_render_writes_full_image_spans[reel]": 21.95,
+  "tests/test_qf115_startup_pool_count.py::test_a_tap_that_arrived_while_the_redraw_is_built_is_not_overwritten": 2.86,
+  "tests/test_qf116_ci_ffmpeg.py::test_ffmpeg_on_path_is_the_dev_prod_release_with_what_src_uses": 2.71,
+  "tests/test_qf127_voice_licence_gate.py::test_every_upload_of_a_masters_audio_goes_through_the_one_gate": 8.76,
+  "tests/test_qf20_map_geometry.py::test_five_event_date_column_reserves_the_last_rows_descenders": 2.74,
+  "tests/test_qf20_map_geometry.py::test_five_event_render_keeps_words_names_and_span_clearance[size0]": 3.61,
+  "tests/test_qf20_map_geometry.py::test_five_event_render_keeps_words_names_and_span_clearance[size1]": 2.73,
+  "tests/test_qf20_map_geometry.py::test_wide_timeline_preserves_names_without_unnecessary_third_rows[nazca]": 5.77,
+  "tests/test_qf21_opentype.py::test_a_16x9_caption_plate_fits_the_ink_libass_draws_for_decomposed_accents": 5.54,
+  "tests/test_qf23_checked_copy.py::test_a_cross_section_label_two_lines_would_cut_is_set_whole_on_three": 3.02,
+  "tests/test_qf23_checked_copy.py::test_a_long_documentary_title_is_drawn_whole_or_the_cover_refuses": 2.32,
+  "tests/test_qf23_checked_copy.py::test_the_thumbnail_headline_is_a_whole_verified_line_or_none_never_a_cut_one": 3.8,
+  "tests/test_qf24_full_frame.py::test_every_portrait_graphic_keeps_its_words_whole_inside_the_organic_box": 10.51,
+  "tests/test_qf24_full_frame.py::test_number_cards_stay_inside_the_organic_box_measured_at_the_size_they_are_drawn[obelisk]": 4.65,
+  "tests/test_qf24_full_frame.py::test_number_cards_stay_inside_the_organic_box_measured_at_the_size_they_are_drawn[richat]": 2.85,
+  "tests/test_qf24_full_frame.py::test_number_cards_stay_inside_the_organic_box_measured_at_the_size_they_are_drawn[trepanation]": 5.19,
+  "tests/test_qf24_full_frame.py::test_number_cards_stay_inside_the_organic_box_measured_at_the_size_they_are_drawn[tunguska]": 4.48,
+  "tests/test_qf24_full_frame.py::test_number_cards_stay_inside_the_organic_box_measured_at_the_size_they_are_drawn[voynich]": 3.46,
+  "tests/test_qf24_full_frame.py::test_the_cutaway_uses_the_organic_box_without_shrinking_its_type": 4.0,
+  "tests/test_qf24_full_frame.py::test_the_height_scale_keeps_the_landmark_measurement_note_whole_on_the_narrower_rail": 3.61,
+  "tests/test_qf24_surfaces.py::test_a_conflict_set_never_draws_plates_closer_than_the_label_gap": 6.69,
+  "tests/test_qf24_surfaces.py::test_the_stress_myth_longest916_is_a_declared_refusal": 12.06,
+  "tests/test_qf25_card_composition.py::test_checked_card_survives_real_planning_and_native_composition[chapter]": 85.19,
+  "tests/test_qf25_card_composition.py::test_checked_card_survives_real_planning_and_native_composition[mythfact]": 107.59,
+  "tests/test_qf25_card_composition.py::test_checked_card_survives_real_planning_and_native_composition[quote]": 98.78,
+  "tests/test_qf25_card_composition.py::test_graphics_pipeline_builds_the_checked_chapter": 3.72,
+  "tests/test_qf25_card_composition.py::test_portrait_myth_keeps_correction_source_and_ordinary_captions_clear": 98.41,
+  "tests/test_qf25_card_composition.py::test_real_act_headings_get_checked_before_becoming_card_fields": 58.59,
+  "tests/test_qf25_card_composition.py::test_verified_hook_reaches_the_native_master_with_all_voice_and_caption_words": 39.61,
+  "tests/test_qf25_cards_composed.py::test_the_graphics_pipeline_composes_the_checked_chapter_card_and_holds_the_quote": 5.13,
+  "tests/test_qf25_cards_composed.py::test_the_hook_hands_over_to_its_own_photo_without_a_jump": 37.37,
+  "tests/test_qf25_cards_composed.py::test_the_hook_opens_the_master_and_no_caption_starts_before_caption_clear_until_s": 42.02,
+  "tests/test_qf26_aa_geometry.py::test_the_scale_drawing_is_drawn_on_the_antialiased_path[size0]": 3.08,
+  "tests/test_qf26_aa_geometry.py::test_the_scale_drawing_is_drawn_on_the_antialiased_path[size1]": 3.99,
+  "tests/test_qf26_aa_geometry.py::test_the_stat_cards_bars_and_rules_are_drawn_on_the_antialiased_path": 5.15,
+  "tests/test_qf52_crop_floor.py::test_incomplete_pool_still_has_at_most_ten_percent_low_crops": 44.66,
+  "tests/test_qf56_photo_merit.py::test_a_pool_review_keeps_the_better_of_two_cross_batch_twins": 2.26,
+  "tests/test_qf56_photo_merit.py::test_a_pool_review_keeps_the_twin_of_a_photo_the_model_refused": 2.02,
+  "tests/test_qf56_photo_merit.py::test_a_pool_review_never_rejects_an_essential_twin_from_a_later_batch": 2.24,
+  "tests/test_qf56_photo_merit.py::test_duplicate_across_batches_is_not_missed_when_screening": 2.63,
+  "tests/test_qf56_photo_merit.py::test_every_photo_reviewed_in_twelve_image_batches_at_768": 4.54,
+  "tests/test_qf56_photo_merit.py::test_partial_batch_cannot_drop_unreviewed_remainder": 2.36,
+  "tests/test_qf56_photo_merit.py::test_screening_marks_no_protected_photo_and_no_twin_of_a_refused_one[last0-changes0]": 3.47,
+  "tests/test_qf56_photo_merit.py::test_screening_marks_no_protected_photo_and_no_twin_of_a_refused_one[last1-changes1]": 3.33,
+  "tests/test_qf56_photo_merit.py::test_unchecked_screen_processes_every_batch_without_changing_human_approval": 3.73,
+  "tests/test_qf73_topic_bank.py::test_a_plain_carousel_post_anyway_displaces_is_shown_and_said_truthfully": 5.09,
+  "tests/test_qf73_topic_bank.py::test_a_spaced_slot_lost_to_a_newer_carousel_is_said_once_and_expires_for_spacing[5]": 5.54,
+  "tests/test_qf73_topic_bank.py::test_an_unconfirmed_sensitive_publication_raises_no_spacing_alert": 3.09,
+  "tests/test_qf73_topic_bank.py::test_the_spacing_alert_comes_days_before_the_only_slot_and_the_deadline": 4.29,
+  "tests/test_qf73_topic_bank.py::test_the_spacing_notice_is_one_needs_you_item_per_carousel_with_both_actions": 2.42,
+  "tests/test_qf73_topic_bank.py::test_two_carousels_posted_anyway_for_one_slot_raise_one_alert_for_the_one_left_out": 5.2,
+  "tests/test_qf73_topic_bank.py::test_two_post_anyway_taps_never_lose_a_carousel_silently": 4.9,
+  "tests/test_qf73b_carousel_spacing.py::test_a_spacing_item_closes_when_its_carousel_expires": 2.91,
+  "tests/test_qf73b_carousel_spacing.py::test_a_spacing_item_closes_when_its_carousel_posts": 3.86,
+  "tests/test_qf73b_carousel_spacing.py::test_every_needs_you_sender_carries_its_item_key_and_none_calls_alert_with_a_group": 12.98,
+  "tests/test_qf73b_carousel_spacing.py::test_three_weeks_of_slots_plan_equals_action[0-held]": 3.43,
+  "tests/test_qf73b_carousel_spacing.py::test_three_weeks_of_slots_plan_equals_action[0-rolling]": 2.9,
+  "tests/test_qf73b_carousel_spacing.py::test_three_weeks_of_slots_plan_equals_action[0-taps]": 4.1,
+  "tests/test_qf73b_carousel_spacing.py::test_three_weeks_of_slots_plan_equals_action[1-held]": 3.06,
+  "tests/test_qf73b_carousel_spacing.py::test_three_weeks_of_slots_plan_equals_action[1-rolling]": 2.88,
+  "tests/test_qf73b_carousel_spacing.py::test_three_weeks_of_slots_plan_equals_action[1-taps]": 3.88,
+  "tests/test_qf73b_carousel_spacing.py::test_three_weeks_of_slots_plan_equals_action[2-held]": 2.08,
+  "tests/test_qf73b_carousel_spacing.py::test_three_weeks_of_slots_plan_equals_action[2-rolling]": 2.13,
+  "tests/test_qf73b_carousel_spacing.py::test_three_weeks_of_slots_plan_equals_action[2-taps]": 2.35,
+  "tests/test_qf73b_carousel_spacing.py::test_three_weeks_of_slots_plan_equals_action[3-held]": 2.55,
+  "tests/test_qf73b_carousel_spacing.py::test_three_weeks_of_slots_plan_equals_action[3-taps]": 2.33,
+  "tests/test_qf81_lazy_carousels.py::test_a_carousel_drawn_at_its_slot_by_the_real_renderer_with_an_ai_made_photo_carries_the_label": 12.45,
+  "tests/test_qf83_shorts_follow.py::test_a_composed_reel_ends_on_the_bridge_with_its_follow": 66.82,
+  "tests/test_qf83_shorts_follow.py::test_a_follow_that_cannot_read_is_left_off_and_the_review_card_says_so": 8.5,
+  "tests/test_qf83_shorts_follow.py::test_the_follow_sits_in_the_reel_box_reads_and_leaves_the_seam_alone[black]": 14.03,
+  "tests/test_qf83_shorts_follow.py::test_the_follow_sits_in_the_reel_box_reads_and_leaves_the_seam_alone[dark_to_light]": 14.34,
+  "tests/test_qf83_shorts_follow.py::test_the_follow_sits_in_the_reel_box_reads_and_leaves_the_seam_alone[light_to_dark]": 16.39,
+  "tests/test_qf83_shorts_follow.py::test_the_follow_sits_in_the_reel_box_reads_and_leaves_the_seam_alone[white]": 20.26,
+  "tests/test_qf86_photo_grade.py::test_a_photo_clip_takes_the_photo_curve_and_other_clips_do_not[ai_motion_of_photo]": 9.13,
+  "tests/test_qf86_photo_grade.py::test_a_photo_clip_takes_the_photo_curve_and_other_clips_do_not[footage_clip]": 5.53,
+  "tests/test_qf86_photo_grade.py::test_a_photo_clip_takes_the_photo_curve_and_other_clips_do_not[graphic_clip]": 4.11,
+  "tests/test_qf86_photo_grade.py::test_a_photo_clip_takes_the_photo_curve_and_other_clips_do_not[hook_frame_with_parallax_record]": 6.46,
+  "tests/test_qf86_photo_grade.py::test_a_photo_clip_takes_the_photo_curve_and_other_clips_do_not[parallax_of_photo]": 7.72,
+  "tests/test_qf86_photo_grade.py::test_a_photo_clip_takes_the_photo_curve_and_other_clips_do_not[parallax_of_upscaled_illustration]": 6.14,
+  "tests/test_qf86_photo_grade.py::test_a_photo_drawn_inside_a_graphic_matches_the_same_photo_bare[-0.05]": 18.72,
+  "tests/test_qf86_photo_grade.py::test_a_photo_drawn_inside_a_graphic_matches_the_same_photo_bare[0.036]": 21.21,
+  "tests/test_qf86_photo_grade.py::test_a_photo_drawn_inside_a_graphic_matches_the_same_photo_bare[0.05]": 23.39,
+  "tests/test_qf86_photo_grade.py::test_a_photo_drawn_inside_a_graphic_matches_the_same_photo_bare[0.0]": 23.45,
+  "tests/test_qf86_photo_grade.py::test_actual_still_branches_grade_only_photographs[deep_dive-size1-photo]": 10.98,
+  "tests/test_qf86_photo_grade.py::test_actual_still_branches_grade_only_photographs[deep_dive-size2-photo]": 7.75,
+  "tests/test_qf86_photo_grade.py::test_actual_still_branches_grade_only_photographs[reel-size0-photo]": 8.75,
+  "tests/test_qf86_photo_grade.py::test_actual_still_branches_grade_only_photographs[reel-size3-essential]": 5.01,
+  "tests/test_qf86_photo_grade.py::test_actual_still_branches_grade_only_photographs[reel-size4-illustration]": 5.66,
+  "tests/test_qf86_photo_grade.py::test_is_photo_clip_fails_closed[parallax_stale_clip]": 2.0,
+  "tests/test_qf86_photo_grade.py::test_native_graphic_tokens_survive_the_actual_master[deep_dive-0.05]": 5.65,
+  "tests/test_qf86_photo_grade.py::test_native_graphic_tokens_survive_the_actual_master[reel--0.05]": 5.18,
+  "tests/test_qf86_photo_grade.py::test_native_graphic_tokens_survive_the_actual_master[reel-0.0]": 4.73,
+  "tests/test_qf87_fonts.py::test_derived_cache_is_reproducible_and_binds_the_source_and_licence": 35.31,
+  "tests/test_qf87_fonts.py::test_derived_faces_built_at_once_by_many_workers_agree": 75.47,
+  "tests/test_qf88_accessibility_gates.py::test_a_10_hz_strobe_is_blocked_by_the_release_gate_with_a_named_reason": 2.69,
+  "tests/test_qf88_accessibility_gates.py::test_a_checker_of_squares_over_a_tenth_of_a_degree_counts_its_whole_area[chk52_8-frame]": 2.59,
+  "tests/test_qf88_accessibility_gates.py::test_a_checker_of_squares_over_a_tenth_of_a_degree_counts_its_whole_area[chk52_red-frame]": 3.63,
+  "tests/test_qf88_accessibility_gates.py::test_a_checker_of_squares_over_a_tenth_of_a_degree_counts_its_whole_area[chk56_8-frame]": 2.48,
+  "tests/test_qf88_accessibility_gates.py::test_a_checker_of_squares_over_a_tenth_of_a_degree_counts_its_whole_area[chk60_8-frame]": 2.56,
+  "tests/test_qf88_accessibility_gates.py::test_a_checker_of_squares_over_a_tenth_of_a_degree_counts_its_whole_area[sb_b18_c16-frame]": 6.3,
+  "tests/test_qf88_accessibility_gates.py::test_a_coarse_counter_phase_change_is_never_excused_as_a_whip[cuts_12_four_bands_of_26pct-frame]": 2.24,
+  "tests/test_qf88_accessibility_gates.py::test_a_coarse_counter_phase_change_is_never_excused_as_a_whip[cuts_8_red-frame]": 3.46,
+  "tests/test_qf88_accessibility_gates.py::test_a_coarse_counter_phase_change_is_never_excused_as_a_whip[masked_rolling_fine-masked_rolling_fine]": 3.89,
+  "tests/test_qf88_accessibility_gates.py::test_a_coarse_counter_phase_change_is_never_excused_as_a_whip[masked_rolling_red-frame]": 3.77,
+  "tests/test_qf88_accessibility_gates.py::test_a_count_only_a_motion_test_could_settle_is_held_for_the_operator": 2.42,
+  "tests/test_qf88_accessibility_gates.py::test_a_failing_flash_beside_a_held_stretch_stays_a_fail_and_cannot_be_cleared[ip_b3_k6-frame-3.0]": 2.53,
+  "tests/test_qf88_accessibility_gates.py::test_a_failing_flash_beside_a_held_stretch_stays_a_fail_and_cannot_be_cleared[sb_b22_c08-frame-3.0]": 4.64,
+  "tests/test_qf88_accessibility_gates.py::test_a_failing_flash_beside_a_held_stretch_stays_a_fail_and_cannot_be_cleared[strobe_then_held-full_4hz_then_held-5.0]": 4.27,
+  "tests/test_qf88_accessibility_gates.py::test_a_field_is_judged_at_any_position[square30_off_grid-box3-fail]": 2.7,
+  "tests/test_qf88_accessibility_gates.py::test_a_field_is_judged_at_any_position[strip30_off_grid-box1-fail]": 2.77,
+  "tests/test_qf88_accessibility_gates.py::test_a_field_is_judged_at_any_position[strip30_on_grid-box0-fail]": 2.68,
+  "tests/test_qf88_accessibility_gates.py::test_a_field_is_judged_at_any_position[strip32_off_grid-box2-fail]": 2.78,
+  "tests/test_qf88_accessibility_gates.py::test_a_fine_pattern_flashing_in_place_beside_a_coarse_change_fails[sub_band_burst-sub_band_burst]": 2.63,
+  "tests/test_qf88_accessibility_gates.py::test_a_fine_pattern_flashing_in_place_beside_a_coarse_change_fails[sub_band_checker_20-sub_band_checker]": 6.01,
+  "tests/test_qf88_accessibility_gates.py::test_a_fine_pattern_flashing_in_place_beside_a_coarse_change_fails[sub_band_vstrip-sub_band_vstrip]": 6.03,
+  "tests/test_qf88_accessibility_gates.py::test_a_passing_picture_never_reports_more_than_3_flashes": 2.49,
+  "tests/test_qf88_accessibility_gates.py::test_a_red_flash_on_a_bright_ground_counts_even_where_luminance_alone_would_not": 5.69,
+  "tests/test_qf88_accessibility_gates.py::test_a_rendered_map_passes_the_cvd_gate": 11.01,
+  "tests/test_qf88_accessibility_gates.py::test_an_ai_motion_clip_that_flashes_is_rejected": 7.74,
+  "tests/test_qf88_accessibility_gates.py::test_counter_phase_flashing_counts_its_whole_area[checker_12_across-frame]": 4.0,
+  "tests/test_qf88_accessibility_gates.py::test_counter_phase_flashing_counts_its_whole_area[checker_4_across-frame]": 3.48,
+  "tests/test_qf88_accessibility_gates.py::test_counter_phase_flashing_counts_its_whole_area[checker_6_across-frame]": 3.43,
+  "tests/test_qf88_accessibility_gates.py::test_counter_phase_flashing_counts_its_whole_area[halves-halves]": 3.88,
+  "tests/test_qf88_accessibility_gates.py::test_flash_thresholds_follow_wcag_2_3_1[patch_6pct_10hz-frame-fail]": 2.57,
+  "tests/test_qf88_accessibility_gates.py::test_flash_thresholds_follow_wcag_2_3_1[red_on_black_10hz-frame-fail]": 7.34,
+  "tests/test_qf88_accessibility_gates.py::test_footage_that_flashes_is_not_taken_in": 15.5,
+  "tests/test_qf88_accessibility_gates.py::test_parts_of_a_field_flashing_in_turn_fail[rolling_bands_red-frame]": 3.09,
+  "tests/test_qf88_accessibility_gates.py::test_squares_of_a_tenth_of_a_degree_or_more_fail_and_finer_ones_are_exempt[0.028-0.0-pass]": 2.27,
+  "tests/test_qf88_accessibility_gates.py::test_squares_of_a_tenth_of_a_degree_or_more_fail_and_finer_ones_are_exempt[0.04-0.0-pass]": 2.63,
+  "tests/test_qf88_accessibility_gates.py::test_squares_of_a_tenth_of_a_degree_or_more_fail_and_finer_ones_are_exempt[0.1-0.0-fail]": 4.35,
+  "tests/test_qf88_accessibility_gates.py::test_squares_of_a_tenth_of_a_degree_or_more_fail_and_finer_ones_are_exempt[0.1-0.5-fail]": 4.99,
+  "tests/test_qf88_accessibility_gates.py::test_squares_of_a_tenth_of_a_degree_or_more_fail_and_finer_ones_are_exempt[0.15-0.5-fail]": 3.09,
+  "tests/test_qf88_accessibility_gates.py::test_squares_of_a_tenth_of_a_degree_or_more_fail_and_finer_ones_are_exempt[1.0-0.3-fail]": 2.81,
+  "tests/test_qf88_accessibility_gates.py::test_the_flash_count_stays_incremental[in_turn_long-frame-1.5-21]": 2.2,
+  "tests/test_qf88_accessibility_gates.py::test_the_flash_count_stays_incremental[sub_band_checker_20-sub_band_checker-3.0-80]": 6.27,
+  "tests/test_qf88_accessibility_gates.py::test_the_same_parts_kept_flashing_fail": 2.07,
+  "tests/test_quality_ceiling.py::test_multi_template_carousel_generation": 3.71,
+  "tests/test_r3_callouts_2026_11_02.py::test_916_leader_is_one_45_degree_run_then_a_stub_square_out_of_the_edge_centre[points1]": 2.3,
+  "tests/test_r3_callouts_2026_11_02.py::test_916_leader_is_one_45_degree_run_then_a_stub_square_out_of_the_edge_centre[points2]": 4.6,
+  "tests/test_r3_callouts_2026_11_02.py::test_make_drops_labels_said_outside_the_clip": 2.52,
+  "tests/test_r3_callouts_2026_11_02.py::test_no_shade_when_the_halo_already_holds": 4.17,
+  "tests/test_r3_callouts_2026_11_02.py::test_one_loupe_on_the_smallest_feature": 4.79,
+  "tests/test_r3_callouts_2026_11_02.py::test_render_records_measured_nontext_contrast": 83.06,
+  "tests/test_r3_covers_2026_11_02.py::test_thumbnail_is_measured_at_feed_size": 2.21,
+  "tests/test_r3_covers_2026_11_02.py::test_thumbnail_raises_a_lines_target_until_it_passes_the_feed_gate": 2.71,
+  "tests/test_r3_covers_2026_11_02.py::test_thumbnail_subject_line_gives_way_when_it_repeats_the_video_title": 2.18,
+  "tests/test_r3_endcard_2026_11_02.py::test_a_last_frame_of_another_size_is_cropped_not_stretched": 5.91,
+  "tests/test_r3_endcard_2026_11_02.py::test_motion_is_continuous_through_the_loop_point[visual]": 6.52,
+  "tests/test_r3_endcard_2026_11_02.py::test_motion_is_continuous_through_the_loop_point[with_line]": 6.63,
+  "tests/test_r3_endcard_2026_11_02.py::test_slot_frames_are_hairlines_that_leave_the_slots_clear": 58.44,
+  "tests/test_r3_endcard_2026_11_02.py::test_the_16x9_dim_is_a_scrim_behind_the_text_column": 31.98,
+  "tests/test_r3_endcard_2026_11_02.py::test_the_16x9_kicker_labels_the_video_slot_and_measures": 33.61,
+  "tests/test_r3_endcard_2026_11_02.py::test_the_bridge_starts_no_push_the_closing_shot_did_not_have": 3.74,
+  "tests/test_r3_endcard_2026_11_02.py::test_the_bridge_stops_one_step_short_of_frame_zero": 6.12,
+  "tests/test_r3_endcard_2026_11_02.py::test_the_closing_drift_carries_through_the_bridge": 6.23,
+  "tests/test_r3_endcard_2026_11_02.py::test_the_credits_line_only_when_asked_and_clear_of_the_slots": 27.98,
+  "tests/test_r3_endcard_2026_11_02.py::test_the_crossfade_length_is_an_option_between_half_and_seven_tenths": 31.55,
+  "tests/test_r3_endcard_2026_11_02.py::test_the_dim_is_light_and_lifts_with_the_crossfade": 8.95,
+  "tests/test_r3_endcard_2026_11_02.py::test_the_incoming_frame_zero_carries_the_opening_push": 3.51,
+  "tests/test_r3_endcard_2026_11_02.py::test_the_line_is_gone_before_the_picture_has_mostly_changed": 12.18,
+  "tests/test_r3_endcard_2026_11_02.py::test_the_outgoing_drift_is_the_composers_absolute_rate": 5.37,
+  "tests/test_r3_endcard_2026_11_02.py::test_the_purely_visual_bridge_records_no_text": 11.39,
+  "tests/test_r3_endcard_2026_11_02.py::test_the_seam_curve_starts_at_rest_and_ends_at_29_of_30_still_moving[0.5]": 4.51,
+  "tests/test_r3_endcard_2026_11_02.py::test_the_seam_curve_starts_at_rest_and_ends_at_29_of_30_still_moving[0.6]": 4.89,
+  "tests/test_r3_endcard_2026_11_02.py::test_the_seam_curve_starts_at_rest_and_ends_at_29_of_30_still_moving[0.7]": 4.78,
+  "tests/test_r3_endcard_2026_11_02.py::test_the_seam_never_steps_more_than_the_luminance_cap[visual]": 17.89,
+  "tests/test_r3_endcard_2026_11_02.py::test_the_seam_never_steps_more_than_the_luminance_cap[with_line]": 16.58,
+  "tests/test_r3_graphics_2026_11_02.py::test_a_region_fallback_is_drawn_as_an_area_and_says_so": 11.61,
+  "tests/test_r3_graphics_2026_11_02.py::test_depth_carries_a_bracket_with_the_gap_and_a_data_face_ruler[size0]": 4.7,
+  "tests/test_r3_graphics_2026_11_02.py::test_depth_carries_a_bracket_with_the_gap_and_a_data_face_ruler[size1]": 5.53,
+  "tests/test_r3_graphics_2026_11_02.py::test_earlier_events_step_back_to_stone_twins_at_full_contrast[size1]": 6.43,
+  "tests/test_r3_graphics_2026_11_02.py::test_fitted_labels_keep_every_hedge_word[events0-size1]": 7.39,
+  "tests/test_r3_graphics_2026_11_02.py::test_height_labels_the_landmarks_figure_at_its_top[size0]": 4.0,
+  "tests/test_r3_graphics_2026_11_02.py::test_height_labels_the_landmarks_figure_at_its_top[size1]": 4.09,
+  "tests/test_r3_graphics_2026_11_02.py::test_locator_draws_its_scale_bar_in_both_orientations[size0]": 12.94,
+  "tests/test_r3_graphics_2026_11_02.py::test_locator_draws_its_scale_bar_in_both_orientations[size1]": 9.25,
+  "tests/test_r3_graphics_2026_11_02.py::test_no_displayed_figure_has_a_spaced_or_hyphen_range[size0]": 5.79,
+  "tests/test_r3_graphics_2026_11_02.py::test_no_displayed_figure_has_a_spaced_or_hyphen_range[size1]": 5.17,
+  "tests/test_r3_graphics_2026_11_02.py::test_nodes_encode_certainty_hollow_ring_for_circa_solid_dot_for_exact[size1]": 6.78,
+  "tests/test_r3_graphics_2026_11_02.py::test_route_labels_are_measured_inside_the_box_and_clear_of_each_other[size0]": 4.05,
+  "tests/test_r3_graphics_2026_11_02.py::test_route_labels_are_measured_inside_the_box_and_clear_of_each_other[size1]": 4.4,
+  "tests/test_r3_graphics_2026_11_02.py::test_route_stop_names_keep_clear_air_from_the_scale_bar_figures[size0]": 3.74,
+  "tests/test_r3_graphics_2026_11_02.py::test_route_stop_names_keep_clear_air_from_the_scale_bar_figures[size1]": 4.33,
+  "tests/test_r3_graphics_2026_11_02.py::test_section_registers_levels_and_tags_the_drawing[size0]": 3.9,
+  "tests/test_r3_graphics_2026_11_02.py::test_section_registers_levels_and_tags_the_drawing[size1]": 10.33,
+  "tests/test_r3_graphics_2026_11_02.py::test_spans_never_cost_the_event_labels_their_size": 2.48,
+  "tests/test_r3_graphics_2026_11_02.py::test_tall_depth_sets_the_metres_under_the_figure_and_keeps_air_over_the_bracket": 4.8,
+  "tests/test_r3_graphics_2026_11_02.py::test_tall_height_sets_the_metres_under_the_figure": 4.52,
+  "tests/test_r3_graphics_2026_11_02.py::test_the_9x16_depth_figure_keeps_its_height": 4.7,
+  "tests/test_r3_graphics_2026_11_02.py::test_the_9x16_height_figure_keeps_its_height": 4.46,
+  "tests/test_r3_graphics_2026_11_02.py::test_the_9x16_meaning_sits_on_the_box_foot_with_air_over_it[fact0]": 4.74,
+  "tests/test_r3_graphics_2026_11_02.py::test_the_9x16_meaning_sits_on_the_box_foot_with_air_over_it[fact1]": 4.5,
+  "tests/test_r3_graphics_2026_11_02.py::test_the_route_map_names_its_country_off_the_legs_and_labels[size0]": 3.65,
+  "tests/test_r3_graphics_2026_11_02.py::test_the_route_map_names_its_country_off_the_legs_and_labels[size1]": 4.26,
+  "tests/test_r3_graphics_2026_11_02.py::test_two_vertical_cards_share_one_figure_size": 6.14,
+  "tests/test_r3_graphics_2026_11_02.py::test_wide_ground_plane_ends_inside_title_safe": 4.62,
+  "tests/test_r3_graphics_2026_11_02.py::test_wide_years_share_one_baseline_per_side": 11.56,
+  "tests/test_r3_social_2026_11_02.py::test_a_deck_takes_one_frame_and_every_content_kicker_stays_on_one_line[False]": 10.64,
+  "tests/test_r3_social_2026_11_02.py::test_a_deck_takes_one_frame_and_every_content_kicker_stays_on_one_line[True]": 9.51,
+  "tests/test_r3_social_2026_11_02.py::test_a_redraw_from_the_recipe_lands_on_the_decks_frame[False]": 3.96,
+  "tests/test_r3_social_2026_11_02.py::test_a_redraw_from_the_recipe_lands_on_the_decks_frame[True]": 4.46,
+  "tests/test_r3_social_2026_11_02.py::test_the_facebook_copy_writes_its_collage_report_marked_advisory": 7.15,
+  "tests/test_r3_social_2026_11_02.py::test_the_platform_contrast_flags_are_kept_per_element_in_still_layout": 3.16,
+  "tests/test_r4_callouts_2026_11_02.py::test_916_white_pair_draws_both_bands": 37.74,
+  "tests/test_r4_callouts_2026_11_02.py::test_band_starts_light_and_stops_at_the_first_depth_that_holds": 33.71,
+  "tests/test_r4_callouts_2026_11_02.py::test_both_kickers_share_one_colour": 33.62,
+  "tests/test_r4_callouts_2026_11_02.py::test_divider_and_markers_hold_still_while_the_photos_push": 38.08,
+  "tests/test_r4_callouts_2026_11_02.py::test_each_label_is_recorded_on_its_worst_delivered_frame": 54.48,
+  "tests/test_r4_callouts_2026_11_02.py::test_make_drops_the_low_label_and_gives_up_below_two": 2.17,
+  "tests/test_r4_callouts_2026_11_02.py::test_markers_stay_inside_the_safe_box_at_the_larger_size": 36.06,
+  "tests/test_r4_callouts_2026_11_02.py::test_render_draws_the_band_when_the_halo_falls_short": 40.43,
+  "tests/test_r4_callouts_2026_11_02.py::test_render_keeps_plate_ground_and_contrast_with_the_spotlight": 81.48,
+  "tests/test_r4_callouts_2026_11_02.py::test_render_lays_out_on_the_centred_push": 18.64,
+  "tests/test_r4_covers_2026_11_02.py::test_a_hedge_that_cannot_hold_the_grid_floor_withholds_the_figure_on_every_style": 2.09,
+  "tests/test_r4_covers_2026_11_02.py::test_a_year_without_an_event_word_is_no_hero": 2.06,
+  "tests/test_r4_covers_2026_11_02.py::test_every_style_sets_the_same_hedge_for_the_same_figure": 2.27,
+  "tests/test_r4_covers_2026_11_02.py::test_the_deck_is_tracked_on_every_style_and_its_comma_stays_on_the_baseline": 2.57,
+  "tests/test_r4_covers_2026_11_02.py::test_the_ink_feather_follows_the_types_right_edge": 2.67,
+  "tests/test_r4_endcard_2026_11_02.py::test_a_clean_seam_passes_the_gate[visual]": 4.68,
+  "tests/test_r4_endcard_2026_11_02.py::test_a_clean_seam_passes_the_gate[with_line]": 4.8,
+  "tests/test_r4_endcard_2026_11_02.py::test_a_hitching_seam_fails_closed_with_a_note": 4.68,
+  "tests/test_r4_endcard_2026_11_02.py::test_slot_frames_frame_the_second_slot_and_leave_it_clear": 57.44,
+  "tests/test_r4_endcard_2026_11_02.py::test_the_16x9_screen_says_the_handoff_not_the_share_ask": 58.08,
+  "tests/test_r4_endcard_2026_11_02.py::test_the_9x16_card_keeps_the_share_ask": 24.93,
+  "tests/test_r4_endcard_2026_11_02.py::test_the_bridge_records_its_distance_from_frame_zero": 5.55,
+  "tests/test_r4_graphics_2026_11_02.py::test_a_fallback_span_sits_in_the_clear_band_and_collides_with_nothing[six]": 44.41,
+  "tests/test_r4_graphics_2026_11_02.py::test_a_route_with_stops_at_every_edge_renders_inside_the_box[bottom-16x9]": 2.93,
+  "tests/test_r4_graphics_2026_11_02.py::test_a_route_with_stops_at_every_edge_renders_inside_the_box[bottom-9x16]": 2.77,
+  "tests/test_r4_graphics_2026_11_02.py::test_a_route_with_stops_at_every_edge_renders_inside_the_box[corners-16x9]": 3.09,
+  "tests/test_r4_graphics_2026_11_02.py::test_a_route_with_stops_at_every_edge_renders_inside_the_box[corners-9x16]": 4.55,
+  "tests/test_r4_graphics_2026_11_02.py::test_a_route_with_stops_at_every_edge_renders_inside_the_box[left-16x9]": 2.61,
+  "tests/test_r4_graphics_2026_11_02.py::test_a_route_with_stops_at_every_edge_renders_inside_the_box[left-9x16]": 2.51,
+  "tests/test_r4_graphics_2026_11_02.py::test_a_route_with_stops_at_every_edge_renders_inside_the_box[right-16x9]": 2.99,
+  "tests/test_r4_graphics_2026_11_02.py::test_a_route_with_stops_at_every_edge_renders_inside_the_box[right-9x16]": 2.56,
+  "tests/test_r4_graphics_2026_11_02.py::test_a_route_with_stops_at_every_edge_renders_inside_the_box[top-16x9]": 2.98,
+  "tests/test_r4_graphics_2026_11_02.py::test_a_route_with_stops_at_every_edge_renders_inside_the_box[top-9x16]": 3.06,
+  "tests/test_r4_graphics_2026_11_02.py::test_a_route_with_stops_at_every_edge_renders_inside_the_box[top_first-16x9]": 2.92,
+  "tests/test_r4_graphics_2026_11_02.py::test_a_route_with_stops_at_every_edge_renders_inside_the_box[top_first-9x16]": 2.96,
+  "tests/test_r4_graphics_2026_11_02.py::test_a_six_event_timeline_still_draws_its_last_event": 4.49,
+  "tests/test_r4_graphics_2026_11_02.py::test_a_six_stop_route_draws_its_destination[16x9]": 3.0,
+  "tests/test_r4_graphics_2026_11_02.py::test_a_six_stop_route_draws_its_destination[9x16]": 3.14,
+  "tests/test_r4_graphics_2026_11_02.py::test_a_stops_name_is_nearer_its_own_stop_than_any_other[five-16x9]": 3.06,
+  "tests/test_r4_graphics_2026_11_02.py::test_a_stops_name_is_nearer_its_own_stop_than_any_other[five-9x16]": 3.06,
+  "tests/test_r4_graphics_2026_11_02.py::test_a_stops_name_is_nearer_its_own_stop_than_any_other[sw_corner-16x9]": 3.18,
+  "tests/test_r4_graphics_2026_11_02.py::test_a_stops_name_is_nearer_its_own_stop_than_any_other[sw_corner-9x16]": 2.73,
+  "tests/test_r4_graphics_2026_11_02.py::test_a_wide_span_under_a_block_keeps_twice_its_line_gap[four_d]": 3.62,
+  "tests/test_r4_graphics_2026_11_02.py::test_a_wide_span_under_a_block_keeps_twice_its_line_gap[nz27]": 9.16,
+  "tests/test_r4_graphics_2026_11_02.py::test_circa_is_drawn_lowercase_and_smaller_beside_the_year": 7.47,
+  "tests/test_r4_graphics_2026_11_02.py::test_fit_tracked_never_cuts_a_label_that_fits_over_1500_labels_at_712_px": 116.26,
+  "tests/test_r4_graphics_2026_11_02.py::test_height_carries_the_shared_ruler_and_the_landmark_note[size0]": 4.1,
+  "tests/test_r4_graphics_2026_11_02.py::test_height_carries_the_shared_ruler_and_the_landmark_note[size1]": 4.23,
+  "tests/test_r4_graphics_2026_11_02.py::test_named_timelines_keep_every_rule_and_stay_whole[derinkuyu-16x9]": 5.64,
+  "tests/test_r4_graphics_2026_11_02.py::test_named_timelines_keep_every_rule_and_stay_whole[four_d-16x9]": 4.66,
+  "tests/test_r4_graphics_2026_11_02.py::test_named_timelines_keep_every_rule_and_stay_whole[three_xxl-16x9]": 5.93,
+  "tests/test_r4_graphics_2026_11_02.py::test_named_timelines_keep_every_rule_and_stay_whole[two_line4-16x9]": 3.87,
+  "tests/test_r4_graphics_2026_11_02.py::test_no_drawn_frame_shows_a_figure_other_than_the_final_one": 4.83,
+  "tests/test_r4_graphics_2026_11_02.py::test_route_names_are_clearly_their_own_stops_outside_a_cluster[corners-16x9]": 3.29,
+  "tests/test_r4_graphics_2026_11_02.py::test_route_names_are_clearly_their_own_stops_outside_a_cluster[corners-9x16]": 4.5,
+  "tests/test_r4_graphics_2026_11_02.py::test_route_names_are_clearly_their_own_stops_outside_a_cluster[five-16x9]": 3.15,
+  "tests/test_r4_graphics_2026_11_02.py::test_route_names_are_clearly_their_own_stops_outside_a_cluster[five-9x16]": 3.36,
+  "tests/test_r4_graphics_2026_11_02.py::test_route_names_are_clearly_their_own_stops_outside_a_cluster[six_spread-16x9]": 3.02,
+  "tests/test_r4_graphics_2026_11_02.py::test_route_names_are_clearly_their_own_stops_outside_a_cluster[six_spread-9x16]": 3.65,
+  "tests/test_r4_graphics_2026_11_02.py::test_route_names_are_clearly_their_own_stops_outside_a_cluster[sw_corner-16x9]": 3.23,
+  "tests/test_r4_graphics_2026_11_02.py::test_route_names_are_clearly_their_own_stops_outside_a_cluster[sw_corner-9x16]": 2.96,
+  "tests/test_r4_graphics_2026_11_02.py::test_route_names_hold_their_lines_and_far_stops_and_the_destination_are_named[rr4-16x9]": 2.18,
+  "tests/test_r4_graphics_2026_11_02.py::test_route_names_hold_their_lines_and_far_stops_and_the_destination_are_named[rr4-9x16]": 3.14,
+  "tests/test_r4_graphics_2026_11_02.py::test_route_names_hold_their_lines_and_far_stops_and_the_destination_are_named[rr8-16x9]": 2.43,
+  "tests/test_r4_graphics_2026_11_02.py::test_route_names_hold_their_lines_and_far_stops_and_the_destination_are_named[rr8-9x16]": 2.9,
+  "tests/test_r4_graphics_2026_11_02.py::test_route_names_hold_their_lines_and_far_stops_and_the_destination_are_named[zigzag-16x9]": 2.54,
+  "tests/test_r4_graphics_2026_11_02.py::test_route_names_hold_their_lines_and_far_stops_and_the_destination_are_named[zigzag-9x16]": 2.79,
+  "tests/test_r4_graphics_2026_11_02.py::test_route_names_never_read_as_another_stops_on_random_routes[rr7-16x9]": 3.81,
+  "tests/test_r4_graphics_2026_11_02.py::test_route_names_never_read_as_another_stops_on_random_routes[rr7-9x16]": 3.7,
+  "tests/test_r4_graphics_2026_11_02.py::test_route_names_never_read_as_another_stops_on_random_routes[s4242_0-16x9]": 3.32,
+  "tests/test_r4_graphics_2026_11_02.py::test_route_names_never_read_as_another_stops_on_random_routes[s4242_0-9x16]": 3.98,
+  "tests/test_r4_graphics_2026_11_02.py::test_route_names_never_read_as_another_stops_on_random_routes[s4242_1-16x9]": 3.15,
+  "tests/test_r4_graphics_2026_11_02.py::test_route_names_never_read_as_another_stops_on_random_routes[s4242_1-9x16]": 3.09,
+  "tests/test_r4_graphics_2026_11_02.py::test_route_names_never_read_as_another_stops_on_random_routes[s4242_2-16x9]": 3.38,
+  "tests/test_r4_graphics_2026_11_02.py::test_route_names_never_read_as_another_stops_on_random_routes[s4242_2-9x16]": 3.33,
+  "tests/test_r4_graphics_2026_11_02.py::test_route_names_never_read_as_another_stops_on_random_routes[s8123_0-16x9]": 3.98,
+  "tests/test_r4_graphics_2026_11_02.py::test_route_names_never_read_as_another_stops_on_random_routes[s8123_0-9x16]": 3.38,
+  "tests/test_r4_graphics_2026_11_02.py::test_route_names_never_read_as_another_stops_on_random_routes[s8123_1-16x9]": 2.94,
+  "tests/test_r4_graphics_2026_11_02.py::test_route_names_never_read_as_another_stops_on_random_routes[s8123_1-9x16]": 3.94,
+  "tests/test_r4_graphics_2026_11_02.py::test_route_names_never_read_as_another_stops_on_random_routes[s8123_2-16x9]": 3.02,
+  "tests/test_r4_graphics_2026_11_02.py::test_route_names_never_read_as_another_stops_on_random_routes[s8123_2-9x16]": 3.29,
+  "tests/test_r4_graphics_2026_11_02.py::test_route_names_of_different_stops_keep_more_air_than_a_names_own_line_gap": 3.37,
+  "tests/test_r4_graphics_2026_11_02.py::test_route_names_outrank_the_globe_and_the_scale_bar[derinkuyu-16x9]": 3.66,
+  "tests/test_r4_graphics_2026_11_02.py::test_route_names_outrank_the_globe_and_the_scale_bar[derinkuyu-9x16]": 3.21,
+  "tests/test_r4_graphics_2026_11_02.py::test_route_names_outrank_the_globe_and_the_scale_bar[five-16x9]": 3.42,
+  "tests/test_r4_graphics_2026_11_02.py::test_route_names_outrank_the_globe_and_the_scale_bar[five-9x16]": 3.59,
+  "tests/test_r4_graphics_2026_11_02.py::test_route_names_outrank_the_globe_and_the_scale_bar[ns-16x9]": 3.39,
+  "tests/test_r4_graphics_2026_11_02.py::test_route_names_outrank_the_globe_and_the_scale_bar[ns-9x16]": 3.02,
+  "tests/test_r4_graphics_2026_11_02.py::test_route_names_outrank_the_globe_and_the_scale_bar[sw_corner-16x9]": 3.51,
+  "tests/test_r4_graphics_2026_11_02.py::test_route_names_outrank_the_globe_and_the_scale_bar[sw_corner-9x16]": 3.27,
+  "tests/test_r4_graphics_2026_11_02.py::test_scale_meaning_lands_on_the_impact_and_the_hold_moves": 4.27,
+  "tests/test_r4_graphics_2026_11_02.py::test_section_draws_no_accent_shaft_and_pulses_on_contact": 3.36,
+  "tests/test_r4_graphics_2026_11_02.py::test_section_drift_settles_to_rest_on_the_last_frame": 3.3,
+  "tests/test_r4_graphics_2026_11_02.py::test_section_end_hold_drifts": 5.76,
+  "tests/test_r4_graphics_2026_11_02.py::test_tall_years_drop_to_their_floor_before_a_label_is_cut[nz2]": 2.2,
+  "tests/test_r4_graphics_2026_11_02.py::test_tall_years_drop_to_their_floor_before_a_label_is_cut[nz5]": 2.47,
+  "tests/test_r4_graphics_2026_11_02.py::test_the_context_globe_keeps_clear_of_stops_legs_and_leaders[corners-16x9]": 3.26,
+  "tests/test_r4_graphics_2026_11_02.py::test_the_context_globe_keeps_clear_of_stops_legs_and_leaders[corners-9x16]": 4.24,
+  "tests/test_r4_graphics_2026_11_02.py::test_the_context_globe_keeps_clear_of_stops_legs_and_leaders[derinkuyu-16x9]": 3.36,
+  "tests/test_r4_graphics_2026_11_02.py::test_the_context_globe_keeps_clear_of_stops_legs_and_leaders[derinkuyu-9x16]": 3.15,
+  "tests/test_r4_graphics_2026_11_02.py::test_the_context_globe_keeps_clear_of_stops_legs_and_leaders[five-16x9]": 3.04,
+  "tests/test_r4_graphics_2026_11_02.py::test_the_context_globe_keeps_clear_of_stops_legs_and_leaders[five-9x16]": 3.09,
+  "tests/test_r4_graphics_2026_11_02.py::test_the_context_globe_keeps_clear_of_stops_legs_and_leaders[longname-16x9]": 3.42,
+  "tests/test_r4_graphics_2026_11_02.py::test_the_context_globe_keeps_clear_of_stops_legs_and_leaders[longname-9x16]": 3.03,
+  "tests/test_r4_graphics_2026_11_02.py::test_the_context_globe_keeps_clear_of_stops_legs_and_leaders[ns-16x9]": 3.07,
+  "tests/test_r4_graphics_2026_11_02.py::test_the_context_globe_keeps_clear_of_stops_legs_and_leaders[ns-9x16]": 2.83,
+  "tests/test_r4_graphics_2026_11_02.py::test_the_context_globe_keeps_clear_of_stops_legs_and_leaders[right-16x9]": 3.1,
+  "tests/test_r4_graphics_2026_11_02.py::test_the_context_globe_keeps_clear_of_stops_legs_and_leaders[right-9x16]": 2.69,
+  "tests/test_r4_graphics_2026_11_02.py::test_the_context_globe_keeps_clear_of_stops_legs_and_leaders[sw_corner-16x9]": 3.12,
+  "tests/test_r4_graphics_2026_11_02.py::test_the_context_globe_keeps_clear_of_stops_legs_and_leaders[sw_corner-9x16]": 2.72,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_events_keep_the_first_and_last_and_log_the_dropped": 6.46,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[bb/babylon4-16x9]": 6.46,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[bb/babylon5-16x9]": 47.17,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[bb/babylon5-9x16]": 48.12,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[bb/ephesus4-16x9]": 8.59,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[cr/cr0-16x9]": 9.46,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[cr/cr10-16x9]": 6.84,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[cr/cr10-9x16]": 7.61,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[cr/cr12-16x9]": 23.96,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[cr/cr12-9x16]": 13.31,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[cr/cr13-16x9]": 5.35,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[cr/cr14-16x9]": 9.92,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[cr/cr14-9x16]": 10.82,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[cr/cr2-16x9]": 7.66,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[cr/cr2-9x16]": 7.07,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[cr/cr4-16x9]": 5.23,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[cr/cr5-16x9]": 8.92,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[cr/cr5-9x16]": 44.84,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[cr/cr6-16x9]": 16.11,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[cr/cr6-9x16]": 17.25,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[cr/cr7-16x9]": 3.82,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[cr/cr9-16x9]": 3.24,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[lw/lw0-16x9]": 8.67,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[lw/lw0-9x16]": 2.46,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[lw/lw1-16x9]": 5.8,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[lw/lw11-16x9]": 5.4,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[lw/lw12-16x9]": 5.79,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[lw/lw12-9x16]": 2.31,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[lw/lw13-16x9]": 10.08,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[lw/lw13-9x16]": 2.39,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[lw/lw14-16x9]": 6.09,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[lw/lw14-9x16]": 55.17,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[lw/lw15-16x9]": 28.92,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[lw/lw15-9x16]": 29.08,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[lw/lw2-16x9]": 11.47,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[lw/lw3-16x9]": 11.44,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[lw/lw4-16x9]": 7.92,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[lw/lw6-16x9]": 21.32,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[lw/lw8-16x9]": 8.02,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[lw/lw9-16x9]": 9.67,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[nz/nz0-16x9]": 18.99,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[nz/nz1-16x9]": 5.42,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[nz/nz1-9x16]": 80.64,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[nz/nz10-16x9]": 6.32,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[nz/nz11-16x9]": 8.48,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[nz/nz12-16x9]": 2.49,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[nz/nz13-16x9]": 2.03,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[nz/nz14-16x9]": 5.96,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[nz/nz14-9x16]": 2.49,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[nz/nz15-16x9]": 11.16,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[nz/nz15-9x16]": 3.12,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[nz/nz16-16x9]": 39.4,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[nz/nz16-9x16]": 2.06,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[nz/nz17-16x9]": 4.66,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[nz/nz18-16x9]": 6.96,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[nz/nz19-16x9]": 5.04,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[nz/nz2-16x9]": 14.7,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[nz/nz2-9x16]": 2.18,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[nz/nz20-16x9]": 3.4,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[nz/nz21-16x9]": 4.08,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[nz/nz21-9x16]": 89.47,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[nz/nz22-16x9]": 5.25,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[nz/nz23-16x9]": 10.95,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[nz/nz24-16x9]": 11.14,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[nz/nz25-16x9]": 15.13,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[nz/nz26-16x9]": 4.88,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[nz/nz27-16x9]": 9.85,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[nz/nz28-16x9]": 30.89,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[nz/nz3-16x9]": 12.58,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[nz/nz31-16x9]": 11.79,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[nz/nz32-16x9]": 5.34,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[nz/nz33-16x9]": 2.24,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[nz/nz34-16x9]": 9.06,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[nz/nz35-16x9]": 6.29,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[nz/nz36-16x9]": 12.71,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[nz/nz36-9x16]": 2.48,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[nz/nz37-16x9]": 16.11,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[nz/nz38-16x9]": 9.3,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[nz/nz39-16x9]": 10.64,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[nz/nz39-9x16]": 2.6,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[nz/nz4-16x9]": 2.28,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[nz/nz5-16x9]": 13.0,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[nz/nz5-9x16]": 2.98,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[nz/nz6-16x9]": 13.31,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[nz/nz8-16x9]": 2.55,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[nz/nz9-16x9]": 11.62,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[qz/qz0-16x9]": 9.1,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[qz/qz12-16x9]": 6.86,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[qz/qz12-9x16]": 2.53,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[qz/qz14-16x9]": 9.31,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[qz/qz26-16x9]": 5.73,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[qz/qz26-9x16]": 2.05,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[qz/qz4-16x9]": 7.9,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[qz/qz9-16x9]": 10.4,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[se/se1-16x9]": 11.57,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[se/se1-9x16]": 11.58,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[se/se11-16x9]": 12.63,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[se/se11-9x16]": 13.46,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[se/se13-16x9]": 3.84,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[se/se14-16x9]": 11.44,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[se/se14-9x16]": 12.19,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[se/se15-16x9]": 18.97,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[se/se15-9x16]": 19.53,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[se/se3-16x9]": 6.14,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[se/se3-9x16]": 6.77,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[se/se4-16x9]": 17.73,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[se/se4-9x16]": 12.18,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[se/se6-16x9]": 4.85,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[se/se7-16x9]": 9.16,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[se/se7-9x16]": 9.92,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[se/se8-16x9]": 8.88,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[se/se9-16x9]": 16.52,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[se/se9-9x16]": 16.09,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[xv/xv1-16x9]": 19.51,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[xv/xv1-9x16]": 2.02,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[xv/xv15-16x9]": 6.1,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[xv/xv18-16x9]": 8.61,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_properties_over_seeds_and_vocabularies[xv/xv21-16x9]": 13.71,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_sets_keep_every_rule[fz0-16x9]": 16.2,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_sets_keep_every_rule[fz0-9x16]": 16.97,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_sets_keep_every_rule[fz1-16x9]": 15.36,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_sets_keep_every_rule[fz1-9x16]": 15.86,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_sets_keep_every_rule[fz10-16x9]": 4.64,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_sets_keep_every_rule[fz10-9x16]": 58.71,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_sets_keep_every_rule[fz11-16x9]": 4.7,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_sets_keep_every_rule[fz11-9x16]": 2.03,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_sets_keep_every_rule[fz13-16x9]": 5.25,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_sets_keep_every_rule[fz16-16x9]": 17.52,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_sets_keep_every_rule[fz16-9x16]": 78.53,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_sets_keep_every_rule[fz17-16x9]": 17.07,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_sets_keep_every_rule[fz19-16x9]": 19.15,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_sets_keep_every_rule[fz2-16x9]": 6.09,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_sets_keep_every_rule[fz20-16x9]": 42.79,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_sets_keep_every_rule[fz20-9x16]": 43.88,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_sets_keep_every_rule[fz22-16x9]": 7.79,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_sets_keep_every_rule[fz24-16x9]": 14.68,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_sets_keep_every_rule[fz24-9x16]": 57.75,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_sets_keep_every_rule[fz25-16x9]": 39.01,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_sets_keep_every_rule[fz25-9x16]": 24.24,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_sets_keep_every_rule[fz26-16x9]": 4.5,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_sets_keep_every_rule[fz26-9x16]": 2.06,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_sets_keep_every_rule[fz27-16x9]": 8.21,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_sets_keep_every_rule[fz28-16x9]": 22.55,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_sets_keep_every_rule[fz28-9x16]": 22.47,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_sets_keep_every_rule[fz29-16x9]": 7.76,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_sets_keep_every_rule[fz29-9x16]": 73.91,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_sets_keep_every_rule[fz3-16x9]": 10.55,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_sets_keep_every_rule[fz3-9x16]": 69.31,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_sets_keep_every_rule[fz30-16x9]": 4.52,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_sets_keep_every_rule[fz32-16x9]": 5.35,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_sets_keep_every_rule[fz35-16x9]": 31.03,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_sets_keep_every_rule[fz35-9x16]": 31.82,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_sets_keep_every_rule[fz36-16x9]": 6.17,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_sets_keep_every_rule[fz37-16x9]": 8.26,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_sets_keep_every_rule[fz38-16x9]": 71.78,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_sets_keep_every_rule[fz38-9x16]": 67.1,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_sets_keep_every_rule[fz39-16x9]": 6.95,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_sets_keep_every_rule[fz5-16x9]": 32.22,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_sets_keep_every_rule[fz5-9x16]": 33.13,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_sets_keep_every_rule[fz8-16x9]": 7.32,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_fuzz_sets_keep_every_rule[fz9-16x9]": 7.87,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_held_tail_is_not_frozen": 2.28,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_records_its_marks_non_text_contrast[size0]": 2.06,
+  "tests/test_r4_graphics_2026_11_02.py::test_timeline_records_its_marks_non_text_contrast[size1]": 7.56,
+  "tests/test_r4_graphics_2026_11_02.py::test_two_cards_step_the_first_back": 5.35,
+  "tests/test_r4_graphics_2026_11_02.py::test_wide_blocks_hold_title_safe_on_both_axes_and_spans_lean_later": 25.38,
+  "tests/test_r4_graphics_2026_11_02.py::test_wide_figure_prefers_one_line": 5.02,
+  "tests/test_r4_graphics_2026_11_02.py::test_wide_graphics_share_one_left_edge": 19.16,
+  "tests/test_r4_graphics_2026_11_02.py::test_wide_route_scale_bar_stays_out_of_the_timestamp_corner_and_under_the_names[derinkuyu]": 3.24,
+  "tests/test_r4_graphics_2026_11_02.py::test_wide_route_scale_bar_stays_out_of_the_timestamp_corner_and_under_the_names[five]": 3.18,
+  "tests/test_r4_graphics_2026_11_02.py::test_wide_route_scale_bar_stays_out_of_the_timestamp_corner_and_under_the_names[ns]": 3.11,
+  "tests/test_r4_graphics_2026_11_02.py::test_wide_route_scale_bar_stays_out_of_the_timestamp_corner_and_under_the_names[sw_corner]": 3.19,
+  "tests/test_r4_graphics_2026_11_02.py::test_wide_scale_bar_figures_are_clearly_secondary_to_the_names[derinkuyu]": 3.4,
+  "tests/test_r4_graphics_2026_11_02.py::test_wide_scale_bar_figures_are_clearly_secondary_to_the_names[five]": 3.3,
+  "tests/test_r4_graphics_2026_11_02.py::test_wide_scale_bar_figures_are_clearly_secondary_to_the_names[ns]": 3.19,
+  "tests/test_r4_graphics_2026_11_02.py::test_wide_scale_bar_figures_are_clearly_secondary_to_the_names[sw_corner]": 3.12,
+  "tests/test_r4_graphics_2026_11_02.py::test_wide_single_card_sits_on_the_grid_over_the_timelines_ground": 4.3,
+  "tests/test_r4_graphics_2026_11_02.py::test_wide_spans_keep_later_and_sit_clear_of_the_blocks": 5.54,
+  "tests/test_r4_graphics_2026_11_02.py::test_wide_timeline_labels_wrap_only_where_their_column_ends": 5.61,
+  "tests/test_r4_graphics_2026_11_02.py::test_wide_timeline_secondary_type_is_larger": 5.59,
+  "tests/test_r4_graphics_2026_11_02.py::test_wide_timeline_spans_never_collide_are_never_dropped_and_everything_is_title_safe[circa_all]": 5.72,
+  "tests/test_r4_graphics_2026_11_02.py::test_wide_timeline_spans_never_collide_are_never_dropped_and_everything_is_title_safe[derinkuyu]": 5.37,
+  "tests/test_r4_graphics_2026_11_02.py::test_wide_timeline_spans_never_collide_are_never_dropped_and_everything_is_title_safe[five_close]": 7.37,
+  "tests/test_r4_graphics_2026_11_02.py::test_wide_timeline_spans_never_collide_are_never_dropped_and_everything_is_title_safe[four_d]": 5.03,
+  "tests/test_r4_graphics_2026_11_02.py::test_wide_timeline_spans_never_collide_are_never_dropped_and_everything_is_title_safe[four_d_alt]": 6.68,
+  "tests/test_r4_graphics_2026_11_02.py::test_wide_timeline_spans_never_collide_are_never_dropped_and_everything_is_title_safe[four_xl_close]": 2.35,
+  "tests/test_r4_graphics_2026_11_02.py::test_wide_timeline_spans_never_collide_are_never_dropped_and_everything_is_title_safe[seven]": 13.1,
+  "tests/test_r4_graphics_2026_11_02.py::test_wide_timeline_spans_never_collide_are_never_dropped_and_everything_is_title_safe[six]": 90.57,
+  "tests/test_r4_graphics_2026_11_02.py::test_wide_timeline_spans_never_collide_are_never_dropped_and_everything_is_title_safe[three_xxl]": 6.35,
+  "tests/test_r4_graphics_2026_11_02.py::test_wide_timeline_spans_never_collide_are_never_dropped_and_everything_is_title_safe[two_line]": 4.02,
+  "tests/test_r4_social_2026_11_02.py::test_instagrams_swipe_strip_runs_across_the_seam_and_facebook_draws_none": 3.1,
+  "tests/test_r4_social_2026_11_02.py::test_redrawing_slide_two_moves_slide_ones_strip_with_it": 2.73,
+  "tests/test_round12_review_2026_11_04.py::test_16x9_spans_share_their_rows_and_the_heritage_label_breaks_whole[colosseum]": 51.52,
+  "tests/test_round12_review_2026_11_04.py::test_16x9_spans_share_their_rows_and_the_heritage_label_breaks_whole[machu]": 3.21,
+  "tests/test_round12_review_2026_11_04.py::test_stonehenge_16x9_keeps_every_span_under_the_spine": 10.78,
+  "tests/test_round13_review_2026_11_04.py::test_the_reviews_16x9_timelines_have_no_hard_break[petra]": 34.08,
+  "tests/test_round13_review_2026_11_04.py::test_the_reviews_16x9_timelines_have_no_hard_break[pompeii]": 27.93,
+  "tests/test_round13_review_2026_11_04.py::test_the_reviews_16x9_timelines_have_no_hard_break[taj]": 2.19,
+  "tests/test_round13_review_2026_11_04.py::test_the_reviews_16x9_timelines_have_no_hard_break[tower]": 3.67,
+  "tests/test_round14_review_2026_11_04.py::test_16x9_timelines_are_clean_or_fail_loudly[angkor]": 17.23,
+  "tests/test_round14_review_2026_11_04.py::test_16x9_timelines_are_clean_or_fail_loudly[hagia]": 25.62,
+  "tests/test_round14_review_2026_11_04.py::test_16x9_timelines_are_clean_or_fail_loudly[machu]": 4.8,
+  "tests/test_round14_review_2026_11_04.py::test_16x9_timelines_are_clean_or_fail_loudly[notredame]": 40.15,
+  "tests/test_round15_review_2026_11_05.py::test_every_review_timeline_is_clean_under_r11[alhambra]": 43.5,
+  "tests/test_round15_review_2026_11_05.py::test_every_review_timeline_is_clean_under_r11[angkor]": 15.87,
+  "tests/test_round15_review_2026_11_05.py::test_every_review_timeline_is_clean_under_r11[colosseum]": 20.58,
+  "tests/test_round15_review_2026_11_05.py::test_every_review_timeline_is_clean_under_r11[hagia]": 21.16,
+  "tests/test_round15_review_2026_11_05.py::test_every_review_timeline_is_clean_under_r11[machu]": 4.28,
+  "tests/test_round15_review_2026_11_05.py::test_every_review_timeline_is_clean_under_r11[notredame]": 30.5,
+  "tests/test_round15_review_2026_11_05.py::test_every_review_timeline_is_clean_under_r11[stonehenge]": 6.96,
+  "tests/test_round16_review_2026_11_05.py::test_a_span_that_fits_one_row_keeps_it[pisa]": 19.95,
+  "tests/test_round16_review_2026_11_05.py::test_the_reviews_new_timelines_keep_every_name_whole[pisa]": 38.33,
+  "tests/test_round16_review_2026_11_05.py::test_the_reviews_new_timelines_keep_every_name_whole[sagrada]": 4.09,
+  "tests/test_round16_review_2026_11_05.py::test_the_reviews_new_timelines_keep_every_name_whole[westminster]": 32.84,
+  "tests/test_round7_review_2026_11_03.py::test_a_wide_long_label_takes_rows_of_its_column_before_a_wider_measure": 15.52,
+  "tests/test_round7_review_2026_11_03.py::test_no_span_shares_a_vertical_band_with_a_year[babylon-16x9]": 9.04,
+  "tests/test_round7_review_2026_11_03.py::test_no_span_shares_a_vertical_band_with_a_year[long-16x9]": 11.86,
+  "tests/test_round7_review_2026_11_03.py::test_no_span_shares_a_vertical_band_with_a_year[pompeii-16x9]": 9.19,
+  "tests/test_round7_review_2026_11_03.py::test_no_span_shares_a_vertical_band_with_a_year[stonehenge-16x9]": 7.78,
+  "tests/test_round7_review_2026_11_03.py::test_the_route_globe_holds_while_the_first_leg_draws": 5.78,
+  "tests/test_round7_review_2026_11_03.py::test_wide_labels_have_no_weak_middle_row_where_a_break_avoids_it": 8.32,
+  "tests/test_round8_review_2026_11_03.py::test_wide_labels_lose_their_widows[machu]": 3.78,
+  "tests/test_round8_review_2026_11_03.py::test_wide_labels_lose_their_widows[notre]": 4.35,
+  "tests/test_round9_review_2026_11_04.py::test_wide_spans_are_all_under_the_spine[colosseum]": 5.44,
+  "tests/test_round9_review_2026_11_04.py::test_wide_spans_are_all_under_the_spine[hagia]": 9.49,
+  "tests/test_safe_zones.py::test_a_graphics_text_and_figures_stay_inside_the_reel_box[numbers]": 41.94,
+  "tests/test_safe_zones.py::test_a_graphics_text_and_figures_stay_inside_the_reel_box[scale_depth]": 36.92,
+  "tests/test_safe_zones.py::test_a_graphics_text_and_figures_stay_inside_the_reel_box[scale_height]": 37.35,
+  "tests/test_safe_zones.py::test_a_graphics_text_and_figures_stay_inside_the_reel_box[section]": 23.05,
+  "tests/test_safe_zones.py::test_a_graphics_text_and_figures_stay_inside_the_reel_box[timeline]": 12.25,
+  "tests/test_safe_zones.py::test_a_section_whose_labels_fit_only_cut_is_refused": 2.01,
+  "tests/test_scale_graphic_2026_11_01.py::test_scale_says_what_the_comparison_means[fact0-The Statue of Liberty, 305 ft,]": 24.11,
+  "tests/test_scale_graphic_2026_11_01.py::test_scale_says_what_the_comparison_means[fact1-Kailasa temple monolith: about 105 ft.]": 21.21,
+  "tests/test_scale_spacing_2026_11_02.py::test_nothing_is_drawn_just_above_the_line_of_meaning[fact0]": 32.68,
+  "tests/test_scale_spacing_2026_11_02.py::test_nothing_is_drawn_just_above_the_line_of_meaning[fact1]": 29.85,
+  "tests/test_scale_spacing_2026_11_02.py::test_the_height_block_carries_its_hedged_figure": 30.2,
+  "tests/test_signed_records_2026_11_03.py::test_a_bright_hook_has_one_plate_from_the_masthead_to_the_claim": 3.04,
+  "tests/test_signed_records_2026_11_03.py::test_the_9x16_myth_is_one_panel_the_size_of_the_graphics_box": 9.96,
+  "tests/test_signed_records_2026_11_03.py::test_the_bright_hook_panel_is_evenly_padded_centred_and_has_no_foot_rule": 3.01,
+  "tests/test_signed_records_2026_11_03.py::test_the_long_9x16_myth_sets_at_84_px_or_more_and_the_ground_below_is_the_photo": 3.77,
+  "tests/test_still_layout_2026_10_28.py::test_accented_headings_and_titles_never_overlap_the_line_below_or_above": 7.71,
+  "tests/test_still_layout_2026_10_28.py::test_antikythera_story_text_and_a_long_line_stay_whole_inside_the_story_box": 2.64,
+  "tests/test_still_layout_2026_10_28.py::test_carousel_badges_and_headers_never_overlap": 29.55,
+  "tests/test_still_layout_2026_10_28.py::test_richat_cover_draws_its_tagline_inside_the_square_in_every_style": 2.71,
+  "tests/test_still_layout_2026_10_28.py::test_story_and_carousel_cut_offs_redraw_through_the_audit": 8.43,
+  "tests/test_story_credits_2026_10_29.py::test_the_sequence_records_what_it_credited_and_the_report_asserts_it": 2.18,
+  "tests/test_telegram_release_safety.py::test_all_notify_calls_have_explicit_group": 2.14,
+  "tests/test_text_crop_2026_10_28.py::test_a_found_picture_whose_crop_still_shows_text_is_set_aside": 2.17,
+  "tests/test_thennow_paper_2026_11_04.py::test_a_non_paper_render_plans_as_before": 47.61,
+  "tests/test_thennow_paper_2026_11_04.py::test_one_paper_marker_makes_the_other_kicker_bone": 27.11,
+  "tests/test_thennow_paper_2026_11_04.py::test_paper_markers_are_ink_with_no_halo_and_no_glow": 25.37,
+  "tests/test_timeline_hierarchy_2026_11_03.py::test_every_set_keeps_the_hierarchy_rules[bb/babylon5]": 65.76,
+  "tests/test_timeline_hierarchy_2026_11_03.py::test_every_set_keeps_the_hierarchy_rules[cr/cr10]": 12.03,
+  "tests/test_timeline_hierarchy_2026_11_03.py::test_every_set_keeps_the_hierarchy_rules[cr/cr12]": 21.09,
+  "tests/test_timeline_hierarchy_2026_11_03.py::test_every_set_keeps_the_hierarchy_rules[cr/cr14]": 13.33,
+  "tests/test_timeline_hierarchy_2026_11_03.py::test_every_set_keeps_the_hierarchy_rules[cr/cr2]": 8.18,
+  "tests/test_timeline_hierarchy_2026_11_03.py::test_every_set_keeps_the_hierarchy_rules[cr/cr5]": 51.45,
+  "tests/test_timeline_hierarchy_2026_11_03.py::test_every_set_keeps_the_hierarchy_rules[cr/cr6]": 19.46,
+  "tests/test_timeline_hierarchy_2026_11_03.py::test_every_set_keeps_the_hierarchy_rules[fz/fz0]": 18.84,
+  "tests/test_timeline_hierarchy_2026_11_03.py::test_every_set_keeps_the_hierarchy_rules[fz/fz10]": 75.85,
+  "tests/test_timeline_hierarchy_2026_11_03.py::test_every_set_keeps_the_hierarchy_rules[fz/fz11]": 2.42,
+  "tests/test_timeline_hierarchy_2026_11_03.py::test_every_set_keeps_the_hierarchy_rules[fz/fz16]": 99.55,
+  "tests/test_timeline_hierarchy_2026_11_03.py::test_every_set_keeps_the_hierarchy_rules[fz/fz1]": 19.32,
+  "tests/test_timeline_hierarchy_2026_11_03.py::test_every_set_keeps_the_hierarchy_rules[fz/fz20]": 49.14,
+  "tests/test_timeline_hierarchy_2026_11_03.py::test_every_set_keeps_the_hierarchy_rules[fz/fz24]": 66.44,
+  "tests/test_timeline_hierarchy_2026_11_03.py::test_every_set_keeps_the_hierarchy_rules[fz/fz25]": 30.66,
+  "tests/test_timeline_hierarchy_2026_11_03.py::test_every_set_keeps_the_hierarchy_rules[fz/fz28]": 17.23,
+  "tests/test_timeline_hierarchy_2026_11_03.py::test_every_set_keeps_the_hierarchy_rules[fz/fz29]": 55.19,
+  "tests/test_timeline_hierarchy_2026_11_03.py::test_every_set_keeps_the_hierarchy_rules[fz/fz35]": 25.64,
+  "tests/test_timeline_hierarchy_2026_11_03.py::test_every_set_keeps_the_hierarchy_rules[fz/fz38]": 53.06,
+  "tests/test_timeline_hierarchy_2026_11_03.py::test_every_set_keeps_the_hierarchy_rules[fz/fz3]": 85.58,
+  "tests/test_timeline_hierarchy_2026_11_03.py::test_every_set_keeps_the_hierarchy_rules[fz/fz5]": 36.96,
+  "tests/test_timeline_hierarchy_2026_11_03.py::test_every_set_keeps_the_hierarchy_rules[lw/lw0]": 2.79,
+  "tests/test_timeline_hierarchy_2026_11_03.py::test_every_set_keeps_the_hierarchy_rules[lw/lw12]": 2.56,
+  "tests/test_timeline_hierarchy_2026_11_03.py::test_every_set_keeps_the_hierarchy_rules[lw/lw13]": 2.35,
+  "tests/test_timeline_hierarchy_2026_11_03.py::test_every_set_keeps_the_hierarchy_rules[lw/lw14]": 67.97,
+  "tests/test_timeline_hierarchy_2026_11_03.py::test_every_set_keeps_the_hierarchy_rules[lw/lw15]": 36.06,
+  "tests/test_timeline_hierarchy_2026_11_03.py::test_every_set_keeps_the_hierarchy_rules[lw/lw2]": 2.14,
+  "tests/test_timeline_hierarchy_2026_11_03.py::test_every_set_keeps_the_hierarchy_rules[lw/lw6]": 2.4,
+  "tests/test_timeline_hierarchy_2026_11_03.py::test_every_set_keeps_the_hierarchy_rules[lw/lw9]": 2.11,
+  "tests/test_timeline_hierarchy_2026_11_03.py::test_every_set_keeps_the_hierarchy_rules[nz/nz0]": 2.3,
+  "tests/test_timeline_hierarchy_2026_11_03.py::test_every_set_keeps_the_hierarchy_rules[nz/nz10]": 2.09,
+  "tests/test_timeline_hierarchy_2026_11_03.py::test_every_set_keeps_the_hierarchy_rules[nz/nz11]": 2.41,
+  "tests/test_timeline_hierarchy_2026_11_03.py::test_every_set_keeps_the_hierarchy_rules[nz/nz14]": 2.63,
+  "tests/test_timeline_hierarchy_2026_11_03.py::test_every_set_keeps_the_hierarchy_rules[nz/nz15]": 3.13,
+  "tests/test_timeline_hierarchy_2026_11_03.py::test_every_set_keeps_the_hierarchy_rules[nz/nz16]": 2.08,
+  "tests/test_timeline_hierarchy_2026_11_03.py::test_every_set_keeps_the_hierarchy_rules[nz/nz1]": 99.07,
+  "tests/test_timeline_hierarchy_2026_11_03.py::test_every_set_keeps_the_hierarchy_rules[nz/nz21]": 71.4,
+  "tests/test_timeline_hierarchy_2026_11_03.py::test_every_set_keeps_the_hierarchy_rules[nz/nz22]": 2.13,
+  "tests/test_timeline_hierarchy_2026_11_03.py::test_every_set_keeps_the_hierarchy_rules[nz/nz2]": 2.79,
+  "tests/test_timeline_hierarchy_2026_11_03.py::test_every_set_keeps_the_hierarchy_rules[nz/nz31]": 2.07,
+  "tests/test_timeline_hierarchy_2026_11_03.py::test_every_set_keeps_the_hierarchy_rules[nz/nz36]": 2.36,
+  "tests/test_timeline_hierarchy_2026_11_03.py::test_every_set_keeps_the_hierarchy_rules[nz/nz39]": 2.69,
+  "tests/test_timeline_hierarchy_2026_11_03.py::test_every_set_keeps_the_hierarchy_rules[nz/nz3]": 2.22,
+  "tests/test_timeline_hierarchy_2026_11_03.py::test_every_set_keeps_the_hierarchy_rules[nz/nz5]": 3.73,
+  "tests/test_timeline_hierarchy_2026_11_03.py::test_every_set_keeps_the_hierarchy_rules[nz/nz6]": 2.02,
+  "tests/test_timeline_hierarchy_2026_11_03.py::test_every_set_keeps_the_hierarchy_rules[qz/qz0]": 2.06,
+  "tests/test_timeline_hierarchy_2026_11_03.py::test_every_set_keeps_the_hierarchy_rules[qz/qz12]": 3.32,
+  "tests/test_timeline_hierarchy_2026_11_03.py::test_every_set_keeps_the_hierarchy_rules[qz/qz26]": 2.44,
+  "tests/test_timeline_hierarchy_2026_11_03.py::test_every_set_keeps_the_hierarchy_rules[se/se11]": 16.16,
+  "tests/test_timeline_hierarchy_2026_11_03.py::test_every_set_keeps_the_hierarchy_rules[se/se14]": 14.23,
+  "tests/test_timeline_hierarchy_2026_11_03.py::test_every_set_keeps_the_hierarchy_rules[se/se15]": 21.75,
+  "tests/test_timeline_hierarchy_2026_11_03.py::test_every_set_keeps_the_hierarchy_rules[se/se1]": 9.85,
+  "tests/test_timeline_hierarchy_2026_11_03.py::test_every_set_keeps_the_hierarchy_rules[se/se3]": 6.24,
+  "tests/test_timeline_hierarchy_2026_11_03.py::test_every_set_keeps_the_hierarchy_rules[se/se4]": 5.88,
+  "tests/test_timeline_hierarchy_2026_11_03.py::test_every_set_keeps_the_hierarchy_rules[se/se7]": 6.32,
+  "tests/test_timeline_hierarchy_2026_11_03.py::test_every_set_keeps_the_hierarchy_rules[se/se9]": 7.34,
+  "tests/test_timeline_ink_2026_11_03.py::test_wide_spans_below_the_axis_on_one_row_and_420_px_columns[babylon]": 5.43,
+  "tests/test_timeline_ink_2026_11_03.py::test_wide_spans_below_the_axis_on_one_row_and_420_px_columns[pompeii]": 5.67,
+  "tests/test_timeline_scale_2026_11_01.py::test_elapsed_time_is_drawn_at_contrast_inside_the_box": 8.25,
+  "tests/test_timeline_v2_2026_11_02.py::test_tall_timeline_marks_breaks_and_sits_on_the_inset_edge": 2.65,
+  "tests/test_timeline_v2_2026_11_02.py::test_vertical_graphics_share_the_inset_text_edge[numbers]": 2.77,
+  "tests/test_timeline_v2_2026_11_02.py::test_vertical_graphics_share_the_inset_text_edge[scale_depth]": 2.73,
+  "tests/test_timeline_v2_2026_11_02.py::test_vertical_graphics_share_the_inset_text_edge[scale_height]": 2.85,
+  "tests/test_timeline_v2_2026_11_02.py::test_vertical_graphics_share_the_inset_text_edge[section]": 4.59,
+  "tests/test_timeline_v2_2026_11_02.py::test_wide_blocks_start_at_their_markers_and_alternate": 5.3,
+  "tests/test_timeline_v2_2026_11_02.py::test_wide_break_marks_are_drawn_on_the_compressed_gaps": 5.64,
+  "tests/test_timeline_v2_2026_11_02.py::test_wide_mid_clip_dims_the_earlier_event": 5.19,
+  "tests/test_timeline_v2_2026_11_02.py::test_wide_nothing_collides": 5.2,
+  "tests/test_timeline_v2_2026_11_02.py::test_wide_timeline_spans_the_frame": 5.42,
+  "tests/test_ui01a_notifications_panel.py::test_no_sender_outside_the_panels_calls_a_telegram_send_method": 5.36,
+  "tests/test_ui01b_dashboard_in_place.py::test_the_layout_never_draws_the_dashboard_while_holding_its_own_lock": 3.75,
+  "tests/test_ui01f_repost.py::test_a_review_delivered_during_a_re_post_shows_on_the_new_copy": 10.34,
+  "tests/test_ui01f_repost.py::test_an_interrupted_rebuild_leaves_one_copy_per_panel": 3.63,
+  "tests/test_ui01f_repost.py::test_every_needs_you_senders_heading_mark_is_a_needs_mark": 7.32,
+  "tests/test_ui01f_repost.py::test_reconcile_at_start_reposts_from_the_first_missing_panel": 2.52,
+  "tests/test_ui01g_panel_followups.py::test_over_48_hours_nothing_stays_in_the_panel_past_its_rule": 14.05,
+  "tests/test_ui01g_panel_followups.py::test_the_check_time_alone_is_drawn_every_five_minutes_and_any_change_at_once": 8.1,
+  "tests/test_ui01g_panel_followups.py::test_the_check_time_stays_a_real_checks_when_telegram_refuses_the_edit": 5.96
+ },
+ "skipped_tests": [
+  "tests/test_broken_paths.py::test_unesco_finds_the_real_site",
+  "tests/test_broken_paths.py::test_unesco_never_injects_evidence_from_another_site",
+  "tests/test_end_card.py::test_the_finished_capsule_outline_is_symmetric",
+  "tests/test_freeze_cards_2026_11_04.py::test_fr1_correction_note_reaches_the_review_card",
+  "tests/test_freeze_cards_2026_11_04.py::test_r2_c5_total_reads_as_its_label_on_the_real_ground",
+  "tests/test_freeze_thennow_2026_11_04.py::test_a_real_mount_edge_into_a_sky_still_comes_off",
+  "tests/test_freeze_thennow_2026_11_04.py::test_framings_without_border_or_empty_pane_are_unchanged[odessa]",
+  "tests/test_freeze_thennow_2026_11_04.py::test_framings_without_border_or_empty_pane_are_unchanged[pantheon]",
+  "tests/test_freeze_thennow_2026_11_04.py::test_one_halo_for_the_pair_and_a_capped_glow[16x9]",
+  "tests/test_freeze_thennow_2026_11_04.py::test_one_halo_for_the_pair_and_a_capped_glow[9x16]",
+  "tests/test_freeze_thennow_2026_11_04.py::test_the_916_aswan_then_year_is_back_on_clean_sky",
+  "tests/test_freeze_thennow_2026_11_04.py::test_the_gate_on_the_real_runs[aswan-16x9]",
+  "tests/test_freeze_thennow_2026_11_04.py::test_the_gate_on_the_real_runs[aswan-9x16]",
+  "tests/test_freeze_thennow_2026_11_04.py::test_the_gate_on_the_real_runs[colossi-16x9]",
+  "tests/test_freeze_thennow_2026_11_04.py::test_the_gate_on_the_real_runs[colossi-9x16]",
+  "tests/test_freeze_thennow_2026_11_04.py::test_the_gate_on_the_real_runs[golgumbaz-16x9]",
+  "tests/test_freeze_thennow_2026_11_04.py::test_the_gate_on_the_real_runs[golgumbaz-9x16]",
+  "tests/test_freeze_thennow_2026_11_04.py::test_the_gate_on_the_real_runs[odessa-16x9]",
+  "tests/test_freeze_thennow_2026_11_04.py::test_the_gate_on_the_real_runs[odessa-9x16]",
+  "tests/test_freeze_thennow_2026_11_04.py::test_the_gate_on_the_real_runs[pantheon-16x9]",
+  "tests/test_freeze_thennow_2026_11_04.py::test_the_gate_on_the_real_runs[pantheon-9x16]",
+  "tests/test_freeze_thennow_2026_11_04.py::test_the_gol_gumbaz_map_loses_only_its_paper_margin",
+  "tests/test_freeze_thennow_2026_11_04.py::test_the_nested_pass_leaves_single_borders_alone[aswan]",
+  "tests/test_freeze_thennow_2026_11_04.py::test_the_nested_pass_leaves_single_borders_alone[colossi]",
+  "tests/test_freeze_thennow_2026_11_04.py::test_the_nested_pass_leaves_single_borders_alone[golgumbaz]",
+  "tests/test_freeze_thennow_2026_11_04.py::test_the_nested_pass_leaves_single_borders_alone[odessa]",
+  "tests/test_freeze_thennow_2026_11_04.py::test_the_nested_pass_leaves_single_borders_alone[pantheon]",
+  "tests/test_freeze_thennow_2026_11_04.py::test_the_real_aswan_diagram_is_not_paper",
+  "tests/test_freeze_thennow_2026_11_04.py::test_the_real_aswan_rebate_comes_off",
+  "tests/test_freeze_thennow_2026_11_04.py::test_the_real_aswan_sky_is_not_a_mount",
+  "tests/test_freeze_thennow_2026_11_04.py::test_the_real_aswan_then_on_white_sky_is_ink_again",
+  "tests/test_freeze_thennow_2026_11_04.py::test_the_real_colossi_framing",
+  "tests/test_geo_polylabel_2026_11_03.py::test_frame_clipped_india_pole_is_inside_the_clip",
+  "tests/test_globe_relief_2026_11_03.py::test_bijapur_globe_never_on_the_home_fill",
+  "tests/test_globe_relief_2026_11_03.py::test_framing_shares[bijapur-16x9]",
+  "tests/test_globe_relief_2026_11_03.py::test_framing_shares[derinkuyu-9x16]",
+  "tests/test_globe_relief_2026_11_03.py::test_home_relief_is_quiet_and_its_coast_has_no_teal[bijapur]",
+  "tests/test_globe_relief_2026_11_03.py::test_home_relief_is_quiet_and_its_coast_has_no_teal[derinkuyu]",
+  "tests/test_graphics.py::test_country_match_prefers_the_country_over_territories",
+  "tests/test_graphics.py::test_map_names_no_indeterminate_area_and_keeps_names_off_reserved_space",
+  "tests/test_graphics.py::test_stored_coordinates_used_only_when_inside_the_country",
+  "tests/test_integrity_gates.py::test_unesco_evidence_reaches_the_fact_sheet",
+  "tests/test_parallax.py::test_depth_map_is_normalised_and_image_sized",
+  "tests/test_privacy_blur_2026_10_28.py::test_amber_room_mirror_box_is_not_blurred_when_the_verifier_refuses",
+  "tests/test_privacy_blur_2026_10_28.py::test_roman_photo_19_head_and_body_boxes_blur_as_soft_heads",
+  "tests/test_qf20_framing_speed.py::test_a_polar_view_is_framed_closer_to_hold_its_home_name",
+  "tests/test_qf20_framing_speed.py::test_a_sea_name_is_never_set_over_an_islet_the_view_leaves_out",
+  "tests/test_qf20_framing_speed.py::test_serbia_carries_its_name_only_on_its_own_subunit",
+  "tests/test_qf20_framing_speed.py::test_the_neutral_entity_holds_a_disputed_island",
+  "tests/test_qf20_neighbour_layout.py::test_visible_neighbour_retained_with_scale_bar_and_other_labels[athos]",
+  "tests/test_qf20_neighbour_layout.py::test_visible_neighbour_retained_with_scale_bar_and_other_labels[barak]",
+  "tests/test_qf20_neighbour_layout.py::test_visible_neighbour_retained_with_scale_bar_and_other_labels[goree-tall]",
+  "tests/test_qf20_neighbour_layout.py::test_visible_neighbour_retained_with_scale_bar_and_other_labels[goree-wide]",
+  "tests/test_qf20_neighbour_layout.py::test_visible_neighbour_retained_with_scale_bar_and_other_labels[gorlitz]",
+  "tests/test_qf20_neighbour_layout.py::test_visible_neighbour_retained_with_scale_bar_and_other_labels[valga]",
+  "tests/test_qf20_rulings.py::test_a_topic_country_given_as_the_grounds_admin_names_that_ground[-0.37--160.02-United States Minor Outlying Islands-Jarvis Island]",
+  "tests/test_qf20_rulings.py::test_a_topic_country_given_as_the_grounds_admin_names_that_ground[-10.42-105.69-Indian Ocean Territories-Christmas Island]",
+  "tests/test_qf20_rulings.py::test_a_topic_country_given_as_the_grounds_admin_names_that_ground[-12.19-96.83-Indian Ocean Territories-Cocos (Keeling) Islands]",
+  "tests/test_qf20_rulings.py::test_a_topic_country_given_as_the_grounds_admin_names_that_ground[28.21--177.37-United States Minor Outlying Islands-Midway Islands]",
+  "tests/test_qf20_rulings.py::test_a_topic_country_given_as_the_grounds_admin_names_that_ground[5.88--162.08-United States Minor Outlying Islands-Palmyra Atoll]",
+  "tests/test_qf20_rulings.py::test_contested_ground_stays_neutral[-51.69--57.86-United Kingdom]",
+  "tests/test_qf20_rulings.py::test_contested_ground_stays_neutral[-54.2811--36.5092-United Kingdom]",
+  "tests/test_qf20_rulings.py::test_contested_ground_stays_neutral[25.03-121.56-Taiwan]",
+  "tests/test_qf20_rulings.py::test_contested_ground_stays_neutral[27.15--13.2-Morocco]",
+  "tests/test_qf20_rulings.py::test_contested_ground_stays_neutral[44.95-34.1-Ukraine]",
+  "tests/test_qf20_rulings.py::test_ground_with_no_recorded_claim_is_named_as_usual[17.5--88.2-Belize-Belize]",
+  "tests/test_qf20_rulings.py::test_ground_with_no_recorded_claim_is_named_as_usual[32.08-34.78-Israel-Israel]",
+  "tests/test_qf20_rulings.py::test_ground_with_no_recorded_claim_is_named_as_usual[35.292--2.94-Spain-Spain]",
+  "tests/test_qf20_rulings.py::test_ground_with_no_recorded_claim_is_named_as_usual[35.889--5.318-Spain-Spain]",
+  "tests/test_qf20_rulings.py::test_ground_with_no_recorded_claim_is_named_as_usual[42.66-21.16-Kosovo-Kosovo]",
+  "tests/test_qf20_rulings.py::test_the_sovereign_is_accepted_where_the_grounds_name_is_a_run_of_the_title",
+  "tests/test_qf20_rulings.py::test_the_sovereign_is_still_rejected_where_the_title_does_not_hold_the_grounds_name",
+  "tests/test_qf24_route_neighbours.py::test_a_route_renders_and_names_no_neighbour_of_its_own_when_the_1_10m_layer_is_corrupt[cut-short-9x16]",
+  "tests/test_qf24_route_neighbours.py::test_a_route_renders_and_names_no_neighbour_of_its_own_when_the_1_10m_layer_is_corrupt[not-json-16x9]",
+  "tests/test_qf24_route_neighbours.py::test_the_detail_ground_mask_follows_the_1_10m_border",
+  "tests/test_qf24_route_neighbours.py::test_the_morocco_route_names_algeria_on_algerian_ground",
+  "tests/test_qf24_route_neighbours.py::test_the_morocco_route_names_no_neighbour_without_the_1_10m_layer[size0]",
+  "tests/test_qf24_route_neighbours.py::test_the_morocco_route_names_no_neighbour_without_the_1_10m_layer[size1]",
+  "tests/test_r4_callouts_2026_11_02.py::test_16x9_then_shade_leaves_the_recent_photo_alone_on_the_split",
+  "tests/test_review_once_map_labels_2026_10_29.py::test_every_map_label_is_wholly_inside_the_safe_box_on_every_frame",
+  "tests/test_round10_review_2026_11_04.py::test_a_large_country_by_its_small_island_is_not_framed_as_one",
+  "tests/test_round10_review_2026_11_04.py::test_a_small_island_by_other_land_is_framed_where_it_reads[barbados-16x9]",
+  "tests/test_round10_review_2026_11_04.py::test_a_small_island_by_other_land_is_framed_where_it_reads[barbados-9x16]",
+  "tests/test_round10_review_2026_11_04.py::test_a_small_island_by_other_land_is_framed_where_it_reads[male-16x9]",
+  "tests/test_round10_review_2026_11_04.py::test_a_small_island_by_other_land_is_framed_where_it_reads[male-9x16]",
+  "tests/test_round10_review_2026_11_04.py::test_slovakia_finds_its_room_east_of_pannonhalmas_name",
+  "tests/test_round10_review_2026_11_04.py::test_the_countries_carry_their_shorter_forms",
+  "tests/test_round11_review_2026_11_04.py::test_a_mid_ocean_site_names_its_ocean",
+  "tests/test_round11_review_2026_11_04.py::test_a_polar_render_is_drawn_polar_and_never_fades_past_a_pole[alert-size0]",
+  "tests/test_round11_review_2026_11_04.py::test_a_polar_render_is_drawn_polar_and_never_fades_past_a_pole[alert-size1]",
+  "tests/test_round11_review_2026_11_04.py::test_a_polar_render_is_drawn_polar_and_never_fades_past_a_pole[southpole-size0]",
+  "tests/test_round11_review_2026_11_04.py::test_a_polar_render_is_drawn_polar_and_never_fades_past_a_pole[southpole-size1]",
+  "tests/test_round11_review_2026_11_04.py::test_a_polar_render_is_drawn_polar_and_never_fades_past_a_pole[svalbard-size0]",
+  "tests/test_round11_review_2026_11_04.py::test_a_polar_render_is_drawn_polar_and_never_fades_past_a_pole[svalbard-size1]",
+  "tests/test_round11_review_2026_11_04.py::test_a_polar_render_is_drawn_polar_and_never_fades_past_a_pole[vostok-size0]",
+  "tests/test_round11_review_2026_11_04.py::test_a_polar_render_is_drawn_polar_and_never_fades_past_a_pole[vostok-size1]",
+  "tests/test_round11_review_2026_11_04.py::test_lalibela_names_the_red_sea_and_the_gulf_of_aden_each_on_its_side",
+  "tests/test_round11_review_2026_11_04.py::test_narva_names_the_gulf_of_finland",
+  "tests/test_round11_review_2026_11_04.py::test_pitcairn_takes_its_island_from_the_10m_data_for_that_view_only",
+  "tests/test_round11_review_2026_11_04.py::test_polar_polygons_hold_antarctica_whole_at_the_pole",
+  "tests/test_round11_review_2026_11_04.py::test_portobelo_names_the_caribbean_north_and_the_gulf_of_panama_south[size0]",
+  "tests/test_round11_review_2026_11_04.py::test_portobelo_names_the_caribbean_north_and_the_gulf_of_panama_south[size1]",
+  "tests/test_round11_review_2026_11_04.py::test_the_polar_view_has_no_void_no_mirror_and_no_seam[alert-size0]",
+  "tests/test_round11_review_2026_11_04.py::test_the_polar_view_has_no_void_no_mirror_and_no_seam[alert-size1]",
+  "tests/test_round11_review_2026_11_04.py::test_the_polar_view_has_no_void_no_mirror_and_no_seam[southpole-size0]",
+  "tests/test_round11_review_2026_11_04.py::test_the_polar_view_has_no_void_no_mirror_and_no_seam[southpole-size1]",
+  "tests/test_round11_review_2026_11_04.py::test_the_polar_view_has_no_void_no_mirror_and_no_seam[svalbard-size0]",
+  "tests/test_round11_review_2026_11_04.py::test_the_polar_view_has_no_void_no_mirror_and_no_seam[svalbard-size1]",
+  "tests/test_round11_review_2026_11_04.py::test_the_polar_view_has_no_void_no_mirror_and_no_seam[vostok-size0]",
+  "tests/test_round11_review_2026_11_04.py::test_the_polar_view_has_no_void_no_mirror_and_no_seam[vostok-size1]",
+  "tests/test_round11_review_2026_11_04.py::test_ushuaia_water_is_named_only_inside_its_own_polygons",
+  "tests/test_round11_review_2026_11_04.py::test_without_the_10m_data_pitcairn_is_marked_on_the_open_sea",
+  "tests/test_round12_review_2026_11_04.py::test_a_united_kingdom_site_on_tristan_finds_its_island_by_the_sovereign",
+  "tests/test_round12_review_2026_11_04.py::test_an_atolls_islets_near_the_site_come_together",
+  "tests/test_round12_review_2026_11_04.py::test_bikini_is_framed_with_its_countrys_nearest_ground",
+  "tests/test_round12_review_2026_11_04.py::test_mcmurdo_names_no_water_on_the_ice_shelf",
+  "tests/test_round12_review_2026_11_04.py::test_schengen_16x9_frames_luxembourg_to_hold_its_name",
+  "tests/test_round12_review_2026_11_04.py::test_the_peru_route_stacks_no_name_on_another[size0]",
+  "tests/test_round12_review_2026_11_04.py::test_the_peru_route_stacks_no_name_on_another[size1]",
+  "tests/test_round12_review_2026_11_04.py::test_the_ross_ice_shelf_is_antarcticas_ground",
+  "tests/test_round12_review_2026_11_04.py::test_the_smaller_seas_are_loaded_and_ranked_minor",
+  "tests/test_round12_review_2026_11_04.py::test_the_water_at_the_site_is_named_first",
+  "tests/test_round12_review_2026_11_04.py::test_tristan_is_drawn_and_named_tristan_da_cunha_never_saint_helena[Saint Helena]",
+  "tests/test_round12_review_2026_11_04.py::test_tristan_is_drawn_and_named_tristan_da_cunha_never_saint_helena[United Kingdom]",
+  "tests/test_round12_review_2026_11_04.py::test_tristan_is_found_under_its_territory_and_named_by_its_own_subunit",
+  "tests/test_round13_review_2026_11_04.py::test_a_small_ground_is_marked_by_the_dot_where_the_pin_would_cover_it[16x9-aldabra]",
+  "tests/test_round13_review_2026_11_04.py::test_a_small_ground_is_marked_by_the_dot_where_the_pin_would_cover_it[16x9-vaduz]",
+  "tests/test_round13_review_2026_11_04.py::test_a_small_ground_is_marked_by_the_dot_where_the_pin_would_cover_it[9x16-aldabra]",
+  "tests/test_round13_review_2026_11_04.py::test_a_small_ground_is_marked_by_the_dot_where_the_pin_would_cover_it[9x16-vaduz]",
+  "tests/test_round13_review_2026_11_04.py::test_a_water_name_is_refused_off_its_own_body_or_on_land",
+  "tests/test_round13_review_2026_11_04.py::test_ascension_reads_ascension[16x9]",
+  "tests/test_round13_review_2026_11_04.py::test_ascension_reads_ascension[9x16]",
+  "tests/test_round13_review_2026_11_04.py::test_no_marine_edge_is_longer_than_a_degree",
+  "tests/test_round13_review_2026_11_04.py::test_polar_water_names_lie_on_their_own_body[halley-16x9]",
+  "tests/test_round13_review_2026_11_04.py::test_polar_water_names_lie_on_their_own_body[mawson-9x16]",
+  "tests/test_round13_review_2026_11_04.py::test_st_kilda_is_never_named_scotland[16x9]",
+  "tests/test_round13_review_2026_11_04.py::test_st_kilda_is_never_named_scotland[9x16]",
+  "tests/test_round13_review_2026_11_04.py::test_tarawa_reads_north_pacific_with_a_dot_and_no_name_by_maiana[16x9]",
+  "tests/test_round13_review_2026_11_04.py::test_tarawa_reads_north_pacific_with_a_dot_and_no_name_by_maiana[9x16]",
+  "tests/test_round13_review_2026_11_04.py::test_the_egypt_route_names_sudan_not_iraq",
+  "tests/test_round13_review_2026_11_04.py::test_the_home_is_named_by_the_entity_that_holds_the_site[British Indian Ocean Territory--7.3133-72.4111-False-British Indian Ocean Territory]",
+  "tests/test_round13_review_2026_11_04.py::test_the_home_is_named_by_the_entity_that_holds_the_site[Italy-38.1938-15.554-False-Italy]",
+  "tests/test_round13_review_2026_11_04.py::test_the_home_is_named_by_the_entity_that_holds_the_site[Italy-39.75-8.9-False-Italy]",
+  "tests/test_round13_review_2026_11_04.py::test_the_home_is_named_by_the_entity_that_holds_the_site[Saint Helena--37.0675--12.3105-True-Tristan da Cunha]",
+  "tests/test_round13_review_2026_11_04.py::test_the_home_is_named_by_the_entity_that_holds_the_site[Saint Helena--7.9286--14.4155-False-Ascension]",
+  "tests/test_round13_review_2026_11_04.py::test_the_home_is_named_by_the_entity_that_holds_the_site[United Kingdom--37.0675--12.3105-True-Tristan da Cunha]",
+  "tests/test_round13_review_2026_11_04.py::test_the_home_is_named_by_the_entity_that_holds_the_site[United Kingdom-57.813--8.57-True-United Kingdom]",
+  "tests/test_round13_review_2026_11_04.py::test_the_ocean_halves_keep_to_their_hemispheres",
+  "tests/test_round13_review_2026_11_04.py::test_the_sweep_draws_only_names_the_verifier_passes[0-16x9]",
+  "tests/test_round13_review_2026_11_04.py::test_the_sweep_draws_only_names_the_verifier_passes[0-9x16]",
+  "tests/test_round13_review_2026_11_04.py::test_the_sweep_draws_only_names_the_verifier_passes[1-16x9]",
+  "tests/test_round13_review_2026_11_04.py::test_the_sweep_draws_only_names_the_verifier_passes[1-9x16]",
+  "tests/test_round13_review_2026_11_04.py::test_the_sweep_draws_only_names_the_verifier_passes[10-16x9]",
+  "tests/test_round13_review_2026_11_04.py::test_the_sweep_draws_only_names_the_verifier_passes[10-9x16]",
+  "tests/test_round13_review_2026_11_04.py::test_the_sweep_draws_only_names_the_verifier_passes[11-16x9]",
+  "tests/test_round13_review_2026_11_04.py::test_the_sweep_draws_only_names_the_verifier_passes[11-9x16]",
+  "tests/test_round13_review_2026_11_04.py::test_the_sweep_draws_only_names_the_verifier_passes[12-16x9]",
+  "tests/test_round13_review_2026_11_04.py::test_the_sweep_draws_only_names_the_verifier_passes[12-9x16]",
+  "tests/test_round13_review_2026_11_04.py::test_the_sweep_draws_only_names_the_verifier_passes[13-16x9]",
+  "tests/test_round13_review_2026_11_04.py::test_the_sweep_draws_only_names_the_verifier_passes[13-9x16]",
+  "tests/test_round13_review_2026_11_04.py::test_the_sweep_draws_only_names_the_verifier_passes[14-16x9]",
+  "tests/test_round13_review_2026_11_04.py::test_the_sweep_draws_only_names_the_verifier_passes[14-9x16]",
+  "tests/test_round13_review_2026_11_04.py::test_the_sweep_draws_only_names_the_verifier_passes[15-16x9]",
+  "tests/test_round13_review_2026_11_04.py::test_the_sweep_draws_only_names_the_verifier_passes[15-9x16]",
+  "tests/test_round13_review_2026_11_04.py::test_the_sweep_draws_only_names_the_verifier_passes[16-16x9]",
+  "tests/test_round13_review_2026_11_04.py::test_the_sweep_draws_only_names_the_verifier_passes[16-9x16]",
+  "tests/test_round13_review_2026_11_04.py::test_the_sweep_draws_only_names_the_verifier_passes[17-16x9]",
+  "tests/test_round13_review_2026_11_04.py::test_the_sweep_draws_only_names_the_verifier_passes[17-9x16]",
+  "tests/test_round13_review_2026_11_04.py::test_the_sweep_draws_only_names_the_verifier_passes[18-16x9]",
+  "tests/test_round13_review_2026_11_04.py::test_the_sweep_draws_only_names_the_verifier_passes[18-9x16]",
+  "tests/test_round13_review_2026_11_04.py::test_the_sweep_draws_only_names_the_verifier_passes[19-16x9]",
+  "tests/test_round13_review_2026_11_04.py::test_the_sweep_draws_only_names_the_verifier_passes[19-9x16]",
+  "tests/test_round13_review_2026_11_04.py::test_the_sweep_draws_only_names_the_verifier_passes[2-16x9]",
+  "tests/test_round13_review_2026_11_04.py::test_the_sweep_draws_only_names_the_verifier_passes[2-9x16]",
+  "tests/test_round13_review_2026_11_04.py::test_the_sweep_draws_only_names_the_verifier_passes[20-16x9]",
+  "tests/test_round13_review_2026_11_04.py::test_the_sweep_draws_only_names_the_verifier_passes[20-9x16]",
+  "tests/test_round13_review_2026_11_04.py::test_the_sweep_draws_only_names_the_verifier_passes[21-16x9]",
+  "tests/test_round13_review_2026_11_04.py::test_the_sweep_draws_only_names_the_verifier_passes[21-9x16]",
+  "tests/test_round13_review_2026_11_04.py::test_the_sweep_draws_only_names_the_verifier_passes[22-16x9]",
+  "tests/test_round13_review_2026_11_04.py::test_the_sweep_draws_only_names_the_verifier_passes[22-9x16]",
+  "tests/test_round13_review_2026_11_04.py::test_the_sweep_draws_only_names_the_verifier_passes[23-16x9]",
+  "tests/test_round13_review_2026_11_04.py::test_the_sweep_draws_only_names_the_verifier_passes[23-9x16]",
+  "tests/test_round13_review_2026_11_04.py::test_the_sweep_draws_only_names_the_verifier_passes[24-16x9]",
+  "tests/test_round13_review_2026_11_04.py::test_the_sweep_draws_only_names_the_verifier_passes[24-9x16]",
+  "tests/test_round13_review_2026_11_04.py::test_the_sweep_draws_only_names_the_verifier_passes[25-16x9]",
+  "tests/test_round13_review_2026_11_04.py::test_the_sweep_draws_only_names_the_verifier_passes[25-9x16]",
+  "tests/test_round13_review_2026_11_04.py::test_the_sweep_draws_only_names_the_verifier_passes[26-16x9]",
+  "tests/test_round13_review_2026_11_04.py::test_the_sweep_draws_only_names_the_verifier_passes[26-9x16]",
+  "tests/test_round13_review_2026_11_04.py::test_the_sweep_draws_only_names_the_verifier_passes[27-16x9]",
+  "tests/test_round13_review_2026_11_04.py::test_the_sweep_draws_only_names_the_verifier_passes[27-9x16]",
+  "tests/test_round13_review_2026_11_04.py::test_the_sweep_draws_only_names_the_verifier_passes[28-16x9]",
+  "tests/test_round13_review_2026_11_04.py::test_the_sweep_draws_only_names_the_verifier_passes[28-9x16]",
+  "tests/test_round13_review_2026_11_04.py::test_the_sweep_draws_only_names_the_verifier_passes[29-16x9]",
+  "tests/test_round13_review_2026_11_04.py::test_the_sweep_draws_only_names_the_verifier_passes[29-9x16]",
+  "tests/test_round13_review_2026_11_04.py::test_the_sweep_draws_only_names_the_verifier_passes[3-16x9]",
+  "tests/test_round13_review_2026_11_04.py::test_the_sweep_draws_only_names_the_verifier_passes[3-9x16]",
+  "tests/test_round13_review_2026_11_04.py::test_the_sweep_draws_only_names_the_verifier_passes[30-16x9]",
+  "tests/test_round13_review_2026_11_04.py::test_the_sweep_draws_only_names_the_verifier_passes[30-9x16]",
+  "tests/test_round13_review_2026_11_04.py::test_the_sweep_draws_only_names_the_verifier_passes[31-16x9]",
+  "tests/test_round13_review_2026_11_04.py::test_the_sweep_draws_only_names_the_verifier_passes[31-9x16]",
+  "tests/test_round13_review_2026_11_04.py::test_the_sweep_draws_only_names_the_verifier_passes[32-16x9]",
+  "tests/test_round13_review_2026_11_04.py::test_the_sweep_draws_only_names_the_verifier_passes[32-9x16]",
+  "tests/test_round13_review_2026_11_04.py::test_the_sweep_draws_only_names_the_verifier_passes[33-16x9]",
+  "tests/test_round13_review_2026_11_04.py::test_the_sweep_draws_only_names_the_verifier_passes[33-9x16]",
+  "tests/test_round13_review_2026_11_04.py::test_the_sweep_draws_only_names_the_verifier_passes[34-16x9]",
+  "tests/test_round13_review_2026_11_04.py::test_the_sweep_draws_only_names_the_verifier_passes[34-9x16]",
+  "tests/test_round13_review_2026_11_04.py::test_the_sweep_draws_only_names_the_verifier_passes[35-16x9]",
+  "tests/test_round13_review_2026_11_04.py::test_the_sweep_draws_only_names_the_verifier_passes[35-9x16]",
+  "tests/test_round13_review_2026_11_04.py::test_the_sweep_draws_only_names_the_verifier_passes[36-16x9]",
+  "tests/test_round13_review_2026_11_04.py::test_the_sweep_draws_only_names_the_verifier_passes[36-9x16]",
+  "tests/test_round13_review_2026_11_04.py::test_the_sweep_draws_only_names_the_verifier_passes[4-16x9]",
+  "tests/test_round13_review_2026_11_04.py::test_the_sweep_draws_only_names_the_verifier_passes[4-9x16]",
+  "tests/test_round13_review_2026_11_04.py::test_the_sweep_draws_only_names_the_verifier_passes[5-16x9]",
+  "tests/test_round13_review_2026_11_04.py::test_the_sweep_draws_only_names_the_verifier_passes[5-9x16]",
+  "tests/test_round13_review_2026_11_04.py::test_the_sweep_draws_only_names_the_verifier_passes[6-16x9]",
+  "tests/test_round13_review_2026_11_04.py::test_the_sweep_draws_only_names_the_verifier_passes[6-9x16]",
+  "tests/test_round13_review_2026_11_04.py::test_the_sweep_draws_only_names_the_verifier_passes[7-16x9]",
+  "tests/test_round13_review_2026_11_04.py::test_the_sweep_draws_only_names_the_verifier_passes[7-9x16]",
+  "tests/test_round13_review_2026_11_04.py::test_the_sweep_draws_only_names_the_verifier_passes[8-16x9]",
+  "tests/test_round13_review_2026_11_04.py::test_the_sweep_draws_only_names_the_verifier_passes[8-9x16]",
+  "tests/test_round13_review_2026_11_04.py::test_the_sweep_draws_only_names_the_verifier_passes[9-16x9]",
+  "tests/test_round13_review_2026_11_04.py::test_the_sweep_draws_only_names_the_verifier_passes[9-9x16]",
+  "tests/test_round13_review_2026_11_04.py::test_the_water_at_a_point_is_its_own_body[-25.0--71.8-Weddell Sea]",
+  "tests/test_round13_review_2026_11_04.py::test_the_water_at_a_point_is_its_own_body[-30.0--0.5-South Atlantic Ocean]",
+  "tests/test_round13_review_2026_11_04.py::test_the_water_at_a_point_is_its_own_body[-30.0-0.5-North Atlantic Ocean]",
+  "tests/test_round13_review_2026_11_04.py::test_the_water_at_a_point_is_its_own_body[10.5-57.9-Skagerrak]",
+  "tests/test_round13_review_2026_11_04.py::test_the_water_at_a_point_is_its_own_body[142.66--62.9-Southern Ocean]",
+  "tests/test_round13_review_2026_11_04.py::test_the_water_at_a_point_is_its_own_body[172.931--1.0-South Pacific Ocean]",
+  "tests/test_round13_review_2026_11_04.py::test_the_water_at_a_point_is_its_own_body[172.931-1.353-North Pacific Ocean]",
+  "tests/test_round14_review_2026_11_04.py::test_a_coarse_island_is_never_framed_larger_than_its_detail",
+  "tests/test_round14_review_2026_11_04.py::test_a_coastal_site_on_contested_ground_names_no_home[0-16x9]",
+  "tests/test_round14_review_2026_11_04.py::test_a_coastal_site_on_contested_ground_names_no_home[0-9x16]",
+  "tests/test_round14_review_2026_11_04.py::test_a_coastal_site_on_contested_ground_names_no_home[1-16x9]",
+  "tests/test_round14_review_2026_11_04.py::test_a_coastal_site_on_contested_ground_names_no_home[1-9x16]",
+  "tests/test_round14_review_2026_11_04.py::test_a_coastal_site_on_contested_ground_names_no_home[2-16x9]",
+  "tests/test_round14_review_2026_11_04.py::test_a_coastal_site_on_contested_ground_names_no_home[2-9x16]",
+  "tests/test_round14_review_2026_11_04.py::test_a_high_latitude_island_is_framed_on_itself_at_9x16[janmayen]",
+  "tests/test_round14_review_2026_11_04.py::test_a_high_latitude_island_is_framed_on_itself_at_9x16[torshavn]",
+  "tests/test_round14_review_2026_11_04.py::test_a_site_off_all_drawn_ground_is_framed_where_its_offset_reads",
+  "tests/test_round14_review_2026_11_04.py::test_an_abbreviated_name_is_written_out",
+  "tests/test_round14_review_2026_11_04.py::test_diomede_9x16_names_the_united_states_in_its_fill",
+  "tests/test_round14_review_2026_11_04.py::test_greenland_is_never_named_beside_svalbard",
+  "tests/test_round14_review_2026_11_04.py::test_the_coastal_sweep_names_its_home_and_passes_an_independent_check[0-16x9]",
+  "tests/test_round14_review_2026_11_04.py::test_the_coastal_sweep_names_its_home_and_passes_an_independent_check[0-9x16]",
+  "tests/test_round14_review_2026_11_04.py::test_the_coastal_sweep_names_its_home_and_passes_an_independent_check[1-16x9]",
+  "tests/test_round14_review_2026_11_04.py::test_the_coastal_sweep_names_its_home_and_passes_an_independent_check[1-9x16]",
+  "tests/test_round14_review_2026_11_04.py::test_the_coastal_sweep_names_its_home_and_passes_an_independent_check[2-16x9]",
+  "tests/test_round14_review_2026_11_04.py::test_the_coastal_sweep_names_its_home_and_passes_an_independent_check[2-9x16]",
+  "tests/test_round14_review_2026_11_04.py::test_the_coastal_sweep_names_its_home_and_passes_an_independent_check[3-16x9]",
+  "tests/test_round14_review_2026_11_04.py::test_the_coastal_sweep_names_its_home_and_passes_an_independent_check[3-9x16]",
+  "tests/test_round14_review_2026_11_04.py::test_the_coastal_sweep_names_its_home_and_passes_an_independent_check[4-16x9]",
+  "tests/test_round14_review_2026_11_04.py::test_the_coastal_sweep_names_its_home_and_passes_an_independent_check[4-9x16]",
+  "tests/test_round14_review_2026_11_04.py::test_the_coastal_sweep_names_its_home_and_passes_an_independent_check[5-16x9]",
+  "tests/test_round14_review_2026_11_04.py::test_the_coastal_sweep_names_its_home_and_passes_an_independent_check[5-9x16]",
+  "tests/test_round14_review_2026_11_04.py::test_the_coastal_sweep_names_its_home_and_passes_an_independent_check[6-16x9]",
+  "tests/test_round14_review_2026_11_04.py::test_the_coastal_sweep_names_its_home_and_passes_an_independent_check[6-9x16]",
+  "tests/test_round14_review_2026_11_04.py::test_the_coastal_sweep_names_its_home_and_passes_an_independent_check[7-16x9]",
+  "tests/test_round14_review_2026_11_04.py::test_the_coastal_sweep_names_its_home_and_passes_an_independent_check[7-9x16]",
+  "tests/test_round14_review_2026_11_04.py::test_the_coastal_sweep_names_its_home_and_passes_an_independent_check[8-16x9]",
+  "tests/test_round14_review_2026_11_04.py::test_the_coastal_sweep_names_its_home_and_passes_an_independent_check[8-9x16]",
+  "tests/test_round14_review_2026_11_04.py::test_the_coastal_sweep_names_its_home_and_passes_an_independent_check[9-16x9]",
+  "tests/test_round14_review_2026_11_04.py::test_the_coastal_sweep_names_its_home_and_passes_an_independent_check[9-9x16]",
+  "tests/test_round14_review_2026_11_04.py::test_the_home_is_the_entity_that_holds_the_site[Australia--29.056-167.96-Norfolk Island]",
+  "tests/test_round14_review_2026_11_04.py::test_the_home_is_the_entity_that_holds_the_site[Denmark-56.039-12.6213-Denmark]",
+  "tests/test_round14_review_2026_11_04.py::test_the_home_is_the_entity_that_holds_the_site[Denmark-62.0107--6.7741-Faroe Islands]",
+  "tests/test_round14_review_2026_11_04.py::test_the_home_is_the_entity_that_holds_the_site[France--14.97--147.63-French Polynesia]",
+  "tests/test_round14_review_2026_11_04.py::test_the_home_is_the_entity_that_holds_the_site[France--49.35-70.22-French Southern and Antarctic Lands]",
+  "tests/test_round14_review_2026_11_04.py::test_the_home_is_the_entity_that_holds_the_site[Norway-70.9333--8.6667-Norway]",
+  "tests/test_round14_review_2026_11_04.py::test_the_home_is_the_entity_that_holds_the_site[United Kingdom-57.813--8.57-United Kingdom]",
+  "tests/test_round14_review_2026_11_04.py::test_the_reviews_homes_are_named_on_their_own_ground[agulhas-16x9]",
+  "tests/test_round14_review_2026_11_04.py::test_the_reviews_homes_are_named_on_their_own_ground[agulhas-9x16]",
+  "tests/test_round14_review_2026_11_04.py::test_the_reviews_homes_are_named_on_their_own_ground[dumont-16x9]",
+  "tests/test_round14_review_2026_11_04.py::test_the_reviews_homes_are_named_on_their_own_ground[dumont-9x16]",
+  "tests/test_round14_review_2026_11_04.py::test_the_reviews_homes_are_named_on_their_own_ground[llivia-16x9]",
+  "tests/test_round14_review_2026_11_04.py::test_the_reviews_homes_are_named_on_their_own_ground[llivia-9x16]",
+  "tests/test_round14_review_2026_11_04.py::test_the_reviews_homes_are_named_on_their_own_ground[norfolk-16x9]",
+  "tests/test_round14_review_2026_11_04.py::test_the_reviews_homes_are_named_on_their_own_ground[norfolk-9x16]",
+  "tests/test_round14_review_2026_11_04.py::test_the_reviews_homes_are_named_on_their_own_ground[perim-16x9]",
+  "tests/test_round14_review_2026_11_04.py::test_the_reviews_homes_are_named_on_their_own_ground[perim-9x16]",
+  "tests/test_round14_review_2026_11_04.py::test_the_reviews_homes_are_named_on_their_own_ground[puntaarenas-16x9]",
+  "tests/test_round14_review_2026_11_04.py::test_the_reviews_homes_are_named_on_their_own_ground[puntaarenas-9x16]",
+  "tests/test_round14_review_2026_11_04.py::test_the_reviews_homes_are_named_on_their_own_ground[torshavn-16x9]",
+  "tests/test_round14_review_2026_11_04.py::test_the_reviews_homes_are_named_on_their_own_ground[torshavn-9x16]",
+  "tests/test_round14_review_2026_11_04.py::test_the_routes_names_pass_the_verifier_and_are_recorded[egypt]",
+  "tests/test_round14_review_2026_11_04.py::test_the_routes_names_pass_the_verifier_and_are_recorded[greece]",
+  "tests/test_round15_review_2026_11_05.py::test_an_entitys_internal_borders_are_never_stroked",
+  "tests/test_round15_review_2026_11_05.py::test_an_island_is_framed_no_closer_than_its_own_vertices_hold[-0.743--90.313-Ecuador]",
+  "tests/test_round15_review_2026_11_05.py::test_an_island_is_framed_no_closer_than_its_own_vertices_hold[1.2895-103.852-Singapore]",
+  "tests/test_round15_review_2026_11_05.py::test_an_island_is_framed_no_closer_than_its_own_vertices_hold[10.3--109.217-France]",
+  "tests/test_round15_review_2026_11_05.py::test_an_island_is_framed_no_closer_than_its_own_vertices_hold[4.1755-73.5093-Maldives]",
+  "tests/test_round15_review_2026_11_05.py::test_an_offshore_site_has_a_leader_to_its_land",
+  "tests/test_round15_review_2026_11_05.py::test_kaliningrads_russia_is_never_on_lithuania",
+  "tests/test_round15_review_2026_11_05.py::test_lesotho_holds_its_own_name[16x9]",
+  "tests/test_round15_review_2026_11_05.py::test_lesotho_holds_its_own_name[9x16]",
+  "tests/test_round15_review_2026_11_05.py::test_no_initialism_is_ever_an_entitys_name",
+  "tests/test_round15_review_2026_11_05.py::test_no_outline_is_smoothed",
+  "tests/test_round15_review_2026_11_05.py::test_the_directives_places_name_their_home_or_drop_it_with_a_reason[akrotiri-16x9]",
+  "tests/test_round15_review_2026_11_05.py::test_the_directives_places_name_their_home_or_drop_it_with_a_reason[akrotiri-9x16]",
+  "tests/test_round15_review_2026_11_05.py::test_the_directives_places_name_their_home_or_drop_it_with_a_reason[ascension-16x9]",
+  "tests/test_round15_review_2026_11_05.py::test_the_directives_places_name_their_home_or_drop_it_with_a_reason[ascension-9x16]",
+  "tests/test_round15_review_2026_11_05.py::test_the_directives_places_name_their_home_or_drop_it_with_a_reason[diego-16x9]",
+  "tests/test_round15_review_2026_11_05.py::test_the_directives_places_name_their_home_or_drop_it_with_a_reason[diego-9x16]",
+  "tests/test_round15_review_2026_11_05.py::test_the_directives_places_name_their_home_or_drop_it_with_a_reason[fakaofo-16x9]",
+  "tests/test_round15_review_2026_11_05.py::test_the_directives_places_name_their_home_or_drop_it_with_a_reason[fakaofo-9x16]",
+  "tests/test_round15_review_2026_11_05.py::test_the_directives_places_name_their_home_or_drop_it_with_a_reason[gambia-16x9]",
+  "tests/test_round15_review_2026_11_05.py::test_the_directives_places_name_their_home_or_drop_it_with_a_reason[gambia-9x16]",
+  "tests/test_round15_review_2026_11_05.py::test_the_directives_places_name_their_home_or_drop_it_with_a_reason[gibraltar-16x9]",
+  "tests/test_round15_review_2026_11_05.py::test_the_directives_places_name_their_home_or_drop_it_with_a_reason[gibraltar-9x16]",
+  "tests/test_round15_review_2026_11_05.py::test_the_directives_places_name_their_home_or_drop_it_with_a_reason[kaliningrad-16x9]",
+  "tests/test_round15_review_2026_11_05.py::test_the_directives_places_name_their_home_or_drop_it_with_a_reason[kaliningrad-9x16]",
+  "tests/test_round15_review_2026_11_05.py::test_the_directives_places_name_their_home_or_drop_it_with_a_reason[lesotho-16x9]",
+  "tests/test_round15_review_2026_11_05.py::test_the_directives_places_name_their_home_or_drop_it_with_a_reason[lesotho-9x16]",
+  "tests/test_round15_review_2026_11_05.py::test_the_directives_places_name_their_home_or_drop_it_with_a_reason[liechtenstein-16x9]",
+  "tests/test_round15_review_2026_11_05.py::test_the_directives_places_name_their_home_or_drop_it_with_a_reason[liechtenstein-9x16]",
+  "tests/test_round15_review_2026_11_05.py::test_the_directives_places_name_their_home_or_drop_it_with_a_reason[monaco-16x9]",
+  "tests/test_round15_review_2026_11_05.py::test_the_directives_places_name_their_home_or_drop_it_with_a_reason[monaco-9x16]",
+  "tests/test_round15_review_2026_11_05.py::test_the_directives_places_name_their_home_or_drop_it_with_a_reason[saotome-16x9]",
+  "tests/test_round15_review_2026_11_05.py::test_the_directives_places_name_their_home_or_drop_it_with_a_reason[saotome-9x16]",
+  "tests/test_round15_review_2026_11_05.py::test_the_directives_places_name_their_home_or_drop_it_with_a_reason[singapore-16x9]",
+  "tests/test_round15_review_2026_11_05.py::test_the_directives_places_name_their_home_or_drop_it_with_a_reason[singapore-9x16]",
+  "tests/test_round15_review_2026_11_05.py::test_the_directives_places_name_their_home_or_drop_it_with_a_reason[stkilda-16x9]",
+  "tests/test_round15_review_2026_11_05.py::test_the_directives_places_name_their_home_or_drop_it_with_a_reason[stkilda-9x16]",
+  "tests/test_round15_review_2026_11_05.py::test_the_directives_places_name_their_home_or_drop_it_with_a_reason[tristan-16x9]",
+  "tests/test_round15_review_2026_11_05.py::test_the_directives_places_name_their_home_or_drop_it_with_a_reason[tristan-9x16]",
+  "tests/test_round15_review_2026_11_05.py::test_the_directives_places_name_their_home_or_drop_it_with_a_reason[vatican-16x9]",
+  "tests/test_round15_review_2026_11_05.py::test_the_directives_places_name_their_home_or_drop_it_with_a_reason[vatican-9x16]",
+  "tests/test_round15_review_2026_11_05.py::test_the_home_is_the_entity_whose_ground_holds_the_site[-29.056-167.96-Australia-Norfolk Island]",
+  "tests/test_round15_review_2026_11_05.py::test_the_home_is_the_entity_whose_ground_holds_the_site[-29.31-27.48-Lesotho-Lesotho]",
+  "tests/test_round15_review_2026_11_05.py::test_the_home_is_the_entity_whose_ground_holds_the_site[-37.067--12.311-United Kingdom-Tristan da Cunha]",
+  "tests/test_round15_review_2026_11_05.py::test_the_home_is_the_entity_whose_ground_holds_the_site[-49.35-70.22-France-French Southern and Antarctic Lands]",
+  "tests/test_round15_review_2026_11_05.py::test_the_home_is_the_entity_whose_ground_holds_the_site[-7.313-72.411-United Kingdom-British Indian Ocean Territory]",
+  "tests/test_round15_review_2026_11_05.py::test_the_home_is_the_entity_whose_ground_holds_the_site[-7.926--14.416-United Kingdom-Ascension]",
+  "tests/test_round15_review_2026_11_05.py::test_the_home_is_the_entity_whose_ground_holds_the_site[-9.38--171.247-New Zealand-Tokelau]",
+  "tests/test_round15_review_2026_11_05.py::test_the_home_is_the_entity_whose_ground_holds_the_site[0.3365-6.7273-Sao Tome and Principe-Sao Tome and Principe]",
+  "tests/test_round15_review_2026_11_05.py::test_the_home_is_the_entity_whose_ground_holds_the_site[22.2783-114.1747-China-Hong Kong]",
+  "tests/test_round15_review_2026_11_05.py::test_the_home_is_the_entity_whose_ground_holds_the_site[36.144--5.342-United Kingdom-None]",
+  "tests/test_round15_review_2026_11_05.py::test_the_home_is_the_entity_whose_ground_holds_the_site[4.94--52.33-France-French Guiana]",
+  "tests/test_round15_review_2026_11_05.py::test_the_home_is_the_entity_whose_ground_holds_the_site[41.9029-12.4534-Italy-Vatican]",
+  "tests/test_round15_review_2026_11_05.py::test_the_home_is_the_entity_whose_ground_holds_the_site[47.696-8.69-Germany-Germany]",
+  "tests/test_round15_review_2026_11_05.py::test_the_home_is_the_entity_whose_ground_holds_the_site[54.7065-20.511-Russia-Russia]",
+  "tests/test_round15_review_2026_11_05.py::test_the_home_is_the_entity_whose_ground_holds_the_site[57.813--8.57-United Kingdom-United Kingdom]",
+  "tests/test_round15_review_2026_11_05.py::test_the_home_is_the_entity_whose_ground_holds_the_site[62.0107--6.7741-Denmark-Faroe Islands]",
+  "tests/test_round15_review_2026_11_05.py::test_the_sweep_is_large_and_spread",
+  "tests/test_round15_review_2026_11_05.py::test_the_sweep_names_every_home_and_passes_the_independent_check[NOTSET-16x9]",
+  "tests/test_round15_review_2026_11_05.py::test_the_sweep_names_every_home_and_passes_the_independent_check[NOTSET-9x16]",
+  "tests/test_round15_review_2026_11_05.py::test_the_topic_country_never_reaches_past_the_datas_own_error",
+  "tests/test_round16_review_2026_11_05.py::test_a_routes_base_drawn_home_name_is_checked[16x9]",
+  "tests/test_round16_review_2026_11_05.py::test_a_routes_base_drawn_home_name_is_checked[9x16]",
+  "tests/test_round16_review_2026_11_05.py::test_a_title_repeating_the_homes_name_takes_its_sovereign",
+  "tests/test_round16_review_2026_11_05.py::test_an_overriding_home_gets_the_marker",
+  "tests/test_round16_review_2026_11_05.py::test_every_outline_in_a_close_up_holds_its_detail[22.1987-113.5439-China]",
+  "tests/test_round16_review_2026_11_05.py::test_every_outline_in_a_close_up_holds_its_detail[46.7811--56.1764-France]",
+  "tests/test_round16_review_2026_11_05.py::test_every_outline_in_a_close_up_holds_its_detail[8.72-167.731-Marshall Islands]",
+  "tests/test_round16_review_2026_11_05.py::test_luxembourg_names_its_home[16x9]",
+  "tests/test_round16_review_2026_11_05.py::test_luxembourg_names_its_home[9x16]",
+  "tests/test_round16_review_2026_11_05.py::test_melillas_spain_is_by_melilla",
+  "tests/test_round16_review_2026_11_05.py::test_the_topic_country_overrides_held_ground_only_within_its_error[-4.215--69.94-Colombia-Colombia-True]",
+  "tests/test_round16_review_2026_11_05.py::test_the_topic_country_overrides_held_ground_only_within_its_error[20.3536-100.0837-Thailand-None-False]",
+  "tests/test_round16_review_2026_11_05.py::test_the_topic_country_overrides_held_ground_only_within_its_error[36.1438--5.3426-United Kingdom-None-False]",
+  "tests/test_round16_review_2026_11_05.py::test_the_topic_country_overrides_held_ground_only_within_its_error[50.7543-6.0207-Netherlands-Netherlands-True]",
+  "tests/test_round16_review_2026_11_05.py::test_the_topic_country_overrides_held_ground_only_within_its_error[51.4386-4.9286-Belgium-None-False]",
+  "tests/test_round16_review_2026_11_05.py::test_the_topic_country_overrides_held_ground_only_within_its_error[69.0599-20.5486-Finland-None-False]",
+  "tests/test_round16_review_2026_11_05.py::test_vaals_marker_stands_on_the_highlighted_ground",
+  "tests/test_round6_review_2026_11_03.py::test_locator_span_leaves_room_for_the_neighbours_and_frames_small_islands",
+  "tests/test_round6_review_2026_11_03.py::test_sea_names_take_the_nearest_anchor_within_reach",
+  "tests/test_round6_review_2026_11_03.py::test_water_labels_set_a_sea_name_where_its_water_is_open",
+  "tests/test_round7_review_2026_11_03.py::test_a_sea_name_sits_wholly_on_its_own_sea",
+  "tests/test_round7_review_2026_11_03.py::test_great_zimbabwe_names_zimbabwe_on_9x16[leader]",
+  "tests/test_round7_review_2026_11_03.py::test_great_zimbabwe_names_zimbabwe_on_9x16[pin]",
+  "tests/test_round7_review_2026_11_03.py::test_rapa_nui_is_framed_on_its_island[16x9]",
+  "tests/test_round7_review_2026_11_03.py::test_rapa_nui_is_framed_on_its_island[9x16]",
+  "tests/test_round7_review_2026_11_03.py::test_seas_are_named_by_the_water_round_ushuaia_and_the_horn_of_africa",
+  "tests/test_round8_review_2026_11_03.py::test_nan_madol_is_framed_at_its_outline_detail_with_the_pin_on_pohnpei[16x9]",
+  "tests/test_round8_review_2026_11_03.py::test_nan_madol_is_framed_at_its_outline_detail_with_the_pin_on_pohnpei[9x16]",
+  "tests/test_round8_review_2026_11_03.py::test_the_polar_close_up_has_no_dateline_edge",
+  "tests/test_round8_review_2026_11_03.py::test_the_sokh_exclave_is_uzbek_ground",
+  "tests/test_round9_review_2026_11_04.py::test_nauru_is_framed_where_it_reads[16x9]",
+  "tests/test_round9_review_2026_11_04.py::test_nauru_is_framed_where_it_reads[9x16]",
+  "tests/test_round9_review_2026_11_04.py::test_the_antarctic_seas_are_named",
+  "tests/test_safe_zones.py::test_the_map_label_stays_inside_the_reel_box",
+  "tests/test_scale_bar_2026_11_03.py::test_the_greece_route_bar_keeps_off_crete_and_the_legs",
+  "tests/test_text_crop_2026_10_28.py::test_trepanation_photo_14_label_is_cropped_away",
+  "tests/test_unesco_and_upgrades.py::test_control_discover_command",
+  "tests/test_unesco_and_upgrades.py::test_control_discover_umore_and_duplicate_uadd",
+  "tests/test_unesco_and_upgrades.py::test_discover_engineering_wonders",
+  "tests/test_unesco_and_upgrades.py::test_discover_pagination_with_offset",
+  "tests/test_unesco_and_upgrades.py::test_unesco_matching_and_evidence"
+ ]
+}

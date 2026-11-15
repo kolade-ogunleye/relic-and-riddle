@@ -51,7 +51,10 @@ INPUT = "rvin"                      # the review panel's name in the bot's one a
 TABS = {"sum": "Summary", "scr": "Script", "pst": "Posts", "chk": "Checks", "pic": "Pictures"}
 REDRAW_KEY = "review-panel-redraw"   # set by a process that is not the renderer: the renderer draws the panel
 REVIEW_ACTIONS = {"rvp", "rvt", "rvi", "rva", "rvb", "rvr", "rvg", "rvk", "rvs", "rvn", "rvd", "rvu", "rve", "rvc",
-                  "rvshow", "rvua"}
+                  "rvshow", "rvua", "rvx"}
+TITLE_ROOM = 160                    # a title longer than this is cut at a word on every face (UI-01g)
+HOOK_FLOOR = 60                     # ... and a hook or a typed note is never cut below this to make a face fit
+PREVIEW_SECONDS = 20 * 60           # a carousel preview still being drawn after this is given up (UI-01g)
 
 
 def enabled() -> bool:
@@ -88,6 +91,31 @@ def _split_words(text: str, room: int) -> list[str]:
             cur = cand
     if cur:
         out.append(cur)
+    return out
+
+
+def cut(text: Any, room: int) -> str:
+    """A plain text within `room` visible characters: whole when it fits, else cut at a word with an ellipsis."""
+    from .notifications import clip
+    text = str(text if text is not None else "")
+    limit = max(1, int(room))
+    while visible_len(_e(text)) > room and limit > 0:
+        text = clip(text, limit)
+        limit -= max(1, visible_len(_e(text)) - room)
+    return text
+
+
+def fit_caption(caption: str) -> str:
+    """The last guard of every face (UI-01g): a caption Telegram would refuse (more than 1,024 characters after
+    entities) is cut with its tags closed. The faces fit by their own rules; this holds when a record is far longer
+    than any real one."""
+    if visible_len(caption) <= CAPTION_LIMIT:
+        return caption
+    from .telegram_bot import safe_html_truncate
+    out, limit = caption, len(caption)
+    while visible_len(out) > CAPTION_LIMIT and limit > 1:
+        limit -= max(1, visible_len(out) - CAPTION_LIMIT)
+        out = safe_html_truncate(caption, limit)
     return out
 
 
@@ -477,7 +505,12 @@ class ReviewPanel:
         return f"<b>{head}{extra}</b>"
 
     def face(self, view: dict[str, Any]) -> tuple[str, list[list[dict[str, Any]]], dict[str, Any] | None]:
-        """(caption, keyboard rows, picture) for the face in view; picture is None for the video."""
+        """(caption, keyboard rows, picture) for the face in view; picture is None for the video. The caption
+        always fits Telegram's 1,024 characters (fit_caption)."""
+        caption, rows, picture = self._face(view)
+        return fit_caption(caption), rows, picture
+
+    def _face(self, view: dict[str, Any]) -> tuple[str, list[list[dict[str, Any]]], dict[str, Any] | None]:
         pager = self.pager(view)
         run_id = view.get("run")
         if run_id not in pager:
@@ -486,7 +519,7 @@ class ReviewPanel:
         key = self.db.run_key(run_id)
         run = self.db.get_run(run_id) or {}
         payload = run.get("script_payload") or {}
-        title = _e(payload.get("title") or self.db.run_label(run_id))
+        title = _e(cut(payload.get("title") or self.db.run_label(run_id), TITLE_ROOM))
         from . import publishable
         posted = publishable.load_record(self.db, run_id) or {}
         release = release_of(self.db, run_id)
@@ -529,6 +562,8 @@ class ReviewPanel:
             text = (f"{self._head(index, total, 'pst')}\n{title}\n\n✅ Got it: ‘{_e(view.get('said') or '')}’\n"
                     "⏳ Re-checking the release gate…")
             return text, [], None
+        if face in ("carwait", "car"):
+            return self._carousel_face(view, index, total, key, title, record, notice)
         pager_row = self._review_pager(index, total, pager)
         if tab == "pic":
             pictures = record.get("pictures") or []
@@ -558,9 +593,32 @@ class ReviewPanel:
                      {"text": "Summary", "callback_data": f"rvt:{key}:sum"}])
         if tab == "pst" and isinstance(posted, dict) and posted.get("carousel_at_slot"):
             # QF-81: a carousel drawn at its slot is previewed on demand (both copies, audited as at its slot); the
-            # Posts text names this button. Drawn in the dashboard, never over this panel (telegram_bot).
-            rows.append([{"text": "🖼 Preview carousel", "callback_data": f"ccar:{key}"}])
+            # Posts text names this button. UI-01g: the preview is this panel's own face (rvx), one picture a page.
+            rows.append([{"text": "🖼 Preview carousel", "callback_data": f"rvx:{key}"}])
         return caption, [r for r in rows if r], None
+
+    def _carousel_face(self, view, index, total, key, title, record, notice):
+        """The carousel preview inside the panel (UI-01g; QF-81's drawing): while it is drawn the video stays with a
+        line saying so; then both copies on one sheet with the verdict and every finding, and each slide with its alt
+        text, one photo a page. With nothing to show (no carousel, a drawing that failed) the video stays and the
+        face says why."""
+        back = [{"text": "Posts", "callback_data": f"rvt:{key}:pst"}, {"text": "Summary", "callback_data": f"rvt:{key}:sum"}]
+        shown = record.get("carousel") or {}
+        pages = shown.get("pages") or []
+        if view.get("face") == "carwait":
+            text = (f"{self._head(index, total, 'pst')}\n{title}\n\n🖼 <b>Carousel preview</b>\n"
+                    "⏳ Drawing both copies and checking them as its slot would. You can keep using the bot.")
+            return text, [back], None
+        if not pages:
+            text = (f"{self._head(index, total, 'pst')}\n{title}\n\n🖼 <b>Carousel preview</b>\n"
+                    f"{shown.get('note') or 'There is no carousel drawing to show.'}{notice}")
+            return text, [back], None
+        n = max(1, min(int(view.get("sub") or 1), len(pages)))
+        page = pages[n - 1]
+        head = f"<b>🎬 Review {index} of {total} · Carousel preview {n} of {len(pages)}</b>"
+        from .notifications import pager_row as arrows
+        rows = [arrows(n, len(pages), lambda p: f"rvx:{key}:{p}"), back]
+        return f"{head}\n{title}\n\n{page.get('caption') or ''}{notice}", [r for r in rows if r], {**page, "n": n}
 
     def _review_pager(self, index: int, total: int, pager: list[str]) -> list[dict[str, str]]:
         from .notifications import pager_row as arrows
@@ -586,18 +644,27 @@ class ReviewPanel:
         else:
             lede = "✅ <b>Ready to approve</b>" + (f" · {len(notes)} note{'s' if len(notes) != 1 else ''} to check" if notes else "")
         regen = self.db.get_setting("regenerating:" + view["run"])
-        lines = [self._head(index, total, "sum"), title,
-                 *( [f"🔄 New version · your note: {_e(regen)}"] if regen else []), lede]
         hook = payload.get("hook_sentence") or payload.get("hook")
-        if hook:
-            lines.append(f"<i>“{_e(hook)}”</i>")
         slot = _plain(_schedule_line(posted)) if isinstance(posted, dict) and posted else ""
-        if slot:
-            lines.append(_e(slot))
         from .telegram_bot import _ai_label_line
         ai = _ai_label_line(posted, brief=True)   # QF-65a: whether the post carries the AI label; whole on Posts
-        if ai:
-            lines.append(ai.replace("; more in the reply", "; all of it on Posts"))
+        ai = ai.replace("; more in the reply", "; all of it on Posts") if ai else ""
+
+        def above(regen, hook) -> list[str]:
+            return [self._head(index, total, "sum"), title,
+                    *([f"🔄 New version · your note: {_e(regen)}"] if regen else []), lede,
+                    *([f"<i>“{_e(hook)}”</i>"] if hook else []), *([_e(slot)] if slot else []), *([ai] if ai else [])]
+        # UI-01g: the face always fits the caption. A typed note or a hook far longer than any real one is cut at a
+        # word, the longer first (never below HOOK_FLOOR), with room kept for the facts line; real ones are whole.
+        for _ in range(2):
+            over = visible_len("\n".join(above(regen, hook))) + visible_len(notice) + 80 - ROOM
+            name = max(("regen", "hook"), key=lambda k: len(str({"regen": regen, "hook": hook}[k] or "")))
+            value = str({"regen": regen, "hook": hook}[name] or "")
+            if over <= 0 or len(value) <= HOOK_FLOOR:
+                break
+            short = cut(value, max(HOOK_FLOOR, visible_len(_e(value)) - over))
+            regen, hook = (short, hook) if name == "regen" else (regen, short)
+        lines = above(regen, hook)
         facts = []
         if length is not None:
             facts.append(f"{length:.0f} s")
@@ -755,8 +822,8 @@ class ReviewPanel:
         if picture is not None:
             sizes = result.get("photo") or []
             if sizes and not picture.get("id"):
-                for p in record.get("pictures") or []:
-                    if p.get("path") == picture.get("path"):
+                for p in (record.get("pictures") or []) + ((record.get("carousel") or {}).get("pages") or []):
+                    if p.get("path") == picture.get("path") and p.get("stamp") == picture.get("stamp"):
                         p["id"] = sizes[-1].get("file_id")
                 self._put_record(run_id, record)
             return
@@ -929,6 +996,16 @@ class ReviewPanel:
                 view["tab"] = "sum"
             self._save(view)
             self.draw()
+
+    @_serial
+    def say(self, words: str) -> None:
+        """A line under the face in view (UI-01g: a screen asked for from this panel could not be opened)."""
+        if not self.message():
+            return
+        view = self.view()
+        view["notice"] = words
+        self._save(view)
+        self.draw()
 
     @_serial
     def typed_photo(self) -> None:
@@ -1141,7 +1218,8 @@ class ReviewPanel:
             body = re.sub(r"\n?Undo until [^.]*\.( Then the topic is set aside\.)?", lambda m: " The topic is set aside." if m.group(1) else "",
                           item.get("body") or "").strip()
             notes.post(self.db, item["section"], item["dedupe_key"], item["title"], body, emoji=item.get("emoji") or "",
-                       subject=item.get("subject") or "", actions=actions, run=run_id, replace=True, ring=False)
+                       subject=item.get("subject") or "", actions=actions, run=run_id, replace=True, ring=False,
+                       keep_time=True)   # UI-01g: losing its Undo is not news; its time stays the decision's
         self._kick()
 
     @_serial
@@ -1154,6 +1232,18 @@ class ReviewPanel:
         changed = False
         if view.get("face") in ("reject", "regen") and now >= float(view.get("face_until") or 0):
             view.update(face=None)
+            changed = True
+        if view.get("face") == "carwait" and view.get("drawn_by") not in (None, self._process()):
+            # UI-01g: its drawing was a job of a process that is gone (a restart): nothing is drawing it, so the
+            # face says so at this start's first round, never "Drawing ..." until its time runs out
+            view.update(face=None, tab="pst", sub=1, drawn_by=None,
+                        notice="The carousel preview was interrupted: the bot stopped while drawing it. Tap "
+                               "🖼 Preview carousel to try again.")
+            changed = True
+        elif view.get("face") == "carwait" and now >= float(view.get("face_until") or 0):
+            # a preview whose drawing never came back says so
+            view.update(face=None, tab="pst", sub=1, drawn_by=None,
+                        notice="The carousel preview was not drawn in time. Tap 🖼 Preview carousel to try again.")
             changed = True
         if view.get("input") and now >= float(view.get("input_until") or 0):
             if view.get("face") == "noted":
@@ -1228,6 +1318,21 @@ class ReviewPanel:
                 view.update(sub=int(arg) if arg.isdigit() else 1, opened=self.clock(), notice=None)
                 self._save(view)
                 self.draw(media=view.get("tab") == "pic")
+            elif action == "rvx":
+                if arg.isdigit() and view.get("face") == "car" and view.get("run") == run_id:
+                    view.update(sub=int(arg), opened=self.clock(), notice=None)   # a page of the preview shown
+                    self._save(view)
+                    self.draw(media=True)
+                else:
+                    if view.get("face") in ("edit", "words"):
+                        self._disarm()
+                    view.update(run=run_id, tab="pst", sub=1, face="carwait", input=None, notice=None,
+                                drawn_by=self._process(), face_until=self.clock() + PREVIEW_SECONDS,
+                                opened=self.clock())
+                    self._save(view)
+                    self.draw(media=view.get("media") == "photo")
+                    self._later(lambda: self._start_preview(run_id, command_handler))   # outside the panel's lock
+                    answer = "Drawing the carousel preview"
             elif action == "rvb":
                 answer = "A check blocks this version: Checks says which. Edit, Regenerate or Reject it."
             elif action == "rva":
@@ -1333,6 +1438,66 @@ class ReviewPanel:
         if self._wrote:
             self._later(self._redraw_notes)   # the item it wrote is drawn now (round 2: a tap redraws)
         return decision
+
+    # ---------------------------------------------------------- the carousel preview (UI-01g)
+    def _start_preview(self, run_id: str, command_handler) -> None:
+        """The drawing runs as an operator job (it can take a while: both copies are drawn and audited), holding
+        none of the panel's locks; its pages come back through _preview_done. One at a time for a review."""
+        pages_of = getattr(command_handler, "carousel_pages", None)
+        if not callable(pages_of):
+            self._preview_done(run_id, {"pages": [], "note": "The carousel preview works while the bot or daemon is "
+                                                              "running."})
+            return
+        key = self.db.run_key(run_id)
+
+        def complete(job, result):
+            if job.get("state") == "completed" and isinstance(result, dict):
+                self._preview_done(run_id, result)
+            else:
+                why = ("It was cancelled." if job.get("state") == "cancelled" else "It could not be drawn"
+                       + (f": {_e(job.get('error_detail'))}." if job.get("error_detail") else "."))
+                self._preview_done(run_id, {"pages": [], "note": f"⚠️ {why} Tap 🖼 Preview carousel to try again."})
+            return True
+        try:
+            self.bot.jobs.submit(self.bot._background(), "Carousel preview", lambda: pages_of(key), complete,
+                                 resource=f"rvx:{key}")
+        except ValueError as e:
+            if any(job.get("resource") == f"rvx:{key}" for job, _event in list(self.bot.jobs.active.values())):
+                log.info("The carousel preview of %s is already being drawn.", run_id)   # a second tap
+                return
+            # UI-01g: refused for another reason (the job queue is full): nothing is drawing, and the face says so
+            # at once, never "Drawing ..." until its time runs out
+            log.info("The carousel preview of %s was not started: %s", run_id, e)
+            self._preview_done(run_id, {"pages": [], "note": "⚠️ It was not drawn: the job queue is full. Wait for "
+                                        "a job to finish or cancel one in /jobs, then tap 🖼 Preview carousel again."})
+
+    def _process(self) -> str:
+        """This process, as the renderer lease names it: a preview's drawing belongs to the process that started it."""
+        from .telegram_layout import PROCESS_IDENTITY
+        return PROCESS_IDENTITY
+
+    @_serial
+    def _preview_done(self, run_id: str, result: dict[str, Any]) -> None:
+        """The drawing's pages are kept with the review's record (a page already uploaded keeps its file id while
+        its file is unchanged) and shown when the panel still waits for them; a face the operator moved on to is
+        left as it is."""
+        record = self.record(run_id)
+        if record is None:
+            return
+        known = {(p.get("path"), tuple(p.get("stamp") or ())): p.get("id")
+                 for p in (record.get("carousel") or {}).get("pages") or []}
+        pages = []
+        for p in result.get("pages") or []:
+            stamp = _stamp(Path(p["path"]))
+            pages.append({"path": p["path"], "caption": p.get("caption") or "", "stamp": stamp,
+                          "id": known.get((p["path"], tuple(stamp)))})
+        record["carousel"] = {"pages": pages, "note": str(result.get("note") or "")}
+        self._put_record(run_id, record)
+        view = self.view()
+        if view.get("run") == run_id and view.get("face") == "carwait" and self.message():
+            view.update(face="car", sub=1, notice=None)
+            self._save(view)
+            self.draw(media=bool(pages))
 
     def _undo_item(self, run_id: str | None, command_handler, on_panel: bool = False) -> Any:
         """Undo from a decided item (or the rejected face): within the Undo window the review is reopened in the

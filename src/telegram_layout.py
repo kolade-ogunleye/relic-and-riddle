@@ -239,6 +239,7 @@ class Layout:
                 self._synced = now
                 from . import notice_conditions
                 notice_conditions.sync(self.db, now)   # condition items follow the state (UI-01b)
+                notes.expire(self.db, now, self._undo_live)   # info leaves after its day (UI-01g)
             if now - self._reaped >= REAP_SECONDS and hasattr(self.bot, "reap_progress_panels"):
                 self._reaped = now
                 self.bot.reap_progress_panels()   # UI-01c: a run that ended without its finisher
@@ -266,6 +267,17 @@ class Layout:
         if callable(idle):
             idle(now)
         return True
+
+    def _undo_live(self, item: dict[str, Any]) -> bool:
+        """Whether an info item still offers an Undo with time left (an Approve's, until 15 minutes before its
+        slot: review_panel.undo_until): it then stays past its day in the panel, as its text promises "Undo until"
+        (UI-01g). Reads the database only; takes no lock."""
+        key = str(item.get("dedupe_key") or "")
+        if not key.startswith(("posted:", "rejected:")) or not any(
+                str(a.get("callback_data", "")).startswith("rvua:") for a in item.get("actions") or []):
+            return False
+        until = self.bot.review.undo_until(key.partition(":")[2])
+        return bool(until and self.clock() < until)
 
     def kick(self) -> None:
         """A sender wrote an item. The renderer's own thread draws it on its tick (debounced); another holder of
@@ -424,8 +436,17 @@ class Layout:
         if not force and (now - self._rev_since < DEBOUNCE_SECONDS or now - self._last_edit < EDIT_GAP_SECONDS):
             return False   # still settling (ten writes in a second are one edit), or edited a moment ago
         text, rows = notes.render(self.db, now, self._run_key)
-        if self._drawn.get(NOTIFICATIONS) == (text, rows):
+        drawn = self._drawn.get(NOTIFICATIONS)
+        if drawn == (text, rows):
             return False
+        if drawn and drawn[1] == rows and notes.only_check_times_differ(drawn[0], text):
+            # UI-01g (operator ruling C, 2026-11-14): the conditions were checked again and nothing else changed.
+            # The time on screen is a real check's; it is written again only once it is CHECK_SHOWN_SECONDS old
+            # (at most 288 edits a day, not one a minute). A forced draw (a tap, another process) is no exception:
+            # the time alone is never worth an edit sooner.
+            shown = notes.check_times(drawn[0])
+            if shown and now - min(shown) < notes.CHECK_SHOWN_SECONDS:
+                return False
         return self._edit(mid, text, rows, now)
 
     def _edit(self, mid: int, text: str, rows, now: float) -> bool:

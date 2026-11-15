@@ -57,7 +57,8 @@ SCREENS: Dict[str, Tuple[str, str, Optional[str]]] = {
 PANEL_KINDS = {"n", "np", "nall", "nundo", "pstop", "pkeep", "pstopok",
                # the review panel's pager, tabs, decisions, reason step, typed input and the decided item's Undo
                "rvp", "rvt", "rvi", "rva", "rvb", "rvr", "rvg", "rvk", "rvs", "rvn", "rvd", "rvu", "rve", "rvc",
-               "rvshow", "rvua"}
+               "rvshow", "rvua",
+               "rvx"}   # UI-01g: the carousel preview inside the review panel, and its pages
 # Typed commands draw the same screens.
 SCREENS.update({
     "queue": SCREENS["qrefresh"], "progress": SCREENS["cprog"], "status": SCREENS["cstat"], "reviews": SCREENS["creviews"],

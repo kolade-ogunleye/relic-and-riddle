@@ -202,6 +202,9 @@ def sync(db, now: float | None = None) -> dict[str, int]:
     for key, row in rows.items():
         if row["state"] == notes.OPEN and key not in keys:
             counts["resolved"] += notes.close_key(db, key, notes.RESOLVED)
+    # UI-01g: each condition found to hold says when it was last checked (its time on the panel), not when it was
+    # first raised; one still being counted ("keep") was not checked, and says so once its last check is old.
+    notes.checked(db, [c["key"] for c in held if not c.get("keep")], now)
     # A run's failure item resolves itself once the run is no longer stopped (re-rendered, approved, published).
     from .control import STOPPED
     with db._conn() as conn:

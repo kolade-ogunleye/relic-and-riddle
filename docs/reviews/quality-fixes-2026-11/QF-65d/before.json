@@ -1,0 +1,149 @@
+{
+ "fixture_older_runs": {
+  "story_verified": {
+   "facebook": false,
+   "instagram_flagged": true,
+   "held_reason": "not posted to Facebook, which has no AI label for photo posts: a still with no record (story_02.jpg) from a video not wholly traceable: scene_01.mp4 is missing"
+  },
+  "carousel_verified": {
+   "facebook": false,
+   "instagram_flagged": true,
+   "held_reason": "not posted to Facebook, which has no AI label for photo posts: a still with no record (carousel_slide_01.jpg) from a video not wholly traceable: scene_01.mp4 is missing"
+  },
+  "story_verified_from_another_machine": {
+   "facebook": false,
+   "instagram_flagged": true,
+   "held_reason": "not posted to Facebook, which has no AI label for photo posts: a still with no record (story_02.jpg) from a video not wholly traceable: scene_01.mp4 is missing"
+  },
+  "carousel_verified_from_another_machine": {
+   "facebook": false,
+   "instagram_flagged": true,
+   "held_reason": "not posted to Facebook, which has no AI label for photo posts: a still with no record (carousel_slide_01.jpg) from a video not wholly traceable: scene_01.mp4 is missing"
+  },
+  "story_ai_motion_clip": {
+   "facebook": false,
+   "instagram_flagged": true,
+   "held_reason": "not posted to Facebook, which has no AI label for photo posts: a still with no record (story_02.jpg) from a video not wholly traceable: scene_01.mp4 is missing"
+  },
+  "carousel_ai_motion_clip": {
+   "facebook": false,
+   "instagram_flagged": true,
+   "held_reason": "not posted to Facebook, which has no AI label for photo posts: a still with no record (carousel_slide_01.jpg) from a video not wholly traceable: scene_01.mp4 is missing"
+  },
+  "story_ai_illustration_parallax": {
+   "facebook": false,
+   "instagram_flagged": true,
+   "held_reason": "not posted to Facebook, which has no AI label for photo posts: a still with no record (story_02.jpg) from a video not wholly traceable: scene_01.mp4 is missing"
+  },
+  "carousel_ai_illustration_parallax": {
+   "facebook": false,
+   "instagram_flagged": true,
+   "held_reason": "not posted to Facebook, which has no AI label for photo posts: a still with no record (carousel_slide_01.jpg) from a video not wholly traceable: scene_01.mp4 is missing"
+  },
+  "story_illustrated_beat": {
+   "facebook": false,
+   "instagram_flagged": true,
+   "held_reason": "not posted to Facebook, which has no AI label for photo posts: a still with no record (story_02.jpg) from a video showing AI media: AI illustration (beat 3)"
+  },
+  "carousel_illustrated_beat": {
+   "facebook": false,
+   "instagram_flagged": true,
+   "held_reason": "not posted to Facebook, which has no AI label for photo posts: a still with no record (carousel_slide_01.jpg) from a video showing AI media: AI illustration (beat 3)"
+  },
+  "story_photo_replaced": {
+   "facebook": false,
+   "instagram_flagged": true,
+   "held_reason": "not posted to Facebook, which has no AI label for photo posts: a still with no record (story_02.jpg) from a video not wholly traceable: scene_01.mp4 is missing"
+  },
+  "carousel_photo_replaced": {
+   "facebook": false,
+   "instagram_flagged": true,
+   "held_reason": "not posted to Facebook, which has no AI label for photo posts: a still with no record (carousel_slide_01.jpg) from a video not wholly traceable: scene_01.mp4 is missing"
+  },
+  "story_photo_gone": {
+   "facebook": false,
+   "instagram_flagged": true,
+   "held_reason": "not posted to Facebook, which has no AI label for photo posts: a still with no record (story_02.jpg) from a video not wholly traceable: scene_01.mp4 is missing"
+  },
+  "carousel_photo_gone": {
+   "facebook": false,
+   "instagram_flagged": true,
+   "held_reason": "not posted to Facebook, which has no AI label for photo posts: a still with no record (carousel_slide_01.jpg) from a video not wholly traceable: scene_01.mp4 is missing"
+  },
+  "story_no_ledger": {
+   "facebook": false,
+   "instagram_flagged": true,
+   "held_reason": "not posted to Facebook, which has no AI label for photo posts: a still with no record (story_02.jpg) from a video not wholly traceable: scene_01.mp4 is missing"
+  },
+  "carousel_no_ledger": {
+   "facebook": false,
+   "instagram_flagged": true,
+   "held_reason": "not posted to Facebook, which has no AI label for photo posts: a still with no record (carousel_slide_01.jpg) from a video not wholly traceable: scene_01.mp4 is missing"
+  },
+  "story_unreadable_ledger": {
+   "facebook": false,
+   "instagram_flagged": true,
+   "held_reason": "not posted to Facebook, which has no AI label for photo posts: a still with no record (story_02.jpg) from a video not wholly traceable: scene_01.mp4 is missing"
+  },
+  "carousel_unreadable_ledger": {
+   "facebook": false,
+   "instagram_flagged": true,
+   "held_reason": "not posted to Facebook, which has no AI label for photo posts: a still with no record (carousel_slide_01.jpg) from a video not wholly traceable: scene_01.mp4 is missing"
+  },
+  "story_manifest_edited": {
+   "facebook": false,
+   "instagram_flagged": true,
+   "held_reason": "not posted to Facebook, which has no AI label for photo posts: a still with no record (story_02.jpg) from a video not wholly traceable: scene_01.mp4 is missing"
+  },
+  "carousel_manifest_edited": {
+   "facebook": false,
+   "instagram_flagged": true,
+   "held_reason": "not posted to Facebook, which has no AI label for photo posts: a still with no record (carousel_slide_01.jpg) from a video not wholly traceable: scene_01.mp4 is missing"
+  },
+  "story_clip_bytes_differ": {
+   "facebook": false,
+   "instagram_flagged": true,
+   "held_reason": "not posted to Facebook, which has no AI label for photo posts: a still with no record (story_02.jpg) from a video not wholly traceable: scene_01.mp4 is missing"
+  },
+  "carousel_clip_bytes_differ": {
+   "facebook": false,
+   "instagram_flagged": true,
+   "held_reason": "not posted to Facebook, which has no AI label for photo posts: a still with no record (carousel_slide_01.jpg) from a video not wholly traceable: scene_01.mp4 is missing"
+  },
+  "story_incomplete_licence": {
+   "facebook": false,
+   "instagram_flagged": true,
+   "held_reason": "not posted to Facebook, which has no AI label for photo posts: a still with no record (story_02.jpg) from a video not wholly traceable: scene_01.mp4 is missing"
+  },
+  "carousel_incomplete_licence": {
+   "facebook": false,
+   "instagram_flagged": true,
+   "held_reason": "not posted to Facebook, which has no AI label for photo posts: a still with no record (carousel_slide_01.jpg) from a video not wholly traceable: scene_01.mp4 is missing"
+  }
+ },
+ "acceptance_met": false,
+ "runs": {
+  "folder_1": {
+   "photo_posts_checked": 87,
+   "with_a_still_without_record": 66,
+   "kept_off_facebook": 24,
+   "kept_off_facebook_with_a_still_without_record": 24,
+   "with_a_still_without_record_sent_to_facebook": 42,
+   "kept_off_by_reason": {
+    "no_video_record": 6,
+    "video_not_wholly_traceable": 18
+   }
+  },
+  "folder_2": {
+   "photo_posts_checked": 102,
+   "with_a_still_without_record": 45,
+   "kept_off_facebook": 45,
+   "kept_off_facebook_with_a_still_without_record": 45,
+   "with_a_still_without_record_sent_to_facebook": 0,
+   "kept_off_by_reason": {
+    "no_video_record": 3,
+    "video_not_wholly_traceable": 42
+   }
+  }
+ }
+}

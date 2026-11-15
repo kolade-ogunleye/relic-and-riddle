@@ -970,7 +970,8 @@ class MetaPublisher:
         # (ai_label.assess_photos, fails closed), carries Instagram's flag. Facebook has none for photo posts, so a
         # request showing AI media is not sent there (held_platforms says why). Nor is one with a still that has no
         # record (a run made before still records) unless its run's video traces wholly to real media (QF-65b;
-        # operator decision 2026-11-12: fail closed; ai_label.assess_photos' facebook_hold).
+        # operator decision 2026-11-12: fail closed; ai_label.assess_photos' facebook_hold), its clips that are gone
+        # verified against the run's provenance.json by sha256 (QF-65d; no lookup elsewhere).
         from . import ai_label
         held: dict[str, str] = {}
         flagged: dict[str, bool] = {}

@@ -5129,11 +5129,16 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         output_mp4_path: Path,
         width: int = VIDEO_WIDTH,
         height: int = VIDEO_HEIGHT,
+        grade_bias: float = 0.0,
     ) -> Path:
         """
         Micro-patching engine: replace a single beat's visual clip without re-rendering the whole master.
         Keeps the mastered audio stream untouched via copy (-c:a copy).
         Encodes with the production encoder (QF-134): the patched master is delivered.
+        grade_bias: the bias the master was graded with (compose_video's grade_bias, the run's
+        art_direction.grade_bias). A replacement photograph takes the master's photo grade at that bias, by the
+        master's own rules (QF-108): a photo still (is_photo_still, not an illustration) on the camera's moved frame,
+        a photo clip (is_photo_clip) in 16-bit RGB; an illustration, a graphic or footage keeps its own colour.
         """
         if not master_mp4.is_file():
             raise FileNotFoundError(f"Master video not found: {master_mp4}")
@@ -5157,18 +5162,26 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         replacement_asset = Path(replacement_asset)
         input_args = ["-i", str(master_mp4)]
         filter_parts = []
-        cameras: list[tuple[Path, Path, float]] = []
+        cameras: list[tuple[Path, Path, float, str | None]] = []
 
+        photo_grade = film_grade_filter(grade_bias)
         if is_video(replacement_asset):
             input_args += ["-t", f"{beat_dur:.3f}", "-i", str(replacement_asset)]
+            colorspace = video_colorspace(replacement_asset)
+            # QF-108: a photo clip takes the master's photo curve, as compose_video grades it (clip_in)
+            clip_in = (f"scale=in_color_matrix={source_matrix(colorspace)},format=gbrp16le,{photo_grade},"
+                       f"{RGB_TO_BT709}" if is_photo_clip(replacement_asset) else to_bt709(colorspace))
             filter_parts.append(
                 f"[1:v]scale={width}:{height}:force_original_aspect_ratio=increase,"
-                f"crop={width}:{height},fps={VIDEO_FPS},setsar=1,{to_bt709(video_colorspace(replacement_asset))}[v_mid]"
+                f"crop={width}:{height},fps={VIDEO_FPS},setsar=1,{clip_in}[v_mid]"
             )
         else:
             # QF-22: the micro-patch's push through the shared camera (still_camera "splice", centred as before)
+            from .scene_planner import is_illustration
             camera = output_mp4_path.parent / f"{output_mp4_path.stem}.camera-{beat_index}.mkv"
-            cameras.append((camera, replacement_asset, beat_dur))
+            # QF-108: a photo still takes the master's photo curve on the moved frame, as compose_video's stills do
+            grade = photo_grade if is_photo_still(replacement_asset) and not is_illustration(replacement_asset) else None
+            cameras.append((camera, replacement_asset, beat_dur, grade))
             input_args += ["-t", f"{beat_dur:.3f}", "-i", str(camera)]
             filter_parts.append(f"[1:v]fps={VIDEO_FPS},setsar=1,{BT709_TAGS}[v_mid]")
 
@@ -5197,15 +5210,15 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         try:
             from .still_camera import ensure_disk, frame_count, render_clip, sweep_stale
             sweep_stale(output_mp4_path.parent)
-            for camera, source, seconds in cameras:
+            for camera, source, seconds, grade in cameras:
                 try:
                     ensure_disk(camera.parent, frame_count(seconds, VIDEO_FPS), (width, height))
                 except RuntimeError as exc:
                     raise RenderError(str(exc)) from exc
-                render_clip(source, camera, seconds, (width, height), VIDEO_FPS, preset="splice")
+                render_clip(source, camera, seconds, (width, height), VIDEO_FPS, preset="splice", grade=grade)
             _run_ffmpeg(cmd)
         finally:
-            for camera, _, _ in cameras:
+            for camera, *_ in cameras:
                 camera.unlink(missing_ok=True)
         return output_mp4_path
 

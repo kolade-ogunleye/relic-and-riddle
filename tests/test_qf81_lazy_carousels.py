@@ -781,15 +781,17 @@ def test_a_retry_of_a_carousel_drawn_at_its_slot_carries_the_label(coord, monkey
     assert ("is_ai_generated", "true") in sent[0]
 
 
-def test_a_carousel_drawn_at_its_slot_by_the_real_renderer_with_an_ai_made_photo_carries_the_label(coord, monkeypatch):
+def test_a_carousel_drawn_at_its_slot_by_the_real_renderer_never_shows_an_ai_made_photo(coord, monkeypatch):
     """The port review's probe, committed (QF-65b): the real renderer draws both copies at the slot
     (MultiFormatGenerator.generate_carousel_sequence with its own still_layout.json records, and the real scene planner
-    with only its provider call replaced). Photo 2 is AI-made (its lineage record says so), so the Instagram request
-    that shows it carries the label, and no Facebook request sends a slide showing it."""
+    with only its provider call replaced). Photo 2 is AI-made (its lineage record says so). QF-65b asserted that the
+    Instagram request showing it carried the label; since QF-65c (ruling Q6: an AI picture is never a carousel slide)
+    no slide of either copy shows it, and the carousel is posted from the real photo. The label on a slide that does
+    show AI media stays covered by the tests above (_draw_showing)."""
     from src.lineage import record_derived
     from src.models import ScenePlan
     from src.multi_format import MultiFormatGenerator
-    _planner(monkeypatch, ScenePlan(images=[1, 2, 1, 2, 1, 2, 1], notes="each photo shows its slide"))
+    _planner(monkeypatch, ScenePlan(images=[1, 1, 1, 1, 1, 1, 1], notes="each photo shows its slide"))
     monkeypatch.setattr(coord.multiformat_gen, "generate_carousel_sequence",
                         MultiFormatGenerator.generate_carousel_sequence.__get__(coord.multiformat_gen))
     run_dir, _ = coord.make("r1", TUE - timedelta(days=3))
@@ -805,11 +807,6 @@ def test_a_carousel_drawn_at_its_slot_by_the_real_renderer_with_an_ai_made_photo
         recipe = json.loads((slide.parent / "still_layout.json").read_text(encoding="utf-8"))[slide.name]["recipe"]
         return any(recipe.get(k) and Path(recipe[k]).name == ai_photo.name for k in ("photo", "hero", "photo_next"))
 
-    by_platform = {tuple(_platforms(r)): [Path(v) for k, v in r if k == "_file"] for r in sent}
-    instagram = next(r for r in sent if _platforms(r) == ["instagram"])
-    assert any(shows_ai(s) for s in by_platform[("instagram",)]) and ("is_ai_generated", "true") in instagram
-    facebook = by_platform.get(("facebook",))
-    if facebook is None:
-        assert "facebook" in post["detail"]["held_platforms"]
-    else:
-        assert facebook and not any(shows_ai(s) for s in facebook)
+    slides = [Path(v) for r in sent for k, v in r if k == "_file"]
+    assert ["instagram"] in [_platforms(r) for r in sent]
+    assert slides and not any(shows_ai(s) for s in slides)

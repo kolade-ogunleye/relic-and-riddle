@@ -653,7 +653,10 @@ def _also_posted(posted: dict[str, Any], copy: dict[str, str]) -> list[str]:
     # posted; while YOUTUBE_SHORTS is off it is not, and goes last.
     items = ["Facebook Reel: the title and the caption above"]   # the card's title and caption are these (_card_text)
     items.insert(0 if posted.get("shorts") else 1, f"YouTube Short{off}: " + ", ".join(short))
-    if "carousel.facebook" in copy:
+    if posted.get("carousel_held"):   # QF-65c: its plan cannot make a deck; Approve books it held, never posted
+        items.append("Carousel (Instagram and Facebook), its caption and slides: not posted, held when you approve: "
+                     + e(str(posted["carousel_held"])))
+    elif "carousel.facebook" in copy:
         ig, fb = copy.get("carousel.instagram", ""), copy["carousel.facebook"]
         above = "the carousel caption above"
         if not posted.get("carousel_own", True):   # no carousel caption of its own: the card shows none (_card_text)
@@ -673,7 +676,7 @@ def _also_posted(posted: dict[str, Any], copy: dict[str, str]) -> list[str]:
         if platform == "facebook" and copy[label] == twin:
             continue
         items.append(f"Alt text, slide {n} ({platform.capitalize()}): {_one_line(copy[label])}")
-    if posted.get("carousel_at_slot"):   # QF-81: drawn on demand (🖼 Preview carousel) or at its slot
+    if posted.get("carousel_at_slot") and not posted.get("carousel_held"):   # QF-81: drawn on demand or at its slot
         items.append("Carousel slides and their alt text: drawn from this run's photos and carousel cards when you "
                      "tap 🖼 Preview carousel or when it takes its carousel slot, and checked before they post")
     if posted.get("dropped"):
@@ -2329,6 +2332,10 @@ class TelegramApprovalBot:
         holds = layout_hold_lines(script_payload.get("layout_holds"))
         if holds:   # QF-23: a deck or graphic refused rather than drawn with its checked copy cut
             text += "\n" + listed(f"✋ Held, its text would not fit whole: {len(holds)}", [e(x) for x in holds], cap) + "\n"
+        photo_holds = layout_hold_lines(script_payload.get("photo_holds"))
+        if photo_holds:   # QF-65c: a deck whose every picture is AI-made is not made, never padded with one
+            text += "\n" + listed(f"✋ Held, no real photo to draw on: {len(photo_holds)}",
+                                  [e(x) for x in photo_holds], cap) + "\n"
         if script_payload.get("reconstruction_note"):
             text += "\n" + _format_note(script_payload["reconstruction_note"])
         if script_payload.get("footage_note"):
@@ -3147,7 +3154,8 @@ class TelegramApprovalBot:
              {"text": "❌ Reject", "callback_data": f"reject:{key}"}],
         ] + ([] if script_payload.get("delivery_profile") == "deep_dive_16x9"  # 9:16 covers don't fit a documentary
              else [[{"text": "🎨 Covers", "callback_data": f"ccov:{key}"}]])
-          + ([[{"text": "🖼 Preview carousel", "callback_data": f"ccar:{key}"}]] if posted.get("carousel_at_slot") else [])
+          + ([[{"text": "🖼 Preview carousel", "callback_data": f"ccar:{key}"}]]
+             if posted.get("carousel_at_slot") and not posted.get("carousel_held") else [])   # QF-65c: none to draw
           + [[DONE_BUTTON]])}
         # One message, never paged: a paged card moved into a panel whose buttons failed (2026-10-25);
         # format_card_text keeps it inside the limit by shortening its folded lists.

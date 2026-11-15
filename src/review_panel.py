@@ -592,7 +592,8 @@ class ReviewPanel:
         rows = [arrows(n, len(pages), lambda p: f"rvi:{key}:{p}")] if len(pages) > 1 else []
         rows.append([{"text": f"• {TABS[tab]}", "callback_data": f"rvt:{key}:{tab}"},
                      {"text": "Summary", "callback_data": f"rvt:{key}:sum"}])
-        if tab == "pst" and isinstance(posted, dict) and posted.get("carousel_at_slot"):
+        if (tab == "pst" and isinstance(posted, dict) and posted.get("carousel_at_slot")
+                and not posted.get("carousel_held")):   # QF-65c: a held plan has nothing to preview
             # QF-81: a carousel drawn at its slot is previewed on demand (both copies, audited as at its slot); the
             # Posts text names this button. UI-01g: the preview is this panel's own face (rvx), one picture a page.
             rows.append([{"text": "🖼 Preview carousel", "callback_data": f"rvx:{key}"}])

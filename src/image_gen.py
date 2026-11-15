@@ -704,12 +704,15 @@ def _lineage_inputs(path: Path) -> dict[str, Any]:
         return {}
 
 
-def _record(out: Path, inputs: dict[str, Any]) -> None:
+def _record(out: Path, inputs: dict[str, Any]) -> bool:
+    """Saves `out`'s lineage record; False (logged) when it cannot be saved."""
     try:
         from .lineage import record_graphic
         record_graphic(out, Path(__file__), inputs)
+        return True
     except (OSError, ValueError) as e:
         log.warning("Lineage recording skipped for %s: %s", out.name, e)
+        return False
 
 
 # ------------------------------------------------------------------ references (reliable depiction, 2026-11-02)
@@ -1016,13 +1019,31 @@ def checkers_ready() -> tuple[bool, str]:
     return True, ""
 
 
+PROVENANCE_FIELDS = ("prompt", "raw_sha256", "candidate_index", "judge_verdicts")   # QF-65c: every illustration's
+
+
+def _provenance_complete(inputs: dict[str, Any], prompt: str, best_raw: Path) -> bool:
+    """Whether a saved illustration's record carries the whole provenance (PROVENANCE_FIELDS) for this request: the
+    same prompt, the raw file's SHA-256 matching the kept best raw, a candidate index and the judges' verdicts."""
+    index = inputs.get("candidate_index")
+    verdicts = inputs.get("judge_verdicts")
+    return (inputs.get("prompt") == prompt and bool(inputs.get("raw_sha256"))
+            and inputs.get("raw_sha256") == _file_digest(best_raw)
+            and type(index) is int and index >= 0 and isinstance(verdicts, list) and bool(verdicts))
+
+
 def illustrate_beat(line: str, spec: dict[str, Any], work_dir: Path, aspect: str = "9:16",
                     budget: Budget | None = None, others: Sequence[Path] = (), candidates: int | None = None,
                     surface: str = "beat", references: Sequence[dict[str, Any]] = (),
                     visual: str | None = None, reason: str = "") -> tuple[Path | None, dict[str, Any]]:
     """The best passing candidate for `line` (src/image_quarantine.score_candidate), composited in the house style
     and saved as run_dir/gap_gen_<key>.png with its lineage (line, era, model, prompt version, descriptors,
-    references); or None. A file already made for this key is reused only after it passes the rubric again.
+    references, and its provenance (QF-65c): the whole prompt sent, raw_sha256 (the SHA-256 of the chosen raw
+    candidate, kept as <key>_best.png), candidate_index and judge_verdicts (each judge's structured answer for that
+    candidate, then the rubric's outcome; every candidate's outcome under "candidates")); or None, also when the
+    record cannot be saved. A file already made for this key is reused only when its record carries that whole
+    provenance for the same prompt and raw file, and only after it passes the rubric again (the new answers are
+    kept under "rechecked").
 
     `visual` NAMED_SUBJECT: drawn only from `references` (find_references), which go into the request and into the
     reference comparison, and only for one of ILLUSTRATION_REASONS (`reason`, illustration_reason); otherwise
@@ -1071,17 +1092,24 @@ def illustrate_beat(line: str, spec: dict[str, Any], work_dir: Path, aspect: str
         info["reason"] = why
         log.info("Illustration skipped for %r: %s.", line[:60], why)
         return None, info
-    if out.is_file() and best_raw.is_file() and _lineage_inputs(out).get("key") == key:
-        ok, reasons, _ = q.score_candidate(best_raw, out, checked, size, [o for o in others if Path(o) != out],
-                                           references=ref_paths)
+    prompt = build_prompt(spec) + (" " + REFERENCE_INSTRUCTION if ref_paths else "")
+    old = _lineage_inputs(out) if out.is_file() and best_raw.is_file() else {}
+    if old.get("key") == key and _provenance_complete(old, prompt, best_raw):
+        with q.watch_verdicts() as judged:
+            ok, reasons, score = q.score_candidate(best_raw, out, checked, size,
+                                                   [o for o in others if Path(o) != out], references=ref_paths)
         if ok:
+            rechecked = [*judged, {"judge": "rubric", "passed": True, "reasons": list(reasons), "score": float(score)}]
+            if not _record(out, dict(old, rechecked=rechecked)):
+                info["reason"] = "the illustration's provenance record could not be saved"
+                return None, info
             info["reused"] = True
             return out, info
         info["rejected"].append({"reused": out.name, "why": reasons})
-    prompt = build_prompt(spec) + (" " + REFERENCE_INSTRUCTION if ref_paths else "")
     n = int(candidates if candidates is not None else getattr(config, "IMAGE_GEN_CANDIDATES", 4))
     cand_dir.mkdir(parents=True, exist_ok=True)
-    best: tuple[float, Path, Path] | None = None
+    best: tuple[float, Path, Path, int, list[dict[str, Any]]] | None = None
+    tried: list[dict[str, Any]] = []   # every candidate's outcome, for the record
     for i in range(max(1, min(4, n))):
         if budget is not None and not budget.take(key):
             info["reason"] = "the run's illustration call cap is reached"
@@ -1099,12 +1127,16 @@ def illustrate_beat(line: str, spec: dict[str, Any], work_dir: Path, aspect: str
         except (OSError, ValueError) as e:
             info["rejected"].append({"candidate": i, "why": [f"could not be composited: {e}"]})
             continue
-        ok, reasons, score = q.score_candidate(raw_path, final_path, checked, size, others, references=ref_paths)
+        with q.watch_verdicts() as judged:
+            ok, reasons, score = q.score_candidate(raw_path, final_path, checked, size, others, references=ref_paths)
+        judged.append({"judge": "rubric", "passed": bool(ok), "reasons": list(reasons), "score": float(score)})
+        tried.append({"candidate_index": i, "raw_sha256": _file_digest(raw_path), "passed": bool(ok),
+                      "reasons": list(reasons), "score": float(score)})
         if not ok:
             info["rejected"].append({"candidate": i, "why": reasons})
             continue
         if best is None or score > best[0]:
-            best = (score, raw_path, final_path)
+            best = (score, raw_path, final_path, i, judged)
     if best is None:
         info["reason"] = info["reason"] or "no candidate passed the rubric"
         return None, info
@@ -1114,7 +1146,15 @@ def illustrate_beat(line: str, spec: dict[str, Any], work_dir: Path, aspect: str
     except OSError as e:
         info["reason"] = f"not saved: {e}"
         return None, info
-    _record(out, {"key": key, "line": line, "era": era, "aspect": aspect, "model": model_id(), "api": api_style(),
+    raw_sha256 = _file_digest(best_raw)
+    if not raw_sha256 or raw_sha256 != _file_digest(best[1]):
+        out.unlink(missing_ok=True)
+        info["reason"] = "the chosen candidate's raw file could not be kept intact"
+        return None, info
+    saved = _record(out, {
+                  "key": key, "line": line, "era": era, "aspect": aspect, "model": model_id(), "api": api_style(),
+                  "prompt": prompt, "raw_sha256": raw_sha256, "candidate_index": best[3], "judge_verdicts": best[4],
+                  "candidates": tried,
                   "prompt_version": PROMPT_VERSION, "descriptors": list(spec.get("required") or []),
                   "fact_ids": list(spec.get("fact_ids") or []), "origin": "ai_illustration", "visual": visual,
                   "why_illustrated": reason,
@@ -1122,6 +1162,10 @@ def illustrate_beat(line: str, spec: dict[str, Any], work_dir: Path, aspect: str
                   "reconstruction_sentence": spec.get("reconstruction_sentence"),
                   "references": [{k: r.get(k) for k in ("path", "url", "title", "licence", "license_url", "source",
                                                         "artist", "sha256")} for r in refs]})
+    if not saved:   # an illustration is never shown without its provenance record
+        out.unlink(missing_ok=True)
+        info["reason"] = "the illustration's provenance record could not be saved"
+        return None, info
     log.info("Illustration for %r: %s (best of %d request(s)).", line[:60], out.name, info["calls"])
     return out, info
 

@@ -325,13 +325,17 @@ def card_record(payload: dict[str, Any], db: Any, run_dir: Path | None = None,
     photos = [] if documentary else photo_posts(run_dir)
     copy = card_copy(meta, youtube=documentary)
     slides = run_dir is not None and any((Path(run_dir) / "carousel").glob("carousel_slide_*.jpg"))
-    from .carousel_lazy import planned
+    from .carousel_lazy import no_real_photo, planned
     at_slot = run_dir is not None and not slides and planned(run_dir)   # drawn when it takes its slot (QF-81)
+    # QF-65c: a plan with no real photo to draw on (its every picture AI-made) is held when Approve books it
+    # (PipelineCoordinator._book_followers): the card says so instead of promising slides
+    held = no_real_photo(run_dir) if at_slot and not documentary else None
     if not documentary and (slides or at_slot or payload.get("carousel_caption")):  # a run with a carousel to post
         copy.update(carousel_copy(payload, final, run_dir))
     return {"copy": copy, "hashtags": final, "dropped": dropped, "candidates": candidates,
             "documentary": documentary, "shorts": bool(config.YOUTUBE_SHORTS),
             **({"carousel_at_slot": True} if at_slot and not documentary else {}),
+            **({"carousel_held": held} if held else {}),
             "carousel_own": bool((payload.get("carousel_caption") or "").strip()),
             "ai_label": label, "ai_label_photos": ai_label.assess_photos(photos) if photos else None,
             **schedule(db, now=now, window_seconds=window_seconds,

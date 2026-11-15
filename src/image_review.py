@@ -273,7 +273,11 @@ def strong_stems(topic_dir: Path) -> Optional[set]:
 
 def only_strong(paths: List[Path], stems: Optional[set]) -> List[Path]:
     """`paths` (prepared copies keep their source's stem as a prefix) narrowed to the strong photos; the
-    list as given when nothing is known or none is strong (a frame needs a picture)."""
+    list as given when nothing is known or none is strong (a frame needs a picture). An AI-made picture (an
+    illustration, ai_label.is_ai_picture) is never one of them, not even in the fallback (QF-65c): with no real
+    photo the list is empty, and the Story or carousel is not made rather than padded with one."""
+    from .ai_label import real_stills
+    paths, _ = real_stills(paths)
     if stems is None:
         return list(paths)
     strong = [p for p in paths if any(Path(p).stem.startswith(s) for s in stems)]

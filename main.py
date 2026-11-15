@@ -3398,9 +3398,15 @@ class PipelineCoordinator:
         # Story frames and carousel slides use the topic's own photos only, never a context shot (2026-10-25).
         from src.image_review import only_strong
         strong_media = only_strong(scene_media, getattr(self, "_strong_stems", None))
+        # QF-65c: the AI-made stills only_strong left out go with them to the Story and the carousel plan, which
+        # never draw one but count and name them when they are all there is (the hold's reason, said once each)
+        from src.ai_label import is_ai_picture
+        from src.typography import is_video as _is_video
+        ai_left_out = [p for p in scene_media if not _is_video(Path(p)) and is_ai_picture(p)]
         encoding.get_video_encoder()  # probe once before parallel renderers race to detect it under load
         t0 = time.perf_counter()
         payload.pop("layout_holds", None)   # QF-23: this render's holds only (a resumed run's old payload had some)
+        payload.pop("photo_holds", None)    # QF-65c: likewise
         with concurrent.futures.ThreadPoolExecutor(max_workers=8) as pool:
             # each glyph event names what it was drawn on (QF-94)
             from src.font_engine import on_surface
@@ -3408,7 +3414,8 @@ class PipelineCoordinator:
                                     lambda: on_surface("cover", self.visual_engine.generate_thumbnails, hero_img,
                                                        payload, run_dir, style=style))
             fut_story = pool.submit(cached_artifacts, run_dir, "stories", packaging_inputs,
-                                    lambda: self.multiformat_gen.generate_story_sequence(hero_img, payload, run_dir, scene_images=strong_media))
+                                    lambda: self.multiformat_gen.generate_story_sequence(
+                                        hero_img, payload, run_dir, scene_images=strong_media + ai_left_out))
             from src import art_direction
             art = art_direction.record(run_dir, hero_img)  # the topic's accent and grade bias, recorded in palette.json
             payload["art_direction"] = art
@@ -3417,7 +3424,14 @@ class PipelineCoordinator:
             # The carousel is not drawn here: only the episode that takes a carousel slot draws it, then (QF-81:
             # seven a week were drawn for three slots). The run records the photos it will be drawn from.
             from src import carousel_lazy
-            carousel_lazy.plan(run_dir, strong_media, payload)
+            carousel_plan = carousel_lazy.plan(run_dir, strong_media + ai_left_out, payload)
+            # QF-65c: a carousel whose plan left out AI pictures and cannot make a deck without them is known to be
+            # held now: the review card says so (✋ Held, its "Also posted" list) and Approve books it held, not at
+            # its slot 48 h later
+            carousel_problem = carousel_lazy.no_real_photo(run_dir) if carousel_plan else None
+            if carousel_problem:
+                payload.setdefault("photo_holds", []).append({"deck": "carousel", "error": carousel_problem,
+                                                              "moved": []})
 
             fut_beats = pool.submit(beat_images.source, beats, topic, run_dir / "beat_images", plan=query_plan) if query_plan else None
             fut_footage = pool.submit(footage.source, beats, topic, run_dir / "footage", plan=query_plan) if query_plan else None
@@ -3968,6 +3982,14 @@ class PipelineCoordinator:
         if carousel or carousel_lazy.planned(run_dir):
             post_id = self.db.add_scheduled_post(run_id, "carousel", None, carousel, status="waiting")
             post = next(p for p in self.db.list_scheduled_posts(("waiting",), run_id=run_id) if p["id"] == post_id)
+            # QF-65c: a plan with no real photo to draw on (every photo it could use AI-made: the review card said it
+            # is held) is known now, and its slot would only hold it (final, as there): held at once, so the notice
+            # and Posting say so now and no slot is ever planned for it (the slot loop plans waiting carousels only)
+            problem = None if carousel else carousel_lazy.no_real_photo(run_dir)
+            if problem:
+                self._hold_carousel(post, carousel_lazy.CarouselHeld(problem), final=True, when="when it was booked")
+                lines.append(f"🖼 Carousel: held, it won't post ({problem})")
+                return lines
             # The slot it will take, as the daemon will see it (it named the next carousel slot, which the 48 h gap
             # and the 7-day expiry could rule out: operator, 2026-11-03); a newer episode's carousel goes first.
             # None only when booked again too late (its Reel posted days ago and its last carousel slot has passed)
@@ -4985,7 +5007,7 @@ class PipelineCoordinator:
         return require_release(run, dry_run=dry_run)
 
     def _hold_carousel(self, post: dict[str, Any], held: Exception, binding: bool = False,
-                       final: bool = False) -> None:
+                       final: bool = False, when: str = "at its slot") -> None:
         """A carousel its slot could not post (carousel_lazy): its booking says why, and one alert gives every
         finding of its drawing and the button that redraws it and posts it in the next slot.
 
@@ -4995,13 +5017,16 @@ class PipelineCoordinator:
 
         final: nothing is left to draw or post from (QF-81c: its slides gone, all or some (QF-81d), or its plan missing,
         unreadable, corrupt or without a photo to draw), so a redraw cannot help either: the same alert, naming what
-        is missing."""
+        is missing.
+
+        when: when it was held, as its booking records it ("when it was booked": QF-65c, a plan known at Approve to
+        have no photo to draw on is held then, final)."""
         from src import carousel_lazy
         # A credit hold's reason is written to be read whole (QF-126): it is never cut inside a clause.
         why = str(held) if isinstance(held, CarouselCreditHold) else str(held)[:400]
         if binding or final:
             self.db.update_scheduled_post(post["id"], "failed", detail={
-                "error": f"held at its slot: {held}", "held": True, ("binding" if binding else "final"): True})
+                "error": f"held {when}: {held}", "held": True, ("binding" if binding else "final"): True})
             _notice(self, f"❌ <b>Carousel not posted</b> for {html.escape(self.db.run_label(post['run_id']))}: "
                     f"{html.escape(why)}." + chr(10) * 2
                     + "This carousel will not post. Nothing was posted, and its Reel and other posts are not "
@@ -5542,12 +5567,18 @@ def hold_layout_error(future, run_dir: Path, folder: str, payload: dict[str, Any
     """`future`'s slides, or [] when the deck raised typography.LayoutError (QF-23: its checked copy fits no
     permitted layout whole): that deck alone is held. The error is logged, the frames it had saved are moved to
     <folder>/held/ (the posting globs and the Facebook copy's file check then find none), and payload["layout_holds"]
-    records it for the review card. Any other error propagates."""
+    records it for the review card. A deck with no real photo to be drawn on (multi_format.NoRealPhotos: every
+    picture it could use is AI-made, QF-65c) is held the same way, recorded in payload["photo_holds"] with its
+    reason. Any other error propagates."""
+    from src.multi_format import NoRealPhotos
     from src.typography import LayoutError
     try:
         return future.result()
-    except LayoutError as e:
-        log.error("%s held: its text cannot be set whole (%s); the run goes on without it.", folder, e)
+    except (LayoutError, NoRealPhotos) as e:
+        if isinstance(e, NoRealPhotos):
+            log.error("%s held: %s; the run goes on without it.", folder, e)
+        else:
+            log.error("%s held: its text cannot be set whole (%s); the run goes on without it.", folder, e)
         src = Path(run_dir) / folder
         moved = []
         if src.is_dir():
@@ -5556,7 +5587,8 @@ def hold_layout_error(future, run_dir: Path, folder: str, payload: dict[str, Any
             for p in sorted(src.glob("*.jpg")):
                 shutil.move(str(p), str(dst / p.name))
                 moved.append(p.name)
-        payload.setdefault("layout_holds", []).append({"deck": folder, "error": str(e), "moved": moved})
+        key = "photo_holds" if isinstance(e, NoRealPhotos) else "layout_holds"
+        payload.setdefault(key, []).append({"deck": folder, "error": str(e), "moved": moved})
         return []
 
 

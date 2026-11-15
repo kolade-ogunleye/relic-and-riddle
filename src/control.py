@@ -1003,10 +1003,12 @@ def _run_findings(db: PipelineDatabase, r: Dict[str, Any]) -> List[str]:
         reason = None if fb.get("text") and str(fb.get("reason") or "").lower() == "other" else fb.get("reason")
         out.append("your reason: " + " · ".join(x for x in (reason, fb.get("text")) if x))
     report = _read_run_json(r["run_id"], "release_report.json")
+    # UI-01h: in a failed run's words; this screen offers Make again or names the queue, never Edit or a re-send
+    from .hold_advice import FAILED, for_surface
     if report:
-        out += release_problems(report, dry_run=True)[:4]
+        out += release_problems(report, dry_run=True, surface=FAILED)[:4]
     if not out and r.get("error"):
-        out.append(clip_words(current_names(str(r["error"])), 240))   # at a word, never mid-word
+        out.append(clip_words(current_names(for_surface(str(r["error"]), FAILED)), 240))   # at a word, never mid-word
     return out or ["no reason recorded"]
 
 
@@ -1592,7 +1594,8 @@ def history_details(db: PipelineDatabase, key: str) -> Tuple[str, List[List[Dict
         lines.append("<b>How it did</b>")
         lines.append("• self-audit: clean" if n == 0 else f"• self-audit: {n} finding(s) (cards against the run's records)")
         if report:
-            problems = release_problems(report, dry_run=True)
+            from .hold_advice import FAILED
+            problems = release_problems(report, dry_run=True, surface=FAILED)   # this screen offers no remedy (UI-01h)
             lines.append("• release gate: passed" if not problems else "• release gate: " + e("; ".join(problems[:3])))
         lines.append(f"• audience: {e(audience)}" if audience else "• audience: no numbers yet (collected after publishing)")
     return "\n".join(lines), [[HOME]]
@@ -1778,6 +1781,8 @@ def dashboard_text_and_buttons(db: PipelineDatabase, next_run: Optional[str] = N
     needs += provider_status.dashboard_lines()  # a provider shut by a limit or cap, said here not only in the log
     if queued and ready is not None and ready < len(queued) and ready < 3:
         needs.append(f"🖼 Only {ready} queued topic(s) have photos ready")
+    # a failed run's reason in its words (UI-01h): its item offers Re-render, not Edit
+    from .hold_advice import FAILED, for_surface
     recent = db.list_recent_runs(limit=1)
     active = db.get_active_progress() if hasattr(db, "get_active_progress") else None
     late = rerenderable(db) if not active else None
@@ -1785,7 +1790,7 @@ def dashboard_text_and_buttons(db: PipelineDatabase, next_run: Optional[str] = N
         # A run that failed after its video was made is waiting for a decision too, even when a later run
         # (a cancelled scheduled one) is the latest: the panel said "Nothing needs you" above a Re-render
         # button (2026-10-24).
-        reason = short_reason(late.get("error") or "", limit=1200)
+        reason = short_reason(for_surface(late.get("error") or "", FAILED), limit=1200)
         what = {"rejected": "Rejected, can be made again",
                 "regenerate": "Sent back to Regenerate; its new version did not start",
                 "timed_out": "Stopped at its deadline, files kept"}.get(late.get("status"), "")
@@ -1797,7 +1802,7 @@ def dashboard_text_and_buttons(db: PipelineDatabase, next_run: Optional[str] = N
     if recent and recent[0].get("status") in STOPPED:
         # Which run, on one line; the whole reason folded underneath (it was cut off mid-sentence:
         # operator, 2026-10-23).
-        reason = short_reason(recent[0].get("error") or "", limit=1200)
+        reason = short_reason(for_surface(recent[0].get("error") or "", FAILED), limit=1200)
         heading = "⏱ <b>Last run stopped at its deadline</b>" if recent[0]["status"] == "timed_out" else "❌ <b>Last run failed</b>"
         needs.append(f"{heading}\n  • {e(db.run_label(recent[0]['run_id']))}\n  <code>{e(recent[0]['run_id'])}</code>"
                      + (f"\n<blockquote expandable>{e(reason)}</blockquote>" if reason else ""))

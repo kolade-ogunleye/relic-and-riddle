@@ -7,6 +7,7 @@ import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
 
+from . import hold_advice
 from .credits import (SHARE_ALIKE_NOTICE, asset_attribution, credit_line_problems, credit_present, credit_reach_problems,
                       is_share_alike, required_credits, sha256_file)
 from .fact_evidence import fact_review_problem, fact_review_shown, human_review_shown, human_review_text
@@ -136,7 +137,7 @@ def write_release_report(run, dry_run=False):
                                                 for ln in str(payload.get(f) or "").splitlines())
                     for p in credit_line_problems(line)]
         unsafe = [p for p in problems if not p.startswith("banned phrase")]
-        add("credit_lines", not unsafe, (unsafe + ["Edit the text or Regenerate: either rewrites the credit lines."]
+        add("credit_lines", not unsafe, (unsafe + [hold_advice.CREDIT_LINES]
                                          if unsafe else "No link, address, handle or hashtag in the image credits."))
         if len(unsafe) < len(problems):
             add("credit_phrases", False, [p for p in problems if p.startswith("banned phrase")], review=True)
@@ -340,7 +341,7 @@ def _bound_composition(master: Path) -> dict | None:
 
 
 GRANDFATHERED_COLOUR = ("Made before the colour fix: the video's colour tags are incomplete (its picture is BT.709). "
-                        "It can still be posted; re-render it to tag it.")
+                        + hold_advice.COLOUR_GRANDFATHERED)
 
 
 def _gated_before_qf10(composition: dict | None, report_path: Path) -> str | None:
@@ -491,7 +492,7 @@ def _reading_rate_checks(composition: dict | None) -> list:
                           for d in defects[:3])
         return [{"name": "caption_rate", "status": "fail", "detail":
                  f"Captions shown faster than {limit:g} characters a second and faster than they are spoken: "
-                 f"{shown}. Re-render: the caption timing must hold them longer."}]
+                 f"{shown}. " + hold_advice.CAPTION_RATE}]
     worst = rate.get("worst") or {}
     if rate.get("over_max"):
         return [{"name": "caption_rate", "status": "pass", "minor": True, "note": True, "rate": rate, "detail":
@@ -546,7 +547,7 @@ def _colour_vision_checks(run_dir: Path) -> list:
                           f"dE00 apart under {p['worst_vision']}" for g, p in bad[:3])
         return [{"name": "graphic_colour_vision", "status": "fail", "graphics": results, "detail":
                  f"A colour-blind viewer would see two meaning colours as one ({shown}; at least "
-                 f"{colour_vision.MIN_DE00:g} is needed): re-render with an accent clear of them."}]
+                 f"{colour_vision.MIN_DE00:g} is needed)" + hold_advice.GRAPHIC_COLOURS}]
     skipped = "" if accent is not None else (
         " The run has no palette record (made before the art direction), so its accent is unknown and the gold "
         "against accent pair was not judged.")
@@ -577,7 +578,8 @@ def _plain_story_problem(text: str) -> str:
     import ast
     text = re.sub(r"^story_0*(\d+)\w*\.jpg:", lambda m: f"Story frame {int(m.group(1))}:", str(text))
     text = text.replace("no layout record of its photo and credit (drawn before 2026-10-29?)",
-                        "no record of its photo and credit (made before Story credits were drawn: redraw the Stories)")
+                        "no record of its photo and credit (made before Story credits were drawn"
+                        + hold_advice.STORY_REDRAW)
 
     def lines(m):
         try:
@@ -642,9 +644,10 @@ def plain_finding(issue) -> str:
     return text
 
 
-def check_problems(check, key: str = "detail") -> list:
+def check_problems(check, key: str = "detail", surface: str = "") -> list:
     """A check's findings in words: an audit issue's own sentence, not the dict it is stored as. `key`: "notes"
-    for the minor findings kept beside a blocked check."""
+    for the minor findings kept beside a blocked check. `surface`: where they are read (hold_advice.REVIEW, BOOKED,
+    FAILED), whose actions their advice names (UI-01h); "" keeps the words the checks wrote."""
     detail = check.get(key)
     if key != "detail" and not detail:
         return []
@@ -654,12 +657,13 @@ def check_problems(check, key: str = "detail") -> list:
              + plain_finding(i) for i in items]
     # A file is named, not its whole path (asset_rights lists the files still awaiting review).
     found = [Path(f).name if " " not in f and ("/" in f or "\\" in f) and Path(f).suffix else f for f in found]
-    return [f for f in found if f] or ["no detail recorded"]
+    return [hold_advice.for_surface(f, surface) for f in found if f] or ["no detail recorded"]
 
 
-def release_problems(report, dry_run=False) -> list:
-    """One line per blocking finding, "check: what was found" (the operator saw only "visual_checks")."""
-    return [f"{c['name']}: {p}" for c in blocking_checks(report, dry_run) for p in check_problems(c)]
+def release_problems(report, dry_run=False, surface: str = "") -> list:
+    """One line per blocking finding, "check: what was found" (the operator saw only "visual_checks"); `surface` as
+    check_problems."""
+    return [f"{c['name']}: {p}" for c in blocking_checks(report, dry_run) for p in check_problems(c, surface=surface)]
 
 
 # What a blocking check is about, as the operator reads it on a blocked booking (QF-110); others by their name.
@@ -673,13 +677,13 @@ PLAIN_CHECKS = {"facts": "Fact check", "provenance": "Source files", "compositio
                 "release_report": "Release report"}
 
 
-def plain_block_reasons(report, limit: int = 4) -> list:
+def plain_block_reasons(report, limit: int = 4, surface: str = "") -> list:
     """The release report's blocking checks in plain words, one line each ("Source files: its narration
-    (voiceover.mp3) is missing"), at most `limit` (the rest counted)."""
+    (voiceover.mp3) is missing"), at most `limit` (the rest counted); `surface` as check_problems."""
     lines = []
     for c in blocking_checks(report):
         what = PLAIN_CHECKS.get(c.get("name"), str(c.get("name") or "check").replace("_", " ").capitalize())
-        found = check_problems(c)
+        found = check_problems(c, surface=surface)
         lines.append(f"{what}: " + "; ".join(found[:3]) + (f" (and {len(found) - 3} more)" if len(found) > 3 else ""))
     if len(lines) > limit:
         lines = lines[:limit] + [f"and {len(lines) - limit} more check(s)"]

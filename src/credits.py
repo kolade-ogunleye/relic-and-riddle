@@ -20,6 +20,8 @@ import unicodedata
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+from . import hold_advice
+
 CREDITS_FILE = "credits.json"
 CONTACT_SHEET = "contact_sheet.jpg"
 PROVENANCE_FILE = "provenance.json"
@@ -646,7 +648,7 @@ def incomplete_credit(item: dict[str, Any], regenerate: bool = True) -> str:
     lacking = [what for what, value in wanted if value == "Unknown" or _credit_url(value) != value]
     if item["kind"] == "image" and fields[0].removeprefix("📷").strip() == "Unknown" and _names_someone(record):
         lacking.insert(0, "its author (the source names one: check the credit"
-                          + (", or Regenerate without this photo)" if regenerate else ")"))
+                          + (f"{hold_advice.AUTHOR_REGENERATE})" if regenerate else ")"))
     return " and ".join(lacking)
 
 
@@ -668,10 +670,11 @@ def credit_reach_problems(texts: dict[str, str], required: list[dict[str, Any]],
     from . import config
     from .publishable import YOUTUBE_DESCRIPTION
     problems = []
+    subjects = _credit_subjects(required)   # no two read alike (UI-01h)
     for item in required:
         lacking = incomplete_credit(item)
         if lacking:
-            problems.append(f"The credit for {_credit_subject(item)} lacks {lacking}, which its licence asks for.")
+            problems.append(f"The credit for {subjects[id(item)]} lacks {lacking}, which its licence asks for.")
     # One reason for the texts that lack the same credits (a Short's description is its Reel's caption): the first
     # text's, with its room.
     found: dict[tuple, tuple[str, list[str]]] = {}
@@ -680,12 +683,11 @@ def credit_reach_problems(texts: dict[str, str], required: list[dict[str, Any]],
         limit = (limits or {}).get(name)
         if limit and len(text) > limit:
             problems.append(f"{name}: {len(text):,} characters with its credits; the platform takes {limit:,}. "
-                            "Shorten it (Edit, for a caption) or Regenerate with fewer photos that need a credit: "
-                            "a credit is never shortened or left out.")
+                            + hold_advice.SHORTEN_LIMIT)
             text = text[:limit]
         missing = [item for item in required if not credit_carried(item, text)]
         if missing:
-            which = (f"{'; '.join(_credit_subject(m) for m in missing[:3])}"
+            which = (f"{'; '.join(subjects[id(m)] for m in missing[:3])}"
                      f"{' and more' if len(missing) > 3 else ''}")
             cut = bool(limit) and len(text) >= limit
             # the documentary's description keeps one line a photo; every other text is written from the caption
@@ -702,22 +704,18 @@ def credit_reach_problems(texts: dict[str, str], required: list[dict[str, Any]],
             if shortened:
                 reason = (f"{len(missing)} of {len(required)} required credit(s) are not in it yet: {which}. They "
                           "fit, and nothing needs to be cut: the photos' page links are shortened when the credits "
-                          "are written again (re-send or any Edit). While it waits for review, re-send the review or "
-                          "save any Edit to write them; a post already approved or booked needs a new version, which "
-                          "is written with them.")
+                          f"are written again{hold_advice.FIT_LINKS}. {hold_advice.FIT_WRITE}")
             elif not cut and over <= 0:
                 # Nothing is too long: the copy was written before these credits were asked for (a run waiting or
                 # booked when QF-126 was deployed), and writing its credits again is all it needs.
                 reason = (f"{len(missing)} of {len(required)} required credit(s) are not in it yet: {which}. They "
                           "fit: this copy was written before they were asked for, and nothing needs to be cut. "
-                          "While it waits for review, re-send the review or save any Edit to write them; a post "
-                          "already approved or booked needs a new version, which is written with them.")
+                          + hold_advice.FIT_WRITE)
             else:
                 room = (f" (the text is cut at the platform's {limit:,} characters)" if cut
                         else f" (with them it is {over:,} characters over the platform's {limit:,})")
                 reason = (f"{len(missing)} of {len(required)} required credit(s) are not in it{room}: {which}. "
-                          "Shorten the text so they fit (Edit, for a caption), or Regenerate with fewer photos that "
-                          "need a credit.")
+                          + hold_advice.SHORTEN)
             found.setdefault(tuple(item["line"] for item in missing), (reason, []))[1].append(name)
     return problems + [f"{' and '.join(names)}: {reason}" for reason, names in found.values()]
 
@@ -767,6 +765,89 @@ def ledger_credit_problems(ledger: Path, texts: dict[str, str], limits: dict[str
     except (OSError, ValueError, TypeError, AttributeError, KeyError) as exc:
         return [f"The run's provenance record could not be read ({type(exc).__name__}), so its credits cannot be checked."]
     return credit_reach_problems(texts, required, limits)
+
+
+def _sheet_number(record: dict[str, Any], cache: dict | None = None) -> int | None:
+    """The number of the photo a credit record is for on its topic's /photos contact sheet (sheet_order), or None
+    when it is not one of a topic's photos here (a beat image, a run made on another machine for a topic not here,
+    a photo dropped since). The record names the photo by its path, or a path it was made from, under
+    assets/<topic>/ (the ledger records its own machine's paths: only the topic and the file name are used)."""
+    from .config import ASSETS_DIR
+    cache = {} if cache is None else cache
+    paths = [record.get("path"), *(record.get("source_paths") or [])] if isinstance(record, dict) else []
+    for path in paths:
+        parts = [p for p in str(path or "").replace(chr(92), "/").split("/") if p]
+        found = [i for i, p in enumerate(parts) if p.lower() == "assets" and i == len(parts) - 3]
+        if not found:
+            continue
+        topic, name = parts[-2], parts[-1]
+        if topic not in cache:
+            topic_dir = Path(ASSETS_DIR) / topic
+            try:
+                shown = sheet_order(topic_dir, load_credits(topic_dir)["images"]) if topic_dir.is_dir() else []
+                cache[topic] = [str(i.get("file")) for i in shown if (topic_dir / str(i.get("file"))).is_file()]
+            except (OSError, ValueError, KeyError, TypeError, AttributeError):
+                cache[topic] = []
+        if name in cache[topic]:
+            return cache[topic].index(name) + 1
+    return None
+
+
+def _distinct_title(title: str, others: list[str]) -> str:
+    """`title` cut so that it reads unlike each of `others` (the whole titles of other photos whose cut titles read
+    alike): its beginning, cut at a word, then "…" and the fewest last words no other title ends with (a bracket
+    opened in them is kept whole). The whole title when it is short enough."""
+    words = title.split(" ")
+    k = 1
+    while k < len(words) and any(o.split(" ")[-k:] == words[-k:] for o in others):
+        k += 1
+    while k < len(words) and " ".join(words[-k:]).count(")") > " ".join(words[-k:]).count("("):
+        k += 1
+    tail = " ".join(words[-k:])
+    if len(title) <= TITLE_MAX + len(tail) // 2 or k >= len(words) - 1:
+        return title
+    room = max(16, TITLE_MAX - len(tail) - 2)
+    head = []
+    for w in words[:len(words) - k]:
+        if len(" ".join(head + [w])) > room:
+            break
+        head.append(w)
+    head_text = " ".join(head).rstrip(" ,;:-–—/(") or words[0][:room]
+    return f"{head_text}… {tail}"
+
+
+def _credit_subjects(items: list[dict[str, Any]]) -> dict[int, str]:
+    """Each required credit named for the operator (by id(item)), so that no two read alike in one hold reason
+    (UI-01h: two photos "Interior of Catacombs - Partisan Resistance Base…" by the same author): a photo on its
+    topic's /photos sheet is named by its number there and its title ("photo 3, “title” by author", the
+    photos-by-sheet-number convention); a title cut alike as another's keeps the words that tell them apart
+    (_distinct_title); two photos with the same whole title and author and no sheet number are counted."""
+    cache: dict = {}
+    images = [i for i in items if i["kind"] == "image"]
+    names = {id(i): (credit_title(i.get("record") or {}), author_name(i.get("record") or {})) for i in images}
+    numbers = {id(i): _sheet_number(i.get("record") or {}, cache) for i in images}
+    titles = {key: title for key, (title, _) in names.items()}
+    for item in images:
+        alike = [o for o in images if o is not item and names[id(o)] == names[id(item)]]
+        if not alike:
+            continue
+        whole = sanitise_credit_text((item.get("record") or {}).get("title")) or titles[id(item)]
+        others = [sanitise_credit_text((o.get("record") or {}).get("title")) for o in alike]
+        others = [o for o in others if o != whole]
+        if others:
+            titles[id(item)] = _distinct_title(whole, others)
+    out = {}
+    for item in items:
+        if item["kind"] != "image":
+            out[id(item)] = _credit_subject(item)
+            continue
+        number = numbers[id(item)]
+        same = [o for o in images if (titles[id(o)], names[id(o)][1], numbers[id(o)])
+                == (titles[id(item)], names[id(item)][1], number)]
+        count = f" (file {same.index(item) + 1} of {len(same)} so named)" if len(same) > 1 else ""
+        out[id(item)] = (f"photo {f'{number}, ' if number else ''}“{titles[id(item)]}”{count} "
+                         f"by {names[id(item)][1]}")
+    return out
 
 
 def _credit_subject(item: dict[str, Any]) -> str:

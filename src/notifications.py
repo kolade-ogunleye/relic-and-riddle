@@ -721,8 +721,9 @@ def _list_page(items, head, page_no, undoing, now, run_key):
 
 
 def _item_body(body: str) -> str:
-    """An item page's text: a short body as it is; a long one as its first lines, then the whole in one folded
-    quote (never nested: a body with its own quote is kept as it is)."""
+    """An item page's text: a short body as it is; a long one as its first lines, then the rest in one folded
+    quote (the whole when its first line is too long to show whole above it; never nested: a body with its own
+    quote is kept as it is)."""
     body = (body or "").strip()
     if not body:
         return ""
@@ -730,7 +731,19 @@ def _item_body(body: str) -> str:
         from .telegram_bot import safe_html_truncate
         return safe_html_truncate(body, 2800)
     from .telegram_ui import quote
-    return html.escape(lines_of(body)) + "\n" + quote(plain(body), expandable=True, limit=QUOTE_LIMIT)
+    # UI-01h: the opening is said once. The lines shown whole above the quote are not quoted again (a blocked
+    # booking's page said "Not posted: <label> ... because:" twice); a first line too long to show whole is cut
+    # above, and the quote keeps it whole.
+    raw = [ln for ln in plain(body).splitlines() if ln.strip(" •")]
+    shown = 0
+    for n in (2, 1):
+        if len(raw) > n and len(" ".join(" ".join(ln.strip(" •") for ln in raw[:n]).split())) <= LINES_LIMIT:
+            shown = n
+            break
+    if not shown:
+        return html.escape(lines_of(body)) + "\n" + quote(plain(body), expandable=True, limit=QUOTE_LIMIT)
+    opening = clip(" ".join(ln.strip(" •") for ln in raw[:shown]), LINES_LIMIT)
+    return html.escape(opening) + "\n" + quote("\n".join(raw[shown:]), expandable=True, limit=QUOTE_LIMIT)
 
 
 def action_ref(action: dict[str, str]) -> str:

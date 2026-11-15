@@ -25,7 +25,7 @@ from pathlib import Path
 import numpy as np
 from scipy.ndimage import maximum_filter, uniform_filter
 
-from . import config
+from . import config, hold_advice
 from .credits import sha256_file
 
 # Bumped whenever an analyser's definition changes, so a measurement recorded by an older definition is redone.
@@ -87,8 +87,7 @@ class Black:
 
     def check(self, duration):
         found = self.runs.finish(duration)
-        return (found, f"The picture goes black at {_spans(found)}: check the cut or transition there and "
-                       "re-render." if found else "No black picture.")
+        return (found, f"The picture goes black at {_spans(found)}: " + hold_advice.BLACK if found else "No black picture.")
 
 
 class Freeze:
@@ -118,8 +117,8 @@ class Freeze:
 
     def check(self, duration):
         found = self.runs.finish(duration)
-        return (found, f"The picture stands still for longer than {self.hold:.0f} s at {_spans(found)}: shorten "
-                       "that shot or give it motion, then re-render." if found
+        return (found, f"The picture stands still for longer than {self.hold:.0f} s at {_spans(found)}: "
+                       + hold_advice.FREEZE if found
                 else f"No picture held longer than {self.hold:.1f} s.")
 
 
@@ -182,7 +181,7 @@ class Bars:
         whole = (f" (not checked over {spans}, where an essential photo is shown whole: its black border is by "
                  "design)") if self.skipped else ""
         return (found, f"Black bars at the picture's edges at {_spans(found)}: the picture does not fill the frame "
-                       f"there; re-render it filling the frame{whole}." if found
+                       f"there; {hold_advice.BARS}{whole}." if found
                 else f"No letterbox or pillarbox bars{whole}.")
 
 
@@ -218,8 +217,8 @@ class Range:
 
     def check(self, duration):
         found = self.runs.finish(duration)
-        return (found, f"Part of the picture is darker or brighter than video allows at {_spans(found)} (a "
-                       "full-range picture tagged as limited range): re-render it." if found else
+        return (found, f"Part of the picture is darker or brighter than video allows at {_spans(found)} "
+                       + hold_advice.RANGE if found else
                 f"Within limited range (worst frame {self.worst:.2%} of the picture in out-of-range areas, allowed "
                 f"{config.PICTURE_QA_RANGE_FRACTION:.0%}).")
 
@@ -825,7 +824,7 @@ class Flash:
             n = f"{max(self.worst[k] for k in kinds) / 2:g}"
             sentence = (f"The picture {what} up to {n} times in a second at {_spans(found)}, over more than a "
                         f"quarter of a 10-degree field (more than {per_s} flashes a second can trigger seizures; "
-                        "WCAG 2.3.1): slow, shrink or remove the flashing there, then re-render.")
+                        "WCAG 2.3.1): " + hold_advice.FLASH)
             return found, sentence
         if self.held:
             n = f"{max(self.held_worst.values()) / 2:g}"
@@ -834,7 +833,7 @@ class Flash:
                         f"in a second there if a fine pattern reverses in place, fewer if the picture is moving over "
                         "detail (a whip or zoom); the check cannot tell the two apart without a motion test, so this "
                         "master waits for you. Watch that stretch (the contact sheet shows its frames): if nothing "
-                        f"flashes more than {per_s} times in a second, clear it; if it does, re-render.")
+                        f"flashes more than {per_s} times in a second, " + hold_advice.FLASH_HELD)
             return [], sentence
         sentence = (f"No harmful flashing (WCAG 2.3.1): no quarter of a 10-degree field flashes more than {per_s} "
                     f"times in a second (the most anywhere: {worst['general']} flashes, {worst['red']} red).")
@@ -989,7 +988,7 @@ def measure(path: Path, *, deep_dive: bool = False, exempt_bars=()) -> dict:
     checks = [{"name": "picture_colour", "status": "pass" if tags_ok else "fail",
                "detail": "Tagged BT.709 limited range yuv420p." if tags_ok else
                f"The video's colour tags are incomplete or wrong ({wrong}), so players may show its colours "
-               "wrongly: re-render it to tag it BT.709.", "tags": tags}]
+               + hold_advice.COLOUR_TAGS, "tags": tags}]
     for gate in gates:
         found, sentence = gate.check(duration)
         held = None if found else getattr(gate, "held", None)     # a hold only where nothing fails

@@ -16,6 +16,7 @@ from typing import Any, Dict, List, Optional, Tuple
 from . import post_schedule
 from .control import (HOME, LIST_PAGE, POST_ICON, POST_NAME, _episode_bookings, _post_links, _when, clip_words,
                       is_paused, number_buttons, pager)
+from .hold_advice import BOOKED, for_surface
 from .notifications import QUOTE_LIMIT
 
 STATUS = {"pending": "booked", "waiting": "waits for its slot", "published": "posted", "failed": "didn't post",
@@ -519,7 +520,8 @@ def posting_episode(db, run_id: str) -> Tuple[str, List[List[Dict[str, str]]]]:
                 lines.append(f"  <i>{e(note)}</i>")
         if p["kind"] == "reel" and p["status"] == "blocked":
             reasons = detail.get("reasons") or [detail.get("reason") or "no reason was recorded"]
-            lines += [f"  • {e(str(r))}" for r in reasons]
+            # a held booking's words (UI-01h; a reason stored before them is said in them too)
+            lines += [f"  • {e(for_surface(str(r), BOOKED))}" for r in reasons]
             lines.append(f"  <i>{e(BLOCKED_NEXT)}</i>")
             new_version, (cancel, _details) = blocked_buttons(db, p)   # Details is this screen
             buttons += [new_version, [cancel]]

@@ -433,6 +433,12 @@ def _ledger_scene(run: Path, scene: Any, recorded: str, ledger: dict[str, Any]) 
     parts = [p.lower() for p in _parts(scene)]
     name = _parts(scene)[-1] if parts else str(scene)
     if motion(scene):   # AI whatever else is recorded: its own record, which says so, is the file that is gone
+        # Its path in the video's manifest says so; the ledger is named only when it holds the clip (QF-65e item 1,
+        # folded into UI-01h: a run with no provenance.json was told the clip was "in provenance.json")
+        if ledger["problem"]:
+            return "ai", f"AI motion clip ({name}, by the video's manifest; {LEDGER_NOTE}: {ledger['problem']})"
+        if not any(isinstance(a, dict) and _key(a.get("path")) == _key(scene) for a in ledger["data"].get("assets") or []):
+            return "ai", f"AI motion clip ({name}, by the video's manifest; {LEDGER_NOTE} has no record of it)"
         return "ai", f"AI motion clip ({name}, in {LEDGER_NOTE})"
     if ledger["problem"]:
         return "unknown", ledger["problem"]

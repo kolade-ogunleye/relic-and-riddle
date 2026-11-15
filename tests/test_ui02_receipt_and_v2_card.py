@@ -338,7 +338,9 @@ def test_v2_card_from_a_real_run_shows_only_values_traceable_to_its_files(db, tm
     assert script["summary"] == f"📜 Script · {measured:.0f} s, {len(payload['narration_script'].split())} words"
     # each finding is the gate's own words or one of the run's notes
     findings = next(b for b in blocks if b.get("summary", "").startswith("🔎 Findings"))
-    problems = [p for c in report["checks"] for p in check_problems(c)] + [p for c in report["checks"] for p in check_problems(c, "notes")]
+    # (UI-01h: in the review's words, its advice naming the review's own buttons)
+    problems = [p for c in report["checks"] for p in check_problems(c, surface="review")] + [
+        p for c in report["checks"] for p in check_problems(c, "notes", surface="review")]
     notes = [str(payload[k]) for k in payload if k.endswith("_note") and payload[k]]
     # ... or the licence table's reading of the run's own voice.json (QF-127: an Azure take saved as "licensed")
     from src.voice_licence import overclaim_flag

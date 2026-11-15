@@ -70,7 +70,7 @@ def test_the_hook_opens_the_master_and_no_caption_starts_before_caption_clear_un
     words = [{"word": word, "start": i * .65, "dur": .6}
              for i, word in enumerate(["We", "approach", "the", "ring", "quietly."])]
     encoder = lambda: ["-c:v", "libx264", "-preset", "ultrafast", "-crf", "18"]
-    monkeypatch.setattr(encoding, "get_video_encoder", encoder)
+    monkeypatch.setattr(encoding, "delivery_video_encoder", encoder)
     monkeypatch.setattr(vc, "_get_video_encoder", encoder)
     card_composition.make_all({"design_card_sheet": str(source)}, tmp_path / "cards", photo=photo, words=words)
     hook = card_composition.opening_card(tmp_path / "cards")
@@ -148,7 +148,7 @@ def test_the_hook_hands_over_to_its_own_photo_without_a_jump(tmp_path, monkeypat
     words = [{"word": word, "start": i * .65, "dur": .6}
              for i, word in enumerate(["We", "approach", "the", "ring", "quietly."])]
     encoder = lambda: ["-c:v", "libx264", "-preset", "ultrafast", "-crf", "18"]
-    monkeypatch.setattr(encoding, "get_video_encoder", encoder)
+    monkeypatch.setattr(encoding, "delivery_video_encoder", encoder)
     monkeypatch.setattr(vc, "_get_video_encoder", encoder)
     card_composition.make_all({"design_card_sheet": str(source)}, tmp_path / "cards", photo=photo, words=words)
     hook = card_composition.opening_card(tmp_path / "cards")

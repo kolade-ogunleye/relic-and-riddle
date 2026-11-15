@@ -62,8 +62,37 @@ def to_bt709(colorspace: str | None = None, height: int = 0) -> str:
             f"format=yuv420p,{BT709_TAGS}")
 
 
+# One encoder for delivered and judged video on every machine (QF-134). The production VM has no NVIDIA adapter and
+# encodes with libx264; development has an NVENC GPU and, while the encoder was chosen by a hardware probe, delivered
+# and reviewed its masters and graphic clips from NVENC. Everything that is delivered or judged (masters of every
+# format, the loop bridge's body intermediate, micro-patched masters, graphic, card and callout clips) now takes
+# these explicit arguments, which are exactly what production used: the hardware never chooses them.
+
+
+def delivery_video_encoder() -> list[str]:
+    """The encoder for every delivered or judged picture: libx264 at the locked preset and CRF, on every machine."""
+    return ["-c:v", "libx264", "-preset", VIDEO_PRESET, "-crf", str(VIDEO_CRF)]
+
+
+def delivery_intermediate_encoder() -> list[str]:
+    """The visually lossless libx264 encoder for an intermediate that a delivered file is made from (the loop
+    bridge's body), on every machine."""
+    return ["-c:v", "libx264", "-preset", "veryfast", "-crf", "10"]
+
+
+def preview_video_encoder() -> list[str]:
+    """The encoder for a scratch preview that is never delivered or judged: the delivery encoder, unless
+    VIDEO_PREVIEW_ENCODER is "fastest", where the machine's fastest (NVENC when its GPU answers the probe)."""
+    from . import config
+    if config.VIDEO_PREVIEW_ENCODER == "fastest":
+        return list(get_video_encoder())
+    return delivery_video_encoder()
+
+
 def get_video_encoder() -> List[str]:
-    """Detect if h264_nvenc hardware acceleration is available, falling back to libx264."""
+    """The machine's fastest H.264 encoder by hardware probe: h264_nvenc when an NVIDIA GPU answers, else libx264.
+    Hardware-dependent, so only preview_video_encoder and benchmarks use it; never for delivered or judged video
+    (QF-134: delivery_video_encoder)."""
     global _DETECTED_ENCODER
     if _DETECTED_ENCODER is not None:
         return _DETECTED_ENCODER
@@ -88,11 +117,10 @@ def get_video_encoder() -> List[str]:
         return _DETECTED_ENCODER
 
 
-def get_intermediate_video_encoder() -> List[str]:
-    """Fast, visually-lossless encoder arguments for intermediate scratch renders."""
+def get_intermediate_video_encoder() -> list[str]:
+    """The probe's intermediate pick (h264_nvenc p1 cq 12 with an NVIDIA GPU, else libx264 veryfast crf 10): previews
+    only, like get_video_encoder; a delivered file's intermediate takes delivery_intermediate_encoder (QF-134)."""
     enc = get_video_encoder()
     if enc and len(enc) > 1 and enc[1] == "h264_nvenc":
         return ["-c:v", "h264_nvenc", "-preset", "p1", "-cq", "12"]
-    return ["-c:v", "libx264", "-preset", "veryfast", "-crf", "10"]
-
-
+    return delivery_intermediate_encoder()

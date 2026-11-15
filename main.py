@@ -41,7 +41,7 @@ from src.config import ASSETS_DIR, CURATED_SCRIPTS_DIR, DAILY_RUN_TIME, OUTPUT_D
 from src.credits import caption_credit_line, generate_provenance_ledger, load_credits
 from src.db import REVIEW_CLAIM_PREFIX, UNDONE_BY, UNDOABLE, PipelineDatabase, QueueEmpty
 from src.control import clip_words, heartbeat_text, is_paused, make_command_handler, ping_healthcheck, record_run_mode
-from src import beat_images, callouts, colour_balance, config, encoding, footage, graphics, motion, notifications, post_schedule, privacy, then_now, worker_deadline
+from src import beat_images, callouts, colour_balance, config, footage, graphics, motion, notifications, post_schedule, privacy, then_now, worker_deadline
 from src.llm import claude_available as llm_available
 from src.scene_planner import degraded_note, documentary_cuts, fit_findings, fit_note, fit_to_lines, plan_scenes, segment_beats
 from src.topic_proposer import origin_note as topic_origin_note
@@ -803,7 +803,7 @@ class PipelineCoordinator:
         - Act-by-act chunked fact verification (5 acts)
         - Sidechain audio ducking with multi-movement score
         - 16:9 aspect-aware compositing (blurred backdrops for vertical/square photos)
-        - Hardware accelerated encoding (h264_nvenc)
+        - The production encoder on every machine (libx264, QF-134)
         - Child run persistence in DB with fault isolation
         """
         tid = topic["id"]
@@ -1068,7 +1068,6 @@ class PipelineCoordinator:
             # Generate original channel graphics concurrently (map, cross-section, numbers, callouts, then/now)
             graphics_dir = run_dir / "graphics"
             graphics_dir.mkdir(parents=True, exist_ok=True)
-            encoding.get_video_encoder()  # probe once before parallel renderers race to detect it under load
             t_graphics = time.perf_counter()
             payload.pop("layout_holds", None)   # QF-23: this render's holds only (a resumed run's old payload had some)
             with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:
@@ -3414,7 +3413,6 @@ class PipelineCoordinator:
         from src.ai_label import is_ai_picture
         from src.typography import is_video as _is_video
         ai_left_out = [p for p in scene_media if not _is_video(Path(p)) and is_ai_picture(p)]
-        encoding.get_video_encoder()  # probe once before parallel renderers race to detect it under load
         t0 = time.perf_counter()
         payload.pop("layout_holds", None)   # QF-23: this render's holds only (a resumed run's old payload had some)
         payload.pop("photo_holds", None)    # QF-65c: likewise

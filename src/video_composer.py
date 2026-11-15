@@ -342,7 +342,9 @@ def _run_ffmpeg(cmd: List[str]) -> subprocess.CompletedProcess:
     return res
 
 
-from .encoding import bounded_encode, get_video_encoder as _get_video_encoder, get_intermediate_video_encoder as _get_intermediate_video_encoder
+# QF-134: delivered and judged video takes the production encoder on every machine, never a hardware probe's pick
+from .encoding import bounded_encode, delivery_video_encoder as _get_video_encoder
+from .encoding import delivery_intermediate_encoder as _get_intermediate_video_encoder
 from .encoding import BT709_FLAGS, BT709_TAGS, BT709_TO_RGB, RGB_TO_BT709, source_matrix, to_bt709
 
 
@@ -4969,6 +4971,11 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         manifest["full_image_spans"] = full_image_spans(scene_images, starts, ends, bridge)
         # QF-88: the captions' reading rate as delivered (the release gate notes the narration's pace from it)
         manifest["reading_rate"] = getattr(self, "last_reading_rate", None)
+        # QF-134: the encoder the picture was delivered with, and every output argument (the same on every machine
+        # but for -threads, the machine's core count); the intermediate is the loop bridge's body, when there is one.
+        manifest["video_encoder"] = {"master": list(encoder_args),
+                                     "intermediate": list(_get_intermediate_video_encoder()) if card else None,
+                                     "delivery_args": list(delivery_args)}
         if caption_overlap:   # freeze pass G1: the bursts drawn opaque over a graphic's text
             manifest["caption_graphic_overlap"] = caption_overlap
         manifest_path = output_mp4_path.with_suffix(".composition.json")
@@ -5126,7 +5133,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         """
         Micro-patching engine: replace a single beat's visual clip without re-rendering the whole master.
         Keeps the mastered audio stream untouched via copy (-c:a copy).
-        Uses GPU hardware acceleration (h264_nvenc) when available to encode the spliced stream in ~2-4s.
+        Encodes with the production encoder (QF-134): the patched master is delivered.
         """
         if not master_mp4.is_file():
             raise FileNotFoundError(f"Master video not found: {master_mp4}")

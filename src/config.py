@@ -236,6 +236,11 @@ try:
     RENDER_ENCODING_SLOTS = max(1, min(8, int(os.getenv("RENDER_ENCODING_SLOTS") or 2)))
 except ValueError:
     RENDER_ENCODING_SLOTS = 2
+# Scratch previews only (QF-134): "production" (default) encodes them like delivered video (libx264); "fastest" lets
+# them use the machine's fastest encoder (NVENC where an NVIDIA GPU answers). Delivered and judged video always
+# takes the production encoder, whatever this says.
+VIDEO_PREVIEW_ENCODER = "fastest" if (os.getenv("VIDEO_PREVIEW_ENCODER") or "").strip().lower() == "fastest" \
+    else "production"
 GEMINI_MODEL = (os.getenv("GEMINI_MODEL") or "gemini-3.8-flash").strip()
 
 # Voice

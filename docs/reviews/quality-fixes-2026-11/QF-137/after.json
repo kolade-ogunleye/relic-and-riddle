@@ -1,0 +1,89 @@
+{
+  "cases": {
+    "alone": {
+      "runs": 3,
+      "passed": 3,
+      "detail": [
+        {
+          "test": "test_the_weekly_digest_arrives_silently",
+          "returncode": 0,
+          "summary": "1 passed in 6.01s",
+          "photo_notice_in_failure": false
+        },
+        {
+          "test": "test_an_unchanged_condition_writes_nothing_and_a_new_review_rings_again",
+          "returncode": 0,
+          "summary": "1 passed in 6.27s",
+          "photo_notice_in_failure": false
+        },
+        {
+          "test": "test_the_thirty_minute_reminder_alert_starts_with_its_alarm_clock",
+          "returncode": 0,
+          "summary": "1 passed in 6.71s",
+          "photo_notice_in_failure": false
+        }
+      ]
+    },
+    "count finishes between ticks": {
+      "runs": 3,
+      "passed": 3,
+      "detail": [
+        {
+          "test": "test_the_weekly_digest_arrives_silently",
+          "returncode": 0,
+          "summary": "1 passed in 6.14s",
+          "photo_notice_in_failure": false
+        },
+        {
+          "test": "test_an_unchanged_condition_writes_nothing_and_a_new_review_rings_again",
+          "returncode": 0,
+          "summary": "1 passed in 5.87s",
+          "photo_notice_in_failure": false
+        },
+        {
+          "test": "test_the_thirty_minute_reminder_alert_starts_with_its_alarm_clock",
+          "returncode": 0,
+          "summary": "1 passed in 6.90s",
+          "photo_notice_in_failure": false
+        }
+      ]
+    },
+    "count still running": {
+      "runs": 3,
+      "passed": 3,
+      "detail": [
+        {
+          "test": "test_the_weekly_digest_arrives_silently",
+          "returncode": 0,
+          "summary": "1 passed in 6.43s",
+          "photo_notice_in_failure": false
+        },
+        {
+          "test": "test_an_unchanged_condition_writes_nothing_and_a_new_review_rings_again",
+          "returncode": 0,
+          "summary": "1 passed in 6.07s",
+          "photo_notice_in_failure": false
+        },
+        {
+          "test": "test_the_thirty_minute_reminder_alert_starts_with_its_alarm_clock",
+          "returncode": 0,
+          "summary": "1 passed in 8.28s",
+          "photo_notice_in_failure": false
+        }
+      ]
+    },
+    "left behind": {
+      "runs": 1,
+      "passed": 1,
+      "detail": [
+        {
+          "test": "test_count_left_behind.py",
+          "returncode": 0,
+          "summary": "2 passed in 8.90s",
+          "photo_notice_in_failure": false
+        }
+      ]
+    }
+  },
+  "all_pass": true
+}

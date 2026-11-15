@@ -83,6 +83,25 @@ def open_by_key(db, prefix):
     return [i for i in notes().open_items(db) if i["dedupe_key"].startswith(prefix)]
 
 
+def counted_now(db):
+    """The queued topics' photo sets counted here and now, as a renderer that has been up a while has them: a tick's
+    ready_pools(wait=0) then answers at once and starts no background count (QF-137). Returns how many are ready."""
+    from src import control
+    return control.ready_pools(db, [t for t in db.list_all_topics() if t.get("status") == "queued"])
+
+
+def counter_finished(timeout=30):
+    """Until the background photo-set count has ended (its thread joined)."""
+    import threading
+    import time
+
+    from src import control
+    deadline = time.monotonic() + timeout
+    for thread in [t for t in threading.enumerate() if t.name == "photo-set-count"]:
+        thread.join(max(0.0, deadline - time.monotonic()))
+    assert not control.counting(), "the photo-set count did not finish"
+
+
 # ------------------------------------------------------------------ the dashboard loses its Needs-you block
 def test_the_dashboard_keeps_production_and_drops_needs_you(db, tmp_path):
     from src.control import dashboard_text_and_buttons
@@ -124,6 +143,7 @@ def test_a_pending_review_is_a_needs_you_item_that_resolves_itself(db, tmp_path)
 
 
 def test_an_unchanged_condition_writes_nothing_and_a_new_review_rings_again(db, tmp_path):
+    assert counted_now(db) == 0   # no count finishes between the syncs and changes the panel (QF-137)
     a_pending_review(db, tmp_path, "rv1", expires=1_900_000_000.0)
     conditions().sync(db)
     notes().clear_pushes(db, [i["id"] for i in notes().pending_pushes(db)])
@@ -369,22 +389,65 @@ def test_only_the_renderer_sends_the_panel(db, monkeypatch):
 
 def test_the_weekly_digest_arrives_silently(db, monkeypatch):
     """Review blocking 2: info items arrive silently. The digest is the info item "Weekly digest ready", and
-    nothing rings: no nudge, no push alert."""
+    nothing rings: no nudge, no push alert. The photo sets are counted before the first tick (QF-137): no count
+    finishes between the two ticks, so every send after the first tick would be the digest's."""
+    from src import control
     bot, fake = make_bot(db, monkeypatch)
     nudged = []
     monkeypatch.setattr(bot, "nudge", lambda text: nudged.append(text))
-    from src import control
     monkeypatch.setattr(control, "weekly_digest", lambda db_: {"label": "Week 45"})
+    assert counted_now(db) == 0
     bot.layout.tick(force=True)
+    assert [i["title"] for i in open_by_key(db, "cond:photos")] == ["Photo sets not ready"]   # there before the digest
+    assert notes().pending_pushes(db) == []
     sent_before = len(fake.sends())
     conditions().announce_digest(db, bot)
     bot.layout.tick(force=True)
+    assert not control.counting()                                 # nothing was counted in the background
     digest = [i for i in notes().open_items(db) if i["dedupe_key"] == "cond:digest"]
     assert len(digest) == 1 and digest[0]["section"] == "info" and digest[0]["title"] == "Weekly digest ready"
     assert nudged == [] and len(fake.sends()) == sent_before      # nothing sent: no nudge, no alert
+    assert notes().pending_pushes(db) == []                       # nor an alert held back by the one-a-minute gap
     monkeypatch.setattr(config, "TELEGRAM_CLEAN_CHAT", False)
     conditions().announce_digest(db, bot)
     assert nudged == ["🔔 Dashboard updated: this week's digest is ready."]   # the earlier chat as it was
+
+
+def test_a_photo_count_that_finishes_between_ticks_rings_once_and_the_digest_stays_silent(db, monkeypatch):
+    """QF-137: the other outcome, held deterministically. While the sets are being counted the ticks keep the photo
+    item as it was (none here) and the digest arrives silently; once the count has finished, the next tick posts
+    "Photo sets not ready" and rings once, and a later tick rings nothing again."""
+    import threading
+
+    from src import control
+    gate = threading.Event()
+
+    def pool_ready(topic_id, assets_dir=None, beats=None):
+        assert gate.wait(30), "the count was never let go"
+        return False
+    monkeypatch.setattr("src.asset_pipeline.pool_ready", pool_ready)
+    bot, fake = make_bot(db, monkeypatch)
+    nudged = []
+    monkeypatch.setattr(bot, "nudge", lambda text: nudged.append(text))
+    monkeypatch.setattr(control, "weekly_digest", lambda db_: {"label": "Week 45"})
+    bot.layout.tick(force=True)                                   # starts the count; the sets are not known yet
+    assert control.counting() and open_by_key(db, "cond:photos") == []
+    sent_before = len(fake.sends())
+    conditions().announce_digest(db, bot)
+    bot.layout.tick(force=True)
+    assert control.counting() and open_by_key(db, "cond:photos") == []      # still counting: the item stays as it was
+    assert [i["title"] for i in open_by_key(db, "cond:digest")] == ["Weekly digest ready"]
+    assert nudged == [] and len(fake.sends()) == sent_before and notes().pending_pushes(db) == []
+    gate.set()
+    counter_finished()
+    bot.layout.tick(force=True)                                   # the count has finished: the item, and one alert
+    [photos] = open_by_key(db, "cond:photos")
+    assert (photos["section"], photos["title"], photos["body"]) == (
+        "needs", "Photo sets not ready", "Only 0 of 3 queued topics have photos ready.")
+    assert [d["text"] for d in fake.sends()[sent_before:]] == ["🔔 Photo sets not ready"]
+    bot.layout.tick(force=True)
+    assert len(fake.sends()) == sent_before + 1 and nudged == []  # rung once, not again
+    assert notes().pending_pushes(db) == []                       # nor waiting to ring behind the one-a-minute gap
 
 
 @pytest.mark.parametrize("condition_first", [True, False])

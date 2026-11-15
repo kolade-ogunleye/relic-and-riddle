@@ -183,6 +183,45 @@ def drained_bots(no_real_services, monkeypatch):
         waiter.join(10)
 
 
+_COUNT_THREADS = ("photo-set-count", "photo-set-redraw")
+
+
+def _reset_photo_set_count() -> list[str]:
+    """control's photo-set count back to a new process's (QF-137): its counter and redraw threads joined first, then
+    no set counted, none pending, no counter, no caller told "counting", no bot listening. Returns the names of
+    the count's threads still alive after a minute."""
+    import threading
+    import time
+
+    from src import control
+    deadline = time.monotonic() + 60
+    for thread in [t for t in threading.enumerate() if t.name in _COUNT_THREADS]:
+        thread.join(max(0.0, deadline - time.monotonic()))
+    alive = [t.name for t in threading.enumerate() if t.name in _COUNT_THREADS and t.is_alive()]
+    with control._count_lock:
+        control._READY_CACHE.clear()
+        control._count_pending.clear()
+        control._counter = None
+        control._count_shown = False
+    control.when_pools_counted(None)
+    return alive
+
+
+@pytest.fixture(autouse=True)
+def photo_set_count_reset(drained_bots):
+    """Every test starts and ends with control's photo-set count as a new process has it (QF-137). The count is
+    module state (src/control.py, QF-115): the sets' answers, the pending sets, the background counter and the bot
+    listening for it outlived their test on a pytest-xdist worker. A layout tick's ready_pools(wait=0) then saw
+    whatever an earlier test on that worker left: answers already known, or a counter that finished between the
+    test's two ticks and sent "Photo sets not ready" (QF-135's shard 6, every run). A counter or redraw a test
+    started is joined at its end, before its patches and fake Bot API are undone; one still running after a minute
+    fails the test rather than reach the next."""
+    _reset_photo_set_count()
+    yield
+    alive = _reset_photo_set_count()
+    assert not alive, f"the photo-set count's threads outlived the test: {alive}"
+
+
 _REAL_MEASURE = audio_engine.measure_spoken_seconds
 
 

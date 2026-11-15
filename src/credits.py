@@ -179,6 +179,10 @@ def credit_line_problems(line: str) -> list:
         return []
     fields = [f.strip() for f in line.removeprefix("📷").split(" | ")]
     text, urls = (fields[:3], fields[3:]) if len(fields) == 5 else (fields, [])
+    works = compact_credit_works(line)
+    if works:   # QF-126b: one line for a licence's photos; its links are each in a slot the line's shape checks
+        text = list(dict.fromkeys([works[0][2]] + [part for author, title, *_ in works for part in (author, title)]))
+        urls = []
     problems = [f"{what} in the credit text: {m.group(0)!r}" for what, pattern in
                 (("an e-mail address", _EMAIL), ("a link", _WEB), ("a handle or hashtag", _HANDLE))
                 for f in text for m in [pattern.search(f)] if m]
@@ -191,7 +195,7 @@ def credit_line_problems(line: str) -> list:
 def _credit_fields(line: str) -> list:
     """The five fields of a 📷 credit line in asset_attribution's shape, [] for any other line."""
     line = (line or "").strip()
-    if not line.startswith("📷"):
+    if not line.startswith("📷") or compact_credit_works(line):   # a compact line (QF-126b) is read by its own shape
         return []
     fields = [f.strip() for f in line.removeprefix("📷").split(" | ")]
     return fields if len(fields) == 5 else []
@@ -244,7 +248,18 @@ def credit_present(record, text: str) -> bool:
     line = asset_attribution(record)
     if not line or line in (text or ""):
         return True
-    return any(rewrite_credit_line(old) == line for old in (text or "").splitlines() if _credit_fields(old))
+    if any(rewrite_credit_line(old) == line for old in (text or "").splitlines() if _credit_fields(old)):
+        return True
+    # ... or a compact line that credits this very photo with the same five parts (QF-126b)
+    fields = _credit_fields(line)
+    if len(fields) != 5:
+        return False
+    author, title, licence, source, licence_url = fields
+    links = {source, short_source_url(record)} - {"Unknown"}
+    return licence_url != "Unknown" and any(
+        work[:3] == (author, title, licence) and work[3] in links
+        and licence_link_key(work[4]) == licence_link_key(licence_url)
+        for old in (text or "").splitlines() for work in compact_credit_works(old))
 
 
 def asset_attribution(record):
@@ -284,6 +299,198 @@ YOUTUBE_DESCRIPTION_MAX = 5000
 ADAPTED_NOTICE = "🎬 Photos adapted for this video: cropped, with motion and text added."
 
 
+# ---------------------------------------------------------------- credits that fit (QF-126b)
+# QF-126 holds a post whose credits do not fit its text, and one line a photo (about 230 characters: the licence's
+# address and the file page's full address on every line) left half of the real Reels held: 14 of 28 development runs
+# and 14 of 32 in the production sample. Nothing a licence asks for is given up to fit. What repeated is written
+# once: one line for each licence, naming the licence and its address once, then each author once with each of that
+# author's photos, title and link to its page:
+#   📷 CC BY 4.0 https://creativecommons.org/licenses/by/4.0 | Ann Lee: “File:Vault.jpg” https://… |
+#   “File:Door.jpg” https://… | Sam Roe: “File:Stair.jpg” https://…
+# Every photo keeps its five parts (author, title, licence name, link to the photo's page, link to the licence), as
+# CC BY 4.0 s.3(a)(1) lists them and s.3(a)(2) allows ("any reasonable manner based on the medium, means, and
+# context"); a field ends at " | ", which no author, title or licence can contain (sanitise_credit_text), a title is
+# in quotation marks and each link follows its title, so the line reads back into the same five parts per photo
+# (compact_credit_works) and the release gate checks them photo by photo (credit_present). The link to a Wikimedia
+# Commons file page may be the page's own address by its page id (https://commons.wikimedia.org/?curid=<id>):
+# MediaWiki's documented `curid` parameter ("The ID of the wiki page; overrides the value of title",
+# mediawiki.org Manual:Parameters_to_index.php), on Commons' own host, which serves the file page; the id is kept
+# when the file is renamed (Manual:Page_table), where the address by title depends on a redirect being left. It is
+# used only for a page id the Commons API returned for that very page (commons.file_page_ids), kept beside the
+# run's ledger (SOURCE_LINKS_FILE); never a third party's shortener. The one-line-a-photo form is still written
+# wherever it fits, and is still what the description and the documentary carry; a carousel's caption takes the
+# compact form, too, when its one-photo lines do not fit (with_compact_photo_lines; page ids as recorded, no lookup).
+COMMONS_HOST = "commons.wikimedia.org"
+SOURCE_LINKS_FILE = "source_links.json"   # in the run's folder: {"page_ids": {source link: Commons page id}}
+_COMPACT_HEAD = re.compile(r"^(?P<licence>[^|“”]+?) (?P<url>https?://[^\s|<>\"]+)$")
+_COMPACT_WORK = re.compile(r"^(?:(?P<author>[^|“]+?): )?“(?P<title>[^|]*)” (?P<url>https?://[^\s|<>\"]+)$")
+
+
+def commons_file_title(source_url) -> str:
+    """The Wikimedia Commons file page a source link names ("File:Vault.jpg"), "" for any other link."""
+    from urllib.parse import unquote, urlsplit
+    try:
+        parts = urlsplit(str(source_url or "").strip())
+    except ValueError:
+        return ""
+    if parts.scheme not in ("http", "https") or parts.netloc.lower() != COMMONS_HOST or parts.query or parts.fragment:
+        return ""
+    title = unquote(parts.path.removeprefix("/wiki/")).replace("_", " ").strip() if parts.path.startswith("/wiki/") else ""
+    return title if title.startswith("File:") and len(title) > len("File:") else ""
+
+
+def short_source_url(record) -> str:
+    """The link to a photo's page as a compact credit prints it: a Commons file page whose page id is known
+    (record["pageid"], from the Commons API) by that id, any other source by its link as recorded."""
+    url = _credit_url((record or {}).get("source_url"))
+    page = (record or {}).get("pageid")
+    if isinstance(page, int) and not isinstance(page, bool) and page > 0 and commons_file_title(url):
+        return f"https://{COMMONS_HOST}/?curid={page}"
+    return url
+
+
+def source_page_ids(run_dir: Path | None) -> dict[str, int]:
+    """{source link: Commons page id} recorded for a run (SOURCE_LINKS_FILE in its folder), {} when there is none."""
+    if not run_dir:
+        return {}
+    try:
+        found = json.loads((Path(run_dir) / SOURCE_LINKS_FILE).read_text(encoding="utf-8")).get("page_ids") or {}
+    except (OSError, ValueError, AttributeError):
+        return {}
+    return {str(url): page for url, page in found.items()
+            if isinstance(page, int) and not isinstance(page, bool) and page > 0} if isinstance(found, dict) else {}
+
+
+def with_page_ids(records: list, run_dir: Path | None) -> list:
+    """`records` with the Commons page id the run's folder records for a photo's source link (source_page_ids) on
+    each record that has none: its one-photo line is the same, and a compact line may name its page by that id."""
+    pages = source_page_ids(run_dir)
+    return [{**r, "pageid": pages[str(r.get("source_url"))]}
+            if isinstance(r, dict) and not r.get("pageid") and str(r.get("source_url")) in pages else r
+            for r in records]
+
+
+def with_compact_photo_lines(lines: list[str], records: list) -> list[str]:
+    """`lines` (credit lines in the order they are written: notices and one line a photo) with the one-photo lines
+    of `records` that compact_photo_credits can carry replaced by its compact lines, at the place of the first of
+    them; every other line (a notice, a photo the compact form cannot carry) as it is. A carousel's caption takes
+    this form when its one-photo lines do not fit (QF-126b): the same photos, each with its five parts."""
+    wanted = [r for r in records if isinstance(r, dict) and asset_attribution(r) in lines]
+    compact, covered = compact_photo_credits(wanted)
+    if not compact:
+        return list(lines)
+    out: list[str] = []
+    for line in lines:
+        if line in covered:
+            out, compact = out + compact, []
+        else:
+            out.append(line)
+    return out
+
+
+def find_source_links(ledger: Path, lookup) -> int:
+    """Looks up the Commons page id of every photo the run must credit whose id is not yet known, with `lookup`
+    ({source link} -> {source link: page id}; commons.file_page_ids), and records them beside the ledger. Returns how
+    many were found. A lookup that fails finds none: the credits then keep the links they have."""
+    run_dir = Path(ledger).parent
+    data = json.loads(Path(ledger).read_text(encoding="utf-8"))
+    known = source_page_ids(run_dir)
+    wanted = sorted({str(r.get("source_url")) for r in list(data.get("assets", [])) + _reference_records(data)
+                     if needs_attribution(r) and commons_file_title(r.get("source_url"))
+                     and not r.get("pageid") and str(r.get("source_url")) not in known})
+    if not wanted:
+        return 0
+    try:
+        found = {url: page for url, page in (lookup(wanted) or {}).items()
+                 if url in wanted and isinstance(page, int) and not isinstance(page, bool) and page > 0}
+    except (OSError, ValueError, RuntimeError, LookupError, TypeError, AttributeError) as exc:
+        # a shorter link is a saving, never a new way for a run to fail (requests' errors are OSErrors)
+        import logging
+        logging.getLogger(__name__).warning("Credits: the photos' page ids could not be looked up (%s); the credits "
+                                            "keep their full links.", exc)
+        return 0
+    if found:
+        from .atomic_files import write_json
+        try:
+            write_json(run_dir / SOURCE_LINKS_FILE, {"page_ids": {**known, **found}})
+        except OSError:
+            return 0
+    return len(found)
+
+
+def short_link_lookup():
+    """The lookup add_provenance_attributions may use for shorter links to the photos' pages (the Commons API), or
+    None when CREDIT_SHORT_SOURCE_LINKS is off."""
+    from . import config
+    if not getattr(config, "CREDIT_SHORT_SOURCE_LINKS", True):
+        return None
+    from .commons import file_page_ids
+    return file_page_ids
+
+
+def compact_credit_works(line: str) -> list[tuple[str, str, str, str, str]]:
+    """The photos a compact credit line credits, each as (author, title, licence name, link to the photo's page, link
+    to the licence): the same five parts as a one-photo line. [] for any other line, and for a compact line any field
+    of which does not read back whole (a line cut short credits nothing)."""
+    line = (line or "").strip()
+    if not line.startswith("📷") or "“" not in line:
+        return []
+    fields = [f.strip() for f in line.removeprefix("📷").split(" | ")]
+    head = _COMPACT_HEAD.match(fields[0])
+    if not head or len(fields) < 2:
+        return []
+    works, author = [], ""
+    for field in fields[1:]:
+        work = _COMPACT_WORK.match(field)
+        author = (work.group("author") or author) if work else ""
+        if not work or not author:
+            return []
+        works.append((author, work.group("title"), head.group("licence"), work.group("url"), head.group("url")))
+    return works
+
+
+def compact_photo_credits(records: list) -> tuple[list[str], list[str]]:
+    """(the compact credit lines for `records`, the one-photo lines they stand for). One line for each licence, in
+    the order the licences first appear; in it each author once, in the order they first appear, with each of that
+    author's photos. A photo is written this way only when its line reads back to exactly its own five parts: one
+    without a source or licence link (held by the gate as incomplete), the operator's own photograph, a public-domain
+    photo a source asks a credit for, or a name with a quotation mark keeps its one-photo line."""
+    groups: dict[tuple[str, str], dict[str, Any]] = {}
+    seen = set()
+    for record in records:
+        long = asset_attribution(record)
+        if not long or long in seen:
+            continue
+        seen.add(long)
+        author, title, licence, source, licence_url = _credit_fields(long) or [""] * 5
+        link = short_source_url(record)
+        if "Unknown" in (link, licence_url, source) or not (author and licence):
+            continue
+        group = groups.setdefault((licence, licence_link_key(licence_url)),
+                                  {"licence": licence, "link": licence_url, "authors": {}, "stands_for": []})
+        group["authors"].setdefault(author, []).append((title, link))
+        group["stands_for"].append((long, (author, title, licence, link, group["link"])))
+    lines, covered = [], []
+    for group in groups.values():
+        fields = [f"{group['licence']} {group['link']}"]
+        for author, works in group["authors"].items():
+            fields += [(f"{author}: " if n == 0 else "") + f"“{title}” {link}" for n, (title, link) in enumerate(works)]
+        line = "📷 " + " | ".join(fields)
+        if sorted(compact_credit_works(line)) != sorted(parts for _, parts in group["stands_for"]):
+            continue   # it would not read back as written: these photos keep their own lines
+        lines.append(line)
+        covered += [long for long, _ in group["stands_for"]]
+    return lines, covered
+
+
+def licence_link_key(url: str) -> str:
+    """What makes two licence links the same link: creativecommons.org serves one deed at its address over http or
+    https, with or without the final "/" (records hold both), so a licence is named once with the first link
+    recorded for it. Any other address is itself."""
+    deed = re.fullmatch(r"https?://(?:www\.)?creativecommons\.org(/[^?#\s]*?)/?", str(url or "").strip(), re.IGNORECASE)
+    return "creativecommons.org" + deed.group(1).lower() if deed else str(url or "").strip()
+
+
 def _bed_record(data: dict, run_dir: Path | None) -> dict:
     """The music bed's rights record (audio_provenance.record_bed) of a ledger: by the bed's file name in `run_dir`
     (the ledger's own folder; a run folder read on another machine too), else beside the bed where the ledger says
@@ -307,8 +514,10 @@ def required_credits(data: dict, run_dir: Path | None = None) -> list[dict[str, 
     are written: the share-alike notice, one line for each photo (and each illustration's reference photo) whose
     licence asks for a credit, the notice that the photos were adapted, and one line for each music track whose
     licence asks for one (rebuilt from the bed's rights record, so a run rendered before QF-126 is asked for the
-    complete line too). Each is {"kind", "line", "record"}. Public-domain and CC0 assets ask for none."""
-    records = list(data.get("assets", [])) + _reference_records(data)
+    complete line too). Each is {"kind", "line", "record"}. Public-domain and CC0 assets ask for none. A photo's
+    record carries its Commons page id when the run's folder records one (source_page_ids, QF-126b): its line is the
+    same, and a compact line may then name its page by that id."""
+    records = with_page_ids(list(data.get("assets", [])) + _reference_records(data), run_dir)
     out: list[dict[str, Any]] = []
     if any(is_share_alike(r.get("license") or "") for r in records):
         out.append({"kind": "share_alike", "line": SHARE_ALIKE_NOTICE, "record": None})
@@ -456,6 +665,8 @@ def credit_reach_problems(texts: dict[str, str], required: list[dict[str, Any]],
     `texts`: {what the platform receives, by name: the exact string sent}; `limits`: {name: its character limit}. A
     text longer than its limit is refused or cut by the platform, and a text as long as its limit was cut to it by
     its builder (publisher.youtube_fields): the credits are the text's last lines, so they are what is lost."""
+    from . import config
+    from .publishable import YOUTUBE_DESCRIPTION
     problems = []
     for item in required:
         lacking = incomplete_credit(item)
@@ -477,8 +688,24 @@ def credit_reach_problems(texts: dict[str, str], required: list[dict[str, Any]],
             which = (f"{'; '.join(_credit_subject(m) for m in missing[:3])}"
                      f"{' and more' if len(missing) > 3 else ''}")
             cut = bool(limit) and len(text) >= limit
-            over = _credits_over(text, required, limit) if limit and not cut else 0
-            if not cut and over <= 0:
+            # the documentary's description keeps one line a photo; every other text is written from the caption
+            compact = name != YOUTUBE_DESCRIPTION
+            over = _credits_over(text, required, limit, compact=compact) if limit and not cut else 0
+            # a photo whose page id is not recorded yet (a copy written before QF-126b, a lookup that failed) gets one
+            # when the credits are written again: measured with the longest id, it is not told "over" when a re-send
+            # or an Edit would fit it (no lookup here, none at posting); when it is over, the figure it is told is
+            # this one too, an upper bound that is never below what the Edit (which writes those links) must cut
+            shortened = False
+            if over > 0 and compact and getattr(config, "CREDIT_SHORT_SOURCE_LINKS", True):
+                over = _credits_over(text, _with_page_id_bound(required), limit)
+                shortened = over <= 0
+            if shortened:
+                reason = (f"{len(missing)} of {len(required)} required credit(s) are not in it yet: {which}. They "
+                          "fit, and nothing needs to be cut: the photos' page links are shortened when the credits "
+                          "are written again (re-send or any Edit). While it waits for review, re-send the review or "
+                          "save any Edit to write them; a post already approved or booked needs a new version, which "
+                          "is written with them.")
+            elif not cut and over <= 0:
                 # Nothing is too long: the copy was written before these credits were asked for (a run waiting or
                 # booked when QF-126 was deployed), and writing its credits again is all it needs.
                 reason = (f"{len(missing)} of {len(required)} required credit(s) are not in it yet: {which}. They "
@@ -495,10 +722,13 @@ def credit_reach_problems(texts: dict[str, str], required: list[dict[str, Any]],
     return problems + [f"{' and '.join(names)}: {reason}" for reason, names in found.values()]
 
 
-def _credits_over(text: str, required: list[dict[str, Any]], limit: int) -> int:
+def _credits_over(text: str, required: list[dict[str, Any]], limit: int, compact: bool = True) -> int:
     """By how many characters `text` with every required credit it lacks passes `limit` (0 or less: they fit), as
     add_provenance_attributions would write them: each on its own paragraph, the summary credit line giving way
-    when that is what makes room."""
+    when that is what makes room, and (`compact`, a caption's text) the photos' credits in the compact form when that
+    is shorter (QF-126b, with the page ids the `required` records carry; credit_reach_problems measures again with
+    the longest id for a photo without one, _with_page_id_bound, so a hold does not say "over" when writing the
+    credits again would fit them)."""
     def length(body: str) -> int:
         return len(body.rstrip()) + sum(len(item["line"]) + 2 for item in required if not credit_carried(item, body))
 
@@ -506,7 +736,26 @@ def _credits_over(text: str, required: list[dict[str, Any]], limit: int) -> int:
     # as it writes them: lines written before QF-42 rewritten first, the complete music line replacing the short one
     text = _drop_superseded_music(rewrite_credit_lines(text), required)
     without = "\n".join(line for line in text.splitlines() if not line.startswith(CREDIT_PREFIXES)).strip()
-    return min(length(text), length(without)) - limit
+    forms = [length(text), length(without)]
+    if compact:   # a caption's credits (add_provenance_attributions); not the documentary's description
+        forms += [len(_with_compact_credits(_without_compact_lines(body), required).rstrip()) for body in (text, without)]
+    return min(forms) - limit
+
+
+# The longest page-id link a Commons file page is measured with when its id is not recorded yet: Commons page ids have
+# at most nine digits (the highest of the real runs' ids is 198,099,384), so "?curid=" and nine 9s is an upper bound
+# for the link a lookup gives while ids stay below a billion.
+_PAGE_ID_BOUND = 999_999_999
+
+
+def _with_page_id_bound(required: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """`required` with each Commons photo whose page id is not recorded given the longest one (_PAGE_ID_BOUND), for
+    measuring only: its compact line is then as long as a lookup could make it, never shorter. Its line (the one-photo
+    form) is unchanged."""
+    return [{**item, "record": {**item["record"], "pageid": _PAGE_ID_BOUND}}
+            if item["kind"] == "image" and isinstance(item.get("record"), dict) and not item["record"].get("pageid")
+            and commons_file_title(item["record"].get("source_url")) else item
+            for item in required]
 
 
 def ledger_credit_problems(ledger: Path, texts: dict[str, str], limits: dict[str, int] | None = None) -> list[str]:
@@ -547,12 +796,47 @@ def _drop_superseded_music(text: str, required: list[dict[str, Any]]) -> str:
     return (text or "") if len(kept) == len(lines) else "\n".join(kept)
 
 
-def add_provenance_attributions(payload, ledger):
+def _without_compact_lines(text: str) -> str:
+    """`text` without its compact photo credit lines: they are the pipeline's own writing of the ledger's credits,
+    written again, in the form that fits, each time the credits are."""
+    lines = (text or "").splitlines()
+    kept = [line for line in lines if not compact_credit_works(line)]
+    return (text or "") if len(kept) == len(lines) else re.sub(r"\n{3,}", "\n\n", "\n".join(kept)).rstrip()
+
+
+def _with_compact_credits(caption: str, required: list[dict[str, Any]]) -> str:
+    """`caption` with every required credit, the photos' in the compact form (compact_photo_credits). The caption's
+    one-photo lines are taken out first, with or without their 📷 (they are the pipeline's own: the photos the
+    ledger asks a credit for are all written again below, and a line left by an earlier render for a photo this
+    video does not show is not one of its credits), and the compact lines take the photos' place in the order of
+    the credits (the share-alike notice, the photos, the adapted notice, the music). A photo the compact form
+    cannot carry keeps its one-photo line."""
+    lines, covered = compact_photo_credits([item["record"] for item in required if item["kind"] == "image"])
+    if not lines:
+        return _append_credits(caption, [item["line"] for item in required if not credit_carried(item, caption)])
+    own = {item["line"].strip() for item in required}   # written again below, in their order (no drift on a rewrite)
+    kept = [line for line in caption.splitlines()
+            if not (_credit_fields(line) or _CREDIT_SHAPE.match(line.strip()) or line.strip() in own)]
+    text = re.sub(r"\n{3,}", "\n\n", "\n".join(kept)).rstrip()
+    out: list[str] = []
+    for item in required:
+        if item["kind"] == "image" and item["line"] in covered:
+            out, lines = out + lines, []
+        elif not credit_carried(item, text):
+            out.append(item["line"])
+    return _append_credits(text, out)
+
+
+def add_provenance_attributions(payload, ledger, lookup=None):
     """`payload` with every credit its video must carry (required_credits) in its description and its caption. The
     description takes them all. The caption takes them all when they fit Instagram's 2,200 characters, the summary
     credit line ("📷 Images via ...") giving way first (the per-photo lines and the adapted notice say what it
-    said); when they still do not fit, the ones that fit are added in order and the release gate holds the post
-    (release "licence_credits"): a credit is never shortened, and the post never goes out without one."""
+    said); when the one-photo lines still do not fit, the photos' credits are written in the compact form (QF-126b:
+    one line a licence, every photo with its five parts), with the page-id links `lookup` finds when it is given and
+    they are needed (find_source_links); when they still do not fit, the ones that fit are added in order and the
+    release gate holds the post (release "licence_credits"): a credit is never shortened, and the post never goes out
+    without one. The length is the caption's as it is posted (with the illustration disclosure when the run has
+    one)."""
     data = json.loads(Path(ledger).read_text(encoding="utf-8"))
     # Credit lines already in the copy (a regeneration's held lines, a run written before QF-42) are rewritten
     # first, so the line added below is not a second copy of an old one.
@@ -564,18 +848,30 @@ def add_provenance_attributions(payload, ledger):
     def missing(text):
         return [item["line"] for item in required if not credit_carried(item, text)]
 
+    def fits(text):
+        from .publisher import with_disclosure
+        return len(with_disclosure(text, payload)) <= CAPTION_MAX
+
     from .beat_images import CREDIT_PREFIXES
     description = _drop_superseded_music(payload.get("description", ""), required)
     payload["description"] = _append_credits(description, missing(description))
-    caption = _drop_superseded_music(payload.get("caption", ""), required)
+    caption = _without_compact_lines(_drop_superseded_music(payload.get("caption", ""), required))
     whole = _append_credits(caption, missing(caption))
-    if len(whole) > CAPTION_MAX and any(line.startswith(CREDIT_PREFIXES) for line in caption.splitlines()):
+    if not fits(whole) and any(line.startswith(CREDIT_PREFIXES) for line in caption.splitlines()):
         caption = "\n".join(line for line in caption.splitlines() if not line.startswith(CREDIT_PREFIXES)).strip()
         whole = _append_credits(caption, missing(caption))
-    if len(whole) > CAPTION_MAX:   # held by the gate; what fits is still written, in order
+    if not fits(whole):   # QF-126b: the same credits, each licence and each author written once
+        compact = _with_compact_credits(caption, required)
+        if not fits(compact) and lookup is not None and find_source_links(Path(ledger), lookup):
+            required = required_credits(data, Path(ledger).parent)   # with the page ids just found
+            compact = _with_compact_credits(caption, required)
+        if fits(compact):
+            payload["caption"] = compact
+            return payload
+    if not fits(whole):   # held by the gate; what fits is still written, in order
         whole = caption
         for line in missing(caption):
-            if len(_append_credits(whole, [line])) <= CAPTION_MAX:
+            if fits(_append_credits(whole, [line])):
                 whole = _append_credits(whole, [line])
     payload["caption"] = whole
     return payload
@@ -711,6 +1007,7 @@ def generate_provenance_ledger(
                        "artist": rec.get("artist") or (illustration_credit if in_house_gap_art else None),
                        "license": rec.get("license") or ("AI-generated illustration, not a photograph" if in_house_gap_art else None),
                        "license_url": rec.get("license_url"), "source_url": rec.get("source_url"),
+                       **({"pageid": rec["pageid"]} if isinstance(rec.get("pageid"), int) else {}),   # QF-126b
                        "worldwide_basis": _effective_basis(rec),
                        "license_verified_at": rec.get("license_verified_at"),
                        "attribution_required": False if in_house_gap_art else requires_attribution,
@@ -779,13 +1076,16 @@ SHARE_ALIKE_NOTICE = "🎬 This video is licensed CC BY-SA 4.0: https://creative
 # by that shape even without its 📷: a copy edit told the caption had too many emoji removed the credits' emoji, and
 # their photo titles and Commons ids were then checked as figures (production, Derinkuyu 2026-10-29).
 _CREDIT_SHAPE = re.compile(r"^[^|\n]*\|[^|\n]*\|\s*(?:public domain|pd\b|pd-|cc0|cc by)[^|\n]*\|\s*https?://", re.IGNORECASE)
+# ... and a compact line (QF-126b: "licence licence-URL | author: “title” URL | ...") the same way.
+_COMPACT_SHAPE = re.compile(r"^(?:public domain|pd\b|pd-|cc0|cc by)[^|\n“]*\shttps?://\S+\s*\|[^|\n]*“[^|\n]*”\s+https?://",
+                            re.IGNORECASE)
 
 
 def is_attribution_line(line: str) -> bool:
     """A credit line the pipeline adds to public copy (image, footage, music, the share-alike notice).
     The notice is matched exactly, not by its emoji, so model-written text starting with 🎬 is not one."""
     return (line.startswith(("📷", "🎥", "🎵")) or line.strip() in (SHARE_ALIKE_NOTICE, ADAPTED_NOTICE)
-            or bool(_CREDIT_SHAPE.match(line.strip())))
+            or bool(_CREDIT_SHAPE.match(line.strip())) or bool(_COMPACT_SHAPE.match(line.strip())))
 
 
 def split_attribution(text: str) -> tuple:

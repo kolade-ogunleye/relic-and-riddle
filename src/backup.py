@@ -46,6 +46,7 @@ GOLD_FILES = [
     "qa_report.json",
     "provenance.json",
     "credits.json",
+    "source_links.json",          # the photos' Commons page ids its compact credit lines link by (QF-126b)
     "script_metadata.json",
     "release_report.json",
     "companion_posting.json",

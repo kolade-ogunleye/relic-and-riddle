@@ -873,8 +873,22 @@ def _credit_card_line(line: str, form: int) -> str:
     """A caption credit line as a long review card lists it (QF-42): whole (form 0); a photo credit
     ("📷 author | title | licence | source | licence URL") without its two links (1), as author and title cut to
     CREDIT_CARD_TITLE (2), or the author alone (3). Any other credit line (music, footage, the share-alike notice)
-    is whole, cut to CREDIT_CARD_CLIP characters in form 3."""
+    is whole, cut to CREDIT_CARD_CLIP characters in form 3. A compact line (QF-126b, one licence's photos) is whole
+    (0), its licence, authors and titles without the links (1), with the titles cut (2), or the licence and each
+    author with a count (3)."""
     from .control import clip_words
+    from .credits import compact_credit_works
+    works = compact_credit_works(line)
+    if works:   # QF-126b: one line for a licence's photos; shortened the same way, every photo still named
+        if not form:
+            return line
+        by_author: dict[str, list[str]] = {}
+        for author, title, *_ in works:
+            title = title.removeprefix("File:")
+            by_author.setdefault(author, []).append(title if form == 1 else clip_words(title, CREDIT_CARD_TITLE))
+        return "📷 " + " · ".join([works[0][2]] + [
+            f"{author}: {'; '.join(titles)}" if form < 3 else author + (f" (×{len(titles)})" if len(titles) > 1 else "")
+            for author, titles in by_author.items()])
     fields = [f.strip() for f in line.removeprefix("📷").split(" | ")] if line.startswith("📷") else []
     if len(fields) != 5:
         return line if form < 3 else clip_words(line, CREDIT_CARD_CLIP)

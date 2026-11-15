@@ -218,6 +218,11 @@ EUROPEANA_API_KEY = (os.getenv("EUROPEANA_API_KEY") or "").strip()
 ARCHIVE_FILM_MAX_MB = max(20, int(os.getenv("ARCHIVE_FILM_MAX_MB") or 250))
 # Wikimedia's User-Agent policy: a contact (URL or email) for the bot, or requests may be throttled/blocked.
 COMMONS_CONTACT = (os.getenv("COMMONS_CONTACT") or "").strip()
+# QF-126b: when a Reel's complete credits do not fit its caption even one line a licence, look up the Commons page
+# id of its photos (one read-only API query) so each credit names the file's page by that id
+# (https://commons.wikimedia.org/?curid=<id>, MediaWiki's own address for a page). Off: the full file-page links
+# only; a post whose credits then do not fit is held, as before.
+CREDIT_SHORT_SOURCE_LINKS = (os.getenv("CREDIT_SHORT_SOURCE_LINKS") or "true").lower() in ("true", "1", "yes")
 # The brand's public contact (a URL or email) named in the User-Agent of other open-archive clients (archive.org).
 # Unset: the User-Agent names the brand and purpose only. Kept out of the source (QF-49).
 BRAND_CONTACT = (os.getenv("BRAND_CONTACT") or "").strip()

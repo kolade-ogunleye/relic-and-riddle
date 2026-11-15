@@ -1222,8 +1222,8 @@ class PipelineCoordinator:
             self_healing=quality_audit,
         )
         log.info("Recorded cryptographic provenance ledger -> %s", prov_ledger.name)
-        from src.credits import add_provenance_attributions
-        add_provenance_attributions(payload, prov_ledger)
+        from src.credits import add_provenance_attributions, short_link_lookup
+        add_provenance_attributions(payload, prov_ledger, lookup=short_link_lookup())
 
         self._check_cancel(run_id)
         # Thumbnails: vertical cover, square grid, and 16:9 widescreen YouTube key-art
@@ -1382,9 +1382,9 @@ class PipelineCoordinator:
         # shortened so its credits fit gets them, and a music credit written before QF-126 becomes the complete line.
         ledger = Path(run["master_video_path"]).parent / "provenance.json"
         if ledger.is_file():
-            from src.credits import add_provenance_attributions
+            from src.credits import add_provenance_attributions, short_link_lookup
             try:
-                add_provenance_attributions(payload, ledger)
+                add_provenance_attributions(payload, ledger, lookup=short_link_lookup())
             except (OSError, ValueError, TypeError, AttributeError) as e:   # the release gate says what is missing
                 log.warning("Credits not rewritten from the ledger after the edit: %s", e)
         labels = [f.replace("_", " ") for f in changes]  # "title, carousel caption and caption"
@@ -1458,14 +1458,14 @@ class PipelineCoordinator:
         run without a readable ledger is returned as it is (the gate says so)."""
         import copy
 
-        from src.credits import add_provenance_attributions
+        from src.credits import add_provenance_attributions, short_link_lookup
         payload = run.get("script_payload")
         ledger = Path(run.get("master_video_path") or "").parent / "provenance.json"
         if not isinstance(payload, dict) or not run.get("master_video_path") or not ledger.is_file():
             return run
         credited = copy.deepcopy(payload)
         try:
-            add_provenance_attributions(credited, ledger)
+            add_provenance_attributions(credited, ledger, lookup=short_link_lookup())   # QF-126b: the form that fits
         except (OSError, ValueError, TypeError, AttributeError, KeyError) as e:
             log.warning("Credits not written again for %s before its review: %s", run.get("run_id"), e)
             return run
@@ -3773,8 +3773,8 @@ class PipelineCoordinator:
         ledger = generate_provenance_ledger(run_dir, topic, payload, master_mp4,
                                    vo_path, bed_path, media_items=scenes,
                                    self_healing=payload.get("self_healing"))
-        from src.credits import add_provenance_attributions
-        add_provenance_attributions(payload, ledger)
+        from src.credits import add_provenance_attributions, short_link_lookup
+        add_provenance_attributions(payload, ledger, lookup=short_link_lookup())
         self.db.update_run(run_id, "pending_approval", script_payload=payload)
         (run_dir / "script_metadata.json").write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
         from src.release import ReleaseReportLocked, locked_report, write_release_report
@@ -4112,7 +4112,10 @@ class PipelineCoordinator:
         ledger, where its record decides. When neither says what that photo asks, the carousel is held: the credits
         of the run's other photos do not credit it (a carousel may show a photo its Reel did not use, which the
         ledger then does not hold). When a slide has no record of what it shows, the caption credits every photo of
-        the run (_ledger_credited_carousel) or the carousel is held."""
+        the run (_ledger_credited_carousel) or the carousel is held.
+
+        QF-126b: photo credits whose one-photo lines do not fit are written one line a licence (every photo with its
+        five parts: credits.with_compact_photo_lines), and a caption that holds them so carries them."""
         from src import publishable
         _, final = publishable.carousel_post_base(payload, self.db, run_id,
                                                   (self.db.get_run(run_id) or {}).get("topic_id", ""))
@@ -4122,9 +4125,12 @@ class PipelineCoordinator:
         from src.credits import (
             _credit_subject,
             asset_attribution,
+            credit_present,
             incomplete_credit,
             is_share_alike,
             ledger_photo_credits,
+            with_compact_photo_lines,
+            with_page_ids,
         )
         from src.multi_format import (
             CAROUSEL_ADAPTED,
@@ -4182,10 +4188,22 @@ class PipelineCoordinator:
             slide_lines = (([CAROUSEL_SHARE_ALIKE] if share_alike else []) + photo_lines
                            + ([CAROUSEL_ADAPTED] if photo_lines else []))
         caption, comment = self._carousel_post(payload, slides, hashtags=final, credits=(slide_lines, readable))
+        # QF-126b: one-photo lines that do not fit are written in the compact form (one line a licence, each photo
+        # with its five parts), with the page ids the run's folder records; never a lookup at posting time.
+        records = with_page_ids(entries + from_ledger, shown[0].parent.parent) if shown else []
+        if comment and readable:
+            compacted = with_compact_photo_lines(slide_lines, records)
+            if compacted != slide_lines:
+                slide_lines = compacted
+                caption, comment = self._carousel_post(payload, slides, hashtags=final,
+                                                       credits=(slide_lines, readable))
         if shown and not readable:
             caption, comment = self._ledger_credited_carousel(caption, comment, shown)
         have = {ln.strip() for ln in caption.splitlines()}
-        outside = [ln for ln in slide_lines if ln.strip() not in have]
+        by_line = {asset_attribution(r): r for r in records}
+        # a photo's line is in the caption as written, or as a compact line with the same five parts (credit_present)
+        outside = [ln for ln in slide_lines if ln.strip() not in have
+                   and not (ln in by_line and credit_present(by_line[ln], caption))]
         outside += [ln for ln in comment.splitlines() if ln.strip() and ln not in outside and ln.strip() not in have]
         if outside:
             # Review of QF-126, round 2: this carousel's review is approved and its Reel posted, so its caption
@@ -4221,9 +4239,11 @@ class PipelineCoordinator:
         show that no credit is asked."""
         from src.credits import (
             _credit_subject,
+            compact_credit_works,
             incomplete_credit,
             required_credits,
             split_attribution,
+            with_compact_photo_lines,
         )
         from src.multi_format import CAROUSEL_ADAPTED, CAROUSEL_SHARE_ALIKE
         run_dir = shown[0].parent.parent
@@ -4247,9 +4267,13 @@ class PipelineCoordinator:
         notices = (CAROUSEL_SHARE_ALIKE, CAROUSEL_ADAPTED)
         lines = ([CAROUSEL_SHARE_ALIKE] if any(i["kind"] == "share_alike" for i in asked) or CAROUSEL_SHARE_ALIKE in held
                  else []) + [item["line"] for item in photos]
-        lines += [ln for ln in held if ln not in notices and not ln.startswith(beat_images.CREDIT_PREFIXES)]
+        lines += [ln for ln in held if ln not in notices and not ln.startswith(beat_images.CREDIT_PREFIXES)
+                  and not compact_credit_works(ln)]   # a compact line is the pipeline's own, written again below
         lines = list(dict.fromkeys(ln.strip() for ln in lines)) + [CAROUSEL_ADAPTED]
         credited = body.rstrip() + chr(10) * 2 + chr(10).join(lines)
+        if len(credited) > self.CAROUSEL_CAPTION_MAX:   # QF-126b: the same credits, one line a licence
+            compacted = with_compact_photo_lines(lines, [item["record"] for item in photos])
+            credited = min(credited, body.rstrip() + chr(10) * 2 + chr(10).join(compacted), key=len)
         if len(credited) > self.CAROUSEL_CAPTION_MAX:
             raise CarouselCreditHold(
                 f"{why} ({len(photos)} photo credit line(s)), and with them its caption is {len(credited):,} "

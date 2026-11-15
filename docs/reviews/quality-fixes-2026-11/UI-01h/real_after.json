@@ -1,0 +1,122 @@
+{
+ "every_hold_on_every_surface": {
+  "holds": 18,
+  "surfaces_drawn": 108,
+  "remedy_not_offered": 0,
+  "what_was_found_lost": 0,
+  "by_surface": {
+   "booked item": {
+    "drawn": 18,
+    "remedy_not_offered": 0
+   },
+   "booked Details": {
+    "drawn": 18,
+    "remedy_not_offered": 0
+   },
+   "failed item": {
+    "drawn": 18,
+    "remedy_not_offered": 0
+   },
+   "failed Details": {
+    "drawn": 18,
+    "remedy_not_offered": 0
+   },
+   "review Summary": {
+    "drawn": 18,
+    "remedy_not_offered": 0
+   },
+   "review Checks": {
+    "drawn": 18,
+    "remedy_not_offered": 0
+   }
+  },
+  "examples": []
+ },
+ "voice_hold_item": {
+  "resumable": {
+   "buttons": [
+    "Re-render",
+    "Details",
+    "Dismiss",
+    "Back to list"
+   ],
+   "names_not_offered": []
+  },
+  "not_resumable": {
+   "buttons": [
+    "Back to the queue",
+    "Details",
+    "Dismiss",
+    "Back to list"
+   ],
+   "names_not_offered": []
+  }
+ },
+ "sentences_said_twice": {
+  "booked item": 0,
+  "booked Details": 0,
+  "failed item": 0,
+  "failed Details": 0
+ },
+ "credits_alike_dev_fixture": {
+  "runs": 28,
+  "reasons": 55,
+  "credits_named": 98,
+  "reasons_with_two_alike": 0,
+  "named_by_sheet_number": 0
+ },
+ "motion_clip_without_ledger": {
+  "reason": "AI motion clip (motion_01.mp4, by the video's manifest; provenance.json: the run has none)",
+  "says_in_provenance_json": false,
+  "names_what_is_missing": true
+ },
+ "dev_fixture_real_holds": {
+  "held_runs_by_kind": {
+   "fit": 1,
+   "over": 1,
+   "review fixture run": 1,
+   "written_before": 1
+  },
+  "surfaces_drawn": 18,
+  "remedy_not_offered": 0,
+  "sentences_said_twice": 0,
+  "longest_item_page": 1117
+ },
+ "credits_alike_real_1": {
+  "runs": 30,
+  "reasons": 55,
+  "credits_named": 98,
+  "reasons_with_two_alike": 0,
+  "named_by_sheet_number": 77
+ },
+ "real_holds_1": {
+  "held_runs_by_kind": {
+   "fit": 1,
+   "over": 1,
+   "review fixture run": 1,
+   "written_before": 1
+  },
+  "surfaces_drawn": 18,
+  "remedy_not_offered": 0,
+  "sentences_said_twice": 0,
+  "longest_item_page": 1117
+ },
+ "credits_alike_real_2": {
+  "runs": 34,
+  "reasons": 62,
+  "credits_named": 114,
+  "reasons_with_two_alike": 0,
+  "named_by_sheet_number": 90
+ },
+ "real_holds_2": {
+  "held_runs_by_kind": {
+   "fit": 1,
+   "over": 1,
+   "written_before": 1
+  },
+  "surfaces_drawn": 12,
+  "remedy_not_offered": 0,
+  "sentences_said_twice": 0,
+  "longest_item_page": 940
+ }
+}

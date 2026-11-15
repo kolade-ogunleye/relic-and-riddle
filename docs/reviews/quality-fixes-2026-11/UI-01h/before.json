@@ -1,0 +1,173 @@
+{
+ "every_hold_on_every_surface": {
+  "holds": 18,
+  "surfaces_drawn": 108,
+  "remedy_not_offered": 95,
+  "what_was_found_lost": 0,
+  "by_surface": {
+   "booked item": {
+    "drawn": 18,
+    "remedy_not_offered": 18
+   },
+   "booked Details": {
+    "drawn": 18,
+    "remedy_not_offered": 18
+   },
+   "failed item": {
+    "drawn": 18,
+    "remedy_not_offered": 18
+   },
+   "failed Details": {
+    "drawn": 18,
+    "remedy_not_offered": 18
+   },
+   "review Summary": {
+    "drawn": 18,
+    "remedy_not_offered": 10
+   },
+   "review Checks": {
+    "drawn": 18,
+    "remedy_not_offered": 13
+   }
+  },
+  "examples": [
+   {
+    "hold": "fit",
+    "surface": "booked item",
+    "names": [
+     "Edit",
+     "re-send"
+    ],
+    "buttons": [
+     "Make a new version",
+     "Cancel booking",
+     "Details",
+     "Dismiss",
+     "Back to list"
+    ]
+   },
+   {
+    "hold": "fit",
+    "surface": "booked Details",
+    "names": [
+     "Edit",
+     "re-send"
+    ],
+    "buttons": [
+     "Make a new version",
+     "Cancel booking",
+     "Posting"
+    ]
+   },
+   {
+    "hold": "fit",
+    "surface": "failed item",
+    "names": [
+     "Edit",
+     "re-send"
+    ],
+    "buttons": [
+     "Details",
+     "Dismiss",
+     "Back to list"
+    ]
+   },
+   {
+    "hold": "fit",
+    "surface": "failed Details",
+    "names": [
+     "Edit",
+     "re-send"
+    ],
+    "buttons": [
+     "Dashboard"
+    ]
+   },
+   {
+    "hold": "fit",
+    "surface": "review Checks",
+    "names": [
+     "re-send"
+    ],
+    "buttons": [
+     "Blocked by a check",
+     "Edit text",
+     "Regenerate",
+     "Covers",
+     "Reject",
+     "Script",
+     "Posts",
+     "Checks",
+     "Pictures · 2"
+    ]
+   },
+   {
+    "hold": "written_before",
+    "surface": "booked item",
+    "names": [
+     "Edit",
+     "re-send"
+    ],
+    "buttons": [
+     "Make a new version",
+     "Cancel booking",
+     "Details",
+     "Dismiss",
+     "Back to list"
+    ]
+   }
+  ]
+ },
+ "voice_hold_item": {
+  "resumable": {
+   "buttons": [
+    "Re-render",
+    "Details",
+    "Dismiss",
+    "Back to list"
+   ],
+   "names_not_offered": []
+  },
+  "not_resumable": {
+   "buttons": [
+    "Back to the queue",
+    "Details",
+    "Dismiss",
+    "Back to list"
+   ],
+   "names_not_offered": [
+    "Re-render"
+   ]
+  }
+ },
+ "sentences_said_twice": {
+  "booked item": 2,
+  "booked Details": 0,
+  "failed item": 0,
+  "failed Details": 0
+ },
+ "credits_alike_dev_fixture": {
+  "runs": 28,
+  "reasons": 55,
+  "credits_named": 98,
+  "reasons_with_two_alike": 4,
+  "named_by_sheet_number": 0
+ },
+ "motion_clip_without_ledger": {
+  "reason": "AI motion clip (motion_01.mp4, in provenance.json)",
+  "says_in_provenance_json": true,
+  "names_what_is_missing": false
+ },
+ "dev_fixture_real_holds": {
+  "held_runs_by_kind": {
+   "fit": 1,
+   "over": 1,
+   "review fixture run": 1,
+   "written_before": 1
+  },
+  "surfaces_drawn": 18,
+  "remedy_not_offered": 17,
+  "sentences_said_twice": 4,
+  "longest_item_page": 1227
+ }
+}

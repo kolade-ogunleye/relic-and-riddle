@@ -121,7 +121,9 @@ def current(db) -> list[dict[str, Any]]:
                 "timed_out": "Stopped at its deadline"}.get(late.get("status"), "")
         what = what or ("Failed after rendering" if late.get("master_video_path") else "Failed after its fact check")
         verb = "Make again" if late.get("status") in ("rejected", "regenerate") else "Re-render"
-        reason = control.short_reason(late.get("error") or "", limit=1000)
+        from .hold_advice import FAILED, for_surface
+        # its advice in a failed run's words (UI-01h): this item offers Re-render or Make again, never Edit
+        reason = control.short_reason(for_surface(late.get("error") or "", FAILED), limit=1000)
         key = db.run_key(late["run_id"])
         out.append({"key": PREFIX + "late:" + late["run_id"], "section": notes.NEEDS, "emoji": "🔁", "title": what,
                     "subject": db.run_label(late["run_id"]), "run": late["run_id"],

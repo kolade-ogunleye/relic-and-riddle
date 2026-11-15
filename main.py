@@ -491,13 +491,20 @@ class PipelineCoordinator:
                 card_shown = bool(self.telegram_bot.finish_progress_card(card, title, run_id, success=False, error=reason))
         finally:   # the hold is said whether or not the card could be finished
             if config.TELEGRAM_CLEAN_CHAT or not card_shown:   # the earlier chat's failure card already says it
+                actions = notifications.failure_actions(self.db, run_id)
+                # UI-01h: the way back named by the button the item offers (Back to the queue when the run cannot be
+                # resumed: its script is then not kept)
+                again = ("Restore it, then Re-render: the script is kept."
+                         if any(a.get("text") == "Re-render" for a in actions) else
+                         "Restore it, then Back to the queue: the topic is made again from the start." if any(
+                             a.get("text") == "Back to the queue" for a in actions) else
+                         "Restore it; this run cannot be made again.")
                 _notice(self, f"🛑 <b>Held: no licensed voice</b>\n\n<b>{html.escape(self.db.run_label(run_id))}</b>\n"
                               f"<blockquote expandable>{html.escape(reason[:600])}</blockquote>\n"
                               "Nothing was voiced by an unlicensed voice, approved or posted: a real run is voiced "
-                              "only by a commercially licensed voice (ElevenLabs on a paid plan). Restore it, then "
-                              "Re-render: the script is kept.",
+                              f"only by a commercially licensed voice (ElevenLabs on a paid plan). {again}",
                         group="needs", section="needs", key=f"fail:{run_id}", run=run_id, replace=True,
-                        actions=notifications.failure_actions(self.db, run_id))
+                        actions=actions)
             ping_healthcheck("/fail")
         return {"status": "held", "reason": "no_licensed_voice", "run_id": run_id, "topic_id": tid, "error": reason}
 
@@ -1605,8 +1612,11 @@ class PipelineCoordinator:
         paths approved it anyway, to be refused at release (dev, 2026-10-27: Trepanation approved seven times,
         Odessa and Roman approved by the flag 0-11 s after their reports failed). A blocked run is recorded as
         blocked at the gate, never approved; returns why, or None when the gate passes."""
+        from src.hold_advice import FAILED
         from src.release import release_problems
-        problems = release_problems(report, dry_run)
+        # UI-01h: in a failed run's words (its item offers Details, and its Details Make again or the queue), never
+        # "re-send the review" or "Edit", which a failed run does not offer
+        problems = release_problems(report, dry_run, surface=FAILED)
         if not problems:
             return None
         why = f"Blocked at the release gate, not approved ({by}): " + "; ".join(problems)
@@ -1617,7 +1627,8 @@ class PipelineCoordinator:
         log.warning("%s: %s", run_id, why)
         _notice(self, f"⛔ <b>Blocked at the release gate</b>, not approved ({html.escape(by)})\n\n"
                     f"<b>{html.escape(self.db.run_label(run_id))}</b>\n<blockquote expandable>"
-                    + html.escape("\n".join(problems)[:900]) + "</blockquote>\nNothing was posted.", section="needs", key=f"gate:{run_id}", run=run_id,
+                    + html.escape("\n".join(problems)[:900]) + "</blockquote>\nNothing was posted. Its Details say whether and how it can be "
+                    "made again.", section="needs", key=f"gate:{run_id}", run=run_id,
                      actions=[{"text": "Details", "callback_data": f"chist:{self.db.run_key(run_id)}"}])
         return why
 
@@ -2139,7 +2150,7 @@ class PipelineCoordinator:
                     + _voice_gate_off_line(self.publisher, run_id, "YouTube Short"))
         if short.get("status") == "blocked_unlicensed":   # the master's voice: nothing was uploaded
             return (f"▶️ YouTube Short {html.escape(str(short.get('error') or 'not posted')[:400])}. "
-                    + html.escape(voice_licence.recovery()))
+                    + html.escape(voice_licence.recovery(resend=False)))
         return f"▶️ YouTube Short not posted ({html.escape(str(short.get('status')))}): {html.escape(str(short.get('error') or '')[:300])}"
 
     def retry_reel(self, run_id: str) -> str:
@@ -4051,18 +4062,20 @@ class PipelineCoordinator:
             self._post_photos(post, run, "story")
 
     def _block_reasons(self, run_id: str, exc: Exception) -> list[str]:
-        """Why the release refused, in plain words: from the release report it has just written, else its message."""
+        """Why the release refused, in plain words: from the release report it has just written, else its message.
+        Their advice is in a held booking's words (UI-01h: it offers Make a new version, not Edit or a re-send)."""
+        from src.hold_advice import BOOKED, for_surface
         from src.release import plain_block_reasons
         if str(exc).startswith("Release blocked"):
             try:
                 master = Path((self.db.get_run(run_id) or {}).get("master_video_path") or "")
                 report = json.loads((master.parent / "release_report.json").read_text(encoding="utf-8"))
-                found = plain_block_reasons(report)
+                found = plain_block_reasons(report, surface=BOOKED)
                 if found:
                     return found
             except (OSError, ValueError, TypeError):
                 pass
-        return [str(exc).removeprefix("Release blocked: ")[:400]]
+        return [for_surface(str(exc).removeprefix("Release blocked: "), BOOKED)[:400]]
 
     def _still(self, post: dict[str, Any]) -> bool:
         """True while the booking is still as this pass read it (a Post now may have changed it meanwhile)."""
@@ -4105,7 +4118,9 @@ class PipelineCoordinator:
             "reason": "; ".join(reasons), "reasons": reasons, "blocked_at": now.isoformat(), "error": str(exc)[:1000]})
         from src.posting_view import BLOCKED_NEXT, blocked_buttons
         lines = "\n".join(f"• {html.escape(r)}" for r in reasons)
-        text = f"⛔ <b>Not posted: {label}</b>\n\nIts Reel was held at its slot because:\n{lines}\n\n{BLOCKED_NEXT}"
+        # UI-01h: the label is the item's subject (or its first line), not a title cut on the list and said again
+        # whole below it
+        text = f"⛔ <b>Not posted</b> · {label}\n\nIts Reel was held at its slot because:\n{lines}\n\n{BLOCKED_NEXT}"
         # UI-01g: one Needs-you item per blocked booking, under the key its earlier hold used (_hold_booking)
         _notice(self, text, buttons=blocked_buttons(self.db, post), group="needs", section="needs",
                 key=f"post-held:{post['id']}", run=post["run_id"], replace=True)
@@ -4395,8 +4410,10 @@ class PipelineCoordinator:
             self.db.update_scheduled_post(post["id"], "failed", detail={"error": "image files are missing"})
             return "failed"
         if kind == "story":   # frames redrawn after booking must still carry their photo credits (2026-10-29)
+            from src.hold_advice import BOOKED, for_surface
             from src.release import story_credit_problems
-            problems = story_credit_problems(Path(files[0]).parent.parent) or []
+            # in a booking's words (UI-01h): this notice offers Retry, not a redraw
+            problems = [for_surface(p, BOOKED) for p in story_credit_problems(Path(files[0]).parent.parent) or []]
             if problems:
                 self.db.update_scheduled_post(post["id"], "failed", detail={"error": "Story credits: " + "; ".join(problems)})
                 _notice(self, f"❌ Stories not posted for {html.escape(self.db.run_label(post['run_id']))}: "

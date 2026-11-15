@@ -37,6 +37,7 @@ from pathlib import Path
 from typing import Any
 
 from . import config
+from .hold_advice import REVIEW
 
 log = logging.getLogger(__name__)
 
@@ -633,7 +634,7 @@ class ReviewPanel:
         open_checks = [c for c in (release or {}).get("checks") or [] if c.get("status") != "pass"]
         length = measured_length(release)
         from .release import check_problems
-        found = [f"{c['name']}: {p}" for c in open_checks for p in check_problems(c)]
+        found = [f"{c['name']}: {p}" for c in open_checks for p in check_problems(c, surface=REVIEW)]
         from .telegram_bot import V2_NOTE_KEYS, _run_json
         from .voice_licence import gate_on, overclaim_flag
         # QF-127: a saved "licensed" the licence table denies (a master voiced by Azure before its tier was recorded)
@@ -771,12 +772,12 @@ class ReviewPanel:
         stop = blocked(release)
         if stop:
             blocks.append(f"⛔ <b>Blocked</b> · {len(stop)} check{'s' if len(stop) != 1 else ''}\n"
-                          + "\n".join(f"• {_e(c['name'])}: {_e(p)}" for c in stop for p in check_problems(c)))
+                          + "\n".join(f"• {_e(c['name'])}: {_e(p)}" for c in stop for p in check_problems(c, surface=REVIEW)))
         rest = [c for c in checks if c.get("status") != "pass" and not any(c is s for s in stop)]
         if rest:
             blocks.append("⚠️ <b>Open, not blocking</b>\n"
-                          + "\n".join(f"• {_e(c['name'])}: {_e(p)}" for c in rest for p in check_problems(c)))
-        minor = [f"• {_e(c['name'])}: {_e(p)}" for c in checks for p in check_problems(c, "notes")]
+                          + "\n".join(f"• {_e(c['name'])}: {_e(p)}" for c in rest for p in check_problems(c, surface=REVIEW)))
+        minor = [f"• {_e(c['name'])}: {_e(p)}" for c in checks for p in check_problems(c, "notes", surface=REVIEW)]
         if minor:
             blocks.append("<b>Minor findings</b>\n" + "\n".join(minor))
         passed = [c["name"] for c in checks if c.get("status") == "pass"]

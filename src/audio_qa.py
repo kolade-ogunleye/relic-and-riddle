@@ -24,7 +24,7 @@ import subprocess
 import time
 from pathlib import Path
 
-from . import config
+from . import config, hold_advice
 from .credits import sha256_file
 
 # Bumped whenever a check's definition changes, so a measurement recorded by an older definition is redone.
@@ -175,8 +175,8 @@ def _dropout(silences: list, duration: float) -> tuple:
     ends = [s for s in silences if s not in inside and s["end"] - s["start"] >= config.AUDIO_QA_EDGE_SILENCE_S]
     found = inside + ends
     if found:
-        return found, (f"The sound drops to silence at {_spans(found)}: check the voice and the music there and "
-                       "re-render.")
+        return found, (f"The sound drops to silence at {_spans(found)}: "
+                       + hold_advice.DROPOUT)
     longest = max((s["end"] - s["start"] for s in silences), default=0.0)
     return [], (f"No silence inside the programme (below {config.AUDIO_QA_SILENCE_DB} dBFS for "
                 f"{config.AUDIO_QA_SILENCE_S} s or more" + (f"; {longest:.2f} s at an end" if silences else "") + ").")

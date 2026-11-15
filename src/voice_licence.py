@@ -167,13 +167,17 @@ def gate_off_note(dry: bool | None = None) -> str:
             "Set VOICE_REQUIRE_LICENSED=true in .env and restart.")
 
 
-def recovery(on_card: bool = False) -> str:
+def recovery(on_card: bool = False, resend: bool = True) -> str:
     """How the operator gets a master voiced again, by the buttons' own names: the review card's Regenerate with
     its reason "Music / sound" (improve.REASONS), which keeps the script; from the blocked notice, its Resend
-    review card button first. A real run re-voices it only while the gate is on, so with it off that comes first."""
+    review card button first. A real run re-voices it only while the gate is on, so with it off that comes first.
+    `resend`: whether the surface offers Resend review card (UI-01h: a reply on Posting does not, so it names no
+    button)."""
     from .improve import REASONS
     how = f"Regenerate › {REASONS['sound']} voices it again with a licensed voice (the script is kept)"
     first = "" if gate_on() else "Set VOICE_REQUIRE_LICENSED=true and restart. "
+    if not on_card and not resend:
+        return first + f"On a real run, it must be voiced again, in a new version: in its review, {how}."
     return first + (f"On a real run, {how}." if on_card else f"Tap Resend review card; then, on a real run, {how}.")
 
 

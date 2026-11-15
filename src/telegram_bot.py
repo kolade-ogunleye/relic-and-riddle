@@ -2025,14 +2025,16 @@ class TelegramApprovalBot:
         minor = [c for c in report.get("checks", []) if c.get("status") == "pass" and c.get("minor")]
         if not open_checks and minor:
             # Minor audit findings allowed through (MINOR_FINDINGS_BLOCK_RELEASE=false): shown for the reviewer.
+            from .hold_advice import REVIEW
             from .release import check_problems
-            found = "\n".join(_capped([f"• {e(c['name'])}: {e(p)}" for c in minor for p in check_problems(c)], cap))
+            found = "\n".join(_capped([f"• {e(c['name'])}: {e(p)}" for c in minor for p in check_problems(c, surface=REVIEW)], cap))
             line = f"🚦 <b>Release gate:</b> ✅ all checks pass · minor findings, not blocking:\n<blockquote expandable>{found}</blockquote>\n"
         elif not open_checks:
             line = "🚦 <b>Release gate:</b> ✅ all checks pass\n"
         else:
             # What was found, in its own words (the card said "visual_checks: fail (… (>1.2s)'})" and
             # Approve led to a failure notice: 2026-10-24 production run).
+            from .hold_advice import REVIEW
             from .release import blocking_checks, check_problems
             blocking = sorted(blocking_checks(report, dry_run=report.get("dry_run", False)),
                               key=lambda c: c.get("status") != "fail")   # a failed check before one awaiting review
@@ -2042,17 +2044,17 @@ class TelegramApprovalBot:
             later = [c for c in open_checks if not any(c is b for b in blocking)]
             # A blocked check's minor findings are notes, after every reason (production, rc72, 2026-10-29: a minor
             # photo note was listed as a reason the release was blocked).
-            found = "\n".join(_capped([f"• {e(c['name'])}: {e(p)}" for c in blocking for p in check_problems(c)]
+            found = "\n".join(_capped([f"• {e(c['name'])}: {e(p)}" for c in blocking for p in check_problems(c, surface=REVIEW)]
                                       + [f"• {e(c['name'])}" + (" (not blocking)" if blocked else "") + f": {e(p)}"
-                                         for c in later for p in check_problems(c)]
+                                         for c in later for p in check_problems(c, surface=REVIEW)]
                                       + [f"• {e(c['name'])} (minor, not blocking): {e(p)}"
-                                         for c in open_checks for p in check_problems(c, "notes")]
+                                         for c in open_checks for p in check_problems(c, "notes", surface=REVIEW)]
                                       # the operator's old-master note (QF-10b) and QF-88's notes are shown even when another
                                       # check blocks: it says what a re-render will also fix
                                       + [f"• {e(c['name'])} (note, not blocking): {e(p)}"
                                          for c in report.get("checks", [])
                                          if c.get("status") == "pass" and (c.get("grandfathered") or c.get("note"))
-                                         for p in check_problems(c)], cap))
+                                         for p in check_problems(c, surface=REVIEW)], cap))
             # QF-88: a held flash stretch alone is not a defect found; it waits for the operator's look.
             # Only a pure hold: a flash check with a failing interval is blocked, not held (round 7).
             held = blocked and all(c.get("name") == "picture_flash" and c.get("hold") and c.get("status") == "needs_review"

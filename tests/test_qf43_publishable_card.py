@@ -205,6 +205,9 @@ def _carousel_coordinator(db, run_dir, monkeypatch):
     for n in range(1, 4):
         (run_dir / "carousel").mkdir(exist_ok=True)
         Image.new("RGB", (20, 20)).save(run_dir / "carousel" / f"carousel_slide_{n:02d}.jpg")
+    # QF-126: a rendered run has a provenance ledger; this one asks no credit
+    from run_ledgers import write_ledger
+    write_ledger(run_dir)
     db.update_run("run_stone", "pending_approval", script_payload=CAROUSEL)
     put(db, "review-media", "run_stone", review_fingerprint(db, "run_stone"))
     coordinator = PipelineCoordinator.__new__(PipelineCoordinator)

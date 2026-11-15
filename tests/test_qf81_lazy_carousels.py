@@ -122,6 +122,9 @@ def coord(db, tmp_path, curated_payload, monkeypatch):
         (run_dir / "m.mp4").write_bytes(b"0")
         carousel_lazy.plan(run_dir, [_photo(run_dir / "photos" / "p1.jpg"), _photo(run_dir / "photos" / "p2.jpg", 40)],
                            dict(curated_payload))
+        # QF-126: a rendered run has a provenance ledger; its photos ask no credit
+        from run_ledgers import write_ledger
+        write_ledger(run_dir, [run_dir / "photos" / "p1.jpg", run_dir / "photos" / "p2.jpg"])
         payload = dict(curated_payload, topic_id="01_topic", human_reviewed=True)
         db.create_run(run_id, "01_topic")
         db.update_run(run_id, "pending_approval", script_payload=payload, master_video_path=run_dir / "m.mp4",

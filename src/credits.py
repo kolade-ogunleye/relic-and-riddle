@@ -61,6 +61,10 @@ _USER_CATEGORY = re.compile(r"^(?:Category:)?User:([^/]+)/", re.I)
 _TALK = re.compile(r"\s*\((?:talk|contribs?|talk\s*[·|]\s*contribs?)\)", re.I)
 _DOUBLED = re.compile(r"^([A-ZÀ-ɏ].{3,}?)\s?\1$")       # two spans run together: "Unknown artistUnknown artist"
 _NOT_A_NAME = re.compile(r"^(?:me|myself|the author|author|the uploader|uploader|this user|i|we|us|you|unknown)$", re.I)
+# Where a sentence of the artist field ends: a stop after a word, then space. Not after an abbreviation that stands
+# before a name ("from St. Petersburg", "Mt. Athos", "Dr. Jane Doe"): its full stop cut "Andrey Korchagin from St.
+# Petersburg, Russia" in two and the credit printed "Unknown" (review of QF-126, 2026-11-14).
+_SENTENCE_END = re.compile(r"(?<=\w\w[.!?])(?<!\b(?:St|Mt|Ft|Pt|Dr|Mr|Ms)\.)(?<!\b(?:Mrs|Rev)\.)(?<!\bProf\.)\s+")
 AUTHOR_MAX = 80  # longer than a name and its place ("Warren LeMay from Cullowhee, NC, United States" is 46)
 
 
@@ -103,7 +107,7 @@ def _stated_author(record) -> str:
             return name
         stated = stated or bool(found)
     from .commons import _NOT_AUTHOR, _NOTICE   # one list of re-user notices and placeholders (Commons fetch)
-    kept = [s for s in re.split(r"(?<=\w\w[.!?])\s+", text) if s.strip() and not _NOTICE.match(s.strip())]
+    kept = [s for s in _SENTENCE_END.split(text) if s.strip() and not _NOTICE.match(s.strip())]
     if not stated and kept == [text] and text == plain and len(text) <= AUTHOR_MAX and not _NOT_AUTHOR.match(text):
         return text                             # a plain name: printed exactly as before
     if len(kept) == 1 and not stated and not _NOT_AUTHOR.match(kept[0]):
@@ -265,31 +269,315 @@ def _reference_records(data) -> list[dict[str, Any]]:
             if isinstance(r, dict)]
 
 
+# ---------------------------------------------------------------- the credits a post must carry (QF-126)
+# CC BY 4.0 s.3(a)(1): the creator, the title (as supplied), a link to the material, the licence and its link, and
+# an indication that the material was modified. The catalogue audit (2026-11-14, R3) found the music line without
+# its two links or "edited", no modification notice beside the per-photo lines, and nothing that checked the
+# credits against the text each platform receives: a Reel's credits were looked for in its caption OR its
+# description, and a Reel posts no description, so a photo credit that did not fit the caption was posted nowhere.
+# Licence compliance comes before a short caption: a credit is never shortened or left out to fit; a post whose
+# credits do not fit is held, with the reason.
+CAPTION_MAX = 2200            # Instagram's caption limit (the Reel's caption is Facebook's and the Short's text too)
+YOUTUBE_DESCRIPTION_MAX = 5000
+# Its own line, matched whole (as the share-alike notice is): it is not a photo's credit line, so it does not start
+# with 📷 (the lines that do are one per photo, and are counted and rewritten as such).
+ADAPTED_NOTICE = "🎬 Photos adapted for this video: cropped, with motion and text added."
+
+
+def _bed_record(data: dict, run_dir: Path | None) -> dict:
+    """The music bed's rights record (audio_provenance.record_bed) of a ledger: by the bed's file name in `run_dir`
+    (the ledger's own folder; a run folder read on another machine too), else beside the bed where the ledger says
+    it is. {} when there is none."""
+    from pathlib import PureWindowsPath
+    bed = (data.get("ambient_bed") or {}).get("path")
+    if not bed:
+        return {}
+    name = PureWindowsPath(str(bed)).name + ".rights.json"
+    for candidate in ([Path(run_dir) / name] if run_dir else []) + [Path(str(bed) + ".rights.json")]:
+        try:
+            record = json.loads(candidate.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            continue
+        return record if isinstance(record, dict) else {}
+    return {}
+
+
+def required_credits(data: dict, run_dir: Path | None = None) -> list[dict[str, Any]]:
+    """Every credit a post of the run's video must carry, from its provenance ledger (`data`), in the order they
+    are written: the share-alike notice, one line for each photo (and each illustration's reference photo) whose
+    licence asks for a credit, the notice that the photos were adapted, and one line for each music track whose
+    licence asks for one (rebuilt from the bed's rights record, so a run rendered before QF-126 is asked for the
+    complete line too). Each is {"kind", "line", "record"}. Public-domain and CC0 assets ask for none."""
+    records = list(data.get("assets", [])) + _reference_records(data)
+    out: list[dict[str, Any]] = []
+    if any(is_share_alike(r.get("license") or "") for r in records):
+        out.append({"kind": "share_alike", "line": SHARE_ALIKE_NOTICE, "record": None})
+    seen = set()
+    for record in records:
+        line = asset_attribution(record)
+        if line and line not in seen:
+            seen.add(line)
+            out.append({"kind": "image", "line": line, "record": record})
+    if seen:
+        out.append({"kind": "adapted", "line": ADAPTED_NOTICE, "record": None})
+    from .music import credit_line
+    for track in _bed_record(data, run_dir).get("sources") or []:
+        line = credit_line(track) if isinstance(track, dict) and track.get("title") else ""
+        if line and line not in seen:
+            seen.add(line)
+            out.append({"kind": "music", "line": line, "record": track})
+    return out
+
+
+def _file_key(path) -> str:
+    """A recorded file path as it is compared: its separators and letter case made one."""
+    return str(path or "").strip().replace(chr(92), "/").rstrip("/").lower()
+
+
+def _file_keys(path) -> set[str]:
+    """A file's path as recorded and as it resolves here (a ledger records resolved paths)."""
+    try:
+        return {_file_key(path), _file_key(Path(path).resolve())} - {""}
+    except (OSError, ValueError, TypeError):
+        return {_file_key(path)} - {""}
+
+
+def _photo_identity(photo: Path) -> tuple[set[str], set[str]]:
+    """(paths, checksums) of a photo and of the files it was made from, as its lineage records them (a crop, blur or
+    upscale keeps a lineage file beside it), up to four steps back. A file that is gone keeps its recorded path, and
+    a source its recorded checksum."""
+    from .lineage import sidecar
+    paths: set[str] = set()
+    sums: set[str] = set()
+    todo = [(Path(photo), "")]
+    for _ in range(4):
+        following = []
+        for path, recorded in todo:
+            if _file_key(path) in paths:
+                continue
+            paths |= _file_keys(path)
+            digest = recorded or sha256_file(path)
+            if digest:
+                sums.add(digest)
+            try:
+                sources = json.loads(sidecar(path).read_text(encoding="utf-8"))["sources"]
+                following += [(Path(str(s["path"])), str(s.get("sha256") or "")) for s in sources
+                              if isinstance(s, dict) and s.get("path")]
+            except (OSError, ValueError, KeyError, TypeError):
+                continue
+        todo = following
+    return paths, sums
+
+
+def ledger_photo_credits(data: dict, photo: Path) -> list[dict[str, Any]] | None:
+    """The credit records a run's provenance ledger (`data`) asks for one photo, found by the photo's recorded path
+    or checksum, through its lineage: the ledger asset that is the photo, that the photo was made from, or that was
+    made from the photo. [] when the ledger's record asks for none (public domain or CC0; the run's own drawing or
+    illustration, whose reference photos' credits are returned when a licence asks for them). None when the ledger
+    does not hold the photo, or holds it without saying what its licence is: nothing then decides, and the caller
+    must credit every photo of the run or hold the post (review of QF-126, round 2: a carousel photo whose
+    credits.json entry cannot be read)."""
+    paths, sums = _photo_identity(photo)
+    own = _file_keys(photo)
+    own_sum = sha256_file(Path(photo))
+    recorded = {_file_key(s.get("path")): str(s.get("sha256") or "")
+                for s in data.get("derived_sources") or [] if isinstance(s, dict)}
+    out: list[dict[str, Any]] = []
+    found = False
+    for asset in data.get("assets") or []:
+        if not isinstance(asset, dict):
+            continue
+        made_from = {_file_key(p) for p in asset.get("source_paths") or []}
+        is_or_from_asset = bool(_file_keys(asset.get("path")) & paths) or (asset.get("sha256") or None) in sums
+        asset_from_photo = bool(own & made_from) or bool(own_sum and own_sum in {recorded.get(p) for p in made_from})
+        if not (is_or_from_asset or asset_from_photo):
+            continue
+        found = True
+        if needs_attribution(asset):
+            out.append(asset)
+        elif asset.get("illustration") or asset.get("origin") in ("archaeological_reconstruction", "original_drawing"):
+            out += [r for r in _reference_records({"assets": [asset]}) if needs_attribution(r)]
+        elif not _PUBLIC_DOMAIN.match(str(asset.get("license") or "").strip()):
+            return None   # in the ledger, but its licence is not recorded: nothing says no credit is asked
+    return out if found else None
+
+
+def credit_carried(item: dict[str, Any], text: str) -> bool:
+    """Whether `text` carries the required credit `item` whole: a photo's line (or a line written before QF-42 that
+    rewrites to it, credit_present), the adapted notice (or the summary line's own "adapted" clause), any other line
+    as one of the text's lines."""
+    text = text or ""
+    if item["kind"] == "image":
+        return credit_present(item["record"], text)
+    if item["kind"] == "adapted":
+        return any(line.strip() == ADAPTED_NOTICE or (line.startswith("📷") and line.rstrip().endswith(CREDIT_ADAPTED))
+                   for line in text.splitlines())
+    return item["line"].strip() in {line.strip() for line in text.splitlines()}
+
+
+def incomplete_credit(item: dict[str, Any], regenerate: bool = True) -> str:
+    """What a required credit lacks ("" when it is complete): a photo or music line needs its source page and its
+    licence's address as http(s) URLs (asset_attribution and music.credit_line print "Unknown" for a missing one),
+    A public-domain or CC0 item a source asks a credit for has no licence to link to, and the operator's own
+    photograph no source page. An author the source does not name stays the operator's call (asset_rights sends a
+    CC BY photo without one for review): the licence asks for the creator "if supplied". A photo line that prints
+    "Unknown" while the record's artist field says something else is held for a person to check. `regenerate`:
+    whether a new version without the photo can still be made (not for a carousel, whose Reel is already posted)."""
+    if item["kind"] not in ("image", "music"):
+        return ""
+    fields = [f.strip() for f in item["line"].split(" | ")]
+    if len(fields) != 5:
+        return "its fields (author, title, licence, source link, licence link)"
+    licence, source, licence_url = (fields[2:5]) if item["kind"] == "image" else (fields[1:4])
+    record = item.get("record") or {}
+    # The operator's own photograph has no public page: its source is recorded as "Own work ..." (image_upload).
+    own = bool(record.get("own_work")) or str(record.get("source_url") or "").strip().lower().startswith("own work")
+    wanted = ([] if own else [("its source link", source)]) + (
+        [] if _PUBLIC_DOMAIN.match(licence) else [("its licence link", licence_url)])
+    lacking = [what for what, value in wanted if value == "Unknown" or _credit_url(value) != value]
+    if item["kind"] == "image" and fields[0].removeprefix("📷").strip() == "Unknown" and _names_someone(record):
+        lacking.insert(0, "its author (the source names one: check the credit"
+                          + (", or Regenerate without this photo)" if regenerate else ")"))
+    return " and ".join(lacking)
+
+
+def _names_someone(record: dict[str, Any]) -> bool:
+    """Whether a record's artist field says something other than that the author is unknown: the credit then prints
+    "Unknown" for an author the source may name, and a person must look (the licence asks for the name if supplied)."""
+    import html as _html
+    text = " ".join(_html.unescape(re.sub(r"<[^>]+>", " ", str((record or {}).get("artist") or ""))).split())
+    text = _DOUBLED.sub(r"\1", text).strip(" .").lower()
+    return bool(text) and not text.startswith(("unknown", "anonymous", "not known", "n/a", "none"))
+
+
+def credit_reach_problems(texts: dict[str, str], required: list[dict[str, Any]],
+                          limits: dict[str, int] | None = None) -> list[str]:
+    """Why a post must be held for its credits, [] when every platform's text carries every required credit whole.
+    `texts`: {what the platform receives, by name: the exact string sent}; `limits`: {name: its character limit}. A
+    text longer than its limit is refused or cut by the platform, and a text as long as its limit was cut to it by
+    its builder (publisher.youtube_fields): the credits are the text's last lines, so they are what is lost."""
+    problems = []
+    for item in required:
+        lacking = incomplete_credit(item)
+        if lacking:
+            problems.append(f"The credit for {_credit_subject(item)} lacks {lacking}, which its licence asks for.")
+    # One reason for the texts that lack the same credits (a Short's description is its Reel's caption): the first
+    # text's, with its room.
+    found: dict[tuple, tuple[str, list[str]]] = {}
+    for name, text in texts.items():
+        text = text or ""
+        limit = (limits or {}).get(name)
+        if limit and len(text) > limit:
+            problems.append(f"{name}: {len(text):,} characters with its credits; the platform takes {limit:,}. "
+                            "Shorten it (Edit, for a caption) or Regenerate with fewer photos that need a credit: "
+                            "a credit is never shortened or left out.")
+            text = text[:limit]
+        missing = [item for item in required if not credit_carried(item, text)]
+        if missing:
+            which = (f"{'; '.join(_credit_subject(m) for m in missing[:3])}"
+                     f"{' and more' if len(missing) > 3 else ''}")
+            cut = bool(limit) and len(text) >= limit
+            over = _credits_over(text, required, limit) if limit and not cut else 0
+            if not cut and over <= 0:
+                # Nothing is too long: the copy was written before these credits were asked for (a run waiting or
+                # booked when QF-126 was deployed), and writing its credits again is all it needs.
+                reason = (f"{len(missing)} of {len(required)} required credit(s) are not in it yet: {which}. They "
+                          "fit: this copy was written before they were asked for, and nothing needs to be cut. "
+                          "While it waits for review, re-send the review or save any Edit to write them; a post "
+                          "already approved or booked needs a new version, which is written with them.")
+            else:
+                room = (f" (the text is cut at the platform's {limit:,} characters)" if cut
+                        else f" (with them it is {over:,} characters over the platform's {limit:,})")
+                reason = (f"{len(missing)} of {len(required)} required credit(s) are not in it{room}: {which}. "
+                          "Shorten the text so they fit (Edit, for a caption), or Regenerate with fewer photos that "
+                          "need a credit.")
+            found.setdefault(tuple(item["line"] for item in missing), (reason, []))[1].append(name)
+    return problems + [f"{' and '.join(names)}: {reason}" for reason, names in found.values()]
+
+
+def _credits_over(text: str, required: list[dict[str, Any]], limit: int) -> int:
+    """By how many characters `text` with every required credit it lacks passes `limit` (0 or less: they fit), as
+    add_provenance_attributions would write them: each on its own paragraph, the summary credit line giving way
+    when that is what makes room."""
+    def length(body: str) -> int:
+        return len(body.rstrip()) + sum(len(item["line"]) + 2 for item in required if not credit_carried(item, body))
+
+    from .beat_images import CREDIT_PREFIXES
+    # as it writes them: lines written before QF-42 rewritten first, the complete music line replacing the short one
+    text = _drop_superseded_music(rewrite_credit_lines(text), required)
+    without = "\n".join(line for line in text.splitlines() if not line.startswith(CREDIT_PREFIXES)).strip()
+    return min(length(text), length(without)) - limit
+
+
+def ledger_credit_problems(ledger: Path, texts: dict[str, str], limits: dict[str, int] | None = None) -> list[str]:
+    """credit_reach_problems for the run whose provenance ledger is `ledger` (its bed's rights record is read from
+    the ledger's folder). An unreadable ledger is a problem: what the post must credit is then unknown."""
+    try:
+        data = json.loads(Path(ledger).read_text(encoding="utf-8"))
+        required = required_credits(data, Path(ledger).parent)
+    except (OSError, ValueError, TypeError, AttributeError, KeyError) as exc:
+        return [f"The run's provenance record could not be read ({type(exc).__name__}), so its credits cannot be checked."]
+    return credit_reach_problems(texts, required, limits)
+
+
+def _credit_subject(item: dict[str, Any]) -> str:
+    """A required credit named for the operator: "photo “title” by author", "music “title” by creator", or what
+    the notice is."""
+    record = item.get("record") or {}
+    if item["kind"] == "image":
+        return f"photo “{credit_title(record)}” by {author_name(record)}"
+    if item["kind"] == "music":
+        return f"music “{record.get('title') or 'Unknown'}” by {record.get('creator') or 'Unknown'}"
+    return "the share-alike licence notice" if item["kind"] == "share_alike" else "the notice that the photos were adapted"
+
+
+def _append_credits(text: str, lines: list[str]) -> str:
+    for line in lines:
+        text = (text or "").rstrip() + "\n\n" + line
+    return text or ""
+
+
+def _drop_superseded_music(text: str, required: list[dict[str, Any]]) -> str:
+    """`text` without a music credit written before QF-126 ("🎵 Music: “title” by creator (CC BY 4.0)") for a track
+    whose complete line is required: the complete line replaces it, it does not join it."""
+    tracks = [(item["line"], item["line"].split(" | ")[0]) for item in required if item["kind"] == "music"]
+    lines = (text or "").splitlines()
+    kept = [line for line in lines
+            if not any(line.strip() != whole and line.strip().startswith(head + " (") for whole, head in tracks)]
+    return (text or "") if len(kept) == len(lines) else "\n".join(kept)
+
+
 def add_provenance_attributions(payload, ledger):
+    """`payload` with every credit its video must carry (required_credits) in its description and its caption. The
+    description takes them all. The caption takes them all when they fit Instagram's 2,200 characters, the summary
+    credit line ("📷 Images via ...") giving way first (the per-photo lines and the adapted notice say what it
+    said); when they still do not fit, the ones that fit are added in order and the release gate holds the post
+    (release "licence_credits"): a credit is never shortened, and the post never goes out without one."""
     data = json.loads(Path(ledger).read_text(encoding="utf-8"))
     # Credit lines already in the copy (a regeneration's held lines, a run written before QF-42) are rewritten
     # first, so the line added below is not a second copy of an old one.
     rewrite_payload_credits(payload)
-    credits_to_add = [asset_attribution(record) for record in data.get("assets", []) if asset_attribution(record)]
-    credits_to_add += [line for line in (asset_attribution(r) for r in _reference_records(data))
-                       if line and line not in credits_to_add]
-    if any(is_share_alike(record.get("license", "")) for record in data.get("assets", []) + _reference_records(data)):
-        credits_to_add.insert(0, SHARE_ALIKE_NOTICE)
-    if not credits_to_add:
+    required = required_credits(data, Path(ledger).parent)
+    if not required:
         return payload
 
+    def missing(text):
+        return [item["line"] for item in required if not credit_carried(item, text)]
+
     from .beat_images import CREDIT_PREFIXES
-    for credit in credits_to_add:
-        if credit not in payload.get("description", ""):
-            payload["description"] = payload.get("description", "").rstrip() + "\n\n" + credit
-        if credit not in payload.get("caption", ""):
-            cand = payload.get("caption", "").rstrip() + "\n\n" + credit
-            if len(cand) > 2200 and any(p in payload.get("caption", "") for p in CREDIT_PREFIXES):
-                lines = [ln for ln in payload["caption"].splitlines() if not ln.startswith(CREDIT_PREFIXES)]
-                payload["caption"] = "\n".join(lines).strip()
-                cand = payload.get("caption", "").rstrip() + "\n\n" + credit
-            if len(cand) <= 2200:
-                payload["caption"] = cand
+    description = _drop_superseded_music(payload.get("description", ""), required)
+    payload["description"] = _append_credits(description, missing(description))
+    caption = _drop_superseded_music(payload.get("caption", ""), required)
+    whole = _append_credits(caption, missing(caption))
+    if len(whole) > CAPTION_MAX and any(line.startswith(CREDIT_PREFIXES) for line in caption.splitlines()):
+        caption = "\n".join(line for line in caption.splitlines() if not line.startswith(CREDIT_PREFIXES)).strip()
+        whole = _append_credits(caption, missing(caption))
+    if len(whole) > CAPTION_MAX:   # held by the gate; what fits is still written, in order
+        whole = caption
+        for line in missing(caption):
+            if len(_append_credits(whole, [line])) <= CAPTION_MAX:
+                whole = _append_credits(whole, [line])
+    payload["caption"] = whole
     return payload
 
 
@@ -496,7 +784,7 @@ _CREDIT_SHAPE = re.compile(r"^[^|\n]*\|[^|\n]*\|\s*(?:public domain|pd\b|pd-|cc0
 def is_attribution_line(line: str) -> bool:
     """A credit line the pipeline adds to public copy (image, footage, music, the share-alike notice).
     The notice is matched exactly, not by its emoji, so model-written text starting with 🎬 is not one."""
-    return (line.startswith(("📷", "🎥", "🎵")) or line.strip() == SHARE_ALIKE_NOTICE
+    return (line.startswith(("📷", "🎥", "🎵")) or line.strip() in (SHARE_ALIKE_NOTICE, ADAPTED_NOTICE)
             or bool(_CREDIT_SHAPE.match(line.strip())))
 
 
@@ -574,6 +862,9 @@ def rights_evidence_ok(rec: Dict[str, Any]) -> bool:
     three public-domain Commons images were held for review for lacking a URL (production, 2026-10-23)."""
     licence = str(rec.get("license", "") or "")
     if not (license_allowed(licence) and rec.get("source_url")):
+        return False
+    from .source_policy import blocked_source
+    if blocked_source(rec):   # an excluded source (QF-126), whatever licence the record states
         return False
     from .image_rights import rights_held
     if rights_held(rec):  # public domain needs a worldwide basis: stored, or read from the record's own evidence

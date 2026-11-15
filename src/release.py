@@ -7,8 +7,8 @@ import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
 
-from .credits import (SHARE_ALIKE_NOTICE, asset_attribution, credit_line_problems, credit_present, is_share_alike,
-                      sha256_file)
+from .credits import (SHARE_ALIKE_NOTICE, asset_attribution, credit_line_problems, credit_present, credit_reach_problems,
+                      is_share_alike, required_credits, sha256_file)
 from .fact_evidence import fact_review_problem, fact_review_shown, human_review_shown, human_review_text
 from .delivery_profiles import get_delivery_profile
 from .video_qa import is_intermediate, measure_program_loudness, provenance_problems, verify_provenance_integrity
@@ -149,6 +149,16 @@ def write_release_report(run, dry_run=False):
             missing_description = [asset_attribution(a) for a in data["assets"]
                 if not credit_present(a, payload.get("description", ""))]
             add("description_attribution", not missing_description, missing_description)
+        # QF-126: every credit a licence asks for, complete, in the text each platform receives, within its limit.
+        # image_attribution above passes a credit found in the caption OR the description, and a Reel posts no
+        # description; nothing checked the music credit's links, or that a 5,000-character cut kept the credits.
+        from .publishable import payload_credit_texts
+        required = required_credits(data, master.parent)
+        texts, limits = payload_credit_texts(payload, youtube=profile.name == "deep_dive_16x9")
+        unmet = credit_reach_problems(texts, required, limits)
+        add("licence_credits", not unmet, unmet or (
+            f"All {len(required)} required credit(s) are complete and in {' and '.join(texts)}." if required
+            else "No asset of this post asks for a credit."))
         from .audio_provenance import inspect_audio_rights, rebind_rights
         for key, kind in (("voiceover", "voice"), ("ambient_bed", "music")):
             audio = data.get(key)
@@ -654,6 +664,7 @@ PLAIN_CHECKS = {"facts": "Fact check", "provenance": "Source files", "compositio
                 "asset_rights": "Photo rights", "voiceover_rights": "Voice rights", "ambient_bed_rights": "Music rights",
                 "font_rights": "Font rights", "image_attribution": "Photo credits", "description_attribution": "Photo credits",
                 "credit_lines": "Credit lines", "credit_phrases": "Credit lines", "share_alike_licence": "Licence notice",
+                "licence_credits": "Licence credits",
                 "story_credits": "Story credits", "story_frames": "Story frames", "visual_checks": "Video check",
                 "media_measurement": "Video file", "picture_measurement": "Picture", "audio_measurement": "Sound",
                 "release_report": "Release report"}

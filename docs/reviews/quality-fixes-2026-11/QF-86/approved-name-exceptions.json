@@ -11,6 +11,36 @@
     {
       "path": "src/fact_sheet.py",
       "content_sha256": "24fea9217656b297700f4f3cf1cd48fbfa5ccf2a6a7fb913286851e73f212c40"
+    },
+    {
+      "path": "src/music.py",
+      "content_sha256": "941ef7f55cf805ee873504fb44ab4f3aafda212f4e75669af0ea99bc16f65e71",
+      "text": "refuse_blocked(track)   # an excluded source (BBC Sound Effects/RemArc, ...) never enters the library (QF-126)",
+      "reason": "blocked source named in order to refuse it, catalogue audit R6 (QF-126)"
+    },
+    {
+      "path": "src/source_policy.py",
+      "content_sha256": "2b2ea1d9abfa000a55355f93d05377d79c05ce193d240c5fe3a7f86df5066044",
+      "text": "BBC Sound Effects (RemArc)    personal, educational and research use only",
+      "reason": "blocked source named in order to refuse it, catalogue audit R6 (QF-126)"
+    },
+    {
+      "path": "src/source_policy.py",
+      "content_sha256": "8dad7b441908b32e6fe73c2614f8a81c607bb152b96d4e973dd555439eaa7682",
+      "text": "# source fields (not its title or description: a photo OF a BBC building is not a BBC recording).",
+      "reason": "blocked source named in order to refuse it, catalogue audit R6 (QF-126)"
+    },
+    {
+      "path": "src/source_policy.py",
+      "content_sha256": "49b4d43c33c7d0a92d4fa408de02d283ff3f404b3e3f2f13155bd43eec9a7363",
+      "text": "\"BBC Sound Effects (RemArc)\": {",
+      "reason": "blocked source named in order to refuse it, catalogue audit R6 (QF-126)"
+    },
+    {
+      "path": "src/source_policy.py",
+      "content_sha256": "96e76fa80e8b82524b5f9b9d28626d75fa27f9d9ba09c09f4ae49a10d28542ba",
+      "text": "\"phrases\": (\"bbc sound effects\", \"remarc\", \"bbc rewind\"),",
+      "reason": "blocked source named in order to refuse it, catalogue audit R6 (QF-126)"
     }
   ],
   "historical_metadata": {

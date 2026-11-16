@@ -372,7 +372,7 @@ def _run_ffmpeg(cmd: List[str]) -> subprocess.CompletedProcess:
 
 
 # QF-134: delivered and judged video takes the production encoder on every machine, never a hardware probe's pick
-from .encoding import bounded_encode, delivery_video_encoder as _get_video_encoder
+from .encoding import X264_ONE_THREAD, bounded_encode, delivery_video_encoder as _get_video_encoder
 from .encoding import delivery_intermediate_encoder as _get_intermediate_video_encoder
 from .encoding import BT709_FLAGS, BT709_TAGS, BT709_TO_RGB, RGB_TO_BT709, source_matrix, to_bt709
 
@@ -5027,8 +5027,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 
         encoder_args = _get_video_encoder()
         delivery_args = [
-            *encoder_args,
-            "-threads", str(os.cpu_count() or 0),
+            *encoder_args,   # carries x264's fixed thread count (QF-139), never the machine's cores
             "-pix_fmt", "yuv420p", "-color_range", "tv",
             "-color_primaries", "bt709", "-color_trc", "bt709", "-colorspace", "bt709",
             "-r", str(VIDEO_FPS),
@@ -5087,8 +5086,8 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         manifest["full_image_spans"] = full_image_spans(scene_images, starts, ends, bridge)
         # QF-88: the captions' reading rate as delivered (the release gate notes the narration's pace from it)
         manifest["reading_rate"] = getattr(self, "last_reading_rate", None)
-        # QF-134: the encoder the picture was delivered with, and every output argument (the same on every machine
-        # but for -threads, the machine's core count); the intermediate is the loop bridge's body, when there is one.
+        # QF-134: the encoder the picture was delivered with, and every output argument (the same on every machine,
+        # x264's thread count included: QF-139); the intermediate is the loop bridge's body, when there is one.
         manifest["video_encoder"] = {"master": list(encoder_args),
                                      "intermediate": list(_get_intermediate_video_encoder()) if card else None,
                                      "delivery_args": list(delivery_args)}
@@ -5354,8 +5353,8 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             "-threads", str(os.cpu_count() or 0),
             "-i", str(master_mp4),
             "-vf", "scale='if(gt(iw,ih),-2,720)':'if(gt(iw,ih),720,-2)'",
-            "-c:v", "libx264", "-preset", "fast", "-crf", "28",
-            "-threads", str(os.cpu_count() or 0),
+            # one x264 thread: a rate-capped encode with frame threads is not the same file run to run (QF-139)
+            "-c:v", "libx264", "-preset", "fast", "-crf", "28", *X264_ONE_THREAD,
             "-maxrate", f"{video_kbps}k", "-bufsize", f"{video_kbps * 2}k", "-pix_fmt", "yuv420p",
             "-c:a", "aac", "-b:a", "128k", "-movflags", "+faststart", str(proxy_path),
         ])

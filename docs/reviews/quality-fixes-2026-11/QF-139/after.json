@@ -1,0 +1,126 @@
+{
+  "host_logical_processors": 32,
+  "x264_build": [
+    "165 r3223 0480cb0"
+  ],
+  "surfaces_whose_bytes_differ_between_machines_or_runs": [],
+  "counts": {
+    "surfaces": 8,
+    "differ_between_machines_or_runs": 0,
+    "identical_on_all_machines": 8
+  },
+  "review_proxy": {
+    "distinct_files_in_all_runs": 1,
+    "runs_per_machine": 3,
+    "distinct_files_on_one_machine": {
+      "development PC (32)": 1,
+      "production VM (6)": 1,
+      "CI runner (4)": 1,
+      "small runner (2)": 1
+    },
+    "kbps": [
+      1704
+    ],
+    "cap_kbps": 1500
+  },
+  "x264_threads_in_stream": {
+    "graphic clip": {
+      "development PC (32)": "threads=6 lookahead_threads=1",
+      "production VM (6)": "threads=6 lookahead_threads=1",
+      "CI runner (4)": "threads=6 lookahead_threads=1",
+      "small runner (2)": "threads=6 lookahead_threads=1"
+    },
+    "then-and-now clip": {
+      "development PC (32)": "threads=6 lookahead_threads=1",
+      "production VM (6)": "threads=6 lookahead_threads=1",
+      "CI runner (4)": "threads=6 lookahead_threads=1",
+      "small runner (2)": "threads=6 lookahead_threads=1"
+    },
+    "footage segment": {
+      "development PC (32)": "threads=6 lookahead_threads=1",
+      "production VM (6)": "threads=6 lookahead_threads=1",
+      "CI runner (4)": "threads=6 lookahead_threads=1",
+      "small runner (2)": "threads=6 lookahead_threads=1"
+    },
+    "motion clip": {
+      "development PC (32)": "threads=6 lookahead_threads=1",
+      "production VM (6)": "threads=6 lookahead_threads=1",
+      "CI runner (4)": "threads=6 lookahead_threads=1",
+      "small runner (2)": "threads=6 lookahead_threads=1"
+    },
+    "reel master with loop bridge": {
+      "development PC (32)": "threads=6 lookahead_threads=1",
+      "production VM (6)": "threads=6 lookahead_threads=1",
+      "CI runner (4)": "threads=6 lookahead_threads=1",
+      "small runner (2)": "threads=6 lookahead_threads=1"
+    },
+    "documentary master": {
+      "development PC (32)": "threads=6 lookahead_threads=1",
+      "production VM (6)": "threads=6 lookahead_threads=1",
+      "CI runner (4)": "threads=6 lookahead_threads=1",
+      "small runner (2)": "threads=6 lookahead_threads=1"
+    },
+    "micro-patched master": {
+      "development PC (32)": "threads=6 lookahead_threads=1",
+      "production VM (6)": "threads=6 lookahead_threads=1",
+      "CI runner (4)": "threads=6 lookahead_threads=1",
+      "small runner (2)": "threads=6 lookahead_threads=1"
+    },
+    "review proxy (rate-capped)": {
+      "development PC (32)": "threads=1 lookahead_threads=1",
+      "production VM (6)": "threads=1 lookahead_threads=1",
+      "CI runner (4)": "threads=1 lookahead_threads=1",
+      "small runner (2)": "threads=1 lookahead_threads=1"
+    }
+  },
+  "sha256": {
+    "graphic clip": {
+      "development PC (32)": "f0e3d8d314f1c5c3c67c1c46e688b86f6c7d8f8fb195402cadc799bc137206f0",
+      "production VM (6)": "f0e3d8d314f1c5c3c67c1c46e688b86f6c7d8f8fb195402cadc799bc137206f0",
+      "CI runner (4)": "f0e3d8d314f1c5c3c67c1c46e688b86f6c7d8f8fb195402cadc799bc137206f0",
+      "small runner (2)": "f0e3d8d314f1c5c3c67c1c46e688b86f6c7d8f8fb195402cadc799bc137206f0"
+    },
+    "then-and-now clip": {
+      "development PC (32)": "88468f5f1f22e2c6dbcd70dbaae8cbf39e0d1a99736738c9dc37820309329086",
+      "production VM (6)": "88468f5f1f22e2c6dbcd70dbaae8cbf39e0d1a99736738c9dc37820309329086",
+      "CI runner (4)": "88468f5f1f22e2c6dbcd70dbaae8cbf39e0d1a99736738c9dc37820309329086",
+      "small runner (2)": "88468f5f1f22e2c6dbcd70dbaae8cbf39e0d1a99736738c9dc37820309329086"
+    },
+    "footage segment": {
+      "development PC (32)": "39b5be4779e4ea7475aab2cf5ec0e512ae8121407dad1fae92b01fe8980d581a",
+      "production VM (6)": "39b5be4779e4ea7475aab2cf5ec0e512ae8121407dad1fae92b01fe8980d581a",
+      "CI runner (4)": "39b5be4779e4ea7475aab2cf5ec0e512ae8121407dad1fae92b01fe8980d581a",
+      "small runner (2)": "39b5be4779e4ea7475aab2cf5ec0e512ae8121407dad1fae92b01fe8980d581a"
+    },
+    "motion clip": {
+      "development PC (32)": "3fbe8d6fd7d0fac5891a8d656f2a67c977968f2c23922f8da7a2176d0ba12453",
+      "production VM (6)": "3fbe8d6fd7d0fac5891a8d656f2a67c977968f2c23922f8da7a2176d0ba12453",
+      "CI runner (4)": "3fbe8d6fd7d0fac5891a8d656f2a67c977968f2c23922f8da7a2176d0ba12453",
+      "small runner (2)": "3fbe8d6fd7d0fac5891a8d656f2a67c977968f2c23922f8da7a2176d0ba12453"
+    },
+    "reel master with loop bridge": {
+      "development PC (32)": "a25d0b08c69db7f34f5ec66ce0d02ea8f4ec35482f83eae44759b96c0643c34f",
+      "production VM (6)": "a25d0b08c69db7f34f5ec66ce0d02ea8f4ec35482f83eae44759b96c0643c34f",
+      "CI runner (4)": "a25d0b08c69db7f34f5ec66ce0d02ea8f4ec35482f83eae44759b96c0643c34f",
+      "small runner (2)": "a25d0b08c69db7f34f5ec66ce0d02ea8f4ec35482f83eae44759b96c0643c34f"
+    },
+    "documentary master": {
+      "development PC (32)": "3f25fae779f5642213714efa30f6ea1f6274ee1002cc0fb93083b99dc2999f8d",
+      "production VM (6)": "3f25fae779f5642213714efa30f6ea1f6274ee1002cc0fb93083b99dc2999f8d",
+      "CI runner (4)": "3f25fae779f5642213714efa30f6ea1f6274ee1002cc0fb93083b99dc2999f8d",
+      "small runner (2)": "3f25fae779f5642213714efa30f6ea1f6274ee1002cc0fb93083b99dc2999f8d"
+    },
+    "micro-patched master": {
+      "development PC (32)": "56847bd0ef97123c5e4ef9c37be47878e0889527fd6cf1cf46083e318887ca62",
+      "production VM (6)": "56847bd0ef97123c5e4ef9c37be47878e0889527fd6cf1cf46083e318887ca62",
+      "CI runner (4)": "56847bd0ef97123c5e4ef9c37be47878e0889527fd6cf1cf46083e318887ca62",
+      "small runner (2)": "56847bd0ef97123c5e4ef9c37be47878e0889527fd6cf1cf46083e318887ca62"
+    },
+    "review proxy (rate-capped)": {
+      "development PC (32)": "f1e06e70f51b8e977cfa1d6fd2e42589305111381b606ae5c223c475e0c4f1f7",
+      "production VM (6)": "f1e06e70f51b8e977cfa1d6fd2e42589305111381b606ae5c223c475e0c4f1f7",
+      "CI runner (4)": "f1e06e70f51b8e977cfa1d6fd2e42589305111381b606ae5c223c475e0c4f1f7",
+      "small runner (2)": "f1e06e70f51b8e977cfa1d6fd2e42589305111381b606ae5c223c475e0c4f1f7"
+    }
+  }
+}

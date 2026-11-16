@@ -27,7 +27,7 @@ from urllib.parse import urljoin, urlparse
 import requests
 
 from . import commons, config, url_guard
-from .encoding import BT709_FLAGS, to_bt709
+from .encoding import BT709_FLAGS, X264_THREADS, to_bt709
 
 log = logging.getLogger(__name__)
 
@@ -159,7 +159,7 @@ def make_segment(src: Path, info: Dict[str, Any], out: Path) -> Path:
         start = max(0.0, (dur - SEGMENT_SECONDS) / 2)
     subprocess.run(["ffmpeg", "-y", "-v", "error", "-protocol_whitelist", "file", "-ss", f"{start:.2f}", "-t", f"{SEGMENT_SECONDS:.2f}",
                     "-i", str(src), "-an", *frame_filter_bt709(info),
-                    "-c:v", "libx264", "-preset", "medium", "-crf", "17", *BT709_FLAGS, "-pix_fmt", "yuv420p", str(out)],
+                    "-c:v", "libx264", "-preset", "medium", "-crf", "17", *X264_THREADS, *BT709_FLAGS, "-pix_fmt", "yuv420p", str(out)],
                    check=True, timeout=600, capture_output=True)
     subprocess.run(["ffmpeg", "-y", "-v", "error", "-protocol_whitelist", "file", "-ss", f"{SEGMENT_SECONDS / 2:.2f}", "-i", str(out),
                     "-frames:v", "1", str(out.with_suffix(".jpg"))], check=True, timeout=60, capture_output=True)

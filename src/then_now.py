@@ -27,6 +27,7 @@ from .brand import PLACE_TARGET, rgba
 from .camera_motion import kenburns
 from .config import VIDEO_FPS, VIDEO_HEIGHT, VIDEO_WIDTH
 from .credits import normalize
+from .encoding import X264_THREADS
 from .graphics import (
     CLIP_SECONDS,
     TEXT_TOP,
@@ -1416,7 +1417,7 @@ def _encode(frames: Any, out: Path, n: int, width: int = VIDEO_WIDTH, height: in
            # left primaries and transfer "unknown" in the file).
            "-vf", ("scale=out_color_matrix=bt709:out_range=tv,format=yuv420p,"
                    "setparams=range=tv:color_primaries=bt709:color_trc=bt709:colorspace=bt709"),
-           "-c:v", "libx264", "-preset", "slow", "-crf", "16", "-tune", "grain",
+           "-c:v", "libx264", "-preset", "slow", "-crf", "16", "-tune", "grain", *X264_THREADS,
            "-colorspace", "bt709", "-color_primaries", "bt709", "-color_trc", "bt709", "-pix_fmt", "yuv420p",
            str(out)]
     proc = subprocess.Popen(cmd, stdin=subprocess.PIPE, stderr=subprocess.PIPE)

@@ -604,7 +604,8 @@ class VisualEngine:
             {k: meta.get(k) for k in ("downscale", "downscale_ok", "downscale_fails", "title_overlap",
                                       "figure_withheld", "figure_declined", "tension_from", "text_over_focus",
                                       "headline_fill_from", "tagline_dropped", "year_event", "ink_edge",
-                                      "headline_from", "headline_dropped", "headline_lines_dropped")},
+                                      "headline_from", "headline_dropped", "headline_lines_dropped",
+                                      "headline_fragment")},
             indent=1, ensure_ascii=False), encoding="utf-8")
         # QF-23 (option 1): a headline the four-word budget holds only cut is never drawn cut; the review card says
         # what the thumbnail drew instead

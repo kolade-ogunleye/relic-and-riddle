@@ -146,16 +146,79 @@ def _words(text: str, limit: int) -> str:
     return " ".join(words) if len(words) <= limit else ""
 
 
+# QF-143: marks that lead a line into the one written after it ("THE RICHAT STRUCTURE:" over "THE EYE OF THE SAHARA")
+_LEAD_MARKS = ":;,&/+-–—"
+# QF-143 round 2: the words a whole headline line the writer chose cannot end on, standing alone. These are the
+# articles, the prepositions that take an object (cover_design._OBJECT_PREPOSITIONS) and the true conjunctions. IN
+# is left out because it is also an adverbial particle ("LOCKED IN"). The copulas and relatives of
+# cover_design._JOINERS are left out too: they end complete lines ("HERE IT IS", "WHAT IT WAS", "GUESS WHO"). Those
+# classes were tuned for the remainder of a cut field (QF-141), not for a whole line.
+_LINE_CONJUNCTIONS = frozenset({"AND", "OR", "BUT", "NOR"})
+
+
+def _line_end_words() -> frozenset:
+    from .cover_design import _ARTICLES, _OBJECT_PREPOSITIONS
+    return _ARTICLES | (_OBJECT_PREPOSITIONS - {"IN"}) | _LINE_CONJUNCTIONS
+
+
+# A line that opens on OF or THAN continues a phrase from the line before it ("OF THE ANDES") and never stands
+# alone. A line that opens on a conjunction stands only when the next word starts a clause of its own: a subject
+# pronoun or a sentence adverb ("AND THEN NONE", "BUT NOBODY KNEW", "AND IT VANISHED"). Followed by anything else
+# (an article, a noun), the conjunction carries on a list from the line before ("AND THE SPHINX").
+_OPEN_PREPOSITIONS = frozenset({"OF", "THAN"})
+_CLAUSE_OPENERS = frozenset({
+    "I", "WE", "YOU", "HE", "SHE", "IT", "THEY", "THIS", "THAT", "THESE", "THOSE", "THERE", "HERE",
+    "NOBODY", "NO", "NONE", "NOTHING", "NOONE", "EVERYONE", "SOMEONE", "SOMETHING", "EVERYTHING",
+    "THEN", "YET", "SO", "STILL", "NOW", "NEVER", "ALWAYS", "ONLY", "EVEN", "SOMEHOW", "SUDDENLY",
+    "WHY", "HOW", "WHAT", "WHO", "WHERE", "WHEN",
+})
+
+
+def _end(text: str) -> str:
+    """`text` without the marks at its end that lead into a line not drawn after it (QF-143): a drawn headline
+    never ends on a colon, semicolon, comma, dash, ampersand, plus or slash."""
+    t = (text or "").rstrip()
+    while t and t[-1] in _LEAD_MARKS:
+        t = t[:-1].rstrip()
+    return t
+
+
+def _alone(text: str) -> str:
+    """`text`, a whole verified headline line drawn without the copy line written with it (the budget left that one
+    out, or the copy has none), as it stands alone (QF-143). Its leading mark is dropped (_end). It is "" when it
+    still dangles: it ends on a word that needs what followed it (_line_end_words: an article, a preposition that
+    takes an object, a conjunction: "THE LOST CITY OF", "CARVED FROM"), or it opens on a word that joins it to what
+    came before (OF or THAN, or a conjunction that does not open a clause of its own: "OF THE ANDES", "AND THE
+    SPHINX"). A line closed by its own sentence mark ("GUESS WHO?", "OR WAS IT?") stands. A line is never cut
+    (QF-23)."""
+    import re
+    t = _end(text)
+    words = [w.strip("'").upper() for w in re.findall(r"[^\W_]+(?:'[^\W_]+)*", t)]
+    if not words or t[-1] in "?!.…":
+        return t
+    if words[-1] in _line_end_words() or words[0] in _OPEN_PREPOSITIONS:
+        return ""
+    if words[0] in _LINE_CONJUNCTIONS and (len(words) < 2 or words[1] not in _CLAUSE_OPENERS):
+        return ""
+    return t
+
+
 def headline_note(meta: dict) -> str:
     """The review card's line for a headline the budget did not take whole (QF-23, option 1), or ""."""
     if meta.get("headline_dropped"):
         return f"🖼 YouTube thumbnail: drawn without its headline: {meta['headline_dropped']}"
     if meta.get("headline_from"):
+        if meta.get("headline_fragment"):   # QF-143 round 2: the true reason, not the budget's
+            return (f"🖼 YouTube thumbnail: headline from the {meta['headline_from']}: "
+                    f"{' and '.join(meta['headline_fragment'])} does not stand alone without the line written with it")
         return (f"🖼 YouTube thumbnail: headline from the {meta['headline_from']}: the title's lines do not fit the "
                 f"four-word budget whole")
     if meta.get("headline_lines_dropped"):
         return (f"🖼 YouTube thumbnail: {' and '.join(meta['headline_lines_dropped'])} left out: longer than the "
                 f"budget, never cut")
+    if meta.get("headline_fragment"):
+        return (f"🖼 YouTube thumbnail: {' and '.join(meta['headline_fragment'])} left out: it does not stand alone "
+                f"without the line written with it")
     return ""
 
 
@@ -371,26 +434,37 @@ def _render(source, copy, focus, meta, figure, youtube_title, illustration, targ
         rest = dict(copy)
         if field in ("line1", "line2"):
             rest[field] = _without(str(copy[field]), span)
-        lines = [str(rest.get(k) or "") for k in ("line1", "line2")]
+        named = [(k, str(rest.get(k) or "")) for k in ("line1", "line2")]
         if not unit:   # a year: the payoff line (the second) under it, else the first
-            lines = [ln for ln in lines[::-1] if ln.strip()][:1]
+            named = [(k, ln) for k, ln in named[::-1] if ln.strip()][:1]
+        lines = [ln for _, ln in named]
         budget = MAX_WORDS - (2 if unit else 1)   # the figure (and its unit) count
         # QF-23 (option 1): both lines when they fit the budget whole, else the first whole line that does, else
-        # another verified line (eyebrow, tagline) that does, else no headline (recorded); a line is never cut
-        title = next((t for t in [_words(" ".join(lines), budget)] + [_words(ln, budget) for ln in lines] if t), "")
+        # another verified line (eyebrow, tagline) that does, else no headline (recorded); a line is never cut.
+        # QF-143: a line drawn without its partner stands alone (_alone: no trailing colon, never a fragment).
+        both = _words(" ".join(lines), budget)
+        both = _end(both) if sum(bool(ln.strip()) for ln in lines) > 1 else _alone(both)
+        title = next((t for t in [both] + [_alone(_words(ln, budget)) for ln in lines] if t), "")
+        if not both:
+            frag = [k for k, ln in named if _words(ln, budget) and not _alone(_words(ln, budget))]
+            if frag:
+                meta["headline_fragment"] = frag
         if not title and any(ln.strip() for ln in lines):
-            alt = next(((k, _words(str(rest.get(k) or ""), budget)) for k in ("eyebrow", "tagline")
-                        if _words(str(rest.get(k) or ""), budget)), None)
+            alt = next(((k, _alone(_words(str(rest.get(k) or ""), budget))) for k in ("eyebrow", "tagline")
+                        if _alone(_words(str(rest.get(k) or ""), budget))), None)
             if alt:
                 meta["headline_from"] = alt[0]
                 title = alt[1]
             else:
-                meta["headline_dropped"] = f"no verified line fits the {budget}-word headline whole"
+                meta["headline_dropped"] = (f"no verified line stands alone in the {budget}-word headline"
+                                            if "headline_fragment" in meta else
+                                            f"no verified line fits the {budget}-word headline whole")
         if youtube_title and len(_content(title) & _content(youtube_title)) >= 2:
             # The title already says it: the subject line gives way to another verified line of the copy.
-            alt = next(((k, _words(display_line, budget)) for k in ("eyebrow", "tagline")
+            alt = next(((k, _alone(_words(display_line, budget))) for k in ("eyebrow", "tagline")
                         for display_line in [str(rest.get(k) or "")]
                         if display_line.strip() and len(display_line.split()) <= budget
+                        and _alone(_words(display_line, budget))
                         and len(_content(display_line) & _content(youtube_title)) < 2
                         and not _content(display_line) <= _content(title)), None)
             if alt:
@@ -449,15 +523,26 @@ def _render(source, copy, focus, meta, figure, youtube_title, illustration, targ
             hedge = None
         l1, l2 = _words(copy.get("line1", ""), 3), _words(copy.get("line2", ""), 3)
         long_lines = [k for k, t in (("line1", l1), ("line2", l2)) if str(copy.get(k) or "").strip() and not t]
-        if long_lines and not (l1 or l2):
+        if l1 and l2:
+            l2 = _end(l2)   # QF-143: the headline never ends on a mark that leads on
+        elif l1 or l2:
+            # QF-143: one line drawn without the other stands alone: no trailing colon ("THE RICHAT STRUCTURE:"
+            # with "THE EYE OF THE SAHARA" over the budget), and never a fragment (_alone)
+            k, kept = ("line1", l1) if l1 else ("line2", l2)
+            if not _alone(kept):
+                meta["headline_fragment"] = [k]
+            l1, l2 = (_alone(l1), "") if l1 else ("", _alone(l2))
+        if (long_lines or "headline_fragment" in meta) and not (l1 or l2):
             # QF-23 (option 1): no headline line fits the budget whole: another verified line that does, else none
-            alt = next(((k, _words(str(copy.get(k) or ""), 3)) for k in ("eyebrow", "tagline")
-                        if _words(str(copy.get(k) or ""), 3)
+            alt = next(((k, _alone(_words(str(copy.get(k) or ""), 3))) for k in ("eyebrow", "tagline")
+                        if _alone(_words(str(copy.get(k) or ""), 3))
                         and not (youtube_title and len(_content(copy.get(k)) & _content(youtube_title)) >= 2)), None)
             if alt:
                 meta["headline_from"], l1 = alt
             else:
-                meta["headline_dropped"] = "no verified line fits the 3-word headline lines whole"
+                meta["headline_dropped"] = ("no verified line stands alone in the 3-word headline lines"
+                                            if "headline_fragment" in meta else
+                                            "no verified line fits the 3-word headline lines whole")
         elif long_lines:
             meta["headline_lines_dropped"] = long_lines   # the other line stands alone, whole
         kicker = ""

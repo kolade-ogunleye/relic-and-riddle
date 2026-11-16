@@ -1,0 +1,339 @@
+{
+ "sites_off_ladder": 41,
+ "pairs_off_ladder": 249,
+ "undeclared_sites": [],
+ "off_ladder": {
+  "callouts:_shapes": [
+   38.0,
+   42.0
+  ],
+  "cover_design:_rows": [
+   104.0,
+   106.0,
+   108.0,
+   110.0,
+   116.0,
+   118.0,
+   122.0,
+   126.0,
+   130.0,
+   132.0,
+   134.0,
+   140.0,
+   142.0,
+   144.0,
+   146.0,
+   148.0,
+   154.0,
+   156.0,
+   158.0,
+   160.0,
+   162.0,
+   164.0
+  ],
+  "cover_design:_tagline_lines": [
+   38.0
+  ],
+  "design_cards:_Card.font": [
+   28.0,
+   38.0,
+   58.0,
+   66.0,
+   76.0,
+   80.0,
+   92.0,
+   144.0
+  ],
+  "design_cards:_cap": [
+   58.0,
+   60.0,
+   62.0,
+   66.0,
+   68.0,
+   70.0,
+   74.0,
+   76.0,
+   78.0,
+   80.0,
+   82.0,
+   88.0,
+   92.0,
+   104.0
+  ],
+  "design_cards:_design_wrap": [
+   58.0,
+   60.0,
+   66.0,
+   68.0,
+   70.0,
+   74.0,
+   76.0,
+   78.0,
+   80.0,
+   82.0,
+   88.0,
+   92.0,
+   100.0,
+   104.0,
+   144.0,
+   160.0,
+   168.0,
+   176.0
+  ],
+  "design_cards:_myth_compose": [
+   58.0,
+   66.0,
+   80.0
+  ],
+  "design_cards:_myth_fit.lone.alone": [
+   66.0,
+   68.0,
+   70.0,
+   74.0,
+   76.0,
+   78.0,
+   80.0,
+   82.0,
+   92.0
+  ],
+  "design_cards:_source_label_font": [
+   28.0
+  ],
+  "design_cards:_source_width": [
+   38.0
+  ],
+  "design_cards:frame_at": [
+   301.0,
+   302.0,
+   303.0,
+   304.0,
+   305.0,
+   306.0,
+   307.0,
+   308.0,
+   361.0,
+   362.0,
+   363.0,
+   364.0,
+   365.0,
+   366.0,
+   367.0,
+   368.0,
+   370.0
+  ],
+  "design_cards:plan_hook_frame": [
+   144.0
+  ],
+  "design_cards:plan_hook_frame.hook_fit": [
+   144.0,
+   160.0,
+   168.0,
+   176.0,
+   192.0
+  ],
+  "design_cards:plan_hook_frame.hook_fits": [
+   144.0,
+   160.0,
+   176.0,
+   192.0
+  ],
+  "design_cards:plan_myth_fact": [
+   38.0,
+   58.0,
+   66.0,
+   76.0,
+   80.0
+  ],
+  "end_card:_masthead": [
+   65.0,
+   66.0,
+   67.0,
+   68.0,
+   69.0,
+   70.0,
+   71.0,
+   73.0
+  ],
+  "end_card:layout": [
+   37.0,
+   38.0,
+   54.0,
+   56.0,
+   58.0,
+   60.0
+  ],
+  "graphics:_stat_clip.frames": [
+   185.0,
+   186.0,
+   187.0,
+   188.0,
+   189.0,
+   210.0,
+   211.0,
+   212.0,
+   213.0,
+   214.0,
+   215.0,
+   216.0
+  ],
+  "graphics:_stat_layout": [
+   37.0,
+   41.0,
+   68.0,
+   77.0,
+   78.0,
+   85.0,
+   207.0,
+   210.0,
+   230.0
+  ],
+  "graphics:close_neighbours": [
+   20.0,
+   26.0
+  ],
+  "graphics:country_name": [
+   28.0
+  ],
+  "graphics:country_name_place": [
+   28.0
+  ],
+  "graphics:country_plate": [
+   28.0
+  ],
+  "graphics:neighbour_plates": [
+   20.0,
+   26.0
+  ],
+  "graphics:relief_base": [
+   20.0,
+   23.0
+  ],
+  "graphics:water_labels": [
+   21.0,
+   26.0
+  ],
+  "multi_format:MultiFormatGenerator._content_frame": [
+   186.667
+  ],
+  "multi_format:MultiFormatGenerator._fit_text": [
+   31.0,
+   41.333,
+   126.0,
+   130.0,
+   132.0,
+   134.0,
+   140.0,
+   142.0,
+   144.0,
+   146.0,
+   148.0,
+   168.0,
+   176.0,
+   178.667,
+   181.333,
+   186.667,
+   189.333,
+   192.0
+  ],
+  "multi_format:MultiFormatGenerator._render_carousel_slide": [
+   37.333
+  ],
+  "multi_format:MultiFormatGenerator._render_story_frame.title_plan": [
+   86.0,
+   88.0,
+   92.0,
+   94.0,
+   98.0,
+   100.0,
+   104.0,
+   106.0,
+   108.0,
+   110.0,
+   116.0,
+   118.0,
+   122.0,
+   126.0,
+   130.0,
+   132.0,
+   134.0,
+   140.0,
+   142.0,
+   144.0,
+   146.0,
+   148.0
+  ],
+  "multi_format:MultiFormatGenerator._rows": [
+   126.0
+  ],
+  "multi_format:story_credit_fit": [
+   26.0
+  ],
+  "then_now:_kicker_px_for_cap": [
+   25.0,
+   26.0,
+   28.0,
+   29.0,
+   31.0,
+   33.0,
+   35.0,
+   37.0,
+   38.0,
+   41.0,
+   42.0,
+   43.0,
+   44.0,
+   45.0
+  ],
+  "video_composer:VideoComposer.build_subtitles": [
+   26.0
+  ],
+  "video_composer:_caption_line_run": [
+   1000.0
+  ],
+  "video_composer:_caption_text_width": [
+   54.0,
+   61.0,
+   66.0,
+   74.0,
+   80.0
+  ],
+  "video_composer:_ink_band": [
+   26.0
+  ],
+  "video_composer:_libass_line": [
+   1000.0
+  ],
+  "video_composer:_record_caption_faces": [
+   1000.0
+  ],
+  "video_composer:reel_cap_height": [
+   68.0,
+   76.0,
+   82.0
+  ],
+  "youtube_thumbnail:_render": [
+   44.0,
+   87.0,
+   118.0,
+   122.0,
+   126.0,
+   130.0,
+   134.0,
+   140.0,
+   142.0,
+   144.0,
+   146.0,
+   148.0,
+   154.0,
+   158.0,
+   162.0,
+   166.0,
+   170.0,
+   174.0,
+   178.0,
+   182.0,
+   186.0
+  ]
+ },
+ "note": "site names normalised (lambda / comprehension frames folded into their function) after the run; tests/size_observer.normalise"
+}

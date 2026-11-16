@@ -1,0 +1,6 @@
+{
+ "previous": "66e5b32a (round-3 head render; its end cards re-rendered on the committed room fix)",
+ "new": "round-4 tree: social, covers, endcard re-rendered after the final masthead change (rs_c); maps, numbers, then-and-now, captions, cards, callouts from the round-4 observation run",
+ "compared": 158,
+ "differing": []
+}

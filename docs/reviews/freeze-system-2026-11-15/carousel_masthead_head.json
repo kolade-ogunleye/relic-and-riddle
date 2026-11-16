@@ -20,6 +20,8 @@
    "contrast_unaided": 6.71,
    "best_tried": 7.02,
    "best_step": "scrim 0.6 halo 0.0",
+   "best_dark": 7.02,
+   "best_light": 0.0,
    "glyphs": 14,
    "worst_glyph_x": 618,
    "short_of_target": false,
@@ -33,7 +35,7 @@
    649,
    132
   ],
-  "s": 11.88
+  "s": 12.08
  },
  {
   "run": "gol_gumbaz_whispering_gallery_1793278143",
@@ -56,6 +58,8 @@
    "contrast_unaided": 5.94,
    "best_tried": 6.51,
    "best_step": "scrim 0.6 halo 0.16",
+   "best_dark": 6.51,
+   "best_light": 0.0,
    "glyphs": 14,
    "worst_glyph_x": 298,
    "short_of_target": false,
@@ -69,7 +73,7 @@
    649,
    132
   ],
-  "s": 3.23
+  "s": 3.12
  },
  {
   "run": "gol_gumbaz_whispering_gallery_1793278143",
@@ -92,6 +96,8 @@
    "contrast_unaided": 6.74,
    "best_tried": 7.21,
    "best_step": "scrim 0.6 halo 0.0",
+   "best_dark": 7.21,
+   "best_light": 0.0,
    "glyphs": 14,
    "worst_glyph_x": 240,
    "short_of_target": false,
@@ -105,7 +111,7 @@
    649,
    132
   ],
-  "s": 4.35
+  "s": 4.19
  },
  {
   "run": "gol_gumbaz_whispering_gallery_1793278143",
@@ -128,6 +134,8 @@
    "contrast_unaided": 6.75,
    "best_tried": 10.17,
    "best_step": "scrim 0.6 halo 0.0",
+   "best_dark": 10.17,
+   "best_light": 0.0,
    "glyphs": 14,
    "worst_glyph_x": 298,
    "short_of_target": false,
@@ -141,7 +149,7 @@
    649,
    132
   ],
-  "s": 4.11
+  "s": 4.09
  },
  {
   "run": "gol_gumbaz_whispering_gallery_1793278143",
@@ -164,6 +172,8 @@
    "contrast_unaided": 6.75,
    "best_tried": 8.2,
    "best_step": "scrim 0.6 halo 0.0",
+   "best_dark": 8.2,
+   "best_light": 0.0,
    "glyphs": 14,
    "worst_glyph_x": 359,
    "short_of_target": false,
@@ -177,7 +187,7 @@
    649,
    132
   ],
-  "s": 4.53
+  "s": 4.13
  },
  {
   "run": "gol_gumbaz_whispering_gallery_1793278143",
@@ -200,6 +210,8 @@
    "contrast_unaided": 7.51,
    "best_tried": 7.47,
    "best_step": "scrim 0.6 halo 0.0",
+   "best_dark": 7.47,
+   "best_light": 0.0,
    "glyphs": 14,
    "worst_glyph_x": 618,
    "short_of_target": false,
@@ -213,7 +225,7 @@
    649,
    132
   ],
-  "s": 4.14
+  "s": 4.16
  },
  {
   "run": "gol_gumbaz_whispering_gallery_1793278143",
@@ -236,6 +248,8 @@
    "contrast_unaided": 6.29,
    "best_tried": 6.51,
    "best_step": "scrim 0.6 halo 0.16",
+   "best_dark": 6.51,
+   "best_light": 0.0,
    "glyphs": 14,
    "worst_glyph_x": 618,
    "short_of_target": false,
@@ -249,7 +263,7 @@
    649,
    132
   ],
-  "s": 2.98
+  "s": 3.09
  },
  {
   "run": "gol_gumbaz_whispering_gallery_1793278143",
@@ -272,6 +286,8 @@
    "contrast_unaided": 6.72,
    "best_tried": 6.91,
    "best_step": "scrim 0.6 halo 0.0",
+   "best_dark": 6.91,
+   "best_light": 0.0,
    "glyphs": 14,
    "worst_glyph_x": 691,
    "short_of_target": false,
@@ -285,7 +301,7 @@
    722,
    132
   ],
-  "s": 3.72
+  "s": 3.99
  },
  {
   "run": "gol_gumbaz_whispering_gallery_1793278143",
@@ -308,6 +324,8 @@
    "contrast_unaided": 5.96,
    "best_tried": 6.5,
    "best_step": "scrim 0.6 halo 0.16",
+   "best_dark": 6.5,
+   "best_light": 0.0,
    "glyphs": 14,
    "worst_glyph_x": 298,
    "short_of_target": false,
@@ -321,7 +339,7 @@
    649,
    132
   ],
-  "s": 3.15
+  "s": 3.24
  },
  {
   "run": "gol_gumbaz_whispering_gallery_1793278143",
@@ -344,6 +362,8 @@
    "contrast_unaided": 6.88,
    "best_tried": 7.1,
    "best_step": "scrim 0.6 halo 0.0",
+   "best_dark": 7.1,
+   "best_light": 0.0,
    "glyphs": 14,
    "worst_glyph_x": 240,
    "short_of_target": false,
@@ -357,7 +377,7 @@
    649,
    132
   ],
-  "s": 4.17
+  "s": 4.44
  },
  {
   "run": "gol_gumbaz_whispering_gallery_1793278143",
@@ -380,6 +400,8 @@
    "contrast_unaided": 6.75,
    "best_tried": 10.17,
    "best_step": "scrim 0.6 halo 0.0",
+   "best_dark": 10.17,
+   "best_light": 0.0,
    "glyphs": 14,
    "worst_glyph_x": 298,
    "short_of_target": false,
@@ -393,7 +415,7 @@
    649,
    132
   ],
-  "s": 4.03
+  "s": 4.44
  },
  {
   "run": "gol_gumbaz_whispering_gallery_1793278143",
@@ -416,6 +438,8 @@
    "contrast_unaided": 6.8,
    "best_tried": 8.07,
    "best_step": "scrim 0.6 halo 0.0",
+   "best_dark": 8.07,
+   "best_light": 0.0,
    "glyphs": 14,
    "worst_glyph_x": 423,
    "short_of_target": false,
@@ -429,7 +453,7 @@
    649,
    132
   ],
-  "s": 4.4
+  "s": 6.36
  },
  {
   "run": "gol_gumbaz_whispering_gallery_1793278143",
@@ -452,6 +476,8 @@
    "contrast_unaided": 7.51,
    "best_tried": 7.47,
    "best_step": "scrim 0.6 halo 0.0",
+   "best_dark": 7.47,
+   "best_light": 0.0,
    "glyphs": 14,
    "worst_glyph_x": 618,
    "short_of_target": false,
@@ -465,7 +491,7 @@
    649,
    132
   ],
-  "s": 4.35
+  "s": 4.69
  },
  {
   "run": "gol_gumbaz_whispering_gallery_1793278143",
@@ -488,6 +514,8 @@
    "contrast_unaided": 6.29,
    "best_tried": 6.51,
    "best_step": "scrim 0.6 halo 0.16",
+   "best_dark": 6.51,
+   "best_light": 0.0,
    "glyphs": 14,
    "worst_glyph_x": 618,
    "short_of_target": false,
@@ -501,7 +529,7 @@
    649,
    132
   ],
-  "s": 2.99
+  "s": 3.09
  },
  {
   "run": "nazca_lines_runway_paradox_1793247464",
@@ -524,6 +552,8 @@
    "contrast_unaided": 6.73,
    "best_tried": 6.85,
    "best_step": "scrim 0.6 halo 0.0",
+   "best_dark": 6.85,
+   "best_light": 0.0,
    "glyphs": 14,
    "worst_glyph_x": 639,
    "short_of_target": false,
@@ -537,7 +567,7 @@
    649,
    132
   ],
-  "s": 3.71
+  "s": 4.02
  },
  {
   "run": "nazca_lines_runway_paradox_1793247464",
@@ -561,6 +591,8 @@
    "contrast_unaided": 6.74,
    "best_tried": 6.37,
    "best_step": "scrim 0.6 levels 205 halo 0.16",
+   "best_dark": 6.37,
+   "best_light": 0.0,
    "glyphs": 14,
    "worst_glyph_x": 639,
    "short_of_target": true,
@@ -574,7 +606,7 @@
    649,
    132
   ],
-  "s": 7.88
+  "s": 8.6
  },
  {
   "run": "nazca_lines_runway_paradox_1793247464",
@@ -597,6 +629,8 @@
    "contrast_unaided": 7.05,
    "best_tried": 6.85,
    "best_step": "scrim 0.6 halo 0.16",
+   "best_dark": 6.85,
+   "best_light": 0.0,
    "glyphs": 14,
    "worst_glyph_x": 536,
    "short_of_target": false,
@@ -610,7 +644,7 @@
    649,
    132
   ],
-  "s": 2.27
+  "s": 2.38
  },
  {
   "run": "nazca_lines_runway_paradox_1793247464",
@@ -628,20 +662,22 @@
    "size": 53.3,
    "group_width": 543.0,
    "room": 960.0,
-   "contrast": 4.21,
+   "contrast": 5.49,
    "contrast_whole": 6.19,
    "contrast_unaided": 5.3,
    "best_tried": 5.49,
    "best_step": "scrim 0.6 levels 205 halo 0.16",
+   "best_dark": 5.49,
+   "best_light": 1.89,
    "glyphs": 14,
    "worst_glyph_x": 639,
    "short_of_target": true,
    "below_gate": true,
    "shown": false,
-   "reason": "masthead not drawn: its worst glyph reaches at best 5.49:1 (scrim 0.6 levels 205 halo 0.16) after every ruled step (scrim peak 0.6, halo 0.16, levels floor 205, light variant), under the 5.5:1 gate"
+   "reason": "masthead not drawn: its worst glyph reaches at best 5.49:1 (scrim 0.6 levels 205 halo 0.16) after every ruled step (scrim peak 0.6, halo 0.16, levels floor 205, light variant), under the 5.5:1 gate (bone best 5.49, INK best 1.89)"
   },
   "box": null,
-  "s": 7.84
+  "s": 8.2
  },
  {
   "run": "nazca_lines_runway_paradox_1793247464",
@@ -665,6 +701,8 @@
    "contrast_unaided": 5.25,
    "best_tried": 6.34,
    "best_step": "scrim 0.6 levels 205 halo 0.16",
+   "best_dark": 6.34,
+   "best_light": 0.0,
    "glyphs": 14,
    "worst_glyph_x": 359,
    "short_of_target": true,
@@ -678,7 +716,7 @@
    649,
    132
   ],
-  "s": 7.8
+  "s": 8.26
  },
  {
   "run": "nazca_lines_runway_paradox_1793247464",
@@ -696,20 +734,22 @@
    "size": 53.3,
    "group_width": 543.0,
    "room": 960.0,
-   "contrast": 4.08,
+   "contrast": 5.26,
    "contrast_whole": 5.67,
    "contrast_unaided": 4.94,
    "best_tried": 5.26,
    "best_step": "scrim 0.6 levels 205 halo 0.16",
+   "best_dark": 5.26,
+   "best_light": 3.71,
    "glyphs": 14,
    "worst_glyph_x": 276,
    "short_of_target": true,
    "below_gate": true,
    "shown": false,
-   "reason": "masthead not drawn: its worst glyph reaches at best 5.26:1 (scrim 0.6 levels 205 halo 0.16) after every ruled step (scrim peak 0.6, halo 0.16, levels floor 205, light variant), under the 5.5:1 gate"
+   "reason": "masthead not drawn: its worst glyph reaches at best 5.26:1 (scrim 0.6 levels 205 halo 0.16) after every ruled step (scrim peak 0.6, halo 0.16, levels floor 205, light variant), under the 5.5:1 gate (bone best 5.26, INK best 3.71)"
   },
   "box": null,
-  "s": 8.48
+  "s": 8.67
  },
  {
   "run": "nazca_lines_runway_paradox_1793247464",
@@ -733,6 +773,8 @@
    "contrast_unaided": 8.16,
    "best_tried": 6.61,
    "best_step": "scrim 0.6 levels 205 halo 0.16",
+   "best_dark": 6.61,
+   "best_light": 0.0,
    "glyphs": 14,
    "worst_glyph_x": 639,
    "short_of_target": false,
@@ -746,7 +788,7 @@
    649,
    132
   ],
-  "s": 7.78
+  "s": 8.88
  },
  {
   "run": "nazca_lines_runway_paradox_1793247464",
@@ -769,6 +811,8 @@
    "contrast_unaided": 6.75,
    "best_tried": 6.77,
    "best_step": "scrim 0.6 halo 0.0",
+   "best_dark": 6.77,
+   "best_light": 0.0,
    "glyphs": 14,
    "worst_glyph_x": 712,
    "short_of_target": false,
@@ -782,7 +826,7 @@
    722,
    132
   ],
-  "s": 3.67
+  "s": 5.42
  },
  {
   "run": "nazca_lines_runway_paradox_1793247464",
@@ -806,6 +850,8 @@
    "contrast_unaided": 6.8,
    "best_tried": 6.51,
    "best_step": "scrim 0.6 levels 230 halo 0.16",
+   "best_dark": 6.51,
+   "best_light": 0.0,
    "glyphs": 14,
    "worst_glyph_x": 618,
    "short_of_target": false,
@@ -819,7 +865,7 @@
    649,
    132
   ],
-  "s": 5.37
+  "s": 5.46
  },
  {
   "run": "nazca_lines_runway_paradox_1793247464",
@@ -842,6 +888,8 @@
    "contrast_unaided": 7.13,
    "best_tried": 6.64,
    "best_step": "scrim 0.6 halo 0.08",
+   "best_dark": 6.64,
+   "best_light": 0.0,
    "glyphs": 14,
    "worst_glyph_x": 466,
    "short_of_target": false,
@@ -855,7 +903,7 @@
    649,
    132
   ],
-  "s": 2.15
+  "s": 2.12
  },
  {
   "run": "nazca_lines_runway_paradox_1793247464",
@@ -873,20 +921,22 @@
    "size": 53.3,
    "group_width": 543.0,
    "room": 960.0,
-   "contrast": 4.21,
+   "contrast": 5.49,
    "contrast_whole": 6.19,
    "contrast_unaided": 5.3,
    "best_tried": 5.49,
    "best_step": "scrim 0.6 levels 205 halo 0.16",
+   "best_dark": 5.49,
+   "best_light": 1.89,
    "glyphs": 14,
    "worst_glyph_x": 639,
    "short_of_target": true,
    "below_gate": true,
    "shown": false,
-   "reason": "masthead not drawn: its worst glyph reaches at best 5.49:1 (scrim 0.6 levels 205 halo 0.16) after every ruled step (scrim peak 0.6, halo 0.16, levels floor 205, light variant), under the 5.5:1 gate"
+   "reason": "masthead not drawn: its worst glyph reaches at best 5.49:1 (scrim 0.6 levels 205 halo 0.16) after every ruled step (scrim peak 0.6, halo 0.16, levels floor 205, light variant), under the 5.5:1 gate (bone best 5.49, INK best 1.89)"
   },
   "box": null,
-  "s": 7.92
+  "s": 8.35
  },
  {
   "run": "nazca_lines_runway_paradox_1793247464",
@@ -904,20 +954,22 @@
    "size": 53.3,
    "group_width": 543.0,
    "room": 960.0,
-   "contrast": 4.09,
+   "contrast": 5.35,
    "contrast_whole": 5.46,
    "contrast_unaided": 4.66,
    "best_tried": 5.35,
    "best_step": "scrim 0.6 levels 205 halo 0.16",
+   "best_dark": 5.35,
+   "best_light": 3.71,
    "glyphs": 14,
    "worst_glyph_x": 618,
    "short_of_target": true,
    "below_gate": true,
    "shown": false,
-   "reason": "masthead not drawn: its worst glyph reaches at best 5.35:1 (scrim 0.6 levels 205 halo 0.16) after every ruled step (scrim peak 0.6, halo 0.16, levels floor 205, light variant), under the 5.5:1 gate"
+   "reason": "masthead not drawn: its worst glyph reaches at best 5.35:1 (scrim 0.6 levels 205 halo 0.16) after every ruled step (scrim peak 0.6, halo 0.16, levels floor 205, light variant), under the 5.5:1 gate (bone best 5.35, INK best 3.71)"
   },
   "box": null,
-  "s": 7.76
+  "s": 8.39
  },
  {
   "run": "nazca_lines_runway_paradox_1793247464",
@@ -941,6 +993,8 @@
    "contrast_unaided": 5.66,
    "best_tried": 5.58,
    "best_step": "scrim 0.6 levels 205 halo 0.16",
+   "best_dark": 5.58,
+   "best_light": 0.0,
    "glyphs": 14,
    "worst_glyph_x": 466,
    "short_of_target": true,
@@ -954,7 +1008,7 @@
    649,
    132
   ],
-  "s": 8.32
+  "s": 8.67
  },
  {
   "run": "nazca_lines_runway_paradox_1793247464",
@@ -978,6 +1032,8 @@
    "contrast_unaided": 8.16,
    "best_tried": 6.61,
    "best_step": "scrim 0.6 levels 205 halo 0.16",
+   "best_dark": 6.61,
+   "best_light": 0.0,
    "glyphs": 14,
    "worst_glyph_x": 639,
    "short_of_target": false,
@@ -991,7 +1047,7 @@
    649,
    132
   ],
-  "s": 7.65
+  "s": 8.2
  },
  {
   "run": "richat_structure_sahara_eye_1793272675",
@@ -1014,6 +1070,8 @@
    "contrast_unaided": 9.62,
    "best_tried": 6.53,
    "best_step": "scrim 0.6 halo 0.08",
+   "best_dark": 6.53,
+   "best_light": 0.0,
    "glyphs": 14,
    "worst_glyph_x": 240,
    "short_of_target": false,
@@ -1027,7 +1085,7 @@
    649,
    132
   ],
-  "s": 3.89
+  "s": 3.97
  },
  {
   "run": "richat_structure_sahara_eye_1793272675",
@@ -1051,6 +1109,8 @@
    "contrast_unaided": 8.41,
    "best_tried": 6.32,
    "best_step": "scrim 0.6 levels 205 halo 0.16",
+   "best_dark": 6.32,
+   "best_light": 0.0,
    "glyphs": 14,
    "worst_glyph_x": 639,
    "short_of_target": true,
@@ -1064,7 +1124,7 @@
    649,
    132
   ],
-  "s": 8.02
+  "s": 9.14
  },
  {
   "run": "richat_structure_sahara_eye_1793272675",
@@ -1087,6 +1147,8 @@
    "contrast_unaided": 6.81,
    "best_tried": 9.25,
    "best_step": "scrim 0.6 halo 0.0",
+   "best_dark": 9.25,
+   "best_light": 0.0,
    "glyphs": 14,
    "worst_glyph_x": 618,
    "short_of_target": false,
@@ -1100,7 +1162,7 @@
    649,
    132
   ],
-  "s": 4.01
+  "s": 5.39
  },
  {
   "run": "richat_structure_sahara_eye_1793272675",
@@ -1124,6 +1186,8 @@
    "contrast_unaided": 7.01,
    "best_tried": 6.63,
    "best_step": "scrim 0.6 levels 220 halo 0.16",
+   "best_dark": 6.63,
+   "best_light": 0.0,
    "glyphs": 14,
    "worst_glyph_x": 490,
    "short_of_target": false,
@@ -1137,7 +1201,7 @@
    649,
    132
   ],
-  "s": 6.81
+  "s": 6.83
  },
  {
   "run": "richat_structure_sahara_eye_1793272675",
@@ -1160,6 +1224,8 @@
    "contrast_unaided": 10.1,
    "best_tried": 10.63,
    "best_step": "scrim 0.6 halo 0.0",
+   "best_dark": 10.63,
+   "best_light": 0.0,
    "glyphs": 14,
    "worst_glyph_x": 160,
    "short_of_target": false,
@@ -1173,7 +1239,7 @@
    649,
    132
   ],
-  "s": 4.73
+  "s": 4.74
  },
  {
   "run": "richat_structure_sahara_eye_1793272675",
@@ -1196,6 +1262,8 @@
    "contrast_unaided": 7.62,
    "best_tried": 6.71,
    "best_step": "scrim 0.6 halo 0.0",
+   "best_dark": 6.71,
+   "best_light": 0.0,
    "glyphs": 14,
    "worst_glyph_x": 618,
    "short_of_target": false,
@@ -1209,7 +1277,7 @@
    649,
    132
   ],
-  "s": 3.71
+  "s": 3.95
  },
  {
   "run": "richat_structure_sahara_eye_1793272675",
@@ -1232,6 +1300,8 @@
    "contrast_unaided": 7.93,
    "best_tried": 10.84,
    "best_step": "scrim 0.6 halo 0.0",
+   "best_dark": 10.84,
+   "best_light": 0.0,
    "glyphs": 14,
    "worst_glyph_x": 466,
    "short_of_target": false,
@@ -1245,7 +1315,7 @@
    649,
    132
   ],
-  "s": 3.89
+  "s": 4.25
  },
  {
   "run": "richat_structure_sahara_eye_1793272675",
@@ -1268,6 +1338,8 @@
    "contrast_unaided": 9.14,
    "best_tried": 6.68,
    "best_step": "scrim 0.6 halo 0.08",
+   "best_dark": 6.68,
+   "best_light": 0.0,
    "glyphs": 14,
    "worst_glyph_x": 233,
    "short_of_target": false,
@@ -1281,7 +1353,7 @@
    722,
    132
   ],
-  "s": 3.31
+  "s": 3.52
  },
  {
   "run": "richat_structure_sahara_eye_1793272675",
@@ -1305,6 +1377,8 @@
    "contrast_unaided": 8.41,
    "best_tried": 6.32,
    "best_step": "scrim 0.6 levels 205 halo 0.16",
+   "best_dark": 6.32,
+   "best_light": 0.0,
    "glyphs": 14,
    "worst_glyph_x": 639,
    "short_of_target": true,
@@ -1318,7 +1392,7 @@
    649,
    132
   ],
-  "s": 7.94
+  "s": 9.14
  },
  {
   "run": "richat_structure_sahara_eye_1793272675",
@@ -1341,6 +1415,8 @@
    "contrast_unaided": 6.81,
    "best_tried": 9.12,
    "best_step": "scrim 0.6 halo 0.0",
+   "best_dark": 9.12,
+   "best_light": 0.0,
    "glyphs": 14,
    "worst_glyph_x": 582,
    "short_of_target": false,
@@ -1354,7 +1430,7 @@
    649,
    132
   ],
-  "s": 4.0
+  "s": 4.37
  },
  {
   "run": "richat_structure_sahara_eye_1793272675",
@@ -1378,6 +1454,8 @@
    "contrast_unaided": 6.95,
    "best_tried": 6.52,
    "best_step": "scrim 0.6 levels 225 halo 0.16",
+   "best_dark": 6.52,
+   "best_light": 0.0,
    "glyphs": 14,
    "worst_glyph_x": 490,
    "short_of_target": false,
@@ -1391,7 +1469,7 @@
    649,
    132
   ],
-  "s": 6.35
+  "s": 6.68
  },
  {
   "run": "richat_structure_sahara_eye_1793272675",
@@ -1414,6 +1492,8 @@
    "contrast_unaided": 11.28,
    "best_tried": 8.85,
    "best_step": "scrim 0.6 halo 0.0",
+   "best_dark": 8.85,
+   "best_light": 0.0,
    "glyphs": 14,
    "worst_glyph_x": 160,
    "short_of_target": false,
@@ -1427,7 +1507,7 @@
    649,
    132
   ],
-  "s": 4.74
+  "s": 4.7
  },
  {
   "run": "richat_structure_sahara_eye_1793272675",
@@ -1450,6 +1530,8 @@
    "contrast_unaided": 7.62,
    "best_tried": 6.71,
    "best_step": "scrim 0.6 halo 0.0",
+   "best_dark": 6.71,
+   "best_light": 0.0,
    "glyphs": 14,
    "worst_glyph_x": 618,
    "short_of_target": false,
@@ -1463,7 +1545,7 @@
    649,
    132
   ],
-  "s": 3.87
+  "s": 3.92
  },
  {
   "run": "richat_structure_sahara_eye_1793272675",
@@ -1486,6 +1568,8 @@
    "contrast_unaided": 7.93,
    "best_tried": 10.84,
    "best_step": "scrim 0.6 halo 0.0",
+   "best_dark": 10.84,
+   "best_light": 0.0,
    "glyphs": 14,
    "worst_glyph_x": 466,
    "short_of_target": false,
@@ -1499,7 +1583,7 @@
    649,
    132
   ],
-  "s": 3.98
+  "s": 6.32
  },
  {
   "run": "nazca_lines_runway_paradox_1793251266",
@@ -1523,6 +1607,8 @@
    "contrast_unaided": 6.03,
    "best_tried": 6.31,
    "best_step": "scrim 0.6 levels 205 halo 0.16",
+   "best_dark": 6.31,
+   "best_light": 0.0,
    "glyphs": 14,
    "worst_glyph_x": 160,
    "short_of_target": true,
@@ -1536,7 +1622,7 @@
    649,
    132
   ],
-  "s": 8.07
+  "s": 9.02
  },
  {
   "run": "nazca_lines_runway_paradox_1793251266",
@@ -1560,6 +1646,8 @@
    "contrast_unaided": 6.74,
    "best_tried": 6.37,
    "best_step": "scrim 0.6 levels 205 halo 0.16",
+   "best_dark": 6.37,
+   "best_light": 0.0,
    "glyphs": 14,
    "worst_glyph_x": 639,
    "short_of_target": true,
@@ -1573,7 +1661,7 @@
    649,
    132
   ],
-  "s": 8.23
+  "s": 8.96
  },
  {
   "run": "nazca_lines_runway_paradox_1793251266",
@@ -1596,6 +1684,8 @@
    "contrast_unaided": 7.05,
    "best_tried": 6.85,
    "best_step": "scrim 0.6 halo 0.16",
+   "best_dark": 6.85,
+   "best_light": 0.0,
    "glyphs": 14,
    "worst_glyph_x": 536,
    "short_of_target": false,
@@ -1609,7 +1699,7 @@
    649,
    132
   ],
-  "s": 2.32
+  "s": 2.37
  },
  {
   "run": "nazca_lines_runway_paradox_1793251266",
@@ -1627,20 +1717,22 @@
    "size": 53.3,
    "group_width": 543.0,
    "room": 960.0,
-   "contrast": 4.21,
+   "contrast": 5.49,
    "contrast_whole": 6.19,
    "contrast_unaided": 5.3,
    "best_tried": 5.49,
    "best_step": "scrim 0.6 levels 205 halo 0.16",
+   "best_dark": 5.49,
+   "best_light": 1.89,
    "glyphs": 14,
    "worst_glyph_x": 639,
    "short_of_target": true,
    "below_gate": true,
    "shown": false,
-   "reason": "masthead not drawn: its worst glyph reaches at best 5.49:1 (scrim 0.6 levels 205 halo 0.16) after every ruled step (scrim peak 0.6, halo 0.16, levels floor 205, light variant), under the 5.5:1 gate"
+   "reason": "masthead not drawn: its worst glyph reaches at best 5.49:1 (scrim 0.6 levels 205 halo 0.16) after every ruled step (scrim peak 0.6, halo 0.16, levels floor 205, light variant), under the 5.5:1 gate (bone best 5.49, INK best 1.89)"
   },
   "box": null,
-  "s": 7.96
+  "s": 8.54
  },
  {
   "run": "nazca_lines_runway_paradox_1793251266",
@@ -1664,6 +1756,8 @@
    "contrast_unaided": 5.25,
    "best_tried": 6.34,
    "best_step": "scrim 0.6 levels 205 halo 0.16",
+   "best_dark": 6.34,
+   "best_light": 0.0,
    "glyphs": 14,
    "worst_glyph_x": 359,
    "short_of_target": true,
@@ -1677,7 +1771,7 @@
    649,
    132
   ],
-  "s": 7.99
+  "s": 8.89
  },
  {
   "run": "nazca_lines_runway_paradox_1793251266",
@@ -1701,6 +1795,8 @@
    "contrast_unaided": 7.92,
    "best_tried": 6.63,
    "best_step": "scrim 0.6 levels 210 halo 0.16",
+   "best_dark": 6.63,
+   "best_light": 0.0,
    "glyphs": 14,
    "worst_glyph_x": 359,
    "short_of_target": false,
@@ -1714,7 +1810,7 @@
    649,
    132
   ],
-  "s": 8.09
+  "s": 9.0
  },
  {
   "run": "nazca_lines_runway_paradox_1793251266",
@@ -1738,6 +1834,8 @@
    "contrast_unaided": 6.03,
    "best_tried": 6.31,
    "best_step": "scrim 0.6 levels 205 halo 0.16",
+   "best_dark": 6.31,
+   "best_light": 0.0,
    "glyphs": 14,
    "worst_glyph_x": 160,
    "short_of_target": true,
@@ -1751,7 +1849,7 @@
    649,
    132
   ],
-  "s": 8.31
+  "s": 10.74
  },
  {
   "run": "nazca_lines_runway_paradox_1793251266",
@@ -1775,6 +1873,8 @@
    "contrast_unaided": 6.15,
    "best_tried": 6.25,
    "best_step": "scrim 0.6 levels 205 halo 0.16",
+   "best_dark": 6.25,
+   "best_light": 0.0,
    "glyphs": 14,
    "worst_glyph_x": 609,
    "short_of_target": true,
@@ -1788,7 +1888,7 @@
    722,
    132
   ],
-  "s": 8.21
+  "s": 8.66
  },
  {
   "run": "nazca_lines_runway_paradox_1793251266",
@@ -1812,6 +1912,8 @@
    "contrast_unaided": 6.8,
    "best_tried": 6.51,
    "best_step": "scrim 0.6 levels 230 halo 0.16",
+   "best_dark": 6.51,
+   "best_light": 0.0,
    "glyphs": 14,
    "worst_glyph_x": 618,
    "short_of_target": false,
@@ -1825,7 +1927,7 @@
    649,
    132
   ],
-  "s": 5.3
+  "s": 5.41
  },
  {
   "run": "nazca_lines_runway_paradox_1793251266",
@@ -1848,6 +1950,8 @@
    "contrast_unaided": 7.13,
    "best_tried": 6.64,
    "best_step": "scrim 0.6 halo 0.08",
+   "best_dark": 6.64,
+   "best_light": 0.0,
    "glyphs": 14,
    "worst_glyph_x": 466,
    "short_of_target": false,
@@ -1861,7 +1965,7 @@
    649,
    132
   ],
-  "s": 2.17
+  "s": 2.3
  },
  {
   "run": "nazca_lines_runway_paradox_1793251266",
@@ -1879,20 +1983,22 @@
    "size": 53.3,
    "group_width": 543.0,
    "room": 960.0,
-   "contrast": 4.21,
+   "contrast": 5.49,
    "contrast_whole": 6.19,
    "contrast_unaided": 5.3,
    "best_tried": 5.49,
    "best_step": "scrim 0.6 levels 205 halo 0.16",
+   "best_dark": 5.49,
+   "best_light": 1.89,
    "glyphs": 14,
    "worst_glyph_x": 639,
    "short_of_target": true,
    "below_gate": true,
    "shown": false,
-   "reason": "masthead not drawn: its worst glyph reaches at best 5.49:1 (scrim 0.6 levels 205 halo 0.16) after every ruled step (scrim peak 0.6, halo 0.16, levels floor 205, light variant), under the 5.5:1 gate"
+   "reason": "masthead not drawn: its worst glyph reaches at best 5.49:1 (scrim 0.6 levels 205 halo 0.16) after every ruled step (scrim peak 0.6, halo 0.16, levels floor 205, light variant), under the 5.5:1 gate (bone best 5.49, INK best 1.89)"
   },
   "box": null,
-  "s": 7.89
+  "s": 8.82
  },
  {
   "run": "nazca_lines_runway_paradox_1793251266",
@@ -1910,20 +2016,22 @@
    "size": 53.3,
    "group_width": 543.0,
    "room": 960.0,
-   "contrast": 4.09,
+   "contrast": 5.35,
    "contrast_whole": 5.46,
    "contrast_unaided": 4.66,
    "best_tried": 5.35,
    "best_step": "scrim 0.6 levels 205 halo 0.16",
+   "best_dark": 5.35,
+   "best_light": 3.71,
    "glyphs": 14,
    "worst_glyph_x": 618,
    "short_of_target": true,
    "below_gate": true,
    "shown": false,
-   "reason": "masthead not drawn: its worst glyph reaches at best 5.35:1 (scrim 0.6 levels 205 halo 0.16) after every ruled step (scrim peak 0.6, halo 0.16, levels floor 205, light variant), under the 5.5:1 gate"
+   "reason": "masthead not drawn: its worst glyph reaches at best 5.35:1 (scrim 0.6 levels 205 halo 0.16) after every ruled step (scrim peak 0.6, halo 0.16, levels floor 205, light variant), under the 5.5:1 gate (bone best 5.35, INK best 3.71)"
   },
   "box": null,
-  "s": 7.84
+  "s": 8.73
  },
  {
   "run": "nazca_lines_runway_paradox_1793251266",
@@ -1947,6 +2055,8 @@
    "contrast_unaided": 7.7,
    "best_tried": 6.5,
    "best_step": "scrim 0.6 levels 220 halo 0.16",
+   "best_dark": 6.5,
+   "best_light": 0.0,
    "glyphs": 14,
    "worst_glyph_x": 582,
    "short_of_target": false,
@@ -1960,7 +2070,7 @@
    649,
    132
   ],
-  "s": 6.98
+  "s": 7.33
  },
  {
   "run": "nazca_lines_runway_paradox_1793251266",
@@ -1984,6 +2094,8 @@
    "contrast_unaided": 6.03,
    "best_tried": 6.31,
    "best_step": "scrim 0.6 levels 205 halo 0.16",
+   "best_dark": 6.31,
+   "best_light": 0.0,
    "glyphs": 14,
    "worst_glyph_x": 160,
    "short_of_target": true,
@@ -1997,6 +2109,6 @@
    649,
    132
   ],
-  "s": 8.58
+  "s": 8.61
  }
 ]

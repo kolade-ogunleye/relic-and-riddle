@@ -1,0 +1,4 @@
+aswan 1440 rec False dark 5.28 bone best 5.28 INK best 1.33 | INK ring 2.24 INK glyph 1.36 13 | ground luma p5/p50/p95 50.0 212.0 244.0
+aswan 1920 rec False dark 5.34 bone best 5.34 INK best 1.84 | INK ring 3.97 INK glyph 2.13 13 | ground luma p5/p50/p95 104.0 235.0 245.0
+antikythera 1440 rec False dark 5.42 bone best 5.42 INK best 2.67 | INK ring 3.98 INK glyph 2.68 6 | ground luma p5/p50/p95 110.0 147.0 154.0
+antikythera 1920 rec False dark 5.0 bone best 5.0 INK best 2.7 | INK ring 3.91 INK glyph 3.26 4 | ground luma p5/p50/p95 106.0 135.0 154.0

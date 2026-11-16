@@ -25,8 +25,14 @@ hierarchy > rhythm > ornament.
   windowed rings); under the 5.5 gate after every step, or wider than its room, it FAILS CLOSED (not drawn; the record
   says why, with the best ratio any step reached). The diamond's INK edge is drawn over its gold fill and its
   non-text contrast is recorded (`mark_contrast`, gate 3.0).
+- Round 4: a glyph is a SHAPED glyph (`font_engine.glyph_masks`: each glyph HarfBuzz placed, rasterised alone at its
+  position and advance), never an ink component; every numeric runtime token has a range (`TOKEN_RANGES`, refused
+  outside it) and the tests sweep masthead tracking over the whole of it.
 - `tests/type_sites.py` + `brand_system.SIZE_SITES`: every function of a surface module that sets a type size off the
-  ladder, scanned and held equal to the declaration (105 sites, each with its owner group).
+  ladder, scanned and held equal to the declaration (108 sites, each with its owner group; aliases, font_variant,
+  constructors and the masthead wrapper included). Second, run-time check: `tests/size_observer.py` records every
+  font made during the renders (`test_brand_system_r4`, committed declaration `tests/fixtures/type_sizes_observed.json`;
+  on real runs `observe_sizes.py`); sites only it can see are in `RUNTIME_SIZE_SITES`.
 - `sweep.py` + `sweep_results.json`: the builder's adversarial sweep of the glyph judgement (1,473 grounds, 0 failures).
 - `src/brand.py`: `BrandConfig.system` (default `SYSTEM_TOKENS`), `derive(..., system=...)`.
 

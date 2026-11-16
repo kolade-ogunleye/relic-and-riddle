@@ -17,7 +17,9 @@ ROOT = Path(__file__).resolve().parent.parent
 SURFACE_MODULES = ("graphics", "design_cards", "multi_format", "cover_design", "youtube_thumbnail", "end_card",
                    "then_now", "callouts", "video_composer", "art_direction", "timeline_dense", "masthead")
 LOADERS = {"get_font": 1, "fit_text": 3, "probe_text": 3, "fit_font": None, "fit_line": None, "field_font": None,
-           "_fit_text": 3, "_design_wrap": 3}   # loader -> the size's positional index (None: always a computed fit)
+           "_fit_text": 3, "_design_wrap": 3,   # loader -> the size's positional index (None: always a computed fit)
+           "font_variant": None, "truetype": 1, "FreeTypeFont": 1, "FeaturedFont": 1,   # round 4: every constructor
+           "font_for": 0}                       # and the system's masthead wrapper (round 4: the adversary's 137 px)
 
 
 def _ladder() -> set[float]:
@@ -40,10 +42,18 @@ def sites() -> dict[str, set[str]]:
         for node in ast.walk(tree):
             for child in ast.iter_child_nodes(node):
                 parents[child] = node
+        aliases = {}   # round 4: a loader bound to another name (gf = get_font) is a loader too
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Assign) and len(node.targets) == 1 and isinstance(node.targets[0], ast.Name):
+                v = node.value
+                src_name = getattr(v, "id", None) or getattr(v, "attr", None)
+                if src_name in LOADERS:
+                    aliases[node.targets[0].id] = src_name
         for node in ast.walk(tree):
             if not isinstance(node, ast.Call):
                 continue
             name = getattr(node.func, "id", None) or getattr(node.func, "attr", None)
+            name = aliases.get(name, name)
             if name not in LOADERS:
                 continue
             idx = LOADERS[name]

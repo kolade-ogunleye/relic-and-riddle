@@ -592,3 +592,47 @@ def draw_run(draw, xy, text: str, font, fill, anchor="la", tracking=0, stroke=0,
                            features=raster_features) for position, char, raster_font in placed]
     return (math.floor(min(box[0] for box in boxes)), math.floor(min(box[1] for box in boxes)),
             math.ceil(max(box[2] for box in boxes)), math.ceil(max(box[3] for box in boxes)))
+
+
+def glyph_masks(size, xy, text: str, font, anchor="la", tracking=0, features=None):
+    """Every glyph of `text` as draw_run places it, each rasterised into ITS OWN mask: [(cluster, box, mask)], box the
+    glyph's ink box on a canvas of `size` (left, top, right, bottom) and mask its "L" crop there. From the shaping
+    itself (HarfBuzz's glyphs, positions and advances, tracking and kerning included), never from ink connectivity, so
+    a glyph stays one glyph when tracking or kerning makes neighbours touch (design-freeze cycle 0 round 4)."""
+    from PIL import Image as _Image
+    from PIL import ImageDraw as _ImageDraw
+    font = field_face(text, font)
+    features = resolve_features(text, features)
+    run = shape(text, font, tracking, features)
+    if not run.glyphs:
+        return []
+    if len(anchor) != 2 or anchor[0] not in "lmr" or anchor[1] not in "atmsbd":
+        raise ValueError(f"Unsupported text anchor: {anchor}")
+    x = xy[0] - (run.advance / 2 if anchor[0] == "m" else run.advance if anchor[0] == "r" else 0)
+    a = font.getbbox(text, anchor="l" + anchor[1], features=list(features))
+    baseline = font.getbbox(text, anchor="ls", features=list(features))
+    y = xy[1] + a[1] - baseline[1]
+    path = str(font.path)
+    encoded = _encoded_glyphs(path)
+    raster_features = ["-" + tag for tag in sorted(inspect_font(path).features)]
+    variations = getattr(font, "_rr_variations", ())
+    out = []
+    for glyph in run.glyphs:
+        char = encoded.get(glyph.index)
+        raster_font = font if char is not None else _glyph_font(path, raster_px(font), variations)
+        if char is None:
+            char = chr(_GLYPH_CODEPOINT + glyph.index)
+        pos = (x + glyph.x, y - glyph.y)
+        box = _ImageDraw.Draw(_Image.new("L", (1, 1))).textbbox(pos, char, font=raster_font, anchor="ls",
+                                                                 features=raster_features)
+        x0, y0 = max(0, math.floor(box[0]) - 1), max(0, math.floor(box[1]) - 1)
+        x1, y1 = min(size[0], math.ceil(box[2]) + 1), min(size[1], math.ceil(box[3]) + 1)
+        if x1 <= x0 or y1 <= y0:
+            continue
+        m = _Image.new("L", (x1 - x0, y1 - y0), 0)
+        _ImageDraw.Draw(m).text((pos[0] - x0, pos[1] - y0), char, font=raster_font, fill=255, anchor="ls",
+                                features=raster_features)
+        if m.getbbox() is None:
+            continue
+        out.append((glyph.cluster, (x0, y0, x1, y1), m))
+    return out

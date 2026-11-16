@@ -136,6 +136,11 @@ class BrandConfig:
         unknown = sorted(set(self.system) - set(SYSTEM_TOKENS))
         if unknown:   # a SPEC value no renderer reads yet, or a typo: an override that would change nothing
             raise ValueError(f"brand {self.name!r}: {unknown} are not runtime tokens (src/brand_system.py)")
+        from .brand_system import TOKEN_RANGES
+        for key, (lo, hi) in TOKEN_RANGES.items():
+            value = self.system[key]
+            if not (isinstance(value, (int, float)) and lo <= value <= hi):
+                raise ValueError(f"brand {self.name!r}: {key} = {value!r} is outside its range {lo}..{hi}")
         for role in self.palette:
             self.colour(role)
         for role in self.fonts:

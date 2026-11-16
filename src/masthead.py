@@ -90,15 +90,19 @@ def levelled(im: Image.Image, ceiling: int, reach: float) -> Image.Image:
 
 def glyph_contrast(ground: Image.Image, plate) -> tuple[float | None, dict[str, Any]]:
     """The worst GLYPH of `plate` (a TextPlate) on `ground` (the pixels the text is drawn on, before it is drawn; the
-    plate's own halo is composited first, as it will be): (ratio, detail). Each glyph is one connected component of
-    the plate's ink mask; its background is the ground UNDER its own ink pixels plus its immediate surround (a ring
-    1..GLYPH_SURROUND px outside it, other glyphs' ink excluded). A glyph scores the lower of the fill's ratio against
+    plate's own halo is composited first, as it will be): (ratio, detail). Each glyph is one SHAPED glyph: the drawn
+    ink partitioned by every glyph's own mask, rasterised alone at the position and advance HarfBuzz gave it
+    (font_engine.glyph_masks: tracking, kerning and ligatures included), never an ink component (round 4: at a tracking of -0.14 em thirty letters touched and were
+    judged as one). Its background is the ground UNDER its own ink pixels plus its immediate surround (a ring
+    1..GLYPH_SURROUND px outside it, every glyph's ink excluded). A glyph scores the lower of the fill's ratio against
     the GLYPH_PCT percentile (the brightest share, for light text; the darkest, for dark text) of (a) its under-ink
     pixels alone and (b) under-ink plus surround: so no more than (100 - GLYPH_PCT) % of a glyph's ink may sit on ground
-    that fails the ratio, whatever the feature's width, angle or offset (cycle 0 round 3, adversary finding 1: a 4 px
-    stripe hid a whole letter from both the element's ring and the windowed rings). None when nothing is measurable."""
+    that fails the ratio, whatever the feature's width, angle or offset, and whatever its neighbours touch. None when
+    nothing is measurable."""
     import cv2
     import numpy as np
+
+    from .font_engine import glyph_masks
     if plate is None or plate.empty:
         return None, {}
     under_im = plate.draw_halo(ground.convert("RGB")) if plate.halo > 0 else ground.convert("RGB")
@@ -108,12 +112,31 @@ def glyph_contrast(ground: Image.Image, plate) -> tuple[float | None, dict[str, 
     ink_all = (plate.glyphs[max(0, -oy):max(0, -oy) + rgb.shape[0], max(0, -ox):max(0, -ox) + rgb.shape[1]] > 127)
     lum = _lin(rgb.reshape(-1, 3)).reshape(rgb.shape[:2])
     lt = rel_luminance(plate.fill)
-    n, labels = cv2.connectedComponents(ink_all.astype(np.uint8), connectivity=8)
     k = np.ones((2 * GLYPH_SURROUND + 1, 2 * GLYPH_SURROUND + 1), np.uint8)
     pct = GLYPH_PCT if plate.light else 100 - GLYPH_PCT
     worst, detail = None, {"glyphs": 0}
-    for i in range(1, n):
-        comp = labels == i
+    H, W = lum.shape
+    # Each drawn ink pixel belongs to the glyph(s) whose OWN shaped mask covers it (>= half coverage), else to the glyph
+    # covering it most: the drawn ink partitioned by the shaping, each glyph's part then cut into its connected pieces.
+    # Letters that do not touch get exactly the ink components they had (so untouched text judges as in round 3,
+    # pixel for pixel); letters that touch are still told apart.
+    masks = glyph_masks(ground.size, plate.xy, plate.text, plate.font, plate.anchor, plate.track, plate.features)
+    if not masks:
+        return None, detail
+    stack = np.zeros((len(masks), H, W), np.uint8)
+    for i, (_, (gx0, gy0, gx1, gy1), gmask) in enumerate(masks):
+        m = np.asarray(gmask)
+        sx0, sy0 = gx0 - ox, gy0 - oy
+        X0, Y0, X1, Y1 = max(0, sx0), max(0, sy0), min(W, sx0 + m.shape[1]), min(H, sy0 + m.shape[0])
+        if X1 > X0 and Y1 > Y0:
+            stack[i, Y0:Y1, X0:X1] = m[Y0 - sy0:Y1 - sy0, X0 - sx0:X1 - sx0]
+    owner = stack.argmax(axis=0)
+    pieces = []   # each glyph's partition, cut into its connected pieces (a detached serif or speck is judged alone)
+    for i, (cluster, _box, _m) in enumerate(masks):
+        part = (ink_all & ((owner == i) | (stack[i] > 127))).astype(np.uint8)
+        n, lab = cv2.connectedComponents(part, connectivity=8)
+        pieces += [(cluster, lab == j) for j in range(1, n)]
+    for cluster, comp in pieces:
         if int(comp.sum()) < GLYPH_MIN_PX:
             continue
         ys, xs = np.nonzero(comp)
@@ -123,13 +146,13 @@ def glyph_contrast(ground: Image.Image, plate) -> tuple[float | None, dict[str, 
         ring = (cv2.dilate(c, k) > 0) & ~ink_all[y0:y1, x0:x1]
         under = lum[y0:y1, x0:x1][c > 0]
         both = np.concatenate([under, lum[y0:y1, x0:x1][ring]])
-        lb = max(float(np.percentile(under, pct)), float(np.percentile(both, pct))) if plate.light else \
-            min(float(np.percentile(under, pct)), float(np.percentile(both, pct)))
+        pair = (float(np.percentile(under, pct)), float(np.percentile(both, pct)))
+        lb = max(pair) if plate.light else min(pair)
         r = (max(lt, lb) + 0.05) / (min(lt, lb) + 0.05)
         detail["glyphs"] += 1
         if worst is None or r < worst:
             worst = r
-            detail.update(worst_glyph_x=int(ox + xs.min()), worst_glyph_px=int(comp.sum()))
+            detail.update(worst_glyph_x=int(ox + xs.min()), worst_glyph_px=int(comp.sum()), worst_glyph_cluster=int(cluster))
     return (None if worst is None else round(worst, 2)), detail
 
 
@@ -234,7 +257,7 @@ def plan(im: Image.Image, x0: float, baseline: float, size: float, reach: float 
         log.warning("%s", rec["reason"])
         p = plan_text(base, xy, brand.MASTHEAD, font, bone, "ls", spec["track"], target=target, max_halo=0.0)
         return base, p, rec
-    seen = {"best": 0.0, "step": None}
+    seen = {"best": 0.0, "step": None, "dark": 0.0, "light": 0.0}   # the best overall and per variant
 
     def name(ground, fill, halo_cap=0.0, step=""):
         """(plate, judged ratio): the least halo (in halo.step steps, up to `halo_cap`) at which the judged ratio
@@ -247,6 +270,8 @@ def plan(im: Image.Image, x0: float, baseline: float, size: float, reach: float 
             got = judge(ground, p)
             if got > seen["best"]:
                 seen.update(best=got, step=f"{step} halo {round(halo, 2)}".strip())
+            variant = "dark" if tuple(fill) == tuple(bone) else "light"
+            seen[variant] = max(seen[variant], got)
             if best is None or got > best[1]:
                 best = (p, got)
             if got >= target or halo >= halo_cap - 1e-9 or not p.light:
@@ -294,13 +319,15 @@ def plan(im: Image.Image, x0: float, baseline: float, size: float, reach: float 
     _, detail = glyph_contrast(ground, p)
     rec.update(halo=p.halo, contrast=round(got, 2), contrast_whole=p.measure(p.draw(ground)),
                contrast_unaided=p.contrast_unaided, best_tried=round(seen["best"], 2), best_step=seen["step"],
+               best_dark=round(seen["dark"], 2), best_light=round(seen["light"], 2),
                glyphs=detail.get("glyphs"), worst_glyph_x=detail.get("worst_glyph_x"),
                short_of_target=got < target, below_gate=got < gate, shown=got >= gate)
     if got < gate:                                            # fail closed: never drawn under the gate
         rec["contrast"] = round(seen["best"], 2)              # a refusal reports the best any step reached
         rec["reason"] = (f"masthead not drawn: its worst glyph reaches at best {seen['best']:.2f}:1 ({seen['step']}) "
                          f"after every ruled step (scrim peak {peak_max}, halo {halo_max}, levels floor "
-                         f"{tok('scrim.levels_floor')}, light variant), under the {gate}:1 gate")
+                         f"{tok('scrim.levels_floor')}, light variant), under the {gate}:1 gate (bone best "
+                         f"{seen['dark']:.2f}, INK best {seen['light']:.2f})")
         log.warning("%s", rec["reason"])
         return base, p, rec
     p.contrast = round(got, 2)       # what the element's record reports: its ratio as judged (the worst glyph)

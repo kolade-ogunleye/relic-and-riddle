@@ -1,0 +1,142 @@
+[
+ {
+  "topic": "wieliczka_salt_mine",
+  "fill": [
+   243,
+   237,
+   226
+  ],
+  "contrast": 12.9,
+  "halo": 0.0,
+  "delivered_jpeg": 12.97,
+  "delivered_platform": 12.8,
+  "record": {
+   "variant": "dark",
+   "scrim_peak": 0.0,
+   "halo": 0.0,
+   "size": 64.0,
+   "contrast": 12.9,
+   "contrast_unaided": 12.9,
+   "short_of_target": false,
+   "below_gate": false,
+   "box": [
+    96,
+    71,
+    746,
+    118
+   ]
+  }
+ },
+ {
+  "topic": "greek_fire_siphon",
+  "fill": [
+   243,
+   237,
+   226
+  ],
+  "contrast": 11.05,
+  "halo": 0.0,
+  "delivered_jpeg": 11.0,
+  "delivered_platform": 10.48,
+  "record": {
+   "variant": "dark",
+   "scrim_peak": 0.0,
+   "halo": 0.0,
+   "size": 64.0,
+   "contrast": 11.05,
+   "contrast_unaided": 11.05,
+   "short_of_target": false,
+   "below_gate": false,
+   "box": [
+    96,
+    71,
+    746,
+    118
+   ]
+  }
+ },
+ {
+  "topic": "tunguska_event_1908",
+  "fill": [
+   243,
+   237,
+   226
+  ],
+  "contrast": 13.88,
+  "halo": 0.0,
+  "delivered_jpeg": 14.01,
+  "delivered_platform": 14.04,
+  "record": {
+   "variant": "dark",
+   "scrim_peak": 0.0,
+   "halo": 0.0,
+   "size": 64.0,
+   "contrast": 13.88,
+   "contrast_unaided": 13.88,
+   "short_of_target": false,
+   "below_gate": false,
+   "box": [
+    96,
+    71,
+    746,
+    118
+   ]
+  }
+ },
+ {
+  "topic": "amber_room_heist",
+  "fill": [
+   243,
+   237,
+   226
+  ],
+  "contrast": 14.9,
+  "halo": 0.0,
+  "delivered_jpeg": 14.99,
+  "delivered_platform": 14.83,
+  "record": {
+   "variant": "dark",
+   "scrim_peak": 0.0,
+   "halo": 0.0,
+   "size": 64.0,
+   "contrast": 14.9,
+   "contrast_unaided": 14.9,
+   "short_of_target": false,
+   "below_gate": false,
+   "box": [
+    96,
+    71,
+    746,
+    118
+   ]
+  }
+ },
+ {
+  "topic": "richat_structure_sahara_eye",
+  "fill": [
+   243,
+   237,
+   226
+  ],
+  "contrast": 15.18,
+  "halo": 0.0,
+  "delivered_jpeg": 15.21,
+  "delivered_platform": 15.13,
+  "record": {
+   "variant": "dark",
+   "scrim_peak": 0.0,
+   "halo": 0.0,
+   "size": 64.0,
+   "contrast": 15.18,
+   "contrast_unaided": 15.18,
+   "short_of_target": false,
+   "below_gate": false,
+   "box": [
+    96,
+    71,
+    746,
+    118
+   ]
+  }
+ }
+]

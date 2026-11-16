@@ -24,6 +24,7 @@ from .typography import (balanced_wrap, cap_height, drawable, field_font, fit_fo
                          is_video, plan_text, probe_text, record_contrast, spoken_units, text_size, tracked_width,
                          wrap_text, LayoutError, TextFitError)
 from . import brand
+from .brand_system import GATES, LINE_END_LAST_RESORT, LINE_END_NEVER, type_px
 
 log = logging.getLogger(__name__)
 
@@ -295,42 +296,13 @@ def warm_ground(im: Image.Image, box) -> bool:
     return float(warm.mean()) >= WARM_SHARE
 
 
-def masthead_scrim(im: Image.Image, box, text_rgb, target: float | None = None, feather: int = 150) -> Image.Image:
-    """A soft ink gradient from the top edge down past `box` (the masthead's cap box), only where the pixels behind
-    the masthead hold it under `target` (MASTHEAD_TARGET) and only as deep as that needs; unchanged otherwise."""
-    target = MASTHEAD_TARGET if target is None else target
-    import numpy as np
-    x0, y0, x1, y1 = (int(v) for v in box)
-    measured = (x0, max(0, y0 - 6), x1, y1 + 6)
-    if _contrast(im, measured, text_rgb) >= target:
-        return im
-    W, H = im.size
-    reach = min(H, y1 + feather)                         # the gradient's foot: nothing shaded below it
-    y = np.arange(H, dtype=np.float32)
-    v = np.clip(1 - y / reach, 0, 1)
-    ramp = v * v * (3 - 2 * v)                           # full at the top edge, easing out to nothing at `reach`
-    at_box = float(ramp[min(H - 1, y1)])
-
-    def shaded(strength: float) -> Image.Image:
-        mask = Image.fromarray((ramp * 255 * strength).astype(np.uint8).reshape(H, 1)).resize((W, H))
-        layer = Image.new("RGBA", im.size, tuple(brand.INK) + (255,))
-        layer.putalpha(mask)
-        return Image.alpha_composite(im.convert("RGBA"), layer).convert(im.mode)
-    cap = min(1.0, 0.85 / max(at_box, 1e-3))
-    lo, hi = 0.0, cap
-    for _ in range(8):                                   # the least strength that brings the box to `target`
-        mid = (lo + hi) / 2
-        lo, hi = (lo, mid) if _contrast(shaded(mid), measured, text_rgb) >= target else (mid, hi)
-    return shaded(hi)
-
-
 KICKER_TRACK = 0.15     # a kicker's letter spacing, as a share of its size (Montserrat 800, tracked caps)
 KICKER_RULE = 1.0       # the kicker's gold rule: as long as the capitals are tall
 KICKER_GAP = 0.55       # and this far from the words
-# Planning margins (round 3, 2026-11-02): small gold kickers and the masthead are planned at 5.5:1 so Facebook's
-# downscale and recompression (960 px, JPEG ~70) still leave them at 4.5 (the FB copy measured 5.01 and 4.83).
-KICKER_TARGET = 5.5
-MASTHEAD_TARGET = 5.5
+# Planning margins (round 3, 2026-11-02): small gold kickers are planned at 5.5:1 so Facebook's downscale and
+# recompression (960 px, JPEG ~70) still leave them at 4.5 (the FB copy measured 5.01 and 4.83). The masthead's ground
+# and tiers are src/masthead.py's (cycle 0: gate 5.5, target 6.5, scrim peak 0.60, halo 0.16).
+KICKER_TARGET = GATES["contrast.kicker"]
 PLATFORM_WIDTH, PLATFORM_QUALITY = 960, 70   # the platform re-encode every delivered ratio is measured after too
 
 
@@ -407,8 +379,9 @@ def poll_problems(poll: dict[str, Any]) -> list[str]:
 
 # Words a line should not end on (round 4 review, 2026-11-02): an article, a conjunction or a short preposition
 # leaves the reader holding a word that belongs to the next line ("Tell us in the comments and / follow ...").
-_DANGLING = frozenset(("a", "an", "the", "and", "or", "but", "nor", "so", "yet", "of", "in", "on", "at", "to", "for",
-                       "with", "from", "by", "as", "into", "onto", "than", "via", "per"))
+# The system's one vocabulary (src/brand_system.py): the words a line never ends on and the conjunctions it ends on
+# only as a last resort; both cost the same here (a soft rule: the rag search weighs them).
+_DANGLING = LINE_END_NEVER | LINE_END_LAST_RESORT
 RAG_DANGLE = 0.3   # a line ending on one of them costs as much as a line this share of `width` off the mean
 
 
@@ -1952,34 +1925,22 @@ class MultiFormatGenerator:
         else:
             im = self._render_editorial_split(photo, card, i, cw, chh, lay=lay, tight=tight)
 
-        # The brand, top-left (clear of Instagram's counter, see HEADER_Y): the gold diamond mark, then Cinzel Bold
-        # in tracked bone capitals at the covers' 40 px (one masthead across covers and carousels, 2026-11-01; 30 px
-        # before), drawn at a measured contrast like every other line (a halo where the photo is bright), never on
-        # a pill.
-        from .cover_design import MARK_GAP, MARK_R
-        brand_font = get_font(brand.MASTHEAD_FONT, px.exact(40), weight=700)
-        r, gap = px(MARK_R), px(MARK_GAP)
+        # The brand, top-left (clear of Instagram's counter, see HEADER_Y): the system's one masthead
+        # (src/masthead.py, cycle 0): the gold diamond, then the masthead face in tracked bone capitals at the
+        # carousel's masthead size, its ground solved as ruled (a top-edge ink gradient up to 0.60 at its peak, a
+        # halo up to 0.16, the light-ground variant where bone cannot reach the gate), never on a pill.
+        from . import masthead
+        size = type_px("masthead", "carousel") * cw / 1440
+        brand_font = masthead.font_for(size)
         # On the Facebook cover (the collage's 2:3 hero tile) the masthead keeps the cover's inset too (round 4: its
         # diamond fell outside the tile's crop at x 107).
         x0 = px(self.FB_COVER_MARGIN) if facebook and archetype == "cover" else px(80)
         base = px(self.HEADER_Y) + cap_height(brand_font)
-        # Round 3 (2026-11-02): where the photo is too bright behind the masthead, a soft ink gradient from the top
-        # edge, deep only as far as the masthead's planned ratio needs, takes the place of a 36 px halo per line
-        # (a dark smudge over Richat's blue sky). The line's own halo then does only what is left.
-        im = masthead_scrim(im.convert("RGB"), (x0, base - cap_height(brand_font), x0 + px(520), base), brand.BONE,
-                            feather=px(300))
-        plate = plan_text(im, (x0 + 2 * r + gap, base), brand.MASTHEAD, brand_font, brand.BONE,
-                          "ls", track=px(3), min_halo=0.6 if tight else 0.0, target=MASTHEAD_TARGET)
-        im = plate.draw(im.convert("RGB"))
-        cx, cy = x0 + r, base - cap_height(brand_font) / 2
-        diamond = [(cx, cy - r), (cx + r, cy), (cx, cy + r), (cx - r, cy)]
-        d = ImageDraw.Draw(im)
-        d.polygon(diamond, outline=brand.INK, width=max(2, px(3)))
-        d.polygon(diamond, fill=brand.GOLD)
+        im, plate, mrec, box = masthead.draw(im.convert("RGB"), x0, base, size, reach=base + px(300))
         # One header element, as before: its box takes in the mark.
-        bx = plate.box
-        lay.add("header_brand", (min(bx[0], cx - r), min(bx[1], cy - r), max(bx[2], cx + r), max(bx[3], cy + r)))
+        lay.add("header_brand", box)
         lay.elements[-1].update(plate.record())
+        lay.elements[-1]["masthead"] = {k: v for k, v in mrec.items() if k != "box"}
         lay.plates.setdefault("header_brand", []).append(plate)
         if strip and not facebook:
             im = swipe_strip(im, lay, strip)

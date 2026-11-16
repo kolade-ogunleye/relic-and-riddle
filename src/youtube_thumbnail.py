@@ -41,7 +41,8 @@ FOCUS_MIN_X = 1250        # a clamped crop that leaves it left of here is enlarg
 FOCUS_LAND = (1300, 1380)  # ... until it lands in this band
 MAX_ZOOM = 1.35           # never more than this beyond the cover fill
 SHADE_ALPHA, SHADE_SOLID, SHADE_END = 0.85, 0.42 * W, 1040   # the left ink: 85% over the left 42%, then fading
-BRAND_PX, BRAND_TRACK, BRAND_R, BRAND_GAP = 64, 4, 19, 22    # the masthead (2026-11-02 round 2: 44 px read small)
+BRAND_PX = 64             # the masthead's size (2026-11-02 round 2: 44 px read small); its track, mark and gap are
+                          # the system's (src/brand_system.py masthead.*)
 MAX_WORDS = 4             # across the headline lines
 UNIT_RATIO = 0.5          # the unit beside the figure, at half its size
 TITLE_GAP_EM = 0.08       # the figure's baseline to the title's caps, in title ems
@@ -362,17 +363,15 @@ def _render(source, copy, focus, meta, figure, youtube_title, illustration, targ
     measure = ImageDraw.Draw(im)
     plates = []
 
-    # The masthead: the gold diamond, then the name in gold Cinzel Bold, top-left.
-    f_brand = get_font(brand.MASTHEAD_FONT, BRAND_PX, weight=700)
-    r, gap, top = BRAND_R, BRAND_GAP, 72
-    cy = top + cap_height(f_brand) / 2
-    name = plan_text(im, (LEFT + 2 * r + gap, top + cap_height(f_brand)), brand.MASTHEAD, f_brand, brand.GOLD,
-                     "ls", BRAND_TRACK, halo_px=40, min_halo=0.35, max_halo=1.0)
-    im = name.draw(im)
-    d = ImageDraw.Draw(im)
-    diamond = [(LEFT + r, cy - r), (LEFT + 2 * r, cy), (LEFT + r, cy + r), (LEFT, cy)]
-    d.polygon(diamond, outline=brand.INK + (255,), width=3)
-    d.polygon(diamond, fill=brand.GOLD + (255,))
+    # The masthead: the system's one treatment (src/masthead.py, cycle 0): the gold diamond, then the name in
+    # tracked bone capitals (gold until cycle 0: a second masthead colour that competed with the hook), its ground
+    # solved as ruled (scrim peak 0.60, halo 0.16, gate 5.5, target 6.5), top-left.
+    from . import masthead
+    f_brand = masthead.font_for(BRAND_PX)
+    top = 72
+    mode = im.mode
+    im, name, meta["masthead"], _ = masthead.draw(im, LEFT, top + cap_height(f_brand), BRAND_PX)
+    im = im.convert(mode)
     plates.append(("brand", name))
     # The band under the masthead the hero stack is centred in (round 4: it sat at a fixed y 560).
     centre = round((top + cap_height(f_brand) + BAND_PAD[0] + H - BAND_PAD[1]) / 2)

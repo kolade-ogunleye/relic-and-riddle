@@ -1,0 +1,313 @@
+"""
+src/brand_system.py
+===================
+The design SYSTEM on QF-35a's role tokens (design-freeze cycle 0, 2026-11-15): the type scale, heading and accent
+rules, masthead, plates / scrims / halos, kickers, figures, spacing per canvas, rules and motion, each a named token
+with the rule that uses it. QF-35a names colours, families and strings; this module names every size, ratio, alpha,
+gap, easing and duration the designs share, so a group builds against one table and a later token change re-opens
+the system board, not every group.
+
+Tokens live in the brand configuration (`brand.BrandConfig.system`, default `SYSTEM_TOKENS` below) and are read at
+call time, like QF-35a's roles: `brand_system.tok("contrast.masthead_target")`, never copied at import (a brand that
+overrides a token draws through the same code; tests/test_brand_system.py scans for import-time copies).
+
+The written system (the cycle-0 build note C:/tmp/qf-handoff/queue/CYCLE0.build-1.md carries the reasons and the
+trade-offs; the trade-off order is gates and truth > legibility at feed size on the worst hero > subject visibility >
+one system across surfaces > hierarchy > rhythm > ornament):
+
+Canvas classes. "tall" 1080x1920 (Reel cover and grid tile, Story frames, hook / chapter / myth cards, loop bridge,
+9:16 graphics); "carousel" 1440x1800 (IG carousel; drawn in 1080 design px x 4/3); "wide" 1920x1080 (YouTube
+thumbnail, 16:9 end screen and cards and graphics). Safe boxes are src/safe_zones.py's and are never re-declared here.
+
+Type roles (TYPE): display_xl (cover, hook, Story title), display_l (interior heading), display_m (debate / CTA /
+card title), figure (a stated quantity's numeral), kicker, body, label (a drawing's names), data_label (ruler and
+index figures, units on a drawing), credit, masthead. Each canvas has one size per role and at most one fallback
+tier (TYPE_FALLBACK); a size between tiers chosen to fit a measure is off-system (RUBRIC TY1). Faces by role only:
+display -> brand display face; kicker, body, label -> text face; figure -> display face (a stated quantity is set
+like a heading: one voice for the claim and its number); data_label, credit, badge -> data face; masthead ->
+masthead face. At most three voices on a frame (display, text, data), the masthead counted apart.
+
+Heading rules (HEADING, line_end_ok): one line when it fits at the role's tier, else a balanced break (shorter line
+>= 0.55 of the longer) at a phrase boundary; no line other than the last ends on LINE_END_NEVER (articles,
+prepositions); a conjunction end (LINE_END_LAST_RESORT) only when no other break fits; a value never splits from
+its unit or conversion; every copy of a heading sets the same form; a cover is never shrunk to one line below the
+interior tier (ruled); the Story keeps its own ruling (one size per Story, one line a field down to 106 px, never
+four rows).
+
+Accent (ACCENT): gold marks the payoff (the accent line of a heading, the figure run, numerals, rules and the
+mark); bone carries everything else. Function words that open the accent line stay bone ("THE EYE / OF THE SAHARA");
+a leading alternative "OR" may stay gold. Body, kickers' words on photographs where gold clashes (warm ground) and
+function words are never gold. Gold-on-gold fallback, one rule: the gold line turns bone (the plate is never
+added for colour). GOLD_DIM only for a line that sits behind text (a spine). TEAL / CORAL only as a chart's second
+and third series; a map's marks are gold and bone, never another hue.
+
+Masthead (MASTHEAD, masthead_spec): one treatment: the gold diamond (outlined in INK) then the brand name in the
+masthead face, weight 700, tracked tok("masthead.track") em, in BONE on a dark ground; on a light ground where
+bone cannot reach the gate within the scrim cap and halo, the light-ground variant sets it in INK. Mark radius and
+gap in em of the masthead size. Contrast gate 5.5:1, target 6.5:1; its scrim's peak never above 0.60, its own halo
+never above 0.16 (operator rulings, round 3 (2)). Presence: every surface that carries the brand top-left draws it
+(carousel, YouTube, end screen); a cover the profile grid shows (Reel cover, hook frame) draws it only when its cap
+height at 124 px wide reaches tok("masthead.grid_cap") px, which at the cover size it does not: the cover family is
+deliberately mastheadless (the profile carries the brand there).
+
+Plates, scrims, halos (PLATE, SCRIM, HALO): shade colour is INK, never pure black; plate tiers opaque 1.0 / held
+0.875 / panel 0.78; one radius per canvas; scrims are soft, monotonic, never steeper than 0.5 luma / px; a text
+halo's alpha is the least that meets its tier, the masthead's never above 0.16.
+
+Contrast tiers (CONTRAST): text 4.5 (gate, WCAG AA on delivered pixels), place 4.8 (what placement aims for),
+display 5.1 (large display rows on covers, hook and YouTube), kicker 5.5 (small gold capitals, so a platform
+re-encode leaves 4.5), masthead gate 5.5 and target 6.5, high 7.0 (an ink figure or source line where ruled), mark
+3.0 (WCAG 1.4.11 non-text).
+
+Kicker (KICKER): text face 800, tracked 0.15 em capitals, GOLD, led by a flat gold rule one cap long at mid-cap
+height, 0.55 cap from the words; one gap to the heading per canvas. THEN / NOW over a year are data labels (data
+face), not kickers.
+
+Figures (FIGURE): a stated quantity in the display face, gold; ruler, axis and index figures, units and credits in
+the data face (tabular lining figures); a range's en dash centred within 0.03 em of the figures' centre with at
+least 0.06 em of ink gap each side; a ruler's zero sits on its datum.
+
+Motion (MOTION, ease): ease_out = cubic ease-out (an element arriving), ease_in_out = smoothstep / the Hermite
+family (a camera or a field moving between rests), ease_out_back (a callout's pop, 8 % overshoot), linear (a
+constant push only). Reveals 0.40 s, rises by element size, words staggered 0.055 s; hard cuts inside a Reel,
+a dissolve only at an act change; captions <= 17 cps shown.
+"""
+from __future__ import annotations
+
+from collections.abc import Mapping
+from types import MappingProxyType
+from typing import Any
+
+CANVASES: Mapping[str, tuple[int, int]] = MappingProxyType({
+    "tall": (1080, 1920), "carousel": (1440, 1800), "wide": (1920, 1080)})
+
+# Gates: the operator's rulings and the platform/WCAG limits. Constants: a brand never moves them (BrandConfig refuses
+# a system override that names one), so a module may hold one at import.
+GATES: Mapping[str, Any] = MappingProxyType({
+    # ---- contrast tiers (WCAG ratios on the delivered pixels)
+    "contrast.text": 4.5,             # the gate for every text element (brand.TEXT_CONTRAST)
+    "contrast.place": 4.8,            # what placement aims for, so encodes still leave 4.5 (brand.PLACE_TARGET)
+    "contrast.display": 5.1,          # a display row on a cover / hook / YouTube thumbnail
+    "contrast.kicker": 5.5,           # small gold capitals (a 960 px q70 re-encode measured 5.5 -> 4.83-5.01)
+    "contrast.masthead_gate": 5.5,    # operator ruling round 3 (2): the gate
+    "contrast.masthead_target": 6.5,  # and the target
+    "contrast.high": 7.0,             # an ink figure / source line where ruled (chapter total, then-and-now)
+    "contrast.mark": 3.0,             # WCAG 1.4.11: an essential mark against its ground
+    # ---- scrims and halos (operator rulings)
+    "scrim.masthead_peak": 0.60,      # the masthead scrim's peak alpha (round 3 (2))
+    "scrim.slope_max": 0.5,           # luma per px: a field never steps faster (end card, round 3 (1))
+    "halo.masthead_max": 0.16,        # the masthead's own halo alpha, never above (round 3 (2))
+    "scrim.levels_floor": 205,        # a levelled ground's output ceiling never under this (park BRIGHT_CEILING)
+    # ---- the masthead on a cover the profile grid shows (QF-87): its cap height at 124 px wide, or no masthead
+    "masthead.grid_cap": 9,
+    # ---- headings (rulings)
+    "heading.story_one_line_floor": 106,   # round 4 (2): Story one-line-a-field floor, px
+    "heading.story_floor": 120,            # round 3 (3)(1): else
+    # ---- captions
+    "motion.caption_cps": 17.0,       # captions shown at most this many characters per second (config.CAPTION_MAX_CPS)
+})
+
+# Tokens: the system's style values, flat "<group>.<name>" -> value. A brand may override any (BrandConfig.system).
+SYSTEM_TOKENS: Mapping[str, Any] = MappingProxyType({
+    "halo.step": 0.08,                # a halo is solved in steps of this
+    "plate.opaque": 1.0,              # a callout's plate
+    "plate.held": 0.875,              # a plate text sits on over moving pictures (caption pill 0x20, badge)
+    "plate.panel": 0.78,              # a map / chart panel over a drawn ground (200 / 255)
+    "plate.radius": 14,               # px at 1080 wide (caption pill); scaled by the canvas width
+    "plate.shade": "INK",             # the colour every shade, halo and plate uses (a palette role)
+    # ---- masthead (one treatment; em = of the masthead's px size)
+    "masthead.weight": 700,
+    "masthead.track": 0.0625,         # em: 4 px at 64
+    "masthead.mark_r": 0.30,          # em: the diamond's half-diagonal (19 px at 64)
+    "masthead.gap": 0.36,             # em: the diamond's right point to the name's ink (23 px at 64)
+    "masthead.mark_edge": 0.047,      # em: the diamond's INK outline (3 px at 64)
+    "masthead.colour_dark": "BONE",   # the dark-ground variant
+    "masthead.colour_light": "INK",   # the light-ground variant (only where bone cannot reach the gate)
+    # ---- kicker
+    "kicker.weight": 800,
+    "kicker.track": 0.15,             # em
+    "kicker.rule": 1.0,               # the lead rule's length, in caps
+    "kicker.rule_gap": 0.55,          # the rule's end to the words, in caps
+    "kicker.rule_thick": 0.16,        # the rule's thickness, in caps (>= 3 px)
+    "kicker.colour": "GOLD",
+    # ---- credits and the AI-reconstruction badge (one style each; ported by their groups and QF-133)
+    "credit.weight": 500,             # the data face
+    "credit.track": 0.04,             # em
+    "credit.colour": "STONE_LT",
+    "badge.weight": 600,              # the badge role (the data face by default)
+    "badge.track": 0.05,              # em
+    "badge.colour": "BONE",
+    "badge.plate": "plate.held",      # INK at the held tier
+    # ---- leading (line step, in cap heights for display, in em for text)
+    "lead.display": 1.13,             # cap heights from baseline to baseline (heading)
+    "lead.body": 1.36,                # em
+    "lead.label": 1.12,               # em
+    # ---- heading rules
+    "heading.balance_min": 0.55,      # the shorter line's ink width over the longer's
+    "heading.cover_over_interior": 1.08,   # the cover heading is at least this x the deck's largest interior one
+    # ---- figures
+    "figure.dash_centre_em": 0.03,    # an en dash's centre within this of the figures' centre
+    "figure.dash_gap_em": 0.06,       # and at least this ink gap each side
+    # ---- rules and dividers (px at 1080 wide; scaled by the canvas)
+    "rule.weight": 4,
+    "rule.hairline": 1,
+    # ---- motion (seconds unless named)
+    "motion.reveal": 0.40,            # an element's entry
+    "motion.word_stagger": 0.055,     # a word's entry after the one before it
+    "motion.rise_l": 14,              # px an element rises while it enters: a heading / share block
+    "motion.rise_m": 10,              # a single line (the follow line, FOLLOW)
+    "motion.rise_s": 8,               # a kicker
+    "motion.hook_hold": 1.07,         # the hook's type hold
+    "motion.hook_fade": 0.16,         # the hook type's fade-in (an element reveal, not a scene fade)
+    "motion.act_dissolve": 0.5,       # the only dissolve in a Reel, at an act change
+    "motion.loop_crossfade": 0.5,     # the loop bridge's crossfade (0.7 for the purely visual bridge)
+    "motion.back": 1.5,               # ease_out_back's constant (8 % overshoot): a callout's pop
+    "motion.pop_scale": 1.4,          # a pin / lantern's pop: 1 -> this -> 1
+    "motion.push_per_frame": 0.0016,  # the camera's forward drift
+    "motion.push_cap": 1.24,
+})
+
+# One size per role per canvas, px on that canvas (the carousel's in canvas px: 1080 design px x 4/3). None: the
+# role is not used on that canvas. The sizes in force where a surface still deviates are listed in the cycle-0 build
+# note (left for its group).
+TYPE: Mapping[str, Mapping[str, float | None]] = MappingProxyType({
+    "tall": MappingProxyType({"display_xl": 150, "display_l": 138, "display_m": 112, "figure": 300, "kicker": 40,
+                              "body": 46, "label": 30, "data_label": 30, "credit": 24, "masthead": 64}),
+    "carousel": MappingProxyType({k: v * 4 / 3 for k, v in {   # the 1080 design px, x 4/3 exactly
+        "display_xl": 150, "display_l": 138, "display_m": 112, "figure": 300, "kicker": 34, "body": 36, "label": 27,
+        "data_label": 27, "credit": 24, "masthead": 40}.items()}),
+    "wide": MappingProxyType({"display_xl": 190, "display_l": 184, "display_m": 136, "figure": 360, "kicker": 40,
+                              "body": 52, "label": 34, "data_label": 34, "credit": 24, "masthead": 64}),
+})
+# At most one fallback tier per role (a size the role may drop to when the first does not set the copy).
+TYPE_FALLBACK: Mapping[str, Mapping[str, float]] = MappingProxyType({
+    "tall": MappingProxyType({"display_xl": 120, "display_l": 124, "display_m": 96, "body": 40, "credit": 22}),
+    "carousel": MappingProxyType({k: v * 4 / 3 for k, v in {"display_xl": 138, "display_l": 124, "display_m": 96,
+                                                            "body": 34}.items()}),
+    "wide": MappingProxyType({"display_xl": 150, "display_l": 152, "display_m": 112, "body": 46, "credit": 22}),
+})
+# Feed-size floors, canvas px (RUBRIC PL2, rulings): nothing a role draws is smaller.
+TYPE_FLOOR: Mapping[str, Mapping[str, float]] = MappingProxyType({
+    "tall": MappingProxyType({"label": 27, "data_label": 27, "credit": 22}),
+    "carousel": MappingProxyType({"label": 36, "data_label": 36, "credit": 22 * 4 / 3}),
+    "wide": MappingProxyType({"label": 30, "data_label": 30, "credit": 22}),
+})
+FACE: Mapping[str, str] = MappingProxyType({   # type role -> brand font role
+    "display_xl": "display", "display_l": "display", "display_m": "display", "figure": "display",
+    "kicker": "text", "body": "text", "label": "text", "data_label": "data", "credit": "data", "masthead": "masthead"})
+
+# Spacing per canvas (px on that canvas): side margins, the kicker-to-heading gap, heading-to-body, body-to-credit,
+# the baseline unit. The safe boxes are src/safe_zones.py's.
+SPACING: Mapping[str, Mapping[str, int]] = MappingProxyType({
+    "tall": MappingProxyType({"margin": 84, "kicker_gap": 24, "heading_gap": 36, "credit_gap": 24, "unit": 4}),
+    "carousel": MappingProxyType({"margin": 112, "kicker_gap": 32, "heading_gap": 48, "credit_gap": 32, "unit": 4}),
+    "wide": MappingProxyType({"margin": 96, "kicker_gap": 24, "heading_gap": 40, "credit_gap": 24, "unit": 4}),
+})
+
+# Heading break vocabulary: one list for every surface (there were five).
+LINE_END_NEVER = frozenset(("a", "an", "the", "of", "in", "on", "at", "to", "by", "for", "from", "with", "into", "onto",
+                            "via", "per"))
+LINE_END_LAST_RESORT = frozenset(("and", "or", "but", "nor", "so", "yet", "as", "than"))
+
+
+def tok(name: str) -> Any:
+    """A gate's value, or the active brand's value of token `name` (read now: never keep a token at import)."""
+    if name in GATES:
+        return GATES[name]
+    from . import brand
+    system = brand.active().system
+    if name not in system:
+        raise KeyError(f"no system token {name!r}")
+    return system[name]
+
+
+def colour_of(name: str):
+    """A token that names a palette role (e.g. "masthead.colour_dark"), as the active brand's RGB."""
+    from . import brand
+    return brand.active().colour(tok(name))
+
+
+def type_px(role: str, canvas: str) -> float:
+    size = TYPE[canvas][role]
+    if size is None:
+        raise KeyError(f"{role} is not used on {canvas}")
+    return size
+
+
+def canvas_of(width: int, height: int) -> str:
+    """The canvas class of a frame (by aspect: portrait 9:16, 4:5, landscape)."""
+    if width > height:
+        return "wide"
+    return "tall" if height / width > 1.5 else "carousel"
+
+
+def scaled(px_at_1080: float, width: int) -> float:
+    """A length given at 1080 px wide, on a canvas `width` wide."""
+    return px_at_1080 * width / 1080
+
+
+def line_end_ok(word: str, last_resort: bool = False) -> bool:
+    """Whether a line (not the last) may end on `word`: never on an article or preposition; on a conjunction only
+    as a last resort. Punctuation after the word closes a phrase and makes any end fine."""
+    w = str(word or "").strip()
+    if not w or w[-1] in ".,;:!?\u2014\u2013)":
+        return True
+    w = w.lower().strip("\"'\u2018\u2019\u201c\u201d")
+    if w in LINE_END_NEVER:
+        return False
+    return last_resort or w not in LINE_END_LAST_RESORT
+
+
+def balance(widths) -> float:
+    """The shorter line's width over the longer's (1.0 for one line)."""
+    ws = [float(w) for w in widths if w]
+    return 1.0 if len(ws) < 2 else min(ws) / max(ws)
+
+
+# ---- motion: one meaning per name
+def ease_out(t: float) -> float:
+    """Cubic ease-out: an element arriving (fast in, settling)."""
+    t = min(1.0, max(0.0, t))
+    return 1 - (1 - t) ** 3
+
+
+def ease_in_out(t: float) -> float:
+    """Smoothstep: a camera or a field moving between two rests."""
+    t = min(1.0, max(0.0, t))
+    return t * t * (3 - 2 * t)
+
+
+def ease_out_back(t: float, back: float | None = None) -> float:
+    """Ease-out-back: a pop that overshoots once (motion.back: 1.5 is about 8 %)."""
+    s = tok("motion.back") if back is None else back
+    t = min(1.0, max(0.0, t)) - 1
+    return 1 + (s + 1) * t ** 3 + s * t ** 2
+
+
+def ease_out_expo(t: float) -> float:
+    """Exponential ease-out: a line or leader drawing out (most of it at once, a long settle)."""
+    t = min(1.0, max(0.0, t))
+    return 1.0 if t >= 1 else 1 - 2 ** (-10 * t)
+
+
+def ease_in(t: float) -> float:
+    """Cubic ease-in: an element leaving."""
+    t = min(1.0, max(0.0, t))
+    return t ** 3
+
+
+EASES = {"ease_out": ease_out, "ease_in_out": ease_in_out, "ease_out_back": ease_out_back,
+         "ease_out_expo": ease_out_expo, "ease_in": ease_in, "linear": lambda t: min(1.0, max(0.0, t))}
+
+
+def masthead_spec(size: float) -> dict[str, Any]:
+    """The masthead's geometry at `size` px: track, mark radius, gap and outline width in px (the em tokens)."""
+    return {"size": size, "weight": tok("masthead.weight"), "track": tok("masthead.track") * size,
+            "mark_r": tok("masthead.mark_r") * size, "gap": tok("masthead.gap") * size,
+            "edge": max(2, round(tok("masthead.mark_edge") * size))}
+
+
+def masthead_shown_on_grid(cap_px: float, canvas_w: int, grid_w: int = 124) -> bool:
+    """QF-87: a cover the profile grid shows carries the masthead only when its cap height there reaches the token."""
+    return cap_px * grid_w / canvas_w >= tok("masthead.grid_cap")
+

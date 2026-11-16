@@ -1,0 +1,67 @@
+[
+ {
+  "topic": "wieliczka_salt_mine",
+  "fill": [
+   242,
+   182,
+   48
+  ],
+  "contrast": 8.99,
+  "halo": 0.35,
+  "delivered_jpeg": 8.95,
+  "delivered_platform": 8.71,
+  "record": null
+ },
+ {
+  "topic": "greek_fire_siphon",
+  "fill": [
+   242,
+   182,
+   48
+  ],
+  "contrast": 8.0,
+  "halo": 0.35,
+  "delivered_jpeg": 7.96,
+  "delivered_platform": 7.57,
+  "record": null
+ },
+ {
+  "topic": "tunguska_event_1908",
+  "fill": [
+   242,
+   182,
+   48
+  ],
+  "contrast": 9.45,
+  "halo": 0.35,
+  "delivered_jpeg": 9.42,
+  "delivered_platform": 9.24,
+  "record": null
+ },
+ {
+  "topic": "amber_room_heist",
+  "fill": [
+   242,
+   182,
+   48
+  ],
+  "contrast": 9.85,
+  "halo": 0.35,
+  "delivered_jpeg": 9.84,
+  "delivered_platform": 9.59,
+  "record": null
+ },
+ {
+  "topic": "richat_structure_sahara_eye",
+  "fill": [
+   242,
+   182,
+   48
+  ],
+  "contrast": 9.96,
+  "halo": 0.35,
+  "delivered_jpeg": 9.95,
+  "delivered_platform": 9.72,
+  "record": null
+ }
+]

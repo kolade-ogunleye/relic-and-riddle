@@ -26,7 +26,7 @@ ROOT = Path(__file__).resolve().parent.parent
 # chapter, myth and quote cards; maps, timelines, scale, stat cards, cross-section, routes; photo callouts; and the
 # art direction's accent that colours the graphics; and (QF-35a port onto LAND-29) the five-event dense timeline.
 FROZEN = ("graphics", "design_cards", "multi_format", "cover_design", "youtube_thumbnail", "end_card", "then_now",
-          "callouts", "video_composer", "art_direction", "timeline_dense")
+          "callouts", "video_composer", "art_direction", "timeline_dense", "masthead", "brand_system")
 
 # What stays a literal, keyed (module, enclosing function or assigned name, literal source) -> reason.
 ALLOW = {
@@ -44,7 +44,6 @@ ALLOW = {
     ("design_cards", "plan_chapter_card", "(120, 112, 104, 96)"): "type sizes",
     ("multi_format", "MAP_FADE", "(160, 110, 56)"): "fade lengths",
     ("multi_format", "STRENGTH_FIGURE", "(3, 2, 1)"): "ranks",
-    ("youtube_thumbnail", "BRAND_PX", "(64, 4, 19, 22)"): "masthead px, track, mark radius and gap",
     ("end_card", "SHARE_SIZES", "(58, 56, 54)"): "type sizes",
     ("end_card", "LANDSCAPE_SHARE_SIZES", "(64, 60, 56)"): "type sizes",
     ("end_card", "layout", "(44, 40, 36)"): "type sizes",

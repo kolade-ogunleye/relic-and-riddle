@@ -7,6 +7,7 @@ stay whole. No saliency mask is treated as a semantic subject detector.
 from PIL import Image, ImageDraw, ImageFilter, ImageOps
 
 from . import brand
+from .brand_system import GATES
 from .typography import (
     TextFitError,
     fit_text,
@@ -120,7 +121,7 @@ EYEBROW_QUALIFIER_GAP = 44                           # the eyebrow's ink foot to
 GRID_WIDTHS = (124, 180)                             # the profile grid's tile widths on phones (3:4 crop)
 GRID_SCALE = tuple(w / 1080 for w in GRID_WIDTHS)
 QUALIFIER_GRID_CAP = 9                               # px of cap height a qualifier keeps at 124 px wide
-MASTHEAD_GRID_CAP = 9                                # QF-87: a cover's masthead is this tall at 124 px wide, or absent
+MASTHEAD_GRID_CAP = GATES["masthead.grid_cap"]       # QF-87: a cover's masthead is this tall at 124 px wide, or absent
 EYEBROW_PX, EYEBROW_MIN, EYEBROW_TRACK = 40, 36, 4.0   # Montserrat 800 tracked capitals, every style (2026-11-02)
 TAGLINE_PX, TAGLINE_MIN = 38, 32                        # never under 32 px: at 24-30 it vanished in the grid
 TAGLINE_TRACK = 3.0     # round 4: the deck's tracked capitals (~+80/1000 at 38 px), like the eyebrow; it was the

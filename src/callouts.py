@@ -30,6 +30,7 @@ from PIL import Image, ImageDraw, ImageFilter
 from pydantic import BaseModel, Field
 
 from . import brand, safe_zones
+from .brand_system import GATES, colour_of, ease_in, ease_out_back, ease_out_expo
 from .camera_motion import sample as camera_sample
 from .config import VIDEO_FPS, VIDEO_HEIGHT, VIDEO_WIDTH
 from .graphics import (
@@ -1807,18 +1808,18 @@ BACK = 1.5                                                # ease-out-back consta
 
 
 def _ease_back(u: float) -> float:
-    u = min(1.0, max(0.0, u))
-    return 1 + (BACK + 1) * (u - 1) ** 3 + BACK * (u - 1) ** 2
+    """The system's ease_out_back (a pop, BACK = motion.back)."""
+    return ease_out_back(u, BACK)
 
 
 def _ease_expo(u: float) -> float:
-    u = min(1.0, max(0.0, u))
-    return 1.0 if u >= 1 else 1 - 2 ** (-10 * u)
+    """The system's ease_out_expo (a line drawing out)."""
+    return ease_out_expo(u)
 
 
 def _ease_in(u: float) -> float:
-    u = min(1.0, max(0.0, u))
-    return u ** 3
+    """The system's ease_in (an element leaving)."""
+    return ease_in(u)
 
 
 def _first(f, target: float) -> float:
@@ -1979,7 +1980,7 @@ def stagger_times(labels: list[str], landscape: bool = False) -> list[float]:
 # core against the 90th-percentile luminance of the band its casing covers, and must reach NONTEXT_MIN (WCAG
 # 1.4.11), at the dimmed values. Short of it, the label steps through _GUARD: the casing fully opaque, then 3 px,
 # then the older labels dimmed less (0.8, then 1.0). Recorded in <clip>.contrast.json beside the text rows.
-NONTEXT_MIN = 3.0
+NONTEXT_MIN = GATES["contrast.mark"]   # the system's one mark gate (src/brand_system.py)
 _GUARD = ((CASING_ALPHA, LEADER_HALO, DIM_OLDER), (255, LEADER_HALO, DIM_OLDER), (255, 3, DIM_OLDER),
           (255, 3, 0.8), (255, 3, 1.0))
 
@@ -2384,7 +2385,7 @@ def render(photo: Path, points: list[tuple], out: Path, width: int = VIDEO_WIDTH
     def background(t: float) -> Image.Image:
         im = camera_sample(base, (width, height), push.crop(t), resample=Image.LANCZOS)   # the shared camera
         d = ImageDraw.Draw(im, "RGBA")
-        d.rectangle([0, 0, width, height], fill=(0, 0, 0, int(70 * _ease(t / 0.8))))
+        d.rectangle([0, 0, width, height], fill=(*colour_of("plate.shade"), int(70 * _ease(t / 0.8))))
         return spotlight(im, t, points, starts, push)
 
     def state(k: int, t: float) -> dict | None:
@@ -2435,7 +2436,8 @@ def render(photo: Path, points: list[tuple], out: Path, width: int = VIDEO_WIDTH
         for k, st, dx, dy in live:   # every plate's lift shadow, under every leader (it never darkens their gold)
             a = arts[k]
             if st["plate"] > 0:
-                _blit(im, (0, 0, 0), a.plate(st["plate"])[0], a.ox + dx, a.oy + dy, SHADOW_ALPHA / 255 * st["plate_a"])
+                _blit(im, colour_of("plate.shade"), a.plate(st["plate"])[0], a.ox + dx, a.oy + dy,
+                      SHADOW_ALPHA / 255 * st["plate_a"])
         for k, st, dx, dy in live:   # every casing and marker ink
             ink, gold = arts[k].lines(st["g"], st["trace"], st["lead"], st["casing_px"])
             drawn[k] = gold

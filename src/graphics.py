@@ -69,6 +69,7 @@ log = logging.getLogger(__name__)
 CLIP_SECONDS = 6.0
 W, H = VIDEO_WIDTH, VIDEO_HEIGHT
 from . import brand
+from .brand_system import GATES, ease_in_out, ease_out
 
 # Brand tokens (src/brand.py, visual overhaul 2026-10-29): one gold, bone text, the ink ground. Read as brand.<ROLE>
 # when drawn (QF-35a role tokens): the names this module bound at import before, for its readers, are served from the
@@ -131,8 +132,8 @@ PERSON = next(r["label"] for r in references() if r["id"] == "R_US_HEIGHT")
 
 
 def _ease(t: float) -> float:
-    t = min(1.0, max(0.0, t))
-    return 1 - (1 - t) ** 3
+    """The system's ease_out (src/brand_system.py: an element arriving)."""
+    return ease_out(t)
 
 
 def _text(d: ImageDraw.ImageDraw, xy, text: str, font, fill, anchor: str = "la") -> None:
@@ -332,7 +333,7 @@ def graded_frame(frame: Image.Image, work: Path, vignette: bool = False) -> Imag
         return None
 
 
-NONTEXT_MIN = 3.0   # WCAG 1.4.11: an essential mark (spine, node, break, outline, ruler tick) against its ground
+NONTEXT_MIN = GATES["contrast.mark"]   # WCAG 1.4.11: an essential mark (spine, node, break, outline, ruler tick)
 NONTEXT_BAND = 10   # px of ground around a mark that it is measured against
 
 
@@ -9800,8 +9801,8 @@ def _rock_ground(width: int, height: int, ground_y, seed: int = 3) -> Image.Imag
 
 
 def _ease_io(t: float) -> float:
-    t = min(1.0, max(0.0, t))
-    return t * t * (3 - 2 * t)
+    """The system's ease_in_out (smoothstep)."""
+    return ease_in_out(t)
 
 
 def _lantern(r: float) -> _Sprite:

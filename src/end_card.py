@@ -33,9 +33,10 @@ import numpy as np
 from PIL import Image, ImageDraw, ImageFilter
 
 from . import brand
+from .brand_system import colour_of, ease_out, tok
 from .camera_motion import kenburns
 from .safe_zones import REEL
-from .typography import get_font, tracked_width
+from .typography import cap_height, get_font, tracked_width
 
 VARIANT = "plain_v4"     # capsule_v3 until 2026-10-29
 SECONDS = 2.9            # the card's length after the narration
@@ -88,8 +89,9 @@ LANDSCAPE_PUSH = 0.02    # the 16:9 push over END_SCREEN_SECONDS, easing to rest
 LANDSCAPE_SCRIM_X = (1000, 1260)   # the 16:9 dim is full left of the first x and eases to LANDSCAPE_RIGHT_DIM by the
 LANDSCAPE_RIGHT_DIM = 0.55         # second: a scrim behind the text column, the right side lighter and sharper
 KICKER = "WATCH NEXT"    # generic: the video YouTube shows in the slot is not known at render time
-KICKER_SIZE = 30
-KICKER_TRACK = 0.18      # of its size
+# The kicker is the system's (src/brand_system.py kicker.*, cycle 0): the text face at 800 in tracked gold capitals led
+# by a flat gold rule, at the wide canvas's kicker size (it was IBM Plex Mono 600 at 30 px, 0.18 em: a second kicker
+# voice, RUBRIC anchor BC-A2).
 KICKER_GAP = 24          # px from the slot's hairline frame (or the slot) to the kicker's ink bottom
 SLOT_FRAME_OFFSET = 12   # the optional hairline frames around the YouTube element slots
 CREDITS_LINE = "IMAGE CREDITS IN DESCRIPTION"   # only when the description really carries credit lines
@@ -180,11 +182,13 @@ def end_card_note(record: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
 
 
 def ease(t: float) -> float:
-    t = max(0.0, min(1.0, t))
-    return 1 - (1 - t) ** 3
+    """The system's ease_out (src/brand_system.py: an element arriving)."""
+    return ease_out(t)
 
 
 def ease_io(t: float) -> float:
+    """The system's ease_in_out (smoothstep: a field moving between rests), in this module's own arithmetic form
+    (3t^2 - 2t^3), kept so the shipped loop bridge stays bit-identical (the other form differs by 1 level on a few px)."""
     t = max(0.0, min(1.0, t))
     return 3 * t * t - 2 * t * t * t
 
@@ -219,22 +223,23 @@ def says_follow(text: str) -> bool:
 
 
 def _masthead(max_w: int) -> dict[str, Any]:
-    """The cover's masthead (src/cover_design.py _brand: the gold diamond, then RELIC & RIDDLE in tracked Cinzel
-    Bold bone), scaled up from the cover's 64 px to the largest size whose group fits MASTHEAD_W and `max_w`."""
-    from .cover_design import BRAND_PX, BRAND_TRACK, MARK_GAP, MARK_R
+    """The system's masthead (src/brand_system.py masthead.*: the gold diamond, then the name in tracked masthead
+    capitals in bone), at the largest size from the tall canvas's masthead size whose group fits MASTHEAD_W and
+    `max_w` (the end card's brand moment)."""
+    from .brand_system import masthead_spec, type_px
     goal = min(MASTHEAD_W, max_w)
     best = None
-    for size in range(BRAND_PX, 140):
-        k = size / BRAND_PX
-        font = get_font(brand.MASTHEAD_FONT, size, weight=700)
-        track = BRAND_TRACK * k
-        r, gap = round(MARK_R * k), round(MARK_GAP * k)
+    for size in range(int(type_px("masthead", "tall")), 140):
+        spec = masthead_spec(size)
+        font = get_font(brand.MASTHEAD_FONT, size, weight=spec["weight"])
+        track = spec["track"]
+        r, gap = round(spec["mark_r"]), round(spec["gap"])
         name_w = tracked_width(brand.MASTHEAD, font, track)
         group = 2 * r + gap + name_w
         if group > goal and best is not None:
             break
         best = {"text": brand.MASTHEAD, "font": font, "track": track, "mark_r": r, "gap": gap, "width": round(group),
-                "size": size}
+                "size": size, "edge": spec["edge"]}
     return best
 
 
@@ -404,7 +409,7 @@ def _mark(d: ImageDraw.ImageDraw, lay: dict[str, Any], a: float, r_draw: float) 
     r = lay["masthead"]["mark_r"]
     if a > 0:
         diamond = [(cx, cy - r), (cx + r, cy), (cx, cy + r), (cx - r, cy)]
-        d.polygon(diamond, outline=(*brand.INK, int(255 * a)), width=3)
+        d.polygon(diamond, outline=(*brand.INK, int(255 * a)), width=lay["masthead"].get("edge", 3))
         d.polygon(diamond, fill=(*brand.GOLD, int(255 * a)))
     if r_draw > 0:
         x0, x1 = lay["rule"]
@@ -451,19 +456,27 @@ def mean_lstar(im: Image.Image) -> float:
 
 
 def end_screen_extras(width: int = LANDSCAPE_WIDTH) -> dict[str, Any]:
-    """Where the 16:9 end screen's quiet extras go: the WATCH NEXT kicker in tracked IBM Plex Mono gold above the
-    video slot (left-aligned with it), the optional hairline frames KICKER_GAP / SLOT_FRAME_OFFSET around the
-    YouTube element slots, and the optional credits line bottom-left, right of the subscribe slot and above
-    YouTube's progress bar and timestamp."""
+    """Where the 16:9 end screen's quiet extras go: the WATCH NEXT kicker (the system's kicker: its gold rule, then
+    tracked gold capitals in the text face) above the video slot (its rule left-aligned with it), the optional
+    hairline frames KICKER_GAP / SLOT_FRAME_OFFSET around the YouTube element slots, and the optional credits line
+    bottom-left, right of the subscribe slot and above YouTube's progress bar and timestamp."""
+    from .brand_system import tok, type_px
     vx0, vy0, vx1, vy1 = END_SCREEN_SLOTS["video"]
     sx0, sy0, sx1, sy1 = END_SCREEN_SLOTS["subscribe"]
     wx0, wy0, wx1, wy1 = END_SCREEN_SLOTS["video2"]
     o = SLOT_FRAME_OFFSET
-    kfont = get_font(brand.DATA_FONT, KICKER_SIZE, weight=600)
+    size = type_px("kicker", "wide")
+    kfont = get_font(brand.TEXT_FONT, size, weight=tok("kicker.weight"))
     ink = kfont.getbbox(KICKER, anchor="ls")
     kick_baseline = vy0 - o - KICKER_GAP - ink[3]
+    ch = cap_height(kfont)
+    rule_w, rule_gap = max(8, round(ch * tok("kicker.rule"))), round(ch * tok("kicker.rule_gap"))
+    thick = max(3, round(ch * tok("kicker.rule_thick")))
+    mid = kick_baseline - ch / 2
     cfont = get_font(brand.DATA_FONT, CREDITS_SIZE, weight=500)
-    return {"kicker": {"text": KICKER, "font": kfont, "xy": (vx0, kick_baseline), "track": KICKER_TRACK * KICKER_SIZE,
+    return {"kicker": {"text": KICKER, "font": kfont, "xy": (vx0, kick_baseline), "track": tok("kicker.track") * size,
+                       "text_xy": (vx0 + rule_w + rule_gap, kick_baseline),
+                       "rule": (vx0, round(mid - thick / 2), vx0 + rule_w - 1, round(mid - thick / 2) + thick - 1),
                        "top": kick_baseline + ink[1]},
             "frames": {"video": (vx0 - o, vy0 - o, vx1 + o, vy1 + o), "subscribe": (sx0 - o, sy0 - o, sx1 + o, sy1 + o),
                        "video2": (wx0 - o, wy0 - o, wx1 + o, wy1 + o)},
@@ -535,7 +548,9 @@ def frames(last: Image.Image, share: str, stats: dict[str, Any] | None = None, *
 
     # Every line is planned on the card's last frame (the ground at rest) and drawn from that plan on each frame.
     rest = ground((total - 1) / FPS)
-    brand_plate = plan_text(rest, lay["masthead_xy"], mast["text"], mast["font"], brand.BONE, "lt", mast["track"])
+    brand_plate = plan_text(rest, lay["masthead_xy"], mast["text"], mast["font"], colour_of("masthead.colour_dark"),
+                            "lt", mast["track"], target=tok("contrast.masthead_target"),
+                            max_halo=tok("halo.masthead_max"))
     words = _word_xs(lay, width)
     word_plates = [plan_text(rest, (round(x), y), w, lay["share_font"], brand.BONE) for _, _, w, x, y in words]
     follow_plate = (plan_text(rest, (lay["centre_x"], lay["follow_y"]), brand.FOLLOW_LINE, lay["follow_font"], brand.GOLD, "ma", lay["spacing"])
@@ -544,7 +559,8 @@ def frames(last: Image.Image, share: str, stats: dict[str, Any] | None = None, *
     kicker_plate = credits_plate = None
     if extras:
         k = extras["kicker"]
-        kicker_plate = plan_text(rest, k["xy"], k["text"], k["font"], brand.GOLD, "ls", k["track"])
+        kicker_plate = plan_text(rest, k["text_xy"], k["text"], k["font"], colour_of("kicker.colour"), "ls", k["track"],
+                                 target=tok("contrast.kicker"))
         if credits:
             c = extras["credits"]
             credits_plate = plan_text(rest, c["xy"], c["text"], c["font"], brand.STONE_LT, "ls", c["track"])
@@ -584,7 +600,13 @@ def frames(last: Image.Image, share: str, stats: dict[str, Any] | None = None, *
         if kicker_plate is not None:
             ka = ease((t - share_done) / 0.5)
             if ka > 0:
-                frame = kicker_plate.draw(frame, ka, round(8 * (1 - ka)))
+                rise = round(tok("motion.rise_s") * (1 - ka))
+                frame = kicker_plate.draw(frame, ka, rise)
+                x0r, y0r, x1r, y1r = extras["kicker"]["rule"]
+                rl = Image.new("RGBA", frame.size, (0, 0, 0, 0))
+                ImageDraw.Draw(rl).rectangle([x0r, y0r + rise, x1r, y1r + rise],
+                                             fill=(*colour_of("kicker.colour"), int(255 * ka)))
+                frame = Image.alpha_composite(frame.convert("RGBA"), rl).convert("RGB")
         if credits_plate is not None:
             ca = ease((t - share_done - 0.3) / 0.5)
             if ca > 0:

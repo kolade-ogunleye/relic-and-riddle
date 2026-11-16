@@ -38,6 +38,7 @@ from PIL import Image, ImageDraw, ImageOps
 
 from . import brand
 from .brand import PLACE_TARGET, RGB, TEXT_CONTRAST
+from .brand_system import LINE_END_NEVER
 from .config import CAPTION_READ_BASE, CAPTION_READ_PER_CHAR, VIDEO_FPS
 from .cover_design import (
     EYEBROW_PX,
@@ -168,7 +169,8 @@ HOOK_SCRIM_REACH = 120      # design px past the block
 MASTHEAD_FOOT_AIR = 523     # a disclosure plate above this collides with the masthead (the 64 px masthead's foot + 14)
 MASTHEAD_FOOT_PAD = 14      # freeze panel H6: the disclosure's top stays this far under the drawn masthead's ink foot
 # freeze panel H6 (2), declined: a 44 px hook masthead fails the profile-grid gate (grid_proof: its cap draws 3.6 px at
-# the 124 px tile, floor 5), so the hook keeps the covers' 64 px masthead; only its foot is re-measured here
+# the 124 px tile, floor MASTHEAD_GRID_CAP = 9 since QF-87), so the hook keeps the covers' 64 px masthead, which at 5.2 px
+# is not drawn either (cycle 0: the grid-shown cover family is deliberately mastheadless, src/brand_system.py)
 HOOK_BRAND_PX = 64
 
 
@@ -1462,7 +1464,10 @@ CHAPTER_SAT_TARGET = 7.0                  # is darkened (x CHAPTER_SAT_STEP luma
 CHAPTER_SAT_STEP = 0.86
 CHAPTER_SAT_STEPS = 6
 TITLE_ALPHA = 0.28                        # s: freeze panel C4: a title line's alpha ramp (its rise keeps its motion)
-W1_STOPS = frozenset(("the", "a", "an", "of", "to", "in", "on", "at", "by", "for", "and", "or", "from", "with"))
+# The system's never-list (src/brand_system.py LINE_END_NEVER: no line but the last ends on an article or a preposition)
+# plus "and" / "or", which the cards refuse at a size too: W2's search steps down the ladder before it takes one, which
+# is the system's "conjunction only as a last resort" (cycle 0; refused outright they read "DEBATES AND / ROCK").
+W1_STOPS = LINE_END_NEVER | frozenset(("and", "or"))
 
 
 def _accented(text: str) -> bool:

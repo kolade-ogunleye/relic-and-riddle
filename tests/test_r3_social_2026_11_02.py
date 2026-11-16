@@ -15,7 +15,6 @@ from src.multi_format import (
     collage_crop,
     facebook_collage_report,
     facebook_pick,
-    masthead_scrim,
     platform_encode,
     poll_room_box,
     range_figure,
@@ -182,21 +181,29 @@ def test_delivered_ratios_are_measured_again_after_a_platform_reencode(photos, t
 
 
 def test_kickers_and_the_masthead_are_planned_with_a_margin(photos) -> None:
-    assert multi_format.KICKER_TARGET == multi_format.MASTHEAD_TARGET == 5.5
+    # cycle 0 (2026-11-15): the masthead's tiers are the system's (src/brand_system.py: gate 5.5, target 6.5, the
+    # operator's round-3 ruling); kickers keep their 5.5 planning margin
+    from src.brand_system import tok
+    assert multi_format.KICKER_TARGET == tok("contrast.kicker") == 5.5
+    assert tok("contrast.masthead_gate") == 5.5 and tok("contrast.masthead_target") == 6.5
     _, lay = M()._render_carousel_slide("immersive", photos[1], photos[0], CARD, 1, 7, {}, "", True, subject="S")
-    assert lay.plates["kicker"][0].contrast >= 5.4 and lay.plates["header_brand"][0].contrast >= 5.4
+    assert lay.plates["kicker"][0].contrast >= 5.4 and lay.plates["header_brand"][0].contrast >= 5.5
 
 
 def test_the_masthead_gets_a_top_edge_gradient_only_where_the_photo_needs_it(tmp_path) -> None:
+    # cycle 0: the gradient is src/masthead.py's (the carousel's masthead_scrim moved there, peak capped at 0.60)
+    from src import masthead
     dark = Image.new("RGB", (1440, 1800), (30, 34, 40))
-    box = (107, 93, 800, 133)
-    assert masthead_scrim(dark, box, brand.BONE) is dark                     # dark ground: untouched
+    ground, _, rec = masthead.plan(dark, 107, 133, 160 / 3, reach=533)
+    assert rec["scrim_peak"] == 0 and np.array_equal(np.asarray(ground), np.asarray(dark))   # dark ground: untouched
     sky = Image.new("RGB", (1440, 1800), (120, 170, 225))
-    out = np.asarray(masthead_scrim(sky, box, brand.BONE, feather=400).convert("L"), dtype=np.float32)
+    shaded, _, rec = masthead.plan(sky, 107, 133, 160 / 3, reach=533)
+    assert 0 < rec["scrim_peak"] <= 0.60
+    out = np.asarray(shaded.convert("L"), dtype=np.float32)
     col = out[:, 1300]                                                     # the whole width, not a box
     assert col[0] < col[133] < col[500] and col[700] == pytest.approx(np.asarray(sky.convert("L"))[700, 0], abs=1)
     assert np.abs(np.diff(col[:600])).max() < 3                             # a gradient, no edge
-    assert multi_format._contrast(Image.fromarray(out.astype(np.uint8)).convert("RGB"), (107, 87, 800, 139), brand.BONE) > 0
+    assert multi_format._contrast(shaded.convert("RGB"), (107, 87, 800, 139), brand.BONE) > 0
 
 
 def test_the_closing_slide_puts_its_gold_on_an_ink_band_over_a_warm_photo(tmp_path, photos) -> None:

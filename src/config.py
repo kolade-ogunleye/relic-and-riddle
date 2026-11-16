@@ -679,12 +679,10 @@ CAPTION_PAD_X = 28
 CAPTION_PAD_Y = 16
 CAPTION_BORDER_RADIUS = 14
 
-# Caption Colors (ASS BGR Hex)
-COL_ACTIVE = r"&H00FFFFFF&"    # Clean White (spoken word)
-COL_EMPHASIS = r"&H0000D7FF&"  # Warm Gold #FFD700, only for the script's 1-3 key words
+# Caption colours: the brand's roles (src/video_composer.py, src/brand.py); the plate's alpha is COL_BACK below.
+# (The white / #FFD700 / grey literals once here had no reader since the brand port: removed in cycle 0, 2026-11-15,
+# as stale sources of truth.)
 EMPHASIS_POP = 100             # 100% scale (no animated size pop; eliminates line jitter & glitching)
-COL_PAST = r"&H00FFFFFF&"      # Clean White
-COL_FUTURE = r"&H00909090&"    # Soft Gray
 # The plate: the brand's INK (#0B0E12) at alpha 0x20 (~87% opacity), the ground every other surface uses; it was a
 # neutral #101010 until the caption review of 2026-11-02 (round 2, finding 5). The 16:9 burn-in uses the same plate.
 COL_BACK = r"&H20120E0B&"      # brand.ass_colour(brand.INK, 0x20); the round-2 tests hold the two equal
@@ -732,11 +730,6 @@ RECON_PLATE_ALPHA = 0x26  # ~85% opacity
 # (YouTube long-form CTR or a manual Instagram test, QF-82); Reel-content rates never restart it, and there is
 # deliberately no environment switch for it.
 COVER_FIXED_STYLE = "badge"
-THUMB_OPACITY = 215            # ~85% opacity
-THUMB_BLUR_RADIUS = 10         # Soft feathered halo
-THUMB_EYEBROW_FONT_SIZE = 32
-THUMB_TITLE_FONT_SIZE = 92
-THUMB_TAGLINE_FONT_SIZE = 40
 
 # Production Archive & Tier 2 Backup
 BACKUP_ENABLED = (os.getenv("BACKUP_ENABLED") or "true").lower() in ("true", "1", "yes")

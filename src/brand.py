@@ -12,14 +12,15 @@ so each text colour clears WCAG 4.5:1 on INK with room to spare:
 GOLD is the figure and accent colour (numbers, years, the active caption word, rules); BONE is the text colour
 (warmer than pure white, so it sits on photographs without glare); INK is the ground (shades, halos, panels);
 STONE / STONE_LT are secondary text (credits, gaps, notes); TEAL and CORAL are only for charts' second and third
-series. DATA_FONT names the fixed-pitch family used for figures and data (typography.get_font), so a count-up's
-digits do not jitter and a credit reads as a printed photo credit.
+series. DATA_FONT names the fixed-pitch family used for data figures (rulers, axes, indices, units on a drawing),
+credits and the badge (typography.get_font), so a count-up's digits do not jitter and a credit reads as a printed
+photo credit; a stated quantity (a claim's figure) is set in the display face (the design system, src/brand_system.py).
 """
 from collections.abc import Iterator, Mapping
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from types import MappingProxyType
-from typing import Tuple
+from typing import Any, Tuple
 
 RGB = Tuple[int, int, int]
 
@@ -102,32 +103,45 @@ BRAND_TEXT: Mapping[str, str] = MappingProxyType({
 })
 
 
+def _system_tokens() -> Mapping[str, Any]:
+    from .brand_system import SYSTEM_TOKENS
+    return SYSTEM_TOKENS
+
+
 @dataclass(frozen=True)
 class BrandConfig:
     """One brand's role tokens: `palette` (role -> RGB, or another role's name), `fonts` (role -> family; None reads
-    the configured setting) and `text` (the masthead and the end card's lines). Every role of the default must be
+    the configured setting), `text` (the masthead and the end card's lines) and `system` (the design system's tokens,
+    src/brand_system.py). Every role of the default must be
     defined; `derive` gives a copy with some roles replaced."""
     name: str = "Relic & Riddle"
     palette: Mapping[str, RGB | str] = field(default_factory=lambda: BRAND_PALETTE)
     fonts: Mapping[str, str | None] = field(default_factory=lambda: BRAND_FONTS)
     text: Mapping[str, str] = field(default_factory=lambda: BRAND_TEXT)
+    # The design system's tokens (src/brand_system.py: sizes, ratios, alphas, gaps, easings; cycle 0, 2026-11-15).
+    system: Mapping[str, Any] = field(default_factory=lambda: _system_tokens())
 
     def __post_init__(self) -> None:
-        for attr, base in (("palette", BRAND_PALETTE), ("fonts", BRAND_FONTS), ("text", BRAND_TEXT)):
+        for attr, base in (("palette", BRAND_PALETTE), ("fonts", BRAND_FONTS), ("text", BRAND_TEXT),
+                           ("system", _system_tokens())):
             value = getattr(self, attr)
             missing = sorted(set(base) - set(value))
             if missing:
                 raise ValueError(f"brand {self.name!r}: {attr} lacks the roles {missing}")
             object.__setattr__(self, attr, MappingProxyType(dict(value)))
+        from .brand_system import GATES
+        ruled = sorted(set(self.system) & set(GATES))
+        if ruled:
+            raise ValueError(f"brand {self.name!r}: {ruled} are gates (operator rulings), not brand tokens")
         for role in self.palette:
             self.colour(role)
         for role in self.fonts:
             self._font_role(role)
 
     def derive(self, name: str, palette: Mapping | None = None, fonts: Mapping | None = None,
-               text: Mapping | None = None) -> "BrandConfig":
+               text: Mapping | None = None, system: Mapping | None = None) -> "BrandConfig":
         return BrandConfig(name, {**self.palette, **(palette or {})}, {**self.fonts, **(fonts or {})},
-                           {**self.text, **(text or {})})
+                           {**self.text, **(text or {})}, {**self.system, **(system or {})})
 
     def colour(self, role: str) -> RGB:
         value, seen = self.palette[role], {role}
@@ -214,8 +228,9 @@ def __dir__():
     return sorted(set(globals()) | set(_active.palette) | set(FONT_ROLES) | set(TEXT_ROLES))
 
 
-TEXT_CONTRAST = 4.5              # WCAG AA: every text element, measured on the delivered pixels
+TEXT_CONTRAST = 4.5              # WCAG AA: every text element, measured on the delivered pixels (= contrast.text)
 PLACE_TARGET = 4.8               # what place_text aims for, so JPEG and the master's conversions still leave >= 4.5
+                                 # (= contrast.place; both gates stay constants: a brand never lowers them)
 
 
 def rgba(colour: RGB, alpha: int = 255) -> Tuple[int, int, int, int]:

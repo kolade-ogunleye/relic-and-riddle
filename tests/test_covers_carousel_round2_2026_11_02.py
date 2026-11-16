@@ -356,7 +356,8 @@ def test_thumbnail_masthead_figure_and_word_budget() -> None:
     assert "title" not in dict(plates) and "no verified line fits" in meta["headline_dropped"]
     _, plates = youtube_thumbnail.render(src, {"line1": "THE 25-MILE", "line2": "SAHARA EYE"})
     names = dict(plates)
-    assert names["brand"].fill == brand.GOLD and names["brand"].font.size >= 60
+    # cycle 0 (2026-11-15): one masthead treatment on every surface: bone (the light-ground variant ink), never gold
+    assert names["brand"].fill in (brand.BONE, brand.INK) and names["brand"].font.size >= 60
     assert names["figure_unit"].font.size == pytest.approx(names["figure"].font.size * 0.5, abs=2)
     words = ["25", "MILES"] + names["title"].text.split()
     assert len(words) <= youtube_thumbnail.MAX_WORDS

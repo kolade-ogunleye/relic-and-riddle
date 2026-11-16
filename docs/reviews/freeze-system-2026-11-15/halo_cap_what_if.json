@@ -1,0 +1,122 @@
+{
+ "1793247464 carousel 04 cap 0.16": {
+  "shown": false,
+  "contrast": 5.49,
+  "halo": 0.16,
+  "scrim_peak": 0.6,
+  "levels_ceiling": null,
+  "best_tried": 5.49
+ },
+ "1793247464 carousel 04 cap 0.24": {
+  "shown": true,
+  "contrast": 5.59,
+  "halo": 0.24,
+  "scrim_peak": 0.6,
+  "levels_ceiling": 210,
+  "best_tried": 5.75
+ },
+ "1793247464 carousel 04 cap 0.32": {
+  "shown": true,
+  "contrast": 5.58,
+  "halo": 0.32,
+  "scrim_peak": 0.6,
+  "levels_ceiling": 220,
+  "best_tried": 6.01
+ },
+ "1793247464 carousel 06 cap 0.16": {
+  "shown": false,
+  "contrast": 5.26,
+  "halo": 0.16,
+  "scrim_peak": 0.6,
+  "levels_ceiling": null,
+  "best_tried": 5.26
+ },
+ "1793247464 carousel 06 cap 0.24": {
+  "shown": true,
+  "contrast": 5.56,
+  "halo": 0.24,
+  "scrim_peak": 0.6,
+  "levels_ceiling": 210,
+  "best_tried": 5.68
+ },
+ "1793247464 carousel 06 cap 0.32": {
+  "shown": true,
+  "contrast": 5.53,
+  "halo": 0.32,
+  "scrim_peak": 0.6,
+  "levels_ceiling": 225,
+  "best_tried": 6.12
+ },
+ "1793247464 carousel_fb 05 cap 0.16": {
+  "shown": false,
+  "contrast": 5.35,
+  "halo": 0.16,
+  "scrim_peak": 0.6,
+  "levels_ceiling": null,
+  "best_tried": 5.35
+ },
+ "1793247464 carousel_fb 05 cap 0.24": {
+  "shown": true,
+  "contrast": 5.59,
+  "halo": 0.24,
+  "scrim_peak": 0.6,
+  "levels_ceiling": 215,
+  "best_tried": 5.87
+ },
+ "1793247464 carousel_fb 05 cap 0.32": {
+  "shown": true,
+  "contrast": 5.51,
+  "halo": 0.32,
+  "scrim_peak": 0.6,
+  "levels_ceiling": 240,
+  "best_tried": 6.44
+ },
+ "1793251266 carousel 04 cap 0.16": {
+  "shown": false,
+  "contrast": 5.49,
+  "halo": 0.16,
+  "scrim_peak": 0.6,
+  "levels_ceiling": null,
+  "best_tried": 5.49
+ },
+ "1793251266 carousel 04 cap 0.24": {
+  "shown": true,
+  "contrast": 5.59,
+  "halo": 0.24,
+  "scrim_peak": 0.6,
+  "levels_ceiling": 210,
+  "best_tried": 5.75
+ },
+ "1793251266 carousel 04 cap 0.32": {
+  "shown": true,
+  "contrast": 5.58,
+  "halo": 0.32,
+  "scrim_peak": 0.6,
+  "levels_ceiling": 220,
+  "best_tried": 6.01
+ },
+ "1793251266 carousel_fb 05 cap 0.16": {
+  "shown": false,
+  "contrast": 5.35,
+  "halo": 0.16,
+  "scrim_peak": 0.6,
+  "levels_ceiling": null,
+  "best_tried": 5.35
+ },
+ "1793251266 carousel_fb 05 cap 0.24": {
+  "shown": true,
+  "contrast": 5.59,
+  "halo": 0.24,
+  "scrim_peak": 0.6,
+  "levels_ceiling": 215,
+  "best_tried": 5.87
+ },
+ "1793251266 carousel_fb 05 cap 0.32": {
+  "shown": true,
+  "contrast": 5.51,
+  "halo": 0.32,
+  "scrim_peak": 0.6,
+  "levels_ceiling": 240,
+  "best_tried": 6.44
+ }
+}

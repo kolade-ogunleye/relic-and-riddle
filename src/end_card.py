@@ -559,14 +559,25 @@ def frames(last: Image.Image, share: str, stats: dict[str, Any] | None = None, *
     brand_plate = plan_text(rest, lay["masthead_xy"], mast["text"], mast["font"], colour_of("masthead.colour_dark"),
                             "lt", mast["track"], target=tok("contrast.masthead_target"),
                             max_halo=tok("halo.masthead_max"))
-    # The system's masthead gate, judged as src/masthead.py judges it (the worst local window, not the ring's
-    # aggregate) and failing closed: a masthead under it is not drawn, and the record says why.
-    from .masthead import worst_contrast
-    mast_worst = worst_contrast(brand_plate.draw(rest), brand_plate)
-    mast_shown = mast_worst >= tok("contrast.masthead_gate")
+    # The system's masthead gate, judged as src/masthead.py judges it (the worst glyph, not the ring's aggregate), and
+    # its room; failing closed: a masthead under the gate or wider than its room is not drawn, and the record says why.
+    from .masthead import judge
+    mast_worst = judge(rest, brand_plate)
+    gate = tok("contrast.masthead_gate")
+    # its room: the 9:16 column (the Reel box); on 16:9, from its left edge to END_SCREEN_GAP short of the video slot
+    room = (lay["max_width"] if not landscape else
+            END_SCREEN_SLOTS["video"][0] - END_SCREEN_GAP - (lay["masthead_xy"][0] - 2 * mast["mark_r"] - mast["gap"]))
+    mast_rec: dict[str, Any] = {"shown": True, "contrast": round(mast_worst, 2), "best_tried": round(mast_worst, 2),
+                                "group_width": mast["width"], "room": room}
+    if mast["width"] > room:
+        mast_rec.update(shown=False, reason=f"masthead not drawn: its group is {mast['width']} px wide, its room {room} px")
+    elif mast_worst < gate:
+        mast_rec.update(shown=False, reason=(f"masthead not drawn: its worst glyph reaches {mast_worst:.2f}:1 on the "
+                                             f"card's dimmed ground (halo up to {tok('halo.masthead_max')}), under the "
+                                             f"{gate}:1 gate"))
+    mast_shown = mast_rec["shown"]
     if not mast_shown:
-        log.warning("End card: masthead not drawn: worst local contrast %.2f:1 under the %.1f:1 gate.", mast_worst,
-                    tok("contrast.masthead_gate"))
+        log.warning("End card: %s", mast_rec["reason"])
     words = _word_xs(lay, width)
     word_plates = [plan_text(rest, (round(x), y), w, lay["share_font"], brand.BONE) for _, _, w, x, y in words]
     follow_plate = (plan_text(rest, (lay["centre_x"], lay["follow_y"]), brand.FOLLOW_LINE, lay["follow_font"], brand.GOLD, "ma", lay["spacing"])
@@ -586,7 +597,7 @@ def frames(last: Image.Image, share: str, stats: dict[str, Any] | None = None, *
                      share_size=lay["share_font"].size, follow_size=lay["follow_font"].size if lay["follow"] else None,
                      follow=lay["follow"], safe_width=lay["max_width"], masthead_width=mast["width"],
                      size=[width, height], seconds=seconds, masthead_top=lay["masthead_top"], text=text,
-                     masthead={"shown": mast_shown, "contrast": round(mast_worst, 2)})
+                     masthead=mast_rec)
         if landscape:
             stats.update(kicker=KICKER, slot_frames=bool(slot_frames), credits_line=bool(credits),
                          push=LANDSCAPE_PUSH, handoff=text == brand.HANDOFF_LINE,
@@ -630,8 +641,9 @@ def frames(last: Image.Image, share: str, stats: dict[str, Any] | None = None, *
             if ca > 0:
                 frame = credits_plate.draw(frame, ca)
         if stats is not None and i == total - 1:
-            measured = {"brand": brand_plate.measure(frame),
-                        "share": min((v for v in (p.measure(frame) for p in word_plates) if v is not None), default=None)}
+            measured = {"share": min((v for v in (p.measure(frame) for p in word_plates) if v is not None), default=None)}
+            if mast_shown:   # an undrawn masthead (fail closed) has no ratio to measure; its record says why
+                measured["brand"] = brand_plate.measure(frame)
             if follow_plate is not None:
                 measured["follow"] = follow_plate.measure(frame)
             stats["contrast"] = measured   # the YouTube extras are kept apart (their own keys)

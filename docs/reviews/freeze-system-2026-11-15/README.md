@@ -20,10 +20,14 @@ hierarchy > rhythm > ornament.
     declared sizes), `SPACING`, the one line-end vocabulary, the named eases and `masthead_spec`.
 - `src/masthead.py`: the one masthead treatment. Its ground is solved in the ruled order (nothing; a top-edge INK
   gradient up to 0.60 at its peak; plus the name's halo up to 0.16; plus a levels ceiling under the same shape, never
-  under 205; the light-ground INK variant); contrast is judged on the WORST LOCAL window of the name (half a cap wide,
-  every quarter cap), not the ring's aggregate; under the 5.5 gate after every step it FAILS CLOSED (not drawn, the
-  record says why, `shown: False`). The diamond's INK edge is drawn over its gold fill and its non-text contrast is
-  recorded (`mark_contrast`, gate 3.0).
+  under 205; the light-ground INK variant); contrast is judged on the WORST GLYPH (round 3: every ink component
+  against the ground under its own ink and its 1-4 px surround, 95th percentile, plus the element's whole and
+  windowed rings); under the 5.5 gate after every step, or wider than its room, it FAILS CLOSED (not drawn; the record
+  says why, with the best ratio any step reached). The diamond's INK edge is drawn over its gold fill and its
+  non-text contrast is recorded (`mark_contrast`, gate 3.0).
+- `tests/type_sites.py` + `brand_system.SIZE_SITES`: every function of a surface module that sets a type size off the
+  ladder, scanned and held equal to the declaration (105 sites, each with its owner group).
+- `sweep.py` + `sweep_results.json`: the builder's adversarial sweep of the glyph judgement (1,473 grounds, 0 failures).
 - `src/brand.py`: `BrandConfig.system` (default `SYSTEM_TOKENS`), `derive(..., system=...)`.
 
 ## Gates (constants)
@@ -94,12 +98,13 @@ Spacing (px): margin 84 / 112 / 96; kicker-to-heading 24 / 32 / 24; heading-to-b
 
 ## What this commit changes (default pixels)
 
-Measured on real runs in `measurements.md` (158 surfaces, base ba3e0141 vs head; regions per surface there).
-Default pixels change on: carousel and Facebook gallery slides (y <= 490: the masthead, its scrim to its reach; 51 of
-56 drawn at >= 5.5 on every letter, 5 Nazca slides fail closed and carry no masthead), the YouTube thumbnail (the
-masthead box on the five real covers; a headline shorter than the masthead also moves the ink shade), the 16:9 end
-screen (y 130-254: mark and WATCH NEXT), the 9:16 end card (the masthead group) and photo callouts (every frame, at
-most 9 levels: the INK dim and shadow). Identical: captions (incl. the badge frames), the 27 real hook / chapter /
+Measured on real runs in `measurements.md` (158 surfaces, base 6a7ef303 vs head; exact regions of every differing
+pixel there). Default pixels change on: carousel and Facebook gallery slides (y 0-513, above 2 levels y 0-490: the
+masthead, its scrim and levels to their reach; 49 of 56 drawn at >= 5.5 on every glyph, 7 Nazca slides fail closed and
+carry no masthead), the YouTube thumbnail (x 95-815, y 0-176 on the five real covers; a headline shorter than the
+masthead also moves the ink shade), the 16:9 end screen (x 154-1517, y 130-259: mark and WATCH NEXT), the 9:16 end card
+(x 113-845, y 556-705: the masthead group) and photo callouts (179 of 180 frames, at most 9 levels: the INK dim and
+shadow). Identical: captions (incl. the badge frames), the 27 real hook / chapter /
 myth card cases, Reel covers and grid tiles, maps, number cards, then-and-now, Story frames and the loop bridges.
 A card title that would break on "into" / "onto" / "via" / "per" steps to its next size (none among the real cases).
 

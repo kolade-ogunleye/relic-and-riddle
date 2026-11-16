@@ -11,9 +11,10 @@ own halo up to `halo.masthead_max` (0.16); else, under the same shape, the groun
 park's step 5: no hue changed, never under `scrim.levels_floor`); else the light-ground variant (the name in INK on the
 untouched ground) where that reads better.
 
-Contrast is the WORST LOCAL one (cycle 0 round 2, adversary finding 2): the element's ring contrast and, window by
-window along the name (half a cap wide, one every quarter cap), the element's ring cut to that window
-(`local_contrast`), so a bright stripe behind one letter is never averaged away. Fail closed (finding 1): where no ruled step brings the worst local
+Contrast is judged GLYPH BY GLYPH (cycle 0 rounds 2-3, adversary findings 2 and r2-1): the element's ring contrast on
+the composed pixels and, for every glyph (a connected component of the ink), the ground under its own ink pixels plus
+its immediate surround, at the 95th percentile (`glyph_contrast`, `judge`): no more than 5 % of any glyph may sit on
+ground that fails the ratio, whatever a feature's width, offset or angle. Fail closed (finding 1): where no ruled step brings the worst local
 contrast to the gate (`contrast.masthead_gate`, 5.5), the masthead is NOT drawn: `draw` returns the image untouched
 and the record says `shown: False` with the reason and the best ratio reached (the caller keeps the record where the
 lander reads it).
@@ -32,8 +33,6 @@ from PIL import Image, ImageDraw
 from . import brand
 from .brand_system import colour_of, masthead_spec, tok
 from .typography import (
-    _RING_INNER,
-    _RING_OUTER,
     _lin,
     cap_height,
     get_font,
@@ -46,9 +45,9 @@ log = logging.getLogger(__name__)
 
 SCRIM_STEPS = 8     # bisection steps for the least scrim peak
 LEVELS_STEP = 5     # the levels ceiling is searched in steps of this (255 down to scrim.levels_floor)
-LOCAL_WINDOW = 0.5  # the local windows are this many cap heights wide (about half a letter) ...
-LOCAL_STEP = 0.25   # ... and start every this many cap heights
-LOCAL_MIN_INK = 12  # a window with fewer glyph pixels than this is not measured on its own
+GLYPH_SURROUND = 4  # px: a glyph's immediate surround, 1..this outside its ink
+GLYPH_PCT = 95      # the percentile of a glyph's background held against its fill: at most 5 % of it may fail
+GLYPH_MIN_PX = 8    # a connected component smaller than this (a stray antialiasing speck) is not a glyph
 
 
 def font_for(size: float):
@@ -89,12 +88,56 @@ def levelled(im: Image.Image, ceiling: int, reach: float) -> Image.Image:
     return Image.composite(low, im.convert("RGB"), mask)
 
 
-def local_contrast(im: Image.Image, plate) -> float | None:
-    """The worst ring contrast of `plate` (a TextPlate) on the pixels `im` (as composed), window by window along the
-    name: the element's ring (2-10 px outside ALL its glyphs, typography.ring_contrast's rule) is cut into windows
-    LOCAL_WINDOW caps wide, one every LOCAL_STEP caps, and each window's ring (90th / 10th percentile, as for the whole
-    element) is held against the glyph colour, so a bright stripe behind one letter is never averaged away. None when
-    nothing is measurable."""
+def glyph_contrast(ground: Image.Image, plate) -> tuple[float | None, dict[str, Any]]:
+    """The worst GLYPH of `plate` (a TextPlate) on `ground` (the pixels the text is drawn on, before it is drawn; the
+    plate's own halo is composited first, as it will be): (ratio, detail). Each glyph is one connected component of
+    the plate's ink mask; its background is the ground UNDER its own ink pixels plus its immediate surround (a ring
+    1..GLYPH_SURROUND px outside it, other glyphs' ink excluded). A glyph scores the lower of the fill's ratio against
+    the GLYPH_PCT percentile (the brightest share, for light text; the darkest, for dark text) of (a) its under-ink
+    pixels alone and (b) under-ink plus surround: so no more than (100 - GLYPH_PCT) % of a glyph's ink may sit on ground
+    that fails the ratio, whatever the feature's width, angle or offset (cycle 0 round 3, adversary finding 1: a 4 px
+    stripe hid a whole letter from both the element's ring and the windowed rings). None when nothing is measurable."""
+    import cv2
+    import numpy as np
+    if plate is None or plate.empty:
+        return None, {}
+    under_im = plate.draw_halo(ground.convert("RGB")) if plate.halo > 0 else ground.convert("RGB")
+    ox, oy = (int(v) for v in plate.origin)
+    h, w = plate.glyphs.shape
+    rgb = np.asarray(under_im)[max(0, oy):oy + h, max(0, ox):ox + w]
+    ink_all = (plate.glyphs[max(0, -oy):max(0, -oy) + rgb.shape[0], max(0, -ox):max(0, -ox) + rgb.shape[1]] > 127)
+    lum = _lin(rgb.reshape(-1, 3)).reshape(rgb.shape[:2])
+    lt = rel_luminance(plate.fill)
+    n, labels = cv2.connectedComponents(ink_all.astype(np.uint8), connectivity=8)
+    k = np.ones((2 * GLYPH_SURROUND + 1, 2 * GLYPH_SURROUND + 1), np.uint8)
+    pct = GLYPH_PCT if plate.light else 100 - GLYPH_PCT
+    worst, detail = None, {"glyphs": 0}
+    for i in range(1, n):
+        comp = labels == i
+        if int(comp.sum()) < GLYPH_MIN_PX:
+            continue
+        ys, xs = np.nonzero(comp)
+        y0, y1 = max(0, ys.min() - GLYPH_SURROUND - 1), ys.max() + GLYPH_SURROUND + 2
+        x0, x1 = max(0, xs.min() - GLYPH_SURROUND - 1), xs.max() + GLYPH_SURROUND + 2
+        c = comp[y0:y1, x0:x1].astype(np.uint8)
+        ring = (cv2.dilate(c, k) > 0) & ~ink_all[y0:y1, x0:x1]
+        under = lum[y0:y1, x0:x1][c > 0]
+        both = np.concatenate([under, lum[y0:y1, x0:x1][ring]])
+        lb = max(float(np.percentile(under, pct)), float(np.percentile(both, pct))) if plate.light else \
+            min(float(np.percentile(under, pct)), float(np.percentile(both, pct)))
+        r = (max(lt, lb) + 0.05) / (min(lt, lb) + 0.05)
+        detail["glyphs"] += 1
+        if worst is None or r < worst:
+            worst = r
+            detail.update(worst_glyph_x=int(ox + xs.min()), worst_glyph_px=int(comp.sum()))
+    return (None if worst is None else round(worst, 2)), detail
+
+
+def window_contrast(im: Image.Image, plate) -> float | None:
+    """The worst ring contrast of `plate` on the composed pixels `im`, window by window along the name (round 2): the
+    element's 2-10 px ring cut into windows half a cap wide, one every quarter cap, each window's 90th / 10th
+    percentile against the glyph colour. Kept beside the glyph judgement: it reads the wider ring the glyph surround
+    does not."""
     import cv2
     import numpy as np
     if plate is None or plate.empty:
@@ -104,13 +147,13 @@ def local_contrast(im: Image.Image, plate) -> float | None:
     rgb = np.asarray(im.convert("RGB"))[max(0, oy):oy + h, max(0, ox):ox + w]
     g = (plate.glyphs[max(0, -oy):max(0, -oy) + rgb.shape[0], max(0, -ox):max(0, -ox) + rgb.shape[1]] > 127)
     g = g.astype(np.uint8)
-    ring = cv2.dilate(g, np.ones((_RING_OUTER, _RING_OUTER), np.uint8)) - cv2.dilate(g, np.ones((_RING_INNER, _RING_INNER), np.uint8))
+    ring = cv2.dilate(g, np.ones((21, 21), np.uint8)) - cv2.dilate(g, np.ones((5, 5), np.uint8))
     ch = max(8, cap_height(plate.font))
-    win, step = max(8, round(LOCAL_WINDOW * ch)), max(4, round(LOCAL_STEP * ch))
-    lt = rel_luminance(plate.fill)       # the glyphs' own colour (a window can hold too little interior to sample it)
+    win, step = max(8, round(0.5 * ch)), max(4, round(0.25 * ch))
+    lt = rel_luminance(plate.fill)
     worst = None
     for x0 in range(0, g.shape[1], step):
-        if int(g[:, x0:x0 + win].sum()) < LOCAL_MIN_INK:
+        if int(g[:, x0:x0 + win].sum()) < GLYPH_MIN_PX:
             continue
         bg = rgb[:, x0:x0 + win][ring[:, x0:x0 + win] > 0]
         if len(bg) < 50:
@@ -122,11 +165,14 @@ def local_contrast(im: Image.Image, plate) -> float | None:
     return worst
 
 
-def worst_contrast(im: Image.Image, plate) -> float:
-    """The element's ratio as judged: the lower of its whole-ring ratio and its worst local window (on `im`)."""
+def judge(ground: Image.Image, plate) -> float:
+    """The element's ratio as judged: the lowest of its whole-ring ratio and its windowed rings on the composed pixels
+    and its worst glyph (`glyph_contrast`) on the ground under it."""
     if plate is None or plate.empty:
         return 0.0
-    vals = [v for v in (plate.measure(im), local_contrast(im, plate)) if v is not None]
+    composed = plate.draw(ground)
+    vals = [v for v in (plate.measure(composed), window_contrast(composed, plate), glyph_contrast(ground, plate)[0])
+            if v is not None]
     return min(vals) if vals else 0.0
 
 
@@ -162,11 +208,13 @@ def mark_contrast(ground: Image.Image, diamond) -> float | None:
 
 
 def plan(im: Image.Image, x0: float, baseline: float, size: float, reach: float | None = None,
-         target: float | None = None) -> tuple[Image.Image, Any, dict[str, Any]]:
+         target: float | None = None, max_width: float | None = None) -> tuple[Image.Image, Any, dict[str, Any]]:
     """(the image with the masthead's ground solved, the name's TextPlate, the record). `x0`: the diamond's left
-    point; `baseline`: the name's baseline; `reach`: where the top scrim has eased out (default: baseline + 6 caps).
-    The record's `contrast` is the worst local ratio; `shown` False (fail closed) when no ruled step reaches the gate:
-    the returned image is then `im` untouched."""
+    point; `baseline`: the name's baseline; `reach`: where the top scrim has eased out (default: baseline + 6 caps);
+    `max_width`: the room the group may take (default: the canvas less x0 each side). The record's `contrast` is the
+    worst glyph's ratio as judged (`judge`); `best_tried` the best any tried step reached. `shown` False (fail closed)
+    when no ruled step reaches the gate or the group does not fit its room: the returned image is then `im` untouched
+    and `reason` says why."""
     target = tok("contrast.masthead_target") if target is None else target
     gate = tok("contrast.masthead_gate")
     peak_max, halo_max, halo_step = tok("scrim.masthead_peak"), tok("halo.masthead_max"), tok("halo.step")
@@ -176,16 +224,29 @@ def plan(im: Image.Image, x0: float, baseline: float, size: float, reach: float 
     reach = baseline + 6 * cap_height(font) if reach is None else reach
     bone, ink = colour_of("masthead.colour_dark"), colour_of("masthead.colour_light")
     base = im.convert("RGB")
+    room = (im.width - 2 * x0) if max_width is None else max_width
+    width = group_width(size)
+    rec: dict[str, Any] = {"variant": "dark", "scrim_peak": 0.0, "halo": 0.0, "size": round(float(size), 1),
+                           "group_width": round(width, 1), "room": round(float(room), 1)}
+    if width > room:   # round 3, finding 7: never clipped silently: refused, with the reason
+        rec.update(shown=False, contrast=None, best_tried=None, short_of_target=True, below_gate=True,
+                   reason=f"masthead not drawn: its group is {width:.1f} px wide, its room {room:.1f} px")
+        log.warning("%s", rec["reason"])
+        p = plan_text(base, xy, brand.MASTHEAD, font, bone, "ls", spec["track"], target=target, max_halo=0.0)
+        return base, p, rec
+    seen = {"best": 0.0, "step": None}
 
-    def name(ground, fill, halo_cap=0.0):
-        """(plate, worst local ratio): the least halo (in halo.step steps, up to `halo_cap`) at which the WORST local
-        ratio reaches the target, else the halo that reads best."""
+    def name(ground, fill, halo_cap=0.0, step=""):
+        """(plate, judged ratio): the least halo (in halo.step steps, up to `halo_cap`) at which the judged ratio
+        reaches the target, else the halo that reads best. Every try updates the best seen (the record's best_tried)."""
         best = None
         halo = 0.0
         while True:
             p = plan_text(ground, xy, brand.MASTHEAD, font, fill, "ls", spec["track"], target=target,
                           min_halo=halo, max_halo=halo)
-            got = worst_contrast(p.draw(ground), p)
+            got = judge(ground, p)
+            if got > seen["best"]:
+                seen.update(best=got, step=f"{step} halo {round(halo, 2)}".strip())
             if best is None or got > best[1]:
                 best = (p, got)
             if got >= target or halo >= halo_cap - 1e-9 or not p.light:
@@ -193,22 +254,22 @@ def plan(im: Image.Image, x0: float, baseline: float, size: float, reach: float 
             halo = min(halo_cap, halo + halo_step)
         return best
 
-    rec: dict[str, Any] = {"variant": "dark", "scrim_peak": 0.0, "halo": 0.0, "size": round(float(size), 1)}
-    p, got = name(base, bone)
+    p, got = name(base, bone, step="bone")
     ground = base
     if got < target:
         top = top_scrim(base, peak_max, reach)
-        if name(top, bone)[1] >= target:                      # the least peak that reaches the target
+        if name(top, bone, step=f"scrim {peak_max}")[1] >= target:   # the least peak that reaches the target
             lo, hi = 0.0, peak_max
             for _ in range(SCRIM_STEPS):
                 mid = (lo + hi) / 2
-                lo, hi = (lo, mid) if name(top_scrim(base, mid, reach), bone)[1] >= target else (mid, hi)
+                ok = name(top_scrim(base, mid, reach), bone, step=f"scrim {mid:.3f}")[1] >= target
+                lo, hi = (lo, mid) if ok else (mid, hi)
             ground = top_scrim(base, hi, reach)
             rec["scrim_peak"] = round(hi, 3)
-            p, got = name(ground, bone)
+            p, got = name(ground, bone, step=f"scrim {hi:.3f}")
         else:                                                 # the full peak, then the halo it allows
             ground, rec["scrim_peak"] = top, peak_max
-            p, got = name(ground, bone, halo_max)
+            p, got = name(ground, bone, halo_max, step=f"scrim {peak_max}")
     if got < target and rec["scrim_peak"] >= peak_max:
         # Park step 5 (2026-11-04), within the rulings: under the same top-edge shape, the ground's highlights are
         # levelled down (no hue changed, the peak stays 0.60 and the halo 0.16): the least change that reaches the
@@ -216,7 +277,7 @@ def plan(im: Image.Image, x0: float, baseline: float, size: float, reach: float 
         met = None
         for ceiling in range(255 - LEVELS_STEP, tok("scrim.levels_floor") - 1, -LEVELS_STEP):
             trial = top_scrim(levelled(base, ceiling, reach), peak_max, reach)
-            q, qgot = name(trial, bone, halo_max)
+            q, qgot = name(trial, bone, halo_max, step=f"scrim {peak_max} levels {ceiling}")
             if qgot >= gate and met is None:
                 met = (ceiling, trial, q, qgot)
             if qgot >= target:
@@ -225,30 +286,35 @@ def plan(im: Image.Image, x0: float, baseline: float, size: float, reach: float 
         if met is not None and met[3] > got:
             rec["levels_ceiling"], ground, p, got = met
     if got < gate:                                            # bone cannot reach the gate: the light-ground variant
-        q, qgot = name(base, ink)
+        q, qgot = name(base, ink, step="light variant")
         if qgot > got:
             p, ground, got = q, base, qgot
             rec.update(variant="light", scrim_peak=0.0)
             rec.pop("levels_ceiling", None)
-    rec.update(halo=p.halo, contrast=round(got, 2), contrast_whole=p.contrast, contrast_unaided=p.contrast_unaided,
+    _, detail = glyph_contrast(ground, p)
+    rec.update(halo=p.halo, contrast=round(got, 2), contrast_whole=p.measure(p.draw(ground)),
+               contrast_unaided=p.contrast_unaided, best_tried=round(seen["best"], 2), best_step=seen["step"],
+               glyphs=detail.get("glyphs"), worst_glyph_x=detail.get("worst_glyph_x"),
                short_of_target=got < target, below_gate=got < gate, shown=got >= gate)
     if got < gate:                                            # fail closed: never drawn under the gate
-        rec["reason"] = (f"masthead not drawn: its worst local contrast reaches {got:.2f}:1 after every ruled step "
-                         f"(scrim peak {peak_max}, halo {halo_max}, levels floor {tok('scrim.levels_floor')}, light "
-                         f"variant), under the {gate}:1 gate")
+        rec["contrast"] = round(seen["best"], 2)              # a refusal reports the best any step reached
+        rec["reason"] = (f"masthead not drawn: its worst glyph reaches at best {seen['best']:.2f}:1 ({seen['step']}) "
+                         f"after every ruled step (scrim peak {peak_max}, halo {halo_max}, levels floor "
+                         f"{tok('scrim.levels_floor')}, light variant), under the {gate}:1 gate")
         log.warning("%s", rec["reason"])
         return base, p, rec
-    p.contrast = round(got, 2)       # what the element's record reports: the worst local ratio, as judged
+    p.contrast = round(got, 2)       # what the element's record reports: its ratio as judged (the worst glyph)
     return ground, p, rec
 
 
 def draw(im: Image.Image, x0: float, baseline: float, size: float, reach: float | None = None,
-         target: float | None = None) -> tuple[Image.Image, Any, dict[str, Any], tuple[int, int, int, int] | None]:
+         target: float | None = None, max_width: float | None = None
+         ) -> tuple[Image.Image, Any, dict[str, Any], tuple[int, int, int, int] | None]:
     """The masthead drawn: (image, the name's plate, the record, the group's box including the diamond). When the
-    record says `shown: False` (no ruled step reaches the gate) the image comes back untouched, the plate is None and
-    the box is None."""
+    record says `shown: False` (no ruled step reaches the gate, or the group does not fit its room) the image comes
+    back untouched, the plate is None and the box is None."""
     mode = im.mode
-    ground, p, rec = plan(im, x0, baseline, size, reach, target)
+    ground, p, rec = plan(im, x0, baseline, size, reach, target, max_width)
     if not rec["shown"]:
         return im, None, rec, None
     out = p.draw(ground.convert("RGB"))

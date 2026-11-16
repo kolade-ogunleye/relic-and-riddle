@@ -711,9 +711,9 @@ class MultiFormatGenerator:
         # size in balanced lines. The reveal frame with a measured figure is set as the covers' monument instead:
         # the figure huge in gold, its unit (and what the line says of it) under it, the other line as the title.
         k_px = 34 if tight else 40
-        font_k = get_font(brand.TEXT_FONT, k_px, weight=800)
+        font_k = get_font(brand.TEXT_FONT, k_px, weight=tok("kicker.weight"))
         while kicker and kicker_width(kicker, font_k) > max_w and font_k.size > 24:
-            font_k = get_font(brand.TEXT_FONT, font_k.size - 2, weight=800)
+            font_k = get_font(brand.TEXT_FONT, font_k.size - 2, weight=tok("kicker.weight"))
         kicker, k_short = _fit_kicker(kicker, font_k, max_w)
         cap_k = cap_height(font_k)
         hero = story_figure(l1, l2) if i == 1 and not asks_poll else None
@@ -861,7 +861,8 @@ class MultiFormatGenerator:
             lay.protected = [{"name": "poll_sticker_room", "box": [int(v) for v in room_box]}]
             lay.meta_room = [int(v) for v in room_box]
         if kicker:
-            im, k_box = draw_kicker(im, x, top + cap_k, kicker, font_k, brand.GOLD, lay, plates=lay.plates)
+            im, k_box = draw_kicker(im, x, top + cap_k, kicker, font_k, colour_of("kicker.colour"), lay,
+                                    plates=lay.plates)
         by_name: dict[str, list] = {}
         for name, yy, txt, f, fill, track, dx in rows:
             plate = plan_text(im, (x + dx, top + yy), txt, f, fill, "ls", track=track)
@@ -1413,10 +1414,11 @@ class MultiFormatGenerator:
         body_spec = body_spec or self.BODY_SPEC
         rows, y, short = [], 0, []
         if kicker:
-            fk = get_font(brand.TEXT_FONT, fx(34 * scale), weight=800)
+            fk = get_font(brand.TEXT_FONT, fx(34 * scale), weight=tok("kicker.weight"))
             text, ks = _fit_kicker(kicker, fk, width)
             y += cap_height(fk)
-            rows.append({"name": "kicker", "text": text, "font": fk, "fill": brand.GOLD, "y": y, "kicker": True})
+            rows.append({"name": "kicker", "text": text, "font": fk, "fill": colour_of("kicker.colour"), "y": y,
+                         "kicker": True})
             y += px(26 * scale)
             short += ["kicker"] if ks else []
         if stat:
@@ -1940,7 +1942,9 @@ class MultiFormatGenerator:
         # diamond fell outside the tile's crop at x 107).
         x0 = px(self.FB_COVER_MARGIN) if facebook and archetype == "cover" else px(80)
         base = px(self.HEADER_Y) + cap_height(brand_font)
-        im, plate, mrec, box = masthead.draw(im.convert("RGB"), x0, base, size, reach=base + px(300))
+        # its room: up to Instagram's counter region (cw - 280 design px), never past it and never clipped
+        im, plate, mrec, box = masthead.draw(im.convert("RGB"), x0, base, size, reach=base + px(300),
+                                             max_width=cw - px(280) - x0)
         if mrec["shown"]:   # one header element, as before: its box takes in the mark
             lay.add("header_brand", box)
             lay.elements[-1].update(plate.record())

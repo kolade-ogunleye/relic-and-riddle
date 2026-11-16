@@ -47,8 +47,8 @@ for case in fx.load("covers"):
     else:
         worst = None
         try:
-            from src.masthead import worst_contrast
-            worst = worst_contrast(platform_encode(im), plate)
+            from src.masthead import judge  # noqa: F401  (present from round 3)
+            worst = plate.measure(platform_encode(im))   # the ring after re-encode (the glyph judgement is the record's)
         except ImportError:
             pass
         res.append({"topic": case["topic"], "fill": list(plate.fill), "contrast": plate.contrast, "halo": plate.halo,

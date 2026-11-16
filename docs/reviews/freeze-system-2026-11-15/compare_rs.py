@@ -27,9 +27,11 @@ for k in sorted(set(b["surfaces"]) | set(h["surfaces"])):
         B = np.asarray(Image.open(ph).convert("RGB"), dtype=np.int16)
         if A.shape == B.shape:
             d = np.abs(A - B).max(axis=2)
-            ys, xs = np.nonzero(d > 2)
-            stat = {"px_changed_gt2": int((d > 2).sum()), "share": round(float((d > 2).mean()), 4),
-                    "box": [int(xs.min()), int(ys.min()), int(xs.max()), int(ys.max())] if len(xs) else None,
+            ys, xs = np.nonzero(d > 0)                     # round 3: the exact region, every differing pixel
+            y2, x2 = np.nonzero(d > 2)
+            stat = {"px_changed": int((d > 0).sum()), "px_changed_gt2": int((d > 2).sum()),
+                    "box_any": [int(xs.min()), int(ys.min()), int(xs.max()), int(ys.max())] if len(xs) else None,
+                    "box_gt2": [int(x2.min()), int(y2.min()), int(x2.max()), int(y2.max())] if len(x2) else None,
                     "max": int(d.max())}
     groups[g]["diff"].append((k, stat))
 print("errors base", sorted(b["errors"]), "head", sorted(h["errors"]))

@@ -53,7 +53,7 @@ def main() -> None:
             shown = rec.get("shown", True)
             # delivered: the worst local window after the platform re-encode (round 2); a masthead not drawn (fail
             # closed) is within the rulings by construction and has nothing to deliver
-            delivered = masthead.worst_contrast(platform_encode(out), plate) if shown else None
+            delivered = plate.measure(platform_encode(out)) if shown else None   # the ring after re-encode
             good = (rec["scrim_peak"] <= brand_system.tok("scrim.masthead_peak") + 1e-9
                     and rec["halo"] <= brand_system.tok("halo.masthead_max") + 1e-9
                     and (not shown or (rec["contrast"] or 0) >= brand_system.tok("contrast.masthead_gate")))

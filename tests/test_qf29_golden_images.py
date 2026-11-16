@@ -235,9 +235,10 @@ def test_a_design_change_is_never_accepted_as_a_toolchain(tmp_path, monkeypatch)
     with pytest.raises(g.GoldenError, match="does not record the commit"):
         g.accept_toolchain(STILL, PROOF, store, source=candidate("nocommit", commit=None, dirty=False),
                            revalidated=note)
-    # a committed design edit (src/brand.py BONE (243, 237, 226) -> (243, 237, 225)) after the take: refused
+    # a committed design edit (src/brand.py BONE (243, 237, 226) -> (243, 237, 225), the role table's line since
+    # QF-35a) after the take: refused
     brand = (ROOT / "src" / "brand.py").read_bytes()
-    edited = brand.replace(b"BONE: RGB = (243, 237, 226)", b"BONE: RGB = (243, 237, 225)")
+    edited = brand.replace(b'"BONE": (243, 237, 226),', b'"BONE": (243, 237, 225),')
     assert edited != brand
     design_commit = _synthetic_commit(tmp_path / "git-design", {"src/brand.py": edited})
     # review round 2's probe: a commit that only edits a registered design's render in the registry
@@ -245,8 +246,9 @@ def test_a_design_change_is_never_accepted_as_a_toolchain(tmp_path, monkeypatch)
     registry = (ROOT / "tests" / "goldens" / "designs.py").read_bytes() + (
         b"\n\nfrom tests.golden_proof_designs import DESIGNS as _PROOF  # noqa: E402\n"
         b"_render = _PROOF['" + STILL.encode() + b"'].render\n\n\n"
-        b"def _gold_plus_one(inputs, work):\n    from src import brand\n    brand.GOLD = (242, 182, 49)\n"
-        b"    return _render(inputs, work)\n\n\n"
+        b"def _gold_plus_one(inputs, work):\n    from src import brand\n"
+        b"    with brand.use(brand.DEFAULT_BRAND.derive('gold + 1', palette={'GOLD': (242, 182, 49)})):\n"
+        b"        return _render(inputs, work)\n\n\n"
         b"DESIGNS['" + STILL.encode() + b"'] = Design(**{**_PROOF['" + STILL.encode() + b"'].__dict__, "
         b"'render': _gold_plus_one})\n")
     registry_commit = _synthetic_commit(tmp_path / "git-registry", {"tests/goldens/designs.py": registry})

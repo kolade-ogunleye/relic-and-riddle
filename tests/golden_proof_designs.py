@@ -8,6 +8,9 @@ would, to show the check catches it:
   colour   one brand colour by six levels of blue (thumbnail: GOLD (242, 182, 48) -> (242, 182, 54); end card:
            BONE (243, 237, 226) -> (243, 237, 220))
   threads:N  (video) x264 on N threads (6 on a 4-core CI runner): another machine, the same design
+The colour plant moves the colour through the brand configuration (QF-35a: the designs read their palette from the
+active brand when they draw, so assigning a module attribute such as brand.GOLD would change nothing); the default
+brand is configured again after the render.
 """
 from __future__ import annotations
 
@@ -28,17 +31,23 @@ def _plant() -> str:
     return os.environ.get("QF29_PLANT", "")
 
 
+def _colour_plant(role: str, rgb: tuple[int, int, int]):
+    """The default brand with one palette role moved (QF-35a's configuration), for the colour plant."""
+    from src import brand
+    return brand.use(brand.DEFAULT_BRAND.derive("QF-29 colour plant", palette={role: rgb}))
+
+
 def _thumbnail(inputs: dict[str, Path], work: Path):
+    from contextlib import nullcontext
+
     from PIL import Image
 
-    from src import brand
     from src import youtube_thumbnail as yt
     if _plant() == "shift":
         yt.LEFT += 1
-    elif _plant() == "colour":
-        brand.GOLD = (242, 182, 54)
     meta = json.loads(inputs[RUN].read_text(encoding="utf-8"))
-    with Image.open(inputs[PHOTO]) as photo:
+    plant = _colour_plant("GOLD", (242, 182, 54)) if _plant() == "colour" else nullcontext()
+    with plant, Image.open(inputs[PHOTO]) as photo:
         im, _ = yt.render(photo.convert("RGB"), meta["thumbnail"])
     return {"thumbnail": im}
 
@@ -57,17 +66,18 @@ def _end_card(inputs: dict[str, Path], work: Path) -> Path:
             lay["masthead_xy"] = (x + 1, y)
             return lay
         end_card.layout = shifted
-    elif plant == "colour":
-        end_card.WHITE = (243, 237, 220)   # BONE (243, 237, 226) with blue six levels down
     elif plant.startswith("threads:"):
         encoder, n = encoding.delivery_video_encoder, plant.split(":", 1)[1]
         encoding.delivery_video_encoder = lambda: [*encoder(), "-threads", n]
+    from contextlib import nullcontext
     meta = json.loads(inputs[RUN].read_text(encoding="utf-8"))
     with Image.open(inputs[PHOTO]) as photo:
         last = photo.convert("RGB")
-    frames = itertools.islice(end_card.frames(last, end_card.card_text(meta["share_line"])), END_CARD_FRAMES)
-    # graphics._encode: raw RGB through the production encoder (QF-134, delivery_video_encoder), BT.709 tagged
-    return graphics._encode(frames, work / "end_card.mp4", END_CARD_FRAMES, end_card.WIDTH, end_card.HEIGHT)
+    # colour: BONE (243, 237, 226) with blue six levels down, for the whole render (frames are drawn as encoded)
+    with _colour_plant("BONE", (243, 237, 220)) if plant == "colour" else nullcontext():
+        frames = itertools.islice(end_card.frames(last, end_card.card_text(meta["share_line"])), END_CARD_FRAMES)
+        # graphics._encode: raw RGB through the production encoder (QF-134, delivery_video_encoder), BT.709 tagged
+        return graphics._encode(frames, work / "end_card.mp4", END_CARD_FRAMES, end_card.WIDTH, end_card.HEIGHT)
 
 
 DESIGNS = {

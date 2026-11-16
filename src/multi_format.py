@@ -24,7 +24,7 @@ from .typography import (balanced_wrap, cap_height, drawable, field_font, fit_fo
                          is_video, plan_text, probe_text, record_contrast, spoken_units, text_size, tracked_width,
                          wrap_text, LayoutError, TextFitError)
 from . import brand
-from .brand_system import GATES, LINE_END_LAST_RESORT, LINE_END_NEVER, type_px
+from .brand_system import GATES, LINE_END_LAST_RESORT, LINE_END_NEVER, colour_of, tok, type_px
 
 log = logging.getLogger(__name__)
 
@@ -296,9 +296,11 @@ def warm_ground(im: Image.Image, box) -> bool:
     return float(warm.mean()) >= WARM_SHARE
 
 
-KICKER_TRACK = 0.15     # a kicker's letter spacing, as a share of its size (Montserrat 800, tracked caps)
-KICKER_RULE = 1.0       # the kicker's gold rule: as long as the capitals are tall
-KICKER_GAP = 0.55       # and this far from the words
+def _kicker_tokens() -> tuple[float, float, float, float]:
+    """The system kicker (src/brand_system.py kicker.*), read now: (track em, rule caps, gap caps, thickness caps)."""
+    return tok("kicker.track"), tok("kicker.rule"), tok("kicker.rule_gap"), tok("kicker.rule_thick")
+
+
 # Planning margins (round 3, 2026-11-02): small gold kickers are planned at 5.5:1 so Facebook's downscale and
 # recompression (960 px, JPEG ~70) still leave them at 4.5 (the FB copy measured 5.01 and 4.83). The masthead's ground
 # and tiers are src/masthead.py's (cycle 0: gate 5.5, target 6.5, scrim peak 0.60, halo 0.16).
@@ -309,7 +311,8 @@ PLATFORM_WIDTH, PLATFORM_QUALITY = 960, 70   # the platform re-encode every deli
 def kicker_width(text: str, font) -> float:
     """A kicker's drawn width: its gold rule and gap, then the tracked text."""
     ch = cap_height(font)
-    return KICKER_RULE * ch + KICKER_GAP * ch + tracked_width(text, font, font.size * KICKER_TRACK)
+    track, rule, gap, _ = _kicker_tokens()
+    return rule * ch + gap * ch + tracked_width(text, font, font.size * track)
 
 
 def draw_kicker(im: Image.Image, x: float, baseline: float, text: str, font, colour=None, lay=None,
@@ -317,15 +320,16 @@ def draw_kicker(im: Image.Image, x: float, baseline: float, text: str, font, col
     """A kicker: a short gold rule at mid-cap height, then the words in tracked gold capitals (the covers'
     eyebrow). A label, never a pill or a button. A cap-height vertical bar read as a letter I before the words
     ("I DID YOU KNOW?", 2026-10-29), so the rule lies flat."""
-    colour = colour or brand.GOLD
+    colour = colour or colour_of("kicker.colour")
     ch = cap_height(font)
-    bar_w, gap = max(8, round(ch * KICKER_RULE)), round(ch * KICKER_GAP)
-    thick = max(3, round(ch * 0.16))
+    track, rule, rule_gap, rule_thick = _kicker_tokens()
+    bar_w, gap = max(8, round(ch * rule)), round(ch * rule_gap)
+    thick = max(3, round(ch * rule_thick))
     mid = baseline - ch / 2
     d = ImageDraw.Draw(im)
     d.rectangle([round(x), round(mid - thick / 2), round(x) + bar_w - 1, round(mid - thick / 2) + thick - 1],
                 fill=tuple(colour))
-    plate = plan_text(im, (x + bar_w + gap, baseline), text, font, colour, "ls", track=font.size * KICKER_TRACK,
+    plate = plan_text(im, (x + bar_w + gap, baseline), text, font, colour, "ls", track=font.size * track,
                       target=KICKER_TARGET)
     im = plate.draw(im)
     box = (int(round(x)), min(plate.box[1], int(round(baseline - ch))), plate.box[2], max(plate.box[3], int(round(baseline))))
@@ -1937,11 +1941,13 @@ class MultiFormatGenerator:
         x0 = px(self.FB_COVER_MARGIN) if facebook and archetype == "cover" else px(80)
         base = px(self.HEADER_Y) + cap_height(brand_font)
         im, plate, mrec, box = masthead.draw(im.convert("RGB"), x0, base, size, reach=base + px(300))
-        # One header element, as before: its box takes in the mark.
-        lay.add("header_brand", box)
-        lay.elements[-1].update(plate.record())
-        lay.elements[-1]["masthead"] = {k: v for k, v in mrec.items() if k != "box"}
-        lay.plates.setdefault("header_brand", []).append(plate)
+        if mrec["shown"]:   # one header element, as before: its box takes in the mark
+            lay.add("header_brand", box)
+            lay.elements[-1].update(plate.record())
+            lay.elements[-1]["masthead"] = {k: v for k, v in mrec.items() if k != "box"}
+            lay.plates.setdefault("header_brand", []).append(plate)
+        if isinstance(getattr(lay, "meta", None), dict):   # fail closed: an undrawn masthead says why in the record
+            lay.meta["masthead"] = {k: v for k, v in mrec.items() if k != "box"}
         if strip and not facebook:
             im = swipe_strip(im, lay, strip)
         return im, lay

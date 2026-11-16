@@ -121,7 +121,7 @@ def test_named_eases_mean_one_thing_and_are_bounded():
         assert graphics._ease(t) == end_card.ease(t) == brand_system.ease_out(t)
         assert graphics._ease_io(t) == brand_system.ease_in_out(t)
         assert end_card.ease_io(t) == pytest.approx(brand_system.ease_in_out(t), abs=1e-12)   # same ease, other form
-        assert callouts._ease_back(t) == brand_system.ease_out_back(t, callouts.BACK)
+        assert callouts._ease_back(t) == brand_system.ease_out_back(t)
 
 
 # ---------------------------------------------------------------------------------------------- the masthead
@@ -131,16 +131,18 @@ def test_the_masthead_meets_its_gate_inside_the_ruled_scrim_and_halo(name, groun
     size = brand_system.type_px("masthead", "carousel")
     x0, base = 107, 133
     out, plate, rec, box = masthead.draw(ground, x0, base, size, reach=base + 400)
-    assert plate.text == brand.MASTHEAD                                    # drawn == the brand's
     assert rec["scrim_peak"] <= brand_system.tok("scrim.masthead_peak") + 1e-9
     assert rec["halo"] <= brand_system.tok("halo.masthead_max") + 1e-9
-    assert rec["variant"] in ("dark", "light")
+    if name != "busy":   # every photographic ground here is solvable; the synthetic noise field may fail closed
+        assert rec["shown"], f"{name}: {rec}"
+    if not rec["shown"]:
+        assert out is ground and plate is None and box is None and "reason" in rec
+        return
+    assert plate.text == brand.MASTHEAD                                    # drawn == the brand's
     assert tuple(plate.fill) == tuple(brand_system.colour_of(
         "masthead.colour_dark" if rec["variant"] == "dark" else "masthead.colour_light"))
-    measured = plate.measure(out)                                          # on the delivered pixels
-    assert rec["below_gate"] or measured >= brand_system.tok("contrast.masthead_gate") - 0.05
-    assert not rec["below_gate"], f"{name}: {rec}"                         # every one of these grounds is solvable
-    # the scrim is a soft gradient: no row step steeper than the field limit, darkening only towards the top
+    gate = brand_system.tok("contrast.masthead_gate")
+    assert _independent_local_min(out, plate) >= gate - 0.05               # on the delivered pixels, letter by letter
     col = np.asarray(out.convert("L"), dtype=np.float32)[:, 1300]
     src = np.asarray(ground.convert("L"), dtype=np.float32)[:, 1300]
     if rec["variant"] == "dark" and rec["scrim_peak"] > 0 and np.ptp(src) == 0:   # a flat ground shows the shape
@@ -148,6 +150,214 @@ def test_the_masthead_meets_its_gate_inside_the_ruled_scrim_and_halo(name, groun
         assert np.all(np.diff(shade[:600]) <= 1)                           # never more shade going down (rounding)
         assert np.abs(np.diff(col[: base + 400])).max() < 3                  # a gradient, no edge
     assert box[0] <= x0 + 1 and box[2] > box[0]
+
+
+# ------------------------------------------------- the adversary's grounds (cycle 0 round 2; failed on 7652f083)
+
+def _independent_local_min(out, plate) -> float:
+    """The adversary's probe, independent of src/masthead.py: the ring rule per 24 px window of the name."""
+    import cv2
+
+    from src.typography import _lin
+    ox, oy = plate.origin
+    h, w = plate.glyphs.shape
+    region = np.asarray(out.convert("RGB"))[oy:oy + h, ox:ox + w]
+    g = (plate.glyphs > 127).astype("uint8")
+    ring = cv2.dilate(g, np.ones((21, 21), np.uint8)) - cv2.dilate(g, np.ones((5, 5), np.uint8))
+    inner = cv2.erode(g, np.ones((3, 3), np.uint8))
+    vals = []
+    for start in range(0, w, 24):
+        rr = region[:, start:start + 24]
+        bg, fg = rr[ring[:, start:start + 24] > 0], rr[inner[:, start:start + 24] > 0]
+        if len(bg) >= 50 and len(fg) >= 8:
+            lb = float(np.percentile(_lin(bg), 90 if plate.light else 10))
+            lt = float(np.median(_lin(fg)))
+            vals.append((max(lt, lb) + 0.05) / (min(lt, lb) + 0.05))
+    return min(vals)
+
+
+def _adversary_grounds():
+    from PIL import ImageDraw
+    W, H = 1440, 700
+    size = brand_system.type_px("masthead", "carousel")
+    x, baseline = 107, 133
+    spec = brand_system.masthead_spec(size)
+    name_x = round(x + 2 * spec["mark_r"] + spec["gap"])
+    yy, xx = np.indices((H, W))
+    out = {"dark": Image.new("RGB", (W, H), brand.INK), "near_white": Image.new("RGB", (W, H), (254, 254, 252)),
+           "yellow": Image.new("RGB", (W, H), (255, 255, 0)), "gold": Image.new("RGB", (W, H), brand.GOLD),
+           "checker_2px": Image.fromarray(np.repeat(np.where((xx // 2 + yy // 2) % 2, 255, 0)[..., None], 3,
+                                                    axis=2).astype("uint8")),
+           "horizontal_gradient": Image.fromarray(np.repeat(np.broadcast_to(np.linspace(0, 255, W)[None, :], (H, W))
+                                                            [..., None], 3, axis=2).astype("uint8"))}
+    for width in (12, 24, 36):
+        im = Image.new("RGB", (W, H), brand.INK)
+        ImageDraw.Draw(im).rectangle((name_x - 3, 0, name_x + width, H), fill=brand.BONE)
+        out[f"bright_stripe_{width}"] = im
+    im = Image.new("RGB", (W, H), brand.INK)
+    ImageDraw.Draw(im).rectangle((x - 5, 0, round(x + 2 * spec["mark_r"] + 5), H), fill=brand.GOLD)
+    out["gold_band_under_mark"] = im
+    im = Image.new("RGB", (W, H), brand.INK)
+    ImageDraw.Draw(im).rectangle((0, round(baseline - 20), W, round(baseline - 15)), fill=brand.BONE)
+    out["bright_horizontal_band"] = im
+    return out
+
+
+ADVERSARY = _adversary_grounds()
+
+
+@pytest.mark.parametrize("label", sorted(ADVERSARY))
+def test_the_masthead_fails_closed_and_is_judged_letter_by_letter(label):
+    """Findings 1 and 2: no drawn masthead under the gate on ANY window of its name (a checkerboard drew 3.74:1; a
+    bright stripe erased the first letter at 1:1 while the record said 16.6:1); below it nothing is drawn and the
+    record says why."""
+    ground = ADVERSARY[label]
+    size, x, baseline = brand_system.type_px("masthead", "carousel"), 107, 133
+    out, plate, rec, _ = masthead.draw(ground, x, baseline, size, reach=baseline + 400)
+    gate = brand_system.tok("contrast.masthead_gate")
+    if not rec["shown"]:
+        assert out is ground and plate is None and rec["contrast"] < gate and "reason" in rec
+        return
+    assert _independent_local_min(out, plate) >= gate - 0.05, rec
+    assert rec["contrast"] >= gate and rec["scrim_peak"] <= 0.60 + 1e-9 and rec["halo"] <= 0.16 + 1e-9
+
+
+@pytest.mark.parametrize("label", sorted(ADVERSARY))
+def test_the_mark_keeps_its_ink_edge_and_its_contrast(label):
+    """Finding 3: the INK edge survives the fill (it was overwritten everywhere; on a gold band the mark vanished), and
+    the mark meets the non-text gate on every ground the masthead is drawn on."""
+    from PIL import ImageDraw
+    ground = ADVERSARY[label]
+    size, x, baseline = brand_system.type_px("masthead", "carousel"), 107, 133
+    out, _, rec, _ = masthead.draw(ground, x, baseline, size, reach=baseline + 400)
+    if not rec["shown"]:
+        return
+    diamond, _ = masthead.mark_geometry(x, baseline, size)
+    filled = out.copy()
+    ImageDraw.Draw(filled).polygon(diamond, fill=brand.GOLD)
+    assert not np.array_equal(np.asarray(out), np.asarray(filled))         # the edge is there
+    mask = Image.new("L", out.size)
+    ImageDraw.Draw(mask).polygon(diamond, fill=255)
+    inside = np.asarray(mask) > 0
+    assert np.count_nonzero(np.any(np.asarray(out) != np.asarray(ground), axis=2) & inside) > 0   # the mark is drawn
+    assert rec["mark_contrast"] >= brand_system.tok("contrast.mark")
+
+
+def test_a_surface_records_an_undrawn_masthead(tmp_path, monkeypatch):
+    """Fail closed end to end: the carousel and the YouTube thumbnail keep the record of a masthead not drawn."""
+    from src import multi_format, youtube_thumbnail
+    calls = []
+
+    def refuse(im, *a, **k):
+        calls.append(1)
+        return im, None, {"shown": False, "reason": "test: under the gate", "contrast": 1.0}, None
+    monkeypatch.setattr(masthead, "draw", refuse)
+    sky = tmp_path / "sky.jpg"
+    Image.new("RGB", (1600, 2000), (120, 170, 225)).save(sky)
+    _, lay = multi_format.MultiFormatGenerator()._render_carousel_slide(
+        "immersive", sky, sky, {"heading": "A HEADING", "body": "A body line."}, 1, 7, {}, "", False, subject="S")
+    assert not any(e["name"] == "header_brand" for e in lay.elements)
+    assert lay.meta["masthead"]["shown"] is False and "reason" in lay.meta["masthead"]
+    meta: dict = {}
+    _, plates = youtube_thumbnail.render(Image.open(sky), {"title": "THE EYE"}, meta=meta)
+    assert "brand" not in dict(plates) and meta["masthead"]["shown"] is False
+    assert len(calls) >= 2
+
+
+# ------------------------------------------------- every runtime token drives its renderer (finding 4)
+
+def _kicker_width():
+    from src import multi_format, typography
+    return multi_format.kicker_width("THE RIDDLE", typography.get_font(brand.TEXT_FONT, 45, weight=800))
+
+
+def _carousel_kicker_pixels():
+    from src import multi_format, typography
+    im = Image.new("RGB", (900, 200), (20, 20, 20))
+    out, _ = multi_format.draw_kicker(im, 40, 120, "THE RIDDLE", typography.get_font(brand.TEXT_FONT, 45, weight=800))
+    return np.asarray(out).tobytes()
+
+
+def _end_screen_kicker():
+    from src import end_card
+    k = end_card.end_screen_extras()["kicker"]
+    return (round(k["font"].getlength(k["text"]), 2), round(k["track"], 3), k["rule"], k["text_xy"])
+
+
+def _masthead_pixels(ground=(120, 170, 225), size=53.3):
+    out, _, rec, _ = masthead.draw(Image.new("RGB", (900, 400), ground), 40, 100, size, reach=500)
+    return np.asarray(out).tobytes(), rec.get("halo"), rec.get("variant")
+
+
+def _callout_ease():
+    from src import callouts
+    return callouts._ease_back(0.5)
+
+
+def _end_screen_rise():
+    from src import end_card
+    return end_card.kicker_rise(0.25)
+
+
+TOKEN_PROBES = {   # token -> (an override value, a probe of the renderer that reads it)
+    "halo.step": (0.05, lambda: _masthead_pixels()[1]),
+    "plate.shade": ("CORAL", lambda: _masthead_pixels()[0]),
+    "masthead.weight": (400, lambda: masthead.group_width(64)),
+    "masthead.track": (0.2, lambda: masthead.group_width(64)),
+    "masthead.mark_r": (0.5, lambda: masthead.group_width(64)),
+    "masthead.gap": (1.0, lambda: masthead.group_width(64)),
+    "masthead.mark_edge": (0.15, lambda: _masthead_pixels((24, 28, 34))[0]),
+    "masthead.colour_dark": ("GOLD_LIGHT", lambda: _masthead_pixels((24, 28, 34))[0]),
+    "masthead.colour_light": ("CORAL", lambda: _masthead_pixels((250, 250, 248))[0]),
+    "kicker.weight": (600, _end_screen_kicker),
+    "kicker.track": (0.3, _kicker_width),
+    "kicker.rule": (2.0, _kicker_width),
+    "kicker.rule_gap": (1.5, _kicker_width),
+    "kicker.rule_thick": (0.4, _carousel_kicker_pixels),
+    "kicker.colour": ("TEAL", _carousel_kicker_pixels),
+    "motion.back": (4.0, _callout_ease),
+    "motion.rise_s": (20, _end_screen_rise),
+}
+
+
+def test_every_runtime_token_has_a_probe():
+    assert set(TOKEN_PROBES) == set(brand_system.SYSTEM_TOKENS)
+    assert not set(brand_system.SPEC) & set(brand_system.SYSTEM_TOKENS)
+    with pytest.raises(ValueError, match="not runtime tokens"):
+        brand.DEFAULT_BRAND.derive("spec override", system={"plate.held": 0.5})
+
+
+@pytest.mark.parametrize("token", sorted(TOKEN_PROBES))
+def test_each_runtime_token_changes_what_its_renderer_draws(token):
+    value, probe = TOKEN_PROBES[token]
+    before = probe()
+    with brand.use(brand.DEFAULT_BRAND.derive(f"probe {token}", system={token: value})):
+        during = probe()
+    assert during != before, token
+    assert probe() == before                                               # and back with the default brand
+
+
+# ------------------------------------------------- one size per role, or a declared deviation (finding 5)
+
+def test_every_surface_size_system_outside_the_ladder_is_declared():
+    import importlib
+
+    from src import design_cards
+    for surface, (role, where, sizes, group) in brand_system.DEVIATIONS.items():
+        assert role in brand_system.FACE and group in "ABCDEF", surface
+        mod, _, const = where.partition(".")
+        if const.isidentifier() and const.isupper():                      # an importable constant: it must match
+            held = getattr(importlib.import_module(f"src.{mod}"), const)
+            held = tuple(held.values()) if isinstance(held, dict) else tuple(held)
+            assert held == sizes, (surface, held)
+    ladder = set(brand_system.TYPE["tall"].values()) | set(brand_system.TYPE_FALLBACK["tall"].values())
+    declared = set()
+    for _, _, sizes, _ in brand_system.DEVIATIONS.values():
+        for t in (sizes if isinstance(sizes[0], tuple) else (sizes,)):
+            declared |= set(t)
+    for sizes in design_cards.HOOK_SIZES.values():                        # the adversary's 144 px hook: declared
+        assert all(s in ladder or s in declared for s in sizes)
+    assert all(s in declared for s in design_cards.CHAPTER_WIDE_ONE + design_cards.CHAPTER_WIDE_TWO)
 
 
 def test_bone_is_kept_wherever_it_reaches_the_target_and_nothing_is_added_on_a_dark_ground():

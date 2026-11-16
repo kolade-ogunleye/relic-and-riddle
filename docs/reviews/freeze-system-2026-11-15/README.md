@@ -8,14 +8,22 @@ hierarchy > rhythm > ornament.
 
 ## Where the system lives
 
-- `src/brand_system.py`: `GATES` (operator rulings and WCAG / platform limits: constants, a brand can never move them;
-  `BrandConfig` refuses a system override naming one), `SYSTEM_TOKENS` (style values, overridable per brand through
-  `BrandConfig.system`, read with `tok()` / `colour_of()` at call time), `TYPE` / `TYPE_FALLBACK` / `TYPE_FLOOR` / `FACE`
-  per canvas class, `SPACING`, the one line-end vocabulary (`LINE_END_NEVER`, `LINE_END_LAST_RESORT`, `line_end_ok`),
-  the named eases (`EASES`) and `masthead_spec`.
-- `src/masthead.py`: the one masthead treatment, its ground solved in the ruled order (nothing; a top-edge INK
+- `src/brand_system.py`, three kinds of value (round 2):
+  - `GATES`: operator rulings and WCAG / platform limits. Constants; `BrandConfig` refuses a system override naming one.
+  - `SYSTEM_TOKENS`: the style values a renderer reads NOW, overridable per brand through `BrandConfig.system`, read
+    with `tok()` / `colour_of()` at call time. Each one has a test that overrides it and measures the change in the
+    renderer that reads it; `BrandConfig` refuses an override of anything else.
+  - `SPEC`: the rest of the written system, the values each group ports its surfaces onto. Not read by a renderer yet,
+    so not overridable; a value moves into SYSTEM_TOKENS (with its probe) in the commit that makes a renderer read it.
+  - `TYPE` / `TYPE_FALLBACK` / `TYPE_FLOOR` / `FACE` per canvas class (the target ladder), `DEVIATIONS` (every surface
+    size system still in force outside the ladder, with its owner group; a test holds each named constant to the
+    declared sizes), `SPACING`, the one line-end vocabulary, the named eases and `masthead_spec`.
+- `src/masthead.py`: the one masthead treatment. Its ground is solved in the ruled order (nothing; a top-edge INK
   gradient up to 0.60 at its peak; plus the name's halo up to 0.16; plus a levels ceiling under the same shape, never
-  under 205; the light-ground INK variant only where bone still misses the gate), every step recorded.
+  under 205; the light-ground INK variant); contrast is judged on the WORST LOCAL window of the name (half a cap wide,
+  every quarter cap), not the ring's aggregate; under the 5.5 gate after every step it FAILS CLOSED (not drawn, the
+  record says why, `shown: False`). The diamond's INK edge is drawn over its gold fill and its non-text contrast is
+  recorded (`mark_contrast`, gate 3.0).
 - `src/brand.py`: `BrandConfig.system` (default `SYSTEM_TOKENS`), `derive(..., system=...)`.
 
 ## Gates (constants)
@@ -37,19 +45,29 @@ hierarchy > rhythm > ornament.
 | heading.story_one_line_floor / story_floor | 106 / 120 | rulings round 4 (2) / round 3 (3)(1) |
 | motion.caption_cps | 17 | config.CAPTION_MAX_CPS |
 
-## Tokens (brand-overridable)
+## Runtime tokens (brand-overridable; each drives a renderer, each tested)
 
-| group | tokens |
+| token | value | read by |
+|---|---|---|
+| halo.step | 0.08 | masthead halo search |
+| plate.shade | INK | masthead scrim; callouts' dim and plate shadow |
+| masthead.weight / track / mark_r / gap / mark_edge | 700 / 0.0625 em / 0.30 em / 0.36 em / 0.047 em | carousel, FB gallery, YouTube, end screen, 9:16 end card |
+| masthead.colour_dark / colour_light | BONE / INK | the same |
+| kicker.weight / track / rule / rule_gap / rule_thick / colour | 800 / 0.15 em / 1.0 cap / 0.55 cap / 0.16 cap / GOLD | carousel, Story and FB kickers (draw_kicker, kicker_width); end screen WATCH NEXT |
+| motion.back | 1.5 | callouts' pop (ease_out_back) |
+| motion.rise_s | 8 px | end screen kicker rise |
+
+## SPEC (the written system the groups port; not runtime yet)
+
+| group | values |
 |---|---|
-| masthead | weight 700; track 0.0625 em; mark radius 0.30 em; gap 0.36 em; INK edge 0.047 em; colour dark-ground BONE, light-ground INK |
-| kicker | text face 800; track 0.15 em; GOLD; lead rule 1.0 cap long, 0.55 cap gap, 0.16 cap thick |
-| plates | opaque 1.0; held 0.875; panel 0.78; radius 14 px at 1080; shade INK; halo step 0.08 |
+| plates | opaque 1.0; held 0.875; panel 0.78; radius 14 px at 1080 |
 | credit / badge | data 500, 0.04 em, STONE_LT / badge role 600, 0.05 em, BONE on INK at the held tier |
 | leading | display 1.13 cap; body 1.36 em; label 1.12 em |
 | heading | balance >= 0.55; cover >= 1.08 x the deck's largest interior heading |
 | figure | en dash centre within 0.03 em of the figures' centre; ink gap >= 0.06 em each side |
 | rules | 4 px at 1080 (scaled); hairline 1 px |
-| motion | reveal 0.40 s; word stagger 0.055 s; rise 14 / 10 / 8 px (heading / line / kicker); hook hold 1.07 s, fade 0.16 s; act dissolve 0.5 s; loop crossfade 0.5 s; back 1.5 (8 % overshoot); pop scale 1.4; push 0.0016 / frame, cap 1.24 |
+| motion | reveal 0.40 s; word stagger 0.055 s; rise 14 / 10 px (heading / line); hook hold 1.07 s, fade 0.16 s; act dissolve 0.5 s; loop crossfade 0.5 s; pop scale 1.4; push 0.0016 / frame, cap 1.24 |
 
 ## Type scale (canvas px; carousel = 1080 design px x 4/3 exactly)
 
@@ -66,17 +84,24 @@ hierarchy > rhythm > ornament.
 | credit (data) | 24 | 32 | 24 | 22 / - / 22 (floors 22 / 29.3 / 22) |
 | masthead (masthead) | 64 (grid-shown covers: absent) | 53.3 | 64 | end screen: brand moment, the largest that fits its group width |
 
+Declared deviations (`DEVIATIONS`, owner group): hook claim ladder 192-112 (F); 16:9 chapter titles 184-120 / 176-96
+(F); end card share 58 / 56 / 54 and end screen hand-off 64 / 60 / 56 (E); YouTube headline 190 -> 96 step 4 (B); Reel
+cover titles 100-164, floor 96 (B); carousel content heading IG 138 -> 124, FB 150 -> 140 design px (D); Story title
+150 -> 106 / 120 (D); then-and-now THEN / NOW 48 px (A).
+
 Spacing (px): margin 84 / 112 / 96; kicker-to-heading 24 / 32 / 24; heading-to-body 36 / 48 / 40; body-to-credit
 24 / 32 / 24; unit 4. Safe boxes are `src/safe_zones.py`'s, never re-declared.
 
 ## What this commit changes (default pixels)
 
-Measured on real runs in `measurements.md` (158 surfaces, base vs head). Default pixels change on: carousel and
-Facebook gallery slides (the masthead band: 56 of 56 slides now at >= 6.5:1, halo <= 0.16, scrim peak <= 0.60), the
-YouTube thumbnail (masthead bone, halo 0), the 16:9 end screen (masthead mark and WATCH NEXT as the system kicker),
-the 9:16 end card (masthead mark geometry) and photo callouts (their dim and plate shadow in INK, at most 5 levels).
-Identical: captions (incl. the badge frames), hook / chapter / myth cards, Reel covers and grid tiles, maps, number
-cards, then-and-now, Story frames, and the loop bridge (bit-identical frames, checked on the Aswan bridge).
+Measured on real runs in `measurements.md` (158 surfaces, base ba3e0141 vs head; regions per surface there).
+Default pixels change on: carousel and Facebook gallery slides (y <= 490: the masthead, its scrim to its reach; 51 of
+56 drawn at >= 5.5 on every letter, 5 Nazca slides fail closed and carry no masthead), the YouTube thumbnail (the
+masthead box on the five real covers; a headline shorter than the masthead also moves the ink shade), the 16:9 end
+screen (y 130-254: mark and WATCH NEXT), the 9:16 end card (the masthead group) and photo callouts (every frame, at
+most 9 levels: the INK dim and shadow). Identical: captions (incl. the badge frames), the 27 real hook / chapter /
+myth card cases, Reel covers and grid tiles, maps, number cards, then-and-now, Story frames and the loop bridges.
+A card title that would break on "into" / "onto" / "via" / "per" steps to its next size (none among the real cases).
 
 ## Board recipe
 
@@ -87,7 +112,9 @@ build note C:/tmp/qf-handoff/queue/CYCLE0.build-1.md for the per-row render list
 ## Acceptance
 
 `python measure.py <repo root>`: the masthead on six committed grounds at the three carried sizes, all within the
-rulings (peak <= 0.60, halo <= 0.16, contrast >= 5.5), and the system's counts. `tests/test_brand_system.py` holds the
-invariants (gates constant, tokens read at call time, no import-time copies, one line-end vocabulary, named eases
-bounded and shared, the masthead within the rulings with drawn == brand text, one treatment on every carrying
-surface, the system kicker on the end screen).
+rulings (peak <= 0.60, halo <= 0.16, worst letter >= 5.5 or not drawn), and the system's counts.
+`tests/test_brand_system.py` holds the invariants (gates constant; every runtime token overridden and its renderer's
+change measured; no import-time copies; declared deviations held to their constants; one line-end vocabulary; named
+eases bounded and shared; the masthead within the rulings, judged letter by letter on the adversary's grounds with
+its own independent probe, failing closed and recorded by every carrying surface; the mark's edge and non-text
+contrast; the system kicker on the end screen).

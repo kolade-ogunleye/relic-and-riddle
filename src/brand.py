@@ -129,10 +129,13 @@ class BrandConfig:
             if missing:
                 raise ValueError(f"brand {self.name!r}: {attr} lacks the roles {missing}")
             object.__setattr__(self, attr, MappingProxyType(dict(value)))
-        from .brand_system import GATES
+        from .brand_system import GATES, SYSTEM_TOKENS
         ruled = sorted(set(self.system) & set(GATES))
         if ruled:
             raise ValueError(f"brand {self.name!r}: {ruled} are gates (operator rulings), not brand tokens")
+        unknown = sorted(set(self.system) - set(SYSTEM_TOKENS))
+        if unknown:   # a SPEC value no renderer reads yet, or a typo: an override that would change nothing
+            raise ValueError(f"brand {self.name!r}: {unknown} are not runtime tokens (src/brand_system.py)")
         for role in self.palette:
             self.colour(role)
         for role in self.fonts:

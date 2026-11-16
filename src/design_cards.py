@@ -4156,8 +4156,8 @@ def plan_hook_frame(spec: HookFrame, sheet: dict, width: int = 1080, height: int
     top = Image.new("RGBA", size, (0, 0, 0, 0))
     md, td = ImageDraw.Draw(marks), ImageDraw.Draw(top)
     if diamond:
+        td.polygon(diamond, fill=brand.GOLD + (255,))              # fill, then the INK edge over it (system mark)
         td.polygon(diamond, outline=brand.INK + (255,), width=3)
-        td.polygon(diamond, fill=brand.GOLD + (255,))
     # no GOLD rule along the panel's foot (review 2026-11-03, round 4: it vanished against a yellow wall); the
     # panel's accents are the diamond and the GOLD last line, both on the INK
     card = _Card("hook", _Geo(width, height), ground0, target=HOOK_TARGET)

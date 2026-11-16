@@ -7,9 +7,12 @@ with the rule that uses it. QF-35a names colours, families and strings; this mod
 gap, easing and duration the designs share, so a group builds against one table and a later token change re-opens
 the system board, not every group.
 
-Tokens live in the brand configuration (`brand.BrandConfig.system`, default `SYSTEM_TOKENS` below) and are read at
-call time, like QF-35a's roles: `brand_system.tok("contrast.masthead_target")`, never copied at import (a brand that
-overrides a token draws through the same code; tests/test_brand_system.py scans for import-time copies).
+Three kinds of value (cycle 0 round 2): GATES (rulings and WCAG / platform limits: constants, never brand-overridable);
+SYSTEM_TOKENS (the style values a renderer reads NOW: they live in the brand configuration, `brand.BrandConfig.system`,
+and are read at call time, like QF-35a's roles, `brand_system.tok("masthead.track")`, never copied at import; a test
+overrides each one and measures the change it makes); and SPEC (the rest of the written system: the values each group
+ports its surfaces onto, not yet read by a renderer, so not overridable). The TYPE ladder is the target; the surfaces
+that still set their own sizes are declared in DEVIATIONS with their owner group.
 
 The written system (the cycle-0 build note C:/tmp/qf-handoff/queue/CYCLE0.build-1.md carries the reasons and the
 trade-offs; the trade-off order is gates and truth > legibility at feed size on the worst hero > subject visibility >
@@ -22,7 +25,8 @@ thumbnail, 16:9 end screen and cards and graphics). Safe boxes are src/safe_zone
 Type roles (TYPE): display_xl (cover, hook, Story title), display_l (interior heading), display_m (debate / CTA /
 card title), figure (a stated quantity's numeral), kicker, body, label (a drawing's names), data_label (ruler and
 index figures, units on a drawing), credit, masthead. Each canvas has one size per role and at most one fallback
-tier (TYPE_FALLBACK); a size between tiers chosen to fit a measure is off-system (RUBRIC TY1). Faces by role only:
+tier (TYPE_FALLBACK); a size between tiers chosen to fit a measure is off-system (RUBRIC TY1), and every surface
+still doing so is listed in DEVIATIONS (its owner group ports it). Faces by role only:
 display -> brand display face; kicker, body, label -> text face; figure -> display face (a stated quantity is set
 like a heading: one voice for the claim and its number); data_label, credit, badge -> data face; masthead ->
 masthead face. At most three voices on a frame (display, text, data), the masthead counted apart.
@@ -107,15 +111,13 @@ GATES: Mapping[str, Any] = MappingProxyType({
     "motion.caption_cps": 17.0,       # captions shown at most this many characters per second (config.CAPTION_MAX_CPS)
 })
 
-# Tokens: the system's style values, flat "<group>.<name>" -> value. A brand may override any (BrandConfig.system).
+# Tokens: the system's style values that DRIVE a renderer now, flat "<group>.<name>" -> value. A brand may override any
+# (BrandConfig.system); tests/test_brand_system.py configures each one and measures the change it makes, so a token no
+# renderer reads cannot sit here (cycle 0 round 2, adversary finding 4). The rest of the written system is SPEC below.
 SYSTEM_TOKENS: Mapping[str, Any] = MappingProxyType({
-    "halo.step": 0.08,                # a halo is solved in steps of this
-    "plate.opaque": 1.0,              # a callout's plate
-    "plate.held": 0.875,              # a plate text sits on over moving pictures (caption pill 0x20, badge)
-    "plate.panel": 0.78,              # a map / chart panel over a drawn ground (200 / 255)
-    "plate.radius": 14,               # px at 1080 wide (caption pill); scaled by the canvas width
-    "plate.shade": "INK",             # the colour every shade, halo and plate uses (a palette role)
-    # ---- masthead (one treatment; em = of the masthead's px size)
+    "halo.step": 0.08,                # the masthead's halo is solved in steps of this
+    "plate.shade": "INK",             # the masthead scrim's colour and the callouts' dim and shadow (a palette role)
+    # ---- masthead (one treatment; em = of the masthead's px size): carousel, FB gallery, YouTube, end screen, end card
     "masthead.weight": 700,
     "masthead.track": 0.0625,         # em: 4 px at 64
     "masthead.mark_r": 0.30,          # em: the diamond's half-diagonal (19 px at 64)
@@ -130,7 +132,20 @@ SYSTEM_TOKENS: Mapping[str, Any] = MappingProxyType({
     "kicker.rule_gap": 0.55,          # the rule's end to the words, in caps
     "kicker.rule_thick": 0.16,        # the rule's thickness, in caps (>= 3 px)
     "kicker.colour": "GOLD",
-    # ---- credits and the AI-reconstruction badge (one style each; ported by their groups and QF-133)
+    # ---- motion
+    "motion.back": 1.5,               # ease_out_back's constant (8 % overshoot): a callout's pop
+    "motion.rise_s": 8,               # px a kicker rises while it enters (the end screen's WATCH NEXT)
+})
+
+# The written system's remaining values: what each group ports its surfaces onto (CYCLE0 build note, section 5). NOT
+# runtime tokens: no renderer reads them yet and a brand cannot override them; each moves into SYSTEM_TOKENS (with its
+# measured-change test) in the commit that makes a renderer read it.
+SPEC: Mapping[str, Any] = MappingProxyType({
+    "plate.opaque": 1.0,              # a callout's plate
+    "plate.held": 0.875,              # a plate text sits on over moving pictures (caption pill 0x20, badge)
+    "plate.panel": 0.78,              # a map / chart panel over a drawn ground (200 / 255)
+    "plate.radius": 14,               # px at 1080 wide (caption pill); scaled by the canvas width
+    # ---- credits and the AI-reconstruction badge (one style each; ported by their groups)
     "credit.weight": 500,             # the data face
     "credit.track": 0.04,             # em
     "credit.colour": "STONE_LT",
@@ -156,20 +171,20 @@ SYSTEM_TOKENS: Mapping[str, Any] = MappingProxyType({
     "motion.word_stagger": 0.055,     # a word's entry after the one before it
     "motion.rise_l": 14,              # px an element rises while it enters: a heading / share block
     "motion.rise_m": 10,              # a single line (the follow line, FOLLOW)
-    "motion.rise_s": 8,               # a kicker
     "motion.hook_hold": 1.07,         # the hook's type hold
     "motion.hook_fade": 0.16,         # the hook type's fade-in (an element reveal, not a scene fade)
     "motion.act_dissolve": 0.5,       # the only dissolve in a Reel, at an act change
     "motion.loop_crossfade": 0.5,     # the loop bridge's crossfade (0.7 for the purely visual bridge)
-    "motion.back": 1.5,               # ease_out_back's constant (8 % overshoot): a callout's pop
     "motion.pop_scale": 1.4,          # a pin / lantern's pop: 1 -> this -> 1
     "motion.push_per_frame": 0.0016,  # the camera's forward drift
     "motion.push_cap": 1.24,
 })
 
-# One size per role per canvas, px on that canvas (the carousel's in canvas px: 1080 design px x 4/3). None: the
-# role is not used on that canvas. The sizes in force where a surface still deviates are listed in the cycle-0 build
-# note (left for its group).
+# One size per role per canvas, px on that canvas (the carousel's in canvas px: 1080 design px x 4/3): the system's
+# TARGET ladder. It holds as written for the sizes that read it now (the carousel / FB and YouTube mastheads, the end
+# screen's kicker, the end card's masthead floor); every other surface still sets its own sizes and is listed in
+# DEVIATIONS below with its owner group, so "one size per role" is true for what is not listed and declared, never
+# implied, for what is (cycle 0 round 2, adversary finding 5).
 TYPE: Mapping[str, Mapping[str, float | None]] = MappingProxyType({
     "tall": MappingProxyType({"display_xl": 150, "display_l": 138, "display_m": 112, "figure": 300, "kicker": 40,
                               "body": 46, "label": 30, "data_label": 30, "credit": 24, "masthead": 64}),
@@ -202,6 +217,27 @@ SPACING: Mapping[str, Mapping[str, int]] = MappingProxyType({
     "tall": MappingProxyType({"margin": 84, "kicker_gap": 24, "heading_gap": 36, "credit_gap": 24, "unit": 4}),
     "carousel": MappingProxyType({"margin": 112, "kicker_gap": 32, "heading_gap": 48, "credit_gap": 32, "unit": 4}),
     "wide": MappingProxyType({"margin": 96, "kicker_gap": 24, "heading_gap": 40, "credit_gap": 24, "unit": 4}),
+})
+
+# Surface size systems still in force outside the ladder, group-owned until that group's cycle ports them onto TYPE /
+# TYPE_FALLBACK: surface -> (role, "module.CONSTANT" or a description, the sizes as the code holds them, owner group).
+# tests/test_brand_system.py checks every importable constant named here still holds exactly these sizes, so a group
+# that ports one must update this table (and the claim stays true as written).
+DEVIATIONS: Mapping[str, tuple[str, str, tuple, str]] = MappingProxyType({
+    "hook claim": ("display_xl", "design_cards.HOOK_SIZES",
+                   ((192, 176, 160, 144, 128), (176, 168, 160, 152, 144, 136, 128, 120, 112), (128, 120, 112)), "F"),
+    "chapter title 16:9, one line": ("display_l", "design_cards.CHAPTER_WIDE_ONE",
+                                     (184, 176, 168, 160, 152, 144, 136, 128, 120), "F"),
+    "chapter title 16:9, two lines": ("display_l", "design_cards.CHAPTER_WIDE_TWO",
+                                      (176, 168, 160, 152, 144, 136, 128, 120, 112, 104, 96), "F"),
+    "end card share 9:16": ("body", "end_card.SHARE_SIZES", (58, 56, 54), "E"),
+    "end screen hand-off 16:9": ("body", "end_card.LANDSCAPE_SHARE_SIZES", (64, 60, 56), "E"),
+    "YouTube headline": ("display_xl", "youtube_thumbnail: 190 down to 96 in 4 px steps", (190, 96, 4), "B"),
+    "Reel cover titles": ("display_xl", "cover_design: per style 100-164, probe floor 96", (100, 164, 96), "B"),
+    "carousel content heading": ("display_l", "multi_format: IG 138 -> 124, FB 150 -> 140 design px", (138, 124, 150, 140),
+                                 "D"),
+    "Story title": ("display_xl", "multi_format: 150 to the ruled one-line floor 106, else 120", (150, 106, 120), "D"),
+    "then-and-now THEN / NOW": ("data_label", "then_now.kicker_px(): 48 px 9:16, cap-fitted 16:9", (48,), "A"),
 })
 
 # Heading break vocabulary: one list for every surface (there were five).

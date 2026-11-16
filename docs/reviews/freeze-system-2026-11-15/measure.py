@@ -50,14 +50,19 @@ def main() -> None:
         for s, size in sizes.items():
             base = round(size * 1.9)
             out, plate, rec, _ = masthead.draw(im, 107, base, size, reach=base + 6 * size)
-            delivered = plate.measure(platform_encode(out))
+            shown = rec.get("shown", True)
+            # delivered: the worst local window after the platform re-encode (round 2); a masthead not drawn (fail
+            # closed) is within the rulings by construction and has nothing to deliver
+            delivered = masthead.worst_contrast(platform_encode(out), plate) if shown else None
             good = (rec["scrim_peak"] <= brand_system.tok("scrim.masthead_peak") + 1e-9
                     and rec["halo"] <= brand_system.tok("halo.masthead_max") + 1e-9
-                    and (rec["contrast"] or 0) >= brand_system.tok("contrast.masthead_gate"))
+                    and (not shown or (rec["contrast"] or 0) >= brand_system.tok("contrast.masthead_gate")))
             ok &= good
-            rows.append({"ground": g, "surface": s, "variant": rec["variant"], "peak": rec["scrim_peak"],
-                         "halo": rec["halo"], "contrast": rec["contrast"], "delivered": round(delivered, 2),
-                         "short_of_target": rec["short_of_target"], "within_rulings": good})
+            rows.append({"ground": g, "surface": s, "shown": shown, "variant": rec["variant"], "peak": rec["scrim_peak"],
+                         "halo": rec["halo"], "contrast_worst_letter": rec["contrast"],
+                         "delivered": None if delivered is None else round(delivered, 2),
+                         "mark_contrast": rec.get("mark_contrast"), "short_of_target": rec["short_of_target"],
+                         "within_rulings": good})
     for r in rows:
         print(json.dumps(r))
     print("masthead within the rulings on every ground and size:", ok)

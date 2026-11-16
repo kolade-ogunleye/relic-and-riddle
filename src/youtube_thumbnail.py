@@ -372,7 +372,8 @@ def _render(source, copy, focus, meta, figure, youtube_title, illustration, targ
     mode = im.mode
     im, name, meta["masthead"], _ = masthead.draw(im, LEFT, top + cap_height(f_brand), BRAND_PX)
     im = im.convert(mode)
-    plates.append(("brand", name))
+    if name is not None:   # fail closed: an undrawn masthead (under its gate) is recorded in meta["masthead"]
+        plates.append(("brand", name))
     # The band under the masthead the hero stack is centred in (round 4: it sat at a fixed y 560).
     centre = round((top + cap_height(f_brand) + BAND_PAD[0] + H - BAND_PAD[1]) / 2)
 

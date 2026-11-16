@@ -47,7 +47,7 @@ for run in RUNS:
                     delivered = f"err {e}"
             row = {"run": run[4:], "sub": sub, "slide": name, "archetype": r["archetype"],
                    "contrast": el.get("contrast"), "unaided": el.get("contrast_unaided"), "halo": el.get("halo"),
-                   "delivered": delivered, "mast": el.get("masthead"),
+                   "delivered": delivered, "mast": lay.meta.get("masthead") or el.get("masthead"),
                    "box": el.get("box"), "s": round(time.perf_counter() - t0, 2)}
             res.append(row)
             im.convert("RGB").crop((0, 0, 760, 260)).save(keep / f"{run[4:30]}_{sub}_{Path(name).stem}.png")

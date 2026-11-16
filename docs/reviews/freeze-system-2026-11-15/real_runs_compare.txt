@@ -1,26 +1,16 @@
 errors base [] head []
-bridge: identical 0, differing 5, one side only 0
-    bridge__1_wieliczka_salt_mine {'px_changed_gt2': 0, 'share': 0.0, 'box': None, 'max': 0}
-    bridge__2_unfinished_obelisk_aswan {'px_changed_gt2': 0, 'share': 0.0, 'box': None, 'max': 0}
-    bridge__3_nazca_lines_runway_paradox {'px_changed_gt2': 0, 'share': 0.0, 'box': None, 'max': 0}
-    bridge__4_odessa_catacombs {'px_changed_gt2': 0, 'share': 0.0, 'box': None, 'max': 0}
-    bridge__5_nazca_lines_runway_paradox {'px_changed_gt2': 0, 'share': 0.0, 'box': None, 'max': 0}
-bridge_follow: identical 0, differing 5, one side only 0
-    bridge_follow__1_wieliczka_salt_mine {'px_changed_gt2': 0, 'share': 0.0, 'box': None, 'max': 0}
-    bridge_follow__2_unfinished_obelisk_aswan {'px_changed_gt2': 0, 'share': 0.0, 'box': None, 'max': 0}
-    bridge_follow__3_nazca_lines_runway_paradox {'px_changed_gt2': 0, 'share': 0.0, 'box': None, 'max': 0}
-    bridge_follow__4_odessa_catacombs {'px_changed_gt2': 0, 'share': 0.0, 'box': None, 'max': 0}
-    bridge_follow__5_nazca_lines_runway_paradox {'px_changed_gt2': 0, 'share': 0.0, 'box': None, 'max': 0}
+bridge: identical 5, differing 0, one side only 0
+bridge_follow: identical 5, differing 0, one side only 0
 callouts: identical 0, differing 1, one side only 0
     callouts__reference_pair__916 {'px_changed_gt2': 2073546, 'share': 1.0, 'box': [0, 0, 1079, 1919], 'max': 5}
 captions: identical 20, differing 0, one side only 0
 card: identical 27, differing 0, one side only 0
 cover: identical 10, differing 5, one side only 0
-    cover__amber_room_heist__youtube {'px_changed_gt2': 51140, 'share': 0.0247, 'box': [112, 13, 799, 175], 'max': 238}
-    cover__greek_fire_siphon__youtube {'px_changed_gt2': 80737, 'share': 0.0389, 'box': [96, 12, 805, 175], 'max': 237}
-    cover__richat_structure_sahara_eye__youtube {'px_changed_gt2': 43767, 'share': 0.0211, 'box': [112, 9, 783, 175], 'max': 243}
-    cover__tunguska_event_1908__youtube {'px_changed_gt2': 54464, 'share': 0.0263, 'box': [112, 16, 783, 175], 'max': 239}
-    cover__wieliczka_salt_mine__youtube {'px_changed_gt2': 61606, 'share': 0.0297, 'box': [97, 12, 791, 175], 'max': 237}
+    cover__amber_room_heist__youtube {'px_changed_gt2': 52424, 'share': 0.0253, 'box': [95, 13, 799, 175], 'max': 238}
+    cover__greek_fire_siphon__youtube {'px_changed_gt2': 81767, 'share': 0.0394, 'box': [95, 12, 805, 175], 'max': 237}
+    cover__richat_structure_sahara_eye__youtube {'px_changed_gt2': 45122, 'share': 0.0218, 'box': [95, 9, 783, 175], 'max': 243}
+    cover__tunguska_event_1908__youtube {'px_changed_gt2': 55834, 'share': 0.0269, 'box': [95, 16, 783, 175], 'max': 239}
+    cover__wieliczka_salt_mine__youtube {'px_changed_gt2': 62676, 'share': 0.0302, 'box': [95, 12, 791, 175], 'max': 237}
 endcard: identical 0, differing 5, one side only 0
     endcard__1_wieliczka_salt_mine {'px_changed_gt2': 18101, 'share': 0.0087, 'box': [113, 556, 845, 673], 'max': 231}
     endcard__2_unfinished_obelisk_aswan {'px_changed_gt2': 18102, 'share': 0.0087, 'box': [113, 556, 845, 673], 'max': 223}
@@ -28,67 +18,67 @@ endcard: identical 0, differing 5, one side only 0
     endcard__4_odessa_catacombs {'px_changed_gt2': 18102, 'share': 0.0087, 'box': [113, 588, 845, 705], 'max': 228}
     endcard__5_nazca_lines_runway_paradox {'px_changed_gt2': 18102, 'share': 0.0087, 'box': [113, 584, 845, 701], 'max': 227}
 endscreen: identical 0, differing 4, one side only 0
-    endscreen__0_richat_structure_sahara_eye {'px_changed_gt2': 51815, 'share': 0.025, 'box': [168, 130, 1512, 254], 'max': 219}
-    endscreen__6_wieliczka_salt_mine {'px_changed_gt2': 22169, 'share': 0.0107, 'box': [168, 130, 1483, 223], 'max': 238}
-    endscreen__7_unfinished_obelisk_aswan {'px_changed_gt2': 51670, 'share': 0.0249, 'box': [168, 130, 1513, 254], 'max': 224}
-    endscreen__8_roman_self_healing_concrete {'px_changed_gt2': 41735, 'share': 0.0201, 'box': [168, 130, 1503, 249], 'max': 224}
+    endscreen__0_richat_structure_sahara_eye {'px_changed_gt2': 51892, 'share': 0.025, 'box': [154, 130, 1512, 254], 'max': 231}
+    endscreen__6_wieliczka_salt_mine {'px_changed_gt2': 22235, 'share': 0.0107, 'box': [154, 130, 1483, 223], 'max': 238}
+    endscreen__7_unfinished_obelisk_aswan {'px_changed_gt2': 51747, 'share': 0.025, 'box': [154, 130, 1513, 254], 'max': 231}
+    endscreen__8_roman_self_healing_concrete {'px_changed_gt2': 41812, 'share': 0.0202, 'box': [154, 130, 1503, 249], 'max': 231}
 map: identical 2, differing 0, one side only 0
 numbers: identical 2, differing 0, one side only 0
 social: identical 12, differing 56, one side only 0
-    social__gol_gumbaz_whispering_gallery_1793278143__carousel_carousel_slide_01 {'px_changed_gt2': 559976, 'share': 0.216, 'box': [0, 0, 1439, 445], 'max': 196}
-    social__gol_gumbaz_whispering_gallery_1793278143__carousel_carousel_slide_02 {'px_changed_gt2': 433976, 'share': 0.1674, 'box': [0, 0, 1439, 409], 'max': 199}
-    social__gol_gumbaz_whispering_gallery_1793278143__carousel_carousel_slide_03 {'px_changed_gt2': 505224, 'share': 0.1949, 'box': [0, 0, 1439, 449], 'max': 199}
-    social__gol_gumbaz_whispering_gallery_1793278143__carousel_carousel_slide_04 {'px_changed_gt2': 570811, 'share': 0.2202, 'box': [0, 0, 1439, 421], 'max': 204}
-    social__gol_gumbaz_whispering_gallery_1793278143__carousel_carousel_slide_05 {'px_changed_gt2': 587120, 'share': 0.2265, 'box': [0, 0, 1439, 439], 'max': 234}
-    social__gol_gumbaz_whispering_gallery_1793278143__carousel_carousel_slide_06 {'px_changed_gt2': 389341, 'share': 0.1502, 'box': [0, 0, 1439, 375], 'max': 224}
-    social__gol_gumbaz_whispering_gallery_1793278143__carousel_carousel_slide_07 {'px_changed_gt2': 518075, 'share': 0.1999, 'box': [0, 0, 1439, 399], 'max': 180}
-    social__gol_gumbaz_whispering_gallery_1793278143__fb_carousel_slide_01 {'px_changed_gt2': 557525, 'share': 0.2151, 'box': [0, 0, 1439, 446], 'max': 197}
-    social__gol_gumbaz_whispering_gallery_1793278143__fb_carousel_slide_02 {'px_changed_gt2': 429218, 'share': 0.1656, 'box': [0, 0, 1439, 412], 'max': 203}
-    social__gol_gumbaz_whispering_gallery_1793278143__fb_carousel_slide_03 {'px_changed_gt2': 539655, 'share': 0.2082, 'box': [0, 0, 1439, 454], 'max': 200}
-    social__gol_gumbaz_whispering_gallery_1793278143__fb_carousel_slide_04 {'px_changed_gt2': 570811, 'share': 0.2202, 'box': [0, 0, 1439, 421], 'max': 204}
-    social__gol_gumbaz_whispering_gallery_1793278143__fb_carousel_slide_05 {'px_changed_gt2': 585783, 'share': 0.226, 'box': [0, 0, 1439, 436], 'max': 238}
-    social__gol_gumbaz_whispering_gallery_1793278143__fb_carousel_slide_06 {'px_changed_gt2': 389341, 'share': 0.1502, 'box': [0, 0, 1439, 375], 'max': 224}
-    social__gol_gumbaz_whispering_gallery_1793278143__fb_carousel_slide_07 {'px_changed_gt2': 518075, 'share': 0.1999, 'box': [0, 0, 1439, 399], 'max': 180}
-    social__nazca_lines_runway_paradox_1793247464__carousel_carousel_slide_01 {'px_changed_gt2': 562946, 'share': 0.2172, 'box': [0, 0, 1439, 434], 'max': 238}
-    social__nazca_lines_runway_paradox_1793247464__carousel_carousel_slide_02 {'px_changed_gt2': 473985, 'share': 0.1829, 'box': [0, 0, 1439, 419], 'max': 207}
-    social__nazca_lines_runway_paradox_1793247464__carousel_carousel_slide_03 {'px_changed_gt2': 426143, 'share': 0.1644, 'box': [0, 0, 1439, 397], 'max': 226}
-    social__nazca_lines_runway_paradox_1793247464__carousel_carousel_slide_04 {'px_changed_gt2': 370916, 'share': 0.1431, 'box': [0, 0, 1439, 382], 'max': 219}
-    social__nazca_lines_runway_paradox_1793247464__carousel_carousel_slide_05 {'px_changed_gt2': 412540, 'share': 0.1592, 'box': [0, 63, 1439, 449], 'max': 211}
-    social__nazca_lines_runway_paradox_1793247464__carousel_carousel_slide_06 {'px_changed_gt2': 594520, 'share': 0.2294, 'box': [0, 0, 1439, 465], 'max': 204}
-    social__nazca_lines_runway_paradox_1793247464__carousel_carousel_slide_07 {'px_changed_gt2': 493961, 'share': 0.1906, 'box': [0, 0, 1439, 421], 'max': 217}
-    social__nazca_lines_runway_paradox_1793247464__fb_carousel_slide_01 {'px_changed_gt2': 568250, 'share': 0.2192, 'box': [0, 0, 1439, 434], 'max': 237}
-    social__nazca_lines_runway_paradox_1793247464__fb_carousel_slide_02 {'px_changed_gt2': 473983, 'share': 0.1829, 'box': [0, 0, 1439, 419], 'max': 208}
-    social__nazca_lines_runway_paradox_1793247464__fb_carousel_slide_03 {'px_changed_gt2': 517640, 'share': 0.1997, 'box': [0, 0, 1439, 429], 'max': 210}
-    social__nazca_lines_runway_paradox_1793247464__fb_carousel_slide_04 {'px_changed_gt2': 370916, 'share': 0.1431, 'box': [0, 0, 1439, 382], 'max': 219}
-    social__nazca_lines_runway_paradox_1793247464__fb_carousel_slide_05 {'px_changed_gt2': 423965, 'share': 0.1636, 'box': [0, 28, 1439, 440], 'max': 217}
-    social__nazca_lines_runway_paradox_1793247464__fb_carousel_slide_06 {'px_changed_gt2': 523639, 'share': 0.202, 'box': [0, 0, 1439, 455], 'max': 218}
-    social__nazca_lines_runway_paradox_1793247464__fb_carousel_slide_07 {'px_changed_gt2': 493961, 'share': 0.1906, 'box': [0, 0, 1439, 421], 'max': 217}
-    social__nazca_lines_runway_paradox_1793251266__carousel_carousel_slide_01 {'px_changed_gt2': 275879, 'share': 0.1064, 'box': [0, 0, 1439, 393], 'max': 198}
-    social__nazca_lines_runway_paradox_1793251266__carousel_carousel_slide_02 {'px_changed_gt2': 473985, 'share': 0.1829, 'box': [0, 0, 1439, 419], 'max': 207}
-    social__nazca_lines_runway_paradox_1793251266__carousel_carousel_slide_03 {'px_changed_gt2': 426143, 'share': 0.1644, 'box': [0, 0, 1439, 397], 'max': 226}
-    social__nazca_lines_runway_paradox_1793251266__carousel_carousel_slide_04 {'px_changed_gt2': 370916, 'share': 0.1431, 'box': [0, 0, 1439, 382], 'max': 219}
-    social__nazca_lines_runway_paradox_1793251266__carousel_carousel_slide_05 {'px_changed_gt2': 412540, 'share': 0.1592, 'box': [0, 63, 1439, 449], 'max': 211}
-    social__nazca_lines_runway_paradox_1793251266__carousel_carousel_slide_06 {'px_changed_gt2': 551459, 'share': 0.2128, 'box': [0, 0, 1439, 441], 'max': 198}
-    social__nazca_lines_runway_paradox_1793251266__carousel_carousel_slide_07 {'px_changed_gt2': 272517, 'share': 0.1051, 'box': [0, 0, 1439, 381], 'max': 198}
-    social__nazca_lines_runway_paradox_1793251266__fb_carousel_slide_01 {'px_changed_gt2': 133541, 'share': 0.0515, 'box': [0, 2, 1439, 351], 'max': 197}
-    social__nazca_lines_runway_paradox_1793251266__fb_carousel_slide_02 {'px_changed_gt2': 473983, 'share': 0.1829, 'box': [0, 0, 1439, 419], 'max': 208}
-    social__nazca_lines_runway_paradox_1793251266__fb_carousel_slide_03 {'px_changed_gt2': 517640, 'share': 0.1997, 'box': [0, 0, 1439, 429], 'max': 210}
-    social__nazca_lines_runway_paradox_1793251266__fb_carousel_slide_04 {'px_changed_gt2': 370916, 'share': 0.1431, 'box': [0, 0, 1439, 382], 'max': 219}
-    social__nazca_lines_runway_paradox_1793251266__fb_carousel_slide_05 {'px_changed_gt2': 423965, 'share': 0.1636, 'box': [0, 28, 1439, 440], 'max': 217}
-    social__nazca_lines_runway_paradox_1793251266__fb_carousel_slide_06 {'px_changed_gt2': 524685, 'share': 0.2024, 'box': [0, 0, 1439, 432], 'max': 213}
-    social__nazca_lines_runway_paradox_1793251266__fb_carousel_slide_07 {'px_changed_gt2': 272517, 'share': 0.1051, 'box': [0, 0, 1439, 381], 'max': 198}
-    social__richat_structure_sahara_eye_1793272675__carousel_carousel_slide_01 {'px_changed_gt2': 43503, 'share': 0.0168, 'box': [124, 62, 695, 162], 'max': 240}
-    social__richat_structure_sahara_eye_1793272675__carousel_carousel_slide_02 {'px_changed_gt2': 341736, 'share': 0.1318, 'box': [0, 0, 1439, 378], 'max': 239}
-    social__richat_structure_sahara_eye_1793272675__carousel_carousel_slide_03 {'px_changed_gt2': 557691, 'share': 0.2152, 'box': [3, 0, 1439, 426], 'max': 188}
-    social__richat_structure_sahara_eye_1793272675__carousel_carousel_slide_04 {'px_changed_gt2': 178396, 'share': 0.0688, 'box': [0, 0, 1439, 317], 'max': 206}
-    social__richat_structure_sahara_eye_1793272675__carousel_carousel_slide_05 {'px_changed_gt2': 11629, 'share': 0.0045, 'box': [124, 92, 667, 131], 'max': 240}
-    social__richat_structure_sahara_eye_1793272675__carousel_carousel_slide_06 {'px_changed_gt2': 570882, 'share': 0.2202, 'box': [0, 0, 1439, 452], 'max': 234}
-    social__richat_structure_sahara_eye_1793272675__carousel_carousel_slide_07 {'px_changed_gt2': 11650, 'share': 0.0045, 'box': [124, 92, 667, 131], 'max': 243}
-    social__richat_structure_sahara_eye_1793272675__fb_carousel_slide_01 {'px_changed_gt2': 400850, 'share': 0.1546, 'box': [0, 0, 1439, 438], 'max': 240}
-    social__richat_structure_sahara_eye_1793272675__fb_carousel_slide_02 {'px_changed_gt2': 341736, 'share': 0.1318, 'box': [0, 0, 1439, 378], 'max': 239}
-    social__richat_structure_sahara_eye_1793272675__fb_carousel_slide_03 {'px_changed_gt2': 572281, 'share': 0.2208, 'box': [0, 0, 1439, 429], 'max': 187}
-    social__richat_structure_sahara_eye_1793272675__fb_carousel_slide_04 {'px_changed_gt2': 433535, 'share': 0.1673, 'box': [0, 0, 1439, 393], 'max': 207}
-    social__richat_structure_sahara_eye_1793272675__fb_carousel_slide_05 {'px_changed_gt2': 11632, 'share': 0.0045, 'box': [124, 92, 667, 131], 'max': 243}
-    social__richat_structure_sahara_eye_1793272675__fb_carousel_slide_06 {'px_changed_gt2': 570882, 'share': 0.2202, 'box': [0, 0, 1439, 452], 'max': 234}
-    social__richat_structure_sahara_eye_1793272675__fb_carousel_slide_07 {'px_changed_gt2': 11650, 'share': 0.0045, 'box': [124, 92, 667, 131], 'max': 243}
+    social__gol_gumbaz_whispering_gallery_1793278143__carousel_carousel_slide_01 {'px_changed_gt2': 575104, 'share': 0.2219, 'box': [0, 0, 1439, 452], 'max': 231}
+    social__gol_gumbaz_whispering_gallery_1793278143__carousel_carousel_slide_02 {'px_changed_gt2': 434156, 'share': 0.1675, 'box': [0, 0, 1439, 409], 'max': 231}
+    social__gol_gumbaz_whispering_gallery_1793278143__carousel_carousel_slide_03 {'px_changed_gt2': 532278, 'share': 0.2054, 'box': [0, 0, 1439, 455], 'max': 231}
+    social__gol_gumbaz_whispering_gallery_1793278143__carousel_carousel_slide_04 {'px_changed_gt2': 595149, 'share': 0.2296, 'box': [0, 0, 1439, 429], 'max': 231}
+    social__gol_gumbaz_whispering_gallery_1793278143__carousel_carousel_slide_05 {'px_changed_gt2': 604899, 'share': 0.2334, 'box': [0, 0, 1439, 441], 'max': 234}
+    social__gol_gumbaz_whispering_gallery_1793278143__carousel_carousel_slide_06 {'px_changed_gt2': 501511, 'share': 0.1935, 'box': [0, 0, 1439, 431], 'max': 231}
+    social__gol_gumbaz_whispering_gallery_1793278143__carousel_carousel_slide_07 {'px_changed_gt2': 518221, 'share': 0.1999, 'box': [0, 0, 1439, 399], 'max': 231}
+    social__gol_gumbaz_whispering_gallery_1793278143__fb_carousel_slide_01 {'px_changed_gt2': 574157, 'share': 0.2215, 'box': [0, 0, 1439, 452], 'max': 231}
+    social__gol_gumbaz_whispering_gallery_1793278143__fb_carousel_slide_02 {'px_changed_gt2': 429398, 'share': 0.1657, 'box': [0, 0, 1439, 412], 'max': 231}
+    social__gol_gumbaz_whispering_gallery_1793278143__fb_carousel_slide_03 {'px_changed_gt2': 579665, 'share': 0.2236, 'box': [0, 0, 1439, 462], 'max': 231}
+    social__gol_gumbaz_whispering_gallery_1793278143__fb_carousel_slide_04 {'px_changed_gt2': 595149, 'share': 0.2296, 'box': [0, 0, 1439, 429], 'max': 231}
+    social__gol_gumbaz_whispering_gallery_1793278143__fb_carousel_slide_05 {'px_changed_gt2': 607343, 'share': 0.2343, 'box': [0, 0, 1439, 443], 'max': 238}
+    social__gol_gumbaz_whispering_gallery_1793278143__fb_carousel_slide_06 {'px_changed_gt2': 501511, 'share': 0.1935, 'box': [0, 0, 1439, 431], 'max': 231}
+    social__gol_gumbaz_whispering_gallery_1793278143__fb_carousel_slide_07 {'px_changed_gt2': 518221, 'share': 0.1999, 'box': [0, 0, 1439, 399], 'max': 231}
+    social__nazca_lines_runway_paradox_1793247464__carousel_carousel_slide_01 {'px_changed_gt2': 580934, 'share': 0.2241, 'box': [0, 0, 1439, 439], 'max': 238}
+    social__nazca_lines_runway_paradox_1793247464__carousel_carousel_slide_02 {'px_changed_gt2': 555469, 'share': 0.2143, 'box': [0, 0, 1439, 454], 'max': 231}
+    social__nazca_lines_runway_paradox_1793247464__carousel_carousel_slide_03 {'px_changed_gt2': 552222, 'share': 0.213, 'box': [0, 0, 1439, 437], 'max': 231}
+    social__nazca_lines_runway_paradox_1793247464__carousel_carousel_slide_04 {'px_changed_gt2': 680430, 'share': 0.2625, 'box': [0, 0, 1439, 490], 'max': 195}
+    social__nazca_lines_runway_paradox_1793247464__carousel_carousel_slide_05 {'px_changed_gt2': 136507, 'share': 0.0527, 'box': [0, 0, 1439, 412], 'max': 231}
+    social__nazca_lines_runway_paradox_1793247464__carousel_carousel_slide_06 {'px_changed_gt2': 677182, 'share': 0.2613, 'box': [0, 0, 1439, 485], 'max': 177}
+    social__nazca_lines_runway_paradox_1793247464__carousel_carousel_slide_07 {'px_changed_gt2': 639682, 'share': 0.2468, 'box': [0, 0, 1439, 466], 'max': 231}
+    social__nazca_lines_runway_paradox_1793247464__fb_carousel_slide_01 {'px_changed_gt2': 583724, 'share': 0.2252, 'box': [0, 0, 1439, 444], 'max': 237}
+    social__nazca_lines_runway_paradox_1793247464__fb_carousel_slide_02 {'px_changed_gt2': 550879, 'share': 0.2125, 'box': [0, 0, 1439, 455], 'max': 231}
+    social__nazca_lines_runway_paradox_1793247464__fb_carousel_slide_03 {'px_changed_gt2': 585742, 'share': 0.226, 'box': [0, 0, 1439, 455], 'max': 231}
+    social__nazca_lines_runway_paradox_1793247464__fb_carousel_slide_04 {'px_changed_gt2': 680430, 'share': 0.2625, 'box': [0, 0, 1439, 490], 'max': 195}
+    social__nazca_lines_runway_paradox_1793247464__fb_carousel_slide_05 {'px_changed_gt2': 314478, 'share': 0.1213, 'box': [0, 71, 1439, 435], 'max': 231}
+    social__nazca_lines_runway_paradox_1793247464__fb_carousel_slide_06 {'px_changed_gt2': 429414, 'share': 0.1657, 'box': [0, 63, 1439, 451], 'max': 231}
+    social__nazca_lines_runway_paradox_1793247464__fb_carousel_slide_07 {'px_changed_gt2': 639682, 'share': 0.2468, 'box': [0, 0, 1439, 466], 'max': 231}
+    social__nazca_lines_runway_paradox_1793251266__carousel_carousel_slide_01 {'px_changed_gt2': 528843, 'share': 0.204, 'box': [0, 0, 1439, 430], 'max': 231}
+    social__nazca_lines_runway_paradox_1793251266__carousel_carousel_slide_02 {'px_changed_gt2': 555469, 'share': 0.2143, 'box': [0, 0, 1439, 454], 'max': 231}
+    social__nazca_lines_runway_paradox_1793251266__carousel_carousel_slide_03 {'px_changed_gt2': 552222, 'share': 0.213, 'box': [0, 0, 1439, 437], 'max': 231}
+    social__nazca_lines_runway_paradox_1793251266__carousel_carousel_slide_04 {'px_changed_gt2': 680430, 'share': 0.2625, 'box': [0, 0, 1439, 490], 'max': 195}
+    social__nazca_lines_runway_paradox_1793251266__carousel_carousel_slide_05 {'px_changed_gt2': 136507, 'share': 0.0527, 'box': [0, 0, 1439, 412], 'max': 231}
+    social__nazca_lines_runway_paradox_1793251266__carousel_carousel_slide_06 {'px_changed_gt2': 558548, 'share': 0.2155, 'box': [0, 0, 1439, 446], 'max': 231}
+    social__nazca_lines_runway_paradox_1793251266__carousel_carousel_slide_07 {'px_changed_gt2': 520891, 'share': 0.201, 'box': [0, 0, 1439, 430], 'max': 231}
+    social__nazca_lines_runway_paradox_1793251266__fb_carousel_slide_01 {'px_changed_gt2': 644053, 'share': 0.2485, 'box': [0, 0, 1439, 476], 'max': 231}
+    social__nazca_lines_runway_paradox_1793251266__fb_carousel_slide_02 {'px_changed_gt2': 550879, 'share': 0.2125, 'box': [0, 0, 1439, 455], 'max': 231}
+    social__nazca_lines_runway_paradox_1793251266__fb_carousel_slide_03 {'px_changed_gt2': 585742, 'share': 0.226, 'box': [0, 0, 1439, 455], 'max': 231}
+    social__nazca_lines_runway_paradox_1793251266__fb_carousel_slide_04 {'px_changed_gt2': 680430, 'share': 0.2625, 'box': [0, 0, 1439, 490], 'max': 195}
+    social__nazca_lines_runway_paradox_1793251266__fb_carousel_slide_05 {'px_changed_gt2': 314478, 'share': 0.1213, 'box': [0, 71, 1439, 435], 'max': 231}
+    social__nazca_lines_runway_paradox_1793251266__fb_carousel_slide_06 {'px_changed_gt2': 634826, 'share': 0.2449, 'box': [0, 0, 1439, 476], 'max': 231}
+    social__nazca_lines_runway_paradox_1793251266__fb_carousel_slide_07 {'px_changed_gt2': 520891, 'share': 0.201, 'box': [0, 0, 1439, 430], 'max': 231}
+    social__richat_structure_sahara_eye_1793272675__carousel_carousel_slide_01 {'px_changed_gt2': 574276, 'share': 0.2216, 'box': [0, 0, 1439, 482], 'max': 237}
+    social__richat_structure_sahara_eye_1793272675__carousel_carousel_slide_02 {'px_changed_gt2': 424282, 'share': 0.1637, 'box': [0, 0, 1439, 379], 'max': 239}
+    social__richat_structure_sahara_eye_1793272675__carousel_carousel_slide_03 {'px_changed_gt2': 587571, 'share': 0.2267, 'box': [0, 0, 1439, 434], 'max': 231}
+    social__richat_structure_sahara_eye_1793272675__carousel_carousel_slide_04 {'px_changed_gt2': 586039, 'share': 0.2261, 'box': [0, 0, 1439, 459], 'max': 231}
+    social__richat_structure_sahara_eye_1793272675__carousel_carousel_slide_05 {'px_changed_gt2': 526986, 'share': 0.2033, 'box': [0, 0, 1439, 439], 'max': 240}
+    social__richat_structure_sahara_eye_1793272675__carousel_carousel_slide_06 {'px_changed_gt2': 629179, 'share': 0.2427, 'box': [0, 0, 1439, 469], 'max': 234}
+    social__richat_structure_sahara_eye_1793272675__carousel_carousel_slide_07 {'px_changed_gt2': 390118, 'share': 0.1505, 'box': [0, 92, 1439, 402], 'max': 243}
+    social__richat_structure_sahara_eye_1793272675__fb_carousel_slide_01 {'px_changed_gt2': 596847, 'share': 0.2303, 'box': [0, 0, 1439, 482], 'max': 240}
+    social__richat_structure_sahara_eye_1793272675__fb_carousel_slide_02 {'px_changed_gt2': 424282, 'share': 0.1637, 'box': [0, 0, 1439, 379], 'max': 239}
+    social__richat_structure_sahara_eye_1793272675__fb_carousel_slide_03 {'px_changed_gt2': 592335, 'share': 0.2285, 'box': [0, 0, 1439, 434], 'max': 231}
+    social__richat_structure_sahara_eye_1793272675__fb_carousel_slide_04 {'px_changed_gt2': 570874, 'share': 0.2202, 'box': [0, 0, 1439, 465], 'max': 231}
+    social__richat_structure_sahara_eye_1793272675__fb_carousel_slide_05 {'px_changed_gt2': 631267, 'share': 0.2435, 'box': [0, 0, 1439, 475], 'max': 243}
+    social__richat_structure_sahara_eye_1793272675__fb_carousel_slide_06 {'px_changed_gt2': 629179, 'share': 0.2427, 'box': [0, 0, 1439, 469], 'max': 234}
+    social__richat_structure_sahara_eye_1793272675__fb_carousel_slide_07 {'px_changed_gt2': 390118, 'share': 0.1505, 'box': [0, 92, 1439, 402], 'max': 243}
 thennow: identical 4, differing 0, one side only 0

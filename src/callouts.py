@@ -1804,12 +1804,12 @@ LABEL_FADE = PLATE_OPEN
 DIM_OLDER, DIM_TIME = 0.55, 0.30
 EXIT_LEAD, EXIT_TIME = 0.40, 0.30
 EXIT_FADE, EXIT_RETRACT, EXIT_SHRINK = 0.15, 0.10, 0.08   # within EXIT_TIME; the marker shrinks over its end
-BACK = 1.5                                                # ease-out-back constant: 8 % overshoot
+# the pop's overshoot constant is the system's motion.back (src/brand_system.py; 1.5: 8 %), read when drawn
 
 
 def _ease_back(u: float) -> float:
-    """The system's ease_out_back (a pop, BACK = motion.back)."""
-    return ease_out_back(u, BACK)
+    """The system's ease_out_back (a pop): its constant is the active brand's motion.back, read now."""
+    return ease_out_back(u)
 
 
 def _ease_expo(u: float) -> float:

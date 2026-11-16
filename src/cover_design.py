@@ -446,9 +446,9 @@ def _brand(im, lay, centered=False, paper=False, left=None, centre=540, grid_del
     diamond = [(cx, cy - MARK_R), (cx + MARK_R, cy), (cx, cy + MARK_R), (cx - MARK_R, cy)]
     rgba = im.convert("RGBA")
     d = ImageDraw.Draw(rgba)
-    if edge is not None:
-        d.polygon(diamond, outline=edge + (255,), width=3)
     d.polygon(diamond, fill=mark + (255,))
+    if edge is not None:   # the edge over the fill, so it survives (system mark, cycle 0 round 2)
+        d.polygon(diamond, outline=edge + (255,), width=3)
     im = rgba if im.mode == "RGBA" else rgba.convert(im.mode)
     if lay is not None:
         lay.add("brand_mark", (cx - MARK_R, cy - MARK_R, cx + MARK_R, cy + MARK_R))

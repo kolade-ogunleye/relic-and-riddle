@@ -5,18 +5,21 @@
   "slide": "carousel_slide_01.jpg",
   "archetype": "cover",
   "contrast": 6.52,
-  "unaided": 6.52,
+  "unaided": 6.71,
   "halo": 0.0,
-  "delivered": 6.56,
+  "delivered": 6.78,
   "mast": {
    "variant": "dark",
-   "scrim_peak": 0.541,
+   "scrim_peak": 0.558,
    "halo": 0.0,
    "size": 53.3,
    "contrast": 6.52,
-   "contrast_unaided": 6.52,
+   "contrast_whole": 6.71,
+   "contrast_unaided": 6.71,
    "short_of_target": false,
-   "below_gate": false
+   "below_gate": false,
+   "shown": true,
+   "mark_contrast": 4.77
   },
   "box": [
    107,
@@ -24,14 +27,14 @@
    649,
    132
   ],
-  "s": 18.57
+  "s": 10.13
  },
  {
   "run": "gol_gumbaz_whispering_gallery_1793278143",
   "sub": "carousel",
   "slide": "carousel_slide_02.jpg",
   "archetype": "colossal_stat",
-  "contrast": 6.71,
+  "contrast": 6.51,
   "unaided": 5.94,
   "halo": 0.16,
   "delivered": 6.87,
@@ -40,10 +43,13 @@
    "scrim_peak": 0.6,
    "halo": 0.16,
    "size": 53.3,
-   "contrast": 6.71,
+   "contrast": 6.51,
+   "contrast_whole": 6.71,
    "contrast_unaided": 5.94,
    "short_of_target": false,
-   "below_gate": false
+   "below_gate": false,
+   "shown": true,
+   "mark_contrast": 4.37
   },
   "box": [
    107,
@@ -51,7 +57,7 @@
    649,
    132
   ],
-  "s": 2.46
+  "s": 2.27
  },
  {
   "run": "gol_gumbaz_whispering_gallery_1793278143",
@@ -59,18 +65,21 @@
   "slide": "carousel_slide_03.jpg",
   "archetype": "editorial_split",
   "contrast": 6.54,
-  "unaided": 6.54,
+  "unaided": 6.74,
   "halo": 0.0,
-  "delivered": 6.65,
+  "delivered": 6.84,
   "mast": {
    "variant": "dark",
-   "scrim_peak": 0.523,
+   "scrim_peak": 0.541,
    "halo": 0.0,
    "size": 53.3,
    "contrast": 6.54,
-   "contrast_unaided": 6.54,
+   "contrast_whole": 6.74,
+   "contrast_unaided": 6.74,
    "short_of_target": false,
-   "below_gate": false
+   "below_gate": false,
+   "shown": true,
+   "mark_contrast": 4.61
   },
   "box": [
    107,
@@ -78,26 +87,29 @@
    649,
    132
   ],
-  "s": 3.08
+  "s": 3.07
  },
  {
   "run": "gol_gumbaz_whispering_gallery_1793278143",
   "sub": "carousel",
   "slide": "carousel_slide_04.jpg",
   "archetype": "immersive",
-  "contrast": 6.51,
-  "unaided": 6.51,
+  "contrast": 6.5,
+  "unaided": 6.75,
   "halo": 0.0,
-  "delivered": 6.47,
+  "delivered": 6.77,
   "mast": {
    "variant": "dark",
-   "scrim_peak": 0.148,
+   "scrim_peak": 0.185,
    "halo": 0.0,
    "size": 53.3,
-   "contrast": 6.51,
-   "contrast_unaided": 6.51,
+   "contrast": 6.5,
+   "contrast_whole": 6.75,
+   "contrast_unaided": 6.75,
    "short_of_target": false,
-   "below_gate": false
+   "below_gate": false,
+   "shown": true,
+   "mark_contrast": 4.84
   },
   "box": [
    107,
@@ -105,26 +117,209 @@
    649,
    132
   ],
-  "s": 3.35
+  "s": 2.63
  },
  {
   "run": "gol_gumbaz_whispering_gallery_1793278143",
   "sub": "carousel",
   "slide": "carousel_slide_05.jpg",
   "archetype": "editorial_split",
-  "contrast": 6.53,
-  "unaided": 6.53,
+  "contrast": 6.55,
+  "unaided": 6.75,
   "halo": 0.0,
-  "delivered": 6.68,
+  "delivered": 6.87,
   "mast": {
    "variant": "dark",
-   "scrim_peak": 0.42,
+   "scrim_peak": 0.443,
    "halo": 0.0,
    "size": 53.3,
-   "contrast": 6.53,
-   "contrast_unaided": 6.53,
+   "contrast": 6.55,
+   "contrast_whole": 6.75,
+   "contrast_unaided": 6.75,
    "short_of_target": false,
-   "below_gate": false
+   "below_gate": false,
+   "shown": true,
+   "mark_contrast": 4.85
+  },
+  "box": [
+   107,
+   92,
+   649,
+   132
+  ],
+  "s": 2.69
+ },
+ {
+  "run": "gol_gumbaz_whispering_gallery_1793278143",
+  "sub": "carousel",
+  "slide": "carousel_slide_06.jpg",
+  "archetype": "immersive",
+  "contrast": 6.5,
+  "unaided": 7.16,
+  "halo": 0.0,
+  "delivered": 7.26,
+  "mast": {
+   "variant": "dark",
+   "scrim_peak": 0.49,
+   "halo": 0.0,
+   "size": 53.3,
+   "contrast": 6.5,
+   "contrast_whole": 7.16,
+   "contrast_unaided": 7.16,
+   "short_of_target": false,
+   "below_gate": false,
+   "shown": true,
+   "mark_contrast": 5.35
+  },
+  "box": [
+   107,
+   92,
+   649,
+   132
+  ],
+  "s": 3.5
+ },
+ {
+  "run": "gol_gumbaz_whispering_gallery_1793278143",
+  "sub": "carousel",
+  "slide": "carousel_slide_07.jpg",
+  "archetype": "debate",
+  "contrast": 6.51,
+  "unaided": 6.29,
+  "halo": 0.16,
+  "delivered": 7.18,
+  "mast": {
+   "variant": "dark",
+   "scrim_peak": 0.6,
+   "halo": 0.16,
+   "size": 53.3,
+   "contrast": 6.51,
+   "contrast_whole": 7.03,
+   "contrast_unaided": 6.29,
+   "short_of_target": false,
+   "below_gate": false,
+   "shown": true,
+   "mark_contrast": 4.78
+  },
+  "box": [
+   107,
+   92,
+   649,
+   132
+  ],
+  "s": 2.24
+ },
+ {
+  "run": "gol_gumbaz_whispering_gallery_1793278143",
+  "sub": "carousel_fb",
+  "slide": "carousel_slide_01.jpg",
+  "archetype": "cover",
+  "contrast": 6.52,
+  "unaided": 6.72,
+  "halo": 0.0,
+  "delivered": 6.79,
+  "mast": {
+   "variant": "dark",
+   "scrim_peak": 0.565,
+   "halo": 0.0,
+   "size": 53.3,
+   "contrast": 6.52,
+   "contrast_whole": 6.72,
+   "contrast_unaided": 6.72,
+   "short_of_target": false,
+   "below_gate": false,
+   "shown": true,
+   "mark_contrast": 4.84
+  },
+  "box": [
+   180,
+   92,
+   722,
+   132
+  ],
+  "s": 3.23
+ },
+ {
+  "run": "gol_gumbaz_whispering_gallery_1793278143",
+  "sub": "carousel_fb",
+  "slide": "carousel_slide_02.jpg",
+  "archetype": "colossal_stat",
+  "contrast": 6.5,
+  "unaided": 5.96,
+  "halo": 0.16,
+  "delivered": 6.9,
+  "mast": {
+   "variant": "dark",
+   "scrim_peak": 0.6,
+   "halo": 0.16,
+   "size": 53.3,
+   "contrast": 6.5,
+   "contrast_whole": 6.73,
+   "contrast_unaided": 5.96,
+   "short_of_target": false,
+   "below_gate": false,
+   "shown": true,
+   "mark_contrast": 4.41
+  },
+  "box": [
+   107,
+   92,
+   649,
+   132
+  ],
+  "s": 2.26
+ },
+ {
+  "run": "gol_gumbaz_whispering_gallery_1793278143",
+  "sub": "carousel_fb",
+  "slide": "carousel_slide_03.jpg",
+  "archetype": "editorial_split",
+  "contrast": 6.54,
+  "unaided": 6.88,
+  "halo": 0.0,
+  "delivered": 6.95,
+  "mast": {
+   "variant": "dark",
+   "scrim_peak": 0.553,
+   "halo": 0.0,
+   "size": 53.3,
+   "contrast": 6.54,
+   "contrast_whole": 6.88,
+   "contrast_unaided": 6.88,
+   "short_of_target": false,
+   "below_gate": false,
+   "shown": true,
+   "mark_contrast": 5.19
+  },
+  "box": [
+   107,
+   92,
+   649,
+   132
+  ],
+  "s": 2.98
+ },
+ {
+  "run": "gol_gumbaz_whispering_gallery_1793278143",
+  "sub": "carousel_fb",
+  "slide": "carousel_slide_04.jpg",
+  "archetype": "immersive",
+  "contrast": 6.5,
+  "unaided": 6.75,
+  "halo": 0.0,
+  "delivered": 6.77,
+  "mast": {
+   "variant": "dark",
+   "scrim_peak": 0.185,
+   "halo": 0.0,
+   "size": 53.3,
+   "contrast": 6.5,
+   "contrast_whole": 6.75,
+   "contrast_unaided": 6.75,
+   "short_of_target": false,
+   "below_gate": false,
+   "shown": true,
+   "mark_contrast": 4.84
   },
   "box": [
    107,
@@ -136,22 +331,25 @@
  },
  {
   "run": "gol_gumbaz_whispering_gallery_1793278143",
-  "sub": "carousel",
-  "slide": "carousel_slide_06.jpg",
-  "archetype": "immersive",
-  "contrast": 6.5,
-  "unaided": 6.5,
+  "sub": "carousel_fb",
+  "slide": "carousel_slide_05.jpg",
+  "archetype": "editorial_split",
+  "contrast": 6.55,
+  "unaided": 6.8,
   "halo": 0.0,
-  "delivered": 6.59,
+  "delivered": 6.93,
   "mast": {
    "variant": "dark",
-   "scrim_peak": 0.427,
+   "scrim_peak": 0.457,
    "halo": 0.0,
    "size": 53.3,
-   "contrast": 6.5,
-   "contrast_unaided": 6.5,
+   "contrast": 6.55,
+   "contrast_whole": 6.8,
+   "contrast_unaided": 6.8,
    "short_of_target": false,
-   "below_gate": false
+   "below_gate": false,
+   "shown": true,
+   "mark_contrast": 5.32
   },
   "box": [
    107,
@@ -159,53 +357,292 @@
    649,
    132
   ],
-  "s": 3.02
- },
- {
-  "run": "gol_gumbaz_whispering_gallery_1793278143",
-  "sub": "carousel",
-  "slide": "carousel_slide_07.jpg",
-  "archetype": "debate",
-  "contrast": 6.68,
-  "unaided": 6.29,
-  "halo": 0.08,
-  "delivered": 6.81,
-  "mast": {
-   "variant": "dark",
-   "scrim_peak": 0.6,
-   "halo": 0.08,
-   "size": 53.3,
-   "contrast": 6.68,
-   "contrast_unaided": 6.29,
-   "short_of_target": false,
-   "below_gate": false
-  },
-  "box": [
-   107,
-   92,
-   649,
-   132
-  ],
-  "s": 2.53
+  "s": 3.05
  },
  {
   "run": "gol_gumbaz_whispering_gallery_1793278143",
   "sub": "carousel_fb",
+  "slide": "carousel_slide_06.jpg",
+  "archetype": "immersive",
+  "contrast": 6.5,
+  "unaided": 7.16,
+  "halo": 0.0,
+  "delivered": 7.26,
+  "mast": {
+   "variant": "dark",
+   "scrim_peak": 0.49,
+   "halo": 0.0,
+   "size": 53.3,
+   "contrast": 6.5,
+   "contrast_whole": 7.16,
+   "contrast_unaided": 7.16,
+   "short_of_target": false,
+   "below_gate": false,
+   "shown": true,
+   "mark_contrast": 5.35
+  },
+  "box": [
+   107,
+   92,
+   649,
+   132
+  ],
+  "s": 2.59
+ },
+ {
+  "run": "gol_gumbaz_whispering_gallery_1793278143",
+  "sub": "carousel_fb",
+  "slide": "carousel_slide_07.jpg",
+  "archetype": "debate",
+  "contrast": 6.51,
+  "unaided": 6.29,
+  "halo": 0.16,
+  "delivered": 7.18,
+  "mast": {
+   "variant": "dark",
+   "scrim_peak": 0.6,
+   "halo": 0.16,
+   "size": 53.3,
+   "contrast": 6.51,
+   "contrast_whole": 7.03,
+   "contrast_unaided": 6.29,
+   "short_of_target": false,
+   "below_gate": false,
+   "shown": true,
+   "mark_contrast": 4.78
+  },
+  "box": [
+   107,
+   92,
+   649,
+   132
+  ],
+  "s": 2.0
+ },
+ {
+  "run": "nazca_lines_runway_paradox_1793247464",
+  "sub": "carousel",
   "slide": "carousel_slide_01.jpg",
   "archetype": "cover",
   "contrast": 6.51,
-  "unaided": 6.51,
+  "unaided": 6.64,
   "halo": 0.0,
-  "delivered": 6.54,
+  "delivered": 6.81,
   "mast": {
    "variant": "dark",
-   "scrim_peak": 0.546,
+   "scrim_peak": 0.572,
    "halo": 0.0,
    "size": 53.3,
    "contrast": 6.51,
-   "contrast_unaided": 6.51,
+   "contrast_whole": 6.64,
+   "contrast_unaided": 6.64,
    "short_of_target": false,
-   "below_gate": false
+   "below_gate": false,
+   "shown": true,
+   "mark_contrast": 10.14
+  },
+  "box": [
+   107,
+   92,
+   649,
+   132
+  ],
+  "s": 3.07
+ },
+ {
+  "run": "nazca_lines_runway_paradox_1793247464",
+  "sub": "carousel",
+  "slide": "carousel_slide_02.jpg",
+  "archetype": "comparison",
+  "contrast": 6.59,
+  "unaided": 6.31,
+  "halo": 0.16,
+  "delivered": 7.45,
+  "mast": {
+   "variant": "dark",
+   "scrim_peak": 0.6,
+   "halo": 0.16,
+   "size": 53.3,
+   "levels_ceiling": 245,
+   "contrast": 6.59,
+   "contrast_whole": 7.18,
+   "contrast_unaided": 6.31,
+   "short_of_target": false,
+   "below_gate": false,
+   "shown": true,
+   "mark_contrast": 5.69
+  },
+  "box": [
+   107,
+   92,
+   649,
+   132
+  ],
+  "s": 2.38
+ },
+ {
+  "run": "nazca_lines_runway_paradox_1793247464",
+  "sub": "carousel",
+  "slide": "carousel_slide_03.jpg",
+  "archetype": "editorial_split",
+  "contrast": 6.85,
+  "unaided": 7.05,
+  "halo": 0.16,
+  "delivered": 8.3,
+  "mast": {
+   "variant": "dark",
+   "scrim_peak": 0.6,
+   "halo": 0.16,
+   "size": 53.3,
+   "contrast": 6.85,
+   "contrast_whole": 7.88,
+   "contrast_unaided": 7.05,
+   "short_of_target": false,
+   "below_gate": false,
+   "shown": true,
+   "mark_contrast": 6.39
+  },
+  "box": [
+   107,
+   92,
+   649,
+   132
+  ],
+  "s": 1.58
+ },
+ {
+  "run": "nazca_lines_runway_paradox_1793247464",
+  "sub": "carousel",
+  "slide": "carousel_slide_04.jpg",
+  "archetype": "immersive",
+  "contrast": null,
+  "unaided": null,
+  "halo": null,
+  "delivered": null,
+  "mast": {
+   "variant": "dark",
+   "scrim_peak": 0.6,
+   "halo": 0.16,
+   "size": 53.3,
+   "contrast": 4.21,
+   "contrast_whole": 6.19,
+   "contrast_unaided": 5.3,
+   "short_of_target": true,
+   "below_gate": true,
+   "shown": false,
+   "reason": "masthead not drawn: its worst local contrast reaches 4.21:1 after every ruled step (scrim peak 0.6, halo 0.16, levels floor 205, light variant), under the 5.5:1 gate"
+  },
+  "box": null,
+  "s": 4.3
+ },
+ {
+  "run": "nazca_lines_runway_paradox_1793247464",
+  "sub": "carousel",
+  "slide": "carousel_slide_05.jpg",
+  "archetype": "editorial_split",
+  "contrast": 5.65,
+  "unaided": 5.25,
+  "halo": 0.16,
+  "delivered": 6.31,
+  "mast": {
+   "variant": "dark",
+   "scrim_peak": 0.6,
+   "halo": 0.16,
+   "size": 53.3,
+   "levels_ceiling": 230,
+   "contrast": 5.65,
+   "contrast_whole": 6.1,
+   "contrast_unaided": 5.25,
+   "short_of_target": true,
+   "below_gate": false,
+   "shown": true,
+   "mark_contrast": 5.99
+  },
+  "box": [
+   107,
+   92,
+   649,
+   132
+  ],
+  "s": 4.38
+ },
+ {
+  "run": "nazca_lines_runway_paradox_1793247464",
+  "sub": "carousel",
+  "slide": "carousel_slide_06.jpg",
+  "archetype": "comparison",
+  "contrast": null,
+  "unaided": null,
+  "halo": null,
+  "delivered": null,
+  "mast": {
+   "variant": "dark",
+   "scrim_peak": 0.6,
+   "halo": 0.16,
+   "size": 53.3,
+   "contrast": 4.08,
+   "contrast_whole": 5.67,
+   "contrast_unaided": 4.94,
+   "short_of_target": true,
+   "below_gate": true,
+   "shown": false,
+   "reason": "masthead not drawn: its worst local contrast reaches 4.08:1 after every ruled step (scrim peak 0.6, halo 0.16, levels floor 205, light variant), under the 5.5:1 gate"
+  },
+  "box": null,
+  "s": 5.1
+ },
+ {
+  "run": "nazca_lines_runway_paradox_1793247464",
+  "sub": "carousel",
+  "slide": "carousel_slide_07.jpg",
+  "archetype": "debate",
+  "contrast": 6.61,
+  "unaided": 8.16,
+  "halo": 0.16,
+  "delivered": 9.36,
+  "mast": {
+   "variant": "dark",
+   "scrim_peak": 0.6,
+   "halo": 0.16,
+   "size": 53.3,
+   "levels_ceiling": 205,
+   "contrast": 6.61,
+   "contrast_whole": 9.01,
+   "contrast_unaided": 8.16,
+   "short_of_target": false,
+   "below_gate": false,
+   "shown": true,
+   "mark_contrast": 6.95
+  },
+  "box": [
+   107,
+   92,
+   649,
+   132
+  ],
+  "s": 5.44
+ },
+ {
+  "run": "nazca_lines_runway_paradox_1793247464",
+  "sub": "carousel_fb",
+  "slide": "carousel_slide_01.jpg",
+  "archetype": "cover",
+  "contrast": 6.52,
+  "unaided": 6.66,
+  "halo": 0.0,
+  "delivered": 6.81,
+  "mast": {
+   "variant": "dark",
+   "scrim_peak": 0.574,
+   "halo": 0.0,
+   "size": 53.3,
+   "contrast": 6.52,
+   "contrast_whole": 6.66,
+   "contrast_unaided": 6.66,
+   "short_of_target": false,
+   "below_gate": false,
+   "shown": true,
+   "mark_contrast": 10.02
   },
   "box": [
    180,
@@ -213,26 +650,30 @@
    722,
    132
   ],
-  "s": 3.9
+  "s": 2.69
  },
  {
-  "run": "gol_gumbaz_whispering_gallery_1793278143",
+  "run": "nazca_lines_runway_paradox_1793247464",
   "sub": "carousel_fb",
   "slide": "carousel_slide_02.jpg",
-  "archetype": "colossal_stat",
-  "contrast": 6.73,
-  "unaided": 5.96,
+  "archetype": "comparison",
+  "contrast": 6.54,
+  "unaided": 6.37,
   "halo": 0.16,
-  "delivered": 6.9,
+  "delivered": 7.48,
   "mast": {
    "variant": "dark",
    "scrim_peak": 0.6,
    "halo": 0.16,
    "size": 53.3,
-   "contrast": 6.73,
-   "contrast_unaided": 5.96,
+   "levels_ceiling": 245,
+   "contrast": 6.54,
+   "contrast_whole": 7.25,
+   "contrast_unaided": 6.37,
    "short_of_target": false,
-   "below_gate": false
+   "below_gate": false,
+   "shown": true,
+   "mark_contrast": 5.68
   },
   "box": [
    107,
@@ -240,26 +681,29 @@
    649,
    132
   ],
-  "s": 4.32
+  "s": 3.45
  },
  {
-  "run": "gol_gumbaz_whispering_gallery_1793278143",
+  "run": "nazca_lines_runway_paradox_1793247464",
   "sub": "carousel_fb",
   "slide": "carousel_slide_03.jpg",
   "archetype": "editorial_split",
-  "contrast": 6.53,
-  "unaided": 6.53,
-  "halo": 0.0,
-  "delivered": 6.59,
+  "contrast": 6.76,
+  "unaided": 7.13,
+  "halo": 0.08,
+  "delivered": 7.89,
   "mast": {
    "variant": "dark",
-   "scrim_peak": 0.52,
-   "halo": 0.0,
+   "scrim_peak": 0.6,
+   "halo": 0.08,
    "size": 53.3,
-   "contrast": 6.53,
-   "contrast_unaided": 6.53,
+   "contrast": 6.76,
+   "contrast_whole": 7.55,
+   "contrast_unaided": 7.13,
    "short_of_target": false,
-   "below_gate": false
+   "below_gate": false,
+   "shown": true,
+   "mark_contrast": 6.41
   },
   "box": [
    107,
@@ -267,26 +711,55 @@
    649,
    132
   ],
-  "s": 4.42
+  "s": 2.28
  },
  {
-  "run": "gol_gumbaz_whispering_gallery_1793278143",
+  "run": "nazca_lines_runway_paradox_1793247464",
   "sub": "carousel_fb",
   "slide": "carousel_slide_04.jpg",
   "archetype": "immersive",
-  "contrast": 6.51,
-  "unaided": 6.51,
-  "halo": 0.0,
-  "delivered": 6.47,
+  "contrast": null,
+  "unaided": null,
+  "halo": null,
+  "delivered": null,
   "mast": {
    "variant": "dark",
-   "scrim_peak": 0.148,
-   "halo": 0.0,
+   "scrim_peak": 0.6,
+   "halo": 0.16,
    "size": 53.3,
-   "contrast": 6.51,
-   "contrast_unaided": 6.51,
-   "short_of_target": false,
-   "below_gate": false
+   "contrast": 4.21,
+   "contrast_whole": 6.19,
+   "contrast_unaided": 5.3,
+   "short_of_target": true,
+   "below_gate": true,
+   "shown": false,
+   "reason": "masthead not drawn: its worst local contrast reaches 4.21:1 after every ruled step (scrim peak 0.6, halo 0.16, levels floor 205, light variant), under the 5.5:1 gate"
+  },
+  "box": null,
+  "s": 5.93
+ },
+ {
+  "run": "nazca_lines_runway_paradox_1793247464",
+  "sub": "carousel_fb",
+  "slide": "carousel_slide_05.jpg",
+  "archetype": "editorial_split",
+  "contrast": 5.57,
+  "unaided": 5.58,
+  "halo": 0.16,
+  "delivered": 6.64,
+  "mast": {
+   "variant": "dark",
+   "scrim_peak": 0.6,
+   "halo": 0.16,
+   "size": 53.3,
+   "levels_ceiling": 220,
+   "contrast": 5.57,
+   "contrast_whole": 6.43,
+   "contrast_unaided": 5.58,
+   "short_of_target": true,
+   "below_gate": false,
+   "shown": true,
+   "mark_contrast": 6.12
   },
   "box": [
    107,
@@ -294,26 +767,334 @@
    649,
    132
   ],
-  "s": 4.65
+  "s": 6.49
  },
  {
-  "run": "gol_gumbaz_whispering_gallery_1793278143",
+  "run": "nazca_lines_runway_paradox_1793247464",
   "sub": "carousel_fb",
-  "slide": "carousel_slide_05.jpg",
-  "archetype": "editorial_split",
-  "contrast": 6.51,
-  "unaided": 6.51,
-  "halo": 0.0,
-  "delivered": 6.66,
+  "slide": "carousel_slide_06.jpg",
+  "archetype": "comparison",
+  "contrast": 5.57,
+  "unaided": 5.5,
+  "halo": 0.16,
+  "delivered": 6.63,
   "mast": {
    "variant": "dark",
-   "scrim_peak": 0.427,
+   "scrim_peak": 0.6,
+   "halo": 0.16,
+   "size": 53.3,
+   "levels_ceiling": 210,
+   "contrast": 5.57,
+   "contrast_whole": 6.41,
+   "contrast_unaided": 5.5,
+   "short_of_target": true,
+   "below_gate": false,
+   "shown": true,
+   "mark_contrast": 6.82
+  },
+  "box": [
+   107,
+   92,
+   649,
+   132
+  ],
+  "s": 7.37
+ },
+ {
+  "run": "nazca_lines_runway_paradox_1793247464",
+  "sub": "carousel_fb",
+  "slide": "carousel_slide_07.jpg",
+  "archetype": "debate",
+  "contrast": 6.61,
+  "unaided": 8.16,
+  "halo": 0.16,
+  "delivered": 9.36,
+  "mast": {
+   "variant": "dark",
+   "scrim_peak": 0.6,
+   "halo": 0.16,
+   "size": 53.3,
+   "levels_ceiling": 205,
+   "contrast": 6.61,
+   "contrast_whole": 9.01,
+   "contrast_unaided": 8.16,
+   "short_of_target": false,
+   "below_gate": false,
+   "shown": true,
+   "mark_contrast": 6.95
+  },
+  "box": [
+   107,
+   92,
+   649,
+   132
+  ],
+  "s": 6.86
+ },
+ {
+  "run": "richat_structure_sahara_eye_1793272675",
+  "sub": "carousel",
+  "slide": "carousel_slide_01.jpg",
+  "archetype": "cover",
+  "contrast": 6.56,
+  "unaided": 9.58,
+  "halo": 0.0,
+  "delivered": 10.29,
+  "mast": {
+   "variant": "dark",
+   "scrim_peak": 0.598,
+   "halo": 0.0,
+   "size": 53.3,
+   "contrast": 6.56,
+   "contrast_whole": 9.58,
+   "contrast_unaided": 9.58,
+   "short_of_target": false,
+   "below_gate": false,
+   "shown": true,
+   "mark_contrast": 7.44
+  },
+  "box": [
+   107,
+   92,
+   649,
+   132
+  ],
+  "s": 5.84
+ },
+ {
+  "run": "richat_structure_sahara_eye_1793272675",
+  "sub": "carousel",
+  "slide": "carousel_slide_02.jpg",
+  "archetype": "immersive",
+  "contrast": 6.52,
+  "unaided": 9.17,
+  "halo": 0.16,
+  "delivered": 10.86,
+  "mast": {
+   "variant": "dark",
+   "scrim_peak": 0.6,
+   "halo": 0.16,
+   "size": 53.3,
+   "levels_ceiling": 205,
+   "contrast": 6.52,
+   "contrast_whole": 10.02,
+   "contrast_unaided": 9.17,
+   "short_of_target": false,
+   "below_gate": false,
+   "shown": true,
+   "mark_contrast": 11.04
+  },
+  "box": [
+   107,
+   92,
+   649,
+   132
+  ],
+  "s": 7.29
+ },
+ {
+  "run": "richat_structure_sahara_eye_1793272675",
+  "sub": "carousel",
+  "slide": "carousel_slide_03.jpg",
+  "archetype": "editorial_split",
+  "contrast": 6.51,
+  "unaided": 6.81,
+  "halo": 0.0,
+  "delivered": 6.93,
+  "mast": {
+   "variant": "dark",
+   "scrim_peak": 0.335,
    "halo": 0.0,
    "size": 53.3,
    "contrast": 6.51,
-   "contrast_unaided": 6.51,
+   "contrast_whole": 6.81,
+   "contrast_unaided": 6.81,
    "short_of_target": false,
-   "below_gate": false
+   "below_gate": false,
+   "shown": true,
+   "mark_contrast": 5.59
+  },
+  "box": [
+   107,
+   92,
+   649,
+   132
+  ],
+  "s": 4.15
+ },
+ {
+  "run": "richat_structure_sahara_eye_1793272675",
+  "sub": "carousel",
+  "slide": "carousel_slide_04.jpg",
+  "archetype": "comparison",
+  "contrast": 6.63,
+  "unaided": 7.01,
+  "halo": 0.16,
+  "delivered": 8.06,
+  "mast": {
+   "variant": "dark",
+   "scrim_peak": 0.6,
+   "halo": 0.16,
+   "size": 53.3,
+   "levels_ceiling": 220,
+   "contrast": 6.63,
+   "contrast_whole": 7.84,
+   "contrast_unaided": 7.01,
+   "short_of_target": false,
+   "below_gate": false,
+   "shown": true,
+   "mark_contrast": 6.02
+  },
+  "box": [
+   107,
+   92,
+   649,
+   132
+  ],
+  "s": 6.57
+ },
+ {
+  "run": "richat_structure_sahara_eye_1793272675",
+  "sub": "carousel",
+  "slide": "carousel_slide_05.jpg",
+  "archetype": "comparison",
+  "contrast": 6.51,
+  "unaided": 10.09,
+  "halo": 0.0,
+  "delivered": 10.6,
+  "mast": {
+   "variant": "dark",
+   "scrim_peak": 0.124,
+   "halo": 0.0,
+   "size": 53.3,
+   "contrast": 6.51,
+   "contrast_whole": 10.09,
+   "contrast_unaided": 10.09,
+   "short_of_target": false,
+   "below_gate": false,
+   "shown": true,
+   "mark_contrast": 10.3
+  },
+  "box": [
+   107,
+   92,
+   649,
+   132
+  ],
+  "s": 5.16
+ },
+ {
+  "run": "richat_structure_sahara_eye_1793272675",
+  "sub": "carousel",
+  "slide": "carousel_slide_06.jpg",
+  "archetype": "immersive",
+  "contrast": 6.5,
+  "unaided": 7.62,
+  "halo": 0.0,
+  "delivered": 7.88,
+  "mast": {
+   "variant": "dark",
+   "scrim_peak": 0.586,
+   "halo": 0.0,
+   "size": 53.3,
+   "contrast": 6.5,
+   "contrast_whole": 7.62,
+   "contrast_unaided": 7.62,
+   "short_of_target": false,
+   "below_gate": false,
+   "shown": true,
+   "mark_contrast": 8.4
+  },
+  "box": [
+   107,
+   92,
+   649,
+   132
+  ],
+  "s": 4.26
+ },
+ {
+  "run": "richat_structure_sahara_eye_1793272675",
+  "sub": "carousel",
+  "slide": "carousel_slide_07.jpg",
+  "archetype": "debate",
+  "contrast": 6.51,
+  "unaided": 7.93,
+  "halo": 0.0,
+  "delivered": 8.24,
+  "mast": {
+   "variant": "dark",
+   "scrim_peak": 0.094,
+   "halo": 0.0,
+   "size": 53.3,
+   "contrast": 6.51,
+   "contrast_whole": 7.93,
+   "contrast_unaided": 7.93,
+   "short_of_target": false,
+   "below_gate": false,
+   "shown": true,
+   "mark_contrast": 11.43
+  },
+  "box": [
+   107,
+   92,
+   649,
+   132
+  ],
+  "s": 4.35
+ },
+ {
+  "run": "richat_structure_sahara_eye_1793272675",
+  "sub": "carousel_fb",
+  "slide": "carousel_slide_01.jpg",
+  "archetype": "cover",
+  "contrast": 6.68,
+  "unaided": 9.14,
+  "halo": 0.08,
+  "delivered": 10.28,
+  "mast": {
+   "variant": "dark",
+   "scrim_peak": 0.6,
+   "halo": 0.08,
+   "size": 53.3,
+   "contrast": 6.68,
+   "contrast_whole": 9.53,
+   "contrast_unaided": 9.14,
+   "short_of_target": false,
+   "below_gate": false,
+   "shown": true,
+   "mark_contrast": 9.5
+  },
+  "box": [
+   180,
+   92,
+   722,
+   132
+  ],
+  "s": 3.33
+ },
+ {
+  "run": "richat_structure_sahara_eye_1793272675",
+  "sub": "carousel_fb",
+  "slide": "carousel_slide_02.jpg",
+  "archetype": "immersive",
+  "contrast": 6.52,
+  "unaided": 9.17,
+  "halo": 0.16,
+  "delivered": 10.86,
+  "mast": {
+   "variant": "dark",
+   "scrim_peak": 0.6,
+   "halo": 0.16,
+   "size": 53.3,
+   "levels_ceiling": 205,
+   "contrast": 6.52,
+   "contrast_whole": 10.02,
+   "contrast_unaided": 9.17,
+   "short_of_target": false,
+   "below_gate": false,
+   "shown": true,
+   "mark_contrast": 11.04
   },
   "box": [
    107,
@@ -324,131 +1105,26 @@
   "s": 4.75
  },
  {
-  "run": "gol_gumbaz_whispering_gallery_1793278143",
+  "run": "richat_structure_sahara_eye_1793272675",
   "sub": "carousel_fb",
-  "slide": "carousel_slide_06.jpg",
-  "archetype": "immersive",
-  "contrast": 6.5,
-  "unaided": 6.5,
-  "halo": 0.0,
-  "delivered": 6.59,
-  "mast": {
-   "variant": "dark",
-   "scrim_peak": 0.427,
-   "halo": 0.0,
-   "size": 53.3,
-   "contrast": 6.5,
-   "contrast_unaided": 6.5,
-   "short_of_target": false,
-   "below_gate": false
-  },
-  "box": [
-   107,
-   92,
-   649,
-   132
-  ],
-  "s": 4.65
- },
- {
-  "run": "gol_gumbaz_whispering_gallery_1793278143",
-  "sub": "carousel_fb",
-  "slide": "carousel_slide_07.jpg",
-  "archetype": "debate",
-  "contrast": 6.68,
-  "unaided": 6.29,
-  "halo": 0.08,
-  "delivered": 6.81,
-  "mast": {
-   "variant": "dark",
-   "scrim_peak": 0.6,
-   "halo": 0.08,
-   "size": 53.3,
-   "contrast": 6.68,
-   "contrast_unaided": 6.29,
-   "short_of_target": false,
-   "below_gate": false
-  },
-  "box": [
-   107,
-   92,
-   649,
-   132
-  ],
-  "s": 3.12
- },
- {
-  "run": "nazca_lines_runway_paradox_1793247464",
-  "sub": "carousel",
-  "slide": "carousel_slide_01.jpg",
-  "archetype": "cover",
-  "contrast": 6.5,
-  "unaided": 6.5,
-  "halo": 0.0,
-  "delivered": 6.64,
-  "mast": {
-   "variant": "dark",
-   "scrim_peak": 0.56,
-   "halo": 0.0,
-   "size": 53.3,
-   "contrast": 6.5,
-   "contrast_unaided": 6.5,
-   "short_of_target": false,
-   "below_gate": false
-  },
-  "box": [
-   107,
-   92,
-   649,
-   132
-  ],
-  "s": 3.92
- },
- {
-  "run": "nazca_lines_runway_paradox_1793247464",
-  "sub": "carousel",
-  "slide": "carousel_slide_02.jpg",
-  "archetype": "comparison",
-  "contrast": 6.91,
-  "unaided": 6.05,
-  "halo": 0.16,
-  "delivered": 7.15,
-  "mast": {
-   "variant": "dark",
-   "scrim_peak": 0.6,
-   "halo": 0.16,
-   "size": 53.3,
-   "contrast": 6.91,
-   "contrast_unaided": 6.05,
-   "short_of_target": false,
-   "below_gate": false
-  },
-  "box": [
-   107,
-   92,
-   649,
-   132
-  ],
-  "s": 3.27
- },
- {
-  "run": "nazca_lines_runway_paradox_1793247464",
-  "sub": "carousel",
   "slide": "carousel_slide_03.jpg",
   "archetype": "editorial_split",
   "contrast": 6.51,
-  "unaided": 6.51,
+  "unaided": 6.73,
   "halo": 0.0,
-  "delivered": 6.85,
+  "delivered": 6.88,
   "mast": {
    "variant": "dark",
-   "scrim_peak": 0.555,
+   "scrim_peak": 0.338,
    "halo": 0.0,
    "size": 53.3,
    "contrast": 6.51,
-   "contrast_unaided": 6.51,
+   "contrast_whole": 6.73,
+   "contrast_unaided": 6.73,
    "short_of_target": false,
-   "below_gate": false
+   "below_gate": false,
+   "shown": true,
+   "mark_contrast": 5.25
   },
   "box": [
    107,
@@ -456,71 +1132,136 @@
    649,
    132
   ],
-  "s": 3.64
+  "s": 2.62
  },
  {
-  "run": "nazca_lines_runway_paradox_1793247464",
-  "sub": "carousel",
+  "run": "richat_structure_sahara_eye_1793272675",
+  "sub": "carousel_fb",
   "slide": "carousel_slide_04.jpg",
-  "archetype": "immersive",
-  "contrast": 6.59,
-  "unaided": 5.68,
-  "halo": 0.16,
-  "delivered": 6.92,
-  "mast": {
-   "variant": "dark",
-   "scrim_peak": 0.6,
-   "halo": 0.16,
-   "size": 53.3,
-   "levels_ceiling": 240,
-   "contrast": 6.59,
-   "contrast_unaided": 5.68,
-   "short_of_target": false,
-   "below_gate": false
-  },
-  "box": [
-   107,
-   92,
-   649,
-   132
-  ],
-  "s": 3.41
- },
- {
-  "run": "nazca_lines_runway_paradox_1793247464",
-  "sub": "carousel",
-  "slide": "carousel_slide_05.jpg",
-  "archetype": "editorial_split",
-  "contrast": 6.53,
-  "unaided": 5.66,
-  "halo": 0.16,
-  "delivered": 6.74,
-  "mast": {
-   "variant": "dark",
-   "scrim_peak": 0.6,
-   "halo": 0.16,
-   "size": 53.3,
-   "levels_ceiling": 215,
-   "contrast": 6.53,
-   "contrast_unaided": 5.66,
-   "short_of_target": false,
-   "below_gate": false
-  },
-  "box": [
-   107,
-   92,
-   649,
-   132
-  ],
-  "s": 4.52
- },
- {
-  "run": "nazca_lines_runway_paradox_1793247464",
-  "sub": "carousel",
-  "slide": "carousel_slide_06.jpg",
   "archetype": "comparison",
-  "contrast": 6.62,
-  "unaided": 5.85,
+  "contrast": 6.52,
+  "unaided": 6.95,
+  "halo": 0.16,
+  "delivered": 8.04,
+  "mast": {
+   "variant": "dark",
+   "scrim_peak": 0.6,
+   "halo": 0.16,
+   "size": 53.3,
+   "levels_ceiling": 225,
+   "contrast": 6.52,
+   "contrast_whole": 7.84,
+   "contrast_unaided": 6.95,
+   "short_of_target": false,
+   "below_gate": false,
+   "shown": true,
+   "mark_contrast": 6.45
+  },
+  "box": [
+   107,
+   92,
+   649,
+   132
+  ],
+  "s": 4.19
+ },
+ {
+  "run": "richat_structure_sahara_eye_1793272675",
+  "sub": "carousel_fb",
+  "slide": "carousel_slide_05.jpg",
+  "archetype": "comparison",
+  "contrast": 6.5,
+  "unaided": 10.73,
+  "halo": 0.0,
+  "delivered": 11.21,
+  "mast": {
+   "variant": "dark",
+   "scrim_peak": 0.323,
+   "halo": 0.0,
+   "size": 53.3,
+   "contrast": 6.5,
+   "contrast_whole": 10.73,
+   "contrast_unaided": 10.73,
+   "short_of_target": false,
+   "below_gate": false,
+   "shown": true,
+   "mark_contrast": 10.13
+  },
+  "box": [
+   107,
+   92,
+   649,
+   132
+  ],
+  "s": 3.35
+ },
+ {
+  "run": "richat_structure_sahara_eye_1793272675",
+  "sub": "carousel_fb",
+  "slide": "carousel_slide_06.jpg",
+  "archetype": "immersive",
+  "contrast": 6.5,
+  "unaided": 7.62,
+  "halo": 0.0,
+  "delivered": 7.88,
+  "mast": {
+   "variant": "dark",
+   "scrim_peak": 0.586,
+   "halo": 0.0,
+   "size": 53.3,
+   "contrast": 6.5,
+   "contrast_whole": 7.62,
+   "contrast_unaided": 7.62,
+   "short_of_target": false,
+   "below_gate": false,
+   "shown": true,
+   "mark_contrast": 8.4
+  },
+  "box": [
+   107,
+   92,
+   649,
+   132
+  ],
+  "s": 3.07
+ },
+ {
+  "run": "richat_structure_sahara_eye_1793272675",
+  "sub": "carousel_fb",
+  "slide": "carousel_slide_07.jpg",
+  "archetype": "debate",
+  "contrast": 6.51,
+  "unaided": 7.93,
+  "halo": 0.0,
+  "delivered": 8.24,
+  "mast": {
+   "variant": "dark",
+   "scrim_peak": 0.094,
+   "halo": 0.0,
+   "size": 53.3,
+   "contrast": 6.51,
+   "contrast_whole": 7.93,
+   "contrast_unaided": 7.93,
+   "short_of_target": false,
+   "below_gate": false,
+   "shown": true,
+   "mark_contrast": 11.43
+  },
+  "box": [
+   107,
+   92,
+   649,
+   132
+  ],
+  "s": 2.72
+ },
+ {
+  "run": "nazca_lines_runway_paradox_1793251266",
+  "sub": "carousel",
+  "slide": "carousel_slide_01.jpg",
+  "archetype": "cover",
+  "contrast": 5.56,
+  "unaided": 5.87,
   "halo": 0.16,
   "delivered": 6.85,
   "mast": {
@@ -528,11 +1269,14 @@
    "scrim_peak": 0.6,
    "halo": 0.16,
    "size": 53.3,
-   "levels_ceiling": 220,
-   "contrast": 6.62,
-   "contrast_unaided": 5.85,
-   "short_of_target": false,
-   "below_gate": false
+   "levels_ceiling": 235,
+   "contrast": 5.56,
+   "contrast_whole": 6.73,
+   "contrast_unaided": 5.87,
+   "short_of_target": true,
+   "below_gate": false,
+   "shown": true,
+   "mark_contrast": 5.22
   },
   "box": [
    107,
@@ -540,817 +1284,208 @@
    649,
    132
   ],
-  "s": 5.13
+  "s": 7.45
  },
  {
-  "run": "nazca_lines_runway_paradox_1793247464",
+  "run": "nazca_lines_runway_paradox_1793251266",
   "sub": "carousel",
-  "slide": "carousel_slide_07.jpg",
-  "archetype": "debate",
-  "contrast": 6.51,
-  "unaided": 6.51,
-  "halo": 0.0,
-  "delivered": 6.84,
-  "mast": {
-   "variant": "dark",
-   "scrim_peak": 0.588,
-   "halo": 0.0,
-   "size": 53.3,
-   "contrast": 6.51,
-   "contrast_unaided": 6.51,
-   "short_of_target": false,
-   "below_gate": false
-  },
-  "box": [
-   107,
-   92,
-   649,
-   132
-  ],
-  "s": 2.53
- },
- {
-  "run": "nazca_lines_runway_paradox_1793247464",
-  "sub": "carousel_fb",
-  "slide": "carousel_slide_01.jpg",
-  "archetype": "cover",
-  "contrast": 6.52,
-  "unaided": 6.52,
-  "halo": 0.0,
-  "delivered": 6.62,
-  "mast": {
-   "variant": "dark",
-   "scrim_peak": 0.562,
-   "halo": 0.0,
-   "size": 53.3,
-   "contrast": 6.52,
-   "contrast_unaided": 6.52,
-   "short_of_target": false,
-   "below_gate": false
-  },
-  "box": [
-   180,
-   92,
-   722,
-   132
-  ],
-  "s": 2.38
- },
- {
-  "run": "nazca_lines_runway_paradox_1793247464",
-  "sub": "carousel_fb",
   "slide": "carousel_slide_02.jpg",
   "archetype": "comparison",
-  "contrast": 6.52,
-  "unaided": 6.11,
-  "halo": 0.08,
-  "delivered": 6.75,
-  "mast": {
-   "variant": "dark",
-   "scrim_peak": 0.6,
-   "halo": 0.08,
-   "size": 53.3,
-   "contrast": 6.52,
-   "contrast_unaided": 6.11,
-   "short_of_target": false,
-   "below_gate": false
-  },
-  "box": [
-   107,
-   92,
-   649,
-   132
-  ],
-  "s": 1.84
- },
- {
-  "run": "nazca_lines_runway_paradox_1793247464",
-  "sub": "carousel_fb",
-  "slide": "carousel_slide_03.jpg",
-  "archetype": "editorial_split",
-  "contrast": 6.52,
-  "unaided": 6.52,
-  "halo": 0.0,
-  "delivered": 6.86,
-  "mast": {
-   "variant": "dark",
-   "scrim_peak": 0.551,
-   "halo": 0.0,
-   "size": 53.3,
-   "contrast": 6.52,
-   "contrast_unaided": 6.52,
-   "short_of_target": false,
-   "below_gate": false
-  },
-  "box": [
-   107,
-   92,
-   649,
-   132
-  ],
-  "s": 2.56
- },
- {
-  "run": "nazca_lines_runway_paradox_1793247464",
-  "sub": "carousel_fb",
-  "slide": "carousel_slide_04.jpg",
-  "archetype": "immersive",
   "contrast": 6.59,
-  "unaided": 5.68,
+  "unaided": 6.31,
   "halo": 0.16,
-  "delivered": 6.92,
-  "mast": {
-   "variant": "dark",
-   "scrim_peak": 0.6,
-   "halo": 0.16,
-   "size": 53.3,
-   "levels_ceiling": 240,
-   "contrast": 6.59,
-   "contrast_unaided": 5.68,
-   "short_of_target": false,
-   "below_gate": false
-  },
-  "box": [
-   107,
-   92,
-   649,
-   132
-  ],
-  "s": 2.34
- },
- {
-  "run": "nazca_lines_runway_paradox_1793247464",
-  "sub": "carousel_fb",
-  "slide": "carousel_slide_05.jpg",
-  "archetype": "editorial_split",
-  "contrast": 6.59,
-  "unaided": 5.74,
-  "halo": 0.16,
-  "delivered": 6.84,
-  "mast": {
-   "variant": "dark",
-   "scrim_peak": 0.6,
-   "halo": 0.16,
-   "size": 53.3,
-   "levels_ceiling": 215,
-   "contrast": 6.59,
-   "contrast_unaided": 5.74,
-   "short_of_target": false,
-   "below_gate": false
-  },
-  "box": [
-   107,
-   92,
-   649,
-   132
-  ],
-  "s": 2.98
- },
- {
-  "run": "nazca_lines_runway_paradox_1793247464",
-  "sub": "carousel_fb",
-  "slide": "carousel_slide_06.jpg",
-  "archetype": "comparison",
-  "contrast": 6.55,
-  "unaided": 5.66,
-  "halo": 0.16,
-  "delivered": 6.81,
-  "mast": {
-   "variant": "dark",
-   "scrim_peak": 0.6,
-   "halo": 0.16,
-   "size": 53.3,
-   "levels_ceiling": 205,
-   "contrast": 6.55,
-   "contrast_unaided": 5.66,
-   "short_of_target": false,
-   "below_gate": false
-  },
-  "box": [
-   107,
-   92,
-   649,
-   132
-  ],
-  "s": 3.78
- },
- {
-  "run": "nazca_lines_runway_paradox_1793247464",
-  "sub": "carousel_fb",
-  "slide": "carousel_slide_07.jpg",
-  "archetype": "debate",
-  "contrast": 6.51,
-  "unaided": 6.51,
-  "halo": 0.0,
-  "delivered": 6.84,
-  "mast": {
-   "variant": "dark",
-   "scrim_peak": 0.588,
-   "halo": 0.0,
-   "size": 53.3,
-   "contrast": 6.51,
-   "contrast_unaided": 6.51,
-   "short_of_target": false,
-   "below_gate": false
-  },
-  "box": [
-   107,
-   92,
-   649,
-   132
-  ],
-  "s": 2.22
- },
- {
-  "run": "richat_structure_sahara_eye_1793272675",
-  "sub": "carousel",
-  "slide": "carousel_slide_01.jpg",
-  "archetype": "cover",
-  "contrast": 6.52,
-  "unaided": 6.52,
-  "halo": 0.0,
-  "delivered": 7.18,
-  "mast": {
-   "variant": "dark",
-   "scrim_peak": 0.312,
-   "halo": 0.0,
-   "size": 53.3,
-   "contrast": 6.52,
-   "contrast_unaided": 6.52,
-   "short_of_target": false,
-   "below_gate": false
-  },
-  "box": [
-   107,
-   92,
-   649,
-   132
-  ],
-  "s": 4.56
- },
- {
-  "run": "richat_structure_sahara_eye_1793272675",
-  "sub": "carousel",
-  "slide": "carousel_slide_02.jpg",
-  "archetype": "immersive",
-  "contrast": 6.52,
-  "unaided": 6.52,
-  "halo": 0.0,
-  "delivered": 7.2,
-  "mast": {
-   "variant": "dark",
-   "scrim_peak": 0.504,
-   "halo": 0.0,
-   "size": 53.3,
-   "contrast": 6.52,
-   "contrast_unaided": 6.52,
-   "short_of_target": false,
-   "below_gate": false
-  },
-  "box": [
-   107,
-   92,
-   649,
-   132
-  ],
-  "s": 4.18
- },
- {
-  "run": "richat_structure_sahara_eye_1793272675",
-  "sub": "carousel",
-  "slide": "carousel_slide_03.jpg",
-  "archetype": "editorial_split",
-  "contrast": 6.5,
-  "unaided": 6.5,
-  "halo": 0.0,
-  "delivered": 6.6,
-  "mast": {
-   "variant": "dark",
-   "scrim_peak": 0.3,
-   "halo": 0.0,
-   "size": 53.3,
-   "contrast": 6.5,
-   "contrast_unaided": 6.5,
-   "short_of_target": false,
-   "below_gate": false
-  },
-  "box": [
-   107,
-   92,
-   649,
-   132
-  ],
-  "s": 4.69
- },
- {
-  "run": "richat_structure_sahara_eye_1793272675",
-  "sub": "carousel",
-  "slide": "carousel_slide_04.jpg",
-  "archetype": "comparison",
-  "contrast": 6.83,
-  "unaided": 6.01,
-  "halo": 0.16,
-  "delivered": 7.03,
-  "mast": {
-   "variant": "dark",
-   "scrim_peak": 0.6,
-   "halo": 0.16,
-   "size": 53.3,
-   "contrast": 6.83,
-   "contrast_unaided": 6.01,
-   "short_of_target": false,
-   "below_gate": false
-  },
-  "box": [
-   107,
-   92,
-   649,
-   132
-  ],
-  "s": 3.47
- },
- {
-  "run": "richat_structure_sahara_eye_1793272675",
-  "sub": "carousel",
-  "slide": "carousel_slide_05.jpg",
-  "archetype": "comparison",
-  "contrast": 9.31,
-  "unaided": 9.31,
-  "halo": 0.0,
-  "delivered": 9.78,
-  "mast": {
-   "variant": "dark",
-   "scrim_peak": 0.0,
-   "halo": 0.0,
-   "size": 53.3,
-   "contrast": 9.31,
-   "contrast_unaided": 9.31,
-   "short_of_target": false,
-   "below_gate": false
-  },
-  "box": [
-   107,
-   92,
-   649,
-   132
-  ],
-  "s": 4.27
- },
- {
-  "run": "richat_structure_sahara_eye_1793272675",
-  "sub": "carousel",
-  "slide": "carousel_slide_06.jpg",
-  "archetype": "immersive",
-  "contrast": 6.5,
-  "unaided": 6.5,
-  "halo": 0.0,
-  "delivered": 6.74,
-  "mast": {
-   "variant": "dark",
-   "scrim_peak": 0.495,
-   "halo": 0.0,
-   "size": 53.3,
-   "contrast": 6.5,
-   "contrast_unaided": 6.5,
-   "short_of_target": false,
-   "below_gate": false
-  },
-  "box": [
-   107,
-   92,
-   649,
-   132
-  ],
-  "s": 3.44
- },
- {
-  "run": "richat_structure_sahara_eye_1793272675",
-  "sub": "carousel",
-  "slide": "carousel_slide_07.jpg",
-  "archetype": "debate",
-  "contrast": 7.34,
-  "unaided": 7.34,
-  "halo": 0.0,
-  "delivered": 7.64,
-  "mast": {
-   "variant": "dark",
-   "scrim_peak": 0.0,
-   "halo": 0.0,
-   "size": 53.3,
-   "contrast": 7.34,
-   "contrast_unaided": 7.34,
-   "short_of_target": false,
-   "below_gate": false
-  },
-  "box": [
-   107,
-   92,
-   649,
-   132
-  ],
-  "s": 3.23
- },
- {
-  "run": "richat_structure_sahara_eye_1793272675",
-  "sub": "carousel_fb",
-  "slide": "carousel_slide_01.jpg",
-  "archetype": "cover",
-  "contrast": 6.5,
-  "unaided": 6.5,
-  "halo": 0.0,
-  "delivered": 7.11,
-  "mast": {
-   "variant": "dark",
-   "scrim_peak": 0.368,
-   "halo": 0.0,
-   "size": 53.3,
-   "contrast": 6.5,
-   "contrast_unaided": 6.5,
-   "short_of_target": false,
-   "below_gate": false
-  },
-  "box": [
-   180,
-   92,
-   722,
-   132
-  ],
-  "s": 4.66
- },
- {
-  "run": "richat_structure_sahara_eye_1793272675",
-  "sub": "carousel_fb",
-  "slide": "carousel_slide_02.jpg",
-  "archetype": "immersive",
-  "contrast": 6.52,
-  "unaided": 6.52,
-  "halo": 0.0,
-  "delivered": 7.2,
-  "mast": {
-   "variant": "dark",
-   "scrim_peak": 0.504,
-   "halo": 0.0,
-   "size": 53.3,
-   "contrast": 6.52,
-   "contrast_unaided": 6.52,
-   "short_of_target": false,
-   "below_gate": false
-  },
-  "box": [
-   107,
-   92,
-   649,
-   132
-  ],
-  "s": 3.66
- },
- {
-  "run": "richat_structure_sahara_eye_1793272675",
-  "sub": "carousel_fb",
-  "slide": "carousel_slide_03.jpg",
-  "archetype": "editorial_split",
-  "contrast": 6.5,
-  "unaided": 6.5,
-  "halo": 0.0,
-  "delivered": 6.6,
-  "mast": {
-   "variant": "dark",
-   "scrim_peak": 0.309,
-   "halo": 0.0,
-   "size": 53.3,
-   "contrast": 6.5,
-   "contrast_unaided": 6.5,
-   "short_of_target": false,
-   "below_gate": false
-  },
-  "box": [
-   107,
-   92,
-   649,
-   132
-  ],
-  "s": 4.78
- },
- {
-  "run": "richat_structure_sahara_eye_1793272675",
-  "sub": "carousel_fb",
-  "slide": "carousel_slide_04.jpg",
-  "archetype": "comparison",
-  "contrast": 6.53,
-  "unaided": 6.12,
-  "halo": 0.08,
-  "delivered": 6.75,
-  "mast": {
-   "variant": "dark",
-   "scrim_peak": 0.6,
-   "halo": 0.08,
-   "size": 53.3,
-   "contrast": 6.53,
-   "contrast_unaided": 6.12,
-   "short_of_target": false,
-   "below_gate": false
-  },
-  "box": [
-   107,
-   92,
-   649,
-   132
-  ],
-  "s": 3.86
- },
- {
-  "run": "richat_structure_sahara_eye_1793272675",
-  "sub": "carousel_fb",
-  "slide": "carousel_slide_05.jpg",
-  "archetype": "comparison",
-  "contrast": 8.55,
-  "unaided": 8.55,
-  "halo": 0.0,
-  "delivered": 9.01,
-  "mast": {
-   "variant": "dark",
-   "scrim_peak": 0.0,
-   "halo": 0.0,
-   "size": 53.3,
-   "contrast": 8.55,
-   "contrast_unaided": 8.55,
-   "short_of_target": false,
-   "below_gate": false
-  },
-  "box": [
-   107,
-   92,
-   649,
-   132
-  ],
-  "s": 4.63
- },
- {
-  "run": "richat_structure_sahara_eye_1793272675",
-  "sub": "carousel_fb",
-  "slide": "carousel_slide_06.jpg",
-  "archetype": "immersive",
-  "contrast": 6.5,
-  "unaided": 6.5,
-  "halo": 0.0,
-  "delivered": 6.74,
-  "mast": {
-   "variant": "dark",
-   "scrim_peak": 0.495,
-   "halo": 0.0,
-   "size": 53.3,
-   "contrast": 6.5,
-   "contrast_unaided": 6.5,
-   "short_of_target": false,
-   "below_gate": false
-  },
-  "box": [
-   107,
-   92,
-   649,
-   132
-  ],
-  "s": 4.08
- },
- {
-  "run": "richat_structure_sahara_eye_1793272675",
-  "sub": "carousel_fb",
-  "slide": "carousel_slide_07.jpg",
-  "archetype": "debate",
-  "contrast": 7.34,
-  "unaided": 7.34,
-  "halo": 0.0,
-  "delivered": 7.64,
-  "mast": {
-   "variant": "dark",
-   "scrim_peak": 0.0,
-   "halo": 0.0,
-   "size": 53.3,
-   "contrast": 7.34,
-   "contrast_unaided": 7.34,
-   "short_of_target": false,
-   "below_gate": false
-  },
-  "box": [
-   107,
-   92,
-   649,
-   132
-  ],
-  "s": 2.48
- },
- {
-  "run": "nazca_lines_runway_paradox_1793251266",
-  "sub": "carousel",
-  "slide": "carousel_slide_01.jpg",
-  "archetype": "cover",
-  "contrast": 6.54,
-  "unaided": 5.75,
-  "halo": 0.16,
-  "delivered": 6.7,
-  "mast": {
-   "variant": "dark",
-   "scrim_peak": 0.6,
-   "halo": 0.16,
-   "size": 53.3,
-   "levels_ceiling": 240,
-   "contrast": 6.54,
-   "contrast_unaided": 5.75,
-   "short_of_target": false,
-   "below_gate": false
-  },
-  "box": [
-   107,
-   92,
-   649,
-   132
-  ],
-  "s": 2.93
- },
- {
-  "run": "nazca_lines_runway_paradox_1793251266",
-  "sub": "carousel",
-  "slide": "carousel_slide_02.jpg",
-  "archetype": "comparison",
-  "contrast": 6.91,
-  "unaided": 6.05,
-  "halo": 0.16,
-  "delivered": 7.15,
-  "mast": {
-   "variant": "dark",
-   "scrim_peak": 0.6,
-   "halo": 0.16,
-   "size": 53.3,
-   "contrast": 6.91,
-   "contrast_unaided": 6.05,
-   "short_of_target": false,
-   "below_gate": false
-  },
-  "box": [
-   107,
-   92,
-   649,
-   132
-  ],
-  "s": 2.26
- },
- {
-  "run": "nazca_lines_runway_paradox_1793251266",
-  "sub": "carousel",
-  "slide": "carousel_slide_03.jpg",
-  "archetype": "editorial_split",
-  "contrast": 6.51,
-  "unaided": 6.51,
-  "halo": 0.0,
-  "delivered": 6.85,
-  "mast": {
-   "variant": "dark",
-   "scrim_peak": 0.555,
-   "halo": 0.0,
-   "size": 53.3,
-   "contrast": 6.51,
-   "contrast_unaided": 6.51,
-   "short_of_target": false,
-   "below_gate": false
-  },
-  "box": [
-   107,
-   92,
-   649,
-   132
-  ],
-  "s": 2.74
- },
- {
-  "run": "nazca_lines_runway_paradox_1793251266",
-  "sub": "carousel",
-  "slide": "carousel_slide_04.jpg",
-  "archetype": "immersive",
-  "contrast": 6.59,
-  "unaided": 5.68,
-  "halo": 0.16,
-  "delivered": 6.92,
-  "mast": {
-   "variant": "dark",
-   "scrim_peak": 0.6,
-   "halo": 0.16,
-   "size": 53.3,
-   "levels_ceiling": 240,
-   "contrast": 6.59,
-   "contrast_unaided": 5.68,
-   "short_of_target": false,
-   "below_gate": false
-  },
-  "box": [
-   107,
-   92,
-   649,
-   132
-  ],
-  "s": 2.12
- },
- {
-  "run": "nazca_lines_runway_paradox_1793251266",
-  "sub": "carousel",
-  "slide": "carousel_slide_05.jpg",
-  "archetype": "editorial_split",
-  "contrast": 6.53,
-  "unaided": 5.66,
-  "halo": 0.16,
-  "delivered": 6.74,
-  "mast": {
-   "variant": "dark",
-   "scrim_peak": 0.6,
-   "halo": 0.16,
-   "size": 53.3,
-   "levels_ceiling": 215,
-   "contrast": 6.53,
-   "contrast_unaided": 5.66,
-   "short_of_target": false,
-   "below_gate": false
-  },
-  "box": [
-   107,
-   92,
-   649,
-   132
-  ],
-  "s": 3.37
- },
- {
-  "run": "nazca_lines_runway_paradox_1793251266",
-  "sub": "carousel",
-  "slide": "carousel_slide_06.jpg",
-  "archetype": "comparison",
-  "contrast": 6.51,
-  "unaided": 6.51,
-  "halo": 0.0,
-  "delivered": 6.85,
-  "mast": {
-   "variant": "dark",
-   "scrim_peak": 0.595,
-   "halo": 0.0,
-   "size": 53.3,
-   "contrast": 6.51,
-   "contrast_unaided": 6.51,
-   "short_of_target": false,
-   "below_gate": false
-  },
-  "box": [
-   107,
-   92,
-   649,
-   132
-  ],
-  "s": 3.92
- },
- {
-  "run": "nazca_lines_runway_paradox_1793251266",
-  "sub": "carousel",
-  "slide": "carousel_slide_07.jpg",
-  "archetype": "debate",
-  "contrast": 6.54,
-  "unaided": 5.75,
-  "halo": 0.16,
-  "delivered": 6.7,
-  "mast": {
-   "variant": "dark",
-   "scrim_peak": 0.6,
-   "halo": 0.16,
-   "size": 53.3,
-   "levels_ceiling": 240,
-   "contrast": 6.54,
-   "contrast_unaided": 5.75,
-   "short_of_target": false,
-   "below_gate": false
-  },
-  "box": [
-   107,
-   92,
-   649,
-   132
-  ],
-  "s": 2.86
- },
- {
-  "run": "nazca_lines_runway_paradox_1793251266",
-  "sub": "carousel_fb",
-  "slide": "carousel_slide_01.jpg",
-  "archetype": "cover",
-  "contrast": 6.55,
-  "unaided": 5.77,
-  "halo": 0.16,
-  "delivered": 6.7,
+  "delivered": 7.45,
   "mast": {
    "variant": "dark",
    "scrim_peak": 0.6,
    "halo": 0.16,
    "size": 53.3,
    "levels_ceiling": 245,
-   "contrast": 6.55,
-   "contrast_unaided": 5.77,
+   "contrast": 6.59,
+   "contrast_whole": 7.18,
+   "contrast_unaided": 6.31,
    "short_of_target": false,
-   "below_gate": false
+   "below_gate": false,
+   "shown": true,
+   "mark_contrast": 5.69
+  },
+  "box": [
+   107,
+   92,
+   649,
+   132
+  ],
+  "s": 3.8
+ },
+ {
+  "run": "nazca_lines_runway_paradox_1793251266",
+  "sub": "carousel",
+  "slide": "carousel_slide_03.jpg",
+  "archetype": "editorial_split",
+  "contrast": 6.85,
+  "unaided": 7.05,
+  "halo": 0.16,
+  "delivered": 8.3,
+  "mast": {
+   "variant": "dark",
+   "scrim_peak": 0.6,
+   "halo": 0.16,
+   "size": 53.3,
+   "contrast": 6.85,
+   "contrast_whole": 7.88,
+   "contrast_unaided": 7.05,
+   "short_of_target": false,
+   "below_gate": false,
+   "shown": true,
+   "mark_contrast": 6.39
+  },
+  "box": [
+   107,
+   92,
+   649,
+   132
+  ],
+  "s": 2.27
+ },
+ {
+  "run": "nazca_lines_runway_paradox_1793251266",
+  "sub": "carousel",
+  "slide": "carousel_slide_04.jpg",
+  "archetype": "immersive",
+  "contrast": null,
+  "unaided": null,
+  "halo": null,
+  "delivered": null,
+  "mast": {
+   "variant": "dark",
+   "scrim_peak": 0.6,
+   "halo": 0.16,
+   "size": 53.3,
+   "contrast": 4.21,
+   "contrast_whole": 6.19,
+   "contrast_unaided": 5.3,
+   "short_of_target": true,
+   "below_gate": true,
+   "shown": false,
+   "reason": "masthead not drawn: its worst local contrast reaches 4.21:1 after every ruled step (scrim peak 0.6, halo 0.16, levels floor 205, light variant), under the 5.5:1 gate"
+  },
+  "box": null,
+  "s": 7.12
+ },
+ {
+  "run": "nazca_lines_runway_paradox_1793251266",
+  "sub": "carousel",
+  "slide": "carousel_slide_05.jpg",
+  "archetype": "editorial_split",
+  "contrast": 5.65,
+  "unaided": 5.25,
+  "halo": 0.16,
+  "delivered": 6.31,
+  "mast": {
+   "variant": "dark",
+   "scrim_peak": 0.6,
+   "halo": 0.16,
+   "size": 53.3,
+   "levels_ceiling": 230,
+   "contrast": 5.65,
+   "contrast_whole": 6.1,
+   "contrast_unaided": 5.25,
+   "short_of_target": true,
+   "below_gate": false,
+   "shown": true,
+   "mark_contrast": 5.99
+  },
+  "box": [
+   107,
+   92,
+   649,
+   132
+  ],
+  "s": 7.47
+ },
+ {
+  "run": "nazca_lines_runway_paradox_1793251266",
+  "sub": "carousel",
+  "slide": "carousel_slide_06.jpg",
+  "archetype": "comparison",
+  "contrast": 6.9,
+  "unaided": 6.57,
+  "halo": 0.16,
+  "delivered": 7.8,
+  "mast": {
+   "variant": "dark",
+   "scrim_peak": 0.6,
+   "halo": 0.16,
+   "size": 53.3,
+   "contrast": 6.9,
+   "contrast_whole": 7.44,
+   "contrast_unaided": 6.57,
+   "short_of_target": false,
+   "below_gate": false,
+   "shown": true,
+   "mark_contrast": 6.03
+  },
+  "box": [
+   107,
+   92,
+   649,
+   132
+  ],
+  "s": 2.63
+ },
+ {
+  "run": "nazca_lines_runway_paradox_1793251266",
+  "sub": "carousel",
+  "slide": "carousel_slide_07.jpg",
+  "archetype": "debate",
+  "contrast": 5.56,
+  "unaided": 5.87,
+  "halo": 0.16,
+  "delivered": 6.85,
+  "mast": {
+   "variant": "dark",
+   "scrim_peak": 0.6,
+   "halo": 0.16,
+   "size": 53.3,
+   "levels_ceiling": 235,
+   "contrast": 5.56,
+   "contrast_whole": 6.73,
+   "contrast_unaided": 5.87,
+   "short_of_target": true,
+   "below_gate": false,
+   "shown": true,
+   "mark_contrast": 5.22
+  },
+  "box": [
+   107,
+   92,
+   649,
+   132
+  ],
+  "s": 6.61
+ },
+ {
+  "run": "nazca_lines_runway_paradox_1793251266",
+  "sub": "carousel_fb",
+  "slide": "carousel_slide_01.jpg",
+  "archetype": "cover",
+  "contrast": 6.56,
+  "unaided": 6.94,
+  "halo": 0.16,
+  "delivered": 7.86,
+  "mast": {
+   "variant": "dark",
+   "scrim_peak": 0.6,
+   "halo": 0.16,
+   "size": 53.3,
+   "levels_ceiling": 205,
+   "contrast": 6.56,
+   "contrast_whole": 7.73,
+   "contrast_unaided": 6.94,
+   "short_of_target": false,
+   "below_gate": false,
+   "shown": true,
+   "mark_contrast": 5.37
   },
   "box": [
    180,
@@ -1358,26 +1493,30 @@
    722,
    132
   ],
-  "s": 2.66
+  "s": 6.9
  },
  {
   "run": "nazca_lines_runway_paradox_1793251266",
   "sub": "carousel_fb",
   "slide": "carousel_slide_02.jpg",
   "archetype": "comparison",
-  "contrast": 6.52,
-  "unaided": 6.11,
-  "halo": 0.08,
-  "delivered": 6.75,
+  "contrast": 6.54,
+  "unaided": 6.37,
+  "halo": 0.16,
+  "delivered": 7.48,
   "mast": {
    "variant": "dark",
    "scrim_peak": 0.6,
-   "halo": 0.08,
+   "halo": 0.16,
    "size": 53.3,
-   "contrast": 6.52,
-   "contrast_unaided": 6.11,
+   "levels_ceiling": 245,
+   "contrast": 6.54,
+   "contrast_whole": 7.25,
+   "contrast_unaided": 6.37,
    "short_of_target": false,
-   "below_gate": false
+   "below_gate": false,
+   "shown": true,
+   "mark_contrast": 5.68
   },
   "box": [
    107,
@@ -1385,26 +1524,29 @@
    649,
    132
   ],
-  "s": 3.28
+  "s": 3.18
  },
  {
   "run": "nazca_lines_runway_paradox_1793251266",
   "sub": "carousel_fb",
   "slide": "carousel_slide_03.jpg",
   "archetype": "editorial_split",
-  "contrast": 6.52,
-  "unaided": 6.52,
-  "halo": 0.0,
-  "delivered": 6.86,
+  "contrast": 6.76,
+  "unaided": 7.13,
+  "halo": 0.08,
+  "delivered": 7.89,
   "mast": {
    "variant": "dark",
-   "scrim_peak": 0.551,
-   "halo": 0.0,
+   "scrim_peak": 0.6,
+   "halo": 0.08,
    "size": 53.3,
-   "contrast": 6.52,
-   "contrast_unaided": 6.52,
+   "contrast": 6.76,
+   "contrast_whole": 7.55,
+   "contrast_unaided": 7.13,
    "short_of_target": false,
-   "below_gate": false
+   "below_gate": false,
+   "shown": true,
+   "mark_contrast": 6.41
   },
   "box": [
    107,
@@ -1412,55 +1554,55 @@
    649,
    132
   ],
-  "s": 3.47
+  "s": 1.86
  },
  {
   "run": "nazca_lines_runway_paradox_1793251266",
   "sub": "carousel_fb",
   "slide": "carousel_slide_04.jpg",
   "archetype": "immersive",
-  "contrast": 6.59,
-  "unaided": 5.68,
-  "halo": 0.16,
-  "delivered": 6.92,
+  "contrast": null,
+  "unaided": null,
+  "halo": null,
+  "delivered": null,
   "mast": {
    "variant": "dark",
    "scrim_peak": 0.6,
    "halo": 0.16,
    "size": 53.3,
-   "levels_ceiling": 240,
-   "contrast": 6.59,
-   "contrast_unaided": 5.68,
-   "short_of_target": false,
-   "below_gate": false
+   "contrast": 4.21,
+   "contrast_whole": 6.19,
+   "contrast_unaided": 5.3,
+   "short_of_target": true,
+   "below_gate": true,
+   "shown": false,
+   "reason": "masthead not drawn: its worst local contrast reaches 4.21:1 after every ruled step (scrim peak 0.6, halo 0.16, levels floor 205, light variant), under the 5.5:1 gate"
   },
-  "box": [
-   107,
-   92,
-   649,
-   132
-  ],
-  "s": 3.32
+  "box": null,
+  "s": 6.28
  },
  {
   "run": "nazca_lines_runway_paradox_1793251266",
   "sub": "carousel_fb",
   "slide": "carousel_slide_05.jpg",
   "archetype": "editorial_split",
-  "contrast": 6.59,
-  "unaided": 5.74,
+  "contrast": 5.57,
+  "unaided": 5.58,
   "halo": 0.16,
-  "delivered": 6.84,
+  "delivered": 6.64,
   "mast": {
    "variant": "dark",
    "scrim_peak": 0.6,
    "halo": 0.16,
    "size": 53.3,
-   "levels_ceiling": 215,
-   "contrast": 6.59,
-   "contrast_unaided": 5.74,
-   "short_of_target": false,
-   "below_gate": false
+   "levels_ceiling": 220,
+   "contrast": 5.57,
+   "contrast_whole": 6.43,
+   "contrast_unaided": 5.58,
+   "short_of_target": true,
+   "below_gate": false,
+   "shown": true,
+   "mark_contrast": 6.12
   },
   "box": [
    107,
@@ -1468,26 +1610,30 @@
    649,
    132
   ],
-  "s": 4.06
+  "s": 6.36
  },
  {
   "run": "nazca_lines_runway_paradox_1793251266",
   "sub": "carousel_fb",
   "slide": "carousel_slide_06.jpg",
   "archetype": "comparison",
-  "contrast": 6.51,
-  "unaided": 6.51,
-  "halo": 0.0,
-  "delivered": 6.88,
+  "contrast": 6.5,
+  "unaided": 7.7,
+  "halo": 0.16,
+  "delivered": 8.93,
   "mast": {
    "variant": "dark",
-   "scrim_peak": 0.586,
-   "halo": 0.0,
+   "scrim_peak": 0.6,
+   "halo": 0.16,
    "size": 53.3,
-   "contrast": 6.51,
-   "contrast_unaided": 6.51,
+   "levels_ceiling": 220,
+   "contrast": 6.5,
+   "contrast_whole": 8.55,
+   "contrast_unaided": 7.7,
    "short_of_target": false,
-   "below_gate": false
+   "below_gate": false,
+   "shown": true,
+   "mark_contrast": 6.72
   },
   "box": [
    107,
@@ -1495,27 +1641,30 @@
    649,
    132
   ],
-  "s": 3.33
+  "s": 5.43
  },
  {
   "run": "nazca_lines_runway_paradox_1793251266",
   "sub": "carousel_fb",
   "slide": "carousel_slide_07.jpg",
   "archetype": "debate",
-  "contrast": 6.54,
-  "unaided": 5.75,
+  "contrast": 5.56,
+  "unaided": 5.87,
   "halo": 0.16,
-  "delivered": 6.7,
+  "delivered": 6.85,
   "mast": {
    "variant": "dark",
    "scrim_peak": 0.6,
    "halo": 0.16,
    "size": 53.3,
-   "levels_ceiling": 240,
-   "contrast": 6.54,
-   "contrast_unaided": 5.75,
-   "short_of_target": false,
-   "below_gate": false
+   "levels_ceiling": 235,
+   "contrast": 5.56,
+   "contrast_whole": 6.73,
+   "contrast_unaided": 5.87,
+   "short_of_target": true,
+   "below_gate": false,
+   "shown": true,
+   "mark_contrast": 5.22
   },
   "box": [
    107,
@@ -1523,6 +1672,6 @@
    649,
    132
   ],
-  "s": 2.65
+  "s": 6.43
  }
 ]

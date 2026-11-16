@@ -24,6 +24,7 @@ it and the bell lands with the follow line at BELL_AT.
 """
 from __future__ import annotations
 
+import logging
 import re
 from collections.abc import Callable
 from itertools import combinations
@@ -37,6 +38,8 @@ from .brand_system import colour_of, ease_out, tok
 from .camera_motion import kenburns
 from .safe_zones import REEL
 from .typography import cap_height, get_font, tracked_width
+
+log = logging.getLogger(__name__)
 
 VARIANT = "plain_v4"     # capsule_v3 until 2026-10-29
 SECONDS = 2.9            # the card's length after the narration
@@ -409,8 +412,8 @@ def _mark(d: ImageDraw.ImageDraw, lay: dict[str, Any], a: float, r_draw: float) 
     r = lay["masthead"]["mark_r"]
     if a > 0:
         diamond = [(cx, cy - r), (cx + r, cy), (cx, cy + r), (cx - r, cy)]
+        d.polygon(diamond, fill=(*brand.GOLD, int(255 * a)))   # the fill first, then the INK edge over it (system)
         d.polygon(diamond, outline=(*brand.INK, int(255 * a)), width=lay["masthead"].get("edge", 3))
-        d.polygon(diamond, fill=(*brand.GOLD, int(255 * a)))
     if r_draw > 0:
         x0, x1 = lay["rule"]
         y = lay["rule_y"]
@@ -453,6 +456,11 @@ def mean_lstar(im: Image.Image) -> float:
     lin = np.where(a <= 0.04045, a / 12.92, ((a + 0.055) / 1.055) ** 2.4)
     y = float((lin @ np.array([0.2126, 0.7152, 0.0722], np.float32)).mean())
     return 116 * y ** (1 / 3) - 16 if y > 216 / 24389 else y * 24389 / 27
+
+
+def kicker_rise(a: float) -> int:
+    """px the end screen's kicker still sits below its rest at entry progress `a` (0-1): motion.rise_s, read now."""
+    return round(tok("motion.rise_s") * (1 - a))
 
 
 def end_screen_extras(width: int = LANDSCAPE_WIDTH) -> dict[str, Any]:
@@ -551,6 +559,14 @@ def frames(last: Image.Image, share: str, stats: dict[str, Any] | None = None, *
     brand_plate = plan_text(rest, lay["masthead_xy"], mast["text"], mast["font"], colour_of("masthead.colour_dark"),
                             "lt", mast["track"], target=tok("contrast.masthead_target"),
                             max_halo=tok("halo.masthead_max"))
+    # The system's masthead gate, judged as src/masthead.py judges it (the worst local window, not the ring's
+    # aggregate) and failing closed: a masthead under it is not drawn, and the record says why.
+    from .masthead import worst_contrast
+    mast_worst = worst_contrast(brand_plate.draw(rest), brand_plate)
+    mast_shown = mast_worst >= tok("contrast.masthead_gate")
+    if not mast_shown:
+        log.warning("End card: masthead not drawn: worst local contrast %.2f:1 under the %.1f:1 gate.", mast_worst,
+                    tok("contrast.masthead_gate"))
     words = _word_xs(lay, width)
     word_plates = [plan_text(rest, (round(x), y), w, lay["share_font"], brand.BONE) for _, _, w, x, y in words]
     follow_plate = (plan_text(rest, (lay["centre_x"], lay["follow_y"]), brand.FOLLOW_LINE, lay["follow_font"], brand.GOLD, "ma", lay["spacing"])
@@ -569,7 +585,8 @@ def frames(last: Image.Image, share: str, stats: dict[str, Any] | None = None, *
         stats.update(dim=dim, box=[round(v, 1) for v in lay["box"]], share_lines=[" ".join(ln) for ln in lay["lines"]],
                      share_size=lay["share_font"].size, follow_size=lay["follow_font"].size if lay["follow"] else None,
                      follow=lay["follow"], safe_width=lay["max_width"], masthead_width=mast["width"],
-                     size=[width, height], seconds=seconds, masthead_top=lay["masthead_top"], text=text)
+                     size=[width, height], seconds=seconds, masthead_top=lay["masthead_top"], text=text,
+                     masthead={"shown": mast_shown, "contrast": round(mast_worst, 2)})
         if landscape:
             stats.update(kicker=KICKER, slot_frames=bool(slot_frames), credits_line=bool(credits),
                          push=LANDSCAPE_PUSH, handoff=text == brand.HANDOFF_LINE,
@@ -578,10 +595,11 @@ def frames(last: Image.Image, share: str, stats: dict[str, Any] | None = None, *
         t = i / FPS
         frame = ground(t)
         a = ease((t - 0.15) / 0.4)
-        frame = brand_plate.draw(frame, a)
+        if mast_shown:
+            frame = brand_plate.draw(frame, a)
         layer = Image.new("RGBA", (width, height), (0, 0, 0, 0))
         d = ImageDraw.Draw(layer)
-        _mark(d, lay, a, ease((t - 0.25) / 0.5))
+        _mark(d, lay, a if mast_shown else 0.0, ease((t - 0.25) / 0.5))
         if extras and slot_frames:   # hairline reservations: fade in after the share line, then hold still
             fa = int(255 * ease((t - share_done - 0.1) / 0.5))
             if fa > 0:
@@ -600,7 +618,7 @@ def frames(last: Image.Image, share: str, stats: dict[str, Any] | None = None, *
         if kicker_plate is not None:
             ka = ease((t - share_done) / 0.5)
             if ka > 0:
-                rise = round(tok("motion.rise_s") * (1 - ka))
+                rise = kicker_rise(ka)
                 frame = kicker_plate.draw(frame, ka, rise)
                 x0r, y0r, x1r, y1r = extras["kicker"]["rule"]
                 rl = Image.new("RGBA", frame.size, (0, 0, 0, 0))

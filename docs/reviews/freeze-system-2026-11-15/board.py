@@ -99,7 +99,7 @@ def row1_specimen(out: Path, dev: Path) -> list[str]:
                 im.paste(ImageOps.fit(hero, (w, height)), (0, 0))
                 base = im.convert("RGBA")
                 base.alpha_composite(Image.new("RGBA", (w * 2 // 3, height),
-                                               (*brand.INK, round(255 * brand_system.tok("plate.held")))), (0, 0))
+                                               (*brand.INK, round(255 * brand_system.SPEC["plate.held"]))), (0, 0))
                 im = base.convert("RGB")
             y = 24
             for role, px in roles.items():
@@ -148,8 +148,9 @@ def row2_masthead(out: Path, dev: Path) -> list[str]:
             drawn, _, rec, _ = masthead.draw(canvas, x0, base, size, reach=base + 6 * size)
             recs[f"{g} | {s}"] = rec
             crop = drawn.crop((0, 0, min(w, round(x0 + masthead.group_width(size) + 120)), round(base + size * 1.6)))
-            tiles.append((f"{g} | {s} | {rec['variant']} {rec['contrast']}:1 scrim {rec['scrim_peak']} halo {rec['halo']}",
-                          crop))
+            state = (f"{rec['variant']} {rec['contrast']}:1 (worst letter) scrim {rec['scrim_peak']} halo {rec['halo']}"
+                     if rec["shown"] else f"NOT DRAWN (fail closed): best {rec['contrast']}:1")
+            tiles.append((f"{g} | {s} | {state}", crop))
             feed = drawn.resize((246, round(246 * drawn.height / w)), Image.LANCZOS)
             tiles.append((f"{g} | {s} @246", feed.resize((feed.width * 4, feed.height * 4), Image.NEAREST)))
     sheet(tiles, out / "row02_masthead", tile_h=300, cols=2)
@@ -219,7 +220,8 @@ def row13_table(out: Path) -> list[str]:
          "eyebrow (group B)", f"same, {brand_system.type_px('kicker', 'wide'):.0f}px (WATCH NEXT)", "covers eyebrow 0.10em (group B)"),
         ("line ends", f"never {len(brand_system.LINE_END_NEVER)} words, last resort {len(brand_system.LINE_END_LAST_RESORT)}",
          "group B", "-", f"cards: never-list = {len(multi_format._DANGLING)}-word union (soft) / hard never-list"),
-        ("shade", f"{t('plate.shade')}", "INK", "INK", "INK (covers, callouts: was pure black)"),
+        ("shade", f"{t('plate.shade')}", "INK", "INK", "INK (callouts; covers' _shade still black: group B)"),
+        ("fail closed", "under the 5.5 gate on any letter: not drawn, recorded", "same", "same", "-"),
         ("eases", ", ".join(brand_system.EASES), "-", "ease_out / ease_in_out", "-"),
     ]
     f = ImageFont.load_default(size=20)

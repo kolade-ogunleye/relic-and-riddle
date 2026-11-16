@@ -42,8 +42,17 @@ for case in fx.load("covers"):
     im.crop((0, 0, 900, 220)).save(keep / f"{case['topic']}.png")
     im.resize((246, 138), Image.LANCZOS).save(keep / f"{case['topic']}_246.png")
     rim, plate, mrec = captured[-1]
-    res.append({"topic": case["topic"], "fill": list(plate.fill), "contrast": plate.contrast, "halo": plate.halo,
-                "delivered_jpeg": plate.measure(im), "delivered_platform": plate.measure(platform_encode(im)),
-                "record": mrec})
+    if plate is None:   # round 2: a masthead under its gate is not drawn (fail closed)
+        res.append({"topic": case["topic"], "shown": False, "record": mrec})
+    else:
+        worst = None
+        try:
+            from src.masthead import worst_contrast
+            worst = worst_contrast(platform_encode(im), plate)
+        except ImportError:
+            pass
+        res.append({"topic": case["topic"], "fill": list(plate.fill), "contrast": plate.contrast, "halo": plate.halo,
+                    "delivered_jpeg": plate.measure(im), "delivered_platform": plate.measure(platform_encode(im)),
+                    "delivered_platform_worst_letter": worst, "record": mrec})
     print(json.dumps(res[-1]), flush=True)
 out.write_text(json.dumps(res, indent=1), encoding="utf-8", newline="\n")

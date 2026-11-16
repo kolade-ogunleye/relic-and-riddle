@@ -306,9 +306,10 @@ TOKEN_PROBES = {   # token -> (an override value, a probe of the renderer that r
     "masthead.track": (0.2, lambda: masthead.group_width(64)),
     "masthead.mark_r": (0.5, lambda: masthead.group_width(64)),
     "masthead.gap": (1.0, lambda: masthead.group_width(64)),
-    "masthead.mark_edge": (0.15, lambda: _masthead_pixels((24, 28, 34))[0]),
+    "masthead.mark_edge": (0.10, lambda: _masthead_pixels((24, 28, 34))[0]),   # <= 0.35 x mark_r (TOKEN_JOINT)
     "masthead.colour_dark": ("GOLD_LIGHT", lambda: _masthead_pixels((24, 28, 34))[0]),
     "masthead.colour_light": ("CORAL", lambda: _masthead_pixels((250, 250, 248))[0]),
+    "masthead.fit_floor": (1.0, lambda: masthead.fit_size(64, 0.9 * masthead.group_width(64))),
     "kicker.weight": (600, _end_screen_kicker),
     "kicker.track": (0.3, _kicker_width),
     "kicker.rule": (2.0, _kicker_width),

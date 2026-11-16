@@ -1380,9 +1380,10 @@ class MultiFormatGenerator:
             _render_state.facebook = prev
         return 1
 
-    def _body(self, d, px, body: str, width: int, max_lines: int, size: float, floor: float):
+    def _body(self, d, px, body: str, width: int, max_lines: int, size: float, floor: float, trial: bool = False):
         """The body in balanced lines of at most BODY_MEASURE characters, not ending on a one-word line where a
-        narrower measure avoids it: (lines, font, shortened). Planned on the design canvas like every fit."""
+        narrower measure avoids it: (lines, font, shortened). Planned on the design canvas like every fit. `trial`:
+        a shortened result is returned as is (not refitted and logged), for a caller that tries again."""
         first = fallback = None
         w = width
         while w >= px(420):
@@ -1397,7 +1398,7 @@ class MultiFormatGenerator:
                 fallback = fallback or got
             w -= px(16)
         chosen = fallback or first
-        if chosen[2]:   # shortened even so: fitted once more at the full measure, logged
+        if chosen[2] and not trial:   # shortened even so: fitted once more at the full measure, logged
             return self._fit_text(d, body, brand.TEXT_FONT, int(size), width, max_lines, int(min(floor, size)), px=px)
         return chosen
 
@@ -1504,8 +1505,15 @@ class MultiFormatGenerator:
             # cycle 0 round 4: on a content slide the body keeps the deck's one body size (TYPE carousel body): the
             # stack's fit scale gives way in the heading, kicker and figure only (the second brand's wider display
             # face had shrunk single bodies to 27-33 design px, a size per slide)
+            # Round 5: nor does its own fit shrink it: a content body that does not set in its lines at the deck size
+            # takes one more line (the layout gives in lines, never in size); only then is it shortened as before.
             b_size = body_spec[0] * (1.0 if facebook_heading else scale)
-            b_lines_, font_b, b_short = self._body(d, px, body, width, b_lines, b_size, body_spec[1])
+            if facebook_heading:
+                b_lines_, font_b, b_short = self._body(d, px, body, width, b_lines, b_size, b_size, trial=True)
+                if b_short:
+                    b_lines_, font_b, b_short = self._body(d, px, body, width, b_lines + 1, b_size, b_size)
+            else:
+                b_lines_, font_b, b_short = self._body(d, px, body, width, b_lines, b_size, body_spec[1])
             step = round(font_b.size * self.BODY_LEADING)
             y += round(font_b.size * 2.0)
             for j, line in enumerate(b_lines_):

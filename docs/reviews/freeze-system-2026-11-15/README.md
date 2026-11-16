@@ -25,6 +25,15 @@ hierarchy > rhythm > ornament.
   windowed rings); under the 5.5 gate after every step, or wider than its room, it FAILS CLOSED (not drawn; the record
   says why, with the best ratio any step reached). The diamond's INK edge is drawn over its gold fill and its
   non-text contrast is recorded (`mark_contrast`, gate 3.0).
+- Known limit (round 4 note, Codex r4): for text with COMBINING marks at zero tracking Pillow's raqm draws the run
+  whole while `glyph_masks` rasterises each glyph alone, so mark positioning can differ slightly (IoU of the union of
+  the shaped masks with the drawn ink 0.909 on the adversary's sample). The judgement partitions the DRAWN ink by those
+  masks (every drawn pixel is judged, taken by the nearest glyph), so nothing drawn escapes it; only the attribution
+  of a mark's pixels to its base glyph can differ. The brand masthead (RELIC & RIDDLE) has no combining marks.
+- Round 5: the mark's contrast is measured on the pixels it actually changed (gold fill vs the ground's darkest,
+  INK edge vs its brightest; a part needs 12 visible pixels) and a masthead whose mark falls under 3:1 is refused;
+  `TOKEN_JOINT` limits interacting tokens (mark_edge <= 0.35 x mark_r). A content body never shrinks on its own: one
+  that does not set in its lines takes a line.
 - Round 4: a glyph is a SHAPED glyph (`font_engine.glyph_masks`: each glyph HarfBuzz placed, rasterised alone at its
   position and advance), never an ink component; every numeric runtime token has a range (`TOKEN_RANGES`, refused
   outside it) and the tests sweep masthead tracking over the whole of it.

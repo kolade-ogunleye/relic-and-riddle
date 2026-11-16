@@ -128,6 +128,8 @@ SYSTEM_TOKENS: Mapping[str, Any] = MappingProxyType({
     "masthead.mark_edge": 0.047,      # em: the diamond's INK outline (3 px at 64)
     "masthead.colour_dark": "BONE",   # the dark-ground variant
     "masthead.colour_light": "INK",   # the light-ground variant (only where bone cannot reach the gate)
+    "masthead.fit_floor": 0.75,       # the fit ladder's floor, a share of the canvas's masthead size (round 5): a
+                                      # longer brand name steps down 2 px at a time to it, then is refused
     # ---- kicker
     "kicker.weight": 800,
     "kicker.track": 0.15,             # em
@@ -149,6 +151,7 @@ TOKEN_RANGES: Mapping[str, tuple[float, float]] = MappingProxyType({
     "masthead.mark_r": (0.15, 0.60),      # em
     "masthead.gap": (0.10, 1.20),         # em
     "masthead.mark_edge": (0.02, 0.20),   # em
+    "masthead.fit_floor": (0.70, 1.0),    # never under 70 % of the canvas's masthead size
     "kicker.weight": (400, 900),
     "kicker.track": (0.0, 0.40),          # em
     "kicker.rule": (0.5, 3.0),            # caps
@@ -157,6 +160,12 @@ TOKEN_RANGES: Mapping[str, tuple[float, float]] = MappingProxyType({
     "motion.back": (0.0, 4.0),
     "motion.rise_s": (0, 40),             # px
 })
+
+# Joint limits where two tokens interact (round 5: the edge at its maximum on the mark at its minimum radius left no gold
+# at all): (token, factor, other) means token <= factor x other. BrandConfig refuses a brand that breaks one.
+TOKEN_JOINT: tuple[tuple[str, float, str], ...] = (
+    ("masthead.mark_edge", 0.35, "masthead.mark_r"),   # the INK edge leaves at least 65 % of the radius as gold fill
+)
 
 # The written system's remaining values: what each group ports its surfaces onto (CYCLE0 build note, section 5). NOT
 # runtime tokens: no renderer reads them yet and a brand cannot override them; each moves into SYSTEM_TOKENS (with its
@@ -305,6 +314,7 @@ SIZE_SITES: Mapping[str, str] = MappingProxyType({
     "design_cards:plan_quote_card": "F",
     "end_card:_follow_plate": "E",
     "end_card:_masthead": "E",
+    "end_card:_masthead.at": "E",
     "end_card:end_screen_extras": "E",
     "end_card:layout": "E",
     "graphics:_fit_title": "A",

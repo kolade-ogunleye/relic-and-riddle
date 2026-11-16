@@ -220,6 +220,33 @@ def render_all(tmp_path) -> None:
             graphics.render_timeline(events, tmp_path / f"t{w}.mp4", width=w, height=h, photo=photo)
     finally:
         graphics._encode = saved
+    # round 5: then-and-now, callouts and the Reel cover / grid tile too (every module in SIZE_SITES is rendered;
+    # test_the_observed_renders_cover_every_surface_module holds the list complete)
+    from src import callouts, then_now
+    from src.visual_engine import VisualEngine
+    rng = np.random.default_rng(2)
+    busy = tmp_path / "busy.jpg"
+    Image.fromarray(rng.integers(150, 240, (70, 40, 3), dtype=np.uint8)).resize((1200, 2100), Image.NEAREST).save(busy)
+    other = tmp_path / "busy2.jpg"
+    Image.fromarray(np.random.default_rng(3).integers(150, 240, (70, 40, 3), dtype=np.uint8)).resize(
+        (1200, 2100), Image.NEAREST).save(other)
+    saved_tn, saved_co = then_now._encode, callouts._encode
+    then_now._encode = callouts._encode = encode
+    try:
+        for w, h in ((1080, 1920), (1920, 1080)):
+            then_now.render(busy, 1925, other, 2019, tmp_path / f"tn{w}.mp4", width=w, height=h)
+        callouts.render(busy, [("stone door recess", 600, 900), ("carved tuff wall", 300, 1000)],
+                        tmp_path / "co.mp4")
+    finally:
+        then_now._encode, callouts._encode = saved_tn, saved_co
+    payload = {"thumbnail": {"eyebrow": "ANCIENT ENGINEERING", "line1": "THE 144-FOOT", "line2": "WHISPERING DOME",
+                             "tagline": "BUILT WITHOUT RINGS"}}
+    for style in ("badge", "minimal"):
+        VisualEngine().generate_thumbnails(busy, payload, tmp_path / f"cover_{style}", style=style, variants=False)
+
+
+def observed_modules(seen) -> list[str]:
+    return sorted({site.split(":")[0] for site, _ in seen if site != "<outside>"})
 
 
 def _off_ladder(seen):
@@ -232,7 +259,18 @@ def _off_ladder(seen):
     return {k: sorted(v) for k, v in sorted(out.items())}
 
 
-def _observe_in_a_fresh_process(tmp_path) -> dict[str, list[float]]:
+_OBSERVATION: dict = {}
+
+
+def _observe_in_a_fresh_process(tmp_path, with_modules: bool = False):
+    """The observation, run once per test session (both tests read it)."""
+    if "result" not in _OBSERVATION:
+        _OBSERVATION["result"] = _run_observation(tmp_path)
+    observed, modules = _OBSERVATION["result"]
+    return (observed, modules) if with_modules else observed
+
+
+def _run_observation(tmp_path):
     """render_all under the observer in a NEW interpreter, so no font any earlier test cached hides its creation."""
     import os
     import subprocess
@@ -242,7 +280,9 @@ def _observe_in_a_fresh_process(tmp_path) -> dict[str, list[float]]:
                          capture_output=True, text=True, timeout=1500, check=False)
     line = next((ln for ln in res.stdout.splitlines() if ln.startswith("OBSERVED=")), None)
     assert line is not None, res.stderr[-3000:]
-    return json.loads(line[len("OBSERVED="):])
+    observed = json.loads(line[len("OBSERVED="):])
+    mods = next(ln for ln in res.stdout.splitlines() if ln.startswith("MODULES="))
+    return observed, json.loads(mods[len("MODULES="):])
 
 
 def test_every_observed_type_size_is_on_the_ladder_or_declared(tmp_path):
@@ -260,6 +300,14 @@ def test_every_observed_type_size_is_on_the_ladder_or_declared(tmp_path):
     declared_sites = set(brand_system.SIZE_SITES) | set(brand_system.RUNTIME_SIZE_SITES)
     assert set(observed) <= declared_sites, sorted(set(observed) - declared_sites)
     assert not set(brand_system.RUNTIME_SIZE_SITES) & set(brand_system.SIZE_SITES)   # each declared once
+
+
+def test_the_observed_renders_cover_every_surface_module(tmp_path):
+    """The render list is complete: every module that declares a size site (SIZE_SITES, RUNTIME_SIZE_SITES) makes at
+    least one font during render_all (round 5: then-and-now had been left out, so its sizes went unobserved)."""
+    _, modules = _observe_in_a_fresh_process(tmp_path, with_modules=True)
+    declared = {site.split(":")[0] for site in list(brand_system.SIZE_SITES) + list(brand_system.RUNTIME_SIZE_SITES)}
+    assert declared <= set(modules), sorted(declared - set(modules))
 
 
 def test_the_observer_sees_an_alias_a_variant_and_a_wrapper(tmp_path):
@@ -354,3 +402,161 @@ def test_a_content_body_keeps_one_size_through_the_deck(tmp_path, palette, faceb
                                                                   subject="EYE OF THE SAHARA")
             sizes |= {e["px"] for e in lay.elements if e["name"] == "body"}
     assert sizes == {round(brand_system.TYPE["carousel"]["body"], 1)}, sizes
+
+
+# ------------------------------------------------- the mark measured on its drawn pixels; joint token limits (round 5)
+
+def test_interacting_tokens_are_limited_jointly():
+    """The adversary's pair (mark_r 0.15 with mark_edge 0.20, each inside its own range) erased the diamond: refused."""
+    with pytest.raises(ValueError, match="interact"):
+        brand.DEFAULT_BRAND.derive("erased mark", system={"masthead.mark_r": 0.15, "masthead.mark_edge": 0.20})
+    for key, factor, other in brand_system.TOKEN_JOINT:
+        assert brand_system.SYSTEM_TOKENS[key] <= factor * brand_system.SYSTEM_TOKENS[other]
+
+
+def _mark_grounds():
+    photo = Image.fromarray(np.random.default_rng(5).integers(40, 220, (H // 10, W // 10, 3), dtype=np.uint8)).resize(
+        (W, H), Image.BILINEAR)
+    return {"ink": Image.new("RGB", (W, H), brand.INK), "bone": Image.new("RGB", (W, H), brand.BONE),
+            "gold": Image.new("RGB", (W, H), brand.GOLD), "photo": photo}
+
+
+MARK_LIMITS = []
+for _r in brand_system.TOKEN_RANGES["masthead.mark_r"]:
+    _edge_hi = min(brand_system.TOKEN_RANGES["masthead.mark_edge"][1], 0.35 * _r)
+    for _e in (brand_system.TOKEN_RANGES["masthead.mark_edge"][0], _edge_hi):
+        MARK_LIMITS.append((_r, _e))
+
+
+@pytest.mark.parametrize("mark_r,mark_edge", MARK_LIMITS)
+@pytest.mark.parametrize("ground_name", ["ink", "bone", "gold", "photo"])
+def test_the_mark_is_visible_at_every_token_limit_or_the_masthead_is_refused(mark_r, mark_edge, ground_name):
+    """Every pair of mark tokens at its limits, on INK, bone, gold and a photo: a drawn masthead's mark has visible
+    pixels that meet 3:1 against the ground around it (measured here independently: the pixels the mark changed, gold
+    against the ring's 10th percentile or INK against its 90th); otherwise the masthead is refused with the reason."""
+    import cv2
+    ground = _mark_grounds()[ground_name]
+    b = brand.DEFAULT_BRAND.derive("mark limits", system={"masthead.mark_r": mark_r, "masthead.mark_edge": mark_edge})
+    with brand.use(b):
+        out, _, rec, _ = masthead.draw(ground, X, BASE, SIZE, reach=BASE + 400)
+        if not rec["shown"]:
+            assert "reason" in rec
+            return
+        diamond, spec = masthead.mark_geometry(X, BASE, SIZE)
+        g2, p2, _ = masthead.plan(ground, X, BASE, SIZE, reach=BASE + 400)
+    before = np.asarray(p2.draw(g2.convert("RGB"))).astype(np.int16)
+    after = np.asarray(out.convert("RGB")).astype(np.int16)
+    m = Image.new("L", (W, H))
+    ImageDraw.Draw(m).polygon(diamond, fill=255)
+    gm = (np.asarray(m) > 0).astype(np.uint8)
+    region = cv2.dilate(gm, np.ones((2 * spec["edge"] + 3,) * 2, np.uint8)) > 0
+    changed = region & (np.abs(after - before).max(axis=2) > 8)
+    ring = (cv2.dilate(region.astype(np.uint8), np.ones((21, 21), np.uint8)) > 0) & ~(
+        cv2.dilate(region.astype(np.uint8), np.ones((5, 5), np.uint8)) > 0)
+    lum_bg = _lin(before[ring].astype(np.uint8))
+    lo, hi = float(np.percentile(lum_bg, 10)), float(np.percentile(lum_bg, 90))
+    lum = _lin(after[changed].astype(np.uint8))
+    best = 1.0
+    px_changed = after[changed]
+    gold_like = (np.abs(px_changed - np.array(brand.GOLD)).sum(axis=1)
+                 < np.abs(px_changed - np.array(brand.INK)).sum(axis=1))
+    if gold_like.sum() >= 12:
+        lf = float(np.median(lum[gold_like]))
+        best = max(best, (max(lf, lo) + 0.05) / (min(lf, lo) + 0.05))
+    if (~gold_like).sum() >= 12:
+        le = float(np.median(lum[~gold_like]))
+        best = max(best, (max(le, hi) + 0.05) / (min(le, hi) + 0.05))
+    assert best >= brand_system.tok("contrast.mark") - 0.05, (rec, best)
+
+
+# ------------------------------------------------- one body size in GENERATED decks (round 5)
+
+LONG = " ".join(["The ancient monument contains hidden rooms beneath the hill"] * 3) + "."
+GENERATED_DECKS = [
+    [("immersive", {"heading": "WIDESPREAD MYSTERIOUS DISCOVERIES", "body": "A short body."}),
+     ("immersive", {"heading": "WIDESPREAD MYSTERIOUS DISCOVERIES", "body": LONG})],
+    [("editorial_split", {"heading": "A RING", "body": LONG}),
+     ("comparison", {"heading": "THE EYE OF THE GREAT SAHARA DESERT", "body": "Short."}),
+     ("immersive", {"heading": "WHO", "body": " ".join(["Astronauts used it as a landmark on early missions"] * 2) + "."})],
+    [("immersive", {"heading": "THE EYE", "body": "Short."}),
+     ("immersive", {"heading": "THE EYE", "body": LONG})],
+]
+
+
+# deck 0's 33-letter heading is refused outright by the second brand's wider face (QF-23: refused, never shrunk), so
+# that pair would draw nothing; deck 2 forces the body fit in the second palette instead
+DECK_CASES = [(d, pal, fb) for d in range(len(GENERATED_DECKS)) for pal in ("default", "second") for fb in (False, True)
+              if (d, pal) != (0, "second")]
+
+
+@pytest.mark.parametrize("deck,palette,facebook", DECK_CASES)
+def test_generated_decks_keep_one_body_size(tmp_path, palette, facebook, deck):
+    """Decks whose headings and bodies force the fit (the adversary's two-slide deck drew 48 and 45.3): every content
+    body is drawn at the one carousel body size; a body that does not set in its lines takes a line, not a size."""
+    from src.multi_format import MultiFormatGenerator, _render_state
+    from src.typography import TextFitError
+    photo = tmp_path / "p.jpg"
+    Image.new("RGB", (1600, 2000), (150, 120, 90)).save(photo)
+    cfg = _second_brand() if palette == "second" else brand.DEFAULT_BRAND
+    cards = [c for _, c in GENERATED_DECKS[deck]]
+    archetypes = [a for a, _ in GENERATED_DECKS[deck]]
+    sizes = set()
+    with brand.use(cfg):
+        gen = MultiFormatGenerator()
+        frame = gen._deck_heading_frame(cards, archetypes, facebook)
+        _render_state.heading_frame = frame
+        drawn = 0
+        for i, (arche, card) in enumerate(GENERATED_DECKS[deck], start=1):
+            try:
+                _, lay = gen._render_carousel_slide(arche, photo, photo, card, i, 7, {}, "", facebook,
+                                                    subject="TEST SITE", heading_frame=frame)
+            except TextFitError:   # a heading the brand's face cannot set is refused (QF-23), never shrunk
+                continue
+            drawn += 1
+            sizes |= {e["px"] for e in lay.elements if e["name"] == "body"}
+    assert drawn >= 1
+    assert sizes == {round(brand_system.TYPE["carousel"]["body"], 1)}, sizes
+
+
+# ------------------------------------------------- the masthead's declared fit ladder (round 5, the lander's addition)
+
+def test_the_fit_ladder_is_declared_and_bounded():
+    floor = brand_system.tok("masthead.fit_floor")
+    lo, hi = brand_system.TOKEN_RANGES["masthead.fit_floor"]
+    assert lo <= floor <= hi
+    ladder = masthead.fit_ladder(64)
+    assert ladder[0] == 64 and min(ladder) >= floor * 64 - 1e-9
+    assert all(a - b == pytest.approx(masthead.FIT_STEP) for a, b in __import__("itertools").pairwise(ladder))
+
+
+@pytest.mark.parametrize("name,expect", [("SECOND TEST BRAND", "fit"), ("A MUCH LONGER BRAND NAME THAN EVER FITS", "refused")])
+def test_a_longer_brand_name_steps_down_the_ladder_on_every_surface(name, expect):
+    """One rule on every surface that draws the masthead: the largest ladder size whose group fits the surface's room,
+    never under the floor; below it, refused with the reason. The default name keeps its canvas size (unchanged)."""
+    from src import end_card
+    b = brand.DEFAULT_BRAND.derive("long name", text={"masthead": name})
+    ground = Image.new("RGB", (W, H), brand.INK)
+    with brand.use(b):
+        # "fit": a room narrower than the name at its canvas size; "refused": the carousel's room, far too narrow
+        room = 0.92 * masthead.group_width(SIZE) if expect == "fit" else 0.62 * W
+        _, _, rec = masthead.plan(ground, X, BASE, SIZE, max_width=room)
+        floor = brand_system.tok("masthead.fit_floor") * SIZE
+        if expect == "fit":
+            assert rec["shown"] and floor - 1e-6 <= rec["size_px"] < SIZE and rec["group_width"] <= room
+        else:
+            assert not rec["shown"] and "floor" in rec["reason"]
+        stats: dict = {}
+        old = end_card.SECONDS
+        end_card.SECONDS = 0.2
+        try:
+            list(end_card.frames(Image.new("RGB", (1080, 1920), (60, 60, 60)), "Share this with a friend.", stats))
+        finally:
+            end_card.SECONDS = old
+        m = stats["masthead"]
+        start = brand_system.type_px("masthead", "tall")
+        if expect == "fit":
+            assert m["shown"] and brand_system.tok("masthead.fit_floor") * start - 1e-6 <= m["size"] and m["group_width"] <= m["room"]
+        else:
+            assert not m["shown"] and "reason" in m
+    _, _, rec = masthead.plan(ground, X, BASE, SIZE, max_width=0.62 * W)
+    assert rec["shown"] and rec["size_px"] == SIZE                    # the default name: its canvas size

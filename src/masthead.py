@@ -54,6 +54,25 @@ def font_for(size: float):
     return get_font(brand.MASTHEAD_FONT, size, weight=tok("masthead.weight"))
 
 
+FIT_STEP = 2.0   # px: the masthead's fit ladder steps down by this from its canvas size to its floor
+
+
+def fit_ladder(size: float) -> list[float]:
+    """The masthead's declared fit ladder on a canvas whose masthead size is `size`: `size`, then FIT_STEP px steps
+    down to tok("masthead.fit_floor") x `size` (a token with a declared range, read now)."""
+    floor = tok("masthead.fit_floor") * size
+    steps, s = [], float(size)
+    while s >= floor - 1e-9:
+        steps.append(s)
+        s -= FIT_STEP
+    return steps
+
+
+def fit_size(size: float, room: float) -> float | None:
+    """The largest size on the fit ladder whose group fits `room`; None below the floor (the masthead is refused)."""
+    return next((s for s in fit_ladder(size) if group_width(s) <= room + 1e-9), None)
+
+
 def group_width(size: float) -> float:
     """The masthead's drawn width at `size`: diamond, gap, tracked name."""
     spec = masthead_spec(size)
@@ -207,27 +226,47 @@ def mark_geometry(x0: float, baseline: float, size: float):
     return [(cx, cy - r), (cx + r, cy), (cx, cy + r), (cx - r, cy)], spec
 
 
-def mark_contrast(ground: Image.Image, diamond) -> float | None:
-    """The mark's non-text contrast (WCAG 1.4.11) on `ground` (the pixels before the mark is drawn): the better of its
-    INK edge against the brightest of the ground around it (90th percentile of a 2-10 px ring) and its gold fill
-    against the darkest (10th percentile) of the same ring."""
+MARK_MIN_PX = 12   # a part of the mark (its gold fill, its INK edge) with fewer visible pixels than this does not count
+
+
+def mark_contrast(before: Image.Image, after: Image.Image, diamond, edge: int) -> tuple[float, dict[str, int]]:
+    """The mark's non-text contrast (WCAG 1.4.11) measured on the pixels it ACTUALLY changed (round 5: an edge as wide
+    as the radius left no gold, and an INK edge on an INK ground is no mark at all): (ratio, visible px per part).
+    The changed pixels inside the diamond grown by its edge are split by colour into the gold fill and the INK edge;
+    a part with at least MARK_MIN_PX visible pixels counts: the edge against the brightest of the ground around the
+    mark (90th percentile of a ring 2-10 px out, on `before`), the fill against the darkest (10th). The ratio is the
+    better counting part's, 1.0 when no part is visible."""
     import cv2
     import numpy as np
-    m = Image.new("L", ground.size, 0)
+    m = Image.new("L", before.size, 0)
     ImageDraw.Draw(m).polygon(diamond, fill=255)
     g = (np.asarray(m) > 127).astype(np.uint8)
     if not g.any():
-        return None
-    ring = cv2.dilate(g, np.ones((21, 21), np.uint8)) - cv2.dilate(g, np.ones((5, 5), np.uint8))
-    bg = np.asarray(ground.convert("RGB"))[ring > 0]
+        return 1.0, {"fill": 0, "edge": 0}
+    k = 2 * int(edge) + 3
+    region = cv2.dilate(g, np.ones((k, k), np.uint8)) > 0
+    b = np.asarray(before.convert("RGB")).astype(np.int16)
+    a = np.asarray(after.convert("RGB")).astype(np.int16)
+    changed = region & (np.abs(a - b).max(axis=2) > 8)
+    gold, ink = np.array(brand.GOLD, np.int16), np.array(brand.INK, np.int16)
+    near_gold = np.abs(a - gold).sum(axis=2) < np.abs(a - ink).sum(axis=2)
+    parts = {"fill": changed & near_gold, "edge": changed & ~near_gold}
+    counts = {name: int(mask.sum()) for name, mask in parts.items()}
+    rg = region.astype(np.uint8)
+    ring = (cv2.dilate(rg, np.ones((21, 21), np.uint8)) - cv2.dilate(rg, np.ones((5, 5), np.uint8))) > 0
+    bg = np.asarray(before.convert("RGB"))[ring]
     if len(bg) < 20:
-        return None
+        return 1.0, counts
     lum = _lin(bg)
     hi, lo = float(np.percentile(lum, 90)), float(np.percentile(lum, 10))
-    li, lg = rel_luminance(brand.INK), rel_luminance(brand.GOLD)
-    edge = (max(li, hi) + 0.05) / (min(li, hi) + 0.05)
-    fill = (max(lg, lo) + 0.05) / (min(lg, lo) + 0.05)
-    return round(max(edge, fill), 2)
+    best = 1.0
+    if counts["edge"] >= MARK_MIN_PX:
+        le = float(np.median(_lin(np.asarray(after.convert("RGB"))[parts["edge"]])))
+        best = max(best, (max(le, hi) + 0.05) / (min(le, hi) + 0.05))
+    if counts["fill"] >= MARK_MIN_PX:
+        lf = float(np.median(_lin(np.asarray(after.convert("RGB"))[parts["fill"]])))
+        best = max(best, (max(lf, lo) + 0.05) / (min(lf, lo) + 0.05))
+    return round(best, 2), counts
 
 
 def plan(im: Image.Image, x0: float, baseline: float, size: float, reach: float | None = None,
@@ -241,19 +280,24 @@ def plan(im: Image.Image, x0: float, baseline: float, size: float, reach: float 
     target = tok("contrast.masthead_target") if target is None else target
     gate = tok("contrast.masthead_gate")
     peak_max, halo_max, halo_step = tok("scrim.masthead_peak"), tok("halo.masthead_max"), tok("halo.step")
+    room = (im.width - 2 * x0) if max_width is None else max_width
+    asked = size
+    fitted = fit_size(size, room)          # round 5: the declared fit ladder, never a clip
+    size = fitted if fitted is not None else size
     font = font_for(size)
     spec = masthead_spec(size)
     xy = (x0 + 2 * spec["mark_r"] + spec["gap"], baseline)
     reach = baseline + 6 * cap_height(font) if reach is None else reach
     bone, ink = colour_of("masthead.colour_dark"), colour_of("masthead.colour_light")
     base = im.convert("RGB")
-    room = (im.width - 2 * x0) if max_width is None else max_width
     width = group_width(size)
     rec: dict[str, Any] = {"variant": "dark", "scrim_peak": 0.0, "halo": 0.0, "size": round(float(size), 1),
+                           "size_px": float(size), "size_asked": round(float(asked), 1),
                            "group_width": round(width, 1), "room": round(float(room), 1)}
-    if width > room:   # round 3, finding 7: never clipped silently: refused, with the reason
+    if fitted is None:   # round 3, finding 7: never clipped silently: refused below the fit ladder's floor
         rec.update(shown=False, contrast=None, best_tried=None, short_of_target=True, below_gate=True,
-                   reason=f"masthead not drawn: its group is {width:.1f} px wide, its room {room:.1f} px")
+                   reason=(f"masthead not drawn: its group is {width:.1f} px wide at the fit ladder's floor "
+                           f"({size:.1f} px), its room {room:.1f} px"))
         log.warning("%s", rec["reason"])
         p = plan_text(base, xy, brand.MASTHEAD, font, bone, "ls", spec["track"], target=target, max_halo=0.0)
         return base, p, rec
@@ -345,11 +389,18 @@ def draw(im: Image.Image, x0: float, baseline: float, size: float, reach: float 
     if not rec["shown"]:
         return im, None, rec, None
     out = p.draw(ground.convert("RGB"))
+    size = rec["size_px"]                                     # the size the fit ladder chose
     diamond, spec = mark_geometry(x0, baseline, size)
-    rec["mark_contrast"] = mark_contrast(out, diamond)
+    before = out.copy()
     d = ImageDraw.Draw(out)
     d.polygon(diamond, fill=brand.GOLD)                        # the fill first ...
     d.polygon(diamond, outline=brand.INK, width=spec["edge"])  # ... then the INK edge over it, so it survives
+    rec["mark_contrast"], rec["mark_px"] = mark_contrast(before, out, diamond, spec["edge"])
+    if rec["mark_contrast"] < tok("contrast.mark"):            # fail closed: no masthead with an invisible mark
+        rec.update(shown=False, reason=(f"masthead not drawn: its mark reaches {rec['mark_contrast']:.2f}:1 on its "
+                                        f"visible pixels {rec['mark_px']}, under the {tok('contrast.mark')}:1 mark gate"))
+        log.warning("%s", rec["reason"])
+        return im, None, rec, None
     r = spec["mark_r"]
     cx, cy = diamond[0][0], diamond[1][1]
     bx = p.box

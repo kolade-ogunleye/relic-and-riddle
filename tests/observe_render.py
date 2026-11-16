@@ -16,3 +16,4 @@ work.mkdir(parents=True, exist_ok=True)
 with size_observer.observe() as seen:
     t.render_all(work)
 print("OBSERVED=" + json.dumps(t._off_ladder(seen)))
+print("MODULES=" + json.dumps(t.observed_modules(seen)))

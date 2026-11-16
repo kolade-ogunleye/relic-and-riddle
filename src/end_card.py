@@ -225,14 +225,34 @@ def says_follow(text: str) -> bool:
     return bool(_FOLLOW_WORD.search(text or ""))
 
 
-def _masthead(max_w: int) -> dict[str, Any]:
+def _masthead(max_w: int, room: float | None = None) -> dict[str, Any]:
     """The system's masthead (src/brand_system.py masthead.*: the gold diamond, then the name in tracked masthead
     capitals in bone), at the largest size from the tall canvas's masthead size whose group fits MASTHEAD_W and
-    `max_w` (the end card's brand moment)."""
+    `max_w` (the end card's brand moment). Round 5: where even that size is wider than `room` (a longer brand name),
+    the size steps down the system's fit ladder (masthead.fit_ladder, to tok("masthead.fit_floor") of it); below the
+    floor the group stays too wide and frames() refuses it with its reason."""
     from .brand_system import masthead_spec, type_px
+    from .masthead import fit_ladder
     goal = min(MASTHEAD_W, max_w)
+    start = int(type_px("masthead", "tall"))
+    room = goal if room is None else room
+
+    def at(size):
+        spec = masthead_spec(size)
+        font = get_font(brand.MASTHEAD_FONT, size, weight=spec["weight"])
+        r, gap = round(spec["mark_r"]), round(spec["gap"])
+        group = 2 * r + gap + tracked_width(brand.MASTHEAD, font, spec["track"])
+        return {"text": brand.MASTHEAD, "font": font, "track": spec["track"], "mark_r": r, "gap": gap,
+                "width": round(group), "size": size, "edge": spec["edge"]}
+    first = at(start)
+    if first["width"] > room:
+        for size in fit_ladder(start)[1:]:
+            got = at(round(size))
+            if got["width"] <= room:
+                return got
+        return first
     best = None
-    for size in range(int(type_px("masthead", "tall")), 140):
+    for size in range(start, 140):
         spec = masthead_spec(size)
         font = get_font(brand.MASTHEAD_FONT, size, weight=spec["weight"])
         track = spec["track"]
@@ -272,7 +292,7 @@ def layout(share: str, width: int = WIDTH, height: int = HEIGHT) -> dict[str, An
         max_w = min(END_SCREEN_SLOTS[k][0] for k in END_SCREEN_VIDEO_SLOTS) - END_SCREEN_GAP - x0
         plan = ((1, LANDSCAPE_SHARE_SIZES), (2, LANDSCAPE_SHARE_SIZES), (3, LANDSCAPE_SHARE_SIZES), (4, (48,)),
                 (5, (44, 40, 36)))   # the last step only when the floor (above the subscribe slot) bites
-        m = _masthead(LANDSCAPE_MASTHEAD_W)
+        m = _masthead(LANDSCAPE_MASTHEAD_W, room=max_w)
         top0 = y0 + m["font"].getbbox("R", anchor="lt")[3] + 40 + 70
         floor = END_SCREEN_SLOTS["subscribe"][1] - END_SCREEN_GAP
     else:
@@ -298,7 +318,7 @@ def layout(share: str, width: int = WIDTH, height: int = HEIGHT) -> dict[str, An
                 lines.append([])
             lines[-1].append(w)
     line_h = round(share_font.size * 1.24)
-    mast = _masthead(max_w if not landscape else LANDSCAPE_MASTHEAD_W)
+    mast = _masthead(max_w if not landscape else LANDSCAPE_MASTHEAD_W, room=max_w)
     follow = not landscape and not says_follow(share)
     follow_font = spacing = follow_w = None
     for size in FOLLOW_SIZES:  # the largest follow line that fits the safe width
@@ -568,6 +588,7 @@ def frames(last: Image.Image, share: str, stats: dict[str, Any] | None = None, *
     room = (lay["max_width"] if not landscape else
             END_SCREEN_SLOTS["video"][0] - END_SCREEN_GAP - (lay["masthead_xy"][0] - 2 * mast["mark_r"] - mast["gap"]))
     mast_rec: dict[str, Any] = {"shown": True, "contrast": round(mast_worst, 2), "best_tried": round(mast_worst, 2),
+                                "size": mast["size"],
                                 "group_width": mast["width"], "room": room}
     if mast["width"] > room:
         mast_rec.update(shown=False, reason=f"masthead not drawn: its group is {mast['width']} px wide, its room {room} px")

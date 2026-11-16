@@ -246,7 +246,7 @@ def test_inline_ladders_declared_in_deviations_exist_where_named():
 # scrimmed, so the scrim colour has nothing to colour there)
 MASTHEAD_TOKEN_CASES = [(s, t, v) for s in ("carousel", "facebook", "youtube")
                         for t, v in (("masthead.track", 0.12), ("masthead.mark_r", 0.4), ("masthead.gap", 0.6),
-                                     ("masthead.mark_edge", 0.12), ("masthead.colour_dark", "GOLD_LIGHT"),
+                                     ("masthead.mark_edge", 0.10), ("masthead.colour_dark", "GOLD_LIGHT"),
                                      ("masthead.weight", 400), ("plate.shade", "CORAL"))
                         if (s, t) != ("youtube", "plate.shade")]
 

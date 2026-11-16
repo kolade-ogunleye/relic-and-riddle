@@ -141,6 +141,11 @@ class BrandConfig:
             value = self.system[key]
             if not (isinstance(value, (int, float)) and lo <= value <= hi):
                 raise ValueError(f"brand {self.name!r}: {key} = {value!r} is outside its range {lo}..{hi}")
+        from .brand_system import TOKEN_JOINT
+        for key, factor, other in TOKEN_JOINT:
+            if self.system[key] > factor * self.system[other] + 1e-12:
+                raise ValueError(f"brand {self.name!r}: {key} = {self.system[key]} exceeds {factor} x {other} "
+                                 f"({self.system[other]}): the two interact (src/brand_system.py TOKEN_JOINT)")
         for role in self.palette:
             self.colour(role)
         for role in self.fonts:

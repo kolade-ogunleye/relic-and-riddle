@@ -316,3 +316,41 @@ def test_the_masthead_is_drawn_wherever_either_variant_reaches_the_gate(name):
         assert rec["shown"] and rec["variant"] == "light" and rec["contrast"] >= 10, rec
     if name == "mid_grey_128":       # bone with the scrim on a mid grey
         assert rec["shown"] and rec["variant"] == "dark", rec
+
+
+# ------------------------------------------------- one body size per deck, both palettes (the lander's board finding)
+
+DECK = [("immersive", {"heading": "IMPACT THEORY DISPROVED",
+                       "body": "Initially considered an impact crater, the theory was disproved in 1969."}),
+        ("editorial_split", {"heading": "RINGS OF HARD ROCK",
+                             "body": "Erosion exposed rings of harder and softer rock over a hundred million years."}),
+        ("comparison", {"heading": "EYE OF THE SAHARA",
+                        "body": "Seen from orbit, the structure looks like a target painted on the desert."}),
+        ("immersive", {"heading": "WHO NAMED IT",
+                       "body": "Astronauts on early missions used it as a landmark."})]
+
+
+def _second_brand():
+    import sys
+    sys.path.insert(0, str(ROOT / "docs/reviews/quality-fixes-2026-11/QF-35a"))
+    import render_surfaces
+    return render_surfaces.second_brand(brand)
+
+
+@pytest.mark.parametrize("palette", ["default", "second"])
+@pytest.mark.parametrize("facebook", [False, True])
+def test_a_content_body_keeps_one_size_through_the_deck(tmp_path, palette, facebook):
+    """Within one deck the content slides' body is one size in both palettes: the stack's fit gives way in the heading
+    (a declared deviation), never in the body (the second brand's wider display face had shrunk single bodies to
+    27-33 design px). The cover archetype's dek is the cover's own (rubric CD3: cover, stat and CTA excepted)."""
+    from src.multi_format import MultiFormatGenerator
+    photo = tmp_path / "p.jpg"
+    Image.new("RGB", (1600, 2000), (150, 120, 90)).save(photo)
+    cfg = _second_brand() if palette == "second" else brand.DEFAULT_BRAND
+    sizes = set()
+    with brand.use(cfg):
+        for i, (arche, card) in enumerate(DECK, start=1):
+            _, lay = MultiFormatGenerator()._render_carousel_slide(arche, photo, photo, card, i, 7, {}, "", facebook,
+                                                                  subject="EYE OF THE SAHARA")
+            sizes |= {e["px"] for e in lay.elements if e["name"] == "body"}
+    assert sizes == {round(brand_system.TYPE["carousel"]["body"], 1)}, sizes

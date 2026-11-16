@@ -1501,7 +1501,10 @@ class MultiFormatGenerator:
                          "fill": brand.GOLD if (use_two and j == len(h_lines) - 1) else brand.BONE, "y": y})
         short += ["heading"] if h_short else []
         if body.strip():
-            b_size = body_spec[0] * scale
+            # cycle 0 round 4: on a content slide the body keeps the deck's one body size (TYPE carousel body): the
+            # stack's fit scale gives way in the heading, kicker and figure only (the second brand's wider display
+            # face had shrunk single bodies to 27-33 design px, a size per slide)
+            b_size = body_spec[0] * (1.0 if facebook_heading else scale)
             b_lines_, font_b, b_short = self._body(d, px, body, width, b_lines, b_size, body_spec[1])
             step = round(font_b.size * self.BODY_LEADING)
             y += round(font_b.size * 2.0)

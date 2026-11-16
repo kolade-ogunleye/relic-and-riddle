@@ -1,4 +1,10 @@
+# default palette (bone = masthead.colour_dark, INK = masthead.colour_light)
 aswan 1440 rec False dark 5.28 bone best 5.28 INK best 1.33 | INK ring 2.24 INK glyph 1.36 13 | ground luma p5/p50/p95 50.0 212.0 244.0
 aswan 1920 rec False dark 5.34 bone best 5.34 INK best 1.84 | INK ring 3.97 INK glyph 2.13 13 | ground luma p5/p50/p95 104.0 235.0 245.0
 antikythera 1440 rec False dark 5.42 bone best 5.42 INK best 2.67 | INK ring 3.98 INK glyph 2.68 6 | ground luma p5/p50/p95 110.0 147.0 154.0
 antikythera 1920 rec False dark 5.0 bone best 5.0 INK best 2.7 | INK ring 3.91 INK glyph 3.26 4 | ground luma p5/p50/p95 106.0 135.0 154.0
+# second palette (QF-35a test brand)
+aswan 1440 rec False dark 5.15 bone best 5.15 INK best 1.18 | INK ring 1.68 INK glyph 1.18 14 | ground luma p5/p50/p95 50.0 212.0 244.0
+aswan 1920 rec False dark 5.21 bone best 5.21 INK best 1.23 | INK ring 1.87 INK glyph 1.28 15 | ground luma p5/p50/p95 104.0 235.0 245.0
+antikythera 1440 rec False dark 5.43 bone best 5.43 INK best 2.59 | INK ring 4.04 INK glyph 2.59 5 | ground luma p5/p50/p95 110.0 147.0 154.0
+antikythera 1920 rec False dark 4.8 bone best 4.8 INK best 2.6 | INK ring 3.96 INK glyph 2.6 5 | ground luma p5/p50/p95 106.0 135.0 154.0

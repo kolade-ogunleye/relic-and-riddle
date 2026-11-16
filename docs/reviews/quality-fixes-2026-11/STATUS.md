@@ -179,6 +179,7 @@ QF-45 after it.
 | QF-75 | CI runs the maps and Windows; skip ceiling | todo | | skipped <= 25; Windows job green | QF-75/ | |
 | QF-76 | Deployer installs hashed, no network fallback | todo | | Pester asserts --require-hashes; CI fails if lock != requirements | QF-76/ | |
 | QF-137 | Tests that tick the layout do not race the background photo-set counter (QF-135 shard 6) | done | 3a236b0 | measure.py, each test in a new process, a2ed7fe1 -> this commit: the 3 layout tests that tick twice, alone (cold count) 0 -> 3 of 3 pass; count forced to finish between ticks 0 -> 3 of 3; count still running 3 -> 3 of 3; count state left by an earlier test gone 0 -> 1 of 1; tests only, no skip/xfail/loosened assertion | QF-137/ | tests/test_qf137_photo_count_isolation.py |
+| QF-137b | A test that draws a slide without naming its subject passed only on a subject an earlier test left on the thread (found by QF-135's shards) | done | this commit | test_the_diagram_takes_the_room_of_a_one_line_deck_frame run alone: 2 failed -> 2 passed; CI shard 6 KeyError kicker (run 43792004404) -> rerun; the 35 test files that touch multi_format or its render state, with every test starting and ending on an empty render state: 823 passed, 1 skipped, 0 failed (no other test relied on the leak) | none (test-only) | tests/conftest.py fresh_render_state; tests/test_r3_social_2026_11_02.py |
 
 ### Phase 6 - monetization and niches
 

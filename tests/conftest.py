@@ -255,6 +255,18 @@ def no_repo_writes(monkeypatch, tmp_path_factory):
     monkeypatch.setattr(music, "LIBRARY", library)
 
 
+@pytest.fixture(autouse=True)
+def fresh_render_state():
+    """Every test starts with an empty per-thread slide state (multi_format._render_state: subject, Facebook copy,
+    heading frame). A carousel render leaves its subject on the thread, and a test that drew a slide without naming
+    one passed only when an earlier test on the same worker had left a subject behind; CI's shards split files by
+    test id, so the order no longer supplied it (QF-137b)."""
+    from src import multi_format
+    multi_format._render_state.__dict__.clear()
+    yield
+    multi_format._render_state.__dict__.clear()
+
+
 def pytest_configure(config):
     config.addinivalue_line("markers", "real_unesco: the test reads the real downloaded UNESCO site list (read only)")
 

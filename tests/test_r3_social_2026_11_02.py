@@ -388,12 +388,15 @@ def _diagram(tmp_path, heading, facebook, frame):
     cw, chh = M.CAROUSEL_SIZE
     card = {"heading": heading, "body": "Dug into soft volcanic tuff, roughly 280 feet at its deepest."}
     lay = still_layout.Layout("carousel", (cw, chh), gen._zone(cw, chh))
-    prev = (getattr(_render_state, "facebook", False), getattr(_render_state, "heading_frame", 2))
-    _render_state.facebook, _render_state.heading_frame = facebook, frame
+    prev = (getattr(_render_state, "facebook", False), getattr(_render_state, "heading_frame", 2),
+            getattr(_render_state, "subject", ""))
+    # A carousel slide after the cover always carries its subject (_render_carousel_slide sets it); this test draws
+    # the diagram directly, so it names one itself instead of relying on a subject an earlier test left behind.
+    _render_state.facebook, _render_state.heading_frame, _render_state.subject = facebook, frame, "S"
     try:
         gen._render_diagram(poster, card, 2, cw, chh, lay=lay)
     finally:
-        _render_state.facebook, _render_state.heading_frame = prev
+        _render_state.facebook, _render_state.heading_frame, _render_state.subject = prev
     return lay
 
 

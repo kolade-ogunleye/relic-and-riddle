@@ -1,0 +1,325 @@
+{
+ "changed": [
+  {
+   "src": "catalogue",
+   "case": "wieliczka_salt_mine",
+   "fragments_before": [
+    "tagline",
+    "badge"
+   ],
+   "fragments_after": [],
+   "copy": {
+    "tagline": "327 METERS DOWN",
+    "badge": "327.0 M RECORD"
+   },
+   "before": {
+    "tagline": "DOWN",
+    "badge": "RECORD"
+   },
+   "after": {
+    "tagline": "",
+    "badge": ""
+   }
+  },
+  {
+   "src": "catalogue",
+   "case": "richat_structure_sahara_eye",
+   "fragments_before": [],
+   "fragments_after": [],
+   "copy": {
+    "line1": "THE 25-MILE"
+   },
+   "before": {
+    "line1": ""
+   },
+   "after": {
+    "line1": ""
+   }
+  },
+  {
+   "src": "library",
+   "case": "wieliczka_salt_mine",
+   "fragments_before": [
+    "tagline",
+    "badge"
+   ],
+   "fragments_after": [],
+   "copy": {
+    "tagline": "327 METERS DOWN",
+    "badge": "327.0 M RECORD"
+   },
+   "before": {
+    "tagline": "DOWN",
+    "badge": "RECORD"
+   },
+   "after": {
+    "tagline": "",
+    "badge": ""
+   }
+  },
+  {
+   "src": "dev",
+   "case": "run_amber_room_heist_1792781224",
+   "fragments_before": [
+    "line1"
+   ],
+   "fragments_after": [],
+   "copy": {
+    "line1": "ESTIMATED 6 TONNES"
+   },
+   "before": {
+    "line1": "ESTIMATED"
+   },
+   "after": {
+    "line1": ""
+   }
+  },
+  {
+   "src": "dev",
+   "case": "run_richat_structure_sahara_eye_1792778206",
+   "fragments_before": [],
+   "fragments_after": [],
+   "copy": {
+    "line1": "THE 25-MILE EYE"
+   },
+   "before": {
+    "line1": "THE EYE"
+   },
+   "after": {
+    "line1": "THE EYE"
+   }
+  },
+  {
+   "src": "dev",
+   "case": "run_richat_structure_sahara_eye_1793272675",
+   "fragments_before": [],
+   "fragments_after": [],
+   "copy": {
+    "line1": "THE 25-MILE"
+   },
+   "before": {
+    "line1": ""
+   },
+   "after": {
+    "line1": ""
+   }
+  },
+  {
+   "src": "dev",
+   "case": "run_wieliczka_salt_mine_1792974672",
+   "fragments_before": [
+    "tagline",
+    "badge"
+   ],
+   "fragments_after": [],
+   "copy": {
+    "tagline": "327 METERS DOWN",
+    "badge": "327.0 M RECORD"
+   },
+   "before": {
+    "tagline": "DOWN",
+    "badge": "RECORD"
+   },
+   "after": {
+    "tagline": "",
+    "badge": ""
+   }
+  },
+  {
+   "src": "prod",
+   "case": "prod case 33",
+   "fragments_before": [
+    "tagline",
+    "badge"
+   ],
+   "fragments_after": []
+  },
+  {
+   "src": "prod",
+   "case": "prod case 34",
+   "fragments_before": [
+    "tagline",
+    "badge"
+   ],
+   "fragments_after": []
+  }
+ ],
+ "renders": {
+  "cases": 31,
+  "errors_base": {},
+  "errors_fix": {},
+  "without_withheld_figure": 26,
+  "without_withheld_identical": 26,
+  "without_withheld_differ": [],
+  "drawn_fragments_before": 2,
+  "drawn_fragments_after": 0,
+  "withheld_cases": [
+   {
+    "case": "catalogue/richat_structure_sahara_eye",
+    "files": {
+     "thumbnail_cover.jpg": {
+      "bytes_identical": true,
+      "pixels_identical": true
+     },
+     "thumbnail_profile_grid.jpg": {
+      "bytes_identical": true,
+      "pixels_identical": true
+     },
+     "youtube_thumbnail.jpg": {
+      "bytes_identical": true,
+      "pixels_identical": true
+     }
+    },
+    "drawn_fragments": [],
+    "drawn": {
+     "before": {
+      "eyebrow": "DESERT ANOMALY",
+      "title_2": "SAHARA EYE",
+      "tagline": "CARVED BY NATURE"
+     },
+     "after": {
+      "eyebrow": "DESERT ANOMALY",
+      "title_2": "SAHARA EYE",
+      "tagline": "CARVED BY NATURE"
+     }
+    }
+   },
+   {
+    "case": "catalogue/wieliczka_salt_mine",
+    "files": {
+     "thumbnail_cover.jpg": {
+      "bytes_identical": false,
+      "pixels_identical": false
+     },
+     "thumbnail_profile_grid.jpg": {
+      "bytes_identical": false,
+      "pixels_identical": false
+     },
+     "youtube_thumbnail.jpg": {
+      "bytes_identical": true,
+      "pixels_identical": true
+     }
+    },
+    "drawn_fragments": [
+     {
+      "side": "before",
+      "field": "tagline",
+      "drawn": "DOWN"
+     }
+    ],
+    "drawn": {
+     "before": {
+      "eyebrow": "SUBTERRANEAN MARVEL",
+      "title_1": "CARVED FROM",
+      "title_2": "SOLID SALT",
+      "tagline": "DOWN"
+     },
+     "after": {
+      "eyebrow": "SUBTERRANEAN MARVEL",
+      "title_1": "CARVED FROM",
+      "title_2": "SOLID SALT"
+     }
+    }
+   },
+   {
+    "case": "dev/run_richat_structure_sahara_eye_1792778206",
+    "files": {
+     "thumbnail_cover.jpg": {
+      "bytes_identical": true,
+      "pixels_identical": true
+     },
+     "thumbnail_profile_grid.jpg": {
+      "bytes_identical": true,
+      "pixels_identical": true
+     },
+     "youtube_thumbnail.jpg": {
+      "bytes_identical": true,
+      "pixels_identical": true
+     }
+    },
+    "drawn_fragments": [],
+    "drawn": {
+     "before": {
+      "eyebrow": "DESERT ANOMALY",
+      "title_1": "THE EYE",
+      "title_2": "SEEN FROM SPACE",
+      "tagline": "MAURITANIA’S RINGS"
+     },
+     "after": {
+      "eyebrow": "DESERT ANOMALY",
+      "title_1": "THE EYE",
+      "title_2": "SEEN FROM SPACE",
+      "tagline": "MAURITANIA’S RINGS"
+     }
+    }
+   },
+   {
+    "case": "dev/run_richat_structure_sahara_eye_1793272675",
+    "files": {
+     "thumbnail_cover.jpg": {
+      "bytes_identical": true,
+      "pixels_identical": true
+     },
+     "thumbnail_profile_grid.jpg": {
+      "bytes_identical": true,
+      "pixels_identical": true
+     },
+     "youtube_thumbnail.jpg": {
+      "bytes_identical": true,
+      "pixels_identical": true
+     }
+    },
+    "drawn_fragments": [],
+    "drawn": {
+     "before": {
+      "eyebrow": "DESERT ANOMALY",
+      "title_2": "SAHARA EYE",
+      "tagline": "CARVED BY NATURE"
+     },
+     "after": {
+      "eyebrow": "DESERT ANOMALY",
+      "title_2": "SAHARA EYE",
+      "tagline": "CARVED BY NATURE"
+     }
+    }
+   },
+   {
+    "case": "dev/run_wieliczka_salt_mine_1792974672",
+    "files": {
+     "thumbnail_cover.jpg": {
+      "bytes_identical": false,
+      "pixels_identical": false
+     },
+     "thumbnail_profile_grid.jpg": {
+      "bytes_identical": false,
+      "pixels_identical": false
+     },
+     "youtube_thumbnail.jpg": {
+      "bytes_identical": true,
+      "pixels_identical": true
+     }
+    },
+    "drawn_fragments": [
+     {
+      "side": "before",
+      "field": "tagline",
+      "drawn": "DOWN"
+     }
+    ],
+    "drawn": {
+     "before": {
+      "eyebrow": "SUBTERRANEAN MARVEL",
+      "title_1": "CARVED FROM",
+      "title_2": "SOLID SALT",
+      "tagline": "DOWN"
+     },
+     "after": {
+      "eyebrow": "SUBTERRANEAN MARVEL",
+      "title_1": "CARVED FROM",
+      "title_2": "SOLID SALT"
+     }
+    }
+   }
+  ]
+ }
+}

@@ -872,23 +872,177 @@ def withhold_figure(copy, figure, force=False):
     value = float(str(figure["number"]).rstrip("+").replace(",", ""))
     for key in ("eyebrow", "line1", "line2", "tagline", "badge"):
         text = str(out.get(key) or "")
+        cut = False
         for m in reversed(list(_FIGURE.finditer(text))):
             info = _unit(m.group("unit"))
             if info and _figure_ok(m) and abs(float(m.group("num").replace(",", "")) - value) < 1e-9:
                 start = m.start()
                 q = re.search(r"(?<![\w.])(" + _QUAL + r")\s*$", text[:start], re.IGNORECASE)
-                text = _without(text, (q.start() if q else start, m.end()))
-        out[key] = text
+                stop = m.end()
+                conv = re.match(r"\s*\(([^()]*)\)", text[stop:])
+                if conv and any(_unit(c.group("unit")) and _figure_ok(c) for c in _FIGURE.finditer(conv.group(1))):
+                    stop += conv.end()        # QF-141: "144 FT (44 M)": the figure in another unit goes with it
+                text = _without(text, (q.start() if q else start, stop))
+                cut = True
+        # QF-141: what the figure leaves of its phrase is drawn only when it still says something on its own
+        # ("327 METERS DOWN" left "DOWN" on the cover); a fragment is not drawn (no words are added).
+        out[key] = "" if cut and withheld_fragment(text) else text
     return out
 
 
-def _without(text, span):
-    """`text` with the figure at `span` removed, and the article or punctuation it leaves dangling."""
+# QF-141: the words a field the figure was lifted out of cannot stand on alone. Articles, prepositions and
+# conjunctions (they governed or joined the figure), and the extent, direction and hedge words a measure carries
+# ("DOWN", "ACROSS", "DEEP", "ESTIMATED"): with the number gone they say nothing. Units are found by _unit.
+_ARTICLES = frozenset({"THE", "A", "AN", "ITS", "THEIR"})
+# Words that join something before them to what follows: a remainder that opens on one lost what it joined ("OF
+# SOLID SALT", "THAN ANY CATHEDRAL", "THAT CHANGED HISTORY"). A locative preposition opening a remainder governs what
+# follows it ("BELOW KRAKOW", "ACROSS THE SAHARA") and stands. The README of QF-141 tables every word and its class.
+_JOINERS = frozenset({"OF", "THAN", "AND", "OR", "BUT", "NOR", "AS", "THAT", "WHICH", "WHO", "WHOM", "WHOSE",
+                      "IS", "ARE", "WAS", "WERE", "BE", "BEEN"})
+# Prepositions that need an object after them (none is used as an adverb on its own in a headline): a remainder that
+# ends on one lost it ("DEEPER THAN", "CARVED FROM", "CARVED BY", "BURIED IN"). IN is here although it can be an
+# adverb ("CAVED IN"): a cover line that ends on it after a cut has lost its object far more often (QF-141 review 2).
+_OBJECT_PREPOSITIONS = frozenset({
+    "OF", "TO", "FROM", "WITH", "AT", "BY", "FOR", "IN", "INTO", "ONTO", "UPON", "PER", "VIA", "AMONG", "AMONGST",
+    "BETWEEN", "AMID", "AMIDST", "ATOP", "DURING", "DESPITE", "LIKE", "UNLIKE", "EXCEPT", "AGAINST", "TOWARD",
+    "TOWARDS", "UNTIL", "TILL", "THAN", "UNTO", "VERSUS", "VS", "CONCERNING", "REGARDING", "INCLUDING",
+})
+# Locative or adverbial prepositions: each also stands alone as an adverb ("HIDDEN BELOW", "SEALED INSIDE"), so it
+# stands at either end of a remainder.
+_LOCATIVES = frozenset({
+    "ON", "OVER", "UNDER", "BELOW", "ABOVE", "BENEATH", "UNDERNEATH", "ACROSS", "THROUGH", "AROUND", "BEYOND",
+    "WITHIN", "WITHOUT", "ALONG", "PAST", "NEAR", "BEHIND", "INSIDE", "OUTSIDE", "BEFORE", "AFTER", "SINCE",
+    "OPPOSITE", "ALONGSIDE", "ABOARD", "UP", "DOWN", "OFF", "OUT", "AWAY", "THROUGHOUT", "UNDERGROUND", "AHEAD",
+})
+# A remainder ending on one of these lost the word it needed after it.
+_NEEDS_OBJECT = _ARTICLES | _JOINERS | _OBJECT_PREPOSITIONS
+_PREPOSITIONS = _OBJECT_PREPOSITIONS | _LOCATIVES
+_MEASURE_WORDS = frozenset({
+    "UP", "DOWN", "OFF", "OUT", "AWAY", "DEEP", "DEEPER", "HIGH", "HIGHER", "TALL", "TALLER", "WIDE", "WIDER",
+    "LONG", "LONGER", "OLD", "OLDER", "THICK", "AROUND", "ACROSS", "BELOW", "ABOVE", "BENEATH", "UNDERGROUND",
+    "UNDERWATER", "AHEAD", "BEHIND", "AGO", "LATER", "EARLIER", "DIAMETER", "WIDTH", "DEPTH", "HEIGHT", "LENGTH",
+    "CIRCUMFERENCE", "EXTERNAL", "INTERNAL", "OUTER", "INNER", "ESTIMATED", "EST", "APPROX", "APPROXIMATELY",
+    "ABOUT", "ALMOST", "NEARLY", "ROUGHLY", "CIRCA", "SOME", "MORE", "LESS", "LEAST", "OVER", "UNDER", "ONLY",
+    "JUST", "EXACTLY", "TOTAL", "RECORD",
+})
+
+
+def withheld_fragment(text):
+    """True when `text`, what is left of a field once the hero figure is lifted out of it (withhold_figure), is a
+    fragment and is not drawn (QF-141). Measured on its words (letters, digits, apostrophes), it is a fragment when
+    it has fewer than two words ("DOWN", "RECORD", "ESTIMATED": a word that belonged to the figure's phrase and
+    reads as a stray label alone), or no content word (every word an article, preposition, conjunction, unit,
+    extent/direction or hedge word: "UP TO THE", "METERS DEEP"), or the word that joined or governed the figure
+    is left dangling: it opens on a joiner (OF, THAN, a conjunction, a relative word or a copula: "OF SOLID SALT")
+    or ends on a word that needs an object (an article, a joiner, TO, FROM, WITH, BY, IN...: "DEEPER THAN"). A locative
+    or adverbial preposition stands at either end ("BELOW KRAKOW", "HIDDEN BELOW"), and so does an opening
+    article or possessive ("THE EYE"). Empty text is no fragment (nothing is drawn)."""
     import re
-    out = (text[:span[0]] + text[span[1]:]).strip()
-    out = re.sub(r"^(THE|A|AN)\s*$", "", out.strip(), flags=re.IGNORECASE)
-    out = re.sub(r"^(THE|A|AN)\s+(?=[,.]|$)", "", out, flags=re.IGNORECASE)
-    return re.sub(r"\s{2,}", " ", out).strip(" ,;:-")
+
+    from .typography import _unit
+    words = [w.strip("'").upper() for w in re.findall(r"[^\W_]+(?:'[^\W_]+)*", str(text or ""))]
+    words = [w for w in words if w]
+    if not words:
+        return False
+    if len(words) < 2:
+        return True
+    if words[-1] in _NEEDS_OBJECT or words[0] in _JOINERS:
+        return True
+    function = _ARTICLES | _JOINERS | _PREPOSITIONS
+    return not any(w not in function and w not in _MEASURE_WORDS and not w.isdigit() and not _unit(w)
+                   for w in words)
+
+
+def _dropped_fields(copy, withheld):
+    """{"dropped": [fields]} for the record: the fields withhold_figure left empty (the figure was all of it, or
+    the rest was a fragment, QF-141), so a reader of the record knows the field was withheld, not lost."""
+    dropped = [k for k in ("eyebrow", "line1", "line2", "tagline", "badge")
+               if str(copy.get(k) or "").strip() and not str(withheld.get(k) or "").strip()]
+    return {"dropped": dropped} if dropped else {}
+
+
+_PAIRS = {"(": ")", "[": "]", "{": "}", "“": "”", "‘": "’", "«": "»", '"': '"', "'": "'"}
+_CLOSERS = frozenset(_PAIRS.values())
+_LEAD_MARKS = ".?!,;:…—–-"      # sentence marks and dashes no remainder opens on
+_TRAIL_MARKS = ",;:…—–-"        # marks that introduced a figure: no remainder ends on one
+
+
+def _quote_marks(text, mark):
+    """How many `mark` quotes in `text` are quotes (an apostrophe inside a word, "ROME'S", is not one)."""
+    import re
+    if mark != "'":
+        return text.count(mark)
+    return len(re.findall(r"(?<!\w)'|'(?!\w)", text))
+
+
+def _opens(left):
+    """True when `left` ends on an opening bracket or quote that is still open."""
+    c = left[-1:]
+    if c in ('"', "'"):
+        return _quote_marks(left, c) % 2 == 1 and (len(left) < 2 or not left[-2].isalnum())
+    return bool(c) and c in _PAIRS
+
+
+def _closes(right, left):
+    """True when `right` starts on the closing bracket or quote of a pair opened in `left`."""
+    c = right[:1]
+    if c in ('"', "'"):
+        return _quote_marks(left, c) % 2 == 1 and (len(right) < 2 or not right[1].isalnum())
+    return bool(c) and c in _CLOSERS
+
+
+def _without(text, span):
+    """`text` with the figure at `span` removed, and the article or punctuation it leaves dangling.
+
+    QF-141: what the cut leaves is tidied at its edge, never elsewhere in the field. A pair of brackets or quotes
+    the cut empties goes ("THE MINE (144 FT)" -> "THE MINE"), one it leaves words in closes up at the cut ("(144 FT
+    DEEP)" -> "(DEEP)"); when the figure opened the field, the mark that closed it opens nothing ("144 FT. NO WAY
+    OUT" -> "NO WAY OUT"); when it ended the field, the mark that introduced it ends nothing ("THE DEEPEST - 144 FT"
+    -> "THE DEEPEST"); a mark that followed the figure mid-field closes the words before it ("THE SECRET 144 FT. NO
+    WAY OUT" -> "THE SECRET. NO WAY OUT"); two separating marks the cut brings together are one."""
+    import re
+    left, right = text[:span[0]], text[span[1]:]
+    if not re.match(r"\s*\w", right):
+        # an article right before the figure, with no word after it, was the figure's ("(THE 144 FT)")
+        left = re.sub(r"(?:(?<=[\s(\[{“‘«\"'])|^)(?:THE|A|AN)\s+$", "", left, flags=re.IGNORECASE)
+    while left and right and left[-1] in _PAIRS and right[0] == _PAIRS[left[-1]]:
+        left, right = left[:-1], right[1:]                         # a pair the cut empties
+    if _opens(left):
+        right = right.lstrip()                                     # "( DEEP)" -> "(DEEP)"
+    if _closes(right.lstrip(), left):
+        right = right.lstrip()
+        left = left.rstrip()                                       # "(DEEP )" -> "(DEEP)"
+    start = re.fullmatch(r"[\s" + re.escape(_LEAD_MARKS) + r"]*(?:(?:THE|A|AN)\s*)?", left,
+                         flags=re.IGNORECASE) is not None
+    end = re.fullmatch(r"\s*[.?!]*\s*", right) is not None
+    if start:
+        # "THE 25-MILE EYE" -> "THE EYE"; "THE 144 FT. NO WAY OUT" -> "NO WAY OUT"
+        article = re.sub(r"^[\s" + re.escape(_LEAD_MARKS) + r"]+", "", left).strip()
+        keep = article and re.match(r"\s*\w", right)
+        left = article + " " if keep else ""
+        right = right.lstrip() if keep else re.sub(r"^[\s" + re.escape(_LEAD_MARKS) + r"]+", "", right)
+    if end:
+        tail = right.strip()
+        left = re.sub(r"(?:(?<=\s)|^)(?:THE|A|AN)\s*$", "", left, flags=re.IGNORECASE)   # "THE DEEPEST, THE"
+        left = re.sub(r"[\s" + re.escape(_TRAIL_MARKS) + r"]+$", "", left)
+        if _opens(left):
+            left = re.sub(r"[\s" + re.escape(_TRAIL_MARKS) + r"]+$", "", left[:-1])   # opened, never closed
+        out = left + tail if left else ""
+    elif not left or start:
+        out = left + right
+    else:
+        right = right.lstrip()
+        if left.rstrip()[-1:] and left.rstrip()[-1:] in _TRAIL_MARKS and right[:1] and right[:1] in _TRAIL_MARKS:
+            right = right[1:].lstrip()                             # "A - 144 FT - B" -> "A - B"; "A, 144 FT, B"
+        if right[:1] and right[:1] in ".?!,;:…" or _closes(right, left):
+            out = left.rstrip() + right                            # "THE SECRET. NO WAY OUT"
+        elif _opens(left):
+            out = left + right                                     # "THE MINE (DEEP)"
+        else:
+            out = left.rstrip() + " " + right
+    out = re.sub(r"\s{2,}", " ", out).strip()
+    out = re.sub(r"^(THE|A|AN)\s*$", "", out, flags=re.IGNORECASE)
+    return out.strip(" ,;:-")
 
 
 def _monument(im, copy, lay, tight, source, focus, figure=None):
@@ -1220,7 +1374,8 @@ def render_cover(im, copy, style, center_y=960, lay=None, tight=False, source=No
         withheld = withhold_figure(copy, figure)
         if lay is not None and withheld != dict(copy):
             lay.meta["figure_withheld"] = {"number": figure.get("number"), "unit": figure.get("unit"),
-                                           "reason": figure.get("reason")}
+                                           "reason": figure.get("reason"),
+                                           **_dropped_fields(copy, withheld)}
         copy = withheld
     out = _render(im, copy, style, lay, tight, source, focus, figure)
     if illustration:

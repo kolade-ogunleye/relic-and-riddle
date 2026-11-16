@@ -260,6 +260,7 @@ def _render(source, copy, focus, meta, figure, youtube_title, illustration, targ
         return {"target": t, "halo_px": round(base * (1 + FEED_HALO_GROWTH * steps)), "max_halo": 1.0}
     from .cover_design import (
         _YEAR,
+        _dropped_fields,
         _without,
         drawn_qualifier,
         figure_qualifier,
@@ -279,7 +280,7 @@ def _render(source, copy, focus, meta, figure, youtube_title, illustration, targ
         withheld = withhold_figure(copy, figure)
         if withheld != dict(copy):
             meta["figure_withheld"] = {"number": figure.get("number"), "unit": figure.get("unit"),
-                                       "reason": figure.get("reason")}
+                                       "reason": figure.get("reason"), **_dropped_fields(copy, withheld)}
             if not figure.get("conflict"):
                 meta["figure_declined"] = figure.get("reason") or "the figure's hedge cannot be shown"
         copy = withheld
@@ -289,8 +290,10 @@ def _render(source, copy, focus, meta, figure, youtube_title, illustration, targ
         nonlocal copy
         fig = figure if (figure and figure.get("unit")) else {"number": found_[0], "unit": found_[1]}
         meta["figure_declined"] = why
-        meta["figure_withheld"] = {"number": fig.get("number"), "unit": fig.get("unit"), "reason": why}
-        copy = withhold_figure(copy, fig, force=True)
+        withheld_ = withhold_figure(copy, fig, force=True)
+        meta["figure_withheld"] = {"number": fig.get("number"), "unit": fig.get("unit"), "reason": why,
+                                   **_dropped_fields(copy, withheld_)}
+        copy = withheld_
     photo = _photo(source, focus, meta)
     im = _gradient(photo, edge, meta.get("focus_x"))
     measure = ImageDraw.Draw(im)

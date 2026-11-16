@@ -4,7 +4,7 @@ import subprocess
 from functools import wraps
 from threading import BoundedSemaphore, Lock
 from typing import List, Optional
-from .config import VIDEO_PRESET, VIDEO_CRF
+from .config import VIDEO_CRF, VIDEO_ENCODE_THREADS, VIDEO_PRESET
 
 log = logging.getLogger(__name__)
 
@@ -67,17 +67,27 @@ def to_bt709(colorspace: str | None = None, height: int = 0) -> str:
 # and reviewed its masters and graphic clips from NVENC. Everything that is delivered or judged (masters of every
 # format, the loop bridge's body intermediate, micro-patched masters, graphic, card and callout clips) now takes
 # these explicit arguments, which are exactly what production used: the hardware never chooses them.
+# QF-139: and the same bytes. x264 derives its thread count from the machine's cores unless told, and its output
+# depends on that count, so every libx264 encode (these two, and the footage, motion, parallax, then-and-now and
+# review-proxy clips) passes a fixed count. At a constant quality (CRF) that is X264_THREADS
+# (config.VIDEO_ENCODE_THREADS); x264's other thread-dependent parameters (lookahead threads, sync lookahead) follow
+# from it and sliced threads stay off. A rate-capped encode (-maxrate/-bufsize: the review proxy) is not the same file
+# run to run with several frame threads, even at a fixed count (x264's frame-threaded rate control), so it passes
+# X264_ONE_THREAD.
+X264_THREADS = ["-threads", str(VIDEO_ENCODE_THREADS)]
+X264_ONE_THREAD = ["-threads", "1"]
 
 
 def delivery_video_encoder() -> list[str]:
-    """The encoder for every delivered or judged picture: libx264 at the locked preset and CRF, on every machine."""
-    return ["-c:v", "libx264", "-preset", VIDEO_PRESET, "-crf", str(VIDEO_CRF)]
+    """The encoder for every delivered or judged picture: libx264 at the locked preset, CRF and thread count, on
+    every machine."""
+    return ["-c:v", "libx264", "-preset", VIDEO_PRESET, "-crf", str(VIDEO_CRF), *X264_THREADS]
 
 
 def delivery_intermediate_encoder() -> list[str]:
     """The visually lossless libx264 encoder for an intermediate that a delivered file is made from (the loop
     bridge's body), on every machine."""
-    return ["-c:v", "libx264", "-preset", "veryfast", "-crf", "10"]
+    return ["-c:v", "libx264", "-preset", "veryfast", "-crf", "10", *X264_THREADS]
 
 
 def preview_video_encoder() -> list[str]:

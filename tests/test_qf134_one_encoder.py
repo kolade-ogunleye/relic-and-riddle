@@ -21,6 +21,9 @@ from src import video_composer as vc
 ROOT = Path(__file__).resolve().parents[1]
 PRODUCTION = ["-c:v", "libx264", "-preset", "slow", "-crf", "18"]
 PRODUCTION_INTERMEDIATE = ["-c:v", "libx264", "-preset", "veryfast", "-crf", "10"]
+# QF-139: each delivery encoder also carries x264's fixed thread count (the machine's cores never reach it)
+DELIVERY = [*PRODUCTION, "-threads", "6"]
+DELIVERY_INTERMEDIATE = [*PRODUCTION_INTERMEDIATE, "-threads", "6"]
 HAS_FFMPEG = shutil.which("ffmpeg") is not None and shutil.which("ffprobe") is not None
 
 
@@ -82,8 +85,8 @@ def test_graphic_clip_command_is_the_same_on_both_machines(monkeypatch, tmp_path
 def test_master_and_bridge_encoders_ignore_the_hardware_probe(monkeypatch):
     """The master of every format, the loop bridge's two passes and a micro-patched master."""
     _machine(monkeypatch, nvenc=True)
-    assert vc._get_video_encoder() == PRODUCTION
-    assert vc._get_intermediate_video_encoder() == PRODUCTION_INTERMEDIATE
+    assert vc._get_video_encoder() == DELIVERY
+    assert vc._get_intermediate_video_encoder() == DELIVERY_INTERMEDIATE
 
 
 def test_graphic_cache_key_names_the_production_encoder(monkeypatch, tmp_path):
@@ -107,7 +110,7 @@ def test_graphic_cache_key_names_the_production_encoder(monkeypatch, tmp_path):
     monkeypatch.setattr(checkpoints.Checkpoints, "reusable", reusable)
     monkeypatch.setattr(graphics, "render_timeline", render)
     graphics.make_all({"timeline": [{"year": 100, "label": "First"}]}, {}, tmp_path)
-    assert keys == [PRODUCTION]
+    assert keys == [DELIVERY]
 
 
 def test_splice_encodes_the_patched_master_with_the_production_encoder(monkeypatch, tmp_path):
@@ -143,7 +146,7 @@ def test_scratch_previews_follow_the_setting(monkeypatch):
     assert callable(preview), "no preview encoder separate from delivery"
     _machine(monkeypatch, nvenc=True)
     monkeypatch.setattr(config, "VIDEO_PREVIEW_ENCODER", "production")
-    assert preview() == PRODUCTION
+    assert preview() == DELIVERY
     monkeypatch.setattr(config, "VIDEO_PREVIEW_ENCODER", "fastest")
     assert preview()[1] == "h264_nvenc"
     _machine(monkeypatch, nvenc=False)
@@ -177,7 +180,7 @@ def test_manifest_records_the_encoder_and_its_arguments(monkeypatch, tmp_path):
     manifest = json.loads(out.with_suffix(".composition.json").read_text(encoding="utf-8"))
     record = manifest.get("video_encoder")
     assert record, "the run's manifest does not say which encoder made the master"
-    assert record["master"] == PRODUCTION
+    assert record["master"] == DELIVERY
     assert record["intermediate"] is None            # no loop bridge on this master
     assert record["delivery_args"][:6] == PRODUCTION
     sei = out.read_bytes()[: 8 << 20]

@@ -1,0 +1,65 @@
+{
+  "note": "Windows: real_runs.py fixed encode on 4 processors (development/production ffmpeg 8.1, x264 core 165 r3223 0480cb0). Linux: linux_leg.sh in Ubuntu 24.04 (WSL) with CI's pinned ffmpeg (BtbN n8.1-7-ga3475e2554, its x264 says 'core 165' without a revision), 2 and 1 processors.",
+  "masters": {
+    "1": {
+      "windows (4)": {
+        "file": "4bae703655b085373bc1e0119a45696bc093a7620e2a5269ce9e4a66865ec742",
+        "decoded_picture": "f5c1b50ac4ea7fc379af722959458debd289fe4c2d586a7931e6d22d941c9b67",
+        "video_stream_without_sei": "f507909518998aa5ec8fdb9bff00798dbb5558e86558db02d0ab620c8e0edf7c",
+        "audio_stream": "4321dd54e7cc10b50318c0d3e828f4724bd30c96d2260740ea0cd780d1d66c29",
+        "decoded_audio": "342526f8367e6d37ead3f842333d9636f26410a45e13f6b38e526ec3bd511e68"
+      },
+      "linux (2)": {
+        "file": "fecb73f2b61e5f37d987aa5f43f72f397b05d055f142e8bf3210c9628ca2e09a",
+        "decoded_picture": "f5c1b50ac4ea7fc379af722959458debd289fe4c2d586a7931e6d22d941c9b67",
+        "video_stream_without_sei": "f507909518998aa5ec8fdb9bff00798dbb5558e86558db02d0ab620c8e0edf7c",
+        "audio_stream": "e3744d180fb534a90933a507bbb46986c109dde8123705dd7bbc866b141d0e80",
+        "decoded_audio": "e1620ea9eba89327eb5f858b42173ba1bd666d44c3e7ddc0ca2a67ee804a579a"
+      },
+      "linux (1)": {
+        "file": "fecb73f2b61e5f37d987aa5f43f72f397b05d055f142e8bf3210c9628ca2e09a",
+        "decoded_picture": "f5c1b50ac4ea7fc379af722959458debd289fe4c2d586a7931e6d22d941c9b67",
+        "video_stream_without_sei": "f507909518998aa5ec8fdb9bff00798dbb5558e86558db02d0ab620c8e0edf7c",
+        "audio_stream": "e3744d180fb534a90933a507bbb46986c109dde8123705dd7bbc866b141d0e80",
+        "decoded_audio": "e1620ea9eba89327eb5f858b42173ba1bd666d44c3e7ddc0ca2a67ee804a579a"
+      },
+      "same": {
+        "file": false,
+        "decoded_picture": true,
+        "video_stream_without_sei": true,
+        "audio_stream": false,
+        "decoded_audio": false
+      }
+    },
+    "2": {
+      "windows (4)": {
+        "file": "ed0355da585b186e24b7cf61ed1fab17b77e79bd578289132514283a2e3ec1e1",
+        "decoded_picture": "5a1d7882b9b08390348183d2bec2ff673421ee41da032baeb672ad647caefa97",
+        "video_stream_without_sei": "4cd90c50900d7a341be944c1da86719e60641e51c683992bb1a0eba9bf1c07dd",
+        "audio_stream": "81b1591f4e70f07a224383aca39e246a417b4afd305cdcbb89063e7c85d7d902",
+        "decoded_audio": "db6c23f3723f929a9aca8a462c449ee6d3fb8cc062927ae036bef598e1de90a6"
+      },
+      "linux (2)": {
+        "file": "210f8cbed98a5ffadd5b65c58b9537d0782b3055041c4a88a748c7562321a71b",
+        "decoded_picture": "5a1d7882b9b08390348183d2bec2ff673421ee41da032baeb672ad647caefa97",
+        "video_stream_without_sei": "4cd90c50900d7a341be944c1da86719e60641e51c683992bb1a0eba9bf1c07dd",
+        "audio_stream": "65a0f3ae4c548c8891781fa546e47953e4ba41ac16a2f89cdd675b99c6f89522",
+        "decoded_audio": "4bffce8fcce66cf82b0c5327a14d5017fc07da84a5b9f893e5e5b92b44c94a5e"
+      },
+      "linux (1)": {
+        "file": "210f8cbed98a5ffadd5b65c58b9537d0782b3055041c4a88a748c7562321a71b",
+        "decoded_picture": "5a1d7882b9b08390348183d2bec2ff673421ee41da032baeb672ad647caefa97",
+        "video_stream_without_sei": "4cd90c50900d7a341be944c1da86719e60641e51c683992bb1a0eba9bf1c07dd",
+        "audio_stream": "65a0f3ae4c548c8891781fa546e47953e4ba41ac16a2f89cdd675b99c6f89522",
+        "decoded_audio": "4bffce8fcce66cf82b0c5327a14d5017fc07da84a5b9f893e5e5b92b44c94a5e"
+      },
+      "same": {
+        "file": false,
+        "decoded_picture": true,
+        "video_stream_without_sei": true,
+        "audio_stream": false,
+        "decoded_audio": false
+      }
+    }
+  }
+}

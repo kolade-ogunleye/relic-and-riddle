@@ -142,7 +142,7 @@ def preset_for(index: int, total: int) -> str:
     return SEQUENCE[(index - 1) % len(SEQUENCE)]
 
 
-from .encoding import BT709_FLAGS, RGB_TO_BT709, bounded_encode
+from .encoding import BT709_FLAGS, RGB_TO_BT709, X264_THREADS, bounded_encode
 
 
 @bounded_encode
@@ -174,7 +174,7 @@ def render_clip(image_path: Path, out_path: Path, duration: float, preset: str =
     proc = subprocess.Popen(
         ["ffmpeg", "-y", "-v", "error", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{out_w}x{out_h}",
          "-r", str(fps), "-i", "-", "-vf", RGB_TO_BT709, "-c:v", "libx264", "-preset", "fast", "-crf", "14",
-         *BT709_FLAGS, "-pix_fmt", "yuv420p", str(out_path)],
+         *X264_THREADS, *BT709_FLAGS, "-pix_fmt", "yuv420p", str(out_path)],
         stdin=subprocess.PIPE)
     try:
         for i in range(frames):

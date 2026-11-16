@@ -463,6 +463,13 @@ VIDEO_FPS = 30
 ONNX_DML_DEVICE = os.getenv("ONNX_DML_DEVICE", "auto").strip().lower()
 VIDEO_CRF = 18
 VIDEO_PRESET = "slow"
+# x264's output bytes depend on its thread count, which it otherwise derives from the machine's cores (1.5 per
+# logical processor for clips: 48 on the 32-core development PC, 9 on the production VM; the master pass passed
+# os.cpu_count(): 32 and 6). Every libx264 encode passes this fixed count instead, so a master is the same file at
+# every core count (with the same ffmpeg build and CPU instruction set; QF-139). 6: the count production's masters
+# were already encoded with (its 6 logical processors), so production's master encoder setting does not change. Not a
+# setting: a machine may not choose it.
+VIDEO_ENCODE_THREADS = 6
 AUDIO_SAMPLE_RATE = 48000
 TARGET_LUFS = -14.0
 TARGET_TRUE_PEAK = -1.5

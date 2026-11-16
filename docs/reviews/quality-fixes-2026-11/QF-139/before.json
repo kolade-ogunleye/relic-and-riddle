@@ -1,0 +1,138 @@
+{
+  "host_logical_processors": 32,
+  "x264_build": [
+    "165 r3223 0480cb0"
+  ],
+  "surfaces_whose_bytes_differ_between_machines_or_runs": [
+    "documentary master",
+    "footage segment",
+    "graphic clip",
+    "micro-patched master",
+    "motion clip",
+    "reel master with loop bridge",
+    "review proxy (rate-capped)",
+    "then-and-now clip"
+  ],
+  "counts": {
+    "surfaces": 8,
+    "differ_between_machines_or_runs": 8,
+    "identical_on_all_machines": 0
+  },
+  "review_proxy": {
+    "distinct_files_in_all_runs": 12,
+    "runs_per_machine": 3,
+    "distinct_files_on_one_machine": {
+      "development PC (32)": 3,
+      "production VM (6)": 3,
+      "CI runner (4)": 3,
+      "small runner (2)": 3
+    },
+    "kbps": [
+      1699,
+      1700,
+      1702,
+      1705
+    ],
+    "cap_kbps": 1500
+  },
+  "x264_threads_in_stream": {
+    "graphic clip": {
+      "development PC (32)": "threads=48 lookahead_threads=8",
+      "production VM (6)": "threads=9 lookahead_threads=1",
+      "CI runner (4)": "threads=6 lookahead_threads=1",
+      "small runner (2)": "threads=3 lookahead_threads=1"
+    },
+    "then-and-now clip": {
+      "development PC (32)": "threads=48 lookahead_threads=8",
+      "production VM (6)": "threads=9 lookahead_threads=1",
+      "CI runner (4)": "threads=6 lookahead_threads=1",
+      "small runner (2)": "threads=3 lookahead_threads=1"
+    },
+    "footage segment": {
+      "development PC (32)": "threads=48 lookahead_threads=8",
+      "production VM (6)": "threads=9 lookahead_threads=1",
+      "CI runner (4)": "threads=6 lookahead_threads=1",
+      "small runner (2)": "threads=3 lookahead_threads=1"
+    },
+    "motion clip": {
+      "development PC (32)": "threads=48 lookahead_threads=8",
+      "production VM (6)": "threads=9 lookahead_threads=1",
+      "CI runner (4)": "threads=6 lookahead_threads=1",
+      "small runner (2)": "threads=3 lookahead_threads=1"
+    },
+    "reel master with loop bridge": {
+      "development PC (32)": "threads=32 lookahead_threads=5",
+      "production VM (6)": "threads=6 lookahead_threads=1",
+      "CI runner (4)": "threads=4 lookahead_threads=1",
+      "small runner (2)": "threads=2 lookahead_threads=1"
+    },
+    "documentary master": {
+      "development PC (32)": "threads=32 lookahead_threads=5",
+      "production VM (6)": "threads=6 lookahead_threads=1",
+      "CI runner (4)": "threads=4 lookahead_threads=1",
+      "small runner (2)": "threads=2 lookahead_threads=1"
+    },
+    "micro-patched master": {
+      "development PC (32)": "threads=48 lookahead_threads=8",
+      "production VM (6)": "threads=9 lookahead_threads=1",
+      "CI runner (4)": "threads=6 lookahead_threads=1",
+      "small runner (2)": "threads=3 lookahead_threads=1"
+    },
+    "review proxy (rate-capped)": {
+      "development PC (32)": "threads=32 lookahead_threads=5",
+      "production VM (6)": "threads=6 lookahead_threads=1",
+      "CI runner (4)": "threads=4 lookahead_threads=1",
+      "small runner (2)": "threads=2 lookahead_threads=1"
+    }
+  },
+  "sha256": {
+    "graphic clip": {
+      "development PC (32)": "62a2affad9b7b14ab98e4eae482db05038fdead844074a8a8ec7d8190cba9fcf",
+      "production VM (6)": "16ca858c6163868494e7318eb02c157eea383df36b3e7a5d3ee47a3f6f1c4572",
+      "CI runner (4)": "f0e3d8d314f1c5c3c67c1c46e688b86f6c7d8f8fb195402cadc799bc137206f0",
+      "small runner (2)": "5938a70d5ec6a089b7f5d7edf8fc46499c50a63d5fbfed55d47634be1a2c89cf"
+    },
+    "then-and-now clip": {
+      "development PC (32)": "7b24aa05e55e0b533784198e58ee18435cab91c0cd2feb6d435ed8cc9f239ef4",
+      "production VM (6)": "53cc2f852fe1840b3806cacfbb00f761bc9607e941bde4ea52e8ec212cc7ec26",
+      "CI runner (4)": "88468f5f1f22e2c6dbcd70dbaae8cbf39e0d1a99736738c9dc37820309329086",
+      "small runner (2)": "7cd76052d946d30954319820594f592f77d60043514827cecf67b81e1c9b8b50"
+    },
+    "footage segment": {
+      "development PC (32)": "4e41b5387abd9aeeeeafebeccf99ce8dd16bfe9dae9acb6789a56a973e703320",
+      "production VM (6)": "856388d585b2c0f454f94e87ba6ffb19898343fad95043a0b756ba869381d8f8",
+      "CI runner (4)": "39b5be4779e4ea7475aab2cf5ec0e512ae8121407dad1fae92b01fe8980d581a",
+      "small runner (2)": "03d486939dcf48694afefc52ea0ea752bdacc0388acb5e56b94860eb46b6874f"
+    },
+    "motion clip": {
+      "development PC (32)": "0dbf3164afa264195e36ba900c5fa3d6127536fb51f290ef4a9265f2bf2c0874",
+      "production VM (6)": "6f63f189eb291759585adf8f45f03a826124dc890dabb5ff366e56bd32e2d95a",
+      "CI runner (4)": "3fbe8d6fd7d0fac5891a8d656f2a67c977968f2c23922f8da7a2176d0ba12453",
+      "small runner (2)": "b73e91ad2dde6a259c5d53e003bf26a9707b26dfe919dc12628d39081b2cabc3"
+    },
+    "reel master with loop bridge": {
+      "development PC (32)": "73f0e298ab90fb9aaa85f6545a5027e1b33a3f3a4c3c2917ba0228ee3fb5755a",
+      "production VM (6)": "5c97cbec82b90590068715e36ae93d24235386b7ae124b6481f0741b2d46b514",
+      "CI runner (4)": "70cfa9758f442ed9cbe81894507e2906336f41069fe681b1cc862a59a79ff81f",
+      "small runner (2)": "52113c6d74c937ff35580c33aebda0ddf4cfdb28c09069463828159cb591de0a"
+    },
+    "documentary master": {
+      "development PC (32)": "048c59fab3f50e63f4c30d985153e92c463f9380a858af3471a1dd7d6914bb8b",
+      "production VM (6)": "3f25fae779f5642213714efa30f6ea1f6274ee1002cc0fb93083b99dc2999f8d",
+      "CI runner (4)": "91450862d7c2986e794de08b4903a835ceefcd5fd2862a43e9e2aebb9cb1b69e",
+      "small runner (2)": "1799be6ab65d3f893cec923e718d5aa76a3e4715cdd693f85493da3e6e05025d"
+    },
+    "micro-patched master": {
+      "development PC (32)": "47deecbdff06bf355009228b6567a15f1189ebdcbdad35fb763beb7a871427cd",
+      "production VM (6)": "e52a6406d1a2923a041d423c1985202e9d27d4c9bfb2f19107cb9c7c0601706a",
+      "CI runner (4)": "7953a45e8b068690640d59f6f357b2a4de74673e178c2a0158d06c08e0fb18ee",
+      "small runner (2)": "7a68b42bb302c92439d44e50a53f757579a57cbab6520a179b333759eadf9ae4"
+    },
+    "review proxy (rate-capped)": {
+      "development PC (32)": "25cca7cf4287831f1c0093d60e7a616ee1c460b06f8e82ec8172369d6835f2b4",
+      "production VM (6)": "a19c31a3cf188ab18436137790e248c5f5fa80a8b47f0df02013be8c90815c1b",
+      "CI runner (4)": "3c4e4d187d838f2d7a46db2fe0d1d4085d4d3f822448f2e07a0eee5fc2a155aa",
+      "small runner (2)": "c45c39cd32e8b2a6051ed75195a374807ba85abf9474b9db39453172a0051598"
+    }
+  }
+}

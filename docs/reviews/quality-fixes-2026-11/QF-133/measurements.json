@@ -1,0 +1,938 @@
+{
+ "summary": {
+  "cases": 12,
+  "before_overrun_px": {
+   "916": [
+    35
+   ],
+   "169": [
+    32
+   ]
+  },
+  "after_overrun_px": {
+   "916": [
+    0
+   ],
+   "169": [
+    0
+   ]
+  },
+  "changed_outside_badge_box_total": 0,
+  "after_bundled_file_hash_matches": 12,
+  "after_same_pixels_from_file_alone": 12
+ },
+ "cases": [
+  {
+   "run": "run_gol_gumbaz_whispering_gallery_1793278143",
+   "format": "916",
+   "background": "parallax/scene_01.mp4",
+   "changed_pixels": 8770,
+   "changed_bbox": [
+    145,
+    306,
+    761,
+    333
+   ],
+   "badge_box": [
+    132,
+    300,
+    761,
+    345
+   ],
+   "changed_outside_badge_box": 0,
+   "plate_unchanged": true,
+   "before": {
+    "fontname": "IBM Plex Mono",
+    "bold": "-1",
+    "fontsize": 39,
+    "libass_picks": [
+     "(IBM Plex Mono, 400, 0) -> ArialMT",
+     "(IBM Plex Mono, 700, 0) -> Arial-BoldMT"
+    ],
+    "bundled_file": null,
+    "file_sha256": null,
+    "file_sha256_matches_licence_evidence": false,
+    "same_pixels_from_that_file_alone": null,
+    "plate": [
+     132,
+     300,
+     726,
+     345
+    ],
+    "text_ink": [
+     146,
+     306,
+     761,
+     332
+    ],
+    "overrun_px": 35,
+    "ink_gap_left_px": 14,
+    "ink_gap_right_px": -35
+   },
+   "after": {
+    "fontname": "IBM Plex Mono SmBld",
+    "bold": "-1",
+    "fontsize": 39,
+    "libass_picks": [
+     "(IBM Plex Mono SmBld, 400, 0) -> IBMPlexMono-SmBld",
+     "(IBM Plex Mono SmBld, 700, 0) -> IBMPlexMono-SmBld"
+    ],
+    "bundled_file": "IBMPlexMono-SemiBold.ttf",
+    "file_sha256": "f04d7c488ddf7d1fa99f2574efc3406ea4cbe17bb1af3a1ab960f84d0c96a172",
+    "file_sha256_matches_licence_evidence": true,
+    "same_pixels_from_that_file_alone": true,
+    "plate": [
+     132,
+     300,
+     726,
+     345
+    ],
+    "text_ink": [
+     146,
+     309,
+     709,
+     331
+    ],
+    "overrun_px": 0,
+    "ink_gap_left_px": 14,
+    "ink_gap_right_px": 17
+   }
+  },
+  {
+   "run": "run_gol_gumbaz_whispering_gallery_1793278143",
+   "format": "169",
+   "background": "parallax/scene_01.mp4",
+   "changed_pixels": 6968,
+   "changed_bbox": [
+    109,
+    59,
+    652,
+    82
+   ],
+   "badge_box": [
+    96,
+    54,
+    652,
+    94
+   ],
+   "changed_outside_badge_box": 0,
+   "plate_unchanged": true,
+   "before": {
+    "fontname": "IBM Plex Mono",
+    "bold": "-1",
+    "fontsize": 34,
+    "libass_picks": [
+     "(IBM Plex Mono, 400, 0) -> ArialMT",
+     "(IBM Plex Mono, 700, 0) -> Arial-BoldMT"
+    ],
+    "bundled_file": null,
+    "file_sha256": null,
+    "file_sha256_matches_licence_evidence": false,
+    "same_pixels_from_that_file_alone": null,
+    "plate": [
+     96,
+     54,
+     620,
+     94
+    ],
+    "text_ink": [
+     110,
+     59,
+     652,
+     82
+    ],
+    "overrun_px": 32,
+    "ink_gap_left_px": 14,
+    "ink_gap_right_px": -32
+   },
+   "after": {
+    "fontname": "IBM Plex Mono SmBld",
+    "bold": "-1",
+    "fontsize": 34,
+    "libass_picks": [
+     "(IBM Plex Mono SmBld, 400, 0) -> IBMPlexMono-SmBld",
+     "(IBM Plex Mono SmBld, 700, 0) -> IBMPlexMono-SmBld"
+    ],
+    "bundled_file": "IBMPlexMono-SemiBold.ttf",
+    "file_sha256": "f04d7c488ddf7d1fa99f2574efc3406ea4cbe17bb1af3a1ab960f84d0c96a172",
+    "file_sha256_matches_licence_evidence": true,
+    "same_pixels_from_that_file_alone": true,
+    "plate": [
+     96,
+     54,
+     620,
+     94
+    ],
+    "text_ink": [
+     110,
+     62,
+     606,
+     81
+    ],
+    "overrun_px": 0,
+    "ink_gap_left_px": 14,
+    "ink_gap_right_px": 14
+   }
+  },
+  {
+   "run": "run_richat_structure_sahara_eye_1793474843",
+   "format": "916",
+   "background": "parallax/scene_01.mp4",
+   "changed_pixels": 8770,
+   "changed_bbox": [
+    145,
+    306,
+    761,
+    333
+   ],
+   "badge_box": [
+    132,
+    300,
+    761,
+    345
+   ],
+   "changed_outside_badge_box": 0,
+   "plate_unchanged": true,
+   "before": {
+    "fontname": "IBM Plex Mono",
+    "bold": "-1",
+    "fontsize": 39,
+    "libass_picks": [
+     "(IBM Plex Mono, 400, 0) -> ArialMT",
+     "(IBM Plex Mono, 700, 0) -> Arial-BoldMT"
+    ],
+    "bundled_file": null,
+    "file_sha256": null,
+    "file_sha256_matches_licence_evidence": false,
+    "same_pixels_from_that_file_alone": null,
+    "plate": [
+     132,
+     300,
+     726,
+     345
+    ],
+    "text_ink": [
+     146,
+     306,
+     761,
+     332
+    ],
+    "overrun_px": 35,
+    "ink_gap_left_px": 14,
+    "ink_gap_right_px": -35
+   },
+   "after": {
+    "fontname": "IBM Plex Mono SmBld",
+    "bold": "-1",
+    "fontsize": 39,
+    "libass_picks": [
+     "(IBM Plex Mono SmBld, 400, 0) -> IBMPlexMono-SmBld",
+     "(IBM Plex Mono SmBld, 700, 0) -> IBMPlexMono-SmBld"
+    ],
+    "bundled_file": "IBMPlexMono-SemiBold.ttf",
+    "file_sha256": "f04d7c488ddf7d1fa99f2574efc3406ea4cbe17bb1af3a1ab960f84d0c96a172",
+    "file_sha256_matches_licence_evidence": true,
+    "same_pixels_from_that_file_alone": true,
+    "plate": [
+     132,
+     300,
+     726,
+     345
+    ],
+    "text_ink": [
+     146,
+     309,
+     709,
+     331
+    ],
+    "overrun_px": 0,
+    "ink_gap_left_px": 14,
+    "ink_gap_right_px": 17
+   }
+  },
+  {
+   "run": "run_richat_structure_sahara_eye_1793474843",
+   "format": "169",
+   "background": "parallax/scene_01.mp4",
+   "changed_pixels": 6968,
+   "changed_bbox": [
+    109,
+    59,
+    652,
+    82
+   ],
+   "badge_box": [
+    96,
+    54,
+    652,
+    94
+   ],
+   "changed_outside_badge_box": 0,
+   "plate_unchanged": true,
+   "before": {
+    "fontname": "IBM Plex Mono",
+    "bold": "-1",
+    "fontsize": 34,
+    "libass_picks": [
+     "(IBM Plex Mono, 400, 0) -> ArialMT",
+     "(IBM Plex Mono, 700, 0) -> Arial-BoldMT"
+    ],
+    "bundled_file": null,
+    "file_sha256": null,
+    "file_sha256_matches_licence_evidence": false,
+    "same_pixels_from_that_file_alone": null,
+    "plate": [
+     96,
+     54,
+     620,
+     94
+    ],
+    "text_ink": [
+     110,
+     59,
+     652,
+     82
+    ],
+    "overrun_px": 32,
+    "ink_gap_left_px": 14,
+    "ink_gap_right_px": -32
+   },
+   "after": {
+    "fontname": "IBM Plex Mono SmBld",
+    "bold": "-1",
+    "fontsize": 34,
+    "libass_picks": [
+     "(IBM Plex Mono SmBld, 400, 0) -> IBMPlexMono-SmBld",
+     "(IBM Plex Mono SmBld, 700, 0) -> IBMPlexMono-SmBld"
+    ],
+    "bundled_file": "IBMPlexMono-SemiBold.ttf",
+    "file_sha256": "f04d7c488ddf7d1fa99f2574efc3406ea4cbe17bb1af3a1ab960f84d0c96a172",
+    "file_sha256_matches_licence_evidence": true,
+    "same_pixels_from_that_file_alone": true,
+    "plate": [
+     96,
+     54,
+     620,
+     94
+    ],
+    "text_ink": [
+     110,
+     62,
+     606,
+     81
+    ],
+    "overrun_px": 0,
+    "ink_gap_left_px": 14,
+    "ink_gap_right_px": 14
+   }
+  },
+  {
+   "run": "run_voynich_manuscript_1792965308",
+   "format": "916",
+   "background": "parallax/scene_01.mp4",
+   "changed_pixels": 8770,
+   "changed_bbox": [
+    145,
+    306,
+    761,
+    333
+   ],
+   "badge_box": [
+    132,
+    300,
+    761,
+    345
+   ],
+   "changed_outside_badge_box": 0,
+   "plate_unchanged": true,
+   "before": {
+    "fontname": "IBM Plex Mono",
+    "bold": "-1",
+    "fontsize": 39,
+    "libass_picks": [
+     "(IBM Plex Mono, 400, 0) -> ArialMT",
+     "(IBM Plex Mono, 700, 0) -> Arial-BoldMT"
+    ],
+    "bundled_file": null,
+    "file_sha256": null,
+    "file_sha256_matches_licence_evidence": false,
+    "same_pixels_from_that_file_alone": null,
+    "plate": [
+     132,
+     300,
+     726,
+     345
+    ],
+    "text_ink": [
+     146,
+     306,
+     761,
+     332
+    ],
+    "overrun_px": 35,
+    "ink_gap_left_px": 14,
+    "ink_gap_right_px": -35
+   },
+   "after": {
+    "fontname": "IBM Plex Mono SmBld",
+    "bold": "-1",
+    "fontsize": 39,
+    "libass_picks": [
+     "(IBM Plex Mono SmBld, 400, 0) -> IBMPlexMono-SmBld",
+     "(IBM Plex Mono SmBld, 700, 0) -> IBMPlexMono-SmBld"
+    ],
+    "bundled_file": "IBMPlexMono-SemiBold.ttf",
+    "file_sha256": "f04d7c488ddf7d1fa99f2574efc3406ea4cbe17bb1af3a1ab960f84d0c96a172",
+    "file_sha256_matches_licence_evidence": true,
+    "same_pixels_from_that_file_alone": true,
+    "plate": [
+     132,
+     300,
+     726,
+     345
+    ],
+    "text_ink": [
+     146,
+     309,
+     709,
+     331
+    ],
+    "overrun_px": 0,
+    "ink_gap_left_px": 14,
+    "ink_gap_right_px": 17
+   }
+  },
+  {
+   "run": "run_voynich_manuscript_1792965308",
+   "format": "169",
+   "background": "parallax/scene_01.mp4",
+   "changed_pixels": 6968,
+   "changed_bbox": [
+    109,
+    59,
+    652,
+    82
+   ],
+   "badge_box": [
+    96,
+    54,
+    652,
+    94
+   ],
+   "changed_outside_badge_box": 0,
+   "plate_unchanged": true,
+   "before": {
+    "fontname": "IBM Plex Mono",
+    "bold": "-1",
+    "fontsize": 34,
+    "libass_picks": [
+     "(IBM Plex Mono, 400, 0) -> ArialMT",
+     "(IBM Plex Mono, 700, 0) -> Arial-BoldMT"
+    ],
+    "bundled_file": null,
+    "file_sha256": null,
+    "file_sha256_matches_licence_evidence": false,
+    "same_pixels_from_that_file_alone": null,
+    "plate": [
+     96,
+     54,
+     620,
+     94
+    ],
+    "text_ink": [
+     110,
+     59,
+     652,
+     82
+    ],
+    "overrun_px": 32,
+    "ink_gap_left_px": 14,
+    "ink_gap_right_px": -32
+   },
+   "after": {
+    "fontname": "IBM Plex Mono SmBld",
+    "bold": "-1",
+    "fontsize": 34,
+    "libass_picks": [
+     "(IBM Plex Mono SmBld, 400, 0) -> IBMPlexMono-SmBld",
+     "(IBM Plex Mono SmBld, 700, 0) -> IBMPlexMono-SmBld"
+    ],
+    "bundled_file": "IBMPlexMono-SemiBold.ttf",
+    "file_sha256": "f04d7c488ddf7d1fa99f2574efc3406ea4cbe17bb1af3a1ab960f84d0c96a172",
+    "file_sha256_matches_licence_evidence": true,
+    "same_pixels_from_that_file_alone": true,
+    "plate": [
+     96,
+     54,
+     620,
+     94
+    ],
+    "text_ink": [
+     110,
+     62,
+     606,
+     81
+    ],
+    "overrun_px": 0,
+    "ink_gap_left_px": 14,
+    "ink_gap_right_px": 14
+   }
+  },
+  {
+   "run": "run_tunguska_event_1908_1792930600",
+   "format": "916",
+   "background": "parallax/scene_01.mp4",
+   "changed_pixels": 8770,
+   "changed_bbox": [
+    145,
+    306,
+    761,
+    333
+   ],
+   "badge_box": [
+    132,
+    300,
+    761,
+    345
+   ],
+   "changed_outside_badge_box": 0,
+   "plate_unchanged": true,
+   "before": {
+    "fontname": "IBM Plex Mono",
+    "bold": "-1",
+    "fontsize": 39,
+    "libass_picks": [
+     "(IBM Plex Mono, 400, 0) -> ArialMT",
+     "(IBM Plex Mono, 700, 0) -> Arial-BoldMT"
+    ],
+    "bundled_file": null,
+    "file_sha256": null,
+    "file_sha256_matches_licence_evidence": false,
+    "same_pixels_from_that_file_alone": null,
+    "plate": [
+     132,
+     300,
+     726,
+     345
+    ],
+    "text_ink": [
+     146,
+     306,
+     761,
+     332
+    ],
+    "overrun_px": 35,
+    "ink_gap_left_px": 14,
+    "ink_gap_right_px": -35
+   },
+   "after": {
+    "fontname": "IBM Plex Mono SmBld",
+    "bold": "-1",
+    "fontsize": 39,
+    "libass_picks": [
+     "(IBM Plex Mono SmBld, 400, 0) -> IBMPlexMono-SmBld",
+     "(IBM Plex Mono SmBld, 700, 0) -> IBMPlexMono-SmBld"
+    ],
+    "bundled_file": "IBMPlexMono-SemiBold.ttf",
+    "file_sha256": "f04d7c488ddf7d1fa99f2574efc3406ea4cbe17bb1af3a1ab960f84d0c96a172",
+    "file_sha256_matches_licence_evidence": true,
+    "same_pixels_from_that_file_alone": true,
+    "plate": [
+     132,
+     300,
+     726,
+     345
+    ],
+    "text_ink": [
+     146,
+     309,
+     709,
+     331
+    ],
+    "overrun_px": 0,
+    "ink_gap_left_px": 14,
+    "ink_gap_right_px": 17
+   }
+  },
+  {
+   "run": "run_tunguska_event_1908_1792930600",
+   "format": "169",
+   "background": "parallax/scene_01.mp4",
+   "changed_pixels": 6968,
+   "changed_bbox": [
+    109,
+    59,
+    652,
+    82
+   ],
+   "badge_box": [
+    96,
+    54,
+    652,
+    94
+   ],
+   "changed_outside_badge_box": 0,
+   "plate_unchanged": true,
+   "before": {
+    "fontname": "IBM Plex Mono",
+    "bold": "-1",
+    "fontsize": 34,
+    "libass_picks": [
+     "(IBM Plex Mono, 400, 0) -> ArialMT",
+     "(IBM Plex Mono, 700, 0) -> Arial-BoldMT"
+    ],
+    "bundled_file": null,
+    "file_sha256": null,
+    "file_sha256_matches_licence_evidence": false,
+    "same_pixels_from_that_file_alone": null,
+    "plate": [
+     96,
+     54,
+     620,
+     94
+    ],
+    "text_ink": [
+     110,
+     59,
+     652,
+     82
+    ],
+    "overrun_px": 32,
+    "ink_gap_left_px": 14,
+    "ink_gap_right_px": -32
+   },
+   "after": {
+    "fontname": "IBM Plex Mono SmBld",
+    "bold": "-1",
+    "fontsize": 34,
+    "libass_picks": [
+     "(IBM Plex Mono SmBld, 400, 0) -> IBMPlexMono-SmBld",
+     "(IBM Plex Mono SmBld, 700, 0) -> IBMPlexMono-SmBld"
+    ],
+    "bundled_file": "IBMPlexMono-SemiBold.ttf",
+    "file_sha256": "f04d7c488ddf7d1fa99f2574efc3406ea4cbe17bb1af3a1ab960f84d0c96a172",
+    "file_sha256_matches_licence_evidence": true,
+    "same_pixels_from_that_file_alone": true,
+    "plate": [
+     96,
+     54,
+     620,
+     94
+    ],
+    "text_ink": [
+     110,
+     62,
+     606,
+     81
+    ],
+    "overrun_px": 0,
+    "ink_gap_left_px": 14,
+    "ink_gap_right_px": 14
+   }
+  },
+  {
+   "run": "run_odessa_catacombs_1793100750",
+   "format": "916",
+   "background": "parallax/scene_01.mp4",
+   "changed_pixels": 8770,
+   "changed_bbox": [
+    145,
+    306,
+    761,
+    333
+   ],
+   "badge_box": [
+    132,
+    300,
+    761,
+    345
+   ],
+   "changed_outside_badge_box": 0,
+   "plate_unchanged": true,
+   "before": {
+    "fontname": "IBM Plex Mono",
+    "bold": "-1",
+    "fontsize": 39,
+    "libass_picks": [
+     "(IBM Plex Mono, 400, 0) -> ArialMT",
+     "(IBM Plex Mono, 700, 0) -> Arial-BoldMT"
+    ],
+    "bundled_file": null,
+    "file_sha256": null,
+    "file_sha256_matches_licence_evidence": false,
+    "same_pixels_from_that_file_alone": null,
+    "plate": [
+     132,
+     300,
+     726,
+     345
+    ],
+    "text_ink": [
+     146,
+     306,
+     761,
+     332
+    ],
+    "overrun_px": 35,
+    "ink_gap_left_px": 14,
+    "ink_gap_right_px": -35
+   },
+   "after": {
+    "fontname": "IBM Plex Mono SmBld",
+    "bold": "-1",
+    "fontsize": 39,
+    "libass_picks": [
+     "(IBM Plex Mono SmBld, 400, 0) -> IBMPlexMono-SmBld",
+     "(IBM Plex Mono SmBld, 700, 0) -> IBMPlexMono-SmBld"
+    ],
+    "bundled_file": "IBMPlexMono-SemiBold.ttf",
+    "file_sha256": "f04d7c488ddf7d1fa99f2574efc3406ea4cbe17bb1af3a1ab960f84d0c96a172",
+    "file_sha256_matches_licence_evidence": true,
+    "same_pixels_from_that_file_alone": true,
+    "plate": [
+     132,
+     300,
+     726,
+     345
+    ],
+    "text_ink": [
+     146,
+     309,
+     709,
+     331
+    ],
+    "overrun_px": 0,
+    "ink_gap_left_px": 14,
+    "ink_gap_right_px": 17
+   }
+  },
+  {
+   "run": "run_odessa_catacombs_1793100750",
+   "format": "169",
+   "background": "parallax/scene_01.mp4",
+   "changed_pixels": 6968,
+   "changed_bbox": [
+    109,
+    59,
+    652,
+    82
+   ],
+   "badge_box": [
+    96,
+    54,
+    652,
+    94
+   ],
+   "changed_outside_badge_box": 0,
+   "plate_unchanged": true,
+   "before": {
+    "fontname": "IBM Plex Mono",
+    "bold": "-1",
+    "fontsize": 34,
+    "libass_picks": [
+     "(IBM Plex Mono, 400, 0) -> ArialMT",
+     "(IBM Plex Mono, 700, 0) -> Arial-BoldMT"
+    ],
+    "bundled_file": null,
+    "file_sha256": null,
+    "file_sha256_matches_licence_evidence": false,
+    "same_pixels_from_that_file_alone": null,
+    "plate": [
+     96,
+     54,
+     620,
+     94
+    ],
+    "text_ink": [
+     110,
+     59,
+     652,
+     82
+    ],
+    "overrun_px": 32,
+    "ink_gap_left_px": 14,
+    "ink_gap_right_px": -32
+   },
+   "after": {
+    "fontname": "IBM Plex Mono SmBld",
+    "bold": "-1",
+    "fontsize": 34,
+    "libass_picks": [
+     "(IBM Plex Mono SmBld, 400, 0) -> IBMPlexMono-SmBld",
+     "(IBM Plex Mono SmBld, 700, 0) -> IBMPlexMono-SmBld"
+    ],
+    "bundled_file": "IBMPlexMono-SemiBold.ttf",
+    "file_sha256": "f04d7c488ddf7d1fa99f2574efc3406ea4cbe17bb1af3a1ab960f84d0c96a172",
+    "file_sha256_matches_licence_evidence": true,
+    "same_pixels_from_that_file_alone": true,
+    "plate": [
+     96,
+     54,
+     620,
+     94
+    ],
+    "text_ink": [
+     110,
+     62,
+     606,
+     81
+    ],
+    "overrun_px": 0,
+    "ink_gap_left_px": 14,
+    "ink_gap_right_px": 14
+   }
+  },
+  {
+   "run": "run_amber_room_heist_1792805842",
+   "format": "916",
+   "background": "beat_images/beat01_1.jpg",
+   "changed_pixels": 8770,
+   "changed_bbox": [
+    145,
+    306,
+    761,
+    333
+   ],
+   "badge_box": [
+    132,
+    300,
+    761,
+    345
+   ],
+   "changed_outside_badge_box": 0,
+   "plate_unchanged": true,
+   "before": {
+    "fontname": "IBM Plex Mono",
+    "bold": "-1",
+    "fontsize": 39,
+    "libass_picks": [
+     "(IBM Plex Mono, 400, 0) -> ArialMT",
+     "(IBM Plex Mono, 700, 0) -> Arial-BoldMT"
+    ],
+    "bundled_file": null,
+    "file_sha256": null,
+    "file_sha256_matches_licence_evidence": false,
+    "same_pixels_from_that_file_alone": null,
+    "plate": [
+     132,
+     300,
+     726,
+     345
+    ],
+    "text_ink": [
+     146,
+     306,
+     761,
+     332
+    ],
+    "overrun_px": 35,
+    "ink_gap_left_px": 14,
+    "ink_gap_right_px": -35
+   },
+   "after": {
+    "fontname": "IBM Plex Mono SmBld",
+    "bold": "-1",
+    "fontsize": 39,
+    "libass_picks": [
+     "(IBM Plex Mono SmBld, 400, 0) -> IBMPlexMono-SmBld",
+     "(IBM Plex Mono SmBld, 700, 0) -> IBMPlexMono-SmBld"
+    ],
+    "bundled_file": "IBMPlexMono-SemiBold.ttf",
+    "file_sha256": "f04d7c488ddf7d1fa99f2574efc3406ea4cbe17bb1af3a1ab960f84d0c96a172",
+    "file_sha256_matches_licence_evidence": true,
+    "same_pixels_from_that_file_alone": true,
+    "plate": [
+     132,
+     300,
+     726,
+     345
+    ],
+    "text_ink": [
+     146,
+     309,
+     709,
+     331
+    ],
+    "overrun_px": 0,
+    "ink_gap_left_px": 14,
+    "ink_gap_right_px": 17
+   }
+  },
+  {
+   "run": "run_amber_room_heist_1792805842",
+   "format": "169",
+   "background": "beat_images/beat01_1.jpg",
+   "changed_pixels": 6968,
+   "changed_bbox": [
+    109,
+    59,
+    652,
+    82
+   ],
+   "badge_box": [
+    96,
+    54,
+    652,
+    94
+   ],
+   "changed_outside_badge_box": 0,
+   "plate_unchanged": true,
+   "before": {
+    "fontname": "IBM Plex Mono",
+    "bold": "-1",
+    "fontsize": 34,
+    "libass_picks": [
+     "(IBM Plex Mono, 400, 0) -> ArialMT",
+     "(IBM Plex Mono, 700, 0) -> Arial-BoldMT"
+    ],
+    "bundled_file": null,
+    "file_sha256": null,
+    "file_sha256_matches_licence_evidence": false,
+    "same_pixels_from_that_file_alone": null,
+    "plate": [
+     96,
+     54,
+     620,
+     94
+    ],
+    "text_ink": [
+     110,
+     59,
+     652,
+     82
+    ],
+    "overrun_px": 32,
+    "ink_gap_left_px": 14,
+    "ink_gap_right_px": -32
+   },
+   "after": {
+    "fontname": "IBM Plex Mono SmBld",
+    "bold": "-1",
+    "fontsize": 34,
+    "libass_picks": [
+     "(IBM Plex Mono SmBld, 400, 0) -> IBMPlexMono-SmBld",
+     "(IBM Plex Mono SmBld, 700, 0) -> IBMPlexMono-SmBld"
+    ],
+    "bundled_file": "IBMPlexMono-SemiBold.ttf",
+    "file_sha256": "f04d7c488ddf7d1fa99f2574efc3406ea4cbe17bb1af3a1ab960f84d0c96a172",
+    "file_sha256_matches_licence_evidence": true,
+    "same_pixels_from_that_file_alone": true,
+    "plate": [
+     96,
+     54,
+     620,
+     94
+    ],
+    "text_ink": [
+     110,
+     62,
+     606,
+     81
+    ],
+    "overrun_px": 0,
+    "ink_gap_left_px": 14,
+    "ink_gap_right_px": 14
+   }
+  }
+ ]
+}

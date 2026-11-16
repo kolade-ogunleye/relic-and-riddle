@@ -428,10 +428,12 @@ def _badge_family() -> str:
     a role whose bundled file is a variable source draws its derived static 600 instance (font_assets.DERIVED_FAMILIES:
     Montserrat -> RR Sans SemiBold, Cinzel -> RR Serif SemiBold; QF-35a round 2: libass sets no variation axes, so the
     variable file drew its default 400 instance, thickened, under a plate measured at 600); a static family draws as
-    itself (the default, IBM Plex Mono). Any other is refused."""
+    itself, under the name libass knows its measured file by (QF-133: _libass_fontname; the default IBM Plex Mono
+    600 file is "IBM Plex Mono SmBld" to libass, so "IBM Plex Mono" drew in a system fallback face that overran the
+    plate). Any other is refused."""
     from .font_assets import DERIVED_FAMILIES
     from .font_engine import inspect_font
-    from .typography import FONT_FILES, STATIC_WEIGHTS
+    from .typography import FONT_FILES, STATIC_WEIGHTS, font_file
     family = _brand.BADGE_FONT
     if family in DERIVED_FAMILIES:
         return family
@@ -439,7 +441,7 @@ def _badge_family() -> str:
         if operation == "wght600" and FONT_FILES.get(family) == source:
             return derived
     if family in STATIC_WEIGHTS or family in FONT_FILES and not inspect_font(str(FONTS_DIR / FONT_FILES[family])).axes:
-        return family
+        return _libass_fontname(FONTS_DIR / font_file(family, 600), FONTS_DIR)
     raise ValueError(f"The reconstruction badge face {family!r} has no static instance libass can draw at the measured "
                      "weight (a variable font with no derived face in font_assets.DERIVED_FAMILIES, or not a bundled "
                      "family)")
@@ -472,6 +474,25 @@ def _libass_face(path: Path) -> tuple[frozenset[str], int] | None:
     except (OSError, TTLibError, KeyError):
         return None
     return info.names, info.weight
+
+
+@lru_cache(maxsize=16)
+def _libass_fontname(path: Path, fonts_dir: Path) -> str:
+    """The ASS Fontname that makes libass draw `path` itself among the fonts in `fonts_dir` (QF-133): the first of
+    the file's legacy family (name ID 1), full name (ID 4) and PostScript name (ID 6) that no other font there
+    carries. libass matches a Fontname against those three only; a static family's typographic name (ID 16, "IBM
+    Plex Mono") names no file to it. Raises ValueError when every name is shared (libass may draw another file)."""
+    from fontTools.ttLib import TTFont
+    with TTFont(path, lazy=True) as font:
+        table = font["name"]
+        names = [table.getDebugName(1), table.getDebugName(4), table.getDebugName(6)]
+    path = Path(path).resolve()
+    others = [face[0] for p in sorted(Path(fonts_dir).glob("*")) if p.suffix.lower() in (".ttf", ".otf")
+              and p.resolve() != path and (face := _libass_face(p)) is not None]
+    for name in names:
+        if name and not any(name.strip().lower() in taken for taken in others):
+            return name.strip()
+    raise ValueError(f"No name of {Path(path).name} is its own among the bundled fonts: libass may draw another file")
 
 
 def libass_font_problems(fonts_dir: Path, requests: list[tuple[str, int]], extra_fonts=()) -> list[str]:
@@ -4806,10 +4827,9 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         if font_problems:
             raise RenderError("Captions would not draw in the bundled font: " + "; ".join(font_problems))
         # the AI-reconstruction badge (QF-35a round 2): its style asks bold (700) and its plate is measured at 600, so
-        # the face libass finds must weigh within 150 of 700 (no synthetic weight). A static face libass cannot find by
-        # its family name (the default IBM Plex Mono: its files are named "IBM Plex Mono SmBld" / "Medm") draws in a
-        # system face: that is 1599d93b's, logged as its own row, so a missing name is refused only for a derived
-        # badge face, which this module embeds.
+        # the face libass finds must weigh within 150 of 700 (no synthetic weight), and must be found: a name no
+        # bundled face carries draws in a system face (QF-133: "IBM Plex Mono" did, until _badge_family named the
+        # measured file as libass knows it, "IBM Plex Mono SmBld").
         # Round 3: checked only when the badge is drawn (recon_intervals, the condition build_subtitles draws and
         # embeds it on): a composition with no reconstruction never draws the badge face.
         if recon_intervals:
@@ -4818,8 +4838,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                 badge_extra = [derived_font(badge_family, self.fonts_dir)] if badge_family in DERIVED_FAMILIES else []
             except (OSError, ValueError) as exc:
                 raise RenderError("The reconstruction badge would not draw in the bundled font: " + str(exc)) from exc
-            badge_problems = [p for p in libass_font_problems(self.fonts_dir, [(badge_family, 700)], badge_extra)
-                              if badge_extra or not p.startswith("no bundled font is named")]
+            badge_problems = libass_font_problems(self.fonts_dir, [(badge_family, 700)], badge_extra)
             if badge_problems:
                 raise RenderError("The reconstruction badge would not draw in the bundled font: "
                                   + "; ".join(badge_problems))

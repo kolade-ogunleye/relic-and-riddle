@@ -350,7 +350,8 @@ def test_widescreen_reconstruction_badge_is_bone_plex_mono_on_an_ink_plate(tmp_p
     ass = VideoComposer().build_subtitles(words, tmp_path / "w.ass", width=1920, height=1080,
                                           reconstruction_intervals=[(0.0, 2.0)]).read_text(encoding="utf-8")
     style = next(ln for ln in ass.splitlines() if ln.startswith("Style: ReconBadge,")).split(",")
-    assert style[1] == "IBM Plex Mono" and int(style[2]) == ass_font_size("IBM Plex Mono", 26, 600)
+    # QF-133: the name libass knows the measured 600 file by ("IBM Plex Mono" drew in a system fallback face)
+    assert style[1] == "IBM Plex Mono SmBld" and int(style[2]) == ass_font_size("IBM Plex Mono", 26, 600)
     assert style[3] == brand.ass_colour(brand.BONE) and style[7] == "-1"
     plate_style = next(ln for ln in ass.splitlines() if ln.startswith("Style: ReconPlate,")).split(",")
     assert plate_style[3] == brand.ass_colour(brand.INK, 0x26)
@@ -366,7 +367,7 @@ def test_widescreen_reconstruction_badge_is_bone_plex_mono_on_an_ink_plate(tmp_p
 def test_portrait_reconstruction_badge_gets_a_plate_and_keeps_its_wording(tmp_path):
     words = _timed("Ancient craft.")
     ass = VideoComposer().build_subtitles(words, tmp_path / "p.ass", reconstruction_intervals=[(0.0, 2.0)]).read_text(encoding="utf-8")
-    assert next(ln for ln in ass.splitlines() if ln.startswith("Style: ReconBadge,")).split(",")[1] == "IBM Plex Mono"
+    assert next(ln for ln in ass.splitlines() if ln.startswith("Style: ReconBadge,")).split(",")[1] ==         "IBM Plex Mono SmBld"   # QF-133: the measured 600 file's own name to libass
     (_, _, plate), = _events(ass, "ReconPlate")
     px, py = map(int, re.search(r"\\pos\((\d+),(\d+)\)", plate).groups())
     box = safe_zones.safe_box("reel")

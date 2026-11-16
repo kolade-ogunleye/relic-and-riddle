@@ -414,7 +414,8 @@ def test_the_reconstruction_badge_reads_its_face_from_the_brand(tmp_path):
                                                   **kw).read_text(encoding="utf-8")
     for kw in ({}, {"width": 1920, "height": 1080}):
         today = written("today.ass", **kw)
-        assert _style(today, "ReconBadge")[1] == _style(today, "ReconPlate")[1] == "IBM Plex Mono"
+        # QF-133: the data face's measured 600 file, by the name libass knows it by
+        assert _style(today, "ReconBadge")[1] == _style(today, "ReconPlate")[1] == "IBM Plex Mono SmBld"
         assert brand.BADGE_FONT == brand.DATA_FONT == "IBM Plex Mono" and vc.RECON_FONT == "IBM Plex Mono"
         with brand.use(_third_brand()):
             third = written("third.ass", **kw)
@@ -551,7 +552,7 @@ def test_the_badge_face_libass_draws_weighs_what_the_plate_is_measured_at():
     from src import video_composer as vc
     from src.font_assets import DERIVED_FAMILIES, derived_font
     assert hasattr(brand, "use"), "no brand configuration object"
-    assert vc._badge_family() == "IBM Plex Mono"                     # today's: static, unchanged
+    assert vc._badge_family() == "IBM Plex Mono SmBld"   # today's: static, its 600 file's libass name (QF-133)
     for face, derived in (("Cinzel", "RR Serif SemiBold"), ("Montserrat", "RR Sans SemiBold")):
         with brand.use(brand.DEFAULT_BRAND.derive("badge", fonts={"data": face})):
             assert vc._badge_family() == derived

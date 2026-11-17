@@ -1507,7 +1507,7 @@ class MultiFormatGenerator:
                                    last_resort_floor=fallback["display_xl"])
         elif content:
             spec = self.CONTENT_HEADING_FB if getattr(_render_state, "facebook", False) else self.CONTENT_HEADING
-            form = set_heading(heading, measure, design_w, spec, last_resort_floor=round(spec[1] * 0.9))
+            form = set_heading(heading, measure, design_w, spec, extra_lines=3, last_resort_floor=round(spec[1] * 0.9))
         elif two_tone is True:
             form = set_heading(heading, measure, design_w, (design["display_m"] * scale, fallback["display_m"] * scale),
                                lockup=True)
@@ -1672,7 +1672,11 @@ class MultiFormatGenerator:
                 shift -= over
             out = [dict(r, y=r["y"] + shift) for r in rows]
             first = min(r["y"] for r in heads) + shift
-            kb = kick["y"] + shift if kick else None
+            kb = None
+            if kick:   # the kicker from the frame's top tier cap, so a fallback-tier heading does not move it
+                spec = self.CONTENT_HEADING_FB if facebook else self.CONTENT_HEADING
+                kb = first - cap_height(get_font(brand.DISPLAY_FONT, px.exact(spec[0]))) - kicker_gap(kick["font"].size)
+                out = [dict(r, y=kb) if r["name"] == "kicker" else r for r in out]
             fixed.update(kicker=kb, heading=first, heading_last=max(r["y"] for r in heads) + shift,
                          heading_frame=frame["heading_lines"], heading_lines=n_heads)
             return out

@@ -260,12 +260,13 @@ def _choose(words, cut_sets, fits, balance_min, seam_pref, strict, measure, lone
 def set_heading(text: str, measure: Callable[[str, float], float], width: float, sizes: Sequence[float],
                 max_lines: int = 2, seam: int | None = None, lockup: bool = False,
                 balance_min: float | None = None, locked_lines: int = 0,
-                last_resort_floor: float | None = None) -> Form | None:
+                last_resort_floor: float | None = None, extra_lines: int = 0) -> Form | None:
     """The heading `text` set on the ladder `sizes` (first size, then at most the recorded fallback): None when no
     valid form fits `width` at any of them. `measure(line, size)` is a line's drawn width at `size`. `seam`: an
     authored line1 / line2 seam (word index) the break prefers; `lockup`: the payoff run is gold (else the heading is
     bone but for its stated quantities). `locked_lines`: a size-locked cover's last resort: up to this many lines at
     the (one) size, a lone-word row then allowed (the break and the band give way, never the size); recorded.
+    `extra_lines`: before that, up to this many lines on the ladder (valid forms only; recorded by the line count).
     `last_resort_floor`: an interior's last resort when no valid form sets on the ladder: the fallback tier stepped
     down 2 px at a time to this floor (valid forms only), then a lone-word row at the fallback tier; each recorded
     (off_ladder / lone_last_resort), so a heading is refused only where even that does not set."""
@@ -286,6 +287,10 @@ def set_heading(text: str, measure: Callable[[str, float], float], width: float,
         stages.append((tier, size, multi, balance_min, True))
     for tier, size in enumerate(sizes):
         stages.append((tier, size, multi, 0.0, False))
+    if extra_lines > max_lines:   # an interior's next resort: more lines on the ladder (valid forms), before any fit
+        more = [c for n in range(max_lines, extra_lines) for c in itertools.combinations(points, n)]
+        for tier, size in enumerate(sizes):
+            stages.append((tier, size, more, 0.0, False))
     lone_sets = None
     if locked_lines > max_lines:
         lone_sets = [c for n in range(1, locked_lines) for c in itertools.combinations(points, n)]

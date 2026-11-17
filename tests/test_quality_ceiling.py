@@ -30,37 +30,6 @@ def test_cinema_tone_curves_ffmpeg():
     assert res.returncode == 0, f"FFmpeg failed cinema curve filter: {res.stderr}"
 
 
-def test_depth_layered_thumbnail_generation(tmp_path):
-    """Verify 3D depth-layered key-art thumbnail generation with timestamp safe zone clearance."""
-    hero = tmp_path / "hero.jpg"
-    Image.new("RGB", (1920, 1080), (75, 65, 55)).save(hero)
-    payload = {
-        "title": "Derinkuyu Underground City",
-        "thumbnail": {
-            "eyebrow": "DOCUMENTARY INVESTIGATION",
-            "line1": "DERINKUYU",
-            "line2": "ANCIENT METROPOLIS",
-            "tagline": "280 FT UNDERGROUND",
-        }
-    }
-    ve = VisualEngine()
-    out_16x9 = tmp_path / "thumb_16x9.jpg"
-    res = ve.generate_depth_layered_thumbnail(hero, payload, out_16x9, aspect_ratio="16:9")
-    assert res.exists()
-    im = Image.open(res)
-    assert im.size == (1920, 1080)
-
-    # Verify YouTube bottom-right timestamp safe zone [1600, 1920] x [920, 1080]
-    lr_box = im.crop((1600, 920, 1920, 1080)).convert("L")
-    assert lr_box.getextrema()[1] < 220
-
-    # Also test 9:16 vertical key-art
-    out_9x16 = tmp_path / "thumb_9x16.jpg"
-    res_916 = ve.generate_depth_layered_thumbnail(hero, payload, out_9x16, aspect_ratio="9:16")
-    assert res_916.exists()
-    assert Image.open(res_916).size == (1080, 1920)
-
-
 def test_cover_depth_sandwich_style(tmp_path):
     """Verify depth_sandwich is in COVER_STYLES and produces safe 9:16 and 1:1 crops."""
     assert "depth_sandwich" in COVER_STYLES

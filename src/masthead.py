@@ -523,6 +523,12 @@ def verify(ground: Image.Image, plate, diamond, edge: int, rec: dict[str, Any], 
         rec["reason"] = f"masthead not drawn: its group is {width} px wide, its room {room} px"
         log.warning("%s", rec["reason"])
         return None
+    cap = HALO_EXCEPTION_CAP if rec.get("halo_exception") else tok("halo.masthead_max")
+    if float(getattr(plate, "halo", 0.0) or 0.0) > cap + 1e-9:   # the caps are the gate's, not only the planner's
+        rec["reason"] = (f"masthead not drawn: its halo {plate.halo} is over the {cap} cap"
+                         + (" (the ruling-4 exception's ceiling)" if rec.get("halo_exception") else ""))
+        log.warning("%s", rec["reason"])
+        return None
     if got < gate:
         rec["reason"] = (f"masthead not drawn: its worst glyph reaches {got:.2f}:1, under the {gate}:1 gate")
         log.warning("%s", rec["reason"])

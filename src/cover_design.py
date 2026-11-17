@@ -120,6 +120,7 @@ EYEBROW_QUALIFIER_GAP = 44                           # the eyebrow's ink foot to
 GRID_WIDTHS = (124, 180)                             # the profile grid's tile widths on phones (3:4 crop)
 GRID_SCALE = tuple(w / 1080 for w in GRID_WIDTHS)
 QUALIFIER_GRID_CAP = 9                               # px of cap height a qualifier keeps at 124 px wide
+GRID_CONTRAST = GATES["contrast.text"]   # a hook element's contrast on the 124 px tile (grid_proof), cycle 0 round 7
 MASTHEAD_GRID_CAP = GATES["masthead.grid_cap"]       # QF-87: a cover's masthead is this tall at 124 px wide, or absent
 EYEBROW_PX, EYEBROW_MIN, EYEBROW_TRACK = 40, 36, 4.0   # Montserrat 800 tracked capitals, every style (2026-11-02)
 TAGLINE_PX, TAGLINE_MIN = 38, 32                        # never under 32 px: at 24-30 it vanished in the grid
@@ -1528,8 +1529,8 @@ CROP_34 = (0, 240, 1080, 1680)
 def grid_proof(im, lay):
     """The cover as the profile grid shows it: each recorded text element's cap height in px at 124 and 180 px
     wide (the centred 3:4 crop), its contrast measured on the downscaled tile, whether it stays inside the crop,
-    the tile's mean L* (colour-balance QA reads it), and what fails: a hook element under its floor or outside the
-    crop, or a fact-bearing word carried only by texture."""
+    the tile's mean L* (colour-balance QA reads it), and what fails: a hook element under its floor, outside the
+    crop or under GRID_CONTRAST on the tile, or a fact-bearing word carried only by texture."""
     import re
 
     import numpy as np
@@ -1559,6 +1560,11 @@ def grid_proof(im, lay):
                 found.append(f"{name} {cap * GRID_SCALE[0]:.1f} px cap at 124 px (floor {GRID_HOOK[name]})")
             if not inside:
                 found.append(f"{name} outside the 3:4 crop")
+            # cycle 0 round 7 (sweep S1: a monument tile passed at 3.80 / 3.63 / 2.87:1): a hook element's contrast
+            # on the tile is part of the proof, at the text gate (WCAG AA)
+            c124 = elements[name]["contrast_124"]
+            if c124 is not None and c124 < GRID_CONTRAST:
+                found.append(f"{name} {c124:.2f}:1 at 124 px (gate {GRID_CONTRAST})")
             fails += found
             hook_fails += found
     hook_text = " ".join(e["text"] for e in elements.values() if e["class"] == "hook").upper()

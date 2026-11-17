@@ -4,24 +4,8 @@ tests/test_broken_paths.py
 Regression tests for code paths that used to fail outright.
 """
 
-import numpy as np
 import pytest
-from PIL import Image
 
-from src import visual_engine
-
-
-def test_depth_layered_thumbnail_with_partial_foreground(monkeypatch, tmp_path):
-    hero = tmp_path / "hero.jpg"
-    Image.new("RGB", (1920, 1080), (90, 80, 70)).save(hero)
-    mask = np.zeros((1080, 1920), dtype=np.uint8)
-    mask[:, 1200:] = 255  # a subject on the right, clear of the title
-    monkeypatch.setattr(visual_engine, "extract_foreground_mask", lambda im: (mask, 0.30))
-    out = visual_engine.VisualEngine().generate_depth_layered_thumbnail(
-        hero, {"thumbnail": {"line1": "TUNGUSKA", "line2": "1908 BLAST"}}, tmp_path / "yt.jpg")
-    assert out.is_file()
-    with Image.open(out) as im:
-        assert im.size == (1920, 1080)
 
 
 def _starving(monkeypatch):

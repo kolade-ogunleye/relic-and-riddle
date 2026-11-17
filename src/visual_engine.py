@@ -13,7 +13,7 @@ import logging
 from pathlib import Path
 from typing import List, Dict, Any, Tuple
 
-from PIL import Image, ImageDraw, ImageFilter, ImageOps
+from PIL import Image, ImageOps
 
 from .config import (
     ASSETS_DIR,
@@ -22,7 +22,7 @@ from .config import (
     VIDEO_HEIGHT,
 )
 from .credits import CONTACT_SHEET, CREDITS_FILE, load_credits
-from .typography import cover_crop, fit_font, get_font, is_video, spoken_units, text_size
+from .typography import is_video, spoken_units
 
 log = logging.getLogger(__name__)
 
@@ -454,119 +454,6 @@ class VisualEngine:
                             illustration=bool(getattr(self, "_illustration", False)),
                             reveal=getattr(self, "_reveal", None))
 
-    def generate_depth_layered_thumbnail(
-        self,
-        hero_image_path: Path,
-        script_payload: Dict[str, Any],
-        output_path: Path,
-        aspect_ratio: str = "16:9",
-    ) -> Path:
-        """
-        Studio-Grade 3D Depth-Layered Key-Art Thumbnail with Adaptive Saliency Gating.
-        - Supports 16:9 (1920x1080) and 9:16 (1080x1920).
-        - Segments foreground rock pillars / architectural elements via Otsu and edge saliency.
-        - Gating: If foreground coverage is 15% to 60%, composites a 3D sandwich:
-            Layer 1 (Background): Graded photo with directional atmospheric lighting.
-            Layer 2 (Typography): Hero title tucked with soft ambient occlusion.
-            Layer 3 (Foreground): Feathered subject overlay with warm rim illumination.
-            Layer 4 (Badges): Verified depth tagline badge and safe-zone badges.
-        - Graceful fallback: If coverage < 15% or > 60%, applies calibrated directional vignette.
-        - Enforces strict lower-right safe-zone clearance for YouTube/Meta timestamp overlays.
-        """
-        import cv2
-        import numpy as np
-
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-        w, h = (1920, 1080) if aspect_ratio == "16:9" else (1080, 1920)
-        im = cover_crop(hero_image_path, (w, h)).convert("RGBA")
-
-        # Directional left-to-right gradient shade to guarantee text contrast without obscuring right-side art
-        grad = Image.new("L", (w, 1), 0)
-        grad_reach = int(w * 0.6)
-        for x in range(w):
-            val = int(220 * max(0.0, 1.0 - (x / float(grad_reach)) ** 1.3))
-            grad.putpixel((x, 0), val)
-        shade = Image.new("RGBA", (w, h), (0, 0, 0, 255))
-        shade.putalpha(grad.resize((w, h)))
-        bg = Image.alpha_composite(im, shade)
-
-        copy = _in_spoken_units(documentary_cover_copy(script_payload), script_payload)
-        eyebrow, line1, line2, tagline = copy["eyebrow"], copy["line1"], copy["line2"], copy["tagline"]
-
-        max_text_w = int(w * 0.5)
-        draw = ImageDraw.Draw(bg)
-        font_eye = fit_font(draw, eyebrow, "Montserrat", 32, max_text_w, 20)
-        title_font_size = min(
-            fit_font(draw, line1, "Cinzel", 100, max_text_w, 48).size,
-            fit_font(draw, line2, "Cinzel", 100, max_text_w, 48).size,
-        )
-        font_title = get_font("Cinzel", title_font_size)
-        font_tag = fit_font(draw, tagline, "Montserrat", 30, max_text_w, 20)
-
-        w_eye, h_eye = text_size(draw, eyebrow, font_eye)
-        w_l1, h_l1 = text_size(draw, line1, font_title)
-        w_l2, h_l2 = text_size(draw, line2, font_title)
-        w_tag, h_tag = text_size(draw, tagline, font_tag)
-
-        x0 = 120
-        y_eye = 250 if h == 1080 else 600
-        eye_pad_x, eye_pad_y = 20, 10
-        y_l1 = y_eye + h_eye + eye_pad_y * 2 + 36
-        y_l2 = y_l1 + h_l1 + 14
-        y_tag = y_l2 + h_l2 + 34
-        tag_pad_x, tag_pad_y = 22, 10
-
-        # Layer 2: Typography layer
-        text_layer = Image.new("RGBA", (w, h), (0, 0, 0, 0))
-        tdraw = ImageDraw.Draw(text_layer)
-
-        # Ambient occlusion drop shadow behind text
-        shadow_layer = Image.new("RGBA", (w, h), (0, 0, 0, 0))
-        sdraw = ImageDraw.Draw(shadow_layer)
-        sdraw.text((x0 + 4, y_l1 + 6), line1, font=font_title, fill=(0, 0, 0, 240), anchor="lt")
-        sdraw.text((x0 + 4, y_l2 + 6), line2, font=font_title, fill=(0, 0, 0, 240), anchor="lt")
-        shadow_layer = shadow_layer.filter(ImageFilter.GaussianBlur(10))
-        bg = Image.alpha_composite(bg, shadow_layer)
-
-        tdraw.text((x0, y_l1), line1, font=font_title, fill=WHITE, anchor="lt")
-        tdraw.text((x0, y_l2), line2, font=font_title, fill=GOLD, anchor="lt")
-
-        sandwich = Image.alpha_composite(bg, text_layer)
-
-        # Layer 3: Foreground extraction with adaptive gating (15% to 60%)
-        mask, coverage = extract_foreground_mask(im)
-        if 0.15 <= coverage <= 0.60:
-            text_box_y0 = max(0, y_l1 - 20)  # the title block: both lines and the gap between them
-            text_box_y1 = min(mask.shape[0], y_l1 + title_font_size * 2 + 60)
-            box_slice = mask[text_box_y0:text_box_y1, x0:min(mask.shape[1], x0 + max_text_w)]
-            occlusion = float(np.count_nonzero(box_slice)) / (box_slice.size + 1e-6)
-            if occlusion <= 0.35:
-                feathered_mask = cv2.GaussianBlur(mask, (15, 15), 0)
-                fg_alpha = Image.fromarray(feathered_mask, mode="L")
-                fg_im = im.convert("RGBA")
-                fg_im.putalpha(fg_alpha)
-                sandwich = Image.alpha_composite(sandwich, fg_im)
-
-        # Layer 4: Badges (Eyebrow & Tagline) crisp on top
-        badge_layer = Image.new("RGBA", (w, h), (0, 0, 0, 0))
-        bdraw = ImageDraw.Draw(badge_layer)
-        bdraw.rounded_rectangle(
-            [x0, y_eye, x0 + w_eye + eye_pad_x * 2, y_eye + h_eye + eye_pad_y * 2],
-            radius=8, fill=(16, 16, 18, 220), outline=GOLD, width=2,
-        )
-        bdraw.text((x0 + eye_pad_x, y_eye + eye_pad_y), eyebrow, font=font_eye, fill=GOLD, anchor="lt")
-
-        bdraw.rounded_rectangle(
-            [x0, y_tag, x0 + w_tag + tag_pad_x * 2, y_tag + h_tag + tag_pad_y * 2],
-            radius=8, fill=(20, 20, 24, 230), outline=GOLD, width=2,
-        )
-        bdraw.text((x0 + tag_pad_x, y_tag + tag_pad_y), tagline, font=font_tag, fill=WHITE, anchor="lt")
-
-        final_im = Image.alpha_composite(sandwich, badge_layer).convert("RGB")
-        final_im.save(output_path, quality=95)
-        log.info("Key-art thumbnail generated (%s): %s", aspect_ratio, output_path.name)
-        return output_path
-
     def generate_youtube_thumbnail(
         self,
         hero_image_path: Path,
@@ -575,7 +462,7 @@ class VisualEngine:
     ) -> Path:
         """16:9 thumbnail (1920x1080) for the YouTube documentary: the covers' system (youtube_thumbnail): the
         photograph full-bleed, the masthead, one figure or a two-tone Anton headline on a left ink gradient,
-        YouTube's timestamp corner clear. The depth-layered engine stays for its own callers."""
+        YouTube's timestamp corner clear. (Cycle 0 round 7: the legacy depth-layered thumbnail, no caller, retired.)"""
         from . import youtube_thumbnail
         from .cover_design import reviewed_focus
         from .photo_hygiene import clean_hero

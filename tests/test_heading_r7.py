@@ -512,3 +512,37 @@ def test_the_whispering_vault_sets_on_every_two_tone_slide(tmp_path, archetype, 
     assert all(ln.split()[-1].lower() not in brand_system.LINE_END_NEVER for ln in form["lines"][:-1])
     drawn = " ".join(p.text for p in sorted(lay.plates["heading"], key=lambda p: (round(p.xy[1]), p.xy[0])))
     assert drawn == "THE WHISPERING VAULT"
+
+
+def _second():
+    import sys
+    sys.path.insert(0, str(ROOT / "docs/reviews/quality-fixes-2026-11/QF-35a"))
+    import render_surfaces
+    return render_surfaces.second_brand(brand)
+
+
+@pytest.mark.parametrize("text", ["THE WHISPERING VAULT", "LINES IN THE SAND", "THE EYE OF THE SAHARA"])
+@pytest.mark.parametrize("facebook", [False, True], ids=["ig", "fb"])
+def test_the_second_brands_covers_set_their_real_headings(tmp_path, text, facebook):
+    """Round 7 integration: the QF-35a second brand (Montserrat display, a wider face) refused these four real decks'
+    covers: no form at display_xl. The locked cover's recorded last resort sets each (valid forms, never a never-word
+    end), so no cover is refused for a heading the old path set."""
+    from src.multi_format import MultiFormatGenerator
+    photo = tmp_path / "p.jpg"
+    Image.new("RGB", (1600, 2000), (70, 70, 70)).save(photo)
+    with brand.use(_second()):
+        _, lay = MultiFormatGenerator()._render_carousel_slide("cover", photo, photo, {"heading": text, "body": "A body."},
+                                                               0, 7, {}, "", facebook, subject="TEST")
+    form = lay.meta["heading"]
+    assert " ".join(form["lines"]) == text
+    assert all(ln.split()[-1].lower() not in brand_system.LINE_END_NEVER for ln in form["lines"][:-1])
+
+
+def test_the_second_brands_reel_cover_lockup_sets_flattened_forest():
+    """Round 7 integration: the Tunguska Reel cover's lockup (830 SQUARE MILES / FLATTENED FOREST) sets in the second
+    brand on the lockup's tiers or its recorded last resort, never refused."""
+    from src import cover_design
+    with brand.use(_second()):
+        got, rec = cover_design._lockup(_D, {"line1": "830 SQUARE MILES", "line2": "FLATTENED FOREST"}, 912, 108)
+    assert set(got) == {"line1", "line2"}
+    assert " ".join(t for line in got["line2"][1] for t, _ in line) == "FLATTENED FOREST"

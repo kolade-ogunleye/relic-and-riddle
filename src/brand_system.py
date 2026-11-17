@@ -508,8 +508,35 @@ SIZE_SITES: Mapping[str, str] = MappingProxyType({
 
 # Sites the static scan cannot see because the font is made one call away (a font_engine helper rasterising a shaped
 # run for a measure) but the runtime observer (tests/size_observer.py) does: declared here with their owner group.
+# Cycle 0 round 7 (sweep-paths #4): the observer also records a font where it is DRAWN or measured (getmask2), and the
+# branch renders reach every declared site; the sites below draw or measure a font another site sized (a plate's
+# draw, an ink box, a scaled settle frame), so the scan, which looks at loader calls only, does not list them.
 RUNTIME_SIZE_SITES: Mapping[str, str] = MappingProxyType({
     "video_composer:_libass_line": "C",   # font_engine.run_ink_bounds rasterises the caption's glyphs to measure them
+    "callouts:render": "F",
+    "cover_design:_monument.put": "B",
+    "cover_design:_paint": "B",
+    "design_cards:_Card._plan": "F",
+    "design_cards:_ink": "F",
+    "design_cards:_paint": "F",
+    "end_card:frames": "E",
+    "end_card:loop_bridge": "E",
+    "graphics:_JoinedPlate.draw": "A",
+    "graphics:_dash_rule": "A",
+    "graphics:_italic_mask": "A",
+    "graphics:_place_name": "A",
+    "graphics:_plan_thin": "A",
+    "graphics:_render_cross_section.compose": "A",
+    "graphics:_render_scale_vertical.compose": "A",
+    "graphics:_render_timeline_tall": "A",
+    "graphics:_stat_clip": "A",
+    "graphics:_text": "A",
+    "graphics:_twin": "A",
+    "graphics:_year_plates": "A",
+    "graphics:draw_plate": "A",
+    "graphics:ink_box": "A",
+    "masthead:plan_on.at": "system",
+    "multi_format:MultiFormatGenerator._stack": "D",
 })
 
 # Heading break vocabulary: one list for every surface (there were five).

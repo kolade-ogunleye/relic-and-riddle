@@ -6,9 +6,13 @@ wrapper). Inside `observe()`, EVERY font a surface draws with is recorded with i
 - every call to the repo's cached loader `typography.get_font`, wherever it is bound (each module attribute holding
   it, so an alias is caught too, and a cache hit that constructs nothing is still seen).
 
-The site is the innermost frame in a surface module that is not a system wrapper (`masthead:font_for` and the
-typography / font_engine / font_assets internals pass through to their caller), as "module:qualname" with
-"<locals>" removed, matching tests/type_sites.py. Sizes are rounded to 0.001 px.
+The site is the innermost frame in a surface module (the typography / font_engine / font_assets internals pass
+through to their caller), as "module:qualname" with "<locals>" removed, matching tests/type_sites.py. A font made in
+a loader a surface module defines itself (type_sites.wrappers(): `masthead:font_for`, `graphics:figure_font`,
+`design_cards:_design_wrap`, ...) is recorded at that loader AND at its caller, as the static scan counts both (cycle
+0 round 7, sweep-paths #4: the callers had been dropped, so a route's place names were seen only as
+graphics:place_font and a myth card's wraps only as _design_wrap; and the masthead's wrapper was skipped, so
+masthead:font_for was declared and never seen). Sizes are rounded to 0.001 px.
 """
 from __future__ import annotations
 
@@ -16,10 +20,10 @@ import sys
 from contextlib import contextmanager
 from pathlib import Path
 
-from type_sites import SURFACE_MODULES
+from type_sites import SURFACE_MODULES, wrappers
 
+WRAPPERS = wrappers()
 ROOT = Path(__file__).resolve().parent.parent
-PASS_THROUGH = {("masthead", "font_for")}                # system wrappers: the caller is the site
 INTERNAL = {"typography", "font_engine", "font_assets", "brand", "brand_system"}
 OUTSIDE = "<outside>"
 
@@ -33,18 +37,22 @@ def normalise(qualname: str) -> str:
     return ".".join(parts) or "<module>"
 
 
-def _site() -> str:
-    """The surface site making the font, or "<outside>" (a test's own call, or an internal one)."""
+def _sites() -> list[str]:
+    """The surface site making the font (and, inside a surface loader, its caller's too), or ["<outside>"] (a test's own
+    call, or an internal one)."""
+    out: list[str] = []
     f = sys._getframe(2)
     while f is not None:
         path = Path(f.f_code.co_filename)
         if path.parent.name == "src" and path.parent.parent == ROOT:
             mod = path.stem
             qual = normalise(f.f_code.co_qualname)
-            if mod in SURFACE_MODULES and (mod, qual) not in PASS_THROUGH and mod not in INTERNAL:
-                return f"{mod}:{qual}"
+            if mod in SURFACE_MODULES and mod not in INTERNAL:
+                out.append(f"{mod}:{qual}")
+                if qual.rsplit(".", 1)[-1] not in WRAPPERS:
+                    return out
         f = f.f_back
-    return OUTSIDE
+    return out or [OUTSIDE]
 
 
 @contextmanager
@@ -58,11 +66,11 @@ def observe():
     orig_get = typography.get_font
 
     def init(self, font=None, size=10, *a, **k):
-        seen.add((_site(), round(float(size), 3)))
+        seen.update((site, round(float(size), 3)) for site in _sites())
         return orig_init(self, font, size, *a, **k)
 
     def get_font(name, size, *a, **k):
-        seen.add((_site(), round(float(size), 3)))
+        seen.update((site, round(float(size), 3)) for site in _sites())
         return orig_get(name, size, *a, **k)
     get_font.cache_clear = orig_get.cache_clear
 
@@ -87,7 +95,7 @@ def observe():
     orig_mask = ImageFont.FreeTypeFont.getmask2
 
     def getmask2(self, *a, **k):
-        seen.add((_site(), round(float(self.size), 3)))
+        seen.update((site, round(float(self.size), 3)) for site in _sites())
         return orig_mask(self, *a, **k)
     ImageFont.FreeTypeFont.__init__ = init
     ImageFont.FreeTypeFont.getmask2 = getmask2

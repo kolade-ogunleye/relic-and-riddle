@@ -246,7 +246,19 @@ def test_the_observer_renders_every_registered_surface(tmp_path):
     _observe_in_a_fresh_process(tmp_path)
     assert _OBSERVATION["rendered"] == surface_registry.registry()
     assert "cover.monument:tall" in _OBSERVATION["rendered"]
+    assert "graphics.render_timeline[events=2]:tall" in _OBSERVATION["rendered"]   # round 7: branches, not just kinds
     assert any(site.startswith("cover_design:_monument") for site in _OBSERVATION["sites"])
+
+
+def test_every_declared_size_site_is_observed(tmp_path):
+    """Cycle 0 round 7 (sweep-paths #4: the registry enumerated KINDS, so branches no declaration ever saw were never
+    drawn): every declared size site (brand_system.SIZE_SITES and RUNTIME_SIZE_SITES) makes a font during the
+    observed renders, so each one's sizes are held by the committed observation. A site no render reaches needs the
+    input that reaches it (a branch in tests/surface_registry.py), or it is dead code."""
+    _observe_in_a_fresh_process(tmp_path)
+    declared = set(brand_system.SIZE_SITES) | set(brand_system.RUNTIME_SIZE_SITES)
+    unobserved = sorted(declared - set(_OBSERVATION["sites"]))
+    assert unobserved == [], f"declared size sites no observed render reaches: {unobserved}"
 
 
 def test_the_observer_sees_an_alias_a_variant_and_a_wrapper(tmp_path):

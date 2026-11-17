@@ -618,8 +618,11 @@ def frames(last: Image.Image, share: str, stats: dict[str, Any] | None = None, *
     kicker_plate = credits_plate = None
     if extras:
         k = extras["kicker"]
-        kicker_plate = plan_text(rest, k["text_xy"], k["text"], k["font"], colour_of("kicker.colour"), "ls", k["track"],
-                                 target=tok("contrast.kicker"))
+        from .multi_format import plan_kicker   # round 7 (F20, sweep): the one kicker gate (gold, else bone, else none)
+        kicker_plate, kicker_rec = plan_kicker(rest, k["text_xy"], k["text"], k["font"], colour_of("kicker.colour"),
+                                               "ls", k["track"])
+        if stats is not None:
+            stats["kicker_gate"] = kicker_rec
         if credits:
             c = extras["credits"]
             credits_plate = plan_text(rest, c["xy"], c["text"], c["font"], brand.STONE_LT, "ls", c["track"])
@@ -666,7 +669,7 @@ def frames(last: Image.Image, share: str, stats: dict[str, Any] | None = None, *
                 x0r, y0r, x1r, y1r = extras["kicker"]["rule"]
                 rl = Image.new("RGBA", frame.size, (0, 0, 0, 0))
                 ImageDraw.Draw(rl).rectangle([x0r, y0r + rise, x1r, y1r + rise],
-                                             fill=(*colour_of("kicker.colour"), int(255 * ka)))
+                                             fill=(*kicker_plate.fill, int(255 * ka)))
                 frame = Image.alpha_composite(frame.convert("RGBA"), rl).convert("RGB")
         if credits_plate is not None:
             ca = ease((t - share_done - 0.3) / 0.5)

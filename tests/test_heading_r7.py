@@ -434,3 +434,19 @@ def test_the_cover_eyebrow_is_planned_at_the_kicker_gate():
     assert rec["gate"] == brand_system.GATES["contrast.kicker"] and rec["shown"] and rec["contrast"] >= rec["gate"]
     src = (ROOT / "src" / "cover_design.py").read_text(encoding="utf-8")
     assert 'put("eyebrow"' not in src                              # the monument's eyebrow goes through plan_kicker
+
+
+@pytest.mark.parametrize("ground", [(24, 28, 34), (243, 237, 226), (200, 190, 170)], ids=["ink", "bone", "bright"])
+def test_the_end_screen_kicker_takes_the_one_gate(ground, monkeypatch):
+    """Sweep (tokens #2): WATCH NEXT drew at 5.18 on bone and 5.39 on a bright photo; it now passes the kicker gate
+    in its colour or bone, or is not drawn (recorded)."""
+    from src import end_card
+    monkeypatch.setattr(end_card, "END_SCREEN_SECONDS", 0.2)
+    stats: dict = {}
+    list(end_card.frames(Image.new("RGB", (1920, 1080), ground), "Share this with a friend.", stats))
+    rec = stats["kicker_gate"]
+    assert rec["gate"] == brand_system.GATES["contrast.kicker"]
+    if rec["shown"]:
+        assert rec["contrast"] >= rec["gate"]
+    else:
+        assert "kicker gate" in rec["reason"]

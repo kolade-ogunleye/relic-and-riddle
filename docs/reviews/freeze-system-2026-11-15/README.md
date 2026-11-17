@@ -142,6 +142,28 @@ A card title that would break on "into" / "onto" / "via" / "per" steps to its ne
 builder never renders the panel board): `python board.py <tree> <dev checkout> <out> [--brand second]`. See the
 build note C:/tmp/qf-handoff/queue/CYCLE0.build-1.md for the per-row render list.
 
+Round 7 (preview panel 1, F22: the evidence the panel could not judge) adds `board_extras.py`, drawn in the board's
+process by the src renderers as the pipeline calls them, on real run inputs (each tile's label says which):
+- every label sits in a strip above its tile, never over it (the @246 masthead tiles hid the mark);
+- row 1: each role's second line at its line step (`lead.*`), the step printed; row 13: heading/accent, figure face,
+  credit, rule, plate/scrim/halo, leading and spacing per canvas, every value read from `src/brand_system.py`;
+- row 2: the masthead drawn by each carrying surface's own renderer on the hero (carousel cover slide, YouTube
+  thumbnail, end screen and 9:16 end card at rest, through `end_card.frames` with its dim), the renderer's own record,
+  and each at 246 px wide (whole 2x, masthead region 6x);
+- rows 3-5: the bright Aswan runs (covers: 1792985912; carousel: 1792993374 through `generate_carousel_sequence`,
+  photos matched to its delivered slides because it kept no recipe) and the near-white antikythera photo with the
+  Aswan copy (STAND-IN: no antikythera run); row 3 adds each Reel cover's 3:4 and 1:1 grid crops and the 124 px tile
+  (`row03_reel_cover_grid_crops`); row 5 adds the stat and diagram slides and the feed 1080 and grid 3:4 views
+  (`row05_carousel_feed`);
+- row 6: `row06_story_safe_box`, the Story box from `safe_zones.safe_box("story")`;
+- rows 7 and 11: captions (and the composer badge) burned into the run's own ground at that time through the master's
+  `picture_chain` and `delivery_video_encoder` (a 0.2 s clip, decoded as BT.709); row 11 also shows then-and-now and the
+  callout (the per-kind hero filter no longer drops kinds no hero has) and the cover and thumbnail disclosure badge
+  (FORCED: no run has had an illustrated hero);
+- row 8: the hook card at frames where its claim is held (frame 0 and the last full-alpha frame), not the clip's last
+  frame, after the type has faded.
+A failed extra is recorded in `board.json` `errors` and the board goes on.
+
 ## Acceptance
 
 `python measure.py <repo root>`: the masthead on six committed grounds at the three carried sizes, all within the

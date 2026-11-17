@@ -1450,15 +1450,19 @@ class MultiFormatGenerator:
         if two_tone is True and h_spec[0] >= design["display_xl"]:
             form = set_heading(heading, measure, design_w, (design["display_xl"],), lockup=True, locked_lines=4)
             if form is None:   # a recorded last resort (off_ladder) rather than a refused cover
+                # (the real Gol Gumbaz FB cover, THE WHISPERING VAULT on 810 px: THE / ... ends on a never word and
+                # THE WHISPERING / VAULT holds only under the fallback tier) -- down to the cover's old floor, valid
+                # forms only, recorded off_ladder: a deck is never refused for a heading the old path set
                 form = set_heading(heading, measure, design_w, (design["display_xl"],), lockup=True, max_lines=4,
-                                   last_resort_floor=fallback["display_xl"])
+                                   last_resort_floor=fallback["display_xl"], final_floor=h_spec[1])
         elif content:
             spec = self.CONTENT_HEADING_FB if getattr(_render_state, "facebook", False) else self.CONTENT_HEADING
             form = set_heading(heading, measure, design_w, spec, extra_lines=3, last_resort_floor=round(spec[1] * 0.9),
                                final_floor=round(spec[1] * 0.6))
         elif two_tone is True:
             form = set_heading(heading, measure, design_w, (design["display_m"] * scale, fallback["display_m"] * scale),
-                               lockup=True)
+                               lockup=True, extra_lines=3, last_resort_floor=round(fallback["display_m"] * scale * 0.9),
+                               final_floor=h_spec[1] * scale)
         else:
             size = h_spec[0] * scale
             while form is None and size >= h_spec[1] * scale:

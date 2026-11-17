@@ -456,6 +456,7 @@ SIZE_SITES: Mapping[str, str] = MappingProxyType({
     "graphics:neighbour_plates": "A",
     "graphics:place_font": "system",
     "graphics:relief_base": "A",
+    "graphics:ruler_label": "A",
     "graphics:render_route": "A",
     "graphics:render_route.name_places": "A",
     "graphics:scale_bar": "A",

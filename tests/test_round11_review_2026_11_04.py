@@ -316,8 +316,14 @@ def test_the_pin_and_its_name_cover_little_of_a_thin_island(caplog) -> None:
     w, h = 1080, 1920
     anchor = (540.0, 900.0)
     home = np.zeros((h, w), bool)
-    home[400:1400, 515:575] = True                       # a thin north-south atoll, 60 px wide, under the pin
+    # cycle 0 round 7 (F14): the site name is the place-label role (34 px, Anton 64 before), so on the 1,000 px atoll
+    # the pin and its name already cover 0.117 (under PIN_ISLAND_COVER_MAX) and are left in place; the slide is shown
+    # on a 600 px atoll, where they cover 0.195
+    long_ = np.zeros((h, w), bool)
+    long_[400:1400, 515:575] = True
     plain = graphics.pin_layout(anchor, "Funafuti Atoll", w, h)
+    assert graphics.pin_layout(anchor, "Funafuti Atoll", w, h, home=long_) == plain
+    home[600:1200, 515:575] = True                       # a thin north-south atoll, 60 px wide, under the pin
     before = graphics.island_cover([plain.label_box, plain.marker_box], home)
     with caplog.at_level(logging.INFO, logger=graphics.log.name):
         lay = graphics.pin_layout(anchor, "Funafuti Atoll", w, h, home=home)

@@ -211,6 +211,10 @@ def test_vertical_section_ruler_also_reaches_300(tmp_path, monkeypatch):
     seen = []
     real = graphics._plan
     monkeypatch.setattr(graphics, "_plan", lambda im, xy, text, *a, **k: seen.append(text) or real(im, xy, text, *a, **k))
+    # cycle 0 round 7 (F11): the axis figures are planned by ruler_label (centred on their ticks)
+    real_ruler = graphics.ruler_label
+    monkeypatch.setattr(graphics, "ruler_label", lambda g, x, y, text, *a, **k: seen.append(text) or real_ruler(
+        g, x, y, text, *a, **k))
     monkeypatch.setattr(graphics, "_encode", lambda frames, out, n, width=1080, height=1920: None)
     graphics.render_cross_section(SECTION, tmp_path / "v.mp4", width=1080, height=1920)
     assert "300" in seen and "250" in seen

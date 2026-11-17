@@ -169,7 +169,11 @@ def test_earlier_events_step_back_to_stone_twins_at_full_contrast(tmp_path, monk
         return tw
     monkeypatch.setattr(graphics, "_twin", spy)
     _render(monkeypatch, lambda: graphics.render_timeline(DERINKUYU, tmp_path / "t.mp4", width=size[0], height=size[1]))
-    assert twins and {tuple(t.fill) for t in twins} <= {brand.STONE, brand.STONE_LT}
+    # cycle 0 round 7 (F13, operator ruling 3): a year is a stated quantity and stays gold when its event steps back;
+    # the event's words step back to stone
+    assert twins and {tuple(t.fill) for t in twins} <= {brand.STONE, brand.STONE_LT, brand.GOLD}
+    assert all(tuple(t.fill) == brand.GOLD for t in twins if re.fullmatch(r"[\d,]+( BC| AD)?|AD [\d,]+", t.text))
+    assert any(tuple(t.fill) in (brand.STONE, brand.STONE_LT) for t in twins)
     assert all(t.contrast >= brand.TEXT_CONTRAST for t in twins), [(t.text, t.contrast) for t in twins]
 
 
@@ -285,7 +289,13 @@ def test_wide_ground_plane_ends_inside_title_safe(tmp_path, monkeypatch) -> None
     assert ground_rows
     y = ground_rows[-1]
     assert not bone[y, :graphics.WIDE_TITLE_SAFE[0] - 2].any()        # no longer runs off x 0
-    assert bone[y, graphics.WIDE_TITLE_SAFE[0] + 4:1000].mean() > 0.95
+    # cycle 0 round 7 (F11, zero datum): the ground line yields round its "0 FT", centred on it; elsewhere it is whole
+    zero = dict(st["plates"])["ruler0"].box
+    keep = np.ones(arr.shape[1], bool)
+    keep[max(0, zero[0] - 12):zero[2] + 12] = False
+    cols = np.arange(arr.shape[1])
+    span = keep & (cols >= graphics.WIDE_TITLE_SAFE[0] + 4) & (cols < 1000)
+    assert bone[y, span].mean() > 0.95
 
 
 # ============================================================================ cross-section

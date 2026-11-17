@@ -437,8 +437,9 @@ def test_the_long_9x16_myth_sets_at_84_px_or_more_and_the_ground_below_is_the_ph
 
 def test_the_9x16_myth_is_one_panel_the_size_of_the_graphics_box(tmp_path):
     """Review 2026-11-03 (round 4, blocking): the lower 40% was a dead gradient and the block sat in a dark area
-    that faded out. The 9:16 myth is one designed panel, the graphics box plus its air, dark edge to edge with crisp
-    top and foot; the block centred in it; the photograph itself above and below."""
+    that faded out. The 9:16 myth is one designed panel, the graphics box plus its air, dark edge to edge; its top and
+    foot feathered by the band-edge token (cycle 0 round 7, F17: crisp edges read as a slab); the block centred in
+    it; the photograph itself above and below."""
     from src.safe_zones import graphics_box
     gb = graphics_box()
     assert dc.MYTH_PANEL == (gb[1] - dc.MYTH_PANEL_AIR, gb[3] + dc.MYTH_PANEL_AIR)
@@ -451,9 +452,17 @@ def test_the_9x16_myth_is_one_panel_the_size_of_the_graphics_box(tmp_path):
         y0, y1 = dc.MYTH_PANEL
         inside, below, above = rows[y0 + 2:y1 - 2], rows[y1 + 2:], rows[:y0 - 2]
         assert inside.max() < 60, (rgb, inside.max())                 # dark from edge to edge, no fade-out
-        if sum(rgb) > 300:                                            # a bright photo: crisp edges, itself outside
-            assert rows[y1 + 2] - rows[y1 - 2] > 80 and rows[y0 - 2] - rows[y0 + 2] > 80, rgb
-            assert np.ptp(below) < 4 and np.ptp(above) < 4, rgb      # an even photo, no shade curve over it
+        if sum(rgb) > 300:                                            # a bright photo: a panel, itself outside
+            # cycle 0 round 7 (panel F17: the crisp top and foot read as a slab at feed size): each edge eases
+            # outward over the band-edge token's feather (at most edge_feather(255) px), never steeper than the token;
+            # past the feather the photograph is itself, even, and the panel still stands > 80 luma below it
+            from src import band_edge, brand_system
+            reach = brand_system.edge_feather(255, 1080) + 2
+            cap = brand_system.tok("edge.slope_max") + 1.0
+            assert rows[y1 + reach] - rows[y1 - 2] > 80 and rows[y0 - reach] - rows[y0 + 2] > 80, rgb
+            assert band_edge.steepest(rows[y1 - 2:y1 + reach]) <= cap, rgb
+            assert band_edge.steepest(rows[y0 - reach:y0 + 2]) <= cap, rgb
+            assert np.ptp(rows[y1 + reach:]) < 4 and np.ptp(rows[:y0 - reach]) < 4, rgb   # an even photo past it
         ink = [e.box for e in plan.elements if e.name.split("_")[0] in ("myth", "fact", "source") and e.box]
         top, foot = min(b[1] for b in ink), max(b[3] for b in ink)
         assert y0 < top and foot < y1                                 # the block inside the panel

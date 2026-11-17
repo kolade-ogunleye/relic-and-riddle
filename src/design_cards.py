@@ -1997,9 +1997,11 @@ def plan_myth_fact(spec: MythFact, sheet: dict, width: int = 1080, height: int =
     _glyphs_ok(m_draw, brand.DISPLAY_FONT, None)
     fit = _myth_fit(m_draw, f_draw, host, geo)
     column = None
-    if fit is None and not geo.wide:
-        column = MYTH_BOX_COLUMN
-        fit = _myth_fit(m_draw, f_draw, host, geo, column)
+    if not geo.wide and (fit is None or fit[0] < MYTH_FLOOR_SOURCE):
+        # the margin column never costs the type its floor: under it (or refused) the box column, when it does better
+        boxed = _myth_fit(m_draw, f_draw, host, geo, MYTH_BOX_COLUMN)
+        if boxed is not None and (fit is None or boxed[0] > fit[0]):
+            column, fit = MYTH_BOX_COLUMN, boxed
     if fit is None:
         raise CardRefused("the myth or the fact runs past its line limit at the floor size"
                           + (" with its source line kept" if host else ""), code="no_fit")
@@ -2088,8 +2090,8 @@ MYTH_LINES = {False: (4, 4), True: (4, 5)}
 MYTH_MEASURE = {False: (HOOK_MEASURE, HOOK_MEASURE), True: (617, 926)}   # 9:16: TALL_LEFT to the box's right edge
 MYTH_X = {False: (TALL_LEFT, TALL_LEFT), True: (153, 840)}         # 16:9: the fact's column runs to title-safe's right (1766)
 # Cycle 0 round 7 (panel F19): the margin token's ONE fallback tier. A 9:16 myth whose copy does not set at its floor
-# in the margin column (TALL_LEFT..TALL_RIGHT) takes the Reel box's own column (its edges, x 113-848) rather than being
-# refused (the reviewed long myth "Extraterrestrials constructed the circular rings" needs it); the plan records it
+# (MYTH_FLOOR_SOURCE) in the margin column (TALL_LEFT..TALL_RIGHT) takes the Reel box's own column (its edges, x
+# 113-848) when that sets it larger, rather than going under the floor or being refused (the reviewed long myth "Extraterrestrials constructed the circular rings" needs it); the plan records it
 # (anchors "margin": "box").
 MYTH_BOX_COLUMN = (graphics_box()[0], graphics_box()[2] - graphics_box()[0])   # (x, measure)
 # freeze panel M10: the 16:9 divider at 786 (was 806), so the myth column gains 17 px and the fact 20

@@ -201,7 +201,13 @@ def test_a_straight_edge_or_a_printed_line_in_one_picture_is_not_a_seam():
     eaves.paste(_textured(w, 600, 5, 200), (0, 600))                            # no gutter: one picture's edge
     rule = Image.new("RGB", (w, h), (245, 245, 240))
     ImageDraw.Draw(rule).rectangle((780, 0, 784, h), fill=(20, 20, 20))         # a thin printed line
-    for im in (eaves, rule):
+    # a clear sky (or a plain ground) meeting the picture is a horizon, not a gutter: the flat run is no thin band
+    # (CI, round 7: then-and-now's empty-sky gate and a callout pair's bright sky were cut away)
+    sky = np.full((2100, 1200, 3), 70, np.uint8)
+    sky[:1000] = 250
+    busy = np.full((3000, 4000, 3), 225, np.uint8)
+    busy[900:] = np.random.default_rng(3).integers(30, 200, (2100, 4000, 3), dtype=np.uint8)
+    for im in (eaves, rule, Image.fromarray(sky), Image.fromarray(busy)):
         assert hero_window.panel_seams(im, *hero_window._small(im)) == []
 
 

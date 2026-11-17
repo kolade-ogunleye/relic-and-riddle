@@ -145,6 +145,13 @@ SYSTEM_TOKENS: Mapping[str, Any] = MappingProxyType({
     "kicker.rule_gap": 0.55,          # the rule's end to the words, in caps
     "kicker.rule_thick": 0.16,        # the rule's thickness, in caps (>= 3 px)
     "kicker.colour": "GOLD",
+    "kicker.gap": 0.7,                # em of the kicker's size: its baseline to the heading's cap line (F20: one gap;
+                                      # 32 px on the carousel, 28 on the tall and wide canvases)
+    # ---- the text band (round 7, F3): the body hangs from the heading's LAST baseline by one gap per canvas
+    "band.body_gap": 2.0,             # body em, carousel (48 px body: 96 px baseline to baseline)
+    "band.body_gap_tall": 1.62,       # body em, tall (the Story: 46 px body, 75 px)
+    # ---- the cover / YouTube lockup (round 7, F21): line 2's size over line 1's, fixed (never fitted per cover)
+    "lockup.line_ratio": 1.0,
     # ---- motion
     "motion.back": 1.5,               # ease_out_back's constant (8 % overshoot): a callout's pop
     "motion.rise_s": 8,               # px a kicker rises while it enters (the end screen's WATCH NEXT)
@@ -165,6 +172,10 @@ TOKEN_RANGES: Mapping[str, tuple[float, float]] = MappingProxyType({
     "kicker.rule": (0.5, 3.0),            # caps
     "kicker.rule_gap": (0.2, 2.0),        # caps
     "kicker.rule_thick": (0.08, 0.50),    # caps
+    "kicker.gap": (0.3, 1.5),             # em
+    "band.body_gap": (1.2, 3.0),          # body em
+    "band.body_gap_tall": (1.2, 3.0),     # body em
+    "lockup.line_ratio": (1.0, 1.6),
     "motion.back": (0.0, 4.0),
     "motion.rise_s": (0, 40),             # px
 })
@@ -371,7 +382,6 @@ SIZE_SITES: Mapping[str, str] = MappingProxyType({
     "multi_format:MultiFormatGenerator._content_frame": "D",
     "multi_format:MultiFormatGenerator._fit_text": "D",
     "multi_format:MultiFormatGenerator._header_bottom": "D",
-    "multi_format:MultiFormatGenerator._plan_panel": "D",
     "multi_format:MultiFormatGenerator._render_carousel_slide": "D",
     "multi_format:MultiFormatGenerator._render_debate.with_share": "D",
     "multi_format:MultiFormatGenerator._render_story_frame": "D",
@@ -405,7 +415,7 @@ RUNTIME_SIZE_SITES: Mapping[str, str] = MappingProxyType({
 })
 
 # Heading break vocabulary: one list for every surface (there were five).
-LINE_END_NEVER = frozenset(("a", "an", "the", "of", "in", "on", "at", "to", "by", "for", "from", "with", "into", "onto",
+LINE_END_NEVER = frozenset(("a", "an", "the", "of", "in", "on", "at", "to", "by", "for", "from", "near", "with", "into", "onto",
                             "via", "per"))
 LINE_END_LAST_RESORT = frozenset(("and", "or", "but", "nor", "so", "yet", "as", "than"))
 

@@ -23,6 +23,19 @@ LOADERS = {"get_font": 1, "fit_text": 3, "probe_text": 3, "fit_font": None, "fit
            "figure_font": 0, "data_font": 0, "place_font": 0}   # cycle 0 round 7: the figure / data / place roles
 
 
+def wrappers() -> frozenset[str]:
+    """The loaders a surface module defines itself (masthead.font_for, graphics.figure_font / data_font / place_font,
+    design_cards._design_wrap, MultiFormatGenerator._fit_text): the scan counts both such a loader's own body (its
+    font call takes a computed size) and each caller passing it a size off the ladder, so the runtime observer
+    (tests/size_observer.py) records a font made inside one at the loader AND at its caller (cycle 0 round 7)."""
+    names = set()
+    for mod in SURFACE_MODULES:
+        tree = ast.parse((ROOT / "src" / f"{mod}.py").read_text(encoding="utf-8"))
+        names |= {n.name for n in ast.walk(tree) if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
+                  and n.name in LOADERS}
+    return frozenset(names)
+
+
 def _ladder() -> set[float]:
     from src import brand_system
     vals = set()

@@ -93,6 +93,14 @@ def test_wieliczka_keeps_its_figure_withheld_and_draws_no_stray_word() -> None:
     render_cover(photo.resize((1080, 1920)), copy, "badge", lay=lay, source=photo, figure=figure)
     drawn = [p.text for plates in lay.meta.get("plates", {}).values() for p in plates if not p.empty]
     assert drawn and not any("327" in t for t in drawn), drawn
+    # round 7 (F1 / F21): the title lockup is set by the heading engine, which moves line 1's closing preposition to
+    # open line 2 (CARVED FROM / SOLID SALT -> CARVED / FROM SOLID SALT, the panel's ruled fix) and draws a line in
+    # colour runs: the lockup is judged whole -- its words, in order, are the verified line 1 and line 2, nothing cut
+    titles = [p.text for n in ("title_1", "title_2") for p in lay.meta.get("plates", {}).get(n, []) if not p.empty]
+    authored = " ".join(str(copy.get(k) or "") for k in ("line1", "line2")).upper().split()
+    assert not titles or " ".join(titles).split() == [w for w in authored if w], (titles, authored)
+    drawn = [p.text for n, plates in lay.meta.get("plates", {}).items() if n not in ("title_1", "title_2")
+             for p in plates if not p.empty]
     for text in drawn:
         if text.strip().upper() not in {v.strip().upper() for v in copy.values() if isinstance(v, str)}:
             assert _reads_alone(text), (text, drawn)                     # a changed line reads on its own

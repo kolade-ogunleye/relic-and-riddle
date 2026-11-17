@@ -323,10 +323,14 @@ def _assert_checked_card_native(tmp_path, monkeypatch, kind, width=1920, height=
     monkeypatch.setattr(vc, "_get_video_encoder", encoder)
     monkeypatch.setattr(scene_planner.free_llm, "enabled", lambda: False)
     monkeypatch.setattr(scene_planner, "claude_available", lambda: False)
+    # round 7 integration: on 9:16 the PLATE lane's F19 measure (x 137-824) sets this short myth on two lines (the card's
+    # rule: an extra line, never a smaller size), so its reading floor needs the correction spoken 0.4 s later than the
+    # one-line myth did (6.2 s); the gate is unchanged and a narration faster than it is still refused (too_fast)
+    corr = 6.6 if height > width else 6.2
     photos = [_photo(tmp_path / (ground + ".jpg"), ground) for ground in ("dark", "smooth", "warm")]
     myth_words = ([{"word": word, "start": 3.0 + i * .8, "dur": .7}
                    for i, word in enumerate(text.split()[:4])] +
-                  [{"word": word, "start": 6.2 + i * .4, "dur": .36}
+                  [{"word": word, "start": corr + i * .4, "dur": .36}
                    for i, word in enumerate(text.split()[4:])]) if kind == "mythfact" else None
     paths = card_composition.make_all(payload, tmp_path / "cards", width=width, height=height, words=myth_words)
     assert len(paths) == 1 and card_composition.load_contract(paths[0])["kind"] == kind
@@ -365,7 +369,7 @@ def _assert_checked_card_native(tmp_path, monkeypatch, kind, width=1920, height=
     if kind == "mythfact":
         measured = json.loads(paths[0].with_name(paths[0].name + ".design.json").read_text(encoding="utf-8"))
         first_full = next(e["t_full"] for e in measured["elements"] if e["name"] == "fact_0")
-        assert abs(3.0 + first_full - 6.2) <= .5 / 30
+        assert abs(3.0 + first_full - corr) <= .5 / 30
         shifted_words = [{**w, "start": w["start"] + .2} for w in words]
         assert not card_composition.matches(paths[0], beats[1], shifted_words)
         too_fast = [{**w, "start": 3.0 + i * .2, "dur": .18} for i, w in enumerate(myth_words)]
@@ -373,8 +377,8 @@ def _assert_checked_card_native(tmp_path, monkeypatch, kind, width=1920, height=
                                          words=too_fast) == []
         # Joining the two spoken sentences preserves the nine-photo capacity
         # after the ordinary three-graphic allowance, without touching word times.
-        split = [beats[0], {"start": 3.0, "end": 6.2, "text": "Aliens built the ring."},
-                 {"start": 6.2, "end": beats[1]["end"], "text": "The ring formed through erosion."}]
+        split = [beats[0], {"start": 3.0, "end": corr, "text": "Aliens built the ring."},
+                 {"start": corr, "end": beats[1]["end"], "text": "The ring formed through erosion."}]
         tail = [{"start": beats[1]["end"] + i * 3, "end": beats[1]["end"] + (i + 1) * 3,
                  "text": f"View {i}."} for i in range(10)]
         original_words = copy.deepcopy(words)

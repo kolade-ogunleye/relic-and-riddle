@@ -313,7 +313,18 @@ def _thumbnail(copy, **kw):
     from src import youtube_thumbnail
     meta = {}
     youtube_thumbnail.render(Image.new("RGB", (1920, 1080), (90, 80, 70)), copy, meta=meta, **kw)
-    titles = [p.text for n, p in meta["_plates"] if n.startswith("title") or n == "kicker"]
+    # round 7 (F5): a line's colour runs (the payoff gold) are separate plates on one baseline: joined into the line
+    titles: list = []
+    last = None
+    for n, p in meta["_plates"]:
+        if not (n.startswith("title") or n == "kicker"):
+            continue
+        key = (n, round(p.xy[1]))
+        if key == last:
+            titles[-1] += " " + p.text
+        else:
+            titles.append(p.text)
+        last = key
     return meta, titles
 
 

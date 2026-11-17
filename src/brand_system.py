@@ -352,7 +352,7 @@ SPACING: Mapping[str, Mapping[str, int]] = MappingProxyType({
 # that ports one must update this table (and the claim stays true as written).
 DEVIATIONS: Mapping[str, tuple[str, str, tuple, str]] = MappingProxyType({
     "hook claim": ("display_xl", "design_cards.HOOK_SIZES",
-                   ((192, 176, 160, 144, 128), (176, 168, 160, 152, 144, 136, 128, 120, 112), (128, 120, 112)), "F"),
+                   ((192, 176, 160, 144, 128), (176, 168, 160, 152, 144, 136, 128, 120, 112), (128, 120, 112, 104)), "F"),
     "chapter title 16:9, one line": ("display_l", "design_cards.CHAPTER_WIDE_ONE",
                                      (184, 176, 168, 160, 152, 144, 136, 128, 120), "F"),
     "chapter title 16:9, two lines": ("display_l", "design_cards.CHAPTER_WIDE_TWO",

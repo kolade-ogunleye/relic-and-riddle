@@ -194,7 +194,9 @@ def test_m1_short_cards_unchanged():
     the fact's two lines no longer fit at 112."""
     for verdict in ("false", "misleading"):
         a = plan_myth(SHORT, verdict=verdict).meta["anchors"]
-        assert (a["px"], a["myth_px"], len(a["myth_baselines"]), len(a["fact_baselines"])) == (104, 90, 1, 2)
+        # round 7 integration (F19): on the 687 px measure the short myth (728 px at 90) takes a second line, by the
+        # card's own rule (an extra line, never a smaller size), at the same sizes
+        assert (a["px"], a["myth_px"], len(a["myth_baselines"]), len(a["fact_baselines"])) == (104, 90, 2, 2)
         assert a["myth_px"] == dc.myth_px(104, False, 0.86) and not a["compact"]
 
 
@@ -413,7 +415,9 @@ def test_h1_claim_size_by_line_count(ground, photos):
     """H1: one line at 192, two at 144, three at 128 on the wash; the right ink inside the box's right edge (848) and
     the top ink 56 px under the masthead's foot on every ground. QF-24: on the organic box's 735 px measure (788 on
     the ads box, right edge 888) the two-line claim takes the next size down, 144 (was 152)."""
-    expect = [("The ring", "f_len", 1, 192), ("About 40 km across", "f_len", 2, 144),
+    # round 7 integration (F19, the PLATE lane): on the 687 px measure (x 137-824) the two-line claim takes the next
+    # size down again, 136 (was 144 on the 735 px box)
+    expect = [("The ring", "f_len", 1, 192), ("About 40 km across", "f_len", 2, 136),
               ("Concentric sandstone quartzite", "f_geo", 3, 128), ("Ridges rise from the desert", "fz_hook", None, 152)]
     for claim, fid, n, px in expect:
         plan = hook_plan(photos[ground], claim, fid)

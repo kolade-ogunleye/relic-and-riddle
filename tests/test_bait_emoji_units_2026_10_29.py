@@ -217,7 +217,9 @@ def test_a_two_unit_card_counts_both_units_on_the_frame(tmp_path, monkeypatch):
                         [f for _, f in zip(range(n), frames)] and out)
     graphics.render_stat_cards([{"value": "280 FT (85 M)", "label": "Depth"}], tmp_path / "n.mp4", narration=DERINKUYU)
     figures = [t for t in drawn if re.fullmatch(r"[\d,.]+( ?[A-Z]+)?", t)]
-    assert figures and set(figures) <= {"2", "8", "0", "85 M"}, sorted(set(figures))
+    # cycle 0 round 7 (F13, ruling 3): the conversion "85 M" is set in the figure face, whose per-glyph measure
+    # (font_engine.glyph_masks) rasterises its digits one by one: its own "8" and "5", never another figure
+    assert figures and set(figures) <= {"2", "8", "0", "5", "85 M"}, sorted(set(figures))
     assert {"2", "8", "0", "85 M"} <= set(figures)                   # every one of them drawn
     assert (recorded["figure"], recorded["unit"], recorded["secondary"]) == ("280", "FT", "85 M")
     ft, m = int(recorded["figure"]), int(re.match(r"\d+", recorded["secondary"]).group())

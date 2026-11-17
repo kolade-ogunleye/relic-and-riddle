@@ -446,12 +446,12 @@ SIZE_SITES: Mapping[str, str] = MappingProxyType({
     "graphics:country_outside_place": "A",
     "graphics:country_plate": "A",
     "graphics:country_spot": "A",
-    "graphics:data_font": "system",     # cycle 0 round 7: the data, figure and place roles' fonts
-    "graphics:figure_font": "system",
+    "graphics:data_font": "A",          # cycle 0 round 7: the data, figure and place roles' fonts
+    "graphics:figure_font": "A",
     "graphics:label_plates_for": "A",
     "graphics:marker_label_lines": "A",
     "graphics:neighbour_plates": "A",
-    "graphics:place_font": "system",
+    "graphics:place_font": "A",
     "graphics:relief_base": "A",
     "graphics:ruler_label": "A",
     "graphics:render_route": "A",

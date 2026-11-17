@@ -208,7 +208,12 @@ def test_wide_mid_clip_dims_the_earlier_event(wide) -> None:
 
     def peak(b):
         return float(np.percentile(arr[b[1]:b[3], b[0]:b[2]].max(axis=2), 99))
-    assert peak(year0) < peak(year1) * 0.75                       # the earlier date dimmed, the current one full
+    # cycle 0 round 7 (F13, operator ruling 3): a year is a stated quantity and stays gold; the earlier event steps
+    # back by its words (stone), the current one full
+    label0 = dict(wide["plates"])["label0"].box
+    label1 = dict(wide["plates"])["label1"].box
+    assert peak(year0) >= peak(year1) * 0.9                        # both dates gold
+    assert peak(label0) < peak(label1) * 0.85                      # the earlier event's words dimmed
 
 
 # ----------------------------------------------------------------------------- 9:16 and the inset edge

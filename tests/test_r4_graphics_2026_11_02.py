@@ -263,7 +263,10 @@ def test_two_cards_step_the_first_back(tmp_path, monkeypatch) -> None:
     st = _render(monkeypatch, lambda: graphics.render_stat_cards(CARDS, tmp_path / "n.mp4", _photo(tmp_path / "p.jpg")))
     rows = st["plates"]
     figs = [p for n, p in rows if n == "figure"]
-    assert len(figs) == 2 and tuple(figs[0].fill) == brand.STONE and tuple(figs[1].fill) == brand.GOLD
+    # cycle 0 round 7 (F13, operator ruling 3): a stated quantity stays gold when its card steps back; the first card's
+    # words step back to stone (its figure was STONE before)
+    assert len(figs) == 2 and tuple(figs[0].fill) == tuple(figs[1].fill) == brand.GOLD
+    assert any(tuple(p.fill) == brand.STONE_LT for n, p in rows if n == "label")
     assert all(p.contrast >= brand.TEXT_CONTRAST for _n, p in rows)
 
 
@@ -837,7 +840,9 @@ def test_scale_bar_figures_are_reference_type_under_the_stop_names() -> None:
     rows = dict(graphics._scale_bar_plates(im, bar, 50, 150))
     main, other = rows["scale"], rows["scale_secondary"]
     assert main.font.size == other.font.size == graphics.SCALE_LABEL_PX < 34            # under the 34 px names
-    assert graphics.SCALE_LABEL_PX >= graphics.SPAN_MIN_PX                              # at the tertiary floor
+    # cycle 0 round 7 (F16): the tertiary floor is the 9:16 label floor (27 px, SPAN_MIN_PX), met where it applies:
+    # the 9:16 bar is drawn at scale_label_font (27 px); SCALE_LABEL_PX (24) is the 16:9 design size
+    assert graphics.scale_label_font(1080, 1920).size >= graphics.SPAN_MIN_PX
     assert graphics.SCALE_LABEL_WEIGHT == 600                                           # the names 800
     assert main.box[2] - main.box[0] <= 120                                             # no wider than a 120 px bar
 

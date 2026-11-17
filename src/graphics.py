@@ -694,7 +694,7 @@ def _scale_bar_plates(rest: Image.Image, bar: ScaleBar, x: float, y: float, px: 
                       direction: int = 1) -> list[tuple[str, TextPlate]]:
     """The bar's labels as measured knockout plates (Montserrat 600, SCALE_LINE on a SCALE_LABEL_HALO ink halo,
     raised while the ratio is short of the target)."""
-    font = get_font(brand.TEXT_FONT, px, weight=SCALE_LABEL_WEIGHT) if px is not None else scale_label_font(*rest.size)
+    font = get_font(brand.TEXT_FONT, px if px is not None else SCALE_LABEL_PX, weight=SCALE_LABEL_WEIGHT)
     track = font.size * SCALE_LABEL_TRACK
     return [(name, plan_text(rest, xy, text, font, brand.SCALE_LINE, "ls", track=track, halo_px=21,
                              min_halo=SCALE_LABEL_HALO))
@@ -5226,7 +5226,8 @@ def _render_map(place: dict[str, Any], out: Path, width: int = VIDEO_WIDTH, heig
         label_plates.append(("approx", plan_text(rest, (width // 2, under + 16 * k + cap_height(f_ap)), "APPROX. LOCATION",
                                                  f_ap, brand.STONE_LT, "ms", track=4, halo_px=21, min_halo=0.8)))
     c_plates = [("country", country_plate(rest, cname))] if cname is not None else []
-    bar_plates = _scale_bar_plates(_with_bar(rest, bar, sbl.x, sbl.y), bar, sbl.x, sbl.y) if bar else []
+    bar_plates = (_scale_bar_plates(_with_bar(rest, bar, sbl.x, sbl.y), bar, sbl.x, sbl.y,
+                                    px=scale_label_font(width, height).size) if bar else [])   # F16: the 9:16 floor
     # the context globe: centred on the site's longitude, turning into it (cached per tenth of a degree)
     lon_half_c = (bw / zf_last / 2) / (kx * coslat)
     lat_half_c = (bh / zf_last / 2) / kx
@@ -8219,6 +8220,13 @@ def ruler_label(ground: Image.Image, x: float, datum: float, text: str, font, fi
             font = data_font(font.size + 1)
 
 
+def ruler_label_width(text: str, font, track: float = 1.0) -> float:
+    """The ink width of a ruler label as ruler_label sets it (its number and unit joined by data.unit_gap): a column
+    of ruler figures is measured as drawn, not as the mono face's whole word space would set it."""
+    box = ruler_label_runs(0.0, 0.0, text, font, "l", track)[1]
+    return box[2] - box[0]
+
+
 def ruler_label_runs(x: float, datum: float, text: str, font, anchor: str = "r",
                      track: float = 1.0) -> tuple[list[tuple[str, tuple[float, float]]], Box]:
     """ruler_label's geometry without planning: each run (number, unit) with its "ls" anchor point, and the ink box
@@ -8775,7 +8783,10 @@ def _render_scale_vertical(fact, feet, ref_label, ref_feet, depth, out, width, h
     # Clear air between the drawing and the line of meaning (a depth's ground section under the shaft floor,
     # SECTION_FOOT, counts as drawing; a height's ground line is 3 px), and between the heading and anything
     # rising above the ground (operator, 2026-11-02: they touched).
-    draw_bottom = mean_top - SCALE_TEXT_GAP - (SECTION_FOOT if depth else 3)
+    # cycle 0 round 7 (F11): a height's "0 FT" is centred on its ground line, so half its cap hangs under the line and
+    # counts as drawing too (the air to the meaning is kept from it)
+    draw_bottom = mean_top - SCALE_TEXT_GAP - (SECTION_FOOT if depth else
+                                               3 + math.ceil(cap_height(data_font(SCALE_RULER_PX)) / 2))
     ground = Image.new("RGB", (width, height), brand.SEA)
     xt = x0                                                # on the inset edge, well inside the box
     plates = [("subject", plan_text(ground, (xt, y_sub), subject, f_sub, brand.STONE_LT, "ls", track=3)),
@@ -8844,9 +8855,11 @@ def _render_scale_vertical(fact, feet, ref_label, ref_feet, depth, out, width, h
             yy = line_y + ft * px_ft
             rx = shaft[0] - 26
             f_rule = data_font(SCALE_RULER_PX)
-            while is_floor and rx - tracked_width(text, f_rule, 1) < x0 and f_rule.size - 2 >= max(26, floor):
+            def left(f, rx=rx, text=text) -> float:      # its ink left edge as ruler_label sets it (joined)
+                return ruler_label_runs(rx, 0.0, text, f)[1][0]
+            while is_floor and left(f_rule) < x0 and f_rule.size - 2 >= max(26, floor):
                 f_rule = data_font(f_rule.size - 2)        # the hedged floor, never cut
-            if rx - tracked_width(text, f_rule, 1) < x0:
+            if left(f_rule) < x0:
                 continue
             # Cycle 0 round 7 (F11, zero datum): every figure centred on its tick, "0 FT" on the ground line itself
             # (it sat 28 px under it, which reads as about 78 ft on a 36 px-per-100-ft ruler); the line yields round it
@@ -8865,7 +8878,7 @@ def _render_scale_vertical(fact, feet, ref_label, ref_feet, depth, out, width, h
         # round 4: the shared ruler (height_ruler) on the baseline's left edge, its figures right-aligned to a
         # line RULE_W in from the inset edge; the monolith and the landmark beside it
         f_rule_h = data_font(SCALE_RULER_PX)
-        rule_x = x0 + round(max(tracked_width(t, f_rule_h, 1) for _f, t in height_ruler(max(feet, ref_feet), unit))) + 16
+        rule_x = x0 + round(max(ruler_label_width(t, f_rule_h, 1) for _f, t in height_ruler(max(feet, ref_feet), unit))) + 16
         shaft = (rule_x + 30, rule_x + 30 + block)
         room = x1 - shaft[1] - 40 - 20                      # beside the subject's block
         f_blk = data_font(max(28, floor))                   # dimensions on the drawing: the data face (ruling 3)
@@ -9125,7 +9138,7 @@ def _render_scale_wide(fact: dict[str, Any], feet: float, ref_label: str, ref_fe
         base_y = draw_bottom
         block = 200.0
         f_rule_w = data_font(g.f(28))
-        rule_x = WIDE_LEFT + 16 + max(tracked_width(t, f_rule_w, S(1)) for _f, t in
+        rule_x = WIDE_LEFT + 16 + max(ruler_label_width(t, f_rule_w, S(1)) for _f, t in
                                       height_ruler(max(feet, ref_feet), unit)) / g.k   # round 4: the figures end here
         room = dx1 - dx0 - 60 - block - 60
         top_ft = max(ft for ft, _ in height_ruler(max(feet, ref_feet), unit))
@@ -9787,7 +9800,9 @@ def _stat_clip(cards: list[dict[str, Any]], plans: list[dict[str, Any]], bg: Ima
                 r["rule"] = (x0 + bx0, p["y0"] + by0, x0 + bx1, p["y0"] + by1)
                 r["plates"] = [plan_text(rest, (x0, yy), r["text"], r["font"],
                                          brand.GOLD, "ls", track=r["font"].size * 0.15)]
-                r["fill"], r["dim_fill"] = brand.GOLD, brand.STONE
+                # cycle 0 round 7 (F13): a stepped-back card dims its words one way, to STONE_LT like its label and
+                # unit (the kicker's STONE twin measured 4.09:1 on the gold-on-gold ground, under the 4.5 gate)
+                r["fill"], r["dim_fill"] = brand.GOLD, brand.STONE_LT
             elif r["kind"] == "figure":
                 # F13 (ruling 3): the figure face in gold, at rest and when it steps back for the second card (it
                 # stepped back to stone: "36" in stone beside "13,000" in gold); its words dim, the figure does not
@@ -11758,8 +11773,8 @@ def render_route(stops: list[dict[str, Any]], out: Path, width: int = VIDEO_WIDT
                for name, sps in by_name.items()}      # one variant per stop's name (all its rows)
     plates = [(name, next(planned[name])) for name, _sp in plates]
     stop_of = {id(pl): int(name[4:]) for name, pl in plates}
-    bar_plates = (_scale_bar_plates(_with_bar(ground_last, bar, bar_x, bar_y), bar, bar_x, bar_y)
-                  if bar else [])
+    bar_plates = (_scale_bar_plates(_with_bar(ground_last, bar, bar_x, bar_y), bar, bar_x, bar_y,
+                                    px=scale_label_font(width, height).size) if bar else [])   # F16: the 9:16 floor
 
     def frames():
         for i in range(n):

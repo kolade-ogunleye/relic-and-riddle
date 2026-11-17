@@ -120,7 +120,7 @@ EYEBROW_QUALIFIER_GAP = 44                           # the eyebrow's ink foot to
 GRID_WIDTHS = (124, 180)                             # the profile grid's tile widths on phones (3:4 crop)
 GRID_SCALE = tuple(w / 1080 for w in GRID_WIDTHS)
 QUALIFIER_GRID_CAP = 9                               # px of cap height a qualifier keeps at 124 px wide
-GRID_CONTRAST = GATES["contrast.text"]   # a hook element's contrast on the 124 px tile (grid_proof), cycle 0 round 7
+GRID_CONTRAST = GATES["contrast.grid"]   # a hook element's contrast on the 124 px tile (grid_proof), cycle 0 round 7
 MASTHEAD_GRID_CAP = GATES["masthead.grid_cap"]       # QF-87: a cover's masthead is this tall at 124 px wide, or absent
 EYEBROW_PX, EYEBROW_MIN, EYEBROW_TRACK = 40, 36, 4.0   # Montserrat 800 tracked capitals, every style (2026-11-02)
 TAGLINE_PX, TAGLINE_MIN = 38, 32                        # never under 32 px: at 24-30 it vanished in the grid
@@ -1562,7 +1562,7 @@ def grid_proof(im, lay):
             if not inside:
                 found.append(f"{name} outside the 3:4 crop")
             # cycle 0 round 7 (sweep S1: a monument tile passed at 3.80 / 3.63 / 2.87:1): a hook element's contrast
-            # on the tile is part of the proof, at the text gate (WCAG AA)
+            # on the tile is part of the proof, at contrast.grid (3.0: the tile is a preview, read at large-text AA)
             c124 = elements[name]["contrast_124"]
             if c124 is not None and c124 < GRID_CONTRAST:
                 found.append(f"{name} {c124:.2f}:1 at 124 px (gate {GRID_CONTRAST})")

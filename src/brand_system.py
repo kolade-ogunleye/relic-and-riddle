@@ -134,6 +134,7 @@ GATES: Mapping[str, Any] = MappingProxyType({
     "contrast.masthead_target": 6.5,  # and the target
     "contrast.high": 7.0,             # an ink figure / source line where ruled (chapter total, then-and-now)
     "contrast.mark": 3.0,             # WCAG 1.4.11: an essential mark against its ground
+    "contrast.grid": 3.0,             # a hook element on the 124 px profile-grid tile (cover_design.grid_proof)
     # ---- scrims and halos (operator rulings)
     "scrim.masthead_peak": 0.60,      # the masthead scrim's peak alpha (round 3 (2))
     "scrim.slope_max": 0.5,           # luma per px: a field never steps faster (end card, round 3 (1))

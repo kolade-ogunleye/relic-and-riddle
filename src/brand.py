@@ -197,6 +197,15 @@ class BrandConfig:
             r = _ratio(self.colour(a), self.colour(b))
             if r < _G[gate]:
                 raise ValueError(f"brand {self.name!r}: {a} on {b} is {r:.2f}:1, under the {_G[gate]}:1 {gate} gate")
+        # The kicker (cycle 0 round 7, sweep S1: kicker.colour = INK drew a Story kicker at 1.55:1): its colour sits on
+        # the INK text band; a colour that cannot reach the kicker gate there is refused before any surface draws it
+        # (on a busy ground multi_format.plan_kicker then takes bone, or draws none).
+        k_role = self.system.get("kicker.colour")
+        if k_role is not None:
+            r = _ratio(self.colour(k_role), self.colour("INK"))
+            if r < _G["contrast.kicker"]:
+                raise ValueError(f"brand {self.name!r}: kicker.colour {k_role} against INK is {r:.2f}:1, under the "
+                                 f"{_G['contrast.kicker']}:1 kicker gate (src/brand_system.py contrast.kicker)")
         for role in self.fonts:
             self._font_role(role)
 

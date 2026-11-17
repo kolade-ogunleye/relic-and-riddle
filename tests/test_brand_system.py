@@ -350,6 +350,37 @@ def _comparison_ground():
     return np.asarray(out)[:, 720].tobytes()
 
 
+def _body_gap_carousel():
+    from src.multi_format import MultiFormatGenerator
+    g = MultiFormatGenerator()
+    return g._content_frame(g._px(1440), False, 2)["heading_last"]
+
+
+def _body_gap_story():
+    import tempfile
+
+    from src.multi_format import MultiFormatGenerator
+    photo = Path(tempfile.gettempdir()) / "rr_probe_story_ground.png"
+    if not photo.exists():
+        Image.new("RGB", (1080, 1920), (40, 40, 44)).save(photo)
+    _, lay = MultiFormatGenerator()._render_story_frame(
+        photo, {"kicker": "K", "line1": "Old rooms", "line2": "under salt", "body": "A short body."}, 0, 2, {})
+    return min(p.xy[1] for p in lay.plates["body"]) - max(p.xy[1] for p in lay.plates["title_2"])
+
+
+def _lockup_ratio():
+    from PIL import ImageDraw
+
+    from src import cover_design
+    got, _ = cover_design._lockup(ImageDraw.Draw(Image.new("RGB", (8, 8))), {"line1": "OLD", "line2": "SALT"}, 900, 100)
+    return got["line2"][0].size
+
+
+def _card_centre():
+    from src import design_cards
+    return design_cards._chapter_tall_block(120, ["A B"])[2]
+
+
 TOKEN_PROBES = {   # token -> (an override value, a probe of the renderer that reads it)
     "edge.slope_max": (0.6, _band_edge_profile),
     "halo.label_max": (0.04, lambda: _follow_label()[0]),
@@ -371,6 +402,11 @@ TOKEN_PROBES = {   # token -> (an override value, a probe of the renderer that r
     "kicker.rule_gap": (1.5, _kicker_width),
     "kicker.rule_thick": (0.4, _carousel_kicker_pixels),
     "kicker.colour": ("TEAL", _carousel_kicker_pixels),
+    "kicker.gap": (1.2, lambda: __import__("src.multi_format", fromlist=["x"]).kicker_gap(40)),
+    "band.body_gap": (2.6, _body_gap_carousel),
+    "band.body_gap_tall": (2.4, _body_gap_story),
+    "lockup.line_ratio": (1.4, _lockup_ratio),
+    "card.tall_centre": (0.32, _card_centre),
     "motion.back": (4.0, _callout_ease),
     "motion.rise_s": (20, _end_screen_rise),
     # cycle 0 round 7 (lane TRUTH): figures, the unit joiner and the place-label role

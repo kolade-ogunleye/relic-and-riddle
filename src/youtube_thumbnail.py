@@ -72,7 +72,6 @@ FEATHER_PAD, FEATHER_EASE, FEATHER_MIN_EASE = 40, 520, 320   # r7: the full ink 
                           # vertical edge, and a long title ran past where it began
 FEATHER_SLOPE_MAX = 1.0   # the fade's steepest step, in 8-bit levels over white per px (round 4: ~1.4)
 BAND_PAD = (40, 72)       # the hero stack is centred between the masthead's foot + 40 and the frame's foot - 72
-KICKER_RATIO, KICKER_GAP = 0.6, 30   # round 4: a withheld figure's headline filled from the eyebrow (kicker)
 HEDGE_GAP = 22   # the headline path's hedge line (r7: at the qualifier kicker's feed floor, _qual_font) to the headline
 
 
@@ -278,6 +277,108 @@ def _low_contrast(meta: dict) -> list:
     """The gated lines downscale_check found under 4.5 at 246 px wide."""
     return [n for n, row in (meta.get("downscale") or {}).items() if n not in _TEXTURE
             and row.get("contrast_246") is not None and row["contrast_246"] < 4.5]
+
+
+def _lockup(measure, l1: str, l2: str, width: float):
+    """The headline lockup (round 7, F1 / F21): ([(element name, [(dx, text, colour)]) per drawn line], line-1
+    font, line-2 font, record). One size for the lockup's lines (lockup.line_ratio: line 2 over line 1); the wide
+    display_xl ladder; each field whole on one line (QF-143); line 2 gold but its opening function words; one field
+    alone is a lockup whose payoff run (the engine's seam) is gold. Below the ladder (a recorded last resort) the old
+    4 px steps to 96."""
+    from .brand_system import TYPE, TYPE_FALLBACK, tok
+    from .heading import GOLD_ROLES, field_runs, set_field, set_heading
+    # QF-23 / QF-143 (operator decisions): each headline line is a whole verified line drawn as written, one line a
+    # field: the engine gives the lockup its ladder and its accent here, never a re-break or a moved word
+    ratio = tok("lockup.line_ratio")
+
+    def width_at(t, sz):
+        return measure.textlength(t, font=get_font(brand.DISPLAY_FONT, sz))
+
+    def runs_of(line_runs, font):
+        out, dx = [], 0.0
+        for t, role in line_runs:
+            out.append((round(dx), t, brand.GOLD if role in GOLD_ROLES else brand.BONE))
+            dx += measure.textlength(t + " ", font=font)
+        return out
+
+    def attempt(s1, tier):
+        s2 = round(s1 * ratio)
+        rows = []
+        for key, text, sz, gold in (("title_1", l1, s1, False), ("title_2", l2, s2, True)):
+            if not text:
+                continue
+            if not (l1 and l2):
+                form = set_heading(text, width_at, width, (sz,), max_lines=1, lockup=True)
+                line_runs = form.runs() if form else None
+            else:
+                form = set_field(text, width_at, width, sz, max_lines=1)
+                line_runs = field_runs(text, form.cuts, gold) if form else None
+            if line_runs is None:
+                return None
+            font = get_font(brand.DISPLAY_FONT, sz)
+            rows += [(key, runs_of(lr, font)) for lr in line_runs]
+        return rows, get_font(brand.DISPLAY_FONT, s1), get_font(brand.DISPLAY_FONT, s2), {
+            "tier": tier, "sizes": [s1, s2], "ratio": ratio, "line1": l1, "line2": l2}
+    for tier, s1 in enumerate((round(TYPE["wide"]["display_xl"]), round(TYPE_FALLBACK["wide"]["display_xl"]))):
+        got = attempt(s1, tier)
+        if got:
+            return got
+    size = round(TYPE_FALLBACK["wide"]["display_xl"]) - 4
+    while size > 96:
+        got = attempt(size, None)
+        if got:
+            got[3]["off_ladder"] = True
+            return got
+        size -= 4
+    font = get_font(brand.DISPLAY_FONT, 96)
+    rows = [(k, [(0, t, c)]) for k, t, c in (("title_1", l1, brand.BONE), ("title_2", l2, brand.GOLD)) if t]
+    return rows, font, font, {"tier": None, "off_ladder": True, "sizes": [96, 96], "ratio": ratio}
+
+
+KICKER_MIN_PX = 72   # F20 on YouTube: the kicker's least size (the retired Anton fill kicker's floor)
+
+
+def _kicker_font(text: str, width: float):
+    """F20 on YouTube: the system kicker's face and weight at the least size whose cap holds LINE_FLOOR at 168 px
+    wide; where its rule, gap and tracked words do not fit `width` there, the largest size down to KICKER_MIN_PX
+    that does (the feed check then records it under the floor); None below that."""
+    from .brand_system import tok
+    size = QUAL_PX
+    while cap_height(get_font(brand.TEXT_FONT, size, weight=tok("kicker.weight"))) * FEED_WIDTHS[0] / W < LINE_FLOOR:
+        size += 2
+    while size >= KICKER_MIN_PX:
+        font = get_font(brand.TEXT_FONT, size, weight=tok("kicker.weight"))
+        ch = cap_height(font)
+        if (tok("kicker.rule") + tok("kicker.rule_gap")) * ch + tracked_width(text, font, tok("kicker.track") * size)                 <= width:
+            return font
+        size -= 2
+    return None
+
+
+def _kicker_gap(font) -> int:
+    from .brand_system import tok
+    return round(tok("kicker.gap") * font.size)
+
+
+def _draw_kicker(im, x, baseline, text, font, feed_kw):
+    """The system kicker (src/multi_format.draw_kicker's device: a flat gold rule one cap long at mid-cap, then the
+    tracked capitals), planned at the thumbnail's feed target."""
+    from .brand_system import colour_of, tok
+    colour = colour_of("kicker.colour")
+    ch = cap_height(font)
+    bar_w, gap = max(8, round(ch * tok("kicker.rule"))), round(ch * tok("kicker.rule_gap"))
+    thick = max(3, round(ch * tok("kicker.rule_thick")))
+    mid = baseline - ch / 2
+    from .brand_system import GATES
+    from .multi_format import plan_kicker
+    kw = dict(feed_kw, target=max(feed_kw.get("target", 0), GATES["contrast.kicker"]))
+    plate, rec = plan_kicker(im, (x + bar_w + gap, baseline), text, font, colour, "ls",
+                             tok("kicker.track") * font.size, **kw)
+    if plate is None:   # fail closed under the kicker gate (sweep S1)
+        return im, None, rec
+    ImageDraw.Draw(im).rectangle([round(x), round(mid - thick / 2), round(x) + bar_w - 1,
+                                  round(mid - thick / 2) + thick - 1], fill=tuple(plate.fill))
+    return plate.draw(im), plate, rec
 
 
 def _qual_font(text: str, width: float):
@@ -560,39 +661,47 @@ def _render(source, copy, focus, meta, figure, youtube_title, illustration, targ
             if fill:
                 meta["headline_fill_from"] = fill[0]
                 kicker = typeset(fill[1])
-        lines = [(typeset(t), c) for t, c in ((l1, brand.BONE), (l2, brand.GOLD)) if t]
         h_lines, f_h, h_track = h_fit if (hedge and h_fit) else ([], None, QUAL_TRACK)
-        size = 190
-        while size > 96 and any(measure.textlength(t, font=get_font(brand.DISPLAY_FONT, size)) > width for t, _ in lines):
-            size -= 4
-        f = get_font(brand.DISPLAY_FONT, size)
+        # Round 7 (F1, F21): the headline is the YouTube lockup, set by the heading engine: the authored seam repaired
+        # (line 1's closing function words open line 2, in bone), line 2 at lockup.line_ratio x line 1's size, the
+        # pair on the wide display_xl ladder (190, then its one fallback tier 150), each line whole, else the engine's
+        # break; the payoff run gold on one line or two. Below the ladder only as a recorded last resort.
+        lines, f, _, lock = _lockup(measure, typeset(l1), typeset(l2), width)
+        meta["lockup"] = lock
         pitch = int(cap_height(f) * 1.18)
         h_h = (len(h_lines) * cap_height(f_h) + (len(h_lines) - 1) * QUAL_LEADING + HEDGE_GAP) if f_h else 0
         f_k = None
         if kicker:
-            # The filled line sits over the kept one as a kicker, in bone Anton at most KICKER_RATIO of its size:
-            # the kept line stays the hero at full size (at one shared size both fell under the feed floor).
-            f_k = fit_font(measure, kicker, brand.DISPLAY_FONT, int(size * KICKER_RATIO), width, 72)
-            h_h += cap_height(f_k) + KICKER_GAP
+            # F20: the filled line is the system's kicker (text face 800, tracked, gold, the lead rule, the one gap)
+            # at the size that holds the feed floor (LINE_FLOOR at 168 px wide); one that does not fit the column at
+            # that size is not drawn (recorded): it was a bone Anton line competing with the headline (panel F20).
+            f_k = _kicker_font(kicker, width)
+            if f_k is None:
+                meta["headline_fill_dropped"] = {"from": meta.pop("headline_fill_from", None), "text": kicker,
+                                                 "reason": "the kicker does not fit the column at the feed floor"}
+                kicker = ""
+            else:
+                h_h += cap_height(f_k) + _kicker_gap(f_k)
         y = round(centre - (pitch * (len(lines) - 1) + cap_height(f) + h_h) / 2 + h_h + cap_height(f))
         if f_k:
-            p_k = plan_text(im, (LEFT, y - cap_height(f) - KICKER_GAP), kicker, f_k, brand.BONE, "ls",
-                            **feed("kicker", f_k))
-            im = p_k.draw(im)
-            plates.append(("kicker", p_k))
+            im, p_k, meta["kicker"] = _draw_kicker(im, LEFT, y - cap_height(f) - _kicker_gap(f_k), kicker, f_k,
+                                                   feed("kicker", f_k))
+            if p_k is not None:
+                plates.append(("kicker", p_k))
         if f_h:
             # The hedge on its own line above the headline (round 4), as on the covers ("ESTIMATED"), at the
             # feed floor and gated like every other line (r7: it was texture).
-            foot = y - cap_height(f) - (cap_height(f_k) + KICKER_GAP if f_k else 0) - HEDGE_GAP
+            foot = y - cap_height(f) - (cap_height(f_k) + _kicker_gap(f_k) if f_k else 0) - HEDGE_GAP
             for k, line in enumerate(h_lines):
                 yh = foot - (len(h_lines) - 1 - k) * (cap_height(f_h) + QUAL_LEADING)
                 p_h = plan_text(im, (LEFT, yh), line, f_h, brand.GOLD, "ls", h_track, **feed("qualifier", f_h))
                 im = p_h.draw(im)
                 plates.append(("qualifier", p_h))
-        for k, (t, colour) in enumerate(lines):
-            p = plan_text(im, (LEFT, y + k * pitch), t, f, colour, "ls", **feed(f"title_{k + 1}", f))
-            im = p.draw(im)
-            plates.append((f"title_{k + 1}", p))
+        for k, (name, runs) in enumerate(lines):
+            for dx, t, colour in runs:
+                p = plan_text(im, (LEFT + dx, y + k * pitch), t, f, colour, "ls", **feed(name, f))
+                im = p.draw(im)
+                plates.append((name, p))
     if illustration:
         im, p = _provenance(im)
         plates.append(("provenance", p))

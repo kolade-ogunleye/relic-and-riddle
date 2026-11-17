@@ -107,6 +107,7 @@ from .config import (
 )
 from .typography import is_video
 from . import brand as _brand
+from .brand_system import LINE_END_NEVER as _LINE_END_NEVER
 
 # Caption colours from the brand tokens (visual overhaul, 2026-10-29): spoken words in bone, the script's key words
 # in the brand gold (#FFD700 until then, one of three golds on screen), upcoming words in light stone. The style
@@ -879,7 +880,9 @@ def _hard_dangles(word: str) -> bool:
     relative word) with no punctuation closing it: the phrase builder's hard defect (review round 4)."""
     if CLAUSE_PUNCT.search(word) or TERMINAL_PUNCT.search(word):
         return False
-    return _bare(word) in DANGLING_ENDS
+    # round 7 (F1): the heading engine's never-end set is a burst's hard defect too (the 16:9 burst ended on "near");
+    # the round-4 base (round4_burst_cuts) keeps HEAD 0036b18's own set
+    return _bare(word) in DANGLING_ENDS or _bare(word) in _LINE_END_NEVER
 
 
 # Review round 4 (2026-11-04): the phrase builder's soft costs, summed per split after the hard defects. A lone

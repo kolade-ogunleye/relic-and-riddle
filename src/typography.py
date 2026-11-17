@@ -78,6 +78,10 @@ def get_font(name: str, size: int, fonts_dir: Path = FONTS_DIR, weight: Optional
     Montserrat 500/600/700 and Cinzel 700) or a static family's file (IBM Plex Mono 500/600), else the pinned
     default."""
     from .font_assets import DERIVED_FAMILIES, derived_font
+    if isinstance(size, float) and size.is_integer():
+        # round 7: a ladder size computed in float (150.0) is the integer size; a shared font cache would otherwise hand
+        # an integer caller a font whose .size is a float (Image.new then refuses it)
+        size = int(size)
     path = derived_font(name, fonts_dir) if name in DERIVED_FAMILIES else fonts_dir / font_file(name, weight)
     if not path.exists():
         raise FileNotFoundError(f"Required font missing: {path}")

@@ -421,8 +421,10 @@ def test_exact_anchors():
     # [822, 955, 1088], rule at x 113 (were R 300, Bn 640, [806, 931, 1056], x 100)
     assert (a["title_px"], a["R"], a["Bn"], a["title_baselines"]) == (136, 309, 649, [822, 955, 1088])
     els = {e.name: e for e in p.elements}
-    # cycle 0 round 7 (panel F19): the rule starts on the 9:16 margin token, x 137 (113 on the box's edge)
-    assert els["kicker_rule"].box == (137, 309, 181, 313)
+    # round 7: the system kicker's lead rule (F20: one cap long, at the label's mid-cap, replacing the 44 x 4 rule
+    # above), starting on the 9:16 margin token (F19: x 137, was 113 on the box's edge)
+    r, lab = els["kicker_rule"].box, els["kicker_label"].box
+    assert r[0] == 137 and (r[2] - r[0], r[3] - r[1]) == (28, 4) and r[2] < lab[0]
     p = dc.plan_chapter_card(chapter(), SHEET, 1920, 1080)
     els = {e.name: e for e in p.elements}
     last = max(n for n in els if n.startswith("title_"))

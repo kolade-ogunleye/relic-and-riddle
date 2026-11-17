@@ -113,10 +113,14 @@ def photos(tmp_path):
 
 
 def test_instagram_content_headlines_take_the_two_tone_treatment(photos) -> None:
+    # round 7 (F1, F5): no lone-word row ("IMPACT / THEORY DISPROVED") and an interior heading is bone, wrapped or not
     _, ig = M()._render_carousel_slide("editorial_split", photos[0], photos[1], CARD, 2, 7, {}, "", False, subject="S")
     heads = ig.plates["heading"]
-    assert [p.text for p in heads] == ["IMPACT THEORY", "DISPROVED"]
-    assert heads[0].fill == brand.BONE and heads[1].fill == brand.GOLD
+    drawn = {}
+    for p in heads:
+        drawn.setdefault(round(p.xy[1]), []).append(p.text)
+    assert [" ".join(v) for _, v in sorted(drawn.items())] == ig.meta["heading"]["lines"]   # the engine's form
+    assert all(p.fill == brand.BONE for p in heads)
     assert heads[0].font.size >= PX.exact(M.CONTENT_HEADING[1]) - 0.01 and heads[0].font.size >= PX.exact(124) - 0.01
     assert not ig.problems() and ig.meta["baselines"]["heading"] == round(heads[0].xy[1])
     # a short heading stays one bone line, at the larger size
@@ -269,7 +273,7 @@ def test_the_collage_report_names_each_cut_and_draws_its_board(tmp_path) -> None
 # ---------------------------------------------------------------- Round 3 fix (2026-11-02): the content frame
 
 ONE_LINE = {"heading": "ANCIENT COOLING", "body": "Carbonatite rocks cooled slowly beneath the desert surface."}
-TWO_LINE = "IMPACT THEORY DISPROVED BY SCIENTISTS"
+TWO_LINE = "BUILT BY HAND WITHOUT MORTAR"   # round 7: two valid lines on the ladder (the engine's forms)
 BODIES = {
     1: "Rocks cooled slowly.",
     2: "Carbonatite rocks cooled slowly beneath the desert surface.",
@@ -298,11 +302,17 @@ def test_the_two_line_deck_frame_is_round_twos_frame_and_shared_by_one_and_two_l
     one = _slide(photos, ONE_LINE, facebook=facebook, frame=2)
     two = _slide(photos, dict(ONE_LINE, heading=TWO_LINE), facebook=facebook, frame=2)
     assert len(one.plates["heading"]) == 1 and len(two.plates["heading"]) == 2
+    # round 7 (F3, the band): on one deck frame the heading's LAST baseline is the frame's line and the body hangs from
+    # it by one gap; the heading's top (and the kicker) stand where the line count puts them (two positions)
+    frame = M()._content_frame(PX, facebook, 2)
+    gaps = set()
     for lay in (one, two):
         b = lay.meta["baselines"]
-        assert (b["kicker"], b["heading"]) == ROUND2_FRAME[facebook] and b["heading_frame"] == 2
+        assert b["heading_last"] == frame["heading_last"] and b["heading_frame"] == 2
         assert round(lay.plates["heading"][0].xy[1]) == b["heading"]
-    assert M()._content_baselines(PX, facebook, 2) == ROUND2_FRAME[facebook]
+        gaps.add(round(lay.plates["body"][0].xy[1]) - b["heading_last"])
+    assert len(gaps) == 1
+    assert one.meta["baselines"]["kicker"] > two.meta["baselines"]["kicker"]
     # a slide drawn alone sits on the two-line frame (round 2's default)
     assert _slide(photos, ONE_LINE, facebook=facebook).meta["baselines"] == one.meta["baselines"]
 
@@ -313,13 +323,13 @@ def test_a_one_line_deck_frame_reserves_no_second_heading_line(photos, facebook)
     old = _slide(photos, ONE_LINE, facebook=facebook, frame=2)
     b = one.meta["baselines"]
     assert b["heading_frame"] == 1 and b["heading"] == M()._content_frame(PX, facebook, 1)["heading_last"]
-    assert b["heading"] > old.meta["baselines"]["heading"] and b["kicker"] > old.meta["baselines"]["kicker"]
+    # round 7 (F3): the one-line frame reserves one more body line; the heading's last baseline is that frame's line
+    # round 7 (F3): one heading-body gap on every frame (the 245 px hole is gone), the body within the shared bottom
     gap = _ink(one.plates["body"][0], 1) - _ink(one.plates["heading"][-1], 3)
     gap_old = _ink(old.plates["body"][0], 1) - _ink(old.plates["heading"][-1], 3)
-    step = one.plates["body"][1].xy[1] - one.plates["body"][0].xy[1]
-    assert gap < 2.5 * step + one.plates["body"][0].font.size * 2.0 < gap_old
+    assert gap == gap_old
     bottom = PX(M.KEY_BOTTOM - M.KEY_GAP)
-    assert max(_ink(p, 3) for p in one.plates["body"]) == bottom
+    assert max(_ink(p, 3) for p in one.plates["body"]) <= bottom
 
 
 @pytest.mark.parametrize("lines", sorted(BODIES))
@@ -329,7 +339,9 @@ def test_every_body_length_meets_the_one_line_frame_and_ends_on_the_shared_botto
     assert "baselines" in lay.meta          # on the fixed frame, not bottom-aligned
     assert lay.meta["baselines"] == _slide(photos, ONE_LINE, frame=1).meta["baselines"]
     bottom = PX(M.KEY_BOTTOM - M.KEY_GAP)
-    assert max(_ink(p, 3) for p in lay.plates["body"]) == bottom
+    # round 7 (F3): the body hangs from the heading (one gap); a body the frame reserves lines for ends within the
+    # shared bottom line, the longest one on it
+    assert max(_ink(p, 3) for p in lay.plates["body"]) <= bottom
 
 
 def test_the_one_line_frame_reserves_every_body_line_a_content_slide_draws() -> None:
@@ -361,7 +373,8 @@ def test_a_deck_takes_one_frame_and_every_content_kicker_stays_on_one_line(photo
         assert len(content) >= 3
         assert {r["recipe"]["heading_frame"] for r in content} == {frame}
         feet = {_kicker_foot(r) for r in content}
-        assert max(feet) - min(feet) <= 2, (name, feet)   # no jump between one- and two-line slides
+        # round 7 (F3): the kicker stands on one line per heading line count: at most two positions per deck
+        assert len({round(f / 3) for f in feet}) <= 2, (name, feet)
         assert all(not r["problems"] for r in content)
 
 
@@ -428,13 +441,14 @@ def test_the_diagram_takes_the_room_of_a_one_line_deck_frame(tmp_path, facebook)
 def test_a_two_line_diagram_heading_keeps_round_twos_frame_and_its_drawing(tmp_path, facebook) -> None:
     # Derinkuyu's Facebook slide 3, "CARVED, / NOT BUILT": its kicker on round 2's line, its drawing no smaller than
     # round 2 drew it (602 canvas px tall for this poster on Facebook, 619 on Instagram, at HEAD fb18d0a + round 3).
-    lay = _diagram(tmp_path, "Carved by hand, never built of stone", facebook, 2)
+    lay = _diagram(tmp_path, TWO_LINE, facebook, 2)
     assert len(lay.plates["heading"]) == 2
-    assert (lay.meta["baselines"]["kicker"], lay.meta["baselines"]["heading"]) == ROUND2_FRAME[facebook]
+    frame = M()._content_frame(PX, facebook, 2)
+    assert lay.meta["baselines"]["heading_last"] == frame["heading_last"]   # round 7 (F3): the band's line
     assert _art_h(lay) >= (602 if facebook else 619)
     assert _art_h(lay) == _art_h(_diagram(tmp_path, "Not built", facebook, 2))   # one frame, one drawing size
     # a two-line heading on a one-line deck frame (measured otherwise) never overruns: it takes the two-line frame
-    over = _diagram(tmp_path, "Carved by hand, never built of stone", facebook, 1)
+    over = _diagram(tmp_path, TWO_LINE, facebook, 1)
     assert over.meta["baselines"]["heading_frame"] == 2 and not over.problems()
 
 

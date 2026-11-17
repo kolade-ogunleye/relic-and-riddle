@@ -7,12 +7,14 @@ stay whole. No saliency mask is treated as a semantic subject detector.
 from PIL import Image, ImageDraw, ImageFilter, ImageOps
 
 from . import brand
-from .brand_system import GATES
+from .brand_system import GATES, tok
+from .heading import GOLD_ROLES, field_runs, lockup_fields, set_field, set_heading
 from .typography import (
     TextFitError,
     fit_text,
     get_font,
     place_text,
+    plan_text,
     probe_text,
     record_contrast,
     text_size,
@@ -30,6 +32,7 @@ def reviewed_focus(path, kept=None):
     import hashlib
     import json
     import math
+
     from .config import BASE_DIR
     try:
         digest = hashlib.sha256(path.read_bytes()).hexdigest()
@@ -193,10 +196,25 @@ def resolving_tagline(copy, reveal):
     return ""
 
 
+def kicker_track(font):
+    """Round 7 (F20): the eyebrow is the system kicker: tracked kicker.track em of its size."""
+    return tok("kicker.track") * font.size
+
+
+def kicker_lead(font):
+    """(rule length, gap, thickness) of the system kicker's lead rule at `font` (kicker.* tokens, in its caps)."""
+    ch = cap_h_of(font)
+    return (max(8, round(ch * tok("kicker.rule"))), round(ch * tok("kicker.rule_gap")),
+            max(3, round(ch * tok("kicker.rule_thick"))))
+
+
 def _eyebrow_lines(measure, text, width, size=EYEBROW_PX):
-    """The eyebrow on one line in Montserrat 800 with EYEBROW_TRACK between letters, never under EYEBROW_MIN
-    (refused there, QF-23: TextFitError). Returns (lines, font, shortened)."""
-    room = width - EYEBROW_TRACK * max(0, len(text) - 1)
+    """The eyebrow (the system kicker, round 7 F20: its lead rule, then the words tracked kicker.track em) on one
+    line in Montserrat 800, never under EYEBROW_MIN (refused there, QF-23: TextFitError). Returns (lines, font,
+    shortened)."""
+    f = get_font(brand.TEXT_FONT, max(EYEBROW_MIN, size), weight=800)
+    rule, gap, _ = kicker_lead(f)
+    room = width - rule - gap - kicker_track(f) * max(0, len(text) - 1)
     return fit_text(measure, text, brand.TEXT_FONT, max(EYEBROW_MIN, size), int(room), 1, EYEBROW_MIN,
                     sentences=False, weight=800)
 
@@ -218,7 +236,7 @@ def hedge_line(copy, figure):
     return (text, found[2]) if text else None
 
 
-def _rows(im, copy, width, style, tight, figure=None):
+def _rows(im, copy, width, style, tight, figure=None, lay_record=None):
     """Fit deliberate headline hierarchy, retaining all four supplied fields."""
     measure = ImageDraw.Draw(im)
     factor = 0.88 if tight else 1
@@ -230,14 +248,16 @@ def _rows(im, copy, width, style, tight, figure=None):
     }[style]
     paper = style == "depth_sandwich"
     # Two-tone everywhere it applies (2026-11-02): the second title line is gold on ink; ink on the paper card.
+    # Round 7 (F21): one lockup on every style: the payoff line gold (its opening function words bone), its size a
+    # fixed ratio of line 1's (lockup.line_ratio), never fitted per cover.
     specs = [
         ("eyebrow", "eyebrow", brand.TEXT_FONT, EYEBROW_PX, EYEBROW_MIN, brand.GOLD, 22),
         ("title_1", "line1", brand.DISPLAY_FONT, sizes[0], 64, brand.BONE, 10),
-        ("title_2", "line2", brand.DISPLAY_FONT, sizes[1], 64,
-         brand.GOLD if style in ("badge", "minimal") else brand.BONE, 26),
+        ("title_2", "line2", brand.DISPLAY_FONT, sizes[0], 64, brand.GOLD, 26),
         ("tagline", "tagline", brand.TEXT_FONT, TAGLINE_PX, TAGLINE_MIN, brand.STONE_LT, 0),
     ]
     rows, shortened = [], []
+    titles, lockup_rec = _lockup(measure, copy, width, int(sizes[0] * factor))
     hedge = hedge_line(copy, figure)
     for name, key, face, size, minimum, colour, gap in specs:
         text = display(copy.get(key)).strip().upper()
@@ -256,8 +276,8 @@ def _rows(im, copy, width, style, tight, figure=None):
             lines, font, short = _eyebrow_lines(measure, text, width)
             if short:
                 shortened.append(name)
-            rows += [{"name": name, "text": line, "font": font, "fill": colour, "track": EYEBROW_TRACK,
-                      "height": text_size(measure, line, font)[1], "gap": gap} for line in lines]
+            rows += [{"name": name, "text": line, "font": font, "fill": colour, "track": kicker_track(font),
+                      "height": text_size(measure, line, font)[1], "gap": gap, "kicker": True} for line in lines]
             continue
         if name == "tagline":
             lines, font, short = _tagline_lines(measure, text, width, max(minimum, int(size * factor)))
@@ -266,22 +286,23 @@ def _rows(im, copy, width, style, tight, figure=None):
             rows += [{"name": name, "text": line, "font": font, "fill": colour, "track": TAGLINE_TRACK,
                       "height": text_size(measure, line, font)[1], "gap": gap} for line in lines]
             continue
-        size = int(size * factor)
-        if name.startswith("title"):
-            # Keep normal short copy on one line. Longer wording gets two lines
-            # before descending to the emergency floor, rather than tiny type.
-            _, trial, short = probe_text(measure, text, face, size, width, 1,
-                                        min(size, int(96 * factor)), sentences=False, quiet=True)
-            if not short:
-                size = trial.size
-        lines, font, short = fit_text(measure, text, face, size, width, 2,
-                                     min(size, minimum), sentences=False)
-        if short:
-            shortened.append(name)
-        for i, line in enumerate(lines):
-            rows.append(dict(name=name, text=line, font=font, fill=colour,
-                             height=text_size(measure, line, font)[1],
-                             gap=gap if i == len(lines) - 1 else 10))
+        got = titles.get(key)
+        if not got:
+            continue
+        font, line_runs_ = got
+        for i, line_runs in enumerate(line_runs_):
+            line = " ".join(t for t, _ in line_runs)
+            line_w = measure.textlength(line, font=font)
+            dx = 0
+            for j, (run, role) in enumerate(line_runs):
+                rows.append({"name": name, "text": run, "font": font,
+                             "fill": brand.GOLD if role in GOLD_ROLES else brand.BONE,
+                             "height": text_size(measure, line, font)[1], "gap": gap if i == len(line_runs_) - 1 else 10,
+                             "dx": dx, "same_line": j > 0, "line_w": line_w, "keep_size": True})
+                dx += measure.textlength(run + " ", font=font)
+    shortened += lockup_rec.get("off_ladder", [])
+    if lay_record is not None:
+        lay_record["lockup"] = lockup_rec
     if paper:
         for row in rows:
             row["fill"] = brand.INK if row["name"] not in ("tagline", "qualifier") else brand.INK2
@@ -289,10 +310,56 @@ def _rows(im, copy, width, style, tight, figure=None):
 
 
 HEDGE_GAP = 16   # the hedge line's foot to the headline line it qualifies
+LOCKUP_FALLBACK = 0.8   # the lockup's one recorded fallback tier (TYPE tall display_xl 150 -> 120)
+
+
+def _lockup(measure, copy, width, size, single_gold=True):
+    """Round 7 (F1, F21): the cover's title lockup set by the heading engine. Line 1 at the style's size, line 2 at
+    lockup.line_ratio x that (one fixed ratio, never fitted per cover); the authored seam repaired (line 1's closing
+    function words open line 2, bone); each field on one line, else the engine's break; the pair takes the one
+    fallback tier together; only then the last resort (each line fitted, recorded off_ladder). One field alone is a
+    lockup too: its payoff run (the engine's seam) is gold on one line or two. Returns ({"line1"/"line2": (font,
+    runs per line)}, record)."""
+    l1 = display(copy.get("line1")).strip().upper()
+    l2 = display(copy.get("line2")).strip().upper()
+    if l1 and l2:
+        l1, l2, _ = lockup_fields(l1, l2)
+    ratio = tok("lockup.line_ratio")
+
+    def width_at(t, sz):
+        return measure.textlength(t, font=get_font(brand.DISPLAY_FONT, sz))
+    for tier, scale in enumerate((1.0, LOCKUP_FALLBACK)):
+        s1 = round(size * scale)
+        s2 = round(s1 * ratio)
+        out, ok = {}, True
+        for key, text, sz, gold in (("line1", l1, s1, False), ("line2", l2, s2, True)):
+            if not text:
+                continue
+            if not (l1 and l2):   # one field: a lockup of its own (its payoff gold unless the caller has one)
+                form = set_heading(text, width_at, width, (sz,), lockup=single_gold)
+                runs = form.runs() if form else None
+            else:
+                form = set_field(text, width_at, width, sz)
+                runs = field_runs(text, form.cuts, gold) if form else None
+            if runs is None:
+                ok = False
+                break
+            out[key] = (get_font(brand.DISPLAY_FONT, sz), runs)
+        if ok:
+            return out, {"tier": tier, "sizes": [s1, s2], "ratio": ratio, "line1": l1, "line2": l2}
+    out, off = {}, []
+    for key, text, gold in (("line1", l1, False), ("line2", l2, True)):
+        if not text:
+            continue
+        lines, font, _ = fit_text(measure, text, brand.DISPLAY_FONT, round(size * LOCKUP_FALLBACK), width, 2,
+                                      min(64, size), sentences=False)
+        off.append("title_1" if key == "line1" else "title_2")
+        out[key] = (font, [[(ln, "accent" if gold else "plain")] for ln in lines])
+    return out, {"tier": None, "off_ladder": off, "ratio": ratio, "line1": l1, "line2": l2}
 
 
 def _height(rows):
-    return sum(r["height"] + r["gap"] for r in rows)
+    return sum(r["height"] + r["gap"] for r in rows if not r.get("same_line"))
 
 
 TAB_PAD = (24, 14)   # Discovery's eyebrow tab: horizontal, vertical padding
@@ -310,23 +377,44 @@ def _top_anchor(xy, text, font, anchor, track):
 
 def _paint(im, rows, x, top, centered, lay):
     plates = {}
+    line_top = top
     for row in rows:
-        if row.get("tab"):
-            # Discovery's badge (2026-11-02): the eyebrow on a solid gold tab, ink capitals on it.
+        next_top = top
+        if row.get("same_line"):   # round 7: a run of the line above it (a lockup line set in two colours)
+            top = line_top
+        line_top = top
+        if row.get("kicker"):
+            # Round 7 (F20): the system kicker (the gold tab retired): a flat lead rule at mid-cap, then the words,
+            # planned at the kicker gate (multi_format.plan_kicker: gold, else bone, else not drawn and recorded)
+            from .multi_format import plan_kicker
             from .typography import tracked_width
+            rule, gap, thick = kicker_lead(row["font"])
             w_txt = tracked_width(row["text"], row["font"], row.get("track", 0))
-            cap = row["font"].getbbox("H", anchor="lt")
-            x_tab = x - w_txt / 2 - TAB_PAD[0] if centered else x - TAB_PAD[0] // 2
-            box = (x_tab, top + cap[1] - TAB_PAD[1], x_tab + w_txt + 2 * TAB_PAD[0] - (0 if centered else TAB_PAD[0] // 2),
-                   top + cap[3] + TAB_PAD[1])
-            ImageDraw.Draw(im).rectangle(box, fill=brand.GOLD + (255,))
+            x0 = x - (rule + gap + w_txt) / 2 if centered else x
+            mid = top - row["font"].getbbox(row["text"], anchor="ls")[1] - cap_h_of(row["font"]) / 2
+            xy, anchor = _top_anchor((x0 + rule + gap, top), row["text"], row["font"], "lt", row.get("track", 0))
+            plate, rec = plan_kicker(im, xy, row["text"], row["font"], row["fill"], anchor, row.get("track", 0))
             if lay is not None:
-                lay.meta.setdefault("tabs", {})[row["name"]] = [round(v) for v in box]
-        xy, anchor = _top_anchor((x, top), row["text"], row["font"], "mt" if centered else "lt", row.get("track", 0))
-        im, plate = place_text(im, xy, row["text"], row["font"], row["fill"], anchor=anchor, target=5.1,
-                               track=row.get("track", 0), halo_px=0 if row.get("tab") else None)
-        plates.setdefault(row["name"], []).append(plate)
-        top += row["height"] + row["gap"]
+                lay.meta.setdefault("kickers", {})[row["name"]] = rec
+            if plate is not None:
+                ImageDraw.Draw(im).rectangle([round(x0), round(mid - thick / 2), round(x0) + rule - 1,
+                                              round(mid - thick / 2) + thick - 1], fill=tuple(plate.fill) + (255,))
+                if lay is not None:
+                    lay.meta.setdefault("kicker_rule", {})[row["name"]] = [round(x0), round(mid - thick / 2),
+                                                                           round(x0) + rule, round(mid + thick / 2)]
+                im = plate.draw(im)
+                plates.setdefault(row["name"], []).append(plate)
+        else:
+            if "dx" in row:
+                x0 = (x - row["line_w"] / 2 if centered else x) + row["dx"]
+                xy, anchor = _top_anchor((x0, top), row["text"], row["font"], "lt", row.get("track", 0))
+            else:
+                xy, anchor = _top_anchor((x, top), row["text"], row["font"], "mt" if centered else "lt",
+                                         row.get("track", 0))
+            im, plate = place_text(im, xy, row["text"], row["font"], row["fill"], anchor=anchor, target=5.1,
+                                   track=row.get("track", 0), halo_px=0 if row.get("tab") else None)
+            plates.setdefault(row["name"], []).append(plate)
+        top = next_top if row.get("same_line") else top + row["height"] + row["gap"]
     for name, ps in plates.items():
         record_contrast(lay, name, ps)
     if lay is not None:
@@ -1007,8 +1095,7 @@ def _monument(im, copy, lay, tight, source, focus, figure=None):
             found_other = monument_figure({other: rest.get(other)})
             if found_other and found_other[0] == number:
                 rest[other] = _without(str(rest[other]), found_other[3])
-    titles = [(name, display(rest.get(key)).strip().upper()) for name, key in (("title_1", "line1"),
-                                                                                ("title_2", "line2"))]
+    titles = [(key, display(rest.get(key)).strip().upper()) for key in ("line1", "line2")]
     titles = [(n, t) for n, t in titles if t]
     eyebrow = display(rest.get("eyebrow")).strip().upper()
     tagline = "" if redundant_tagline(rest) else display(rest.get("tagline")).strip().upper()
@@ -1035,21 +1122,23 @@ def _monument(im, copy, lay, tight, source, focus, figure=None):
         lines, f_e, _ = _eyebrow_lines(measure, eyebrow, width)
         eyebrow_rows = [(lines[0], f_e, brand.GOLD)]
     if titles:
-        # One size for both title lines: the largest at which each fits on one line (down to 64 px), each kept
-        # as its own element (title_1, title_2) as in every other style; a line too long even then wraps.
-        size = int(104 * factor)
-        while size > 64 and any(text_size(measure, t, get_font(brand.DISPLAY_FONT, size))[0] > width for _, t in titles):
-            size -= 2
-        shortened = []
-        for name, text in titles:
-            lines, f_t, short = fit_text(measure, text, brand.DISPLAY_FONT, size, width, 2, min(size, 64), sentences=False)
-            # Two-tone when both title lines are left (2026-11-02): the second in gold, like the figure above it.
-            colour = brand.GOLD if name == "title_2" and len(titles) > 1 else brand.BONE
-            title_rows += [(name, line, f_t, colour) for line in lines]
-            if short:
-                shortened.append(name)
+        # Round 7 (F1, F21): the title lines are the cover's lockup, set by the heading engine at one size (104,
+        # then its one fallback tier; never fitted): two-tone when both lines are left (2026-11-02), the payoff gold
+        # but for its opening function words; one line alone stays bone (the figure is the cover's gold read).
+        got, rec = _lockup(measure, dict(titles), width, int(104 * factor), single_gold=False)
+        for name, key in (("title_1", "line1"), ("title_2", "line2")):
+            if key not in got:
+                continue
+            f_t, line_runs_ = got[key]
+            for line_runs in line_runs_:
+                line, dx, runs = " ".join(t for t, _ in line_runs), 0.0, []
+                for run, role in line_runs:
+                    runs.append((run, brand.GOLD if role in GOLD_ROLES else brand.BONE, round(dx)))
+                    dx += measure.textlength(run + " ", font=f_t)
+                title_rows.append((name, line, f_t, runs))
         if lay is not None:
-            lay.shortened = shortened
+            lay.shortened = list(rec.get("off_ladder", []))
+            lay.meta["lockup"] = rec
     if tagline:
         lines, f_g, _ = _tagline_lines(measure, tagline, width, int(36 * factor))
         tag_rows = [(lines[0], f_g, brand.STONE_LT)]
@@ -1076,7 +1165,7 @@ def _monument(im, copy, lay, tight, source, focus, figure=None):
     # stack (the photo outside it, and the focus band above it, stay ungraded); each line's own measured halo
     # (place_text) still holds it at contrast wherever the scrim is light.
     im = _full_bleed(source, focus, (440 + top - 120) / 2, lay)
-    widths = ([tracked_width(t, f, EYEBROW_TRACK) for t, f, _ in eyebrow_rows]
+    widths = ([sum(kicker_lead(f)[:2]) + tracked_width(t, f, kicker_track(f)) for t, f, _ in eyebrow_rows]
               + [tracked_width(t, f, TAGLINE_TRACK) for t, f, _ in tag_rows]
               + [text_size(measure, t, f)[0] for _, t, f, _ in title_rows]
               + [text_size(measure, number, num_font)[0] + (reserve if unit else 0)])
@@ -1095,13 +1184,27 @@ def _monument(im, copy, lay, tight, source, focus, figure=None):
 
     def put(name, text, font, fill, xy, anchor="lt", target=5.1, track=None):
         nonlocal im
-        track = {"eyebrow": EYEBROW_TRACK, "tagline": TAGLINE_TRACK}.get(name, 0) if track is None else track
+        track = ({"eyebrow": kicker_track(font), "tagline": TAGLINE_TRACK}.get(name, 0)
+                 if track is None else track)
         xy, anchor = _top_anchor(xy, text, font, anchor, track)
         im, plate = place_text(im, xy, text, font, fill, anchor=anchor, target=target, track=track)
         plates.setdefault(name, []).append(plate)
 
     for t, f, c in eyebrow_rows:
-        put("eyebrow", t, f, c, (margin, y))
+        # round 7 (F20 + sweep S1): the system kicker: its lead rule, planned at the kicker gate (5.5), gold, else
+        # bone, else not drawn (recorded in lay.meta["kickers"])
+        from .multi_format import plan_kicker
+        rule, rgap, thick = kicker_lead(f)
+        base_k = y - f.getbbox(t, anchor="ls")[1]
+        mid = base_k - cap_h_of(f) / 2
+        k_plate, k_rec = plan_kicker(im, (margin + rule + rgap, base_k), t, f, c, "ls", kicker_track(f))
+        if lay is not None:
+            lay.meta.setdefault("kickers", {})["eyebrow"] = k_rec
+        if k_plate is not None:
+            ImageDraw.Draw(im).rectangle([margin, round(mid - thick / 2), margin + rule - 1,
+                                          round(mid - thick / 2) + thick - 1], fill=tuple(k_plate.fill) + (255,))
+            im = k_plate.draw(im)
+            plates.setdefault("eyebrow", []).append(k_plate)
         y += text_size(measure, t, f)[1] + gaps["eyebrow"]
     if q_font:
         y += eyebrow_to_q or 0
@@ -1137,8 +1240,9 @@ def _monument(im, copy, lay, tight, source, focus, figure=None):
         if lay is not None:
             lay.add("dimension", (margin, dy - 16, right, dy + 2))
     y = base + gaps["number"]
-    for name, t, f, c in title_rows:
-        put(name, t, f, c, (margin, y))
+    for name, t, f, runs in title_rows:
+        for run, c, dx in runs:
+            put(name, run, f, c, (margin + dx, y))
         y += text_size(measure, t, f)[1] + gaps["title"]
     y += 14
     for t, f, c in tag_rows:
@@ -1299,15 +1403,16 @@ def _render(im, copy, style, lay, tight, source, focus, figure):
     paper = style == "depth_sandwich"
     margin = 96 if paper else 84
     width = 1080 - 2 * margin
-    rows, shortened = _rows(im, copy, width, style, tight, figure)
+    rows, shortened = _rows(im, copy, width, style, tight, figure,
+                            lay_record=lay.meta if lay is not None and isinstance(getattr(lay, "meta", None), dict) else None)
     # Very long generated copy shares the central square with the photograph:
     # reduce the *whole* stack consistently before sacrificing its image space.
     if _height(rows) > 500:
         kept = sum(r["height"] for r in rows if r.get("keep"))
         scale = (500 - sum(r["gap"] for r in rows) - kept) / max(1, sum(r["height"] for r in rows) - kept)
         for row in rows:
-            if row.get("keep"):
-                continue   # r7: the hedge holds its grid floor (it carries the figure's qualifier)
+            if row.get("keep") or row.get("keep_size"):
+                continue   # r7: the hedge holds its grid floor; round 7: the lockup's size is never fitted
             # The eyebrow and the subline keep their floors (36 and 32 px): they are what vanished in the grid.
             floor = {"eyebrow": EYEBROW_MIN, "qualifier": EYEBROW_MIN, "tagline": TAGLINE_MIN}.get(row["name"], 24)
             row["font"] = get_font(brand.DISPLAY_FONT if row["name"].startswith("title") else brand.TEXT_FONT,
@@ -1316,11 +1421,7 @@ def _render(im, copy, style, lay, tight, source, focus, figure):
             row["height"] = text_size(ImageDraw.Draw(im), row["text"], row["font"])[1]
     if lay is not None:
         lay.shortened = shortened
-    if style in ("badge", "depth_sandwich"):
-        # One kicker treatment on both (round 3): ink tracked capitals on a solid gold tab.
-        for row in rows:
-            if row["name"] == "eyebrow":
-                row.update(tab=True, fill=brand.INK, gap=row["gap"] + TAB_PAD[1] + 6)
+    # Round 7 (F20): one kicker on every style: the system kicker (no gold tab: it was a second kicker treatment)
     height = _height(rows)
     if focus and style in ("badge", "lower_third"):
         top = 1434 - height
@@ -1368,9 +1469,8 @@ def _render(im, copy, style, lay, tight, source, focus, figure):
         # window's foot to the kicker tab is twice the kicker-to-headline gap; the room saved goes to the window.
         top = SANDWICH_FOOT - height
         kicker = next((r for r in rows if r["name"] == "eyebrow"), None)
-        tab_top = top - TAB_PAD[1] if kicker else top
-        gap = 2 * (kicker["gap"] - TAB_PAD[1] if kicker else 22)
-        aperture = (margin, SANDWICH_WINDOW_TOP, 1080 - margin, tab_top - gap)
+        gap = 2 * (kicker["gap"] if kicker else 22)
+        aperture = (margin, SANDWICH_WINDOW_TOP, 1080 - margin, top - gap)
     else:
         top = 1434 - height
         image_margin = 0 if style == "badge" else 48
@@ -1468,15 +1568,11 @@ def sandwich_fill(copy, focus, source_size, figure=None):
             rows, _ = _rows(im, copy, 1080 - 2 * 96, "depth_sandwich", True, figure)
         except TextFitError:
             return 0.0     # the copy fits the paper card in neither fit: it is not offered
-    for row in rows:
-        if row["name"] == "eyebrow":
-            row["gap"] += TAB_PAD[1] + 6
     height = _height(rows)
     kicker = next((r for r in rows if r["name"] == "eyebrow"), None)
     top = SANDWICH_FOOT - height
-    tab_top = top - TAB_PAD[1] if kicker else top
-    gap = 2 * (kicker["gap"] - TAB_PAD[1] if kicker else 22)
-    ap = (96, SANDWICH_WINDOW_TOP, 984, tab_top - gap)
+    gap = 2 * (kicker["gap"] if kicker else 22)
+    ap = (96, SANDWICH_WINDOW_TOP, 984, top - gap)
     aw, ah = ap[2] - ap[0], ap[3] - ap[1]
     if aw <= 0 or ah <= 0:
         return 0.0

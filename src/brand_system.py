@@ -32,18 +32,25 @@ display -> brand display face; kicker, body, label -> text face; figure -> displ
 like a heading: one voice for the claim and its number); data_label, credit, badge -> data face; masthead ->
 masthead face. At most three voices on a frame (display, text, data), the masthead counted apart.
 
-Heading rules (HEADING, line_end_ok): one line when it fits at the role's tier, else a balanced break (shorter line
->= 0.55 of the longer) at a phrase boundary; no line other than the last ends on LINE_END_NEVER (articles,
-prepositions); a conjunction end (LINE_END_LAST_RESORT) only when no other break fits; a value never splits from
-its unit or conversion; every copy of a heading sets the same form; a cover is never shrunk to one line below the
-interior tier (ruled); the Story keeps its own ruling (one size per Story, one line a field down to 106 px, never
-four rows).
+Heading rules (HEADING, line_end_ok; ONE engine, src/heading.py, round 7): every renderer that breaks a heading or
+a display line sets it there (carousel, Story, Reel cover, YouTube, cards; caption bursts read its never set). One
+line when it fits at the role's tier, else the one fallback tier, else a balanced break (shorter line >= 0.55 of the
+longer); never a size fitted to the measure. No line other than the last ends on LINE_END_NEVER (articles,
+prepositions, of / in / from / near: HARD, the operator's rule; the break goes BEFORE the stop word: THE EYE / OF THE
+SAHARA); a conjunction end (LINE_END_LAST_RESORT) only when no other break fits; no lone-word row in a heading of
+three words or more; a value never splits from its unit; every copy of a heading sets the same form. A cover is
+LOCKED at display_xl (>= 1.08 x display_l): the break and the band give way, never its size. The Story takes one
+title size (the least over its frames, one line a field, never under 106 px). The text band: the body hangs from
+the heading's last baseline by one gap per canvas (band.body_gap), so heading tops take two positions per deck.
 
 Accent (ACCENT): gold marks the payoff (the accent line of a heading, the figure run, numerals, rules and the
-mark); bone carries everything else. Function words that open the accent line stay bone ("THE EYE / OF THE SAHARA");
-a leading alternative "OR" may stay gold. Body, kickers' words on photographs where gold clashes (warm ground) and
-function words are never gold. Gold-on-gold fallback, one rule: the gold line turns bone (the plate is never
-added for colour). GOLD_DIM only for a line that sits behind text (a spine). TEAL / CORAL only as a chart's second
+mark); bone carries everything else. Round 7 (F5, independent of the wrap): a LOCKUP (the carousel cover, the Reel
+cover, the YouTube headline, a Story title: copy that states a payoff) gilds its payoff run on one line or two (the
+words from the authored line1 / line2 seam, else the engine's seam); an INTERIOR heading (a carousel content slide)
+is never gold but for a stated quantity (ruling 3). Function words that open the accent line stay bone ("THE EYE /
+OF THE SAHARA"); a leading alternative "OR" may stay gold. Body, kickers' words on photographs where gold clashes
+(warm ground) and function words are never gold. Gold-on-gold fallback, one rule: the gold line turns bone (the
+plate is never added for colour). A lockup's line 2 is lockup.line_ratio x line 1's size (never fitted per cover). GOLD_DIM only for a line that sits behind text (a spine). TEAL / CORAL only as a chart's second
 and third series; a map's marks are gold and bone, never another hue.
 
 Masthead (MASTHEAD, masthead_spec): one treatment: the gold diamond (outlined in INK) then the brand name in the
@@ -82,8 +89,10 @@ re-encode leaves 4.5), masthead gate 5.5 and target 6.5, high 7.0 (an ink figure
 3.0 (WCAG 1.4.11 non-text).
 
 Kicker (KICKER): text face 800, tracked 0.15 em capitals, GOLD, led by a flat gold rule one cap long at mid-cap
-height, 0.55 cap from the words; one gap to the heading per canvas. THEN / NOW over a year are data labels (data
-face), not kickers.
+height, 0.55 cap from the words; one gap to the heading (kicker.gap em). Round 7 (F20): the one kicker on the
+carousel, the Story, the cards (the rule-above retired), the Reel covers (the gold tab retired), the end screen's
+WATCH NEXT and YouTube (the bone Anton fill line retired; there at the feed floor). THEN / NOW over a year are data
+labels (data face), not kickers.
 
 Figures (FIGURE; operator ruling 3, 2026-11-16): a stated quantity ("144 FT", "1963", "25 MILES", a number card's
 "36", a scale's "327 M") is set in the figure face tok("figure.face") (the display face) in tok("figure.colour")
@@ -147,8 +156,8 @@ GATES: Mapping[str, Any] = MappingProxyType({
     # ---- the masthead on a cover the profile grid shows (QF-87): its cap height at 124 px wide, or no masthead
     "masthead.grid_cap": 9,
     # ---- headings (rulings)
-    "heading.story_one_line_floor": 106,   # round 4 (2): Story one-line-a-field floor, px
-    "heading.story_floor": 120,            # round 3 (3)(1): else
+    "heading.story_one_line_floor": 106,   # round 4 (2): Story one-line-a-field floor, px (multi_format reads it)
+    "heading.story_floor": 120,            # round 3 (3)(1): else (a wrapped Story title; multi_format reads it)
     # ---- figures (truth): a zero label's ink centre is within this share of its cap height of its datum (and
     # 2 px): the panel's 28 px read as 78 ft on a 36 px-per-100-ft ruler (cycle 0 preview panel F11, RUBRIC S1)
     "figure.zero_tol": 0.12,
@@ -183,6 +192,16 @@ SYSTEM_TOKENS: Mapping[str, Any] = MappingProxyType({
     "kicker.rule_gap": 0.55,          # the rule's end to the words, in caps
     "kicker.rule_thick": 0.16,        # the rule's thickness, in caps (>= 3 px)
     "kicker.colour": "GOLD",
+    "kicker.gap": 0.7,                # em of the kicker's size: its baseline to the heading's cap line (F20: one gap;
+                                      # 32 px on the carousel, 28 on the tall and wide canvases)
+    # ---- the text band (round 7, F3): the body hangs from the heading's LAST baseline by one gap per canvas
+    "band.body_gap": 2.0,             # body em, carousel (48 px body: 96 px baseline to baseline)
+    "band.body_gap_tall": 1.62,       # body em, tall (the Story: 46 px body, 75 px)
+    # ---- the cover / YouTube lockup (round 7, F21): line 2's size over line 1's, fixed (never fitted per cover)
+    "lockup.line_ratio": 1.0,
+    # ---- the 9:16 card block's vertical placement (round 7, F18): its centre as a share of the frame's height,
+    # never past the graphics box's foot (design_cards._chapter_tall_block)
+    "card.tall_centre": 0.45,
     # ---- motion
     "motion.back": 1.5,               # ease_out_back's constant (8 % overshoot): a callout's pop
     "motion.rise_s": 8,               # px a kicker rises while it enters (the end screen's WATCH NEXT)
@@ -218,6 +237,11 @@ TOKEN_RANGES: Mapping[str, tuple[float, float]] = MappingProxyType({
     "kicker.rule": (0.5, 3.0),            # caps
     "kicker.rule_gap": (0.2, 2.0),        # caps
     "kicker.rule_thick": (0.08, 0.50),    # caps
+    "kicker.gap": (0.3, 1.5),             # em
+    "band.body_gap": (1.2, 3.0),          # body em
+    "band.body_gap_tall": (1.2, 3.0),     # body em
+    "lockup.line_ratio": (1.0, 1.6),
+    "card.tall_centre": (0.30, 0.60),
     "motion.back": (0.0, 4.0),
     "motion.rise_s": (0, 24),             # px (round 7: at 40 the WATCH NEXT kicker entered the video slot; the gap is 37)
     "figure.conversion": (0.3, 1.0),
@@ -300,7 +324,9 @@ TYPE_FALLBACK: Mapping[str, Mapping[str, float]] = MappingProxyType({
     "tall": MappingProxyType({"display_xl": 120, "display_l": 124, "display_m": 96, "body": 40, "credit": 22}),
     "carousel": MappingProxyType({k: v * 4 / 3 for k, v in {"display_xl": 138, "display_l": 124, "display_m": 96,
                                                             "body": 34}.items()}),
-    "wide": MappingProxyType({"display_xl": 150, "display_l": 152, "display_m": 112, "body": 46, "credit": 22}),
+    # wide display_xl 160 (round 7, was 150): the YouTube headline's one fallback tier holds its feed floor
+    # (youtube_thumbnail.HERO_FLOOR: 12 px of cap at 168 px wide; 150 gave 11.3)
+    "wide": MappingProxyType({"display_xl": 160, "display_l": 152, "display_m": 112, "body": 46, "credit": 22}),
 })
 # Feed-size floors, canvas px (RUBRIC PL2, rulings): nothing a role draws is smaller.
 TYPE_FLOOR: Mapping[str, Mapping[str, float]] = MappingProxyType({
@@ -335,11 +361,17 @@ DEVIATIONS: Mapping[str, tuple[str, str, tuple, str]] = MappingProxyType({
                            (136, 128, 120, 112, 104, 100, 96, 92, 88, 84), "F"),
     "end card share 9:16": ("body", "end_card.SHARE_SIZES", (58, 56, 54), "E"),
     "end screen hand-off 16:9": ("body", "end_card.LANDSCAPE_SHARE_SIZES", (64, 60, 56), "E"),
-    "YouTube headline": ("display_xl", "youtube_thumbnail: 190 down to 96 in 4 px steps", (190, 96, 4), "B"),
-    "Reel cover titles": ("display_xl", "cover_design: per style 100-164, probe floor 96", (100, 164, 96), "B"),
-    "carousel content heading": ("display_l", "multi_format: IG 138 -> 124, FB 150 -> 140 design px", (138, 124, 150, 140),
-                                 "D"),
-    "Story title": ("display_xl", "multi_format: 150 to the ruled one-line floor 106, else 120", (150, 106, 120), "D"),
+    "YouTube headline": ("display_xl", "youtube_thumbnail: the ladder 190 / 160, then a recorded last resort in 4 px "
+                         "steps to 96 (round 7)", (190, 160, 96, 4), "B"),
+    "Reel cover titles": ("display_xl", "cover_design: the style's line-1 size (100-120) x lockup.line_ratio, one "
+                          "fallback tier x 0.8, a recorded last resort (round 7)", (100, 120, 0.8), "B"),
+    "carousel content heading": ("display_l", "multi_format: FB 150 / 140 design px (IG is on the ladder, round 7)",
+                                 (150, 140), "D"),
+    "carousel stat heading": ("display_m", "multi_format: the colossal-stat slide's heading, 84 to 52 design px in "
+                              "2 px steps through the engine", (84, 52, 2), "D"),
+    "Story title": ("display_xl", "multi_format: one size per Story (story_title_px), one line a field from 150 down "
+                    "to heading.story_one_line_floor 106; a wrapped title never under heading.story_floor 120; below "
+                    "them refused, never drawn (round 7)", (150, 106, 120), "D"),
     "then-and-now THEN / NOW": ("data_label", "then_now.kicker_px(): 48 px 9:16, cap-fitted 16:9", (48,), "A"),
 })
 
@@ -354,17 +386,19 @@ SIZE_SITES: Mapping[str, str] = MappingProxyType({
     "cover_design:_brand": "B",
     "cover_design:_brand_foot": "B",
     "cover_design:_eyebrow_lines": "B",
+    "cover_design:_lockup": "B",
+    "cover_design:_lockup.width_at": "B",
     "cover_design:_monument": "B",
     "cover_design:_provenance": "B",
     "cover_design:_qualifier_fit": "B",
     "cover_design:_render": "B",
-    "cover_design:_rows": "B",
     "cover_design:_tagline_lines": "B",
     "design_cards:_Card.font": "F",
     "design_cards:_cap": "F",
     "design_cards:_chapter_compose": "F",
     "design_cards:_design_wrap": "F",
     "design_cards:_hook_mast_foot": "F",
+    "design_cards:_kicker": "F",
     "design_cards:_lead": "F",
     "design_cards:_myth_compose": "F",
     "design_cards:_myth_fit.fwrap": "F",
@@ -438,14 +472,17 @@ SIZE_SITES: Mapping[str, str] = MappingProxyType({
     "multi_format:MultiFormatGenerator._content_frame": "D",
     "multi_format:MultiFormatGenerator._fit_text": "D",
     "multi_format:MultiFormatGenerator._header_bottom": "D",
-    "multi_format:MultiFormatGenerator._plan_panel": "D",
     "multi_format:MultiFormatGenerator._render_carousel_slide": "D",
     "multi_format:MultiFormatGenerator._render_debate.with_share": "D",
     "multi_format:MultiFormatGenerator._render_story_frame": "D",
     "multi_format:MultiFormatGenerator._render_story_frame.title_plan": "D",
     "multi_format:MultiFormatGenerator._rows": "D",
+    "multi_format:MultiFormatGenerator._set_heading": "D",
+    "multi_format:MultiFormatGenerator._set_heading.measure": "D",
+    "multi_format:MultiFormatGenerator._slide_text.place": "D",
     "multi_format:story_body_lines": "D",
     "multi_format:story_credit_fit": "D",
+    "multi_format:story_title_px": "D",
     "then_now:_kicker_px_for_cap": "A",
     "then_now:marker_lines": "A",
     "then_now:marker_xy": "A",
@@ -461,6 +498,9 @@ SIZE_SITES: Mapping[str, str] = MappingProxyType({
     "video_composer:_ink_band": "C",
     "video_composer:_record_caption_faces": "C",
     "video_composer:reel_cap_height": "C",
+    "youtube_thumbnail:_kicker_font": "B",
+    "youtube_thumbnail:_lockup.attempt": "B",
+    "youtube_thumbnail:_lockup.width_at": "B",
     "youtube_thumbnail:_qual_font": "B",
     "youtube_thumbnail:_render": "B",
 })
@@ -472,7 +512,7 @@ RUNTIME_SIZE_SITES: Mapping[str, str] = MappingProxyType({
 })
 
 # Heading break vocabulary: one list for every surface (there were five).
-LINE_END_NEVER = frozenset(("a", "an", "the", "of", "in", "on", "at", "to", "by", "for", "from", "with", "into", "onto",
+LINE_END_NEVER = frozenset(("a", "an", "the", "of", "in", "on", "at", "to", "by", "for", "from", "near", "with", "into", "onto",
                             "via", "per"))
 LINE_END_LAST_RESORT = frozenset(("and", "or", "but", "nor", "so", "yet", "as", "than"))
 

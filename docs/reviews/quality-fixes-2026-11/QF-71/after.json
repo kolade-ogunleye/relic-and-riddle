@@ -1,0 +1,25 @@
+{
+ "call_sites": 112,
+ "kinds": 17,
+ "v1": {
+  "routine_call_sites_ringing": 0,
+  "routine_call_sites": 49,
+  "needs_call_sites_silent": 0,
+  "needs_call_sites": 56,
+  "notice_naming_no_group_or_section_rings": false,
+  "progress_card_rings": 0,
+  "review_messages": 4,
+  "review_messages_ringing": 1
+ },
+ "v2": {
+  "routine_call_sites_ringing": 0,
+  "routine_call_sites": 49,
+  "needs_call_sites_silent": 0,
+  "needs_call_sites": 56,
+  "notice_naming_no_group_or_section_rings": false,
+  "progress_card_rings": 0,
+  "review_messages": 4,
+  "review_messages_ringing": 1
+ },
+ "acceptance_met": true
+}

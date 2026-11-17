@@ -4069,7 +4069,9 @@ class PipelineCoordinator:
         slot = self._reel_slot(run_id, now, taken)
         self.db.add_scheduled_post(run_id, "reel", slot.astimezone(timezone.utc).isoformat(), [])
         # A run approved after the slot it was made for is booked later, and says so (it did silently: QF-74)
-        worker_deadline.missed_slot_notice(self.db, run, slot, now, taken, self._alert)
+        worker_deadline.missed_slot_notice(self.db, run, slot, now, taken,   # Needs you, as _reschedule's (QF-71)
+                                           lambda text: _notice(self, text, section="needs", key=f"missed:{run_id}",
+                                                                actions=self._episode_action(run_id)))
         worker_deadline.forget(self.db, run_id)  # decided and booked: its production start has served its purpose
         lines = [f"🎬 Reel: {post_schedule.fmt(slot)}"] + self._book_followers(run_id, run_dir, slot)
         self.db.update_run(run_id, "scheduled")
@@ -5721,7 +5723,7 @@ def proposal_notice(bot, db, proposal: dict[str, Any]) -> None:
     from src import improve
     if not config.TELEGRAM_CLEAN_CHAT:
         text, buttons = improve.card(proposal)
-        bot.notify(text, buttons=buttons, silent=True, record_alert=False, group="needs")
+        bot.notify(text, buttons=buttons, record_alert=False, group="needs")   # Needs you: it rings (QF-71)
         return
     # The proposals item is a condition item (UI-01b): it follows the ledger, and resolves itself once every
     # proposal is decided.
@@ -6446,7 +6448,11 @@ def _report_interrupted(coordinator, bot) -> None:
 
 def _notice(owner, text: str, **item: Any) -> None:
     """A coordinator's notice with its clean-chat item fields (section, key, run, replace, actions: UI-01), through
-    its _alert. A stand-in owner or _alert (tests use a namespace holding a list's append) gets what it takes."""
+    its _alert. A stand-in owner or _alert (tests use a namespace holding a list's append) gets what it takes.
+    A Needs-you notice (section "needs") is sent in the needs group, so it rings in either layout: with the clean chat
+    off say() leaves the section out, and _alert sent it as "studio", silent (QF-71)."""
+    if item.get("section") == "needs" and not item.get("group"):
+        item["group"] = "needs"
     notifications.say(owner._alert, text, **item)
 
 
@@ -6885,7 +6891,8 @@ def main(argv=None) -> int:
                                    "progress card shows when it starts.", group="runs")
                     elif remaining > 0:
                         db.set_setting(PRODUCE_KEY, "0")
-                        bot.notify("⏹ Batch production stopped: the last episode did not finish cleanly.", group="runs")
+                        bot.notify("⚠️ Batch production stopped: the last episode did not finish cleanly.", group="needs", key="batch-stopped",
+                                   buttons=[{"text": "📊 Status", "callback_data": "cstat:"}])
 
             import uuid
 
@@ -7065,7 +7072,8 @@ def main(argv=None) -> int:
                            "card shows when it starts.", group="runs")
             else:
                 coordinator.db.set_setting(PRODUCE_KEY, "0")
-                bot.notify("⏹ Batch production stopped: the last episode did not finish cleanly.", group="runs")
+                bot.notify("⚠️ Batch production stopped: the last episode did not finish cleanly.", group="needs", key="batch-stopped",
+                                   buttons=[{"text": "📊 Status", "callback_data": "cstat:"}])
 
         def drain_manual_queue() -> None:
             """Starts the first manual run waiting behind the one that just ended (or, at startup, behind a restart)."""
@@ -7347,7 +7355,7 @@ def main(argv=None) -> int:
                     from src.asset_pipeline import not_ready_reason  # the live reason, by the video's own count
                     lines = [f"• {html.escape(t['title'])}: {html.escape(not_ready_reason(t['id']))}" for t in not_ready]
                     bot.notify("🖼 <b>Photo sets not ready</b>\n\nThese upcoming topics will be skipped until "
-                               "they have approved photos:\n" + "\n".join(lines), silent=True, group="needs",
+                               "they have approved photos:\n" + "\n".join(lines), group="needs",   # rings (QF-71)
                                key="photos-not-ready", actions=[{"text": "🖼 Pictures", "callback_data": "cimages:"}])
             except Exception as e:
                 log.warning("Nightly photo pool preparation failed: %s", e)
@@ -7390,7 +7398,7 @@ def main(argv=None) -> int:
                 problems = accounts.check(coordinator.db, force=True).get("problems") or []
                 if problems:
                     bot.notify("⚠️ <b>Publishing accounts</b>\n" + "\n".join(f"• {html.escape(p)}" for p in problems),
-                               silent=True, group="needs", key="accounts",
+                               group="needs", key="accounts",   # posting will fail: it rings (QF-71)
                                actions=[{"text": "🔗 Accounts", "callback_data": "caccounts:"}])
             except Exception as e:
                 log.warning("Account check failed: %s", e)

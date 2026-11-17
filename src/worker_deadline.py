@@ -293,6 +293,8 @@ def missed_slot_notice(db, run: dict[str, Any], booked, now: datetime, taken_day
         log.warning("Could not tell whether %s missed its slot: %s", run.get("run_id"), e)
         return False
     heading = "Missed today's slot" if today else "Missed its first slot"
+    # Needs you, as _reschedule's missed-slot notice (QF-71: the two had drifted, this one went out as "studio"):
+    # the caller's notify is the coordinator's _notice(section="needs") with the run's key and the episode's action
     notify(f"⏰ <b>{heading}</b> ({html.escape(post_schedule.fmt(intended))}): {html.escape(label)} was approved "
-           f"too late for it, so it is booked for {html.escape(post_schedule.fmt(booked))}.")  # the studio stream, as _reschedule's missed-slot notice
+           f"too late for it, so it is booked for {html.escape(post_schedule.fmt(booked))}.")
     return True

@@ -1203,7 +1203,8 @@ def test_a_carousel_that_can_never_post_is_one_needs_you_item_with_details(carou
 
 
 def test_with_the_switch_off_a_carousel_hold_is_sent_as_on_the_base(carousel_desk, monkeypatch):
-    """TELEGRAM_CLEAN_CHAT=false: the hold reaches notify exactly as 84c3eeb4 sent it (text, its buttons, studio)."""
+    """TELEGRAM_CLEAN_CHAT=false: the hold reaches notify as 84c3eeb4 sent it (text, its buttons), in the needs group
+    since QF-71 (a Needs-you notice: it went out as "studio", silent in V2)."""
     monkeypatch.setattr(config, "TELEGRAM_CLEAN_CHAT", False)
     c, bot, _fake = carousel_desk
     calls = []
@@ -1215,7 +1216,7 @@ def test_with_the_switch_off_a_carousel_hold_is_sent_as_on_the_base(carousel_des
     hold = [(t, kw) for t, kw in calls if "Carousel held" in t]
     assert len(hold) == 1 and hold[0][1] == {
         "buttons": [[{"text": "🔁 Redraw and post next slot", "callback_data": f"carredraw:{held['id']}"}]],
-        "group": "studio"}
+        "group": "needs"}
     assert notes().open_items(c.db) == []
 
 

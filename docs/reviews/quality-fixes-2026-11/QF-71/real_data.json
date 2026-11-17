@@ -1,0 +1,17 @@
+{
+ "source": "read-only backup-API copy of the development database: the alerts table, each alert matched to its call site by the literal start of the call site message (scratch audit, counts only)",
+ "alerts": 131,
+ "matched_to_a_call_site": 84,
+ "unmatched": 47,
+ "matched_needs": 82,
+ "matched_routine": 2,
+ "routine_ringing_in_v1": {
+  "base": 2,
+  "this_commit": 0
+ },
+ "needs_silent": {
+  "base_v1": 0,
+  "this_commit": 0
+ },
+ "needs_by_section_only_silent_in_v2_on_the_base": 3
+}

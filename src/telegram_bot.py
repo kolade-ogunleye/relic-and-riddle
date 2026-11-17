@@ -3060,13 +3060,15 @@ class TelegramApprovalBot:
             rev_tid = config.TELEGRAM_TOPICS.get("reviews") if (config.TELEGRAM_CARDS_V2 and hasattr(config, "TELEGRAM_TOPICS")) else None
             if len(media) == 1:
                 kind = media[0]["type"]
-                send_data = {"chat_id": self.chat_id, "caption": media[0].get("caption", ""), "parse_mode": "HTML"}
+                # Silent (QF-71): the review card itself is what rings, once, not each album before it
+                send_data = {"chat_id": self.chat_id, "caption": media[0].get("caption", ""), "parse_mode": "HTML",
+                             "disable_notification": "true"}
                 if rev_tid:
                     send_data["message_thread_id"] = rev_tid
                 sent = self._api("send" + kind.capitalize(), timeout=300, files={kind: files["f0"]},
                                  data=send_data)
             else:
-                send_data = {"chat_id": self.chat_id, "media": json.dumps(media)}
+                send_data = {"chat_id": self.chat_id, "media": json.dumps(media), "disable_notification": "true"}
                 if rev_tid:
                     send_data["message_thread_id"] = rev_tid
                 sent = self._api("sendMediaGroup", timeout=300, files=files,
@@ -3200,7 +3202,7 @@ class TelegramApprovalBot:
                 ai = "" if (ai in card_text or CARD_LIST_MORE in card_text) else ai
                 slot = "\n".join(x for x in (slot, ai) if x)
                 for n, text in enumerate(detail_messages(full) or ([""] if slot else []), 1):
-                    detail_data = {"chat_id": self.chat_id, "parse_mode": "HTML",
+                    detail_data = {"chat_id": self.chat_id, "parse_mode": "HTML", "disable_notification": "true",
                                    "text": ("📋 <b>In full</b>\n\n" + slot + ("\n" if slot and text else "")
                                             if n == 1 else "") + text,
                                    "reply_to_message_id": message_id,
@@ -3596,12 +3598,13 @@ class TelegramApprovalBot:
         that had none of its own (design §10.2); the earlier chat ignores them, as it did before.
         In Telegram V2 (TELEGRAM_CARDS_V2), routes by topic (group):
           studio (4906), needs (4907), reviews (4908), runs (4909), info (4910).
-        Only group='needs' notifies audibly; all other groups are strictly silent."""
-        if config.TELEGRAM_CARDS_V2:
-            if not group and config.RELIC_STRICT_TOPICS:
-                raise ValueError("TELEGRAM_CARDS_V2 requires explicit 'group' parameter on all notify() calls.")
-            if group != "needs":
-                silent = True  # strictly: "only Needs you rings"
+        Only a Needs-you notice rings (group or section "needs"); every other one is sent with
+        disable_notification, in either layout (QF-71: in the earlier layout every notice rang). A call that names
+        neither group nor section is silent too (operator, 2026-11-16: one rule)."""
+        if config.TELEGRAM_CARDS_V2 and not group and config.RELIC_STRICT_TOPICS:
+            raise ValueError("TELEGRAM_CARDS_V2 requires explicit 'group' parameter on all notify() calls.")
+        if "needs" not in (group, section):
+            silent = True  # strictly: "only Needs you rings"
         if transient is None:
             transient = not buttons
         if ttl_minutes is None:
@@ -4226,8 +4229,9 @@ class TelegramApprovalBot:
                 if self.edit_message_text(int(reuse), text, buttons=buttons):
                     mid = int(reuse)
             if mid is None:
-                prog_data = {
+                prog_data = {   # a run's progress is routine: silent (QF-71)
                     "chat_id": self.chat_id,
+                    "disable_notification": "true",
                     "text": text,
                     "parse_mode": "HTML",
                     "reply_markup": json.dumps(markup),
@@ -4370,8 +4374,9 @@ class TelegramApprovalBot:
         if not success and (redraw or message_id in self._missing_messages):
             # Self-healing: if the card was purged/cleared from Telegram, recreate it!
             try:
-                heal_data = {
+                heal_data = {   # the progress card drawn again: silent, as it was (QF-71)
                     "chat_id": self.chat_id,
+                    "disable_notification": "true",
                     "text": text,
                     "parse_mode": "HTML",
                     "reply_markup": json.dumps({"inline_keyboard": format_responsive_keyboard(buttons)}),

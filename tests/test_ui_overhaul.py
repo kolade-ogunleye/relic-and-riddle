@@ -291,7 +291,7 @@ def test_silent_notification_flag(tmp_path, monkeypatch):
 
     # Standard notification
     bot.notify("Actionable review required")
-    assert "disable_notification" not in calls[-1][1]["data"]
+    assert calls[-1][1]["data"]["disable_notification"] == "true"   # no group, no section: silent (QF-71, operator 2026-11-16)
 
     # Silent notification (for background heartbeats/telemetry)
     bot.notify("Silent heartbeat", silent=True)

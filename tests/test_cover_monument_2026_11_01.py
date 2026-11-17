@@ -63,7 +63,7 @@ def test_monument_draws_its_dimension_line_under_the_figure(monkeypatch) -> None
     assert lay.problems() == []
 
 
-def test_discovery_eyebrow_sits_on_a_gold_tab() -> None:
+def test_discovery_eyebrow_is_the_system_kicker() -> None:
     from PIL import Image
 
     from src import brand
@@ -72,7 +72,8 @@ def test_discovery_eyebrow_sits_on_a_gold_tab() -> None:
     lay = Layout("cover", (1080, 1920), (60, 440, 1020, 1480))
     photo = Image.new("RGBA", (1600, 1200), (120, 110, 95, 255))
     out = render_cover(photo.resize((1080, 1920)), GUMBAZ, "badge", lay=lay, source=photo).convert("RGB")
-    tab = lay.meta["tabs"]["eyebrow"]
-    assert out.getpixel((tab[0] + 4, tab[1] + 4)) == brand.GOLD
+    # round 7 (F20): the gold tab retired; the eyebrow is the system kicker (its gold lead rule, gold words) at its gate
+    rule = lay.meta["kicker_rule"]["eyebrow"]
+    assert out.getpixel(((rule[0] + rule[2]) // 2, (rule[1] + rule[3]) // 2)) == brand.GOLD
     eyebrow = next(e for e in lay.elements if e["name"] == "eyebrow")
-    assert eyebrow["fill"] == list(brand.INK) and eyebrow["contrast"] >= 4.5
+    assert eyebrow["fill"] == list(brand.GOLD) and eyebrow["contrast"] >= 5.5

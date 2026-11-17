@@ -98,7 +98,7 @@ def test_monument_falls_back_to_discovery_when_the_sheet_will_not_let_the_figure
     fig = figure_check(RICHAT, RICHAT_SHEET)
     _, lay = _cover(RICHAT, "monument", fig)
     assert "monument" not in lay.meta and lay.meta["monument_declined"]
-    assert "tabs" in lay.meta and "25" not in _drawn(lay)
+    assert "kicker_rule" in lay.meta and "25" not in _drawn(lay)   # round 7 (F20): the kicker's lead rule, no tab
 
 
 # --- the monument hero -------------------------------------------------------------------------------------------
@@ -177,14 +177,17 @@ def test_masthead_line_is_locked_on_every_selectable_style() -> None:
 
 # --- the paper card ----------------------------------------------------------------------------------------------
 
-def test_paper_card_sits_on_flat_ink_with_one_grid_and_a_gold_kicker_tab() -> None:
+def test_paper_card_sits_on_flat_ink_with_one_grid_and_its_kicker() -> None:
     out, lay = _cover(GUMBAZ, "depth_sandwich", photo=_photo((200, 60, 60), (1500, 1000)))
     for y in (120, 300, 1600, 1800):
         assert out.getpixel((540, y)) == brand.INK
     names = _names(lay)
     assert "rule" not in names
-    tab = lay.meta["tabs"]["eyebrow"]
-    assert out.getpixel((tab[0] + 4, tab[1] + 4)) == brand.GOLD and names["eyebrow"]["fill"] == list(brand.INK)
+    # round 7 (F20): the system kicker (the gold tab retired): its lead rule and words in INK on the paper card
+    rule = lay.meta["kicker_rule"]["eyebrow"]
+    assert out.getpixel(((rule[0] + rule[2]) // 2, (rule[1] + rule[3]) // 2)) == brand.INK
+    assert names["eyebrow"]["fill"] == list(brand.INK)
+    tab = names["eyebrow"]["box"]
     x0, y0, x1, y1 = lay.meta["composition"]["image_box"]
     # A 3:2 photograph: half the card's height now (47% before), inside the card's one grid, x 96-984.
     ap = lay.meta["sandwich"]["aperture"]

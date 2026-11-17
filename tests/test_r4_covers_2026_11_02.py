@@ -104,7 +104,8 @@ def test_every_style_sets_the_same_hedge_for_the_same_figure() -> None:
         _, lay = _cover(GUMBAZ, style, fig)
         assert _texts(lay, "qualifier") == ["ESTIMATED"], style
         q, t1 = _plates(lay, "qualifier")[0], _plates(lay, "title_1")[0]
-        assert q.box[3] < t1.box[1] and t1.text == "THE 144-FOOT"      # on its own line, above the figure's line
+        # round 7: the line's colour runs (the stated quantity gold, ruling 3) joined
+        assert q.box[3] < t1.box[1] and " ".join(p.text for p in _plates(lay, "title_1")) == "THE 144-FOOT"
         e = lay.meta["grid_proof"]["elements"]["qualifier"]
         # r7: the hedge is a hook at the grid floor (it was texture, ~3 px cap at 124 px), never shrunk to fit.
         assert lay.problems() == [] and e["class"] == "hook" and e["cap_124"] >= cover_design.QUALIFIER_GRID_CAP
@@ -347,9 +348,16 @@ def test_a_withheld_figure_fills_the_headline_from_the_verified_eyebrow() -> Non
     _, plates = youtube_thumbnail.render(_photo().convert("RGB"), RICHAT, meta=meta,
                                          figure=figure_check(RICHAT, RICHAT_SHEET))
     by = {n: p for n, p in plates}
-    assert by["kicker"].text == "DESERT ANOMALY" and by["title_1"].text == "SAHARA EYE"
-    assert by["kicker"].box[3] < by["title_1"].box[1] and by["kicker"].font.size < by["title_1"].font.size
-    assert meta["headline_fill_from"] == "eyebrow" and meta["downscale_ok"], meta["downscale_fails"]
+    heads = [p for n, p in plates if n.startswith("title")]
+    assert " ".join(p.text for p in heads) == "SAHARA EYE"
+    # round 7 (F20): the fill line is the system kicker; where it cannot hold the column at its least size it is not
+    # drawn, and the record names it (headline_fill_dropped) -- an operator-visible trade, listed in the lane report
+    if "kicker" in by:
+        assert by["kicker"].text == "DESERT ANOMALY" and by["kicker"].box[3] < heads[0].box[1]
+        assert by["kicker"].font.size < heads[0].font.size and meta["headline_fill_from"] == "eyebrow"
+    else:
+        assert meta["headline_fill_dropped"]["text"] == "DESERT ANOMALY"
+    assert meta["downscale_ok"], meta["downscale_fails"]
 
 
 def test_the_ink_feather_follows_the_types_right_edge() -> None:

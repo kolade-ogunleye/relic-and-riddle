@@ -1630,8 +1630,10 @@ class MultiFormatGenerator:
                 spec = self.CONTENT_HEADING_FB if facebook else self.CONTENT_HEADING
                 # the gap is to the heading's highest ink: an accented capital ("ÇATALHÖYÜK") rises above the cap line
                 ink_top = min(ink(r, shift, 1) for r in heads if r["y"] + shift == first)
-                kb = (min(first - cap_height(get_font(brand.DISPLAY_FONT, px.exact(spec[0]))), ink_top)
-                      - kicker_gap(kick["font"].size))
+                cap_top = first - cap_height(get_font(brand.DISPLAY_FONT, px.exact(spec[0])))
+                # only a real rise moves it (an accent, 2 px or more): a capital's 1 px antialiasing overshoot keeps
+                # the deck's shared kicker line (_content_frame), so a deck keeps its two kicker positions
+                kb = (min(cap_top, ink_top) if ink_top < cap_top - 1 else cap_top) - kicker_gap(kick["font"].size)
                 out = [dict(r, y=kb) if r["name"] == "kicker" else r for r in out]
             fixed.update(kicker=kb, heading=first, heading_last=max(r["y"] for r in heads) + shift,
                          heading_frame=frame["heading_lines"], heading_lines=n_heads)

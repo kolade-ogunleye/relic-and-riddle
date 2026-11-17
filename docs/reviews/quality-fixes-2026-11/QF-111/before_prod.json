@@ -1,0 +1,6 @@
+{
+ "source": "production sample pulled 2026-11-08 (VM checkout at b85bf5e), compared with b85bf5e line endings ignored; counts only",
+ "credits_json": {"tracked_in_sample": 16, "content_differs_from_release": 6},
+ "storyboard_json": {"tracked_in_sample": 15, "content_differs_from_release": 4, "not_in_release": 1},
+ "music_library_writes_counted_by_qf84_review_1": 34
+}

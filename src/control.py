@@ -163,6 +163,7 @@ SendPhoto = Callable[[Path, str, Optional[list]], bool]
 from .telegram_ui import HOME
 from .telegram_ui import hourglass  # 🏠 Dashboard, the one home button of every screen (2026-10-25 overhaul)
 from .local_time import show as show_time
+from . import host_state
 
 
 def running_job(db, resource: str):
@@ -221,7 +222,7 @@ STATUS_WORDS = {
 def _fetched_sets(assets_dir: Path) -> List[Path]:
     root = assets_dir.resolve()
     return sorted(d for d in assets_dir.iterdir() if d.is_dir() and d.resolve().parent == root
-                  and (d / CREDITS_FILE).exists()) if assets_dir.is_dir() else []
+                  and host_state.exists(d / CREDITS_FILE)) if assets_dir.is_dir() else []   # QF-111
 
 
 def _resolve_topic_dir(ref: str, assets_dir: Path, db: Optional[PipelineDatabase] = None) -> Path:
@@ -236,7 +237,7 @@ def _resolve_topic_dir(ref: str, assets_dir: Path, db: Optional[PipelineDatabase
             raise ValueError("Unknown topic number")
         ref = topics[int(ref)-1]["id"]
         candidate = assets_dir / ref
-        if candidate.resolve().parent != assets_dir.resolve() or not (candidate / CREDITS_FILE).is_file():
+        if candidate.resolve().parent != assets_dir.resolve() or not host_state.exists(candidate / CREDITS_FILE):
             raise ValueError("This topic has no fetched images; open /photos to fetch or upload")
         return candidate
     matches = [d for d in _fetched_sets(assets_dir) if d.name.lower() == ref.lower()
@@ -323,7 +324,8 @@ def _add_topic_to_bank(db: PipelineDatabase, title: str, u_site=None,
         context_facts=new_topic["key_facts"],
         unesco_context=unesco_desc,
     )
-    queries = json.loads(topic_proposer.QUERIES.read_text(encoding="utf-8"))
+    from .topic_store import read_queries
+    queries = read_queries(topic_proposer.QUERIES)   # with this host's own topics' searches (QF-111)
     queries[topic_id] = {
         "queries": decomp["queries"],
         "keywords": decomp["keywords"],
@@ -773,7 +775,7 @@ _count_shown = False   # a caller was told "counting": the listeners are called 
 
 
 def _ready_key(t: dict[str, Any]) -> tuple[str, float]:
-    credits = ASSETS_DIR / t["id"] / "credits.json"
+    credits = host_state.current(ASSETS_DIR / t["id"] / "credits.json")   # this host's copy (QF-111)
     return str(credits), (credits.stat().st_mtime if credits.is_file() else -1.0)
 
 
@@ -3081,7 +3083,7 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             args = topic["id"]
             summary = ""
             t_dir = _resolve_topic_dir(args, assets_dir, db=db)
-            if (t_dir / "credits.json").is_file():  # where the set stands (operator, 2026-10-25)
+            if host_state.exists(t_dir / "credits.json"):  # where the set stands (operator, 2026-10-25)
                 summary = "\n\n" + "\n".join(review_caption(t_dir, title=(db.get_topic_by_id(t_dir.name) or {}).get("title")).split("\n")[2:]).strip()
             return (f"🖼 <b>{html.escape(topic['title'])}</b>{summary}\n\nFetch licensed photos, upload your own with guided prompts, or review this set. New images need human review.",
                     [[job_button(db, f"fetchimages:{args}", "🔎 Fetch more"), {"text": "📎 Upload my image", "callback_data": f"upload:{args}"}],
@@ -3430,7 +3432,8 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             ask = None
             note = ""
             if command == "filmfind":
-                specs = json.loads((config.TOPICS_DIR / "image_queries.json").read_text(encoding="utf-8"))
+                from .topic_store import read_queries
+                specs = read_queries(config.TOPICS_DIR / "image_queries.json")   # with this host's own (QF-111)
                 spec = specs.get(topic["id"]) or {"queries": [topic["title"]], "keywords": [topic["title"]]}
                 found = archive_film.find(topic, spec, assets_dir)
                 ask = found["ask"]

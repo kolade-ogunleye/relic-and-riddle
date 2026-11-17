@@ -362,7 +362,8 @@ def recheck_sheet(payload):
     topic = str(payload.get("topic_id") or "").strip()
     if not topic or Path(topic).name != topic:
         return None
-    return config.DATA_DIR / "fact_sheets" / f"{topic}.json"
+    from .fact_sheet import chosen
+    return chosen(config.DATA_DIR / "fact_sheets" / f"{topic}.json")   # the sheet this host uses (QF-111)
 
 
 def drift_only(payload) -> bool:

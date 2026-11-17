@@ -27,7 +27,7 @@ Sheets are cached in data/fact_sheets/<topic_id>.json and rebuilt when older tha
 import json
 import logging
 import re
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 from urllib.parse import urlparse
@@ -407,21 +407,68 @@ def _named_sources(text: str) -> set:
 
 
 def path_for(topic_id: str) -> Path:
+    """The sheet's place in the checkout (data/fact_sheets/<topic>.json): the shipped research. Read the sheet this
+    host uses with current_path."""
     return SHEETS_DIR / f"{re.sub(r'[^A-Za-z0-9_-]', '_', topic_id)}.json"
 
 
+def _usable_since(path: Path, max_age_days: int) -> datetime | None:
+    """When the sheet at `path` was built, if it is usable as it is (readable, under today's evidence rules, not
+    expired); else None."""
+    try:
+        sheet = json.loads(Path(path).read_text(encoding="utf-8"))
+        built = datetime.fromisoformat(sheet["built_at"])
+    except (OSError, ValueError, KeyError, TypeError):
+        return None
+    if sheet.get("rules_version") != RULES_VERSION:
+        return None
+    if built.tzinfo is None:
+        built = built.replace(tzinfo=UTC)
+    return built if datetime.now(UTC) - built <= timedelta(days=max_age_days) else None
+
+
+def chosen(path, max_age_days: int = FACT_SHEET_MAX_AGE_DAYS) -> Path:
+    """Of the shipped sheet at `path` and this host's own copy (QF-111: src/host_state.py), the one to use: the
+    usable one, the newer by built_at when both are (this host's on a tie: its re-checked card fields). Neither
+    usable: this host's copy if it has one, as before. A shipped sheet that is usable is never passed over for a
+    stale copy, so a release's research arrives and is not researched again (QF-111 review 1, B2)."""
+    from . import host_state
+    path = Path(path)
+    copy = host_state.host_copy(path)
+    if copy == path:
+        return path
+    own, shipped = _usable_since(copy, max_age_days), _usable_since(path, max_age_days)
+    if own and shipped:
+        return copy if own >= shipped else path
+    if shipped:
+        return path
+    if own:
+        return copy
+    return copy if copy.exists() else path
+
+
+def current_path(topic_id: str) -> Path:
+    """The sheet this host uses (chosen): fact-check stamps record this path, and checkpoints hash this file."""
+    return chosen(path_for(topic_id))
+
+
 def save(sheet: Dict[str, Any]) -> None:
+    """To this host's copy, never the tracked data/fact_sheets/<topic>.json (QF-111: production rebuilt its sheets
+    in place, so the deployer refused any release that shipped new research for the same topic)."""
+    from . import host_state
     sheet["rules_version"] = RULES_VERSION
     sheet["fact_schema"] = FACT_SCHEMA_VERSION
-    SHEETS_DIR.mkdir(parents=True, exist_ok=True)
-    path_for(sheet["topic_id"]).write_text(json.dumps(sheet, indent=1, ensure_ascii=False), encoding="utf-8")
+    host_state.write_json(path_for(sheet["topic_id"]), sheet, indent=1)
 
 
 def load(topic_id: str, max_age_days: int = FACT_SHEET_MAX_AGE_DAYS) -> Optional[Dict[str, Any]]:
-    p = path_for(topic_id)
+    from . import host_state
+    p = chosen(path_for(topic_id), max_age_days)
     if not p.exists():
         from .script_library import seed_fact_sheet
-        if not seed_fact_sheet(topic_id, p):  # research done elsewhere (development) and shipped with a release
+        # research done elsewhere (development) and shipped with a release: copied to this host's copy
+        p = host_state.host_copy(path_for(topic_id))
+        if not seed_fact_sheet(topic_id, p):
             return None
     sheet = json.loads(p.read_text(encoding="utf-8"))
     if sheet.get("rules_version") != RULES_VERSION:
@@ -476,7 +523,7 @@ def _rechecked_cards(topic_id: str) -> Optional[Dict[str, Any]]:
     record, or one signed under an earlier FACT_RECORD_KEY: decision A); None when none needed it. The file's own
     content is re-checked (the facts as built), never the load-filtered copy."""
     from . import card_fields
-    p = path_for(topic_id)
+    p = current_path(topic_id)
     try:
         raw = json.loads(p.read_text(encoding="utf-8"))
         n = card_fields.recheck_untrusted(raw)

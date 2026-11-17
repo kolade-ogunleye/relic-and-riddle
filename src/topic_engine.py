@@ -46,14 +46,14 @@ def authoritative_images(topic_id: str, assets_dir=None) -> int | None:
     """Distinct approved authoritative photos in a topic's pool: records of a reviewed credits.json whose file is
     there, judged Topic or Kept (src/image_review.tier: usable, safe, not a duplicate, or kept by the operator), with a
     licence and a source to credit; distinct by file and by archive title. None when the pool is not reviewed yet."""
-    import json
     from pathlib import Path
 
     from .config import ASSETS_DIR
     from .image_review import tier
     folder = Path(assets_dir or ASSETS_DIR) / topic_id
     try:
-        credits = json.loads((folder / "credits.json").read_text(encoding="utf-8"))
+        from .credits import pool_record
+        credits = pool_record(folder / "credits.json")
     except (OSError, ValueError):
         return None
     if not isinstance(credits, dict) or not credits.get("reviewed"):

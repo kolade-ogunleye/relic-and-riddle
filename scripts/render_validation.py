@@ -32,7 +32,8 @@ def main():
     topic_id = package["topic_id"]
     bank = json.loads((DATA_DIR / "topics/topic_bank.json").read_text(encoding="utf-8"))
     topic = next(t for t in bank.get("topics", []) if t["id"] == topic_id)
-    credit_data = json.loads((args.sources / "credits.json").read_text(encoding="utf-8"))
+    from src.credits import pool_record
+    credit_data = pool_record(args.sources / "credits.json")   # this host's copy too (QF-111)
     selected = [c for c in credit_data["images"] if c["file"] in args.images]
     if len(selected) != len(set(args.images)):
         raise ValueError("Some selected images have no recorded source evidence")

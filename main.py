@@ -58,8 +58,18 @@ from src.improve import REASONS, SCRIPT_REASONS
 from src.operator_jobs import JobCancelled
 from src.audio_engine import NoLicensedVoice
 from src import voice_licence
+from src import host_state
 
 log = logging.getLogger("pipeline")
+
+
+def fact_sheet_path(topic_id: str) -> Path:
+    """The topic's fact sheet as this host uses it (QF-111, fact_sheet.chosen): the shipped
+    data/fact_sheets/<topic>.json or this host's own copy under data/host/, whichever is usable (the newer when both
+    are). What the script is written on, stamped with and hashed."""
+    from src import config as pipeline_config
+    from src.fact_sheet import chosen
+    return chosen(pipeline_config.DATA_DIR / "fact_sheets" / f"{topic_id}.json")
 
 MAX_REGENERATIONS = 2
 # Ends of a run that are outcomes, not failures (the run command exits 0 for these).
@@ -187,6 +197,39 @@ def warn_missing_raqm() -> List[str]:
     return [line]
 
 
+def warn_shipped_changes(owner=None) -> List[str]:
+    """QF-111 review 1 (B2): the files whose shipped version changed since this host made its own copy
+    (host_state.shipped_changed: a photo pool's record or storyboard, the music library), so the release's change does
+    not reach this host. A WARNING each, and one Needs-you item when an owner (the coordinator) is given. A photo's
+    attribution arrives when the release lists the same photo (credits.with_shipped_attribution: the same source);
+    the rest does not (new photos, review marks, other fields). Returns the files."""
+    from src import host_state
+    try:
+        changed = host_state.shipped_changed()
+    except OSError as e:
+        log.warning("Could not compare this host's copies with the shipped files: %s", e)
+        return []
+    if not changed:
+        return []
+    log.warning("Shipped files changed under this host's own copies (data/host/), so their changes are not used "
+                "here: %s", ", ".join(changed))
+    if owner is not None:
+        shown = changed[:8]
+        more = f"\n…and {len(changed) - len(shown)} more" if len(changed) > len(shown) else ""
+        try:
+            _notice(owner, "🗄 <b>A release changed files this host keeps its own copy of</b>\n\n"
+                    + "\n".join(f"• {html.escape(name)}" for name in shown) + more
+                    + "\n\nThis host still uses its own copy of each (data/host/), so the release's change is not "
+                      "used here. A photo's credit is still taken from the release when the release lists the same "
+                      "photo (the same source). To take a file's new version, compare the two and merge what you want "
+                      "to keep into the copy under data/host/.",
+                    section="needs", key="shipped-changed", replace=True,
+                    actions=[{"text": "Details", "callback_data": "cstat:"}])   # as the pre-flight notice
+        except Exception as e:  # noqa: BLE001 - a notice that cannot be sent is logged above
+            log.warning("Could not send the shipped-changes notice: %s", e)
+    return changed
+
+
 class CarouselCreditHold(ValueError):
     """A carousel that cannot carry the photo credits its licences ask for as it is drawn (QF-126): not posted, and
     held (PipelineCoordinator._hold_carousel) with the hold alert's Redraw when a redraw can be made, and as a
@@ -269,6 +312,7 @@ class PipelineCoordinator:
                         "approved 80. Remove the line or set FONT_SIZE=80.")
         warn_missing_geo_files()
         warn_missing_raqm()
+        warn_shipped_changes(self)
         if not health["all_passed"]:
             # Said in Telegram, not only logged: production's scheduled runs failed this way unnoticed (ffprobe).
             failed = [f"{k}: {v['msg']}" for k, v in health["details"].items() if v["required"] and not v["passed"]]
@@ -652,8 +696,8 @@ class PipelineCoordinator:
     def _script_from_library(self, topic: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """The script shipped in the script library for this topic, when it was checked against this very fact
         sheet and passes today's checks (development's step 1, not paid for again: operator, 2026-10-27)."""
-        from src import config as pipeline_config, script_library
-        saved = script_library.kept_script(topic["id"], pipeline_config.DATA_DIR / "fact_sheets" / f"{topic['id']}.json")
+        from src import script_library
+        saved = script_library.kept_script(topic["id"], fact_sheet_path(topic["id"]))
         if saved is None:
             return None
         from src.models import ScriptPackage
@@ -865,11 +909,10 @@ class PipelineCoordinator:
             log.info("Deep-Dive scene media: %d items.", len(scene_media))
 
             from src.checkpoints import Checkpoints, file_inputs, topic_inputs, cached_artifacts
-            from src.config import DATA_DIR
             from src.models import DeepDivePackage
             checkpoints = Checkpoints(run_dir)
             script_inputs = {"topic": topic_inputs(topic), "research_and_rules": file_inputs([
-                DATA_DIR / "fact_sheets" / f"{tid}.json", Path("src/script_engine.py"), Path("src/trace_check.py")])}
+                fact_sheet_path(tid), Path("src/script_engine.py"), Path("src/trace_check.py")])}
             package_path = run_dir / "verified_deep_dive.json"
             if checkpoints.reusable("deep_script", script_inputs):
                 deep_dive_pkg = DeepDivePackage.model_validate_json(package_path.read_text(encoding="utf-8"))
@@ -933,9 +976,9 @@ class PipelineCoordinator:
             # sheet the acts were verified on (fact_sheet.path_for, where script_engine._sheet keeps it). No acts,
             # or no sheet: no chapter cards, as before QF-25.
             from src import card_composition
-            from src.fact_sheet import path_for
+            from src.fact_sheet import current_path
             chapter_sheet = card_composition.check_chapter_fields(
-                payload, path_for(tid), run_dir / "card-fact-sheet.json")
+                payload, current_path(tid), run_dir / "card-fact-sheet.json")
             if chapter_sheet is not None:
                 payload["design_card_sheet"] = str(chapter_sheet)
 
@@ -2311,7 +2354,7 @@ class PipelineCoordinator:
         checkpoints = Checkpoints(run_dir)
         timer, t0 = StageTimer(run_dir), time.perf_counter()
         script_inputs = {"topic": topic_inputs(topic), "engine": pipeline_config.SCRIPT_ENGINE,
-                         "fact_sheet": file_inputs([pipeline_config.DATA_DIR / "fact_sheets" / f"{topic['id']}.json"])}
+                         "fact_sheet": file_inputs([fact_sheet_path(topic["id"])])}
         saved_script = run_dir / "verified_script.json"
         saved = json.loads(saved_script.read_text(encoding="utf-8")) if saved_script.exists() else {}
         too_long_now = (saved.get("guardrail_passed") and checkpoints.reusable("script", script_inputs)
@@ -2399,7 +2442,7 @@ class PipelineCoordinator:
         # the refresh period), and a Reel whose pool is no longer ready at the floor (photos removed or replaced
         # since the run started) stops here, with its checked script saved, before any voice is paid for.
         tid = topic["id"]
-        if config.VIDEO_HEIGHT > config.VIDEO_WIDTH and (ASSETS_DIR / tid / "credits.json").is_file():
+        if config.VIDEO_HEIGHT > config.VIDEO_WIDTH and host_state.exists(ASSETS_DIR / tid / "credits.json"):
             from src.asset_pipeline import ensure_pool, not_ready_reason, pool_ready
             from src.scene_planner import (
                 estimated_photo_beats,
@@ -2811,13 +2854,13 @@ class PipelineCoordinator:
 
     def _verify_final_copy(self, payload, topic):
         from src.fact_evidence import current_fact_review
-        from src import trace_check, config as pipeline_config
+        from src import trace_check
         if current_fact_review(payload):
             return
         # production with no FACT_RECORD_KEY stops before a checker call: nothing could be signed (decision A)
         from src.fact_evidence import require_signing_key
         require_signing_key()
-        sheet_path = pipeline_config.DATA_DIR / "fact_sheets" / f"{topic['id']}.json"
+        sheet_path = fact_sheet_path(topic["id"])   # this host's sheet (QF-111), the one the script was written on
         if not sheet_path.is_file():
             raise ValueError("Final package verification requires a fact sheet")
         sheet = json.loads(sheet_path.read_text(encoding="utf-8"))
@@ -3335,7 +3378,7 @@ class PipelineCoordinator:
             distinct = {picture_id(path) for path in scene_media if not is_video(Path(path))}
             # Photo beats: the narration's beats less the one a graphic takes when the script asks for one.
             photo_beats = [{}] * max(0, len(beats) - (1 if script_asks_for_graphics(payload) else 0))
-            if len(distinct) < required_photos(photo_beats) and (ASSETS_DIR / tid / "credits.json").is_file():
+            if len(distinct) < required_photos(photo_beats) and host_state.exists(ASSETS_DIR / tid / "credits.json"):
                 # Fewer distinct photos than photo beats: one bounded refill (asset_pipeline.ensure_pool; not
                 # repeated within the refresh period, so after the refill before the voice it only re-reads the
                 # pool), and the pool's sequence again when it gained photos, with
@@ -7372,7 +7415,7 @@ def main(argv=None) -> int:
             db = PipelineDatabase()
             topics = [db.get_topic_by_id(args.topic_id)] if args.topic_id else db.list_all_topics()
             for t in topics:
-                if t and (ASSETS_DIR / t["id"] / "credits.json").exists():
+                if t and host_state.exists(ASSETS_DIR / t["id"] / "credits.json"):
                     if not args.topic_id and load_credits(ASSETS_DIR / t["id"]).get("reviewed_by") == "vision":
                         continue  # already reviewed on merit; name the topic to review it again
                     s = review_pool(t, ASSETS_DIR / t["id"], force=bool(args.topic_id))  # a named topic is re-reviewed

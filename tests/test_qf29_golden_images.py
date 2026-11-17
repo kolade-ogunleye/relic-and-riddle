@@ -169,19 +169,24 @@ def test_video_golden_samples_the_production_encoder(tmp_path):
 
 
 def test_inputs_are_committed_fixtures_only(tmp_path):
+    # A stand-in repository, not the checkout: tests never write a path the release owns (QF-111).
+    import subprocess
     g = _goldens()
-    ignored = ROOT / "output" / f"qf29-probe-{uuid.uuid4().hex}.png"
-    untracked = ROOT / "tests" / f"qf29-probe-{uuid.uuid4().hex}.png"
-    ignored.parent.mkdir(exist_ok=True)
-    try:
-        ignored.write_bytes(b"x")
-        untracked.write_bytes(b"x")
-        problems = g.input_problems(ROOT, [ignored.relative_to(ROOT).as_posix(), untracked.relative_to(ROOT).as_posix(),
-                                           "tests/does-not-exist.png", "../outside.png",
-                                           "tests/conftest.py"])
-    finally:
-        ignored.unlink(missing_ok=True)
-        untracked.unlink(missing_ok=True)
+    repo = tmp_path / "repo"
+    (repo / "tests").mkdir(parents=True)
+    (repo / ".gitignore").write_text("output/\n", encoding="utf-8")
+    (repo / "tests" / "conftest.py").write_text("", encoding="utf-8")
+    for args in (["init", "-q"], ["add", "-A"],
+                 ["-c", "user.name=t", "-c", "user.email=t@example.invalid", "-c", "commit.gpgsign=false",
+                  "commit", "-q", "-m", "fixtures"]):
+        subprocess.run(["git", "-C", str(repo), *args], check=True, capture_output=True)
+    ignored = repo / "output" / f"qf29-probe-{uuid.uuid4().hex}.png"
+    untracked = repo / "tests" / f"qf29-probe-{uuid.uuid4().hex}.png"
+    ignored.parent.mkdir()
+    ignored.write_bytes(b"x")
+    untracked.write_bytes(b"x")
+    problems = g.input_problems(repo, [ignored.relative_to(repo).as_posix(), untracked.relative_to(repo).as_posix(),
+                                       "tests/does-not-exist.png", "../outside.png", "tests/conftest.py"])
     assert len(problems) == 4, problems
     assert "gitignored" in problems[0] and "not committed" in problems[1] and "missing" in problems[2]
     assert "repository-relative" in problems[3]

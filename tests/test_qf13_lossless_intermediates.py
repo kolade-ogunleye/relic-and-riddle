@@ -162,14 +162,14 @@ def test_orientation_credit_failure_restores_original_and_essential_policy(tmp_p
                        "download_url": "https://upload.wikimedia.org/example.jpg"}]}))
     original_credit = credit.read_bytes()
     monkeypatch.setattr(commons, "download_jpeg", lambda url, target, **kwargs: Image.new("RGB", (72, 96)).save(target))
-    replace = Path.replace
+    write_bytes = photo_orientation.host_state.write_bytes
 
-    def fail_credit(path, target):
-        if path.name == "credits.upright.tmp":
+    def fail_credit(path, data):   # QF-111: the new record is installed through src/host_state.py
+        if Path(path).name == "credits.json" and data != original_credit:
             raise OSError("credit install failed")
-        return replace(path, target)
+        return write_bytes(path, data)
 
-    monkeypatch.setattr(Path, "replace", fail_credit)
+    monkeypatch.setattr(photo_orientation.host_state, "write_bytes", fail_credit)
     _, still = photo_orientation.put_upright(tmp_path)
     assert still == {source.name}
     assert source.read_bytes() == original and credit.read_bytes() == original_credit

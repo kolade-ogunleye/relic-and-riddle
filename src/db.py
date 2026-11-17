@@ -272,10 +272,11 @@ class PipelineDatabase:
         topics' content (title, hook, facts, hashtags...) are applied. Production state
         (status, publish count, last run) is never touched.
         """
-        if not self.topic_bank_file.exists():
+        from . import host_state
+        from .topic_store import read_bank
+        if not host_state.exists(self.topic_bank_file):
             return
-        with open(self.topic_bank_file, "r", encoding="utf-8") as f:
-            topics = json.load(f).get("topics", [])
+        topics = read_bank(self.topic_bank_file).get("topics", [])   # with this host's own topics (QF-111)
         now = _now()
         from .topic_policy import editorial
         with self._conn() as conn:

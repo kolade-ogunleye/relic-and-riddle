@@ -18,7 +18,6 @@ Usage:
 
 import argparse
 from typing import Optional
-import json
 import sys
 from pathlib import Path
 
@@ -331,7 +330,8 @@ def main() -> int:
                         help="Write here instead of assets/ (e.g. a fresh set to compare before swapping in)")
     args = parser.parse_args()
 
-    specs = json.loads((TOPICS_DIR / "image_queries.json").read_text(encoding="utf-8"))
+    from src.topic_store import read_queries
+    specs = read_queries(TOPICS_DIR / "image_queries.json")   # with this host's own topics' searches (QF-111)
     db = PipelineDatabase()
     topics = [db.get_topic_by_id(args.topic_id)] if args.topic_id else db.list_all_topics()
     if not topics or topics[0] is None:

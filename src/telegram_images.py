@@ -1,6 +1,5 @@
 """Topic-specific image ingestion; rights and human review remain mandatory."""
 import io
-import json
 import logging
 from pathlib import Path
 from uuid import uuid4
@@ -84,7 +83,8 @@ def fetch_images(db, assets_dir, ref):
         topic_for(db, topic["id"])
         from . import config
         from scripts.fetch_commons_images import fetch_topic
-        specs = json.loads((config.TOPICS_DIR / "image_queries.json").read_text(encoding="utf-8"))
+        from .topic_store import read_queries
+        specs = read_queries(config.TOPICS_DIR / "image_queries.json")   # with this host's own (QF-111)
         spec = specs.get(topic["id"])
         if not spec:
             raise ValueError("No curated image search for this topic yet; use /photos N upload to supply photos")
@@ -102,12 +102,17 @@ def review_digest(directory):
     import hashlib
     directory = Path(directory).resolve()
     digest = hashlib.sha256()
-    for path in sorted(directory.iterdir()):
-        if path.name in {"credits.json", "storyboard.json"} or path.suffix.lower() in {".jpg", ".jpeg", ".png", ".webp"}:
+    from . import host_state
+    records = {"credits.json", "storyboard.json"}
+    names = sorted({p.name for p in directory.iterdir()} | {n for n in records if host_state.exists(directory / n)})
+    for name in names:
+        path = directory / name
+        if name in records or path.suffix.lower() in {".jpg", ".jpeg", ".png", ".webp"}:
             if path.name in {"contact_sheet.jpg", "contact_sheet.png"}:
                 continue
             if path.resolve().parent != directory:
                 raise ValueError("Image set contains a path outside its topic folder")
             digest.update(path.name.encode())
-            digest.update(path.read_bytes())
+            # the rights and storyboard records as this host has them (QF-111: data/host/'s copy when it has one)
+            digest.update(host_state.current(path).read_bytes() if name in records else path.read_bytes())
     return digest.hexdigest()[:32]

@@ -63,9 +63,9 @@ def near_duplicate(title: str, existing: List[str]) -> Optional[str]:
 
 
 def _bank() -> dict:
-    from .topic_store import transaction
+    from .topic_store import read_bank, transaction
     with transaction(BANK):
-        return json.loads(BANK.read_text(encoding="utf-8"))
+        return read_bank(BANK)   # the shipped bank with this host's own topics (QF-111)
 
 
 def pending(db: PipelineDatabase) -> Dict[str, dict]:
@@ -237,7 +237,8 @@ def add(db: PipelineDatabase, slug: str) -> str:
         "added": added_record("research proposal", f"approved in Telegram ({len(p.sources)} sources)"),
     })
     bank["total"] = len(bank["topics"])
-    queries = json.loads(QUERIES.read_text(encoding="utf-8"))
+    from .topic_store import read_queries
+    queries = read_queries(QUERIES)
     if p.image_queries and p.image_keywords:
         queries[topic_id] = {"queries": p.image_queries, "keywords": [k.lower() for k in p.image_keywords]}
     else:

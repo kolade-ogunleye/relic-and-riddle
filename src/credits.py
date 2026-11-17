@@ -990,10 +990,11 @@ def generate_provenance_ledger(
     if not media_items:
         issues.append("No composition assets were supplied; coverage cannot be verified")
     lineage_records = {}
+    from . import host_state
     for credits_file in {run_dir / CREDITS_FILE, ASSETS_DIR / topic.get("id", "") / CREDITS_FILE}:
-        if credits_file.is_file():
+        if host_state.current(credits_file).is_file():   # the pool's: this host's copy (QF-111); files beside it
             try:
-                data = json.loads(credits_file.read_text(encoding="utf-8"))
+                data = pool_record(credits_file)
                 for entry in (data if isinstance(data, list) else data.get("images", [])):
                     credit_path = Path(entry.get("file", ""))
                     if not credit_path.is_absolute():
@@ -1105,7 +1106,7 @@ def generate_provenance_ledger(
     voice = file_record(vo_path) if vo_path else None
     bed = file_record(bed_path) if bed_path else None
     evidence_files = [file_record(p) for p in (run_dir / CREDITS_FILE,
-                      ASSETS_DIR / topic.get("id", "") / CREDITS_FILE) if p.is_file()]
+                      host_state.current(ASSETS_DIR / topic.get("id", "") / CREDITS_FILE)) if p.is_file()]
     for audio_path in (vo_path, bed_path):
         if audio_path:
             audio_path = Path(audio_path)
@@ -1281,19 +1282,97 @@ def normalize(text: str) -> str:
 
 def load_credits(topic_dir: Path) -> Dict[str, Any]:
     """Returns {"reviewed": bool, "images": [...]}, dropping entries whose file was deleted."""
+    from . import host_state
     path = topic_dir / CREDITS_FILE
-    if not path.exists():
+    if not host_state.exists(path):
         return {"reviewed": False, "images": []}
-    data = json.loads(path.read_text(encoding="utf-8"))
+    data = pool_record(path)   # this host's copy of a pool's record (QF-111), else the shipped one
     if isinstance(data, list):  # legacy format
         data = {"reviewed": False, "images": data}
     data["images"] = [c for c in data.get("images", []) if (topic_dir / c.get("file", "")).exists()]
     return data
 
 
+# A photo's rights and attribution: the shipped record's for the SAME photo (QF-111 review 1 B2, review 2 B4), so a
+# release's credit-line correction (e.g. QF-42's sanitised artist) reaches a host that keeps its own review copy.
+# The same photo is the same source (source_url), never the same file name: pool photos are named by position
+# (NN_commons.jpg), and in the production sample 21 of 196 same-name photos are a different photo. source_url itself
+# is the key and is never taken from the shipped record.
+ATTRIBUTION_FIELDS = ("title", "artist", "author", "creator", "credit", "attribution", "license", "license_url",
+                      "source", "attribution_required", "provider", "own_work")
+HASH_FIELDS = ("sha256", "source_sha256")
+
+
+def _same_photo(entry: dict[str, Any], shipped: dict[str, Any], folder: Path | None) -> bool:
+    """Whether a shipped record entry describes the same photo as this host's entry: the same source_url (both
+    set), every content hash both entries record equal, and, when both entries' files are on disk, the same bytes."""
+    url = str(entry.get("source_url") or "").strip()
+    if not url or url != str(shipped.get("source_url") or "").strip():
+        return False
+    if any(entry.get(k) and shipped.get(k) and entry[k] != shipped[k] for k in HASH_FIELDS):
+        return False
+    if folder is not None and entry.get("file") != shipped.get("file"):
+        mine, theirs = folder / str(entry.get("file") or ""), folder / str(shipped.get("file") or "")
+        if mine.is_file() and theirs.is_file() and sha256_file(mine) != sha256_file(theirs):
+            return False
+    return True
+
+
+def with_shipped_attribution(data: dict[str, Any], shipped_path: Path) -> dict[str, Any]:
+    """`data` (this host's copy of a pool's record) with the attribution fields of every photo the shipped record
+    also lists (the same photo: _same_photo) taken from the shipped record; its source_url, file and review fields
+    (reviewed, verdicts, keeps) stay this host's. Rejected photos are corrected the same way. A photo the shipped
+    record does not list, an unreadable shipped record: unchanged."""
+    try:
+        shipped = json.loads(Path(shipped_path).read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return data
+    if isinstance(shipped, list):
+        shipped = {"images": shipped}
+    if not isinstance(shipped, dict):
+        return data
+    folder = Path(shipped_path).parent
+    out = dict(data)
+    for key in ("images", "rejected_by_review"):
+        by_url: dict[str, list] = {}
+        for e in shipped.get(key) or []:
+            if isinstance(e, dict) and str(e.get("source_url") or "").strip():
+                by_url.setdefault(str(e["source_url"]).strip(), []).append(e)
+        if not by_url or not isinstance(data.get(key), list):
+            continue
+        merged = []
+        for entry in data[key]:
+            if isinstance(entry, dict):
+                candidates = by_url.get(str(entry.get("source_url") or "").strip(), [])
+                source = next((c for c in candidates if _same_photo(entry, c, folder)), None)
+                if source:
+                    entry = {**{k: v for k, v in entry.items() if k not in ATTRIBUTION_FIELDS},
+                             **{k: source[k] for k in ATTRIBUTION_FIELDS if k in source}}
+            merged.append(entry)
+        out[key] = merged
+    return out
+
+
+def pool_record(path) -> Any:
+    """A folder's credits.json as this host reads it (QF-111): its own copy when it has one, with the shipped
+    record's attribution of the same photos (with_shipped_attribution); else the shipped record. Every reader of a
+    pool's record goes through here."""
+    from . import host_state
+    path = Path(path)
+    data = host_state.read_json(path)
+    if host_state.current(path) == path or not path.is_file():
+        return data
+    if isinstance(data, list):
+        return with_shipped_attribution({"images": data}, path)["images"]
+    return with_shipped_attribution(data, path) if isinstance(data, dict) else data
+
+
 def save_credits(topic_dir: Path, data: Dict[str, Any]) -> None:
-    from .atomic_files import write_json
-    write_json(topic_dir / CREDITS_FILE, data)
+    """A pool's record (fetches, the operator's review, drops) goes to this host's copy, never the tracked
+    assets/<topic>/credits.json (QF-111: production's rewritten copies made the deployer refuse releases). A folder
+    outside the checkout (a run's, a test's) is written in place."""
+    from . import host_state
+    host_state.write_json(topic_dir / CREDITS_FILE, data)
 
 
 CREDIT_ADAPTED = " · adapted: cropped, with motion and text added"
@@ -1395,7 +1474,8 @@ def write_contact_sheet(
 
 def approve_set(topic_dir: Path, min_images: int) -> str:
     """Marks a fetched set reviewed. Raises ValueError if it can't be."""
-    if not (topic_dir / CREDITS_FILE).exists():
+    from . import host_state
+    if not host_state.exists(topic_dir / CREDITS_FILE):
         raise ValueError(f"No fetched images for {topic_dir.name}.")
     credits = load_credits(topic_dir)
     if len(credits["images"]) < min_images:

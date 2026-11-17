@@ -1,7 +1,8 @@
 """The music library is replaced atomically from a temporary file beside it (CI EXDEV, 2026-11-02)."""
 
 import json
-import tempfile
+import os
+from pathlib import Path
 
 from src import music
 
@@ -11,12 +12,12 @@ def test_the_temporary_file_is_made_beside_the_library(tmp_path, monkeypatch) ->
     monkeypatch.setattr(music, "MUSIC_DIR", music_dir)
     monkeypatch.setattr(music, "LIBRARY", library)
     made_in = []
-    real = tempfile.NamedTemporaryFile
+    real = os.replace
 
-    def spy(*a, **k):
-        made_in.append(k.get("dir"))
-        return real(*a, **k)
-    monkeypatch.setattr(tempfile, "NamedTemporaryFile", spy)
+    def spy(src, dst, *a, **k):   # QF-111: the library is staged and replaced by src/host_state.py
+        made_in.append(Path(src).parent)
+        return real(src, dst, *a, **k)
+    monkeypatch.setattr(os, "replace", spy)
     music.save_library([{"file": "a.mp3", "title": "A"}])
     assert made_in == [library.parent]
     assert json.loads(library.read_text(encoding="utf-8")) == [{"file": "a.mp3", "title": "A"}]

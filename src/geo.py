@@ -419,11 +419,22 @@ def _get(params: dict) -> dict:
     return resp.json()
 
 
-def _load_cache() -> dict[str, Any]:
+def _read(path) -> dict[str, Any]:
     try:
-        return json.loads(CACHE_FILE.read_text(encoding="utf-8"))
+        data = json.loads(Path(path).read_text(encoding="utf-8"))
     except (OSError, ValueError):
         return {}
+    return data if isinstance(data, dict) else {}
+
+
+def _load_cache() -> dict[str, Any]:
+    """This host's own lookups (QF-111: src/host_state.py) with the shipped cache (data/geo_cache.json) over them: a
+    place the release ships wins, so a corrected shipped point always arrives (QF-111 review 1, B2)."""
+    from . import host_state
+    own = host_state.host_copy(CACHE_FILE)
+    cache = _read(own) if own != CACHE_FILE else {}
+    cache.update(_read(CACHE_FILE))
+    return cache
 
 
 def _wikidata_point(query: str, country: dict[str, Any], country_name: str) -> dict[str, Any] | None:
@@ -481,7 +492,11 @@ def locate(topic: dict[str, Any]) -> dict[str, Any] | None:
         log.warning("Map: no Wikidata coordinates for '%s' inside %s; skipping the map.", name, country_name)
         return None
     cache[key] = result
-    CACHE_FILE.write_text(json.dumps(cache, indent=1, ensure_ascii=False), encoding="utf-8")
+    from . import host_state
+    if host_state.host_copy(CACHE_FILE) != CACHE_FILE:   # only this host's own lookups (QF-111 review 1, B2)
+        shipped = _read(CACHE_FILE)
+        cache = {k: v for k, v in cache.items() if k not in shipped}
+    host_state.write_json(CACHE_FILE, cache, indent=1)   # this host's copy, never the tracked file (QF-111)
     return result
 
 

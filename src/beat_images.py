@@ -446,8 +446,8 @@ def _other_names(topic: Dict[str, Any]) -> List[str]:
     """The topic's other names: the Commons searches its photo pool was fetched with (image_queries.json), so a
     category named after the object rather than the title is found (commons.topic_anchor). [] without them."""
     try:
-        import json as _json
-        specs = _json.loads((Path(config.TOPICS_DIR) / "image_queries.json").read_text(encoding="utf-8"))
+        from .topic_store import read_queries
+        specs = read_queries(Path(config.TOPICS_DIR) / "image_queries.json")   # with this host's own (QF-111)
         spec = specs.get(str(topic.get("id") or "")) or {}
         return [str(q) for q in spec.get("queries") or [] if isinstance(q, str)]
     except (OSError, ValueError, AttributeError):

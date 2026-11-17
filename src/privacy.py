@@ -660,7 +660,8 @@ def _source_record(image_path: Path) -> dict | None:
         image_path = Path(sources[0]["path"])
     for credits in (image_path.parent / "credits.json", image_path.parent.parent / "credits.json"):
         try:
-            records = json.loads(credits.read_text(encoding="utf-8")).get("images", [])
+            from .credits import pool_record
+            records = pool_record(credits).get("images", [])
         except (OSError, ValueError, AttributeError):
             continue
         for record in records:

@@ -1,0 +1,9 @@
+{
+ "source": "reviewer replay (review 2, rv/attr.py split by source_url): production sample records as this host copy beside the tracked records, credits.pool_record; counts only",
+ "photos": 239,
+ "round2_given_another_photos_credit": 21,
+ "round3_given_another_photos_credit": 0,
+ "round3_same_photo_release_credit": 7,
+ "same_name_photos_in_sample": 196,
+ "same_name_but_different_photo": 21
+}

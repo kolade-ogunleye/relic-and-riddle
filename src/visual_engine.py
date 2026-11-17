@@ -28,6 +28,7 @@ log = logging.getLogger(__name__)
 
 # Brand tokens (src/brand.py, visual overhaul 2026-10-29): the one gold and the bone text every surface shares.
 from . import brand as _brand
+from . import host_state
 GOLD = _brand.rgba(_brand.GOLD)
 WHITE = _brand.rgba(_brand.BONE)
 # The styles a Reel cover can go out in (cover_selector.fitting; selection is fixed to one since QF-82). lower_third
@@ -194,7 +195,7 @@ class VisualEngine:
         topic_dir = self.assets_dir / tid
         resolved: List[Path] = []
 
-        if (topic_dir / CREDITS_FILE).exists():
+        if host_state.exists(topic_dir / CREDITS_FILE):   # shipped or this host's own record (QF-111)
             credits = load_credits(topic_dir)
             if not credits["reviewed"]:
                 raise MissingAssetsError(
@@ -220,6 +221,13 @@ class VisualEngine:
                 p for p in topic_dir.iterdir()
                 if p.suffix.lower() in (".jpg", ".jpeg", ".png") and p.name != CONTACT_SHEET
             )
+            # Photos you supplied have no record; a fetched photo (its download evidence beside it) or an upload
+            # always has one. Without it, nothing says it was reviewed: never used (QF-111 review 1).
+            fetched = [p for p in resolved if Path(str(p) + ".quality.json").exists() or p.name.startswith("telegram_")]
+            if fetched:
+                raise MissingAssetsError(
+                    f"The photo record of '{tid}' (credits.json) is missing, so its {len(fetched)} fetched or uploaded "
+                    "photos are not used: none of them can be shown as reviewed. Fetch the set again from /photos.")
             from .image_review import distinct_photos
             from .photo_pool import refresh
             records = [{"file": path.name} for path in resolved]
@@ -242,7 +250,7 @@ class VisualEngine:
         """The approved pool's context shots beyond the video's usual cap (image_review.reserve_photos), best
         first: used only where a picture would otherwise repeat. Empty for a pool not approved or without credits."""
         topic_dir = self.assets_dir / topic["id"]
-        if not (topic_dir / CREDITS_FILE).exists():
+        if not host_state.exists(topic_dir / CREDITS_FILE):
             return []
         credits = load_credits(topic_dir)
         if not credits.get("reviewed"):
@@ -622,7 +630,7 @@ class VisualEngine:
 def _topic_folder(photo: Path) -> Path:
     """The folder holding a photo's credits: its own, or, for a derived copy (a caption-strip crop under
     cache/text_crop), its original's, through its lineage record (PR review, 2026-11-02)."""
-    if (photo.parent / "credits.json").is_file():
+    if host_state.exists(photo.parent / "credits.json"):
         return photo.parent
     try:
         from .lineage import source_chain
@@ -630,7 +638,7 @@ def _topic_folder(photo: Path) -> Path:
     except (OSError, ValueError, KeyError):
         sources = []
     for src in reversed(sources):
-        if (src.parent / "credits.json").is_file():
+        if host_state.exists(src.parent / "credits.json"):
             return src.parent
     return photo.parent
 

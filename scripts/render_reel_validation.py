@@ -33,7 +33,8 @@ def main():
     topic = next(t for t in json.loads((DATA_DIR / "topics/topic_bank.json").read_text(encoding="utf-8"))["topics"]
                  if t["id"] == args.topic_id)
     source_dir = ROOT / "assets" / args.topic_id
-    original = json.loads((source_dir / "credits.json").read_text(encoding="utf-8"))
+    from src.credits import pool_record
+    original = pool_record(source_dir / "credits.json")   # this host's copy too (QF-111)
     selected = [c for c in original["images"] if c["file"] in args.images]
     if len(selected) != len(set(args.images)):
         raise ValueError("Selected images must have source evidence")

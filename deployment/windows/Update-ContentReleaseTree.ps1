@@ -41,7 +41,7 @@ try {
     $releaseFiles = git diff --name-only HEAD $target
     foreach ($file in (git status --porcelain --untracked-files=no | ForEach-Object { $_.Substring(3) })) {
         if ($releaseFiles -contains $file) {
-            if (git diff --ignore-cr-at-eol $target -- $file) { throw "Production changed $file differently from the release; resolve it manually." }
+            if (git diff --ignore-cr-at-eol $target -- $file) { throw ("Production changed $file differently from the release, so the release was not installed. Production's copy holds this host's own state, written in place by code from before QF-111 (reviews, approvals, its own additions). Keep it: if data\host\$file does not exist yet, copy $file there; then restore the release's copy with git checkout -- $file and deploy again. The application reads data\host\ first, so nothing is lost.") }
             Invoke-Native { git checkout $target -- $file } "checkout of $file"
         }
     }

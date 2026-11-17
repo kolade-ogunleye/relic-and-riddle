@@ -25,6 +25,7 @@ from .llm import LLMError, claude_available, image_block, structured_call, task 
 from .models import ScenePlan
 from .operator_jobs import JobCancelled
 from .typography import is_video
+from . import host_state
 
 log = logging.getLogger(__name__)
 
@@ -114,7 +115,7 @@ def _photo_record(p: Path) -> Tuple[Optional[Dict[str, Any]], bool]:
     p = Path(p)
     entry, credited = None, False
     for _ in range(4):
-        credited = credited or (p.parent / "credits.json").is_file()
+        credited = credited or host_state.exists(p.parent / "credits.json")
         entry = next((e for e in _folder_credits(str(p.parent)) if e.get("file") == p.name), None)
         if entry:
             break
@@ -277,7 +278,8 @@ def open_on_scale(chosen: List[Path], stills: List[Path]) -> List[Path]:
 @lru_cache(maxsize=64)
 def _folder_credits(folder: str) -> tuple:
     try:
-        return tuple(json.loads((Path(folder) / "credits.json").read_text(encoding="utf-8")).get("images", []))
+        from .credits import pool_record
+        return tuple(pool_record(Path(folder) / "credits.json").get("images", []))
     except (OSError, ValueError):
         return ()
 
@@ -557,9 +559,9 @@ def plan_scenes(beats: List[Dict[str, Any]], media: List[Path], feedback: str = 
     if not feedback and use_storyboard:
         for p in stills:
             sb_candidate = p.parent / "storyboard.json"
-            if sb_candidate.is_file():
+            if host_state.exists(sb_candidate):
                 try:
-                    storyboard = json.loads(sb_candidate.read_text(encoding="utf-8"))
+                    storyboard = host_state.read_json(sb_candidate)
                     break
                 except Exception:
                     pass

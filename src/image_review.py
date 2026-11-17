@@ -25,7 +25,7 @@ from typing import Any, Dict, List, Literal, Optional
 
 from pydantic import BaseModel, Field, ValidationError
 
-from . import commons, free_llm, photo_pool, photo_quality, prompt_fence
+from . import commons, free_llm, host_state, photo_pool, photo_quality, prompt_fence
 from .config import MIN_SCENE_IMAGES
 from .credits import load_credits, save_credits
 from .llm import LLMError, image_block, verdict_reason
@@ -266,7 +266,7 @@ def readiness_text(images: List[Dict[str, Any]], need: int = MIN_SCENE_IMAGES) -
 def strong_stems(topic_dir: Path) -> Optional[set]:
     """File stems of the photos that show the topic or that you kept: the only ones a Story frame, a carousel
     slide or a cover uses (no context shots there). None for a folder without credits (photos you supplied)."""
-    if not (Path(topic_dir) / "credits.json").is_file():
+    if not host_state.exists(Path(topic_dir) / "credits.json"):
         return None
     return {Path(im["file"]).stem for im in load_credits(topic_dir).get("images", []) if tier(im) in ("topic", "kept")}
 

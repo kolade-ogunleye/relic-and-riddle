@@ -135,7 +135,12 @@ offline suite and writes `ready <commit>`; on any failure it returns to the prev
 signals that one. Stage beforehand in `<operator-home>\relic-stage`: the release git
 bundle (fetched into `refs/remotes/stage/release`, which does not touch the running tree), the
 model and the new dependency wheels, so the stopped window is short. Production data files
-the release does not change (fact sheets, credits, music usage) keep their local changes. The
+the release does not change (fact sheets, credits, music usage) keep their local changes. Since
+QF-111 the application never writes a tracked file: a host's own photo reviews, music approvals, fact sheets,
+geocoding lookups and added topics go to `data/host/` (gitignored, the same relative paths; `src/host_state.py`),
+which it reads first. A tracked file production changed in place before QF-111 still stops a release that changes
+it ("Production changed <file> differently from the release"): copy that file to `data/host/<file>` if no copy is
+there yet, restore the release's copy (`git checkout -- <file>`) and deploy again. The
 procedure never changes `.env`, identities, ACLs or the backup task, nor the posting mode:
 production keeps posting live. Rollback: the same procedure with the previous tag.
 

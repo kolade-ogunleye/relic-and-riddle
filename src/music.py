@@ -17,9 +17,10 @@ drone plays (QF-84: a failed classifier used to mean "mysterious", so 360 picks 
 Rotation counts PUBLISHED uses only (PipelineDatabase.music_published_uses: Reels whose publication is confirmed),
 never a pick, a render or a dry run. The library's `uses` field is the old render-pick count, kept as history and no
 longer written. Which approved tracks rotate is data/music/rotation.json ({"retired": {file: reason}}), a tracked file
-no host writes: library.json is rewritten on every host (approvals, and until QF-84 the pick counts), so a release
+no host writes: library.json was rewritten on every host (approvals, and until QF-84 the pick counts), so a release
 that changed it would be refused by the deployer wherever production's copy differs. A track rotation.json does not
-list rotates (a host's own approvals included).
+list rotates (a host's own approvals included). Since QF-111 a host's approvals, downloads and removals go to its
+own copy of the library (src/host_state.py, data/host/data/music/library.json), never the tracked file.
 """
 
 import json
@@ -76,9 +77,10 @@ def load_library(available_only: bool = True) -> List[Dict[str, Any]]:
     """Tracks whose audio is on this machine (for picking). Anything that rewrites the library must
     pass available_only=False: a record is never dropped just because its file is missing here (a
     fresh machine before the audio is copied would otherwise lose the whole library)."""
-    if not LIBRARY.exists():
+    from . import host_state
+    if not host_state.exists(LIBRARY):
         return []
-    tracks = json.loads(LIBRARY.read_text(encoding="utf-8"))
+    tracks = host_state.read_json(LIBRARY)   # this host's library (QF-111), else the shipped one
     return [t for t in tracks if (MUSIC_DIR / t["file"]).exists()] if available_only else tracks
 
 
@@ -113,18 +115,12 @@ def in_rotation(track: dict[str, Any], retired: dict[str, str] | None = None) ->
 
 
 def save_library(tracks: List[Dict[str, Any]]) -> None:
+    """This host's library (approvals, downloads, removals): data/host/'s copy, never the tracked data/music/
+    library.json (QF-111: production's rewritten copy made the deployer refuse any release that changed it). The
+    staged file sits beside the copy it replaces, so the rename never crosses filesystems (CI, 2026-11-02: EXDEV)."""
+    from . import host_state
     MUSIC_DIR.mkdir(parents=True, exist_ok=True)
-    LIBRARY.parent.mkdir(parents=True, exist_ok=True)
-    import tempfile
-    # The temporary file sits beside the library it replaces: a rename cannot cross filesystems
-    # (CI, 2026-11-02: data/music on the work disk, a test's library under /tmp -> EXDEV).
-    with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", dir=LIBRARY.parent, delete=False) as stream:
-        stream.write(json.dumps(tracks, indent=2, ensure_ascii=False))
-        temporary = Path(stream.name)
-    try:
-        temporary.replace(LIBRARY)
-    finally:
-        temporary.unlink(missing_ok=True)
+    host_state.write_json(LIBRARY, tracks)
 
 
 def register_download(track, content):

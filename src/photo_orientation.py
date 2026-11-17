@@ -15,13 +15,15 @@ from typing import Any, Dict, List, Set, Tuple
 
 from PIL import Image
 
+from . import host_state
+
 log = logging.getLogger(__name__)
 BACKUP_DIR = ".orientation_backup"
 
 
 def _items(topic_dir: Path) -> List[Dict[str, Any]]:
     try:
-        credits = json.loads((topic_dir / "credits.json").read_text(encoding="utf-8"))
+        credits = host_state.read_json(topic_dir / "credits.json")
     except (OSError, ValueError):
         return []
     items = credits if isinstance(credits, list) else (credits.get("images") or credits.get("items") or [])
@@ -74,8 +76,8 @@ def put_upright(topic_dir: Path) -> Tuple[List[str], Set[str]]:
         target = path.with_suffix(".png")
         installed = False
         credit_path = topic_dir / "credits.json"
-        old_credits = credit_path.read_bytes()
-        credit_temp = topic_dir / "credits.upright.tmp"
+        old_credits = host_state.current(credit_path).read_bytes()   # this host's copy of the pool's record (QF-111)
+        new_credits = b""
         backup = topic_dir / BACKUP_DIR / name
         saved_sidecars: dict = {}
         try:
@@ -105,7 +107,7 @@ def put_upright(topic_dir: Path) -> Tuple[List[str], Set[str]]:
                     entry.pop("vision_review", None)  # old review bytes cannot approve a refreshed original
             if isinstance(data, dict):
                 data["reviewed"] = False
-            credit_temp.write_text(json.dumps(data, indent=2), encoding="utf-8")
+            new_credits = json.dumps(data, indent=2).encode("utf-8")
             (topic_dir / BACKUP_DIR).mkdir(exist_ok=True)
             if backup.exists() and sha256_file(backup) != sha256_file(path):
                 backup = backup.with_name(f"{backup.stem}-{sha256_file(path)[:12]}{backup.suffix}")
@@ -117,7 +119,7 @@ def put_upright(topic_dir: Path) -> Tuple[List[str], Set[str]]:
             quality = Path(str(fresh) + ".quality.json")
             if quality.exists():
                 quality.replace(Path(str(target) + ".quality.json"))
-            credit_temp.replace(credit_path)
+            host_state.write_bytes(credit_path, new_credits)
             if target != path:
                 path.unlink()  # the original remains byte-for-byte in its backup, not twice in the active pool
             done.append(f"{shown}: was stored turned over; fetched again upright (the old file is kept as {BACKUP_DIR}/{backup.name})")
@@ -125,12 +127,11 @@ def put_upright(topic_dir: Path) -> Tuple[List[str], Set[str]]:
         except Exception as e:
             for left in {fresh, requested, requested.with_suffix(".jpg")}:
                 left.unlink(missing_ok=True)
-            credit_temp.unlink(missing_ok=True)
             if installed:
                 if target != path:
                     target.unlink(missing_ok=True)
                 shutil.copy2(backup, path)
-                credit_path.write_bytes(old_credits)
+                host_state.write_bytes(credit_path, old_credits)
                 for marker, previous in saved_sidecars.items():
                     if previous is None:
                         marker.unlink(missing_ok=True)

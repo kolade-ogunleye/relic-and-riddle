@@ -75,7 +75,8 @@ def _photo_record(image: Path) -> Dict[str, Any]:
     """The photo's own credit record (its folder's credits.json, as the privacy check reads it), or {}."""
     for credits in (image.parent / "credits.json", image.parent.parent / "credits.json"):
         try:
-            records = json.loads(credits.read_text(encoding="utf-8")).get("images", [])
+            from .credits import pool_record
+            records = pool_record(credits).get("images", [])
         except (OSError, ValueError, AttributeError):
             continue
         for record in records:

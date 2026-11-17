@@ -43,7 +43,8 @@ REASONS_SHOWN = 3
 def _credited(photo: Path) -> bool:
     """Whether the photo's folder credits it (credits.json, a list or {"images": [...]}): a sourced photo's record."""
     try:
-        data = json.loads((photo.parent / "credits.json").read_text(encoding="utf-8"))
+        from .credits import pool_record
+        data = pool_record(photo.parent / "credits.json")
     except (OSError, ValueError):
         return False
     images = data if isinstance(data, list) else (data.get("images") if isinstance(data, dict) else None)

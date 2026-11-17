@@ -24,6 +24,8 @@ if sys.stdout and hasattr(sys.stdout, "reconfigure"):
 # where .env is read from.
 BASE_DIR = Path(os.getenv("RELIC_APP_ROOT") or Path(__file__).resolve().parent.parent).resolve()
 DATA_DIR = BASE_DIR / "data"
+# QF-111: this host's own copies of tracked files the runtime changes (src/host_state.py); gitignored
+HOST_STATE_DIR = DATA_DIR / "host"
 TOPICS_DIR = DATA_DIR / "topics"
 CURATED_SCRIPTS_DIR = DATA_DIR / "scripts"
 # QF-15: the offline English tagger for the payoff rule, shipped with the code (not the app root's data), hash-verified

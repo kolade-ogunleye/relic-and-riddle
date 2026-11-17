@@ -2288,7 +2288,8 @@ def photo_credit(photo: Path) -> Dict[str, Any]:
     photo = Path(photo)
     for _ in range(4):
         try:
-            data = json.loads((photo.parent / "credits.json").read_text(encoding="utf-8"))
+            from .credits import pool_record
+            data = pool_record(photo.parent / "credits.json")
             images = data if isinstance(data, list) else data.get("images", [])
             entry = next((e for e in images if e.get("file") == photo.name), None)
         except (OSError, ValueError, AttributeError):

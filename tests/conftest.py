@@ -9,6 +9,10 @@ sys.path.insert(0, str(ROOT))
 
 from src import audio_engine  # noqa: E402
 from src.db import PipelineDatabase  # noqa: E402
+from tests import tracked_writes
+
+# QF-111: no code a test runs may write a path the release owns (tests/tracked_writes.py); installed before any test.
+_TRACKED_GUARD = tracked_writes.install()
 
 CURATED = ROOT / "data" / "scripts" / "derinkuyu_underground_city.json"
 
@@ -253,6 +257,35 @@ def no_repo_writes(monkeypatch, tmp_path_factory):
     if music.LIBRARY.exists():
         library.write_bytes(music.LIBRARY.read_bytes())
     monkeypatch.setattr(music, "LIBRARY", library)
+    # QF-111: this host's own copies of tracked files (src/host_state.py): never the developer's data/host/.
+    monkeypatch.setattr("src.config.HOST_STATE_DIR", sandbox / "host")
+
+
+@pytest.fixture(autouse=True)
+def tracked_tree_untouched():
+    """QF-111: a test fails when the code it ran wrote, replaced or deleted a path the release owns: a tracked file,
+    or any path in the checkout git does not ignore (the write itself is refused, so the tree stays as it was).
+    Runtime state belongs in gitignored places (src/host_state.py, the DB)."""
+    _TRACKED_GUARD.take()
+    yield
+    found = _TRACKED_GUARD.take()
+    assert not found, "release-owned paths written by the code under test (QF-111):\n" + "\n".join(found)
+
+
+def pytest_sessionstart(session):
+    if not hasattr(session.config, "workerinput"):   # the controller (or a run without xdist), once
+        session.config._tracked_tree_before = tracked_writes.tree_state()
+
+
+def pytest_sessionfinish(session, exitstatus):
+    """QF-111: a child process a test started (a script) is outside the audit hook: the checkout's tracked and
+    not-ignored files must be as the session found them, or the run fails with the files named."""
+    if hasattr(session.config, "workerinput") or not hasattr(session.config, "_tracked_tree_before"):
+        return
+    changed = tracked_writes.changed_since(session.config._tracked_tree_before, tracked_writes.tree_state())
+    if changed:
+        sys.stderr.write("\nQF-111: the test run changed release-owned files: " + ", ".join(changed) + "\n")
+        session.exitstatus = pytest.ExitCode.TESTS_FAILED
 
 
 @pytest.fixture(autouse=True)

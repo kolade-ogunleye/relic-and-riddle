@@ -437,7 +437,7 @@ def structured_call(system: str, prompt: Union[str, list], schema: Type[T], *, e
     parse_fn = getattr(client.beta.messages, "parse", None)
     if parse_fn is None:
         from . import gemini
-        result = gemini.structured(system, prompt, schema)
+        result = gemini.structured(system, prompt, schema, thinking=effort)   # the caller's effort (QF-99)
         note_served("gemini (default model)")
         return result
 

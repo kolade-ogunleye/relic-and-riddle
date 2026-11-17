@@ -136,7 +136,8 @@ def propose(db: PipelineDatabase, n: int = 3) -> List[TopicProposal]:
                 raise
     checkpoint()
     if proposals is None:
-        proposals = gemini.structured(STRUCTURE_SYSTEM, struct_prompt, TopicProposals)
+        proposals = gemini.structured(STRUCTURE_SYSTEM, struct_prompt, TopicProposals,
+                                      thinking="medium")   # the effort the Claude path asks for (QF-99)
     def _norm_url(u: str) -> str:
         return (u or "").strip().rstrip("/").lower().replace("http://", "https://")
 

@@ -109,7 +109,8 @@ def decompose_topic_visuals(
     if is_configured(gemini_key):
         try:
             from . import gemini
-            res = gemini.structured(system_prompt, user_prompt, ShotDecomposition, key=gemini_key)
+            res = gemini.structured(system_prompt, user_prompt, ShotDecomposition, key=gemini_key,
+                                    thinking="low")   # the effort the Claude path asks for (QF-99)
             queries = [
                 res.landscape_query.strip(),
                 res.interior_query.strip(),

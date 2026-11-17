@@ -136,7 +136,8 @@ class ClaimFactChecker:
         notes, retrieved = gemini.research(SYSTEM_PROMPT, self._material(payload))
         report = gemini.structured(
             "You structure fact-check results faithfully, without re-judging them.",
-            STRUCTURE_PROMPT.format(notes=notes, sources=format_sources(retrieved)), FactCheckReport)
+            STRUCTURE_PROMPT.format(notes=notes, sources=format_sources(retrieved)), FactCheckReport,
+            thinking="medium")   # the effort the Claude path asks for (QF-99)
         return report, {s.url for s in retrieved}
 
     @llm_task("second_check")

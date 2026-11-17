@@ -172,7 +172,7 @@ def _paid_fallback(system, prompt, schema: Type[T], model: str, task_class: str,
         from . import groq
         if groq.available():
             try:
-                result = groq.structured(system, prompt, schema)
+                result = groq.structured(system, prompt, schema, **_thinking(thinking))   # the effort too (QF-99)
                 note_served(f"groq:{config.GROQ_MODEL}")
                 log.info("Free Gemini unavailable (%s); answered by the free Groq model.", why)
                 return result

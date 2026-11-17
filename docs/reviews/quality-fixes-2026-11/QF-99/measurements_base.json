@@ -1,0 +1,94 @@
+{
+ "requests": {
+  "low": {
+   "asked": "low",
+   "sent_via_free_llm": null,
+   "sent_direct": null
+  },
+  "medium": {
+   "asked": "medium",
+   "sent_via_free_llm": null,
+   "sent_direct": null
+  },
+  "high": {
+   "asked": "high",
+   "sent_via_free_llm": null,
+   "sent_direct": null
+  },
+  "None": {
+   "asked": null,
+   "sent_via_free_llm": null,
+   "sent_direct": null
+  }
+ },
+ "light_requests_carrying_their_level": 0,
+ "light_requests": 2,
+ "writer_high_sends_a_level": false,
+ "groq_reasoning_effort": {
+  "low": null,
+  "None": null
+ },
+ "direct_calls_dropping_effort": 5,
+ "direct_calls_dropping_effort_list": [
+  "fact_checker.py:gemini.structured",
+  "free_llm.py:groq.structured",
+  "llm.py:gemini.structured",
+  "shot_archetypes.py:gemini.structured",
+  "topic_proposer.py:gemini.structured"
+ ],
+ "light_text_calls_recorded": {
+  "runs_with_call_logs": 29,
+  "tasks": {
+   "trace_check": {
+    "effort_asked": "medium",
+    "ok_calls": 41,
+    "median_seconds": 28.06,
+    "p90_seconds": 60.21,
+    "median_tokens_out": 2112,
+    "total_tokens_out": 89223
+   },
+   "trace_check_act": {
+    "effort_asked": "medium",
+    "ok_calls": 0,
+    "median_seconds": null,
+    "p90_seconds": null,
+    "median_tokens_out": null,
+    "total_tokens_out": 0
+   },
+   "evidence_check": {
+    "effort_asked": "medium",
+    "ok_calls": 40,
+    "median_seconds": 16.25,
+    "p90_seconds": 30.81,
+    "median_tokens_out": 1054.5,
+    "total_tokens_out": 46817
+   },
+   "beat_queries": {
+    "effort_asked": "low",
+    "ok_calls": 23,
+    "median_seconds": 15.14,
+    "p90_seconds": 77.83,
+    "median_tokens_out": 256,
+    "total_tokens_out": 5742
+   },
+   "beat_gap_queries": {
+    "effort_asked": "low",
+    "ok_calls": 6,
+    "median_seconds": 8.45,
+    "p90_seconds": 46.44,
+    "median_tokens_out": 74.0,
+    "total_tokens_out": 417
+   },
+   "music_mood": {
+    "effort_asked": "low",
+    "ok_calls": 18,
+    "median_seconds": 6.36,
+    "p90_seconds": 8.59,
+    "median_tokens_out": 11.5,
+    "total_tokens_out": 186
+   }
+  },
+  "light_calls_total": 128,
+  "light_seconds_total": 4648.9
+ }
+}

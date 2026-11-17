@@ -25,6 +25,19 @@ hierarchy > rhythm > ornament.
   windowed rings); under the 5.5 gate after every step, or wider than its room, it FAILS CLOSED (not drawn; the record
   says why, with the best ratio any step reached). The diamond's INK edge is drawn over its gold fill and its
   non-text contrast is recorded (`mark_contrast`, gate 3.0).
+- Round 6 (operator ruling 4): the HALO EXCEPTION. Only where no ruled step reaches the 5.5 gate, the bone name takes
+  the least halo above 0.16 (0.01 steps) up to 0.24 that reaches it, on the least levelled ground at that halo; the
+  record says `halo_exception`. Gate pair `brand_system.HALO_CAP` 0.16 / `HALO_EXCEPTION_CAP` 0.24 (no brand moves
+  either). Search order (lander decision 2026-11-16, kept as built): the SMALLEST halo first, then the least levelling
+  at it. Ruling 4 says the least halo, only where needed, and the preview panel flags halo clouds around lettering
+  (F15, S2), so less halo is the better look; every glyph still meets 5.5. Real runs: the 7 Nazca slides that failed
+  closed now draw at 5.50-5.52 (halo 0.17-0.21, levels 205; 7.24-8.11 after the 960 px re-encode); the other order
+  (least levelling first) would have drawn them at halo 0.24, levels 210-215, 5.56-5.59. Records:
+  `halo_exception_r6.json`.
+- Round 6 (Codex r5-1): ONE gate. `masthead.verify` (room, name at the gate, mark at 3:1 on the pixels it changes) is
+  passed by every masthead before anything of it is drawn, and `masthead.draw_mark` is the mark's only drawer (carousel,
+  FB, YouTube, end card, end screen; the cover and hook paths too). A palette whose GOLD vs INK or INK vs BONE is under
+  3:1 is refused by BrandConfig.
 - Known limit (round 4 note, Codex r4): for text with COMBINING marks at zero tracking Pillow's raqm draws the run
   whole while `glyph_masks` rasterises each glyph alone, so mark positioning can differ slightly (IoU of the union of
   the shaped masks with the drawn ink 0.909 on the adversary's sample). The judgement partitions the DRAWN ink by those

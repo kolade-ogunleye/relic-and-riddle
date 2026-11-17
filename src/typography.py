@@ -761,6 +761,12 @@ def full_halo_pad(halo_px) -> int:
     return math.ceil(2.425 * float(halo_px or 0)) + 4
 
 
+def _halo_step() -> float:
+    """The system's halo step (brand_system halo.step), read now."""
+    from .brand_system import tok
+    return float(tok("halo.step"))
+
+
 class TextPlate:
     """One text element planned on its background: glyph masks, the ink halo it needs and the ratio measured on
     the composed pixels. `draw(im)` composites it (also at a partial `alpha` or shifted `dy`, for animation);
@@ -825,9 +831,12 @@ class TextPlate:
         on `under`). None when neither is measurable."""
         import numpy as np
         composed = np.asarray(self._layer(base, halo).convert("RGB"))
+        # round 7 (integration: a label planned to 7.0 measured 6.99 as delivered): the worst glyph is read on the
+        # composed pixels too (`measure`'s delivered reading), so a plan never passes what the frame then fails
         vals = [ring_contrast(composed, self.glyphs, (0, 0), None, self.light, ink_fallback=self.fill),
                 glyph_contrast(np.asarray(self.under(base, halo).convert("RGB")), self.glyphs, (0, 0), self.fill,
-                               drawn=False, parts=self.glyph_parts())[0]]
+                               drawn=False, parts=self.glyph_parts())[0],
+                glyph_contrast(composed, self.glyphs, (0, 0), self.fill, drawn=True, parts=self.glyph_parts())[0]]
         vals = [v for v in vals if v is not None]
         return min(vals) if vals else None
 
@@ -904,7 +913,7 @@ class TextPlate:
         halo = min_halo if self.halo_mask is not None else 0.0
         r = self.judged(base, halo)
         while self.light and self.halo_mask is not None and r is not None and r < target and halo < max_halo:
-            halo = min(max_halo, halo + 0.08)
+            halo = min(max_halo, halo + _halo_step())   # the system's halo.step (tokens sweep #8: 0.08 was fixed)
             r = self.judged(base, halo)
         self.halo, self.contrast = round(halo, 2), r
         return self

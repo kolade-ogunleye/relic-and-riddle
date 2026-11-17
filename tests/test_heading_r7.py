@@ -266,7 +266,7 @@ def test_the_cards_display_wrap_takes_only_the_engines_forms():
         for measure in (520, 640, 760):
             lines = design_cards._wrap(text, f, measure, 3, even=True)
             if lines:
-                assert heading.valid(lines), (text, measure, lines)
+                assert heading.valid(lines, lone_ok=True), (text, measure, lines)
     assert design_cards.CHAPTER_NUMERAL_PX == {False: brand_system.TYPE["tall"]["figure"],
                                                True: brand_system.TYPE["wide"]["figure"]}
 

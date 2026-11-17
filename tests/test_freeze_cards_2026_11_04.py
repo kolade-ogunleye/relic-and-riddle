@@ -46,10 +46,11 @@ AXIS = dc.HOOK_CENTRE_X     # QF-24: the hook's plate position centres on the bo
 
 
 def refused_tall(m) -> bool:
-    """QF-24: LONGEST916 is refused on 9:16 (never drawn with a stop-word end); True when `m` is it, checked here."""
+    """QF-24: LONGEST916 is refused on 9:16 (never drawn with a stop-word end); True when `m` is it, checked here.
+    Round 7: the engine refuses the never-word ends at every size, so the refusal can read "line limit" too."""
     if m is not LONGEST916:
         return False
-    with pytest.raises(dc.CardRefused, match="stop word"):
+    with pytest.raises(dc.CardRefused, match="stop word|line limit"):
         plan_myth(m)
     return True
 GROUNDS = ("warm", "sky", "noise", "dark", "smooth", "busy")
@@ -120,7 +121,10 @@ def test_t1_myth_wrap_reserves_the_overhang():
     geo = dc._Geo(*TALL)
     f = dc.get_font("Anton", 60)
     lines = dc._myth_wrap("ALIENS BUILT THE RING FROM THE CONCENTRIC OUTER WALLS", 60, 788, 2, geo)
-    assert lines and all(dc._width(ln, f) <= 788 - 2 * math.ceil(0.06 * 60) for ln in lines)
+    # round 7 (F1): the never set is hard at every size, so at 60 px this myth may have no two-line break at all (the
+    # card's ladder then steps down); any break it has keeps the overhang and ends no line on a never word
+    assert lines is None or all(dc._width(ln, f) <= 788 - 2 * math.ceil(0.06 * 60) for ln in lines)
+    assert lines is None or not any(ln.split()[-1].lower() in dc.LINE_END_NEVER for ln in lines[:-1])
     lines = dc._myth_wrap("ANCIENT BUILDERS POURED THE OUTER WALLS OUT OF CONCRETE", 60, 788, 2, geo)
     assert lines == ["ANCIENT BUILDERS POURED", "THE OUTER WALLS OUT OF CONCRETE"]
     assert all(dc._width(ln, f) <= 788 for ln in lines)
@@ -175,7 +179,7 @@ def test_m1_long_tall_myths_on_every_ground(m, ground, photos):
     """M1: fact >= 76, myth >= 58 in <= 2 lines, source drawn, lowest ink inside the graphics foot (QF-24: 1090; 1058
     on the ads box) on every ground; LONGEST916 is refused on every ground (QF-24)."""
     if m is LONGEST916:
-        with pytest.raises(dc.CardRefused, match="stop word"):
+        with pytest.raises(dc.CardRefused, match="stop word|line limit"):
             plan_myth(m, photo=photos[ground])
         return
     plan = plan_myth(m, photo=photos[ground])
@@ -1165,12 +1169,14 @@ def test_m11_panel_foot_opens(photos, richat):
 
 @pytest.mark.parametrize("size", [TALL, WIDE])
 def test_m11_kicker_rules(size):
-    """M11 (5): the rule's foot to the label's cap top is >= 18 design px on MYTH, FACT and CHAPTER."""
-    k = 1.0 if size == TALL else _WideGrid(*size).k
+    """M11 (5), round 7 (F20: the one kicker; the rule-above retired): on MYTH, FACT and CHAPTER the lead rule stands
+    before the label (at least kicker.rule_gap caps of air) and inside its cap band (mid-cap), a flat bar."""
     for plan, names in ((plan_myth(SHORT, size), ("myth", "fact")), (chapter_plan(size), ("kicker",))):
         e = els(plan)
         for n in names:
-            assert (e[n + "_label"].box[1] - e[n + "_rule"].box[3]) / k >= 18, (n, e[n + "_label"].box)
+            rule, label = e[n + "_rule"].box, e[n + "_label"].box
+            assert rule[2] < label[0], (n, rule, label)
+            assert label[1] <= rule[1] and rule[3] <= label[3], (n, rule, label)
 
 
 # ------------------------------------------------------------------------------------------------ M12

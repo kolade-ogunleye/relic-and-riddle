@@ -407,8 +407,8 @@ def _wrap(text: str, font: Any, measure: int, max_lines: int, min_lines: int = 1
           cohesive: bool = False) -> list[str] | None:
     """`text` in balanced lines no wider than `measure` (ink), never with a qualifier, a figure's magnitude or
     its unit on another line than the figure (round 2 review 7: such a break re-wraps instead of refusing);
-    display type (`even`) only in a form the heading engine allows (src/heading.py valid: no line but the last ends
-    on a never word, no lone-word row; round 7, F1 / F18), the scores below choosing among them;
+    display type (`even`) never ends a line but the last on the heading engine's never set (src/heading.py valid,
+    round 7 F1; hard at every size) and holds a lone-word row like a hanging break (one more line first, F18);
     None when no such wrap fits `max_lines`. With `even` (display type: review 2026-11-03, "SLAVES / DRAGGED EVERY
     / ..." left one word alone on a line) the break set is always searched: the fewest lines, then no one-word line
     where the text has four words or more, then the most even widths. With `cohesive` (the myth card's fact, freeze
@@ -441,7 +441,7 @@ def _wrap(text: str, font: Any, measure: int, max_lines: int, min_lines: int = 1
             cand = [" ".join(words[i:j]) for i, j in spans]
             if _qualifier_split(cand):
                 continue
-            if even and not heading_valid(cand):   # round 7 (F1, F18): the heading engine's hard rules
+            if even and not heading_valid(cand, lone_ok=True):   # round 7 (F1): the engine's hard never-end set
                 continue
             mean = sum(ws) / len(ws)
             lone = sum(j - i == 1 or all(w.lower().strip(".,;:") in _STOP for w in words[i:j]) for i, j in spans
@@ -459,9 +459,10 @@ def _wrap(text: str, font: Any, measure: int, max_lines: int, min_lines: int = 1
             score = (stop, lone, weak, split, sum((w - mean) ** 2 for w in ws), max(ws))  # most even, then narrowest
             if best is None or score < best[0]:
                 best = (score, cand)
-        if best and (best[0][2] == 0 or not even) and best[0][0] == 0:
+        # round 7 (F18): a lone-word row is held like a hanging break: one more line is tried first ("EVIDENCE" alone)
+        if best and (best[0][2] == 0 or not even) and best[0][0] == 0 and (best[0][1] == 0 or not even):
             return fallback[1] if fallback and fallback[0][:3] <= best[0][:3] else best[1]
-        if best and (fallback is None or best[0][0] < fallback[0][0]):
+        if best and (fallback is None or best[0][:2] < fallback[0][:2]):
             fallback = best      # a hanging break: one more line is tried first
     return fallback[1] if fallback else None
 
@@ -1419,6 +1420,7 @@ def _kicker(card: _Card, name: str, label: str, x: float, rule_top: float, rule_
     thick = max(3, round(cap * _tok("kicker.rule_thick")))
     base = rule_top + drop
     top = round(base - cap / 2 - thick / 2)
+    wipe = (max(wipe[0], reveal[0]), *wipe[1:])   # the lead rule arrives with its words (one device), never before
     card.rect(f"{name}_rule", (x, top, x + bar_w, top + thick), rule_fill, ("ease", *wipe), "x")
     card.text(f"{name}_label", label, brand.TEXT_FONT, _tok("kicker.weight"), px, text_fill, x + bar_w + gap, base,
               ("ease", *reveal), "kicker", track=_tok("kicker.track") * px)

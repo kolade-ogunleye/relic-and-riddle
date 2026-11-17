@@ -632,7 +632,7 @@ def downscale_check(im: Image.Image, meta: dict) -> bool:
         cap = cap_height(p.font)
         row = {f"cap_{w}": round(cap * w / W, 1) for w in FEED_WIDTHS}
         row.update({f"contrast_{w}": (round(v, 2) if v is not None else None)
-                    for w in FEED_WIDTHS for v in [p.measure(blurred[w])]})
+                    for w in FEED_WIDTHS for v in [getattr(p, "measure_ring", p.measure)(blurred[w])]})  # tile scale: ring
         out.setdefault(name, row)
         if name in texture:
             continue

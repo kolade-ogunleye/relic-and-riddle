@@ -1795,7 +1795,7 @@ def caption_contrast(video: Path, ass_file: Path, out_dir: Path, fonts_dir: Opti
     review)."""
     import numpy as np
     from .config import FONTS_DIR
-    from .typography import ring_contrast
+    from .typography import text_contrast
     fonts_dir = fonts_dir or FONTS_DIR
     events = []
     for line in Path(ass_file).read_text(encoding="utf-8").splitlines():
@@ -1829,7 +1829,8 @@ def caption_contrast(video: Path, ass_file: Path, out_dir: Path, fonts_dir: Opti
             glyphs = (np.asarray(mi.convert("L")) > 127).astype(np.uint8) * 255
         if glyphs.sum() < 255 * 200:
             continue
-        rows.append({"t": round(t, 2), "contrast": ring_contrast(rgb, glyphs, (0, 0))})
+        # ring and glyph by glyph (libass's ink components), the ink as drawn (typography.text_contrast)
+        rows.append({"t": round(t, 2), "contrast": text_contrast(rgb, glyphs, (0, 0))})
     vals = [r["contrast"] for r in rows if r["contrast"] is not None]
     return {"samples": rows, "min": min(vals) if vals else None}
 

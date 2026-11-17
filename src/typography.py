@@ -143,12 +143,16 @@ def text_size(draw: ImageDraw.ImageDraw, text: str, font: ImageFont.FreeTypeFont
 
 
 def fit_font(draw: ImageDraw.ImageDraw, text: str, name: str, size: int, max_width: int, min_size: int) -> ImageFont.FreeTypeFont:
-    """Largest font <= size (down to min_size) at which `text` fits on one line."""
-    for s in range(size, min_size - 1, -2):
+    """Largest font <= size (down to min_size, the floor itself always tried) at which `text`'s DRAWN ink fits
+    `max_width` on one line; TextFitError when not even the floor does (measure sweep r7 #8: the floor font came
+    back regardless, and a live label drew 896 px of ink in a 546 px room, outside the Reel safe zone). A fit never
+    hands back a font that overflows its room: the caller's surface is refused (LayoutError) instead."""
+    font = None
+    for s in list(range(size, min_size - 1, -2)) + ([min_size] if (size - min_size) % 2 else []) or [min_size]:
         font = get_font(name, s)
         if text_size(draw, text, font)[0] <= max_width:
             return font
-    return get_font(name, min_size)
+    raise TextFitError(text, [text], font, max_width, 1)
 
 
 NBSP = " "
@@ -497,11 +501,66 @@ def _lin(pixels):
     return np.where(c <= 0.04045, c / 12.92, ((c + 0.055) / 1.055) ** 2.4) @ np.array([0.2126, 0.7152, 0.0722], np.float32)
 
 
-def ring_contrast(rgb, mask, origin=(0, 0), fill=None, light: bool = True) -> Optional[float]:
-    """WCAG ratio of one text element on `rgb` (H x W x 3 uint8 array): the glyphs' colour (the median of their
-    eroded interior on these pixels, or `fill`) against the 90th (light text) or 10th (dark text) percentile
-    relative luminance of the ring 2-10 px outside the glyphs. `mask`: the element's glyph mask (uint8, 0/255)
-    with its top-left at `origin`. None when the ring has too few pixels (the element is off the canvas)."""
+RING_PCT = 90       # the ring's ratio is its worst (100 - RING_PCT) % of pixels against the ink
+GLYPH_SURROUND = 4  # px: a glyph's immediate surround, 1..this outside its ink
+GLYPH_PCT = 95      # a glyph's ratio is the worst (100 - GLYPH_PCT) % of its ground: at most 5 % of it may fail
+GLYPH_MIN_PX = 8    # a glyph (all of its pieces together) with fewer ink pixels than this is not judged
+_CORE_MIN_PX = 30   # an eroded interior with more pixels than this gives the ink's drawn colour
+
+
+def _ratios(lum, lt: float):
+    """The WCAG ratio of every background luminance in `lum` against the ink luminance `lt`."""
+    import numpy as np
+    return (np.maximum(lum, lt) + 0.05) / (np.minimum(lum, lt) + 0.05)
+
+
+def _tail(lum, lt: float, pct: float) -> float:
+    """The ratio at the worse (100 - pct) % tail of `lum` against `lt`, BY THE RATIO, not by the background's
+    luminance (measure sweep r7 #3): a fill mid-way between the ground's tones fails on whichever side is nearer to
+    it, so the pixels are ranked by their ratio, whatever the fill's luminance and the ground's order. Between the two
+    pixels the percentile falls on, the luminance is interpolated when both are on one side of the fill (the same
+    value the luminance percentile gives for a ground all on one side, as before), else the ratio."""
+    import numpy as np
+    lum = np.asarray(lum, np.float64)
+    r = _ratios(lum, lt)
+    n = len(r)
+    pos = (n - 1) * (100 - pct) / 100.0
+    lo = int(np.floor(pos))
+    hi = min(lo + 1, n - 1)
+    order = np.argpartition(r, (lo, hi)) if n > 1 else np.zeros(1, int)
+    i, j, f = order[lo], order[hi], pos - lo
+    if (lum[i] >= lt) == (lum[j] >= lt):
+        mid = float(lum[i] + (lum[j] - lum[i]) * f)
+        return (max(mid, lt) + 0.05) / (min(mid, lt) + 0.05)
+    return float(r[i] + (r[j] - r[i]) * f)
+
+
+def _ink_lum(lum, mask, fill=None) -> float | None:
+    """The luminance of the ink AS DRAWN on `lum` (`mask`: its glyph mask, 0..255, the same shape): the median of the
+    eroded interior when it has more than _CORE_MIN_PX pixels, else of the fully covered pixels, else `fill`'s
+    luminance, else None. Antialiased edge pixels are blends of ink and ground, never the ink's colour, so they are
+    not read as ink (measure sweep r7 #23: the opaque core is the ink)."""
+    import cv2
+    import numpy as np
+    g = (mask > 127).astype(np.uint8)
+    inner = cv2.erode(g, np.ones((3, 3), np.uint8)) > 0
+    if int(inner.sum()) > _CORE_MIN_PX:
+        return float(np.median(lum[inner]))
+    full = mask >= 250
+    if full.any():
+        return float(np.median(lum[full]))
+    if fill is not None:
+        return rel_luminance(fill)
+    return None
+
+
+def ring_contrast(rgb, mask, origin=(0, 0), fill=None, light: bool = True, ink_fallback=None) -> float | None:
+    """WCAG ratio of one text element on `rgb` (H x W x 3 uint8 array), UNROUNDED: the glyphs' colour (`fill`, or,
+    None, the ink as drawn on these pixels, _ink_lum, with `ink_fallback` where none of it is readable) against the
+    worst (100 - RING_PCT) % of the ring 2-10 px outside the glyphs, judged by the ratio (_tail) whatever the fill's
+    luminance; `light` is kept for the callers and decides nothing. `mask`: the element's glyph mask (uint8, 0/255)
+    with its top-left at `origin`. None when the ring has too few pixels (the element is off the canvas) or no ink
+    colour is known (measure sweep r7 #9: never rel_luminance(None))."""
     import cv2
     import numpy as np
     ox, oy = int(origin[0]), int(origin[1])
@@ -513,13 +572,163 @@ def ring_contrast(rgb, mask, origin=(0, 0), fill=None, light: bool = True) -> Op
     bg = reg[ring > 0]
     if len(bg) < 50:
         return None
-    lb = float(np.percentile(_lin(bg), 90 if light else 10))
-    inner = cv2.erode(g, np.ones((3, 3), np.uint8))
-    if fill is None and inner.sum() > 30:
-        lt = float(np.median(_lin(reg[inner > 0])))
-    else:
+    if fill is not None:
         lt = rel_luminance(fill)
-    return round((max(lt, lb) + 0.05) / (min(lt, lb) + 0.05), 2)
+    else:
+        lum = np.zeros(reg.shape[:2], np.float32)
+        lum[g > 0] = _lin(reg[g > 0])        # only the ink's pixels are read (_ink_lum)
+        got = _ink_lum(lum, m, ink_fallback)
+        if got is None:
+            return None
+        lt = got
+    return _tail(_lin(bg), lt, RING_PCT)
+
+
+def glyph_parts(mask, masks=None, origin=(0, 0)):
+    """The glyphs of one text element as glyph_contrast judges them: [(cluster, ink index, surround index, core,
+    box)] in `mask`'s frame (flat indices into it; `core` the glyph's own mask values over `box` (x0, y0, x1, y1)).
+    `mask`: the element's glyph mask (uint8 0..255) with its top-left at `origin`; `masks`: font_engine.glyph_masks on
+    the canvas: the drawn ink partitioned by the SHAPING (each ink pixel to the glyph(s) whose own mask covers it at
+    least half, else to the glyph covering it most), so touching letters stay apart (round 4); None: one glyph per
+    8-connected component of the ink (text whose shaping is not known: a mask libass drew, a name drawn into a map's
+    base). All the pieces of one shaped glyph (an i's dot, a detached serif, an antialiasing speck) are judged
+    TOGETHER (measure sweep r7 #11: an 8 px speck judged alone forced a maximum treatment on the whole name); a glyph
+    of fewer than GLYPH_MIN_PX ink pixels is not judged. The surround is 1..GLYPH_SURROUND px outside the glyph,
+    every pixel any glyph's ink touches excluded."""
+    import cv2
+    import numpy as np
+    H, W = mask.shape
+    ink = mask > 127
+    touched = mask > 0
+    groups = []
+    if masks:
+        ox, oy = int(origin[0]), int(origin[1])
+        best = np.zeros((H, W), np.uint8)          # the highest coverage so far, and the glyph that has it (the
+        owner = np.zeros((H, W), np.int32)          # first on a tie, as an argmax over the glyphs would choose)
+        placed = []
+        for i, (_, (gx0, gy0, _gx1, _gy1), gmask) in enumerate(masks):
+            mm = np.asarray(gmask)
+            sx0, sy0 = gx0 - ox, gy0 - oy
+            X0, Y0, X1, Y1 = max(0, sx0), max(0, sy0), min(W, sx0 + mm.shape[1]), min(H, sy0 + mm.shape[0])
+            if X1 <= X0 or Y1 <= Y0:
+                placed.append(None)
+                continue
+            sub = mm[Y0 - sy0:Y1 - sy0, X0 - sx0:X1 - sx0]
+            more = sub > best[Y0:Y1, X0:X1]
+            best[Y0:Y1, X0:X1][more] = sub[more]
+            owner[Y0:Y1, X0:X1][more] = i
+            placed.append((X0, Y0, X1, Y1, sub > 127))
+        for i, (cluster, _box, _m) in enumerate(masks):
+            if placed[i] is not None:
+                X0, Y0, X1, Y1, own = placed[i]
+                local = ink[Y0:Y1, X0:X1] & (((owner[Y0:Y1, X0:X1] == i) & (best[Y0:Y1, X0:X1] > 0)) | own)
+                groups.append((cluster, X0, Y0, local))
+        stray = ink & (best == 0)      # ink no glyph's own raster covers: judged by its components, never dropped
+        if stray.any():
+            groups += _components(stray, -1)
+    else:
+        groups = _components(ink)
+    k = np.ones((2 * GLYPH_SURROUND + 1, 2 * GLYPH_SURROUND + 1), np.uint8)
+    out = []
+    for cluster, gx, gy, part in groups:
+        if int(part.sum()) < GLYPH_MIN_PX:
+            continue
+        ys, xs = np.nonzero(part)
+        ys, xs = ys + gy, xs + gx
+        y0, y1 = max(0, ys.min() - GLYPH_SURROUND - 1), min(H, ys.max() + GLYPH_SURROUND + 2)
+        x0, x1 = max(0, xs.min() - GLYPH_SURROUND - 1), min(W, xs.max() + GLYPH_SURROUND + 2)
+        c = np.zeros((y1 - y0, x1 - x0), bool)
+        c[ys - y0, xs - x0] = True
+        ring = (cv2.dilate(c.astype(np.uint8), k) > 0) & ~touched[y0:y1, x0:x1]
+        ry, rx = np.nonzero(ring)
+        out.append((int(cluster), ys * W + xs, (ry + y0) * W + rx + x0,
+                    np.where(c, mask[y0:y1, x0:x1], 0).astype(np.uint8), (int(x0), int(y0), int(x1), int(y1))))
+    return out
+
+
+def _components(ink, cluster=None):
+    """[(cluster, x0, y0, local mask)]: the 8-connected components of `ink`, each in its own box (`cluster`: the
+    cluster every one is given; None: its component index)."""
+    import cv2
+    import numpy as np
+    n, lab, stats, _ = cv2.connectedComponentsWithStats(ink.astype(np.uint8), connectivity=8)
+    out = []
+    for j in range(1, n):
+        x, y, w, h = (int(v) for v in stats[j, :4])
+        out.append((j - 1 if cluster is None else cluster, x, y, lab[y:y + h, x:x + w] == j))
+    return out
+
+
+def glyph_contrast(rgb, mask, origin=(0, 0), fill=None, *, drawn: bool = True, parts=None
+                   ) -> tuple[float | None, dict[str, Any]]:
+    """THE per-glyph contrast of a text element, for all text (measure sweep r7 #4: the ring 2-10 px out passed a
+    striped ground at 16.60 while the worst glyph read 4.38): (the worst glyph's ratio, UNROUNDED, or None when no
+    glyph is measurable; detail). `rgb` (H x W x 3 uint8) and `mask` (the element's glyph mask, its top-left at
+    `origin`) as ring_contrast; `parts`: glyph_parts in `mask`'s frame (the shaped glyphs; None: the ink's connected
+    components). One rule read two ways, each glyph scored at the worst (100 - GLYPH_PCT) % of its ground BY THE
+    RATIO (_tail, any fill):
+    - `drawn` False, PLANNED: `rgb` is the ground the glyphs are drawn on, with every layer the element draws under
+      them (halo, shadow, stroke). A glyph scores the lower of the fill's ratio against the ground UNDER its own ink
+      and against under-ink plus its surround (1..GLYPH_SURROUND px): no more than 5 % of a glyph's ink may sit on
+      ground that fails, whatever a feature's width, angle or offset. The fill is the ink: its opaque core is drawn
+      in exactly that colour.
+    - `drawn` True, DELIVERED: `rgb` has the text on it, so the ground under the ink is covered. A glyph scores its
+      ink AS DRAWN (_ink_lum of its own pixels: measure sweep r7 #13, the fill never stands in for the ink) against
+      its surround; `fill` only where a glyph has no readable core."""
+    import numpy as np
+    ox, oy = int(origin[0]), int(origin[1])
+    h, w = mask.shape
+    detail: dict[str, Any] = {"glyphs": 0}
+    if parts is None:
+        parts = glyph_parts(mask)
+    if not parts:
+        return None, detail
+    lum = np.full((h, w), np.nan, np.float32)
+    ry0, rx0 = max(0, oy), max(0, ox)
+    reg = rgb[ry0:max(0, oy + h), rx0:max(0, ox + w)]
+    if reg.size:
+        # the luminance only where a glyph reads it (its ink and surround: most of a plate's crop is halo room)
+        need = np.zeros(h * w, bool)
+        for _c, under_i, ring_i, _core, _box in parts:
+            need[under_i] = True
+            need[ring_i] = True
+        need = need.reshape(h, w)[ry0 - oy:ry0 - oy + reg.shape[0], rx0 - ox:rx0 - ox + reg.shape[1]]
+        view = lum[ry0 - oy:ry0 - oy + reg.shape[0], rx0 - ox:rx0 - ox + reg.shape[1]]
+        view[need] = _lin(reg[need])
+    flat = lum.reshape(-1)
+    lt_fill = rel_luminance(fill) if fill is not None else None
+    worst = None
+    for cluster, under_i, ring_i, core, (x0, y0, x1, y1) in parts:
+        under, ring = flat[under_i], flat[ring_i]
+        under, ring = under[~np.isnan(under)], ring[~np.isnan(ring)]
+        if drawn:
+            sub = lum[y0:y1, x0:x1]
+            known = ~np.isnan(sub)
+            lt = _ink_lum(np.where(known, sub, 0.0), np.where(known, core, 0), fill) if known.any() else lt_fill
+            if lt is None or len(ring) == 0:
+                continue
+            r = _tail(ring, lt, GLYPH_PCT)
+        else:
+            if lt_fill is None or len(under) == 0:
+                continue
+            r = min(_tail(under, lt_fill, GLYPH_PCT), _tail(np.concatenate([under, ring]), lt_fill, GLYPH_PCT))
+        detail["glyphs"] += 1
+        if worst is None or r < worst:
+            worst = r
+            detail.update(worst_glyph_x=int(ox + (under_i % w).min()), worst_glyph_px=len(under_i),
+                          worst_glyph_cluster=int(cluster))
+    return worst, detail
+
+
+def text_contrast(rgb, mask, origin=(0, 0), fill=None, parts=None) -> float | None:
+    """A drawn text element's ratio on the delivered pixels `rgb`, UNROUNDED: the lower of its ring (ring_contrast,
+    the ink as drawn) and its worst glyph (glyph_contrast, delivered). For an element measured without a TextPlate
+    (a mask libass drew, a name drawn into a map's base, plates joined into one figure); TextPlate.measure is this
+    with its shaped glyphs. `fill`: the drawn colour, used only where the ink has no readable core."""
+    vals = [ring_contrast(rgb, mask, origin, None, ink_fallback=fill),
+            glyph_contrast(rgb, mask, origin, fill, drawn=True, parts=parts)[0]]
+    vals = [v for v in vals if v is not None]
+    return min(vals) if vals else None
 
 
 def _draw_tracked(d: ImageDraw.ImageDraw, xy, text: str, font, fill, anchor: str = "la", track: float = 0,
@@ -565,6 +774,7 @@ class TextPlate:
         self.light = rel_luminance(self.fill) > 0.3
         self.halo, self.contrast, self.contrast_unaided, self.halo_mask = 0.0, None, None, None
         self._halo_q = round if halo_pad is not None else int    # how the halo's alpha is quantised
+        self._canvas, self._parts = tuple(size), None
         m = Image.new("L", size, 0)
         _draw_tracked(ImageDraw.Draw(m), xy, text, font, 255, anchor, track, features=self.features)
         full = m
@@ -589,9 +799,37 @@ class TextPlate:
             grown = cv2.dilate((np.asarray(self.full) > 127).astype(np.uint8) * 255, np.ones((k, k), np.uint8))
             self.halo_mask = Image.fromarray(grown).filter(ImageFilter.GaussianBlur(halo_px * 0.55))
 
-    def _layer(self, base: Image.Image, halo: float, alpha: float = 1.0) -> Image.Image:
-        """The element composed over `base` (an RGBA crop at the plate's origin)."""
-        from PIL import ImageFilter
+    def glyph_parts(self):
+        """The plate's shaped glyphs in its crop's frame (typography.glyph_parts over font_engine.glyph_masks): made
+        once per plate, so every halo trial and every re-measure of it reads the same partition."""
+        if self._parts is None:
+            from .font_engine import glyph_masks
+            masks = [] if self.empty else glyph_masks(self._canvas, self.xy, self.text, self.font, self.anchor,
+                                                      self.track, self.features)
+            self._parts = [] if self.empty else glyph_parts(self.glyphs, masks or None, self.origin)
+        return self._parts
+
+    def under(self, base: Image.Image, halo: float) -> Image.Image:
+        """What the glyphs are read against on `base` (an RGBA crop at the plate's origin): every layer the element
+        draws under its glyphs (the halo at `halo`, the shadow, the stroke, which then fills the glyphs' place too)
+        without the glyphs' own fill."""
+        return self._layer(base, halo, glyphs=False)
+
+    def judged(self, base: Image.Image, halo: float) -> float | None:
+        """The element's PLANNED ratio on `base` (an RGBA crop at the plate's origin) at `halo`, UNROUNDED: the
+        lower of its ring on the composed pixels (the ink as drawn) and its worst glyph (glyph_contrast, planned,
+        on `under`). None when neither is measurable."""
+        import numpy as np
+        composed = np.asarray(self._layer(base, halo).convert("RGB"))
+        vals = [ring_contrast(composed, self.glyphs, (0, 0), None, self.light, ink_fallback=self.fill),
+                glyph_contrast(np.asarray(self.under(base, halo).convert("RGB")), self.glyphs, (0, 0), self.fill,
+                               drawn=False, parts=self.glyph_parts())[0]]
+        vals = [v for v in vals if v is not None]
+        return min(vals) if vals else None
+
+    def _layer(self, base: Image.Image, halo: float, alpha: float = 1.0, glyphs: bool = True) -> Image.Image:
+        """The element composed over `base` (an RGBA crop at the plate's origin); `glyphs` False: without the
+        glyphs' fill (a stroke is still drawn, filling their place in its own colour)."""
         out = base
         if halo > 0 and self.halo_mask is not None:
             from .brand import INK
@@ -599,45 +837,71 @@ class TextPlate:
             q = self._halo_q
             ink.putalpha(self.halo_mask.point(lambda v: q(v * halo * alpha)))
             out = Image.alpha_composite(out, ink)
-        loc = (self.xy[0] - self.origin[0], self.xy[1] - self.origin[1])
         if self.shadow:
-            sl = Image.new("RGBA", base.size, (0, 0, 0, 0))
+            out = Image.alpha_composite(out, self._overlay("shadow", base.size, alpha))
+        if not glyphs and not self.stroke:
+            return out
+        return Image.alpha_composite(out, self._overlay("stroke" if not glyphs else "text", base.size, alpha))
+
+    def _overlay(self, kind: str, size, alpha: float) -> Image.Image:
+        """One of the element's RGBA layers over its crop ("shadow", "text", or "stroke": the stroke filling the
+        glyphs' place), the same for every halo, so it is drawn once per plate at full strength and kept."""
+        key = (kind, tuple(size), alpha)
+        cache = self.__dict__.setdefault("_overlays", {})
+        if key in cache:
+            return cache[key]
+        from PIL import ImageFilter
+        loc = (self.xy[0] - self.origin[0], self.xy[1] - self.origin[1])
+        lay = Image.new("RGBA", size, (0, 0, 0, 0))
+        if kind == "shadow":
             if self.light:
                 shadow_col = (0, 0, 0, int(180 * alpha))
                 s_dy, s_blur = 3, 4
             else:
                 shadow_col = (255, 255, 255, int(140 * alpha))
                 s_dy, s_blur = 1, 2
-            _draw_tracked(ImageDraw.Draw(sl), (loc[0], loc[1] + s_dy), self.text, self.font, shadow_col,
+            _draw_tracked(ImageDraw.Draw(lay), (loc[0], loc[1] + s_dy), self.text, self.font, shadow_col,
                           self.anchor, self.track, self.stroke, shadow_col, self.features)
-            out = Image.alpha_composite(out, sl.filter(ImageFilter.GaussianBlur(s_blur)))
-        txt = Image.new("RGBA", base.size, (0, 0, 0, 0))
-        sf = self.stroke_fill
-        if sf is not None and len(sf) == 3:
-            sf = tuple(sf) + (255,)
-        _draw_tracked(ImageDraw.Draw(txt), loc, self.text, self.font, self.fill + (255,), self.anchor, self.track,
-                      self.stroke, sf, self.features)
-        if alpha < 1.0:
-            txt.putalpha(txt.getchannel("A").point(lambda v: int(v * alpha)))
-        return Image.alpha_composite(out, txt)
+            lay = lay.filter(ImageFilter.GaussianBlur(s_blur))
+        else:
+            sf = self.stroke_fill
+            if sf is not None and len(sf) == 3:
+                sf = tuple(sf) + (255,)
+            if kind == "stroke":
+                sf = sf if sf is not None else self.fill + (255,)
+                _draw_tracked(ImageDraw.Draw(lay), loc, self.text, self.font, sf, self.anchor, self.track,
+                              self.stroke, sf, self.features)
+            else:
+                _draw_tracked(ImageDraw.Draw(lay), loc, self.text, self.font, self.fill + (255,), self.anchor,
+                              self.track, self.stroke, sf, self.features)
+            if alpha < 1.0:
+                lay.putalpha(lay.getchannel("A").point(lambda v: int(v * alpha)))
+        if alpha == 1.0:
+            cache[key] = lay
+        return lay
 
     def _crop(self, im: Image.Image, dy: int = 0) -> Image.Image:
         h, w = self.glyphs.shape
         return im.convert("RGBA").crop((self.origin[0], self.origin[1] + dy, self.origin[0] + w, self.origin[1] + dy + h))
 
     def solve(self, im: Image.Image, target: float, min_halo: float = 0.0, max_halo: float = 0.95) -> "TextPlate":
-        """The least halo (in 8% steps from `min_halo`) at which the composed element measures `target`."""
+        """The least halo (in 8% steps from `min_halo`) at which the element, judged ring AND glyph by glyph
+        (`judged`: measure sweep r7 #4), measures `target`. `contrast` is that ratio UNROUNDED (a record may round
+        it for display); `contrast_unaided` the same judgement on the bare ground, the fill as the ink."""
         import numpy as np
         if self.empty:
             return self
         base = self._crop(im)
-        self.contrast_unaided = ring_contrast(np.asarray(base.convert("RGB")), self.glyphs, (0, 0), self.fill, self.light)
+        rgb = np.asarray(base.convert("RGB"))
+        unaided = [ring_contrast(rgb, self.glyphs, (0, 0), self.fill, self.light),
+                   glyph_contrast(rgb, self.glyphs, (0, 0), self.fill, drawn=False, parts=self.glyph_parts())[0]]
+        unaided = [v for v in unaided if v is not None]
+        self.contrast_unaided = min(unaided) if unaided else None
         halo = min_halo if self.halo_mask is not None else 0.0
-        r = ring_contrast(np.asarray(self._layer(base, halo).convert("RGB")), self.glyphs, (0, 0),
-                          None if self.light else self.fill, self.light)
+        r = self.judged(base, halo)
         while self.light and self.halo_mask is not None and r is not None and r < target and halo < max_halo:
             halo = min(max_halo, halo + 0.08)
-            r = ring_contrast(np.asarray(self._layer(base, halo).convert("RGB")), self.glyphs, (0, 0), None, True)
+            r = self.judged(base, halo)
         self.halo, self.contrast = round(halo, 2), r
         return self
 
@@ -666,12 +930,24 @@ class TextPlate:
         return rgba if mode == "RGBA" else rgba.convert(mode)
 
     def measure(self, im: Image.Image) -> Optional[float]:
-        """The element's ratio on the delivered pixels `im` (the same ring, the glyph colour as it came out)."""
+        """The element's ratio on the delivered pixels `im`, UNROUNDED (text_contrast with the plate's shaped glyphs):
+        the lower of the same ring and the worst glyph against its surround, the ink as it came out (measure sweep
+        r7 #13: never the intended fill in its place; the fill only where a glyph has no readable core)."""
         import numpy as np
         if self.empty:
             return None
-        return ring_contrast(np.asarray(im.convert("RGB")), self.glyphs, self.origin, None if self.light else self.fill,
-                             self.light)
+        return text_contrast(np.asarray(im.convert("RGB")), self.glyphs, self.origin, self.fill, self.glyph_parts())
+
+    def measure_ring(self, im: Image.Image) -> float | None:
+        """The element's ring alone on `im`, UNROUNDED: ONLY for a tile read at a thumbnail's scale and blown back up
+        (the profile grid at 124 px, the YouTube feed at 168 px), where a glyph's stroke and its 1..GLYPH_SURROUND px
+        surround fall inside one tile pixel and the per-glyph reading has no ink or ground of its own to read; the
+        full-size pixels are judged glyph by glyph (measure, solve)."""
+        import numpy as np
+        if self.empty:
+            return None
+        return ring_contrast(np.asarray(im.convert("RGB")), self.glyphs, self.origin, None, self.light,
+                             ink_fallback=self.fill)
 
     def record(self) -> Dict[str, Any]:
         """What the still's layout keeps about this element."""

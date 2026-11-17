@@ -562,18 +562,24 @@ def _ratio(im: Image.Image, parts: Sequence[Any], cut: Sequence[tuple[int, int]]
     ring = _dilate(full, 21) & ~_dilate(full, 5) & keep[:, None]
     if ring.sum() < 50:
         return None
-    lb = float(np.percentile(_lin(rgb[ring]), 90))
+    from .typography import RING_PCT, _tail, glyph_contrast, rel_luminance
+    bg = _lin(rgb[ring])
+    full_rgb = None if cut else np.asarray(im.convert("RGB"))
     worst = None
     for p, m in zip(parts, masks):
         inner = _erode3(m) & keep[:, None]
         if inner.sum() > 30:
             lt = float(np.median(_lin(rgb[inner])))
         else:
-            from .typography import rel_luminance
             lt = rel_luminance(p.fill)
-        r = (max(lt, lb) + 0.05) / (min(lt, lb) + 0.05)
+        r = _tail(bg, lt, RING_PCT)      # the worse tail by the ratio, any fill (measure sweep r7 #3)
+        if full_rgb is not None and hasattr(p, "glyph_parts"):
+            # glyph by glyph too, the ink as drawn (typography.glyph_contrast: measure sweep r7 #4); a struck line's
+            # strike band (`cut`) crosses its glyphs, so it is judged by the ring alone
+            g = glyph_contrast(full_rgb, p.glyphs, p.origin, p.fill, drawn=True, parts=p.glyph_parts())[0]
+            r = r if g is None else min(r, g)
         worst = r if worst is None else min(worst, r)
-    return round(worst, 2) if worst is not None else None
+    return worst                         # unrounded: a gate decides on it; a record may round it for display
 
 
 class _LinePlate:

@@ -38,9 +38,11 @@ def _ratio(a, b):
 
 
 def _independent_glyph_min(ground, plate) -> float:
-    """This file's own per-glyph check, written apart from src/masthead.py: for every 8-connected ink component, the
-    fill against the 95th (light text) / 5th (dark text) percentile of the ground under the component's ink, and of
-    that ground plus a 1-4 px surround with no other ink; the worst over glyphs."""
+    """This file's own per-glyph check, written apart from src/masthead.py: for every glyph (the ink of one 8-connected
+    piece of the drawn COVERAGE, so a letter's antialiased tail joined to it only through partly covered pixels is
+    judged with its letter: lane MEASURE r7, sweep #11), the fill against the 95th (light text) / 5th (dark text)
+    percentile of the ground under the glyph's ink, and of that ground plus a 1-4 px surround with no other ink; the
+    worst over glyphs."""
     under = np.asarray(plate.draw_halo(ground.convert("RGB")) if plate.halo > 0 else ground.convert("RGB"))
     ox, oy = plate.origin
     h, w = plate.glyphs.shape
@@ -48,11 +50,11 @@ def _independent_glyph_min(ground, plate) -> float:
     ink = plate.glyphs > 127
     lum = _lin(reg.reshape(-1, 3)).reshape(reg.shape[:2])
     lt = _lin(np.array(plate.fill[:3]))
-    n, lab = cv2.connectedComponents(ink.astype(np.uint8), connectivity=8)
+    n, lab = cv2.connectedComponents((plate.glyphs > 0).astype(np.uint8), connectivity=8)
     worst = math.inf
     pct = 95 if plate.light else 5
     for i in range(1, n):
-        comp = lab == i
+        comp = (lab == i) & ink
         if comp.sum() < 8:
             continue
         ring = cv2.dilate(comp.astype(np.uint8), np.ones((9, 9), np.uint8)).astype(bool) & ~ink

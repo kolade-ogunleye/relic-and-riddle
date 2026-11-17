@@ -1742,14 +1742,12 @@ class _MaskPlate:
     def measure(self, im: Image.Image) -> float | None:
         import numpy as np
 
-        from .typography import ring_contrast
+        from .typography import text_contrast
         if self.empty:
             return None
-        rgb = np.asarray(im.convert("RGB"))
-        try:
-            return ring_contrast(rgb, self.glyphs, self.origin, None, True)
-        except TypeError:          # too thin to read its own interior: its drawn colour
-            return ring_contrast(rgb, self.glyphs, self.origin, self.fill, True)
+        # ring and glyph by glyph (its ink components: no shaping is known for a name drawn into the base), the ink as
+        # drawn, its colour only where a glyph is too thin to read its own (typography.text_contrast)
+        return text_contrast(np.asarray(im.convert("RGB")), self.glyphs, self.origin, self.fill)
 
 
 def _base_name_plates(labels: list[dict[str, Any]], rest: Image.Image, final_view, width: int,
@@ -4196,14 +4194,7 @@ class _ThinPlate(TextPlate):
     """A TextPlate whose glyphs are too thin to read their own colour: measured against the drawn colour."""
 
     def measure(self, im: Image.Image) -> float | None:
-        import numpy as np
-
-        from .typography import ring_contrast
-        try:
-            return super().measure(im)
-        except TypeError:
-            got: float | None = ring_contrast(np.asarray(im.convert("RGB")), self.glyphs, self.origin, self.fill, True)
-            return got
+        return super().measure(im)     # TextPlate.measure reads a thin glyph's drawn colour itself (sweep r7 #9)
 
 
 def _plan_thin(rest: Image.Image, xy: tuple[float, float], text: str, font: FreeTypeFont, fill: tuple[int, int, int],
@@ -4215,10 +4206,7 @@ def _plan_thin(rest: Image.Image, xy: tuple[float, float], text: str, font: Free
     try:
         return plan_text(rest, xy, text, font, fill, anchor, track=track, halo_px=halo_px, min_halo=min_halo)
     except TypeError:
-        import numpy as np
-
         from .brand import INK, PLACE_TARGET
-        from .typography import ring_contrast
         if halo_px is None:
             halo_px = int(min(31, max(21, font.size // 3)))
         plate = _ThinPlate(drawable(text, font), font, fill, xy, anchor, track, 0, INK, halo_px, False, rest.size)
@@ -4226,11 +4214,10 @@ def _plan_thin(rest: Image.Image, xy: tuple[float, float], text: str, font: Free
             return plate
         crop = plate._crop(rest)
         halo = min_halo
-        r = ring_contrast(np.asarray(plate._layer(crop, halo).convert("RGB")), plate.glyphs, (0, 0), plate.fill, True)
+        r = plate.judged(crop, halo)      # the one judgement: ring and glyph by glyph (typography.TextPlate)
         while r is not None and r < PLACE_TARGET and halo < 0.95:
             halo = min(0.95, halo + 0.08)
-            r = ring_contrast(np.asarray(plate._layer(crop, halo).convert("RGB")), plate.glyphs, (0, 0), plate.fill,
-                              True)
+            r = plate.judged(crop, halo)
         plate.halo, plate.contrast = round(halo, 2), r
         return plate
 
@@ -9455,11 +9442,11 @@ class _JoinedPlate:
     def measure(self, im: Image.Image) -> float | None:
         import numpy as np
 
-        from .typography import ring_contrast
+        from .typography import text_contrast
         if self.empty:
             return None
-        return ring_contrast(np.asarray(im.convert("RGB")), self.glyphs, self.origin, None if self.light else self.fill,
-                             self.light)
+        # the joined digits' ring and each digit (an ink component of the union) glyph by glyph, the ink as drawn
+        return text_contrast(np.asarray(im.convert("RGB")), self.glyphs, self.origin, self.fill)
 
 
 FIGURE_SETTLE = 0.8         # s: round 4, a number card's figure fades up and settles from 103 % (no count-up)

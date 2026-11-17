@@ -62,6 +62,15 @@ jobs:
           mkdir "$RUNNER_TEMP/ffmpeg"
           tar -xJf "$RUNNER_TEMP/ffmpeg.tar.xz" -C "$RUNNER_TEMP/ffmpeg" --strip-components=2 --wildcards '*/bin/ffmpeg' '*/bin/ffprobe'
           echo "$RUNNER_TEMP/ffmpeg" >> "$GITHUB_PATH"
+      - name: YuNet face model (opencv_zoo, MIT, docs/sources.md; SHA-256 verified)
+        # the pipeline's face model (tools/ is gitignored): the critic's and the privacy blur's face tests run on it
+        # in CI instead of skipping (QF-136); pinned to an opencv_zoo commit, and the hash is checked
+        run: |
+          set -euo pipefail
+          mkdir -p tools
+          curl -fsSL --retry 3 --proto '=https' --tlsv1.2 -o tools/yunet.onnx \
+            "https://media.githubusercontent.com/media/opencv/opencv_zoo/f12e12798e8314f7c074a6656816c048dcc95b7a/models/face_detection_yunet/face_detection_yunet_2023mar.onnx"
+          echo "8f2383e4dd3cfbb4553ea8718107fc0423210dc964f9f4280604804ed2552fa4  tools/yunet.onnx" | sha256sum --check --strict
       - name: ffmpeg is the 8.1 release with every filter, encoder and format src/ uses
         run: |
           echo "ffmpeg: $(command -v ffmpeg), ffprobe: $(command -v ffprobe)"

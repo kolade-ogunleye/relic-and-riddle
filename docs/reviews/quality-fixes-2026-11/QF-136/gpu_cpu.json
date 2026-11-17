@@ -1,0 +1,28 @@
+{
+ "cpu": {
+  "device": "CPUExecutionProvider",
+  "face_frames": 10,
+  "face_seconds": 0.759,
+  "memory_peak_mb": {
+   "main": 824.5,
+   "sum": 824.5,
+   "workers": []
+  },
+  "seconds": 1195.73
+ },
+ "faces_found": 11,
+ "frames": 10,
+ "gpu": {
+  "device": "DmlExecutionProvider",
+  "face_frames": 10,
+  "face_seconds": 12.92,
+  "memory_peak_mb": {
+   "main": 1259.0,
+   "sum": 1259.0,
+   "workers": []
+  },
+  "seconds": 1224.93
+ },
+ "report_bytes_identical": true,
+ "set": "the 10 planted face_overlap frames (real faces from real run photos under fields)"
+}

@@ -114,6 +114,16 @@ https://ai.google.dev/gemini-api/docs/pricing
   (U.S. National Park Service); Elizabeth Tower ("Big Ben") 96 m / 316 ft (UK Parliament); Great
   Pyramid of Giza about 138.5 m / 454 ft today.
 
+## Local model files (checked 2026-11-15, QF-136)
+The visual critic (src/visual_critic.py) adds no model: it reuses the pipeline's face model, and its text checks
+shape the bundled fonts (fonts/, licences in fonts/licenses) with Pillow's raqm layout.
+- YuNet face detector, `tools/yunet.onnx` (privacy blur, visual critic): opencv_zoo
+  `models/face_detection_yunet/face_detection_yunet_2023mar.onnx`
+  (https://github.com/opencv/opencv_zoo/tree/main/models/face_detection_yunet), MIT License ("Copyright (c) 2020
+  Shiqi Yu", the folder's LICENSE file). sha256 `8f2383e4dd3cfbb4553ea8718107fc0423210dc964f9f4280604804ed2552fa4`,
+  232,589 bytes: the same oid and size as the repository's Git LFS pointer for that file (read 2026-11-15). The
+  file is not committed (tools/ is gitignored); tests that need it say so and skip where it is absent.
+
 ## AI motion APIs (src/motion.py)
 - Veo 3.1 (retired 2026-10-20, see above) (https://ai.google.dev/gemini-api/docs/veo): `POST .../v1beta/models/<model>:predictLongRunning`
   with `x-goog-api-key`; poll `GET .../v1beta/<operation>` until `done`; video at

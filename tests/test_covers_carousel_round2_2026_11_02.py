@@ -184,7 +184,9 @@ def test_content_slides_share_their_kicker_and_heading_baselines(photos, tmp_pat
     kicker_feet, heading_feet = set(), set()
     for rec in content:
         kicker_feet.add(_box(rec, "kicker")[3])
-    assert max(kicker_feet) - min(kicker_feet) <= 2     # the kicker's foot (its baseline) on one line
+    # round 7 (F3, the band): the heading's LAST baseline is shared and the body hangs from it, so the kicker and the
+    # heading's top take one position per heading line count (one-line and two-line slides), never more
+    assert len({round(f / 3) for f in kicker_feet}) <= 2
     # the heading's baseline: from each content slide drawn again from its recipe
     for i, p in enumerate(slides[1:-1], 1):
         rec = still_layout.load(p)
@@ -193,10 +195,10 @@ def test_content_slides_share_their_kicker_and_heading_baselines(photos, tmp_pat
         _, lay = gen._render_carousel_slide(rec["recipe"]["archetype"], Path(rec["recipe"]["photo"]),
                                              Path(rec["recipe"]["photo_next"]), rec["recipe"]["card"], i, len(slides),
                                              {}, "", facebook, subject=rec["recipe"]["subject"])
-        heading_feet.add(lay.meta["baselines"]["heading"])
+        heading_feet.add(lay.meta["baselines"]["heading_last"])
         first = lay.plates["heading"][0]
         assert round(first.xy[1]) == lay.meta["baselines"]["heading"]
-    assert len(heading_feet) == 1
+    assert len(heading_feet) == 1                       # round 7: the last heading baseline (the band's line) shared
 
 
 def test_body_lines_are_34_px_or_more_hold_34_characters_and_end_on_more_than_one_word(photos, tmp_path) -> None:

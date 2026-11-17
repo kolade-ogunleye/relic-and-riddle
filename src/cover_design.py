@@ -377,6 +377,7 @@ def _paint(im, rows, x, top, centered, lay):
     plates = {}
     line_top = top
     for row in rows:
+        next_top = top
         if row.get("same_line"):   # round 7: a run of the line above it (a lockup line set in two colours)
             top = line_top
         line_top = top
@@ -411,8 +412,7 @@ def _paint(im, rows, x, top, centered, lay):
             im, plate = place_text(im, xy, row["text"], row["font"], row["fill"], anchor=anchor, target=5.1,
                                    track=row.get("track", 0), halo_px=0 if row.get("tab") else None)
             plates.setdefault(row["name"], []).append(plate)
-        if not row.get("same_line"):
-            top += row["height"] + row["gap"]
+        top = next_top if row.get("same_line") else top + row["height"] + row["gap"]
     for name, ps in plates.items():
         record_contrast(lay, name, ps)
     if lay is not None:

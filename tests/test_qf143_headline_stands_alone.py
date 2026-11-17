@@ -23,13 +23,26 @@ def _photo() -> Image.Image:
     return Image.new("RGB", (1600, 1200), (196, 168, 122))
 
 
+def _lines(plates, names) -> list[str]:
+    """Round 7: a headline line in two colour runs (the payoff gold) is several plates on one baseline: joined."""
+    out: list = []
+    for n, p in plates:
+        if n not in names:
+            continue
+        if out and out[-1][0] == n and abs(out[-1][1] - p.xy[1]) < 1:
+            out[-1] = (n, out[-1][1], out[-1][2] + " " + p.text)
+        else:
+            out.append((n, p.xy[1], p.text))
+    return [t for _, _, t in out]
+
+
 def _headline(plates) -> list[str]:
-    return [p.text for n, p in plates if n in HEADLINE]
+    return _lines(plates, HEADLINE)
 
 
 def _check(copy: dict, plates, meta: dict) -> None:
     lines = _headline(plates)
-    drawn = [p.text for n, p in plates if n in HEADLINE + ("kicker",)]
+    drawn = _lines(plates, HEADLINE + ("kicker",))
     if not lines:
         assert meta.get("headline_dropped"), "no headline drawn and none recorded"
         return
@@ -115,7 +128,10 @@ def test_a_whole_authored_line_stands_alone_when_it_reads_whole(line, stands) ->
             "tagline": "NO ONE KNOWS"}
     meta: dict = {}
     _, plates = youtube_thumbnail.render(_photo(), copy, meta=meta)
-    texts = {n: p.text.replace("’", "'") for n, p in plates}
+    texts = {}
+    for n in {n for n, _ in plates}:
+        joined = _lines(plates, (n,))
+        texts[n] = (joined[0] if joined else "").replace("’", "'")
     if stands:
         assert texts.get("title_1") == line, f"{line!r} is a whole line and must be drawn"
         assert texts.get("kicker") == "STONE PUZZLE"   # the kicker over it is kept

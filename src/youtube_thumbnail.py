@@ -282,12 +282,13 @@ def _low_contrast(meta: dict) -> list:
 def _lockup(measure, l1: str, l2: str, width: float):
     """The headline lockup (round 7, F1 / F21): ([(element name, [(dx, text, colour)]) per drawn line], line-1
     font, line-2 font, record). One size for the lockup's lines (lockup.line_ratio: line 2 over line 1); the wide
-    display_xl ladder; each field one line, else the engine's break; one field alone is a lockup whose payoff run (the
-    engine's seam) is gold. Below the ladder (a recorded last resort) the old 4 px steps to 96."""
+    display_xl ladder; each field whole on one line (QF-143); line 2 gold but its opening function words; one field
+    alone is a lockup whose payoff run (the engine's seam) is gold. Below the ladder (a recorded last resort) the old
+    4 px steps to 96."""
     from .brand_system import TYPE, TYPE_FALLBACK, tok
-    from .heading import GOLD_ROLES, field_runs, lockup_fields, set_field, set_heading
-    if l1 and l2:
-        l1, l2, _ = lockup_fields(l1, l2)
+    from .heading import GOLD_ROLES, field_runs, set_field, set_heading
+    # QF-23 / QF-143 (operator decisions): each headline line is a whole verified line drawn as written, one line a
+    # field: the engine gives the lockup its ladder and its accent here, never a re-break or a moved word
     ratio = tok("lockup.line_ratio")
 
     def width_at(t, sz):
@@ -307,10 +308,10 @@ def _lockup(measure, l1: str, l2: str, width: float):
             if not text:
                 continue
             if not (l1 and l2):
-                form = set_heading(text, width_at, width, (sz,), lockup=True)
+                form = set_heading(text, width_at, width, (sz,), max_lines=1, lockup=True)
                 line_runs = form.runs() if form else None
             else:
-                form = set_field(text, width_at, width, sz)
+                form = set_field(text, width_at, width, sz, max_lines=1)
                 line_runs = field_runs(text, form.cuts, gold) if form else None
             if line_runs is None:
                 return None

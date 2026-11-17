@@ -243,8 +243,11 @@ def test_the_youtube_lockup_sits_on_the_wide_ladder_with_the_payoff_gold():
     assert rec["tier"] in (0, 1) or rec.get("off_ladder")          # below the ladder only as a recorded last resort
     gold = [t for _, runs in rows for _, t, c in runs if tuple(c) == tuple(brand.GOLD)]
     assert gold == ["WEAPON"]                                      # the payoff, on one line (F5)
-    rows, f1, f2, rec = youtube_thumbnail._lockup(_D, "THE EYE OF", "THE SAHARA", 900)
-    assert [" ".join(t for _, t, _ in runs) for _, runs in rows] == ["THE EYE", "OF THE SAHARA"]
+    # QF-23 / QF-143 (operator decisions): YouTube draws each verified line whole, as written; the payoff line gold
+    # but for its opening function words
+    rows, f1, f2, rec = youtube_thumbnail._lockup(_D, "BEHIND ONE WALL", "A FORGOTTEN CITY", 900)
+    assert [" ".join(t for _, t, _ in runs) for _, runs in rows] == ["BEHIND ONE WALL", "A FORGOTTEN CITY"]
+    assert [t for _, t, c in rows[1][1] if tuple(c) == tuple(brand.GOLD)] == ["FORGOTTEN CITY"]
     assert f2.size == round(f1.size * brand_system.tok("lockup.line_ratio"))
 
 

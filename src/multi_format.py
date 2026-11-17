@@ -866,7 +866,10 @@ class MultiFormatGenerator:
                     continue
                 form = set_field(text, lambda t, sz: d.textlength(t, font=get_font(brand.DISPLAY_FONT, sz)),
                                  STORY_TITLE_W if wrap else 10 ** 6, size, max_lines=2 if wrap else 1)
-                if form is None:   # no valid break at this size: the field on one line (fits() then refuses it)
+                if form is None and wrap:   # the break gives way before the size (a lone row, recorded), never under
+                    form = set_heading(text, lambda t, sz: d.textlength(t, font=get_font(brand.DISPLAY_FONT, sz)),
+                                       STORY_TITLE_W, (size,), max_lines=1, locked_lines=2, balance_min=0.0)
+                if form is None:   # no break at this size: the field on one line (fits() then refuses it)
                     form = Form(tuple(text.split()), (), size, 0)
                 for line_runs in field_runs(text, form.cuts, gold):
                     y += cap_height(f) if not out else round(cap_height(f) * 1.13)

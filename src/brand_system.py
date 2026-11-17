@@ -70,9 +70,28 @@ Kicker (KICKER): text face 800, tracked 0.15 em capitals, GOLD, led by a flat go
 height, 0.55 cap from the words; one gap to the heading per canvas. THEN / NOW over a year are data labels (data
 face), not kickers.
 
-Figures (FIGURE): a stated quantity in the display face, gold; ruler, axis and index figures, units and credits in
-the data face (tabular lining figures); a range's en dash centred within 0.03 em of the figures' centre with at
-least 0.06 em of ink gap each side; a ruler's zero sits on its datum.
+Figures (FIGURE; operator ruling 3, 2026-11-16): a stated quantity ("144 FT", "1963", "25 MILES", a number card's
+"36", a scale's "327 M") is set in the figure face tok("figure.face") (the display face) in tok("figure.colour")
+(GOLD), and stays gold at rest: a figure that steps back for the next one dims its words, never its figure. Its
+conversion ("1,073 FT" under "ABOUT 327 M DEEP") is a stated quantity too: the same face and colour, at most
+tok("figure.conversion") of the lead figure's size and never larger than the line it sits with. The data face sets
+only ruler, axis and index figures, units and dimensions on a drawing, credits and the reconstruction badge
+(tabular lining figures). A drawing's number and its unit are joined by tok("data.unit_gap") em of ink gap, never
+the mono face's whole word space ("0 FT" read as two words). A range's en dash centred within 0.03 em of the
+figures' centre with at least 0.06 em of ink gap each side. The unit lead is the signed fact's own unit: a metre
+fact leads in metres (figure, ruler, dimensions, meaning), the other unit is its conversion. Zero datum (truth):
+every ruler or axis label is centred on its tick, a zero label on its datum (the ground or surface line) within
+GATES["figure.zero_tol"] of its cap height, and the datum line yields round the label (it never runs through it).
+
+Place labels (PLACE): a site's name on a map and a stop's name on a route are one role: the label face (FACE
+"label", the text face) at tok("place.weight"), tok("place.px") per canvas design px (one fallback ladder to the
+canvas floor), a halo of one spread tok("place.halo_px") never deeper than tok("place.halo_max") (0.16, the system
+halo cap); where bone cannot reach the text gate within that cap the label takes the light-ground INK variant, and
+where neither does (a flat mid-grey band, about 115-123 luma) bone takes the least halo up to HALO_EXCEPTION_CAP
+(0.24, ruling 4's pattern) that reaches the gate: the gate outranks the cap (logged).
+
+Label floor (TYPE_FLOOR, label_floor_px): on 9:16 no graphic label is drawn under TYPE_FLOOR["tall"]["label"]
+(27 px on 1080 wide, about a 20 px cap: 10 pt on a phone).
 
 Motion (MOTION, ease): ease_out = cubic ease-out (an element arriving), ease_in_out = smoothstep / the Hermite
 family (a camera or a field moving between rests), ease_out_back (a callout's pop, 8 % overshoot), linear (a
@@ -114,6 +133,9 @@ GATES: Mapping[str, Any] = MappingProxyType({
     # ---- headings (rulings)
     "heading.story_one_line_floor": 106,   # round 4 (2): Story one-line-a-field floor, px
     "heading.story_floor": 120,            # round 3 (3)(1): else
+    # ---- figures (truth): a zero label's ink centre is within this share of its cap height of its datum (and
+    # 2 px): the panel's 28 px read as 78 ft on a 36 px-per-100-ft ruler (cycle 0 preview panel F11, RUBRIC S1)
+    "figure.zero_tol": 0.12,
     # ---- captions
     "motion.caption_cps": 17.0,       # captions shown at most this many characters per second (config.CAPTION_MAX_CPS)
 })
@@ -148,6 +170,16 @@ SYSTEM_TOKENS: Mapping[str, Any] = MappingProxyType({
     # ---- motion
     "motion.back": 1.5,               # ease_out_back's constant (8 % overshoot): a callout's pop
     "motion.rise_s": 8,               # px a kicker rises while it enters (the end screen's WATCH NEXT)
+    # ---- figures (operator ruling 3, 2026-11-16): a stated quantity's face and colour, and its conversion's size
+    "figure.face": "display",         # a brand font role
+    "figure.colour": "GOLD",          # a palette role
+    "figure.conversion": 0.5,         # the conversion's px, at most this share of its lead figure's
+    "data.unit_gap": 0.2,             # em: the ink gap joining a drawing's number to its unit (the mono space is 0.6)
+    # ---- place labels: a map's site name and a route's stop names (one role)
+    "place.weight": 800,
+    "place.px": 34,                   # design px (1080 wide on 9:16, 1920 on 16:9), stepping down to the canvas floor
+    "place.halo_px": 21,              # the halo's one spread, px (21: it reaches the 10 px ring it is measured on)
+    "place.halo_max": 0.16,           # the system halo cap: never deeper (a brand may set it lower, never higher)
 })
 
 # The range a brand may set each numeric runtime token to (BrandConfig refuses a value outside it), so "any value the
@@ -167,6 +199,12 @@ TOKEN_RANGES: Mapping[str, tuple[float, float]] = MappingProxyType({
     "kicker.rule_thick": (0.08, 0.50),    # caps
     "motion.back": (0.0, 4.0),
     "motion.rise_s": (0, 40),             # px
+    "figure.conversion": (0.3, 1.0),
+    "data.unit_gap": (0.0, 0.6),          # em
+    "place.weight": (400, 900),
+    "place.px": (27, 48),                 # never under the 9:16 label floor
+    "place.halo_px": (8, 31),
+    "place.halo_max": (0.0, 0.16),        # the system halo cap
 })
 
 # Joint limits where two tokens interact (round 5: the edge at its maximum on the mark at its minimum radius left no gold
@@ -331,6 +369,7 @@ SIZE_SITES: Mapping[str, str] = MappingProxyType({
     "graphics:_probe_tracked": "A",
     "graphics:_render_cross_section": "A",
     "graphics:_render_cross_section.build": "A",
+    "graphics:_render_cross_section.f_conv": "A",
     "graphics:_render_map": "A",
     "graphics:_render_scale_vertical": "A",
     "graphics:_render_scale_wide": "A",
@@ -350,10 +389,13 @@ SIZE_SITES: Mapping[str, str] = MappingProxyType({
     "graphics:country_outside_place": "A",
     "graphics:country_plate": "A",
     "graphics:country_spot": "A",
+    "graphics:data_font": "system",     # cycle 0 round 7: the data, figure and place roles' fonts
+    "graphics:figure_font": "system",
     "graphics:label_plates_for": "A",
     "graphics:marker_label_lines": "A",
     "graphics:neighbour_font": "A",
     "graphics:neighbour_plates": "A",
+    "graphics:place_font": "system",
     "graphics:relief_base": "A",
     "graphics:render_route": "A",
     "graphics:render_route.name_places": "A",
@@ -439,6 +481,13 @@ def canvas_of(width: int, height: int) -> str:
     if width > height:
         return "wide"
     return "tall" if height / width > 1.5 else "carousel"
+
+
+def label_floor_px(width: int, height: int, role: str = "label") -> float:
+    """The feed-size floor (TYPE_FLOOR) of `role` on a frame `width` x `height`, scaled from its canvas class's width
+    (27 px on a 1080 x 1920 frame, 13.5 on a 540 x 960 test frame)."""
+    canvas = canvas_of(width, height)
+    return TYPE_FLOOR[canvas][role] * width / CANVASES[canvas][0]
 
 
 def scaled(px_at_1080: float, width: int) -> float:

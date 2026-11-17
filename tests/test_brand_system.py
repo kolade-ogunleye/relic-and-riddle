@@ -301,6 +301,25 @@ def _end_screen_rise():
     return end_card.kicker_rise(0.25)
 
 
+def _graphics():
+    from src import graphics
+    return graphics
+
+
+def _ruler_zero_box():
+    # cycle 0 round 7 (F25): a ruler's "0 FT" as graphics.ruler_label sets it (number and unit joined)
+    g = _graphics()
+    return g.ruler_label(Image.new("RGB", (600, 200), (14, 18, 24)), 400, 100, "0 FT", g.data_font(34),
+                         brand.STONE_LT).box
+
+
+def _place_plate(ground=(108, 108, 108)):
+    # cycle 0 round 7 (F14): a place label on a mid ground that needs a halo (its fill, halo and crop)
+    g = _graphics()
+    p = g.place_plate(Image.new("RGB", (900, 300), ground), (100, 150), "CATHERINE PALACE", g.place_font(34), "ls")
+    return p.fill, p.halo, p.glyphs.shape
+
+
 TOKEN_PROBES = {   # token -> (an override value, a probe of the renderer that reads it)
     "halo.step": (0.05, lambda: _masthead_pixels()[1]),
     "plate.shade": ("CORAL", lambda: _masthead_pixels()[0]),
@@ -320,6 +339,15 @@ TOKEN_PROBES = {   # token -> (an override value, a probe of the renderer that r
     "kicker.colour": ("TEAL", _carousel_kicker_pixels),
     "motion.back": (4.0, _callout_ease),
     "motion.rise_s": (20, _end_screen_rise),
+    # cycle 0 round 7 (lane TRUTH): figures, the unit joiner and the place-label role
+    "figure.face": ("data", lambda: _graphics().figure_font(40).getname()),
+    "figure.colour": ("TEAL", lambda: _graphics().figure_fill()),
+    "figure.conversion": (0.3, lambda: _graphics().conversion_px(76)),
+    "data.unit_gap": (0.5, _ruler_zero_box),
+    "place.weight": (500, lambda: _graphics().place_font(34).getlength("CATHERINE PALACE")),
+    "place.px": (40, lambda: _graphics().place_steps(1080, 1920)),
+    "place.halo_px": (12, _place_plate),
+    "place.halo_max": (0.08, _place_plate),
 }
 
 

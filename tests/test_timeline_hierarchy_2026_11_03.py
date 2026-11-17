@@ -306,7 +306,8 @@ def test_circa_font_is_half_the_year_with_its_own_floor() -> None:
 
 
 def test_span_font_px_and_the_air_rules() -> None:
-    assert [graphics.span_font_px(px) for px in (34, 38, 42, 20)] == [26, 29, 32, 24]
+    # cycle 0 round 7 (F16): the 9:16 label floor (27) outranks the 8 px step under the labels
+    assert [graphics.span_font_px(px) for px in (34, 38, 42, 20)] == [27, 29, 32, 27]
     f = graphics.get_font("Montserrat", 26, weight=600)
     above, below = graphics.span_air_rule(34, f, 15, True)
     assert (above, below) == (30, 16)                                                 # nominal: 2 x 15, the lean

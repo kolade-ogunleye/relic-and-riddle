@@ -19,7 +19,8 @@ SURFACE_MODULES = ("graphics", "design_cards", "multi_format", "cover_design", "
 LOADERS = {"get_font": 1, "fit_text": 3, "probe_text": 3, "fit_font": None, "fit_line": None, "field_font": None,
            "_fit_text": 3, "_design_wrap": 3,   # loader -> the size's positional index (None: always a computed fit)
            "font_variant": None, "truetype": 1, "FreeTypeFont": 1, "FeaturedFont": 1,   # round 4: every constructor
-           "font_for": 0}                       # and the system's masthead wrapper (round 4: the adversary's 137 px)
+           "font_for": 0,                       # and the system's masthead wrapper (round 4: the adversary's 137 px)
+           "figure_font": 0, "data_font": 0, "place_font": 0}   # cycle 0 round 7: the figure / data / place roles
 
 
 def _ladder() -> set[float]:

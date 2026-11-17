@@ -20,7 +20,8 @@ def _record(out: Path) -> dict:
     ({"value": 280.0, "unit": "ft", "dimension": "depth", "subject": "Derinkuyu underground city", "approximate": True},
      "The Statue of Liberty, 305 ft,"),            # round 4: sentence case
     ({"value": 32.0, "unit": "m", "dimension": "height", "subject": "Kailasa temple monolith", "approximate": True},
-     "Kailasa temple monolith: about 105 ft."),    # round 4: the subject first
+     "Kailasa temple monolith: about 32 m."),      # round 4: the subject first; cycle 0 r7 (F12): a metre fact
+    #                                                 leads in metres (it read "about 105 ft")
 ])
 def test_scale_says_what_the_comparison_means(tmp_path: Path, monkeypatch, fact, first) -> None:
     monkeypatch.setattr(graphics, "CLIP_SECONDS", 3.5)

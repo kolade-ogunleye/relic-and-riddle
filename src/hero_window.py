@@ -50,8 +50,11 @@ SEAM_SHARE = 0.80       # of the width (columns) that step at the same row: the 
 SEAM_SPAN = 3           # analysis rows the step completes within
 SEAM_OFF = 0.30         # the windows just off a seam step so on fewer columns than this (texture is not a seam)
 SEAM_KEEP = 6           # analysis rows either side whose mean must stay apart (a thin printed line comes back)
-FLAT_STD = 8.0          # luma: a row whose spread across the width is under this is one flat colour
+FLAT_STD = 4.0          # luma: a row whose spread across the width is under this is one flat colour (8 took a
+                        # busy picture's downsampled noise rows, std ~7, for a gutter: round 7 CI, then-and-now)
 FLAT_ROWS = 2           # a gutter or frame: at least this many flat rows on one side of the seam
+GUTTER_MAX = 0.06       # ... and its flat run at most this share of the axis: a longer one is a clear sky or a plain
+                        # ground meeting the picture (a horizon), not a gutter or a frame
 SEAM_MARGIN = 2         # analysis px cut either side of a seam (resampling spreads it)
 LUMA = np.array([0.2126, 0.7152, 0.0722], np.float32)
 
@@ -71,7 +74,9 @@ def _seam_rows(lum: np.ndarray) -> list[int]:
     if h < 4 * s + 4:
         return []
     share = (np.abs(lum[s:] - lum[:-s]) >= SEAM_STEP).mean(axis=1)    # [y]: rows y -> y + s
-    flat = lum.std(axis=1) <= FLAT_STD                                 # rows one flat colour edge to edge
+    spread = lum.std(axis=1)
+    flat = spread <= FLAT_STD                                          # rows one flat colour edge to edge
+    means = lum.mean(axis=1)
     out: list[int] = []
     for y in range(s + 1, len(share) - s - 1):
         if share[y] < SEAM_SHARE or max(share[y - s - 1], share[y + s + 1]) >= SEAM_OFF:
@@ -79,9 +84,19 @@ def _seam_rows(lum: np.ndarray) -> list[int]:
         above, below = lum[max(0, y - SEAM_KEEP):y].mean(axis=0), lum[y + s:y + s + SEAM_KEEP].mean(axis=0)
         if (np.abs(above - below) >= SEAM_STEP).mean() < SEAM_SHARE:
             continue                                        # it comes back: a printed line, not two pictures
-        gutter = flat[max(0, y - FLAT_ROWS):y].all() or flat[y + s:y + s + FLAT_ROWS].all()
+        gutter = False
+        for start, step in ((y - 1, -1), (y + s, 1)):           # the flat run outward from the seam, each side
+            end = start
+            while 0 <= end < h and flat[end]:
+                end += step
+            run = abs(end - start)
+            if not FLAT_ROWS <= run <= GUTTER_MAX * h:
+                continue
+            # a band: it reaches the edge (a frame) or the picture resumes clearly after it (a gutter)
+            if not 0 <= end < h or spread[end] >= 3 * FLAT_STD or                     abs(means[end] - means[end - step]) >= SEAM_STEP / 2:
+                gutter = True
         if not gutter:
-            continue                                        # no gutter or frame: a straight edge in one picture
+            continue                                        # no gutter or frame: a straight edge or a horizon
         out.append(y + s // 2)
     merged: list[int] = []
     for y in out:                                           # one seam per run of adjacent rows

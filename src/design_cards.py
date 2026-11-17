@@ -147,7 +147,9 @@ HOOK_TOP_BLOCK = 565        # the claim block's top when moved off the reviewed 
 # freeze panel H1: the claim's size by its line count, the largest whose lines' right ink stays inside TALL_RIGHT (x 888 on the ads box)
 # freeze panel H6 (1): the 2-line ladder from 176 (was 152)
 HOOK_SIZES = {1: (192, 176, 160, 144, 128), 2: (176, 168, 160, 152, 144, 136, 128, 120, 112),
-              3: tuple(range(128, 111, -8))}
+              3: tuple(range(128, 103, -8))}
+# round 7 integration: the 3-line ladder gains 104: on the F19 measure (x 137-824, 687 px) a claim whose only valid
+# breaks (the heading engine's never-end set) leave "FROM THE DESERT" on a line sets there, rather than being refused
 # The 9:16 cards' edges, in 1080-wide design px, from the one safe-zone statement (QF-24: the shared organic Reel box,
 # x 113-848, graphics to y 1090; they were literals for the ads box, x 100-888, foot 1058): words start on the box's
 # left edge (the box already holds the platforms' clearance; on the graphics' inset edge, x 120, the reviewed long
@@ -4014,7 +4016,7 @@ def plan_hook_frame(spec: HookFrame, sheet: dict, width: int = 1080, height: int
         return out
     cands = hook_fits(HOOK_MEASURE)
     if not cands:
-        raise CardRefused("the claim does not fit three lines at 112 px")
+        raise CardRefused(f"the claim does not fit three lines at {HOOK_SIZES[3][-1]} px")
     P, lines = cands[0]
     f_claim = get_font(brand.DISPLAY_FONT, P)
     f_eb = get_font(brand.TEXT_FONT, EYEBROW_PX, weight=800)

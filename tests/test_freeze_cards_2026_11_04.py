@@ -106,7 +106,9 @@ def test_t1_strike_overhang_clamped_to_the_zone(size):
         zl, zr = myth_zone(plan)
         k = plan.width / 1080 if plan.width < plan.height else _WideGrid(plan.width, plan.height).k
         ov = max(1, round(round(dc.STRIKE_OVERHANG * plan.meta["anchors"]["myth_px"]) * k))
-        if size == TALL and m is SHORT:
+        # round 7 integration (F19): on the 687 px measure the short myth takes two lines (M1), so the full-measure
+        # line this case pinned exists only where the myth is still one line
+        if size == TALL and m is SHORT and len(plan.meta["anchors"]["myth_baselines"]) == 1:
             assert e["myth_0"].box[2] - e["myth_0"].box[0] >= 718      # the line does fill its measure (770 of 788)
         for s in strikes(plan):
             line = e["myth_" + s.name.split("_")[1]].box
@@ -159,7 +161,9 @@ def test_m0_card_that_fits_only_bare_is_refused(monkeypatch):
     assert dc._myth_fit("ALIENS BUILT THE RING", "THE RING FORMED THROUGH EROSION", "X" * 60 + ".COM", geo) is None
     # the fall-through: the long myth in a zone 98 px shorter does not fit at 76 with its source; it takes 68
     monkeypatch.setitem(dc.MYTH_BOTTOM, False, 960)
-    fit = dc._myth_fit(LONG_ET[0].upper(), LONG_ET[1].upper(), "BRITANNICA.COM", geo)
+    # round 7 integration (F19): on the 687 px measure this card sets only on the margin token's fallback column
+    # (MYTH_BOX_COLUMN, the plan's own second try), where the fall-through is the same (68)
+    fit = dc._myth_fit(LONG_ET[0].upper(), LONG_ET[1].upper(), "BRITANNICA.COM", geo, column=dc.MYTH_BOX_COLUMN)
     assert fit is not None and fit[0] < dc.MYTH_FLOOR_SOURCE and fit[3] == "BRITANNICA.COM" and fit[4] is None
     assert fit[5] >= dc.MYTH_FLOOR_MYTH, fit
 
@@ -310,9 +314,13 @@ def test_m6_per_line_pen():
     """M6 (M11, round 2: the gap is one frame, 0.033 s, was 0.05; the pen fits 0.95 s for 3 lines or more, was
     0.80): each line its own stroke; the pen is 0.45 s for one line; the fact's kicker lands pen_total + 0.10 after
     the pen starts."""
+    # round 7 integration (F19): on the 687 px measure the short myth takes two lines (M1), so the one-line pen is held
+    # on the schedule itself; the short card's pen is the schedule of the lines it draws
+    assert dc._pen_schedule([800])[2] == pytest.approx(0.45)
     one = plan_myth(SHORT)
-    assert one.meta["pen_total"] == pytest.approx(0.45)
-    assert dc.strike_progress(one, one.meta["t_s"] + 0.45) == 1.0
+    widths = [e.box[2] - e.box[0] for e in one.elements if e.name.startswith("myth_") and e.name[5:].isdigit()]
+    assert one.meta["pen_total"] == pytest.approx(dc._pen_schedule(widths)[2], abs=1e-3)
+    assert dc.strike_progress(one, one.meta["t_s"] + one.meta["pen_total"]) == 1.0
     four = plan_myth(LONGEST916, WIDE)
     assert len(strikes(four)) == 4 and four.meta["pen_total"] <= 0.95 + 1e-9
     for plan in (one, four, plan_myth(LONG_ET)):
@@ -577,7 +585,8 @@ def test_c4_chapter_motion():
     assert [m[f"title_{k}"][1] for k in range(2)] == pytest.approx([0.80, 0.98])
     tall = chapter_plan(TALL)
     mt = tall.meta["_motion"]
-    assert mt["kicker_rule"][1:3] == (0.10, 0.30) and mt["kicker_label"][1:3] == (0.15, dc.REVEAL)
+    # round 7 (F20): the lead rule arrives with its words (one device), so the 9:16 rule starts at the label's 0.15
+    assert mt["kicker_rule"][1:3] == (0.15, 0.30) and mt["kicker_label"][1:3] == (0.15, dc.REVEAL)
     assert mt["numeral"][1] == 0.25
     assert [mt[f"title_{k}"][1] for k in range(2)] == pytest.approx([0.62, 0.80])     # C6 (was 0.55, 0.67)
     for plan in (wide, tall):
@@ -763,9 +772,11 @@ RICHAT_EXPECT = {   # (format wide?, act): (title px, lines)
     # QF-24: on the organic box's 735 px title measure (788 on the ads box) acts 1 and 4 set at 92 (were 100); act 4
     # steps down to its first break with no stop-word end (W2's few steps found only "EVIDENCE AND"; every chapter
     # card is drawn, operator decision 2026-11-05)
-    (False, 1): (92, ["INTRODUCTION:", "A DESERT LANDMARK", "FROM SPACE"]),
-    (False, 4): (92, ["ARCHAEOLOGICAL", "EVIDENCE", "AND REFUTED CLAIMS"]),
-    (False, 5): (128, ["INTERNATIONAL", "HERITAGE", "RECOGNITION"]),
+    # round 7 integration (F19): on the 687 px measure (x 137-824) acts 1 and 4 set at 88 and act 5 at 120 (one ladder
+    # step each), the same lines
+    (False, 1): (88, ["INTRODUCTION:", "A DESERT LANDMARK", "FROM SPACE"]),
+    (False, 4): (88, ["ARCHAEOLOGICAL", "EVIDENCE", "AND REFUTED CLAIMS"]),
+    (False, 5): (120, ["INTERNATIONAL", "HERITAGE", "RECOGNITION"]),
 }
 
 

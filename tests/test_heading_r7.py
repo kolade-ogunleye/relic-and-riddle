@@ -48,7 +48,7 @@ def test_the_never_set_is_the_operators_and_hard():
     assert not never & brand_system.LINE_END_LAST_RESORT          # of / in are never, no longer a last resort
     from src import design_cards, multi_format, video_composer
     assert never <= design_cards.W1_STOPS and never <= multi_format._DANGLING
-    assert never <= video_composer.DANGLING_ENDS                  # caption bursts: the 16:9 burst ending on "near"
+    assert all(video_composer._hard_dangles(w) for w in never)    # caption bursts: the 16:9 burst ending on "near"
 
 
 def test_the_richat_cover_anchor_breaks_before_the_stop_word_with_of_the_in_bone():

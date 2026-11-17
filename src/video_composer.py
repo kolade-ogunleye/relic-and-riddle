@@ -644,7 +644,7 @@ DANGLING_TAILS = {
     "which", "who", "whom", "whose", "where", "when", "why", "how",
     # Copulas & Auxiliaries (dangling verb tails before predicates)
     "is", "was", "are", "were", "been", "being",
-} | set(_LINE_END_NEVER)   # round 7 (F1): the heading engine's never-end set (near, via, per, onto ...) is a burst's too
+}
 # Words that carry no content of their own (review, 2026-11-03: OF THE was a burst at 80 px): a burst made of these
 # alone is never formed where another split fits. The dangling tails (articles, determiners, prepositions,
 # conjunctions, relative words, copulas) plus the auxiliaries. Personal pronouns are left out: a subject and its
@@ -880,7 +880,9 @@ def _hard_dangles(word: str) -> bool:
     relative word) with no punctuation closing it: the phrase builder's hard defect (review round 4)."""
     if CLAUSE_PUNCT.search(word) or TERMINAL_PUNCT.search(word):
         return False
-    return _bare(word) in DANGLING_ENDS
+    # round 7 (F1): the heading engine's never-end set is a burst's hard defect too (the 16:9 burst ended on "near");
+    # the round-4 base (round4_burst_cuts) keeps HEAD 0036b18's own set
+    return _bare(word) in DANGLING_ENDS or _bare(word) in _LINE_END_NEVER
 
 
 # Review round 4 (2026-11-04): the phrase builder's soft costs, summed per split after the hard defects. A lone

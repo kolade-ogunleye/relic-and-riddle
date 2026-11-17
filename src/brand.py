@@ -137,7 +137,10 @@ class BrandConfig:
             missing = sorted(set(base) - set(value))
             if missing:
                 raise ValueError(f"brand {self.name!r}: {attr} lacks the roles {missing}")
-            object.__setattr__(self, attr, MappingProxyType(dict(value)))
+            frozen = {}
+            for k, v in dict(value).items():   # round 7 (sweep): a caller's RGB list is copied, never kept mutable
+                frozen[k] = tuple(int(c) for c in v) if isinstance(v, (list, tuple)) else v
+            object.__setattr__(self, attr, MappingProxyType(frozen))
         from .brand_system import GATES, SYSTEM_TOKENS
         ruled = sorted(set(self.system) & set(GATES))
         if ruled:
@@ -155,18 +158,45 @@ class BrandConfig:
             if self.system[key] > factor * self.system[other] + 1e-12:
                 raise ValueError(f"brand {self.name!r}: {key} = {self.system[key]} exceeds {factor} x {other} "
                                  f"({self.system[other]}): the two interact (src/brand_system.py TOKEN_JOINT)")
+        for role, v in self.palette.items():   # round 7 (sweep): types checked here, never a crash at draw time
+            if isinstance(v, str):
+                if v not in self.palette:
+                    raise ValueError(f"brand {self.name!r}: palette role {role} names {v!r}, not a palette role")
+            elif not (isinstance(v, tuple) and len(v) == 3 and all(0 <= c <= 255 for c in v)):
+                raise ValueError(f"brand {self.name!r}: palette role {role} = {v!r} is not an RGB triple")
         for role in self.palette:
             self.colour(role)
+        from .brand_system import COLOUR_TOKENS
+        for key in COLOUR_TOKENS:   # a colour token names a palette role
+            if not isinstance(self.system[key], str) or self.system[key] not in self.palette:
+                raise ValueError(f"brand {self.name!r}: {key} = {self.system[key]!r} is not a palette role")
+        for key, v in self.text.items():
+            if not isinstance(v, str) or not v.strip():
+                raise ValueError(f"brand {self.name!r}: text {key} = {v!r} is not a non-empty string")
+        for role, fam in self.fonts.items():
+            if fam is not None and not isinstance(fam, str):
+                raise ValueError(f"brand {self.name!r}: font {role} = {fam!r} is not a family name")
+            if isinstance(fam, str) and fam not in self.fonts:
+                from .typography import FONT_FILES
+                from .font_assets import DERIVED_FAMILIES
+                if fam not in FONT_FILES and fam not in DERIVED_FAMILIES:
+                    raise ValueError(f"brand {self.name!r}: font {role} = {fam!r} is not a registered family")
         # The mark (cycle 0 round 6, adversary r5-1: GOLD = INK drew an invisible diamond): its gold fill is what reads
         # on an INK ground, its INK edge what reads on a bone one; a palette where either misses the mark gate
         # (WCAG 1.4.11) is refused here, before any surface draws it.
         from .brand_system import GATES as _G
         mark_gate = _G["contrast.mark"]
-        for a, b in (("GOLD", "INK"), ("INK", "BONE")):
+        for a, b in (("GOLD", "INK"), ("INK", "BONE")):   # the mark
             r = _ratio(self.colour(a), self.colour(b))
             if r < mark_gate:
                 raise ValueError(f"brand {self.name!r}: the mark's {a} against {b} is {r:.2f}:1, under the "
                                  f"{mark_gate}:1 mark gate (src/brand_system.py contrast.mark)")
+        # the lines every surface sets on its INK ground (round 7, sweep: an accepted palette drew share text at 4.32
+        # and gold capitals at 3.54): bone text at the text gate, gold capitals (kicker, follow) at the kicker gate
+        for a, b, gate in (("BONE", "INK", "contrast.text"), ("GOLD", "INK", "contrast.kicker")):
+            r = _ratio(self.colour(a), self.colour(b))
+            if r < _G[gate]:
+                raise ValueError(f"brand {self.name!r}: {a} on {b} is {r:.2f}:1, under the {_G[gate]}:1 {gate} gate")
         for role in self.fonts:
             self._font_role(role)
 

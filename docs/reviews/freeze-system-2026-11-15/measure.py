@@ -55,7 +55,8 @@ def main() -> None:
             # closed) is within the rulings by construction and has nothing to deliver
             delivered = plate.measure(platform_encode(out)) if shown else None   # the ring after re-encode
             good = (rec["scrim_peak"] <= brand_system.tok("scrim.masthead_peak") + 1e-9
-                    and rec["halo"] <= brand_system.tok("halo.masthead_max") + 1e-9
+                    and rec["halo"] <= (brand_system.HALO_EXCEPTION_CAP if rec.get("halo_exception")
+                                        else brand_system.HALO_CAP) + 1e-9   # ruling 4: the recorded exception
                     and (not shown or (rec["contrast"] or 0) >= brand_system.tok("contrast.masthead_gate")))
             ok &= good
             rows.append({"ground": g, "surface": s, "shown": shown, "variant": rec["variant"], "peak": rec["scrim_peak"],

@@ -463,6 +463,10 @@ def tok(name: str) -> Any:
     return system[name]
 
 
+# The runtime tokens that name a palette role (BrandConfig refuses any other value for them).
+COLOUR_TOKENS = ("plate.shade", "masthead.colour_dark", "masthead.colour_light", "kicker.colour")
+
+
 def colour_of(name: str):
     """A token that names a palette role (e.g. "masthead.colour_dark"), as the active brand's RGB."""
     from . import brand

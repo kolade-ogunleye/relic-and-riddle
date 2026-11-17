@@ -65,6 +65,8 @@ def __getattr__(name: str):
     """A colour this module bound at import before QF-35a: the active brand's, read now."""
     if name in _BRAND_NAMES:
         return getattr(brand, _BRAND_NAMES[name])
+    if name in ("DOT60", "OPEN_FROM_START", "OPEN_TIME", "REVEAL_LAST"):   # read now (round 7)
+        return _timing()[name]
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 W, H = VIDEO_WIDTH, VIDEO_HEIGHT
 MAX_PHOTOS = 6
@@ -1830,16 +1832,21 @@ def _first(f, target: float) -> float:
     return hi
 
 
-DOT60 = _first(_ease_back, 0.6) * DOT_GROW                # the dot 60 % grown
+def _timing() -> dict[str, float]:
+    """The pop-dependent timings, from the active brand's motion.back READ NOW (cycle 0 round 7, sweep: computed at
+    import they kept the import-time brand's constant: the 60 % trigger fell to 42.5 % or 89.1 %)."""
+    dot60 = _first(_ease_back, 0.6) * DOT_GROW                # the dot 60 % grown
+    open_from = dot60 + max(LEADER_MAX * 0.85 + max(PLATE_OPEN, PLATE_OPEN * TEXT_AT + TEXT_FRAMES / VIDEO_FPS),
+                            LEADER_MAX - 2 / VIDEO_FPS + BAR_GROW)
+    reveal_last = math.floor((CLIP_SECONDS - EXIT_LEAD - LAST_OPEN - (open_from - DOT_LEAD)) * 100) / 100
+    return {"DOT60": dot60, "OPEN_FROM_START": open_from, "OPEN_TIME": open_from - DOT_LEAD, "REVEAL_LAST": reveal_last}
+
+
 TEXT_AT = _first(_ease_expo, 0.7)                         # the plate 70 % open
-OPEN_FROM_START = DOT60 + max(LEADER_MAX * 0.85 + max(PLATE_OPEN, PLATE_OPEN * TEXT_AT + TEXT_FRAMES / VIDEO_FPS),
-                              LEADER_MAX - 2 / VIDEO_FPS + BAR_GROW)
-OPEN_TIME = OPEN_FROM_START - DOT_LEAD                    # from the cue to the label fully open, at the longest
 READ_BY = 0.30                                            # text readable within F0 + this
 CUE_LATE = 0.70                                           # a held cue is never more than this after its word
 LAST_OPEN = 1.5                                           # the last label fully open this long before the exit
 MIN_REVEAL_GAP, READ_PER_CHAR, HOLD_169 = 1.4, 0.06, 1.3  # seconds
-REVEAL_LAST = math.floor((CLIP_SECONDS - EXIT_LEAD - LAST_OPEN - (OPEN_FROM_START - DOT_LEAD)) * 100) / 100
 
 
 class _Timeline:
@@ -1847,7 +1854,7 @@ class _Timeline:
 
     def __init__(self, start: float, arc: float, fps: float = VIDEO_FPS):
         self.start = start
-        self.lead0 = start + DOT60
+        self.lead0 = start + _timing()["DOT60"]
         self.dur = min(LEADER_MAX, max(LEADER_MIN, arc / LEADER_SPEED))
         self.lead1 = self.lead0 + self.dur
         self.bar0 = self.lead1 - 2 / fps
@@ -1868,7 +1875,7 @@ def probe_frames(k: int, starts: list[float], n: int, fps: float = VIDEO_FPS,
     start; default the longest) to the last frame before the exit, every MEASURE_STEP, plus each frame where the
     spotlight starts or settles (a label's start, and that plus SPOT_FADE)."""
     last = min(n - 1, math.ceil(exit_start() * fps - 1e-6) - 1)
-    first = min(last, math.ceil((starts[k] + (opened[k] if opened else OPEN_FROM_START)) * fps - 1e-6))
+    first = min(last, math.ceil((starts[k] + (opened[k] if opened else _timing()["OPEN_FROM_START"])) * fps - 1e-6))
     ts = {first, last}
     ts |= {math.ceil((s + d) * fps - 1e-6) for s in starts for d in (0.0, SPOT_FADE)}
     step = max(1, round(MEASURE_STEP * fps))
@@ -1948,11 +1955,11 @@ def reveal_plan(labels: list[str], beat_times: list[dict[str, Any]] | None,
         out[k] = last = t
         prev = labels[k]
     if not squeeze:
-        return bi, [round(t, 3) if t <= REVEAL_LAST + 1e-9 else None for t in out], info
-    if max(out) > REVEAL_LAST:   # squeeze into the clip, keeping the order and the gaps' proportions
+        return bi, [round(t, 3) if t <= _timing()["REVEAL_LAST"] + 1e-9 else None for t in out], info
+    if max(out) > _timing()["REVEAL_LAST"]:   # squeeze into the clip, keeping the order and the gaps' proportions
         lo = min(out)
         span = max(out) - lo
-        room = max(REVEAL_LAST - DOT_AT, 0.1)
+        room = max(_timing()["REVEAL_LAST"] - DOT_AT, 0.1)
         out = [DOT_AT + (t - lo) * room / span if span else DOT_AT for t in out]
     return bi, [round(t, 3) for t in out], info
 

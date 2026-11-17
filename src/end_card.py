@@ -480,8 +480,10 @@ def mean_lstar(im: Image.Image) -> float:
     a = np.asarray(im.convert("RGB").resize((max(1, im.width // 8), max(1, im.height // 8)), Image.BOX),
                    dtype=np.float32) / 255
     lin = np.where(a <= 0.04045, a / 12.92, ((a + 0.055) / 1.055) ** 2.4)
-    y = float((lin @ np.array([0.2126, 0.7152, 0.0722], np.float32)).mean())
-    return 116 * y ** (1 / 3) - 16 if y > 216 / 24389 else y * 24389 / 27
+    y = lin @ np.array([0.2126, 0.7152, 0.0722], np.float32)
+    # round 7 (sweep): L* per pixel, then the mean (averaging luminance first read a half-black half-white frame 76)
+    lstar = np.where(y > 216 / 24389, 116 * np.cbrt(y) - 16, y * 24389 / 27)
+    return float(lstar.mean())
 
 
 def kicker_rise(a: float) -> int:

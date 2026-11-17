@@ -1583,8 +1583,8 @@ def grid_proof(im, lay):
                 fails.append(f"{name} alone carries {', '.join(sorted(alone))} (texture at grid size)")
     arr = np.asarray(small, dtype=np.float32) / 255
     lin = np.where(arr <= 0.04045, arr / 12.92, ((arr + 0.055) / 1.055) ** 2.4)
-    y = (lin @ np.array([0.2126, 0.7152, 0.0722], dtype=np.float32)).mean()
-    lstar = 116 * (y ** (1 / 3) if y > 0.008856 else 7.787 * y + 16 / 116) - 16
+    y = lin @ np.array([0.2126, 0.7152, 0.0722], dtype=np.float32)
+    lstar = (116 * np.where(y > 0.008856, np.cbrt(y), 7.787 * y + 16 / 116) - 16).mean()   # per pixel (round 7)
     # hook_fails (round 4): the failures the engine acts on (a tighter draw, then another fitting style); a fact
     # carried only by texture stays a warning.
     return {"ok": not fails, "fails": fails, "hook_fails": hook_fails, "elements": elements,

@@ -82,10 +82,19 @@ def observe():
             if value is orig_get:
                 patched.append((mod, attr))
                 setattr(mod, attr, get_font)
+    # round 7 (sweep: a font constructed before the observation and drawn during it went unseen): every font is also
+    # recorded where it is DRAWN or measured (FreeTypeFont.getmask2, which Pillow's text drawing calls), whenever made
+    orig_mask = ImageFont.FreeTypeFont.getmask2
+
+    def getmask2(self, *a, **k):
+        seen.add((_site(), round(float(self.size), 3)))
+        return orig_mask(self, *a, **k)
     ImageFont.FreeTypeFont.__init__ = init
+    ImageFont.FreeTypeFont.getmask2 = getmask2
     try:
         yield seen
     finally:
         ImageFont.FreeTypeFont.__init__ = orig_init
+        ImageFont.FreeTypeFont.getmask2 = orig_mask
         for mod, attr in patched:
             setattr(mod, attr, orig_get)

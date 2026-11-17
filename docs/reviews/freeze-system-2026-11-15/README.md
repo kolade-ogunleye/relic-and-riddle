@@ -51,7 +51,7 @@ hierarchy > rhythm > ornament.
   position and advance), never an ink component; every numeric runtime token has a range (`TOKEN_RANGES`, refused
   outside it) and the tests sweep masthead tracking over the whole of it.
 - `tests/type_sites.py` + `brand_system.SIZE_SITES`: every function of a surface module that sets a type size off the
-  ladder, scanned and held equal to the declaration (108 sites, each with its owner group; aliases, font_variant,
+  ladder, scanned and held equal to the declaration (113 sites at round 7, each with its owner group; aliases, font_variant,
   constructors and the masthead wrapper included). Second, run-time check: `tests/size_observer.py` records every
   font made during the renders (`test_brand_system_r4`, committed declaration `tests/fixtures/type_sizes_observed.json`;
   on real runs `observe_sizes.py`); sites only it can see are in `RUNTIME_SIZE_SITES`.
@@ -71,6 +71,8 @@ hierarchy > rhythm > ornament.
 | contrast.mark | 3.0 | WCAG 1.4.11 (graphics.NONTEXT_MIN and callouts.NONTEXT_MIN now read it) |
 | scrim.masthead_peak | 0.60 | ruling round 3 (2) |
 | halo.masthead_max | 0.16 | ruling round 3 (2) |
+| halo.masthead_exception_max | 0.24 | ruling 4 (2026-11-16): the exception's ceiling, only where no ruled step reaches the gate |
+| halo.exception_step | 0.01 | the exception's least-halo search |
 | scrim.levels_floor | 205 | park step 5 (BRIGHT_CEILING) |
 | scrim.slope_max | 0.5 luma/px | end-card ruling round 3 (1) |
 | masthead.grid_cap | 9 px at 124 px wide | QF-87 |
@@ -82,6 +84,7 @@ hierarchy > rhythm > ornament.
 | token | value | read by |
 |---|---|---|
 | halo.step | 0.08 | masthead halo search |
+| masthead.fit_floor | 0.75 | the fit ladder's floor (x the canvas size; range 0.70-1.0; its exact floor the last step) |
 | plate.shade | INK | masthead scrim; callouts' dim and plate shadow |
 | masthead.weight / track / mark_r / gap / mark_edge | 700 / 0.0625 em / 0.30 em / 0.36 em / 0.047 em | carousel, FB gallery, YouTube, end screen, 9:16 end card |
 | masthead.colour_dark / colour_light | BONE / INK | the same |
@@ -167,7 +170,9 @@ A failed extra is recorded in `board.json` `errors` and the board goes on.
 ## Acceptance
 
 `python measure.py <repo root>`: the masthead on six committed grounds at the three carried sizes, all within the
-rulings (peak <= 0.60, halo <= 0.16, worst letter >= 5.5 or not drawn), and the system's counts.
+rulings (peak <= 0.60; halo <= 0.16, or <= 0.24 where the record says `halo_exception` (ruling 4); the light variant's
+lift <= 0.60; worst letter >= 5.5 on the unrounded value or not drawn; the fit ladder down to `masthead.fit_floor`
+(0.75, its exact floor its last step)), and the system's counts.
 `tests/test_brand_system.py` holds the invariants (gates constant; every runtime token overridden and its renderer's
 change measured; no import-time copies; declared deviations held to their constants; one line-end vocabulary; named
 eases bounded and shared; the masthead within the rulings, judged letter by letter on the adversary's grounds with

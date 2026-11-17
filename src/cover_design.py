@@ -194,10 +194,25 @@ def resolving_tagline(copy, reveal):
     return ""
 
 
+def kicker_track(font):
+    """Round 7 (F20): the eyebrow is the system kicker: tracked kicker.track em of its size."""
+    return tok("kicker.track") * font.size
+
+
+def kicker_lead(font):
+    """(rule length, gap, thickness) of the system kicker's lead rule at `font` (kicker.* tokens, in its caps)."""
+    ch = cap_h_of(font)
+    return (max(8, round(ch * tok("kicker.rule"))), round(ch * tok("kicker.rule_gap")),
+            max(3, round(ch * tok("kicker.rule_thick"))))
+
+
 def _eyebrow_lines(measure, text, width, size=EYEBROW_PX):
-    """The eyebrow on one line in Montserrat 800 with EYEBROW_TRACK between letters, never under EYEBROW_MIN
-    (refused there, QF-23: TextFitError). Returns (lines, font, shortened)."""
-    room = width - EYEBROW_TRACK * max(0, len(text) - 1)
+    """The eyebrow (the system kicker, round 7 F20: its lead rule, then the words tracked kicker.track em) on one
+    line in Montserrat 800, never under EYEBROW_MIN (refused there, QF-23: TextFitError). Returns (lines, font,
+    shortened)."""
+    f = get_font(brand.TEXT_FONT, max(EYEBROW_MIN, size), weight=800)
+    rule, gap, _ = kicker_lead(f)
+    room = width - rule - gap - kicker_track(f) * max(0, len(text) - 1)
     return fit_text(measure, text, brand.TEXT_FONT, max(EYEBROW_MIN, size), int(room), 1, EYEBROW_MIN,
                     sentences=False, weight=800)
 
@@ -259,8 +274,8 @@ def _rows(im, copy, width, style, tight, figure=None, lay_record=None):
             lines, font, short = _eyebrow_lines(measure, text, width)
             if short:
                 shortened.append(name)
-            rows += [{"name": name, "text": line, "font": font, "fill": colour, "track": EYEBROW_TRACK,
-                      "height": text_size(measure, line, font)[1], "gap": gap} for line in lines]
+            rows += [{"name": name, "text": line, "font": font, "fill": colour, "track": kicker_track(font),
+                      "height": text_size(measure, line, font)[1], "gap": gap, "kicker": True} for line in lines]
             continue
         if name == "tagline":
             lines, font, short = _tagline_lines(measure, text, width, max(minimum, int(size * factor)))
@@ -334,7 +349,7 @@ def _lockup(measure, copy, width, size, single_gold=True):
     for key, text, gold in (("line1", l1, False), ("line2", l2, True)):
         if not text:
             continue
-        lines, font, short = fit_text(measure, text, brand.DISPLAY_FONT, round(size * LOCKUP_FALLBACK), width, 2,
+        lines, font, _ = fit_text(measure, text, brand.DISPLAY_FONT, round(size * LOCKUP_FALLBACK), width, 2,
                                       min(64, size), sentences=False)
         off.append("title_1" if key == "line1" else "title_2")
         out[key] = (font, [[(ln, "accent" if gold else "plain")] for ln in lines])
@@ -362,21 +377,23 @@ def _paint(im, rows, x, top, centered, lay):
     plates = {}
     line_top = top
     for row in rows:
-        if row.get("tab"):
-            # Discovery's badge (2026-11-02): the eyebrow on a solid gold tab, ink capitals on it.
-            from .typography import tracked_width
-            w_txt = tracked_width(row["text"], row["font"], row.get("track", 0))
-            cap = row["font"].getbbox("H", anchor="lt")
-            x_tab = x - w_txt / 2 - TAB_PAD[0] if centered else x - TAB_PAD[0] // 2
-            box = (x_tab, top + cap[1] - TAB_PAD[1], x_tab + w_txt + 2 * TAB_PAD[0] - (0 if centered else TAB_PAD[0] // 2),
-                   top + cap[3] + TAB_PAD[1])
-            ImageDraw.Draw(im).rectangle(box, fill=brand.GOLD + (255,))
-            if lay is not None:
-                lay.meta.setdefault("tabs", {})[row["name"]] = [round(v) for v in box]
         if row.get("same_line"):   # round 7: a run of the line above it (a lockup line set in two colours)
             top = line_top
         line_top = top
-        if "dx" in row:
+        if row.get("kicker"):
+            # Round 7 (F20): the system kicker (the gold tab retired): a flat lead rule at mid-cap, then the words
+            from .typography import tracked_width
+            rule, gap, thick = kicker_lead(row["font"])
+            w_txt = tracked_width(row["text"], row["font"], row.get("track", 0))
+            x0 = x - (rule + gap + w_txt) / 2 if centered else x
+            mid = top - row["font"].getbbox(row["text"], anchor="ls")[1] - cap_h_of(row["font"]) / 2
+            ImageDraw.Draw(im).rectangle([round(x0), round(mid - thick / 2), round(x0) + rule - 1,
+                                          round(mid - thick / 2) + thick - 1], fill=tuple(row["fill"]) + (255,))
+            if lay is not None:
+                lay.meta.setdefault("kicker_rule", {})[row["name"]] = [round(x0), round(mid - thick / 2),
+                                                                       round(x0) + rule, round(mid + thick / 2)]
+            xy, anchor = _top_anchor((x0 + rule + gap, top), row["text"], row["font"], "lt", row.get("track", 0))
+        elif "dx" in row:
             x0 = (x - row["line_w"] / 2 if centered else x) + row["dx"]
             xy, anchor = _top_anchor((x0, top), row["text"], row["font"], "lt", row.get("track", 0))
         else:
@@ -1202,7 +1219,7 @@ def _monument(im, copy, lay, tight, source, focus, figure=None):
                 continue
             f_t, line_runs_ = got[key]
             for line_runs in line_runs_:
-                line, dx, runs = " ".join(t for t, _ in line_runs), 0, []
+                line, dx, runs = " ".join(t for t, _ in line_runs), 0.0, []
                 for run, role in line_runs:
                     runs.append((run, brand.GOLD if role in GOLD_ROLES else brand.BONE, round(dx)))
                     dx += measure.textlength(run + " ", font=f_t)
@@ -1236,7 +1253,7 @@ def _monument(im, copy, lay, tight, source, focus, figure=None):
     # stack (the photo outside it, and the focus band above it, stay ungraded); each line's own measured halo
     # (place_text) still holds it at contrast wherever the scrim is light.
     im = _full_bleed(source, focus, (440 + top - 120) / 2, lay)
-    widths = ([tracked_width(t, f, EYEBROW_TRACK) for t, f, _ in eyebrow_rows]
+    widths = ([sum(kicker_lead(f)[:2]) + tracked_width(t, f, kicker_track(f)) for t, f, _ in eyebrow_rows]
               + [tracked_width(t, f, TAGLINE_TRACK) for t, f, _ in tag_rows]
               + [text_size(measure, t, f)[0] for _, t, f, _ in title_rows]
               + [text_size(measure, number, num_font)[0] + (reserve if unit else 0)])
@@ -1255,13 +1272,19 @@ def _monument(im, copy, lay, tight, source, focus, figure=None):
 
     def put(name, text, font, fill, xy, anchor="lt", target=5.1, track=None):
         nonlocal im
-        track = {"eyebrow": EYEBROW_TRACK, "tagline": TAGLINE_TRACK}.get(name, 0) if track is None else track
+        track = ({"eyebrow": kicker_track(font), "tagline": TAGLINE_TRACK}.get(name, 0)
+                 if track is None else track)
         xy, anchor = _top_anchor(xy, text, font, anchor, track)
         im, plate = place_text(im, xy, text, font, fill, anchor=anchor, target=target, track=track)
         plates.setdefault(name, []).append(plate)
 
     for t, f, c in eyebrow_rows:
-        put("eyebrow", t, f, c, (margin, y))
+        rule, rgap, thick = kicker_lead(f)   # round 7 (F20): the system kicker's lead rule
+        base_k = y - f.getbbox(t, anchor="ls")[1]
+        mid = base_k - cap_h_of(f) / 2
+        ImageDraw.Draw(im).rectangle([margin, round(mid - thick / 2), margin + rule - 1,
+                                      round(mid - thick / 2) + thick - 1], fill=tuple(c) + (255,))
+        put("eyebrow", t, f, c, (margin + rule + rgap, y))
         y += text_size(measure, t, f)[1] + gaps["eyebrow"]
     if q_font:
         y += eyebrow_to_q or 0
@@ -1478,11 +1501,7 @@ def _render(im, copy, style, lay, tight, source, focus, figure):
             row["height"] = text_size(ImageDraw.Draw(im), row["text"], row["font"])[1]
     if lay is not None:
         lay.shortened = shortened
-    if style in ("badge", "depth_sandwich"):
-        # One kicker treatment on both (round 3): ink tracked capitals on a solid gold tab.
-        for row in rows:
-            if row["name"] == "eyebrow":
-                row.update(tab=True, fill=brand.INK, gap=row["gap"] + TAB_PAD[1] + 6)
+    # Round 7 (F20): one kicker on every style: the system kicker (no gold tab: it was a second kicker treatment)
     height = _height(rows)
     if focus and style in ("badge", "lower_third"):
         top = 1434 - height
@@ -1530,9 +1549,8 @@ def _render(im, copy, style, lay, tight, source, focus, figure):
         # window's foot to the kicker tab is twice the kicker-to-headline gap; the room saved goes to the window.
         top = SANDWICH_FOOT - height
         kicker = next((r for r in rows if r["name"] == "eyebrow"), None)
-        tab_top = top - TAB_PAD[1] if kicker else top
-        gap = 2 * (kicker["gap"] - TAB_PAD[1] if kicker else 22)
-        aperture = (margin, SANDWICH_WINDOW_TOP, 1080 - margin, tab_top - gap)
+        gap = 2 * (kicker["gap"] if kicker else 22)
+        aperture = (margin, SANDWICH_WINDOW_TOP, 1080 - margin, top - gap)
     else:
         top = 1434 - height
         image_margin = 0 if style == "badge" else 48
@@ -1630,15 +1648,11 @@ def sandwich_fill(copy, focus, source_size, figure=None):
             rows, _ = _rows(im, copy, 1080 - 2 * 96, "depth_sandwich", True, figure)
         except TextFitError:
             return 0.0     # the copy fits the paper card in neither fit: it is not offered
-    for row in rows:
-        if row["name"] == "eyebrow":
-            row["gap"] += TAB_PAD[1] + 6
     height = _height(rows)
     kicker = next((r for r in rows if r["name"] == "eyebrow"), None)
     top = SANDWICH_FOOT - height
-    tab_top = top - TAB_PAD[1] if kicker else top
-    gap = 2 * (kicker["gap"] - TAB_PAD[1] if kicker else 22)
-    ap = (96, SANDWICH_WINDOW_TOP, 984, tab_top - gap)
+    gap = 2 * (kicker["gap"] if kicker else 22)
+    ap = (96, SANDWICH_WINDOW_TOP, 984, top - gap)
     aw, ah = ap[2] - ap[0], ap[3] - ap[1]
     if aw <= 0 or ah <= 0:
         return 0.0

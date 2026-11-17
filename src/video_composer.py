@@ -107,6 +107,7 @@ from .config import (
 )
 from .typography import is_video
 from . import brand as _brand
+from .brand_system import LINE_END_NEVER as _LINE_END_NEVER
 
 # Caption colours from the brand tokens (visual overhaul, 2026-10-29): spoken words in bone, the script's key words
 # in the brand gold (#FFD700 until then, one of three golds on screen), upcoming words in light stone. The style
@@ -643,7 +644,7 @@ DANGLING_TAILS = {
     "which", "who", "whom", "whose", "where", "when", "why", "how",
     # Copulas & Auxiliaries (dangling verb tails before predicates)
     "is", "was", "are", "were", "been", "being",
-}
+} | set(_LINE_END_NEVER)   # round 7 (F1): the heading engine's never-end set (near, via, per, onto ...) is a burst's too
 # Words that carry no content of their own (review, 2026-11-03: OF THE was a burst at 80 px): a burst made of these
 # alone is never formed where another split fits. The dangling tails (articles, determiners, prepositions,
 # conjunctions, relative words, copulas) plus the auxiliaries. Personal pronouns are left out: a subject and its

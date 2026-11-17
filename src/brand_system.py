@@ -152,6 +152,9 @@ SYSTEM_TOKENS: Mapping[str, Any] = MappingProxyType({
     "band.body_gap_tall": 1.62,       # body em, tall (the Story: 46 px body, 75 px)
     # ---- the cover / YouTube lockup (round 7, F21): line 2's size over line 1's, fixed (never fitted per cover)
     "lockup.line_ratio": 1.0,
+    # ---- the 9:16 card block's vertical placement (round 7, F18): its centre as a share of the frame's height,
+    # never past the graphics box's foot (design_cards._chapter_tall_block)
+    "card.tall_centre": 0.45,
     # ---- motion
     "motion.back": 1.5,               # ease_out_back's constant (8 % overshoot): a callout's pop
     "motion.rise_s": 8,               # px a kicker rises while it enters (the end screen's WATCH NEXT)
@@ -176,6 +179,7 @@ TOKEN_RANGES: Mapping[str, tuple[float, float]] = MappingProxyType({
     "band.body_gap": (1.2, 3.0),          # body em
     "band.body_gap_tall": (1.2, 3.0),     # body em
     "lockup.line_ratio": (1.0, 1.6),
+    "card.tall_centre": (0.30, 0.60),
     "motion.back": (0.0, 4.0),
     "motion.rise_s": (0, 40),             # px
 })

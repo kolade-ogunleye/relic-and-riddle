@@ -97,7 +97,7 @@ def test_t1_strike_overhang_clamped_to_the_zone(size):
     it. QF-24: LONGEST916 is refused on 9:16."""
     for m in (SHORT, LONG_ET, LONGEST916):
         if size[0] < size[1] and m is LONGEST916:
-            with pytest.raises(dc.CardRefused, match="stop word"):
+            with pytest.raises(dc.CardRefused, match="stop word|line limit"):
                 plan_myth(m, size)
             continue
         plan = plan_myth(m, size)

@@ -75,6 +75,7 @@ from .graphics import (
     spine_colour,
     timeline_backdrop,
 )
+from .heading import valid as heading_valid
 from .multi_format import typeset
 from .photo_hygiene import remap_focus, without_caption_strip
 from .safe_zones import graphics_box
@@ -84,6 +85,7 @@ from .typography import (
     _lin,
     _unit,
     balanced_wrap,
+    cap_height,
     cover_crop,
     drawable,
     get_font,
@@ -405,6 +407,8 @@ def _wrap(text: str, font: Any, measure: int, max_lines: int, min_lines: int = 1
           cohesive: bool = False) -> list[str] | None:
     """`text` in balanced lines no wider than `measure` (ink), never with a qualifier, a figure's magnitude or
     its unit on another line than the figure (round 2 review 7: such a break re-wraps instead of refusing);
+    display type (`even`) only in a form the heading engine allows (src/heading.py valid: no line but the last ends
+    on a never word, no lone-word row; round 7, F1 / F18), the scores below choosing among them;
     None when no such wrap fits `max_lines`. With `even` (display type: review 2026-11-03, "SLAVES / DRAGGED EVERY
     / ..." left one word alone on a line) the break set is always searched: the fewest lines, then no one-word line
     where the text has four words or more, then the most even widths. With `cohesive` (the myth card's fact, freeze
@@ -436,6 +440,8 @@ def _wrap(text: str, font: Any, measure: int, max_lines: int, min_lines: int = 1
                 continue
             cand = [" ".join(words[i:j]) for i, j in spans]
             if _qualifier_split(cand):
+                continue
+            if even and not heading_valid(cand):   # round 7 (F1, F18): the heading engine's hard rules
                 continue
             mean = sum(ws) / len(ws)
             lone = sum(j - i == 1 or all(w.lower().strip(".,;:") in _STOP for w in words[i:j]) for i, j in spans
@@ -1400,12 +1406,22 @@ class _Card:
 
 def _kicker(card: _Card, name: str, label: str, x: float, rule_top: float, rule_fill: RGB, text_fill: RGB,
             wipe: tuple, reveal: tuple) -> None:
-    """A 44 x 4 rule, then the tracked Montserrat 800 label on its baseline MYTH_KICK below the rule's top (9:16 40/6,
-    16:9 KICKER_WIDE_PX/5)."""
-    px, track, drop = [KICKER_WIDE_PX, 5, MYTH_KICK[True]] if card.geo.wide else [40, 6, MYTH_KICK[False]]
-    card.rect(f"{name}_rule", (x, rule_top, x + 44, rule_top + 4), rule_fill, ("ease", *wipe), "x")
-    card.text(f"{name}_label", label, brand.TEXT_FONT, 800, px, text_fill, x, rule_top + drop, ("ease", *reveal),
-              "kicker", track=track)
+    """The system kicker (round 7, F20; src/brand_system.py kicker.*): a flat rule one cap long at mid-cap height,
+    then the label in the text face 800, tracked kicker.track em, kicker.rule_gap caps after the rule, on its baseline
+    MYTH_KICK below `rule_top` (where the card's old rule-above stood, so the block keeps its rhythm). The size is the
+    canvas's kicker (TYPE tall / wide kicker, 40 px). The card's colours stay the caller's (MYTH in STONE_LT)."""
+    from .brand_system import tok as _tok
+    from .brand_system import type_px
+    px = round(type_px("kicker", "wide" if card.geo.wide else "tall"))
+    drop = MYTH_KICK[card.geo.wide]
+    cap = cap_height(get_font(brand.TEXT_FONT, px, weight=_tok("kicker.weight")))
+    bar_w, gap = max(8, round(cap * _tok("kicker.rule"))), round(cap * _tok("kicker.rule_gap"))
+    thick = max(3, round(cap * _tok("kicker.rule_thick")))
+    base = rule_top + drop
+    top = round(base - cap / 2 - thick / 2)
+    card.rect(f"{name}_rule", (x, top, x + bar_w, top + thick), rule_fill, ("ease", *wipe), "x")
+    card.text(f"{name}_label", label, brand.TEXT_FONT, _tok("kicker.weight"), px, text_fill, x + bar_w + gap, base,
+              ("ease", *reveal), "kicker", track=_tok("kicker.track") * px)
 
 
 def _marks_ok(plan: CardPlan) -> CardPlan:
@@ -1450,7 +1466,7 @@ CHAPTER_TALL_SLACK = 12                 # 16:9 (C5): two title lines may stand t
 CHAPTER_WIDE_LEAD_MAX = 1.20
 CHAPTER_TALL_MEASURE = HOOK_MEASURE     # 9:16 (C6): the title measure (788 on the ads box, 760 before C6)
 CHAPTER_THREE_GAIN = 16                 # 9:16 (C6): 3 title lines when they set at least this much larger than 2
-CHAPTER_TALL_CENTRE = 864               # 9:16 (C6): the block's centre (0.45 x 1920), never past TALL_FOOT
+CHAPTER_TALL_CENTRE = 864               # 9:16 (C6): the block's centre (0.45 x 1920); round 7: tok("card.tall_centre")
 CHAPTER_TALL_BOX = (graphics_box()[1], TALL_FOOT)   # 9:16: the graphics box's y
 CHAPTER_INK_FOOT = 2                    # design px a round letter's overshoot may run below the last baseline
 CHAPTER_TITLE_T0 = {False: 0.62, True: 0.80}     # s: the first title line's start (C6: 9:16 was 0.55)
@@ -1458,7 +1474,7 @@ CHAPTER_TITLE_STAGGER = {False: 0.18, True: 0.18}  # s: per title line (C6: 9:16
 CHAPTER_TOTAL_T0 = 0.55                 # s: the 9:16 total's reveal, after the numeral's settle (C6)
 ACCENT_AIR = 16                         # design px (freeze panel A1): an accented line's ink top clears the line
                                         # above's baseline by at least this
-CHAPTER_NUMERAL_PX = {False: 300, True: 360}
+CHAPTER_NUMERAL_PX = {False: 300, True: 360}   # round 7 (F18): the TYPE figure token per canvas (tall 300, wide 360)
 CHAPTER_SAT_MAX = 90                      # freeze panel C3: a ground more saturated than this (of 255) under the block
 CHAPTER_SAT_TARGET = 7.0                  # is darkened (x CHAPTER_SAT_STEP luma) until the drawn minimum reaches this
 CHAPTER_SAT_STEP = 0.86
@@ -1615,7 +1631,10 @@ def _chapter_tall_block(P: int, lines: Sequence[str]) -> tuple[int, list[int], i
     off = _lead(lines, P, step, cap)
     H = 340 + 56 + cap + off[-1]
     top, bottom = CHAPTER_TALL_BOX
-    centre = max(top + H / 2, min(CHAPTER_TALL_CENTRE, bottom - CHAPTER_INK_FOOT - H / 2))
+    # round 7 (F18): the block's vertical placement is the system token card.tall_centre (a share of the frame's
+    # height; 0.45 -> 864), never past the graphics box's foot
+    from .brand_system import tok as _tok
+    centre = max(top + H / 2, min(round(_tok("card.tall_centre") * 1920), bottom - CHAPTER_INK_FOOT - H / 2))
     return H, off, round(centre - H / 2)
 
 

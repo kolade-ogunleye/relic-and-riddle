@@ -249,6 +249,16 @@ def mark_contrast(before: Image.Image, after: Image.Image, diamond, edge: int, f
     brand.INK; None: a mark drawn without an edge) are the colours it was drawn in."""
     import cv2
     import numpy as np
+    # round 7: measured on the mark's own neighbourhood (its box grown past the ring), never the whole frame: the same
+    # pixels, at a fraction of the cost (the end card verifies every opaque frame)
+    xs, ys = [x for x, _ in diamond], [y for _, y in diamond]
+    pad = int(edge) + 16
+    box = (max(0, int(min(xs)) - pad), max(0, int(min(ys)) - pad),
+           min(before.width, int(max(xs)) + pad + 2), min(before.height, int(max(ys)) + pad + 2))
+    if box[2] <= box[0] or box[3] <= box[1]:
+        return 1.0, {"fill": 0, "edge": 0}
+    before, after = before.crop(box), after.crop(box)
+    diamond = [(x - box[0], y - box[1]) for x, y in diamond]
     m = Image.new("L", before.size, 0)
     ImageDraw.Draw(m).polygon(diamond, fill=255)
     g = (np.asarray(m) > 127).astype(np.uint8)

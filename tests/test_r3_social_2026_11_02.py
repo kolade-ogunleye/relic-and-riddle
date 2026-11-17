@@ -200,7 +200,11 @@ def test_the_masthead_gets_a_top_edge_gradient_only_where_the_photo_needs_it(tmp
     dark = Image.new("RGB", (1440, 1800), (30, 34, 40))
     ground, _, rec = masthead.plan(dark, 107, 133, 160 / 3, reach=533)
     assert rec["scrim_peak"] == 0 and np.array_equal(np.asarray(ground), np.asarray(dark))   # dark ground: untouched
-    sky = Image.new("RGB", (1440, 1800), (120, 170, 225))
+    # round 7 (F7): on a light sky (120, 170, 225) the INK variant now reads at the target untouched; the bone
+    # gradient is held on a mid sky where bone needs it
+    light, _, lrec = masthead.plan(Image.new("RGB", (1440, 1800), (120, 170, 225)), 107, 133, 160 / 3, reach=533)
+    assert lrec["variant"] == "light" and lrec["scrim_peak"] == 0 and lrec["contrast"] >= 6.5
+    sky = Image.new("RGB", (1440, 1800), (90, 125, 170))
     shaded, _, rec = masthead.plan(sky, 107, 133, 160 / 3, reach=533)
     assert 0 < rec["scrim_peak"] <= 0.60
     out = np.asarray(shaded.convert("L"), dtype=np.float32)

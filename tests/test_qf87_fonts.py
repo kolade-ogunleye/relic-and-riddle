@@ -287,8 +287,9 @@ def test_the_hook_frame_draws_no_masthead_under_nine_pixels(tmp_path, fact_recor
     photo = tmp_path / "ground.png"
     Image.new("RGB", (1600, 2400), (70, 60, 50)).save(photo)
     plan = dc.plan_hook_frame(hook(photo, eyebrow="The Richat ring"), SHEET)
-    assert plan.meta["masthead"] == {"shown": False, "cap_124": 5.2,
-                                     "reason": "under 9 px cap height at profile-grid size"}
+    assert plan.meta["masthead"] == {"shown": False, "cap_124": 5.2,   # round 7: ruling 2 named as the reason
+                                     "reason": "operator ruling 2: no masthead on the hook frame "
+                                               "(under 9 px cap height at profile-grid size)"}
     assert not {e.name for e in plan.elements} & {"brand", "brand_mark"}
     assert "brand" not in plan.meta["grid_proof"]["elements"] and plan.meta["grid_proof"]["hook_fails"] == []
 

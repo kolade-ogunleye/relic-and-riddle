@@ -312,7 +312,7 @@ SIZE_SITES: Mapping[str, str] = MappingProxyType({
     "design_cards:_source_label_font": "F",
     "design_cards:_source_width": "F",
     "design_cards:frame_at": "F",
-    "design_cards:hook_masthead_shown": "F",
+    "design_cards:hook_masthead_record": "F",
     "design_cards:plan_chapter_card": "F",
     "design_cards:plan_chapter_card.three": "F",
     "design_cards:plan_hook_frame": "F",

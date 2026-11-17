@@ -165,9 +165,9 @@ def _instrument(monkeypatch):
 
 
 def test_every_masthead_name_and_mark_drawn_was_verified_first(tmp_path, monkeypatch):
-    """At run time, on every surface that draws a masthead (and on the two paths ruling 2 keeps unreached: the cover's
-    and the hook's), each name plate drawn and each diamond drawn passed masthead.verify."""
-    from src import cover_design, design_cards, end_card, youtube_thumbnail
+    """At run time, on every surface that draws a masthead, each name plate drawn and each diamond drawn passed
+    masthead.verify; the hook frame (ruling 2) draws neither."""
+    from src import design_cards, end_card, youtube_thumbnail
     from src.multi_format import MultiFormatGenerator
     seen = _instrument(monkeypatch)
     photo = tmp_path / "p.jpg"
@@ -180,20 +180,14 @@ def test_every_masthead_name_and_mark_drawn_was_verified_first(tmp_path, monkeyp
     monkeypatch.setattr(end_card, "END_SCREEN_SECONDS", 0.2)
     for size in ((1080, 1920), (1920, 1080)):
         list(end_card.frames(Image.new("RGB", size, (60, 60, 60)), "Share this with a friend.", {}))
-    from src.still_layout import Layout
-    for paper in (False, True):   # the cover's path (unreached while every caller passes grid_delivery)
-        lay = Layout("cover", (1080, 1920), (60, 60, 1020, 1860))
-        ground = Image.new("RGB", (1080, 1920), brand.BONE if paper else (120, 140, 160))
-        cover_design._brand(ground, lay, paper=paper)
+    # ruling 2 (round 7): the cover and the hook draw none at all
     import tests.test_freeze_cards_2026_11_04 as fc
-    monkeypatch.setattr(design_cards, "hook_masthead_shown", lambda: True)   # the hook's path, forced
     hook_photo = tmp_path / "h.jpg"
     Image.new("RGB", (1200, 2100), (70, 60, 50)).save(hook_photo)
-    try:
-        plan = fc.hook_plan(hook_photo)
-        design_cards.frame_at(plan, plan.frames - 1)
-    except design_cards.CardRefused as e:   # refused for its masthead, or by the grid proof (QF-87, ruling 2)
-        assert "masthead" in str(e) or "profile grid: brand" in str(e)
+    before = (len(seen["names"]), len(seen["marks"]))
+    plan = fc.hook_plan(hook_photo)
+    design_cards.frame_at(plan, plan.frames - 1)
+    assert (len(seen["names"]), len(seen["marks"])) == before and plan.meta["masthead"]["shown"] is False
     assert seen["names"] and seen["marks"]
     assert set(seen["names"]) <= seen["verified_plates"], "a masthead name was drawn without masthead.verify"
     assert set(seen["marks"]) <= seen["verified_marks"], "a mark was drawn without masthead.verify"

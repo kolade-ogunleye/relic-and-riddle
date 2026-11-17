@@ -1,4 +1,4 @@
-"""Cover masthead legibility (2026-11-01): RELIC & RIDDLE must clear WCAG AA on any photograph.
+"""Cover masthead (2026-11-01; operator ruling 2, 2026-11-16: the Reel cover carries no masthead).
 
 Regression: _brand() picked ink or bone from the mean luminance behind it with the halo disabled, so on
 mid-tone or busy photographs (sandstone against sky, stone texture) neither colour was readable.
@@ -10,7 +10,6 @@ import numpy as np
 import pytest
 from PIL import Image
 
-from src import brand
 from src.cover_design import _brand
 from src.still_layout import Layout
 
@@ -47,43 +46,15 @@ GROUNDS: dict[str, Callable[[], Image.Image]] = {
 }
 
 
-@pytest.mark.parametrize("centered", [False, True], ids=["left", "centered"])
+@pytest.mark.parametrize("paper", [False, True], ids=["photo", "paper"])
 @pytest.mark.parametrize("ground", list(GROUNDS), ids=list(GROUNDS))
-def test_cover_brand_meets_aa_on_any_photograph(ground: str, centered: bool) -> None:
-    """Cycle 0 round 6: this path (unreached: every cover passes grid_delivery, and ruling 2 puts no masthead on the
-    Reel cover) now passes the system's one masthead gate (masthead.verify): drawn, it meets AA and the gate; else it
-    draws nothing and its record says why, never an unreadable masthead."""
+def test_the_cover_draws_no_masthead_on_any_ground(ground: str, paper: bool) -> None:
+    """Operator ruling 2 (2026-11-16): no masthead on the Reel cover; cycle 0 round 7 removed the cover's masthead
+    path (unreached since QF-87; its own solver aimed at 4.8 with a halo up to 1.0 and met the system's 5.5 masthead
+    gate only on black). Every ground comes back untouched, the record says why, nothing named brand is laid out.
+    (Was: the cover masthead met AA on any photograph, inked on paper, with the diamond before the name.)"""
     lay = _lay()
-    ground_im = GROUNDS[ground]()
-    out = _brand(ground_im, lay, centered=centered)
-    assert out.size == (W, H)
-    if "plates" not in lay.meta:   # refused by the gate: untouched, with the reason
-        rec = lay.meta["masthead"]
-        assert rec["shown"] is False and "masthead not drawn" in rec["reason"] and out is ground_im
-        return
-    plate = lay.meta["plates"]["brand"][0]
-    assert not plate.empty
-    assert plate.fill == brand.BONE
-    delivered = plate.measure(out.convert("RGB"))
-    assert delivered is not None and delivered >= 4.5, f"{ground}: {delivered:.2f}:1"
-    assert lay.elements[-1]["name"] == "brand"
-
-
-def test_cover_brand_on_paper_stays_ink_without_halo() -> None:
-    lay = _lay()
-    _brand(_flat(brand.BONE), lay, paper=True)
-    plate = lay.meta["plates"]["brand"][0]
-    assert plate.fill == brand.INK and plate.halo == 0.0
-
-
-@pytest.mark.parametrize("centered", [False, True], ids=["left", "centered"])
-def test_brand_mark_sits_before_the_name_and_group_is_placed(centered: bool) -> None:
-    lay = _lay()
-    out = _brand(_flat((24, 28, 34)), lay, centered=centered).convert("RGB")   # a ground the gate passes (round 6)
-    boxes = {e["name"]: e["box"] for e in lay.elements}
-    mark, name = boxes["brand_mark"], boxes["brand"]
-    assert mark[2] < name[0]                                   # the diamond, then a gap, then the name
-    assert out.getpixel(((mark[0] + mark[2]) // 2, (mark[1] + mark[3]) // 2)) == brand.GOLD
-    assert mark[1] < (name[1] + name[3]) / 2 < mark[3]         # on the name's centre line
-    # One place on every style since the 2026-11-02 design review: the mark-and-name group is centred.
-    assert abs((mark[0] + name[2]) / 2 - W / 2) <= 6
+    im = GROUNDS[ground]()
+    out = _brand(im, lay, paper=paper, grid_delivery=False)
+    assert out is im and lay.meta["masthead"]["shown"] is False and "ruling 2" in lay.meta["masthead"]["reason"]
+    assert not any(e["name"] in ("brand", "brand_mark") for e in lay.elements) and "plates" not in lay.meta

@@ -884,7 +884,7 @@ def test_private_helpers_pinned(tmp_path):
     assert g.x(153) == pytest.approx(102) and g.k == pytest.approx(2 / 3)
     lay = Layout("hook_frame", (1080, 1920), graphics_box())
     out = _brand(_scrim(im, (76, 600, 908, 1040), strength=0.6, feather=200), lay)
-    assert lay.meta["plates"]["brand"][0].contrast >= brand.PLACE_TARGET and out.size == im.size
+    assert lay.meta["masthead"]["shown"] is False and out.size == im.size   # ruling 2 (cycle 0 round 7): no masthead
     lay.meta["composition"] = {"image_box": [84, 0, 996, 700]}
     _provenance(out, lay)
     assert lay.meta["provenance"]["plate"][3] == 700 - 24   # image_box block_top + 8 -> block_top - 16
@@ -1193,7 +1193,7 @@ def test_limiter_window_stops_at_clause():
 def test_hook_masthead_planned_at_hook_target(photos):
     """Round 2 review 6: the masthead plans 5.1 like every other hook line. QF-87 (lander ruling 2026-11-13: the row's rule 'masthead >= 9 px at the 124 px tile or absent' reaches the hook frame): the 64 px masthead is 5.2 px there, so the card draws none and lay.meta['masthead'] says why; every line drawn plans 5.1 (was:
     the masthead's plate among them)."""
-    assert not dc.hook_masthead_shown()
+    assert dc.hook_masthead_record()["shown"] is False   # ruling 2: no masthead on the hook frame (round 7)
     for kind in ("warm", "sky", "noise", "dark"):
         plan = dc.plan_hook_frame(hook(photos[kind], eyebrow="The Richat ring"), SHEET)
         assert "brand" not in dict(plan.meta["_contrast"]) and plan.meta["masthead"]["shown"] is False

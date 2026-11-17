@@ -13,7 +13,6 @@ from .typography import (
     fit_text,
     get_font,
     place_text,
-    plan_text,
     probe_text,
     record_contrast,
     text_size,
@@ -335,55 +334,9 @@ def _paint(im, rows, x, top, centered, lay):
 
 
 # the masthead's words: brand.MASTHEAD (read when drawn; BRAND_TEXT below for its readers)
-BRAND_PX, BRAND_TRACK = 64, 4.0
+BRAND_PX = 64   # the masthead band's size (ruling 2: no masthead drawn; the covers keep its band)
 BRAND_TOP = 462     # the masthead's ascender line, the same band in the grid's square on every style
 MINIMAL_GAPS = (40, 22)   # minimal: masthead foot -> eyebrow caps, eyebrow foot -> title caps (ink to ink)
-MARK_R, MARK_GAP = 13, 20   # the gold diamond (the brand's mark, as on the end card) and its gap to the name
-
-
-MAST_HALO_MAX = 0.3                 # above this planned halo, the masthead gets a band scrim instead
-MAST_SCRIM = (0.2, 0.75, 0.05)      # band strengths tried: from, to, step
-MAST_SCRIM_MIN_EASE = 36            # px the band needs to ease out above a protected photo, else no band
-MAST_SCRIM_FEATHER = (170, 140)     # the band's ease above the masthead's line, and below from its cap centre
-                                    # (never onto a protected photograph below it)
-
-
-def _mast_scrim(im, lay, xy, font, plate):
-    """(image, plate): the least INK band (MAST_SCRIM steps) under which the masthead clears brand.PLACE_TARGET
-    with a halo of at most MAST_HALO_MAX; the original plan when no band up to the strongest does (a pure-white
-    striped sky keeps the full halo: legibility first)."""
-    import numpy as np
-    box = font.getbbox(brand.MASTHEAD, anchor="lt")
-    y0, y1 = xy[1] + box[1] - 6, xy[1] + box[3] + 6
-    # The band eases out from the masthead's cap centre, not its foot (r5 review, 2026-11-02): eased from the
-    # foot it had only the 40-60 px left above a full-width photo, a flat dark plateau then a fast ramp, read as
-    # a hard line across Gol Gumbaz's sky. From the centre the knee sits behind the glyphs and the ramp is long.
-    mid = (y0 + y1) / 2
-    yy = np.arange(im.height, dtype=np.float32)
-    up, down = MAST_SCRIM_FEATHER
-    below = [b["box"][1] for b in (lay.protected if lay is not None else []) if b["box"][1] >= y1]
-    if below:   # the reviewed feature (or a contained photograph) under the masthead stays ungraded
-        down = max(1, min(down, min(below) - 2 - mid))
-        if down < MAST_SCRIM_MIN_EASE:
-            # A band that has to stop within a few px of the photograph reads as a hard seam across it
-            # (round 3 review, 2026-11-02): keep the measured glyph halo instead.
-            return im, plate
-    d = np.where(yy < y0, (y0 - yy) / up, np.where(yy > mid, (yy - mid) / down, 0))
-    v = np.clip(1 - d, 0, 1)
-    v = v * v * (3 - 2 * v)
-    strength = MAST_SCRIM[0]
-    while strength <= MAST_SCRIM[1] + 1e-9:
-        layer = Image.new("RGBA", im.size, brand.INK + (255,))
-        layer.putalpha(Image.fromarray((v * strength * 255).astype("uint8")[:, None]).resize(im.size))
-        trial = Image.alpha_composite(im.convert("RGBA"), layer)
-        p = plan_text(trial, xy, brand.MASTHEAD, font, brand.BONE, "lt", BRAND_TRACK, halo_px=24, min_halo=0.0,
-                      shadow=True, max_halo=MAST_HALO_MAX)
-        if p.contrast is not None and p.contrast >= brand.PLACE_TARGET:
-            if lay is not None:
-                lay.meta["mast_scrim"] = {"strength": round(strength, 2), "band": [round(y0), round(y1)]}
-            return trial, p
-        strength += MAST_SCRIM[2]
-    return im, plate
 
 
 _BRAND_NAMES = {"BRAND_TEXT": "MASTHEAD", "QUALIFIER_FONT": "TEXT_FONT"}
@@ -397,69 +350,15 @@ def __getattr__(name: str):
 
 
 def _brand(im, lay, centered=False, paper=False, left=None, centre=540, grid_delivery=False):
-    """The masthead: the gold diamond mark, then RELIC & RIDDLE, at a measured contrast like every other line.
-
-    40 px Cinzel Bold (2026-11-01): at 32 px regular it was 11 px tall on a 390 px phone and a smear in the
-    profile grid; the diamond is what still registers at grid size. On the paper ground (a known light, flat
-    field) the name is ink and the mark dark gold. On photographs the name is always bone with the solved ink
-    halo (brand.PLACE_TARGET), as the carousel header is: a mean-luminance switch between ink and bone, with the
-    halo disabled, left it unreadable on mid-tone or busy photographs.
-
-    QF-87: `grid_delivery` (a cover, which the profile grid shows at 124 px wide) draws the masthead only when its
-    cap height there is at least MASTHEAD_GRID_CAP px; under it the masthead is absent (at BRAND_PX it is about
-    5 px: a smear, not a mark) and lay.meta["masthead"] says why. The grid proof holds a drawn one to the same floor.
-    """
+    """Operator ruling 2 (2026-11-16): a Reel cover (and its grid tile) carries NO masthead; the brand lives on the
+    profile, carousel, YouTube and end card. Cycle 0 round 7 removed the drawing path (it was unreached since QF-87:
+    every caller passes `grid_delivery`, where the 64 px masthead is 5.2 px at the 124 px tile). `im` comes back
+    untouched and lay.meta["masthead"] says why; the band the covers lay out under (BRAND_TOP, _brand_foot) stays."""
     font = get_font(brand.MASTHEAD_FONT, BRAND_PX, weight=700)
-    if grid_delivery and cap_h_of(font) * GRID_SCALE[0] < MASTHEAD_GRID_CAP:
-        if lay is not None:
-            lay.meta["masthead"] = {"shown": False, "cap_124": round(cap_h_of(font) * GRID_SCALE[0], 1),
-                                    "reason": f"under {MASTHEAD_GRID_CAP} px cap height at profile-grid size"}
-        return im
-    measure = ImageDraw.Draw(im)
-    name_w = text_size(measure, brand.MASTHEAD, font)[0] + BRAND_TRACK * (len(brand.MASTHEAD) - 1)
-    group = 2 * MARK_R + MARK_GAP + name_w
-    # One place on every style (2026-11-02 design review: it moved between left and centre): centred on the
-    # canvas, the same band in the profile grid's square on every tile.
-    # Freeze pass (2026-11-04): a left-set card (the first frame) sets it flush left, its mark's ink at x `left`.
-    # QF-24: a 9:16 card centred in the organic Reel box passes its axis (`centre`, x 480 there).
-    x0 = round(centre - group / 2) if left is None else int(left)
-    top = BRAND_TOP
-    cap = font.getbbox("R", anchor="lt")
-    cy = top + (cap[1] + cap[3]) / 2
-    cx = x0 + MARK_R
-    xy = (x0 + 2 * MARK_R + MARK_GAP, top)
-    diamond = [(cx, cy - MARK_R), (cx + MARK_R, cy), (cx, cy + MARK_R), (cx - MARK_R, cy)]
-    untouched = im
-    if paper:
-        plate = plan_text(im, xy, brand.MASTHEAD, font, brand.INK, "lt", BRAND_TRACK, halo_px=0)
-        mark, edge = brand.GOLD_DIM, None
-    else:
-        # A 40 px halo allowed to reach full strength is what clears brand.PLACE_TARGET on a pure-white sky;
-        # the 0.35 floor keeps busy texture off the glyph edges.
-        plate = plan_text(im, xy, brand.MASTHEAD, font, brand.BONE, "lt", BRAND_TRACK,
-                          halo_px=40, min_halo=0.35, shadow=True, max_halo=1.0)
-        if plate.halo > MAST_HALO_MAX:
-            # Round 3: over a bright sky the glyph-shaped halo grew into a grey rounded box. An eased INK band
-            # across the masthead's line takes the load instead, so a smaller halo still clears the target.
-            im, plate = _mast_scrim(im, lay, xy, font, plate)
-        mark, edge = brand.GOLD, brand.INK
-    # The system's ONE masthead gate (src/masthead.py verify, cycle 0 round 6): the name at the masthead gate and the
-    # mark at contrast.mark on the pixels it changes, else no masthead (the record says why), never an invisible one.
-    from . import masthead
-    gate_rec: dict = {}
-    if masthead.verify(im, plate, diamond, 3, gate_rec, fill=mark, edge_colour=edge) is None:
-        if lay is not None:
-            lay.meta["masthead"] = gate_rec
-        return untouched
-    im = plate.draw(im)
-    rgba = im.convert("RGBA")
-    masthead.draw_mark(ImageDraw.Draw(rgba), diamond, 3, alpha=255, fill=mark, edge_colour=edge)
-    im = rgba if im.mode == "RGBA" else rgba.convert(im.mode)
     if lay is not None:
-        lay.add("brand_mark", (cx - MARK_R, cy - MARK_R, cx + MARK_R, cy + MARK_R))
-    record_contrast(lay, "brand", [plate])
-    if lay is not None:
-        lay.meta.setdefault("plates", {})["brand"] = [plate]
+        lay.meta["masthead"] = {"shown": False, "cap_124": round(cap_h_of(font) * GRID_SCALE[0], 1),
+                                "reason": "operator ruling 2: no masthead on the Reel cover "
+                                          f"(under {MASTHEAD_GRID_CAP} px cap height at profile-grid size)"}
     return im
 
 

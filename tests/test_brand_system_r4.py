@@ -159,90 +159,13 @@ def test_token_ranges_cover_every_numeric_runtime_token_and_are_enforced():
 
 # ------------------------------------------------- the runtime-observed type-size inventory (S2)
 
-def render_all(tmp_path) -> None:
-    """Every surface renderable from committed or synthetic inputs (CI has no output/): carousel and FB slides of
-    every archetype, Story frames, the YouTube thumbnail, the 9:16 end card and 16:9 end screen, hook / chapter / myth
-    cards, the 9:16 and 16:9 captions, the five-event timeline and the cross-section."""
+def render_all(tmp_path) -> list[str]:
+    """Every surface variant the code declares (tests/surface_registry.py: enumerated from the renderers' own
+    registries, round 6), each rendered once from synthetic inputs (CI has no output/); returns the keys rendered."""
     import sys
-
-    from src import end_card, graphics, youtube_thumbnail
-    from src.multi_format import MultiFormatGenerator
-    photo = tmp_path / "p.jpg"
-    Image.new("RGB", (1600, 2000), (150, 120, 90)).save(photo)
-    gen = MultiFormatGenerator()
-    card = {"heading": "IMPACT THEORY DISPROVED", "body": "The theory was disproved in 1969.",
-            "stat": "40 KM across", "question": "Impact or erosion?"}
-    for arche in ("cover", "immersive", "editorial_split", "comparison", "colossal_stat", "debate"):
-        for fb in (False, True):
-            gen._render_carousel_slide(arche, photo, photo, card, 0 if arche == "cover" else 1, 7,
-                                       {"question": "Which?", "options": ["One", "Two"]}, "Send this to a friend.", fb,
-                                       subject="EYE OF THE SAHARA")
-    slides = [{"kicker": "DID YOU KNOW?", "line1": "ONE MAN", "line2": "KNOCKED", "body": "Short."},
-              {"kicker": "WHAT HE FOUND", "line1": "A CITY", "line2": "UNDER THE FIELDS", "body": "A longer body."}]
-    for i, s in enumerate(slides):
-        gen._render_story_frame(photo, s, i, 3, {})
-    youtube_thumbnail.render(Image.open(photo), {"title": "THE EYE OF THE SAHARA"}, meta={})
-    youtube_thumbnail.render(Image.open(photo), {"line1": "THE 25-MILE", "line2": "SAHARA EYE"}, meta={})
-    old = (end_card.SECONDS, end_card.END_SCREEN_SECONDS)
-    end_card.SECONDS = end_card.END_SCREEN_SECONDS = 0.2
-    try:
-        list(end_card.frames(Image.new("RGB", (1080, 1920), (60, 60, 60)), "Share this with a friend.", {}))
-        list(end_card.frames(Image.new("RGB", (1920, 1080), (60, 60, 60)), "Share this with a friend.", {}))
-    finally:
-        end_card.SECONDS, end_card.END_SCREEN_SECONDS = old
     sys.path.insert(0, str(ROOT / "tests"))
-    import test_freeze_cards_2026_11_04 as fc
-
-    from src import config
-    from src import design_cards as dc
-    config.FACT_RECORD_KEY = config.FACT_RECORD_KEY or "test-only-fact-record-key-0123456789abcdef"   # the tests' key
-    for plan in (fc.chapter_plan(fc.TALL), fc.chapter_plan(fc.WIDE), fc.plan_myth(), fc.plan_myth(size=fc.WIDE)):
-        dc.frame_at(plan, plan.frames - 1)
-    from src import video_composer as vc
-    words = json.loads((ROOT / "docs/reviews/freeze-panel-2026-11-04/fixtures/runs/run_amber_room_heist_1792790550/"
-                        "words.json").read_text(encoding="utf-8"))
-    vc.VideoComposer().build_subtitles(words, tmp_path / "c.ass")
-    vc.VideoComposer().build_subtitles(words, tmp_path / "w.ass", width=1920, height=1080)
-    events = [{"year": 1300, "label": "The Knights of St John reach Rhodes", "approximate": True},
-              {"year": 1522, "label": "Suleiman the Magnificent takes the city"},
-              {"year": 1523, "label": "The knights sail for Malta"},
-              {"year": 1912, "label": "Italy takes the Dodecanese"},
-              {"year": 1988, "label": "The Medieval City of Rhodes is listed"}]
-    saved = graphics._encode
-
-    def encode(frames, out, *a, **k):
-        for _ in frames:
-            pass
-        return Path(out)
-    graphics._encode = encode
-    try:
-        for w, h in ((1080, 1920), (1920, 1080)):
-            graphics.render_timeline(events, tmp_path / f"t{w}.mp4", width=w, height=h, photo=photo)
-    finally:
-        graphics._encode = saved
-    # round 5: then-and-now, callouts and the Reel cover / grid tile too (every module in SIZE_SITES is rendered;
-    # test_the_observed_renders_cover_every_surface_module holds the list complete)
-    from src import callouts, then_now
-    from src.visual_engine import VisualEngine
-    rng = np.random.default_rng(2)
-    busy = tmp_path / "busy.jpg"
-    Image.fromarray(rng.integers(150, 240, (70, 40, 3), dtype=np.uint8)).resize((1200, 2100), Image.NEAREST).save(busy)
-    other = tmp_path / "busy2.jpg"
-    Image.fromarray(np.random.default_rng(3).integers(150, 240, (70, 40, 3), dtype=np.uint8)).resize(
-        (1200, 2100), Image.NEAREST).save(other)
-    saved_tn, saved_co = then_now._encode, callouts._encode
-    then_now._encode = callouts._encode = encode
-    try:
-        for w, h in ((1080, 1920), (1920, 1080)):
-            then_now.render(busy, 1925, other, 2019, tmp_path / f"tn{w}.mp4", width=w, height=h)
-        callouts.render(busy, [("stone door recess", 600, 900), ("carved tuff wall", 300, 1000)],
-                        tmp_path / "co.mp4")
-    finally:
-        then_now._encode, callouts._encode = saved_tn, saved_co
-    payload = {"thumbnail": {"eyebrow": "ANCIENT ENGINEERING", "line1": "THE 144-FOOT", "line2": "WHISPERING DOME",
-                             "tagline": "BUILT WITHOUT RINGS"}}
-    for style in ("badge", "minimal"):
-        VisualEngine().generate_thumbnails(busy, payload, tmp_path / f"cover_{style}", style=style, variants=False)
+    import surface_registry
+    return surface_registry.render_all(Path(tmp_path))
 
 
 def observed_modules(seen) -> list[str]:
@@ -282,6 +205,9 @@ def _run_observation(tmp_path):
     assert line is not None, res.stderr[-3000:]
     observed = json.loads(line[len("OBSERVED="):])
     mods = next(ln for ln in res.stdout.splitlines() if ln.startswith("MODULES="))
+    for tag in ("SITES", "RENDERED"):   # round 6: the sites seen and the surface keys rendered (test_brand_system_r6)
+        got = next(ln for ln in res.stdout.splitlines() if ln.startswith(tag + "="))
+        _OBSERVATION[tag.lower()] = json.loads(got[len(tag) + 1:])
     return observed, json.loads(mods[len("MODULES="):])
 
 
@@ -308,6 +234,19 @@ def test_the_observed_renders_cover_every_surface_module(tmp_path):
     _, modules = _observe_in_a_fresh_process(tmp_path, with_modules=True)
     declared = {site.split(":")[0] for site in list(brand_system.SIZE_SITES) + list(brand_system.RUNTIME_SIZE_SITES)}
     assert declared <= set(modules), sorted(declared - set(modules))
+
+
+def test_the_observer_renders_every_registered_surface(tmp_path):
+    """Round 6 (adversary r5-3: a hand list left out the monument cover): the observed renders are exactly the surface
+    variants the code declares (tests/surface_registry.py: cover styles, carousel archetypes in both copies, card
+    planners and graphic renderers on each canvas they draw, ...), each rendered."""
+    import sys
+    sys.path.insert(0, str(ROOT / "tests"))
+    import surface_registry
+    _observe_in_a_fresh_process(tmp_path)
+    assert _OBSERVATION["rendered"] == surface_registry.registry()
+    assert "cover.monument:tall" in _OBSERVATION["rendered"]
+    assert any(site.startswith("cover_design:_monument") for site in _OBSERVATION["sites"])
 
 
 def test_the_observer_sees_an_alias_a_variant_and_a_wrapper(tmp_path):

@@ -50,14 +50,22 @@ GROUNDS: dict[str, Callable[[], Image.Image]] = {
 @pytest.mark.parametrize("centered", [False, True], ids=["left", "centered"])
 @pytest.mark.parametrize("ground", list(GROUNDS), ids=list(GROUNDS))
 def test_cover_brand_meets_aa_on_any_photograph(ground: str, centered: bool) -> None:
+    """Cycle 0 round 6: this path (unreached: every cover passes grid_delivery, and ruling 2 puts no masthead on the
+    Reel cover) now passes the system's one masthead gate (masthead.verify): drawn, it meets AA and the gate; else it
+    draws nothing and its record says why, never an unreadable masthead."""
     lay = _lay()
-    out = _brand(GROUNDS[ground](), lay, centered=centered)
+    ground_im = GROUNDS[ground]()
+    out = _brand(ground_im, lay, centered=centered)
+    assert out.size == (W, H)
+    if "plates" not in lay.meta:   # refused by the gate: untouched, with the reason
+        rec = lay.meta["masthead"]
+        assert rec["shown"] is False and "masthead not drawn" in rec["reason"] and out is ground_im
+        return
     plate = lay.meta["plates"]["brand"][0]
     assert not plate.empty
     assert plate.fill == brand.BONE
     delivered = plate.measure(out.convert("RGB"))
     assert delivered is not None and delivered >= 4.5, f"{ground}: {delivered:.2f}:1"
-    assert out.size == (W, H)
     assert lay.elements[-1]["name"] == "brand"
 
 
@@ -71,7 +79,7 @@ def test_cover_brand_on_paper_stays_ink_without_halo() -> None:
 @pytest.mark.parametrize("centered", [False, True], ids=["left", "centered"])
 def test_brand_mark_sits_before_the_name_and_group_is_placed(centered: bool) -> None:
     lay = _lay()
-    out = _brand(_flat((120, 140, 160)), lay, centered=centered).convert("RGB")
+    out = _brand(_flat((24, 28, 34)), lay, centered=centered).convert("RGB")   # a ground the gate passes (round 6)
     boxes = {e["name"]: e["box"] for e in lay.elements}
     mark, name = boxes["brand_mark"], boxes["brand"]
     assert mark[2] < name[0]                                   # the diamond, then a gap, then the name

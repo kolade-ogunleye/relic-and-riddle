@@ -69,7 +69,7 @@ def _check(ground, text_brand=None):
         g2, p, rec = masthead.plan(ground, X, BASE, SIZE, reach=BASE + 400)
         out, plate, rec2, _ = masthead.draw(ground, X, BASE, SIZE, reach=BASE + 400)
     assert rec["shown"] == rec2["shown"]
-    assert rec["scrim_peak"] <= 0.60 + 1e-9 and rec["halo"] <= 0.16 + 1e-9
+    assert rec["scrim_peak"] <= 0.60 + 1e-9 and rec["halo"] <= (0.24 if rec.get("halo_exception") else 0.16) + 1e-9   # ruling 4
     if not rec["shown"]:
         assert out is ground and plate is None and "reason" in rec2
         assert rec2["best_tried"] is None or rec2["best_tried"] < GATE
@@ -154,12 +154,13 @@ def test_a_failed_search_records_the_best_step_it_tried():
 
 def test_a_masthead_wider_than_its_room_is_refused_never_clipped():
     """r2 finding 7: a permitted long name (2065.9 px on 1440) was clipped while recorded as shown."""
-    long_brand = brand.DEFAULT_BRAND.derive("long", text={"masthead": "THE VERY LONG NAME OF A BRAND THAT RUNS ON"})
+    # round 6: the ladder now reaches its exact floor, where the round-2 name (2065.9 px at 53.3) fits; a longer one
+    long_brand = brand.DEFAULT_BRAND.derive("long", text={"masthead": "THE VERY LONG NAME OF A BRAND THAT RUNS ON AND ON"})
     ground = Image.new("RGB", (W, H), brand.INK)
     with brand.use(long_brand):
         out, plate, rec, _ = masthead.draw(ground, X, BASE, SIZE)
     assert not rec["shown"] and out is ground and plate is None and "room" in rec["reason"]
-    assert rec["group_width"] > rec["room"]
+    assert rec["group_width"] > rec["room"] and rec["floor_width"] > rec["room"]
 
 
 def test_the_end_card_fail_closed_record_carries_its_reason():

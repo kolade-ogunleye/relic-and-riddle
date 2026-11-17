@@ -428,9 +428,10 @@ def _brand(im, lay, centered=False, paper=False, left=None, centre=540, grid_del
     cy = top + (cap[1] + cap[3]) / 2
     cx = x0 + MARK_R
     xy = (x0 + 2 * MARK_R + MARK_GAP, top)
+    diamond = [(cx, cy - MARK_R), (cx + MARK_R, cy), (cx, cy + MARK_R), (cx - MARK_R, cy)]
+    untouched = im
     if paper:
-        im, plate = place_text(im, xy, brand.MASTHEAD, font, brand.INK,
-                               anchor="lt", track=BRAND_TRACK, halo_px=0, shadow=False)
+        plate = plan_text(im, xy, brand.MASTHEAD, font, brand.INK, "lt", BRAND_TRACK, halo_px=0)
         mark, edge = brand.GOLD_DIM, None
     else:
         # A 40 px halo allowed to reach full strength is what clears brand.PLACE_TARGET on a pure-white sky;
@@ -441,14 +442,18 @@ def _brand(im, lay, centered=False, paper=False, left=None, centre=540, grid_del
             # Round 3: over a bright sky the glyph-shaped halo grew into a grey rounded box. An eased INK band
             # across the masthead's line takes the load instead, so a smaller halo still clears the target.
             im, plate = _mast_scrim(im, lay, xy, font, plate)
-        im = plate.draw(im)
         mark, edge = brand.GOLD, brand.INK
-    diamond = [(cx, cy - MARK_R), (cx + MARK_R, cy), (cx, cy + MARK_R), (cx - MARK_R, cy)]
+    # The system's ONE masthead gate (src/masthead.py verify, cycle 0 round 6): the name at the masthead gate and the
+    # mark at contrast.mark on the pixels it changes, else no masthead (the record says why), never an invisible one.
+    from . import masthead
+    gate_rec: dict = {}
+    if masthead.verify(im, plate, diamond, 3, gate_rec, fill=mark, edge_colour=edge) is None:
+        if lay is not None:
+            lay.meta["masthead"] = gate_rec
+        return untouched
+    im = plate.draw(im)
     rgba = im.convert("RGBA")
-    d = ImageDraw.Draw(rgba)
-    d.polygon(diamond, fill=mark + (255,))
-    if edge is not None:   # the edge over the fill, so it survives (system mark, cycle 0 round 2)
-        d.polygon(diamond, outline=edge + (255,), width=3)
+    masthead.draw_mark(ImageDraw.Draw(rgba), diamond, 3, alpha=255, fill=mark, edge_colour=edge)
     im = rgba if im.mode == "RGBA" else rgba.convert(im.mode)
     if lay is not None:
         lay.add("brand_mark", (cx - MARK_R, cy - MARK_R, cx + MARK_R, cy + MARK_R))

@@ -103,6 +103,15 @@ BRAND_TEXT: Mapping[str, str] = MappingProxyType({
 })
 
 
+def _ratio(a: RGB, b: RGB) -> float:
+    """The WCAG contrast ratio of two sRGB colours."""
+    def lum(c):
+        lin = [v / 12.92 if v <= 0.04045 else ((v + 0.055) / 1.055) ** 2.4 for v in (x / 255 for x in c)]
+        return 0.2126 * lin[0] + 0.7152 * lin[1] + 0.0722 * lin[2]
+    la, lb = lum(a), lum(b)
+    return (max(la, lb) + 0.05) / (min(la, lb) + 0.05)
+
+
 def _system_tokens() -> Mapping[str, Any]:
     from .brand_system import SYSTEM_TOKENS
     return SYSTEM_TOKENS
@@ -148,6 +157,16 @@ class BrandConfig:
                                  f"({self.system[other]}): the two interact (src/brand_system.py TOKEN_JOINT)")
         for role in self.palette:
             self.colour(role)
+        # The mark (cycle 0 round 6, adversary r5-1: GOLD = INK drew an invisible diamond): its gold fill is what reads
+        # on an INK ground, its INK edge what reads on a bone one; a palette where either misses the mark gate
+        # (WCAG 1.4.11) is refused here, before any surface draws it.
+        from .brand_system import GATES as _G
+        mark_gate = _G["contrast.mark"]
+        for a, b in (("GOLD", "INK"), ("INK", "BONE")):
+            r = _ratio(self.colour(a), self.colour(b))
+            if r < mark_gate:
+                raise ValueError(f"brand {self.name!r}: the mark's {a} against {b} is {r:.2f}:1, under the "
+                                 f"{mark_gate}:1 mark gate (src/brand_system.py contrast.mark)")
         for role in self.fonts:
             self._font_role(role)
 

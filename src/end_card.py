@@ -426,14 +426,19 @@ def _word_xs(lay: dict[str, Any], width: int) -> list[tuple[int, int, str, float
     return out
 
 
-def _mark(d: ImageDraw.ImageDraw, lay: dict[str, Any], a: float, r_draw: float) -> None:
-    """The masthead's gold diamond (ink edge, as on the cover) and the gold rule drawn out under the masthead."""
+def mark_diamond(lay: dict[str, Any]) -> list[tuple[float, float]]:
+    """The masthead's diamond on this layout: its four points."""
     cx, cy = lay["mark_centre"]
     r = lay["masthead"]["mark_r"]
+    return [(cx, cy - r), (cx + r, cy), (cx, cy + r), (cx - r, cy)]
+
+
+def _mark(d: ImageDraw.ImageDraw, lay: dict[str, Any], a: float, r_draw: float) -> None:
+    """The masthead's gold diamond (the system's mark, drawn by masthead.draw_mark once masthead.verify passed it) and
+    the gold rule drawn out under the masthead."""
     if a > 0:
-        diamond = [(cx, cy - r), (cx + r, cy), (cx, cy + r), (cx - r, cy)]
-        d.polygon(diamond, fill=(*brand.GOLD, int(255 * a)))   # the fill first, then the INK edge over it (system)
-        d.polygon(diamond, outline=(*brand.INK, int(255 * a)), width=lay["masthead"].get("edge", 3))
+        from . import masthead
+        masthead.draw_mark(d, mark_diamond(lay), lay["masthead"].get("edge", 3), alpha=int(255 * a))
     if r_draw > 0:
         x0, x1 = lay["rule"]
         y = lay["rule_y"]
@@ -579,23 +584,29 @@ def frames(last: Image.Image, share: str, stats: dict[str, Any] | None = None, *
     brand_plate = plan_text(rest, lay["masthead_xy"], mast["text"], mast["font"], colour_of("masthead.colour_dark"),
                             "lt", mast["track"], target=tok("contrast.masthead_target"),
                             max_halo=tok("halo.masthead_max"))
-    # The system's masthead gate, judged as src/masthead.py judges it (the worst glyph, not the ring's aggregate), and
-    # its room; failing closed: a masthead under the gate or wider than its room is not drawn, and the record says why.
-    from .masthead import judge
-    mast_worst = judge(rest, brand_plate)
+    # The system's ONE masthead gate (src/masthead.py verify, cycle 0 round 6: the card had its own and passed a mark
+    # at 1.38:1): the room, the name judged as every masthead is (the worst glyph), and the mark measured on the pixels
+    # it changes, on the card's ground at rest; failing closed, the record says why. Ruling 4: a name short of the gate
+    # within the halo cap takes the least halo above it up to the exception's ceiling that reaches the gate.
+    from . import masthead
+    mast_worst = masthead.judge(rest, brand_plate)
     gate = tok("contrast.masthead_gate")
     # its room: the 9:16 column (the Reel box); on 16:9, from its left edge to END_SCREEN_GAP short of the video slot
     room = (lay["max_width"] if not landscape else
             END_SCREEN_SLOTS["video"][0] - END_SCREEN_GAP - (lay["masthead_xy"][0] - 2 * mast["mark_r"] - mast["gap"]))
     mast_rec: dict[str, Any] = {"shown": True, "contrast": round(mast_worst, 2), "best_tried": round(mast_worst, 2),
                                 "size": mast["size"],
-                                "group_width": mast["width"], "room": room}
-    if mast["width"] > room:
-        mast_rec.update(shown=False, reason=f"masthead not drawn: its group is {mast['width']} px wide, its room {room} px")
-    elif mast_worst < gate:
-        mast_rec.update(shown=False, reason=(f"masthead not drawn: its worst glyph reaches {mast_worst:.2f}:1 on the "
-                                             f"card's dimmed ground (halo up to {tok('halo.masthead_max')}), under the "
-                                             f"{gate}:1 gate"))
+                                "group_width": mast["width"], "room": room, "halo_exception": False}
+    if mast_worst < gate and mast["width"] <= room:
+        found = masthead.exception_plate(rest, lambda h: plan_text(
+            rest, lay["masthead_xy"], mast["text"], mast["font"], colour_of("masthead.colour_dark"), "lt",
+            mast["track"], target=tok("contrast.masthead_target"), min_halo=h, max_halo=h))
+        if found is not None:
+            brand_plate, mast_worst = found
+            mast_rec.update(halo_exception=True, halo_exception_cap=masthead.HALO_EXCEPTION_CAP,
+                            halo=brand_plate.halo, best_tried=round(mast_worst, 2))
+    masthead.verify(rest, brand_plate, mark_diamond(lay), lay["masthead"].get("edge", 3), mast_rec,
+                    judged=mast_worst, width=mast["width"], room=room)
     mast_shown = mast_rec["shown"]
     if not mast_shown:
         log.warning("End card: %s", mast_rec["reason"])

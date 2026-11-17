@@ -1314,6 +1314,10 @@ class MultiFormatGenerator:
     BODY_LINES_TWO_LINE_FRAME = 3        # body lines the two-line frame reserves, both copies (round 2's frame)
     BODY_LINES_ONE_LINE_FRAME = BODY_LINES   # body lines the one-line frame reserves: every body meets it
     NON_CONTENT_ARCHETYPES = ("cover", "colossal_stat", "debate")   # every other archetype draws a content stack
+    # Every archetype _render_carousel_slide draws (its dispatch; anything else draws editorial_split), held equal to
+    # that dispatch by tests/test_brand_system_r6.py and rendered for the type-size observer (tests/surface_registry.py)
+    CAROUSEL_ARCHETYPES = ("cover", "immersive", "comparison", "blueprint", "colossal_stat", "diagram", "debate",
+                           "editorial_split")
 
     def _content_frame(self, px, facebook: bool, heading_lines: int = 2) -> dict[str, int]:
         """The deck's fixed content baselines, canvas px, for a deck frame of `heading_lines` (1 or 2) heading

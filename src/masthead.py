@@ -9,7 +9,13 @@ else a soft INK gradient from the top edge (full width, never bounded in x, easi
 the target needs and never past `scrim.masthead_peak` (0.60) at its peak; else that 0.60 gradient plus the name's
 own halo up to `halo.masthead_max` (0.16); else, under the same shape, the ground's highlights levelled down (the
 park's step 5: no hue changed, never under `scrim.levels_floor`); else the light-ground variant (the name in INK on the
-untouched ground) where that reads better.
+untouched ground) where that reads better; else (operator ruling 4, 2026-11-16) the HALO EXCEPTION: the least halo
+above HALO_CAP (0.16), up to HALO_EXCEPTION_CAP (0.24), that brings the bone name to the gate, recorded as
+`halo_exception` (brand_system's gate pair; no brand moves either).
+
+One gate (cycle 0 round 6): every masthead on every surface passes `verify` (its room, its name at the gate, its mark
+at contrast.mark on the pixels it changes) before anything of it is drawn, and the mark is drawn only by `draw_mark`;
+`draw` here, the end card and end screen, and the cover and hook paths all call them.
 
 Contrast is judged GLYPH BY GLYPH (cycle 0 rounds 2-3, adversary findings 2 and r2-1): the element's ring contrast on
 the composed pixels and, for every glyph (a connected component of the ink), the ground under its own ink pixels plus
@@ -31,7 +37,7 @@ from typing import Any
 from PIL import Image, ImageDraw
 
 from . import brand
-from .brand_system import colour_of, masthead_spec, tok
+from .brand_system import HALO_EXCEPTION_CAP, colour_of, masthead_spec, tok
 from .typography import (
     _lin,
     cap_height,
@@ -59,12 +65,15 @@ FIT_STEP = 2.0   # px: the masthead's fit ladder steps down by this from its can
 
 def fit_ladder(size: float) -> list[float]:
     """The masthead's declared fit ladder on a canvas whose masthead size is `size`: `size`, then FIT_STEP px steps
-    down to tok("masthead.fit_floor") x `size` (a token with a declared range, read now)."""
+    down to tok("masthead.fit_floor") x `size` (a token with a declared range, read now), the exact floor its last step
+    (round 6: the 2 px steps from 53 1/3 px stopped at 41 1/3 and refused a name that fits at the 40 px floor)."""
     floor = tok("masthead.fit_floor") * size
     steps, s = [], float(size)
     while s >= floor - 1e-9:
         steps.append(s)
         s -= FIT_STEP
+    if steps[-1] > floor + 1e-9:
+        steps.append(floor)
     return steps
 
 
@@ -229,13 +238,15 @@ def mark_geometry(x0: float, baseline: float, size: float):
 MARK_MIN_PX = 12   # a part of the mark (its gold fill, its INK edge) with fewer visible pixels than this does not count
 
 
-def mark_contrast(before: Image.Image, after: Image.Image, diamond, edge: int) -> tuple[float, dict[str, int]]:
+def mark_contrast(before: Image.Image, after: Image.Image, diamond, edge: int, fill=None,
+                  edge_colour: Any = "INK") -> tuple[float, dict[str, int]]:
     """The mark's non-text contrast (WCAG 1.4.11) measured on the pixels it ACTUALLY changed (round 5: an edge as wide
     as the radius left no gold, and an INK edge on an INK ground is no mark at all): (ratio, visible px per part).
     The changed pixels inside the diamond grown by its edge are split by colour into the gold fill and the INK edge;
     a part with at least MARK_MIN_PX visible pixels counts: the edge against the brightest of the ground around the
     mark (90th percentile of a ring 2-10 px out, on `before`), the fill against the darkest (10th). The ratio is the
-    better counting part's, 1.0 when no part is visible."""
+    better counting part's, 1.0 when no part is visible. `fill` (default brand.GOLD) and `edge_colour` (default
+    brand.INK; None: a mark drawn without an edge) are the colours it was drawn in."""
     import cv2
     import numpy as np
     m = Image.new("L", before.size, 0)
@@ -248,8 +259,12 @@ def mark_contrast(before: Image.Image, after: Image.Image, diamond, edge: int) -
     b = np.asarray(before.convert("RGB")).astype(np.int16)
     a = np.asarray(after.convert("RGB")).astype(np.int16)
     changed = region & (np.abs(a - b).max(axis=2) > 8)
-    gold, ink = np.array(brand.GOLD, np.int16), np.array(brand.INK, np.int16)
-    near_gold = np.abs(a - gold).sum(axis=2) < np.abs(a - ink).sum(axis=2)
+    gold = np.array(brand.GOLD if fill is None else fill, np.int16)
+    if edge_colour is None:
+        near_gold = np.ones(changed.shape, bool)
+    else:
+        ink = np.array(brand.INK if edge_colour == "INK" else edge_colour, np.int16)
+        near_gold = np.abs(a - gold).sum(axis=2) < np.abs(a - ink).sum(axis=2)
     parts = {"fill": changed & near_gold, "edge": changed & ~near_gold}
     counts = {name: int(mask.sum()) for name, mask in parts.items()}
     rg = region.astype(np.uint8)
@@ -295,19 +310,24 @@ def plan(im: Image.Image, x0: float, baseline: float, size: float, reach: float 
                            "size_px": float(size), "size_asked": round(float(asked), 1),
                            "group_width": round(width, 1), "room": round(float(room), 1)}
     if fitted is None:   # round 3, finding 7: never clipped silently: refused below the fit ladder's floor
+        floor = fit_ladder(asked)[-1]   # round 6: the TRUE floor (the ladder's exact last step), its width there
         rec.update(shown=False, contrast=None, best_tried=None, short_of_target=True, below_gate=True,
-                   reason=(f"masthead not drawn: its group is {width:.1f} px wide at the fit ladder's floor "
-                           f"({size:.1f} px), its room {room:.1f} px"))
+                   fit_floor_px=round(floor, 3), floor_width=round(group_width(floor), 1),
+                   reason=(f"masthead not drawn: its group is {group_width(floor):.1f} px wide at the fit ladder's "
+                           f"floor ({floor:.1f} px; {width:.1f} px at {asked:.1f} px), its room {room:.1f} px"))
         log.warning("%s", rec["reason"])
         p = plan_text(base, xy, brand.MASTHEAD, font, bone, "ls", spec["track"], target=target, max_halo=0.0)
         return base, p, rec
     seen = {"best": 0.0, "step": None, "dark": 0.0, "light": 0.0}   # the best overall and per variant
 
-    def name(ground, fill, halo_cap=0.0, step=""):
-        """(plate, judged ratio): the least halo (in halo.step steps, up to `halo_cap`) at which the judged ratio
-        reaches the target, else the halo that reads best. Every try updates the best seen (the record's best_tried)."""
+    def name(ground, fill, halo_cap=0.0, step="", start=0.0, inc=None, goal=None):
+        """(plate, judged ratio): the least halo (from `start` in `inc` steps, halo.step by default, up to `halo_cap`)
+        at which the judged ratio reaches `goal` (the target by default), else the halo that reads best. Every try
+        updates the best seen (the record's best_tried)."""
         best = None
-        halo = 0.0
+        halo = start
+        inc = halo_step if inc is None else inc
+        goal = target if goal is None else goal
         while True:
             p = plan_text(ground, xy, brand.MASTHEAD, font, fill, "ls", spec["track"], target=target,
                           min_halo=halo, max_halo=halo)
@@ -318,9 +338,9 @@ def plan(im: Image.Image, x0: float, baseline: float, size: float, reach: float 
             seen[variant] = max(seen[variant], got)
             if best is None or got > best[1]:
                 best = (p, got)
-            if got >= target or halo >= halo_cap - 1e-9 or not p.light:
+            if got >= goal or halo >= halo_cap - 1e-9 or not p.light:
                 break
-            halo = min(halo_cap, halo + halo_step)
+            halo = min(halo_cap, halo + inc)
         return best
 
     p, got = name(base, bone, step="bone")
@@ -360,6 +380,37 @@ def plan(im: Image.Image, x0: float, baseline: float, size: float, reach: float 
             p, ground, got = q, base, qgot
             rec.update(variant="light", scrim_peak=0.0)
             rec.pop("levels_ceiling", None)
+    rec["halo_exception"] = False
+    if got < gate:
+        # Operator ruling 4 (2026-11-16): only where no ruled step within scrim 0.60 / halo 0.16 (and the light
+        # variant) reached the gate, the bone name may take a halo above HALO_CAP up to HALO_EXCEPTION_CAP: the LEAST
+        # halo (halo.exception_step steps) at which it reaches the gate, on the least levelled ground at that halo.
+        inc = tok("halo.exception_step")
+        trials = [(None, top_scrim(base, peak_max, reach))] + [
+            (c, top_scrim(levelled(base, c, reach), peak_max, reach))
+            for c in range(255 - LEVELS_STEP, tok("scrim.levels_floor") - 1, -LEVELS_STEP)]
+        halos, h = [], halo_max + inc
+        while h <= HALO_EXCEPTION_CAP + 1e-9:
+            halos.append(min(h, HALO_EXCEPTION_CAP))
+            h += inc
+        found = None
+        for h in halos:
+            for ceiling, trial in trials:
+                q, qgot = name(trial, bone, h, step=f"exception scrim {peak_max} levels {ceiling or 255}",
+                               start=h, goal=gate)
+                if qgot >= gate:
+                    found = (ceiling, trial, q, qgot)
+                    break
+            if found:
+                break
+        if found:
+            ceiling, ground, p, got = found
+            rec.update(variant="dark", scrim_peak=peak_max, halo_exception=True,
+                       halo_exception_cap=HALO_EXCEPTION_CAP)
+            rec.pop("levels_ceiling", None)
+            if ceiling is not None:
+                rec["levels_ceiling"] = ceiling
+            log.info("masthead: halo exception (ruling 4): halo %.2f reaches %.2f:1", p.halo, got)
     _, detail = glyph_contrast(ground, p)
     rec.update(halo=p.halo, contrast=round(got, 2), contrast_whole=p.measure(p.draw(ground)),
                contrast_unaided=p.contrast_unaided, best_tried=round(seen["best"], 2), best_step=seen["step"],
@@ -370,12 +421,80 @@ def plan(im: Image.Image, x0: float, baseline: float, size: float, reach: float 
         rec["contrast"] = round(seen["best"], 2)              # a refusal reports the best any step reached
         rec["reason"] = (f"masthead not drawn: its worst glyph reaches at best {seen['best']:.2f}:1 ({seen['step']}) "
                          f"after every ruled step (scrim peak {peak_max}, halo {halo_max}, levels floor "
-                         f"{tok('scrim.levels_floor')}, light variant), under the {gate}:1 gate (bone best "
+                         f"{tok('scrim.levels_floor')}, light variant, halo exception up to {HALO_EXCEPTION_CAP}), "
+                         f"under the {gate}:1 gate (bone best "
                          f"{seen['dark']:.2f}, INK best {seen['light']:.2f})")
         log.warning("%s", rec["reason"])
         return base, p, rec
     p.contrast = round(got, 2)       # what the element's record reports: its ratio as judged (the worst glyph)
     return ground, p, rec
+
+
+def draw_mark(d: ImageDraw.ImageDraw, diamond, edge: int, alpha: int | None = None, fill=None,
+              edge_colour: Any = "INK") -> None:
+    """THE drawer of the brand's mark (cycle 0 round 6: every surface draws it here, after `verify` passed it): the
+    fill first (brand.GOLD by default), then the edge over it (brand.INK; None: no edge), so the edge survives on a
+    gold ground. `alpha` (0-255) draws on an RGBA layer at that opacity; None draws opaque RGB."""
+    fill = brand.GOLD if fill is None else tuple(fill)
+    edge_colour = brand.INK if edge_colour == "INK" else edge_colour
+    if alpha is None:
+        d.polygon(diamond, fill=fill)
+        if edge_colour is not None:
+            d.polygon(diamond, outline=edge_colour, width=edge)
+    else:
+        d.polygon(diamond, fill=(*fill[:3], int(alpha)))
+        if edge_colour is not None:
+            d.polygon(diamond, outline=(*tuple(edge_colour)[:3], int(alpha)), width=edge)
+
+
+def exception_plate(ground: Image.Image, plate_at) -> tuple[Any, float] | None:
+    """Operator ruling 4 (2026-11-16) for a surface whose ground the masthead cannot scrim (the end card's, which
+    moves): (plate, judged ratio) at the LEAST halo above HALO_CAP, in halo.exception_step steps up to
+    HALO_EXCEPTION_CAP, at which `plate_at(halo)` (the name planned at exactly that halo) reaches the gate on
+    `ground`; None when none does. Only for a name that missed the gate within HALO_CAP."""
+    gate, inc = tok("contrast.masthead_gate"), tok("halo.exception_step")
+    h = tok("halo.masthead_max") + inc
+    while h <= HALO_EXCEPTION_CAP + 1e-9:
+        p = plate_at(min(h, HALO_EXCEPTION_CAP))
+        got = judge(ground, p)
+        if got >= gate:
+            return p, got
+        h += inc
+    return None
+
+
+def verify(ground: Image.Image, plate, diamond, edge: int, rec: dict[str, Any], *, judged: float | None = None,
+           width: float | None = None, room: float | None = None, fill=None,
+           edge_colour: Any = "INK") -> Image.Image | None:
+    """THE masthead gate (cycle 0 round 6, adversary r5-1: the end card had its own and passed a 1.38:1 mark): every
+    masthead on every surface passes here before its name or its mark is drawn. In order: the group fits its room
+    (`width` <= `room`, when given); the name, judged as `judge` judges it (`judged` when the planner already did),
+    reaches contrast.masthead_gate; the mark, drawn by `draw_mark` over the name on `ground`, reaches contrast.mark on
+    the pixels it actually changed (`mark_contrast`). Returns the ground with the name and the mark drawn at full
+    strength, or None (fail closed) with `rec` saying why; `rec` gets shown, contrast, mark_contrast and mark_px."""
+    gate, mark_gate = tok("contrast.masthead_gate"), tok("contrast.mark")
+    rec["shown"] = False
+    got = judge(ground, plate) if judged is None else judged
+    rec["contrast"] = round(got, 2)
+    if width is not None and room is not None and width > room + 1e-9:
+        rec["reason"] = f"masthead not drawn: its group is {width} px wide, its room {room} px"
+        log.warning("%s", rec["reason"])
+        return None
+    if got < gate:
+        rec["reason"] = (f"masthead not drawn: its worst glyph reaches {got:.2f}:1, under the {gate}:1 gate")
+        log.warning("%s", rec["reason"])
+        return None
+    out = plate.draw(ground.convert("RGB"))
+    before = out.copy()
+    draw_mark(ImageDraw.Draw(out), diamond, edge, fill=fill, edge_colour=edge_colour)
+    rec["mark_contrast"], rec["mark_px"] = mark_contrast(before, out, diamond, edge, fill, edge_colour)
+    if rec["mark_contrast"] < mark_gate:
+        rec["reason"] = (f"masthead not drawn: its mark reaches {rec['mark_contrast']:.2f}:1 on its visible pixels "
+                         f"{rec['mark_px']}, under the {mark_gate}:1 mark gate")
+        log.warning("%s", rec["reason"])
+        return None
+    rec["shown"] = True
+    return out
 
 
 def draw(im: Image.Image, x0: float, baseline: float, size: float, reach: float | None = None,
@@ -388,18 +507,10 @@ def draw(im: Image.Image, x0: float, baseline: float, size: float, reach: float 
     ground, p, rec = plan(im, x0, baseline, size, reach, target, max_width)
     if not rec["shown"]:
         return im, None, rec, None
-    out = p.draw(ground.convert("RGB"))
     size = rec["size_px"]                                     # the size the fit ladder chose
     diamond, spec = mark_geometry(x0, baseline, size)
-    before = out.copy()
-    d = ImageDraw.Draw(out)
-    d.polygon(diamond, fill=brand.GOLD)                        # the fill first ...
-    d.polygon(diamond, outline=brand.INK, width=spec["edge"])  # ... then the INK edge over it, so it survives
-    rec["mark_contrast"], rec["mark_px"] = mark_contrast(before, out, diamond, spec["edge"])
-    if rec["mark_contrast"] < tok("contrast.mark"):            # fail closed: no masthead with an invisible mark
-        rec.update(shown=False, reason=(f"masthead not drawn: its mark reaches {rec['mark_contrast']:.2f}:1 on its "
-                                        f"visible pixels {rec['mark_px']}, under the {tok('contrast.mark')}:1 mark gate"))
-        log.warning("%s", rec["reason"])
+    out = verify(ground, p, diamond, spec["edge"], rec, judged=rec["contrast"])
+    if out is None:                                           # fail closed: no masthead with an invisible mark
         return im, None, rec, None
     r = spec["mark_r"]
     cx, cy = diamond[0][0], diamond[1][1]

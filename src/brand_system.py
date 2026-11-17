@@ -103,7 +103,11 @@ GATES: Mapping[str, Any] = MappingProxyType({
     # ---- scrims and halos (operator rulings)
     "scrim.masthead_peak": 0.60,      # the masthead scrim's peak alpha (round 3 (2))
     "scrim.slope_max": 0.5,           # luma per px: a field never steps faster (end card, round 3 (1))
-    "halo.masthead_max": 0.16,        # the masthead's own halo alpha, never above (round 3 (2))
+    "halo.masthead_max": 0.16,        # HALO_CAP: the masthead's own halo alpha, never above (round 3 (2)) ...
+    # ... except (operator ruling 4, 2026-11-16) a masthead that reaches the gate under no ruled step within scrim 0.60
+    # and halo 0.16 may take the least halo up to this that brings it to the gate: a ceiling, never a default
+    "halo.masthead_exception_max": 0.24,   # HALO_EXCEPTION_CAP
+    "halo.exception_step": 0.01,      # the exception's halo is the least in steps of this above HALO_CAP
     "scrim.levels_floor": 205,        # a levelled ground's output ceiling never under this (park BRIGHT_CEILING)
     # ---- the masthead on a cover the profile grid shows (QF-87): its cap height at 124 px wide, or no masthead
     "masthead.grid_cap": 9,
@@ -113,6 +117,10 @@ GATES: Mapping[str, Any] = MappingProxyType({
     # ---- captions
     "motion.caption_cps": 17.0,       # captions shown at most this many characters per second (config.CAPTION_MAX_CPS)
 })
+# The masthead halo's gate pair (operator ruling 4, 2026-11-16): the cap everywhere, and the ceiling of the exception a
+# masthead takes only where no ruled step within the cap reaches the gate (src/masthead.py records when it did).
+HALO_CAP: float = GATES["halo.masthead_max"]
+HALO_EXCEPTION_CAP: float = GATES["halo.masthead_exception_max"]
 
 # Tokens: the system's style values that DRIVE a renderer now, flat "<group>.<name>" -> value. A brand may override any
 # (BrandConfig.system); tests/test_brand_system.py configures each one and measures the change it makes, so a token no

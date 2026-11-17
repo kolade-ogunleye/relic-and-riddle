@@ -14,6 +14,8 @@ import test_brand_system_r4 as t
 work = Path(sys.argv[1])
 work.mkdir(parents=True, exist_ok=True)
 with size_observer.observe() as seen:
-    t.render_all(work)
+    rendered = t.render_all(work)
 print("OBSERVED=" + json.dumps(t._off_ladder(seen)))
 print("MODULES=" + json.dumps(t.observed_modules(seen)))
+print("SITES=" + json.dumps(sorted({site for site, _ in seen})))
+print("RENDERED=" + json.dumps(rendered))

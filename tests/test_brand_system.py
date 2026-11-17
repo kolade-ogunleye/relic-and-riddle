@@ -132,7 +132,9 @@ def test_the_masthead_meets_its_gate_inside_the_ruled_scrim_and_halo(name, groun
     x0, base = 107, 133
     out, plate, rec, box = masthead.draw(ground, x0, base, size, reach=base + 400)
     assert rec["scrim_peak"] <= brand_system.tok("scrim.masthead_peak") + 1e-9
-    assert rec["halo"] <= brand_system.tok("halo.masthead_max") + 1e-9
+    # ruling 4: above the cap only by the recorded exception, and never above its ceiling
+    cap = brand_system.HALO_EXCEPTION_CAP if rec.get("halo_exception") else brand_system.HALO_CAP
+    assert rec["halo"] <= cap + 1e-9
     if name != "busy":   # every photographic ground here is solvable; the synthetic noise field may fail closed
         assert rec["shown"], f"{name}: {rec}"
     if not rec["shown"]:
@@ -219,7 +221,7 @@ def test_the_masthead_fails_closed_and_is_judged_letter_by_letter(label):
         assert out is ground and plate is None and rec["contrast"] < gate and "reason" in rec
         return
     assert _independent_local_min(out, plate) >= gate - 0.05, rec
-    assert rec["contrast"] >= gate and rec["scrim_peak"] <= 0.60 + 1e-9 and rec["halo"] <= 0.16 + 1e-9
+    assert rec["contrast"] >= gate and rec["scrim_peak"] <= 0.60 + 1e-9 and rec["halo"] <= (0.24 if rec.get("halo_exception") else 0.16) + 1e-9   # ruling 4
 
 
 @pytest.mark.parametrize("label", sorted(ADVERSARY))

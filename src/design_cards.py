@@ -1619,6 +1619,11 @@ def _chapter_tall_block(P: int, lines: Sequence[str]) -> tuple[int, list[int], i
     return H, off, round(centre - H / 2)
 
 
+# The canvases a card planner draws on, where it does not draw both the 9:16 and the 16:9 (tests/surface_registry.py
+# enumerates every plan_* x its canvases for the type-size observer).
+PLAN_SIZES: dict[str, tuple[tuple[int, int], ...]] = {"plan_hook_frame": ((1080, 1920),)}
+
+
 def plan_chapter_card(spec: ChapterCard, sheet: dict, width: int = 1080, height: int = 1920, *,
                       payload: Mapping[str, Any] | None = None) -> CardPlan:
     geo = _Geo(width, height)
@@ -3930,7 +3935,7 @@ def _radial_scrim(size: tuple[int, int], box: Sequence[float], reach: float, alp
 
 def plan_hook_frame(spec: HookFrame, sheet: dict, width: int = 1080, height: int = 1920, *,
                     payload: Mapping[str, Any] | None = None) -> CardPlan:
-    if (width, height) != (1080, 1920):
+    if (width, height) not in PLAN_SIZES["plan_hook_frame"]:
         raise ValueError("the hook frame is drawn at 1080x1920 only (the masthead's own geometry)")
     size = (width, height)
     t, withheld, cited, prov_c = _hook_claim(spec, sheet, payload)
@@ -4150,14 +4155,19 @@ def plan_hook_frame(spec: HookFrame, sheet: dict, width: int = 1080, height: int
     ground0 = Image.alpha_composite(bg.convert("RGBA"), under).convert("RGB")
     if mast_shown and (brand_plate.contrast is None or brand_plate.contrast < HOOK_TARGET):
         raise CardRefused(f"the masthead reaches only {brand_plate.contrast} against {HOOK_TARGET}")
+    from . import masthead
+    if mast_shown:   # the system's ONE masthead gate (src/masthead.py verify, cycle 0 round 6): name and mark
+        gate_rec: dict[str, Any] = {}
+        if masthead.verify(ground0, brand_plate, diamond, 3, gate_rec) is None:
+            raise CardRefused(gate_rec["reason"])
+        lay.meta["masthead_gate"] = gate_rec
     # two mark layers: `marks` under the plates (the disclosure's INK plate, which its text sits on) and `top` over
     # them (the diamond and the eyebrow rule: a neighbouring plate's INK halo would otherwise dim them)
     marks = Image.new("RGBA", size, (0, 0, 0, 0))
     top = Image.new("RGBA", size, (0, 0, 0, 0))
     md, td = ImageDraw.Draw(marks), ImageDraw.Draw(top)
     if diamond:
-        td.polygon(diamond, fill=brand.GOLD + (255,))              # fill, then the INK edge over it (system mark)
-        td.polygon(diamond, outline=brand.INK + (255,), width=3)
+        masthead.draw_mark(td, diamond, 3, alpha=255)              # fill, then the INK edge over it (system mark)
     # no GOLD rule along the panel's foot (review 2026-11-03, round 4: it vanished against a yellow wall); the
     # panel's accents are the diamond and the GOLD last line, both on the INK
     card = _Card("hook", _Geo(width, height), ground0, target=HOOK_TARGET)

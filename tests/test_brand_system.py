@@ -317,7 +317,7 @@ def _place_plate(ground=(108, 108, 108)):
     # cycle 0 round 7 (F14): a place label on a mid ground that needs a halo (its fill, halo and crop)
     g = _graphics()
     p = g.place_plate(Image.new("RGB", (900, 300), ground), (100, 150), "CATHERINE PALACE", g.place_font(34), "ls")
-    return p.fill, p.halo, p.glyphs.shape
+    return p.fill, p.halo, p.glyphs.shape, getattr(p, "halo_exception", False)
 
 
 def _band_edge_profile():

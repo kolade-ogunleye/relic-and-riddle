@@ -211,15 +211,15 @@ def test_the_figure_tokens_drive_the_figures():
 
 
 def test_no_graphic_sets_a_figure_outside_the_figure_face():
-    """AST: brand.DISPLAY_FONT appears only where a graphic sets a heading or a unit word (the map's place box title,
-    the diagrams' titles, a number card's unit), never a figure; figures go through figure_font / figure_family."""
+    """AST: brand.DISPLAY_FONT appears only where a graphic sets a heading or a unit word (the cutaway's title, a
+    number card's unit), never a figure; figures go through figure_font / figure_family."""
     tree = ast.parse((ROOT / "src" / "graphics.py").read_text(encoding="utf-8"))
     users = set()
     for fn in ast.walk(tree):
         if isinstance(fn, ast.FunctionDef) and any(isinstance(n, ast.Attribute) and ast.unparse(n) == "brand.DISPLAY_FONT"
                                                    for n in ast.walk(fn)):
             users.add(fn.name)
-    assert users <= {"_label_box", "_fit_title", "_render_cross_section", "_stat_layout"}, users
+    assert users <= {"_render_cross_section", "_stat_layout"}, users
 
 
 # ------------------------------------------------------------------------------------- F25 unit joiner
@@ -257,24 +257,28 @@ def test_a_place_labels_halo_never_passes_the_system_cap(ground):
     rest = graphics.Image.new("RGB", (900, 300), ground)
     plate = graphics.place_plate(rest, (100, 150), "CATHERINE PALACE", graphics.place_font(34), "ls")
     assert plate.halo <= brand_system.tok("place.halo_max") + 1e-9
-    assert plate.contrast >= brand_system.tok("contrast.text"), (ground, plate.fill, plate.contrast)
+    assert plate.contrast >= brand_system.tok("contrast.place"), (ground, plate.fill, plate.contrast)
 
 
 def test_on_the_mid_grey_dead_band_the_gate_outranks_the_cap_up_to_the_exception_ceiling():
-    """A flat 120-luma ground: bone at 0.16 measures 4.31, INK 4.38; bone takes 0.24 (4.57), never more."""
+    """A flat 120-luma ground: bone at 0.16 measures 4.31, INK 4.38; bone takes the least deeper halo that reaches
+    the placement target (round 7 integration: the gate outranks the cap; a busy route relief needed more than 0.24)."""
     rest = graphics.Image.new("RGB", (900, 300), (120, 120, 120))
     plate = graphics.place_plate(rest, (100, 150), "CATHERINE PALACE", graphics.place_font(34), "ls")
-    assert plate.contrast >= brand_system.tok("contrast.text")
-    assert brand_system.tok("place.halo_max") < plate.halo <= brand_system.HALO_EXCEPTION_CAP + 1e-9
+    assert plate.contrast >= brand_system.tok("contrast.place")
+    assert plate.halo > brand_system.tok("place.halo_max")
+    lighter = graphics.plan_text(rest, (100, 150), "CATHERINE PALACE", graphics.place_font(34), brand.BONE, "ls",
+                                 halo_px=brand_system.tok("place.halo_px"), max_halo=plate.halo - 0.08)
+    assert lighter.contrast < brand_system.tok("contrast.place")            # the least halo that reaches it
 
 
 def test_no_place_label_is_planned_outside_the_role():
-    """AST: render_route and the marker's plates plan their names only through place_plate (no other halo, face)."""
+    """AST: render_route and the marker's plates plan their names only through place_plates (one variant per label, no other halo or face)."""
     tree = ast.parse((ROOT / "src" / "graphics.py").read_text(encoding="utf-8"))
     for name in ("render_route", "label_plates_for"):
         fn = next(n for n in ast.walk(tree) if isinstance(n, ast.FunctionDef) and n.name == name)
         calls = [ast.unparse(c.func) for c in ast.walk(fn) if isinstance(c, ast.Call)]
-        assert "place_plate" in calls, name
+        assert "place_plates" in calls, name
         named = [c for c in ast.walk(fn) if isinstance(c, ast.Call) and ast.unparse(c.func) == "get_font"
                  and any(kw.arg == "weight" and ast.unparse(kw.value) == "800" for kw in c.keywords)]
         assert not named, name

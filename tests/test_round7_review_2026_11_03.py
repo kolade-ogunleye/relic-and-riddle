@@ -152,10 +152,11 @@ def test_neighbour_names_are_a_step_under_the_country_name() -> None:
     assert graphics.MAP_NAME == brand.STONE_LT
     assert graphics.MAP_NAME_WEIGHT < 600                               # the country name's weight
     for size in SIZES:
-        f = graphics.neighbour_font(*size)
+        f = graphics.get_font("Montserrat", graphics.map_name_px(*size), weight=graphics.MAP_NAME_WEIGHT)   # as drawn
         k = 1.0 if size[1] > size[0] else min(size[0] / 1920, size[1] / 1080)
-        inside = round((graphics.COUNTRY_PX if size[1] > size[0] else graphics.COUNTRY_PX_WIDE) * k)
-        assert f.size <= inside and f.size <= round(graphics.COUNTRY_OUT_PX * k) + 2, (size, f.size)
+        # cycle 0 r7 (F16): the drawn country sizes are floored like the neighbour's (27 px on 1080 x 1920)
+        inside = graphics.floored((graphics.COUNTRY_PX if size[1] > size[0] else graphics.COUNTRY_PX_WIDE) * k, *size)
+        assert f.size <= inside and f.size <= graphics.floored(graphics.COUNTRY_OUT_PX * k, *size) + 2, (size, f.size)
     # round 9 (deliberate, coordinator R7): the outside name is spec A.4's STONE_LT, like a neighbour's; it is told
     # from one by its weight (600 against MAP_NAME_WEIGHT) and its place by the home's border
     assert graphics.COUNTRY_OUT_FILL == brand.STONE_LT

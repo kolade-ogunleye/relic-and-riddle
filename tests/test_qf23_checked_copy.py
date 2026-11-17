@@ -295,7 +295,7 @@ def test_a_cross_section_label_two_lines_would_cut_is_set_whole_on_three(tmp_pat
     got = []
     monkeypatch.setattr(graphics, "VIDEO_FPS", 1)
     monkeypatch.setattr(graphics, "graded_frame", lambda *a, **k: None)
-    monkeypatch.setattr(graphics, "record_contrast", lambda out, frame, plates: got.extend(
+    monkeypatch.setattr(graphics, "record_contrast", lambda out, frame, plates, rulers=None: got.extend(
         (n, p.text) for n, p in plates if p is not None and not p.empty) or {})
     section = {"subject": "Derinkuyu underground city", "total_depth_ft": 280.0, "approximate": True,
                "levels": [{"depth_ft": 15.0, "label": "Stables, wine presses and storage chambers"},

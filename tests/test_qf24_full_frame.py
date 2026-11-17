@@ -60,7 +60,7 @@ def _plates(monkeypatch: pytest.MonkeyPatch, job) -> list[tuple[str, Any]]:
     monkeypatch.setattr(graphics, "VIDEO_FPS", 2)
     monkeypatch.setattr(graphics, "graded_frame", lambda *a, **k: None)
     monkeypatch.setattr(graphics, "_encode", lambda frames, path, n, *a, **k: [None for _ in frames] and path)
-    monkeypatch.setattr(graphics, "record_contrast", lambda out, frame, plates: got.extend(
+    monkeypatch.setattr(graphics, "record_contrast", lambda out, frame, plates, rulers=None: got.extend(
         (n, p) for n, p in plates if p is not None and not p.empty) or {})
     assert job() is not None
     return got

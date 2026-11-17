@@ -1,0 +1,114 @@
+[
+ {
+  "run": "nazca_lines_runway_paradox_1793247464",
+  "sub": "carousel",
+  "slide": "carousel_slide_04.jpg",
+  "mast": {
+   "shown": true,
+   "contrast": 5.5,
+   "halo": 0.17,
+   "halo_exception": true,
+   "levels_ceiling": 205,
+   "scrim_peak": 0.6,
+   "best_tried": 5.5,
+   "mark_contrast": 8.39
+  },
+  "delivered": 8.11
+ },
+ {
+  "run": "nazca_lines_runway_paradox_1793247464",
+  "sub": "carousel",
+  "slide": "carousel_slide_06.jpg",
+  "mast": {
+   "shown": true,
+   "contrast": 5.52,
+   "halo": 0.21,
+   "halo_exception": true,
+   "levels_ceiling": 205,
+   "scrim_peak": 0.6,
+   "best_tried": 5.52,
+   "mark_contrast": 6.89
+  },
+  "delivered": 7.62
+ },
+ {
+  "run": "nazca_lines_runway_paradox_1793247464",
+  "sub": "carousel_fb",
+  "slide": "carousel_slide_04.jpg",
+  "mast": {
+   "shown": true,
+   "contrast": 5.5,
+   "halo": 0.17,
+   "halo_exception": true,
+   "levels_ceiling": 205,
+   "scrim_peak": 0.6,
+   "best_tried": 5.5,
+   "mark_contrast": 8.39
+  },
+  "delivered": 8.11
+ },
+ {
+  "run": "nazca_lines_runway_paradox_1793247464",
+  "sub": "carousel_fb",
+  "slide": "carousel_slide_05.jpg",
+  "mast": {
+   "shown": true,
+   "contrast": 5.5,
+   "halo": 0.18,
+   "halo_exception": true,
+   "levels_ceiling": 205,
+   "scrim_peak": 0.6,
+   "best_tried": 5.5,
+   "mark_contrast": 6.49
+  },
+  "delivered": 7.24
+ },
+ {
+  "run": "nazca_lines_runway_paradox_1793251266",
+  "sub": "carousel",
+  "slide": "carousel_slide_04.jpg",
+  "mast": {
+   "shown": true,
+   "contrast": 5.5,
+   "halo": 0.17,
+   "halo_exception": true,
+   "levels_ceiling": 205,
+   "scrim_peak": 0.6,
+   "best_tried": 5.5,
+   "mark_contrast": 8.39
+  },
+  "delivered": 8.11
+ },
+ {
+  "run": "nazca_lines_runway_paradox_1793251266",
+  "sub": "carousel_fb",
+  "slide": "carousel_slide_04.jpg",
+  "mast": {
+   "shown": true,
+   "contrast": 5.5,
+   "halo": 0.17,
+   "halo_exception": true,
+   "levels_ceiling": 205,
+   "scrim_peak": 0.6,
+   "best_tried": 5.5,
+   "mark_contrast": 8.39
+  },
+  "delivered": 8.11
+ },
+ {
+  "run": "nazca_lines_runway_paradox_1793251266",
+  "sub": "carousel_fb",
+  "slide": "carousel_slide_05.jpg",
+  "mast": {
+   "shown": true,
+   "contrast": 5.5,
+   "halo": 0.18,
+   "halo_exception": true,
+   "levels_ceiling": 205,
+   "scrim_peak": 0.6,
+   "best_tried": 5.5,
+   "mark_contrast": 6.49
+  },
+  "delivered": 7.24
+ }
+]

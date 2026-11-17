@@ -520,12 +520,20 @@ class PipelineDatabase:
             if cur.rowcount == 0:
                 raise KeyError(f"Unknown run '{run_id}'")
 
-    def claim_publication(self, run_id: str) -> bool:
+    def claim_publication(self, run_id: str, booking: int | None = None) -> bool:
         """Only one caller may initiate an upload for a finished run. A run a human rejected (or
-        sent back for regeneration) can never be claimed, whatever code path asks."""
+        sent back for regeneration) can never be claimed, whatever code path asks.
+        `booking`: the scheduled post this upload makes; the claim holds only while it is still open, in the same
+        transaction (QF-69): a cancel and a claim are serialized, so either the cancel wins (nothing is uploaded) or
+        the claim does (the run is publishing and the cancel is refused)."""
         with self._conn() as conn:
             # QF-73: the spacing check and the claim are one transaction, so two sensitive runs cannot both pass it.
             conn.execute("BEGIN IMMEDIATE")
+            if booking is not None:
+                marks = ",".join("?" * len(self.OPEN_BOOKING_STATUSES))
+                if conn.execute(f"SELECT 1 FROM scheduled_posts WHERE id = ? AND status IN ({marks})",
+                                (int(booking), *self.OPEN_BOOKING_STATUSES)).fetchone() is None:
+                    return False
             from .topic_policy import topic_problem
             run = conn.execute("SELECT topic_id FROM runs WHERE run_id = ?", (run_id,)).fetchone()
             if run and topic_problem(conn, run["topic_id"], run_id=run_id, spacing_only=True):
@@ -1026,19 +1034,66 @@ class PipelineDatabase:
             return cur.lastrowid
 
     def update_scheduled_post(self, post_id: int, status: str, due_at: Optional[str] = None,
-                              detail: Optional[Dict[str, Any]] = None, files: list[str] | None = None):
-        """`files`: the post's image files, when they are drawn after booking (a carousel at its slot, QF-81)."""
+                              detail: Optional[Dict[str, Any]] = None, files: list[str] | None = None,
+                              expect: str | None = None) -> bool | None:
+        """`files`: the post's image files, when they are drawn after booking (a carousel at its slot, QF-81).
+        `expect`: the status the caller read; the write applies only while the booking still has it, in the same
+        statement (QF-69: a pass that read a booking, then wrote "pending" over it after the operator cancelled it,
+        brought the cancelled Reel back to be posted). With `expect`, returns whether it applied (None without it, as
+        before)."""
         with self._conn() as conn:
             conn.execute("BEGIN IMMEDIATE")
-            row = conn.execute("SELECT run_id, kind, due_at FROM scheduled_posts WHERE id = ?", (post_id,)).fetchone()
-            if row and due_at and due_at != row["due_at"]:   # a move; a status change on its own day is never refused
+            row = conn.execute("SELECT run_id, kind, due_at, status FROM scheduled_posts WHERE id = ?", (post_id,)).fetchone()
+            if row is None or (expect is not None and row["status"] != expect):
+                return False if expect is not None else None
+            if due_at and due_at != row["due_at"]:   # a move; a status change on its own day is never refused
                 self._check_topic_booking(conn, row["run_id"], row["kind"], due_at, status)
-            conn.execute("""
+            cur = conn.execute("""
             UPDATE scheduled_posts SET status = ?, due_at = COALESCE(?, due_at),
                    detail_json = COALESCE(?, detail_json), files_json = COALESCE(?, files_json),
-                   updated_at = ? WHERE id = ?""",
+                   updated_at = ? WHERE id = ? AND status = ?""",
                          (status, due_at, json.dumps(detail, default=str) if detail is not None else None,
-                          json.dumps(files) if files is not None else None, _now(), post_id))
+                          json.dumps(files) if files is not None else None, _now(), post_id, row["status"]))
+            return cur.rowcount == 1 if expect is not None else None
+
+    OPEN_BOOKING_STATUSES = ("pending", "waiting", "blocked")   # a booking nothing has posted yet
+    POSTING_RUN_STATUSES = ("publishing", "published", "publish_unknown")   # an upload has begun, or has ended
+
+    def cancel_reel_bookings(self, run_id: str, reason: str = "cancelled by the operator") -> int | None:
+        """Cancels a Reel's open bookings (its Stories and carousel with it) in one transaction, only while nothing
+        of it has begun to post: the run is not publishing, published or of unknown outcome, and no publication of it
+        is recorded as published or unknown (QF-69). A run waiting in its slot ("scheduled") is a post candidate
+        again ("simulated"). Returns how many bookings it cancelled, or None when it refused because posting began.
+        A cancel that read the booking and then wrote "cancelled" over it marked a Reel that was being posted as
+        cancelled and "a post candidate again"."""
+        open_marks = ",".join("?" * len(self.OPEN_BOOKING_STATUSES))
+        posting_marks = ",".join("?" * len(self.POSTING_RUN_STATUSES))
+        with self._conn() as conn:
+            conn.execute("BEGIN IMMEDIATE")
+            run = conn.execute("SELECT status FROM runs WHERE run_id = ?", (run_id,)).fetchone()
+            if run is not None and run["status"] in self.POSTING_RUN_STATUSES:
+                return None
+            if conn.execute("SELECT 1 FROM publications WHERE run_id = ? AND status IN ('published', 'unknown')",
+                            (run_id,)).fetchone():
+                return None
+            if conn.execute("SELECT 1 FROM scheduled_posts WHERE run_id = ? AND kind = 'reel' AND status IN "
+                            "('published', 'unknown')", (run_id,)).fetchone():
+                return None
+            cur = conn.execute(f"""UPDATE scheduled_posts SET status = 'cancelled', detail_json = ?, updated_at = ?
+                WHERE run_id = ? AND status IN ({open_marks})""",
+                               (json.dumps({"reason": reason}), _now(), run_id, *self.OPEN_BOOKING_STATUSES))
+            if run is not None and run["status"] == "scheduled":
+                conn.execute(f"UPDATE runs SET status = 'simulated', updated_at = ? WHERE run_id = ? "
+                             f"AND status NOT IN ({posting_marks})", (_now(), run_id, *self.POSTING_RUN_STATUSES))
+            return cur.rowcount
+
+    def booking_open(self, post_id: int) -> bool:
+        """True while the booking has not been cancelled, posted or settled (QF-69: the poster checks it under the
+        run's upload lock, so a booking cancelled after the pass read it is never posted)."""
+        marks = ",".join("?" * len(self.OPEN_BOOKING_STATUSES))
+        with self._conn() as conn:
+            return conn.execute(f"SELECT 1 FROM scheduled_posts WHERE id = ? AND status IN ({marks})",
+                                (int(post_id), *self.OPEN_BOOKING_STATUSES)).fetchone() is not None
 
     def list_scheduled_posts(self, statuses: tuple = ("pending", "waiting"), run_id: Optional[str] = None) -> List[Dict[str, Any]]:
         q = f"SELECT * FROM scheduled_posts WHERE status IN ({','.join('?' * len(statuses))})"

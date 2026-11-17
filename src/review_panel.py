@@ -1563,7 +1563,11 @@ class ReviewPanel:
                 def cancel() -> str:
                     reply = command_handler("cancelpost", booking)
                     reply = reply[0] if isinstance(reply, tuple) else reply
-                    notes.close_key(self.db, f"posted:{run_id}", notes.HANDLED)
+                    # A cancel refused because the Reel began to post (QF-69) keeps the item: it is not undone.
+                    # Decided by the cancel's own answer, not the run's state read afterwards.
+                    from .posting_view import NOT_CANCELLED
+                    if NOT_CANCELLED not in str(reply):
+                        notes.close_key(self.db, f"posted:{run_id}", notes.HANDLED)
                     self._redraw_notes()
                     return notes.clip(notes.plain(reply or "Booking cancelled."), 190)
                 return cancel

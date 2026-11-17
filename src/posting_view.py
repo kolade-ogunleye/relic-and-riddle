@@ -31,6 +31,9 @@ CANCEL_WHY = {"the Reel did not post": "its Reel's slot failed, so it was not po
               "cancelled by the operator": "you cancelled it",
               "replaced by a new version": "you asked for a new version of this episode"}
 # A blocked booking (QF-110): the release checks refused it at its slot, so trying again cannot change it.
+# A cancel (or the clean chat's Undo of a booked Approve) refused because the Reel began to post (QF-69, wording
+# approved 2026-11-16); the review panel keeps its Approved item when a cancel answers this
+NOT_CANCELLED = "⏹ Not cancelled: the Reel has started posting or has posted. Posting shows what happened."
 BLOCKED_NEXT = ("Trying again won't change this. Make a new version (it comes to you for review first), or cancel "
                 "the booking. Its slot is free for other episodes.")
 

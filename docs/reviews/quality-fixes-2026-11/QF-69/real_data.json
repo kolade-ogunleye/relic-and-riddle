@@ -1,0 +1,18 @@
+{
+ "source": "scratch audit, read-only: V2 card built offline for every real run with script_metadata.json and release_report.json",
+ "development_runs": 30,
+ "production_sample_runs": 34,
+ "cards_built": 64,
+ "unavailable": 0,
+ "errors": 0,
+ "literal_hits": {
+  "base_6a7ef303": 0,
+  "this_commit": 0
+ },
+ "development_scheduled_posts": 0,
+ "production_sample": {
+  "published_runs": 6,
+  "scheduled_runs": 1,
+  "story_publications_of_unknown_outcome": 1
+ }
+}

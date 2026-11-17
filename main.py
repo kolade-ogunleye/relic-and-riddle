@@ -22,6 +22,7 @@ Usage:
 import argparse
 import concurrent.futures
 import contextlib
+import contextvars
 import html
 import json
 import re
@@ -83,6 +84,8 @@ MAX_FACT_REVISIONS = 2  # rewrites of a Claude script that failed fact-checking,
 
 MISSED_SLOT_GRACE = timedelta(hours=3)
 SCHEDULED_POSTING_LOCK = "scheduled-posting"  # one post_due pass at a time across processes
+# The booking the current publish_run makes (PipelineCoordinator._publish_booking), checked under its upload lock
+_POSTING_BOOKING: contextvars.ContextVar[int | None] = contextvars.ContextVar("posting_booking", default=None)
 
 
 def compute_act_chapters(acts: List[Any], words: List[Dict[str, Any]], total_dur: float) -> Tuple[List[Dict[str, Any]], str, List[float]]:
@@ -1851,7 +1854,8 @@ class PipelineCoordinator:
         except Exception as e:  # noqa: BLE001 - the checker or network: nothing was posted, the booking stands
             return f"⚡ Not posted: it could not be checked just now ({html.escape(_error_words(e))}). Try again later."
         try:   # the upload: from its claim on, a failure means the outcome is unknown, never "not posted"
-            res = self.publish_run(run_id, dry_run=False, previous_status="published" if run.get("times_published") else "queued")
+            res = self._publish_booking(booking["id"], run_id, dry_run=False,
+                                        previous_status="published" if run.get("times_published") else "queued")
         except ReleaseBlocked as e:
             return self._blocked_reply("⚡", run_id, e)
         except Exception as e:  # noqa: BLE001
@@ -1868,8 +1872,8 @@ class PipelineCoordinator:
             return f"⚡ Publishing ended with status '{html.escape(str(res.get('status')))}'; see the receipt above."
         for story in self.db.list_scheduled_posts(("pending",), run_id=run_id):
             if story["kind"] == "story":
-                self.db.update_scheduled_post(story["id"], "pending",
-                                              due_at=post_schedule.story_time(now).astimezone(timezone.utc).isoformat())
+                _write_booking(self.db, story["id"], "pending",
+                                              due_at=post_schedule.story_time(now).astimezone(timezone.utc).isoformat(), expect=story.get("status"))
         # Its carousel's slot counts from now, when the Reel really posted (post_schedule.carousel_reel): the
         # booking's confirmation named one counted from the Reel's slot (operator, 2026-11-03)
         carousels = [p for p in self.db.list_scheduled_posts(("waiting",), run_id=run_id) if p["kind"] == "carousel"]
@@ -1905,8 +1909,9 @@ class PipelineCoordinator:
                     "made: check the platforms first.")
         if self.db.get_active_progress() is not None:
             return "A run is being made now; make the new version when it has finished."
-        for p in posts:
-            self.db.update_scheduled_post(p["id"], "cancelled", detail={"reason": "replaced by a new version"})
+        if self._cancel_bookings(run_id, "replaced by a new version") is None:   # QF-69: began to post meanwhile
+            return ("Its Reel may already be live (it was uploaded, or its outcome is unknown), so no new version is "
+                    "made: check the platforms first.")
         self.db.set_setting(PROMOTED_PREFIX + run_id, "")
         # The reason the regeneration acts on, recorded now, so it never waits for a reason chip that is not coming
         reasons = (blocked[0].get("detail") or {}).get("reasons") or []
@@ -1916,6 +1921,16 @@ class PipelineCoordinator:
             "text": "" if facts else "Blocked at its posting slot: " + "; ".join(map(str, reasons))[:500]}))
         self.db.update_run(run_id, "regenerate")
         return None
+
+    def _cancel_bookings(self, run_id: str, reason: str) -> int | None:
+        """A Reel's open bookings cancelled in one transaction with the check that nothing of it has begun to post
+        (db.cancel_reel_bookings); None when it refused. The upload's claim checks the booking in its own transaction
+        (db.claim_publication(booking=)), so the two are serialized by the database: a cancel during the release
+        checks before the claim (the upload lock is held then, nothing posted) cancels, and the upload stops; a cancel
+        after the claim is refused. QF-69: the cancel read the bookings and then wrote "cancelled" over them, so an Undo
+        or a cancel tapped while the Reel was being posted called it cancelled and "a post candidate again"; and a pass
+        that had read the booking posted it anyway."""
+        return self.db.cancel_reel_bookings(run_id, reason)
 
     def cancel_post(self, post_id: int) -> str:
         """Cancels a booking (operator, 2026-10-24). A Reel's Stories and carousel go with it, and the run
@@ -1927,12 +1942,16 @@ class PipelineCoordinator:
         if post["kind"] != "reel":
             self.db.update_scheduled_post(post["id"], "cancelled", detail={"reason": "cancelled by the operator"})
             return f"⏹ {post['kind'].capitalize()} booking cancelled for {html.escape(self.db.run_label(run_id))}."
-        for other in self.db.list_scheduled_posts(("pending", "waiting", "blocked"), run_id=run_id):
-            self.db.update_scheduled_post(other["id"], "cancelled", detail={"reason": "cancelled by the operator"})
+        was = (self.db.get_run(run_id) or {}).get("status")
+        cancelled = self._cancel_bookings(run_id, "cancelled by the operator")
+        if cancelled is None:
+            from src.posting_view import NOT_CANCELLED
+            return NOT_CANCELLED
+        if not cancelled:   # settled between the read and the cancel
+            return "⏹ That booking is no longer pending."
         self.db.set_setting(PROMOTED_PREFIX + run_id, "")
         run = self.db.get_run(run_id) or {}
-        if run.get("status") == "scheduled":
-            self.db.update_run(run_id, "simulated")
+        if was == "scheduled" and run.get("status") == "simulated":
             self.topic_engine.record_status(run.get("topic_id"), "queued", run_id=run_id)
         return f"⏹ Booking cancelled: {html.escape(self.db.run_label(run_id))} is a post candidate again."
 
@@ -1943,10 +1962,12 @@ class PipelineCoordinator:
             return "⏭ That Reel booking is no longer pending."
         after = datetime.fromisoformat(post["due_at"]) + timedelta(minutes=1)
         slot = self._reel_slot(post["run_id"], after, self._booked_reel_days(exclude_id=post["id"]))
-        self.db.update_scheduled_post(post["id"], "pending", due_at=slot.astimezone(timezone.utc).isoformat())
+        if not _write_booking(self.db, post["id"], "pending", due_at=slot.astimezone(timezone.utc).isoformat(),
+                                             expect=post.get("status")):   # QF-69: changed since it was read
+            return "⏭ That Reel booking is no longer pending."
         for story in self.db.list_scheduled_posts(("pending",), run_id=post["run_id"]):
             if story["kind"] == "story":
-                self.db.update_scheduled_post(story["id"], "pending",
+                _write_booking(self.db, story["id"], "pending", expect=story.get("status"),
                                               due_at=post_schedule.story_time(slot).astimezone(timezone.utc).isoformat())
         return f"⏭ {html.escape(self.db.run_label(post['run_id']))} moved to {html.escape(post_schedule.fmt(slot))}."
 
@@ -4132,7 +4153,7 @@ class PipelineCoordinator:
             if now - due > MISSED_SLOT_GRACE:
                 self._reschedule(post, run, now)
                 return
-            res = self.publish_run(post["run_id"])
+            res = self._publish_booking(post["id"], post["run_id"])
             self.db.update_scheduled_post(post["id"], res["status"], detail={
                 "error": res.get("publish_result", {}).get("error"), "posted_at": now.isoformat()})
             if res["status"] != "published":
@@ -4195,12 +4216,15 @@ class PipelineCoordinator:
         log.warning("Booking %s (%s, %s) blocked: %s", post["id"], post["kind"], post["run_id"], "; ".join(reasons))
         if post["kind"] != "reel":
             name = {"story": "Stories", "carousel": "Carousel"}.get(post["kind"], post["kind"])
-            self.db.update_scheduled_post(post["id"], "failed", detail={"error": "; ".join(reasons)})
+            if not _write_booking(self.db, post["id"], "failed", detail={"error": "; ".join(reasons)},
+                                                 expect=post.get("status")):
+                return   # QF-69: cancelled or changed since this pass read it
             _notice(self, f"❌ {name} not posted for {label}: " + html.escape("; ".join(reasons)[:300]), section="needs",
                          key=f"post-failed:{post['id']}", actions=self._episode_action(post["run_id"]))
             return
-        self.db.update_scheduled_post(post["id"], "blocked", detail={
-            "reason": "; ".join(reasons), "reasons": reasons, "blocked_at": now.isoformat(), "error": str(exc)[:1000]})
+        if not _write_booking(self.db, post["id"], "blocked", expect=post.get("status"), detail={
+                "reason": "; ".join(reasons), "reasons": reasons, "blocked_at": now.isoformat(), "error": str(exc)[:1000]}):
+            return   # QF-69: cancelled or changed since this pass read it
         from src.posting_view import BLOCKED_NEXT, blocked_buttons
         lines = "\n".join(f"• {html.escape(r)}" for r in reasons)
         # UI-01h: the label is the item's subject (or its first line), not a title cut on the list and said again
@@ -4218,7 +4242,9 @@ class PipelineCoordinator:
         detail = dict(post.get("detail") or {})
         if detail.get("held") == said or not self._still(post):
             return
-        self.db.update_scheduled_post(post["id"], post["status"], detail={**detail, "held": said})
+        if not _write_booking(self.db, post["id"], post["status"], detail={**detail, "held": said},
+                                             expect=post.get("status")):
+            return   # QF-69: cancelled or changed since this pass read it
         name = {"reel": "Reel", "story": "Stories", "carousel": "Carousel"}.get(post["kind"], post["kind"])
         why = (f"its fact check, made before a code update, must be run again under the current rules first, and "
                f"that cannot happen now ({html.escape(said)}). It is tried again with a growing wait"
@@ -4229,11 +4255,13 @@ class PipelineCoordinator:
 
     def _reschedule(self, post: Dict[str, Any], run: Dict[str, Any], now: datetime) -> None:
         slot = self._reel_slot(post["run_id"], now, self._booked_reel_days(exclude_id=post["id"]))
-        self.db.update_scheduled_post(post["id"], "pending", due_at=slot.astimezone(timezone.utc).isoformat())
+        if not _write_booking(self.db, post["id"], "pending", due_at=slot.astimezone(timezone.utc).isoformat(),
+                                             expect=post.get("status")):
+            return   # QF-69: cancelled (or changed) since this pass read it: it is never brought back
         for story in self.db.list_scheduled_posts(("pending",), run_id=post["run_id"]):
             if story["kind"] == "story":
                 when = post_schedule.story_time(slot).astimezone(timezone.utc).isoformat()
-                self.db.update_scheduled_post(story["id"], "pending", due_at=when)
+                _write_booking(self.db, story["id"], "pending", due_at=when, expect=story.get("status"))
         missed = post_schedule.fmt(datetime.fromisoformat(post["due_at"]))
         label = html.escape(self.db.run_label(post["run_id"]))
         detail = dict(post.get("detail") or {})
@@ -4241,7 +4269,7 @@ class PipelineCoordinator:
         if held:   # held at its slot (QF-110): said with why, and once per reason, never again each day
             if detail.get("moved_said") == held:
                 return
-            self.db.update_scheduled_post(post["id"], "pending", detail={**detail, "moved_said": held})
+            _write_booking(self.db, post["id"], "pending", detail={**detail, "moved_said": held}, expect="pending")
             _notice(self, f"⏰ {label} could not post at its {html.escape(missed)} slot: it is still held "
                         f"({html.escape(held)}). Moved to {html.escape(post_schedule.fmt(slot))}; it keeps moving to "
                         "the next free slot until it can post, and you'll hear again only if the reason changes.", section="needs", key=f"missed:{post['id']}",
@@ -4492,12 +4520,13 @@ class PipelineCoordinator:
     def _post_photos(self, post: Dict[str, Any], run: Dict[str, Any], kind: str) -> str:
         files = [f for f in post["files"] if Path(f).exists()]
         if not files:
-            self.db.update_scheduled_post(post["id"], "failed", detail={"error": "image files are missing"})
+            _write_booking(self.db, post["id"], "failed", detail={"error": "image files are missing"}, expect=post.get("status"))
             return "failed"
         broken = self._binding_problem(post["run_id"])
         if broken:   # QF-114: only the review you approved posts; a retry would find the same change
-            self.db.update_scheduled_post(post["id"], "failed", detail={"error": f"not the review you approved: {broken}",
-                                                                        "binding": True})
+            if not _write_booking(self.db, post["id"], "failed", expect=post.get("status"),   # QF-69: compare-and-set
+                                  detail={"error": f"not the review you approved: {broken}", "binding": True}):
+                return "failed"   # cancelled (or changed) since this pass read it: nothing written or said
             name = {"story": "Stories", "carousel": "Carousel"}.get(kind, kind)
             _notice(self, f"❌ <b>{name} not posted</b> for {html.escape(self.db.run_label(post['run_id']))}: "
                     f"{html.escape(broken)}. Nothing was posted. Make a new version: it comes to you for review first.",
@@ -4515,8 +4544,8 @@ class PipelineCoordinator:
                 # the whole reason stays on Details (posting_view.post_error keeps it whole up to an item's folded
                 # text); the notice quotes it whole when it fits, else to a word with "…" and says where the rest is:
                 # each problem leads with its cause and what is needed, so the cut never takes them (QF-126c)
-                self.db.update_scheduled_post(post["id"], "failed", detail={"error": "Story credits: " + why,
-                                                                            "whole_reason": True})
+                _write_booking(self.db, post["id"], "failed", detail={"error": "Story credits: " + why,
+                                                                            "whole_reason": True}, expect=post.get("status"))
                 head = f"❌ <b>Stories not posted</b> for {html.escape(self.db.run_label(post['run_id']))}: "
                 from src.posting_view import HELD_NOTE
                 room = notifications.QUOTE_LIMIT - len(" ".join(notifications.plain(head).split()))
@@ -4548,7 +4577,8 @@ class PipelineCoordinator:
                 self._hold_carousel(post, CarouselCreditHold(f"{e}. {e.redraw}"))
             return "failed"
         except ValueError as e:   # its caption is not the one the review card showed (QF-43)
-            self.db.update_scheduled_post(post["id"], "failed", detail={"error": str(e)})
+            if not _write_booking(self.db, post["id"], "failed", detail={"error": str(e)}, expect=post.get("status")):
+                return "failed"   # QF-69: cancelled (or changed) since this pass read it: nothing written or said
             _notice(self, f"❌ Carousel not posted for {html.escape(self.db.run_label(post['run_id']))}: "
                         + html.escape(str(e)[:300]), section="needs", key=f"post-failed:{post['id']}",
                          actions=[{"text": "Retry", "callback_data": f"retrypost:{post['id']}"}])
@@ -4588,7 +4618,7 @@ class PipelineCoordinator:
         detail = dict(post.get("detail") or {})
         if problem and (detail.get("waiting_for"), detail.get("spacing")) != ("spacing", problem):
             detail.update(waiting_for="spacing", spacing=problem, spacing_at=slot.isoformat())
-            self.db.update_scheduled_post(post["id"], "waiting", detail=detail)
+            _write_booking(self.db, post["id"], "waiting", detail=detail, expect=post.get("status"))
             post["detail"] = detail
 
     def _booking_item_open(self, post: dict[str, Any]) -> bool:
@@ -4621,7 +4651,7 @@ class PipelineCoordinator:
             return
         for k in said:
             detail.pop(k)
-        self.db.update_scheduled_post(post["id"], "waiting", detail=detail)
+        _write_booking(self.db, post["id"], "waiting", detail=detail, expect=post.get("status"))
         post["detail"] = detail
 
     def _expire_held_carousels(self, now: datetime) -> None:
@@ -4649,10 +4679,10 @@ class PipelineCoordinator:
             # will not post and nothing offers a Redraw any more, so its reason is kept without that advice (the
             # item and Details' note both say it so).
             why = self._held_reason(detail)
-            self.db.update_scheduled_post(post["id"], "expired", detail={
+            _write_booking(self.db, post["id"], "expired", detail={
                 **detail, "reason": "held at its slot, and no carousel slot was left in its window",
                 **({"error": f"held at its slot: {why}"} if why else {}),
-                "window_end": ended.isoformat(), "expired_at": now.isoformat()})   # Posting says why (round 3)
+                "window_end": ended.isoformat(), "expired_at": now.isoformat()}, expect=post.get("status"))   # Posting says why (round 3)
             log.info("Carousel %s of %s expired: held at its slot, no carousel slot left in its window.",
                      post["id"], post["run_id"])
             if not open_:   # dismissed: it is not brought back
@@ -4740,14 +4770,14 @@ class PipelineCoordinator:
             if wait["kind"] == "spacing":
                 record.update(waiting_for="spacing", spacing=wait["reason"] or detail.get("spacing") or "")
             if now > wait["deadline"]:
-                self.db.update_scheduled_post(post["id"], "expired", detail={
-                    **detail, **record, "reason": SPACING, "expired_at": now.isoformat()})
+                _write_booking(self.db, post["id"], "expired", detail={
+                    **detail, **record, "reason": SPACING, "expired_at": now.isoformat()}, expect=post.get("status"))
                 log.info("Carousel %s of %s expired: %s.", post["id"], post["run_id"], why_words(wait["why"], past=True))
                 self._close_booking_item(post)   # QF-73b: its notice said it would expire then; it has
                 continue
             if not wait["unconfirmed"] and any(detail.get(k) != v for k, v in record.items()):
                 detail.update(record)
-                self.db.update_scheduled_post(post["id"], "waiting", detail=detail)
+                _write_booking(self.db, post["id"], "waiting", detail=detail, expect=post.get("status"))
             flag = "spacing_alert" if wait["kind"] == "spacing" else "slot_alert"
             raised = bool(detail.get(flag))
             if wait["unconfirmed"] or (raised and not self._booking_item_open(post)):
@@ -4763,7 +4793,7 @@ class PipelineCoordinator:
                 continue
             detail.setdefault(flag, now.isoformat())
             detail["notice_offer"] = offer
-            self.db.update_scheduled_post(post["id"], "waiting", detail=detail)
+            _write_booking(self.db, post["id"], "waiting", detail=detail, expect=post.get("status"))
             label = html.escape(self.db.run_label(post["run_id"]))
             deadline = html.escape(post_schedule.fmt(wait["deadline"]))
             if wait["kind"] == "spacing" and not wait["lost"]:
@@ -4851,12 +4881,12 @@ class PipelineCoordinator:
         # choices, so the slot each reply named stays its own (QF-73b round 2)
         chosen_at = detail.get("priority_at") or now.isoformat()
         if spaced and not detail.get("spacing_override"):
-            self.db.update_scheduled_post(post["id"], "waiting", detail={
+            _write_booking(self.db, post["id"], "waiting", detail={
                 **detail, "spacing_override": True, "spacing_override_at": now.isoformat(),
-                "priority": True, "priority_at": chosen_at})
+                "priority": True, "priority_at": chosen_at}, expect=post.get("status"))
         elif not spaced and not detail.get("post_anyway"):   # ahead of newer carousels; spacing keeps applying
-            self.db.update_scheduled_post(post["id"], "waiting", detail={
-                **detail, "post_anyway": True, "priority": True, "priority_at": chosen_at})
+            _write_booking(self.db, post["id"], "waiting", detail={
+                **detail, "post_anyway": True, "priority": True, "priority_at": chosen_at}, expect=post.get("status"))
         sensitive = bool((self.db.get_topic_by_id((self.db.get_run(post["run_id"]) or {}).get("topic_id"))
                           or {}).get("sensitivity"))
         first = post_schedule.first_carousel_slot(reel_at, now=now - MISSED_SLOT_GRACE)
@@ -4881,9 +4911,9 @@ class PipelineCoordinator:
             return Outcome("🖼 That carousel is not waiting for sensitive-topic spacing any more: see Posting.",
                            done=False)
         wait = spacing_wait(self.db, post) or {}
-        self.db.update_scheduled_post(post["id"], "expired", detail={
+        _write_booking(self.db, post["id"], "expired", detail={
             **(post.get("detail") or {}), **({"spacing_why": wait["why"]} if wait.get("why") else {}),
-            "reason": SPACING, "by": "operator", "expired_at": datetime.now(UTC).isoformat()})
+            "reason": SPACING, "by": "operator", "expired_at": datetime.now(UTC).isoformat()}, expect=post.get("status"))
         return Outcome(f"⏹ The carousel of {html.escape(self.db.run_label(post['run_id']))} won't post: you let it "
                        f"expire ({SPACING}). Its Reel and other posts are not affected.", done=True)
 
@@ -4903,7 +4933,7 @@ class PipelineCoordinator:
         for post in waiting:
             reel_at = post_schedule.carousel_reel(self.db, post)[1]
             if post_schedule.carousel_expired(slot, reel_at):  # a week-old carousel is stale next to newer Reels
-                self.db.update_scheduled_post(post["id"], "expired", detail=self._spacing_expiry(post, now))
+                _write_booking(self.db, post["id"], "expired", detail=self._spacing_expiry(post, now), expect=post.get("status"))
                 self._close_booking_item(post)   # QF-73b: its spacing or slot notice is answered by the expiry
         from src import carousel_lazy
         from src.posting_view import carousel_outlook
@@ -4995,7 +5025,7 @@ class PipelineCoordinator:
                                         final=bool(missing))
                     self.db.set_setting("carousel_posted_on", taken_on or "")
                     return
-                self.db.update_scheduled_post(post["id"], "waiting", files=files)
+                _write_booking(self.db, post["id"], "waiting", files=files, expect=post.get("status"))
                 post = {**post, "files": files}
             # QF-73b: sensitive-topic spacing checked again under the lock, after any drawing, just before posting:
             # another sensitive publication claimed (or posted) while this carousel was chosen or drawn keeps it
@@ -5181,8 +5211,8 @@ class PipelineCoordinator:
         # A credit hold's reason is written to be read whole (QF-126): it is never cut inside a clause.
         why = str(held) if isinstance(held, CarouselCreditHold) else str(held)[:400]
         if binding or final:
-            self.db.update_scheduled_post(post["id"], "failed", detail={
-                "error": f"held {when}: {held}", "held": True, ("binding" if binding else "final"): True})
+            _write_booking(self.db, post["id"], "failed", detail={
+                "error": f"held {when}: {held}", "held": True, ("binding" if binding else "final"): True}, expect=post.get("status"))
             _notice(self, f"❌ <b>Carousel not posted</b> for {html.escape(self.db.run_label(post['run_id']))}: "
                     f"{html.escape(why)}." + chr(10) * 2
                     + "This carousel will not post. Nothing was posted, and its Reel and other posts are not "
@@ -5191,7 +5221,7 @@ class PipelineCoordinator:
                     section="needs", key=f"post-failed:{post['id']}", run=post["run_id"], replace=True)
             return
         record = getattr(held, "record", None) or {}
-        self.db.update_scheduled_post(post["id"], "failed", detail={"error": f"held at its slot: {held}", "held": True})
+        _write_booking(self.db, post["id"], "failed", detail={"error": f"held at its slot: {held}", "held": True}, expect=post.get("status"))
         found = carousel_lazy.summary(record, limit=2400)
         # The clean chat (UI-01): one Needs-you item per held booking (its key), its Redraw an item action that
         # closes it only when redraw_carousel says it was done (notifications.Outcome); the earlier chat's message
@@ -5233,7 +5263,8 @@ class PipelineCoordinator:
         now = datetime.now().astimezone()
         again = {"redraw": True, "priority": True, "priority_at": now.isoformat(),
                  "held_before": post["detail"].get("error")}
-        self.db.update_scheduled_post(post["id"], "waiting", files=[], detail=again)
+        if not _write_booking(self.db, post["id"], "waiting", files=[], detail=again, expect=post.get("status")):
+            return Outcome("🖼 That carousel is not held any more: see Posting.", done=False)   # changed meanwhile
         reel_at = post_schedule.carousel_reel(self.db, post)[1]
         car = post_schedule.first_carousel_slot(reel_at, now=now)
         if car:   # QF-73b: the slot the carousel plan gives it (a carousel chosen first keeps its own), when it has one
@@ -5243,9 +5274,9 @@ class PipelineCoordinator:
         if not car:
             # UI-01g round 3: the expiry records why, so Posting says so ("expired: ..."), not "it waited over 7
             # days" (a carousel held at its slot can be past its window well before 7 days after its Reel)
-            self.db.update_scheduled_post(post["id"], "expired", detail={
+            _write_booking(self.db, post["id"], "expired", detail={
                 **again, "reason": "held at its slot, and a Redraw found no carousel slot left in its window",
-                "window_end": post_schedule.carousel_deadline(reel_at).isoformat(), "expired_at": now.isoformat()})
+                "window_end": post_schedule.carousel_deadline(reel_at).isoformat(), "expired_at": now.isoformat()}, expect="waiting")
             # UI-01g: the booking has expired, so its hold item goes with it (as a carousel's notice does when it
             # posts or expires: QF-73b). It is never left open offering a Redraw that can no longer work; this
             # reply says why, and Posting shows the booking as expired.
@@ -5273,7 +5304,19 @@ class PipelineCoordinator:
     def publish_run(self, run_id: str, dry_run: bool = False, previous_status: str = "queued") -> Dict[str, Any]:
         from src.publication_lock import publication_lock
         with publication_lock(self.db.db_path, run_id, wait=30):
+            booking = _POSTING_BOOKING.get()
+            if booking is not None and hasattr(self.db, "booking_open") and not self.db.booking_open(booking):
+                raise ValueError("Its booking was cancelled; nothing was posted.")
             return self._publish_run_locked(run_id, dry_run, previous_status)
+
+    def _publish_booking(self, booking: int, run_id: str, **kw: Any) -> dict[str, Any]:
+        """publish_run for a scheduled post: the booking is checked under the run's upload lock, so a booking
+        cancelled (an Undo, Posting's cancel) after the caller read it is never posted (QF-69)."""
+        token = _POSTING_BOOKING.set(int(booking))
+        try:
+            return self.publish_run(run_id, **kw)
+        finally:
+            _POSTING_BOOKING.reset(token)
 
     def _timed_upload(self, run: dict[str, Any], upload):
         """An upload, timed as the run's "upload" stage; its stage budgets are checked once it ends (QF-74)."""
@@ -5312,7 +5355,10 @@ class PipelineCoordinator:
         )
         if dry_run:
             self.db.update_run(run_id, "approved")
-        elif not self.db.claim_publication(run_id):
+        elif not (self.db.claim_publication(run_id, booking=_POSTING_BOOKING.get())
+                  if _POSTING_BOOKING.get() is not None else self.db.claim_publication(run_id)):
+            if _POSTING_BOOKING.get() is not None and not self.db.booking_open(_POSTING_BOOKING.get()):
+                raise ValueError("Its booking was cancelled; nothing was posted.")   # QF-69: cancelled during the checks
             # QF-73: a sensitive topic too close to another one is refused with that reason
             raise ValueError(self.db.topic_problem(run["topic_id"], run_id=run_id, spacing_only=True)
                              or "Publication was already claimed or this run is not ready")
@@ -6009,6 +6055,18 @@ def run_in_worker(content_format: str, dry_run: bool, schedule_posts: bool, time
         return result
     finally:
         Path(result_path).unlink(missing_ok=True)
+
+
+def _write_booking(db, post_id: int, status: str, expect: str | None = None, **kw: Any) -> bool:
+    """A poster's write to a booking, as a compare-and-set on the status it read (QF-69: db.update_scheduled_post's
+    `expect`); a database stand-in without it (tests) gets the plain write. True when it applied."""
+    import inspect
+    try:
+        takes = "expect" in inspect.signature(db.update_scheduled_post).parameters
+    except (TypeError, ValueError):
+        takes = False
+    applied = db.update_scheduled_post(post_id, status, expect=expect, **kw) if takes else         db.update_scheduled_post(post_id, status, **kw)
+    return applied is not False
 
 
 @contextlib.contextmanager

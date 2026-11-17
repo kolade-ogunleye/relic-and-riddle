@@ -1,0 +1,53 @@
+{
+ "v2_card_invented_literals": 0,
+ "undo_of_a_posting_reel_refused": "5/5",
+ "cancelled_bookings_uploaded": 0,
+ "cancelled_bookings_brought_back_by_a_later_write": "0/4",
+ "control_cancel_before_posting_works": true,
+ "control_cancel_during_the_checks_works": true,
+ "cases": {
+  "cancel while publishing": {
+   "refused": true,
+   "booking": "pending"
+  },
+  "cancel while published": {
+   "refused": true,
+   "booking": "pending"
+  },
+  "cancel while publish_unknown": {
+   "refused": true,
+   "booking": "pending"
+  },
+  "cancel with an unknown-outcome publication": {
+   "refused": true,
+   "booking": "pending"
+  },
+  "cancel while the upload holds its lock": {
+   "refused": true,
+   "booking": "pending"
+  },
+  "control: cancel during the checks before the claim": {
+   "cancelled": true,
+   "booking": "cancelled"
+  },
+  "pass read the booking, then it was cancelled": {
+   "uploaded": 0,
+   "booking": "cancelled"
+  },
+  "post now read the booking, then it was cancelled": {
+   "uploaded": 0,
+   "booking": "cancelled"
+  },
+  "writes after a cancel": {
+   "missed-slot reschedule": "cancelled",
+   "hold": "cancelled",
+   "block": "cancelled",
+   "move": "cancelled"
+  },
+  "control: cancel before posting": {
+   "cancelled": true,
+   "booking": "cancelled"
+  }
+ },
+ "acceptance_met": true
+}

@@ -259,12 +259,16 @@ def _choose(words, cut_sets, fits, balance_min, seam_pref, strict, measure, lone
 
 def set_heading(text: str, measure: Callable[[str, float], float], width: float, sizes: Sequence[float],
                 max_lines: int = 2, seam: int | None = None, lockup: bool = False,
-                balance_min: float | None = None, locked_lines: int = 0) -> Form | None:
+                balance_min: float | None = None, locked_lines: int = 0,
+                last_resort_floor: float | None = None) -> Form | None:
     """The heading `text` set on the ladder `sizes` (first size, then at most the recorded fallback): None when no
     valid form fits `width` at any of them. `measure(line, size)` is a line's drawn width at `size`. `seam`: an
     authored line1 / line2 seam (word index) the break prefers; `lockup`: the payoff run is gold (else the heading is
     bone but for its stated quantities). `locked_lines`: a size-locked cover's last resort: up to this many lines at
-    the (one) size, a lone-word row then allowed (the break and the band give way, never the size); recorded."""
+    the (one) size, a lone-word row then allowed (the break and the band give way, never the size); recorded.
+    `last_resort_floor`: an interior's last resort when no valid form sets on the ladder: the fallback tier stepped
+    down 2 px at a time to this floor (valid forms only), then a lone-word row at the fallback tier; each recorded
+    (off_ladder / lone_last_resort), so a heading is refused only where even that does not set."""
     words = tuple(" ".join(str(text or "").split()).split())
     if not words:
         return None
@@ -282,11 +286,21 @@ def set_heading(text: str, measure: Callable[[str, float], float], width: float,
         stages.append((tier, size, multi, balance_min, True))
     for tier, size in enumerate(sizes):
         stages.append((tier, size, multi, 0.0, False))
+    lone_sets = None
     if locked_lines > max_lines:
-        more = [c for n in range(1, locked_lines) for c in itertools.combinations(points, n)]
-        stages.append((0, sizes[0], more, 0.0, False))
+        lone_sets = [c for n in range(1, locked_lines) for c in itertools.combinations(points, n)]
+        stages.append((0, sizes[0], lone_sets, 0.0, False))
+    off = []
+    if last_resort_floor is not None:
+        size = sizes[-1] - 2
+        while size >= last_resort_floor:
+            off.append(size)
+            stages.append((None, size, [()] + multi, 0.0, False))
+            size -= 2
+        lone_sets = multi
+        stages.append((len(sizes) - 1, sizes[-1], lone_sets, 0.0, False))
     for tier, size, cut_sets, bmin, strict in stages:
-        lone_ok = cut_sets is not multi and cut_sets != [()]
+        lone_ok = cut_sets is lone_sets
         got = _choose(words, cut_sets, fits_at(size), bmin, seam, strict, lambda t, s=size: measure(t, s), lone_ok)
         if got is None:
             continue
@@ -294,7 +308,8 @@ def set_heading(text: str, measure: Callable[[str, float], float], width: float,
         acc = seam if seam is not None else (cuts[-1] if cuts else ideal_seam(words))
         return _issue(Form(words, tuple(cuts), size, tier, acc, lockup,
                            {"balance": round(bal, 3), "conjunction_end": bool(conj),
-                            **({"locked_last_resort": True} if lone_ok else {})}))
+                            **({"locked_last_resort": True} if lone_ok else {}),
+                            **({"off_ladder": True} if tier is None else {})}))
     return None
 
 

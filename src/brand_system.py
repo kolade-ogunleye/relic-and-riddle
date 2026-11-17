@@ -32,18 +32,25 @@ display -> brand display face; kicker, body, label -> text face; figure -> displ
 like a heading: one voice for the claim and its number); data_label, credit, badge -> data face; masthead ->
 masthead face. At most three voices on a frame (display, text, data), the masthead counted apart.
 
-Heading rules (HEADING, line_end_ok): one line when it fits at the role's tier, else a balanced break (shorter line
->= 0.55 of the longer) at a phrase boundary; no line other than the last ends on LINE_END_NEVER (articles,
-prepositions); a conjunction end (LINE_END_LAST_RESORT) only when no other break fits; a value never splits from
-its unit or conversion; every copy of a heading sets the same form; a cover is never shrunk to one line below the
-interior tier (ruled); the Story keeps its own ruling (one size per Story, one line a field down to 106 px, never
-four rows).
+Heading rules (HEADING, line_end_ok; ONE engine, src/heading.py, round 7): every renderer that breaks a heading or
+a display line sets it there (carousel, Story, Reel cover, YouTube, cards; caption bursts read its never set). One
+line when it fits at the role's tier, else the one fallback tier, else a balanced break (shorter line >= 0.55 of the
+longer); never a size fitted to the measure. No line other than the last ends on LINE_END_NEVER (articles,
+prepositions, of / in / from / near: HARD, the operator's rule; the break goes BEFORE the stop word: THE EYE / OF THE
+SAHARA); a conjunction end (LINE_END_LAST_RESORT) only when no other break fits; no lone-word row in a heading of
+three words or more; a value never splits from its unit; every copy of a heading sets the same form. A cover is
+LOCKED at display_xl (>= 1.08 x display_l): the break and the band give way, never its size. The Story takes one
+title size (the least over its frames, one line a field, never under 106 px). The text band: the body hangs from
+the heading's last baseline by one gap per canvas (band.body_gap), so heading tops take two positions per deck.
 
 Accent (ACCENT): gold marks the payoff (the accent line of a heading, the figure run, numerals, rules and the
-mark); bone carries everything else. Function words that open the accent line stay bone ("THE EYE / OF THE SAHARA");
-a leading alternative "OR" may stay gold. Body, kickers' words on photographs where gold clashes (warm ground) and
-function words are never gold. Gold-on-gold fallback, one rule: the gold line turns bone (the plate is never
-added for colour). GOLD_DIM only for a line that sits behind text (a spine). TEAL / CORAL only as a chart's second
+mark); bone carries everything else. Round 7 (F5, independent of the wrap): a LOCKUP (the carousel cover, the Reel
+cover, the YouTube headline, a Story title: copy that states a payoff) gilds its payoff run on one line or two (the
+words from the authored line1 / line2 seam, else the engine's seam); an INTERIOR heading (a carousel content slide)
+is never gold but for a stated quantity (ruling 3). Function words that open the accent line stay bone ("THE EYE /
+OF THE SAHARA"); a leading alternative "OR" may stay gold. Body, kickers' words on photographs where gold clashes
+(warm ground) and function words are never gold. Gold-on-gold fallback, one rule: the gold line turns bone (the
+plate is never added for colour). A lockup's line 2 is lockup.line_ratio x line 1's size (never fitted per cover). GOLD_DIM only for a line that sits behind text (a spine). TEAL / CORAL only as a chart's second
 and third series; a map's marks are gold and bone, never another hue.
 
 Masthead (MASTHEAD, masthead_spec): one treatment: the gold diamond (outlined in INK) then the brand name in the
@@ -67,8 +74,10 @@ re-encode leaves 4.5), masthead gate 5.5 and target 6.5, high 7.0 (an ink figure
 3.0 (WCAG 1.4.11 non-text).
 
 Kicker (KICKER): text face 800, tracked 0.15 em capitals, GOLD, led by a flat gold rule one cap long at mid-cap
-height, 0.55 cap from the words; one gap to the heading per canvas. THEN / NOW over a year are data labels (data
-face), not kickers.
+height, 0.55 cap from the words; one gap to the heading (kicker.gap em). Round 7 (F20): the one kicker on the
+carousel, the Story, the cards (the rule-above retired), the Reel covers (the gold tab retired), the end screen's
+WATCH NEXT and YouTube (the bone Anton fill line retired; there at the feed floor). THEN / NOW over a year are data
+labels (data face), not kickers.
 
 Figures (FIGURE): a stated quantity in the display face, gold; ruler, axis and index figures, units and credits in
 the data face (tabular lining figures); a range's en dash centred within 0.03 em of the figures' centre with at
@@ -289,11 +298,16 @@ DEVIATIONS: Mapping[str, tuple[str, str, tuple, str]] = MappingProxyType({
                            (136, 128, 120, 112, 104, 100, 96, 92, 88, 84), "F"),
     "end card share 9:16": ("body", "end_card.SHARE_SIZES", (58, 56, 54), "E"),
     "end screen hand-off 16:9": ("body", "end_card.LANDSCAPE_SHARE_SIZES", (64, 60, 56), "E"),
-    "YouTube headline": ("display_xl", "youtube_thumbnail: 190 down to 96 in 4 px steps", (190, 96, 4), "B"),
-    "Reel cover titles": ("display_xl", "cover_design: per style 100-164, probe floor 96", (100, 164, 96), "B"),
-    "carousel content heading": ("display_l", "multi_format: IG 138 -> 124, FB 150 -> 140 design px", (138, 124, 150, 140),
-                                 "D"),
-    "Story title": ("display_xl", "multi_format: 150 to the ruled one-line floor 106, else 120", (150, 106, 120), "D"),
+    "YouTube headline": ("display_xl", "youtube_thumbnail: the ladder 190 / 160, then a recorded last resort in 4 px "
+                         "steps to 96 (round 7)", (190, 160, 96, 4), "B"),
+    "Reel cover titles": ("display_xl", "cover_design: the style's line-1 size (100-120) x lockup.line_ratio, one "
+                          "fallback tier x 0.8, a recorded last resort (round 7)", (100, 120, 0.8), "B"),
+    "carousel content heading": ("display_l", "multi_format: FB 150 / 140 design px (IG is on the ladder, round 7)",
+                                 (150, 140), "D"),
+    "carousel stat heading": ("display_m", "multi_format: the colossal-stat slide's heading, 84 to 52 design px in "
+                              "2 px steps through the engine", (84, 52, 2), "D"),
+    "Story title": ("display_xl", "multi_format: one size per Story, 150 to the ruled one-line floor 106 (round 7)",
+                    (150, 106), "D"),
     "then-and-now THEN / NOW": ("data_label", "then_now.kicker_px(): 48 px 9:16, cap-fitted 16:9", (48,), "A"),
 })
 
@@ -308,17 +322,19 @@ SIZE_SITES: Mapping[str, str] = MappingProxyType({
     "cover_design:_brand": "B",
     "cover_design:_brand_foot": "B",
     "cover_design:_eyebrow_lines": "B",
+    "cover_design:_lockup": "B",
+    "cover_design:_lockup.width_at": "B",
     "cover_design:_monument": "B",
     "cover_design:_provenance": "B",
     "cover_design:_qualifier_fit": "B",
     "cover_design:_render": "B",
-    "cover_design:_rows": "B",
     "cover_design:_tagline_lines": "B",
     "design_cards:_Card.font": "F",
     "design_cards:_cap": "F",
     "design_cards:_chapter_compose": "F",
     "design_cards:_design_wrap": "F",
     "design_cards:_hook_mast_foot": "F",
+    "design_cards:_kicker": "F",
     "design_cards:_lead": "F",
     "design_cards:_myth_compose": "F",
     "design_cards:_myth_fit.fwrap": "F",
@@ -393,8 +409,11 @@ SIZE_SITES: Mapping[str, str] = MappingProxyType({
     "multi_format:MultiFormatGenerator._render_story_frame": "D",
     "multi_format:MultiFormatGenerator._render_story_frame.title_plan": "D",
     "multi_format:MultiFormatGenerator._rows": "D",
+    "multi_format:MultiFormatGenerator._set_heading": "D",
+    "multi_format:MultiFormatGenerator._set_heading.measure": "D",
     "multi_format:story_body_lines": "D",
     "multi_format:story_credit_fit": "D",
+    "multi_format:story_title_px": "D",
     "then_now:_kicker_px_for_cap": "A",
     "then_now:marker_lines": "A",
     "then_now:marker_xy": "A",
@@ -410,6 +429,9 @@ SIZE_SITES: Mapping[str, str] = MappingProxyType({
     "video_composer:_ink_band": "C",
     "video_composer:_record_caption_faces": "C",
     "video_composer:reel_cap_height": "C",
+    "youtube_thumbnail:_kicker_font": "B",
+    "youtube_thumbnail:_lockup.attempt": "B",
+    "youtube_thumbnail:_lockup.width_at": "B",
     "youtube_thumbnail:_qual_font": "B",
     "youtube_thumbnail:_render": "B",
 })

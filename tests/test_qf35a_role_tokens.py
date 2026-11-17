@@ -474,8 +474,9 @@ def test_a_timeline_span_too_thin_to_read_its_own_colour_is_measured_on_its_draw
     ground = Image.fromarray(np.full((200, 600, 3), 10, np.uint8))
     with brand.use(_third_brand()):
         thin, read = get_font(brand.TEXT_FONT, 10, weight=300), get_font(brand.TEXT_FONT, 26, weight=700)
-        with pytest.raises(TypeError):
-            plan_text(ground, (20, 100), "6 YEARS LATER", thin, brand.STONE, "ls", track=2)
+        # lane MEASURE r7 (sweep #9): plan_text no longer raises on a thin face; it reads the ink as drawn
+        direct = plan_text(ground, (20, 100), "6 YEARS LATER", thin, brand.STONE, "ls", track=2)
+        assert direct.contrast is not None and direct.contrast >= brand.TEXT_CONTRAST
         plate = graphics._plan_thin(ground, (20, 100), "6 YEARS LATER", thin, brand.STONE, "ls", halo_px=None,
                                     track=2)
         assert plate.contrast is not None and plate.contrast >= brand.TEXT_CONTRAST and plate.track == 2

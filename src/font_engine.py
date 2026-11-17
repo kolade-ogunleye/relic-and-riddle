@@ -548,6 +548,47 @@ def run_ink_bounds(run: GlyphRun, font):
             max(box[2] for box in boxes), max(box[3] for box in boxes))
 
 
+def _raster_char(glyph_index: int, encoded: dict[int, str]) -> str | None:
+    """The character a chosen glyph is rasterised through: its own Unicode character, unless it has none or it is a
+    mark (Mn/Mc/Me), which Pillow's raqm would shape again on its own (a lone combining mark is set on a dotted
+    circle, drawn 30 px past the run's measured ink: measure sweep r7 #19); None: the private glyph-id code point."""
+    char = encoded.get(glyph_index)
+    if char is None or unicodedata.category(char) in ("Mn", "Mc", "Me"):
+        return None
+    return char
+
+
+def _placed_glyphs(run: GlyphRun, xy, text: str, font, anchor: str, features, whole: bool = False):
+    """([(position, char, raster font)], raster features): every glyph of `run` where it is drawn for `xy` and the
+    Pillow `anchor`. `whole`: the run is drawn whole by Pillow (draw_run untracked), so its left origin is the one
+    Pillow's own anchor gives (the measure sweep r7 #14: half the unhinted HarfBuzz advance put a centred or
+    right-anchored glyph mask up to a pixel off the drawn glyph)."""
+    if len(anchor) != 2 or anchor[0] not in "lmr" or anchor[1] not in "atmsbd":
+        raise ValueError(f"Unsupported text anchor: {anchor}")
+    feats = list(features)
+    if whole and anchor[0] != "l":
+        x = xy[0] + font.getbbox(text, anchor=anchor, features=feats)[0] - font.getbbox(
+            text, anchor="l" + anchor[1], features=feats)[0]
+    else:
+        x = xy[0] - (run.advance / 2 if anchor[0] == "m" else run.advance if anchor[0] == "r" else 0)
+    # the vertical anchor from the same run, set with the same features
+    a = font.getbbox(text, anchor="l" + anchor[1], features=feats)
+    baseline = font.getbbox(text, anchor="ls", features=feats)
+    y = xy[1] + a[1] - baseline[1]
+    path = str(font.path)
+    encoded = _encoded_glyphs(path)
+    raster_features = ["-" + tag for tag in sorted(inspect_font(path).features)]   # draw the chosen glyph as is
+    variations = getattr(font, "_rr_variations", ())
+    placed = []
+    for glyph in run.glyphs:
+        char = _raster_char(glyph.index, encoded)
+        raster_font = font if char is not None else _glyph_font(path, raster_px(font), variations)
+        if char is None:
+            char = chr(_GLYPH_CODEPOINT + glyph.index)
+        placed.append(((x + glyph.x, y - glyph.y), char, raster_font))
+    return placed, raster_features
+
+
 def draw_run(draw, xy, text: str, font, fill, anchor="la", tracking=0, stroke=0, stroke_fill=None, features=None):
     """Draws `text` as shape() measures it at `xy` (a Pillow anchor) and returns the drawn box (stroke included).
 
@@ -565,24 +606,7 @@ def draw_run(draw, xy, text: str, font, fill, anchor="la", tracking=0, stroke=0,
     run = shape(text, font, tracking, features)
     if not run.glyphs:
         return (round(xy[0]), round(xy[1]), round(xy[0]), round(xy[1]))
-    if len(anchor) != 2 or anchor[0] not in "lmr" or anchor[1] not in "atmsbd":
-        raise ValueError(f"Unsupported text anchor: {anchor}")
-    x = xy[0] - (run.advance / 2 if anchor[0] == "m" else run.advance if anchor[0] == "r" else 0)
-    # the vertical anchor from the same run, set with the same features
-    a = font.getbbox(text, anchor="l" + anchor[1], features=list(features))
-    baseline = font.getbbox(text, anchor="ls", features=list(features))
-    y = xy[1] + a[1] - baseline[1]
-    path = str(font.path)
-    encoded = _encoded_glyphs(path)
-    raster_features = ["-" + tag for tag in sorted(inspect_font(path).features)]   # draw the chosen glyph as is
-    variations = getattr(font, "_rr_variations", ())
-    placed = []
-    for glyph in run.glyphs:
-        char = encoded.get(glyph.index)
-        raster_font = font if char is not None else _glyph_font(path, raster_px(font), variations)
-        if char is None:
-            char = chr(_GLYPH_CODEPOINT + glyph.index)
-        placed.append(((x + glyph.x, y - glyph.y), char, raster_font))
+    placed, raster_features = _placed_glyphs(run, xy, text, font, anchor, features)
     passes = ((stroke_fill if stroke_fill is not None else fill, stroke), (fill, 0)) if stroke else ((fill, 0),)
     for ink, width in passes:
         for position, char, raster_font in placed:
@@ -606,23 +630,9 @@ def glyph_masks(size, xy, text: str, font, anchor="la", tracking=0, features=Non
     run = shape(text, font, tracking, features)
     if not run.glyphs:
         return []
-    if len(anchor) != 2 or anchor[0] not in "lmr" or anchor[1] not in "atmsbd":
-        raise ValueError(f"Unsupported text anchor: {anchor}")
-    x = xy[0] - (run.advance / 2 if anchor[0] == "m" else run.advance if anchor[0] == "r" else 0)
-    a = font.getbbox(text, anchor="l" + anchor[1], features=list(features))
-    baseline = font.getbbox(text, anchor="ls", features=list(features))
-    y = xy[1] + a[1] - baseline[1]
-    path = str(font.path)
-    encoded = _encoded_glyphs(path)
-    raster_features = ["-" + tag for tag in sorted(inspect_font(path).features)]
-    variations = getattr(font, "_rr_variations", ())
+    placed, raster_features = _placed_glyphs(run, xy, text, font, anchor, features, whole=not tracking)
     out = []
-    for glyph in run.glyphs:
-        char = encoded.get(glyph.index)
-        raster_font = font if char is not None else _glyph_font(path, raster_px(font), variations)
-        if char is None:
-            char = chr(_GLYPH_CODEPOINT + glyph.index)
-        pos = (x + glyph.x, y - glyph.y)
+    for (pos, char, raster_font), glyph in zip(placed, run.glyphs):
         box = _ImageDraw.Draw(_Image.new("L", (1, 1))).textbbox(pos, char, font=raster_font, anchor="ls",
                                                                  features=raster_features)
         x0, y0 = max(0, math.floor(box[0]) - 1), max(0, math.floor(box[1]) - 1)

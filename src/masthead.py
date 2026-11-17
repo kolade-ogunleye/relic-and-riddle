@@ -43,21 +43,24 @@ from PIL import Image, ImageDraw
 from . import brand
 from .brand_system import HALO_EXCEPTION_CAP, colour_of, masthead_spec, tok
 from .typography import (
+    GLYPH_MIN_PX,
+    GLYPH_PCT,  # noqa: F401  (the per-glyph method's constants, kept importable here)
+    GLYPH_SURROUND,  # noqa: F401
+    RING_PCT,
     _lin,
+    _tail,
     cap_height,
     get_font,
     plan_text,
     rel_luminance,
     tracked_width,
 )
+from .typography import glyph_contrast as typography_glyph_contrast
 
 log = logging.getLogger(__name__)
 
 SCRIM_STEPS = 8     # bisection steps for the least scrim peak
 LEVELS_STEP = 5     # the levels ceiling is searched in steps of this (255 down to scrim.levels_floor)
-GLYPH_SURROUND = 4  # px: a glyph's immediate surround, 1..this outside its ink
-GLYPH_PCT = 95      # the percentile of a glyph's background held against its fill: at most 5 % of it may fail
-GLYPH_MIN_PX = 8    # a connected component smaller than this (a stray antialiasing speck) is not a glyph
 
 
 def font_for(size: float):
@@ -81,15 +84,35 @@ def fit_ladder(size: float) -> list[float]:
     return steps
 
 
-def fit_size(size: float, room: float) -> float | None:
-    """The largest size on the fit ladder whose group fits `room`; None below the floor (the masthead is refused)."""
-    return next((s for s in fit_ladder(size) if group_width(s) <= room + 1e-9), None)
+def fit_size(size: float, room: float, x0: float = 0.0) -> float | None:
+    """The largest size on the fit ladder whose group fits `room`; None below the floor (the masthead is refused).
+    `x0`: the diamond's left point (its fraction places the name's pixels; group_width)."""
+    return next((s for s in fit_ladder(size) if group_width(s, x0) <= room + 1e-9), None)
 
 
-def group_width(size: float) -> float:
-    """The masthead's drawn width at `size`: diamond, gap, tracked name."""
+def group_width(size: float, x0: float = 0.0) -> float:
+    """The masthead's DRAWN width at `size`: from the diamond's left point `x0` to the right edge of the last pixel the
+    group draws (measure sweep r7 #6: the tracked advance omitted the last glyph's overhang, and "AVAVAV" drew 1.8 px
+    past the room it was accepted in). The name is rasterised as the plate draws it (font_engine.draw_run, tracked,
+    at `x0`'s fraction), so its overhang, combining marks and antialiased edge are counted; the diamond spans 2 x
+    mark_r. Unrounded; the left edge is x0 unless an ink overhang reaches further left."""
+    import math
+
+    from .font_engine import draw_run
     spec = masthead_spec(size)
-    return 2 * spec["mark_r"] + spec["gap"] + tracked_width(brand.MASTHEAD, font_for(size), spec["track"])
+    font = font_for(size)
+    lead = 2 * spec["mark_r"] + spec["gap"]
+    frac = float(x0) - math.floor(float(x0))
+    margin = math.ceil(2 * size) + 8
+    adv = tracked_width(brand.MASTHEAD, font, spec["track"])
+    W, H = math.ceil(frac + lead + max(0.0, adv) + 2 * margin), math.ceil(4 * size) + 16
+    m = Image.new("L", (W, H), 0)
+    draw_run(ImageDraw.Draw(m), (margin + frac + lead, 2 * size + 8), brand.MASTHEAD, font, 255, "ls", spec["track"])
+    bb = m.getbbox()
+    left, right = margin + frac, margin + frac + 2 * spec["mark_r"]
+    if bb is not None:
+        left, right = min(left, float(bb[0])), max(right, float(bb[2]))
+    return right - left
 
 
 def top_scrim(im: Image.Image, peak: float, reach: float, colour=None) -> Image.Image:
@@ -137,77 +160,25 @@ def levelled(im: Image.Image, ceiling: int, reach: float) -> Image.Image:
 
 def glyph_contrast(ground: Image.Image, plate) -> tuple[float | None, dict[str, Any]]:
     """The worst GLYPH of `plate` (a TextPlate) on `ground` (the pixels the text is drawn on, before it is drawn; the
-    plate's own halo is composited first, as it will be): (ratio, detail). Each glyph is one SHAPED glyph: the drawn
-    ink partitioned by every glyph's own mask, rasterised alone at the position and advance HarfBuzz gave it
-    (font_engine.glyph_masks: tracking, kerning and ligatures included), never an ink component (round 4: at a tracking of -0.14 em thirty letters touched and were
-    judged as one). Its background is the ground UNDER its own ink pixels plus its immediate surround (a ring
-    1..GLYPH_SURROUND px outside it, every glyph's ink excluded). A glyph scores the lower of the fill's ratio against
-    the GLYPH_PCT percentile (the brightest share, for light text; the darkest, for dark text) of (a) its under-ink
-    pixels alone and (b) under-ink plus surround: so no more than (100 - GLYPH_PCT) % of a glyph's ink may sit on ground
-    that fails the ratio, whatever the feature's width, angle or offset, and whatever its neighbours touch. None when
-    nothing is measurable."""
-    import cv2
+    plate's own halo is composited first, as it will be): (ratio, UNROUNDED, or None; detail). The ONE per-glyph
+    method every text element is judged by (typography.glyph_contrast, planned, over the plate's shaped glyphs:
+    measure sweep r7 #4), here for the masthead's planner and gate."""
     import numpy as np
-
-    from .font_engine import glyph_masks
     if plate is None or plate.empty:
         return None, {}
-    under_im = plate.draw_halo(ground.convert("RGB")) if plate.halo > 0 else ground.convert("RGB")
-    ox, oy = (int(v) for v in plate.origin)
-    h, w = plate.glyphs.shape
-    rgb = np.asarray(under_im)[max(0, oy):oy + h, max(0, ox):ox + w]
-    ink_all = (plate.glyphs[max(0, -oy):max(0, -oy) + rgb.shape[0], max(0, -ox):max(0, -ox) + rgb.shape[1]] > 127)
-    lum = _lin(rgb.reshape(-1, 3)).reshape(rgb.shape[:2])
-    lt = rel_luminance(plate.fill)
-    k = np.ones((2 * GLYPH_SURROUND + 1, 2 * GLYPH_SURROUND + 1), np.uint8)
-    pct = GLYPH_PCT if plate.light else 100 - GLYPH_PCT
-    worst, detail = None, {"glyphs": 0}
-    H, W = lum.shape
-    # Each drawn ink pixel belongs to the glyph(s) whose OWN shaped mask covers it (>= half coverage), else to the glyph
-    # covering it most: the drawn ink partitioned by the shaping, each glyph's part then cut into its connected pieces.
-    # Letters that do not touch get exactly the ink components they had (so untouched text judges as in round 3,
-    # pixel for pixel); letters that touch are still told apart.
-    masks = glyph_masks(ground.size, plate.xy, plate.text, plate.font, plate.anchor, plate.track, plate.features)
-    if not masks:
-        return None, detail
-    stack = np.zeros((len(masks), H, W), np.uint8)
-    for i, (_, (gx0, gy0, gx1, gy1), gmask) in enumerate(masks):
-        m = np.asarray(gmask)
-        sx0, sy0 = gx0 - ox, gy0 - oy
-        X0, Y0, X1, Y1 = max(0, sx0), max(0, sy0), min(W, sx0 + m.shape[1]), min(H, sy0 + m.shape[0])
-        if X1 > X0 and Y1 > Y0:
-            stack[i, Y0:Y1, X0:X1] = m[Y0 - sy0:Y1 - sy0, X0 - sx0:X1 - sx0]
-    owner = stack.argmax(axis=0)
-    pieces = []   # each glyph's partition, cut into its connected pieces (a detached serif or speck is judged alone)
-    for i, (cluster, _box, _m) in enumerate(masks):
-        part = (ink_all & ((owner == i) | (stack[i] > 127))).astype(np.uint8)
-        n, lab = cv2.connectedComponents(part, connectivity=8)
-        pieces += [(cluster, lab == j) for j in range(1, n)]
-    for cluster, comp in pieces:
-        if int(comp.sum()) < GLYPH_MIN_PX:
-            continue
-        ys, xs = np.nonzero(comp)
-        y0, y1 = max(0, ys.min() - GLYPH_SURROUND - 1), ys.max() + GLYPH_SURROUND + 2
-        x0, x1 = max(0, xs.min() - GLYPH_SURROUND - 1), xs.max() + GLYPH_SURROUND + 2
-        c = comp[y0:y1, x0:x1].astype(np.uint8)
-        ring = (cv2.dilate(c, k) > 0) & ~ink_all[y0:y1, x0:x1]
-        under = lum[y0:y1, x0:x1][c > 0]
-        both = np.concatenate([under, lum[y0:y1, x0:x1][ring]])
-        pair = (float(np.percentile(under, pct)), float(np.percentile(both, pct)))
-        lb = max(pair) if plate.light else min(pair)
-        r = (max(lt, lb) + 0.05) / (min(lt, lb) + 0.05)
-        detail["glyphs"] += 1
-        if worst is None or r < worst:
-            worst = r
-            detail.update(worst_glyph_x=int(ox + xs.min()), worst_glyph_px=int(comp.sum()), worst_glyph_cluster=int(cluster))
-    return (None if worst is None else round(worst, 2)), detail
+    under = plate.under(plate._crop(ground.convert("RGB")), plate.halo)
+    worst, detail = typography_glyph_contrast(np.asarray(under.convert("RGB")), plate.glyphs, (0, 0), plate.fill,
+                                              drawn=False, parts=plate.glyph_parts())
+    if "worst_glyph_x" in detail:
+        detail["worst_glyph_x"] += int(plate.origin[0])
+    return worst, detail
 
 
 def window_contrast(im: Image.Image, plate) -> float | None:
     """The worst ring contrast of `plate` on the composed pixels `im`, window by window along the name (round 2): the
-    element's 2-10 px ring cut into windows half a cap wide, one every quarter cap, each window's 90th / 10th
-    percentile against the glyph colour. Kept beside the glyph judgement: it reads the wider ring the glyph surround
-    does not."""
+    element's 2-10 px ring cut into windows half a cap wide, one every quarter cap, each window's
+    worse tail BY THE RATIO (any fill, sweep r7 #3) against the glyph colour, UNROUNDED: it reads the wider ring the glyph
+    surround does not (judge)."""
     import cv2
     import numpy as np
     if plate is None or plate.empty:
@@ -228,21 +199,31 @@ def window_contrast(im: Image.Image, plate) -> float | None:
         bg = rgb[:, x0:x0 + win][ring[:, x0:x0 + win] > 0]
         if len(bg) < 50:
             continue
-        lb = float(np.percentile(_lin(bg), 90 if plate.light else 10))
-        r = round((max(lt, lb) + 0.05) / (min(lt, lb) + 0.05), 2)
+        r = _tail(_lin(bg), lt, RING_PCT)       # the worse tail by the ratio, any fill (sweep r7 #3); unrounded
         if worst is None or r < worst:
             worst = r
     return worst
 
 
-def judge(ground: Image.Image, plate) -> float:
-    """The element's ratio as judged: the lowest of its whole-ring ratio and its windowed rings on the composed pixels
-    and its worst glyph (`glyph_contrast`) on the ground under it."""
+def judge_detail(ground: Image.Image, plate) -> dict[str, float | None]:
+    """Every reading the gate takes of the name, UNROUNDED, so a record can say which one bound: `glyph`
+    (glyph_contrast, the ground under each glyph before it is drawn), `drawn` (TextPlate.measure on the composed
+    pixels: the whole 2-10 px ring and each glyph's ink as drawn against its surround) and `window`
+    (window_contrast, the 2-10 px ring half a cap at a time)."""
     if plate is None or plate.empty:
-        return 0.0
+        return {"glyph": None, "drawn": None, "window": None}
     composed = plate.draw(ground)
-    vals = [v for v in (plate.measure(composed), window_contrast(composed, plate), glyph_contrast(ground, plate)[0])
-            if v is not None]
+    return {"glyph": glyph_contrast(ground, plate)[0], "drawn": plate.measure(composed),
+            "window": window_contrast(composed, plate)}
+
+
+def judge(ground: Image.Image, plate) -> float:
+    """The element's ratio as judged, UNROUNDED: the lowest reading of judge_detail. The windowed ring stays in the
+    minimum (lane MEASURE r7, real-runs sweep (b)): it reads ground 5-10 px from the ink that the glyph surround
+    (1..4 px) does not, and on a bright sky with a dark mass under some letters (tests/test_brand_system_r6.py) it is
+    the reading that binds, 0.25-0.42 under the glyph and whole-ring readings; on the round-2/3 adversaries it adds
+    nothing the grouped per-glyph method misses."""
+    vals = [v for v in judge_detail(ground, plate).values() if v is not None]
     return min(vals) if vals else 0.0
 
 

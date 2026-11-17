@@ -1548,7 +1548,8 @@ def grid_proof(im, lay):
             continue
         cap = min(cap_h_of(p.font) for p in ps)
         inside = all(CROP_34[1] <= p.box[1] and p.box[3] <= CROP_34[3] for p in ps)
-        vals = [v for v in (p.measure(blurred) for p in ps) if v is not None]
+        # the tile's ring (TextPlate.measure_ring: at 124 px a glyph and its surround fall inside one tile pixel)
+        vals = [v for v in (getattr(p, "measure_ring", p.measure)(blurred) for p in ps) if v is not None]
         kind = "hook" if name in GRID_HOOK else "texture"
         elements[name] = {"class": kind, "cap_124": round(cap * GRID_SCALE[0], 1),
                           "cap_180": round(cap * GRID_SCALE[1], 1), "inside_34": inside,

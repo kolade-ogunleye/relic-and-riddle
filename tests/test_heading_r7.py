@@ -490,3 +490,25 @@ def test_story_title_contrast_is_recorded_on_the_composed_frame(tmp_path):
         photo, {"kicker": "K", "line1": "The desert eye", "line2": "seen from space", "body": "A body."}, 0, 2, {})
     for p in lay.plates["title_1"]:
         assert p.contrast == pytest.approx(p.measure(im.convert("RGBA")), abs=0.05)
+
+
+# ------------------------------------------------------------------ integration: no real deck refused for its heading
+
+@pytest.mark.parametrize("archetype", ["cover", "debate"])
+@pytest.mark.parametrize("facebook", [False, True], ids=["ig", "fb"])
+def test_the_whispering_vault_sets_on_every_two_tone_slide(tmp_path, archetype, facebook):
+    """The real Gol Gumbaz deck (dev run 1793278143) was refused whole: on the FB cover's 810 px THE WHISPERING VAULT
+    has no valid two-line form at display_xl (THE / ... ends on a never word; THE WHISPERING / VAULT is a lone word
+    under the fallback tier). Every two-tone slide (cover, debate) sets it, on IG and FB, by the engine's recorded
+    last resort where the ladder cannot: never a never-word end, never refused."""
+    from src.multi_format import MultiFormatGenerator
+    photo = tmp_path / "p.jpg"
+    Image.new("RGB", (1600, 2000), (70, 70, 70)).save(photo)
+    card = {"heading": "The whispering vault", "body": "A whisper crosses the dome in seconds."}
+    _, lay = MultiFormatGenerator()._render_carousel_slide(archetype, photo, photo, card, 0 if archetype == "cover" else 6,
+                                                           7, {}, "Send this to a friend.", facebook, subject="TEST")
+    form = lay.meta["heading"]
+    assert " ".join(form["lines"]) == "THE WHISPERING VAULT"
+    assert all(ln.split()[-1].lower() not in brand_system.LINE_END_NEVER for ln in form["lines"][:-1])
+    drawn = " ".join(p.text for p in sorted(lay.plates["heading"], key=lambda p: (round(p.xy[1]), p.xy[0])))
+    assert drawn == "THE WHISPERING VAULT"

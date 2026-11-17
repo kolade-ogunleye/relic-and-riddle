@@ -87,10 +87,14 @@ def signed(monkeypatch):
 
 
 def test_the_cards_start_at_the_box_edge_and_the_reviewed_long_myth_fits(signed):
-    assert tuple(getattr(dc, k, None) for k in ("TALL_LEFT", "TALL_RIGHT", "TALL_FOOT")) == (113, 848, GRAPHICS_FOOT)
+    # cycle 0 round 7 (panel F19): the cards start on the 9:16 margin token, the box inset by TEXT_INSET (137-824)
+    assert tuple(getattr(dc, k, None) for k in ("TALL_LEFT", "TALL_RIGHT", "TALL_FOOT")) == (137, 824, GRAPHICS_FOOT)
     plan = fc.plan_myth(fc.LONG_ET)
     a = plan.meta["anchors"]
     assert a["px"] >= dc.MYTH_FLOOR_SOURCE and a["myth_px"] >= 58 and plan.meta["source_omitted"] is None
+    # this reviewed long myth does not set at its floor inside the margin column: it takes the token's one fallback
+    # tier, the box's own column (113-848), recorded
+    assert a["margin"] == "box"
     assert min(e.box[0] for e in plan.elements) >= REEL_RECT[0] - 2
     assert max(e.box[2] for e in plan.elements) <= REEL_RECT[2]
     assert max(e.box[3] for e in plan.elements) <= GRAPHICS_FOOT

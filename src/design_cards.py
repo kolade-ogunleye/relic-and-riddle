@@ -77,7 +77,7 @@ from .graphics import (
 )
 from .multi_format import typeset
 from .photo_hygiene import remap_focus, without_caption_strip
-from .safe_zones import graphics_box
+from .safe_zones import graphics_box, text_box
 from .still_layout import Layout
 from .typography import (
     _FIGURE,
@@ -151,10 +151,12 @@ HOOK_SIZES = {1: (192, 176, 160, 144, 128), 2: (176, 168, 160, 152, 144, 136, 12
 # x 113-848, graphics to y 1090; they were literals for the ads box, x 100-888, foot 1058): words start on the box's
 # left edge (the box already holds the platforms' clearance; on the graphics' inset edge, x 120, the reviewed long
 # myths no longer fitted their floors), end on its right edge, stop at its graphics foot.
-TALL_LEFT = graphics_box()[0]                        # x 113 (was 100)
-TALL_RIGHT = graphics_box()[2]                       # x 848 (was 888)
+# Cycle 0 round 7 (panel F19, MG): words start and end on the 9:16 margin token instead, the box inset by
+# safe_zones.TEXT_INSET each side (x 137-824): flush on the box's edge they had 0-1 px of margin at feed size.
+TALL_LEFT = text_box("reel")[0]                      # x 137 (113 on the box's edge, 100 on the ads box)
+TALL_RIGHT = text_box("reel")[2]                     # x 824 (848, 888)
 TALL_FOOT = graphics_box()[3]                        # y 1090 (was 1058)
-HOOK_MEASURE = TALL_RIGHT - TALL_LEFT                # flush left from TALL_LEFT to the Reel box's right edge (735)
+HOOK_MEASURE = TALL_RIGHT - TALL_LEFT                # flush left from TALL_LEFT to TALL_RIGHT (687; 735 on the box)
 # QF-24: the hook's plate position centres on the box's own axis (x 480), as the captions and the end card do: centred
 # on the frame (x 540) the 616 px the organic box leaves there (232..848) set the claim a size smaller and the drawn
 # masthead (634 px with its mark) ran 9 px past the box's right edge
@@ -1966,6 +1968,10 @@ def plan_myth_fact(spec: MythFact, sheet: dict, width: int = 1080, height: int =
     m_draw, f_draw = myth.upper(), fact_t.upper()
     _glyphs_ok(m_draw, brand.DISPLAY_FONT, None)
     fit = _myth_fit(m_draw, f_draw, host, geo)
+    column = None
+    if fit is None and not geo.wide:
+        column = MYTH_BOX_COLUMN
+        fit = _myth_fit(m_draw, f_draw, host, geo, column)
     if fit is None:
         raise CardRefused("the myth or the fact runs past its line limit at the floor size"
                           + (" with its source line kept" if host else ""), code="no_fit")
@@ -2028,6 +2034,7 @@ def plan_myth_fact(spec: MythFact, sheet: dict, width: int = 1080, height: int =
                                  {"t_s": t_s, "t_f": t_f, "rest_m": rest_m, "rest_f": rest_f,
                                   "fact_starts": fact_starts, "t_src": t_src, "pen": pen, "fk_rule": fk_rule,
                                   "fk_label": fk_label, "panel_open": panel_open, "raw_host": raw_host,
+                                  "column": column,
                                   "notes": _correction_notes(fact_t, fact_by_id(sheet, fid))},
                                  {"myth": prov_m, "fact": prov_f}, Pm=Pm, verdict=str(f.get("verdict") or "false"),
                                  compact=compact)
@@ -2052,6 +2059,11 @@ MYTH_BLUR = 36                       # design px Gaussian (review 2026-11-03: at
 MYTH_LINES = {False: (4, 4), True: (4, 5)}
 MYTH_MEASURE = {False: (HOOK_MEASURE, HOOK_MEASURE), True: (617, 926)}   # 9:16: TALL_LEFT to the box's right edge
 MYTH_X = {False: (TALL_LEFT, TALL_LEFT), True: (153, 840)}         # 16:9: the fact's column runs to title-safe's right (1766)
+# Cycle 0 round 7 (panel F19): the margin token's ONE fallback tier. A 9:16 myth whose copy does not set at its floor
+# in the margin column (TALL_LEFT..TALL_RIGHT) takes the Reel box's own column (its edges, x 113-848) rather than being
+# refused (the reviewed long myth "Extraterrestrials constructed the circular rings" needs it); the plan records it
+# (anchors "margin": "box").
+MYTH_BOX_COLUMN = (graphics_box()[0], graphics_box()[2] - graphics_box()[0])   # (x, measure)
 # freeze panel M10: the 16:9 divider at 786 (was 806), so the myth column gains 17 px and the fact 20
 # review 2026-11-03 (second round, 3): on 16:9 the struck myth outweighed the fact; the myth is set at this share of
 # the fact's size there, so the fact is the hero (9:16 keeps one size: its two statements stack)
@@ -2218,7 +2230,7 @@ def _myth_wrap(m_draw: str, pm: int, m_meas: int, m_lim: int, geo: _Geo) -> list
     return held if held and (not full or len(held) <= len(full)) else full
 
 
-def _myth_fit(m_draw: str, f_draw: str, host: str | None, geo: _Geo):
+def _myth_fit(m_draw: str, f_draw: str, host: str | None, geo: _Geo, column: tuple[int, int] | None = None):
     """(P, myth lines, fact lines, host, why omitted, myth px, compact) at the largest size that fits; None when none
     does. Never a smaller size to save a line (review 2026-11-03: an extra line is preferred), and lines are evenly
     broken with no lone word (_wrap even). The source line is never dropped (design handover, 2026-11-04).
@@ -2230,6 +2242,8 @@ def _myth_fit(m_draw: str, f_draw: str, host: str | None, geo: _Geo):
     16:9 (M2): the largest fact size from MYTH_WIDE_FLOOR at which a myth share of MYTH_WIDE_RATIOS sets at least
     MYTH_WIDE_MYTH_FLOOR px in at most four lines, no more than one myth line taller than the fact column (M3)."""
     (m_max, f_max), (m_meas, f_meas) = MYTH_LINES[geo.wide], MYTH_MEASURE[geo.wide]
+    if column is not None and not geo.wide:   # the margin token's fallback tier (MYTH_BOX_COLUMN)
+        m_meas = f_meas = column[1]
     top, bottom = MYTH_TOP[geo.wide], MYTH_BOTTOM[geo.wide]
     room = bottom - top
     stops: list[str] = []
@@ -2534,34 +2548,47 @@ def _myth_ground(photo: Path | None, geo: _Geo, last_t: float, dim: float, y0: f
         y0, y1 = min(y0, MYTH_PANEL[0]), max(y1, MYTH_PANEL[1])
     ground = toned_ground(photo, geo, MYTH_BLUR, band_levels(geo, y0, y1, inner, MYTH_ABOVE, MYTH_BELOW,
                                                              MYTH_FEATHER, MYTH_FEATHER_LOW))
-    parts = None if geo.wide else _photo_outside(photo, geo, y1, top=y0)
+    parts = None if geo.wide else _photo_outside(photo, geo, y1, top=y0, panel=ground,
+                                                 foot0=opening[0] if opening is not None else None)
     if parts and opening is not None:
         # freeze panel M11 (4): the panel's foot from opening[0] (design y) to its final y1, eased from opening[2]
-        # over opening[3]; its top and edges stay crisp
+        # over opening[3]; its top and foot keep their feathered edges (cycle 0 round 7, panel F17)
         b0, b1, t0, dur = opening
-        drift = _PanelDrift(ground, *parts, foot=(lambda t: b0 + (b1 - b0) * _ease_io((t - t0) / dur)),
-                            geo=geo, top=y0)
+        drift = _PanelDrift(ground, *parts[:2], foot=(lambda t: b0 + (b1 - b0) * _ease_io((t - t0) / dur)),
+                            geo=geo, top=y0, feathers=parts[2])
     else:
-        drift = _PanelDrift(ground, *parts) if parts else GroundDrift(ground)
+        drift = _PanelDrift(ground, *parts[:2]) if parts else GroundDrift(ground)
     return drift, drift(last_t)
 
 
-def _panel_mask(geo: _Geo, top: float, foot: float) -> Image.Image:
-    """255 outside design y top..foot, 0 inside, one antialiased pixel between (as _photo_outside's mask)."""
-    W, H = geo.width, geo.height
+def _edge_rows(H: int, top_y: float, foot_y: float, feathers: tuple[float, float] = (0.0, 0.0)) -> np.ndarray:
+    """Per frame row: 1 outside the panel (frame y top_y..foot_y), 0 inside, eased by smoothstep over
+    feathers = (above, below) px outward from each edge (band_edge: the band-edge token); a feather of 0 is the old
+    one antialiased pixel."""
+    from .band_edge import smoothstep
     Y = np.arange(H, dtype=np.float32) + 0.5
-    m = np.maximum(np.clip(Y - geo.y(foot) + 0.5, 0, 1), np.clip(geo.y(top) - Y + 0.5, 0, 1))
+    up, down = (max(1.0, float(f)) for f in feathers)
+    above = smoothstep((top_y - Y + 0.5) / up) if up > 1 else np.clip(top_y - Y + 0.5, 0, 1)
+    below = smoothstep((Y - foot_y + 0.5) / down) if down > 1 else np.clip(Y - foot_y + 0.5, 0, 1)
+    return np.maximum(above, below)
+
+
+def _panel_mask(geo: _Geo, top: float, foot: float, feathers: tuple[float, float] = (0.0, 0.0)) -> Image.Image:
+    """255 outside design y top..foot, 0 inside, eased over `feathers` px outward (as _photo_outside's mask)."""
+    W, H = geo.width, geo.height
+    m = _edge_rows(H, geo.y(top), geo.y(foot), feathers)
     return Image.fromarray(np.clip(np.repeat(m[:, None], W, axis=1) * 255 + 0.5, 0, 255).astype(np.uint8), "L")
 
 
 class _PanelDrift:
     """The 9:16 myth's ground per frame: the photograph outside the panel drifts (GroundDrift), the panel itself
-    (the toned ground inside MYTH_PANEL) holds still, so its crisp edges stay on the graphics box all clip long."""
+    (the toned ground inside MYTH_PANEL) holds still, so its feathered edges stay on the graphics box all clip long."""
 
     def __init__(self, panel: Image.Image, outside: Image.Image, mask: Image.Image,
-                 foot: Callable[[float], float] | None = None, geo: _Geo | None = None, top: float = 0.0) -> None:
+                 foot: Callable[[float], float] | None = None, geo: _Geo | None = None, top: float = 0.0,
+                 feathers: tuple[float, float] = (0.0, 0.0)) -> None:
         self.panel, self.outside, self.mask = panel, GroundDrift(outside), mask
-        self.foot, self.geo, self.top = foot, geo, top
+        self.foot, self.geo, self.top, self.feathers = foot, geo, top, feathers
         self._masks: dict[int, Image.Image] = {}
 
     def foot_at(self, t: float) -> float | None:
@@ -2573,7 +2600,7 @@ class _PanelDrift:
         if self.foot is not None:
             y = self.geo.y(self.foot(t))
             if y not in self._masks:
-                self._masks[y] = _panel_mask(self.geo, self.top, (y - self.geo._oy) / self.geo.k)
+                self._masks[y] = _panel_mask(self.geo, self.top, (y - self.geo._oy) / self.geo.k, self.feathers)
             mask = self._masks[y]
         return Image.composite(self.outside(t), self.panel, mask)
 
@@ -2591,10 +2618,17 @@ MYTH_PANEL = (graphics_box()[1] - MYTH_PANEL_AIR, graphics_box()[3] + MYTH_PANEL
 MYTH_OUT_SHADE = 0.12        # the INK veil over the photograph outside the panel
 
 
-def _photo_outside(photo: Path | None, geo: _Geo, y1: float, top: float | None = None
-                   ) -> tuple[Image.Image, Image.Image] | None:
+MYTH_EDGE_MIN = 24          # design px: the panel's edges feather at least this far (never a crisp slab edge)
+
+
+def _photo_outside(photo: Path | None, geo: _Geo, y1: float, top: float | None = None,
+                   panel: Image.Image | None = None, foot0: float | None = None
+                   ) -> tuple[Image.Image, Image.Image, tuple[float, float]] | None:
     """(the photograph as shown outside the panel, the mask that is 255 outside design y `top`..`y1` and 0 inside,
-    one antialiased pixel between); None without a photo."""
+    the (above, below) feathers in frame px); None without a photo. Cycle 0 round 7 (panel F17: the INK plate with
+    crisp top and bottom edges read as a slab at feed size): with the `panel` ground, each edge eases outward by
+    smoothstep over the band-edge token's feather for the step between the photograph beyond it and the panel at it
+    (band_edge.feather; at least MYTH_EDGE_MIN), the foot's measured at its opening position `foot0` too."""
     if not photo or not Path(photo).exists():
         return None
     from PIL import ImageFilter
@@ -2607,15 +2641,26 @@ def _photo_outside(photo: Path | None, geo: _Geo, y1: float, top: float | None =
     c, half, turn = TONE_YELLOW
     hsv[..., 0] = ((h - turn * np.clip(1 - np.abs(h - c) / half, 0, 1)) % 360.0) * (255.0 / 360.0)
     pic = Image.fromarray(np.clip(hsv + 0.5, 0, 255).astype(np.uint8), "HSV").convert("RGB")
-    Y = np.arange(H, dtype=np.float32) + 0.5                   # frame rows
-    below = np.clip(Y - geo.y(y1) + 0.5, 0, 1)
-    above = np.clip(geo.y(top) - Y + 0.5, 0, 1) if top is not None else np.zeros_like(Y)
-    m = np.maximum(below, above)                               # 1 outside the panel, 0 inside, one pixel between
     p = np.asarray(pic, np.float32)
     ink = np.asarray(brand.INK, np.float32)[None, None, :]
     shaded = p * (1 - MYTH_OUT_SHADE) + ink * MYTH_OUT_SHADE
+    feathers = (0.0, 0.0)
+    if panel is not None:
+        from . import band_edge
+        out_l = band_edge.luma_rows(shaded)
+        pan = np.asarray(panel.convert("RGB"), np.float32)
+        lo = geo.px(MYTH_EDGE_MIN)
+
+        def at(y: float, side: str) -> float:   # the feather of the panel edge at frame row y, outward to `side`
+            r = int(round(y))
+            rows = pan[max(0, r):min(H, r + lo)] if side == "up" else pan[max(0, r - lo):min(H, r)]
+            colour = rows.reshape(-1, 3).mean(axis=0) if rows.size else np.asarray(brand.INK, np.float32)
+            return band_edge.feather(out_l, y, side, colour, 1.0, lo, W)
+        feet = [geo.y(y1)] + ([geo.y(foot0)] if foot0 is not None else [])
+        feathers = (at(geo.y(top), "up") if top is not None else 0.0, max(at(f, "down") for f in feet))
+    m = _edge_rows(H, geo.y(top) if top is not None else -1.0, geo.y(y1), feathers)
     mask = Image.fromarray(np.clip(np.repeat(m[:, None], W, axis=1) * 255 + 0.5, 0, 255).astype(np.uint8), "L")
-    return Image.fromarray(np.clip(shaded + 0.5, 0, 255).astype(np.uint8), "RGB"), mask
+    return Image.fromarray(np.clip(shaded + 0.5, 0, 255).astype(np.uint8), "RGB"), mask, feathers
 
 
 def _myth_compose(spec: MythFact, geo: _Geo, P: int, m_lines: list[str], f_lines: list[str], host: str | None,
@@ -2632,6 +2677,8 @@ def _myth_compose(spec: MythFact, geo: _Geo, P: int, m_lines: list[str], f_lines
     M = R                               # the MYTH kicker's rule top
     card = _Card("mythfact", geo, rest)
     mx, fx = MYTH_X[geo.wide]
+    if tm.get("column") and not geo.wide:
+        mx = fx = tm["column"][0]
     m_base = [R + v for v in m_rel]
     f_base = [R + v for v in f_rel]
     F = R + F_rel
@@ -2740,6 +2787,8 @@ def _myth_compose(spec: MythFact, geo: _Geo, P: int, m_lines: list[str], f_lines
                                  "block": (R, R + h), "pen_total": pen_total, "panel_open": tm.get("panel_open")}
     if div_fill is not None:
         anchors_m["divider_fill"] = brand.hex_colour(div_fill)
+    if not geo.wide:   # cycle 0 round 7 (F19): the margin column, or its one fallback tier (the box's)
+        anchors_m["margin"] = "box" if tm.get("column") else "token"
     meta = {"anchors": anchors_m, "provenance": provenance,
             "never_first": True, "min_seconds": round(seconds, 6), "source_omitted": omitted,
             "quality_notes": list(tm.get("notes") or []), "source_host_raw": tm.get("raw_host"),

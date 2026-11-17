@@ -123,8 +123,10 @@ def test_the_follow_sits_in_the_reel_box_reads_and_leaves_the_seam_alone(case):
 
 
 def test_a_follow_that_cannot_read_is_left_off_and_the_review_card_says_so(monkeypatch, tmp_path):
-    monkeypatch.setattr(end_card, "LOOP_FOLLOW_HALO", 1)          # no halo to speak of: bone on white cannot read
-    white = Image.new("RGB", (1080, 1920), "white")
+    # no halo to speak of, on a mid grey where neither bone (label halo <= 0.16) nor the INK variant reads (cycle 0
+    # round 7: on white the INK variant now reads, so white no longer forces the skip)
+    monkeypatch.setattr(end_card, "LOOP_FOLLOW_HALO", 1)
+    white = Image.new("RGB", (1080, 1920), (128, 128, 128))
     stats = {}
     frames = list(end_card.loop_bridge(white, white, "Send this on.", stats, line=False, follow=True))
     assert len(frames) == 30 and stats["follow"] is False and stats["text"] is None and stats["follow_requested"]

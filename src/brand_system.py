@@ -58,8 +58,23 @@ height at 124 px wide reaches tok("masthead.grid_cap") px, which at the cover si
 deliberately mastheadless (the profile carries the brand there).
 
 Plates, scrims, halos (PLATE, SCRIM, HALO): shade colour is INK, never pure black; plate tiers opaque 1.0 / held
-0.875 / panel 0.78; one radius per canvas; scrims are soft, monotonic, never steeper than 0.5 luma / px; a text
-halo's alpha is the least that meets its tier, the masthead's never above 0.16.
+0.875 / panel 0.78; one radius per canvas; a text halo's alpha is the least that meets its tier, the masthead's never
+above 0.16. Two kinds of soft transition (cycle 0 round 7, panel F8 / F17), never a hard step: a FIELD (a ground's
+ramp across the frame behind content: the end card's and end screen's field) never steps faster than the gate
+scrim.slope_max (0.5 luma / px); a BAND or PLATE EDGE (where a photograph meets the INK band or plate text sits on:
+the carousel text band and split grounds, the Story band, the myth plate, a stat card's band) eases by smoothstep
+over a feather that grows with the luma step it crosses, so its steepest point is at most tok("edge.slope_max")
+luma per px at 1080 wide (scaled by the canvas width: 1.5 on the 1440 carousel), edge_feather(). A band edge at the
+field gate would take ~3x the feather and darken the photograph's lower half (subject visibility ranks above
+finish), so the edge has its own, steeper token; the field gate is unchanged. Edges are feathered rather than drawn
+hard with a rule: a hard band or plate edge reads as a caption bar or a slab at feed size (the panel's lid and slab),
+and a rule would add an element to every band. Two photographs side by side are two windows on an INK gutter of
+tok("plate.gutter") design px (a hairline gutter reads as a seam in one composite picture). Overlay labels over a
+picture (the loop bridge's FOLLOW, the end card's follow line; graphics' map labels are lane A's to port) take ONE
+halo spread (tok("halo.label_spread") em) and a halo alpha never above tok("halo.label_max") (0.16, the masthead's
+cap); where bone cannot reach its gate within it, a light ground takes the INK variant (ruling 1, as the masthead),
+label_halo(). Hero windows: no delivered crop of a photograph contains a panel seam or a printed banner row
+(src/hero_window.py). Margins on 9:16 cards and the end card: the Reel safe box inset by safe_zones.TEXT_INSET.
 
 Contrast tiers (CONTRAST): text 4.5 (gate, WCAG AA on delivered pixels), place 4.8 (what placement aims for),
 display 5.1 (large display rows on covers, hook and YouTube), kicker 5.5 (small gold capitals, so a platform
@@ -148,6 +163,11 @@ SYSTEM_TOKENS: Mapping[str, Any] = MappingProxyType({
     # ---- motion
     "motion.back": 1.5,               # ease_out_back's constant (8 % overshoot): a callout's pop
     "motion.rise_s": 8,               # px a kicker rises while it enters (the end screen's WATCH NEXT)
+    # ---- band and plate edges, overlay-label halos, gutters (cycle 0 round 7: panel F8, F9, F15, F17)
+    "edge.slope_max": 2.0,            # luma per px at 1080 wide: a band / plate edge's steepest point (edge_feather)
+    "halo.label_max": 0.16,           # an overlay label's halo alpha, never above (the masthead's cap)
+    "halo.label_spread": 0.33,        # em: an overlay label's one halo spread (21 px at 64 px)
+    "plate.gutter": 24,               # design px (1080 wide) of INK between two photographs side by side
 })
 
 # The range a brand may set each numeric runtime token to (BrandConfig refuses a value outside it), so "any value the
@@ -167,6 +187,10 @@ TOKEN_RANGES: Mapping[str, tuple[float, float]] = MappingProxyType({
     "kicker.rule_thick": (0.08, 0.50),    # caps
     "motion.back": (0.0, 4.0),
     "motion.rise_s": (0, 40),             # px
+    "edge.slope_max": (0.5, 3.0),         # luma / px at 1080: never under the field gate, never a lid (6.1 measured)
+    "halo.label_max": (0.0, 0.16),        # never above the masthead's ruled cap
+    "halo.label_spread": (0.15, 0.60),    # em
+    "plate.gutter": (8, 64),              # design px
 })
 
 # Joint limits where two tokens interact (round 5: the edge at its maximum on the mark at its minimum radius left no gold
@@ -505,6 +529,23 @@ def masthead_spec(size: float) -> dict[str, Any]:
     return {"size": size, "weight": tok("masthead.weight"), "track": tok("masthead.track") * size,
             "mark_r": tok("masthead.mark_r") * size, "gap": tok("masthead.gap") * size,
             "edge": max(2, round(tok("masthead.mark_edge") * size))}
+
+
+SMOOTHSTEP_PEAK = 1.5   # smoothstep's steepest slope, in units of its mean slope (step / feather)
+
+
+def edge_feather(step: float, width: int, minimum: float = 0.0) -> int:
+    """The feather (canvas px) a smoothstep band or plate edge needs so that crossing a luma `step` (0-255) its
+    steepest point is at most tok("edge.slope_max") luma per px at 1080 wide, on a canvas `width` wide; never under
+    `minimum` (the surface's own designed feather)."""
+    import math
+    slope = tok("edge.slope_max") * 1080 / max(1, width)
+    return int(max(math.ceil(minimum), math.ceil(SMOOTHSTEP_PEAK * max(0.0, float(step)) / slope)))
+
+
+def label_halo(size: float) -> tuple[int, float]:
+    """An overlay label's halo at `size` px: (its one spread in px, the alpha it may never exceed)."""
+    return max(1, round(tok("halo.label_spread") * size)), float(tok("halo.label_max"))
 
 
 def masthead_shown_on_grid(cap_px: float, canvas_w: int, grid_w: int = 124) -> bool:

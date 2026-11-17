@@ -271,8 +271,10 @@ def reel_column(width: int = WIDTH, height: int = HEIGHT) -> tuple[float, int]:
     QF-24: the shared organic Reel box (x 113-848) leaves 616 px centred on the frame (its right rail, 232 px, is wider
     than its left, 113 px), which set the masthead below its cover scale and the share line a size and a line
     smaller; centred in the box, as the captions are (video_composer.reel_caption_centre_x), the card keeps its
-    reviewed sizes (decided on real renders: docs/reviews/quality-fixes-2026-11/QF-24/README.md)."""
-    x0, _, x1, _ = REEL.box(width, height)
+    reviewed sizes (decided on real renders: docs/reviews/quality-fixes-2026-11/QF-24/README.md). Cycle 0 round 7
+    (panel F19): the column is the box less the 9:16 margin token (safe_zones.text_box: x 137-824), not its edges."""
+    from .safe_zones import text_box
+    x0, _, x1, _ = text_box("reel", width, height)
     return round((x0 + x1) / 2), x1 - x0
 
 
@@ -369,6 +371,9 @@ def _bump(height: int) -> np.ndarray:
     return 0.5 + 0.5 * np.cos(np.pi * np.clip(np.abs(rows - 0.46) / 0.54, 0, 1))   # smooth: no crease at the peak
 
 
+DIM_MAX = 0.97   # the deepest the card's dim goes (fit_dim), the field ramp's worst case (_scrim)
+
+
 def fit_dim(base: Image.Image) -> Tuple[np.ndarray, np.ndarray, Dict[str, float]]:
     """The lightest dim (per row) and softening (per row) that make the card read on this frame, and what they
     measure to. A busy text band (handwriting, foliage) is softened too, over the whole frame so no hazy stripe
@@ -385,7 +390,7 @@ def fit_dim(base: Image.Image) -> Tuple[np.ndarray, np.ndarray, Dict[str, float]
     ink = float(np.mean(brand.INK))
     for floor in np.arange(0.50, 0.92, 0.02):
         for peak in np.arange(0.86, 0.975, 0.01):
-            shape = np.clip(floor + (peak - floor) * bump, 0, 0.97)
+            shape = np.clip(floor + (peak - floor) * bump, 0, DIM_MAX)
             out = seen * (1 - shape) + ink * shape
             if (out[a:b].mean() <= TARGETS["band"] and out[a:b].std() <= TARGETS["band_std"]
                     and out[:a].mean() <= TARGETS["outside"] and out[b:].mean() <= TARGETS["outside"]):
@@ -467,9 +472,16 @@ def _cover(im: Image.Image, size: tuple[int, int]) -> Image.Image:
 
 def _scrim(width: int) -> np.ndarray:
     """Per column, the share of the dim (and softening) the 16:9 end screen applies: all of it behind the text
-    column, easing to LANDSCAPE_RIGHT_DIM over the end screen's video slot side."""
+    column, easing to LANDSCAPE_RIGHT_DIM over the end screen's video slot side. It is a FIELD (src/brand_system.py):
+    its ramp is long enough that on the brightest ground fit_dim can dim (white under its deepest shape, DIM_MAX) its
+    steepest point stays within the gate scrim.slope_max (cycle 0 round 7, tokens sweep #4: 0.558-0.595 luma / px on
+    bone and white grounds over the 260 px ramp), so it starts at LANDSCAPE_SCRIM_X[0] and runs at least to
+    LANDSCAPE_SCRIM_X[1]."""
+    from .brand_system import SMOOTHSTEP_PEAK, tok
     x = np.arange(width, dtype=np.float32)
     a, b = LANDSCAPE_SCRIM_X
+    step = (1 - LANDSCAPE_RIGHT_DIM) * DIM_MAX * (255.0 - float(np.dot(brand.INK, (0.299, 0.587, 0.114))))
+    b = max(b, a + int(np.ceil(SMOOTHSTEP_PEAK * step / tok("scrim.slope_max"))))
     u = np.clip((x - a) / (b - a), 0, 1)
     return 1 - (1 - LANDSCAPE_RIGHT_DIM) * (3 * u * u - 2 * u ** 3)
 
@@ -612,8 +624,12 @@ def frames(last: Image.Image, share: str, stats: dict[str, Any] | None = None, *
         log.warning("End card: %s", mast_rec["reason"])
     words = _word_xs(lay, width)
     word_plates = [plan_text(rest, (round(x), y), w, lay["share_font"], brand.BONE) for _, _, w, x, y in words]
-    follow_plate = (plan_text(rest, (lay["centre_x"], lay["follow_y"]), brand.FOLLOW_LINE, lay["follow_font"], brand.GOLD, "ma", lay["spacing"])
-                    if lay["follow"] else None)
+    follow_plate = None
+    if lay["follow"]:   # an overlay label: the label-halo token's one spread and cap (cycle 0 round 7, panel F15)
+        from .brand_system import label_halo
+        spread, cap = label_halo(lay["follow_font"].size)
+        follow_plate = plan_text(rest, (lay["centre_x"], lay["follow_y"]), brand.FOLLOW_LINE, lay["follow_font"],
+                                 brand.GOLD, "ma", lay["spacing"], halo_px=spread, max_halo=cap)
     extras = end_screen_extras(width) if landscape else None
     kicker_plate = credits_plate = None
     if extras:
@@ -848,7 +864,8 @@ def loop_bridge(last: Image.Image, first: Image.Image, share: str,
                          follow_frames=len(follow_contrasts),
                          follow_box=list(follow_plate.box) if follow_plate is not None else None,
                          follow_size=LOOP_FOLLOW_SIZE if follow_plate is not None else None,
-                         follow_halo=follow_plate.halo if follow_plate is not None else None)
+                         follow_halo=follow_plate.halo if follow_plate is not None else None,
+                         follow_variant=getattr(follow_plate, "variant", None) if follow_plate is not None else None)
 
 
 def follow_alpha(i: int, total: int) -> float:
@@ -864,19 +881,43 @@ def _follow_plate(a_img: Image.Image, b_img: Image.Image, a_rate: float, open_pu
     frame under it is a mix of those two (and the dim only darkens), so the halo holds on all of them; or (None, why)
     when even the strongest halo leaves it under LOOP_FOLLOW_MIN there (the bridge then ships without it). Solved on
     the two endpoint frames only, 3 of 31 production endings measured under 4.5:1 mid-crossfade (QF-83 real_data)."""
+    from .brand_system import label_halo
     from .typography import cap_height, full_halo_pad, plan_text
     width, height = a_img.size
     font = get_font(brand.TEXT_FONT, LOOP_FOLLOW_SIZE, weight=800)
     spacing = LOOP_FOLLOW_SIZE * FOLLOW_TRACK
     y = round(LOOP_CENTRE * height + cap_height(font) / 2)        # its baseline: the caps centred on LOOP_CENTRE
+    xy = (reel_column(width, height)[0], y)
     up = [i for i in range(total) if follow_alpha(i, total) >= 1.0]
-    grounds = [_pushed(a_img, 1 + a_rate * (i + 1), width, height) for i in (up[0], up[-1])]
-    grounds += [_pulled(b_img, 1 + open_push * (i - total), width, height) for i in (up[0], up[-1])]
-    lightest = Image.fromarray(np.maximum.reduce(grounds).clip(0, 255).astype(np.uint8))
-    plate = plan_text(lightest, (reel_column(width, height)[0], y), LOOP_FOLLOW, font, brand.BONE, "ms", spacing, halo_px=LOOP_FOLLOW_HALO,
-                      halo_pad=full_halo_pad(LOOP_FOLLOW_HALO), max_halo=1.0)
+    outgoing = [_pushed(a_img, 1 + a_rate * (i + 1), width, height) for i in (up[0], up[-1])]
+    incoming = [_pulled(b_img, 1 + open_push * (i - total), width, height) for i in (up[0], up[-1])]
+    lightest = Image.fromarray(np.maximum.reduce(outgoing + incoming).clip(0, 255).astype(np.uint8))
+    # Cycle 0 round 7 (panel F15: a dark halo cloud at 1x on bright stone): the overlay-label halo token first, ONE
+    # spread and an alpha never above tok("halo.label_max"); where bone cannot reach the floor within it, the
+    # light-ground INK variant (ruling 1, as the masthead), judged on the DARKEST picture under it (the outgoing shot
+    # fully dimmed, the incoming frame 0); only where neither reads, the pre-round-7 halo (LOOP_FOLLOW_HALO spread,
+    # up to 1.0), recorded as the halo exception: whether that stays, becomes a plate or fails closed is the
+    # operator's (the FOLLOW is on in production, QF-83).
+    spread, cap = label_halo(LOOP_FOLLOW_SIZE)
+    plate = plan_text(lightest, xy, LOOP_FOLLOW, font, brand.BONE, "ms", spacing, halo_px=spread,
+                      halo_pad=full_halo_pad(spread), max_halo=cap)
     if plate.empty:
         return None, "the word did not render"
+    plate.variant = "bone"
+    if (plate.contrast or 0.0) >= LOOP_FOLLOW_MIN:
+        return plate, None
+    shape = (fit_dim(a_img)[0] * LOOP_DIM)[..., None]
+    ink = np.array(brand.INK, np.float32)
+    darkest = Image.fromarray(np.minimum.reduce([g * (1 - shape) + ink * shape for g in outgoing] + incoming)
+                              .clip(0, 255).astype(np.uint8))
+    dark = plan_text(darkest, xy, LOOP_FOLLOW, font, brand.INK, "ms", spacing, halo_px=spread,
+                     halo_pad=full_halo_pad(spread), max_halo=0.0)
+    if (dark.contrast or 0.0) >= LOOP_FOLLOW_MIN:
+        dark.variant = "ink"
+        return dark, None
+    plate = plan_text(lightest, xy, LOOP_FOLLOW, font, brand.BONE, "ms", spacing, halo_px=LOOP_FOLLOW_HALO,
+                      halo_pad=full_halo_pad(LOOP_FOLLOW_HALO), max_halo=1.0)
+    plate.variant = "halo_exception"
     if (plate.contrast or 0.0) < LOOP_FOLLOW_MIN:
         return None, f"{plate.contrast or 0.0:.2f}:1 at its strongest halo (needs {LOOP_FOLLOW_MIN}:1)"
     return plate, None

@@ -885,7 +885,9 @@ def test_c6_tall_chapter_fill():
     p2 = chapter_plan(TALL, 2, ACTS, ACT2)
     assert lines_of(p2, "title") == ["DOCUMENTED", "PHYSICAL", "ARCHITECTURE"] and p2.meta["anchors"]["title_px"] >= 128
     p3 = chapter_plan(TALL, 3, ACTS, ACT3)
-    assert lines_of(p3, "title") == ["ORIGIN DEBATES", "AND ROCK", "DATING"] and p3.meta["anchors"]["title_px"] >= 128
+    # cycle 0 round 7 (panel F19): on the margin token's 687 px measure (735 on the box's edges) act 3's three lines
+    # set one ladder step lower, 120
+    assert lines_of(p3, "title") == ["ORIGIN DEBATES", "AND ROCK", "DATING"] and p3.meta["anchors"]["title_px"] >= 120
     assert max(e.box[2] for e in p3.elements if e.name.startswith("title_")) <= RIGHT
     for p in (p2, p3, chapter_plan(TALL)):
         a = p.meta["anchors"]
@@ -1239,7 +1241,8 @@ def test_r2_myth_fit_steps_down_for_a_weak_end(size, richat):
     dated = richat_myth(richat, RICHAT_1969, size=size)
     fl = lines_of(dated, "fact")
     assert fl == ["THE IMPACT THEORY", "WAS DISPROVED", "IN 1969"], fl
-    assert dated.meta["anchors"]["px"] >= (120 if size == WIDE else 96)
+    # cycle 0 round 7 (panel F19): the 9:16 fact on the margin token's 687 px measure sets at 92 (96 on the box's 735)
+    assert dated.meta["anchors"]["px"] >= (120 if size == WIDE else 92)
     long_ = richat_myth(richat, RICHAT_LONG, size=size)
     # QF-24: on the organic box's 735 px 9:16 measure (788 on the ads box) the long fact no longer sets in four clean
     # lines at the 76 px source floor (that break needs 72, under the floor); every size from its fit down to the floor

@@ -190,18 +190,20 @@ def scrim(im: Image.Image, y0: float, y1: float, feather: int = 300, target: flo
     percentile luminance brought toward `target`), fading over `feather` px above and below: never a box and
     never the whole frame (visual overhaul, 2026-10-29: a 35% shade over every Story and a fixed vignette band
     left bright stone at 3:1 and dark photos darker than they needed). Each line's own halo (place_text) does
-    the rest, line by line."""
+    the rest, line by line. `feather` is the designed minimum: each edge's feather grows with the luma step it
+    crosses (band_edge.feather: the band-edge token, cycle 0 round 7, panel F8), so a bright ground never gets a lid."""
     import numpy as np
+
+    from . import band_edge
     W, H = im.size
     colour = colour or brand.INK
-    a = np.asarray(im.convert("RGB"), dtype=np.float32) / 255.0
-    band = a[max(0, int(y0)):max(int(y0) + 1, int(y1))] @ np.array([0.2126, 0.7152, 0.0722], np.float32)
+    lum = band_edge.luma_rows(im)
+    band = lum[max(0, int(y0)):max(int(y0) + 1, int(y1))] / 255.0
     p = float(np.percentile(band, pct)) if band.size else 0.0
     strength = float(np.clip(1 - target / max(p, 1e-3), floor, cap))
-    y = np.arange(H, dtype=np.float32)
-    v = np.where((y >= y0) & (y <= y1), 1.0, np.where(y < y0, 1 - (y0 - y) / feather, 1 - (y - y1) / feather))
-    v = np.clip(v, 0, 1)
-    v = v * v * (3 - 2 * v)
+    up = band_edge.feather(lum, y0, "up", colour, strength, feather) if y0 > 0 else feather
+    down = band_edge.feather(lum, y1, "down", colour, strength, feather) if y1 < H - 1 else feather
+    v = band_edge.band_profile(H, y0, y1, up, down)
     mask = Image.fromarray((v * 255 * strength).astype(np.uint8).reshape(H, 1)).resize((W, H))
     layer = Image.new("RGBA", im.size, tuple(colour) + (255,))
     layer.putalpha(mask)
@@ -1640,22 +1642,26 @@ class MultiFormatGenerator:
         return im.convert("RGB")
 
     def _split_ground(self, photo: Path, cw: int, chh: int, photo2: Path = None) -> Image.Image:
-        """Photo over ink: the photo (or two, stacked) across the top, fading into the ink panel the text sits on."""
+        """Photo over ink: the photo (or two, stacked) across the top, fading into the ink panel the text sits on.
+        Cycle 0 round 7 (panel F8, F9): the fade is the band-edge token's (scrim -> band_edge.feather: its length
+        grows with the luma step, so a bright ground is no lid), the same for one photo or two, ending where the
+        single photo's does; two photographs are two windows on an INK gutter of tok("plate.gutter") design px (an
+        8 px gutter between two pictures of one subject read as a seam inside one composite picture)."""
+        from .brand_system import tok
         px = self._px(cw)
         ph = px(self.SPLIT_PHOTO_H_FB if getattr(_render_state, "facebook", False) else self.SPLIT_PHOTO_H)
         im = Image.new("RGB", (cw, chh), brand.INK2)
         if photo2 is None:
             im.paste(self._fill(photo, (cw, ph + px(150))), (0, 0))
         else:
-            # Two whole photographs with an ink gutter, both above the fade (2026-11-02 design review: the lower
-            # one ran into the fade and read as a rendering seam).
-            gutter = px(8)
+            # Two whole photographs with an ink gutter (2026-11-02 design review); the lower one runs on under the
+            # band's fade as the single photo does, so the fade has room without eating its picture.
+            gutter = px(tok("plate.gutter"))
             half = (ph + px(40) - gutter) // 2
             im.paste(self._fill(photo, (cw, half)), (0, 0))
-            im.paste(self._fill(photo2, (cw, half)), (0, half + gutter))
-            return scrim(im, 2 * half + gutter, chh, feather=px(40), target=0.0, cap=1.0, floor=1.0,
-                         colour=brand.INK2)
-        return scrim(im, ph + px(60), chh, feather=px(180), target=0.0, cap=1.0, floor=1.0, colour=brand.INK2)
+            im.paste(self._fill(photo2, (cw, ph + px(150) - half - gutter)), (0, half + gutter))
+        return scrim(im, ph + px(60), chh, feather=px(40 if photo2 is not None else 180), target=0.0, cap=1.0,
+                     floor=1.0, colour=brand.INK2)
 
     def _render_cover(self, photo: Path, card: Dict[str, Any], cw: int, chh: int,
                       lay=None, tight: bool = False) -> Image.Image:

@@ -97,6 +97,19 @@ def safe_box(kind: str, width: int = REFERENCE_WIDTH, height: int = REFERENCE_HE
     return {"reel": REEL, "story": STORY}[kind].box(width, height)
 
 
+# The 9:16 margin token (design-freeze cycle 0 round 7, panel F19): text set flush to the safe box's edge (the
+# cards at x 113-114 against the Reel box's 113, the end card 3-4 px inside it) has no margin at all at feed size;
+# the text column is the safe box inset by TEXT_INSET reference px each side (x 137-824 at 1080 on the Reel box).
+TEXT_INSET = 24
+
+
+def text_box(kind: str, width: int = REFERENCE_WIDTH, height: int = REFERENCE_HEIGHT) -> tuple[int, int, int, int]:
+    """The 9:16 text column: safe_box(kind) inset by TEXT_INSET (scaled) at the left and right."""
+    x0, y0, x1, y1 = safe_box(kind, width, height)
+    inset = round(TEXT_INSET * width / REFERENCE_WIDTH)
+    return x0 + inset, y0, x1 - inset, y1
+
+
 # Captions sit at the bottom of the Reel box: the pill's lowest edge CAPTION_REEL_CLEARANCE (config, 20 px) above
 # the box's bottom line. CAPTION_BAND is reserved for them (decision QF-24/QF-87, 2026-11-09: 240 px, the 20 px
 # clearance included, so a bounded two-line burst fits; it was 150 px, one line only), and everything above them

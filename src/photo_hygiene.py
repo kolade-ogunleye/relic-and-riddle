@@ -25,6 +25,7 @@ MAX_BORDER = 3          # thin frame rows allowed before the strip (analysis sca
 MARKS = (0.02, 0.5)     # share of strip pixels away from that colour: glyphs, not texture, not empty
 BOUNDARY = 30.0         # RGB distance between the strip colour and the picture beneath it
 ANALYSIS_W = 600
+ANALYSIS_H_MIN = 600
 
 
 def _strip_depth(rgb: np.ndarray) -> int:
@@ -65,7 +66,9 @@ def caption_strip(im: Image.Image) -> tuple[str, int] | None:
     w, h = im.size
     if w < 64 or h < 64:
         return None
-    scale = min(1.0, ANALYSIS_W / w)
+    # cycle 0 round 7 (panel F9): at least ANALYSIS_H_MIN rows, so a strip of ~1.5 % of a wide picture's height is
+    # still MIN_STRIP_PX deep (Richat's 9930 x 5190 frame: its 112 px banner was 6.8 rows at 600 wide and passed)
+    scale = min(1.0, max(ANALYSIS_W / w, ANALYSIS_H_MIN / h))
     small = im.convert("RGB").resize((max(1, round(w * scale)), max(1, round(h * scale))), Image.Resampling.BOX)
     rgb = np.asarray(small, dtype=np.float32)
     for edge, arr in (("top", rgb), ("bottom", rgb[::-1])):
@@ -77,15 +80,12 @@ def caption_strip(im: Image.Image) -> tuple[str, int] | None:
 
 
 def without_caption_strip(im: Image.Image) -> tuple[Image.Image, tuple[int, int, int, int]]:
-    """`im` with any caption strip cropped off, and the kept box in `im`'s pixels (the whole image if none)."""
-    w, h = im.size
-    found = caption_strip(im)
-    if not found:
-        return im, (0, 0, w, h)
-    edge, px = found
-    box = (0, px, w, h) if edge == "top" else (0, 0, w, h - px)
-    log.info("Caption strip along the %s edge (%d px) cropped away.", edge, px)
-    return im.crop(box), box
+    """`im` cropped to its hero window's clean region (src/hero_window.py, cycle 0 round 7: no caption strip, printed
+    banner row or panel seam inside it), and the kept box in `im`'s pixels (the whole image if none). Every hero
+    crop starts here (typography.cover_crop, photo_grade.cover, clean_hero, the cards, then-and-now, callouts)."""
+    from .hero_window import clean
+    out, box, _ = clean(im)
+    return out, box
 
 
 def remap_focus(focus_box, kept_box, size) -> list | None:

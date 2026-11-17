@@ -320,7 +320,41 @@ def _place_plate(ground=(108, 108, 108)):
     return p.fill, p.halo, p.glyphs.shape
 
 
+def _band_edge_profile():
+    from src import multi_format
+    im = Image.new("RGB", (400, 1800), (217, 217, 217))
+    out = multi_format.scrim(im, 1000, 1800, feather=53, target=0.0, cap=1.0, floor=1.0)
+    return np.asarray(out)[:, 200].tobytes()
+
+
+def _follow_label():
+    """The end card's follow line (an overlay label) planned on a mid ground: its halo's spread and alpha."""
+    from src import end_card
+    from src.brand_system import label_halo
+    from src.typography import get_font, plan_text
+    font = get_font(brand.TEXT_FONT, 64, weight=800)
+    spread, cap = label_halo(64)
+    p = plan_text(Image.new("RGB", (1080, 400), (150, 150, 150)), (540, 200), "FOLLOW", font, brand.BONE, "ms",
+                  64 * end_card.FOLLOW_TRACK, halo_px=spread, max_halo=cap)
+    return p.halo, np.asarray(p.halo_mask).shape, int(np.asarray(p.halo_mask).sum())
+
+
+def _comparison_ground():
+    import tempfile
+
+    from src import multi_format
+    with tempfile.TemporaryDirectory() as d:
+        photo = Path(d) / "p.png"
+        Image.new("RGB", (800, 600), (200, 200, 200)).save(photo)
+        out = multi_format.MultiFormatGenerator()._split_ground(photo, 1440, 1800, photo)
+    return np.asarray(out)[:, 720].tobytes()
+
+
 TOKEN_PROBES = {   # token -> (an override value, a probe of the renderer that reads it)
+    "edge.slope_max": (0.6, _band_edge_profile),
+    "halo.label_max": (0.04, lambda: _follow_label()[0]),
+    "halo.label_spread": (0.5, lambda: _follow_label()[1:]),
+    "plate.gutter": (48, _comparison_ground),
     "halo.step": (0.05, lambda: _masthead_pixels()[1]),
     "plate.shade": ("CORAL", lambda: _masthead_pixels()[0]),
     "masthead.weight": (400, lambda: masthead.group_width(64)),

@@ -421,7 +421,8 @@ def test_exact_anchors():
     # [822, 955, 1088], rule at x 113 (were R 300, Bn 640, [806, 931, 1056], x 100)
     assert (a["title_px"], a["R"], a["Bn"], a["title_baselines"]) == (136, 309, 649, [822, 955, 1088])
     els = {e.name: e for e in p.elements}
-    assert els["kicker_rule"].box == (113, 309, 157, 313)
+    # cycle 0 round 7 (panel F19): the rule starts on the 9:16 margin token, x 137 (113 on the box's edge)
+    assert els["kicker_rule"].box == (137, 309, 181, 313)
     p = dc.plan_chapter_card(chapter(), SHEET, 1920, 1080)
     els = {e.name: e for e in p.elements}
     last = max(n for n in els if n.startswith("title_"))
@@ -705,7 +706,9 @@ def test_myth_timing():
     plan = dc.plan_myth_fact(myth(), SHEET)
     t_s, t_f, rest_f = plan.meta["t_s"], plan.meta["t_f"], plan.meta["rest_f"]
     assert dc.strike_progress(plan, t_s - 1 / 30) == 0.0
-    assert dc.strike_progress(plan, t_s + 0.45) == 1.0
+    # cycle 0 round 7 (F19): on the 687 px margin column the myth takes another line, so the pen runs longer than
+    # the 0.45 s it took on 735 px: the strike is whole when its own pen has run
+    assert dc.strike_progress(plan, t_s + plan.meta["pen_total"]) == 1.0
     names = [e.name for e in plan.elements]
     for i in range(plan.frames):
         t = i / 30
@@ -717,10 +720,12 @@ def test_myth_timing():
                 assert dc.alpha_at(plan, n, t) == 0.0
         if t >= rest_f:
             assert all(dc.alpha_at(plan, n, t) == 1.0 for n in names)
-    assert plan.seconds >= rest_f + 2.0 + 0.40 - 1e-9
+    # cycle 0 round 7 (F19): the card's own rule (rest_f + FACT_REST_HOLD + TRANS_DUR); the 2.0 s held only while
+    # MIN_SECONDS (6.0) covered it, and the 687 px column's extra myth line moves rest_f later
+    assert plan.seconds >= rest_f + dc.FACT_REST_HOLD + dc.TRANS_DUR - 1e-9
     rest_m = plan.meta["rest_m"]
     late = dc.plan_myth_fact(myth(fact_at=4.0), SHEET)
-    assert late.meta["t_s"] == pytest.approx(4.0 - 0.45)
+    assert late.meta["t_s"] == pytest.approx(4.0 - late.meta["pen_total"])
     early = dc.plan_myth_fact(myth(fact_at=0.5), SHEET)
     # freeze panel round 2 (M11 (3), deliberate change): the myth's read floor is 1.00 s (was 1.2)
     assert early.meta["t_s"] == pytest.approx(rest_m + 1.0)
@@ -1232,7 +1237,9 @@ def test_long_work_title_wraps_the_citation():
         plan = dc.plan_quote_card(spec, PYR, *size)
         assert plan.meta["anchors"]["citation_lines"] == 2
         text = plan.drawn_text["citation"] + " · " + plan.drawn_text["citation_1"]
-        assert text.startswith("THE EGYPTOLOGIST · THE PYRAMIDS AND TEMPLES OF GIZEH · 1883"), text
+        # cycle 0 round 7 (F19): on the 687 px margin column no " · " break fits two lines, so the stated rule's
+        # next step breaks between words; every part is kept, in order, nothing elided
+        assert text.replace(" · ", " ").startswith("THE EGYPTOLOGIST THE PYRAMIDS AND TEMPLES OF GIZEH 1883"), text
         assert "…" not in text
         bottom = max(e.box[3] for e in plan.elements)
         assert bottom <= round(1090 * size[0] / 1080)     # QF-24: the organic graphics foot (1058 on the ads box)
@@ -1260,7 +1267,7 @@ def test_myth_source_has_air():
     els = {e.name: e for e in plan.elements}
     last = plan.meta["anchors"]["fact_baselines"][-1]
     assert els["source"].xy[1] - last == dc.SOURCE_DROP[False] == 72
-    assert max(e.box[3] for e in plan.elements) <= 1058
+    assert max(e.box[3] for e in plan.elements) <= dc.TALL_FOOT   # cycle 0 r7: an extra line on the 687 px column
 
 
 def test_generated_hook_drops_the_eyebrow(photos):

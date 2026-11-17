@@ -47,10 +47,11 @@ def test_finished_runs_do_not(prod_db, status):
     assert release_gate.check(str(prod_db.db_path), NOW) == []
 
 
-def test_an_open_review_keeps_production_busy(prod_db):
+def test_an_open_review_alone_keeps_production_idle(prod_db):
+    # QF-70: an undecided review is stored and resumed after the restart; it held every release for up to a day
     _run(prod_db, "run_a", "simulated")
     prod_db.record_approval("run_a", prod_db.list_all_topics()[0]["id"])
-    assert any("review" in r for r in release_gate.check(str(prod_db.db_path), NOW))
+    assert not any("review" in r for r in release_gate.check(str(prod_db.db_path), NOW))
 
 
 def test_a_post_due_within_the_hour_keeps_production_busy(prod_db):

@@ -1,0 +1,21 @@
+{
+  "zero_budget_image_requests": 0,
+  "zero_budget_media_usage_rows": 0,
+  "funded_requests": 1,
+  "funded_image_returned": true,
+  "fake_200_media_usage_rows": 1,
+  "fake_200_rows": [
+    {
+      "provider": "ai-images",
+      "item": "gemini-3-pro-image",
+      "cost_usd": 0.14
+    }
+  ],
+  "dashboard_spend_lines": [
+    "AI on the billed key this month: light $0.00 of $0.00, heavy $0.00 of $0.00",
+    "AI motion this month: $0.00 of $0.00",
+    "AI images this month: $0.14 (same $0.00 media cap)"
+  ],
+  "dashboard_shows_ai_images": true,
+  "acceptance_met": true
+}

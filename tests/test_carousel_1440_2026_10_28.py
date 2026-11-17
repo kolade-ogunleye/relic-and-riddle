@@ -13,6 +13,7 @@ from PIL import Image, ImageDraw
 
 from src import config, still_layout
 from src.multi_format import MultiFormatGenerator
+from src.typography import TextFitError
 from src.video_qa import QualityAuditor
 
 FIXTURE = Path(__file__).parent / "fixtures" / "carousel_1080_layouts_2026_10_28.json"
@@ -28,6 +29,10 @@ CARDS = [
      "body": " ".join(["The body keeps going with more words than the panel can hold."] * 5)},
     {"heading": "Who built it?", "body": "Was it astronomy or metalwork that made it possible? Tell us what you think."},
 ]
+# QF-23: the overlong card (its heading fits no two lines, its body no panel) is refused, never drawn shortened; the
+# deck checks run on the other six, and the overlong card's own cases expect the refusal.
+OVERLONG = 5
+FITTING = [c for i, c in enumerate(CARDS) if i != OVERLONG]
 SHARE = "Send this to a friend who loves gears, and follow for the next relic."
 POLL = {"question": "Astronomy or metalwork?", "options": ["The astronomy", "The metalwork"]}
 EIGHT_MB = 8 * 1024 * 1024
@@ -63,7 +68,7 @@ def test_slides_are_1440x1800_on_both_copies_and_pass_every_check(gen, tmp_path,
     monkeypatch.setattr(config, "STILL_VISION_CHECK", False)               # the measured checks only
     assert MultiFormatGenerator.CAROUSEL_SIZE == (1440, 1800)
     photos = _photos(tmp_path / "photos")
-    payload = {"title": "T", "poll": POLL, "carousel_slides": CARDS}
+    payload = {"title": "T", "poll": POLL, "carousel_slides": FITTING}
     for facebook in (False, True):
         slides = gen.generate_carousel_sequence(photos, payload, tmp_path, facebook=facebook)
         records = json.loads((slides[0].parent / still_layout.SIDECAR).read_text(encoding="utf-8"))
@@ -76,6 +81,16 @@ def test_slides_are_1440x1800_on_both_copies_and_pass_every_check(gen, tmp_path,
     assert not [i for i in audit["issues"] if i["type"] == "non_standard_aspect_ratio"], audit["issues"]
 
 
+def test_the_overlong_card_refuses_its_deck_rather_than_drawing_it_shortened(gen, tmp_path):
+    # QF-23: the deck with the overlong card raised nothing and drew it cut ("shortened" in its record); it is
+    # refused now (main.hold_layout_error then holds that deck alone)
+    photos = _photos(tmp_path / "photos")
+    payload = {"title": "T", "poll": POLL, "carousel_slides": CARDS}
+    for facebook in (False, True):
+        with pytest.raises(TextFitError, match="Checked copy does not fit"):
+            gen.generate_carousel_sequence(photos, payload, tmp_path / str(facebook), facebook=facebook)
+
+
 def test_every_archetype_normal_and_tight_both_copies_lays_out_cleanly_at_1440(gen, tmp_path):
     photos = _photos(tmp_path / "photos")
     cw, chh = gen.CAROUSEL_SIZE
@@ -84,11 +99,18 @@ def test_every_archetype_normal_and_tight_both_copies_lays_out_cleanly_at_1440(g
     # The accented heading and the overlong card, normal and tight; the Facebook copy (which only rewords
     # "swipe") for the first of them.
     runs = [(ci, tight, False) for ci in (1, 5) for tight in (False, True)] + [(1, tight, True) for tight in (False, True)]
+    refused = 0
     for card_index, tight, facebook in runs:
         for archetype in ARCHETYPES:
-            _, lay = gen._render_carousel_slide(archetype, photos[0], photos[1], CARDS[card_index], card_index, 7,
-                                                POLL, SHARE, facebook, tight=tight)
+            try:
+                _, lay = gen._render_carousel_slide(archetype, photos[0], photos[1], CARDS[card_index], card_index, 7,
+                                                    POLL, SHARE, facebook, tight=tight)
+            except TextFitError:
+                assert card_index == OVERLONG, (card_index, archetype, tight, facebook)   # QF-23: refused, not cut
+                refused += 1
+                continue
             rec = lay.to_dict()
+            assert not rec["shortened"], (card_index, archetype, tight, rec["shortened"])
             assert rec["size"] == [1440, 1800] and rec["zone"] == [53, 40, 1387, 1760]
             assert lay.problems() == [], (card_index, archetype, tight, facebook, lay.problems())
             assert rec["protected"] == [{"name": "instagram_counter", "box": list(counter)}]
@@ -96,6 +118,7 @@ def test_every_archetype_normal_and_tight_both_copies_lays_out_cleanly_at_1440(g
                 assert not still_layout.intersects(tuple(e["box"]), counter), (archetype, e)
             brand = next(e["box"] for e in lay.elements if e["name"] == "header_brand")
             assert brand[0] < cw // 2 and brand[3] <= (chh - cw) // 2     # out whole in a square grid crop
+    assert refused, "the overlong card was drawn in every archetype"
 
 
 def test_a_1080_canvas_draws_every_recorded_case_cleanly(gen, tmp_path, monkeypatch):
@@ -109,10 +132,16 @@ def test_a_1080_canvas_draws_every_recorded_case_cleanly(gen, tmp_path, monkeypa
     for key in expected:
         ci, archetype, fit, _ = key.split("/")
         ci = int(ci)
-        _, lay = gen._render_carousel_slide(archetype, photos[ci % 3], photos[(ci + 1) % 3], CARDS[ci], ci, 7, POLL, SHARE,
-                                            False, tight=fit == "tight")
+        try:
+            _, lay = gen._render_carousel_slide(archetype, photos[ci % 3], photos[(ci + 1) % 3], CARDS[ci], ci, 7, POLL,
+                                                SHARE, False, tight=fit == "tight")
+        except TextFitError:
+            assert ci == OVERLONG, key                  # QF-23: the overlong card is refused, never drawn cut
+            seen += 1
+            continue
         rec = lay.to_dict()
         assert rec["size"] == [1080, 1350] and lay.problems() == [], (key, lay.problems())
+        assert not rec["shortened"], (key, rec["shortened"])
         seen += 1
     assert seen == 28
 
@@ -140,7 +169,7 @@ def test_the_1440_layout_is_the_1080_layout_at_four_thirds(gen, tmp_path, monkey
 
 def test_a_worst_case_slide_stays_far_under_metas_8_mb(gen, tmp_path):
     photo = _noise(tmp_path / "noise.jpg")
-    payload = {"title": "T", "poll": POLL, "carousel_slides": CARDS}
+    payload = {"title": "T", "poll": POLL, "carousel_slides": FITTING}   # QF-23: the overlong card is refused
     slides = gen.generate_carousel_sequence([photo], payload, tmp_path)
     sizes = [s.stat().st_size for s in slides]
     assert all(Image.open(s).size == (1440, 1800) for s in slides)

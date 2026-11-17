@@ -1,0 +1,63 @@
+{
+  "card_composition_module": true,
+  "cards_made_by_graphics": null,
+  "composed_designs": 3,
+  "composed": [
+    {
+      "case": "chapter",
+      "kind": "chapter",
+      "width": 1920,
+      "height": 1080,
+      "card_read_s": 3.5,
+      "opening_offset_s": 0.0,
+      "first_caption_s": 0.0,
+      "card_start_s": 3.0,
+      "card_end_s": 6.7,
+      "master_vs_graded_card_mae": 1.066,
+      "caption_graphic_overlap": 0
+    },
+    {
+      "case": "mythfact",
+      "kind": "mythfact",
+      "width": 1920,
+      "height": 1080,
+      "card_read_s": 6.0,
+      "opening_offset_s": 0.0,
+      "first_caption_s": 0.0,
+      "card_start_s": 3.0,
+      "card_end_s": 9.2,
+      "master_vs_graded_card_mae": 1.441,
+      "correction_sync_error_s": 0.0,
+      "caption_graphic_overlap": 0
+    },
+    {
+      "case": "mythfact_portrait",
+      "kind": "mythfact",
+      "width": 1080,
+      "height": 1920,
+      "card_read_s": 6.0,
+      "opening_offset_s": 0.0,
+      "first_caption_s": 0.0,
+      "card_start_s": 3.0,
+      "card_end_s": 9.2,
+      "master_vs_graded_card_mae": 1.44,
+      "correction_sync_error_s": 0.0,
+      "caption_graphic_overlap": 0
+    },
+    {
+      "case": "hook",
+      "kind": "hook",
+      "width": 1080,
+      "height": 1920,
+      "card_read_s": 1.5,
+      "opening_offset_s": 1.4,
+      "first_caption_s": 1.4,
+      "caption_clear_until_s": 1.4,
+      "captions_before_clear": 0
+    }
+  ],
+  "quote_held": true,
+  "hook_first_caption_s": 1.4,
+  "captions_clear_until_caption_clear_until_s": true,
+  "caption_clear_until_s": 1.4
+}

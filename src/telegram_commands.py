@@ -23,7 +23,7 @@ GROUPS = {
     ],
     "Pictures and media": [
         ("photos", "Photo sets · 4 · 4 fetch · 4 review · 4 keep 2 7 · 4 unkeep 2 · 4 drop 1 5 · 4 upload"),
-        ("covers", "Preview and choose a cover · 4"),
+        ("covers", "Preview a video's cover and profile-grid tile · 4"),
         ("music", "Documentary music · find · review · library"),
         ("footage", "Archive film and your clips · 4 · 4 find · 4 use 1 2 · 4 drop 3 · [4: the topic's archive film, waiting and in use; "
                     "find: search the Internet Archive and Europeana for openly licensed film; to upload your own, send the clip "

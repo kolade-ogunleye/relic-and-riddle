@@ -6,7 +6,9 @@ everything that gets published must trace to a fact on the sheet, keeping that f
 
 Two layers:
 1. Deterministic (free): every number in every surface must be a number the sheet supports
-   (its statements, hedges or evidence quotes), allowing metric/imperial conversions.
+   (its statements, hedges or evidence quotes), allowing metric/imperial conversions; and every headline
+   figure and cover line must say no more than the sheet (headline_gate: no disputed figure as one number,
+   no limiting word dropped, no size without what it measures).
 2. Claude, without web search (cheap and repeatable): each claim is matched to a fact id;
    untraced claims, contradictions and claims that drop a disputed fact's hedge fail.
 The same claim gets the same verdict every time, because it is judged against the same evidence.
@@ -20,7 +22,7 @@ from typing import Any, Dict, List, Literal, Tuple
 from pydantic import BaseModel
 
 from . import fact_sheet
-from . import free_llm
+from . import free_llm, prompt_fence
 from .llm import task as llm_task
 
 log = logging.getLogger(__name__)
@@ -58,7 +60,7 @@ For epistemic_negation and open_historical_debate claims:
 - contradicts: a fact in the sheet explicitly states the recorded name or settled figure;
 - untraced: asserts an unrecorded detail when records do exist.
 
-On-screen covers, thumbnail lines (eyebrow, line1, line2, tagline), and titles are curiosity-driven headlines, not statistical assertions. They must accurately depict the real historical subject without fabricating myths or alien tropes, but they are EXEMPT from mandatory statistical hedging words (do NOT flag an on-screen cover, thumbnail, or title as 'overstated' for omitting words like 'estimated', 'about', or 'approximate'). Never force words like 'ESTIMATED' onto thumbnail covers.
+On-screen covers, thumbnail lines (eyebrow, line1, line2, tagline), and titles are curiosity-driven headlines, not statistical assertions. They must accurately depict the real historical subject without fabricating myths or alien tropes, but they are EXEMPT from mandatory statistical hedging words (do NOT flag an on-screen cover, thumbnail, or title as 'overstated' for omitting words like 'estimated', 'about', or 'approximate'). Never force words like 'ESTIMATED' onto thumbnail covers. That exemption covers hedge words only: a cover line that shortens a fact must still keep every word that limits it ('BUILT WITHOUT CLAMPS' for a fact that says 'without the use of iron clamps' denies all clamps: overstated), and a disputed figure must not become one bare number.
 Questions, invitations, debate prompts, and framing that assert no facts about the topic are not claims. Be strict on domain facts, but do not block legitimate rhetorical contrast hooks or honest statements of historical absence."""
 
 
@@ -102,8 +104,20 @@ def surfaces(payload: Dict[str, Any]) -> List[Tuple[str, str]]:
     material_payload["thumbnail"] = {k: th.get(k, "") for k in ("eyebrow", "line1", "line2", "tagline")}
     material = ClaimFactChecker._material(material_payload)
     out += [("graphic", ln) for ln in material.splitlines()
-            if ln.startswith(("Timeline:", "Scale graphic:", "Scale reference:", "Number card:", "Cross-section", "Route stop:", "Photo labels", "Diagram:"))]
+            if ln.startswith(("Timeline:", "Scale graphic:", "Scale reference:", "Number card:", "Cross-section", "Route stop:", "Photo labels"))]
+    # A fact sheet's card field, checked on its own (src/card_fields.py): a payload of only "card_copy" lines. No
+    # published payload carries the key, so its fingerprint is unchanged.
+    out += [("graphic", str(t)) for t in payload.get("card_copy") or []]
     return [(w, t) for w, t in out if t.strip()]
+
+
+def checker_models() -> dict[str, str]:
+    """The models check() and evidence_check() run on, as configured: recorded only when no call reported the model
+    that answered (llm.watch_served; card_fields.check_field and main._verify_final_copy record that one)."""
+    from . import config
+    trace = config.FREE_CHECKER_MODEL if free_llm.enabled() else config.CLAUDE_MODEL
+    evidence = config.FREE_CHECKER_MODEL if gemini_checker_available() else trace
+    return {"trace_check": trace, "evidence_check": evidence}
 
 
 def untraced_numbers(payload: Dict[str, Any], sheet: Dict[str, Any]) -> List[str]:
@@ -198,6 +212,7 @@ def check(payload: Dict[str, Any], sheet: Dict[str, Any]) -> Tuple[bool, float, 
     from .reference_facts import with_reference_evidence
     sheet = with_reference_evidence(sheet, payload)
     numbers = untraced_numbers(payload, sheet) + card_numbers_off_narration(payload)
+    headlines = headline_gate(payload, sheet)   # deterministic, on the finished payload (the cover gate above)
     package = "\n".join(f"[{w}] {t}" for w, t in surfaces(payload))
     traces = payload.get("sentence_trace") or []
     trace_hint = ""
@@ -225,7 +240,8 @@ def check(payload: Dict[str, Any], sheet: Dict[str, Any]) -> Tuple[bool, float, 
     bad = [c for c in report.claims if c.verdict in ("contradicts", "overstated") or (c.verdict != "traced" and _is_empirical_claim(c))]
     total = len(report.claims) or 1
     confidence = round(100.0 * (total - len(bad)) / total, 1)
-    findings = [f"'{c.claim}' ({c.where}; {c.verdict}: {c.note})" for c in bad] + [f"'{p}' (number check)" for p in numbers]
+    findings = ([f"'{c.claim}' ({c.where}; {c.verdict}: {c.note})" for c in bad] + [f"'{p}' (number check)" for p in numbers]
+                + [f"'{p}' (headline gate)" for p in headlines])
     if findings:
         return False, confidence, audits, f"{len(findings)} untraceable claim(s): " + "; ".join(findings)
     return True, confidence, audits, f"All {len(report.claims)} claims trace to the verified fact sheet."
@@ -301,7 +317,9 @@ def evidence_check(payload: Dict[str, Any], sheet: Dict[str, Any]) -> Tuple[str,
     listing = "\n".join(f"Q{i}: [{e['url'].split('/')[2] if '//' in e['url'] else e['url']}] {e['quote']}"
                         for i, e in enumerate(quotes, 1))
     package = "\n".join(f"[{w}] {t}" for w, t in surfaces(payload))
-    prompt = f"<evidence_quotes>\n{listing}\n</evidence_quotes>\n\n<package>\n{package}\n</package>"
+    mark = prompt_fence.new_token()   # quoted web text cannot close its own tag or pose as instructions (QF-41)
+    prompt = (prompt_fence.fence_note(mark) + "\n\n" + prompt_fence.fence("evidence_quotes", listing, mark)
+              + "\n\n" + prompt_fence.fence("package", package, mark))
     try:
         if gemini_checker_available():
             # On Gemini whatever the writer engine: a different model family from a Claude writer, and a
@@ -312,6 +330,10 @@ def evidence_check(payload: Dict[str, Any], sheet: Dict[str, Any]) -> Tuple[str,
             report = free_llm.call(EVIDENCE_SYSTEM, prompt, EvidenceReport, role="checker", effort="medium", max_tokens=8000)
     except free_llm.FreeQuotaUnavailable as e:
         return "unavailable", 0.0, [], f"Evidence check unavailable: {e}"
+    try:
+        prompt_fence.check_reply(report, mark)
+    except prompt_fence.FenceEchoed as e:
+        return "fail", 0.0, [], f"Evidence check rejected: {e}"
     for claim in report.claims:
         if not _is_empirical_claim(claim):
             continue
@@ -329,3 +351,310 @@ def evidence_check(payload: Dict[str, Any], sheet: Dict[str, Any]) -> Tuple[str,
     if bad:
         return "fail", conf, audits, f"[{name}] {len(bad)} blocking claim(s): " + "; ".join(f"'{c.claim}' ({c.where}; {c.verdict}: {c.note})" for c in bad)
     return "pass", conf, audits, f"[{name}] All {len(report.claims)} claims supported by the quoted evidence."
+
+
+# ---------------------------------------------------------------- the cover gate (round-3 panel, 2026-11-02)
+# The cover's words (eyebrow, headline lines, deck) are read by every cover style, the Monument dimension line and
+# the YouTube thumbnail, and the fact checks above exempt them from hedge words. Three things still made them say
+# more than the sheet: a disputed figure turned into one number ("THE 25-MILE SAHARA EYE" over a sheet whose 40 km is
+# disputed against "almost 50 km"); a deck that dropped what limits a claim ("BUILT WITHOUT RINGS" for "without the
+# use of metal tension rings"); and a size with no word for what it measures ("THE 144-FOOT" for an external
+# diameter). These are rejected, never rewritten here: the finding goes back to the writer (the copy edit at draft
+# time, the revision after a failed check), who chooses the words.
+COVER_FIELDS = ("eyebrow", "line1", "line2", "tagline")
+COVER_PROBLEM = "Cover copy: "
+
+# What a length measures: the fact's word -> the words a cover may say it with.
+_ACROSS = ("ACROSS", "WIDE", "WIDTH", "DIAMETER", "ROUND")
+_DIMENSIONS = {
+    "diameter": _ACROSS, "across": _ACROSS, "wide": _ACROSS, "width": _ACROSS, "breadth": _ACROSS,
+    "span": _ACROSS, "spans": _ACROSS, "spanning": _ACROSS, "circumference": ("AROUND", "ROUND", "CIRCUMFERENCE"),
+    "tall": ("TALL", "HIGH", "HEIGHT"), "high": ("TALL", "HIGH", "HEIGHT"), "height": ("TALL", "HIGH", "HEIGHT"),
+    "deep": ("DEEP", "DOWN", "DEPTH", "BELOW", "UNDERGROUND"), "depth": ("DEEP", "DOWN", "DEPTH", "BELOW", "UNDERGROUND"),
+    "down": ("DEEP", "DOWN", "DEPTH", "BELOW", "UNDERGROUND"), "below": ("DEEP", "DOWN", "DEPTH", "BELOW", "UNDERGROUND"),
+    "long": ("LONG", "LENGTH"), "length": ("LONG", "LENGTH"),
+    "thick": ("THICK", "THICKNESS"), "thickness": ("THICK", "THICKNESS"),
+}
+# A clause boundary: a comma or semicolon before a space, or a joining word not straight after a number, so a range
+# ("between 10 and 20") stays whole while "135.5 feet across and 178 feet in height" splits.
+_CLAUSE = re.compile(r"[,;]\s|(?<!\d)\s+(?:and|while|whereas|but)\s+", re.IGNORECASE)
+_NEGATORS = {"without", "no", "never", "zero", "not"}
+_SUPERLATIVES = {"largest", "biggest", "tallest", "oldest", "deepest", "longest", "widest", "highest", "heaviest",
+                 "greatest", "earliest", "smallest"}
+# Words between a negator and what it negates that limit nothing: "without the use of metal tension rings".
+_FILLERS = {"the", "a", "an", "any", "use", "using", "aid", "help", "need", "of", "single"}
+_PHRASE_STOP = {"of", "in", "at", "to", "and", "or", "for", "by", "from", "with", "on", "that", "which", "as", "its",
+                "their", "while", "when", "than", "is", "was", "were", "are", "making", "built", "ever"}
+# A superlative held to a time ("at the time of its completion") may be said with one of these on the cover.
+_THEN = re.compile(r"\b(?:at the time|then|of its (?:day|era|time)|when (?:built|completed|finished)|until)\b", re.IGNORECASE)
+_THEN_WORDS = {"once", "then", "was", "era", "time", "day", "its"}
+
+
+def cover_lines(payload: dict[str, Any]) -> dict[str, str]:
+    th = payload.get("thumbnail") or {}
+    if not isinstance(th, dict):
+        th = th.model_dump() if hasattr(th, "model_dump") else {}
+    return {k: str(th.get(k) or "") for k in COVER_FIELDS}
+
+
+def _words(text: str) -> list[str]:
+    """Lower-case word tokens, a possessive folded ("INDIA'S" -> "india"); punctuation is a token of its own."""
+    out = []
+    for tok in re.findall(r"[A-Za-z][A-Za-z'’-]*|\d[\d,.]*|[^\sA-Za-z\d]", text or ""):
+        tok = re.sub(r"['’]s$", "", tok.lower())
+        out.append(tok)
+    return out
+
+
+def _stem(word: str) -> str:
+    return word[:-1] if len(word) > 3 and word.endswith("s") and not word.endswith("ss") else word
+
+
+def _phrase(words: list[str], start: int, skip_fillers: bool) -> list[str]:
+    """The noun phrase from words[start]: up to four words, ending at a stop word, a number or punctuation."""
+    i = start
+    while skip_fillers and i < len(words) and words[i] in _FILLERS:
+        i += 1
+    out = []
+    while i < len(words) and len(out) < 4 and words[i][0].isalpha() and words[i] not in _PHRASE_STOP:
+        out.append(words[i])
+        i += 1
+    return out
+
+
+def _limited_phrases(text: str) -> list[tuple[str, str, list[str], str, str]]:
+    """(kind, head, modifiers, scope, wording) for each negated or superlative noun phrase in a text. scope holds
+    what follows a superlative and limits it: a named place ("in India") and/or "then" for a time ("at the time");
+    wording is the phrase as a cover could say it whole ("NO METAL TENSION RINGS", "LARGEST UNSUPPORTED DOME IN
+    INDIA AT THE TIME")."""
+    out = []
+    for clause in _CLAUSE.split(text or ""):
+        words = _words(clause)
+        raw = re.findall(r"[A-Za-z][A-Za-z'’-]*|\d[\d,.]*|[^\sA-Za-z\d]", clause)
+        for i, w in enumerate(words):
+            kind = "negation" if w in _NEGATORS else "superlative" if w in _SUPERLATIVES else None
+            if not kind:
+                continue
+            phrase = _phrase(words, i + 1, skip_fillers=kind == "negation")
+            if not phrase:
+                continue
+            scope, wording = [], ("NO " + " ".join(phrase) if kind == "negation" else f"{w} {' '.join(phrase)}")
+            if kind == "superlative":
+                end = i + 1 + len(phrase)
+                j = end
+                while j < len(words) and words[j] in _FILLERS - {"of"}:
+                    j += 1
+                if j + 1 < len(words) and words[j] == "in" and raw[j + 1][:1].isupper() and words[j + 1] != "world":
+                    scope.append(words[j + 1])
+                    wording += f" in {raw[j + 1]}"
+                then = _THEN.search(" ".join(raw[end:]))
+                if then:
+                    scope.append("then")
+                    wording += f" {then.group(0)}"
+            out.append((kind, _stem(phrase[-1]), [_stem(m) for m in phrase[:-1]], " ".join(scope), wording.upper()))
+    return out
+
+
+def dropped_limits(payload: dict[str, Any], sheet: dict[str, Any]) -> list[str]:
+    """Cover lines that shorten a fact by dropping what limits it: a negated thing said without its modifiers
+    ("WITHOUT RINGS" for "without the use of metal tension rings": the shorter line denies all rings), or a
+    superlative without its modifiers, its place or its time ("LARGEST DOME" for "the largest unsupported dome in
+    India at the time of its completion"). Each modifier the fact puts on the shared noun must be on the cover."""
+    lines = cover_lines(payload)
+    cover_words = {_stem(w) for w in _words(" ".join(lines.values()))}
+    facts = [(f, _limited_phrases(f.get("statement", ""))) for f in sheet.get("facts") or []]
+    problems = []
+    for field, line in lines.items():
+        for kind, head, _, _, _ in _limited_phrases(line):
+            matches = [(f, fm, fs, said) for f, phrases in facts for k, h, fm, fs, said in phrases
+                       if k == kind and h == head]
+            if not matches:
+                continue   # nothing on the sheet limits this noun: the claim checks above judge it
+            missing_each = []
+            for f, fm, fs, said in matches:
+                missing = [m for m in fm if m not in cover_words]
+                if "then" in fs.split() and not cover_words & _THEN_WORDS:
+                    missing.append("at the time")
+                missing += [p for p in fs.split() if p != "then" and p not in cover_words]
+                missing_each.append((len(missing), missing, f, said))
+            n, missing, fact, said = min(missing_each, key=lambda t: t[0])
+            if not n:
+                continue
+            problems.append(
+                f"{COVER_PROBLEM}the {field} '{line}' drops what limits the claim ({', '.join(missing)}): the sheet "
+                f"({fact.get('id', 'a fact')}) says \"{fact.get('statement', '')}\". Keep every limiting word "
+                f"(e.g. '{said}'), or leave the claim off the cover.")
+    return problems
+
+
+def _fact_dimension(fact: dict[str, Any], figure) -> tuple[str, ...] | None:
+    """The words a cover may use for what a fact's length measures, read from the clause that holds the figure
+    (a sheet has no field for it): "an external diameter of 44 meters (144 feet)" -> ACROSS/WIDE/DIAMETER."""
+    from .script_engine import _figures, _same
+    accepted: tuple[str, ...] = ()
+    for clause in _CLAUSE.split(fact.get("statement", "")):
+        if not any(_same(figure, v) for v in _figures(clause)):
+            continue
+        for w in _words(clause):
+            accepted += tuple(a for a in _DIMENSIONS.get(w, ()) if a not in accepted)
+    return accepted or None
+
+
+def unmeasured_cover_figures(payload: dict[str, Any], sheet: dict[str, Any]) -> list[str]:
+    """A length on the cover says what it measures, in the sheet's own terms ("144 FT ACROSS" for an external
+    diameter, "280 FT DEEP"): a bare "144-FOOT" reads as a height on a dome. Lengths the sheet gives without
+    saying what they measure are left alone."""
+    from .script_engine import HEADLINE_MIN, _figures, _same
+    lines = cover_lines(payload)
+    text = " · ".join(v for v in lines.values() if v)
+    cover_words = {w.upper() for w in _words(text)}
+    problems = []
+    for n in _figures(text):
+        if n.kind != "length" or n.value < HEADLINE_MIN:
+            continue
+        for fact in sheet.get("facts") or []:
+            if not any(_same(n, v) for v in _figures(f"{fact.get('statement', '')}")):
+                continue
+            accepted = _fact_dimension(fact, n)
+            if accepted and not cover_words & set(accepted):
+                unit = (n.unit or "").upper()
+                unit += "S" if len(unit) > 2 and n.value != 1 and not unit.endswith("S") else ""
+                problems.append(
+                    f"{COVER_PROBLEM}the figure {n.value:g} {n.unit or ''} says how big but not what it measures: "
+                    f"the sheet ({fact.get('id', 'a fact')}) gives it as \"{fact.get('statement', '')}\". Say it "
+                    f"with its dimension ({' / '.join(accepted[:3])}), e.g. '{n.value:g} {unit} {accepted[0]}', or "
+                    "leave the figure off the cover.")
+                break
+    return problems
+
+
+# A bare year on the cover (round-4 panel, standards editor, 2026-11-02): "DERINKUYU, 1963" under "A FORGOTTEN CITY"
+# reads as the city's founding date, but the sheet's 1963 is when it was rediscovered (the city is 8th-7th century
+# BC). A cover line that carries a year also carries what happened in it, in the sheet's own word for that year or
+# one of the same family ("FOUND 1963" for "rediscovered in 1963"). Only a family the sheet's statement names counts,
+# so "BUILT 1963" is refused for a rediscovery. Rejected back to the writer, never rewritten here.
+_YEAR = re.compile(r"(?<![\d,.])(1\d{3}|20\d{2})(?![\d,.]\d)(?!\s*(?:-|\u2013)?\s*(?:FT|FEET|FOOT|M|KM|MI|MILES?|"
+                   r"METRES?|METERS?|TONS?|TONNES?|KG|LB|STEPS?|PEOPLE|ROOMS?|LEVELS?|STONES?)\b)", re.IGNORECASE)
+# Each family holds only words a viewer reads as the same event in that year (round-7 review, 2026-11-02): "CLOSED
+# 1985" for "reopened in 1985", "FLOODED 1900" for "destroyed by fire in 1900" or "DESTROYED 1911" for "stolen in
+# 1911" say something the sheet does not, so opening and closing, and each kind of loss, are families of their own.
+_DISCOVERY = frozenset({"found", "discovered", "discovery", "rediscovered", "rediscovery", "uncovered", "unearthed"})
+_EVENT_FAMILIES: tuple[frozenset[str], ...] = (_DISCOVERY,) + tuple(frozenset(f) for f in (
+    {"spotted", "sighted"}, {"identified"},
+    {"excavated", "excavation", "dug"}, {"explored"}, {"surveyed", "mapped"},
+    {"built", "build", "constructed", "construction", "erected"}, {"carved", "hewn"},
+    {"completed", "completion", "finished"}, {"begun", "started"}, {"commissioned"},
+    {"founded", "founding", "established"}, {"settled"},
+    {"abandoned", "abandonment", "deserted"}, {"emptied"},
+    {"destroyed", "destruction", "ruined", "razed", "demolished"}, {"burned", "burnt"}, {"stolen", "looted"},
+    {"sacked"}, {"flooded"}, {"collapsed"}, {"damaged"}, {"bombed"}, {"buried"}, {"lost"}, {"vanished"},
+    {"sunk", "sank"}, {"wrecked"},
+    {"opened", "reopened", "restored", "restoration", "rebuilt"}, {"closed", "sealed"}, {"renovated", "repaired"},
+    {"moved", "relocated"}, {"returned"}, {"sold"}, {"bought", "acquired"},
+    {"consecrated", "dedicated"}, {"inaugurated", "unveiled"},
+    {"listed", "inscribed"}, {"declared"}, {"named", "renamed"},
+))
+_EVENT_WORDS = frozenset().union(*_EVENT_FAMILIES)
+# "HIDDEN UNTIL 1963" says what ended in a year of discovery as plainly as "FOUND 1963".
+_UNTIL_HIDDEN = frozenset({"lost", "hidden", "forgotten", "buried", "unknown", "sealed", "unseen"})
+_NEAR_YEAR = (8, 3)   # words before and after the year in the sheet's clause that may name its event
+# An "-ed" verb outside the curated words names the year's event only right before "in <year>" ("consecrated in
+# 1150"), and never one that says what was known, counted or written then rather than what happened to the site
+# ("It was estimated in 1963 that ...": "ESTIMATED 1963" tells the viewer nothing about the site).
+_NOT_EVENTS = frozenset({
+    "estimated", "calculated", "measured", "counted", "recorded", "reported", "noted", "documented", "described",
+    "mentioned", "published", "claimed", "suggested", "believed", "assumed", "thought", "considered",
+    "dated", "proposed", "argued", "speculated", "theorized", "theorised", "hypothesized", "hypothesised",
+    "concluded", "confirmed", "stated", "observed", "photographed", "filmed", "visited", "studied", "analysed",
+    "analyzed", "examined", "tested", "sampled", "cited", "quoted", "translated", "printed", "edited", "revised",
+    "updated", "issued", "released", "awarded", "elected", "appointed", "married", "killed", "died", "lived",
+    "worked", "served", "wanted", "decided", "planned", "attempted", "tried", "needed",
+})
+
+
+def _event_words(statement: str, year: str) -> tuple[set[str], set[str]]:
+    """(own, allowed) for the event of `year`, from the sheet's words beside it ("rediscovered in 1963", "abandoned
+    following the 1923 population exchange"): own holds the curated event words there, plus an "-ed" verb outside
+    them only when it stands right before "in <year>" and is not one of _NOT_EVENTS; allowed adds the family each
+    curated word belongs to ("FOUND" for "rediscovered")."""
+    own: set[str] = set()
+    for clause in _CLAUSE.split(statement or ""):
+        words = [w.rstrip(".,") for w in _words(clause)]
+        for i, w in enumerate(words):
+            if w != year:
+                continue
+            near = words[max(0, i - _NEAR_YEAR[0]):i] + words[i + 1:i + 1 + _NEAR_YEAR[1]]
+            own |= {v for v in near if v in _EVENT_WORDS}
+            if i >= 2 and words[i - 1] == "in":
+                v = words[i - 2]
+                if v.isalpha() and len(v) > 4 and v.endswith("ed") and v not in _NOT_EVENTS:
+                    own.add(v)
+    allowed = set(own)
+    for fam in _EVENT_FAMILIES:
+        if fam & own:
+            allowed |= fam
+    return own, allowed
+
+
+def bare_cover_years(payload: dict[str, Any], sheet: dict[str, Any]) -> list[str]:
+    """Cover lines with a year the sheet dates an event to, but without the event: "DERINKUYU, 1963" must be
+    "DERINKUYU \u00b7 FOUND 1963" (the sheet: "rediscovered in 1963"). Years no fact holds are left to the number
+    checks above. A line whose words name the year's event passes ("FOUND 1963", "REDISCOVERED 1963", and for a
+    discovery "HIDDEN UNTIL 1963"); one naming another event ("BUILT 1963") does not."""
+    facts = [f for f in sheet.get("facts") or [] if isinstance(f, dict)]
+    problems = []
+    for field, line in cover_lines(payload).items():
+        for m in _YEAR.finditer(line):
+            year = m.group(1)
+            dated = [f for f in facts if re.search(rf"(?<![\d,.]){year}(?![\d,.]\d)", f.get("statement", ""))]
+            if not dated:
+                continue
+            own: set[str] = set()
+            allowed: set[str] = set()
+            for f in dated:
+                o, a = _event_words(f.get("statement", ""), year)
+                own, allowed = own | o, allowed | a
+            said = {w for w in _words(line) if w.isalpha()}
+            if said & allowed or ("until" in said and said & _UNTIL_HIDDEN and allowed & _DISCOVERY):
+                continue
+            fact = dated[0]
+            word = sorted(own & _EVENT_WORDS) or sorted(own)
+            hint = f" (e.g. '{word[0].upper()} {year}')" if word else ""
+            wrong = sorted(said & _EVENT_WORDS)
+            what = (f"puts '{wrong[0].upper()}' in the year {year}, which the sheet does not" if wrong else
+                    f"gives the year {year} without what happened in it: next to a place a bare year reads as its "
+                    "founding date")
+            problems.append(
+                f"{COVER_PROBLEM}the {field} '{line}' {what}. The sheet ({fact.get('id', 'a fact')}) says "
+                f"\"{fact.get('statement', '')}\". Say the event with the year in the sheet's own word{hint}, or "
+                "leave the year off the cover.")
+            break
+    return problems
+
+
+def cover_copy_problems(payload: dict[str, Any], sheet: dict[str, Any]) -> list[str]:
+    """The cover's words-and-measures rules (the figure rule is script_engine.headline_problems')."""
+    if not (sheet or {}).get("facts"):
+        return []
+    return dropped_limits(payload, sheet) + unmeasured_cover_figures(payload, sheet) + bare_cover_years(payload, sheet)
+
+
+def headline_gate(payload: dict[str, Any], sheet: dict[str, Any]) -> list[str]:
+    """Every headline figure (title, YouTube title, cover, the caption's first line) held to the sheet as the writer
+    was held at draft time (script_engine.headline_problems: an undisputed figure as it is; a disputed one only as the
+    sheet's own span in the same unit, or as a floor at or below its lowest figure; one only a single estimate gives,
+    never), plus the cover's words-and-measures rules. Run on the finished payload, after every edit: a disputed
+    figure turned into one number fails the fact check and goes back to the writer."""
+    from types import SimpleNamespace
+
+    from .script_engine import headline_problems
+    if not (sheet or {}).get("facts"):
+        return []
+    thumb = SimpleNamespace(**cover_lines(payload))
+    problems = headline_problems(SimpleNamespace(title=payload.get("title") or "", caption=payload.get("caption") or "",
+                                                 thumbnail=thumb), sheet)
+    if payload.get("youtube_title"):
+        problems += [p.replace("in the title", "in the YouTube title", 1) for p in headline_problems(
+            SimpleNamespace(title=payload["youtube_title"], caption="", thumbnail=SimpleNamespace(
+                **{k: "" for k in COVER_FIELDS})), sheet) if p.startswith("Headline figure in the title")]
+    return problems + cover_copy_problems(payload, sheet)

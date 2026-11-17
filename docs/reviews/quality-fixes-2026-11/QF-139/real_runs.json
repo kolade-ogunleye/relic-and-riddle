@@ -1,0 +1,355 @@
+{
+  "host_logical_processors": 32,
+  "fixed_encoder": [
+    "-c:v",
+    "libx264",
+    "-preset",
+    "slow",
+    "-crf",
+    "18",
+    "-threads",
+    "6"
+  ],
+  "masters": [
+    {
+      "master": 1,
+      "picture": "1080x1920",
+      "seconds": 47.7,
+      "x264": "165 r3223 0480cb0",
+      "distinct_files": {
+        "machine-derived (parent)": 3,
+        "fixed (QF-139)": 1
+      },
+      "fixed_equals_parent_on_production_vm": true,
+      "runs": {
+        "machine-derived (parent)": {
+          "development PC (32)": {
+            "sha256": "62516953a46ed77a56c69f00fee79bdbcfa77f45f070e82a59716930170ea4ac",
+            "x264": "threads=32 lookahead_threads=5",
+            "bytes": 57091176,
+            "encode_s": 57.0,
+            "cpu_s": 932.9,
+            "affinity_used": 32
+          },
+          "production VM (6)": {
+            "sha256": "4bae703655b085373bc1e0119a45696bc093a7620e2a5269ce9e4a66865ec742",
+            "x264": "threads=6 lookahead_threads=1",
+            "bytes": 56671996,
+            "encode_s": 136.3,
+            "cpu_s": 538.9,
+            "affinity_used": 6
+          },
+          "CI runner (4)": {
+            "sha256": "4e7092a5d810113ae6ee5df280e4ae0a446ad2383042e20c6b4eb442c6ab9e3f",
+            "x264": "threads=4 lookahead_threads=1",
+            "bytes": 56673622,
+            "encode_s": 181.0,
+            "cpu_s": 428.0,
+            "affinity_used": 4
+          }
+        },
+        "fixed (QF-139)": {
+          "development PC (32)": {
+            "sha256": "4bae703655b085373bc1e0119a45696bc093a7620e2a5269ce9e4a66865ec742",
+            "x264": "threads=6 lookahead_threads=1",
+            "bytes": 56671996,
+            "encode_s": 113.9,
+            "cpu_s": 485.4,
+            "affinity_used": 32
+          },
+          "production VM (6)": {
+            "sha256": "4bae703655b085373bc1e0119a45696bc093a7620e2a5269ce9e4a66865ec742",
+            "x264": "threads=6 lookahead_threads=1",
+            "bytes": 56671996,
+            "encode_s": 121.5,
+            "cpu_s": 481.1,
+            "affinity_used": 6
+          },
+          "CI runner (4)": {
+            "sha256": "4bae703655b085373bc1e0119a45696bc093a7620e2a5269ce9e4a66865ec742",
+            "x264": "threads=6 lookahead_threads=1",
+            "bytes": 56671996,
+            "encode_s": 144.8,
+            "cpu_s": 497.1,
+            "affinity_used": 4
+          }
+        }
+      },
+      "clips_on_production_vm (indicative, this master)": {
+        "x264's own 9 threads (before)": {
+          "encode_s": 106.9,
+          "cpu_s": 533.5,
+          "bytes": 56683952
+        },
+        "fixed 6": {
+          "encode_s": 121.5,
+          "cpu_s": 481.1,
+          "bytes": 56671996
+        }
+      },
+      "cost_on_development_pc": {
+        "fixed": {
+          "encode_s": 113.9,
+          "cpu_s": 485.4
+        },
+        "parent (-threads 32)": {
+          "encode_s": 57.0,
+          "cpu_s": 932.9
+        }
+      },
+      "review_proxy": {
+        "distinct_files": {
+          "machine-derived (parent)": 4,
+          "fixed (QF-139, one thread)": 1
+        },
+        "runs": {
+          "machine-derived (parent)": [
+            {
+              "processors": 32,
+              "sha256": "a71aaab9e2be8aa3632bb4b526b2b46e14d2ad44908a555485cefa04a0162e0b",
+              "x264": "threads=32",
+              "bytes": 3034783,
+              "encode_s": 8.4,
+              "cpu_s": 156.1,
+              "affinity_used": 32
+            },
+            {
+              "processors": 32,
+              "sha256": "0db55bc3369d704c7de5c98c005481677045fc1677e7df077adb83215a571829",
+              "x264": "threads=32",
+              "bytes": 3039610,
+              "encode_s": 8.7,
+              "cpu_s": 161.5,
+              "affinity_used": 32
+            },
+            {
+              "processors": 32,
+              "sha256": "d82e1de0e63b773b7d9179cfd6f999ca73cb6fa6ca1b657e0e2a27c025fcbc11",
+              "x264": "threads=32",
+              "bytes": 3024994,
+              "encode_s": 8.6,
+              "cpu_s": 160.9,
+              "affinity_used": 32
+            },
+            {
+              "processors": 6,
+              "sha256": "85f90bb848b55b0da1b19acef388ddafdc76d6468cc994070a0dd251466a6341",
+              "x264": "threads=6",
+              "bytes": 3314455,
+              "encode_s": 16.8,
+              "cpu_s": 74.8,
+              "affinity_used": 6
+            }
+          ],
+          "fixed (QF-139, one thread)": [
+            {
+              "processors": 32,
+              "sha256": "d21e0b174535c2bc6639afeef1dc3deab92383bc26abbe48eed2c4738f14e3d4",
+              "x264": "threads=1",
+              "bytes": 3415046,
+              "encode_s": 26.6
+            },
+            {
+              "processors": 32,
+              "sha256": "d21e0b174535c2bc6639afeef1dc3deab92383bc26abbe48eed2c4738f14e3d4",
+              "x264": "threads=1",
+              "bytes": 3415046,
+              "encode_s": 28.6
+            },
+            {
+              "processors": 32,
+              "sha256": "d21e0b174535c2bc6639afeef1dc3deab92383bc26abbe48eed2c4738f14e3d4",
+              "x264": "threads=1",
+              "bytes": 3415046,
+              "encode_s": 26.6
+            },
+            {
+              "processors": 6,
+              "sha256": "d21e0b174535c2bc6639afeef1dc3deab92383bc26abbe48eed2c4738f14e3d4",
+              "x264": "threads=1",
+              "bytes": 3415046,
+              "encode_s": 30.9
+            },
+            {
+              "processors": 4,
+              "sha256": "d21e0b174535c2bc6639afeef1dc3deab92383bc26abbe48eed2c4738f14e3d4",
+              "x264": "threads=1",
+              "bytes": 3415046,
+              "encode_s": 31.2
+            }
+          ]
+        }
+      }
+    },
+    {
+      "master": 2,
+      "picture": "1080x1920",
+      "seconds": 46.7,
+      "x264": "165 r3223 0480cb0",
+      "distinct_files": {
+        "machine-derived (parent)": 3,
+        "fixed (QF-139)": 1
+      },
+      "fixed_equals_parent_on_production_vm": true,
+      "runs": {
+        "machine-derived (parent)": {
+          "development PC (32)": {
+            "sha256": "2d514f49ddde9fdf69d71b5d02fb3b9edcf0c7f5ab1f13106675e6d390f1c740",
+            "x264": "threads=32 lookahead_threads=5",
+            "bytes": 60586715,
+            "encode_s": 51.0,
+            "cpu_s": 763.4,
+            "affinity_used": 32
+          },
+          "production VM (6)": {
+            "sha256": "ed0355da585b186e24b7cf61ed1fab17b77e79bd578289132514283a2e3ec1e1",
+            "x264": "threads=6 lookahead_threads=1",
+            "bytes": 60407916,
+            "encode_s": 109.4,
+            "cpu_s": 416.8,
+            "affinity_used": 6
+          },
+          "CI runner (4)": {
+            "sha256": "c236b16358e9aff6d4db42783da9c19a9567a127ab1edf12cb7f8d5edd9c3049",
+            "x264": "threads=4 lookahead_threads=1",
+            "bytes": 60412347,
+            "encode_s": 153.9,
+            "cpu_s": 358.5,
+            "affinity_used": 4
+          }
+        },
+        "fixed (QF-139)": {
+          "development PC (32)": {
+            "sha256": "ed0355da585b186e24b7cf61ed1fab17b77e79bd578289132514283a2e3ec1e1",
+            "x264": "threads=6 lookahead_threads=1",
+            "bytes": 60407916,
+            "encode_s": 92.7,
+            "cpu_s": 382.1,
+            "affinity_used": 32
+          },
+          "production VM (6)": {
+            "sha256": "ed0355da585b186e24b7cf61ed1fab17b77e79bd578289132514283a2e3ec1e1",
+            "x264": "threads=6 lookahead_threads=1",
+            "bytes": 60407916,
+            "encode_s": 116.1,
+            "cpu_s": 442.1,
+            "affinity_used": 6
+          },
+          "CI runner (4)": {
+            "sha256": "ed0355da585b186e24b7cf61ed1fab17b77e79bd578289132514283a2e3ec1e1",
+            "x264": "threads=6 lookahead_threads=1",
+            "bytes": 60407916,
+            "encode_s": 132.0,
+            "cpu_s": 435.4,
+            "affinity_used": 4
+          }
+        }
+      },
+      "clips_on_production_vm (indicative, this master)": {
+        "x264's own 9 threads (before)": {
+          "encode_s": 112.7,
+          "cpu_s": 526.4,
+          "bytes": 60412182
+        },
+        "fixed 6": {
+          "encode_s": 116.1,
+          "cpu_s": 442.1,
+          "bytes": 60407916
+        }
+      },
+      "cost_on_development_pc": {
+        "fixed": {
+          "encode_s": 92.7,
+          "cpu_s": 382.1
+        },
+        "parent (-threads 32)": {
+          "encode_s": 51.0,
+          "cpu_s": 763.4
+        }
+      },
+      "review_proxy": {
+        "distinct_files": {
+          "machine-derived (parent)": 4,
+          "fixed (QF-139, one thread)": 1
+        },
+        "runs": {
+          "machine-derived (parent)": [
+            {
+              "processors": 32,
+              "sha256": "0c23be9a1cd635a0c31ddd3a28cb56bb1bc33a4553864734350a934cb6a61af8",
+              "x264": "threads=32",
+              "bytes": 3529672,
+              "encode_s": 11.2,
+              "cpu_s": 201.8,
+              "affinity_used": 32
+            },
+            {
+              "processors": 32,
+              "sha256": "2288134adaa3d9c8a7fb395f0602343379c02ec9d612e3becca42b53a2e665dc",
+              "x264": "threads=32",
+              "bytes": 3534434,
+              "encode_s": 12.4,
+              "cpu_s": 213.6,
+              "affinity_used": 32
+            },
+            {
+              "processors": 32,
+              "sha256": "d0aba43258bec10189aa33871e5efc99c5d160f9afec67e623a7a1922f7d20cd",
+              "x264": "threads=32",
+              "bytes": 3527250,
+              "encode_s": 12.1,
+              "cpu_s": 213.6,
+              "affinity_used": 32
+            },
+            {
+              "processors": 6,
+              "sha256": "98d85feb29e314628b7d36b8eb531301428383091e9f92a4fd78d590088ba32a",
+              "x264": "threads=6",
+              "bytes": 3899993,
+              "encode_s": 25.6,
+              "cpu_s": 122.7,
+              "affinity_used": 6
+            }
+          ],
+          "fixed (QF-139, one thread)": [
+            {
+              "processors": 32,
+              "sha256": "9e66bb88cb8a615ce63338d2693f9cd89759ba166dfb1ebc62ffa3d9455d007d",
+              "x264": "threads=1",
+              "bytes": 3907018,
+              "encode_s": 48.9
+            },
+            {
+              "processors": 32,
+              "sha256": "9e66bb88cb8a615ce63338d2693f9cd89759ba166dfb1ebc62ffa3d9455d007d",
+              "x264": "threads=1",
+              "bytes": 3907018,
+              "encode_s": 47.7
+            },
+            {
+              "processors": 32,
+              "sha256": "9e66bb88cb8a615ce63338d2693f9cd89759ba166dfb1ebc62ffa3d9455d007d",
+              "x264": "threads=1",
+              "bytes": 3907018,
+              "encode_s": 53.2
+            },
+            {
+              "processors": 6,
+              "sha256": "9e66bb88cb8a615ce63338d2693f9cd89759ba166dfb1ebc62ffa3d9455d007d",
+              "x264": "threads=1",
+              "bytes": 3907018,
+              "encode_s": 42.4
+            },
+            {
+              "processors": 4,
+              "sha256": "9e66bb88cb8a615ce63338d2693f9cd89759ba166dfb1ebc62ffa3d9455d007d",
+              "x264": "threads=1",
+              "bytes": 3907018,
+              "encode_s": 44.2
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

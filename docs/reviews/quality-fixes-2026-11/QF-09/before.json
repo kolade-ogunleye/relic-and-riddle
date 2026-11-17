@@ -1,0 +1,115 @@
+{
+  "commit": "cfc8187",
+  "python": "3.11.9",
+  "dependencies": {
+    "pillow_installed": "12.3.0",
+    "pillow_pinned": "12.3.0",
+    "scipy_pinned": null,
+    "requirements_not_exact_pins": [
+      "scipy>=1.10.0"
+    ],
+    "uv_lock": false,
+    "ci_runs_pip_audit": false,
+    "ci_installs_hashed_lock": false,
+    "ci_checks_requirements_against_lock": false
+  },
+  "pixel_limit": {
+    "graphics._relief": {
+      "decodes": 5,
+      "decodes_under_lifted_limit": 5,
+      "decodes_under_changed_limit": 5,
+      "limits_seen": [
+        "None"
+      ],
+      "global_limit_after": "89478485"
+    },
+    "upscale._upscale_ncnn": {
+      "decodes": 5,
+      "decodes_under_lifted_limit": 2,
+      "decodes_under_changed_limit": 2,
+      "limits_seen": [
+        "89478485",
+        "None"
+      ],
+      "global_limit_after": "89478485"
+    },
+    "fetch_relief.valid_relief": {
+      "decodes": 5,
+      "decodes_under_lifted_limit": 0,
+      "decodes_under_changed_limit": 5,
+      "limits_seen": [
+        "13501"
+      ],
+      "global_limit_after": "89478485"
+    },
+    "commons.download_jpeg": {
+      "decodes": 4,
+      "decodes_under_lifted_limit": 0,
+      "decodes_under_changed_limit": 0,
+      "limits_seen": [
+        "89478485"
+      ],
+      "global_limit_after": "89478485"
+    },
+    "decodes_under_lifted_limit_total": 7,
+    "decodes_under_changed_limit_total": 12
+  },
+  "byte_cap": {
+    "body_bytes": 125829120,
+    "bytes_read": 125829120,
+    "outcome": "kept",
+    "saved": true,
+    "streamed": false,
+    "cap_mb_setting": null
+  },
+  "advisories": {
+    "weekly_check_requirements": {
+      "packages_audited": 78,
+      "advisories": 39,
+      "by_package": {
+        "pillow 12.3.0": [
+          "CVE-2026-112390",
+          "CVE-2026-112391",
+          "CVE-2026-112393",
+          "CVE-2026-112395",
+          "CVE-2026-112399",
+          "CVE-2026-112400",
+          "CVE-2026-112401",
+          "CVE-2026-112404",
+          "CVE-2026-112406",
+          "CVE-2026-112891",
+          "CVE-2026-112892",
+          "CVE-2026-112893",
+          "CVE-2026-112894",
+          "CVE-2026-112895",
+          "CVE-2026-112897",
+          "CVE-2026-112899",
+          "CVE-2026-112900",
+          "CVE-2026-96638",
+          "CVE-2026-96640",
+          "CVE-2026-96778",
+          "GHSA-78g4-xqwv-q3g8",
+          "PYSEC-2026-4326",
+          "PYSEC-2026-4327",
+          "PYSEC-2026-4328",
+          "PYSEC-2026-4329",
+          "PYSEC-2026-4330",
+          "PYSEC-2026-4331",
+          "PYSEC-2026-4332",
+          "PYSEC-2026-4333",
+          "PYSEC-2026-4334",
+          "PYSEC-2026-4335",
+          "PYSEC-2026-4336",
+          "PYSEC-2026-4337",
+          "PYSEC-2026-4338",
+          "PYSEC-2026-4339",
+          "PYSEC-2026-4340",
+          "PYSEC-2026-4341",
+          "PYSEC-2026-4342",
+          "PYSEC-2026-4343"
+        ]
+      },
+      "exit_status": 1
+    }
+  }
+}

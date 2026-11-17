@@ -105,15 +105,26 @@ def test_missing_platform(tmp_path):
     assert info["headline"] == "Instagram leads on every Reel"         # five compared, all Instagram's
 
 
-def test_large_numbers_and_long_titles(tmp_path):
-    long = "The Sunken City of Heracleion, lost beneath the Bay of Abu Qir for twelve centuries and more"
-    reels = [reel(long, 1_284_500, 96_400, 12_480), reel("Supercalifragilisticexpialidociousandmore" * 2, 845_000, 1_020_000, 9_999),
+@pytest.mark.parametrize("title", [
+    "The Sunken City of Heracleion, lost beneath the Bay of Abu Qir for twelve centuries and more",
+    "Supercalifragilisticexpialidociousandmore" * 2,
+])
+def test_long_titles_refuse_instead_of_delivering_truncated_copy(tmp_path, title):
+    output = tmp_path / "refused.png"
+    with pytest.raises(ValueError, match="Checked copy does not fit"):
+        ac.render([reel(title, 1_284_500, 96_400, 12_480)], output, sample=True, today=TODAY)
+    assert not output.exists()
+
+
+def test_large_numbers_and_complete_titles(tmp_path):
+    reels = [reel("The Sunken City of Heracleion", 1_284_500, 96_400, 12_480),
+             reel("A difficult name", 845_000, 1_020_000, 9_999),
              reel("Flannan Isles lighthouse \U0001F30A the keepers", 999_600, 0, 120)]
     _, info = ac.render(reels, sample=True, today=TODAY)
     probe = ac._Canvas(1)
     title_font = ac._Fonts().sans(ac.TEXT * ac.SS, 600)
-    for t in info["titles"][:2]:
-        assert t.endswith("…") and probe.width(t, title_font) <= info["title_width"]
+    for t, original in zip(info["titles"][:2], reels[:2]):
+        assert t == original["title"] and probe.width(t, title_font) <= info["title_width"]
     assert "\U0001F30A" not in info["titles"][2]                        # no emoji drawn as a missing-glyph box
     assert {"1.28M", "96.4K", "12.5K", "845K", "1.02M", "9,999", "1M", "0", "120"} <= set(texts(info))
     assert [ac.axis_label(t, info["ticks"][-1]) for t in info["ticks"]][-1] == "1.5M"

@@ -85,17 +85,17 @@
       "name": "asset_rights",
       "status": "needs_review",
       "detail": [
-        "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\output\\run_trepanation_miracle_1792995462\\parallax\\scene_01.mp4",
-        "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\output\\run_trepanation_miracle_1792995462\\parallax\\scene_02.mp4",
-        "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\output\\run_trepanation_miracle_1792995462\\parallax\\scene_03.mp4",
-        "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\output\\run_trepanation_miracle_1792995462\\parallax\\scene_04.mp4",
-        "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\output\\run_trepanation_miracle_1792995462\\parallax\\scene_05.mp4",
-        "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\output\\run_trepanation_miracle_1792995462\\parallax\\scene_06.mp4",
-        "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\output\\run_trepanation_miracle_1792995462\\parallax\\scene_07.mp4",
-        "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\output\\run_trepanation_miracle_1792995462\\parallax\\scene_08.mp4",
-        "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\output\\run_trepanation_miracle_1792995462\\graphics\\graphic_numbers.mp4",
-        "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\output\\run_trepanation_miracle_1792995462\\parallax\\scene_10.mp4",
-        "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\output\\run_trepanation_miracle_1792995462\\parallax\\scene_11.mp4"
+        "output/run_trepanation_miracle_1792995462/parallax/scene_01.mp4",
+        "output/run_trepanation_miracle_1792995462/parallax/scene_02.mp4",
+        "output/run_trepanation_miracle_1792995462/parallax/scene_03.mp4",
+        "output/run_trepanation_miracle_1792995462/parallax/scene_04.mp4",
+        "output/run_trepanation_miracle_1792995462/parallax/scene_05.mp4",
+        "output/run_trepanation_miracle_1792995462/parallax/scene_06.mp4",
+        "output/run_trepanation_miracle_1792995462/parallax/scene_07.mp4",
+        "output/run_trepanation_miracle_1792995462/parallax/scene_08.mp4",
+        "output/run_trepanation_miracle_1792995462/graphics/graphic_numbers.mp4",
+        "output/run_trepanation_miracle_1792995462/parallax/scene_10.mp4",
+        "output/run_trepanation_miracle_1792995462/parallax/scene_11.mp4"
       ]
     },
     {
@@ -107,7 +107,7 @@
       "name": "voiceover_rights",
       "status": "pass",
       "detail": {
-        "path": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\output\\run_trepanation_miracle_1792995462\\voiceover.mp3",
+        "path": "output/run_trepanation_miracle_1792995462/voiceover.mp3",
         "sha256": "6893a5cb346af8c370ffd4c5dc2a1c41311235dbc5f42cbcfa46d4a3b464bf06",
         "provider": "azure",
         "commercial_license_recorded": true,
@@ -118,7 +118,7 @@
       "name": "ambient_bed_rights",
       "status": "pass",
       "detail": {
-        "path": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\output\\run_trepanation_miracle_1792995462\\ambient_bed.wav",
+        "path": "output/run_trepanation_miracle_1792995462/ambient_bed.wav",
         "sha256": "083499967afd27a3025c0738a3269ca3051f99176a55078044f416e3b8b5f925",
         "origin": "library",
         "sources": [
@@ -135,7 +135,7 @@
             "duration_ms": 69891,
             "reviewed": true,
             "uses": 71,
-            "path": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\data\\music\\mysterious\\mysterious_ambient_ab278746.mp3",
+            "path": "data/music/mysterious/mysterious_ambient_ab278746.mp3",
             "sha256": "d8ea6cbf5e03665a8f16fc774acd218a9f9baf2262225cfdba351c61f26f3c57",
             "rights_status": "verified"
           }
@@ -143,21 +143,21 @@
         "sound_effects": [
           {
             "name": "sfx_impact_braam.wav",
-            "path": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\data\\sfx\\sfx_impact_braam.wav",
+            "path": "data/sfx/sfx_impact_braam.wav",
             "sha256": "943b3930b265413bee2e527626231b0248b1480d158fddcc57c385097fb5f16a",
             "provider": "elevenlabs-sound-effects",
             "rights_status": "verified"
           },
           {
             "name": "sfx_whoosh.wav",
-            "path": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\data\\sfx\\sfx_whoosh.wav",
+            "path": "data/sfx/sfx_whoosh.wav",
             "sha256": "9f32d2e45638a38653e552298d665240b9a3fff5585b0c70d8fb4ed9a66041e8",
             "provider": "elevenlabs-sound-effects",
             "rights_status": "verified"
           },
           {
             "name": "sfx_bell_toll.wav",
-            "path": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\data\\sfx\\sfx_bell_toll.wav",
+            "path": "data/sfx/sfx_bell_toll.wav",
             "sha256": "b3c16738f1ffbdf5cad44fd1783d55d82e01fe4326790bca26752216f7cfe6e7",
             "provider": "elevenlabs-sound-effects",
             "rights_status": "verified"
@@ -229,12 +229,12 @@
     {
       "name": "thumbnail_cover_path",
       "status": "pass",
-      "detail": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\output\\run_trepanation_miracle_1792995462\\thumbnail_cover.jpg"
+      "detail": "output/run_trepanation_miracle_1792995462/thumbnail_cover.jpg"
     },
     {
       "name": "thumbnail_grid_path",
       "status": "pass",
-      "detail": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\output\\run_trepanation_miracle_1792995462\\thumbnail_profile_grid.jpg"
+      "detail": "output/run_trepanation_miracle_1792995462/thumbnail_profile_grid.jpg"
     }
   ]
 }

@@ -60,7 +60,16 @@ https://elevenlabs.io/pricing
 - **Free:** 10k credits, Voice Design and music, but **no commercial licence** and no music commercial use.
 - **Starter:** 30k credits. Adds the commercial licence, instant voice cloning and music commercial use; Voice Design is included. The FAQ says $6/mo; the card showed a first-month promo.
 - **Creator:** 121k credits, adds professional voice cloning. FAQ $22/mo.
-- **For us:** narration on the Free plan is not licensed for monetized posting. Starter (or Azure Speech) is required before launch. A *designed* voice avoids any cloning-consent question.
+- **For us:** narration on the Free plan is not licensed for monetized posting. Starter is required before launch (Azure Speech's free F0 tier is not a licensed alternative: its Product Terms give commercial output rights to the paid tier only; QF-127). A *designed* voice avoids any cloning-consent question.
+
+## Voice licences (checked 2026-11-14, QF-127)
+The table in `src/voice_licence.py` records, per provider and tier, whether a narration may be used commercially. Each entry and where it comes from (all pages read on 2026-11-14):
+- **ElevenLabs, which plans are paid:** https://elevenlabs.io/pricing lists Free, Starter, Creator, Pro, Scale, Business and Enterprise. "Commercial License" is listed on Starter; each later plan is "Everything in" the one before, "plus". The table's allow-list is those six paid names (Starter, Creator, Pro, Scale, Business, Enterprise), the two API tier ids below, and nothing else: a plan name it does not know is not licensed until its source is added here.
+- **ElevenLabs, the API's tier ids:** the table lists what the API answers as `tier`, which is an id, not always the marketing name. The pricing page's own plan buttons (https://elevenlabs.io/pricing, read 2026-11-14) link to `https://elevenlabs.io/app/subscription/creative?tier=<id>&billing_period=monthly_period` with `tier=starter` (Choose Starter), `tier=creator` (Choose Creator), `tier=pro` (Choose Pro), `tier=growing_business` (Choose Scale) and `tier=scale_2024_08_10` (Choose Business); Enterprise links to contact sales and the Free plan's button carries no tier. So `growing_business` (Scale) and `scale_2024_08_10` (Business) are licensed as the paid plans they are. Nobody read a live account on those plans; an id the table does not hold is still not licensed.
+- **ElevenLabs, who may use it commercially:** https://elevenlabs.io/terms-of-use ("Last Updated: 09 October 2026"), section 1(c): a free user "may only use the Services for non-commercial purposes"; a paid user "may use the Services for commercial purposes". The terms do not say what happens to a take's rights after a paid plan ends; a take made on a paid plan is treated as licensed (the usual reading, not a quoted one).
+- **ElevenLabs, what the API reports:** https://elevenlabs.io/docs/api-reference/user/subscription/get (GET /v1/user/subscription): `tier` is a string with no list of values (example "starter"); `status` is one of trialing, active, incomplete, past_due, free, free_disabled. The engine reads both, trimmed and lower case. Only `active` counts as paid: a trial, an unfinished or failed payment (section 6(a) of the terms lets ElevenLabs suspend access until payment is received) and the free states are not, and an answer without a status is not. This is the cautious reading; the API reference does not define the states further.
+- **Azure Speech:** Microsoft Product Terms, Microsoft Azure, Service Specific Terms, "Text-to-Speech (TTS) Services" (https://www.microsoft.com/licensing/terms/productoffering/MicrosoftAzure/MCA; the section loads only in a browser): "For Customers of the paid tier TTS Service only, Customer may use the audio output of prebuilt neural voices generated using the TTS Service, including for commercial purposes." So the free F0 tier is not licensed. The paid Standard tier S0 is, for prebuilt neural voices only (`NARRATOR_VOICE` is one; a custom voice has other terms), and only when the operator declares it with `AZURE_SPEECH_TIER=S0` after checking the resource in the Azure portal.
+- **edge-tts:** an unofficial client of Microsoft Edge's read-aloud service. No Microsoft page grants output rights for it, so it is never licensed: test runs only.
 
 ## Google Veo 3.1 (Gemini API): retired, not used
 > Removed from the pipeline on 2026-10-20: Google shuts down the Veo 3.1 Preview models on
@@ -88,13 +97,32 @@ https://ai.google.dev/gemini-api/docs/pricing
 ## Map and graphics data
 - Natural Earth (https://www.naturalearthdata.com/about/terms-of-use/): "All versions of Natural Earth
   raster + vector map data ... are in the public domain"; commercial use invited; "Crediting the
-  authors is unnecessary". We use 1:50m admin-0 countries v5.1.2 (`scripts/fetch_geodata.py`).
+  authors is unnecessary". We use 1:50m admin-0 countries v5.1.2 (`scripts/fetch_geodata.py`) and the
+  shaded relief raster SR_HR (1:10m) or SR_50M (1:50m) from naciscdn.org (`scripts/fetch_relief.py`),
+  the 1:10m marine polygons (`ne_10m_geography_marine_polys`, `scripts/fetch_marine.py`: the seas the maps
+  name, each only inside its own polygon: its rings densified to 1-degree edges and the North/South Atlantic and
+  Pacific split at the equator, as the IHO divides them), the 1:50m Antarctic ice shelves (`ne_50m_antarctic_ice_shelves_polys`,
+  `scripts/fetch_marine.py`: drawn as Antarctica's ground) and the 1:10m admin-0 map subunits
+  (`ne_10m_admin_0_map_subunits`, `scripts/fetch_geodata.py --10m`: the locator close-up's land, grouped into
+  the entities a map names: an admin-0 country, a map unit with its own ISO code such as Tokelau, or a
+  dependency's part lying apart from the rest such as Ascension or Tristan da Cunha; the site's home is the entity
+  whose polygon holds it, named by its own name field written out, accents folded), all from naciscdn.org.
 - Wikidata (https://www.wikidata.org/wiki/Wikidata:Licensing): structured data is CC0. Coordinates
   (P625) are accepted only inside the topic's country (src/geo.py). API etiquette
   (https://www.mediawiki.org/wiki/API:Etiquette): identifying User-Agent, serial requests, maxlag, cache.
 - Scale-graphic references (src/graphics.py REFERENCES): Statue of Liberty 305 ft 1 in ground to torch
   (U.S. National Park Service); Elizabeth Tower ("Big Ben") 96 m / 316 ft (UK Parliament); Great
   Pyramid of Giza about 138.5 m / 454 ft today.
+
+## Local model files (checked 2026-11-15, QF-136)
+The visual critic (src/visual_critic.py) adds no model: it reuses the pipeline's face model, and its text checks
+shape the bundled fonts (fonts/, licences in fonts/licenses) with Pillow's raqm layout.
+- YuNet face detector, `tools/yunet.onnx` (privacy blur, visual critic): opencv_zoo
+  `models/face_detection_yunet/face_detection_yunet_2023mar.onnx`
+  (https://github.com/opencv/opencv_zoo/tree/main/models/face_detection_yunet), MIT License ("Copyright (c) 2020
+  Shiqi Yu", the folder's LICENSE file). sha256 `8f2383e4dd3cfbb4553ea8718107fc0423210dc964f9f4280604804ed2552fa4`,
+  232,589 bytes: the same oid and size as the repository's Git LFS pointer for that file (read 2026-11-15). The
+  file is not committed (tools/ is gitignored); tests that need it say so and skip where it is absent.
 
 ## AI motion APIs (src/motion.py)
 - Veo 3.1 (retired 2026-10-20, see above) (https://ai.google.dev/gemini-api/docs/veo): `POST .../v1beta/models/<model>:predictLongRunning`

@@ -1,0 +1,39 @@
+{
+ "src_sha256": "c79c1590008bbc3f",
+ "default_captions": {
+  "surfaces": 20,
+  "identical_to_1599d93b": 20,
+  "errors": 0
+ },
+ "third_captions": {
+  "surfaces": 20,
+  "identical_to_round2": 20,
+  "errors": 0
+ },
+ "compose_gate_probe": [
+  {
+   "data_role": "default",
+   "reconstruction_intervals": [],
+   "outcome": "passed font checks",
+   "badge_dialogue_count": 0
+  },
+  {
+   "data_role": "Anton",
+   "reconstruction_intervals": [],
+   "outcome": "passed font checks",
+   "badge_dialogue_count": 0
+  },
+  {
+   "data_role": "Cinzel",
+   "reconstruction_intervals": [],
+   "outcome": "passed font checks",
+   "badge_dialogue_count": 0
+  },
+  {
+   "data_role": "Montserrat",
+   "reconstruction_intervals": [],
+   "outcome": "passed font checks",
+   "badge_dialogue_count": 0
+  }
+ ]
+}

@@ -1,0 +1,1396 @@
+{
+"missing_files": [],
+"signatures": {
+"acoustic_kitty_cia/01_commons.jpg": {
+"dhash": "c0603120838ec6db",
+"phash": "c6df1161eb353849",
+"source_sha256": "b8ca89fce3a8b35eabe702304bcdad64e75af6acee263fe0dc764e1ee8ba49df"
+},
+"acoustic_kitty_cia/03_commons.jpg": {
+"dhash": "fcf8e0c4e0f8f0e4",
+"phash": "d5d5951126ed494e",
+"source_sha256": "63a0f5e90e14c2379c03f0ae8cdc0f448be5115fac9a13d12c3cb38505de6b12"
+},
+"acoustic_kitty_cia/05_commons.jpg": {
+"dhash": "f2e6eef4f0e8d8f8",
+"phash": "80a43f5ed4912bbe",
+"source_sha256": "6e4b2982859900c8d5cdf00742af7690301595bc4befbbcdd08ce9578a2e8e6e"
+},
+"amber_room_heist/01_commons.jpg": {
+"dhash": "f0d899c9f1f1998e",
+"phash": "8855349e8763dd9c",
+"source_sha256": "12e7fd63fd0ca913ab5805cae26300d46997d64e752dbc70eb7f834b79b8e2ef"
+},
+"amber_room_heist/02_commons.jpg": {
+"dhash": "e8cc6c2fcc703031",
+"phash": "dfa64891a7795984",
+"source_sha256": "73ce475ce641bdc76d9e1381a06e12ca4a757f9bd9742715513c3ac182834b9b"
+},
+"amber_room_heist/04_commons.jpg": {
+"dhash": "d9d9f1d9dcc9c9cd",
+"phash": "82c963637573d998",
+"source_sha256": "9f7191ecf60966a9f345a9ae16de1f6695e9d127c6f9c56fe193fe49002027cf"
+},
+"amber_room_heist/05_commons.jpg": {
+"dhash": "3e3d3338282c6c6c",
+"phash": "9639277251a748e7",
+"source_sha256": "def83d59abce21cac7ecde47268b07027fe13d62c2fabb34b8014d062b678186"
+},
+"amber_room_heist/06_commons.jpg": {
+"dhash": "e3d39183944c4c4e",
+"phash": "c5c8870f872ee6d8",
+"source_sha256": "9c8ca50a9f9ff94583743001228cfa708e50c0fc64da452d81eb6c74c4cdcd95"
+},
+"amber_room_heist/07_commons.jpg": {
+"dhash": "9618d859999bd3cb",
+"phash": "ab5465a86c2f544f",
+"source_sha256": "0a5d420f0b58d3411aee50403eb4786470598830006abcdc82d1c0eb58279bb3"
+},
+"amber_room_heist/08_commons.jpg": {
+"dhash": "c2e2d1d0081c1cc8",
+"phash": "d38d9534e2b0699e",
+"source_sha256": "8a10b7abeba550b1b3103ee85ba9acda9a79bfc0f2c3070f76486d3623f30a2d"
+},
+"amber_room_heist/09_commons.jpg": {
+"dhash": "bb337353735b3910",
+"phash": "998d54abd5165a5a",
+"source_sha256": "d1b71ce702275adabe5d146a7bf74012ee3ccba0293d34e30f9b6ef1fa6ba8e8"
+},
+"amber_room_heist/10_commons.jpg": {
+"dhash": "7b7262ab6b426129",
+"phash": "cfcd1673b260e107",
+"source_sha256": "31715d2071d9d40e09a7f7d4afb80f2278b8f87fc6ff8db08395cc8f68443049"
+},
+"amber_room_heist/11_commons.jpg": {
+"dhash": "8727276743539383",
+"phash": "adfcc043629819ef",
+"source_sha256": "371f8d1d92cc8eb26f463019e9a5ac449ddd3f8ebc1cee4e2a0428a2bab1ebbc"
+},
+"amber_room_heist/12_commons.jpg": {
+"dhash": "d97159d0c2d2c2ca",
+"phash": "c13ef0ac42c33d5e",
+"source_sha256": "d39b259f9f082745136d8701acade32cfeae95e7f2e780830ccfbc13ca3a3fad"
+},
+"amber_room_heist/13_commons.jpg": {
+"dhash": "8c941458092d2c2a",
+"phash": "f690f43233363768",
+"source_sha256": "113160f3db6a4c27669ce95cd7d8a0a48e0dba6b3133c7e68d632cc37ab4df5a"
+},
+"amber_room_heist/14_commons.jpg": {
+"dhash": "cdc99494494d4df1",
+"phash": "82f38a230cf534fd",
+"source_sha256": "9ec2c5408489c27901994dfe69d89b6157b6fd257be323c1dc7fbd141d55c189"
+},
+"amber_room_heist/15_commons.jpg": {
+"dhash": "c7cbdbd3ea623237",
+"phash": "a9e3e465a2e15599",
+"source_sha256": "fac6414ff31155f061a04b2b5023c9dac29f697fe29adb5d466ed908749d9b56"
+},
+"amber_room_heist/16_commons.jpg": {
+"dhash": "3b2b3a2a0a0b930a",
+"phash": "ed9e48a676891959",
+"source_sha256": "847e8e5aad9149339f7e8c48f85fec542db69c2f727630debc85bcda2951d1f5"
+},
+"amber_room_heist/17_commons.jpg": {
+"dhash": "56339e56373b3b63",
+"phash": "b9956a4b4727b630",
+"source_sha256": "dd02f3ce3335a157ba2256beae1986be4bf09eb3348a9c9c191d393b5cb2e790"
+},
+"amber_room_heist/18_commons.jpg": {
+"dhash": "e65e2a242c256464",
+"phash": "fe21852306cc7d73",
+"source_sha256": "411e091270a1ecba216fef6aa444b4ae79f62ca276bd31d4a4987e66ad07233c"
+},
+"amber_room_heist/19_commons.jpg": {
+"dhash": "0f4f296969692b2f",
+"phash": "bea025fe82eab928",
+"source_sha256": "2b1dd2b567442baff14a24e7784f16e6d0280d5755989dcb26d2cb10bd2e29a0"
+},
+"antikythera_mechanism/02_commons.jpg": {
+"dhash": "79ebebefebcbc30b",
+"phash": "aa1eda823fc3184f",
+"source_sha256": "fa1fb629e3fe97dc8db0db48f08cffa86a27e79e37d70fbf7929bfdf2e2c9503"
+},
+"antikythera_mechanism/06_commons.jpg": {
+"dhash": "b38e0c1517868dd1",
+"phash": "a0af8b284b7ab41f",
+"source_sha256": "0234f32e5ecffaca7d1330b7573449f0f7c85a5acf8c498c325aa9cae28d414e"
+},
+"antikythera_mechanism/07_commons.jpg": {
+"dhash": "3523230713c34b23",
+"phash": "e99e8c819cf5d483",
+"source_sha256": "8178ec647e48dfcc25b0fd1efbf3824375b05ec36339ec4dfd5012b047dea793"
+},
+"antikythera_mechanism/09_commons.jpg": {
+"dhash": "0b4f2b3365694f4c",
+"phash": "afa9b1aad069da06",
+"source_sha256": "7236b616fd804c4d915fd9241e6df7296a35bd0c231ee26fd6233a0a17b0480f"
+},
+"antikythera_mechanism/10_commons.jpg": {
+"dhash": "1b1b2f23272b0386",
+"phash": "fdbbd15ac00e942a",
+"source_sha256": "5557d09c96824478d1bc5dd644c156c0eca93176632c5c1c5fb65cd81a33ddd1"
+},
+"antikythera_mechanism/11_commons.jpg": {
+"dhash": "4bde8dcd49cce869",
+"phash": "a32bcd0f2fa02a6b",
+"source_sha256": "30a2e159d213bf4ca6c60e194b0c3676a91aa12d0594bc0f8b9655f01b8d3fa4"
+},
+"antikythera_mechanism/12_commons.jpg": {
+"dhash": "a9df5f579e83a392",
+"phash": "a112de62955ed3a9",
+"source_sha256": "0f840d6522892c29288195bd9ff3ebd38bfa8f718758feef3a0598cca986e8b5"
+},
+"antikythera_mechanism/14_commons.jpg": {
+"dhash": "e0c0f8ffe7f0f8dc",
+"phash": "96e9d64b279a85c2",
+"source_sha256": "3a574fd1e883eda8c5e315537d1901fcd1484125f8603a9b94e04bc685cacf00"
+},
+"antikythera_mechanism/15_commons.jpg": {
+"dhash": "b4f23623ac753434",
+"phash": "dcc5959290ced6b2",
+"source_sha256": "4b9ea4dd6bf3f87e831b57d2d79036106ebb1ddf0a55569e2b9e8b6417d116e1"
+},
+"antikythera_mechanism/16_commons.jpg": {
+"dhash": "c0539286991976e2",
+"phash": "817f8d7ac01cd38d",
+"source_sha256": "18d5c759f6a5b8df5a281decfee0b100c9d94e3836488f6728f2b8d7816b1ac3"
+},
+"antikythera_mechanism/17_commons.jpg": {
+"dhash": "4dcc5b99096816e6",
+"phash": "d333845e6b214f2b",
+"source_sha256": "9a426696822c3b3f7201b8b3f4477d255d4bfd5ca0ec1af8da829067b971a52c"
+},
+"antikythera_mechanism/18_commons.jpg": {
+"dhash": "4cccece8b3f0f3f3",
+"phash": "82b667199f929e38",
+"source_sha256": "38411ec93cc3d2812c67b881c379e696133a24f35a586ec4925cbb1bc404cf97"
+},
+"antikythera_mechanism/20_commons.jpg": {
+"dhash": "a1253131313131a1",
+"phash": "da75262582599b7c",
+"source_sha256": "8dba3180bcd192489518aa6f86617d42b9504f423a8984ba19625b11b02a88cb"
+},
+"claw_of_archimedes/02_commons.jpg": {
+"dhash": "e5f7b7d19997a6b6",
+"phash": "a0aa26ae53c6aafc",
+"source_sha256": "6697a7b8aaa193599b1fd0465a554571eab97858adf8fc94c6bb66f434ecb3c7"
+},
+"damascus_steel_nanotubes/10_commons.jpg": {
+"dhash": "04340dcdcc8c0c48",
+"phash": "f34c9c731933099d",
+"source_sha256": "2612edb74b8205dc9ee2c7a483e5495a73299a3abd341477af154fb83be11145"
+},
+"damascus_steel_nanotubes/11_commons.jpg": {
+"dhash": "929a1a9a9acae2d2",
+"phash": "f131ce4698ce936c",
+"source_sha256": "dcbf8fb54838cd0f7bc34017f861fb4f13dcfd8104961e947f01ecc5c2d4ac41"
+},
+"damascus_steel_nanotubes/12_commons.jpg": {
+"dhash": "ececc8c8d8f0c8a4",
+"phash": "a626664c3173dd33",
+"source_sha256": "2eed3b49241f24fca8e827635e43dfb5a0c4f2c3afae49dd10064a4f2d90e3b1"
+},
+"damascus_steel_nanotubes/14_commons.jpg": {
+"dhash": "e4ecc8d8d8d0c8c8",
+"phash": "b326464c3d7b4c33",
+"source_sha256": "db78edc6f1ea79a8d0c54d4050f841ca86c6ce9c2e2ae36cc502a7f47b60bd77"
+},
+"damascus_steel_nanotubes/15_commons.jpg": {
+"dhash": "ffcececccdcccccc",
+"phash": "b38c4c9a9899d9d9",
+"source_sha256": "f19017255d53f41face8f7c3b8978e79b77e63ccb829a6a2afe9449140f2a3ac"
+},
+"damascus_steel_nanotubes/16_commons.jpg": {
+"dhash": "f0f06038399bc6f8",
+"phash": "9a97c5689a87299e",
+"source_sha256": "580ba756be275d06d7a0a3417655d3befc96f4b6bff665aab38c462fa05219ae"
+},
+"damascus_steel_nanotubes/17_commons.jpg": {
+"dhash": "f0f0f0793b86e8f0",
+"phash": "9b9fc5615a962519",
+"source_sha256": "5de66a0fe20d816d8aa0f6ad1ea7a08882985813a8571258ad248a176e5d2f69"
+},
+"damascus_steel_nanotubes/18_commons.jpg": {
+"dhash": "20b89a9a8c8cc7e1",
+"phash": "b018ce669a6d936b",
+"source_sha256": "f22596d1753bf5e3f06c45b26972ec213f8d0b74c13e2ab29949a5c322b49237"
+},
+"damascus_steel_nanotubes/19_commons.jpg": {
+"dhash": "c4ccc8c8d8d8c8ec",
+"phash": "a3266ccc19d9cc9b",
+"source_sha256": "98be22aeb87e53325f79850c5e4d3986794ebe49d6a1dee438c180c1965a54e0"
+},
+"derinkuyu_underground_city/04_commons.jpg": {
+"dhash": "03439c191f1b070f",
+"phash": "f9cace88e0d191b5",
+"source_sha256": "71ccc0aa181abae51e291daf029277809c829d60a15895aa6190353c49126129"
+},
+"derinkuyu_underground_city/17_commons.jpg": {
+"dhash": "b0ac0e9c98604404",
+"phash": "d5180e5b38175f2b",
+"source_sha256": "bc54c454a9e87da4e7c48f985c2ab6b79e31bed67b873699117b1f987a35fb95"
+},
+"derinkuyu_underground_city/18_commons.jpg": {
+"dhash": "3246cba3f1f371c0",
+"phash": "cbb4b49d4a6ac932",
+"source_sha256": "4cdeabd4b683fef77823c574a3ad434c4dd3123b386f7eded611673102e6d7f1"
+},
+"derinkuyu_underground_city/19_commons.jpg": {
+"dhash": "58d8cc54d4cc44c0",
+"phash": "d3212a353c3e76d8",
+"source_sha256": "58687861b7dafec02f83b220d90bf1357427142d53aa15f3080e01b0c102f75c"
+},
+"derinkuyu_underground_city/20_commons.jpg": {
+"dhash": "9b072d4d4d593327",
+"phash": "af600d7b831d82be",
+"source_sha256": "6a92d9ff4db0efb511e5bda045d3288f9536d8f552d64b12591a0cd3faf4943f"
+},
+"derinkuyu_underground_city/21_commons.jpg": {
+"dhash": "26a6e4948ca4a120",
+"phash": "d421dd247b1ec61b",
+"source_sha256": "698cf76fd0e301250d39686435534b7eed32ec06401fd296c3bd4f5abc5bca1b"
+},
+"derinkuyu_underground_city/22_commons.jpg": {
+"dhash": "fb93a32921954432",
+"phash": "ccaba1b192968ece",
+"source_sha256": "9a12a72b8b5a7a6d7d6268bc9ae9a3074d990baa7ece0093fa57902d551d028e"
+},
+"derinkuyu_underground_city/23_commons.jpg": {
+"dhash": "26a6c4948ca42120",
+"phash": "f421cd20df32c63b",
+"source_sha256": "e928521e40ae3a74f0e7bad2442400131e09ed3db9b3c9bc0cd69a2411a4b8c7"
+},
+"derinkuyu_underground_city/24_commons.jpg": {
+"dhash": "9d9f9a1a89b058cc",
+"phash": "b3aa3a5a62955c63",
+"source_sha256": "733740d3e48a1e0f186a30e029a7f95945d1cea94005257838d58334f1895203"
+},
+"derinkuyu_underground_city/25_commons.jpg": {
+"dhash": "c10121a4a4948796",
+"phash": "f44f237186c719cc",
+"source_sha256": "d647264a80bc3f22e390462311ef27b64f41f3cd81c67750a192c7723082b94b"
+},
+"derinkuyu_underground_city/26_commons.jpg": {
+"dhash": "33fbf9f9b2fa783c",
+"phash": "994a776526527359",
+"source_sha256": "9c89a069fd245d39490dffc5c197ad43449938706eec8026820b2e8ce465255d"
+},
+"derinkuyu_underground_city/27_commons.jpg": {
+"dhash": "e8e8b44231291214",
+"phash": "d692135a6d6d2ccc",
+"source_sha256": "35b2c74e0a71b415af13669a54b350ab178c0241dfd05c43d4b5a65fa007a03c"
+},
+"derinkuyu_underground_city/28_commons.jpg": {
+"dhash": "0020317173726440",
+"phash": "d8daf6e5c9d29808",
+"source_sha256": "7829b675a0f0d6837f0e5a5f9ccd6ee899211bcc513e60b252495ed1dd8f07b9"
+},
+"derinkuyu_underground_city/29_commons.jpg": {
+"dhash": "e8e8b40633391236",
+"phash": "d492135a6d6d3ccc",
+"source_sha256": "cba63a5d5ac448d738115fcfa4c0c26e7c8eb49cc7948816471ce6afbef8486f"
+},
+"derinkuyu_underground_city/30_commons.jpg": {
+"dhash": "8e7e767ce4264603",
+"phash": "b5356a625a5a5aca",
+"source_sha256": "c49b36506f82edafd5d472f06ea987939ee341237648619c05042d2dcad2f8d4"
+},
+"derinkuyu_underground_city/31_commons.jpg": {
+"dhash": "fa93a36d2597c432",
+"phash": "ccebb1319a960cce",
+"source_sha256": "db85944ef0999399b2e64d0a5d99d3460dd5c478fd2ff6af184b2c28f8eeabd7"
+},
+"derinkuyu_underground_city/32_commons.jpg": {
+"dhash": "0c0603c5cceccccd",
+"phash": "e23d3c96e3c11e38",
+"source_sha256": "58a15d8c0eafc676685e1023980e0408cbd740240dbe62a01194b0e9864c49cb"
+},
+"derinkuyu_underground_city/telegram_26da2ed655f246ddb922dd06a2bb60cb.jpg": {
+"dhash": "d898d8fcf0f0f8e8",
+"phash": "91626a9dc493ce97",
+"source_sha256": "461d90d9c80f4f586a4fa9d6bdfce248d1d2b19e2a6229e305103c254d934cf9"
+},
+"derinkuyu_underground_city/telegram_a3e408843363434098fef4172fb2508e.jpg": {
+"dhash": "d898d8fcf0f0f8e8",
+"phash": "91626a9dc493ce97",
+"source_sha256": "461d90d9c80f4f586a4fa9d6bdfce248d1d2b19e2a6229e305103c254d934cf9"
+},
+"derinkuyu_underground_city/telegram_bb4df8b97bce49a58ef609804535936f.jpg": {
+"dhash": "d898d8fcf0f0f8e8",
+"phash": "91626a9dc493ce97",
+"source_sha256": "461d90d9c80f4f586a4fa9d6bdfce248d1d2b19e2a6229e305103c254d934cf9"
+},
+"flannan_isle_lighthouse_disappearance/01_commons.jpg": {
+"dhash": "494990922a92e2cc",
+"phash": "c15b12ad3ced249e",
+"source_sha256": "d14681289fff723c10af9d57ccd45a1174ca9f769f752a2a56badf823c34c174"
+},
+"flannan_isle_lighthouse_disappearance/02_commons.jpg": {
+"dhash": "924369334b48b331",
+"phash": "c9e358e17434974b",
+"source_sha256": "dba6afb35726c4822a869ea733541e20e297d78451dad4166bb171e7b571db25"
+},
+"gobekli_tepe_enclosure_d/01_commons.jpg": {
+"dhash": "80c420b4f6d492e5",
+"phash": "d4d8c6818e393e79",
+"source_sha256": "eee10c80d4a36fb7a02dd8ca52e834662f917a63d3838d895554648923058adc"
+},
+"gobekli_tepe_enclosure_d/02_commons.jpg": {
+"dhash": "ee4e30688d5876c9",
+"phash": "87a4a5a7c29ed8b8",
+"source_sha256": "ba18e2a537749949a1224c2325097f986bc7c01efb76b10af8b5e4f1cec788ae"
+},
+"gobekli_tepe_enclosure_d/03_commons.jpg": {
+"dhash": "fffffffd3c0e49a8",
+"phash": "928f407f986fe518",
+"source_sha256": "aec5bd2bfd4fa8efe6a6f6a4fd0095cebec4680507f1af6092dd3c1be37d3af7"
+},
+"gobekli_tepe_enclosure_d/04_commons.jpg": {
+"dhash": "7879093cbf3d3d19",
+"phash": "9ac75b28a594e768",
+"source_sha256": "f0f93d09f4657b8600ddad89ec7c0761731f5578ebe48d4280c5ab37a270bdbd"
+},
+"gobekli_tepe_enclosure_d/05_commons.jpg": {
+"dhash": "6cea3864ea2c52d9",
+"phash": "839cb3e7627d3409",
+"source_sha256": "4a0b8e36b53781e8fdcaa805cb1d597df899b649e38c870f6e1913d6c9098c9c"
+},
+"gobekli_tepe_enclosure_d/06_commons.jpg": {
+"dhash": "19e692bb29db1d96",
+"phash": "b08cf1da1a7ac1dc",
+"source_sha256": "87ac4e3a7324addc74ba41b3058b1efed06632a4519f27cdc4c794b70cc930bc"
+},
+"gobekli_tepe_enclosure_d/08_commons.jpg": {
+"dhash": "71b0904cd8b292c6",
+"phash": "d91a4818773e66b3",
+"source_sha256": "58a042d0ce5cf625dedb12d0c1ffa9f1e01a1c274b76908f62db38d6c6b62d04"
+},
+"gobekli_tepe_enclosure_d/10_commons.jpg": {
+"dhash": "f8d9b7e6ce722ee9",
+"phash": "80d852df63bc4d3a",
+"source_sha256": "372bb104dea594c6a076ccb1f0cc6b5dc5d57d50b47de140ed5e666fbd5d3af7"
+},
+"gobekli_tepe_enclosure_d/11_commons.jpg": {
+"dhash": "1f4f7321010780f9",
+"phash": "aabf1174eac03dc8",
+"source_sha256": "af7df4900e596066bc07935db2d53f4d90dce1cc0266f1fc95cfff9e67c6bcef"
+},
+"gol_gumbaz_whispering_gallery/02_commons.jpg": {
+"dhash": "4f0f96960f71725a",
+"phash": "a9b4db0a649d4e59",
+"source_sha256": "e077485145cfc52b46d5bbf0c8915b8a09110d481186242c375e7e1344f1442b"
+},
+"gol_gumbaz_whispering_gallery/03_commons.jpg": {
+"dhash": "ef4d5d832333a9c9",
+"phash": "aab5963c45cc343e",
+"source_sha256": "cf542a9a779fd80401fd5b93a139192474450c452f7450e6d89c31b2e5b4230c"
+},
+"gol_gumbaz_whispering_gallery/04_commons.jpg": {
+"dhash": "7b2b030b59f5911b",
+"phash": "eaa51096f3658c5b",
+"source_sha256": "2d092e70671db15fcfa47eb56f3a64f1be024d38f8e375b7df7712b2ae734f3c"
+},
+"gol_gumbaz_whispering_gallery/05_commons.jpg": {
+"dhash": "8c3279ccc682aaea",
+"phash": "c51a7ae562c61be4",
+"source_sha256": "734a20457580a63f917bcf5420f40ae68c541dc797d3d88080a8cd22a6defae3"
+},
+"gol_gumbaz_whispering_gallery/07_commons.jpg": {
+"dhash": "c3c3aa646e7978c6",
+"phash": "87e4581be6589967",
+"source_sha256": "0cc89ea6b64d6d28076b7a74b7c85dff3a28df43f0b07e252671f738e5ca9373"
+},
+"gol_gumbaz_whispering_gallery/08_commons.jpg": {
+"dhash": "02008009d9d96381",
+"phash": "caf55503f12e912d",
+"source_sha256": "a9c2d58415badb7c5f6546b45773e5cebcdc63f6b804f35278b568cdbb5b3545"
+},
+"gol_gumbaz_whispering_gallery/09_commons.jpg": {
+"dhash": "609c61a52263720c",
+"phash": "8cf2f18d304dce71",
+"source_sha256": "172d0ea0b2eb74356ca6bc3e0ad0955123c1b1663e8658cb15fa8f0de8ea4678"
+},
+"gol_gumbaz_whispering_gallery/14_commons.jpg": {
+"dhash": "cdcdcdda5ccfcfce",
+"phash": "a3da6cba954b2552",
+"source_sha256": "07051f50718796a0b27d9789f5ebad576ea4c5bec54d322460a70208ab877862"
+},
+"gol_gumbaz_whispering_gallery/15_commons.jpg": {
+"dhash": "92b7371311340c24",
+"phash": "fc6885c36b3f901a",
+"source_sha256": "bc5e5e28462dbcfc224185710740b65b8e8cd1090b881df6a992af62769fd374"
+},
+"gol_gumbaz_whispering_gallery/20_commons.jpg": {
+"dhash": "a929298989cc9c8d",
+"phash": "f24e1cb540e7b159",
+"source_sha256": "01807b23c6be1bfd6b836549e9606d82a57309444d7d7d21d1e1b68195594bda"
+},
+"gol_gumbaz_whispering_gallery/22_commons.jpg": {
+"dhash": "0f0f6b6b4ecc696b",
+"phash": "af7d6810b7ca4385",
+"source_sha256": "a72dfb66e633cdbec0a2540d4c293915f6c09eaeff2ef73925a51de2c1f1ba04"
+},
+"gol_gumbaz_whispering_gallery/23_commons.jpg": {
+"dhash": "4ecee8f156c2484f",
+"phash": "8714376538926dbd",
+"source_sha256": "9295d93034e37df7046b0a00b9a726677c6c7af3bbd76017e3c5e690ac21d0d5"
+},
+"gol_gumbaz_whispering_gallery/24_commons.jpg": {
+"dhash": "c8c872f2e0f072b2",
+"phash": "ccf332ccf32c0ce2",
+"source_sha256": "1a7e2b3c3ccdbfc2810625ba9f330593c1e156bf788aaecb5f720198975f4a29"
+},
+"gol_gumbaz_whispering_gallery/26_commons.jpg": {
+"dhash": "e4e4f0f0e0f17309",
+"phash": "c0d53f88d52b6ad4",
+"source_sha256": "c547e8a876e14fadf696dddc56905de6ad304915a557e0a9ceca6e2674c46a60"
+},
+"gol_gumbaz_whispering_gallery/28_commons.jpg": {
+"dhash": "8d8eca8458644d45",
+"phash": "e7516a0ac1ee0977",
+"source_sha256": "fb688042e81a7d90f13060eef6c98a477289d1389b68096960b7a2c69e969d2a"
+},
+"gol_gumbaz_whispering_gallery/30_commons.jpg": {
+"dhash": "f0a8888c557939b4",
+"phash": "d3e38c1b6463c3ac",
+"source_sha256": "46bf251106d1587980af36135dd94ea3aca6cb858150466fcdbfe111a8527ee9"
+},
+"great_wall_of_gorgan/01_commons.jpg": {
+"dhash": "7f7f1f1a220101c8",
+"phash": "f9ac824e71f1860f",
+"source_sha256": "145c54eea3ee592aa34e9326d508b4ca799122f78a1f0141c8d261df59ecc6ee"
+},
+"great_wall_of_gorgan/02_commons.jpg": {
+"dhash": "781b248801519230",
+"phash": "d9a69c49d2959bc4",
+"source_sha256": "a53e4b2a7b5b2782faec4125535763e8d6b376fa005908c86a3c86d475401f4e"
+},
+"greek_fire_siphon/01_commons.jpg": {
+"dhash": "3c5c3031b1317b32",
+"phash": "dad6b529e0bf0a24",
+"source_sha256": "d20a5075c394d10a7e8de5839bedeeebc4ab591d4beeb98dc7d1fe9d46bee2fc"
+},
+"greek_fire_siphon/03_commons.jpg": {
+"dhash": "cececccacb493d1f",
+"phash": "a3d5388ba915fae0",
+"source_sha256": "b7892c9d175cea8fe29460e9007381ce6a14b572f888492fd8f66c005199cc4f"
+},
+"greek_fire_siphon/04_commons.jpg": {
+"dhash": "e499198599139bea",
+"phash": "eaf68558878569d2",
+"source_sha256": "1fbe19c91f6ed4903bfcf6609a42a9d67311925b83754fbfd8b983fc7d0a07c1"
+},
+"greek_fire_siphon/06_commons.jpg": {
+"dhash": "084c26060793450f",
+"phash": "eed41a4be50ad02f",
+"source_sha256": "7e2e8022302304da862e9f9d525f9071c7596267a42f103dc28a30a600581575"
+},
+"greek_fire_siphon/11_commons.jpg": {
+"dhash": "f04848c0447cf8f8",
+"phash": "d7c2909e8c88be75",
+"source_sha256": "c05271f62ca1e3218e46e93f3e94b74d7b2e4ff626480212c54cfab4c2099e73"
+},
+"greek_fire_siphon/13_commons.jpg": {
+"dhash": "f3e0f3f3f050f0d0",
+"phash": "c98a36776f3c4950",
+"source_sha256": "be4ea6b9413d90f1d497fa6458e60750908695c1bb096d58cea77c94c312865b"
+},
+"hal_saflieni_hypogeum/01_commons.jpg": {
+"dhash": "e2e0e0f0a48484a4",
+"phash": "d08b2be41fc9656a",
+"source_sha256": "6c9b300adf39efcf81cc270611f68eee8148d2d17b851196be38a3d5488ce42a"
+},
+"hal_saflieni_hypogeum/02_commons.jpg": {
+"dhash": "78fc7cf8f8f4f4f8",
+"phash": "942b66cc936c9b3c",
+"source_sha256": "3c0203f4bfe6dac7da440cd76dce2c1c538bc0fc0a56d211e785e18454c93b49"
+},
+"hal_saflieni_hypogeum/03_commons.jpg": {
+"dhash": "f0e4e4e4eecaf973",
+"phash": "878678392d9e706e",
+"source_sha256": "eee852ece42379cf04751c598fbac1dcdab03039fb990dc1a3c8798574f31da3"
+},
+"hal_saflieni_hypogeum/04_commons.jpg": {
+"dhash": "656766e4d3c4a475",
+"phash": "86af3ac379948719",
+"source_sha256": "50e5fa6dbc3278a454cf2d125456a185faab8bc6ad9c9f3511a7d31d3813b742"
+},
+"hal_saflieni_hypogeum/05_commons.jpg": {
+"dhash": "564c785a103116b8",
+"phash": "9d97666809b59ab2",
+"source_sha256": "25d9fcacd374d309184d2cecc0a96c459e38380a16863196f3ab86f1071643e1"
+},
+"hal_saflieni_hypogeum/06_commons.jpg": {
+"dhash": "ddcdedfffbfff7ff",
+"phash": "a2526a1a391cb6ef",
+"source_sha256": "854ef7532e319b6e2fb40d077cd9c3890ffef3e4167b55e7550cc71cd47048de"
+},
+"hal_saflieni_hypogeum/07_commons.jpg": {
+"dhash": "a7b3abbd19698b07",
+"phash": "f08465cf76e29661",
+"source_sha256": "0e2f4a2c99a1c163e31baf5cd8e930982eb8435fb04f878fabe50e11f7ffb3e5"
+},
+"hal_saflieni_hypogeum/09_commons.jpg": {
+"dhash": "e0151929232b238c",
+"phash": "fad0953d85c25a6c",
+"source_sha256": "6e4b9c420168ff09327c4e665bf19a85e3ca13edc1b2278130f5990380de438e"
+},
+"hal_saflieni_hypogeum/10_commons.jpg": {
+"dhash": "c4332f7b3f3d1fe8",
+"phash": "bfcec030c763869c",
+"source_sha256": "7f94fdc62c88c6fab4b718fc61128edc41e1894f0bc798c6ba27abae4f2b6c9f"
+},
+"hal_saflieni_hypogeum/11_commons.jpg": {
+"dhash": "9202460b26353599",
+"phash": "bc25d29c93a81ea7",
+"source_sha256": "61ef9f05dcc2862643a05c3e5ed28903d7c6280fa6d1ba100a161a6d77791509"
+},
+"hal_saflieni_hypogeum/14_commons.jpg": {
+"dhash": "8307332b2b2f1b09",
+"phash": "bac4cd63c339cc13",
+"source_sha256": "27a0ca814c7a8c9033d8fb90327fecd185c76d6761678ed7a6ad30e64a8ab0b2"
+},
+"kailasa_temple_monolith/01_commons.jpg": {
+"dhash": "2c0d030607470342",
+"phash": "ed9292c4929d8f6c",
+"source_sha256": "f6dffa1425559ec3eae018cc4f53630cb646e1ba087d7a6de7b0c68e2c13f4c4"
+},
+"kailasa_temple_monolith/02_commons.jpg": {
+"dhash": "4ccf8ecce8fabe2f",
+"phash": "b3f36c1f5f608114",
+"source_sha256": "f04b9633e6cd221378a701888e33e21d1669142d8501d315f369a6a2054dfe8c"
+},
+"kailasa_temple_monolith/03_commons.jpg": {
+"dhash": "ecf0f139f1e5e1e0",
+"phash": "ca3cd2673227c659",
+"source_sha256": "eff7b53529c7fa8784efef048c0f625f2e3839fc82c096237aa6339dff2dd369"
+},
+"kailasa_temple_monolith/04_commons.jpg": {
+"dhash": "b668c84821c2c941",
+"phash": "c395a49cfe80f19a",
+"source_sha256": "f66176faa45a0813fb480320db217fde814bf6cc44a81addd61a13ce3a2c9f47"
+},
+"kailasa_temple_monolith/07_commons.jpg": {
+"dhash": "5c1082c092d364cc",
+"phash": "c3b8b6b90296f1b4",
+"source_sha256": "5ea418e9fcc735537ccb9eb60ea618259071f1ff2c1879e9dc16bb24be02fed2"
+},
+"kailasa_temple_monolith/08_commons.jpg": {
+"dhash": "1692b24b4b4fb9c9",
+"phash": "e9c5103f3f342599",
+"source_sha256": "7d597877d923f10b844a28014cd282b5fcdc91446021758e67ccbe0bf852de6f"
+},
+"kailasa_temple_monolith/09_commons.jpg": {
+"dhash": "7078f0509b583e31",
+"phash": "99599e16e634d30d",
+"source_sha256": "9913a13ff8ed1b88438fc74172c2fca5d596414825ad088037dd7f1d3e592e25"
+},
+"kailasa_temple_monolith/10_commons.jpg": {
+"dhash": "70009cb88c64e4c8",
+"phash": "d4f9c837d29cb822",
+"source_sha256": "0b53afb80ab4b1140428c28dea0a372c4dbc498375b4fce00febcd266ca28177"
+},
+"kailasa_temple_monolith/11_commons.jpg": {
+"dhash": "fefeefdcfcd5fcbc",
+"phash": "8425bd349553adad",
+"source_sha256": "2864979cad152d326a1754a65b884f54de2bb98f1ba34db3308789cd1658e901"
+},
+"kailasa_temple_monolith/12_commons.jpg": {
+"dhash": "d0e4a6c6c6d6c6b6",
+"phash": "c51b891b9d0bb9cc",
+"source_sha256": "7841f891c48776e278ba958bcb48399913657fc3771273a6948f9f62050d42b6"
+},
+"kailasa_temple_monolith/13_commons.jpg": {
+"dhash": "f832e6c6c3040450",
+"phash": "c58d9ab28366d1e3",
+"source_sha256": "e84ee8885265753e77bc55fcd38957f79ea1d86ebd8cc98c5bee319b9c7d8f96"
+},
+"kailasa_temple_monolith/14_commons.jpg": {
+"dhash": "444c1c3aa98a8c80",
+"phash": "d70606470fb5f8d8",
+"source_sha256": "7f8d8f26b14063acf07031592c09c554606c0a1f43b1228bfcb32c47810703a6"
+},
+"kailasa_temple_monolith/15_commons.jpg": {
+"dhash": "2878e84c0416166c",
+"phash": "d6da985ce725a0f0",
+"source_sha256": "ed62dd4108d9ddf933973a5f679e4dd82a64b90bac3b316dd935e6d22a361444"
+},
+"kailasa_temple_monolith/16_commons.jpg": {
+"dhash": "1c5cdcaaaa90c880",
+"phash": "d514b7fa78684893",
+"source_sha256": "6c97d308d0524fc65a6301aa2c17671d1f6120a1ac141f70f06b8f07c26d2c7c"
+},
+"kailasa_temple_monolith/19_commons.jpg": {
+"dhash": "735b2b3b353578f8",
+"phash": "baabd594a88f2a92",
+"source_sha256": "3c72a225038dc4c8730137d90e6f84d01cbf66ce8e558f31d0da207fa047aa7a"
+},
+"kailasa_temple_monolith/20_commons.jpg": {
+"dhash": "f89998b8f6f2ede4",
+"phash": "919b926ca42ead2f",
+"source_sha256": "9da95e252c6b7569aac769adccba141b52fa74df88eea3b3a6b3b02be3a3f7d7"
+},
+"lycurgus_cup_nanotech/01_commons.jpg": {
+"dhash": "87274be38b16860e",
+"phash": "a90bf434cbc0df32",
+"source_sha256": "227aedafca4648228da8cc3bcde582b0a467dfe63582af09f5e63d8f17904174"
+},
+"lycurgus_cup_nanotech/04_commons.jpg": {
+"dhash": "39233723270e0e17",
+"phash": "fe5ef0b0c8f284a1",
+"source_sha256": "a6b73a936012c41a0b3891ff78b4592dd2461c4ddd88331458a145f4d9c1f9b3"
+},
+"lycurgus_cup_nanotech/05_commons.jpg": {
+"dhash": "031b0b1b3b0e8e87",
+"phash": "e81bc6149de49fc1",
+"source_sha256": "4320f03092286bde2eb752bb96cb637f4d591882ec695fca6df89f13c29615bc"
+},
+"lycurgus_cup_nanotech/06_commons.jpg": {
+"dhash": "622d0d2d0ace8fce",
+"phash": "e75f85e009e087e9",
+"source_sha256": "86f1866a6fcf08b403b05cb4529d4d4a2650f0fd84ca2ef70a26b9e9f78f3b3a"
+},
+"lycurgus_cup_nanotech/08_commons.jpg": {
+"dhash": "0b231313178e8e86",
+"phash": "e11bc6129de69b64",
+"source_sha256": "f1d36394506c1e8d200e329a31496d2dece2c643775a818a1e51328de9e26dd8"
+},
+"lycurgus_cup_nanotech/10_commons.jpg": {
+"dhash": "f0cbeae4f2ccce8e",
+"phash": "815ba21ddc345ee5",
+"source_sha256": "02ade8a989fd087dc4c474118263984c8b21de01cfab135e147bd6a131eb665d"
+},
+"lycurgus_cup_nanotech/11_commons.jpg": {
+"dhash": "68f0f474f8d88c8e",
+"phash": "d50ee552a9f40af1",
+"source_sha256": "6cb170a080f48bdca1099805e4c393a05b407e90a57335f231d22f443dbd38e3"
+},
+"lycurgus_cup_nanotech/12_commons.jpg": {
+"dhash": "c64617868ee4ce8e",
+"phash": "e54fb707a0574a91",
+"source_sha256": "5a192f201ccfec74624d37fc7d4a576d2ccf908902c78fedaed3dcf5c661430a"
+},
+"lycurgus_cup_nanotech/13_commons.jpg": {
+"dhash": "f5cd174d6b135d09",
+"phash": "aa808289cb9e7d5f",
+"source_sha256": "1d1ebc19264fa0d89c3af6b64673b0680011d6ccca6f75a995d4bab485902245"
+},
+"lycurgus_cup_nanotech/15_commons.jpg": {
+"dhash": "e4d0d4c8f1ecce86",
+"phash": "8059a42e79a75db9",
+"source_sha256": "7543a51b2687ba3dd3b098459984685cdca54b2458098813beeedcdac3e26671"
+},
+"lycurgus_cup_nanotech/16_commons.jpg": {
+"dhash": "1f0b072b2b9ece0f",
+"phash": "fa5ae1949d83e486",
+"source_sha256": "141757c227b7084f094514c65e8797d50da038be38f9fdbf7e0cb3a72ae506fb"
+},
+"nazca_lines_runway_paradox/02_commons.jpg": {
+"dhash": "f8fee4f1e1f1c1c1",
+"phash": "cab52a55ea552ad2",
+"source_sha256": "2c9706f2db3b298d120acac6e2ee07b9f045bd8f8b8baa0c63e9613e2332f296"
+},
+"nazca_lines_runway_paradox/03_commons.jpg": {
+"dhash": "fcf8f7b8f8b8a0f0",
+"phash": "90b38c9781b4af4f",
+"source_sha256": "609cb2d1293876eddfd53d6d72391e5e0bc22bf5fc8de3e004c223ca13e4e30d"
+},
+"nazca_lines_runway_paradox/04_commons.jpg": {
+"dhash": "03bcfcc080800145",
+"phash": "d0156e686f6b94b4",
+"source_sha256": "9159b6579c8910136143cb42447fc981b505a3736a6d2803b79cdbd0130c4e82"
+},
+"nazca_lines_runway_paradox/06_commons.jpg": {
+"dhash": "1e9cb4a5c792b3b3",
+"phash": "acb63b2d263e1d28",
+"source_sha256": "abfdd00ea4fb07d65e60dc2f92ed21a7234c692259974e1b2814475b2a3d5d89"
+},
+"nazca_lines_runway_paradox/08_commons.jpg": {
+"dhash": "f1f8de4783a3e3f5",
+"phash": "c89198686a6badbb",
+"source_sha256": "4e83ad9a780271379e69b16a89febae85a3f5d81e1c6a85ead1f30a40c458044"
+},
+"nazca_lines_runway_paradox/09_commons.jpg": {
+"dhash": "f8b0dce6b81c373b",
+"phash": "bcc36fb4482592e9",
+"source_sha256": "1c2bda1a7ce146a58560f68dcd92a469f453e9c015ce5c611e39c45e77ea7864"
+},
+"nazca_lines_runway_paradox/10_commons.jpg": {
+"dhash": "3160490404040909",
+"phash": "de4f8b389970b223",
+"source_sha256": "b820c1a1f0a38f3fa64ba37eeeaa64879d92a49c9c4fa8743c1b0defd4182245"
+},
+"odessa_catacombs/01_commons.jpg": {
+"dhash": "d0c8c4716968d0f8",
+"phash": "c7e0305b1a3d6766",
+"source_sha256": "1640ce53b257b5f40faedfe2ca200761efb66d7fbaebd045cd5cdf5b00c2106e"
+},
+"odessa_catacombs/08_commons.jpg": {
+"dhash": "2124818928c00010",
+"phash": "da6aae6c3a6a803d",
+"source_sha256": "fc14243d841372e77e574e5dae834fa8dd32e442d19561873fb4985fbe633b49"
+},
+"odessa_catacombs/09_commons.jpg": {
+"dhash": "47e3262d2d572fe9",
+"phash": "ae6d852bf2346156",
+"source_sha256": "4b6870624225aaf571230ef9d65da1d4327a090a8da92c796db30e85d6079969"
+},
+"odessa_catacombs/10_commons.jpg": {
+"dhash": "dfefefe7f7f6e7f7",
+"phash": "a4b3b331cb876598",
+"source_sha256": "a2e8ec0ca7dfb47a2efec821016fac2f8ff031d760ed2b55114953f5b7a0f56f"
+},
+"odessa_catacombs/11_commons.jpg": {
+"dhash": "1189c060c6000000",
+"phash": "c2aad8bc2d9fc605",
+"source_sha256": "67bee6b9fa2d0a34cb4de2a8bfc0c16e04e68275e276fc100dcc13fe698932f3"
+},
+"odessa_catacombs/12_commons.jpg": {
+"dhash": "173599191d171131",
+"phash": "b870cc65bb43b543",
+"source_sha256": "2f5270ccb177ba2eabb1f9b87549cacc6f0b9b796e74b6e15c5a9c73cee778e7"
+},
+"odessa_catacombs/13_commons.jpg": {
+"dhash": "47071b7b7b7b0be3",
+"phash": "aff4e4a6874bc848",
+"source_sha256": "5f346c98d7b420fc22dbb492fee5fdc1df8021aba2625ef5386dce88e481d9de"
+},
+"odessa_catacombs/14_commons.jpg": {
+"dhash": "cc2f6f6c2e2fd9e0",
+"phash": "a63ec070c5c29fe9",
+"source_sha256": "6e9865490d53a70dbd1b58e43f9d7660952671512a8d7434c39da832d1b1d6bd"
+},
+"odessa_catacombs/15_commons.jpg": {
+"dhash": "091b0f0f174763f0",
+"phash": "f630db4fb0c49368",
+"source_sha256": "97c7f129f91cf00c4d0d6aeb061befef083c55fd1001aefcfd7d168662c562bf"
+},
+"odessa_catacombs/16_commons.jpg": {
+"dhash": "40d8d92426076664",
+"phash": "ef815b6e463a2871",
+"source_sha256": "bd98144405eee24d3892c3650579ce3f161e1aee56dd50a37cb55e274e126d06"
+},
+"odessa_catacombs/17_commons.jpg": {
+"dhash": "47667c78f070726e",
+"phash": "9fe7e4c0027f7680",
+"source_sha256": "0d7270ed541d329fbf5ed2f9370e53c78e8f42de56269002a6eea9cf3ffd2430"
+},
+"odessa_catacombs/18_commons.jpg": {
+"dhash": "e3dfd7ebf3fbf5f7",
+"phash": "83f1fec1eccec018",
+"source_sha256": "0725179c7119b35d1b592e3826f95566a5ee97426504ec5b3f1fa49ea8383e88"
+},
+"odessa_catacombs/19_commons.jpg": {
+"dhash": "2b8f872727272737",
+"phash": "ac609bcfde7d3020",
+"source_sha256": "2b1ba006cc06eecf0be8a4a19b5c257412fbf505c33c634624ffb2a3241deb05"
+},
+"piri_reis_1513_map/08_commons.jpg": {
+"dhash": "b7dd7d71713b3990",
+"phash": "ba02e03d81f8dfa6",
+"source_sha256": "a107fd0b9d8f63d1e6f1117b70fd25493cf315ba44a70e78b6477ee2a069d705"
+},
+"richat_structure_sahara_eye/01_commons.jpg": {
+"dhash": "8f99337d75ebfaf3",
+"phash": "8a70e1c3f097e70e",
+"source_sha256": "75c28f1711c9106c2c3f033dbdfd42a2ececf35e5bc96584e56f2bf8f6c6f19a"
+},
+"richat_structure_sahara_eye/02_commons.jpg": {
+"dhash": "9c9b33736beaf0f7",
+"phash": "8b70f0c7708f278e",
+"source_sha256": "51366952e983c5614ac094c46c160ae1b7d58d3ee4bff9c7b391922de4bfc339"
+},
+"richat_structure_sahara_eye/03_commons.jpg": {
+"dhash": "4bcb973b6b77dedc",
+"phash": "896b538f78985cb1",
+"source_sha256": "77a024748c4a174905fb0a17dea5b8a5a4f3f77eadd53818b1abc2bcd4334374"
+},
+"richat_structure_sahara_eye/04_commons.jpg": {
+"dhash": "5bcf97376767dedc",
+"phash": "a16b538f78985cb1",
+"source_sha256": "1bcbaf21db777a97087f6f833b88767dffaaf7fb273d9c4be6b5ae635cfe3ff4"
+},
+"richat_structure_sahara_eye/05_commons.jpg": {
+"dhash": "9e9b33797565ebfa",
+"phash": "8a70e163d5c7ac8e",
+"source_sha256": "4be11f17d8f9003a98501b7dd2f2a21a958a6e30841f390f33e852fcd7633c52"
+},
+"richat_structure_sahara_eye/06_commons.jpg": {
+"dhash": "60403cf968b0b8e0",
+"phash": "8e6f64cc87983c71",
+"source_sha256": "3ef186031cbc0a900b7b0735ab4394301293fd52c1b31c683a25c448e0d4cd0c"
+},
+"richat_structure_sahara_eye/07_commons.jpg": {
+"dhash": "fbf8ecfe7e7e3981",
+"phash": "95925abda96c2565",
+"source_sha256": "2fa3b1bb335f69e972e70ca025db737961333a814aac8ba2eb383c2d99eb4981"
+},
+"richat_structure_sahara_eye/08_commons.jpg": {
+"dhash": "ccb8e2f0c864e0e0",
+"phash": "87b864f7323c4663",
+"source_sha256": "6a975f85558e1d944c1d54511d4715309b40c056a6e770c7d129d3533410b02b"
+},
+"richat_structure_sahara_eye/09_commons.jpg": {
+"dhash": "172f2f5d3b9f9fdf",
+"phash": "b9ee60e09bb6f009",
+"source_sha256": "71bcf2727fb5b64e8bbae7a356a07d3ca997bf859a0ab12256236324cce60065"
+},
+"richat_structure_sahara_eye/10_commons.jpg": {
+"dhash": "f07ceac3cdc9e9d8",
+"phash": "c32c155a6c4b5f36",
+"source_sha256": "087a1413ab0b7f02b4e3bf2f92e07491a7452f811a46399f70165a0b23b190b3"
+},
+"richat_structure_sahara_eye/11_commons.jpg": {
+"dhash": "1c3f6ddf33f7d080",
+"phash": "8c3ff18881d3c65e",
+"source_sha256": "108188c8b17fac0225f14bd5f864589bc214767237736ca2ab663e4d537f96bb"
+},
+"richat_structure_sahara_eye/12_commons.jpg": {
+"dhash": "bc367c7d76767ef1",
+"phash": "9f7358a54a9242dd",
+"source_sha256": "b4cbf829d667aef39d78a0772071afbbb05fe032ae930ca2861971f08b19808d"
+},
+"richat_structure_sahara_eye/13_commons.jpg": {
+"dhash": "0e4cc3cddd9b7a7b",
+"phash": "a367bdbd76e0c080",
+"source_sha256": "37dbd31ec73b8fa96abf0f896d8efe705da5079a056ec808ba4ca55aeca81e58"
+},
+"richat_structure_sahara_eye/14_commons.jpg": {
+"dhash": "f0f0f1f8f4b5e267",
+"phash": "80fb7f409c433c4f",
+"source_sha256": "54c0337f2b9563a0a19428f1f9f51f14a56e1b7925c7786942c24677fe390c91"
+},
+"richat_structure_sahara_eye/15_commons.jpg": {
+"dhash": "c040f49c060432cc",
+"phash": "d5db8afc2199442d",
+"source_sha256": "0a3717c1ad9c4c68e1e010583598d783fa56cca1c6de578bd0013054df667601"
+},
+"richat_structure_sahara_eye/16_commons.jpg": {
+"dhash": "9e39796c3cb890c0",
+"phash": "929e61d1a5e586c7",
+"source_sha256": "b07a82f2052ed47b343e125d12dc37bf503ab80f140ed13541f1060d15cd3a38"
+},
+"richat_structure_sahara_eye/18_commons.jpg": {
+"dhash": "c1d8923c084010f0",
+"phash": "d9ba82435efe6890",
+"source_sha256": "58718b177c461abfb5e3636049daaa30dc316667b9c1e943b1090d0243b39b22"
+},
+"richat_structure_sahara_eye/19_commons.jpg": {
+"dhash": "04043666eaece8dc",
+"phash": "d4fc7043c1dcdc4c",
+"source_sha256": "7dd416b99611679ce68e9cb4bb2cecffd7b5bfa2b28e0100c8b0eec35a7e97ab"
+},
+"richat_structure_sahara_eye/20_commons.jpg": {
+"dhash": "c098383b008348c0",
+"phash": "f19807e17c9f621c",
+"source_sha256": "d68bea9d1a98aaa6416a3b0d66fb89daa774ca4d06c05456648ba779b0fbb564"
+},
+"roman_self_healing_concrete/01_commons.jpg": {
+"dhash": "ca6068c8b024244c",
+"phash": "d7437978e142263b",
+"source_sha256": "40adacf58694076d1951a1424df83c02c4b1df73e7b59ffb164e5da8fe61dbc1"
+},
+"roman_self_healing_concrete/03_commons.jpg": {
+"dhash": "6462e0d0f0f0e0c9",
+"phash": "c74f363430d3383b",
+"source_sha256": "b5946d164ad86e9a26fd5e11f83f992690c9207132168b8b94738c28604a3d16"
+},
+"roman_self_healing_concrete/04_commons.jpg": {
+"dhash": "3260f0d0d0e0f0f8",
+"phash": "c1cf3e3f38190167",
+"source_sha256": "8896598f66ff2c66b6177023760b6f0177ea1824e7d04867fb73886093850563"
+},
+"roman_self_healing_concrete/06_commons.jpg": {
+"dhash": "d830383070e08090",
+"phash": "d91d2346d92063fb",
+"source_sha256": "50e064d3de84cc8499b9118e83db9a6f4477726537138fc70cc5217c197b1e8e"
+},
+"roman_self_healing_concrete/08_commons.jpg": {
+"dhash": "cc49b870c3ccd4c4",
+"phash": "c6b932e72add2688",
+"source_sha256": "f61aa82152e3e4ef3440a70efd5136e4f7cf5c879ca71bb3bdb619583cf4bda0"
+},
+"roman_self_healing_concrete/10_commons.jpg": {
+"dhash": "6969e0e0e8e0f0d4",
+"phash": "c38b303b332e63c7",
+"source_sha256": "888879b9e4ddece93b60ca46d20af57219917a4001bb520cd42e11081fa89e02"
+},
+"roman_self_healing_concrete/12_commons.jpg": {
+"dhash": "6bb2eaaac460d4d0",
+"phash": "d5382bfe4132cb64",
+"source_sha256": "46b83808f6cb8ef1fb235f923f4eaf465b314f6550bdff893b39168ed699bec9"
+},
+"roman_self_healing_concrete/16_commons.jpg": {
+"dhash": "6e4b070f4f474569",
+"phash": "eba1958f9474f850",
+"source_sha256": "8c79b1f5c6af8962f7d1e83fc61ff1373a04d6d75e794e6472f18f3e099d1636"
+},
+"roman_self_healing_concrete/17_commons.jpg": {
+"dhash": "77d8dacf5bd95977",
+"phash": "a3c1dc1b2c6ee11d",
+"source_sha256": "9d6155bcff706191af9a2151788c64093c198c97827f8fd2e2f93ddde772672a"
+},
+"roman_self_healing_concrete/18_commons.jpg": {
+"dhash": "b7c5f397a5611717",
+"phash": "a80a360e3839dfdb",
+"source_sha256": "dac335511d2cb0101e62170a79c9bfa53b30aeceb77e8724b66dbe4ea6a0a015"
+},
+"roman_self_healing_concrete/19_commons.jpg": {
+"dhash": "ab2a9a3c269f0e6b",
+"phash": "b4dd0b645eb2b145",
+"source_sha256": "01605c2b9f3f62716de5ec849591ce89813f473b30996affb1aa6674cfa4bb18"
+},
+"roman_self_healing_concrete/20_commons.jpg": {
+"dhash": "e4de1c1c38393929",
+"phash": "b9b1c6cc8c0ef8b8",
+"source_sha256": "c1b47a40a7ef2886a6383b3a975f279d8c68063a37f86a69a0b91095472bb7b3"
+},
+"roman_self_healing_concrete/21_commons.jpg": {
+"dhash": "253959093f968c26",
+"phash": "b29ac424de7265cd",
+"source_sha256": "e54a0146806d9557b3c61d2246c8062ccb44a610d7129895bbc12881e5d523a7"
+},
+"roman_self_healing_concrete/22_commons.jpg": {
+"dhash": "55cf890d0b2b38f0",
+"phash": "faa0852f945aaad3",
+"source_sha256": "e9ba78ad93a5ff229abe5dd7cec8dbb2c5fefb4baa57e249bbc4808c9a36a71b"
+},
+"roman_self_healing_concrete/23_commons.jpg": {
+"dhash": "4cccccc8c888b8c0",
+"phash": "c2273c9c4f3cc536",
+"source_sha256": "6d56739480fce3f9632e34030247710767021c10d113b0880fb078faa23b2203"
+},
+"roman_self_healing_concrete/24_commons.jpg": {
+"dhash": "4d289dd399b9f844",
+"phash": "936ad71a6b073a64",
+"source_sha256": "a3792a09ebea9e29e0cf912f37dbf8b34c45cab98768f3269737763182dcc8da"
+},
+"roman_self_healing_concrete/25_commons.jpg": {
+"dhash": "359e3e9f8eae666b",
+"phash": "b5b09ed2c84ad8dc",
+"source_sha256": "587097321f69c14f9bb0912ea0a08cff4c24839fe94b8ed25f8f6d670a3b7b02"
+},
+"roman_self_healing_concrete/26_commons.jpg": {
+"dhash": "4d1f37332f2f4d72",
+"phash": "fef093468c8ecc2c",
+"source_sha256": "47929280e2332ca196484c2cbf9f252758879aa2a307b04dbf7722e1ad0a45c5"
+},
+"roman_self_healing_concrete/27_commons.jpg": {
+"dhash": "478b090d0b2f3090",
+"phash": "faa2852f8554be98",
+"source_sha256": "0551e4589c344c0739260177a13cf69415160251d91f1eb425bf5bbfff62a620"
+},
+"roman_self_healing_concrete/28_commons.jpg": {
+"dhash": "235393b323a7e707",
+"phash": "e9d997a69405b836",
+"source_sha256": "bff4c51c7ba3631338f531dbbc7e6c6240349ad0f8f3718725b3800778f3a5ab"
+},
+"singing_colossi_of_memnon/01_commons.jpg": {
+"dhash": "506546c60ac6d649",
+"phash": "a5f61a21fb09f807",
+"source_sha256": "543f47fe8042c5f290194f6af05db03cae806239217e43cb6a4b983ec2d8a883"
+},
+"singing_colossi_of_memnon/02_commons.jpg": {
+"dhash": "43b9b6b632331361",
+"phash": "bcb44369a556cc39",
+"source_sha256": "e3db6ca3020802c83a6db926277ba9ea54f9a7cc587d67f1ae3f888bb71b9feb"
+},
+"singing_colossi_of_memnon/03_commons.jpg": {
+"dhash": "676d596d25342469",
+"phash": "beab4324eb4489e6",
+"source_sha256": "1aef934f4e8bb8c5c2e436c1c8b1a0fd44eba08a8fa92bd36e5f288cee7e9220"
+},
+"singing_colossi_of_memnon/04_commons.jpg": {
+"dhash": "e090b2325246e203",
+"phash": "fd184247f998760b",
+"source_sha256": "4492068c46f6559151bb4b4494233c1b3308cb258dcc64ba0d769e4e6773c332"
+},
+"singing_colossi_of_memnon/06_commons.jpg": {
+"dhash": "7860642490b89c2c",
+"phash": "9c4f4739b0a64739",
+"source_sha256": "5593bcb0bc4355c694b6e90131c2f4390167ba96a7204b8c98e297022f71e259"
+},
+"singing_colossi_of_memnon/07_commons.jpg": {
+"dhash": "b1e1199137250926",
+"phash": "f892872cadb1159d",
+"source_sha256": "d23cc01df21a226cae53fa0a7388ad8ce694fbffcb97a382fdf0e0eb75f38ccc"
+},
+"singing_colossi_of_memnon/08_commons.jpg": {
+"dhash": "eab68e8e9e96e0ae",
+"phash": "b173cf7831c34638",
+"source_sha256": "717c60e09ed4574c3f13b0e0ce88465aad7410aff7eca2eeb597f3488a9d0a1a"
+},
+"singing_colossi_of_memnon/09_commons.jpg": {
+"dhash": "a2b0bab6b5a1a2f6",
+"phash": "80f1076a3fc52f95",
+"source_sha256": "64020bfae13797f006b51a88faf636b4b0ce81f16f2b4549bedd946d7c77f441"
+},
+"singing_colossi_of_memnon/10_commons.jpg": {
+"dhash": "c0d0b4b4d6d1e1f9",
+"phash": "8cfcc343a47c7a19",
+"source_sha256": "34a78757bcf00c9d8110ca20b5093d43c3359adf14f95fdc8eacdf0f99286d28"
+},
+"singing_colossi_of_memnon/12_commons.jpg": {
+"dhash": "0382b28a8e866a2b",
+"phash": "e5606b60688b7c3f",
+"source_sha256": "35e5856b236a33c9085bc7cfad0d8a911be74766b796596a5abd6bb8d46cd367"
+},
+"singing_colossi_of_memnon/15_commons.jpg": {
+"dhash": "383c6b63636034c4",
+"phash": "cff9b080cf7860c6",
+"source_sha256": "e973102947d8624275f9d4305e61a63641a074b242f27fe9f0bab1cba1110816"
+},
+"singing_colossi_of_memnon/16_commons.jpg": {
+"dhash": "0f0706263355e2ef",
+"phash": "e5fc221b9ac5422f",
+"source_sha256": "94b3ddffef302310efdf37a53da9dcba3c7e8de5abe84cf1c69d77a81cd16e11"
+},
+"singing_colossi_of_memnon/17_commons.jpg": {
+"dhash": "030311335651dbf9",
+"phash": "ebea0225e5985be1",
+"source_sha256": "9248be99e620644adbef482338d471e6f277052de8acb81ecb407d74552612b5"
+},
+"singing_colossi_of_memnon/18_commons.jpg": {
+"dhash": "1143191692d81992",
+"phash": "f90e4603ad3843ef",
+"source_sha256": "6d246ed6df116ce9f80c18974057637ae3373e4d41ff65d05be88752f010d02d"
+},
+"singing_colossi_of_memnon/19_commons.jpg": {
+"dhash": "c1e36ce975fec3f8",
+"phash": "86cf49484af3b55c",
+"source_sha256": "65a5cfcdcabe928f903c38839accfbc93dbe8f5bfc57b60d0fd702b285c74ebb"
+},
+"singing_colossi_of_memnon/20_commons.jpg": {
+"dhash": "830372343693acff",
+"phash": "fcee63605cd64186",
+"source_sha256": "541b2ab7ded5d00dde283c3f2d7a74ce9df1adac10f4e7803b727566278b3166"
+},
+"sunken_city_of_heracleion/01_commons.jpg": {
+"dhash": "fefefbccc9c4d0c3",
+"phash": "c3bc6895e7d8254a",
+"source_sha256": "2d5d092767657578718831edfcec8b1de2b75b26215593eb866c816addc01d14"
+},
+"trepanation_miracle/04_commons.jpg": {
+"dhash": "160f49494dcbcb3b",
+"phash": "e3b695649859ca72",
+"source_sha256": "3534218e7bd14813a97df3337ddabe1e6cc804721cd72436e932ea55a41ec6d0"
+},
+"trepanation_miracle/05_commons.jpg": {
+"dhash": "fef4e4f6fbf9fefa",
+"phash": "8584d73ba92e4a4f",
+"source_sha256": "e6776ea102995759c6e01549ab520d0acd46ee87099c97e8327f4218fb31e4b6"
+},
+"trepanation_miracle/06_commons.jpg": {
+"dhash": "1b23c45507cc8316",
+"phash": "ae4ad0b53f4bc0e4",
+"source_sha256": "adc6762c39901fff61b0571d5c7790d6a775969dc0dbd8b0ca69ee1791e6cdc3"
+},
+"trepanation_miracle/07_commons.jpg": {
+"dhash": "06034b4b43634b2d",
+"phash": "ebe3948c9433d21e",
+"source_sha256": "4b0ec2637235141ef5f5627b1e766b9da4e96da39508b47e8b01057c90f1572b"
+},
+"trepanation_miracle/09_commons.jpg": {
+"dhash": "8c324b43c371512f",
+"phash": "ebb5b44ca41273a3",
+"source_sha256": "56b27718552d2fad18217d25e8a9ad3ea926de15d3fdfa65af44af5ecb1e39aa"
+},
+"trepanation_miracle/10_commons.jpg": {
+"dhash": "4d062323432303c7",
+"phash": "eb95943ec2489b69",
+"source_sha256": "fa487a4bc219cb8639b50747c36995f328303d6693c67a14dd409ccea975ba34"
+},
+"trepanation_miracle/11_commons.jpg": {
+"dhash": "79e4c4ccb4a4c4c4",
+"phash": "c23a2f303e633c79",
+"source_sha256": "29dc91bffc15fcc46222e58685e297729d47b737e0c81a1e78fb0da6b4d1f198"
+},
+"trepanation_miracle/13_commons.jpg": {
+"dhash": "ddb066cdd9e1e181",
+"phash": "823f78b133e64c39",
+"source_sha256": "65c3973d361ef3f6201edecad799747625694c51ac41e37e93da1deb6af513a5"
+},
+"trepanation_miracle/14_commons.jpg": {
+"dhash": "4c070707330f0f00",
+"phash": "ec2d93729bc6b019",
+"source_sha256": "2af0d401ec124c376aac7e0c1c9852cf1679cb8ee48e43d06a5b49368b1224d8"
+},
+"trepanation_miracle/15_commons.jpg": {
+"dhash": "716158587a7c1f33",
+"phash": "9f4be03e8968b1a9",
+"source_sha256": "7de1dc708faa34384f10be4f1fd8ba4e1bb3d3e4f7033077cd5ade2439b28041"
+},
+"trepanation_miracle/16_commons.jpg": {
+"dhash": "f4dcace4f4fcf851",
+"phash": "d4b53b96ad8c2919",
+"source_sha256": "de06b645d794689153274a9a07c7b46a248b215abab40e56f98e42caaa4aa571"
+},
+"trepanation_miracle/17_commons.jpg": {
+"dhash": "400e0733232f170f",
+"phash": "ee95915e5a698664",
+"source_sha256": "4c170a50e6a1249960a5304f542beb0d90f36c0b9e78dd9ad517ef0f76af415c"
+},
+"trepanation_miracle/18_commons.jpg": {
+"dhash": "7164c4c8c8e97117",
+"phash": "ca063f1bb939f064",
+"source_sha256": "2b3f61d538fb3450be3233d99d421a95ed64a08cb84442c462f6797a187c62d6"
+},
+"trepanation_miracle/19_commons.jpg": {
+"dhash": "fce292e1e6ce99b2",
+"phash": "84c43b378e78f0e5",
+"source_sha256": "d3024428f5dfd107e327d22ca297f3329178f4692ea60ad76f9dddae0e9d0eb8"
+},
+"trepanation_miracle/20_commons.jpg": {
+"dhash": "1c0f070565370308",
+"phash": "ee37915cc2c01bcb",
+"source_sha256": "6539cd00f4102db4a686dab4b6ced914ce4a596ef9e54676ba68a31439e67274"
+},
+"tunguska_event_1908/01_commons.jpg": {
+"dhash": "f8be172725711586",
+"phash": "b884919ec39ac3f5",
+"source_sha256": "1f1e314c4fec63a5b754681b63b884744eac1d1dd936283d74ac727845bb8ab4"
+},
+"tunguska_event_1908/02_commons.jpg": {
+"dhash": "69ecd0f0bb93a278",
+"phash": "8017df681f05799d",
+"source_sha256": "98b30c72d90142a92616eed523d4be1782eaaef54379dcfd260fd77af5d97805"
+},
+"tunguska_event_1908/03_commons.jpg": {
+"dhash": "341a6e444ee2d0e0",
+"phash": "d534c82b76ca2cb5",
+"source_sha256": "f68f63dbdf5b9a4adbe18e66e53e109e12925a84b8f5a63d134450bd3e0bcdbc"
+},
+"tunguska_event_1908/04_commons.jpg": {
+"dhash": "2d32f0f0590f61ec",
+"phash": "9e39b63b93823383",
+"source_sha256": "fda001e0e3be4c621eac5298f31ab5bf26847146f031762cebf4acac0785764e"
+},
+"tunguska_event_1908/05_commons.jpg": {
+"dhash": "332f2f0b2d4d4551",
+"phash": "fee8c119996ba226",
+"source_sha256": "92d0165b5050a38eef40a9ac21c7be84312849c2eea164c852d98016d1d25661"
+},
+"tunguska_event_1908/06_commons.jpg": {
+"dhash": "cc8d96968caa96cc",
+"phash": "b036c7c3d73c5c90",
+"source_sha256": "b5686bfd1c0c49ee8ac493d7c68cf565ecce6beebe111bf1deb5bc137e28194b"
+},
+"tunguska_event_1908/10_commons.jpg": {
+"dhash": "d8b305070f8b8e8d",
+"phash": "f28c81a11ff74a74",
+"source_sha256": "afc14aed34cf2b29d234830854bfe0d69f393703326336fd0965972ea2a0b4f7"
+},
+"tunguska_event_1908/11_commons.jpg": {
+"dhash": "30060f0f4f066767",
+"phash": "f7b1989dc26e9142",
+"source_sha256": "b50cdc18adfca20f6573441b829f3c3ea584a84795dfa6cdfffc8e259c255833"
+},
+"tunguska_event_1908/12_commons.jpg": {
+"dhash": "e3831b161b0f8c8b",
+"phash": "e159c2879db61a72",
+"source_sha256": "61945444b7ae719b405e68eca4d7e5ca1679ba290c117f9e5e0cc7f70e701d5b"
+},
+"tunguska_event_1908/15_commons.jpg": {
+"dhash": "80ff77f87879fbff",
+"phash": "8980a053d475fd7d",
+"source_sha256": "477d8a3d11b1383dfd6feec2983a63d243c3e2aa82bec4b0b6ca3c6b2febabb3"
+},
+"unfinished_obelisk_aswan/01_commons.jpg": {
+"dhash": "283bf3b3b3625606",
+"phash": "a95876d6e0e7c720",
+"source_sha256": "82cb0245b0efcfaa143cfc5e98cf57611fdfe2af76417a3df4049a0ae971f72c"
+},
+"unfinished_obelisk_aswan/02_commons.jpg": {
+"dhash": "3436f597666189b0",
+"phash": "cc7cd8cfc5f08087",
+"source_sha256": "5d2f72362e2f327019100e0da3b9c71ed0ac014d653439a082350ee67c39564c"
+},
+"unfinished_obelisk_aswan/05_commons.jpg": {
+"dhash": "f1858df1e29b3862",
+"phash": "c9a2f4a88d9ab335",
+"source_sha256": "f4d09ad07c433178166b2f4ac107af5200d7834bbaa66a7b00a1a0f726781211"
+},
+"unfinished_obelisk_aswan/10_commons.jpg": {
+"dhash": "c0f82e3871e3c69e",
+"phash": "809fa0cbf8617e78",
+"source_sha256": "d97d2790a749ae42128c41b5ab36ea6ead3066fb011a18331ab5e2182fc705cc"
+},
+"unfinished_obelisk_aswan/12_commons.jpg": {
+"dhash": "c4103bd675e4ecca",
+"phash": "c4f9f1c681a31b3a",
+"source_sha256": "845cc1c0ac5982406d65514b29ff2966b621690b977e6790916155071f2359a6"
+},
+"unfinished_obelisk_aswan/14_commons.jpg": {
+"dhash": "8306a6c2f2e6cc99",
+"phash": "e56cf2ccc9c2cc98",
+"source_sha256": "9303c4f16fdd6a774b4a0878b729abfc2e58d2ab490a3250fea895ddb5b2a98b"
+},
+"unfinished_obelisk_aswan/15_commons.jpg": {
+"dhash": "ba663284f844f369",
+"phash": "84fc0fa582e1f0db",
+"source_sha256": "8562e38423d81da83c193405cc79297f91b80975733fe4e88d3c80e3ca3e48a5"
+},
+"unfinished_obelisk_aswan/17_commons.jpg": {
+"dhash": "4614767eec79f9d3",
+"phash": "8df6c11a650ea9c7",
+"source_sha256": "1b7431770c3c2e18ee74e2880da1e0b308ef2c4d9087c076eb0d0ded2925c2ad"
+},
+"unfinished_obelisk_aswan/19_commons.jpg": {
+"dhash": "e0c9f5f4f6d6d6e6",
+"phash": "c4536ea9255cdaa9",
+"source_sha256": "c7c740063f0889bd494bcbff3a14563278a3646eb2668edde237543b71413da0"
+},
+"voynich_manuscript/01_commons.jpg": {
+"dhash": "8c9a9a8e86929290",
+"phash": "d5351a4d262e1b9b",
+"source_sha256": "28a5c54cbde4c70a531822e83e0f0eee97e21e55a34a4f36bfd56028713f44ae"
+},
+"voynich_manuscript/02_commons.jpg": {
+"dhash": "8583c2d25474ecf6",
+"phash": "c56028df2b963f94",
+"source_sha256": "e0da2f0c2370878a971c4a367ac4838a2ce942bc321823cd0e847e6dfcdf0322"
+},
+"voynich_manuscript/03_commons.jpg": {
+"dhash": "c78af8fc72c2f2fe",
+"phash": "85622a693e975f98",
+"source_sha256": "6fb406afdf8936bf1dc2dad552394e856b0fb85abe46ae110639a3dbf25821d5"
+},
+"voynich_manuscript/05_commons.jpg": {
+"dhash": "f8e9e3e2e2e2e5f8",
+"phash": "80e453855f855f8f",
+"source_sha256": "f32343a9379033ad83b43824f605e03437053d8911bc0353f0494c7b834e3d9d"
+},
+"voynich_manuscript/06_commons.jpg": {
+"dhash": "e8f9dfddf2f7f6fc",
+"phash": "80ca5fc4578657c7",
+"source_sha256": "5cd5b8a666a0ce312f69afbf19dcfbace91f4760165b1c35039918dd9a5ed83a"
+},
+"voynich_manuscript/07_commons.jpg": {
+"dhash": "f2e2eae2efe4c3db",
+"phash": "80845bc45feb5763",
+"source_sha256": "ee1a04e020b574ed1a393125c05363f21d421d8d5f541afec0326784da49ea99"
+},
+"voynich_manuscript/08_commons.jpg": {
+"dhash": "f0e3e7ceebe9eef8",
+"phash": "80e8579315915fe7",
+"source_sha256": "c228901e0a9e0a0ac979211a8eda518b5f746d5a34c2e105634a2b80d5ca7254"
+},
+"voynich_manuscript/09_commons.jpg": {
+"dhash": "e0e9e3f3ebe1e0f8",
+"phash": "80e017661f9d5f95",
+"source_sha256": "d7e30e6725e78e62fee204e648aef85ecd0808bc49d181f91a756b25fc47a2c7"
+},
+"voynich_manuscript/10_commons.jpg": {
+"dhash": "e4e5e4e6e0e0e6f8",
+"phash": "80e21f845fe41f9d",
+"source_sha256": "3df66434d6205a138c6fc35863e3c89f888462c9767808b16c537288973b7dcc"
+},
+"voynich_manuscript/11_commons.jpg": {
+"dhash": "e4e4e2e0e1e2e6f8",
+"phash": "80e417665f6353a7",
+"source_sha256": "7fd9594ffdee4df4055b1acb5beef00b8710fdbea3757e92565f88cff6bc55a8"
+},
+"voynich_manuscript/12_commons.jpg": {
+"dhash": "88aeaaaa8e8a8ab8",
+"phash": "80c03be07bef1be4",
+"source_sha256": "f00495db915e36dc4d2067963981ea207cae3f45453fe4afa0170b0edcf5d886"
+},
+"voynich_manuscript/13_commons.jpg": {
+"dhash": "cadcd6e5ededeaa4",
+"phash": "80b91d624f8d7cb9",
+"source_sha256": "73b775bffced5a37ccf05f3118613732b19bc967b14c5b9714e086d018e4e582"
+},
+"voynich_manuscript/14_commons.jpg": {
+"dhash": "e6ced29bb9e7e6f0",
+"phash": "80f147865aad5dda",
+"source_sha256": "540065cd7c341c2fbdd44a28466642375566a31c318bc86907401f7e9463a383"
+},
+"voynich_manuscript/15_commons.jpg": {
+"dhash": "e6cbe6d6e3adf3f3",
+"phash": "80e517324d8d7ecd",
+"source_sha256": "ca839bcc7cb96faa352acd067852da9c9a5a4255d45a9fce76aefb04c5c739a7"
+},
+"voynich_manuscript/17_commons.jpg": {
+"dhash": "fa9ab294bab2a2f2",
+"phash": "80b22f8936d66f8d",
+"source_sha256": "cc3de476f6dcf5d764dbe378b23e5be2ea98ab7e56837a39086cd1e32554bbc7"
+},
+"voynich_manuscript/18_commons.jpg": {
+"dhash": "f9b1b7a6cdd6f2f3",
+"phash": "80fa19527f957562",
+"source_sha256": "6367d438da187dc17a92f9b68d86dd06fa8687f535ca2c19afcc10089962365d"
+},
+"voynich_manuscript/19_commons.jpg": {
+"dhash": "f8bea7e1f1f8f2f4",
+"phash": "80f815935f4e77a1",
+"source_sha256": "9fbc02497278df3a4282df78d6cf2e6a7c9a1a6d3f86769ec51194dff1415920"
+},
+"voynich_manuscript/20_commons.jpg": {
+"dhash": "c4acf0d8d8b0b0c0",
+"phash": "d5152a6e236f0e2b",
+"source_sha256": "b1290b474336a35cf1a6e8137eac0c9abd46b44606e421340028bee69cd89ee8"
+},
+"wieliczka_salt_mine/01_commons.jpg": {
+"dhash": "9b0b2b59634949c8",
+"phash": "ebf9a08189038f9f",
+"source_sha256": "c71860c1bdd25fd57dc6553a55808ddda8585e485942de257731a1ce020ccea5"
+},
+"wieliczka_salt_mine/02_commons.jpg": {
+"dhash": "b286d494d6d6f0ec",
+"phash": "d5349e19cdc8c9c9",
+"source_sha256": "14a46d60fae9719ca893fd40ddc1abaf328a98d9b0ce00c59ae81604af1128e6"
+},
+"wieliczka_salt_mine/03_commons.jpg": {
+"dhash": "b090d0f0f0f0f4e4",
+"phash": "c8f3368c3f1e8392",
+"source_sha256": "c150af765654787d0a0d86be31838cc1e9d98ae011f0eb7a18971aa164ea0410"
+},
+"wieliczka_salt_mine/04_commons.jpg": {
+"dhash": "6df0e865331f2b13",
+"phash": "8e85113a0ee633fb",
+"source_sha256": "6c45fa2e4f8edd4776f11a1a0eddb9b86b580c9c7d56f2a812f0fc10b0879fd0"
+},
+"wieliczka_salt_mine/05_commons.jpg": {
+"dhash": "fedbcac6d6f0f0d8",
+"phash": "852b5a9824957b5f",
+"source_sha256": "ce09ff1548e87ed804fa286bfc0761d612afe070c95a1dda79098b2ec9931fb4"
+},
+"wieliczka_salt_mine/06_commons.jpg": {
+"dhash": "a2849d9baa8ea690",
+"phash": "d06a45a51b993a9f",
+"source_sha256": "559f4c31f3dae6be07e014c76c41d19bc3d824addca86bd7ff6b3bb8ec979cda"
+},
+"wieliczka_salt_mine/07_commons.jpg": {
+"dhash": "4b371774f2f3cc0c",
+"phash": "ad2d72891d7229b5",
+"source_sha256": "8e83664e154e05deb5ad2d8419599bf608b6a906190209fc0e99fead59b9dd8d"
+},
+"wieliczka_salt_mine/08_commons.jpg": {
+"dhash": "db55494b536167ee",
+"phash": "eb73946c91c3d2a4",
+"source_sha256": "d7ac8c6be0d4331866fca1e8b7a5acfe8d4386fe2d4c2a4bc9d91300d90bce0f"
+},
+"wieliczka_salt_mine/12_commons.jpg": {
+"dhash": "33cbcbdbdbcbe044",
+"phash": "e3631c1c1b9e66d4",
+"source_sha256": "975965c0cb1d296a2a457fe71b31ddbd9d15b59e0fb76c80de2fc2d19dc0e209"
+},
+"wieliczka_salt_mine/13_commons.jpg": {
+"dhash": "b270f8e8707069b1",
+"phash": "9edd6879a2672154",
+"source_sha256": "aa5f2ba8b1333d0c62651a7d8c70be13966d3ff669ab58650e1a7241c43d6b00"
+},
+"wieliczka_salt_mine/14_commons.jpg": {
+"dhash": "b2b278e0a260e2eb",
+"phash": "99992d64e6863637",
+"source_sha256": "4a07b7ea7eac72947eb09022bbfd77560a3ebb8d725e1ac615c119056ed5d730"
+},
+"zhang_heng_seismoscope/01_commons.jpg": {
+"dhash": "4a0e4a0c26333333",
+"phash": "af921b6db493990c",
+"source_sha256": "0a604ec8c550afda61d6e6781a3b0cbb39c31a03a7396107975850047abfda72"
+}
+},
+"source": "photo_pool.signature() of each pool photo of the development checkout (2026-11-09); hashes only"
+}

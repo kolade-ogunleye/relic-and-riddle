@@ -73,7 +73,7 @@
     }
   ],
   "benchmark": {
-    "source": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\output\\validation\\fresh_derinkuyu_v3\\documentary_master.mp4",
+    "source": "output/validation/fresh_derinkuyu_v3/documentary_master.mp4",
     "source_sha256": "9ff11f0980aa99a9257d667b40f4a6102715078cc3422dcc68ef1505fe5e7feb",
     "sample_times": [
       1.0,

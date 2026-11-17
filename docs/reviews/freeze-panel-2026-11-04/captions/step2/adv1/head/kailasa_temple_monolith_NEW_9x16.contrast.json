@@ -1,0 +1,43 @@
+{
+ "clip": "captions",
+ "ground": "white",
+ "plate": [
+  42,
+  44,
+  48
+ ],
+ "bone": 12.0,
+ "gold": 7.67,
+ "elements": [
+  {
+   "name": "caption 0 bone",
+   "text": "Excavation",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 1 bone",
+   "text": "of the Kailasa temple",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 2 bone",
+   "text": "commenced",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 3 bone",
+   "text": "under the eighth-century",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 4 bone",
+   "text": "Rashtrakuta",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 5 bone",
+   "text": "king Krishna I",
+   "drawn": 12.0
+  }
+ ]
+}

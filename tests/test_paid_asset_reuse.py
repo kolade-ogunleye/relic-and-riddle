@@ -69,7 +69,7 @@ def test_a_licensed_voiceover_for_the_same_script_is_kept_when_paid_voice_is_off
     cp = _voice(tmp_path, made)
     now = {**made, "allow_paid": False}                                                # the resume, flags off
     assert P.voice_reusable(cp, now, {"provider": "elevenlabs", "licensed": True}, dry_run=True)
-    assert P.voice_reusable(cp, {**made, "licensed_only": True}, {"licensed": True}, dry_run=False)  # live
+    assert P.voice_reusable(cp, {**made, "licensed_only": True}, {"provider": "elevenlabs", "licensed": True}, dry_run=False)  # live
     assert not P.voice_reusable(cp, {**now, "script": "Changed"}, {"licensed": True}, dry_run=True)
     assert not P.voice_reusable(cp, now, {"provider": "edge", "licensed": False}, dry_run=True)
 

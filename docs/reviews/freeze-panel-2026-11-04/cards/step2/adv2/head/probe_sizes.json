@@ -1,0 +1,10836 @@
+{
+ "chapter_act2_1080x1920_dark": {
+  "lines": {
+   "title": [
+    "DOCUMENTED PHYSICAL",
+    "ARCHITECTURE"
+   ]
+  },
+  "anchors": {
+   "P": null,
+   "Pm": null,
+   "position": null,
+   "lines": null,
+   "block_top": null,
+   "L": null,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {},
+  "elements": [
+   {
+    "name": "kicker_rule",
+    "box": [
+     100,
+     415,
+     144,
+     419
+    ],
+    "px": 0
+   },
+   {
+    "name": "kicker_label",
+    "box": [
+     100,
+     432,
+     337,
+     462
+    ],
+    "px": 40
+   },
+   {
+    "name": "numeral",
+    "box": [
+     100,
+     496,
+     237,
+     755
+    ],
+    "px": 300
+   },
+   {
+    "name": "title_0",
+    "box": [
+     100,
+     811,
+     854,
+     888
+    ],
+    "px": 88
+   },
+   {
+    "name": "title_1",
+    "box": [
+     100,
+     897,
+     557,
+     974
+    ],
+    "px": 88
+   }
+  ]
+ },
+ "chapter_act2_1080x1920_bright": {
+  "lines": {
+   "title": [
+    "DOCUMENTED PHYSICAL",
+    "ARCHITECTURE"
+   ]
+  },
+  "anchors": {
+   "P": null,
+   "Pm": null,
+   "position": null,
+   "lines": null,
+   "block_top": null,
+   "L": null,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {},
+  "elements": [
+   {
+    "name": "kicker_rule",
+    "box": [
+     100,
+     415,
+     144,
+     419
+    ],
+    "px": 0
+   },
+   {
+    "name": "kicker_label",
+    "box": [
+     100,
+     432,
+     337,
+     462
+    ],
+    "px": 40
+   },
+   {
+    "name": "numeral",
+    "box": [
+     100,
+     496,
+     237,
+     755
+    ],
+    "px": 300
+   },
+   {
+    "name": "title_0",
+    "box": [
+     100,
+     811,
+     854,
+     888
+    ],
+    "px": 88
+   },
+   {
+    "name": "title_1",
+    "box": [
+     100,
+     897,
+     557,
+     974
+    ],
+    "px": 88
+   }
+  ]
+ },
+ "chapter_act2_1080x1920_plain": {
+  "lines": {
+   "title": [
+    "DOCUMENTED PHYSICAL",
+    "ARCHITECTURE"
+   ]
+  },
+  "anchors": {
+   "P": null,
+   "Pm": null,
+   "position": null,
+   "lines": null,
+   "block_top": null,
+   "L": null,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {},
+  "elements": [
+   {
+    "name": "kicker_rule",
+    "box": [
+     100,
+     415,
+     144,
+     419
+    ],
+    "px": 0
+   },
+   {
+    "name": "kicker_label",
+    "box": [
+     100,
+     432,
+     337,
+     462
+    ],
+    "px": 40
+   },
+   {
+    "name": "numeral",
+    "box": [
+     100,
+     496,
+     237,
+     755
+    ],
+    "px": 300
+   },
+   {
+    "name": "title_0",
+    "box": [
+     100,
+     811,
+     854,
+     888
+    ],
+    "px": 88
+   },
+   {
+    "name": "title_1",
+    "box": [
+     100,
+     897,
+     557,
+     974
+    ],
+    "px": 88
+   }
+  ]
+ },
+ "chapter_act2_720x1280_dark": {
+  "lines": {
+   "title": [
+    "DOCUMENTED PHYSICAL",
+    "ARCHITECTURE"
+   ]
+  },
+  "anchors": {
+   "P": null,
+   "Pm": null,
+   "position": null,
+   "lines": null,
+   "block_top": null,
+   "L": null,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {},
+  "elements": [
+   {
+    "name": "kicker_rule",
+    "box": [
+     67,
+     277,
+     96,
+     279
+    ],
+    "px": 0
+   },
+   {
+    "name": "kicker_label",
+    "box": [
+     67,
+     287,
+     229,
+     308
+    ],
+    "px": 27
+   },
+   {
+    "name": "numeral",
+    "box": [
+     67,
+     331,
+     159,
+     503
+    ],
+    "px": 200
+   },
+   {
+    "name": "title_0",
+    "box": [
+     67,
+     540,
+     569,
+     591
+    ],
+    "px": 59
+   },
+   {
+    "name": "title_1",
+    "box": [
+     67,
+     598,
+     372,
+     649
+    ],
+    "px": 59
+   }
+  ]
+ },
+ "chapter_act2_720x1280_bright": {
+  "lines": {
+   "title": [
+    "DOCUMENTED PHYSICAL",
+    "ARCHITECTURE"
+   ]
+  },
+  "anchors": {
+   "P": null,
+   "Pm": null,
+   "position": null,
+   "lines": null,
+   "block_top": null,
+   "L": null,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {},
+  "elements": [
+   {
+    "name": "kicker_rule",
+    "box": [
+     67,
+     277,
+     96,
+     279
+    ],
+    "px": 0
+   },
+   {
+    "name": "kicker_label",
+    "box": [
+     67,
+     287,
+     229,
+     308
+    ],
+    "px": 27
+   },
+   {
+    "name": "numeral",
+    "box": [
+     67,
+     331,
+     159,
+     503
+    ],
+    "px": 200
+   },
+   {
+    "name": "title_0",
+    "box": [
+     67,
+     540,
+     569,
+     591
+    ],
+    "px": 59
+   },
+   {
+    "name": "title_1",
+    "box": [
+     67,
+     598,
+     372,
+     649
+    ],
+    "px": 59
+   }
+  ]
+ },
+ "chapter_act2_720x1280_plain": {
+  "lines": {
+   "title": [
+    "DOCUMENTED PHYSICAL",
+    "ARCHITECTURE"
+   ]
+  },
+  "anchors": {
+   "P": null,
+   "Pm": null,
+   "position": null,
+   "lines": null,
+   "block_top": null,
+   "L": null,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {},
+  "elements": [
+   {
+    "name": "kicker_rule",
+    "box": [
+     67,
+     277,
+     96,
+     279
+    ],
+    "px": 0
+   },
+   {
+    "name": "kicker_label",
+    "box": [
+     67,
+     287,
+     229,
+     308
+    ],
+    "px": 27
+   },
+   {
+    "name": "numeral",
+    "box": [
+     67,
+     331,
+     159,
+     503
+    ],
+    "px": 200
+   },
+   {
+    "name": "title_0",
+    "box": [
+     67,
+     540,
+     569,
+     591
+    ],
+    "px": 59
+   },
+   {
+    "name": "title_1",
+    "box": [
+     67,
+     598,
+     372,
+     649
+    ],
+    "px": 59
+   }
+  ]
+ },
+ "chapter_act2_1440x2560_dark": {
+  "lines": {
+   "title": [
+    "DOCUMENTED PHYSICAL",
+    "ARCHITECTURE"
+   ]
+  },
+  "anchors": {
+   "P": null,
+   "Pm": null,
+   "position": null,
+   "lines": null,
+   "block_top": null,
+   "L": null,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {},
+  "elements": [
+   {
+    "name": "kicker_rule",
+    "box": [
+     133,
+     553,
+     192,
+     559
+    ],
+    "px": 0
+   },
+   {
+    "name": "kicker_label",
+    "box": [
+     133,
+     577,
+     451,
+     616
+    ],
+    "px": 53
+   },
+   {
+    "name": "numeral",
+    "box": [
+     133,
+     661,
+     315,
+     1007
+    ],
+    "px": 400
+   },
+   {
+    "name": "title_0",
+    "box": [
+     133,
+     1081,
+     1130,
+     1184
+    ],
+    "px": 117
+   },
+   {
+    "name": "title_1",
+    "box": [
+     133,
+     1195,
+     737,
+     1298
+    ],
+    "px": 117
+   }
+  ]
+ },
+ "chapter_act2_1440x2560_bright": {
+  "lines": {
+   "title": [
+    "DOCUMENTED PHYSICAL",
+    "ARCHITECTURE"
+   ]
+  },
+  "anchors": {
+   "P": null,
+   "Pm": null,
+   "position": null,
+   "lines": null,
+   "block_top": null,
+   "L": null,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {},
+  "elements": [
+   {
+    "name": "kicker_rule",
+    "box": [
+     133,
+     553,
+     192,
+     559
+    ],
+    "px": 0
+   },
+   {
+    "name": "kicker_label",
+    "box": [
+     133,
+     577,
+     451,
+     616
+    ],
+    "px": 53
+   },
+   {
+    "name": "numeral",
+    "box": [
+     133,
+     661,
+     315,
+     1007
+    ],
+    "px": 400
+   },
+   {
+    "name": "title_0",
+    "box": [
+     133,
+     1081,
+     1130,
+     1184
+    ],
+    "px": 117
+   },
+   {
+    "name": "title_1",
+    "box": [
+     133,
+     1195,
+     737,
+     1298
+    ],
+    "px": 117
+   }
+  ]
+ },
+ "chapter_act2_1440x2560_plain": {
+  "lines": {
+   "title": [
+    "DOCUMENTED PHYSICAL",
+    "ARCHITECTURE"
+   ]
+  },
+  "anchors": {
+   "P": null,
+   "Pm": null,
+   "position": null,
+   "lines": null,
+   "block_top": null,
+   "L": null,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {},
+  "elements": [
+   {
+    "name": "kicker_rule",
+    "box": [
+     133,
+     553,
+     192,
+     559
+    ],
+    "px": 0
+   },
+   {
+    "name": "kicker_label",
+    "box": [
+     133,
+     577,
+     451,
+     616
+    ],
+    "px": 53
+   },
+   {
+    "name": "numeral",
+    "box": [
+     133,
+     661,
+     315,
+     1007
+    ],
+    "px": 400
+   },
+   {
+    "name": "title_0",
+    "box": [
+     133,
+     1081,
+     1130,
+     1184
+    ],
+    "px": 117
+   },
+   {
+    "name": "title_1",
+    "box": [
+     133,
+     1195,
+     737,
+     1298
+    ],
+    "px": 117
+   }
+  ]
+ },
+ "chapter_act2_1920x1080_dark": {
+  "lines": {
+   "title": [
+    "DOCUMENTED PHYSICAL",
+    "ARCHITECTURE"
+   ]
+  },
+  "anchors": {
+   "P": null,
+   "Pm": null,
+   "position": null,
+   "lines": null,
+   "block_top": null,
+   "L": null,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {},
+  "elements": [
+   {
+    "name": "numeral",
+    "box": [
+     153,
+     343,
+     317,
+     654
+    ],
+    "px": 360
+   },
+   {
+    "name": "divider",
+    "box": [
+     383,
+     344,
+     385,
+     654
+    ],
+    "px": 0
+   },
+   {
+    "name": "kicker_rule",
+    "box": [
+     451,
+     296,
+     495,
+     300
+    ],
+    "px": 0
+   },
+   {
+    "name": "kicker_label",
+    "box": [
+     451,
+     313,
+     654,
+     339
+    ],
+    "px": 34
+   },
+   {
+    "name": "title_0",
+    "box": [
+     451,
+     373,
+     1750,
+     506
+    ],
+    "px": 152
+   },
+   {
+    "name": "title_1",
+    "box": [
+     451,
+     522,
+     1236,
+     655
+    ],
+    "px": 152
+   }
+  ]
+ },
+ "chapter_act2_1920x1080_bright": {
+  "lines": {
+   "title": [
+    "DOCUMENTED PHYSICAL",
+    "ARCHITECTURE"
+   ]
+  },
+  "anchors": {
+   "P": null,
+   "Pm": null,
+   "position": null,
+   "lines": null,
+   "block_top": null,
+   "L": null,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {},
+  "elements": [
+   {
+    "name": "numeral",
+    "box": [
+     153,
+     343,
+     317,
+     654
+    ],
+    "px": 360
+   },
+   {
+    "name": "divider",
+    "box": [
+     383,
+     344,
+     385,
+     654
+    ],
+    "px": 0
+   },
+   {
+    "name": "kicker_rule",
+    "box": [
+     451,
+     296,
+     495,
+     300
+    ],
+    "px": 0
+   },
+   {
+    "name": "kicker_label",
+    "box": [
+     451,
+     313,
+     654,
+     339
+    ],
+    "px": 34
+   },
+   {
+    "name": "title_0",
+    "box": [
+     451,
+     373,
+     1750,
+     506
+    ],
+    "px": 152
+   },
+   {
+    "name": "title_1",
+    "box": [
+     451,
+     522,
+     1236,
+     655
+    ],
+    "px": 152
+   }
+  ]
+ },
+ "chapter_act2_1920x1080_plain": {
+  "lines": {
+   "title": [
+    "DOCUMENTED PHYSICAL",
+    "ARCHITECTURE"
+   ]
+  },
+  "anchors": {
+   "P": null,
+   "Pm": null,
+   "position": null,
+   "lines": null,
+   "block_top": null,
+   "L": null,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {},
+  "elements": [
+   {
+    "name": "numeral",
+    "box": [
+     153,
+     343,
+     317,
+     654
+    ],
+    "px": 360
+   },
+   {
+    "name": "divider",
+    "box": [
+     383,
+     344,
+     385,
+     654
+    ],
+    "px": 0
+   },
+   {
+    "name": "kicker_rule",
+    "box": [
+     451,
+     296,
+     495,
+     300
+    ],
+    "px": 0
+   },
+   {
+    "name": "kicker_label",
+    "box": [
+     451,
+     313,
+     654,
+     339
+    ],
+    "px": 34
+   },
+   {
+    "name": "title_0",
+    "box": [
+     451,
+     373,
+     1750,
+     506
+    ],
+    "px": 152
+   },
+   {
+    "name": "title_1",
+    "box": [
+     451,
+     522,
+     1236,
+     655
+    ],
+    "px": 152
+   }
+  ]
+ },
+ "chapter_act2_1280x720_dark": {
+  "lines": {
+   "title": [
+    "DOCUMENTED PHYSICAL",
+    "ARCHITECTURE"
+   ]
+  },
+  "anchors": {
+   "P": null,
+   "Pm": null,
+   "position": null,
+   "lines": null,
+   "block_top": null,
+   "L": null,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {},
+  "elements": [
+   {
+    "name": "numeral",
+    "box": [
+     102,
+     228,
+     212,
+     436
+    ],
+    "px": 240
+   },
+   {
+    "name": "divider",
+    "box": [
+     255,
+     229,
+     257,
+     436
+    ],
+    "px": 0
+   },
+   {
+    "name": "kicker_rule",
+    "box": [
+     301,
+     197,
+     330,
+     200
+    ],
+    "px": 0
+   },
+   {
+    "name": "kicker_label",
+    "box": [
+     301,
+     208,
+     439,
+     226
+    ],
+    "px": 23
+   },
+   {
+    "name": "title_0",
+    "box": [
+     301,
+     249,
+     1166,
+     338
+    ],
+    "px": 101
+   },
+   {
+    "name": "title_1",
+    "box": [
+     301,
+     348,
+     824,
+     437
+    ],
+    "px": 101
+   }
+  ]
+ },
+ "chapter_act2_1280x720_bright": {
+  "lines": {
+   "title": [
+    "DOCUMENTED PHYSICAL",
+    "ARCHITECTURE"
+   ]
+  },
+  "anchors": {
+   "P": null,
+   "Pm": null,
+   "position": null,
+   "lines": null,
+   "block_top": null,
+   "L": null,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {},
+  "elements": [
+   {
+    "name": "numeral",
+    "box": [
+     102,
+     228,
+     212,
+     436
+    ],
+    "px": 240
+   },
+   {
+    "name": "divider",
+    "box": [
+     255,
+     229,
+     257,
+     436
+    ],
+    "px": 0
+   },
+   {
+    "name": "kicker_rule",
+    "box": [
+     301,
+     197,
+     330,
+     200
+    ],
+    "px": 0
+   },
+   {
+    "name": "kicker_label",
+    "box": [
+     301,
+     208,
+     439,
+     226
+    ],
+    "px": 23
+   },
+   {
+    "name": "title_0",
+    "box": [
+     301,
+     249,
+     1166,
+     338
+    ],
+    "px": 101
+   },
+   {
+    "name": "title_1",
+    "box": [
+     301,
+     348,
+     824,
+     437
+    ],
+    "px": 101
+   }
+  ]
+ },
+ "chapter_act2_1280x720_plain": {
+  "lines": {
+   "title": [
+    "DOCUMENTED PHYSICAL",
+    "ARCHITECTURE"
+   ]
+  },
+  "anchors": {
+   "P": null,
+   "Pm": null,
+   "position": null,
+   "lines": null,
+   "block_top": null,
+   "L": null,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {},
+  "elements": [
+   {
+    "name": "numeral",
+    "box": [
+     102,
+     228,
+     212,
+     436
+    ],
+    "px": 240
+   },
+   {
+    "name": "divider",
+    "box": [
+     255,
+     229,
+     257,
+     436
+    ],
+    "px": 0
+   },
+   {
+    "name": "kicker_rule",
+    "box": [
+     301,
+     197,
+     330,
+     200
+    ],
+    "px": 0
+   },
+   {
+    "name": "kicker_label",
+    "box": [
+     301,
+     208,
+     439,
+     226
+    ],
+    "px": 23
+   },
+   {
+    "name": "title_0",
+    "box": [
+     301,
+     249,
+     1166,
+     338
+    ],
+    "px": 101
+   },
+   {
+    "name": "title_1",
+    "box": [
+     301,
+     348,
+     824,
+     437
+    ],
+    "px": 101
+   }
+  ]
+ },
+ "chapter_act2_2560x1440_dark": {
+  "lines": {
+   "title": [
+    "DOCUMENTED PHYSICAL",
+    "ARCHITECTURE"
+   ]
+  },
+  "anchors": {
+   "P": null,
+   "Pm": null,
+   "position": null,
+   "lines": null,
+   "block_top": null,
+   "L": null,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {},
+  "elements": [
+   {
+    "name": "numeral",
+    "box": [
+     204,
+     457,
+     423,
+     872
+    ],
+    "px": 480
+   },
+   {
+    "name": "divider",
+    "box": [
+     511,
+     459,
+     513,
+     872
+    ],
+    "px": 0
+   },
+   {
+    "name": "kicker_rule",
+    "box": [
+     601,
+     395,
+     660,
+     400
+    ],
+    "px": 0
+   },
+   {
+    "name": "kicker_label",
+    "box": [
+     601,
+     418,
+     869,
+     452
+    ],
+    "px": 45
+   },
+   {
+    "name": "title_0",
+    "box": [
+     601,
+     496,
+     2335,
+     675
+    ],
+    "px": 203
+   },
+   {
+    "name": "title_1",
+    "box": [
+     601,
+     695,
+     1651,
+     874
+    ],
+    "px": 203
+   }
+  ]
+ },
+ "chapter_act2_2560x1440_bright": {
+  "lines": {
+   "title": [
+    "DOCUMENTED PHYSICAL",
+    "ARCHITECTURE"
+   ]
+  },
+  "anchors": {
+   "P": null,
+   "Pm": null,
+   "position": null,
+   "lines": null,
+   "block_top": null,
+   "L": null,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {},
+  "elements": [
+   {
+    "name": "numeral",
+    "box": [
+     204,
+     457,
+     423,
+     872
+    ],
+    "px": 480
+   },
+   {
+    "name": "divider",
+    "box": [
+     511,
+     459,
+     513,
+     872
+    ],
+    "px": 0
+   },
+   {
+    "name": "kicker_rule",
+    "box": [
+     601,
+     395,
+     660,
+     400
+    ],
+    "px": 0
+   },
+   {
+    "name": "kicker_label",
+    "box": [
+     601,
+     418,
+     869,
+     452
+    ],
+    "px": 45
+   },
+   {
+    "name": "title_0",
+    "box": [
+     601,
+     496,
+     2335,
+     675
+    ],
+    "px": 203
+   },
+   {
+    "name": "title_1",
+    "box": [
+     601,
+     695,
+     1651,
+     874
+    ],
+    "px": 203
+   }
+  ]
+ },
+ "chapter_act2_2560x1440_plain": {
+  "lines": {
+   "title": [
+    "DOCUMENTED PHYSICAL",
+    "ARCHITECTURE"
+   ]
+  },
+  "anchors": {
+   "P": null,
+   "Pm": null,
+   "position": null,
+   "lines": null,
+   "block_top": null,
+   "L": null,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {},
+  "elements": [
+   {
+    "name": "numeral",
+    "box": [
+     204,
+     457,
+     423,
+     872
+    ],
+    "px": 480
+   },
+   {
+    "name": "divider",
+    "box": [
+     511,
+     459,
+     513,
+     872
+    ],
+    "px": 0
+   },
+   {
+    "name": "kicker_rule",
+    "box": [
+     601,
+     395,
+     660,
+     400
+    ],
+    "px": 0
+   },
+   {
+    "name": "kicker_label",
+    "box": [
+     601,
+     418,
+     869,
+     452
+    ],
+    "px": 45
+   },
+   {
+    "name": "title_0",
+    "box": [
+     601,
+     496,
+     2335,
+     675
+    ],
+    "px": 203
+   },
+   {
+    "name": "title_1",
+    "box": [
+     601,
+     695,
+     1651,
+     874
+    ],
+    "px": 203
+   }
+  ]
+ },
+ "chapter_act2_3840x2160_dark": {
+  "lines": {
+   "title": [
+    "DOCUMENTED PHYSICAL",
+    "ARCHITECTURE"
+   ]
+  },
+  "anchors": {
+   "P": null,
+   "Pm": null,
+   "position": null,
+   "lines": null,
+   "block_top": null,
+   "L": null,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {},
+  "elements": [
+   {
+    "name": "numeral",
+    "box": [
+     306,
+     686,
+     633,
+     1308
+    ],
+    "px": 720
+   },
+   {
+    "name": "divider",
+    "box": [
+     766,
+     688,
+     770,
+     1308
+    ],
+    "px": 0
+   },
+   {
+    "name": "kicker_rule",
+    "box": [
+     902,
+     592,
+     990,
+     600
+    ],
+    "px": 0
+   },
+   {
+    "name": "kicker_label",
+    "box": [
+     902,
+     627,
+     1306,
+     677
+    ],
+    "px": 68
+   },
+   {
+    "name": "title_0",
+    "box": [
+     902,
+     746,
+     3497,
+     1013
+    ],
+    "px": 304
+   },
+   {
+    "name": "title_1",
+    "box": [
+     902,
+     1044,
+     2474,
+     1311
+    ],
+    "px": 304
+   }
+  ]
+ },
+ "chapter_act2_3840x2160_bright": {
+  "lines": {
+   "title": [
+    "DOCUMENTED PHYSICAL",
+    "ARCHITECTURE"
+   ]
+  },
+  "anchors": {
+   "P": null,
+   "Pm": null,
+   "position": null,
+   "lines": null,
+   "block_top": null,
+   "L": null,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {},
+  "elements": [
+   {
+    "name": "numeral",
+    "box": [
+     306,
+     686,
+     633,
+     1308
+    ],
+    "px": 720
+   },
+   {
+    "name": "divider",
+    "box": [
+     766,
+     688,
+     770,
+     1308
+    ],
+    "px": 0
+   },
+   {
+    "name": "kicker_rule",
+    "box": [
+     902,
+     592,
+     990,
+     600
+    ],
+    "px": 0
+   },
+   {
+    "name": "kicker_label",
+    "box": [
+     902,
+     627,
+     1306,
+     677
+    ],
+    "px": 68
+   },
+   {
+    "name": "title_0",
+    "box": [
+     902,
+     746,
+     3497,
+     1013
+    ],
+    "px": 304
+   },
+   {
+    "name": "title_1",
+    "box": [
+     902,
+     1044,
+     2474,
+     1311
+    ],
+    "px": 304
+   }
+  ]
+ },
+ "chapter_act2_3840x2160_plain": {
+  "lines": {
+   "title": [
+    "DOCUMENTED PHYSICAL",
+    "ARCHITECTURE"
+   ]
+  },
+  "anchors": {
+   "P": null,
+   "Pm": null,
+   "position": null,
+   "lines": null,
+   "block_top": null,
+   "L": null,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {},
+  "elements": [
+   {
+    "name": "numeral",
+    "box": [
+     306,
+     686,
+     633,
+     1308
+    ],
+    "px": 720
+   },
+   {
+    "name": "divider",
+    "box": [
+     766,
+     688,
+     770,
+     1308
+    ],
+    "px": 0
+   },
+   {
+    "name": "kicker_rule",
+    "box": [
+     902,
+     592,
+     990,
+     600
+    ],
+    "px": 0
+   },
+   {
+    "name": "kicker_label",
+    "box": [
+     902,
+     627,
+     1306,
+     677
+    ],
+    "px": 68
+   },
+   {
+    "name": "title_0",
+    "box": [
+     902,
+     746,
+     3497,
+     1013
+    ],
+    "px": 304
+   },
+   {
+    "name": "title_1",
+    "box": [
+     902,
+     1044,
+     2474,
+     1311
+    ],
+    "px": 304
+   }
+  ]
+ },
+ "chapter_act3_1080x1920_dark": {
+  "lines": {
+   "title": [
+    "ORIGIN DEBATES",
+    "AND ROCK DATING"
+   ]
+  },
+  "anchors": {
+   "P": null,
+   "Pm": null,
+   "position": null,
+   "lines": null,
+   "block_top": null,
+   "L": null,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {},
+  "elements": [
+   {
+    "name": "kicker_rule",
+    "box": [
+     100,
+     393,
+     144,
+     397
+    ],
+    "px": 0
+   },
+   {
+    "name": "kicker_label",
+    "box": [
+     100,
+     410,
+     337,
+     440
+    ],
+    "px": 40
+   },
+   {
+    "name": "numeral",
+    "box": [
+     100,
+     474,
+     236,
+     736
+    ],
+    "px": 300
+   },
+   {
+    "name": "title_0",
+    "box": [
+     100,
+     788,
+     739,
+     886
+    ],
+    "px": 112
+   },
+   {
+    "name": "title_1",
+    "box": [
+     100,
+     898,
+     815,
+     996
+    ],
+    "px": 112
+   }
+  ]
+ },
+ "chapter_act3_1080x1920_bright": {
+  "lines": {
+   "title": [
+    "ORIGIN DEBATES",
+    "AND ROCK DATING"
+   ]
+  },
+  "anchors": {
+   "P": null,
+   "Pm": null,
+   "position": null,
+   "lines": null,
+   "block_top": null,
+   "L": null,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {},
+  "elements": [
+   {
+    "name": "kicker_rule",
+    "box": [
+     100,
+     393,
+     144,
+     397
+    ],
+    "px": 0
+   },
+   {
+    "name": "kicker_label",
+    "box": [
+     100,
+     410,
+     337,
+     440
+    ],
+    "px": 40
+   },
+   {
+    "name": "numeral",
+    "box": [
+     100,
+     474,
+     236,
+     736
+    ],
+    "px": 300
+   },
+   {
+    "name": "title_0",
+    "box": [
+     100,
+     788,
+     739,
+     886
+    ],
+    "px": 112
+   },
+   {
+    "name": "title_1",
+    "box": [
+     100,
+     898,
+     815,
+     996
+    ],
+    "px": 112
+   }
+  ]
+ },
+ "chapter_act3_1080x1920_plain": {
+  "lines": {
+   "title": [
+    "ORIGIN DEBATES",
+    "AND ROCK DATING"
+   ]
+  },
+  "anchors": {
+   "P": null,
+   "Pm": null,
+   "position": null,
+   "lines": null,
+   "block_top": null,
+   "L": null,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {},
+  "elements": [
+   {
+    "name": "kicker_rule",
+    "box": [
+     100,
+     393,
+     144,
+     397
+    ],
+    "px": 0
+   },
+   {
+    "name": "kicker_label",
+    "box": [
+     100,
+     410,
+     337,
+     440
+    ],
+    "px": 40
+   },
+   {
+    "name": "numeral",
+    "box": [
+     100,
+     474,
+     236,
+     736
+    ],
+    "px": 300
+   },
+   {
+    "name": "title_0",
+    "box": [
+     100,
+     788,
+     739,
+     886
+    ],
+    "px": 112
+   },
+   {
+    "name": "title_1",
+    "box": [
+     100,
+     898,
+     815,
+     996
+    ],
+    "px": 112
+   }
+  ]
+ },
+ "chapter_act3_720x1280_dark": {
+  "lines": {
+   "title": [
+    "ORIGIN DEBATES",
+    "AND ROCK DATING"
+   ]
+  },
+  "anchors": {
+   "P": null,
+   "Pm": null,
+   "position": null,
+   "lines": null,
+   "block_top": null,
+   "L": null,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {},
+  "elements": [
+   {
+    "name": "kicker_rule",
+    "box": [
+     67,
+     262,
+     96,
+     265
+    ],
+    "px": 0
+   },
+   {
+    "name": "kicker_label",
+    "box": [
+     67,
+     273,
+     229,
+     294
+    ],
+    "px": 27
+   },
+   {
+    "name": "numeral",
+    "box": [
+     67,
+     317,
+     158,
+     490
+    ],
+    "px": 200
+   },
+   {
+    "name": "title_0",
+    "box": [
+     67,
+     524,
+     497,
+     591
+    ],
+    "px": 75
+   },
+   {
+    "name": "title_1",
+    "box": [
+     67,
+     597,
+     547,
+     664
+    ],
+    "px": 75
+   }
+  ]
+ },
+ "chapter_act3_720x1280_bright": {
+  "lines": {
+   "title": [
+    "ORIGIN DEBATES",
+    "AND ROCK DATING"
+   ]
+  },
+  "anchors": {
+   "P": null,
+   "Pm": null,
+   "position": null,
+   "lines": null,
+   "block_top": null,
+   "L": null,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {},
+  "elements": [
+   {
+    "name": "kicker_rule",
+    "box": [
+     67,
+     262,
+     96,
+     265
+    ],
+    "px": 0
+   },
+   {
+    "name": "kicker_label",
+    "box": [
+     67,
+     273,
+     229,
+     294
+    ],
+    "px": 27
+   },
+   {
+    "name": "numeral",
+    "box": [
+     67,
+     317,
+     158,
+     490
+    ],
+    "px": 200
+   },
+   {
+    "name": "title_0",
+    "box": [
+     67,
+     524,
+     497,
+     591
+    ],
+    "px": 75
+   },
+   {
+    "name": "title_1",
+    "box": [
+     67,
+     597,
+     547,
+     664
+    ],
+    "px": 75
+   }
+  ]
+ },
+ "chapter_act3_720x1280_plain": {
+  "lines": {
+   "title": [
+    "ORIGIN DEBATES",
+    "AND ROCK DATING"
+   ]
+  },
+  "anchors": {
+   "P": null,
+   "Pm": null,
+   "position": null,
+   "lines": null,
+   "block_top": null,
+   "L": null,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {},
+  "elements": [
+   {
+    "name": "kicker_rule",
+    "box": [
+     67,
+     262,
+     96,
+     265
+    ],
+    "px": 0
+   },
+   {
+    "name": "kicker_label",
+    "box": [
+     67,
+     273,
+     229,
+     294
+    ],
+    "px": 27
+   },
+   {
+    "name": "numeral",
+    "box": [
+     67,
+     317,
+     158,
+     490
+    ],
+    "px": 200
+   },
+   {
+    "name": "title_0",
+    "box": [
+     67,
+     524,
+     497,
+     591
+    ],
+    "px": 75
+   },
+   {
+    "name": "title_1",
+    "box": [
+     67,
+     597,
+     547,
+     664
+    ],
+    "px": 75
+   }
+  ]
+ },
+ "chapter_act3_1440x2560_dark": {
+  "lines": {
+   "title": [
+    "ORIGIN DEBATES",
+    "AND ROCK DATING"
+   ]
+  },
+  "anchors": {
+   "P": null,
+   "Pm": null,
+   "position": null,
+   "lines": null,
+   "block_top": null,
+   "L": null,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {},
+  "elements": [
+   {
+    "name": "kicker_rule",
+    "box": [
+     133,
+     524,
+     192,
+     529
+    ],
+    "px": 0
+   },
+   {
+    "name": "kicker_label",
+    "box": [
+     133,
+     547,
+     451,
+     586
+    ],
+    "px": 53
+   },
+   {
+    "name": "numeral",
+    "box": [
+     133,
+     632,
+     314,
+     981
+    ],
+    "px": 400
+   },
+   {
+    "name": "title_0",
+    "box": [
+     133,
+     1051,
+     984,
+     1181
+    ],
+    "px": 149
+   },
+   {
+    "name": "title_1",
+    "box": [
+     133,
+     1198,
+     1085,
+     1328
+    ],
+    "px": 149
+   }
+  ]
+ },
+ "chapter_act3_1440x2560_bright": {
+  "lines": {
+   "title": [
+    "ORIGIN DEBATES",
+    "AND ROCK DATING"
+   ]
+  },
+  "anchors": {
+   "P": null,
+   "Pm": null,
+   "position": null,
+   "lines": null,
+   "block_top": null,
+   "L": null,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {},
+  "elements": [
+   {
+    "name": "kicker_rule",
+    "box": [
+     133,
+     524,
+     192,
+     529
+    ],
+    "px": 0
+   },
+   {
+    "name": "kicker_label",
+    "box": [
+     133,
+     547,
+     451,
+     586
+    ],
+    "px": 53
+   },
+   {
+    "name": "numeral",
+    "box": [
+     133,
+     632,
+     314,
+     981
+    ],
+    "px": 400
+   },
+   {
+    "name": "title_0",
+    "box": [
+     133,
+     1051,
+     984,
+     1181
+    ],
+    "px": 149
+   },
+   {
+    "name": "title_1",
+    "box": [
+     133,
+     1198,
+     1085,
+     1328
+    ],
+    "px": 149
+   }
+  ]
+ },
+ "chapter_act3_1440x2560_plain": {
+  "lines": {
+   "title": [
+    "ORIGIN DEBATES",
+    "AND ROCK DATING"
+   ]
+  },
+  "anchors": {
+   "P": null,
+   "Pm": null,
+   "position": null,
+   "lines": null,
+   "block_top": null,
+   "L": null,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {},
+  "elements": [
+   {
+    "name": "kicker_rule",
+    "box": [
+     133,
+     524,
+     192,
+     529
+    ],
+    "px": 0
+   },
+   {
+    "name": "kicker_label",
+    "box": [
+     133,
+     547,
+     451,
+     586
+    ],
+    "px": 53
+   },
+   {
+    "name": "numeral",
+    "box": [
+     133,
+     632,
+     314,
+     981
+    ],
+    "px": 400
+   },
+   {
+    "name": "title_0",
+    "box": [
+     133,
+     1051,
+     984,
+     1181
+    ],
+    "px": 149
+   },
+   {
+    "name": "title_1",
+    "box": [
+     133,
+     1198,
+     1085,
+     1328
+    ],
+    "px": 149
+   }
+  ]
+ },
+ "chapter_act3_1920x1080_dark": {
+  "lines": {
+   "title": [
+    "ORIGIN DEBATES",
+    "AND ROCK DATING"
+   ]
+  },
+  "anchors": {
+   "P": null,
+   "Pm": null,
+   "position": null,
+   "lines": null,
+   "block_top": null,
+   "L": null,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {},
+  "elements": [
+   {
+    "name": "numeral",
+    "box": [
+     153,
+     366,
+     316,
+     680
+    ],
+    "px": 360
+   },
+   {
+    "name": "divider",
+    "box": [
+     382,
+     366,
+     384,
+     676
+    ],
+    "px": 0
+   },
+   {
+    "name": "kicker_rule",
+    "box": [
+     450,
+     275,
+     494,
+     279
+    ],
+    "px": 0
+   },
+   {
+    "name": "kicker_label",
+    "box": [
+     450,
+     292,
+     653,
+     318
+    ],
+    "px": 34
+   },
+   {
+    "name": "title_0",
+    "box": [
+     450,
+     352,
+     1457,
+     505
+    ],
+    "px": 176
+   },
+   {
+    "name": "title_1",
+    "box": [
+     450,
+     524,
+     1577,
+     677
+    ],
+    "px": 176
+   }
+  ]
+ },
+ "chapter_act3_1920x1080_bright": {
+  "lines": {
+   "title": [
+    "ORIGIN DEBATES",
+    "AND ROCK DATING"
+   ]
+  },
+  "anchors": {
+   "P": null,
+   "Pm": null,
+   "position": null,
+   "lines": null,
+   "block_top": null,
+   "L": null,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {},
+  "elements": [
+   {
+    "name": "numeral",
+    "box": [
+     153,
+     366,
+     316,
+     680
+    ],
+    "px": 360
+   },
+   {
+    "name": "divider",
+    "box": [
+     382,
+     366,
+     384,
+     676
+    ],
+    "px": 0
+   },
+   {
+    "name": "kicker_rule",
+    "box": [
+     450,
+     275,
+     494,
+     279
+    ],
+    "px": 0
+   },
+   {
+    "name": "kicker_label",
+    "box": [
+     450,
+     292,
+     653,
+     318
+    ],
+    "px": 34
+   },
+   {
+    "name": "title_0",
+    "box": [
+     450,
+     352,
+     1457,
+     505
+    ],
+    "px": 176
+   },
+   {
+    "name": "title_1",
+    "box": [
+     450,
+     524,
+     1577,
+     677
+    ],
+    "px": 176
+   }
+  ]
+ },
+ "chapter_act3_1920x1080_plain": {
+  "lines": {
+   "title": [
+    "ORIGIN DEBATES",
+    "AND ROCK DATING"
+   ]
+  },
+  "anchors": {
+   "P": null,
+   "Pm": null,
+   "position": null,
+   "lines": null,
+   "block_top": null,
+   "L": null,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {},
+  "elements": [
+   {
+    "name": "numeral",
+    "box": [
+     153,
+     366,
+     316,
+     680
+    ],
+    "px": 360
+   },
+   {
+    "name": "divider",
+    "box": [
+     382,
+     366,
+     384,
+     676
+    ],
+    "px": 0
+   },
+   {
+    "name": "kicker_rule",
+    "box": [
+     450,
+     275,
+     494,
+     279
+    ],
+    "px": 0
+   },
+   {
+    "name": "kicker_label",
+    "box": [
+     450,
+     292,
+     653,
+     318
+    ],
+    "px": 34
+   },
+   {
+    "name": "title_0",
+    "box": [
+     450,
+     352,
+     1457,
+     505
+    ],
+    "px": 176
+   },
+   {
+    "name": "title_1",
+    "box": [
+     450,
+     524,
+     1577,
+     677
+    ],
+    "px": 176
+   }
+  ]
+ },
+ "chapter_act3_1280x720_dark": {
+  "lines": {
+   "title": [
+    "ORIGIN DEBATES",
+    "AND ROCK DATING"
+   ]
+  },
+  "anchors": {
+   "P": null,
+   "Pm": null,
+   "position": null,
+   "lines": null,
+   "block_top": null,
+   "L": null,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {},
+  "elements": [
+   {
+    "name": "numeral",
+    "box": [
+     102,
+     244,
+     211,
+     454
+    ],
+    "px": 240
+   },
+   {
+    "name": "divider",
+    "box": [
+     255,
+     244,
+     256,
+     451
+    ],
+    "px": 0
+   },
+   {
+    "name": "kicker_rule",
+    "box": [
+     300,
+     183,
+     329,
+     186
+    ],
+    "px": 0
+   },
+   {
+    "name": "kicker_label",
+    "box": [
+     300,
+     194,
+     438,
+     212
+    ],
+    "px": 23
+   },
+   {
+    "name": "title_0",
+    "box": [
+     300,
+     234,
+     971,
+     337
+    ],
+    "px": 117
+   },
+   {
+    "name": "title_1",
+    "box": [
+     300,
+     349,
+     1049,
+     452
+    ],
+    "px": 117
+   }
+  ]
+ },
+ "chapter_act3_1280x720_bright": {
+  "lines": {
+   "title": [
+    "ORIGIN DEBATES",
+    "AND ROCK DATING"
+   ]
+  },
+  "anchors": {
+   "P": null,
+   "Pm": null,
+   "position": null,
+   "lines": null,
+   "block_top": null,
+   "L": null,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {},
+  "elements": [
+   {
+    "name": "numeral",
+    "box": [
+     102,
+     244,
+     211,
+     454
+    ],
+    "px": 240
+   },
+   {
+    "name": "divider",
+    "box": [
+     255,
+     244,
+     256,
+     451
+    ],
+    "px": 0
+   },
+   {
+    "name": "kicker_rule",
+    "box": [
+     300,
+     183,
+     329,
+     186
+    ],
+    "px": 0
+   },
+   {
+    "name": "kicker_label",
+    "box": [
+     300,
+     194,
+     438,
+     212
+    ],
+    "px": 23
+   },
+   {
+    "name": "title_0",
+    "box": [
+     300,
+     234,
+     971,
+     337
+    ],
+    "px": 117
+   },
+   {
+    "name": "title_1",
+    "box": [
+     300,
+     349,
+     1049,
+     452
+    ],
+    "px": 117
+   }
+  ]
+ },
+ "chapter_act3_1280x720_plain": {
+  "lines": {
+   "title": [
+    "ORIGIN DEBATES",
+    "AND ROCK DATING"
+   ]
+  },
+  "anchors": {
+   "P": null,
+   "Pm": null,
+   "position": null,
+   "lines": null,
+   "block_top": null,
+   "L": null,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {},
+  "elements": [
+   {
+    "name": "numeral",
+    "box": [
+     102,
+     244,
+     211,
+     454
+    ],
+    "px": 240
+   },
+   {
+    "name": "divider",
+    "box": [
+     255,
+     244,
+     256,
+     451
+    ],
+    "px": 0
+   },
+   {
+    "name": "kicker_rule",
+    "box": [
+     300,
+     183,
+     329,
+     186
+    ],
+    "px": 0
+   },
+   {
+    "name": "kicker_label",
+    "box": [
+     300,
+     194,
+     438,
+     212
+    ],
+    "px": 23
+   },
+   {
+    "name": "title_0",
+    "box": [
+     300,
+     234,
+     971,
+     337
+    ],
+    "px": 117
+   },
+   {
+    "name": "title_1",
+    "box": [
+     300,
+     349,
+     1049,
+     452
+    ],
+    "px": 117
+   }
+  ]
+ },
+ "chapter_act3_2560x1440_dark": {
+  "lines": {
+   "title": [
+    "ORIGIN DEBATES",
+    "AND ROCK DATING"
+   ]
+  },
+  "anchors": {
+   "P": null,
+   "Pm": null,
+   "position": null,
+   "lines": null,
+   "block_top": null,
+   "L": null,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {},
+  "elements": [
+   {
+    "name": "numeral",
+    "box": [
+     204,
+     487,
+     421,
+     906
+    ],
+    "px": 480
+   },
+   {
+    "name": "divider",
+    "box": [
+     509,
+     488,
+     512,
+     901
+    ],
+    "px": 0
+   },
+   {
+    "name": "kicker_rule",
+    "box": [
+     600,
+     367,
+     659,
+     372
+    ],
+    "px": 0
+   },
+   {
+    "name": "kicker_label",
+    "box": [
+     600,
+     390,
+     868,
+     424
+    ],
+    "px": 45
+   },
+   {
+    "name": "title_0",
+    "box": [
+     600,
+     468,
+     1944,
+     674
+    ],
+    "px": 235
+   },
+   {
+    "name": "title_1",
+    "box": [
+     600,
+     697,
+     2103,
+     903
+    ],
+    "px": 235
+   }
+  ]
+ },
+ "chapter_act3_2560x1440_bright": {
+  "lines": {
+   "title": [
+    "ORIGIN DEBATES",
+    "AND ROCK DATING"
+   ]
+  },
+  "anchors": {
+   "P": null,
+   "Pm": null,
+   "position": null,
+   "lines": null,
+   "block_top": null,
+   "L": null,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {},
+  "elements": [
+   {
+    "name": "numeral",
+    "box": [
+     204,
+     487,
+     421,
+     906
+    ],
+    "px": 480
+   },
+   {
+    "name": "divider",
+    "box": [
+     509,
+     488,
+     512,
+     901
+    ],
+    "px": 0
+   },
+   {
+    "name": "kicker_rule",
+    "box": [
+     600,
+     367,
+     659,
+     372
+    ],
+    "px": 0
+   },
+   {
+    "name": "kicker_label",
+    "box": [
+     600,
+     390,
+     868,
+     424
+    ],
+    "px": 45
+   },
+   {
+    "name": "title_0",
+    "box": [
+     600,
+     468,
+     1944,
+     674
+    ],
+    "px": 235
+   },
+   {
+    "name": "title_1",
+    "box": [
+     600,
+     697,
+     2103,
+     903
+    ],
+    "px": 235
+   }
+  ]
+ },
+ "chapter_act3_2560x1440_plain": {
+  "lines": {
+   "title": [
+    "ORIGIN DEBATES",
+    "AND ROCK DATING"
+   ]
+  },
+  "anchors": {
+   "P": null,
+   "Pm": null,
+   "position": null,
+   "lines": null,
+   "block_top": null,
+   "L": null,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {},
+  "elements": [
+   {
+    "name": "numeral",
+    "box": [
+     204,
+     487,
+     421,
+     906
+    ],
+    "px": 480
+   },
+   {
+    "name": "divider",
+    "box": [
+     509,
+     488,
+     512,
+     901
+    ],
+    "px": 0
+   },
+   {
+    "name": "kicker_rule",
+    "box": [
+     600,
+     367,
+     659,
+     372
+    ],
+    "px": 0
+   },
+   {
+    "name": "kicker_label",
+    "box": [
+     600,
+     390,
+     868,
+     424
+    ],
+    "px": 45
+   },
+   {
+    "name": "title_0",
+    "box": [
+     600,
+     468,
+     1944,
+     674
+    ],
+    "px": 235
+   },
+   {
+    "name": "title_1",
+    "box": [
+     600,
+     697,
+     2103,
+     903
+    ],
+    "px": 235
+   }
+  ]
+ },
+ "chapter_act3_3840x2160_dark": {
+  "lines": {
+   "title": [
+    "ORIGIN DEBATES",
+    "AND ROCK DATING"
+   ]
+  },
+  "anchors": {
+   "P": null,
+   "Pm": null,
+   "position": null,
+   "lines": null,
+   "block_top": null,
+   "L": null,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {},
+  "elements": [
+   {
+    "name": "numeral",
+    "box": [
+     306,
+     732,
+     631,
+     1360
+    ],
+    "px": 720
+   },
+   {
+    "name": "divider",
+    "box": [
+     764,
+     732,
+     768,
+     1352
+    ],
+    "px": 0
+   },
+   {
+    "name": "kicker_rule",
+    "box": [
+     900,
+     550,
+     988,
+     558
+    ],
+    "px": 0
+   },
+   {
+    "name": "kicker_label",
+    "box": [
+     900,
+     585,
+     1304,
+     635
+    ],
+    "px": 68
+   },
+   {
+    "name": "title_0",
+    "box": [
+     900,
+     702,
+     2915,
+     1011
+    ],
+    "px": 352
+   },
+   {
+    "name": "title_1",
+    "box": [
+     900,
+     1046,
+     3153,
+     1355
+    ],
+    "px": 352
+   }
+  ]
+ },
+ "chapter_act3_3840x2160_bright": {
+  "lines": {
+   "title": [
+    "ORIGIN DEBATES",
+    "AND ROCK DATING"
+   ]
+  },
+  "anchors": {
+   "P": null,
+   "Pm": null,
+   "position": null,
+   "lines": null,
+   "block_top": null,
+   "L": null,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {},
+  "elements": [
+   {
+    "name": "numeral",
+    "box": [
+     306,
+     732,
+     631,
+     1360
+    ],
+    "px": 720
+   },
+   {
+    "name": "divider",
+    "box": [
+     764,
+     732,
+     768,
+     1352
+    ],
+    "px": 0
+   },
+   {
+    "name": "kicker_rule",
+    "box": [
+     900,
+     550,
+     988,
+     558
+    ],
+    "px": 0
+   },
+   {
+    "name": "kicker_label",
+    "box": [
+     900,
+     585,
+     1304,
+     635
+    ],
+    "px": 68
+   },
+   {
+    "name": "title_0",
+    "box": [
+     900,
+     702,
+     2915,
+     1011
+    ],
+    "px": 352
+   },
+   {
+    "name": "title_1",
+    "box": [
+     900,
+     1046,
+     3153,
+     1355
+    ],
+    "px": 352
+   }
+  ]
+ },
+ "chapter_act3_3840x2160_plain": {
+  "lines": {
+   "title": [
+    "ORIGIN DEBATES",
+    "AND ROCK DATING"
+   ]
+  },
+  "anchors": {
+   "P": null,
+   "Pm": null,
+   "position": null,
+   "lines": null,
+   "block_top": null,
+   "L": null,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {},
+  "elements": [
+   {
+    "name": "numeral",
+    "box": [
+     306,
+     732,
+     631,
+     1360
+    ],
+    "px": 720
+   },
+   {
+    "name": "divider",
+    "box": [
+     764,
+     732,
+     768,
+     1352
+    ],
+    "px": 0
+   },
+   {
+    "name": "kicker_rule",
+    "box": [
+     900,
+     550,
+     988,
+     558
+    ],
+    "px": 0
+   },
+   {
+    "name": "kicker_label",
+    "box": [
+     900,
+     585,
+     1304,
+     635
+    ],
+    "px": 68
+   },
+   {
+    "name": "title_0",
+    "box": [
+     900,
+     702,
+     2915,
+     1011
+    ],
+    "px": 352
+   },
+   {
+    "name": "title_1",
+    "box": [
+     900,
+     1046,
+     3153,
+     1355
+    ],
+    "px": 352
+   }
+  ]
+ },
+ "myth_richat_short_1080x1920_dark": {
+  "lines": {
+   "myth": [
+    "THE RICHAT STRUCTURE",
+    "IS AN IMPACT CRATER"
+   ],
+   "fact": [
+    "THE IMPACT THEORY",
+    "WAS DISPROVED",
+    "IN 1969"
+   ]
+  },
+  "anchors": {
+   "P": null,
+   "Pm": null,
+   "position": null,
+   "lines": null,
+   "block_top": null,
+   "L": null,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {},
+  "elements": [
+   {
+    "name": "myth_rule",
+    "box": [
+     100,
+     288,
+     144,
+     292
+    ],
+    "px": 0
+   },
+   {
+    "name": "myth_label",
+    "box": [
+     100,
+     306,
+     237,
+     334
+    ],
+    "px": 40
+   },
+   {
+    "name": "myth_0",
+    "box": [
+     100,
+     369,
+     785,
+     442
+    ],
+    "px": 82
+   },
+   {
+    "name": "myth_1",
+    "box": [
+     100,
+     464,
+     745,
+     537
+    ],
+    "px": 82
+   },
+   {
+    "name": "strike_0",
+    "box": [
+     90,
+     401,
+     795,
+     410
+    ],
+    "px": 0
+   },
+   {
+    "name": "strike_1",
+    "box": [
+     90,
+     496,
+     755,
+     505
+    ],
+    "px": 0
+   },
+   {
+    "name": "fact_rule",
+    "box": [
+     100,
+     618,
+     144,
+     622
+    ],
+    "px": 0
+   },
+   {
+    "name": "fact_label",
+    "box": [
+     100,
+     635,
+     228,
+     665
+    ],
+    "px": 40
+   },
+   {
+    "name": "fact_0",
+    "box": [
+     100,
+     699,
+     804,
+     783
+    ],
+    "px": 96
+   },
+   {
+    "name": "fact_1",
+    "box": [
+     100,
+     795,
+     662,
+     879
+    ],
+    "px": 96
+   },
+   {
+    "name": "fact_2",
+    "box": [
+     100,
+     891,
+     364,
+     975
+    ],
+    "px": 96
+   },
+   {
+    "name": "source",
+    "box": [
+     100,
+     1025,
+     384,
+     1046
+    ],
+    "px": 30
+   }
+  ]
+ },
+ "myth_richat_short_1080x1920_plain": {
+  "lines": {
+   "myth": [
+    "THE RICHAT STRUCTURE",
+    "IS AN IMPACT CRATER"
+   ],
+   "fact": [
+    "THE IMPACT THEORY",
+    "WAS DISPROVED",
+    "IN 1969"
+   ]
+  },
+  "anchors": {
+   "P": null,
+   "Pm": null,
+   "position": null,
+   "lines": null,
+   "block_top": null,
+   "L": null,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {},
+  "elements": [
+   {
+    "name": "myth_rule",
+    "box": [
+     100,
+     288,
+     144,
+     292
+    ],
+    "px": 0
+   },
+   {
+    "name": "myth_label",
+    "box": [
+     100,
+     306,
+     237,
+     334
+    ],
+    "px": 40
+   },
+   {
+    "name": "myth_0",
+    "box": [
+     100,
+     369,
+     785,
+     442
+    ],
+    "px": 82
+   },
+   {
+    "name": "myth_1",
+    "box": [
+     100,
+     464,
+     745,
+     537
+    ],
+    "px": 82
+   },
+   {
+    "name": "strike_0",
+    "box": [
+     90,
+     401,
+     795,
+     410
+    ],
+    "px": 0
+   },
+   {
+    "name": "strike_1",
+    "box": [
+     90,
+     496,
+     755,
+     505
+    ],
+    "px": 0
+   },
+   {
+    "name": "fact_rule",
+    "box": [
+     100,
+     618,
+     144,
+     622
+    ],
+    "px": 0
+   },
+   {
+    "name": "fact_label",
+    "box": [
+     100,
+     635,
+     228,
+     665
+    ],
+    "px": 40
+   },
+   {
+    "name": "fact_0",
+    "box": [
+     100,
+     699,
+     804,
+     783
+    ],
+    "px": 96
+   },
+   {
+    "name": "fact_1",
+    "box": [
+     100,
+     795,
+     662,
+     879
+    ],
+    "px": 96
+   },
+   {
+    "name": "fact_2",
+    "box": [
+     100,
+     891,
+     364,
+     975
+    ],
+    "px": 96
+   },
+   {
+    "name": "source",
+    "box": [
+     100,
+     1025,
+     384,
+     1046
+    ],
+    "px": 30
+   }
+  ]
+ },
+ "myth_richat_short_720x1280_dark": {
+  "lines": {
+   "myth": [
+    "THE RICHAT STRUCTURE",
+    "IS AN IMPACT CRATER"
+   ],
+   "fact": [
+    "THE IMPACT THEORY",
+    "WAS DISPROVED",
+    "IN 1969"
+   ]
+  },
+  "anchors": {
+   "P": null,
+   "Pm": null,
+   "position": null,
+   "lines": null,
+   "block_top": null,
+   "L": null,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {},
+  "elements": [
+   {
+    "name": "myth_rule",
+    "box": [
+     67,
+     192,
+     96,
+     195
+    ],
+    "px": 0
+   },
+   {
+    "name": "myth_label",
+    "box": [
+     67,
+     204,
+     160,
+     223
+    ],
+    "px": 27
+   },
+   {
+    "name": "myth_0",
+    "box": [
+     67,
+     246,
+     526,
+     294
+    ],
+    "px": 55
+   },
+   {
+    "name": "myth_1",
+    "box": [
+     67,
+     309,
+     500,
+     357
+    ],
+    "px": 55
+   },
+   {
+    "name": "strike_0",
+    "box": [
+     60,
+     267,
+     533,
+     273
+    ],
+    "px": 0
+   },
+   {
+    "name": "strike_1",
+    "box": [
+     60,
+     330,
+     507,
+     336
+    ],
+    "px": 0
+   },
+   {
+    "name": "fact_rule",
+    "box": [
+     67,
+     412,
+     96,
+     415
+    ],
+    "px": 0
+   },
+   {
+    "name": "fact_label",
+    "box": [
+     67,
+     423,
+     154,
+     444
+    ],
+    "px": 27
+   },
+   {
+    "name": "fact_0",
+    "box": [
+     67,
+     464,
+     533,
+     522
+    ],
+    "px": 64
+   },
+   {
+    "name": "fact_1",
+    "box": [
+     67,
+     528,
+     444,
+     586
+    ],
+    "px": 64
+   },
+   {
+    "name": "fact_2",
+    "box": [
+     67,
+     592,
+     244,
+     650
+    ],
+    "px": 64
+   },
+   {
+    "name": "source",
+    "box": [
+     67,
+     683,
+     257,
+     697
+    ],
+    "px": 20
+   }
+  ]
+ },
+ "myth_richat_short_720x1280_plain": {
+  "lines": {
+   "myth": [
+    "THE RICHAT STRUCTURE",
+    "IS AN IMPACT CRATER"
+   ],
+   "fact": [
+    "THE IMPACT THEORY",
+    "WAS DISPROVED",
+    "IN 1969"
+   ]
+  },
+  "anchors": {
+   "P": null,
+   "Pm": null,
+   "position": null,
+   "lines": null,
+   "block_top": null,
+   "L": null,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {},
+  "elements": [
+   {
+    "name": "myth_rule",
+    "box": [
+     67,
+     192,
+     96,
+     195
+    ],
+    "px": 0
+   },
+   {
+    "name": "myth_label",
+    "box": [
+     67,
+     204,
+     160,
+     223
+    ],
+    "px": 27
+   },
+   {
+    "name": "myth_0",
+    "box": [
+     67,
+     246,
+     526,
+     294
+    ],
+    "px": 55
+   },
+   {
+    "name": "myth_1",
+    "box": [
+     67,
+     309,
+     500,
+     357
+    ],
+    "px": 55
+   },
+   {
+    "name": "strike_0",
+    "box": [
+     60,
+     267,
+     533,
+     273
+    ],
+    "px": 0
+   },
+   {
+    "name": "strike_1",
+    "box": [
+     60,
+     330,
+     507,
+     336
+    ],
+    "px": 0
+   },
+   {
+    "name": "fact_rule",
+    "box": [
+     67,
+     412,
+     96,
+     415
+    ],
+    "px": 0
+   },
+   {
+    "name": "fact_label",
+    "box": [
+     67,
+     423,
+     154,
+     444
+    ],
+    "px": 27
+   },
+   {
+    "name": "fact_0",
+    "box": [
+     67,
+     464,
+     533,
+     522
+    ],
+    "px": 64
+   },
+   {
+    "name": "fact_1",
+    "box": [
+     67,
+     528,
+     444,
+     586
+    ],
+    "px": 64
+   },
+   {
+    "name": "fact_2",
+    "box": [
+     67,
+     592,
+     244,
+     650
+    ],
+    "px": 64
+   },
+   {
+    "name": "source",
+    "box": [
+     67,
+     683,
+     257,
+     697
+    ],
+    "px": 20
+   }
+  ]
+ },
+ "myth_richat_short_1440x2560_dark": {
+  "lines": {
+   "myth": [
+    "THE RICHAT STRUCTURE",
+    "IS AN IMPACT CRATER"
+   ],
+   "fact": [
+    "THE IMPACT THEORY",
+    "WAS DISPROVED",
+    "IN 1969"
+   ]
+  },
+  "anchors": {
+   "P": null,
+   "Pm": null,
+   "position": null,
+   "lines": null,
+   "block_top": null,
+   "L": null,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {},
+  "elements": [
+   {
+    "name": "myth_rule",
+    "box": [
+     133,
+     384,
+     192,
+     389
+    ],
+    "px": 0
+   },
+   {
+    "name": "myth_label",
+    "box": [
+     133,
+     407,
+     315,
+     445
+    ],
+    "px": 53
+   },
+   {
+    "name": "myth_0",
+    "box": [
+     133,
+     493,
+     1044,
+     589
+    ],
+    "px": 109
+   },
+   {
+    "name": "myth_1",
+    "box": [
+     133,
+     620,
+     990,
+     716
+    ],
+    "px": 109
+   },
+   {
+    "name": "strike_0",
+    "box": [
+     120,
+     535,
+     1057,
+     547
+    ],
+    "px": 0
+   },
+   {
+    "name": "strike_1",
+    "box": [
+     120,
+     662,
+     1003,
+     674
+    ],
+    "px": 0
+   },
+   {
+    "name": "fact_rule",
+    "box": [
+     133,
+     824,
+     192,
+     829
+    ],
+    "px": 0
+   },
+   {
+    "name": "fact_label",
+    "box": [
+     133,
+     847,
+     303,
+     886
+    ],
+    "px": 53
+   },
+   {
+    "name": "fact_0",
+    "box": [
+     133,
+     932,
+     1067,
+     1044
+    ],
+    "px": 128
+   },
+   {
+    "name": "fact_1",
+    "box": [
+     133,
+     1060,
+     880,
+     1172
+    ],
+    "px": 128
+   },
+   {
+    "name": "fact_2",
+    "box": [
+     133,
+     1188,
+     483,
+     1300
+    ],
+    "px": 128
+   },
+   {
+    "name": "source",
+    "box": [
+     133,
+     1367,
+     512,
+     1396
+    ],
+    "px": 40
+   }
+  ]
+ },
+ "myth_richat_short_1440x2560_plain": {
+  "lines": {
+   "myth": [
+    "THE RICHAT STRUCTURE",
+    "IS AN IMPACT CRATER"
+   ],
+   "fact": [
+    "THE IMPACT THEORY",
+    "WAS DISPROVED",
+    "IN 1969"
+   ]
+  },
+  "anchors": {
+   "P": null,
+   "Pm": null,
+   "position": null,
+   "lines": null,
+   "block_top": null,
+   "L": null,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {},
+  "elements": [
+   {
+    "name": "myth_rule",
+    "box": [
+     133,
+     384,
+     192,
+     389
+    ],
+    "px": 0
+   },
+   {
+    "name": "myth_label",
+    "box": [
+     133,
+     407,
+     315,
+     445
+    ],
+    "px": 53
+   },
+   {
+    "name": "myth_0",
+    "box": [
+     133,
+     493,
+     1044,
+     589
+    ],
+    "px": 109
+   },
+   {
+    "name": "myth_1",
+    "box": [
+     133,
+     620,
+     990,
+     716
+    ],
+    "px": 109
+   },
+   {
+    "name": "strike_0",
+    "box": [
+     120,
+     535,
+     1057,
+     547
+    ],
+    "px": 0
+   },
+   {
+    "name": "strike_1",
+    "box": [
+     120,
+     662,
+     1003,
+     674
+    ],
+    "px": 0
+   },
+   {
+    "name": "fact_rule",
+    "box": [
+     133,
+     824,
+     192,
+     829
+    ],
+    "px": 0
+   },
+   {
+    "name": "fact_label",
+    "box": [
+     133,
+     847,
+     303,
+     886
+    ],
+    "px": 53
+   },
+   {
+    "name": "fact_0",
+    "box": [
+     133,
+     932,
+     1067,
+     1044
+    ],
+    "px": 128
+   },
+   {
+    "name": "fact_1",
+    "box": [
+     133,
+     1060,
+     880,
+     1172
+    ],
+    "px": 128
+   },
+   {
+    "name": "fact_2",
+    "box": [
+     133,
+     1188,
+     483,
+     1300
+    ],
+    "px": 128
+   },
+   {
+    "name": "source",
+    "box": [
+     133,
+     1367,
+     512,
+     1396
+    ],
+    "px": 40
+   }
+  ]
+ },
+ "myth_richat_short_1920x1080_dark": {
+  "lines": {
+   "myth": [
+    "THE RICHAT",
+    "STRUCTURE IS AN",
+    "IMPACT CRATER"
+   ],
+   "fact": [
+    "THE IMPACT",
+    "THEORY WAS",
+    "DISPROVED IN 1969"
+   ]
+  },
+  "anchors": {
+   "P": null,
+   "Pm": null,
+   "position": null,
+   "lines": null,
+   "block_top": null,
+   "L": null,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {},
+  "elements": [
+   {
+    "name": "myth_rule",
+    "box": [
+     153,
+     278,
+     197,
+     282
+    ],
+    "px": 0
+   },
+   {
+    "name": "myth_label",
+    "box": [
+     153,
+     296,
+     270,
+     320
+    ],
+    "px": 34
+   },
+   {
+    "name": "myth_0",
+    "box": [
+     153,
+     355,
+     549,
+     439
+    ],
+    "px": 96
+   },
+   {
+    "name": "myth_1",
+    "box": [
+     153,
+     466,
+     744,
+     550
+    ],
+    "px": 96
+   },
+   {
+    "name": "myth_2",
+    "box": [
+     153,
+     577,
+     705,
+     661
+    ],
+    "px": 96
+   },
+   {
+    "name": "strike_0",
+    "box": [
+     153,
+     392,
+     559,
+     403
+    ],
+    "px": 0
+   },
+   {
+    "name": "strike_1",
+    "box": [
+     153,
+     503,
+     754,
+     514
+    ],
+    "px": 0
+   },
+   {
+    "name": "strike_2",
+    "box": [
+     153,
+     614,
+     715,
+     625
+    ],
+    "px": 0
+   },
+   {
+    "name": "fact_rule",
+    "box": [
+     860,
+     219,
+     904,
+     223
+    ],
+    "px": 0
+   },
+   {
+    "name": "fact_label",
+    "box": [
+     860,
+     236,
+     969,
+     262
+    ],
+    "px": 34
+   },
+   {
+    "name": "fact_0",
+    "box": [
+     860,
+     296,
+     1415,
+     408
+    ],
+    "px": 128
+   },
+   {
+    "name": "fact_1",
+    "box": [
+     860,
+     424,
+     1447,
+     536
+    ],
+    "px": 128
+   },
+   {
+    "name": "fact_2",
+    "box": [
+     860,
+     552,
+     1749,
+     664
+    ],
+    "px": 128
+   },
+   {
+    "name": "source",
+    "box": [
+     860,
+     699,
+     1128,
+     719
+    ],
+    "px": 28
+   },
+   {
+    "name": "divider",
+    "box": [
+     806,
+     219,
+     808,
+     735
+    ],
+    "px": 0
+   }
+  ]
+ },
+ "myth_richat_short_1920x1080_plain": {
+  "lines": {
+   "myth": [
+    "THE RICHAT",
+    "STRUCTURE IS AN",
+    "IMPACT CRATER"
+   ],
+   "fact": [
+    "THE IMPACT",
+    "THEORY WAS",
+    "DISPROVED IN 1969"
+   ]
+  },
+  "anchors": {
+   "P": null,
+   "Pm": null,
+   "position": null,
+   "lines": null,
+   "block_top": null,
+   "L": null,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {},
+  "elements": [
+   {
+    "name": "myth_rule",
+    "box": [
+     153,
+     278,
+     197,
+     282
+    ],
+    "px": 0
+   },
+   {
+    "name": "myth_label",
+    "box": [
+     153,
+     296,
+     270,
+     320
+    ],
+    "px": 34
+   },
+   {
+    "name": "myth_0",
+    "box": [
+     153,
+     355,
+     549,
+     439
+    ],
+    "px": 96
+   },
+   {
+    "name": "myth_1",
+    "box": [
+     153,
+     466,
+     744,
+     550
+    ],
+    "px": 96
+   },
+   {
+    "name": "myth_2",
+    "box": [
+     153,
+     577,
+     705,
+     661
+    ],
+    "px": 96
+   },
+   {
+    "name": "strike_0",
+    "box": [
+     153,
+     392,
+     559,
+     403
+    ],
+    "px": 0
+   },
+   {
+    "name": "strike_1",
+    "box": [
+     153,
+     503,
+     754,
+     514
+    ],
+    "px": 0
+   },
+   {
+    "name": "strike_2",
+    "box": [
+     153,
+     614,
+     715,
+     625
+    ],
+    "px": 0
+   },
+   {
+    "name": "fact_rule",
+    "box": [
+     860,
+     219,
+     904,
+     223
+    ],
+    "px": 0
+   },
+   {
+    "name": "fact_label",
+    "box": [
+     860,
+     236,
+     969,
+     262
+    ],
+    "px": 34
+   },
+   {
+    "name": "fact_0",
+    "box": [
+     860,
+     296,
+     1415,
+     408
+    ],
+    "px": 128
+   },
+   {
+    "name": "fact_1",
+    "box": [
+     860,
+     424,
+     1447,
+     536
+    ],
+    "px": 128
+   },
+   {
+    "name": "fact_2",
+    "box": [
+     860,
+     552,
+     1749,
+     664
+    ],
+    "px": 128
+   },
+   {
+    "name": "source",
+    "box": [
+     860,
+     699,
+     1128,
+     719
+    ],
+    "px": 28
+   },
+   {
+    "name": "divider",
+    "box": [
+     806,
+     219,
+     808,
+     735
+    ],
+    "px": 0
+   }
+  ]
+ },
+ "myth_richat_short_1280x720_dark": {
+  "lines": {
+   "myth": [
+    "THE RICHAT",
+    "STRUCTURE IS AN",
+    "IMPACT CRATER"
+   ],
+   "fact": [
+    "THE IMPACT",
+    "THEORY WAS",
+    "DISPROVED IN 1969"
+   ]
+  },
+  "anchors": {
+   "P": null,
+   "Pm": null,
+   "position": null,
+   "lines": null,
+   "block_top": null,
+   "L": null,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {},
+  "elements": [
+   {
+    "name": "myth_rule",
+    "box": [
+     102,
+     185,
+     131,
+     188
+    ],
+    "px": 0
+   },
+   {
+    "name": "myth_label",
+    "box": [
+     102,
+     196,
+     181,
+     213
+    ],
+    "px": 23
+   },
+   {
+    "name": "myth_0",
+    "box": [
+     102,
+     235,
+     364,
+     293
+    ],
+    "px": 64
+   },
+   {
+    "name": "myth_1",
+    "box": [
+     102,
+     309,
+     495,
+     367
+    ],
+    "px": 64
+   },
+   {
+    "name": "myth_2",
+    "box": [
+     102,
+     383,
+     468,
+     441
+    ],
+    "px": 64
+   },
+   {
+    "name": "strike_0",
+    "box": [
+     102,
+     261,
+     371,
+     268
+    ],
+    "px": 0
+   },
+   {
+    "name": "strike_1",
+    "box": [
+     102,
+     335,
+     502,
+     342
+    ],
+    "px": 0
+   },
+   {
+    "name": "strike_2",
+    "box": [
+     102,
+     409,
+     475,
+     416
+    ],
+    "px": 0
+   },
+   {
+    "name": "fact_rule",
+    "box": [
+     573,
+     146,
+     603,
+     149
+    ],
+    "px": 0
+   },
+   {
+    "name": "fact_label",
+    "box": [
+     573,
+     157,
+     647,
+     175
+    ],
+    "px": 23
+   },
+   {
+    "name": "fact_0",
+    "box": [
+     573,
+     197,
+     940,
+     272
+    ],
+    "px": 85
+   },
+   {
+    "name": "fact_1",
+    "box": [
+     573,
+     283,
+     964,
+     358
+    ],
+    "px": 85
+   },
+   {
+    "name": "fact_2",
+    "box": [
+     573,
+     368,
+     1163,
+     443
+    ],
+    "px": 85
+   },
+   {
+    "name": "source",
+    "box": [
+     573,
+     466,
+     748,
+     479
+    ],
+    "px": 19
+   },
+   {
+    "name": "divider",
+    "box": [
+     537,
+     146,
+     539,
+     490
+    ],
+    "px": 0
+   }
+  ]
+ },
+ "myth_richat_short_1280x720_plain": {
+  "lines": {
+   "myth": [
+    "THE RICHAT",
+    "STRUCTURE IS AN",
+    "IMPACT CRATER"
+   ],
+   "fact": [
+    "THE IMPACT",
+    "THEORY WAS",
+    "DISPROVED IN 1969"
+   ]
+  },
+  "anchors": {
+   "P": null,
+   "Pm": null,
+   "position": null,
+   "lines": null,
+   "block_top": null,
+   "L": null,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {},
+  "elements": [
+   {
+    "name": "myth_rule",
+    "box": [
+     102,
+     185,
+     131,
+     188
+    ],
+    "px": 0
+   },
+   {
+    "name": "myth_label",
+    "box": [
+     102,
+     196,
+     181,
+     213
+    ],
+    "px": 23
+   },
+   {
+    "name": "myth_0",
+    "box": [
+     102,
+     235,
+     364,
+     293
+    ],
+    "px": 64
+   },
+   {
+    "name": "myth_1",
+    "box": [
+     102,
+     309,
+     495,
+     367
+    ],
+    "px": 64
+   },
+   {
+    "name": "myth_2",
+    "box": [
+     102,
+     383,
+     468,
+     441
+    ],
+    "px": 64
+   },
+   {
+    "name": "strike_0",
+    "box": [
+     102,
+     261,
+     371,
+     268
+    ],
+    "px": 0
+   },
+   {
+    "name": "strike_1",
+    "box": [
+     102,
+     335,
+     502,
+     342
+    ],
+    "px": 0
+   },
+   {
+    "name": "strike_2",
+    "box": [
+     102,
+     409,
+     475,
+     416
+    ],
+    "px": 0
+   },
+   {
+    "name": "fact_rule",
+    "box": [
+     573,
+     146,
+     603,
+     149
+    ],
+    "px": 0
+   },
+   {
+    "name": "fact_label",
+    "box": [
+     573,
+     157,
+     647,
+     175
+    ],
+    "px": 23
+   },
+   {
+    "name": "fact_0",
+    "box": [
+     573,
+     197,
+     940,
+     272
+    ],
+    "px": 85
+   },
+   {
+    "name": "fact_1",
+    "box": [
+     573,
+     283,
+     964,
+     358
+    ],
+    "px": 85
+   },
+   {
+    "name": "fact_2",
+    "box": [
+     573,
+     368,
+     1163,
+     443
+    ],
+    "px": 85
+   },
+   {
+    "name": "source",
+    "box": [
+     573,
+     466,
+     748,
+     479
+    ],
+    "px": 19
+   },
+   {
+    "name": "divider",
+    "box": [
+     537,
+     146,
+     539,
+     490
+    ],
+    "px": 0
+   }
+  ]
+ },
+ "myth_richat_short_2560x1440_dark": {
+  "lines": {
+   "myth": [
+    "THE RICHAT",
+    "STRUCTURE IS AN",
+    "IMPACT CRATER"
+   ],
+   "fact": [
+    "THE IMPACT",
+    "THEORY WAS",
+    "DISPROVED IN 1969"
+   ]
+  },
+  "anchors": {
+   "P": null,
+   "Pm": null,
+   "position": null,
+   "lines": null,
+   "block_top": null,
+   "L": null,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {},
+  "elements": [
+   {
+    "name": "myth_rule",
+    "box": [
+     204,
+     371,
+     263,
+     376
+    ],
+    "px": 0
+   },
+   {
+    "name": "myth_label",
+    "box": [
+     204,
+     395,
+     358,
+     427
+    ],
+    "px": 45
+   },
+   {
+    "name": "myth_0",
+    "box": [
+     204,
+     473,
+     728,
+     585
+    ],
+    "px": 128
+   },
+   {
+    "name": "myth_1",
+    "box": [
+     204,
+     621,
+     990,
+     733
+    ],
+    "px": 128
+   },
+   {
+    "name": "myth_2",
+    "box": [
+     204,
+     769,
+     937,
+     881
+    ],
+    "px": 128
+   },
+   {
+    "name": "strike_0",
+    "box": [
+     204,
+     522,
+     741,
+     537
+    ],
+    "px": 0
+   },
+   {
+    "name": "strike_1",
+    "box": [
+     204,
+     670,
+     1003,
+     685
+    ],
+    "px": 0
+   },
+   {
+    "name": "strike_2",
+    "box": [
+     204,
+     818,
+     950,
+     833
+    ],
+    "px": 0
+   },
+   {
+    "name": "fact_rule",
+    "box": [
+     1147,
+     292,
+     1205,
+     297
+    ],
+    "px": 0
+   },
+   {
+    "name": "fact_label",
+    "box": [
+     1147,
+     315,
+     1290,
+     349
+    ],
+    "px": 45
+   },
+   {
+    "name": "fact_0",
+    "box": [
+     1147,
+     395,
+     1887,
+     544
+    ],
+    "px": 171
+   },
+   {
+    "name": "fact_1",
+    "box": [
+     1147,
+     565,
+     1931,
+     714
+    ],
+    "px": 171
+   },
+   {
+    "name": "fact_2",
+    "box": [
+     1147,
+     736,
+     2337,
+     885
+    ],
+    "px": 171
+   },
+   {
+    "name": "source",
+    "box": [
+     1147,
+     933,
+     1494,
+     959
+    ],
+    "px": 37
+   },
+   {
+    "name": "divider",
+    "box": [
+     1075,
+     292,
+     1077,
+     980
+    ],
+    "px": 0
+   }
+  ]
+ },
+ "myth_richat_short_2560x1440_plain": {
+  "lines": {
+   "myth": [
+    "THE RICHAT",
+    "STRUCTURE IS AN",
+    "IMPACT CRATER"
+   ],
+   "fact": [
+    "THE IMPACT",
+    "THEORY WAS",
+    "DISPROVED IN 1969"
+   ]
+  },
+  "anchors": {
+   "P": null,
+   "Pm": null,
+   "position": null,
+   "lines": null,
+   "block_top": null,
+   "L": null,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {},
+  "elements": [
+   {
+    "name": "myth_rule",
+    "box": [
+     204,
+     371,
+     263,
+     376
+    ],
+    "px": 0
+   },
+   {
+    "name": "myth_label",
+    "box": [
+     204,
+     395,
+     358,
+     427
+    ],
+    "px": 45
+   },
+   {
+    "name": "myth_0",
+    "box": [
+     204,
+     473,
+     728,
+     585
+    ],
+    "px": 128
+   },
+   {
+    "name": "myth_1",
+    "box": [
+     204,
+     621,
+     990,
+     733
+    ],
+    "px": 128
+   },
+   {
+    "name": "myth_2",
+    "box": [
+     204,
+     769,
+     937,
+     881
+    ],
+    "px": 128
+   },
+   {
+    "name": "strike_0",
+    "box": [
+     204,
+     522,
+     741,
+     537
+    ],
+    "px": 0
+   },
+   {
+    "name": "strike_1",
+    "box": [
+     204,
+     670,
+     1003,
+     685
+    ],
+    "px": 0
+   },
+   {
+    "name": "strike_2",
+    "box": [
+     204,
+     818,
+     950,
+     833
+    ],
+    "px": 0
+   },
+   {
+    "name": "fact_rule",
+    "box": [
+     1147,
+     292,
+     1205,
+     297
+    ],
+    "px": 0
+   },
+   {
+    "name": "fact_label",
+    "box": [
+     1147,
+     315,
+     1290,
+     349
+    ],
+    "px": 45
+   },
+   {
+    "name": "fact_0",
+    "box": [
+     1147,
+     395,
+     1887,
+     544
+    ],
+    "px": 171
+   },
+   {
+    "name": "fact_1",
+    "box": [
+     1147,
+     565,
+     1931,
+     714
+    ],
+    "px": 171
+   },
+   {
+    "name": "fact_2",
+    "box": [
+     1147,
+     736,
+     2337,
+     885
+    ],
+    "px": 171
+   },
+   {
+    "name": "source",
+    "box": [
+     1147,
+     933,
+     1494,
+     959
+    ],
+    "px": 37
+   },
+   {
+    "name": "divider",
+    "box": [
+     1075,
+     292,
+     1077,
+     980
+    ],
+    "px": 0
+   }
+  ]
+ },
+ "myth_richat_short_3840x2160_dark": {
+  "lines": {
+   "myth": [
+    "THE RICHAT",
+    "STRUCTURE IS AN",
+    "IMPACT CRATER"
+   ],
+   "fact": [
+    "THE IMPACT",
+    "THEORY WAS",
+    "DISPROVED IN 1969"
+   ]
+  },
+  "anchors": {
+   "P": null,
+   "Pm": null,
+   "position": null,
+   "lines": null,
+   "block_top": null,
+   "L": null,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {},
+  "elements": [
+   {
+    "name": "myth_rule",
+    "box": [
+     306,
+     556,
+     394,
+     564
+    ],
+    "px": 0
+   },
+   {
+    "name": "myth_label",
+    "box": [
+     306,
+     592,
+     538,
+     640
+    ],
+    "px": 68
+   },
+   {
+    "name": "myth_0",
+    "box": [
+     306,
+     710,
+     1092,
+     877
+    ],
+    "px": 192
+   },
+   {
+    "name": "myth_1",
+    "box": [
+     306,
+     932,
+     1485,
+     1099
+    ],
+    "px": 192
+   },
+   {
+    "name": "myth_2",
+    "box": [
+     306,
+     1154,
+     1403,
+     1321
+    ],
+    "px": 192
+   },
+   {
+    "name": "strike_0",
+    "box": [
+     306,
+     783,
+     1112,
+     805
+    ],
+    "px": 0
+   },
+   {
+    "name": "strike_1",
+    "box": [
+     306,
+     1005,
+     1505,
+     1027
+    ],
+    "px": 0
+   },
+   {
+    "name": "strike_2",
+    "box": [
+     306,
+     1227,
+     1423,
+     1249
+    ],
+    "px": 0
+   },
+   {
+    "name": "fact_rule",
+    "box": [
+     1720,
+     438,
+     1808,
+     446
+    ],
+    "px": 0
+   },
+   {
+    "name": "fact_label",
+    "box": [
+     1720,
+     473,
+     1936,
+     523
+    ],
+    "px": 68
+   },
+   {
+    "name": "fact_0",
+    "box": [
+     1720,
+     592,
+     2826,
+     816
+    ],
+    "px": 256
+   },
+   {
+    "name": "fact_1",
+    "box": [
+     1720,
+     848,
+     2893,
+     1072
+    ],
+    "px": 256
+   },
+   {
+    "name": "fact_2",
+    "box": [
+     1720,
+     1104,
+     3501,
+     1328
+    ],
+    "px": 256
+   },
+   {
+    "name": "source",
+    "box": [
+     1720,
+     1398,
+     2256,
+     1439
+    ],
+    "px": 56
+   },
+   {
+    "name": "divider",
+    "box": [
+     1612,
+     438,
+     1616,
+     1470
+    ],
+    "px": 0
+   }
+  ]
+ },
+ "myth_richat_short_3840x2160_plain": {
+  "lines": {
+   "myth": [
+    "THE RICHAT",
+    "STRUCTURE IS AN",
+    "IMPACT CRATER"
+   ],
+   "fact": [
+    "THE IMPACT",
+    "THEORY WAS",
+    "DISPROVED IN 1969"
+   ]
+  },
+  "anchors": {
+   "P": null,
+   "Pm": null,
+   "position": null,
+   "lines": null,
+   "block_top": null,
+   "L": null,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {},
+  "elements": [
+   {
+    "name": "myth_rule",
+    "box": [
+     306,
+     556,
+     394,
+     564
+    ],
+    "px": 0
+   },
+   {
+    "name": "myth_label",
+    "box": [
+     306,
+     592,
+     538,
+     640
+    ],
+    "px": 68
+   },
+   {
+    "name": "myth_0",
+    "box": [
+     306,
+     710,
+     1092,
+     877
+    ],
+    "px": 192
+   },
+   {
+    "name": "myth_1",
+    "box": [
+     306,
+     932,
+     1485,
+     1099
+    ],
+    "px": 192
+   },
+   {
+    "name": "myth_2",
+    "box": [
+     306,
+     1154,
+     1403,
+     1321
+    ],
+    "px": 192
+   },
+   {
+    "name": "strike_0",
+    "box": [
+     306,
+     783,
+     1112,
+     805
+    ],
+    "px": 0
+   },
+   {
+    "name": "strike_1",
+    "box": [
+     306,
+     1005,
+     1505,
+     1027
+    ],
+    "px": 0
+   },
+   {
+    "name": "strike_2",
+    "box": [
+     306,
+     1227,
+     1423,
+     1249
+    ],
+    "px": 0
+   },
+   {
+    "name": "fact_rule",
+    "box": [
+     1720,
+     438,
+     1808,
+     446
+    ],
+    "px": 0
+   },
+   {
+    "name": "fact_label",
+    "box": [
+     1720,
+     473,
+     1936,
+     523
+    ],
+    "px": 68
+   },
+   {
+    "name": "fact_0",
+    "box": [
+     1720,
+     592,
+     2826,
+     816
+    ],
+    "px": 256
+   },
+   {
+    "name": "fact_1",
+    "box": [
+     1720,
+     848,
+     2893,
+     1072
+    ],
+    "px": 256
+   },
+   {
+    "name": "fact_2",
+    "box": [
+     1720,
+     1104,
+     3501,
+     1328
+    ],
+    "px": 256
+   },
+   {
+    "name": "source",
+    "box": [
+     1720,
+     1398,
+     2256,
+     1439
+    ],
+    "px": 56
+   },
+   {
+    "name": "divider",
+    "box": [
+     1612,
+     438,
+     1616,
+     1470
+    ],
+    "px": 0
+   }
+  ]
+ },
+ "myth_richat_long_1080x1920_dark": {
+  "lines": {
+   "myth": [
+    "THE RICHAT STRUCTURE",
+    "IS AN IMPACT CRATER"
+   ],
+   "fact": [
+    "IMPACT THEORY DISPROVED",
+    "WHEN SUSPECTED",
+    "COESITE WAS IDENTIFIED",
+    "IN 1969 AS BARITE"
+   ]
+  },
+  "anchors": {
+   "P": null,
+   "Pm": null,
+   "position": null,
+   "lines": null,
+   "block_top": null,
+   "L": null,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {},
+  "elements": [
+   {
+    "name": "myth_rule",
+    "box": [
+     100,
+     288,
+     144,
+     292
+    ],
+    "px": 0
+   },
+   {
+    "name": "myth_label",
+    "box": [
+     100,
+     306,
+     237,
+     334
+    ],
+    "px": 40
+   },
+   {
+    "name": "myth_0",
+    "box": [
+     100,
+     369,
+     647,
+     428
+    ],
+    "px": 66
+   },
+   {
+    "name": "myth_1",
+    "box": [
+     100,
+     446,
+     615,
+     505
+    ],
+    "px": 66
+   },
+   {
+    "name": "strike_0",
+    "box": [
+     90,
+     395,
+     657,
+     403
+    ],
+    "px": 0
+   },
+   {
+    "name": "strike_1",
+    "box": [
+     90,
+     472,
+     625,
+     480
+    ],
+    "px": 0
+   },
+   {
+    "name": "fact_rule",
+    "box": [
+     100,
+     599,
+     144,
+     603
+    ],
+    "px": 0
+   },
+   {
+    "name": "fact_label",
+    "box": [
+     100,
+     616,
+     228,
+     646
+    ],
+    "px": 40
+   },
+   {
+    "name": "fact_0",
+    "box": [
+     100,
+     680,
+     854,
+     747
+    ],
+    "px": 76
+   },
+   {
+    "name": "fact_1",
+    "box": [
+     100,
+     756,
+     584,
+     823
+    ],
+    "px": 76
+   },
+   {
+    "name": "fact_2",
+    "box": [
+     100,
+     832,
+     761,
+     899
+    ],
+    "px": 76
+   },
+   {
+    "name": "fact_3",
+    "box": [
+     100,
+     908,
+     604,
+     975
+    ],
+    "px": 76
+   },
+   {
+    "name": "source",
+    "box": [
+     100,
+     1025,
+     384,
+     1046
+    ],
+    "px": 30
+   }
+  ]
+ },
+ "myth_richat_long_1080x1920_plain": {
+  "lines": {
+   "myth": [
+    "THE RICHAT STRUCTURE",
+    "IS AN IMPACT CRATER"
+   ],
+   "fact": [
+    "IMPACT THEORY DISPROVED",
+    "WHEN SUSPECTED",
+    "COESITE WAS IDENTIFIED",
+    "IN 1969 AS BARITE"
+   ]
+  },
+  "anchors": {
+   "P": null,
+   "Pm": null,
+   "position": null,
+   "lines": null,
+   "block_top": null,
+   "L": null,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {},
+  "elements": [
+   {
+    "name": "myth_rule",
+    "box": [
+     100,
+     288,
+     144,
+     292
+    ],
+    "px": 0
+   },
+   {
+    "name": "myth_label",
+    "box": [
+     100,
+     306,
+     237,
+     334
+    ],
+    "px": 40
+   },
+   {
+    "name": "myth_0",
+    "box": [
+     100,
+     369,
+     647,
+     428
+    ],
+    "px": 66
+   },
+   {
+    "name": "myth_1",
+    "box": [
+     100,
+     446,
+     615,
+     505
+    ],
+    "px": 66
+   },
+   {
+    "name": "strike_0",
+    "box": [
+     90,
+     395,
+     657,
+     403
+    ],
+    "px": 0
+   },
+   {
+    "name": "strike_1",
+    "box": [
+     90,
+     472,
+     625,
+     480
+    ],
+    "px": 0
+   },
+   {
+    "name": "fact_rule",
+    "box": [
+     100,
+     599,
+     144,
+     603
+    ],
+    "px": 0
+   },
+   {
+    "name": "fact_label",
+    "box": [
+     100,
+     616,
+     228,
+     646
+    ],
+    "px": 40
+   },
+   {
+    "name": "fact_0",
+    "box": [
+     100,
+     680,
+     854,
+     747
+    ],
+    "px": 76
+   },
+   {
+    "name": "fact_1",
+    "box": [
+     100,
+     756,
+     584,
+     823
+    ],
+    "px": 76
+   },
+   {
+    "name": "fact_2",
+    "box": [
+     100,
+     832,
+     761,
+     899
+    ],
+    "px": 76
+   },
+   {
+    "name": "fact_3",
+    "box": [
+     100,
+     908,
+     604,
+     975
+    ],
+    "px": 76
+   },
+   {
+    "name": "source",
+    "box": [
+     100,
+     1025,
+     384,
+     1046
+    ],
+    "px": 30
+   }
+  ]
+ },
+ "myth_richat_long_720x1280_dark": {
+  "lines": {
+   "myth": [
+    "THE RICHAT STRUCTURE",
+    "IS AN IMPACT CRATER"
+   ],
+   "fact": [
+    "IMPACT THEORY DISPROVED",
+    "WHEN SUSPECTED",
+    "COESITE WAS IDENTIFIED",
+    "IN 1969 AS BARITE"
+   ]
+  },
+  "anchors": {
+   "P": null,
+   "Pm": null,
+   "position": null,
+   "lines": null,
+   "block_top": null,
+   "L": null,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {},
+  "elements": [
+   {
+    "name": "myth_rule",
+    "box": [
+     67,
+     192,
+     96,
+     195
+    ],
+    "px": 0
+   },
+   {
+    "name": "myth_label",
+    "box": [
+     67,
+     204,
+     160,
+     223
+    ],
+    "px": 27
+   },
+   {
+    "name": "myth_0",
+    "box": [
+     67,
+     247,
+     433,
+     285
+    ],
+    "px": 44
+   },
+   {
+    "name": "myth_1",
+    "box": [
+     67,
+     298,
+     411,
+     336
+    ],
+    "px": 44
+   },
+   {
+    "name": "strike_0",
+    "box": [
+     60,
+     264,
+     440,
+     269
+    ],
+    "px": 0
+   },
+   {
+    "name": "strike_1",
+    "box": [
+     60,
+     315,
+     418,
+     320
+    ],
+    "px": 0
+   },
+   {
+    "name": "fact_rule",
+    "box": [
+     67,
+     399,
+     96,
+     402
+    ],
+    "px": 0
+   },
+   {
+    "name": "fact_label",
+    "box": [
+     67,
+     410,
+     154,
+     431
+    ],
+    "px": 27
+   },
+   {
+    "name": "fact_0",
+    "box": [
+     67,
+     453,
+     574,
+     497
+    ],
+    "px": 51
+   },
+   {
+    "name": "fact_1",
+    "box": [
+     67,
+     504,
+     392,
+     548
+    ],
+    "px": 51
+   },
+   {
+    "name": "fact_2",
+    "box": [
+     67,
+     555,
+     514,
+     599
+    ],
+    "px": 51
+   },
+   {
+    "name": "fact_3",
+    "box": [
+     67,
+     605,
+     406,
+     649
+    ],
+    "px": 51
+   },
+   {
+    "name": "source",
+    "box": [
+     67,
+     683,
+     257,
+     697
+    ],
+    "px": 20
+   }
+  ]
+ },
+ "myth_richat_long_720x1280_plain": {
+  "lines": {
+   "myth": [
+    "THE RICHAT STRUCTURE",
+    "IS AN IMPACT CRATER"
+   ],
+   "fact": [
+    "IMPACT THEORY DISPROVED",
+    "WHEN SUSPECTED",
+    "COESITE WAS IDENTIFIED",
+    "IN 1969 AS BARITE"
+   ]
+  },
+  "anchors": {
+   "P": null,
+   "Pm": null,
+   "position": null,
+   "lines": null,
+   "block_top": null,
+   "L": null,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {},
+  "elements": [
+   {
+    "name": "myth_rule",
+    "box": [
+     67,
+     192,
+     96,
+     195
+    ],
+    "px": 0
+   },
+   {
+    "name": "myth_label",
+    "box": [
+     67,
+     204,
+     160,
+     223
+    ],
+    "px": 27
+   },
+   {
+    "name": "myth_0",
+    "box": [
+     67,
+     247,
+     433,
+     285
+    ],
+    "px": 44
+   },
+   {
+    "name": "myth_1",
+    "box": [
+     67,
+     298,
+     411,
+     336
+    ],
+    "px": 44
+   },
+   {
+    "name": "strike_0",
+    "box": [
+     60,
+     264,
+     440,
+     269
+    ],
+    "px": 0
+   },
+   {
+    "name": "strike_1",
+    "box": [
+     60,
+     315,
+     418,
+     320
+    ],
+    "px": 0
+   },
+   {
+    "name": "fact_rule",
+    "box": [
+     67,
+     399,
+     96,
+     402
+    ],
+    "px": 0
+   },
+   {
+    "name": "fact_label",
+    "box": [
+     67,
+     410,
+     154,
+     431
+    ],
+    "px": 27
+   },
+   {
+    "name": "fact_0",
+    "box": [
+     67,
+     453,
+     574,
+     497
+    ],
+    "px": 51
+   },
+   {
+    "name": "fact_1",
+    "box": [
+     67,
+     504,
+     392,
+     548
+    ],
+    "px": 51
+   },
+   {
+    "name": "fact_2",
+    "box": [
+     67,
+     555,
+     514,
+     599
+    ],
+    "px": 51
+   },
+   {
+    "name": "fact_3",
+    "box": [
+     67,
+     605,
+     406,
+     649
+    ],
+    "px": 51
+   },
+   {
+    "name": "source",
+    "box": [
+     67,
+     683,
+     257,
+     697
+    ],
+    "px": 20
+   }
+  ]
+ },
+ "myth_richat_long_1440x2560_dark": {
+  "lines": {
+   "myth": [
+    "THE RICHAT STRUCTURE",
+    "IS AN IMPACT CRATER"
+   ],
+   "fact": [
+    "IMPACT THEORY DISPROVED",
+    "WHEN SUSPECTED",
+    "COESITE WAS IDENTIFIED",
+    "IN 1969 AS BARITE"
+   ]
+  },
+  "anchors": {
+   "P": null,
+   "Pm": null,
+   "position": null,
+   "lines": null,
+   "block_top": null,
+   "L": null,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {},
+  "elements": [
+   {
+    "name": "myth_rule",
+    "box": [
+     133,
+     384,
+     192,
+     389
+    ],
+    "px": 0
+   },
+   {
+    "name": "myth_label",
+    "box": [
+     133,
+     407,
+     315,
+     445
+    ],
+    "px": 53
+   },
+   {
+    "name": "myth_0",
+    "box": [
+     133,
+     493,
+     872,
+     570
+    ],
+    "px": 88
+   },
+   {
+    "name": "myth_1",
+    "box": [
+     133,
+     596,
+     829,
+     673
+    ],
+    "px": 88
+   },
+   {
+    "name": "strike_0",
+    "box": [
+     120,
+     526,
+     885,
+     537
+    ],
+    "px": 0
+   },
+   {
+    "name": "strike_1",
+    "box": [
+     120,
+     629,
+     842,
+     640
+    ],
+    "px": 0
+   },
+   {
+    "name": "fact_rule",
+    "box": [
+     133,
+     799,
+     192,
+     804
+    ],
+    "px": 0
+   },
+   {
+    "name": "fact_label",
+    "box": [
+     133,
+     822,
+     303,
+     861
+    ],
+    "px": 53
+   },
+   {
+    "name": "fact_0",
+    "box": [
+     133,
+     907,
+     1136,
+     996
+    ],
+    "px": 101
+   },
+   {
+    "name": "fact_1",
+    "box": [
+     133,
+     1008,
+     779,
+     1097
+    ],
+    "px": 101
+   },
+   {
+    "name": "fact_2",
+    "box": [
+     133,
+     1109,
+     1017,
+     1198
+    ],
+    "px": 101
+   },
+   {
+    "name": "fact_3",
+    "box": [
+     133,
+     1211,
+     802,
+     1300
+    ],
+    "px": 101
+   },
+   {
+    "name": "source",
+    "box": [
+     133,
+     1367,
+     512,
+     1396
+    ],
+    "px": 40
+   }
+  ]
+ },
+ "myth_richat_long_1440x2560_plain": {
+  "lines": {
+   "myth": [
+    "THE RICHAT STRUCTURE",
+    "IS AN IMPACT CRATER"
+   ],
+   "fact": [
+    "IMPACT THEORY DISPROVED",
+    "WHEN SUSPECTED",
+    "COESITE WAS IDENTIFIED",
+    "IN 1969 AS BARITE"
+   ]
+  },
+  "anchors": {
+   "P": null,
+   "Pm": null,
+   "position": null,
+   "lines": null,
+   "block_top": null,
+   "L": null,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {},
+  "elements": [
+   {
+    "name": "myth_rule",
+    "box": [
+     133,
+     384,
+     192,
+     389
+    ],
+    "px": 0
+   },
+   {
+    "name": "myth_label",
+    "box": [
+     133,
+     407,
+     315,
+     445
+    ],
+    "px": 53
+   },
+   {
+    "name": "myth_0",
+    "box": [
+     133,
+     493,
+     872,
+     570
+    ],
+    "px": 88
+   },
+   {
+    "name": "myth_1",
+    "box": [
+     133,
+     596,
+     829,
+     673
+    ],
+    "px": 88
+   },
+   {
+    "name": "strike_0",
+    "box": [
+     120,
+     526,
+     885,
+     537
+    ],
+    "px": 0
+   },
+   {
+    "name": "strike_1",
+    "box": [
+     120,
+     629,
+     842,
+     640
+    ],
+    "px": 0
+   },
+   {
+    "name": "fact_rule",
+    "box": [
+     133,
+     799,
+     192,
+     804
+    ],
+    "px": 0
+   },
+   {
+    "name": "fact_label",
+    "box": [
+     133,
+     822,
+     303,
+     861
+    ],
+    "px": 53
+   },
+   {
+    "name": "fact_0",
+    "box": [
+     133,
+     907,
+     1136,
+     996
+    ],
+    "px": 101
+   },
+   {
+    "name": "fact_1",
+    "box": [
+     133,
+     1008,
+     779,
+     1097
+    ],
+    "px": 101
+   },
+   {
+    "name": "fact_2",
+    "box": [
+     133,
+     1109,
+     1017,
+     1198
+    ],
+    "px": 101
+   },
+   {
+    "name": "fact_3",
+    "box": [
+     133,
+     1211,
+     802,
+     1300
+    ],
+    "px": 101
+   },
+   {
+    "name": "source",
+    "box": [
+     133,
+     1367,
+     512,
+     1396
+    ],
+    "px": 40
+   }
+  ]
+ },
+ "myth_richat_long_1920x1080_dark": {
+  "lines": {
+   "myth": [
+    "THE RICHAT",
+    "STRUCTURE IS AN",
+    "IMPACT CRATER"
+   ],
+   "fact": [
+    "IMPACT THEORY",
+    "DISPROVED WHEN",
+    "SUSPECTED COESITE",
+    "WAS IDENTIFIED",
+    "IN 1969 AS BARITE"
+   ]
+  },
+  "anchors": {
+   "P": null,
+   "Pm": null,
+   "position": null,
+   "lines": null,
+   "block_top": null,
+   "L": null,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {},
+  "elements": [
+   {
+    "name": "myth_rule",
+    "box": [
+     153,
+     287,
+     197,
+     291
+    ],
+    "px": 0
+   },
+   {
+    "name": "myth_label",
+    "box": [
+     153,
+     305,
+     270,
+     329
+    ],
+    "px": 34
+   },
+   {
+    "name": "myth_0",
+    "box": [
+     153,
+     364,
+     522,
+     444
+    ],
+    "px": 90
+   },
+   {
+    "name": "myth_1",
+    "box": [
+     153,
+     468,
+     708,
+     548
+    ],
+    "px": 90
+   },
+   {
+    "name": "myth_2",
+    "box": [
+     153,
+     572,
+     670,
+     652
+    ],
+    "px": 90
+   },
+   {
+    "name": "strike_0",
+    "box": [
+     153,
+     399,
+     532,
+     409
+    ],
+    "px": 0
+   },
+   {
+    "name": "strike_1",
+    "box": [
+     153,
+     503,
+     718,
+     513
+    ],
+    "px": 0
+   },
+   {
+    "name": "strike_2",
+    "box": [
+     153,
+     607,
+     680,
+     617
+    ],
+    "px": 0
+   },
+   {
+    "name": "fact_rule",
+    "box": [
+     860,
+     150,
+     904,
+     154
+    ],
+    "px": 0
+   },
+   {
+    "name": "fact_label",
+    "box": [
+     860,
+     167,
+     969,
+     193
+    ],
+    "px": 34
+   },
+   {
+    "name": "fact_0",
+    "box": [
+     860,
+     227,
+     1455,
+     318
+    ],
+    "px": 104
+   },
+   {
+    "name": "fact_1",
+    "box": [
+     860,
+     331,
+     1514,
+     422
+    ],
+    "px": 104
+   },
+   {
+    "name": "fact_2",
+    "box": [
+     860,
+     435,
+     1600,
+     526
+    ],
+    "px": 104
+   },
+   {
+    "name": "fact_3",
+    "box": [
+     860,
+     539,
+     1446,
+     630
+    ],
+    "px": 104
+   },
+   {
+    "name": "fact_4",
+    "box": [
+     860,
+     643,
+     1546,
+     734
+    ],
+    "px": 104
+   },
+   {
+    "name": "source",
+    "box": [
+     860,
+     769,
+     1128,
+     789
+    ],
+    "px": 28
+   },
+   {
+    "name": "divider",
+    "box": [
+     806,
+     150,
+     808,
+     805
+    ],
+    "px": 0
+   }
+  ]
+ },
+ "myth_richat_long_1920x1080_plain": {
+  "lines": {
+   "myth": [
+    "THE RICHAT",
+    "STRUCTURE IS AN",
+    "IMPACT CRATER"
+   ],
+   "fact": [
+    "IMPACT THEORY",
+    "DISPROVED WHEN",
+    "SUSPECTED COESITE",
+    "WAS IDENTIFIED",
+    "IN 1969 AS BARITE"
+   ]
+  },
+  "anchors": {
+   "P": null,
+   "Pm": null,
+   "position": null,
+   "lines": null,
+   "block_top": null,
+   "L": null,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {},
+  "elements": [
+   {
+    "name": "myth_rule",
+    "box": [
+     153,
+     287,
+     197,
+     291
+    ],
+    "px": 0
+   },
+   {
+    "name": "myth_label",
+    "box": [
+     153,
+     305,
+     270,
+     329
+    ],
+    "px": 34
+   },
+   {
+    "name": "myth_0",
+    "box": [
+     153,
+     364,
+     522,
+     444
+    ],
+    "px": 90
+   },
+   {
+    "name": "myth_1",
+    "box": [
+     153,
+     468,
+     708,
+     548
+    ],
+    "px": 90
+   },
+   {
+    "name": "myth_2",
+    "box": [
+     153,
+     572,
+     670,
+     652
+    ],
+    "px": 90
+   },
+   {
+    "name": "strike_0",
+    "box": [
+     153,
+     399,
+     532,
+     409
+    ],
+    "px": 0
+   },
+   {
+    "name": "strike_1",
+    "box": [
+     153,
+     503,
+     718,
+     513
+    ],
+    "px": 0
+   },
+   {
+    "name": "strike_2",
+    "box": [
+     153,
+     607,
+     680,
+     617
+    ],
+    "px": 0
+   },
+   {
+    "name": "fact_rule",
+    "box": [
+     860,
+     150,
+     904,
+     154
+    ],
+    "px": 0
+   },
+   {
+    "name": "fact_label",
+    "box": [
+     860,
+     167,
+     969,
+     193
+    ],
+    "px": 34
+   },
+   {
+    "name": "fact_0",
+    "box": [
+     860,
+     227,
+     1455,
+     318
+    ],
+    "px": 104
+   },
+   {
+    "name": "fact_1",
+    "box": [
+     860,
+     331,
+     1514,
+     422
+    ],
+    "px": 104
+   },
+   {
+    "name": "fact_2",
+    "box": [
+     860,
+     435,
+     1600,
+     526
+    ],
+    "px": 104
+   },
+   {
+    "name": "fact_3",
+    "box": [
+     860,
+     539,
+     1446,
+     630
+    ],
+    "px": 104
+   },
+   {
+    "name": "fact_4",
+    "box": [
+     860,
+     643,
+     1546,
+     734
+    ],
+    "px": 104
+   },
+   {
+    "name": "source",
+    "box": [
+     860,
+     769,
+     1128,
+     789
+    ],
+    "px": 28
+   },
+   {
+    "name": "divider",
+    "box": [
+     806,
+     150,
+     808,
+     805
+    ],
+    "px": 0
+   }
+  ]
+ },
+ "myth_richat_long_1280x720_dark": {
+  "lines": {
+   "myth": [
+    "THE RICHAT",
+    "STRUCTURE IS AN",
+    "IMPACT CRATER"
+   ],
+   "fact": [
+    "IMPACT THEORY",
+    "DISPROVED WHEN",
+    "SUSPECTED COESITE",
+    "WAS IDENTIFIED",
+    "IN 1969 AS BARITE"
+   ]
+  },
+  "anchors": {
+   "P": null,
+   "Pm": null,
+   "position": null,
+   "lines": null,
+   "block_top": null,
+   "L": null,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {},
+  "elements": [
+   {
+    "name": "myth_rule",
+    "box": [
+     102,
+     191,
+     131,
+     194
+    ],
+    "px": 0
+   },
+   {
+    "name": "myth_label",
+    "box": [
+     102,
+     202,
+     181,
+     219
+    ],
+    "px": 23
+   },
+   {
+    "name": "myth_0",
+    "box": [
+     102,
+     243,
+     349,
+     295
+    ],
+    "px": 60
+   },
+   {
+    "name": "myth_1",
+    "box": [
+     102,
+     313,
+     471,
+     365
+    ],
+    "px": 60
+   },
+   {
+    "name": "myth_2",
+    "box": [
+     102,
+     382,
+     446,
+     434
+    ],
+    "px": 60
+   },
+   {
+    "name": "strike_0",
+    "box": [
+     102,
+     266,
+     356,
+     273
+    ],
+    "px": 0
+   },
+   {
+    "name": "strike_1",
+    "box": [
+     102,
+     336,
+     478,
+     343
+    ],
+    "px": 0
+   },
+   {
+    "name": "strike_2",
+    "box": [
+     102,
+     405,
+     453,
+     412
+    ],
+    "px": 0
+   },
+   {
+    "name": "fact_rule",
+    "box": [
+     573,
+     100,
+     603,
+     103
+    ],
+    "px": 0
+   },
+   {
+    "name": "fact_label",
+    "box": [
+     573,
+     111,
+     647,
+     129
+    ],
+    "px": 23
+   },
+   {
+    "name": "fact_0",
+    "box": [
+     573,
+     151,
+     967,
+     212
+    ],
+    "px": 69
+   },
+   {
+    "name": "fact_1",
+    "box": [
+     573,
+     221,
+     1006,
+     282
+    ],
+    "px": 69
+   },
+   {
+    "name": "fact_2",
+    "box": [
+     573,
+     290,
+     1066,
+     351
+    ],
+    "px": 69
+   },
+   {
+    "name": "fact_3",
+    "box": [
+     573,
+     359,
+     962,
+     420
+    ],
+    "px": 69
+   },
+   {
+    "name": "fact_4",
+    "box": [
+     573,
+     429,
+     1029,
+     490
+    ],
+    "px": 69
+   },
+   {
+    "name": "source",
+    "box": [
+     573,
+     513,
+     748,
+     526
+    ],
+    "px": 19
+   },
+   {
+    "name": "divider",
+    "box": [
+     537,
+     100,
+     539,
+     537
+    ],
+    "px": 0
+   }
+  ]
+ },
+ "myth_richat_long_1280x720_plain": {
+  "lines": {
+   "myth": [
+    "THE RICHAT",
+    "STRUCTURE IS AN",
+    "IMPACT CRATER"
+   ],
+   "fact": [
+    "IMPACT THEORY",
+    "DISPROVED WHEN",
+    "SUSPECTED COESITE",
+    "WAS IDENTIFIED",
+    "IN 1969 AS BARITE"
+   ]
+  },
+  "anchors": {
+   "P": null,
+   "Pm": null,
+   "position": null,
+   "lines": null,
+   "block_top": null,
+   "L": null,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {},
+  "elements": [
+   {
+    "name": "myth_rule",
+    "box": [
+     102,
+     191,
+     131,
+     194
+    ],
+    "px": 0
+   },
+   {
+    "name": "myth_label",
+    "box": [
+     102,
+     202,
+     181,
+     219
+    ],
+    "px": 23
+   },
+   {
+    "name": "myth_0",
+    "box": [
+     102,
+     243,
+     349,
+     295
+    ],
+    "px": 60
+   },
+   {
+    "name": "myth_1",
+    "box": [
+     102,
+     313,
+     471,
+     365
+    ],
+    "px": 60
+   },
+   {
+    "name": "myth_2",
+    "box": [
+     102,
+     382,
+     446,
+     434
+    ],
+    "px": 60
+   },
+   {
+    "name": "strike_0",
+    "box": [
+     102,
+     266,
+     356,
+     273
+    ],
+    "px": 0
+   },
+   {
+    "name": "strike_1",
+    "box": [
+     102,
+     336,
+     478,
+     343
+    ],
+    "px": 0
+   },
+   {
+    "name": "strike_2",
+    "box": [
+     102,
+     405,
+     453,
+     412
+    ],
+    "px": 0
+   },
+   {
+    "name": "fact_rule",
+    "box": [
+     573,
+     100,
+     603,
+     103
+    ],
+    "px": 0
+   },
+   {
+    "name": "fact_label",
+    "box": [
+     573,
+     111,
+     647,
+     129
+    ],
+    "px": 23
+   },
+   {
+    "name": "fact_0",
+    "box": [
+     573,
+     151,
+     967,
+     212
+    ],
+    "px": 69
+   },
+   {
+    "name": "fact_1",
+    "box": [
+     573,
+     221,
+     1006,
+     282
+    ],
+    "px": 69
+   },
+   {
+    "name": "fact_2",
+    "box": [
+     573,
+     290,
+     1066,
+     351
+    ],
+    "px": 69
+   },
+   {
+    "name": "fact_3",
+    "box": [
+     573,
+     359,
+     962,
+     420
+    ],
+    "px": 69
+   },
+   {
+    "name": "fact_4",
+    "box": [
+     573,
+     429,
+     1029,
+     490
+    ],
+    "px": 69
+   },
+   {
+    "name": "source",
+    "box": [
+     573,
+     513,
+     748,
+     526
+    ],
+    "px": 19
+   },
+   {
+    "name": "divider",
+    "box": [
+     537,
+     100,
+     539,
+     537
+    ],
+    "px": 0
+   }
+  ]
+ },
+ "myth_richat_long_2560x1440_dark": {
+  "lines": {
+   "myth": [
+    "THE RICHAT",
+    "STRUCTURE IS AN",
+    "IMPACT CRATER"
+   ],
+   "fact": [
+    "IMPACT THEORY",
+    "DISPROVED WHEN",
+    "SUSPECTED COESITE",
+    "WAS IDENTIFIED",
+    "IN 1969 AS BARITE"
+   ]
+  },
+  "anchors": {
+   "P": null,
+   "Pm": null,
+   "position": null,
+   "lines": null,
+   "block_top": null,
+   "L": null,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {},
+  "elements": [
+   {
+    "name": "myth_rule",
+    "box": [
+     204,
+     383,
+     263,
+     388
+    ],
+    "px": 0
+   },
+   {
+    "name": "myth_label",
+    "box": [
+     204,
+     407,
+     358,
+     439
+    ],
+    "px": 45
+   },
+   {
+    "name": "myth_0",
+    "box": [
+     204,
+     487,
+     693,
+     592
+    ],
+    "px": 120
+   },
+   {
+    "name": "myth_1",
+    "box": [
+     204,
+     625,
+     937,
+     730
+    ],
+    "px": 120
+   },
+   {
+    "name": "myth_2",
+    "box": [
+     204,
+     764,
+     888,
+     869
+    ],
+    "px": 120
+   },
+   {
+    "name": "strike_0",
+    "box": [
+     204,
+     533,
+     706,
+     546
+    ],
+    "px": 0
+   },
+   {
+    "name": "strike_1",
+    "box": [
+     204,
+     671,
+     950,
+     684
+    ],
+    "px": 0
+   },
+   {
+    "name": "strike_2",
+    "box": [
+     204,
+     810,
+     901,
+     823
+    ],
+    "px": 0
+   },
+   {
+    "name": "fact_rule",
+    "box": [
+     1147,
+     200,
+     1205,
+     205
+    ],
+    "px": 0
+   },
+   {
+    "name": "fact_label",
+    "box": [
+     1147,
+     223,
+     1290,
+     257
+    ],
+    "px": 45
+   },
+   {
+    "name": "fact_0",
+    "box": [
+     1147,
+     302,
+     1943,
+     424
+    ],
+    "px": 139
+   },
+   {
+    "name": "fact_1",
+    "box": [
+     1147,
+     440,
+     2020,
+     562
+    ],
+    "px": 139
+   },
+   {
+    "name": "fact_2",
+    "box": [
+     1147,
+     579,
+     2139,
+     701
+    ],
+    "px": 139
+   },
+   {
+    "name": "fact_3",
+    "box": [
+     1147,
+     718,
+     1932,
+     840
+    ],
+    "px": 139
+   },
+   {
+    "name": "fact_4",
+    "box": [
+     1147,
+     856,
+     2069,
+     978
+    ],
+    "px": 139
+   },
+   {
+    "name": "source",
+    "box": [
+     1147,
+     1026,
+     1494,
+     1052
+    ],
+    "px": 37
+   },
+   {
+    "name": "divider",
+    "box": [
+     1075,
+     200,
+     1077,
+     1073
+    ],
+    "px": 0
+   }
+  ]
+ },
+ "myth_richat_long_2560x1440_plain": {
+  "lines": {
+   "myth": [
+    "THE RICHAT",
+    "STRUCTURE IS AN",
+    "IMPACT CRATER"
+   ],
+   "fact": [
+    "IMPACT THEORY",
+    "DISPROVED WHEN",
+    "SUSPECTED COESITE",
+    "WAS IDENTIFIED",
+    "IN 1969 AS BARITE"
+   ]
+  },
+  "anchors": {
+   "P": null,
+   "Pm": null,
+   "position": null,
+   "lines": null,
+   "block_top": null,
+   "L": null,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {},
+  "elements": [
+   {
+    "name": "myth_rule",
+    "box": [
+     204,
+     383,
+     263,
+     388
+    ],
+    "px": 0
+   },
+   {
+    "name": "myth_label",
+    "box": [
+     204,
+     407,
+     358,
+     439
+    ],
+    "px": 45
+   },
+   {
+    "name": "myth_0",
+    "box": [
+     204,
+     487,
+     693,
+     592
+    ],
+    "px": 120
+   },
+   {
+    "name": "myth_1",
+    "box": [
+     204,
+     625,
+     937,
+     730
+    ],
+    "px": 120
+   },
+   {
+    "name": "myth_2",
+    "box": [
+     204,
+     764,
+     888,
+     869
+    ],
+    "px": 120
+   },
+   {
+    "name": "strike_0",
+    "box": [
+     204,
+     533,
+     706,
+     546
+    ],
+    "px": 0
+   },
+   {
+    "name": "strike_1",
+    "box": [
+     204,
+     671,
+     950,
+     684
+    ],
+    "px": 0
+   },
+   {
+    "name": "strike_2",
+    "box": [
+     204,
+     810,
+     901,
+     823
+    ],
+    "px": 0
+   },
+   {
+    "name": "fact_rule",
+    "box": [
+     1147,
+     200,
+     1205,
+     205
+    ],
+    "px": 0
+   },
+   {
+    "name": "fact_label",
+    "box": [
+     1147,
+     223,
+     1290,
+     257
+    ],
+    "px": 45
+   },
+   {
+    "name": "fact_0",
+    "box": [
+     1147,
+     302,
+     1943,
+     424
+    ],
+    "px": 139
+   },
+   {
+    "name": "fact_1",
+    "box": [
+     1147,
+     440,
+     2020,
+     562
+    ],
+    "px": 139
+   },
+   {
+    "name": "fact_2",
+    "box": [
+     1147,
+     579,
+     2139,
+     701
+    ],
+    "px": 139
+   },
+   {
+    "name": "fact_3",
+    "box": [
+     1147,
+     718,
+     1932,
+     840
+    ],
+    "px": 139
+   },
+   {
+    "name": "fact_4",
+    "box": [
+     1147,
+     856,
+     2069,
+     978
+    ],
+    "px": 139
+   },
+   {
+    "name": "source",
+    "box": [
+     1147,
+     1026,
+     1494,
+     1052
+    ],
+    "px": 37
+   },
+   {
+    "name": "divider",
+    "box": [
+     1075,
+     200,
+     1077,
+     1073
+    ],
+    "px": 0
+   }
+  ]
+ },
+ "myth_richat_long_3840x2160_dark": {
+  "lines": {
+   "myth": [
+    "THE RICHAT",
+    "STRUCTURE IS AN",
+    "IMPACT CRATER"
+   ],
+   "fact": [
+    "IMPACT THEORY",
+    "DISPROVED WHEN",
+    "SUSPECTED COESITE",
+    "WAS IDENTIFIED",
+    "IN 1969 AS BARITE"
+   ]
+  },
+  "anchors": {
+   "P": null,
+   "Pm": null,
+   "position": null,
+   "lines": null,
+   "block_top": null,
+   "L": null,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {},
+  "elements": [
+   {
+    "name": "myth_rule",
+    "box": [
+     306,
+     574,
+     394,
+     582
+    ],
+    "px": 0
+   },
+   {
+    "name": "myth_label",
+    "box": [
+     306,
+     610,
+     538,
+     658
+    ],
+    "px": 68
+   },
+   {
+    "name": "myth_0",
+    "box": [
+     306,
+     731,
+     1041,
+     887
+    ],
+    "px": 180
+   },
+   {
+    "name": "myth_1",
+    "box": [
+     306,
+     939,
+     1407,
+     1095
+    ],
+    "px": 180
+   },
+   {
+    "name": "myth_2",
+    "box": [
+     306,
+     1147,
+     1332,
+     1303
+    ],
+    "px": 180
+   },
+   {
+    "name": "strike_0",
+    "box": [
+     306,
+     799,
+     1061,
+     819
+    ],
+    "px": 0
+   },
+   {
+    "name": "strike_1",
+    "box": [
+     306,
+     1007,
+     1427,
+     1027
+    ],
+    "px": 0
+   },
+   {
+    "name": "strike_2",
+    "box": [
+     306,
+     1215,
+     1352,
+     1235
+    ],
+    "px": 0
+   },
+   {
+    "name": "fact_rule",
+    "box": [
+     1720,
+     300,
+     1808,
+     308
+    ],
+    "px": 0
+   },
+   {
+    "name": "fact_label",
+    "box": [
+     1720,
+     335,
+     1936,
+     385
+    ],
+    "px": 68
+   },
+   {
+    "name": "fact_0",
+    "box": [
+     1720,
+     453,
+     2909,
+     636
+    ],
+    "px": 208
+   },
+   {
+    "name": "fact_1",
+    "box": [
+     1720,
+     661,
+     3027,
+     844
+    ],
+    "px": 208
+   },
+   {
+    "name": "fact_2",
+    "box": [
+     1720,
+     869,
+     3203,
+     1052
+    ],
+    "px": 208
+   },
+   {
+    "name": "fact_3",
+    "box": [
+     1720,
+     1077,
+     2893,
+     1260
+    ],
+    "px": 208
+   },
+   {
+    "name": "fact_4",
+    "box": [
+     1720,
+     1285,
+     3098,
+     1468
+    ],
+    "px": 208
+   },
+   {
+    "name": "source",
+    "box": [
+     1720,
+     1538,
+     2256,
+     1579
+    ],
+    "px": 56
+   },
+   {
+    "name": "divider",
+    "box": [
+     1612,
+     300,
+     1616,
+     1610
+    ],
+    "px": 0
+   }
+  ]
+ },
+ "myth_richat_long_3840x2160_plain": {
+  "lines": {
+   "myth": [
+    "THE RICHAT",
+    "STRUCTURE IS AN",
+    "IMPACT CRATER"
+   ],
+   "fact": [
+    "IMPACT THEORY",
+    "DISPROVED WHEN",
+    "SUSPECTED COESITE",
+    "WAS IDENTIFIED",
+    "IN 1969 AS BARITE"
+   ]
+  },
+  "anchors": {
+   "P": null,
+   "Pm": null,
+   "position": null,
+   "lines": null,
+   "block_top": null,
+   "L": null,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {},
+  "elements": [
+   {
+    "name": "myth_rule",
+    "box": [
+     306,
+     574,
+     394,
+     582
+    ],
+    "px": 0
+   },
+   {
+    "name": "myth_label",
+    "box": [
+     306,
+     610,
+     538,
+     658
+    ],
+    "px": 68
+   },
+   {
+    "name": "myth_0",
+    "box": [
+     306,
+     731,
+     1041,
+     887
+    ],
+    "px": 180
+   },
+   {
+    "name": "myth_1",
+    "box": [
+     306,
+     939,
+     1407,
+     1095
+    ],
+    "px": 180
+   },
+   {
+    "name": "myth_2",
+    "box": [
+     306,
+     1147,
+     1332,
+     1303
+    ],
+    "px": 180
+   },
+   {
+    "name": "strike_0",
+    "box": [
+     306,
+     799,
+     1061,
+     819
+    ],
+    "px": 0
+   },
+   {
+    "name": "strike_1",
+    "box": [
+     306,
+     1007,
+     1427,
+     1027
+    ],
+    "px": 0
+   },
+   {
+    "name": "strike_2",
+    "box": [
+     306,
+     1215,
+     1352,
+     1235
+    ],
+    "px": 0
+   },
+   {
+    "name": "fact_rule",
+    "box": [
+     1720,
+     300,
+     1808,
+     308
+    ],
+    "px": 0
+   },
+   {
+    "name": "fact_label",
+    "box": [
+     1720,
+     335,
+     1936,
+     385
+    ],
+    "px": 68
+   },
+   {
+    "name": "fact_0",
+    "box": [
+     1720,
+     453,
+     2909,
+     636
+    ],
+    "px": 208
+   },
+   {
+    "name": "fact_1",
+    "box": [
+     1720,
+     661,
+     3027,
+     844
+    ],
+    "px": 208
+   },
+   {
+    "name": "fact_2",
+    "box": [
+     1720,
+     869,
+     3203,
+     1052
+    ],
+    "px": 208
+   },
+   {
+    "name": "fact_3",
+    "box": [
+     1720,
+     1077,
+     2893,
+     1260
+    ],
+    "px": 208
+   },
+   {
+    "name": "fact_4",
+    "box": [
+     1720,
+     1285,
+     3098,
+     1468
+    ],
+    "px": 208
+   },
+   {
+    "name": "source",
+    "box": [
+     1720,
+     1538,
+     2256,
+     1579
+    ],
+    "px": 56
+   },
+   {
+    "name": "divider",
+    "box": [
+     1612,
+     300,
+     1616,
+     1610
+    ],
+    "px": 0
+   }
+  ]
+ },
+ "myth_richat_nodate_1080x1920_dark": {
+  "lines": {
+   "myth": [
+    "THE RICHAT STRUCTURE",
+    "IS AN IMPACT CRATER"
+   ],
+   "fact": [
+    "THE IMPACT THEORY",
+    "WAS DISPROVED",
+    "WHEN SUSPECTED COESITE",
+    "WAS IDENTIFIED AS BARITE"
+   ]
+  },
+  "anchors": {
+   "P": null,
+   "Pm": null,
+   "position": null,
+   "lines": null,
+   "block_top": null,
+   "L": null,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {},
+  "elements": [
+   {
+    "name": "myth_rule",
+    "box": [
+     100,
+     288,
+     144,
+     292
+    ],
+    "px": 0
+   },
+   {
+    "name": "myth_label",
+    "box": [
+     100,
+     306,
+     237,
+     334
+    ],
+    "px": 40
+   },
+   {
+    "name": "myth_0",
+    "box": [
+     100,
+     369,
+     666,
+     429
+    ],
+    "px": 68
+   },
+   {
+    "name": "myth_1",
+    "box": [
+     100,
+     448,
+     633,
+     508
+    ],
+    "px": 68
+   },
+   {
+    "name": "strike_0",
+    "box": [
+     90,
+     395,
+     676,
+     403
+    ],
+    "px": 0
+   },
+   {
+    "name": "strike_1",
+    "box": [
+     90,
+     474,
+     643,
+     482
+    ],
+    "px": 0
+   },
+   {
+    "name": "fact_rule",
+    "box": [
+     100,
+     583,
+     144,
+     587
+    ],
+    "px": 0
+   },
+   {
+    "name": "fact_label",
+    "box": [
+     100,
+     600,
+     228,
+     630
+    ],
+    "px": 40
+   },
+   {
+    "name": "fact_0",
+    "box": [
+     100,
+     664,
+     686,
+     735
+    ],
+    "px": 80
+   },
+   {
+    "name": "fact_1",
+    "box": [
+     100,
+     744,
+     568,
+     815
+    ],
+    "px": 80
+   },
+   {
+    "name": "fact_2",
+    "box": [
+     100,
+     824,
+     861,
+     895
+    ],
+    "px": 80
+   },
+   {
+    "name": "fact_3",
+    "box": [
+     100,
+     904,
+     864,
+     975
+    ],
+    "px": 80
+   },
+   {
+    "name": "source",
+    "box": [
+     100,
+     1025,
+     384,
+     1046
+    ],
+    "px": 30
+   }
+  ]
+ },
+ "myth_richat_nodate_1080x1920_plain": {
+  "lines": {
+   "myth": [
+    "THE RICHAT STRUCTURE",
+    "IS AN IMPACT CRATER"
+   ],
+   "fact": [
+    "THE IMPACT THEORY",
+    "WAS DISPROVED",
+    "WHEN SUSPECTED COESITE",
+    "WAS IDENTIFIED AS BARITE"
+   ]
+  },
+  "anchors": {
+   "P": null,
+   "Pm": null,
+   "position": null,
+   "lines": null,
+   "block_top": null,
+   "L": null,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {},
+  "elements": [
+   {
+    "name": "myth_rule",
+    "box": [
+     100,
+     288,
+     144,
+     292
+    ],
+    "px": 0
+   },
+   {
+    "name": "myth_label",
+    "box": [
+     100,
+     306,
+     237,
+     334
+    ],
+    "px": 40
+   },
+   {
+    "name": "myth_0",
+    "box": [
+     100,
+     369,
+     666,
+     429
+    ],
+    "px": 68
+   },
+   {
+    "name": "myth_1",
+    "box": [
+     100,
+     448,
+     633,
+     508
+    ],
+    "px": 68
+   },
+   {
+    "name": "strike_0",
+    "box": [
+     90,
+     395,
+     676,
+     403
+    ],
+    "px": 0
+   },
+   {
+    "name": "strike_1",
+    "box": [
+     90,
+     474,
+     643,
+     482
+    ],
+    "px": 0
+   },
+   {
+    "name": "fact_rule",
+    "box": [
+     100,
+     583,
+     144,
+     587
+    ],
+    "px": 0
+   },
+   {
+    "name": "fact_label",
+    "box": [
+     100,
+     600,
+     228,
+     630
+    ],
+    "px": 40
+   },
+   {
+    "name": "fact_0",
+    "box": [
+     100,
+     664,
+     686,
+     735
+    ],
+    "px": 80
+   },
+   {
+    "name": "fact_1",
+    "box": [
+     100,
+     744,
+     568,
+     815
+    ],
+    "px": 80
+   },
+   {
+    "name": "fact_2",
+    "box": [
+     100,
+     824,
+     861,
+     895
+    ],
+    "px": 80
+   },
+   {
+    "name": "fact_3",
+    "box": [
+     100,
+     904,
+     864,
+     975
+    ],
+    "px": 80
+   },
+   {
+    "name": "source",
+    "box": [
+     100,
+     1025,
+     384,
+     1046
+    ],
+    "px": 30
+   }
+  ]
+ },
+ "myth_richat_nodate_720x1280_dark": {
+  "lines": {
+   "myth": [
+    "THE RICHAT STRUCTURE",
+    "IS AN IMPACT CRATER"
+   ],
+   "fact": [
+    "THE IMPACT THEORY",
+    "WAS DISPROVED",
+    "WHEN SUSPECTED COESITE",
+    "WAS IDENTIFIED AS BARITE"
+   ]
+  },
+  "anchors": {
+   "P": null,
+   "Pm": null,
+   "position": null,
+   "lines": null,
+   "block_top": null,
+   "L": null,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {},
+  "elements": [
+   {
+    "name": "myth_rule",
+    "box": [
+     67,
+     192,
+     96,
+     195
+    ],
+    "px": 0
+   },
+   {
+    "name": "myth_label",
+    "box": [
+     67,
+     204,
+     160,
+     223
+    ],
+    "px": 27
+   },
+   {
+    "name": "myth_0",
+    "box": [
+     67,
+     247,
+     442,
+     285
+    ],
+    "px": 45
+   },
+   {
+    "name": "myth_1",
+    "box": [
+     67,
+     300,
+     422,
+     338
+    ],
+    "px": 45
+   },
+   {
+    "name": "strike_0",
+    "box": [
+     60,
+     264,
+     449,
+     269
+    ],
+    "px": 0
+   },
+   {
+    "name": "strike_1",
+    "box": [
+     60,
+     317,
+     429,
+     322
+    ],
+    "px": 0
+   },
+   {
+    "name": "fact_rule",
+    "box": [
+     67,
+     389,
+     96,
+     391
+    ],
+    "px": 0
+   },
+   {
+    "name": "fact_label",
+    "box": [
+     67,
+     399,
+     154,
+     420
+    ],
+    "px": 27
+   },
+   {
+    "name": "fact_0",
+    "box": [
+     67,
+     444,
+     453,
+     489
+    ],
+    "px": 53
+   },
+   {
+    "name": "fact_1",
+    "box": [
+     67,
+     498,
+     377,
+     543
+    ],
+    "px": 53
+   },
+   {
+    "name": "fact_2",
+    "box": [
+     67,
+     551,
+     568,
+     596
+    ],
+    "px": 53
+   },
+   {
+    "name": "fact_3",
+    "box": [
+     67,
+     604,
+     571,
+     649
+    ],
+    "px": 53
+   },
+   {
+    "name": "source",
+    "box": [
+     67,
+     683,
+     257,
+     697
+    ],
+    "px": 20
+   }
+  ]
+ },
+ "myth_richat_nodate_720x1280_plain": {
+  "lines": {
+   "myth": [
+    "THE RICHAT STRUCTURE",
+    "IS AN IMPACT CRATER"
+   ],
+   "fact": [
+    "THE IMPACT THEORY",
+    "WAS DISPROVED",
+    "WHEN SUSPECTED COESITE",
+    "WAS IDENTIFIED AS BARITE"
+   ]
+  },
+  "anchors": {
+   "P": null,
+   "Pm": null,
+   "position": null,
+   "lines": null,
+   "block_top": null,
+   "L": null,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {},
+  "elements": [
+   {
+    "name": "myth_rule",
+    "box": [
+     67,
+     192,
+     96,
+     195
+    ],
+    "px": 0
+   },
+   {
+    "name": "myth_label",
+    "box": [
+     67,
+     204,
+     160,
+     223
+    ],
+    "px": 27
+   },
+   {
+    "name": "myth_0",
+    "box": [
+     67,
+     247,
+     442,
+     285
+    ],
+    "px": 45
+   },
+   {
+    "name": "myth_1",
+    "box": [
+     67,
+     300,
+     422,
+     338
+    ],
+    "px": 45
+   },
+   {
+    "name": "strike_0",
+    "box": [
+     60,
+     264,
+     449,
+     269
+    ],
+    "px": 0
+   },
+   {
+    "name": "strike_1",
+    "box": [
+     60,
+     317,
+     429,
+     322
+    ],
+    "px": 0
+   },
+   {
+    "name": "fact_rule",
+    "box": [
+     67,
+     389,
+     96,
+     391
+    ],
+    "px": 0
+   },
+   {
+    "name": "fact_label",
+    "box": [
+     67,
+     399,
+     154,
+     420
+    ],
+    "px": 27
+   },
+   {
+    "name": "fact_0",
+    "box": [
+     67,
+     444,
+     453,
+     489
+    ],
+    "px": 53
+   },
+   {
+    "name": "fact_1",
+    "box": [
+     67,
+     498,
+     377,
+     543
+    ],
+    "px": 53
+   },
+   {
+    "name": "fact_2",
+    "box": [
+     67,
+     551,
+     568,
+     596
+    ],
+    "px": 53
+   },
+   {
+    "name": "fact_3",
+    "box": [
+     67,
+     604,
+     571,
+     649
+    ],
+    "px": 53
+   },
+   {
+    "name": "source",
+    "box": [
+     67,
+     683,
+     257,
+     697
+    ],
+    "px": 20
+   }
+  ]
+ },
+ "myth_richat_nodate_1440x2560_dark": {
+  "lines": {
+   "myth": [
+    "THE RICHAT STRUCTURE",
+    "IS AN IMPACT CRATER"
+   ],
+   "fact": [
+    "THE IMPACT THEORY",
+    "WAS DISPROVED",
+    "WHEN SUSPECTED COESITE",
+    "WAS IDENTIFIED AS BARITE"
+   ]
+  },
+  "anchors": {
+   "P": null,
+   "Pm": null,
+   "position": null,
+   "lines": null,
+   "block_top": null,
+   "L": null,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {},
+  "elements": [
+   {
+    "name": "myth_rule",
+    "box": [
+     133,
+     384,
+     192,
+     389
+    ],
+    "px": 0
+   },
+   {
+    "name": "myth_label",
+    "box": [
+     133,
+     407,
+     315,
+     445
+    ],
+    "px": 53
+   },
+   {
+    "name": "myth_0",
+    "box": [
+     133,
+     492,
+     890,
+     572
+    ],
+    "px": 91
+   },
+   {
+    "name": "myth_1",
+    "box": [
+     133,
+     597,
+     846,
+     677
+    ],
+    "px": 91
+   },
+   {
+    "name": "strike_0",
+    "box": [
+     120,
+     527,
+     903,
+     538
+    ],
+    "px": 0
+   },
+   {
+    "name": "strike_1",
+    "box": [
+     120,
+     632,
+     859,
+     643
+    ],
+    "px": 0
+   },
+   {
+    "name": "fact_rule",
+    "box": [
+     133,
+     777,
+     192,
+     783
+    ],
+    "px": 0
+   },
+   {
+    "name": "fact_label",
+    "box": [
+     133,
+     801,
+     303,
+     840
+    ],
+    "px": 53
+   },
+   {
+    "name": "fact_0",
+    "box": [
+     133,
+     886,
+     911,
+     980
+    ],
+    "px": 107
+   },
+   {
+    "name": "fact_1",
+    "box": [
+     133,
+     992,
+     758,
+     1086
+    ],
+    "px": 107
+   },
+   {
+    "name": "fact_2",
+    "box": [
+     133,
+     1099,
+     1147,
+     1193
+    ],
+    "px": 107
+   },
+   {
+    "name": "fact_3",
+    "box": [
+     133,
+     1206,
+     1152,
+     1300
+    ],
+    "px": 107
+   },
+   {
+    "name": "source",
+    "box": [
+     133,
+     1367,
+     512,
+     1396
+    ],
+    "px": 40
+   }
+  ]
+ },
+ "myth_richat_nodate_1440x2560_plain": {
+  "lines": {
+   "myth": [
+    "THE RICHAT STRUCTURE",
+    "IS AN IMPACT CRATER"
+   ],
+   "fact": [
+    "THE IMPACT THEORY",
+    "WAS DISPROVED",
+    "WHEN SUSPECTED COESITE",
+    "WAS IDENTIFIED AS BARITE"
+   ]
+  },
+  "anchors": {
+   "P": null,
+   "Pm": null,
+   "position": null,
+   "lines": null,
+   "block_top": null,
+   "L": null,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {},
+  "elements": [
+   {
+    "name": "myth_rule",
+    "box": [
+     133,
+     384,
+     192,
+     389
+    ],
+    "px": 0
+   },
+   {
+    "name": "myth_label",
+    "box": [
+     133,
+     407,
+     315,
+     445
+    ],
+    "px": 53
+   },
+   {
+    "name": "myth_0",
+    "box": [
+     133,
+     492,
+     890,
+     572
+    ],
+    "px": 91
+   },
+   {
+    "name": "myth_1",
+    "box": [
+     133,
+     597,
+     846,
+     677
+    ],
+    "px": 91
+   },
+   {
+    "name": "strike_0",
+    "box": [
+     120,
+     527,
+     903,
+     538
+    ],
+    "px": 0
+   },
+   {
+    "name": "strike_1",
+    "box": [
+     120,
+     632,
+     859,
+     643
+    ],
+    "px": 0
+   },
+   {
+    "name": "fact_rule",
+    "box": [
+     133,
+     777,
+     192,
+     783
+    ],
+    "px": 0
+   },
+   {
+    "name": "fact_label",
+    "box": [
+     133,
+     801,
+     303,
+     840
+    ],
+    "px": 53
+   },
+   {
+    "name": "fact_0",
+    "box": [
+     133,
+     886,
+     911,
+     980
+    ],
+    "px": 107
+   },
+   {
+    "name": "fact_1",
+    "box": [
+     133,
+     992,
+     758,
+     1086
+    ],
+    "px": 107
+   },
+   {
+    "name": "fact_2",
+    "box": [
+     133,
+     1099,
+     1147,
+     1193
+    ],
+    "px": 107
+   },
+   {
+    "name": "fact_3",
+    "box": [
+     133,
+     1206,
+     1152,
+     1300
+    ],
+    "px": 107
+   },
+   {
+    "name": "source",
+    "box": [
+     133,
+     1367,
+     512,
+     1396
+    ],
+    "px": 40
+   }
+  ]
+ },
+ "myth_richat_nodate_1920x1080_dark": {
+  "lines": {
+   "myth": [
+    "THE RICHAT",
+    "STRUCTURE IS AN",
+    "IMPACT CRATER"
+   ],
+   "fact": [
+    "THE IMPACT THEORY",
+    "WAS DISPROVED",
+    "WHEN SUSPECTED",
+    "COESITE WAS",
+    "IDENTIFIED AS BARITE"
+   ]
+  },
+  "anchors": {
+   "P": null,
+   "Pm": null,
+   "position": null,
+   "lines": null,
+   "block_top": null,
+   "L": null,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {},
+  "elements": [
+   {
+    "name": "myth_rule",
+    "box": [
+     153,
+     287,
+     197,
+     291
+    ],
+    "px": 0
+   },
+   {
+    "name": "myth_label",
+    "box": [
+     153,
+     305,
+     270,
+     329
+    ],
+    "px": 34
+   },
+   {
+    "name": "myth_0",
+    "box": [
+     153,
+     364,
+     522,
+     444
+    ],
+    "px": 90
+   },
+   {
+    "name": "myth_1",
+    "box": [
+     153,
+     468,
+     708,
+     548
+    ],
+    "px": 90
+   },
+   {
+    "name": "myth_2",
+    "box": [
+     153,
+     572,
+     670,
+     652
+    ],
+    "px": 90
+   },
+   {
+    "name": "strike_0",
+    "box": [
+     153,
+     399,
+     532,
+     409
+    ],
+    "px": 0
+   },
+   {
+    "name": "strike_1",
+    "box": [
+     153,
+     503,
+     718,
+     513
+    ],
+    "px": 0
+   },
+   {
+    "name": "strike_2",
+    "box": [
+     153,
+     607,
+     680,
+     617
+    ],
+    "px": 0
+   },
+   {
+    "name": "fact_rule",
+    "box": [
+     860,
+     150,
+     904,
+     154
+    ],
+    "px": 0
+   },
+   {
+    "name": "fact_label",
+    "box": [
+     860,
+     167,
+     969,
+     193
+    ],
+    "px": 34
+   },
+   {
+    "name": "fact_0",
+    "box": [
+     860,
+     227,
+     1617,
+     318
+    ],
+    "px": 104
+   },
+   {
+    "name": "fact_1",
+    "box": [
+     860,
+     331,
+     1468,
+     422
+    ],
+    "px": 104
+   },
+   {
+    "name": "fact_2",
+    "box": [
+     860,
+     435,
+     1522,
+     526
+    ],
+    "px": 104
+   },
+   {
+    "name": "fact_3",
+    "box": [
+     860,
+     539,
+     1351,
+     630
+    ],
+    "px": 104
+   },
+   {
+    "name": "fact_4",
+    "box": [
+     860,
+     643,
+     1653,
+     734
+    ],
+    "px": 104
+   },
+   {
+    "name": "source",
+    "box": [
+     860,
+     769,
+     1128,
+     789
+    ],
+    "px": 28
+   },
+   {
+    "name": "divider",
+    "box": [
+     806,
+     150,
+     808,
+     805
+    ],
+    "px": 0
+   }
+  ]
+ },
+ "myth_richat_nodate_1920x1080_plain": {
+  "lines": {
+   "myth": [
+    "THE RICHAT",
+    "STRUCTURE IS AN",
+    "IMPACT CRATER"
+   ],
+   "fact": [
+    "THE IMPACT THEORY",
+    "WAS DISPROVED",
+    "WHEN SUSPECTED",
+    "COESITE WAS",
+    "IDENTIFIED AS BARITE"
+   ]
+  },
+  "anchors": {
+   "P": null,
+   "Pm": null,
+   "position": null,
+   "lines": null,
+   "block_top": null,
+   "L": null,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {},
+  "elements": [
+   {
+    "name": "myth_rule",
+    "box": [
+     153,
+     287,
+     197,
+     291
+    ],
+    "px": 0
+   },
+   {
+    "name": "myth_label",
+    "box": [
+     153,
+     305,
+     270,
+     329
+    ],
+    "px": 34
+   },
+   {
+    "name": "myth_0",
+    "box": [
+     153,
+     364,
+     522,
+     444
+    ],
+    "px": 90
+   },
+   {
+    "name": "myth_1",
+    "box": [
+     153,
+     468,
+     708,
+     548
+    ],
+    "px": 90
+   },
+   {
+    "name": "myth_2",
+    "box": [
+     153,
+     572,
+     670,
+     652
+    ],
+    "px": 90
+   },
+   {
+    "name": "strike_0",
+    "box": [
+     153,
+     399,
+     532,
+     409
+    ],
+    "px": 0
+   },
+   {
+    "name": "strike_1",
+    "box": [
+     153,
+     503,
+     718,
+     513
+    ],
+    "px": 0
+   },
+   {
+    "name": "strike_2",
+    "box": [
+     153,
+     607,
+     680,
+     617
+    ],
+    "px": 0
+   },
+   {
+    "name": "fact_rule",
+    "box": [
+     860,
+     150,
+     904,
+     154
+    ],
+    "px": 0
+   },
+   {
+    "name": "fact_label",
+    "box": [
+     860,
+     167,
+     969,
+     193
+    ],
+    "px": 34
+   },
+   {
+    "name": "fact_0",
+    "box": [
+     860,
+     227,
+     1617,
+     318
+    ],
+    "px": 104
+   },
+   {
+    "name": "fact_1",
+    "box": [
+     860,
+     331,
+     1468,
+     422
+    ],
+    "px": 104
+   },
+   {
+    "name": "fact_2",
+    "box": [
+     860,
+     435,
+     1522,
+     526
+    ],
+    "px": 104
+   },
+   {
+    "name": "fact_3",
+    "box": [
+     860,
+     539,
+     1351,
+     630
+    ],
+    "px": 104
+   },
+   {
+    "name": "fact_4",
+    "box": [
+     860,
+     643,
+     1653,
+     734
+    ],
+    "px": 104
+   },
+   {
+    "name": "source",
+    "box": [
+     860,
+     769,
+     1128,
+     789
+    ],
+    "px": 28
+   },
+   {
+    "name": "divider",
+    "box": [
+     806,
+     150,
+     808,
+     805
+    ],
+    "px": 0
+   }
+  ]
+ },
+ "myth_richat_nodate_1280x720_dark": {
+  "lines": {
+   "myth": [
+    "THE RICHAT",
+    "STRUCTURE IS AN",
+    "IMPACT CRATER"
+   ],
+   "fact": [
+    "THE IMPACT THEORY",
+    "WAS DISPROVED",
+    "WHEN SUSPECTED",
+    "COESITE WAS",
+    "IDENTIFIED AS BARITE"
+   ]
+  },
+  "anchors": {
+   "P": null,
+   "Pm": null,
+   "position": null,
+   "lines": null,
+   "block_top": null,
+   "L": null,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {},
+  "elements": [
+   {
+    "name": "myth_rule",
+    "box": [
+     102,
+     191,
+     131,
+     194
+    ],
+    "px": 0
+   },
+   {
+    "name": "myth_label",
+    "box": [
+     102,
+     202,
+     181,
+     219
+    ],
+    "px": 23
+   },
+   {
+    "name": "myth_0",
+    "box": [
+     102,
+     243,
+     349,
+     295
+    ],
+    "px": 60
+   },
+   {
+    "name": "myth_1",
+    "box": [
+     102,
+     313,
+     471,
+     365
+    ],
+    "px": 60
+   },
+   {
+    "name": "myth_2",
+    "box": [
+     102,
+     382,
+     446,
+     434
+    ],
+    "px": 60
+   },
+   {
+    "name": "strike_0",
+    "box": [
+     102,
+     266,
+     356,
+     273
+    ],
+    "px": 0
+   },
+   {
+    "name": "strike_1",
+    "box": [
+     102,
+     336,
+     478,
+     343
+    ],
+    "px": 0
+   },
+   {
+    "name": "strike_2",
+    "box": [
+     102,
+     405,
+     453,
+     412
+    ],
+    "px": 0
+   },
+   {
+    "name": "fact_rule",
+    "box": [
+     573,
+     100,
+     603,
+     103
+    ],
+    "px": 0
+   },
+   {
+    "name": "fact_label",
+    "box": [
+     573,
+     111,
+     647,
+     129
+    ],
+    "px": 23
+   },
+   {
+    "name": "fact_0",
+    "box": [
+     573,
+     151,
+     1074,
+     212
+    ],
+    "px": 69
+   },
+   {
+    "name": "fact_1",
+    "box": [
+     573,
+     221,
+     977,
+     282
+    ],
+    "px": 69
+   },
+   {
+    "name": "fact_2",
+    "box": [
+     573,
+     290,
+     1012,
+     351
+    ],
+    "px": 69
+   },
+   {
+    "name": "fact_3",
+    "box": [
+     573,
+     359,
+     898,
+     420
+    ],
+    "px": 69
+   },
+   {
+    "name": "fact_4",
+    "box": [
+     573,
+     429,
+     1099,
+     490
+    ],
+    "px": 69
+   },
+   {
+    "name": "source",
+    "box": [
+     573,
+     513,
+     748,
+     526
+    ],
+    "px": 19
+   },
+   {
+    "name": "divider",
+    "box": [
+     537,
+     100,
+     539,
+     537
+    ],
+    "px": 0
+   }
+  ]
+ },
+ "myth_richat_nodate_1280x720_plain": {
+  "lines": {
+   "myth": [
+    "THE RICHAT",
+    "STRUCTURE IS AN",
+    "IMPACT CRATER"
+   ],
+   "fact": [
+    "THE IMPACT THEORY",
+    "WAS DISPROVED",
+    "WHEN SUSPECTED",
+    "COESITE WAS",
+    "IDENTIFIED AS BARITE"
+   ]
+  },
+  "anchors": {
+   "P": null,
+   "Pm": null,
+   "position": null,
+   "lines": null,
+   "block_top": null,
+   "L": null,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {},
+  "elements": [
+   {
+    "name": "myth_rule",
+    "box": [
+     102,
+     191,
+     131,
+     194
+    ],
+    "px": 0
+   },
+   {
+    "name": "myth_label",
+    "box": [
+     102,
+     202,
+     181,
+     219
+    ],
+    "px": 23
+   },
+   {
+    "name": "myth_0",
+    "box": [
+     102,
+     243,
+     349,
+     295
+    ],
+    "px": 60
+   },
+   {
+    "name": "myth_1",
+    "box": [
+     102,
+     313,
+     471,
+     365
+    ],
+    "px": 60
+   },
+   {
+    "name": "myth_2",
+    "box": [
+     102,
+     382,
+     446,
+     434
+    ],
+    "px": 60
+   },
+   {
+    "name": "strike_0",
+    "box": [
+     102,
+     266,
+     356,
+     273
+    ],
+    "px": 0
+   },
+   {
+    "name": "strike_1",
+    "box": [
+     102,
+     336,
+     478,
+     343
+    ],
+    "px": 0
+   },
+   {
+    "name": "strike_2",
+    "box": [
+     102,
+     405,
+     453,
+     412
+    ],
+    "px": 0
+   },
+   {
+    "name": "fact_rule",
+    "box": [
+     573,
+     100,
+     603,
+     103
+    ],
+    "px": 0
+   },
+   {
+    "name": "fact_label",
+    "box": [
+     573,
+     111,
+     647,
+     129
+    ],
+    "px": 23
+   },
+   {
+    "name": "fact_0",
+    "box": [
+     573,
+     151,
+     1074,
+     212
+    ],
+    "px": 69
+   },
+   {
+    "name": "fact_1",
+    "box": [
+     573,
+     221,
+     977,
+     282
+    ],
+    "px": 69
+   },
+   {
+    "name": "fact_2",
+    "box": [
+     573,
+     290,
+     1012,
+     351
+    ],
+    "px": 69
+   },
+   {
+    "name": "fact_3",
+    "box": [
+     573,
+     359,
+     898,
+     420
+    ],
+    "px": 69
+   },
+   {
+    "name": "fact_4",
+    "box": [
+     573,
+     429,
+     1099,
+     490
+    ],
+    "px": 69
+   },
+   {
+    "name": "source",
+    "box": [
+     573,
+     513,
+     748,
+     526
+    ],
+    "px": 19
+   },
+   {
+    "name": "divider",
+    "box": [
+     537,
+     100,
+     539,
+     537
+    ],
+    "px": 0
+   }
+  ]
+ },
+ "myth_richat_nodate_2560x1440_dark": {
+  "lines": {
+   "myth": [
+    "THE RICHAT",
+    "STRUCTURE IS AN",
+    "IMPACT CRATER"
+   ],
+   "fact": [
+    "THE IMPACT THEORY",
+    "WAS DISPROVED",
+    "WHEN SUSPECTED",
+    "COESITE WAS",
+    "IDENTIFIED AS BARITE"
+   ]
+  },
+  "anchors": {
+   "P": null,
+   "Pm": null,
+   "position": null,
+   "lines": null,
+   "block_top": null,
+   "L": null,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {},
+  "elements": [
+   {
+    "name": "myth_rule",
+    "box": [
+     204,
+     383,
+     263,
+     388
+    ],
+    "px": 0
+   },
+   {
+    "name": "myth_label",
+    "box": [
+     204,
+     407,
+     358,
+     439
+    ],
+    "px": 45
+   },
+   {
+    "name": "myth_0",
+    "box": [
+     204,
+     487,
+     693,
+     592
+    ],
+    "px": 120
+   },
+   {
+    "name": "myth_1",
+    "box": [
+     204,
+     625,
+     937,
+     730
+    ],
+    "px": 120
+   },
+   {
+    "name": "myth_2",
+    "box": [
+     204,
+     764,
+     888,
+     869
+    ],
+    "px": 120
+   },
+   {
+    "name": "strike_0",
+    "box": [
+     204,
+     533,
+     706,
+     546
+    ],
+    "px": 0
+   },
+   {
+    "name": "strike_1",
+    "box": [
+     204,
+     671,
+     950,
+     684
+    ],
+    "px": 0
+   },
+   {
+    "name": "strike_2",
+    "box": [
+     204,
+     810,
+     901,
+     823
+    ],
+    "px": 0
+   },
+   {
+    "name": "fact_rule",
+    "box": [
+     1147,
+     200,
+     1205,
+     205
+    ],
+    "px": 0
+   },
+   {
+    "name": "fact_label",
+    "box": [
+     1147,
+     223,
+     1290,
+     257
+    ],
+    "px": 45
+   },
+   {
+    "name": "fact_0",
+    "box": [
+     1147,
+     302,
+     2160,
+     424
+    ],
+    "px": 139
+   },
+   {
+    "name": "fact_1",
+    "box": [
+     1147,
+     440,
+     1961,
+     562
+    ],
+    "px": 139
+   },
+   {
+    "name": "fact_2",
+    "box": [
+     1147,
+     579,
+     2033,
+     701
+    ],
+    "px": 139
+   },
+   {
+    "name": "fact_3",
+    "box": [
+     1147,
+     718,
+     1803,
+     840
+    ],
+    "px": 139
+   },
+   {
+    "name": "fact_4",
+    "box": [
+     1147,
+     856,
+     2209,
+     978
+    ],
+    "px": 139
+   },
+   {
+    "name": "source",
+    "box": [
+     1147,
+     1026,
+     1494,
+     1052
+    ],
+    "px": 37
+   },
+   {
+    "name": "divider",
+    "box": [
+     1075,
+     200,
+     1077,
+     1073
+    ],
+    "px": 0
+   }
+  ]
+ },
+ "myth_richat_nodate_2560x1440_plain": {
+  "lines": {
+   "myth": [
+    "THE RICHAT",
+    "STRUCTURE IS AN",
+    "IMPACT CRATER"
+   ],
+   "fact": [
+    "THE IMPACT THEORY",
+    "WAS DISPROVED",
+    "WHEN SUSPECTED",
+    "COESITE WAS",
+    "IDENTIFIED AS BARITE"
+   ]
+  },
+  "anchors": {
+   "P": null,
+   "Pm": null,
+   "position": null,
+   "lines": null,
+   "block_top": null,
+   "L": null,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {},
+  "elements": [
+   {
+    "name": "myth_rule",
+    "box": [
+     204,
+     383,
+     263,
+     388
+    ],
+    "px": 0
+   },
+   {
+    "name": "myth_label",
+    "box": [
+     204,
+     407,
+     358,
+     439
+    ],
+    "px": 45
+   },
+   {
+    "name": "myth_0",
+    "box": [
+     204,
+     487,
+     693,
+     592
+    ],
+    "px": 120
+   },
+   {
+    "name": "myth_1",
+    "box": [
+     204,
+     625,
+     937,
+     730
+    ],
+    "px": 120
+   },
+   {
+    "name": "myth_2",
+    "box": [
+     204,
+     764,
+     888,
+     869
+    ],
+    "px": 120
+   },
+   {
+    "name": "strike_0",
+    "box": [
+     204,
+     533,
+     706,
+     546
+    ],
+    "px": 0
+   },
+   {
+    "name": "strike_1",
+    "box": [
+     204,
+     671,
+     950,
+     684
+    ],
+    "px": 0
+   },
+   {
+    "name": "strike_2",
+    "box": [
+     204,
+     810,
+     901,
+     823
+    ],
+    "px": 0
+   },
+   {
+    "name": "fact_rule",
+    "box": [
+     1147,
+     200,
+     1205,
+     205
+    ],
+    "px": 0
+   },
+   {
+    "name": "fact_label",
+    "box": [
+     1147,
+     223,
+     1290,
+     257
+    ],
+    "px": 45
+   },
+   {
+    "name": "fact_0",
+    "box": [
+     1147,
+     302,
+     2160,
+     424
+    ],
+    "px": 139
+   },
+   {
+    "name": "fact_1",
+    "box": [
+     1147,
+     440,
+     1961,
+     562
+    ],
+    "px": 139
+   },
+   {
+    "name": "fact_2",
+    "box": [
+     1147,
+     579,
+     2033,
+     701
+    ],
+    "px": 139
+   },
+   {
+    "name": "fact_3",
+    "box": [
+     1147,
+     718,
+     1803,
+     840
+    ],
+    "px": 139
+   },
+   {
+    "name": "fact_4",
+    "box": [
+     1147,
+     856,
+     2209,
+     978
+    ],
+    "px": 139
+   },
+   {
+    "name": "source",
+    "box": [
+     1147,
+     1026,
+     1494,
+     1052
+    ],
+    "px": 37
+   },
+   {
+    "name": "divider",
+    "box": [
+     1075,
+     200,
+     1077,
+     1073
+    ],
+    "px": 0
+   }
+  ]
+ },
+ "myth_richat_nodate_3840x2160_dark": {
+  "lines": {
+   "myth": [
+    "THE RICHAT",
+    "STRUCTURE IS AN",
+    "IMPACT CRATER"
+   ],
+   "fact": [
+    "THE IMPACT THEORY",
+    "WAS DISPROVED",
+    "WHEN SUSPECTED",
+    "COESITE WAS",
+    "IDENTIFIED AS BARITE"
+   ]
+  },
+  "anchors": {
+   "P": null,
+   "Pm": null,
+   "position": null,
+   "lines": null,
+   "block_top": null,
+   "L": null,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {},
+  "elements": [
+   {
+    "name": "myth_rule",
+    "box": [
+     306,
+     574,
+     394,
+     582
+    ],
+    "px": 0
+   },
+   {
+    "name": "myth_label",
+    "box": [
+     306,
+     610,
+     538,
+     658
+    ],
+    "px": 68
+   },
+   {
+    "name": "myth_0",
+    "box": [
+     306,
+     731,
+     1041,
+     887
+    ],
+    "px": 180
+   },
+   {
+    "name": "myth_1",
+    "box": [
+     306,
+     939,
+     1407,
+     1095
+    ],
+    "px": 180
+   },
+   {
+    "name": "myth_2",
+    "box": [
+     306,
+     1147,
+     1332,
+     1303
+    ],
+    "px": 180
+   },
+   {
+    "name": "strike_0",
+    "box": [
+     306,
+     799,
+     1061,
+     819
+    ],
+    "px": 0
+   },
+   {
+    "name": "strike_1",
+    "box": [
+     306,
+     1007,
+     1427,
+     1027
+    ],
+    "px": 0
+   },
+   {
+    "name": "strike_2",
+    "box": [
+     306,
+     1215,
+     1352,
+     1235
+    ],
+    "px": 0
+   },
+   {
+    "name": "fact_rule",
+    "box": [
+     1720,
+     300,
+     1808,
+     308
+    ],
+    "px": 0
+   },
+   {
+    "name": "fact_label",
+    "box": [
+     1720,
+     335,
+     1936,
+     385
+    ],
+    "px": 68
+   },
+   {
+    "name": "fact_0",
+    "box": [
+     1720,
+     453,
+     3234,
+     636
+    ],
+    "px": 208
+   },
+   {
+    "name": "fact_1",
+    "box": [
+     1720,
+     661,
+     2936,
+     844
+    ],
+    "px": 208
+   },
+   {
+    "name": "fact_2",
+    "box": [
+     1720,
+     869,
+     3047,
+     1052
+    ],
+    "px": 208
+   },
+   {
+    "name": "fact_3",
+    "box": [
+     1720,
+     1077,
+     2702,
+     1260
+    ],
+    "px": 208
+   },
+   {
+    "name": "fact_4",
+    "box": [
+     1720,
+     1285,
+     3308,
+     1468
+    ],
+    "px": 208
+   },
+   {
+    "name": "source",
+    "box": [
+     1720,
+     1538,
+     2256,
+     1579
+    ],
+    "px": 56
+   },
+   {
+    "name": "divider",
+    "box": [
+     1612,
+     300,
+     1616,
+     1610
+    ],
+    "px": 0
+   }
+  ]
+ },
+ "myth_richat_nodate_3840x2160_plain": {
+  "lines": {
+   "myth": [
+    "THE RICHAT",
+    "STRUCTURE IS AN",
+    "IMPACT CRATER"
+   ],
+   "fact": [
+    "THE IMPACT THEORY",
+    "WAS DISPROVED",
+    "WHEN SUSPECTED",
+    "COESITE WAS",
+    "IDENTIFIED AS BARITE"
+   ]
+  },
+  "anchors": {
+   "P": null,
+   "Pm": null,
+   "position": null,
+   "lines": null,
+   "block_top": null,
+   "L": null,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {},
+  "elements": [
+   {
+    "name": "myth_rule",
+    "box": [
+     306,
+     574,
+     394,
+     582
+    ],
+    "px": 0
+   },
+   {
+    "name": "myth_label",
+    "box": [
+     306,
+     610,
+     538,
+     658
+    ],
+    "px": 68
+   },
+   {
+    "name": "myth_0",
+    "box": [
+     306,
+     731,
+     1041,
+     887
+    ],
+    "px": 180
+   },
+   {
+    "name": "myth_1",
+    "box": [
+     306,
+     939,
+     1407,
+     1095
+    ],
+    "px": 180
+   },
+   {
+    "name": "myth_2",
+    "box": [
+     306,
+     1147,
+     1332,
+     1303
+    ],
+    "px": 180
+   },
+   {
+    "name": "strike_0",
+    "box": [
+     306,
+     799,
+     1061,
+     819
+    ],
+    "px": 0
+   },
+   {
+    "name": "strike_1",
+    "box": [
+     306,
+     1007,
+     1427,
+     1027
+    ],
+    "px": 0
+   },
+   {
+    "name": "strike_2",
+    "box": [
+     306,
+     1215,
+     1352,
+     1235
+    ],
+    "px": 0
+   },
+   {
+    "name": "fact_rule",
+    "box": [
+     1720,
+     300,
+     1808,
+     308
+    ],
+    "px": 0
+   },
+   {
+    "name": "fact_label",
+    "box": [
+     1720,
+     335,
+     1936,
+     385
+    ],
+    "px": 68
+   },
+   {
+    "name": "fact_0",
+    "box": [
+     1720,
+     453,
+     3234,
+     636
+    ],
+    "px": 208
+   },
+   {
+    "name": "fact_1",
+    "box": [
+     1720,
+     661,
+     2936,
+     844
+    ],
+    "px": 208
+   },
+   {
+    "name": "fact_2",
+    "box": [
+     1720,
+     869,
+     3047,
+     1052
+    ],
+    "px": 208
+   },
+   {
+    "name": "fact_3",
+    "box": [
+     1720,
+     1077,
+     2702,
+     1260
+    ],
+    "px": 208
+   },
+   {
+    "name": "fact_4",
+    "box": [
+     1720,
+     1285,
+     3308,
+     1468
+    ],
+    "px": 208
+   },
+   {
+    "name": "source",
+    "box": [
+     1720,
+     1538,
+     2256,
+     1579
+    ],
+    "px": 56
+   },
+   {
+    "name": "divider",
+    "box": [
+     1612,
+     300,
+     1616,
+     1610
+    ],
+    "px": 0
+   }
+  ]
+ }
+}

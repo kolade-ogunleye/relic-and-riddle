@@ -1,0 +1,39 @@
+{
+  "commit": "c8de0bd50184eb0dc560d7f50cf5c62c04afe7aa",
+  "inputs": "36 generated textures: 20/8/8 author burst; first five exact duplicates; three known shot classes",
+  "model": "mock accepts all photos; no live API",
+  "after_fetch": {
+    "photos": 24,
+    "pairs_within_ten_bits": 10,
+    "minimum_pair_distance": 0,
+    "max_author_share": 0.8333333333333334,
+    "authors": {
+      "Photographer A": 20,
+      "Photographer B": 4
+    },
+    "shot_classes_from_fixture_truth": {
+      "wide": 8,
+      "interior": 8,
+      "detail": 8
+    }
+  },
+  "after_review": {
+    "photos": 24,
+    "pairs_within_ten_bits": 10,
+    "minimum_pair_distance": 0,
+    "max_author_share": 0.8333333333333334,
+    "authors": {
+      "Photographer A": 20,
+      "Photographer B": 4
+    },
+    "shot_classes_from_fixture_truth": {
+      "wide": 8,
+      "interior": 8,
+      "detail": 8
+    }
+  },
+  "approval_status": "approved",
+  "reserves": 0,
+  "original_files_retained": 24,
+  "acceptance_met": false
+}

@@ -1,6 +1,6 @@
 """colour_balance v5 evidence: v4 vs v5 over the ten development pools and production's Derinkuyu door.
 Usage: v5_evidence.py <repo> <out_dir>.  CACHE_DIR goes to a temporary folder; nothing in assets/ or cache/ is written."""
-import sys, json, time, tempfile, pathlib, types
+import os, sys, json, time, tempfile, pathlib, types
 sys.stdout.reconfigure(encoding="utf-8")
 root = pathlib.Path(sys.argv[1]); out_dir = pathlib.Path(sys.argv[2]); sys.path.insert(0, str(root))
 import numpy as np
@@ -17,7 +17,7 @@ assert v4.VERSION == 4 and cb.VERSION == 5
 POOLS = ["derinkuyu_underground_city", "richat_structure_sahara_eye", "nazca_lines_runway_paradox",
          "roman_self_healing_concrete", "amber_room_heist", "lycurgus_cup_nanotech", "odessa_catacombs",
          "gobekli_tepe_enclosure_d", "kailasa_temple_monolith", "hal_saflieni_hypogeum"]
-PROD = pathlib.Path(r"C:\Users\omokolade\.claude\jobs\d4ed881d\tmp\d72\f\prod08.jpg")
+PROD = pathlib.Path(os.environ.get("RR_PROD_PHOTO") or "prod08.jpg")  # production's Derinkuyu frame, a local copy (not tracked)
 RENDER_UNCHANGED = {("amber_room_heist", "03_commons.jpg"), ("lycurgus_cup_nanotech", "09_commons.jpg"),
                     ("derinkuyu_underground_city", "19_commons.jpg"), ("derinkuyu_underground_city", "21_commons.jpg")}
 

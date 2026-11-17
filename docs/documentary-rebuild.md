@@ -10,7 +10,7 @@ The formats that run are set in `.env`, not in code:
 | Setting | Values | Production | Development |
 |---|---|---|---|
 | `VIDEO_FORMATS` | `reel`, `documentary` or `reel,documentary` (default `reel`) | `reel` (leave unset or set it to `reel`) | `reel,documentary` |
-| `YOUTUBE_SHORTS` | `true` / `false` (default `false`) | off until approved | `true` |
+| `YOUTUBE_SHORTS` | `true` / `false` (default `true` since QF-83) | on (an explicit `false` turns it off) | `true` |
 | `YOUTUBE_SHORTS_PRIVACY` | `public`, `unlisted`, `private` (default `YOUTUBE_PRIVACY`) | `unlisted` to start | `unlisted` |
 
 - A format not listed in `VIDEO_FORMATS` is declined on every route before anything is spent: the

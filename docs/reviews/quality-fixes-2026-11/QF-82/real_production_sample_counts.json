@@ -1,0 +1,44 @@
+{
+  "compared": 18,
+  "delivered_cover_identical": 18,
+  "delivered_style_identical": 18,
+  "folders": {
+    "cover_identical_to_a_variant": 26,
+    "cover_identical_to_a_variant_of_another_style": 2,
+    "delivered_style": {
+      "badge": 5,
+      "depth_sandwich": 4,
+      "lower_third": 5,
+      "minimal": 5,
+      "no record": 15
+    },
+    "median_variant_bytes_per_run": 2354034,
+    "rerender_skipped_no_hero": 1,
+    "rerender_skipped_no_recipe_or_script": 15,
+    "runs": 34,
+    "runs_with_cover": 34,
+    "runs_with_variants": 34,
+    "variant_bytes_total": 79988460,
+    "variant_files": 102
+  },
+  "other_code": {
+    "errors": 0,
+    "jpgs_per_run": [
+      5
+    ],
+    "median_seconds": 14.95,
+    "rendered": 18,
+    "variant_files_written": 54
+  },
+  "profile_grid_identical": 18,
+  "rerender_jobs": 18,
+  "this_code": {
+    "errors": 0,
+    "jpgs_per_run": [
+      2
+    ],
+    "median_seconds": 5.41,
+    "rendered": 18,
+    "variant_files_written": 0
+  }
+}

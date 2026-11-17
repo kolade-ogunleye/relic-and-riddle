@@ -1,0 +1,69 @@
+{
+  "repo": "<repo root argument>",
+  "commit": "9cbedd5",
+  "ffmpeg": "ffmpeg version 8.1-full_build-www.gyan.dev",
+  "encoder": "-c:v libx264 -preset slow -crf 18",
+  "stills": "real photos: output/run_wieliczka_salt_mine_1792974672/beat_images/beat01_1.jpg, beat04_1.jpg",
+  "profiles": {
+    "reel": {
+      "size": "1080x1920",
+      "frames": 180,
+      "duration_s": 6.0,
+      "file_bytes": 6226635,
+      "video_kbps": 8099.1,
+      "noise_filter_in_master_graph": true,
+      "sha256": [
+        "a5f18c010f53b163",
+        "a5f18c010f53b163"
+      ],
+      "video_stream_md5": [
+        "90d965ca16cb8af1",
+        "90d965ca16cb8af1"
+      ],
+      "audio_stream_md5": [
+        "ad652e1b13e39333",
+        "ad652e1b13e39333"
+      ],
+      "second_render": {
+        "identical": true,
+        "differing_bytes": 0,
+        "boxes": {}
+      }
+    },
+    "deep_dive": {
+      "size": "1920x1080",
+      "frames": 180,
+      "duration_s": 6.0,
+      "file_bytes": 6701194,
+      "video_kbps": 8731.8,
+      "noise_filter_in_master_graph": true,
+      "sha256": [
+        "0026fdab45eb33ff",
+        "0026fdab45eb33ff"
+      ],
+      "video_stream_md5": [
+        "bfc176fc8b7ca110",
+        "bfc176fc8b7ca110"
+      ],
+      "audio_stream_md5": [
+        "ad652e1b13e39333",
+        "ad652e1b13e39333"
+      ],
+      "second_render": {
+        "identical": true,
+        "differing_bytes": 0,
+        "boxes": {}
+      }
+    }
+  },
+  "static_clip_flicker": {
+    "what": "mean |Y(n+1) - Y(n)| over a centred 400x400 box, frames 3-24 (before the caption), lossless encode",
+    "mean_abs_frame_diff_code": 1.674
+  },
+  "acceptance": {
+    "no_noise_filter": false,
+    "video_bitstreams_identical": true,
+    "renders_byte_identical": true,
+    "met": false
+  }
+}

@@ -1,0 +1,3001 @@
+[
+ {
+  "run": "run_amber_room_heist_1792781224",
+  "title": "Where Did the Stolen Amber Room Vanish? 🏛️",
+  "thumbnail": {
+   "eyebrow": "STOLEN WONDER",
+   "line1": "ESTIMATED 6 TONNES",
+   "line2": "GONE IN 36 HOURS",
+   "tagline": "DID IT SURVIVE 1944?"
+  },
+  "story_slides": [
+   {
+    "kicker": "THE HEIST",
+    "line1": "STRIPPED FROM WALLS",
+    "line2": "PACKED INTO CRATES",
+    "body": "In 1941, invading soldiers dismantled the entire chamber at the Catherine Palace."
+   },
+   {
+    "kicker": "THE EVIDENCE",
+    "line1": "A SURVIVING FRAGMENT",
+    "line2": "FOUND IN GERMANY",
+    "body": "In 1997, an original stone mosaic titled Feel and Touch was recovered in Germany."
+   },
+   {
+    "kicker": "THE POLL",
+    "line1": "WHAT WAS THE ROOM'S",
+    "line2": "TRUE FATE?",
+    "body": "Official tracking ended in August 1944 when heavy fire-bombing struck Königsberg Castle."
+   }
+  ],
+  "carousel_slides": [
+   {
+    "heading": "THE LOST AMBER ROOM",
+    "body": "By one estimate, over 6 tonnes of amber vanished during the fires of World War II."
+   },
+   {
+    "heading": "A DIPLOMATIC GIFT",
+    "body": "King Frederick William I of Prussia gave the amber panels to Peter the Great in 1716."
+   },
+   {
+    "heading": "IMPERIAL EXPANSION",
+    "body": "Architect Bartolomeo Francesco Rastrelli expanded the room inside the Catherine Palace."
+   },
+   {
+    "heading": "THE 36-HOUR HEIST",
+    "body": "In 1941, German soldiers disassembled the room after curators hid it behind wallpaper."
+   },
+   {
+    "heading": "VANISHED IN 1944",
+    "body": "Stored in Königsberg Castle, official documentation of the room ended in August 1944."
+   },
+   {
+    "heading": "SURVIVING TRACES",
+    "body": "In 1997, the original mosaic Feel and Touch was recovered from a soldier's family."
+   },
+   {
+    "heading": "CAN ART SURVIVE WAR?",
+    "body": "When irreplaceable treasures are lost to conflict, can a recreation truly replace them?"
+   }
+  ],
+  "poll": {
+   "question": "What was the room's true fate?",
+   "options": [
+    "Incinerated in 1944",
+    "Still hidden away"
+   ]
+  },
+  "timeline": [
+   {
+    "year": 1941,
+    "approximate": false,
+    "label": "Looted by German soldiers"
+   },
+   {
+    "year": 1944,
+    "approximate": false,
+    "label": "Documentation ends at Königsberg"
+   },
+   {
+    "year": 1997,
+    "approximate": false,
+    "label": "Original stone mosaic recovered"
+   },
+   {
+    "year": 2003,
+    "approximate": false,
+    "label": "Catherine Palace reconstruction"
+   }
+  ],
+  "stat_cards": [
+   {
+    "value": "36 hours",
+    "label": "Disassembly time in 1941"
+   },
+   {
+    "value": "Est. >13,000 lb",
+    "label": "Weight of amber"
+   }
+  ],
+  "location": {
+   "name": "Catherine Palace",
+   "city": "Pushkin",
+   "region": "Pushkin",
+   "country": "Russia",
+   "latitude": 0.0,
+   "longitude": 0.0
+  },
+  "narration_script": "In 1941, German soldiers disassembled the legendary Amber Room in thirty-six hours. Soviet curators had attempted to conceal it behind mundane wallpaper. By one estimate, the room contained over six tonnes (13,000 lb) of amber covering more than 590 square feet (55 sq m). Shipped to Königsberg Castle and crated in the basement, official documentation ended in August 1944. The room was most likely incinerated when bombing and shelling burned the castle. In 1997, an original stone mosaic titled Feel and Touch was recovered in Germany, preceding a full-scale reconstruction inside the Catherine Palace in 2003. Yet the original masterwork remains swallowed by the fires of war."
+ },
+ {
+  "run": "run_amber_room_heist_1792790550",
+  "title": "The 6-Ton Amber Room Stolen in 36 Hours 👑",
+  "thumbnail": {
+   "eyebrow": "HISTORICAL HEIST",
+   "line1": "THE 6-TON ROOM",
+   "line2": "STOLEN IN 36 HOURS",
+   "tagline": "VANISHED IN 1944"
+  },
+  "story_slides": [
+   {
+    "kicker": "THE HEIST",
+    "line1": "DISMANTLED IN HOURS",
+    "line2": "SHIPPED TO A CASTLE",
+    "body": "In 1941, German soldiers disassembled the room in 36 hours under expert supervision."
+   },
+   {
+    "kicker": "THE FATE",
+    "line1": "BOMBED IN 1944",
+    "line2": "EVIDENCE DESTROYED",
+    "body": "Official records end in August 1944, when Allied bombers heavily fire-bombed Königsberg."
+   },
+   {
+    "kicker": "THE VERDICT",
+    "line1": "WHAT HAPPENED?",
+    "line2": "INCINERATED OR HIDDEN",
+    "body": "Did the Amber Room burn in the castle basement, or did crates survive in secret?"
+   }
+  ],
+  "carousel_slides": [
+   {
+    "heading": "THE LOST AMBER ROOM",
+    "body": "How a palace chamber containing, by one estimate, over 6 tonnes of amber vanished during World War II."
+   },
+   {
+    "heading": "FAILED CONCEALMENT",
+    "body": "Attempts were made to conceal the fragile amber walls behind mundane wallpaper."
+   },
+   {
+    "heading": "LOOTED IN 36 HOURS",
+    "body": "German soldiers disassembled the Amber Room in 36 hours under expert supervision."
+   },
+   {
+    "heading": "CRATED IN A BASEMENT",
+    "body": "In early 1944, the room was packed into crates in the Königsberg Castle basement."
+   },
+   {
+    "heading": "THE PAPER TRAIL ENDS",
+    "body": "Official records end in August 1944, when Allied bombers heavily fire-bombed Königsberg."
+   },
+   {
+    "heading": "A SURVIVING FRAGMENT",
+    "body": "In 1997, an original Italian stone mosaic from the room was recovered in Germany."
+   },
+   {
+    "heading": "LOST TO HISTORY?",
+    "body": "When cultural treasures vanish in war, does humanity lose a piece of its shared soul?"
+   }
+  ],
+  "poll": {
+   "question": "What was the room's true fate?",
+   "options": [
+    "Burned in the bombing",
+    "Hidden in secret crates"
+   ]
+  },
+  "timeline": [
+   {
+    "year": 1941,
+    "approximate": false,
+    "label": "Disassembled by German troops"
+   },
+   {
+    "year": 1944,
+    "approximate": false,
+    "label": "Documentation ends in Königsberg"
+   },
+   {
+    "year": 1997,
+    "approximate": false,
+    "label": "Original stone mosaic recovered"
+   }
+  ],
+  "stat_cards": [
+   {
+    "value": "36 hours",
+    "label": "Time to disassemble the room"
+   },
+   {
+    "value": "Est. over 13,000 lbs",
+    "label": "Amber in completed room"
+   }
+  ],
+  "location": {
+   "name": "Catherine Palace",
+   "city": "Pushkin",
+   "region": "Pushkin",
+   "country": "Russia",
+   "latitude": 0.0,
+   "longitude": 0.0
+  },
+  "narration_script": "In 1941, German soldiers of Army Group North disassembled the Amber Room in 36 hours under expert supervision. By one estimate, following eighteenth-century expansions, the completed room covered more than 590 square feet (55 sq m) and contained over 13,000 pounds (6 tonnes) of amber. In early 1944, it was packed into crates in Königsberg Castle. Documentation tracking its location ends in August 1944, when Allied bombers heavily fire-bombed Königsberg. Investigations conclude the room was most likely incinerated when Königsberg Castle was bombed by British aircraft and shelled by Soviet artillery. Yet in 1997, an original stone mosaic was recovered in Germany, fueling hunts for the chamber looted in 1941."
+ },
+ {
+  "run": "run_amber_room_heist_1792801257",
+  "title": "The Lost Amber Room Heist 🏛️",
+  "thumbnail": {
+   "eyebrow": "WARTIME HEIST",
+   "line1": "THE VANISHED",
+   "line2": "AMBER ROOM",
+   "tagline": "STOLEN IN 36 HOURS"
+  },
+  "story_slides": [
+   {
+    "kicker": "IN 1941",
+    "line1": "LOOTED IN",
+    "line2": "36 HOURS",
+    "body": "German troops disassembled the Catherine Palace chamber in 36 hours under supervision."
+   },
+   {
+    "kicker": "THE TRAIL GOES COLD",
+    "line1": "VANISHED IN",
+    "line2": "THE RUBBLE",
+    "body": "Stored at Königsberg Castle, official tracking of the room ended during 1944 bombing."
+   },
+   {
+    "kicker": "THE FATE",
+    "line1": "WHAT HAPPENED",
+    "line2": "TO THE AMBER?",
+    "body": "An investigation concluded it burned, but a recovered mosaic in 1997 revived hope."
+   }
+  ],
+  "carousel_slides": [
+   {
+    "heading": "THE LOST AMBER ROOM",
+    "body": "How a royal room of carved amber vanished from Catherine Palace during World War II."
+   },
+   {
+    "heading": "A ROYAL DIPLOMATIC GIFT",
+    "body": "Prussia's king presented the amber panels as a gift to Tsar Peter the Great in 1716."
+   },
+   {
+    "heading": "MASSIVE EXPANSION",
+    "body": "Architect Rastrelli expanded the hall using mirrors, gilding, and extra amber panels."
+   },
+   {
+    "heading": "LOOTED BEHIND WALLPAPER",
+    "body": "Curators hid the walls under wallpaper, but German troops packed them away in 36 hours."
+   },
+   {
+    "heading": "LOST IN 1944",
+    "body": "Crated in Königsberg Castle, all tracking ended after British bombers raided the city."
+   },
+   {
+    "heading": "RECOVERED FRAGMENTS",
+    "body": "In 1997, an original mosaic was found in Germany before a full replica opened in 2003."
+   },
+   {
+    "heading": "LOST FOREVER?",
+    "body": "Can reconstructed art ever truly replace cultural treasures erased by human conflict?"
+   }
+  ],
+  "poll": {
+   "question": "What was the room's true fate?",
+   "options": [
+    "Incinerated in 1944",
+    "Hidden in secret"
+   ]
+  },
+  "timeline": [
+   {
+    "year": 1941,
+    "approximate": false,
+    "label": "Chamber disassembled and shipped"
+   },
+   {
+    "year": 1944,
+    "approximate": false,
+    "label": "Official documentation ends"
+   },
+   {
+    "year": 1997,
+    "approximate": false,
+    "label": "Original stone mosaic recovered"
+   }
+  ],
+  "stat_cards": [
+   {
+    "value": "36 hours",
+    "label": "Disassembly of the chamber"
+   },
+   {
+    "value": "est. >13,000 lbs",
+    "label": "Amber contained in chamber"
+   }
+  ],
+  "route": [
+   {
+    "place": "Catherine Palace",
+    "country": "Russia",
+    "label": "Looted by German troops"
+   },
+   {
+    "place": "Königsberg Castle",
+    "country": "Germany",
+    "label": "Final documented location"
+   }
+  ],
+  "location": {
+   "name": "Catherine Palace",
+   "city": "Pushkin",
+   "region": "Pushkin",
+   "country": "Russia",
+   "latitude": 0.0,
+   "longitude": 0.0
+  },
+  "narration_script": "In 1941, German soldiers disassembled an entire royal chamber in thirty-six hours. Housed inside the Catherine Palace, by one estimate, following eighteenth-century expansions, the room covered over 590 square feet (55 sq m) with over 13,000 pounds (6 tonnes) of amber. Soviet curators attempted to conceal the fragile walls behind mundane wallpaper, but troops shipped them to Königsberg Castle. Official documentation tracking the room ends in August 1944. An investigation concluded the chamber was most likely incinerated by bombing and artillery. Yet in 1997, an original stone mosaic was recovered in Germany. Today, a completed reconstruction recalls the lost masterwork and the moment it vanished."
+ },
+ {
+  "run": "run_amber_room_heist_1792805842",
+  "title": "Vanished: Russia's Lost Amber Room 👑",
+  "thumbnail": {
+   "eyebrow": "HISTORICAL HEIST",
+   "line1": "THE LOST ROOM",
+   "line2": "OF CARVED AMBER",
+   "tagline": "DISMANTLED IN 36 HOURS"
+  },
+  "story_slides": [
+   {
+    "kicker": "VANISHED TREASURE",
+    "line1": "A PALACE CHAMBER",
+    "line2": "MADE OF AMBER",
+    "body": "By one estimate, expansions left over 13,000 pounds of amber inside Catherine Palace."
+   },
+   {
+    "kicker": "WARTIME LOOTING",
+    "line1": "PACKED AND SHIPPED",
+    "line2": "IN JUST 36 HOURS",
+    "body": "German forces stripped the Catherine Palace walls in 1941 and sent them west."
+   },
+   {
+    "kicker": "THE FATE",
+    "line1": "WHAT WAS ITS",
+    "line2": "FINAL FATE?",
+    "body": "A recovered mosaic proved pieces survived, but the crates vanished after 1944."
+   }
+  ],
+  "carousel_slides": [
+   {
+    "heading": "THE LOST AMBER ROOM",
+    "body": "By one estimate, over six tonnes of carved amber vanished during World War II."
+   },
+   {
+    "heading": "A DIPLOMATIC GIFT",
+    "body": "In 1716, Prussia presented the amber panels to Tsar Peter the Great as a royal gift."
+   },
+   {
+    "heading": "MASSIVE EXPANSION",
+    "body": "Architect Rastrelli enlarged the chamber with mirrors to fit a hall six times larger."
+   },
+   {
+    "heading": "STRIPPED IN 36 HOURS",
+    "body": "In 1941, German soldiers disassembled the amber walls and shipped them to Königsberg."
+   },
+   {
+    "heading": "VANISHED IN 1944",
+    "body": "Documentation ended in August 1944 after Allied bombers heavily fire-bombed the city."
+   },
+   {
+    "heading": "SURFACED MOSAIC",
+    "body": "In 1997, an original stone mosaic from the chamber was recovered in Germany."
+   },
+   {
+    "heading": "LOST TO HISTORY?",
+    "body": "When irreplaceable cultural wonders vanish, does their legend become more powerful?"
+   }
+  ],
+  "poll": {
+   "question": "What was the room's final fate?",
+   "options": [
+    "Incinerated in war",
+    "Hidden in secret"
+   ]
+  },
+  "timeline": [
+   {
+    "year": 1941,
+    "approximate": false,
+    "label": "Disassembled by German soldiers"
+   },
+   {
+    "year": 1944,
+    "approximate": false,
+    "label": "Official documentation ends"
+   },
+   {
+    "year": 1997,
+    "approximate": false,
+    "label": "Original stone mosaic resurfaces"
+   },
+   {
+    "year": 2004,
+    "approximate": false,
+    "label": "Investigation concludes incinerated"
+   }
+  ],
+  "stat_cards": [
+   {
+    "value": "Est. >13,000 lbs",
+    "label": "Amber by one estimate"
+   },
+   {
+    "value": "36 hours",
+    "label": "Time to disassemble in 1941"
+   }
+  ],
+  "location": {
+   "name": "Catherine Palace",
+   "city": "Pushkin",
+   "region": "Pushkin",
+   "country": "Russia",
+   "latitude": 0.0,
+   "longitude": 0.0
+  },
+  "narration_script": "Inside Russia's Catherine Palace, an entire royal chamber was crafted from fossilized resin. By one estimate, following eighteenth-century expansions, the completed room covered more than 590 square feet (55 square meters) and contained over 13,000 pounds (6 tonnes) of amber. Soviet curators attempted to conceal the fragile walls behind mundane wallpaper. In 1941, German soldiers disassembled the room in 36 hours and shipped it to Königsberg Castle. Official documentation tracking its location ended in August 1944. A 2004 investigation concluded it was incinerated by bombing and shelling, yet an original stone mosaic resurfaced in 1997. Today, a 2003 reconstruction stands inside Russia's Catherine Palace."
+ },
+ {
+  "run": "run_damascus_steel_nanotubes_1792732472_short",
+  "title": "The Secret Chemistry of Damascus Steel ⚔️",
+  "thumbnail": {
+   "eyebrow": "ANCIENT METALLURGY",
+   "line1": "THE SECRET OF",
+   "line2": "DAMASCUS STEEL",
+   "tagline": "FORGED IN DAMASCUS"
+  },
+  "story_slides": [
+   {
+    "kicker": "ANCIENT WEAPONS",
+    "line1": "WATERED PATTERNS",
+    "line2": "OF DAMASCUS",
+    "body": "Damascus steel is a high-carbon crucible steel forged in the Near East."
+   },
+   {
+    "kicker": "MICROSTRUCTURE",
+    "line1": "PEARLITE SPACING",
+    "line2": "BOOSTS STRENGTH",
+    "body": "Metallurgical analysis determined finer pearlite spacing boosted its strength."
+   },
+   {
+    "kicker": "THE ANOMALY",
+    "line1": "FORGE OR SMELTER",
+    "line2": "WHICH CAME FIRST",
+    "body": "Crucible steel techniques originated in India before swords were forged in Damascus."
+   }
+  ],
+  "carousel_slides": [
+   {
+    "heading": "Damascus Steel Secrets",
+    "body": "Discover how ancient metallurgy produced legendary blades in the Near East."
+   },
+   {
+    "heading": "Crucible Steel Roots",
+    "body": "Crucible steel-making techniques were originally developed in India and Sri Lanka."
+   },
+   {
+    "heading": "Centuries of Trade",
+    "body": "From the 3rd to 17th century, wootz steel ingots shipped across the Middle East."
+   },
+   {
+    "heading": "The Damascus Forge",
+    "body": "Swords were forged in Damascus, but no evidence shows local crucible smelting."
+   },
+   {
+    "heading": "Trace Elements",
+    "body": "Tungsten, nickel, and manganese combined to make the blades both hard and flexible."
+   },
+   {
+    "heading": "Microscopic Strength",
+    "body": "Metallurgical analysis determined finer pearlite spacing refined the microstructure."
+   },
+   {
+    "heading": "Lost Knowledge",
+    "body": "Has modern mass production lost the intuitive brilliance of ancient master artisans?"
+   }
+  ],
+  "poll": {
+   "question": "Which drove the blade's quality?",
+   "options": [
+    "Trace element ores",
+    "Forging techniques"
+   ]
+  },
+  "stat_cards": [
+   {
+    "value": "62 to 67 (estimated)",
+    "label": "Historical Rockwell hardness"
+   }
+  ],
+  "location": {
+   "name": "Damascus Old City",
+   "city": "Damascus",
+   "region": "Levant",
+   "country": "Syria",
+   "latitude": 33.5138,
+   "longitude": 36.2765,
+   "unesco_id": null
+  },
+  "narration_script": "Damascus steel is a high-carbon crucible steel forged in the Near East, characterized by distinctive surface patterns reminiscent of flowing water. Trace elements including tungsten, nickel, and manganese worked in combination with ancient production methods to make the blades both hard and flexible. Metallurgical analysis determined that finer pearlite spacing refined the microstructure of Damascus steel, boosting its mechanical strength. By one estimate, Rockwell hardness measurements taken from historical Damascus steel ranged from 62 to 67. Although imported steel was forged into swords within Damascus, there is no evidence of local crucible steel smelting in the city. Centuries of skilled regional forging perfected the legendary blades of Damascus steel."
+ },
+ {
+  "run": "run_gol_gumbaz_whispering_gallery_1793278143",
+  "title": "The 144-Foot Whispering Vault of Gol Gumbaz 🏛️",
+  "thumbnail": {
+   "eyebrow": "ANCIENT ACOUSTICS",
+   "line1": "THE 144-FOOT",
+   "line2": "WHISPERING DOME",
+   "tagline": "BUILT WITHOUT RINGS"
+  },
+  "story_slides": [
+   {
+    "kicker": "ANCIENT MARVEL",
+    "line1": "THE ACOUSTIC DOME",
+    "line2": "OF GOL GUMBAZ",
+    "body": "Sound circles this vast chamber along its curved boundary."
+   },
+   {
+    "kicker": "NO METAL RINGS",
+    "line1": "BRICK AND MORTAR",
+    "line2": "WITHOUT TENSION",
+    "body": "By one estimate, the central dome spans 144 feet (44 m)."
+   },
+   {
+    "kicker": "ACOUSTIC MYSTERY",
+    "line1": "INTENTIONAL DESIGN",
+    "line2": "OR PURE CHANCE?",
+    "body": "Construction halted in 1656 after Mohammad Adil Shah died."
+   }
+  ],
+  "carousel_slides": [
+   {
+    "heading": "THE WHISPERING VAULT",
+    "body": "How did seventeenth-century builders create an acoustic wonder in Bijapur, India?"
+   },
+   {
+    "heading": "MASSIVE SCALE",
+    "body": "By one estimate, the central dome has an external diameter of 44 meters (144 feet)."
+   },
+   {
+    "heading": "ACOUSTIC GUIDANCE",
+    "body": "Sound waves are guided continuously along the curved boundary of the gallery."
+   },
+   {
+    "heading": "ENGINEERING WITHOUT METAL",
+    "body": "The dome achieved structural integrity using bricks and mortar without metal rings."
+   },
+   {
+    "heading": "CENTRAL ASIAN ROOTS",
+    "body": "The pendentive support system is attributed to Central Asian building traditions."
+   },
+   {
+    "heading": "UNFINISHED MONUMENT",
+    "body": "Work ceased in 1656 upon Mohammad Adil Shah's death, leaving elements unfinished."
+   },
+   {
+    "heading": "LOST INGENUITY?",
+    "body": "Did ancient builders master acoustic physics that modern architecture has forgotten?"
+   }
+  ],
+  "poll": {
+   "question": "Intentional design or lucky accident?",
+   "options": [
+    "Planned acoustics",
+    "Lucky accident"
+   ]
+  },
+  "share_line": "Send this to an acoustic architecture fan, and follow for our next ancient marvel! 🏛️",
+  "stat_cards": [
+   {
+    "value": "Est. 144 ft (44 m)",
+    "label": "External dome diameter"
+   }
+  ],
+  "location": {
+   "name": "Bijapur",
+   "city": "Karnataka",
+   "region": "Karnataka",
+   "country": "India",
+   "latitude": 0.0,
+   "longitude": 0.0
+  },
+  "narration_script": "Can a quiet whisper travel across an estimated 144-foot (44 m) masonry dome? Inside the dark gray basalt mausoleum of Gol Gumbaz in Bijapur, sound waves are guided continuously along the curved boundary of a prominent whispering gallery. This massive dome combines bricks of varying dimensions with lime mortar, gaining structural integrity without metal tension rings on pendentive systems attributed to Central Asian traditions. Construction began in the early 17th century and ceased in 1656 upon Mohammad Adil Shah's death, leaving several decorative elements unfinished. Yet the unfinished monument still prompts modern builders to wonder how ancient masonry mastered acoustics so completely."
+ },
+ {
+  "run": "run_greek_fire_siphon_1792735284_short",
+  "title": "The 10th-Century Weapon That Water Could Not Quench 🔥",
+  "thumbnail": {
+   "eyebrow": "MEDIEVAL WARFARE",
+   "line1": "THE SECRET WEAPON",
+   "line2": "WATER COULD NOT STOP",
+   "tagline": "BYZANTINE GREEK FIRE"
+  },
+  "story_slides": [
+   {
+    "kicker": "ANCIENT WEAPONS",
+    "line1": "FIRE ON",
+    "line2": "THE WATER",
+    "body": "In the 10th century, Byzantine forces defeated Kievan Rus' fleets in the Golden Horn."
+   },
+   {
+    "kicker": "CHEMICAL WARFARE",
+    "line1": "NO WATER",
+    "line2": "COULD STOP IT",
+    "body": "Oil-based thermal weapons could not be stopped by water and required sand or earth."
+   },
+   {
+    "kicker": "TACTICAL CHOICES",
+    "line1": "CONTAIN OR",
+    "line2": "COUNTERACT?",
+    "body": "Crusader troops stored vinegar and water while defenders used sand or earth on flames."
+   }
+  ],
+  "carousel_slides": [
+   {
+    "heading": "MEDIEVAL GREEK FIRE",
+    "body": "In the 10th century, Byzantine forces defeated Kievan Rus' longships in the Golden Horn using Greek fire."
+   },
+   {
+    "heading": "SIPHON DELIVERY",
+    "body": "Petroleum-based Greek fire was administered through a siphon directly toward enemy fleets."
+   },
+   {
+    "heading": "ARTILLERY ENGINES",
+    "body": "Artillery engines hurled breakable containers, barrels, and fire pots of Greek fire."
+   },
+   {
+    "heading": "UNQUENCHABLE FLAMES",
+    "body": "Weapons based on oil could not be extinguished by water and had to be smothered with sand."
+   },
+   {
+    "heading": "SIEGE COUNTERMEASURES",
+    "body": "Crusaders kept vinegar and water in siege towers, while soaked hides draped engines."
+   },
+   {
+    "heading": "MODERN ANCESTRY",
+    "body": "Modern incendiary systems, including napalm and flame throwers, trace directly to them."
+   },
+   {
+    "heading": "FORGOTTEN SECRETS",
+    "body": "Does modern technology make ancient ingenuity feel more terrifying or more impressive?"
+   }
+  ],
+  "poll": {
+   "question": "Which defense would you rely on?",
+   "options": [
+    "Smother with sand",
+    "Shield with hides"
+   ]
+  },
+  "location": {
+   "name": "The Golden Horn",
+   "city": "Constantinople / Istanbul",
+   "region": "Marmara",
+   "country": "Turkey",
+   "latitude": 41.0256,
+   "longitude": 28.9669
+  },
+  "narration_script": "In the tenth century, Byzantine forces defeated Kievan Rus' longships in the Golden Horn using Greek fire. Administered through a siphon or projected using mechanical throwing machines, this petroleum-based incendiary mixture targeted enemy fleets. Artillery engines hurled breakable containers, barrels, and fire pots filled with the flammable compound. Because thermal weapons based on oil could not be extinguished with water, defenders had to smother the flames with sand or earth, while crusader troops stored supplies of vinegar and water inside wooden siege towers. Modern incendiary systems, including napalm and flame throwers, trace their direct technical ancestry back to early thermal weapons. That terrifying power transformed medieval combat forever."
+ },
+ {
+  "run": "run_hal_saflieni_hypogeum_1792949304",
+  "title": "Malta's 7,000-Body Underground Necropolis 🏛️",
+  "thumbnail": {
+   "eyebrow": "ANCIENT MALTA",
+   "line1": "CARVED DEEP",
+   "line2": "UNDERGROUND",
+   "tagline": "7,000 RESTING SOULS"
+  },
+  "story_slides": [
+   {
+    "kicker": "ACCIDENTAL FIND",
+    "line1": "HIDDEN BENEATH",
+    "line2": "PAOLA'S STREETS",
+    "body": "In 1902, workers cutting housing cisterns broke through into an underground monument."
+   },
+   {
+    "kicker": "STONE TOOLS",
+    "line1": "CARVED BY HAND",
+    "line2": "IN THREE LEVELS",
+    "body": "Chambers were cut from soft globigerina limestone using antlers, chert, and flint."
+   },
+   {
+    "kicker": "THE POLL",
+    "line1": "WHICH REQUIRED",
+    "line2": "MORE SKILL?",
+    "body": "The necropolis held approximately 7,000 individuals from 4000 B.C. to 2500 B.C."
+   }
+  ],
+  "carousel_slides": [
+   {
+    "heading": "HAL SAFLIENI HYPOGEUM",
+    "body": "Swipe to see the prehistoric subterranean monument carved across three underground levels."
+   },
+   {
+    "heading": "ACCIDENTAL DISCOVERY",
+    "body": "Workers cutting cisterns for new housing in 1902 broke through its ceiling by accident."
+   },
+   {
+    "heading": "CARVED WITHOUT METAL",
+    "body": "Chambers were hollowed by hand from globigerina limestone using antlers and stone tools."
+   },
+   {
+    "heading": "RESTING PLACE OF 7,000",
+    "body": "The underground necropolis contained the remains of approximately 7,000 individuals."
+   },
+   {
+    "heading": "CENTURIES OF USE",
+    "body": "The site was continuously utilized spanning from around 4000 B.C. to 2500 B.C."
+   },
+   {
+    "heading": "THE ORACLE ROOM",
+    "body": "A carved resonance niche creates an acoustic echo that carries sound through chambers."
+   },
+   {
+    "heading": "ENDURING DEVOTION",
+    "body": "What inspires human beings to spend centuries carving deep monuments for their dead?"
+   }
+  ],
+  "poll": {
+   "question": "Which required more skill?",
+   "options": [
+    "Hand-carving the rock",
+    "Acoustic room design"
+   ]
+  },
+  "timeline": [
+   {
+    "year": -4000,
+    "approximate": true,
+    "label": "Initial prehistoric use"
+   },
+   {
+    "year": -2500,
+    "approximate": true,
+    "label": "End of prehistoric use"
+   },
+   {
+    "year": 1902,
+    "approximate": false,
+    "label": "Accidentally discovered"
+   }
+  ],
+  "stat_cards": [
+   {
+    "value": "Approx. 7,000",
+    "label": "Estimated human remains"
+   }
+  ],
+  "location": {
+   "name": "Ħal Saflieni Hypogeum",
+   "city": "Paola",
+   "region": "Southern Harbour",
+   "country": "Malta",
+   "latitude": 35.8697,
+   "longitude": 14.5069
+  },
+  "narration_script": "Beneath the town of Paola, Malta, prehistoric builders engineered an ancient subterranean monument across three superimposed underground levels linked by steps and doorways. Hollowed directly out of soft globigerina limestone, the underground chambers were carved entirely by hand using antlers and stone tools made of chert, flint, and obsidian. Archaeological records indicate that the underground necropolis originally contained the remains of approximately 7,000 individuals, utilized from around 4000 B.C. to 2500 B.C. Inside, a carved resonance niche in the Oracle Room creates an acoustic echo that carries sound throughout the chambers. Construction workers discovered the underground complex by accident in 1902 while cutting cisterns for new housing."
+ },
+ {
+  "run": "run_kailasa_temple_monolith_1792524470",
+  "title": "Carved from the Top Down: The Cave 16 Monolith 🪨",
+  "thumbnail": {
+   "eyebrow": "ANCIENT MARVELS",
+   "line1": "CARVED FROM",
+   "line2": "THE TOP DOWN",
+   "tagline": "ELLORA CAVE 16"
+  },
+  "story_slides": [
+   {
+    "kicker": "ANCIENT ENGINEERING",
+    "line1": "A TEMPLE CARVED",
+    "line2": "FROM A MOUNTAIN",
+    "body": "Builders carved this massive monument downward from the cliff summit rather than upward."
+   },
+   {
+    "kicker": "MASTER BLUEPRINT",
+    "line1": "PLANNED FROM",
+    "line2": "THE VERY OUTSET",
+    "body": "Architectural evidence proves the entire monolithic complex was planned from the start."
+   },
+   {
+    "kicker": "EFFICIENCY PARADOX",
+    "line1": "COULD MODERN TOOLS",
+    "line2": "MATCH THIS SPEED?",
+    "body": "Estimates suggest 250 laborers carved it in 5.5 years. Would modern machinery be faster?"
+   }
+  ],
+  "carousel_slides": [
+   {
+    "heading": "The Kailasa Monolith",
+    "body": "A colossal sanctuary carved top-down from a single basalt cliff face at Ellora."
+   },
+   {
+    "heading": "Cave 16 Sanctuary",
+    "body": "Kailasa is the largest rock-cut temple among 34 monuments along the Ellora cliff."
+   },
+   {
+    "heading": "Vertical Excavation",
+    "body": "Builders chiseled downward from the mountain summit rather than building from the ground."
+   },
+   {
+    "heading": "Quarry Efficiency",
+    "body": "Sculpting bedrock required less physical effort than transporting stones for a temple."
+   },
+   {
+    "heading": "Astronomical Axis",
+    "body": "The structural layout incorporates mathematical sacred geometry and a solar axis."
+   },
+   {
+    "heading": "Cosmological Plan",
+    "body": "Proportions reflect guidelines from Chapter 56 of the 6th century CE Brihat Samhita."
+   },
+   {
+    "heading": "Forgotten Ingenuity",
+    "body": "What modern building today will stand unchanged for twelve centuries like this monolith?"
+   }
+  ],
+  "poll": {
+   "question": "Is top-down carving harder than quarrying?",
+   "options": [
+    "Carving top-down",
+    "Quarrying stone"
+   ]
+  },
+  "location": {
+   "name": "Kailasa Temple, Ellora Caves",
+   "city": "Aurangabad",
+   "region": "Maharashtra",
+   "country": "India",
+   "latitude": 20.0238,
+   "longitude": 75.1793
+  },
+  "narration_script": "This massive temple was never built from the ground up; carvers excavated downward from the summit of a basalt mountain cliff. Designated as Cave 16 at Ellora, architectural evidence demonstrates that the entire monolithic complex was planned from the outset. By one estimate, at a cutting rate of four cubic feet of rock per person each day, a workforce of 250 laborers could have carved the Kailasa temple in 5.5 years. Excavating the temple directly as a monolith out of bedrock required less physical effort than transporting large stones to erect a freestanding temple of equal size. Today, the excavated mountain endures as an impossible architectural paradox."
+ },
+ {
+  "run": "run_nazca_lines_runway_paradox_1792961797",
+  "title": "The Nazca Desert Lines That Defied Wind 🏜️",
+  "thumbnail": {
+   "eyebrow": "ANCIENT MARVELS",
+   "line1": "ETCHED IN DUST",
+   "line2": "UNCHANGED FOR AGES",
+   "tagline": "PERU'S VAST DESERT"
+  },
+  "story_slides": [
+   {
+    "kicker": "DESERT ENIGMA",
+    "line1": "ETCHED ACROSS PERU",
+    "line2": "TWO THOUSAND YEARS",
+    "body": "Giant geoglyphs etched into desert soil have survived wind and weather across southern Peru."
+   },
+   {
+    "kicker": "SURFACE SCIENCE",
+    "line1": "SCRAPING IRON OXIDE",
+    "line2": "PROTECTED BY CLAY",
+    "body": "Morning mist hardens the exposed clay, creating a natural shield that stops wind erosion."
+   },
+   {
+    "kicker": "ANCIENT PURPOSE",
+    "line1": "WALKWAYS OR SKY SIGNS",
+    "line2": "CHOOSE YOUR THEORY",
+    "body": "Archaeological surveys reveal hundreds of giant figures etched across the dry Peruvian plateau."
+   }
+  ],
+  "carousel_slides": [
+   {
+    "heading": "The Nazca Lines",
+    "body": "How shallow trenches carved into Peru's desert soil survived for over two thousand years."
+   },
+   {
+    "heading": "Scraping the Earth",
+    "body": "Builders cleared reddish pebbles coated in iron oxide to reveal lighter clay earth below."
+   },
+   {
+    "heading": "Mist as a Shield",
+    "body": "Morning mist provides moisture that hardens exposed clay, preventing erosion from wind."
+   },
+   {
+    "heading": "Simple Surveying",
+    "body": "Archaeologists found wooden stakes at the ends of lines, showing how makers aligned them."
+   },
+   {
+    "heading": "Massive Animal Shapes",
+    "body": "By one estimate, the etched condor spans 134 meters, and the hummingbird spans 93 meters."
+   },
+   {
+    "heading": "Modern Drone Finds",
+    "body": "In the 21st century, researchers using drones identified hundreds of new geoglyphs."
+   },
+   {
+    "heading": "Earthly Ambition",
+    "body": "Did ancient people build vast monuments for themselves, or to speak to the cosmos?"
+   }
+  ],
+  "poll": {
+   "question": "Why were the lines etched?",
+   "options": [
+    "Walking rituals",
+    "Skyward messages"
+   ]
+  },
+  "timeline": [
+   {
+    "year": -500,
+    "approximate": true,
+    "label": "Geoglyph creation begins"
+   },
+   {
+    "year": 500,
+    "approximate": true,
+    "label": "Geoglyph creation ends"
+   },
+   {
+    "year": 1994,
+    "approximate": false,
+    "label": "Designated UNESCO World Heritage"
+   }
+  ],
+  "stat_cards": [
+   {
+    "value": "Est. 4–6 in (10–15 cm)",
+    "label": "Trench incision depth"
+   }
+  ],
+  "location": {
+   "name": "Nazca Desert",
+   "city": "Nazca",
+   "region": "Nazca",
+   "country": "Peru",
+   "latitude": 0.0,
+   "longitude": 0.0,
+   "unesco_id": 700
+  },
+  "narration_script": "Across southern Peru's Nazca Desert, immense figures etched into open soil have defied erosion for two millennia. Between 500 BC and 500 AD, builders scraped away reddish-brown surface pebbles coated in iron oxide, exposing light-colored clay earth beneath. Morning mist provides moisture that hardens the exposed clay into a protective layer, shielding these shallow trenches from wind. Surveyors positioned wooden stakes to align trenches that, by one estimate, cut only 4 to 6 inches (10 to 15 cm) into the desert floor. In the twenty-first century, researchers employing drones identified several hundred previously unrecorded geoglyphs. Fresh aerial surveys prove that vast ancient works still hide in plain sight."
+ },
+ {
+  "run": "run_nazca_lines_runway_paradox_1793247464",
+  "title": "Lines Drawn Without Wings 🏜️",
+  "thumbnail": {
+   "eyebrow": "PERUVIAN DESERT",
+   "line1": "DRAWN WITHOUT",
+   "line2": "EVER FLYING",
+   "tagline": "GROUND LEVEL GENIUS"
+  },
+  "story_slides": [
+   {
+    "kicker": "ANCIENT SURVEYING",
+    "line1": "GIANT DESERT",
+    "line2": "DRAWINGS",
+    "body": "Builders etched massive geoglyphs into the Nazca Desert floor."
+   },
+   {
+    "kicker": "SIMPLE TOOLS",
+    "line1": "WOODEN STAKES",
+    "line2": "FOUND",
+    "body": "Surveys discovered wooden stakes positioned at the ends of several lines."
+   },
+   {
+    "kicker": "THE VERDICT",
+    "line1": "SACRED PATHS",
+    "line2": "OR ASTRONOMY",
+    "body": "Wooden stakes helped guide surveying on the desert ground."
+   }
+  ],
+  "carousel_slides": [
+   {
+    "heading": "Lines in the Sand",
+    "body": "How ancient builders etched giant geoglyphs without ever seeing them from above."
+   },
+   {
+    "heading": "Scraping the Pebbles",
+    "body": "Scraping reddish-brown pebbles exposed contrasting light-colored clay earth beneath."
+   },
+   {
+    "heading": "Morning Mist Armor",
+    "body": "Morning mist provides moisture that hardens exposed clay into a protective wind shield."
+   },
+   {
+    "heading": "Two Ancient Eras",
+    "body": "Created between 500 BC and 500 AD, spanning the Paracas and Nazca phases."
+   },
+   {
+    "heading": "Surveying Stakes",
+    "body": "Wooden stakes found at line ends show builders used simple surveying equipment."
+   },
+   {
+    "heading": "Modern Drone Views",
+    "body": "Drones identified several hundred previously unrecorded geoglyphs across the plateau."
+   },
+   {
+    "heading": "Enduring Vision",
+    "body": "What drives human cultures to build monumental works they can never fully view themselves?"
+   }
+  ],
+  "poll": {
+   "question": "Why were the lines etched?",
+   "options": [
+    "Ritual ceremonies",
+    "Astronomical maps"
+   ]
+  },
+  "share_line": "Send this to an ancient engineering fan, and follow for the next marvel.",
+  "location": {
+   "name": "Nazca Desert",
+   "city": "Nazca",
+   "region": "Nazca",
+   "country": "Peru",
+   "latitude": 0.0,
+   "longitude": 0.0,
+   "unesco_id": 700
+  },
+  "narration_script": "How do you etch massive desert lines without flying above them? In the Nazca Desert of southern Peru, builders etched the figures by scraping away reddish-brown surface pebbles coated in iron oxide to reveal the contrasting, light-colored clay earth beneath. Morning mist provides moisture that hardens the exposed clay into a protective layer, shielding the shallow trenches from wind and preventing erosion. Archaeological surveys discovered wooden stakes positioned at the ends of several lines, corroborating that builders employed simple surveying equipment. In the twenty-first century, researchers employing drones identified several hundred previously unrecorded geoglyphs etched into the landscape. Their ground precision still defies time."
+ },
+ {
+  "run": "run_nazca_lines_runway_paradox_1793251266",
+  "title": "Lines Drawn Without Wings 🏜️",
+  "thumbnail": {
+   "eyebrow": "PERUVIAN DESERT",
+   "line1": "DRAWN WITHOUT",
+   "line2": "EVER FLYING",
+   "tagline": "GROUND LEVEL GENIUS"
+  },
+  "story_slides": [
+   {
+    "kicker": "ANCIENT SURVEYING",
+    "line1": "GIANT DESERT",
+    "line2": "DRAWINGS",
+    "body": "Builders etched massive geoglyphs into the Nazca Desert floor."
+   },
+   {
+    "kicker": "SIMPLE TOOLS",
+    "line1": "WOODEN STAKES",
+    "line2": "FOUND",
+    "body": "Surveys discovered wooden stakes positioned at the ends of several lines."
+   },
+   {
+    "kicker": "THE VERDICT",
+    "line1": "SACRED PATHS",
+    "line2": "OR ASTRONOMY",
+    "body": "Wooden stakes helped guide surveying on the desert ground."
+   }
+  ],
+  "carousel_slides": [
+   {
+    "heading": "Lines in the Sand",
+    "body": "How ancient builders etched giant geoglyphs without ever seeing them from above."
+   },
+   {
+    "heading": "Scraping the Pebbles",
+    "body": "Scraping reddish-brown pebbles exposed contrasting light-colored clay earth beneath."
+   },
+   {
+    "heading": "Morning Mist Armor",
+    "body": "Morning mist provides moisture that hardens exposed clay into a protective wind shield."
+   },
+   {
+    "heading": "Two Ancient Eras",
+    "body": "Created between 500 BC and 500 AD, spanning the Paracas and Nazca phases."
+   },
+   {
+    "heading": "Surveying Stakes",
+    "body": "Wooden stakes found at line ends show builders used simple surveying equipment."
+   },
+   {
+    "heading": "Modern Drone Views",
+    "body": "Drones identified several hundred previously unrecorded geoglyphs across the plateau."
+   },
+   {
+    "heading": "Enduring Vision",
+    "body": "What drives human cultures to build monumental works they can never fully view themselves?"
+   }
+  ],
+  "poll": {
+   "question": "Why were the lines etched?",
+   "options": [
+    "Ritual ceremonies",
+    "Astronomical maps"
+   ]
+  },
+  "share_line": "Send this to an ancient engineering fan, and follow for the next marvel.",
+  "location": {
+   "name": "Nazca Desert",
+   "city": "Nazca",
+   "region": "Nazca",
+   "country": "Peru",
+   "latitude": 0.0,
+   "longitude": 0.0,
+   "unesco_id": 700
+  },
+  "narration_script": "How do you etch massive desert lines without flying above them? In the Nazca Desert of southern Peru, builders etched the figures by scraping away reddish-brown surface pebbles coated in iron oxide to reveal the contrasting, light-colored clay earth beneath. Morning mist provides moisture that hardens the exposed clay into a protective layer, shielding the shallow trenches from wind and preventing erosion. Archaeological surveys discovered wooden stakes positioned at the ends of several lines, corroborating that builders employed simple surveying equipment. In the twenty-first century, researchers employing drones identified several hundred previously unrecorded geoglyphs etched into the landscape. Their ground precision still defies time."
+ },
+ {
+  "run": "run_nazca_lines_runway_paradox_1793262388",
+  "title": "Lines Drawn Without Wings 🏜️",
+  "thumbnail": {
+   "eyebrow": "PERUVIAN DESERT",
+   "line1": "DRAWN WITHOUT",
+   "line2": "EVER FLYING",
+   "tagline": "GROUND LEVEL GENIUS"
+  },
+  "story_slides": [
+   {
+    "kicker": "ANCIENT SURVEYING",
+    "line1": "GIANT DESERT",
+    "line2": "DRAWINGS",
+    "body": "Builders etched massive geoglyphs into the Nazca Desert floor."
+   },
+   {
+    "kicker": "SIMPLE TOOLS",
+    "line1": "WOODEN STAKES",
+    "line2": "FOUND",
+    "body": "Surveys discovered wooden stakes positioned at the ends of several lines."
+   },
+   {
+    "kicker": "THE VERDICT",
+    "line1": "SACRED PATHS",
+    "line2": "OR ASTRONOMY",
+    "body": "Wooden stakes helped guide surveying on the desert ground."
+   }
+  ],
+  "carousel_slides": [
+   {
+    "heading": "Lines in the Sand",
+    "body": "How ancient builders etched giant geoglyphs without ever seeing them from above."
+   },
+   {
+    "heading": "Scraping the Pebbles",
+    "body": "Scraping reddish-brown pebbles exposed contrasting light-colored clay earth beneath."
+   },
+   {
+    "heading": "Morning Mist Armor",
+    "body": "Morning mist provides moisture that hardens exposed clay into a protective wind shield."
+   },
+   {
+    "heading": "Two Ancient Eras",
+    "body": "Created between 500 BC and 500 AD, spanning the Paracas and Nazca phases."
+   },
+   {
+    "heading": "Surveying Stakes",
+    "body": "Wooden stakes found at line ends show builders used simple surveying equipment."
+   },
+   {
+    "heading": "Modern Drone Views",
+    "body": "Drones identified several hundred previously unrecorded geoglyphs across the plateau."
+   },
+   {
+    "heading": "Enduring Vision",
+    "body": "What drives human cultures to build monumental works they can never fully view themselves?"
+   }
+  ],
+  "poll": {
+   "question": "Why were the lines etched?",
+   "options": [
+    "Ritual ceremonies",
+    "Astronomical maps"
+   ]
+  },
+  "share_line": "Send this to an ancient engineering fan, and follow for the next marvel.",
+  "location": {
+   "name": "Nazca Desert",
+   "city": "Nazca",
+   "region": "Nazca",
+   "country": "Peru",
+   "latitude": 0.0,
+   "longitude": 0.0,
+   "unesco_id": 700
+  },
+  "narration_script": "How do you etch massive desert lines without flying above them? In the Nazca Desert of southern Peru, builders etched the figures by scraping away reddish-brown surface pebbles coated in iron oxide to reveal the contrasting, light-colored clay earth beneath. Morning mist provides moisture that hardens the exposed clay into a protective layer, shielding the shallow trenches from wind and preventing erosion. Archaeological surveys discovered wooden stakes positioned at the ends of several lines, corroborating that builders employed simple surveying equipment. In the twenty-first century, researchers employing drones identified several hundred previously unrecorded geoglyphs etched into the landscape. Their ground precision still defies time."
+ },
+ {
+  "run": "run_nazca_lines_runway_paradox_1793267092",
+  "title": "Lines Drawn Without Wings 🏜️",
+  "thumbnail": {
+   "eyebrow": "PERUVIAN DESERT",
+   "line1": "DRAWN WITHOUT",
+   "line2": "EVER FLYING",
+   "tagline": "GROUND LEVEL GENIUS"
+  },
+  "story_slides": [
+   {
+    "kicker": "ANCIENT SURVEYING",
+    "line1": "GIANT DESERT",
+    "line2": "DRAWINGS",
+    "body": "Builders etched massive geoglyphs into the Nazca Desert floor."
+   },
+   {
+    "kicker": "SIMPLE TOOLS",
+    "line1": "WOODEN STAKES",
+    "line2": "FOUND",
+    "body": "Surveys discovered wooden stakes positioned at the ends of several lines."
+   },
+   {
+    "kicker": "THE VERDICT",
+    "line1": "SACRED PATHS",
+    "line2": "OR ASTRONOMY",
+    "body": "Wooden stakes helped guide surveying on the desert ground."
+   }
+  ],
+  "carousel_slides": [
+   {
+    "heading": "Lines in the Sand",
+    "body": "How ancient builders etched giant geoglyphs without ever seeing them from above."
+   },
+   {
+    "heading": "Scraping the Pebbles",
+    "body": "Scraping reddish-brown pebbles exposed contrasting light-colored clay earth beneath."
+   },
+   {
+    "heading": "Morning Mist Armor",
+    "body": "Morning mist provides moisture that hardens exposed clay into a protective wind shield."
+   },
+   {
+    "heading": "Two Ancient Eras",
+    "body": "Created between 500 BC and 500 AD, spanning the Paracas and Nazca phases."
+   },
+   {
+    "heading": "Surveying Stakes",
+    "body": "Wooden stakes found at line ends show builders used simple surveying equipment."
+   },
+   {
+    "heading": "Modern Drone Views",
+    "body": "Drones identified several hundred previously unrecorded geoglyphs across the plateau."
+   },
+   {
+    "heading": "Enduring Vision",
+    "body": "What drives human cultures to build monumental works they can never fully view themselves?"
+   }
+  ],
+  "poll": {
+   "question": "Why were the lines etched?",
+   "options": [
+    "Ritual ceremonies",
+    "Astronomical maps"
+   ]
+  },
+  "share_line": "Send this to an ancient engineering fan, and follow for the next marvel.",
+  "location": {
+   "name": "Nazca Desert",
+   "city": "Nazca",
+   "region": "Nazca",
+   "country": "Peru",
+   "latitude": 0.0,
+   "longitude": 0.0,
+   "unesco_id": 700
+  },
+  "narration_script": "How do you etch massive desert lines without flying above them? In the Nazca Desert of southern Peru, builders etched the figures by scraping away reddish-brown surface pebbles coated in iron oxide to reveal the contrasting, light-colored clay earth beneath. Morning mist provides moisture that hardens the exposed clay into a protective layer, shielding the shallow trenches from wind and preventing erosion. Archaeological surveys discovered wooden stakes positioned at the ends of several lines, corroborating that builders employed simple surveying equipment. In the twenty-first century, researchers employing drones identified several hundred previously unrecorded geoglyphs etched into the landscape. Their ground precision still defies time."
+ },
+ {
+  "run": "run_odessa_catacombs_1792970549",
+  "title": "The Secret Labyrinth Beneath Odesa ⚓",
+  "thumbnail": {
+   "eyebrow": "HIDDEN TUNNELS",
+   "line1": "THE SECRET LABYRINTH",
+   "line2": "DEEP BENEATH ODESA",
+   "tagline": "WARTIME RESISTANCE"
+  },
+  "story_slides": [
+   {
+    "kicker": "SUBTERRANEAN ODESSA",
+    "line1": "A HIDDEN LABYRINTH",
+    "line2": "CARVED UNDERGROUND",
+    "body": "Beneath Odesa lies an extensive and complicated labyrinth of subterranean tunnels."
+   },
+   {
+    "kicker": "WARTIME SHELTER",
+    "line1": "BOMBING DEFENSE",
+    "line2": "SUBTERRANEAN HAVEN",
+    "body": "The catacombs served as a natural underground shelter for civilians escaping aerial bombing."
+   },
+   {
+    "kicker": "UNDERGROUND FRONT",
+    "line1": "PARTISAN WARFARE",
+    "line2": "TACTICAL CHOICES",
+    "body": "Soviet partisan fighters waged combat operations while hiding inside the subterranean network."
+   }
+  ],
+  "carousel_slides": [
+   {
+    "heading": "THE ODESA CATACOMBS",
+    "body": "Beneath Odesa lies an extensive and complicated labyrinth of subterranean tunnels."
+   },
+   {
+    "heading": "BLACK SEA NETWORK",
+    "body": "The catacombs form a subterranean network beneath Odesa on the Black Sea."
+   },
+   {
+    "heading": "AERIAL BOMBARDMENT",
+    "body": "Enemy aircraft targeted Odesa with aerial bombing raids during the wartime offensive."
+   },
+   {
+    "heading": "UNDERGROUND REFUGE",
+    "body": "The catacombs served as a natural underground shelter for civilians escaping bombing."
+   },
+   {
+    "heading": "THE 73-DAY SIEGE",
+    "body": "By one estimate, the 1941 Siege of Odesa lasted 73 days before the city fell."
+   },
+   {
+    "heading": "PARTISAN RESISTANCE",
+    "body": "Soviet resistance partisans continued active combat operations from inside the tunnels."
+   },
+   {
+    "heading": "HUMAN RESILIENCE",
+    "body": "What drives people to endure and fight from deep underground when their home is besieged?"
+   }
+  ],
+  "poll": {
+   "question": "Which wartime role was harder?",
+   "options": [
+    "Civilian shelter",
+    "Partisan combat"
+   ]
+  },
+  "share_line": "Share this with a friend who loves wartime history, and follow for more stories! ⚓",
+  "stat_cards": [
+   {
+    "value": "estimated 73 days",
+    "label": "1941 Siege of Odesa"
+   }
+  ],
+  "location": {
+   "name": "Odessa",
+   "city": "Odesa Oblast",
+   "region": "Odesa Oblast",
+   "country": "Ukraine",
+   "latitude": 0.0,
+   "longitude": 0.0
+  },
+  "narration_script": "Beneath Odesa, a major seaport city located in Ukraine on the northwestern shore of the Black Sea, lies an extensive and complicated labyrinth of subterranean tunnels. During World War II, enemy aircraft targeted Odesa with aerial bombing raids, making the catacombs a natural underground shelter for civilians escaping aerial bombing. By one estimate, the 1941 Siege of Odesa began on August 5 and lasted for 73 days before the city fell to Axis occupation. Following the enemy siege of the city, Soviet resistance partisans used the subterranean tunnels as an active hiding place and continued active combat operations. Partisan warfare endured deep beneath Odesa."
+ },
+ {
+  "run": "run_odessa_catacombs_1793098390",
+  "title": "The Secret Labyrinth Beneath Odesa ⚓",
+  "thumbnail": {
+   "eyebrow": "HIDDEN TUNNELS",
+   "line1": "THE SECRET LABYRINTH",
+   "line2": "DEEP BENEATH ODESA",
+   "tagline": "WARTIME RESISTANCE"
+  },
+  "story_slides": [
+   {
+    "kicker": "SUBTERRANEAN ODESSA",
+    "line1": "A HIDDEN LABYRINTH",
+    "line2": "CARVED UNDERGROUND",
+    "body": "Beneath Odesa lies an extensive and complicated labyrinth of subterranean tunnels."
+   },
+   {
+    "kicker": "WARTIME SHELTER",
+    "line1": "BOMBING DEFENSE",
+    "line2": "SUBTERRANEAN HAVEN",
+    "body": "The catacombs served as a natural underground shelter for civilians escaping aerial bombing."
+   },
+   {
+    "kicker": "UNDERGROUND FRONT",
+    "line1": "PARTISAN WARFARE",
+    "line2": "TACTICAL CHOICES",
+    "body": "Soviet partisan fighters waged combat operations while hiding inside the subterranean network."
+   }
+  ],
+  "carousel_slides": [
+   {
+    "heading": "THE ODESA CATACOMBS",
+    "body": "Beneath Odesa lies an extensive and complicated labyrinth of subterranean tunnels."
+   },
+   {
+    "heading": "BLACK SEA NETWORK",
+    "body": "The catacombs form a subterranean network beneath Odesa on the Black Sea."
+   },
+   {
+    "heading": "AERIAL BOMBARDMENT",
+    "body": "Enemy aircraft targeted Odesa with aerial bombing raids during the wartime offensive."
+   },
+   {
+    "heading": "UNDERGROUND REFUGE",
+    "body": "The catacombs served as a natural underground shelter for civilians escaping bombing."
+   },
+   {
+    "heading": "THE 73-DAY SIEGE",
+    "body": "By one estimate, the 1941 Siege of Odesa lasted 73 days before the city fell."
+   },
+   {
+    "heading": "PARTISAN RESISTANCE",
+    "body": "Soviet resistance partisans continued active combat operations from inside the tunnels."
+   },
+   {
+    "heading": "HUMAN RESILIENCE",
+    "body": "What drives people to endure and fight from deep underground when their home is besieged?"
+   }
+  ],
+  "poll": {
+   "question": "Which wartime role was harder?",
+   "options": [
+    "Civilian shelter",
+    "Partisan combat"
+   ]
+  },
+  "share_line": "Share this with a friend who loves wartime history, and follow for more stories! ⚓",
+  "stat_cards": [
+   {
+    "value": "estimated 73 days",
+    "label": "1941 Siege of Odesa"
+   }
+  ],
+  "location": {
+   "name": "Odessa",
+   "city": "Odesa Oblast",
+   "region": "Odesa Oblast",
+   "country": "Ukraine",
+   "latitude": 0.0,
+   "longitude": 0.0
+  },
+  "narration_script": "Beneath Odesa, a major seaport city located in Ukraine on the northwestern shore of the Black Sea, lies an extensive and complicated labyrinth of subterranean tunnels. During World War II, enemy aircraft targeted Odesa with aerial bombing raids, making the catacombs a natural underground shelter for civilians escaping aerial bombing. By one estimate, the 1941 Siege of Odesa began on August 5 and lasted for 73 days before the city fell to Axis occupation. Following the enemy siege of the city, Soviet resistance partisans used the subterranean tunnels as an active hiding place and continued active combat operations. Partisan warfare endured deep beneath Odesa."
+ },
+ {
+  "run": "run_odessa_catacombs_1793100750",
+  "title": "The Secret Labyrinth Beneath Odesa ⚓",
+  "thumbnail": {
+   "eyebrow": "HIDDEN TUNNELS",
+   "line1": "THE SECRET LABYRINTH",
+   "line2": "DEEP BENEATH ODESA",
+   "tagline": "WARTIME RESISTANCE"
+  },
+  "story_slides": [
+   {
+    "kicker": "SUBTERRANEAN ODESSA",
+    "line1": "A HIDDEN LABYRINTH",
+    "line2": "CARVED UNDERGROUND",
+    "body": "Beneath Odesa lies an extensive and complicated labyrinth of subterranean tunnels."
+   },
+   {
+    "kicker": "WARTIME SHELTER",
+    "line1": "BOMBING DEFENSE",
+    "line2": "SUBTERRANEAN HAVEN",
+    "body": "The catacombs served as a natural underground shelter for civilians escaping aerial bombing."
+   },
+   {
+    "kicker": "UNDERGROUND FRONT",
+    "line1": "PARTISAN WARFARE",
+    "line2": "TACTICAL CHOICES",
+    "body": "Soviet partisan fighters waged combat operations while hiding inside the subterranean network."
+   }
+  ],
+  "carousel_slides": [
+   {
+    "heading": "THE ODESA CATACOMBS",
+    "body": "Beneath Odesa lies an extensive and complicated labyrinth of subterranean tunnels."
+   },
+   {
+    "heading": "BLACK SEA NETWORK",
+    "body": "The catacombs form a subterranean network beneath Odesa on the Black Sea."
+   },
+   {
+    "heading": "AERIAL BOMBARDMENT",
+    "body": "Enemy aircraft targeted Odesa with aerial bombing raids during the wartime offensive."
+   },
+   {
+    "heading": "UNDERGROUND REFUGE",
+    "body": "The catacombs served as a natural underground shelter for civilians escaping bombing."
+   },
+   {
+    "heading": "THE 73-DAY SIEGE",
+    "body": "By one estimate, the 1941 Siege of Odesa lasted 73 days before the city fell."
+   },
+   {
+    "heading": "PARTISAN RESISTANCE",
+    "body": "Soviet resistance partisans continued active combat operations from inside the tunnels."
+   },
+   {
+    "heading": "HUMAN RESILIENCE",
+    "body": "What drives people to endure and fight from deep underground when their home is besieged?"
+   }
+  ],
+  "poll": {
+   "question": "Which wartime role was harder?",
+   "options": [
+    "Civilian shelter",
+    "Partisan combat"
+   ]
+  },
+  "share_line": "Share this with a friend who loves wartime history, and follow for more stories! ⚓",
+  "stat_cards": [
+   {
+    "value": "estimated 73 days",
+    "label": "1941 Siege of Odesa"
+   }
+  ],
+  "location": {
+   "name": "Odessa",
+   "city": "Odesa Oblast",
+   "region": "Odesa Oblast",
+   "country": "Ukraine",
+   "latitude": 0.0,
+   "longitude": 0.0
+  },
+  "narration_script": "Beneath Odesa, a major seaport city located in Ukraine on the northwestern shore of the Black Sea, lies an extensive and complicated labyrinth of subterranean tunnels. During World War II, enemy aircraft targeted Odesa with aerial bombing raids, making the catacombs a natural underground shelter for civilians escaping aerial bombing. By one estimate, the 1941 Siege of Odesa began on August 5 and lasted for 73 days before the city fell to Axis occupation. Following the enemy siege of the city, Soviet resistance partisans used the subterranean tunnels as an active hiding place and continued active combat operations. Partisan warfare endured deep beneath Odesa."
+ },
+ {
+  "run": "run_odessa_catacombs_1793159709",
+  "title": "The Secret Labyrinth Beneath Odesa ⚓",
+  "thumbnail": {
+   "eyebrow": "HIDDEN TUNNELS",
+   "line1": "THE SECRET LABYRINTH",
+   "line2": "DEEP BENEATH ODESA",
+   "tagline": "WARTIME RESISTANCE"
+  },
+  "story_slides": [
+   {
+    "kicker": "SUBTERRANEAN ODESSA",
+    "line1": "A HIDDEN LABYRINTH",
+    "line2": "CARVED UNDERGROUND",
+    "body": "Beneath Odesa lies an extensive and complicated labyrinth of subterranean tunnels."
+   },
+   {
+    "kicker": "WARTIME SHELTER",
+    "line1": "BOMBING DEFENSE",
+    "line2": "SUBTERRANEAN HAVEN",
+    "body": "The catacombs served as a natural underground shelter for civilians escaping aerial bombing."
+   },
+   {
+    "kicker": "UNDERGROUND FRONT",
+    "line1": "PARTISAN WARFARE",
+    "line2": "TACTICAL CHOICES",
+    "body": "Soviet partisan fighters waged combat operations while hiding inside the subterranean network."
+   }
+  ],
+  "carousel_slides": [
+   {
+    "heading": "THE ODESA CATACOMBS",
+    "body": "Beneath Odesa lies an extensive and complicated labyrinth of subterranean tunnels."
+   },
+   {
+    "heading": "BLACK SEA NETWORK",
+    "body": "The catacombs form a subterranean network beneath Odesa on the Black Sea."
+   },
+   {
+    "heading": "AERIAL BOMBARDMENT",
+    "body": "Enemy aircraft targeted Odesa with aerial bombing raids during the wartime offensive."
+   },
+   {
+    "heading": "UNDERGROUND REFUGE",
+    "body": "The catacombs served as a natural underground shelter for civilians escaping bombing."
+   },
+   {
+    "heading": "THE 73-DAY SIEGE",
+    "body": "By one estimate, the 1941 Siege of Odesa lasted 73 days before the city fell."
+   },
+   {
+    "heading": "PARTISAN RESISTANCE",
+    "body": "Soviet resistance partisans continued active combat operations from inside the tunnels."
+   },
+   {
+    "heading": "HUMAN RESILIENCE",
+    "body": "What drives people to endure and fight from deep underground when their home is besieged?"
+   }
+  ],
+  "poll": {
+   "question": "Which wartime role was harder?",
+   "options": [
+    "Civilian shelter",
+    "Partisan combat"
+   ]
+  },
+  "share_line": "Share this with a friend who loves wartime history, and follow for more stories! ⚓",
+  "stat_cards": [
+   {
+    "value": "estimated 73 days",
+    "label": "1941 Siege of Odesa"
+   }
+  ],
+  "location": {
+   "name": "Odessa",
+   "city": "Odesa Oblast",
+   "region": "Odesa Oblast",
+   "country": "Ukraine",
+   "latitude": 0.0,
+   "longitude": 0.0
+  },
+  "narration_script": "Beneath Odesa, a major seaport city located in Ukraine on the northwestern shore of the Black Sea, lies an extensive and complicated labyrinth of subterranean tunnels. During World War II, enemy aircraft targeted Odesa with aerial bombing raids, making the catacombs a natural underground shelter for civilians escaping aerial bombing. By one estimate, the 1941 Siege of Odesa began on August 5 and lasted for 73 days before the city fell to Axis occupation. Following the enemy siege of the city, Soviet resistance partisans used the subterranean tunnels as an active hiding place and continued active combat operations. Partisan warfare endured deep beneath Odesa."
+ },
+ {
+  "run": "run_richat_structure_sahara_eye_1792737039_short",
+  "title": "The Giant Desert Bullseye Seen From Space 🌍",
+  "thumbnail": {
+   "eyebrow": "DESERT PHENOMENON",
+   "line1": "MASSIVE DESERT",
+   "line2": "SAHARA BULLSEYE",
+   "tagline": "NOT AN IMPACT CRATER"
+  },
+  "story_slides": [
+   {
+    "kicker": "ORBITAL VIEW",
+    "line1": "DESERT BULLSEYE",
+    "line2": "SEEN FROM SPACE",
+    "body": "Measurements of the landmark range from 40 to nearly 50 kilometers across the desert."
+   },
+   {
+    "kicker": "FORENSIC REALITY",
+    "line1": "PURE GEOLOGY",
+    "line2": "ZERO IMPACT",
+    "body": "It is an eroded dome of concentric rings formed by deep igneous magma."
+   },
+   {
+    "kicker": "WEIGH IN",
+    "line1": "COSMIC OR EARTH",
+    "line2": "WHAT FORMED IT?",
+    "body": "Which force shapes more dramatic desert landmarks across the planet?"
+   }
+  ],
+  "carousel_slides": [
+   {
+    "heading": "THE EYE OF THE SAHARA",
+    "body": "Measurements of the landmark range from 40 to nearly 50 kilometers across the desert."
+   },
+   {
+    "heading": "MAGMATIC UPLIFT",
+    "body": "An igneous intrusion deformed sedimentary rock layers into massive concentric rings."
+   },
+   {
+    "heading": "NO METEORITE IMPACT",
+    "body": "Rock studies found no shock metamorphism, and reported coesite was misidentified barite."
+   },
+   {
+    "heading": "ANCIENT VOLCANISM",
+    "body": "Carbonatite rocks within the complex cooled between 94 and 104 million years ago."
+   },
+   {
+    "heading": "HYDROTHERMAL CENTER",
+    "body": "Hydrothermal alteration in the center was dated to approximately 98.2 million years ago."
+   },
+   {
+    "heading": "ASTRONAUT LANDMARK",
+    "body": "Resembling a giant ammonite, the circular structure guides orbiting space shuttle crews."
+   },
+   {
+    "heading": "EARTH VERSUS MYTH",
+    "body": "Why do massive geological marvels inspire myths of lost worlds and cataclysms?"
+   }
+  ],
+  "poll": {
+   "question": "Which force shapes more dramatic landmarks?",
+   "options": [
+    "Meteorite impacts",
+    "Volcanic uplift"
+   ]
+  },
+  "stat_cards": [
+   {
+    "value": "25 to nearly 30 mi",
+    "label": "Measured diameter range"
+   },
+   {
+    "value": "94 to 104M years",
+    "label": "Carbonatite cooling age"
+   }
+  ],
+  "location": {
+   "name": "Ouadane",
+   "city": "Adrar Plateau",
+   "region": "Adrar Plateau",
+   "country": "Mauritania",
+   "latitude": 0.0,
+   "longitude": 0.0
+  },
+  "narration_script": "Seen from orbit, a bullseye across the Sahara desert looks like a massive planetary scar, yet its heart holds no impact crater. Measurements of the landmark range from 25 to nearly 30 miles (40 to nearly 50 kilometers) across. It is an eroded geological dome created by a subsurface igneous intrusion that deformed sedimentary rock into concentric rings. Field research found no evidence of shock metamorphism, and a mineral reported as coesite was determined to be misidentified barite. Carbonatite rocks within the complex cooled between 94 and 104 million years ago. Resembling a giant ammonite in the desert terrain, the circular structure serves as a visible landmark for orbiting space shuttle crews."
+ },
+ {
+  "run": "run_richat_structure_sahara_eye_1792778206",
+  "title": "The 25-Mile Sahara Eye That Astronauts Use to Navigate 👁",
+  "thumbnail": {
+   "eyebrow": "DESERT ANOMALY",
+   "line1": "THE 25-MILE EYE",
+   "line2": "SEEN FROM SPACE",
+   "tagline": "MAURITANIA'S RINGS"
+  },
+  "story_slides": [
+   {
+    "kicker": "DESERT ANOMALY",
+    "line1": "ORBITAL BEACON",
+    "line2": "VISIBLE FROM SPACE",
+    "body": "Space shuttle crews use this massive concentric desert formation as a visual reference."
+   },
+   {
+    "kicker": "ANCIENT ORIGINS",
+    "line1": "ERODED ROCK DOME",
+    "line2": "100 MILLION YEARS",
+    "body": "Dating of carbonatite rocks shows they cooled between 94 and 104 million years ago."
+   },
+   {
+    "kicker": "RING DIKE SIZES",
+    "line1": "SAHARA FORMATION",
+    "line2": "GABBROIC RIDGES",
+    "body": "Concentric gabbroic dikes frame the dome with rings measuring 30 and 70 meters across."
+   }
+  ],
+  "carousel_slides": [
+   {
+    "heading": "THE EYE OF THE SAHARA",
+    "body": "A massive circular landmark in Mauritania that has guided astronauts from orbit."
+   },
+   {
+    "heading": "DESERT LANDMARK",
+    "body": "Located near Ouadane on the Adrar Plateau, the concentric rings are visible from space."
+   },
+   {
+    "heading": "MASSIVE SCALE",
+    "body": "Surveys record it at 40 kilometers across, while satellites observe nearly 50 kilometers."
+   },
+   {
+    "heading": "ERODED ROCK DOME",
+    "body": "Geologists identify it as a dome formed when subsurface igneous intrusion lifted rocks."
+   },
+   {
+    "heading": "ANCIENT COOLING",
+    "body": "Carbonatite rocks cooled between 94 and 104 million years ago inside concentric dikes."
+   },
+   {
+    "heading": "HERITAGE AND TOOLS",
+    "body": "An official geological heritage site where ancient humans left tools 145,000 years ago."
+   },
+   {
+    "heading": "EARTH'S ENDURING MARVELS",
+    "body": "When seeing massive Earth formations from orbit, does it change how you view our planet?"
+   }
+  ],
+  "poll": {
+   "question": "Which feature measures wider?",
+   "options": [
+    "Outer gabbroic dike",
+    "Inner gabbroic dike"
+   ]
+  },
+  "stat_cards": [
+   {
+    "value": "25 to almost 31 mi",
+    "label": "Recorded diameter"
+   },
+   {
+    "value": "94–104M years ago",
+    "label": "Carbonatite rock cooling age"
+   }
+  ],
+  "location": {
+   "name": "Ouadane",
+   "city": "Adrar Plateau",
+   "region": "Adrar Plateau",
+   "country": "Mauritania",
+   "latitude": 0.0,
+   "longitude": 0.0
+  },
+  "narration_script": "Visible from space as a massive desert landmark near Ouadane in Mauritania, this concentric formation has served as a visual reference point for space shuttle crews. Geological field surveys record the feature at 25 miles (40 km) across, though satellite observations describe it as spanning almost 31 miles (50 km). Geologists identify the structure as an eroded dome created when a subsurface igneous intrusion deformed the overlying sedimentary rock into concentric rings. Dating shows the carbonatite rocks cooled between 94 and 104 million years ago, establishing an official geological heritage site. Its concentric rings remain an enduring landmark across the Sahara."
+ },
+ {
+  "run": "run_richat_structure_sahara_eye_1793272675",
+  "title": "The Desert Bullseye Visible From Orbit 👁️",
+  "thumbnail": {
+   "eyebrow": "DESERT ANOMALY",
+   "line1": "THE 25-MILE",
+   "line2": "SAHARA EYE",
+   "tagline": "CARVED BY NATURE"
+  },
+  "story_slides": [
+   {
+    "kicker": "ORBITAL MYSTERY",
+    "line1": "THE DESERT EYE",
+    "line2": "SEEN FROM SPACE",
+    "body": "A colossal concentric formation marks the vast Mauritanian desert."
+   },
+   {
+    "kicker": "GEOLOGIC ORIGIN",
+    "line1": "ANCIENT DOME",
+    "line2": "EROSION AT WORK",
+    "body": "Subsurface igneous intrusion pushed sedimentary rock upward into concentric rings."
+   },
+   {
+    "kicker": "SURFACE EXPLORATION",
+    "line1": "ORBIT OR GROUND",
+    "line2": "HOW TO VIEW IT",
+    "body": "Best way to view the Eye?"
+   }
+  ],
+  "carousel_slides": [
+   {
+    "heading": "THE EYE OF THE SAHARA",
+    "body": "A concentric formation in Mauritania that has long fascinated observers from orbit."
+   },
+   {
+    "heading": "ORBITAL LANDMARK",
+    "body": "Visible from space, the concentric formation serves as a prominent desert landmark."
+   },
+   {
+    "heading": "IMPACT THEORY DISPROVED",
+    "body": "Initially considered an impact crater, the theory was disproved in 1969."
+   },
+   {
+    "heading": "MAGMATIC UPLIFT",
+    "body": "Subsurface igneous intrusion deformed overlying sedimentary rock into concentric rings."
+   },
+   {
+    "heading": "ANCIENT COOLING",
+    "body": "Carbonatite rocks cooled between 94 and 104 million years ago beneath the surface."
+   },
+   {
+    "heading": "GLOBAL HERITAGE",
+    "body": "In October 2022, international scientists named it one of Earth's top 100 heritage sites."
+   },
+   {
+    "heading": "EARTH'S HIDDEN MARVELS",
+    "body": "What natural wonders on Earth do you think look most magnificent when seen from space?"
+   }
+  ],
+  "poll": {
+   "question": "Best way to view the Eye?",
+   "options": [
+    "From Earth orbit",
+    "Walking the ridges"
+   ]
+  },
+  "share_line": "Send this to a space enthusiast you know, and follow for the next natural marvel.",
+  "timeline": [
+   {
+    "year": 1969,
+    "approximate": false,
+    "label": "Impact theory disproved"
+   },
+   {
+    "year": 2022,
+    "approximate": false,
+    "label": "Named geological heritage site"
+   }
+  ],
+  "location": {
+   "name": "Ouadane",
+   "city": "Adrar Plateau",
+   "region": "Adrar Plateau",
+   "country": "Mauritania",
+   "latitude": 0.0,
+   "longitude": 0.0
+  },
+  "narration_script": "Visible from space as a massive desert landmark, concentric rings span the sands. Geological field surveys record the feature at 25 miles (40 km) across, though satellite observations describe it as spanning almost 31 miles (50 km). The eroded dome formed when subsurface igneous intrusion deformed overlying sedimentary rock. Initially considered an extraterrestrial impact crater, the theory was disproved in 1969 when suspected shock minerals were identified as mislabeled barite. In October 2022, the International Union of Geological Sciences designated this formation among the world's first 100 official geological heritage sites. The colossal eroded bullseye endures as an unmistakable beacon across the sands."
+ },
+ {
+  "run": "run_richat_structure_sahara_eye_1793468053",
+  "title": "The Giant Desert Bullseye Visible From Orbit 👁️",
+  "thumbnail": {
+   "eyebrow": "DESERT ANOMALY",
+   "line1": "THE EYE OF",
+   "line2": "THE SAHARA",
+   "tagline": "VOLCANO OR IMPACT?"
+  },
+  "story_slides": [
+   {
+    "kicker": "MYSTERY",
+    "line1": "ORBITAL",
+    "line2": "LANDMARK",
+    "body": "Space shuttle crews used a giant desert formation for navigation."
+   },
+   {
+    "kicker": "GEOLOGY",
+    "line1": "ANCIENT",
+    "line2": "UPLIFT",
+    "body": "A rising igneous intrusion pushed the crust into concentric rings."
+   },
+   {
+    "kicker": "VERDICT",
+    "line1": "ORIGIN",
+    "line2": "DEBATE",
+    "body": "How did this giant circular formation in the desert originate?"
+   }
+  ],
+  "carousel_slides": [
+   {
+    "heading": "Eye of the Sahara",
+    "body": "A colossal geological formation visible from space shuttle orbits."
+   },
+   {
+    "heading": "Concentric Ring Dikes",
+    "body": "Gabbroic ring dikes frame the complex, with an outer ring about 70 metres wide."
+   },
+   {
+    "heading": "Magma and Uplift",
+    "body": "By one estimate, outer sedimentary layers dip outward between 10 and 20 degrees."
+   },
+   {
+    "heading": "Impact Disproved",
+    "body": "Suspected impact coesite was identified in 1969 as mislabeled barite."
+   },
+   {
+    "heading": "Deep Time Age",
+    "body": "Dating proves the carbonatite rocks cooled between 94 and 104 million years ago."
+   },
+   {
+    "heading": "Stone Age Artifacts",
+    "body": "Prehistoric people left Aterian tools dating from roughly 145,000 to 29,000 years ago."
+   },
+   {
+    "heading": "Enduring Mysteries",
+    "body": "Did early humans view this immense formation as sacred ground or natural shelter?"
+   }
+  ],
+  "poll": {
+   "question": "How did this giant formation originate?",
+   "options": [
+    "Volcanic uplift",
+    "Meteor impact"
+   ]
+  },
+  "share_line": "Send this to a friend who loves geology, and follow for the next ancient wonder.",
+  "stat_cards": [
+   {
+    "value": "94-104M years",
+    "label": "Cooling of carbonatite rocks"
+   }
+  ],
+  "location": {
+   "name": "Ouadane",
+   "city": "Adrar Plateau",
+   "region": "Adrar Plateau",
+   "country": "Mauritania",
+   "latitude": 0.0,
+   "longitude": 0.0
+  },
+  "narration_script": "A massive circular desert formation served as a visual reference for space shuttle crews. Near Ouadane on the Adrar Plateau of Mauritania, a subsurface igneous intrusion deformed overlying sedimentary rock layers into concentric rings framed by gabbroic dikes. Geologists initially considered it an extraterrestrial impact crater, until analysis in 1969 proved suspected shock coesite was mislabeled barite. Dating shows the carbonatite rocks cooled between 94 and 104 million years ago, long before prehistoric humans left exceptional accumulations of Acheulean stone tools. Deep erosion sculpted this natural dome into an unmistakable desert landmark seen from space."
+ },
+ {
+  "run": "run_richat_structure_sahara_eye_1793474473",
+  "title": "The Giant Desert Bullseye Visible From Orbit 👁️",
+  "thumbnail": {
+   "eyebrow": "DESERT ANOMALY",
+   "line1": "THE EYE OF",
+   "line2": "THE SAHARA",
+   "tagline": "VOLCANO OR IMPACT?"
+  },
+  "story_slides": [
+   {
+    "kicker": "MYSTERY",
+    "line1": "ORBITAL",
+    "line2": "LANDMARK",
+    "body": "Space shuttle crews used a giant desert formation for navigation."
+   },
+   {
+    "kicker": "GEOLOGY",
+    "line1": "ANCIENT",
+    "line2": "UPLIFT",
+    "body": "A rising igneous intrusion pushed the crust into concentric rings."
+   },
+   {
+    "kicker": "VERDICT",
+    "line1": "ORIGIN",
+    "line2": "DEBATE",
+    "body": "How did this giant circular formation in the desert originate?"
+   }
+  ],
+  "carousel_slides": [
+   {
+    "heading": "Eye of the Sahara",
+    "body": "A colossal geological formation visible from space shuttle orbits."
+   },
+   {
+    "heading": "Concentric Ring Dikes",
+    "body": "Gabbroic ring dikes frame the complex, with an outer ring about 70 metres wide."
+   },
+   {
+    "heading": "Magma and Uplift",
+    "body": "By one estimate, outer sedimentary layers dip outward between 10 and 20 degrees."
+   },
+   {
+    "heading": "Impact Disproved",
+    "body": "Suspected impact coesite was identified in 1969 as mislabeled barite."
+   },
+   {
+    "heading": "Deep Time Age",
+    "body": "Dating proves the carbonatite rocks cooled between 94 and 104 million years ago."
+   },
+   {
+    "heading": "Stone Age Artifacts",
+    "body": "Prehistoric people left Aterian tools dating from roughly 145,000 to 29,000 years ago."
+   },
+   {
+    "heading": "Enduring Mysteries",
+    "body": "Did early humans view this immense formation as sacred ground or natural shelter?"
+   }
+  ],
+  "poll": {
+   "question": "How did this giant formation originate?",
+   "options": [
+    "Volcanic uplift",
+    "Meteor impact"
+   ]
+  },
+  "share_line": "Send this to a friend who loves geology, and follow for the next ancient wonder.",
+  "stat_cards": [
+   {
+    "value": "94-104M years",
+    "label": "Cooling of carbonatite rocks"
+   }
+  ],
+  "location": {
+   "name": "Ouadane",
+   "city": "Adrar Plateau",
+   "region": "Adrar Plateau",
+   "country": "Mauritania",
+   "latitude": 0.0,
+   "longitude": 0.0
+  },
+  "narration_script": "A massive circular desert formation served as a visual reference for space shuttle crews. Near Ouadane on the Adrar Plateau of Mauritania, a subsurface igneous intrusion deformed overlying sedimentary rock layers into concentric rings framed by gabbroic dikes. Geologists initially considered it an extraterrestrial impact crater, until analysis in 1969 proved suspected shock coesite was mislabeled barite. Dating shows the carbonatite rocks cooled between 94 and 104 million years ago, long before prehistoric humans left exceptional accumulations of Acheulean stone tools. Deep erosion sculpted this natural dome into an unmistakable desert landmark seen from space."
+ },
+ {
+  "run": "run_richat_structure_sahara_eye_1793474843",
+  "title": "The Giant Desert Bullseye Visible From Orbit 👁️",
+  "thumbnail": {
+   "eyebrow": "DESERT ANOMALY",
+   "line1": "THE EYE OF",
+   "line2": "THE SAHARA",
+   "tagline": "VOLCANO OR IMPACT?"
+  },
+  "story_slides": [
+   {
+    "kicker": "MYSTERY",
+    "line1": "ORBITAL",
+    "line2": "LANDMARK",
+    "body": "Space shuttle crews used a giant desert formation for navigation."
+   },
+   {
+    "kicker": "GEOLOGY",
+    "line1": "ANCIENT",
+    "line2": "UPLIFT",
+    "body": "A rising igneous intrusion pushed the crust into concentric rings."
+   },
+   {
+    "kicker": "VERDICT",
+    "line1": "ORIGIN",
+    "line2": "DEBATE",
+    "body": "How did this giant circular formation in the desert originate?"
+   }
+  ],
+  "carousel_slides": [
+   {
+    "heading": "Eye of the Sahara",
+    "body": "A colossal geological formation visible from space shuttle orbits."
+   },
+   {
+    "heading": "Concentric Ring Dikes",
+    "body": "Gabbroic ring dikes frame the complex, with an outer ring about 70 metres wide."
+   },
+   {
+    "heading": "Magma and Uplift",
+    "body": "By one estimate, outer sedimentary layers dip outward between 10 and 20 degrees."
+   },
+   {
+    "heading": "Impact Disproved",
+    "body": "Suspected impact coesite was identified in 1969 as mislabeled barite."
+   },
+   {
+    "heading": "Deep Time Age",
+    "body": "Dating proves the carbonatite rocks cooled between 94 and 104 million years ago."
+   },
+   {
+    "heading": "Stone Age Artifacts",
+    "body": "Prehistoric people left Aterian tools dating from roughly 145,000 to 29,000 years ago."
+   },
+   {
+    "heading": "Enduring Mysteries",
+    "body": "Did early humans view this immense formation as sacred ground or natural shelter?"
+   }
+  ],
+  "poll": {
+   "question": "How did this giant formation originate?",
+   "options": [
+    "Volcanic uplift",
+    "Meteor impact"
+   ]
+  },
+  "share_line": "Send this to a friend who loves geology, and follow for the next ancient wonder.",
+  "stat_cards": [
+   {
+    "value": "94-104M years",
+    "label": "Cooling of carbonatite rocks"
+   }
+  ],
+  "location": {
+   "name": "Ouadane",
+   "city": "Adrar Plateau",
+   "region": "Adrar Plateau",
+   "country": "Mauritania",
+   "latitude": 0.0,
+   "longitude": 0.0
+  },
+  "narration_script": "A massive circular desert formation served as a visual reference for space shuttle crews. Near Ouadane on the Adrar Plateau of Mauritania, a subsurface igneous intrusion deformed overlying sedimentary rock layers into concentric rings framed by gabbroic dikes. Geologists initially considered it an extraterrestrial impact crater, until analysis in 1969 proved suspected shock coesite was mislabeled barite. Dating shows the carbonatite rocks cooled between 94 and 104 million years ago, long before prehistoric humans left exceptional accumulations of Acheulean stone tools. Deep erosion sculpted this natural dome into an unmistakable desert landmark seen from space."
+ },
+ {
+  "run": "run_roman_self_healing_concrete_1793161347",
+  "title": "Rome’s Two-Millennium Concrete Mystery 🏛️",
+  "thumbnail": {
+   "eyebrow": "ANCIENT MARVELS",
+   "line1": "WHY ROMAN CONCRETE",
+   "line2": "HEALS ITSELF",
+   "tagline": "The Secret of Rome"
+  },
+  "story_slides": [
+   {
+    "kicker": "ANCIENT MYSTERY",
+    "line1": "BUILT TO LAST",
+    "line2": "TWO MILLENNIA",
+    "body": "Modern concrete crumbles in decades, but Rome's ancient Pantheon dome remains completely intact."
+   },
+   {
+    "kicker": "THE SECRET",
+    "line1": "QUICKLIME MIX",
+    "line2": "SELF-HEALING",
+    "body": "Ancient builders used volcanic pozzolans and quicklime hot-mixing to produce self-healing concrete."
+   },
+   {
+    "kicker": "MODERN LESSONS",
+    "line1": "WHICH WAS SMARTER",
+    "line2": "ANCIENT OR MODERN",
+    "body": "Ancient formulas now offer critical evidence for developing modern sustainable building materials."
+   }
+  ],
+  "carousel_slides": [
+   {
+    "heading": "ROMAN CONCRETE SECRETS",
+    "body": "Why ancient Roman monuments endure while modern structures crumble after decades."
+   },
+   {
+    "heading": "MODERN DECAY",
+    "body": "Modern concrete structures can begin to crumble just a few decades after construction."
+   },
+   {
+    "heading": "THE PANTHEON'S DOME",
+    "body": "Dedicated in AD 128, it remains the world's largest unreinforced concrete dome."
+   },
+   {
+    "heading": "HARSH ENVIRONMENTS",
+    "body": "Roman concrete withstood severe marine conditions in docks, seawalls, and sewers."
+   },
+   {
+    "heading": "THE HOT-MIXING SECRET",
+    "body": "Volcanic pozzolans and quicklime produced self-healing properties inside the concrete."
+   },
+   {
+    "heading": "OVERTURNING HISTORY",
+    "body": "Chemical evidence overturned longstanding assumptions based on the texts of Vitruvius."
+   },
+   {
+    "heading": "LOST INGENUITY",
+    "body": "Did ancient civilizations build with a deeper respect for future generations than we do?"
+   }
+  ],
+  "poll": {
+   "question": "Which recipe was smarter?",
+   "options": [
+    "Ancient hot-mixing",
+    "Modern cement"
+   ]
+  },
+  "share_line": "Send this to a friend fascinated by ancient engineering, and follow for the next marvel.",
+  "timeline": [
+   {
+    "year": 128,
+    "approximate": false,
+    "label": "Pantheon dedicated in Rome"
+   },
+   {
+    "year": 2023,
+    "approximate": false,
+    "label": "Hot-mixing identified at Pompeii"
+   }
+  ],
+  "location": {
+   "name": "Pantheon",
+   "city": "Rome",
+   "region": "Lazio",
+   "country": "Italy",
+   "latitude": 41.8986,
+   "longitude": 12.4769,
+   "unesco_id": 91
+  },
+  "narration_script": "Modern concrete structures can begin to crumble just a few decades after construction, yet Rome’s Pantheon, dedicated in AD 128, still stands intact with the world's largest unreinforced concrete dome. Ancient Roman aqueducts continue to deliver water to Rome today, enduring some two millennia through volcanic pozzolans. Chemical analysis of materials from Pompeii demonstrated builders used a hot-mixing process with quicklime to produce self-healing properties, overturning longstanding assumptions based on ancient texts of Vitruvius. Today, petrographic analysis of ancient concrete provides critical evidence for developing modern sustainable building materials. Ancient Roman structures endure while modern engineering crumbles in decades."
+ },
+ {
+  "run": "run_roman_self_healing_concrete_1793163918",
+  "title": "Rome’s Two-Millennium Concrete Mystery 🏛️",
+  "thumbnail": {
+   "eyebrow": "ANCIENT MARVELS",
+   "line1": "WHY ROMAN CONCRETE",
+   "line2": "HEALS ITSELF",
+   "tagline": "The Secret of Rome"
+  },
+  "story_slides": [
+   {
+    "kicker": "ANCIENT MYSTERY",
+    "line1": "BUILT TO LAST",
+    "line2": "TWO MILLENNIA",
+    "body": "Modern concrete crumbles in decades, but Rome's ancient Pantheon dome remains completely intact."
+   },
+   {
+    "kicker": "THE SECRET",
+    "line1": "QUICKLIME MIX",
+    "line2": "SELF-HEALING",
+    "body": "Ancient builders used volcanic pozzolans and quicklime hot-mixing to produce self-healing concrete."
+   },
+   {
+    "kicker": "MODERN LESSONS",
+    "line1": "WHICH WAS SMARTER",
+    "line2": "ANCIENT OR MODERN",
+    "body": "Ancient formulas now offer critical evidence for developing modern sustainable building materials."
+   }
+  ],
+  "carousel_slides": [
+   {
+    "heading": "ROMAN CONCRETE SECRETS",
+    "body": "Why ancient Roman monuments endure while modern structures crumble after decades."
+   },
+   {
+    "heading": "MODERN DECAY",
+    "body": "Modern concrete structures can begin to crumble just a few decades after construction."
+   },
+   {
+    "heading": "THE PANTHEON'S DOME",
+    "body": "Dedicated in AD 128, it remains the world's largest unreinforced concrete dome."
+   },
+   {
+    "heading": "HARSH ENVIRONMENTS",
+    "body": "Roman concrete withstood severe marine conditions in docks, seawalls, and sewers."
+   },
+   {
+    "heading": "THE HOT-MIXING SECRET",
+    "body": "Volcanic pozzolans and quicklime produced self-healing properties inside the concrete."
+   },
+   {
+    "heading": "OVERTURNING HISTORY",
+    "body": "Chemical evidence overturned longstanding assumptions based on the texts of Vitruvius."
+   },
+   {
+    "heading": "LOST INGENUITY",
+    "body": "Did ancient civilizations build with a deeper respect for future generations than we do?"
+   }
+  ],
+  "poll": {
+   "question": "Which recipe was smarter?",
+   "options": [
+    "Ancient hot-mixing",
+    "Modern cement"
+   ]
+  },
+  "share_line": "Send this to a friend fascinated by ancient engineering, and follow for the next marvel.",
+  "timeline": [
+   {
+    "year": 128,
+    "approximate": false,
+    "label": "Pantheon dedicated in Rome"
+   },
+   {
+    "year": 2023,
+    "approximate": false,
+    "label": "Hot-mixing identified at Pompeii"
+   }
+  ],
+  "location": {
+   "name": "Pantheon",
+   "city": "Rome",
+   "region": "Lazio",
+   "country": "Italy",
+   "latitude": 41.8986,
+   "longitude": 12.4769,
+   "unesco_id": 91
+  },
+  "narration_script": "Modern concrete structures can begin to crumble just a few decades after construction, yet Rome’s Pantheon, dedicated in AD 128, still stands intact with the world's largest unreinforced concrete dome. Ancient Roman aqueducts continue to deliver water to Rome today, enduring some two millennia through volcanic pozzolans. Chemical analysis of materials from Pompeii demonstrated builders used a hot-mixing process with quicklime to produce self-healing properties, overturning longstanding assumptions based on ancient texts of Vitruvius. Today, petrographic analysis of ancient concrete provides critical evidence for developing modern sustainable building materials. Ancient Roman structures endure while modern engineering crumbles in decades."
+ },
+ {
+  "run": "run_singing_colossi_of_memnon_1792952878",
+  "title": "Why Did This 720-Ton Titan Sing at Dawn? 🌅",
+  "thumbnail": {
+   "eyebrow": "THEBAN NECROPOLIS",
+   "line1": "THE SINGING",
+   "line2": "720-TON TITAN",
+   "tagline": "VOICE OF THE DESERT"
+  },
+  "story_slides": [
+   {
+    "kicker": "ANCIENT MARVELS",
+    "line1": "THE SHATTERED",
+    "line2": "VOCAL TITAN",
+    "body": "In 27 BC, a major earthquake shattered the northern colossus, cracking its lower half."
+   },
+   {
+    "kicker": "THE MORNING SOUND",
+    "line1": "A CRY AT",
+    "line2": "FIRST LIGHT",
+    "body": "Following the earthquake damage, the monument became famous for emitting a cry at dawn."
+   },
+   {
+    "kicker": "WHICH WAS BETTER?",
+    "line1": "RESTORATION",
+    "line2": "OR ACOUSTICS",
+    "body": "Local tradition attributes the repair to Roman Emperor Septimius Severus around 199 AD."
+   }
+  ],
+  "carousel_slides": [
+   {
+    "heading": "THE SINGING COLOSSI",
+    "body": "Two monumental statues standing before the ruined Mortuary Temple in Egypt."
+   },
+   {
+    "heading": "SACRED GUARDIANS",
+    "body": "The colossi have stood since 1350 BC, guarding where Amenhotep III was worshipped."
+   },
+   {
+    "heading": "COLOSSAL SCALE",
+    "body": "Reaching 60 feet (18 m) tall, each colossus weighs an estimated 720 tons."
+   },
+   {
+    "heading": "THE EARTHQUAKE OF 27 BC",
+    "body": "In 27 BC, a major earthquake shattered the northern colossus, cracking its lower half."
+   },
+   {
+    "heading": "THE CRY AT DAWN",
+    "body": "Following the earthquake damage, the monument became famous for emitting a cry at dawn."
+   },
+   {
+    "heading": "ROMAN RECONSTRUCTION",
+    "body": "Local tradition dates the reconstruction of the upper tiers to around 199 AD."
+   },
+   {
+    "heading": "VANISHED WONDERS",
+    "body": "Would you preserve an anomaly, or restore an ancient ruin back to its unbroken form?"
+   }
+  ],
+  "poll": {
+   "question": "Which choice was better?",
+   "options": [
+    "Rebuild the stone",
+    "Keep the morning cry"
+   ]
+  },
+  "timeline": [
+   {
+    "year": -1350,
+    "approximate": false,
+    "label": "Colossi carved for Amenhotep III"
+   },
+   {
+    "year": -27,
+    "approximate": false,
+    "label": "Earthquake shatters northern colossus"
+   },
+   {
+    "year": 196,
+    "approximate": false,
+    "label": "Last recorded vocalization"
+   },
+   {
+    "year": 199,
+    "approximate": true,
+    "label": "Upper tiers reconstructed"
+   }
+  ],
+  "stat_cards": [
+   {
+    "value": "estimated 720 tons",
+    "label": "weight of each colossus"
+   },
+   {
+    "value": "1350 BC",
+    "label": "standing since"
+   }
+  ],
+  "scale_fact": {
+   "value": 60.0,
+   "unit": "ft",
+   "dimension": "height",
+   "subject": "Colossi of Memnon",
+   "approximate": false
+  },
+  "location": {
+   "name": "Colossi of Memnon",
+   "city": "Luxor",
+   "region": "Upper Egypt",
+   "country": "Egypt"
+  },
+  "narration_script": "In 27 BC, a major earthquake shattered the northern colossus, collapsing the statue from the waist up and cracking its lower half. Following the earthquake damage, the northern monument became famous throughout the ancient world for emitting a reported cry at dawn. Reaching a total height of 60 feet (18 m) including their 13-foot (4 m) pedestals, each colossus weighs an estimated 720 tons. The last reliable historical record of the statue vocalizing dates to the year 196 AD. Local tradition dates the reconstruction of the statue's upper tiers to around 199 AD. Still, the colossi have stood since 1350 BC, originally carved to guard the memorial temple where Amenhotep III was worshipped."
+ },
+ {
+  "run": "run_trepanation_miracle_1792995462",
+  "title": "Surviving Ancient Skull Surgery 🧠",
+  "thumbnail": {
+   "eyebrow": "ANCIENT MEDICINE",
+   "line1": "PREHISTORIC SKULL",
+   "line2": "SURGERY SURVIVORS",
+   "tagline": "SURVIVING CRANIOTOMY"
+  },
+  "story_slides": [
+   {
+    "kicker": "ANCIENT HEALERS",
+    "line1": "STONE AGE",
+    "line2": "BRAIN SURGERY",
+    "body": "Trepanation is the oldest documented surgical procedure in human history, dating back thousands of years."
+   },
+   {
+    "kicker": "PARACAS PENINSULA",
+    "line1": "AVOIDING LETHAL",
+    "line2": "BLOOD VESSELS",
+    "body": "Ancient Peruvian surgeons avoided the skull midline, preventing lethal damage to the cerebral sagittal sinus."
+   },
+   {
+    "kicker": "ANCIENT MOTIVES",
+    "line1": "EMERGENCY OR",
+    "line2": "SPIRITUAL RITUAL",
+    "body": "Healers operated to clean shattered bone and pooled blood, or to cast out evil spirits."
+   }
+  ],
+  "carousel_slides": [
+   {
+    "heading": "Ancient Skull Surgery",
+    "body": "Prehistoric healers bored into human skulls thousands of years ago, and patients survived."
+   },
+   {
+    "heading": "Oldest Known Surgery",
+    "body": "Trepanation dates back between 7,000 and 10,000 years, making it humanity's oldest surgery."
+   },
+   {
+    "heading": "Emergency Trauma Care",
+    "body": "Surgeons extracted shattered bone fragments and cleaned pooling blood after head wounds."
+   },
+   {
+    "heading": "Surgical Precision",
+    "body": "Peruvian surgeons avoided the skull midline to prevent fatal damage to vital blood vessels."
+   },
+   {
+    "heading": "Rising Survival Rates",
+    "body": "By one estimate, advancements in Peruvian surgical technique contributed to cranial surgery survival rates climbing over time to 80 percent."
+   },
+   {
+    "heading": "Signs of Healing",
+    "body": "Archaeologists identify ancient trepanation by examining the shape of the cranial hole, the cut edges, and signs of the bone healing process."
+   },
+   {
+    "heading": "The Ancient Mind",
+    "body": "What does this level of prehistoric care teach us about human resilience across millennia?"
+   }
+  ],
+  "poll": {
+   "question": "Why was skull surgery done?",
+   "options": [
+    "Emergency trauma",
+    "Spiritual ritual"
+   ]
+  },
+  "share_line": "Send this to someone fascinated by ancient medicine, and follow for the next marvel.",
+  "stat_cards": [
+   {
+    "value": "7,000–10,000 yrs ago",
+    "label": "Earliest documented surgery"
+   },
+   {
+    "value": "Up to 80% (est.)",
+    "label": "Peruvian cranial surgery survival rate"
+   }
+  ],
+  "location": {
+   "name": "Paracas Peninsula",
+   "city": "Ica",
+   "region": "Ica",
+   "country": "Peru",
+   "latitude": 0.0,
+   "longitude": 0.0
+  },
+  "narration_script": "Trepanation is the oldest documented surgical procedure in human history, dating back between 7,000 and 10,000 years ago. Ancient Peruvian surgeons demonstrated advanced technique by avoiding the midline of the skull, which prevented lethal damage to the cerebral sagittal sinus. Physical evidence suggests prehistoric trepanation served as emergency surgery following trauma to extract shattered bone fragments and clean out pooling blood. Ancient societies also operated for spiritual motives such as releasing evil spirits, or treating mental disorders and epilepsy. By one estimate, advancements in Peruvian surgical technique contributed to cranial surgery survival rates climbing over time to 80 percent. Signs of the bone healing process confirm that patients survived."
+ },
+ {
+  "run": "run_tunguska_event_1908_1792930600",
+  "title": "Flattened 830 Square Miles 💥",
+  "thumbnail": {
+   "eyebrow": "SIBERIA 1908",
+   "line1": "830 SQUARE MILES",
+   "line2": "FLATTENED FOREST",
+   "tagline": "WHAT EXPLODED ABOVE?"
+  },
+  "story_slides": [
+   {
+    "kicker": "JUNE 1908",
+    "line1": "FOREST DESTROYED",
+    "line2": "TREES FLATTENED",
+    "body": "On 30 June 1908, a blast struck near the Podkamennaya Tunguska River ."
+   },
+   {
+    "kicker": "FORENSIC EVIDENCE",
+    "line1": "CELLULAR DAMAGE",
+    "line2": "TREE RINGS FROZEN",
+    "body": "Surviving trees near the epicenter revealed deformed tracheid cells and light rings."
+   },
+   {
+    "kicker": "THE BIG QUESTION",
+    "line1": "COSMIC MYSTERY",
+    "line2": "AIRBURST OR IMPACT",
+    "body": "Scientists calculate the airburst released between 10 and 15 megatons of TNT."
+   }
+  ],
+  "carousel_slides": [
+   {
+    "heading": "THE TUNGUSKA PUZZLE",
+    "body": "On 30 June 1908, a mysterious detonation struck near the Podkamennaya Tunguska River."
+   },
+   {
+    "heading": "RADIAL FLATTENING",
+    "body": "By one estimate, the blast devastated over 830 square miles (2,150 sq km) of forest."
+   },
+   {
+    "heading": "MASSIVE EXPLOSION",
+    "body": "Scientists calculate the airburst released between 10 and 15 megatons of TNT."
+   },
+   {
+    "heading": "GLOBAL SHOCKWAVES",
+    "body": "Atmospheric pressure waves generated by the explosion were detected by barographs."
+   },
+   {
+    "heading": "TREE RING SCARS",
+    "body": "Surviving trees near the epicenter revealed deformed tracheid cells and light rings."
+   },
+   {
+    "heading": "VANISHED FRAGMENTS",
+    "body": "Scientific consensus cites an air burst, yet no celestial fragment was ever found."
+   },
+   {
+    "heading": "PLANETARY RESILIENCE",
+    "body": "How vulnerable is modern civilization to sudden, silent cosmic catastrophes from above?"
+   }
+  ],
+  "poll": {
+   "question": "What caused the devastation?",
+   "options": [
+    "Atmospheric airburst",
+    "Ground impact"
+   ]
+  },
+  "stat_cards": [
+   {
+    "value": "Est. >830 sq mi",
+    "label": "Devastated taiga forest"
+   },
+   {
+    "value": "10–15 megatons TNT",
+    "label": "Calculated airburst energy"
+   }
+  ],
+  "location": {
+   "name": "Podkamennaya Tunguska",
+   "city": "Siberia",
+   "region": "Siberia",
+   "country": "Russia",
+   "latitude": 0.0,
+   "longitude": 0.0
+  },
+  "narration_script": "On the morning of 30 June 1908 at around 7:14 local time, near the Podkamennaya Tunguska River in Central Siberia, a cataclysm struck . By one estimate, the blast devastated more than 830 square miles (2,150 square km) of taiga forest, flattening trees in a distinctive radial pattern. Scientists calculate the airburst released between 10 and 15 megatons of TNT. Atmospheric pressure waves generated by the explosion rippled across the globe and were detected by barographs worldwide. Scientific consensus attributes the event to an atmospheric meteor air burst, though no celestial fragment has ever been formally identified from that sudden Siberian morning."
+ },
+ {
+  "run": "run_unfinished_obelisk_aswan_1792985912",
+  "title": "Egypt’s 1,200-Ton Quarry Monster 🗿",
+  "thumbnail": {
+   "eyebrow": "ANCIENT ASWAN",
+   "line1": "THE 1,200-TON",
+   "line2": "BEDROCK MONSTER",
+   "tagline": "NEVER ERECTED"
+  },
+  "story_slides": [
+   {
+    "kicker": "ASWAN QUARRY",
+    "line1": "A BEDROCK",
+    "line2": "COLOSSUS",
+    "body": "Egypt began carving an obelisk one-third larger than any ever erected before abandoning it."
+   },
+   {
+    "kicker": "QUARRY FORENSICS",
+    "line1": "CHISELED IN",
+    "line2": "THE STONE",
+    "body": "Bedrock trenches still show worker tool marks and red ochre cutting lines alongside deep structural fractures."
+   },
+   {
+    "kicker": "ENGINEERING LIMITS",
+    "line1": "EXTRACTION",
+    "line2": "PUZZLE",
+    "body": "Surveys leave unclear how workers intended to free the monolith from its bedrock trench."
+   }
+  ],
+  "carousel_slides": [
+   {
+    "heading": "THE UNFINISHED OBELISK",
+    "body": "The largest obelisk ever attempted by the ancient Egyptians still sits trapped in Aswan's northern granite."
+   },
+   {
+    "heading": "MASSIVE SCALE",
+    "body": "Surveys place the completed monument's length between roughly 41.75 metres and 42 metres, with calculations of the finished obelisk's weight ranging from nearly 1,090 tonnes to 1,168 tonnes."
+   },
+   {
+    "heading": "FIRE AND BEDROCK",
+    "body": "Quarry workers burned and wedged away upper granite, carving down directly into bedrock."
+   },
+   {
+    "heading": "CRACKED IN PLACE",
+    "body": "Multiple fissures split the stone, forcing ancient crews to abandon the entire monolith."
+   },
+   {
+    "heading": "PRESERVED EVIDENCE",
+    "body": "Trench walls still display direct tool marks and red ochre cutting lines from workers."
+   },
+   {
+    "heading": "UNKNOWN EXTRACTION",
+    "body": "Studies cannot determine whether moving this immense mass was even structurally viable."
+   },
+   {
+    "heading": "ANCIENT LIMITS",
+    "body": "Does abandoning a colossal project show the limit of human ambition, or great wisdom?"
+   }
+  ],
+  "poll": {
+   "question": "Which was harder for Egyptian builders?",
+   "options": [
+    "Carving the bedrock",
+    "Extracting the stone"
+   ]
+  },
+  "share_line": "Send this to a friend fascinated by ancient engineering, and follow for the next marvel.",
+  "location": {
+   "name": "Aswan Granite Quarries",
+   "city": "Aswan",
+   "region": "Upper Egypt",
+   "country": "Egypt",
+   "latitude": 24.0769,
+   "longitude": 32.8953
+  },
+  "narration_script": "Deep in Egypt’s Aswan quarries lies a granite monolith that would have been nearly one-third larger than any obelisk ever erected. Ancient workers burned and wedged away upper rock, carving directly into bedrock where tool marks and ochre lines still mark the trench. Surveys place the completed monument's length between roughly 41.75 metres and 42 metres, while calculations of the finished obelisk's weight range from nearly 1,090 tonnes to 1,168 tonnes. Modern engineering studies cannot establish whether moving the monolith was within structural limits of granite before multiple fissures cracked the stone. Attached to the bedrock, this unfinished giant preserves ancient Egypt's grandest quarry."
+ },
+ {
+  "run": "run_unfinished_obelisk_aswan_1792993374",
+  "title": "Why Egypt Abandoned Its Largest Megalith ⚡",
+  "thumbnail": {
+   "eyebrow": "ASWAN, EGYPT",
+   "line1": "EGYPT'S LARGEST",
+   "line2": "CRACKED OBELISK",
+   "tagline": "TRAPPED IN BEDROCK"
+  },
+  "story_slides": [
+   {
+    "kicker": "ANCIENT MYSTERY",
+    "line1": "CARVED IN STONE",
+    "line2": "NEVER ERECTED",
+    "body": "Workers carved this obelisk into bedrock before sudden fractures stopped work."
+   },
+   {
+    "kicker": "MASSIVE SCALE",
+    "line1": "OVER 1,000 TONS",
+    "line2": "STILL ANCHORED",
+    "body": "Calculations place its finished weight at up to 1,168 tonnes, still anchored to bedrock."
+   },
+   {
+    "kicker": "ENGINEERING RIDDLE",
+    "line1": "EXTRACTION PLAN",
+    "line2": "HOW TO MOVE IT",
+    "body": "How would they lift it?"
+   }
+  ],
+  "carousel_slides": [
+   {
+    "heading": "THE UNFINISHED OBELISK",
+    "body": "The largest obelisk ever attempted by ancient Egypt still sits trapped in Aswan granite."
+   },
+   {
+    "heading": "CARVED FROM BEDROCK",
+    "body": "Workers carved it into bedrock, leaving its underside attached to the stone floor."
+   },
+   {
+    "heading": "ANCIENT WORK MARKS",
+    "body": "Crews burned and wedged the rock, leaving tool marks and red ochre guide lines."
+   },
+   {
+    "heading": "COLOSSAL SCALE",
+    "body": "Surveys place the completed length between roughly 41.75 and 42 meters."
+   },
+   {
+    "heading": "UNMATCHED WEIGHT",
+    "body": "Weight calculations range from nearly 1,090 tonnes to 1,168 tonnes."
+   },
+   {
+    "heading": "FATAL FRACTURES",
+    "body": "Work halted when structural cracks and multiple fissures appeared in the granite."
+   },
+   {
+    "heading": "AN ENDURING MYSTERY",
+    "body": "Does this unfinished giant show the ultimate limit of ancient human engineering?"
+   }
+  ],
+  "poll": {
+   "question": "How would they lift it?",
+   "options": [
+    "Exit corridor trench",
+    "Rocking-and-packing"
+   ]
+  },
+  "share_line": "Send this to a friend who loves ancient engineering, and follow for the next marvel.",
+  "stat_cards": [
+   {
+    "value": "Roughly 137–138 ft",
+    "label": "Estimated completed length"
+   },
+   {
+    "value": "Nearly 1,090–1,168 t",
+    "label": "Calculated finished weight"
+   }
+  ],
+  "scale_fact": {
+   "value": 138.0,
+   "unit": "ft",
+   "dimension": "length",
+   "subject": "Unfinished obelisk",
+   "approximate": true
+  },
+  "location": {
+   "name": "Aswan Granite Quarries",
+   "city": "Aswan",
+   "region": "Upper Egypt",
+   "country": "Egypt",
+   "latitude": 24.0769,
+   "longitude": 32.8953
+  },
+  "narration_script": "Deep inside an ancient Aswan granite quarry, Egyptian builders carved a colossal monolith directly out of solid bedrock that remains trapped in the earth today. Quarry workers burned and wedged away upper rock layers, flattening the stone while leaving red ochre cut lines along the deep trenches. Surveys place the completed monument's length between roughly 137 and 138 feet (41.75 to 42 m), with finished weight calculations ranging from nearly 1,090 to 1,168 tonnes. When structural cracks appeared, the project was abandoned. Modern engineering studies still have not established which extraction method was intended, leaving this unfinished giant locked forever in the bedrock."
+ },
+ {
+  "run": "run_unfinished_obelisk_aswan_1793056896",
+  "title": "Egypt's Largest Obelisk Trapped in Bedrock ⛏️",
+  "thumbnail": {
+   "eyebrow": "ASWAN'S LOST TITAN",
+   "line1": "TRAPPED IN BEDROCK",
+   "line2": "NEVER COMPLETED",
+   "tagline": "WHY EGYPT WALKED AWAY"
+  },
+  "story_slides": [
+   {
+    "kicker": "ANCIENT MEGALITHS",
+    "line1": "TRAPPED IN BEDROCK",
+    "line2": "EGYPT'S GIANT STONE",
+    "body": "An unfinished obelisk at Aswan was planned nearly one-third larger than any ever erected."
+   },
+   {
+    "kicker": "FORENSIC EVIDENCE",
+    "line1": "CRACKS IN THE QUARRY",
+    "line2": "WORK STOPPED COLD",
+    "body": "Structural cracks and multiple fissures appeared before workers could detach the base from bedrock."
+   },
+   {
+    "kicker": "THE BIG QUESTION",
+    "line1": "WHICH WAS HARDER?",
+    "line2": "TRENCH OR TRANSPORT",
+    "body": "Workers carved deep trenches, but extracting the colossal monolith posed massive structural limits."
+   }
+  ],
+  "carousel_slides": [
+   {
+    "heading": "THE UNFINISHED OBELISK",
+    "body": "Ancient Egypt's most ambitious monument still lies unfinished in its Aswan quarry."
+   },
+   {
+    "heading": "RECORD-BREAKING SCALE",
+    "body": "Surveys place its length between roughly 137 feet (41.75 m) and 138 feet (42 m)."
+   },
+   {
+    "heading": "BEDROCK CUTTING MARKS",
+    "body": "Visible tool marks and red ochre lines preserve the exact cutting trenches of workers."
+   },
+   {
+    "heading": "FATAL FRACTURES",
+    "body": "Work was abandoned when structural cracks and multiple fissures appeared in the granite."
+   },
+   {
+    "heading": "EXTRACTION PUZZLE",
+    "body": "Engineers debated clearing an exit corridor or rocking the monolith upward on packing."
+   },
+   {
+    "heading": "STRUCTURAL LIMITS",
+    "body": "Studies cannot confirm if moving the monolith was within granite's structural limits."
+   },
+   {
+    "heading": "THE ENDURING DEBATE",
+    "body": "Does this giant show human ambition pushed too far, or genius cut short by nature?"
+   }
+  ],
+  "poll": {
+   "question": "Which task was harder?",
+   "options": [
+    "Carving the trench",
+    "Moving the monolith"
+   ]
+  },
+  "share_line": "Send this to a friend who loves ancient engineering, and follow for the next marvel.",
+  "stat_cards": [
+   {
+    "value": "roughly 137–138 ft",
+    "label": "Surveyed length"
+   },
+   {
+    "value": "1,090 to 1,168 tonnes",
+    "label": "Calculated finished weight"
+   }
+  ],
+  "location": {
+   "name": "Aswan Granite Quarries",
+   "city": "Aswan",
+   "region": "Upper Egypt",
+   "country": "Egypt",
+   "latitude": 24.0769,
+   "longitude": 32.8953
+  },
+  "narration_script": "Deep inside an ancient quarry in Aswan, the largest obelisk ever attempted remains trapped in solid bedrock. Workers burned and wedged away upper rock, carving trenches where visible tool marks and ochre lines still mark their cuts. Surveys place its length between roughly 137 feet (41.75 m) and 138 feet (42 m), with weight calculations ranging from nearly 1,090 tonnes to 1,168 tonnes. Work was abandoned after structural cracks and multiple fissures appeared. Modern engineering studies cannot confirm which extraction method was intended, or whether moving the monolith was within granite's structural limits. These deep fissures left Egypt's greatest monument forever anchored in the stone."
+ },
+ {
+  "run": "run_voynich_manuscript_1792965308",
+  "title": "The 1404 Codex That Broke Codebreakers 📜",
+  "thumbnail": {
+   "eyebrow": "MEDIEVAL RELIC",
+   "line1": "THE UNBROKEN",
+   "line2": "VOYNICH CODE",
+   "tagline": "UNREAD FOR CENTURIES"
+  },
+  "story_slides": [
+   {
+    "kicker": "ANCIENT PUZZLE",
+    "line1": "AN UNREAD",
+    "line2": "MEDIEVAL BOOK",
+    "body": "An unread medieval book displays linguistic precision that defeats modern cryptanalysis."
+   },
+   {
+    "kicker": "SCIENTIFIC TESTING",
+    "line1": "CONFIRMED",
+    "line2": "CALFSKIN VELLUM",
+    "body": "Protein testing determined that the parchment was made from calfskin."
+   },
+   {
+    "kicker": "CRYPTIC TEXT",
+    "line1": "IS IT A CIPHER",
+    "line2": "OR A LOST LANGUAGE?",
+    "body": "American and British military cryptographers attempted to decipher the codex."
+   }
+  ],
+  "carousel_slides": [
+   {
+    "heading": "THE UNREAD CODEX",
+    "body": "An unread medieval book displays linguistic precision that defeats modern cryptanalysis."
+   },
+   {
+    "heading": "PARCHMENT ORIGIN",
+    "body": "Protein testing in 2014 determined that the parchment was made from calfskin."
+   },
+   {
+    "heading": "PRESERVED AT YALE",
+    "body": "The Voynich manuscript is preserved at the Beinecke Library in New Haven, Connecticut."
+   },
+   {
+    "heading": "THE UNIDENTIFIED SCRIPT",
+    "body": "By one estimate, the text is written left to right in an alphabet of 20 to 25 characters."
+   },
+   {
+    "heading": "FANTASTICAL ART",
+    "body": "Illustrations feature human figures, astrological symbols, and unidentified plants."
+   },
+   {
+    "heading": "UNBROKEN CIPHER",
+    "body": "Military cryptographers from World War I and World War II failed to decipher the codex."
+   },
+   {
+    "heading": "AN ENDURING PUZZLE",
+    "body": "Will modern artificial intelligence unlock this medieval text, or should it stay silent?"
+   }
+  ],
+  "poll": {
+   "question": "Is it a cipher or a lost language?",
+   "options": [
+    "Deliberate cipher",
+    "Lost language"
+   ]
+  },
+  "stat_cards": [
+   {
+    "value": "1404–1438",
+    "label": "Parchment date range"
+   },
+   {
+    "value": "estimated 20 to 25",
+    "label": "Characters in alphabet"
+   }
+  ],
+  "location": {
+   "name": "Beinecke Rare Book Library",
+   "city": "New Haven",
+   "region": "New Haven",
+   "country": "USA",
+   "latitude": 0.0,
+   "longitude": 0.0
+  },
+  "narration_script": "An unread medieval book displays linguistic precision that defeats modern cryptanalysis. Radiocarbon dating established that the manuscript's parchment dates between 1404 and 1438. By one estimate, the text is written from left to right in an unidentified script where an alphabet of 20 to 25 characters accounts for virtually the entire work. Beside botanical diagrams of unidentified plants, the text conforms to Zipf's law where the most common word appears roughly twice as often as the second most common. The manuscript is named after Polish book dealer Wilfrid Voynich, who acquired it in 1912. American and British military cryptographers from both World War I and World War II attempted to decipher the codex without success."
+ },
+ {
+  "run": "run_wieliczka_salt_mine_1792974672",
+  "title": "Poland's Underground Salt Cathedral ⛏️",
+  "thumbnail": {
+   "eyebrow": "SUBTERRANEAN MARVEL",
+   "line1": "CARVED FROM",
+   "line2": "SOLID SALT",
+   "tagline": "327 METERS DOWN"
+  },
+  "story_slides": [
+   {
+    "kicker": "UNDERGROUND MARVEL",
+    "line1": "A SUBTERRANEAN",
+    "line2": "SALT CATHEDRAL",
+    "body": "Wieliczka was designated as one of the original UNESCO World Heritage Sites in 1978."
+   },
+   {
+    "kicker": "MASSIVE DEPTH",
+    "line1": "HUNDREDS OF METERS",
+    "line2": "INTO THE EARTH",
+    "body": "By one estimate, mine excavations descend 327 meters below the surface."
+   },
+   {
+    "kicker": "YOUR VERDICT",
+    "line1": "WHICH FEAT IS",
+    "line2": "MORE IMPRESSIVE?",
+    "body": "The subterranean chapels feature chandeliers carved out of natural rock salt."
+   }
+  ],
+  "carousel_slides": [
+   {
+    "heading": "THE SALT CATHEDRAL",
+    "body": "A subterranean marvel carved deep beneath southern Poland."
+   },
+   {
+    "heading": "MASSIVE LABYRINTH",
+    "body": "Records place the total extent of underground galleries between 287 and 300 kilometers."
+   },
+   {
+    "heading": "PLUNGING DEPTHS",
+    "body": "By one estimate, the mine excavations descend to 327 meters below the surface."
+   },
+   {
+    "heading": "SUBTERRANEAN CHAPELS",
+    "body": "The subterranean chapels feature chandeliers carved out of natural rock salt."
+   },
+   {
+    "heading": "GLOBAL HERITAGE",
+    "body": "Wieliczka was designated as one of the original UNESCO World Heritage Sites in 1978."
+   },
+   {
+    "heading": "PRESERVATION BATTLE",
+    "body": "Artificial ventilation brought humidity into the mine, threatening the salt sculptures."
+   },
+   {
+    "heading": "ENDURING DEVOTION",
+    "body": "What drives humans to carve enduring sanctuaries in the darkest places on Earth?"
+   }
+  ],
+  "poll": {
+   "question": "Which feature is more impressive?",
+   "options": [
+    "Salt chandeliers",
+    "Underground chapels"
+   ]
+  },
+  "share_line": "Share this with a friend who loves underground marvels, and follow for the next story! ⛏️",
+  "scale_fact": {
+   "value": 327.0,
+   "unit": "m",
+   "dimension": "depth",
+   "subject": "Wieliczka Salt Mine",
+   "approximate": true
+  },
+  "location": {
+   "name": "Wieliczka",
+   "city": "Lesser Poland",
+   "region": "Lesser Poland",
+   "country": "Poland",
+   "latitude": 0.0,
+   "longitude": 0.0
+  },
+  "narration_script": "Near Kraków in southern Poland, the mine's rock salt naturally displays various shades of grey, resembling unpolished granite rather than white crystalline salt. Engineering surveys and heritage records place the total extent of underground galleries between 287 and 300 kilometers. By one estimate, underground miners carved four chapels and dozens of statues directly out of the native rock salt. Wieliczka was designated as one of the original UNESCO World Heritage Sites in 1978. Artificial ventilation introduced in the late nineteenth century brought humidity into the mine, threatening severe damage to the carved salt sculptures. Today, the subterranean chapels feature chandeliers carved out of natural rock salt."
+ }
+]

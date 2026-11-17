@@ -23,20 +23,21 @@ def _pool(tmp_path, n, **extra):
 
 
 def _verdicts(spec):
-    return image_review.PoolReview(verdicts=[image_review.PhotoVerdict(index=i, reason="r", **v) for i, v in spec.items()])
+    return image_review.PoolReview(verdicts=[image_review.PhotoVerdict(quality=3, depiction="original", 
+        index=i, reason="r", shot_class=("wide", "interior", "detail")[i % 3], **v) for i, v in spec.items()])
 
 
 def test_pool_approved_on_merit_and_failures_dropped(monkeypatch, tmp_path):
-    _pool(tmp_path, 7)
+    _pool(tmp_path, 11)
     good = {"shows_topic": "yes", "usable": True, "safe": True}
-    spec = {i: dict(good) for i in range(1, 8)}
+    spec = {i: dict(good) for i in range(1, 12)}
     spec[2] = {**good, "shows_topic": "no"}          # a namesake town
     spec[4] = {**good, "duplicate_of": 3}            # near-duplicate
     monkeypatch.setattr(image_review.free_llm, "call", lambda *a, **k: _verdicts(spec))
     summary = image_review.review_pool(TOPIC, tmp_path)
     credits = load_credits(tmp_path)
     assert summary["status"] == "approved" and credits["reviewed"] and credits["reviewed_by"] == "vision"
-    assert [i["file"][:2] for i in credits["images"]] == ["01", "03", "05", "06", "07"]
+    assert [i["file"][:2] for i in credits["images"]] == ["01", "03", "05", "06", "07", "08", "09", "10", "11"]
 
 
 def test_too_few_good_photos_means_held(monkeypatch, tmp_path):
@@ -97,7 +98,11 @@ def test_an_unchanged_pool_is_not_sent_again(monkeypatch, tmp_path):
     _pool(tmp_path, 5)
     calls = []
     spec = {i: {"shows_topic": "no" if i == 5 else "yes", "usable": True, "safe": True} for i in range(1, 6)}
-    monkeypatch.setattr(image_review.free_llm, "call", lambda *a, **k: calls.append(1) or _verdicts(spec))
+    def review(system, content, schema, **kwargs):
+        calls.append(1)
+        count = sum(item.get("type") == "image" for item in content)
+        return _verdicts({index: verdict for index, verdict in spec.items() if index <= count})
+    monkeypatch.setattr(image_review.free_llm, "call", review)
     assert image_review.review_pool(TOPIC, tmp_path)["status"] == "held"           # 4 kept: too few
     assert image_review.review_pool(TOPIC, tmp_path)["status"].startswith("held (unchanged")
     assert len(calls) == 1                                                          # no second vision call
@@ -148,7 +153,7 @@ def test_a_kept_photo_is_used_and_stories_use_only_strong_ones(tmp_path):
 
 
 def test_removing_photos_keeps_an_approved_set_approved(tmp_path):
-    imgs = _pool(tmp_path, 7)
+    imgs = _pool(tmp_path, 11)
     (tmp_path / "credits.json").write_text(json.dumps({"reviewed": True, "images": imgs}), encoding="utf-8")
     write_contact_sheet(tmp_path, imgs)
     assert "stays approved" in drop_images(tmp_path, [1])

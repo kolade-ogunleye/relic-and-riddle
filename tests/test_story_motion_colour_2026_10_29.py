@@ -62,6 +62,7 @@ def test_story_problems_need_the_topic_being_written(curated_payload):
 
 
 def _engine(monkeypatch, curated_payload, narration, revise):
+    curated_payload["payoff_sentence"] = "Derinkuyu's upper floors held stables."
     engine = script_engine.ScriptEngine()
     monkeypatch.setattr(script_engine, "_ready", lambda: True)
     monkeypatch.setattr(engine, "_sheet", lambda topic: SHEET)
@@ -86,7 +87,7 @@ def _engine(monkeypatch, curated_payload, narration, revise):
 
 
 LONG_HOOK = "Derinkuyu reaches far down into the soft volcanic rock where thousands of people once hid together."
-BODY = " Its shafts carry air. Stables fill the upper floors. Who dug it?"
+BODY = " Its shafts carry air. Derinkuyu's upper floors held stables. Who dug it?"
 
 
 def test_an_unplaced_site_and_a_long_hook_get_one_opening_edit_not_a_rewrite(monkeypatch, curated_payload):
@@ -99,11 +100,13 @@ def test_an_unplaced_site_and_a_long_hook_get_one_opening_edit_not_a_rewrite(mon
     assert out["narration_script"].startswith(fixed) and out["hook_sentence"] == fixed   # the hook follows
 
 
-def test_an_opening_edit_that_fixes_nothing_keeps_the_draft(monkeypatch, curated_payload):
+def test_an_opening_edit_that_fixes_nothing_cannot_keep_the_draft(monkeypatch, curated_payload):
     engine, written, edits = _engine(monkeypatch, curated_payload, LONG_HOOK + BODY,
                                      lambda prev: ScriptPackage.model_validate(prev))
-    out = engine.generate_script(TOPIC)
-    assert written == [1] and len(edits) == 1 and out["narration_script"] == LONG_HOOK + BODY
+    monkeypatch.setattr(engine, "_load_curated", lambda topic_id: None)
+    with pytest.raises(script_engine.ScriptUnavailableError):
+        engine.generate_script(TOPIC)
+    assert written == [1, 1, 1] and len(edits) == 1
 
 
 def test_the_writer_is_told_the_story_rules():
@@ -268,7 +271,7 @@ def test_a_yellow_green_cast_is_reduced_within_its_cap(tmp_path):
     a = _wall() * np.array([1.15, 1.2, 0.7])         # Derinkuyu's yellow-green lamp on grey stone
     src = _img(tmp_path, "03_commons.jpg", a)
     out = cb.balanced(src)
-    assert out != src and out.name == src.name                                  # its own folder, same name
+    assert out != src and out.name == src.with_suffix(".png").name              # its own folder, lossless copy
     before, after = (np.asarray(Image.open(p).convert("RGB"), dtype=float) for p in (src, out))
     assert _cast(after) < _cast(before) * 0.75                                   # reduced, toward grey
     record = source_chain(out)

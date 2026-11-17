@@ -1,0 +1,252 @@
+{
+ "memory_peak_mb": {
+  "main": 820.9,
+  "sum": 7427.4,
+  "workers": [
+   1678.3,
+   1673.7,
+   1636.4,
+   1618.1
+  ]
+ },
+ "missed": [
+  {
+   "class": "text_identity",
+   "detail": "heading: 'NOT' added before the field; the truth keeps 'Lines in the Sand'",
+   "frame": "text_identity/text_identity__220__carousel_carousel_slide_01.png"
+  },
+  {
+   "class": "text_identity",
+   "detail": "heading: 'NOT' added before the field; the truth keeps 'Scraping the Pebbles'",
+   "frame": "text_identity/text_identity__221__carousel_carousel_slide_02.png"
+  },
+  {
+   "class": "text_identity",
+   "detail": "heading: 'NOT' added before the field; the truth keeps 'Morning Mist Armor'",
+   "frame": "text_identity/text_identity__222__carousel_carousel_slide_03.png"
+  },
+  {
+   "class": "text_identity",
+   "detail": "heading: 'NOT' added before the field; the truth keeps 'Enduring Vision'",
+   "frame": "text_identity/text_identity__226__carousel_carousel_slide_07.png"
+  },
+  {
+   "class": "text_identity",
+   "detail": "heading: 'NOT' added before the field; the truth keeps 'Lines in the Sand'",
+   "frame": "text_identity/text_identity__227__carousel_fb_carousel_slide_01.png"
+  },
+  {
+   "class": "text_identity",
+   "detail": "heading: 'NOT' added before the field; the truth keeps 'Scraping the Pebbles'",
+   "frame": "text_identity/text_identity__228__carousel_fb_carousel_slide_02.png"
+  },
+  {
+   "class": "text_identity",
+   "detail": "heading: 'NOT' added before the field; the truth keeps 'Morning Mist Armor'",
+   "frame": "text_identity/text_identity__229__carousel_fb_carousel_slide_03.png"
+  },
+  {
+   "class": "text_identity",
+   "detail": "heading: 'NOT' added before the field; the truth keeps 'Surveying Stakes'",
+   "frame": "text_identity/text_identity__231__carousel_fb_carousel_slide_05.png"
+  },
+  {
+   "class": "text_identity",
+   "detail": "heading: 'NOT' added before the field; the truth keeps 'Enduring Vision'",
+   "frame": "text_identity/text_identity__233__carousel_fb_carousel_slide_07.png"
+  },
+  {
+   "class": "text_identity",
+   "detail": "heading: 'NOT' added before the field; the truth keeps 'Lines in the Sand'",
+   "frame": "text_identity/text_identity__237__carousel_carousel_slide_01.png"
+  },
+  {
+   "class": "text_identity",
+   "detail": "heading: 'NOT' added before the field; the truth keeps 'Scraping the Pebbles'",
+   "frame": "text_identity/text_identity__238__carousel_carousel_slide_02.png"
+  },
+  {
+   "class": "text_identity",
+   "detail": "heading: 'NOT' added before the field; the truth keeps 'Morning Mist Armor'",
+   "frame": "text_identity/text_identity__239__carousel_carousel_slide_03.png"
+  },
+  {
+   "class": "text_identity",
+   "detail": "heading: accent added to 'i'; the truth keeps 'Lines in the Sand'",
+   "frame": "text_identity/text_identity__260__carousel_carousel_slide_01.png"
+  },
+  {
+   "class": "record_mismatch",
+   "detail": "record box of kicker moved 380 px down",
+   "frame": "record_mismatch/record_mismatch__32__stories_story_03_question.png"
+  },
+  {
+   "class": "text_cut",
+   "detail": "heading shifted 276 px",
+   "frame": "text_cut/text_cut__19__carousel_carousel_slide_04.png"
+  },
+  {
+   "class": "text_cut",
+   "detail": "heading shifted 641 px",
+   "frame": "text_cut/text_cut__21__carousel_carousel_slide_06.png"
+  },
+  {
+   "class": "text_cut",
+   "detail": "heading shifted 649 px",
+   "frame": "text_cut/text_cut__25__carousel_fb_carousel_slide_03.png"
+  },
+  {
+   "class": "text_cut",
+   "detail": "heading shifted 703 px",
+   "frame": "text_cut/text_cut__35__carousel_carousel_slide_03.png"
+  },
+  {
+   "class": "text_cut",
+   "detail": "heading shifted 357 px",
+   "frame": "text_cut/text_cut__37__carousel_carousel_slide_05.png"
+  },
+  {
+   "class": "face_overlap",
+   "detail": "face 374px at [911, 529] under title (seen by the model at [1025, 593, 1201, 823])",
+   "frame": "face_overlap/face_overlap__00__chapter_2__amber_room_heist__169.png"
+  },
+  {
+   "class": "face_overlap",
+   "detail": "face 480px at [858, 489] under title (seen by the model at [928, 470, 1308, 930])",
+   "frame": "face_overlap/face_overlap__02__chapter_2__unfinished_obelisk_aswan__169.png"
+  },
+  {
+   "class": "face_overlap",
+   "detail": "face 200px at [369, 537] under line2 (seen by the model at [437, 578, 520, 686])",
+   "frame": "face_overlap/face_overlap__32__stories_story_03_question.png"
+  }
+ ],
+ "planted_frames_seconds": 7593.25,
+ "recall": {
+  "contrast": {
+   "caught": 40,
+   "gate_failed": 40,
+   "planted": 40
+  },
+  "coverage": {
+   "caught": 40,
+   "gate_failed": 40,
+   "planted": 40
+  },
+  "face_overlap": {
+   "caught": 31,
+   "gate_failed": 34,
+   "planted": 34
+  },
+  "glyph_fallback": {
+   "caught": 20,
+   "gate_failed": 20,
+   "planted": 20
+  },
+  "mark_contrast": {
+   "caught": 40,
+   "gate_failed": 40,
+   "planted": 40
+  },
+  "overlap": {
+   "caught": 40,
+   "gate_failed": 40,
+   "planted": 40
+  },
+  "plate_overrun": {
+   "caught": 20,
+   "gate_failed": 20,
+   "planted": 20
+  },
+  "record_mismatch": {
+   "caught": 39,
+   "gate_failed": 40,
+   "planted": 40
+  },
+  "safe_zone": {
+   "caught": 28,
+   "gate_failed": 28,
+   "planted": 28
+  },
+  "text_cut": {
+   "caught": 35,
+   "gate_failed": 40,
+   "planted": 40
+  },
+  "text_identity": {
+   "caught": 267,
+   "gate_failed": 279,
+   "planted": 280
+  },
+  "text_identity/add_accent": {
+   "caught": 19,
+   "gate_failed": 19,
+   "planted": 20
+  },
+  "text_identity/add_word": {
+   "caught": 20,
+   "gate_failed": 20,
+   "planted": 20
+  },
+  "text_identity/case": {
+   "caught": 20,
+   "gate_failed": 20,
+   "planted": 20
+  },
+  "text_identity/change": {
+   "caught": 20,
+   "gate_failed": 20,
+   "planted": 20
+  },
+  "text_identity/change_digit": {
+   "caught": 20,
+   "gate_failed": 20,
+   "planted": 20
+  },
+  "text_identity/drop_digit": {
+   "caught": 20,
+   "gate_failed": 20,
+   "planted": 20
+  },
+  "text_identity/drop_first": {
+   "caught": 20,
+   "gate_failed": 20,
+   "planted": 20
+  },
+  "text_identity/drop_last": {
+   "caught": 20,
+   "gate_failed": 20,
+   "planted": 20
+  },
+  "text_identity/drop_middle": {
+   "caught": 20,
+   "gate_failed": 20,
+   "planted": 20
+  },
+  "text_identity/drop_punct": {
+   "caught": 20,
+   "gate_failed": 20,
+   "planted": 20
+  },
+  "text_identity/drop_short_word": {
+   "caught": 20,
+   "gate_failed": 20,
+   "planted": 20
+  },
+  "text_identity/prefix": {
+   "caught": 8,
+   "gate_failed": 20,
+   "planted": 20
+  },
+  "text_identity/swap_words": {
+   "caught": 20,
+   "gate_failed": 20,
+   "planted": 20
+  },
+  "text_identity/transpose": {
+   "caught": 20,
+   "gate_failed": 20,
+   "planted": 20
+  }
+ }
+}

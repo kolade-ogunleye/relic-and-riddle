@@ -1,0 +1,70 @@
+== 9x16 bright_golgumbaz_map  mode={'then': 'bone', 'now': 'bone'} glow={'then': None, 'now': None} trims={'old': [17, 17, 0, 0], 'new': [0, 0, 0, 0]} zoom=1.0
+  then_kicker  THEN ->THEN  planned   5.22->5.08   graded   7.26->7.44   halo 1.0->1.0  ringY(split)  180.0-> 179.2  <<< DROP
+  then_year    1656 ->1656  planned    5.5->5.83   graded   7.69->8.48   halo 0.99->1.0  ringY(split)  185.8-> 187.2
+  now_kicker   NOW  ->LATER planned   5.21->6.21   graded   6.95->8.95   halo 1.0->1.0  ringY(split)  158.1-> 155.6
+  now_year     1937 ->1937  planned   5.34->6.46   graded   6.71->9.64   halo 0.91->1.0  ringY(split)  137.4-> 113.0
+== 9x16 busy_aswan_rebate  mode={'then': 'bone', 'now': 'bone'} glow={'then': None, 'now': None} trims={'old': [370, 191, 438, 217], 'new': [0, 0, 0, 0]} zoom=1.0
+  then_kicker  THEN ->THEN  planned   5.85->5.98   graded   8.42->9.01   halo 0.9->0.9  ringY(split)  156.6-> 155.5
+  then_year    1922 ->1922  planned    5.5->6.13   graded    7.5->8.85   halo 0.83->0.9  ringY(split)  157.9-> 157.7
+  now_kicker   NOW  ->NOW   planned   5.92->6.93   graded   8.44->10.03  halo 0.82->0.9  ringY(split)  136.6-> 131.0
+  now_year     2005 ->2005  planned   5.01->7.16   graded   6.91->10.56  halo 0.67->0.9  ringY(split)  126.4-> 124.7
+== 9x16 colossi_1876_2011  mode={'then': 'ink', 'now': 'bone'} glow={'then': None, 'now': None} trims={'old': [96, 132, 167, 138], 'new': [0, 0, 0, 0]} zoom=1.25
+  then_kicker  THEN ->THEN  planned   4.86->15.32  graded   6.49->15.06  halo 1.0->0.0  ringY(split)  186.4-> 176.4
+  then_year    1876 ->1876  planned   5.34->15.22  graded   7.44->15.03  halo 0.99->0.0  ringY(split)  176.6-> 201.4
+  now_kicker   NOW  ->NOW   planned   5.81->5.97   graded   7.73->8.53   halo 0.82->0.82  ringY(split)  128.7-> 136.9
+  now_year     2011 ->2011  planned   5.25->7.13   graded    6.7->10.4   halo 0.75->0.82  ringY(split)  125.7-> 129.0
+== 9x16 lineart_aswan_diagram  mode={'then': 'ink', 'now': 'bone'} glow={'then': None, 'now': None} trims={'old': [0, 0, 19, 11], 'new': [0, 0, 0, 0]} zoom=1.0
+  then_kicker  THEN ->THEN  planned  19.01->19.01  graded  16.61->16.61  halo 0.0->0.0  ringY(split)  220.0-> 216.4
+  then_year    1922 ->1922  planned  19.01->19.01  graded  16.61->16.62  halo 0.0->0.0  ringY(split)  220.5-> 223.8
+  now_kicker   NOW  ->NOW   planned    4.8->4.87   graded   6.21->6.63   halo 1.0->1.0  ringY(split)  154.8-> 167.7
+  now_year     2005 ->2005  planned    4.8->5.74   graded   6.04->7.78   halo 0.91->1.0  ringY(split)  190.4-> 194.2
+== 9x16 nearwhite_odessa_map  mode={'now': 'ink', 'then': 'bone'} glow={'then': None, 'now': None} trims={'old': [0, 0, 0, 0], 'new': [0, 0, 0, 0]} zoom=1.0
+  then_kicker  THEN ->THEN  planned   4.94->4.94   graded   6.69->7.4    halo 1.0->1.0  ringY(split)  175.0-> 175.7
+  then_year    1941 ->1941  planned   5.28->5.38   graded   7.24->7.68   halo 0.99->1.0  ringY(split)  176.8-> 178.0
+  now_kicker   NOW  ->LATER planned  19.18->19.18  graded   16.6->16.61  halo 0.0->0.0  ringY(split)  200.5-> 211.0
+  now_year     1942 ->1942  planned  19.18->19.18  graded  16.61->16.62  halo 0.0->0.0  ringY(split)  244.8-> 234.8
+== 9x16 pantheon_1934_2018  mode={'then': 'bone', 'now': 'bone'} glow={'then': None, 'now': None} trims={'old': [0, 0, 0, 0], 'new': [0, 0, 0, 0]} zoom=1.0
+  then_kicker  THEN ->THEN  planned   4.94->4.94   graded   6.56->7.13   halo 1.0->1.0  ringY(split)  182.7-> 181.9
+  then_year    1934 ->1934  planned   5.41->6.48   graded   9.28->11.31  halo 0.91->1.0  ringY(split)  130.0-> 132.9
+  now_kicker   NOW  ->NOW   planned   5.43->8.65   graded   7.38->11.74  halo 0.74->1.0  ringY(split)  129.5-> 119.1
+  now_year     2018 ->2018  planned   5.41->13.36  graded   7.12->15.3   halo 0.35->1.0  ringY(split)   82.8->  74.9
+== 16x9 bright_golgumbaz_map  mode={'then': 'bone', 'now': 'bone'} glow={'then': None, 'now': None} trims={'old': [17, 17, 0, 0], 'new': [0, 0, 0, 0]} zoom=1.0
+  then_kicker  THEN ->THEN  planned   4.81->5.07   graded   6.62->7.22   halo 1.0->1.0  ringY(split)  179.7-> 181.5
+  then_year    1656 ->1656  planned    5.4->5.42   graded    7.5->7.68   halo 0.99->1.0  ringY(split)  179.8-> 181.3
+  now_kicker   NOW  ->LATER planned   5.76->5.09   graded   7.99->7.25   halo 0.98->1.0  ringY(split)  177.8-> 179.2  <<< DROP
+  now_year     1937 ->1937  planned   5.03->5.22   graded   6.21->7.25   halo 0.83->1.0  ringY(split)  152.0-> 150.5
+== 16x9 busy_aswan_rebate  mode={'then': 'bone', 'now': 'bone'} glow={'then': None, 'now': None} trims={'old': [370, 191, 438, 217], 'new': [0, 0, 0, 0]} zoom=1.0
+  then_kicker  THEN ->THEN  planned   5.59->5.66   graded   7.86->8.24   halo 0.9->0.9  ringY(split)  150.1-> 148.4
+  then_year    1922 ->1922  planned   5.08->6.3    graded   6.91->9.92   halo 0.75->0.9  ringY(split)  149.5-> 147.4
+  now_kicker   NOW  ->NOW   planned   5.66->7.25   graded   7.95->10.26  halo 0.74->0.9  ringY(split)  135.3-> 136.3
+  now_year     2005 ->2005  planned   5.63->7.86   graded   7.77->11.16  halo 0.67->0.9  ringY(split)  121.8-> 119.5
+== 16x9 colossi_1876_2011  mode={'then': 'ink', 'now': 'bone'} glow={'then': None, 'now': None} trims={'old': [96, 132, 167, 138], 'new': [0, 0, 0, 0]} zoom=1.0
+  then_kicker  THEN ->THEN  planned   15.1->15.11  graded  15.02->15.01  halo 0.0->0.0  ringY(split)  185.8-> 184.1
+  then_year    1876 ->1876  planned  15.22->15.22  graded  15.04->15.03  halo 0.0->0.0  ringY(split)  180.6-> 178.7
+  now_kicker   NOW  ->NOW   planned   5.53->5.56   graded   6.47->6.59   halo 0.74->0.74  ringY(split)  155.6-> 155.5
+  now_year     2011 ->2011  planned   5.06->5.55   graded   5.37->6.46   halo 0.67->0.74  ringY(split)  155.3-> 155.7
+== 16x9 lineart_aswan_diagram  mode={'then': 'bone', 'now': 'bone'} glow={'then': 0.2, 'now': 0.2} trims={'old': [0, 0, 19, 11], 'new': [0, 0, 0, 0]} zoom=1.0
+  then_kicker  THEN ->THEN  planned   5.33->5.49   graded   7.32->7.88   halo 1.0->1.0  ringY(split)  170.2-> 173.4
+  then_year    1922 ->1922  planned   5.02->6.81   graded   7.85->11.12  halo 0.83->1.0  ringY(split)  155.6-> 159.3
+  now_kicker   NOW  ->NOW   planned   5.41->7.16   graded   7.89->10.76  halo 1.0->1.0  ringY(split)  158.6-> 157.6
+  now_year     2005 ->2005  planned   5.02->7.53   graded   6.19->10.69  halo 0.91->1.0  ringY(split)  172.8-> 169.9
+== 16x9 nearwhite_odessa_map  mode={'then': 'bone', 'now': 'bone'} glow={'then': None, 'now': None} trims={'old': [0, 0, 0, 0], 'new': [0, 0, 0, 0]} zoom=1.0
+  then_kicker  THEN ->THEN  planned   5.96->4.96   graded    8.4->6.9    halo 0.98->1.0  ringY(split)  154.0-> 158.7  <<< DROP
+  then_year    1941 ->1941  planned   4.96->5.11   graded   6.59->7.13   halo 0.83->1.0  ringY(split)  163.2-> 169.5
+  now_kicker   NOW  ->LATER planned   5.42->9.78   graded   7.54->12.73  halo 0.58->1.0  ringY(split)  133.8-> 126.5
+  now_year     1942 ->1942  planned   5.02->9.36   graded   6.24->12.96  halo 0.51->1.0  ringY(split)  124.5-> 119.7
+== 16x9 pantheon_1934_2018  mode={'then': 'bone', 'now': 'bone'} glow={'then': None, 'now': None} trims={'old': [0, 0, 0, 0], 'new': [0, 0, 0, 0]} zoom=1.0
+  then_kicker  THEN ->THEN  planned   6.16->6.11   graded   8.46->8.64   halo 0.82->0.83  ringY(split)  133.2-> 132.7
+  then_year    1934 ->1934  planned   5.09->5.07   graded   6.83->6.74   halo 0.83->0.83  ringY(split)  115.1-> 113.6  <<< DROP
+  now_kicker   NOW  ->NOW   planned   5.75->5.97   graded   8.58->8.94   halo 0.82->0.83  ringY(split)  128.8-> 127.8
+  now_year     2018 ->2018  planned   5.26->6.04   graded   7.17->8.74   halo 0.75->0.83  ringY(split)  111.9-> 110.7
+== 9x16 dark_wieliczka_extra  mode={'then': 'bone', 'now': 'bone'} glow={'then': None, 'now': None} trims={'old': [0, 0, 0, 0], 'new': [0, 79, 0, 0]} zoom=1.0
+  then_kicker  THEN ->THEN  planned   6.21->7.95   graded   8.21->10.97  halo 0.5->0.67  ringY(split)  113.2-> 112.3
+  then_year    1978 ->1978  planned   6.06->8.56   graded   8.16->11.95  halo 0.35->0.67  ringY(split)   95.0->  92.1
+  now_kicker   NOW  ->LATER planned    7.6->14.76  graded  11.11->15.17  halo 0.5->0.67  ringY(split)  100.7->  88.6
+  now_year     1998 ->1998  planned   5.29->5.47   graded   6.71->7.21   halo 0.51->0.67  ringY(split)   85.6->  79.8
+== 16x9 dark_wieliczka_extra  mode={'then': 'bone', 'now': 'bone'} glow={'then': None, 'now': None} trims={'old': [0, 0, 0, 0], 'new': [0, 79, 0, 0]} zoom=1.0
+  then_kicker  THEN ->THEN  planned  10.11->10.04  graded  13.12->13.02  halo 0.5->0.75  ringY(split)   80.8->  79.0  <<< DROP
+  then_year    1978 ->1978  planned    7.1->10.75  graded   9.45->13.8   halo 0.35->0.75  ringY(split)   68.1->  66.3
+  now_kicker   NOW  ->LATER planned  13.74->14.57  graded   15.0->14.93  halo 0.5->0.75  ringY(split)   64.3->  67.0  <<< DROP
+  now_year     1998 ->1998  planned   5.21->5.43   graded   6.43->6.71   halo 0.75->0.75  ringY(split)   56.5->  56.2

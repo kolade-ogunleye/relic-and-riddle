@@ -1,0 +1,20 @@
+{
+ "cases": 582,
+ "classes": {
+  "joiner": 18,
+  "object": 34,
+  "locative": 33
+ },
+ "failures": {
+  "opens_on_mark": 0,
+  "ends_on_mark": 0,
+  "empty_pair": 0,
+  "space_inside_pair": 0,
+  "ends_needing_object": 0,
+  "opens_on_joiner": 0,
+  "figure_left": 0,
+  "kept_wrongly_dropped": 0,
+  "dropped_wrongly_kept": 0
+ },
+ "examples": {}
+}

@@ -1,0 +1,102 @@
+[
+ {
+  "run": "run_amber_room_heist_1792790550",
+  "t": 3.538,
+  "words": [
+   "of",
+   "Army",
+   "Group",
+   "North"
+  ],
+  "two_line": true
+ },
+ {
+  "run": "run_amber_room_heist_1792790550",
+  "t": 23.283,
+  "words": [
+   "in",
+   "Königsberg",
+   "Castle."
+  ],
+  "two_line": false
+ },
+ {
+  "run": "run_amber_room_heist_1792790550",
+  "t": 30.923,
+  "words": [
+   "fire-bombed",
+   "Königsberg."
+  ],
+  "two_line": false
+ },
+ {
+  "run": "run_amber_room_heist_1792790550",
+  "t": 36.216,
+  "words": [
+   "when",
+   "Königsberg",
+   "Castle"
+  ],
+  "two_line": false
+ },
+ {
+  "run": "run_gol_gumbaz_whispering_gallery_1793278143",
+  "t": 7.747,
+  "words": [
+   "gray",
+   "basalt",
+   "mausoleum"
+  ],
+  "two_line": true
+ },
+ {
+  "run": "run_nazca_lines_runway_paradox_1792961797",
+  "t": 3.888,
+  "words": [
+   "immense",
+   "figures",
+   "etched"
+  ],
+  "two_line": true
+ },
+ {
+  "run": "run_richat_structure_sahara_eye_1793474843",
+  "t": 7.211,
+  "words": [
+   "on",
+   "the",
+   "Adrar",
+   "Plateau"
+  ],
+  "two_line": true
+ },
+ {
+  "run": "run_tunguska_event_1908_1792930600",
+  "t": 5.681,
+  "words": [
+   "near",
+   "the",
+   "Podkamennaya"
+  ],
+  "two_line": true
+ },
+ {
+  "run": "run_unfinished_obelisk_aswan_1792985912",
+  "t": 3.557,
+  "words": [
+   "monolith",
+   "that",
+   "would"
+  ],
+  "two_line": true
+ },
+ {
+  "run": "run_voynich_manuscript_1792965308",
+  "t": 4.839,
+  "words": [
+   "modern",
+   "cryptanalysis."
+  ],
+  "two_line": true
+ }
+]

@@ -30,8 +30,11 @@ def _long_first_line(caption: str) -> str:
 
 def _draft(payload, words=108, **update):
     closing = payload["closing_sentence"]
-    body = " ".join(f"w{i}" for i in range(words - len(closing.split())))
-    return ScriptPackage.model_validate(dict(payload, narration_script=f"{body}. {closing}", **update))
+    opening, payoff = "Workers built an underground city.", "That city sheltered families."
+    rest = words - len((opening + " " + payoff + " " + closing).split())
+    body = " ".join(f"w{i}" for i in range(rest))
+    return ScriptPackage.model_validate(dict(payload, narration_script=f"{opening} {body}. {payoff} {closing}",
+                                             payoff_sentence=payoff, **update))
 
 
 @pytest.fixture
@@ -71,9 +74,7 @@ def _copy_model(monkeypatch, engine, reply):
 def _lengthen(monkeypatch, engine, words=108):
     def revise(previous, findings, sheet):
         engine.edits.append(findings)
-        closing = previous["closing_sentence"]
-        body = " ".join(f"w{i}" for i in range(words - len(closing.split())))
-        return ScriptPackage.model_validate(dict(previous, narration_script=f"{body}. {closing}"))
+        return _draft(previous, words)
     monkeypatch.setattr(engine, "_revise_surgically", revise)
 
 

@@ -479,7 +479,7 @@
       "script_round_reasons": [],
       "fact_review": {
         "public_fingerprint": "c22a4778e3d8d480f86f90c7a38733fd370961cd7a666213f33e3c9b00ad11fe",
-        "sheet_path": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\data\\fact_sheets\\richat_structure_sahara_eye.json",
+        "sheet_path": "data/fact_sheets/richat_structure_sahara_eye.json",
         "sheet_sha256": "0bcbe56c8c744a67feac810ccd147ff8e56b2fef14f31ee0151cc66382be5dbb",
         "review_rules_fingerprint": "79415fa9c90d9a5027f19d13e77f998cf14dfdf848dc59042819e993438c455d"
       },
@@ -974,7 +974,7 @@
       ],
       "fact_review": {
         "public_fingerprint": "b8e0cc5d9eae7d386cdae91b3ebac32e8292cf626049f92fa6809518aee7aa6d",
-        "sheet_path": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\data\\fact_sheets\\gol_gumbaz_whispering_gallery.json",
+        "sheet_path": "data/fact_sheets/gol_gumbaz_whispering_gallery.json",
         "sheet_sha256": "cb59590791f506f2c78bbec32ea9b96940bc2150ed488911c520f554cb5d0130",
         "review_rules_fingerprint": "79415fa9c90d9a5027f19d13e77f998cf14dfdf848dc59042819e993438c455d"
       },
@@ -1559,7 +1559,7 @@
       ],
       "fact_review": {
         "public_fingerprint": "b8e0cc5d9eae7d386cdae91b3ebac32e8292cf626049f92fa6809518aee7aa6d",
-        "sheet_path": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\data\\fact_sheets\\gol_gumbaz_whispering_gallery.json",
+        "sheet_path": "data/fact_sheets/gol_gumbaz_whispering_gallery.json",
         "sheet_sha256": "cb59590791f506f2c78bbec32ea9b96940bc2150ed488911c520f554cb5d0130",
         "review_rules_fingerprint": "79415fa9c90d9a5027f19d13e77f998cf14dfdf848dc59042819e993438c455d"
       },

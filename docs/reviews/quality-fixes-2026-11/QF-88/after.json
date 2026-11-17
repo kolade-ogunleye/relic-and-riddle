@@ -1,0 +1,409 @@
+{
+ "photosensitivity": {
+  "strobe_10hz_blocked_with_named_reason": true,
+  "red_on_black_10hz": {
+   "status": "fail",
+   "as_wcag": true
+  },
+  "white_4hz": {
+   "status": "fail",
+   "as_wcag": true
+  },
+  "patch_6pct_10hz": {
+   "status": "fail",
+   "as_wcag": true
+  },
+  "white_3hz": {
+   "status": "pass",
+   "as_wcag": true
+  },
+  "dim_10hz": {
+   "status": "pass",
+   "as_wcag": true
+  },
+  "patch_2pct_10hz": {
+   "status": "pass",
+   "as_wcag": true
+  },
+  "checker_12_across": {
+   "status": "fail",
+   "as_wcag": true
+  },
+  "checker_4_across": {
+   "status": "fail",
+   "as_wcag": true
+  },
+  "halves": {
+   "status": "fail",
+   "as_wcag": true
+  },
+  "strip32_off_grid": {
+   "status": "fail",
+   "as_wcag": true
+  },
+  "strip22_on_grid": {
+   "status": "pass",
+   "as_wcag": true
+  },
+  "checker_0.1_degree_phase_0.5": {
+   "status": "fail",
+   "as_wcag": true
+  },
+  "checker_0.04_degree_phase_0.0": {
+   "status": "pass",
+   "as_wcag": true
+  },
+  "checker_12_across_3hz": {
+   "status": "pass",
+   "as_wcag": true
+  },
+  "halves_2hz": {
+   "status": "pass",
+   "as_wcag": true
+  },
+  "late_fall_after_3_flashes": {
+   "status": "pass",
+   "as_wcag": true
+  },
+  "in_turn_9_frames": {
+   "status": "pass",
+   "as_wcag": true
+  },
+  "in_turn_1_s": {
+   "status": "fail",
+   "as_wcag": true
+  },
+  "drifting_band_10hz": {
+   "status": "fail",
+   "as_wcag": true
+  },
+  "rolling_bands_white": {
+   "status": "fail",
+   "as_wcag": true
+  },
+  "rolling_bands_red": {
+   "status": "fail",
+   "as_wcag": true
+  },
+  "rolling_blocks": {
+   "status": "fail",
+   "as_wcag": true
+  },
+  "rolling_columns4": {
+   "status": "fail",
+   "as_wcag": true
+  },
+  "rolling_bands_2_each": {
+   "status": "fail",
+   "as_wcag": true
+  },
+  "moving_band_10px": {
+   "status": "fail",
+   "as_wcag": true
+  },
+  "masked_rolling": {
+   "status": "fail",
+   "as_wcag": true
+  },
+  "masked_rolling_red": {
+   "status": "fail",
+   "as_wcag": true
+  },
+  "masked_rolling_fine": {
+   "status": "fail",
+   "as_wcag": true
+  },
+  "cuts_8_per_s": {
+   "status": "fail",
+   "as_wcag": true
+  },
+  "cuts_9_per_s": {
+   "status": "fail",
+   "as_wcag": true
+  },
+  "cuts_8_band40": {
+   "status": "fail",
+   "as_wcag": true
+  },
+  "cuts_8_red": {
+   "status": "fail",
+   "as_wcag": true
+  },
+  "cuts_8_masked": {
+   "status": "fail",
+   "as_wcag": true
+  },
+  "cuts_12_four_bands_of_26pct": {
+   "status": "fail",
+   "as_wcag": true
+  },
+  "in_turn_then_a_flash": {
+   "status": "fail",
+   "as_wcag": true
+  },
+  "cuts_6_per_s": {
+   "status": "pass",
+   "as_wcag": true
+  },
+  "sub_band_checker_20": {
+   "status": "fail",
+   "as_wcag": true
+  },
+  "sub_band_vstrip": {
+   "status": "fail",
+   "as_wcag": true
+  },
+  "sub_band_burst": {
+   "status": "fail",
+   "as_wcag": true
+  },
+  "coarse3_plus_fine_reversal": {
+   "status": "needs_review",
+   "as_wcag": true
+  },
+  "chk52_8": {
+   "status": "fail",
+   "as_wcag": true
+  },
+  "chk56_8": {
+   "status": "fail",
+   "as_wcag": true
+  },
+  "chk60_8": {
+   "status": "fail",
+   "as_wcag": true
+  },
+  "chk52_red": {
+   "status": "fail",
+   "as_wcag": true
+  },
+  "sb_b18_c16": {
+   "status": "fail",
+   "as_wcag": true
+  },
+  "sb_b22_c08": {
+   "status": "fail",
+   "as_wcag": true
+  },
+  "ip_b3_k6": {
+   "status": "fail",
+   "as_wcag": true
+  },
+  "strobe_then_held": {
+   "status": "fail",
+   "as_wcag": true
+  },
+  "detail": "The picture flashes up to 10 times in a second at 0:00.0-0:03.0, over more than a quarter of a 10-degree field (more than 3 flashes a second can trigger seizures; WCAG 2.3.1): slow, shrink or remove the flashing there, then re-render."
+ },
+ "hold": {
+  "status": "needs_review",
+  "says_why": true,
+  "blocks_a_live_post": true,
+  "contact_sheet_jpeg_within_300_kb": true
+ },
+ "fail_precedence": {
+  "status": "fail",
+  "held": false,
+  "blocks": true,
+  "clear_flash_refused": true
+ },
+ "cps": {
+  "burst_20cps_cut_short_fails_the_build": true,
+  "same_words_timed_right_build": true,
+  "narration_20cps_is_a_defect": false,
+  "shown_25_spoken_20_is_a_defect": true,
+  "narration_pace_noted_not_blocking": true,
+  "cut_before_a_fast_boundary_makes_no_defect": true
+ },
+ "cvd": {
+  "real_maps_pass": true,
+  "maps": {
+   "map_derinkuyu": {
+    "pass": true,
+    "roles": [
+     "accent",
+     "home_fill",
+     "land"
+    ],
+    "worst_pair_de00": 30.0
+   },
+   "map_gumbaz": {
+    "pass": true,
+    "roles": [
+     "accent",
+     "home_fill",
+     "land"
+    ],
+    "worst_pair_de00": 27.7
+   },
+   "map_richat": {
+    "pass": true,
+    "roles": [
+     "accent",
+     "gold",
+     "home_fill",
+     "land"
+    ],
+    "worst_pair_de00": 32.9
+   }
+  },
+  "green_accent_fails_the_gate": true,
+  "art_direction_rejects_the_green_accent": true
+ },
+ "grandfather": {
+  "method_version": 2,
+  "noted_before": true,
+  "noted_after_re_measure": true,
+  "flash_measured": true
+ },
+ "real_data": {
+  "cps_cuts.json": {
+   "dev": {
+    "runs": 35,
+    "builds": 735,
+    "failed": 0,
+    "runs_failing": 0,
+    "no_cut_failed": 0,
+    "errors": 0,
+    "early_hide_builds": 35,
+    "early_hide_caught": 35
+   },
+   "prod": {
+    "runs": 34,
+    "builds": 714,
+    "failed": 0,
+    "runs_failing": 0,
+    "no_cut_failed": 0,
+    "errors": 0,
+    "early_hide_builds": 34,
+    "early_hide_caught": 34
+   }
+  },
+  "real_data_dev.json": {
+   "dev": {
+    "masters": {
+     "items": 30,
+     "errors": 0,
+     "flash_fail": 1,
+     "flash_held": 3,
+     "hold_sheet_bytes_max": 300210,
+     "measurement_fail": 0,
+     "other_picture_blocks": 1,
+     "old_report_masters": 29,
+     "noted_qf10b_then_qf88": 29,
+     "noted_lost_on_remeasure": 0,
+     "caption_rate_checks": 0,
+     "cvd_fail": 0,
+     "contrast_notes": 2,
+     "second_check_wall_s": {
+      "median": 35.8,
+      "max": 200.5
+     }
+    },
+    "graphic_clips": {
+     "items": 65,
+     "errors": 1,
+     "flash_fail": 0
+    },
+    "ingest": {
+     "footage": {
+      "items": 2,
+      "errors": 0,
+      "rejected": 0
+     },
+     "motion": {
+      "items": 7,
+      "errors": 0,
+      "rejected": 0
+     }
+    },
+    "captions": {
+     "masters": 29,
+     "bursts": 1014,
+     "bursts_over_17": 350,
+     "bursts_over_20": 84,
+     "bursts_spoken_over_17": 357,
+     "masters_with_a_burst_over_17": 29,
+     "timing_defects": 0,
+     "masters_failed_by_the_gate": 0,
+     "masters_noted": 29,
+     "median_worst_cps": 22.1
+    },
+    "cvd": {
+     "graphics": 64,
+     "graphics_fail": 0,
+     "graphics_with_a_pair": 30,
+     "worst_pair_de00_min": 20.8,
+     "worst_pair_de00_median": 21.3,
+     "stills": 371,
+     "stills_fail": 0,
+     "graphics_with_a_contrast_note": 2,
+     "errors": 0,
+     "run_accents": 10,
+     "accents_rejected_at_source": 0,
+     "accent_vs_gold_de00_min": 15.7
+    }
+   },
+   "operator_footage": {
+    "rejected": 0,
+    "errors": 0
+   }
+  },
+  "real_data_prod.json": {
+   "prod": {
+    "masters": {
+     "items": 33,
+     "errors": 0,
+     "flash_fail": 1,
+     "flash_held": 4,
+     "hold_sheet_bytes_max": 288793,
+     "measurement_fail": 0,
+     "other_picture_blocks": 0,
+     "old_report_masters": 33,
+     "noted_qf10b_then_qf88": 33,
+     "noted_lost_on_remeasure": 0,
+     "caption_rate_checks": 0,
+     "cvd_fail": 0,
+     "contrast_notes": 3,
+     "second_check_wall_s": {
+      "median": 34.7,
+      "max": 119.5
+     }
+    },
+    "graphic_clips": {
+     "items": 86,
+     "errors": 0,
+     "flash_fail": 0
+    },
+    "ingest": {},
+    "captions": {
+     "masters": 33,
+     "bursts": 1115,
+     "bursts_over_17": 337,
+     "bursts_over_20": 96,
+     "bursts_spoken_over_17": 337,
+     "masters_with_a_burst_over_17": 33,
+     "timing_defects": 0,
+     "masters_failed_by_the_gate": 0,
+     "masters_noted": 33,
+     "median_worst_cps": 21.9
+    },
+    "cvd": {
+     "graphics": 86,
+     "graphics_fail": 0,
+     "graphics_with_a_pair": 34,
+     "worst_pair_de00_min": 20.8,
+     "worst_pair_de00_median": 22.0,
+     "stills": 408,
+     "stills_fail": 0,
+     "graphics_with_a_contrast_note": 3,
+     "errors": 0,
+     "run_accents": 11,
+     "accents_rejected_at_source": 0,
+     "accent_vs_gold_de00_min": 48.2
+    }
+   }
+  }
+ },
+ "acceptance_met": true
+}

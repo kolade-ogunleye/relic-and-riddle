@@ -1,0 +1,228 @@
+{
+ "clip": "captions",
+ "ground": "white",
+ "plate": [
+  42,
+  44,
+  48
+ ],
+ "bone": 12.0,
+ "gold": 7.67,
+ "elements": [
+  {
+   "name": "caption 0 bone",
+   "text": "An unread medieval",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 1 bone",
+   "text": "book displays",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 2 bone",
+   "text": "linguistic precision",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 3 bone",
+   "text": "that defeats",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 4 bone",
+   "text": "modern cryptanalysis",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 5 bone",
+   "text": "Radiocarbon dating",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 6 bone",
+   "text": "established",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 7 bone",
+   "text": "that the manuscript's",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 8 bone",
+   "text": "parchment dates",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 9 bone",
+   "text": "between 1404 and 1438",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 10 bone",
+   "text": "By one estimate",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 11 bone",
+   "text": "the text is written",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 12 bone",
+   "text": "from left to right",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 13 bone",
+   "text": "in an unidentified script",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 14 bone",
+   "text": "where an alphabet",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 15 bone",
+   "text": "of 20 to 25",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 16 bone",
+   "text": "characters accounts",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 17 bone",
+   "text": "for virtually",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 18 bone",
+   "text": "the entire work",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 19 bone",
+   "text": "Beside botanical",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 20 bone",
+   "text": "diagrams of unidentified",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 21 bone",
+   "text": "plants, the text",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 22 bone",
+   "text": "conforms to Zipf's law",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 23 bone",
+   "text": "where the most",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 24 bone",
+   "text": "common word appears",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 25 bone",
+   "text": "roughly twice as often",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 26 bone",
+   "text": "as the second",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 27 bone",
+   "text": "most common",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 28 bone",
+   "text": "The manuscript",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 29 bone",
+   "text": "is named after Polish",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 30 bone",
+   "text": "book dealer",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 31 bone",
+   "text": "Wilfrid Voynich",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 31 gold",
+   "text": "Wilfrid Voynich",
+   "drawn": 7.67
+  },
+  {
+   "name": "caption 32 bone",
+   "text": "who acquired it",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 33 bone",
+   "text": "in 1912",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 34 bone",
+   "text": "American and British",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 35 bone",
+   "text": "military cryptographers",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 36 bone",
+   "text": "from both",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 37 bone",
+   "text": "World War One",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 38 bone",
+   "text": "and World War Two",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 39 bone",
+   "text": "attempted to decipher",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 40 bone",
+   "text": "the codex",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 41 bone",
+   "text": "without success",
+   "drawn": 12.0
+  }
+ ]
+}

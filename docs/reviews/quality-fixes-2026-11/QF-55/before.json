@@ -1,0 +1,88 @@
+{
+  "source_commit": "5b9f49e314ee",
+  "scope": "ten offline fetches with generated images and namesake metadata; fixture truth, no live model",
+  "identity_configured_topics": 31,
+  "fetches": [
+    {
+      "subject": "Kailasa Temple Ellora",
+      "selected": 1,
+      "shows_topic_no_fixture_labels": 1,
+      "category_queries": [
+        "incategory:\"Kailasa Temple Ellora (unrelated film)\""
+      ]
+    },
+    {
+      "subject": "Antikythera mechanism",
+      "selected": 1,
+      "shows_topic_no_fixture_labels": 1,
+      "category_queries": [
+        "incategory:\"Antikythera mechanism (unrelated film)\""
+      ]
+    },
+    {
+      "subject": "Houfeng Didong Yi",
+      "selected": 1,
+      "shows_topic_no_fixture_labels": 1,
+      "category_queries": [
+        "incategory:\"Houfeng Didong Yi (unrelated film)\""
+      ]
+    },
+    {
+      "subject": "Voynich manuscript",
+      "selected": 1,
+      "shows_topic_no_fixture_labels": 1,
+      "category_queries": [
+        "incategory:\"Voynich manuscript (unrelated film)\""
+      ]
+    },
+    {
+      "subject": "Lycurgus Cup",
+      "selected": 1,
+      "shows_topic_no_fixture_labels": 1,
+      "category_queries": [
+        "incategory:\"Lycurgus Cup (unrelated film)\""
+      ]
+    },
+    {
+      "subject": "Gol Gumbaz",
+      "selected": 1,
+      "shows_topic_no_fixture_labels": 1,
+      "category_queries": [
+        "incategory:\"Gol Gumbaz (unrelated film)\""
+      ]
+    },
+    {
+      "subject": "Richat Structure",
+      "selected": 1,
+      "shows_topic_no_fixture_labels": 1,
+      "category_queries": [
+        "incategory:\"Richat Structure (unrelated film)\""
+      ]
+    },
+    {
+      "subject": "Amber Room",
+      "selected": 1,
+      "shows_topic_no_fixture_labels": 1,
+      "category_queries": [
+        "incategory:\"Amber Room (unrelated film)\""
+      ]
+    },
+    {
+      "subject": "Camp Century",
+      "selected": 1,
+      "shows_topic_no_fixture_labels": 1,
+      "category_queries": [
+        "incategory:\"Camp Century (unrelated film)\""
+      ]
+    },
+    {
+      "subject": "Colossi of Memnon",
+      "selected": 1,
+      "shows_topic_no_fixture_labels": 1,
+      "category_queries": [
+        "incategory:\"Colossi of Memnon (unrelated film)\""
+      ]
+    }
+  ],
+  "shows_topic_no_fixture_labels": 10
+}

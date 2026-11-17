@@ -5,7 +5,7 @@ Stored run records hold absolute file paths (master video, thumbnails). This rew
 path under the old project folder to the same path under the current one.
 
 Usage:
-  python scripts/relocate.py "C:\\Users\\omokolade\\GitHub\\New folder"
+  python scripts/relocate.py "C:\\Users\\<user>\\GitHub\\New folder"
 """
 
 import sqlite3

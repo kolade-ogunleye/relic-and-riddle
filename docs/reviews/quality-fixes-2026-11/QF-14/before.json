@@ -1,0 +1,581 @@
+{
+ "rule": {
+  "hook_max_words": 14,
+  "signal_within_words": "n/a",
+  "a_hook_fault_blocks": false
+ },
+ "synthetic": {
+  "bad_admitted": {
+   "label": true,
+   "thirteen_words": true,
+   "number_at_word_9": true,
+   "vague_size_only": true
+  },
+  "controls_admitted": {
+   "number": true,
+   "question": true,
+   "negation": true,
+   "adversative_and_time_span": true,
+   "hyphenated_number_word": true
+  },
+  "bad_outcome": {
+   "label": "ships_flagged",
+   "thirteen_words": "ships_clean",
+   "number_at_word_9": "ships_clean",
+   "vague_size_only": "ships_clean"
+  },
+  "controls_outcome": {
+   "number": "ships_clean",
+   "question": "ships_clean",
+   "negation": "ships_clean",
+   "adversative_and_time_span": "ships_clean",
+   "hyphenated_number_word": "ships_clean"
+  },
+  "bad_admitted_count": 4,
+  "controls_admitted_count": 5
+ },
+ "corpus": {
+  "script_library": {
+   "scripts": 4,
+   "refused": 0,
+   "outcomes": {
+    "blocked": 0,
+    "ships_flagged": 4,
+    "ships_clean": 0
+   },
+   "outcomes_strong": {
+    "blocked": 0,
+    "ships_flagged": 1,
+    "ships_clean": 0
+   },
+   "outcomes_weak": {
+    "blocked": 0,
+    "ships_flagged": 3,
+    "ships_clean": 0
+   },
+   "flagged_advisory_or_blocking": 4,
+   "refused_by_reason": {
+    "label": 0,
+    "long": 0,
+    "signal": 0,
+    "empty": 0,
+    "other": 0
+   },
+   "precision": {
+    "refused_weak": 0,
+    "refused_strong_over_the_cap": 0,
+    "false_reject": 0,
+    "passed_strong": 1,
+    "passed_weak": 3,
+    "unjudged": 0
+   },
+   "first_sentence_words": {
+    "min": 17,
+    "median": 22.5,
+    "max": 26,
+    "at_most_12": 0
+   },
+   "refusals": [],
+   "false_accepts": [
+    {
+     "run": "odessa_catacombs",
+     "sha": "64f1f448ca66",
+     "spoken_words": 26,
+     "refused": false,
+     "reasons": [
+      "long"
+     ],
+     "mark": "weak",
+     "first_sentence": "Beneath Odesa, a major seaport city located in Ukraine on the northwestern shore of the Black Sea, lies an extensive and complicated labyrinth of subterranean tunnels."
+    },
+    {
+     "run": "singing_colossi_of_memnon",
+     "sha": "59482858ee41",
+     "spoken_words": 22,
+     "refused": false,
+     "reasons": [
+      "long"
+     ],
+     "mark": "weak",
+     "first_sentence": "In 27 BC, a major earthquake shattered the northern colossus, collapsing the statue from the waist up and cracking its lower half."
+    },
+    {
+     "run": "wieliczka_salt_mine",
+     "sha": "70d08284b2b0",
+     "spoken_words": 23,
+     "refused": false,
+     "reasons": [
+      "long"
+     ],
+     "mark": "weak",
+     "first_sentence": "Near Kraków in southern Poland, the mine's rock salt naturally displays various shades of grey, resembling unpolished granite rather than white crystalline salt."
+    }
+   ]
+  },
+  "runs_1": {
+   "scripts": 28,
+   "refused": 0,
+   "outcomes": {
+    "blocked": 0,
+    "ships_flagged": 20,
+    "ships_clean": 8
+   },
+   "outcomes_strong": {
+    "blocked": 0,
+    "ships_flagged": 6,
+    "ships_clean": 6
+   },
+   "outcomes_weak": {
+    "blocked": 0,
+    "ships_flagged": 14,
+    "ships_clean": 2
+   },
+   "flagged_advisory_or_blocking": 20,
+   "refused_by_reason": {
+    "label": 0,
+    "long": 0,
+    "signal": 0,
+    "empty": 0,
+    "other": 0
+   },
+   "precision": {
+    "refused_weak": 0,
+    "refused_strong_over_the_cap": 0,
+    "false_reject": 0,
+    "passed_strong": 12,
+    "passed_weak": 16,
+    "unjudged": 0
+   },
+   "first_sentence_words": {
+    "min": 11,
+    "median": 18.0,
+    "max": 30,
+    "at_most_12": 4
+   },
+   "refusals": [],
+   "false_accepts": [
+    {
+     "run": "run_damascus_steel_nanotubes_1792732472_short",
+     "sha": "a568161a6db2",
+     "spoken_words": 21,
+     "refused": false,
+     "reasons": [
+      "long"
+     ],
+     "mark": "weak"
+    },
+    {
+     "run": "run_damascus_steel_nanotubes_1792733974_short",
+     "sha": "a568161a6db2",
+     "spoken_words": 21,
+     "refused": false,
+     "reasons": [
+      "long"
+     ],
+     "mark": "weak"
+    },
+    {
+     "run": "run_greek_fire_siphon_1792735284_short",
+     "sha": "0ee8dce2bfc1",
+     "spoken_words": 17,
+     "refused": false,
+     "reasons": [
+      "long"
+     ],
+     "mark": "weak"
+    },
+    {
+     "run": "run_hal_saflieni_hypogeum_1792949304",
+     "sha": "cfe25f325790",
+     "spoken_words": 23,
+     "refused": false,
+     "reasons": [
+      "long"
+     ],
+     "mark": "weak"
+    },
+    {
+     "run": "run_kailasa_temple_monolith_1792524470",
+     "sha": "c4f6e35485f4",
+     "spoken_words": 21,
+     "refused": false,
+     "reasons": [
+      "label",
+      "long"
+     ],
+     "mark": "weak"
+    },
+    {
+     "run": "run_odessa_catacombs_1792970549",
+     "sha": "64f1f448ca66",
+     "spoken_words": 26,
+     "refused": false,
+     "reasons": [
+      "long"
+     ],
+     "mark": "weak"
+    },
+    {
+     "run": "run_richat_structure_sahara_eye_1792740961_long",
+     "sha": "1d7b78665e23",
+     "spoken_words": 17,
+     "refused": false,
+     "reasons": [
+      "long"
+     ],
+     "mark": "weak"
+    },
+    {
+     "run": "run_richat_structure_sahara_eye_1792778206",
+     "sha": "fc831067a8d1",
+     "spoken_words": 26,
+     "refused": false,
+     "reasons": [
+      "long"
+     ],
+     "mark": "weak"
+    },
+    {
+     "run": "run_richat_structure_sahara_eye_1793272675",
+     "sha": "3a8bf504aebc",
+     "spoken_words": 13,
+     "refused": false,
+     "reasons": [],
+     "mark": "weak"
+    },
+    {
+     "run": "run_richat_structure_sahara_eye_1793468053",
+     "sha": "84a74b1a7965",
+     "spoken_words": 14,
+     "refused": false,
+     "reasons": [],
+     "mark": "weak"
+    },
+    {
+     "run": "run_singing_colossi_of_memnon_1792952878",
+     "sha": "59482858ee41",
+     "spoken_words": 22,
+     "refused": false,
+     "reasons": [
+      "long"
+     ],
+     "mark": "weak"
+    },
+    {
+     "run": "run_trepanation_miracle_1792991470",
+     "sha": "4e1444580149",
+     "spoken_words": 18,
+     "refused": false,
+     "reasons": [
+      "label",
+      "long"
+     ],
+     "mark": "weak"
+    },
+    {
+     "run": "run_trepanation_miracle_1792995462",
+     "sha": "4e1444580149",
+     "spoken_words": 18,
+     "refused": false,
+     "reasons": [
+      "label",
+      "long"
+     ],
+     "mark": "weak"
+    },
+    {
+     "run": "run_tunguska_event_1908_1792930600",
+     "sha": "f88839197c59",
+     "spoken_words": 23,
+     "refused": false,
+     "reasons": [
+      "long"
+     ],
+     "mark": "weak"
+    },
+    {
+     "run": "run_unfinished_obelisk_aswan_1792993374",
+     "sha": "6429a43fc1e2",
+     "spoken_words": 25,
+     "refused": false,
+     "reasons": [
+      "long"
+     ],
+     "mark": "weak"
+    },
+    {
+     "run": "run_wieliczka_salt_mine_1792974672",
+     "sha": "70d08284b2b0",
+     "spoken_words": 23,
+     "refused": false,
+     "reasons": [
+      "long"
+     ],
+     "mark": "weak"
+    }
+   ]
+  },
+  "runs_2": {
+   "scripts": 26,
+   "refused": 0,
+   "outcomes": {
+    "blocked": 0,
+    "ships_flagged": 11,
+    "ships_clean": 15
+   },
+   "outcomes_strong": {
+    "blocked": 0,
+    "ships_flagged": 4,
+    "ships_clean": 11
+   },
+   "outcomes_weak": {
+    "blocked": 0,
+    "ships_flagged": 7,
+    "ships_clean": 4
+   },
+   "flagged_advisory_or_blocking": 11,
+   "refused_by_reason": {
+    "label": 0,
+    "long": 0,
+    "signal": 0,
+    "empty": 0,
+    "other": 0
+   },
+   "precision": {
+    "refused_weak": 0,
+    "refused_strong_over_the_cap": 0,
+    "false_reject": 0,
+    "passed_strong": 15,
+    "passed_weak": 11,
+    "unjudged": 0
+   },
+   "first_sentence_words": {
+    "min": 10,
+    "median": 13.0,
+    "max": 23,
+    "at_most_12": 10
+   },
+   "refusals": 0,
+   "false_accepts": 11,
+   "per_item": "omitted: counts only (production sample)"
+  }
+ },
+ "corpus_pooled": {
+  "scripts": 52,
+  "refused": 0,
+  "outcomes": {
+   "blocked": 0,
+   "ships_flagged": 29,
+   "ships_clean": 23
+  },
+  "outcomes_strong": {
+   "blocked": 0,
+   "ships_flagged": 9,
+   "ships_clean": 17
+  },
+  "outcomes_weak": {
+   "blocked": 0,
+   "ships_flagged": 20,
+   "ships_clean": 6
+  },
+  "refused_by_reason": {
+   "label": 0,
+   "long": 0,
+   "signal": 0,
+   "empty": 0,
+   "other": 0
+  },
+  "precision": {
+   "refused_weak": 0,
+   "refused_strong_over_the_cap": 0,
+   "false_reject": 0,
+   "passed_strong": 26,
+   "passed_weak": 26,
+   "unjudged": 0
+  },
+  "first_sentence_words": {
+   "min": 10,
+   "median": 17.0,
+   "max": 30,
+   "at_most_12": 14
+  }
+ },
+ "opening_in_real_voiceovers": {
+  "runs": 67,
+  "first_sentence_ends_s_median": 6.8,
+  "first_sentence_ends_s_max": 13.35,
+  "word_12_ends_s_median": 4.88,
+  "runs_whose_first_sentence_ends_after_word_12": 49
+ },
+ "curated_scripts": [
+  {
+   "topic": "derinkuyu_underground_city",
+   "reviewed_by_human": false,
+   "first_sentence_words": 17,
+   "verify_claims_passes": true,
+   "refused_for_its_hook": false
+  }
+ ],
+ "topic_bank_suggested_hooks": {
+  "topics": 31,
+  "fail_the_rule": 0,
+  "note": "writer input only ('verify before using'); QF-73 rewrites them"
+ },
+ "routing_replay": {
+  "script_library": {
+   "opening_edit_fixes": {
+    "calls": {
+     "writer": 4,
+     "opening_edit": 4,
+     "length_edit": 0,
+     "other_edit": 0
+    },
+    "outcomes": {
+     "accepted": 4
+    },
+    "heavy_calls_per_run_mean": 2.0,
+    "heavy_calls_per_run_max": 2
+   },
+   "opening_edit_fails": {
+    "calls": {
+     "writer": 4,
+     "opening_edit": 4,
+     "length_edit": 0,
+     "other_edit": 0
+    },
+    "outcomes": {
+     "accepted": 4
+    },
+    "heavy_calls_per_run_mean": 2.0,
+    "heavy_calls_per_run_max": 2
+   }
+  },
+  "runs_1": {
+   "opening_edit_fixes": {
+    "calls": {
+     "writer": 29,
+     "opening_edit": 19,
+     "length_edit": 0,
+     "other_edit": 6
+    },
+    "outcomes": {
+     "accepted": 26,
+     "not_a_script_package": 1,
+     "no_script": 1
+    },
+    "heavy_calls_per_run_mean": 2.0,
+    "heavy_calls_per_run_max": 10
+   },
+   "opening_edit_fails": {
+    "calls": {
+     "writer": 29,
+     "opening_edit": 19,
+     "length_edit": 0,
+     "other_edit": 6
+    },
+    "outcomes": {
+     "accepted": 26,
+     "not_a_script_package": 1,
+     "no_script": 1
+    },
+    "heavy_calls_per_run_mean": 2.0,
+    "heavy_calls_per_run_max": 10
+   }
+  },
+  "runs_2": {
+   "opening_edit_fixes": {
+    "calls": {
+     "writer": 34,
+     "opening_edit": 12,
+     "length_edit": 0,
+     "other_edit": 24
+    },
+    "outcomes": {
+     "accepted": 22,
+     "no_script": 4
+    },
+    "heavy_calls_per_run_mean": 2.69,
+    "heavy_calls_per_run_max": 10
+   },
+   "opening_edit_fails": {
+    "calls": {
+     "writer": 34,
+     "opening_edit": 12,
+     "length_edit": 0,
+     "other_edit": 24
+    },
+    "outcomes": {
+     "accepted": 22,
+     "no_script": 4
+    },
+    "heavy_calls_per_run_mean": 2.69,
+    "heavy_calls_per_run_max": 10
+   }
+  }
+ },
+ "long_draft_with_long_hook": {
+  "calls": [
+   "WRITER",
+   "LENGTH"
+  ],
+  "writer_drafts": 1,
+  "accepted_opening_words": 13
+ },
+ "real_writer_call_size": {
+  "calls": 100,
+  "tokens_in_median": 3054.0,
+  "tokens_out_median": 215.5,
+  "seconds_median": 44.29
+ },
+ "library_path": {
+  "entries": 4,
+  "with_a_hook_fault": 4,
+  "routed_to_the_opening_edit": 0,
+  "used_as_is_with_a_hook_fault": 4,
+  "heavy_calls_min": 0,
+  "entries_fact_checked_again": 0
+ },
+ "heldout": {
+  "reviewer": {
+   "strong": 30,
+   "weak": 20,
+   "strong_admitted": 30,
+   "weak_admitted": 17,
+   "recall_strong": 1.0,
+   "precision_admitted": 0.638,
+   "weak_refused": 0.15,
+   "strong_refused": [],
+   "outcomes_strong": {
+    "blocked": 0,
+    "ships_flagged": 0,
+    "ships_clean": 30
+   },
+   "outcomes_weak": {
+    "blocked": 0,
+    "ships_flagged": 3,
+    "ships_clean": 17
+   }
+  },
+  "builder": {
+   "strong": 30,
+   "weak": 20,
+   "strong_admitted": 30,
+   "weak_admitted": 13,
+   "recall_strong": 1.0,
+   "precision_admitted": 0.698,
+   "weak_refused": 0.35,
+   "strong_refused": [],
+   "outcomes_strong": {
+    "blocked": 0,
+    "ships_flagged": 0,
+    "ships_clean": 30
+   },
+   "outcomes_weak": {
+    "blocked": 0,
+    "ships_flagged": 7,
+    "ships_clean": 13
+   }
+  }
+ },
+ "acceptance_met": false
+}

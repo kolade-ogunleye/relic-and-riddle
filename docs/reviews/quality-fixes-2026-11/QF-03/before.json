@@ -1,0 +1,68 @@
+{
+  "repo": "<repo root argument>",
+  "commit": "9cbedd5",
+  "ffmpeg": "ffmpeg version 8.1-full_build-www.gyan.dev",
+  "encoder": "-c:v libx264 -preset slow -crf 18",
+  "profiles": {
+    "reel": {
+      "size": "1080x1920",
+      "frames": 180,
+      "duration_s": 6.0,
+      "file_bytes": 4975016,
+      "video_kbps": 6430.2,
+      "noise_filter_in_master_graph": true,
+      "sha256": [
+        "5ed8e4d7244b2f96",
+        "5ed8e4d7244b2f96"
+      ],
+      "video_stream_md5": [
+        "d7d939dfc267acf3",
+        "d7d939dfc267acf3"
+      ],
+      "audio_stream_md5": [
+        "ad652e1b13e39333",
+        "ad652e1b13e39333"
+      ],
+      "second_render": {
+        "identical": true,
+        "differing_bytes": 0,
+        "boxes": {}
+      }
+    },
+    "deep_dive": {
+      "size": "1920x1080",
+      "frames": 180,
+      "duration_s": 6.0,
+      "file_bytes": 7408601,
+      "video_kbps": 9675.2,
+      "noise_filter_in_master_graph": true,
+      "sha256": [
+        "47d6fe94b1ebb2f2",
+        "47d6fe94b1ebb2f2"
+      ],
+      "video_stream_md5": [
+        "a1aca1840f908771",
+        "a1aca1840f908771"
+      ],
+      "audio_stream_md5": [
+        "ad652e1b13e39333",
+        "ad652e1b13e39333"
+      ],
+      "second_render": {
+        "identical": true,
+        "differing_bytes": 0,
+        "boxes": {}
+      }
+    }
+  },
+  "static_clip_flicker": {
+    "what": "mean |Y(n+1) - Y(n)| over a centred 400x400 box, frames 3-24 (before the caption), lossless encode",
+    "mean_abs_frame_diff_code": 1.674
+  },
+  "acceptance": {
+    "no_noise_filter": false,
+    "video_bitstreams_identical": true,
+    "renders_byte_identical": true,
+    "met": false
+  }
+}

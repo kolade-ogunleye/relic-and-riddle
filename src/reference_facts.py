@@ -34,3 +34,22 @@ def with_reference_evidence(sheet, payload):
     fact = {"id": ref["id"], "statement": ref["statement"], "disputed": False, "hedge": "",
             "evidence": [{"url": ref["source_url"], "tier": 1, "quote": ref["quote"]}]}
     return {**sheet, "facts": [f for f in sheet["facts"] if f["id"] != fact["id"]] + [fact]}
+
+
+def reference_by_label(label):
+    """The reference row whose label is `label`, or None."""
+    return next((r for r in references() if r["label"] == label), None)
+
+
+def reference_note(label, max_words=4):
+    """A short note on what a landmark's figure measures, from its sourced context (round 4, 2026-11-02): the
+    context's first clause in capitals ("Ground to torch tip, including ..." -> "GROUND TO TORCH TIP"), so the
+    305 FT is not read as the 151 ft statue alone; "" when there is no context or its first clause is longer than
+    `max_words` (a note is never cut mid-clause). Only the reference file's own words."""
+    import re
+    ref = reference_by_label(label)
+    context = str((ref or {}).get("context") or "").strip()
+    clause = re.split(r"[,;]|\.(?:\s|$)", context, maxsplit=1)[0].strip()
+    if not 2 <= len(clause.split()) <= max_words:   # one word is a cut abbreviation ("U.S."), not a clause
+        return ""
+    return clause.upper()

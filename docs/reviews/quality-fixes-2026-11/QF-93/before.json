@@ -1,0 +1,20 @@
+{
+  "commit": "ddf6edebcffb296f7a04de216c6305f9c6f764b3",
+  "measurement": "generated MatMul 1024x1024 float32; 3 warmups, 15 measured; machine-specific",
+  "production_callers_with_integrated_first": [
+    [
+      "DmlExecutionProvider",
+      "CPUExecutionProvider"
+    ],
+    [
+      "DmlExecutionProvider",
+      "CPUExecutionProvider"
+    ]
+  ],
+  "both_callers_choose_discrete": false,
+  "machine": {
+    "available": false,
+    "reason": "Parent has no adapter enumeration helper",
+    "timings": []
+  }
+}

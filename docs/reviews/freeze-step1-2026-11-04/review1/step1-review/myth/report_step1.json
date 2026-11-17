@@ -1,0 +1,91 @@
+{
+ "richat_fact9_long_1080x1920": {
+  "case": "richat_fact9_long",
+  "size": "1080x1920",
+  "px": 80,
+  "source_omitted": null,
+  "refused": null,
+  "drawn": {
+   "myth_label": "MYTH",
+   "myth_0": "AN EXTRATERRESTRIAL",
+   "myth_1": "IMPACT MADE THIS CRATER",
+   "fact_label": "FACT",
+   "fact_0": "THE IMPACT THEORY",
+   "fact_1": "WAS DISPROVED WHEN ITS",
+   "fact_2": "COESITE WAS IDENTIFIED",
+   "fact_3": "AS MISLABELED BARITE",
+   "source": "EN.WIKIPEDIA.ORG"
+  },
+  "render": "C:\\Users\\OMOKOL~1\\AppData\\Local\\Temp\\claude\\7686a79b0f64a990\\29ad02b1-356f-4136-9fd7-e5907c322aff\\scratchpad\\rev\\myth\\step1\\richat_fact9_long\\graphic_mythfact_01.mp4",
+  "design_refused": null,
+  "contrast_min": 10.98
+ },
+ "richat_fact9_long_1920x1080": {
+  "case": "richat_fact9_long",
+  "size": "1920x1080",
+  "px": 104,
+  "source_omitted": null,
+  "refused": null,
+  "drawn": {
+   "myth_label": "MYTH",
+   "myth_0": "AN EXTRATERRESTRIAL",
+   "myth_1": "IMPACT MADE",
+   "myth_2": "THIS CRATER",
+   "fact_label": "FACT",
+   "fact_0": "THE IMPACT THEORY",
+   "fact_1": "WAS DISPROVED",
+   "fact_2": "WHEN ITS COESITE",
+   "fact_3": "WAS IDENTIFIED",
+   "fact_4": "AS MISLABELED BARITE",
+   "source": "EN.WIKIPEDIA.ORG"
+  }
+ },
+ "richat_fact9_mid_1080x1920": {
+  "case": "richat_fact9_mid",
+  "size": "1080x1920",
+  "error": "CardRefused('fact: prov not in the cited facts')",
+  "render": null
+ },
+ "richat_fact9_mid_1920x1080": {
+  "case": "richat_fact9_mid",
+  "size": "1920x1080",
+  "error": "CardRefused('fact: prov not in the cited facts')"
+ },
+ "richat_fact9_short_1080x1920": {
+  "case": "richat_fact9_short",
+  "size": "1080x1920",
+  "px": 88,
+  "source_omitted": null,
+  "refused": null,
+  "drawn": {
+   "myth_label": "MYTH",
+   "myth_0": "AN EXTRATERRESTRIAL",
+   "myth_1": "IMPACT MADE THIS CRATER",
+   "fact_label": "FACT",
+   "fact_0": "THE IMPACT THEORY",
+   "fact_1": "WAS DISPROVED IN 1969",
+   "source": "EN.WIKIPEDIA.ORG"
+  },
+  "render": "C:\\Users\\OMOKOL~1\\AppData\\Local\\Temp\\claude\\7686a79b0f64a990\\29ad02b1-356f-4136-9fd7-e5907c322aff\\scratchpad\\rev\\myth\\step1\\richat_fact9_short\\graphic_mythfact_01.mp4",
+  "design_refused": null,
+  "contrast_min": 10.98
+ },
+ "richat_fact9_short_1920x1080": {
+  "case": "richat_fact9_short",
+  "size": "1920x1080",
+  "px": 104,
+  "source_omitted": null,
+  "refused": null,
+  "drawn": {
+   "myth_label": "MYTH",
+   "myth_0": "AN EXTRATERRESTRIAL",
+   "myth_1": "IMPACT MADE",
+   "myth_2": "THIS CRATER",
+   "fact_label": "FACT",
+   "fact_0": "THE IMPACT THEORY",
+   "fact_1": "WAS DISPROVED",
+   "fact_2": "IN 1969",
+   "source": "EN.WIKIPEDIA.ORG"
+  }
+ }
+}

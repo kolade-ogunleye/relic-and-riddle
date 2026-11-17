@@ -1,0 +1,218 @@
+{
+ "clip": "captions",
+ "ground": "white",
+ "plate": [
+  42,
+  44,
+  48
+ ],
+ "bone": 12.0,
+ "gold": 7.67,
+ "elements": [
+  {
+   "name": "caption 0 bone",
+   "text": "Can a quiet whisper",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 1 bone",
+   "text": "travel across",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 2 bone",
+   "text": "an estimated 144-foot",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 3 bone",
+   "text": "masonry dome?",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 4 bone",
+   "text": "Inside the dark",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 5 bone",
+   "text": "gray basalt mausoleum",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 6 bone",
+   "text": "of Gol Gumbaz",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 7 bone",
+   "text": "in Bijapur",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 8 bone",
+   "text": "sound waves are guided",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 9 bone",
+   "text": "continuously along",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 10 bone",
+   "text": "the curved boundary",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 11 bone",
+   "text": "of a prominent",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 12 bone",
+   "text": "whispering gallery",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 13 bone",
+   "text": "This massive dome",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 14 bone",
+   "text": "combines bricks",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 15 bone",
+   "text": "of varying dimensions",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 16 bone",
+   "text": "with lime mortar",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 17 bone",
+   "text": "gaining structural",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 18 bone",
+   "text": "integrity without metal",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 19 bone",
+   "text": "tension rings",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 20 bone",
+   "text": "on pendentive",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 21 bone",
+   "text": "systems attributed",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 22 bone",
+   "text": "to Central Asian",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 23 bone",
+   "text": "traditions",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 24 bone",
+   "text": "Construction began",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 25 bone",
+   "text": "in the early",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 26 bone",
+   "text": "17th century",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 27 bone",
+   "text": "and ceased",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 28 bone",
+   "text": "in 1656 upon",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 28 gold",
+   "text": "in 1656 upon",
+   "drawn": 7.67
+  },
+  {
+   "name": "caption 29 bone",
+   "text": "Mohammad Adil Shah's",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 30 bone",
+   "text": "death, leaving",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 31 bone",
+   "text": "several decorative",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 32 bone",
+   "text": "elements unfinished",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 33 bone",
+   "text": "Yet the unfinished",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 34 bone",
+   "text": "monument still",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 35 bone",
+   "text": "prompts modern",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 36 bone",
+   "text": "builders to wonder",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 37 bone",
+   "text": "how ancient masonry",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 38 bone",
+   "text": "mastered acoustics",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 39 bone",
+   "text": "so completely",
+   "drawn": 12.0
+  }
+ ]
+}

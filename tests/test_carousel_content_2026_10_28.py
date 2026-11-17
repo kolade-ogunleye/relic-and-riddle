@@ -188,7 +188,7 @@ def test_a_run_drawn_before_the_record_reuses_the_other_copys_photos(topic, rota
 
 # ---------------------------------------------------------------- 2. alt text
 
-def test_alt_text_says_what_the_photo_shows_and_what_the_slide_says(topic, rotate):
+def test_alt_text_says_what_the_photo_shows_and_what_the_slide_says(topic, rotate, monkeypatch):
     slides = MultiFormatGenerator().generate_carousel_sequence(topic["photos"], ROMAN, topic["run"])
     alts = [slide_alt_text(s) for s in slides]
     assert all(0 < len(a) <= 1000 for a in alts)
@@ -196,9 +196,17 @@ def test_alt_text_says_what_the_photo_shows_and_what_the_slide_says(topic, rotat
     assert "ROMAN CONCRETE SECRETS." in alts[0] and ROMAN["carousel_slides"][0]["body"] in alts[0]
     assert alts[1].startswith("Two photos: The vault of building 2 seen from below; and The vault of building 3")
     assert "comments" not in alts[6].lower()  # no comments footer on the closing slide (operator, 2026-10-29)
+    # QF-23: a body thirty times over is refused on the slide (it was drawn cut); the alt text's own cap is held on
+    # the record such a body leaves
     huge = dict(ROMAN, carousel_slides=[dict(c, body=c["body"] * 30) for c in ROMAN["carousel_slides"]])
-    slides = MultiFormatGenerator().generate_carousel_sequence(topic["photos"], huge, topic["run"] / "huge")
-    assert all(len(slide_alt_text(s)) <= 1000 for s in slides)
+    from src import multi_format
+    from src.typography import TextFitError
+    with pytest.raises(TextFitError, match="Checked copy does not fit"):
+        MultiFormatGenerator().generate_carousel_sequence(topic["photos"], huge, topic["run"] / "huge")
+    real = multi_format.slide_record
+    monkeypatch.setattr(multi_format, "slide_record", lambda s: {**real(s), "card": dict(
+        real(s).get("card") or {}, body=str((real(s).get("card") or {}).get("body") or "") * 30)})
+    assert all(len(slide_alt_text(s)) > 900 and len(slide_alt_text(s)) <= 1000 for s in slides)
     assert slide_alt_text(topic["run"] / "no_record.jpg") == ""
 
 
@@ -219,13 +227,13 @@ def test_upload_post_gets_alt_text_per_photo_for_carousels_and_none_for_stories(
     assert "facebook_alt_text" not in ig and "instagram_alt_text" not in fb
     ig_alts, fb_alts = json.loads(ig["instagram_alt_text"]), json.loads(fb["facebook_alt_text"])
     assert ig_alts == [slide_alt_text(p) for p in ig_paths] and len(ig_alts) == 7
-    assert fb_alts == [slide_alt_text(p) for p in fb_paths] and len(fb_alts) == 4 and all("carousel_fb" in p for p in fb_paths)
+    assert fb_alts == [slide_alt_text(p) for p in fb_paths] and len(fb_alts) == 5 and all("carousel_fb" in p for p in fb_paths)
     sent.clear()
     MetaPublisher(db=db, publishers=[up]).publish_photos("r1", "01_topic", "story", slides[:2])
     assert sent and not any("alt_text" in k or "first_comment" in k for data, _, _ in sent for k, _ in data)
 
 
-# ---------------------------------------------------------------- 3. Facebook gets four
+# ---------------------------------------------------------------- 3. Facebook gets five (four until 2026-11-03)
 
 def test_facebook_gets_the_cover_two_content_slides_and_the_closing_slide(topic, rotate, db, monkeypatch):
     db.create_run("r1", "01_topic")
@@ -233,7 +241,7 @@ def test_facebook_gets_the_cover_two_content_slides_and_the_closing_slide(topic,
     slides = [str(s) for s in gen.generate_carousel_sequence(topic["photos"], ROMAN, topic["run"])]
     fb_copy = [str(s) for s in gen.generate_carousel_sequence(topic["photos"], ROMAN, topic["run"], facebook=True)]
     picked = facebook_pick(fb_copy)
-    assert len(picked) == 4 and picked[0] == fb_copy[0] and picked[-1] == fb_copy[-1] and picked == sorted(picked)
+    assert len(picked) == 5 and picked[0] == fb_copy[0] and picked[-1] == fb_copy[-1] and picked == sorted(picked)
     assert facebook_pick(fb_copy[:3]) == fb_copy[:3]
     # A slide that had to be shortened or failed its layout check is passed over while another is clean.
     rec = still_layout.load(fb_copy[1])
@@ -251,7 +259,7 @@ def test_facebook_gets_the_cover_two_content_slides_and_the_closing_slide(topic,
                                                          platforms=["facebook"], retry_tag="retry1-facebook")
     key, data, nfiles = sent[0]
     # The caption is the post's: Upload-Post puts it on the first photo, which is the cover.
-    assert nfiles == 4 and dict(data)["title"] == "Cap" and dict(data)["description"] == "Cap"
+    assert nfiles == 5 and dict(data)["title"] == "Cap" and dict(data)["description"] == "Cap"
     assert key == "r1-carousel-1-retry1-facebook"
 
 
@@ -264,7 +272,7 @@ def test_a_dry_run_records_alt_text_first_comment_and_facebooks_four(topic, rota
                                                              first_comment="📷 credits", dry_run=True)
     assert res["planned_parts"] == 2
     rows = [json.loads(p["response_payload_json"]) for p in db.list_publications("r1")]
-    assert [len(r["photos"]) for r in rows] == [7, 4]
+    assert [len(r["photos"]) for r in rows] == [7, 5]
     assert all(len(r["alt_text"]) == len(r["photos"]) and r["first_comment"] == "📷 credits" for r in rows)
 
 

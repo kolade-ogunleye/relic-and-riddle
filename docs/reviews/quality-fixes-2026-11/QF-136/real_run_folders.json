@@ -1,0 +1,1077 @@
+{
+ "run_gol_gumbaz_whispering_gallery_1793278143": {
+  "coverage": {
+   "findings": [
+    {
+     "basis": "record",
+     "class": "coverage",
+     "detail": "a picture or video the set holds that the gate did not judge",
+     "element": "graphics/graphic_map.jpg"
+    },
+    {
+     "basis": "record",
+     "class": "coverage",
+     "detail": "a picture or video the set holds that the gate did not judge",
+     "element": "graphics/graphic_map.mp4"
+    },
+    {
+     "basis": "record",
+     "class": "coverage",
+     "detail": "a picture or video the set holds that the gate did not judge",
+     "element": "graphics/graphic_numbers.jpg"
+    },
+    {
+     "basis": "record",
+     "class": "coverage",
+     "detail": "a picture or video the set holds that the gate did not judge",
+     "element": "graphics/graphic_numbers.mp4"
+    },
+    {
+     "basis": "record",
+     "class": "coverage",
+     "detail": "a picture or video the set holds that the gate did not judge",
+     "element": "graphics/now_0_0.jpg"
+    },
+    {
+     "basis": "record",
+     "class": "coverage",
+     "detail": "a picture or video the set holds that the gate did not judge",
+     "element": "graphics/now_0_1.jpg"
+    },
+    {
+     "basis": "record",
+     "class": "coverage",
+     "detail": "a picture or video the set holds that the gate did not judge",
+     "element": "graphics/now_2_0.jpg"
+    },
+    {
+     "basis": "record",
+     "class": "coverage",
+     "detail": "a picture or video the set holds that the gate did not judge",
+     "element": "graphics/now_2_1.jpg"
+    },
+    {
+     "basis": "record",
+     "class": "coverage",
+     "detail": "a picture or video the set holds that the gate did not judge",
+     "element": "graphics/now_2_2.jpg"
+    },
+    {
+     "basis": "record",
+     "class": "coverage",
+     "detail": "a picture or video the set holds that the gate did not judge",
+     "element": "graphics/now_2_3.jpg"
+    },
+    {
+     "basis": "record",
+     "class": "coverage",
+     "detail": "a picture or video the set holds that the gate did not judge",
+     "element": "graphics/now_2_4.jpg"
+    },
+    {
+     "basis": "record",
+     "class": "coverage",
+     "detail": "a picture or video the set holds that the gate did not judge",
+     "element": "graphics/now_2_5.jpg"
+    },
+    {
+     "basis": "record",
+     "class": "coverage",
+     "detail": "a picture or video the set holds that the gate did not judge",
+     "element": "graphics/then_0.jpg"
+    },
+    {
+     "basis": "record",
+     "class": "coverage",
+     "detail": "a picture or video the set holds that the gate did not judge",
+     "element": "graphics/then_1.jpg"
+    },
+    {
+     "basis": "record",
+     "class": "coverage",
+     "detail": "a picture or video the set holds that the gate did not judge",
+     "element": "graphics/then_2.jpg"
+    }
+   ],
+   "not_gated": [
+    "graphics other than maps (place name only): number cards, timelines, scale, cross-section, then-and-now, callouts, quote cards fail as uncovered (QF-136b); a graphic's clip is judged on its poster (last) frame only, and a clip with no poster record fails as unjudged media",
+    "map labels other than the place (seas, countries) and map label placement",
+    "text outside the truth's fields: text burned into the photograph (a source's licence banner), the licence credit block, the masthead, a carousel's share line, Story poll option rows and the 'REPLY WITH A OR B' line (extra words are looked for inside the truth's own recorded boxes and on its own lines only; QF-144 crops photo-borne banners at source)",
+    "the cover's badge copy and the thumbnail variants a/b/c (the harness renders covers without variants)",
+    "end card and loop bridge, first frame, chapter / hook / myth cards in run folders (the harness renders them)",
+    "the YouTube thumbnail (unjudged media: it fails as coverage)",
+    "captions: reading speed (CPS) and punctuation (narration words are compared without it)",
+    "colour-vision (CVD) contrast, lone function words, faux capitals",
+    "an accent added over a busy ground (judged on a plain plate only)",
+    "a glyph cut away from a frame or zone edge by under a column of ink (cuts are judged where a word meets a frame or zone edge)",
+    "faces hidden by the text itself (only faces the detector still finds are judged)"
+   ],
+   "not_judged": [
+    "audit/qa_clearance/qa_01.jpg (intermediate)",
+    "audit/qa_clearance/qa_02.jpg (intermediate)",
+    "audit/qa_clearance/qa_03.jpg (intermediate)",
+    "audit/qa_clearance/qa_04.jpg (intermediate)",
+    "audit/qa_clearance/qa_05.jpg (intermediate)",
+    "audit/qa_clearance/qa_06.jpg (intermediate)",
+    "audit/qa_clearance/qa_07.jpg (intermediate)",
+    "audit/qa_clearance/qa_08.jpg (intermediate)",
+    "audit/qa_clearance/qa_09.jpg (intermediate)",
+    "audit/qa_collision/qa_01.jpg (intermediate)",
+    "beat_images/beat02_1.jpg (intermediate)",
+    "beat_images/beat02_2.jpg (intermediate)",
+    "beat_images/beat02_3.jpg (intermediate)",
+    "beat_images/beat03_1.jpg (intermediate)",
+    "beat_images/beat03_2.jpg (intermediate)",
+    "beat_images/beat07_1.jpg (intermediate)",
+    "beat_images/beat07_2.jpg (intermediate)",
+    "beat_images/beat07_3.jpg (intermediate)",
+    "graphics/graphic_map.jpg",
+    "graphics/graphic_map.mp4",
+    "graphics/graphic_numbers.jpg",
+    "graphics/graphic_numbers.mp4",
+    "graphics/now_0_0.jpg",
+    "graphics/now_0_1.jpg",
+    "graphics/now_2_0.jpg",
+    "graphics/now_2_1.jpg",
+    "graphics/now_2_2.jpg",
+    "graphics/now_2_3.jpg",
+    "graphics/now_2_4.jpg",
+    "graphics/now_2_5.jpg",
+    "graphics/then_0.jpg",
+    "graphics/then_1.jpg",
+    "graphics/then_2.jpg",
+    "parallax/scene_01.mp4 (intermediate)",
+    "parallax/scene_03.mp4 (intermediate)",
+    "parallax/scene_04.mp4 (intermediate)",
+    "parallax/scene_05.mp4 (intermediate)",
+    "parallax/scene_06.mp4 (intermediate)",
+    "parallax/scene_07.mp4 (intermediate)",
+    "parallax/scene_08.mp4 (intermediate)",
+    "parallax/scene_09.mp4 (intermediate)",
+    "qa_frames/qa_01.jpg (intermediate)",
+    "qa_frames/qa_02.jpg (intermediate)",
+    "qa_frames/qa_03.jpg (intermediate)",
+    "qa_frames/qa_04.jpg (intermediate)",
+    "qa_frames/qa_05.jpg (intermediate)",
+    "qa_frames/qa_06.jpg (intermediate)",
+    "qa_frames/qa_07.jpg (intermediate)",
+    "qa_frames/qa_08.jpg (intermediate)",
+    "qa_frames/qa_09.jpg (intermediate)",
+    "review_proxy.mp4 (review file, not a deliverable)",
+    "review_scene_strip.jpg (review file, not a deliverable)"
+   ]
+  },
+  "device": "DmlExecutionProvider",
+  "face_seconds": 4.342,
+  "failing": [
+   {
+    "classes": [
+     "contrast"
+    ],
+    "findings": [
+     {
+      "basis": "pixels",
+      "class": "contrast",
+      "detail": "measures 4.41:1 on the pixels (needs 4.5:1)",
+      "element": "body"
+     }
+    ],
+    "frame": "carousel/carousel_slide_04.jpg"
+   },
+   {
+    "classes": [
+     "coverage",
+     "text_identity",
+     "contrast"
+    ],
+    "findings": [
+     {
+      "basis": "pixels",
+      "class": "coverage",
+      "detail": "'Work' of the recipe text cannot be certified: the field's face is not reproduced here (its words fit 0.90, needs 0.92; best match 0.582)",
+      "element": "body"
+     },
+     {
+      "basis": "pixels",
+      "class": "coverage",
+      "detail": "'leaving' of the recipe text cannot be certified: the field's face is not reproduced here (its words fit 0.90, needs 0.92; best match 0.81, not where the reading order puts it)",
+      "element": "body"
+     },
+     {
+      "basis": "pixels",
+      "class": "coverage",
+      "detail": "'elements' of the recipe text cannot be certified: the field's face is not reproduced here (its words fit 0.90, needs 0.92; best match 0.858, not where the reading order puts it)",
+      "element": "body"
+     },
+     {
+      "basis": "pixels",
+      "class": "coverage",
+      "detail": "'unfinished.' of the recipe text cannot be certified: the field's face is not reproduced here (its words fit 0.90, needs 0.92; best match 0.885, not where the reading order puts it)",
+      "element": "body"
+     },
+     {
+      "basis": "pixels",
+      "class": "text_identity",
+      "detail": "ink that is none of the truth's words before 'ceased' (776 px)",
+      "element": "body"
+     },
+     {
+      "basis": "pixels",
+      "class": "contrast",
+      "detail": "measures 3.85:1 on the pixels (needs 4.5:1)",
+      "element": "heading"
+     }
+    ],
+    "frame": "carousel/carousel_slide_06.jpg"
+   },
+   {
+    "classes": [
+     "contrast"
+    ],
+    "findings": [
+     {
+      "basis": "pixels",
+      "class": "contrast",
+      "detail": "measures 4.41:1 on the pixels (needs 4.5:1)",
+      "element": "body"
+     }
+    ],
+    "frame": "carousel_fb/carousel_slide_04.jpg"
+   },
+   {
+    "classes": [
+     "coverage",
+     "text_identity",
+     "contrast"
+    ],
+    "findings": [
+     {
+      "basis": "pixels",
+      "class": "coverage",
+      "detail": "'Work' of the recipe text cannot be certified: the field's face is not reproduced here (its words fit 0.90, needs 0.92; best match 0.582)",
+      "element": "body"
+     },
+     {
+      "basis": "pixels",
+      "class": "coverage",
+      "detail": "'leaving' of the recipe text cannot be certified: the field's face is not reproduced here (its words fit 0.90, needs 0.92; best match 0.81, not where the reading order puts it)",
+      "element": "body"
+     },
+     {
+      "basis": "pixels",
+      "class": "coverage",
+      "detail": "'elements' of the recipe text cannot be certified: the field's face is not reproduced here (its words fit 0.90, needs 0.92; best match 0.858, not where the reading order puts it)",
+      "element": "body"
+     },
+     {
+      "basis": "pixels",
+      "class": "coverage",
+      "detail": "'unfinished.' of the recipe text cannot be certified: the field's face is not reproduced here (its words fit 0.90, needs 0.92; best match 0.885, not where the reading order puts it)",
+      "element": "body"
+     },
+     {
+      "basis": "pixels",
+      "class": "text_identity",
+      "detail": "ink that is none of the truth's words before 'ceased' (776 px)",
+      "element": "body"
+     },
+     {
+      "basis": "pixels",
+      "class": "contrast",
+      "detail": "measures 3.85:1 on the pixels (needs 4.5:1)",
+      "element": "heading"
+     }
+    ],
+    "frame": "carousel_fb/carousel_slide_06.jpg"
+   },
+   {
+    "classes": [
+     "coverage",
+     "text_identity"
+    ],
+    "findings": [
+     {
+      "basis": "pixels",
+      "class": "coverage",
+      "detail": "'its' of the recipe text cannot be certified: the field's face is not reproduced here (its words fit 0.88, needs 0.92; best match 0.882, not where the reading order puts it)",
+      "element": "body"
+     },
+     {
+      "basis": "pixels",
+      "class": "text_identity",
+      "detail": "ink that is none of the truth's words after 'along' (287 px)",
+      "element": "body"
+     }
+    ],
+    "frame": "stories/story_01_hook.jpg"
+   },
+   {
+    "classes": [
+     "text_identity"
+    ],
+    "findings": [
+     {
+      "basis": "pixels",
+      "class": "text_identity",
+      "detail": "ink that is none of the truth's words after 'OR' (7415 px)",
+      "element": "line2"
+     },
+     {
+      "basis": "pixels",
+      "class": "text_identity",
+      "detail": "'CHANCE?' of the recipe text is not in the pixels (best match 0.335, not where the reading order puts it)",
+      "element": "line2"
+     },
+     {
+      "basis": "pixels",
+      "class": "text_identity",
+      "detail": "'PURE' of the recipe text is not in the pixels (best match 0.579, not where the reading order puts it)",
+      "element": "line2"
+     }
+    ],
+    "frame": "stories/story_03_question.jpg"
+   },
+   {
+    "classes": [
+     "text_identity"
+    ],
+    "findings": [
+     {
+      "basis": "pixels+truth",
+      "class": "text_identity",
+      "detail": "'THE' is set in Cinzel-Variable-Bold 80px; the field's face is Anton",
+      "element": "line1"
+     },
+     {
+      "basis": "pixels+truth",
+      "class": "text_identity",
+      "detail": "'144-FOOT' is set in Cinzel-Variable-Bold 80px; the field's face is Anton",
+      "element": "line1"
+     },
+     {
+      "basis": "pixels+truth",
+      "class": "text_identity",
+      "detail": "'WHISPERING' is set in Cinzel-Variable-Bold 81px; the field's face is Anton",
+      "element": "line2"
+     },
+     {
+      "basis": "pixels+truth",
+      "class": "text_identity",
+      "detail": "'DOME' is set in Cinzel-Variable-Bold 81px; the field's face is Anton",
+      "element": "line2"
+     }
+    ],
+    "frame": "thumbnail_cover.jpg"
+   },
+   {
+    "classes": [
+     "text_identity"
+    ],
+    "findings": [
+     {
+      "basis": "pixels+truth",
+      "class": "text_identity",
+      "detail": "'THE' is set in Cinzel-Variable-Bold 80px; the field's face is Anton",
+      "element": "line1"
+     },
+     {
+      "basis": "pixels+truth",
+      "class": "text_identity",
+      "detail": "'144-FOOT' is set in Cinzel-Variable-Bold 80px; the field's face is Anton",
+      "element": "line1"
+     },
+     {
+      "basis": "pixels+truth",
+      "class": "text_identity",
+      "detail": "'WHISPERING' is set in Cinzel-Variable-Bold 81px; the field's face is Anton",
+      "element": "line2"
+     },
+     {
+      "basis": "pixels+truth",
+      "class": "text_identity",
+      "detail": "'DOME' is set in Cinzel-Variable-Bold 81px; the field's face is Anton",
+      "element": "line2"
+     }
+    ],
+    "frame": "thumbnail_profile_grid.jpg"
+   },
+   {
+    "classes": [
+     "text_identity"
+    ],
+    "findings": [
+     {
+      "basis": "pixels+truth",
+      "class": "text_identity",
+      "detail": "'THE' is set in Cinzel-Variable-Bold 79px track 0.02em; the field's face is Anton",
+      "element": "line1"
+     },
+     {
+      "basis": "pixels+truth",
+      "class": "text_identity",
+      "detail": "'144-FOOT' is set in Cinzel-Variable-Bold 79px track 0.02em; the field's face is Anton",
+      "element": "line1"
+     },
+     {
+      "basis": "pixels+truth",
+      "class": "text_identity",
+      "detail": "'WHISPERING' is set in Cinzel-Variable-Bold 81px; the field's face is Anton",
+      "element": "line2"
+     },
+     {
+      "basis": "pixels+truth",
+      "class": "text_identity",
+      "detail": "'DOME' is set in Cinzel-Variable-Bold 81px; the field's face is Anton",
+      "element": "line2"
+     }
+    ],
+    "frame": "thumbnail_variant_a_blueprint.jpg"
+   },
+   {
+    "classes": [
+     "text_identity"
+    ],
+    "findings": [
+     {
+      "basis": "pixels+truth",
+      "class": "text_identity",
+      "detail": "'THE' is set in Cinzel-Variable-Bold 79px track 0.02em; the field's face is Anton",
+      "element": "line1"
+     },
+     {
+      "basis": "pixels+truth",
+      "class": "text_identity",
+      "detail": "'144-FOOT' is set in Cinzel-Variable-Bold 79px track 0.02em; the field's face is Anton",
+      "element": "line1"
+     },
+     {
+      "basis": "pixels+truth",
+      "class": "text_identity",
+      "detail": "'WHISPERING' is set in Cinzel-Variable-Bold 81px; the field's face is Anton",
+      "element": "line2"
+     },
+     {
+      "basis": "pixels+truth",
+      "class": "text_identity",
+      "detail": "'DOME' is set in Cinzel-Variable-Bold 81px; the field's face is Anton",
+      "element": "line2"
+     }
+    ],
+    "frame": "thumbnail_variant_b_intrigue.jpg"
+   },
+   {
+    "classes": [
+     "text_identity"
+    ],
+    "findings": [
+     {
+      "basis": "pixels+truth",
+      "class": "text_identity",
+      "detail": "'THE' is set in Cinzel-Variable-Bold 80px; the field's face is Anton",
+      "element": "line1"
+     },
+     {
+      "basis": "pixels+truth",
+      "class": "text_identity",
+      "detail": "'144-FOOT' is set in Cinzel-Variable-Bold 80px; the field's face is Anton",
+      "element": "line1"
+     },
+     {
+      "basis": "pixels+truth",
+      "class": "text_identity",
+      "detail": "'WHISPERING' is set in Cinzel-Variable-Bold 81px; the field's face is Anton",
+      "element": "line2"
+     },
+     {
+      "basis": "pixels+truth",
+      "class": "text_identity",
+      "detail": "'DOME' is set in Cinzel-Variable-Bold 81px; the field's face is Anton",
+      "element": "line2"
+     }
+    ],
+    "frame": "thumbnail_variant_c_minimal.jpg"
+   }
+  ],
+  "frames": 24,
+  "frames_failed": 11,
+  "gate": "fail",
+  "kinds": {
+   "caption": 1,
+   "master": 1,
+   "still": 22
+  },
+  "memory_peak_mb": {
+   "main": 412.4,
+   "sum": 4567.4,
+   "workers": [
+    1170.9,
+    1066.7,
+    1057.8,
+    859.6
+   ]
+  },
+  "per_class": {
+   "contrast": {
+    "findings": 4,
+    "frames_failed": 4,
+    "pass": false
+   },
+   "coverage": {
+    "findings": 24,
+    "frames_failed": 3,
+    "pass": false
+   },
+   "face_overlap": {
+    "findings": 0,
+    "frames_failed": 0,
+    "pass": true
+   },
+   "glyph_fallback": {
+    "findings": 0,
+    "frames_failed": 0,
+    "pass": true
+   },
+   "mark_contrast": {
+    "findings": 0,
+    "frames_failed": 0,
+    "pass": true
+   },
+   "overlap": {
+    "findings": 0,
+    "frames_failed": 0,
+    "pass": true
+   },
+   "plate_overrun": {
+    "findings": 0,
+    "frames_failed": 0,
+    "pass": true
+   },
+   "record_mismatch": {
+    "findings": 0,
+    "frames_failed": 0,
+    "pass": true
+   },
+   "safe_zone": {
+    "findings": 0,
+    "frames_failed": 0,
+    "pass": true
+   },
+   "text_cut": {
+    "findings": 0,
+    "frames_failed": 0,
+    "pass": true
+   },
+   "text_identity": {
+    "findings": 26,
+    "frames_failed": 9,
+    "pass": false
+   }
+  },
+  "run_folder_unchanged_round2_check": true,
+  "seconds": 424.35,
+  "thresholds": {
+   "face_score": 0.6,
+   "face_share": 0.02,
+   "identity_extra_max": 0.15,
+   "identity_missing_max": 0.15,
+   "nontext_contrast": 3.0,
+   "pixel_box_tolerance_px": 1,
+   "plate_tolerance_px": 0,
+   "record_tolerance_px": 10,
+   "style_ncc": 0.7,
+   "text_contrast": 4.5,
+   "word_ncc": 0.6
+  }
+ },
+ "run_richat_structure_sahara_eye_1793474843": {
+  "coverage": {
+   "findings": [
+    {
+     "basis": "record",
+     "class": "coverage",
+     "detail": "a picture or video the set holds that the gate did not judge",
+     "element": "graphics/graphic_map.mp4"
+    },
+    {
+     "basis": "record",
+     "class": "coverage",
+     "detail": "a picture or video the set holds that the gate did not judge",
+     "element": "graphics/graphic_numbers.mp4"
+    }
+   ],
+   "not_gated": [
+    "graphics other than maps (place name only): number cards, timelines, scale, cross-section, then-and-now, callouts, quote cards fail as uncovered (QF-136b); a graphic's clip is judged on its poster (last) frame only, and a clip with no poster record fails as unjudged media",
+    "map labels other than the place (seas, countries) and map label placement",
+    "text outside the truth's fields: text burned into the photograph (a source's licence banner), the licence credit block, the masthead, a carousel's share line, Story poll option rows and the 'REPLY WITH A OR B' line (extra words are looked for inside the truth's own recorded boxes and on its own lines only; QF-144 crops photo-borne banners at source)",
+    "the cover's badge copy and the thumbnail variants a/b/c (the harness renders covers without variants)",
+    "end card and loop bridge, first frame, chapter / hook / myth cards in run folders (the harness renders them)",
+    "the YouTube thumbnail (unjudged media: it fails as coverage)",
+    "captions: reading speed (CPS) and punctuation (narration words are compared without it)",
+    "colour-vision (CVD) contrast, lone function words, faux capitals",
+    "an accent added over a busy ground (judged on a plain plate only)",
+    "a glyph cut away from a frame or zone edge by under a column of ink (cuts are judged where a word meets a frame or zone edge)",
+    "faces hidden by the text itself (only faces the detector still finds are judged)"
+   ],
+   "not_judged": [
+    "audit/caption_contrast/caption_00.png (intermediate)",
+    "audit/caption_contrast/caption_00_mask.png (intermediate)",
+    "audit/caption_contrast/caption_01.png (intermediate)",
+    "audit/caption_contrast/caption_01_mask.png (intermediate)",
+    "audit/caption_contrast/caption_02.png (intermediate)",
+    "audit/caption_contrast/caption_02_mask.png (intermediate)",
+    "audit/caption_contrast/caption_03.png (intermediate)",
+    "audit/caption_contrast/caption_03_mask.png (intermediate)",
+    "audit/caption_contrast/caption_04.png (intermediate)",
+    "audit/caption_contrast/caption_04_mask.png (intermediate)",
+    "audit/caption_contrast/caption_05.png (intermediate)",
+    "audit/caption_contrast/caption_05_mask.png (intermediate)",
+    "audit/qa_clearance/qa_01.jpg (intermediate)",
+    "audit/qa_clearance/qa_02.jpg (intermediate)",
+    "audit/qa_clearance/qa_03.jpg (intermediate)",
+    "audit/qa_clearance/qa_04.jpg (intermediate)",
+    "audit/qa_clearance/qa_05.jpg (intermediate)",
+    "audit/qa_clearance/qa_06.jpg (intermediate)",
+    "audit/qa_clearance/qa_07.jpg (intermediate)",
+    "audit/qa_clearance/qa_08.jpg (intermediate)",
+    "audit/qa_clearance/qa_09.jpg (intermediate)",
+    "audit/qa_clearance/qa_10.jpg (intermediate)",
+    "audit/qa_collision/qa_01.jpg (intermediate)",
+    "beat_images/beat01_1.jpg (intermediate)",
+    "beat_images/beat01_2.jpg (intermediate)",
+    "beat_images/beat01_3.jpg (intermediate)",
+    "beat_images/beat04_1.jpg (intermediate)",
+    "beat_images/beat04_2.jpg (intermediate)",
+    "graphics/graphic_map.mp4",
+    "graphics/graphic_numbers.mp4",
+    "parallax/scene_01.mp4 (intermediate)",
+    "parallax/scene_03.mp4 (intermediate)",
+    "parallax/scene_04.mp4 (intermediate)",
+    "parallax/scene_05.mp4 (intermediate)",
+    "parallax/scene_08.mp4 (intermediate)",
+    "parallax/scene_09.mp4 (intermediate)",
+    "parallax/scene_10.mp4 (intermediate)",
+    "qa_frames/qa_01.jpg (intermediate)",
+    "qa_frames/qa_02.jpg (intermediate)",
+    "qa_frames/qa_03.jpg (intermediate)",
+    "qa_frames/qa_04.jpg (intermediate)",
+    "qa_frames/qa_05.jpg (intermediate)",
+    "qa_frames/qa_06.jpg (intermediate)",
+    "qa_frames/qa_07.jpg (intermediate)",
+    "qa_frames/qa_08.jpg (intermediate)",
+    "qa_frames/qa_09.jpg (intermediate)",
+    "qa_frames/qa_10.jpg (intermediate)",
+    "review_proxy.mp4 (review file, not a deliverable)"
+   ]
+  },
+  "device": "DmlExecutionProvider",
+  "face_seconds": 1.732,
+  "failing": [
+   {
+    "classes": [
+     "safe_zone"
+    ],
+    "findings": [
+     {
+      "basis": "record",
+      "class": "safe_zone",
+      "detail": "the record's box [214, 786, 866, 815] leaves the reel box [113, 288, 848, 1090]",
+      "element": "country"
+     }
+    ],
+    "frame": "graphics/graphic_map.jpg"
+   },
+   {
+    "classes": [
+     "coverage",
+     "safe_zone"
+    ],
+    "findings": [
+     {
+      "basis": "record",
+      "class": "coverage",
+      "detail": "no truth for this frame: its record has no recipe, or its renderer or graphic kind has no truth reader (the renderer's own record is never truth)",
+      "element": ""
+     },
+     {
+      "basis": "record",
+      "class": "safe_zone",
+      "detail": "the record's box [89, 542, 176, 708] leaves the reel box [113, 288, 848, 1090]",
+      "element": "figure"
+     },
+     {
+      "basis": "record",
+      "class": "safe_zone",
+      "detail": "the record's box [85, 754, 420, 788] leaves the reel box [113, 288, 848, 1090]",
+      "element": "label"
+     },
+     {
+      "basis": "record",
+      "class": "safe_zone",
+      "detail": "the record's box [85, 812, 672, 846] leaves the reel box [113, 288, 848, 1090]",
+      "element": "label"
+     },
+     {
+      "basis": "record",
+      "class": "safe_zone",
+      "detail": "the record's box [639, 646, 863, 708] leaves the reel box [113, 288, 848, 1090]",
+      "element": "unit"
+     }
+    ],
+    "frame": "graphics/graphic_numbers.jpg"
+   },
+   {
+    "classes": [
+     "text_identity"
+    ],
+    "findings": [
+     {
+      "basis": "pixels",
+      "class": "text_identity",
+      "detail": "'ORIGIN' of the recipe text is not in the pixels (best match 0.953)",
+      "element": "line1"
+     },
+     {
+      "basis": "pixels",
+      "class": "text_identity",
+      "detail": "'DEBATE' of the recipe text is not in the pixels (best match 0.632)",
+      "element": "line2"
+     }
+    ],
+    "frame": "stories/story_03_question.jpg"
+   },
+   {
+    "classes": [
+     "text_identity",
+     "contrast"
+    ],
+    "findings": [
+     {
+      "basis": "pixels+truth",
+      "class": "text_identity",
+      "detail": "'THE' is set in Cinzel-Variable-Bold 104px; the field's face is Anton",
+      "element": "line1"
+     },
+     {
+      "basis": "pixels+truth",
+      "class": "text_identity",
+      "detail": "'EYE' is set in Cinzel-Variable-Bold 104px; the field's face is Anton",
+      "element": "line1"
+     },
+     {
+      "basis": "pixels+truth",
+      "class": "text_identity",
+      "detail": "'OF' is set in Cinzel-Variable-Bold 104px; the field's face is Anton",
+      "element": "line1"
+     },
+     {
+      "basis": "pixels+truth",
+      "class": "text_identity",
+      "detail": "'THE' is set in Cinzel-Variable-Bold 105px; the field's face is Anton",
+      "element": "line2"
+     },
+     {
+      "basis": "pixels+truth",
+      "class": "text_identity",
+      "detail": "'SAHARA' is set in Cinzel-Variable-Bold 105px; the field's face is Anton",
+      "element": "line2"
+     },
+     {
+      "basis": "pixels",
+      "class": "contrast",
+      "detail": "measures 3.49:1 on the pixels (needs 4.5:1)",
+      "element": "eyebrow"
+     },
+     {
+      "basis": "pixels",
+      "class": "contrast",
+      "detail": "measures 2.72:1 on the pixels (needs 4.5:1)",
+      "element": "tagline"
+     }
+    ],
+    "frame": "thumbnail_cover.jpg"
+   },
+   {
+    "classes": [
+     "text_identity",
+     "contrast"
+    ],
+    "findings": [
+     {
+      "basis": "pixels+truth",
+      "class": "text_identity",
+      "detail": "'THE' is set in Cinzel-Variable-Bold 104px; the field's face is Anton",
+      "element": "line1"
+     },
+     {
+      "basis": "pixels+truth",
+      "class": "text_identity",
+      "detail": "'EYE' is set in Cinzel-Variable-Bold 104px; the field's face is Anton",
+      "element": "line1"
+     },
+     {
+      "basis": "pixels+truth",
+      "class": "text_identity",
+      "detail": "'OF' is set in Cinzel-Variable-Bold 104px; the field's face is Anton",
+      "element": "line1"
+     },
+     {
+      "basis": "pixels+truth",
+      "class": "text_identity",
+      "detail": "'THE' is set in Cinzel-Variable-Bold 105px; the field's face is Anton",
+      "element": "line2"
+     },
+     {
+      "basis": "pixels+truth",
+      "class": "text_identity",
+      "detail": "'SAHARA' is set in Cinzel-Variable-Bold 105px; the field's face is Anton",
+      "element": "line2"
+     },
+     {
+      "basis": "pixels",
+      "class": "contrast",
+      "detail": "measures 3.49:1 on the pixels (needs 4.5:1)",
+      "element": "eyebrow"
+     },
+     {
+      "basis": "pixels",
+      "class": "contrast",
+      "detail": "measures 2.72:1 on the pixels (needs 4.5:1)",
+      "element": "tagline"
+     }
+    ],
+    "frame": "thumbnail_profile_grid.jpg"
+   },
+   {
+    "classes": [
+     "text_identity",
+     "contrast"
+    ],
+    "findings": [
+     {
+      "basis": "pixels+truth",
+      "class": "text_identity",
+      "detail": "'THE' is set in Cinzel-Variable-Bold 92px; the field's face is Anton",
+      "element": "line1"
+     },
+     {
+      "basis": "pixels+truth",
+      "class": "text_identity",
+      "detail": "'EYE' is set in Cinzel-Variable-Bold 92px; the field's face is Anton",
+      "element": "line1"
+     },
+     {
+      "basis": "pixels+truth",
+      "class": "text_identity",
+      "detail": "'OF' is set in Cinzel-Variable-Bold 92px; the field's face is Anton",
+      "element": "line1"
+     },
+     {
+      "basis": "pixels+truth",
+      "class": "text_identity",
+      "detail": "'THE' is set in Cinzel-Variable-Bold 93px; the field's face is Anton",
+      "element": "line2"
+     },
+     {
+      "basis": "pixels+truth",
+      "class": "text_identity",
+      "detail": "'SAHARA' is set in Cinzel-Variable-Bold 93px; the field's face is Anton",
+      "element": "line2"
+     },
+     {
+      "basis": "pixels",
+      "class": "contrast",
+      "detail": "measures 3.98:1 on the pixels (needs 4.5:1)",
+      "element": "eyebrow"
+     },
+     {
+      "basis": "pixels",
+      "class": "contrast",
+      "detail": "measures 4.01:1 on the pixels (needs 4.5:1)",
+      "element": "line2"
+     }
+    ],
+    "frame": "thumbnail_variant_a_blueprint.jpg"
+   },
+   {
+    "classes": [
+     "text_identity"
+    ],
+    "findings": [
+     {
+      "basis": "pixels+truth",
+      "class": "text_identity",
+      "detail": "'THE' is set in Cinzel-Variable-Bold 92px; the field's face is Anton",
+      "element": "line1"
+     },
+     {
+      "basis": "pixels+truth",
+      "class": "text_identity",
+      "detail": "'EYE' is set in Cinzel-Variable-Bold 92px; the field's face is Anton",
+      "element": "line1"
+     },
+     {
+      "basis": "pixels+truth",
+      "class": "text_identity",
+      "detail": "'OF' is set in Cinzel-Variable-Bold 92px; the field's face is Anton",
+      "element": "line1"
+     },
+     {
+      "basis": "pixels+truth",
+      "class": "text_identity",
+      "detail": "'THE' is set in Cinzel-Variable-Bold 93px; the field's face is Anton",
+      "element": "line2"
+     },
+     {
+      "basis": "pixels+truth",
+      "class": "text_identity",
+      "detail": "'SAHARA' is set in Cinzel-Variable-Bold 93px; the field's face is Anton",
+      "element": "line2"
+     }
+    ],
+    "frame": "thumbnail_variant_b_intrigue.jpg"
+   },
+   {
+    "classes": [
+     "text_identity",
+     "contrast"
+    ],
+    "findings": [
+     {
+      "basis": "pixels+truth",
+      "class": "text_identity",
+      "detail": "'THE' is set in Cinzel-Variable-Bold 104px; the field's face is Anton",
+      "element": "line1"
+     },
+     {
+      "basis": "pixels+truth",
+      "class": "text_identity",
+      "detail": "'EYE' is set in Cinzel-Variable-Bold 104px; the field's face is Anton",
+      "element": "line1"
+     },
+     {
+      "basis": "pixels+truth",
+      "class": "text_identity",
+      "detail": "'OF' is set in Cinzel-Variable-Bold 104px; the field's face is Anton",
+      "element": "line1"
+     },
+     {
+      "basis": "pixels+truth",
+      "class": "text_identity",
+      "detail": "'THE' is set in Cinzel-Variable-Bold 105px; the field's face is Anton",
+      "element": "line2"
+     },
+     {
+      "basis": "pixels+truth",
+      "class": "text_identity",
+      "detail": "'SAHARA' is set in Cinzel-Variable-Bold 105px; the field's face is Anton",
+      "element": "line2"
+     },
+     {
+      "basis": "pixels",
+      "class": "contrast",
+      "detail": "measures 3.49:1 on the pixels (needs 4.5:1)",
+      "element": "eyebrow"
+     },
+     {
+      "basis": "pixels",
+      "class": "contrast",
+      "detail": "measures 2.72:1 on the pixels (needs 4.5:1)",
+      "element": "tagline"
+     }
+    ],
+    "frame": "thumbnail_variant_c_minimal.jpg"
+   }
+  ],
+  "frames": 26,
+  "frames_failed": 8,
+  "gate": "fail",
+  "kinds": {
+   "caption": 1,
+   "graphic": 2,
+   "master": 1,
+   "still": 22
+  },
+  "memory_peak_mb": {
+   "main": 411.2,
+   "sum": 3842.9,
+   "workers": [
+    1000.1,
+    828.2,
+    807.4,
+    796.0
+   ]
+  },
+  "per_class": {
+   "contrast": {
+    "findings": 8,
+    "frames_failed": 4,
+    "pass": false
+   },
+   "coverage": {
+    "findings": 3,
+    "frames_failed": 1,
+    "pass": false
+   },
+   "face_overlap": {
+    "findings": 0,
+    "frames_failed": 0,
+    "pass": true
+   },
+   "glyph_fallback": {
+    "findings": 0,
+    "frames_failed": 0,
+    "pass": true
+   },
+   "mark_contrast": {
+    "findings": 0,
+    "frames_failed": 0,
+    "pass": true
+   },
+   "overlap": {
+    "findings": 0,
+    "frames_failed": 0,
+    "pass": true
+   },
+   "plate_overrun": {
+    "findings": 0,
+    "frames_failed": 0,
+    "pass": true
+   },
+   "record_mismatch": {
+    "findings": 0,
+    "frames_failed": 0,
+    "pass": true
+   },
+   "safe_zone": {
+    "findings": 5,
+    "frames_failed": 2,
+    "pass": false
+   },
+   "text_cut": {
+    "findings": 0,
+    "frames_failed": 0,
+    "pass": true
+   },
+   "text_identity": {
+    "findings": 27,
+    "frames_failed": 6,
+    "pass": false
+   }
+  },
+  "run_folder_unchanged_round2_check": true,
+  "seconds": 360.17,
+  "thresholds": {
+   "face_score": 0.6,
+   "face_share": 0.02,
+   "identity_extra_max": 0.15,
+   "identity_missing_max": 0.15,
+   "nontext_contrast": 3.0,
+   "pixel_box_tolerance_px": 1,
+   "plate_tolerance_px": 0,
+   "record_tolerance_px": 10,
+   "style_ncc": 0.7,
+   "text_contrast": 4.5,
+   "word_ncc": 0.6
+  }
+ }
+}

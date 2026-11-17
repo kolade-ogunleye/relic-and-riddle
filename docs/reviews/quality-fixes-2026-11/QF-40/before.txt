@@ -1,0 +1,21 @@
+wikipedia_plus_attacker_page: disputed=False hedge='' provenance=[{'host': None, 'tier': 2, 'fetch': None}, {'host': None, 'tier': 3, 'fetch': None}]
+wikipedia_plus_cited_gov_page: disputed=False hedge='' provenance=[{'host': None, 'tier': 2, 'fetch': None}, {'host': None, 'tier': 1, 'fetch': None}]
+verify_field number_statement_wikipedia_plus_cited_page: accepted
+verify_field quote_wikipedia_only: accepted
+verify_field control_number_statement_with_tier1: accepted
+verify_field control_quote_with_tier1: accepted
+verify_field provenance_edited_after_signing: refused (stale_check)
+date fact statement on Wikipedia alone 'On 30 June 1908 the sky lit up': accepted
+date fact statement on Wikipedia alone 'Carved around 9600 BC': accepted
+date fact statement on Wikipedia alone 'Vesuvius buried it in AD 79': accepted
+date fact statement on Wikipedia alone 'Begun about 3000 BC': accepted
+date fact statement on Wikipedia alone 'Built in 1871': accepted
+date fact statement on Wikipedia alone 'July 29, 1941, at around 7:14': accepted
+date fact statement on Wikipedia alone 'Built between 9,600 and 8,200 BCE': accepted
+date fact statement on Wikipedia alone 'Dug in the 8th to 7th century BC': accepted
+date fact statement on Wikipedia alone 'Made between 7,000 and 10,000 years ago': accepted
+date fact statement on Wikipedia alone 'In 1941 it was taken apart in 36 hours': accepted
+date fact statement on Wikipedia alone 'Dated to 6500 BCE, 40 of 120 skulls': accepted
+shipped undisputed date facts refused as statements on Wikipedia alone: 0 []
+review_card_sources_line: None
+acceptance_met: False

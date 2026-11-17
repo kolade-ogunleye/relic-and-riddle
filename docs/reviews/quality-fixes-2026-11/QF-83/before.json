@@ -1,0 +1,19 @@
+{
+  "defaults": {
+    "YOUTUBE_SHORTS": false,
+    "LOOP_FOLLOW_OVERLAY": null
+  },
+  "dry_run_receipts": [
+    "dry-run:simulated"
+  ],
+  "upload": {
+    "thumbnail_requests": 1,
+    "result_has_thumbnail": true,
+    "receipt_has_thumbnail": true,
+    "status": "published"
+  },
+  "follow_supported": false,
+  "bridges": {},
+  "network_calls": 0,
+  "acceptance": false
+}

@@ -1,0 +1,32 @@
+{
+  "acceptance_met": false,
+  "delivered_dimensions": {
+    "thumbnail_cover.jpg": [
+      1080,
+      1920
+    ],
+    "thumbnail_profile_grid.jpg": [
+      1080,
+      1080
+    ]
+  },
+  "delivered_sha256": {
+    "thumbnail_cover.jpg": "bbb75c5372cf32f10267a7a3b8cad6184ab7e24a6a8f86b39c125de9c79e846c",
+    "thumbnail_profile_grid.jpg": "c0aa5bc7c300b97b253bfbd902c011f43a4335b26850ab9412c3becd7eabc7d9"
+  },
+  "fixed_choices": 0,
+  "generated_cover_images": [
+    "thumbnail_cover.jpg",
+    "thumbnail_profile_grid.jpg",
+    "thumbnail_variant_a_blueprint.jpg",
+    "thumbnail_variant_b_intrigue.jpg",
+    "thumbnail_variant_c_minimal.jpg"
+  ],
+  "layout_record_preserved": true,
+  "limitations": "Offline procedural fixture measures execution/output policy, not photo or design-ceiling quality. Historical run artifacts are preserved; no real cover-specific signal is imported or invented.",
+  "selection_styles": [
+    "depth_sandwich"
+  ],
+  "selection_trials": 24,
+  "unused_variant_count": 3
+}

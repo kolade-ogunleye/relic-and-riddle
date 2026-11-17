@@ -34,7 +34,7 @@ from src.config import ASSETS_DIR, CURATED_SCRIPTS_DIR, DATA_DIR, TOPICS_DIR  # 
 from src.db import DB_PATH  # noqa: E402
 
 FACT_SHEETS = DATA_DIR / "fact_sheets"
-KEYED_FILES = [TOPICS_DIR / "image_queries.json", TOPICS_DIR / "topic_corrections.json"]
+KEYED_FILES = [TOPICS_DIR / "image_queries.json"]
 
 
 def junction_target(path: Path):
@@ -157,7 +157,7 @@ def plan(mapping):
             if path.exists():
                 data, nl, trailing = read_json(path)
                 write_json(path, {mapping.get(k, k): v for k, v in data.items()}, nl, trailing)
-    steps.append(("rename ids in topic_bank.json, image_queries.json and topic_corrections.json", rename_in_files))
+    steps.append(("rename ids in topic_bank.json and image_queries.json", rename_in_files))
     return steps + link_steps
 
 

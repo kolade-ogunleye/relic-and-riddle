@@ -28,9 +28,11 @@ of line endings.
 The lab agent staged its adapters under `C:\ProgramData\HNSHL\ContentRuntime`,
 not by patching the application checkout. The updated lab runbook assigns those
 application-specific adapters, deployment and health producers to this project.
-`deployment/windows/handoff` preserves their uncommitted source and tests with
-per-file hashes. Lab source and live resources are unchanged. Mixed platform and
-application deployment still needs separation; see the handoff README.
+`deployment/windows/handoff/provenance.json` records their uncommitted source with
+per-file hashes; the copies themselves were deleted as obsolete (QF-47), and the
+maintained launcher and its tests are `deployment/windows/runtime`. Lab source and
+live resources are unchanged. Mixed platform and application deployment still needs
+separation; see the handoff README.
 
 The `feat/production-runtime-contract` candidate collects the newer backup,
 recovery, startup safety, approver validation, documentation and tests. Production

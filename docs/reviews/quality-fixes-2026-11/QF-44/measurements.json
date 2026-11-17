@@ -1,0 +1,255 @@
+{
+  "metric": {
+    "ssrf_attempts": 37,
+    "ssrf_blocked": 37,
+    "internal_or_off_host_requests_made": 0,
+    "acceptance_redirect_to_127_0_0_1_page_text_none": true,
+    "acceptance_off_host_museum_download_raises": true,
+    "museum_providers_without_host_allowlist": [],
+    "controls_fetched": "4/4"
+  },
+  "cases": [
+    {
+      "case": "page_text 302 -> http://127.0.0.1/",
+      "outcome": "refused",
+      "forbidden_url_requested": false,
+      "blocked": true
+    },
+    {
+      "case": "page_text 302 -> https://127.0.0.1/admin",
+      "outcome": "refused",
+      "forbidden_url_requested": false,
+      "blocked": true
+    },
+    {
+      "case": "page_text https://127.0.0.1/admin",
+      "outcome": "refused",
+      "forbidden_url_requested": false,
+      "blocked": true
+    },
+    {
+      "case": "page_text 302 -> https://169.254.169.254/latest/meta-data/",
+      "outcome": "refused",
+      "forbidden_url_requested": false,
+      "blocked": true
+    },
+    {
+      "case": "page_text https://169.254.169.254/latest/meta-data/",
+      "outcome": "refused",
+      "forbidden_url_requested": false,
+      "blocked": true
+    },
+    {
+      "case": "page_text 302 -> https://10.0.0.5/",
+      "outcome": "refused",
+      "forbidden_url_requested": false,
+      "blocked": true
+    },
+    {
+      "case": "page_text https://10.0.0.5/",
+      "outcome": "refused",
+      "forbidden_url_requested": false,
+      "blocked": true
+    },
+    {
+      "case": "page_text 302 -> https://192.168.1.1/",
+      "outcome": "refused",
+      "forbidden_url_requested": false,
+      "blocked": true
+    },
+    {
+      "case": "page_text https://192.168.1.1/",
+      "outcome": "refused",
+      "forbidden_url_requested": false,
+      "blocked": true
+    },
+    {
+      "case": "page_text 302 -> https://172.16.4.4/",
+      "outcome": "refused",
+      "forbidden_url_requested": false,
+      "blocked": true
+    },
+    {
+      "case": "page_text https://172.16.4.4/",
+      "outcome": "refused",
+      "forbidden_url_requested": false,
+      "blocked": true
+    },
+    {
+      "case": "page_text 302 -> https://[::1]/",
+      "outcome": "refused",
+      "forbidden_url_requested": false,
+      "blocked": true
+    },
+    {
+      "case": "page_text https://[::1]/",
+      "outcome": "refused",
+      "forbidden_url_requested": false,
+      "blocked": true
+    },
+    {
+      "case": "page_text 302 -> https://[::ffff:127.0.0.1]/",
+      "outcome": "refused",
+      "forbidden_url_requested": false,
+      "blocked": true
+    },
+    {
+      "case": "page_text https://[::ffff:127.0.0.1]/",
+      "outcome": "refused",
+      "forbidden_url_requested": false,
+      "blocked": true
+    },
+    {
+      "case": "page_text 302 -> https://2130706433/",
+      "outcome": "refused",
+      "forbidden_url_requested": false,
+      "blocked": true
+    },
+    {
+      "case": "page_text https://2130706433/",
+      "outcome": "refused",
+      "forbidden_url_requested": false,
+      "blocked": true
+    },
+    {
+      "case": "page_text 302 -> https://0x7f.0.0.1/",
+      "outcome": "refused",
+      "forbidden_url_requested": false,
+      "blocked": true
+    },
+    {
+      "case": "page_text https://0x7f.0.0.1/",
+      "outcome": "refused",
+      "forbidden_url_requested": false,
+      "blocked": true
+    },
+    {
+      "case": "page_text 302 -> https://localhost/",
+      "outcome": "refused",
+      "forbidden_url_requested": false,
+      "blocked": true
+    },
+    {
+      "case": "page_text https://localhost/",
+      "outcome": "refused",
+      "forbidden_url_requested": false,
+      "blocked": true
+    },
+    {
+      "case": "page_text 302 -> https://intranet/",
+      "outcome": "refused",
+      "forbidden_url_requested": false,
+      "blocked": true
+    },
+    {
+      "case": "page_text https://intranet/",
+      "outcome": "refused",
+      "forbidden_url_requested": false,
+      "blocked": true
+    },
+    {
+      "case": "page_text 302 -> https://printer.local/",
+      "outcome": "refused",
+      "forbidden_url_requested": false,
+      "blocked": true
+    },
+    {
+      "case": "page_text https://printer.local/",
+      "outcome": "refused",
+      "forbidden_url_requested": false,
+      "blocked": true
+    },
+    {
+      "case": "page_text 302 -> https://rebound.example.com/",
+      "outcome": "refused",
+      "forbidden_url_requested": false,
+      "blocked": true
+    },
+    {
+      "case": "page_text https://rebound.example.com/",
+      "outcome": "refused",
+      "forbidden_url_requested": false,
+      "blocked": true
+    },
+    {
+      "case": "page_text 302 -> https://vm.corp-network.example/",
+      "outcome": "refused",
+      "forbidden_url_requested": false,
+      "blocked": true
+    },
+    {
+      "case": "page_text https://vm.corp-network.example/",
+      "outcome": "refused",
+      "forbidden_url_requested": false,
+      "blocked": true
+    },
+    {
+      "case": "download_jpeg off-host museum url (met)",
+      "outcome": "refused",
+      "forbidden_url_requested": false,
+      "blocked": true
+    },
+    {
+      "case": "download_jpeg off-host url (no provider)",
+      "outcome": "refused",
+      "forbidden_url_requested": false,
+      "blocked": true
+    },
+    {
+      "case": "download_jpeg met 302 -> off host",
+      "outcome": "refused",
+      "forbidden_url_requested": false,
+      "blocked": true
+    },
+    {
+      "case": "download_jpeg met 302 -> 169.254.169.254",
+      "outcome": "refused",
+      "forbidden_url_requested": false,
+      "blocked": true
+    },
+    {
+      "case": "download_jpeg europeana host resolving to 127.0.0.1",
+      "outcome": "refused",
+      "forbidden_url_requested": false,
+      "blocked": true
+    },
+    {
+      "case": "reference off-host museum url",
+      "outcome": "refused",
+      "forbidden_url_requested": false,
+      "blocked": true
+    },
+    {
+      "case": "reference met 302 -> 10.0.0.5",
+      "outcome": "refused",
+      "forbidden_url_requested": false,
+      "blocked": true
+    },
+    {
+      "case": "footage europeana host resolving to 127.0.0.1",
+      "outcome": "refused",
+      "forbidden_url_requested": false,
+      "blocked": true
+    },
+    {
+      "case": "control: page_text public page via public redirect",
+      "outcome": "fetched",
+      "expected": "fetched"
+    },
+    {
+      "case": "control: download_jpeg met file on its host",
+      "outcome": "fetched",
+      "expected": "fetched"
+    },
+    {
+      "case": "control: download_jpeg commons file",
+      "outcome": "fetched",
+      "expected": "fetched"
+    },
+    {
+      "case": "control: reference commons file",
+      "outcome": "fetched",
+      "expected": "fetched"
+    }
+  ]
+}

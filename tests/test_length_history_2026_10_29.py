@@ -14,8 +14,11 @@ SHEET = {"topic_id": "t1", "facts": [], "sources": [{"title": "X", "url": "https
 
 def _draft(curated_payload, kind, words):
     closing = curated_payload["closing_sentence"]
-    body = " ".join(f"{kind}{i}" for i in range(words - len(closing.split())))
-    return ScriptPackage.model_validate(dict(curated_payload, narration_script=f"{body}. {closing}"))
+    opening, payoff = f"{kind} city stood underground.", "That city sheltered families."
+    rest = words - len((opening + " " + payoff + " " + closing).split())
+    body = " ".join(f"{kind}{i}" for i in range(rest))
+    return ScriptPackage.model_validate(dict(curated_payload,
+        narration_script=f"{opening} {body}. {payoff} {closing}", payoff_sentence=payoff))
 
 
 @pytest.fixture

@@ -1,0 +1,22 @@
+{
+  "dry_run_claims": 0,
+  "dry_run_claims_by_doc": {
+    "docs/deployment.md": [],
+    "docs/runtime-contract.md": [],
+    "docs/unattended-startup.md": [],
+    "docs/production-probe-handoff.md": []
+  },
+  "launcher_argv": [
+    "daemon"
+  ],
+  "handoff_copies": 0,
+  "handoff_copy_paths": [],
+  "ci_unittest_dir": "deployment/windows/runtime",
+  "masthead": {
+    "unrecorded": "🏛️ <b><u>RELIC &amp; RIDDLE</u></b> · IDENTITY UNVERIFIED",
+    "live": "🏛️ <b><u>RELIC &amp; RIDDLE</u></b> · IDENTITY UNVERIFIED · <b>📡 LIVE posting</b>",
+    "dry": "🏛️ <b><u>RELIC &amp; RIDDLE</u></b> · IDENTITY UNVERIFIED · <b>🧪 dry run</b>"
+  },
+  "masthead_shows_mode": true,
+  "acceptance_met": true
+}

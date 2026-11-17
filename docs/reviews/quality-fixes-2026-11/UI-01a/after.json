@@ -1,0 +1,14 @@
+{
+ "alert_lines_over_40_characters": 0,
+ "alerts_that_rang": 3,
+ "item_action_taps_that_sent_a_message": 0,
+ "messages_left_in_chat": 1,
+ "messages_left_other_than_the_panel": 0,
+ "needs_you_senders_without_actions": 0,
+ "notices_sent_by_senders": 26,
+ "panel_header": "🔔 <b>8 need you</b> · 9 info",
+ "pinned_panels": 1,
+ "refused_apply_updates_that_lost_their_item": 0,
+ "refused_item_actions_that_lost_their_item": 0,
+ "telegram_sends_outside_the_panels": 0
+}

@@ -215,6 +215,9 @@ def _render_stage(db, monkeypatch, tmp_path, payload, photos, plans_out, reports
     from main import PipelineCoordinator
     coord = PipelineCoordinator(db)
     monkeypatch.setattr(coord, "_verify_final_copy", lambda *a: None)
+    # Four-beat fixture isolates picture repair; QF58 separately exercises the
+    # real nine-photo coverage gate with distinct image bytes.
+    monkeypatch.setattr(scene_planner, "reel_photo_coverage", lambda *a: {"ok": True, "problems": []})
     monkeypatch.setattr(main, "ensure_all", lambda paths: (paths, 0))
     monkeypatch.setattr(main, "ensure_resolution", lambda p: p)
     monkeypatch.setattr(main, "load_credits", lambda d: {"images": []})

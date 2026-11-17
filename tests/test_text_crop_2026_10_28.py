@@ -76,7 +76,7 @@ def test_the_screen_looks_at_1024_px(monkeypatch, tmp_path):
 def test_crop_removes_an_edge_band_and_keeps_its_source(tmp_path):
     src = _photo(tmp_path / "14_commons.jpg")
     out = beat_images.crop_text_band(src, "bottom", [880, 330, 940, 600])
-    assert out is not None and out.name == src.name and out.parent != src.parent  # same name: storyboard, stems
+    assert out is not None and out.name == src.with_suffix(".png").name and out.parent != src.parent  # same stem (QF-13: lossless PNG)
     with Image.open(out) as im:
         assert im.size == (1600, round(2400 * (1 - 0.135)))
     from src.lineage import source_chain
@@ -134,10 +134,10 @@ def test_a_photo_with_an_edge_label_is_cropped_not_dropped(monkeypatch, tmp_path
     looks = _looker(monkeypatch, verdicts)
     caplog.set_level("INFO", logger="src.beat_images")
     kept = beat_images.without_burned_in_text(photos, "skull", minimum=2)
-    assert [p.name for p in kept] == [p.name for p in photos]          # the order and the names stand
+    assert [p.stem for p in kept] == [p.stem for p in photos]          # the order and the stems stand (QF-13: crop is PNG)
     assert kept[1] != photos[1] and kept[1].parent.parent == beat_images.TEXT_CROP_DIR
     assert kept[0] == photos[0] and kept[2] == photos[2]
-    assert ("01_commons.jpg", 2076, 1024) in looks                     # the crop was looked at too
+    assert ("01_commons.png", 2076, 1024) in looks                     # the crop was looked at too
     assert "accession number label" in caplog.text and "does not show the subject" not in caplog.text
     cache = json.loads((tmp_path / beat_images.TEXT_SCREEN_FILE).read_text(encoding="utf-8"))
     entry = next(v for v in cache.values() if v["text"])
@@ -151,7 +151,7 @@ def test_a_crop_that_still_shows_text_is_set_aside(monkeypatch, tmp_path):
     photos = [_photo(tmp_path / f"{i:02d}_commons.jpg", label=(i == 1), seed=i) for i in range(4)]
 
     def verdicts(path, h):
-        if path.name == "01_commons.jpg":
+        if path.stem == "01_commons":      # the photo and its (PNG) crop both still show the label
             return {"checked": True, "shows": True, "burned_in_text": True, "reason": "r", "text_reason": "a label",
                     "text_edge": "bottom", "text_box": [880, 330, 940, 600]}
         return {"checked": True, "shows": True, "burned_in_text": False, "reason": "ok"}
@@ -258,7 +258,7 @@ def _beat_search(monkeypatch, tmp_path, label=True):
             "description": "Trephined skull", "relevance": 5}
     monkeypatch.setattr(beat_images.commons, "candidates", lambda pages, kw, sa: iter([dict(cand)]))
     monkeypatch.setattr(beat_images.commons, "download_jpeg",
-                        lambda url, dest, max_wait=30: _photo(dest, label=label))
+                        lambda url, dest, max_wait=30: _photo(Path(dest).with_suffix(".jpg"), label=label))  # a JPEG source is kept (QF-13)
     return [{"text": "Healers cut a hole in the skull.", "start": 0, "end": 3}], {"title": "Trepanation", "location": {}}
 
 
@@ -275,8 +275,8 @@ def test_a_found_picture_with_an_edge_label_is_cropped_not_set_aside(monkeypatch
     caplog.set_level("INFO", logger="src.beat_images")
     work = tmp_path / "beat_images"
     paths, creds = beat_images.source(beats, topic, work)
-    assert len(paths) == 1 and paths[0].parent.parent == beat_images.TEXT_CROP_DIR and paths[0].name == "beat01_1.jpg"
-    assert looks == [("beat01_1.jpg", 2400, 1024), ("beat01_1.jpg", 2076, 1024)]   # both looks at 1024 px
+    assert len(paths) == 1 and paths[0].parent.parent == beat_images.TEXT_CROP_DIR and paths[0].name == "beat01_1.png"
+    assert looks == [("beat01_1.jpg", 2400, 1024), ("beat01_1.png", 2076, 1024)]   # both looks at 1024 px
     assert creds[0]["file"] == str(paths[0]) and creds[0]["cropped_from"] == str(work / "beat01_1.jpg")
     assert creds[0]["looked"] == "a trephined skull, cropped"
     assert (work / "beat01_1.jpg").is_file()                         # the original stays: the copy's lineage source
@@ -307,7 +307,7 @@ def test_a_found_picture_with_text_inside_or_off_subject_is_not_cropped(monkeypa
                                                   "text_reason": "a label", "text_edge": "bottom",
                                                   "text_box": [880, 330, 940, 600]})
     assert beat_images.source(beats, topic, tmp_path / "b") == ([], []) and len(looks) == 1   # wrong picture: no crop
-    assert not beat_images.TEXT_CROP_DIR.exists() or not any(beat_images.TEXT_CROP_DIR.rglob("*.jpg"))
+    assert not beat_images.TEXT_CROP_DIR.exists() or not any(p.suffix in (".jpg", ".png") for p in beat_images.TEXT_CROP_DIR.rglob("*"))
 
 
 def test_the_pool_screen_and_the_beat_search_share_one_crop_rule():

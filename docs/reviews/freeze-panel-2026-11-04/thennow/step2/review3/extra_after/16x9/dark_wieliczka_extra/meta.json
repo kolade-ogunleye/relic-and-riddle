@@ -1,0 +1,910 @@
+{
+ "case": "dark_wieliczka_extra",
+ "run": "run_wieliczka_salt_mine_1792974672",
+ "topic": "wieliczka_salt_mine",
+ "label": "new: darkest real old photo and its run's darkest recent candidate, same-topic, not an accepted pair; years from fact sheet fact-13 / fact-14, not capture years",
+ "why": "line-art ground: the T1 gate must not set ink type over a diagram's own black rules",
+ "format": "16x9",
+ "size": [
+  1920,
+  1080
+ ],
+ "code_root": ".",
+ "inputs": "unregistered candidates (rejected pair; no registration exists)",
+ "registered": false,
+ "ink_on_paper": true,
+ "type_mode": {
+  "then": "bone",
+  "now": "bone"
+ },
+ "kicker": {
+  "then": "THEN",
+  "now": "LATER"
+ },
+ "halo_H": 0.75,
+ "glow_step": {
+  "then": "halo",
+  "now": "halo"
+ },
+ "glow_depth": {
+  "then": null,
+  "now": null
+ },
+ "side_916": null,
+ "framing": {
+  "trims_px": {
+   "old": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "new": [
+    0,
+    79,
+    0,
+    0
+   ]
+  },
+  "trim_share": [
+   0.0,
+   0.0323,
+   0.0,
+   0.0
+  ],
+  "zoom": 1.0,
+  "window": "centred",
+  "trimmed_px": {
+   "old": [
+    0,
+    91,
+    0,
+    0
+   ],
+   "new": [
+    0,
+    79,
+    0,
+    0
+   ]
+  }
+ },
+ "paper_gate": {
+  "then": {
+   "ok": false,
+   "split": {
+    "mean": 72.19,
+    "p10": 50.19,
+    "edge": 0.0245,
+    "dark": 0.0141,
+    "dark_padded": 0.0129
+   },
+   "alone": {
+    "mean": 72.63,
+    "p10": 50.5,
+    "edge": 0.0274,
+    "dark": 0.0135,
+    "dark_padded": 0.0137
+   }
+  },
+  "now": {
+   "ok": false,
+   "split": {
+    "mean": 81.43,
+    "p10": 18.39,
+    "edge": 0.0891,
+    "dark": 0.4445,
+    "dark_padded": 0.4945
+   },
+   "alone": {
+    "mean": 79.57,
+    "p10": 18.06,
+    "edge": 0.0924,
+    "dark": 0.4601,
+    "dark_padded": 0.5038
+   }
+  }
+ },
+ "old": "output/run_wieliczka_salt_mine_1792974672/graphics/then_1.jpg",
+ "old_year": 1978,
+ "new": "output/run_wieliczka_salt_mine_1792974672/graphics/now_1_2.jpg",
+ "new_year": 1998,
+ "years_source": {
+  "old": {
+   "year": 1978,
+   "fact": "fact-13: Wieliczka was designated as one of the original UNESCO World Heritage Sites in 1978."
+  },
+  "new": {
+   "year": 1998,
+   "fact": "fact-14: UNESCO placed the mine on the List of World Heritage in Danger from 1989 to 1998 while dehumidifying equipment was installed to protect the salt art."
+  }
+ },
+ "render_seconds_with_encode": 210.2,
+ "moments": {
+  "then_alone": {
+   "frame": 27,
+   "file": "frame_then_alone.webp (1954 KB)"
+  },
+  "mid_wipe": {
+   "frame": 44,
+   "file": "frame_mid_wipe.webp (2001 KB)"
+  },
+  "now_wide": {
+   "frame": 69,
+   "file": "frame_now_wide.webp (2029 KB)"
+  },
+  "split_hold": {
+   "frame": 165,
+   "file": "frame_split_hold.webp (1981 KB)"
+  },
+  "split": {
+   "frame": 179,
+   "file": "frame_split.webp (1984 KB)"
+  }
+ },
+ "plates": [
+  {
+   "name": "then_kicker",
+   "text": "THEN",
+   "planned": 10.04,
+   "fill": [
+    243,
+    237,
+    226
+   ],
+   "drawn": 9.83,
+   "graded": 13.02,
+   "halo": 0.75,
+   "box": [
+    772,
+    169,
+    896,
+    201
+   ]
+  },
+  {
+   "name": "then_year",
+   "text": "1978",
+   "planned": 10.75,
+   "fill": [
+    243,
+    237,
+    226
+   ],
+   "drawn": 10.94,
+   "graded": 13.8,
+   "halo": 0.75,
+   "box": [
+    697,
+    225,
+    896,
+    323
+   ]
+  },
+  {
+   "name": "now_kicker",
+   "text": "LATER",
+   "planned": 14.57,
+   "fill": [
+    243,
+    237,
+    226
+   ],
+   "drawn": 13.34,
+   "graded": 14.93,
+   "halo": 0.75,
+   "box": [
+    1025,
+    169,
+    1182,
+    201
+   ]
+  },
+  {
+   "name": "now_year",
+   "text": "1998",
+   "planned": 5.43,
+   "fill": [
+    243,
+    237,
+    226
+   ],
+   "drawn": 5.44,
+   "graded": 6.71,
+   "halo": 0.75,
+   "box": [
+    1025,
+    225,
+    1224,
+    323
+   ]
+  }
+ ],
+ "delivered_chain": {
+  "master_encoder": "-c:v h264_nvenc -preset p4 -cq 21"
+ },
+ "delivered_glow_fall_T3": "no glow",
+ "darkened_area_T2e": {
+  "then": {
+   "mode": "bone",
+   "local_mean_y": 72.19,
+   "darkened_px": 0,
+   "year_box_px": 19502,
+   "ratio": 0.0
+  },
+  "now": {
+   "mode": "bone",
+   "local_mean_y": 81.43,
+   "darkened_px": 0,
+   "year_box_px": 19502,
+   "ratio": 0.0
+  }
+ },
+ "colour_fidelity_T3d": {
+  "delivered_vs": {
+   "then_year_fill": {
+    "pixels": 9447,
+    "mean_dE00_vs_rendered": 1.49,
+    "rendered_mean_rgb": [
+     243.0,
+     237.0,
+     226.0
+    ],
+    "delivered_mean_rgb": [
+     238.9,
+     233.2,
+     221.3
+    ],
+    "mean_dE00_vs_graded_still": 3.76,
+    "graded_still_mean_rgb": [
+     237.9,
+     233.5,
+     220.2
+    ]
+   },
+   "now_year_fill": {
+    "pixels": 10430,
+    "mean_dE00_vs_rendered": 1.45,
+    "rendered_mean_rgb": [
+     243.0,
+     237.0,
+     226.0
+    ],
+    "delivered_mean_rgb": [
+     239.0,
+     233.4,
+     221.4
+    ],
+    "mean_dE00_vs_graded_still": 3.74,
+    "graded_still_mean_rgb": [
+     237.8,
+     233.7,
+     220.4
+    ]
+   }
+  },
+  "clip_decode_vs": {
+   "then_year_fill": {
+    "pixels": 9447,
+    "mean_dE00_vs_rendered": 0.58,
+    "rendered_mean_rgb": [
+     243.0,
+     237.0,
+     226.0
+    ],
+    "delivered_mean_rgb": [
+     242.0,
+     236.0,
+     224.0
+    ]
+   },
+   "now_year_fill": {
+    "pixels": 10430,
+    "mean_dE00_vs_rendered": 0.59,
+    "rendered_mean_rgb": [
+     243.0,
+     237.0,
+     226.0
+    ],
+    "delivered_mean_rgb": [
+     242.0,
+     236.0,
+     224.0
+    ]
+   }
+  }
+ },
+ "group_schedule_T5": {
+  "then": {
+   "drawn_while_not_clear": [],
+   "full_from_105": true,
+   "first_full_frame_after_95": 105,
+   "partial_runs_frames": [
+    8,
+    6,
+    6
+   ]
+  },
+  "now": {
+   "drawn_while_not_clear": [],
+   "full_from_105": true,
+   "first_full_frame_after_95": 95,
+   "partial_runs_frames": [
+    6
+   ]
+  }
+ },
+ "seam_blur_T6": [
+  {
+   "frame": 37,
+   "dpos": -100.69,
+   "width_10_90": 40.28,
+   "width_ratio": 0.4,
+   "divider_energy_ratio": 1.0
+  },
+  {
+   "frame": 38,
+   "dpos": -97.28,
+   "width_10_90": 38.91,
+   "width_ratio": 0.4,
+   "divider_energy_ratio": 1.0
+  },
+  {
+   "frame": 39,
+   "dpos": -93.87,
+   "width_10_90": 37.55,
+   "width_ratio": 0.4,
+   "divider_energy_ratio": 1.0
+  },
+  {
+   "frame": 40,
+   "dpos": -90.45,
+   "width_10_90": 36.18,
+   "width_ratio": 0.4,
+   "divider_energy_ratio": 1.0
+  },
+  {
+   "frame": 41,
+   "dpos": -87.04,
+   "width_10_90": 34.82,
+   "width_ratio": 0.4,
+   "divider_energy_ratio": 1.0
+  },
+  {
+   "frame": 42,
+   "dpos": -83.63,
+   "width_10_90": 33.45,
+   "width_ratio": 0.4,
+   "divider_energy_ratio": 1.0
+  },
+  {
+   "frame": 43,
+   "dpos": -80.21,
+   "width_10_90": 32.09,
+   "width_ratio": 0.4,
+   "divider_energy_ratio": 1.0
+  },
+  {
+   "frame": 44,
+   "dpos": -76.8,
+   "width_10_90": 30.72,
+   "width_ratio": 0.4,
+   "divider_energy_ratio": 1.0
+  },
+  {
+   "frame": 45,
+   "dpos": -73.39,
+   "width_10_90": 29.35,
+   "width_ratio": 0.4,
+   "divider_energy_ratio": 1.0
+  },
+  {
+   "frame": 46,
+   "dpos": -69.97,
+   "width_10_90": 27.99,
+   "width_ratio": 0.4,
+   "divider_energy_ratio": 1.0
+  },
+  {
+   "frame": 47,
+   "dpos": -66.56,
+   "width_10_90": 26.62,
+   "width_ratio": 0.4,
+   "divider_energy_ratio": 1.0
+  },
+  {
+   "frame": 48,
+   "dpos": -63.15,
+   "width_10_90": 25.26,
+   "width_ratio": 0.4,
+   "divider_energy_ratio": 1.0
+  },
+  {
+   "frame": 49,
+   "dpos": -59.73,
+   "width_10_90": 23.89,
+   "width_ratio": 0.4,
+   "divider_energy_ratio": 1.0
+  },
+  {
+   "frame": 50,
+   "dpos": -56.32,
+   "width_10_90": 22.53,
+   "width_ratio": 0.4,
+   "divider_energy_ratio": 1.0
+  },
+  {
+   "frame": 51,
+   "dpos": -52.91,
+   "width_10_90": 21.16,
+   "width_ratio": 0.4,
+   "divider_energy_ratio": 1.0
+  },
+  {
+   "frame": 52,
+   "dpos": -49.49,
+   "width_10_90": 19.8,
+   "width_ratio": 0.4,
+   "divider_energy_ratio": 1.0
+  },
+  {
+   "frame": 53,
+   "dpos": -46.08,
+   "width_10_90": 18.43,
+   "width_ratio": 0.4,
+   "divider_energy_ratio": 1.0
+  },
+  {
+   "frame": 54,
+   "dpos": -42.67,
+   "width_10_90": 17.07,
+   "width_ratio": 0.4,
+   "divider_energy_ratio": 1.0
+  },
+  {
+   "frame": 55,
+   "dpos": -39.25,
+   "width_10_90": 15.7,
+   "width_ratio": 0.4,
+   "divider_energy_ratio": 1.0
+  },
+  {
+   "frame": 56,
+   "dpos": -35.84,
+   "width_10_90": 14.34,
+   "width_ratio": 0.4,
+   "divider_energy_ratio": 1.0
+  },
+  {
+   "frame": 57,
+   "dpos": -32.43,
+   "width_10_90": 12.97,
+   "width_ratio": 0.4,
+   "divider_energy_ratio": 1.0
+  },
+  {
+   "frame": 58,
+   "dpos": -29.01,
+   "width_10_90": 11.61,
+   "width_ratio": 0.4,
+   "divider_energy_ratio": 1.0
+  },
+  {
+   "frame": 59,
+   "dpos": -25.6,
+   "width_10_90": 10.24,
+   "width_ratio": 0.4,
+   "divider_energy_ratio": 1.0
+  },
+  {
+   "frame": 60,
+   "dpos": -22.19,
+   "width_10_90": 8.87,
+   "width_ratio": 0.4,
+   "divider_energy_ratio": 1.0
+  },
+  {
+   "frame": 61,
+   "dpos": -18.77,
+   "width_10_90": 7.51,
+   "width_ratio": 0.4,
+   "divider_energy_ratio": 1.0
+  },
+  {
+   "frame": 62,
+   "dpos": -15.36,
+   "width_10_90": 6.14,
+   "width_ratio": 0.4,
+   "divider_energy_ratio": 1.0
+  },
+  {
+   "frame": 63,
+   "dpos": -11.95,
+   "width_10_90": 4.78,
+   "width_ratio": 0.4,
+   "divider_energy_ratio": 1.0
+  },
+  {
+   "frame": 64,
+   "dpos": -8.53,
+   "width_10_90": 558.4,
+   "width_ratio": 65.437,
+   "divider_energy_ratio": 1.0
+  },
+  {
+   "frame": 77,
+   "dpos": 11.04,
+   "width_10_90": 4.42,
+   "width_ratio": 0.4,
+   "divider_energy_ratio": 1.0
+  },
+  {
+   "frame": 78,
+   "dpos": 14.16,
+   "width_10_90": 5.66,
+   "width_ratio": 0.4,
+   "divider_energy_ratio": 1.0
+  },
+  {
+   "frame": 79,
+   "dpos": 16.99,
+   "width_10_90": 66.27,
+   "width_ratio": 3.9,
+   "divider_energy_ratio": 1.0
+  },
+  {
+   "frame": 80,
+   "dpos": 19.54,
+   "width_10_90": 7.82,
+   "width_ratio": 0.4,
+   "divider_energy_ratio": 1.0
+  },
+  {
+   "frame": 81,
+   "dpos": 21.81,
+   "width_10_90": 8.72,
+   "width_ratio": 0.4,
+   "divider_energy_ratio": 1.0
+  },
+  {
+   "frame": 82,
+   "dpos": 23.79,
+   "width_10_90": 9.52,
+   "width_ratio": 0.4,
+   "divider_energy_ratio": 1.0
+  },
+  {
+   "frame": 83,
+   "dpos": 25.49,
+   "width_10_90": 10.2,
+   "width_ratio": 0.4,
+   "divider_energy_ratio": 1.0
+  },
+  {
+   "frame": 84,
+   "dpos": 26.91,
+   "width_10_90": 10.76,
+   "width_ratio": 0.4,
+   "divider_energy_ratio": 1.0
+  },
+  {
+   "frame": 85,
+   "dpos": 28.05,
+   "width_10_90": 11.22,
+   "width_ratio": 0.4,
+   "divider_energy_ratio": 1.0
+  },
+  {
+   "frame": 86,
+   "dpos": 28.9,
+   "width_10_90": 11.56,
+   "width_ratio": 0.4,
+   "divider_energy_ratio": 1.0
+  },
+  {
+   "frame": 87,
+   "dpos": 29.46,
+   "width_10_90": 11.78,
+   "width_ratio": 0.4,
+   "divider_energy_ratio": 1.0
+  },
+  {
+   "frame": 88,
+   "dpos": 29.75,
+   "width_10_90": 11.9,
+   "width_ratio": 0.4,
+   "divider_energy_ratio": 1.0
+  },
+  {
+   "frame": 89,
+   "dpos": 29.75,
+   "width_10_90": 11.9,
+   "width_ratio": 0.4,
+   "divider_energy_ratio": 1.0
+  },
+  {
+   "frame": 90,
+   "dpos": 29.46,
+   "width_10_90": 11.78,
+   "width_ratio": 0.4,
+   "divider_energy_ratio": 1.0
+  },
+  {
+   "frame": 91,
+   "dpos": 28.9,
+   "width_10_90": 11.56,
+   "width_ratio": 0.4,
+   "divider_energy_ratio": 1.0
+  },
+  {
+   "frame": 92,
+   "dpos": 28.05,
+   "width_10_90": 11.22,
+   "width_ratio": 0.4,
+   "divider_energy_ratio": 1.0
+  },
+  {
+   "frame": 93,
+   "dpos": 26.91,
+   "width_10_90": 10.76,
+   "width_ratio": 0.4,
+   "divider_energy_ratio": 1.0
+  },
+  {
+   "frame": 94,
+   "dpos": 25.49,
+   "width_10_90": 10.2,
+   "width_ratio": 0.4,
+   "divider_energy_ratio": 1.0
+  },
+  {
+   "frame": 95,
+   "dpos": 23.79,
+   "width_10_90": 9.52,
+   "width_ratio": 0.4,
+   "divider_energy_ratio": 1.0
+  },
+  {
+   "frame": 96,
+   "dpos": 21.81,
+   "width_10_90": 8.72,
+   "width_ratio": 0.4,
+   "divider_energy_ratio": 1.0
+  },
+  {
+   "frame": 97,
+   "dpos": 19.54,
+   "width_10_90": 7.82,
+   "width_ratio": 0.4,
+   "divider_energy_ratio": 1.0
+  },
+  {
+   "frame": 98,
+   "dpos": 16.99,
+   "width_10_90": 138.99,
+   "width_ratio": 8.179,
+   "divider_energy_ratio": 1.0
+  },
+  {
+   "frame": 99,
+   "dpos": 14.16,
+   "width_10_90": 5.66,
+   "width_ratio": 0.4,
+   "divider_energy_ratio": 1.0
+  },
+  {
+   "frame": 100,
+   "dpos": 11.04,
+   "width_10_90": 4.42,
+   "width_ratio": 0.4,
+   "divider_energy_ratio": 1.0
+  }
+ ],
+ "groups": {
+  "then": [
+   666,
+   133,
+   932,
+   354
+  ],
+  "now": [
+   989,
+   133,
+   1255,
+   354
+  ]
+ },
+ "glow_reach_T2c": {},
+ "contrast_T2b": {
+  "min_planned": 5.43,
+  "min_drawn": 5.44,
+  "min_graded": 6.71,
+  "graded_ok_4_5": true
+ },
+ "glow_fall": {
+  "then": null,
+  "now": null
+ },
+ "frame_sha": [
+  "48a3e9e1f718a7e6",
+  "b3ad79b88d28f199",
+  "46545099db999f55",
+  "da3b037ea90dab87",
+  "a3f3c723b1f1cebf",
+  "4c6fca8967917adc",
+  "ae94c76e7de65a5d",
+  "6ae4783cd902c853",
+  "2dbd50a0cabc067f",
+  "80e7624ea4681ac0",
+  "abe49ea02418814e",
+  "88a966a599567431",
+  "8d3d481722cb60cf",
+  "8cfed1bbde3ef14d",
+  "f689b049eb84f4f0",
+  "35778df8e86e17bb",
+  "1286bdee5674d310",
+  "76324542196a7af9",
+  "ef7cb9730e7a6add",
+  "4358cb15a9ad7c10",
+  "55fd93e19eaa55bd",
+  "a8d3a6c13d948422",
+  "3f849f6441fbddb9",
+  "c0c81ae4b0bde397",
+  "da7754aa0b2baafb",
+  "3cc948dfbc02abbf",
+  "3b8e2a16e63a6f9e",
+  "a8bc233c3c61229c",
+  "9af59634cfdf8f4a",
+  "bfce7d68304957c7",
+  "98214a7248bee5c5",
+  "62cf4ea1558df402",
+  "7c8e3c2983add6b3",
+  "93d62f0d5da97c96",
+  "0cf699a12d8a20f5",
+  "98fdfe566cdc1679",
+  "8f25cd32201d49fc",
+  "49debacbd5deca0b",
+  "aff69c9e3c5b7127",
+  "3c92bc92e7c38b49",
+  "1ab38ab2c55d50e1",
+  "bead78c08966441d",
+  "14fb6f1675a5f705",
+  "b9d25232c00963e0",
+  "bb2d41f75c63678a",
+  "dbc5edfd5ea4465d",
+  "69ca3fce519d9366",
+  "e8d0da24a8a71e91",
+  "5d7a83952f305a0d",
+  "ec09017252713269",
+  "eba1e8d98219fe8e",
+  "7897b81e1e8020cc",
+  "227516dccfdb1dcf",
+  "7eee5d8a7e8eea82",
+  "eb75f9aa3689cc43",
+  "5f90187d794c1c63",
+  "aa3a79c6e3a30d2b",
+  "17c99633434d09c9",
+  "805deffe6eadbaed",
+  "ee64976bc96da977",
+  "e07775f53010fac7",
+  "032bc19c03aa2bbe",
+  "a6f09c6a2f1a97d6",
+  "1e40f2e8d0482457",
+  "5d2c87c64dee1f84",
+  "3af2d9235394fbec",
+  "8d8e066d2f29f010",
+  "fa371ff547d74c96",
+  "cb3e0ebccfebb616",
+  "fcccd99dd643106e",
+  "099b34e65ba78f96",
+  "188aa372df7d1771",
+  "2ebb8a774dced646",
+  "6a29fd2c691d99b2",
+  "5a6c7f184c003154",
+  "356260c0d8339add",
+  "07761b7d3779f63a",
+  "af746593ff23cd50",
+  "a2cb6509d74d96b7",
+  "ceb0dbe80b738767",
+  "02853739ae1e1d70",
+  "88ce61130358dd4a",
+  "1381d6136f8875bf",
+  "e947672553b950be",
+  "23bb9cd44af9fb38",
+  "ea55e8cccaccf7dc",
+  "493ebe93df95a358",
+  "e83aee2e262c94f5",
+  "016f1692c649652d",
+  "fc6ce518b392acc8",
+  "b0e7922ba5435f49",
+  "1d99bc821d4ca8b3",
+  "c30f3ae071eaa8d0",
+  "0a846f96f241b33b",
+  "15cc153434380fc9",
+  "88412cd632c32396",
+  "a5937097d066ec01",
+  "be41273934df30b2",
+  "af71eae6bd754b61",
+  "e63c4f1e65a8bb74",
+  "a7f5609698049f4b",
+  "386f93f181ad1bad",
+  "2064841ed57eb39e",
+  "8c8e17735db2953f",
+  "71a6ab59335aace0",
+  "f64242118ccdc41b",
+  "24f2e13dd68521b7",
+  "b64f66d5b7c2327c",
+  "f472af81ab21949c",
+  "a0f5f6e9717f4174",
+  "8794f91bf565eecb",
+  "e1db85c84f14c25d",
+  "52c61c4fd83b0f5b",
+  "cf7022ac9e2d3deb",
+  "d86b4143196a351c",
+  "c64534db31f7f1d3",
+  "306a55e0c88e9278",
+  "5682b3230cd52c57",
+  "6eeb039b53c9501d",
+  "23c19a69befa6298",
+  "14e0bbd517f806be",
+  "9714444efeb7e2ac",
+  "aef93462d47698e8",
+  "42646064abaf612d",
+  "dca3fac32a2f83bf",
+  "01d083c49457fb4e",
+  "8c2a6d498159f721",
+  "8ad3acae0284a4f0",
+  "66a7d2cb13e5dbf9",
+  "843ea8e5b732382f",
+  "7857613e35add432",
+  "81303826f9afde5a",
+  "ca11328d17bcdcd3",
+  "3be21b6ff1ef8b66",
+  "02063ea8e7bee698",
+  "34206fde584f079d",
+  "cc04e8ba8ef34bbb",
+  "ceda69c8335220f4",
+  "0ae6bb0a403c70d7",
+  "e86b5686eda2a5a7",
+  "e6e236a01e979f78",
+  "16be43d32dea4b4a",
+  "5f6a81325f6dee93",
+  "b863140183135433",
+  "2354dfaf5968259e",
+  "7df0530e5a6b3533",
+  "05b6446df5aca6a1",
+  "89467b8a04f28128",
+  "7594f717acc36307",
+  "e603110049b2038b",
+  "6598fa615279c456",
+  "9156d611d44cd1a2",
+  "384b889a193ea749",
+  "72e45b72d5817d12",
+  "b314c34f08931b5c",
+  "bdfde20ee8c1263e",
+  "36c7ecb6503d2864",
+  "b496c5990b437a2c",
+  "c9ec53ccca90d3a2",
+  "eb042deb6696621c",
+  "c619ea32aeec6195",
+  "4b275fc88e53e5ba",
+  "e487f7c4b21842a9",
+  "0e6613d8fdec95d4",
+  "d5cef9ce6a085186",
+  "cd63570b33e41af1",
+  "626e48b861e47427",
+  "320532dad99e4af6",
+  "3f233774f7160dd1",
+  "0752fdb5bf7f1861",
+  "263c30818381bf0b",
+  "4ffb30dd37b48414",
+  "80175f5a88666a68",
+  "c4d6b92e11e533dc",
+  "b23f169876bae117",
+  "6970eabfe9c4d210",
+  "b58fd49d892c4be0",
+  "7318923255b84be0",
+  "48b99ee6e5a3a083",
+  "d82dadd6730437ab"
+ ]
+}

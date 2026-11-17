@@ -1,0 +1,349 @@
+{
+ "real": {
+  "fields": 1332,
+  "non_ascii_fields": 80,
+  "family_checks": 5328,
+  "chars_removed": 0,
+  "fields_changed": 0,
+  "fit_chars_removed": 0,
+  "fallback": 10,
+  "refused": 4,
+  "by_family": {
+   "Anton": {
+    "chars_removed": 0,
+    "fallback": 5,
+    "refused": 1
+   },
+   "Montserrat": {
+    "chars_removed": 0,
+    "fallback": 0,
+    "refused": 1
+   },
+   "Cinzel": {
+    "chars_removed": 0,
+    "fallback": 5,
+    "refused": 1
+   },
+   "IBM Plex Mono": {
+    "chars_removed": 0,
+    "fallback": 0,
+    "refused": 1
+   }
+  },
+  "examples": [],
+  "refused_reasons": [
+   {
+    "family": "Anton",
+    "text": "ولاء",
+    "reason": "no bundled face draws و ل ا ء (Arabic), so 'ولاء' is not drawn (face Anton-Regular.ttf)"
+   },
+   {
+    "family": "Montserrat",
+    "text": "ولاء",
+    "reason": "no bundled face draws و ل ا ء (Arabic), so 'ولاء' is not drawn (face Montserrat-Variable.ttf)"
+   },
+   {
+    "family": "Cinzel",
+    "text": "ولاء",
+    "reason": "no bundled face draws و ل ا ء (Arabic), so 'ولاء' is not drawn (face Cinzel-Variable.ttf)"
+   },
+   {
+    "family": "IBM Plex Mono",
+    "text": "ولاء",
+    "reason": "no bundled face draws و ل ا ء (Arabic), so 'ولاء' is not drawn (face IBMPlexMono-Medium.ttf)"
+   }
+  ],
+  "fallbacks": [
+   {
+    "family": "Anton",
+    "text": "File:Mosaik im Bernsteinzimmer - Mosaic in the Amber Room - Мозаика Янтарной комнаты - panoramio.jpg",
+    "face": "NotoSans-LGC.ttf"
+   },
+   {
+    "family": "Cinzel",
+    "text": "File:Mosaik im Bernsteinzimmer - Mosaic in the Amber Room - Мозаика Янтарной комнаты - panoramio.jpg",
+    "face": "NotoSerif-LGC.ttf"
+   },
+   {
+    "family": "Anton",
+    "text": "File:Russland - St. Petersburg - Das Bernsteinzimmer - Panoramafoto vom 11.Mai 2012 - The Amber Room panoramic photo from May 11, 2012 - Панорамные фото Янтарная комната с 11 мая 2012 го - panoramio.jpg",
+    "face": "NotoSans-LGC.ttf"
+   },
+   {
+    "family": "Cinzel",
+    "text": "File:Russland - St. Petersburg - Das Bernsteinzimmer - Panoramafoto vom 11.Mai 2012 - The Amber Room panoramic photo from May 11, 2012 - Панорамные фото Янтарная комната с 11 мая 2012 го - panoramio.jpg",
+    "face": "NotoSerif-LGC.ttf"
+   },
+   {
+    "family": "Anton",
+    "text": "File:WW2 Bunker Museum (Blindage Museum Музей Бункер Battle of Königsberg Museum) Kaliningrad, Russia 2017-10-29 - 43456623775.jpg",
+    "face": "NotoSans-LGC.ttf"
+   },
+   {
+    "family": "Cinzel",
+    "text": "File:WW2 Bunker Museum (Blindage Museum Музей Бункер Battle of Königsberg Museum) Kaliningrad, Russia 2017-10-29 - 43456623775.jpg",
+    "face": "NotoSerif-LGC.ttf"
+   },
+   {
+    "family": "Anton",
+    "text": "File:WW2 Bunker Museum (Blindage Museum Музей Бункер Battle of Königsberg Museum) Kaliningrad, Russia 2017-10-29 - 43646225214.jpg",
+    "face": "NotoSans-LGC.ttf"
+   },
+   {
+    "family": "Cinzel",
+    "text": "File:WW2 Bunker Museum (Blindage Museum Музей Бункер Battle of Königsberg Museum) Kaliningrad, Russia 2017-10-29 - 43646225214.jpg",
+    "face": "NotoSerif-LGC.ttf"
+   }
+  ],
+  "by_source": {
+   "dev": 1331,
+   "fact_sheet": 1
+  },
+  "fallbacks_recorded": 10,
+  "refusals_recorded": 4,
+  "silent_removals": 0,
+  "fallback_faces": {
+   "NotoSans-LGC.ttf": 5,
+   "NotoSerif-LGC.ttf": 5
+  }
+ },
+ "stress": {
+  "fields": 21,
+  "non_ascii_fields": 21,
+  "family_checks": 84,
+  "chars_removed": 0,
+  "fields_changed": 0,
+  "fit_chars_removed": 0,
+  "fallback": 31,
+  "refused": 16,
+  "by_family": {
+   "Anton": {
+    "chars_removed": 0,
+    "fallback": 9,
+    "refused": 4
+   },
+   "Montserrat": {
+    "chars_removed": 0,
+    "fallback": 5,
+    "refused": 4
+   },
+   "Cinzel": {
+    "chars_removed": 0,
+    "fallback": 12,
+    "refused": 4
+   },
+   "IBM Plex Mono": {
+    "chars_removed": 0,
+    "fallback": 5,
+    "refused": 4
+   }
+  },
+  "examples": [],
+  "refused_reasons": [
+   {
+    "family": "Anton",
+    "text": "ابن الهيثم",
+    "reason": "no bundled face draws ا ب ن ل ه ي ث م (Arabic), so 'ابن الهيثم' is not drawn (face Anton-Regular.ttf)"
+   },
+   {
+    "family": "Montserrat",
+    "text": "ابن الهيثم",
+    "reason": "no bundled face draws ا ب ن ل ه ي ث م (Arabic), so 'ابن الهيثم' is not drawn (face Montserrat-Variable.ttf)"
+   },
+   {
+    "family": "Cinzel",
+    "text": "ابن الهيثم",
+    "reason": "no bundled face draws ا ب ن ل ه ي ث م (Arabic), so 'ابن الهيثم' is not drawn (face Cinzel-Variable.ttf)"
+   },
+   {
+    "family": "IBM Plex Mono",
+    "text": "ابن الهيثم",
+    "reason": "no bundled face draws ا ب ن ل ه ي ث م (Arabic), so 'ابن الهيثم' is not drawn (face IBMPlexMono-Medium.ttf)"
+   },
+   {
+    "family": "Anton",
+    "text": "Ibn al-Haytham (ابن الهيثم)",
+    "reason": "no bundled face draws ا ب ن ل ه ي ث م (Arabic), so 'Ibn al-Haytham (ابن الهيثم)' is not drawn (face Anton-Regular.ttf)"
+   },
+   {
+    "family": "Montserrat",
+    "text": "Ibn al-Haytham (ابن الهيثم)",
+    "reason": "no bundled face draws ا ب ن ل ه ي ث م (Arabic), so 'Ibn al-Haytham (ابن الهيثم)' is not drawn (face Montserrat-Variable.ttf)"
+   }
+  ],
+  "fallbacks": [
+   {
+    "family": "Anton",
+    "text": "ΑΓΙΑ ΣΟΦΙΑ",
+    "face": "NotoSans-LGC.ttf"
+   },
+   {
+    "family": "Montserrat",
+    "text": "ΑΓΙΑ ΣΟΦΙΑ",
+    "face": "NotoSans-LGC.ttf"
+   },
+   {
+    "family": "Cinzel",
+    "text": "ΑΓΙΑ ΣΟΦΙΑ",
+    "face": "NotoSerif-LGC.ttf"
+   },
+   {
+    "family": "IBM Plex Mono",
+    "text": "ΑΓΙΑ ΣΟΦΙΑ",
+    "face": "NotoSans-LGC.ttf"
+   },
+   {
+    "family": "Anton",
+    "text": "Αγία Σοφία",
+    "face": "NotoSans-LGC.ttf"
+   },
+   {
+    "family": "Montserrat",
+    "text": "Αγία Σοφία",
+    "face": "NotoSans-LGC.ttf"
+   },
+   {
+    "family": "Cinzel",
+    "text": "Αγία Σοφία",
+    "face": "NotoSerif-LGC.ttf"
+   },
+   {
+    "family": "IBM Plex Mono",
+    "text": "Αγία Σοφία",
+    "face": "NotoSans-LGC.ttf"
+   }
+  ],
+  "fallbacks_recorded": 31,
+  "refusals_recorded": 16,
+  "silent_removals": 0,
+  "fallback_faces": {
+   "NotoSans-LGC.ttf": 19,
+   "NotoSerif-LGC.ttf": 12
+  }
+ },
+ "production": {
+  "fields": 1357,
+  "non_ascii_fields": 101,
+  "family_checks": 5428,
+  "chars_removed": 0,
+  "fields_changed": 0,
+  "fit_chars_removed": 0,
+  "fallback": 6,
+  "refused": 0,
+  "by_family": {
+   "Anton": {
+    "chars_removed": 0,
+    "fallback": 3,
+    "refused": 0
+   },
+   "Montserrat": {
+    "chars_removed": 0,
+    "fallback": 0,
+    "refused": 0
+   },
+   "Cinzel": {
+    "chars_removed": 0,
+    "fallback": 3,
+    "refused": 0
+   },
+   "IBM Plex Mono": {
+    "chars_removed": 0,
+    "fallback": 0,
+    "refused": 0
+   }
+  },
+  "field_rows": 2955,
+  "runs": 34,
+  "fallbacks_recorded": 6,
+  "refusals_recorded": 0,
+  "silent_removals": 0,
+  "fallback_faces": {
+   "NotoSans-LGC.ttf": 3,
+   "NotoSerif-LGC.ttf": 3
+  }
+ },
+ "ledger_events": {
+  "emoji_removed": 295,
+  "fallback": 48,
+  "refused": 20
+ },
+ "fallback_match": {
+  "Anton": {
+   "fallback": "NotoSans-LGC.ttf",
+   "axes": {
+    "wght": 900.0,
+    "wdth": 62.5
+   },
+   "size_factor": 1.2028,
+   "cap_height_px": [
+    69,
+    68
+   ]
+  },
+  "Montserrat": {
+   "fallback": "NotoSans-LGC.ttf",
+   "axes": {
+    "wght": 569.0,
+    "wdth": 100.0
+   },
+   "size_factor": 0.979,
+   "cap_height_px": [
+    56,
+    56
+   ]
+  },
+  "Cinzel": {
+   "fallback": "NotoSerif-LGC.ttf",
+   "axes": {
+    "wght": 521.0
+   },
+   "size_factor": 0.986,
+   "cap_height_px": [
+    56,
+    56
+   ]
+  },
+  "IBM Plex Mono": {
+   "fallback": "NotoSans-LGC.ttf",
+   "axes": {
+    "wght": 538.0,
+    "wdth": 91.0
+   },
+   "size_factor": 0.979,
+   "cap_height_px": [
+    56,
+    56
+   ]
+  }
+ },
+ "arabic": {
+  "bundled_faces_mapping_arabic": {},
+  "bundled_faces": 9,
+  "tracked_run_direction": "ltr",
+  "arabic_clusters_in_visual_order": [
+   15,
+   16,
+   17,
+   18,
+   19,
+   20,
+   21,
+   22,
+   23,
+   24
+  ],
+  "arabic_drawn_left_to_right": true
+ },
+ "fallback_files": {
+  "NotoSans-LGC.ttf": {
+   "bytes": 896576,
+   "licence_verified": true,
+   "version": "Version 2.015"
+  },
+  "NotoSerif-LGC.ttf": {
+   "bytes": 661148,
+   "licence_verified": true,
+   "version": "Version 2.015"
+  }
+ }
+}

@@ -1,0 +1,530 @@
+{
+ "posts": {
+  "cases": 33,
+  "sent": 33,
+  "sent_with_every_credit_whole_in_every_text": 4,
+  "sent_lacking_a_credit": 29,
+  "sent_with_credits_only_in_a_first_comment": 8,
+  "held_with_the_reason": 0
+ },
+ "music": {
+  "tracks": 24,
+  "ask_a_credit": 17,
+  "complete_lines": 0,
+  "lines_for_cc0_or_public_domain": 0,
+  "longest_line": 86,
+  "parts": {
+   "title": 17,
+   "author": 17,
+   "licence_name": 17,
+   "source_link": 0,
+   "licence_link": 0,
+   "edited": 0
+  }
+ },
+ "rules": {
+  "generated_tracks_accepted_into_the_library": 2,
+  "generated_tracks_in_rotation": 2,
+  "licensed_track_accepted": true,
+  "committed_library_tracks_naming_elevenlabs": 0,
+  "bundled_faces": 9,
+  "bundled_faces_passing_font_rights": 9,
+  "fonts": {
+   "plex_subset_keeping_the_name_plex_passes": true,
+   "plex_subset_renamed_passes": true,
+   "renamed_subset_without_its_copyright_notice_passes": true,
+   "renamed_subset_without_its_ofl_notice_passes": true,
+   "noto_subset_keeping_its_name_passes": true
+  },
+  "esa_rule": {
+   "lawful_records": 14,
+   "lawful_records_refused": 0,
+   "esa_records_without_a_usable_licence": 7,
+   "esa_records_without_a_usable_licence_refused": 0
+  },
+  "author": {
+   "artist_fields_naming_an_author": 4,
+   "printed_unknown": 3
+  },
+  "excluded_sources": {
+   "sources": [
+    "David Rumsey",
+    "BBC RemArc",
+    "ESA, not CC BY-SA 3.0 IGO"
+   ],
+   "refused_of_3": {
+    "commons_search": 0,
+    "museum_search": 0,
+    "rights_decision": 0,
+    "operator_upload": 0
+   },
+   "bbc_track_refused_by_the_music_library": false,
+   "esa_under_cc_by_sa_3_0_igo_refused_at_upload": false,
+   "commons_own_work_refused": false
+  }
+ },
+ "copy_written_before_the_rule_whose_credits_fit": {
+  "held_by_licence_credits": false,
+  "told_to_shorten_or_regenerate": false,
+  "told_they_fit": false,
+  "held_after_its_review_is_sent_again": false,
+  "credits_whole_in_the_caption_after_its_review_is_sent_again": 1
+ },
+ "carousel_fault_paths": {
+  "no_slide_records_and_no_ledger": {
+   "cases": 3,
+   "sent": 3,
+   "held": 0,
+   "sent_by_case": {
+    "its_copy_has_the_summary_line_only": true,
+    "its_copy_kept_one_of_two_photo_lines": true,
+    "its_copy_has_no_credit_line": true
+   }
+  },
+  "recorded_slide_whose_credit_entry_is_present_missing_corrupt": {
+   "cases": 3,
+   "sent_with_the_photos_credit": 1,
+   "sent_without_it": 2,
+   "by_case": {
+    "present": "sent with its credit",
+    "missing": "sent without",
+    "corrupt": "sent without"
+   }
+  },
+  "recorded_slide_whose_photo_is_in_neither_record": {
+   "cases": 2,
+   "sent": 2,
+   "held": 0
+  },
+  "unread_entry_of_a_photo_that_asks_no_credit": {
+   "cases": 2,
+   "sent_as_it_is": 2,
+   "held": 0
+  },
+  "credits_that_do_not_fit_beside_slide_records": {
+   "posted": true,
+   "posted_with_credit_lines_in_a_first_comment": true,
+   "held_as_a_carousel_that_will_not_post": false,
+   "notice_offers_retry": false,
+   "notice_offers_redraw": false,
+   "notice_names_edit": false,
+   "notice_says_nothing_was_posted_and_the_reel_is_not_affected": false
+  }
+ },
+ "post_rows": [
+  {
+   "case": "reel, whole set",
+   "set": "dev_longest",
+   "credits_asked": 11,
+   "sent": true,
+   "why_not": "",
+   "carried": {
+    "Instagram caption": 8,
+    "Facebook Reel text": 8,
+    "YouTube Short description": 8
+   },
+   "credits_in_a_first_comment": 0,
+   "complete": false
+  },
+  {
+   "case": "reel, first 5 photos",
+   "set": "dev_longest",
+   "credits_asked": 6,
+   "sent": true,
+   "why_not": "",
+   "carried": {
+    "Instagram caption": 5,
+    "Facebook Reel text": 5,
+    "YouTube Short description": 5
+   },
+   "credits_in_a_first_comment": 0,
+   "complete": false
+  },
+  {
+   "case": "reel, first 3 photos",
+   "set": "dev_longest",
+   "credits_asked": 4,
+   "sent": true,
+   "why_not": "",
+   "carried": {
+    "Instagram caption": 3,
+    "Facebook Reel text": 3,
+    "YouTube Short description": 3
+   },
+   "credits_in_a_first_comment": 0,
+   "complete": false
+  },
+  {
+   "case": "documentary",
+   "set": "dev_longest",
+   "credits_asked": 11,
+   "sent": true,
+   "why_not": "",
+   "carried": {
+    "YouTube description": 10
+   },
+   "credits_in_a_first_comment": 0,
+   "complete": false
+  },
+  {
+   "case": "documentary, 4,780-character description",
+   "set": "dev_longest",
+   "credits_asked": 11,
+   "sent": true,
+   "why_not": "",
+   "carried": {
+    "YouTube description": 0
+   },
+   "credits_in_a_first_comment": 0,
+   "complete": false
+  },
+  {
+   "case": "carousel, whole set",
+   "set": "dev_longest",
+   "credits_asked": 11,
+   "sent": true,
+   "why_not": "",
+   "carried": {
+    "carousel caption": 0
+   },
+   "credits_in_a_first_comment": 9,
+   "complete": false
+  },
+  {
+   "case": "carousel, first 5 photos",
+   "set": "dev_longest",
+   "credits_asked": 6,
+   "sent": true,
+   "why_not": "",
+   "carried": {
+    "carousel caption": 6
+   },
+   "credits_in_a_first_comment": 0,
+   "complete": true
+  },
+  {
+   "case": "carousel, 1,900-character caption, whole set",
+   "set": "dev_longest",
+   "credits_asked": 11,
+   "sent": true,
+   "why_not": "",
+   "carried": {
+    "carousel caption": 0
+   },
+   "credits_in_a_first_comment": 9,
+   "complete": false
+  },
+  {
+   "case": "carousel, 1,900-character caption, first 5 photos",
+   "set": "dev_longest",
+   "credits_asked": 6,
+   "sent": true,
+   "why_not": "",
+   "carried": {
+    "carousel caption": 0
+   },
+   "credits_in_a_first_comment": 6,
+   "complete": false
+  },
+  {
+   "case": "carousel without slide records, whole set",
+   "set": "dev_longest",
+   "credits_asked": 11,
+   "sent": true,
+   "why_not": "",
+   "carried": {
+    "carousel caption": 1
+   },
+   "credits_in_a_first_comment": 0,
+   "complete": false
+  },
+  {
+   "case": "carousel without slide records, first 5 photos",
+   "set": "dev_longest",
+   "credits_asked": 6,
+   "sent": true,
+   "why_not": "",
+   "carried": {
+    "carousel caption": 1
+   },
+   "credits_in_a_first_comment": 0,
+   "complete": false
+  },
+  {
+   "case": "reel, whole set",
+   "set": "dev_longest_with_music",
+   "credits_asked": 9,
+   "sent": true,
+   "why_not": "",
+   "carried": {
+    "Instagram caption": 6,
+    "Facebook Reel text": 6,
+    "YouTube Short description": 6
+   },
+   "credits_in_a_first_comment": 0,
+   "complete": false
+  },
+  {
+   "case": "reel, first 5 photos",
+   "set": "dev_longest_with_music",
+   "credits_asked": 7,
+   "sent": true,
+   "why_not": "",
+   "carried": {
+    "Instagram caption": 5,
+    "Facebook Reel text": 5,
+    "YouTube Short description": 5
+   },
+   "credits_in_a_first_comment": 0,
+   "complete": false
+  },
+  {
+   "case": "reel, first 3 photos",
+   "set": "dev_longest_with_music",
+   "credits_asked": 5,
+   "sent": true,
+   "why_not": "",
+   "carried": {
+    "Instagram caption": 3,
+    "Facebook Reel text": 3,
+    "YouTube Short description": 3
+   },
+   "credits_in_a_first_comment": 0,
+   "complete": false
+  },
+  {
+   "case": "documentary",
+   "set": "dev_longest_with_music",
+   "credits_asked": 9,
+   "sent": true,
+   "why_not": "",
+   "carried": {
+    "YouTube description": 7
+   },
+   "credits_in_a_first_comment": 0,
+   "complete": false
+  },
+  {
+   "case": "documentary, 4,780-character description",
+   "set": "dev_longest_with_music",
+   "credits_asked": 9,
+   "sent": true,
+   "why_not": "",
+   "carried": {
+    "YouTube description": 0
+   },
+   "credits_in_a_first_comment": 0,
+   "complete": false
+  },
+  {
+   "case": "carousel, whole set",
+   "set": "dev_longest_with_music",
+   "credits_asked": 8,
+   "sent": true,
+   "why_not": "",
+   "carried": {
+    "carousel caption": 8
+   },
+   "credits_in_a_first_comment": 0,
+   "complete": true
+  },
+  {
+   "case": "carousel, first 5 photos",
+   "set": "dev_longest_with_music",
+   "credits_asked": 6,
+   "sent": true,
+   "why_not": "",
+   "carried": {
+    "carousel caption": 6
+   },
+   "credits_in_a_first_comment": 0,
+   "complete": true
+  },
+  {
+   "case": "carousel, 1,900-character caption, whole set",
+   "set": "dev_longest_with_music",
+   "credits_asked": 8,
+   "sent": true,
+   "why_not": "",
+   "carried": {
+    "carousel caption": 0
+   },
+   "credits_in_a_first_comment": 8,
+   "complete": false
+  },
+  {
+   "case": "carousel, 1,900-character caption, first 5 photos",
+   "set": "dev_longest_with_music",
+   "credits_asked": 6,
+   "sent": true,
+   "why_not": "",
+   "carried": {
+    "carousel caption": 0
+   },
+   "credits_in_a_first_comment": 6,
+   "complete": false
+  },
+  {
+   "case": "carousel without slide records, whole set",
+   "set": "dev_longest_with_music",
+   "credits_asked": 8,
+   "sent": true,
+   "why_not": "",
+   "carried": {
+    "carousel caption": 1
+   },
+   "credits_in_a_first_comment": 0,
+   "complete": false
+  },
+  {
+   "case": "carousel without slide records, first 5 photos",
+   "set": "dev_longest_with_music",
+   "credits_asked": 6,
+   "sent": true,
+   "why_not": "",
+   "carried": {
+    "carousel caption": 1
+   },
+   "credits_in_a_first_comment": 0,
+   "complete": false
+  },
+  {
+   "case": "reel, whole set",
+   "set": "production_longest",
+   "credits_asked": 11,
+   "sent": true,
+   "why_not": "",
+   "carried": {
+    "Instagram caption": 7,
+    "Facebook Reel text": 7,
+    "YouTube Short description": 7
+   },
+   "credits_in_a_first_comment": 0,
+   "complete": false
+  },
+  {
+   "case": "reel, first 5 photos",
+   "set": "production_longest",
+   "credits_asked": 7,
+   "sent": true,
+   "why_not": "",
+   "carried": {
+    "Instagram caption": 5,
+    "Facebook Reel text": 5,
+    "YouTube Short description": 5
+   },
+   "credits_in_a_first_comment": 0,
+   "complete": false
+  },
+  {
+   "case": "reel, first 3 photos",
+   "set": "production_longest",
+   "credits_asked": 5,
+   "sent": true,
+   "why_not": "",
+   "carried": {
+    "Instagram caption": 3,
+    "Facebook Reel text": 3,
+    "YouTube Short description": 3
+   },
+   "credits_in_a_first_comment": 0,
+   "complete": false
+  },
+  {
+   "case": "documentary",
+   "set": "production_longest",
+   "credits_asked": 11,
+   "sent": true,
+   "why_not": "",
+   "carried": {
+    "YouTube description": 9
+   },
+   "credits_in_a_first_comment": 0,
+   "complete": false
+  },
+  {
+   "case": "documentary, 4,780-character description",
+   "set": "production_longest",
+   "credits_asked": 11,
+   "sent": true,
+   "why_not": "",
+   "carried": {
+    "YouTube description": 0
+   },
+   "credits_in_a_first_comment": 0,
+   "complete": false
+  },
+  {
+   "case": "carousel, whole set",
+   "set": "production_longest",
+   "credits_asked": 10,
+   "sent": true,
+   "why_not": "",
+   "carried": {
+    "carousel caption": 0
+   },
+   "credits_in_a_first_comment": 9,
+   "complete": false
+  },
+  {
+   "case": "carousel, first 5 photos",
+   "set": "production_longest",
+   "credits_asked": 6,
+   "sent": true,
+   "why_not": "",
+   "carried": {
+    "carousel caption": 6
+   },
+   "credits_in_a_first_comment": 0,
+   "complete": true
+  },
+  {
+   "case": "carousel, 1,900-character caption, whole set",
+   "set": "production_longest",
+   "credits_asked": 10,
+   "sent": true,
+   "why_not": "",
+   "carried": {
+    "carousel caption": 0
+   },
+   "credits_in_a_first_comment": 9,
+   "complete": false
+  },
+  {
+   "case": "carousel, 1,900-character caption, first 5 photos",
+   "set": "production_longest",
+   "credits_asked": 6,
+   "sent": true,
+   "why_not": "",
+   "carried": {
+    "carousel caption": 0
+   },
+   "credits_in_a_first_comment": 6,
+   "complete": false
+  },
+  {
+   "case": "carousel without slide records, whole set",
+   "set": "production_longest",
+   "credits_asked": 10,
+   "sent": true,
+   "why_not": "",
+   "carried": {
+    "carousel caption": 1
+   },
+   "credits_in_a_first_comment": 0,
+   "complete": false
+  },
+  {
+   "case": "carousel without slide records, first 5 photos",
+   "set": "production_longest",
+   "credits_asked": 6,
+   "sent": true,
+   "why_not": "",
+   "carried": {
+    "carousel caption": 1
+   },
+   "credits_in_a_first_comment": 0,
+   "complete": false
+  }
+ ]
+}

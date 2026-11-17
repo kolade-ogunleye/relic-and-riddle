@@ -1,0 +1,63 @@
+{
+ "code": "the commit at <repo root>",
+ "video": "1080x1920",
+ "synthetic": {
+  "gate_admitted": {
+   "graphic_5_photos_4_crops_of_them": {
+    "ok": true,
+    "distinct": 5,
+    "required": "n/a"
+   },
+   "graphic_6_photos_3_crops_of_unshown": {
+    "ok": true,
+    "distinct": 6,
+    "required": "n/a"
+   },
+   "graphic_8_photos_1_crop": {
+    "ok": true,
+    "distinct": 8,
+    "required": "n/a"
+   },
+   "graphic_9_photos_1_crop": {
+    "ok": true,
+    "distinct": 9,
+    "required": "n/a"
+   },
+   "graphic_8_photos": {
+    "ok": true,
+    "distinct": 8,
+    "required": "n/a"
+   },
+   "photos_only_9_photos_1_crop": {
+    "ok": true,
+    "distinct": 9,
+    "required": "n/a"
+   },
+   "photos_only_8_photos_1_crop": {
+    "ok": false,
+    "distinct": 8,
+    "required": "n/a"
+   }
+  },
+  "cascade_beat_2_after_the_opening": {
+   "4.5s_beats": {
+    "crop_of": "01_commons.jpg",
+    "beside_its_photograph": true,
+    "long_holds": [
+     {
+      "beats": [
+       1,
+       2
+      ],
+      "seconds": 9.0
+     }
+    ]
+   },
+   "3s_beats": {
+    "crop_of": "01_commons.jpg",
+    "beside_its_photograph": true,
+    "long_holds": []
+   }
+  }
+ }
+}

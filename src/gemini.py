@@ -126,7 +126,8 @@ def _text_blocks(data: Dict[str, Any]) -> List[Dict[str, Any]]:
 def research(system: str, prompt: str) -> Tuple[str, List[Source]]:
     """Search-grounded answer; sources come from the response's url_citation annotations or grounded text."""
     for attempt in (1, 2):  # a grounded answer occasionally comes back without citations: ask once more
-        data = _post({"model": GEMINI_MODEL, "input": f"{system}\n\n{prompt}", "tools": [{"type": "google_search"}]})
+        data = _post({"model": GEMINI_MODEL, "system_instruction": system, "input": prompt,
+                      "tools": [{"type": "google_search"}]})
         blocks = _text_blocks(data)
         text = "".join(b.get("text", "") for b in blocks).strip()
         seen, sources = set(), []
@@ -154,7 +155,8 @@ def research(system: str, prompt: str) -> Tuple[str, List[Source]]:
         try:
             gc_url = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent"
             gc_body = {
-                "contents": [{"parts": [{"text": f"{system}\n\n{prompt}"}]}],
+                "system_instruction": {"parts": [{"text": system}]},
+                "contents": [{"role": "user", "parts": [{"text": prompt}]}],
                 "tools": [{"googleSearch": {}}]
             }
             gc_resp = requests.post(gc_url, headers={"x-goog-api-key": GEMINI_API_KEY}, json=gc_body, timeout=60)
@@ -223,15 +225,18 @@ def vision_timeout(n_images: int) -> float:
     return float(min(600, max(120, 60 + 12 * n_images)))
 
 
-THINKING_LEVELS = {"low": "low", "medium": "medium"}  # a caller's effort -> Gemini 3 thinkingLevel; "high" is the default
+# A caller's effort -> the Gemini 3 thinking level, on the vision call (generateContent: generationConfig
+# .thinkingConfig.thinkingLevel) and the text call (Interactions: generation_config.thinking_level) alike. "high" is
+# the models' default and is not sent (QF-99: the text call sent no level, so a "low" edit thought at full length).
+THINKING_LEVELS = {"low": "low", "medium": "medium"}
 
 
 def structured(system: str, prompt: Union[str, list], schema: Type[T], model: str = None, key: str = None,
                timeout: float = None, thinking: str = None) -> T:
-    """`thinking`: the caller's effort ("low"/"medium"); on the vision call it becomes generationConfig
-    .thinkingConfig.thinkingLevel, since by default the model thinks at length (a 10-beat scene plan spent
-    20,000 output tokens and 2.5 minutes thinking, 2026-10-24). A model that rejects the field is called
-    again without it."""
+    """`thinking`: the caller's effort ("low"/"medium"); it becomes generationConfig.thinkingConfig.thinkingLevel on
+    the vision call and generation_config.thinking_level on the text call (QF-99), since by default the model thinks
+    at length (a 10-beat scene plan spent 20,000 output tokens and 2.5 minutes thinking, 2026-10-24). A model that
+    rejects the field is called again without it."""
     if isinstance(prompt, list):
         parts = []
         for b in prompt:
@@ -254,7 +259,7 @@ def structured(system: str, prompt: Union[str, list], schema: Type[T], model: st
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{model or GEMINI_MODEL}:generateContent"
         body = {
             "system_instruction": {"parts": [{"text": system}]},
-            "contents": [{"parts": parts}],
+            "contents": [{"role": "user", "parts": parts}],
             "generationConfig": {
                 "response_mime_type": "application/json",
                 "response_schema": _inline_refs(schema.model_json_schema())
@@ -310,12 +315,27 @@ def structured(system: str, prompt: Union[str, list], schema: Type[T], model: st
         except ValueError as e:
             raise GeminiError(f"Gemini vision output did not match the schema: {e}") from e
 
-    data = _post({
+    body = {
         "model": model or GEMINI_MODEL,
-        "input": f"{system}\n\n{prompt}",
+        "system_instruction": system,   # its own role, never one string with the quoted material (QF-41)
+        "input": prompt,
         "response_format": {"type": "text", "mime_type": "application/json",
                             "schema": _inline_refs(schema.model_json_schema())},
-    }, key=key, timeout=timeout or 300)
+    }
+    level = THINKING_LEVELS.get((thinking or "").lower())
+    if level:   # QF-99: the requested effort, as the Interactions API takes it
+        body["generation_config"] = {"thinking_level": level}
+    try:
+        data = _post(body, key=key, timeout=timeout or 300)
+    except GeminiError as e:
+        if not (level and "HTTP 400" in str(e) and "thinking" in str(e).lower()):
+            raise
+        # Some models take only some levels (Google's table: low/high only on some previews): said, then sent at the
+        # model's default, so the call still answers (QF-99 review 1).
+        log.warning("%s refused thinking_level %r (HTTP 400); sent again without it, at its default level.",
+                    model or GEMINI_MODEL, level)
+        del body["generation_config"]
+        data = _post(body, key=key, timeout=timeout or 300)
     usage = data.get("usage") or {}
     _set_usage(usage.get("total_input_tokens", 0), usage.get("total_output_tokens", 0))
     text = "".join(b.get("text", "") for b in _text_blocks(data)).strip()

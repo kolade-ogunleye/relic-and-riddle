@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "ffmpeg": "8.1-full_build-www.gyan.dev",
+  "runs": 35,
+  "variants": {
+    "open_end": {
+      "side_rms_min": 0.089757,
+      "side_rms_max": 0.099194,
+      "distinct_outputs": 4,
+      "below_test_bound_0_05": 0
+    },
+    "sample_exact_end": {
+      "side_rms_min": 0.099194,
+      "side_rms_max": 0.099194,
+      "distinct_outputs": 1,
+      "below_test_bound_0_05": 0
+    }
+  },
+  "open_equals_sample_exact": false,
+  "acceptance_met": false
+}

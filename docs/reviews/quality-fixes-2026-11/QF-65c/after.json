@@ -1,0 +1,69 @@
+{
+ "acceptance_met": true,
+ "card": {
+  "card_says_held_no_real_photo": true,
+  "card_says_text_would_not_fit": false,
+  "frames_left_to_post": 0,
+  "hold_kind_exists": true
+ },
+ "carousel": {
+  "from_gap_gen_x": {
+   "drawn": 0,
+   "error": "NoRealPhotos",
+   "held_with_reason": true,
+   "on_illustration": 0
+  },
+  "illustration_two_real_stale_match": {
+   "drawn": 3,
+   "error": "",
+   "held_with_reason": false,
+   "on_illustration": 0
+  }
+ },
+ "fallbacks": {
+  "old_plan_draws_illustrations": 0,
+  "only_strong_fallback_illustrations": 0,
+  "only_strong_stem_strong_illustrations": 0,
+  "only_strong_unknown_illustrations": 0,
+  "plan_alone_held_with_reason": true,
+  "plan_records_illustrations": 0,
+  "strong_shot_copy_of_illustration": false,
+  "strong_shot_illustration": false,
+  "strong_shot_supplied_photo": true
+ },
+ "provenance": {
+  "candidate_index_is_the_chosen": true,
+  "candidates_recorded": 4,
+  "chosen_descriptor_verdict_kept": true,
+  "fields_present": 4,
+  "prompt_is_the_one_sent": true,
+  "raw_sha256_matches_best_png": true,
+  "reused_without_a_provenance_field": 0
+ },
+ "round2": {
+  "card_also_posted_promises_carousel_slides": false,
+  "card_also_posted_says_carousel_held": true,
+  "card_offers_carousel_preview": false,
+  "story_ai_pictures_counted_for_one": 1
+ },
+ "story": {
+  "copy_and_real_illustrated_hero": {
+   "drawn": 2,
+   "error": "",
+   "held_with_reason": false,
+   "on_illustration": 0
+  },
+  "from_gap_gen_x": {
+   "drawn": 0,
+   "error": "NoRealPhotos",
+   "held_with_reason": true,
+   "on_illustration": 0
+  },
+  "illustrations_real_hero": {
+   "drawn": 2,
+   "error": "",
+   "held_with_reason": false,
+   "on_illustration": 0
+  }
+ }
+}

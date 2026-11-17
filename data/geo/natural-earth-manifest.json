@@ -1,0 +1,26 @@
+[
+  {
+    "stem": "ne_10m_admin_0_disputed_areas",
+    "url": "https://naciscdn.org/naturalearth/10m/cultural/ne_10m_admin_0_disputed_areas.zip",
+    "archive_sha256": "a250c1cf8ab68898399928a1fa1d5c242eb4de6335cb51a7f7a7f12a9f3c8438",
+    "geojson_sha256": "05604a3f4726b7dbc6f3452d11c88a6937ec08c257f772541075a3c57deed92d",
+    "features": 99,
+    "license": "Natural Earth public domain"
+  },
+  {
+    "stem": "ne_10m_antarctic_ice_shelves_polys",
+    "url": "https://naciscdn.org/naturalearth/10m/physical/ne_10m_antarctic_ice_shelves_polys.zip",
+    "archive_sha256": "1d421d2487e2721a6e0aee8187e008c9bd8f0adbf4a5297b8503f7bf3c30b04d",
+    "geojson_sha256": "7a7c284f6d7baa59bb781461082763e969a16eb19517901e7bdae4a0df43ad92",
+    "features": 159,
+    "license": "Natural Earth public domain"
+  },
+  {
+    "stem": "ne_10m_lakes",
+    "url": "https://naciscdn.org/naturalearth/10m/physical/ne_10m_lakes.zip",
+    "archive_sha256": "0803a06f9c3cb4671d89b68c48b142aad9366ba40f665245e12a913fbc61722a",
+    "geojson_sha256": "0e460457f866c6a525b44c2be87e4a76f4b74d92362fdd7f1261373edd981409",
+    "features": 1355,
+    "license": "Natural Earth public domain"
+  }
+]

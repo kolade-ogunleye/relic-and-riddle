@@ -1,5 +1,5 @@
 {
-  "path": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\data\\sfx\\sfx_bell_toll.wav",
+  "path": "data/sfx/sfx_bell_toll.wav",
   "sha256": "b3c16738f1ffbdf5cad44fd1783d55d82e01fe4326790bca26752216f7cfe6e7",
   "provider": "elevenlabs-sound-effects",
   "plan": "creator",

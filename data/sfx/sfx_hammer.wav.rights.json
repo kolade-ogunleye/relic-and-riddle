@@ -1,5 +1,5 @@
 {
-  "path": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\data\\sfx\\sfx_hammer.wav",
+  "path": "data/sfx/sfx_hammer.wav",
   "sha256": "fb9af70be4b550d9ad1d10de59eff66348d96a78600d54a8e5caa81c4dbf76a8",
   "provider": "elevenlabs-sound-effects",
   "plan": "creator",

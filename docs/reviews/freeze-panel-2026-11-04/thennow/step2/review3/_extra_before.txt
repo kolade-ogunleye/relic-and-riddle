@@ -1,0 +1,3 @@
+ok  9x16 dark_wieliczka_extra
+ok  16x9 dark_wieliczka_extra
+B 0

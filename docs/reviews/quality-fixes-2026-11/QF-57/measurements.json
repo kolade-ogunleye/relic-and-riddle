@@ -1,0 +1,66 @@
+{
+ "bare_pd_release_evidence_accepted": false,
+ "fixture_admitted": {
+  "auto_expired": true,
+  "bare": false,
+  "cc0": true,
+  "life_and_us": true,
+  "life_term_only": false,
+  "us_federal": true,
+  "us_only": false
+ },
+ "flickr_with_verification_timestamp": 1,
+ "openverse_calls_when_disabled": 0,
+ "openverse_results_when_disabled": 0,
+ "real_pools": {
+  "held": {
+   "amber_room_heist": [
+    "05_commons.jpg",
+    "07_commons.jpg"
+   ],
+   "flannan_isle_lighthouse_disappearance": [
+    "01_commons.jpg",
+    "02_commons.jpg"
+   ],
+   "greek_fire_siphon": [
+    "04_commons.jpg"
+   ],
+   "roman_self_healing_concrete": [
+    "12_commons.jpg"
+   ],
+   "singing_colossi_of_memnon": [
+    "18_commons.jpg",
+    "19_commons.jpg",
+    "15_commons.jpg",
+    "16_commons.jpg",
+    "17_commons.jpg",
+    "20_commons.jpg"
+   ],
+   "tunguska_event_1908": [
+    "01_commons.jpg",
+    "05_commons.jpg",
+    "10_commons.jpg",
+    "12_commons.jpg"
+   ],
+   "voynich_manuscript": [
+    "02_commons.jpg",
+    "03_commons.jpg"
+   ],
+   "wieliczka_salt_mine": [
+    "06_commons.jpg",
+    "08_commons.jpg",
+    "12_commons.jpg"
+   ],
+   "zhang_heng_seismoscope": [
+    "01_commons.jpg"
+   ]
+  },
+  "pd_records": 72,
+  "pd_records_held": 22,
+  "pd_records_passing_release_check": 50,
+  "pools": 31,
+  "ready_pools": 17
+ },
+ "revoked_flickr_results": 0,
+ "valid_flickr_results": 1
+}

@@ -1,0 +1,32 @@
+{
+ "writers": {
+  "music library: approval (Telegram mkeep)": {
+   "shipped_file_changed": true,
+   "change_read_back": true
+  },
+  "photo pool credits.json: review/fetch/drop (save_credits)": {
+   "shipped_file_changed": true,
+   "change_read_back": true
+  },
+  "photo pool storyboard.json (fetch)": {
+   "shipped_file_changed": true,
+   "change_read_back": true
+  },
+  "fact sheet: build or rebuild (fact_sheet.save)": {
+   "shipped_file_changed": true,
+   "change_read_back": true
+  },
+  "geocoding cache (geo.locate)": {
+   "shipped_file_changed": true,
+   "change_read_back": true
+  },
+  "topic bank and photo searches: topic added (topic_store.commit)": {
+   "shipped_file_changed": true,
+   "change_read_back": true
+  }
+ },
+ "shipped_files_changed": 6,
+ "read_back": 6,
+ "writers_measured": 6,
+ "masking": null
+}

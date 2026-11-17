@@ -1,0 +1,475 @@
+{
+ "acceptance_met": true,
+ "default": {
+  "bridge_follow 0": {
+   "frames": 30,
+   "sha256": "4d1cb8f71d6ce11ea6a11cb562b6eb8acf7ca5c4a522dc08f92cbb4e6d27dcbb",
+   "today_gold_px": 0
+  },
+  "bridge_follow 1": {
+   "frames": 30,
+   "sha256": "4d1cb8f71d6ce11ea6a11cb562b6eb8acf7ca5c4a522dc08f92cbb4e6d27dcbb",
+   "today_gold_px": 0
+  },
+  "captions run_amber_room_heist_1792790550": {
+   "face": "RR Caption",
+   "frames": 0,
+   "sha256": "23e9b3432c398788c9e0a4df51598c744756519a177e976accf493fa123290b1",
+   "today_colours": 4
+  },
+  "captions run_gol_gumbaz_whispering_gallery_1793278143": {
+   "face": "RR Caption",
+   "frames": 0,
+   "sha256": "c50ed6755c06832d5e96cac5630223ba1af82c437b58b60f09104cc7edceb887",
+   "today_colours": 4
+  },
+  "captions run_nazca_lines_runway_paradox_1792961797": {
+   "face": "RR Caption",
+   "frames": 0,
+   "sha256": "32971ab129a6fcf348ba56d82e432fda93b62cb94b02cab20a160fa72b6e2a6b",
+   "today_colours": 4
+  },
+  "captions run_richat_structure_sahara_eye_1792740961_long": {
+   "face": "RR Sans",
+   "frames": 0,
+   "sha256": "0fc32c1313534883357c8dfe21dfb0187562b3bd7058c2c7bf0af134c075cf2c",
+   "today_colours": 3
+  },
+  "captions run_richat_structure_sahara_eye_1793474843": {
+   "face": "RR Caption",
+   "frames": 0,
+   "sha256": "c793842e36f3aadbb9e877704eb15c1c4cd305964473de05dfde49846afb1575",
+   "today_colours": 4
+  },
+  "captions run_tunguska_event_1908_1792930600": {
+   "face": "RR Caption",
+   "frames": 0,
+   "sha256": "31622e8ac271737afca1030616803f5c76aad6068c8dec610cb7eb27bdbdc676",
+   "today_colours": 4
+  },
+  "captions run_unfinished_obelisk_aswan_1792985912": {
+   "face": "RR Caption",
+   "frames": 0,
+   "sha256": "1537ea57861ca5251c67a5250674b9b4812877855731cdd77d8f378140e301f1",
+   "today_colours": 4
+  },
+  "captions run_voynich_manuscript_1792965308": {
+   "face": "RR Caption",
+   "frames": 0,
+   "sha256": "7f4d6354d5b17805f30d5736d90eff8b3fc8277bb239b51ba1fe72e668e0c46b",
+   "today_colours": 4
+  },
+  "card chapter_act1 169": {
+   "faces": [
+    "Anton",
+    "Montserrat"
+   ],
+   "frames": 105,
+   "sha256": "b7296f282dbec49112bca16d78fc197eeb99a957e153d59014776c4226630075",
+   "today_gold_fills": 4
+  },
+  "card chapter_act1 916": {
+   "faces": [
+    "Anton",
+    "Montserrat"
+   ],
+   "frames": 75,
+   "sha256": "03cc202cba494d348a8f2505ba3a88d798936970dd4d6e4f4d7fe61283f4f06c",
+   "today_gold_fills": 4
+  },
+  "card chapter_act4 169": {
+   "faces": [
+    "Anton",
+    "Montserrat"
+   ],
+   "frames": 105,
+   "sha256": "5308a7d0dbf5f47f962f0dc1386ce52aba78ad837dde1cae9183960b7228a80c",
+   "today_gold_fills": 4
+  },
+  "card chapter_act4 916": {
+   "faces": [
+    "Anton",
+    "Montserrat"
+   ],
+   "frames": 75,
+   "sha256": "9b88758bd07dd2da5012a8561f7403961646188a06b6b7b9da0bfe4b7d8c1fc5",
+   "today_gold_fills": 4
+  },
+  "card chapter_act5 169": {
+   "faces": [
+    "Anton",
+    "Montserrat"
+   ],
+   "frames": 105,
+   "sha256": "5a239939b57ad001cf9cc351e74e33d8ea78ae273d54e49ceb07294173b8194c",
+   "today_gold_fills": 4
+  },
+  "card chapter_act5 916": {
+   "faces": [
+    "Anton",
+    "Montserrat"
+   ],
+   "frames": 75,
+   "sha256": "da8bf7fb2db922ad0537d12faa315d5582a0b0f0c3dfd3a43406bb725a238896",
+   "today_gold_fills": 4
+  },
+  "card myth_richat 169": {
+   "faces": [
+    "Anton",
+    "IBM Plex Mono",
+    "Montserrat"
+   ],
+   "frames": 245,
+   "sha256": "a5b0a5d48b2b4f7e9603db47ca6e22f0d22d987b7f8b6e67f5f6ce05766e0aef",
+   "today_gold_fills": 5
+  },
+  "card myth_richat 916": {
+   "faces": [
+    "Anton",
+    "IBM Plex Mono",
+    "Montserrat"
+   ],
+   "frames": 239,
+   "sha256": "1b661d6c25382cf437f03816404ffc90623c00a993cf50aee7d696ab0d7a07ca",
+   "today_gold_fills": 4
+  },
+  "card myth_short 169": {
+   "faces": [
+    "Anton",
+    "IBM Plex Mono",
+    "Montserrat"
+   ],
+   "frames": 180,
+   "sha256": "c3a59d687f47bf07e33e77dc96a7216b707703f51c288d00ce9ec957f4ac4dd8",
+   "today_gold_fills": 4
+  },
+  "card myth_short 916": {
+   "faces": [
+    "Anton",
+    "IBM Plex Mono",
+    "Montserrat"
+   ],
+   "frames": 180,
+   "sha256": "03bbe5d8399cc638cb59b112f19605d287c108494a277171e9ec88e439b9be79",
+   "today_gold_fills": 3
+  },
+  "cross_section 169": {
+   "frames": 180,
+   "sha256": "dd723db11828c43e34f7e63a07cf30f50ddb009ad5f5cb6c431cc237662a16c2",
+   "today_gold_px": 7772
+  },
+  "cross_section 916": {
+   "frames": 180,
+   "sha256": "53bc202b952afe59e5b7c2a8af8c563a8557bc464778a9f2aced6e9af1e98412",
+   "today_gold_px": 5570
+  },
+  "endcard 0": {
+   "frames": 87,
+   "masthead": "RELIC & RIDDLE",
+   "sha256": "9161e5f4564bdd1f487005e3de9dc500695f86d5d06677b60413ce0663d31e7d",
+   "today_gold_px": 481
+  },
+  "endcard 1": {
+   "frames": 87,
+   "masthead": "RELIC & RIDDLE",
+   "sha256": "4d45da7bfa592ee0052af52fd29c597adeedf78b0d62dd49d0107c6c6e4cb192",
+   "today_gold_px": 481
+  }
+ },
+ "elapsed_seconds_default_renders": 288.1,
+ "scan": {
+  "allowed": 30,
+  "art_direction": {
+   "brand_string": 0,
+   "colour": 0,
+   "font": 0,
+   "import_time": 0
+  },
+  "callouts": {
+   "brand_string": 0,
+   "colour": 0,
+   "font": 0,
+   "import_time": 0
+  },
+  "cover_design": {
+   "brand_string": 0,
+   "colour": 0,
+   "font": 0,
+   "import_time": 0
+  },
+  "design_cards": {
+   "brand_string": 0,
+   "colour": 0,
+   "font": 0,
+   "import_time": 0
+  },
+  "end_card": {
+   "brand_string": 0,
+   "colour": 0,
+   "font": 0,
+   "import_time": 0
+  },
+  "graphics": {
+   "brand_string": 0,
+   "colour": 0,
+   "font": 0,
+   "import_time": 0
+  },
+  "multi_format": {
+   "brand_string": 0,
+   "colour": 0,
+   "font": 0,
+   "import_time": 0
+  },
+  "then_now": {
+   "brand_string": 0,
+   "colour": 0,
+   "font": 0,
+   "import_time": 0
+  },
+  "timeline_dense": {
+   "brand_string": 0,
+   "colour": 0,
+   "font": 0,
+   "import_time": 0
+  },
+  "total": {
+   "brand_string": 0,
+   "colour": 0,
+   "font": 0,
+   "import_time": 0
+  },
+  "video_composer": {
+   "brand_string": 0,
+   "colour": 0,
+   "font": 0,
+   "import_time": 0
+  },
+  "youtube_thumbnail": {
+   "brand_string": 0,
+   "colour": 0,
+   "font": 0,
+   "import_time": 0
+  }
+ },
+ "schema": 1,
+ "second_brand": {
+  "bridge_follow 0": {
+   "differs_from_default": true,
+   "drawn": true,
+   "today_gold_px": 0
+  },
+  "bridge_follow 1": {
+   "differs_from_default": true,
+   "drawn": true,
+   "today_gold_px": 0
+  },
+  "captions run_amber_room_heist_1792790550": {
+   "differs_from_default": true,
+   "drawn": true,
+   "face": "RR Caption",
+   "today_colours": 0
+  },
+  "captions run_gol_gumbaz_whispering_gallery_1793278143": {
+   "differs_from_default": true,
+   "drawn": true,
+   "face": "RR Caption",
+   "today_colours": 0
+  },
+  "captions run_nazca_lines_runway_paradox_1792961797": {
+   "differs_from_default": true,
+   "drawn": true,
+   "face": "RR Caption",
+   "today_colours": 0
+  },
+  "captions run_richat_structure_sahara_eye_1792740961_long": {
+   "differs_from_default": true,
+   "drawn": true,
+   "face": "RR Sans",
+   "today_colours": 0
+  },
+  "captions run_richat_structure_sahara_eye_1793474843": {
+   "differs_from_default": true,
+   "drawn": true,
+   "face": "RR Caption",
+   "today_colours": 0
+  },
+  "captions run_tunguska_event_1908_1792930600": {
+   "differs_from_default": true,
+   "drawn": true,
+   "face": "RR Caption",
+   "today_colours": 0
+  },
+  "captions run_unfinished_obelisk_aswan_1792985912": {
+   "differs_from_default": true,
+   "drawn": true,
+   "face": "RR Caption",
+   "today_colours": 0
+  },
+  "captions run_voynich_manuscript_1792965308": {
+   "differs_from_default": true,
+   "drawn": true,
+   "face": "RR Caption",
+   "today_colours": 0
+  },
+  "card chapter_act1 169": {
+   "differs_from_default": true,
+   "drawn": false,
+   "refused": "the 16:9 title does not fit two lines at 96 px, the type floor"
+  },
+  "card chapter_act1 916": {
+   "differs_from_default": true,
+   "drawn": false,
+   "refused": "the title does not fit two lines at the floor size"
+  },
+  "card chapter_act4 169": {
+   "differs_from_default": true,
+   "drawn": false,
+   "refused": "the 16:9 title does not fit two lines at 96 px, the type floor"
+  },
+  "card chapter_act4 916": {
+   "differs_from_default": true,
+   "drawn": false,
+   "refused": "the title does not fit two lines at the floor size"
+  },
+  "card chapter_act5 169": {
+   "differs_from_default": true,
+   "drawn": true,
+   "faces": [
+    "Montserrat"
+   ],
+   "today_gold_fills": 0
+  },
+  "card chapter_act5 916": {
+   "differs_from_default": true,
+   "drawn": true,
+   "faces": [
+    "Montserrat"
+   ],
+   "today_gold_fills": 0
+  },
+  "card myth_richat 169": {
+   "differs_from_default": true,
+   "drawn": false,
+   "refused": "the myth or the fact runs past its line limit at the floor size with its source line kept"
+  },
+  "card myth_richat 916": {
+   "differs_from_default": true,
+   "drawn": false,
+   "refused": "the myth or the fact runs past its line limit at the floor size with its source line kept"
+  },
+  "card myth_short 169": {
+   "differs_from_default": true,
+   "drawn": true,
+   "faces": [
+    "IBM Plex Mono",
+    "Montserrat"
+   ],
+   "today_gold_fills": 0
+  },
+  "card myth_short 916": {
+   "differs_from_default": true,
+   "drawn": true,
+   "faces": [
+    "IBM Plex Mono",
+    "Montserrat"
+   ],
+   "today_gold_fills": 0
+  },
+  "cross_section 169": {
+   "differs_from_default": true,
+   "drawn": true,
+   "today_gold_px": 0
+  },
+  "cross_section 916": {
+   "differs_from_default": true,
+   "drawn": true,
+   "today_gold_px": 0
+  },
+  "endcard 0": {
+   "differs_from_default": true,
+   "drawn": true,
+   "masthead": "SECOND TEST BRAND",
+   "today_gold_px": 0
+  },
+  "endcard 1": {
+   "differs_from_default": true,
+   "drawn": true,
+   "masthead": "SECOND TEST BRAND",
+   "today_gold_px": 0
+  }
+ },
+ "second_brand_cards_in_its_display_face": [
+  "card chapter_act5 169",
+  "card chapter_act5 916",
+  "card myth_short 169",
+  "card myth_short 916"
+ ],
+ "second_brand_display_kept": {
+  "card chapter_act1 169": {
+   "differs_from_default": true,
+   "drawn": true,
+   "faces": [
+    "Anton",
+    "Montserrat"
+   ],
+   "today_gold_fills": 0
+  },
+  "card chapter_act1 916": {
+   "differs_from_default": true,
+   "drawn": true,
+   "faces": [
+    "Anton",
+    "Montserrat"
+   ],
+   "today_gold_fills": 0
+  },
+  "card chapter_act4 169": {
+   "differs_from_default": true,
+   "drawn": true,
+   "faces": [
+    "Anton",
+    "Montserrat"
+   ],
+   "today_gold_fills": 0
+  },
+  "card chapter_act4 916": {
+   "differs_from_default": true,
+   "drawn": true,
+   "faces": [
+    "Anton",
+    "Montserrat"
+   ],
+   "today_gold_fills": 0
+  },
+  "card myth_richat 169": {
+   "differs_from_default": true,
+   "drawn": true,
+   "faces": [
+    "Anton",
+    "IBM Plex Mono",
+    "Montserrat"
+   ],
+   "today_gold_fills": 0
+  },
+  "card myth_richat 916": {
+   "differs_from_default": true,
+   "drawn": true,
+   "faces": [
+    "Anton",
+    "IBM Plex Mono",
+    "Montserrat"
+   ],
+   "today_gold_fills": 0
+  }
+ },
+ "second_brand_ok": true,
+ "second_brand_refused_for_fit": [
+  "card chapter_act1 169",
+  "card chapter_act1 916",
+  "card chapter_act4 169",
+  "card chapter_act4 916",
+  "card myth_richat 169",
+  "card myth_richat 916"
+ ]
+}

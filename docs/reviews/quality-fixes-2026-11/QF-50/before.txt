@@ -1,0 +1,27 @@
+acceptance_met: False
+ambiguous_check: absent
+ambiguous_setting_default: None
+archival_monochrome_face_blurred: 1
+audience_retention_days: {}
+audience_rows_pruned_at_800_days: 0
+audience_tables_with_prune_rule: 0
+colour_face_blurred: 1
+data_map_tables: 0
+dev_ambiguous_crops_faces_vs_non_faces: 0 faces / 0 non-faces
+dev_art_like_photos_checked: 0
+dev_faces_blurred: 167/319
+dev dyatlov_pass_incident/02: faces blurred 0/0, non-faces blurred 17/17
+dev dyatlov_pass_incident/07: faces blurred 0/0, non-faces blurred 17/17
+dev dyatlov_pass_incident/08: faces blurred 0/0, non-faces blurred 12/12
+dev kailasa_temple_monolith/03: faces blurred 0/2, non-faces blurred 0/0
+dev kailasa_temple_monolith/05: faces blurred 2/2, non-faces blurred 1/3
+dev kailasa_temple_monolith/16: faces blurred 0/0, non-faces blurred 1/1
+dev kailasa_temple_monolith/20: faces blurred 5/6, non-faces blurred 4/7
+dev_non_faces_blurred: 591/950
+dev_photos_checked: 325
+face_verify_cloud_default: None
+outbound_by_processor: ['claude', 'gemini']
+outbound_requests_colour_photo: 3
+outbound_requests_monochrome_photo: 3
+privacy_md_exists: False
+tables_covering_all_four_stores: 0

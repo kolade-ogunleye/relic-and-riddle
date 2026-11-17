@@ -1,5 +1,5 @@
 {
-  "path": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\data\\sfx\\sfx_explosion_distant.wav",
+  "path": "data/sfx/sfx_explosion_distant.wav",
   "sha256": "736c6716184574a96ba9795ddf8254bc73ce42f69ccafd78ceefafc231e47510",
   "provider": "elevenlabs-sound-effects",
   "plan": "creator",

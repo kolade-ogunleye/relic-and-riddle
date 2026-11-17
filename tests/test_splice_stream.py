@@ -3,6 +3,13 @@ from pathlib import Path
 from src.video_composer import VideoComposer
 
 
+@pytest.fixture(autouse=True)
+def camera_boundary(monkeypatch):
+    # These command-structure tests use deliberately invalid image/video bytes.
+    # Real camera rendering and RGB transport are covered by test_qf22_still_camera.
+    monkeypatch.setattr("src.still_camera.render_clip", lambda _source, output, *_a, **_k: Path(output))
+
+
 def test_splice_single_beat_command_structure(monkeypatch, tmp_path):
     master = tmp_path / "master.mp4"
     master.write_bytes(b"dummy_mp4_bytes")

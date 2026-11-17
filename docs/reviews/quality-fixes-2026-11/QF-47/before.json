@@ -1,0 +1,49 @@
+{
+  "dry_run_claims": 6,
+  "dry_run_claims_by_doc": {
+    "docs/deployment.md": [
+      "daemon --dry-run",
+      "stays in\n`--dry-run`",
+      "daemon --dry-run"
+    ],
+    "docs/runtime-contract.md": [
+      "daemon --dry-run"
+    ],
+    "docs/unattended-startup.md": [
+      "remains in dry-run mode"
+    ],
+    "docs/production-probe-handoff.md": [
+      "continues in dry-run mode"
+    ]
+  },
+  "launcher_argv": [
+    "daemon"
+  ],
+  "handoff_copies": 16,
+  "handoff_copy_paths": [
+    "deployment/windows/handoff/tests/python/test_content_runtime.py",
+    "deployment/windows/handoff/tests/unit/ansible/ContentRuntime.Tests.ps1",
+    "deployment/windows/handoff/tests/unit/tools/ContentIdentityProbes.Tests.ps1",
+    "deployment/windows/handoff/tests/unit/tools/ContentLegacyStop.Tests.ps1",
+    "deployment/windows/handoff/tests/unit/tools/ContentRuntimeHealth.Tests.ps1",
+    "deployment/windows/handoff/tests/unit/tools/ContentWorkloadProcess.Tests.ps1",
+    "deployment/windows/handoff/tools/Register-ContentVmBackupValidation.ps1",
+    "deployment/windows/handoff/tools/Register-ContentVmRuntimeWatch.ps1",
+    "deployment/windows/handoff/tools/Register-ContentVmWorkloads.ps1",
+    "deployment/windows/handoff/tools/Start-ContentVmWorkload.ps1",
+    "deployment/windows/handoff/tools/Stop-ContentVmLegacyTasks.ps1",
+    "deployment/windows/handoff/tools/Watch-ContentVmRuntime.ps1",
+    "deployment/windows/handoff/tools/content_runtime.py",
+    "deployment/windows/handoff/tools/lib/ContentProbeProcess.ps1",
+    "deployment/windows/handoff/tools/lib/ContentRuntimeHealth.ps1",
+    "deployment/windows/handoff/tools/lib/ContentWorkloadProcess.ps1"
+  ],
+  "ci_unittest_dir": "deployment/windows/handoff",
+  "masthead": {
+    "unrecorded": "🏛️ <b><u>RELIC &amp; RIDDLE</u></b> · IDENTITY UNVERIFIED",
+    "live": "🏛️ <b><u>RELIC &amp; RIDDLE</u></b> · IDENTITY UNVERIFIED",
+    "dry": "🏛️ <b><u>RELIC &amp; RIDDLE</u></b> · IDENTITY UNVERIFIED"
+  },
+  "masthead_shows_mode": false,
+  "acceptance_met": false
+}

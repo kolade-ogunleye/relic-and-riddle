@@ -1,0 +1,487 @@
+{
+  "repo": "<repo root argument>",
+  "target_bt709_red": {
+    "Y": 63,
+    "U": 102,
+    "V": 240
+  },
+  "tolerance": 2,
+  "bt709_red_formula": {
+    "Y": 62.6,
+    "U": 102.3,
+    "V": 240.0
+  },
+  "bt601_red_formula_note": "BT.601 limited red is Y81 U90 V240",
+  "clips": {
+    "graphics._encode": {
+      "tags": {
+        "pix_fmt": "yuv420p",
+        "color_space": "bt709",
+        "color_primaries": "bt709",
+        "color_transfer": "bt709",
+        "color_range": "tv"
+      },
+      "yuv": {
+        "Y": 63.0,
+        "U": 102.0,
+        "V": 240.0
+      },
+      "bt709_tagged": true,
+      "yuv_ok": true
+    },
+    "parallax.render_clip": {
+      "tags": {
+        "pix_fmt": "yuv420p",
+        "color_space": "bt709",
+        "color_primaries": "bt709",
+        "color_transfer": "bt709",
+        "color_range": "tv"
+      },
+      "yuv": {
+        "Y": 63.0,
+        "U": 102.0,
+        "V": 240.0
+      },
+      "bt709_tagged": true,
+      "yuv_ok": true
+    },
+    "footage.make_segment": {
+      "tags": {
+        "pix_fmt": "yuv420p",
+        "color_space": "bt709",
+        "color_primaries": "bt709",
+        "color_transfer": "bt709",
+        "color_range": "tv"
+      },
+      "yuv": {
+        "Y": 62.0,
+        "U": 102.0,
+        "V": 239.0
+      },
+      "bt709_tagged": true,
+      "yuv_ok": true
+    },
+    "footage.make_segment (untagged SD BT.601 source)": {
+      "tags": {
+        "pix_fmt": "yuv420p",
+        "color_space": "bt709",
+        "color_primaries": "bt709",
+        "color_transfer": "bt709",
+        "color_range": "tv"
+      },
+      "yuv": {
+        "Y": 62.0,
+        "U": 102.0,
+        "V": 238.0
+      },
+      "bt709_tagged": true,
+      "yuv_ok": true
+    },
+    "motion._finish": {
+      "tags": {
+        "pix_fmt": "yuv420p",
+        "color_space": "bt709",
+        "color_primaries": "bt709",
+        "color_transfer": "bt709",
+        "color_range": "tv"
+      },
+      "yuv": {
+        "Y": 62.0,
+        "U": 102.0,
+        "V": 239.0
+      },
+      "bt709_tagged": true,
+      "yuv_ok": true
+    }
+  },
+  "master_conversion": {
+    "9:16 graphics clip": {
+      "tags": {
+        "pix_fmt": "yuv420p",
+        "color_space": "bt709",
+        "color_primaries": "bt709",
+        "color_transfer": "bt709",
+        "color_range": "tv"
+      },
+      "bt709_tagged": true,
+      "segments": {
+        "graphics clip": {
+          "t": 0.5,
+          "yuv": {
+            "Y": 62.5,
+            "U": 101.6,
+            "V": 239.5
+          },
+          "yuv_ok": true
+        }
+      }
+    },
+    "16:9 still + graphics clip": {
+      "tags": {
+        "pix_fmt": "yuv420p",
+        "color_space": "bt709",
+        "color_primaries": "bt709",
+        "color_transfer": "bt709",
+        "color_range": "tv"
+      },
+      "bt709_tagged": true,
+      "segments": {
+        "still (tilt branch)": {
+          "t": 0.45,
+          "yuv": {
+            "Y": 62.5,
+            "U": 101.6,
+            "V": 239.4
+          },
+          "yuv_ok": true
+        },
+        "graphics clip": {
+          "t": 2.6,
+          "yuv": {
+            "Y": 62.6,
+            "U": 101.5,
+            "V": 239.4
+          },
+          "yuv_ok": true
+        }
+      }
+    }
+  },
+  "master_graded": {
+    "tags": {
+      "pix_fmt": "yuv420p",
+      "color_space": "bt709",
+      "color_primaries": "bt709",
+      "color_transfer": "bt709",
+      "color_range": "tv"
+    },
+    "graded_red_rgb_reference": [
+      255,
+      5,
+      5
+    ],
+    "expected_yuv_bt709": {
+      "Y": 65.9,
+      "U": 102.8,
+      "V": 237.8
+    },
+    "yuv": {
+      "Y": 65.6,
+      "U": 102.7,
+      "V": 237.5
+    },
+    "yuv_ok": true
+  },
+  "commit": "384a7eb (src modified)",
+  "caption_gold": {
+    "brand_gold_rgb": [
+      242,
+      182,
+      48
+    ],
+    "expected_yuv_bt709": {
+      "Y": 175.0,
+      "U": 63.1,
+      "V": 159.7
+    },
+    "bt601_values_note": "BT.601 values for brand gold are about Y175 U60 V164",
+    "masters": {
+      "9:16": {
+        "t": 0.8,
+        "ass_ycbcr_matrix": "TV.709",
+        "gold_pixels": 1897,
+        "yuv_median": {
+          "Y": 175.0,
+          "U": 63.0,
+          "V": 160.0
+        },
+        "yuv_ok": true
+      },
+      "16:9": {
+        "t": 0.8,
+        "ass_ycbcr_matrix": "TV.709",
+        "gold_pixels": 844,
+        "yuv_median": {
+          "Y": 175.0,
+          "U": 63.0,
+          "V": 160.0
+        },
+        "yuv_ok": true
+      }
+    }
+  },
+  "conversions": {
+    "9:16 identity grade": {
+      "all": [
+        {
+          "filter": "Parsed_scale_1",
+          "kind": "yuv->yuv",
+          "from": "yuv420p csp:bt709 range:tv",
+          "to": "yuv420p csp:bt709 range:tv",
+          "to_csp": "bt709",
+          "from_csp": "bt709"
+        },
+        {
+          "filter": "Parsed_scale_5",
+          "kind": "yuv->yuv",
+          "from": "yuv420p csp:bt709 range:tv",
+          "to": "yuv420p csp:bt709 range:tv",
+          "to_csp": "bt709",
+          "from_csp": "bt709"
+        },
+        {
+          "filter": "auto_scale_0",
+          "kind": "yuv->yuv",
+          "from": "yuv420p csp:bt709 range:tv",
+          "to": "yuv444p csp:bt709 range:tv",
+          "to_csp": "bt709",
+          "from_csp": "bt709"
+        },
+        {
+          "filter": "Parsed_scale_9",
+          "kind": "yuv->yuv",
+          "from": "yuv420p csp:bt709 range:tv",
+          "to": "yuv420p csp:bt709 range:tv",
+          "to_csp": "bt709",
+          "from_csp": "bt709"
+        },
+        {
+          "filter": "Parsed_scale_13",
+          "kind": "yuv->yuv",
+          "from": "yuv420p csp:bt709 range:tv",
+          "to": "yuv420p csp:bt709 range:tv",
+          "to_csp": "bt709",
+          "from_csp": "bt709"
+        },
+        {
+          "filter": "auto_scale_1",
+          "kind": "yuv->yuv",
+          "from": "yuv420p csp:bt709 range:tv",
+          "to": "yuv444p csp:bt709 range:tv",
+          "to_csp": "bt709",
+          "from_csp": "bt709"
+        },
+        {
+          "filter": "auto_scale_6",
+          "kind": "yuv->yuv",
+          "from": "yuv444p csp:bt709 range:tv",
+          "to": "yuv420p csp:bt709 range:tv",
+          "to_csp": "bt709",
+          "from_csp": "bt709"
+        },
+        {
+          "filter": "Parsed_scale_37",
+          "kind": "yuv->yuv",
+          "from": "yuv420p csp:bt709 range:tv",
+          "to": "yuv420p csp:bt709 range:tv",
+          "to_csp": "bt709",
+          "from_csp": "bt709"
+        },
+        {
+          "filter": "Parsed_scale_39",
+          "kind": "yuv->yuv",
+          "from": "yuv420p csp:bt709 range:tv",
+          "to": "yuv420p csp:bt709 range:tv",
+          "to_csp": "bt709",
+          "from_csp": "bt709"
+        },
+        {
+          "filter": "Parsed_scale_46",
+          "kind": "yuv->yuv",
+          "from": "yuv420p csp:bt709 range:tv",
+          "to": "yuv420p csp:bt709 range:tv",
+          "to_csp": "bt709",
+          "from_csp": "bt709"
+        }
+      ],
+      "rgb_to_yuv": 0,
+      "rgb_to_yuv_not_bt709": 0,
+      "yuv_to_rgb_not_bt709": 0,
+      "yuv_to_yuv_matrix_change": 0
+    },
+    "16:9 identity grade": {
+      "all": [
+        {
+          "filter": "Parsed_scale_0",
+          "kind": "rgb->rgb",
+          "from": "rgb24 csp:gbr range:pc",
+          "to": "rgb24 csp:gbr range:pc",
+          "to_csp": "gbr",
+          "from_csp": "gbr"
+        },
+        {
+          "filter": "Parsed_scale_4",
+          "kind": "rgb->yuv",
+          "from": "rgb24 csp:gbr range:pc",
+          "to": "yuv420p csp:bt709 range:tv",
+          "to_csp": "bt709",
+          "from_csp": "gbr"
+        },
+        {
+          "filter": "auto_scale_0",
+          "kind": "yuv->yuv",
+          "from": "yuv420p csp:bt709 range:tv",
+          "to": "yuv444p csp:bt709 range:tv",
+          "to_csp": "bt709",
+          "from_csp": "bt709"
+        },
+        {
+          "filter": "Parsed_scale_8",
+          "kind": "yuv->yuv",
+          "from": "yuv420p csp:bt709 range:tv",
+          "to": "yuv420p csp:bt709 range:tv",
+          "to_csp": "bt709",
+          "from_csp": "bt709"
+        },
+        {
+          "filter": "Parsed_scale_12",
+          "kind": "yuv->yuv",
+          "from": "yuv420p csp:bt709 range:tv",
+          "to": "yuv420p csp:bt709 range:tv",
+          "to_csp": "bt709",
+          "from_csp": "bt709"
+        },
+        {
+          "filter": "auto_scale_1",
+          "kind": "yuv->yuv",
+          "from": "yuv420p csp:bt709 range:tv",
+          "to": "yuv444p csp:bt709 range:tv",
+          "to_csp": "bt709",
+          "from_csp": "bt709"
+        },
+        {
+          "filter": "auto_scale_6",
+          "kind": "yuv->yuv",
+          "from": "yuv444p csp:bt709 range:tv",
+          "to": "yuv420p csp:bt709 range:tv",
+          "to_csp": "bt709",
+          "from_csp": "bt709"
+        },
+        {
+          "filter": "Parsed_scale_36",
+          "kind": "yuv->yuv",
+          "from": "yuv420p csp:bt709 range:tv",
+          "to": "yuv420p csp:bt709 range:tv",
+          "to_csp": "bt709",
+          "from_csp": "bt709"
+        },
+        {
+          "filter": "Parsed_scale_38",
+          "kind": "yuv->yuv",
+          "from": "yuv420p csp:bt709 range:tv",
+          "to": "yuv420p csp:bt709 range:tv",
+          "to_csp": "bt709",
+          "from_csp": "bt709"
+        },
+        {
+          "filter": "Parsed_scale_45",
+          "kind": "yuv->yuv",
+          "from": "yuv420p csp:bt709 range:tv",
+          "to": "yuv420p csp:bt709 range:tv",
+          "to_csp": "bt709",
+          "from_csp": "bt709"
+        }
+      ],
+      "rgb_to_yuv": 1,
+      "rgb_to_yuv_not_bt709": 0,
+      "yuv_to_rgb_not_bt709": 0,
+      "yuv_to_yuv_matrix_change": 0
+    },
+    "9:16 real grade": {
+      "all": [
+        {
+          "filter": "Parsed_scale_1",
+          "kind": "yuv->yuv",
+          "from": "yuv420p csp:bt709 range:tv",
+          "to": "yuv420p csp:bt709 range:tv",
+          "to_csp": "bt709",
+          "from_csp": "bt709"
+        },
+        {
+          "filter": "Parsed_scale_5",
+          "kind": "yuv->yuv",
+          "from": "yuv420p csp:bt709 range:tv",
+          "to": "yuv420p csp:bt709 range:tv",
+          "to_csp": "bt709",
+          "from_csp": "bt709"
+        },
+        {
+          "filter": "auto_scale_0",
+          "kind": "yuv->yuv",
+          "from": "yuv420p csp:bt709 range:tv",
+          "to": "yuv444p csp:bt709 range:tv",
+          "to_csp": "bt709",
+          "from_csp": "bt709"
+        },
+        {
+          "filter": "Parsed_scale_9",
+          "kind": "yuv->yuv",
+          "from": "yuv420p csp:bt709 range:tv",
+          "to": "yuv420p csp:bt709 range:tv",
+          "to_csp": "bt709",
+          "from_csp": "bt709"
+        },
+        {
+          "filter": "Parsed_scale_13",
+          "kind": "yuv->yuv",
+          "from": "yuv420p csp:bt709 range:tv",
+          "to": "yuv420p csp:bt709 range:tv",
+          "to_csp": "bt709",
+          "from_csp": "bt709"
+        },
+        {
+          "filter": "auto_scale_1",
+          "kind": "yuv->yuv",
+          "from": "yuv420p csp:bt709 range:tv",
+          "to": "yuv444p csp:bt709 range:tv",
+          "to_csp": "bt709",
+          "from_csp": "bt709"
+        },
+        {
+          "filter": "auto_scale_6",
+          "kind": "yuv->yuv",
+          "from": "yuv444p csp:bt709 range:tv",
+          "to": "yuv420p csp:bt709 range:tv",
+          "to_csp": "bt709",
+          "from_csp": "bt709"
+        },
+        {
+          "filter": "Parsed_scale_37",
+          "kind": "yuv->rgb",
+          "from": "yuv420p csp:bt709 range:tv",
+          "to": "rgb24 csp:gbr range:pc",
+          "to_csp": "gbr",
+          "from_csp": "bt709"
+        },
+        {
+          "filter": "Parsed_curves_38",
+          "kind": "rgb->yuv",
+          "from": "rgb24 csp:gbr range:pc",
+          "to": "yuv420p csp:bt709 range:tv",
+          "to_csp": "bt709",
+          "from_csp": "gbr"
+        },
+        {
+          "filter": "Parsed_scale_47",
+          "kind": "yuv->yuv",
+          "from": "yuv420p csp:bt709 range:tv",
+          "to": "yuv420p csp:bt709 range:tv",
+          "to_csp": "bt709",
+          "from_csp": "bt709"
+        }
+      ],
+      "rgb_to_yuv": 1,
+      "rgb_to_yuv_not_bt709": 0,
+      "yuv_to_rgb_not_bt709": 0,
+      "yuv_to_yuv_matrix_change": 0
+    }
+  },
+  "acceptance": {
+    "clips_bt709_and_red": true,
+    "master_bt709_and_red": true,
+    "graded_master_matches_bt709_reference": true,
+    "caption_gold_bt709": true,
+    "no_non_bt709_conversion": true,
+    "met": true
+  }
+}

@@ -1,0 +1,43 @@
+generated narration and bed (labelled stand-ins; the acceptance)
+  metric                        before           after
+  median_recovery_db              7.25            0.08
+  p90_recovery_db                 7.52             0.3
+  gaps                              76              76
+  median_duck_db                 -7.04           -7.06
+  max_tail_1db_s                   0.1            0.72
+  min_bridge_end_db                0.0             0.0
+  max_bridge_end_db                0.0             0.0
+  key_band_limited               False            True
+  key_band_hz                     None     [200, 4000]
+  key_hold_s                       0.0             0.5
+  per run                 median rec. before     after  duck before   after
+  amber_room_heist_1792790550           7.29      0.05        -7.07   -7.06
+  gol_gumbaz_whispering_gallery_179327   7.2      0.15        -7.02   -7.06
+  nazca_lines_runway_paradox_179296179  7.35      0.08         -7.1   -7.06
+  richat_structure_sahara_eye_17927409  7.21      0.09        -7.06   -7.06
+  richat_structure_sahara_eye_17934748  7.27      0.06         -7.0   -7.06
+  tunguska_event_1908_1792930600        7.19      0.14        -7.06   -7.06
+  unfinished_obelisk_aswan_1792985912   7.04      0.08        -7.02   -7.06
+  voynich_manuscript_1792965308         7.23      0.07        -7.01   -7.06
+
+recorded voiceover and ambient bed of each run (RR_FIXTURE_REPO)
+  metric                        before           after
+  median_recovery_db              3.98            1.03
+  p90_recovery_db                 6.33            2.29
+  gaps                              76              76
+  median_duck_db                 -5.78           -7.01
+  max_tail_1db_s                   0.0            0.59
+  min_bridge_end_db                0.0             0.0
+  max_bridge_end_db                0.0             0.0
+  key_band_limited               False            True
+  key_band_hz                     None     [200, 4000]
+  key_hold_s                       0.0             0.5
+  per run                 median rec. before     after  duck before   after
+  amber_room_heist_1792790550           4.83      0.65        -5.81    -7.0
+  gol_gumbaz_whispering_gallery_179327  4.67      0.86        -5.77   -7.01
+  nazca_lines_runway_paradox_179296179   4.5      1.31        -5.83    -7.0
+  richat_structure_sahara_eye_17927409   4.8      0.79        -5.78   -7.01
+  richat_structure_sahara_eye_17934748  1.45      2.05        -5.68   -7.01
+  tunguska_event_1908_1792930600        3.74      0.87        -5.93   -7.01
+  unfinished_obelisk_aswan_1792985912   2.58       1.4        -5.63   -7.01
+  voynich_manuscript_1792965308         2.54      1.64        -5.46   -7.01

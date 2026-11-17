@@ -1,0 +1,101 @@
+--- before (HEAD)
++++ after (working tree)
+@@ -2,44 +2,43 @@
+ why: most multi-word proper names in one 9:16 narration
+-100 words, 41 bursts, emphasis ['Gol Gumbaz', 'Bijapur', '1656']; vignette vignette=PI/4.2:aspect=9/16 (src.video_composer.picture_vignette)
+-  0    0.00-   1.11   80px  plate  614x121   CAN A QUIET WHISPER
+-  1    1.11-   2.33   80px  plate  614x121   TRAVEL ACROSS AN
+-  2    2.33-   4.06   80px  plate  614x121   ESTIMATED 144-FOOT
+-  3    4.06-   5.82   80px  plate  500x121   MASONRY DOME?
+-  4    5.82-   6.74   80px  plate  478x121   INSIDE THE DARK
+-  5    6.74-   8.16   78px* plate  696x121   GRAY BASALT MAUSOLEUM
+-  6    8.16-   9.30   80px  plate  478x121   OF GOL GUMBAZ
+-  7    9.30-  10.88   80px  plate  478x121   IN BIJAPUR
+-  8   10.88-  11.59   80px  plate  478x121   SOUND WAVES
+-  9   11.59-  12.13   80px  plate  478x121   ARE GUIDED
+- 10   12.13-  13.40   80px  plate  696x121   CONTINUOUSLY ALONG
+- 11   13.40-  14.51   80px  plate  696x121   THE CURVED BOUNDARY
+- 12   14.51-  15.25   80px  plate  478x121   OF A PROMINENT
+- 13   15.25-  16.67   80px  plate  592x121   WHISPERING GALLERY
+- 14   16.67-  17.60   80px  plate  598x121   THIS MASSIVE DOME
+- 15   17.60-  18.57   80px  plate  598x121   COMBINES BRICKS
+- 16   18.57-  19.64   80px  plate  696x121   OF VARYING DIMENSIONS
+- 17   19.64-  21.15   80px  plate  598x121   WITH LIME MORTAR
+- 18   21.15-  21.99   80px  plate  598x121   GAINING STRUCTURAL
+- 19   21.99-  23.17   79px* plate  696x121   INTEGRITY WITHOUT METAL
+- 20   23.17-  23.94   80px  plate  436x121   TENSION RINGS
+- 21   23.94-  24.59   80px  plate  436x121   ON PENDENTIVE
+- 22   24.59-  25.65   80px  plate  598x121   SYSTEMS ATTRIBUTED
+- 23   25.65-  26.46   80px  plate  598x121   TO CENTRAL ASIAN
+- 24   26.46-  27.57   80px  plate  436x121   TRADITIONS
+- 25   27.57-  28.57   80px  plate  696x121   CONSTRUCTION BEGAN
+- 26   28.57-  29.13   80px  plate  452x121   IN THE EARLY
+- 27   29.13-  30.25   80px  plate  452x121   17TH CENTURY
+- 28   30.25-  30.81   80px  plate  452x121   AND CEASED
+- 29   30.81-  32.34   80px  plate  452x121   IN 1656 UPON
+- 30   32.34-  33.50   78px* plate  696x121   MOHAMMAD ADIL SHAH'S
+- 31   33.50-  34.90   80px  plate  452x121   DEATH, LEAVING
+- 32   34.90-  35.78   80px  plate  586x121   SEVERAL DECORATIVE
+- 33   35.78-  37.40   80px  plate  696x121   ELEMENTS UNFINISHED
+- 34   37.40-  38.42   80px  plate  564x121   YET THE UNFINISHED
+- 35   38.42-  39.30   80px  plate  564x121   MONUMENT STILL
+- 36   39.30-  40.20   80px  plate  564x121   PROMPTS MODERN
+- 37   40.20-  41.26   80px  plate  660x121   BUILDERS TO WONDER
+- 38   41.26-  42.43   80px  plate  660x121   HOW ANCIENT MASONRY
+- 39   42.43-  43.45   80px  plate  660x121   MASTERED ACOUSTICS
+- 40   43.45-  44.49   80px  plate  460x121   SO COMPLETELY
++100 words, 40 bursts, emphasis ['Gol Gumbaz', 'Bijapur', '1656']; vignette vignette=PI/4.2:aspect=9/16 (src.video_composer.picture_vignette)
++  0    0.00-   1.11   80px  plate  682x121   CAN A QUIET WHISPER
++  1    1.11-   2.18   80px  plate  494x121   TRAVEL ACROSS
++  2    2.18-   4.06   80px  plate  684x121   AN ESTIMATED 144-FOOT
++  3    4.06-   5.69   80px  plate  490x121   MASONRY DOME?
++  4    5.69-   6.74   80px  plate  466x121   INSIDE THE DARK
++  5    6.74-   8.16   74px* plate  668x121   GRAY BASALT MAUSOLEUM
++  6    8.16-   9.30   80px  plate  468x121   OF GOL GUMBAZ
++  7    9.30-  10.88   80px  plate  334x121   IN BIJAPUR
++  8   10.88-  12.13   74px* plate  670x121   SOUND WAVES ARE GUIDED
++  9   12.13-  13.40   80px  plate  668x121   CONTINUOUSLY ALONG
++ 10   13.40-  14.51   80px  plate  668x121   THE CURVED BOUNDARY
++ 11   14.51-  15.25   80px  plate  466x121   OF A PROMINENT
++ 12   15.25-  16.67   80px  plate  668x121   WHISPERING GALLERY
++ 13   16.67-  17.60   80px  plate  568x121   THIS MASSIVE DOME
++ 14   17.60-  18.57   80px  plate  566x121   COMBINES BRICKS
++ 15   18.57-  19.64   80px  plate  666x121   OF VARYING DIMENSIONS
++ 16   19.64-  21.15   80px  plate  568x121   WITH LIME MORTAR
++ 17   21.15-  21.99   80px  plate  664x121   GAINING STRUCTURAL
++ 18   21.99-  23.17   74px* plate  666x121   INTEGRITY WITHOUT METAL
++ 19   23.17-  23.94   80px  plate  430x121   TENSION RINGS
++ 20   23.94-  24.59   80px  plate  428x121   ON PENDENTIVE
++ 21   24.59-  25.65   80px  plate  668x121   SYSTEMS ATTRIBUTED
++ 22   25.65-  26.46   80px  plate  570x121   TO CENTRAL ASIAN
++ 23   26.46-  27.57   80px  plate  430x121   TRADITIONS
++ 24   27.57-  28.57   80px  plate  670x121   CONSTRUCTION BEGAN
++ 25   28.57-  29.13   80px  plate  440x121   IN THE EARLY
++ 26   29.13-  30.25   80px  plate  442x121   17TH CENTURY
++ 27   30.25-  30.81   80px  plate  444x121   AND CEASED
++ 28   30.81-  32.34   80px  plate  442x121   IN 1656 UPON
++ 29   32.34-  33.50   74px* plate  668x121   MOHAMMAD ADIL SHAH'S
++ 30   33.50-  34.90   80px  plate  442x121   DEATH, LEAVING
++ 31   34.90-  35.78   80px  plate  670x121   SEVERAL DECORATIVE
++ 32   35.78-  37.40   80px  plate  670x121   ELEMENTS UNFINISHED
++ 33   37.40-  38.42   80px  plate  554x121   YET THE UNFINISHED
++ 34   38.42-  39.30   80px  plate  550x121   MONUMENT STILL
++ 35   39.30-  40.20   80px  plate  552x121   PROMPTS MODERN
++ 36   40.20-  41.26   80px  plate  648x121   BUILDERS TO WONDER
++ 37   41.26-  42.43   80px  plate  648x121   HOW ANCIENT MASONRY
++ 38   42.43-  43.45   80px  plate  648x121   MASTERED ACOUSTICS
++ 39   43.45-  44.49   80px  plate  450x121   SO COMPLETELY
+   names:
+@@ -48,5 +47,5 @@
+     WHOLE  Mohammad Adil Shah's         MOHAMMAD ADIL SHAH'S
+-  bursts ending on an article: ['1: TRAVEL ACROSS AN']
++  bursts ending on an article: none
+   function-word-only bursts: none
+-  one-word bursts: ['24: TRADITIONS']
++  one-word bursts: ['23: TRADITIONS']
+   bursts below the 66 px floor: none
+@@ -54,3 +53,3 @@
+   bursts on screen under 0.50 s: none
+-  bursts spanning a pause of 0.30 s or more after punctuation: ["31: 0.60s after 'death,' in DEATH, LEAVING"]
++  bursts spanning a pause of 0.30 s or more after punctuation: ["30: 0.60s after 'death,' in DEATH, LEAVING"]
+ 

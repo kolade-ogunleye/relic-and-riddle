@@ -1,0 +1,104 @@
+[
+  {
+    "file": "tests/test_credits.py",
+    "test": "test_reviewed_set_uses_only_credited_files",
+    "before": [
+      "names == [f'{i:02d}_commons.jpg' for i in range(6)]"
+    ],
+    "after": [
+      "names == [f'{i:02d}_commons.jpg' for i in range(9)]"
+    ]
+  },
+  {
+    "file": "tests/test_credits.py",
+    "test": "test_a_video_uses_only_strong_photos_and_a_couple_of_context_ones",
+    "before": [
+      "names[0] == '04_commons.jpg'",
+      "set(names) == {f'{i:02d}_commons.jpg' for i in range(7)} and len(names) == 7"
+    ],
+    "after": [
+      "names[0] == '04_commons.jpg'",
+      "set(names) == {f'{i:02d}_commons.jpg' for i in range(9)} and len(names) == 9"
+    ]
+  },
+  {
+    "file": "tests/test_credits.py",
+    "test": "test_uncredited_folder_ignores_contact_sheet",
+    "before": [
+      "'contact_sheet.jpg' not in names and len(names) == 6"
+    ],
+    "after": [
+      "'contact_sheet.jpg' not in names and len(names) == 9"
+    ]
+  },
+  {
+    "file": "tests/test_image_review.py",
+    "test": "test_pool_approved_on_merit_and_failures_dropped",
+    "before": [
+      "summary['status'] == 'approved' and credits['reviewed'] and (credits['reviewed_by'] == 'vision')",
+      "[i['file'][:2] for i in credits['images']] == ['01', '03', '05', '06', '07']"
+    ],
+    "after": [
+      "summary['status'] == 'approved' and credits['reviewed'] and (credits['reviewed_by'] == 'vision')",
+      "[i['file'][:2] for i in credits['images']] == ['01', '03', '05', '06', '07', '08', '09', '10', '11']"
+    ]
+  },
+  {
+    "file": "tests/test_orchestrator.py",
+    "test": "test_render_adds_beat_images_and_replans_once_on_picture_mismatch",
+    "before": [
+      "plans[0] == ([topic_img, beat_img], '') and plans[1][1] == 'Beat 1: Image shows a beach'",
+      "len(renders) == 2",
+      "payload['caption'] == 'Story.\\n\\n\ud83d\udcf7 Images via Wikimedia Commons and partner archives: Bob (CC BY 4.0) \u00b7 adapted: cropped, with motion and text added'",
+      "payload['beat_image_note'].startswith(\"\ud83d\udd0d 1 photo(s) from outside the topic's set\") and 'line 1' in payload['beat_image_note']"
+    ],
+    "after": [
+      "plans[0] == (topic_photos + [beat_img], '') and plans[1][1] == 'Beat 1: Image shows a beach'",
+      "len(renders) == 2",
+      "payload['caption'] == 'Story.\\n\\n\ud83d\udcf7 Images via Wikimedia Commons and partner archives: Bob (CC BY 4.0) \u00b7 adapted: cropped, with motion and text added'",
+      "payload['beat_image_note'].startswith(\"\ud83d\udd0d 1 photo(s) from outside the topic's set\") and 'line 1' in payload['beat_image_note']"
+    ]
+  },
+  {
+    "file": "tests/test_control.py",
+    "test": "test_images_review_drop_approve_flow",
+    "before": [
+      "'1 to review' in listing and '1 short' in listing and ('03 \u2014 kailasa temple (6)' in listing)",
+      "h('review', '03_kailasa_temple') == ''",
+      "name == 'contact_sheet.jpg' or name.endswith('.jpg')",
+      "'A video can use' in caption and '/photos 03_kailasa_temple keep' in caption",
+      "buttons[0][0]['callback_data'].startswith('imgok:03_kailasa_temple@')",
+      "not (d / 'storyboard.json').exists()",
+      "'Removed 1; 5 images remain' in h('drop', '03_kailasa_temple 2')",
+      "len(load_credits(d)['images']) == 5",
+      "'Approved 5 images' in text and back[0][0]['callback_data'] == 'imagehelp:03_kailasa_temple'",
+      "load_credits(d)['reviewed'] is True"
+    ],
+    "after": [
+      "'1 to review' in listing and '1 short' in listing and ('03 \u2014 kailasa temple (10)' in listing)",
+      "h('review', '03_kailasa_temple') == ''",
+      "name == 'contact_sheet.jpg' or name.endswith('.jpg')",
+      "'A video can use' in caption and '/photos 03_kailasa_temple keep' in caption",
+      "buttons[0][0]['callback_data'].startswith('imgok:03_kailasa_temple@')",
+      "not (d / 'storyboard.json').exists()",
+      "'Removed 1; 9 images remain' in h('drop', '03_kailasa_temple 2')",
+      "len(load_credits(d)['images']) == 9",
+      "'Approved 9 images' in text and back[0][0]['callback_data'] == 'imagehelp:03_kailasa_temple'",
+      "load_credits(d)['reviewed'] is True"
+    ],
+    "raises_before": [],
+    "raises_after": []
+  },
+  {
+    "file": "tests/test_control.py",
+    "test": "test_drop_below_minimum_then_approve_refused",
+    "before": [],
+    "after": [],
+    "raises_before": [
+      "pytest.raises(ValueError, match='need 5')"
+    ],
+    "raises_after": [
+      "pytest.raises(ValueError, match='need 9')"
+    ]
+  }
+]

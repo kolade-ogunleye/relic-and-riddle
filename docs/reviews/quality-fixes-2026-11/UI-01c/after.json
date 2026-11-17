@@ -1,0 +1,12 @@
+{
+ "failure_or_cancel_cards_drawn": 0,
+ "keyboard_has_refresh_or_home": false,
+ "killed_run_status": "failed",
+ "needs_you_items_for_the_one_failure": 1,
+ "panel_items": [
+  "info:Render cancelled",
+  "needs:Production failed",
+  "needs:Run interrupted"
+ ],
+ "progress_messages_left": 0
+}

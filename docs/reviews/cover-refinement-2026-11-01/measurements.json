@@ -8,7 +8,7 @@
       "minimum_contrast": 10.43,
       "recipe": {
         "renderer": "visual_engine.redraw_cover",
-        "hero": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\02_commons.jpg",
+        "hero": "assets/richat_structure_sahara_eye/02_commons.jpg",
         "copy": {
           "eyebrow": "DESERT ANOMALY",
           "line1": "THE 25-MILE",
@@ -28,7 +28,7 @@
       "minimum_contrast": 6.49,
       "recipe": {
         "renderer": "visual_engine.redraw_cover",
-        "hero": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\02_commons.jpg",
+        "hero": "assets/richat_structure_sahara_eye/02_commons.jpg",
         "copy": {
           "eyebrow": "DESERT ANOMALY",
           "line1": "THE 25-MILE",
@@ -48,7 +48,7 @@
       "minimum_contrast": 6.05,
       "recipe": {
         "renderer": "visual_engine.redraw_cover",
-        "hero": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\02_commons.jpg",
+        "hero": "assets/richat_structure_sahara_eye/02_commons.jpg",
         "copy": {
           "eyebrow": "DESERT ANOMALY",
           "line1": "THE 25-MILE",
@@ -68,7 +68,7 @@
       "minimum_contrast": 7.09,
       "recipe": {
         "renderer": "visual_engine.redraw_cover",
-        "hero": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\02_commons.jpg",
+        "hero": "assets/richat_structure_sahara_eye/02_commons.jpg",
         "copy": {
           "eyebrow": "DESERT ANOMALY",
           "line1": "THE 25-MILE",
@@ -88,7 +88,7 @@
       "minimum_contrast": 7.93,
       "recipe": {
         "renderer": "visual_engine.redraw_cover",
-        "hero": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\gol_gumbaz_whispering_gallery\\03_commons.jpg",
+        "hero": "assets/gol_gumbaz_whispering_gallery/03_commons.jpg",
         "copy": {
           "eyebrow": "ANCIENT ACOUSTICS",
           "line1": "THE 144-FOOT",
@@ -108,7 +108,7 @@
       "minimum_contrast": 6.12,
       "recipe": {
         "renderer": "visual_engine.redraw_cover",
-        "hero": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\gol_gumbaz_whispering_gallery\\03_commons.jpg",
+        "hero": "assets/gol_gumbaz_whispering_gallery/03_commons.jpg",
         "copy": {
           "eyebrow": "ANCIENT ACOUSTICS",
           "line1": "THE 144-FOOT",
@@ -128,7 +128,7 @@
       "minimum_contrast": 7.24,
       "recipe": {
         "renderer": "visual_engine.redraw_cover",
-        "hero": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\gol_gumbaz_whispering_gallery\\03_commons.jpg",
+        "hero": "assets/gol_gumbaz_whispering_gallery/03_commons.jpg",
         "copy": {
           "eyebrow": "ANCIENT ACOUSTICS",
           "line1": "THE 144-FOOT",
@@ -148,7 +148,7 @@
       "minimum_contrast": 7.93,
       "recipe": {
         "renderer": "visual_engine.redraw_cover",
-        "hero": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\gol_gumbaz_whispering_gallery\\03_commons.jpg",
+        "hero": "assets/gol_gumbaz_whispering_gallery/03_commons.jpg",
         "copy": {
           "eyebrow": "ANCIENT ACOUSTICS",
           "line1": "THE 144-FOOT",
@@ -168,7 +168,7 @@
       "minimum_contrast": 6.97,
       "recipe": {
         "renderer": "visual_engine.redraw_cover",
-        "hero": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\derinkuyu_underground_city\\19_commons.jpg",
+        "hero": "assets/derinkuyu_underground_city/19_commons.jpg",
         "copy": {
           "eyebrow": "BURIED HISTORY",
           "line1": "BEHIND ONE WALL...",
@@ -188,7 +188,7 @@
       "minimum_contrast": 6.97,
       "recipe": {
         "renderer": "visual_engine.redraw_cover",
-        "hero": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\derinkuyu_underground_city\\19_commons.jpg",
+        "hero": "assets/derinkuyu_underground_city/19_commons.jpg",
         "copy": {
           "eyebrow": "BURIED HISTORY",
           "line1": "BEHIND ONE WALL...",
@@ -208,7 +208,7 @@
       "minimum_contrast": 5.88,
       "recipe": {
         "renderer": "visual_engine.redraw_cover",
-        "hero": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\derinkuyu_underground_city\\19_commons.jpg",
+        "hero": "assets/derinkuyu_underground_city/19_commons.jpg",
         "copy": {
           "eyebrow": "BURIED HISTORY",
           "line1": "BEHIND ONE WALL...",
@@ -228,7 +228,7 @@
       "minimum_contrast": 6.97,
       "recipe": {
         "renderer": "visual_engine.redraw_cover",
-        "hero": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\derinkuyu_underground_city\\19_commons.jpg",
+        "hero": "assets/derinkuyu_underground_city/19_commons.jpg",
         "copy": {
           "eyebrow": "BURIED HISTORY",
           "line1": "BEHIND ONE WALL...",
@@ -248,7 +248,7 @@
       "minimum_contrast": 10.39,
       "recipe": {
         "renderer": "visual_engine.redraw_cover",
-        "hero": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\cache\\upscaled\\22_commons_466e53f5c2d25a35.jpg",
+        "hero": "cache/upscaled/22_commons_466e53f5c2d25a35.jpg",
         "copy": {
           "eyebrow": "ANCIENT ACOUSTICS",
           "line1": "THE 144-FOOT",
@@ -268,7 +268,7 @@
       "minimum_contrast": 7.87,
       "recipe": {
         "renderer": "visual_engine.redraw_cover",
-        "hero": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\cache\\upscaled\\22_commons_466e53f5c2d25a35.jpg",
+        "hero": "cache/upscaled/22_commons_466e53f5c2d25a35.jpg",
         "copy": {
           "eyebrow": "ANCIENT ACOUSTICS",
           "line1": "THE 144-FOOT",
@@ -288,7 +288,7 @@
       "minimum_contrast": 8.91,
       "recipe": {
         "renderer": "visual_engine.redraw_cover",
-        "hero": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\cache\\upscaled\\22_commons_466e53f5c2d25a35.jpg",
+        "hero": "cache/upscaled/22_commons_466e53f5c2d25a35.jpg",
         "copy": {
           "eyebrow": "ANCIENT ACOUSTICS",
           "line1": "THE 144-FOOT",
@@ -308,7 +308,7 @@
       "minimum_contrast": 9.11,
       "recipe": {
         "renderer": "visual_engine.redraw_cover",
-        "hero": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\cache\\upscaled\\22_commons_466e53f5c2d25a35.jpg",
+        "hero": "cache/upscaled/22_commons_466e53f5c2d25a35.jpg",
         "copy": {
           "eyebrow": "ANCIENT ACOUSTICS",
           "line1": "THE 144-FOOT",
@@ -330,7 +330,7 @@
       "minimum_contrast": 15.18,
       "recipe": {
         "renderer": "visual_engine.redraw_cover",
-        "hero": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\02_commons.jpg",
+        "hero": "assets/richat_structure_sahara_eye/02_commons.jpg",
         "copy": {
           "eyebrow": "DESERT ANOMALY",
           "line1": "THE 25-MILE",
@@ -386,7 +386,7 @@
       "minimum_contrast": 5.06,
       "recipe": {
         "renderer": "visual_engine.redraw_cover",
-        "hero": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\02_commons.jpg",
+        "hero": "assets/richat_structure_sahara_eye/02_commons.jpg",
         "copy": {
           "eyebrow": "DESERT ANOMALY",
           "line1": "THE 25-MILE",
@@ -456,7 +456,7 @@
       "minimum_contrast": 8.92,
       "recipe": {
         "renderer": "visual_engine.redraw_cover",
-        "hero": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\02_commons.jpg",
+        "hero": "assets/richat_structure_sahara_eye/02_commons.jpg",
         "copy": {
           "eyebrow": "DESERT ANOMALY",
           "line1": "THE 25-MILE",
@@ -512,7 +512,7 @@
       "minimum_contrast": 5.33,
       "recipe": {
         "renderer": "visual_engine.redraw_cover",
-        "hero": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\02_commons.jpg",
+        "hero": "assets/richat_structure_sahara_eye/02_commons.jpg",
         "copy": {
           "eyebrow": "DESERT ANOMALY",
           "line1": "THE 25-MILE",
@@ -582,7 +582,7 @@
       "minimum_contrast": 15.19,
       "recipe": {
         "renderer": "visual_engine.redraw_cover",
-        "hero": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\gol_gumbaz_whispering_gallery\\03_commons.jpg",
+        "hero": "assets/gol_gumbaz_whispering_gallery/03_commons.jpg",
         "copy": {
           "eyebrow": "ANCIENT ACOUSTICS",
           "line1": "THE 144-FOOT",
@@ -638,7 +638,7 @@
       "minimum_contrast": 5.17,
       "recipe": {
         "renderer": "visual_engine.redraw_cover",
-        "hero": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\gol_gumbaz_whispering_gallery\\03_commons.jpg",
+        "hero": "assets/gol_gumbaz_whispering_gallery/03_commons.jpg",
         "copy": {
           "eyebrow": "ANCIENT ACOUSTICS",
           "line1": "THE 144-FOOT",
@@ -708,7 +708,7 @@
       "minimum_contrast": 8.93,
       "recipe": {
         "renderer": "visual_engine.redraw_cover",
-        "hero": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\gol_gumbaz_whispering_gallery\\03_commons.jpg",
+        "hero": "assets/gol_gumbaz_whispering_gallery/03_commons.jpg",
         "copy": {
           "eyebrow": "ANCIENT ACOUSTICS",
           "line1": "THE 144-FOOT",
@@ -764,7 +764,7 @@
       "minimum_contrast": 5.17,
       "recipe": {
         "renderer": "visual_engine.redraw_cover",
-        "hero": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\gol_gumbaz_whispering_gallery\\03_commons.jpg",
+        "hero": "assets/gol_gumbaz_whispering_gallery/03_commons.jpg",
         "copy": {
           "eyebrow": "ANCIENT ACOUSTICS",
           "line1": "THE 144-FOOT",
@@ -834,7 +834,7 @@
       "minimum_contrast": 15.23,
       "recipe": {
         "renderer": "visual_engine.redraw_cover",
-        "hero": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\derinkuyu_underground_city\\19_commons.jpg",
+        "hero": "assets/derinkuyu_underground_city/19_commons.jpg",
         "copy": {
           "eyebrow": "BURIED HISTORY",
           "line1": "BEHIND ONE WALL...",
@@ -890,7 +890,7 @@
       "minimum_contrast": 5.4,
       "recipe": {
         "renderer": "visual_engine.redraw_cover",
-        "hero": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\derinkuyu_underground_city\\19_commons.jpg",
+        "hero": "assets/derinkuyu_underground_city/19_commons.jpg",
         "copy": {
           "eyebrow": "BURIED HISTORY",
           "line1": "BEHIND ONE WALL...",
@@ -960,7 +960,7 @@
       "minimum_contrast": 8.97,
       "recipe": {
         "renderer": "visual_engine.redraw_cover",
-        "hero": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\derinkuyu_underground_city\\19_commons.jpg",
+        "hero": "assets/derinkuyu_underground_city/19_commons.jpg",
         "copy": {
           "eyebrow": "BURIED HISTORY",
           "line1": "BEHIND ONE WALL...",
@@ -1016,7 +1016,7 @@
       "minimum_contrast": 5.46,
       "recipe": {
         "renderer": "visual_engine.redraw_cover",
-        "hero": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\derinkuyu_underground_city\\19_commons.jpg",
+        "hero": "assets/derinkuyu_underground_city/19_commons.jpg",
         "copy": {
           "eyebrow": "BURIED HISTORY",
           "line1": "BEHIND ONE WALL...",
@@ -1086,7 +1086,7 @@
       "minimum_contrast": 15.19,
       "recipe": {
         "renderer": "visual_engine.redraw_cover",
-        "hero": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\cache\\upscaled\\22_commons_466e53f5c2d25a35.jpg",
+        "hero": "cache/upscaled/22_commons_466e53f5c2d25a35.jpg",
         "copy": {
           "eyebrow": "ANCIENT ACOUSTICS",
           "line1": "THE 144-FOOT",
@@ -1133,7 +1133,7 @@
       "minimum_contrast": 8.93,
       "recipe": {
         "renderer": "visual_engine.redraw_cover",
-        "hero": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\cache\\upscaled\\22_commons_466e53f5c2d25a35.jpg",
+        "hero": "cache/upscaled/22_commons_466e53f5c2d25a35.jpg",
         "copy": {
           "eyebrow": "ANCIENT ACOUSTICS",
           "line1": "THE 144-FOOT",
@@ -1180,7 +1180,7 @@
       "minimum_contrast": 8.93,
       "recipe": {
         "renderer": "visual_engine.redraw_cover",
-        "hero": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\cache\\upscaled\\22_commons_466e53f5c2d25a35.jpg",
+        "hero": "cache/upscaled/22_commons_466e53f5c2d25a35.jpg",
         "copy": {
           "eyebrow": "ANCIENT ACOUSTICS",
           "line1": "THE 144-FOOT",
@@ -1227,7 +1227,7 @@
       "minimum_contrast": 8.93,
       "recipe": {
         "renderer": "visual_engine.redraw_cover",
-        "hero": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\cache\\upscaled\\22_commons_466e53f5c2d25a35.jpg",
+        "hero": "cache/upscaled/22_commons_466e53f5c2d25a35.jpg",
         "copy": {
           "eyebrow": "ANCIENT ACOUSTICS",
           "line1": "THE 144-FOOT",

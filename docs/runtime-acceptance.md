@@ -3,7 +3,7 @@
 ## Operator-provided receipt: 2026-10-22
 
 The operator returned the JSON receipt from the one-time diagnostic task
-`HNSHL-content-client-win-01-probe-20261022T054920Z-7c2c32363459`.
+`HNSHL-<production-host>-probe-20261022T054920Z-7c2c32363459`.
 The protected original is retained on production at
 `C:\ProgramData\HNSHL\ContentRuntime\logs\Pipeline\app-probe-20261022T054920Z-7c2c32363459.json`.
 This record summarizes the operator-provided evidence; the daily SSH account

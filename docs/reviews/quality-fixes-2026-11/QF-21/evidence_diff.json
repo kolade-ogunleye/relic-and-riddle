@@ -1,0 +1,3432 @@
+{
+ "note": "changed = any channel differs by more than 8/255 (compare_evidence.py); base 1ab9aded vs QF-21",
+ "summary": {
+  "card_chapter": {
+   "renders": 100,
+   "changed": 100
+  },
+  "card_hook": {
+   "renders": 40,
+   "changed": 22
+  },
+  "card_hooktitle": {
+   "renders": 7,
+   "changed": 0
+  },
+  "card_myth": {
+   "renders": 157,
+   "changed": 140
+  },
+  "cover": {
+   "renders": 15,
+   "changed": 15
+  },
+  "endcard": {
+   "renders": 9,
+   "changed": 4
+  },
+  "map": {
+   "renders": 6,
+   "changed": 3
+  },
+  "scale": {
+   "renders": 2,
+   "changed": 2
+  },
+  "social_carousel": {
+   "renders": 21,
+   "changed": 21
+  },
+  "social_fb": {
+   "renders": 21,
+   "changed": 21
+  },
+  "social_story": {
+   "renders": 9,
+   "changed": 9
+  },
+  "stat_cards": {
+   "renders": 6,
+   "changed": 6
+  },
+  "thennow": {
+   "renders": 4,
+   "changed": 2
+  },
+  "timeline": {
+   "renders": 6,
+   "changed": 6
+  }
+ },
+ "renders": {
+  "cover__amber_room_heist__grid": {
+   "changed_px": 16829,
+   "box": [
+    112,
+    40,
+    864,
+    1015
+   ]
+  },
+  "cover__amber_room_heist__reel": {
+   "changed_px": 16611,
+   "box": [
+    113,
+    456,
+    863,
+    1439
+   ]
+  },
+  "cover__amber_room_heist__youtube": {
+   "changed_px": 12966,
+   "box": [
+    208,
+    64,
+    752,
+    535
+   ]
+  },
+  "cover__greek_fire_siphon__grid": {
+   "changed_px": 19516,
+   "box": [
+    113,
+    40,
+    864,
+    1016
+   ]
+  },
+  "cover__greek_fire_siphon__reel": {
+   "changed_px": 19386,
+   "box": [
+    112,
+    456,
+    863,
+    1440
+   ]
+  },
+  "cover__greek_fire_siphon__youtube": {
+   "changed_px": 11862,
+   "box": [
+    208,
+    64,
+    753,
+    128
+   ]
+  },
+  "cover__richat_structure_sahara_eye__grid": {
+   "changed_px": 18286,
+   "box": [
+    148,
+    39,
+    864,
+    1015
+   ]
+  },
+  "cover__richat_structure_sahara_eye__reel": {
+   "changed_px": 18300,
+   "box": [
+    148,
+    456,
+    864,
+    1436
+   ]
+  },
+  "cover__richat_structure_sahara_eye__youtube": {
+   "changed_px": 11790,
+   "box": [
+    208,
+    64,
+    752,
+    128
+   ]
+  },
+  "cover__tunguska_event_1908__grid": {
+   "changed_px": 14319,
+   "box": [
+    194,
+    40,
+    864,
+    1016
+   ]
+  },
+  "cover__tunguska_event_1908__reel": {
+   "changed_px": 14321,
+   "box": [
+    193,
+    456,
+    863,
+    1439
+   ]
+  },
+  "cover__tunguska_event_1908__youtube": {
+   "changed_px": 11878,
+   "box": [
+    208,
+    64,
+    752,
+    128
+   ]
+  },
+  "cover__wieliczka_salt_mine__grid": {
+   "changed_px": 11441,
+   "box": [
+    201,
+    40,
+    864,
+    1014
+   ]
+  },
+  "cover__wieliczka_salt_mine__reel": {
+   "changed_px": 11396,
+   "box": [
+    200,
+    456,
+    863,
+    1434
+   ]
+  },
+  "cover__wieliczka_salt_mine__youtube": {
+   "changed_px": 11793,
+   "box": [
+    208,
+    64,
+    752,
+    128
+   ]
+  },
+  "endcard__0_richat_structure_sahara_eye__endscreen": {
+   "changed_px": 7496,
+   "box": [
+    203,
+    130,
+    795,
+    177
+   ]
+  },
+  "endcard__1_wieliczka_salt_mine__bridge_hold": {
+   "changed_px": 0,
+   "box": null
+  },
+  "endcard__2_unfinished_obelisk_aswan__bridge_hold": {
+   "changed_px": 0,
+   "box": null
+  },
+  "endcard__3_nazca_lines_runway_paradox__bridge_hold": {
+   "changed_px": 0,
+   "box": null
+  },
+  "endcard__4_odessa_catacombs__bridge_hold": {
+   "changed_px": 0,
+   "box": null
+  },
+  "endcard__5_nazca_lines_runway_paradox__bridge_hold": {
+   "changed_px": 0,
+   "box": null
+  },
+  "endcard__6_wieliczka_salt_mine__endscreen": {
+   "changed_px": 7509,
+   "box": [
+    203,
+    130,
+    795,
+    177
+   ]
+  },
+  "endcard__7_unfinished_obelisk_aswan__endscreen": {
+   "changed_px": 7495,
+   "box": [
+    203,
+    130,
+    795,
+    177
+   ]
+  },
+  "endcard__8_roman_self_healing_concrete__endscreen": {
+   "changed_px": 7504,
+   "box": [
+    203,
+    130,
+    795,
+    177
+   ]
+  },
+  "map__amber_room_heist_1792790550__169": {
+   "changed_px": 2037,
+   "box": [
+    272,
+    400,
+    488,
+    672
+   ]
+  },
+  "map__amber_room_heist_1792790550__916": {
+   "changed_px": 0,
+   "box": null
+  },
+  "map__richat_structure_sahara_eye_1793474843__169": {
+   "changed_px": 5324,
+   "box": [
+    376,
+    128,
+    1248,
+    672
+   ]
+  },
+  "map__richat_structure_sahara_eye_1793474843__916": {
+   "changed_px": 4461,
+   "box": [
+    457,
+    880,
+    736,
+    912
+   ]
+  },
+  "map__wieliczka_salt_mine_1792974672__169": {
+   "changed_px": 0,
+   "box": null
+  },
+  "map__wieliczka_salt_mine_1792974672__916": {
+   "changed_px": 0,
+   "box": null
+  },
+  "scale__wieliczka_salt_mine_1792974672__169": {
+   "changed_px": 4331,
+   "box": [
+    1136,
+    312,
+    1540,
+    344
+   ]
+  },
+  "scale__wieliczka_salt_mine_1792974672__916": {
+   "changed_px": 3457,
+   "box": [
+    136,
+    336,
+    520,
+    368
+   ]
+  },
+  "social__gol_gumbaz_whispering_gallery_1793278143__carousel_carousel_slide_01": {
+   "changed_px": 6194,
+   "box": [
+    186,
+    92,
+    673,
+    132
+   ]
+  },
+  "social__gol_gumbaz_whispering_gallery_1793278143__carousel_carousel_slide_02": {
+   "changed_px": 4559,
+   "box": [
+    212,
+    92,
+    673,
+    132
+   ]
+  },
+  "social__gol_gumbaz_whispering_gallery_1793278143__carousel_carousel_slide_03": {
+   "changed_px": 4520,
+   "box": [
+    212,
+    92,
+    673,
+    132
+   ]
+  },
+  "social__gol_gumbaz_whispering_gallery_1793278143__carousel_carousel_slide_04": {
+   "changed_px": 4541,
+   "box": [
+    212,
+    92,
+    673,
+    132
+   ]
+  },
+  "social__gol_gumbaz_whispering_gallery_1793278143__carousel_carousel_slide_05": {
+   "changed_px": 4536,
+   "box": [
+    212,
+    92,
+    673,
+    132
+   ]
+  },
+  "social__gol_gumbaz_whispering_gallery_1793278143__carousel_carousel_slide_06": {
+   "changed_px": 4523,
+   "box": [
+    212,
+    92,
+    673,
+    132
+   ]
+  },
+  "social__gol_gumbaz_whispering_gallery_1793278143__carousel_carousel_slide_07": {
+   "changed_px": 6587,
+   "box": [
+    200,
+    92,
+    673,
+    785
+   ]
+  },
+  "social__gol_gumbaz_whispering_gallery_1793278143__fb_carousel_slide_01": {
+   "changed_px": 4566,
+   "box": [
+    285,
+    92,
+    746,
+    132
+   ]
+  },
+  "social__gol_gumbaz_whispering_gallery_1793278143__fb_carousel_slide_02": {
+   "changed_px": 4560,
+   "box": [
+    212,
+    92,
+    673,
+    132
+   ]
+  },
+  "social__gol_gumbaz_whispering_gallery_1793278143__fb_carousel_slide_03": {
+   "changed_px": 4521,
+   "box": [
+    212,
+    92,
+    673,
+    132
+   ]
+  },
+  "social__gol_gumbaz_whispering_gallery_1793278143__fb_carousel_slide_04": {
+   "changed_px": 4541,
+   "box": [
+    212,
+    92,
+    673,
+    132
+   ]
+  },
+  "social__gol_gumbaz_whispering_gallery_1793278143__fb_carousel_slide_05": {
+   "changed_px": 4526,
+   "box": [
+    212,
+    92,
+    673,
+    132
+   ]
+  },
+  "social__gol_gumbaz_whispering_gallery_1793278143__fb_carousel_slide_06": {
+   "changed_px": 4523,
+   "box": [
+    212,
+    92,
+    673,
+    132
+   ]
+  },
+  "social__gol_gumbaz_whispering_gallery_1793278143__fb_carousel_slide_07": {
+   "changed_px": 6587,
+   "box": [
+    200,
+    92,
+    673,
+    785
+   ]
+  },
+  "social__gol_gumbaz_whispering_gallery_1793278143__story_story_01_hook": {
+   "changed_px": 2589,
+   "box": [
+    236,
+    993,
+    778,
+    1020
+   ]
+  },
+  "social__gol_gumbaz_whispering_gallery_1793278143__story_story_02_reveal": {
+   "changed_px": 1540,
+   "box": [
+    329,
+    308,
+    572,
+    338
+   ]
+  },
+  "social__gol_gumbaz_whispering_gallery_1793278143__story_story_03_question": {
+   "changed_px": 3527,
+   "box": [
+    199,
+    308,
+    651,
+    338
+   ]
+  },
+  "social__nazca_lines_runway_paradox_1793247464__carousel_carousel_slide_01": {
+   "changed_px": 4568,
+   "box": [
+    212,
+    92,
+    673,
+    132
+   ]
+  },
+  "social__nazca_lines_runway_paradox_1793247464__carousel_carousel_slide_02": {
+   "changed_px": 4540,
+   "box": [
+    212,
+    92,
+    673,
+    132
+   ]
+  },
+  "social__nazca_lines_runway_paradox_1793247464__carousel_carousel_slide_03": {
+   "changed_px": 4533,
+   "box": [
+    212,
+    92,
+    673,
+    132
+   ]
+  },
+  "social__nazca_lines_runway_paradox_1793247464__carousel_carousel_slide_04": {
+   "changed_px": 4553,
+   "box": [
+    212,
+    92,
+    673,
+    132
+   ]
+  },
+  "social__nazca_lines_runway_paradox_1793247464__carousel_carousel_slide_05": {
+   "changed_px": 4531,
+   "box": [
+    212,
+    92,
+    673,
+    132
+   ]
+  },
+  "social__nazca_lines_runway_paradox_1793247464__carousel_carousel_slide_06": {
+   "changed_px": 4546,
+   "box": [
+    212,
+    92,
+    673,
+    132
+   ]
+  },
+  "social__nazca_lines_runway_paradox_1793247464__carousel_carousel_slide_07": {
+   "changed_px": 6561,
+   "box": [
+    200,
+    92,
+    673,
+    778
+   ]
+  },
+  "social__nazca_lines_runway_paradox_1793247464__fb_carousel_slide_01": {
+   "changed_px": 4556,
+   "box": [
+    285,
+    92,
+    746,
+    132
+   ]
+  },
+  "social__nazca_lines_runway_paradox_1793247464__fb_carousel_slide_02": {
+   "changed_px": 4542,
+   "box": [
+    212,
+    92,
+    673,
+    132
+   ]
+  },
+  "social__nazca_lines_runway_paradox_1793247464__fb_carousel_slide_03": {
+   "changed_px": 4529,
+   "box": [
+    212,
+    92,
+    673,
+    132
+   ]
+  },
+  "social__nazca_lines_runway_paradox_1793247464__fb_carousel_slide_04": {
+   "changed_px": 4553,
+   "box": [
+    212,
+    92,
+    673,
+    132
+   ]
+  },
+  "social__nazca_lines_runway_paradox_1793247464__fb_carousel_slide_05": {
+   "changed_px": 4534,
+   "box": [
+    212,
+    92,
+    673,
+    132
+   ]
+  },
+  "social__nazca_lines_runway_paradox_1793247464__fb_carousel_slide_06": {
+   "changed_px": 4537,
+   "box": [
+    212,
+    92,
+    673,
+    132
+   ]
+  },
+  "social__nazca_lines_runway_paradox_1793247464__fb_carousel_slide_07": {
+   "changed_px": 6561,
+   "box": [
+    200,
+    92,
+    673,
+    778
+   ]
+  },
+  "social__nazca_lines_runway_paradox_1793247464__story_story_01_hook": {
+   "changed_px": 3351,
+   "box": [
+    236,
+    308,
+    778,
+    877
+   ]
+  },
+  "social__nazca_lines_runway_paradox_1793247464__story_story_02_reveal": {
+   "changed_px": 525,
+   "box": [
+    410,
+    308,
+    506,
+    338
+   ]
+  },
+  "social__nazca_lines_runway_paradox_1793247464__story_story_03_question": {
+   "changed_px": 607,
+   "box": [
+    285,
+    308,
+    472,
+    338
+   ]
+  },
+  "social__richat_structure_sahara_eye_1793272675__carousel_carousel_slide_01": {
+   "changed_px": 4738,
+   "box": [
+    212,
+    91,
+    691,
+    136
+   ]
+  },
+  "social__richat_structure_sahara_eye_1793272675__carousel_carousel_slide_02": {
+   "changed_px": 5817,
+   "box": [
+    180,
+    86,
+    685,
+    139
+   ]
+  },
+  "social__richat_structure_sahara_eye_1793272675__carousel_carousel_slide_03": {
+   "changed_px": 4555,
+   "box": [
+    212,
+    92,
+    673,
+    132
+   ]
+  },
+  "social__richat_structure_sahara_eye_1793272675__carousel_carousel_slide_04": {
+   "changed_px": 4545,
+   "box": [
+    212,
+    92,
+    673,
+    132
+   ]
+  },
+  "social__richat_structure_sahara_eye_1793272675__carousel_carousel_slide_05": {
+   "changed_px": 4581,
+   "box": [
+    212,
+    92,
+    673,
+    132
+   ]
+  },
+  "social__richat_structure_sahara_eye_1793272675__carousel_carousel_slide_06": {
+   "changed_px": 4548,
+   "box": [
+    212,
+    92,
+    673,
+    132
+   ]
+  },
+  "social__richat_structure_sahara_eye_1793272675__carousel_carousel_slide_07": {
+   "changed_px": 6625,
+   "box": [
+    200,
+    92,
+    673,
+    785
+   ]
+  },
+  "social__richat_structure_sahara_eye_1793272675__fb_carousel_slide_01": {
+   "changed_px": 4565,
+   "box": [
+    285,
+    92,
+    746,
+    132
+   ]
+  },
+  "social__richat_structure_sahara_eye_1793272675__fb_carousel_slide_02": {
+   "changed_px": 5817,
+   "box": [
+    180,
+    86,
+    685,
+    139
+   ]
+  },
+  "social__richat_structure_sahara_eye_1793272675__fb_carousel_slide_03": {
+   "changed_px": 4608,
+   "box": [
+    212,
+    92,
+    673,
+    132
+   ]
+  },
+  "social__richat_structure_sahara_eye_1793272675__fb_carousel_slide_04": {
+   "changed_px": 4549,
+   "box": [
+    212,
+    92,
+    673,
+    132
+   ]
+  },
+  "social__richat_structure_sahara_eye_1793272675__fb_carousel_slide_05": {
+   "changed_px": 4577,
+   "box": [
+    212,
+    92,
+    673,
+    132
+   ]
+  },
+  "social__richat_structure_sahara_eye_1793272675__fb_carousel_slide_06": {
+   "changed_px": 4548,
+   "box": [
+    212,
+    92,
+    673,
+    132
+   ]
+  },
+  "social__richat_structure_sahara_eye_1793272675__fb_carousel_slide_07": {
+   "changed_px": 6625,
+   "box": [
+    200,
+    92,
+    673,
+    785
+   ]
+  },
+  "social__richat_structure_sahara_eye_1793272675__story_story_01_hook": {
+   "changed_px": 4965,
+   "box": [
+    236,
+    308,
+    778,
+    1023
+   ]
+  },
+  "social__richat_structure_sahara_eye_1793272675__story_story_02_reveal": {
+   "changed_px": 834,
+   "box": [
+    267,
+    308,
+    559,
+    338
+   ]
+  },
+  "social__richat_structure_sahara_eye_1793272675__story_story_03_question": {
+   "changed_px": 4339,
+   "box": [
+    262,
+    308,
+    755,
+    338
+   ]
+  },
+  "stat_cards__amber_room_heist_1792790550__169": {
+   "changed_px": 11380,
+   "box": [
+    392,
+    288,
+    1528,
+    680
+   ]
+  },
+  "stat_cards__amber_room_heist_1792790550__916": {
+   "changed_px": 8640,
+   "box": [
+    176,
+    552,
+    824,
+    1056
+   ]
+  },
+  "stat_cards__odessa_catacombs_1792970549__169": {
+   "changed_px": 7807,
+   "box": [
+    208,
+    303,
+    736,
+    712
+   ]
+  },
+  "stat_cards__odessa_catacombs_1792970549__916": {
+   "changed_px": 7802,
+   "box": [
+    160,
+    464,
+    680,
+    944
+   ]
+  },
+  "stat_cards__unfinished_obelisk_aswan_1792993374__169": {
+   "changed_px": 17363,
+   "box": [
+    185,
+    304,
+    1432,
+    656
+   ]
+  },
+  "stat_cards__unfinished_obelisk_aswan_1792993374__916": {
+   "changed_px": 20839,
+   "box": [
+    152,
+    400,
+    830,
+    1007
+   ]
+  },
+  "thennow__roman_self_healing_concrete__169": {
+   "changed_px": 447,
+   "box": [
+    976,
+    114,
+    1145,
+    245
+   ]
+  },
+  "thennow__roman_self_healing_concrete__916": {
+   "changed_px": 0,
+   "box": null
+  },
+  "thennow__singing_colossi_of_memnon__169": {
+   "changed_px": 695,
+   "box": [
+    1024,
+    160,
+    1127,
+    253
+   ]
+  },
+  "thennow__singing_colossi_of_memnon__916": {
+   "changed_px": 0,
+   "box": null
+  },
+  "timeline__amber_room_heist_1792790550__169": {
+   "changed_px": 22672,
+   "box": [
+    185,
+    208,
+    1696,
+    824
+   ]
+  },
+  "timeline__amber_room_heist_1792790550__916": {
+   "changed_px": 15980,
+   "box": [
+    208,
+    440,
+    860,
+    1064
+   ]
+  },
+  "timeline__hal_saflieni_hypogeum_1792949304__169": {
+   "changed_px": 34890,
+   "box": [
+    185,
+    272,
+    1736,
+    808
+   ]
+  },
+  "timeline__hal_saflieni_hypogeum_1792949304__916": {
+   "changed_px": 11462,
+   "box": [
+    216,
+    440,
+    665,
+    1064
+   ]
+  },
+  "timeline__roman_self_healing_concrete_1793163918__169": {
+   "changed_px": 25363,
+   "box": [
+    200,
+    312,
+    1737,
+    832
+   ]
+  },
+  "timeline__roman_self_healing_concrete_1793163918__916": {
+   "changed_px": 11878,
+   "box": [
+    200,
+    496,
+    736,
+    1064
+   ]
+  }
+ },
+ "cards": {
+  "chapter_169_act1_bright__last": {
+   "changed_px": 1013,
+   "box": [
+    599,
+    298,
+    780,
+    336
+   ]
+  },
+  "chapter_169_act1_bright__mid": {
+   "changed_px": 1013,
+   "box": [
+    599,
+    298,
+    780,
+    336
+   ]
+  },
+  "chapter_169_act1_busy__last": {
+   "changed_px": 1025,
+   "box": [
+    599,
+    298,
+    780,
+    336
+   ]
+  },
+  "chapter_169_act1_busy__mid": {
+   "changed_px": 1026,
+   "box": [
+    599,
+    298,
+    780,
+    336
+   ]
+  },
+  "chapter_169_act1_dark__last": {
+   "changed_px": 1013,
+   "box": [
+    599,
+    298,
+    780,
+    336
+   ]
+  },
+  "chapter_169_act1_dark__mid": {
+   "changed_px": 1013,
+   "box": [
+    599,
+    298,
+    780,
+    336
+   ]
+  },
+  "chapter_169_act1_hero__last": {
+   "changed_px": 1024,
+   "box": [
+    599,
+    298,
+    780,
+    336
+   ]
+  },
+  "chapter_169_act1_hero__mid": {
+   "changed_px": 1025,
+   "box": [
+    599,
+    298,
+    780,
+    336
+   ]
+  },
+  "chapter_169_act1_plain__last": {
+   "changed_px": 1022,
+   "box": [
+    599,
+    298,
+    780,
+    336
+   ]
+  },
+  "chapter_169_act1_plain__mid": {
+   "changed_px": 1022,
+   "box": [
+    599,
+    298,
+    780,
+    336
+   ]
+  },
+  "chapter_169_act2_bright__last": {
+   "changed_px": 1013,
+   "box": [
+    599,
+    298,
+    780,
+    336
+   ]
+  },
+  "chapter_169_act2_bright__mid": {
+   "changed_px": 1013,
+   "box": [
+    599,
+    298,
+    780,
+    336
+   ]
+  },
+  "chapter_169_act2_busy__last": {
+   "changed_px": 1025,
+   "box": [
+    599,
+    298,
+    780,
+    336
+   ]
+  },
+  "chapter_169_act2_busy__mid": {
+   "changed_px": 1026,
+   "box": [
+    599,
+    298,
+    780,
+    336
+   ]
+  },
+  "chapter_169_act2_dark__last": {
+   "changed_px": 1013,
+   "box": [
+    599,
+    298,
+    780,
+    336
+   ]
+  },
+  "chapter_169_act2_dark__mid": {
+   "changed_px": 1013,
+   "box": [
+    599,
+    298,
+    780,
+    336
+   ]
+  },
+  "chapter_169_act2_hero__last": {
+   "changed_px": 1024,
+   "box": [
+    599,
+    298,
+    780,
+    336
+   ]
+  },
+  "chapter_169_act2_hero__mid": {
+   "changed_px": 1025,
+   "box": [
+    599,
+    298,
+    780,
+    336
+   ]
+  },
+  "chapter_169_act2_plain__last": {
+   "changed_px": 1022,
+   "box": [
+    599,
+    298,
+    780,
+    336
+   ]
+  },
+  "chapter_169_act2_plain__mid": {
+   "changed_px": 1022,
+   "box": [
+    599,
+    298,
+    780,
+    336
+   ]
+  },
+  "chapter_169_act3_bright__last": {
+   "changed_px": 1013,
+   "box": [
+    599,
+    292,
+    780,
+    330
+   ]
+  },
+  "chapter_169_act3_bright__mid": {
+   "changed_px": 1013,
+   "box": [
+    599,
+    292,
+    780,
+    330
+   ]
+  },
+  "chapter_169_act3_busy__last": {
+   "changed_px": 1043,
+   "box": [
+    599,
+    292,
+    780,
+    330
+   ]
+  },
+  "chapter_169_act3_busy__mid": {
+   "changed_px": 1043,
+   "box": [
+    599,
+    292,
+    780,
+    330
+   ]
+  },
+  "chapter_169_act3_dark__last": {
+   "changed_px": 1013,
+   "box": [
+    599,
+    292,
+    780,
+    330
+   ]
+  },
+  "chapter_169_act3_dark__mid": {
+   "changed_px": 1013,
+   "box": [
+    599,
+    292,
+    780,
+    330
+   ]
+  },
+  "chapter_169_act3_hero__last": {
+   "changed_px": 1022,
+   "box": [
+    599,
+    292,
+    780,
+    330
+   ]
+  },
+  "chapter_169_act3_hero__mid": {
+   "changed_px": 1023,
+   "box": [
+    599,
+    292,
+    780,
+    330
+   ]
+  },
+  "chapter_169_act3_plain__last": {
+   "changed_px": 1022,
+   "box": [
+    599,
+    292,
+    780,
+    330
+   ]
+  },
+  "chapter_169_act3_plain__mid": {
+   "changed_px": 1022,
+   "box": [
+    599,
+    292,
+    780,
+    330
+   ]
+  },
+  "chapter_169_act4_bright__last": {
+   "changed_px": 1013,
+   "box": [
+    599,
+    298,
+    780,
+    336
+   ]
+  },
+  "chapter_169_act4_bright__mid": {
+   "changed_px": 1013,
+   "box": [
+    599,
+    298,
+    780,
+    336
+   ]
+  },
+  "chapter_169_act4_busy__last": {
+   "changed_px": 1025,
+   "box": [
+    599,
+    298,
+    780,
+    336
+   ]
+  },
+  "chapter_169_act4_busy__mid": {
+   "changed_px": 1026,
+   "box": [
+    599,
+    298,
+    780,
+    336
+   ]
+  },
+  "chapter_169_act4_dark__last": {
+   "changed_px": 1013,
+   "box": [
+    599,
+    298,
+    780,
+    336
+   ]
+  },
+  "chapter_169_act4_dark__mid": {
+   "changed_px": 1013,
+   "box": [
+    599,
+    298,
+    780,
+    336
+   ]
+  },
+  "chapter_169_act4_hero__last": {
+   "changed_px": 1024,
+   "box": [
+    599,
+    298,
+    780,
+    336
+   ]
+  },
+  "chapter_169_act4_hero__mid": {
+   "changed_px": 1025,
+   "box": [
+    599,
+    298,
+    780,
+    336
+   ]
+  },
+  "chapter_169_act4_plain__last": {
+   "changed_px": 1022,
+   "box": [
+    599,
+    298,
+    780,
+    336
+   ]
+  },
+  "chapter_169_act4_plain__mid": {
+   "changed_px": 1022,
+   "box": [
+    599,
+    298,
+    780,
+    336
+   ]
+  },
+  "chapter_169_act5_bright__last": {
+   "changed_px": 1013,
+   "box": [
+    599,
+    298,
+    780,
+    336
+   ]
+  },
+  "chapter_169_act5_bright__mid": {
+   "changed_px": 1013,
+   "box": [
+    599,
+    298,
+    780,
+    336
+   ]
+  },
+  "chapter_169_act5_busy__last": {
+   "changed_px": 1025,
+   "box": [
+    599,
+    298,
+    780,
+    336
+   ]
+  },
+  "chapter_169_act5_busy__mid": {
+   "changed_px": 1026,
+   "box": [
+    599,
+    298,
+    780,
+    336
+   ]
+  },
+  "chapter_169_act5_dark__last": {
+   "changed_px": 1013,
+   "box": [
+    599,
+    298,
+    780,
+    336
+   ]
+  },
+  "chapter_169_act5_dark__mid": {
+   "changed_px": 1013,
+   "box": [
+    599,
+    298,
+    780,
+    336
+   ]
+  },
+  "chapter_169_act5_hero__last": {
+   "changed_px": 1024,
+   "box": [
+    599,
+    298,
+    780,
+    336
+   ]
+  },
+  "chapter_169_act5_hero__mid": {
+   "changed_px": 1025,
+   "box": [
+    599,
+    298,
+    780,
+    336
+   ]
+  },
+  "chapter_169_act5_plain__last": {
+   "changed_px": 1022,
+   "box": [
+    599,
+    298,
+    780,
+    336
+   ]
+  },
+  "chapter_169_act5_plain__mid": {
+   "changed_px": 1022,
+   "box": [
+    599,
+    298,
+    780,
+    336
+   ]
+  },
+  "chapter_916_act1_bright__last": {
+   "changed_px": 570,
+   "box": [
+    244,
+    404,
+    339,
+    432
+   ]
+  },
+  "chapter_916_act1_bright__mid": {
+   "changed_px": 570,
+   "box": [
+    244,
+    404,
+    339,
+    432
+   ]
+  },
+  "chapter_916_act1_busy__last": {
+   "changed_px": 571,
+   "box": [
+    244,
+    404,
+    339,
+    432
+   ]
+  },
+  "chapter_916_act1_busy__mid": {
+   "changed_px": 572,
+   "box": [
+    244,
+    404,
+    339,
+    432
+   ]
+  },
+  "chapter_916_act1_dark__last": {
+   "changed_px": 569,
+   "box": [
+    244,
+    404,
+    339,
+    432
+   ]
+  },
+  "chapter_916_act1_dark__mid": {
+   "changed_px": 569,
+   "box": [
+    244,
+    404,
+    339,
+    432
+   ]
+  },
+  "chapter_916_act1_hero__last": {
+   "changed_px": 570,
+   "box": [
+    244,
+    404,
+    339,
+    432
+   ]
+  },
+  "chapter_916_act1_hero__mid": {
+   "changed_px": 570,
+   "box": [
+    244,
+    404,
+    339,
+    432
+   ]
+  },
+  "chapter_916_act1_plain__last": {
+   "changed_px": 572,
+   "box": [
+    244,
+    404,
+    339,
+    432
+   ]
+  },
+  "chapter_916_act1_plain__mid": {
+   "changed_px": 572,
+   "box": [
+    244,
+    404,
+    339,
+    432
+   ]
+  },
+  "chapter_916_act2_bright__last": {
+   "changed_px": 570,
+   "box": [
+    244,
+    326,
+    339,
+    354
+   ]
+  },
+  "chapter_916_act2_bright__mid": {
+   "changed_px": 570,
+   "box": [
+    244,
+    326,
+    339,
+    354
+   ]
+  },
+  "chapter_916_act2_busy__last": {
+   "changed_px": 572,
+   "box": [
+    244,
+    326,
+    339,
+    354
+   ]
+  },
+  "chapter_916_act2_busy__mid": {
+   "changed_px": 572,
+   "box": [
+    244,
+    326,
+    339,
+    354
+   ]
+  },
+  "chapter_916_act2_dark__last": {
+   "changed_px": 569,
+   "box": [
+    244,
+    326,
+    339,
+    354
+   ]
+  },
+  "chapter_916_act2_dark__mid": {
+   "changed_px": 569,
+   "box": [
+    244,
+    326,
+    339,
+    354
+   ]
+  },
+  "chapter_916_act2_hero__last": {
+   "changed_px": 572,
+   "box": [
+    244,
+    326,
+    339,
+    354
+   ]
+  },
+  "chapter_916_act2_hero__mid": {
+   "changed_px": 572,
+   "box": [
+    244,
+    326,
+    339,
+    354
+   ]
+  },
+  "chapter_916_act2_plain__last": {
+   "changed_px": 572,
+   "box": [
+    244,
+    326,
+    339,
+    354
+   ]
+  },
+  "chapter_916_act2_plain__mid": {
+   "changed_px": 572,
+   "box": [
+    244,
+    326,
+    339,
+    354
+   ]
+  },
+  "chapter_916_act3_bright__last": {
+   "changed_px": 570,
+   "box": [
+    244,
+    465,
+    339,
+    493
+   ]
+  },
+  "chapter_916_act3_bright__mid": {
+   "changed_px": 570,
+   "box": [
+    244,
+    465,
+    339,
+    493
+   ]
+  },
+  "chapter_916_act3_busy__last": {
+   "changed_px": 572,
+   "box": [
+    244,
+    465,
+    339,
+    493
+   ]
+  },
+  "chapter_916_act3_busy__mid": {
+   "changed_px": 572,
+   "box": [
+    244,
+    465,
+    339,
+    493
+   ]
+  },
+  "chapter_916_act3_dark__last": {
+   "changed_px": 569,
+   "box": [
+    244,
+    465,
+    339,
+    493
+   ]
+  },
+  "chapter_916_act3_dark__mid": {
+   "changed_px": 569,
+   "box": [
+    244,
+    465,
+    339,
+    493
+   ]
+  },
+  "chapter_916_act3_hero__last": {
+   "changed_px": 570,
+   "box": [
+    244,
+    465,
+    339,
+    493
+   ]
+  },
+  "chapter_916_act3_hero__mid": {
+   "changed_px": 570,
+   "box": [
+    244,
+    465,
+    339,
+    493
+   ]
+  },
+  "chapter_916_act3_plain__last": {
+   "changed_px": 572,
+   "box": [
+    244,
+    465,
+    339,
+    493
+   ]
+  },
+  "chapter_916_act3_plain__mid": {
+   "changed_px": 572,
+   "box": [
+    244,
+    465,
+    339,
+    493
+   ]
+  },
+  "chapter_916_act4_bright__last": {
+   "changed_px": 570,
+   "box": [
+    244,
+    404,
+    339,
+    432
+   ]
+  },
+  "chapter_916_act4_bright__mid": {
+   "changed_px": 570,
+   "box": [
+    244,
+    404,
+    339,
+    432
+   ]
+  },
+  "chapter_916_act4_busy__last": {
+   "changed_px": 571,
+   "box": [
+    244,
+    404,
+    339,
+    432
+   ]
+  },
+  "chapter_916_act4_busy__mid": {
+   "changed_px": 572,
+   "box": [
+    244,
+    404,
+    339,
+    432
+   ]
+  },
+  "chapter_916_act4_dark__last": {
+   "changed_px": 569,
+   "box": [
+    244,
+    404,
+    339,
+    432
+   ]
+  },
+  "chapter_916_act4_dark__mid": {
+   "changed_px": 569,
+   "box": [
+    244,
+    404,
+    339,
+    432
+   ]
+  },
+  "chapter_916_act4_hero__last": {
+   "changed_px": 570,
+   "box": [
+    244,
+    404,
+    339,
+    432
+   ]
+  },
+  "chapter_916_act4_hero__mid": {
+   "changed_px": 570,
+   "box": [
+    244,
+    404,
+    339,
+    432
+   ]
+  },
+  "chapter_916_act4_plain__last": {
+   "changed_px": 572,
+   "box": [
+    244,
+    404,
+    339,
+    432
+   ]
+  },
+  "chapter_916_act4_plain__mid": {
+   "changed_px": 572,
+   "box": [
+    244,
+    404,
+    339,
+    432
+   ]
+  },
+  "chapter_916_act5_bright__last": {
+   "changed_px": 570,
+   "box": [
+    244,
+    326,
+    339,
+    354
+   ]
+  },
+  "chapter_916_act5_bright__mid": {
+   "changed_px": 570,
+   "box": [
+    244,
+    326,
+    339,
+    354
+   ]
+  },
+  "chapter_916_act5_busy__last": {
+   "changed_px": 572,
+   "box": [
+    244,
+    326,
+    339,
+    354
+   ]
+  },
+  "chapter_916_act5_busy__mid": {
+   "changed_px": 572,
+   "box": [
+    244,
+    326,
+    339,
+    354
+   ]
+  },
+  "chapter_916_act5_dark__last": {
+   "changed_px": 569,
+   "box": [
+    244,
+    326,
+    339,
+    354
+   ]
+  },
+  "chapter_916_act5_dark__mid": {
+   "changed_px": 569,
+   "box": [
+    244,
+    326,
+    339,
+    354
+   ]
+  },
+  "chapter_916_act5_hero__last": {
+   "changed_px": 572,
+   "box": [
+    244,
+    326,
+    339,
+    354
+   ]
+  },
+  "chapter_916_act5_hero__mid": {
+   "changed_px": 572,
+   "box": [
+    244,
+    326,
+    339,
+    354
+   ]
+  },
+  "chapter_916_act5_plain__last": {
+   "changed_px": 572,
+   "box": [
+    244,
+    326,
+    339,
+    354
+   ]
+  },
+  "chapter_916_act5_plain__mid": {
+   "changed_px": 572,
+   "box": [
+    244,
+    326,
+    339,
+    354
+   ]
+  },
+  "hook_916_disassembled_in_36_hours_bright__last": {
+   "changed_px": 0,
+   "box": null
+  },
+  "hook_916_disassembled_in_36_hours_busy__last": {
+   "changed_px": 0,
+   "box": null
+  },
+  "hook_916_disassembled_in_36_hours_dark__last": {
+   "changed_px": 0,
+   "box": null
+  },
+  "hook_916_etched_into_the_nazca_desert_bright__last": {
+   "changed_px": 0,
+   "box": null
+  },
+  "hook_916_etched_into_the_nazca_desert_busy__last": {
+   "changed_px": 0,
+   "box": null
+  },
+  "hook_916_etched_into_the_nazca_desert_dark__last": {
+   "changed_px": 0,
+   "box": null
+  },
+  "hook_916_etched_into_the_nazca_desert_hero__last": {
+   "changed_px": 0,
+   "box": null
+  },
+  "hook_916_inscribed_in_1994_bright__f00": {
+   "changed_px": 9565,
+   "box": [
+    141,
+    462,
+    773,
+    2011
+   ]
+  },
+  "hook_916_inscribed_in_1994_bright__f32": {
+   "changed_px": 9325,
+   "box": [
+    149,
+    462,
+    741,
+    513
+   ]
+  },
+  "hook_916_inscribed_in_1994_bright__f37": {
+   "changed_px": 0,
+   "box": null
+  },
+  "hook_916_inscribed_in_1994_busy__f00": {
+   "changed_px": 9029,
+   "box": [
+    149,
+    462,
+    741,
+    517
+   ]
+  },
+  "hook_916_inscribed_in_1994_busy__f32": {
+   "changed_px": 8633,
+   "box": [
+    149,
+    462,
+    741,
+    512
+   ]
+  },
+  "hook_916_inscribed_in_1994_busy__f37": {
+   "changed_px": 0,
+   "box": null
+  },
+  "hook_916_inscribed_in_1994_dark__f00": {
+   "changed_px": 9386,
+   "box": [
+    149,
+    462,
+    742,
+    513
+   ]
+  },
+  "hook_916_inscribed_in_1994_dark__f32": {
+   "changed_px": 9413,
+   "box": [
+    149,
+    462,
+    742,
+    513
+   ]
+  },
+  "hook_916_inscribed_in_1994_dark__f37": {
+   "changed_px": 0,
+   "box": null
+  },
+  "hook_916_inscribed_in_1994_hero__f00": {
+   "changed_px": 9573,
+   "box": [
+    149,
+    462,
+    741,
+    514
+   ]
+  },
+  "hook_916_inscribed_in_1994_hero__f32": {
+   "changed_px": 9395,
+   "box": [
+    149,
+    462,
+    741,
+    513
+   ]
+  },
+  "hook_916_inscribed_in_1994_hero__f37": {
+   "changed_px": 0,
+   "box": null
+  },
+  "hook_916_rippled_across_the_globe_bright__f00": {
+   "changed_px": 7494,
+   "box": [
+    271,
+    462,
+    863,
+    509
+   ]
+  },
+  "hook_916_rippled_across_the_globe_bright__f32": {
+   "changed_px": 7496,
+   "box": [
+    271,
+    462,
+    863,
+    509
+   ]
+  },
+  "hook_916_rippled_across_the_globe_bright__f37": {
+   "changed_px": 0,
+   "box": null
+  },
+  "hook_916_rippled_across_the_globe_busy__f00": {
+   "changed_px": 21772,
+   "box": [
+    0,
+    0,
+    1080,
+    2046
+   ]
+  },
+  "hook_916_rippled_across_the_globe_busy__f32": {
+   "changed_px": 8347,
+   "box": [
+    131,
+    266,
+    775,
+    1165
+   ]
+  },
+  "hook_916_rippled_across_the_globe_busy__f37": {
+   "changed_px": 0,
+   "box": null
+  },
+  "hook_916_rippled_across_the_globe_dark__f00": {
+   "changed_px": 9888,
+   "box": [
+    149,
+    462,
+    1045,
+    1782
+   ]
+  },
+  "hook_916_rippled_across_the_globe_dark__f32": {
+   "changed_px": 9944,
+   "box": [
+    149,
+    462,
+    741,
+    514
+   ]
+  },
+  "hook_916_rippled_across_the_globe_dark__f37": {
+   "changed_px": 0,
+   "box": null
+  },
+  "hook_916_rippled_across_the_globe_hero__f00": {
+   "changed_px": 8117,
+   "box": [
+    148,
+    462,
+    1027,
+    1518
+   ]
+  },
+  "hook_916_rippled_across_the_globe_hero__f32": {
+   "changed_px": 7898,
+   "box": [
+    149,
+    462,
+    741,
+    512
+   ]
+  },
+  "hook_916_rippled_across_the_globe_hero__f37": {
+   "changed_px": 0,
+   "box": null
+  },
+  "hook_916_shipped_to_k_nigsberg_castle_bright__f00": {
+   "changed_px": 9202,
+   "box": [
+    104,
+    375,
+    1052,
+    1338
+   ]
+  },
+  "hook_916_shipped_to_k_nigsberg_castle_bright__f32": {
+   "changed_px": 13694,
+   "box": [
+    0,
+    0,
+    1080,
+    1920
+   ]
+  },
+  "hook_916_shipped_to_k_nigsberg_castle_bright__f37": {
+   "changed_px": 0,
+   "box": null
+  },
+  "hook_916_shipped_to_k_nigsberg_castle_busy__f00": {
+   "changed_px": 13333,
+   "box": [
+    0,
+    457,
+    1080,
+    2041
+   ]
+  },
+  "hook_916_shipped_to_k_nigsberg_castle_busy__f32": {
+   "changed_px": 8573,
+   "box": [
+    149,
+    456,
+    749,
+    1761
+   ]
+  },
+  "hook_916_shipped_to_k_nigsberg_castle_busy__f37": {
+   "changed_px": 0,
+   "box": null
+  },
+  "hook_916_shipped_to_k_nigsberg_castle_dark__f00": {
+   "changed_px": 11429,
+   "box": [
+    1,
+    0,
+    1080,
+    1920
+   ]
+  },
+  "hook_916_shipped_to_k_nigsberg_castle_dark__f32": {
+   "changed_px": 9323,
+   "box": [
+    149,
+    456,
+    743,
+    516
+   ]
+  },
+  "hook_916_shipped_to_k_nigsberg_castle_dark__f37": {
+   "changed_px": 0,
+   "box": null
+  },
+  "hooktitle_916_egypt_s_1_200_ton_quarry_mon_dark__last": {
+   "changed_px": 0,
+   "box": null
+  },
+  "hooktitle_916_flattened_830_square_miles_dark__last": {
+   "changed_px": 0,
+   "box": null
+  },
+  "hooktitle_916_lines_drawn_without_wings_dark__last": {
+   "changed_px": 0,
+   "box": null
+  },
+  "hooktitle_916_surviving_ancient_skull_surg_dark__last": {
+   "changed_px": 0,
+   "box": null
+  },
+  "hooktitle_916_the_lost_amber_room_heist_dark__last": {
+   "changed_px": 0,
+   "box": null
+  },
+  "hooktitle_916_the_secret_labyrinth_beneath_dark__last": {
+   "changed_px": 0,
+   "box": null
+  },
+  "hooktitle_916_vanished_russia_s_lost_amber_dark__last": {
+   "changed_px": 0,
+   "box": null
+  },
+  "myth_169_damascus_bright+busy__last": {
+   "changed_px": 0,
+   "box": null
+  },
+  "myth_169_damascus_dark__last": {
+   "changed_px": 0,
+   "box": null
+  },
+  "myth_169_damascus_plain__last": {
+   "changed_px": 0,
+   "box": null
+  },
+  "myth_169_kailasa_bright+busy__last": {
+   "changed_px": 0,
+   "box": null
+  },
+  "myth_169_kailasa_dark__last": {
+   "changed_px": 0,
+   "box": null
+  },
+  "myth_169_kailasa_plain__last": {
+   "changed_px": 0,
+   "box": null
+  },
+  "myth_169_richat_long_bright__a_before_strike": {
+   "changed_px": 313,
+   "box": [
+    226,
+    241,
+    287,
+    269
+   ]
+  },
+  "myth_169_richat_long_bright__b_mid_strike": {
+   "changed_px": 313,
+   "box": [
+    226,
+    241,
+    287,
+    269
+   ]
+  },
+  "myth_169_richat_long_bright__c_after_strike": {
+   "changed_px": 769,
+   "box": [
+    226,
+    241,
+    965,
+    280
+   ]
+  },
+  "myth_169_richat_long_bright__d_fact_revealed": {
+   "changed_px": 845,
+   "box": [
+    226,
+    240,
+    965,
+    270
+   ]
+  },
+  "myth_169_richat_long_busy__a_before_strike": {
+   "changed_px": 313,
+   "box": [
+    226,
+    241,
+    287,
+    269
+   ]
+  },
+  "myth_169_richat_long_busy__b_mid_strike": {
+   "changed_px": 313,
+   "box": [
+    226,
+    241,
+    287,
+    269
+   ]
+  },
+  "myth_169_richat_long_busy__c_after_strike": {
+   "changed_px": 778,
+   "box": [
+    226,
+    241,
+    965,
+    280
+   ]
+  },
+  "myth_169_richat_long_busy__d_fact_revealed": {
+   "changed_px": 848,
+   "box": [
+    226,
+    240,
+    965,
+    270
+   ]
+  },
+  "myth_169_richat_long_dark__a_before_strike": {
+   "changed_px": 313,
+   "box": [
+    226,
+    241,
+    287,
+    269
+   ]
+  },
+  "myth_169_richat_long_dark__b_mid_strike": {
+   "changed_px": 313,
+   "box": [
+    226,
+    241,
+    287,
+    269
+   ]
+  },
+  "myth_169_richat_long_dark__c_after_strike": {
+   "changed_px": 771,
+   "box": [
+    226,
+    241,
+    965,
+    280
+   ]
+  },
+  "myth_169_richat_long_dark__d_fact_revealed": {
+   "changed_px": 845,
+   "box": [
+    226,
+    240,
+    965,
+    270
+   ]
+  },
+  "myth_169_richat_long_hero__a_before_strike": {
+   "changed_px": 313,
+   "box": [
+    226,
+    241,
+    287,
+    269
+   ]
+  },
+  "myth_169_richat_long_hero__b_mid_strike": {
+   "changed_px": 313,
+   "box": [
+    226,
+    241,
+    287,
+    269
+   ]
+  },
+  "myth_169_richat_long_hero__c_after_strike": {
+   "changed_px": 777,
+   "box": [
+    226,
+    241,
+    965,
+    280
+   ]
+  },
+  "myth_169_richat_long_hero__d_fact_revealed": {
+   "changed_px": 847,
+   "box": [
+    226,
+    240,
+    965,
+    270
+   ]
+  },
+  "myth_169_richat_long_plain__a_before_strike": {
+   "changed_px": 313,
+   "box": [
+    226,
+    241,
+    287,
+    269
+   ]
+  },
+  "myth_169_richat_long_plain__b_mid_strike": {
+   "changed_px": 313,
+   "box": [
+    226,
+    241,
+    287,
+    269
+   ]
+  },
+  "myth_169_richat_long_plain__c_after_strike": {
+   "changed_px": 779,
+   "box": [
+    226,
+    241,
+    965,
+    280
+   ]
+  },
+  "myth_169_richat_long_plain__d_fact_revealed": {
+   "changed_px": 847,
+   "box": [
+    226,
+    240,
+    965,
+    270
+   ]
+  },
+  "myth_169_richat_longest_bright__a_before_strike": {
+   "changed_px": 313,
+   "box": [
+    226,
+    241,
+    287,
+    269
+   ]
+  },
+  "myth_169_richat_longest_bright__b_mid_strike": {
+   "changed_px": 313,
+   "box": [
+    226,
+    241,
+    287,
+    269
+   ]
+  },
+  "myth_169_richat_longest_bright__c_after_strike": {
+   "changed_px": 795,
+   "box": [
+    226,
+    241,
+    965,
+    279
+   ]
+  },
+  "myth_169_richat_longest_bright__d_fact_revealed": {
+   "changed_px": 845,
+   "box": [
+    226,
+    240,
+    965,
+    270
+   ]
+  },
+  "myth_169_richat_longest_busy__a_before_strike": {
+   "changed_px": 313,
+   "box": [
+    226,
+    241,
+    287,
+    269
+   ]
+  },
+  "myth_169_richat_longest_busy__b_mid_strike": {
+   "changed_px": 313,
+   "box": [
+    226,
+    241,
+    287,
+    269
+   ]
+  },
+  "myth_169_richat_longest_busy__c_after_strike": {
+   "changed_px": 798,
+   "box": [
+    226,
+    241,
+    965,
+    279
+   ]
+  },
+  "myth_169_richat_longest_busy__d_fact_revealed": {
+   "changed_px": 848,
+   "box": [
+    226,
+    240,
+    965,
+    270
+   ]
+  },
+  "myth_169_richat_longest_dark__a_before_strike": {
+   "changed_px": 313,
+   "box": [
+    226,
+    241,
+    287,
+    269
+   ]
+  },
+  "myth_169_richat_longest_dark__b_mid_strike": {
+   "changed_px": 313,
+   "box": [
+    226,
+    241,
+    287,
+    269
+   ]
+  },
+  "myth_169_richat_longest_dark__c_after_strike": {
+   "changed_px": 795,
+   "box": [
+    226,
+    241,
+    965,
+    279
+   ]
+  },
+  "myth_169_richat_longest_dark__d_fact_revealed": {
+   "changed_px": 845,
+   "box": [
+    226,
+    240,
+    965,
+    270
+   ]
+  },
+  "myth_169_richat_longest_hero__a_before_strike": {
+   "changed_px": 313,
+   "box": [
+    226,
+    241,
+    287,
+    269
+   ]
+  },
+  "myth_169_richat_longest_hero__b_mid_strike": {
+   "changed_px": 313,
+   "box": [
+    226,
+    241,
+    287,
+    269
+   ]
+  },
+  "myth_169_richat_longest_hero__c_after_strike": {
+   "changed_px": 796,
+   "box": [
+    226,
+    241,
+    965,
+    279
+   ]
+  },
+  "myth_169_richat_longest_hero__d_fact_revealed": {
+   "changed_px": 847,
+   "box": [
+    226,
+    240,
+    965,
+    270
+   ]
+  },
+  "myth_169_richat_longest_plain__a_before_strike": {
+   "changed_px": 313,
+   "box": [
+    226,
+    241,
+    287,
+    269
+   ]
+  },
+  "myth_169_richat_longest_plain__b_mid_strike": {
+   "changed_px": 313,
+   "box": [
+    226,
+    241,
+    287,
+    269
+   ]
+  },
+  "myth_169_richat_longest_plain__c_after_strike": {
+   "changed_px": 798,
+   "box": [
+    226,
+    241,
+    965,
+    279
+   ]
+  },
+  "myth_169_richat_longest_plain__d_fact_revealed": {
+   "changed_px": 847,
+   "box": [
+    226,
+    240,
+    965,
+    270
+   ]
+  },
+  "myth_169_richat_nodate_bright__a_before_strike": {
+   "changed_px": 313,
+   "box": [
+    226,
+    234,
+    287,
+    262
+   ]
+  },
+  "myth_169_richat_nodate_bright__b_mid_strike": {
+   "changed_px": 313,
+   "box": [
+    226,
+    234,
+    287,
+    262
+   ]
+  },
+  "myth_169_richat_nodate_bright__c_after_strike": {
+   "changed_px": 769,
+   "box": [
+    226,
+    234,
+    965,
+    273
+   ]
+  },
+  "myth_169_richat_nodate_bright__d_fact_revealed": {
+   "changed_px": 846,
+   "box": [
+    226,
+    233,
+    965,
+    263
+   ]
+  },
+  "myth_169_richat_nodate_busy__a_before_strike": {
+   "changed_px": 313,
+   "box": [
+    226,
+    234,
+    287,
+    262
+   ]
+  },
+  "myth_169_richat_nodate_busy__b_mid_strike": {
+   "changed_px": 313,
+   "box": [
+    226,
+    234,
+    287,
+    262
+   ]
+  },
+  "myth_169_richat_nodate_busy__c_after_strike": {
+   "changed_px": 778,
+   "box": [
+    226,
+    234,
+    965,
+    273
+   ]
+  },
+  "myth_169_richat_nodate_busy__d_fact_revealed": {
+   "changed_px": 847,
+   "box": [
+    226,
+    233,
+    965,
+    263
+   ]
+  },
+  "myth_169_richat_nodate_dark__a_before_strike": {
+   "changed_px": 313,
+   "box": [
+    226,
+    234,
+    287,
+    262
+   ]
+  },
+  "myth_169_richat_nodate_dark__b_mid_strike": {
+   "changed_px": 313,
+   "box": [
+    226,
+    234,
+    287,
+    262
+   ]
+  },
+  "myth_169_richat_nodate_dark__c_after_strike": {
+   "changed_px": 771,
+   "box": [
+    226,
+    234,
+    965,
+    273
+   ]
+  },
+  "myth_169_richat_nodate_dark__d_fact_revealed": {
+   "changed_px": 845,
+   "box": [
+    226,
+    233,
+    965,
+    263
+   ]
+  },
+  "myth_169_richat_nodate_hero__a_before_strike": {
+   "changed_px": 313,
+   "box": [
+    226,
+    234,
+    287,
+    262
+   ]
+  },
+  "myth_169_richat_nodate_hero__b_mid_strike": {
+   "changed_px": 313,
+   "box": [
+    226,
+    234,
+    287,
+    262
+   ]
+  },
+  "myth_169_richat_nodate_hero__c_after_strike": {
+   "changed_px": 777,
+   "box": [
+    226,
+    234,
+    965,
+    273
+   ]
+  },
+  "myth_169_richat_nodate_hero__d_fact_revealed": {
+   "changed_px": 847,
+   "box": [
+    226,
+    233,
+    965,
+    263
+   ]
+  },
+  "myth_169_richat_nodate_plain__a_before_strike": {
+   "changed_px": 313,
+   "box": [
+    226,
+    234,
+    287,
+    262
+   ]
+  },
+  "myth_169_richat_nodate_plain__b_mid_strike": {
+   "changed_px": 313,
+   "box": [
+    226,
+    234,
+    287,
+    262
+   ]
+  },
+  "myth_169_richat_nodate_plain__c_after_strike": {
+   "changed_px": 779,
+   "box": [
+    226,
+    234,
+    965,
+    273
+   ]
+  },
+  "myth_169_richat_nodate_plain__d_fact_revealed": {
+   "changed_px": 847,
+   "box": [
+    226,
+    233,
+    965,
+    263
+   ]
+  },
+  "myth_169_richat_short_bright__a_before_strike": {
+   "changed_px": 313,
+   "box": [
+    226,
+    247,
+    287,
+    275
+   ]
+  },
+  "myth_169_richat_short_bright__b_mid_strike": {
+   "changed_px": 313,
+   "box": [
+    226,
+    247,
+    287,
+    275
+   ]
+  },
+  "myth_169_richat_short_bright__c_after_strike": {
+   "changed_px": 769,
+   "box": [
+    226,
+    247,
+    965,
+    286
+   ]
+  },
+  "myth_169_richat_short_bright__d_fact_revealed": {
+   "changed_px": 845,
+   "box": [
+    226,
+    246,
+    965,
+    276
+   ]
+  },
+  "myth_169_richat_short_busy__a_before_strike": {
+   "changed_px": 313,
+   "box": [
+    226,
+    247,
+    287,
+    275
+   ]
+  },
+  "myth_169_richat_short_busy__b_mid_strike": {
+   "changed_px": 313,
+   "box": [
+    226,
+    247,
+    287,
+    275
+   ]
+  },
+  "myth_169_richat_short_busy__c_after_strike": {
+   "changed_px": 779,
+   "box": [
+    226,
+    247,
+    965,
+    286
+   ]
+  },
+  "myth_169_richat_short_busy__d_fact_revealed": {
+   "changed_px": 848,
+   "box": [
+    226,
+    246,
+    965,
+    276
+   ]
+  },
+  "myth_169_richat_short_dark__a_before_strike": {
+   "changed_px": 313,
+   "box": [
+    226,
+    247,
+    287,
+    275
+   ]
+  },
+  "myth_169_richat_short_dark__b_mid_strike": {
+   "changed_px": 313,
+   "box": [
+    226,
+    247,
+    287,
+    275
+   ]
+  },
+  "myth_169_richat_short_dark__c_after_strike": {
+   "changed_px": 771,
+   "box": [
+    226,
+    247,
+    965,
+    286
+   ]
+  },
+  "myth_169_richat_short_dark__d_fact_revealed": {
+   "changed_px": 845,
+   "box": [
+    226,
+    246,
+    965,
+    276
+   ]
+  },
+  "myth_169_richat_short_hero__a_before_strike": {
+   "changed_px": 313,
+   "box": [
+    226,
+    247,
+    287,
+    275
+   ]
+  },
+  "myth_169_richat_short_hero__b_mid_strike": {
+   "changed_px": 313,
+   "box": [
+    226,
+    247,
+    287,
+    275
+   ]
+  },
+  "myth_169_richat_short_hero__c_after_strike": {
+   "changed_px": 776,
+   "box": [
+    226,
+    247,
+    965,
+    286
+   ]
+  },
+  "myth_169_richat_short_hero__d_fact_revealed": {
+   "changed_px": 847,
+   "box": [
+    226,
+    246,
+    965,
+    276
+   ]
+  },
+  "myth_169_richat_short_plain__a_before_strike": {
+   "changed_px": 313,
+   "box": [
+    226,
+    247,
+    287,
+    275
+   ]
+  },
+  "myth_169_richat_short_plain__b_mid_strike": {
+   "changed_px": 313,
+   "box": [
+    226,
+    247,
+    287,
+    275
+   ]
+  },
+  "myth_169_richat_short_plain__c_after_strike": {
+   "changed_px": 779,
+   "box": [
+    226,
+    247,
+    965,
+    286
+   ]
+  },
+  "myth_169_richat_short_plain__d_fact_revealed": {
+   "changed_px": 847,
+   "box": [
+    226,
+    246,
+    965,
+    276
+   ]
+  },
+  "myth_916_damascus_bright+busy__last": {
+   "changed_px": 0,
+   "box": null
+  },
+  "myth_916_damascus_dark__last": {
+   "changed_px": 0,
+   "box": null
+  },
+  "myth_916_damascus_plain__last": {
+   "changed_px": 0,
+   "box": null
+  },
+  "myth_916_kailasa_bright+busy__last": {
+   "changed_px": 0,
+   "box": null
+  },
+  "myth_916_kailasa_dark__last": {
+   "changed_px": 0,
+   "box": null
+  },
+  "myth_916_kailasa_plain__last": {
+   "changed_px": 0,
+   "box": null
+  },
+  "myth_916_richat_long_bright__a_before_strike": {
+   "changed_px": 313,
+   "box": [
+    175,
+    314,
+    237,
+    342
+   ]
+  },
+  "myth_916_richat_long_bright__b_mid_strike": {
+   "changed_px": 313,
+   "box": [
+    175,
+    314,
+    237,
+    342
+   ]
+  },
+  "myth_916_richat_long_bright__c_after_strike": {
+   "changed_px": 313,
+   "box": [
+    175,
+    314,
+    237,
+    342
+   ]
+  },
+  "myth_916_richat_long_bright__d_fact_revealed": {
+   "changed_px": 846,
+   "box": [
+    128,
+    314,
+    237,
+    654
+   ]
+  },
+  "myth_916_richat_long_busy__a_before_strike": {
+   "changed_px": 313,
+   "box": [
+    175,
+    314,
+    237,
+    342
+   ]
+  },
+  "myth_916_richat_long_busy__b_mid_strike": {
+   "changed_px": 313,
+   "box": [
+    175,
+    314,
+    237,
+    342
+   ]
+  },
+  "myth_916_richat_long_busy__c_after_strike": {
+   "changed_px": 313,
+   "box": [
+    175,
+    314,
+    237,
+    342
+   ]
+  },
+  "myth_916_richat_long_busy__d_fact_revealed": {
+   "changed_px": 847,
+   "box": [
+    128,
+    314,
+    237,
+    654
+   ]
+  },
+  "myth_916_richat_long_dark__a_before_strike": {
+   "changed_px": 314,
+   "box": [
+    175,
+    314,
+    237,
+    342
+   ]
+  },
+  "myth_916_richat_long_dark__b_mid_strike": {
+   "changed_px": 314,
+   "box": [
+    175,
+    314,
+    237,
+    342
+   ]
+  },
+  "myth_916_richat_long_dark__c_after_strike": {
+   "changed_px": 314,
+   "box": [
+    175,
+    314,
+    237,
+    342
+   ]
+  },
+  "myth_916_richat_long_dark__d_fact_revealed": {
+   "changed_px": 849,
+   "box": [
+    128,
+    314,
+    237,
+    654
+   ]
+  },
+  "myth_916_richat_long_hero__a_before_strike": {
+   "changed_px": 313,
+   "box": [
+    175,
+    314,
+    237,
+    342
+   ]
+  },
+  "myth_916_richat_long_hero__b_mid_strike": {
+   "changed_px": 313,
+   "box": [
+    175,
+    314,
+    237,
+    342
+   ]
+  },
+  "myth_916_richat_long_hero__c_after_strike": {
+   "changed_px": 313,
+   "box": [
+    175,
+    314,
+    237,
+    342
+   ]
+  },
+  "myth_916_richat_long_hero__d_fact_revealed": {
+   "changed_px": 847,
+   "box": [
+    128,
+    314,
+    237,
+    654
+   ]
+  },
+  "myth_916_richat_long_plain__a_before_strike": {
+   "changed_px": 313,
+   "box": [
+    175,
+    314,
+    237,
+    342
+   ]
+  },
+  "myth_916_richat_long_plain__b_mid_strike": {
+   "changed_px": 313,
+   "box": [
+    175,
+    314,
+    237,
+    342
+   ]
+  },
+  "myth_916_richat_long_plain__c_after_strike": {
+   "changed_px": 313,
+   "box": [
+    175,
+    314,
+    237,
+    342
+   ]
+  },
+  "myth_916_richat_long_plain__d_fact_revealed": {
+   "changed_px": 848,
+   "box": [
+    128,
+    314,
+    237,
+    654
+   ]
+  },
+  "myth_916_richat_longest_bright__last": {
+   "changed_px": 0,
+   "box": null
+  },
+  "myth_916_richat_longest_busy__last": {
+   "changed_px": 0,
+   "box": null
+  },
+  "myth_916_richat_longest_dark__last": {
+   "changed_px": 0,
+   "box": null
+  },
+  "myth_916_richat_longest_hero__last": {
+   "changed_px": 0,
+   "box": null
+  },
+  "myth_916_richat_longest_plain__last": {
+   "changed_px": 0,
+   "box": null
+  },
+  "myth_916_richat_nodate_bright__a_before_strike": {
+   "changed_px": 313,
+   "box": [
+    175,
+    314,
+    237,
+    342
+   ]
+  },
+  "myth_916_richat_nodate_bright__b_mid_strike": {
+   "changed_px": 313,
+   "box": [
+    175,
+    314,
+    237,
+    342
+   ]
+  },
+  "myth_916_richat_nodate_bright__c_after_strike": {
+   "changed_px": 313,
+   "box": [
+    175,
+    314,
+    237,
+    342
+   ]
+  },
+  "myth_916_richat_nodate_bright__d_fact_revealed": {
+   "changed_px": 846,
+   "box": [
+    128,
+    314,
+    237,
+    638
+   ]
+  },
+  "myth_916_richat_nodate_busy__a_before_strike": {
+   "changed_px": 313,
+   "box": [
+    175,
+    314,
+    237,
+    342
+   ]
+  },
+  "myth_916_richat_nodate_busy__b_mid_strike": {
+   "changed_px": 313,
+   "box": [
+    175,
+    314,
+    237,
+    342
+   ]
+  },
+  "myth_916_richat_nodate_busy__c_after_strike": {
+   "changed_px": 313,
+   "box": [
+    175,
+    314,
+    237,
+    342
+   ]
+  },
+  "myth_916_richat_nodate_busy__d_fact_revealed": {
+   "changed_px": 847,
+   "box": [
+    128,
+    314,
+    237,
+    638
+   ]
+  },
+  "myth_916_richat_nodate_dark__a_before_strike": {
+   "changed_px": 314,
+   "box": [
+    175,
+    314,
+    237,
+    342
+   ]
+  },
+  "myth_916_richat_nodate_dark__b_mid_strike": {
+   "changed_px": 314,
+   "box": [
+    175,
+    314,
+    237,
+    342
+   ]
+  },
+  "myth_916_richat_nodate_dark__c_after_strike": {
+   "changed_px": 314,
+   "box": [
+    175,
+    314,
+    237,
+    342
+   ]
+  },
+  "myth_916_richat_nodate_dark__d_fact_revealed": {
+   "changed_px": 849,
+   "box": [
+    128,
+    314,
+    237,
+    638
+   ]
+  },
+  "myth_916_richat_nodate_hero__a_before_strike": {
+   "changed_px": 313,
+   "box": [
+    175,
+    314,
+    237,
+    342
+   ]
+  },
+  "myth_916_richat_nodate_hero__b_mid_strike": {
+   "changed_px": 313,
+   "box": [
+    175,
+    314,
+    237,
+    342
+   ]
+  },
+  "myth_916_richat_nodate_hero__c_after_strike": {
+   "changed_px": 313,
+   "box": [
+    175,
+    314,
+    237,
+    342
+   ]
+  },
+  "myth_916_richat_nodate_hero__d_fact_revealed": {
+   "changed_px": 847,
+   "box": [
+    128,
+    314,
+    237,
+    638
+   ]
+  },
+  "myth_916_richat_nodate_plain__a_before_strike": {
+   "changed_px": 313,
+   "box": [
+    175,
+    314,
+    237,
+    342
+   ]
+  },
+  "myth_916_richat_nodate_plain__b_mid_strike": {
+   "changed_px": 313,
+   "box": [
+    175,
+    314,
+    237,
+    342
+   ]
+  },
+  "myth_916_richat_nodate_plain__c_after_strike": {
+   "changed_px": 313,
+   "box": [
+    175,
+    314,
+    237,
+    342
+   ]
+  },
+  "myth_916_richat_nodate_plain__d_fact_revealed": {
+   "changed_px": 848,
+   "box": [
+    128,
+    314,
+    237,
+    638
+   ]
+  },
+  "myth_916_richat_short_bright__a_before_strike": {
+   "changed_px": 313,
+   "box": [
+    175,
+    314,
+    237,
+    342
+   ]
+  },
+  "myth_916_richat_short_bright__b_mid_strike": {
+   "changed_px": 313,
+   "box": [
+    175,
+    314,
+    237,
+    342
+   ]
+  },
+  "myth_916_richat_short_bright__c_after_strike": {
+   "changed_px": 313,
+   "box": [
+    175,
+    314,
+    237,
+    342
+   ]
+  },
+  "myth_916_richat_short_bright__d_fact_revealed": {
+   "changed_px": 845,
+   "box": [
+    128,
+    314,
+    237,
+    673
+   ]
+  },
+  "myth_916_richat_short_busy__a_before_strike": {
+   "changed_px": 313,
+   "box": [
+    175,
+    314,
+    237,
+    342
+   ]
+  },
+  "myth_916_richat_short_busy__b_mid_strike": {
+   "changed_px": 313,
+   "box": [
+    175,
+    314,
+    237,
+    342
+   ]
+  },
+  "myth_916_richat_short_busy__c_after_strike": {
+   "changed_px": 313,
+   "box": [
+    175,
+    314,
+    237,
+    342
+   ]
+  },
+  "myth_916_richat_short_busy__d_fact_revealed": {
+   "changed_px": 846,
+   "box": [
+    128,
+    314,
+    237,
+    673
+   ]
+  },
+  "myth_916_richat_short_dark__a_before_strike": {
+   "changed_px": 314,
+   "box": [
+    175,
+    314,
+    237,
+    342
+   ]
+  },
+  "myth_916_richat_short_dark__b_mid_strike": {
+   "changed_px": 314,
+   "box": [
+    175,
+    314,
+    237,
+    342
+   ]
+  },
+  "myth_916_richat_short_dark__c_after_strike": {
+   "changed_px": 314,
+   "box": [
+    175,
+    314,
+    237,
+    342
+   ]
+  },
+  "myth_916_richat_short_dark__d_fact_revealed": {
+   "changed_px": 848,
+   "box": [
+    128,
+    314,
+    237,
+    673
+   ]
+  },
+  "myth_916_richat_short_hero__a_before_strike": {
+   "changed_px": 313,
+   "box": [
+    175,
+    314,
+    237,
+    342
+   ]
+  },
+  "myth_916_richat_short_hero__b_mid_strike": {
+   "changed_px": 313,
+   "box": [
+    175,
+    314,
+    237,
+    342
+   ]
+  },
+  "myth_916_richat_short_hero__c_after_strike": {
+   "changed_px": 313,
+   "box": [
+    175,
+    314,
+    237,
+    342
+   ]
+  },
+  "myth_916_richat_short_hero__d_fact_revealed": {
+   "changed_px": 847,
+   "box": [
+    128,
+    314,
+    237,
+    673
+   ]
+  },
+  "myth_916_richat_short_plain__a_before_strike": {
+   "changed_px": 313,
+   "box": [
+    175,
+    314,
+    237,
+    342
+   ]
+  },
+  "myth_916_richat_short_plain__b_mid_strike": {
+   "changed_px": 313,
+   "box": [
+    175,
+    314,
+    237,
+    342
+   ]
+  },
+  "myth_916_richat_short_plain__c_after_strike": {
+   "changed_px": 313,
+   "box": [
+    175,
+    314,
+    237,
+    342
+   ]
+  },
+  "myth_916_richat_short_plain__d_fact_revealed": {
+   "changed_px": 848,
+   "box": [
+    128,
+    314,
+    237,
+    673
+   ]
+  }
+ }
+}

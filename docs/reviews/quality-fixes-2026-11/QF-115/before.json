@@ -1,0 +1,53 @@
+{
+  "startup_cold_plain": {
+    "elapsed_to_first_message_s": 80.995,
+    "elapsed_to_dashboard_s": 80.995,
+    "first_queue_line": "📋 Queue: 12 topics · 12 with photos ready",
+    "elapsed_to_count_shown_s": 80.995,
+    "counted_ready_sets": 12,
+    "messages_sent": 1
+  },
+  "startup_warm_plain": {
+    "elapsed_to_first_message_s": 85.637,
+    "elapsed_to_dashboard_s": 85.637,
+    "first_queue_line": "📋 Queue: 12 topics · 12 with photos ready",
+    "elapsed_to_count_shown_s": 85.637,
+    "counted_ready_sets": 12,
+    "messages_sent": 1
+  },
+  "startup_cold_clean": {
+    "elapsed_to_first_message_s": 103.777,
+    "elapsed_to_dashboard_s": 104.642,
+    "first_queue_line": "📋 Queue: 12 topics · 12 with photos ready",
+    "elapsed_to_count_shown_s": 104.642,
+    "counted_ready_sets": 12,
+    "messages_sent": 2
+  },
+  "startup_warm_clean": {
+    "elapsed_to_first_message_s": 73.235,
+    "elapsed_to_dashboard_s": 74.376,
+    "first_queue_line": "📋 Queue: 12 topics · 12 with photos ready",
+    "elapsed_to_count_shown_s": 74.376,
+    "counted_ready_sets": 12,
+    "messages_sent": 2
+  },
+  "refresh_cold_process": {
+    "photos": 180,
+    "first_refresh_elapsed_s": 41.273,
+    "second_refresh_elapsed_s": 0.331,
+    "hash_errors": 0
+  },
+  "refresh_restarted_process": {
+    "photos": 180,
+    "first_refresh_elapsed_s": 38.305,
+    "second_refresh_elapsed_s": 0.492,
+    "hash_errors": 0
+  },
+  "signature_record_on_disk": false,
+  "pools": 12,
+  "photos_per_pool": 15,
+  "photo_size": [
+    2400,
+    1600
+  ]
+}

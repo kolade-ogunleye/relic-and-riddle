@@ -3,18 +3,27 @@ inside for every deliverable (operator, 2026-10-24: "ensure our visual contents 
 platform's safe UI"). One statement, read by the caption renderer, the graphics, the Story frames, the covers
 and the automated video check, so the numbers cannot drift apart again.
 
-Reference frame 1080x1920 (9:16). Figures and their sources, read 2026-10-24:
+Reference frame 1080x1920 (9:16). Figures and their sources (Reels re-read 2026-11-08, QF-24):
 
-- Meta, Instagram and Facebook Stories and Reels: "leaving roughly 14% of the top, 35% of the bottom, and 6% on
-  each side of your asset free from text, logos, or other key creative elements"
-  (facebook.com/business/ads-guide/video/instagram-story; the Reels guides give the same figures). At 1920 px:
-  269 top, 672 bottom, 65 each side. The profile icon and caption sit in the top band; the username, caption,
-  audio row and call-to-action in the bottom one.
-- YouTube Shorts: Google's vertical-video guidance draws a "Safe Zone" rectangle on a 1080x1920 frame
-  (support.google.com/google-ads/answer/9128498); its measurements read 288 top, 672 bottom, 48 left, 192 right.
-  The right column holds like, dislike, comments, share and remix; the bottom holds the channel, title and
-  sound. Google's own caveat: overlays "may appear in different places depending on the format, campaign type,
-  and screen", so this is the conservative box, not a guarantee.
+- Reels (Instagram, Facebook, YouTube Shorts) are posted organically, so their profile is the organic viewer's,
+  not the ads guides' (2026-10-24 to 2026-11-11 the Reel box used Meta's ads figure of 35% at the bottom, which
+  left the lower half of every 9:16 graphic empty: project quality review 2026-11-05, section 3).
+  - YouTube Shorts: the organic "Use visual guides" diagram (support.google.com/youtube/answer/16215842) labels
+    15% top, 28% bottom, 6% left, 6% upper right and a 21.5% right rail over the lower 63%; the rectangle here
+    keeps that rail at every height (65, 288)-(848, 1382).
+  - Instagram and Facebook Reels: no primary numeric organic profile was found, so the insets are empirical
+    stress bounds from two operator-supplied viewer screenshots (one of each, Facebook's with a shopping banner):
+    the controls inverse-mapped through centred fit and cover, for the visible media and for full-screen media
+    behind the comment composer, plus 12 screenshot px of annotation uncertainty and 16 source px of chosen
+    clearance (docs/reviews/quality-fixes-2026-11/QF-24/platform-overlays.json: anonymised rectangles only).
+    One device and view per platform; an expanded description, keyboard or modal sheet is not covered by any
+    static profile.
+  Their union is the shared organic Reel rectangle (113, 288)-(848, 1370), approved 2026-11-09
+  (decision QF-24/QF-87 layout).
+- Stories (Instagram and Facebook) keep Meta's guide: "leaving roughly 14% of the top, 35% of the bottom, and 6%
+  on each side of your asset free from text, logos, or other key creative elements"
+  (facebook.com/business/ads-guide/video/instagram-story). At 1920 px: 269 top, 672 bottom, 65 each side. The
+  Reel screenshots say nothing about the Story viewer, so its profile is unchanged.
 - Instagram profile grid: 3:4 since January 2025 (the centre 1080x1440 of a 9:16 cover). The older 1:1 crop
   (centre 1080x1080) is kept as the stricter bound for cover text, as it already was.
 - Carousel 4:5 (1440x1800 since 2026-10-28, laid out in 1080-wide design px): shown whole in both feeds; the
@@ -53,9 +62,9 @@ class Inset:
 
 
 PLATFORM_UI: Dict[str, Inset] = {
-    "instagram_reels": Inset(top=269, bottom=672, left=65, right=65),
-    "facebook_reels": Inset(top=269, bottom=672, left=65, right=65),
-    "youtube_shorts": Inset(top=288, bottom=672, left=48, right=192),
+    "instagram_reels": Inset(top=245, bottom=418, left=113, right=228),
+    "facebook_reels": Inset(top=244, bottom=550, left=113, right=228),
+    "youtube_shorts": Inset(top=288, bottom=538, left=65, right=232),
     "instagram_story": Inset(top=269, bottom=672, left=65, right=65),
     "facebook_story": Inset(top=269, bottom=672, left=65, right=65),
 }
@@ -67,7 +76,8 @@ DELIVERABLES: Dict[str, Tuple[str, ...]] = {
 
 SOURCES = {
     "meta": "https://www.facebook.com/business/ads-guide/video/instagram-story",
-    "youtube": "https://support.google.com/google-ads/answer/9128498",
+    "youtube": "https://support.google.com/youtube/answer/16215842",
+    "meta_reels_observed": "docs/reviews/quality-fixes-2026-11/QF-24/platform-overlays.json",
 }
 
 
@@ -78,7 +88,7 @@ def union(*platforms: str) -> Inset:
                  left=max(i.left for i in insets), right=max(i.right for i in insets))
 
 
-REEL = union(*DELIVERABLES["reel"])      # Inset(288, 672, 65, 192): x 65..888, y 288..1248 at 1080x1920
+REEL = union(*DELIVERABLES["reel"])      # Inset(288, 550, 113, 232): x 113..848, y 288..1370 at 1080x1920
 STORY = union(*DELIVERABLES["story"])    # Inset(269, 672, 65, 65):  x 65..1015, y 269..1248
 
 
@@ -87,10 +97,12 @@ def safe_box(kind: str, width: int = REFERENCE_WIDTH, height: int = REFERENCE_HE
     return {"reel": REEL, "story": STORY}[kind].box(width, height)
 
 
-# Captions sit at the bottom of the Reel box: the pill's lowest edge on the box's bottom line. Everything
-# above them (the graphics' text) stops this far above that line, which covers the tallest pill (the base
-# font's measured height plus its padding, about 110 px) and a gap so a figure never reads as a caption.
-CAPTION_BAND = 150
+# Captions sit at the bottom of the Reel box: the pill's lowest edge CAPTION_REEL_CLEARANCE (config, 20 px) above
+# the box's bottom line. CAPTION_BAND is reserved for them (decision QF-24/QF-87, 2026-11-09: 240 px, the 20 px
+# clearance included, so a bounded two-line burst fits; it was 150 px, one line only), and everything above them
+# (the graphics' text) stops a further 40 px gap above the band, so a figure never reads as a caption: at
+# 1080x1920 the band is y 1130-1370 and the graphics end at y 1090 (they ended at 1058 under the ads profile).
+CAPTION_BAND = 240
 CAPTION_CLEARANCE = 8  # px between the pill's bottom edge and the platforms' bottom band
 
 

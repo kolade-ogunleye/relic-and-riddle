@@ -1,0 +1,367 @@
+{
+ "tracked_copy": {
+  "total": {
+   "lines": 394,
+   "identical": 225,
+   "ink_wider_lines": 147
+  },
+  "per_design": {
+   "cover": {
+    "lines": 45,
+    "identical": 5,
+    "ink_wider_max_px": 10,
+    "ink_wider_lines": 39
+   },
+   "story": {
+    "lines": 66,
+    "identical": 15,
+    "ink_wider_max_px": 4,
+    "ink_wider_lines": 39
+   },
+   "carousel": {
+    "lines": 156,
+    "identical": 152,
+    "ink_wider_max_px": 0,
+    "ink_wider_lines": 0
+   },
+   "timeline": {
+    "lines": 25,
+    "identical": 0,
+    "ink_wider_max_px": 8,
+    "ink_wider_lines": 24
+   },
+   "stat_cards": {
+    "lines": 29,
+    "identical": 29,
+    "ink_wider_max_px": 0,
+    "ink_wider_lines": 0
+   },
+   "map": {
+    "lines": 28,
+    "identical": 8,
+    "ink_wider_max_px": 5,
+    "ink_wider_lines": 19
+   },
+   "route": {
+    "lines": 2,
+    "identical": 0,
+    "ink_wider_max_px": 4,
+    "ink_wider_lines": 2
+   },
+   "callouts": {
+    "lines": 33,
+    "identical": 10,
+    "ink_wider_max_px": 5,
+    "ink_wider_lines": 20
+   },
+   "chapter_card": {
+    "lines": 5,
+    "identical": 5,
+    "ink_wider_max_px": 0,
+    "ink_wider_lines": 0
+   },
+   "scale": {
+    "lines": 3,
+    "identical": 1,
+    "ink_wider_max_px": 4,
+    "ink_wider_lines": 2
+   },
+   "masthead": {
+    "lines": 1,
+    "identical": 0,
+    "ink_wider_max_px": 6,
+    "ink_wider_lines": 1
+   },
+   "end_card": {
+    "lines": 1,
+    "identical": 0,
+    "ink_wider_max_px": 3,
+    "ink_wider_lines": 1
+   }
+  },
+  "measure_vs_kerned_advance_max_px": 1.25
+ },
+ "font_features": {
+  "Anton-Regular.ttf": [
+   "aalt",
+   "c2sc",
+   "case",
+   "ccmp",
+   "cpsp",
+   "dlig",
+   "dnom",
+   "frac",
+   "kern",
+   "liga",
+   "locl",
+   "mark",
+   "mkmk",
+   "numr",
+   "ordn",
+   "sinf",
+   "smcp",
+   "subs",
+   "sups",
+   "zero"
+  ],
+  "Montserrat-Variable.ttf": [
+   "aalt",
+   "c2sc",
+   "case",
+   "ccmp",
+   "dlig",
+   "dnom",
+   "frac",
+   "kern",
+   "liga",
+   "lnum",
+   "locl",
+   "mark",
+   "mkmk",
+   "numr",
+   "onum",
+   "ordn",
+   "pnum",
+   "rvrn",
+   "sinf",
+   "smcp",
+   "ss01",
+   "subs",
+   "sups",
+   "tnum"
+  ],
+  "Cinzel-Variable.ttf": [
+   "calt",
+   "dlig",
+   "kern",
+   "locl",
+   "mark",
+   "onum",
+   "ss01",
+   "ss02"
+  ],
+  "IBMPlexMono-SemiBold.ttf": [
+   "aalt",
+   "ccmp",
+   "dnom",
+   "frac",
+   "lnum",
+   "locl",
+   "mark",
+   "numr",
+   "onum",
+   "ordn",
+   "salt",
+   "sinf",
+   "ss01",
+   "ss02",
+   "ss03",
+   "ss04",
+   "ss05",
+   "ss06",
+   "ss07",
+   "ss08",
+   "ss09",
+   "subs",
+   "sups",
+   "zero"
+  ],
+  "IBMPlexMono-Medium.ttf": [
+   "aalt",
+   "ccmp",
+   "dnom",
+   "frac",
+   "lnum",
+   "locl",
+   "mark",
+   "numr",
+   "onum",
+   "ordn",
+   "salt",
+   "sinf",
+   "ss01",
+   "ss02",
+   "ss03",
+   "ss04",
+   "ss05",
+   "ss06",
+   "ss07",
+   "ss08",
+   "ss09",
+   "subs",
+   "sups",
+   "zero"
+  ]
+ },
+ "default_feature_use": {
+  "Anton": {
+   "capitals_drawn_with_case": false
+  },
+  "Montserrat 700": {
+   "capitals_drawn_with_case": false
+  }
+ },
+ "caption_parity": {
+  "ass_files": 10,
+  "ass_sha256_all": "c244b4f79cdb7604db77c8f75d1bb2da7f28b32b6c6df30d60490935923b31d8",
+  "ass_sha256": {
+   "richat_structure_sahara_eye 9:16": "da531082077a100e24f956478b75ca7a4318db78b090fac8bd219bdeac7b633f",
+   "richat_structure_sahara_eye 16:9": "7504d0e0bb8387c21bc8902c586dd5a2384120202e815dae04f1e3cc62413256",
+   "gol_gumbaz_whispering_gallery 9:16": "e865007380beb4b34ac99d7b7540d11f0b88970ee2f81958d2c90df0484f9168",
+   "gol_gumbaz_whispering_gallery 16:9": "bd928b6c45b6b06f945b2972dcc40fb3c0b2ae281373977e39a27cf31d83cc49",
+   "tunguska_event_1908 9:16": "c1d3a1b0140cabeb6fe1bff9ef818a64026af798c1eefe08840315ce3516dcbf",
+   "tunguska_event_1908 16:9": "0dc5b6c77b382e44ccd9e18007ddd2c85463b7571637c1448c1f5eff66148042",
+   "amber_room_heist 9:16": "4f591e635114a5dae53d283964da43c995257c34efd0a279bbb467961efbc3c4",
+   "amber_room_heist 16:9": "2b7e30ba6e475e68b9f496522ac25014dc7f9958c2fc1fd954ed836eb85dcb97",
+   "voynich_manuscript 9:16": "ede3238ed14922e09efe634f1b76561ecb5a471b2852a7aab127de145352b779",
+   "voynich_manuscript 16:9": "e1f2d157cb69cb7708b5a8faefd4d318ba75177ff4fd46f945f88b08343d8ab7"
+  },
+  "decomposed_minus_composed_px_16x9": 87.25
+ },
+ "worst_lines": [
+  {
+   "design": "cover",
+   "run": "run_unfinished_obelisk_aswan_1793056896",
+   "text": "WHY EGYPT WALKED AWAY",
+   "font": "Montserrat 800",
+   "px": 40,
+   "track": 4.0,
+   "pixel_identical": false,
+   "changed_px": 6671,
+   "ink_wider_than_kerned_px": 10,
+   "measure_minus_kerned_advance_px": 0.0
+  },
+  {
+   "design": "timeline",
+   "run": "run_hal_saflieni_hypogeum_1792949304",
+   "text": "ACCIDENTALLY DISCOVERED",
+   "font": "Montserrat 600",
+   "px": 34,
+   "track": 1.7,
+   "pixel_identical": false,
+   "changed_px": 6439,
+   "ink_wider_than_kerned_px": 8,
+   "measure_minus_kerned_advance_px": 0.0
+  },
+  {
+   "design": "timeline",
+   "run": "run_amber_room_heist_1792781224",
+   "text": "CATHERINE PALACE RECONSTRUCTION",
+   "font": "Montserrat 600",
+   "px": 34,
+   "track": 1.7,
+   "pixel_identical": false,
+   "changed_px": 8631,
+   "ink_wider_than_kerned_px": 6,
+   "measure_minus_kerned_advance_px": 0.0
+  },
+  {
+   "design": "masthead",
+   "run": "",
+   "text": "RELIC & RIDDLE",
+   "font": "Cinzel 700",
+   "px": 64,
+   "track": 4.0,
+   "pixel_identical": false,
+   "changed_px": 6843,
+   "ink_wider_than_kerned_px": 6,
+   "measure_minus_kerned_advance_px": 0.0
+  },
+  {
+   "design": "timeline",
+   "run": "run_amber_room_heist_1792781224",
+   "text": "DOCUMENTATION ENDS AT KÖNIGSBERG",
+   "font": "Montserrat 600",
+   "px": 34,
+   "track": 1.7,
+   "pixel_identical": false,
+   "changed_px": 7198,
+   "ink_wider_than_kerned_px": 5,
+   "measure_minus_kerned_advance_px": 0.0
+  },
+  {
+   "design": "timeline",
+   "run": "run_amber_room_heist_1792805842",
+   "text": "INVESTIGATION CONCLUDES INCINERATED",
+   "font": "Montserrat 600",
+   "px": 34,
+   "track": 1.7,
+   "pixel_identical": false,
+   "changed_px": 9678,
+   "ink_wider_than_kerned_px": 5,
+   "measure_minus_kerned_advance_px": 0.0
+  },
+  {
+   "design": "cover",
+   "run": "run_greek_fire_siphon_1792735284_short",
+   "text": "MEDIEVAL WARFARE",
+   "font": "Montserrat 800",
+   "px": 40,
+   "track": 4.0,
+   "pixel_identical": false,
+   "changed_px": 3560,
+   "ink_wider_than_kerned_px": 5,
+   "measure_minus_kerned_advance_px": 0.0
+  },
+  {
+   "design": "callouts",
+   "run": "run_hal_saflieni_hypogeum_1792949304",
+   "text": "STEPS AND DOORWAYS",
+   "font": "Montserrat 700",
+   "px": 42,
+   "track": 1.68,
+   "pixel_identical": false,
+   "changed_px": 1739,
+   "ink_wider_than_kerned_px": 5,
+   "measure_minus_kerned_advance_px": 0.0
+  },
+  {
+   "design": "timeline",
+   "run": "run_nazca_lines_runway_paradox_1792961797",
+   "text": "GEOGLYPH CREATION ENDS",
+   "font": "Montserrat 600",
+   "px": 34,
+   "track": 1.7,
+   "pixel_identical": false,
+   "changed_px": 5420,
+   "ink_wider_than_kerned_px": 5,
+   "measure_minus_kerned_advance_px": 0.0
+  },
+  {
+   "design": "cover",
+   "run": "run_richat_structure_sahara_eye_1792737039_short",
+   "text": "NOT AN IMPACT CRATER",
+   "font": "Montserrat 800",
+   "px": 40,
+   "track": 4.0,
+   "pixel_identical": false,
+   "changed_px": 3500,
+   "ink_wider_than_kerned_px": 5,
+   "measure_minus_kerned_advance_px": 0.0
+  },
+  {
+   "design": "cover",
+   "run": "run_richat_structure_sahara_eye_1793272675",
+   "text": "CARVED BY NATURE",
+   "font": "Montserrat 800",
+   "px": 40,
+   "track": 4.0,
+   "pixel_identical": false,
+   "changed_px": 3440,
+   "ink_wider_than_kerned_px": 5,
+   "measure_minus_kerned_advance_px": 0.0
+  },
+  {
+   "design": "callouts",
+   "run": "run_richat_structure_sahara_eye_1793468053",
+   "text": "SEDIMENTARY ROCK LAYERS",
+   "font": "Montserrat 700",
+   "px": 42,
+   "track": 1.68,
+   "pixel_identical": false,
+   "changed_px": 4331,
+   "ink_wider_than_kerned_px": 5,
+   "measure_minus_kerned_advance_px": 0.0
+  }
+ ]
+}

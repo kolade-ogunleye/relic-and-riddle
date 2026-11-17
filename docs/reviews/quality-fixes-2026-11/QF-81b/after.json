@@ -1,0 +1,55 @@
+{
+ "approval_without_card": {
+  "carousel_posted": true,
+  "fingerprint_still_matches": null,
+  "held_reason_says_approved": false,
+  "status": "published",
+  "substituted_photo_drawn": false
+ },
+ "newest_mismatched_older_ready": {
+  "posted_at_slot": [
+   "r1"
+  ],
+  "r1_status": "published",
+  "r2_status": "failed"
+ },
+ "normal_runs_held": 0,
+ "plan_rewritten_after_approval": {
+  "carousel_posted": false,
+  "fingerprint_still_matches": false,
+  "held_reason_says_approved": true,
+  "hold_alert": {
+   "asks_for_a_new_version": false,
+   "offers_redraw": false,
+   "says_it_will_not_post": true
+  },
+  "status": "failed",
+  "substituted_photo_drawn": false
+ },
+ "preview_after_approval": {
+  "carousel_posted": true,
+  "fingerprint_still_matches": true,
+  "held_reason_says_approved": false,
+  "status": "published",
+  "substituted_photo_drawn": false
+ },
+ "redraw_then_newer_episode": {
+  "held_at_first_slot": true,
+  "hold_alerts": 1,
+  "posted_at_first_slot": [],
+  "posted_next_slot": [
+   "r2"
+  ],
+  "r1_status": "failed",
+  "r2_status": "published",
+  "redraw_refused": true
+ },
+ "substituted_plans_posted": 0,
+ "unchanged_plan": {
+  "carousel_posted": true,
+  "fingerprint_still_matches": true,
+  "held_reason_says_approved": false,
+  "status": "published",
+  "substituted_photo_drawn": false
+ }
+}

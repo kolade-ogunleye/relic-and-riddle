@@ -1,0 +1,66 @@
+{
+  "startup_cold_plain": {
+    "elapsed_to_first_message_s": 1.122,
+    "elapsed_to_dashboard_s": 1.122,
+    "first_queue_line": "📋 Queue: 12 topics · counting photo sets…",
+    "elapsed_to_count_shown_s": 73.098,
+    "counted_ready_sets": 12,
+    "messages_sent": 1,
+    "photo_warning_shown": false
+  },
+  "startup_warm_plain": {
+    "elapsed_to_first_message_s": 1.165,
+    "elapsed_to_dashboard_s": 1.165,
+    "first_queue_line": "📋 Queue: 12 topics · counting photo sets…",
+    "elapsed_to_count_shown_s": 19.009,
+    "counted_ready_sets": 12,
+    "messages_sent": 1,
+    "photo_warning_shown": false
+  },
+  "worker_after_restart_plain": {
+    "elapsed_to_first_message_s": 26.244,
+    "elapsed_to_dashboard_s": 26.244,
+    "first_queue_line": "📋 Queue: 12 topics · 12 with photos ready",
+    "elapsed_to_count_shown_s": 26.244,
+    "counted_ready_sets": 12,
+    "messages_sent": 1,
+    "photo_warning_shown": false
+  },
+  "startup_cold_clean": {
+    "elapsed_to_first_message_s": 1.312,
+    "elapsed_to_dashboard_s": 1.515,
+    "first_queue_line": "📋 Queue: 12 topics · counting photo sets…",
+    "elapsed_to_count_shown_s": 111.492,
+    "counted_ready_sets": 12,
+    "messages_sent": 2,
+    "photo_warning_shown": false
+  },
+  "startup_warm_clean": {
+    "elapsed_to_first_message_s": 1.249,
+    "elapsed_to_dashboard_s": 1.411,
+    "first_queue_line": "📋 Queue: 12 topics · counting photo sets…",
+    "elapsed_to_count_shown_s": 31.299,
+    "counted_ready_sets": 12,
+    "messages_sent": 2,
+    "photo_warning_shown": false
+  },
+  "refresh_cold_process": {
+    "photos": 180,
+    "first_refresh_elapsed_s": 48.61,
+    "second_refresh_elapsed_s": 0.909,
+    "hash_errors": 0
+  },
+  "refresh_restarted_process": {
+    "photos": 180,
+    "first_refresh_elapsed_s": 0.315,
+    "second_refresh_elapsed_s": 0.963,
+    "hash_errors": 0
+  },
+  "signature_record_on_disk": true,
+  "pools": 12,
+  "photos_per_pool": 15,
+  "photo_size": [
+    2400,
+    1600
+  ]
+}

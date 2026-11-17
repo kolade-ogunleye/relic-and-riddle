@@ -1,0 +1,880 @@
+{
+ "brand": "second",
+ "count": 194,
+ "errors": {},
+ "graphic_runs": {
+  "map": [
+   "run_amber_room_heist_1792790550",
+   "run_damascus_steel_nanotubes_1792732472_short",
+   "run_gol_gumbaz_whispering_gallery_1793278143",
+   "run_greek_fire_siphon_1792735284_short",
+   "run_hal_saflieni_hypogeum_1792949304",
+   "run_kailasa_temple_monolith_1792524470",
+   "run_nazca_lines_runway_paradox_1792961797",
+   "run_odessa_catacombs_1792970549",
+   "run_richat_structure_sahara_eye_1792737039_short",
+   "run_roman_self_healing_concrete_1793161347",
+   "run_singing_colossi_of_memnon_1792952878",
+   "run_trepanation_miracle_1792995462",
+   "run_tunguska_event_1908_1792930600",
+   "run_unfinished_obelisk_aswan_1792985912",
+   "run_voynich_manuscript_1792965308",
+   "run_wieliczka_salt_mine_1792974672"
+  ],
+  "numbers": [
+   "run_amber_room_heist_1792790550",
+   "run_damascus_steel_nanotubes_1792732472_short",
+   "run_gol_gumbaz_whispering_gallery_1793278143",
+   "run_hal_saflieni_hypogeum_1792949304",
+   "run_nazca_lines_runway_paradox_1792961797",
+   "run_odessa_catacombs_1792970549",
+   "run_richat_structure_sahara_eye_1792737039_short",
+   "run_singing_colossi_of_memnon_1792952878",
+   "run_trepanation_miracle_1792995462",
+   "run_tunguska_event_1908_1792930600",
+   "run_unfinished_obelisk_aswan_1792993374",
+   "run_voynich_manuscript_1792965308"
+  ],
+  "scale": [
+   "run_unfinished_obelisk_aswan_1792993374",
+   "run_wieliczka_salt_mine_1792974672"
+  ],
+  "timeline": [
+   "run_amber_room_heist_1792790550",
+   "run_hal_saflieni_hypogeum_1792949304",
+   "run_nazca_lines_runway_paradox_1792961797",
+   "run_richat_structure_sahara_eye_1793272675",
+   "run_roman_self_healing_concrete_1793161347",
+   "run_singing_colossi_of_memnon_1792952878"
+  ]
+ },
+ "parts": [
+  "maps, number cards, timelines, scales, route, cross-section, then-and-now, end cards and covers",
+  "carousels / gallery / Stories, cards, callouts and captions (--only social,cards,callouts,captions)"
+ ],
+ "seconds": {
+  "callouts 916": 180.64,
+  "captions": 7.35,
+  "cards": 45.89,
+  "cover amber_room_heist": 13.84,
+  "cover greek_fire_siphon": 14.48,
+  "cover richat_structure_sahara_eye": 9.52,
+  "cover tunguska_event_1908": 12.12,
+  "cover wieliczka_salt_mine": 14.08,
+  "cross-section 169": 113.4,
+  "cross-section 916": 127.02,
+  "endcard 0 richat_structure_sahara_eye": 316.91,
+  "endcard 1 wieliczka_salt_mine": 111.57,
+  "endcard 2 unfinished_obelisk_aswan": 129.72,
+  "endcard 3 nazca_lines_runway_paradox": 132.44,
+  "endcard 4 odessa_catacombs": 159.37,
+  "endcard 5 nazca_lines_runway_paradox": 132.26,
+  "endcard 6 wieliczka_salt_mine": 293.51,
+  "endcard 7 unfinished_obelisk_aswan": 321.56,
+  "endcard 8 roman_self_healing_concrete": 376.36,
+  "map run_amber_room_heist_1792790550 169": 73.93,
+  "map run_amber_room_heist_1792790550 916": 188.63,
+  "map run_damascus_steel_nanotubes_1792732472_short 169": 77.59,
+  "map run_damascus_steel_nanotubes_1792732472_short 916": 106.03,
+  "map run_gol_gumbaz_whispering_gallery_1793278143 169": 115.55,
+  "map run_gol_gumbaz_whispering_gallery_1793278143 916": 99.75,
+  "map run_greek_fire_siphon_1792735284_short 916": 76.64,
+  "map run_hal_saflieni_hypogeum_1792949304 916": 49.88,
+  "map run_kailasa_temple_monolith_1792524470 916": 113.86,
+  "map run_nazca_lines_runway_paradox_1792961797 916": 58.35,
+  "map run_odessa_catacombs_1792970549 916": 112.63,
+  "map run_richat_structure_sahara_eye_1792737039_short 916": 90.46,
+  "map run_roman_self_healing_concrete_1793161347 916": 106.69,
+  "map run_singing_colossi_of_memnon_1792952878 916": 125.29,
+  "map run_trepanation_miracle_1792995462 916": 106.1,
+  "map run_tunguska_event_1908_1792930600 916": 268.19,
+  "map run_unfinished_obelisk_aswan_1792985912 916": 204.8,
+  "map run_voynich_manuscript_1792965308 916": 131.97,
+  "map run_wieliczka_salt_mine_1792974672 916": 161.79,
+  "numbers run_amber_room_heist_1792790550 169": 104.17,
+  "numbers run_amber_room_heist_1792790550 916": 90.74,
+  "numbers run_damascus_steel_nanotubes_1792732472_short 169": 81.05,
+  "numbers run_damascus_steel_nanotubes_1792732472_short 916": 76.22,
+  "numbers run_gol_gumbaz_whispering_gallery_1793278143 169": 65.58,
+  "numbers run_gol_gumbaz_whispering_gallery_1793278143 916": 76.82,
+  "numbers run_hal_saflieni_hypogeum_1792949304 916": 80.91,
+  "numbers run_nazca_lines_runway_paradox_1792961797 916": 63.58,
+  "numbers run_odessa_catacombs_1792970549 916": 67.47,
+  "numbers run_richat_structure_sahara_eye_1792737039_short 916": 98.53,
+  "numbers run_singing_colossi_of_memnon_1792952878 916": 111.82,
+  "numbers run_trepanation_miracle_1792995462 916": 139.71,
+  "numbers run_tunguska_event_1908_1792930600 916": 103.22,
+  "numbers run_unfinished_obelisk_aswan_1792993374 916": 179.64,
+  "numbers run_voynich_manuscript_1792965308 916": 124.22,
+  "route run_amber_room_heist_1792801257 169": 40.73,
+  "route run_amber_room_heist_1792801257 916": 41.02,
+  "scale run_unfinished_obelisk_aswan_1792993374 169": 119.63,
+  "scale run_unfinished_obelisk_aswan_1792993374 916": 113.87,
+  "scale run_wieliczka_salt_mine_1792974672 169": 193.19,
+  "scale run_wieliczka_salt_mine_1792974672 916": 144.71,
+  "social run_gol_gumbaz_whispering_gallery_1793278143": 90.79,
+  "social run_nazca_lines_runway_paradox_1793247464": 64.19,
+  "social run_nazca_lines_runway_paradox_1793251266": 64.13,
+  "social run_richat_structure_sahara_eye_1793272675": 73.68,
+  "thennow roman_self_healing_concrete 169": 72.0,
+  "thennow roman_self_healing_concrete 916": 107.5,
+  "thennow singing_colossi_of_memnon 169": 80.31,
+  "thennow singing_colossi_of_memnon 916": 75.68,
+  "timeline run_amber_room_heist_1792790550 169": 27.45,
+  "timeline run_amber_room_heist_1792790550 916": 25.81,
+  "timeline run_hal_saflieni_hypogeum_1792949304 169": 33.01,
+  "timeline run_hal_saflieni_hypogeum_1792949304 916": 26.45,
+  "timeline run_nazca_lines_runway_paradox_1792961797 169": 38.5,
+  "timeline run_nazca_lines_runway_paradox_1792961797 916": 27.55,
+  "timeline run_richat_structure_sahara_eye_1793272675 916": 20.5,
+  "timeline run_roman_self_healing_concrete_1793161347 916": 23.1,
+  "timeline run_singing_colossi_of_memnon_1792952878 916": 38.13
+ },
+ "src_sha256": "8c6ab4206eb6ec2d",
+ "surfaces": {
+  "bridge__1_wieliczka_salt_mine": {
+   "frames": 30,
+   "sha256": "739f8c9696b8114fe650f089c8104782cbb42b741e2b6ee684e596a78c5f0893"
+  },
+  "bridge__2_unfinished_obelisk_aswan": {
+   "frames": 30,
+   "sha256": "652c17a8b3331af20da9fe411ab0474e50f1b84f0b2dad549d0fb164912a300d"
+  },
+  "bridge__3_nazca_lines_runway_paradox": {
+   "frames": 30,
+   "sha256": "13b285a6f25484ff1ad0f14df73fb0a9ae350d53786b2e9a0434d4a553825997"
+  },
+  "bridge__4_odessa_catacombs": {
+   "frames": 30,
+   "sha256": "a93fdf42e9a0731b1f2b7e2981e5e72a22cb65addfb8f139a40ac00501582f3e"
+  },
+  "bridge__5_nazca_lines_runway_paradox": {
+   "frames": 30,
+   "sha256": "ee5d696021852a916193e55ebf1dd0a1225e38849d8e512588eeb39eda18d6a0"
+  },
+  "bridge_follow__1_wieliczka_salt_mine": {
+   "frames": 30,
+   "sha256": "60bb1a96da8292445d15dbfc0b66bcd9f132df53bf0c32351b750ef651714921"
+  },
+  "bridge_follow__2_unfinished_obelisk_aswan": {
+   "frames": 30,
+   "sha256": "a49cfb89cb69e52a944ed195ca215bc51a0c53e93749f2ca17e447e1dcf54d5a"
+  },
+  "bridge_follow__3_nazca_lines_runway_paradox": {
+   "frames": 30,
+   "sha256": "beda34184e0cabaf0f701c7679536d62d1fabdf2dca009cb005c2e2f4be1af35"
+  },
+  "bridge_follow__4_odessa_catacombs": {
+   "frames": 30,
+   "sha256": "0867088a1cf012e1427c17f4405d1533bc2c737ad7a4635e3bfccdb649df5eed"
+  },
+  "bridge_follow__5_nazca_lines_runway_paradox": {
+   "frames": 30,
+   "sha256": "865a99d3b134b83c84fbb202d323588a8884a8b77027bee1ef62382c6d25330f"
+  },
+  "callouts__reference_pair__916": {
+   "frames": 180,
+   "sha256": "a2437fe3b4a117fa52548654530cf7747bea4dafbaa3fc4d2e6f6c83bc04f151"
+  },
+  "captions__amber_room_heist__ass": {
+   "sha256": "b131ff6f2a85bbe1498f63166e1d24a9cd6ef2447ba128df506b69d58fca4c1a"
+  },
+  "captions__amber_room_heist__frame": {
+   "frames": 1,
+   "sha256": "850b4589acb2e5ee2f98e86abde95c68f849938fa4c90d7572bc0859ebc893d2"
+  },
+  "captions__gol_gumbaz_whispering_gallery__ass": {
+   "sha256": "f0624473324f4d5a8a46db97600cb8ab3904cc3bea34b32f5c60eb9c28448c52"
+  },
+  "captions__gol_gumbaz_whispering_gallery__frame": {
+   "frames": 1,
+   "sha256": "98ca7f95930c783e8d1ec62a9b7502266199d8a72c0085cfe7153997e7ec372e"
+  },
+  "captions__richat_structure_sahara_eye__ass": {
+   "sha256": "17043971bc945cb16956543b67c8c705d4b41b911489dbdbbb6e736ae21a4e96"
+  },
+  "captions__tunguska_event_1908__ass": {
+   "sha256": "4af2ad0ef87282056455055c5f98a9e70ce01f9743a05ec8e00991f69b41719a"
+  },
+  "captions__tunguska_event_1908__frame": {
+   "frames": 1,
+   "sha256": "f8ec229ca6be2fc18107e42505d27bc14e13e12b946a53c85a1b6e3ddad7aa0b"
+  },
+  "captions__voynich_manuscript__ass": {
+   "sha256": "125123c4c063d39f8a4a72772eebd5e4d06ac9931445b229ee0b9a6239544fbd"
+  },
+  "captions__voynich_manuscript__frame": {
+   "frames": 1,
+   "sha256": "e2eea98da754905eb762c04bcafe45f2e435dc99214c7dcfa9ccd38c3ad5ad6a"
+  },
+  "card__chapter_act1__amber__169": {
+   "refused": "the 16:9 title does not fit two lines at 96 px, the type floor"
+  },
+  "card__chapter_act1__amber__916": {
+   "refused": "the title does not fit two lines at the floor size"
+  },
+  "card__chapter_act1__obelisk__169": {
+   "refused": "the 16:9 title does not fit two lines at 96 px, the type floor"
+  },
+  "card__chapter_act1__obelisk__916": {
+   "refused": "the title does not fit two lines at the floor size"
+  },
+  "card__chapter_act1__richat__169": {
+   "refused": "the 16:9 title does not fit two lines at 96 px, the type floor"
+  },
+  "card__chapter_act1__richat__916": {
+   "refused": "the title does not fit two lines at the floor size"
+  },
+  "card__chapter_act4__amber__169": {
+   "refused": "the 16:9 title does not fit two lines at 96 px, the type floor"
+  },
+  "card__chapter_act4__amber__916": {
+   "refused": "the title does not fit two lines at the floor size"
+  },
+  "card__chapter_act4__obelisk__169": {
+   "refused": "the 16:9 title does not fit two lines at 96 px, the type floor"
+  },
+  "card__chapter_act4__obelisk__916": {
+   "refused": "the title does not fit two lines at the floor size"
+  },
+  "card__chapter_act4__richat__169": {
+   "refused": "the 16:9 title does not fit two lines at 96 px, the type floor"
+  },
+  "card__chapter_act4__richat__916": {
+   "refused": "the title does not fit two lines at the floor size"
+  },
+  "card__hook__amber__916": {
+   "refused": "the claim does not fit three lines at 112 px"
+  },
+  "card__hook__obelisk__916": {
+   "refused": "the claim does not fit three lines at 112 px"
+  },
+  "card__hook__richat__916": {
+   "refused": "the photo would be enlarged 3.08x (max 2.0)"
+  },
+  "card__myth_long_et__amber__169": {
+   "refused": "the myth or the fact runs past its line limit at the floor size with its source line kept"
+  },
+  "card__myth_long_et__amber__916": {
+   "refused": "the myth or the fact runs past its line limit at the floor size with its source line kept"
+  },
+  "card__myth_long_et__obelisk__169": {
+   "refused": "the myth or the fact runs past its line limit at the floor size with its source line kept"
+  },
+  "card__myth_long_et__obelisk__916": {
+   "refused": "the myth or the fact runs past its line limit at the floor size with its source line kept"
+  },
+  "card__myth_long_et__richat__169": {
+   "refused": "the myth or the fact runs past its line limit at the floor size with its source line kept"
+  },
+  "card__myth_long_et__richat__916": {
+   "refused": "the myth or the fact runs past its line limit at the floor size with its source line kept"
+  },
+  "card__myth_richat__amber__169": {
+   "refused": "the myth or the fact runs past its line limit at the floor size with its source line kept"
+  },
+  "card__myth_richat__amber__916": {
+   "refused": "the myth or the fact runs past its line limit at the floor size with its source line kept"
+  },
+  "card__myth_richat__obelisk__169": {
+   "refused": "the myth or the fact runs past its line limit at the floor size with its source line kept"
+  },
+  "card__myth_richat__obelisk__916": {
+   "refused": "the myth or the fact runs past its line limit at the floor size with its source line kept"
+  },
+  "card__myth_richat__richat__169": {
+   "refused": "the myth or the fact runs past its line limit at the floor size with its source line kept"
+  },
+  "card__myth_richat__richat__916": {
+   "refused": "the myth or the fact runs past its line limit at the floor size with its source line kept"
+  },
+  "cover__amber_room_heist__grid": {
+   "frames": 1,
+   "sha256": "8580381a65e933b69e7ccc1e8852c19c4163bebfb40b050bea858940b9806754"
+  },
+  "cover__amber_room_heist__reel": {
+   "frames": 1,
+   "sha256": "e44cd503865913539cc39a0fc21b2e8331699e46df5138b318858ee0b00a530e"
+  },
+  "cover__amber_room_heist__youtube": {
+   "frames": 1,
+   "sha256": "b29fccddb0ed13e570499d9bb5bbfb4d16e7d8fe1e92a33452bc0e4f4cb7e689"
+  },
+  "cover__greek_fire_siphon__grid": {
+   "frames": 1,
+   "sha256": "2329a6d7f8b96950d14d7c729ae681369a5cb83e46c5c27b1727160cba203d08"
+  },
+  "cover__greek_fire_siphon__reel": {
+   "frames": 1,
+   "sha256": "55435d607ef3fe8a665d2d5daf894982ab8311259241429e9f916826bd6c381e"
+  },
+  "cover__greek_fire_siphon__youtube": {
+   "frames": 1,
+   "sha256": "62937457cd434bba0f092c077f85979ccb08001a9d56200a00cf01a4bbd32c14"
+  },
+  "cover__richat_structure_sahara_eye__grid": {
+   "frames": 1,
+   "sha256": "7ebffdad6a4f281e442936a938d08e9d0c46ca2be8897541a84a3aa3238529d9"
+  },
+  "cover__richat_structure_sahara_eye__reel": {
+   "frames": 1,
+   "sha256": "faffb5e0aa7d184874d0a98ff598039a1a495591ba7df277e994d798f5d7b908"
+  },
+  "cover__richat_structure_sahara_eye__youtube": {
+   "frames": 1,
+   "sha256": "a6d9f045bce625489f470afb1d16e1eef882b99265cd20354047664baefc24e6"
+  },
+  "cover__tunguska_event_1908__grid": {
+   "frames": 1,
+   "sha256": "2899525909b89d42dd0a33b089abf76f32173a7e242d919921536cd1165e22c9"
+  },
+  "cover__tunguska_event_1908__reel": {
+   "frames": 1,
+   "sha256": "4c6de501eb72848aa34103d4c32bcb007d5b040b7441809c880d95790860ea67"
+  },
+  "cover__tunguska_event_1908__youtube": {
+   "frames": 1,
+   "sha256": "e5c1f486b94a3af543f43fbe5ca5a9ab67ad4aca2db649876fc8a042e51a1b3f"
+  },
+  "cover__wieliczka_salt_mine__grid": {
+   "frames": 1,
+   "sha256": "617ad7dafb71235e6111ae548b6b46bbda0fd3a2e9f0cf398465f4b39614139f"
+  },
+  "cover__wieliczka_salt_mine__reel": {
+   "frames": 1,
+   "sha256": "3d88aa7d7c76c8191f08e118a19bbfdc0ba227ef5356be08ddb655ce60eba2f8"
+  },
+  "cover__wieliczka_salt_mine__youtube": {
+   "frames": 1,
+   "sha256": "6e40511e2fe58843c309435799e2f69234dcadbf6eabcc8c72b6f20af6ca555c"
+  },
+  "cross_section__test_spec__169": {
+   "frames": 180,
+   "sha256": "22ea2773b7f74443ffcfd4299f0fcbe0c2ed7ccea9d8019cbe69c96ff4238f05"
+  },
+  "cross_section__test_spec__916": {
+   "frames": 180,
+   "sha256": "a7f068315a351126ba0710f0d6e78599b6c23d52251103de84034fcf6cc1d819"
+  },
+  "endcard__1_wieliczka_salt_mine": {
+   "frames": 87,
+   "sha256": "bcf00994eb18cc2186c13f60b3d6642e308a9a3f1a681836ded44494c17f1228"
+  },
+  "endcard__2_unfinished_obelisk_aswan": {
+   "frames": 87,
+   "sha256": "3bdbc63e16594e8880663e349a587c0cc7c255b9be0c931bcc5b9dd9d6d2cbef"
+  },
+  "endcard__3_nazca_lines_runway_paradox": {
+   "frames": 87,
+   "sha256": "f7a82d6b0fa2f9d98bb2948de1bd63c28ecbf872caebb5aeb7c251d329f7dff3"
+  },
+  "endcard__4_odessa_catacombs": {
+   "frames": 87,
+   "sha256": "8fa0848b531517ea5e76941b6259becbe9c5f76f4099a4e22e39aedfea119d1c"
+  },
+  "endcard__5_nazca_lines_runway_paradox": {
+   "frames": 87,
+   "sha256": "611a00b788c4c9e3481107a52fc1c406023f4a27ee59f9dd051605ee441d13ae"
+  },
+  "endscreen__0_richat_structure_sahara_eye": {
+   "frames": 300,
+   "sha256": "f8efadc449474a8655c3b6fe9057347b188464f39ff027359983c60291c5e863"
+  },
+  "endscreen__6_wieliczka_salt_mine": {
+   "frames": 300,
+   "sha256": "cc2e377b4c37e5a7df5ef9f0be570d76545721f0ff2f1d9f831dec85ddf100b6"
+  },
+  "endscreen__7_unfinished_obelisk_aswan": {
+   "frames": 300,
+   "sha256": "3918730c81ed5419d839dfed814cb0fa27336822acf83aa5180536977612edb3"
+  },
+  "endscreen__8_roman_self_healing_concrete": {
+   "frames": 300,
+   "sha256": "76bc5fe0edf632b3d64a863d8172b3857a5de33b180a88f57d3ee971e312dd04"
+  },
+  "map__amber_room_heist_1792790550__169": {
+   "frames": 180,
+   "sha256": "5b3ef067caa4f44f42dedc301f8e822a935573869ec7f4ef34ac8e7250652306"
+  },
+  "map__amber_room_heist_1792790550__916": {
+   "frames": 180,
+   "sha256": "e20a06ff07d44a62ac42c7b7a8fe57196dff19dc209b2490f9c06f08370f0387"
+  },
+  "map__damascus_steel_nanotubes_1792732472_short__169": {
+   "frames": 180,
+   "sha256": "10693e0d43492998b72678d289624cab395b6132cf1d249c6ea61e1e781d9eaa"
+  },
+  "map__damascus_steel_nanotubes_1792732472_short__916": {
+   "frames": 180,
+   "sha256": "f87d22565534964279c5823b57fce7d7da421127576363da15648a01541a9374"
+  },
+  "map__gol_gumbaz_whispering_gallery_1793278143__169": {
+   "frames": 180,
+   "sha256": "c95ffe62933a4b999dd5b998cdc5378dbcfb0ea213048b31239342313e2f61cc"
+  },
+  "map__gol_gumbaz_whispering_gallery_1793278143__916": {
+   "frames": 180,
+   "sha256": "ba087769a4c95f26fd2912e9ff898bc9e115d613bfe5f60cdf55be472c0c0610"
+  },
+  "map__greek_fire_siphon_1792735284_short__916": {
+   "frames": 180,
+   "sha256": "84d9daf11e9f104f994ff02a839aa3cf66971b512e67034191a2ec2d2cf39cfa"
+  },
+  "map__hal_saflieni_hypogeum_1792949304__916": {
+   "frames": 180,
+   "sha256": "e24e05dd16a0c42754d2b2f65762f2de0a9a1fdf415dda0bddfd26c6bb7d8885"
+  },
+  "map__kailasa_temple_monolith_1792524470__916": {
+   "frames": 180,
+   "sha256": "61163383935cd00973048e21efa1ff84ea4d17f8ff394cbc2860520c37cf495c"
+  },
+  "map__nazca_lines_runway_paradox_1792961797__916": {
+   "frames": 180,
+   "sha256": "c089b64c694eab6a8cfdad520710c150496db52b9a2a40313f4b3402279a9dda"
+  },
+  "map__odessa_catacombs_1792970549__916": {
+   "frames": 180,
+   "sha256": "3b943e71df7a3dd7b327ae31b6773977f006d7e99d0f833a7ea1706634f8793d"
+  },
+  "map__richat_structure_sahara_eye_1792737039_short__916": {
+   "frames": 180,
+   "sha256": "ccdd03706efd63a264dc04a72d7415fb3448888201fa1e879e22030188b53a32"
+  },
+  "map__roman_self_healing_concrete_1793161347__916": {
+   "frames": 180,
+   "sha256": "3cb92852431e040c6d58f0c8d95b66e76faf2e4341cc9fcee4688895399cca37"
+  },
+  "map__singing_colossi_of_memnon_1792952878__916": {
+   "frames": 180,
+   "sha256": "e5e52897df6980fbfaf47bb4da08f692c6e0f488e8420f6efa386ea511cf22fe"
+  },
+  "map__trepanation_miracle_1792995462__916": {
+   "frames": 180,
+   "sha256": "902f2bd99cba07e741bc3514c0d51b78b31a23e71ddc3f21b79f13644b0030ba"
+  },
+  "map__tunguska_event_1908_1792930600__916": {
+   "frames": 180,
+   "sha256": "9a5852dec3122b39246d6d48cb30e5e9b03a347631e51a1507da5f6771d9fd1c"
+  },
+  "map__unfinished_obelisk_aswan_1792985912__916": {
+   "frames": 180,
+   "sha256": "e7cc779e26eaa207bb8df5378712e120e03f958df9977b5bb5e4770e1ca9ca9b"
+  },
+  "map__voynich_manuscript_1792965308__916": {
+   "frames": 180,
+   "sha256": "50ec5fcdf67dec750c1349572856ca2ccf391995807e7a68021906f0b87c8b10"
+  },
+  "map__wieliczka_salt_mine_1792974672__916": {
+   "frames": 180,
+   "sha256": "1508877a0e5d7943974a49bc39784ba86d03decafbd1072fc1893fce58d2bc01"
+  },
+  "numbers__amber_room_heist_1792790550__169": {
+   "frames": 180,
+   "sha256": "5cc140ab706b4772e24112fb7d5424506014dff618aa41e9236bb62e86babfa7"
+  },
+  "numbers__amber_room_heist_1792790550__916": {
+   "frames": 180,
+   "sha256": "58b68cac71bc963ae93435c31c16086ad7f37e958d0183f70d21422f22f5aa01"
+  },
+  "numbers__damascus_steel_nanotubes_1792732472_short__169": {
+   "frames": 180,
+   "sha256": "29554ccfebe01acce90a555adc7d20113805e3f2e062c63e2e3715f8d9b7b07d"
+  },
+  "numbers__damascus_steel_nanotubes_1792732472_short__916": {
+   "frames": 180,
+   "sha256": "b1758508844c5f030c6934a37ee7c4b0966da98dcf5e4cdd281aa90b81b5e3ee"
+  },
+  "numbers__gol_gumbaz_whispering_gallery_1793278143__169": {
+   "frames": 180,
+   "sha256": "87d7ee21127f736972f9075bc759e6412cd7f339d4f53bbb4624eb4833107338"
+  },
+  "numbers__gol_gumbaz_whispering_gallery_1793278143__916": {
+   "frames": 180,
+   "sha256": "01800c5fa0daa74a9792bc87a020a2f05f7c6836cde3f9c039160c582b17d84b"
+  },
+  "numbers__hal_saflieni_hypogeum_1792949304__916": {
+   "frames": 180,
+   "sha256": "dd08664eac9c35dbb92397b24976621ee1fc54f2497ffb749bc5caa1cef026aa"
+  },
+  "numbers__nazca_lines_runway_paradox_1792961797__916": {
+   "frames": 180,
+   "sha256": "7b83ec2d726e8db5f593a49df3cc74428c61afe8b5b60603cf8a8a5432a860b9"
+  },
+  "numbers__odessa_catacombs_1792970549__916": {
+   "frames": 180,
+   "sha256": "22f9a346ea241a903f99fd4b86c6cc640cae582870046f41cf94fd5069d9e237"
+  },
+  "numbers__richat_structure_sahara_eye_1792737039_short__916": {
+   "frames": 180,
+   "sha256": "0b39b9c024461e72cc78b80b83321020062d643f8eaad6e823c186eacecf325c"
+  },
+  "numbers__singing_colossi_of_memnon_1792952878__916": {
+   "frames": 180,
+   "sha256": "db6a79bf63b6e157a2773f931262bf55ce488ed7ec55e2afddcd279bc840c117"
+  },
+  "numbers__trepanation_miracle_1792995462__916": {
+   "frames": 180,
+   "sha256": "dac0a75549efcbf140d2aa79f893f0425ce1d7f77ad5916b2ec8985a297f3c7b"
+  },
+  "numbers__tunguska_event_1908_1792930600__916": {
+   "frames": 180,
+   "sha256": "828c58e115d0b82f85faac71fcbe4d9ff9ef0c0b7d876835d1545253a266cbdc"
+  },
+  "numbers__unfinished_obelisk_aswan_1792993374__916": {
+   "frames": 180,
+   "sha256": "e6a7233c6186047be6e829d7002d1ec47293d8defd596ce012c4a1b1c2b175d8"
+  },
+  "numbers__voynich_manuscript_1792965308__916": {
+   "frames": 180,
+   "sha256": "4b5530c5a18d2a219e9b27193c5e034ea27dcfe88d9048d893b8e9897fd85820"
+  },
+  "route__amber_room_heist_1792801257_new_stops__169": {
+   "frames": 180,
+   "sha256": "5cf6051fb8a29948b709f2c1b3caf5a74ec14435f6ccf61c9cd278e1fbe7bc8e"
+  },
+  "route__amber_room_heist_1792801257_new_stops__916": {
+   "frames": 180,
+   "sha256": "48521656985a84d5f32007d0073883e7382e2d5ddb8bfea831a8a3ce3f45d294"
+  },
+  "scale__unfinished_obelisk_aswan_1792993374__169": {
+   "frames": 180,
+   "sha256": "6e378a540fe316da9fd90096503ec6a5e611d807afa54bdde9b9f77e0d1a9741"
+  },
+  "scale__unfinished_obelisk_aswan_1792993374__916": {
+   "frames": 180,
+   "sha256": "714fc465a7250937d6f27c29b9fe0df31a8364873ab4895a7ecec10c528fbf7d"
+  },
+  "scale__wieliczka_salt_mine_1792974672__169": {
+   "frames": 180,
+   "sha256": "4082a04dd54776572a8293a97d3ad164863a850ea73ea441049ded21095787ce"
+  },
+  "scale__wieliczka_salt_mine_1792974672__916": {
+   "frames": 180,
+   "sha256": "a8f4226924f4f02049360be3671327d43551e22b489716e50495fa5a2b031ee0"
+  },
+  "social__gol_gumbaz_whispering_gallery_1793278143__carousel_carousel_slide_01": {
+   "frames": 1,
+   "sha256": "a4a2d37c449ce777e15018b5ab6184f585cb22275861582307d916a5baa2bf95"
+  },
+  "social__gol_gumbaz_whispering_gallery_1793278143__carousel_carousel_slide_02": {
+   "frames": 1,
+   "sha256": "8e47523ebaee01b07d3c39ca5108a33ce2f4b1f9aa837a22768411e4aeded467"
+  },
+  "social__gol_gumbaz_whispering_gallery_1793278143__carousel_carousel_slide_03": {
+   "frames": 1,
+   "sha256": "fd327254d8050b949774e6b6a438e8553f803f836c62516b03c60588fff6a484"
+  },
+  "social__gol_gumbaz_whispering_gallery_1793278143__carousel_carousel_slide_04": {
+   "frames": 1,
+   "sha256": "771fb9dc219e397953ab0e02dbcf479f42715cc8db7c208c8197094bb8d9c42a"
+  },
+  "social__gol_gumbaz_whispering_gallery_1793278143__carousel_carousel_slide_05": {
+   "frames": 1,
+   "sha256": "8441f432981d24524f459c3c1de23c9f920de08ec73c2b325c28729c15bff71d"
+  },
+  "social__gol_gumbaz_whispering_gallery_1793278143__carousel_carousel_slide_06": {
+   "frames": 1,
+   "sha256": "3c3cb17b5e8f49e6b72721d9bf47b0f0386cccec40dfdf30b1e49df23aa4f003"
+  },
+  "social__gol_gumbaz_whispering_gallery_1793278143__carousel_carousel_slide_07": {
+   "frames": 1,
+   "sha256": "135272059543778eaab0addf2e3831b6a58f5206ff18de6f989a32ccd5a43a33"
+  },
+  "social__gol_gumbaz_whispering_gallery_1793278143__fb_carousel_slide_01": {
+   "frames": 1,
+   "sha256": "f80b2ffed3bdc3189313d21395dc102bc6af8d1f9ca7da48a99bbd18817fab2c"
+  },
+  "social__gol_gumbaz_whispering_gallery_1793278143__fb_carousel_slide_02": {
+   "frames": 1,
+   "sha256": "79bc6fa40bef7839a665fd8d61b5ee6717ce16b6fc6abd74e12545d695c97231"
+  },
+  "social__gol_gumbaz_whispering_gallery_1793278143__fb_carousel_slide_03": {
+   "frames": 1,
+   "sha256": "dc156ed4dc053e6f5667ba3aa016b9e6ff23eefa83653444da45813eec145d7a"
+  },
+  "social__gol_gumbaz_whispering_gallery_1793278143__fb_carousel_slide_04": {
+   "frames": 1,
+   "sha256": "69f64cd54dcc958236044cb6a7a7579465dae1888407da50c986c990eb57fe1f"
+  },
+  "social__gol_gumbaz_whispering_gallery_1793278143__fb_carousel_slide_05": {
+   "frames": 1,
+   "sha256": "edf55917526d082ae1a6bba4cfc56d719b9b1d074a4af3fd45a601196074f0ec"
+  },
+  "social__gol_gumbaz_whispering_gallery_1793278143__fb_carousel_slide_06": {
+   "frames": 1,
+   "sha256": "d6e8f9d595919e7d25d52ea1dab7cd91e1ef100610169968fb18ef6a0a9e2086"
+  },
+  "social__gol_gumbaz_whispering_gallery_1793278143__fb_carousel_slide_07": {
+   "frames": 1,
+   "sha256": "135272059543778eaab0addf2e3831b6a58f5206ff18de6f989a32ccd5a43a33"
+  },
+  "social__gol_gumbaz_whispering_gallery_1793278143__story_story_01_hook": {
+   "frames": 1,
+   "sha256": "46cd9afb6ac1b141973016e232aec2227fb50812bb646f554cba9a899598a4ad"
+  },
+  "social__gol_gumbaz_whispering_gallery_1793278143__story_story_02_reveal": {
+   "frames": 1,
+   "sha256": "0e67f1ff6183ad0cfb7d2c5f9fbd8a5fb614f8e0c32ea222c5c7d211948ed2dd"
+  },
+  "social__gol_gumbaz_whispering_gallery_1793278143__story_story_03_question": {
+   "frames": 1,
+   "sha256": "2088c3cbd4daa9ddf82548c69f6091effe764af1481a69607e96dcddf83eddc5"
+  },
+  "social__nazca_lines_runway_paradox_1793247464__carousel_carousel_slide_01": {
+   "frames": 1,
+   "sha256": "c8cb5dedba1c326fa4a58b0488b0f0b337cbbca5116413a2e752380ece3b6c3b"
+  },
+  "social__nazca_lines_runway_paradox_1793247464__carousel_carousel_slide_02": {
+   "frames": 1,
+   "sha256": "f8533c927d0d434964778e5c247ebf37949ea4a80e652ec6195a18bcc73feae1"
+  },
+  "social__nazca_lines_runway_paradox_1793247464__carousel_carousel_slide_03": {
+   "frames": 1,
+   "sha256": "1270bb3b4753508845617be2032b7fc01097b7006cdad16b1f20e9d2c191ce55"
+  },
+  "social__nazca_lines_runway_paradox_1793247464__carousel_carousel_slide_04": {
+   "frames": 1,
+   "sha256": "a75b9f28fcf274ab49d790fe0703c22aec5b396bba7df4f23de027ef407fbe3f"
+  },
+  "social__nazca_lines_runway_paradox_1793247464__carousel_carousel_slide_05": {
+   "frames": 1,
+   "sha256": "abb272b4ffb77a50f17231b7245e2b82b0b32cd3913037962df3a27cbf652530"
+  },
+  "social__nazca_lines_runway_paradox_1793247464__carousel_carousel_slide_06": {
+   "frames": 1,
+   "sha256": "87ba2d0dfd37b16b184b83b52498a4704ae029809ab3e7d00edb90448a7ae201"
+  },
+  "social__nazca_lines_runway_paradox_1793247464__carousel_carousel_slide_07": {
+   "frames": 1,
+   "sha256": "08b217311f178e6bfda1df44867451f4c292be4f41b260eed4e2aa1889a450e5"
+  },
+  "social__nazca_lines_runway_paradox_1793247464__fb_carousel_slide_01": {
+   "frames": 1,
+   "sha256": "ba15a939b290487394aced7f95b3fee2bc91660e96cf5bf4f61766b989c9c95d"
+  },
+  "social__nazca_lines_runway_paradox_1793247464__fb_carousel_slide_02": {
+   "frames": 1,
+   "sha256": "c08b2a55998844bae8fd27cc3528f3ffed899f8a88998233934ec5c7af47834f"
+  },
+  "social__nazca_lines_runway_paradox_1793247464__fb_carousel_slide_03": {
+   "frames": 1,
+   "sha256": "99a38b9e309153aadb03f73c0c84337576de55af561feac7bd2819613744f216"
+  },
+  "social__nazca_lines_runway_paradox_1793247464__fb_carousel_slide_04": {
+   "frames": 1,
+   "sha256": "cef14e1453d413ab4900a1540e838be3b97aa5926a9cae78adcd182b5ecdb872"
+  },
+  "social__nazca_lines_runway_paradox_1793247464__fb_carousel_slide_05": {
+   "frames": 1,
+   "sha256": "d61fa8b0b0a5026de9332b4be21de4f8aea9d5b7bb300479f60aac7e8987ffb5"
+  },
+  "social__nazca_lines_runway_paradox_1793247464__fb_carousel_slide_06": {
+   "frames": 1,
+   "sha256": "3713a71b8c3ad1fa0ebd8b6a6eef6200236381face698be6a96a209f80c9d833"
+  },
+  "social__nazca_lines_runway_paradox_1793247464__fb_carousel_slide_07": {
+   "frames": 1,
+   "sha256": "08b217311f178e6bfda1df44867451f4c292be4f41b260eed4e2aa1889a450e5"
+  },
+  "social__nazca_lines_runway_paradox_1793247464__story_story_01_hook": {
+   "frames": 1,
+   "sha256": "a76b24ffe80ade76347e18f9736807e1b0b24703d295ddc52b81347bb40e3f11"
+  },
+  "social__nazca_lines_runway_paradox_1793247464__story_story_02_reveal": {
+   "frames": 1,
+   "sha256": "384d80b0016bfde43adf605ee60744dc8340803ab4e51f478ba26f1f44c09030"
+  },
+  "social__nazca_lines_runway_paradox_1793247464__story_story_03_question": {
+   "frames": 1,
+   "sha256": "01162bdd1570720e81dbd2e6288fc509ad7e8439f706f9841a5f345634fd4613"
+  },
+  "social__nazca_lines_runway_paradox_1793251266__carousel_carousel_slide_01": {
+   "frames": 1,
+   "sha256": "4df4508d4de0a9de46c5471c559a587f4e2fcefc153e0a985c0af934dbbcbfdf"
+  },
+  "social__nazca_lines_runway_paradox_1793251266__carousel_carousel_slide_02": {
+   "frames": 1,
+   "sha256": "f8533c927d0d434964778e5c247ebf37949ea4a80e652ec6195a18bcc73feae1"
+  },
+  "social__nazca_lines_runway_paradox_1793251266__carousel_carousel_slide_03": {
+   "frames": 1,
+   "sha256": "1270bb3b4753508845617be2032b7fc01097b7006cdad16b1f20e9d2c191ce55"
+  },
+  "social__nazca_lines_runway_paradox_1793251266__carousel_carousel_slide_04": {
+   "frames": 1,
+   "sha256": "a75b9f28fcf274ab49d790fe0703c22aec5b396bba7df4f23de027ef407fbe3f"
+  },
+  "social__nazca_lines_runway_paradox_1793251266__carousel_carousel_slide_05": {
+   "frames": 1,
+   "sha256": "abb272b4ffb77a50f17231b7245e2b82b0b32cd3913037962df3a27cbf652530"
+  },
+  "social__nazca_lines_runway_paradox_1793251266__carousel_carousel_slide_06": {
+   "frames": 1,
+   "sha256": "5153c17b3f7e9c7b40a422e3b8621fc56f305ae5304957d19a3c15a45508e935"
+  },
+  "social__nazca_lines_runway_paradox_1793251266__carousel_carousel_slide_07": {
+   "frames": 1,
+   "sha256": "492a388b95081491e131bf11a2f822e3c70275d7b6fd375dcec222e38eb5dd94"
+  },
+  "social__nazca_lines_runway_paradox_1793251266__fb_carousel_slide_01": {
+   "frames": 1,
+   "sha256": "bd5cbca5a739025c9e8e667d949949d2efce0b6a49bdfb1018b455ec3cbdb8ef"
+  },
+  "social__nazca_lines_runway_paradox_1793251266__fb_carousel_slide_02": {
+   "frames": 1,
+   "sha256": "c08b2a55998844bae8fd27cc3528f3ffed899f8a88998233934ec5c7af47834f"
+  },
+  "social__nazca_lines_runway_paradox_1793251266__fb_carousel_slide_03": {
+   "frames": 1,
+   "sha256": "99a38b9e309153aadb03f73c0c84337576de55af561feac7bd2819613744f216"
+  },
+  "social__nazca_lines_runway_paradox_1793251266__fb_carousel_slide_04": {
+   "frames": 1,
+   "sha256": "cef14e1453d413ab4900a1540e838be3b97aa5926a9cae78adcd182b5ecdb872"
+  },
+  "social__nazca_lines_runway_paradox_1793251266__fb_carousel_slide_05": {
+   "frames": 1,
+   "sha256": "d61fa8b0b0a5026de9332b4be21de4f8aea9d5b7bb300479f60aac7e8987ffb5"
+  },
+  "social__nazca_lines_runway_paradox_1793251266__fb_carousel_slide_06": {
+   "frames": 1,
+   "sha256": "92293a62690279c8466096e127a014c04abb2713fd104d7b0e023e70fdf59b75"
+  },
+  "social__nazca_lines_runway_paradox_1793251266__fb_carousel_slide_07": {
+   "frames": 1,
+   "sha256": "492a388b95081491e131bf11a2f822e3c70275d7b6fd375dcec222e38eb5dd94"
+  },
+  "social__nazca_lines_runway_paradox_1793251266__story_story_01_hook": {
+   "frames": 1,
+   "sha256": "559d5cba1d426b2b2a318cfdc856801d2eb6859caff6e07dc152f28654f07d93"
+  },
+  "social__nazca_lines_runway_paradox_1793251266__story_story_02_reveal": {
+   "frames": 1,
+   "sha256": "384d80b0016bfde43adf605ee60744dc8340803ab4e51f478ba26f1f44c09030"
+  },
+  "social__nazca_lines_runway_paradox_1793251266__story_story_03_question": {
+   "frames": 1,
+   "sha256": "01162bdd1570720e81dbd2e6288fc509ad7e8439f706f9841a5f345634fd4613"
+  },
+  "social__richat_structure_sahara_eye_1793272675__carousel_carousel_slide_01": {
+   "frames": 1,
+   "sha256": "f2ec16f74fcf01301fd76d101ac41fa350448e81cf997d9851dfda554bce92a8"
+  },
+  "social__richat_structure_sahara_eye_1793272675__carousel_carousel_slide_02": {
+   "frames": 1,
+   "sha256": "e31745253cb7c916b491ee86283438dbd21d7cd710bd83288573838da5d973e1"
+  },
+  "social__richat_structure_sahara_eye_1793272675__carousel_carousel_slide_03": {
+   "frames": 1,
+   "sha256": "9a0e1d12e5649f7393d55f1eb5a222cdc7722b49751e54ccaeb05f609a4ef6c4"
+  },
+  "social__richat_structure_sahara_eye_1793272675__carousel_carousel_slide_04": {
+   "frames": 1,
+   "sha256": "c6d4c74bbfb19b71d5b36e732b1ac59117ebc1d04291bef32a86230a406e66fc"
+  },
+  "social__richat_structure_sahara_eye_1793272675__carousel_carousel_slide_05": {
+   "frames": 1,
+   "sha256": "bfcec7ba74d39457f1d277e1b270799863b1441da41bf5e436de07738df260ec"
+  },
+  "social__richat_structure_sahara_eye_1793272675__carousel_carousel_slide_06": {
+   "frames": 1,
+   "sha256": "421c66ec7700ea6a2b69dfa0fb315f59de4bff904210f87e8529e9a0ca1cbcc9"
+  },
+  "social__richat_structure_sahara_eye_1793272675__carousel_carousel_slide_07": {
+   "frames": 1,
+   "sha256": "048c982e15594f84b4c3c9f0bb2150e3274d1d4d1453142f4ba99bfaca6f56df"
+  },
+  "social__richat_structure_sahara_eye_1793272675__fb_carousel_slide_01": {
+   "frames": 1,
+   "sha256": "0deafdb55202da8270ca68bf2774c208315d70ca3e7f3d7111b5ce224b30e45f"
+  },
+  "social__richat_structure_sahara_eye_1793272675__fb_carousel_slide_02": {
+   "frames": 1,
+   "sha256": "ecf104f7fdfdfc049c13b9bb55ac75754f190f541fee5ac47179cb7c16de35ce"
+  },
+  "social__richat_structure_sahara_eye_1793272675__fb_carousel_slide_03": {
+   "frames": 1,
+   "sha256": "b0e8707d03374559f6729d3185c8872323513e2040a2ec0e19880186b5d7e358"
+  },
+  "social__richat_structure_sahara_eye_1793272675__fb_carousel_slide_04": {
+   "frames": 1,
+   "sha256": "a3004c3ecc0ba70ef97fe5927216d25d21d00e24034695708bbb23a82bab6544"
+  },
+  "social__richat_structure_sahara_eye_1793272675__fb_carousel_slide_05": {
+   "frames": 1,
+   "sha256": "98d1c8771e321f384f403824da83997985798c377e155ef35b59bdc4502eba5b"
+  },
+  "social__richat_structure_sahara_eye_1793272675__fb_carousel_slide_06": {
+   "frames": 1,
+   "sha256": "1b67d132c77dbb44f3f71c7752a8cf6b30af8a293dc559e4de8fef4ae6a66d76"
+  },
+  "social__richat_structure_sahara_eye_1793272675__fb_carousel_slide_07": {
+   "frames": 1,
+   "sha256": "048c982e15594f84b4c3c9f0bb2150e3274d1d4d1453142f4ba99bfaca6f56df"
+  },
+  "social__richat_structure_sahara_eye_1793272675__story_story_01_hook": {
+   "frames": 1,
+   "sha256": "b0eda7ea81093346993c7f79207beac057cced7d2b8c85717d9d743981d0f2b0"
+  },
+  "social__richat_structure_sahara_eye_1793272675__story_story_02_reveal": {
+   "frames": 1,
+   "sha256": "cab2b05858f445159fba47a761a8242f272f3bb5bf0424d62dc9e1763456a4f7"
+  },
+  "social__richat_structure_sahara_eye_1793272675__story_story_03_question": {
+   "frames": 1,
+   "sha256": "632775d713830d796d9d18b8d07b276edda65bcc2505d38d5e7bfa9e31543f8f"
+  },
+  "thennow__roman_self_healing_concrete__169": {
+   "frames": 180,
+   "sha256": "8b83df4c6ae4ad4da87110042d6e67e30e7dea1b3f829564dcd1e2409549c076"
+  },
+  "thennow__roman_self_healing_concrete__916": {
+   "frames": 180,
+   "sha256": "0ca851e147b87fdef0a0f516a1752aa6ad0365ce8175729d72500b0231f76d7b"
+  },
+  "thennow__singing_colossi_of_memnon__169": {
+   "frames": 180,
+   "sha256": "0bff1329e0742b0b673fe2500f2bbee74dd1b847a6e63e85ba0f92dace6c3fec"
+  },
+  "thennow__singing_colossi_of_memnon__916": {
+   "frames": 180,
+   "sha256": "0cab47dc7934c415675612ebda45f9be2ac5b33f92704e3f41fa79abfbe2e936"
+  },
+  "timeline__amber_room_heist_1792790550__169": {
+   "frames": 180,
+   "sha256": "e3c40e0637936d3965e588db9f398c700c6bea450afcd60a93336611196e60f6"
+  },
+  "timeline__amber_room_heist_1792790550__916": {
+   "frames": 180,
+   "sha256": "5c038f583f9eb252900b7646d971d1e46babae3c398f740da46def5f4ade7110"
+  },
+  "timeline__hal_saflieni_hypogeum_1792949304__169": {
+   "frames": 180,
+   "sha256": "5c8ac7f3320a96273a72ef1b2a4eed1cad222a0e464b6df223293d3c6fee2d94"
+  },
+  "timeline__hal_saflieni_hypogeum_1792949304__916": {
+   "frames": 180,
+   "sha256": "b881dd145a98ac23f304b3a89be618f417394ad7d8fa3be56ec327e9bccd1b02"
+  },
+  "timeline__nazca_lines_runway_paradox_1792961797__169": {
+   "frames": 180,
+   "sha256": "3b6fc9f08e1f2f06eb5f634cd4a4e43c62bd23fc3b91b0d7c4a8533229f36c10"
+  },
+  "timeline__nazca_lines_runway_paradox_1792961797__916": {
+   "frames": 180,
+   "sha256": "f2b1a21dd195748e92e1d42375f2f4470c143c76d80d1714f17a7f3331945f1f"
+  },
+  "timeline__richat_structure_sahara_eye_1793272675__916": {
+   "frames": 180,
+   "sha256": "46d68358be654df3e7acb457d137a9184248f6a7bfd5e04b3220e0f7aba2c81c"
+  },
+  "timeline__roman_self_healing_concrete_1793161347__916": {
+   "frames": 180,
+   "sha256": "d4be831d098b1437c0dc665440cdcbb6953e09e23c37f0322250da4b123f006c"
+  },
+  "timeline__singing_colossi_of_memnon_1792952878__916": {
+   "frames": 180,
+   "sha256": "d519a99eb779affb44100af4b3356be1bdcdf861575561f8319cc4d9b3886cd0"
+  }
+ }
+}

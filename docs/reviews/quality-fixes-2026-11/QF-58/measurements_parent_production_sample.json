@@ -1,0 +1,116 @@
+{
+ "code": "the commit at <repo root>",
+ "assets": "production_sample assets copy",
+ "synthetic": {
+  "five_photo_pool_ready": true,
+  "required_floor": 5,
+  "same_source_nine_records_usable": 9,
+  "refill": {
+   "nine_photos_fetched_91_days_ago": {
+    "ready": true,
+    "fetches": 0,
+    "photos_after": 9
+   },
+   "nine_photos_no_fetch_recorded": {
+    "ready": true,
+    "fetches": 0,
+    "photos_after": 9
+   },
+   "nine_photos_fetched_3_days_ago_11_beats": {
+    "ready": "n/a",
+    "fetches": "n/a",
+    "photos_after": "n/a"
+   },
+   "nine_photos_fetched_3_days_ago": {
+    "ready": true,
+    "fetches": 0,
+    "photos_after": 9
+   },
+   "five_photos_fetched_3_days_ago": {
+    "ready": true,
+    "fetches": 0,
+    "photos_after": 5
+   },
+   "five_photos_no_fetch_recorded": {
+    "ready": true,
+    "fetches": 0,
+    "photos_after": 5
+   }
+  },
+  "plan_admitted": {
+   "valid": true,
+   "short_photos_only": true,
+   "repeat": true,
+   "long": true,
+   "held_two_lines_6s": true,
+   "held_two_lines_6.5s": true,
+   "eight_photos_and_a_graphic": true
+  },
+  "planned_hold_max_seconds": 9.0,
+  "pause_hold": {
+   "before_s": 6.32,
+   "after_s": 6.32,
+   "moves": "n/a",
+   "admitted": true
+  },
+  "crop_plans_admitted": {
+   "one_photo_eight_crops": true,
+   "photo_then_two_crops_18s": true,
+   "eight_photos_and_a_crop": true,
+   "nine_photos_and_a_crop": true
+  },
+  "coverage_gate_present": false
+ },
+ "pools": {
+  "pools": 16,
+  "ready": 14,
+  "ready_usable_9_to_11": 5,
+  "ready_and_refresh_due": 0,
+  "refresh_due_automatic": 0,
+  "ready_meeting_shot_quotas": "n/a",
+  "not_ready": 2,
+  "usable_median": 12.5
+ },
+ "reels": {
+  "reels": 33,
+  "by_env": {
+   "production_sample": 33
+  },
+  "plans_showing_a_photo_again": 5,
+  "plans_holding_a_photo_over_6s": 8,
+  "historic_plans_admitted": 33,
+  "historic_plans_with_repeats": 0,
+  "historic_plans_with_long_holds": 0,
+  "historic_plans_beats_scenes_differ": 1,
+  "admitted_after_fit_holds": "n/a",
+  "photo_scenes_per_reel": {
+   "6": 2,
+   "7": 6,
+   "8": 11,
+   "9": 11,
+   "10": 3
+  },
+  "beats_per_reel": {
+   "9": 5,
+   "10": 15,
+   "11": 10,
+   "12": 3
+  },
+  "seconds_before_plan_median": 840.4,
+  "pool_not_ready_now": 1,
+  "reels_whose_pool_is_not_ready_now": 1,
+  "ready_pool_reels_refused_as_planned": 0,
+  "of_which_pool_has_a_photo_per_shot": 0,
+  "refused_as_planned_by_kind": {}
+ },
+ "surfaces": {
+  "ready_pools": 14,
+  "errors": 0,
+  "stills_total": 170,
+  "stories_carousel_photos_total": 157,
+  "stories_carousel_photos_median": 11.0,
+  "detail_crop_photos": 28,
+  "detail_crops_found": 25
+ },
+ "per_item": "omitted: counts only"
+}

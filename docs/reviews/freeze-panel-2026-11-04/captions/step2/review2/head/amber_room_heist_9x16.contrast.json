@@ -1,0 +1,233 @@
+{
+ "clip": "captions",
+ "ground": "white",
+ "plate": [
+  42,
+  44,
+  48
+ ],
+ "bone": 12.0,
+ "gold": 7.67,
+ "elements": [
+  {
+   "name": "caption 0 bone",
+   "text": "In 1941",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 1 bone",
+   "text": "German soldiers",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 2 bone",
+   "text": "of Army Group North",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 3 bone",
+   "text": "disassembled",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 4 bone",
+   "text": "the Amber Room",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 4 gold",
+   "text": "the Amber Room",
+   "drawn": 7.67
+  },
+  {
+   "name": "caption 5 bone",
+   "text": "in 36 hours",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 5 gold",
+   "text": "in 36 hours",
+   "drawn": 7.67
+  },
+  {
+   "name": "caption 6 bone",
+   "text": "under expert supervision",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 7 bone",
+   "text": "By one",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 8 bone",
+   "text": "estimate, following",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 9 bone",
+   "text": "eighteenth-century",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 10 bone",
+   "text": "expansions",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 11 bone",
+   "text": "the completed room",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 12 bone",
+   "text": "covered more than 590",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 13 bone",
+   "text": "square feet",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 14 bone",
+   "text": "and contained",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 15 bone",
+   "text": "over 13,000 pounds",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 16 bone",
+   "text": "of amber",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 17 bone",
+   "text": "In early 1944",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 18 bone",
+   "text": "it was packed",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 19 bone",
+   "text": "into crates",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 20 bone",
+   "text": "in K\u00f6nigsberg Castle",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 20 gold",
+   "text": "in K\u00f6nigsberg Castle",
+   "drawn": 7.67
+  },
+  {
+   "name": "caption 21 bone",
+   "text": "Documentation tracking",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 22 bone",
+   "text": "its location ends",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 23 bone",
+   "text": "in August 1944",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 24 bone",
+   "text": "when Allied",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 25 bone",
+   "text": "bombers heavily",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 26 bone",
+   "text": "fire-bombed K\u00f6nigsberg",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 27 bone",
+   "text": "Investigations conclude",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 28 bone",
+   "text": "the room was most",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 29 bone",
+   "text": "likely incinerated",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 30 bone",
+   "text": "when K\u00f6nigsberg Castle",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 31 bone",
+   "text": "was bombed by British",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 32 bone",
+   "text": "aircraft and shelled",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 33 bone",
+   "text": "by Soviet artillery",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 34 bone",
+   "text": "Yet in 1997",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 35 bone",
+   "text": "an original stone",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 36 bone",
+   "text": "mosaic was recovered",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 37 bone",
+   "text": "in Germany",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 38 bone",
+   "text": "fueling hunts",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 39 bone",
+   "text": "for the chamber",
+   "drawn": 12.0
+  },
+  {
+   "name": "caption 40 bone",
+   "text": "looted in 1941",
+   "drawn": 12.0
+  }
+ ]
+}

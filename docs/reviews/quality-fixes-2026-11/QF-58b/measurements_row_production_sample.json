@@ -1,0 +1,139 @@
+{
+ "code": "the commit at <repo root>",
+ "video": "1080x1920",
+ "synthetic": {
+  "gate_admitted": {
+   "graphic_5_photos_4_crops_of_them": {
+    "ok": true,
+    "distinct": 5,
+    "required": "n/a"
+   },
+   "graphic_6_photos_3_crops_of_unshown": {
+    "ok": true,
+    "distinct": 6,
+    "required": "n/a"
+   },
+   "graphic_8_photos_1_crop": {
+    "ok": true,
+    "distinct": 8,
+    "required": "n/a"
+   },
+   "graphic_9_photos_1_crop": {
+    "ok": true,
+    "distinct": 9,
+    "required": "n/a"
+   },
+   "graphic_8_photos": {
+    "ok": true,
+    "distinct": 8,
+    "required": "n/a"
+   },
+   "photos_only_9_photos_1_crop": {
+    "ok": true,
+    "distinct": 9,
+    "required": "n/a"
+   },
+   "photos_only_8_photos_1_crop": {
+    "ok": false,
+    "distinct": 8,
+    "required": "n/a"
+   }
+  },
+  "cascade_beat_2_after_the_opening": {
+   "4.5s_beats": {
+    "crop_of": "02_commons.jpg",
+    "beside_its_photograph": false,
+    "long_holds": []
+   },
+   "3s_beats": {
+    "crop_of": "01_commons.jpg",
+    "beside_its_photograph": true,
+    "long_holds": []
+   }
+  }
+ },
+ "assets": "production_sample assets copy",
+ "full_pools": {
+  "totals": {
+   "ready_pools": 9,
+   "beats_tried": 27,
+   "crop_plans": 26,
+   "crop_plans_beside_own_photograph": 0,
+   "crop_plans_admitted": 26,
+   "crop_plans_refused_after_the_voice": 0,
+   "pools_under_ten_stills": 3
+  },
+  "refusal_reasons": {},
+  "pools": 9
+ },
+ "real_plans": {
+  "totals": {
+   "plans": 27,
+   "plans_admitted_as_they_are": 19,
+   "photo_beats_tried": 140,
+   "crop_plans": 132,
+   "crop_plans_beside_own_photograph": 0,
+   "crop_plans_admitted": 132,
+   "plans_skipped_pool_not_ready_or_beats_differ": 6,
+   "no_crop_planned": 8
+  },
+  "refusal_reasons": {},
+  "refusal_reasons_beside_own_photograph": {},
+  "pools_ready": 12,
+  "pools_not_ready": 3,
+  "runs": 27
+ },
+ "planner_with_illustration": {
+  "outcomes": {
+   "own_photo_kept_repeated_elsewhere": 0,
+   "beats_whose_photo_is_matched_to_their_line": 26,
+   "plans": 140,
+   "admitted": 140
+  },
+  "filled_by": {
+   "detail_crop": 132,
+   "reconstruction": 8
+  },
+  "refusal_reasons": {},
+  "by_tier": {
+   "detail_crop": {
+    "admitted": 132
+   },
+   "reconstruction": {
+    "admitted": 8
+   }
+  }
+ },
+ "planner_without_illustration": {
+  "outcomes": {
+   "own_photo_kept_repeated_elsewhere": 0,
+   "beats_whose_photo_is_matched_to_their_line": 26,
+   "plans": 140,
+   "admitted": 137,
+   "stopped_after_the_voice": 3
+  },
+  "filled_by": {
+   "detail_crop": 132,
+   "held": 3,
+   "own matched photo kept (held shot refused)": 5
+  },
+  "refusal_reasons": {
+   "repeat": 3,
+   "hold over 6 s": 2
+  },
+  "by_tier": {
+   "detail_crop": {
+    "admitted": 132
+   },
+   "held": {
+    "stopped": 3,
+    "repeat": 3,
+    "hold over 6 s": 2
+   },
+   "own matched photo kept (held shot refused)": {
+    "admitted": 5
+   }
+  }
+ },
+ "per_item": "omitted: counts only"
+}

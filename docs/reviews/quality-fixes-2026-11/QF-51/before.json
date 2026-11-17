@@ -1,0 +1,40 @@
+{
+  "inventory": {
+    "settings_read": 154,
+    "read_outside_config": {
+      "YOUTUBE_ANALYTICS_CLIENT_ID": [
+        "src/youtube_analytics.py"
+      ],
+      "YOUTUBE_ANALYTICS_CLIENT_SECRET": [
+        "src/youtube_analytics.py"
+      ],
+      "YOUTUBE_ANALYTICS_REFRESH_TOKEN": [
+        "src/youtube_analytics.py"
+      ]
+    },
+    "unnamed_reads_outside_config": {
+      "src/youtube_analytics.py": [
+        "_env(n",
+        "_env(name",
+        "os.getenv(name"
+      ]
+    },
+    "undocumented_in_env_example": [
+      "RELIC_APP_ROOT",
+      "RELIC_DEPLOY_REQUEST",
+      "RELIC_DEPLOY_STATUS",
+      "RELIC_RELEASE_RECEIPT"
+    ]
+  },
+  "inventory_drift": 8,
+  "own_tests/test_settings_inventory.py": "2 passed",
+  "masker": {
+    "in_secret_names": [],
+    "shown_in_log_line": [
+      "YOUTUBE_ANALYTICS_CLIENT_ID",
+      "YOUTUBE_ANALYTICS_CLIENT_SECRET",
+      "YOUTUBE_ANALYTICS_REFRESH_TOKEN"
+    ]
+  },
+  "acceptance_met": false
+}

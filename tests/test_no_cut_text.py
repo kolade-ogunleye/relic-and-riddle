@@ -2,6 +2,7 @@
 Antikythera frame ended on "... and model the", because every renderer kept only its first N lines)."""
 import json
 
+import pytest
 from PIL import Image, ImageDraw
 
 from src.typography import fit_lines, get_font
@@ -11,16 +12,17 @@ LONG = ("The bronze gear train was built to track solar and lunar movements thro
         "and model the Moon's variable speed across the sky. Its maker remains unknown.")
 
 
-def test_a_long_text_shrinks_then_keeps_whole_sentences_never_a_fragment():
+def test_checked_copy_fits_whole_or_refuses_the_box():
     font = get_font("Montserrat", 40)
-    lines, f = fit_lines(D, LONG, font, 860, 3)
-    text = " ".join(lines)
-    assert text.endswith((".", "!", "?")) and text in " ".join(LONG.split())        # whole sentences, from the start
-    assert f.size <= 40 and len(lines) <= 3
+    with pytest.raises(ValueError, match="Checked copy does not fit"):
+        fit_lines(D, LONG, font, 860, 3)  # keeping only the first sentence loses the qualification
+    lines, f = fit_lines(D, LONG, font, 860, 5)
+    assert " ".join(lines) == " ".join(LONG.split())
+    assert f.size <= 40 and len(lines) <= 5
     short, f2 = fit_lines(D, "Thirty miles across.", font, 860, 3)
-    assert short == ["Thirty miles across."] and f2 is font                           # a fitting text is untouched
-    one, _ = fit_lines(D, LONG.split(". ")[0] * 3, font, 300, 2)                    # no sentence fits: kept whole
-    assert " ".join(one).split() == (LONG.split(". ")[0] * 3).split()
+    assert short == ["Thirty miles across."] and f2 is font
+    with pytest.raises(ValueError, match="Checked copy does not fit"):
+        fit_lines(D, LONG.split(". ")[0] * 3, font, 300, 2)  # refuse overflow too
 
 
 def test_story_frames_draw_their_text_whole(tmp_path):

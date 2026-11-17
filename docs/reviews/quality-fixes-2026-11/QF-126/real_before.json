@@ -1,0 +1,120 @@
+{
+ "development_runs": {
+  "run_folders": 47,
+  "runs": 30,
+  "runs_asking_a_credit": 28,
+  "credits_asked": 199,
+  "longest_credit_set_characters": 0,
+  "ledger_assets": 321,
+  "ledger_assets_from_an_excluded_source": 0,
+  "photo_credits": 161,
+  "photo_credits_printing_unknown_from_a_filled_artist_field": 2,
+  "stored_copy_failing_the_new_check": 0,
+  "of_them_told_to_shorten_though_their_credits_fit": 0,
+  "of_them_told_their_credits_fit": 0,
+  "second_crediting_pass_changes_the_copy": 0,
+  "stored_copy": {
+   "runs_with_every_credit_in_each_text": 3,
+   "credits_carried_in_the_reel_caption_or_description": 107
+  },
+  "credited_again": {
+   "sent": 28,
+   "sent_with_every_credit_in_each_text": 3,
+   "sent_lacking_a_credit": 25,
+   "held_with_the_reason": 0,
+   "credits_lacking_in_texts_sent": 54
+  },
+  "carousels": {
+   "carousels": 27,
+   "with_a_slide_without_a_record": 20,
+   "of_them_in_a_run_whose_ledger_asks_photo_credits": 20,
+   "of_them_sent_without_every_photo_credit_line": 20,
+   "of_them_sent_with_every_photo_credit_of_the_run": 0,
+   "of_them_held": 0,
+   "held_that_a_redraw_can_clear": 0,
+   "longest_caption_sent": 1987,
+   "held_because": {},
+   "with_every_slide_recorded": {
+    "carousels": 7,
+    "slide_photos": 37,
+    "photos_whose_credit_entry_cannot_be_read": 0,
+    "of_them_found_in_the_runs_ledger": 0,
+    "of_them_not_in_the_runs_ledger": 0,
+    "sent_with_every_credit_its_photos_ask": 7,
+    "sent_lacking_a_credit_its_photos_ask": 0,
+    "held": 0,
+    "held_though_every_credit_is_known_complete_and_fits": 0
+   }
+  },
+  "run_folders_without_a_ledger": {
+   "folders": 17,
+   "with_a_carousel": 2,
+   "carousels_that_cannot_say_what_every_slide_shows": 2,
+   "of_them_whose_copy_carries_a_credit_line": 1,
+   "of_them_sent": 2,
+   "of_them_held": 0,
+   "carousels_whose_every_photo_credit_is_read": 0,
+   "of_those_sent_with_every_credit": 0,
+   "of_those_held": 0
+  }
+ },
+ "production_sample_runs": {
+  "run_folders": 34,
+  "runs": 34,
+  "runs_asking_a_credit": 32,
+  "credits_asked": 218,
+  "longest_credit_set_characters": 0,
+  "ledger_assets": 351,
+  "ledger_assets_from_an_excluded_source": 0,
+  "photo_credits": 174,
+  "photo_credits_printing_unknown_from_a_filled_artist_field": 0,
+  "stored_copy_failing_the_new_check": 0,
+  "of_them_told_to_shorten_though_their_credits_fit": 0,
+  "of_them_told_their_credits_fit": 0,
+  "second_crediting_pass_changes_the_copy": 0,
+  "stored_copy": {
+   "runs_with_every_credit_in_each_text": 0,
+   "credits_carried_in_the_reel_caption_or_description": 109
+  },
+  "credited_again": {
+   "sent": 32,
+   "sent_with_every_credit_in_each_text": 2,
+   "sent_lacking_a_credit": 30,
+   "held_with_the_reason": 0,
+   "credits_lacking_in_texts_sent": 63
+  },
+  "carousels": {
+   "carousels": 32,
+   "with_a_slide_without_a_record": 14,
+   "of_them_in_a_run_whose_ledger_asks_photo_credits": 11,
+   "of_them_sent_without_every_photo_credit_line": 11,
+   "of_them_sent_with_every_photo_credit_of_the_run": 0,
+   "of_them_held": 0,
+   "held_that_a_redraw_can_clear": 0,
+   "longest_caption_sent": 640,
+   "held_because": {},
+   "with_every_slide_recorded": {
+    "carousels": 18,
+    "slide_photos": 123,
+    "photos_whose_credit_entry_cannot_be_read": 123,
+    "of_them_found_in_the_runs_ledger": 81,
+    "of_them_not_in_the_runs_ledger": 42,
+    "sent_with_every_credit_its_photos_ask": 0,
+    "sent_lacking_a_credit_its_photos_ask": 18,
+    "held": 0,
+    "held_though_every_credit_is_known_complete_and_fits": 0
+   }
+  },
+  "run_folders_without_a_ledger": {
+   "folders": 0,
+   "with_a_carousel": 0,
+   "carousels_that_cannot_say_what_every_slide_shows": 0,
+   "of_them_whose_copy_carries_a_credit_line": 0,
+   "of_them_sent": 0,
+   "of_them_held": 0,
+   "carousels_whose_every_photo_credit_is_read": 0,
+   "of_those_sent_with_every_credit": 0,
+   "of_those_held": 0
+  }
+ }
+}

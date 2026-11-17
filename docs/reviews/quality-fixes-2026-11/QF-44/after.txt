@@ -1,0 +1,9 @@
+{
+  "ssrf_attempts": 37,
+  "ssrf_blocked": 37,
+  "internal_or_off_host_requests_made": 0,
+  "acceptance_redirect_to_127_0_0_1_page_text_none": true,
+  "acceptance_off_host_museum_download_raises": true,
+  "museum_providers_without_host_allowlist": [],
+  "controls_fetched": "4/4"
+}

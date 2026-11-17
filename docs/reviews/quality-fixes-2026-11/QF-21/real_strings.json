@@ -1,0 +1,2354 @@
+[
+ {
+  "run": "run_amber_room_heist_1792781224",
+  "design": "cover",
+  "field": "eyebrow",
+  "text": "STOLEN WONDER"
+ },
+ {
+  "run": "run_amber_room_heist_1792781224",
+  "design": "cover",
+  "field": "tagline",
+  "text": "DID IT SURVIVE 1944?"
+ },
+ {
+  "run": "run_amber_room_heist_1792781224",
+  "design": "story",
+  "field": "kicker",
+  "text": "THE HEIST"
+ },
+ {
+  "run": "run_amber_room_heist_1792781224",
+  "design": "story",
+  "field": "kicker",
+  "text": "THE EVIDENCE"
+ },
+ {
+  "run": "run_amber_room_heist_1792781224",
+  "design": "story",
+  "field": "kicker",
+  "text": "THE POLL"
+ },
+ {
+  "run": "run_amber_room_heist_1792781224",
+  "design": "carousel",
+  "field": "heading",
+  "text": "THE LOST AMBER ROOM"
+ },
+ {
+  "run": "run_amber_room_heist_1792781224",
+  "design": "carousel",
+  "field": "heading",
+  "text": "A DIPLOMATIC GIFT"
+ },
+ {
+  "run": "run_amber_room_heist_1792781224",
+  "design": "carousel",
+  "field": "heading",
+  "text": "IMPERIAL EXPANSION"
+ },
+ {
+  "run": "run_amber_room_heist_1792781224",
+  "design": "carousel",
+  "field": "heading",
+  "text": "THE 36-HOUR HEIST"
+ },
+ {
+  "run": "run_amber_room_heist_1792781224",
+  "design": "carousel",
+  "field": "heading",
+  "text": "VANISHED IN 1944"
+ },
+ {
+  "run": "run_amber_room_heist_1792781224",
+  "design": "carousel",
+  "field": "heading",
+  "text": "SURVIVING TRACES"
+ },
+ {
+  "run": "run_amber_room_heist_1792781224",
+  "design": "carousel",
+  "field": "heading",
+  "text": "CAN ART SURVIVE WAR?"
+ },
+ {
+  "run": "run_amber_room_heist_1792781224",
+  "design": "timeline",
+  "field": "label",
+  "text": "Looted by German soldiers"
+ },
+ {
+  "run": "run_amber_room_heist_1792781224",
+  "design": "timeline",
+  "field": "label",
+  "text": "Documentation ends at Königsberg"
+ },
+ {
+  "run": "run_amber_room_heist_1792781224",
+  "design": "timeline",
+  "field": "label",
+  "text": "Original stone mosaic recovered"
+ },
+ {
+  "run": "run_amber_room_heist_1792781224",
+  "design": "timeline",
+  "field": "label",
+  "text": "Catherine Palace reconstruction"
+ },
+ {
+  "run": "run_amber_room_heist_1792781224",
+  "design": "stat_cards",
+  "field": "label",
+  "text": "Disassembly time in 1941"
+ },
+ {
+  "run": "run_amber_room_heist_1792781224",
+  "design": "stat_cards",
+  "field": "label",
+  "text": "Weight of amber"
+ },
+ {
+  "run": "run_amber_room_heist_1792781224",
+  "design": "map",
+  "field": "country",
+  "text": "Russia"
+ },
+ {
+  "run": "run_amber_room_heist_1792790550",
+  "design": "cover",
+  "field": "eyebrow",
+  "text": "HISTORICAL HEIST"
+ },
+ {
+  "run": "run_amber_room_heist_1792790550",
+  "design": "cover",
+  "field": "tagline",
+  "text": "VANISHED IN 1944"
+ },
+ {
+  "run": "run_amber_room_heist_1792790550",
+  "design": "story",
+  "field": "kicker",
+  "text": "THE FATE"
+ },
+ {
+  "run": "run_amber_room_heist_1792790550",
+  "design": "story",
+  "field": "kicker",
+  "text": "THE VERDICT"
+ },
+ {
+  "run": "run_amber_room_heist_1792790550",
+  "design": "carousel",
+  "field": "heading",
+  "text": "FAILED CONCEALMENT"
+ },
+ {
+  "run": "run_amber_room_heist_1792790550",
+  "design": "carousel",
+  "field": "heading",
+  "text": "LOOTED IN 36 HOURS"
+ },
+ {
+  "run": "run_amber_room_heist_1792790550",
+  "design": "carousel",
+  "field": "heading",
+  "text": "CRATED IN A BASEMENT"
+ },
+ {
+  "run": "run_amber_room_heist_1792790550",
+  "design": "carousel",
+  "field": "heading",
+  "text": "THE PAPER TRAIL ENDS"
+ },
+ {
+  "run": "run_amber_room_heist_1792790550",
+  "design": "carousel",
+  "field": "heading",
+  "text": "A SURVIVING FRAGMENT"
+ },
+ {
+  "run": "run_amber_room_heist_1792790550",
+  "design": "carousel",
+  "field": "heading",
+  "text": "LOST TO HISTORY?"
+ },
+ {
+  "run": "run_amber_room_heist_1792790550",
+  "design": "timeline",
+  "field": "label",
+  "text": "Disassembled by German troops"
+ },
+ {
+  "run": "run_amber_room_heist_1792790550",
+  "design": "timeline",
+  "field": "label",
+  "text": "Documentation ends in Königsberg"
+ },
+ {
+  "run": "run_amber_room_heist_1792790550",
+  "design": "stat_cards",
+  "field": "label",
+  "text": "Time to disassemble the room"
+ },
+ {
+  "run": "run_amber_room_heist_1792790550",
+  "design": "stat_cards",
+  "field": "label",
+  "text": "Amber in completed room"
+ },
+ {
+  "run": "run_amber_room_heist_1792790550",
+  "design": "map",
+  "field": "place",
+  "text": "Catherine Palace"
+ },
+ {
+  "run": "run_amber_room_heist_1792801257",
+  "design": "cover",
+  "field": "eyebrow",
+  "text": "WARTIME HEIST"
+ },
+ {
+  "run": "run_amber_room_heist_1792801257",
+  "design": "cover",
+  "field": "tagline",
+  "text": "STOLEN IN 36 HOURS"
+ },
+ {
+  "run": "run_amber_room_heist_1792801257",
+  "design": "story",
+  "field": "kicker",
+  "text": "IN 1941"
+ },
+ {
+  "run": "run_amber_room_heist_1792801257",
+  "design": "story",
+  "field": "kicker",
+  "text": "THE TRAIL GOES COLD"
+ },
+ {
+  "run": "run_amber_room_heist_1792801257",
+  "design": "carousel",
+  "field": "heading",
+  "text": "A ROYAL DIPLOMATIC GIFT"
+ },
+ {
+  "run": "run_amber_room_heist_1792801257",
+  "design": "carousel",
+  "field": "heading",
+  "text": "MASSIVE EXPANSION"
+ },
+ {
+  "run": "run_amber_room_heist_1792801257",
+  "design": "carousel",
+  "field": "heading",
+  "text": "LOOTED BEHIND WALLPAPER"
+ },
+ {
+  "run": "run_amber_room_heist_1792801257",
+  "design": "carousel",
+  "field": "heading",
+  "text": "LOST IN 1944"
+ },
+ {
+  "run": "run_amber_room_heist_1792801257",
+  "design": "carousel",
+  "field": "heading",
+  "text": "RECOVERED FRAGMENTS"
+ },
+ {
+  "run": "run_amber_room_heist_1792801257",
+  "design": "carousel",
+  "field": "heading",
+  "text": "LOST FOREVER?"
+ },
+ {
+  "run": "run_amber_room_heist_1792801257",
+  "design": "timeline",
+  "field": "label",
+  "text": "Chamber disassembled and shipped"
+ },
+ {
+  "run": "run_amber_room_heist_1792801257",
+  "design": "timeline",
+  "field": "label",
+  "text": "Official documentation ends"
+ },
+ {
+  "run": "run_amber_room_heist_1792801257",
+  "design": "stat_cards",
+  "field": "label",
+  "text": "Disassembly of the chamber"
+ },
+ {
+  "run": "run_amber_room_heist_1792801257",
+  "design": "stat_cards",
+  "field": "label",
+  "text": "Amber contained in chamber"
+ },
+ {
+  "run": "run_amber_room_heist_1792801257",
+  "design": "route",
+  "field": "place",
+  "text": "Catherine Palace"
+ },
+ {
+  "run": "run_amber_room_heist_1792801257",
+  "design": "route",
+  "field": "place",
+  "text": "Königsberg Castle"
+ },
+ {
+  "run": "run_amber_room_heist_1792805842",
+  "design": "cover",
+  "field": "tagline",
+  "text": "DISMANTLED IN 36 HOURS"
+ },
+ {
+  "run": "run_amber_room_heist_1792805842",
+  "design": "story",
+  "field": "kicker",
+  "text": "VANISHED TREASURE"
+ },
+ {
+  "run": "run_amber_room_heist_1792805842",
+  "design": "story",
+  "field": "kicker",
+  "text": "WARTIME LOOTING"
+ },
+ {
+  "run": "run_amber_room_heist_1792805842",
+  "design": "carousel",
+  "field": "heading",
+  "text": "STRIPPED IN 36 HOURS"
+ },
+ {
+  "run": "run_amber_room_heist_1792805842",
+  "design": "carousel",
+  "field": "heading",
+  "text": "SURFACED MOSAIC"
+ },
+ {
+  "run": "run_amber_room_heist_1792805842",
+  "design": "timeline",
+  "field": "label",
+  "text": "Disassembled by German soldiers"
+ },
+ {
+  "run": "run_amber_room_heist_1792805842",
+  "design": "timeline",
+  "field": "label",
+  "text": "Original stone mosaic resurfaces"
+ },
+ {
+  "run": "run_amber_room_heist_1792805842",
+  "design": "timeline",
+  "field": "label",
+  "text": "Investigation concludes incinerated"
+ },
+ {
+  "run": "run_amber_room_heist_1792805842",
+  "design": "stat_cards",
+  "field": "label",
+  "text": "Amber by one estimate"
+ },
+ {
+  "run": "run_amber_room_heist_1792805842",
+  "design": "stat_cards",
+  "field": "label",
+  "text": "Time to disassemble in 1941"
+ },
+ {
+  "run": "run_damascus_steel_nanotubes_1792732472_short",
+  "design": "cover",
+  "field": "eyebrow",
+  "text": "ANCIENT METALLURGY"
+ },
+ {
+  "run": "run_damascus_steel_nanotubes_1792732472_short",
+  "design": "cover",
+  "field": "tagline",
+  "text": "FORGED IN DAMASCUS"
+ },
+ {
+  "run": "run_damascus_steel_nanotubes_1792732472_short",
+  "design": "story",
+  "field": "kicker",
+  "text": "ANCIENT WEAPONS"
+ },
+ {
+  "run": "run_damascus_steel_nanotubes_1792732472_short",
+  "design": "story",
+  "field": "kicker",
+  "text": "MICROSTRUCTURE"
+ },
+ {
+  "run": "run_damascus_steel_nanotubes_1792732472_short",
+  "design": "story",
+  "field": "kicker",
+  "text": "THE ANOMALY"
+ },
+ {
+  "run": "run_damascus_steel_nanotubes_1792732472_short",
+  "design": "carousel",
+  "field": "heading",
+  "text": "Damascus Steel Secrets"
+ },
+ {
+  "run": "run_damascus_steel_nanotubes_1792732472_short",
+  "design": "carousel",
+  "field": "heading",
+  "text": "Crucible Steel Roots"
+ },
+ {
+  "run": "run_damascus_steel_nanotubes_1792732472_short",
+  "design": "carousel",
+  "field": "heading",
+  "text": "Centuries of Trade"
+ },
+ {
+  "run": "run_damascus_steel_nanotubes_1792732472_short",
+  "design": "carousel",
+  "field": "heading",
+  "text": "The Damascus Forge"
+ },
+ {
+  "run": "run_damascus_steel_nanotubes_1792732472_short",
+  "design": "carousel",
+  "field": "heading",
+  "text": "Trace Elements"
+ },
+ {
+  "run": "run_damascus_steel_nanotubes_1792732472_short",
+  "design": "carousel",
+  "field": "heading",
+  "text": "Microscopic Strength"
+ },
+ {
+  "run": "run_damascus_steel_nanotubes_1792732472_short",
+  "design": "carousel",
+  "field": "heading",
+  "text": "Lost Knowledge"
+ },
+ {
+  "run": "run_damascus_steel_nanotubes_1792732472_short",
+  "design": "stat_cards",
+  "field": "label",
+  "text": "Historical Rockwell hardness"
+ },
+ {
+  "run": "run_damascus_steel_nanotubes_1792732472_short",
+  "design": "map",
+  "field": "country",
+  "text": "Syria"
+ },
+ {
+  "run": "run_damascus_steel_nanotubes_1792732472_short",
+  "design": "map",
+  "field": "place",
+  "text": "Damascus Old City"
+ },
+ {
+  "run": "run_gol_gumbaz_whispering_gallery_1793278143",
+  "design": "cover",
+  "field": "eyebrow",
+  "text": "ANCIENT ACOUSTICS"
+ },
+ {
+  "run": "run_gol_gumbaz_whispering_gallery_1793278143",
+  "design": "cover",
+  "field": "tagline",
+  "text": "BUILT WITHOUT RINGS"
+ },
+ {
+  "run": "run_gol_gumbaz_whispering_gallery_1793278143",
+  "design": "story",
+  "field": "kicker",
+  "text": "ANCIENT MARVEL"
+ },
+ {
+  "run": "run_gol_gumbaz_whispering_gallery_1793278143",
+  "design": "story",
+  "field": "kicker",
+  "text": "NO METAL RINGS"
+ },
+ {
+  "run": "run_gol_gumbaz_whispering_gallery_1793278143",
+  "design": "story",
+  "field": "kicker",
+  "text": "ACOUSTIC MYSTERY"
+ },
+ {
+  "run": "run_gol_gumbaz_whispering_gallery_1793278143",
+  "design": "carousel",
+  "field": "heading",
+  "text": "THE WHISPERING VAULT"
+ },
+ {
+  "run": "run_gol_gumbaz_whispering_gallery_1793278143",
+  "design": "carousel",
+  "field": "heading",
+  "text": "MASSIVE SCALE"
+ },
+ {
+  "run": "run_gol_gumbaz_whispering_gallery_1793278143",
+  "design": "carousel",
+  "field": "heading",
+  "text": "ACOUSTIC GUIDANCE"
+ },
+ {
+  "run": "run_gol_gumbaz_whispering_gallery_1793278143",
+  "design": "carousel",
+  "field": "heading",
+  "text": "ENGINEERING WITHOUT METAL"
+ },
+ {
+  "run": "run_gol_gumbaz_whispering_gallery_1793278143",
+  "design": "carousel",
+  "field": "heading",
+  "text": "CENTRAL ASIAN ROOTS"
+ },
+ {
+  "run": "run_gol_gumbaz_whispering_gallery_1793278143",
+  "design": "carousel",
+  "field": "heading",
+  "text": "UNFINISHED MONUMENT"
+ },
+ {
+  "run": "run_gol_gumbaz_whispering_gallery_1793278143",
+  "design": "carousel",
+  "field": "heading",
+  "text": "LOST INGENUITY?"
+ },
+ {
+  "run": "run_gol_gumbaz_whispering_gallery_1793278143",
+  "design": "stat_cards",
+  "field": "label",
+  "text": "External dome diameter"
+ },
+ {
+  "run": "run_gol_gumbaz_whispering_gallery_1793278143",
+  "design": "callouts",
+  "field": "label",
+  "text": "masonry dome"
+ },
+ {
+  "run": "run_gol_gumbaz_whispering_gallery_1793278143",
+  "design": "callouts",
+  "field": "label",
+  "text": "whispering gallery"
+ },
+ {
+  "run": "run_gol_gumbaz_whispering_gallery_1793278143",
+  "design": "callouts",
+  "field": "label",
+  "text": "pendentive systems"
+ },
+ {
+  "run": "run_gol_gumbaz_whispering_gallery_1793278143",
+  "design": "map",
+  "field": "country",
+  "text": "India"
+ },
+ {
+  "run": "run_gol_gumbaz_whispering_gallery_1793278143",
+  "design": "map",
+  "field": "place",
+  "text": "Bijapur"
+ },
+ {
+  "run": "run_greek_fire_siphon_1792735284_short",
+  "design": "cover",
+  "field": "eyebrow",
+  "text": "MEDIEVAL WARFARE"
+ },
+ {
+  "run": "run_greek_fire_siphon_1792735284_short",
+  "design": "cover",
+  "field": "tagline",
+  "text": "BYZANTINE GREEK FIRE"
+ },
+ {
+  "run": "run_greek_fire_siphon_1792735284_short",
+  "design": "story",
+  "field": "kicker",
+  "text": "CHEMICAL WARFARE"
+ },
+ {
+  "run": "run_greek_fire_siphon_1792735284_short",
+  "design": "story",
+  "field": "kicker",
+  "text": "TACTICAL CHOICES"
+ },
+ {
+  "run": "run_greek_fire_siphon_1792735284_short",
+  "design": "carousel",
+  "field": "heading",
+  "text": "MEDIEVAL GREEK FIRE"
+ },
+ {
+  "run": "run_greek_fire_siphon_1792735284_short",
+  "design": "carousel",
+  "field": "heading",
+  "text": "SIPHON DELIVERY"
+ },
+ {
+  "run": "run_greek_fire_siphon_1792735284_short",
+  "design": "carousel",
+  "field": "heading",
+  "text": "ARTILLERY ENGINES"
+ },
+ {
+  "run": "run_greek_fire_siphon_1792735284_short",
+  "design": "carousel",
+  "field": "heading",
+  "text": "UNQUENCHABLE FLAMES"
+ },
+ {
+  "run": "run_greek_fire_siphon_1792735284_short",
+  "design": "carousel",
+  "field": "heading",
+  "text": "SIEGE COUNTERMEASURES"
+ },
+ {
+  "run": "run_greek_fire_siphon_1792735284_short",
+  "design": "carousel",
+  "field": "heading",
+  "text": "MODERN ANCESTRY"
+ },
+ {
+  "run": "run_greek_fire_siphon_1792735284_short",
+  "design": "carousel",
+  "field": "heading",
+  "text": "FORGOTTEN SECRETS"
+ },
+ {
+  "run": "run_greek_fire_siphon_1792735284_short",
+  "design": "map",
+  "field": "country",
+  "text": "Turkey"
+ },
+ {
+  "run": "run_greek_fire_siphon_1792735284_short",
+  "design": "map",
+  "field": "place",
+  "text": "The Golden Horn"
+ },
+ {
+  "run": "run_hal_saflieni_hypogeum_1792949304",
+  "design": "cover",
+  "field": "eyebrow",
+  "text": "ANCIENT MALTA"
+ },
+ {
+  "run": "run_hal_saflieni_hypogeum_1792949304",
+  "design": "cover",
+  "field": "tagline",
+  "text": "7,000 RESTING SOULS"
+ },
+ {
+  "run": "run_hal_saflieni_hypogeum_1792949304",
+  "design": "story",
+  "field": "kicker",
+  "text": "ACCIDENTAL FIND"
+ },
+ {
+  "run": "run_hal_saflieni_hypogeum_1792949304",
+  "design": "story",
+  "field": "kicker",
+  "text": "STONE TOOLS"
+ },
+ {
+  "run": "run_hal_saflieni_hypogeum_1792949304",
+  "design": "carousel",
+  "field": "heading",
+  "text": "HAL SAFLIENI HYPOGEUM"
+ },
+ {
+  "run": "run_hal_saflieni_hypogeum_1792949304",
+  "design": "carousel",
+  "field": "heading",
+  "text": "ACCIDENTAL DISCOVERY"
+ },
+ {
+  "run": "run_hal_saflieni_hypogeum_1792949304",
+  "design": "carousel",
+  "field": "heading",
+  "text": "CARVED WITHOUT METAL"
+ },
+ {
+  "run": "run_hal_saflieni_hypogeum_1792949304",
+  "design": "carousel",
+  "field": "heading",
+  "text": "RESTING PLACE OF 7,000"
+ },
+ {
+  "run": "run_hal_saflieni_hypogeum_1792949304",
+  "design": "carousel",
+  "field": "heading",
+  "text": "CENTURIES OF USE"
+ },
+ {
+  "run": "run_hal_saflieni_hypogeum_1792949304",
+  "design": "carousel",
+  "field": "heading",
+  "text": "THE ORACLE ROOM"
+ },
+ {
+  "run": "run_hal_saflieni_hypogeum_1792949304",
+  "design": "carousel",
+  "field": "heading",
+  "text": "ENDURING DEVOTION"
+ },
+ {
+  "run": "run_hal_saflieni_hypogeum_1792949304",
+  "design": "timeline",
+  "field": "label",
+  "text": "Initial prehistoric use"
+ },
+ {
+  "run": "run_hal_saflieni_hypogeum_1792949304",
+  "design": "timeline",
+  "field": "label",
+  "text": "End of prehistoric use"
+ },
+ {
+  "run": "run_hal_saflieni_hypogeum_1792949304",
+  "design": "timeline",
+  "field": "label",
+  "text": "Accidentally discovered"
+ },
+ {
+  "run": "run_hal_saflieni_hypogeum_1792949304",
+  "design": "stat_cards",
+  "field": "label",
+  "text": "Estimated human remains"
+ },
+ {
+  "run": "run_hal_saflieni_hypogeum_1792949304",
+  "design": "callouts",
+  "field": "label",
+  "text": "Oracle Room"
+ },
+ {
+  "run": "run_hal_saflieni_hypogeum_1792949304",
+  "design": "callouts",
+  "field": "label",
+  "text": "resonance niche"
+ },
+ {
+  "run": "run_hal_saflieni_hypogeum_1792949304",
+  "design": "callouts",
+  "field": "label",
+  "text": "steps and doorways"
+ },
+ {
+  "run": "run_hal_saflieni_hypogeum_1792949304",
+  "design": "map",
+  "field": "country",
+  "text": "Malta"
+ },
+ {
+  "run": "run_hal_saflieni_hypogeum_1792949304",
+  "design": "map",
+  "field": "place",
+  "text": "Ħal Saflieni Hypogeum"
+ },
+ {
+  "run": "run_kailasa_temple_monolith_1792524470",
+  "design": "cover",
+  "field": "eyebrow",
+  "text": "ANCIENT MARVELS"
+ },
+ {
+  "run": "run_kailasa_temple_monolith_1792524470",
+  "design": "cover",
+  "field": "tagline",
+  "text": "ELLORA CAVE 16"
+ },
+ {
+  "run": "run_kailasa_temple_monolith_1792524470",
+  "design": "story",
+  "field": "kicker",
+  "text": "ANCIENT ENGINEERING"
+ },
+ {
+  "run": "run_kailasa_temple_monolith_1792524470",
+  "design": "story",
+  "field": "kicker",
+  "text": "MASTER BLUEPRINT"
+ },
+ {
+  "run": "run_kailasa_temple_monolith_1792524470",
+  "design": "story",
+  "field": "kicker",
+  "text": "EFFICIENCY PARADOX"
+ },
+ {
+  "run": "run_kailasa_temple_monolith_1792524470",
+  "design": "carousel",
+  "field": "heading",
+  "text": "The Kailasa Monolith"
+ },
+ {
+  "run": "run_kailasa_temple_monolith_1792524470",
+  "design": "carousel",
+  "field": "heading",
+  "text": "Cave 16 Sanctuary"
+ },
+ {
+  "run": "run_kailasa_temple_monolith_1792524470",
+  "design": "carousel",
+  "field": "heading",
+  "text": "Vertical Excavation"
+ },
+ {
+  "run": "run_kailasa_temple_monolith_1792524470",
+  "design": "carousel",
+  "field": "heading",
+  "text": "Quarry Efficiency"
+ },
+ {
+  "run": "run_kailasa_temple_monolith_1792524470",
+  "design": "carousel",
+  "field": "heading",
+  "text": "Astronomical Axis"
+ },
+ {
+  "run": "run_kailasa_temple_monolith_1792524470",
+  "design": "carousel",
+  "field": "heading",
+  "text": "Cosmological Plan"
+ },
+ {
+  "run": "run_kailasa_temple_monolith_1792524470",
+  "design": "carousel",
+  "field": "heading",
+  "text": "Forgotten Ingenuity"
+ },
+ {
+  "run": "run_kailasa_temple_monolith_1792524470",
+  "design": "map",
+  "field": "place",
+  "text": "Kailasa Temple, Ellora Caves"
+ },
+ {
+  "run": "run_nazca_lines_runway_paradox_1792961797",
+  "design": "cover",
+  "field": "tagline",
+  "text": "PERU'S VAST DESERT"
+ },
+ {
+  "run": "run_nazca_lines_runway_paradox_1792961797",
+  "design": "story",
+  "field": "kicker",
+  "text": "DESERT ENIGMA"
+ },
+ {
+  "run": "run_nazca_lines_runway_paradox_1792961797",
+  "design": "story",
+  "field": "kicker",
+  "text": "SURFACE SCIENCE"
+ },
+ {
+  "run": "run_nazca_lines_runway_paradox_1792961797",
+  "design": "story",
+  "field": "kicker",
+  "text": "ANCIENT PURPOSE"
+ },
+ {
+  "run": "run_nazca_lines_runway_paradox_1792961797",
+  "design": "carousel",
+  "field": "heading",
+  "text": "The Nazca Lines"
+ },
+ {
+  "run": "run_nazca_lines_runway_paradox_1792961797",
+  "design": "carousel",
+  "field": "heading",
+  "text": "Scraping the Earth"
+ },
+ {
+  "run": "run_nazca_lines_runway_paradox_1792961797",
+  "design": "carousel",
+  "field": "heading",
+  "text": "Mist as a Shield"
+ },
+ {
+  "run": "run_nazca_lines_runway_paradox_1792961797",
+  "design": "carousel",
+  "field": "heading",
+  "text": "Simple Surveying"
+ },
+ {
+  "run": "run_nazca_lines_runway_paradox_1792961797",
+  "design": "carousel",
+  "field": "heading",
+  "text": "Massive Animal Shapes"
+ },
+ {
+  "run": "run_nazca_lines_runway_paradox_1792961797",
+  "design": "carousel",
+  "field": "heading",
+  "text": "Modern Drone Finds"
+ },
+ {
+  "run": "run_nazca_lines_runway_paradox_1792961797",
+  "design": "carousel",
+  "field": "heading",
+  "text": "Earthly Ambition"
+ },
+ {
+  "run": "run_nazca_lines_runway_paradox_1792961797",
+  "design": "timeline",
+  "field": "label",
+  "text": "Geoglyph creation begins"
+ },
+ {
+  "run": "run_nazca_lines_runway_paradox_1792961797",
+  "design": "timeline",
+  "field": "label",
+  "text": "Geoglyph creation ends"
+ },
+ {
+  "run": "run_nazca_lines_runway_paradox_1792961797",
+  "design": "timeline",
+  "field": "label",
+  "text": "Designated UNESCO World Heritage"
+ },
+ {
+  "run": "run_nazca_lines_runway_paradox_1792961797",
+  "design": "stat_cards",
+  "field": "label",
+  "text": "Trench incision depth"
+ },
+ {
+  "run": "run_nazca_lines_runway_paradox_1792961797",
+  "design": "callouts",
+  "field": "label",
+  "text": "shallow trenches"
+ },
+ {
+  "run": "run_nazca_lines_runway_paradox_1792961797",
+  "design": "callouts",
+  "field": "label",
+  "text": "wooden stakes"
+ },
+ {
+  "run": "run_nazca_lines_runway_paradox_1792961797",
+  "design": "callouts",
+  "field": "label",
+  "text": "surface pebbles"
+ },
+ {
+  "run": "run_nazca_lines_runway_paradox_1792961797",
+  "design": "callouts",
+  "field": "label",
+  "text": "exposed clay earth"
+ },
+ {
+  "run": "run_nazca_lines_runway_paradox_1792961797",
+  "design": "map",
+  "field": "country",
+  "text": "Peru"
+ },
+ {
+  "run": "run_nazca_lines_runway_paradox_1792961797",
+  "design": "map",
+  "field": "place",
+  "text": "Nazca"
+ },
+ {
+  "run": "run_nazca_lines_runway_paradox_1793247464",
+  "design": "cover",
+  "field": "eyebrow",
+  "text": "PERUVIAN DESERT"
+ },
+ {
+  "run": "run_nazca_lines_runway_paradox_1793247464",
+  "design": "cover",
+  "field": "tagline",
+  "text": "GROUND LEVEL GENIUS"
+ },
+ {
+  "run": "run_nazca_lines_runway_paradox_1793247464",
+  "design": "story",
+  "field": "kicker",
+  "text": "ANCIENT SURVEYING"
+ },
+ {
+  "run": "run_nazca_lines_runway_paradox_1793247464",
+  "design": "story",
+  "field": "kicker",
+  "text": "SIMPLE TOOLS"
+ },
+ {
+  "run": "run_nazca_lines_runway_paradox_1793247464",
+  "design": "carousel",
+  "field": "heading",
+  "text": "Lines in the Sand"
+ },
+ {
+  "run": "run_nazca_lines_runway_paradox_1793247464",
+  "design": "carousel",
+  "field": "heading",
+  "text": "Scraping the Pebbles"
+ },
+ {
+  "run": "run_nazca_lines_runway_paradox_1793247464",
+  "design": "carousel",
+  "field": "heading",
+  "text": "Morning Mist Armor"
+ },
+ {
+  "run": "run_nazca_lines_runway_paradox_1793247464",
+  "design": "carousel",
+  "field": "heading",
+  "text": "Two Ancient Eras"
+ },
+ {
+  "run": "run_nazca_lines_runway_paradox_1793247464",
+  "design": "carousel",
+  "field": "heading",
+  "text": "Surveying Stakes"
+ },
+ {
+  "run": "run_nazca_lines_runway_paradox_1793247464",
+  "design": "carousel",
+  "field": "heading",
+  "text": "Modern Drone Views"
+ },
+ {
+  "run": "run_nazca_lines_runway_paradox_1793247464",
+  "design": "carousel",
+  "field": "heading",
+  "text": "Enduring Vision"
+ },
+ {
+  "run": "run_odessa_catacombs_1792970549",
+  "design": "cover",
+  "field": "eyebrow",
+  "text": "HIDDEN TUNNELS"
+ },
+ {
+  "run": "run_odessa_catacombs_1792970549",
+  "design": "cover",
+  "field": "tagline",
+  "text": "WARTIME RESISTANCE"
+ },
+ {
+  "run": "run_odessa_catacombs_1792970549",
+  "design": "story",
+  "field": "kicker",
+  "text": "SUBTERRANEAN ODESSA"
+ },
+ {
+  "run": "run_odessa_catacombs_1792970549",
+  "design": "story",
+  "field": "kicker",
+  "text": "WARTIME SHELTER"
+ },
+ {
+  "run": "run_odessa_catacombs_1792970549",
+  "design": "story",
+  "field": "kicker",
+  "text": "UNDERGROUND FRONT"
+ },
+ {
+  "run": "run_odessa_catacombs_1792970549",
+  "design": "carousel",
+  "field": "heading",
+  "text": "THE ODESA CATACOMBS"
+ },
+ {
+  "run": "run_odessa_catacombs_1792970549",
+  "design": "carousel",
+  "field": "heading",
+  "text": "BLACK SEA NETWORK"
+ },
+ {
+  "run": "run_odessa_catacombs_1792970549",
+  "design": "carousel",
+  "field": "heading",
+  "text": "AERIAL BOMBARDMENT"
+ },
+ {
+  "run": "run_odessa_catacombs_1792970549",
+  "design": "carousel",
+  "field": "heading",
+  "text": "UNDERGROUND REFUGE"
+ },
+ {
+  "run": "run_odessa_catacombs_1792970549",
+  "design": "carousel",
+  "field": "heading",
+  "text": "THE 73-DAY SIEGE"
+ },
+ {
+  "run": "run_odessa_catacombs_1792970549",
+  "design": "carousel",
+  "field": "heading",
+  "text": "PARTISAN RESISTANCE"
+ },
+ {
+  "run": "run_odessa_catacombs_1792970549",
+  "design": "carousel",
+  "field": "heading",
+  "text": "HUMAN RESILIENCE"
+ },
+ {
+  "run": "run_odessa_catacombs_1792970549",
+  "design": "stat_cards",
+  "field": "label",
+  "text": "1941 Siege of Odesa"
+ },
+ {
+  "run": "run_odessa_catacombs_1792970549",
+  "design": "map",
+  "field": "country",
+  "text": "Ukraine"
+ },
+ {
+  "run": "run_odessa_catacombs_1792970549",
+  "design": "map",
+  "field": "place",
+  "text": "Odessa"
+ },
+ {
+  "run": "run_richat_structure_sahara_eye_1792737039_short",
+  "design": "cover",
+  "field": "eyebrow",
+  "text": "DESERT PHENOMENON"
+ },
+ {
+  "run": "run_richat_structure_sahara_eye_1792737039_short",
+  "design": "cover",
+  "field": "tagline",
+  "text": "NOT AN IMPACT CRATER"
+ },
+ {
+  "run": "run_richat_structure_sahara_eye_1792737039_short",
+  "design": "story",
+  "field": "kicker",
+  "text": "ORBITAL VIEW"
+ },
+ {
+  "run": "run_richat_structure_sahara_eye_1792737039_short",
+  "design": "story",
+  "field": "kicker",
+  "text": "FORENSIC REALITY"
+ },
+ {
+  "run": "run_richat_structure_sahara_eye_1792737039_short",
+  "design": "story",
+  "field": "kicker",
+  "text": "WEIGH IN"
+ },
+ {
+  "run": "run_richat_structure_sahara_eye_1792737039_short",
+  "design": "carousel",
+  "field": "heading",
+  "text": "THE EYE OF THE SAHARA"
+ },
+ {
+  "run": "run_richat_structure_sahara_eye_1792737039_short",
+  "design": "carousel",
+  "field": "heading",
+  "text": "MAGMATIC UPLIFT"
+ },
+ {
+  "run": "run_richat_structure_sahara_eye_1792737039_short",
+  "design": "carousel",
+  "field": "heading",
+  "text": "NO METEORITE IMPACT"
+ },
+ {
+  "run": "run_richat_structure_sahara_eye_1792737039_short",
+  "design": "carousel",
+  "field": "heading",
+  "text": "ANCIENT VOLCANISM"
+ },
+ {
+  "run": "run_richat_structure_sahara_eye_1792737039_short",
+  "design": "carousel",
+  "field": "heading",
+  "text": "HYDROTHERMAL CENTER"
+ },
+ {
+  "run": "run_richat_structure_sahara_eye_1792737039_short",
+  "design": "carousel",
+  "field": "heading",
+  "text": "ASTRONAUT LANDMARK"
+ },
+ {
+  "run": "run_richat_structure_sahara_eye_1792737039_short",
+  "design": "carousel",
+  "field": "heading",
+  "text": "EARTH VERSUS MYTH"
+ },
+ {
+  "run": "run_richat_structure_sahara_eye_1792737039_short",
+  "design": "stat_cards",
+  "field": "label",
+  "text": "Measured diameter range"
+ },
+ {
+  "run": "run_richat_structure_sahara_eye_1792737039_short",
+  "design": "stat_cards",
+  "field": "label",
+  "text": "Carbonatite cooling age"
+ },
+ {
+  "run": "run_richat_structure_sahara_eye_1792737039_short",
+  "design": "callouts",
+  "field": "label",
+  "text": "eroded geological dome"
+ },
+ {
+  "run": "run_richat_structure_sahara_eye_1792737039_short",
+  "design": "callouts",
+  "field": "label",
+  "text": "concentric rings"
+ },
+ {
+  "run": "run_richat_structure_sahara_eye_1792737039_short",
+  "design": "callouts",
+  "field": "label",
+  "text": "sedimentary rock"
+ },
+ {
+  "run": "run_richat_structure_sahara_eye_1792737039_short",
+  "design": "map",
+  "field": "country",
+  "text": "Mauritania"
+ },
+ {
+  "run": "run_richat_structure_sahara_eye_1792737039_short",
+  "design": "map",
+  "field": "place",
+  "text": "Ouadane"
+ },
+ {
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "design": "chapter_card",
+  "field": "act_title",
+  "text": "Introduction: A Desert Landmark from Space"
+ },
+ {
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "design": "chapter_card",
+  "field": "act_title",
+  "text": "Documented Physical Architecture"
+ },
+ {
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "design": "chapter_card",
+  "field": "act_title",
+  "text": "Origin Debates and Rock Dating"
+ },
+ {
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "design": "chapter_card",
+  "field": "act_title",
+  "text": "Archaeological Evidence and Refuted Claims"
+ },
+ {
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "design": "chapter_card",
+  "field": "act_title",
+  "text": "International Heritage Recognition"
+ },
+ {
+  "run": "run_richat_structure_sahara_eye_1792778206",
+  "design": "cover",
+  "field": "eyebrow",
+  "text": "DESERT ANOMALY"
+ },
+ {
+  "run": "run_richat_structure_sahara_eye_1792778206",
+  "design": "cover",
+  "field": "tagline",
+  "text": "MAURITANIA'S RINGS"
+ },
+ {
+  "run": "run_richat_structure_sahara_eye_1792778206",
+  "design": "story",
+  "field": "kicker",
+  "text": "DESERT ANOMALY"
+ },
+ {
+  "run": "run_richat_structure_sahara_eye_1792778206",
+  "design": "story",
+  "field": "kicker",
+  "text": "ANCIENT ORIGINS"
+ },
+ {
+  "run": "run_richat_structure_sahara_eye_1792778206",
+  "design": "story",
+  "field": "kicker",
+  "text": "RING DIKE SIZES"
+ },
+ {
+  "run": "run_richat_structure_sahara_eye_1792778206",
+  "design": "carousel",
+  "field": "heading",
+  "text": "DESERT LANDMARK"
+ },
+ {
+  "run": "run_richat_structure_sahara_eye_1792778206",
+  "design": "carousel",
+  "field": "heading",
+  "text": "ERODED ROCK DOME"
+ },
+ {
+  "run": "run_richat_structure_sahara_eye_1792778206",
+  "design": "carousel",
+  "field": "heading",
+  "text": "ANCIENT COOLING"
+ },
+ {
+  "run": "run_richat_structure_sahara_eye_1792778206",
+  "design": "carousel",
+  "field": "heading",
+  "text": "HERITAGE AND TOOLS"
+ },
+ {
+  "run": "run_richat_structure_sahara_eye_1792778206",
+  "design": "carousel",
+  "field": "heading",
+  "text": "EARTH'S ENDURING MARVELS"
+ },
+ {
+  "run": "run_richat_structure_sahara_eye_1792778206",
+  "design": "stat_cards",
+  "field": "label",
+  "text": "Recorded diameter"
+ },
+ {
+  "run": "run_richat_structure_sahara_eye_1792778206",
+  "design": "stat_cards",
+  "field": "label",
+  "text": "Carbonatite rock cooling age"
+ },
+ {
+  "run": "run_richat_structure_sahara_eye_1792778206",
+  "design": "callouts",
+  "field": "label",
+  "text": "eroded dome"
+ },
+ {
+  "run": "run_richat_structure_sahara_eye_1793272675",
+  "design": "cover",
+  "field": "tagline",
+  "text": "CARVED BY NATURE"
+ },
+ {
+  "run": "run_richat_structure_sahara_eye_1793272675",
+  "design": "story",
+  "field": "kicker",
+  "text": "ORBITAL MYSTERY"
+ },
+ {
+  "run": "run_richat_structure_sahara_eye_1793272675",
+  "design": "story",
+  "field": "kicker",
+  "text": "GEOLOGIC ORIGIN"
+ },
+ {
+  "run": "run_richat_structure_sahara_eye_1793272675",
+  "design": "story",
+  "field": "kicker",
+  "text": "SURFACE EXPLORATION"
+ },
+ {
+  "run": "run_richat_structure_sahara_eye_1793272675",
+  "design": "carousel",
+  "field": "heading",
+  "text": "ORBITAL LANDMARK"
+ },
+ {
+  "run": "run_richat_structure_sahara_eye_1793272675",
+  "design": "carousel",
+  "field": "heading",
+  "text": "IMPACT THEORY DISPROVED"
+ },
+ {
+  "run": "run_richat_structure_sahara_eye_1793272675",
+  "design": "carousel",
+  "field": "heading",
+  "text": "GLOBAL HERITAGE"
+ },
+ {
+  "run": "run_richat_structure_sahara_eye_1793272675",
+  "design": "carousel",
+  "field": "heading",
+  "text": "EARTH'S HIDDEN MARVELS"
+ },
+ {
+  "run": "run_richat_structure_sahara_eye_1793272675",
+  "design": "timeline",
+  "field": "label",
+  "text": "Impact theory disproved"
+ },
+ {
+  "run": "run_richat_structure_sahara_eye_1793272675",
+  "design": "timeline",
+  "field": "label",
+  "text": "Named geological heritage site"
+ },
+ {
+  "run": "run_richat_structure_sahara_eye_1793468053",
+  "design": "cover",
+  "field": "tagline",
+  "text": "VOLCANO OR IMPACT?"
+ },
+ {
+  "run": "run_richat_structure_sahara_eye_1793468053",
+  "design": "story",
+  "field": "kicker",
+  "text": "MYSTERY"
+ },
+ {
+  "run": "run_richat_structure_sahara_eye_1793468053",
+  "design": "story",
+  "field": "kicker",
+  "text": "GEOLOGY"
+ },
+ {
+  "run": "run_richat_structure_sahara_eye_1793468053",
+  "design": "story",
+  "field": "kicker",
+  "text": "VERDICT"
+ },
+ {
+  "run": "run_richat_structure_sahara_eye_1793468053",
+  "design": "carousel",
+  "field": "heading",
+  "text": "Eye of the Sahara"
+ },
+ {
+  "run": "run_richat_structure_sahara_eye_1793468053",
+  "design": "carousel",
+  "field": "heading",
+  "text": "Concentric Ring Dikes"
+ },
+ {
+  "run": "run_richat_structure_sahara_eye_1793468053",
+  "design": "carousel",
+  "field": "heading",
+  "text": "Magma and Uplift"
+ },
+ {
+  "run": "run_richat_structure_sahara_eye_1793468053",
+  "design": "carousel",
+  "field": "heading",
+  "text": "Impact Disproved"
+ },
+ {
+  "run": "run_richat_structure_sahara_eye_1793468053",
+  "design": "carousel",
+  "field": "heading",
+  "text": "Deep Time Age"
+ },
+ {
+  "run": "run_richat_structure_sahara_eye_1793468053",
+  "design": "carousel",
+  "field": "heading",
+  "text": "Stone Age Artifacts"
+ },
+ {
+  "run": "run_richat_structure_sahara_eye_1793468053",
+  "design": "carousel",
+  "field": "heading",
+  "text": "Enduring Mysteries"
+ },
+ {
+  "run": "run_richat_structure_sahara_eye_1793468053",
+  "design": "stat_cards",
+  "field": "label",
+  "text": "Cooling of carbonatite rocks"
+ },
+ {
+  "run": "run_richat_structure_sahara_eye_1793468053",
+  "design": "callouts",
+  "field": "label",
+  "text": "gabbroic dikes"
+ },
+ {
+  "run": "run_richat_structure_sahara_eye_1793468053",
+  "design": "callouts",
+  "field": "label",
+  "text": "sedimentary rock layers"
+ },
+ {
+  "run": "run_roman_self_healing_concrete_1793161347",
+  "design": "cover",
+  "field": "tagline",
+  "text": "The Secret of Rome"
+ },
+ {
+  "run": "run_roman_self_healing_concrete_1793161347",
+  "design": "story",
+  "field": "kicker",
+  "text": "ANCIENT MYSTERY"
+ },
+ {
+  "run": "run_roman_self_healing_concrete_1793161347",
+  "design": "story",
+  "field": "kicker",
+  "text": "THE SECRET"
+ },
+ {
+  "run": "run_roman_self_healing_concrete_1793161347",
+  "design": "story",
+  "field": "kicker",
+  "text": "MODERN LESSONS"
+ },
+ {
+  "run": "run_roman_self_healing_concrete_1793161347",
+  "design": "carousel",
+  "field": "heading",
+  "text": "ROMAN CONCRETE SECRETS"
+ },
+ {
+  "run": "run_roman_self_healing_concrete_1793161347",
+  "design": "carousel",
+  "field": "heading",
+  "text": "MODERN DECAY"
+ },
+ {
+  "run": "run_roman_self_healing_concrete_1793161347",
+  "design": "carousel",
+  "field": "heading",
+  "text": "THE PANTHEON'S DOME"
+ },
+ {
+  "run": "run_roman_self_healing_concrete_1793161347",
+  "design": "carousel",
+  "field": "heading",
+  "text": "HARSH ENVIRONMENTS"
+ },
+ {
+  "run": "run_roman_self_healing_concrete_1793161347",
+  "design": "carousel",
+  "field": "heading",
+  "text": "THE HOT-MIXING SECRET"
+ },
+ {
+  "run": "run_roman_self_healing_concrete_1793161347",
+  "design": "carousel",
+  "field": "heading",
+  "text": "OVERTURNING HISTORY"
+ },
+ {
+  "run": "run_roman_self_healing_concrete_1793161347",
+  "design": "carousel",
+  "field": "heading",
+  "text": "LOST INGENUITY"
+ },
+ {
+  "run": "run_roman_self_healing_concrete_1793161347",
+  "design": "timeline",
+  "field": "label",
+  "text": "Pantheon dedicated in Rome"
+ },
+ {
+  "run": "run_roman_self_healing_concrete_1793161347",
+  "design": "timeline",
+  "field": "label",
+  "text": "Hot-mixing identified at Pompeii"
+ },
+ {
+  "run": "run_roman_self_healing_concrete_1793161347",
+  "design": "callouts",
+  "field": "label",
+  "text": "unreinforced concrete dome"
+ },
+ {
+  "run": "run_roman_self_healing_concrete_1793161347",
+  "design": "callouts",
+  "field": "label",
+  "text": "Roman aqueducts"
+ },
+ {
+  "run": "run_roman_self_healing_concrete_1793161347",
+  "design": "map",
+  "field": "country",
+  "text": "Italy"
+ },
+ {
+  "run": "run_roman_self_healing_concrete_1793161347",
+  "design": "map",
+  "field": "place",
+  "text": "Pantheon"
+ },
+ {
+  "run": "run_singing_colossi_of_memnon_1792952878",
+  "design": "cover",
+  "field": "eyebrow",
+  "text": "THEBAN NECROPOLIS"
+ },
+ {
+  "run": "run_singing_colossi_of_memnon_1792952878",
+  "design": "cover",
+  "field": "tagline",
+  "text": "VOICE OF THE DESERT"
+ },
+ {
+  "run": "run_singing_colossi_of_memnon_1792952878",
+  "design": "story",
+  "field": "kicker",
+  "text": "ANCIENT MARVELS"
+ },
+ {
+  "run": "run_singing_colossi_of_memnon_1792952878",
+  "design": "story",
+  "field": "kicker",
+  "text": "THE MORNING SOUND"
+ },
+ {
+  "run": "run_singing_colossi_of_memnon_1792952878",
+  "design": "story",
+  "field": "kicker",
+  "text": "WHICH WAS BETTER?"
+ },
+ {
+  "run": "run_singing_colossi_of_memnon_1792952878",
+  "design": "carousel",
+  "field": "heading",
+  "text": "THE SINGING COLOSSI"
+ },
+ {
+  "run": "run_singing_colossi_of_memnon_1792952878",
+  "design": "carousel",
+  "field": "heading",
+  "text": "SACRED GUARDIANS"
+ },
+ {
+  "run": "run_singing_colossi_of_memnon_1792952878",
+  "design": "carousel",
+  "field": "heading",
+  "text": "COLOSSAL SCALE"
+ },
+ {
+  "run": "run_singing_colossi_of_memnon_1792952878",
+  "design": "carousel",
+  "field": "heading",
+  "text": "THE EARTHQUAKE OF 27 BC"
+ },
+ {
+  "run": "run_singing_colossi_of_memnon_1792952878",
+  "design": "carousel",
+  "field": "heading",
+  "text": "THE CRY AT DAWN"
+ },
+ {
+  "run": "run_singing_colossi_of_memnon_1792952878",
+  "design": "carousel",
+  "field": "heading",
+  "text": "ROMAN RECONSTRUCTION"
+ },
+ {
+  "run": "run_singing_colossi_of_memnon_1792952878",
+  "design": "carousel",
+  "field": "heading",
+  "text": "VANISHED WONDERS"
+ },
+ {
+  "run": "run_singing_colossi_of_memnon_1792952878",
+  "design": "timeline",
+  "field": "label",
+  "text": "Colossi carved for Amenhotep III"
+ },
+ {
+  "run": "run_singing_colossi_of_memnon_1792952878",
+  "design": "timeline",
+  "field": "label",
+  "text": "Earthquake shatters northern colossus"
+ },
+ {
+  "run": "run_singing_colossi_of_memnon_1792952878",
+  "design": "timeline",
+  "field": "label",
+  "text": "Last recorded vocalization"
+ },
+ {
+  "run": "run_singing_colossi_of_memnon_1792952878",
+  "design": "timeline",
+  "field": "label",
+  "text": "Upper tiers reconstructed"
+ },
+ {
+  "run": "run_singing_colossi_of_memnon_1792952878",
+  "design": "stat_cards",
+  "field": "label",
+  "text": "weight of each colossus"
+ },
+ {
+  "run": "run_singing_colossi_of_memnon_1792952878",
+  "design": "stat_cards",
+  "field": "label",
+  "text": "standing since"
+ },
+ {
+  "run": "run_singing_colossi_of_memnon_1792952878",
+  "design": "scale",
+  "field": "subject",
+  "text": "Colossi of Memnon"
+ },
+ {
+  "run": "run_singing_colossi_of_memnon_1792952878",
+  "design": "callouts",
+  "field": "label",
+  "text": "northern colossus"
+ },
+ {
+  "run": "run_singing_colossi_of_memnon_1792952878",
+  "design": "callouts",
+  "field": "label",
+  "text": "pedestals"
+ },
+ {
+  "run": "run_singing_colossi_of_memnon_1792952878",
+  "design": "callouts",
+  "field": "label",
+  "text": "upper tiers"
+ },
+ {
+  "run": "run_singing_colossi_of_memnon_1792952878",
+  "design": "map",
+  "field": "country",
+  "text": "Egypt"
+ },
+ {
+  "run": "run_singing_colossi_of_memnon_1792952878",
+  "design": "map",
+  "field": "place",
+  "text": "Colossi of Memnon"
+ },
+ {
+  "run": "run_trepanation_miracle_1792995462",
+  "design": "cover",
+  "field": "eyebrow",
+  "text": "ANCIENT MEDICINE"
+ },
+ {
+  "run": "run_trepanation_miracle_1792995462",
+  "design": "cover",
+  "field": "tagline",
+  "text": "SURVIVING CRANIOTOMY"
+ },
+ {
+  "run": "run_trepanation_miracle_1792995462",
+  "design": "story",
+  "field": "kicker",
+  "text": "ANCIENT HEALERS"
+ },
+ {
+  "run": "run_trepanation_miracle_1792995462",
+  "design": "story",
+  "field": "kicker",
+  "text": "PARACAS PENINSULA"
+ },
+ {
+  "run": "run_trepanation_miracle_1792995462",
+  "design": "story",
+  "field": "kicker",
+  "text": "ANCIENT MOTIVES"
+ },
+ {
+  "run": "run_trepanation_miracle_1792995462",
+  "design": "carousel",
+  "field": "heading",
+  "text": "Ancient Skull Surgery"
+ },
+ {
+  "run": "run_trepanation_miracle_1792995462",
+  "design": "carousel",
+  "field": "heading",
+  "text": "Oldest Known Surgery"
+ },
+ {
+  "run": "run_trepanation_miracle_1792995462",
+  "design": "carousel",
+  "field": "heading",
+  "text": "Emergency Trauma Care"
+ },
+ {
+  "run": "run_trepanation_miracle_1792995462",
+  "design": "carousel",
+  "field": "heading",
+  "text": "Surgical Precision"
+ },
+ {
+  "run": "run_trepanation_miracle_1792995462",
+  "design": "carousel",
+  "field": "heading",
+  "text": "Rising Survival Rates"
+ },
+ {
+  "run": "run_trepanation_miracle_1792995462",
+  "design": "carousel",
+  "field": "heading",
+  "text": "Signs of Healing"
+ },
+ {
+  "run": "run_trepanation_miracle_1792995462",
+  "design": "carousel",
+  "field": "heading",
+  "text": "The Ancient Mind"
+ },
+ {
+  "run": "run_trepanation_miracle_1792995462",
+  "design": "stat_cards",
+  "field": "label",
+  "text": "Earliest documented surgery"
+ },
+ {
+  "run": "run_trepanation_miracle_1792995462",
+  "design": "stat_cards",
+  "field": "label",
+  "text": "Peruvian cranial surgery survival rate"
+ },
+ {
+  "run": "run_trepanation_miracle_1792995462",
+  "design": "map",
+  "field": "place",
+  "text": "Paracas Peninsula"
+ },
+ {
+  "run": "run_tunguska_event_1908_1792930600",
+  "design": "cover",
+  "field": "eyebrow",
+  "text": "SIBERIA 1908"
+ },
+ {
+  "run": "run_tunguska_event_1908_1792930600",
+  "design": "cover",
+  "field": "tagline",
+  "text": "WHAT EXPLODED ABOVE?"
+ },
+ {
+  "run": "run_tunguska_event_1908_1792930600",
+  "design": "story",
+  "field": "kicker",
+  "text": "JUNE 1908"
+ },
+ {
+  "run": "run_tunguska_event_1908_1792930600",
+  "design": "story",
+  "field": "kicker",
+  "text": "FORENSIC EVIDENCE"
+ },
+ {
+  "run": "run_tunguska_event_1908_1792930600",
+  "design": "story",
+  "field": "kicker",
+  "text": "THE BIG QUESTION"
+ },
+ {
+  "run": "run_tunguska_event_1908_1792930600",
+  "design": "carousel",
+  "field": "heading",
+  "text": "THE TUNGUSKA PUZZLE"
+ },
+ {
+  "run": "run_tunguska_event_1908_1792930600",
+  "design": "carousel",
+  "field": "heading",
+  "text": "RADIAL FLATTENING"
+ },
+ {
+  "run": "run_tunguska_event_1908_1792930600",
+  "design": "carousel",
+  "field": "heading",
+  "text": "MASSIVE EXPLOSION"
+ },
+ {
+  "run": "run_tunguska_event_1908_1792930600",
+  "design": "carousel",
+  "field": "heading",
+  "text": "GLOBAL SHOCKWAVES"
+ },
+ {
+  "run": "run_tunguska_event_1908_1792930600",
+  "design": "carousel",
+  "field": "heading",
+  "text": "TREE RING SCARS"
+ },
+ {
+  "run": "run_tunguska_event_1908_1792930600",
+  "design": "carousel",
+  "field": "heading",
+  "text": "VANISHED FRAGMENTS"
+ },
+ {
+  "run": "run_tunguska_event_1908_1792930600",
+  "design": "carousel",
+  "field": "heading",
+  "text": "PLANETARY RESILIENCE"
+ },
+ {
+  "run": "run_tunguska_event_1908_1792930600",
+  "design": "stat_cards",
+  "field": "label",
+  "text": "Devastated taiga forest"
+ },
+ {
+  "run": "run_tunguska_event_1908_1792930600",
+  "design": "stat_cards",
+  "field": "label",
+  "text": "Calculated airburst energy"
+ },
+ {
+  "run": "run_tunguska_event_1908_1792930600",
+  "design": "map",
+  "field": "place",
+  "text": "Podkamennaya Tunguska"
+ },
+ {
+  "run": "run_unfinished_obelisk_aswan_1792985912",
+  "design": "cover",
+  "field": "eyebrow",
+  "text": "ANCIENT ASWAN"
+ },
+ {
+  "run": "run_unfinished_obelisk_aswan_1792985912",
+  "design": "cover",
+  "field": "tagline",
+  "text": "NEVER ERECTED"
+ },
+ {
+  "run": "run_unfinished_obelisk_aswan_1792985912",
+  "design": "story",
+  "field": "kicker",
+  "text": "ASWAN QUARRY"
+ },
+ {
+  "run": "run_unfinished_obelisk_aswan_1792985912",
+  "design": "story",
+  "field": "kicker",
+  "text": "QUARRY FORENSICS"
+ },
+ {
+  "run": "run_unfinished_obelisk_aswan_1792985912",
+  "design": "story",
+  "field": "kicker",
+  "text": "ENGINEERING LIMITS"
+ },
+ {
+  "run": "run_unfinished_obelisk_aswan_1792985912",
+  "design": "carousel",
+  "field": "heading",
+  "text": "THE UNFINISHED OBELISK"
+ },
+ {
+  "run": "run_unfinished_obelisk_aswan_1792985912",
+  "design": "carousel",
+  "field": "heading",
+  "text": "FIRE AND BEDROCK"
+ },
+ {
+  "run": "run_unfinished_obelisk_aswan_1792985912",
+  "design": "carousel",
+  "field": "heading",
+  "text": "CRACKED IN PLACE"
+ },
+ {
+  "run": "run_unfinished_obelisk_aswan_1792985912",
+  "design": "carousel",
+  "field": "heading",
+  "text": "PRESERVED EVIDENCE"
+ },
+ {
+  "run": "run_unfinished_obelisk_aswan_1792985912",
+  "design": "carousel",
+  "field": "heading",
+  "text": "UNKNOWN EXTRACTION"
+ },
+ {
+  "run": "run_unfinished_obelisk_aswan_1792985912",
+  "design": "carousel",
+  "field": "heading",
+  "text": "ANCIENT LIMITS"
+ },
+ {
+  "run": "run_unfinished_obelisk_aswan_1792985912",
+  "design": "callouts",
+  "field": "label",
+  "text": "tool marks"
+ },
+ {
+  "run": "run_unfinished_obelisk_aswan_1792985912",
+  "design": "callouts",
+  "field": "label",
+  "text": "ochre lines"
+ },
+ {
+  "run": "run_unfinished_obelisk_aswan_1792985912",
+  "design": "callouts",
+  "field": "label",
+  "text": "trench"
+ },
+ {
+  "run": "run_unfinished_obelisk_aswan_1792985912",
+  "design": "callouts",
+  "field": "label",
+  "text": "fissures"
+ },
+ {
+  "run": "run_unfinished_obelisk_aswan_1792985912",
+  "design": "map",
+  "field": "place",
+  "text": "Aswan Granite Quarries"
+ },
+ {
+  "run": "run_unfinished_obelisk_aswan_1792993374",
+  "design": "cover",
+  "field": "eyebrow",
+  "text": "ASWAN, EGYPT"
+ },
+ {
+  "run": "run_unfinished_obelisk_aswan_1792993374",
+  "design": "cover",
+  "field": "tagline",
+  "text": "TRAPPED IN BEDROCK"
+ },
+ {
+  "run": "run_unfinished_obelisk_aswan_1792993374",
+  "design": "story",
+  "field": "kicker",
+  "text": "MASSIVE SCALE"
+ },
+ {
+  "run": "run_unfinished_obelisk_aswan_1792993374",
+  "design": "story",
+  "field": "kicker",
+  "text": "ENGINEERING RIDDLE"
+ },
+ {
+  "run": "run_unfinished_obelisk_aswan_1792993374",
+  "design": "carousel",
+  "field": "heading",
+  "text": "CARVED FROM BEDROCK"
+ },
+ {
+  "run": "run_unfinished_obelisk_aswan_1792993374",
+  "design": "carousel",
+  "field": "heading",
+  "text": "ANCIENT WORK MARKS"
+ },
+ {
+  "run": "run_unfinished_obelisk_aswan_1792993374",
+  "design": "carousel",
+  "field": "heading",
+  "text": "UNMATCHED WEIGHT"
+ },
+ {
+  "run": "run_unfinished_obelisk_aswan_1792993374",
+  "design": "carousel",
+  "field": "heading",
+  "text": "FATAL FRACTURES"
+ },
+ {
+  "run": "run_unfinished_obelisk_aswan_1792993374",
+  "design": "carousel",
+  "field": "heading",
+  "text": "AN ENDURING MYSTERY"
+ },
+ {
+  "run": "run_unfinished_obelisk_aswan_1792993374",
+  "design": "stat_cards",
+  "field": "label",
+  "text": "Estimated completed length"
+ },
+ {
+  "run": "run_unfinished_obelisk_aswan_1792993374",
+  "design": "stat_cards",
+  "field": "label",
+  "text": "Calculated finished weight"
+ },
+ {
+  "run": "run_unfinished_obelisk_aswan_1792993374",
+  "design": "scale",
+  "field": "subject",
+  "text": "Unfinished obelisk"
+ },
+ {
+  "run": "run_unfinished_obelisk_aswan_1792993374",
+  "design": "callouts",
+  "field": "label",
+  "text": "Red ochre cut lines"
+ },
+ {
+  "run": "run_unfinished_obelisk_aswan_1792993374",
+  "design": "callouts",
+  "field": "label",
+  "text": "Deep trenches"
+ },
+ {
+  "run": "run_unfinished_obelisk_aswan_1792993374",
+  "design": "callouts",
+  "field": "label",
+  "text": "Structural cracks"
+ },
+ {
+  "run": "run_unfinished_obelisk_aswan_1793056896",
+  "design": "cover",
+  "field": "eyebrow",
+  "text": "ASWAN'S LOST TITAN"
+ },
+ {
+  "run": "run_unfinished_obelisk_aswan_1793056896",
+  "design": "cover",
+  "field": "tagline",
+  "text": "WHY EGYPT WALKED AWAY"
+ },
+ {
+  "run": "run_unfinished_obelisk_aswan_1793056896",
+  "design": "story",
+  "field": "kicker",
+  "text": "ANCIENT MEGALITHS"
+ },
+ {
+  "run": "run_unfinished_obelisk_aswan_1793056896",
+  "design": "carousel",
+  "field": "heading",
+  "text": "RECORD-BREAKING SCALE"
+ },
+ {
+  "run": "run_unfinished_obelisk_aswan_1793056896",
+  "design": "carousel",
+  "field": "heading",
+  "text": "BEDROCK CUTTING MARKS"
+ },
+ {
+  "run": "run_unfinished_obelisk_aswan_1793056896",
+  "design": "carousel",
+  "field": "heading",
+  "text": "EXTRACTION PUZZLE"
+ },
+ {
+  "run": "run_unfinished_obelisk_aswan_1793056896",
+  "design": "carousel",
+  "field": "heading",
+  "text": "STRUCTURAL LIMITS"
+ },
+ {
+  "run": "run_unfinished_obelisk_aswan_1793056896",
+  "design": "carousel",
+  "field": "heading",
+  "text": "THE ENDURING DEBATE"
+ },
+ {
+  "run": "run_unfinished_obelisk_aswan_1793056896",
+  "design": "stat_cards",
+  "field": "label",
+  "text": "Surveyed length"
+ },
+ {
+  "run": "run_unfinished_obelisk_aswan_1793056896",
+  "design": "callouts",
+  "field": "label",
+  "text": "trenches"
+ },
+ {
+  "run": "run_unfinished_obelisk_aswan_1793056896",
+  "design": "callouts",
+  "field": "label",
+  "text": "structural fissures"
+ },
+ {
+  "run": "run_voynich_manuscript_1792965308",
+  "design": "cover",
+  "field": "eyebrow",
+  "text": "MEDIEVAL RELIC"
+ },
+ {
+  "run": "run_voynich_manuscript_1792965308",
+  "design": "cover",
+  "field": "tagline",
+  "text": "UNREAD FOR CENTURIES"
+ },
+ {
+  "run": "run_voynich_manuscript_1792965308",
+  "design": "story",
+  "field": "kicker",
+  "text": "ANCIENT PUZZLE"
+ },
+ {
+  "run": "run_voynich_manuscript_1792965308",
+  "design": "story",
+  "field": "kicker",
+  "text": "SCIENTIFIC TESTING"
+ },
+ {
+  "run": "run_voynich_manuscript_1792965308",
+  "design": "story",
+  "field": "kicker",
+  "text": "CRYPTIC TEXT"
+ },
+ {
+  "run": "run_voynich_manuscript_1792965308",
+  "design": "carousel",
+  "field": "heading",
+  "text": "THE UNREAD CODEX"
+ },
+ {
+  "run": "run_voynich_manuscript_1792965308",
+  "design": "carousel",
+  "field": "heading",
+  "text": "PARCHMENT ORIGIN"
+ },
+ {
+  "run": "run_voynich_manuscript_1792965308",
+  "design": "carousel",
+  "field": "heading",
+  "text": "PRESERVED AT YALE"
+ },
+ {
+  "run": "run_voynich_manuscript_1792965308",
+  "design": "carousel",
+  "field": "heading",
+  "text": "THE UNIDENTIFIED SCRIPT"
+ },
+ {
+  "run": "run_voynich_manuscript_1792965308",
+  "design": "carousel",
+  "field": "heading",
+  "text": "FANTASTICAL ART"
+ },
+ {
+  "run": "run_voynich_manuscript_1792965308",
+  "design": "carousel",
+  "field": "heading",
+  "text": "UNBROKEN CIPHER"
+ },
+ {
+  "run": "run_voynich_manuscript_1792965308",
+  "design": "carousel",
+  "field": "heading",
+  "text": "AN ENDURING PUZZLE"
+ },
+ {
+  "run": "run_voynich_manuscript_1792965308",
+  "design": "stat_cards",
+  "field": "label",
+  "text": "Parchment date range"
+ },
+ {
+  "run": "run_voynich_manuscript_1792965308",
+  "design": "stat_cards",
+  "field": "label",
+  "text": "Characters in alphabet"
+ },
+ {
+  "run": "run_voynich_manuscript_1792965308",
+  "design": "map",
+  "field": "country",
+  "text": "USA"
+ },
+ {
+  "run": "run_voynich_manuscript_1792965308",
+  "design": "map",
+  "field": "place",
+  "text": "Beinecke Rare Book Library"
+ },
+ {
+  "run": "run_wieliczka_salt_mine_1792974672",
+  "design": "cover",
+  "field": "eyebrow",
+  "text": "SUBTERRANEAN MARVEL"
+ },
+ {
+  "run": "run_wieliczka_salt_mine_1792974672",
+  "design": "cover",
+  "field": "tagline",
+  "text": "327 METERS DOWN"
+ },
+ {
+  "run": "run_wieliczka_salt_mine_1792974672",
+  "design": "story",
+  "field": "kicker",
+  "text": "UNDERGROUND MARVEL"
+ },
+ {
+  "run": "run_wieliczka_salt_mine_1792974672",
+  "design": "story",
+  "field": "kicker",
+  "text": "MASSIVE DEPTH"
+ },
+ {
+  "run": "run_wieliczka_salt_mine_1792974672",
+  "design": "story",
+  "field": "kicker",
+  "text": "YOUR VERDICT"
+ },
+ {
+  "run": "run_wieliczka_salt_mine_1792974672",
+  "design": "carousel",
+  "field": "heading",
+  "text": "THE SALT CATHEDRAL"
+ },
+ {
+  "run": "run_wieliczka_salt_mine_1792974672",
+  "design": "carousel",
+  "field": "heading",
+  "text": "MASSIVE LABYRINTH"
+ },
+ {
+  "run": "run_wieliczka_salt_mine_1792974672",
+  "design": "carousel",
+  "field": "heading",
+  "text": "PLUNGING DEPTHS"
+ },
+ {
+  "run": "run_wieliczka_salt_mine_1792974672",
+  "design": "carousel",
+  "field": "heading",
+  "text": "SUBTERRANEAN CHAPELS"
+ },
+ {
+  "run": "run_wieliczka_salt_mine_1792974672",
+  "design": "carousel",
+  "field": "heading",
+  "text": "PRESERVATION BATTLE"
+ },
+ {
+  "run": "run_wieliczka_salt_mine_1792974672",
+  "design": "scale",
+  "field": "subject",
+  "text": "Wieliczka Salt Mine"
+ },
+ {
+  "run": "run_wieliczka_salt_mine_1792974672",
+  "design": "callouts",
+  "field": "label",
+  "text": "underground galleries"
+ },
+ {
+  "run": "run_wieliczka_salt_mine_1792974672",
+  "design": "callouts",
+  "field": "label",
+  "text": "subterranean chapels"
+ },
+ {
+  "run": "run_wieliczka_salt_mine_1792974672",
+  "design": "callouts",
+  "field": "label",
+  "text": "chandeliers"
+ },
+ {
+  "run": "run_wieliczka_salt_mine_1792974672",
+  "design": "map",
+  "field": "country",
+  "text": "Poland"
+ },
+ {
+  "run": "run_wieliczka_salt_mine_1792974672",
+  "design": "map",
+  "field": "place",
+  "text": "Wieliczka"
+ }
+]

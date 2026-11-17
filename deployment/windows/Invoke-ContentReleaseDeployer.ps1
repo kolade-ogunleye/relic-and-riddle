@@ -1,7 +1,7 @@
 #Requires -Version 5.1
 <#
 .SYNOPSIS
-Installs new signed releases on content-client-win-01 without an administrator.
+Installs new signed releases on the production VM without an administrator.
 .DESCRIPTION
 Starts every minute as LAB\rr-deploy$ (task RelicAndRiddle-ReleaseDeployer-Unattended) and checks
 GitHub every 2 minutes, or at once after /deploy in the production bot. Its installed copy lives

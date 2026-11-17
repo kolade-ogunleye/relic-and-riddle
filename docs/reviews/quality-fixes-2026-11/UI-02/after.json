@@ -1,0 +1,30 @@
+{
+ "receipt": {
+  "all ok": {
+   "header": "✅ Posted · Title",
+   "runs_line": "📮 Title posted · Instagram Reel, Facebook Reel and YouTube Short",
+   "lines_with_tick": 4
+  },
+  "instagram failed": {
+   "header": "⚠️ Posted with problems · Title",
+   "runs_line": "⚠️ Title posted with problems · Facebook Reel and YouTube Short; not Instagram Reel",
+   "lines_with_tick": 2
+  },
+  "all failed": {
+   "header": "❌ Not posted · Title",
+   "runs_line": "❌ Title not posted",
+   "lines_with_tick": 0
+  },
+  "short skipped": {
+   "header": "✅ Posted · Title",
+   "runs_line": "📮 Title posted · Instagram Reel and Facebook Reel",
+   "lines_with_tick": 3
+  }
+ },
+ "v2_card": {
+  "placeholder_literals_on_card": 0,
+  "placeholders": [],
+  "length_shown": "47.7 s",
+  "run_without_a_measured_length": "live card instead (V2CardUnavailable)"
+ }
+}

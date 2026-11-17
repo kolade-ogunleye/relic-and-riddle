@@ -142,7 +142,7 @@ function Update-ContentTree {
         $file = $line.Substring(3).Trim()
         if ($releaseFiles -notcontains $file) { continue }
         $difference = Invoke-ContentGit -Git $Git -App $App -Arguments @('diff', '--ignore-cr-at-eol', $Target, '--', $file)
-        if ($difference.Stdout.Trim()) { throw "Production changed $file differently from the release; resolve it manually." }
+        if ($difference.Stdout.Trim()) { throw ("Production changed $file differently from the release, so the release was not installed. Production's copy holds this host's own state, written in place by code from before QF-111 (reviews, approvals, its own additions). Keep it: if data\host\$file does not exist yet, copy $file there; then restore the release's copy with git checkout -- $file and deploy again. The application reads data\host\ first, so nothing is lost.") }
         Assert-ContentGit (Invoke-ContentGit -Git $Git -App $App -Arguments @('checkout', $Target, '--', $file)) "checkout of $file" | Out-Null
     }
     Assert-ContentGit (Invoke-ContentGit -Git $Git -App $App -Arguments @('checkout', '--quiet', '--detach', $Target)) 'checkout' | Out-Null

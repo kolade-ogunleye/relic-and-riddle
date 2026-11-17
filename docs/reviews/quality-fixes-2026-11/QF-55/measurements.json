@@ -1,0 +1,88 @@
+{
+  "source_commit": "the commit that adds this file",
+  "scope": "ten offline fetches with generated images and namesake metadata; fixture truth, no live model",
+  "identity_configured_topics": 31,
+  "fetches": [
+    {
+      "subject": "Kailasa Temple Ellora",
+      "selected": 1,
+      "shows_topic_no_fixture_labels": 0,
+      "category_queries": [
+        "incategory:\"Kailasa Temple Ellora\""
+      ]
+    },
+    {
+      "subject": "Antikythera mechanism",
+      "selected": 1,
+      "shows_topic_no_fixture_labels": 0,
+      "category_queries": [
+        "incategory:\"Antikythera mechanism\""
+      ]
+    },
+    {
+      "subject": "Houfeng Didong Yi",
+      "selected": 1,
+      "shows_topic_no_fixture_labels": 0,
+      "category_queries": [
+        "incategory:\"Houfeng Didong Yi\""
+      ]
+    },
+    {
+      "subject": "Voynich manuscript",
+      "selected": 1,
+      "shows_topic_no_fixture_labels": 0,
+      "category_queries": [
+        "incategory:\"Voynich manuscript\""
+      ]
+    },
+    {
+      "subject": "Lycurgus Cup",
+      "selected": 1,
+      "shows_topic_no_fixture_labels": 0,
+      "category_queries": [
+        "incategory:\"Lycurgus Cup\""
+      ]
+    },
+    {
+      "subject": "Gol Gumbaz",
+      "selected": 1,
+      "shows_topic_no_fixture_labels": 0,
+      "category_queries": [
+        "incategory:\"Gol Gumbaz\""
+      ]
+    },
+    {
+      "subject": "Richat Structure",
+      "selected": 1,
+      "shows_topic_no_fixture_labels": 0,
+      "category_queries": [
+        "incategory:\"Richat Structure\""
+      ]
+    },
+    {
+      "subject": "Amber Room",
+      "selected": 1,
+      "shows_topic_no_fixture_labels": 0,
+      "category_queries": [
+        "incategory:\"Amber Room\""
+      ]
+    },
+    {
+      "subject": "Camp Century",
+      "selected": 1,
+      "shows_topic_no_fixture_labels": 0,
+      "category_queries": [
+        "incategory:\"Camp Century\""
+      ]
+    },
+    {
+      "subject": "Colossi of Memnon",
+      "selected": 1,
+      "shows_topic_no_fixture_labels": 0,
+      "category_queries": [
+        "incategory:\"Colossi of Memnon\""
+      ]
+    }
+  ],
+  "shows_topic_no_fixture_labels": 0
+}

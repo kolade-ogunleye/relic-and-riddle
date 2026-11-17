@@ -14,7 +14,7 @@ Fact sheet (quoted evidence per fact, source tiers, hedges for disputed figures)
 Script (written from the fact sheet, every claim trace-checked, spoken length measured)
     │
     ▼
-Voice (Azure Speech or ElevenLabs, licensed; edge-tts only where no licence is needed)
+Voice (ElevenLabs on a paid plan for real runs; Azure Speech F0 and edge-tts for dry runs only)
     │
     ▼
 Pictures (sourced photos, optional Kling motion hook, 2.5D parallax, original graphics)
@@ -39,11 +39,11 @@ Posting slots (Reels at 12:00 and 19:00, Stories 45 min later, carousels Tue–T
 
 ## Core design principles
 
-- **Claims trace to evidence.** A fact sheet holds each fact with the quoted passages that support it and a source tier. Dates need a strong source or two independent sites; numbers need a primary source or two sites. Disputed figures carry a neutral hedge ("by one estimate"). The script is written from the sheet, and a trace check rejects any sentence whose claims the sheet doesn't support. If a sheet is too thin, the run skips to the next topic.
+- **Claims trace to evidence.** A fact sheet holds each fact with the quoted passages that support it and a source tier. Dates need a strong source or two independent sites; numbers need a primary source or two sites. Only tier 1-2 sites count as corroboration, and a page reached through a Wikipedia article's links never does (it is the same editable source). Disputed figures carry a neutral hedge ("by one estimate"). The script is written from the sheet, and a trace check rejects any sentence whose claims the sheet doesn't support. If a sheet is too thin, the run skips to the next topic.
 - **Two cost tiers.**
-  - **Free (`SCRIPT_ENGINE=free`, `VOICE_PREFER=azure`, `MEDIA_MONTHLY_BUDGET_USD=0`):** Gemini free tier on its own key from a project with billing off (a `gemini-3.8-flash` writer checked by `gemini-3.7-flash`), Azure Speech F0, local parallax and original graphics.
+  - **Free (`SCRIPT_ENGINE=free`, `VOICE_PREFER=azure`, `MEDIA_MONTHLY_BUDGET_USD=0`):** Gemini free tier on its own key from a project with billing off (a `gemini-3.8-flash` writer checked by `gemini-3.7-flash`), Azure Speech F0 (dry runs only: the free tier has no commercial licence, so a real run is held without ElevenLabs on a paid plan), local parallax and original graphics.
   - **Paid options:** Claude (`claude-opus-5-5`, with `claude-fable-5-1` as the independent second check), ElevenLabs on a paid plan, and Kling motion clips, all under monthly spend caps.
-- **Fail closed.** A real run uses only commercially licensed voices (`VOICE_REQUIRE_LICENSED=true`). Missing assets, unverified claims, unlicensed media or a failed audit block release, and the release gate re-measures the master at publish time.
+- **Fail closed.** A real run uses only commercially licensed voices (`VOICE_REQUIRE_LICENSED=true`), and a master whose voice record is not licensed is never uploaded, as a Reel or as a YouTube Short. With `VOICE_REQUIRE_LICENSED=false` on a service that makes real runs, the status screen, the pre-flight and a Needs-you item say the gate is off, and each post made with an unlicensed voice is recorded in the audit log and marked on its receipt. Missing assets, unverified claims, unlicensed media or a failed audit block release, and the release gate re-measures the master at publish time.
 - **Publishing is never doubled.** An OS-owned upload lock, an atomic claim and idempotency keys prevent duplicate posts. An unknown outcome (a timeout, or a 5xx at the final publish step) stops failover rather than risking a second post.
 - **One source of truth.** SQLite in WAL mode (`data/pipeline.db`) holds topics, runs, approvals, spend and posting slots.
 
@@ -57,7 +57,7 @@ Posting slots (Reels at 12:00 and 19:00, Stories 45 min later, carousels Tue–T
 | **Evidence & fact sheets** | [`src/fact_sheet.py`](src/fact_sheet.py), [`src/unesco.py`](src/unesco.py), [`src/free_evidence.py`](src/free_evidence.py) | Gathers quoted evidence from the UNESCO World Heritage registry (matched by distinctive name, not geography alone), Wikipedia and OpenAlex (journal articles only rank as scholarly). Sheets are versioned by rules (`RULES_VERSION`), and a sheet built under older rules is rebuilt. |
 | **Script & trace check** | [`src/script_engine.py`](src/script_engine.py), [`src/trace_check.py`](src/trace_check.py) | Writes 105–115 word, five-beat scripts from the fact sheet. Before any voiceover, it speaks the narration once with the narrator voice; a draft that would run long or short is sent back with a concrete fix. Rejected sentences are revised surgically. |
 | **LLM access** | [`src/llm.py`](src/llm.py), [`src/free_llm.py`](src/free_llm.py), [`src/gemini.py`](src/gemini.py) | Claude via the Anthropic SDK (web-search research, structured output, per-task effort, model fallback chain, monthly budget) or Gemini (free engine). Vision checks fail rather than silently answering without the image. |
-| **Voiceover** | [`src/audio_engine.py`](src/audio_engine.py), [`data/voice/`](data/voice/) | The channel's own designed ElevenLabs voice ("Relic & Riddle Narrator", `eleven_v4`) with Azure Speech as the licensed fallback, in the order set by `VOICE_PREFER`, with word timings. Dry runs use the free Azure voice unless `--paid-voice` is given. Each real voiceover calibrates the script stage's length check to the voice's pace. |
+| **Voiceover** | [`src/audio_engine.py`](src/audio_engine.py), [`data/voice/`](data/voice/) | The channel's own designed ElevenLabs voice ("Relic & Riddle Narrator", `eleven_v4`) with word timings. Real runs use only a provider and tier recorded as commercially licensed ([`src/voice_licence.py`](src/voice_licence.py)): ElevenLabs on one of its paid plans with an active subscription, or Azure Speech on a paid tier declared with `AZURE_SPEECH_TIER` (sources in [`docs/sources.md`](docs/sources.md), "Voice licences"); with none the run is held. `VOICE_PREFER` sets the order. Dry runs use the free Azure voice unless `--paid-voice` is given. Each real voiceover calibrates the script stage's length check to the voice's pace. |
 | **Music & sound** | [`src/music.py`](src/music.py), [`src/sound_plan.py`](src/sound_plan.py), [`src/audio_engine.py`](src/audio_engine.py) | Approved CC0/CC BY library tracks (credited in captions) or ElevenLabs Music, else a synthesized drone. A sound plan marks the narration's reveals, tension, calm and described actions; code validates it, and the bed places licensed effects (`data/sfx/`, each with rights evidence) and shapes the music's swells and dips from it. Without a model, effects fire on the words that name them. |
 | **Motion** | [`src/motion.py`](src/motion.py), [`src/parallax.py`](src/parallax.py) | Optional Kling "living photograph" hook (locked camera, subject unchanged), checked for warping (homography) and for rewritten content (per-region change); rejected clips are kept with their measurements. Otherwise local 2.5D parallax with Depth Anything V2. Off while `MEDIA_MONTHLY_BUDGET_USD=0`. |
 | **Footage** | [`src/footage.py`](src/footage.py) | Only clips the operator supplies: send the video to the bot with the caption `/footage <topic>`. Links are not downloaded. |
@@ -65,7 +65,7 @@ Posting slots (Reels at 12:00 and 19:00, Stories 45 min later, carousels Tue–T
 | **Photo pools** | [`scripts/fetch_commons_images.py`](scripts/fetch_commons_images.py), [`src/museum_sources.py`](src/museum_sources.py), [`src/image_review.py`](src/image_review.py), [`src/asset_pipeline.py`](src/asset_pipeline.py) | Up to 20 licensed photos per topic from Wikimedia Commons, The Met, NASA and Smithsonian, ranked by their public metadata (topic words, curator categories, GPS, quality grade), with per-topic namesake exclusions. A vision review keeps photos that show the topic, are usable and safe, and aren't near-duplicates, and approves a pool on merit; the operator's decision always stands. Before each run (and nightly for the next topics) an unready pool is filled and reviewed; a topic without one is skipped, not failed. |
 | **Scene planning** | [`src/scene_planner.py`](src/scene_planner.py), [`src/storyboard.py`](src/storyboard.py) | A multimodal plan picks a picture per beat. An approved storyboard is honoured line by line, matched on the narration's words. |
 | **Packaging** | [`src/visual_engine.py`](src/visual_engine.py), [`src/multi_format.py`](src/multi_format.py) | Three cover variants, Story frames with a poll card, and a 7-slide carousel. |
-| **Render & encoding** | [`src/video_composer.py`](src/video_composer.py), [`src/encoding.py`](src/encoding.py), [`src/upscale.py`](src/upscale.py) | H.264 via `h264_nvenc` when the GPU is present, otherwise `libx264`. Word-timed Anton captions above Meta's bottom UI zone, SRT/VTT exports, encoded-audio loudness correction, Real-ESRGAN upscaling of low-resolution stills. |
+| **Render & encoding** | [`src/video_composer.py`](src/video_composer.py), [`src/encoding.py`](src/encoding.py), [`src/upscale.py`](src/upscale.py) | H.264 with `libx264` (preset slow, CRF 18) on every machine for everything delivered or judged (QF-134); NVENC only for scratch previews when `VIDEO_PREVIEW_ENCODER=fastest`. Word-timed Anton captions above Meta's bottom UI zone, SRT/VTT exports, encoded-audio loudness correction, Real-ESRGAN upscaling of low-resolution stills. |
 | **Quality audit & release** | [`src/video_qa.py`](src/video_qa.py), [`src/release.py`](src/release.py) | `QualityAuditor` measures loudness, graphic/narration sync, graphic freezes, caption contrast and clearance, plus the carousel, stories, thumbnails and policy. Self-healing: scene defects a different picture fixes (graphic out of sync, looping, blank, over the captions) and the vision check's picture mismatches go back to the scene planner for one corrected render. The release gate binds the audit to the master's hash. |
 | **Human approval** | [`src/telegram_bot.py`](src/telegram_bot.py), [`src/control.py`](src/control.py) | Review card with a 720p preview, covers, transcript and fact notes, with **Approve**, **Reject** and **Regenerate** buttons. Only configured approver IDs in the configured chat can act; every action is audit-logged. |
 | **Publishing & slots** | [`src/publisher.py`](src/publisher.py), [`src/post_schedule.py`](src/post_schedule.py) | Upload-Post first, then the direct Instagram Graph and Facebook Page Reels APIs. With `POST_SCHEDULING=true`, approved Reels are booked into the next free slot and posted when due, by the daemon or the bot (one process posts at a time). |
@@ -97,7 +97,7 @@ Posting slots (Reels at 12:00 and 19:00, Stories 45 min later, carousels Tue–T
 
 ### 2. Environment
 ```bash
-git clone https://github.com/kolade-ogunleye/relic-and-riddle.git
+git clone https://github.com/<owner>/relic-and-riddle.git
 cd relic-and-riddle
 python -m venv .venv
 .venv\Scripts\activate      # Windows
@@ -108,6 +108,24 @@ pip install -r requirements.txt
 ### 3. Optional tools
 * **Real-ESRGAN (Windows):** the portable [realesrgan-ncnn-vulkan](https://github.com/xinntao/Real-ESRGAN/releases) build in `tools/realesrgan/realesrgan-ncnn-vulkan.exe`.
 * **Depth Anything V2:** `depth_anything_v2_small.onnx` in `tools/models/`.
+* **Map data (Natural Earth, public domain):** `tools/` is gitignored, so a fresh clone or a deploy from
+  GitHub has none of these files until they are fetched. A run logs a `Map data missing` WARNING naming each
+  missing required file (the country outlines, the shaded relief, the 1:10m map subunits).
+  ```bash
+  python scripts/fetch_geodata.py        # country outlines -> tools/geo/ne_50m_admin_0_countries.geojson (~3 MB); without it no maps are made
+  python scripts/fetch_relief.py         # shaded relief    -> tools/geo/relief/SR_HR.tif (21600x10800); without it maps render flat
+  python scripts/fetch_relief.py --medium  # or the smaller 1:50m SR_50M.tif (10800x5400), used when SR_HR.tif is absent
+  python scripts/fetch_marine.py         # marine polygons  -> tools/geo/ne_10m_geography_marine_polys.geojson (~1.4 MB); without it no water is named
+                                         # and ice shelves  -> tools/geo/ne_50m_antarctic_ice_shelves_polys.geojson (~0.1 MB); without it Antarctica's shelves are drawn as sea
+  python scripts/fetch_geodata.py --10m  # 1:10m map subunits -> tools/geo/ne_10m_admin_0_map_subunits.geojson (~12 MB); every locator close-up is drawn from it, the site's home is the entity whose polygon holds it (Gibraltar, Tokelau, Ascension), and a neighbour name a route adds to its base map's is set only on that country's 1:10m ground
+  ```
+  The last two download zipped shapefiles from naciscdn.org and save them as GeoJSON (parsed by `struct` alone).
+  Without them a run still makes its maps: no sea is named (logged once), the ice shelves read as sea (logged
+  once), a route sets no neighbour name of its own, only the names its base map sets at their 1:50m label
+  points (logged once; a 1:10m file that cannot be read is treated the same way), and the close-up is drawn from
+  the coarser 1:50m outlines, its home the 1:50m country holding the site (a site more than 50 km from all of
+  that ground is marked on the open sea, no home named, logged). An older
+  `tools/geo/ne_10m_admin_0_countries.geojson` is no longer read: run `--10m` again.
 
 ### 4. Configuration
 ```bash

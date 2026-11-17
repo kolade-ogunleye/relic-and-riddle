@@ -1,0 +1,665 @@
+python measure.py <repo root> on e1d8466 (RR_FIXTURE_REPO set for real_runs)
+{
+  "example_as_given": "",
+  "example_cc_by_line": "📷 Ann Lee | File:x t.ly/y #tag | CC BY 4.0 | https://commons.wikimedia.org/wiki/File:Example.jpg | https://creativecommons.org/licenses/by/4.0/",
+  "example_title_field": "File:x t.ly/y #tag",
+  "example_title_chars": 18,
+  "example_has_link_or_hashtag": true,
+  "corpus_lines": 6,
+  "corpus_lines_with_link_address_handle_or_hashtag": 5,
+  "corpus_findings": [
+    "photographer@example.com",
+    "example.com",
+    "@j",
+    "#h",
+    "#t",
+    "www.jannovak.example.com)",
+    "t.ly/abc.jpg",
+    "https://bit.ly/x",
+    "example.org",
+    "t.ly/y",
+    "#t"
+  ],
+  "corpus_max_title_chars": 217,
+  "card_credit_lines": 6,
+  "card_credit_lines_shown": {
+    "_card_text": 1,
+    "format_card_text": 1
+  },
+  "card_every_asset_has_its_credit": false,
+  "committed_credits_files": 31,
+  "committed_records": 278,
+  "committed_lines_with_link_address_handle_or_hashtag": 0,
+  "committed_max_title_chars": 202,
+  "committed_titles_over_60": 100,
+  "emails_in_committed_credits": [
+    "assets/derinkuyu_underground_city/credits.json: 1 address(es)"
+  ],
+  "crowded_review_cards": {
+    "cards": 12,
+    "over_card_page_limit": 0,
+    "over_telegram_4096": 0,
+    "longest": 3868,
+    "findings_shortened": 4,
+    "cards_missing_a_photo_credit": 12,
+    "over_4096": []
+  },
+  "crowded_cards_within_limit_with_every_credit": false,
+  "near_full_cards": {
+    "source_note_42": {
+      "caption": [
+        "clipped",
+        468
+      ],
+      "carousel_caption": [
+        "full",
+        317
+      ],
+      "narration_chars": 720,
+      "narration_shortened": false,
+      "findings_shortened": false,
+      "findings_lists_first_items": 0,
+      "findings_lists_count_only": 0,
+      "length": 3867,
+      "every_author": false
+    },
+    "source_note_45": {
+      "caption": [
+        "clipped",
+        331
+      ],
+      "carousel_caption": [
+        "full",
+        317
+      ],
+      "narration_chars": 720,
+      "narration_shortened": false,
+      "findings_shortened": false,
+      "findings_lists_first_items": 0,
+      "findings_lists_count_only": 0,
+      "length": 3868,
+      "every_author": false
+    }
+  },
+  "near_full_cards_keep_both_caption_previews_and_every_credit": false,
+  "see_edit_card": {
+    "caption": [
+      "absent",
+      0
+    ],
+    "carousel_caption": [
+      "full",
+      317
+    ],
+    "narration_chars": 720,
+    "narration_shortened": false,
+    "findings_shortened": false,
+    "findings_lists_first_items": 0,
+    "findings_lists_count_only": 0,
+    "length": 3823,
+    "every_author": false,
+    "every_caption_on_the_card": false
+  },
+  "see_edit_card_keeps_every_caption_and_credit": false,
+  "copy_credited_before_qf42": {
+    "old_safe_lines": {
+      "image_attribution": "pass",
+      "credit_lines": "absent"
+    },
+    "old_safe_lines_after_edit": "no rewrite in this tree (Edit keeps the old lines)",
+    "old_line_with_a_link": {
+      "image_attribution": "pass",
+      "credit_lines": "absent"
+    },
+    "old_line_with_a_link_after_edit": "no rewrite in this tree (Edit keeps the old lines)",
+    "regenerated_caption": {
+      "photo_credit_lines": 2,
+      "photos": 2,
+      "titles_over_60": 1,
+      "lines_with_link_or_hashtag": 1
+    },
+    "regenerated_description": {
+      "photo_credit_lines": 2,
+      "photos": 2,
+      "titles_over_60": 1,
+      "lines_with_link_or_hashtag": 1
+    }
+  },
+  "copy_credited_before_qf42_keeps_gate_and_rewrites": false,
+  "real_runs": {
+    "measured": true,
+    "cards": {
+      "cards": 30,
+      "over_card_page_limit": 2,
+      "over_telegram_4096": 2,
+      "longest": 4189,
+      "findings_shortened": 9,
+      "cards_missing_a_photo_credit": 28,
+      "over_4096": [
+        "run_nazca_lines_runway_paradox_1793247464: 4158",
+        "run_nazca_lines_runway_paradox_1793251266: 4189"
+      ]
+    },
+    "per_card": {
+      "run_amber_room_heist_1792790550": {
+        "caption": [
+          "clipped",
+          695
+        ],
+        "carousel_caption": [
+          "full",
+          276
+        ],
+        "narration_chars": 715,
+        "narration_shortened": false,
+        "findings_shortened": false,
+        "findings_lists_first_items": 0,
+        "findings_lists_count_only": 0,
+        "length": 3869,
+        "photo_authors_missing": 2
+      },
+      "run_amber_room_heist_1792801257": {
+        "caption": [
+          "clipped",
+          503
+        ],
+        "carousel_caption": [
+          "full",
+          255
+        ],
+        "narration_chars": 705,
+        "narration_shortened": false,
+        "findings_shortened": false,
+        "findings_lists_first_items": 0,
+        "findings_lists_count_only": 0,
+        "length": 3808,
+        "photo_authors_missing": 2
+      },
+      "run_amber_room_heist_1792805842": {
+        "caption": [
+          "clipped",
+          499
+        ],
+        "carousel_caption": [
+          "full",
+          292
+        ],
+        "narration_chars": 714,
+        "narration_shortened": false,
+        "findings_shortened": false,
+        "findings_lists_first_items": 0,
+        "findings_lists_count_only": 0,
+        "length": 3803,
+        "photo_authors_missing": 1
+      },
+      "run_damascus_steel_nanotubes_1792732472_short": {
+        "caption": [
+          "full",
+          574
+        ],
+        "carousel_caption": [
+          "full",
+          228
+        ],
+        "narration_chars": 769,
+        "narration_shortened": false,
+        "findings_shortened": false,
+        "findings_lists_first_items": 0,
+        "findings_lists_count_only": 0,
+        "length": 3282,
+        "photo_authors_missing": 0
+      },
+      "run_gol_gumbaz_whispering_gallery_1793278143": {
+        "caption": [
+          "clipped",
+          137
+        ],
+        "carousel_caption": [
+          "full",
+          320
+        ],
+        "narration_chars": 697,
+        "narration_shortened": false,
+        "findings_shortened": false,
+        "findings_lists_first_items": 0,
+        "findings_lists_count_only": 0,
+        "length": 3866,
+        "photo_authors_missing": 2
+      },
+      "run_greek_fire_siphon_1792735284_short": {
+        "caption": [
+          "clipped",
+          311
+        ],
+        "carousel_caption": [
+          "full",
+          251
+        ],
+        "narration_chars": 764,
+        "narration_shortened": false,
+        "findings_shortened": false,
+        "findings_lists_first_items": 0,
+        "findings_lists_count_only": 0,
+        "length": 3861,
+        "photo_authors_missing": 2
+      },
+      "run_hal_saflieni_hypogeum_1792949304": {
+        "caption": [
+          "clipped",
+          534
+        ],
+        "carousel_caption": [
+          "full",
+          307
+        ],
+        "narration_chars": 760,
+        "narration_shortened": false,
+        "findings_shortened": false,
+        "findings_lists_first_items": 0,
+        "findings_lists_count_only": 0,
+        "length": 3870,
+        "photo_authors_missing": 1
+      },
+      "run_kailasa_temple_monolith_1792524470": {
+        "caption": [
+          "clipped",
+          618
+        ],
+        "carousel_caption": [
+          "full",
+          346
+        ],
+        "narration_chars": 666,
+        "narration_shortened": false,
+        "findings_shortened": false,
+        "findings_lists_first_items": 0,
+        "findings_lists_count_only": 0,
+        "length": 3781,
+        "photo_authors_missing": 2
+      },
+      "run_nazca_lines_runway_paradox_1792961797": {
+        "caption": [
+          "clipped",
+          462
+        ],
+        "carousel_caption": [
+          "full",
+          289
+        ],
+        "narration_chars": 719,
+        "narration_shortened": false,
+        "findings_shortened": true,
+        "findings_lists_first_items": 0,
+        "findings_lists_count_only": 2,
+        "length": 3822,
+        "photo_authors_missing": 4
+      },
+      "run_nazca_lines_runway_paradox_1793247464": {
+        "caption": [
+          "absent",
+          0
+        ],
+        "carousel_caption": [
+          "absent",
+          0
+        ],
+        "narration_chars": 67,
+        "narration_shortened": true,
+        "findings_shortened": true,
+        "findings_lists_first_items": 0,
+        "findings_lists_count_only": 1,
+        "length": 4158,
+        "photo_authors_missing": 4
+      },
+      "run_nazca_lines_runway_paradox_1793251266": {
+        "caption": [
+          "absent",
+          0
+        ],
+        "carousel_caption": [
+          "absent",
+          0
+        ],
+        "narration_chars": 67,
+        "narration_shortened": true,
+        "findings_shortened": true,
+        "findings_lists_first_items": 0,
+        "findings_lists_count_only": 1,
+        "length": 4189,
+        "photo_authors_missing": 4
+      },
+      "run_nazca_lines_runway_paradox_1793262388": {
+        "caption": [
+          "absent",
+          0
+        ],
+        "carousel_caption": [
+          "absent",
+          0
+        ],
+        "narration_chars": 143,
+        "narration_shortened": true,
+        "findings_shortened": true,
+        "findings_lists_first_items": 0,
+        "findings_lists_count_only": 2,
+        "length": 3802,
+        "photo_authors_missing": 4
+      },
+      "run_nazca_lines_runway_paradox_1793267092": {
+        "caption": [
+          "absent",
+          0
+        ],
+        "carousel_caption": [
+          "absent",
+          0
+        ],
+        "narration_chars": 499,
+        "narration_shortened": true,
+        "findings_shortened": true,
+        "findings_lists_first_items": 0,
+        "findings_lists_count_only": 2,
+        "length": 3796,
+        "photo_authors_missing": 4
+      },
+      "run_odessa_catacombs_1792970549": {
+        "caption": [
+          "clipped",
+          237
+        ],
+        "carousel_caption": [
+          "full",
+          334
+        ],
+        "narration_chars": 666,
+        "narration_shortened": false,
+        "findings_shortened": false,
+        "findings_lists_first_items": 0,
+        "findings_lists_count_only": 0,
+        "length": 3862,
+        "photo_authors_missing": 2
+      },
+      "run_odessa_catacombs_1793098390": {
+        "caption": [
+          "clipped",
+          409
+        ],
+        "carousel_caption": [
+          "full",
+          334
+        ],
+        "narration_chars": 666,
+        "narration_shortened": false,
+        "findings_shortened": true,
+        "findings_lists_first_items": 1,
+        "findings_lists_count_only": 0,
+        "length": 3861,
+        "photo_authors_missing": 2
+      },
+      "run_odessa_catacombs_1793100750": {
+        "caption": [
+          "clipped",
+          642
+        ],
+        "carousel_caption": [
+          "full",
+          334
+        ],
+        "narration_chars": 666,
+        "narration_shortened": false,
+        "findings_shortened": false,
+        "findings_lists_first_items": 0,
+        "findings_lists_count_only": 0,
+        "length": 3870,
+        "photo_authors_missing": 2
+      },
+      "run_richat_structure_sahara_eye_1792737039_short": {
+        "caption": [
+          "clipped",
+          537
+        ],
+        "carousel_caption": [
+          "full",
+          302
+        ],
+        "narration_chars": 706,
+        "narration_shortened": false,
+        "findings_shortened": false,
+        "findings_lists_first_items": 0,
+        "findings_lists_count_only": 0,
+        "length": 3875,
+        "photo_authors_missing": 1
+      },
+      "run_richat_structure_sahara_eye_1792740961_long": {
+        "caption": [
+          "absent",
+          0
+        ],
+        "carousel_caption": [
+          "absent",
+          0
+        ],
+        "narration_chars": 2597,
+        "narration_shortened": true,
+        "findings_shortened": true,
+        "findings_lists_first_items": 1,
+        "findings_lists_count_only": 0,
+        "length": 3850,
+        "photo_authors_missing": 2
+      },
+      "run_richat_structure_sahara_eye_1792778206": {
+        "caption": [
+          "clipped",
+          488
+        ],
+        "carousel_caption": [
+          "full",
+          392
+        ],
+        "narration_chars": 674,
+        "narration_shortened": false,
+        "findings_shortened": false,
+        "findings_lists_first_items": 0,
+        "findings_lists_count_only": 0,
+        "length": 3869,
+        "photo_authors_missing": 2
+      },
+      "run_richat_structure_sahara_eye_1793272675": {
+        "caption": [
+          "too_long",
+          0
+        ],
+        "carousel_caption": [
+          "full",
+          331
+        ],
+        "narration_chars": 718,
+        "narration_shortened": false,
+        "findings_shortened": false,
+        "findings_lists_first_items": 0,
+        "findings_lists_count_only": 0,
+        "length": 3802,
+        "photo_authors_missing": 2
+      },
+      "run_richat_structure_sahara_eye_1793474843": {
+        "caption": [
+          "clipped",
+          181
+        ],
+        "carousel_caption": [
+          "full",
+          406
+        ],
+        "narration_chars": 669,
+        "narration_shortened": false,
+        "findings_shortened": false,
+        "findings_lists_first_items": 0,
+        "findings_lists_count_only": 0,
+        "length": 3862,
+        "photo_authors_missing": 1
+      },
+      "run_roman_self_healing_concrete_1793163918": {
+        "caption": [
+          "absent",
+          0
+        ],
+        "carousel_caption": [
+          "absent",
+          0
+        ],
+        "narration_chars": 724,
+        "narration_shortened": true,
+        "findings_shortened": false,
+        "findings_lists_first_items": 0,
+        "findings_lists_count_only": 0,
+        "length": 3879,
+        "photo_authors_missing": 3
+      },
+      "run_singing_colossi_of_memnon_1792952878": {
+        "caption": [
+          "clipped",
+          350
+        ],
+        "carousel_caption": [
+          "full",
+          339
+        ],
+        "narration_chars": 694,
+        "narration_shortened": false,
+        "findings_shortened": false,
+        "findings_lists_first_items": 0,
+        "findings_lists_count_only": 0,
+        "length": 3873,
+        "photo_authors_missing": 3
+      },
+      "run_trepanation_miracle_1792995462": {
+        "caption": [
+          "clipped",
+          280
+        ],
+        "carousel_caption": [
+          "full",
+          419
+        ],
+        "narration_chars": 776,
+        "narration_shortened": false,
+        "findings_shortened": true,
+        "findings_lists_first_items": 1,
+        "findings_lists_count_only": 2,
+        "length": 3773,
+        "photo_authors_missing": 1
+      },
+      "run_tunguska_event_1908_1792930600": {
+        "caption": [
+          "clipped",
+          361
+        ],
+        "carousel_caption": [
+          "full",
+          359
+        ],
+        "narration_chars": 661,
+        "narration_shortened": false,
+        "findings_shortened": false,
+        "findings_lists_first_items": 0,
+        "findings_lists_count_only": 0,
+        "length": 3862,
+        "photo_authors_missing": 2
+      },
+      "run_unfinished_obelisk_aswan_1792985912": {
+        "caption": [
+          "absent",
+          0
+        ],
+        "carousel_caption": [
+          "clipped",
+          354
+        ],
+        "narration_chars": 703,
+        "narration_shortened": false,
+        "findings_shortened": false,
+        "findings_lists_first_items": 0,
+        "findings_lists_count_only": 0,
+        "length": 3876,
+        "photo_authors_missing": 2
+      },
+      "run_unfinished_obelisk_aswan_1792993374": {
+        "caption": [
+          "clipped",
+          588
+        ],
+        "carousel_caption": [
+          "full",
+          385
+        ],
+        "narration_chars": 683,
+        "narration_shortened": false,
+        "findings_shortened": false,
+        "findings_lists_first_items": 0,
+        "findings_lists_count_only": 0,
+        "length": 3878,
+        "photo_authors_missing": 1
+      },
+      "run_unfinished_obelisk_aswan_1793056896": {
+        "caption": [
+          "clipped",
+          713
+        ],
+        "carousel_caption": [
+          "full",
+          447
+        ],
+        "narration_chars": 696,
+        "narration_shortened": false,
+        "findings_shortened": false,
+        "findings_lists_first_items": 0,
+        "findings_lists_count_only": 0,
+        "length": 3869,
+        "photo_authors_missing": 1
+      },
+      "run_voynich_manuscript_1792965308": {
+        "caption": [
+          "full",
+          524
+        ],
+        "carousel_caption": [
+          "full",
+          389
+        ],
+        "narration_chars": 734,
+        "narration_shortened": false,
+        "findings_shortened": false,
+        "findings_lists_first_items": 0,
+        "findings_lists_count_only": 0,
+        "length": 3620,
+        "photo_authors_missing": 0
+      },
+      "run_wieliczka_salt_mine_1792974672": {
+        "caption": [
+          "too_long",
+          0
+        ],
+        "carousel_caption": [
+          "too_long",
+          0
+        ],
+        "narration_chars": 722,
+        "narration_shortened": false,
+        "findings_shortened": true,
+        "findings_lists_first_items": 3,
+        "findings_lists_count_only": 0,
+        "length": 3765,
+        "photo_authors_missing": 5
+      }
+    },
+    "runs_with_photo_credits": 28,
+    "image_attribution_not_pass": 2,
+    "image_attribution_not_pass_runs": [
+      "run_amber_room_heist_1792801257",
+      "run_wieliczka_salt_mine_1792974672"
+    ],
+    "credit_lines_fail": 0,
+    "credit_lines_fail_runs": []
+  },
+  "acceptance_met": false
+}

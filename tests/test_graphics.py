@@ -163,18 +163,6 @@ def test_stat_cards_and_scale_landscape(tmp_path):
     assert clip_scale.exists()
 
 
-def test_ancient_engineering_graphics_landscape(tmp_path):
-    # Rolling stone defense graphic
-    defense_spec = {"title": "Rolling Stone Door Defense Mechanism"}
-    clip_def = graphics.render_rolling_stone_defense(defense_spec, tmp_path / "defense_ls.mp4", width=1920, height=1080)
-    assert clip_def.exists() and clip_def.with_suffix(".jpg").exists()
-
-    # Ventilation airflow graphic
-    vent_spec = {"title": "Subterranean Ventilation & Convection Dynamics"}
-    clip_vent = graphics.render_ventilation_airflow(vent_spec, tmp_path / "vent_ls.mp4", width=1920, height=1080)
-    assert clip_vent.exists() and clip_vent.with_suffix(".jpg").exists()
-
-
 def test_cross_section_shows_a_level_at_the_full_depth(tmp_path):
     # A label faded in over the next 8% of digging after the shaft reached it, so a level at the
     # total depth (usually the deepest, headline feature) never became visible.

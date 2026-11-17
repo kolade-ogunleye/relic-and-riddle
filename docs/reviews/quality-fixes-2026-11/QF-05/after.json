@@ -1,0 +1,243 @@
+{
+ "code_commit": "8f5a481",
+ "takes_scene_cuts": true,
+ "main_passes_scene_cuts": true,
+ "summary": {
+  "reels": 7,
+  "reel_whooshes": [
+   1,
+   1,
+   1,
+   1,
+   2,
+   2,
+   1
+  ],
+  "reel_max_whooshes": 2,
+  "reel_whooshes_off_cut_and_reveal": 0,
+  "reel_mean_whoosh_rms_dbfs": -42.03,
+  "other_16x9": {
+   "deep_dive_16x9 (act cues)": 4,
+   "16x9 render path (no act cues)": 0
+  },
+  "acceptance": "every Reel <= 2 whooshes, each on a scene cut or a sound-plan reveal; level -6 dB vs before"
+ },
+ "rows": [
+  {
+   "run": "run_amber_room_heist_1792790550",
+   "path": "reel_9x16",
+   "seconds": 50.298,
+   "scene_cuts": 11,
+   "composition_scenes": 12,
+   "picture_hold_merged": null,
+   "scene_cuts_passed": true,
+   "whooshes": 1,
+   "on_cut_or_reveal": 1,
+   "mean_rms_dbfs": -42.03,
+   "times": [
+    {
+     "t": 17.411,
+     "rms_dbfs": -42.03,
+     "peak_dbfs": -23.06,
+     "on_cut": true,
+     "on_reveal": false
+    }
+   ]
+  },
+  {
+   "run": "run_gol_gumbaz_whispering_gallery_1793278143",
+   "path": "reel_9x16",
+   "seconds": 45.81,
+   "scene_cuts": 8,
+   "composition_scenes": 9,
+   "picture_hold_merged": [],
+   "scene_cuts_passed": true,
+   "whooshes": 1,
+   "on_cut_or_reveal": 1,
+   "mean_rms_dbfs": -42.03,
+   "times": [
+    {
+     "t": 15.804,
+     "rms_dbfs": -42.03,
+     "peak_dbfs": -23.06,
+     "on_cut": true,
+     "on_reveal": true
+    }
+   ]
+  },
+  {
+   "run": "run_nazca_lines_runway_paradox_1792961797",
+   "path": "reel_9x16",
+   "seconds": 48.762,
+   "scene_cuts": 10,
+   "composition_scenes": 11,
+   "picture_hold_merged": null,
+   "scene_cuts_passed": true,
+   "whooshes": 1,
+   "on_cut_or_reveal": 1,
+   "mean_rms_dbfs": -42.03,
+   "times": [
+    {
+     "t": 31.505,
+     "rms_dbfs": -42.03,
+     "peak_dbfs": -23.06,
+     "on_cut": true,
+     "on_reveal": false
+    }
+   ]
+  },
+  {
+   "run": "run_richat_structure_sahara_eye_1792740961_long",
+   "path": "deep_dive_16x9 (act cues)",
+   "seconds": 196.868,
+   "scene_cuts": 20,
+   "composition_scenes": 19,
+   "picture_hold_merged": null,
+   "scene_cuts_passed": true,
+   "whooshes": 4,
+   "on_cut_or_reveal": 4,
+   "mean_rms_dbfs": -42.03,
+   "times": [
+    {
+     "t": 33.138,
+     "rms_dbfs": -42.03,
+     "peak_dbfs": -23.06,
+     "on_cut": true,
+     "on_reveal": false
+    },
+    {
+     "t": 77.653,
+     "rms_dbfs": -42.03,
+     "peak_dbfs": -23.06,
+     "on_cut": true,
+     "on_reveal": false
+    },
+    {
+     "t": 111.645,
+     "rms_dbfs": -42.03,
+     "peak_dbfs": -23.06,
+     "on_cut": true,
+     "on_reveal": false
+    },
+    {
+     "t": 161.582,
+     "rms_dbfs": -42.03,
+     "peak_dbfs": -23.06,
+     "on_cut": true,
+     "on_reveal": false
+    }
+   ]
+  },
+  {
+   "run": "run_richat_structure_sahara_eye_1792740961_long",
+   "path": "16x9 render path (no act cues)",
+   "seconds": 196.868,
+   "scene_cuts": 43,
+   "composition_scenes": 19,
+   "picture_hold_merged": null,
+   "scene_cuts_passed": true,
+   "whooshes": 0,
+   "on_cut_or_reveal": 0,
+   "mean_rms_dbfs": null,
+   "times": []
+  },
+  {
+   "run": "run_richat_structure_sahara_eye_1793474843",
+   "path": "reel_9x16",
+   "seconds": 44.898,
+   "scene_cuts": 9,
+   "composition_scenes": 10,
+   "picture_hold_merged": [],
+   "scene_cuts_passed": true,
+   "whooshes": 1,
+   "on_cut_or_reveal": 1,
+   "mean_rms_dbfs": -42.03,
+   "times": [
+    {
+     "t": 25.638,
+     "rms_dbfs": -42.03,
+     "peak_dbfs": -23.06,
+     "on_cut": true,
+     "on_reveal": false
+    }
+   ]
+  },
+  {
+   "run": "run_tunguska_event_1908_1792930600",
+   "path": "reel_9x16",
+   "seconds": 43.89,
+   "scene_cuts": 9,
+   "composition_scenes": 10,
+   "picture_hold_merged": null,
+   "scene_cuts_passed": true,
+   "whooshes": 2,
+   "on_cut_or_reveal": 2,
+   "mean_rms_dbfs": -42.03,
+   "times": [
+    {
+     "t": 9.056,
+     "rms_dbfs": -42.03,
+     "peak_dbfs": -23.06,
+     "on_cut": true,
+     "on_reveal": false
+    },
+    {
+     "t": 24.541,
+     "rms_dbfs": -42.03,
+     "peak_dbfs": -23.06,
+     "on_cut": true,
+     "on_reveal": false
+    }
+   ]
+  },
+  {
+   "run": "run_unfinished_obelisk_aswan_1792985912",
+   "path": "reel_9x16",
+   "seconds": 46.458,
+   "scene_cuts": 9,
+   "composition_scenes": 10,
+   "picture_hold_merged": null,
+   "scene_cuts_passed": true,
+   "whooshes": 2,
+   "on_cut_or_reveal": 2,
+   "mean_rms_dbfs": -42.03,
+   "times": [
+    {
+     "t": 4.923,
+     "rms_dbfs": -42.03,
+     "peak_dbfs": -23.06,
+     "on_cut": true,
+     "on_reveal": true
+    },
+    {
+     "t": 27.5,
+     "rms_dbfs": -42.03,
+     "peak_dbfs": -23.06,
+     "on_cut": true,
+     "on_reveal": true
+    }
+   ]
+  },
+  {
+   "run": "run_voynich_manuscript_1792965308",
+   "path": "reel_9x16",
+   "seconds": 47.106,
+   "scene_cuts": 10,
+   "composition_scenes": 11,
+   "picture_hold_merged": null,
+   "scene_cuts_passed": true,
+   "whooshes": 1,
+   "on_cut_or_reveal": 1,
+   "mean_rms_dbfs": -42.03,
+   "times": [
+    {
+     "t": 25.421,
+     "rms_dbfs": -42.03,
+     "peak_dbfs": -23.06,
+     "on_cut": true,
+     "on_reveal": false
+    }
+   ]
+  }
+ ]
+}

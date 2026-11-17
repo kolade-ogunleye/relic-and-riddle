@@ -1,0 +1,3884 @@
+{
+ "source": "extract_reels.py",
+ "runs": [
+  {
+   "env": "dev",
+   "run": "run_amber_room_heist_1792790550",
+   "topic": "amber_room_heist",
+   "scenes": [
+    {
+     "kind": "photo",
+     "picture": 1,
+     "pool_file": "07_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "graphic"
+    },
+    {
+     "kind": "photo",
+     "picture": 2,
+     "pool_file": "02_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 3,
+     "pool_file": "05_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 4,
+     "pool_file": "01_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 5,
+     "pool_file": null,
+     "beat_image": true
+    },
+    {
+     "kind": "photo",
+     "picture": 6,
+     "pool_file": "08_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 7,
+     "pool_file": "04_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 8,
+     "pool_file": "11_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 9,
+     "pool_file": null,
+     "beat_image": true
+    },
+    {
+     "kind": "graphic"
+    },
+    {
+     "kind": "photo",
+     "picture": 10,
+     "pool_file": null,
+     "beat_image": true
+    }
+   ],
+   "beats": [
+    {
+     "start": 0.0,
+     "end": 4.63,
+     "speech_start": 0.089,
+     "speech_end": 4.617
+    },
+    {
+     "start": 4.63,
+     "end": 8.393,
+     "speech_start": 4.63,
+     "speech_end": 7.972
+    },
+    {
+     "start": 8.393,
+     "end": 12.462,
+     "speech_start": 8.393,
+     "speech_end": 11.913
+    },
+    {
+     "start": 12.462,
+     "end": 17.411,
+     "speech_start": 12.462,
+     "speech_end": 17.411
+    },
+    {
+     "start": 17.411,
+     "end": 20.804,
+     "speech_start": 17.411,
+     "speech_end": 20.574
+    },
+    {
+     "start": 20.804,
+     "end": 24.069,
+     "speech_start": 20.804,
+     "speech_end": 23.648
+    },
+    {
+     "start": 24.069,
+     "end": 28.508,
+     "speech_start": 24.069,
+     "speech_end": 28.15
+    },
+    {
+     "start": 28.508,
+     "end": 31.875,
+     "speech_start": 28.508,
+     "speech_end": 31.454
+    },
+    {
+     "start": 31.875,
+     "end": 36.518,
+     "speech_start": 31.875,
+     "speech_end": 36.505
+    },
+    {
+     "start": 36.518,
+     "end": 40.446,
+     "speech_start": 36.518,
+     "speech_end": 40.038
+    },
+    {
+     "start": 40.446,
+     "end": 45.791,
+     "speech_start": 40.446,
+     "speech_end": 45.179
+    },
+    {
+     "start": 45.791,
+     "end": 49.248,
+     "speech_start": 45.791,
+     "speech_end": 48.865
+    }
+   ],
+   "words": 105,
+   "voiceover_seconds": 49.248,
+   "stage_seconds_before_plan": {
+    "script_and_fact_check": 838.9,
+    "voiceover": 5.8,
+    "music_and_bed": 265.3,
+    "image_prep_wait": 188.1,
+    "stills_graphics_sourcing": 135.9
+   }
+  },
+  {
+   "env": "dev",
+   "run": "run_amber_room_heist_1792801257",
+   "topic": "amber_room_heist",
+   "scenes": [
+    {
+     "kind": "photo",
+     "picture": 1,
+     "pool_file": "05_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "graphic"
+    },
+    {
+     "kind": "photo",
+     "picture": 2,
+     "pool_file": null,
+     "beat_image": true
+    },
+    {
+     "kind": "graphic"
+    },
+    {
+     "kind": "photo",
+     "picture": 3,
+     "pool_file": "09_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 4,
+     "pool_file": "12_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "graphic"
+    },
+    {
+     "kind": "photo",
+     "picture": 5,
+     "pool_file": "07_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 6,
+     "pool_file": "17_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 7,
+     "pool_file": "19_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 8,
+     "pool_file": "02_commons.jpg",
+     "beat_image": false
+    }
+   ],
+   "beats": [
+    {
+     "start": 0.0,
+     "end": 4.834,
+     "speech_start": 0.089,
+     "speech_end": 4.821
+    },
+    {
+     "start": 4.834,
+     "end": 8.431,
+     "speech_start": 4.834,
+     "speech_end": 8.406
+    },
+    {
+     "start": 8.431,
+     "end": 12.079,
+     "speech_start": 8.431,
+     "speech_end": 11.735
+    },
+    {
+     "start": 12.079,
+     "end": 17.168,
+     "speech_start": 12.079,
+     "speech_end": 16.76
+    },
+    {
+     "start": 17.168,
+     "end": 22.36,
+     "speech_start": 17.168,
+     "speech_end": 21.722
+    },
+    {
+     "start": 22.36,
+     "end": 25.306,
+     "speech_start": 22.36,
+     "speech_end": 24.923
+    },
+    {
+     "start": 25.306,
+     "end": 30.217,
+     "speech_start": 25.306,
+     "speech_end": 29.809
+    },
+    {
+     "start": 30.217,
+     "end": 34.847,
+     "speech_start": 30.217,
+     "speech_end": 34.834
+    },
+    {
+     "start": 34.847,
+     "end": 38.214,
+     "speech_start": 34.847,
+     "speech_end": 37.64
+    },
+    {
+     "start": 38.214,
+     "end": 41.645,
+     "speech_start": 38.214,
+     "speech_end": 41.237
+    },
+    {
+     "start": 41.645,
+     "end": 47.64,
+     "speech_start": 41.645,
+     "speech_end": 47.232
+    }
+   ],
+   "words": 100,
+   "voiceover_seconds": 47.64,
+   "stage_seconds_before_plan": {
+    "script_and_fact_check": 346.2,
+    "voiceover": 4.8,
+    "music_and_bed": 33.2,
+    "image_prep_wait": 156.8,
+    "stills_graphics_sourcing": 187.5
+   }
+  },
+  {
+   "env": "dev",
+   "run": "run_amber_room_heist_1792805842",
+   "topic": "amber_room_heist",
+   "scenes": [
+    {
+     "kind": "photo",
+     "picture": 1,
+     "pool_file": "01_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 2,
+     "pool_file": "09_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 3,
+     "pool_file": "02_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 4,
+     "pool_file": "05_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 5,
+     "pool_file": "07_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "graphic"
+    },
+    {
+     "kind": "photo",
+     "picture": 6,
+     "pool_file": "08_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "graphic"
+    },
+    {
+     "kind": "photo",
+     "picture": 7,
+     "pool_file": "04_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 8,
+     "pool_file": "19_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "graphic"
+    }
+   ],
+   "beats": [
+    {
+     "start": 0.0,
+     "end": 4.681,
+     "speech_start": 0.089,
+     "speech_end": 4.668
+    },
+    {
+     "start": 4.681,
+     "end": 7.908,
+     "speech_start": 4.681,
+     "speech_end": 7.538
+    },
+    {
+     "start": 7.908,
+     "end": 13.163,
+     "speech_start": 7.908,
+     "speech_end": 13.151
+    },
+    {
+     "start": 13.163,
+     "end": 17.054,
+     "speech_start": 13.163,
+     "speech_end": 16.645
+    },
+    {
+     "start": 17.054,
+     "end": 22.602,
+     "speech_start": 17.054,
+     "speech_end": 22.207
+    },
+    {
+     "start": 22.602,
+     "end": 27.321,
+     "speech_start": 22.602,
+     "speech_end": 27.309
+    },
+    {
+     "start": 27.321,
+     "end": 32.245,
+     "speech_start": 27.321,
+     "speech_end": 32.232
+    },
+    {
+     "start": 32.245,
+     "end": 37.003,
+     "speech_start": 32.245,
+     "speech_end": 36.99
+    },
+    {
+     "start": 37.003,
+     "end": 41.684,
+     "speech_start": 37.003,
+     "speech_end": 41.671
+    },
+    {
+     "start": 41.684,
+     "end": 44.821,
+     "speech_start": 41.684,
+     "speech_end": 44.49
+    },
+    {
+     "start": 44.821,
+     "end": 49.68,
+     "speech_start": 44.821,
+     "speech_end": 49.298
+    }
+   ],
+   "words": 99,
+   "voiceover_seconds": 49.68,
+   "stage_seconds_before_plan": {
+    "script_and_fact_check": 373.0,
+    "voiceover": 4.7,
+    "music_and_bed": 28.9,
+    "image_prep_wait": 139.5,
+    "stills_graphics_sourcing": 87.9
+   }
+  },
+  {
+   "env": "dev",
+   "run": "run_damascus_steel_nanotubes_1792732472_short",
+   "topic": "damascus_steel_nanotubes",
+   "scenes": [
+    {
+     "kind": "photo",
+     "picture": 1,
+     "pool_file": "11_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 2,
+     "pool_file": "10_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 3,
+     "pool_file": "14_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 4,
+     "pool_file": "17_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 5,
+     "pool_file": "15_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 6,
+     "pool_file": "12_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 7,
+     "pool_file": "19_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "graphic"
+    },
+    {
+     "kind": "photo",
+     "picture": 8,
+     "pool_file": "18_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 9,
+     "pool_file": "16_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "graphic"
+    }
+   ],
+   "beats": [
+    {
+     "start": 0.0,
+     "end": 4.834,
+     "speech_start": 0.089,
+     "speech_end": 4.324
+    },
+    {
+     "start": 4.834,
+     "end": 9.324,
+     "speech_start": 4.834,
+     "speech_end": 8.916
+    },
+    {
+     "start": 9.324,
+     "end": 12.181,
+     "speech_start": 9.324,
+     "speech_end": 12.105
+    },
+    {
+     "start": 12.181,
+     "end": 16.849,
+     "speech_start": 12.181,
+     "speech_end": 16.837
+    },
+    {
+     "start": 16.849,
+     "end": 21.416,
+     "speech_start": 16.849,
+     "speech_end": 21.403
+    },
+    {
+     "start": 21.416,
+     "end": 25.14,
+     "speech_start": 21.416,
+     "speech_end": 24.579
+    },
+    {
+     "start": 25.14,
+     "end": 28.814,
+     "speech_start": 25.14,
+     "speech_end": 28.482
+    },
+    {
+     "start": 28.814,
+     "end": 33.827,
+     "speech_start": 28.814,
+     "speech_end": 33.814
+    },
+    {
+     "start": 33.827,
+     "end": 38.992,
+     "speech_start": 33.827,
+     "speech_end": 38.648
+    },
+    {
+     "start": 38.992,
+     "end": 43.112,
+     "speech_start": 38.992,
+     "speech_end": 42.704
+    },
+    {
+     "start": 43.112,
+     "end": 48.792,
+     "speech_start": 43.112,
+     "speech_end": 48.431
+    }
+   ],
+   "words": 109,
+   "voiceover_seconds": 48.792,
+   "stage_seconds_before_plan": {
+    "script_and_fact_check": 290.6,
+    "voiceover": 4.6,
+    "music_and_bed": 57.1,
+    "image_prep_wait": 118.4,
+    "stills_graphics_sourcing": 211.5
+   }
+  },
+  {
+   "env": "dev",
+   "run": "run_gol_gumbaz_whispering_gallery_1793278143",
+   "topic": "gol_gumbaz_whispering_gallery",
+   "scenes": [
+    {
+     "kind": "photo",
+     "picture": 1,
+     "pool_file": "04_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "graphic"
+    },
+    {
+     "kind": "photo",
+     "picture": 2,
+     "pool_file": "24_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 3,
+     "pool_file": "26_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 4,
+     "pool_file": null,
+     "beat_image": true
+    },
+    {
+     "kind": "photo",
+     "picture": 5,
+     "pool_file": "28_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 6,
+     "pool_file": null,
+     "beat_image": true
+    },
+    {
+     "kind": "photo",
+     "picture": 7,
+     "pool_file": "23_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 8,
+     "pool_file": "22_commons.jpg",
+     "beat_image": false
+    }
+   ],
+   "beats": [
+    {
+     "start": 0.0,
+     "end": 5.089,
+     "speech_start": 0.089,
+     "speech_end": 5.077
+    },
+    {
+     "start": 5.089,
+     "end": 10.944,
+     "speech_start": 5.089,
+     "speech_end": 10.204
+    },
+    {
+     "start": 10.944,
+     "end": 15.804,
+     "speech_start": 10.944,
+     "speech_end": 15.791
+    },
+    {
+     "start": 15.804,
+     "end": 21.212,
+     "speech_start": 15.804,
+     "speech_end": 20.574
+    },
+    {
+     "start": 21.212,
+     "end": 25.816,
+     "speech_start": 21.212,
+     "speech_end": 25.804
+    },
+    {
+     "start": 25.816,
+     "end": 30.459,
+     "speech_start": 25.816,
+     "speech_end": 30.446
+    },
+    {
+     "start": 30.459,
+     "end": 34.605,
+     "speech_start": 30.459,
+     "speech_end": 34.005
+    },
+    {
+     "start": 34.605,
+     "end": 39.362,
+     "speech_start": 34.605,
+     "speech_end": 39.349
+    },
+    {
+     "start": 39.362,
+     "end": 44.76,
+     "speech_start": 39.362,
+     "speech_end": 44.388
+    }
+   ],
+   "words": 100,
+   "voiceover_seconds": 44.76,
+   "stage_seconds_before_plan": {
+    "script_and_fact_check": 340.2,
+    "voiceover": 5.5,
+    "music_and_bed": 67.0,
+    "image_prep_wait": 675.0,
+    "stills_graphics_sourcing": 900.4
+   }
+  },
+  {
+   "env": "dev",
+   "run": "run_greek_fire_siphon_1792735284_short",
+   "topic": "greek_fire_siphon",
+   "scenes": [
+    {
+     "kind": "photo",
+     "picture": 1,
+     "pool_file": "01_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "graphic"
+    },
+    {
+     "kind": "photo",
+     "picture": 2,
+     "pool_file": "11_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 3,
+     "pool_file": "06_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 4,
+     "pool_file": "03_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 1,
+     "pool_file": "01_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 5,
+     "pool_file": "13_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 6,
+     "pool_file": "04_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 2,
+     "pool_file": "11_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 4,
+     "pool_file": "03_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 1,
+     "pool_file": "01_commons.jpg",
+     "beat_image": false
+    }
+   ],
+   "beats": [
+    {
+     "start": 0.0,
+     "end": 4.617,
+     "speech_start": 0.089,
+     "speech_end": 4.605
+    },
+    {
+     "start": 4.617,
+     "end": 9.273,
+     "speech_start": 4.617,
+     "speech_end": 9.26
+    },
+    {
+     "start": 9.273,
+     "end": 14.107,
+     "speech_start": 9.273,
+     "speech_end": 14.094
+    },
+    {
+     "start": 14.107,
+     "end": 18.839,
+     "speech_start": 14.107,
+     "speech_end": 18.329
+    },
+    {
+     "start": 18.839,
+     "end": 22.577,
+     "speech_start": 18.839,
+     "speech_end": 22.168
+    },
+    {
+     "start": 22.577,
+     "end": 26.658,
+     "speech_start": 22.577,
+     "speech_end": 26.059
+    },
+    {
+     "start": 26.658,
+     "end": 30.115,
+     "speech_start": 26.658,
+     "speech_end": 29.617
+    },
+    {
+     "start": 30.115,
+     "end": 35.548,
+     "speech_start": 30.115,
+     "speech_end": 35.14
+    },
+    {
+     "start": 35.548,
+     "end": 39.566,
+     "speech_start": 35.548,
+     "speech_end": 39.235
+    },
+    {
+     "start": 39.566,
+     "end": 43.482,
+     "speech_start": 39.566,
+     "speech_end": 43.099
+    },
+    {
+     "start": 43.482,
+     "end": 47.496,
+     "speech_start": 43.482,
+     "speech_end": 47.117
+    }
+   ],
+   "words": 108,
+   "voiceover_seconds": 47.496,
+   "stage_seconds_before_plan": {
+    "script_and_fact_check": 200.3,
+    "voiceover": 4.2,
+    "music_and_bed": 52.1,
+    "image_prep_wait": 109.5,
+    "stills_graphics_sourcing": 101.6
+   }
+  },
+  {
+   "env": "dev",
+   "run": "run_hal_saflieni_hypogeum_1792949304",
+   "topic": "hal_saflieni_hypogeum",
+   "scenes": [
+    {
+     "kind": "photo",
+     "picture": 1,
+     "pool_file": "01_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "graphic"
+    },
+    {
+     "kind": "photo",
+     "picture": 2,
+     "pool_file": "04_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 3,
+     "pool_file": "03_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 4,
+     "pool_file": "06_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 5,
+     "pool_file": "05_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "graphic"
+    },
+    {
+     "kind": "photo",
+     "picture": 1,
+     "pool_file": "01_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 6,
+     "pool_file": "02_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "graphic"
+    },
+    {
+     "kind": "photo",
+     "picture": 7,
+     "pool_file": "07_commons.jpg",
+     "beat_image": false
+    }
+   ],
+   "beats": [
+    {
+     "start": 0.0,
+     "end": 4.732,
+     "speech_start": 0.089,
+     "speech_end": 4.719
+    },
+    {
+     "start": 4.732,
+     "end": 9.834,
+     "speech_start": 4.732,
+     "speech_end": 9.643
+    },
+    {
+     "start": 9.834,
+     "end": 15.485,
+     "speech_start": 9.834,
+     "speech_end": 14.847
+    },
+    {
+     "start": 15.485,
+     "end": 20.204,
+     "speech_start": 15.485,
+     "speech_end": 20.191
+    },
+    {
+     "start": 20.204,
+     "end": 23.329,
+     "speech_start": 20.204,
+     "speech_end": 22.921
+    },
+    {
+     "start": 23.329,
+     "end": 28.202,
+     "speech_start": 23.329,
+     "speech_end": 28.189
+    },
+    {
+     "start": 28.202,
+     "end": 32.768,
+     "speech_start": 28.202,
+     "speech_end": 32.755
+    },
+    {
+     "start": 32.768,
+     "end": 37.309,
+     "speech_start": 32.768,
+     "speech_end": 37.296
+    },
+    {
+     "start": 37.309,
+     "end": 41.99,
+     "speech_start": 37.309,
+     "speech_end": 41.582
+    },
+    {
+     "start": 41.99,
+     "end": 46.747,
+     "speech_start": 41.99,
+     "speech_end": 46.735
+    },
+    {
+     "start": 46.747,
+     "end": 49.152,
+     "speech_start": 46.747,
+     "speech_end": 48.776
+    }
+   ],
+   "words": 107,
+   "voiceover_seconds": 49.152,
+   "stage_seconds_before_plan": {
+    "script_and_fact_check": 379.8,
+    "voiceover": 4.3,
+    "music_and_bed": 52.2,
+    "image_prep_wait": 213.4,
+    "stills_graphics_sourcing": 60.1
+   }
+  },
+  {
+   "env": "dev",
+   "run": "run_nazca_lines_runway_paradox_1792961797",
+   "topic": "nazca_lines_runway_paradox",
+   "scenes": [
+    {
+     "kind": "graphic"
+    },
+    {
+     "kind": "graphic"
+    },
+    {
+     "kind": "photo",
+     "picture": 1,
+     "pool_file": "08_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 2,
+     "pool_file": null,
+     "beat_image": true
+    },
+    {
+     "kind": "photo",
+     "picture": 3,
+     "pool_file": "03_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 4,
+     "pool_file": "09_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 5,
+     "pool_file": "02_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "graphic"
+    },
+    {
+     "kind": "photo",
+     "picture": 6,
+     "pool_file": "06_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 7,
+     "pool_file": "10_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 1,
+     "pool_file": "08_commons.jpg",
+     "beat_image": false
+    }
+   ],
+   "beats": [
+    {
+     "start": 0.0,
+     "end": 4.974,
+     "speech_start": 0.089,
+     "speech_end": 4.962
+    },
+    {
+     "start": 4.974,
+     "end": 9.834,
+     "speech_start": 4.974,
+     "speech_end": 9.821
+    },
+    {
+     "start": 9.834,
+     "end": 14.643,
+     "speech_start": 9.834,
+     "speech_end": 14.63
+    },
+    {
+     "start": 14.643,
+     "end": 18.571,
+     "speech_start": 14.643,
+     "speech_end": 18.176
+    },
+    {
+     "start": 18.571,
+     "end": 23.852,
+     "speech_start": 18.571,
+     "speech_end": 23.189
+    },
+    {
+     "start": 23.852,
+     "end": 28.393,
+     "speech_start": 23.852,
+     "speech_end": 28.38
+    },
+    {
+     "start": 28.393,
+     "end": 31.505,
+     "speech_start": 28.393,
+     "speech_end": 31.122
+    },
+    {
+     "start": 31.505,
+     "end": 34.923,
+     "speech_start": 31.505,
+     "speech_end": 34.515
+    },
+    {
+     "start": 34.923,
+     "end": 39.796,
+     "speech_start": 34.923,
+     "speech_end": 39.783
+    },
+    {
+     "start": 39.796,
+     "end": 44.413,
+     "speech_start": 39.796,
+     "speech_end": 44.401
+    },
+    {
+     "start": 44.413,
+     "end": 47.712,
+     "speech_start": 44.413,
+     "speech_end": 47.321
+    }
+   ],
+   "words": 104,
+   "voiceover_seconds": 47.712,
+   "stage_seconds_before_plan": {
+    "script_and_fact_check": 309.1,
+    "voiceover": 4.4,
+    "music_and_bed": 45.2,
+    "image_prep_wait": 17.4,
+    "stills_graphics_sourcing": 27.0
+   }
+  },
+  {
+   "env": "dev",
+   "run": "run_nazca_lines_runway_paradox_1793247464",
+   "topic": "nazca_lines_runway_paradox",
+   "scenes": [
+    {
+     "kind": "photo",
+     "picture": 1,
+     "pool_file": "06_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "graphic"
+    },
+    {
+     "kind": "photo",
+     "picture": 2,
+     "pool_file": "03_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 2,
+     "pool_file": "03_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 3,
+     "pool_file": null,
+     "beat_image": true
+    },
+    {
+     "kind": "photo",
+     "picture": 4,
+     "pool_file": "04_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 5,
+     "pool_file": "08_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 5,
+     "pool_file": "08_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 6,
+     "pool_file": "10_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 5,
+     "pool_file": "08_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 7,
+     "pool_file": "02_commons.jpg",
+     "beat_image": false
+    }
+   ],
+   "beats": [
+    {
+     "start": 0.0,
+     "end": 4.32,
+     "speech_start": 0.0,
+     "speech_end": 3.36
+    },
+    {
+     "start": 4.32,
+     "end": 9.04,
+     "speech_start": 4.32,
+     "speech_end": 8.88
+    },
+    {
+     "start": 9.04,
+     "end": 14.32,
+     "speech_start": 9.04,
+     "speech_end": 14.16
+    },
+    {
+     "start": 14.32,
+     "end": 19.28,
+     "speech_start": 14.32,
+     "speech_end": 19.2
+    },
+    {
+     "start": 19.28,
+     "end": 22.32,
+     "speech_start": 19.28,
+     "speech_end": 22.08
+    },
+    {
+     "start": 22.32,
+     "end": 26.48,
+     "speech_start": 22.32,
+     "speech_end": 26.24
+    },
+    {
+     "start": 26.48,
+     "end": 31.68,
+     "speech_start": 26.48,
+     "speech_end": 31.6
+    },
+    {
+     "start": 31.68,
+     "end": 35.68,
+     "speech_start": 31.68,
+     "speech_end": 35.6
+    },
+    {
+     "start": 35.68,
+     "end": 40.72,
+     "speech_start": 35.68,
+     "speech_end": 40.56
+    },
+    {
+     "start": 40.72,
+     "end": 44.72,
+     "speech_start": 40.72,
+     "speech_end": 44.6
+    },
+    {
+     "start": 44.72,
+     "end": 47.2,
+     "speech_start": 44.72,
+     "speech_end": 47.28
+    }
+   ],
+   "words": 104,
+   "voiceover_seconds": 47.2,
+   "stage_seconds_before_plan": {
+    "script_and_fact_check": 1090.4,
+    "voiceover": 15.6,
+    "music_and_bed": 70.7,
+    "image_prep_wait": 0.0,
+    "stills_graphics_sourcing": 52.9
+   }
+  },
+  {
+   "env": "dev",
+   "run": "run_nazca_lines_runway_paradox_1793251266",
+   "topic": "nazca_lines_runway_paradox",
+   "scenes": [
+    {
+     "kind": "photo",
+     "picture": 1,
+     "pool_file": "06_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "graphic"
+    },
+    {
+     "kind": "photo",
+     "picture": 2,
+     "pool_file": "03_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 2,
+     "pool_file": "03_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 3,
+     "pool_file": "09_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 4,
+     "pool_file": "04_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 5,
+     "pool_file": "08_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 6,
+     "pool_file": "02_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 1,
+     "pool_file": "06_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 7,
+     "pool_file": "10_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 8,
+     "pool_file": null,
+     "beat_image": true
+    }
+   ],
+   "beats": [
+    {
+     "start": 0.0,
+     "end": 4.32,
+     "speech_start": 0.0,
+     "speech_end": 3.36
+    },
+    {
+     "start": 4.32,
+     "end": 9.04,
+     "speech_start": 4.32,
+     "speech_end": 8.88
+    },
+    {
+     "start": 9.04,
+     "end": 14.32,
+     "speech_start": 9.04,
+     "speech_end": 14.16
+    },
+    {
+     "start": 14.32,
+     "end": 19.28,
+     "speech_start": 14.32,
+     "speech_end": 19.2
+    },
+    {
+     "start": 19.28,
+     "end": 22.32,
+     "speech_start": 19.28,
+     "speech_end": 22.08
+    },
+    {
+     "start": 22.32,
+     "end": 26.48,
+     "speech_start": 22.32,
+     "speech_end": 26.24
+    },
+    {
+     "start": 26.48,
+     "end": 31.68,
+     "speech_start": 26.48,
+     "speech_end": 31.6
+    },
+    {
+     "start": 31.68,
+     "end": 35.68,
+     "speech_start": 31.68,
+     "speech_end": 35.6
+    },
+    {
+     "start": 35.68,
+     "end": 40.72,
+     "speech_start": 35.68,
+     "speech_end": 40.56
+    },
+    {
+     "start": 40.72,
+     "end": 44.72,
+     "speech_start": 40.72,
+     "speech_end": 44.6
+    },
+    {
+     "start": 44.72,
+     "end": 47.2,
+     "speech_start": 44.72,
+     "speech_end": 47.28
+    }
+   ],
+   "words": 104,
+   "voiceover_seconds": 47.2,
+   "stage_seconds_before_plan": {
+    "script_and_fact_check": 1.8,
+    "voiceover": 0.2,
+    "music_and_bed": 35.4,
+    "image_prep_wait": 64.2,
+    "stills_graphics_sourcing": 52.8
+   }
+  },
+  {
+   "env": "dev",
+   "run": "run_nazca_lines_runway_paradox_1793262388",
+   "topic": "nazca_lines_runway_paradox",
+   "scenes": [
+    {
+     "kind": "photo",
+     "picture": 1,
+     "pool_file": "06_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "graphic"
+    },
+    {
+     "kind": "photo",
+     "picture": 2,
+     "pool_file": null,
+     "beat_image": true
+    },
+    {
+     "kind": "photo",
+     "picture": 3,
+     "pool_file": "03_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 3,
+     "pool_file": "03_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 4,
+     "pool_file": "08_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 4,
+     "pool_file": "08_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 5,
+     "pool_file": null,
+     "beat_image": true
+    },
+    {
+     "kind": "photo",
+     "picture": 6,
+     "pool_file": "10_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 7,
+     "pool_file": null,
+     "beat_image": true
+    },
+    {
+     "kind": "photo",
+     "picture": 8,
+     "pool_file": null,
+     "beat_image": true
+    }
+   ],
+   "beats": [
+    {
+     "start": 0.0,
+     "end": 4.32,
+     "speech_start": 0.0,
+     "speech_end": 3.36
+    },
+    {
+     "start": 4.32,
+     "end": 9.04,
+     "speech_start": 4.32,
+     "speech_end": 8.88
+    },
+    {
+     "start": 9.04,
+     "end": 14.32,
+     "speech_start": 9.04,
+     "speech_end": 14.16
+    },
+    {
+     "start": 14.32,
+     "end": 19.28,
+     "speech_start": 14.32,
+     "speech_end": 19.2
+    },
+    {
+     "start": 19.28,
+     "end": 22.32,
+     "speech_start": 19.28,
+     "speech_end": 22.08
+    },
+    {
+     "start": 22.32,
+     "end": 26.48,
+     "speech_start": 22.32,
+     "speech_end": 26.24
+    },
+    {
+     "start": 26.48,
+     "end": 31.68,
+     "speech_start": 26.48,
+     "speech_end": 31.6
+    },
+    {
+     "start": 31.68,
+     "end": 35.68,
+     "speech_start": 31.68,
+     "speech_end": 35.6
+    },
+    {
+     "start": 35.68,
+     "end": 40.72,
+     "speech_start": 35.68,
+     "speech_end": 40.56
+    },
+    {
+     "start": 40.72,
+     "end": 44.72,
+     "speech_start": 40.72,
+     "speech_end": 44.6
+    },
+    {
+     "start": 44.72,
+     "end": 47.2,
+     "speech_start": 44.72,
+     "speech_end": 47.28
+    }
+   ],
+   "words": 104,
+   "voiceover_seconds": 47.2,
+   "stage_seconds_before_plan": {
+    "script_and_fact_check": 2.1,
+    "voiceover": 0.1,
+    "music_and_bed": 0.5,
+    "image_prep_wait": 45.2,
+    "stills_graphics_sourcing": 2416.5
+   }
+  },
+  {
+   "env": "dev",
+   "run": "run_nazca_lines_runway_paradox_1793267092",
+   "topic": "nazca_lines_runway_paradox",
+   "scenes": [
+    {
+     "kind": "photo",
+     "picture": 1,
+     "pool_file": "06_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "graphic"
+    },
+    {
+     "kind": "photo",
+     "picture": 2,
+     "pool_file": "03_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 2,
+     "pool_file": "03_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 3,
+     "pool_file": "08_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 4,
+     "pool_file": null,
+     "beat_image": true
+    },
+    {
+     "kind": "photo",
+     "picture": 4,
+     "pool_file": null,
+     "beat_image": true
+    },
+    {
+     "kind": "photo",
+     "picture": 5,
+     "pool_file": null,
+     "beat_image": true
+    },
+    {
+     "kind": "photo",
+     "picture": 6,
+     "pool_file": "02_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 7,
+     "pool_file": null,
+     "beat_image": true
+    },
+    {
+     "kind": "photo",
+     "picture": 8,
+     "pool_file": null,
+     "beat_image": true
+    }
+   ],
+   "beats": [
+    {
+     "start": 0.0,
+     "end": 4.32,
+     "speech_start": 0.0,
+     "speech_end": 3.36
+    },
+    {
+     "start": 4.32,
+     "end": 9.04,
+     "speech_start": 4.32,
+     "speech_end": 8.88
+    },
+    {
+     "start": 9.04,
+     "end": 14.32,
+     "speech_start": 9.04,
+     "speech_end": 14.16
+    },
+    {
+     "start": 14.32,
+     "end": 19.28,
+     "speech_start": 14.32,
+     "speech_end": 19.2
+    },
+    {
+     "start": 19.28,
+     "end": 22.32,
+     "speech_start": 19.28,
+     "speech_end": 22.08
+    },
+    {
+     "start": 22.32,
+     "end": 26.48,
+     "speech_start": 22.32,
+     "speech_end": 26.24
+    },
+    {
+     "start": 26.48,
+     "end": 31.68,
+     "speech_start": 26.48,
+     "speech_end": 31.6
+    },
+    {
+     "start": 31.68,
+     "end": 35.68,
+     "speech_start": 31.68,
+     "speech_end": 35.6
+    },
+    {
+     "start": 35.68,
+     "end": 40.72,
+     "speech_start": 35.68,
+     "speech_end": 40.56
+    },
+    {
+     "start": 40.72,
+     "end": 44.72,
+     "speech_start": 40.72,
+     "speech_end": 44.6
+    },
+    {
+     "start": 44.72,
+     "end": 47.2,
+     "speech_start": 44.72,
+     "speech_end": 47.28
+    }
+   ],
+   "words": 104,
+   "voiceover_seconds": 47.2,
+   "stage_seconds_before_plan": {
+    "script_and_fact_check": 1.8,
+    "voiceover": 0.2,
+    "music_and_bed": 0.5,
+    "image_prep_wait": 43.7,
+    "stills_graphics_sourcing": 849.4
+   }
+  },
+  {
+   "env": "dev",
+   "run": "run_odessa_catacombs_1792970549",
+   "topic": "odessa_catacombs",
+   "scenes": [
+    {
+     "kind": "photo",
+     "picture": 1,
+     "pool_file": "01_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "graphic"
+    },
+    {
+     "kind": "photo",
+     "picture": 2,
+     "pool_file": "10_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 3,
+     "pool_file": "17_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 4,
+     "pool_file": "19_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "graphic"
+    },
+    {
+     "kind": "photo",
+     "picture": 5,
+     "pool_file": "16_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 6,
+     "pool_file": "08_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 7,
+     "pool_file": "15_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 8,
+     "pool_file": "09_commons.jpg",
+     "beat_image": false
+    }
+   ],
+   "beats": [
+    {
+     "start": 0.0,
+     "end": 4.847,
+     "speech_start": 0.089,
+     "speech_end": 4.834
+    },
+    {
+     "start": 4.847,
+     "end": 9.362,
+     "speech_start": 4.847,
+     "speech_end": 9.349
+    },
+    {
+     "start": 9.362,
+     "end": 12.73,
+     "speech_start": 9.362,
+     "speech_end": 12.13
+    },
+    {
+     "start": 12.73,
+     "end": 16.671,
+     "speech_start": 12.73,
+     "speech_end": 16.059
+    },
+    {
+     "start": 16.671,
+     "end": 21.977,
+     "speech_start": 16.671,
+     "speech_end": 21.569
+    },
+    {
+     "start": 21.977,
+     "end": 26.582,
+     "speech_start": 21.977,
+     "speech_end": 26.556
+    },
+    {
+     "start": 26.582,
+     "end": 31.059,
+     "speech_start": 26.582,
+     "speech_end": 30.651
+    },
+    {
+     "start": 31.059,
+     "end": 35.689,
+     "speech_start": 31.059,
+     "speech_end": 35.676
+    },
+    {
+     "start": 35.689,
+     "end": 41.173,
+     "speech_start": 35.689,
+     "speech_end": 40.778
+    },
+    {
+     "start": 41.173,
+     "end": 44.568,
+     "speech_start": 41.173,
+     "speech_end": 44.184
+    }
+   ],
+   "words": 104,
+   "voiceover_seconds": 44.568,
+   "stage_seconds_before_plan": {
+    "script_and_fact_check": 205.5,
+    "voiceover": 3.7,
+    "music_and_bed": 63.3,
+    "image_prep_wait": 80.8,
+    "stills_graphics_sourcing": 76.3
+   }
+  },
+  {
+   "env": "dev",
+   "run": "run_odessa_catacombs_1793098390",
+   "topic": "odessa_catacombs",
+   "scenes": [
+    {
+     "kind": "photo",
+     "picture": 1,
+     "pool_file": "01_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "graphic"
+    },
+    {
+     "kind": "photo",
+     "picture": 2,
+     "pool_file": "18_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 3,
+     "pool_file": "16_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 4,
+     "pool_file": "19_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "graphic"
+    },
+    {
+     "kind": "photo",
+     "picture": 5,
+     "pool_file": "14_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 6,
+     "pool_file": "08_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 7,
+     "pool_file": "15_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 8,
+     "pool_file": "09_commons.jpg",
+     "beat_image": false
+    }
+   ],
+   "beats": [
+    {
+     "start": 0.0,
+     "end": 4.847,
+     "speech_start": 0.089,
+     "speech_end": 4.834
+    },
+    {
+     "start": 4.847,
+     "end": 9.362,
+     "speech_start": 4.847,
+     "speech_end": 9.349
+    },
+    {
+     "start": 9.362,
+     "end": 12.73,
+     "speech_start": 9.362,
+     "speech_end": 12.13
+    },
+    {
+     "start": 12.73,
+     "end": 16.671,
+     "speech_start": 12.73,
+     "speech_end": 16.059
+    },
+    {
+     "start": 16.671,
+     "end": 21.977,
+     "speech_start": 16.671,
+     "speech_end": 21.569
+    },
+    {
+     "start": 21.977,
+     "end": 26.582,
+     "speech_start": 21.977,
+     "speech_end": 26.556
+    },
+    {
+     "start": 26.582,
+     "end": 31.059,
+     "speech_start": 26.582,
+     "speech_end": 30.651
+    },
+    {
+     "start": 31.059,
+     "end": 35.689,
+     "speech_start": 31.059,
+     "speech_end": 35.676
+    },
+    {
+     "start": 35.689,
+     "end": 41.173,
+     "speech_start": 35.689,
+     "speech_end": 40.778
+    },
+    {
+     "start": 41.173,
+     "end": 44.568,
+     "speech_start": 41.173,
+     "speech_end": 44.184
+    }
+   ],
+   "words": 104,
+   "voiceover_seconds": 44.568,
+   "stage_seconds_before_plan": {
+    "script_and_fact_check": 1.3,
+    "voiceover": 4.2,
+    "music_and_bed": 714.0,
+    "image_prep_wait": 0.0,
+    "stills_graphics_sourcing": 259.3
+   }
+  },
+  {
+   "env": "dev",
+   "run": "run_odessa_catacombs_1793100750",
+   "topic": "odessa_catacombs",
+   "scenes": [
+    {
+     "kind": "photo",
+     "picture": 1,
+     "pool_file": "12_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "graphic"
+    },
+    {
+     "kind": "photo",
+     "picture": 2,
+     "pool_file": "13_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 3,
+     "pool_file": "09_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 4,
+     "pool_file": "19_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "graphic"
+    },
+    {
+     "kind": "photo",
+     "picture": 5,
+     "pool_file": "15_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 6,
+     "pool_file": "08_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 7,
+     "pool_file": "16_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 8,
+     "pool_file": "01_commons.jpg",
+     "beat_image": false
+    }
+   ],
+   "beats": [
+    {
+     "start": 0.0,
+     "end": 4.847,
+     "speech_start": 0.089,
+     "speech_end": 4.834
+    },
+    {
+     "start": 4.847,
+     "end": 9.362,
+     "speech_start": 4.847,
+     "speech_end": 9.349
+    },
+    {
+     "start": 9.362,
+     "end": 12.73,
+     "speech_start": 9.362,
+     "speech_end": 12.13
+    },
+    {
+     "start": 12.73,
+     "end": 16.671,
+     "speech_start": 12.73,
+     "speech_end": 16.059
+    },
+    {
+     "start": 16.671,
+     "end": 21.977,
+     "speech_start": 16.671,
+     "speech_end": 21.569
+    },
+    {
+     "start": 21.977,
+     "end": 26.582,
+     "speech_start": 21.977,
+     "speech_end": 26.556
+    },
+    {
+     "start": 26.582,
+     "end": 31.059,
+     "speech_start": 26.582,
+     "speech_end": 30.651
+    },
+    {
+     "start": 31.059,
+     "end": 35.689,
+     "speech_start": 31.059,
+     "speech_end": 35.676
+    },
+    {
+     "start": 35.689,
+     "end": 41.173,
+     "speech_start": 35.689,
+     "speech_end": 40.778
+    },
+    {
+     "start": 41.173,
+     "end": 44.568,
+     "speech_start": 41.173,
+     "speech_end": 44.184
+    }
+   ],
+   "words": 104,
+   "voiceover_seconds": 44.568,
+   "stage_seconds_before_plan": {
+    "script_and_fact_check": 1.9,
+    "voiceover": 0.5,
+    "music_and_bed": 0.6,
+    "image_prep_wait": 75.0,
+    "stills_graphics_sourcing": 70.0
+   }
+  },
+  {
+   "env": "dev",
+   "run": "run_richat_structure_sahara_eye_1792737039_short",
+   "topic": "richat_structure_sahara_eye",
+   "scenes": [
+    {
+     "kind": "photo",
+     "picture": 1,
+     "pool_file": "01_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 2,
+     "pool_file": "02_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 3,
+     "pool_file": "03_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 4,
+     "pool_file": "04_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 5,
+     "pool_file": "05_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 6,
+     "pool_file": "06_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 7,
+     "pool_file": "07_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "graphic"
+    },
+    {
+     "kind": "photo",
+     "picture": 8,
+     "pool_file": "09_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 9,
+     "pool_file": "10_commons.jpg",
+     "beat_image": false
+    }
+   ],
+   "beats": [
+    {
+     "start": 0.0,
+     "end": 5.128,
+     "speech_start": 0.089,
+     "speech_end": 5.115
+    },
+    {
+     "start": 5.128,
+     "end": 8.916,
+     "speech_start": 5.128,
+     "speech_end": 8.508
+    },
+    {
+     "start": 8.916,
+     "end": 14.031,
+     "speech_start": 8.916,
+     "speech_end": 13.622
+    },
+    {
+     "start": 14.031,
+     "end": 18.648,
+     "speech_start": 14.031,
+     "speech_end": 18.635
+    },
+    {
+     "start": 18.648,
+     "end": 21.99,
+     "speech_start": 18.648,
+     "speech_end": 21.582
+    },
+    {
+     "start": 21.99,
+     "end": 25.791,
+     "speech_start": 21.99,
+     "speech_end": 25.128
+    },
+    {
+     "start": 25.791,
+     "end": 30.459,
+     "speech_start": 25.791,
+     "speech_end": 30.051
+    },
+    {
+     "start": 30.459,
+     "end": 35.298,
+     "speech_start": 30.459,
+     "speech_end": 35.298
+    },
+    {
+     "start": 35.298,
+     "end": 39.834,
+     "speech_start": 35.298,
+     "speech_end": 39.196
+    },
+    {
+     "start": 39.834,
+     "end": 44.88,
+     "speech_start": 39.834,
+     "speech_end": 44.515
+    }
+   ],
+   "words": 107,
+   "voiceover_seconds": 44.88,
+   "stage_seconds_before_plan": {
+    "script_and_fact_check": 700.7,
+    "voiceover": 4.1,
+    "music_and_bed": 39.6,
+    "image_prep_wait": 259.1,
+    "stills_graphics_sourcing": 56.8
+   }
+  },
+  {
+   "env": "dev",
+   "run": "run_richat_structure_sahara_eye_1792778206",
+   "topic": "richat_structure_sahara_eye",
+   "scenes": [
+    {
+     "kind": "photo",
+     "picture": 1,
+     "pool_file": "06_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "graphic"
+    },
+    {
+     "kind": "photo",
+     "picture": 2,
+     "pool_file": "03_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 3,
+     "pool_file": "13_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 4,
+     "pool_file": "18_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 5,
+     "pool_file": "19_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "graphic"
+    },
+    {
+     "kind": "photo",
+     "picture": 6,
+     "pool_file": "11_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 7,
+     "pool_file": "12_commons.jpg",
+     "beat_image": false
+    }
+   ],
+   "beats": [
+    {
+     "start": 0.0,
+     "end": 5.179,
+     "speech_start": 0.077,
+     "speech_end": 4.413
+    },
+    {
+     "start": 5.179,
+     "end": 10.281,
+     "speech_start": 5.179,
+     "speech_end": 9.872
+    },
+    {
+     "start": 10.281,
+     "end": 14.783,
+     "speech_start": 10.281,
+     "speech_end": 14.452
+    },
+    {
+     "start": 14.783,
+     "end": 19.247,
+     "speech_start": 14.783,
+     "speech_end": 18.839
+    },
+    {
+     "start": 19.247,
+     "end": 23.839,
+     "speech_start": 19.247,
+     "speech_end": 23.814
+    },
+    {
+     "start": 23.839,
+     "end": 28.992,
+     "speech_start": 23.839,
+     "speech_end": 28.584
+    },
+    {
+     "start": 28.992,
+     "end": 33.508,
+     "speech_start": 28.992,
+     "speech_end": 33.508
+    },
+    {
+     "start": 33.508,
+     "end": 38.111,
+     "speech_start": 33.508,
+     "speech_end": 37.742
+    },
+    {
+     "start": 38.111,
+     "end": 42.792,
+     "speech_start": 38.111,
+     "speech_end": 42.41
+    }
+   ],
+   "words": 97,
+   "voiceover_seconds": 42.792,
+   "stage_seconds_before_plan": {
+    "script_and_fact_check": 465.4,
+    "voiceover": 4.3,
+    "music_and_bed": 34.7,
+    "image_prep_wait": 78.8,
+    "stills_graphics_sourcing": 42.9
+   }
+  },
+  {
+   "env": "dev",
+   "run": "run_richat_structure_sahara_eye_1793272675",
+   "topic": "richat_structure_sahara_eye",
+   "scenes": [
+    {
+     "kind": "photo",
+     "picture": 1,
+     "pool_file": "05_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 2,
+     "pool_file": "03_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 3,
+     "pool_file": "04_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 4,
+     "pool_file": "06_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 5,
+     "pool_file": "09_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 6,
+     "pool_file": "20_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "graphic"
+    },
+    {
+     "kind": "photo",
+     "picture": 7,
+     "pool_file": "07_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 8,
+     "pool_file": "11_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 9,
+     "pool_file": "19_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 10,
+     "pool_file": "12_commons.jpg",
+     "beat_image": false
+    }
+   ],
+   "beats": [
+    {
+     "start": 0.0,
+     "end": 3.571,
+     "speech_start": 0.077,
+     "speech_end": 3.048
+    },
+    {
+     "start": 3.571,
+     "end": 8.546,
+     "speech_start": 3.571,
+     "speech_end": 8.533
+    },
+    {
+     "start": 8.546,
+     "end": 13.189,
+     "speech_start": 8.546,
+     "speech_end": 13.176
+    },
+    {
+     "start": 13.189,
+     "end": 17.832,
+     "speech_start": 13.189,
+     "speech_end": 17.819
+    },
+    {
+     "start": 17.832,
+     "end": 21.276,
+     "speech_start": 17.832,
+     "speech_end": 20.867
+    },
+    {
+     "start": 21.276,
+     "end": 24.885,
+     "speech_start": 21.276,
+     "speech_end": 24.286
+    },
+    {
+     "start": 24.885,
+     "end": 29.413,
+     "speech_start": 24.885,
+     "speech_end": 29.4
+    },
+    {
+     "start": 29.413,
+     "end": 33.954,
+     "speech_start": 29.413,
+     "speech_end": 33.406
+    },
+    {
+     "start": 33.954,
+     "end": 38.584,
+     "speech_start": 33.954,
+     "speech_end": 38.571
+    },
+    {
+     "start": 38.584,
+     "end": 42.589,
+     "speech_start": 38.584,
+     "speech_end": 42.194
+    },
+    {
+     "start": 42.589,
+     "end": 48.288,
+     "speech_start": 42.589,
+     "speech_end": 47.908
+    }
+   ],
+   "words": 99,
+   "voiceover_seconds": 48.288,
+   "stage_seconds_before_plan": {
+    "script_and_fact_check": 585.5,
+    "voiceover": 5.1,
+    "music_and_bed": 33.3,
+    "image_prep_wait": 120.2,
+    "stills_graphics_sourcing": 140.8
+   }
+  },
+  {
+   "env": "dev",
+   "run": "run_richat_structure_sahara_eye_1793474843",
+   "topic": "richat_structure_sahara_eye",
+   "scenes": [
+    {
+     "kind": "photo",
+     "picture": 1,
+     "pool_file": "01_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "graphic"
+    },
+    {
+     "kind": "photo",
+     "picture": 2,
+     "pool_file": "10_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 3,
+     "pool_file": "19_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 4,
+     "pool_file": "12_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "film"
+    },
+    {
+     "kind": "graphic"
+    },
+    {
+     "kind": "photo",
+     "picture": 5,
+     "pool_file": "18_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 6,
+     "pool_file": "08_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 7,
+     "pool_file": "09_commons.jpg",
+     "beat_image": false
+    }
+   ],
+   "beats": [
+    {
+     "start": 0.0,
+     "end": 4.694,
+     "speech_start": 0.089,
+     "speech_end": 4.681
+    },
+    {
+     "start": 4.694,
+     "end": 9.056,
+     "speech_start": 4.694,
+     "speech_end": 8.393
+    },
+    {
+     "start": 9.056,
+     "end": 13.648,
+     "speech_start": 9.056,
+     "speech_end": 13.635
+    },
+    {
+     "start": 13.648,
+     "end": 16.735,
+     "speech_start": 13.648,
+     "speech_end": 16.327
+    },
+    {
+     "start": 16.735,
+     "end": 20.931,
+     "speech_start": 16.735,
+     "speech_end": 20.574
+    },
+    {
+     "start": 20.931,
+     "end": 25.638,
+     "speech_start": 20.931,
+     "speech_end": 25.625
+    },
+    {
+     "start": 25.638,
+     "end": 30.298,
+     "speech_start": 25.638,
+     "speech_end": 30.298
+    },
+    {
+     "start": 30.298,
+     "end": 35.0,
+     "speech_start": 30.298,
+     "speech_end": 34.987
+    },
+    {
+     "start": 35.0,
+     "end": 39.694,
+     "speech_start": 35.0,
+     "speech_end": 39.681
+    },
+    {
+     "start": 39.694,
+     "end": 43.848,
+     "speech_start": 39.694,
+     "speech_end": 43.457
+    }
+   ],
+   "words": 95,
+   "voiceover_seconds": 43.848,
+   "stage_seconds_before_plan": {
+    "script_and_fact_check": 169.4,
+    "voiceover": 0.1,
+    "music_and_bed": 0.2,
+    "image_prep_wait": 78.4,
+    "stills_graphics_sourcing": 137.4
+   }
+  },
+  {
+   "env": "dev",
+   "run": "run_roman_self_healing_concrete_1793163918",
+   "topic": "roman_self_healing_concrete",
+   "scenes": [
+    {
+     "kind": "photo",
+     "picture": 1,
+     "pool_file": "03_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "graphic"
+    },
+    {
+     "kind": "photo",
+     "picture": 2,
+     "pool_file": "04_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 3,
+     "pool_file": null,
+     "beat_image": true
+    },
+    {
+     "kind": "photo",
+     "picture": 4,
+     "pool_file": "27_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 5,
+     "pool_file": "10_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 6,
+     "pool_file": "01_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "film"
+    },
+    {
+     "kind": "photo",
+     "picture": 7,
+     "pool_file": "12_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 8,
+     "pool_file": "06_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 9,
+     "pool_file": "19_commons.jpg",
+     "beat_image": false
+    }
+   ],
+   "beats": [
+    {
+     "start": 0.0,
+     "end": 5.179,
+     "speech_start": 0.089,
+     "speech_end": 4.541
+    },
+    {
+     "start": 5.179,
+     "end": 9.171,
+     "speech_start": 5.179,
+     "speech_end": 8.571
+    },
+    {
+     "start": 9.171,
+     "end": 13.763,
+     "speech_start": 9.171,
+     "speech_end": 13.355
+    },
+    {
+     "start": 13.763,
+     "end": 17.972,
+     "speech_start": 13.763,
+     "speech_end": 17.385
+    },
+    {
+     "start": 17.972,
+     "end": 21.352,
+     "speech_start": 17.972,
+     "speech_end": 20.944
+    },
+    {
+     "start": 21.352,
+     "end": 26.046,
+     "speech_start": 21.352,
+     "speech_end": 26.033
+    },
+    {
+     "start": 26.046,
+     "end": 29.643,
+     "speech_start": 26.046,
+     "speech_end": 28.967
+    },
+    {
+     "start": 29.643,
+     "end": 34.324,
+     "speech_start": 29.643,
+     "speech_end": 33.916
+    },
+    {
+     "start": 34.324,
+     "end": 39.311,
+     "speech_start": 34.324,
+     "speech_end": 39.298
+    },
+    {
+     "start": 39.311,
+     "end": 42.615,
+     "speech_start": 39.311,
+     "speech_end": 42.207
+    },
+    {
+     "start": 42.615,
+     "end": 47.64,
+     "speech_start": 42.615,
+     "speech_end": 47.245
+    }
+   ],
+   "words": 99,
+   "voiceover_seconds": 47.64,
+   "stage_seconds_before_plan": {
+    "script_and_fact_check": 1.3,
+    "voiceover": 0.2,
+    "music_and_bed": 0.4,
+    "image_prep_wait": 56.1,
+    "stills_graphics_sourcing": 144.0
+   }
+  },
+  {
+   "env": "dev",
+   "run": "run_singing_colossi_of_memnon_1792952878",
+   "topic": "singing_colossi_of_memnon",
+   "scenes": [
+    {
+     "kind": "photo",
+     "picture": 1,
+     "pool_file": "04_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 2,
+     "pool_file": "07_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 3,
+     "pool_file": "17_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 4,
+     "pool_file": "03_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 5,
+     "pool_file": "15_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 6,
+     "pool_file": "10_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 7,
+     "pool_file": "01_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "graphic"
+    },
+    {
+     "kind": "graphic"
+    },
+    {
+     "kind": "photo",
+     "picture": 8,
+     "pool_file": null,
+     "beat_image": true
+    }
+   ],
+   "beats": [
+    {
+     "start": 0.0,
+     "end": 5.064,
+     "speech_start": 0.089,
+     "speech_end": 4.515
+    },
+    {
+     "start": 5.064,
+     "end": 9.145,
+     "speech_start": 5.064,
+     "speech_end": 8.737
+    },
+    {
+     "start": 9.145,
+     "end": 13.98,
+     "speech_start": 9.145,
+     "speech_end": 13.967
+    },
+    {
+     "start": 13.98,
+     "end": 18.89,
+     "speech_start": 13.98,
+     "speech_end": 18.878
+    },
+    {
+     "start": 18.89,
+     "end": 23.559,
+     "speech_start": 18.89,
+     "speech_end": 23.546
+    },
+    {
+     "start": 23.559,
+     "end": 28.597,
+     "speech_start": 23.559,
+     "speech_end": 28.584
+    },
+    {
+     "start": 28.597,
+     "end": 32.003,
+     "speech_start": 28.597,
+     "speech_end": 31.594
+    },
+    {
+     "start": 32.003,
+     "end": 37.181,
+     "speech_start": 32.003,
+     "speech_end": 37.168
+    },
+    {
+     "start": 37.181,
+     "end": 42.143,
+     "speech_start": 37.181,
+     "speech_end": 41.454
+    },
+    {
+     "start": 42.143,
+     "end": 47.112,
+     "speech_start": 42.143,
+     "speech_end": 46.747
+    }
+   ],
+   "words": 110,
+   "voiceover_seconds": 47.112,
+   "stage_seconds_before_plan": {
+    "script_and_fact_check": 456.2,
+    "voiceover": 4.2,
+    "music_and_bed": 42.2,
+    "image_prep_wait": 87.0,
+    "stills_graphics_sourcing": 57.8
+   }
+  },
+  {
+   "env": "dev",
+   "run": "run_trepanation_miracle_1792995462",
+   "topic": "trepanation_miracle",
+   "scenes": [
+    {
+     "kind": "photo",
+     "picture": 1,
+     "pool_file": "10_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 2,
+     "pool_file": "17_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 3,
+     "pool_file": "14_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 4,
+     "pool_file": "11_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 5,
+     "pool_file": null,
+     "beat_image": true
+    },
+    {
+     "kind": "photo",
+     "picture": 6,
+     "pool_file": "13_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 7,
+     "pool_file": "05_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 8,
+     "pool_file": null,
+     "beat_image": true
+    },
+    {
+     "kind": "graphic"
+    },
+    {
+     "kind": "photo",
+     "picture": 9,
+     "pool_file": null,
+     "beat_image": true
+    },
+    {
+     "kind": "photo",
+     "picture": 10,
+     "pool_file": "20_commons.jpg",
+     "beat_image": false
+    }
+   ],
+   "beats": [
+    {
+     "start": 0.0,
+     "end": 4.911,
+     "speech_start": 0.089,
+     "speech_end": 4.298
+    },
+    {
+     "start": 4.911,
+     "end": 8.661,
+     "speech_start": 4.911,
+     "speech_end": 8.253
+    },
+    {
+     "start": 8.661,
+     "end": 13.992,
+     "speech_start": 8.661,
+     "speech_end": 13.661
+    },
+    {
+     "start": 13.992,
+     "end": 17.832,
+     "speech_start": 13.992,
+     "speech_end": 17.423
+    },
+    {
+     "start": 17.832,
+     "end": 22.347,
+     "speech_start": 17.832,
+     "speech_end": 22.334
+    },
+    {
+     "start": 22.347,
+     "end": 27.449,
+     "speech_start": 22.347,
+     "speech_end": 27.041
+    },
+    {
+     "start": 27.449,
+     "end": 32.857,
+     "speech_start": 27.449,
+     "speech_end": 32.398
+    },
+    {
+     "start": 32.857,
+     "end": 37.13,
+     "speech_start": 32.857,
+     "speech_end": 36.837
+    },
+    {
+     "start": 37.13,
+     "end": 41.811,
+     "speech_start": 37.13,
+     "speech_end": 41.798
+    },
+    {
+     "start": 41.811,
+     "end": 46.48,
+     "speech_start": 41.811,
+     "speech_end": 46.467
+    },
+    {
+     "start": 46.48,
+     "end": 48.768,
+     "speech_start": 46.48,
+     "speech_end": 48.38
+    }
+   ],
+   "words": 109,
+   "voiceover_seconds": 48.768,
+   "stage_seconds_before_plan": {
+    "script_and_fact_check": 220.7,
+    "voiceover": 4.6,
+    "music_and_bed": 29.5,
+    "image_prep_wait": 26.6,
+    "stills_graphics_sourcing": 88.0
+   }
+  },
+  {
+   "env": "dev",
+   "run": "run_tunguska_event_1908_1792930600",
+   "topic": "tunguska_event_1908",
+   "scenes": [
+    {
+     "kind": "photo",
+     "picture": 1,
+     "pool_file": "03_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "graphic"
+    },
+    {
+     "kind": "photo",
+     "picture": 2,
+     "pool_file": "10_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 3,
+     "pool_file": "04_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 4,
+     "pool_file": "01_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "graphic"
+    },
+    {
+     "kind": "photo",
+     "picture": 5,
+     "pool_file": "05_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 6,
+     "pool_file": "11_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 7,
+     "pool_file": "02_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 8,
+     "pool_file": "06_commons.jpg",
+     "beat_image": false
+    }
+   ],
+   "beats": [
+    {
+     "start": 0.0,
+     "end": 5.23,
+     "speech_start": 0.089,
+     "speech_end": 4.566
+    },
+    {
+     "start": 5.23,
+     "end": 9.056,
+     "speech_start": 5.23,
+     "speech_end": 8.38
+    },
+    {
+     "start": 9.056,
+     "end": 13.712,
+     "speech_start": 9.056,
+     "speech_end": 13.622
+    },
+    {
+     "start": 13.712,
+     "end": 16.913,
+     "speech_start": 13.712,
+     "speech_end": 16.339
+    },
+    {
+     "start": 16.913,
+     "end": 19.962,
+     "speech_start": 16.913,
+     "speech_end": 19.554
+    },
+    {
+     "start": 19.962,
+     "end": 24.541,
+     "speech_start": 19.962,
+     "speech_end": 24.528
+    },
+    {
+     "start": 24.541,
+     "end": 29.375,
+     "speech_start": 24.541,
+     "speech_end": 29.362
+    },
+    {
+     "start": 29.375,
+     "end": 32.883,
+     "speech_start": 29.375,
+     "speech_end": 32.474
+    },
+    {
+     "start": 32.883,
+     "end": 37.717,
+     "speech_start": 32.883,
+     "speech_end": 37.156
+    },
+    {
+     "start": 37.717,
+     "end": 42.84,
+     "speech_start": 37.717,
+     "speech_end": 42.462
+    }
+   ],
+   "words": 98,
+   "voiceover_seconds": 42.84,
+   "stage_seconds_before_plan": {
+    "script_and_fact_check": 3419.1,
+    "voiceover": 4.1,
+    "music_and_bed": 243.5,
+    "image_prep_wait": 0.0,
+    "stills_graphics_sourcing": 40.8
+   }
+  },
+  {
+   "env": "dev",
+   "run": "run_unfinished_obelisk_aswan_1792985912",
+   "topic": "unfinished_obelisk_aswan",
+   "scenes": [
+    {
+     "kind": "photo",
+     "picture": 1,
+     "pool_file": "01_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 2,
+     "pool_file": "10_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 3,
+     "pool_file": "05_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 4,
+     "pool_file": "19_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 5,
+     "pool_file": "02_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 6,
+     "pool_file": "12_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 7,
+     "pool_file": "14_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 8,
+     "pool_file": "15_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "graphic"
+    },
+    {
+     "kind": "photo",
+     "picture": 9,
+     "pool_file": null,
+     "beat_image": true
+    }
+   ],
+   "beats": [
+    {
+     "start": 0.0,
+     "end": 4.923,
+     "speech_start": 0.089,
+     "speech_end": 4.911
+    },
+    {
+     "start": 4.923,
+     "end": 9.541,
+     "speech_start": 4.923,
+     "speech_end": 9.528
+    },
+    {
+     "start": 9.541,
+     "end": 14.133,
+     "speech_start": 9.541,
+     "speech_end": 14.12
+    },
+    {
+     "start": 14.133,
+     "end": 18.814,
+     "speech_start": 14.133,
+     "speech_end": 18.801
+    },
+    {
+     "start": 18.814,
+     "end": 22.959,
+     "speech_start": 18.814,
+     "speech_end": 22.372
+    },
+    {
+     "start": 22.959,
+     "end": 27.5,
+     "speech_start": 22.959,
+     "speech_end": 27.487
+    },
+    {
+     "start": 27.5,
+     "end": 30.765,
+     "speech_start": 27.5,
+     "speech_end": 30.357
+    },
+    {
+     "start": 30.765,
+     "end": 35.357,
+     "speech_start": 30.765,
+     "speech_end": 35.344
+    },
+    {
+     "start": 35.357,
+     "end": 39.515,
+     "speech_start": 35.357,
+     "speech_end": 39.107
+    },
+    {
+     "start": 39.515,
+     "end": 45.408,
+     "speech_start": 39.515,
+     "speech_end": 45.026
+    }
+   ],
+   "words": 104,
+   "voiceover_seconds": 45.408,
+   "stage_seconds_before_plan": {
+    "script_and_fact_check": 763.0,
+    "voiceover": 4.8,
+    "music_and_bed": 44.5,
+    "image_prep_wait": 51.4,
+    "stills_graphics_sourcing": 63.1
+   }
+  },
+  {
+   "env": "dev",
+   "run": "run_unfinished_obelisk_aswan_1792993374",
+   "topic": "unfinished_obelisk_aswan",
+   "scenes": [
+    {
+     "kind": "photo",
+     "picture": 1,
+     "pool_file": "01_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "graphic"
+    },
+    {
+     "kind": "photo",
+     "picture": 2,
+     "pool_file": "05_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 3,
+     "pool_file": "02_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 4,
+     "pool_file": "10_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "graphic"
+    },
+    {
+     "kind": "photo",
+     "picture": 5,
+     "pool_file": "19_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 6,
+     "pool_file": "12_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 7,
+     "pool_file": null,
+     "beat_image": true
+    },
+    {
+     "kind": "photo",
+     "picture": 8,
+     "pool_file": "14_commons.jpg",
+     "beat_image": false
+    }
+   ],
+   "beats": [
+    {
+     "start": 0.0,
+     "end": 5.153,
+     "speech_start": 0.089,
+     "speech_end": 5.14
+    },
+    {
+     "start": 5.153,
+     "end": 10.153,
+     "speech_start": 5.153,
+     "speech_end": 9.745
+    },
+    {
+     "start": 10.153,
+     "end": 13.737,
+     "speech_start": 10.153,
+     "speech_end": 13.176
+    },
+    {
+     "start": 13.737,
+     "end": 18.304,
+     "speech_start": 13.737,
+     "speech_end": 17.895
+    },
+    {
+     "start": 18.304,
+     "end": 22.908,
+     "speech_start": 18.304,
+     "speech_end": 22.895
+    },
+    {
+     "start": 22.908,
+     "end": 28.559,
+     "speech_start": 22.908,
+     "speech_end": 28.508
+    },
+    {
+     "start": 28.559,
+     "end": 33.508,
+     "speech_start": 28.559,
+     "speech_end": 33.227
+    },
+    {
+     "start": 33.508,
+     "end": 38.304,
+     "speech_start": 33.508,
+     "speech_end": 38.291
+    },
+    {
+     "start": 38.304,
+     "end": 42.819,
+     "speech_start": 38.304,
+     "speech_end": 42.806
+    },
+    {
+     "start": 42.819,
+     "end": 44.592,
+     "speech_start": 42.819,
+     "speech_end": 44.209
+    }
+   ],
+   "words": 99,
+   "voiceover_seconds": 44.592,
+   "stage_seconds_before_plan": {
+    "script_and_fact_check": 184.7,
+    "voiceover": 3.9,
+    "music_and_bed": 33.1,
+    "image_prep_wait": 0.0,
+    "stills_graphics_sourcing": 55.1
+   }
+  },
+  {
+   "env": "dev",
+   "run": "run_unfinished_obelisk_aswan_1793056896",
+   "topic": "unfinished_obelisk_aswan",
+   "scenes": [
+    {
+     "kind": "photo",
+     "picture": 1,
+     "pool_file": "05_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "graphic"
+    },
+    {
+     "kind": "photo",
+     "picture": 2,
+     "pool_file": "02_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 3,
+     "pool_file": "01_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 4,
+     "pool_file": "10_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "graphic"
+    },
+    {
+     "kind": "photo",
+     "picture": 5,
+     "pool_file": "12_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 6,
+     "pool_file": null,
+     "beat_image": true
+    },
+    {
+     "kind": "photo",
+     "picture": 7,
+     "pool_file": "19_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 8,
+     "pool_file": "14_commons.jpg",
+     "beat_image": false
+    }
+   ],
+   "beats": [
+    {
+     "start": 0.0,
+     "end": 4.617,
+     "speech_start": 0.089,
+     "speech_end": 4.605
+    },
+    {
+     "start": 4.617,
+     "end": 7.602,
+     "speech_start": 4.617,
+     "speech_end": 7.181
+    },
+    {
+     "start": 7.602,
+     "end": 12.283,
+     "speech_start": 7.602,
+     "speech_end": 12.27
+    },
+    {
+     "start": 12.283,
+     "end": 15.548,
+     "speech_start": 12.283,
+     "speech_end": 15.14
+    },
+    {
+     "start": 15.548,
+     "end": 21.186,
+     "speech_start": 15.548,
+     "speech_end": 20.816
+    },
+    {
+     "start": 21.186,
+     "end": 26.798,
+     "speech_start": 21.186,
+     "speech_end": 26.786
+    },
+    {
+     "start": 26.798,
+     "end": 31.39,
+     "speech_start": 26.798,
+     "speech_end": 31.378
+    },
+    {
+     "start": 31.39,
+     "end": 35.982,
+     "speech_start": 31.39,
+     "speech_end": 35.969
+    },
+    {
+     "start": 35.982,
+     "end": 41.122,
+     "speech_start": 35.982,
+     "speech_end": 40.74
+    },
+    {
+     "start": 41.122,
+     "end": 46.056,
+     "speech_start": 41.122,
+     "speech_end": 45.663
+    }
+   ],
+   "words": 101,
+   "voiceover_seconds": 46.056,
+   "stage_seconds_before_plan": {
+    "script_and_fact_check": 640.0,
+    "voiceover": 4.5,
+    "music_and_bed": 43.1,
+    "image_prep_wait": 0.0,
+    "stills_graphics_sourcing": 61.7
+   }
+  },
+  {
+   "env": "dev",
+   "run": "run_voynich_manuscript_1792965308",
+   "topic": "voynich_manuscript",
+   "scenes": [
+    {
+     "kind": "photo",
+     "picture": 1,
+     "pool_file": "01_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 2,
+     "pool_file": "02_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 3,
+     "pool_file": "03_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 4,
+     "pool_file": "05_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "graphic"
+    },
+    {
+     "kind": "photo",
+     "picture": 5,
+     "pool_file": "13_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 6,
+     "pool_file": "11_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "graphic"
+    },
+    {
+     "kind": "photo",
+     "picture": 7,
+     "pool_file": "10_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 8,
+     "pool_file": "07_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 9,
+     "pool_file": "08_commons.jpg",
+     "beat_image": false
+    }
+   ],
+   "beats": [
+    {
+     "start": 0.0,
+     "end": 4.656,
+     "speech_start": 0.051,
+     "speech_end": 4.643
+    },
+    {
+     "start": 4.656,
+     "end": 9.311,
+     "speech_start": 4.656,
+     "speech_end": 9.298
+    },
+    {
+     "start": 9.311,
+     "end": 12.742,
+     "speech_start": 9.311,
+     "speech_end": 12.347
+    },
+    {
+     "start": 12.742,
+     "end": 17.347,
+     "speech_start": 12.742,
+     "speech_end": 17.334
+    },
+    {
+     "start": 17.347,
+     "end": 22.13,
+     "speech_start": 17.347,
+     "speech_end": 21.735
+    },
+    {
+     "start": 22.13,
+     "end": 25.421,
+     "speech_start": 22.13,
+     "speech_end": 25.102
+    },
+    {
+     "start": 25.421,
+     "end": 30.179,
+     "speech_start": 25.421,
+     "speech_end": 30.166
+    },
+    {
+     "start": 30.179,
+     "end": 34.987,
+     "speech_start": 30.179,
+     "speech_end": 34.974
+    },
+    {
+     "start": 34.987,
+     "end": 38.24,
+     "speech_start": 34.987,
+     "speech_end": 37.832
+    },
+    {
+     "start": 38.24,
+     "end": 43.048,
+     "speech_start": 38.24,
+     "speech_end": 43.036
+    },
+    {
+     "start": 43.048,
+     "end": 46.056,
+     "speech_start": 43.048,
+     "speech_end": 45.676
+    }
+   ],
+   "words": 115,
+   "voiceover_seconds": 46.056,
+   "stage_seconds_before_plan": {
+    "script_and_fact_check": 331.7,
+    "voiceover": 4.5,
+    "music_and_bed": 38.4,
+    "image_prep_wait": 150.0,
+    "stills_graphics_sourcing": 42.0
+   }
+  },
+  {
+   "env": "dev",
+   "run": "run_wieliczka_salt_mine_1792974672",
+   "topic": "wieliczka_salt_mine",
+   "scenes": [
+    {
+     "kind": "photo",
+     "picture": 1,
+     "pool_file": "01_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "graphic"
+    },
+    {
+     "kind": "photo",
+     "picture": 2,
+     "pool_file": "02_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 3,
+     "pool_file": "05_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "photo",
+     "picture": 4,
+     "pool_file": "03_commons.jpg",
+     "beat_image": false
+    },
+    {
+     "kind": "graphic"
+    },
+    {
+     "kind": "photo",
+     "picture": 5,
+     "pool_file": null,
+     "beat_image": true
+    },
+    {
+     "kind": "photo",
+     "picture": 6,
+     "pool_file": null,
+     "beat_image": true
+    },
+    {
+     "kind": "photo",
+     "picture": 7,
+     "pool_file": null,
+     "beat_image": true
+    },
+    {
+     "kind": "photo",
+     "picture": 8,
+     "pool_file": null,
+     "beat_image": true
+    }
+   ],
+   "beats": [
+    {
+     "start": 0.0,
+     "end": 5.038,
+     "speech_start": 0.077,
+     "speech_end": 5.026
+    },
+    {
+     "start": 5.038,
+     "end": 9.592,
+     "speech_start": 5.038,
+     "speech_end": 9.579
+    },
+    {
+     "start": 9.592,
+     "end": 14.171,
+     "speech_start": 9.592,
+     "speech_end": 14.158
+    },
+    {
+     "start": 14.171,
+     "end": 18.763,
+     "speech_start": 14.171,
+     "speech_end": 18.355
+    },
+    {
+     "start": 18.763,
+     "end": 23.776,
+     "speech_start": 18.763,
+     "speech_end": 23.763
+    },
+    {
+     "start": 23.776,
+     "end": 28.304,
+     "speech_start": 23.776,
+     "speech_end": 28.291
+    },
+    {
+     "start": 28.304,
+     "end": 32.526,
+     "speech_start": 28.304,
+     "speech_end": 32.105
+    },
+    {
+     "start": 32.526,
+     "end": 38.023,
+     "speech_start": 32.526,
+     "speech_end": 37.449
+    },
+    {
+     "start": 38.023,
+     "end": 41.48,
+     "speech_start": 38.023,
+     "speech_end": 41.071
+    },
+    {
+     "start": 41.48,
+     "end": 47.208,
+     "speech_start": 41.48,
+     "speech_end": 46.824
+    }
+   ],
+   "words": 106,
+   "voiceover_seconds": 47.208,
+   "stage_seconds_before_plan": {
+    "script_and_fact_check": 1087.8,
+    "voiceover": 3.9,
+    "music_and_bed": 42.2,
+    "image_prep_wait": 83.4,
+    "stills_graphics_sourcing": 60.2
+   }
+  }
+ ]
+}

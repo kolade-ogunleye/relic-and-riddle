@@ -1,0 +1,190 @@
+{
+ "damaged_carousels_posted": 3,
+ "drawn_slide_changed_card_approval": {
+  "alert_offers_redraw": false,
+  "alert_says_nothing_posted": false,
+  "alert_says_reel_unaffected": false,
+  "posted_in_slot": [
+   "r2"
+  ],
+  "r2_alerts": 0,
+  "r2_posted": true,
+  "r2_status": "published",
+  "silent_failure": false,
+  "slot_lost": 0,
+  "substituted_photo_drawn": false
+ },
+ "holds_offering_a_redraw_that_cannot_help": 7,
+ "normal": {
+  "alert_offers_redraw": false,
+  "alert_says_nothing_posted": false,
+  "alert_says_reel_unaffected": false,
+  "posted_in_slot": [
+   "r2"
+  ],
+  "r2_alerts": 0,
+  "r2_posted": true,
+  "r2_status": "published",
+  "silent_failure": false,
+  "slot_lost": 0,
+  "substituted_photo_drawn": false
+ },
+ "normal_runs_held": 0,
+ "partial_deck": {
+  "alert_offers_redraw": false,
+  "alert_says_nothing_posted": false,
+  "alert_says_reel_unaffected": false,
+  "posted_in_slot": [
+   "r2"
+  ],
+  "r2_alerts": 0,
+  "r2_posted": true,
+  "r2_status": "published",
+  "silent_failure": false,
+  "slot_lost": 0,
+  "substituted_photo_drawn": false
+ },
+ "partial_decks_posted": 2,
+ "plan_changed_in_lock": {
+  "alert_offers_redraw": false,
+  "alert_says_nothing_posted": false,
+  "alert_says_reel_unaffected": false,
+  "posted_in_slot": [
+   "r2"
+  ],
+  "r2_alerts": 0,
+  "r2_posted": true,
+  "r2_status": "published",
+  "silent_failure": false,
+  "slot_lost": 0,
+  "substituted_photo_drawn": true
+ },
+ "plan_corrupt": {
+  "alert_offers_redraw": true,
+  "alert_says_nothing_posted": true,
+  "alert_says_reel_unaffected": false,
+  "posted_in_slot": [],
+  "r2_alerts": 1,
+  "r2_posted": false,
+  "r2_status": "failed",
+  "silent_failure": false,
+  "slot_lost": 1,
+  "substituted_photo_drawn": false
+ },
+ "plan_deleted": {
+  "alert_offers_redraw": false,
+  "alert_says_nothing_posted": false,
+  "alert_says_reel_unaffected": false,
+  "posted_in_slot": [],
+  "r2_alerts": 0,
+  "r2_posted": false,
+  "r2_status": "failed",
+  "silent_failure": true,
+  "slot_lost": 1,
+  "substituted_photo_drawn": false
+ },
+ "plan_deleted_card_approval": {
+  "alert_offers_redraw": false,
+  "alert_says_nothing_posted": false,
+  "alert_says_reel_unaffected": false,
+  "posted_in_slot": [],
+  "r2_alerts": 0,
+  "r2_posted": false,
+  "r2_status": "failed",
+  "silent_failure": true,
+  "slot_lost": 1,
+  "substituted_photo_drawn": false
+ },
+ "plan_deleted_in_lock": {
+  "alert_offers_redraw": true,
+  "alert_says_nothing_posted": true,
+  "alert_says_reel_unaffected": false,
+  "posted_in_slot": [],
+  "r2_alerts": 1,
+  "r2_posted": false,
+  "r2_status": "failed",
+  "silent_failure": false,
+  "slot_lost": 1,
+  "substituted_photo_drawn": false
+ },
+ "plan_no_photo": {
+  "alert_offers_redraw": true,
+  "alert_says_nothing_posted": true,
+  "alert_says_reel_unaffected": false,
+  "posted_in_slot": [],
+  "r2_alerts": 1,
+  "r2_posted": false,
+  "r2_status": "failed",
+  "silent_failure": false,
+  "slot_lost": 1,
+  "substituted_photo_drawn": false
+ },
+ "plan_no_photo_two_slots": {
+  "alert_offers_redraw": true,
+  "alert_says_nothing_posted": true,
+  "alert_says_reel_unaffected": false,
+  "posted_in_slot": [],
+  "posted_per_slot": [
+   [],
+   []
+  ],
+  "r2_alerts": 2,
+  "r2_posted": false,
+  "r2_status": "failed",
+  "redraw_accepted": true,
+  "silent_failure": false,
+  "slot_lost": 2,
+  "substituted_photo_drawn": false
+ },
+ "plan_unreadable": {
+  "alert_offers_redraw": true,
+  "alert_says_nothing_posted": true,
+  "alert_says_reel_unaffected": false,
+  "posted_in_slot": [],
+  "r2_alerts": 1,
+  "r2_posted": false,
+  "r2_status": "failed",
+  "silent_failure": false,
+  "slot_lost": 1,
+  "substituted_photo_drawn": false
+ },
+ "plan_video_entries": {
+  "alert_offers_redraw": true,
+  "alert_says_nothing_posted": true,
+  "alert_says_reel_unaffected": false,
+  "posted_in_slot": [],
+  "r2_alerts": 1,
+  "r2_posted": false,
+  "r2_status": "failed",
+  "silent_failure": false,
+  "slot_lost": 1,
+  "substituted_photo_drawn": false
+ },
+ "plan_without_photos": {
+  "alert_offers_redraw": true,
+  "alert_says_nothing_posted": true,
+  "alert_says_reel_unaffected": false,
+  "posted_in_slot": [],
+  "r2_alerts": 1,
+  "r2_posted": false,
+  "r2_status": "failed",
+  "silent_failure": false,
+  "slot_lost": 1,
+  "substituted_photo_drawn": false
+ },
+ "redraws_accepted_that_cannot_help": 1,
+ "silent_failures": 3,
+ "slides_gone": {
+  "alert_offers_redraw": false,
+  "alert_says_nothing_posted": false,
+  "alert_says_reel_unaffected": false,
+  "posted_in_slot": [],
+  "r2_alerts": 0,
+  "r2_posted": false,
+  "r2_status": "failed",
+  "silent_failure": true,
+  "slot_lost": 1,
+  "substituted_photo_drawn": false
+ },
+ "slots_lost": 11
+}

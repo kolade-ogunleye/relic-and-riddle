@@ -1,0 +1,158 @@
+{
+  "scan": {
+    "master": {
+      "NVENC": 30
+    },
+    "graphic clip": {
+      "NVENC": 65
+    }
+  },
+  "rerender": [
+    {
+      "case": 1,
+      "scenes": 7,
+      "narration_s": 43.85,
+      "master_s": 44.87,
+      "compose_wall_s": 324.6,
+      "video_encodes": [
+        "-c:v libx264 -preset veryfast -crf 10",
+        "-c:v libx264 -preset slow -crf 18"
+      ],
+      "master_stream": "libx264 (slow-class, crf 18.0)",
+      "manifest_video_encoder": {
+        "master": [
+          "-c:v",
+          "libx264",
+          "-preset",
+          "slow",
+          "-crf",
+          "18"
+        ],
+        "intermediate": [
+          "-c:v",
+          "libx264",
+          "-preset",
+          "veryfast",
+          "-crf",
+          "10"
+        ],
+        "delivery_args": [
+          "-c:v",
+          "libx264",
+          "-preset",
+          "slow",
+          "-crf",
+          "18",
+          "-threads",
+          "32",
+          "-pix_fmt",
+          "yuv420p",
+          "-color_range",
+          "tv",
+          "-color_primaries",
+          "bt709",
+          "-color_trc",
+          "bt709",
+          "-colorspace",
+          "bt709",
+          "-r",
+          "30",
+          "-g",
+          "60",
+          "-keyint_min",
+          "60",
+          "-sc_threshold",
+          "0",
+          "-flags",
+          "+cgop",
+          "-c:a",
+          "aac",
+          "-b:a",
+          "192k",
+          "-ar",
+          "48000",
+          "-ac",
+          "2",
+          "-max_muxing_queue_size",
+          "8192",
+          "-movflags",
+          "+faststart"
+        ]
+      },
+      "end_card": "loop_bridge_v1"
+    },
+    {
+      "case": 2,
+      "scenes": 8,
+      "narration_s": 44.76,
+      "master_s": 45.77,
+      "compose_wall_s": 302.4,
+      "video_encodes": [
+        "-c:v libx264 -preset veryfast -crf 10",
+        "-c:v libx264 -preset slow -crf 18"
+      ],
+      "master_stream": "libx264 (slow-class, crf 18.0)",
+      "manifest_video_encoder": {
+        "master": [
+          "-c:v",
+          "libx264",
+          "-preset",
+          "slow",
+          "-crf",
+          "18"
+        ],
+        "intermediate": [
+          "-c:v",
+          "libx264",
+          "-preset",
+          "veryfast",
+          "-crf",
+          "10"
+        ],
+        "delivery_args": [
+          "-c:v",
+          "libx264",
+          "-preset",
+          "slow",
+          "-crf",
+          "18",
+          "-threads",
+          "32",
+          "-pix_fmt",
+          "yuv420p",
+          "-color_range",
+          "tv",
+          "-color_primaries",
+          "bt709",
+          "-color_trc",
+          "bt709",
+          "-colorspace",
+          "bt709",
+          "-r",
+          "30",
+          "-g",
+          "60",
+          "-keyint_min",
+          "60",
+          "-sc_threshold",
+          "0",
+          "-flags",
+          "+cgop",
+          "-c:a",
+          "aac",
+          "-b:a",
+          "192k",
+          "-ar",
+          "48000",
+          "-ac",
+          "2",
+          "-max_muxing_queue_size",
+          "8192",
+          "-movflags",
+          "+faststart"
+        ]
+      },
+      "end_card": "loop_bridge_v1"
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+QF-08 current mocked-provider measurements (see before.json / after.json)
+Pro: default MP3 44.1kHz/128kbps -> PCM48kHz, seed1, stability0.65.
+Creator: MP3 44.1kHz/128kbps -> MP3 44.1kHz/192kbps, decoded once to WAV.
+Creator decoded energy in13-15kHz: 0.059449 of total; no24kHz default.
+Free/Starter retain128kbps MP3 provider format; output becomesWAV.
+Pro+Azure providerMP3generations2->0; resamplingsteps1->0.
+Creator providerMP3generations1->1 (not erased by decoding to WAV).
+Rights hash binds WAV bytes; punctuation-only captions/cues4->0.
+All providers mocked, no live call. Acceptance false before, true after.

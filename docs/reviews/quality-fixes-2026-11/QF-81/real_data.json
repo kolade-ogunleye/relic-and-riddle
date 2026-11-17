@@ -1,0 +1,48 @@
+{
+ "note": "counts only; real_data.py <dev repo root> <production sample copy> <worktree> and equivalence.py <worktree> <dev output> <scratch>",
+ "dev": {
+  "run_folders": 47,
+  "run_folders_with_carousel": 31,
+  "with_facebook_copy": 26,
+  "carousel_bookings_by_status": {},
+  "carousel_publications_by_status": {
+   "simulated": 14
+  },
+  "carousel_metric_rows": {}
+ },
+ "production_sample": {
+  "run_folders": 34,
+  "run_folders_with_carousel": 34,
+  "with_facebook_copy": 34,
+  "carousel_publications_by_status": {
+   "published": 8
+  },
+  "drawn_and_posted": 4,
+  "drawn_never_posted": 30,
+  "carousel_metric_rows_by_label_source": {
+   "instagram_carousel/upload-post": 10,
+   "facebook_carousel/upload-post": 10
+  },
+  "carousel_metric_rows_with_reach_and_saves": 10,
+  "instagram_reels_measured": 6
+ },
+ "production_sample_digest": {
+  "line_kinds": {
+   "carousels_counted_until_12": 2,
+   "carousel_medians": 0,
+   "facebook_reach_ratio": 0,
+   "facebook_reach_not_measured": 1,
+   "facebook_views_ratio": 1
+  },
+  "facebook_reel_rows_7d": 6,
+  "facebook_reel_rows_7d_with_reach": 0
+ },
+ "slot_draw_equivalence_dev": {
+  "runs": 7,
+  "skipped": 0,
+  "slides": 98,
+  "identical": 98,
+  "held": 0,
+  "held_by_contrast": 0
+ }
+}

@@ -16,15 +16,18 @@ SHEET = {"topic_id": "t1", "sources": [{"title": "X", "url": "https://en.wikiped
                    {"id": "f2", "statement": "The lines are shallow trenches.", "kind": "fact", "disputed": False,
                     "hedge": "", "evidence": []}]}
 PHRASE = "geoglyphs etched into"
+PAYOFF = "Those geoglyphs marked the landscape."
 
 
 def _narration(closing, words, repeat):
-    body = " ".join(f"w{i}" for i in range(words))  # distinct filler: no repeat of its own
+    opening = "Geoglyphs cover the desert."
+    body = opening + " " + " ".join(f"w{i}" for i in range(words - len(PAYOFF.split()) - len(opening.split())))
     extra = f" Some {PHRASE} the plain. Other {PHRASE} the hills." if repeat else " Some geoglyphs mark the plain."
-    return f"{body}.{extra} {closing}"
+    return f"{body}.{extra} {PAYOFF} {closing}"
 
 
 def _engine(monkeypatch, curated_payload):
+    curated_payload["payoff_sentence"] = PAYOFF
     engine = ScriptEngine()
     monkeypatch.setattr(script_engine, "_ready", lambda: True)
     monkeypatch.setattr(engine, "_sheet", lambda topic: SHEET)

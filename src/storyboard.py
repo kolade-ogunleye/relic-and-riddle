@@ -39,10 +39,11 @@ DEFAULT_BEAT_ARCHETYPES = [
 
 
 def load_storyboard(topic_dir: Path) -> Optional[List[Dict[str, Any]]]:
+    from . import host_state
     path = topic_dir / STORYBOARD_FILE
-    if path.is_file():
+    if host_state.exists(path):
         try:
-            data = json.loads(path.read_text(encoding="utf-8"))
+            data = host_state.read_json(path)   # this host's copy (QF-111), else the shipped one
             if isinstance(data, list):
                 return data
             if isinstance(data, dict) and "beats" in data and isinstance(data["beats"], list):
@@ -53,10 +54,9 @@ def load_storyboard(topic_dir: Path) -> Optional[List[Dict[str, Any]]]:
 
 
 def save_storyboard(topic_dir: Path, storyboard: List[Dict[str, Any]]) -> Path:
-    path = topic_dir / STORYBOARD_FILE
-    from .atomic_files import write_json
-    write_json(path, storyboard)
-    return path
+    """This host's copy (QF-111): never the tracked assets/<topic>/storyboard.json. Returns the file written."""
+    from . import host_state
+    return host_state.write_json(topic_dir / STORYBOARD_FILE, storyboard)
 
 
 def _split_narration_sentences(narration: str) -> List[str]:
@@ -96,9 +96,11 @@ def generate_storyboard(topic_id: str, topic_dir: Optional[Path] = None) -> List
     # 2. Fallback to topic bank hook + key facts if no script file exists yet
     if not narration:
         bank_path = TOPICS_DIR / "topic_bank.json"
-        if bank_path.is_file():
+        from . import host_state
+        if host_state.exists(bank_path):
             try:
-                bdata = json.loads(bank_path.read_text(encoding="utf-8"))
+                from .topic_store import read_bank
+                bdata = read_bank(bank_path)   # with this host's own topics (QF-111)
                 for t in bdata.get("topics", []):
                     if t.get("id") == topic_id or topic_id.endswith(t.get("id", "")):
                         hook = t.get("hook", "")

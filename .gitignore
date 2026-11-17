@@ -9,10 +9,13 @@ __pycache__/
 
 # Runtime state & generated media
 data/pipeline.db
+# This host's own copies of tracked files the runtime changes (QF-111, src/host_state.py)
+data/host/
 data/pipeline.db-*
 data/pipeline.db.bak
 data/evals/
 data/provider_status.json
+data/backup-status.json
 data/improvements/
 relic_riddle.db
 relic_riddle.db-*
@@ -84,3 +87,16 @@ pipeline.db
 .claude/
 **/.picture_text.json
 assets/**/footage/
+
+# QF-111: files the runtime writes beside release-owned ones. Ignored, so a host's own never blocks a release
+# (git refuses to check out a release over an untracked file of the same name; it replaces an ignored one).
+# Tracked files under these patterns stay tracked.
+docs/issues/
+docs/improvements/
+data/prompt_patches.json
+data/topics/*.transaction.json
+assets/**/callout_locate.json
+assets/**/*.quality.json
+assets/**/*.presentation.json
+assets/**/*.source
+assets/**/.orientation_backup/

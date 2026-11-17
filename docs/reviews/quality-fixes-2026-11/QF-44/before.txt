@@ -1,0 +1,13 @@
+{
+  "ssrf_attempts": 37,
+  "ssrf_blocked": 0,
+  "internal_or_off_host_requests_made": 37,
+  "acceptance_redirect_to_127_0_0_1_page_text_none": false,
+  "acceptance_off_host_museum_download_raises": false,
+  "museum_providers_without_host_allowlist": [
+    "met",
+    "nasa",
+    "smithsonian"
+  ],
+  "controls_fetched": "4/4"
+}

@@ -1,0 +1,114 @@
+{
+ "case": "dark_wieliczka_extra",
+ "run": "run_wieliczka_salt_mine_1792974672",
+ "topic": "wieliczka_salt_mine",
+ "label": "new: darkest real old photo and its run's darkest recent candidate, same-topic, not an accepted pair; years from fact sheet fact-13 / fact-14, not capture years",
+ "format": "16x9",
+ "code_root": "<scratchpad>/head",
+ "tree": "before this round (frames only)",
+ "old": "output/run_wieliczka_salt_mine_1792974672/graphics/then_1.jpg",
+ "old_year": 1978,
+ "new": "output/run_wieliczka_salt_mine_1792974672/graphics/now_1_2.jpg",
+ "new_year": 1998,
+ "render_seconds_with_encode": 358.3,
+ "moments": {
+  "then_alone": {
+   "frame": 27,
+   "file": "frame_then_alone.webp (1955 KB)"
+  },
+  "mid_wipe": {
+   "frame": 44,
+   "file": "frame_mid_wipe.webp (1988 KB)"
+  },
+  "now_wide": {
+   "frame": 69,
+   "file": "frame_now_wide.webp (2008 KB)"
+  },
+  "split_hold": {
+   "frame": 165,
+   "file": "frame_split_hold.webp (1985 KB)"
+  },
+  "split": {
+   "frame": 179,
+   "file": "frame_split.webp (1981 KB)"
+  }
+ },
+ "plates": [
+  {
+   "name": "then_kicker",
+   "text": "THEN",
+   "planned": 10.11,
+   "fill": [
+    243,
+    237,
+    226
+   ],
+   "drawn": 10.11,
+   "graded": 13.12,
+   "halo": 0.5,
+   "box": [
+    783,
+    169,
+    894,
+    197
+   ]
+  },
+  {
+   "name": "then_year",
+   "text": "1978",
+   "planned": 7.1,
+   "fill": [
+    243,
+    237,
+    226
+   ],
+   "drawn": 7.24,
+   "graded": 9.45,
+   "halo": 0.35,
+   "box": [
+    695,
+    229,
+    894,
+    327
+   ]
+  },
+  {
+   "name": "now_kicker",
+   "text": "NOW",
+   "planned": 13.74,
+   "fill": [
+    243,
+    237,
+    226
+   ],
+   "drawn": 13.36,
+   "graded": 15.0,
+   "halo": 0.5,
+   "box": [
+    1026,
+    169,
+    1108,
+    197
+   ]
+  },
+  {
+   "name": "now_year",
+   "text": "1998",
+   "planned": 5.21,
+   "fill": [
+    243,
+    237,
+    226
+   ],
+   "drawn": 5.21,
+   "graded": 6.43,
+   "halo": 0.75,
+   "box": [
+    1021,
+    229,
+    1220,
+    327
+   ]
+  }
+ ]
+}

@@ -1,0 +1,129 @@
+{
+ "run_unfinished_obelisk_aswan_1793056896_carousel": {
+  "slide": "carousel_slide_07.jpg",
+  "shortened": [
+   "kicker"
+  ],
+  "kicker": [
+   {
+    "name": "kicker",
+    "box": [
+     112,
+     742,
+     1211,
+     776
+    ],
+    "contrast": 8.83,
+    "contrast_unaided": 8.83,
+    "halo": 0.0,
+    "fill": [
+     242,
+     182,
+     48
+    ],
+    "font": "Montserrat-Variable.ttf",
+    "px": 45.3,
+    "contrast_planned": 8.83,
+    "contrast_platform": 8.74
+   }
+  ]
+ },
+ "run_unfinished_obelisk_aswan_1793056896_carousel_fb": {
+  "slide": "carousel_slide_07.jpg",
+  "shortened": [
+   "kicker"
+  ],
+  "kicker": [
+   {
+    "name": "kicker",
+    "box": [
+     112,
+     742,
+     1211,
+     776
+    ],
+    "contrast": 8.83,
+    "contrast_unaided": 8.83,
+    "halo": 0.0,
+    "fill": [
+     242,
+     182,
+     48
+    ],
+    "font": "Montserrat-Variable.ttf",
+    "px": 45.3,
+    "contrast_planned": 8.83,
+    "contrast_platform": 8.74
+   }
+  ]
+ },
+ "run_roman_self_healing_concrete_1793163918_carousel": {
+  "slide": "carousel_slide_07.jpg",
+  "shortened": [
+   "kicker"
+  ],
+  "kicker": [
+   {
+    "name": "kicker",
+    "box": [
+     112,
+     742,
+     1268,
+     776
+    ],
+    "contrast": 5.61,
+    "contrast_unaided": 5.09,
+    "halo": 0.16,
+    "fill": [
+     242,
+     182,
+     48
+    ],
+    "font": "Montserrat-Variable.ttf",
+    "px": 45.3,
+    "contrast_planned": 5.61,
+    "contrast_platform": 5.69
+   }
+  ]
+ },
+ "run_damascus_steel_nanotubes_1792732472_short_carousel": {
+  "slide": "carousel_slide_07.jpg",
+  "shortened": [
+   "kicker"
+  ],
+  "kicker": [
+   {
+    "name": "kicker",
+    "box": [
+     112,
+     742,
+     1243,
+     776
+    ],
+    "contrast": 5.5,
+    "contrast_unaided": 4.57,
+    "halo": 0.32,
+    "fill": [
+     242,
+     182,
+     48
+    ],
+    "font": "Montserrat-Variable.ttf",
+    "px": 45.3,
+    "contrast_planned": 5.51,
+    "contrast_platform": 5.51
+   }
+  ]
+ },
+ "run_greek_fire_siphon_1792735284_short_chart": {
+  "drawn": [
+   "The 10th-Century Weapon That Water Could Not…"
+  ]
+ },
+ "run_unfinished_obelisk_aswan_1793056896_doc_cover": {
+  "copy": {
+   "line1": "EGYPT'S LARGEST",
+   "line2": "OBELISK TRAPPED IN…"
+  }
+ }
+}

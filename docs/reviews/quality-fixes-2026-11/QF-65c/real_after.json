@@ -1,0 +1,40 @@
+{
+ "development": {
+  "carousels": 31,
+  "carousels_showing_ai": 0,
+  "probe_alone_decks_not_made": 62,
+  "probe_alone_decks_taking_it": 0,
+  "probe_pool_decks_not_made": 0,
+  "probe_pool_decks_taking_it": 0,
+  "recorded_ai_made": 0,
+  "recorded_photos": 58,
+  "runs": 47,
+  "selection_ai_made_kept": 0,
+  "selection_empty": 0,
+  "selection_kept": 714,
+  "story_sets": 31,
+  "story_sets_showing_ai": 0,
+  "strong_checked": 933,
+  "strong_checked_ai_made": 0,
+  "strong_true": 451
+ },
+ "production_sample": {
+  "carousels": 34,
+  "carousels_showing_ai": 0,
+  "probe_alone_decks_not_made": 68,
+  "probe_alone_decks_taking_it": 0,
+  "probe_pool_decks_not_made": 0,
+  "probe_pool_decks_taking_it": 0,
+  "recorded_ai_made": 0,
+  "recorded_photos": 187,
+  "runs": 34,
+  "selection_ai_made_kept": 0,
+  "selection_empty": 0,
+  "selection_kept": 967,
+  "story_sets": 34,
+  "story_sets_showing_ai": 0,
+  "strong_checked": 695,
+  "strong_checked_ai_made": 0,
+  "strong_true": 429
+ }
+}

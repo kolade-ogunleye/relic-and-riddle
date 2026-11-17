@@ -1,0 +1,6 @@
+ok  9x16 odessa_pano_wide
+ok  16x9 odessa_pano_wide
+ok  9x16 odessa_tiny_clipped
+ok  9x16 kailasa_dark_small
+ok  16x9 odessa_tiny_clipped
+ok  16x9 kailasa_dark_small

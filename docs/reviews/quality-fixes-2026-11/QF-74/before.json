@@ -1,0 +1,129 @@
+{
+ "root_has_worker_deadline": false,
+ "stopped_worker": {
+  "worker_result": "escaped TimeoutExpired",
+  "run_status": "producing",
+  "topic_status": "in_production",
+  "files_kept": true,
+  "needs_notices": 0
+ },
+ "stage_boundary": {
+  "stopped_by": "carried on",
+  "run_status": "producing",
+  "topic_status": "in_production",
+  "files_kept": true,
+  "needs_notices": 0,
+  "review_past_deadline": "pending_approval"
+ },
+ "late_booking": {
+  "made_for": "Wed 11 Nov 19:00 EST",
+  "approved": "Wed 11 Nov 21:00 EST",
+  "booked": "Thu 12 Nov 12:00 EST",
+  "missed_slot_notices": 0
+ },
+ "stage_budget": {
+  "render_minutes": 22.5,
+  "findings": 0,
+  "budget_file": false
+ },
+ "real_dev": {
+  "runs": 35,
+  "attempts": 35,
+  "production_minutes": {
+   "p50": 19.6,
+   "p90": 50.7,
+   "max": 75.4
+  },
+  "deadline_minutes": null,
+  "attempts_past_deadline": null,
+  "attempts_past_spec_150": 0,
+  "longest_step_minutes": 57.0,
+  "stages": {
+   "script": {
+    "runs": 34,
+    "p50": 5.6,
+    "p90": 14.3,
+    "max": 57.0,
+    "budget": 20,
+    "over_150_percent": 1
+   },
+   "voice": {
+    "runs": 34,
+    "p50": 0.1,
+    "p90": 0.1,
+    "max": 0.3,
+    "budget": 8,
+    "over_150_percent": 0
+   },
+   "pictures": {
+    "runs": 32,
+    "p50": 3.8,
+    "p90": 9.5,
+    "max": 41.0,
+    "budget": 25,
+    "over_150_percent": 1
+   },
+   "render": {
+    "runs": 31,
+    "p50": 4.5,
+    "p90": 10.7,
+    "max": 14.2,
+    "budget": 15,
+    "over_150_percent": 0
+   },
+   "qa": {
+    "runs": 30,
+    "p50": 1.7,
+    "p90": 4.4,
+    "max": 5.7,
+    "budget": 5,
+    "over_150_percent": 0
+   }
+  },
+  "median_production_minutes": 19.6
+ },
+ "real_prod_counts": {
+  "runs_with_timings": 34,
+  "attempts": 37,
+  "median_attempt_minutes": 27.2,
+  "attempts_over_minutes": {
+   "90": 1,
+   "120": 1,
+   "150": 1,
+   "180": 0,
+   "240": 0
+  },
+  "steps_over_minutes": {
+   "30": 2,
+   "60": 0
+  },
+  "stages": {
+   "script": {
+    "runs": 34,
+    "median_minutes": 9.6,
+    "over_150_percent": 1
+   },
+   "voice": {
+    "runs": 34,
+    "median_minutes": 0.2,
+    "over_150_percent": 0
+   },
+   "pictures": {
+    "runs": 34,
+    "median_minutes": 3.7,
+    "over_150_percent": 0
+   },
+   "render": {
+    "runs": 34,
+    "median_minutes": 6.1,
+    "over_150_percent": 1
+   },
+   "qa": {
+    "runs": 34,
+    "median_minutes": 2.0,
+    "over_150_percent": 2
+   }
+  }
+ },
+ "acceptance_met": false
+}

@@ -110,6 +110,9 @@ def export(topic_id: str, sheet_path: Path, script: Optional[Dict[str, Any]], so
     if script is not None:
         script = json.loads(json.dumps(script))
         script["fact_review"].update(sheet_sha256=sha256_file(out / SHEET_FILE), sheet_path=SHEET_FILE)
+        if script["fact_review"].get("reference_path"):   # unsigned; kept_script re-points it at the checkout's copy
+            from .audio_provenance import tracked_path
+            script["fact_review"]["reference_path"] = tracked_path(script["fact_review"]["reference_path"])
         (out / SCRIPT_FILE).write_text(json.dumps(script, indent=2, ensure_ascii=False) + "\n", encoding="utf-8", newline="\n")
         written.append(out / SCRIPT_FILE)
     (out / SOURCE_FILE).write_text(json.dumps(source, indent=2, ensure_ascii=False) + "\n", encoding="utf-8", newline="\n")

@@ -1,0 +1,283 @@
+{
+ "method": {
+  "version": 1,
+  "sample_lines": 270,
+  "PICTURE_QA_BAR_FLAT_SHARE": 0.9,
+  "PICTURE_QA_BAR_FRACTION": 0.02,
+  "PICTURE_QA_BAR_LEVEL": 2,
+  "PICTURE_QA_BAR_S": 1.0,
+  "PICTURE_QA_BLACK_S": 0.1,
+  "PICTURE_QA_FREEZE_LONG_S": 12.1,
+  "PICTURE_QA_FREEZE_REEL_S": 6.1,
+  "PICTURE_QA_RANGE_FRACTION": 0.01,
+  "PICTURE_QA_RANGE_S": 0.5,
+  "PICTURE_QA_RANGE_TOLERANCE": 2
+ },
+ "threads": 0,
+ "dev": {
+  "masters": [
+   {
+    "master": "run_odessa_catacombs_1792970549/odessa_catacombs_master.mp4",
+    "deep_dive": false,
+    "duration_s": 44.567,
+    "frames": 1337,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "fail",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {
+     "picture_colour": "The video's colour tags are incomplete or wrong (primaries unset, transfer unset), so players may show its colours wrongly: re-render it to tag it BT.709."
+    },
+    "wall_s": 13.66,
+    "decode_cpu_s": 35.5,
+    "analyser_cpu_s": 5.16,
+    "cpu_s_per_programme_s": 0.912
+   },
+   {
+    "master": "run_richat_structure_sahara_eye_1792740961_long/richat_structure_sahara_eye_documentary_16x9.mp4",
+    "deep_dive": true,
+    "duration_s": 196.367,
+    "frames": 5891,
+    "grid": [
+     480,
+     270
+    ],
+    "status": {
+     "picture_colour": "fail",
+     "picture_black": "fail",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {
+     "picture_colour": "The video's colour tags are incomplete or wrong (primaries unset, transfer unset), so players may show its colours wrongly: re-render it to tag it BT.709.",
+     "picture_black": [
+      {
+       "start": 96.833,
+       "end": 96.933
+      },
+      {
+       "start": 142.167,
+       "end": 142.267
+      }
+     ]
+    },
+    "wall_s": 61.96,
+    "decode_cpu_s": 137.2,
+    "analyser_cpu_s": 22.42,
+    "cpu_s_per_programme_s": 0.813
+   },
+   {
+    "master": "run_trepanation_miracle_1792995462/trepanation_miracle_master.mp4",
+    "deep_dive": false,
+    "duration_s": 51.667,
+    "frames": 1550,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "fail",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {
+     "picture_colour": "The video's colour tags are incomplete or wrong (primaries unset, transfer unset), so players may show its colours wrongly: re-render it to tag it BT.709."
+    },
+    "wall_s": 19.74,
+    "decode_cpu_s": 39.67,
+    "analyser_cpu_s": 6.25,
+    "cpu_s_per_programme_s": 0.889
+   },
+   {
+    "master": "run_wieliczka_salt_mine_1792974672/wieliczka_salt_mine_master.mp4",
+    "deep_dive": false,
+    "duration_s": 47.2,
+    "frames": 1416,
+    "grid": [
+     270,
+     480
+    ],
+    "status": {
+     "picture_colour": "fail",
+     "picture_black": "pass",
+     "picture_freeze": "pass",
+     "picture_bars": "pass",
+     "picture_range": "pass"
+    },
+    "failed": {
+     "picture_colour": "The video's colour tags are incomplete or wrong (primaries unset, transfer unset), so players may show its colours wrongly: re-render it to tag it BT.709."
+    },
+    "wall_s": 19.74,
+    "decode_cpu_s": 37.39,
+    "analyser_cpu_s": 7.56,
+    "cpu_s_per_programme_s": 0.952
+   }
+  ],
+  "graphics": [],
+  "stills": [],
+  "summary": {
+   "masters": {
+    "items": 4,
+    "measured": 4,
+    "errors": 0,
+    "fail_counts": {
+     "picture_bars": 0,
+     "picture_black": 1,
+     "picture_colour": 4,
+     "picture_freeze": 0,
+     "picture_range": 0
+    },
+    "rejected_excluding_colour_tags": 1,
+    "wall_s": {
+     "min": 13.66,
+     "median": 19.74,
+     "max": 61.96
+    },
+    "cpu_s_per_programme_s": {
+     "median": 0.9005000000000001,
+     "max": 0.952
+    }
+   },
+   "graphics": {
+    "items": 0,
+    "measured": 0,
+    "errors": 0,
+    "fail_counts": {},
+    "rejected_excluding_colour_tags": 0,
+    "wall_s": null,
+    "cpu_s_per_programme_s": null
+   },
+   "stills": {
+    "items": 0,
+    "measured": 0,
+    "errors": 0,
+    "fail_counts": {},
+    "rejected_excluding_colour_tags": 0,
+    "wall_s": null,
+    "cpu_s_per_programme_s": null
+   }
+  }
+ },
+ "single_thread": [
+  {
+   "master": "run_richat_structure_sahara_eye_1792740961_long/richat_structure_sahara_eye_documentary_16x9.mp4",
+   "duration_s": 196.367,
+   "frames": 5891,
+   "grid": [
+    480,
+    270
+   ],
+   "status": {
+    "picture_colour": "fail",
+    "picture_black": "fail",
+    "picture_freeze": "pass",
+    "picture_bars": "pass",
+    "picture_range": "pass"
+   },
+   "failed": {
+    "picture_colour": "The video's colour tags are incomplete or wrong (primaries unset, transfer unset), so players may show its colours wrongly: re-render it to tag it BT.709.",
+    "picture_black": [
+     {
+      "start": 96.833,
+      "end": 96.933
+     },
+     {
+      "start": 142.167,
+      "end": 142.267
+     }
+    ]
+   },
+   "wall_s": 272.93,
+   "decode_cpu_s": 134.45,
+   "analyser_cpu_s": 23.25,
+   "cpu_s_per_programme_s": 0.803
+  },
+  {
+   "master": "run_odessa_catacombs_1792970549/odessa_catacombs_master.mp4",
+   "duration_s": 44.567,
+   "frames": 1337,
+   "grid": [
+    270,
+    480
+   ],
+   "status": {
+    "picture_colour": "fail",
+    "picture_black": "pass",
+    "picture_freeze": "pass",
+    "picture_bars": "pass",
+    "picture_range": "pass"
+   },
+   "failed": {
+    "picture_colour": "The video's colour tags are incomplete or wrong (primaries unset, transfer unset), so players may show its colours wrongly: re-render it to tag it BT.709."
+   },
+   "wall_s": 66.1,
+   "decode_cpu_s": 33.41,
+   "analyser_cpu_s": 6.3,
+   "cpu_s_per_programme_s": 0.891
+  },
+  {
+   "master": "run_trepanation_miracle_1792995462/trepanation_miracle_master.mp4",
+   "duration_s": 51.667,
+   "frames": 1550,
+   "grid": [
+    270,
+    480
+   ],
+   "status": {
+    "picture_colour": "fail",
+    "picture_black": "pass",
+    "picture_freeze": "pass",
+    "picture_bars": "pass",
+    "picture_range": "pass"
+   },
+   "failed": {
+    "picture_colour": "The video's colour tags are incomplete or wrong (primaries unset, transfer unset), so players may show its colours wrongly: re-render it to tag it BT.709."
+   },
+   "wall_s": 75.71,
+   "decode_cpu_s": 34.66,
+   "analyser_cpu_s": 7.97,
+   "cpu_s_per_programme_s": 0.825
+  },
+  {
+   "master": "run_wieliczka_salt_mine_1792974672/wieliczka_salt_mine_master.mp4",
+   "duration_s": 47.2,
+   "frames": 1416,
+   "grid": [
+    270,
+    480
+   ],
+   "status": {
+    "picture_colour": "fail",
+    "picture_black": "pass",
+    "picture_freeze": "pass",
+    "picture_bars": "pass",
+    "picture_range": "pass"
+   },
+   "failed": {
+    "picture_colour": "The video's colour tags are incomplete or wrong (primaries unset, transfer unset), so players may show its colours wrongly: re-render it to tag it BT.709."
+   },
+   "wall_s": 64.32,
+   "decode_cpu_s": 33.33,
+   "analyser_cpu_s": 6.12,
+   "cpu_s_per_programme_s": 0.836
+  }
+ ],
+ "single_thread_summary": {
+  "masters": 4,
+  "cpu_s_per_programme_s_max": 0.891,
+  "wall_s_per_programme_s_max": 1.483,
+  "longest_programme_s": 360.0,
+  "longest_one_core_wall_s_projected": 533.9,
+  "longest_timeout_s": 1920.0
+ }
+}

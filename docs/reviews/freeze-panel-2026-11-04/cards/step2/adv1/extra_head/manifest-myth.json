@@ -1,0 +1,670 @@
+{
+ "meta": {
+  "code_root": "<scratchpad>/head",
+  "design_cards": "<scratchpad>/head/src/design_cards.py",
+  "version": "design-cards-1",
+  "seconds": null,
+  "inputs": "real run media and fact-sheet facts via docs/reviews/freeze-panel-2026-11-04/fixtures",
+  "card_fields": "new: real fact, test-signed field: checker verdicts from the test suite's mocked checker, signed under THROWAWAY_KEY (this rig's own constant, assigned over config's key before any card module loads; the deployment key is never read) in a temporary sheet copy",
+  "throwaway_key": "THROWAWAY_KEY (render_evidence.py)",
+  "catalogue_gaps": {
+   "myth_fields": "none: no fact sheet in data/fact_sheets or data/script_library carries a cards.myths entry (refuting_fact_id appears in no JSON file in the repository). A real myth-vs-fact card cannot be rendered from existing inputs.",
+   "statement_fields": "one: data/fact_sheets/hal_saflieni_hypogeum.json cards.statements S1, check verdict 'needs_check' with no runs and no signature, so card_fields.verify_field refuses it.",
+   "quote_fields": "none.",
+   "gated_titles": "every run's fact_review holds only public_fingerprint / sheet_path / sheet_sha256 / review_rules_fingerprint, with no check record, so design_cards.gated_text refuses Gated('title'|'youtube_title') on every run (fact_evidence.checked_fact_review: no current check record).",
+   "consequence": "Every hook, chapter and myth card needs a checked, signed card field. None exists. The real inputs are the fact sheets' facts, the runs' titles, act titles and hero photos below; the card fields themselves must be produced by fact_sheet.build + card_fields.check_cards (with a checker key) before a card can be rendered honestly. Anything rendered before that is new and must be labelled."
+  }
+ },
+ "renders": {
+  "myth_916_atlantis_dark+busy": {
+   "name": "myth_916_atlantis_dark+busy",
+   "run": "run_richat_structure_sahara_eye_1793474843",
+   "topic": "richat_structure_sahara_eye",
+   "card": "myth",
+   "format": "916",
+   "refuting_fact": "fact-13",
+   "fact_statement": "Fringe theories proposing the formation as Plato's lost city of Atlantis are refuted by geological reality, as the feature is an ancient, natural inland terrestrial dome rather than a sunken island.",
+   "myth": "The Richat Structure is Plato's lost city of Atlantis",
+   "myth_chars": 53,
+   "correction": "The feature is an ancient, natural inland terrestrial dome",
+   "correction_chars": 58,
+   "correction_tried": [
+    {
+     "correction": "The feature is an ancient, natural inland terrestrial dome",
+     "ground_text": "accepted"
+    }
+   ],
+   "derivation": "fact-13 own words",
+   "ground": "dark+busy",
+   "photo": "assets/richat_structure_sahara_eye/19_commons.jpg",
+   "photo_name": "19_commons.jpg",
+   "photo_measured": {
+    "mean_luma": 119.4,
+    "edge_energy": 22.1,
+    "mean_saturation": 70.7
+   },
+   "labels": [
+    "new: real fact, test-signed field (myth field from fact-13)",
+    "adv1: fact-13 field"
+   ],
+   "refused": "the myth and the fact share no content word",
+   "code": "",
+   "png": "myth_916_atlantis_dark+busy__last.png",
+   "jpg": "myth_916_atlantis_dark+busy__last.jpg",
+   "png_master": "rgb"
+  },
+  "myth_916_atlantis_bright": {
+   "name": "myth_916_atlantis_bright",
+   "run": "run_richat_structure_sahara_eye_1793474843",
+   "topic": "richat_structure_sahara_eye",
+   "card": "myth",
+   "format": "916",
+   "refuting_fact": "fact-13",
+   "fact_statement": "Fringe theories proposing the formation as Plato's lost city of Atlantis are refuted by geological reality, as the feature is an ancient, natural inland terrestrial dome rather than a sunken island.",
+   "myth": "The Richat Structure is Plato's lost city of Atlantis",
+   "myth_chars": 53,
+   "correction": "The feature is an ancient, natural inland terrestrial dome",
+   "correction_chars": 58,
+   "correction_tried": [
+    {
+     "correction": "The feature is an ancient, natural inland terrestrial dome",
+     "ground_text": "accepted"
+    }
+   ],
+   "derivation": "fact-13 own words",
+   "ground": "bright",
+   "photo": "cache/text_crop/57094acd9a01b378/08_commons.jpg",
+   "photo_name": "08_commons.jpg",
+   "photo_measured": {
+    "mean_luma": 159.5,
+    "edge_energy": 9.6,
+    "mean_saturation": 78.2
+   },
+   "labels": [
+    "new: real fact, test-signed field (myth field from fact-13)",
+    "adv1: fact-13 field"
+   ],
+   "refused": "the myth and the fact share no content word",
+   "code": "",
+   "png": "myth_916_atlantis_bright__last.png",
+   "jpg": "myth_916_atlantis_bright__last.jpg",
+   "png_master": "rgb"
+  },
+  "myth_916_atlantis_hero": {
+   "name": "myth_916_atlantis_hero",
+   "run": "run_richat_structure_sahara_eye_1793474843",
+   "topic": "richat_structure_sahara_eye",
+   "card": "myth",
+   "format": "916",
+   "refuting_fact": "fact-13",
+   "fact_statement": "Fringe theories proposing the formation as Plato's lost city of Atlantis are refuted by geological reality, as the feature is an ancient, natural inland terrestrial dome rather than a sunken island.",
+   "myth": "The Richat Structure is Plato's lost city of Atlantis",
+   "myth_chars": 53,
+   "correction": "The feature is an ancient, natural inland terrestrial dome",
+   "correction_chars": 58,
+   "correction_tried": [
+    {
+     "correction": "The feature is an ancient, natural inland terrestrial dome",
+     "ground_text": "accepted"
+    }
+   ],
+   "derivation": "fact-13 own words",
+   "ground": "hero",
+   "photo": "assets/richat_structure_sahara_eye/01_commons.jpg",
+   "photo_name": "01_commons.jpg",
+   "photo_measured": {
+    "mean_luma": 141.3,
+    "edge_energy": 15.1,
+    "mean_saturation": 140.4
+   },
+   "labels": [
+    "new: real fact, test-signed field (myth field from fact-13)",
+    "adv1: fact-13 field"
+   ],
+   "refused": "the myth and the fact share no content word",
+   "code": "",
+   "png": "myth_916_atlantis_hero__last.png",
+   "jpg": "myth_916_atlantis_hero__last.jpg",
+   "png_master": "rgb"
+  },
+  "myth_916_atlantis_plain": {
+   "name": "myth_916_atlantis_plain",
+   "run": "run_richat_structure_sahara_eye_1793474843",
+   "topic": "richat_structure_sahara_eye",
+   "card": "myth",
+   "format": "916",
+   "refuting_fact": "fact-13",
+   "fact_statement": "Fringe theories proposing the formation as Plato's lost city of Atlantis are refuted by geological reality, as the feature is an ancient, natural inland terrestrial dome rather than a sunken island.",
+   "myth": "The Richat Structure is Plato's lost city of Atlantis",
+   "myth_chars": 53,
+   "correction": "The feature is an ancient, natural inland terrestrial dome",
+   "correction_chars": 58,
+   "correction_tried": [
+    {
+     "correction": "The feature is an ancient, natural inland terrestrial dome",
+     "ground_text": "accepted"
+    }
+   ],
+   "derivation": "fact-13 own words",
+   "ground": "plain",
+   "photo": null,
+   "photo_name": "(no photo)",
+   "photo_measured": {},
+   "labels": [
+    "new: real fact, test-signed field (myth field from fact-13)",
+    "adv1: fact-13 field"
+   ],
+   "refused": "the myth and the fact share no content word",
+   "code": "",
+   "png": "myth_916_atlantis_plain__last.png",
+   "jpg": "myth_916_atlantis_plain__last.jpg",
+   "png_master": "rgb"
+  },
+  "myth_169_atlantis_dark": {
+   "name": "myth_169_atlantis_dark",
+   "run": "run_richat_structure_sahara_eye_1792740961_long",
+   "topic": "richat_structure_sahara_eye",
+   "card": "myth",
+   "format": "169",
+   "refuting_fact": "fact-13",
+   "fact_statement": "Fringe theories proposing the formation as Plato's lost city of Atlantis are refuted by geological reality, as the feature is an ancient, natural inland terrestrial dome rather than a sunken island.",
+   "myth": "The Richat Structure is Plato's lost city of Atlantis",
+   "myth_chars": 53,
+   "correction": "The feature is an ancient, natural inland terrestrial dome",
+   "correction_chars": 58,
+   "correction_tried": [
+    {
+     "correction": "The feature is an ancient, natural inland terrestrial dome",
+     "ground_text": "accepted"
+    }
+   ],
+   "derivation": "fact-13 own words",
+   "ground": "dark",
+   "photo": "assets/richat_structure_sahara_eye/14_commons.jpg",
+   "photo_name": "14_commons.jpg",
+   "photo_measured": {
+    "mean_luma": 84.2,
+    "edge_energy": 5.8,
+    "mean_saturation": 123.8
+   },
+   "labels": [
+    "new: real fact, test-signed field (myth field from fact-13)",
+    "adv1: fact-13 field"
+   ],
+   "refused": "the myth and the fact share no content word",
+   "code": "",
+   "png": "myth_169_atlantis_dark__last.png",
+   "jpg": "myth_169_atlantis_dark__last.jpg",
+   "png_master": "rgb"
+  },
+  "myth_169_atlantis_bright": {
+   "name": "myth_169_atlantis_bright",
+   "run": "run_richat_structure_sahara_eye_1792740961_long",
+   "topic": "richat_structure_sahara_eye",
+   "card": "myth",
+   "format": "169",
+   "refuting_fact": "fact-13",
+   "fact_statement": "Fringe theories proposing the formation as Plato's lost city of Atlantis are refuted by geological reality, as the feature is an ancient, natural inland terrestrial dome rather than a sunken island.",
+   "myth": "The Richat Structure is Plato's lost city of Atlantis",
+   "myth_chars": 53,
+   "correction": "The feature is an ancient, natural inland terrestrial dome",
+   "correction_chars": 58,
+   "correction_tried": [
+    {
+     "correction": "The feature is an ancient, natural inland terrestrial dome",
+     "ground_text": "accepted"
+    }
+   ],
+   "derivation": "fact-13 own words",
+   "ground": "bright",
+   "photo": "assets/richat_structure_sahara_eye/08_commons.jpg",
+   "photo_name": "08_commons.jpg",
+   "photo_measured": {
+    "mean_luma": 157.8,
+    "edge_energy": 9.1,
+    "mean_saturation": 81.1
+   },
+   "labels": [
+    "new: real fact, test-signed field (myth field from fact-13)",
+    "adv1: fact-13 field"
+   ],
+   "refused": "the myth and the fact share no content word",
+   "code": "",
+   "png": "myth_169_atlantis_bright__last.png",
+   "jpg": "myth_169_atlantis_bright__last.jpg",
+   "png_master": "rgb"
+  },
+  "myth_169_atlantis_busy": {
+   "name": "myth_169_atlantis_busy",
+   "run": "run_richat_structure_sahara_eye_1792740961_long",
+   "topic": "richat_structure_sahara_eye",
+   "card": "myth",
+   "format": "169",
+   "refuting_fact": "fact-13",
+   "fact_statement": "Fringe theories proposing the formation as Plato's lost city of Atlantis are refuted by geological reality, as the feature is an ancient, natural inland terrestrial dome rather than a sunken island.",
+   "myth": "The Richat Structure is Plato's lost city of Atlantis",
+   "myth_chars": 53,
+   "correction": "The feature is an ancient, natural inland terrestrial dome",
+   "correction_chars": 58,
+   "correction_tried": [
+    {
+     "correction": "The feature is an ancient, natural inland terrestrial dome",
+     "ground_text": "accepted"
+    }
+   ],
+   "derivation": "fact-13 own words",
+   "ground": "busy",
+   "photo": "assets/richat_structure_sahara_eye/05_commons.jpg",
+   "photo_name": "05_commons.jpg",
+   "photo_measured": {
+    "mean_luma": 124.2,
+    "edge_energy": 33.7,
+    "mean_saturation": 73.3
+   },
+   "labels": [
+    "new: real fact, test-signed field (myth field from fact-13)",
+    "adv1: fact-13 field"
+   ],
+   "refused": "the myth and the fact share no content word",
+   "code": "",
+   "png": "myth_169_atlantis_busy__last.png",
+   "jpg": "myth_169_atlantis_busy__last.jpg",
+   "png_master": "rgb"
+  },
+  "myth_169_atlantis_hero": {
+   "name": "myth_169_atlantis_hero",
+   "run": "run_richat_structure_sahara_eye_1792740961_long",
+   "topic": "richat_structure_sahara_eye",
+   "card": "myth",
+   "format": "169",
+   "refuting_fact": "fact-13",
+   "fact_statement": "Fringe theories proposing the formation as Plato's lost city of Atlantis are refuted by geological reality, as the feature is an ancient, natural inland terrestrial dome rather than a sunken island.",
+   "myth": "The Richat Structure is Plato's lost city of Atlantis",
+   "myth_chars": 53,
+   "correction": "The feature is an ancient, natural inland terrestrial dome",
+   "correction_chars": 58,
+   "correction_tried": [
+    {
+     "correction": "The feature is an ancient, natural inland terrestrial dome",
+     "ground_text": "accepted"
+    }
+   ],
+   "derivation": "fact-13 own words",
+   "ground": "hero",
+   "photo": "assets/richat_structure_sahara_eye/01_commons.jpg",
+   "photo_name": "01_commons.jpg",
+   "photo_measured": {
+    "mean_luma": 141.3,
+    "edge_energy": 15.1,
+    "mean_saturation": 140.4
+   },
+   "labels": [
+    "new: real fact, test-signed field (myth field from fact-13)",
+    "adv1: fact-13 field"
+   ],
+   "refused": "the myth and the fact share no content word",
+   "code": "",
+   "png": "myth_169_atlantis_hero__last.png",
+   "jpg": "myth_169_atlantis_hero__last.jpg",
+   "png_master": "rgb"
+  },
+  "myth_169_atlantis_plain": {
+   "name": "myth_169_atlantis_plain",
+   "run": "run_richat_structure_sahara_eye_1792740961_long",
+   "topic": "richat_structure_sahara_eye",
+   "card": "myth",
+   "format": "169",
+   "refuting_fact": "fact-13",
+   "fact_statement": "Fringe theories proposing the formation as Plato's lost city of Atlantis are refuted by geological reality, as the feature is an ancient, natural inland terrestrial dome rather than a sunken island.",
+   "myth": "The Richat Structure is Plato's lost city of Atlantis",
+   "myth_chars": 53,
+   "correction": "The feature is an ancient, natural inland terrestrial dome",
+   "correction_chars": 58,
+   "correction_tried": [
+    {
+     "correction": "The feature is an ancient, natural inland terrestrial dome",
+     "ground_text": "accepted"
+    }
+   ],
+   "derivation": "fact-13 own words",
+   "ground": "plain",
+   "photo": null,
+   "photo_name": "(no photo)",
+   "photo_measured": {},
+   "labels": [
+    "new: real fact, test-signed field (myth field from fact-13)",
+    "adv1: fact-13 field"
+   ],
+   "refused": "the myth and the fact share no content word",
+   "code": "",
+   "png": "myth_169_atlantis_plain__last.png",
+   "jpg": "myth_169_atlantis_plain__last.jpg",
+   "png_master": "rgb"
+  },
+  "myth_916_atlantis_short_dark+busy": {
+   "name": "myth_916_atlantis_short_dark+busy",
+   "run": "run_richat_structure_sahara_eye_1793474843",
+   "topic": "richat_structure_sahara_eye",
+   "card": "myth",
+   "format": "916",
+   "refuting_fact": "fact-13",
+   "fact_statement": "Fringe theories proposing the formation as Plato's lost city of Atlantis are refuted by geological reality, as the feature is an ancient, natural inland terrestrial dome rather than a sunken island.",
+   "myth": "The formation is Plato's lost city of Atlantis",
+   "myth_chars": 46,
+   "correction": "Refuted by geological reality",
+   "correction_chars": 29,
+   "correction_tried": [
+    {
+     "correction": "Refuted by geological reality",
+     "ground_text": "accepted"
+    }
+   ],
+   "derivation": "fact-13 own words",
+   "ground": "dark+busy",
+   "photo": "assets/richat_structure_sahara_eye/19_commons.jpg",
+   "photo_name": "19_commons.jpg",
+   "photo_measured": {
+    "mean_luma": 119.4,
+    "edge_energy": 22.1,
+    "mean_saturation": 70.7
+   },
+   "labels": [
+    "new: real fact, test-signed field (myth field from fact-13)",
+    "adv1: fact-13 field"
+   ],
+   "refused": "the fact 'fact-13' states the myth's words as true: the card would strike out a fact",
+   "code": "affirmed_myth",
+   "png": "myth_916_atlantis_short_dark+busy__last.png",
+   "jpg": "myth_916_atlantis_short_dark+busy__last.jpg",
+   "png_master": "rgb"
+  },
+  "myth_916_atlantis_short_bright": {
+   "name": "myth_916_atlantis_short_bright",
+   "run": "run_richat_structure_sahara_eye_1793474843",
+   "topic": "richat_structure_sahara_eye",
+   "card": "myth",
+   "format": "916",
+   "refuting_fact": "fact-13",
+   "fact_statement": "Fringe theories proposing the formation as Plato's lost city of Atlantis are refuted by geological reality, as the feature is an ancient, natural inland terrestrial dome rather than a sunken island.",
+   "myth": "The formation is Plato's lost city of Atlantis",
+   "myth_chars": 46,
+   "correction": "Refuted by geological reality",
+   "correction_chars": 29,
+   "correction_tried": [
+    {
+     "correction": "Refuted by geological reality",
+     "ground_text": "accepted"
+    }
+   ],
+   "derivation": "fact-13 own words",
+   "ground": "bright",
+   "photo": "cache/text_crop/57094acd9a01b378/08_commons.jpg",
+   "photo_name": "08_commons.jpg",
+   "photo_measured": {
+    "mean_luma": 159.5,
+    "edge_energy": 9.6,
+    "mean_saturation": 78.2
+   },
+   "labels": [
+    "new: real fact, test-signed field (myth field from fact-13)",
+    "adv1: fact-13 field"
+   ],
+   "refused": "the fact 'fact-13' states the myth's words as true: the card would strike out a fact",
+   "code": "affirmed_myth",
+   "png": "myth_916_atlantis_short_bright__last.png",
+   "jpg": "myth_916_atlantis_short_bright__last.jpg",
+   "png_master": "rgb"
+  },
+  "myth_916_atlantis_short_hero": {
+   "name": "myth_916_atlantis_short_hero",
+   "run": "run_richat_structure_sahara_eye_1793474843",
+   "topic": "richat_structure_sahara_eye",
+   "card": "myth",
+   "format": "916",
+   "refuting_fact": "fact-13",
+   "fact_statement": "Fringe theories proposing the formation as Plato's lost city of Atlantis are refuted by geological reality, as the feature is an ancient, natural inland terrestrial dome rather than a sunken island.",
+   "myth": "The formation is Plato's lost city of Atlantis",
+   "myth_chars": 46,
+   "correction": "Refuted by geological reality",
+   "correction_chars": 29,
+   "correction_tried": [
+    {
+     "correction": "Refuted by geological reality",
+     "ground_text": "accepted"
+    }
+   ],
+   "derivation": "fact-13 own words",
+   "ground": "hero",
+   "photo": "assets/richat_structure_sahara_eye/01_commons.jpg",
+   "photo_name": "01_commons.jpg",
+   "photo_measured": {
+    "mean_luma": 141.3,
+    "edge_energy": 15.1,
+    "mean_saturation": 140.4
+   },
+   "labels": [
+    "new: real fact, test-signed field (myth field from fact-13)",
+    "adv1: fact-13 field"
+   ],
+   "refused": "the fact 'fact-13' states the myth's words as true: the card would strike out a fact",
+   "code": "affirmed_myth",
+   "png": "myth_916_atlantis_short_hero__last.png",
+   "jpg": "myth_916_atlantis_short_hero__last.jpg",
+   "png_master": "rgb"
+  },
+  "myth_916_atlantis_short_plain": {
+   "name": "myth_916_atlantis_short_plain",
+   "run": "run_richat_structure_sahara_eye_1793474843",
+   "topic": "richat_structure_sahara_eye",
+   "card": "myth",
+   "format": "916",
+   "refuting_fact": "fact-13",
+   "fact_statement": "Fringe theories proposing the formation as Plato's lost city of Atlantis are refuted by geological reality, as the feature is an ancient, natural inland terrestrial dome rather than a sunken island.",
+   "myth": "The formation is Plato's lost city of Atlantis",
+   "myth_chars": 46,
+   "correction": "Refuted by geological reality",
+   "correction_chars": 29,
+   "correction_tried": [
+    {
+     "correction": "Refuted by geological reality",
+     "ground_text": "accepted"
+    }
+   ],
+   "derivation": "fact-13 own words",
+   "ground": "plain",
+   "photo": null,
+   "photo_name": "(no photo)",
+   "photo_measured": {},
+   "labels": [
+    "new: real fact, test-signed field (myth field from fact-13)",
+    "adv1: fact-13 field"
+   ],
+   "refused": "the fact 'fact-13' states the myth's words as true: the card would strike out a fact",
+   "code": "affirmed_myth",
+   "png": "myth_916_atlantis_short_plain__last.png",
+   "jpg": "myth_916_atlantis_short_plain__last.jpg",
+   "png_master": "rgb"
+  },
+  "myth_169_atlantis_short_dark": {
+   "name": "myth_169_atlantis_short_dark",
+   "run": "run_richat_structure_sahara_eye_1792740961_long",
+   "topic": "richat_structure_sahara_eye",
+   "card": "myth",
+   "format": "169",
+   "refuting_fact": "fact-13",
+   "fact_statement": "Fringe theories proposing the formation as Plato's lost city of Atlantis are refuted by geological reality, as the feature is an ancient, natural inland terrestrial dome rather than a sunken island.",
+   "myth": "The formation is Plato's lost city of Atlantis",
+   "myth_chars": 46,
+   "correction": "Refuted by geological reality",
+   "correction_chars": 29,
+   "correction_tried": [
+    {
+     "correction": "Refuted by geological reality",
+     "ground_text": "accepted"
+    }
+   ],
+   "derivation": "fact-13 own words",
+   "ground": "dark",
+   "photo": "assets/richat_structure_sahara_eye/14_commons.jpg",
+   "photo_name": "14_commons.jpg",
+   "photo_measured": {
+    "mean_luma": 84.2,
+    "edge_energy": 5.8,
+    "mean_saturation": 123.8
+   },
+   "labels": [
+    "new: real fact, test-signed field (myth field from fact-13)",
+    "adv1: fact-13 field"
+   ],
+   "refused": "the fact 'fact-13' states the myth's words as true: the card would strike out a fact",
+   "code": "affirmed_myth",
+   "png": "myth_169_atlantis_short_dark__last.png",
+   "jpg": "myth_169_atlantis_short_dark__last.jpg",
+   "png_master": "rgb"
+  },
+  "myth_169_atlantis_short_bright": {
+   "name": "myth_169_atlantis_short_bright",
+   "run": "run_richat_structure_sahara_eye_1792740961_long",
+   "topic": "richat_structure_sahara_eye",
+   "card": "myth",
+   "format": "169",
+   "refuting_fact": "fact-13",
+   "fact_statement": "Fringe theories proposing the formation as Plato's lost city of Atlantis are refuted by geological reality, as the feature is an ancient, natural inland terrestrial dome rather than a sunken island.",
+   "myth": "The formation is Plato's lost city of Atlantis",
+   "myth_chars": 46,
+   "correction": "Refuted by geological reality",
+   "correction_chars": 29,
+   "correction_tried": [
+    {
+     "correction": "Refuted by geological reality",
+     "ground_text": "accepted"
+    }
+   ],
+   "derivation": "fact-13 own words",
+   "ground": "bright",
+   "photo": "assets/richat_structure_sahara_eye/08_commons.jpg",
+   "photo_name": "08_commons.jpg",
+   "photo_measured": {
+    "mean_luma": 157.8,
+    "edge_energy": 9.1,
+    "mean_saturation": 81.1
+   },
+   "labels": [
+    "new: real fact, test-signed field (myth field from fact-13)",
+    "adv1: fact-13 field"
+   ],
+   "refused": "the fact 'fact-13' states the myth's words as true: the card would strike out a fact",
+   "code": "affirmed_myth",
+   "png": "myth_169_atlantis_short_bright__last.png",
+   "jpg": "myth_169_atlantis_short_bright__last.jpg",
+   "png_master": "rgb"
+  },
+  "myth_169_atlantis_short_busy": {
+   "name": "myth_169_atlantis_short_busy",
+   "run": "run_richat_structure_sahara_eye_1792740961_long",
+   "topic": "richat_structure_sahara_eye",
+   "card": "myth",
+   "format": "169",
+   "refuting_fact": "fact-13",
+   "fact_statement": "Fringe theories proposing the formation as Plato's lost city of Atlantis are refuted by geological reality, as the feature is an ancient, natural inland terrestrial dome rather than a sunken island.",
+   "myth": "The formation is Plato's lost city of Atlantis",
+   "myth_chars": 46,
+   "correction": "Refuted by geological reality",
+   "correction_chars": 29,
+   "correction_tried": [
+    {
+     "correction": "Refuted by geological reality",
+     "ground_text": "accepted"
+    }
+   ],
+   "derivation": "fact-13 own words",
+   "ground": "busy",
+   "photo": "assets/richat_structure_sahara_eye/05_commons.jpg",
+   "photo_name": "05_commons.jpg",
+   "photo_measured": {
+    "mean_luma": 124.2,
+    "edge_energy": 33.7,
+    "mean_saturation": 73.3
+   },
+   "labels": [
+    "new: real fact, test-signed field (myth field from fact-13)",
+    "adv1: fact-13 field"
+   ],
+   "refused": "the fact 'fact-13' states the myth's words as true: the card would strike out a fact",
+   "code": "affirmed_myth",
+   "png": "myth_169_atlantis_short_busy__last.png",
+   "jpg": "myth_169_atlantis_short_busy__last.jpg",
+   "png_master": "rgb"
+  },
+  "myth_169_atlantis_short_hero": {
+   "name": "myth_169_atlantis_short_hero",
+   "run": "run_richat_structure_sahara_eye_1792740961_long",
+   "topic": "richat_structure_sahara_eye",
+   "card": "myth",
+   "format": "169",
+   "refuting_fact": "fact-13",
+   "fact_statement": "Fringe theories proposing the formation as Plato's lost city of Atlantis are refuted by geological reality, as the feature is an ancient, natural inland terrestrial dome rather than a sunken island.",
+   "myth": "The formation is Plato's lost city of Atlantis",
+   "myth_chars": 46,
+   "correction": "Refuted by geological reality",
+   "correction_chars": 29,
+   "correction_tried": [
+    {
+     "correction": "Refuted by geological reality",
+     "ground_text": "accepted"
+    }
+   ],
+   "derivation": "fact-13 own words",
+   "ground": "hero",
+   "photo": "assets/richat_structure_sahara_eye/01_commons.jpg",
+   "photo_name": "01_commons.jpg",
+   "photo_measured": {
+    "mean_luma": 141.3,
+    "edge_energy": 15.1,
+    "mean_saturation": 140.4
+   },
+   "labels": [
+    "new: real fact, test-signed field (myth field from fact-13)",
+    "adv1: fact-13 field"
+   ],
+   "refused": "the fact 'fact-13' states the myth's words as true: the card would strike out a fact",
+   "code": "affirmed_myth",
+   "png": "myth_169_atlantis_short_hero__last.png",
+   "jpg": "myth_169_atlantis_short_hero__last.jpg",
+   "png_master": "rgb"
+  },
+  "myth_169_atlantis_short_plain": {
+   "name": "myth_169_atlantis_short_plain",
+   "run": "run_richat_structure_sahara_eye_1792740961_long",
+   "topic": "richat_structure_sahara_eye",
+   "card": "myth",
+   "format": "169",
+   "refuting_fact": "fact-13",
+   "fact_statement": "Fringe theories proposing the formation as Plato's lost city of Atlantis are refuted by geological reality, as the feature is an ancient, natural inland terrestrial dome rather than a sunken island.",
+   "myth": "The formation is Plato's lost city of Atlantis",
+   "myth_chars": 46,
+   "correction": "Refuted by geological reality",
+   "correction_chars": 29,
+   "correction_tried": [
+    {
+     "correction": "Refuted by geological reality",
+     "ground_text": "accepted"
+    }
+   ],
+   "derivation": "fact-13 own words",
+   "ground": "plain",
+   "photo": null,
+   "photo_name": "(no photo)",
+   "photo_measured": {},
+   "labels": [
+    "new: real fact, test-signed field (myth field from fact-13)",
+    "adv1: fact-13 field"
+   ],
+   "refused": "the fact 'fact-13' states the myth's words as true: the card would strike out a fact",
+   "code": "affirmed_myth",
+   "png": "myth_169_atlantis_short_plain__last.png",
+   "jpg": "myth_169_atlantis_short_plain__last.jpg",
+   "png_master": "rgb"
+  }
+ }
+}

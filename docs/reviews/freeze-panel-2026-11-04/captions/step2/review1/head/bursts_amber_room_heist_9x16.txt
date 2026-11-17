@@ -1,0 +1,57 @@
+=== run_amber_room_heist_1792790550 | amber_room_heist [9:16] ===
+why: longest single word across all narrations; non-ASCII letters in a proper name (Königsberg)
+105 words, 41 bursts, emphasis ['Amber Room', '36 hours', 'Königsberg Castle']; vignette vignette=PI/4.2:aspect=9/16 (src.video_composer.picture_vignette)
+  0    0.00-   1.57   80px  plate  390x121   IN 1941
+  1    1.57-   2.51   80px  plate  528x121   GERMAN SOLDIERS
+  2    2.51-   3.80   80px  plate  696x121   OF ARMY GROUP NORTH
+  3    3.80-   4.47   80px  plate  528x121   DISASSEMBLED
+  4    4.47-   5.24   80px  plate  528x121   THE AMBER ROOM
+  5    5.24-   6.45   80px  plate  390x121   IN 36 HOURS
+  6    6.45-   8.33   76px* plate  696x121   UNDER EXPERT SUPERVISION
+  7    8.33-   8.81   80px  plate  448x121   BY ONE
+  8    8.81-  10.30   80px  plate  696x121   ESTIMATE, FOLLOWING
+  9   10.30-  11.07   80px  plate  584x121   EIGHTEENTH-CENTURY
+ 10   11.07-  12.40   80px  plate  448x121   EXPANSIONS
+ 11   12.40-  13.33   80px  plate  696x121   THE COMPLETED ROOM
+ 12   13.33-  15.00   78px* plate  696x121   COVERED MORE THAN 590
+ 13   15.00-  15.86   80px  plate  448x121   SQUARE FEET
+ 14   15.86-  16.48   80px  plate  448x121   AND CONTAINED
+ 15   16.48-  17.97   80px  plate  696x121   OVER 13,000 POUNDS
+ 16   17.97-  18.85   80px  plate  448x121   OF AMBER
+ 17   18.85-  20.74   80px  plate  452x121   IN EARLY 1944
+ 18   20.74-  21.43   80px  plate  452x121   IT WAS PACKED
+ 19   21.43-  22.21   80px  plate  452x121   INTO CRATES
+ 20   22.21-  24.00   80px  plate  644x121   IN KÖNIGSBERG CASTLE
+ 21   24.00-  25.26   78px* plate  696x121   DOCUMENTATION TRACKING
+ 22   25.26-  26.39   80px  plate  534x121   ITS LOCATION ENDS
+ 23   26.39-  28.44   80px  plate  534x121   IN AUGUST 1944
+ 24   28.44-  29.10   80px  plate  392x121   WHEN ALLIED
+ 25   29.10-  30.00   80px  plate  534x121   BOMBERS HEAVILY
+ 26   30.00-  31.81   79px* plate  696x121   FIRE-BOMBED KÖNIGSBERG
+ 27   31.81-  33.13   79px* plate  696x121   INVESTIGATIONS CONCLUDE
+ 28   33.13-  34.09   80px  plate  696x121   THE ROOM WAS MOST
+ 29   34.09-  35.18   80px  plate  588x121   LIKELY INCINERATED
+ 30   35.18-  36.45   77px* plate  696x121   WHEN KÖNIGSBERG CASTLE
+ 31   36.45-  37.60   80px  plate  696x121   WAS BOMBED BY BRITISH
+ 32   37.60-  38.75   80px  plate  696x121   AIRCRAFT AND SHELLED
+ 33   38.75-  40.38   80px  plate  588x121   BY SOVIET ARTILLERY
+ 34   40.38-  42.43   80px  plate  432x121   YET IN 1997
+ 35   42.43-  43.26   80px  plate  540x121   AN ORIGINAL STONE
+ 36   43.26-  44.42   80px  plate  688x121   MOSAIC WAS RECOVERED
+ 37   44.42-  45.72   80px  plate  432x121   IN GERMANY
+ 38   45.72-  46.49   80px  plate  432x121   FUELING HUNTS
+ 39   46.49-  47.14   80px  plate  540x121   FOR THE CHAMBER
+ 40   47.14-  48.96   80px  plate  540x121   LOOTED IN 1941
+  names:
+    WHOLE  Army Group North             OF ARMY GROUP NORTH
+    WHOLE  Amber Room                   THE AMBER ROOM
+    WHOLE  Königsberg Castle            IN KÖNIGSBERG CASTLE
+    WHOLE  Königsberg Castle            WHEN KÖNIGSBERG CASTLE
+  bursts ending on an article: none
+  function-word-only bursts: none
+  one-word bursts: ['3: DISASSEMBLED', '9: EIGHTEENTH-CENTURY', '10: EXPANSIONS']
+  bursts below the 66 px floor: none
+  two-line bursts: none
+  bursts on screen under 0.50 s: ['7: 0.48s BY ONE']
+  bursts spanning a pause of 0.30 s or more after punctuation: ["8: 0.37s after 'estimate,' in ESTIMATE, FOLLOWING"]
+

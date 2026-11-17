@@ -1,6 +1,10 @@
 """The Reel's end card (operator-approved "capsule v3", 2026-10-25): appended after the narration, inside the safe
 area, its dim measured on each frame, its outline drawn the same from either side, its sound in the bed and
-mastered with the programme, and recorded in the run so the audience numbers can be compared."""
+mastered with the programme, and recorded in the run so the audience numbers can be compared.
+
+Since 2026-11-03 (operator decision) a Reel master ends on the loop bridge (end_card.loop_bridge, LOOP_SECONDS, no
+share line) in place of the card, and its bed is sized to the bridge; the card itself is the 16:9 YouTube end screen
+and is still drawn at 9:16 by frames() (the card tests below)."""
 import json
 import shutil
 
@@ -57,7 +61,9 @@ def test_the_fallback_is_flagged_and_noted_on_the_review_card():
 def test_everything_stays_inside_the_safe_area(share):
     lay = end_card.layout(share)
     x0, y0, x1, y1 = REEL.box(end_card.WIDTH, end_card.HEIGHT)
-    assert lay["max_width"] == REEL.centred_width()
+    # QF-24 (decision 2026-11-13, (b)): the group centres in the organic Reel box, its 735 px (end_card.reel_column),
+    # not the 616 px the box leaves centred on the frame (REEL.centred_width(), 696 on the ads box)
+    assert lay["max_width"] == end_card.reel_column()[1] == x1 - x0
     assert max(lay["share_widths"]) <= lay["max_width"] and len(lay["lines"]) <= 5
     box = lay["box"]
     assert x0 <= box[0] and box[2] <= x1 and y0 <= end_card.TOP - 120 and box[3] <= y1   # clear of the right rail
@@ -181,8 +187,8 @@ def test_a_carded_master_passes_the_release_media_checks(tmp_path, monkeypatch):
     music = tmp_path / "music.wav"
     tm = np.arange(int(sr * 10)) / sr
     sf.write(music, np.column_stack([0.2 * np.sin(2 * np.pi * 110 * tm)] * 2), sr)
-    bed = AudioEngine().generate_ambient_bed(vo_dur + end_card.SECONDS + 0.05, tmp_path / "ambient_bed.wav",
-                                             music_path=music, end_card_at=vo_dur)
+    bed = AudioEngine().generate_ambient_bed(vo_dur + end_card.LOOP_SECONDS + 0.05, tmp_path / "ambient_bed.wav",
+                                             music_path=music, end_card_at=vo_dur)   # sized to the bridge
     scenes = []
     for i, colour in enumerate(((180, 160, 120), (90, 110, 150))):
         p = tmp_path / f"s{i}.jpg"
@@ -194,8 +200,11 @@ def test_a_carded_master_passes_the_release_media_checks(tmp_path, monkeypatch):
     VideoComposer().compose_video(scenes, voice, bed, words, vo_dur, master, durations=[1.5, 1.5],
                                   end_card="Send this to the codebreaker you know.")
     manifest = json.loads(master.with_suffix(".composition.json").read_text(encoding="utf-8"))
-    assert manifest["end_card"]["variant"] == end_card.VARIANT and manifest["end_card"]["start_s"] == pytest.approx(vo_dur)
+    # item 1 (2026-11-03): the Reel ends on the loop bridge, not the end card (was end_card.VARIANT)
+    assert manifest["end_card"]["variant"] == end_card.LOOP_VARIANT and manifest["end_card"]["start_s"] == pytest.approx(vo_dur)
+    assert manifest["end_card"]["duration_s"] == end_card.LOOP_SECONDS and manifest["end_card"]["text"] is None
     assert not list(tmp_path.glob("*_body.mkv")) and not list(tmp_path.glob("*_programme.wav"))   # passes cleaned up
+    assert not list(tmp_path.glob("*_frame0.png")) and not list(tmp_path.glob("*_card_bg.png"))
     import subprocess
 
     def lufs(*window):
@@ -213,4 +222,5 @@ def test_a_carded_master_passes_the_release_media_checks(tmp_path, monkeypatch):
     checks = {c["name"]: c for c in report["checks"]}
     for name in ("dimensions", "channels", "sample_rate", "loudness", "true_peak", "sync_drift", "duration"):
         assert checks[name]["status"] == "pass", checks[name]
-    assert "Measured 5.9" in checks["duration"]["detail"] or "Measured 5.8" in checks["duration"]["detail"]
+    # item 1 (2026-11-03): 3.0 s of narration + the 1.0 s bridge (was 5.9 / 5.8: + the 2.9 s card)
+    assert "Measured 4.0" in checks["duration"]["detail"] or "Measured 3.9" in checks["duration"]["detail"]

@@ -1,5 +1,5 @@
 {
-  "path": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\data\\sfx\\sfx_anvil_forge.wav",
+  "path": "data/sfx/sfx_anvil_forge.wav",
   "sha256": "cfc4f1906078a4035685dcffda6f6eec3e1c42905cdb21d75ce8f0d7c7cbcdfd",
   "provider": "elevenlabs-sound-effects",
   "plan": "creator",

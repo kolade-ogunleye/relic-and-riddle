@@ -1,0 +1,28 @@
+{
+ "source": "read-only: a backup-API copy of the development database; production sample metrics.json (counts only)",
+ "development": {
+  "reviews_recorded_timeout": 8,
+  "their_runs_status_timeout": 8,
+  "their_topics_now": {
+   "failed": 6,
+   "queued": 1,
+   "ready": 1
+  },
+  "window_hours_before_timeout": [
+   1.0,
+   1.0,
+   11.72,
+   13.5,
+   13.56,
+   15.58,
+   18.06,
+   18.97
+  ],
+  "windows_under_12_hours": 3,
+  "pending_reviews_now": 0
+ },
+ "production_sample": {
+  "runs": 45,
+  "runs_status_timeout": 4
+ }
+}

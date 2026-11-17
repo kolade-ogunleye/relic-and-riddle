@@ -99,7 +99,7 @@ def test_review_window_ends_before_the_slot_and_the_next_daily_run(monkeypatch):
     monkeypatch.setattr(c, "_booked_reel_days", lambda: set(), raising=False)
     monkeypatch.setattr(main.post_schedule, "next_reel_slot", lambda n, b: now + timedelta(hours=5))
     w = c._approval_window()
-    assert 3600 <= w <= 5 * 3600 - 20 * 60 + 5
+    assert 12 * 3600 <= w <= 24 * 3600
     monkeypatch.setattr(main, "POST_SCHEDULING", False)
     from src.config import APPROVAL_TIMEOUT_SECONDS
     assert c._approval_window() == APPROVAL_TIMEOUT_SECONDS

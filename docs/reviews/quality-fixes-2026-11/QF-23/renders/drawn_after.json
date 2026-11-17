@@ -1,0 +1,119 @@
+{
+ "run_unfinished_obelisk_aswan_1793056896_carousel": {
+  "slide": "carousel_slide_07.jpg",
+  "shortened": [],
+  "kicker": [
+   {
+    "name": "kicker",
+    "box": [
+     112,
+     806,
+     1242,
+     837
+    ],
+    "contrast": 8.81,
+    "contrast_unaided": 8.81,
+    "halo": 0.0,
+    "fill": [
+     242,
+     182,
+     48
+    ],
+    "font": "Montserrat-Variable.ttf",
+    "px": 41.7,
+    "contrast_planned": 8.81,
+    "contrast_platform": 8.83
+   }
+  ]
+ },
+ "run_unfinished_obelisk_aswan_1793056896_carousel_fb": {
+  "slide": "carousel_slide_07.jpg",
+  "shortened": [],
+  "kicker": [
+   {
+    "name": "kicker",
+    "box": [
+     112,
+     806,
+     1242,
+     837
+    ],
+    "contrast": 8.81,
+    "contrast_unaided": 8.81,
+    "halo": 0.0,
+    "fill": [
+     242,
+     182,
+     48
+    ],
+    "font": "Montserrat-Variable.ttf",
+    "px": 41.7,
+    "contrast_planned": 8.81,
+    "contrast_platform": 8.83
+   }
+  ]
+ },
+ "run_roman_self_healing_concrete_1793163918_carousel": {
+  "slide": "carousel_slide_07.jpg",
+  "shortened": [],
+  "kicker": [
+   {
+    "name": "kicker",
+    "box": [
+     112,
+     806,
+     1294,
+     837
+    ],
+    "contrast": 5.58,
+    "contrast_unaided": 5.08,
+    "halo": 0.16,
+    "fill": [
+     242,
+     182,
+     48
+    ],
+    "font": "Montserrat-Variable.ttf",
+    "px": 41.7,
+    "contrast_planned": 5.59,
+    "contrast_platform": 5.69
+   }
+  ]
+ },
+ "run_damascus_steel_nanotubes_1792732472_short_carousel": {
+  "slide": "carousel_slide_07.jpg",
+  "shortened": [],
+  "kicker": [
+   {
+    "name": "kicker",
+    "box": [
+     112,
+     806,
+     1271,
+     837
+    ],
+    "contrast": 5.51,
+    "contrast_unaided": 4.58,
+    "halo": 0.32,
+    "fill": [
+     242,
+     182,
+     48
+    ],
+    "font": "Montserrat-Variable.ttf",
+    "px": 41.7,
+    "contrast_planned": 5.52,
+    "contrast_platform": 5.58
+   }
+  ]
+ },
+ "run_greek_fire_siphon_1792735284_short_chart": {
+  "refused": "Checked copy does not fit 1 line(s) of 2080 px at 72 px: \"The 10th-Century Weapon That Water Could Not Quench\""
+ },
+ "run_unfinished_obelisk_aswan_1793056896_doc_cover": {
+  "copy": {
+   "line1": "EGYPT'S LARGEST",
+   "line2": "OBELISK TRAPPED IN BEDROCK ⛏️"
+  }
+ }
+}

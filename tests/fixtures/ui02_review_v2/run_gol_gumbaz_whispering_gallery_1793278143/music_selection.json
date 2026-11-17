@@ -1,0 +1,22 @@
+{
+ "source": "library",
+ "mood": "mysterious",
+ "credit": "🎵 Music: “soundscape1-freesound.wav” by Thoribass (CC BY 4.0)",
+ "file": "mysterious/soundscape1_freesound_wav_79077a72.mp3",
+ "tracks": [
+  {
+   "file": "mysterious/soundscape1_freesound_wav_79077a72.mp3",
+   "title": "soundscape1-freesound.wav",
+   "creator": "Thoribass",
+   "license": "by",
+   "license_version": "4.0",
+   "license_url": "https://creativecommons.org/licenses/by/4.0/",
+   "source_url": "https://freesound.org/people/Thoribass/sounds/320839",
+   "source": "freesound",
+   "mood": "mysterious",
+   "duration_ms": 144149,
+   "reviewed": true,
+   "uses": 71
+  }
+ ]
+}

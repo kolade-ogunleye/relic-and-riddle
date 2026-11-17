@@ -1,0 +1,1290 @@
+{
+ "primitives": {
+  "engine": "src.raster (Skia)",
+  "land": {
+   "hal_saflieni_hypogeum": {
+    "edge_px": 7321,
+    "edge_rmse": 0.0067,
+    "area_bias_px": 0.1,
+    "edge_levels": 256
+   },
+   "kailasa_temple_monolith": {
+    "edge_px": 4056,
+    "edge_rmse": 0.0067,
+    "area_bias_px": 5.5,
+    "edge_levels": 252
+   },
+   "greek_fire_siphon": {
+    "edge_px": 14539,
+    "edge_rmse": 0.0065,
+    "area_bias_px": -2.3,
+    "edge_levels": 256
+   },
+   "unfinished_obelisk_aswan": {
+    "edge_px": 5038,
+    "edge_rmse": 0.0041,
+    "area_bias_px": -3.1,
+    "edge_levels": 243
+   },
+   "roman_self_healing_concrete": {
+    "edge_px": 15055,
+    "edge_rmse": 0.006,
+    "area_bias_px": 4.0,
+    "edge_levels": 256
+   }
+  },
+  "borders": {
+   "hal_saflieni_hypogeum": {
+    "edge_px": 13141,
+    "edge_rmse": 0.0236,
+    "area_bias_px": 52.9,
+    "edge_levels": 256
+   },
+   "kailasa_temple_monolith": {
+    "edge_px": 7313,
+    "edge_rmse": 0.0181,
+    "area_bias_px": 8.4,
+    "edge_levels": 256
+   },
+   "greek_fire_siphon": {
+    "edge_px": 26133,
+    "edge_rmse": 0.0463,
+    "area_bias_px": 320.2,
+    "edge_levels": 256
+   },
+   "unfinished_obelisk_aswan": {
+    "edge_px": 9463,
+    "edge_rmse": 0.0596,
+    "area_bias_px": 216.7,
+    "edge_levels": 255
+   },
+   "roman_self_healing_concrete": {
+    "edge_px": 26503,
+    "edge_rmse": 0.0268,
+    "area_bias_px": 122.7,
+    "edge_levels": 256
+   }
+  },
+  "silhouettes": {
+   "Statue of Liberty": {
+    "edge_px": 10287,
+    "edge_rmse": 0.0051,
+    "area_bias_px": 1.3,
+    "edge_levels": 246
+   },
+   "Great Pyramid": {
+    "edge_px": 7883,
+    "edge_rmse": 0.0057,
+    "area_bias_px": -8.0,
+    "edge_levels": 103
+   }
+  }
+ },
+ "frames": {
+  "map/amber_room_heist/wide": {
+   "stair_corners": 1214,
+   "flat_colours": [
+    {
+     "rgb": [
+      10,
+      16,
+      26
+     ],
+     "share": 0.0259
+    },
+    {
+     "rgb": [
+      9,
+      14,
+      23
+     ],
+     "share": 0.0212
+    },
+    {
+     "rgb": [
+      167,
+      136,
+      80
+     ],
+     "share": 0.0157
+    },
+    {
+     "rgb": [
+      9,
+      15,
+      25
+     ],
+     "share": 0.0111
+    },
+    {
+     "rgb": [
+      9,
+      15,
+      24
+     ],
+     "share": 0.0099
+    },
+    {
+     "rgb": [
+      11,
+      18,
+      29
+     ],
+     "share": 0.0094
+    },
+    {
+     "rgb": [
+      9,
+      14,
+      24
+     ],
+     "share": 0.009
+    },
+    {
+     "rgb": [
+      10,
+      15,
+      25
+     ],
+     "share": 0.0078
+    },
+    {
+     "rgb": [
+      11,
+      17,
+      28
+     ],
+     "share": 0.0073
+    },
+    {
+     "rgb": [
+      243,
+      237,
+      226
+     ],
+     "share": 0.0071
+    },
+    {
+     "rgb": [
+      11,
+      17,
+      27
+     ],
+     "share": 0.0069
+    },
+    {
+     "rgb": [
+      166,
+      135,
+      80
+     ],
+     "share": 0.0046
+    }
+   ],
+   "contrast": {
+    "text_drawn_min": 4.73,
+    "text_graded_min": 4.65,
+    "nontext": {
+     "marker": 5.68,
+     "globe": 3.16
+    }
+   },
+   "home_rim": {
+    "peak": 185.3,
+    "interior": 134.8,
+    "excess": 50.5,
+    "width_px": 1.295,
+    "coast_len_px": 3433.0
+   },
+   "home_edge": {
+    "peak": 0.669,
+    "fwhm_px": 1.9,
+    "fwhm_mean_px": 1.9321,
+    "ink_px": 27955.0,
+    "profiles": 6745
+   }
+  },
+  "map/camp_century_nuclear_ice_city/reel": {
+   "stair_corners": 2024,
+   "flat_colours": [
+    {
+     "rgb": [
+      11,
+      18,
+      29
+     ],
+     "share": 0.0939
+    },
+    {
+     "rgb": [
+      9,
+      14,
+      23
+     ],
+     "share": 0.0666
+    },
+    {
+     "rgb": [
+      11,
+      18,
+      28
+     ],
+     "share": 0.0529
+    },
+    {
+     "rgb": [
+      10,
+      16,
+      26
+     ],
+     "share": 0.0389
+    },
+    {
+     "rgb": [
+      9,
+      14,
+      24
+     ],
+     "share": 0.0353
+    },
+    {
+     "rgb": [
+      9,
+      15,
+      24
+     ],
+     "share": 0.0318
+    },
+    {
+     "rgb": [
+      12,
+      19,
+      30
+     ],
+     "share": 0.0286
+    },
+    {
+     "rgb": [
+      11,
+      17,
+      28
+     ],
+     "share": 0.0259
+    },
+    {
+     "rgb": [
+      12,
+      18,
+      29
+     ],
+     "share": 0.0247
+    },
+    {
+     "rgb": [
+      9,
+      15,
+      25
+     ],
+     "share": 0.0228
+    },
+    {
+     "rgb": [
+      167,
+      136,
+      80
+     ],
+     "share": 0.0194
+    },
+    {
+     "rgb": [
+      10,
+      15,
+      25
+     ],
+     "share": 0.0174
+    }
+   ],
+   "contrast": {
+    "text_drawn_min": 4.75,
+    "text_graded_min": 4.65,
+    "nontext": {
+     "marker": 5.72,
+     "globe": 7.76
+    }
+   },
+   "home_rim": {
+    "peak": 200.0,
+    "interior": 135.7,
+    "excess": 64.3,
+    "width_px": 1.661,
+    "coast_len_px": 9870.3
+   },
+   "home_edge": {
+    "peak": 0.8164,
+    "fwhm_px": 2.9,
+    "fwhm_mean_px": 3.4515,
+    "ink_px": 41578.9,
+    "profiles": 5601
+   }
+  },
+  "map/flannan_isle_lighthouse_disappearance/reel": {
+   "stair_corners": 792,
+   "flat_colours": [
+    {
+     "rgb": [
+      10,
+      16,
+      26
+     ],
+     "share": 0.2136
+    },
+    {
+     "rgb": [
+      11,
+      17,
+      27
+     ],
+     "share": 0.1359
+    },
+    {
+     "rgb": [
+      10,
+      17,
+      27
+     ],
+     "share": 0.122
+    },
+    {
+     "rgb": [
+      9,
+      15,
+      25
+     ],
+     "share": 0.1138
+    },
+    {
+     "rgb": [
+      10,
+      15,
+      25
+     ],
+     "share": 0.0574
+    },
+    {
+     "rgb": [
+      10,
+      16,
+      27
+     ],
+     "share": 0.0551
+    },
+    {
+     "rgb": [
+      10,
+      16,
+      25
+     ],
+     "share": 0.0327
+    },
+    {
+     "rgb": [
+      11,
+      17,
+      28
+     ],
+     "share": 0.0139
+    },
+    {
+     "rgb": [
+      9,
+      15,
+      24
+     ],
+     "share": 0.0132
+    },
+    {
+     "rgb": [
+      167,
+      136,
+      80
+     ],
+     "share": 0.0112
+    },
+    {
+     "rgb": [
+      144,
+      117,
+      69
+     ],
+     "share": 0.0044
+    },
+    {
+     "rgb": [
+      243,
+      237,
+      226
+     ],
+     "share": 0.0043
+    }
+   ],
+   "contrast": {
+    "text_drawn_min": 4.81,
+    "text_graded_min": 4.73,
+    "nontext": {
+     "marker": 1.99,
+     "globe": 9.56
+    }
+   },
+   "home_rim": {
+    "peak": 178.6,
+    "interior": 133.5,
+    "excess": 45.1,
+    "width_px": 1.695,
+    "coast_len_px": 7386.2
+   },
+   "home_edge": {
+    "peak": 0.5112,
+    "fwhm_px": 1.4,
+    "fwhm_mean_px": 1.5201,
+    "ink_px": 3824.0,
+    "profiles": 1515
+   }
+  },
+  "map/greek_fire_siphon/reel": {
+   "stair_corners": 805,
+   "flat_colours": [
+    {
+     "rgb": [
+      9,
+      15,
+      25
+     ],
+     "share": 0.1422
+    },
+    {
+     "rgb": [
+      10,
+      15,
+      25
+     ],
+     "share": 0.1059
+    },
+    {
+     "rgb": [
+      10,
+      16,
+      26
+     ],
+     "share": 0.0705
+    },
+    {
+     "rgb": [
+      10,
+      17,
+      27
+     ],
+     "share": 0.0668
+    },
+    {
+     "rgb": [
+      11,
+      17,
+      27
+     ],
+     "share": 0.0336
+    },
+    {
+     "rgb": [
+      10,
+      16,
+      27
+     ],
+     "share": 0.0289
+    },
+    {
+     "rgb": [
+      167,
+      136,
+      80
+     ],
+     "share": 0.0279
+    },
+    {
+     "rgb": [
+      10,
+      16,
+      25
+     ],
+     "share": 0.0235
+    },
+    {
+     "rgb": [
+      144,
+      117,
+      69
+     ],
+     "share": 0.0086
+    },
+    {
+     "rgb": [
+      243,
+      237,
+      226
+     ],
+     "share": 0.0052
+    },
+    {
+     "rgb": [
+      92,
+      96,
+      104
+     ],
+     "share": 0.0046
+    },
+    {
+     "rgb": [
+      164,
+      134,
+      79
+     ],
+     "share": 0.0026
+    }
+   ],
+   "contrast": {
+    "text_drawn_min": 4.55,
+    "text_graded_min": 4.47,
+    "nontext": {
+     "marker": 5.7,
+     "globe": 9.46
+    }
+   },
+   "home_rim": {
+    "peak": 176.6,
+    "interior": 135.7,
+    "excess": 40.9,
+    "width_px": 1.714,
+    "coast_len_px": 4954.7
+   },
+   "home_edge": {
+    "peak": 0.5023,
+    "fwhm_px": 1.2,
+    "fwhm_mean_px": 1.3679,
+    "ink_px": 2995.7,
+    "profiles": 1330
+   }
+  },
+  "map/hal_saflieni_hypogeum/reel": {
+   "stair_corners": 671,
+   "flat_colours": [
+    {
+     "rgb": [
+      10,
+      16,
+      26
+     ],
+     "share": 0.2872
+    },
+    {
+     "rgb": [
+      11,
+      17,
+      27
+     ],
+     "share": 0.1422
+    },
+    {
+     "rgb": [
+      9,
+      15,
+      25
+     ],
+     "share": 0.1422
+    },
+    {
+     "rgb": [
+      10,
+      15,
+      25
+     ],
+     "share": 0.1281
+    },
+    {
+     "rgb": [
+      10,
+      17,
+      27
+     ],
+     "share": 0.1093
+    },
+    {
+     "rgb": [
+      10,
+      16,
+      25
+     ],
+     "share": 0.0631
+    },
+    {
+     "rgb": [
+      10,
+      16,
+      27
+     ],
+     "share": 0.0545
+    },
+    {
+     "rgb": [
+      243,
+      237,
+      226
+     ],
+     "share": 0.007
+    },
+    {
+     "rgb": [
+      167,
+      136,
+      80
+     ],
+     "share": 0.0021
+    },
+    {
+     "rgb": [
+      10,
+      13,
+      17
+     ],
+     "share": 0.0011
+    },
+    {
+     "rgb": [
+      165,
+      134,
+      79
+     ],
+     "share": 0.0009
+    },
+    {
+     "rgb": [
+      10,
+      15,
+      23
+     ],
+     "share": 0.0008
+    }
+   ],
+   "contrast": {
+    "text_drawn_min": 4.69,
+    "text_graded_min": 4.63,
+    "nontext": {
+     "marker": 1.24,
+     "globe": 9.57
+    }
+   },
+   "home_rim": {
+    "peak": 185.0,
+    "interior": 137.0,
+    "excess": 48.0,
+    "width_px": 1.354,
+    "coast_len_px": 1660.2
+   },
+   "home_edge": {
+    "peak": 0.5065,
+    "fwhm_px": 1.2,
+    "fwhm_mean_px": 1.32,
+    "ink_px": 467.8,
+    "profiles": 220
+   }
+  },
+  "map/kailasa_temple_monolith/wide": {
+   "stair_corners": 1232,
+   "flat_colours": [
+    {
+     "rgb": [
+      8,
+      13,
+      22
+     ],
+     "share": 0.0942
+    },
+    {
+     "rgb": [
+      9,
+      14,
+      23
+     ],
+     "share": 0.0637
+    },
+    {
+     "rgb": [
+      10,
+      16,
+      26
+     ],
+     "share": 0.0526
+    },
+    {
+     "rgb": [
+      9,
+      15,
+      24
+     ],
+     "share": 0.0422
+    },
+    {
+     "rgb": [
+      9,
+      14,
+      24
+     ],
+     "share": 0.0344
+    },
+    {
+     "rgb": [
+      9,
+      15,
+      25
+     ],
+     "share": 0.0306
+    },
+    {
+     "rgb": [
+      10,
+      15,
+      25
+     ],
+     "share": 0.0261
+    },
+    {
+     "rgb": [
+      8,
+      14,
+      23
+     ],
+     "share": 0.0168
+    },
+    {
+     "rgb": [
+      8,
+      13,
+      21
+     ],
+     "share": 0.0168
+    },
+    {
+     "rgb": [
+      167,
+      136,
+      80
+     ],
+     "share": 0.015
+    },
+    {
+     "rgb": [
+      11,
+      17,
+      28
+     ],
+     "share": 0.0137
+    },
+    {
+     "rgb": [
+      144,
+      117,
+      69
+     ],
+     "share": 0.0114
+    }
+   ],
+   "contrast": {
+    "text_drawn_min": 4.69,
+    "text_graded_min": 4.63,
+    "nontext": {
+     "marker": 5.66,
+     "globe": 3.22
+    }
+   },
+   "home_rim": {
+    "peak": 188.8,
+    "interior": 135.1,
+    "excess": 53.7,
+    "width_px": 1.368,
+    "coast_len_px": 6220.5
+   },
+   "home_edge": {
+    "peak": 0.7314,
+    "fwhm_px": 2.7,
+    "fwhm_mean_px": 2.8459,
+    "ink_px": 27835.7,
+    "profiles": 4303
+   }
+  },
+  "map/odessa_catacombs/reel": {
+   "stair_corners": 1436,
+   "flat_colours": [
+    {
+     "rgb": [
+      10,
+      16,
+      26
+     ],
+     "share": 0.072
+    },
+    {
+     "rgb": [
+      9,
+      15,
+      24
+     ],
+     "share": 0.059
+    },
+    {
+     "rgb": [
+      9,
+      14,
+      24
+     ],
+     "share": 0.0479
+    },
+    {
+     "rgb": [
+      9,
+      15,
+      25
+     ],
+     "share": 0.0132
+    },
+    {
+     "rgb": [
+      10,
+      15,
+      25
+     ],
+     "share": 0.008
+    },
+    {
+     "rgb": [
+      9,
+      14,
+      23
+     ],
+     "share": 0.0073
+    },
+    {
+     "rgb": [
+      11,
+      18,
+      29
+     ],
+     "share": 0.0042
+    },
+    {
+     "rgb": [
+      10,
+      16,
+      25
+     ],
+     "share": 0.0037
+    },
+    {
+     "rgb": [
+      10,
+      16,
+      27
+     ],
+     "share": 0.0035
+    },
+    {
+     "rgb": [
+      167,
+      136,
+      80
+     ],
+     "share": 0.0029
+    },
+    {
+     "rgb": [
+      92,
+      96,
+      104
+     ],
+     "share": 0.0026
+    },
+    {
+     "rgb": [
+      243,
+      237,
+      226
+     ],
+     "share": 0.0023
+    }
+   ],
+   "contrast": {
+    "text_drawn_min": 4.73,
+    "text_graded_min": 4.65,
+    "nontext": {
+     "marker": 5.7,
+     "globe": 3.28
+    }
+   },
+   "home_rim": {
+    "peak": 193.0,
+    "interior": 135.7,
+    "excess": 57.3,
+    "width_px": 1.433,
+    "coast_len_px": 3909.5
+   },
+   "home_edge": {
+    "peak": 0.7233,
+    "fwhm_px": 1.7,
+    "fwhm_mean_px": 1.7967,
+    "ink_px": 4998.5,
+    "profiles": 1258
+   }
+  },
+  "numbers/singing_colossi_of_memnon/reel": {
+   "stair_corners": 1436,
+   "flat_colours": [
+    {
+     "rgb": [
+      11,
+      14,
+      18
+     ],
+     "share": 0.939
+    },
+    {
+     "rgb": [
+      242,
+      182,
+      48
+     ],
+     "share": 0.0194
+    },
+    {
+     "rgb": [
+      154,
+      147,
+      133
+     ],
+     "share": 0.0153
+    },
+    {
+     "rgb": [
+      184,
+      177,
+      163
+     ],
+     "share": 0.0047
+    },
+    {
+     "rgb": [
+      243,
+      237,
+      226
+     ],
+     "share": 0.0028
+    }
+   ],
+   "contrast": {
+    "text_drawn_min": 6.34,
+    "text_graded_min": 6.4,
+    "nontext": {}
+   }
+  },
+  "numbers/unfinished_obelisk_aswan/reel": {
+   "stair_corners": 1641,
+   "flat_colours": [
+    {
+     "rgb": [
+      11,
+      14,
+      18
+     ],
+     "share": 0.9334
+    },
+    {
+     "rgb": [
+      154,
+      147,
+      133
+     ],
+     "share": 0.0186
+    },
+    {
+     "rgb": [
+      242,
+      182,
+      48
+     ],
+     "share": 0.014
+    },
+    {
+     "rgb": [
+      243,
+      237,
+      226
+     ],
+     "share": 0.008
+    },
+    {
+     "rgb": [
+      184,
+      177,
+      163
+     ],
+     "share": 0.0029
+    }
+   ],
+   "contrast": {
+    "text_drawn_min": 6.34,
+    "text_graded_min": 6.4,
+    "nontext": {}
+   }
+  },
+  "scale/unfinished_obelisk_aswan/reel": {
+   "stair_corners": 2579,
+   "flat_colours": [
+    {
+     "rgb": [
+      11,
+      14,
+      18
+     ],
+     "share": 0.9366
+    },
+    {
+     "rgb": [
+      242,
+      182,
+      48
+     ],
+     "share": 0.0134
+    },
+    {
+     "rgb": [
+      184,
+      177,
+      163
+     ],
+     "share": 0.0071
+    },
+    {
+     "rgb": [
+      138,
+      106,
+      30
+     ],
+     "share": 0.0051
+    },
+    {
+     "rgb": [
+      243,
+      237,
+      226
+     ],
+     "share": 0.0021
+    },
+    {
+     "rgb": [
+      154,
+      147,
+      133
+     ],
+     "share": 0.0015
+    }
+   ],
+   "contrast": {
+    "text_drawn_min": 9.08,
+    "text_graded_min": 8.9,
+    "nontext": {
+     "ground_line": 16.68,
+     "subject": 9.96
+    }
+   }
+  },
+  "scale/unfinished_obelisk_aswan/wide": {
+   "stair_corners": 2641,
+   "flat_colours": [
+    {
+     "rgb": [
+      11,
+      14,
+      18
+     ],
+     "share": 0.898
+    },
+    {
+     "rgb": [
+      242,
+      182,
+      48
+     ],
+     "share": 0.025
+    },
+    {
+     "rgb": [
+      184,
+      177,
+      163
+     ],
+     "share": 0.0181
+    },
+    {
+     "rgb": [
+      138,
+      106,
+      30
+     ],
+     "share": 0.0098
+    },
+    {
+     "rgb": [
+      154,
+      147,
+      133
+     ],
+     "share": 0.0045
+    },
+    {
+     "rgb": [
+      243,
+      237,
+      226
+     ],
+     "share": 0.0015
+    }
+   ],
+   "contrast": {
+    "text_drawn_min": 9.08,
+    "text_graded_min": 8.9,
+    "nontext": {
+     "ground_line": 16.62,
+     "subject": 10.37
+    }
+   }
+  },
+  "scale/wieliczka_salt_mine/reel": {
+   "stair_corners": 2647,
+   "flat_colours": [
+    {
+     "rgb": [
+      11,
+      14,
+      18
+     ],
+     "share": 0.8804
+    },
+    {
+     "rgb": [
+      38,
+      31,
+      24
+     ],
+     "share": 0.0678
+    },
+    {
+     "rgb": [
+      242,
+      182,
+      48
+     ],
+     "share": 0.008
+    },
+    {
+     "rgb": [
+      184,
+      177,
+      163
+     ],
+     "share": 0.0054
+    },
+    {
+     "rgb": [
+      154,
+      147,
+      133
+     ],
+     "share": 0.0035
+    },
+    {
+     "rgb": [
+      243,
+      237,
+      226
+     ],
+     "share": 0.0019
+    }
+   ],
+   "contrast": {
+    "text_drawn_min": 7.63,
+    "text_graded_min": 7.59,
+    "nontext": {
+     "ground_line": 14.14,
+     "shaft": 1.62
+    }
+   }
+  },
+  "scale/wieliczka_salt_mine/wide": {
+   "stair_corners": 2711,
+   "flat_colours": [
+    {
+     "rgb": [
+      11,
+      14,
+      18
+     ],
+     "share": 0.8203
+    },
+    {
+     "rgb": [
+      38,
+      31,
+      24
+     ],
+     "share": 0.1017
+    },
+    {
+     "rgb": [
+      184,
+      177,
+      163
+     ],
+     "share": 0.0152
+    },
+    {
+     "rgb": [
+      154,
+      147,
+      133
+     ],
+     "share": 0.0107
+    },
+    {
+     "rgb": [
+      242,
+      182,
+      48
+     ],
+     "share": 0.0106
+    },
+    {
+     "rgb": [
+      243,
+      237,
+      226
+     ],
+     "share": 0.002
+    }
+   ],
+   "contrast": {
+    "text_drawn_min": 7.63,
+    "text_graded_min": 7.54,
+    "nontext": {
+     "ground_line": 14.12,
+     "shaft": 1.66
+    }
+   }
+  }
+ }
+}

@@ -1,0 +1,405 @@
+{
+ "_how": "python docs/reviews/quality-fixes-2026-11/QF-65b/measure.py <root> --runs <dev output> --runs <the production sample's output, read only> --cards <dev output>; counts only. Top level: this commit; _base_fe88d4a6: the parent.",
+ "fixture_record_less_stills": {
+  "story_ai_motion_clip": {
+   "live_facebook": false,
+   "live_instagram_flagged": true,
+   "dry_run_facebook": false,
+   "dry_run_instagram_flagged": true
+  },
+  "carousel_ai_motion_clip": {
+   "live_facebook": false,
+   "live_instagram_flagged": true,
+   "dry_run_facebook": false,
+   "dry_run_instagram_flagged": true
+  },
+  "story_illustration_scene": {
+   "live_facebook": false,
+   "live_instagram_flagged": true,
+   "dry_run_facebook": false,
+   "dry_run_instagram_flagged": true
+  },
+  "carousel_illustration_scene": {
+   "live_facebook": false,
+   "live_instagram_flagged": true,
+   "dry_run_facebook": false,
+   "dry_run_instagram_flagged": true
+  },
+  "story_hook_clip_no_record": {
+   "live_facebook": false,
+   "live_instagram_flagged": true,
+   "dry_run_facebook": false,
+   "dry_run_instagram_flagged": true
+  },
+  "carousel_hook_clip_no_record": {
+   "live_facebook": false,
+   "live_instagram_flagged": true,
+   "dry_run_facebook": false,
+   "dry_run_instagram_flagged": true
+  },
+  "story_no_media_record": {
+   "live_facebook": false,
+   "live_instagram_flagged": true,
+   "dry_run_facebook": false,
+   "dry_run_instagram_flagged": true
+  },
+  "carousel_no_media_record": {
+   "live_facebook": false,
+   "live_instagram_flagged": true,
+   "dry_run_facebook": false,
+   "dry_run_instagram_flagged": true
+  },
+  "story_no_video": {
+   "live_facebook": false,
+   "live_instagram_flagged": true,
+   "dry_run_facebook": false,
+   "dry_run_instagram_flagged": true
+  },
+  "carousel_no_video": {
+   "live_facebook": false,
+   "live_instagram_flagged": true,
+   "dry_run_facebook": false,
+   "dry_run_instagram_flagged": true
+  },
+  "story_real_photos_only": {
+   "live_facebook": true,
+   "live_instagram_flagged": true,
+   "dry_run_facebook": true,
+   "dry_run_instagram_flagged": true
+  },
+  "carousel_real_photos_only": {
+   "live_facebook": true,
+   "live_instagram_flagged": true,
+   "dry_run_facebook": true,
+   "dry_run_instagram_flagged": true
+  }
+ },
+ "fixture_still_with_record": {
+  "facebook": true,
+  "instagram_flagged": false
+ },
+ "fixture_decided_card": {
+  "findings_0_captions_x3_words_603_approved_name_3": {
+   "ai_line": true,
+   "captions_lost": false,
+   "narration_newly_cut": false,
+   "previews_lost": false,
+   "publish_lines_moved": false,
+   "only_the_ai_line_differs": true,
+   "within_card_page_limit": true
+  },
+  "findings_0_captions_x3_words_603_rejected_name_3": {
+   "ai_line": true,
+   "captions_lost": false,
+   "narration_newly_cut": false,
+   "previews_lost": false,
+   "publish_lines_moved": false,
+   "only_the_ai_line_differs": false,
+   "within_card_page_limit": true
+  },
+  "findings_0_captions_x3_words_603_approved_name_64": {
+   "ai_line": true,
+   "captions_lost": false,
+   "narration_newly_cut": false,
+   "previews_lost": false,
+   "publish_lines_moved": false,
+   "only_the_ai_line_differs": true,
+   "within_card_page_limit": true
+  },
+  "findings_0_captions_x3_words_603_rejected_name_64": {
+   "ai_line": true,
+   "captions_lost": false,
+   "narration_newly_cut": false,
+   "previews_lost": false,
+   "publish_lines_moved": false,
+   "only_the_ai_line_differs": true,
+   "within_card_page_limit": true
+  },
+  "findings_0_captions_x18_words_534_approved_name_3": {
+   "ai_line": true,
+   "captions_lost": false,
+   "narration_newly_cut": false,
+   "previews_lost": false,
+   "publish_lines_moved": false,
+   "only_the_ai_line_differs": true,
+   "within_card_page_limit": true
+  },
+  "findings_0_captions_x18_words_534_rejected_name_3": {
+   "ai_line": true,
+   "captions_lost": false,
+   "narration_newly_cut": false,
+   "previews_lost": false,
+   "publish_lines_moved": false,
+   "only_the_ai_line_differs": true,
+   "within_card_page_limit": true
+  },
+  "findings_0_captions_x18_words_534_approved_name_64": {
+   "ai_line": true,
+   "captions_lost": false,
+   "narration_newly_cut": false,
+   "previews_lost": false,
+   "publish_lines_moved": false,
+   "only_the_ai_line_differs": true,
+   "within_card_page_limit": true
+  },
+  "findings_0_captions_x18_words_534_rejected_name_64": {
+   "ai_line": true,
+   "captions_lost": false,
+   "narration_newly_cut": false,
+   "previews_lost": false,
+   "publish_lines_moved": false,
+   "only_the_ai_line_differs": true,
+   "within_card_page_limit": true
+  }
+ },
+ "acceptance_met": true,
+ "runs": {
+  "folder_1": {
+   "photo_posts_checked": 87,
+   "with_a_still_without_record": 66,
+   "sent_to_facebook": 63,
+   "kept_off_facebook": 24,
+   "kept_off_facebook_with_a_still_without_record": 24
+  },
+  "folder_2": {
+   "photo_posts_checked": 102,
+   "with_a_still_without_record": 45,
+   "sent_to_facebook": 57,
+   "kept_off_facebook": 45,
+   "kept_off_facebook_with_a_still_without_record": 45
+  }
+ },
+ "cards": {
+  "folder_1": {
+   "cards": 35,
+   "lists_shortened": 5,
+   "narration_start_shown": 31,
+   "narration_chars_shown_total": 24606,
+   "narration_chars_shown_median": 705,
+   "caption_previews": 57,
+   "captions_see_edit": 3,
+   "cards_with_see_edit": 2,
+   "list_items_left_to_reply": 35,
+   "captions_named": 60,
+   "ai_line": 35,
+   "ai_label_on_line": 35,
+   "also_posted_count_line": 5,
+   "longest_card": 4000,
+   "over_telegram_4096": 0,
+   "decided": {
+    "renders": 140,
+    "captions_lost": 0,
+    "narration_newly_cut": 0,
+    "previews_lost": 0,
+    "publish_lines_moved": 0,
+    "over_page_above": 0,
+    "over_page_above_without_the_line": 0,
+    "over_card_page_limit": 2,
+    "no_ai_line": 8,
+    "longest": 3914
+   }
+  }
+ },
+ "_base_fe88d4a6": {
+  "fixture_record_less_stills": {
+   "story_ai_motion_clip": {
+    "live_facebook": true,
+    "live_instagram_flagged": true,
+    "dry_run_facebook": true,
+    "dry_run_instagram_flagged": true
+   },
+   "carousel_ai_motion_clip": {
+    "live_facebook": true,
+    "live_instagram_flagged": true,
+    "dry_run_facebook": true,
+    "dry_run_instagram_flagged": true
+   },
+   "story_illustration_scene": {
+    "live_facebook": true,
+    "live_instagram_flagged": true,
+    "dry_run_facebook": true,
+    "dry_run_instagram_flagged": true
+   },
+   "carousel_illustration_scene": {
+    "live_facebook": true,
+    "live_instagram_flagged": true,
+    "dry_run_facebook": true,
+    "dry_run_instagram_flagged": true
+   },
+   "story_hook_clip_no_record": {
+    "live_facebook": true,
+    "live_instagram_flagged": true,
+    "dry_run_facebook": true,
+    "dry_run_instagram_flagged": true
+   },
+   "carousel_hook_clip_no_record": {
+    "live_facebook": true,
+    "live_instagram_flagged": true,
+    "dry_run_facebook": true,
+    "dry_run_instagram_flagged": true
+   },
+   "story_no_media_record": {
+    "live_facebook": true,
+    "live_instagram_flagged": true,
+    "dry_run_facebook": true,
+    "dry_run_instagram_flagged": true
+   },
+   "carousel_no_media_record": {
+    "live_facebook": true,
+    "live_instagram_flagged": true,
+    "dry_run_facebook": true,
+    "dry_run_instagram_flagged": true
+   },
+   "story_no_video": {
+    "live_facebook": true,
+    "live_instagram_flagged": true,
+    "dry_run_facebook": true,
+    "dry_run_instagram_flagged": true
+   },
+   "carousel_no_video": {
+    "live_facebook": true,
+    "live_instagram_flagged": true,
+    "dry_run_facebook": true,
+    "dry_run_instagram_flagged": true
+   },
+   "story_real_photos_only": {
+    "live_facebook": true,
+    "live_instagram_flagged": true,
+    "dry_run_facebook": true,
+    "dry_run_instagram_flagged": true
+   },
+   "carousel_real_photos_only": {
+    "live_facebook": true,
+    "live_instagram_flagged": true,
+    "dry_run_facebook": true,
+    "dry_run_instagram_flagged": true
+   }
+  },
+  "fixture_still_with_record": {
+   "facebook": true,
+   "instagram_flagged": false
+  },
+  "fixture_decided_card": {
+   "findings_0_captions_x3_words_603_approved_name_3": {
+    "ai_line": false,
+    "captions_lost": false,
+    "narration_newly_cut": false,
+    "previews_lost": false,
+    "publish_lines_moved": false,
+    "only_the_ai_line_differs": true,
+    "within_card_page_limit": true
+   },
+   "findings_0_captions_x3_words_603_rejected_name_3": {
+    "ai_line": true,
+    "captions_lost": false,
+    "narration_newly_cut": false,
+    "previews_lost": false,
+    "publish_lines_moved": false,
+    "only_the_ai_line_differs": false,
+    "within_card_page_limit": true
+   },
+   "findings_0_captions_x3_words_603_approved_name_64": {
+    "ai_line": false,
+    "captions_lost": false,
+    "narration_newly_cut": false,
+    "previews_lost": false,
+    "publish_lines_moved": false,
+    "only_the_ai_line_differs": true,
+    "within_card_page_limit": true
+   },
+   "findings_0_captions_x3_words_603_rejected_name_64": {
+    "ai_line": false,
+    "captions_lost": false,
+    "narration_newly_cut": false,
+    "previews_lost": false,
+    "publish_lines_moved": false,
+    "only_the_ai_line_differs": true,
+    "within_card_page_limit": true
+   },
+   "findings_0_captions_x18_words_534_approved_name_3": {
+    "ai_line": false,
+    "captions_lost": false,
+    "narration_newly_cut": false,
+    "previews_lost": false,
+    "publish_lines_moved": false,
+    "only_the_ai_line_differs": true,
+    "within_card_page_limit": true
+   },
+   "findings_0_captions_x18_words_534_rejected_name_3": {
+    "ai_line": false,
+    "captions_lost": false,
+    "narration_newly_cut": false,
+    "previews_lost": false,
+    "publish_lines_moved": false,
+    "only_the_ai_line_differs": true,
+    "within_card_page_limit": true
+   },
+   "findings_0_captions_x18_words_534_approved_name_64": {
+    "ai_line": true,
+    "captions_lost": false,
+    "narration_newly_cut": false,
+    "previews_lost": false,
+    "publish_lines_moved": false,
+    "only_the_ai_line_differs": true,
+    "within_card_page_limit": true
+   },
+   "findings_0_captions_x18_words_534_rejected_name_64": {
+    "ai_line": false,
+    "captions_lost": false,
+    "narration_newly_cut": false,
+    "previews_lost": false,
+    "publish_lines_moved": false,
+    "only_the_ai_line_differs": true,
+    "within_card_page_limit": true
+   }
+  },
+  "acceptance_met": false,
+  "runs": {
+   "folder_1": {
+    "photo_posts_checked": 87,
+    "with_a_still_without_record": 66,
+    "sent_to_facebook": 87,
+    "kept_off_facebook": 0,
+    "kept_off_facebook_with_a_still_without_record": 0
+   },
+   "folder_2": {
+    "photo_posts_checked": 102,
+    "with_a_still_without_record": 45,
+    "sent_to_facebook": 102,
+    "kept_off_facebook": 0,
+    "kept_off_facebook_with_a_still_without_record": 0
+   }
+  },
+  "cards": {
+   "folder_1": {
+    "cards": 35,
+    "lists_shortened": 5,
+    "narration_start_shown": 31,
+    "narration_chars_shown_total": 24606,
+    "narration_chars_shown_median": 705,
+    "caption_previews": 57,
+    "captions_see_edit": 3,
+    "cards_with_see_edit": 2,
+    "list_items_left_to_reply": 35,
+    "captions_named": 60,
+    "ai_line": 35,
+    "ai_label_on_line": 35,
+    "also_posted_count_line": 5,
+    "longest_card": 4000,
+    "over_telegram_4096": 0,
+    "decided": {
+     "renders": 140,
+     "captions_lost": 0,
+     "narration_newly_cut": 0,
+     "previews_lost": 0,
+     "publish_lines_moved": 0,
+     "over_page_above": 0,
+     "over_page_above_without_the_line": 0,
+     "over_card_page_limit": 2,
+     "no_ai_line": 11,
+     "longest": 3914
+    }
+   }
+  }
+ }
+}

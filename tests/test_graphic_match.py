@@ -19,8 +19,10 @@ def make_graphic(tmp_path, name, inputs):
 
 
 def test_substrings_do_not_match(tmp_path):
-    vent = make_graphic(tmp_path, "graphic_ventilation.mp4", {"builder": "ventilation", "payload": {
-        "ventilation_airflow": {"title": "Air shafts", "labels": {"shaft": "AIR SHAFT"}}}})
+    vent = make_graphic(tmp_path, "graphic_section.mp4", {"builder": "cross-section", "payload": {
+        "cross_section": {"subject": "Ventilation shafts", "total_depth_ft": 280.0, "approximate": True,
+                          "levels": [{"depth_ft": 15.0, "label": "Fresh air intake"},
+                                     {"depth_ft": 280.0, "label": "Shaft base"}]}}})
     assert graphic_match.score(vent, "The stairs descend several levels to repair rooms.") < graphic_match.THRESHOLD
     assert graphic_match.score(vent, "Dozens of ventilation shafts carried fresh air down.") >= graphic_match.THRESHOLD
 
@@ -59,17 +61,6 @@ def test_unmatched_graphic_becomes_a_photo_but_unjudgeable_one_stays(tmp_path):
     assert sp.keep_if_it_matches(timeline, beats[1]["text"], photo) == photo
     unknown = tmp_path / "graphic_other.mp4"  # no declared spec: nothing to judge it by
     assert sp.keep_if_it_matches(unknown, beats[1]["text"], photo) == unknown
-
-
-def test_defense_and_ventilation_diagrams_need_a_declared_spec(tmp_path, monkeypatch):
-    from src import graphics
-    monkeypatch.setattr(graphics.geo, "locate", lambda topic: None)
-    made = []
-    monkeypatch.setattr(graphics, "render_rolling_stone_defense", lambda *a, **k: made.append("defense"))
-    monkeypatch.setattr(graphics, "render_ventilation_airflow", lambda *a, **k: made.append("ventilation"))
-    for topic_id in ("derinkuyu_underground_city", "hal_saflieni_hypogeum", "door_of_hell"):
-        graphics.make_all({}, {"id": topic_id}, tmp_path)
-    assert made == []
 
 
 def _storyboard_setup(tmp_path, sb_texts):

@@ -1,0 +1,16 @@
+{
+  "source_commit": "the commit that adds this file",
+  "scope": "generated photos; mocked visual decisions; production batching, measurement and ranking",
+  "batch_sizes": [
+    12,
+    12,
+    1
+  ],
+  "review_image_long_edges": [
+    768
+  ],
+  "records_retained": 25,
+  "quality_and_depiction": 25,
+  "technical_checks": 25,
+  "preferred_topic_photo": "original"
+}

@@ -1,0 +1,10 @@
+{
+ "condition_items": [],
+ "dashboard_needs_you_lines": 8,
+ "dashboard_says_nothing_needs_you": false,
+ "digest_messages_with_sound": 1,
+ "lock_probe_threads_stuck": 0,
+ "messages_sent_for_a_typed_photos_upload": 1,
+ "messages_sent_for_six_requests": 4,
+ "older_card_became_the_dashboard": true
+}

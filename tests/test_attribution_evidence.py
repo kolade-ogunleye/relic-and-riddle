@@ -1,7 +1,7 @@
 import json
 
 from src.credits import add_provenance_attributions, generate_provenance_ledger
-from src.fact_evidence import current_fact_review, record_fact_review
+from src.fact_evidence import current_fact_review
 
 
 def test_same_filename_in_another_directory_cannot_supply_rights(tmp_path, monkeypatch):
@@ -27,7 +27,7 @@ def test_same_filename_in_another_directory_cannot_supply_rights(tmp_path, monke
     assert record["rights_status"] == "verified"
 
 
-def test_required_credit_reaches_both_publication_surfaces(tmp_path):
+def test_required_credit_reaches_both_publication_surfaces(tmp_path, checked_stamp):
     photo = tmp_path / "photo.jpg"
     photo.write_bytes(b"photo")
     sheet = tmp_path / "facts.json"
@@ -36,7 +36,7 @@ def test_required_credit_reaches_both_publication_surfaces(tmp_path):
                "asset_credits": [{"file": str(photo), "title": "Photo", "artist": "Author",
                    "license": "CC BY 4.0", "source_url": "https://example.org/photo",
                    "license_url": "https://creativecommons.org/licenses/by/4.0/", "attribution_required": True}]}
-    record_fact_review(payload, sheet)
+    checked_stamp(payload, sheet)   # after the checkers passed (2026-11-04)
     ledger = generate_provenance_ledger(tmp_path, {"id": "test"}, payload, photo, media_items=[photo])
     add_provenance_attributions(payload, ledger)
     assert "https://example.org/photo" in payload["caption"]

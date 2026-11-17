@@ -108,10 +108,19 @@ def test_facebooks_photo_post_never_says_swipe(monkeypatch, db, tmp_path):
     ig, fb = tmp_path / "carousel", tmp_path / "carousel_fb"
     ig.mkdir(); fb.mkdir()
     slides = []
-    for i in (1, 2):
-        (ig / f"carousel_slide_{i:02d}.jpg").write_bytes(b"IG")
-        (fb / f"carousel_slide_{i:02d}.jpg").write_bytes(b"FB")
-        slides.append(str(ig / f"carousel_slide_{i:02d}.jpg"))
+    # Each slide with its record naming a credited photo, as every run since still records has it (QF-65b: a slide
+    # without one is judged by its run's video, and this run has none, so Facebook would not be sent it).
+    photos = tmp_path / "photos"
+    photos.mkdir()
+    (photos / "p.jpg").write_bytes(b"photo")
+    (photos / "credits.json").write_text(json.dumps({"images": [{"file": "p.jpg", "license": "CC0"}]}), encoding="utf-8")
+    for folder, content in ((ig, b"IG"), (fb, b"FB")):
+        names = [f"carousel_slide_{i:02d}.jpg" for i in (1, 2)]
+        for name in names:
+            (folder / name).write_bytes(content)
+        (folder / "still_layout.json").write_text(json.dumps({n: {"recipe": {"photo": str(photos / "p.jpg")}}
+                                                              for n in names}), encoding="utf-8")
+    slides = [str(ig / f"carousel_slide_{i:02d}.jpg") for i in (1, 2)]
     caption = "Swipe through to see how a corroded lump revealed a mechanism. ⚙️ 👉\n\n#Antikythera"
     up = UploadPostPublisher(api_key="k" * 20, user="u")
     res = MetaPublisher(db=db, publishers=[up]).publish_photos("r1", "01_topic", "carousel", slides, caption=caption)

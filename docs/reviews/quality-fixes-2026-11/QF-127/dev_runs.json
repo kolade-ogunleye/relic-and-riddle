@@ -1,0 +1,47 @@
+{
+ "after_this_commit": {
+  "all_providers": {
+   "licensed_now": 4,
+   "marked_licensed": 34,
+   "runs": 34
+  },
+  "by_provider": {
+   "azure": {
+    "licensed_now": 0,
+    "marked_licensed": 30,
+    "names_a_tier": 0,
+    "runs": 30
+   },
+   "elevenlabs": {
+    "licensed_now": 4,
+    "marked_licensed": 4,
+    "names_a_tier": 0,
+    "runs": 4
+   }
+  },
+  "runs": 47,
+  "runs_with_a_voice_record": 34
+ },
+ "before_8d90acd5": {
+  "all_providers": {
+   "licensed_now": null,
+   "marked_licensed": 34,
+   "runs": 34
+  },
+  "by_provider": {
+   "azure": {
+    "licensed_now": null,
+    "marked_licensed": 30,
+    "runs": 30
+   },
+   "elevenlabs": {
+    "licensed_now": null,
+    "marked_licensed": 4,
+    "runs": 4
+   }
+  },
+  "runs": 47,
+  "runs_with_a_voice_record": 34
+ },
+ "measured": "2026-11-14, the development checkout's output/run_* (counts only); read again for round 2 with the allow-list: the same counts, and no record names a tier; read again for round 3 on the base 8d90acd5 and on this commit: the same counts"
+}

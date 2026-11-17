@@ -1,0 +1,63 @@
+{
+ "default": {
+  "quote 169": {
+   "faces": [
+    "IBM Plex Mono",
+    "Montserrat"
+   ],
+   "frames": 180,
+   "sha256": "7156ceeb7c367022ce341f758593c3cec23886f8f8fa6167b9fdeb86ddd9e4f0",
+   "today_gold_fills": 3
+  },
+  "quote 916": {
+   "faces": [
+    "IBM Plex Mono",
+    "Montserrat"
+   ],
+   "frames": 180,
+   "sha256": "d7f51b47b41d4245b489ed368be6a16f0dc1cd02bdd131941556c9d78532d713",
+   "today_gold_fills": 3
+  }
+ },
+ "schema": 1,
+ "second_brand": {
+  "quote 169": {
+   "faces": [
+    "IBM Plex Mono",
+    "Montserrat"
+   ],
+   "frames": 180,
+   "sha256": "52287e9a7a2720a6ff92484fc1e52acf71ede3fc3ebae7fd4dad19145beab263",
+   "today_gold_fills": 0
+  },
+  "quote 916": {
+   "faces": [
+    "IBM Plex Mono",
+    "Montserrat"
+   ],
+   "frames": 180,
+   "sha256": "82dd33387ab4e67685d42c56d7fdcc74f3cd15e4cd356c779214d1d3160e213f",
+   "today_gold_fills": 0
+  }
+ },
+ "second_brand_display_kept": {
+  "quote 169": {
+   "faces": [
+    "IBM Plex Mono",
+    "Montserrat"
+   ],
+   "frames": 180,
+   "sha256": "52287e9a7a2720a6ff92484fc1e52acf71ede3fc3ebae7fd4dad19145beab263",
+   "today_gold_fills": 0
+  },
+  "quote 916": {
+   "faces": [
+    "IBM Plex Mono",
+    "Montserrat"
+   ],
+   "frames": 180,
+   "sha256": "82dd33387ab4e67685d42c56d7fdcc74f3cd15e4cd356c779214d1d3160e213f",
+   "today_gold_fills": 0
+  }
+ }
+}

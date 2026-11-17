@@ -117,7 +117,10 @@ def load_application(settings: LaunchSettings) -> tuple[ModuleType, ModuleType]:
 
 def configure_backup(settings: LaunchSettings, package: ModuleType, config: ModuleType) -> None:
     # Preserve production data and destination; eliminate Path.home() dependencies.
-    package.__path__ = [str(settings.maintenance_root / "overlay"), *package.__path__]
+    # The released application's own backup modules run (docs/runtime-contract.md): the hourly SQLite copies,
+    # retention and status receipt live there (QF-72), and a maintenance overlay placed first on the package path
+    # would shadow them with older code. maintenance_root stays a manifest field and the interpreter's location.
+    package.__path__ = [str(settings.app_root / "src")]
     config.BACKUP_TRANSPORT = "onedrive-api"
     config.BACKUP_ENVIRONMENT = "production"
     config.BACKUP_SPOOL_DIR = settings.runtime_root / "spool" / "Backup"

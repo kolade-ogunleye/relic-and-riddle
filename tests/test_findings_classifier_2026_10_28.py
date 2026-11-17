@@ -291,9 +291,9 @@ def test_a_rule_is_drafted_on_the_free_quota_only_and_the_setting_restored(monke
 
     def call(*a, **k):
         seen.append(free_llm.paid_fallback_allowed())
-        return improve._Rule(rule="Ask an either/or question that the two options answer.")
+        return improve._Rule(rule="Always ask an either/or question that the two options answer.")
     monkeypatch.setattr(free_llm, "call", call)
-    assert improve._draft_rule("script.poll", ["ex"]).startswith("Ask")
+    assert improve._draft_rule("script.poll", ["ex"]).startswith("Always ask")
     assert seen == [False] and free_llm.ALLOW_PAID_FALLBACK is True
     monkeypatch.setattr(free_llm, "enabled", lambda: False)  # the Claude engine is billed: no draft
     assert improve._draft_rule("script.poll", ["ex"]) is None and len(seen) == 1

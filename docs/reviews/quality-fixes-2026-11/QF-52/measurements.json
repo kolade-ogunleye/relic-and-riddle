@@ -1,0 +1,27 @@
+{
+  "fixture_candidates": 48,
+  "automatic_images": 10,
+  "automatic_under_1080": 0,
+  "automatic_under_1350": 1,
+  "automatic_upscale_fraction": 0.1,
+  "minimum_automatic_crop": 1181,
+  "essential_exceptions": 1,
+  "essential_source_bytes_preserved": true,
+  "essential_presentation": {
+    "1080x1920": {
+      "visible_size": [
+        200,
+        150
+      ],
+      "visible_pixels": 30000
+    },
+    "1920x1080": {
+      "visible_size": [
+        200,
+        150
+      ],
+      "visible_pixels": 30000
+    }
+  },
+  "source_commit": "c07930a4798cfbf5469024d997c705770e06cdcd"
+}

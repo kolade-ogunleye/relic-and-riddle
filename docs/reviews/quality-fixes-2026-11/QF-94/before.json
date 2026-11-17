@@ -1,0 +1,265 @@
+{
+ "real": {
+  "fields": 1332,
+  "non_ascii_fields": 80,
+  "family_checks": 5328,
+  "chars_removed": 214,
+  "fields_changed": 14,
+  "fit_chars_removed": 214,
+  "fallback": 0,
+  "refused": 0,
+  "by_family": {
+   "Anton": {
+    "chars_removed": 103,
+    "fallback": 0,
+    "refused": 0
+   },
+   "Montserrat": {
+    "chars_removed": 4,
+    "fallback": 0,
+    "refused": 0
+   },
+   "Cinzel": {
+    "chars_removed": 103,
+    "fallback": 0,
+    "refused": 0
+   },
+   "IBM Plex Mono": {
+    "chars_removed": 4,
+    "fallback": 0,
+    "refused": 0
+   }
+  },
+  "examples": [
+   {
+    "family": "Anton",
+    "field": "File:Mosaik im Bernsteinzimmer - Mosaic in the Amber Room - Мозаика Янтарной комнаты - panoramio.jpg",
+    "drawn": "File:Mosaik im Bernsteinzimmer - Mosaic in the Amber Room - - panoramio.jpg"
+   },
+   {
+    "family": "Cinzel",
+    "field": "File:Mosaik im Bernsteinzimmer - Mosaic in the Amber Room - Мозаика Янтарной комнаты - panoramio.jpg",
+    "drawn": "File:Mosaik im Bernsteinzimmer - Mosaic in the Amber Room - - panoramio.jpg"
+   },
+   {
+    "family": "Anton",
+    "field": "File:Russland - St. Petersburg - Das Bernsteinzimmer - Panoramafoto vom 11.Mai 2012 - The Amber Room panoramic photo from May 11, 2012 - Панорамные фото Янтарная комната с 11 мая 2012 го - panoramio.jpg",
+    "drawn": "File:Russland - St. Petersburg - Das Bernsteinzimmer - Panoramafoto vom 11.Mai 2012 - The Amber Room panoramic photo from May 11, 2012 - 11 2012 - panoramio.jpg"
+   },
+   {
+    "family": "Cinzel",
+    "field": "File:Russland - St. Petersburg - Das Bernsteinzimmer - Panoramafoto vom 11.Mai 2012 - The Amber Room panoramic photo from May 11, 2012 - Панорамные фото Янтарная комната с 11 мая 2012 го - panoramio.jpg",
+    "drawn": "File:Russland - St. Petersburg - Das Bernsteinzimmer - Panoramafoto vom 11.Mai 2012 - The Amber Room panoramic photo from May 11, 2012 - 11 2012 - panoramio.jpg"
+   },
+   {
+    "family": "Anton",
+    "field": "File:WW2 Bunker Museum (Blindage Museum Музей Бункер Battle of Königsberg Museum) Kaliningrad, Russia 2017-10-29 - 43456623775.jpg",
+    "drawn": "File:WW2 Bunker Museum (Blindage Museum Battle of Königsberg Museum) Kaliningrad, Russia 2017-10-29 - 43456623775.jpg"
+   },
+   {
+    "family": "Cinzel",
+    "field": "File:WW2 Bunker Museum (Blindage Museum Музей Бункер Battle of Königsberg Museum) Kaliningrad, Russia 2017-10-29 - 43456623775.jpg",
+    "drawn": "File:WW2 Bunker Museum (Blindage Museum Battle of Königsberg Museum) Kaliningrad, Russia 2017-10-29 - 43456623775.jpg"
+   },
+   {
+    "family": "Anton",
+    "field": "File:WW2 Bunker Museum (Blindage Museum Музей Бункер Battle of Königsberg Museum) Kaliningrad, Russia 2017-10-29 - 43646225214.jpg",
+    "drawn": "File:WW2 Bunker Museum (Blindage Museum Battle of Königsberg Museum) Kaliningrad, Russia 2017-10-29 - 43646225214.jpg"
+   },
+   {
+    "family": "Cinzel",
+    "field": "File:WW2 Bunker Museum (Blindage Museum Музей Бункер Battle of Königsberg Museum) Kaliningrad, Russia 2017-10-29 - 43646225214.jpg",
+    "drawn": "File:WW2 Bunker Museum (Blindage Museum Battle of Königsberg Museum) Kaliningrad, Russia 2017-10-29 - 43646225214.jpg"
+   },
+   {
+    "family": "Anton",
+    "field": "Андрей Андреевич Зеест",
+    "drawn": ""
+   },
+   {
+    "family": "Cinzel",
+    "field": "Андрей Андреевич Зеест",
+    "drawn": ""
+   },
+   {
+    "family": "Anton",
+    "field": "ولاء",
+    "drawn": ""
+   },
+   {
+    "family": "Montserrat",
+    "field": "ولاء",
+    "drawn": ""
+   }
+  ],
+  "refused_reasons": [],
+  "fallbacks": [],
+  "by_source": {
+   "dev": 1331,
+   "fact_sheet": 1
+  },
+  "fallbacks_recorded": 0,
+  "refusals_recorded": 0,
+  "silent_removals": 14,
+  "fallback_faces": {}
+ },
+ "stress": {
+  "fields": 21,
+  "non_ascii_fields": 21,
+  "family_checks": 84,
+  "chars_removed": 405,
+  "fields_changed": 47,
+  "fit_chars_removed": 405,
+  "fallback": 0,
+  "refused": 0,
+  "by_family": {
+   "Anton": {
+    "chars_removed": 122,
+    "fallback": 0,
+    "refused": 0
+   },
+   "Montserrat": {
+    "chars_removed": 75,
+    "fallback": 0,
+    "refused": 0
+   },
+   "Cinzel": {
+    "chars_removed": 131,
+    "fallback": 0,
+    "refused": 0
+   },
+   "IBM Plex Mono": {
+    "chars_removed": 77,
+    "fallback": 0,
+    "refused": 0
+   }
+  },
+  "examples": [
+   {
+    "family": "Anton",
+    "field": "ΑΓΙΑ ΣΟΦΙΑ",
+    "drawn": "Σ"
+   },
+   {
+    "family": "Montserrat",
+    "field": "ΑΓΙΑ ΣΟΦΙΑ",
+    "drawn": ""
+   },
+   {
+    "family": "Cinzel",
+    "field": "ΑΓΙΑ ΣΟΦΙΑ",
+    "drawn": ""
+   },
+   {
+    "family": "IBM Plex Mono",
+    "field": "ΑΓΙΑ ΣΟΦΙΑ",
+    "drawn": ""
+   },
+   {
+    "family": "Anton",
+    "field": "Αγία Σοφία",
+    "drawn": "Σ"
+   },
+   {
+    "family": "Montserrat",
+    "field": "Αγία Σοφία",
+    "drawn": ""
+   },
+   {
+    "family": "Cinzel",
+    "field": "Αγία Σοφία",
+    "drawn": ""
+   },
+   {
+    "family": "IBM Plex Mono",
+    "field": "Αγία Σοφία",
+    "drawn": ""
+   },
+   {
+    "family": "Anton",
+    "field": "ΓΝΩΘΙ ΣΑΥΤΟΝ",
+    "drawn": "Ω Σ"
+   },
+   {
+    "family": "Montserrat",
+    "field": "ΓΝΩΘΙ ΣΑΥΤΟΝ",
+    "drawn": "Ω"
+   },
+   {
+    "family": "Cinzel",
+    "field": "ΓΝΩΘΙ ΣΑΥΤΟΝ",
+    "drawn": "Ω"
+   },
+   {
+    "family": "IBM Plex Mono",
+    "field": "ΓΝΩΘΙ ΣΑΥΤΟΝ",
+    "drawn": ""
+   }
+  ],
+  "refused_reasons": [],
+  "fallbacks": [],
+  "fallbacks_recorded": 0,
+  "refusals_recorded": 0,
+  "silent_removals": 47,
+  "fallback_faces": {}
+ },
+ "production": {
+  "fields": 1357,
+  "non_ascii_fields": 101,
+  "family_checks": 5428,
+  "chars_removed": 144,
+  "fields_changed": 6,
+  "fit_chars_removed": 144,
+  "fallback": 0,
+  "refused": 0,
+  "by_family": {
+   "Anton": {
+    "chars_removed": 72,
+    "fallback": 0,
+    "refused": 0
+   },
+   "Montserrat": {
+    "chars_removed": 0,
+    "fallback": 0,
+    "refused": 0
+   },
+   "Cinzel": {
+    "chars_removed": 72,
+    "fallback": 0,
+    "refused": 0
+   },
+   "IBM Plex Mono": {
+    "chars_removed": 0,
+    "fallback": 0,
+    "refused": 0
+   }
+  },
+  "field_rows": 2955,
+  "runs": 34,
+  "fallbacks_recorded": 0,
+  "refusals_recorded": 0,
+  "silent_removals": 6,
+  "fallback_faces": {}
+ },
+ "ledger_events": {},
+ "fallback_match": {},
+ "arabic": {
+  "bundled_faces_mapping_arabic": {},
+  "bundled_faces": 7,
+  "tracked_run_direction": "ltr",
+  "arabic_clusters_in_visual_order": [
+   15,
+   16,
+   17,
+   18,
+   19,
+   20,
+   21,
+   22,
+   23,
+   24
+  ],
+  "arabic_drawn_left_to_right": true
+ },
+ "fallback_files": {}
+}

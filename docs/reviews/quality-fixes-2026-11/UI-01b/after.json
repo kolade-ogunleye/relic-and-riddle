@@ -1,0 +1,14 @@
+{
+ "condition_items": [
+  "late",
+  "photos",
+  "reviews"
+ ],
+ "dashboard_needs_you_lines": 0,
+ "dashboard_says_nothing_needs_you": false,
+ "digest_messages_with_sound": 0,
+ "lock_probe_threads_stuck": 0,
+ "messages_sent_for_a_typed_photos_upload": 0,
+ "messages_sent_for_six_requests": 0,
+ "older_card_became_the_dashboard": false
+}

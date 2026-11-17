@@ -124,7 +124,12 @@ def test_a_cover_keeps_the_balanced_heros_hue_and_saturation(tmp_path):
     h_ref, s_ref = cb._hsv(ref[patch])
     h_got, s_got = cb._hsv(got[patch])
     k = s_ref > 0.12
-    assert abs(float(np.median(h_got[k]) - np.median(h_ref[k]))) < 2.0
+    # QF-13 (decisions/QF-13.md, 2026-11-10): the hero is now the lossless balanced copy. The old 2.0 deg passed only
+    # because the reference hero had itself been through a JPEG round trip (the parent's cover measured 3.96 deg
+    # against the lossless hero). On this dark, low-saturation patch the median hue quantises on 8-bit YCbCr: 4.62
+    # deg here. Real covers are no worse than the parent's on the full frame, with the median unchanged
+    # (QF-13/measure_covers.py). The limit is that shift rounded up to 0.5 deg; QF-101 (cover encoding) restores 2.0.
+    assert abs(float(np.median(h_got[k]) - np.median(h_ref[k]))) < 5.0
     scale = got[patch].reshape(-1, 3).mean(axis=0) / ref[patch].reshape(-1, 3).mean(axis=0)
     assert float(scale.max() / scale.min()) < 1.03     # a neutral dim at most: every channel scaled alike, no tint
 

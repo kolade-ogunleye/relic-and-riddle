@@ -119,11 +119,11 @@ Describe 'Deploy key access' {
 
 Describe 'Settings and signer' {
     It 'reads the pinned signer principal' {
-        Get-ContentSignerPrincipal -Path (Join-Path $PSScriptRoot '../release/allowed_signers') | Should -Contain 'kolade-ogunleye'
+        Get-ContentSignerPrincipal -Path (Join-Path $PSScriptRoot '../release/allowed_signers') | Should -Contain 'release-signer'
     }
 
     It 'builds the deployer settings' {
-        $s = New-ContentDeployerSettings -Git 'C:\g\git.exe' -Ssh 'C:\s\ssh.exe' -Repository 'git@github.com:kolade-ogunleye/relic-and-riddle.git' -Signer 'kolade-ogunleye' -CheckMinutes 2
+        $s = New-ContentDeployerSettings -Git 'C:\g\git.exe' -Ssh 'C:\s\ssh.exe' -Repository 'git@github.com:example/relic-and-riddle.git' -Signer 'release-signer' -CheckMinutes 2
         @($s.Keys) | Should -Be @('git', 'ssh', 'repository', 'signer', 'check_minutes')
         $s.check_minutes | Should -Be 2
     }

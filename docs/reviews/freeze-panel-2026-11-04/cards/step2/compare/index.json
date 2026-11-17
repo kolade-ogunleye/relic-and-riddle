@@ -1,0 +1,2736 @@
+[
+ {
+  "compare": "chapter_169_act1_dark__last.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (real act title, test-gated)"
+  ],
+  "before": "REFUSED: a chapter title is 1-32 characters",
+  "current": "REFUSED: a chapter title is 1-32 characters"
+ },
+ {
+  "compare": "chapter_169_act2_bright__last.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (real act title, test-gated)"
+  ],
+  "before": "title_px 152, title lines 2, min contrast 7.51, t 3.467 s",
+  "current": "title_px 152, title lines 2, min contrast 7.43, t 3.467 s"
+ },
+ {
+  "compare": "chapter_169_act2_bright__mid.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (real act title, test-gated)"
+  ],
+  "before": "title_px 152, title lines 2, t 1.167 s",
+  "current": "title_px 152, title lines 2, t 1.167 s"
+ },
+ {
+  "compare": "chapter_169_act2_busy__last.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (real act title, test-gated)"
+  ],
+  "before": "title_px 152, title lines 2, min contrast 9.93, t 3.467 s",
+  "current": "title_px 152, title lines 2, min contrast 9.87, t 3.467 s"
+ },
+ {
+  "compare": "chapter_169_act2_busy__mid.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (real act title, test-gated)"
+  ],
+  "before": "title_px 152, title lines 2, t 1.167 s",
+  "current": "title_px 152, title lines 2, t 1.167 s"
+ },
+ {
+  "compare": "chapter_169_act2_dark__last.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (real act title, test-gated)"
+  ],
+  "before": "title_px 152, title lines 2, min contrast 7.69, t 3.467 s",
+  "current": "title_px 152, title lines 2, min contrast 7.69, t 3.467 s"
+ },
+ {
+  "compare": "chapter_169_act2_dark__mid.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (real act title, test-gated)"
+  ],
+  "before": "title_px 152, title lines 2, t 1.167 s",
+  "current": "title_px 152, title lines 2, t 1.167 s"
+ },
+ {
+  "compare": "chapter_169_act2_hero__last.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (real act title, test-gated)"
+  ],
+  "before": "title_px 152, title lines 2, min contrast 9.78, t 3.467 s",
+  "current": "title_px 152, title lines 2, min contrast 9.61, t 3.467 s"
+ },
+ {
+  "compare": "chapter_169_act2_hero__mid.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (real act title, test-gated)"
+  ],
+  "before": "title_px 152, title lines 2, t 1.167 s",
+  "current": "title_px 152, title lines 2, t 1.167 s"
+ },
+ {
+  "compare": "chapter_169_act2_plain__last.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (real act title, test-gated)"
+  ],
+  "before": "title_px 152, title lines 2, min contrast 9.09, t 3.467 s",
+  "current": "title_px 152, title lines 2, min contrast 9.09, t 3.467 s"
+ },
+ {
+  "compare": "chapter_169_act2_plain__mid.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (real act title, test-gated)"
+  ],
+  "before": "title_px 152, title lines 2, t 1.167 s",
+  "current": "title_px 152, title lines 2, t 1.167 s"
+ },
+ {
+  "compare": "chapter_169_act3_bright__last.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (real act title, test-gated)"
+  ],
+  "before": "title_px 176, title lines 2, min contrast 7.52, t 3.467 s",
+  "current": "title_px 176, title lines 2, min contrast 7.44, t 3.467 s"
+ },
+ {
+  "compare": "chapter_169_act3_bright__mid.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (real act title, test-gated)"
+  ],
+  "before": "title_px 176, title lines 2, t 1.167 s",
+  "current": "title_px 176, title lines 2, t 1.167 s"
+ },
+ {
+  "compare": "chapter_169_act3_busy__last.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (real act title, test-gated)"
+  ],
+  "before": "title_px 176, title lines 2, min contrast 10.02, t 3.467 s",
+  "current": "title_px 176, title lines 2, min contrast 9.96, t 3.467 s"
+ },
+ {
+  "compare": "chapter_169_act3_busy__mid.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (real act title, test-gated)"
+  ],
+  "before": "title_px 176, title lines 2, t 1.167 s",
+  "current": "title_px 176, title lines 2, t 1.167 s"
+ },
+ {
+  "compare": "chapter_169_act3_dark__last.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (real act title, test-gated)"
+  ],
+  "before": "title_px 176, title lines 2, min contrast 7.69, t 3.467 s",
+  "current": "title_px 176, title lines 2, min contrast 7.69, t 3.467 s"
+ },
+ {
+  "compare": "chapter_169_act3_dark__mid.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (real act title, test-gated)"
+  ],
+  "before": "title_px 176, title lines 2, t 1.167 s",
+  "current": "title_px 176, title lines 2, t 1.167 s"
+ },
+ {
+  "compare": "chapter_169_act3_hero__last.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (real act title, test-gated)"
+  ],
+  "before": "title_px 176, title lines 2, min contrast 9.87, t 3.467 s",
+  "current": "title_px 176, title lines 2, min contrast 9.61, t 3.467 s"
+ },
+ {
+  "compare": "chapter_169_act3_hero__mid.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (real act title, test-gated)"
+  ],
+  "before": "title_px 176, title lines 2, t 1.167 s",
+  "current": "title_px 176, title lines 2, t 1.167 s"
+ },
+ {
+  "compare": "chapter_169_act3_plain__last.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (real act title, test-gated)"
+  ],
+  "before": "title_px 176, title lines 2, min contrast 9.09, t 3.467 s",
+  "current": "title_px 176, title lines 2, min contrast 9.09, t 3.467 s"
+ },
+ {
+  "compare": "chapter_169_act3_plain__mid.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (real act title, test-gated)"
+  ],
+  "before": "title_px 176, title lines 2, t 1.167 s",
+  "current": "title_px 176, title lines 2, t 1.167 s"
+ },
+ {
+  "compare": "chapter_169_act4_dark__last.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (real act title, test-gated)"
+  ],
+  "before": "REFUSED: a chapter title is 1-32 characters",
+  "current": "REFUSED: a chapter title is 1-32 characters"
+ },
+ {
+  "compare": "chapter_169_act5_dark__last.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (real act title, test-gated)"
+  ],
+  "before": "REFUSED: a chapter title is 1-32 characters",
+  "current": "REFUSED: a chapter title is 1-32 characters"
+ },
+ {
+  "compare": "chapter_916_act1_dark__last.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (real act title, test-gated)",
+   "new: 9:16 chapter card of the 16:9 deep dive's act"
+  ],
+  "before": "REFUSED: a chapter title is 1-32 characters",
+  "current": "REFUSED: a chapter title is 1-32 characters"
+ },
+ {
+  "compare": "chapter_916_act2_bright__last.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (real act title, test-gated)",
+   "new: 9:16 chapter card of the 16:9 deep dive's act"
+  ],
+  "before": "title_px 88, title lines 2, min contrast 7.31, t 2.467 s",
+  "current": "title_px 128, title lines 3, min contrast 7.08, t 2.467 s"
+ },
+ {
+  "compare": "chapter_916_act2_bright__mid.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (real act title, test-gated)",
+   "new: 9:16 chapter card of the 16:9 deep dive's act"
+  ],
+  "before": "title_px 88, title lines 2, t 0.833 s",
+  "current": "title_px 128, title lines 3, t 0.833 s"
+ },
+ {
+  "compare": "chapter_916_act2_busy__last.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (real act title, test-gated)",
+   "new: 9:16 chapter card of the 16:9 deep dive's act"
+  ],
+  "before": "title_px 88, title lines 2, min contrast 8.6, t 2.467 s",
+  "current": "title_px 128, title lines 3, min contrast 8.52, t 2.467 s"
+ },
+ {
+  "compare": "chapter_916_act2_busy__mid.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (real act title, test-gated)",
+   "new: 9:16 chapter card of the 16:9 deep dive's act"
+  ],
+  "before": "title_px 88, title lines 2, t 0.833 s",
+  "current": "title_px 128, title lines 3, t 0.833 s"
+ },
+ {
+  "compare": "chapter_916_act2_dark__last.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (real act title, test-gated)",
+   "new: 9:16 chapter card of the 16:9 deep dive's act"
+  ],
+  "before": "title_px 88, title lines 2, min contrast 7.68, t 2.467 s",
+  "current": "title_px 128, title lines 3, min contrast 7.45, t 2.467 s"
+ },
+ {
+  "compare": "chapter_916_act2_dark__mid.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (real act title, test-gated)",
+   "new: 9:16 chapter card of the 16:9 deep dive's act"
+  ],
+  "before": "title_px 88, title lines 2, t 0.833 s",
+  "current": "title_px 128, title lines 3, t 0.833 s"
+ },
+ {
+  "compare": "chapter_916_act2_hero__last.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (real act title, test-gated)",
+   "new: 9:16 chapter card of the 16:9 deep dive's act"
+  ],
+  "before": "title_px 88, title lines 2, min contrast 9.38, t 2.467 s",
+  "current": "title_px 128, title lines 3, min contrast 9.35, t 2.467 s"
+ },
+ {
+  "compare": "chapter_916_act2_hero__mid.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (real act title, test-gated)",
+   "new: 9:16 chapter card of the 16:9 deep dive's act"
+  ],
+  "before": "title_px 88, title lines 2, t 0.833 s",
+  "current": "title_px 128, title lines 3, t 0.833 s"
+ },
+ {
+  "compare": "chapter_916_act2_plain__last.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (real act title, test-gated)",
+   "new: 9:16 chapter card of the 16:9 deep dive's act"
+  ],
+  "before": "title_px 88, title lines 2, min contrast 9.09, t 2.467 s",
+  "current": "title_px 128, title lines 3, min contrast 9.09, t 2.467 s"
+ },
+ {
+  "compare": "chapter_916_act2_plain__mid.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (real act title, test-gated)",
+   "new: 9:16 chapter card of the 16:9 deep dive's act"
+  ],
+  "before": "title_px 88, title lines 2, t 0.833 s",
+  "current": "title_px 128, title lines 3, t 0.833 s"
+ },
+ {
+  "compare": "chapter_916_act3_bright__last.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (real act title, test-gated)",
+   "new: 9:16 chapter card of the 16:9 deep dive's act"
+  ],
+  "before": "title_px 112, title lines 2, min contrast 7.42, t 2.467 s",
+  "current": "title_px 120, title lines 2, min contrast 7.1, t 2.467 s"
+ },
+ {
+  "compare": "chapter_916_act3_bright__mid.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (real act title, test-gated)",
+   "new: 9:16 chapter card of the 16:9 deep dive's act"
+  ],
+  "before": "title_px 112, title lines 2, t 0.833 s",
+  "current": "title_px 120, title lines 2, t 0.833 s"
+ },
+ {
+  "compare": "chapter_916_act3_busy__last.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (real act title, test-gated)",
+   "new: 9:16 chapter card of the 16:9 deep dive's act"
+  ],
+  "before": "title_px 112, title lines 2, min contrast 8.69, t 2.467 s",
+  "current": "title_px 120, title lines 2, min contrast 8.6, t 2.467 s"
+ },
+ {
+  "compare": "chapter_916_act3_busy__mid.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (real act title, test-gated)",
+   "new: 9:16 chapter card of the 16:9 deep dive's act"
+  ],
+  "before": "title_px 112, title lines 2, t 0.833 s",
+  "current": "title_px 120, title lines 2, t 0.833 s"
+ },
+ {
+  "compare": "chapter_916_act3_dark__last.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (real act title, test-gated)",
+   "new: 9:16 chapter card of the 16:9 deep dive's act"
+  ],
+  "before": "title_px 112, title lines 2, min contrast 7.68, t 2.467 s",
+  "current": "title_px 120, title lines 2, min contrast 7.35, t 2.467 s"
+ },
+ {
+  "compare": "chapter_916_act3_dark__mid.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (real act title, test-gated)",
+   "new: 9:16 chapter card of the 16:9 deep dive's act"
+  ],
+  "before": "title_px 112, title lines 2, t 0.833 s",
+  "current": "title_px 120, title lines 2, t 0.833 s"
+ },
+ {
+  "compare": "chapter_916_act3_hero__last.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (real act title, test-gated)",
+   "new: 9:16 chapter card of the 16:9 deep dive's act"
+  ],
+  "before": "title_px 112, title lines 2, min contrast 9.38, t 2.467 s",
+  "current": "title_px 120, title lines 2, min contrast 9.33, t 2.467 s"
+ },
+ {
+  "compare": "chapter_916_act3_hero__mid.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (real act title, test-gated)",
+   "new: 9:16 chapter card of the 16:9 deep dive's act"
+  ],
+  "before": "title_px 112, title lines 2, t 0.833 s",
+  "current": "title_px 120, title lines 2, t 0.833 s"
+ },
+ {
+  "compare": "chapter_916_act3_plain__last.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (real act title, test-gated)",
+   "new: 9:16 chapter card of the 16:9 deep dive's act"
+  ],
+  "before": "title_px 112, title lines 2, min contrast 9.09, t 2.467 s",
+  "current": "title_px 120, title lines 2, min contrast 9.09, t 2.467 s"
+ },
+ {
+  "compare": "chapter_916_act3_plain__mid.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (real act title, test-gated)",
+   "new: 9:16 chapter card of the 16:9 deep dive's act"
+  ],
+  "before": "title_px 112, title lines 2, t 0.833 s",
+  "current": "title_px 120, title lines 2, t 0.833 s"
+ },
+ {
+  "compare": "chapter_916_act4_dark__last.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (real act title, test-gated)",
+   "new: 9:16 chapter card of the 16:9 deep dive's act"
+  ],
+  "before": "REFUSED: a chapter title is 1-32 characters",
+  "current": "REFUSED: a chapter title is 1-32 characters"
+ },
+ {
+  "compare": "chapter_916_act5_dark__last.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (real act title, test-gated)",
+   "new: 9:16 chapter card of the 16:9 deep dive's act"
+  ],
+  "before": "REFUSED: a chapter title is 1-32 characters",
+  "current": "REFUSED: a chapter title is 1-32 characters"
+ },
+ {
+  "compare": "hook_916_disassembled_in_36_hours_bright__f00.jpg",
+  "run": "run_amber_room_heist_1792801257",
+  "topic": "amber_room_heist",
+  "labels": [
+   "new: real fact, test-signed field (statement from amber-room-nazi-looting-1941)"
+  ],
+  "before": "P 128, lines 2, min contrast 5.4, t 0.0 s",
+  "current": "P 144, lines 2, min contrast 8.31, t 0.0 s"
+ },
+ {
+  "compare": "hook_916_disassembled_in_36_hours_bright__f32.jpg",
+  "run": "run_amber_room_heist_1792801257",
+  "topic": "amber_room_heist",
+  "labels": [
+   "new: real fact, test-signed field (statement from amber-room-nazi-looting-1941)"
+  ],
+  "before": "P 128, lines 2, min contrast 5.28, t 1.067 s",
+  "current": "P 144, lines 2, min contrast 8.28, t 1.067 s"
+ },
+ {
+  "compare": "hook_916_disassembled_in_36_hours_bright__f37.jpg",
+  "run": "run_amber_room_heist_1792801257",
+  "topic": "amber_room_heist",
+  "labels": [
+   "new: real fact, test-signed field (statement from amber-room-nazi-looting-1941)"
+  ],
+  "before": "P 128, lines 2, t 1.233 s",
+  "current": "P 144, lines 2, t 1.233 s"
+ },
+ {
+  "compare": "hook_916_disassembled_in_36_hours_busy__f00.jpg",
+  "run": "run_amber_room_heist_1792801257",
+  "topic": "amber_room_heist",
+  "labels": [
+   "new: real fact, test-signed field (statement from amber-room-nazi-looting-1941)"
+  ],
+  "before": "P 128, lines 2, min contrast 5.69, t 0.0 s",
+  "current": "P 144, lines 2, min contrast 8.45, t 0.0 s"
+ },
+ {
+  "compare": "hook_916_disassembled_in_36_hours_busy__f32.jpg",
+  "run": "run_amber_room_heist_1792801257",
+  "topic": "amber_room_heist",
+  "labels": [
+   "new: real fact, test-signed field (statement from amber-room-nazi-looting-1941)"
+  ],
+  "before": "P 128, lines 2, min contrast 5.55, t 1.067 s",
+  "current": "P 144, lines 2, min contrast 8.35, t 1.067 s"
+ },
+ {
+  "compare": "hook_916_disassembled_in_36_hours_busy__f37.jpg",
+  "run": "run_amber_room_heist_1792801257",
+  "topic": "amber_room_heist",
+  "labels": [
+   "new: real fact, test-signed field (statement from amber-room-nazi-looting-1941)"
+  ],
+  "before": "P 128, lines 2, t 1.233 s",
+  "current": "P 144, lines 2, t 1.233 s"
+ },
+ {
+  "compare": "hook_916_disassembled_in_36_hours_dark__f00.jpg",
+  "run": "run_amber_room_heist_1792801257",
+  "topic": "amber_room_heist",
+  "labels": [
+   "new: real fact, test-signed field (statement from amber-room-nazi-looting-1941)"
+  ],
+  "before": "P 128, lines 2, min contrast 5.17, t 0.0 s",
+  "current": "P 144, lines 2, min contrast 7.44, t 0.0 s"
+ },
+ {
+  "compare": "hook_916_disassembled_in_36_hours_dark__f32.jpg",
+  "run": "run_amber_room_heist_1792801257",
+  "topic": "amber_room_heist",
+  "labels": [
+   "new: real fact, test-signed field (statement from amber-room-nazi-looting-1941)"
+  ],
+  "before": "P 128, lines 2, min contrast 5.01, t 1.067 s",
+  "current": "P 144, lines 2, min contrast 8.35, t 1.067 s"
+ },
+ {
+  "compare": "hook_916_disassembled_in_36_hours_dark__f37.jpg",
+  "run": "run_amber_room_heist_1792801257",
+  "topic": "amber_room_heist",
+  "labels": [
+   "new: real fact, test-signed field (statement from amber-room-nazi-looting-1941)"
+  ],
+  "before": "P 128, lines 2, t 1.233 s",
+  "current": "P 144, lines 2, t 1.233 s"
+ },
+ {
+  "compare": "hook_916_etched_into_the_nazca_desert_bright__last.jpg",
+  "run": "run_nazca_lines_runway_paradox_1793247464",
+  "topic": "nazca_lines_runway_paradox",
+  "labels": [
+   "new: real fact, test-signed field (statement from nazca-location)"
+  ],
+  "before": "REFUSED: the claim repeats the first caption burst",
+  "current": "REFUSED: the claim repeats the first caption burst"
+ },
+ {
+  "compare": "hook_916_etched_into_the_nazca_desert_busy__last.jpg",
+  "run": "run_nazca_lines_runway_paradox_1793247464",
+  "topic": "nazca_lines_runway_paradox",
+  "labels": [
+   "new: real fact, test-signed field (statement from nazca-location)"
+  ],
+  "before": "REFUSED: the claim repeats the first caption burst",
+  "current": "REFUSED: the claim repeats the first caption burst"
+ },
+ {
+  "compare": "hook_916_etched_into_the_nazca_desert_dark__last.jpg",
+  "run": "run_nazca_lines_runway_paradox_1793247464",
+  "topic": "nazca_lines_runway_paradox",
+  "labels": [
+   "new: real fact, test-signed field (statement from nazca-location)"
+  ],
+  "before": "REFUSED: the claim repeats the first caption burst",
+  "current": "REFUSED: the claim repeats the first caption burst"
+ },
+ {
+  "compare": "hook_916_etched_into_the_nazca_desert_hero__last.jpg",
+  "run": "run_nazca_lines_runway_paradox_1793247464",
+  "topic": "nazca_lines_runway_paradox",
+  "labels": [
+   "new: real fact, test-signed field (statement from nazca-location)"
+  ],
+  "before": "REFUSED: the claim repeats the first caption burst",
+  "current": "REFUSED: the claim repeats the first caption burst"
+ },
+ {
+  "compare": "hook_916_inscribed_in_1994_bright__f00.jpg",
+  "run": "run_nazca_lines_runway_paradox_1793247464",
+  "topic": "nazca_lines_runway_paradox",
+  "labels": [
+   "new: real fact, test-signed field (statement from nazca-unesco-listing)"
+  ],
+  "before": "P 128, lines 2, min contrast 5.53, t 0.0 s",
+  "current": "P 176, lines 2, min contrast 5.53, t 0.0 s"
+ },
+ {
+  "compare": "hook_916_inscribed_in_1994_bright__f32.jpg",
+  "run": "run_nazca_lines_runway_paradox_1793247464",
+  "topic": "nazca_lines_runway_paradox",
+  "labels": [
+   "new: real fact, test-signed field (statement from nazca-unesco-listing)"
+  ],
+  "before": "P 128, lines 2, min contrast 5.54, t 1.067 s",
+  "current": "P 176, lines 2, min contrast 5.53, t 1.067 s"
+ },
+ {
+  "compare": "hook_916_inscribed_in_1994_bright__f37.jpg",
+  "run": "run_nazca_lines_runway_paradox_1793247464",
+  "topic": "nazca_lines_runway_paradox",
+  "labels": [
+   "new: real fact, test-signed field (statement from nazca-unesco-listing)"
+  ],
+  "before": "P 128, lines 2, t 1.233 s",
+  "current": "P 176, lines 2, t 1.233 s"
+ },
+ {
+  "compare": "hook_916_inscribed_in_1994_busy__f00.jpg",
+  "run": "run_nazca_lines_runway_paradox_1793247464",
+  "topic": "nazca_lines_runway_paradox",
+  "labels": [
+   "new: real fact, test-signed field (statement from nazca-unesco-listing)"
+  ],
+  "before": "P 128, lines 2, min contrast 5.61, t 0.0 s",
+  "current": "P 176, lines 2, min contrast 5.6, t 0.0 s"
+ },
+ {
+  "compare": "hook_916_inscribed_in_1994_busy__f32.jpg",
+  "run": "run_nazca_lines_runway_paradox_1793247464",
+  "topic": "nazca_lines_runway_paradox",
+  "labels": [
+   "new: real fact, test-signed field (statement from nazca-unesco-listing)"
+  ],
+  "before": "P 128, lines 2, min contrast 5.69, t 1.067 s",
+  "current": "P 176, lines 2, min contrast 5.74, t 1.067 s"
+ },
+ {
+  "compare": "hook_916_inscribed_in_1994_busy__f37.jpg",
+  "run": "run_nazca_lines_runway_paradox_1793247464",
+  "topic": "nazca_lines_runway_paradox",
+  "labels": [
+   "new: real fact, test-signed field (statement from nazca-unesco-listing)"
+  ],
+  "before": "P 128, lines 2, t 1.233 s",
+  "current": "P 176, lines 2, t 1.233 s"
+ },
+ {
+  "compare": "hook_916_inscribed_in_1994_dark__f00.jpg",
+  "run": "run_nazca_lines_runway_paradox_1793247464",
+  "topic": "nazca_lines_runway_paradox",
+  "labels": [
+   "new: real fact, test-signed field (statement from nazca-unesco-listing)"
+  ],
+  "before": "P 128, lines 2, min contrast 5.43, t 0.0 s",
+  "current": "P 176, lines 2, min contrast 8.4, t 0.0 s"
+ },
+ {
+  "compare": "hook_916_inscribed_in_1994_dark__f32.jpg",
+  "run": "run_nazca_lines_runway_paradox_1793247464",
+  "topic": "nazca_lines_runway_paradox",
+  "labels": [
+   "new: real fact, test-signed field (statement from nazca-unesco-listing)"
+  ],
+  "before": "P 128, lines 2, min contrast 5.47, t 1.067 s",
+  "current": "P 176, lines 2, min contrast 8.44, t 1.067 s"
+ },
+ {
+  "compare": "hook_916_inscribed_in_1994_dark__f37.jpg",
+  "run": "run_nazca_lines_runway_paradox_1793247464",
+  "topic": "nazca_lines_runway_paradox",
+  "labels": [
+   "new: real fact, test-signed field (statement from nazca-unesco-listing)"
+  ],
+  "before": "P 128, lines 2, t 1.233 s",
+  "current": "P 176, lines 2, t 1.233 s"
+ },
+ {
+  "compare": "hook_916_inscribed_in_1994_hero__f00.jpg",
+  "run": "run_nazca_lines_runway_paradox_1793247464",
+  "topic": "nazca_lines_runway_paradox",
+  "labels": [
+   "new: real fact, test-signed field (statement from nazca-unesco-listing)"
+  ],
+  "before": "P 128, lines 2, min contrast 5.41, t 0.0 s",
+  "current": "P 176, lines 2, min contrast 5.43, t 0.0 s"
+ },
+ {
+  "compare": "hook_916_inscribed_in_1994_hero__f32.jpg",
+  "run": "run_nazca_lines_runway_paradox_1793247464",
+  "topic": "nazca_lines_runway_paradox",
+  "labels": [
+   "new: real fact, test-signed field (statement from nazca-unesco-listing)"
+  ],
+  "before": "P 128, lines 2, min contrast 5.45, t 1.067 s",
+  "current": "P 176, lines 2, min contrast 5.5, t 1.067 s"
+ },
+ {
+  "compare": "hook_916_inscribed_in_1994_hero__f37.jpg",
+  "run": "run_nazca_lines_runway_paradox_1793247464",
+  "topic": "nazca_lines_runway_paradox",
+  "labels": [
+   "new: real fact, test-signed field (statement from nazca-unesco-listing)"
+  ],
+  "before": "P 128, lines 2, t 1.233 s",
+  "current": "P 176, lines 2, t 1.233 s"
+ },
+ {
+  "compare": "hook_916_rippled_across_the_globe_bright__f00.jpg",
+  "run": "run_tunguska_event_1908_1792930600",
+  "topic": "tunguska_event_1908",
+  "labels": [
+   "new: real fact, test-signed field (statement from tunguska-atmos-07)"
+  ],
+  "before": "P 120, lines 2, min contrast 9.81, t 0.0 s",
+  "current": "P 112, lines 2, min contrast 9.81, t 0.0 s"
+ },
+ {
+  "compare": "hook_916_rippled_across_the_globe_bright__f32.jpg",
+  "run": "run_tunguska_event_1908_1792930600",
+  "topic": "tunguska_event_1908",
+  "labels": [
+   "new: real fact, test-signed field (statement from tunguska-atmos-07)"
+  ],
+  "before": "P 120, lines 2, min contrast 9.83, t 1.067 s",
+  "current": "P 112, lines 2, min contrast 9.83, t 1.067 s"
+ },
+ {
+  "compare": "hook_916_rippled_across_the_globe_bright__f37.jpg",
+  "run": "run_tunguska_event_1908_1792930600",
+  "topic": "tunguska_event_1908",
+  "labels": [
+   "new: real fact, test-signed field (statement from tunguska-atmos-07)"
+  ],
+  "before": "P 120, lines 2, t 1.233 s",
+  "current": "P 112, lines 2, t 1.233 s"
+ },
+ {
+  "compare": "hook_916_rippled_across_the_globe_busy__f00.jpg",
+  "run": "run_tunguska_event_1908_1792930600",
+  "topic": "tunguska_event_1908",
+  "labels": [
+   "new: real fact, test-signed field (statement from tunguska-atmos-07)"
+  ],
+  "before": "P 120, lines 2, min contrast 6.06, t 0.0 s",
+  "current": "P 128, lines 2, min contrast 8.67, t 0.0 s"
+ },
+ {
+  "compare": "hook_916_rippled_across_the_globe_busy__f32.jpg",
+  "run": "run_tunguska_event_1908_1792930600",
+  "topic": "tunguska_event_1908",
+  "labels": [
+   "new: real fact, test-signed field (statement from tunguska-atmos-07)"
+  ],
+  "before": "P 120, lines 2, min contrast 6.22, t 1.067 s",
+  "current": "P 128, lines 2, min contrast 8.79, t 1.067 s"
+ },
+ {
+  "compare": "hook_916_rippled_across_the_globe_busy__f37.jpg",
+  "run": "run_tunguska_event_1908_1792930600",
+  "topic": "tunguska_event_1908",
+  "labels": [
+   "new: real fact, test-signed field (statement from tunguska-atmos-07)"
+  ],
+  "before": "P 120, lines 2, t 1.233 s",
+  "current": "P 128, lines 2, t 1.233 s"
+ },
+ {
+  "compare": "hook_916_rippled_across_the_globe_dark__f00.jpg",
+  "run": "run_tunguska_event_1908_1792930600",
+  "topic": "tunguska_event_1908",
+  "labels": [
+   "new: real fact, test-signed field (statement from tunguska-atmos-07)"
+  ],
+  "before": "P 120, lines 2, min contrast 5.1, t 0.0 s",
+  "current": "P 128, lines 2, min contrast 5.27, t 0.0 s"
+ },
+ {
+  "compare": "hook_916_rippled_across_the_globe_dark__f32.jpg",
+  "run": "run_tunguska_event_1908_1792930600",
+  "topic": "tunguska_event_1908",
+  "labels": [
+   "new: real fact, test-signed field (statement from tunguska-atmos-07)"
+  ],
+  "before": "P 120, lines 2, min contrast 5.13, t 1.067 s",
+  "current": "P 128, lines 2, min contrast 5.33, t 1.067 s"
+ },
+ {
+  "compare": "hook_916_rippled_across_the_globe_dark__f37.jpg",
+  "run": "run_tunguska_event_1908_1792930600",
+  "topic": "tunguska_event_1908",
+  "labels": [
+   "new: real fact, test-signed field (statement from tunguska-atmos-07)"
+  ],
+  "before": "P 120, lines 2, t 1.233 s",
+  "current": "P 128, lines 2, t 1.233 s"
+ },
+ {
+  "compare": "hook_916_rippled_across_the_globe_hero__f00.jpg",
+  "run": "run_tunguska_event_1908_1792930600",
+  "topic": "tunguska_event_1908",
+  "labels": [
+   "new: real fact, test-signed field (statement from tunguska-atmos-07)"
+  ],
+  "before": "P 120, lines 2, min contrast 5.11, t 0.0 s",
+  "current": "P 128, lines 2, min contrast 5.28, t 0.0 s"
+ },
+ {
+  "compare": "hook_916_rippled_across_the_globe_hero__f32.jpg",
+  "run": "run_tunguska_event_1908_1792930600",
+  "topic": "tunguska_event_1908",
+  "labels": [
+   "new: real fact, test-signed field (statement from tunguska-atmos-07)"
+  ],
+  "before": "P 120, lines 2, min contrast 4.96, t 1.067 s",
+  "current": "P 128, lines 2, min contrast 5.11, t 1.067 s"
+ },
+ {
+  "compare": "hook_916_rippled_across_the_globe_hero__f37.jpg",
+  "run": "run_tunguska_event_1908_1792930600",
+  "topic": "tunguska_event_1908",
+  "labels": [
+   "new: real fact, test-signed field (statement from tunguska-atmos-07)"
+  ],
+  "before": "P 120, lines 2, t 1.233 s",
+  "current": "P 128, lines 2, t 1.233 s"
+ },
+ {
+  "compare": "hook_916_shipped_to_k_nigsberg_castle_bright__f00.jpg",
+  "run": "run_amber_room_heist_1792801257",
+  "topic": "amber_room_heist",
+  "labels": [
+   "new: real fact, test-signed field (statement from amber-room-nazi-looting-1941)"
+  ],
+  "before": "P 112, lines 3, min contrast 5.54, t 0.0 s",
+  "current": "P 128, lines 3, min contrast 8.17, t 0.0 s"
+ },
+ {
+  "compare": "hook_916_shipped_to_k_nigsberg_castle_bright__f32.jpg",
+  "run": "run_amber_room_heist_1792801257",
+  "topic": "amber_room_heist",
+  "labels": [
+   "new: real fact, test-signed field (statement from amber-room-nazi-looting-1941)"
+  ],
+  "before": "P 112, lines 3, min contrast 5.87, t 1.067 s",
+  "current": "P 128, lines 3, min contrast 8.3, t 1.067 s"
+ },
+ {
+  "compare": "hook_916_shipped_to_k_nigsberg_castle_bright__f37.jpg",
+  "run": "run_amber_room_heist_1792801257",
+  "topic": "amber_room_heist",
+  "labels": [
+   "new: real fact, test-signed field (statement from amber-room-nazi-looting-1941)"
+  ],
+  "before": "P 112, lines 3, t 1.233 s",
+  "current": "P 128, lines 3, t 1.233 s"
+ },
+ {
+  "compare": "hook_916_shipped_to_k_nigsberg_castle_busy__f00.jpg",
+  "run": "run_amber_room_heist_1792801257",
+  "topic": "amber_room_heist",
+  "labels": [
+   "new: real fact, test-signed field (statement from amber-room-nazi-looting-1941)"
+  ],
+  "before": "P 112, lines 3, min contrast 5.46, t 0.0 s",
+  "current": "P 128, lines 3, min contrast 8.14, t 0.0 s"
+ },
+ {
+  "compare": "hook_916_shipped_to_k_nigsberg_castle_busy__f32.jpg",
+  "run": "run_amber_room_heist_1792801257",
+  "topic": "amber_room_heist",
+  "labels": [
+   "new: real fact, test-signed field (statement from amber-room-nazi-looting-1941)"
+  ],
+  "before": "P 112, lines 3, min contrast 5.7, t 1.067 s",
+  "current": "P 128, lines 3, min contrast 8.09, t 1.067 s"
+ },
+ {
+  "compare": "hook_916_shipped_to_k_nigsberg_castle_busy__f37.jpg",
+  "run": "run_amber_room_heist_1792801257",
+  "topic": "amber_room_heist",
+  "labels": [
+   "new: real fact, test-signed field (statement from amber-room-nazi-looting-1941)"
+  ],
+  "before": "P 112, lines 3, t 1.233 s",
+  "current": "P 128, lines 3, t 1.233 s"
+ },
+ {
+  "compare": "hook_916_shipped_to_k_nigsberg_castle_dark__f00.jpg",
+  "run": "run_amber_room_heist_1792801257",
+  "topic": "amber_room_heist",
+  "labels": [
+   "new: real fact, test-signed field (statement from amber-room-nazi-looting-1941)"
+  ],
+  "before": "P 112, lines 3, min contrast 5.1, t 0.0 s",
+  "current": "P 128, lines 3, min contrast 7.44, t 0.0 s"
+ },
+ {
+  "compare": "hook_916_shipped_to_k_nigsberg_castle_dark__f32.jpg",
+  "run": "run_amber_room_heist_1792801257",
+  "topic": "amber_room_heist",
+  "labels": [
+   "new: real fact, test-signed field (statement from amber-room-nazi-looting-1941)"
+  ],
+  "before": "P 112, lines 3, min contrast 5.14, t 1.067 s",
+  "current": "P 128, lines 3, min contrast 8.36, t 1.067 s"
+ },
+ {
+  "compare": "hook_916_shipped_to_k_nigsberg_castle_dark__f37.jpg",
+  "run": "run_amber_room_heist_1792801257",
+  "topic": "amber_room_heist",
+  "labels": [
+   "new: real fact, test-signed field (statement from amber-room-nazi-looting-1941)"
+  ],
+  "before": "P 112, lines 3, t 1.233 s",
+  "current": "P 128, lines 3, t 1.233 s"
+ },
+ {
+  "compare": "hooktitle_916_egypt_s_1_200_ton_quarry_mon_dark__last.jpg",
+  "run": "run_unfinished_obelisk_aswan_1792985912",
+  "topic": "unfinished_obelisk_aswan",
+  "labels": [
+   "new: real fact, test-signed field (real run title, test-gated)"
+  ],
+  "before": "REFUSED: a claim is at most 6 words and 30 characters, with no '!'",
+  "current": "REFUSED: a claim is at most 6 words and 30 characters, with no '!'"
+ },
+ {
+  "compare": "hooktitle_916_flattened_830_square_miles_dark__last.jpg",
+  "run": "run_tunguska_event_1908_1792930600",
+  "topic": "tunguska_event_1908",
+  "labels": [
+   "new: real fact, test-signed field (real run title, test-gated)"
+  ],
+  "before": "REFUSED: claim: the figure 830 is not in the cited facts",
+  "current": "REFUSED: claim: the figure 830 is not in the cited facts"
+ },
+ {
+  "compare": "hooktitle_916_lines_drawn_without_wings_dark__last.jpg",
+  "run": "run_nazca_lines_runway_paradox_1793247464",
+  "topic": "nazca_lines_runway_paradox",
+  "labels": [
+   "new: real fact, test-signed field (real run title, test-gated)"
+  ],
+  "before": "REFUSED: claim: adds 'without', which the cited facts do not use",
+  "current": "REFUSED: claim: adds 'without', which the cited facts do not use"
+ },
+ {
+  "compare": "hooktitle_916_surviving_ancient_skull_surg_dark__last.jpg",
+  "run": "run_trepanation_miracle_1792995462",
+  "topic": "trepanation_miracle",
+  "labels": [
+   "new: real fact, test-signed field (real run title, test-gated)"
+  ],
+  "before": "REFUSED: a claim is at most 6 words and 30 characters, with no '!'",
+  "current": "REFUSED: a claim is at most 6 words and 30 characters, with no '!'"
+ },
+ {
+  "compare": "hooktitle_916_the_lost_amber_room_heist_dark__last.jpg",
+  "run": "run_amber_room_heist_1792801257",
+  "topic": "amber_room_heist",
+  "labels": [
+   "new: real fact, test-signed field (real run title, test-gated)"
+  ],
+  "before": "REFUSED: claim: heist, lose not in the cited facts",
+  "current": "REFUSED: claim: heist, lose not in the cited facts"
+ },
+ {
+  "compare": "hooktitle_916_the_secret_labyrinth_beneath_dark__last.jpg",
+  "run": "run_odessa_catacombs_1792970549",
+  "topic": "odessa_catacombs",
+  "labels": [
+   "new: real fact, test-signed field (real run title, test-gated)"
+  ],
+  "before": "REFUSED: a claim is at most 6 words and 30 characters, with no '!'",
+  "current": "REFUSED: a claim is at most 6 words and 30 characters, with no '!'"
+ },
+ {
+  "compare": "hooktitle_916_vanished_russia_s_lost_amber_dark__last.jpg",
+  "run": "run_amber_room_heist_1792805842",
+  "topic": "amber_room_heist",
+  "labels": [
+   "new: real fact, test-signed field (real run title, test-gated)"
+  ],
+  "before": "REFUSED: a claim is at most 6 words and 30 characters, with no '!'",
+  "current": "REFUSED: a claim is at most 6 words and 30 characters, with no '!'"
+ },
+ {
+  "compare": "myth_169_damascus_bright+busy__last.jpg",
+  "run": "run_damascus_steel_nanotubes_1792732472_short",
+  "topic": "damascus_steel_nanotubes",
+  "labels": [
+   "new: real fact, test-signed field (myth field from damascus-13)",
+   "new: 16:9 myth of a Reel topic (its run is 9:16)"
+  ],
+  "before": "REFUSED: the fact 'damascus-13' states the myth's words as true: the card would strike out a fact",
+  "current": "REFUSED: the fact 'damascus-13' states the myth's words as true: the card would strike out a fact"
+ },
+ {
+  "compare": "myth_169_damascus_dark__last.jpg",
+  "run": "run_damascus_steel_nanotubes_1792732472_short",
+  "topic": "damascus_steel_nanotubes",
+  "labels": [
+   "new: real fact, test-signed field (myth field from damascus-13)",
+   "new: 16:9 myth of a Reel topic (its run is 9:16)"
+  ],
+  "before": "REFUSED: the fact 'damascus-13' states the myth's words as true: the card would strike out a fact",
+  "current": "REFUSED: the fact 'damascus-13' states the myth's words as true: the card would strike out a fact"
+ },
+ {
+  "compare": "myth_169_damascus_plain__last.jpg",
+  "run": "run_damascus_steel_nanotubes_1792732472_short",
+  "topic": "damascus_steel_nanotubes",
+  "labels": [
+   "new: real fact, test-signed field (myth field from damascus-13)",
+   "new: 16:9 myth of a Reel topic (its run is 9:16)"
+  ],
+  "before": "REFUSED: the fact 'damascus-13' states the myth's words as true: the card would strike out a fact",
+  "current": "REFUSED: the fact 'damascus-13' states the myth's words as true: the card would strike out a fact"
+ },
+ {
+  "compare": "myth_169_kailasa_bright+busy__last.jpg",
+  "run": "run_kailasa_temple_monolith_1792524470",
+  "topic": "kailasa_temple_monolith",
+  "labels": [
+   "new: real fact, test-signed field (myth field from kailasa-legend-kokasa)",
+   "new: 16:9 myth of a Reel topic (its run is 9:16)"
+  ],
+  "before": "REFUSED: the fact 'kailasa-legend-kokasa' states the myth's words as true: the card would strike ou",
+  "current": "REFUSED: the fact 'kailasa-legend-kokasa' states the myth's words as true: the card would strike ou"
+ },
+ {
+  "compare": "myth_169_kailasa_dark__last.jpg",
+  "run": "run_kailasa_temple_monolith_1792524470",
+  "topic": "kailasa_temple_monolith",
+  "labels": [
+   "new: real fact, test-signed field (myth field from kailasa-legend-kokasa)",
+   "new: 16:9 myth of a Reel topic (its run is 9:16)"
+  ],
+  "before": "REFUSED: the fact 'kailasa-legend-kokasa' states the myth's words as true: the card would strike ou",
+  "current": "REFUSED: the fact 'kailasa-legend-kokasa' states the myth's words as true: the card would strike ou"
+ },
+ {
+  "compare": "myth_169_kailasa_plain__last.jpg",
+  "run": "run_kailasa_temple_monolith_1792524470",
+  "topic": "kailasa_temple_monolith",
+  "labels": [
+   "new: real fact, test-signed field (myth field from kailasa-legend-kokasa)",
+   "new: 16:9 myth of a Reel topic (its run is 9:16)"
+  ],
+  "before": "REFUSED: the fact 'kailasa-legend-kokasa' states the myth's words as true: the card would strike ou",
+  "current": "REFUSED: the fact 'kailasa-legend-kokasa' states the myth's words as true: the card would strike ou"
+ },
+ {
+  "compare": "myth_169_richat_long_bright__a_before_strike.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 104, myth_px 90, myth lines 3, fact lines 5, source kept, t 2.767 s",
+  "current": "px 92, myth_px 80, myth lines 3, fact lines 4, source kept, t 2.7 s"
+ },
+ {
+  "compare": "myth_169_richat_long_bright__b_mid_strike.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 104, myth_px 90, myth lines 3, fact lines 5, source kept, t 3.1 s",
+  "current": "px 92, myth_px 80, myth lines 3, fact lines 4, source kept, t 3.033 s"
+ },
+ {
+  "compare": "myth_169_richat_long_bright__c_after_strike.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 104, myth_px 90, myth lines 3, fact lines 5, source kept, t 3.467 s",
+  "current": "px 92, myth_px 80, myth lines 3, fact lines 4, source kept, t 3.9 s"
+ },
+ {
+  "compare": "myth_169_richat_long_bright__d_fact_revealed.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 104, myth_px 90, myth lines 3, fact lines 5, source kept, min contrast 7.39, t 8.767 s",
+  "current": "px 92, myth_px 80, myth lines 3, fact lines 4, source kept, min contrast 7.01, t 8.133 s"
+ },
+ {
+  "compare": "myth_169_richat_long_busy__a_before_strike.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 104, myth_px 90, myth lines 3, fact lines 5, source kept, t 2.767 s",
+  "current": "px 92, myth_px 80, myth lines 3, fact lines 4, source kept, t 2.7 s"
+ },
+ {
+  "compare": "myth_169_richat_long_busy__b_mid_strike.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 104, myth_px 90, myth lines 3, fact lines 5, source kept, t 3.1 s",
+  "current": "px 92, myth_px 80, myth lines 3, fact lines 4, source kept, t 3.033 s"
+ },
+ {
+  "compare": "myth_169_richat_long_busy__c_after_strike.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 104, myth_px 90, myth lines 3, fact lines 5, source kept, t 3.467 s",
+  "current": "px 92, myth_px 80, myth lines 3, fact lines 4, source kept, t 3.9 s"
+ },
+ {
+  "compare": "myth_169_richat_long_busy__d_fact_revealed.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 104, myth_px 90, myth lines 3, fact lines 5, source kept, min contrast 7.82, t 8.767 s",
+  "current": "px 92, myth_px 80, myth lines 3, fact lines 4, source kept, min contrast 7.0, t 8.133 s"
+ },
+ {
+  "compare": "myth_169_richat_long_dark__a_before_strike.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 104, myth_px 90, myth lines 3, fact lines 5, source kept, t 2.767 s",
+  "current": "px 92, myth_px 80, myth lines 3, fact lines 4, source kept, t 2.7 s"
+ },
+ {
+  "compare": "myth_169_richat_long_dark__b_mid_strike.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 104, myth_px 90, myth lines 3, fact lines 5, source kept, t 3.1 s",
+  "current": "px 92, myth_px 80, myth lines 3, fact lines 4, source kept, t 3.033 s"
+ },
+ {
+  "compare": "myth_169_richat_long_dark__c_after_strike.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 104, myth_px 90, myth lines 3, fact lines 5, source kept, t 3.467 s",
+  "current": "px 92, myth_px 80, myth lines 3, fact lines 4, source kept, t 3.9 s"
+ },
+ {
+  "compare": "myth_169_richat_long_dark__d_fact_revealed.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 104, myth_px 90, myth lines 3, fact lines 5, source kept, min contrast 7.98, t 8.767 s",
+  "current": "px 92, myth_px 80, myth lines 3, fact lines 4, source kept, min contrast 7.02, t 8.133 s"
+ },
+ {
+  "compare": "myth_169_richat_long_hero__a_before_strike.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 104, myth_px 90, myth lines 3, fact lines 5, source kept, t 2.767 s",
+  "current": "px 92, myth_px 80, myth lines 3, fact lines 4, source kept, t 2.7 s"
+ },
+ {
+  "compare": "myth_169_richat_long_hero__b_mid_strike.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 104, myth_px 90, myth lines 3, fact lines 5, source kept, t 3.1 s",
+  "current": "px 92, myth_px 80, myth lines 3, fact lines 4, source kept, t 3.033 s"
+ },
+ {
+  "compare": "myth_169_richat_long_hero__c_after_strike.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 104, myth_px 90, myth lines 3, fact lines 5, source kept, t 3.467 s",
+  "current": "px 92, myth_px 80, myth lines 3, fact lines 4, source kept, t 3.9 s"
+ },
+ {
+  "compare": "myth_169_richat_long_hero__d_fact_revealed.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 104, myth_px 90, myth lines 3, fact lines 5, source kept, min contrast 7.64, t 8.767 s",
+  "current": "px 92, myth_px 80, myth lines 3, fact lines 4, source kept, min contrast 7.05, t 8.133 s"
+ },
+ {
+  "compare": "myth_169_richat_long_plain__a_before_strike.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 104, myth_px 90, myth lines 3, fact lines 5, source kept, t 2.767 s",
+  "current": "px 92, myth_px 80, myth lines 3, fact lines 4, source kept, t 2.7 s"
+ },
+ {
+  "compare": "myth_169_richat_long_plain__b_mid_strike.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 104, myth_px 90, myth lines 3, fact lines 5, source kept, t 3.1 s",
+  "current": "px 92, myth_px 80, myth lines 3, fact lines 4, source kept, t 3.033 s"
+ },
+ {
+  "compare": "myth_169_richat_long_plain__c_after_strike.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 104, myth_px 90, myth lines 3, fact lines 5, source kept, t 3.467 s",
+  "current": "px 92, myth_px 80, myth lines 3, fact lines 4, source kept, t 3.9 s"
+ },
+ {
+  "compare": "myth_169_richat_long_plain__d_fact_revealed.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 104, myth_px 90, myth lines 3, fact lines 5, source kept, min contrast 8.61, t 8.767 s",
+  "current": "px 92, myth_px 80, myth lines 3, fact lines 4, source kept, min contrast 7.03, t 8.133 s"
+ },
+ {
+  "compare": "myth_169_richat_longest_bright__a_before_strike.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 104, myth_px 72, myth lines 4, fact lines 5, source kept, t 3.6 s",
+  "current": "px 92, myth_px 74, myth lines 4, fact lines 4, source kept, t 2.8 s"
+ },
+ {
+  "compare": "myth_169_richat_longest_bright__b_mid_strike.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 104, myth_px 72, myth lines 4, fact lines 5, source kept, t 3.933 s",
+  "current": "px 92, myth_px 74, myth lines 4, fact lines 4, source kept, t 3.1 s"
+ },
+ {
+  "compare": "myth_169_richat_longest_bright__c_after_strike.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 104, myth_px 72, myth lines 4, fact lines 5, source kept, t 4.3 s",
+  "current": "px 92, myth_px 74, myth lines 4, fact lines 4, source kept, t 4.0 s"
+ },
+ {
+  "compare": "myth_169_richat_longest_bright__d_fact_revealed.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 104, myth_px 72, myth lines 4, fact lines 5, source kept, min contrast 7.47, t 9.633 s",
+  "current": "px 92, myth_px 74, myth lines 4, fact lines 4, source kept, min contrast 7.01, t 8.233 s"
+ },
+ {
+  "compare": "myth_169_richat_longest_busy__a_before_strike.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 104, myth_px 72, myth lines 4, fact lines 5, source kept, t 3.6 s",
+  "current": "px 92, myth_px 74, myth lines 4, fact lines 4, source kept, t 2.8 s"
+ },
+ {
+  "compare": "myth_169_richat_longest_busy__b_mid_strike.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 104, myth_px 72, myth lines 4, fact lines 5, source kept, t 3.933 s",
+  "current": "px 92, myth_px 74, myth lines 4, fact lines 4, source kept, t 3.1 s"
+ },
+ {
+  "compare": "myth_169_richat_longest_busy__c_after_strike.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 104, myth_px 72, myth lines 4, fact lines 5, source kept, t 4.3 s",
+  "current": "px 92, myth_px 74, myth lines 4, fact lines 4, source kept, t 4.0 s"
+ },
+ {
+  "compare": "myth_169_richat_longest_busy__d_fact_revealed.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 104, myth_px 72, myth lines 4, fact lines 5, source kept, min contrast 7.82, t 9.633 s",
+  "current": "px 92, myth_px 74, myth lines 4, fact lines 4, source kept, min contrast 7.0, t 8.233 s"
+ },
+ {
+  "compare": "myth_169_richat_longest_dark__a_before_strike.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 104, myth_px 72, myth lines 4, fact lines 5, source kept, t 3.6 s",
+  "current": "px 92, myth_px 74, myth lines 4, fact lines 4, source kept, t 2.8 s"
+ },
+ {
+  "compare": "myth_169_richat_longest_dark__b_mid_strike.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 104, myth_px 72, myth lines 4, fact lines 5, source kept, t 3.933 s",
+  "current": "px 92, myth_px 74, myth lines 4, fact lines 4, source kept, t 3.1 s"
+ },
+ {
+  "compare": "myth_169_richat_longest_dark__c_after_strike.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 104, myth_px 72, myth lines 4, fact lines 5, source kept, t 4.3 s",
+  "current": "px 92, myth_px 74, myth lines 4, fact lines 4, source kept, t 4.0 s"
+ },
+ {
+  "compare": "myth_169_richat_longest_dark__d_fact_revealed.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 104, myth_px 72, myth lines 4, fact lines 5, source kept, min contrast 7.98, t 9.633 s",
+  "current": "px 92, myth_px 74, myth lines 4, fact lines 4, source kept, min contrast 7.02, t 8.233 s"
+ },
+ {
+  "compare": "myth_169_richat_longest_hero__a_before_strike.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 104, myth_px 72, myth lines 4, fact lines 5, source kept, t 3.6 s",
+  "current": "px 92, myth_px 74, myth lines 4, fact lines 4, source kept, t 2.8 s"
+ },
+ {
+  "compare": "myth_169_richat_longest_hero__b_mid_strike.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 104, myth_px 72, myth lines 4, fact lines 5, source kept, t 3.933 s",
+  "current": "px 92, myth_px 74, myth lines 4, fact lines 4, source kept, t 3.1 s"
+ },
+ {
+  "compare": "myth_169_richat_longest_hero__c_after_strike.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 104, myth_px 72, myth lines 4, fact lines 5, source kept, t 4.3 s",
+  "current": "px 92, myth_px 74, myth lines 4, fact lines 4, source kept, t 4.0 s"
+ },
+ {
+  "compare": "myth_169_richat_longest_hero__d_fact_revealed.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 104, myth_px 72, myth lines 4, fact lines 5, source kept, min contrast 7.64, t 9.633 s",
+  "current": "px 92, myth_px 74, myth lines 4, fact lines 4, source kept, min contrast 7.05, t 8.233 s"
+ },
+ {
+  "compare": "myth_169_richat_longest_plain__a_before_strike.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 104, myth_px 72, myth lines 4, fact lines 5, source kept, t 3.6 s",
+  "current": "px 92, myth_px 74, myth lines 4, fact lines 4, source kept, t 2.8 s"
+ },
+ {
+  "compare": "myth_169_richat_longest_plain__b_mid_strike.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 104, myth_px 72, myth lines 4, fact lines 5, source kept, t 3.933 s",
+  "current": "px 92, myth_px 74, myth lines 4, fact lines 4, source kept, t 3.1 s"
+ },
+ {
+  "compare": "myth_169_richat_longest_plain__c_after_strike.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 104, myth_px 72, myth lines 4, fact lines 5, source kept, t 4.3 s",
+  "current": "px 92, myth_px 74, myth lines 4, fact lines 4, source kept, t 4.0 s"
+ },
+ {
+  "compare": "myth_169_richat_longest_plain__d_fact_revealed.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 104, myth_px 72, myth lines 4, fact lines 5, source kept, min contrast 8.61, t 9.633 s",
+  "current": "px 92, myth_px 74, myth lines 4, fact lines 4, source kept, min contrast 7.03, t 8.233 s"
+ },
+ {
+  "compare": "myth_169_richat_nodate_bright__a_before_strike.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 104, myth_px 90, myth lines 3, fact lines 5, source kept, t 2.767 s",
+  "current": "px 96, myth_px 84, myth lines 3, fact lines 4, source kept, t 2.7 s"
+ },
+ {
+  "compare": "myth_169_richat_nodate_bright__b_mid_strike.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 104, myth_px 90, myth lines 3, fact lines 5, source kept, t 3.1 s",
+  "current": "px 96, myth_px 84, myth lines 3, fact lines 4, source kept, t 3.033 s"
+ },
+ {
+  "compare": "myth_169_richat_nodate_bright__c_after_strike.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 104, myth_px 90, myth lines 3, fact lines 5, source kept, t 3.467 s",
+  "current": "px 96, myth_px 84, myth lines 3, fact lines 4, source kept, t 3.9 s"
+ },
+ {
+  "compare": "myth_169_richat_nodate_bright__d_fact_revealed.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 104, myth_px 90, myth lines 3, fact lines 5, source kept, min contrast 7.39, t 8.767 s",
+  "current": "px 96, myth_px 84, myth lines 3, fact lines 4, source kept, min contrast 7.02, t 8.133 s"
+ },
+ {
+  "compare": "myth_169_richat_nodate_busy__a_before_strike.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 104, myth_px 90, myth lines 3, fact lines 5, source kept, t 2.767 s",
+  "current": "px 96, myth_px 84, myth lines 3, fact lines 4, source kept, t 2.7 s"
+ },
+ {
+  "compare": "myth_169_richat_nodate_busy__b_mid_strike.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 104, myth_px 90, myth lines 3, fact lines 5, source kept, t 3.1 s",
+  "current": "px 96, myth_px 84, myth lines 3, fact lines 4, source kept, t 3.033 s"
+ },
+ {
+  "compare": "myth_169_richat_nodate_busy__c_after_strike.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 104, myth_px 90, myth lines 3, fact lines 5, source kept, t 3.467 s",
+  "current": "px 96, myth_px 84, myth lines 3, fact lines 4, source kept, t 3.9 s"
+ },
+ {
+  "compare": "myth_169_richat_nodate_busy__d_fact_revealed.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 104, myth_px 90, myth lines 3, fact lines 5, source kept, min contrast 7.82, t 8.767 s",
+  "current": "px 96, myth_px 84, myth lines 3, fact lines 4, source kept, min contrast 7.0, t 8.133 s"
+ },
+ {
+  "compare": "myth_169_richat_nodate_dark__a_before_strike.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 104, myth_px 90, myth lines 3, fact lines 5, source kept, t 2.767 s",
+  "current": "px 96, myth_px 84, myth lines 3, fact lines 4, source kept, t 2.7 s"
+ },
+ {
+  "compare": "myth_169_richat_nodate_dark__b_mid_strike.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 104, myth_px 90, myth lines 3, fact lines 5, source kept, t 3.1 s",
+  "current": "px 96, myth_px 84, myth lines 3, fact lines 4, source kept, t 3.033 s"
+ },
+ {
+  "compare": "myth_169_richat_nodate_dark__c_after_strike.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 104, myth_px 90, myth lines 3, fact lines 5, source kept, t 3.467 s",
+  "current": "px 96, myth_px 84, myth lines 3, fact lines 4, source kept, t 3.9 s"
+ },
+ {
+  "compare": "myth_169_richat_nodate_dark__d_fact_revealed.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 104, myth_px 90, myth lines 3, fact lines 5, source kept, min contrast 7.98, t 8.767 s",
+  "current": "px 96, myth_px 84, myth lines 3, fact lines 4, source kept, min contrast 7.03, t 8.133 s"
+ },
+ {
+  "compare": "myth_169_richat_nodate_hero__a_before_strike.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 104, myth_px 90, myth lines 3, fact lines 5, source kept, t 2.767 s",
+  "current": "px 96, myth_px 84, myth lines 3, fact lines 4, source kept, t 2.7 s"
+ },
+ {
+  "compare": "myth_169_richat_nodate_hero__b_mid_strike.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 104, myth_px 90, myth lines 3, fact lines 5, source kept, t 3.1 s",
+  "current": "px 96, myth_px 84, myth lines 3, fact lines 4, source kept, t 3.033 s"
+ },
+ {
+  "compare": "myth_169_richat_nodate_hero__c_after_strike.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 104, myth_px 90, myth lines 3, fact lines 5, source kept, t 3.467 s",
+  "current": "px 96, myth_px 84, myth lines 3, fact lines 4, source kept, t 3.9 s"
+ },
+ {
+  "compare": "myth_169_richat_nodate_hero__d_fact_revealed.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 104, myth_px 90, myth lines 3, fact lines 5, source kept, min contrast 7.64, t 8.767 s",
+  "current": "px 96, myth_px 84, myth lines 3, fact lines 4, source kept, min contrast 7.06, t 8.133 s"
+ },
+ {
+  "compare": "myth_169_richat_nodate_plain__a_before_strike.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 104, myth_px 90, myth lines 3, fact lines 5, source kept, t 2.767 s",
+  "current": "px 96, myth_px 84, myth lines 3, fact lines 4, source kept, t 2.7 s"
+ },
+ {
+  "compare": "myth_169_richat_nodate_plain__b_mid_strike.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 104, myth_px 90, myth lines 3, fact lines 5, source kept, t 3.1 s",
+  "current": "px 96, myth_px 84, myth lines 3, fact lines 4, source kept, t 3.033 s"
+ },
+ {
+  "compare": "myth_169_richat_nodate_plain__c_after_strike.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 104, myth_px 90, myth lines 3, fact lines 5, source kept, t 3.467 s",
+  "current": "px 96, myth_px 84, myth lines 3, fact lines 4, source kept, t 3.9 s"
+ },
+ {
+  "compare": "myth_169_richat_nodate_plain__d_fact_revealed.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 104, myth_px 90, myth lines 3, fact lines 5, source kept, min contrast 8.61, t 8.767 s",
+  "current": "px 96, myth_px 84, myth lines 3, fact lines 4, source kept, min contrast 7.03, t 8.133 s"
+ },
+ {
+  "compare": "myth_169_richat_short_bright__a_before_strike.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 128, myth_px 96, myth lines 3, fact lines 3, source kept, t 2.767 s",
+  "current": "px 120, myth_px 84, myth lines 3, fact lines 3, source kept, t 2.7 s"
+ },
+ {
+  "compare": "myth_169_richat_short_bright__b_mid_strike.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 128, myth_px 96, myth lines 3, fact lines 3, source kept, t 3.1 s",
+  "current": "px 120, myth_px 84, myth lines 3, fact lines 3, source kept, t 3.033 s"
+ },
+ {
+  "compare": "myth_169_richat_short_bright__c_after_strike.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 128, myth_px 96, myth lines 3, fact lines 3, source kept, t 3.467 s",
+  "current": "px 120, myth_px 84, myth lines 3, fact lines 3, source kept, t 3.9 s"
+ },
+ {
+  "compare": "myth_169_richat_short_bright__d_fact_revealed.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 128, myth_px 96, myth lines 3, fact lines 3, source kept, min contrast 7.39, t 6.733 s",
+  "current": "px 120, myth_px 84, myth lines 3, fact lines 3, source kept, min contrast 7.01, t 6.667 s"
+ },
+ {
+  "compare": "myth_169_richat_short_busy__a_before_strike.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 128, myth_px 96, myth lines 3, fact lines 3, source kept, t 2.767 s",
+  "current": "px 120, myth_px 84, myth lines 3, fact lines 3, source kept, t 2.7 s"
+ },
+ {
+  "compare": "myth_169_richat_short_busy__b_mid_strike.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 128, myth_px 96, myth lines 3, fact lines 3, source kept, t 3.1 s",
+  "current": "px 120, myth_px 84, myth lines 3, fact lines 3, source kept, t 3.033 s"
+ },
+ {
+  "compare": "myth_169_richat_short_busy__c_after_strike.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 128, myth_px 96, myth lines 3, fact lines 3, source kept, t 3.467 s",
+  "current": "px 120, myth_px 84, myth lines 3, fact lines 3, source kept, t 3.9 s"
+ },
+ {
+  "compare": "myth_169_richat_short_busy__d_fact_revealed.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 128, myth_px 96, myth lines 3, fact lines 3, source kept, min contrast 7.85, t 6.733 s",
+  "current": "px 120, myth_px 84, myth lines 3, fact lines 3, source kept, min contrast 7.0, t 6.667 s"
+ },
+ {
+  "compare": "myth_169_richat_short_dark__a_before_strike.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 128, myth_px 96, myth lines 3, fact lines 3, source kept, t 2.767 s",
+  "current": "px 120, myth_px 84, myth lines 3, fact lines 3, source kept, t 2.7 s"
+ },
+ {
+  "compare": "myth_169_richat_short_dark__b_mid_strike.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 128, myth_px 96, myth lines 3, fact lines 3, source kept, t 3.1 s",
+  "current": "px 120, myth_px 84, myth lines 3, fact lines 3, source kept, t 3.033 s"
+ },
+ {
+  "compare": "myth_169_richat_short_dark__c_after_strike.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 128, myth_px 96, myth lines 3, fact lines 3, source kept, t 3.467 s",
+  "current": "px 120, myth_px 84, myth lines 3, fact lines 3, source kept, t 3.9 s"
+ },
+ {
+  "compare": "myth_169_richat_short_dark__d_fact_revealed.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 128, myth_px 96, myth lines 3, fact lines 3, source kept, min contrast 7.88, t 6.733 s",
+  "current": "px 120, myth_px 84, myth lines 3, fact lines 3, source kept, min contrast 7.02, t 6.667 s"
+ },
+ {
+  "compare": "myth_169_richat_short_hero__a_before_strike.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 128, myth_px 96, myth lines 3, fact lines 3, source kept, t 2.767 s",
+  "current": "px 120, myth_px 84, myth lines 3, fact lines 3, source kept, t 2.7 s"
+ },
+ {
+  "compare": "myth_169_richat_short_hero__b_mid_strike.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 128, myth_px 96, myth lines 3, fact lines 3, source kept, t 3.1 s",
+  "current": "px 120, myth_px 84, myth lines 3, fact lines 3, source kept, t 3.033 s"
+ },
+ {
+  "compare": "myth_169_richat_short_hero__c_after_strike.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 128, myth_px 96, myth lines 3, fact lines 3, source kept, t 3.467 s",
+  "current": "px 120, myth_px 84, myth lines 3, fact lines 3, source kept, t 3.9 s"
+ },
+ {
+  "compare": "myth_169_richat_short_hero__d_fact_revealed.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 128, myth_px 96, myth lines 3, fact lines 3, source kept, min contrast 7.99, t 6.733 s",
+  "current": "px 120, myth_px 84, myth lines 3, fact lines 3, source kept, min contrast 7.05, t 6.667 s"
+ },
+ {
+  "compare": "myth_169_richat_short_plain__a_before_strike.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 128, myth_px 96, myth lines 3, fact lines 3, source kept, t 2.767 s",
+  "current": "px 120, myth_px 84, myth lines 3, fact lines 3, source kept, t 2.7 s"
+ },
+ {
+  "compare": "myth_169_richat_short_plain__b_mid_strike.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 128, myth_px 96, myth lines 3, fact lines 3, source kept, t 3.1 s",
+  "current": "px 120, myth_px 84, myth lines 3, fact lines 3, source kept, t 3.033 s"
+ },
+ {
+  "compare": "myth_169_richat_short_plain__c_after_strike.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 128, myth_px 96, myth lines 3, fact lines 3, source kept, t 3.467 s",
+  "current": "px 120, myth_px 84, myth lines 3, fact lines 3, source kept, t 3.9 s"
+ },
+ {
+  "compare": "myth_169_richat_short_plain__d_fact_revealed.jpg",
+  "run": "run_richat_structure_sahara_eye_1792740961_long",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 128, myth_px 96, myth lines 3, fact lines 3, source kept, min contrast 8.61, t 6.733 s",
+  "current": "px 120, myth_px 84, myth lines 3, fact lines 3, source kept, min contrast 7.03, t 6.667 s"
+ },
+ {
+  "compare": "myth_916_damascus_bright+busy__last.jpg",
+  "run": "run_damascus_steel_nanotubes_1792732472_short",
+  "topic": "damascus_steel_nanotubes",
+  "labels": [
+   "new: real fact, test-signed field (myth field from damascus-13)"
+  ],
+  "before": "REFUSED: the myth (63) or fact (75) runs past 56/84 characters",
+  "current": "REFUSED: the myth (63) or fact (75) runs past 56/84 characters"
+ },
+ {
+  "compare": "myth_916_damascus_dark__last.jpg",
+  "run": "run_damascus_steel_nanotubes_1792732472_short",
+  "topic": "damascus_steel_nanotubes",
+  "labels": [
+   "new: real fact, test-signed field (myth field from damascus-13)"
+  ],
+  "before": "REFUSED: the myth (63) or fact (75) runs past 56/84 characters",
+  "current": "REFUSED: the myth (63) or fact (75) runs past 56/84 characters"
+ },
+ {
+  "compare": "myth_916_damascus_plain__last.jpg",
+  "run": "run_damascus_steel_nanotubes_1792732472_short",
+  "topic": "damascus_steel_nanotubes",
+  "labels": [
+   "new: real fact, test-signed field (myth field from damascus-13)"
+  ],
+  "before": "REFUSED: the myth (63) or fact (75) runs past 56/84 characters",
+  "current": "REFUSED: the myth (63) or fact (75) runs past 56/84 characters"
+ },
+ {
+  "compare": "myth_916_kailasa_bright+busy__last.jpg",
+  "run": "run_kailasa_temple_monolith_1792524470",
+  "topic": "kailasa_temple_monolith",
+  "labels": [
+   "new: real fact, test-signed field (myth field from kailasa-legend-kokasa)"
+  ],
+  "before": "REFUSED: the fact 'kailasa-legend-kokasa' states the myth's words as true: the card would strike ou",
+  "current": "REFUSED: the fact 'kailasa-legend-kokasa' states the myth's words as true: the card would strike ou"
+ },
+ {
+  "compare": "myth_916_kailasa_dark__last.jpg",
+  "run": "run_kailasa_temple_monolith_1792524470",
+  "topic": "kailasa_temple_monolith",
+  "labels": [
+   "new: real fact, test-signed field (myth field from kailasa-legend-kokasa)"
+  ],
+  "before": "REFUSED: the fact 'kailasa-legend-kokasa' states the myth's words as true: the card would strike ou",
+  "current": "REFUSED: the fact 'kailasa-legend-kokasa' states the myth's words as true: the card would strike ou"
+ },
+ {
+  "compare": "myth_916_kailasa_plain__last.jpg",
+  "run": "run_kailasa_temple_monolith_1792524470",
+  "topic": "kailasa_temple_monolith",
+  "labels": [
+   "new: real fact, test-signed field (myth field from kailasa-legend-kokasa)"
+  ],
+  "before": "REFUSED: the fact 'kailasa-legend-kokasa' states the myth's words as true: the card would strike ou",
+  "current": "REFUSED: the fact 'kailasa-legend-kokasa' states the myth's words as true: the card would strike ou"
+ },
+ {
+  "compare": "myth_916_richat_long_bright__a_before_strike.jpg",
+  "run": "run_richat_structure_sahara_eye_1792737039_short",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 76, myth_px 66, myth lines 2, fact lines 4, source kept, t 2.667 s",
+  "current": "px 76, myth_px 66, myth lines 2, fact lines 4, source kept, t 2.633 s"
+ },
+ {
+  "compare": "myth_916_richat_long_bright__b_mid_strike.jpg",
+  "run": "run_richat_structure_sahara_eye_1792737039_short",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 76, myth_px 66, myth lines 2, fact lines 4, source kept, t 3.0 s",
+  "current": "px 76, myth_px 66, myth lines 2, fact lines 4, source kept, t 2.967 s"
+ },
+ {
+  "compare": "myth_916_richat_long_bright__c_after_strike.jpg",
+  "run": "run_richat_structure_sahara_eye_1792737039_short",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 76, myth_px 66, myth lines 2, fact lines 4, source kept, t 3.367 s",
+  "current": "px 76, myth_px 66, myth lines 2, fact lines 4, source kept, t 3.667 s"
+ },
+ {
+  "compare": "myth_916_richat_long_bright__d_fact_revealed.jpg",
+  "run": "run_richat_structure_sahara_eye_1792737039_short",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 76, myth_px 66, myth lines 2, fact lines 4, source kept, min contrast 8.0, t 8.567 s",
+  "current": "px 76, myth_px 66, myth lines 2, fact lines 4, source kept, min contrast 7.0, t 7.967 s"
+ },
+ {
+  "compare": "myth_916_richat_long_busy__a_before_strike.jpg",
+  "run": "run_richat_structure_sahara_eye_1792737039_short",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 76, myth_px 66, myth lines 2, fact lines 4, source kept, t 2.667 s",
+  "current": "px 76, myth_px 66, myth lines 2, fact lines 4, source kept, t 2.633 s"
+ },
+ {
+  "compare": "myth_916_richat_long_busy__b_mid_strike.jpg",
+  "run": "run_richat_structure_sahara_eye_1792737039_short",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 76, myth_px 66, myth lines 2, fact lines 4, source kept, t 3.0 s",
+  "current": "px 76, myth_px 66, myth lines 2, fact lines 4, source kept, t 2.967 s"
+ },
+ {
+  "compare": "myth_916_richat_long_busy__c_after_strike.jpg",
+  "run": "run_richat_structure_sahara_eye_1792737039_short",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 76, myth_px 66, myth lines 2, fact lines 4, source kept, t 3.367 s",
+  "current": "px 76, myth_px 66, myth lines 2, fact lines 4, source kept, t 3.667 s"
+ },
+ {
+  "compare": "myth_916_richat_long_busy__d_fact_revealed.jpg",
+  "run": "run_richat_structure_sahara_eye_1792737039_short",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 76, myth_px 66, myth lines 2, fact lines 4, source kept, min contrast 8.02, t 8.567 s",
+  "current": "px 76, myth_px 66, myth lines 2, fact lines 4, source kept, min contrast 7.0, t 7.967 s"
+ },
+ {
+  "compare": "myth_916_richat_long_dark__a_before_strike.jpg",
+  "run": "run_richat_structure_sahara_eye_1792737039_short",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 76, myth_px 66, myth lines 2, fact lines 4, source kept, t 2.667 s",
+  "current": "px 76, myth_px 66, myth lines 2, fact lines 4, source kept, t 2.633 s"
+ },
+ {
+  "compare": "myth_916_richat_long_dark__b_mid_strike.jpg",
+  "run": "run_richat_structure_sahara_eye_1792737039_short",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 76, myth_px 66, myth lines 2, fact lines 4, source kept, t 3.0 s",
+  "current": "px 76, myth_px 66, myth lines 2, fact lines 4, source kept, t 2.967 s"
+ },
+ {
+  "compare": "myth_916_richat_long_dark__c_after_strike.jpg",
+  "run": "run_richat_structure_sahara_eye_1792737039_short",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 76, myth_px 66, myth lines 2, fact lines 4, source kept, t 3.367 s",
+  "current": "px 76, myth_px 66, myth lines 2, fact lines 4, source kept, t 3.667 s"
+ },
+ {
+  "compare": "myth_916_richat_long_dark__d_fact_revealed.jpg",
+  "run": "run_richat_structure_sahara_eye_1792737039_short",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 76, myth_px 66, myth lines 2, fact lines 4, source kept, min contrast 8.03, t 8.567 s",
+  "current": "px 76, myth_px 66, myth lines 2, fact lines 4, source kept, min contrast 7.05, t 7.967 s"
+ },
+ {
+  "compare": "myth_916_richat_long_hero__a_before_strike.jpg",
+  "run": "run_richat_structure_sahara_eye_1792737039_short",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 76, myth_px 66, myth lines 2, fact lines 4, source kept, t 2.667 s",
+  "current": "px 76, myth_px 66, myth lines 2, fact lines 4, source kept, t 2.633 s"
+ },
+ {
+  "compare": "myth_916_richat_long_hero__b_mid_strike.jpg",
+  "run": "run_richat_structure_sahara_eye_1792737039_short",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 76, myth_px 66, myth lines 2, fact lines 4, source kept, t 3.0 s",
+  "current": "px 76, myth_px 66, myth lines 2, fact lines 4, source kept, t 2.967 s"
+ },
+ {
+  "compare": "myth_916_richat_long_hero__c_after_strike.jpg",
+  "run": "run_richat_structure_sahara_eye_1792737039_short",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 76, myth_px 66, myth lines 2, fact lines 4, source kept, t 3.367 s",
+  "current": "px 76, myth_px 66, myth lines 2, fact lines 4, source kept, t 3.667 s"
+ },
+ {
+  "compare": "myth_916_richat_long_hero__d_fact_revealed.jpg",
+  "run": "run_richat_structure_sahara_eye_1792737039_short",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 76, myth_px 66, myth lines 2, fact lines 4, source kept, min contrast 8.26, t 8.567 s",
+  "current": "px 76, myth_px 66, myth lines 2, fact lines 4, source kept, min contrast 7.03, t 7.967 s"
+ },
+ {
+  "compare": "myth_916_richat_long_plain__a_before_strike.jpg",
+  "run": "run_richat_structure_sahara_eye_1792737039_short",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 76, myth_px 66, myth lines 2, fact lines 4, source kept, t 2.667 s",
+  "current": "px 76, myth_px 66, myth lines 2, fact lines 4, source kept, t 2.633 s"
+ },
+ {
+  "compare": "myth_916_richat_long_plain__b_mid_strike.jpg",
+  "run": "run_richat_structure_sahara_eye_1792737039_short",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 76, myth_px 66, myth lines 2, fact lines 4, source kept, t 3.0 s",
+  "current": "px 76, myth_px 66, myth lines 2, fact lines 4, source kept, t 2.967 s"
+ },
+ {
+  "compare": "myth_916_richat_long_plain__c_after_strike.jpg",
+  "run": "run_richat_structure_sahara_eye_1792737039_short",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 76, myth_px 66, myth lines 2, fact lines 4, source kept, t 3.367 s",
+  "current": "px 76, myth_px 66, myth lines 2, fact lines 4, source kept, t 3.667 s"
+ },
+ {
+  "compare": "myth_916_richat_long_plain__d_fact_revealed.jpg",
+  "run": "run_richat_structure_sahara_eye_1792737039_short",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 76, myth_px 66, myth lines 2, fact lines 4, source kept, min contrast 8.61, t 8.567 s",
+  "current": "px 76, myth_px 66, myth lines 2, fact lines 4, source kept, min contrast 7.03, t 7.967 s"
+ },
+ {
+  "compare": "myth_916_richat_longest_bright__last.jpg",
+  "run": "run_richat_structure_sahara_eye_1792737039_short",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "REFUSED: the myth (57) or fact (79) runs past 56/84 characters",
+  "current": "REFUSED: the myth (57) or fact (79) runs past 56/84 characters"
+ },
+ {
+  "compare": "myth_916_richat_longest_busy__last.jpg",
+  "run": "run_richat_structure_sahara_eye_1792737039_short",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "REFUSED: the myth (57) or fact (79) runs past 56/84 characters",
+  "current": "REFUSED: the myth (57) or fact (79) runs past 56/84 characters"
+ },
+ {
+  "compare": "myth_916_richat_longest_dark__last.jpg",
+  "run": "run_richat_structure_sahara_eye_1792737039_short",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "REFUSED: the myth (57) or fact (79) runs past 56/84 characters",
+  "current": "REFUSED: the myth (57) or fact (79) runs past 56/84 characters"
+ },
+ {
+  "compare": "myth_916_richat_longest_hero__last.jpg",
+  "run": "run_richat_structure_sahara_eye_1792737039_short",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "REFUSED: the myth (57) or fact (79) runs past 56/84 characters",
+  "current": "REFUSED: the myth (57) or fact (79) runs past 56/84 characters"
+ },
+ {
+  "compare": "myth_916_richat_longest_plain__last.jpg",
+  "run": "run_richat_structure_sahara_eye_1792737039_short",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "REFUSED: the myth (57) or fact (79) runs past 56/84 characters",
+  "current": "REFUSED: the myth (57) or fact (79) runs past 56/84 characters"
+ },
+ {
+  "compare": "myth_916_richat_nodate_bright__a_before_strike.jpg",
+  "run": "run_richat_structure_sahara_eye_1792737039_short",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 80, myth_px 68, myth lines 2, fact lines 4, source kept, t 2.667 s",
+  "current": "px 80, myth_px 68, myth lines 2, fact lines 4, source kept, t 2.633 s"
+ },
+ {
+  "compare": "myth_916_richat_nodate_bright__b_mid_strike.jpg",
+  "run": "run_richat_structure_sahara_eye_1792737039_short",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 80, myth_px 68, myth lines 2, fact lines 4, source kept, t 3.0 s",
+  "current": "px 80, myth_px 68, myth lines 2, fact lines 4, source kept, t 2.967 s"
+ },
+ {
+  "compare": "myth_916_richat_nodate_bright__c_after_strike.jpg",
+  "run": "run_richat_structure_sahara_eye_1792737039_short",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 80, myth_px 68, myth lines 2, fact lines 4, source kept, t 3.367 s",
+  "current": "px 80, myth_px 68, myth lines 2, fact lines 4, source kept, t 3.667 s"
+ },
+ {
+  "compare": "myth_916_richat_nodate_bright__d_fact_revealed.jpg",
+  "run": "run_richat_structure_sahara_eye_1792737039_short",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 80, myth_px 68, myth lines 2, fact lines 4, source kept, min contrast 8.0, t 8.567 s",
+  "current": "px 80, myth_px 68, myth lines 2, fact lines 4, source kept, min contrast 7.0, t 7.967 s"
+ },
+ {
+  "compare": "myth_916_richat_nodate_busy__a_before_strike.jpg",
+  "run": "run_richat_structure_sahara_eye_1792737039_short",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 80, myth_px 68, myth lines 2, fact lines 4, source kept, t 2.667 s",
+  "current": "px 80, myth_px 68, myth lines 2, fact lines 4, source kept, t 2.633 s"
+ },
+ {
+  "compare": "myth_916_richat_nodate_busy__b_mid_strike.jpg",
+  "run": "run_richat_structure_sahara_eye_1792737039_short",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 80, myth_px 68, myth lines 2, fact lines 4, source kept, t 3.0 s",
+  "current": "px 80, myth_px 68, myth lines 2, fact lines 4, source kept, t 2.967 s"
+ },
+ {
+  "compare": "myth_916_richat_nodate_busy__c_after_strike.jpg",
+  "run": "run_richat_structure_sahara_eye_1792737039_short",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 80, myth_px 68, myth lines 2, fact lines 4, source kept, t 3.367 s",
+  "current": "px 80, myth_px 68, myth lines 2, fact lines 4, source kept, t 3.667 s"
+ },
+ {
+  "compare": "myth_916_richat_nodate_busy__d_fact_revealed.jpg",
+  "run": "run_richat_structure_sahara_eye_1792737039_short",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 80, myth_px 68, myth lines 2, fact lines 4, source kept, min contrast 8.02, t 8.567 s",
+  "current": "px 80, myth_px 68, myth lines 2, fact lines 4, source kept, min contrast 7.0, t 7.967 s"
+ },
+ {
+  "compare": "myth_916_richat_nodate_dark__a_before_strike.jpg",
+  "run": "run_richat_structure_sahara_eye_1792737039_short",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 80, myth_px 68, myth lines 2, fact lines 4, source kept, t 2.667 s",
+  "current": "px 80, myth_px 68, myth lines 2, fact lines 4, source kept, t 2.633 s"
+ },
+ {
+  "compare": "myth_916_richat_nodate_dark__b_mid_strike.jpg",
+  "run": "run_richat_structure_sahara_eye_1792737039_short",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 80, myth_px 68, myth lines 2, fact lines 4, source kept, t 3.0 s",
+  "current": "px 80, myth_px 68, myth lines 2, fact lines 4, source kept, t 2.967 s"
+ },
+ {
+  "compare": "myth_916_richat_nodate_dark__c_after_strike.jpg",
+  "run": "run_richat_structure_sahara_eye_1792737039_short",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 80, myth_px 68, myth lines 2, fact lines 4, source kept, t 3.367 s",
+  "current": "px 80, myth_px 68, myth lines 2, fact lines 4, source kept, t 3.667 s"
+ },
+ {
+  "compare": "myth_916_richat_nodate_dark__d_fact_revealed.jpg",
+  "run": "run_richat_structure_sahara_eye_1792737039_short",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 80, myth_px 68, myth lines 2, fact lines 4, source kept, min contrast 8.03, t 8.567 s",
+  "current": "px 80, myth_px 68, myth lines 2, fact lines 4, source kept, min contrast 7.05, t 7.967 s"
+ },
+ {
+  "compare": "myth_916_richat_nodate_hero__a_before_strike.jpg",
+  "run": "run_richat_structure_sahara_eye_1792737039_short",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 80, myth_px 68, myth lines 2, fact lines 4, source kept, t 2.667 s",
+  "current": "px 80, myth_px 68, myth lines 2, fact lines 4, source kept, t 2.633 s"
+ },
+ {
+  "compare": "myth_916_richat_nodate_hero__b_mid_strike.jpg",
+  "run": "run_richat_structure_sahara_eye_1792737039_short",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 80, myth_px 68, myth lines 2, fact lines 4, source kept, t 3.0 s",
+  "current": "px 80, myth_px 68, myth lines 2, fact lines 4, source kept, t 2.967 s"
+ },
+ {
+  "compare": "myth_916_richat_nodate_hero__c_after_strike.jpg",
+  "run": "run_richat_structure_sahara_eye_1792737039_short",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 80, myth_px 68, myth lines 2, fact lines 4, source kept, t 3.367 s",
+  "current": "px 80, myth_px 68, myth lines 2, fact lines 4, source kept, t 3.667 s"
+ },
+ {
+  "compare": "myth_916_richat_nodate_hero__d_fact_revealed.jpg",
+  "run": "run_richat_structure_sahara_eye_1792737039_short",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 80, myth_px 68, myth lines 2, fact lines 4, source kept, min contrast 8.26, t 8.567 s",
+  "current": "px 80, myth_px 68, myth lines 2, fact lines 4, source kept, min contrast 7.03, t 7.967 s"
+ },
+ {
+  "compare": "myth_916_richat_nodate_plain__a_before_strike.jpg",
+  "run": "run_richat_structure_sahara_eye_1792737039_short",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 80, myth_px 68, myth lines 2, fact lines 4, source kept, t 2.667 s",
+  "current": "px 80, myth_px 68, myth lines 2, fact lines 4, source kept, t 2.633 s"
+ },
+ {
+  "compare": "myth_916_richat_nodate_plain__b_mid_strike.jpg",
+  "run": "run_richat_structure_sahara_eye_1792737039_short",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 80, myth_px 68, myth lines 2, fact lines 4, source kept, t 3.0 s",
+  "current": "px 80, myth_px 68, myth lines 2, fact lines 4, source kept, t 2.967 s"
+ },
+ {
+  "compare": "myth_916_richat_nodate_plain__c_after_strike.jpg",
+  "run": "run_richat_structure_sahara_eye_1792737039_short",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 80, myth_px 68, myth lines 2, fact lines 4, source kept, t 3.367 s",
+  "current": "px 80, myth_px 68, myth lines 2, fact lines 4, source kept, t 3.667 s"
+ },
+ {
+  "compare": "myth_916_richat_nodate_plain__d_fact_revealed.jpg",
+  "run": "run_richat_structure_sahara_eye_1792737039_short",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 80, myth_px 68, myth lines 2, fact lines 4, source kept, min contrast 8.61, t 8.567 s",
+  "current": "px 80, myth_px 68, myth lines 2, fact lines 4, source kept, min contrast 7.03, t 7.967 s"
+ },
+ {
+  "compare": "myth_916_richat_short_bright__a_before_strike.jpg",
+  "run": "run_richat_structure_sahara_eye_1792737039_short",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 96, myth_px 82, myth lines 2, fact lines 3, source kept, t 2.667 s",
+  "current": "px 96, myth_px 82, myth lines 2, fact lines 3, source kept, t 2.633 s"
+ },
+ {
+  "compare": "myth_916_richat_short_bright__b_mid_strike.jpg",
+  "run": "run_richat_structure_sahara_eye_1792737039_short",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 96, myth_px 82, myth lines 2, fact lines 3, source kept, t 3.0 s",
+  "current": "px 96, myth_px 82, myth lines 2, fact lines 3, source kept, t 2.967 s"
+ },
+ {
+  "compare": "myth_916_richat_short_bright__c_after_strike.jpg",
+  "run": "run_richat_structure_sahara_eye_1792737039_short",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 96, myth_px 82, myth lines 2, fact lines 3, source kept, t 3.367 s",
+  "current": "px 96, myth_px 82, myth lines 2, fact lines 3, source kept, t 3.667 s"
+ },
+ {
+  "compare": "myth_916_richat_short_bright__d_fact_revealed.jpg",
+  "run": "run_richat_structure_sahara_eye_1792737039_short",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 96, myth_px 82, myth lines 2, fact lines 3, source kept, min contrast 8.0, t 6.667 s",
+  "current": "px 96, myth_px 82, myth lines 2, fact lines 3, source kept, min contrast 7.0, t 6.467 s"
+ },
+ {
+  "compare": "myth_916_richat_short_busy__a_before_strike.jpg",
+  "run": "run_richat_structure_sahara_eye_1792737039_short",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 96, myth_px 82, myth lines 2, fact lines 3, source kept, t 2.667 s",
+  "current": "px 96, myth_px 82, myth lines 2, fact lines 3, source kept, t 2.633 s"
+ },
+ {
+  "compare": "myth_916_richat_short_busy__b_mid_strike.jpg",
+  "run": "run_richat_structure_sahara_eye_1792737039_short",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 96, myth_px 82, myth lines 2, fact lines 3, source kept, t 3.0 s",
+  "current": "px 96, myth_px 82, myth lines 2, fact lines 3, source kept, t 2.967 s"
+ },
+ {
+  "compare": "myth_916_richat_short_busy__c_after_strike.jpg",
+  "run": "run_richat_structure_sahara_eye_1792737039_short",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 96, myth_px 82, myth lines 2, fact lines 3, source kept, t 3.367 s",
+  "current": "px 96, myth_px 82, myth lines 2, fact lines 3, source kept, t 3.667 s"
+ },
+ {
+  "compare": "myth_916_richat_short_busy__d_fact_revealed.jpg",
+  "run": "run_richat_structure_sahara_eye_1792737039_short",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 96, myth_px 82, myth lines 2, fact lines 3, source kept, min contrast 8.02, t 6.667 s",
+  "current": "px 96, myth_px 82, myth lines 2, fact lines 3, source kept, min contrast 7.0, t 6.467 s"
+ },
+ {
+  "compare": "myth_916_richat_short_dark__a_before_strike.jpg",
+  "run": "run_richat_structure_sahara_eye_1792737039_short",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 96, myth_px 82, myth lines 2, fact lines 3, source kept, t 2.667 s",
+  "current": "px 96, myth_px 82, myth lines 2, fact lines 3, source kept, t 2.633 s"
+ },
+ {
+  "compare": "myth_916_richat_short_dark__b_mid_strike.jpg",
+  "run": "run_richat_structure_sahara_eye_1792737039_short",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 96, myth_px 82, myth lines 2, fact lines 3, source kept, t 3.0 s",
+  "current": "px 96, myth_px 82, myth lines 2, fact lines 3, source kept, t 2.967 s"
+ },
+ {
+  "compare": "myth_916_richat_short_dark__c_after_strike.jpg",
+  "run": "run_richat_structure_sahara_eye_1792737039_short",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 96, myth_px 82, myth lines 2, fact lines 3, source kept, t 3.367 s",
+  "current": "px 96, myth_px 82, myth lines 2, fact lines 3, source kept, t 3.667 s"
+ },
+ {
+  "compare": "myth_916_richat_short_dark__d_fact_revealed.jpg",
+  "run": "run_richat_structure_sahara_eye_1792737039_short",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 96, myth_px 82, myth lines 2, fact lines 3, source kept, min contrast 8.03, t 6.667 s",
+  "current": "px 96, myth_px 82, myth lines 2, fact lines 3, source kept, min contrast 7.05, t 6.467 s"
+ },
+ {
+  "compare": "myth_916_richat_short_hero__a_before_strike.jpg",
+  "run": "run_richat_structure_sahara_eye_1792737039_short",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 96, myth_px 82, myth lines 2, fact lines 3, source kept, t 2.667 s",
+  "current": "px 96, myth_px 82, myth lines 2, fact lines 3, source kept, t 2.633 s"
+ },
+ {
+  "compare": "myth_916_richat_short_hero__b_mid_strike.jpg",
+  "run": "run_richat_structure_sahara_eye_1792737039_short",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 96, myth_px 82, myth lines 2, fact lines 3, source kept, t 3.0 s",
+  "current": "px 96, myth_px 82, myth lines 2, fact lines 3, source kept, t 2.967 s"
+ },
+ {
+  "compare": "myth_916_richat_short_hero__c_after_strike.jpg",
+  "run": "run_richat_structure_sahara_eye_1792737039_short",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 96, myth_px 82, myth lines 2, fact lines 3, source kept, t 3.367 s",
+  "current": "px 96, myth_px 82, myth lines 2, fact lines 3, source kept, t 3.667 s"
+ },
+ {
+  "compare": "myth_916_richat_short_hero__d_fact_revealed.jpg",
+  "run": "run_richat_structure_sahara_eye_1792737039_short",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 96, myth_px 82, myth lines 2, fact lines 3, source kept, min contrast 8.26, t 6.667 s",
+  "current": "px 96, myth_px 82, myth lines 2, fact lines 3, source kept, min contrast 7.03, t 6.467 s"
+ },
+ {
+  "compare": "myth_916_richat_short_plain__a_before_strike.jpg",
+  "run": "run_richat_structure_sahara_eye_1792737039_short",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 96, myth_px 82, myth lines 2, fact lines 3, source kept, t 2.667 s",
+  "current": "px 96, myth_px 82, myth lines 2, fact lines 3, source kept, t 2.633 s"
+ },
+ {
+  "compare": "myth_916_richat_short_plain__b_mid_strike.jpg",
+  "run": "run_richat_structure_sahara_eye_1792737039_short",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 96, myth_px 82, myth lines 2, fact lines 3, source kept, t 3.0 s",
+  "current": "px 96, myth_px 82, myth lines 2, fact lines 3, source kept, t 2.967 s"
+ },
+ {
+  "compare": "myth_916_richat_short_plain__c_after_strike.jpg",
+  "run": "run_richat_structure_sahara_eye_1792737039_short",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 96, myth_px 82, myth lines 2, fact lines 3, source kept, t 3.367 s",
+  "current": "px 96, myth_px 82, myth lines 2, fact lines 3, source kept, t 3.667 s"
+ },
+ {
+  "compare": "myth_916_richat_short_plain__d_fact_revealed.jpg",
+  "run": "run_richat_structure_sahara_eye_1792737039_short",
+  "topic": "richat_structure_sahara_eye",
+  "labels": [
+   "new: real fact, test-signed field (myth field from fact-9)",
+   "pending operator approval: elided correction"
+  ],
+  "before": "px 96, myth_px 82, myth lines 2, fact lines 3, source kept, min contrast 8.61, t 6.667 s",
+  "current": "px 96, myth_px 82, myth lines 2, fact lines 3, source kept, min contrast 7.03, t 6.467 s"
+ }
+]

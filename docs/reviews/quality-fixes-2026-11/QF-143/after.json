@@ -1,0 +1,30 @@
+{
+ "cases": 46,
+ "rendered": 46,
+ "errors": 0,
+ "with_headline": 46,
+ "ends_on_mark": 0,
+ "ends_on_fragment": 0,
+ "subtitle_in_copy": 46,
+ "subtitle_kept": 35,
+ "by_source": {
+  "catalogue": {
+   "cases": 5,
+   "ends_on_mark": 0,
+   "ends_on_fragment": 0,
+   "subtitle_kept": 3
+  },
+  "library": {
+   "cases": 4,
+   "ends_on_mark": 0,
+   "ends_on_fragment": 0,
+   "subtitle_kept": 4
+  },
+  "dev": {
+   "cases": 37,
+   "ends_on_mark": 0,
+   "ends_on_fragment": 0,
+   "subtitle_kept": 28
+  }
+ }
+}

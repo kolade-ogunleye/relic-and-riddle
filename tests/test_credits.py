@@ -1,5 +1,6 @@
 import json
 
+import numpy as np
 import pytest
 from PIL import Image
 
@@ -40,7 +41,8 @@ def _topic_dir(tmp_path, n=6, reviewed=False, credited=None, verdict="yes"):
     d = tmp_path / "02_t"
     d.mkdir()
     for i in range(n):
-        Image.new("RGB", (40, 40)).save(d / f"{i:02d}_commons.jpg")
+        pixels = np.random.default_rng(i).integers(0, 256, (40, 40, 3), dtype=np.uint8)
+        Image.fromarray(pixels).save(d / f"{i:02d}_commons.jpg")
     Image.new("RGB", (40, 40)).save(d / "contact_sheet.jpg")
     files = [f"{i:02d}_commons.jpg" for i in range(n if credited is None else credited)]
     seen = {"shows_topic": verdict, "usable": True, "safe": True} if verdict else {}
@@ -55,16 +57,16 @@ def test_unreviewed_fetched_images_are_refused(tmp_path):
 
 
 def test_reviewed_set_uses_only_credited_files(tmp_path):
-    _topic_dir(tmp_path, n=7, reviewed=True, credited=6)
+    _topic_dir(tmp_path, n=10, reviewed=True, credited=9)
     names = [p.name for p in VisualEngine(assets_dir=tmp_path).get_scene_sequence({"id": "02_t"})]
-    assert names == [f"{i:02d}_commons.jpg" for i in range(6)]
+    assert names == [f"{i:02d}_commons.jpg" for i in range(9)]
 
 
 def test_uncredited_folder_ignores_contact_sheet(tmp_path):
-    d = _topic_dir(tmp_path)
+    d = _topic_dir(tmp_path, n=9)
     (d / "credits.json").unlink()
     names = [p.name for p in VisualEngine(assets_dir=tmp_path).get_scene_sequence({"id": "02_t"})]
-    assert "contact_sheet.jpg" not in names and len(names) == 6
+    assert "contact_sheet.jpg" not in names and len(names) == 9
 
 
 def test_load_credits_drops_deleted_files_and_reads_legacy_list(tmp_path):
@@ -79,17 +81,17 @@ def test_load_credits_drops_deleted_files_and_reads_legacy_list(tmp_path):
 def test_a_video_uses_only_strong_photos_and_a_couple_of_context_ones(tmp_path):
     # Operator, 2026-10-25: weak (context, never checked) photos reached the Antikythera video and carousel.
     from src.credits import load_credits
-    d = _topic_dir(tmp_path, n=9, reviewed=True)
+    d = _topic_dir(tmp_path, n=11, reviewed=True)
     cr = load_credits(d)
     for i, im in enumerate(cr["images"]):
-        if i >= 5:
-            im["vision_review"] = {"shows_topic": "partly", "usable": True, "safe": True} if i < 8 else {}
+        if i >= 7:
+            im["vision_review"] = {"shows_topic": "partly", "usable": True, "safe": True} if i < 10 else {}
     cr["images"][0]["relevance"] = 1
     cr["images"][4]["relevance"] = 9
     save_credits(d, cr)
     names = [p.name for p in VisualEngine(assets_dir=tmp_path).get_scene_sequence({"id": "02_t"})]
     assert names[0] == "04_commons.jpg"                                  # the most relevant topic photo: the cover
-    assert set(names) == {f"{i:02d}_commons.jpg" for i in range(7)} and len(names) == 7   # 5 topic + 2 context
+    assert set(names) == {f"{i:02d}_commons.jpg" for i in range(9)} and len(names) == 9   # 7 topic + 2 context
 
 
 def test_too_few_strong_photos_stop_the_run_with_the_reason(tmp_path):

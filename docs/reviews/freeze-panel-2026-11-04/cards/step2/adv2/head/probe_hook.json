@@ -1,0 +1,2204 @@
+{
+ "hookeb_dark_army": {
+  "lines": {
+   "title": [
+    "DISASSEMBLED",
+    "IN 36 HOURS"
+   ]
+  },
+  "anchors": {
+   "P": 128,
+   "Pm": null,
+   "position": "normal",
+   "lines": 2,
+   "block_top": 685,
+   "L": 1010,
+   "E": 731
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {
+   "mode": "wash",
+   "strength": 0.45
+  },
+  "elements": [
+   {
+    "name": "brand",
+    "box": [
+     265,
+     462,
+     862,
+     508
+    ],
+    "px": 64
+   },
+   {
+    "name": "brand_mark",
+    "box": [
+     216,
+     472,
+     242,
+     498
+    ],
+    "px": 0
+   },
+   {
+    "name": "eyebrow_rule",
+    "box": [
+     100,
+     685,
+     144,
+     689
+    ],
+    "px": 0
+   },
+   {
+    "name": "eyebrow",
+    "box": [
+     100,
+     702,
+     618,
+     732
+    ],
+    "px": 40
+   },
+   {
+    "name": "title_0",
+    "box": [
+     100,
+     774,
+     800,
+     886
+    ],
+    "px": 128
+   },
+   {
+    "name": "title_1",
+    "box": [
+     100,
+     899,
+     681,
+     1011
+    ],
+    "px": 128
+   }
+  ]
+ },
+ "hookeb_dark_konig": {
+  "lines": {
+   "title": [
+    "DISASSEMBLED",
+    "IN 36 HOURS"
+   ]
+  },
+  "anchors": {
+   "P": 128,
+   "Pm": null,
+   "position": "normal",
+   "lines": 2,
+   "block_top": 685,
+   "L": 1010,
+   "E": 731
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {
+   "mode": "wash",
+   "strength": 0.45
+  },
+  "elements": [
+   {
+    "name": "brand",
+    "box": [
+     265,
+     462,
+     862,
+     508
+    ],
+    "px": 64
+   },
+   {
+    "name": "brand_mark",
+    "box": [
+     216,
+     472,
+     242,
+     498
+    ],
+    "px": 0
+   },
+   {
+    "name": "eyebrow_rule",
+    "box": [
+     100,
+     685,
+     144,
+     689
+    ],
+    "px": 0
+   },
+   {
+    "name": "eyebrow",
+    "box": [
+     100,
+     694,
+     621,
+     732
+    ],
+    "px": 40
+   },
+   {
+    "name": "title_0",
+    "box": [
+     100,
+     774,
+     800,
+     886
+    ],
+    "px": 128
+   },
+   {
+    "name": "title_1",
+    "box": [
+     100,
+     899,
+     681,
+     1011
+    ],
+    "px": 128
+   }
+  ]
+ },
+ "hookeb_bright_army": {
+  "lines": {
+   "title": [
+    "DISASSEMBLED",
+    "IN 36 HOURS"
+   ]
+  },
+  "anchors": {
+   "P": 128,
+   "Pm": null,
+   "position": "normal",
+   "lines": 2,
+   "block_top": 685,
+   "L": 1010,
+   "E": 731
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {
+   "mode": "wash",
+   "strength": 0.7
+  },
+  "elements": [
+   {
+    "name": "brand",
+    "box": [
+     265,
+     462,
+     862,
+     508
+    ],
+    "px": 64
+   },
+   {
+    "name": "brand_mark",
+    "box": [
+     216,
+     472,
+     242,
+     498
+    ],
+    "px": 0
+   },
+   {
+    "name": "eyebrow_rule",
+    "box": [
+     100,
+     685,
+     144,
+     689
+    ],
+    "px": 0
+   },
+   {
+    "name": "eyebrow",
+    "box": [
+     100,
+     702,
+     618,
+     732
+    ],
+    "px": 40
+   },
+   {
+    "name": "title_0",
+    "box": [
+     100,
+     774,
+     800,
+     886
+    ],
+    "px": 128
+   },
+   {
+    "name": "title_1",
+    "box": [
+     100,
+     899,
+     681,
+     1011
+    ],
+    "px": 128
+   }
+  ]
+ },
+ "hookeb_bright_konig": {
+  "lines": {
+   "title": [
+    "DISASSEMBLED",
+    "IN 36 HOURS"
+   ]
+  },
+  "anchors": {
+   "P": 128,
+   "Pm": null,
+   "position": "normal",
+   "lines": 2,
+   "block_top": 685,
+   "L": 1010,
+   "E": 731
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {
+   "mode": "wash",
+   "strength": 0.7
+  },
+  "elements": [
+   {
+    "name": "brand",
+    "box": [
+     265,
+     462,
+     862,
+     508
+    ],
+    "px": 64
+   },
+   {
+    "name": "brand_mark",
+    "box": [
+     216,
+     472,
+     242,
+     498
+    ],
+    "px": 0
+   },
+   {
+    "name": "eyebrow_rule",
+    "box": [
+     100,
+     685,
+     144,
+     689
+    ],
+    "px": 0
+   },
+   {
+    "name": "eyebrow",
+    "box": [
+     100,
+     694,
+     621,
+     732
+    ],
+    "px": 40
+   },
+   {
+    "name": "title_0",
+    "box": [
+     100,
+     774,
+     800,
+     886
+    ],
+    "px": 128
+   },
+   {
+    "name": "title_1",
+    "box": [
+     100,
+     899,
+     681,
+     1011
+    ],
+    "px": 128
+   }
+  ]
+ },
+ "hookeb_busy_army": {
+  "lines": {
+   "title": [
+    "DISASSEMBLED",
+    "IN 36 HOURS"
+   ]
+  },
+  "anchors": {
+   "P": 128,
+   "Pm": null,
+   "position": "normal",
+   "lines": 2,
+   "block_top": 685,
+   "L": 1010,
+   "E": 731
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {
+   "mode": "wash",
+   "strength": 0.7
+  },
+  "elements": [
+   {
+    "name": "brand",
+    "box": [
+     265,
+     462,
+     862,
+     508
+    ],
+    "px": 64
+   },
+   {
+    "name": "brand_mark",
+    "box": [
+     216,
+     472,
+     242,
+     498
+    ],
+    "px": 0
+   },
+   {
+    "name": "eyebrow_rule",
+    "box": [
+     100,
+     685,
+     144,
+     689
+    ],
+    "px": 0
+   },
+   {
+    "name": "eyebrow",
+    "box": [
+     100,
+     702,
+     618,
+     732
+    ],
+    "px": 40
+   },
+   {
+    "name": "title_0",
+    "box": [
+     100,
+     774,
+     800,
+     886
+    ],
+    "px": 128
+   },
+   {
+    "name": "title_1",
+    "box": [
+     100,
+     899,
+     681,
+     1011
+    ],
+    "px": 128
+   }
+  ]
+ },
+ "hookeb_busy_konig": {
+  "lines": {
+   "title": [
+    "DISASSEMBLED",
+    "IN 36 HOURS"
+   ]
+  },
+  "anchors": {
+   "P": 128,
+   "Pm": null,
+   "position": "normal",
+   "lines": 2,
+   "block_top": 685,
+   "L": 1010,
+   "E": 731
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {
+   "mode": "wash",
+   "strength": 0.7
+  },
+  "elements": [
+   {
+    "name": "brand",
+    "box": [
+     265,
+     462,
+     862,
+     508
+    ],
+    "px": 64
+   },
+   {
+    "name": "brand_mark",
+    "box": [
+     216,
+     472,
+     242,
+     498
+    ],
+    "px": 0
+   },
+   {
+    "name": "eyebrow_rule",
+    "box": [
+     100,
+     685,
+     144,
+     689
+    ],
+    "px": 0
+   },
+   {
+    "name": "eyebrow",
+    "box": [
+     100,
+     694,
+     621,
+     732
+    ],
+    "px": 40
+   },
+   {
+    "name": "title_0",
+    "box": [
+     100,
+     774,
+     800,
+     886
+    ],
+    "px": 128
+   },
+   {
+    "name": "title_1",
+    "box": [
+     100,
+     899,
+     681,
+     1011
+    ],
+    "px": 128
+   }
+  ]
+ },
+ "hookgen_plain": {
+  "lines": {
+   "title": [
+    "DISASSEMBLED",
+    "IN 36 HOURS"
+   ]
+  },
+  "anchors": {
+   "P": 128,
+   "Pm": null,
+   "position": "normal",
+   "lines": 2,
+   "block_top": 775,
+   "L": 1010,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {
+   "mode": "wash",
+   "strength": 0.75
+  },
+  "elements": [
+   {
+    "name": "brand",
+    "box": [
+     265,
+     462,
+     862,
+     508
+    ],
+    "px": 64
+   },
+   {
+    "name": "brand_mark",
+    "box": [
+     216,
+     472,
+     242,
+     498
+    ],
+    "px": 0
+   },
+   {
+    "name": "title_0",
+    "box": [
+     100,
+     774,
+     800,
+     886
+    ],
+    "px": 128
+   },
+   {
+    "name": "title_1",
+    "box": [
+     100,
+     899,
+     681,
+     1011
+    ],
+    "px": 128
+   },
+   {
+    "name": "provenance_plate",
+    "box": [
+     108,
+     702,
+     686,
+     743
+    ],
+    "px": 0
+   },
+   {
+    "name": "provenance",
+    "box": [
+     122,
+     712,
+     671,
+     733
+    ],
+    "px": 30
+   }
+  ]
+ },
+ "hookgen_eb": {
+  "lines": {
+   "title": [
+    "DISASSEMBLED",
+    "IN 36 HOURS"
+   ]
+  },
+  "anchors": {
+   "P": 128,
+   "Pm": null,
+   "position": "normal",
+   "lines": 2,
+   "block_top": 775,
+   "L": 1010,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {
+   "mode": "wash",
+   "strength": 0.75
+  },
+  "elements": [
+   {
+    "name": "brand",
+    "box": [
+     265,
+     462,
+     862,
+     508
+    ],
+    "px": 64
+   },
+   {
+    "name": "brand_mark",
+    "box": [
+     216,
+     472,
+     242,
+     498
+    ],
+    "px": 0
+   },
+   {
+    "name": "title_0",
+    "box": [
+     100,
+     774,
+     800,
+     886
+    ],
+    "px": 128
+   },
+   {
+    "name": "title_1",
+    "box": [
+     100,
+     899,
+     681,
+     1011
+    ],
+    "px": 128
+   },
+   {
+    "name": "provenance_plate",
+    "box": [
+     108,
+     702,
+     686,
+     743
+    ],
+    "px": 0
+   },
+   {
+    "name": "provenance",
+    "box": [
+     122,
+     712,
+     671,
+     733
+    ],
+    "px": 30
+   }
+  ]
+ },
+ "hookgen_konig": {
+  "lines": {
+   "title": [
+    "SHIPPED TO",
+    "KÖNIGSBERG",
+    "CASTLE"
+   ]
+  },
+  "anchors": {
+   "P": 112,
+   "Pm": null,
+   "position": "normal",
+   "lines": 3,
+   "block_top": 694,
+   "L": 1010,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {
+   "mode": "plate",
+   "strength": 0.96
+  },
+  "elements": [
+   {
+    "name": "brand",
+    "box": [
+     265,
+     462,
+     862,
+     508
+    ],
+    "px": 64
+   },
+   {
+    "name": "brand_mark",
+    "box": [
+     216,
+     472,
+     242,
+     498
+    ],
+    "px": 0
+   },
+   {
+    "name": "title_0",
+    "box": [
+     100,
+     693,
+     559,
+     791
+    ],
+    "px": 112
+   },
+   {
+    "name": "title_1",
+    "box": [
+     100,
+     782,
+     595,
+     901
+    ],
+    "px": 112
+   },
+   {
+    "name": "title_2",
+    "box": [
+     100,
+     913,
+     390,
+     1011
+    ],
+    "px": 112
+   },
+   {
+    "name": "provenance_plate",
+    "box": [
+     108,
+     621,
+     686,
+     662
+    ],
+    "px": 0
+   },
+   {
+    "name": "provenance",
+    "box": [
+     122,
+     631,
+     671,
+     652
+    ],
+    "px": 30
+   }
+  ]
+ },
+ "hooknew_defeated_kievan_rus_longship_dark": {
+  "lines": {
+   "title": [
+    "DEFEATED KIEVAN",
+    "RUS’ LONGSHIPS"
+   ]
+  },
+  "anchors": {
+   "P": 120,
+   "Pm": null,
+   "position": "plate",
+   "lines": 2,
+   "block_top": 547,
+   "L": 768,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {
+   "mode": "plate",
+   "strength": 0.96
+  },
+  "elements": [
+   {
+    "name": "brand",
+    "box": [
+     265,
+     462,
+     862,
+     508
+    ],
+    "px": 64
+   },
+   {
+    "name": "brand_mark",
+    "box": [
+     216,
+     472,
+     242,
+     498
+    ],
+    "px": 0
+   },
+   {
+    "name": "title_0",
+    "box": [
+     168,
+     547,
+     913,
+     650
+    ],
+    "px": 120
+   },
+   {
+    "name": "title_1",
+    "box": [
+     191,
+     664,
+     889,
+     769
+    ],
+    "px": 120
+   }
+  ]
+ },
+ "hooknew_defeated_kievan_rus_longship_bright": {
+  "lines": {
+   "title": [
+    "DEFEATED KIEVAN",
+    "RUS’ LONGSHIPS"
+   ]
+  },
+  "anchors": {
+   "P": 120,
+   "Pm": null,
+   "position": "plate",
+   "lines": 2,
+   "block_top": 547,
+   "L": 768,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {
+   "mode": "plate",
+   "strength": 0.96
+  },
+  "elements": [
+   {
+    "name": "brand",
+    "box": [
+     265,
+     462,
+     862,
+     508
+    ],
+    "px": 64
+   },
+   {
+    "name": "brand_mark",
+    "box": [
+     216,
+     472,
+     242,
+     498
+    ],
+    "px": 0
+   },
+   {
+    "name": "title_0",
+    "box": [
+     168,
+     547,
+     913,
+     650
+    ],
+    "px": 120
+   },
+   {
+    "name": "title_1",
+    "box": [
+     191,
+     664,
+     889,
+     769
+    ],
+    "px": 120
+   }
+  ]
+ },
+ "hooknew_defeated_kievan_rus_longship_busy": {
+  "lines": {
+   "title": [
+    "DEFEATED KIEVAN",
+    "RUS’ LONGSHIPS"
+   ]
+  },
+  "anchors": {
+   "P": 120,
+   "Pm": null,
+   "position": "plate",
+   "lines": 2,
+   "block_top": 547,
+   "L": 768,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {
+   "mode": "plate",
+   "strength": 0.96
+  },
+  "elements": [
+   {
+    "name": "brand",
+    "box": [
+     265,
+     462,
+     862,
+     508
+    ],
+    "px": 64
+   },
+   {
+    "name": "brand_mark",
+    "box": [
+     216,
+     472,
+     242,
+     498
+    ],
+    "px": 0
+   },
+   {
+    "name": "title_0",
+    "box": [
+     168,
+     547,
+     913,
+     650
+    ],
+    "px": 120
+   },
+   {
+    "name": "title_1",
+    "box": [
+     191,
+     664,
+     889,
+     769
+    ],
+    "px": 120
+   }
+  ]
+ },
+ "hooknew_petroleum_based_greek_fire_dark": {
+  "lines": {
+   "title": [
+    "PETROLEUM-BASED",
+    "GREEK FIRE"
+   ]
+  },
+  "anchors": {
+   "P": 104,
+   "Pm": null,
+   "position": "plate",
+   "lines": 2,
+   "block_top": 547,
+   "L": 738,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {
+   "mode": "plate",
+   "strength": 0.96
+  },
+  "elements": [
+   {
+    "name": "brand",
+    "box": [
+     265,
+     462,
+     862,
+     508
+    ],
+    "px": 64
+   },
+   {
+    "name": "brand_mark",
+    "box": [
+     216,
+     472,
+     242,
+     498
+    ],
+    "px": 0
+   },
+   {
+    "name": "title_0",
+    "box": [
+     184,
+     546,
+     897,
+     637
+    ],
+    "px": 104
+   },
+   {
+    "name": "title_1",
+    "box": [
+     334,
+     648,
+     746,
+     739
+    ],
+    "px": 104
+   }
+  ]
+ },
+ "hooknew_petroleum_based_greek_fire_bright": {
+  "lines": {
+   "title": [
+    "PETROLEUM-BASED",
+    "GREEK FIRE"
+   ]
+  },
+  "anchors": {
+   "P": 104,
+   "Pm": null,
+   "position": "plate",
+   "lines": 2,
+   "block_top": 547,
+   "L": 738,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {
+   "mode": "plate",
+   "strength": 0.96
+  },
+  "elements": [
+   {
+    "name": "brand",
+    "box": [
+     265,
+     462,
+     862,
+     508
+    ],
+    "px": 64
+   },
+   {
+    "name": "brand_mark",
+    "box": [
+     216,
+     472,
+     242,
+     498
+    ],
+    "px": 0
+   },
+   {
+    "name": "title_0",
+    "box": [
+     184,
+     546,
+     897,
+     637
+    ],
+    "px": 104
+   },
+   {
+    "name": "title_1",
+    "box": [
+     334,
+     648,
+     746,
+     739
+    ],
+    "px": 104
+   }
+  ]
+ },
+ "hooknew_petroleum_based_greek_fire_busy": {
+  "lines": {
+   "title": [
+    "PETROLEUM-BASED",
+    "GREEK FIRE"
+   ]
+  },
+  "anchors": {
+   "P": 104,
+   "Pm": null,
+   "position": "plate",
+   "lines": 2,
+   "block_top": 547,
+   "L": 738,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {
+   "mode": "plate",
+   "strength": 0.96
+  },
+  "elements": [
+   {
+    "name": "brand",
+    "box": [
+     265,
+     462,
+     862,
+     508
+    ],
+    "px": 64
+   },
+   {
+    "name": "brand_mark",
+    "box": [
+     216,
+     472,
+     242,
+     498
+    ],
+    "px": 0
+   },
+   {
+    "name": "title_0",
+    "box": [
+     184,
+     546,
+     897,
+     637
+    ],
+    "px": 104
+   },
+   {
+    "name": "title_1",
+    "box": [
+     334,
+     648,
+     746,
+     739
+    ],
+    "px": 104
+   }
+  ]
+ },
+ "hooknew_dedicated_in_ad_128_dark": {
+  "lines": {
+   "title": [
+    "DEDICATED",
+    "IN AD 128"
+   ]
+  },
+  "anchors": {
+   "P": 128,
+   "Pm": null,
+   "position": "normal",
+   "lines": 2,
+   "block_top": 775,
+   "L": 1010,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {
+   "mode": "wash",
+   "strength": 0.75
+  },
+  "elements": [
+   {
+    "name": "brand",
+    "box": [
+     265,
+     462,
+     862,
+     508
+    ],
+    "px": 64
+   },
+   {
+    "name": "brand_mark",
+    "box": [
+     216,
+     472,
+     242,
+     498
+    ],
+    "px": 0
+   },
+   {
+    "name": "title_0",
+    "box": [
+     100,
+     774,
+     590,
+     886
+    ],
+    "px": 128
+   },
+   {
+    "name": "title_1",
+    "box": [
+     100,
+     899,
+     541,
+     1011
+    ],
+    "px": 128
+   }
+  ]
+ },
+ "hooknew_dedicated_in_ad_128_bright+busy": {
+  "lines": {
+   "title": [
+    "DEDICATED",
+    "IN AD 128"
+   ]
+  },
+  "anchors": {
+   "P": 128,
+   "Pm": null,
+   "position": "plate",
+   "lines": 2,
+   "block_top": 547,
+   "L": 782,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {
+   "mode": "plate",
+   "strength": 0.96
+  },
+  "elements": [
+   {
+    "name": "brand",
+    "box": [
+     265,
+     462,
+     862,
+     508
+    ],
+    "px": 64
+   },
+   {
+    "name": "brand_mark",
+    "box": [
+     216,
+     472,
+     242,
+     498
+    ],
+    "px": 0
+   },
+   {
+    "name": "title_0",
+    "box": [
+     295,
+     546,
+     785,
+     658
+    ],
+    "px": 128
+   },
+   {
+    "name": "title_1",
+    "box": [
+     320,
+     671,
+     761,
+     783
+    ],
+    "px": 128
+   }
+  ]
+ },
+ "hooknew_dedicated_in_ad_128_hero": {
+  "lines": {
+   "title": [
+    "DEDICATED",
+    "IN AD 128"
+   ]
+  },
+  "anchors": {
+   "P": 128,
+   "Pm": null,
+   "position": "normal",
+   "lines": 2,
+   "block_top": 775,
+   "L": 1010,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {
+   "mode": "wash",
+   "strength": 0.7
+  },
+  "elements": [
+   {
+    "name": "brand",
+    "box": [
+     265,
+     462,
+     862,
+     508
+    ],
+    "px": 64
+   },
+   {
+    "name": "brand_mark",
+    "box": [
+     216,
+     472,
+     242,
+     498
+    ],
+    "px": 0
+   },
+   {
+    "name": "title_0",
+    "box": [
+     100,
+     774,
+     590,
+     886
+    ],
+    "px": 128
+   },
+   {
+    "name": "title_1",
+    "box": [
+     100,
+     899,
+     541,
+     1011
+    ],
+    "px": 128
+   }
+  ]
+ },
+ "hooknew_named_after_wilfrid_voynich_dark": {
+  "lines": {
+   "title": [
+    "NAMED AFTER",
+    "WILFRID VOYNICH"
+   ]
+  },
+  "anchors": {
+   "P": 120,
+   "Pm": null,
+   "position": "normal",
+   "lines": 2,
+   "block_top": 789,
+   "L": 1010,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {
+   "mode": "wash",
+   "strength": 0.45
+  },
+  "elements": [
+   {
+    "name": "brand",
+    "box": [
+     265,
+     462,
+     862,
+     508
+    ],
+    "px": 64
+   },
+   {
+    "name": "brand_mark",
+    "box": [
+     216,
+     472,
+     242,
+     498
+    ],
+    "px": 0
+   },
+   {
+    "name": "title_0",
+    "box": [
+     100,
+     789,
+     697,
+     892
+    ],
+    "px": 120
+   },
+   {
+    "name": "title_1",
+    "box": [
+     100,
+     906,
+     846,
+     1011
+    ],
+    "px": 120
+   }
+  ]
+ },
+ "hooknew_named_after_wilfrid_voynich_bright": {
+  "lines": {
+   "title": [
+    "NAMED AFTER",
+    "WILFRID VOYNICH"
+   ]
+  },
+  "anchors": {
+   "P": 120,
+   "Pm": null,
+   "position": "plate",
+   "lines": 2,
+   "block_top": 547,
+   "L": 768,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {
+   "mode": "plate",
+   "strength": 0.96
+  },
+  "elements": [
+   {
+    "name": "brand",
+    "box": [
+     265,
+     462,
+     862,
+     508
+    ],
+    "px": 64
+   },
+   {
+    "name": "brand_mark",
+    "box": [
+     216,
+     472,
+     242,
+     498
+    ],
+    "px": 0
+   },
+   {
+    "name": "title_0",
+    "box": [
+     242,
+     547,
+     839,
+     650
+    ],
+    "px": 120
+   },
+   {
+    "name": "title_1",
+    "box": [
+     167,
+     664,
+     913,
+     769
+    ],
+    "px": 120
+   }
+  ]
+ },
+ "hooknew_named_after_wilfrid_voynich_busy": {
+  "lines": {
+   "title": [
+    "NAMED AFTER",
+    "WILFRID VOYNICH"
+   ]
+  },
+  "anchors": {
+   "P": 120,
+   "Pm": null,
+   "position": "normal",
+   "lines": 2,
+   "block_top": 789,
+   "L": 1010,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {
+   "mode": "wash",
+   "strength": 0.4
+  },
+  "elements": [
+   {
+    "name": "brand",
+    "box": [
+     265,
+     462,
+     862,
+     508
+    ],
+    "px": 64
+   },
+   {
+    "name": "brand_mark",
+    "box": [
+     216,
+     472,
+     242,
+     498
+    ],
+    "px": 0
+   },
+   {
+    "name": "title_0",
+    "box": [
+     100,
+     789,
+     697,
+     892
+    ],
+    "px": 120
+   },
+   {
+    "name": "title_1",
+    "box": [
+     100,
+     906,
+     846,
+     1011
+    ],
+    "px": 120
+   }
+  ]
+ },
+ "hooknew_in_27_bc_a_major_earthquake_dark": {
+  "lines": {
+   "title": [
+    "IN 27 BC, A",
+    "MAJOR",
+    "EARTHQUAKE"
+   ]
+  },
+  "anchors": {
+   "P": 112,
+   "Pm": null,
+   "position": "normal",
+   "lines": 3,
+   "block_top": 694,
+   "L": 1010,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {
+   "mode": "wash",
+   "strength": 0.5
+  },
+  "elements": [
+   {
+    "name": "brand",
+    "box": [
+     265,
+     462,
+     862,
+     508
+    ],
+    "px": 64
+   },
+   {
+    "name": "brand_mark",
+    "box": [
+     216,
+     472,
+     242,
+     498
+    ],
+    "px": 0
+   },
+   {
+    "name": "title_0",
+    "box": [
+     100,
+     693,
+     552,
+     804
+    ],
+    "px": 112
+   },
+   {
+    "name": "title_1",
+    "box": [
+     100,
+     803,
+     392,
+     901
+    ],
+    "px": 112
+   },
+   {
+    "name": "title_2",
+    "box": [
+     100,
+     913,
+     609,
+     1021
+    ],
+    "px": 112
+   }
+  ]
+ },
+ "hooknew_in_27_bc_a_major_earthquake_bright": {
+  "lines": {
+   "title": [
+    "IN 27 BC, A",
+    "MAJOR",
+    "EARTHQUAKE"
+   ]
+  },
+  "anchors": {
+   "P": 112,
+   "Pm": null,
+   "position": "plate",
+   "lines": 3,
+   "block_top": 547,
+   "L": 863,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {
+   "mode": "plate",
+   "strength": 0.96
+  },
+  "elements": [
+   {
+    "name": "brand",
+    "box": [
+     265,
+     462,
+     862,
+     508
+    ],
+    "px": 64
+   },
+   {
+    "name": "brand_mark",
+    "box": [
+     216,
+     472,
+     242,
+     498
+    ],
+    "px": 0
+   },
+   {
+    "name": "title_0",
+    "box": [
+     314,
+     546,
+     766,
+     657
+    ],
+    "px": 112
+   },
+   {
+    "name": "title_1",
+    "box": [
+     394,
+     656,
+     686,
+     754
+    ],
+    "px": 112
+   },
+   {
+    "name": "title_2",
+    "box": [
+     286,
+     766,
+     795,
+     874
+    ],
+    "px": 112
+   }
+  ]
+ },
+ "hooknew_in_27_bc_a_major_earthquake_busy": {
+  "lines": {
+   "title": [
+    "IN 27 BC, A",
+    "MAJOR",
+    "EARTHQUAKE"
+   ]
+  },
+  "anchors": {
+   "P": 112,
+   "Pm": null,
+   "position": "plate",
+   "lines": 3,
+   "block_top": 547,
+   "L": 863,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {
+   "mode": "plate",
+   "strength": 0.96
+  },
+  "elements": [
+   {
+    "name": "brand",
+    "box": [
+     265,
+     462,
+     862,
+     508
+    ],
+    "px": 64
+   },
+   {
+    "name": "brand_mark",
+    "box": [
+     216,
+     472,
+     242,
+     498
+    ],
+    "px": 0
+   },
+   {
+    "name": "title_0",
+    "box": [
+     314,
+     546,
+     766,
+     657
+    ],
+    "px": 112
+   },
+   {
+    "name": "title_1",
+    "box": [
+     394,
+     656,
+     686,
+     754
+    ],
+    "px": 112
+   },
+   {
+    "name": "title_2",
+    "box": [
+     286,
+     766,
+     795,
+     874
+    ],
+    "px": 112
+   }
+  ]
+ },
+ "hooknew_in_27_bc_a_major_earthquake_hero": {
+  "lines": {
+   "title": [
+    "IN 27 BC, A",
+    "MAJOR",
+    "EARTHQUAKE"
+   ]
+  },
+  "anchors": {
+   "P": 112,
+   "Pm": null,
+   "position": "normal",
+   "lines": 3,
+   "block_top": 694,
+   "L": 1010,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {
+   "mode": "wash",
+   "strength": 0.7
+  },
+  "elements": [
+   {
+    "name": "brand",
+    "box": [
+     265,
+     462,
+     862,
+     508
+    ],
+    "px": 64
+   },
+   {
+    "name": "brand_mark",
+    "box": [
+     216,
+     472,
+     242,
+     498
+    ],
+    "px": 0
+   },
+   {
+    "name": "title_0",
+    "box": [
+     100,
+     693,
+     552,
+     804
+    ],
+    "px": 112
+   },
+   {
+    "name": "title_1",
+    "box": [
+     100,
+     803,
+     392,
+     901
+    ],
+    "px": 112
+   },
+   {
+    "name": "title_2",
+    "box": [
+     100,
+     913,
+     609,
+     1021
+    ],
+    "px": 112
+   }
+  ]
+ },
+ "hooknew_strabo_recorded_the_earliest_dark": {
+  "lines": {
+   "title": [
+    "STRABO RECORDED",
+    "THE EARLIEST"
+   ]
+  },
+  "anchors": {
+   "P": 112,
+   "Pm": null,
+   "position": "normal",
+   "lines": 2,
+   "block_top": 804,
+   "L": 1010,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {
+   "mode": "wash",
+   "strength": 0.5
+  },
+  "elements": [
+   {
+    "name": "brand",
+    "box": [
+     265,
+     462,
+     862,
+     508
+    ],
+    "px": 64
+   },
+   {
+    "name": "brand_mark",
+    "box": [
+     216,
+     472,
+     242,
+     498
+    ],
+    "px": 0
+   },
+   {
+    "name": "title_0",
+    "box": [
+     100,
+     803,
+     847,
+     901
+    ],
+    "px": 112
+   },
+   {
+    "name": "title_1",
+    "box": [
+     100,
+     913,
+     636,
+     1011
+    ],
+    "px": 112
+   }
+  ]
+ },
+ "hooknew_strabo_recorded_the_earliest_bright": {
+  "lines": {
+   "title": [
+    "STRABO RECORDED",
+    "THE EARLIEST"
+   ]
+  },
+  "anchors": {
+   "P": 112,
+   "Pm": null,
+   "position": "plate",
+   "lines": 2,
+   "block_top": 547,
+   "L": 753,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {
+   "mode": "plate",
+   "strength": 0.96
+  },
+  "elements": [
+   {
+    "name": "brand",
+    "box": [
+     265,
+     462,
+     862,
+     508
+    ],
+    "px": 64
+   },
+   {
+    "name": "brand_mark",
+    "box": [
+     216,
+     472,
+     242,
+     498
+    ],
+    "px": 0
+   },
+   {
+    "name": "title_0",
+    "box": [
+     166,
+     546,
+     913,
+     644
+    ],
+    "px": 112
+   },
+   {
+    "name": "title_1",
+    "box": [
+     272,
+     656,
+     808,
+     754
+    ],
+    "px": 112
+   }
+  ]
+ },
+ "hooknew_strabo_recorded_the_earliest_busy": {
+  "lines": {
+   "title": [
+    "STRABO RECORDED",
+    "THE EARLIEST"
+   ]
+  },
+  "anchors": {
+   "P": 112,
+   "Pm": null,
+   "position": "plate",
+   "lines": 2,
+   "block_top": 547,
+   "L": 753,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {
+   "mode": "plate",
+   "strength": 0.96
+  },
+  "elements": [
+   {
+    "name": "brand",
+    "box": [
+     265,
+     462,
+     862,
+     508
+    ],
+    "px": 64
+   },
+   {
+    "name": "brand_mark",
+    "box": [
+     216,
+     472,
+     242,
+     498
+    ],
+    "px": 0
+   },
+   {
+    "name": "title_0",
+    "box": [
+     166,
+     546,
+     913,
+     644
+    ],
+    "px": 112
+   },
+   {
+    "name": "title_1",
+    "box": [
+     272,
+     656,
+     808,
+     754
+    ],
+    "px": 112
+   }
+  ]
+ },
+ "hooknew_strabo_recorded_the_earliest_hero": {
+  "lines": {
+   "title": [
+    "STRABO RECORDED",
+    "THE EARLIEST"
+   ]
+  },
+  "anchors": {
+   "P": 112,
+   "Pm": null,
+   "position": "normal",
+   "lines": 2,
+   "block_top": 804,
+   "L": 1010,
+   "E": null
+  },
+  "gold": null,
+  "drawn_min": null,
+  "drawn": null,
+  "quality_notes": null,
+  "scrim": {
+   "mode": "wash",
+   "strength": 0.7
+  },
+  "elements": [
+   {
+    "name": "brand",
+    "box": [
+     265,
+     462,
+     862,
+     508
+    ],
+    "px": 64
+   },
+   {
+    "name": "brand_mark",
+    "box": [
+     216,
+     472,
+     242,
+     498
+    ],
+    "px": 0
+   },
+   {
+    "name": "title_0",
+    "box": [
+     100,
+     803,
+     847,
+     901
+    ],
+    "px": 112
+   },
+   {
+    "name": "title_1",
+    "box": [
+     100,
+     913,
+     636,
+     1011
+    ],
+    "px": 112
+   }
+  ]
+ },
+ "hooknew_ordered_by_queen_hatshepsut_dark": {
+  "refused": "claim: drops the facts' 'possibly'"
+ },
+ "hooknew_ordered_by_queen_hatshepsut_bright": {
+  "refused": "claim: drops the facts' 'possibly'"
+ },
+ "hooknew_ordered_by_queen_hatshepsut_busy": {
+  "refused": "claim: drops the facts' 'possibly'"
+ },
+ "hooknew_ordered_by_queen_hatshepsut_hero": {
+  "refused": "claim: drops the facts' 'possibly'"
+ },
+ "hooknew_studied_by_reginald_engelbac_dark": {
+  "refused": "the claim 'Studied by Reginald Engelbach' states what fact 'fact-10' denies ('studi')"
+ },
+ "hooknew_studied_by_reginald_engelbac_bright": {
+  "refused": "the claim 'Studied by Reginald Engelbach' states what fact 'fact-10' denies ('studi')"
+ },
+ "hooknew_studied_by_reginald_engelbac_busy": {
+  "refused": "the claim 'Studied by Reginald Engelbach' states what fact 'fact-10' denies ('studi')"
+ },
+ "hooknew_studied_by_reginald_engelbac_hero": {
+  "refused": "the claim 'Studied by Reginald Engelbach' states what fact 'fact-10' denies ('studi')"
+ }
+}

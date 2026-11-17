@@ -1,5 +1,5 @@
 {
-  "path": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\data\\sfx\\sfx_rockfall.wav",
+  "path": "data/sfx/sfx_rockfall.wav",
   "sha256": "82e3d7f05326377cd1bf28ef116f14492e70d9ed89e4a7569c252b84f58b0c07",
   "provider": "elevenlabs-sound-effects",
   "plan": "creator",

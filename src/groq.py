@@ -67,7 +67,12 @@ def strict_schema(model: Type[BaseModel]) -> Dict[str, Any]:
     return schema
 
 
-def structured(system: str, prompt: str, schema: Type[T], model: str = "") -> T:
+REASONING_EFFORTS = ("low", "medium")   # a caller's effort -> reasoning_effort (gpt-oss); "high" is not sent (QF-99)
+
+
+def structured(system: str, prompt: str, schema: Type[T], model: str = "", thinking: str | None = None) -> T:
+    """`thinking`: the caller's effort ("low"/"medium"), sent as reasoning_effort (QF-99: the light fallback dropped
+    it); a model that rejects the field is asked again without it."""
     if not available():
         raise GroqError("GROQ_API_KEY is not set")
     if not isinstance(prompt, str):
@@ -80,11 +85,22 @@ def structured(system: str, prompt: str, schema: Type[T], model: str = "") -> T:
                                             "schema": strict_schema(schema)}},
         "temperature": 0.2,
     }
-    try:
-        resp = requests.post(URL, json=body, timeout=90,
-                             headers={"Authorization": f"Bearer {config.GROQ_API_KEY}", "Content-Type": "application/json"})
-    except requests.RequestException as e:
-        raise GroqError(f"Groq request failed: {type(e).__name__}") from None
+    effort = (thinking or "").lower()
+    if effort in REASONING_EFFORTS:
+        body["reasoning_effort"] = effort
+
+    def send():
+        try:
+            return requests.post(URL, json=body, timeout=90,
+                                 headers={"Authorization": f"Bearer {config.GROQ_API_KEY}",
+                                          "Content-Type": "application/json"})
+        except requests.RequestException as e:
+            raise GroqError(f"Groq request failed: {type(e).__name__}") from None
+    resp = send()
+    if resp.status_code == 400 and "reasoning_effort" in body and "reasoning" in (resp.text or "").lower():
+        log.info("%s does not take reasoning_effort; sent again without it.", body["model"])
+        del body["reasoning_effort"]
+        resp = send()
     if resp.status_code == 429:
         raise GroqQuota("Groq free-plan limit reached for now")
     try:

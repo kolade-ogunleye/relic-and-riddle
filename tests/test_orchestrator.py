@@ -90,13 +90,12 @@ def test_failed_fact_check_is_revised_then_fails_closed(db, monkeypatch, tmp_pat
     assert notes_seen[2].startswith("bad claim 2") and "- bad claim 1" in notes_seen[2]
 
 
-def test_resume_reuses_passed_script_and_voiceover(db, monkeypatch, tmp_path, curated_payload):
+def test_resume_reuses_passed_script_and_voiceover(db, monkeypatch, tmp_path, curated_payload, checked_stamp):
     import json
     import main
     monkeypatch.setattr(main, "OUTPUT_DIR", tmp_path)
     run_dir = tmp_path / "r5"
     run_dir.mkdir()
-    from src.fact_evidence import record_fact_review
     from src import config as test_config
     data_dir = tmp_path / "data"
     sheet = data_dir / "fact_sheets" / "01_topic.json"
@@ -104,7 +103,7 @@ def test_resume_reuses_passed_script_and_voiceover(db, monkeypatch, tmp_path, cu
     sheet.write_text('{"facts": []}', encoding="utf-8")
     monkeypatch.setattr(test_config, "DATA_DIR", data_dir)
     saved_payload = dict(curated_payload, guardrail_passed=True)
-    record_fact_review(saved_payload, sheet)
+    checked_stamp(saved_payload, sheet)   # the checkers passed on it (2026-11-04: a stamp needs their record)
     (run_dir / "script_metadata.json").write_text(json.dumps(saved_payload), encoding="utf-8")
     (run_dir / "voiceover.mp3").write_bytes(b"x")
     (run_dir / "words.json").write_text("[]", encoding="utf-8")
@@ -186,10 +185,24 @@ def test_approval_button_uses_short_key(db, monkeypatch, tmp_path):
 
 def test_render_adds_beat_images_and_replans_once_on_picture_mismatch(db, monkeypatch, tmp_path, curated_payload):
     import main
+    from src import scene_planner
     from src.models import QAIssue, QAReport
     coord = PipelineCoordinator(db)
     monkeypatch.setattr(coord, "_verify_final_copy", lambda *a: None)  # This test isolates scene planning.
+    # Withdrawal policy is covered in test_shot_pool; isolate the exact re-plan feedback here.
+    monkeypatch.setattr(scene_planner, "withdrawals", lambda *a: [])
+    monkeypatch.setattr(coord, "_fit_pictures", lambda run, topic, beats, scenes, *a, **k:
+                        (scenes, {"fits": list(range(1, len(scenes) + 1)), "unshown": []}))
+    # The real-file fixture exercises coverage; this planner test still isolates its own credit-caption step.
+    provenance = tmp_path / "planner_provenance.json"
+    provenance.write_text('{"assets": []}', encoding="utf-8")
+    monkeypatch.setattr(main, "generate_provenance_ledger", lambda *a, **k: provenance)
     topic_img, beat_img = tmp_path / "t.jpg", tmp_path / "b.jpg"
+    import numpy as np
+    from PIL import Image
+    topic_photos = [topic_img] + [tmp_path / f"topic_{i}.jpg" for i in range(8)]
+    for index, path in enumerate(topic_photos + [beat_img]):
+        Image.fromarray(np.random.default_rng(index).integers(0, 256, (64, 64, 3), dtype=np.uint8)).save(path)
     monkeypatch.setattr(main, "ensure_all", lambda paths: (paths, 0))
     monkeypatch.setattr(main, "ensure_resolution", lambda p: p)
     monkeypatch.setattr(main, "load_credits", lambda d: {"images": []})
@@ -202,9 +215,9 @@ def test_render_adds_beat_images_and_replans_once_on_picture_mismatch(db, monkey
 
     def plan(beats, media, feedback=""):
         plans.append((list(media), feedback))
-        return [beat_img], [3.0], "n"
+        return [beat_img] + topic_photos[1:], [3.0] * 9, "n"
     monkeypatch.setattr(main, "plan_scenes", plan)
-    monkeypatch.setattr(main, "segment_beats", lambda w, d: [{"start": 0, "end": 3, "text": "A door."}])
+    monkeypatch.setattr(main, "segment_beats", lambda w, d: [{"start": i * 3, "end": (i + 1) * 3, "text": "A door."} for i in range(9)])
     monkeypatch.setattr(main, "render_parallax", lambda *a: None)
     reports = iter([QAReport(summary="", issues=[QAIssue(beat=1, severity="major", issue="Image shows a beach")]),
                     QAReport(summary="", issues=[])])
@@ -219,10 +232,10 @@ def test_render_adds_beat_images_and_replans_once_on_picture_mismatch(db, monkey
     db.create_run("r9", "01_topic")
     payload = dict(curated_payload, caption="Story.")
 
-    coord._render_approve_publish({"id": "01_topic"}, "r9", tmp_path, payload, [topic_img], topic_img,
-                                  tmp_path / "v.mp3", tmp_path / "bed.wav", [], 3.0, True, True, None)
+    coord._render_approve_publish({"id": "01_topic"}, "r9", tmp_path, payload, topic_photos, topic_img,
+                                  tmp_path / "v.mp3", tmp_path / "bed.wav", [], 27.0, True, True, None)
 
-    assert plans[0] == ([topic_img, beat_img], "") and plans[1][1] == "Beat 1: Image shows a beach"
+    assert plans[0] == (topic_photos + [beat_img], "") and plans[1][1] == "Beat 1: Image shows a beach"
     assert len(renders) == 2  # one re-render, then stop
     assert payload["caption"] == "Story.\n\n📷 Images via Wikimedia Commons and partner archives: Bob (CC BY 4.0) · adapted: cropped, with motion and text added"
     assert payload["beat_image_note"].startswith("🔍 1 photo(s) from outside the topic's set") and "line 1" in payload["beat_image_note"]

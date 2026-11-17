@@ -1,0 +1,259 @@
+{
+  "metric": {
+    "ssrf_attempts": 37,
+    "ssrf_blocked": 0,
+    "internal_or_off_host_requests_made": 37,
+    "acceptance_redirect_to_127_0_0_1_page_text_none": false,
+    "acceptance_off_host_museum_download_raises": false,
+    "museum_providers_without_host_allowlist": [
+      "met",
+      "nasa",
+      "smithsonian"
+    ],
+    "controls_fetched": "4/4"
+  },
+  "cases": [
+    {
+      "case": "page_text 302 -> http://127.0.0.1/",
+      "outcome": "fetched",
+      "forbidden_url_requested": true,
+      "blocked": false
+    },
+    {
+      "case": "page_text 302 -> https://127.0.0.1/admin",
+      "outcome": "fetched",
+      "forbidden_url_requested": true,
+      "blocked": false
+    },
+    {
+      "case": "page_text https://127.0.0.1/admin",
+      "outcome": "fetched",
+      "forbidden_url_requested": true,
+      "blocked": false
+    },
+    {
+      "case": "page_text 302 -> https://169.254.169.254/latest/meta-data/",
+      "outcome": "fetched",
+      "forbidden_url_requested": true,
+      "blocked": false
+    },
+    {
+      "case": "page_text https://169.254.169.254/latest/meta-data/",
+      "outcome": "fetched",
+      "forbidden_url_requested": true,
+      "blocked": false
+    },
+    {
+      "case": "page_text 302 -> https://10.0.0.5/",
+      "outcome": "fetched",
+      "forbidden_url_requested": true,
+      "blocked": false
+    },
+    {
+      "case": "page_text https://10.0.0.5/",
+      "outcome": "fetched",
+      "forbidden_url_requested": true,
+      "blocked": false
+    },
+    {
+      "case": "page_text 302 -> https://192.168.1.1/",
+      "outcome": "fetched",
+      "forbidden_url_requested": true,
+      "blocked": false
+    },
+    {
+      "case": "page_text https://192.168.1.1/",
+      "outcome": "fetched",
+      "forbidden_url_requested": true,
+      "blocked": false
+    },
+    {
+      "case": "page_text 302 -> https://172.16.4.4/",
+      "outcome": "fetched",
+      "forbidden_url_requested": true,
+      "blocked": false
+    },
+    {
+      "case": "page_text https://172.16.4.4/",
+      "outcome": "fetched",
+      "forbidden_url_requested": true,
+      "blocked": false
+    },
+    {
+      "case": "page_text 302 -> https://[::1]/",
+      "outcome": "fetched",
+      "forbidden_url_requested": true,
+      "blocked": false
+    },
+    {
+      "case": "page_text https://[::1]/",
+      "outcome": "fetched",
+      "forbidden_url_requested": true,
+      "blocked": false
+    },
+    {
+      "case": "page_text 302 -> https://[::ffff:127.0.0.1]/",
+      "outcome": "fetched",
+      "forbidden_url_requested": true,
+      "blocked": false
+    },
+    {
+      "case": "page_text https://[::ffff:127.0.0.1]/",
+      "outcome": "fetched",
+      "forbidden_url_requested": true,
+      "blocked": false
+    },
+    {
+      "case": "page_text 302 -> https://2130706433/",
+      "outcome": "fetched",
+      "forbidden_url_requested": true,
+      "blocked": false
+    },
+    {
+      "case": "page_text https://2130706433/",
+      "outcome": "fetched",
+      "forbidden_url_requested": true,
+      "blocked": false
+    },
+    {
+      "case": "page_text 302 -> https://0x7f.0.0.1/",
+      "outcome": "fetched",
+      "forbidden_url_requested": true,
+      "blocked": false
+    },
+    {
+      "case": "page_text https://0x7f.0.0.1/",
+      "outcome": "fetched",
+      "forbidden_url_requested": true,
+      "blocked": false
+    },
+    {
+      "case": "page_text 302 -> https://localhost/",
+      "outcome": "fetched",
+      "forbidden_url_requested": true,
+      "blocked": false
+    },
+    {
+      "case": "page_text https://localhost/",
+      "outcome": "fetched",
+      "forbidden_url_requested": true,
+      "blocked": false
+    },
+    {
+      "case": "page_text 302 -> https://intranet/",
+      "outcome": "fetched",
+      "forbidden_url_requested": true,
+      "blocked": false
+    },
+    {
+      "case": "page_text https://intranet/",
+      "outcome": "fetched",
+      "forbidden_url_requested": true,
+      "blocked": false
+    },
+    {
+      "case": "page_text 302 -> https://printer.local/",
+      "outcome": "fetched",
+      "forbidden_url_requested": true,
+      "blocked": false
+    },
+    {
+      "case": "page_text https://printer.local/",
+      "outcome": "fetched",
+      "forbidden_url_requested": true,
+      "blocked": false
+    },
+    {
+      "case": "page_text 302 -> https://rebound.example.com/",
+      "outcome": "fetched",
+      "forbidden_url_requested": true,
+      "blocked": false
+    },
+    {
+      "case": "page_text https://rebound.example.com/",
+      "outcome": "fetched",
+      "forbidden_url_requested": true,
+      "blocked": false
+    },
+    {
+      "case": "page_text 302 -> https://vm.corp-network.example/",
+      "outcome": "fetched",
+      "forbidden_url_requested": true,
+      "blocked": false
+    },
+    {
+      "case": "page_text https://vm.corp-network.example/",
+      "outcome": "fetched",
+      "forbidden_url_requested": true,
+      "blocked": false
+    },
+    {
+      "case": "download_jpeg off-host museum url (met)",
+      "outcome": "fetched",
+      "forbidden_url_requested": true,
+      "blocked": false
+    },
+    {
+      "case": "download_jpeg off-host url (no provider)",
+      "outcome": "fetched",
+      "forbidden_url_requested": true,
+      "blocked": false
+    },
+    {
+      "case": "download_jpeg met 302 -> off host",
+      "outcome": "fetched",
+      "forbidden_url_requested": true,
+      "blocked": false
+    },
+    {
+      "case": "download_jpeg met 302 -> 169.254.169.254",
+      "outcome": "fetched",
+      "forbidden_url_requested": true,
+      "blocked": false
+    },
+    {
+      "case": "download_jpeg europeana host resolving to 127.0.0.1",
+      "outcome": "fetched",
+      "forbidden_url_requested": true,
+      "blocked": false
+    },
+    {
+      "case": "reference off-host museum url",
+      "outcome": "fetched",
+      "forbidden_url_requested": true,
+      "blocked": false
+    },
+    {
+      "case": "reference met 302 -> 10.0.0.5",
+      "outcome": "fetched",
+      "forbidden_url_requested": true,
+      "blocked": false
+    },
+    {
+      "case": "footage europeana host resolving to 127.0.0.1",
+      "outcome": "fetched",
+      "forbidden_url_requested": true,
+      "blocked": false
+    },
+    {
+      "case": "control: page_text public page via public redirect",
+      "outcome": "fetched",
+      "expected": "fetched"
+    },
+    {
+      "case": "control: download_jpeg met file on its host",
+      "outcome": "fetched",
+      "expected": "fetched"
+    },
+    {
+      "case": "control: download_jpeg commons file",
+      "outcome": "fetched",
+      "expected": "fetched"
+    },
+    {
+      "case": "control: reference commons file",
+      "outcome": "fetched",
+      "expected": "fetched"
+    }
+  ]
+}

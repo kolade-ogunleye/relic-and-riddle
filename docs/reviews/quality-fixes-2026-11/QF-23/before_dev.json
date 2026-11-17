@@ -1,0 +1,4744 @@
+{
+ "schema": 1,
+ "source": "real_inputs.json (dev runs' checked copy, extract_real_inputs.py)",
+ "runs_measured": 34,
+ "source_sha256": {
+  "src/typography.py": "6f0dd04eaabc6bc8",
+  "src/graphics.py": "e8927272a063ad0f",
+  "src/multi_format.py": "2417ea9f83731a9f",
+  "src/cover_design.py": "fc687e989b34bd6e",
+  "src/visual_engine.py": "88ba0d2fc0a87a69",
+  "src/still_layout.py": "09cb2a4987c3a172",
+  "src/audience_chart.py": "dfd4493a9aee6796"
+ },
+ "primitives": {
+  "impossible_boxes": [
+   {
+    "method": "fit_text",
+    "input": "The object is about two thousand years old, according to the surviving inscription.",
+    "refused": false,
+    "returned": [
+     "Th…"
+    ],
+    "ellipsis": true,
+    "words_lost": [
+     "ABOUT",
+     "ACCORDING",
+     "INSCRIPTION",
+     "IS",
+     "OBJECT",
+     "OLD",
+     "SURVIVING",
+     "THE",
+     "THOUSAND",
+     "TO",
+     "TWO",
+     "YEARS"
+    ],
+    "overflows": false
+   },
+   {
+    "method": "fit_text quiet",
+    "input": "The object is about two thousand years old, according to the surviving inscription.",
+    "refused": false,
+    "returned": [
+     "Th…"
+    ],
+    "ellipsis": true,
+    "words_lost": [
+     "ABOUT",
+     "ACCORDING",
+     "INSCRIPTION",
+     "IS",
+     "OBJECT",
+     "OLD",
+     "SURVIVING",
+     "THE",
+     "THOUSAND",
+     "TO",
+     "TWO",
+     "YEARS"
+    ],
+    "overflows": false
+   },
+   {
+    "method": "fit_line",
+    "input": "The object is about two thousand years old, according to the surviving inscription.",
+    "refused": false,
+    "returned": [
+     "Th…"
+    ],
+    "ellipsis": true,
+    "words_lost": [
+     "ABOUT",
+     "ACCORDING",
+     "INSCRIPTION",
+     "IS",
+     "OBJECT",
+     "OLD",
+     "SURVIVING",
+     "THE",
+     "THOUSAND",
+     "TO",
+     "TWO",
+     "YEARS"
+    ],
+    "overflows": false
+   },
+   {
+    "method": "fit_lines",
+    "input": "The object is about two thousand years old, according to the surviving inscription.",
+    "refused": false,
+    "returned": [
+     "The",
+     "object",
+     "is",
+     "about",
+     "two",
+     "thousand",
+     "years",
+     "old,",
+     "according",
+     "to the",
+     "surviving",
+     "inscription."
+    ],
+    "ellipsis": false,
+    "words_lost": [],
+    "overflows": true
+   },
+   {
+    "method": "fit_tracked",
+    "input": "The object is about two thousand years old, according to the surviving inscription.",
+    "refused": false,
+    "returned": [
+     "The…"
+    ],
+    "ellipsis": true,
+    "words_lost": [
+     "ABOUT",
+     "ACCORDING",
+     "INSCRIPTION",
+     "IS",
+     "OBJECT",
+     "OLD",
+     "SURVIVING",
+     "THOUSAND",
+     "TO",
+     "TWO",
+     "YEARS"
+    ],
+    "overflows": false
+   },
+   {
+    "method": "fit_text",
+    "input": "The doorway is closed. The proposed reconstruction remains disputed.",
+    "refused": false,
+    "returned": [
+     "Th…"
+    ],
+    "ellipsis": true,
+    "words_lost": [
+     "CLOSED",
+     "DISPUTED",
+     "DOORWAY",
+     "IS",
+     "PROPOSED",
+     "RECONSTRUCTION",
+     "REMAINS",
+     "THE"
+    ],
+    "overflows": false
+   },
+   {
+    "method": "fit_text quiet",
+    "input": "The doorway is closed. The proposed reconstruction remains disputed.",
+    "refused": false,
+    "returned": [
+     "Th…"
+    ],
+    "ellipsis": true,
+    "words_lost": [
+     "CLOSED",
+     "DISPUTED",
+     "DOORWAY",
+     "IS",
+     "PROPOSED",
+     "RECONSTRUCTION",
+     "REMAINS",
+     "THE"
+    ],
+    "overflows": false
+   },
+   {
+    "method": "fit_line",
+    "input": "The doorway is closed. The proposed reconstruction remains disputed.",
+    "refused": false,
+    "returned": [
+     "Th…"
+    ],
+    "ellipsis": true,
+    "words_lost": [
+     "CLOSED",
+     "DISPUTED",
+     "DOORWAY",
+     "IS",
+     "PROPOSED",
+     "RECONSTRUCTION",
+     "REMAINS",
+     "THE"
+    ],
+    "overflows": false
+   },
+   {
+    "method": "fit_lines",
+    "input": "The doorway is closed. The proposed reconstruction remains disputed.",
+    "refused": false,
+    "returned": [
+     "The",
+     "doorway",
+     "is",
+     "closed.",
+     "The",
+     "proposed",
+     "reconstruction",
+     "remains",
+     "disputed."
+    ],
+    "ellipsis": false,
+    "words_lost": [],
+    "overflows": true
+   },
+   {
+    "method": "fit_tracked",
+    "input": "The doorway is closed. The proposed reconstruction remains disputed.",
+    "refused": false,
+    "returned": [
+     "The…"
+    ],
+    "ellipsis": true,
+    "words_lost": [
+     "CLOSED",
+     "DISPUTED",
+     "DOORWAY",
+     "IS",
+     "PROPOSED",
+     "RECONSTRUCTION",
+     "REMAINS"
+    ],
+    "overflows": false
+   },
+   {
+    "method": "fit_text",
+    "input": "Antidisestablishmentarianism",
+    "refused": false,
+    "returned": [
+     "An…"
+    ],
+    "ellipsis": true,
+    "words_lost": [
+     "ANTIDISESTABLISHMENTARIANISM"
+    ],
+    "overflows": false
+   },
+   {
+    "method": "fit_text quiet",
+    "input": "Antidisestablishmentarianism",
+    "refused": false,
+    "returned": [
+     "An…"
+    ],
+    "ellipsis": true,
+    "words_lost": [
+     "ANTIDISESTABLISHMENTARIANISM"
+    ],
+    "overflows": false
+   },
+   {
+    "method": "fit_line",
+    "input": "Antidisestablishmentarianism",
+    "refused": false,
+    "returned": [
+     "An…"
+    ],
+    "ellipsis": true,
+    "words_lost": [
+     "ANTIDISESTABLISHMENTARIANISM"
+    ],
+    "overflows": false
+   },
+   {
+    "method": "fit_lines",
+    "input": "Antidisestablishmentarianism",
+    "refused": false,
+    "returned": [
+     "Antidisestablishmentarianism"
+    ],
+    "ellipsis": false,
+    "words_lost": [],
+    "overflows": true
+   },
+   {
+    "method": "fit_tracked",
+    "input": "Antidisestablishmentarianism",
+    "refused": false,
+    "returned": [
+     "Antidisestablishmentarianism"
+    ],
+    "ellipsis": false,
+    "words_lost": [],
+    "overflows": true
+   }
+  ],
+  "refused": 0,
+  "cases": 15,
+  "truncated": 11,
+  "fitting_controls": [
+   {
+    "input": "About two thousand years old. Its exact date remains disputed.",
+    "lines": [
+     "About two thousand years old.",
+     "Its exact date remains disputed."
+    ],
+    "px": 40,
+    "shortened": false,
+    "whole": true,
+    "within_width": true
+   },
+   {
+    "input": "Built under King Krishna I.",
+    "lines": [
+     "Built under King Krishna I."
+    ],
+    "px": 40,
+    "shortened": false,
+    "whole": true,
+    "within_width": true
+   },
+   {
+    "input": "Königsberg, 1945.",
+    "lines": [
+     "Königsberg, 1945."
+    ],
+    "px": 40,
+    "shortened": false,
+    "whole": true,
+    "within_width": true
+   }
+  ]
+ },
+ "surfaces": {
+  "stories": {
+   "ok": 34,
+   "refused": 0,
+   "error": 0,
+   "skipped": 0,
+   "drew_cut": 0
+  },
+  "carousel": {
+   "ok": 34,
+   "refused": 0,
+   "error": 0,
+   "skipped": 0,
+   "drew_cut": 6
+  },
+  "carousel_fb": {
+   "ok": 34,
+   "refused": 0,
+   "error": 0,
+   "skipped": 0,
+   "drew_cut": 6
+  },
+  "covers": {
+   "ok": 34,
+   "refused": 0,
+   "error": 0,
+   "skipped": 0,
+   "drew_cut": 0
+  },
+  "documentary_cover": {
+   "ok": 34,
+   "refused": 0,
+   "error": 0,
+   "skipped": 0,
+   "drew_cut": 10
+  },
+  "youtube_thumbnail": {
+   "ok": 34,
+   "refused": 0,
+   "error": 0,
+   "skipped": 0,
+   "drew_cut": 5
+  },
+  "numbers_916": {
+   "ok": 23,
+   "refused": 0,
+   "error": 0,
+   "skipped": 0,
+   "drew_cut": 0
+  },
+  "timeline_916": {
+   "ok": 10,
+   "refused": 0,
+   "error": 0,
+   "skipped": 0,
+   "drew_cut": 0
+  },
+  "site_label_916": {
+   "ok": 34,
+   "refused": 0,
+   "error": 0,
+   "skipped": 0,
+   "drew_cut": 0
+  },
+  "numbers_169": {
+   "ok": 23,
+   "refused": 0,
+   "error": 0,
+   "skipped": 0,
+   "drew_cut": 0
+  },
+  "timeline_169": {
+   "ok": 10,
+   "refused": 0,
+   "error": 0,
+   "skipped": 0,
+   "drew_cut": 0
+  },
+  "site_label_169": {
+   "ok": 34,
+   "refused": 0,
+   "error": 0,
+   "skipped": 0,
+   "drew_cut": 0
+  },
+  "chart_title": {
+   "ok": 34,
+   "refused": 0,
+   "error": 0,
+   "skipped": 0,
+   "drew_cut": 1
+  },
+  "scale_916": {
+   "ok": 2,
+   "refused": 0,
+   "error": 0,
+   "skipped": 1,
+   "drew_cut": 0
+  },
+  "scale_169": {
+   "ok": 2,
+   "refused": 0,
+   "error": 0,
+   "skipped": 1,
+   "drew_cut": 0
+  }
+ },
+ "totals": {
+  "surfaces": 378,
+  "ok": 376,
+  "refused": 0,
+  "error": 0,
+  "drew_cut": 28
+ },
+ "runs": [
+  {
+   "run": "run_amber_room_heist_1792781224",
+   "surfaces": [
+    {
+     "surface": "stories",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [
+      "1944",
+      "AUGUST",
+      "BOMBING",
+      "CASTLE",
+      "ENDED",
+      "FATE",
+      "FIRE",
+      "HEAVY",
+      "K",
+      "NIGSBERG",
+      "OFFICIAL",
+      "POLL",
+      "ROOM",
+      "STRUCK",
+      "TRACKING",
+      "TRUE",
+      "WHAT",
+      "WHEN"
+     ],
+     "drawn_sha": "ff81f641d9827953"
+    },
+    {
+     "surface": "carousel",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "73b3078bc507fdf3"
+    },
+    {
+     "surface": "carousel_fb",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "8fdda425e62b5cb6"
+    },
+    {
+     "surface": "covers",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "3ef920a1564fa57a"
+    },
+    {
+     "surface": "documentary_cover",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "4b05005055f09b49"
+    },
+    {
+     "surface": "youtube_thumbnail",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [
+      "STOLEN"
+     ],
+     "drawn_sha": "cc54a4ca621a6819"
+    },
+    {
+     "surface": "numbers_916",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "3c4fd1278961f729"
+    },
+    {
+     "surface": "timeline_916",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "66f469ec16975593"
+    },
+    {
+     "surface": "site_label_916",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "6099e15293793eee"
+    },
+    {
+     "surface": "numbers_169",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "e8d3f161e520b824"
+    },
+    {
+     "surface": "timeline_169",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "f66cc68ec488d207"
+    },
+    {
+     "surface": "site_label_169",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "6099e15293793eee"
+    },
+    {
+     "surface": "chart_title",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "9f7fb55829671187"
+    }
+   ]
+  },
+  {
+   "run": "run_amber_room_heist_1792790550",
+   "surfaces": [
+    {
+     "surface": "stories",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [
+      "AMBER",
+      "BASEMENT",
+      "BURN",
+      "CRATES",
+      "DID",
+      "HAPPENED",
+      "HIDDEN",
+      "INCINERATED",
+      "OR",
+      "SECRET",
+      "SURVIVE",
+      "VERDICT",
+      "WHAT"
+     ],
+     "drawn_sha": "63282a0da6f1307c"
+    },
+    {
+     "surface": "carousel",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [
+      "6",
+      "TONNES"
+     ],
+     "drawn_sha": "e80de6ec35c9f68b"
+    },
+    {
+     "surface": "carousel_fb",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [
+      "6",
+      "TONNES"
+     ],
+     "drawn_sha": "8baf16e065d68787"
+    },
+    {
+     "surface": "covers",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "42d9e1a017ebaed9"
+    },
+    {
+     "surface": "documentary_cover",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "3d40e130cd7efcaf"
+    },
+    {
+     "surface": "youtube_thumbnail",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [
+      "HOURS",
+      "ROOM"
+     ],
+     "drawn_sha": "d2bb8185c17b6fd2"
+    },
+    {
+     "surface": "numbers_916",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "8f41c3765e243ef3"
+    },
+    {
+     "surface": "timeline_916",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "911ddf15a27a7ba2"
+    },
+    {
+     "surface": "site_label_916",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "6099e15293793eee"
+    },
+    {
+     "surface": "numbers_169",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "c749f7147cbabc0e"
+    },
+    {
+     "surface": "timeline_169",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "7a3c68ad307c8d8e"
+    },
+    {
+     "surface": "site_label_169",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "6099e15293793eee"
+    },
+    {
+     "surface": "chart_title",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "5ffb9064cb1f4ea9"
+    }
+   ]
+  },
+  {
+   "run": "run_amber_room_heist_1792801257",
+   "surfaces": [
+    {
+     "surface": "stories",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [
+      "1997",
+      "AMBER",
+      "AN",
+      "BURNED",
+      "BUT",
+      "CONCLUDED",
+      "FATE",
+      "HAPPENED",
+      "HOPE",
+      "INVESTIGATION",
+      "IT",
+      "MOSAIC",
+      "RECOVERED",
+      "REVIVED",
+      "TO",
+      "WHAT"
+     ],
+     "drawn_sha": "8245c43f8f5b083d"
+    },
+    {
+     "surface": "carousel",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "2368d7216f4252f0"
+    },
+    {
+     "surface": "carousel_fb",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "6743120c70682f9f"
+    },
+    {
+     "surface": "covers",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "c69c37525f7c7103"
+    },
+    {
+     "surface": "documentary_cover",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "7f1a6634b6cbdf5a"
+    },
+    {
+     "surface": "youtube_thumbnail",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [
+      "ROOM"
+     ],
+     "drawn_sha": "c6d7c0619f5540e1"
+    },
+    {
+     "surface": "numbers_916",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "8f0d5ee3a7e6a5f6"
+    },
+    {
+     "surface": "timeline_916",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "9cdd04b8e474c3e6"
+    },
+    {
+     "surface": "site_label_916",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "6099e15293793eee"
+    },
+    {
+     "surface": "numbers_169",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "25f479ebd0ae9cea"
+    },
+    {
+     "surface": "timeline_169",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "02c4b36397baa9d7"
+    },
+    {
+     "surface": "site_label_169",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "6099e15293793eee"
+    },
+    {
+     "surface": "chart_title",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "90e3dbba8b5d9291"
+    }
+   ]
+  },
+  {
+   "run": "run_amber_room_heist_1792805842",
+   "surfaces": [
+    {
+     "surface": "stories",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [
+      "1944",
+      "AFTER",
+      "BUT",
+      "CRATES",
+      "FATE",
+      "FINAL",
+      "ITS",
+      "MOSAIC",
+      "PIECES",
+      "PROVED",
+      "RECOVERED",
+      "SURVIVED",
+      "WAS",
+      "WHAT"
+     ],
+     "drawn_sha": "da522cdb56cae50e"
+    },
+    {
+     "surface": "carousel",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "c52876b6ea449b5c"
+    },
+    {
+     "surface": "carousel_fb",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "986ea20e6ee68daf"
+    },
+    {
+     "surface": "covers",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "ec63256d4fc333f0"
+    },
+    {
+     "surface": "documentary_cover",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "f0c1595f13f73bb5"
+    },
+    {
+     "surface": "youtube_thumbnail",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [
+      "AMBER",
+      "LOST",
+      "ROOM"
+     ],
+     "drawn_sha": "bae2d93e5edd90f6"
+    },
+    {
+     "surface": "numbers_916",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "f5c29b2a63759b92"
+    },
+    {
+     "surface": "timeline_916",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "2d51f67b9856fd64"
+    },
+    {
+     "surface": "site_label_916",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "6099e15293793eee"
+    },
+    {
+     "surface": "numbers_169",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "2cc1af7693b1a83e"
+    },
+    {
+     "surface": "timeline_169",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "ccacc153381f7b7a"
+    },
+    {
+     "surface": "site_label_169",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "6099e15293793eee"
+    },
+    {
+     "surface": "chart_title",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "fb0b3d8f2ca64449"
+    }
+   ]
+  },
+  {
+   "run": "run_damascus_steel_nanotubes_1792732472_short",
+   "surfaces": [
+    {
+     "surface": "stories",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [
+      "ANOMALY",
+      "BEFORE",
+      "CAME",
+      "FIRST",
+      "FORGE",
+      "INDIA",
+      "OR",
+      "ORIGINATED",
+      "SMELTER",
+      "SWORDS",
+      "TECHNIQUES",
+      "WERE",
+      "WHICH"
+     ],
+     "drawn_sha": "9de23c0323cfff4e"
+    },
+    {
+     "surface": "carousel",
+     "outcome": "ok",
+     "ellipsis_drawn": [
+      "DAMASCUS STEEL SECRETS · YOUR…"
+     ],
+     "shortened": [
+      "kicker"
+     ],
+     "cut_logged": [
+      "Kicker shortened to fit 1216 px: DAMASCUS STEEL SECRETS · YOUR TAKE"
+     ],
+     "missing_words": [],
+     "drawn_sha": "6b965a2b8328e106"
+    },
+    {
+     "surface": "carousel_fb",
+     "outcome": "ok",
+     "ellipsis_drawn": [
+      "DAMASCUS STEEL SECRETS · YOUR…"
+     ],
+     "shortened": [
+      "kicker"
+     ],
+     "cut_logged": [
+      "Kicker shortened to fit 1216 px: DAMASCUS STEEL SECRETS · YOUR TAKE"
+     ],
+     "missing_words": [],
+     "drawn_sha": "5ad5df329db0388c"
+    },
+    {
+     "surface": "covers",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "0231f07e7e3d1f86"
+    },
+    {
+     "surface": "documentary_cover",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "2b668279676ad44d"
+    },
+    {
+     "surface": "youtube_thumbnail",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "9ef21773c996ead1"
+    },
+    {
+     "surface": "numbers_916",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "9c99d96d25b9437b"
+    },
+    {
+     "surface": "site_label_916",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "8949c49bcfaa0e3b"
+    },
+    {
+     "surface": "numbers_169",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "6275b6e53af9ef2c"
+    },
+    {
+     "surface": "site_label_169",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "8949c49bcfaa0e3b"
+    },
+    {
+     "surface": "chart_title",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "3ee93d42e560e944"
+    }
+   ]
+  },
+  {
+   "run": "run_gol_gumbaz_whispering_gallery_1793278143",
+   "surfaces": [
+    {
+     "surface": "stories",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [
+      "1656",
+      "ADIL",
+      "AFTER",
+      "CHANCE",
+      "CONSTRUCTION",
+      "DESIGN",
+      "DIED",
+      "HALTED",
+      "INTENTIONAL",
+      "MOHAMMAD",
+      "MYSTERY",
+      "OR",
+      "PURE",
+      "SHAH"
+     ],
+     "drawn_sha": "e15fb32ee0a68268"
+    },
+    {
+     "surface": "carousel",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "13f733ca2cb7f838"
+    },
+    {
+     "surface": "carousel_fb",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "4a6705a887c72f42"
+    },
+    {
+     "surface": "covers",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "4e3637cc0aedb55e"
+    },
+    {
+     "surface": "documentary_cover",
+     "outcome": "ok",
+     "ellipsis_drawn": [
+      "WHISPERING VAULT OF…"
+     ],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [
+      "GOL",
+      "GUMBAZ"
+     ],
+     "drawn_sha": "d7d7dea9afa8d010"
+    },
+    {
+     "surface": "youtube_thumbnail",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [
+      "FOOT",
+      "GOL",
+      "GUMBAZ",
+      "OF",
+      "THE"
+     ],
+     "drawn_sha": "1bedf84f87f37daa"
+    },
+    {
+     "surface": "numbers_916",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "15918ab110b0b69a"
+    },
+    {
+     "surface": "site_label_916",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "685f147efbcdee8d"
+    },
+    {
+     "surface": "numbers_169",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "3f82b7eaa90dec91"
+    },
+    {
+     "surface": "site_label_169",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "685f147efbcdee8d"
+    },
+    {
+     "surface": "chart_title",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "6e1d27f3d373d530"
+    }
+   ]
+  },
+  {
+   "run": "run_greek_fire_siphon_1792735284_short",
+   "surfaces": [
+    {
+     "surface": "stories",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [
+      "CHOICES",
+      "CONTAIN",
+      "COUNTERACT",
+      "CRUSADER",
+      "DEFENDERS",
+      "FLAMES",
+      "STORED",
+      "TACTICAL",
+      "TROOPS",
+      "USED",
+      "VINEGAR",
+      "WHILE"
+     ],
+     "drawn_sha": "1d4d24a3f8225b19"
+    },
+    {
+     "surface": "carousel",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "dc78621391b61f3e"
+    },
+    {
+     "surface": "carousel_fb",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "93ed59e6f868b7dd"
+    },
+    {
+     "surface": "covers",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "246d1caaa2a2dddc"
+    },
+    {
+     "surface": "documentary_cover",
+     "outcome": "ok",
+     "ellipsis_drawn": [
+      "WEAPON THAT WATER…"
+     ],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [
+      "COULD",
+      "NOT",
+      "QUENCH"
+     ],
+     "drawn_sha": "0b9318ecb76e49c5"
+    },
+    {
+     "surface": "youtube_thumbnail",
+     "outcome": "ok",
+     "ellipsis_drawn": [
+      "WEAPON THAT WATER…"
+     ],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [
+      "COULD",
+      "NOT",
+      "QUENCH"
+     ],
+     "drawn_sha": "9a62644d8bb77c5d"
+    },
+    {
+     "surface": "site_label_916",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "846c8505caa6ea51"
+    },
+    {
+     "surface": "site_label_169",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "846c8505caa6ea51"
+    },
+    {
+     "surface": "chart_title",
+     "outcome": "ok",
+     "ellipsis_drawn": [
+      "The 10th-Century Weapon That Water Could Not…"
+     ],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [
+      "QUENCH"
+     ],
+     "drawn_sha": "772afb5d2e159457"
+    }
+   ]
+  },
+  {
+   "run": "run_hal_saflieni_hypogeum_1792949304",
+   "surfaces": [
+    {
+     "surface": "stories",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [
+      "000",
+      "2500",
+      "4000",
+      "7",
+      "APPROXIMATELY",
+      "B",
+      "HELD",
+      "INDIVIDUALS",
+      "MORE",
+      "NECROPOLIS",
+      "POLL",
+      "REQUIRED",
+      "SKILL",
+      "THE",
+      "TO",
+      "WHICH"
+     ],
+     "drawn_sha": "ee13c907d5078ae6"
+    },
+    {
+     "surface": "carousel",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "4f53d95556eaac6a"
+    },
+    {
+     "surface": "carousel_fb",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [
+      "SWIPE"
+     ],
+     "drawn_sha": "9e53e4837376c557"
+    },
+    {
+     "surface": "covers",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "07a50e56366845af"
+    },
+    {
+     "surface": "documentary_cover",
+     "outcome": "ok",
+     "ellipsis_drawn": [
+      "NECROPOLI…"
+     ],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [
+      "NECROPOLIS"
+     ],
+     "drawn_sha": "368529d4dbd28dc1"
+    },
+    {
+     "surface": "youtube_thumbnail",
+     "outcome": "ok",
+     "ellipsis_drawn": [
+      "UNDERGROUND NECROPOLI…"
+     ],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [
+      "NECROPOLIS"
+     ],
+     "drawn_sha": "ab55bdfc255932c3"
+    },
+    {
+     "surface": "numbers_916",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "12704749f9e6490c"
+    },
+    {
+     "surface": "timeline_916",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "a6c6befceb82d054"
+    },
+    {
+     "surface": "site_label_916",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "2c47f20a4d39b04c"
+    },
+    {
+     "surface": "numbers_169",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "7911e64d0f2231cc"
+    },
+    {
+     "surface": "timeline_169",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "c23b6541f693c08e"
+    },
+    {
+     "surface": "site_label_169",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "2c47f20a4d39b04c"
+    },
+    {
+     "surface": "chart_title",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "e343bd864fbdd872"
+    }
+   ]
+  },
+  {
+   "run": "run_kailasa_temple_monolith_1792524470",
+   "surfaces": [
+    {
+     "surface": "stories",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [
+      "250",
+      "5",
+      "BE",
+      "COULD",
+      "EFFICIENCY",
+      "ESTIMATES",
+      "FASTER",
+      "IT",
+      "LABORERS",
+      "MACHINERY",
+      "MATCH",
+      "MODERN",
+      "PARADOX",
+      "SPEED",
+      "SUGGEST",
+      "TOOLS",
+      "WOULD",
+      "YEARS"
+     ],
+     "drawn_sha": "8716a78eb00cb2bc"
+    },
+    {
+     "surface": "carousel",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "60d28bd80881ae69"
+    },
+    {
+     "surface": "carousel_fb",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "3fde4d73d545732b"
+    },
+    {
+     "surface": "covers",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "ce7e20d41409ff9a"
+    },
+    {
+     "surface": "documentary_cover",
+     "outcome": "ok",
+     "ellipsis_drawn": [
+      "DOWN: THE CAVE 16…"
+     ],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [
+      "MONOLITH"
+     ],
+     "drawn_sha": "ae6ecf8254e652c4"
+    },
+    {
+     "surface": "youtube_thumbnail",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [
+      "16",
+      "MONOLITH",
+      "TOP"
+     ],
+     "drawn_sha": "17165fea46293080"
+    },
+    {
+     "surface": "site_label_916",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "1cd5248faff5d6f2"
+    },
+    {
+     "surface": "site_label_169",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "1cd5248faff5d6f2"
+    },
+    {
+     "surface": "chart_title",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "19a766d226658038"
+    }
+   ]
+  },
+  {
+   "run": "run_nazca_lines_runway_paradox_1792961797",
+   "surfaces": [
+    {
+     "surface": "stories",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [
+      "ANCIENT",
+      "ARCHAEOLOGICAL",
+      "CHOOSE",
+      "DRY",
+      "FIGURES",
+      "HUNDREDS",
+      "OF",
+      "OR",
+      "PERUVIAN",
+      "PLATEAU",
+      "PURPOSE",
+      "REVEAL",
+      "SIGNS",
+      "SKY",
+      "SURVEYS",
+      "THEORY",
+      "WALKWAYS",
+      "YOUR"
+     ],
+     "drawn_sha": "c84ab0bf2e8c3bb2"
+    },
+    {
+     "surface": "carousel",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "d5771f7cdd5d892b"
+    },
+    {
+     "surface": "carousel_fb",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "3c84f4185ce9c9ce"
+    },
+    {
+     "surface": "covers",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "3534a4b361b0ec70"
+    },
+    {
+     "surface": "documentary_cover",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "690cd2908a007e9a"
+    },
+    {
+     "surface": "youtube_thumbnail",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [
+      "DEFIED",
+      "DESERT",
+      "LINES",
+      "THAT",
+      "WIND"
+     ],
+     "drawn_sha": "3dcba783962ebc36"
+    },
+    {
+     "surface": "numbers_916",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "87fe1f8b7b5c2c98"
+    },
+    {
+     "surface": "timeline_916",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "540ba76e8909fe30"
+    },
+    {
+     "surface": "site_label_916",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "8398875160fbd5b0"
+    },
+    {
+     "surface": "numbers_169",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "87fe1f8b7b5c2c98"
+    },
+    {
+     "surface": "timeline_169",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "000a7f5679c1544c"
+    },
+    {
+     "surface": "site_label_169",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "8398875160fbd5b0"
+    },
+    {
+     "surface": "chart_title",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "7d1c0a1e2f81ef4f"
+    }
+   ]
+  },
+  {
+   "run": "run_nazca_lines_runway_paradox_1793247464",
+   "surfaces": [
+    {
+     "surface": "stories",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [
+      "ASTRONOMY",
+      "GROUND",
+      "GUIDE",
+      "HELPED",
+      "ON",
+      "OR",
+      "PATHS",
+      "SACRED",
+      "VERDICT"
+     ],
+     "drawn_sha": "537d1ebba8280d2d"
+    },
+    {
+     "surface": "carousel",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "89732a2f5b3bde78"
+    },
+    {
+     "surface": "carousel_fb",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "74069d29c94be4ca"
+    },
+    {
+     "surface": "covers",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "1c73b8ab12569190"
+    },
+    {
+     "surface": "documentary_cover",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "d3163b9c4d56fcc4"
+    },
+    {
+     "surface": "youtube_thumbnail",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "fa0fa2865df44c24"
+    },
+    {
+     "surface": "site_label_916",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "8398875160fbd5b0"
+    },
+    {
+     "surface": "site_label_169",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "8398875160fbd5b0"
+    },
+    {
+     "surface": "chart_title",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "e608340f6cb5179b"
+    }
+   ]
+  },
+  {
+   "run": "run_nazca_lines_runway_paradox_1793251266",
+   "surfaces": [
+    {
+     "surface": "stories",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [
+      "ASTRONOMY",
+      "GROUND",
+      "GUIDE",
+      "HELPED",
+      "ON",
+      "OR",
+      "PATHS",
+      "SACRED",
+      "VERDICT"
+     ],
+     "drawn_sha": "537d1ebba8280d2d"
+    },
+    {
+     "surface": "carousel",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "89732a2f5b3bde78"
+    },
+    {
+     "surface": "carousel_fb",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "74069d29c94be4ca"
+    },
+    {
+     "surface": "covers",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "1c73b8ab12569190"
+    },
+    {
+     "surface": "documentary_cover",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "d3163b9c4d56fcc4"
+    },
+    {
+     "surface": "youtube_thumbnail",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "fa0fa2865df44c24"
+    },
+    {
+     "surface": "site_label_916",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "8398875160fbd5b0"
+    },
+    {
+     "surface": "site_label_169",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "8398875160fbd5b0"
+    },
+    {
+     "surface": "chart_title",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "e608340f6cb5179b"
+    }
+   ]
+  },
+  {
+   "run": "run_nazca_lines_runway_paradox_1793262388",
+   "surfaces": [
+    {
+     "surface": "stories",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [
+      "ASTRONOMY",
+      "GROUND",
+      "GUIDE",
+      "HELPED",
+      "ON",
+      "OR",
+      "PATHS",
+      "SACRED",
+      "VERDICT"
+     ],
+     "drawn_sha": "537d1ebba8280d2d"
+    },
+    {
+     "surface": "carousel",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "89732a2f5b3bde78"
+    },
+    {
+     "surface": "carousel_fb",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "74069d29c94be4ca"
+    },
+    {
+     "surface": "covers",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "1c73b8ab12569190"
+    },
+    {
+     "surface": "documentary_cover",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "d3163b9c4d56fcc4"
+    },
+    {
+     "surface": "youtube_thumbnail",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "fa0fa2865df44c24"
+    },
+    {
+     "surface": "site_label_916",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "8398875160fbd5b0"
+    },
+    {
+     "surface": "site_label_169",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "8398875160fbd5b0"
+    },
+    {
+     "surface": "chart_title",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "e608340f6cb5179b"
+    }
+   ]
+  },
+  {
+   "run": "run_nazca_lines_runway_paradox_1793267092",
+   "surfaces": [
+    {
+     "surface": "stories",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [
+      "ASTRONOMY",
+      "GROUND",
+      "GUIDE",
+      "HELPED",
+      "ON",
+      "OR",
+      "PATHS",
+      "SACRED",
+      "VERDICT"
+     ],
+     "drawn_sha": "537d1ebba8280d2d"
+    },
+    {
+     "surface": "carousel",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "89732a2f5b3bde78"
+    },
+    {
+     "surface": "carousel_fb",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "74069d29c94be4ca"
+    },
+    {
+     "surface": "covers",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "1c73b8ab12569190"
+    },
+    {
+     "surface": "documentary_cover",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "d3163b9c4d56fcc4"
+    },
+    {
+     "surface": "youtube_thumbnail",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "fa0fa2865df44c24"
+    },
+    {
+     "surface": "site_label_916",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "8398875160fbd5b0"
+    },
+    {
+     "surface": "site_label_169",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "8398875160fbd5b0"
+    },
+    {
+     "surface": "chart_title",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "e608340f6cb5179b"
+    }
+   ]
+  },
+  {
+   "run": "run_odessa_catacombs_1792970549",
+   "surfaces": [
+    {
+     "surface": "stories",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [
+      "CHOICES",
+      "COMBAT",
+      "FIGHTERS",
+      "FRONT",
+      "HIDING",
+      "INSIDE",
+      "NETWORK",
+      "OPERATIONS",
+      "PARTISAN",
+      "SOVIET",
+      "TACTICAL",
+      "WAGED",
+      "WARFARE",
+      "WHILE"
+     ],
+     "drawn_sha": "0711399f42148e84"
+    },
+    {
+     "surface": "carousel",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "cc4ee32b0e921cf4"
+    },
+    {
+     "surface": "carousel_fb",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "ceaa174ab40b1468"
+    },
+    {
+     "surface": "covers",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "0bef43b88bd10c92"
+    },
+    {
+     "surface": "documentary_cover",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "c1d0b23248b23e6b"
+    },
+    {
+     "surface": "youtube_thumbnail",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "457a1a2fc668bbd1"
+    },
+    {
+     "surface": "numbers_916",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "d34966c5d02f73dc"
+    },
+    {
+     "surface": "site_label_916",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "9cd72870e6e7a9bf"
+    },
+    {
+     "surface": "numbers_169",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "d34966c5d02f73dc"
+    },
+    {
+     "surface": "site_label_169",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "9cd72870e6e7a9bf"
+    },
+    {
+     "surface": "chart_title",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "6a374fe4ecfbeadd"
+    }
+   ]
+  },
+  {
+   "run": "run_odessa_catacombs_1793098390",
+   "surfaces": [
+    {
+     "surface": "stories",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [
+      "CHOICES",
+      "COMBAT",
+      "FIGHTERS",
+      "FRONT",
+      "HIDING",
+      "INSIDE",
+      "NETWORK",
+      "OPERATIONS",
+      "PARTISAN",
+      "SOVIET",
+      "TACTICAL",
+      "WAGED",
+      "WARFARE",
+      "WHILE"
+     ],
+     "drawn_sha": "0711399f42148e84"
+    },
+    {
+     "surface": "carousel",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "cc4ee32b0e921cf4"
+    },
+    {
+     "surface": "carousel_fb",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "ceaa174ab40b1468"
+    },
+    {
+     "surface": "covers",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "0bef43b88bd10c92"
+    },
+    {
+     "surface": "documentary_cover",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "c1d0b23248b23e6b"
+    },
+    {
+     "surface": "youtube_thumbnail",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "457a1a2fc668bbd1"
+    },
+    {
+     "surface": "numbers_916",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "d34966c5d02f73dc"
+    },
+    {
+     "surface": "site_label_916",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "9cd72870e6e7a9bf"
+    },
+    {
+     "surface": "numbers_169",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "d34966c5d02f73dc"
+    },
+    {
+     "surface": "site_label_169",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "9cd72870e6e7a9bf"
+    },
+    {
+     "surface": "chart_title",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "6a374fe4ecfbeadd"
+    }
+   ]
+  },
+  {
+   "run": "run_odessa_catacombs_1793100750",
+   "surfaces": [
+    {
+     "surface": "stories",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [
+      "CHOICES",
+      "COMBAT",
+      "FIGHTERS",
+      "FRONT",
+      "HIDING",
+      "INSIDE",
+      "NETWORK",
+      "OPERATIONS",
+      "PARTISAN",
+      "SOVIET",
+      "TACTICAL",
+      "WAGED",
+      "WARFARE",
+      "WHILE"
+     ],
+     "drawn_sha": "0711399f42148e84"
+    },
+    {
+     "surface": "carousel",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "cc4ee32b0e921cf4"
+    },
+    {
+     "surface": "carousel_fb",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "ceaa174ab40b1468"
+    },
+    {
+     "surface": "covers",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "0bef43b88bd10c92"
+    },
+    {
+     "surface": "documentary_cover",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "c1d0b23248b23e6b"
+    },
+    {
+     "surface": "youtube_thumbnail",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "457a1a2fc668bbd1"
+    },
+    {
+     "surface": "numbers_916",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "d34966c5d02f73dc"
+    },
+    {
+     "surface": "site_label_916",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "9cd72870e6e7a9bf"
+    },
+    {
+     "surface": "numbers_169",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "d34966c5d02f73dc"
+    },
+    {
+     "surface": "site_label_169",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "9cd72870e6e7a9bf"
+    },
+    {
+     "surface": "chart_title",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "6a374fe4ecfbeadd"
+    }
+   ]
+  },
+  {
+   "run": "run_odessa_catacombs_1793159709",
+   "surfaces": [
+    {
+     "surface": "stories",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [
+      "CHOICES",
+      "COMBAT",
+      "FIGHTERS",
+      "FRONT",
+      "HIDING",
+      "INSIDE",
+      "NETWORK",
+      "OPERATIONS",
+      "PARTISAN",
+      "SOVIET",
+      "TACTICAL",
+      "WAGED",
+      "WARFARE",
+      "WHILE"
+     ],
+     "drawn_sha": "0711399f42148e84"
+    },
+    {
+     "surface": "carousel",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "cc4ee32b0e921cf4"
+    },
+    {
+     "surface": "carousel_fb",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "ceaa174ab40b1468"
+    },
+    {
+     "surface": "covers",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "0bef43b88bd10c92"
+    },
+    {
+     "surface": "documentary_cover",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "c1d0b23248b23e6b"
+    },
+    {
+     "surface": "youtube_thumbnail",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "457a1a2fc668bbd1"
+    },
+    {
+     "surface": "numbers_916",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "d34966c5d02f73dc"
+    },
+    {
+     "surface": "site_label_916",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "9cd72870e6e7a9bf"
+    },
+    {
+     "surface": "numbers_169",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "d34966c5d02f73dc"
+    },
+    {
+     "surface": "site_label_169",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "9cd72870e6e7a9bf"
+    },
+    {
+     "surface": "chart_title",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "6a374fe4ecfbeadd"
+    }
+   ]
+  },
+  {
+   "run": "run_richat_structure_sahara_eye_1792737039_short",
+   "surfaces": [
+    {
+     "surface": "stories",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [
+      "COSMIC",
+      "DRAMATIC",
+      "EARTH",
+      "FORCE",
+      "LANDMARKS",
+      "MORE",
+      "OR",
+      "PLANET",
+      "SHAPES",
+      "WEIGH",
+      "WHAT",
+      "WHICH"
+     ],
+     "drawn_sha": "ba35a2a45a781644"
+    },
+    {
+     "surface": "carousel",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "736f5e6e37a06658"
+    },
+    {
+     "surface": "carousel_fb",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "0f3f1a31d902ca16"
+    },
+    {
+     "surface": "covers",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "4b38938e9a009c05"
+    },
+    {
+     "surface": "documentary_cover",
+     "outcome": "ok",
+     "ellipsis_drawn": [
+      "BULLSEYE SEEN FROM…"
+     ],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [
+      "SPACE"
+     ],
+     "drawn_sha": "297992aba4608359"
+    },
+    {
+     "surface": "youtube_thumbnail",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [
+      "BULLSEYE",
+      "DESERT",
+      "FROM",
+      "SEEN",
+      "SPACE"
+     ],
+     "drawn_sha": "9e059dc087d77f06"
+    },
+    {
+     "surface": "numbers_916",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [
+      "104M"
+     ],
+     "drawn_sha": "b727ce7f6cec0c87"
+    },
+    {
+     "surface": "site_label_916",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "365e59b559c44b6b"
+    },
+    {
+     "surface": "numbers_169",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [
+      "104M"
+     ],
+     "drawn_sha": "cdb9d2950b99cb0c"
+    },
+    {
+     "surface": "site_label_169",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "365e59b559c44b6b"
+    },
+    {
+     "surface": "chart_title",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "9e2f1094a582c3e6"
+    }
+   ]
+  },
+  {
+   "run": "run_richat_structure_sahara_eye_1792778206",
+   "surfaces": [
+    {
+     "surface": "stories",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [
+      "30",
+      "70",
+      "ACROSS",
+      "DIKE",
+      "DIKES",
+      "FRAME",
+      "GABBROIC",
+      "MEASURING",
+      "METERS",
+      "RIDGES",
+      "RING",
+      "RINGS",
+      "SAHARA",
+      "SIZES",
+      "THE",
+      "WITH"
+     ],
+     "drawn_sha": "5359c9a0bbe87bd0"
+    },
+    {
+     "surface": "carousel",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [
+      "40",
+      "50",
+      "KILOMETERS"
+     ],
+     "drawn_sha": "cb544fa4b13b93e4"
+    },
+    {
+     "surface": "carousel_fb",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [
+      "40",
+      "50",
+      "KILOMETERS"
+     ],
+     "drawn_sha": "91777283c7164c77"
+    },
+    {
+     "surface": "covers",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "44674fefccfb7eeb"
+    },
+    {
+     "surface": "documentary_cover",
+     "outcome": "ok",
+     "ellipsis_drawn": [
+      "USE T…"
+     ],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [
+      "NAVIGATE",
+      "TO"
+     ],
+     "drawn_sha": "cad7518225666611"
+    },
+    {
+     "surface": "youtube_thumbnail",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [
+      "ASTRONAUTS",
+      "EYE",
+      "MILE",
+      "NAVIGATE",
+      "THAT",
+      "TO",
+      "USE"
+     ],
+     "drawn_sha": "2ab10c7005bc6deb"
+    },
+    {
+     "surface": "numbers_916",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [
+      "104M"
+     ],
+     "drawn_sha": "c6b7b2a3a79d7e00"
+    },
+    {
+     "surface": "site_label_916",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "365e59b559c44b6b"
+    },
+    {
+     "surface": "numbers_169",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [
+      "104M"
+     ],
+     "drawn_sha": "c6b7b2a3a79d7e00"
+    },
+    {
+     "surface": "site_label_169",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "365e59b559c44b6b"
+    },
+    {
+     "surface": "chart_title",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "894f8953167286bb"
+    }
+   ]
+  },
+  {
+   "run": "run_richat_structure_sahara_eye_1793272675",
+   "surfaces": [
+    {
+     "surface": "stories",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [
+      "BEST",
+      "EXPLORATION",
+      "GROUND",
+      "HOW",
+      "IT",
+      "OR",
+      "ORBIT",
+      "SURFACE",
+      "TO",
+      "VIEW",
+      "WAY"
+     ],
+     "drawn_sha": "f4253ec73b70c564"
+    },
+    {
+     "surface": "carousel",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "6799c2b546ebdb2b"
+    },
+    {
+     "surface": "carousel_fb",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "2ea14802692f39f3"
+    },
+    {
+     "surface": "covers",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "2b5c30f23927f910"
+    },
+    {
+     "surface": "documentary_cover",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "daf500e13a716805"
+    },
+    {
+     "surface": "youtube_thumbnail",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "767f3f911054f2c8"
+    },
+    {
+     "surface": "timeline_916",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "5acccfc23e51dc87"
+    },
+    {
+     "surface": "site_label_916",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "365e59b559c44b6b"
+    },
+    {
+     "surface": "timeline_169",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "276bdc097a028a1b"
+    },
+    {
+     "surface": "site_label_169",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "365e59b559c44b6b"
+    },
+    {
+     "surface": "chart_title",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "6735cdeab791f962"
+    }
+   ]
+  },
+  {
+   "run": "run_richat_structure_sahara_eye_1793468053",
+   "surfaces": [
+    {
+     "surface": "stories",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [
+      "CIRCULAR",
+      "DEBATE",
+      "DID",
+      "HOW",
+      "ORIGIN",
+      "ORIGINATE",
+      "THIS",
+      "VERDICT"
+     ],
+     "drawn_sha": "10133fd4dd4c269d"
+    },
+    {
+     "surface": "carousel",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "f4e9ddceb801b688"
+    },
+    {
+     "surface": "carousel_fb",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "729f66c69d351198"
+    },
+    {
+     "surface": "covers",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "a802830ab6439571"
+    },
+    {
+     "surface": "documentary_cover",
+     "outcome": "ok",
+     "ellipsis_drawn": [
+      "BULLSEYE VISIBLE FROM…"
+     ],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [
+      "ORBIT"
+     ],
+     "drawn_sha": "37a498f11b954120"
+    },
+    {
+     "surface": "youtube_thumbnail",
+     "outcome": "ok",
+     "ellipsis_drawn": [
+      "BULLSEYE VISIBLE FROM…"
+     ],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [
+      "ORBIT"
+     ],
+     "drawn_sha": "24e6dd1fa10a90dd"
+    },
+    {
+     "surface": "numbers_916",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [
+      "104M"
+     ],
+     "drawn_sha": "4f77115194c73053"
+    },
+    {
+     "surface": "site_label_916",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "365e59b559c44b6b"
+    },
+    {
+     "surface": "numbers_169",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [
+      "104M"
+     ],
+     "drawn_sha": "e8d34ac6de06341c"
+    },
+    {
+     "surface": "site_label_169",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "365e59b559c44b6b"
+    },
+    {
+     "surface": "chart_title",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "36b05ac987fe8553"
+    }
+   ]
+  },
+  {
+   "run": "run_richat_structure_sahara_eye_1793474473",
+   "surfaces": [
+    {
+     "surface": "stories",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [
+      "CIRCULAR",
+      "DEBATE",
+      "DID",
+      "HOW",
+      "ORIGIN",
+      "ORIGINATE",
+      "THIS",
+      "VERDICT"
+     ],
+     "drawn_sha": "10133fd4dd4c269d"
+    },
+    {
+     "surface": "carousel",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "f4e9ddceb801b688"
+    },
+    {
+     "surface": "carousel_fb",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "729f66c69d351198"
+    },
+    {
+     "surface": "covers",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "a802830ab6439571"
+    },
+    {
+     "surface": "documentary_cover",
+     "outcome": "ok",
+     "ellipsis_drawn": [
+      "BULLSEYE VISIBLE FROM…"
+     ],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [
+      "ORBIT"
+     ],
+     "drawn_sha": "37a498f11b954120"
+    },
+    {
+     "surface": "youtube_thumbnail",
+     "outcome": "ok",
+     "ellipsis_drawn": [
+      "BULLSEYE VISIBLE FROM…"
+     ],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [
+      "ORBIT"
+     ],
+     "drawn_sha": "24e6dd1fa10a90dd"
+    },
+    {
+     "surface": "numbers_916",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [
+      "104M"
+     ],
+     "drawn_sha": "4f77115194c73053"
+    },
+    {
+     "surface": "site_label_916",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "365e59b559c44b6b"
+    },
+    {
+     "surface": "numbers_169",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [
+      "104M"
+     ],
+     "drawn_sha": "e8d34ac6de06341c"
+    },
+    {
+     "surface": "site_label_169",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "365e59b559c44b6b"
+    },
+    {
+     "surface": "chart_title",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "36b05ac987fe8553"
+    }
+   ]
+  },
+  {
+   "run": "run_richat_structure_sahara_eye_1793474843",
+   "surfaces": [
+    {
+     "surface": "stories",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [
+      "CIRCULAR",
+      "DEBATE",
+      "DID",
+      "HOW",
+      "ORIGIN",
+      "ORIGINATE",
+      "THIS",
+      "VERDICT"
+     ],
+     "drawn_sha": "10133fd4dd4c269d"
+    },
+    {
+     "surface": "carousel",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "f4e9ddceb801b688"
+    },
+    {
+     "surface": "carousel_fb",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "729f66c69d351198"
+    },
+    {
+     "surface": "covers",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "a802830ab6439571"
+    },
+    {
+     "surface": "documentary_cover",
+     "outcome": "ok",
+     "ellipsis_drawn": [
+      "BULLSEYE VISIBLE FROM…"
+     ],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [
+      "ORBIT"
+     ],
+     "drawn_sha": "37a498f11b954120"
+    },
+    {
+     "surface": "youtube_thumbnail",
+     "outcome": "ok",
+     "ellipsis_drawn": [
+      "BULLSEYE VISIBLE FROM…"
+     ],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [
+      "ORBIT"
+     ],
+     "drawn_sha": "24e6dd1fa10a90dd"
+    },
+    {
+     "surface": "numbers_916",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [
+      "104M"
+     ],
+     "drawn_sha": "4f77115194c73053"
+    },
+    {
+     "surface": "site_label_916",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "365e59b559c44b6b"
+    },
+    {
+     "surface": "numbers_169",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [
+      "104M"
+     ],
+     "drawn_sha": "e8d34ac6de06341c"
+    },
+    {
+     "surface": "site_label_169",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "365e59b559c44b6b"
+    },
+    {
+     "surface": "chart_title",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "36b05ac987fe8553"
+    }
+   ]
+  },
+  {
+   "run": "run_roman_self_healing_concrete_1793161347",
+   "surfaces": [
+    {
+     "surface": "stories",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [
+      "BUILDING",
+      "CRITICAL",
+      "DEVELOPING",
+      "EVIDENCE",
+      "FOR",
+      "FORMULAS",
+      "LESSONS",
+      "MATERIALS",
+      "NOW",
+      "OFFER",
+      "OR",
+      "SMARTER",
+      "SUSTAINABLE",
+      "WAS",
+      "WHICH"
+     ],
+     "drawn_sha": "ff4b822eb7f52983"
+    },
+    {
+     "surface": "carousel",
+     "outcome": "ok",
+     "ellipsis_drawn": [
+      "ROMAN CONCRETE SECRETS · YOUR…"
+     ],
+     "shortened": [
+      "kicker"
+     ],
+     "cut_logged": [
+      "Kicker shortened to fit 1216 px: ROMAN CONCRETE SECRETS · YOUR TAKE"
+     ],
+     "missing_words": [],
+     "drawn_sha": "c81f62df5dac9382"
+    },
+    {
+     "surface": "carousel_fb",
+     "outcome": "ok",
+     "ellipsis_drawn": [
+      "ROMAN CONCRETE SECRETS · YOUR…"
+     ],
+     "shortened": [
+      "kicker"
+     ],
+     "cut_logged": [
+      "Kicker shortened to fit 1216 px: ROMAN CONCRETE SECRETS · YOUR TAKE"
+     ],
+     "missing_words": [],
+     "drawn_sha": "9bf993febe79d661"
+    },
+    {
+     "surface": "covers",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "30fd2804cda25523"
+    },
+    {
+     "surface": "documentary_cover",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "754f6d2fe04c2870"
+    },
+    {
+     "surface": "youtube_thumbnail",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "efa3f739ee720b5a"
+    },
+    {
+     "surface": "timeline_916",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "2b2d87b9b10cda6e"
+    },
+    {
+     "surface": "site_label_916",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "f96df48d098e9a58"
+    },
+    {
+     "surface": "timeline_169",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "85239422eac46694"
+    },
+    {
+     "surface": "site_label_169",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "f96df48d098e9a58"
+    },
+    {
+     "surface": "chart_title",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "b94342c9d9d8a3a2"
+    }
+   ]
+  },
+  {
+   "run": "run_roman_self_healing_concrete_1793163918",
+   "surfaces": [
+    {
+     "surface": "stories",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [
+      "BUILDING",
+      "CRITICAL",
+      "DEVELOPING",
+      "EVIDENCE",
+      "FOR",
+      "FORMULAS",
+      "LESSONS",
+      "MATERIALS",
+      "NOW",
+      "OFFER",
+      "OR",
+      "SMARTER",
+      "SUSTAINABLE",
+      "WAS",
+      "WHICH"
+     ],
+     "drawn_sha": "ff4b822eb7f52983"
+    },
+    {
+     "surface": "carousel",
+     "outcome": "ok",
+     "ellipsis_drawn": [
+      "ROMAN CONCRETE SECRETS · YOUR…"
+     ],
+     "shortened": [
+      "kicker"
+     ],
+     "cut_logged": [
+      "Kicker shortened to fit 1216 px: ROMAN CONCRETE SECRETS · YOUR TAKE"
+     ],
+     "missing_words": [],
+     "drawn_sha": "c81f62df5dac9382"
+    },
+    {
+     "surface": "carousel_fb",
+     "outcome": "ok",
+     "ellipsis_drawn": [
+      "ROMAN CONCRETE SECRETS · YOUR…"
+     ],
+     "shortened": [
+      "kicker"
+     ],
+     "cut_logged": [
+      "Kicker shortened to fit 1216 px: ROMAN CONCRETE SECRETS · YOUR TAKE"
+     ],
+     "missing_words": [],
+     "drawn_sha": "9bf993febe79d661"
+    },
+    {
+     "surface": "covers",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "30fd2804cda25523"
+    },
+    {
+     "surface": "documentary_cover",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "754f6d2fe04c2870"
+    },
+    {
+     "surface": "youtube_thumbnail",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "efa3f739ee720b5a"
+    },
+    {
+     "surface": "timeline_916",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "2b2d87b9b10cda6e"
+    },
+    {
+     "surface": "site_label_916",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "f96df48d098e9a58"
+    },
+    {
+     "surface": "timeline_169",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "85239422eac46694"
+    },
+    {
+     "surface": "site_label_169",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "f96df48d098e9a58"
+    },
+    {
+     "surface": "chart_title",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "b94342c9d9d8a3a2"
+    }
+   ]
+  },
+  {
+   "run": "run_singing_colossi_of_memnon_1792952878",
+   "surfaces": [
+    {
+     "surface": "stories",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [
+      "199",
+      "ACOUSTICS",
+      "AD",
+      "AROUND",
+      "ATTRIBUTES",
+      "BETTER",
+      "EMPEROR",
+      "LOCAL",
+      "OR",
+      "REPAIR",
+      "RESTORATION",
+      "ROMAN",
+      "SEPTIMIUS",
+      "SEVERUS",
+      "TO",
+      "TRADITION",
+      "WAS",
+      "WHICH"
+     ],
+     "drawn_sha": "e0df2375b9a46af6"
+    },
+    {
+     "surface": "carousel",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "09f47e13f1f7bc83"
+    },
+    {
+     "surface": "carousel_fb",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "310066735f663759"
+    },
+    {
+     "surface": "covers",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "983fc238b5c14080"
+    },
+    {
+     "surface": "documentary_cover",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "9399d90102dd1c97"
+    },
+    {
+     "surface": "youtube_thumbnail",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [
+      "720",
+      "DAWN",
+      "TON"
+     ],
+     "drawn_sha": "a870226d1de2ef31"
+    },
+    {
+     "surface": "numbers_916",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "a767bc1b5000276a"
+    },
+    {
+     "surface": "timeline_916",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "c67e32166b2f74e2"
+    },
+    {
+     "surface": "scale_916",
+     "outcome": "skipped"
+    },
+    {
+     "surface": "site_label_916",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "7de16ccf5e1dff98"
+    },
+    {
+     "surface": "numbers_169",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "f5129b8782397101"
+    },
+    {
+     "surface": "timeline_169",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "ec3d8b2462fbe4ff"
+    },
+    {
+     "surface": "scale_169",
+     "outcome": "skipped"
+    },
+    {
+     "surface": "site_label_169",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "7de16ccf5e1dff98"
+    },
+    {
+     "surface": "chart_title",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "2e47a131a2e43dbc"
+    }
+   ]
+  },
+  {
+   "run": "run_trepanation_miracle_1792995462",
+   "surfaces": [
+    {
+     "surface": "stories",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [
+      "AND",
+      "BONE",
+      "CAST",
+      "CLEAN",
+      "EMERGENCY",
+      "EVIL",
+      "MOTIVES",
+      "OPERATED",
+      "OR",
+      "OUT",
+      "POOLED",
+      "RITUAL",
+      "SHATTERED",
+      "SPIRITS",
+      "SPIRITUAL"
+     ],
+     "drawn_sha": "bdcdbe5fc9b1e1b4"
+    },
+    {
+     "surface": "carousel",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "5829c44f74ef552c"
+    },
+    {
+     "surface": "carousel_fb",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "2d16f336427d1164"
+    },
+    {
+     "surface": "covers",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "ece2f483463a8d3e"
+    },
+    {
+     "surface": "documentary_cover",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "62fc90d555db1c6c"
+    },
+    {
+     "surface": "youtube_thumbnail",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "f3fdbcd5921b2515"
+    },
+    {
+     "surface": "numbers_916",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "139f795b0fb12296"
+    },
+    {
+     "surface": "site_label_916",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "13a0a833b9f38cce"
+    },
+    {
+     "surface": "numbers_169",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "ab60dcd00dc6894d"
+    },
+    {
+     "surface": "site_label_169",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "13a0a833b9f38cce"
+    },
+    {
+     "surface": "chart_title",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "f6b1532b5c475291"
+    }
+   ]
+  },
+  {
+   "run": "run_tunguska_event_1908_1792930600",
+   "surfaces": [
+    {
+     "surface": "stories",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [
+      "10",
+      "15",
+      "AIRBURST",
+      "BETWEEN",
+      "BIG",
+      "CALCULATE",
+      "COSMIC",
+      "IMPACT",
+      "MEGATONS",
+      "MYSTERY",
+      "OF",
+      "OR",
+      "QUESTION",
+      "RELEASED",
+      "SCIENTISTS",
+      "TNT"
+     ],
+     "drawn_sha": "cbe77433e9ce517f"
+    },
+    {
+     "surface": "carousel",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "02f38fc75492a86d"
+    },
+    {
+     "surface": "carousel_fb",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "e808f3eaca3232d4"
+    },
+    {
+     "surface": "covers",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "04a4246b9d6c0133"
+    },
+    {
+     "surface": "documentary_cover",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "f091a073e25753af"
+    },
+    {
+     "surface": "youtube_thumbnail",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [
+      "MILES",
+      "SQUARE"
+     ],
+     "drawn_sha": "fe627eee3cd14d52"
+    },
+    {
+     "surface": "numbers_916",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "14ff65586573c7df"
+    },
+    {
+     "surface": "site_label_916",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "fe294da2ed4e8eb9"
+    },
+    {
+     "surface": "numbers_169",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "4ef44a4a66c20d25"
+    },
+    {
+     "surface": "site_label_169",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "fe294da2ed4e8eb9"
+    },
+    {
+     "surface": "chart_title",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "a769bf3ee442bb31"
+    }
+   ]
+  },
+  {
+   "run": "run_unfinished_obelisk_aswan_1792985912",
+   "surfaces": [
+    {
+     "surface": "stories",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [
+      "ENGINEERING",
+      "EXTRACTION",
+      "FREE",
+      "FROM",
+      "HOW",
+      "INTENDED",
+      "ITS",
+      "LEAVE",
+      "LIMITS",
+      "MONOLITH",
+      "PUZZLE",
+      "SURVEYS",
+      "TO",
+      "TRENCH",
+      "UNCLEAR",
+      "WORKERS"
+     ],
+     "drawn_sha": "c50ad5daf3fa9d8d"
+    },
+    {
+     "surface": "carousel",
+     "outcome": "ok",
+     "ellipsis_drawn": [
+      "THE UNFINISHED OBELISK · YOUR…"
+     ],
+     "shortened": [
+      "kicker"
+     ],
+     "cut_logged": [
+      "Kicker shortened to fit 1216 px: THE UNFINISHED OBELISK · YOUR TAKE"
+     ],
+     "missing_words": [],
+     "drawn_sha": "9eb1dab99c66a409"
+    },
+    {
+     "surface": "carousel_fb",
+     "outcome": "ok",
+     "ellipsis_drawn": [
+      "THE UNFINISHED OBELISK · YOUR…"
+     ],
+     "shortened": [
+      "kicker"
+     ],
+     "cut_logged": [
+      "Kicker shortened to fit 1216 px: THE UNFINISHED OBELISK · YOUR TAKE"
+     ],
+     "missing_words": [],
+     "drawn_sha": "aa33ff9b20049608"
+    },
+    {
+     "surface": "covers",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "d41d2a416142d481"
+    },
+    {
+     "surface": "documentary_cover",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "3262c5006c6a67b9"
+    },
+    {
+     "surface": "youtube_thumbnail",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "d8c74092ff1c840d"
+    },
+    {
+     "surface": "site_label_916",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "f53ba22e5ab38a79"
+    },
+    {
+     "surface": "site_label_169",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "f53ba22e5ab38a79"
+    },
+    {
+     "surface": "chart_title",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "dbcbcf0770d58e24"
+    }
+   ]
+  },
+  {
+   "run": "run_unfinished_obelisk_aswan_1792993374",
+   "surfaces": [
+    {
+     "surface": "stories",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [
+      "ENGINEERING",
+      "EXTRACTION",
+      "HOW",
+      "IT",
+      "LIFT",
+      "MOVE",
+      "PLAN",
+      "RIDDLE",
+      "THEY",
+      "WOULD"
+     ],
+     "drawn_sha": "159496843396865e"
+    },
+    {
+     "surface": "carousel",
+     "outcome": "ok",
+     "ellipsis_drawn": [
+      "THE UNFINISHED OBELISK · YOUR…"
+     ],
+     "shortened": [
+      "kicker"
+     ],
+     "cut_logged": [
+      "Kicker shortened to fit 1216 px: THE UNFINISHED OBELISK · YOUR TAKE"
+     ],
+     "missing_words": [],
+     "drawn_sha": "46467793ceab3e14"
+    },
+    {
+     "surface": "carousel_fb",
+     "outcome": "ok",
+     "ellipsis_drawn": [
+      "THE UNFINISHED OBELISK · YOUR…"
+     ],
+     "shortened": [
+      "kicker"
+     ],
+     "cut_logged": [
+      "Kicker shortened to fit 1216 px: THE UNFINISHED OBELISK · YOUR TAKE"
+     ],
+     "missing_words": [],
+     "drawn_sha": "81cbb2786bd93c76"
+    },
+    {
+     "surface": "covers",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "816a56a12d30ee56"
+    },
+    {
+     "surface": "documentary_cover",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "fea66d77298dc319"
+    },
+    {
+     "surface": "youtube_thumbnail",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [
+      "ABANDONED",
+      "ITS",
+      "LARGEST",
+      "MEGALITH"
+     ],
+     "drawn_sha": "690d65acec11603e"
+    },
+    {
+     "surface": "numbers_916",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "aba3199245aa416c"
+    },
+    {
+     "surface": "scale_916",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "bf64794c2a0b5b27"
+    },
+    {
+     "surface": "site_label_916",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "f53ba22e5ab38a79"
+    },
+    {
+     "surface": "numbers_169",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "5076520ccc4d5853"
+    },
+    {
+     "surface": "scale_169",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "f2294a91fc2bac24"
+    },
+    {
+     "surface": "site_label_169",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "f53ba22e5ab38a79"
+    },
+    {
+     "surface": "chart_title",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "09799262f9389373"
+    }
+   ]
+  },
+  {
+   "run": "run_unfinished_obelisk_aswan_1793056896",
+   "surfaces": [
+    {
+     "surface": "stories",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [
+      "BIG",
+      "BUT",
+      "CARVED",
+      "COLOSSAL",
+      "DEEP",
+      "EXTRACTING",
+      "HARDER",
+      "LIMITS",
+      "MASSIVE",
+      "MONOLITH",
+      "OR",
+      "POSED",
+      "QUESTION",
+      "TRANSPORT",
+      "TRENCH",
+      "TRENCHES",
+      "WHICH"
+     ],
+     "drawn_sha": "43e5d2dabbeeb7f5"
+    },
+    {
+     "surface": "carousel",
+     "outcome": "ok",
+     "ellipsis_drawn": [
+      "THE UNFINISHED OBELISK · YOUR…"
+     ],
+     "shortened": [
+      "kicker"
+     ],
+     "cut_logged": [
+      "Kicker shortened to fit 1216 px: THE UNFINISHED OBELISK · YOUR TAKE"
+     ],
+     "missing_words": [],
+     "drawn_sha": "97b82d7f7f8dbeb7"
+    },
+    {
+     "surface": "carousel_fb",
+     "outcome": "ok",
+     "ellipsis_drawn": [
+      "THE UNFINISHED OBELISK · YOUR…"
+     ],
+     "shortened": [
+      "kicker"
+     ],
+     "cut_logged": [
+      "Kicker shortened to fit 1216 px: THE UNFINISHED OBELISK · YOUR TAKE"
+     ],
+     "missing_words": [],
+     "drawn_sha": "a4cca5a262c6e0db"
+    },
+    {
+     "surface": "covers",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "4808c69c944a6e1a"
+    },
+    {
+     "surface": "documentary_cover",
+     "outcome": "ok",
+     "ellipsis_drawn": [
+      "OBELISK TRAPPED IN…"
+     ],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [
+      "BEDROCK"
+     ],
+     "drawn_sha": "187a5f7ec00d49ef"
+    },
+    {
+     "surface": "youtube_thumbnail",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [
+      "BEDROCK",
+      "IN",
+      "OBELISK",
+      "TRAPPED"
+     ],
+     "drawn_sha": "3e4b3a25c6ba4b53"
+    },
+    {
+     "surface": "numbers_916",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "6c48188a5d3a2daf"
+    },
+    {
+     "surface": "site_label_916",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "f53ba22e5ab38a79"
+    },
+    {
+     "surface": "numbers_169",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "6c48188a5d3a2daf"
+    },
+    {
+     "surface": "site_label_169",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "f53ba22e5ab38a79"
+    },
+    {
+     "surface": "chart_title",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "27c85e7186b0d75d"
+    }
+   ]
+  },
+  {
+   "run": "run_voynich_manuscript_1792965308",
+   "surfaces": [
+    {
+     "surface": "stories",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [
+      "AMERICAN",
+      "AND",
+      "ATTEMPTED",
+      "BRITISH",
+      "CIPHER",
+      "CODEX",
+      "CRYPTIC",
+      "CRYPTOGRAPHERS",
+      "DECIPHER",
+      "IS",
+      "IT",
+      "LANGUAGE",
+      "LOST",
+      "MILITARY",
+      "OR",
+      "TEXT",
+      "TO"
+     ],
+     "drawn_sha": "c53c578d5b605371"
+    },
+    {
+     "surface": "carousel",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "2c2dd43aef86d087"
+    },
+    {
+     "surface": "carousel_fb",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "08b73b938bfd831a"
+    },
+    {
+     "surface": "covers",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "3ba4ca57bf8ec62e"
+    },
+    {
+     "surface": "documentary_cover",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "59f9e35425c8274e"
+    },
+    {
+     "surface": "youtube_thumbnail",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [
+      "THAT"
+     ],
+     "drawn_sha": "f29ba64fe1818bd8"
+    },
+    {
+     "surface": "numbers_916",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "c5df9535ad422cb9"
+    },
+    {
+     "surface": "site_label_916",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "5a7f31862da2f9dd"
+    },
+    {
+     "surface": "numbers_169",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "e566b0b04269e0e0"
+    },
+    {
+     "surface": "site_label_169",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "5a7f31862da2f9dd"
+    },
+    {
+     "surface": "chart_title",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "cb81d7906fed9562"
+    }
+   ]
+  },
+  {
+   "run": "run_wieliczka_salt_mine_1792974672",
+   "surfaces": [
+    {
+     "surface": "stories",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [
+      "CARVED",
+      "CHANDELIERS",
+      "CHAPELS",
+      "FEAT",
+      "FEATURE",
+      "IMPRESSIVE",
+      "IS",
+      "MORE",
+      "NATURAL",
+      "OUT",
+      "ROCK",
+      "VERDICT",
+      "WHICH",
+      "YOUR"
+     ],
+     "drawn_sha": "4ac7eca1ee9e0a25"
+    },
+    {
+     "surface": "carousel",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "3d42ddb0bb429b65"
+    },
+    {
+     "surface": "carousel_fb",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "8613ea7cfef51afa"
+    },
+    {
+     "surface": "covers",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "e05b7de5a9ceb158"
+    },
+    {
+     "surface": "documentary_cover",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "25e5a132b1182110"
+    },
+    {
+     "surface": "youtube_thumbnail",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [
+      "CATHEDRAL",
+      "SALT"
+     ],
+     "drawn_sha": "5f12813bd4da4f2c"
+    },
+    {
+     "surface": "scale_916",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "4a8a006bb64311b0"
+    },
+    {
+     "surface": "site_label_916",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "ad191efd955f3178"
+    },
+    {
+     "surface": "scale_169",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "211d83e1562d6964"
+    },
+    {
+     "surface": "site_label_169",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "ad191efd955f3178"
+    },
+    {
+     "surface": "chart_title",
+     "outcome": "ok",
+     "ellipsis_drawn": [],
+     "shortened": [],
+     "cut_logged": [],
+     "missing_words": [],
+     "drawn_sha": "a4b56d6968ef5922"
+    }
+   ]
+  }
+ ],
+ "acceptance_met": false
+}

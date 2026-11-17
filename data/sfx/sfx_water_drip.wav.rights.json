@@ -1,5 +1,5 @@
 {
-  "path": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\data\\sfx\\sfx_water_drip.wav",
+  "path": "data/sfx/sfx_water_drip.wav",
   "sha256": "2ac6b36471beb789fa72181ada0fa094b2ecd4d633fe3e47fd859076078e133c",
   "provider": "elevenlabs-sound-effects",
   "plan": "creator",

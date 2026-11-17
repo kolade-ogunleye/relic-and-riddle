@@ -129,7 +129,7 @@
   "attempts": 1,
   "recipe": {
    "renderer": "visual_engine.redraw_cover",
-   "hero": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\02_commons.jpg",
+   "hero": "assets/richat_structure_sahara_eye/02_commons.jpg",
    "copy": {
     "eyebrow": "DESERT ANOMALY",
     "line1": "THE 25-MILE",

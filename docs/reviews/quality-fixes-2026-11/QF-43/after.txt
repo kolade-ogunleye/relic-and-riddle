@@ -1,0 +1,85 @@
+posted_strings_shown_on_card: 8/8
+card_shows_illustration_disclosure: True
+card_shows_youtube_title: True
+card_shows_youtube_description: True
+slot_line_equals_next_reel_slot: True
+card_shows_review_close_time: True
+off_list_hashtag_posted: False
+build_envelope_raises_on_copy_not_on_card: True
+carousel_status: published
+carousel_caption_shown_on_card: {'instagram': True, 'facebook': True}
+carousel_off_list_hashtag_posted: False
+carousel_posted_hashtags: ['#AncientMysteries', '#Archaeology', '#StoneCity']
+carousel_refused_when_card_showed_another: True
+documentary_approve_posts: True
+documentary_approve_refused: (none)
+slot_lines_truthful: 4/4
+  slot line, reel, slots booked: approve books a slot True, truthful True: 🗓 <b>Slot:</b> Fri 06 Nov 12:00 EST · <b>review closes</b> 04:17 EST
+  slot line, documentary: approve books a slot False, truthful True: 🗓 <b>Slot:</b> posted as soon as you approve · <b>review closes</b> Fri 06 Nov 04:17 EST
+  slot line, reel, no slots (command line): approve books a slot False, truthful True: 🗓 <b>Slot:</b> posted as soon as you approve · <b>review closes</b> Fri 06 Nov 04:17 EST
+  slot line, reel, dry run: approve books a slot False, truthful True: 🗓 <b>Slot:</b> none, a dry run posts nothing · <b>review closes</b> Fri 06 Nov 04:17 EST
+acceptance_met: True
+
+real cards: measured True, cards 30, over_card_page_limit 29, over_page_above_4000 2, over_telegram_4096 2, longest 4199, narration_shortened 6, caption_see_edit_or_absent 9, carousel_caption_see_edit_or_absent 9, caption_characters_shown 10948, credits_list 25, with_slot_line 28, with_also_posted_list {'whole': 1, 'part': 1, 'count': 26, 'absent': 2}, cards_with_a_regression_vs_qf42_card 0, fitted_part_is_qf42_layout_of_posted_copy 30, approve_refused 0, documentaries 1, slot_line_truthful 30, carousels 29, carousel_posted_as_card_shows 29, carousel_off_list_hashtag_posted 0
+run | length | caption | carousel caption | narration chars | narration shortened | findings lists first items / count only | slot line | also-posted list | regressions vs QF-42 card | Approve | slot line truthful | envelope refused
+run_amber_room_heist_1792790550 | 3983 | clipped 280 | full 276 | 715 | False | 0/0 | True | count | none | slot | True | no
+run_amber_room_heist_1792801257 | 3989 | full 413 | full 255 | 705 | False | 0/0 | True | count | none | slot | True | no
+run_amber_room_heist_1792805842 | 3991 | clipped 207 | full 292 | 714 | False | 0/0 | True | count | none | slot | True | no
+run_damascus_steel_nanotubes_1792732472_short | 3836 | full 574 | full 228 | 769 | False | 0/0 | True | whole | none | slot | True | no
+run_gol_gumbaz_whispering_gallery_1793278143 | 3988 | clipped 130 | clipped 260 | 697 | False | 1/0 | True | count | none | slot | True | no
+run_greek_fire_siphon_1792735284_short | 3990 | clipped 139 | clipped 172 | 764 | False | 0/0 | True | count | none | slot | True | no
+run_hal_saflieni_hypogeum_1792949304 | 3982 | clipped 167 | full 307 | 760 | False | 0/0 | True | count | none | slot | True | no
+run_kailasa_temple_monolith_1792524470 | 3989 | clipped 183 | full 343 | 666 | False | 0/0 | True | count | none | slot | True | no
+run_nazca_lines_runway_paradox_1792961797 | 3985 | clipped 357 | full 288 | 719 | False | 0/2 | True | count | none | slot | True | no
+run_nazca_lines_runway_paradox_1793247464 | 4168 | absent 0 | absent 0 | 67 | True | 0/1 | False | absent | none | slot | True | no
+run_nazca_lines_runway_paradox_1793251266 | 4199 | absent 0 | absent 0 | 67 | True | 0/1 | False | absent | none | slot | True | no
+run_nazca_lines_runway_paradox_1793262388 | 3980 | absent 0 | absent 0 | 188 | True | 0/2 | True | count | none | slot | True | no
+run_nazca_lines_runway_paradox_1793267092 | 3975 | absent 0 | absent 0 | 278 | True | 0/2 | True | count | none | slot | True | no
+run_odessa_catacombs_1792970549 | 3983 | clipped 124 | clipped 132 | 666 | False | 0/0 | True | count | none | slot | True | no
+run_odessa_catacombs_1793098390 | 3988 | clipped 132 | clipped 270 | 666 | False | 1/0 | True | count | none | slot | True | no
+run_odessa_catacombs_1793100750 | 3981 | clipped 253 | full 334 | 666 | False | 0/0 | True | count | none | slot | True | no
+run_richat_structure_sahara_eye_1792737039_short | 3990 | clipped 229 | full 300 | 706 | False | 0/0 | True | count | none | slot | True | no
+run_richat_structure_sahara_eye_1792740961_long | 3983 | absent 0 | absent 0 | 2420 | True | 1/0 | True | count | none | now | True | no
+run_richat_structure_sahara_eye_1792778206 | 3990 | clipped 131 | clipped 326 | 674 | False | 0/0 | True | count | none | slot | True | no
+run_richat_structure_sahara_eye_1793272675 | 3993 | too_long 0 | too_long 0 | 718 | False | 0/0 | True | count | none | slot | True | no
+run_richat_structure_sahara_eye_1793474843 | 3986 | clipped 122 | clipped 248 | 669 | False | 0/0 | True | count | none | slot | True | no
+run_roman_self_healing_concrete_1793163918 | 3982 | absent 0 | absent 0 | 368 | True | 0/0 | True | count | none | slot | True | no
+run_singing_colossi_of_memnon_1792952878 | 3996 | clipped 133 | clipped 206 | 694 | False | 0/0 | True | count | none | slot | True | no
+run_trepanation_miracle_1792995462 | 3988 | clipped 134 | clipped 356 | 776 | False | 1/2 | True | count | none | slot | True | no
+run_tunguska_event_1908_1792930600 | 3991 | clipped 135 | clipped 276 | 661 | False | 0/0 | True | count | none | slot | True | no
+run_unfinished_obelisk_aswan_1792985912 | 3991 | too_long 0 | too_long 0 | 703 | False | 0/0 | True | count | none | slot | True | no
+run_unfinished_obelisk_aswan_1792993374 | 3996 | clipped 497 | full 385 | 683 | False | 0/0 | True | count | none | slot | True | no
+run_unfinished_obelisk_aswan_1793056896 | 3989 | clipped 129 | clipped 312 | 696 | False | 0/0 | True | count | none | slot | True | no
+run_voynich_manuscript_1792965308 | 3922 | full 524 | full 389 | 734 | False | 0/0 | True | part | none | slot | True | no
+run_wieliczka_salt_mine_1792974672 | 3980 | too_long 0 | too_long 0 | 722 | False | 1/2 | True | count | none | slot | True | no
+
+real carousels: run | posted as the card shows | off-list hashtags posted
+run_amber_room_heist_1792790550 | True | none
+run_amber_room_heist_1792801257 | True | none
+run_amber_room_heist_1792805842 | True | none
+run_damascus_steel_nanotubes_1792732472_short | True | none
+run_gol_gumbaz_whispering_gallery_1793278143 | True | none
+run_greek_fire_siphon_1792735284_short | True | none
+run_hal_saflieni_hypogeum_1792949304 | True | none
+run_kailasa_temple_monolith_1792524470 | True | none
+run_nazca_lines_runway_paradox_1792961797 | True | none
+run_nazca_lines_runway_paradox_1793247464 | True | none
+run_nazca_lines_runway_paradox_1793251266 | True | none
+run_nazca_lines_runway_paradox_1793262388 | True | none
+run_nazca_lines_runway_paradox_1793267092 | True | none
+run_odessa_catacombs_1792970549 | True | none
+run_odessa_catacombs_1793098390 | True | none
+run_odessa_catacombs_1793100750 | True | none
+run_richat_structure_sahara_eye_1792737039_short | True | none
+run_richat_structure_sahara_eye_1792778206 | True | none
+run_richat_structure_sahara_eye_1793272675 | True | none
+run_richat_structure_sahara_eye_1793474843 | True | none
+run_roman_self_healing_concrete_1793163918 | True | none
+run_singing_colossi_of_memnon_1792952878 | True | none
+run_trepanation_miracle_1792995462 | True | none
+run_tunguska_event_1908_1792930600 | True | none
+run_unfinished_obelisk_aswan_1792985912 | True | none
+run_unfinished_obelisk_aswan_1792993374 | True | none
+run_unfinished_obelisk_aswan_1793056896 | True | none
+run_voynich_manuscript_1792965308 | True | none
+run_wieliczka_salt_mine_1792974672 | True | none

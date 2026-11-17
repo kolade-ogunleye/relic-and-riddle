@@ -1,0 +1,27 @@
+ok  9x16 pantheon_1934_2018
+ok  16x9 pantheon_1934_2018
+ok  9x16 colossi_1876_2011
+ok  16x9 colossi_1876_2011
+ok  9x16 nearwhite_odessa_map
+ok  16x9 nearwhite_odessa_map
+ok  9x16 bright_golgumbaz_map
+ok  16x9 bright_golgumbaz_map
+ok  9x16 lineart_aswan_diagram
+ok  16x9 lineart_aswan_diagram
+ok  9x16 busy_aswan_rebate
+ok  16x9 busy_aswan_rebate
+ok  16x9 bright_golgumbaz_map__inkoff
+ok  9x16 nearwhite_odessa_map__inkoff
+ok  16x9 bright_golgumbaz_map__forcedglow
+ok  9x16 pantheon_1934_2018__noblur
+ok  9x16 pantheon_1934_2018__timing
+ok  16x9 pantheon_1934_2018__noblur
+ok  16x9 pantheon_1934_2018__timing
+Traceback (most recent call last):
+  File "docs/reviews/freeze-panel-2026-11-04/thennow/render_evidence.py", line 764, in <module>
+    main()
+  File "docs/reviews/freeze-panel-2026-11-04/thennow/render_evidence.py", line 746, in main
+    same = [i for i in range(len(a["frame_sha"])) if i not in fast]
+                                 ~^^^^^^^^^^^^^
+KeyError: 'frame_sha'
+BEFORE_DONE 1

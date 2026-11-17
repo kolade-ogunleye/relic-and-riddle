@@ -25,18 +25,6 @@
       "checked_on": "2026-10-24"
     },
     {
-      "file": "BebasNeue-Regular.ttf",
-      "sha256": "08e4623805102d819f58601e46e345648846075e363b2ceb23313c2d1c83ec73",
-      "copyright": "Copyright 2019 The Bebas Neue Project Authors (https://github.com/dharmatype/Bebas-Neue)",
-      "version": "Version 2.000",
-      "license_description": "This Font Software is licensed under the SIL Open Font License, Version 1.1. This license is available with a FAQ at: http://scripts.sil.org/OFL",
-      "license_url": "http://scripts.sil.org/OFL",
-      "license_file": "licenses/BebasNeue-Regular.ttf.OFL.txt",
-      "license_sha256": "72082f6cb4d04be2ecf7cc7d9e1e7d73787f0af8a5a278a47cade70c16b78341",
-      "source_url": "https://raw.githubusercontent.com/google/fonts/main/ofl/bebasneue/OFL.txt",
-      "checked_on": "2026-10-24"
-    },
-    {
       "file": "Cinzel-Variable.ttf",
       "sha256": "f4d83d34d1f6c741193e4acf4b3dff9531e5a67b6aa65228d00a7db72a4e0f34",
       "copyright": "Copyright 2020 The Cinzel Project Authors (https://github.com/NDISCOVER/Cinzel)",
@@ -73,6 +61,34 @@
       "source_url": "https://github.com/IBM/plex/releases/download/%40ibm/plex-mono%402.5.0/ibm-plex-mono.zip",
       "release": "@ibm/plex-mono 2.5.0 (archive sha256 6d23f01257663d8cc49a0d64c22ced630b79e0e2a0ac08a0da86e9a38bbc481c); TTF copied unmodified; Reserved Font Name \"Plex\"",
       "checked_on": "2026-10-29"
+    },
+    {
+      "file": "NotoSans-LGC.ttf",
+      "sha256": "8483037343310d0d83188f02cb8d6bea0e25a509a9a0624ff81eaf4d2fe4d057",
+      "copyright": "Copyright 2022 The Noto Project Authors (https://github.com/notofonts/latin-greek-cyrillic)",
+      "version": "Version 2.015",
+      "license_description": "This Font Software is licensed under the SIL Open Font License, Version 1.1. This license is available with a FAQ at: https://openfontlicense.org",
+      "license_url": "https://openfontlicense.org",
+      "license_file": "licenses/NotoSans-LGC.ttf.OFL.txt",
+      "license_sha256": "cee9892f9f0cc8fe882c9e9537ee6a89621d86ee7ceaf70b02e2b2b1c25c061a",
+      "source_url": "https://raw.githubusercontent.com/google/fonts/8b0a1d0f5983c89bc2b93f1b5fb55f9e252744b5/ofl/notosans/NotoSans%5Bwdth,wght%5D.ttf",
+      "release": "google/fonts 8b0a1d0f5983c89bc2b93f1b5fb55f9e252744b5 (upstream sha256 bfb7bb691513f12e734dc346c03a03f784912432d7e3fa8e56efcf906fe86b3d); subset with fontTools 4.67.0 to U+0020-007E,U+00A0-024F,U+0250-02FF,U+0300-036F,U+0370-03FF,U+0400-052F,U+1C80-1C8F,U+1E00-1FFF,U+2000-206F,U+2070-20CF,U+2100-218F,U+2190-2199,U+2212,U+2C60-2C7F,U+A720-A7FF,U+FB00-FB06; hinting removed; axes limited to {'wght': [400, 900]}; no Reserved Font Name",
+      "role": "fallback face (QF-94)",
+      "checked_on": "2026-11-10"
+    },
+    {
+      "file": "NotoSerif-LGC.ttf",
+      "sha256": "a730388d7c9e9975ddeffbb5efa56064763cc2aa58d8a997739b831dbc4e7779",
+      "copyright": "Copyright 2022 The Noto Project Authors (https://github.com/notofonts/latin-greek-cyrillic)",
+      "version": "Version 2.015",
+      "license_description": "This Font Software is licensed under the SIL Open Font License, Version 1.1. This license is available with a FAQ at: https://openfontlicense.org",
+      "license_url": "https://openfontlicense.org",
+      "license_file": "licenses/NotoSerif-LGC.ttf.OFL.txt",
+      "license_sha256": "cee9892f9f0cc8fe882c9e9537ee6a89621d86ee7ceaf70b02e2b2b1c25c061a",
+      "source_url": "https://raw.githubusercontent.com/google/fonts/8b0a1d0f5983c89bc2b93f1b5fb55f9e252744b5/ofl/notoserif/NotoSerif%5Bwdth,wght%5D.ttf",
+      "release": "google/fonts 8b0a1d0f5983c89bc2b93f1b5fb55f9e252744b5 (upstream sha256 4d8e6761424656867019081a1a01336f3cb086982682698714054fc33f782713); subset with fontTools 4.67.0 to U+0020-007E,U+00A0-024F,U+0250-02FF,U+0300-036F,U+0370-03FF,U+0400-052F,U+1C80-1C8F,U+1E00-1FFF,U+2000-206F,U+2070-20CF,U+2100-218F,U+2190-2199,U+2212,U+2C60-2C7F,U+A720-A7FF,U+FB00-FB06; hinting removed; axes limited to {'wght': [400, 900], 'wdth': 100}; no Reserved Font Name",
+      "role": "fallback face (QF-94)",
+      "checked_on": "2026-11-10"
     }
   ]
 }

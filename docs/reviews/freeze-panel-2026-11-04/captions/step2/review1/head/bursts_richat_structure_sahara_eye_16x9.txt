@@ -1,0 +1,161 @@
+=== run_richat_structure_sahara_eye_1792740961_long | richat_structure_sahara_eye [16:9] ===
+why: the only 16:9 narration (documentary words.json)
+454 words, 98 bursts, emphasis []; vignette vignette=PI/6.4:aspect=1 (src.video_composer.picture_vignette)
+  0    0.02-   2.22  fs 81  plate 1060x 84   The Richat Structure is situated near
+  1    2.22-   4.09  fs 81  plate  888x 84   Ouadane on the Adrar Plateau
+  2    4.09-   6.63  fs 81  plate 1092x 84   within the Adrar Region of Mauritania
+  3    6.63-   8.56  fs 81  plate  920x 84   Visible from space as a massive
+  4    8.56-  10.65  fs 81  plate  938x 84   desert landmark, the concentric
+  5   10.65-  12.48  fs 81  plate  932x 84   formation has served as a visual
+  6   12.48-  15.01  fs 81  plate 1132x 84   reference point for space shuttle crews
+  7   15.01-  16.53  fs 81  plate  900x 84   Its documented scale depends
+  8   16.53-  18.49  fs 81  plate  868x 84   on the observational method:
+  9   18.49-  20.01  fs 81  plate  700x 84   geological field surveys
+ 10   20.01-  22.08  fs 81  plate 1020x 84   record the feature at 40 kilometres
+ 11   22.08-  24.55  fs 81  plate 1064x 84   across, though satellite observations
+ 12   24.55-  25.84  fs 81  plate  692x 84   describe it as spanning
+ 13   25.84-  27.66  fs 81  plate  634x 84   almost 50 kilometres
+ 14   27.66-  29.75  fs 81  plate  952x 84   What physical processes formed
+ 15   29.75-  31.20  fs 81  plate  680x 84   this circular geological
+ 16   31.20-  33.07  fs 81  plate  736x 84   formation in the Sahara?
+ 17   33.07-  35.16  fs 81  plate  946x 84   Geologists identify the structure
+ 18   35.16-  36.74  fs 81  plate  806x 84   as an eroded dome created
+ 19   36.74-  38.11  fs 81  plate  808x 84   when a subsurface igneous
+ 20   38.11-  40.05  fs 81  plate  964x 84   intrusion deformed the overlying
+ 21   40.05-  42.82  fs 81  plate 1122x 84   sedimentary rock into concentric rings
+ 22   42.82-  44.26  fs 81  plate  860x 84   The structural characteristics
+ 23   44.26-  46.07  fs 81  plate  712x 84   display distinct layering
+ 24   46.07-  47.83  fs 81  plate  696x 84   and magmatic features
+ 25   47.83-  49.19  fs 81  plate  504x 84   By one estimate
+ 26   49.19-  51.22  fs 81  plate 1096x 84   the sedimentary rock layers that form
+ 27   51.22-  52.76  fs 81  plate  908x 84   the outer rings of the structure
+ 28   52.76-  54.07  fs 81  plate  656x 84   dip outward at angles
+ 29   54.07-  56.16  fs 81  plate  804x 84   between 10 and 20 degrees
+ 30   56.16-  58.12  fs 81  plate 1054x 84   Framing the complex are concentric
+ 31   58.12-  59.95  fs 81  plate  586x 84   gabbroic ring dikes
+ 32   59.95-  61.41  fs 81  plate  776x 84   consisting of an inner ring
+ 33   61.41-  63.57  fs 81  plate 1020x 84   about 30 metres wide and an outer
+ 34   63.57-  65.72  fs 81  plate  782x 84   ring about 70 metres wide
+ 35   65.72-  67.93  fs 81  plate  832x 84   At the core, by one estimate
+ 36   67.93-  69.41  fs 81  plate  996x 84   the heart of the structure features
+ 37   69.41-  71.49  fs 81  plate 1028x 84   a siliceous breccia covering an area
+ 38   71.49-  74.18  fs 81  plate  980x 84   at least 30 kilometres in diameter
+ 39   74.18-  76.29  fs 81  plate 1206x 84   reaching a thickness of at least 40 metres
+ 40   76.29-  77.59  fs 81  plate  386x 84   at its center
+ 41   77.59-  79.09  fs 81  plate  660x 84   The geological origins
+ 42   79.09-  81.03  fs 81  plate  984x 84   of the Richat Structure were once
+ 43   81.03-  83.24  fs 81  plate  832x 84   a matter of scientific debate
+ 44   83.24-  85.26  fs 81  plate 1032x 84   The feature was initially considered
+ 45   85.26-  87.89  fs 81  plate  936x 84   an extraterrestrial impact crater
+ 46   87.89-  90.72  fs 81  plate 1234x 84   However, the impact theory was disproved
+ 47   90.72-  92.47  fs 81  plate 1132x 84   when suspected shock-metamorphism
+ 48   92.47-  95.18  fs 81  plate  860x 84   coesite was identified in 1969
+ 49   95.18-  96.91  fs 81  plate  608x 84   as mislabeled barite
+ 50   96.91-  98.84  fs 81  plate 1004x 84   Subsequent geochemical analyses
+ 51   98.84- 100.16  fs 81  plate  704x 84   established a terrestrial
+ 52  100.16- 103.01  fs 81  plate 1164x 84   timeline: dating of the carbonatite rocks
+ 53  103.01- 103.87  fs 81  plate  568x 84   shows they cooled
+ 54  103.87- 107.54  fs 81  plate 1090x 84   between 94 and 104 million years ago
+ 55  107.54- 109.26  fs 81  plate 1024x 84   closely matching the hydrothermal
+ 56  109.26- 111.58  fs 81  plate 1152x 84   event that produced the central breccia
+ 57  111.58- 113.85  fs 81  plate 1044x 84   Physical evidence across the terrain
+ 58  113.85- 115.88  fs 81  plate  904x 84   establishes a prolonged record
+ 59  115.88- 117.32  fs 81  plate  588x 84   of human presence
+ 60  117.32- 118.94  fs 81  plate  864x 84   Prehistoric human habitation
+ 61  118.94- 121.22  fs 81  plate 1240x 84   is evidenced by exceptional accumulations
+ 62  121.22- 123.10  fs 81  plate  942x 84   of Acheulean artifacts alongside
+ 63  123.10- 125.16  fs 81  plate 1102x 84   Middle Stone Age Aterian tools dating
+ 64  125.16- 129.21  fs 81  plate 1182x 84   from roughly 145,000 to 29,000 years ago
+ 65  129.21- 130.70  fs 81  plate  748x 84   Later mortuary traditions
+ 66  130.70- 132.89  fs 81  plate  784x 84   also appear across the site
+ 67  132.89- 134.36  fs 81  plate  500x 84   by one estimate
+ 68  134.36- 135.70  fs 81  plate  726x 84   thousands of prehistoric
+ 69  135.70- 137.80  fs 81  plate 1046x 84   stone burial mounds built in various
+ 70  137.80- 139.64  fs 81  plate  808x 84   distinct architectural styles
+ 71  139.64- 142.23  fs 81  plate 1200x 84   line the protruding dikes of the formation
+ 72  142.23- 144.53  fs 81  plate 1288x 84   While these material finds document human
+ 73  144.53- 146.67  fs 81  plate  814x 84   activity, the physical record
+ 74  146.67- 149.49  fs 81  plate 1024x 84   also refutes alternative speculation
+ 75  149.49- 150.84  fs 81  plate  764x 84   Fringe theories proposing
+ 76  150.84- 152.69  fs 81  plate  940x 84   the formation as Plato's lost city
+ 77  152.69- 154.86  fs 81  plate 1040x 84   of Atlantis are refuted by geological
+ 78  154.86- 157.84  fs 81  plate 1004x 84   reality, as the feature is an ancient
+ 79  157.84- 159.30  fs 81  plate  724x 84   natural inland terrestrial
+ 80  159.30- 161.51  fs 81  plate  984x 84   dome rather than a sunken island
+ 81  161.51- 162.69  fs 81  plate  736x 84   Through decades of field
+ 82  162.69- 165.42  fs 81  plate 1004x 84   surveys and geochemical analyses
+ 83  165.42- 167.40  fs 81  plate 1208x 84   the Richat Structure has been established
+ 84  167.40- 169.59  fs 81  plate 1096x 84   as an eroded geological dome shaped
+ 85  169.59- 171.60  fs 81  plate 1004x 84   by deep-seated igneous processes
+ 86  171.60- 173.29  fs 81  plate  676x 84   and prolonged erosion
+ 87  173.29- 175.34  fs 81  plate  490x 84   In October 2022
+ 88  175.34- 177.33  fs 81  plate 1068x 84   the International Union of Geological
+ 89  177.33- 179.61  fs 81  plate 1000x 84   Sciences recognized this scientific
+ 90  179.61- 182.08  fs 81  plate 1024x 84   value by designating the formation
+ 91  182.08- 183.44  fs 81  plate  746x 84   as one of the world's first
+ 92  183.44- 186.45  fs 81  plate 1034x 84   100 official geological heritage sites
+ 93  186.45- 188.49  fs 81  plate 1020x 84   With its origin grounded in verified
+ 94  188.49- 190.26  fs 81  plate  784x 84   terrestrial processes, what
+ 95  190.26- 191.81  fs 81  plate  762x 84   questions remain for field
+ 96  191.81- 193.73  fs 81  plate 1028x 84   researchers studying the formation
+ 97  193.73- 196.03  fs 81  plate 1148x 84   and its prehistoric human occupations?
+  names:
+    WHOLE  Richat Structure             The Richat Structure is situated near
+    WHOLE  Adrar Plateau                Ouadane on the Adrar Plateau
+    WHOLE  Adrar Region                 within the Adrar Region of Mauritania
+    WHOLE  Richat Structure             of the Richat Structure were once
+    WHOLE  Middle Stone Age Aterian     Middle Stone Age Aterian tools dating
+    WHOLE  Richat Structure             the Richat Structure has been established
+    SPLIT  International Union of Geological Sciences (joined: catalogue parts 'International Union' + 'Geological Sciences') the International Union of Geological | Sciences recognized this scientific
+  bursts ending on an article: none
+  function-word-only bursts: none
+  bursts on screen under 0.50 s: none
+  bursts spanning a pause of 0.30 s or more after punctuation: ["4: 0.55s after 'landmark,' in desert landmark, the concentric", "11: 0.54s after 'across,' in across, though satellite observations", "52: 0.74s after 'timeline:' in timeline: dating of the carbonatite rocks", "73: 0.34s after 'activity,' in activity, the physical record", "78: 0.57s after 'reality,' in reality, as the feature is an ancient", "94: 0.34s after 'processes,' in terrestrial processes, what"]
+  sidecar cues (.srt/.vtt): 46
+       0.09-   4.57  'The Richat Structure is situated near\nOuadane on the Adrar Plateau within the'
+       4.57-   6.40  'Adrar Region of Mauritania.'
+       6.70-   9.62  'Visible from space as a\nmassive desert landmark,'
+      10.06-  14.16  'the concentric formation has served as a\nvisual reference point for space shuttle'
+      14.16-  17.96  'crews. Its documented scale depends\non the observational method:'
+      18.56-  22.78  'geological field surveys record the\nfeature at 40 kilometres across,'
+      23.21-  27.42  'though satellite observations describe\nit as spanning almost 50 kilometres.'
+      27.73-  32.17  'What physical processes formed this\ncircular geological formation in the'
+      32.17-  37.04  'Sahara? Geologists identify the structure\nas an eroded dome created when a'
+      37.04-  42.03  'subsurface igneous intrusion deformed the\noverlying sedimentary rock into concentric'
+      42.03-  46.88  'rings. The structural characteristics\ndisplay distinct layering and magmatic'
+      46.88-  52.23  'features. By one estimate, the sedimentary\nrock layers that form the outer rings of'
+      52.23-  55.92  'the structure dip outward at\nangles between 10 and 20 degrees.'
+      56.22-  59.62  'Framing the complex are\nconcentric gabbroic ring dikes,'
+      60.01-  64.63  'consisting of an inner ring about 30\nmetres wide and an outer ring about 70'
+      64.63-  67.77  'metres wide. At the core, by one estimate,'
+      68.00-  71.56  'the heart of the structure features\na siliceous breccia covering an area'
+      71.56-  76.36  'at least 30 kilometres in diameter,\nreaching a thickness of at least 40 metres'
+      76.36-  81.79  'at its center. The geological origins of\nthe Richat Structure were once a matter of'
+      81.79-  86.54  'scientific debate. The feature was\ninitially considered an extraterrestrial'
+      86.54-  91.56  'impact crater. However, the impact\ntheory was disproved when suspected'
+      91.56-  96.67  'shock-metamorphism coesite was\nidentified in 1969 as mislabeled barite.'
+      96.98- 100.88  'Subsequent geochemical analyses\nestablished a terrestrial timeline:'
+     101.52- 106.71  'dating of the carbonatite rocks shows they\ncooled between 94 and 104 million years'
+     106.71- 111.34  'ago, closely matching the hydrothermal\nevent that produced the central breccia.'
+     111.65- 116.36  'Physical evidence across the terrain\nestablishes a prolonged record of human'
+     116.36- 121.40  'presence. Prehistoric human habitation is\nevidenced by exceptional accumulations of'
+     121.40- 125.47  'Acheulean artifacts alongside\nMiddle Stone Age Aterian tools dating from'
+     125.47- 128.96  'roughly 145,000 to 29,000 years ago.'
+     129.27- 132.42  'Later mortuary traditions\nalso appear across the site;'
+     132.96- 137.87  'by one estimate, thousands of prehistoric\nstone burial mounds built in various'
+     137.87- 141.97  'distinct architectural styles line\nthe protruding dikes of the formation.'
+     142.30- 145.34  'While these material finds\ndocument human activity,'
+     145.59- 149.25  'the physical record also\nrefutes alternative speculation.'
+     149.55- 154.09  "Fringe theories proposing the formation as\nPlato's lost city of Atlantis are refuted"
+     154.09- 157.64  'by geological reality,\nas the feature is an ancient,'
+     157.91- 161.27  'natural inland terrestrial dome\nrather than a sunken island.'
+     161.58- 164.96  'Through decades of field surveys\nand geochemical analyses,'
+     165.48- 169.83  'the Richat Structure has been established\nas an eroded geological dome shaped by'
+     169.83- 173.05  'deep-seated igneous processes\nand prolonged erosion.'
+     173.35- 179.11  'In October 2022, the International Union\nof Geological Sciences recognized this'
+     179.11- 184.08  "scientific value by designating the\nformation as one of the world's first 100"
+     184.08- 186.20  'official geological heritage sites.'
+     186.52- 189.86  'With its origin grounded in\nverified terrestrial processes,'
+     190.10- 194.15  'what questions remain for field\nresearchers studying the formation and its'
+     194.15- 196.03  'prehistoric human occupations?'
+

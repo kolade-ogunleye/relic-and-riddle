@@ -1,0 +1,50 @@
+{
+ "writers": {
+  "music library: approval (Telegram mkeep)": {
+   "shipped_file_changed": false,
+   "change_read_back": true
+  },
+  "photo pool credits.json: review/fetch/drop (save_credits)": {
+   "shipped_file_changed": false,
+   "change_read_back": true
+  },
+  "photo pool storyboard.json (fetch)": {
+   "shipped_file_changed": false,
+   "change_read_back": true
+  },
+  "fact sheet: build or rebuild (fact_sheet.save)": {
+   "shipped_file_changed": false,
+   "change_read_back": true
+  },
+  "geocoding cache (geo.locate)": {
+   "shipped_file_changed": false,
+   "change_read_back": true
+  },
+  "topic bank and photo searches: topic added (topic_store.commit)": {
+   "shipped_file_changed": false,
+   "change_read_back": true
+  }
+ },
+ "shipped_files_changed": 0,
+ "read_back": 6,
+ "writers_measured": 6,
+ "masking": {
+  "geocoding cache": {
+   "shipped places": 25,
+   "release corrections masked by the host copy": 25,
+   "host's own lookup kept": true
+  },
+  "fact sheets": {
+   "shipped sheets": 20,
+   "usable under today's rules": 18,
+   "researched again although the shipped sheet is usable": 18
+  },
+  "photo credits": {
+   "pools whose shipped record changed (QF-42's fix)": 1,
+   "photos read with a stale attribution": 1
+  },
+  "whole copies": {
+   "shipped changes under a host copy said at run start": 0
+  }
+ }
+}

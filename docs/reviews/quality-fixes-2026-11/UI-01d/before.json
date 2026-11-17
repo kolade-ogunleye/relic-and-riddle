@@ -1,0 +1,18 @@
+{
+ "answers_sent_as_new_messages": 1,
+ "left": [
+  "plain text",
+  "sticker",
+  "voice note",
+  "photo, no caption",
+  "photo with /ask",
+  "sent while the bot was off",
+  "photo for a topic's set",
+  "clip with no topic",
+  "clip over 20 MB",
+  "typed /photos <topic> upload"
+ ],
+ "operator_messages_left_in_chat": 10,
+ "operator_messages_sent": 12,
+ "outage_message_said": false
+}

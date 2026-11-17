@@ -1,0 +1,33 @@
+{
+ "cases": 77,
+ "with_copy": 77,
+ "withheld": 9,
+ "figure_still_withheld": 9,
+ "fields_changed": 14,
+ "fields_dropped": 13,
+ "fragments": 0,
+ "fragments_in_drawn_fields": 0,
+ "fragments_in_badge": 0,
+ "by_source": {
+  "catalogue": {
+   "cases": 5,
+   "withheld": 2,
+   "fragments": 0
+  },
+  "library": {
+   "cases": 4,
+   "withheld": 1,
+   "fragments": 0
+  },
+  "dev": {
+   "cases": 34,
+   "withheld": 4,
+   "fragments": 0
+  },
+  "prod": {
+   "cases": 34,
+   "withheld": 2,
+   "fragments": 0
+  }
+ }
+}

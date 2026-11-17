@@ -10,14 +10,15 @@ recorded: how much of the caption band's picture each style covers (pixels chang
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 from pathlib import Path
 
-MAIN = Path(r"C:\Users\omokolade\GitHub\relic-and-riddle")
+MAIN = Path(os.environ.get("RR_FIXTURE_REPO") or Path(__file__).resolve().parents[3])  # the checkout holding output/
 os.environ["RELIC_APP_ROOT"] = str(MAIN)
 sys.path.insert(0, str(MAIN))
-FF = Path(r"C:\Users\omokolade\AppData\Local\Microsoft\WinGet\Packages\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\ffmpeg-8.1-full_build\bin\ffmpeg.exe")
+FF = Path(shutil.which("ffmpeg") or "ffmpeg")  # ffmpeg on PATH
 import numpy as np  # noqa: E402
 import cv2  # noqa: E402
 from PIL import Image  # noqa: E402

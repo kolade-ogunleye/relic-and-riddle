@@ -59,6 +59,9 @@ def coord(db, tmp_path, curated_payload, monkeypatch):
     for n in range(1, 4):
         (run_dir / "carousel" / f"carousel_slide_{n:02d}.jpg").write_bytes(b"x")
     (run_dir / "m.mp4").write_bytes(b"0")
+    # QF-126: a rendered run has a provenance ledger; this one asks no credit
+    from run_ledgers import write_ledger
+    write_ledger(run_dir)
     curated_payload.update(topic_id="01_topic", human_reviewed=True)
     db.create_run("r1", "01_topic")
     db.update_run("r1", "pending_approval", script_payload=curated_payload, master_video_path=run_dir / "m.mp4",

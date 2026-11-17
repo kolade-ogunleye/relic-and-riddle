@@ -1,0 +1,44 @@
+{
+ "receipt": {
+  "all ok": {
+   "header": "✅ Title",
+   "runs_line": "📮 Title posted · Reel & Short",
+   "lines_with_tick": 4
+  },
+  "instagram failed": {
+   "header": "✅ Title",
+   "runs_line": "📮 Title posted · Reel & Short",
+   "lines_with_tick": 3
+  },
+  "all failed": {
+   "header": "✅ Title",
+   "runs_line": "📮 Title posted · Reel & Short",
+   "lines_with_tick": 1
+  },
+  "short skipped": {
+   "header": "✅ Title",
+   "runs_line": "📮 Title posted · Reel & Short",
+   "lines_with_tick": 3
+  }
+ },
+ "v2_card": {
+  "placeholder_literals_on_card": 13,
+  "placeholders": [
+   "9 distinct / 10 beats",
+   "✅ Cleared",
+   "~$0.41",
+   "$0.41",
+   "Gemini 2.5 Pro",
+   "ElevenLabs · Archivist",
+   "Ancient Winds · licensed",
+   "rc70",
+   "made just now",
+   "What do you think was the true purpose? #ancientmysteries #history",
+   "Picture checks passed against narration",
+   "Voice and audio pacing verified",
+   "1 check failed"
+  ],
+  "length_shown": "52.0 s",
+  "run_without_a_measured_length": "V2 card sent"
+ }
+}

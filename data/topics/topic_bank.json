@@ -1,11 +1,11 @@
 {
-  "total": 31,
+  "total": 39,
   "topics": [
     {
       "id": "derinkuyu_underground_city",
       "title": "The Underground City of Derinkuyu",
       "sub_theme": "Lost Civilizations",
-      "hook": "In 1963, a man renovating his house in Cappadocia knocked through a wall and found a tunnel leading down into an underground city.",
+      "hook": "How did an underground city breathe?",
       "location": {
         "name": "Derinkuyu Underground City",
         "city": "Derinkuyu",
@@ -32,15 +32,22 @@
         "#Archaeology",
         "#HistoricalCuriosities",
         "#HistoryUncovered",
-        "#AncientCivilizations",
-        "#ReelsViral"
-      ]
+        "#AncientCivilizations"
+      ],
+      "sources": [
+        {
+          "title": "Wikipedia: Derinkuyu underground city",
+          "url": "https://en.wikipedia.org/wiki/Derinkuyu_underground_city"
+        }
+      ],
+      "region_group": "West Asia",
+      "sensitivity": []
     },
     {
       "id": "roman_self_healing_concrete",
       "title": "The Mystery of Roman Self-Healing Concrete",
       "sub_theme": "Ancient Materials",
-      "hook": "Modern concrete cracks in 50 years, but Roman harbors have sat in saltwater for two millennia and actually get stronger.",
+      "hook": "How can cracked concrete repair itself?",
       "location": {
         "name": "Pantheon",
         "city": "Rome",
@@ -68,15 +75,22 @@
         "#AncientTech",
         "#HistoryUncovered",
         "#MaterialsScience",
-        "#Archaeology",
-        "#ReelsViral"
-      ]
+        "#Archaeology"
+      ],
+      "sources": [
+        {
+          "title": "Peer-reviewed journal article (Engineering & Technology): Researchers crack Roman concrete mystery",
+          "url": "https://doi.org/10.1049/et.2023.0110"
+        }
+      ],
+      "region_group": "Europe",
+      "sensitivity": []
     },
     {
       "id": "kailasa_temple_monolith",
       "title": "The Kailasa Temple Monolith",
       "sub_theme": "Architectural Enigma",
-      "hook": "This 100-foot temple was not built from the ground up—it was carved out of a single mountain from top to bottom.",
+      "hook": "How do you carve a temple from a cliff?",
       "location": {
         "name": "Kailasa Temple, Ellora Caves",
         "city": "Aurangabad",
@@ -103,15 +117,24 @@
         "#IncredibleIndia",
         "#AncientArchitecture",
         "#HistoricalCuriosities",
-        "#Archaeology",
-        "#ReelsViral"
+        "#Archaeology"
+      ],
+      "sources": [
+        {
+          "title": "Wikipedia: Kailasa Temple, Ellora",
+          "url": "https://en.wikipedia.org/wiki/Kailasa_Temple,_Ellora"
+        }
+      ],
+      "region_group": "South Asia",
+      "sensitivity": [
+        "Living religious heritage"
       ]
     },
     {
       "id": "antikythera_mechanism",
       "title": "The Antikythera Mechanism: 2,000-Year-Old Analog Computer",
       "sub_theme": "Astronomical Feat",
-      "hook": "Divers pulled a corroded lump of bronze from an ancient shipwreck, only to discover an analog computer that predicted eclipses.",
+      "hook": "How did ancient gears predict the sky?",
       "location": {
         "name": "Antikythera Shipwreck",
         "city": "Antikythera",
@@ -138,15 +161,22 @@
         "#AncientGreece",
         "#LostTechnology",
         "#HistoryUncovered",
-        "#Archaeology",
-        "#ReelsViral"
-      ]
+        "#Archaeology"
+      ],
+      "sources": [
+        {
+          "title": "Wikipedia: Antikythera mechanism",
+          "url": "https://en.wikipedia.org/wiki/Antikythera_mechanism"
+        }
+      ],
+      "region_group": "Europe",
+      "sensitivity": []
     },
     {
       "id": "gobekli_tepe_enclosure_d",
       "title": "Göbekli Tepe: The 11,000-Year-Old Sanctuary",
       "sub_theme": "Prehistoric Marvel",
-      "hook": "Built 6,000 years before Stonehenge, this massive stone sanctuary proved human hunters organized societies long before farming began.",
+      "hook": "Why carve animals into these enormous stone pillars?",
       "location": {
         "name": "Göbekli Tepe",
         "city": "Şanlıurfa",
@@ -173,15 +203,22 @@
         "#HumanOrigins",
         "#Archaeology",
         "#HistoricalCuriosities",
-        "#Anatolia",
-        "#ReelsViral"
-      ]
+        "#Anatolia"
+      ],
+      "sources": [
+        {
+          "title": "UNESCO World Heritage List record",
+          "url": "https://whc.unesco.org/en/list/1572"
+        }
+      ],
+      "region_group": "West Asia",
+      "sensitivity": []
     },
     {
       "id": "damascus_steel_nanotubes",
       "title": "Damascus Steel & Ancient Carbon Nanotubes",
       "sub_theme": "Lost Metallurgy",
-      "hook": "Damascus steel blades were famed for their watery patterns and sharpness, and in 2006 scientists found carbon nanotubes inside one.",
+      "hook": "What hides inside the patterns of an ancient blade?",
       "location": {
         "name": "Damascus Old City",
         "city": "Damascus",
@@ -209,15 +246,22 @@
         "#LostArts",
         "#MedievalHistory",
         "#Metallurgy",
-        "#HistoryUncovered",
-        "#ReelsViral"
-      ]
+        "#HistoryUncovered"
+      ],
+      "sources": [
+        {
+          "title": "Wikipedia: Damascus steel",
+          "url": "https://en.wikipedia.org/wiki/Damascus_steel"
+        }
+      ],
+      "region_group": "West Asia",
+      "sensitivity": []
     },
     {
       "id": "camp_century_nuclear_ice_city",
       "title": "Camp Century: The Nuclear City Under the Ice",
       "sub_theme": "Declassified History",
-      "hook": "During the Cold War, the US Army built an entire nuclear-powered city hidden under the Greenland ice sheet.",
+      "hook": "What remains of a city buried beneath moving ice?",
       "location": {
         "name": "Camp Century",
         "city": "Thule Region",
@@ -244,15 +288,24 @@
         "#Declassified",
         "#MilitaryHistory",
         "#Greenland",
-        "#HistoricalCuriosities",
-        "#ReelsViral"
+        "#HistoricalCuriosities"
+      ],
+      "sources": [
+        {
+          "title": "Topic research reference",
+          "url": "https://science.nasa.gov/earth/earth-observatory/new-view-of-the-city-under-the-ice-153616/"
+        }
+      ],
+      "region_group": "North America",
+      "sensitivity": [
+        "Military history and environmental harm"
       ]
     },
     {
       "id": "hal_saflieni_hypogeum",
       "title": "The Hypogeum of Hal Saflieni",
       "sub_theme": "Subterranean Relic",
-      "hook": "Beneath an ordinary street in Malta lies a 5,000-year-old underground burial complex carved by hand from solid rock.",
+      "hook": "Who cut three levels of tombs into solid limestone?",
       "location": {
         "name": "Ħal Saflieni Hypogeum",
         "city": "Paola",
@@ -279,15 +332,24 @@
         "#AncientMalta",
         "#Archaeology",
         "#HistoricalCuriosities",
-        "#HistoryUncovered",
-        "#ReelsViral"
+        "#HistoryUncovered"
+      ],
+      "sources": [
+        {
+          "title": "Wikipedia: Ħal Saflieni Hypogeum",
+          "url": "https://en.wikipedia.org/wiki/Ħal_Saflieni_Hypogeum"
+        }
+      ],
+      "region_group": "Europe",
+      "sensitivity": [
+        "Human remains and funerary heritage"
       ]
     },
     {
       "id": "greek_fire_siphon",
       "title": "Byzantine Greek Fire: The Lost Thermal Weapon",
       "sub_theme": "Medieval Warfare",
-      "hook": "For 500 years, the Byzantine Empire possessed a liquid weapon that burned on top of water, and its secret recipe vanished forever.",
+      "hook": "What fire kept burning on the surface of the sea?",
       "location": {
         "name": "The Golden Horn",
         "city": "Constantinople / Istanbul",
@@ -314,15 +376,24 @@
         "#MedievalWeapons",
         "#LostSecrets",
         "#MilitaryHistory",
-        "#HistoryUncovered",
-        "#ReelsViral"
+        "#HistoryUncovered"
+      ],
+      "sources": [
+        {
+          "title": "Wikipedia: Early thermal weapons",
+          "url": "https://en.wikipedia.org/wiki/Early_thermal_weapons"
+        }
+      ],
+      "region_group": "West Asia",
+      "sensitivity": [
+        "Warfare and deaths"
       ]
     },
     {
       "id": "unfinished_obelisk_aswan",
       "title": "The Unfinished Obelisk of Aswan",
       "sub_theme": "Ancient Megaliths",
-      "hook": "In an Aswan granite quarry lies an obelisk that would have been the largest ever raised in ancient Egypt, abandoned when it cracked.",
+      "hook": "Why leave a giant obelisk trapped in its quarry?",
       "location": {
         "name": "Aswan Granite Quarries",
         "city": "Aswan",
@@ -349,15 +420,22 @@
         "#MegalithicArchitecture",
         "#Archaeology",
         "#HistoricalCuriosities",
-        "#HistoryUncovered",
-        "#ReelsViral"
-      ]
+        "#HistoryUncovered"
+      ],
+      "sources": [
+        {
+          "title": "Wikipedia: Unfinished obelisk",
+          "url": "https://en.wikipedia.org/wiki/Unfinished_obelisk"
+        }
+      ],
+      "region_group": "North Africa",
+      "sensitivity": []
     },
     {
       "id": "piri_reis_1513_map",
       "title": "The Piri Reis Map of 1513",
       "sub_theme": "Cartographic Mystery",
-      "hook": "In 1929, a 1513 Ottoman world map turned up in Istanbul, partly copied from a lost map by Christopher Columbus.",
+      "hook": "How does a 1513 map preserve a Columbus map nobody has found?",
       "location": {
         "name": "Topkapi Palace",
         "city": "Istanbul",
@@ -382,15 +460,22 @@
         "#CartographicMystery",
         "#AncientMysteries",
         "#HistoricalCuriosities",
-        "#HistoryUncovered",
-        "#ReelsViral"
-      ]
+        "#HistoryUncovered"
+      ],
+      "sources": [
+        {
+          "title": "Topic research reference",
+          "url": "https://www.unesco.org/en/memory-world/piri-reis-world-map-1513"
+        }
+      ],
+      "region_group": "West Asia",
+      "sensitivity": []
     },
     {
       "id": "flannan_isle_lighthouse_disappearance",
       "title": "The Flannan Isle Lighthouse Vanishing",
       "sub_theme": "Unsolved Disappearance",
-      "hook": "In December 1900, three lighthouse keepers vanished from a remote Scottish island, and no trace of them was ever found.",
+      "hook": "Where did three lighthouse keepers go in December 1900?",
       "location": {
         "name": "Flannan Isles",
         "city": "Outer Hebrides",
@@ -415,15 +500,24 @@
         "#UnsolvedDisappearance",
         "#AncientMysteries",
         "#HistoricalCuriosities",
-        "#HistoryUncovered",
-        "#ReelsViral"
+        "#HistoryUncovered"
+      ],
+      "sources": [
+        {
+          "title": "Topic research reference",
+          "url": "https://www.nlb.org.uk/history/flannan-isles/"
+        }
+      ],
+      "region_group": "Europe",
+      "sensitivity": [
+        "Missing people and presumed deaths"
       ]
     },
     {
       "id": "trepanation_miracle",
       "title": "Ancient Skull Surgery (Trepanation)",
       "sub_theme": "Ancient Medicine",
-      "hook": "Thousands of years ago, people cut holes in living patients' skulls, and many of those patients survived.",
+      "hook": "How did patients survive holes cut into their skulls?",
       "location": {
         "name": "Paracas Peninsula",
         "city": "Ica",
@@ -448,15 +542,24 @@
         "#AncientMedicine",
         "#AncientMysteries",
         "#HistoricalCuriosities",
-        "#HistoryUncovered",
-        "#ReelsViral"
+        "#HistoryUncovered"
+      ],
+      "sources": [
+        {
+          "title": "Wikipedia: Trepanning",
+          "url": "https://en.wikipedia.org/wiki/Trepanning"
+        }
+      ],
+      "region_group": "South America",
+      "sensitivity": [
+        "Human remains and historical surgery"
       ]
     },
     {
       "id": "nazca_lines_runway_paradox",
       "title": "The Nazca Lines",
       "sub_theme": "Geoglyphs",
-      "hook": "In the desert of southern Peru, hundreds of giant figures and lines were drawn into the ground about 2,000 years ago.",
+      "hook": "Why draw enormous figures across a desert?",
       "location": {
         "name": "Nazca Desert",
         "city": "Nazca",
@@ -482,15 +585,22 @@
         "#Geoglyphs",
         "#AncientMysteries",
         "#HistoricalCuriosities",
-        "#HistoryUncovered",
-        "#ReelsViral"
-      ]
+        "#HistoryUncovered"
+      ],
+      "sources": [
+        {
+          "title": "Wikipedia: Nazca lines",
+          "url": "https://en.wikipedia.org/wiki/Nazca_lines"
+        }
+      ],
+      "region_group": "South America",
+      "sensitivity": []
     },
     {
       "id": "sunken_city_of_heracleion",
       "title": "The Sunken City of Thonis-Heracleion",
       "sub_theme": "Submerged City",
-      "hook": "For centuries, the great Egyptian port of Thonis-Heracleion was known only from ancient texts, until divers found it underwater in 2000.",
+      "hook": "How did a port city end up beneath the sea?",
       "location": {
         "name": "Abukir Bay",
         "city": "Alexandria",
@@ -515,15 +625,22 @@
         "#SubmergedCity",
         "#AncientMysteries",
         "#HistoricalCuriosities",
-        "#HistoryUncovered",
-        "#ReelsViral"
-      ]
+        "#HistoryUncovered"
+      ],
+      "sources": [
+        {
+          "title": "Topic research reference",
+          "url": "https://www.franckgoddio.org/projects/sunken-civilizations/heracleion"
+        }
+      ],
+      "region_group": "North Africa",
+      "sensitivity": []
     },
     {
       "id": "zhang_heng_seismoscope",
       "title": "Zhang Heng's Earthquake Detector (AD 132)",
       "sub_theme": "Lost Engineering",
-      "hook": "In AD 132, a Chinese inventor built a bronze vessel that, records say, signalled an earthquake hundreds of miles away.",
+      "hook": "How could a falling ball announce a distant earthquake?",
       "location": {
         "name": "Luoyang",
         "city": "Henan",
@@ -548,15 +665,22 @@
         "#LostEngineering",
         "#AncientMysteries",
         "#HistoricalCuriosities",
-        "#HistoryUncovered",
-        "#ReelsViral"
-      ]
+        "#HistoryUncovered"
+      ],
+      "sources": [
+        {
+          "title": "Topic research reference",
+          "url": "https://collection.sciencemuseumgroup.org.uk/objects/co54055"
+        }
+      ],
+      "region_group": "East Asia",
+      "sensitivity": []
     },
     {
       "id": "voynich_manuscript",
       "title": "The Unsolved Voynich Manuscript",
       "sub_theme": "Bizarre Relic",
-      "hook": "A 600-year-old book written in an unknown script has defeated every attempt to read it.",
+      "hook": "Why can nobody confidently read these illustrated pages?",
       "location": {
         "name": "Beinecke Rare Book Library",
         "city": "New Haven",
@@ -581,15 +705,22 @@
         "#BizarreRelic",
         "#AncientMysteries",
         "#HistoricalCuriosities",
-        "#HistoryUncovered",
-        "#ReelsViral"
-      ]
+        "#HistoryUncovered"
+      ],
+      "sources": [
+        {
+          "title": "Wikipedia: Voynich manuscript",
+          "url": "https://en.wikipedia.org/wiki/Voynich_manuscript"
+        }
+      ],
+      "region_group": "North America",
+      "sensitivity": []
     },
     {
       "id": "odessa_catacombs",
       "title": "The 1,500-Mile Odessa Catacombs",
       "sub_theme": "Hidden Infrastructure",
-      "hook": "Beneath the city of Odesa runs one of the largest tunnel networks in the world, dug mostly by limestone miners.",
+      "hook": "How did quarrying leave a maze beneath a city?",
       "location": {
         "name": "Odessa",
         "city": "Odesa Oblast",
@@ -614,15 +745,24 @@
         "#HiddenInfrastructure",
         "#AncientMysteries",
         "#HistoricalCuriosities",
-        "#HistoryUncovered",
-        "#ReelsViral"
+        "#HistoryUncovered"
+      ],
+      "sources": [
+        {
+          "title": "Wikipedia: Odesa",
+          "url": "https://en.wikipedia.org/wiki/Odesa"
+        }
+      ],
+      "region_group": "Europe",
+      "sensitivity": [
+        "Wartime shelter and deaths"
       ]
     },
     {
       "id": "richat_structure_sahara_eye",
       "title": "The Richat Structure: The Eye of the Sahara",
       "sub_theme": "Geological Mystery",
-      "hook": "Seen from space, a 40-kilometre bullseye in the Sahara looks like a giant eye, and it was made by geology, not people.",
+      "hook": "How did erosion draw rings across the desert?",
       "location": {
         "name": "Ouadane",
         "city": "Adrar Plateau",
@@ -647,15 +787,22 @@
         "#GeologicalMystery",
         "#AncientMysteries",
         "#HistoricalCuriosities",
-        "#HistoryUncovered",
-        "#ReelsViral"
-      ]
+        "#HistoryUncovered"
+      ],
+      "sources": [
+        {
+          "title": "Wikipedia: Richat Structure",
+          "url": "https://en.wikipedia.org/wiki/Richat_Structure"
+        }
+      ],
+      "region_group": "North Africa",
+      "sensitivity": []
     },
     {
       "id": "amber_room_heist",
       "title": "The Disappearance of the Amber Room",
       "sub_theme": "Historical Heist",
-      "hook": "In 1941, German troops dismantled a palace room made of amber and shipped it away, and it has not been seen since 1945.",
+      "hook": "How did a room lined with amber disappear?",
       "location": {
         "name": "Catherine Palace",
         "city": "Pushkin",
@@ -680,15 +827,24 @@
         "#HistoricalHeist",
         "#AncientMysteries",
         "#HistoricalCuriosities",
-        "#HistoryUncovered",
-        "#ReelsViral"
+        "#HistoryUncovered"
+      ],
+      "sources": [
+        {
+          "title": "Wikipedia: Amber Room",
+          "url": "https://en.wikipedia.org/wiki/Amber_Room"
+        }
+      ],
+      "region_group": "Europe",
+      "sensitivity": [
+        "Wartime looting"
       ]
     },
     {
       "id": "gol_gumbaz_whispering_gallery",
       "title": "The Whispering Gallery of Gol Gumbaz",
       "sub_theme": "Acoustic Wonder",
-      "hook": "Under one of the largest domes of the pre-modern world, in Vijayapura, India, a whisper can carry right across the gallery.",
+      "hook": "How does a whisper travel around this enormous dome?",
       "location": {
         "name": "Bijapur",
         "city": "Karnataka",
@@ -713,15 +869,24 @@
         "#AcousticWonder",
         "#AncientMysteries",
         "#HistoricalCuriosities",
-        "#HistoryUncovered",
-        "#ReelsViral"
+        "#HistoryUncovered"
+      ],
+      "sources": [
+        {
+          "title": "Wikipedia: Gol Gumbaz",
+          "url": "https://en.wikipedia.org/wiki/Gol_Gumbaz"
+        }
+      ],
+      "region_group": "South Asia",
+      "sensitivity": [
+        "Funerary heritage"
       ]
     },
     {
       "id": "tunguska_event_1908",
       "title": "The Tunguska Event of 1908",
       "sub_theme": "Unexplained Event",
-      "hook": "In 1908, an explosion over Siberia flattened about 80 million trees across 2,000 square kilometres, without leaving a crater.",
+      "hook": "What flattened a forest without leaving an impact crater?",
       "location": {
         "name": "Podkamennaya Tunguska",
         "city": "Siberia",
@@ -746,15 +911,24 @@
         "#UnexplainedEvent",
         "#AncientMysteries",
         "#HistoricalCuriosities",
-        "#HistoryUncovered",
-        "#ReelsViral"
+        "#HistoryUncovered"
+      ],
+      "sources": [
+        {
+          "title": "Wikipedia: Tunguska event",
+          "url": "https://en.wikipedia.org/wiki/Tunguska_event"
+        }
+      ],
+      "region_group": "North Asia",
+      "sensitivity": [
+        "Disaster and affected communities"
       ]
     },
     {
       "id": "claw_of_archimedes",
       "title": "The Claw of Archimedes",
       "sub_theme": "Ancient Weapons",
-      "hook": "When Rome besieged Syracuse, ancient writers say Archimedes built a giant claw that lifted enemy ships out of the sea.",
+      "hook": "Could a machine tip a warship out of the water?",
       "location": {
         "name": "Syracuse",
         "city": "Sicily",
@@ -779,15 +953,24 @@
         "#AncientWeapons",
         "#AncientMysteries",
         "#HistoricalCuriosities",
-        "#HistoryUncovered",
-        "#ReelsViral"
+        "#HistoryUncovered"
+      ],
+      "sources": [
+        {
+          "title": "Topic research reference",
+          "url": "https://penelope.uchicago.edu/Thayer/E/Roman/Texts/Polybius/8%2A.html"
+        }
+      ],
+      "region_group": "Europe",
+      "sensitivity": [
+        "Warfare and deaths"
       ]
     },
     {
       "id": "dyatlov_pass_incident",
       "title": "The Dyatlov Pass Mystery",
       "sub_theme": "Lost Expedition",
-      "hook": "In 1959, nine hikers cut their way out of their tent and fled into the snow at night, and none of them survived.",
+      "hook": "What can snow physics tell us about a fatal expedition?",
       "location": {
         "name": "Kholat Syakhl",
         "city": "Ural Mountains",
@@ -812,15 +995,24 @@
         "#LostExpedition",
         "#AncientMysteries",
         "#HistoricalCuriosities",
-        "#HistoryUncovered",
-        "#ReelsViral"
+        "#HistoryUncovered"
+      ],
+      "sources": [
+        {
+          "title": "Topic research reference",
+          "url": "https://www.nature.com/articles/s43247-020-00081-8"
+        }
+      ],
+      "region_group": "Europe",
+      "sensitivity": [
+        "Deaths of identifiable people; avoid sensationalism"
       ]
     },
     {
       "id": "lycurgus_cup_nanotech",
       "title": "The 4th-Century Lycurgus Cup",
       "sub_theme": "Microscopic Wonder",
-      "hook": "A 1,600-year-old Roman cup glows green in reflected light and turns red when lit from behind.",
+      "hook": "Why does this green cup turn red in transmitted light?",
       "location": {
         "name": "British Museum",
         "city": "London",
@@ -845,15 +1037,22 @@
         "#MicroscopicWonder",
         "#AncientMysteries",
         "#HistoricalCuriosities",
-        "#HistoryUncovered",
-        "#ReelsViral"
-      ]
+        "#HistoryUncovered"
+      ],
+      "sources": [
+        {
+          "title": "Wikipedia: Lycurgus Cup",
+          "url": "https://en.wikipedia.org/wiki/Lycurgus_Cup"
+        }
+      ],
+      "region_group": "Europe",
+      "sensitivity": []
     },
     {
       "id": "wieliczka_salt_mine",
       "title": "The Wieliczka Underground Salt Cathedral",
       "sub_theme": "Subterranean Marvel",
-      "hook": "Deep underground in Poland, miners carved an entire chapel from rock salt, down to the chandeliers.",
+      "hook": "Why carve a chapel deep inside a salt mine?",
       "location": {
         "name": "Wieliczka",
         "city": "Lesser Poland",
@@ -878,15 +1077,24 @@
         "#SubterraneanMarvel",
         "#AncientMysteries",
         "#HistoricalCuriosities",
-        "#HistoryUncovered",
-        "#ReelsViral"
+        "#HistoryUncovered"
+      ],
+      "sources": [
+        {
+          "title": "Wikipedia: Wieliczka Salt Mine",
+          "url": "https://en.wikipedia.org/wiki/Wieliczka_Salt_Mine"
+        }
+      ],
+      "region_group": "Europe",
+      "sensitivity": [
+        "Living religious heritage"
       ]
     },
     {
       "id": "great_wall_of_gorgan",
       "title": "The Red Snake: The Great Wall of Gorgan",
       "sub_theme": "Ancient Defense",
-      "hook": "In northern Iran runs a 195-kilometre ancient wall of red brick that few people have ever heard of.",
+      "hook": "Why did a defensive wall need a canal beside it?",
       "location": {
         "name": "Golestan",
         "city": "Gorgan Plain",
@@ -911,15 +1119,22 @@
         "#AncientDefense",
         "#AncientMysteries",
         "#HistoricalCuriosities",
-        "#HistoryUncovered",
-        "#ReelsViral"
-      ]
+        "#HistoryUncovered"
+      ],
+      "sources": [
+        {
+          "title": "Topic research reference",
+          "url": "https://whc.unesco.org/en/tentativelists/6199"
+        }
+      ],
+      "region_group": "West Asia",
+      "sensitivity": []
     },
     {
       "id": "dancing_plague_1518",
       "title": "The Dancing Plague of 1518",
       "sub_theme": "Historical Paradox",
-      "hook": "In July 1518, a woman began dancing in a Strasbourg street and could not stop, and within weeks dozens more joined her.",
+      "hook": "What lies behind the accounts of an unstoppable dance?",
       "location": {
         "name": "Strasbourg",
         "city": "Alsace",
@@ -944,15 +1159,24 @@
         "#HistoricalParadox",
         "#AncientMysteries",
         "#HistoricalCuriosities",
-        "#HistoryUncovered",
-        "#ReelsViral"
+        "#HistoryUncovered"
+      ],
+      "sources": [
+        {
+          "title": "Topic research reference",
+          "url": "https://doi.org/10.3366/drs.2017.0199"
+        }
+      ],
+      "region_group": "Europe",
+      "sensitivity": [
+        "Historical illness; disputed death reports"
       ]
     },
     {
       "id": "baltic_sea_anomaly",
       "title": "The Baltic Sea Anomaly",
       "sub_theme": "Maritime Enigma",
-      "hook": "In 2011, Swedish treasure hunters released a blurry sonar image of a round shape on the Baltic seabed, and the internet went wild.",
+      "hook": "What can an indistinct sonar image actually prove?",
       "location": {
         "name": "Bothnian Sea",
         "city": "Baltic Sea",
@@ -977,15 +1201,22 @@
         "#MaritimeEnigma",
         "#AncientMysteries",
         "#HistoricalCuriosities",
-        "#HistoryUncovered",
-        "#ReelsViral"
-      ]
+        "#HistoryUncovered"
+      ],
+      "sources": [
+        {
+          "title": "Topic research reference",
+          "url": "https://www.oceanexplorer.se/press/"
+        }
+      ],
+      "region_group": "Europe",
+      "sensitivity": []
     },
     {
       "id": "acoustic_kitty_cia",
       "title": "Operation Acoustic Kitty",
       "sub_theme": "Declassified History",
-      "hook": "In the 1960s, the CIA reportedly tried to turn a cat into a walking microphone.",
+      "hook": "Why did an intelligence agency reportedly put a microphone in a cat?",
       "location": {
         "name": "CIA Headquarters",
         "city": "Langley / Virginia",
@@ -1010,15 +1241,24 @@
         "#DeclassifiedHistory",
         "#AncientMysteries",
         "#HistoricalCuriosities",
-        "#HistoryUncovered",
-        "#ReelsViral"
+        "#HistoryUncovered"
+      ],
+      "sources": [
+        {
+          "title": "Topic research reference",
+          "url": "https://www.cia.gov/stories/story/natural-spies-animals-in-espionage/"
+        }
+      ],
+      "region_group": "North America",
+      "sensitivity": [
+        "Animal experimentation and harm"
       ]
     },
     {
       "id": "singing_colossi_of_memnon",
       "title": "The Singing Colossi of Memnon",
       "sub_theme": "Ancient Acoustic Wonders",
-      "hook": "For two hundred years, Roman emperors, poets, and travelers sailed up the Nile just to hear a 60-foot stone titan sing to the sunrise.",
+      "hook": "Why did ancient visitors describe a stone statue as singing?",
       "location": {
         "name": "Colossi of Memnon",
         "city": "Luxor",
@@ -1050,7 +1290,319 @@
           "title": "Colossi of Memnon - Wikipedia",
           "url": "https://en.wikipedia.org/wiki/Colossi_of_Memnon"
         }
-      ]
+      ],
+      "region_group": "North Africa",
+      "sensitivity": []
+    },
+    {
+      "id": "great_zimbabwe",
+      "title": "Great Zimbabwe",
+      "sub_theme": "Ancient Engineering",
+      "hook": "Who built a nearly 80-hectare trading city in medieval southern Africa?",
+      "location": {
+        "name": "Great Zimbabwe",
+        "city": "",
+        "region": "",
+        "country": "Zimbabwe",
+        "unesco_id": 364
+      },
+      "key_facts": [
+        "The Shona built the city between the 11th and 15th centuries.",
+        "The city covers an area of nearly 80 hectares.",
+        "It was an important trading centre, renowned from the Middle Ages onwards."
+      ],
+      "meta_categories": [
+        "History & Philosophy",
+        "Travel & Culture"
+      ],
+      "hashtags": [
+        "#History",
+        "#Archaeology",
+        "#CulturalHeritage",
+        "#greatzimbabwe"
+      ],
+      "sources": [
+        {
+          "title": "UNESCO World Heritage List record",
+          "url": "https://whc.unesco.org/en/list/364/"
+        }
+      ],
+      "region_group": "Sub-Saharan Africa",
+      "sensitivity": [],
+      "hold": "Photo searches pending: QF-54a requires a recorded Wikidata answer for every curated image search, which needs a network step; the verified QID is in the QF-73 evidence"
+    },
+    {
+      "id": "lalibela",
+      "title": "Lalibela",
+      "sub_theme": "Ancient Engineering",
+      "hook": "Why carve eleven churches from solid rock in 13th-century Ethiopia?",
+      "location": {
+        "name": "Lalibela",
+        "city": "Lalibela",
+        "region": "Amhara Region",
+        "country": "Ethiopia",
+        "unesco_id": 18
+      },
+      "key_facts": [
+        "Eleven medieval monolithic cave churches make up the 13th-century 'New Jerusalem'.",
+        "They stand in a mountainous region in the heart of Ethiopia.",
+        "Lalibela is still a place of Christian pilgrimage and devotion."
+      ],
+      "meta_categories": [
+        "History & Philosophy",
+        "Travel & Culture"
+      ],
+      "hashtags": [
+        "#History",
+        "#Archaeology",
+        "#CulturalHeritage",
+        "#lalibela"
+      ],
+      "sources": [
+        {
+          "title": "UNESCO World Heritage List record",
+          "url": "https://whc.unesco.org/en/list/18/"
+        }
+      ],
+      "region_group": "Sub-Saharan Africa",
+      "sensitivity": [
+        "Living religious practice"
+      ],
+      "hold": "Photo searches pending: QF-54a requires a recorded Wikidata answer for every curated image search, which needs a network step; the verified QID is in the QF-73 evidence"
+    },
+    {
+      "id": "monte_alban",
+      "title": "Monte Albán",
+      "sub_theme": "Ancient Engineering",
+      "hook": "How do you carve pyramids and canals out of a mountain?",
+      "location": {
+        "name": "Monte Albán",
+        "city": "",
+        "region": "Oaxaca",
+        "country": "Mexico",
+        "unesco_id": 415
+      },
+      "key_facts": [
+        "Olmecs, Zapotecs and Mixtecs inhabited Monte Albán over a period of 1,500 years.",
+        "Its terraces, dams, canals, pyramids and artificial mounds were carved out of the mountain.",
+        "These works are symbols of a sacred topography."
+      ],
+      "meta_categories": [
+        "History & Philosophy",
+        "Travel & Culture"
+      ],
+      "hashtags": [
+        "#History",
+        "#Archaeology",
+        "#CulturalHeritage",
+        "#montealban"
+      ],
+      "sources": [
+        {
+          "title": "UNESCO World Heritage List record",
+          "url": "https://whc.unesco.org/en/list/415/"
+        }
+      ],
+      "region_group": "Mesoamerica",
+      "sensitivity": [],
+      "hold": "Photo searches pending: QF-54a requires a recorded Wikidata answer for every curated image search, which needs a network step; the verified QID is in the QF-73 evidence"
+    },
+    {
+      "id": "palenque",
+      "title": "Palenque",
+      "sub_theme": "Ancient Engineering",
+      "hook": "What myths did Maya sculptors carve into Palenque's reliefs?",
+      "location": {
+        "name": "Palenque",
+        "city": "Palenque",
+        "region": "Chiapas",
+        "country": "Mexico",
+        "unesco_id": 411
+      },
+      "key_facts": [
+        "Palenque was at its height between AD 500 and 700.",
+        "Its influence then extended throughout the basin of the Usumacinta River.",
+        "Its sculpted reliefs carry Maya mythological themes."
+      ],
+      "meta_categories": [
+        "History & Philosophy",
+        "Travel & Culture"
+      ],
+      "hashtags": [
+        "#History",
+        "#Archaeology",
+        "#CulturalHeritage",
+        "#palenque"
+      ],
+      "sources": [
+        {
+          "title": "UNESCO World Heritage List record",
+          "url": "https://whc.unesco.org/en/list/411/"
+        }
+      ],
+      "region_group": "Mesoamerica",
+      "sensitivity": [
+        "Sacred heritage"
+      ],
+      "hold": "Photo searches pending: QF-54a requires a recorded Wikidata answer for every curated image search, which needs a network step; the verified QID is in the QF-73 evidence"
+    },
+    {
+      "id": "borobudur",
+      "title": "Borobudur",
+      "sub_theme": "Ancient Engineering",
+      "hook": "Why place 72 Buddha statues inside openwork stone stupas?",
+      "location": {
+        "name": "Borobudur",
+        "city": "",
+        "region": "Java",
+        "country": "Indonesia",
+        "unesco_id": 592
+      },
+      "key_facts": [
+        "The Buddhist temple dates from the 8th and 9th centuries.",
+        "Five square terraces and three circular platforms rise to a monumental stupa.",
+        "Its low reliefs cover a total surface of 2,500 square metres.",
+        "72 openwork stupas around the circular platforms each contain a statue of the Buddha."
+      ],
+      "meta_categories": [
+        "History & Philosophy",
+        "Travel & Culture"
+      ],
+      "hashtags": [
+        "#History",
+        "#Archaeology",
+        "#CulturalHeritage",
+        "#borobudur"
+      ],
+      "sources": [
+        {
+          "title": "UNESCO World Heritage List record",
+          "url": "https://whc.unesco.org/en/list/592/"
+        }
+      ],
+      "region_group": "Southeast Asia",
+      "sensitivity": [
+        "Living religious practice"
+      ],
+      "hold": "Photo searches pending: QF-54a requires a recorded Wikidata answer for every curated image search, which needs a network step; the verified QID is in the QF-73 evidence"
+    },
+    {
+      "id": "angkor",
+      "title": "Angkor",
+      "sub_theme": "Ancient Engineering",
+      "hook": "What remains of the Khmer capitals across some 400 square kilometres?",
+      "location": {
+        "name": "Angkor",
+        "city": "",
+        "region": "Siem Reap",
+        "country": "Cambodia",
+        "unesco_id": 668
+      },
+      "key_facts": [
+        "Angkor Archaeological Park stretches over some 400 square kilometres, including forest.",
+        "It holds the remains of the Khmer Empire's capitals from the 9th to the 15th century.",
+        "They include Angkor Wat and, at Angkor Thom, the Bayon Temple."
+      ],
+      "meta_categories": [
+        "History & Philosophy",
+        "Travel & Culture"
+      ],
+      "hashtags": [
+        "#History",
+        "#Archaeology",
+        "#CulturalHeritage",
+        "#angkor"
+      ],
+      "sources": [
+        {
+          "title": "UNESCO World Heritage List record",
+          "url": "https://whc.unesco.org/en/list/668/"
+        }
+      ],
+      "region_group": "Southeast Asia",
+      "sensitivity": [
+        "Living religious practice"
+      ],
+      "hold": "Photo searches pending: QF-54a requires a recorded Wikidata answer for every curated image search, which needs a network step; the verified QID is in the QF-73 evidence"
+    },
+    {
+      "id": "nan_madol",
+      "title": "Nan Madol",
+      "sub_theme": "Ancient Engineering",
+      "hook": "Who built more than 100 stone islets off Pohnpei?",
+      "location": {
+        "name": "Nan Madol",
+        "city": "",
+        "region": "Pohnpei",
+        "country": "Micronesia",
+        "unesco_id": 1503
+      },
+      "key_facts": [
+        "Nan Madol is a series of more than 100 islets off the south-east coast of Pohnpei.",
+        "The islets were built with walls of basalt and coral boulders.",
+        "Stone palaces, temples, tombs and homes on them date from 1200 to 1500 CE.",
+        "It was the ceremonial centre of the Saudeleur dynasty."
+      ],
+      "meta_categories": [
+        "History & Philosophy",
+        "Travel & Culture"
+      ],
+      "hashtags": [
+        "#History",
+        "#Archaeology",
+        "#CulturalHeritage",
+        "#nanmadol"
+      ],
+      "sources": [
+        {
+          "title": "UNESCO World Heritage List record",
+          "url": "https://whc.unesco.org/en/list/1503/"
+        }
+      ],
+      "region_group": "Oceania",
+      "sensitivity": [
+        "Funerary and sacred heritage"
+      ],
+      "hold": "Photo searches pending: QF-54a requires a recorded Wikidata answer for every curated image search, which needs a network step; the verified QID is in the QF-73 evidence"
+    },
+    {
+      "id": "rapa_nui",
+      "title": "Rapa Nui",
+      "sub_theme": "Ancient Engineering",
+      "hook": "Why did Rapa Nui's people erect enormous stone figures called moai?",
+      "location": {
+        "name": "Rapa Nui",
+        "city": "",
+        "region": "Easter Island",
+        "country": "Chile",
+        "unesco_id": 715
+      },
+      "key_facts": [
+        "Rapa Nui is the indigenous name of Easter Island.",
+        "From the 10th to the 16th century its society built shrines and erected enormous stone figures, the moai.",
+        "Its monumental sculpture and architecture grew free from any external influence."
+      ],
+      "meta_categories": [
+        "History & Philosophy",
+        "Travel & Culture"
+      ],
+      "hashtags": [
+        "#History",
+        "#Archaeology",
+        "#CulturalHeritage",
+        "#rapanui"
+      ],
+      "sources": [
+        {
+          "title": "UNESCO World Heritage List record",
+          "url": "https://whc.unesco.org/en/list/715/"
+        }
+      ],
+      "region_group": "Oceania",
+      "sensitivity": [
+        "Living Indigenous and sacred heritage"
+      ],
+      "hold": "Photo searches pending: QF-54a requires a recorded Wikidata answer for every curated image search, which needs a network step; the verified QID is in the QF-73 evidence"
     }
   ]
 }

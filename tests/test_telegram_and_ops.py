@@ -9,7 +9,7 @@ def test_wait_never_auto_approves_when_unconfigured(db):
     db.record_approval("r1", "01_topic")
     bot = TelegramApprovalBot(db=db, bot_token="", chat_id="")
     assert bot.wait_for_decision("r1", timeout_seconds=0.3, poll_interval=0.05) == "timeout"
-    assert db.get_approval("r1")["decision"] == "timeout"
+    assert db.get_approval("r1")["decision"] == "pending"
 
 
 def test_wait_picks_up_cli_decision(db):
@@ -68,8 +68,10 @@ def test_health_flags_chat_id_equal_to_bot_id(monkeypatch):
     ok, msg = PreFlightHealthChecker().check_live_credentials()
     assert not ok and "bot's own ID" in msg
     monkeypatch.setattr(config, "TELEGRAM_CHAT_ID", "987654")
-    monkeypatch.setattr(config, "AZURE_SPEECH_KEY", "a" * 20)
-    monkeypatch.setattr(config, "AZURE_SPEECH_REGION", "eastus")
+    # QF-127: the licensed voice is ElevenLabs on a paid plan, not an Azure key
+    from src.audio_engine import AudioEngine
+    monkeypatch.setattr(config, "ELEVENLABS_API_KEY", "k" * 20)
+    monkeypatch.setattr(AudioEngine, "voice_quota", lambda self: {"tier": "starter"})
     assert PreFlightHealthChecker().check_live_credentials()[0]
 
 
@@ -99,8 +101,10 @@ def test_health_requires_a_human_telegram_approver(monkeypatch):
     monkeypatch.setattr(config, "TELEGRAM_BOT_TOKEN", "123456:ABCDEF")
     monkeypatch.setattr(config, "TELEGRAM_CHAT_ID", "987654")
     monkeypatch.setattr(config, "TELEGRAM_APPROVER_IDS", set())
-    monkeypatch.setattr(config, "AZURE_SPEECH_KEY", "test")
-    monkeypatch.setattr(config, "AZURE_SPEECH_REGION", "eastus")
+    # QF-127: the licensed voice is ElevenLabs on a paid plan, not an Azure key
+    from src.audio_engine import AudioEngine
+    monkeypatch.setattr(config, "ELEVENLABS_API_KEY", "k" * 20)
+    monkeypatch.setattr(AudioEngine, "voice_quota", lambda self: {"tier": "starter"})
     ok, detail = PreFlightHealthChecker().check_live_credentials()
     assert not ok and "TELEGRAM_APPROVER_IDS" in detail
     monkeypatch.setattr(config, "TELEGRAM_APPROVER_IDS", {"987654"})

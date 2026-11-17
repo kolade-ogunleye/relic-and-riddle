@@ -2,7 +2,8 @@
 
 This is an application acceptance request to the lab operator. It does not ask
 the application agent to change managed accounts, task registration, ACLs or
-Wazuh. Existing production continues in dry-run mode.
+Wazuh. Existing production posts live (operator activation, 2026-10-25; approval
+still decides each post); the probe starts no episode run.
 
 Run the released `scripts/runtime_probe.py` through the approved lab canary
 mechanism as `LAB\rr-pipeline$` in Session 0, using the production application's
@@ -13,7 +14,7 @@ Example command for that identity runner (stage the script from the reviewed
 application artifact first):
 
 ```powershell
-C:\Users\omokolade.LAB\relic-and-riddle\.venv\Scripts\python.exe C:\approved-artifact\scripts\runtime_probe.py --app-root C:\Users\omokolade.LAB\relic-and-riddle --report C:\ProgramData\HNSHL\ContentRuntime\logs\Pipeline\app-probe-UNIQUE-UTC.json --providers
+<operator-home>\relic-and-riddle\.venv\Scripts\python.exe C:\approved-artifact\scripts\runtime_probe.py --app-root <operator-home>\relic-and-riddle --report C:\ProgramData\HNSHL\ContentRuntime\logs\Pipeline\app-probe-UNIQUE-UTC.json --providers
 ```
 
 Use a new report filename for each attempt; previous receipts are never replaced.

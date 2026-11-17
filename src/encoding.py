@@ -4,7 +4,7 @@ import subprocess
 from functools import wraps
 from threading import BoundedSemaphore, Lock
 from typing import List, Optional
-from .config import VIDEO_PRESET, VIDEO_CRF
+from .config import VIDEO_CRF, VIDEO_ENCODE_THREADS, VIDEO_PRESET
 
 log = logging.getLogger(__name__)
 
@@ -29,8 +29,80 @@ def bounded_encode(function):
     return wrapped
 
 
+# BT.709 limited range everywhere (QF-01, 2026-11-05). swscale converts RGB to YUV with BT.601 unless it is told
+# otherwise, and the master is tagged BT.709: a pure red graphic measured Y81 U90 V240 in the master (BT.709 red is
+# Y63 U102 V240), so players drew every RGB-born picture with the wrong matrix. Every RGB picture is converted with
+# the BT.709 matrix where it enters YUV, every clip and frame is tagged BT.709 (ffmpeg 6+ takes the file's colour
+# tags from the frames, so setparams marks them; the -color_* flags alone left primaries and transfer "unknown"),
+# and a YUV clip is read with the matrix it was made with.
+BT709_TAGS = "setparams=range=tv:color_primaries=bt709:color_trc=bt709:colorspace=bt709"
+BT709_FLAGS = ["-colorspace", "bt709", "-color_primaries", "bt709", "-color_trc", "bt709", "-color_range", "tv"]
+RGB_TO_BT709 = f"scale=out_color_matrix=bt709:out_range=tv,format=yuv420p,{BT709_TAGS}"
+BT709_TO_RGB = "scale=in_color_matrix=bt709:in_range=tv"
+
+
+def source_matrix(colorspace: str | None, height: int = 0) -> str:
+    """The YCbCr matrix a YUV clip was made with: its own tag when it has one; untagged, BT.709 for HD (720 lines
+    and up, or unknown) and BT.601 below, as players assume."""
+    tag = (colorspace or "").strip().lower()
+    if tag == "bt709":
+        return "bt709"
+    if tag in ("bt470bg", "smpte170m", "bt601", "bt470", "fcc"):
+        return "bt601"
+    if tag.startswith("bt2020"):
+        return "bt2020"
+    if tag == "smpte240m":
+        return "smpte240m"
+    return "bt601" if 0 < height < 720 else "bt709"
+
+
+def to_bt709(colorspace: str | None = None, height: int = 0) -> str:
+    """A YUV clip (tag `colorspace`, `height` lines) to BT.709 limited-range yuv420p, tagged; a no-op on BT.709."""
+    return (f"scale=in_color_matrix={source_matrix(colorspace, height)}:out_color_matrix=bt709:out_range=tv,"
+            f"format=yuv420p,{BT709_TAGS}")
+
+
+# One encoder for delivered and judged video on every machine (QF-134). The production VM has no NVIDIA adapter and
+# encodes with libx264; development has an NVENC GPU and, while the encoder was chosen by a hardware probe, delivered
+# and reviewed its masters and graphic clips from NVENC. Everything that is delivered or judged (masters of every
+# format, the loop bridge's body intermediate, micro-patched masters, graphic, card and callout clips) now takes
+# these explicit arguments, which are exactly what production used: the hardware never chooses them.
+# QF-139: and the same bytes. x264 derives its thread count from the machine's cores unless told, and its output
+# depends on that count, so every libx264 encode (these two, and the footage, motion, parallax, then-and-now and
+# review-proxy clips) passes a fixed count. At a constant quality (CRF) that is X264_THREADS
+# (config.VIDEO_ENCODE_THREADS); x264's other thread-dependent parameters (lookahead threads, sync lookahead) follow
+# from it and sliced threads stay off. A rate-capped encode (-maxrate/-bufsize: the review proxy) is not the same file
+# run to run with several frame threads, even at a fixed count (x264's frame-threaded rate control), so it passes
+# X264_ONE_THREAD.
+X264_THREADS = ["-threads", str(VIDEO_ENCODE_THREADS)]
+X264_ONE_THREAD = ["-threads", "1"]
+
+
+def delivery_video_encoder() -> list[str]:
+    """The encoder for every delivered or judged picture: libx264 at the locked preset, CRF and thread count, on
+    every machine."""
+    return ["-c:v", "libx264", "-preset", VIDEO_PRESET, "-crf", str(VIDEO_CRF), *X264_THREADS]
+
+
+def delivery_intermediate_encoder() -> list[str]:
+    """The visually lossless libx264 encoder for an intermediate that a delivered file is made from (the loop
+    bridge's body), on every machine."""
+    return ["-c:v", "libx264", "-preset", "veryfast", "-crf", "10", *X264_THREADS]
+
+
+def preview_video_encoder() -> list[str]:
+    """The encoder for a scratch preview that is never delivered or judged: the delivery encoder, unless
+    VIDEO_PREVIEW_ENCODER is "fastest", where the machine's fastest (NVENC when its GPU answers the probe)."""
+    from . import config
+    if config.VIDEO_PREVIEW_ENCODER == "fastest":
+        return list(get_video_encoder())
+    return delivery_video_encoder()
+
+
 def get_video_encoder() -> List[str]:
-    """Detect if h264_nvenc hardware acceleration is available, falling back to libx264."""
+    """The machine's fastest H.264 encoder by hardware probe: h264_nvenc when an NVIDIA GPU answers, else libx264.
+    Hardware-dependent, so only preview_video_encoder and benchmarks use it; never for delivered or judged video
+    (QF-134: delivery_video_encoder)."""
     global _DETECTED_ENCODER
     if _DETECTED_ENCODER is not None:
         return _DETECTED_ENCODER
@@ -55,11 +127,10 @@ def get_video_encoder() -> List[str]:
         return _DETECTED_ENCODER
 
 
-def get_intermediate_video_encoder() -> List[str]:
-    """Fast, visually-lossless encoder arguments for intermediate scratch renders."""
+def get_intermediate_video_encoder() -> list[str]:
+    """The probe's intermediate pick (h264_nvenc p1 cq 12 with an NVIDIA GPU, else libx264 veryfast crf 10): previews
+    only, like get_video_encoder; a delivered file's intermediate takes delivery_intermediate_encoder (QF-134)."""
     enc = get_video_encoder()
     if enc and len(enc) > 1 and enc[1] == "h264_nvenc":
         return ["-c:v", "h264_nvenc", "-preset", "p1", "-cq", "12"]
-    return ["-c:v", "libx264", "-preset", "veryfast", "-crf", "10"]
-
-
+    return delivery_intermediate_encoder()

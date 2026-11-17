@@ -151,7 +151,7 @@ def _resumable_run(db, monkeypatch, tmp_path, curated_payload):
     from main import PipelineCoordinator
     from src import config as test_config
     from src.checkpoints import Checkpoints, file_inputs, topic_inputs
-    from src.fact_evidence import record_fact_review
+    from tests.conftest import stamp_as_checked
     monkeypatch.setattr(main, "OUTPUT_DIR", tmp_path)
     run_dir = tmp_path / "r5"
     run_dir.mkdir()
@@ -160,7 +160,7 @@ def _resumable_run(db, monkeypatch, tmp_path, curated_payload):
     sheet.write_text('{"facts": []}', encoding="utf-8")
     monkeypatch.setattr(test_config, "DATA_DIR", tmp_path / "data")
     saved = dict(curated_payload, guardrail_passed=True)
-    record_fact_review(saved, sheet)
+    stamp_as_checked(saved, sheet)   # the checkers passed on it (2026-11-04: a stamp needs their record)
     (run_dir / "verified_script.json").write_text(json.dumps(saved), encoding="utf-8")
     (run_dir / "voiceover.mp3").write_bytes(b"x")
     (run_dir / "words.json").write_text("[]", encoding="utf-8")
@@ -188,7 +188,8 @@ def test_background_image_prep_reaches_the_render(db, monkeypatch, tmp_path, cur
     seen = {}
 
     def render(*args):
-        seen["prepared"] = args[-1].result()
+        # QF-05 appends the final-cut bed callback after the prepared-image future.
+        seen["prepared"] = args[-2].result()
         return {"status": "simulated"}
     monkeypatch.setattr(coord, "_render_approve_publish", render)
     assert coord.resume_run("r5", dry_run=True)["status"] == "simulated"

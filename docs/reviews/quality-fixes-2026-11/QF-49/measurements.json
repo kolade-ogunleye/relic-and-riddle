@@ -1,0 +1,25 @@
+{
+  "row_grep_files": 3,
+  "row_grep_files_outside_allowlist": 0,
+  "row_grep_files_by_pattern": {
+    "omokolad[e]": 0,
+    "lab\\.internal": 0,
+    "kolade-ogunley[e]": 0,
+    "@gmail\\.com": 3
+  },
+  "row_grep_files_by_folder": {
+    "assets/derinkuyu_underground_city": 1,
+    "src/archive_film.py": 1,
+    "tests/test_archive_film.py": 1
+  },
+  "denylist_lines": 4,
+  "denylist_lines_outside_allowlist": 0,
+  "denylist_files_outside_allowlist": [],
+  "allowlisted_lines": [
+    "assets/derinkuyu_underground_city/credits.json:711",
+    "src/archive_film.py:56",
+    "tests/test_archive_film.py:57",
+    "tests/test_archive_film.py:77"
+  ],
+  "regression_test_in_suite": true
+}

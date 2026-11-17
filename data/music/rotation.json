@@ -1,0 +1,14 @@
+{
+  "_about": "QF-84: approved library tracks out of rotation, with the measured reason (docs/reviews/quality-fixes-2026-11/QF-84/music_set.py). A track not listed rotates.",
+  "retired": {
+    "epic/epic_orchestral_strings_6de166bd.mp3": "QF-84: loudness range 16.5 LU and 9 s near silence in its first minute: not a steady bed under a voice",
+    "melancholic/melancholic_piano_music_mp3_c0c2ed68.mp3": "QF-84: loudness range 18.1 LU and 5 s near silence in its first minute: not a steady bed under a voice",
+    "melancholic/piano_improvisation_2_332645c6.mp3": "QF-84: loudness range 22.4 LU and 7 s near silence in its first minute: not a steady bed under a voice",
+    "melancholic/sad_heaven_piano_3_0046330f.mp3": "QF-84: loudness range 15.6 LU and 5 s near silence in its first minute: not a steady bed under a voice",
+    "mysterious/creepy_sadness_749d8bad.mp3": "QF-84: qualifies, but the mysterious set keeps the 3 with the least power below 120 Hz (65% here)",
+    "mysterious/space_atmosphere_03_remastered_wav_21aefbca.mp3": "QF-84: 100% of its first minute's power is below 120 Hz, which a phone speaker does not play",
+    "tense/horror_suspense_drone_texture_a1f075a7.mp3": "QF-84: 100% of its first minute's power is below 120 Hz, which a phone speaker does not play",
+    "tense/rhythmic_suspense_drums_mp3_ccc86b6d.mp3": "QF-84: 100% of its first minute's power is below 120 Hz, which a phone speaker does not play",
+    "tense/scaryscape_voicestringcalling_wav_5c341626.mp3": "QF-84: 80% of its first minute's power is below 120 Hz, which a phone speaker does not play"
+  }
+}

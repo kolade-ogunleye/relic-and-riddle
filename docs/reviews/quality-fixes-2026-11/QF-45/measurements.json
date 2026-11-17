@@ -1,0 +1,15 @@
+{
+  "drafts_with_hash_or_http": 5,
+  "drafts_with_hash_or_http_kept": 0,
+  "drafts_breaking_other_grammar": 6,
+  "drafts_breaking_other_grammar_kept": 0,
+  "drafts_in_grammar": 4,
+  "drafts_in_grammar_kept": 4,
+  "examples_fenced_in_prompt": true,
+  "literal_tag_from_example_in_prompt": false,
+  "provenance_on_adopt_card": true,
+  "adopt_card_rule_line": "Proposed writing rule: <i>Never ask a yes/no poll question.</i>",
+  "adopt_card_provenance_line": "Provenance: drafted by the free model (writer role) on 2026-11-06 from 3 findings of 'script.poll' in 3 runs (sources: structure); checked against the rule grammar (Never/Always + lowercase wording).",
+  "code": "src/improve.py",
+  "acceptance_met": true
+}

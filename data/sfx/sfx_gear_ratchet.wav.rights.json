@@ -1,5 +1,5 @@
 {
-  "path": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\data\\sfx\\sfx_gear_ratchet.wav",
+  "path": "data/sfx/sfx_gear_ratchet.wav",
   "sha256": "576c7d1b8ded7e404b264da7fc6214955c119b4eb698f1749aa8740dd2bc7069",
   "provider": "elevenlabs-sound-effects",
   "plan": "creator",

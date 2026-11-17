@@ -1,0 +1,519 @@
+{
+ "rule": {
+  "has_payoff_check": false,
+  "a_payoff_fault_blocks": false,
+  "modern_relevance_beat_in_prompt": true,
+  "story_order_in_prompt": false
+ },
+ "synthetic": {
+  "bad_admitted": {
+   "missing": true,
+   "not_penultimate": true,
+   "repeats_the_hook": true,
+   "shared_verb_only": true,
+   "shared_adjective_only": true,
+   "shared_number_only": true
+  },
+  "bad_admitted_count": 6,
+  "bad_outcome": {
+   "missing": "ships_clean",
+   "not_penultimate": "ships_clean",
+   "repeats_the_hook": "ships_clean",
+   "shared_verb_only": "ships_clean",
+   "shared_adjective_only": "ships_clean",
+   "shared_number_only": "ships_clean"
+  },
+  "controls_admitted": {
+   "same_noun": true,
+   "plural_inflection": true,
+   "noun_tagged_as_adjective_in_the_hook": true
+  },
+  "controls_admitted_count": 3
+ },
+ "corpus": {
+  "script_library": {
+   "scripts": 4,
+   "admitted": 4,
+   "confusion": {
+    "payoff_admitted": 1,
+    "payoff_refused": 0,
+    "not_admitted": 3,
+    "not_refused": 0,
+    "unjudged": 0
+   },
+   "outcomes": {
+    "blocked": 0,
+    "ships_flagged": 0,
+    "ships_clean": 4
+   },
+   "outcomes_judged_payoff": {
+    "blocked": 0,
+    "ships_flagged": 0,
+    "ships_clean": 1
+   },
+   "outcomes_judged_not": {
+    "blocked": 0,
+    "ships_flagged": 0,
+    "ships_clean": 3
+   },
+   "outcomes_with_the_hook_rule": {
+    "blocked": 4,
+    "ships_flagged": 0,
+    "ships_clean": 0
+   },
+   "false_rejects": [],
+   "false_accepts": [
+    {
+     "run": "singing_colossi_of_memnon",
+     "sha": "5a8c01d6c651",
+     "mark": "not",
+     "admitted": true,
+     "outcome": "ships_clean",
+     "outcome_with_the_hook_rule": "blocked",
+     "hook": "In 27 BC, a major earthquake shattered the northern colossus, collapsing the statue from the waist up and cracking its lower half.",
+     "payoff": "Local tradition dates the reconstruction of the statue's upper tiers to around 199 AD."
+    },
+    {
+     "run": "unfinished_obelisk_aswan",
+     "sha": "7ce7591cd33e",
+     "mark": "not",
+     "admitted": true,
+     "outcome": "ships_clean",
+     "outcome_with_the_hook_rule": "blocked",
+     "hook": "Deep inside an ancient quarry in Aswan, the largest obelisk ever attempted remains trapped in solid bedrock.",
+     "payoff": "Modern engineering studies cannot confirm which extraction method was intended, or whether moving the monolith was within granite's structural limits."
+    },
+    {
+     "run": "wieliczka_salt_mine",
+     "sha": "2c13932c73e4",
+     "mark": "not",
+     "admitted": true,
+     "outcome": "ships_clean",
+     "outcome_with_the_hook_rule": "blocked",
+     "hook": "Near Kraków in southern Poland, the mine's rock salt naturally displays various shades of grey, resembling unpolished granite rather than white crystalline salt.",
+     "payoff": "Artificial ventilation introduced in the late nineteenth century brought humidity into the mine, threatening severe damage to the carved salt sculptures."
+    }
+   ]
+  },
+  "runs_1": {
+   "scripts": 28,
+   "admitted": 28,
+   "confusion": {
+    "payoff_admitted": 9,
+    "payoff_refused": 0,
+    "not_admitted": 19,
+    "not_refused": 0,
+    "unjudged": 0
+   },
+   "outcomes": {
+    "blocked": 0,
+    "ships_flagged": 0,
+    "ships_clean": 28
+   },
+   "outcomes_judged_payoff": {
+    "blocked": 0,
+    "ships_flagged": 0,
+    "ships_clean": 9
+   },
+   "outcomes_judged_not": {
+    "blocked": 0,
+    "ships_flagged": 0,
+    "ships_clean": 19
+   },
+   "outcomes_with_the_hook_rule": {
+    "blocked": 24,
+    "ships_flagged": 0,
+    "ships_clean": 4
+   },
+   "false_rejects": [],
+   "false_accepts": [
+    {
+     "run": "run_damascus_steel_nanotubes_1792732472_short",
+     "sha": "0b43c8ee6dcd",
+     "mark": "not",
+     "admitted": true,
+     "outcome": "ships_clean",
+     "outcome_with_the_hook_rule": "blocked"
+    },
+    {
+     "run": "run_damascus_steel_nanotubes_1792733974_short",
+     "sha": "7bca48eec1a0",
+     "mark": "not",
+     "admitted": true,
+     "outcome": "ships_clean",
+     "outcome_with_the_hook_rule": "blocked"
+    },
+    {
+     "run": "run_gol_gumbaz_whispering_gallery_1793278143",
+     "sha": "fa6a8dcc18bd",
+     "mark": "not",
+     "admitted": true,
+     "outcome": "ships_clean",
+     "outcome_with_the_hook_rule": "blocked"
+    },
+    {
+     "run": "run_greek_fire_siphon_1792735284_short",
+     "sha": "ab10f8f869c2",
+     "mark": "not",
+     "admitted": true,
+     "outcome": "ships_clean",
+     "outcome_with_the_hook_rule": "blocked"
+    },
+    {
+     "run": "run_hal_saflieni_hypogeum_1792949304",
+     "sha": "2c5a0404cca7",
+     "mark": "not",
+     "admitted": true,
+     "outcome": "ships_clean",
+     "outcome_with_the_hook_rule": "blocked"
+    },
+    {
+     "run": "run_nazca_lines_runway_paradox_1792961797",
+     "sha": "5f04f97a5224",
+     "mark": "not",
+     "admitted": true,
+     "outcome": "ships_clean",
+     "outcome_with_the_hook_rule": "blocked"
+    },
+    {
+     "run": "run_nazca_lines_runway_paradox_1793247464",
+     "sha": "8f07052c84f2",
+     "mark": "not",
+     "admitted": true,
+     "outcome": "ships_clean",
+     "outcome_with_the_hook_rule": "ships_clean"
+    },
+    {
+     "run": "run_richat_structure_sahara_eye_1792740961_long",
+     "sha": "1f3a7aa1a341",
+     "mark": "not",
+     "admitted": true,
+     "outcome": "ships_clean",
+     "outcome_with_the_hook_rule": "blocked"
+    },
+    {
+     "run": "run_richat_structure_sahara_eye_1792778206",
+     "sha": "db71ef2c5ab8",
+     "mark": "not",
+     "admitted": true,
+     "outcome": "ships_clean",
+     "outcome_with_the_hook_rule": "blocked"
+    },
+    {
+     "run": "run_richat_structure_sahara_eye_1793272675",
+     "sha": "d97c695c9750",
+     "mark": "not",
+     "admitted": true,
+     "outcome": "ships_clean",
+     "outcome_with_the_hook_rule": "blocked"
+    },
+    {
+     "run": "run_richat_structure_sahara_eye_1793468053",
+     "sha": "f57e8327b09f",
+     "mark": "not",
+     "admitted": true,
+     "outcome": "ships_clean",
+     "outcome_with_the_hook_rule": "blocked"
+    },
+    {
+     "run": "run_roman_self_healing_concrete_1793161347",
+     "sha": "9ce6641bae74",
+     "mark": "not",
+     "admitted": true,
+     "outcome": "ships_clean",
+     "outcome_with_the_hook_rule": "blocked"
+    },
+    {
+     "run": "run_singing_colossi_of_memnon_1792952878",
+     "sha": "5a8c01d6c651",
+     "mark": "not",
+     "admitted": true,
+     "outcome": "ships_clean",
+     "outcome_with_the_hook_rule": "blocked"
+    },
+    {
+     "run": "run_trepanation_miracle_1792991470",
+     "sha": "11eda958ba95",
+     "mark": "not",
+     "admitted": true,
+     "outcome": "ships_clean",
+     "outcome_with_the_hook_rule": "blocked"
+    },
+    {
+     "run": "run_trepanation_miracle_1792995462",
+     "sha": "340e62c66f88",
+     "mark": "not",
+     "admitted": true,
+     "outcome": "ships_clean",
+     "outcome_with_the_hook_rule": "blocked"
+    },
+    {
+     "run": "run_tunguska_event_1908_1792930600",
+     "sha": "8dd131ec7812",
+     "mark": "not",
+     "admitted": true,
+     "outcome": "ships_clean",
+     "outcome_with_the_hook_rule": "blocked"
+    },
+    {
+     "run": "run_unfinished_obelisk_aswan_1793056896",
+     "sha": "7ce7591cd33e",
+     "mark": "not",
+     "admitted": true,
+     "outcome": "ships_clean",
+     "outcome_with_the_hook_rule": "blocked"
+    },
+    {
+     "run": "run_voynich_manuscript_1792965308",
+     "sha": "2629ed04cc71",
+     "mark": "not",
+     "admitted": true,
+     "outcome": "ships_clean",
+     "outcome_with_the_hook_rule": "ships_clean"
+    },
+    {
+     "run": "run_wieliczka_salt_mine_1792974672",
+     "sha": "2c13932c73e4",
+     "mark": "not",
+     "admitted": true,
+     "outcome": "ships_clean",
+     "outcome_with_the_hook_rule": "blocked"
+    }
+   ]
+  },
+  "runs_2": {
+   "scripts": 26,
+   "admitted": 26,
+   "confusion": {
+    "payoff_admitted": 10,
+    "payoff_refused": 0,
+    "not_admitted": 16,
+    "not_refused": 0,
+    "unjudged": 0
+   },
+   "outcomes": {
+    "blocked": 0,
+    "ships_flagged": 0,
+    "ships_clean": 26
+   },
+   "outcomes_judged_payoff": {
+    "blocked": 0,
+    "ships_flagged": 0,
+    "ships_clean": 10
+   },
+   "outcomes_judged_not": {
+    "blocked": 0,
+    "ships_flagged": 0,
+    "ships_clean": 16
+   },
+   "outcomes_with_the_hook_rule": {
+    "blocked": 16,
+    "ships_flagged": 3,
+    "ships_clean": 7
+   },
+   "false_rejects": 0,
+   "false_accepts": 16,
+   "per_item": "omitted: counts only (production sample)"
+  }
+ },
+ "corpus_pooled": {
+  "scripts": 52,
+  "admitted": 52,
+  "outcomes": {
+   "blocked": 0,
+   "ships_flagged": 0,
+   "ships_clean": 52
+  },
+  "outcomes_judged_payoff": {
+   "blocked": 0,
+   "ships_flagged": 0,
+   "ships_clean": 19
+  },
+  "outcomes_judged_not": {
+   "blocked": 0,
+   "ships_flagged": 0,
+   "ships_clean": 33
+  },
+  "outcomes_with_the_hook_rule": {
+   "blocked": 38,
+   "ships_flagged": 3,
+   "ships_clean": 11
+  },
+  "confusion": {
+   "payoff_admitted": 19,
+   "payoff_refused": 0,
+   "not_admitted": 33,
+   "not_refused": 0,
+   "unjudged": 0
+  },
+  "rates": {
+   "recall_of_judged_payoffs": 1.0,
+   "refusal_of_judged_non_payoffs": 0.0,
+   "precision_of_what_is_admitted": 0.37
+  },
+  "false_rejects": 0,
+  "false_accepts": 33
+ },
+ "beats": {
+  "scripts": 52,
+  "sentences_per_script": {
+   "min": 5,
+   "median": 6.0,
+   "max": 21
+  },
+  "composed_scenes_per_run": {
+   "runs": 40,
+   "min": 9,
+   "median": 11.0,
+   "max": 12
+  },
+  "scripts_with_a_modern_relevance_sentence": 10,
+  "where": [
+   {
+    "run": "run_gol_gumbaz_whispering_gallery_1793278143",
+    "sentence_index": [
+     4
+    ],
+    "of": 5
+   },
+   {
+    "run": "run_greek_fire_siphon_1792735284_short",
+    "sentence_index": [
+     4
+    ],
+    "of": 6
+   },
+   {
+    "run": "run_roman_self_healing_concrete_1793161347",
+    "sentence_index": [
+     3
+    ],
+    "of": 5
+   }
+  ],
+  "where_in_sample": 7,
+  "modern_relevance_spoken_s": {
+   "timed": 9,
+   "median": 7.88,
+   "max": 9.6
+  },
+  "modern_relevance_share_of_the_voice": {
+   "median": 0.17,
+   "max": 0.212
+  }
+ },
+ "library_path": {
+  "entries": 4,
+  "with_a_payoff_fault": 4,
+  "with_payoff_sentence": 0,
+  "routed_to_the_payoff_edit": 0,
+  "with_a_payoff_fault_and_no_payoff_edit": 4,
+  "edited_before_use": 4
+ },
+ "routing_replay": {
+  "script_library": {
+   "edit_fixes": {
+    "calls": {
+     "writer": 4,
+     "opening_or_payoff_edit": 4,
+     "length_edit": 0,
+     "other_edit": 0
+    },
+    "outcomes": {
+     "accepted": 4
+    },
+    "heavy_calls_per_run_mean": 2.0,
+    "heavy_calls_per_run_max": 2
+   },
+   "edit_fails": {
+    "calls": {
+     "writer": 12,
+     "opening_or_payoff_edit": 4,
+     "length_edit": 0,
+     "other_edit": 0
+    },
+    "outcomes": {
+     "no_script": 4
+    },
+    "heavy_calls_per_run_mean": 4.0,
+    "heavy_calls_per_run_max": 4
+   }
+  },
+  "runs_1": {
+   "edit_fixes": {
+    "calls": {
+     "writer": 29,
+     "opening_or_payoff_edit": 23,
+     "length_edit": 0,
+     "other_edit": 2
+    },
+    "outcomes": {
+     "accepted": 26,
+     "not_a_script_package": 1,
+     "no_script": 1
+    },
+    "heavy_calls_per_run_mean": 2.0,
+    "heavy_calls_per_run_max": 6
+   },
+   "edit_fails": {
+    "calls": {
+     "writer": 73,
+     "opening_or_payoff_edit": 23,
+     "length_edit": 0,
+     "other_edit": 0
+    },
+    "outcomes": {
+     "accepted": 4,
+     "no_script": 23,
+     "not_a_script_package": 1
+    },
+    "heavy_calls_per_run_mean": 3.56,
+    "heavy_calls_per_run_max": 4
+   }
+  },
+  "runs_2": {
+   "edit_fixes": {
+    "calls": {
+     "writer": 34,
+     "opening_or_payoff_edit": 19,
+     "length_edit": 0,
+     "other_edit": 8
+    },
+    "outcomes": {
+     "accepted": 22,
+     "no_script": 4
+    },
+    "heavy_calls_per_run_mean": 2.35,
+    "heavy_calls_per_run_max": 6
+   },
+   "edit_fails": {
+    "calls": {
+     "writer": 58,
+     "opening_or_payoff_edit": 19,
+     "length_edit": 0,
+     "other_edit": 0
+    },
+    "outcomes": {
+     "no_script": 16,
+     "accepted": 10
+    },
+    "heavy_calls_per_run_mean": 2.96,
+    "heavy_calls_per_run_max": 4
+   }
+  }
+ },
+ "real_writer_call_size": {
+  "calls": 100,
+  "tokens_in_median": 3054.0,
+  "tokens_out_median": 215.5,
+  "seconds_median": 44.29
+ },
+ "prompt_size": {
+  "system_prompt_chars": 6381,
+  "verified_user_template_chars": 7207,
+  "revise_system_chars": 3531,
+  "writer_schema_chars": 3225,
+  "writer_schema_requires_payoff": false
+ },
+ "acceptance_met": false
+}

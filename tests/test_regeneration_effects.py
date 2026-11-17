@@ -126,7 +126,7 @@ def test_an_approved_regeneration_returns_its_topic_to_the_queue_not_to_rejected
     coordinator._produce_and_publish = lambda t, run_id, run_dir, auto, dry, previous: seen.update(previous=previous) or {"status": "simulated", "run_id": run_id}
     coordinator.topic_engine = SimpleNamespace(get_topic_by_id=lambda t: dict(topic, status="rejected", times_published=0),
                                                record_status=lambda *a, **k: None, get_next_topic=lambda: None)
-    coordinator.health_checker = SimpleNamespace(run_all=lambda require_live=False: {"all_passed": True, "details": {}})
+    coordinator.health_checker = SimpleNamespace(run_all=lambda require_live=False, dry_run=False: {"all_passed": True, "details": {}})
     coordinator.lifecycle_manager = SimpleNamespace(purge_intermediate_assets=lambda: None)
     coordinator.telegram_bot = SimpleNamespace(is_configured=lambda: False, notify=lambda *a, **k: None)
     coordinator._finish_progress = lambda *a, **k: None

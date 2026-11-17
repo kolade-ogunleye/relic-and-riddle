@@ -1,0 +1,30 @@
+{
+ "verdict_aware": false,
+ "placement_by_word_position": false,
+ "dev": {
+  "runs": 4,
+  "runs_timeline_differs_from_script": 2,
+  "sentences": 22,
+  "sentences_flagged_without_verdict": 1,
+  "flagged_by_kind": {
+   "shown": 1
+  }
+ },
+ "prod": {
+  "runs": 18,
+  "runs_timeline_differs_from_script": 3,
+  "sentences": 115,
+  "sentences_flagged_without_verdict": 6,
+  "flagged_by_kind": {
+   "shown": 3,
+   "generable": 1,
+   "abstract": 2
+  }
+ },
+ "total": {
+  "runs": 22,
+  "runs_timeline_differs_from_script": 5,
+  "sentences": 137,
+  "sentences_flagged_without_verdict": 7
+ }
+}

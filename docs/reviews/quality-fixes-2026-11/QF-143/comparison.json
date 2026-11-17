@@ -1,0 +1,98 @@
+{
+ "before": {
+  "cases": 46,
+  "rendered": 46,
+  "errors": 0,
+  "with_headline": 46,
+  "ends_on_mark": 1,
+  "ends_on_fragment": 0,
+  "subtitle_in_copy": 46,
+  "subtitle_kept": 35,
+  "by_source": {
+   "catalogue": {
+    "cases": 5,
+    "ends_on_mark": 0,
+    "ends_on_fragment": 0,
+    "subtitle_kept": 3
+   },
+   "library": {
+    "cases": 4,
+    "ends_on_mark": 0,
+    "ends_on_fragment": 0,
+    "subtitle_kept": 4
+   },
+   "dev": {
+    "cases": 37,
+    "ends_on_mark": 1,
+    "ends_on_fragment": 0,
+    "subtitle_kept": 28
+   }
+  }
+ },
+ "after": {
+  "cases": 46,
+  "rendered": 46,
+  "errors": 0,
+  "with_headline": 46,
+  "ends_on_mark": 0,
+  "ends_on_fragment": 0,
+  "subtitle_in_copy": 46,
+  "subtitle_kept": 35,
+  "by_source": {
+   "catalogue": {
+    "cases": 5,
+    "ends_on_mark": 0,
+    "ends_on_fragment": 0,
+    "subtitle_kept": 3
+   },
+   "library": {
+    "cases": 4,
+    "ends_on_mark": 0,
+    "ends_on_fragment": 0,
+    "subtitle_kept": 4
+   },
+   "dev": {
+    "cases": 37,
+    "ends_on_mark": 0,
+    "ends_on_fragment": 0,
+    "subtitle_kept": 28
+   }
+  }
+ },
+ "unchanged_headline_cases": 45,
+ "unchanged_headline_pixel_identical": 45,
+ "unchanged_headline_differ": [],
+ "changed": [
+  {
+   "src": "dev",
+   "case": "run_richat_structure_sahara_eye_1792740961_long",
+   "copy": {
+    "eyebrow": "DOCUMENTARY",
+    "line1": "THE RICHAT STRUCTURE:",
+    "line2": "THE EYE OF THE SAHARA",
+    "tagline": "EXPLORE THE EVIDENCE"
+   },
+   "before": [
+    "DOCUMENTARY",
+    "THE RICHAT STRUCTURE:"
+   ],
+   "after": [
+    "DOCUMENTARY",
+    "THE RICHAT STRUCTURE"
+   ],
+   "before_meta": {
+    "headline_lines_dropped": [
+     "line2"
+    ],
+    "headline_fill_from": "eyebrow"
+   },
+   "after_meta": {
+    "headline_lines_dropped": [
+     "line2"
+    ],
+    "headline_fill_from": "eyebrow"
+   },
+   "pixels_identical": false
+  }
+ ]
+}

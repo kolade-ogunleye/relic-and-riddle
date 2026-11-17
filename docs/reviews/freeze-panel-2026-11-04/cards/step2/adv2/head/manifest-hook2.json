@@ -1,0 +1,586 @@
+{
+ "meta": {
+  "code_root": "<scratchpad>/head",
+  "design_cards": "<scratchpad>/head/src/design_cards.py",
+  "version": "design-cards-1",
+  "seconds": null,
+  "inputs": "real run media and fact-sheet facts via docs/reviews/freeze-panel-2026-11-04/fixtures",
+  "card_fields": "new: real fact, test-signed field: checker verdicts from the test suite's mocked checker, signed under THROWAWAY_KEY (this rig's own constant, assigned over config's key before any card module loads; the deployment key is never read) in a temporary sheet copy",
+  "throwaway_key": "THROWAWAY_KEY (render_evidence.py)",
+  "catalogue_gaps": {
+   "myth_fields": "none: no fact sheet in data/fact_sheets or data/script_library carries a cards.myths entry (refuting_fact_id appears in no JSON file in the repository). A real myth-vs-fact card cannot be rendered from existing inputs.",
+   "statement_fields": "one: data/fact_sheets/hal_saflieni_hypogeum.json cards.statements S1, check verdict 'needs_check' with no runs and no signature, so card_fields.verify_field refuses it.",
+   "quote_fields": "none.",
+   "gated_titles": "every run's fact_review holds only public_fingerprint / sheet_path / sheet_sha256 / review_rules_fingerprint, with no check record, so design_cards.gated_text refuses Gated('title'|'youtube_title') on every run (fact_evidence.checked_fact_review: no current check record).",
+   "consequence": "Every hook, chapter and myth card needs a checked, signed card field. None exists. The real inputs are the fact sheets' facts, the runs' titles, act titles and hero photos below; the card fields themselves must be produced by fact_sheet.build + card_fields.check_cards (with a checker key) before a card can be rendered honestly. Anything rendered before that is new and must be labelled."
+  }
+ },
+ "renders": {
+  "hookeb2_named_after_wilfrid_voynich_bright": {
+   "name": "hookeb2_named_after_wilfrid_voynich_bright",
+   "run": "run_voynich_manuscript_1792965308",
+   "topic": "voynich_manuscript",
+   "ground": "photo",
+   "photo_name": "13_commons_b005e858b75d9b17.jpg",
+   "labels": [
+    "new: real fact, test-signed field adv2"
+   ],
+   "size": [
+    1080,
+    1920
+   ],
+   "seconds": 1.5,
+   "frames": 45,
+   "anchors": {
+    "P": 120,
+    "lines": 2,
+    "baselines": [
+     740,
+     858
+    ],
+    "T": 637,
+    "E": 593,
+    "block_top": 547,
+    "L": 858,
+    "position": "plate"
+   },
+   "drawn_text": {
+    "brand": "RELIC & RIDDLE",
+    "eyebrow": "POLISH BOOK DEALER",
+    "title_0": "NAMED AFTER",
+    "title_1": "WILFRID VOYNICH"
+   },
+   "lines": {
+    "title": [
+     "NAMED AFTER",
+     "WILFRID VOYNICH"
+    ]
+   },
+   "stop_end": {
+    "title": false
+   },
+   "accent_gaps": {
+    "title": [
+     14.0
+    ]
+   },
+   "total_mark": null,
+   "quality_notes": null,
+   "source_host_raw": null,
+   "t_s": null,
+   "t_f": null,
+   "pen_total": null,
+   "source_omitted": null,
+   "planned_drawn_contrast_min": null,
+   "elements": [
+    {
+     "name": "brand",
+     "box": [
+      265,
+      462,
+      862,
+      508
+     ],
+     "px": 64
+    },
+    {
+     "name": "brand_mark",
+     "box": [
+      216,
+      472,
+      242,
+      498
+     ],
+     "px": 0
+    },
+    {
+     "name": "eyebrow_rule",
+     "box": [
+      518,
+      547,
+      562,
+      551
+     ],
+     "px": 0
+    },
+    {
+     "name": "eyebrow",
+     "box": [
+      264,
+      564,
+      813,
+      594
+     ],
+     "px": 40
+    },
+    {
+     "name": "title_0",
+     "box": [
+      242,
+      637,
+      839,
+      740
+     ],
+     "px": 120
+    },
+    {
+     "name": "title_1",
+     "box": [
+      167,
+      754,
+      913,
+      859
+     ],
+     "px": 120
+    }
+   ],
+   "renders": {
+    "f00": {
+     "png": "hookeb2_named_after_wilfrid_voynich_bright__f00.png",
+     "jpg": "hookeb2_named_after_wilfrid_voynich_bright__f00.jpg",
+     "png_master": "quantised-256 (full-colour PNG over 2 MB)",
+     "frame": 0,
+     "t": 0.0,
+     "drawn_contrast_min": 9.85
+    },
+    "f32": {
+     "png": "hookeb2_named_after_wilfrid_voynich_bright__f32.png",
+     "jpg": "hookeb2_named_after_wilfrid_voynich_bright__f32.jpg",
+     "png_master": "quantised-256 (full-colour PNG over 2 MB)",
+     "frame": 32,
+     "t": 1.067,
+     "drawn_contrast_min": 9.85
+    }
+   },
+   "seconds_to_render": 11.8
+  },
+  "hookeb2_named_after_wilfrid_voynich_busy": {
+   "name": "hookeb2_named_after_wilfrid_voynich_busy",
+   "run": "run_voynich_manuscript_1792965308",
+   "topic": "voynich_manuscript",
+   "ground": "photo",
+   "photo_name": "03_commons_787d2335dd7830b4.jpg",
+   "labels": [
+    "new: real fact, test-signed field adv2"
+   ],
+   "size": [
+    1080,
+    1920
+   ],
+   "seconds": 1.5,
+   "frames": 45,
+   "anchors": {
+    "P": 120,
+    "lines": 2,
+    "baselines": [
+     892,
+     1010
+    ],
+    "T": 789,
+    "E": 745,
+    "block_top": 699,
+    "L": 1010,
+    "position": "normal"
+   },
+   "drawn_text": {
+    "brand": "RELIC & RIDDLE",
+    "eyebrow": "POLISH BOOK DEALER",
+    "title_0": "NAMED AFTER",
+    "title_1": "WILFRID VOYNICH"
+   },
+   "lines": {
+    "title": [
+     "NAMED AFTER",
+     "WILFRID VOYNICH"
+    ]
+   },
+   "stop_end": {
+    "title": false
+   },
+   "accent_gaps": {
+    "title": [
+     14.0
+    ]
+   },
+   "total_mark": null,
+   "quality_notes": null,
+   "source_host_raw": null,
+   "t_s": null,
+   "t_f": null,
+   "pen_total": null,
+   "source_omitted": null,
+   "planned_drawn_contrast_min": null,
+   "elements": [
+    {
+     "name": "brand",
+     "box": [
+      265,
+      462,
+      862,
+      508
+     ],
+     "px": 64
+    },
+    {
+     "name": "brand_mark",
+     "box": [
+      216,
+      472,
+      242,
+      498
+     ],
+     "px": 0
+    },
+    {
+     "name": "eyebrow_rule",
+     "box": [
+      100,
+      699,
+      144,
+      703
+     ],
+     "px": 0
+    },
+    {
+     "name": "eyebrow",
+     "box": [
+      100,
+      716,
+      649,
+      746
+     ],
+     "px": 40
+    },
+    {
+     "name": "title_0",
+     "box": [
+      100,
+      789,
+      697,
+      892
+     ],
+     "px": 120
+    },
+    {
+     "name": "title_1",
+     "box": [
+      100,
+      906,
+      846,
+      1011
+     ],
+     "px": 120
+    }
+   ],
+   "renders": {
+    "f00": {
+     "png": "hookeb2_named_after_wilfrid_voynich_busy__f00.png",
+     "jpg": "hookeb2_named_after_wilfrid_voynich_busy__f00.jpg",
+     "png_master": "quantised-256 (full-colour PNG over 2 MB)",
+     "frame": 0,
+     "t": 0.0,
+     "drawn_contrast_min": 5.32
+    },
+    "f32": {
+     "png": "hookeb2_named_after_wilfrid_voynich_busy__f32.png",
+     "jpg": "hookeb2_named_after_wilfrid_voynich_busy__f32.jpg",
+     "png_master": "quantised-256 (full-colour PNG over 2 MB)",
+     "frame": 32,
+     "t": 1.067,
+     "drawn_contrast_min": 5.24
+    }
+   },
+   "seconds_to_render": 14.0
+  },
+  "hookgen2_dedicated_in_ad_128_beat03_1": {
+   "name": "hookgen2_dedicated_in_ad_128_beat03_1",
+   "run": "run_roman_self_healing_concrete_1793163918",
+   "topic": "roman_self_healing_concrete",
+   "ground": "generated",
+   "photo_name": "beat03_1.jpg",
+   "labels": [
+    "new: real fact, test-signed field adv2"
+   ],
+   "size": [
+    1080,
+    1920
+   ],
+   "seconds": 1.5,
+   "frames": 45,
+   "anchors": {
+    "P": 128,
+    "lines": 2,
+    "baselines": [
+     885,
+     1010
+    ],
+    "T": 775,
+    "E": null,
+    "block_top": 775,
+    "L": 1010,
+    "position": "normal"
+   },
+   "drawn_text": {
+    "brand": "RELIC & RIDDLE",
+    "title_0": "DEDICATED",
+    "title_1": "IN AD 128",
+    "provenance": "AI ILLUSTRATION · NOT A PHOTO"
+   },
+   "lines": {
+    "title": [
+     "DEDICATED",
+     "IN AD 128"
+    ]
+   },
+   "stop_end": {
+    "title": false
+   },
+   "accent_gaps": {
+    "title": [
+     14.0
+    ]
+   },
+   "total_mark": null,
+   "quality_notes": null,
+   "source_host_raw": null,
+   "t_s": null,
+   "t_f": null,
+   "pen_total": null,
+   "source_omitted": null,
+   "planned_drawn_contrast_min": null,
+   "elements": [
+    {
+     "name": "brand",
+     "box": [
+      265,
+      462,
+      862,
+      508
+     ],
+     "px": 64
+    },
+    {
+     "name": "brand_mark",
+     "box": [
+      216,
+      472,
+      242,
+      498
+     ],
+     "px": 0
+    },
+    {
+     "name": "title_0",
+     "box": [
+      100,
+      774,
+      590,
+      886
+     ],
+     "px": 128
+    },
+    {
+     "name": "title_1",
+     "box": [
+      100,
+      899,
+      541,
+      1011
+     ],
+     "px": 128
+    },
+    {
+     "name": "provenance_plate",
+     "box": [
+      108,
+      702,
+      686,
+      743
+     ],
+     "px": 0
+    },
+    {
+     "name": "provenance",
+     "box": [
+      122,
+      712,
+      671,
+      733
+     ],
+     "px": 30
+    }
+   ],
+   "renders": {
+    "f00": {
+     "png": "hookgen2_dedicated_in_ad_128_beat03_1__f00.png",
+     "jpg": "hookgen2_dedicated_in_ad_128_beat03_1__f00.jpg",
+     "png_master": "quantised-256 (full-colour PNG over 2 MB)",
+     "frame": 0,
+     "t": 0.0,
+     "drawn_contrast_min": 5.64
+    },
+    "f32": {
+     "png": "hookgen2_dedicated_in_ad_128_beat03_1__f32.png",
+     "jpg": "hookgen2_dedicated_in_ad_128_beat03_1__f32.jpg",
+     "png_master": "quantised-256 (full-colour PNG over 2 MB)",
+     "frame": 32,
+     "t": 1.067,
+     "drawn_contrast_min": 5.63
+    }
+   },
+   "seconds_to_render": 13.7
+  },
+  "hookgen2_in_27_bc_a_major_earthquake_beat10_3": {
+   "name": "hookgen2_in_27_bc_a_major_earthquake_beat10_3",
+   "run": "run_singing_colossi_of_memnon_1792952878",
+   "topic": "singing_colossi_of_memnon",
+   "ground": "generated",
+   "photo_name": "beat10_3.jpg",
+   "labels": [
+    "new: real fact, test-signed field adv2"
+   ],
+   "size": [
+    1080,
+    1920
+   ],
+   "seconds": 1.5,
+   "frames": 45,
+   "anchors": {
+    "P": 112,
+    "lines": 3,
+    "baselines": [
+     790,
+     900,
+     1010
+    ],
+    "T": 694,
+    "E": null,
+    "block_top": 694,
+    "L": 1010,
+    "position": "normal"
+   },
+   "drawn_text": {
+    "brand": "RELIC & RIDDLE",
+    "title_0": "IN 27 BC, A",
+    "title_1": "MAJOR",
+    "title_2": "EARTHQUAKE",
+    "provenance": "AI ILLUSTRATION · NOT A PHOTO"
+   },
+   "lines": {
+    "title": [
+     "IN 27 BC, A",
+     "MAJOR",
+     "EARTHQUAKE"
+    ]
+   },
+   "stop_end": {
+    "title": false
+   },
+   "accent_gaps": {
+    "title": [
+     13.0,
+     13.0
+    ]
+   },
+   "total_mark": null,
+   "quality_notes": null,
+   "source_host_raw": null,
+   "t_s": null,
+   "t_f": null,
+   "pen_total": null,
+   "source_omitted": null,
+   "planned_drawn_contrast_min": null,
+   "elements": [
+    {
+     "name": "brand",
+     "box": [
+      265,
+      462,
+      862,
+      508
+     ],
+     "px": 64
+    },
+    {
+     "name": "brand_mark",
+     "box": [
+      216,
+      472,
+      242,
+      498
+     ],
+     "px": 0
+    },
+    {
+     "name": "title_0",
+     "box": [
+      100,
+      693,
+      552,
+      804
+     ],
+     "px": 112
+    },
+    {
+     "name": "title_1",
+     "box": [
+      100,
+      803,
+      392,
+      901
+     ],
+     "px": 112
+    },
+    {
+     "name": "title_2",
+     "box": [
+      100,
+      913,
+      609,
+      1021
+     ],
+     "px": 112
+    },
+    {
+     "name": "provenance_plate",
+     "box": [
+      108,
+      621,
+      686,
+      662
+     ],
+     "px": 0
+    },
+    {
+     "name": "provenance",
+     "box": [
+      122,
+      631,
+      671,
+      652
+     ],
+     "px": 30
+    }
+   ],
+   "renders": {
+    "f00": {
+     "png": "hookgen2_in_27_bc_a_major_earthquake_beat10_3__f00.png",
+     "jpg": "hookgen2_in_27_bc_a_major_earthquake_beat10_3__f00.jpg",
+     "png_master": "quantised-256 (full-colour PNG over 2 MB)",
+     "frame": 0,
+     "t": 0.0,
+     "drawn_contrast_min": 5.69
+    },
+    "f32": {
+     "png": "hookgen2_in_27_bc_a_major_earthquake_beat10_3__f32.png",
+     "jpg": "hookgen2_in_27_bc_a_major_earthquake_beat10_3__f32.jpg",
+     "png_master": "quantised-256 (full-colour PNG over 2 MB)",
+     "frame": 32,
+     "t": 1.067,
+     "drawn_contrast_min": 5.99
+    }
+   },
+   "seconds_to_render": 16.9
+  }
+ }
+}

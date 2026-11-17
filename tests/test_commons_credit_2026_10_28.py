@@ -93,7 +93,8 @@ def test_a_cc_by_file_nobody_can_be_credited_for_is_refused_at_fetch(caplog):
 
 
 def test_public_domain_files_without_an_author_are_still_fetched():
-    meta = {"LicenseShortName": {"value": "Public domain"}, "AttributionRequired": {"value": "false"}}
+    meta = {"LicenseShortName": {"value": "Public domain"}, "AttributionRequired": {"value": "false"},
+            "Categories": {"value": "PD-old-100|PD-US-expired"}}
     assert _one(meta)[0]["artist"] == "Unknown"
 
 

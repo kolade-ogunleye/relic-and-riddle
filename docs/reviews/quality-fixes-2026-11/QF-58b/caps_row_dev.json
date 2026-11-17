@@ -1,0 +1,126 @@
+{
+ "env": "dev",
+ "results": {
+  "off/recorded": {
+   "plans": 2,
+   "unshown_beats": 1,
+   "stopped_after_the_voice": 0,
+   "reasons": {},
+   "filled_by": {
+    "detail_crop": 1
+   },
+   "distinct_min": 6,
+   "distinct_median": 7.0,
+   "crops_per_reel": {
+    "0": 1,
+    "1": 1
+   },
+   "illustrated_per_reel": {
+    "0": 2
+   }
+  },
+  "off/each_beat": {
+   "plans": 125,
+   "unshown_beats": 125,
+   "stopped_after_the_voice": 13,
+   "reasons": {
+    "repeat": 13,
+    "hold over 6 s": 10
+   },
+   "filled_by": {
+    "detail_crop": 110,
+    "held": 13,
+    "own matched photo kept": 2
+   },
+   "distinct_min": 6,
+   "distinct_median": 7,
+   "crops_per_reel": {
+    "0": 15,
+    "1": 110
+   },
+   "illustrated_per_reel": {
+    "0": 125
+   }
+  },
+  "on_p0.5/recorded": {
+   "plans": 2,
+   "unshown_beats": 1,
+   "stopped_after_the_voice": 0,
+   "reasons": {},
+   "filled_by": {
+    "detail_crop": 1
+   },
+   "distinct_min": 6,
+   "distinct_median": 7.0,
+   "crops_per_reel": {
+    "0": 1,
+    "1": 1
+   },
+   "illustrated_per_reel": {
+    "0": 2
+   }
+  },
+  "on_p0.5/each_beat": {
+   "plans": 125,
+   "unshown_beats": 125,
+   "stopped_after_the_voice": 8,
+   "reasons": {
+    "repeat": 8,
+    "hold over 6 s": 7
+   },
+   "filled_by": {
+    "detail_crop": 110,
+    "reconstruction": 7,
+    "held": 8
+   },
+   "distinct_min": 6,
+   "distinct_median": 7,
+   "crops_per_reel": {
+    "0": 15,
+    "1": 110
+   },
+   "illustrated_per_reel": {
+    "0": 118,
+    "1": 7
+   }
+  },
+  "on_p1.0/recorded": {
+   "plans": 2,
+   "unshown_beats": 1,
+   "stopped_after_the_voice": 0,
+   "reasons": {},
+   "filled_by": {
+    "detail_crop": 1
+   },
+   "distinct_min": 6,
+   "distinct_median": 7.0,
+   "crops_per_reel": {
+    "0": 1,
+    "1": 1
+   },
+   "illustrated_per_reel": {
+    "0": 2
+   }
+  },
+  "on_p1.0/each_beat": {
+   "plans": 125,
+   "unshown_beats": 125,
+   "stopped_after_the_voice": 0,
+   "reasons": {},
+   "filled_by": {
+    "detail_crop": 110,
+    "reconstruction": 15
+   },
+   "distinct_min": 6,
+   "distinct_median": 7,
+   "crops_per_reel": {
+    "0": 15,
+    "1": 110
+   },
+   "illustrated_per_reel": {
+    "0": 110,
+    "1": 15
+   }
+  }
+ }
+}

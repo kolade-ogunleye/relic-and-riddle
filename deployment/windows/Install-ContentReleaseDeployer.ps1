@@ -1,7 +1,7 @@
 #Requires -Version 5.1
 <#
 .SYNOPSIS
-One-time, elevated installation of the release deployer on content-client-win-01 (approved host
+One-time, elevated installation of the release deployer on the production VM (approved host
 administration).
 .DESCRIPTION
 Run once on CONTENTCLIENTWI, elevated, from the application checkout of the release being
@@ -32,11 +32,13 @@ finish the promotion; the deployer's first run reports in logs\Deploy\status.jso
 #>
 [CmdletBinding(SupportsShouldProcess)]
 param(
-    [string]$Repository = 'git@github.com:kolade-ogunleye/relic-and-riddle.git',
-    [string]$Signer = 'kolade-ogunleye',
+    # The release repository's SSH URL (git@github.com:<owner>/relic-and-riddle.git); nothing is assumed.
+    [Parameter(Mandatory)][string]$Repository,
+    # The pinned principal in release\allowed_signers; empty takes that file's only principal.
+    [string]$Signer = '',
     [ValidateRange(1, 60)][int]$CheckMinutes = 2,
     # MinGit, the operator's per-user winget package (lab play 54, content_git_base).
-    [string]$Git = 'C:\Users\omokolade.LAB\AppData\Local\Microsoft\WinGet\Packages\Git.MinGit_Microsoft.Winget.Source_8wekyb3d8bbwe\cmd\git.exe'
+    [string]$Git = (Join-Path $HOME 'AppData\Local\Microsoft\WinGet\Packages\Git.MinGit_Microsoft.Winget.Source_8wekyb3d8bbwe\cmd\git.exe')
 )
 $ErrorActionPreference = 'Stop'
 if ($env:COMPUTERNAME -ne 'CONTENTCLIENTWI') { throw 'The deployer installation is restricted to CONTENTCLIENTWI.' }
@@ -110,7 +112,9 @@ if (-not (Test-ContentAclDenies -Path (Join-Path $app '.env') -Sid $deployer -Ri
     $problems.Add('LAB\rr-deploy$ is not denied the application .env (play 54).')
 }
 $signers = Get-ContentSignerPrincipal -Path (Join-Path $PSScriptRoot 'release\allowed_signers')
-if ($signers -notcontains $Signer) { $problems.Add("The pinned signer list has no principal '$Signer'.") }
+if (-not $Signer -and @($signers).Count -eq 1) { $Signer = @($signers)[0] }
+if (-not $Signer) { $problems.Add('Name the pinned signer with -Signer: release\allowed_signers has more than one principal.') }
+elseif ($signers -notcontains $Signer) { $problems.Add("The pinned signer list has no principal '$Signer'.") }
 
 $scheduler = New-Object -ComObject 'Schedule.Service'
 $scheduler.Connect()

@@ -26,12 +26,12 @@ def test_source_downloads_up_to_three_per_beat_and_skips_duplicates(monkeypatch,
     pools = {"Derinkuyu stone door": [_cand("A"), _cand("B"), _cand("C")], "Derinkuyu": [_cand("A"), _cand("D")]}
     monkeypatch.setattr(beat_images.commons, "candidates", lambda pages, kw, sa: iter(pools[pages[0]]))
     monkeypatch.setattr(beat_images.commons, "download_jpeg",
-                        lambda url, dest, max_wait=30: Image.new("RGB", (10, 10)).save(dest, "JPEG"))
+                        lambda url, dest, max_wait=30: Image.new("RGB", (10, 10)).save(dest, "PNG"))
 
     paths, credits = beat_images.source(BEATS, TOPIC, tmp_path)
 
     assert [c["title"] for c in credits] == ["A", "B", "C", "D"]  # 3 for beat 2; "A" not repeated for beat 1
-    assert [p.name for p in paths] == ["beat02_1.jpg", "beat02_2.jpg", "beat02_3.jpg", "beat01_1.jpg"]
+    assert [p.name for p in paths] == ["beat02_1.png", "beat02_2.png", "beat02_3.png", "beat01_1.png"]
     assert all(p.exists() for p in paths) and credits[3]["beat"] == 1
 
 
@@ -161,7 +161,7 @@ def test_a_picture_that_does_not_show_the_subject_is_set_aside_after_a_look(monk
     monkeypatch.setattr(beat_images.commons, "search", lambda q, limit, max_wait: [q])
     monkeypatch.setattr(beat_images.commons, "candidates", lambda pages, kw, sa: iter([_cand("A"), _cand("B"), _cand("C"), _cand("D")]))
     monkeypatch.setattr(beat_images.commons, "download_jpeg",
-                        lambda url, dest, max_wait=30: Image.new("RGB", (10, 10)).save(dest, "JPEG"))
+                        lambda url, dest, max_wait=30: Image.new("RGB", (10, 10)).save(dest, "PNG"))
     verdicts = iter([(False, "a different temple, at Pattadakal"), (True, "the monolith's courtyard")])   # A, then B; C and D unchecked
     monkeypatch.setattr(beat_images, "screened_picture", lambda path, query: (*next(verdicts, (False, beat_images.UNAVAILABLE)), path))
     with caplog.at_level(logging.DEBUG, logger="src.beat_images"):
@@ -169,7 +169,7 @@ def test_a_picture_that_does_not_show_the_subject_is_set_aside_after_a_look(monk
     assert [c["title"] for c in credits] == ["B"]                      # A set aside; C and D nobody looked at
     assert credits[0]["looked"] == "the monolith's courtyard"
     assert [x["title"] for x in beat_images.unchecked(tmp_path)] == ["C", "D"]   # said on the card
-    assert all(p.exists() for p in paths) and len(list(tmp_path.glob("beat01_*.jpg"))) == 1
+    assert all(p.exists() for p in paths) and len(list(tmp_path.glob("beat01_*.png"))) == 1
     line = next(r.getMessage() for r in caplog.records if "set aside by the look" in r.getMessage() and "Commons results" in r.getMessage())
     assert line.endswith("4 relevant, 4 verified, 1 set aside by the look, 1 kept.")
     set_aside = [r.getMessage() for r in caplog.records if "set aside, it does not show" in r.getMessage()]

@@ -18,15 +18,17 @@ def main(argv=None):
     sub.add_parser("auth", help="Authorize a personal Microsoft account using a browser/device code")
     sub.add_parser("check", help="Check API access to this environment's app backup folder")
     sub.add_parser("snapshot", help="Stage an encrypted snapshot; never claims cloud completion")
-    sub.add_parser("cycle", help="Stage at most one daily snapshot and retry queued uploads")
+    sub.add_parser("cycle", help="Daily snapshot, hourly verified SQLite copy, upload retries and local retention")
     sync = sub.add_parser("sync", help="Upload pending snapshots and verify downloaded SHA-256")
     sync.add_argument("--force", action="store_true", help="Retry now rather than waiting for scheduled backoff")
-    sub.add_parser("status", help="List local staging/upload/verification evidence")
+    status = sub.add_parser("status", help="List local staging/upload/verification evidence")
+    status.add_argument("--hourly", action="store_true", help="List the local hourly SQLite copies instead")
     sub.add_parser("list-cloud", help="List snapshot IDs from OneDrive, not the local spool")
     restore = sub.add_parser("restore", help="Restore into a new isolated directory; publishing stays disabled")
     restore.add_argument("snapshot_id")
     restore.add_argument("--destination", type=Path, required=True)
     restore.add_argument("--cloud", action="store_true", help="Download from OneDrive; no local fallback")
+    restore.add_argument("--database-only", action="store_true", help="Restore a local hourly SQLite copy (status --hourly)")
     restore.add_argument("--keep-original-paths", action="store_true", help="Forensic restore without relocation")
     args = parser.parse_args(argv)
     if args.environment:
@@ -59,12 +61,16 @@ def main(argv=None):
                 raise BackupError("Enable onedrive-api explicitly in this process or environment before cloud sync")
             result = sync_pending(force=args.force)
         elif args.command == "status":
-            result = pending_jobs()
+            from src.backup_checkpoints import hourly_spool
+            if not args.hourly:
+                result = pending_jobs()
+            else:
+                result = pending_jobs(hourly_spool()) if hourly_spool().exists() else []
         elif args.command == "list-cloud":
             result = connection().list_snapshots()
         else:
             result = restore_job(args.snapshot_id, args.destination, cloud=args.cloud,
-                                 relocate=not args.keep_original_paths)
+                                 relocate=not args.keep_original_paths, database_only=args.database_only)
         print(json.dumps(result, indent=2))
         if args.command in {"sync", "cycle"} and any(r.get("state") not in {"verified", "busy"} for r in result):
             return 2

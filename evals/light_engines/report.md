@@ -5,7 +5,7 @@
 - Sound plan: usable gemini=True groq=True, agreement 17%
 
 **Q: Why did the release gate hold or pass this run?**
-- gemini: According to release_report.json, the release checks did not fully pass because the "asset_rights" check was flagged as "needs_review" for the file "C:\Users\omokolade\GitHub\relic-and-riddle\output\run_kailasa_temple_monolith_1792524470\motion\motion_01.mp4". All other checks in release_report.json—including caption_length, facts, dimensions, duration, audio specifications, sync_drift, provenance, voiceover_rights, font_rights, and ambient_bed_rights—passed.
+- gemini: According to release_report.json, the release checks did not fully pass because the "asset_rights" check was flagged as "needs_review" for the file "output/run_kailasa_temple_monolith_1792524470/motion/motion_01.mp4". All other checks in release_report.json—including caption_length, facts, dimensions, duration, audio specifications, sync_drift, provenance, voiceover_rights, font_rights, and ambient_bed_rights—passed.
 - groq: The run cleared the release gate because every required quality check succeeded: the automated video check reported no issues, the second fact‑check passed with 100 % confidence, and the self‑healing action fixed the visual repeat problem. In the release_report all items are "pass" except "asset_rights" which is only marked "needs_review" (a non‑blocking flag). With all critical checks passing, the gate allowed the run to proceed.
 
 **Q: Was AI motion used, and why or why not?**

@@ -9,28 +9,51 @@ waiting carousel will actually take (only the newest eligible one posts in a car
 import html
 import json
 import re
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 from . import post_schedule
 from .control import (HOME, LIST_PAGE, POST_ICON, POST_NAME, _episode_bookings, _post_links, _when, clip_words,
                       is_paused, number_buttons, pager)
+from .hold_advice import BOOKED, for_surface
+from .notifications import QUOTE_LIMIT
 
 STATUS = {"pending": "booked", "waiting": "waits for its slot", "published": "posted", "failed": "didn't post",
           "unknown": "not sure it posted: check the platform", "cancelled": "cancelled",
-          "expired": "expired (it waited over 7 days)"}
+          "expired": "expired (it waited over 7 days)", "blocked": "held: it can't post as it is"}
+SPACING = "sensitive-topic spacing"   # QF-73: why a sensitive topic's carousel waits, and why it expired
+HELD_NOTE = QUOTE_LIMIT   # a held carousel's reason on Details: whole up to an item's folded text (LAND-32 port 2)
 KIND_ICON = {"reel": "🎬", "story": "📱", "carousel": "🖼"}
 # Why a booking was cancelled, in the operator's words (a bare "cancelled" gave no idea what had happened or
 # whether anything was needed: operator, 2026-10-27, Göbekli Tepe's Stories)
 CANCEL_WHY = {"the Reel did not post": "its Reel's slot failed, so it was not posted",
-              "cancelled by the operator": "you cancelled it"}
+              "cancelled by the operator": "you cancelled it",
+              "replaced by a new version": "you asked for a new version of this episode"}
+# A blocked booking (QF-110): the release checks refused it at its slot, so trying again cannot change it.
+# A cancel (or the clean chat's Undo of a booked Approve) refused because the Reel began to post (QF-69, wording
+# approved 2026-11-16); the review panel keeps its Approved item when a cancel answers this
+NOT_CANCELLED = "⏹ Not cancelled: the Reel has started posting or has posted. Posting shows what happened."
+BLOCKED_NEXT = ("Trying again won't change this. Make a new version (it comes to you for review first), or cancel "
+                "the booking. Its slot is free for other episodes.")
+
+
+def blocked_buttons(db, post: dict[str, Any]) -> list[list[dict[str, str]]]:
+    """What can work on a blocked booking: a new version (it asks first), cancelling it (asks first), the details."""
+    key = db.run_key(post["run_id"])
+    return [[{"text": "♻️ Make a new version", "callback_data": f"newversionask:{key}"}],
+            [{"text": "⏹ Cancel booking", "callback_data": f"cancelask:{post['id']}"},
+             {"text": "📋 Details", "callback_data": f"cpost:{key}"}]]
 
 
 def _short_thumbnail(pubs, shorts) -> str:
-    """Whether the posted Short has its thumbnail: set by the try after posting or by the button since."""
+    """Whether the posted Short has its thumbnail: set by the try after posting (until QF-83) or by the button since;
+    "frame" when none was ever asked for (QF-83: no request follows the upload; the Shorts feed takes a frame)."""
     tries = [x for x in pubs if x.get("channel") == "youtube:thumbnail"]
     if any(x.get("status") == "published" for x in tries):
         return "set"
+    if not tries and not any('"thumbnail"' in (x.get("response_payload_json") or "") for x in shorts):
+        return "frame"
     error = ""
     for x in shorts:  # the try made right after the Short posted
         try:
@@ -48,9 +71,32 @@ def _short_thumbnail(pubs, shorts) -> str:
     return "not set" + (" (YouTube needs the channel verified: youtube.com/verify)" if "403" in error else "")
 
 
+def expiry_words(p: dict[str, Any]) -> str:
+    """Why an expired booking expired, as its expiry recorded it (UI-01g round 3: a carousel held at its slot with
+    no carousel slot left in its window, found by the posting loop or by a Redraw tap), with the end of its window;
+    "" for a booking whose expiry recorded no reason (it waited past its deadline: STATUS's words) and for
+    sensitive-topic spacing, which status_words words from its own record. Only a reason the expiry itself wrote
+    (with its expired_at) counts, never one left in the detail from before."""
+    detail = p.get("detail") or {}
+    reason = str(detail.get("reason") or "")
+    if p["status"] != "expired" or not detail.get("expired_at") or not reason or reason == SPACING:
+        return ""
+    end = _dt(detail.get("window_end"))
+    return reason + (f" (until {post_schedule.fmt(end)})" if end else "")
+
+
 def status_words(db, p: Dict[str, Any], on_episode: bool = False) -> str:
     """A booking's state as the operator reads it; a cancelled one says why and what can be done."""
     words = STATUS.get(p["status"], p["status"])
+    if expiry_words(p):   # UI-01g round 3: its true reason, not "it waited over 7 days"
+        return "expired: " + expiry_words(p)
+    if p["status"] == "expired" and (p.get("detail") or {}).get("reason") == SPACING:   # QF-73: its true reason
+        why = (p.get("detail") or {}).get("spacing_why")
+        why = why if isinstance(why, dict) else None
+        if (p.get("detail") or {}).get("by") == "operator":
+            return "expired: you let it expire (" + (SPACING if (why or {}).get("kind", "spacing") == "spacing"
+                                                     else "no carousel slot before its deadline") + ")"
+        return "expired: " + why_words(why, past=True)
     if p["status"] != "cancelled":
         return words
     reason = str((p.get("detail") or {}).get("reason") or "")
@@ -62,9 +108,8 @@ def status_words(db, p: Dict[str, Any], on_episode: bool = False) -> str:
         words += "; its Reel has posted since: " + ("tap 📱 Book Stories and carousel again below" if on_episode
                                                      else "open the episode to book it again")
     return words
-CAROUSEL_GAP = timedelta(hours=48)       # main.CAROUSEL_GAP: a carousel goes out 48 h after its Reel at the soonest
-CAROUSEL_MAX_AGE = timedelta(days=7)     # main._post_carousel_if_due: older waiting carousels expire
 SLOT_DAYS = 7
+SLOT_GRACE = timedelta(hours=3)          # main.MISSED_SLOT_GRACE: how long after its time a slot may still post
 PROMOTED_PREFIX = "promoted:"            # main.PROMOTED_PREFIX: a dry run promoted to real posting
 POSTS_ONLY_PROMOTED_KEY = "posts_only_promoted"   # main.POSTS_ONLY_PROMOTED_KEY
 PAUSED_LINE = "⏸ <b>Paused</b>: nothing posts until you resume (a Reel slot missed by over 3 h moves to the next free one)."
@@ -95,15 +140,37 @@ def _clock(when: datetime) -> str:
     return f"{mine.strftime('%H:%M %Z')} ({audience.strftime('%H:%M %Z')})"
 
 
-def wont_post(db, run_id: str) -> Optional[str]:
-    """Why a booked post will not go out though its countdown runs, or None: as main._may_post decides, a
-    process that posts only promoted runs skips every run not promoted, dry or live (verification, 2026-10-25)."""
+def _skipped(db, run_id: str) -> Optional[str]:
+    """Why the daemon skips the run's bookings (main._may_post), or None: a process that posts only promoted runs
+    skips every run not promoted, dry or live (verification, 2026-10-25)."""
     if db.get_setting(PROMOTED_PREFIX + run_id):
         return None
     if db.get_setting("run_mode:" + run_id) == "dry_run":
         return "it's a dry run, so it posts only once you promote it (Post for real)"
     if db.get_setting(POSTS_ONLY_PROMOTED_KEY) == "true":
         return "this bot posts only runs you promoted (Post for real)"
+    return None
+
+
+def wont_post(db, run_id: str, outlook: dict[str, Any] | None = None) -> Optional[str]:
+    """Why a booked post will not go out though its countdown runs, or None: the daemon skips the run (_skipped),
+    or (QF-73) the carousel plan gives its waiting carousel no slot before its deadline, for sensitive-topic spacing
+    or because a carousel you chose to post anyway takes its slot (carousel_outlook: one answer for every screen,
+    the Needs-you alert and its expiry)."""
+    skipped = _skipped(db, run_id)
+    if skipped:
+        return skipped
+    for post in db.list_scheduled_posts(("waiting",), run_id=run_id):
+        wait = spacing_wait(db, post, outlook=outlook)
+        if not wait or wait["state"] != "posted" or wait["earliest"] or wait["unconfirmed"]:
+            continue   # it posts at its planned slot, or nothing is known until the other publication is
+        then ="post it anyway, or it expires then" if wait["next"] else "it expires then"
+        if wait["kind"] == "spacing":
+            return (f"its carousel is waiting for {SPACING} and no spaced slot comes before its deadline, "
+                    f"{post_schedule.fmt(wait['deadline'])}" + (f" ({why_words(wait['why'])})" if wait["lost"] else "")
+                    + f": {then}")
+        return (f"its carousel has no carousel slot before its deadline, {post_schedule.fmt(wait['deadline'])}: "
+                f"{why_words(wait['why'])}; {then}")
     return None
 
 
@@ -116,41 +183,258 @@ def post_error(detail: Dict[str, Any]) -> str:
     if failed:
         names = ", ".join(p.capitalize().replace("Youtube", "YouTube") for p in failed)
         return f"{names} didn't post; the others did"
-    return clip_words(str(detail.get("error") or detail.get("reason") or ""), 300)
+    # A carousel held at its slot keeps its reason whole up to an item's folded text (LAND-32 port 2): a "Carousel
+    # not posted" item that has to cut a long reason says the whole of it is here, one tap away.
+    # A Story not posted for its frames' credits (QF-126c) keeps its reason whole the same way.
+    return clip_words(str(detail.get("error") or detail.get("reason") or ""),
+                      HELD_NOTE if detail.get("held") or detail.get("whole_reason") else 300)
+
+
+def _spacing_reason(db, post: dict[str, Any], slot: datetime) -> str:
+    """Why sensitive-topic spacing keeps this carousel from `slot` (db.topic_problem), "" when it does not."""
+    topic_id = (db.get_run(post["run_id"]) or {}).get("topic_id")
+    return db.topic_problem(topic_id, slot, run_id=post["run_id"], spacing_only=True) if topic_id else ""
+
+
+def _rank(post: dict[str, Any], overrides: Any = (), lead: Any = None, ahead: Any = ()) -> tuple:
+    """The daemon's order at a carousel slot (main._post_carousel_if_due takes the plan's pick): a carousel given
+    priority (QF-81's redraw, QF-73's Post anyway) first, then the newest. Among those given priority, the earlier
+    choice goes first (QF-73b: its "priority_at"; one recorded without a time counts as the earliest), so a later
+    choice never moves a slot a reply already named; a "what if" (`overrides`, or `ahead` for one that keeps its
+    spacing check: QF-73b round 2), not chosen yet, counts as chosen now, after every earlier choice. `lead` asks what
+    if that carousel went before every other."""
+    detail = post.get("detail") or {}
+    if post["id"] == lead:
+        return (True, float("inf"), post["id"])
+    if not detail.get("priority"):
+        asked = post["id"] in overrides or post["id"] in ahead
+        return (asked, float("-inf") if asked else 0.0, post["id"])
+    chosen = _dt(detail.get("priority_at") or detail.get("spacing_override_at"))
+    return (True, -chosen.timestamp() if chosen else 0.0, post["id"])
+
+
+def carousel_outlook(db, now: datetime | None = None, overrides: Any = (), lead: Any = None,
+                     may_post: Any = None, ahead: Any = ()) -> dict[str, Any]:
+    """QF-73: the one answer to where each waiting carousel will post, as the daemon picks them, used by Posting, the
+    episode, the dashboard, Slots, wont_post, the Needs-you alert and the expiry record alike.
+
+    At each carousel slot (counted until its posting window closes, main.MISSED_SLOT_GRACE, unless a carousel already
+    posted that day) the eligible carousel of the highest _rank takes it. A carousel is eligible from 48 h after its
+    Reel to its deadline (post_schedule.carousel_may_take; while its Reel hasn't posted, its slot is a forecast) unless
+    sensitive-topic spacing refuses it there; a sensitive carousel the plan puts in a slot counts on that day, as it
+    will once posted. Post anyway (detail "spacing_override", or `overrides` to ask "what if") sets spacing aside for
+    a carousel spacing held back; for one that only lost its slots to other carousels it gives priority alone (detail
+    "post_anyway", or `ahead` to ask "what if"), and spacing still applies (QF-73b round 2). A
+    carousel whose Reel is still to post (booked, late or held) cannot take a slot sooner than 48 h from now, so a
+    slot whose posting window is open takes only a carousel whose Reel has posted (QF-73b: the slot loop posts the
+    plan's pick). `may_post` is the daemon's own run filter (its
+    _may_post); the screens use the settings it keeps (_skipped).
+
+    Returns {"plan": {booking id: slot}, "over": the ids spacing is set aside for, "chosen": the ids Post anyway was
+    chosen for (with or without spacing set aside), "now", "waits": {booking id:
+    wait}, "refused": {booking id: [(slot, spacing's reason), ...]}}. A wait is given for a carousel spacing refused
+    at a slot (in the plan, or earlier at its slot: its booking's "waiting_for"), one you chose to post anyway that
+    gets no slot, one a carousel you chose to post anyway displaced (it would otherwise have taken that slot), and
+    (QF-73b) one that loses every slot to other carousels, newer ones as a rule: {"kind": "spacing" | "slot",
+    "reason": spacing's words, "why": what keeps it from a slot (why_words), "lost": a slot it lost is named,
+    "earliest": its planned slot or None (none before its deadline), "deadline", "state": its Reel's, "unconfirmed":
+    spacing waits for an unconfirmed publication, "override": Post anyway was chosen}."""
+    from . import config
+    from .topic_policy import TOO_CLOSE, UNCONFIRMED, _day
+    now = now or datetime.now(UTC)
+    overrides, ahead = set(overrides), set(ahead)
+    allowed = may_post or (lambda run_id: not _skipped(db, run_id))
+    waiting = [p for p in db.list_scheduled_posts(("waiting",)) if allowed(p["run_id"])]  # as the daemon skips
+    reels = {p["id"]: post_schedule.carousel_reel(db, p) for p in waiting}
+    waiting = [p for p in waiting if reels[p["id"]][0] in ("posted", "booked")]   # a Reel that won't post: no slot yet
+    over = {p["id"] for p in waiting if (p.get("detail") or {}).get("spacing_override")} | overrides
+    chosen = over | ahead | {p["id"] for p in waiting if (p.get("detail") or {}).get("post_anyway")}
+    out: dict[str, Any] = {"plan": {}, "waits": {}, "over": over, "chosen": chosen, "now": now, "refused": {}}
+    if not waiting:
+        return out
+    runs = {p["id"]: db.get_run(p["run_id"]) or {} for p in waiting}
+    topics = {pid: run.get("topic_id") for pid, run in runs.items()}
+    sensitive = {t: bool((db.get_topic_by_id(t) or {}).get("sensitivity")) for t in set(topics.values()) if t}
+    deadlines = {p["id"]: post_schedule.carousel_deadline(reels[p["id"]][1]) for p in waiting}
+    seen: dict[int, dict[str, Any]] = {p["id"]: {"refused": "", "lost": None, "displaced": None} for p in waiting}
+    plan: dict[int, datetime] = out["plan"]
+    shown: list[tuple[Any, datetime]] = []   # (topic, slot) of each sensitive carousel the plan posts
+    taken = db.get_setting("carousel_posted_on")
+    day = min(max(now - SLOT_GRACE, reels[p["id"]][1] + post_schedule.carousel_gap()) for p in waiting
+              ).astimezone(post_schedule.tz()).date()
+    last = max(deadlines.values()).astimezone(post_schedule.tz()).date()
+    while day <= last:
+        slot = post_schedule.carousel_time(day)
+        day += timedelta(days=1)
+        if not slot or slot + SLOT_GRACE <= now or taken == slot.date().isoformat():
+            continue
+        eligible = []
+        for p in waiting:
+            if p["id"] in plan or not post_schedule.carousel_may_take(slot, reels[p["id"]][1]):
+                continue
+            if reels[p["id"]][0] != "posted" and slot < now + post_schedule.carousel_gap():
+                continue   # its Reel is still to post (late, or held: QF-110), so no earlier than now: not this slot
+            if slot <= now and runs[p["id"]].get("status") != "published":
+                continue   # its posting window is open and its run has not posted: the slot loop cannot post it
+            reason = "" if p["id"] in over else _spacing_reason(db, p, slot)
+            topic = topics[p["id"]]
+            if not reason and p["id"] not in over and sensitive.get(topic) and any(
+                    t != topic and abs((_day(slot) - _day(s)).days) <= config.SENSITIVE_TOPIC_GAP_DAYS for t, s in shown):
+                reason = TOO_CLOSE
+            if reason:
+                seen[p["id"]]["refused"] = UNCONFIRMED if reason == UNCONFIRMED else seen[p["id"]]["refused"] or reason
+                out["refused"].setdefault(p["id"], []).append((slot, reason))
+            else:
+                eligible.append(p)
+        if not eligible:
+            continue
+        win = max(eligible, key=lambda p: _rank(p, overrides, lead, ahead))
+        plan[win["id"]] = slot
+        if sensitive.get(topics[win["id"]]):
+            shown.append((topics[win["id"]], slot))
+        rest = [p for p in eligible if p is not win]
+        for p in rest:
+            seen[p["id"]]["lost"] = seen[p["id"]]["lost"] or (slot, win)
+        plain = [p for p in rest if p["id"] not in chosen]
+        if win["id"] in chosen and plain:   # the one that would have taken it, but for Post anyway
+            runner = max(plain, key=lambda p: _rank(p, overrides, lead, ahead))
+            seen[runner["id"]]["displaced"] = seen[runner["id"]]["displaced"] or (slot, win)
+    for p in waiting:
+        pid, s, detail = p["id"], seen[p["id"]], p.get("detail") or {}
+        # spacing held it back: at a slot of the plan, or (no slot left to plan) at an earlier slot, its booking says
+        spaced = pid not in over and bool(s["refused"] or (pid not in plan and detail.get("waiting_for") == "spacing"))
+        if pid in plan and not spaced:
+            continue
+        if pid not in plan and not (spaced or pid in chosen or s["displaced"] or s["lost"]
+                                    or isinstance(detail.get("spacing_why"), dict)):
+            continue   # no slot of its window is left to plan, and nothing was ever said about it
+        # QF-73b: one that only loses to other carousels (newer ones, as a rule) has a wait as well: the screens and
+        # the Needs-you notice say so, never "after its Reel" up to a silent expiry (QF-110: never silent)
+        kind = "spacing" if spaced else "slot"
+        lost = s["displaced"] or s["lost"]
+        why: dict[str, Any] = {"kind": kind, "chosen": pid in chosen}
+        if pid not in plan and lost:
+            why.update(slot=lost[0].isoformat(), to=db.run_label(lost[1]["run_id"]), to_chosen=lost[1]["id"] in chosen,
+                       newer=lost[1]["id"] > pid)
+        elif pid not in plan and not s["refused"] and isinstance(detail.get("spacing_why"), dict):
+            why = detail["spacing_why"]   # no slot is left to plan: the record its booking keeps says why
+        refused = s["refused"] if s["refused"] != UNCONFIRMED else ""
+        out["waits"][pid] = {"kind": kind, "reason": refused or str(detail.get("spacing") or s["refused"]),
+                             "why": why, "lost": bool(why.get("slot")), "earliest": plan.get(pid),
+                             "deadline": deadlines[pid], "state": reels[pid][0],
+                             "unconfirmed": s["refused"] == UNCONFIRMED,
+                             # Post anyway already did what it can: set spacing aside (a spacing wait), or gave
+                             # priority (any other); priority alone does not answer spacing (QF-73b round 2)
+                             "override": pid in (over if kind == "spacing" else chosen)}
+    return out
 
 
 def carousel_plan(db, now: Optional[datetime] = None, days: int = SLOT_DAYS + 7) -> Dict[int, datetime]:
-    """The carousel slot each waiting carousel will take, as the daemon picks them (one per carousel slot, the
-    newest eligible: its Reel out 48 h before, booked under 7 days ago). A carousel with no slot before it
-    expires is left out."""
+    """The carousel slot each waiting carousel will take, as the daemon picks them (carousel_outlook: one per
+    carousel slot, priority first, then the newest eligible; post_schedule.carousel_may_take, from 48 h to 7 days
+    after its Reel posts or, while it hasn't, after its Reel's slot; sensitive-topic spacing unless you chose Post
+    anyway). A carousel with no slot before it expires is left out; so is a slot more than `days` days ahead."""
     now = now or datetime.now(timezone.utc)
-    waiting = [p for p in db.list_scheduled_posts(("waiting",)) if not wont_post(db, p["run_id"])]   # as the daemon skips them
-    reels: Dict[str, Optional[datetime]] = {}
-    for p in db.list_scheduled_posts(("pending", "published")):
-        if p["kind"] == "reel":
-            out = _dt((p.get("detail") or {}).get("posted_at")) if p["status"] == "published" else None
-            reels[p["run_id"]] = out or _dt(p.get("due_at"))
-    plan: Dict[int, datetime] = {}
-    day = now.astimezone(post_schedule.tz()).date()
-    for _ in range(days):
-        slot = post_schedule.carousel_time(day)
-        day += timedelta(days=1)
-        if not slot or slot < now:
-            continue
-        eligible = [p for p in waiting if p["id"] not in plan and reels.get(p["run_id"])
-                    and reels[p["run_id"]] + CAROUSEL_GAP <= slot
-                    and slot - (_dt(p.get("created_at")) or slot) <= CAROUSEL_MAX_AGE]
-        if eligible:
-            plan[max(eligible, key=lambda p: p["id"])["id"]] = slot
-    return plan
+    end = now.astimezone(post_schedule.tz()).date() + timedelta(days=days)
+    return {pid: slot for pid, slot in carousel_outlook(db, now)["plan"].items() if slot.date() < end}
 
 
-def _post_line(db, p: Dict[str, Any], plan: Dict[int, datetime]) -> str:
+def post_anyway_outcome(db, post: dict[str, Any], now: datetime | None = None,
+                        outlook: dict[str, Any] | None = None) -> dict[str, Any]:
+    """What Post anyway would secure for this carousel, from the plan itself: {"slot": the slot the plan then gives
+    it, or None; "blocked_by": the booking id of a carousel you already chose to post anyway that holds the only slot
+    it could take (Post anyway then changes nothing: the first choice keeps its slot); "displaced": the booking ids
+    it would leave with no slot before their deadline}. An earlier choice keeps the slot it was given (_rank), so
+    the slot named here is the one it posts at unless a check at that slot holds it (QF-73b). Spacing is set aside
+    only for a carousel spacing held back (sets_spacing_aside); for any other it is asked by rank alone, so the slot
+    named is one spacing allows (QF-73b round 2)."""
+    base = outlook or carousel_outlook(db, now)
+    what_if = ({"overrides": {post["id"]}} if sets_spacing_aside(post, base) else {"ahead": {post["id"]}})
+    then = carousel_outlook(db, base["now"], **what_if)
+    slot = then["plan"].get(post["id"])
+    if slot is None:   # which earlier choice holds the slot it could have taken: the one that would lose it
+        first = carousel_outlook(db, base["now"], lead=post["id"], **what_if)
+        blocked = [pid for pid, held in base["plan"].items()
+                   if pid != post["id"] and pid in base["chosen"] and first["plan"].get(pid) != held]
+        return {"slot": None, "blocked_by": blocked[0] if blocked else None, "displaced": []}
+    lose = [pid for pid in base["plan"] if pid != post["id"] and pid not in then["plan"]]
+    return {"slot": slot, "blocked_by": None, "displaced": lose}
+
+
+def sets_spacing_aside(post: dict[str, Any], outlook: dict[str, Any]) -> bool:
+    """Whether Post anyway sets sensitive-topic spacing aside for this carousel: only when spacing is what holds it
+    back (its wait, or its booking's record). One that only lost its slots to other carousels gets priority alone,
+    and spacing keeps applying to it (QF-73b round 2: the QF-73 safety rule)."""
+    detail = post.get("detail") or {}
+    wait = outlook["waits"].get(post["id"])
+    return bool(detail.get("spacing_override") or detail.get("waiting_for") == "spacing"
+                or (wait or {}).get("kind") == "spacing")
+
+
+def spacing_wait(db, post: dict[str, Any], now: datetime | None = None,
+                 outlook: dict[str, Any] | None = None) -> dict[str, Any] | None:
+    """QF-73: how the carousel plan (carousel_outlook) holds a waiting carousel back, or None (it posts at its planned
+    slot as any other). The outlook's wait, with "next": the slot Post anyway would give it (post_anyway_outcome;
+    None when Post anyway cannot give it one, or was already chosen)."""
+    if post.get("kind") != "carousel" or post.get("status") != "waiting":
+        return None
+    out = outlook or carousel_outlook(db, now)
+    wait = out["waits"].get(post["id"])
+    if wait is None:
+        return None
+    nxt = None if wait["earliest"] or wait["override"] else post_anyway_outcome(db, post, outlook=out)["slot"]
+    return {**wait, "next": wait["earliest"] or nxt}
+
+
+def why_words(why: dict[str, Any] | None, past: bool = False) -> str:
+    """What keeps a carousel from a slot, in words (carousel_outlook's "why", kept on its booking as "spacing_why")."""
+    why = why or {"kind": "spacing"}
+    if not why.get("slot"):
+        if why.get("kind", "spacing") == "spacing":
+            return f"{SPACING} left no carousel slot before its deadline"
+        return "no carousel slot " + ("was" if past else "is") + " left before its deadline"
+    took = "took" if past else "takes"
+    slot = post_schedule.fmt(datetime.fromisoformat(why["slot"]))
+    other = str(why.get("to") or "another episode")
+    if why.get("to_chosen"):
+        who = f"the carousel of {other}, which you " + ("also " if why.get("chosen") else "") + "chose to post anyway,"
+    else:
+        who = f"a newer carousel ({other})" if why.get("newer") else f"the carousel of {other}, which goes first,"
+    if why.get("kind", "spacing") == "spacing":
+        return f"{SPACING} held it back, then {who} {took} its spaced slot, {slot}"
+    return f"{who} {took} its " + ("only " if why.get("chosen") else "") + f"carousel slot, {slot}"
+
+
+def spacing_words(wait: dict[str, Any], slot: datetime | None = None) -> str:
+    """The wait in words: the slot it will take (the plan's, as the daemon picks), or that none is left."""
+    slot = slot or wait.get("earliest")
+    if slot:
+        return f"waiting: {SPACING}, earliest {post_schedule.fmt(slot)}"
+    if wait.get("unconfirmed"):
+        return f"waiting: {SPACING}, until another sensitive topic's publication is confirmed"
+    if wait.get("kind", "spacing") == "spacing":
+        return f"waiting: {SPACING}, no spaced slot before its deadline, {post_schedule.fmt(wait['deadline'])}"
+    return f"waiting: no carousel slot before its deadline, {post_schedule.fmt(wait['deadline'])}"
+
+
+def spacing_buttons(post: dict[str, Any], wait: dict[str, Any] | None = None) -> list[list[dict[str, str]]]:
+    """What you can do about a carousel the plan leaves no slot for: post it anyway at the slot the plan then gives
+    it (only while there is one: post_anyway_outcome), or let it expire, as it does if you do nothing."""
+    row = [{"text": "⏹ Let it expire", "callback_data": f"carexpire:{post['id']}"}]
+    if wait is None or wait.get("next"):
+        row.insert(0, {"text": "▶️ Post anyway", "callback_data": f"carspace:{post['id']}"})
+    return [row]
+
+
+def _post_line(db, p: Dict[str, Any], plan: Dict[int, datetime], outlook: dict[str, Any] | None = None) -> str:
     name, icon = POST_NAME.get(p["kind"], p["kind"]), KIND_ICON.get(p["kind"], "•")
     if p["status"] == "pending":
         return f"{icon} {name} {POST_ICON['pending']} {html.escape(_when(p.get('due_at')))}"
     if p["status"] == "waiting":
         slot = plan.get(p["id"])
+        wait = spacing_wait(db, p, outlook=outlook)
+        if wait:   # QF-73: the wait and its reason, never a slot it will not take
+            return f"{icon} {name} {POST_ICON['waiting']} <i>{html.escape(spacing_words(wait, slot))}</i>"
         return f"{icon} {name} {POST_ICON['waiting']} " + (
             html.escape(_when(slot.isoformat())) if slot else "<i>after its Reel, in a carousel slot</i>")
     return f"{icon} {name} {POST_ICON.get(p['status'], '•')} {html.escape(status_words(db, p))}"
@@ -168,18 +452,40 @@ def posting_panel(db, page: int = 0) -> Tuple[str, List[List[Dict[str, str]]]]:
              html.escape(_first_upper(next_slot_line(db, booked)))]
     if is_paused(db):
         lines.append(PAUSED_LINE)
-    plan = carousel_plan(db)
+    outlook = carousel_outlook(db)   # QF-73: one plan for every line and its warnings
+    plan = outlook["plan"]
     if not episodes:
         lines += ["", "Nothing booked or posted yet. An approved episode is booked into the next free slot; "
                       "🗓 Slots shows the week."]
     for n, (run_id, posts) in enumerate(shown, page * LIST_PAGE + 1):
         lines += ["", f"{n}. <b>{html.escape(db.run_label(run_id))}</b>"]
-        lines += ["   " + _post_line(db, p, plan) for p in posts]
-        why = wont_post(db, run_id) if any(p["status"] in ("pending", "waiting") for p in posts) else None
+        lines += ["   " + _post_line(db, p, plan, outlook) for p in posts]
+        why = wont_post(db, run_id, outlook) if any(p["status"] in ("pending", "waiting") for p in posts) else None
         if why:
             lines.append(f"   ⚠️ <i>Won't post: {html.escape(why)}</i>")
     buttons = number_buttons([f"cpost:{db.run_key(r)}" for r, _ in shown], page * LIST_PAGE + 1)
     return "\n".join(lines), buttons + pager("cposts:", page, pages) + [[{"text": "🗓 Slots", "callback_data": "cslots:"}]]
+
+
+def story_frames_sent(db, run_id: str, detail: dict[str, Any]) -> int:
+    """How many Story frames of a run have gone out, retries included (QF-103): the distinct frame numbers with a
+    published upload-post:story receipt, together with the booking's own record of them, its first send's
+    posted_parts and the frame a successful retry sent. The booking's record is needed for a retry made before
+    QF-80, recorded as part 1 whatever frame it sent. A retry's frame is taken as retry_post chooses it (the
+    booking's `part`, else the frame after posted_parts), because retry_post stores no `part` of its own:
+    a production episode's first send stored {posted_parts 2} and no part, and its retry sent frame 3 (2026-10-25)."""
+    parts = set(range(1, int(detail.get("posted_parts") or 0) + 1))
+    if (detail.get("last_retry") or {}).get("status") == "published":
+        parts.add(int(detail.get("part") or int(detail.get("posted_parts") or 0) + 1))
+    for pub in db.list_publications(run_id):
+        if pub.get("channel") == "upload-post:story" and pub.get("status") == "published":
+            try:
+                part = json.loads(pub.get("response_payload_json") or "{}").get("part")
+            except ValueError:
+                part = None
+            if part:
+                parts.add(int(part))
+    return len(parts)
 
 
 def posting_episode(db, run_id: str) -> Tuple[str, List[List[Dict[str, str]]]]:
@@ -187,11 +493,12 @@ def posting_episode(db, run_id: str) -> Tuple[str, List[List[Dict[str, str]]]]:
     wrong, and the actions on it; posting now and cancelling each ask first."""
     e = html.escape
     posts = dict(_episode_bookings(db)).get(run_id, [])
-    plan = carousel_plan(db)
+    outlook = carousel_outlook(db)   # QF-73: one plan for the slot, the wait, its warning and its buttons
+    plan = outlook["plan"]
     lines = [f"🗓 <b>{e(db.run_label(run_id))}</b>"]
     if is_paused(db):
         lines.append(PAUSED_LINE)
-    why = wont_post(db, run_id) if any(p["status"] in ("pending", "waiting") for p in posts) else None
+    why = wont_post(db, run_id, outlook) if any(p["status"] in ("pending", "waiting") for p in posts) else None
     if why:
         lines.append(f"⚠️ <i>Won't post: {e(why)}</i>")
     buttons: List[List[Dict[str, str]]] = []
@@ -205,7 +512,30 @@ def posting_episode(db, run_id: str) -> Tuple[str, List[List[Dict[str, str]]]]:
             name = "Reel & Short"  # its YouTube Short goes with it, and its link is under it (operator, 2026-10-27)
         lines += ["", f"{KIND_ICON.get(p['kind'], '•')} <b>{e(name)}</b> · {e(status_words(db, p, on_episode=True))}",
                   f"  Booked: {e(_when(p.get('created_at'), ahead=False))}"]
-        if p["status"] == "waiting":
+        if p["kind"] == "story":   # QF-103: what went out (retries included), or what it will post
+            sent = story_frames_sent(db, run_id, detail)
+            if p["status"] in ("published", "unknown") or (p["status"] == "failed" and sent):
+                if sent:
+                    lines.append(f"  Frames {'posted' if p['status'] == 'published' else 'confirmed'}: {sent}")
+            elif p["status"] in ("pending", "waiting", "failed"):
+                # the frames it will post: hook and reveal, never an older run's poll frame (QF-80)
+                from .multi_format import story_posting_frames
+                lines.append(f"  Frames: {len(story_posting_frames(p.get('files') or []))}")
+        wait = spacing_wait(db, p, outlook=outlook) if p["status"] == "waiting" else None
+        if wait:   # QF-73: why it waits, until when, and (no slot left) what you can do, all from the one plan
+            lines.append("  " + e(_first_upper(spacing_words(wait, wait["earliest"]))))
+            if wait["kind"] == "spacing":
+                why = (wait["reason"] or "Too close to another sensitive topic") + (
+                    "; " + why_words(wait["why"]) if wait["lost"] else "")
+            else:
+                why = _first_upper(why_words(wait["why"]))
+            lines.append(f"  <i>{e(why)}. Its deadline: {e(post_schedule.fmt(wait['deadline']))}.</i>")
+            if wait["state"] == "posted" and not wait["earliest"]:
+                lines.append(f"  <i>Post anyway posts it at {e(post_schedule.fmt(wait['next']))}; if you do nothing, "
+                             "it expires at its deadline.</i>" if wait["next"] else "  <i>No carousel slot is left for "
+                             "it before its deadline, so it expires then.</i>")
+                buttons += spacing_buttons(p, wait)
+        elif p["status"] == "waiting":
             slot = plan.get(p["id"])
             lines.append("  Slot: " + (e(_when(slot.isoformat())) if slot else
                                        "the first carousel slot 48 h after its Reel posts (the newest waiting carousel goes first)"))
@@ -216,10 +546,20 @@ def posting_episode(db, run_id: str) -> Tuple[str, List[List[Dict[str, str]]]]:
             links = _post_links(db, run_id, p["kind"])
             if links:
                 lines.append(f"  {links}")
-        else:
+        elif p["status"] != "blocked" and detail.get("reason") != SPACING:   # a blocked one lists its reasons below;
+            # a carousel expired for spacing says so in its status
             note = post_error(detail)
+            if expiry_words(p) and note == clip_words(str(detail.get("reason")), 300):
+                note = ""   # its status already says why it expired
             if note:  # only while it matters: a published post no longer shows its earlier error
                 lines.append(f"  <i>{e(note)}</i>")
+        if p["kind"] == "reel" and p["status"] == "blocked":
+            reasons = detail.get("reasons") or [detail.get("reason") or "no reason was recorded"]
+            # a held booking's words (UI-01h; a reason stored before them is said in them too)
+            lines += [f"  • {e(for_surface(str(r), BOOKED))}" for r in reasons]
+            lines.append(f"  <i>{e(BLOCKED_NEXT)}</i>")
+            new_version, (cancel, _details) = blocked_buttons(db, p)   # Details is this screen
+            buttons += [new_version, [cancel]]
         if p["kind"] == "reel" and p["status"] == "pending":
             buttons.append([{"text": "⚡ Post now", "callback_data": f"postnowask:{key}"}])
             buttons.append([{"text": "⏭ Next free slot", "callback_data": f"movepost:{p['id']}"},
@@ -247,30 +587,86 @@ def posting_episode(db, run_id: str) -> Tuple[str, List[List[Dict[str, str]]]]:
                 thumb = _short_thumbnail(pubs, shorts)
                 # Two images: the API sets the standard thumbnail; the Shorts tab and shelf use a frame of the video
                 # that only the YouTube app can change (operator, 2026-10-28: "set" while the Shorts tab showed frames)
-                lines.append("  YouTube thumbnail: " + ("standard thumbnail set (search, watch page); the Shorts tab shows a frame of the video, changed only in the YouTube app: the Short, ✏️ Edit, Thumbnail" if thumb == "set" else thumb))
+                frame = "a frame of the video, changed only in the YouTube app: the Short, ✏️ Edit, Thumbnail"
+                lines.append("  YouTube thumbnail: " + ("standard thumbnail set (search, watch page); the Shorts tab shows " + frame
+                                                        if thumb == "set" else frame if thumb == "frame" else thumb))
                 if thumb != "set":
                     row.append({"text": "▶️ YouTube thumbnail", "callback_data": f"ytthumb:{key}"})
             if row:
                 buttons.append(row)
             followers = [x for x in posts if x["kind"] in ("story", "carousel")]
-            if not any(x["status"] in ("pending", "waiting", "published", "unknown") for x in followers):
-                # the Reel posted after all (a retry), its Stories and carousel cancelled with the failed slot
-                lines.append("  Stories and carousel: " + ("cancelled with the failed slot" if followers else "not booked"))
+            spaced = any(x["status"] == "expired" and (x.get("detail") or {}).get("reason") == SPACING
+                         for x in followers)   # QF-73: its own line gives the reason; nothing was cancelled
+            if not spaced and not any(x["status"] in ("pending", "waiting", "published", "unknown") for x in followers):
+                # the Reel posted after all (a retry), its Stories and carousel cancelled with the failed slot; one
+                # whose expiry recorded why (UI-01g round 3) was not cancelled: its own line below says why
+                lines.append("  Stories and carousel: " + (
+                    "not posted (see below)" if any(expiry_words(x) for x in followers)
+                    else "cancelled with the failed slot" if followers else "not booked"))
                 buttons.append([{"text": "📱 Book Stories and carousel again", "callback_data": f"rebook:{key}"}])
     return "\n".join(lines), buttons + [[{"text": "← Posting", "callback_data": "cposts:"}]]
 
 
+def _post_now_followers(db, run_id: str, run: dict[str, Any]) -> set:
+    """The Stories and carousel Post now will really post: those booked for the run, or (a run not booked yet,
+    whose Post now books them after the Reel: main.promote_run) those on disk. Only Upload-Post posts them, so
+    none without it (it promised them whatever was booked or set up: review 1 of UI-02)."""
+    from .publisher import UploadPostPublisher
+    if not UploadPostPublisher().configured():
+        return set()
+    if run.get("status") == "scheduled":
+        return {p["kind"] for p in db.list_scheduled_posts(("pending", "waiting"), run_id=run_id)} & {"story", "carousel"}
+    from .release import story_frames
+    run_dir = Path(run.get("master_video_path") or "").parent if run.get("master_video_path") else None
+    if run_dir is None or not run_dir.is_dir():
+        return set()
+    from .carousel_lazy import planned
+    # A planned carousel (QF-81) has no slides on disk until its slot draws it, yet promote_run books it
+    return ({"story"} if story_frames(run_dir) else set()) | (
+        {"carousel"} if planned(run_dir) or any((run_dir / "carousel").glob("carousel_slide_*.jpg")) else set())
+
+
 def confirm_post_now(db, run_id: str) -> Tuple[str, List[List[Dict[str, str]]]]:
     from . import config
+    from .publisher import attempted_platforms
     label = html.escape(db.run_label(run_id))
-    return (f"⚡ <b>Post now?</b>\n{label}\n\nThe Reel goes out now on Facebook, Instagram and YouTube; its Stories "
-            f"follow {config.STORY_DELAY_MINUTES} min later and the carousel in its slot. This can't be undone.",
-            [[{"text": "✅ Yes, post it now", "callback_data": f"postnow:{db.run_key(run_id)}"}],
+    # Only what will really be attempted, from YOUTUBE_SHORTS and the accounts set up (it promised YouTube
+    # whatever the Shorts setting: UI-02)
+    run = db.get_run(run_id) or {}
+    documentary = (run.get("content_format") == "deep_dive"
+                   or (run.get("script_payload") or {}).get("delivery_profile") == "deep_dive_16x9")
+    targets = attempted_platforms(documentary=documentary)
+    no = [{"text": "✖ Not now", "callback_data": f"cpost:{db.run_key(run_id)}"}]
+    if not targets:
+        return (f"⚡ <b>Post now?</b>\n{label}\n\nNo posting account is set up, so nothing can be posted now. "
+                "Set one up first.", [no])
+    if documentary:
+        what = "The documentary goes out now on YouTube."
+    else:
+        names = [{"facebook": "Facebook", "instagram": "Instagram"}[t] for t in targets if t != "youtube-short"]
+        follows = _post_now_followers(db, run_id, run)
+        then = [f"its Stories follow {config.STORY_DELAY_MINUTES} min later" if "story" in follows else "",
+                "the carousel in its slot" if "carousel" in follows else ""]
+        then = [x for x in then if x]
+        what = (f"The Reel goes out now on {' and '.join(names)}"
+                + (", then as a YouTube Short" if "youtube-short" in targets else "")
+                + (f"; {' and '.join(then)}." if then else "."))
+    return (f"⚡ <b>Post now?</b>\n{label}\n\n{what} This can't be undone.",
+            [[{"text": "✅ Yes, post it now", "callback_data": f"postnow:{db.run_key(run_id)}"}], no])
+
+
+def confirm_new_version(db, run_id: str) -> tuple[str, list[list[dict[str, str]]]]:
+    """♻️ Make a new version of an episode whose booking was blocked: it asks first (QF-110)."""
+    label = html.escape(db.run_label(run_id))
+    text = (f"♻️ <b>Make a new version?</b>\n{label}\n\nIts bookings are cancelled and a new version is made from "
+            "this one, reusing what it can; it comes to you for review, and is booked again only once you approve it.")
+    return (text,
+            [[{"text": "✅ Yes, make it", "callback_data": f"newversion:{db.run_key(run_id)}"}],
              [{"text": "✖ Not now", "callback_data": f"cpost:{db.run_key(run_id)}"}]])
 
 
 def confirm_cancel(db, post_id: int) -> Tuple[str, List[List[Dict[str, str]]]]:
-    post = next((p for p in db.list_scheduled_posts(("pending", "waiting")) if p["id"] == post_id), None)
+    post = next((p for p in db.list_scheduled_posts(("pending", "waiting", "blocked")) if p["id"] == post_id), None)
     if post is None:
         return "⏹ That booking is no longer pending.", [[{"text": "← Posting", "callback_data": "cposts:"}]]
     label = html.escape(db.run_label(post["run_id"]))

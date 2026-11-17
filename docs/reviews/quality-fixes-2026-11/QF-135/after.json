@@ -1,0 +1,65 @@
+{
+ "jobs_running_the_suite": 8,
+ "full_collection": 9768,
+ "full_collection_files": 388,
+ "shard_collections": [
+  850,
+  1356,
+  1389,
+  1124,
+  946,
+  1046,
+  2092,
+  965
+ ],
+ "union_of_shard_collections": 9768,
+ "union_equals_full_collection": true,
+ "ids_in_no_shard": [],
+ "ids_in_more_than_one_shard": [],
+ "units_per_shard": [
+  177,
+  178,
+  177,
+  178,
+  178,
+  185,
+  177,
+  178
+ ],
+ "files_split_by_test_id": [
+  "tests/test_callouts_v3_2026_11_02.py",
+  "tests/test_freeze_cards_2026_11_04.py",
+  "tests/test_freeze_thennow_2026_11_04.py",
+  "tests/test_qf25_card_composition.py",
+  "tests/test_r4_callouts_2026_11_02.py",
+  "tests/test_r4_graphics_2026_11_02.py",
+  "tests/test_timeline_hierarchy_2026_11_03.py"
+ ],
+ "timed_files": 388,
+ "planned_cpu_seconds_per_shard": [
+  1743,
+  1743,
+  1743,
+  1743,
+  1743,
+  1743,
+  1743,
+  1743
+ ],
+ "imbalance_max_over_mean": 1.0,
+ "expected_pytest_s_per_shard_on_ci": [
+  447,
+  447,
+  447,
+  447,
+  447,
+  447,
+  447,
+  447
+ ],
+ "expected_wall_s": 562,
+ "expected_wall_s_slow_run": 624,
+ "expected_actions_minutes": 72.6,
+ "expected_actions_minutes_slow_run": 80.8,
+ "plan_is_deterministic": true
+}

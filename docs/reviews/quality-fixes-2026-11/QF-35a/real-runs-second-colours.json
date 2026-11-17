@@ -1,0 +1,164 @@
+{
+ "brand": "second-colours",
+ "count": 27,
+ "errors": {},
+ "graphic_runs": {
+  "map": [
+   "run_amber_room_heist_1792790550",
+   "run_damascus_steel_nanotubes_1792732472_short",
+   "run_gol_gumbaz_whispering_gallery_1793278143",
+   "run_greek_fire_siphon_1792735284_short",
+   "run_hal_saflieni_hypogeum_1792949304",
+   "run_kailasa_temple_monolith_1792524470",
+   "run_nazca_lines_runway_paradox_1792961797",
+   "run_odessa_catacombs_1792970549",
+   "run_richat_structure_sahara_eye_1792737039_short",
+   "run_roman_self_healing_concrete_1793161347",
+   "run_singing_colossi_of_memnon_1792952878",
+   "run_trepanation_miracle_1792995462",
+   "run_tunguska_event_1908_1792930600",
+   "run_unfinished_obelisk_aswan_1792985912",
+   "run_voynich_manuscript_1792965308",
+   "run_wieliczka_salt_mine_1792974672"
+  ],
+  "numbers": [
+   "run_amber_room_heist_1792790550",
+   "run_damascus_steel_nanotubes_1792732472_short",
+   "run_gol_gumbaz_whispering_gallery_1793278143",
+   "run_hal_saflieni_hypogeum_1792949304",
+   "run_nazca_lines_runway_paradox_1792961797",
+   "run_odessa_catacombs_1792970549",
+   "run_richat_structure_sahara_eye_1792737039_short",
+   "run_singing_colossi_of_memnon_1792952878",
+   "run_trepanation_miracle_1792995462",
+   "run_tunguska_event_1908_1792930600",
+   "run_unfinished_obelisk_aswan_1792993374",
+   "run_voynich_manuscript_1792965308"
+  ],
+  "scale": [
+   "run_unfinished_obelisk_aswan_1792993374",
+   "run_wieliczka_salt_mine_1792974672"
+  ],
+  "timeline": [
+   "run_amber_room_heist_1792790550",
+   "run_hal_saflieni_hypogeum_1792949304",
+   "run_nazca_lines_runway_paradox_1792961797",
+   "run_richat_structure_sahara_eye_1793272675",
+   "run_roman_self_healing_concrete_1793161347",
+   "run_singing_colossi_of_memnon_1792952878"
+  ]
+ },
+ "seconds": {
+  "cards": 458.07
+ },
+ "src_sha256": "8c6ab4206eb6ec2d",
+ "surfaces": {
+  "card__chapter_act1__amber__169": {
+   "frames": 105,
+   "sha256": "4a127d596200ff87d7fe06e7474302623e1ab8ac870522e6426a9c4c69f0c2e0"
+  },
+  "card__chapter_act1__amber__916": {
+   "frames": 75,
+   "sha256": "aaeba253543bf4768b0f7648b8cb5f55db32179f33b72b2a0448e2a3646f9c25"
+  },
+  "card__chapter_act1__obelisk__169": {
+   "frames": 105,
+   "sha256": "628528e74e834d4f1dd3d40c8af05511fc48b236f0848ed1531767c3fdba9f84"
+  },
+  "card__chapter_act1__obelisk__916": {
+   "frames": 75,
+   "sha256": "5421383c6501e02ca40f5549595dd0a1f84a9ea3841ba894869a0f1533e220ec"
+  },
+  "card__chapter_act1__richat__169": {
+   "frames": 105,
+   "sha256": "8a14a6f1bc2f858ba10cb52acb19a3d35b6137c40a21ec0c0e66654d5632ec78"
+  },
+  "card__chapter_act1__richat__916": {
+   "frames": 75,
+   "sha256": "a4ca3cd1d1ab7312c73a17a77267f0dad6a4df531f253e3fed7d4307a9b48894"
+  },
+  "card__chapter_act4__amber__169": {
+   "frames": 105,
+   "sha256": "cbbbd7459fab41579571073234cdac36e8a6842138fea20044e2d263f1c78bd2"
+  },
+  "card__chapter_act4__amber__916": {
+   "frames": 75,
+   "sha256": "9787c745f36261fee9e0f93d5831ba10ff5b9c466b24f6a156dac62b348c8fb8"
+  },
+  "card__chapter_act4__obelisk__169": {
+   "frames": 105,
+   "sha256": "7a6c3d3bca112b785cab614f78a5cb8cffb62531fa16198927556a0cb5e65602"
+  },
+  "card__chapter_act4__obelisk__916": {
+   "frames": 75,
+   "sha256": "757e6bc4cb1deadba581f9bdd19f7fc9a41ad564e195cb4cabbb44946d0a2027"
+  },
+  "card__chapter_act4__richat__169": {
+   "frames": 105,
+   "sha256": "1ef4ab361e55b0680ff129eea9a865d081a6ea1b6453d5c0cbf54bda90583f86"
+  },
+  "card__chapter_act4__richat__916": {
+   "frames": 75,
+   "sha256": "8127c3c439425c3f202b325c1878dcb735a181be4b792efb7244209f5648824c"
+  },
+  "card__hook__amber__916": {
+   "frames": 45,
+   "sha256": "ddb8c30f060cc535e3cfcf37de1335f4710f30adc76fc2665faec1e58103af9e"
+  },
+  "card__hook__obelisk__916": {
+   "frames": 45,
+   "sha256": "d28be93a1a155fa58afd0e0ef7cbf03bc6d63bfe50550707229bb45a2abdc969"
+  },
+  "card__hook__richat__916": {
+   "refused": "the photo would be enlarged 3.08x (max 2.0)"
+  },
+  "card__myth_long_et__amber__169": {
+   "frames": 252,
+   "sha256": "fbc38b611a8e08e5e4d1a0eb3b86e6795a932faa7eac1fb7a0994f6ae9e8cf58"
+  },
+  "card__myth_long_et__amber__916": {
+   "frames": 243,
+   "sha256": "fac1fbe4f0f748c7dac7a52744bf86a3cee9c7e86ba9d766ec61b846d7cddada"
+  },
+  "card__myth_long_et__obelisk__169": {
+   "frames": 252,
+   "sha256": "84b8600f2ac4682e1980dff1edf64fee190bcf24738e7183a7dbbe8feff53bc5"
+  },
+  "card__myth_long_et__obelisk__916": {
+   "frames": 243,
+   "sha256": "e6b4c9ea3177c783d3b06cf8a3ad031108a8c921424445139cc14a44d9ce52a4"
+  },
+  "card__myth_long_et__richat__169": {
+   "frames": 252,
+   "sha256": "6d11c02590599356c941211778364129ccf58b7d4f2b2ec9d17e6cefcbf00df6"
+  },
+  "card__myth_long_et__richat__916": {
+   "frames": 243,
+   "sha256": "196b5dbed05d4bd98f8e2007006fd64efb7a0775613a12f081032c1018490ebf"
+  },
+  "card__myth_richat__amber__169": {
+   "frames": 245,
+   "sha256": "753792a47dce38477c0abd58b9c073709f8e8b5e6b33a2ac1e2b2c10bfc59195"
+  },
+  "card__myth_richat__amber__916": {
+   "frames": 239,
+   "sha256": "a4af3759a656dd68d8efb0a2981c8ba9a2e5d10eeb3186f2541589cf1b02e32d"
+  },
+  "card__myth_richat__obelisk__169": {
+   "frames": 245,
+   "sha256": "daa14d062c31937066db216d55d9c5be559832a8b9a46d3c58f80bcef12dcf5c"
+  },
+  "card__myth_richat__obelisk__916": {
+   "frames": 239,
+   "sha256": "846972da2db53e5e23378366739701aa989c649ce336e46732c87216f5ba1f91"
+  },
+  "card__myth_richat__richat__169": {
+   "frames": 245,
+   "sha256": "cfc74e69086a72377625abd6cfbbd8b985ba8a98eb43b1e97bb15fd57af08c7b"
+  },
+  "card__myth_richat__richat__916": {
+   "frames": 239,
+   "sha256": "adaac99606e42bb388f1b7d0db26e6fa2ded3f2e89307ef8cbce2ea2cf7cfc6f"
+  }
+ }
+}

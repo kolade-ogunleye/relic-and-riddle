@@ -1,0 +1,15 @@
+{
+ "copies_sent_over_ten_failing_rounds": 1,
+ "dashboards_sent_by_a_worker": 0,
+ "hours_later": 41,
+ "layout_in_order": true,
+ "layout_in_order_after_a_worker_redraw": true,
+ "needs_you_notices_lost_at_migration": 0,
+ "needs_you_notices_made_info_at_migration": 0,
+ "oldest_panel_copy_hours": 0.0,
+ "panel_copies_older_than_40h": 0,
+ "panels": 4,
+ "pins_over_ten_failing_rounds": 1,
+ "review_video_uploads_after_the_first": 0,
+ "stray_messages_left": 0
+}

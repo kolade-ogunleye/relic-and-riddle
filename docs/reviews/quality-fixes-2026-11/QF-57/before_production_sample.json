@@ -1,0 +1,25 @@
+{
+ "bare_pd_release_evidence_accepted": true,
+ "fixture_admitted": {
+  "auto_expired": true,
+  "bare": true,
+  "cc0": true,
+  "life_and_us": true,
+  "life_term_only": true,
+  "us_federal": true,
+  "us_only": true
+ },
+ "flickr_with_verification_timestamp": 0,
+ "openverse_calls_when_disabled": 1,
+ "openverse_results_when_disabled": 1,
+ "real_pools": {
+  "held": {},
+  "pd_records": 42,
+  "pd_records_held": 0,
+  "pd_records_passing_release_check": 42,
+  "pools": 16,
+  "ready_pools": 14
+ },
+ "revoked_flickr_results": 1,
+ "valid_flickr_results": 1
+}

@@ -1,0 +1,29 @@
+ok  9x16 pantheon_1934_2018
+ok  16x9 pantheon_1934_2018
+ok  16x9 colossi_1876_2011
+ok  9x16 colossi_1876_2011
+ok  9x16 nearwhite_odessa_map
+ok  16x9 nearwhite_odessa_map
+ok  9x16 bright_golgumbaz_map
+ok  16x9 bright_golgumbaz_map
+ok  9x16 busy_aswan_rebate
+ok  16x9 busy_aswan_rebate
+ok  9x16 lineart_aswan_diagram
+ok  16x9 bright_golgumbaz_map__inkoff
+ok  16x9 lineart_aswan_diagram
+ok  9x16 nearwhite_odessa_map__inkoff
+ok  16x9 bright_golgumbaz_map__forcedglow
+ok  9x16 pantheon_1934_2018__noblur
+ok  9x16 pantheon_1934_2018__timing
+ok  16x9 pantheon_1934_2018__noblur
+ok  16x9 pantheon_1934_2018__timing
+docs\reviews\freeze-panel-2026-11-04\thennow\step2\review1\compare\bright_golgumbaz_map_before_after.jpg
+docs\reviews\freeze-panel-2026-11-04\thennow\step2\review1\compare\bright_golgumbaz_map__forcedglow_before_after.jpg
+docs\reviews\freeze-panel-2026-11-04\thennow\step2\review1\compare\bright_golgumbaz_map__inkoff_before_after.jpg
+docs\reviews\freeze-panel-2026-11-04\thennow\step2\review1\compare\busy_aswan_rebate_before_after.jpg
+docs\reviews\freeze-panel-2026-11-04\thennow\step2\review1\compare\colossi_1876_2011_before_after.jpg
+docs\reviews\freeze-panel-2026-11-04\thennow\step2\review1\compare\lineart_aswan_diagram_before_after.jpg
+docs\reviews\freeze-panel-2026-11-04\thennow\step2\review1\compare\nearwhite_odessa_map_before_after.jpg
+docs\reviews\freeze-panel-2026-11-04\thennow\step2\review1\compare\nearwhite_odessa_map__inkoff_before_after.jpg
+docs\reviews\freeze-panel-2026-11-04\thennow\step2\review1\compare\pantheon_1934_2018_before_after.jpg
+DONE 0

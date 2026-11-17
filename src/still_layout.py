@@ -136,8 +136,16 @@ def check(still: Path) -> Optional[List[str]]:
 
 def drawn(render, tight_render=None) -> Tuple[Any, Layout, int]:
     """Draws a still, checks it, and draws it once more with the tighter fit if the first layout fails:
-    (image, layout, attempts). `render(tight)` returns (image, layout)."""
-    im, lay = render(False)
+    (image, layout, attempts). `render(tight)` returns (image, layout). Copy that fits the first layout only cut
+    (typography.TextFitError) gets the tighter fit too, which refuses the still in turn when that does not hold
+    it whole (QF-23)."""
+    from .typography import TextFitError
+    try:
+        im, lay = render(False)
+    except TextFitError as e:
+        log.warning("Still text does not fit whole (%s); drawing it again with the tighter fit.", e)
+        im2, lay2 = (tight_render or render)(True)
+        return im2, lay2, 2
     found = lay.problems()
     if not found:
         return im, lay, 1

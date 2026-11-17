@@ -447,7 +447,7 @@
     "sheet_path": "fact_sheet.json",
     "sheet_sha256": "557c2dc590f7a27f2e863802e47d12826e14befbe68d44adfa7eb758a113be74",
     "review_rules_fingerprint": "79415fa9c90d9a5027f19d13e77f998cf14dfdf848dc59042819e993438c455d",
-    "reference_path": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\data\\reference_facts.json",
+    "reference_path": "data/reference_facts.json",
     "reference_sha256": "b431081e6357cc5dcaf382ecf31987977cd240f071e2ae9eb8dc3dfdf4d167da"
   }
 }

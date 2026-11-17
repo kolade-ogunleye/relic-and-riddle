@@ -1,0 +1,28 @@
+--- before (HEAD)
++++ after (working tree)
+@@ -6,4 +6,4 @@
+   2    2.48-   3.87   80px  plate  552x121   AT AROUND 7:14
+-  3    3.87-   5.16   80px  plate  452x121   LOCAL TIME
+-  4    5.16-   6.20   74px* plate  686x121   NEAR THE PODKAMENNAYA
++  3    3.87-   5.16   80px  plate  342x121   LOCAL TIME
++  4    5.16-   6.20   74px* plate  688x121   NEAR THE PODKAMENNAYA
+   5    6.20-   7.13   80px  plate  552x121   TUNGUSKA RIVER
+@@ -17,3 +17,3 @@
+  13   17.79-  18.65   80px  plate  550x121   IN A DISTINCTIVE
+- 14   18.65-  19.90   80px  plate  454x121   RADIAL PATTERN
++ 14   18.65-  19.90   80px  plate  552x121   RADIAL PATTERN
+  15   19.90-  21.09   80px  plate  652x121   SCIENTISTS CALCULATE
+@@ -29,9 +29,9 @@
+  25   31.72-  32.82   80px  plate  458x121   WORLDWIDE
+- 26   32.82-  34.01   80px  plate  676x121   SCIENTIFIC CONSENSUS
+- 27   34.01-  35.04   80px  plate  676x121   ATTRIBUTES THE EVENT
++ 26   32.82-  34.01   80px  plate  678x121   SCIENTIFIC CONSENSUS
++ 27   34.01-  35.04   80px  plate  678x121   ATTRIBUTES THE EVENT
+  28   35.04-  35.97   80px  plate  570x121   TO AN ATMOSPHERIC
+  29   35.97-  37.65   80px  plate  566x121   METEOR AIR BURST
+- 30   37.65-  38.58   80px  plate  676x121   THOUGH NO CELESTIAL
++ 30   37.65-  38.58   80px  plate  678x121   THOUGH NO CELESTIAL
+  31   38.58-  39.50   80px  plate  568x121   FRAGMENT HAS EVER
+- 32   39.50-  40.79   74px* plate  676x121   BEEN FORMALLY IDENTIFIED
++ 32   39.50-  40.79   74px* plate  678x121   BEEN FORMALLY IDENTIFIED
+  33   40.79-  41.44   80px  plate  568x121   FROM THAT SUDDEN

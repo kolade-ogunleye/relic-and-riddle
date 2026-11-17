@@ -1,0 +1,77 @@
+{
+ "wikipedia_plus_attacker_page": {
+  "disputed": true,
+  "hedge": "by one estimate, the vault holds 4,700 tonnes of gold.",
+  "dropped": [],
+  "evidence_provenance": [
+   {
+    "host": "en.wikipedia.org",
+    "tier": 2,
+    "fetch": "wikipedia"
+   },
+   {
+    "host": "attacker-blog.example",
+    "tier": 3,
+    "fetch": "wikipedia_cited"
+   }
+  ],
+  "requests": [
+   "https://en.wikipedia.org/w/api.php",
+   "https://api.openalex.org/works?search=Old%20Mint%20Vault&per-page=3",
+   "https://en.wikipedia.org/w/api.php",
+   "https://attacker-blog.example/vault"
+  ]
+ },
+ "wikipedia_plus_cited_gov_page": {
+  "disputed": true,
+  "hedge": "by one estimate, the vault holds 4,700 tonnes of gold.",
+  "dropped": [],
+  "evidence_provenance": [
+   {
+    "host": "en.wikipedia.org",
+    "tier": 2,
+    "fetch": "wikipedia"
+   },
+   {
+    "host": "records.example.gov",
+    "tier": 3,
+    "fetch": "wikipedia_cited"
+   }
+  ],
+  "requests": [
+   "https://en.wikipedia.org/w/api.php",
+   "https://api.openalex.org/works?search=Old%20Mint%20Vault&per-page=3",
+   "https://en.wikipedia.org/w/api.php",
+   "https://records.example.gov/vault"
+  ]
+ },
+ "verify_field": {
+  "number_statement_wikipedia_plus_cited_page": "refused (unsupported_field): a number needs a tier 1-2 source besides Wikipedia and the pages it cites",
+  "quote_wikipedia_only": "refused (unsupported_field): a quotation needs a tier 1-2 source besides Wikipedia and the pages it cites",
+  "control_number_statement_with_tier1": "accepted",
+  "control_quote_with_tier1": "accepted",
+  "provenance_edited_after_signing": "refused (stale_check)"
+ },
+ "date_fact_statements_on_wikipedia_alone": {
+  "On 30 June 1908 the sky lit up": "accepted",
+  "Carved around 9600 BC": "accepted",
+  "Vesuvius buried it in AD 79": "accepted",
+  "Begun about 3000 BC": "accepted",
+  "Built in 1871": "accepted",
+  "July 29, 1941, at around 7:14": "accepted",
+  "Built between 9,600 and 8,200 BCE": "accepted",
+  "Dug in the 8th to 7th century BC": "accepted",
+  "Made between 7,000 and 10,000 years ago": "accepted",
+  "In 1941 it was taken apart in 36 hours": "refused (unsupported_field): a number needs a tier 1-2 source besides Wikipedia and the pages it cites",
+  "Dated to 6500 BCE, 40 of 120 skulls": "refused (unsupported_field): a number needs a tier 1-2 source besides Wikipedia and the pages it cites"
+ },
+ "shipped_date_facts_refused_as_statements_on_wikipedia_alone": {
+  "amber_room_heist/amber-room-nazi-looting-1941": "In 1941, German soldiers of Army Group North disassembled the Amber Room in 36 hours under expert supervision and shipped it to Königsberg Castle.",
+  "kailasa_temple_monolith/kailasa-textual-framework": "The cosmological design and proportions of the temple reflect classical guidelines outlined in Chapter 56 of the 6th century CE Brihat Samhita.",
+  "lycurgus_cup_nanotech/fact-12": "In 2020, researchers reproduced the green-and-red optical effect by embedding silver and gold nanoparticles into a 3D-printable nanocomposite material.",
+  "richat_structure_sahara_eye/fact-10": "In October 2022, the International Union of Geological Sciences designated the formation as one of the world's first 100 official geological heritage sites.",
+  "trepanation_miracle/fact-4": "At a burial site in France dated to 6500 BCE, 40 out of 120 prehistoric skulls exhibited trepanation holes, with roughly 40 percent surviving the operation."
+ },
+ "review_card_sources_line": "sources: Wikipedia + 1 site it cites",
+ "acceptance_met": true
+}

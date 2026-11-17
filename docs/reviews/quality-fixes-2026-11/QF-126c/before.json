@@ -1,0 +1,16 @@
+{
+ "commit_has_story_credit_fit": false,
+ "pools": {
+  "photos": 166,
+  "complete": 0,
+  "missing": {
+   "title": 166,
+   "source": 166,
+   "address": 16
+  },
+  "fits_page_id": null,
+  "fits_full_address": null,
+  "lines_px_page_id": {},
+  "never_cut": null
+ }
+}

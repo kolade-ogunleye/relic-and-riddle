@@ -1,0 +1,49 @@
+--- before (HEAD)
++++ after (working tree)
+@@ -3,27 +3,27 @@
+ 115 words, 25 bursts, emphasis ['Wilfrid Voynich', "Zipf's law"]; vignette vignette=PI/6.4:aspect=1 (src.video_composer.picture_vignette)
+-  0    0.00-   1.06  fs 81  plate  604x 84   An unread medieval
+-  1    1.06-   3.35  fs 81  plate  960x 84   book displays linguistic precision
+-  2    3.35-   5.99  fs 81  plate  992x 84   that defeats modern cryptanalysis
+-  3    5.99-   7.83  fs 81  plate  924x 84   Radiocarbon dating established
++  0    0.00-   1.06  fs 81  plate  608x 84   An unread medieval
++  1    1.06-   3.35  fs 81  plate  962x 84   book displays linguistic precision
++  2    3.35-   5.99  fs 81  plate  994x 84   that defeats modern cryptanalysis
++  3    5.99-   7.83  fs 81  plate  926x 84   Radiocarbon dating established
+   4    7.83-   9.24  fs 81  plate  960x 84   that the manuscript's parchment
+-  5    9.24-  12.68  fs 81  plate  858x 84   dates between 1404 and 1438
++  5    9.24-  12.68  fs 81  plate  860x 84   dates between 1404 and 1438
+   6   12.68-  13.91  fs 81  plate  500x 84   By one estimate
+-  7   13.91-  15.35  fs 81  plate  792x 84   the text is written from left
++  7   13.91-  15.35  fs 81  plate  796x 84   the text is written from left
+   8   15.35-  17.28  fs 81  plate  928x 84   to right in an unidentified script
+-  9   17.28-  19.12  fs 81  plate  864x 84   where an alphabet of 20 to 25
+- 10   19.12-  20.66  fs 81  plate  936x 84   characters accounts for virtually
+- 11   20.66-  22.06  fs 81  plate  476x 84   the entire work
+- 12   22.06-  23.63  fs 81  plate  780x 84   Beside botanical diagrams
++  9   17.28-  19.12  fs 81  plate  866x 84   where an alphabet of 20 to 25
++ 10   19.12-  20.66  fs 81  plate  938x 84   characters accounts for virtually
++ 11   20.66-  22.06  fs 81  plate  478x 84   the entire work
++ 12   22.06-  23.63  fs 81  plate  782x 84   Beside botanical diagrams
+  13   23.63-  25.35  fs 81  plate  644x 84   of unidentified plants
+- 14   25.35-  27.14  fs 81  plate  884x 84   the text conforms to Zipf's law
+- 15   27.14-  28.71  fs 81  plate 1134x 84   where the most common word appears
+- 16   28.71-  30.11  fs 81  plate  664x 84   roughly twice as often
++ 14   25.35-  27.14  fs 81  plate  888x 84   the text conforms to Zipf's law
++ 15   27.14-  28.71  fs 81  plate 1136x 84   where the most common word appears
++ 16   28.71-  30.11  fs 81  plate  668x 84   roughly twice as often
+  17   30.11-  31.85  fs 81  plate  846x 84   as the second most common
+- 18   31.85-  33.91  fs 81  plate 1074x 84   The manuscript is named after Polish
+- 19   33.91-  35.81  fs 81  plate  812x 84   book dealer Wilfrid Voynich
++ 18   31.85-  33.91  fs 81  plate 1076x 84   The manuscript is named after Polish
++ 19   33.91-  35.81  fs 81  plate  818x 84   book dealer Wilfrid Voynich
+  20   35.81-  38.17  fs 81  plate  668x 84   who acquired it in 1912
+- 21   38.17-  39.78  fs 81  plate  856x 84   American and British military
+- 22   39.78-  42.01  fs 81  plate 1200x 84   cryptographers from both World War One
+- 23   42.01-  43.54  fs 81  plate  900x 84   and World War Two attempted
+- 24   43.54-  45.78  fs 81  plate 1110x 84   to decipher the codex without success
++ 21   38.17-  39.78  fs 81  plate  858x 84   American and British military
++ 22   39.78-  42.01  fs 81  plate 1208x 84   cryptographers from both World War One
++ 23   42.01-  43.54  fs 81  plate  908x 84   and World War Two attempted
++ 24   43.54-  45.78  fs 81  plate 1112x 84   to decipher the codex without success
+   names:

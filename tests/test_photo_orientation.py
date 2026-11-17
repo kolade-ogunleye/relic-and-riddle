@@ -39,10 +39,10 @@ def test_it_is_fetched_again_upright_and_the_old_file_kept(tmp_path, monkeypatch
                         lambda url, dest, **k: fetched.append(url) or Image.new("RGB", (3000, 4000), "gray").save(dest))
     done, still = photo_orientation.put_upright(d)
     assert fetched == ["https://up/07.jpg"] and still == set()
-    assert Image.open(d / "07_commons.jpg").size == (3000, 4000)
+    assert Image.open(d / "07_commons.png").size == (3000, 4000)
     assert Image.open(d / photo_orientation.BACKUP_DIR / "07_commons.jpg").size == (4000, 3000)
     from src.credits import sheet_order
-    number = [i["file"] for i in sheet_order(d, photo_orientation._items(d))].index("07_commons.jpg") + 1
+    number = [i["file"] for i in sheet_order(d, photo_orientation._items(d))].index("07_commons.png") + 1
     # As the /photos sheet shows it (07_commons.jpg is photo 3 there on production): never the file name
     assert done[0].startswith(f"photo {number}, The Antikythera Mechanism (3471976134): was stored turned over")
     assert photo_orientation.put_upright(d) == ([], set())                 # nothing left to do
@@ -57,7 +57,7 @@ def test_one_that_cannot_be_fetched_again_is_left_out_not_used_sideways(tmp_path
     done, still = photo_orientation.put_upright(d)
     assert still == {"07_commons.jpg"} and "this run leaves it out" in done[0]
     assert Image.open(d / "07_commons.jpg").size == (4000, 3000)            # untouched
-    assert not (d / "07_commons.upright.jpg").exists()
+    assert not (d / "07_commons.upright.png").exists()
 
 
 def test_the_run_leaves_a_still_turned_photo_out(tmp_path, monkeypatch):

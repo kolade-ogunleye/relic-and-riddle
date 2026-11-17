@@ -1,0 +1,97 @@
+35-run corpus gate, fix round 3 (2026-11-04): scratchpad corpus_bs.py on HEAD 0036b18 and on the working tree, compared.
+reel/wide/cues NEWCUT: a cut HEAD does not have. line NEWBRK: a sidecar line break where HEAD's line or cue held the pair. ONEWORD+/-: one-word 9:16 bursts the tree adds/drops. '!!!' lines (name splits, article ends) would mark failures: there are none.
+
+line  NEWBRK run_amber_room_heist_1792781224          Soviet curators had attempted / to conceal it
+line  NEWBRK run_amber_room_heist_1792790550          In 1941, German soldiers / of Army Group
+line  NEWBRK run_amber_room_heist_1792790550          Königsberg Castle. Documentation tracking / its location ends
+line  NEWBRK run_amber_room_heist_1792790550          in Germany, fueling hunts / for the chamber
+line  NEWBRK run_amber_room_heist_1792805842          2004 investigation concluded it / was incinerated by
+cues  NEWCUT run_damascus_steel_nanotubes_1792732472_ manganese worked in combination || with ancient production
+cues  NEWCUT run_damascus_steel_nanotubes_1792732472_ finer pearlite spacing refined || the microstructure of
+line  NEWBRK run_damascus_steel_nanotubes_1792732472_ with ancient production methods / to make the
+line  NEWBRK run_damascus_steel_nanotubes_1792732472_ flexible. Metallurgical analysis determined / that finer pearlite
+reel  NEWCUT run_gol_gumbaz_whispering_gallery_179327 quiet whisper travel across || an estimated 144-foot
+line  NEWBRK run_gol_gumbaz_whispering_gallery_179327 a quiet whisper travel / across an estimated
+line  NEWBRK run_gol_gumbaz_whispering_gallery_179327 on pendentive systems attributed / to Central Asian
+reel  NEWCUT run_greek_fire_siphon_1792735284_short   oil could not be || extinguished with water,
+line  NEWBRK run_greek_fire_siphon_1792735284_short   defenders had to smother / the flames with
+line  NEWBRK run_hal_saflieni_hypogeum_1792949304     doorways. Hollowed directly out / of soft globigerina
+line  NEWBRK run_hal_saflieni_hypogeum_1792949304     obsidian. Archaeological records indicate / that the underground
+line  NEWBRK run_hal_saflieni_hypogeum_1792949304     originally contained the remains / of approximately 7,000
+reel  NEWCUT run_kailasa_temple_monolith_1792524470   required less physical effort || than transporting large
+line  NEWBRK run_kailasa_temple_monolith_1792524470   downward from the summit / of a basalt
+line  NEWBRK run_kailasa_temple_monolith_1792524470   Excavating the temple directly / as a monolith
+ONEWORD+ run_kailasa_temple_monolith_1792524470 EFFORT
+cues  NEWCUT run_odessa_catacombs_1792970549          Soviet resistance partisans used || the subterranean tunnels
+cues  NEWCUT run_odessa_catacombs_1793098390          Soviet resistance partisans used || the subterranean tunnels
+cues  NEWCUT run_odessa_catacombs_1793100750          Soviet resistance partisans used || the subterranean tunnels
+cues  NEWCUT run_odessa_catacombs_1793159709          Soviet resistance partisans used || the subterranean tunnels
+reel  NEWCUT run_richat_structure_sahara_eye_17927370 was determined to be || misidentified barite. Carbonatite
+line  NEWBRK run_richat_structure_sahara_eye_17927370 mineral reported as coesite / was determined to
+line  NEWBRK run_richat_structure_sahara_eye_17927370 Resembling a giant ammonite / in the desert
+reel  NEWCUT run_richat_structure_sahara_eye_17927409 a terrestrial timeline: dating || of the carbonatite
+reel  NEWCUT run_richat_structure_sahara_eye_17927409 by one estimate, thousands || of prehistoric stone
+reel  NEWCUT run_richat_structure_sahara_eye_17927409 of Geological Sciences recognized || this scientific value
+reel  NEWCUT run_richat_structure_sahara_eye_17927409 100 official geological heritage || sites. With its
+cues  NEWCUT run_richat_structure_sahara_eye_17927409 on the Adrar Plateau || within the Adrar
+cues  NEWCUT run_richat_structure_sahara_eye_17927409 What physical processes formed || this circular geological
+cues  NEWCUT run_richat_structure_sahara_eye_17927409 the Sahara? Geologists identify || the structure as
+cues  NEWCUT run_richat_structure_sahara_eye_17927409 a subsurface igneous intrusion || deformed the overlying
+line  NEWBRK run_richat_structure_sahara_eye_17927409 Richat Structure is situated / near Ouadane on
+line  NEWBRK run_richat_structure_sahara_eye_17927409 Mauritania. Visible from space / as a massive
+line  NEWBRK run_richat_structure_sahara_eye_17927409 geological field surveys record / the feature at
+line  NEWBRK run_richat_structure_sahara_eye_17927409 this circular geological formation / in the Sahara?
+line  NEWBRK run_richat_structure_sahara_eye_17927409 an eroded dome created / when a subsurface
+line  NEWBRK run_richat_structure_sahara_eye_17927409 deformed the overlying sedimentary / rock into concentric
+line  NEWBRK run_richat_structure_sahara_eye_17927409 the structure dip outward / at angles between
+line  NEWBRK run_richat_structure_sahara_eye_17927409 degrees. Framing the complex / are concentric gabbroic
+line  NEWBRK run_richat_structure_sahara_eye_17927409 shock-metamorphism coesite was identified / in 1969 as
+line  NEWBRK run_richat_structure_sahara_eye_17927409 With its origin grounded / in verified terrestrial
+ONEWORD+ run_richat_structure_sahara_eye_17927409 DATING
+ONEWORD+ run_richat_structure_sahara_eye_17927409 THOUSANDS
+ONEWORD+ run_richat_structure_sahara_eye_17927409 RECOGNIZED
+ONEWORD+ run_richat_structure_sahara_eye_17927409 SITES
+line  NEWBRK run_richat_structure_sahara_eye_17927782 Its concentric rings remain / an enduring landmark
+reel  NEWCUT run_richat_structure_sahara_eye_17932726 The eroded dome formed || when subsurface igneous
+line  NEWBRK run_richat_structure_sahara_eye_17932726 Visible from space / as a massive
+reel  NEWCUT run_richat_structure_sahara_eye_17934680 rings framed by gabbroic || dikes. Geologists initially
+line  NEWBRK run_richat_structure_sahara_eye_17934680 shuttle crews. Near Ouadane / on the Adrar
+ONEWORD+ run_richat_structure_sahara_eye_17934680 DIKES
+reel  NEWCUT run_richat_structure_sahara_eye_17934744 rings framed by gabbroic || dikes. Geologists initially
+line  NEWBRK run_richat_structure_sahara_eye_17934744 shuttle crews. Near Ouadane / on the Adrar
+ONEWORD+ run_richat_structure_sahara_eye_17934744 DIKES
+reel  NEWCUT run_richat_structure_sahara_eye_17934748 rings framed by gabbroic || dikes. Geologists initially
+line  NEWBRK run_richat_structure_sahara_eye_17934748 shuttle crews. Near Ouadane / on the Adrar
+ONEWORD+ run_richat_structure_sahara_eye_17934748 DIKES
+cues  NEWCUT run_roman_self_healing_concrete_17931613 Pompeii demonstrated builders used || a hot-mixing process
+line  NEWBRK run_roman_self_healing_concrete_17931613 Chemical analysis of materials / from Pompeii demonstrated
+cues  NEWCUT run_roman_self_healing_concrete_17931639 Pompeii demonstrated builders used || a hot-mixing process
+line  NEWBRK run_roman_self_healing_concrete_17931639 Chemical analysis of materials / from Pompeii demonstrated
+reel  NEWCUT run_singing_colossi_of_memnon_1792952878 guard the memorial temple || where Amenhotep the
+line  NEWBRK run_singing_colossi_of_memnon_1792952878 AD. Still, the colossi / have stood since
+ONEWORD+ run_singing_colossi_of_memnon_1792952878 TEMPLE
+reel  NEWCUT run_trepanation_miracle_1792995462       Trepanation is || the oldest documented
+line  NEWBRK run_tunguska_event_1908_1792930600       the Podkamennaya Tunguska River / in Central Siberia,
+line  NEWBRK run_tunguska_event_1908_1792930600       consensus attributes the event / to an atmospheric
+cues  NEWCUT run_unfinished_obelisk_aswan_1792985912  carving directly into bedrock || where tool marks
+cues  NEWCUT run_unfinished_obelisk_aswan_1792985912  still mark the trench. || Surveys place the
+line  NEWBRK run_unfinished_obelisk_aswan_1792985912  Egypt’s Aswan quarries lies / a granite monolith
+line  NEWBRK run_unfinished_obelisk_aswan_1792985912  been nearly one-third larger / than any obelisk
+line  NEWBRK run_unfinished_obelisk_aswan_1792985912  erected. Ancient workers burned / and wedged away
+line  NEWBRK run_unfinished_obelisk_aswan_1792985912  tool marks and ochre / lines still mark
+reel  NEWCUT run_unfinished_obelisk_aswan_1792993374  ranging from nearly 1,090 || to 1,168 tonnes.
+line  NEWBRK run_unfinished_obelisk_aswan_1792993374  today. Quarry workers burned / and wedged away
+ONEWORD- run_unfinished_obelisk_aswan_1792993374 TONNES
+line  NEWBRK run_unfinished_obelisk_aswan_1793056896  Surveys place its length / between roughly 137
+line  NEWBRK run_unfinished_obelisk_aswan_1793056896  with weight calculations ranging / from nearly 1,090
+line  NEWBRK run_unfinished_obelisk_aswan_1793056896  abandoned after structural cracks / and multiple fissures
+line  NEWBRK run_unfinished_obelisk_aswan_1793056896  whether moving the monolith / was within granite's
+reel  NEWCUT run_voynich_manuscript_1792965308        in an unidentified script || where an alphabet
+line  NEWBRK run_voynich_manuscript_1792965308        World War Two attempted / to decipher the
+reel  NEWCUT run_wieliczka_salt_mine_1792974672       total extent of underground || galleries between 287
+ONEWORD+ run_wieliczka_salt_mine_1792974672 GALLERIES
+cues new cuts 14
+head one-word 37
+line new breaks 47
+reel new cuts 17
+tree one-word 46

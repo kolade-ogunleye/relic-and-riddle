@@ -21,27 +21,27 @@ from src.telegram_bot import TelegramApprovalBot, PublishReceipt
 from src.telegram_state import initialize, put, get, review_fingerprint
 
 
-def ready_v2_review(db, root, run_id="v2_run", mid=500):
+FIXTURE = Path(__file__).resolve().parent / "fixtures" / "ui02_review_v2" / "run_gol_gumbaz_whispering_gallery_1793278143"
+
+
+def ready_v2_review(db, root, run_id="v2_run", mid=500, monkeypatch=None):
+    """A real development run's records (UI-02: the V2 card shows only values the run records, so an invented
+    payload now gets the live card), with a stand-in video and cover."""
+    import shutil
     initialize(db)
     topic = db.list_all_topics()[0]["id"]
     directory = root / run_id
-    directory.mkdir(parents=True, exist_ok=True)
+    shutil.copytree(FIXTURE, directory)
     (directory / "master.mp4").write_bytes(b"v2 master video preview data")
     Image.new("RGB", (30, 30), color="blue").save(directory / "thumbnail_cover.jpg")
+    payload = json.loads((directory / "script_metadata.json").read_text(encoding="utf-8"))
+    payload["topic_id"] = topic
     db.create_run(run_id, topic)
-    db.update_run(
-        run_id,
-        "pending_approval",
-        script_payload={
-            "title": "Secrets of Alexandria",
-            "topic_id": topic,
-            "hook_sentence": "Under the harbor lies a sunken kingdom.",
-            "duration": 54.0,
-            "caption": "Exploring Alexandria #history #relic",
-            "narration_script": "Under the Mediterranean waves, divers uncovered the royal quarters of Cleopatra.",
-        },
-        master_video_path=directory / "master.mp4",
-    )
+    db.update_run(run_id, "pending_approval", script_payload=payload, master_video_path=directory / "master.mp4")
+    if monkeypatch is not None:   # the review's gate re-check returns the run's own report (a stand-in video)
+        from src import release
+        saved = json.loads((directory / "release_report.json").read_text(encoding="utf-8"))
+        monkeypatch.setattr(release, "write_release_report", lambda run, dry_run=False: saved)
     return directory
 
 
@@ -114,7 +114,7 @@ def test_telegram_card_store_cas(tmp_path):
 def test_send_review_pair_v2(db, tmp_path, monkeypatch):
     monkeypatch.setattr(config, "TELEGRAM_CARDS_V2", True)
     bot, calls = offline_v2_bot(db, monkeypatch)
-    root = ready_v2_review(db, tmp_path)
+    root = ready_v2_review(db, tmp_path, monkeypatch=monkeypatch)
 
     run = db.get_run("v2_run")
     video = root / "master.mp4"
@@ -154,7 +154,7 @@ def test_send_review_pair_v2(db, tmp_path, monkeypatch):
 def test_v2_one_tap_approve_and_undo(db, tmp_path, monkeypatch):
     monkeypatch.setattr(config, "TELEGRAM_CARDS_V2", True)
     bot, calls = offline_v2_bot(db, monkeypatch)
-    root = ready_v2_review(db, tmp_path)
+    root = ready_v2_review(db, tmp_path, monkeypatch=monkeypatch)
     run = db.get_run("v2_run")
 
     vid_mid = bot.send_approval_request(root / "master.mp4", root / "thumbnail_cover.jpg", run["script_payload"], "v2_run")
@@ -191,7 +191,7 @@ def test_v2_one_tap_approve_and_undo(db, tmp_path, monkeypatch):
 def test_v2_two_tap_reject_with_reasons_and_undo(db, tmp_path, monkeypatch):
     monkeypatch.setattr(config, "TELEGRAM_CARDS_V2", True)
     bot, calls = offline_v2_bot(db, monkeypatch)
-    root = ready_v2_review(db, tmp_path)
+    root = ready_v2_review(db, tmp_path, monkeypatch=monkeypatch)
     run = db.get_run("v2_run")
 
     vid_mid = bot.send_approval_request(root / "master.mp4", root / "thumbnail_cover.jpg", run["script_payload"], "v2_run")
@@ -216,11 +216,11 @@ def test_v2_two_tap_reject_with_reasons_and_undo(db, tmp_path, monkeypatch):
     bot._handle_callback(keep_cq, "v2_run")
     assert db.get_approval("v2_run")["decision"] == "pending"
 
-    # 3. Tap Reject again, then pick reason "factual"
+    # 3. Tap Reject again, then pick reason "facts" (improve.REASONS: UI-02)
     bot._handle_callback(reject_cq, "v2_run")
     reason_cq = {
         "id": "q3",
-        "data": f"rejres:{db.run_key('v2_run')}:factual",
+        "data": f"rejres:{db.run_key('v2_run')}:facts",
         "from": {"id": 555, "first_name": "Kolade"},
         "message": {"message_id": vid_mid, "chat": {"id": 555}},
     }
@@ -230,7 +230,7 @@ def test_v2_two_tap_reject_with_reasons_and_undo(db, tmp_path, monkeypatch):
 
     card = db.get_telegram_card("review:v2_run")
     assert card["payload"]["status"] == "rejected"
-    assert card["payload"]["reason"] == "factual"
+    assert card["payload"]["reason"] == "facts"
 
     # 4. Undo rejection
     undo_rej_cq = {
@@ -247,14 +247,15 @@ def test_v2_consolidated_publish_receipt(db, monkeypatch):
     monkeypatch.setattr(config, "TELEGRAM_CARDS_V2", True)
     bot, calls = offline_v2_bot(db, monkeypatch)
 
-    receipt = bot.create_publish_receipt("run_receipt_1", "The Pyramids of Dahshur")
+    receipt = bot.create_publish_receipt("run_receipt_1", "The Pyramids of Dahshur",
+                                         platforms=["instagram", "facebook", "youtube"])
     assert receipt.message_id is not None
 
     receipt.update_platform("instagram", "uploading")
     receipt.update_platform("instagram", "live", "https://instagram.com/reel/123")
     receipt.update_platform("youtube", "live", "https://youtube.com/shorts/456")
     receipt.update_platform("facebook", "live", "https://facebook.com/reel/789")
-    receipt.finalize(stories_delay_minutes=45, carousel_slot="next slot")
+    receipt.finalize(follow_up="◽ Its Stories and carousel follow as booked (see Posting).")
 
     # Verify that edits occurred on the single in-place message
     edits = [c for c in calls if c[0] == "editMessageText"]
@@ -264,7 +265,7 @@ def test_v2_consolidated_publish_receipt(db, monkeypatch):
 def test_v2_reap_decided_reviews(db, tmp_path, monkeypatch):
     monkeypatch.setattr(config, "TELEGRAM_CARDS_V2", True)
     bot, calls = offline_v2_bot(db, monkeypatch)
-    root = ready_v2_review(db, tmp_path)
+    root = ready_v2_review(db, tmp_path, monkeypatch=monkeypatch)
 
     # Store card with status 'approved' and updated_at 7 hours ago
     seven_hours_ago = time.time() - (7 * 3600)
@@ -288,7 +289,7 @@ def test_v2_reap_decided_reviews(db, tmp_path, monkeypatch):
 def test_v1_fallback_when_disabled(db, tmp_path, monkeypatch):
     monkeypatch.setattr(config, "TELEGRAM_CARDS_V2", False)
     bot, calls = offline_v2_bot(db, monkeypatch)
-    root = ready_v2_review(db, tmp_path)
+    root = ready_v2_review(db, tmp_path, monkeypatch=monkeypatch)
     run = db.get_run("v2_run")
 
     mid = bot.send_approval_request(root / "master.mp4", root / "thumbnail_cover.jpg", run["script_payload"], "v2_run")

@@ -8,7 +8,8 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 from src.config import DATA_DIR
-from src.fact_evidence import record_fact_review
+from src.fact_evidence import stamp_checked_review
+from src.trace_check import check, checker_models, evidence_check
 from src.script_engine import ScriptEngine
 
 
@@ -29,7 +30,21 @@ def main():
         (args.output / f"script_attempt_{attempt}.json").write_text(json.dumps({"payload": payload, "notes": notes}, indent=2), encoding="utf-8")
         print(json.dumps({"attempt": attempt, "passed": passed, "notes": notes}), flush=True)
         if passed:
-            record_fact_review(payload, DATA_DIR / "fact_sheets" / f"{args.topic_id}.json")
+            # the script stage's pass is not a fact check: the copy goes through both checkers and is stamped with
+            # their signed runs (operator decision 2026-11-04; fact_evidence.record_fact_review refuses otherwise)
+            sheet_path = DATA_DIR / "fact_sheets" / f"{args.topic_id}.json"
+            sheet = json.loads(sheet_path.read_text(encoding="utf-8"))
+            traced = check(payload, sheet)
+            evidence = evidence_check(payload, sheet) if traced[0] else ("fail", 0.0, [], "trace check failed")
+            passed = traced[0] and evidence[0] == "pass"
+            payload["guardrail_passed"] = passed
+            if passed:
+                stamp_checked_review(payload, sheet_path, traced, evidence, checker_models())
+            else:
+                notes = f"{traced[3]}; {evidence[3]}"
+                print(json.dumps({"attempt": attempt, "passed": False, "notes": notes}), flush=True)
+                previous = payload
+                continue
             break
         previous = payload
     (args.output / "script_metadata.json").write_text(json.dumps(payload, indent=2), encoding="utf-8")

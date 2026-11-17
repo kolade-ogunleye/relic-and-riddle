@@ -1,0 +1,7 @@
+{
+ "note": "The two scale facts the dev runs rendered a scale graphic from (output/run_*/graphics/graphic_scale.mp4), copied from those runs' verified_script.json payloads. The map places are the dev runs' topics (data/topics/topic_bank.json); the stat cards are the committed scripts in data/script_library.",
+ "scale_facts": {
+  "unfinished_obelisk_aswan": {"value": 138.0, "unit": "ft", "dimension": "length", "subject": "Unfinished obelisk", "approximate": true},
+  "wieliczka_salt_mine": {"value": 327.0, "unit": "m", "dimension": "depth", "subject": "Wieliczka Salt Mine", "approximate": true}
+ }
+}

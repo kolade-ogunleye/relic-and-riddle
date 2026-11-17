@@ -95,7 +95,8 @@ def test_post_now_on_a_booking_posts_the_reel_and_retimes_its_stories(db, tmp_pa
 
 def test_a_partial_story_publish_can_be_retried_on_the_failed_platform_only(db, tmp_path):
     # The first Stories (2026-10-24): frame 3 reached Facebook, not Instagram; the booking stayed "unknown"
-    # with nothing to do. Retry re-sends that frame to Instagram alone, under a fresh idempotency key.
+    # with nothing to do. Retry re-sends that frame to Instagram alone, under a fresh idempotency key. Since QF-80
+    # the poll frame (3) is no longer posted, so the frame that failed here is the reveal (2).
     run_id, reel, slot = _booked(db, tmp_path)
     frames = []
     for i in (1, 2, 3):
@@ -103,7 +104,7 @@ def test_a_partial_story_publish_can_be_retried_on_the_failed_platform_only(db, 
         f.write_bytes(b"x")
         frames.append(str(f))
     story = db.add_scheduled_post(run_id, "story", (slot + timedelta(minutes=45)).isoformat(), frames)
-    db.update_scheduled_post(story, "unknown", detail={"status": "unknown", "part": 3, "posted_parts": 2,
+    db.update_scheduled_post(story, "unknown", detail={"status": "unknown", "part": 2, "posted_parts": 1,
                                                        "error": "Partial publish: ok=['facebook'] failed=['instagram'] (instagram: media error)",
                                                        "failed": {"instagram": "media error"}})
     text, buttons = control.posting_episode(db, run_id)
@@ -113,14 +114,14 @@ def test_a_partial_story_publish_can_be_retried_on_the_failed_platform_only(db, 
     c.publisher = SimpleNamespace(publish_photos=lambda rid, tid, kind, photos, caption="", platforms=None, dry_run=False, retry_tag="":
                                   sent.append((kind, photos, platforms, retry_tag)) or {"status": "published", "post_urls": {"instagram": "https://instagram.com/stories/x"}})
     assert c.retry_post(story).endswith("posted.")
-    assert sent == [("story", [frames[2]], ["instagram"], "retry1-instagram")]
+    assert sent == [("story", [frames[1]], ["instagram"], "retry1-instagram")]
     row = next(p for p in db.list_scheduled_posts(("published",), run_id=run_id) if p["id"] == story)
     assert row["detail"]["retries"] == 1 and row["detail"]["failed"] == {}
     # an older record names the platform only in its text
     older = db.add_scheduled_post(run_id, "story", (slot + timedelta(minutes=45)).isoformat(), frames)
-    db.update_scheduled_post(older, "unknown", detail={"error": "Partial publish: ok=['facebook'] failed=['instagram']", "posted_parts": 2})
+    db.update_scheduled_post(older, "unknown", detail={"error": "Partial publish: ok=['facebook'] failed=['instagram']", "posted_parts": 1})
     c.retry_post(older)
-    assert sent[-1] == ("story", [frames[2]], ["instagram"], "retry1-instagram")
+    assert sent[-1] == ("story", [frames[1]], ["instagram"], "retry1-instagram")
     assert c.retry_post(999999) == "🔁 Nothing to retry for that booking."
 
 

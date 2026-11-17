@@ -1,0 +1,237 @@
+{
+  "scope": "Verdict lists through the three checks of <root> (part 1); real beats of 22 runs, counts only, at the voice length and +1/+3 s tail (part 2)",
+  "prose_only": {
+    "placeholders": {
+      "planner": "0/113",
+      "gate": "0/113",
+      "nothing_added_relaxed": "0/113",
+      "granted_all_three": "0/113"
+    },
+    "subjectless": {
+      "planner": "0/8",
+      "gate": "0/8",
+      "nothing_added_relaxed": "0/8",
+      "granted_all_three": "0/8"
+    },
+    "genuine": {
+      "planner": "11/11",
+      "gate": "11/11",
+      "nothing_added_relaxed": "11/11",
+      "granted_all_three": "11/11"
+    },
+    "version_4_style": {
+      "planner": "25/34",
+      "gate": "25/34",
+      "nothing_added_relaxed": "25/34",
+      "granted_all_three": "25/34"
+    },
+    "version_5_style": {
+      "planner": "20/20",
+      "gate": "20/20",
+      "nothing_added_relaxed": "20/20",
+      "granted_all_three": "20/20"
+    },
+    "restated_or_copied": {
+      "planner": "0/12",
+      "gate": "0/12",
+      "nothing_added_relaxed": "0/12",
+      "granted_all_three": "0/12"
+    },
+    "hedged": {
+      "planner": "0/19",
+      "gate": "0/19",
+      "nothing_added_relaxed": "0/19",
+      "granted_all_three": "0/19"
+    },
+    "contrary": {
+      "planner": "0/12",
+      "gate": "0/12",
+      "nothing_added_relaxed": "0/12",
+      "granted_all_three": "0/12"
+    },
+    "scripts_and_foreign_clauses": {
+      "planner": "0/12",
+      "gate": "0/12",
+      "nothing_added_relaxed": "0/12",
+      "granted_all_three": "0/12"
+    },
+    "genuine_edge_cases": {
+      "planner": "11/11",
+      "gate": "11/11",
+      "nothing_added_relaxed": "11/11",
+      "granted_all_three": "11/11"
+    },
+    "round3_probes": {
+      "planner": "14/14",
+      "gate": "14/14",
+      "nothing_added_relaxed": "14/14",
+      "granted_all_three": "14/14"
+    }
+  },
+  "structured_genuine": {
+    "planner": "5/10",
+    "gate": "5/10",
+    "nothing_added_relaxed": "5/10",
+    "granted_all_three": "5/10"
+  },
+  "allowed_pairs": {
+    "planner": "6/6",
+    "gate": "6/6",
+    "nothing_added_relaxed": "6/6",
+    "granted_all_three": "6/6"
+  },
+  "mismatched_pairs": {
+    "planner": "14/14",
+    "gate": "14/14",
+    "nothing_added_relaxed": "14/14",
+    "granted_all_three": "14/14"
+  },
+  "round4_probes_before_photography": {
+    "planner": "1/2",
+    "gate": "1/2",
+    "nothing_added_relaxed": "1/2",
+    "granted_all_three": "1/2"
+  },
+  "round3_probes_subject_no_cause": {
+    "planner": "14/14",
+    "gate": "14/14",
+    "nothing_added_relaxed": "14/14",
+    "granted_all_three": "14/14"
+  },
+  "round3_probes_disallowed_cause": {
+    "planner": "47/47",
+    "gate": "47/47",
+    "nothing_added_relaxed": "47/47",
+    "granted_all_three": "47/47"
+  },
+  "bad_causes": {
+    "planner": "20/20",
+    "gate": "20/20",
+    "nothing_added_relaxed": "20/20",
+    "granted_all_three": "20/20"
+  },
+  "bad_subjects": {
+    "planner": "23/23",
+    "gate": "23/23",
+    "nothing_added_relaxed": "23/23",
+    "granted_all_three": "23/23"
+  },
+  "other_sentence_subjects": {
+    "planner": "12/12",
+    "gate": "12/12",
+    "nothing_added_relaxed": "12/12",
+    "granted_all_three": "12/12"
+  },
+  "placeholder_reviewer_reason": {
+    "planner": "0/5",
+    "gate": "0/5",
+    "nothing_added_relaxed": "0/5",
+    "granted_all_three": "0/5"
+  },
+  "real_runs": 22,
+  "real_sentences": 137,
+  "real_base": {
+    "voice": {
+      "beats_inside_one_sentence": 188,
+      "prose_only_granted": "48024/50948",
+      "structured_genuine_granted": "1104/1128",
+      "mismatched_cause_granted": "2576/2632",
+      "other_sentence_subject_granted": "1104/1128",
+      "wrong_sentence_granted": "0/1266"
+    },
+    "tail_1s": {
+      "beats_inside_one_sentence": 195,
+      "prose_only_granted": "49851/52845",
+      "structured_genuine_granted": "1146/1170",
+      "mismatched_cause_granted": "2674/2730",
+      "other_sentence_subject_granted": "1146/1170",
+      "wrong_sentence_granted": "0/1301"
+    },
+    "tail_3s": {
+      "beats_inside_one_sentence": 195,
+      "prose_only_granted": "49851/52845",
+      "structured_genuine_granted": "1146/1170",
+      "mismatched_cause_granted": "2674/2730",
+      "other_sentence_subject_granted": "1146/1170",
+      "wrong_sentence_granted": "0/1301"
+    }
+  },
+  "real_base_model_reasons_prose_only_granted": "137/137",
+  "real_base_sentence_copied_prose_only_granted": {
+    "construction": "137/137",
+    "mechanism_in_use": "137/137",
+    "original_appearance": "137/137",
+    "unphotographed_interior": "137/137"
+  },
+  "real_round3": {
+    "voice": {
+      "beats_inside_one_sentence": 188,
+      "prose_only_granted": "1286/50948",
+      "structured_genuine_granted": "1032/1128",
+      "mismatched_cause_granted": "2408/2632",
+      "other_sentence_subject_granted": "2/1128",
+      "wrong_sentence_granted": "0/1266"
+    },
+    "tail_1s": {
+      "beats_inside_one_sentence": 195,
+      "prose_only_granted": "1321/52845",
+      "structured_genuine_granted": "1074/1170",
+      "mismatched_cause_granted": "2506/2730",
+      "other_sentence_subject_granted": "2/1170",
+      "wrong_sentence_granted": "0/1301"
+    },
+    "tail_3s": {
+      "beats_inside_one_sentence": 195,
+      "prose_only_granted": "1321/52845",
+      "structured_genuine_granted": "1074/1170",
+      "mismatched_cause_granted": "2506/2730",
+      "other_sentence_subject_granted": "2/1170",
+      "wrong_sentence_granted": "0/1301"
+    }
+  },
+  "real_round3_model_reasons_prose_only_granted": "32/137",
+  "real_round3_sentence_copied_prose_only_granted": {
+    "construction": "0/137",
+    "mechanism_in_use": "0/137",
+    "original_appearance": "0/137",
+    "unphotographed_interior": "0/137"
+  },
+  "real_this_commit": {
+    "voice": {
+      "beats_inside_one_sentence": 188,
+      "prose_only_granted": "0/50948",
+      "structured_genuine_granted": "1104/1128",
+      "mismatched_cause_granted": "0/2632",
+      "other_sentence_subject_granted": "0/1128",
+      "wrong_sentence_granted": "0/1266"
+    },
+    "tail_1s": {
+      "beats_inside_one_sentence": 195,
+      "prose_only_granted": "0/52845",
+      "structured_genuine_granted": "1146/1170",
+      "mismatched_cause_granted": "0/2730",
+      "other_sentence_subject_granted": "0/1170",
+      "wrong_sentence_granted": "0/1301"
+    },
+    "tail_3s": {
+      "beats_inside_one_sentence": 195,
+      "prose_only_granted": "0/52845",
+      "structured_genuine_granted": "1146/1170",
+      "mismatched_cause_granted": "0/2730",
+      "other_sentence_subject_granted": "0/1170",
+      "wrong_sentence_granted": "0/1301"
+    }
+  },
+  "real_this_commit_model_reasons_prose_only_granted": "0/137",
+  "real_this_commit_sentence_copied_prose_only_granted": {
+    "construction": "0/137",
+    "mechanism_in_use": "0/137",
+    "original_appearance": "0/137",
+    "unphotographed_interior": "0/137"
+  },
+  "lists_met": false,
+  "real_no_prose_grant": true,
+  "real_no_wrong_grant": true,
+  "real_no_structured_grant_lost": true,
+  "acceptance_met": false
+}

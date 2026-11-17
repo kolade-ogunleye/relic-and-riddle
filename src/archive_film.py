@@ -36,7 +36,15 @@ log = logging.getLogger(__name__)
 
 SEARCH = "https://archive.org/advancedsearch.php"
 METADATA = "https://archive.org/metadata/"
-UA = {"User-Agent": "RelicAndRiddle/1.0 (archive film for history videos; https://github.com/kolade-ogunleye/relic-and-riddle)"}
+
+
+def user_agent(contact: str = "") -> str:
+    """archive.org's User-Agent for this client: the brand, what it is for, and the operator's contact (BRAND_CONTACT)
+    when one is set. No contact is written into the source (QF-49)."""
+    return "RelicAndRiddle/1.0 (archive film for history videos" + (f"; {contact}" if contact else "") + ")"
+
+
+UA = {"User-Agent": user_agent(config.BRAND_CONTACT)}
 PAUSE = 1.0                     # archive.org asks automated clients to space their requests
 BROADCAST = {"tvarchive", "tvnews"}
 COMMUNITY = {"opensource_movies", "opensource", "community_video", "communityvideos", "folksoundomy"}
@@ -92,6 +100,11 @@ def archive_candidates(query: str, keywords: List[str], limit: int = 6) -> Tuple
         text = " ".join([str(meta.get("title", ""))] + [str(s) for s in subjects])
         if collections & BROADCAST or not rights or not license_allowed(rights[0]) or not _relevant(text, keywords):
             continue  # confirmed from the item's own record, not the search index
+        from .source_policy import blocked_source
+        if blocked_source({"license": rights[0], "source_url": f"https://archive.org/details/{doc['identifier']}",
+                           "creator": str(meta.get("creator") or ""), "credit": str(meta.get("source") or ""),
+                           "collections": sorted(str(c) for c in collections if c)}):
+            continue  # an excluded source (QF-126)
         best = _best_file(record.get("files") or [])
         if not best:
             continue
@@ -220,6 +233,9 @@ def card(assets_dir: Path, topic: Dict[str, Any], ask: Optional[List[dict]] = No
             lines.append(f"{n}. <a href=\"{e(r['source_url'])}\">{e(r['title'][:70])}</a> · {e(r.get('year') or '')} · {e(r['license'])} · "
                          f"{r.get('duration', 0):.0f} s · {e(who)}")
         lines.append(f"Use: <code>/footage {key} use 1 2</code> · drop: <code>/footage {key} drop 3</code>")
+        # Operator ruling QF-57 (decisions/QF-57.md): the "use" tap is recorded as the film's worldwide rights basis.
+        lines.append("Using a film records your approval as its worldwide rights basis: use only a film whose "
+                     "licence you have checked holds worldwide.")
     else:
         lines += ["", f"No film is waiting. Find some: <code>/footage {key} find</code>"]
     lines += ["", f"<b>In use</b>: {len(in_use)} clip(s) (muted, at most {int(config.FOOTAGE_MAX_SHARE * 100)}% of a video, credited)"]
@@ -243,6 +259,12 @@ def decide(assets_dir: Path, topic_id: str, numbers: List[int], use: bool) -> Li
         decided[record["id"]] = "used" if use else "dropped"
         if use:
             record["check_note"] = "Found in an open archive; its licence checked; approved by the operator"
+            from .image_rights import basis
+            record["worldwide_basis"] = basis(
+                "archive-film-operator-approved",
+                record.get("source_url", ""),
+                check_note=record["check_note"],
+            )
             target = folder / path.name.split("_", 1)[-1]
             shutil.move(str(path), target)
             target.with_suffix(".json").write_text(json.dumps(record, indent=1, ensure_ascii=False), encoding="utf-8")

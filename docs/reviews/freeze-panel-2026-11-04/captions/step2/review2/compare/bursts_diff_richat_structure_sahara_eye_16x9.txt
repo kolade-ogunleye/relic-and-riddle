@@ -1,0 +1,41 @@
+--- before (HEAD)
++++ after (working tree)
+@@ -113,17 +113,18 @@
+   bursts spanning a pause of 0.30 s or more after punctuation: ["4: 0.55s after 'landmark,' in desert landmark, the concentric", "11: 0.54s after 'across,' in across, though satellite observations", "52: 0.74s after 'timeline:' in timeline: dating of the carbonatite rocks", "73: 0.34s after 'activity,' in activity, the physical record", "78: 0.57s after 'reality,' in reality, as the feature is an ancient", "94: 0.34s after 'processes,' in terrestrial processes, what"]
+-  sidecar cues (.srt/.vtt): 46
+-       0.09-   4.57  'The Richat Structure is situated near\nOuadane on the Adrar Plateau within the'
+-       4.57-   6.40  'Adrar Region of Mauritania.'
+-       6.70-   9.62  'Visible from space as a\nmassive desert landmark,'
++  sidecar cues (.srt/.vtt): 47
++       0.09-   4.16  'The Richat Structure is situated\nnear Ouadane on the Adrar Plateau'
++       4.16-   6.40  'within the Adrar Region of Mauritania.'
++       6.70-   9.62  'Visible from space\nas a massive desert landmark,'
+       10.06-  14.16  'the concentric formation has served as a\nvisual reference point for space shuttle'
+       14.16-  17.96  'crews. Its documented scale depends\non the observational method:'
+-      18.56-  22.78  'geological field surveys record the\nfeature at 40 kilometres across,'
++      18.56-  22.78  'geological field surveys record\nthe feature at 40 kilometres across,'
+       23.21-  27.42  'though satellite observations describe\nit as spanning almost 50 kilometres.'
+-      27.73-  32.17  'What physical processes formed this\ncircular geological formation in the'
+-      32.17-  37.04  'Sahara? Geologists identify the structure\nas an eroded dome created when a'
+-      37.04-  42.03  'subsurface igneous intrusion deformed the\noverlying sedimentary rock into concentric'
++      27.73-  30.57  'What physical processes\nformed this circular'
++      30.57-  35.23  'geological formation in the Sahara?\nGeologists identify the structure'
++      35.23-  38.80  'as an eroded dome created\nwhen a subsurface igneous intrusion'
++      38.80-  42.03  'deformed the overlying sedimentary\nrock into concentric'
+       42.03-  46.88  'rings. The structural characteristics\ndisplay distinct layering and magmatic'
+       46.88-  52.23  'features. By one estimate, the sedimentary\nrock layers that form the outer rings of'
+-      52.23-  55.92  'the structure dip outward at\nangles between 10 and 20 degrees.'
+-      56.22-  59.62  'Framing the complex are\nconcentric gabbroic ring dikes,'
++      52.23-  55.92  'the structure dip outward\nat angles between 10 and 20 degrees.'
++      56.22-  59.62  'Framing the complex\nare concentric gabbroic ring dikes,'
+       60.01-  64.63  'consisting of an inner ring about 30\nmetres wide and an outer ring about 70'
+@@ -135,3 +136,3 @@
+       86.54-  91.56  'impact crater. However, the impact\ntheory was disproved when suspected'
+-      91.56-  96.67  'shock-metamorphism coesite was\nidentified in 1969 as mislabeled barite.'
++      91.56-  96.67  'shock-metamorphism coesite was identified\nin 1969 as mislabeled barite.'
+       96.98- 100.88  'Subsequent geochemical analyses\nestablished a terrestrial timeline:'
+@@ -157,3 +158,3 @@
+      184.08- 186.20  'official geological heritage sites.'
+-     186.52- 189.86  'With its origin grounded in\nverified terrestrial processes,'
++     186.52- 189.86  'With its origin grounded\nin verified terrestrial processes,'
+      190.10- 194.15  'what questions remain for field\nresearchers studying the formation and its'

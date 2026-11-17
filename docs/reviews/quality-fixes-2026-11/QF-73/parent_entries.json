@@ -1,0 +1,413 @@
+{
+  "_doc": "QF-73 parity record: SHA-256 of each entry of the parent's data files (canonical JSON: sorted keys, no spaces, UTF-8). tests/test_qf73_topic_bank.py checks every entry still hashes the same, so a data file rebuilt from an older commit cannot silently revert an approved row. topic_bank entries are hashed on the parent's own keys except 'hook' (QF-73 rewrites every hook), with '#ReelsViral' left out of 'hashtags' (QF-73 drops it). A later row that changes an entry on purpose updates its digest here.",
+  "parent": "d9d623fb3117d591caa252e37fb0f76abfd8f51e",
+  "image_queries": {
+    "_doc": "276a4d607ebfe8f8cfcab984e989db291b001bd6a8cb6d98dff5b5f5bc9b7a8f",
+    "derinkuyu_underground_city": "ea6b888ea3ba7cd3c431224a8ed9758f2e1b92b94f28cd7e667f6a08ae9850b6",
+    "roman_self_healing_concrete": "9e72081ca38eace14baa357f01bced8b6f1fb267998431b4aa1837b044d591db",
+    "kailasa_temple_monolith": "41a0d5cd6f7890a6ac97b8f78ada9cdaf62e3f10fc9f491f19d5d52c9603dfde",
+    "antikythera_mechanism": "87b004e5d9396ecd1fdb5b24346dee753d55884429c1bd019924855562030bd2",
+    "gobekli_tepe_enclosure_d": "f7bd66ae694ad058bf5246f774f6d43bb64cc77f3cb8f03e7bc5e83e7ce9b79e",
+    "damascus_steel_nanotubes": "d1c2003b698a29be3b2485a1ee370328fae8dc7c469bd47dd42a4691581d8468",
+    "camp_century_nuclear_ice_city": "43b5d11e54fd85825d4b35baa4168b7acb4a33eaa07acd57cd57dabb187de50c",
+    "hal_saflieni_hypogeum": "64d79d8f61a6ad707fe84333f9aad14829ad2bba6e402f674051e140d6a73c24",
+    "greek_fire_siphon": "8a30c3ff1c61c07cd8050b92b27b846d35c5e9d52d0ee9f7a919f0be200eec79",
+    "unfinished_obelisk_aswan": "4fc3b936fe5e0218a7092a8627d0f2d2745ce77c5c37b05378f5a7799cefa8e0",
+    "piri_reis_1513_map": "a7a90ff507870b9002bcc3f3e46040e45878f6667f725693e59d176a89489914",
+    "flannan_isle_lighthouse_disappearance": "f9eabf97af13f8a16340c3b533a2cd117107c08a8b31b6dcded041994786deeb",
+    "trepanation_miracle": "343550987c666ce1c3847a49a21bfe9007c25164946a4ed0a3f5f8ed8b2587d9",
+    "nazca_lines_runway_paradox": "7bb0226aa90f7d48dc523fe80f3d7453038c5cdaba015345b72e6f0beafe62d3",
+    "sunken_city_of_heracleion": "6d7d1fb5965f39f8b41cc9d3cc5de079c5a177b53498c8211a295d278332d845",
+    "zhang_heng_seismoscope": "561032b1064d20fcce16597e9498408e04d7e5efdbb1d9071ee6ef70ce1fe53e",
+    "voynich_manuscript": "5bfc7c2665030bd3e73e703ca73811f5aa3886f377141520968173ab30858d9d",
+    "odessa_catacombs": "f55dc730f24bb822a179c1160a27967da2098e38ecdeeae87d33c2d0f3a109e4",
+    "richat_structure_sahara_eye": "b3d61386c8cf1f40a3bcfca258e85794190df931ebd7523a5bd6c88cb512369e",
+    "amber_room_heist": "4b5d3ed82a7628011682486b99323ac0c26af61809c5bbfc29b59b488796ce87",
+    "gol_gumbaz_whispering_gallery": "88c2f0bab3803f927f06d560b1be3bc9b30615fe70865c32bfa8800bea380f97",
+    "tunguska_event_1908": "ee30f77018c59b0a71052b1e544f288b12754b6493cc7ccefd8a5ffacd3b24ba",
+    "claw_of_archimedes": "b6498de5500c305461aea4b59176526457dfdcd2109f42ba4f59b5f713f5ecb2",
+    "dyatlov_pass_incident": "b085420af8ffbba0361143a514cb20736df1283728c166aa71e0565e0225c2a2",
+    "lycurgus_cup_nanotech": "5dacecc74a5ea4755b7892fe630b4ffe83e740dbe04969d64e14c5bfc713a551",
+    "wieliczka_salt_mine": "5aed2b4b54f67c0a55117e7188a5746286e1dbed47c54dee5fd564b4b0c873e6",
+    "great_wall_of_gorgan": "f20a2b3b8924e510d3082cedb931d86abd48253b4b67d4faef10b97a44bb5058",
+    "dancing_plague_1518": "a6aec32477b7ba48c60ce5f9b4de3228e690ed68bd1a74ae65cbe21cd46c61e2",
+    "baltic_sea_anomaly": "41a48ccd25455fb95f6e6a357ed65f2abc0aa762933cd95874a62c3f37a40bae",
+    "acoustic_kitty_cia": "8ed49e1ff1fb79e5c6972c9b3b49c7a24698d76cb37b6aa5132570c745c94d3e",
+    "singing_colossi_of_memnon": "a72d575b8b55de711db90d56230bdc0aaf8496f662a71d392ba24a1c15757e37"
+  },
+  "topic_bank": {
+    "derinkuyu_underground_city": {
+      "keys": [
+        "hashtags",
+        "id",
+        "key_facts",
+        "location",
+        "meta_categories",
+        "sub_theme",
+        "title"
+      ],
+      "sha256": "3f2631851f5a947bd8b1319d48a25458e442bf7c1ea0694ca4b3ecce0f0bb40a"
+    },
+    "roman_self_healing_concrete": {
+      "keys": [
+        "hashtags",
+        "id",
+        "key_facts",
+        "location",
+        "meta_categories",
+        "sub_theme",
+        "title"
+      ],
+      "sha256": "89becde7f8519687353d6eef23d09cea9d43ff5cdd35a2e7ac4c436e21b14e8a"
+    },
+    "kailasa_temple_monolith": {
+      "keys": [
+        "hashtags",
+        "id",
+        "key_facts",
+        "location",
+        "meta_categories",
+        "sub_theme",
+        "title"
+      ],
+      "sha256": "378709aa6a8a19a5cb0c627e707831cda6be8e94eecd3915040d1f626debb653"
+    },
+    "antikythera_mechanism": {
+      "keys": [
+        "hashtags",
+        "id",
+        "key_facts",
+        "location",
+        "meta_categories",
+        "sub_theme",
+        "title"
+      ],
+      "sha256": "bd1dea86d2cb4e42b928d56a736b7193c6706a504b4745f9ace235c8a1269a58"
+    },
+    "gobekli_tepe_enclosure_d": {
+      "keys": [
+        "hashtags",
+        "id",
+        "key_facts",
+        "location",
+        "meta_categories",
+        "sub_theme",
+        "title"
+      ],
+      "sha256": "24cb539f52ce542c61ceb9c8ca04363cf151600f1ab4c2c2a6a37b8dd2216b4e"
+    },
+    "damascus_steel_nanotubes": {
+      "keys": [
+        "hashtags",
+        "id",
+        "key_facts",
+        "location",
+        "meta_categories",
+        "sub_theme",
+        "title"
+      ],
+      "sha256": "4d5310909768345878c20d966b850c8e375307d5f928a397c386b654acd4d153"
+    },
+    "camp_century_nuclear_ice_city": {
+      "keys": [
+        "hashtags",
+        "id",
+        "key_facts",
+        "location",
+        "meta_categories",
+        "sub_theme",
+        "title"
+      ],
+      "sha256": "00cabeef40cbda780e2f5370a935d135ebe89fa794ec2c2d7055edfd093145ff"
+    },
+    "hal_saflieni_hypogeum": {
+      "keys": [
+        "hashtags",
+        "id",
+        "key_facts",
+        "location",
+        "meta_categories",
+        "sub_theme",
+        "title"
+      ],
+      "sha256": "205a13f932da116c5e5c95b017448e9a8a7112f55cea75faee4d481fb729ff3d"
+    },
+    "greek_fire_siphon": {
+      "keys": [
+        "hashtags",
+        "id",
+        "key_facts",
+        "location",
+        "meta_categories",
+        "sub_theme",
+        "title"
+      ],
+      "sha256": "a313b8d19ef5e5c50d3e3acbd14463336665c27ef926e75d32cecf387f908c7f"
+    },
+    "unfinished_obelisk_aswan": {
+      "keys": [
+        "hashtags",
+        "id",
+        "key_facts",
+        "location",
+        "meta_categories",
+        "sub_theme",
+        "title"
+      ],
+      "sha256": "5eb7cc27940e5e035190456eb32f9bcdd7411139a322eca71c9b25d38f2ecccd"
+    },
+    "piri_reis_1513_map": {
+      "keys": [
+        "hashtags",
+        "id",
+        "key_facts",
+        "location",
+        "meta_categories",
+        "sub_theme",
+        "title"
+      ],
+      "sha256": "29b5f08927360003f85446bdfa2808e582ec554923e2cd1d9e7925057a569844"
+    },
+    "flannan_isle_lighthouse_disappearance": {
+      "keys": [
+        "hashtags",
+        "id",
+        "key_facts",
+        "location",
+        "meta_categories",
+        "sub_theme",
+        "title"
+      ],
+      "sha256": "667ab5b86f0a7e6e4717ae7cd0e57f6d87e79a7df9a398cba43c10fa16792322"
+    },
+    "trepanation_miracle": {
+      "keys": [
+        "hashtags",
+        "id",
+        "key_facts",
+        "location",
+        "meta_categories",
+        "sub_theme",
+        "title"
+      ],
+      "sha256": "1e4e0a939b7598e9028f29e435fa6512880ada569be3eb7dcc2038d0f98d0a68"
+    },
+    "nazca_lines_runway_paradox": {
+      "keys": [
+        "hashtags",
+        "id",
+        "key_facts",
+        "location",
+        "meta_categories",
+        "sub_theme",
+        "title"
+      ],
+      "sha256": "6d240b237d9ffc601b200361724dfd86bcae42d7ec84b3ab50f1fea58af2d62f"
+    },
+    "sunken_city_of_heracleion": {
+      "keys": [
+        "hashtags",
+        "id",
+        "key_facts",
+        "location",
+        "meta_categories",
+        "sub_theme",
+        "title"
+      ],
+      "sha256": "a8d8a4a426ef03075dd069558c1bd8f758241036c717a88465bd9e83d3a8b47a"
+    },
+    "zhang_heng_seismoscope": {
+      "keys": [
+        "hashtags",
+        "id",
+        "key_facts",
+        "location",
+        "meta_categories",
+        "sub_theme",
+        "title"
+      ],
+      "sha256": "2767ed3d810cd222549bcad01045eb3c053a3b90b2c7d7bc92e910fa0c665dad"
+    },
+    "voynich_manuscript": {
+      "keys": [
+        "hashtags",
+        "id",
+        "key_facts",
+        "location",
+        "meta_categories",
+        "sub_theme",
+        "title"
+      ],
+      "sha256": "46c26b5b2ba00f86138125c0dbce7c266db69308699b104fb3b010ad01dd003b"
+    },
+    "odessa_catacombs": {
+      "keys": [
+        "hashtags",
+        "id",
+        "key_facts",
+        "location",
+        "meta_categories",
+        "sub_theme",
+        "title"
+      ],
+      "sha256": "ce39ef00a175aeb3c56c00a9301fbfad49a59bfc29021ad1564456e99f8e8a28"
+    },
+    "richat_structure_sahara_eye": {
+      "keys": [
+        "hashtags",
+        "id",
+        "key_facts",
+        "location",
+        "meta_categories",
+        "sub_theme",
+        "title"
+      ],
+      "sha256": "a020c56adfb6bb1a44e79f69aeef9b1a0bffad36df336a2b614c06feb3829171"
+    },
+    "amber_room_heist": {
+      "keys": [
+        "hashtags",
+        "id",
+        "key_facts",
+        "location",
+        "meta_categories",
+        "sub_theme",
+        "title"
+      ],
+      "sha256": "56707bc879844bf120ef1f6edfb74aad3c9b0a78630a2ac600a9bd26a125c29f"
+    },
+    "gol_gumbaz_whispering_gallery": {
+      "keys": [
+        "hashtags",
+        "id",
+        "key_facts",
+        "location",
+        "meta_categories",
+        "sub_theme",
+        "title"
+      ],
+      "sha256": "ef4fc68465f3bab9c518d5ba6484d4dc064f067089fad0f966d049b0b7207c89"
+    },
+    "tunguska_event_1908": {
+      "keys": [
+        "hashtags",
+        "id",
+        "key_facts",
+        "location",
+        "meta_categories",
+        "sub_theme",
+        "title"
+      ],
+      "sha256": "eac0335d2b2d50b17991790e27419da1a3860b90bc539ae0549cdd05521b1e1c"
+    },
+    "claw_of_archimedes": {
+      "keys": [
+        "hashtags",
+        "id",
+        "key_facts",
+        "location",
+        "meta_categories",
+        "sub_theme",
+        "title"
+      ],
+      "sha256": "f35e6f7d2f45bf6a5771dc5a8ff3e91d52fb46870c29d2e07d4a58ba25b94044"
+    },
+    "dyatlov_pass_incident": {
+      "keys": [
+        "hashtags",
+        "id",
+        "key_facts",
+        "location",
+        "meta_categories",
+        "sub_theme",
+        "title"
+      ],
+      "sha256": "ba9fad753e02cd25d21e266ec910b7da114522a4f71cdd93fa1865993bf89e3a"
+    },
+    "lycurgus_cup_nanotech": {
+      "keys": [
+        "hashtags",
+        "id",
+        "key_facts",
+        "location",
+        "meta_categories",
+        "sub_theme",
+        "title"
+      ],
+      "sha256": "0720ca0ee865996872a79492d7360de0dcba29abddf459d573440203ea45df01"
+    },
+    "wieliczka_salt_mine": {
+      "keys": [
+        "hashtags",
+        "id",
+        "key_facts",
+        "location",
+        "meta_categories",
+        "sub_theme",
+        "title"
+      ],
+      "sha256": "b26ad970b8f5f3ff73117076d968946d694dd75d26304e55880282bc04063d48"
+    },
+    "great_wall_of_gorgan": {
+      "keys": [
+        "hashtags",
+        "id",
+        "key_facts",
+        "location",
+        "meta_categories",
+        "sub_theme",
+        "title"
+      ],
+      "sha256": "606977f473cdf7b3efc7faef286a50386a205428961d5829c74ddff115550833"
+    },
+    "dancing_plague_1518": {
+      "keys": [
+        "hashtags",
+        "id",
+        "key_facts",
+        "location",
+        "meta_categories",
+        "sub_theme",
+        "title"
+      ],
+      "sha256": "e3e4ae2ad4186debb5af6354a561117472f5fa3fe785ddd03d685cb7e826dc35"
+    },
+    "baltic_sea_anomaly": {
+      "keys": [
+        "hashtags",
+        "id",
+        "key_facts",
+        "location",
+        "meta_categories",
+        "sub_theme",
+        "title"
+      ],
+      "sha256": "ebcbf99febb82b1561d024037be31daea463628017738d93b20403e3be21cb1f"
+    },
+    "acoustic_kitty_cia": {
+      "keys": [
+        "hashtags",
+        "id",
+        "key_facts",
+        "location",
+        "meta_categories",
+        "sub_theme",
+        "title"
+      ],
+      "sha256": "39200fb8450970f2f20d05581868b1fa6f9f6b87abf38905aa85a7c4012a1f9a"
+    },
+    "singing_colossi_of_memnon": {
+      "keys": [
+        "hashtags",
+        "id",
+        "key_facts",
+        "location",
+        "meta_categories",
+        "sources",
+        "sub_theme",
+        "title"
+      ],
+      "sha256": "57c7d800cf7b9d838002cb96324c28b983d77074453f05ccaa51e047154ccd12"
+    }
+  }
+}

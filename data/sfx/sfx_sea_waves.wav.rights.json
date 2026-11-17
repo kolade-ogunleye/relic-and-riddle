@@ -1,5 +1,5 @@
 {
-  "path": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\data\\sfx\\sfx_sea_waves.wav",
+  "path": "data/sfx/sfx_sea_waves.wav",
   "sha256": "001fa3b6439746496bbc4312708f56310d264dbdd279ae6bbeac9e0b34c39ca5",
   "provider": "elevenlabs-sound-effects",
   "plan": "creator",

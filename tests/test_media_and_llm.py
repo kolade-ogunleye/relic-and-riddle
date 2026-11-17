@@ -151,9 +151,16 @@ def test_long_caption_bursts_shrink_to_safe_width(tmp_path):
     assert r"{\fs" in text.split("[Events]")[1]
 
 
-def test_captions_sit_above_meta_bottom_safe_zone():
+def test_captions_sit_above_shared_organic_bottom_safe_zone():
     from src.config import CAPTION_MARGIN_V, VIDEO_HEIGHT
-    assert CAPTION_MARGIN_V >= 0.35 * VIDEO_HEIGHT
+    from src.safe_zones import DELIVERABLES, PLATFORM_UI, REEL, REFERENCE_HEIGHT
+
+    # Organic Shorts publishes 28%; the observed Meta shopping/crop stress
+    # envelope, including annotation uncertainty and clearance, needs 550px.
+    assert CAPTION_MARGIN_V >= 550 * VIDEO_HEIGHT / REFERENCE_HEIGHT
+    assert CAPTION_MARGIN_V >= 0.28 * VIDEO_HEIGHT
+    assert CAPTION_MARGIN_V == REEL.bottom
+    assert CAPTION_MARGIN_V >= max(PLATFORM_UI[name].bottom for name in DELIVERABLES["reel"])
 
 
 @pytest.mark.parametrize("effort", ["low", "medium", "high"])

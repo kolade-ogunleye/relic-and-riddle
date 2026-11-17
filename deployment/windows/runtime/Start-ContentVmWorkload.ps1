@@ -111,11 +111,24 @@ while ($true) {
     $record | ConvertTo-Json | Set-Content -LiteralPath $pidPath -Encoding UTF8
     $started = [datetime]::UtcNow
     $heldForRelease = $false
+    $gateCheckedAt = [datetime]::MinValue
     try {
         while (-not $worker.WaitForExit(1000)) {
             $timedOut = $Mode -eq 'Canary' -and [datetime]::UtcNow -gt $started.AddSeconds(90)
             $stopRequested = Test-Path -LiteralPath $stopPath
             $holdRequested = $releaseHold -and (Test-Path -LiteralPath $holdPath)
+            if ($holdRequested -and -not $stopRequested -and -not $timedOut) {
+                # QF-70: the deployer checked the gate before it wrote the hold; an Approve may have been tapped since
+                # (an open review is idle). Ask again immediately before stopping the worker: while busy, the hold is
+                # declined (the deployer clears it after 6 minutes and tries again later); every 15 seconds.
+                if ([datetime]::UtcNow -lt $gateCheckedAt.AddSeconds(15)) { continue }
+                $gateCheckedAt = [datetime]::UtcNow
+                $gateNow = Test-ContentReleaseGate -Python $python -AppRoot $appRoot
+                if (-not $gateNow.Idle) {
+                    Write-ContentHoldState -Path (Join-Path $logs 'Hold.json') -State declined -Detail ([string]$gateNow.Detail)
+                    continue
+                }
+            }
             if ($timedOut -or $stopRequested -or $holdRequested) {
                 & "$env:SystemRoot/System32/taskkill.exe" /PID $worker.Id /T /F | Out-Null
                 if ($LASTEXITCODE -ne 0) { throw 'Worker tree did not stop cleanly.' }

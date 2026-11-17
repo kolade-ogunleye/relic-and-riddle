@@ -1,0 +1,98 @@
+{
+ "development_runs": {
+  "runs_asking_a_credit": 28,
+  "photos_to_credit": 161,
+  "music_tracks_to_credit": 10,
+  "credit_characters": {
+   "one_line_a_photo": {
+    "all_runs": 41755,
+    "longest_run": 2532,
+    "runs_over_1500": 16
+   },
+   "one_line_a_licence_full_links": null,
+   "one_line_a_licence_page_id_links": null
+  },
+  "one_line_a_photo_characters_by_part": {
+   "author": 2387,
+   "title": 7598,
+   "licence_name": 1575,
+   "page_link": 15447,
+   "licence_link": 7081,
+   "marks_and_separators": 2576
+  },
+  "credited": {
+   "held_for_credits": 14,
+   "sent": 14,
+   "sent_with_every_credit_complete_in_every_text": 14,
+   "sent_lacking_a_credit": 0,
+   "texts_sent_over_their_limit": 0,
+   "credit_lines_cut_in_texts_sent": 0,
+   "photo_credits_in_texts_sent": {
+    "asked": 61,
+    "author": 61,
+    "title": 61,
+    "page_link": 61,
+    "licence_name": 61,
+    "licence_link": 61,
+    "complete": 61
+   },
+   "notices_and_music_in_texts_sent": {
+    "asked": 20,
+    "carried": 20
+   },
+   "runs_using_one_line_a_licence": 0,
+   "links_by_page_id": 0,
+   "links_by_page_id_not_the_photos_page": 0,
+   "lookups": 0,
+   "held_runs_with_a_credit_line_cut": 0
+  }
+ },
+ "production_sample_runs": {
+  "runs_asking_a_credit": 32,
+  "photos_to_credit": 174,
+  "music_tracks_to_credit": 15,
+  "credit_characters": {
+   "one_line_a_photo": {
+    "all_runs": 45079,
+    "longest_run": 2511,
+    "runs_over_1500": 16
+   },
+   "one_line_a_licence_full_links": null,
+   "one_line_a_licence_page_id_links": null
+  },
+  "one_line_a_photo_characters_by_part": {
+   "author": 2905,
+   "title": 8019,
+   "licence_name": 1788,
+   "page_link": 15434,
+   "licence_link": 7779,
+   "marks_and_separators": 2784
+  },
+  "credited": {
+   "held_for_credits": 14,
+   "sent": 18,
+   "sent_with_every_credit_complete_in_every_text": 18,
+   "sent_lacking_a_credit": 0,
+   "texts_sent_over_their_limit": 0,
+   "credit_lines_cut_in_texts_sent": 0,
+   "photo_credits_in_texts_sent": {
+    "asked": 70,
+    "author": 70,
+    "title": 70,
+    "page_link": 70,
+    "licence_name": 70,
+    "licence_link": 70,
+    "complete": 70
+   },
+   "notices_and_music_in_texts_sent": {
+    "asked": 26,
+    "carried": 26
+   },
+   "runs_using_one_line_a_licence": 0,
+   "links_by_page_id": 0,
+   "links_by_page_id_not_the_photos_page": 0,
+   "lookups": 0,
+   "held_runs_with_a_credit_line_cut": 0
+  }
+ }
+}

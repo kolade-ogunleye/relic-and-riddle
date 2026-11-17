@@ -4,18 +4,152 @@ on:
   push:
   pull_request:
 
+# QF-135: the full suite runs as SHARDS parallel jobs (same environment, same checks, every test exactly once); the
+# `test` job is the single check that stays required: it fails when any shard fails or when the shards' results
+# are not exactly the full collection (scripts/ci_shards.py verify).
+env:
+  SHARDS: 8
+  # QF-116's pinned FFmpeg build (the shard job's FFmpeg steps).
+  FFMPEG_URL: https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2026-03-31-13-11/ffmpeg-n8.1-7-ga3475e2554-linux64-gpl-8.1.tar.xz
+  FFMPEG_SHA256: 86aa72199be1f828fa895e1c854e27241a66e038ba23b091ae3b78b5f00814ac
+
 jobs:
+  shard:
+    name: shard ${{ matrix.shard }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4, 5, 6, 7, 8]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        id: python
+        with:
+          python-version: "3.11"
+          cache: pip
+      # QF-135: the installed lock is cached per runner image, Python release, uv.lock and this workflow, so the shards
+      # do not each unpack it. "Install the hashed lock" still runs: pip keeps a package only at the exact pinned
+      # version and installs any other from the hashed lock; a changed lock, image or workflow (a step that installs
+      # something else) is a new key.
+      - name: Runner image
+        id: image
+        run: echo "id=$ImageOS-$ImageVersion" >> "$GITHUB_OUTPUT"
+      - name: Installed-lock cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.pythonLocation }}
+          key: site-${{ steps.image.outputs.id }}-py${{ steps.python.outputs.python-version }}-${{ hashFiles('uv.lock', '.github/workflows/tests.yml') }}
+      - run: sudo apt-get update && sudo apt-get install -y libsndfile1 libfribidi0 libfontconfig1 libgl1 libegl1
+      # QF-116: the FFmpeg release development and production run (8.1, docs/deployment.md step 5), not the runner's
+      # apt ffmpeg. A BtbN FFmpeg-Builds static GPL build (libass, HarfBuzz, FriBidi, FreeType, fontconfig, libx264,
+      # libvmaf) from a month-end autobuild release (kept two years); pinned by URL and SHA-256. QF-135: the archive
+      # is cached by its SHA-256, and the hash is checked on every run whether it came from the cache or the network.
+      - name: FFmpeg archive cache
+        uses: actions/cache@v4
+        with:
+          path: ~/ffmpeg-archive
+          key: ffmpeg-${{ env.FFMPEG_SHA256 }}
+      - name: FFmpeg 8.1 (pinned static build, SHA-256 verified)
+        run: |
+          set -euo pipefail
+          mkdir -p ~/ffmpeg-archive
+          if [ ! -f ~/ffmpeg-archive/ffmpeg.tar.xz ]; then
+            curl -fsSL --retry 3 --proto '=https' --tlsv1.2 -o ~/ffmpeg-archive/ffmpeg.tar.xz "$FFMPEG_URL"
+          fi
+          cp ~/ffmpeg-archive/ffmpeg.tar.xz "$RUNNER_TEMP/ffmpeg.tar.xz"
+          echo "$FFMPEG_SHA256  $RUNNER_TEMP/ffmpeg.tar.xz" | sha256sum --check --strict
+          mkdir "$RUNNER_TEMP/ffmpeg"
+          tar -xJf "$RUNNER_TEMP/ffmpeg.tar.xz" -C "$RUNNER_TEMP/ffmpeg" --strip-components=2 --wildcards '*/bin/ffmpeg' '*/bin/ffprobe'
+          echo "$RUNNER_TEMP/ffmpeg" >> "$GITHUB_PATH"
+      - name: YuNet face model (opencv_zoo, MIT, docs/sources.md; SHA-256 verified)
+        # the pipeline's face model (tools/ is gitignored): the critic's and the privacy blur's face tests run on it
+        # in CI instead of skipping (QF-136); pinned to an opencv_zoo commit, and the hash is checked
+        run: |
+          set -euo pipefail
+          mkdir -p tools
+          curl -fsSL --retry 3 --proto '=https' --tlsv1.2 -o tools/yunet.onnx \
+            "https://media.githubusercontent.com/media/opencv/opencv_zoo/f12e12798e8314f7c074a6656816c048dcc95b7a/models/face_detection_yunet/face_detection_yunet_2023mar.onnx"
+          echo "8f2383e4dd3cfbb4553ea8718107fc0423210dc964f9f4280604804ed2552fa4  tools/yunet.onnx" | sha256sum --check --strict
+      - name: ffmpeg is the 8.1 release with every filter, encoder and format src/ uses
+        run: |
+          echo "ffmpeg: $(command -v ffmpeg), ffprobe: $(command -v ffprobe)"
+          test "$(command -v ffmpeg)" = "$RUNNER_TEMP/ffmpeg/ffmpeg"
+          test "$(command -v ffprobe)" = "$RUNNER_TEMP/ffmpeg/ffprobe"
+          python scripts/check_ffmpeg.py
+      - name: uv (the version pyproject.toml requires)
+        run: pip install uv==0.13.8
+      - name: The lock is current for pyproject.toml
+        run: uv lock --check
+      - name: Install the hashed lock (requirements.txt and the dev group)
+        run: |
+          uv export --locked --all-groups --no-emit-project --format requirements-txt -o "$RUNNER_TEMP/locked.txt"
+          pip install --require-hashes -r "$RUNNER_TEMP/locked.txt"
+      # Repository checks that do not depend on the shard run once, on shard 1.
+      - name: requirements.txt (the production install source) agrees with uv.lock
+        if: matrix.shard == 1
+        run: python scripts/check_lock.py
+      - name: Dependency advisories (fails on any advisory)
+        if: matrix.shard == 1
+        run: python -m pip_audit --strict --require-hashes --disable-pip --progress-spinner off -r "$RUNNER_TEMP/locked.txt"
+      - name: Dev tools
+        if: matrix.shard == 1
+        run: python -m ruff --version
+      - name: Topic bank editorial lint (QF-73)
+        if: matrix.shard == 1
+        run: python scripts/lint_topic_bank.py
+      - name: Windows launcher adapter tests (the installed runtime/ copy)
+        if: matrix.shard == 1
+        working-directory: deployment/windows/runtime
+        run: python -m unittest discover -s tests -p "test_*.py" -v
+      - name: Collect the full suite and plan this shard's units
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/shard"
+          python -m pytest --collect-only -q > "$RUNNER_TEMP/shard/collected.txt"
+          tail -n 1 "$RUNNER_TEMP/shard/collected.txt"
+          python scripts/ci_shards.py plan --collected "$RUNNER_TEMP/shard/collected.txt" --shard ${{ matrix.shard }} --shards "$SHARDS" > "$RUNNER_TEMP/shard/files.txt"
+          echo "shard ${{ matrix.shard }}/$SHARDS: $(wc -l < "$RUNNER_TEMP/shard/files.txt") units (whole files and test ids of split files)"
+      # The units go through pytest's @file argument (one per line; test ids can hold spaces and brackets).
+      - name: Test suite, this shard's units
+        run: python -m pytest -q -n 4 --junitxml="$RUNNER_TEMP/shard/junit.xml" "@$RUNNER_TEMP/shard/files.txt"
+      - name: Shard results for the aggregate check
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: shard-${{ matrix.shard }}
+          path: ${{ runner.temp }}/shard/
+          if-no-files-found: ignore
+          retention-days: 14
+
   test:
+    # The check name the operator and the lander read ("tests / test"): green only when every shard passed and the
+    # shards ran the full collection, each test exactly once, with no file skipping more than its baseline.
+    needs: shard
+    if: always()
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-          cache: pip
-      - run: sudo apt-get update && sudo apt-get install -y libsndfile1 ffmpeg
-      - run: pip install -r requirements.txt
-      - run: python -m pytest -q -n 4
-      - name: Preserved Windows adapter tests
-        working-directory: deployment/windows/handoff
-        run: python -m unittest discover -s tests/python -p test_content_runtime.py -v
+      - name: Every shard passed
+        run: |
+          echo "shards: ${{ needs.shard.result }}"
+          test "${{ needs.shard.result }}" = "success"
+      - uses: actions/download-artifact@v4
+        if: always()
+        with:
+          pattern: shard-*
+          path: ${{ runner.temp }}/shards
+      - name: Every collected test ran exactly once; no shard skipped more than its baseline
+        if: always()
+        run: python scripts/ci_shards.py verify --artifacts "$RUNNER_TEMP/shards" --shards "$SHARDS" --refresh "$RUNNER_TEMP/ci_shard_timings.json"
+      - name: Measured timings (to refresh .github/ci_shard_timings.json)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-shard-timings
+          path: ${{ runner.temp }}/ci_shard_timings.json
+          if-no-files-found: ignore
+          retention-days: 30

@@ -13,7 +13,9 @@ STEPS = ("file", "source", "licence", "licence_url", "author")
 PROMPTS = {
     "file": "Send the image as a photo or image document. Documents preserve resolution.",
     "source": "Send the public source page URL for this image, or tap I took this photo if it is your own.",
-    "licence": "Choose the image's licence below. It must match the source; use Cancel if rights are uncertain.",
+    "licence": ("Choose the image's licence below. It must match the source; use Cancel if rights are uncertain. "
+                "A photo marked only public domain is not used: a video needs proof it is free worldwide, so choose "
+                "CC0 when the source waives its rights."),
     "licence_url": "Send the public URL that documents this image's licence.",
     "author": "Send the photographer/creator's name for attribution.",
 }
@@ -104,6 +106,10 @@ class ImageUpload:
             raise ValueError(PROMPTS[stage])
         if stage in ("source", "licence_url") and (urlparse(value).scheme not in {"http", "https"} or not urlparse(value).netloc):
             raise ValueError("Send a public HTTP(S) URL, or Cancel")
+        if stage == "source":   # an excluded source is refused where it is named (QF-126); one that a licence
+            # can clear (ESA under CC BY-SA 3.0 IGO) is decided with the licence, when the image is added
+            from .source_policy import refuse_blocked
+            refuse_blocked({"source_url": value, "license": "CC BY-SA 3.0 IGO"})
         if stage == "licence" and not license_allowed(value):
             raise ValueError("Supported licences are PD, CC0 and CC BY (CC BY-SA when enabled); approval still requires human review")
         if stage == "licence" and state["rights"].get("own_work"):

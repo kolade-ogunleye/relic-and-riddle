@@ -170,8 +170,11 @@ def measured(monkeypatch):
 
 def _draft(payload, words):
     closing = payload["closing_sentence"]
-    body = " ".join(f"w{i}" for i in range(words - len(closing.split())))
-    return ScriptPackage.model_validate(dict(payload, narration_script=f"{body}. {closing}"))
+    opening, payoff = "Workers built an underground city.", "That city sheltered families."
+    rest = words - len((opening + " " + payoff + " " + closing).split())
+    body = " ".join(f"w{i}" for i in range(rest))
+    return ScriptPackage.model_validate(dict(payload, narration_script=f"{opening} {body}. {payoff} {closing}",
+                                             payoff_sentence=payoff))
 
 
 def test_a_kept_near_miss_passes_the_length_check_and_nothing_further_does(measured, curated_payload):

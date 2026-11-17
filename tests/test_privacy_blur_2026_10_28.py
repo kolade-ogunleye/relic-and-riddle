@@ -12,6 +12,13 @@ from src import privacy
 from src.config import BASE_DIR
 
 
+@pytest.fixture(autouse=True)
+def _cloud_verifier(monkeypatch):
+    # These cases cover the cloud verifier (model-proposed boxes, its failures), which since QF-50 runs only
+    # with FACE_VERIFY_CLOUD on; the local default is covered by tests/test_qf50_local_face_verify.py.
+    monkeypatch.setattr("src.config.FACE_VERIFY_CLOUD", True)
+
+
 def _feature_energy(gray):
     """Energy at the scale of eyes, nose and mouth (band-pass between sigma 2 and 8)."""
     g = gray.astype(np.float32)

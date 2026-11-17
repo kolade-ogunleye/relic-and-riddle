@@ -121,7 +121,9 @@ def test_a_neighbour_on_a_narrow_strip_is_named_a_step_smaller(monkeypatch) -> N
         return tb[2] - 140 + lon * 200, 700 - lat * 100
     got = graphics.close_neighbours(1080, 1920, home, to_frame, [], set())
     assert [n.name for n in got] == ["Sweden"]
-    assert got[0].px < graphics.map_name_px(1080, 1920)
+    # cycle 0 r7 (F16): the 9:16 label floor (27 px) outranks "a step smaller": map_name_px is now the floor itself, so
+    # the strip's name keeps that size and is never stepped under it (it was 24 -> 22 before)
+    assert got[0].px <= graphics.map_name_px(1080, 1920) and got[0].px >= graphics.label_floor(1080, 1920)
     assert got[0].box[0] >= tb[2] - 140 and got[0].box[2] <= tb[2]
 
 

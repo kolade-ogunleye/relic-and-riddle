@@ -206,9 +206,9 @@ def test_a_two_unit_card_counts_both_units_on_the_frame(tmp_path, monkeypatch):
     recorded = {}
     real_record = graphics.record_contrast
 
-    def spy_record(path, frame, plates):
+    def spy_record(path, frame, plates, rulers=None):
         recorded.update({name: pl.text for name, pl in plates if pl is not None and not pl.empty})
-        return real_record(path, frame, plates)
+        return real_record(path, frame, plates, rulers)
     monkeypatch.setattr(graphics, "record_contrast", spy_record)
     monkeypatch.setattr(graphics, "_encode", lambda frames, out, n, width=1080, height=1920:
                         [f for _, f in zip(range(n), frames)] and out)

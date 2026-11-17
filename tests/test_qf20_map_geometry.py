@@ -32,7 +32,8 @@ def test_narrow_neighbour_keeps_its_complete_name_without_lowering_the_font_floo
     from PIL import Image, ImageDraw
 
     width, height = size
-    floor = graphics.map_name_px(width, height) - max(graphics.NEIGHBOUR_PX_STEPS)
+    # cycle 0 r7 (F16): the least size a neighbour's name is drawn at, raised to the 9:16 label floor (27 px)
+    floor = graphics.floored(graphics.map_name_px(width, height) - max(graphics.NEIGHBOUR_PX_STEPS), width, height)
     font = graphics.get_font("Montserrat", floor, weight=graphics.MAP_NAME_WEIGHT)
     probe = ImageDraw.Draw(Image.new("L", (8, 8)))
     compact = probe.textbbox((0, 0), "GAMBIA", font=font, anchor="mm")

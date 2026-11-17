@@ -48,9 +48,9 @@ def _render(monkeypatch: pytest.MonkeyPatch, job, fps: int = 4) -> dict[str, Any
         state["path"] = path
         return path
 
-    def spy_record(path, frame, plates):
+    def spy_record(path, frame, plates, rulers=None):   # cycle 0 r7: the ruler records ride along
         state["plates"] = [(name, p) for name, p in plates if p is not None and not p.empty]
-        return real_record(path, frame, plates)
+        return real_record(path, frame, plates, rulers)
     monkeypatch.setattr(graphics, "_encode", fake_encode)
     monkeypatch.setattr(graphics, "record_contrast", spy_record)
     assert job() is not None
@@ -1392,11 +1392,14 @@ FUZZ_FAMILIES = {
 # nz/nz11, nz/nz16, nz/nz18, nz/nz27, nz/nz31, nz/nz35, nz/nz38, qz/qz0, qz/qz4, qz/qz14, xv/xv0, xv/xv1, xv/xv6,
 # xv/xv10, xv/xv11, xv/xv21, xv/xv22. Newly refused (no layout at any year ratio holds them whole on the narrower
 # column): lw/lw0, qz/qz26, tl/five_close (docs/reviews/quality-fixes-2026-11/QF-24/census_*.json).
+# Cycle 0 round 7 (F16, the 9:16 label floor, decided: legibility at feed size outranks fitting a stress set): with the
+# spans at the 27 px floor (24 before) the xv18 stress set's four long labels no longer fit the column at any year
+# ratio and the set is refused whole (it rendered at SPAN_MIN_PX 24; measured on the integrated tree a3ea959c).
 QF23_REFUSED: frozenset[str] = frozenset({
     "lw/lw0-9x16", "lw/lw12-9x16", "lw/lw9-9x16", "nz/nz0-9x16", "nz/nz14-9x16", "nz/nz15-9x16", "nz/nz2-16x9",
     "nz/nz2-9x16", "nz/nz22-9x16", "nz/nz23-9x16", "nz/nz24-9x16", "nz/nz25-9x16", "nz/nz36-16x9", "nz/nz36-9x16",
     "nz/nz39-9x16", "nz/nz5-16x9", "nz/nz5-9x16", "qz/qz12-9x16", "qz/qz26-9x16", "qz/qz9-9x16", "tl/five_close-9x16",
-    "tl/four_xl_close-16x9", "tl/four_xl_close-9x16", "tl/four_xl_mixed-9x16", "xv/xv21-16x9",
+    "tl/four_xl_close-16x9", "tl/four_xl_close-9x16", "tl/four_xl_mixed-9x16", "xv/xv18-9x16", "xv/xv21-16x9",
 })
 NAMED_TL = {"derinkuyu": DERINKUYU, "two_line4": TWO_LINE,
             "four_d": [{"year": -1200, "approximate": True, "label": "First chambers cut"},

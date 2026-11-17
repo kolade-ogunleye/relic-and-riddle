@@ -875,26 +875,6 @@ def _scale_layout(bar: ScaleBar, x: float, y: float, direction: int, box: Box) -
                           secondary_end=None if sec is None else x + direction * sec.px, box=box)
 
 
-def _label_box(im: Image.Image, cx: int, y: int, title: str, sub: str, alpha: float) -> Image.Image:
-    """Place-name label: Anton title over a gold Montserrat line, on a soft dark pill."""
-    if alpha <= 0:
-        return im
-    draw = ImageDraw.Draw(im, "RGBA")
-    max_w = centred_text_width(im.width, im.height) - 70              # the pill stays inside the Reel box
-    f1 = fit_font(draw, title.upper(), brand.DISPLAY_FONT, 66, max_w, 40)
-    f2 = fit_font(draw, sub.upper(), brand.TEXT_FONT, 30, max_w, 22)
-    w1 = draw.textlength(title.upper(), font=f1)
-    w2 = draw.textlength(sub.upper(), font=f2)
-    bw = int(min(max(w1, w2), max_w) + 70)
-    d = ImageDraw.Draw(im, "RGBA")  # RGB frame + RGBA drawing = real alpha blending (fades work)
-    a = int(255 * alpha)
-    d.rounded_rectangle([cx - bw // 2, y - 62, cx + bw // 2, y + 66], radius=18, fill=(*brand.PANEL, int(200 * alpha)),
-                        outline=(*accent(), int(220 * alpha)), width=2)
-    _text(d, (cx, y - 18), title.upper(), font=f1, fill=(*brand.BONE, a), anchor="mm")
-    _text(d, (cx, y + 38), sub.upper(), font=f2, fill=(*accent(), a), anchor="mm")
-    return im
-
-
 # ---------------------------------------------------------------------- map
 # Land a step lighter than it was (74, 76, 82 / 122, 100, 66): after the film grade the land and the sea were close
 # in value (visual critic round 4, 2026-10-29); home stays warm but not a flood of gold (big countries).
@@ -2090,28 +2070,59 @@ def place_font(px: float) -> FreeTypeFont:
     return get_font(brand.active().font(FACE["label"]), max(1, round(px)), weight=tok("place.weight"))
 
 
+def place_plates(rest: Image.Image, rows: Sequence[tuple[tuple[float, float], str, Any, str]],
+                 track: float = 0) -> list[TextPlate]:
+    """One place label's rows ((xy, text, font, anchor) each) as measured plates, one variant for the whole label:
+    BONE on an INK halo of one spread (place.halo_px), each row's the least that reaches the placement target
+    (contrast.place, 4.8, so the drawn frame keeps the 4.5 gate) and never deeper than place.halo_max; where a row
+    stays under it within that cap, the INK light-ground variant (no halo) if every row reaches it so. One variant per
+    label (round 7 integration: an INK row beside bone rows sat in their halos and drew at 3.1:1). Gates outrank the
+    cap: where neither variant holds, bone takes, row by row, the least halo that reaches the target, the exception
+    logged with its depth (flagged past HALO_EXCEPTION_CAP, 0.24) and marked on the plates (halo_exception); never a
+    label under the gate to keep a halo light."""
+    from .brand_system import HALO_EXCEPTION_CAP, tok
+    target = GATES["contrast.place"]
+
+    def ok(plates: list[TextPlate]) -> bool:      # as planned and as the record will measure it drawn here
+        return all(p.empty or (p.contrast is not None and p.contrast >= target
+                               and (p.measure(p.draw(rest)) or 0) >= target) for p in plates)
+
+    def mark(plates: list[TextPlate], exception: bool) -> list[TextPlate]:
+        for p in plates:
+            p.halo_exception = exception
+        return plates
+    bone = [plan_text(rest, xy, text, font, brand.BONE, anchor, track=track, halo_px=tok("place.halo_px"),
+                      max_halo=tok("place.halo_max")) for xy, text, font, anchor in rows]
+    if ok(bone):
+        return mark(bone, False)
+    ink = [plan_text(rest, xy, text, font, brand.INK, anchor, track=track, halo_px=0) for xy, text, font, anchor in rows]
+    if ok(ink):
+        return mark(ink, False)
+    deeper = []
+    for xy, text, font, anchor in rows:
+        # each row checked as the record will read it (TextPlate.measure on the row drawn on this ground): where the
+        # planning judgement reads higher than the measure (a top_first route row planned 5.01, measured 4.37 on
+        # the same pixels), the halo steps on until the measure holds too
+        halo = 0.0
+        while True:
+            row = plan_text(rest, xy, text, font, brand.BONE, anchor, track=track, halo_px=tok("place.halo_px"),
+                            min_halo=halo)
+            got = None if row.empty else row.measure(row.draw(rest))
+            if got is None or got >= target or row.halo >= 0.95:
+                break
+            halo = row.halo + 0.08
+        deeper.append(row)
+    worst = max((p.halo for p in deeper), default=0.0)
+    (log.warning if worst > HALO_EXCEPTION_CAP + 1e-9 else log.info)(
+        "Place label %r: no variant reaches %.1f within halo %.2f; bone at halo up to %.2f (exception).",
+        " ".join(text for _xy, text, _f, _a in rows), target, tok("place.halo_max"), worst)
+    return mark(deeper, True)
+
+
 def place_plate(rest: Image.Image, xy: tuple[float, float], text: str, font, anchor: str = "la",
                 track: float = 0) -> TextPlate:
-    """One place label as a measured plate: BONE on an INK halo of one spread (place.halo_px), the least that reaches
-    the place target and never deeper than place.halo_max; where bone stays under the text gate within that cap, the
-    INK light-ground variant (no halo) if it reaches the gate. Gates outrank the cap: on the mid-grey band where
-    neither does (a flat ground of about 115-123 luma measures 4.3-4.6 either way), bone takes the least halo up to
-    the masthead's exception ceiling (HALO_EXCEPTION_CAP, 0.24, operator ruling 4's pattern) that reaches the gate,
-    logged; past it, the better of the two."""
-    from .brand_system import HALO_EXCEPTION_CAP, tok
-    gate = GATES["contrast.text"]
-    plate = plan_text(rest, xy, text, font, brand.BONE, anchor, track=track, halo_px=tok("place.halo_px"),
-                      max_halo=tok("place.halo_max"))
-    if plate.empty or plate.contrast is None or plate.contrast >= gate:
-        return plate
-    ink = plan_text(rest, xy, text, font, brand.INK, anchor, track=track, halo_px=0)
-    if (ink.contrast or 0) >= gate:
-        return ink
-    deeper = plan_text(rest, xy, text, font, brand.BONE, anchor, track=track, halo_px=tok("place.halo_px"),
-                       max_halo=max(tok("place.halo_max"), HALO_EXCEPTION_CAP))
-    log.info("Place label %r: no variant reaches %.1f within halo %.2f; bone at halo %.2f (%.2f:1).", text, gate,
-             tok("place.halo_max"), deeper.halo, deeper.contrast or 0)
-    return max((plate, ink, deeper), key=lambda p: p.contrast or 0)
+    """A one-row place label (place_plates)."""
+    return place_plates(rest, [(xy, text, font, anchor)], track)[0]
 
 
 def marker_label_lines(text: str, width: int, height: int) -> tuple[list[str], FreeTypeFont]:
@@ -2534,7 +2545,7 @@ def label_plates_for(rest: Image.Image, layout: MarkerLayout) -> list[tuple[str,
     """The site's name rows as measured plates in the place-label role (place_plate; Anton on a 0.6 glow with a
     soft shadow before, cycle 0 round 7 F14)."""
     font = field_font(" ".join(t for t, _xy, _a in layout.rows), place_font(layout.font_px))
-    return [("place", place_plate(rest, xy, text, font, anchor)) for text, xy, anchor in layout.rows]
+    return [("place", p) for p in place_plates(rest, [(xy, text, font, anchor) for text, xy, anchor in layout.rows])]
 
 
 # ------------------------------------------------------------- round 6 (2026-11-03): the locator's framing and words
@@ -3947,10 +3958,6 @@ def map_name_px(width: int, height: int) -> int:
     """A neighbour's name's px on the frame (R4): MAP_NAME_PX on 9:16, MAP_NAME_PX_WIDE scaled on 16:9."""
     return floored(MAP_NAME_PX, width, height) if height > width else round(MAP_NAME_PX_WIDE * min(width / 1920,
                                                                                                   height / 1080))
-
-
-def neighbour_font(width: int, height: int) -> FreeTypeFont:
-    return get_font(brand.TEXT_FONT, map_name_px(width, height), weight=MAP_NAME_WEIGHT)
 
 
 NEIGHBOUR_PX_STEPS = (0, 2, 4, 6) # round 8 (review 5): px under map_name_px a neighbour's name may step down to fit
@@ -6490,7 +6497,7 @@ def tall_track(px: float) -> float:
 def tall_label_rows_needed(text: str, width: float) -> int | None:
     """The rows a 9:16 timeline label (`text`, as the column draws it) needs to be set whole at TALL_LABEL_MIN_PX,
     Montserrat TALL_LABEL_WEIGHT, +2 tracking on `width`: the fit the render makes (fit_tracked, sentences kept
-    whole past one row), so timeline_copy_fit and the render judge a label alike (review 15). None over
+    whole past one row), so a label is judged as the render judges it (review 15). None over
     TALL_LABEL_ROWS_MAX rows, or where one word alone is wider than `width`."""
     probe = ImageDraw.Draw(Image.new("RGB", (8, 8)))
     for r in range(1, TALL_LABEL_ROWS_MAX + 1):
@@ -6500,33 +6507,6 @@ def tall_label_rows_needed(text: str, width: float) -> int | None:
         if not short:
             return r
     return None
-
-
-def timeline_copy_fit(events: list[dict[str, Any]], width: int = VIDEO_WIDTH, height: int = VIDEO_HEIGHT) -> list[str]:
-    """The copy-fit problems of a 9:16 timeline's events, for upstream callers (2026-11-03 hierarchy spec): one
-    reason per label over its row budget (tall_label_rows_budget for the entries drawn) at TALL_LABEL_MIN_PX,
-    Montserrat TALL_LABEL_WEIGHT, +2 tracking on the column's measure, and one if there are more than
-    TIMELINE_MAX_EVENTS events. Empty when the copy fits. Pure: nothing is logged or drawn."""
-    out: list[str] = []
-    if len(events) > TIMELINE_MAX_EVENTS:
-        out.append(f"{len(events)} events, at most {TIMELINE_MAX_EVENTS} are drawn")
-    budget = tall_label_rows_budget(min(len(events), TIMELINE_MAX_EVENTS))
-    width_px = tall_label_measure(width, height) - TALL_INK_RESERVE   # round 6: as the render fits
-    font = get_font(brand.TEXT_FONT, TALL_LABEL_MIN_PX, weight=TALL_LABEL_WEIGHT)
-    for e in events:
-        text = drawable(" ".join(str(e.get("label") or "").upper().split()), brand.TEXT_FONT)
-        if not text:
-            continue
-        rows = tall_label_rows_needed(text, width_px)   # the render's own fit (review 15: not tracked_wrap alone)
-        if rows is not None and rows <= budget:
-            continue
-        if tracked_wrap(text, font, width_px, tall_track(TALL_LABEL_MIN_PX)) is None:
-            out.append(f"label {text!r}: a word is wider than the {width_px:.0f} px measure at "
-                       f"{TALL_LABEL_MIN_PX} px")
-        else:
-            got = f"{rows}" if rows is not None else f"more than {TALL_LABEL_ROWS_MAX}"
-            out.append(f"label {text!r} needs {got} rows at {TALL_LABEL_MIN_PX} px, budget {budget}")
-    return out
 
 
 def render_timeline(events: list[dict[str, Any]], out: Path, width: int = VIDEO_WIDTH, height: int = VIDEO_HEIGHT,
@@ -6726,7 +6706,7 @@ def _render_timeline_tall(events: list[dict[str, Any]], out: Path, width: int, h
     def labels_px(choice) -> int:
         return min(en["font"].size for en in choice[2][2])
 
-    # the rows a label needs whole at the label floor, None over 6 (the measure timeline_copy_fit reports)
+    # the rows a label needs whole at the label floor, None over 6 (tall_label_rows_needed)
     needed = [tall_label_rows_needed(tx, label_w - TALL_INK_RESERVE) for tx in texts]
     over = [(tx, r) for tx, r in zip(texts, needed) if r is None or r > budget]
     most = max(budget, *(r or TALL_LABEL_ROWS_MAX for r in needed))
@@ -10172,16 +10152,6 @@ def _plan(ground: Image.Image, xy, text: str, font, fill, anchor: str = "la", tr
             font = get_font(family, font.size + 1, weight=weight)
 
 
-def _fit_title(g: _Grid, title: str, width_px: float) -> tuple[list[str], Any]:
-    probe = ImageDraw.Draw(Image.new("RGB", (8, 8)))
-    lines, font, short = probe_text(probe, title, brand.DISPLAY_FONT, g.f(60), int(width_px), 1, g.f(56), sentences=False,
-                                  quiet=True)
-    if short or probe.textlength(lines[0] if lines else "", font=font) > width_px:
-        lines, font, _ = fit_text(probe, title, brand.DISPLAY_FONT, g.f(60), int(width_px), 2, g.f(56), sentences=False,
-                                  quiet=True)
-    return lines, font
-
-
 def _plates_on(frame: Image.Image, plates) -> Image.Image:
     for plate, alpha, dy in plates:
         if alpha > 0.004:
@@ -11704,10 +11674,12 @@ def render_route(stops: list[dict[str, Any]], out: Path, width: int = VIDEO_WIDT
             rest = got[0]
             waters.append((w_, got[1]))
     base = rest
-    plates = [(name, place_plate(rest, sp[0], sp[1], sp[2], sp[3], track=2))
-              for name, sp in plates]       # review 5: only the chosen places are planned and measured
-    stop_of = {id(pl): int(name[4:]) for name, pl in plates}
-    bar_plates = _scale_bar_plates(_with_bar(rest, bar, bar_x, bar_y), bar, bar_x, bar_y) if bar else []
+    # cycle 0 round 7 (integration): the names and the bar's figures are planned on the last frame's own ground (the
+    # globe, the country names, the legs and arrows, the dots and leaders: under()), not the bare base, where a 0.7
+    # halo floor was the margin for whatever passed under a name; the place-label role's halo is the least that reaches
+    # the target, so it is measured where it is drawn
+    leg_colour = brand.GOLD if tuple(accent()) == tuple(brand.TEAL) else accent()
+    leg_pad = (ROUTE_LEG_W + 2 * ROUTE_LEG_CASE) / 2 + ROUTE_ARROW_PX * k_px + 4
     t_bar = arrive[-1] + 0.3
     view = [to_frame_r.inverse(x, y) for x, y in
             [(width * f / 8, 0) for f in range(9)] + [(width, height * f / 8) for f in range(9)]
@@ -11716,12 +11688,10 @@ def render_route(stops: list[dict[str, Any]], out: Path, width: int = VIDEO_WIDT
     globe = globe_inset(gbox[2] - gbox[0], g_lon, g_lat, home, view,
                         (located[-1]["lon"], located[-1]["lat"])) if gbox else None
     arrows = [route_arrow(leg) for leg in legs]
-    # round 6: the legs keep the run's accent, never TEAL on a map (its fallback): GOLD then
-    leg_colour = brand.GOLD if tuple(accent()) == tuple(brand.TEAL) else accent()
+    # round 6: the legs keep the run's accent, never TEAL on a map (its fallback): GOLD then (leg_colour above)
     last: list[Image.Image] = []
     # round 7 (review 8): the globe holds while the first leg draws (to at most a second), not 0.2 s
     globe_out = max(t0, min(arrive[1], t0 + ROUTE_GLOBE_HOLD))
-    leg_pad = (ROUTE_LEG_W + 2 * ROUTE_LEG_CASE) / 2 + ROUTE_ARROW_PX * k_px + 4
     done_layers: dict[int, tuple[Image.Image, tuple[int, int]]] = {}
 
     def leg_layer(k: int) -> tuple[Image.Image, tuple[int, int]]:
@@ -11735,50 +11705,66 @@ def render_route(stops: list[dict[str, Any]], out: Path, width: int = VIDEO_WIDT
             done_layers[k] = (layer.crop((x0, y0, x1, y1)), (x0, y0))
         return done_layers[k]
 
+    def under(t: float) -> Image.Image:
+        """The frame at `t` under the stops' names and the scale bar's figures."""
+        # round 6: the globe fades out as the first leg starts drawing
+        im = _draw_globe(base.convert("RGB"), globe, gbox or (0, 0, 0, 0), t, out_at=globe_out)
+        a_names = _ease((t - 0.2) / 0.4)    # round 7: the country names the base could not take, from the start
+        for _n, pl in r_cplates + r_nbplates:
+            if a_names > 0:
+                im = draw_plate(im, pl, a_names)
+        if r_leader is not None and a_names > 0:
+            im = _draw_leader(im, r_leader, k_px * 0.75, 1.0, a_names)
+        head = None
+        for k, leg in enumerate(legs):
+            prog = (t - arrive[k]) / max(1e-6, arrive[k + 1] - arrive[k])
+            if prog <= 0:
+                break
+            if prog >= 1:            # round 6 review: every leg antialiased (its casing stepped before)
+                layer, (lx0, ly0) = leg_layer(k)
+                region = im.crop((lx0, ly0, lx0 + layer.width, ly0 + layer.height)).convert("RGBA")
+                region.alpha_composite(layer)
+                im.paste(region.convert("RGB"), (lx0, ly0))
+                continue
+            part = _sub_path(leg, [math.dist(leg[j], leg[j + 1]) for j in range(len(leg) - 1)], 0.0,
+                             lengths[k] * min(1.0, prog))
+            if len(part) > 1:
+                # round 6: one arrowhead, shown as the line draws through it
+                im = _ss_composite(im, _path_box(part, leg_pad),
+                                   _leg_paint(part, leg_colour, k_px, arrows[k] if prog >= ROUTE_ARROW_AT else None))
+                head = part[-1]
+        d = ImageDraw.Draw(im, "RGBA")
+        for k, (x, y) in enumerate(pts):
+            s_, rd, ra = dot_motion(t, arrive[k] - 0.1)
+            if s_ <= 0:
+                continue
+            a = min(1.0, s_)
+            im = _draw_dot(im, (x, y), k_px, s_, 1.0, (rd, ra))   # round 6: every stop the A.2 dot
+            d = ImageDraw.Draw(im, "RGBA")
+            lead = leaders[k] if k < len(leaders) else None
+            if lead and a > 0.5:         # review 5: the timeline flags' weight on an ink casing, not a hairline
+                d.line(list(lead), fill=(*brand.INK, int(200 * a)), width=ROUTE_LEADER_CASE)
+                d.line(list(lead), fill=(*brand.GOLD_DIM, int(255 * a)), width=ROUTE_LEADER_W)
+        if head is not None:                     # the drawing head
+            d.ellipse([head[0] - 9, head[1] - 9, head[0] + 9, head[1] + 9], fill=(*brand.BONE, 255),
+                      outline=(*brand.INK, 255), width=3)
+        return im
+
+    ground_last = under((n - 1) / VIDEO_FPS)
+    by_name: dict[str, list[Any]] = {}
+    for name, sp in plates:                 # review 5: only the chosen places are planned and measured
+        by_name.setdefault(name, []).append(sp)
+    planned = {name: iter(place_plates(ground_last, [(sp[0], sp[1], sp[2], sp[3]) for sp in sps], track=2))
+               for name, sps in by_name.items()}      # one variant per stop's name (all its rows)
+    plates = [(name, next(planned[name])) for name, _sp in plates]
+    stop_of = {id(pl): int(name[4:]) for name, pl in plates}
+    bar_plates = (_scale_bar_plates(_with_bar(ground_last, bar, bar_x, bar_y), bar, bar_x, bar_y)
+                  if bar else [])
+
     def frames():
         for i in range(n):
             t = i / VIDEO_FPS
-            # round 6: the globe fades out as the first leg starts drawing
-            im = _draw_globe(base.convert("RGB"), globe, gbox or (0, 0, 0, 0), t, out_at=globe_out)
-            a_names = _ease((t - 0.2) / 0.4)    # round 7: the country names the base could not take, from the start
-            for _n, pl in r_cplates + r_nbplates:
-                if a_names > 0:
-                    im = draw_plate(im, pl, a_names)
-            if r_leader is not None and a_names > 0:
-                im = _draw_leader(im, r_leader, k_px * 0.75, 1.0, a_names)
-            head = None
-            for k, leg in enumerate(legs):
-                prog = (t - arrive[k]) / max(1e-6, arrive[k + 1] - arrive[k])
-                if prog <= 0:
-                    break
-                if prog >= 1:            # round 6 review: every leg antialiased (its casing stepped before)
-                    layer, (lx0, ly0) = leg_layer(k)
-                    region = im.crop((lx0, ly0, lx0 + layer.width, ly0 + layer.height)).convert("RGBA")
-                    region.alpha_composite(layer)
-                    im.paste(region.convert("RGB"), (lx0, ly0))
-                    continue
-                part = _sub_path(leg, [math.dist(leg[j], leg[j + 1]) for j in range(len(leg) - 1)], 0.0,
-                                 lengths[k] * min(1.0, prog))
-                if len(part) > 1:
-                    # round 6: one arrowhead, shown as the line draws through it
-                    im = _ss_composite(im, _path_box(part, leg_pad),
-                                       _leg_paint(part, leg_colour, k_px, arrows[k] if prog >= ROUTE_ARROW_AT else None))
-                    head = part[-1]
-            d = ImageDraw.Draw(im, "RGBA")
-            for k, (x, y) in enumerate(pts):
-                s_, rd, ra = dot_motion(t, arrive[k] - 0.1)
-                if s_ <= 0:
-                    continue
-                a = min(1.0, s_)
-                im = _draw_dot(im, (x, y), k_px, s_, 1.0, (rd, ra))   # round 6: every stop the A.2 dot
-                d = ImageDraw.Draw(im, "RGBA")
-                lead = leaders[k] if k < len(leaders) else None
-                if lead and a > 0.5:         # review 5: the timeline flags' weight on an ink casing, not a hairline
-                    d.line(list(lead), fill=(*brand.INK, int(200 * a)), width=ROUTE_LEADER_CASE)
-                    d.line(list(lead), fill=(*brand.GOLD_DIM, int(255 * a)), width=ROUTE_LEADER_W)
-            if head is not None:                     # the drawing head
-                d.ellipse([head[0] - 9, head[1] - 9, head[0] + 9, head[1] + 9], fill=(*brand.BONE, 255),
-                          outline=(*brand.INK, 255), width=3)
+            im = under(t)
             for name, pl in plates:
                 k = stop_of[id(pl)]
                 a = _ease((t - arrive[k] - 0.05) / 0.35)

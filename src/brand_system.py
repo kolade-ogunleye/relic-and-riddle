@@ -110,9 +110,9 @@ GATES["figure.zero_tol"] of its cap height, and the datum line yields round the 
 Place labels (PLACE): a site's name on a map and a stop's name on a route are one role: the label face (FACE
 "label", the text face) at tok("place.weight"), tok("place.px") per canvas design px (one fallback ladder to the
 canvas floor), a halo of one spread tok("place.halo_px") never deeper than tok("place.halo_max") (0.16, the system
-halo cap); where bone cannot reach the text gate within that cap the label takes the light-ground INK variant, and
-where neither does (a flat mid-grey band, about 115-123 luma) bone takes the least halo up to HALO_EXCEPTION_CAP
-(0.24, ruling 4's pattern) that reaches the gate: the gate outranks the cap (logged).
+halo cap); where bone cannot reach the placement target (contrast.place) within that cap the label takes the
+light-ground INK variant, and where neither does (a flat mid-grey band, a busy relief) bone takes the least halo that
+reaches it: the gate outranks the cap (logged as an exception, flagged past HALO_EXCEPTION_CAP, 0.24).
 
 Label floor (TYPE_FLOOR, label_floor_px): on 9:16 no graphic label is drawn under TYPE_FLOOR["tall"]["label"]
 (27 px on 1080 wide, about a 20 px cap: 10 pt on a phone).
@@ -422,8 +422,6 @@ SIZE_SITES: Mapping[str, str] = MappingProxyType({
     "end_card:_masthead.at": "E",
     "end_card:end_screen_extras": "E",
     "end_card:layout": "E",
-    "graphics:_fit_title": "A",
-    "graphics:_label_box": "A",
     "graphics:_plan": "A",
     "graphics:_probe_tracked": "A",
     "graphics:_render_cross_section": "A",
@@ -452,7 +450,6 @@ SIZE_SITES: Mapping[str, str] = MappingProxyType({
     "graphics:figure_font": "system",
     "graphics:label_plates_for": "A",
     "graphics:marker_label_lines": "A",
-    "graphics:neighbour_font": "A",
     "graphics:neighbour_plates": "A",
     "graphics:place_font": "system",
     "graphics:relief_base": "A",
@@ -462,7 +459,6 @@ SIZE_SITES: Mapping[str, str] = MappingProxyType({
     "graphics:scale_bar": "A",
     "graphics:scale_figure_lines": "A",
     "graphics:scale_label_font": "A",
-    "graphics:timeline_copy_fit": "A",
     "graphics:water_labels": "A",
     "masthead:font_for": "system",
     "masthead:group_width": "system",

@@ -1,8 +1,7 @@
 """The 9:16 timeline hierarchy (2026-11-03 implementation spec): the Anton years the hero at 3.0 x the labels' cap
 (2.5 x only logged), the labels Montserrat 700 at 34 px in their row budget, balanced and with no row but the last
 ending on a short word, 26 px spans with their own air, one left ink edge for the year group, every label row and
-every span, a "c." at half the year's size, the box filled from its top with spare height under the column, and
-timeline_copy_fit for upstream callers. The fuzz sets and the property checks are round 4's
+every span, a "c." at half the year's size, and the box filled from its top with spare height under the column. The fuzz sets and the property checks are round 4's
 (tests/test_r4_graphics_2026_11_02.py), run here at 1080x1920 with this spec's rules on top."""
 import itertools
 from typing import Any
@@ -150,7 +149,9 @@ def test_every_set_keeps_the_hierarchy_rules(tmp_path, monkeypatch, caplog, case
             # round 7 (deliberate): the labels fell to 30 px (spec F) while the span keeps its 24 px floor
             # (SPAN_MIN_PX), so a span is 6 px and a weight (500 to 600) under them, not 8 px (0.80 x the cap before)
             assert _cap(en["span"]) < label_cap, (case, en["span"].text)
-            assert en["span"].font.size <= lab_min - 6, (case, en["span"].text)
+            # cycle 0 round 7 (F16, deliberate): the 9:16 label floor (27 px = SPAN_MIN_PX) outranks the 6 px step: a
+            # span is never under the floor, and stays smaller, lighter and lower-capped than the 30 px labels
+            assert en["span"].font.size <= max(lab_min - 6, graphics.SPAN_MIN_PX) < lab_min, (case, en["span"].text)
     # E5: one left ink edge (a fallback span set beside a plate is excused)
     lefts = [_year_group(en)[0].box[0] for en in ent]
     lefts += [p.box[0] for en in ent if not inline(en) for p in en["labels"]]
@@ -216,7 +217,7 @@ def test_every_set_keeps_the_hierarchy_rules(tmp_path, monkeypatch, caplog, case
     budget = graphics.tall_label_rows_budget(len(kept))
     for en, e in zip(ent, kept):
         text = graphics.drawable(" ".join(e["label"].upper().split()), "Montserrat")
-        # round 6: judged by the render's own fit (tall_label_rows_needed), as timeline_copy_fit judges it
+        # round 6: judged by the render's own fit (tall_label_rows_needed)
         measure = (safe_zones.graphics_box(*TALL)[2] - en["labels"][0].box[0] if inline(en)
                    else graphics.tall_label_measure(*TALL))
         need = graphics.tall_label_rows_needed(text, measure - graphics.TALL_INK_RESERVE)
@@ -302,7 +303,7 @@ def test_two_row_labels_keep_the_years_at_least_at_the_least_ratio(tmp_path, mon
 def test_circa_font_is_half_the_year_with_its_own_floor() -> None:
     assert graphics.circa_font(graphics.get_font("Anton", 84)).size == 42
     assert graphics.circa_font(graphics.get_font("Anton", 40)).size == graphics.CIRCA_MIN_PX == 30
-    assert graphics.CIRCA_MIN_PX > graphics.SPAN_MIN_PX == 24
+    assert graphics.CIRCA_MIN_PX > graphics.SPAN_MIN_PX == 27        # cycle 0 r7 (F16): the 9:16 label floor (24 before)
 
 
 def test_span_font_px_and_the_air_rules() -> None:
@@ -366,18 +367,6 @@ def test_a_sparse_three_entry_column_never_stretches_a_gap_past_its_cap(tmp_path
 
 
 # ---------------------------------------------------------------------------------------------- E13
-def test_timeline_copy_fit_flags_over_budget_labels_and_too_many_events() -> None:
-    assert graphics.timeline_copy_fit(POMPEII) == []
-    assert graphics.timeline_copy_fit(BABYLON) == []
-    got = graphics.timeline_copy_fit(OVER_BUDGET)
-    assert len(got) == 1 and "needs 3 rows" in got[0] and "budget 2" in got[0]
-    six = POMPEII + [E(1997, "Listed as a world heritage site"), E(2000, "Restoration begins")]
-    got = graphics.timeline_copy_fit(six)
-    assert any("6 events" in g for g in got)
-    three = [OVER_BUDGET[1], POMPEII[1], POMPEII[2]]                                  # 3 entries: 3 rows hold it
-    assert graphics.timeline_copy_fit(three) == []
-
-
 # ---------------------------------------------------------------------------------------------- review 15
 EASTER = [E(1200, "Polynesian voyagers reach Rapa Nui", True), E(1500, "Moai carving at Rano Raraku peaks", True),
           E(1722, "Jacob Roggeveen lands on Easter Sunday"), E(1995, "UNESCO lists Rapa Nui National Park")]
@@ -447,7 +436,6 @@ def test_copy_fit_judges_a_label_as_the_render_fits_it() -> None:
             if got is not None:
                 assert len(lines) == got and " ".join(lines) == text
                 assert got == 1 or graphics.tracked_wrap(text, font, width, tr, lines=got - 1) is None
-    # a sentence break in the label: the render's fit, sentences whole, and the copy-fit agree
-    two = [E(1100, "Walls rise. Gates follow."), E(1200, "Abandoned"), E(1300, "Found"), E(1400, "Listed")]
-    assert graphics.timeline_copy_fit(two) == []
+    # a sentence break in the label: the render's fit keeps sentences whole (timeline_copy_fit, which had no
+    # production caller, was removed in cycle 0 round 7)
     assert graphics.tall_label_rows_needed("WALLS RISE. GATES FOLLOW.", width) == 1

@@ -46,22 +46,37 @@ def test_a_long_fill_holds_the_name_its_inscribed_circle_would_refuse() -> None:
     assert 400 + graphics.COUNTRY_IN_PAD <= b[1] and b[3] <= 470 - graphics.COUNTRY_IN_PAD
 
 
-def test_the_name_steps_down_inside_its_fill_before_it_goes_outside(caplog) -> None:
-    w, h = 1080, 1920
+def _thin_fill(w: int, h: int):
+    s = w / 1080
     tb = graphics.get_text_box(w, h)
-    y0, y1 = 400, 430                                          # holds 20-24 px caps with their pad, not 28
+    y0, y1 = int(400 * s), int(400 * s) + 30                   # holds 20-24 px caps with their pad, not 28
     ring = [(tb[0] + 20, y0), (tb[2] - 20, y0), (tb[2] - 20, y1), (tb[0] + 20, y1)]
     home = np.zeros((h, w), bool)
     home[y0:y1, int(tb[0]) + 20:int(tb[2]) - 20] = True
     land = np.zeros((h, w), bool)                              # the sea all round: an outside place exists too
     land |= home
-    assert graphics.country_name_place("SWITZERLAND", [ring], (540.0, 960.0), (400.0, 860.0, 680.0, 920.0), [],
-                                       w, h) is None
+    return ring, home, land, (540.0 * s, 960.0 * s), (400.0 * s, 860.0 * s, 680.0 * s, 920.0 * s)
+
+
+def test_the_name_steps_down_inside_its_fill_before_it_goes_outside(caplog) -> None:
+    # Cycle 0 round 7 (F16): the 9:16 label floor scales with the frame (27 px at 1080 wide), so the step-down is
+    # shown where the floor does not bind (13.5 px on a 540 x 960 frame: the 24-20 px steps stand) ...
+    w, h = 540, 960
+    ring, home, land, anchor, label = _thin_fill(w, h)
+    assert graphics.country_name_place("SWITZERLAND", [ring], anchor, label, [], w, h) is None
     with caplog.at_level(logging.INFO, logger=graphics.log.name):
-        spot = graphics.country_spot("SWITZERLAND", [ring], home, land, (540.0, 960.0), (400.0, 860.0, 680.0, 920.0),
-                                     [], [], w, h)
+        spot = graphics.country_spot("SWITZERLAND", [ring], home, land, anchor, label, [], [], w, h)
     assert spot is not None and spot.inside and spot.px < graphics.COUNTRY_PX
     assert "set in its fill at" in caplog.text
+
+
+def test_the_floor_outranks_the_step_down_on_a_full_9x16_frame() -> None:
+    # ... and on 1080 x 1920 the floor wins: no in-fill step under 27 px; a fill that holds only 20-24 px caps
+    # sends the name outside at the floor (it was set inside at 24 before)
+    w, h = 1080, 1920
+    ring, home, land, anchor, label = _thin_fill(w, h)
+    spot = graphics.country_spot("SWITZERLAND", [ring], home, land, anchor, label, [], [], w, h)
+    assert spot is not None and spot.px >= graphics.label_floor(w, h) and not spot.inside
 
 
 # ---------------------------------------------------------------------------------------------- R5: outside, on land

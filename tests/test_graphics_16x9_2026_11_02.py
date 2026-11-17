@@ -65,9 +65,9 @@ def renders(tmp_path_factory):
             state["frames"] = [f.convert("RGB") for f in frames]
             return path
 
-        def spy_record(path, frame, plates):
+        def spy_record(path, frame, plates, rulers=None):
             state["plates"] = [(name, p) for name, p in plates if p is not None and not p.empty]
-            return real_record(path, frame, plates)
+            return real_record(path, frame, plates, rulers)
         mp.setattr(graphics, "VIDEO_FPS", 4)
         mp.setattr(graphics, "_encode", fake_encode)
         mp.setattr(graphics, "record_contrast", spy_record)

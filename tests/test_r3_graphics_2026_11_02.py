@@ -42,9 +42,9 @@ def _render(monkeypatch: pytest.MonkeyPatch, job, graded: bool = False) -> dict[
         state["frames"] = [f.convert("RGB") for f in frames]
         return path
 
-    def spy_record(path, frame, plates):
+    def spy_record(path, frame, plates, rulers=None):
         state["plates"] = [(name, p) for name, p in plates if p is not None and not p.empty]
-        state["record"] = real_record(path, frame, plates)
+        state["record"] = real_record(path, frame, plates, rulers)
         return state["record"]
     monkeypatch.setattr(graphics, "_encode", fake_encode)
     monkeypatch.setattr(graphics, "record_contrast", spy_record)

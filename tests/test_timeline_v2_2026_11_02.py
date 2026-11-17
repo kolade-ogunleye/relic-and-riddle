@@ -39,9 +39,9 @@ def _render(monkeypatch: pytest.MonkeyPatch, job) -> dict[str, Any]:
         state["frames"] = [f.convert("RGB") for f in frames]
         return path
 
-    def spy_record(path, frame, plates):
+    def spy_record(path, frame, plates, rulers=None):
         state["plates"] = [(name, p) for name, p in plates if p is not None and not p.empty]
-        return real_record(path, frame, plates)
+        return real_record(path, frame, plates, rulers)
 
     def spy_glyph(d, x, y, *a, **k):
         state["marks"].append((len(state.get("frames_seen", [])), x, y))

@@ -464,6 +464,27 @@ def posting_panel(db, page: int = 0) -> Tuple[str, List[List[Dict[str, str]]]]:
     return "\n".join(lines), buttons + pager("cposts:", page, pages) + [[{"text": "🗓 Slots", "callback_data": "cslots:"}]]
 
 
+def story_frames_sent(db, run_id: str, detail: dict[str, Any]) -> int:
+    """How many Story frames of a run have gone out, retries included (QF-103): the distinct frame numbers with a
+    published upload-post:story receipt, together with the booking's own record of them, its first send's
+    posted_parts and the frame a successful retry sent. The booking's record is needed for a retry made before
+    QF-80, recorded as part 1 whatever frame it sent. A retry's frame is taken as retry_post chooses it (the
+    booking's `part`, else the frame after posted_parts), because retry_post stores no `part` of its own:
+    a production episode's first send stored {posted_parts 2} and no part, and its retry sent frame 3 (2026-10-25)."""
+    parts = set(range(1, int(detail.get("posted_parts") or 0) + 1))
+    if (detail.get("last_retry") or {}).get("status") == "published":
+        parts.add(int(detail.get("part") or int(detail.get("posted_parts") or 0) + 1))
+    for pub in db.list_publications(run_id):
+        if pub.get("channel") == "upload-post:story" and pub.get("status") == "published":
+            try:
+                part = json.loads(pub.get("response_payload_json") or "{}").get("part")
+            except ValueError:
+                part = None
+            if part:
+                parts.add(int(part))
+    return len(parts)
+
+
 def posting_episode(db, run_id: str) -> Tuple[str, List[List[Dict[str, str]]]]:
     """One episode's posts in plain words: booked, slot (with how far away), posted, its own links, what went
     wrong, and the actions on it; posting now and cancelling each ask first."""
@@ -488,6 +509,15 @@ def posting_episode(db, run_id: str) -> Tuple[str, List[List[Dict[str, str]]]]:
             name = "Reel & Short"  # its YouTube Short goes with it, and its link is under it (operator, 2026-10-27)
         lines += ["", f"{KIND_ICON.get(p['kind'], '•')} <b>{e(name)}</b> · {e(status_words(db, p, on_episode=True))}",
                   f"  Booked: {e(_when(p.get('created_at'), ahead=False))}"]
+        if p["kind"] == "story":   # QF-103: what went out (retries included), or what it will post
+            sent = story_frames_sent(db, run_id, detail)
+            if p["status"] in ("published", "unknown") or (p["status"] == "failed" and sent):
+                if sent:
+                    lines.append(f"  Frames {'posted' if p['status'] == 'published' else 'confirmed'}: {sent}")
+            elif p["status"] in ("pending", "waiting", "failed"):
+                # the frames it will post: hook and reveal, never an older run's poll frame (QF-80)
+                from .multi_format import story_posting_frames
+                lines.append(f"  Frames: {len(story_posting_frames(p.get('files') or []))}")
         wait = spacing_wait(db, p, outlook=outlook) if p["status"] == "waiting" else None
         if wait:   # QF-73: why it waits, until when, and (no slot left) what you can do, all from the one plan
             lines.append("  " + e(_first_upper(spacing_words(wait, wait["earliest"]))))

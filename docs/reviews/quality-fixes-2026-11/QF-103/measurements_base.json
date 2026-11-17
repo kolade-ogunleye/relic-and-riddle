@@ -1,0 +1,46 @@
+{
+ "cases": {
+  "booked, two frames": {
+   "shown": null,
+   "went_out_or_will_post": 2,
+   "count_right": false
+  },
+  "booked before QF-80 with the poll frame": {
+   "shown": null,
+   "went_out_or_will_post": 2,
+   "count_right": false
+  },
+  "posted before QF-80 (three frames)": {
+   "shown": null,
+   "went_out_or_will_post": 3,
+   "count_right": false
+  },
+  "posted, two frames": {
+   "shown": null,
+   "went_out_or_will_post": 2,
+   "count_right": false
+  },
+  "production: frame 3 finished by a retry before c497369c": {
+   "shown": null,
+   "went_out_or_will_post": 3,
+   "count_right": false
+  },
+  "reveal reached one platform": {
+   "shown": null,
+   "went_out_or_will_post": 1,
+   "count_right": false
+  },
+  "reveal finished by today's retry": {
+   "shown": null,
+   "went_out_or_will_post": 2,
+   "count_right": false
+  },
+  "failed, nothing sent (its retry will post 2)": {
+   "shown": null,
+   "went_out_or_will_post": 2,
+   "count_right": false
+  }
+ },
+ "cases_total": 8,
+ "cases_with_a_right_count": 0
+}

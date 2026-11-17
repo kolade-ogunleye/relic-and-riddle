@@ -1201,37 +1201,6 @@ class MultiFormatGenerator:
             return "YOUR TAKE"
         return ""
 
-    @staticmethod
-    def _draw_badge(
-        d: ImageDraw.ImageDraw,
-        text: str,
-        x0: int,
-        y0: int,
-        font: Any,
-        text_color: Any = None,
-        border_color: Any = None,
-        fill_color: Any = None,
-        pad_x: int = 18,
-        pad_y: int = 8,
-        radius: int = 4,
-        border_width: int = 1,
-    ) -> tuple[int, int, int, int]:
-        """Draws an editorial badge/pill with mathematically centered horizontal and vertical text alignment (by
-        default gold text and border on the brand's PLATE at alpha 230)."""
-        text_color = brand.GOLD if text_color is None else text_color
-        border_color = brand.GOLD if border_color is None else border_color
-        fill_color = (*brand.PLATE, 230) if fill_color is None else fill_color
-        bbox = d.textbbox((0, 0), text, font=font, anchor="mm")
-        tw = bbox[2] - bbox[0]
-        th = bbox[3] - bbox[1]
-        x1 = x0 + tw + 2 * pad_x
-        y1 = y0 + th + 2 * pad_y
-        cx = (x0 + x1) / 2
-        cy = (y0 + y1) / 2
-        d.rounded_rectangle([x0, y0, x1, y1], radius=radius, fill=fill_color, outline=border_color, width=border_width)
-        d.text((cx, cy), text, font=font, fill=text_color, anchor="mm")
-        return (int(x0), int(y0), int(x1), int(y1))
-
     def _tag(self, category: str, index: int) -> str:
         """A slide's badge: its category. No slide number ("ENGINEERING // 07"): Instagram shows its own "N/M"
         counter and dots, and our slide-style chrome made the carousel look awkward (operator, 2026-10-28).

@@ -196,7 +196,7 @@ def _story_span(line1: str, line2: str):
     return None
 
 
-def story_fields(slide: Dict[str, Any], poll: Dict[str, Any] | None = None) -> Tuple[str, str]:
+def story_fields(slide: dict[str, Any], poll: dict[str, Any] | None = None) -> tuple[str, str]:
     """A Story frame's two title fields as drawn: display typography, the poll's question as the headline when the
     slide has none (split by the heading engine), and the authored seam repaired by the engine (round 7, F1: a
     function word closing line 1 opens line 2 instead, in bone: "SEEN FROM" / "SPACE" -> "SEEN" / "FROM SPACE")."""
@@ -212,7 +212,7 @@ def story_fields(slide: Dict[str, Any], poll: Dict[str, Any] | None = None) -> T
     return l1, l2
 
 
-def story_title_px(slides: List[Dict[str, Any]], tight: bool = False, poll: Dict[str, Any] | None = None) -> int:
+def story_title_px(slides: list[dict[str, Any]], tight: bool = False, poll: dict[str, Any] | None = None) -> int:
     """The Story's ONE title size (round 7, F10; ruling FREEZE-PARK round 4 (2)): for each frame, the largest size
     from the design size (TYPE tall display_xl; tight 124) down to the ruled one-line floor (106) at which every
     field sets on one line; a frame none of those sets keeps the design size (the engine breaks it there). The Story
@@ -416,7 +416,7 @@ def plan_kicker(im: Image.Image, xy, text: str, font, colour, anchor: str = "ls"
 
 
 def draw_kicker(im: Image.Image, x: float, baseline: float, text: str, font, colour=None, lay=None,
-                name: str = "kicker", plates=None) -> Tuple[Image.Image, Tuple[int, int, int, int]]:
+                name: str = "kicker", plates=None) -> tuple[Image.Image, tuple[int, int, int, int]]:
     """A kicker: a short gold rule at mid-cap height, then the words in tracked gold capitals (the covers'
     eyebrow). A label, never a pill or a button. A cap-height vertical bar read as a letter I before the words
     ("I DID YOU KNOW?", 2026-10-29), so the rule lies flat."""
@@ -430,11 +430,11 @@ def draw_kicker(im: Image.Image, x: float, baseline: float, text: str, font, col
     if isinstance(getattr(lay, "meta", None), dict):
         lay.meta.setdefault("kickers", {})[name] = rec
     if plate is None:   # fail closed: no rule and no words under the gate (recorded)
-        return im, (int(round(x)), int(round(baseline - ch)), int(round(x)), int(round(baseline)))
+        return im, (round(x), round(baseline - ch), round(x), round(baseline))
     ImageDraw.Draw(im).rectangle([round(x), round(mid - thick / 2), round(x) + bar_w - 1,
                                   round(mid - thick / 2) + thick - 1], fill=tuple(plate.fill))
     im = plate.draw(im)
-    box = (int(round(x)), min(plate.box[1], int(round(baseline - ch))), plate.box[2], max(plate.box[3], int(round(baseline))))
+    box = (round(x), min(plate.box[1], round(baseline - ch)), plate.box[2], max(plate.box[3], round(baseline)))
     if lay is not None:
         lay.add(name, box)
         lay.elements[-1].update(plate.record())
@@ -445,7 +445,7 @@ def draw_kicker(im: Image.Image, x: float, baseline: float, text: str, font, col
     return im, box
 
 
-def _fit_kicker(text: str, font, width: float) -> Tuple[str, bool]:
+def _fit_kicker(text: str, font, width: float) -> tuple[str, bool]:
     """A kicker that fits `width` at this size, whole: (text, False); else TextFitError (QF-23: it was shortened at
     a word with an ellipsis, and the kicker is checked copy like the rest of the frame)."""
     if not text or kicker_width(text, font) <= width:
@@ -547,7 +547,7 @@ def _bounds(lines: list[str]):
         k += m
 
 
-def split_balanced(text: str) -> Tuple[str, str]:
+def split_balanced(text: str) -> tuple[str, str]:
     """A display line in two at the break the heading engine prefers (src/heading.py, round 7: before a stop word,
     never a lone last word, a figure kept with its unit), else at the most even word boundary."""
     words = text.split()
@@ -574,7 +574,7 @@ def _rel_luminance(rgb) -> float:
     return 0.2126 * ch(r) + 0.7152 * ch(g) + 0.0722 * ch(b)
 
 
-def ensure_legible(im: Image.Image, box: Tuple[int, int, int, int], text_rgb=None,
+def ensure_legible(im: Image.Image, box: tuple[int, int, int, int], text_rgb=None,
                    target: float = 4.5, feather: int = 60) -> Image.Image:
     """Darkens the area behind a block of light text until the text reaches WCAG contrast `target`
     against the bright end of the background there (its 90th-percentile luminance), with feathered
@@ -599,7 +599,7 @@ def ensure_legible(im: Image.Image, box: Tuple[int, int, int, int], text_rgb=Non
         lo, hi = (lo, mid) if bright_end(mid) <= needed else (mid, hi)
     alpha = min(0.92, hi + 0.03)
     from PIL import ImageChops, ImageFilter
-    level = int(round(255 * alpha))
+    level = round(255 * alpha)
     box_only, grown = Image.new("L", im.size, 0), Image.new("L", im.size, 0)
     ImageDraw.Draw(box_only).rectangle([x0, y0, x1, y1], fill=level)
     ImageDraw.Draw(grown).rectangle([x0 - feather, y0 - feather, x1 + feather, y1 + feather], fill=level)
@@ -626,8 +626,8 @@ class NoRealPhotos(RuntimeError):
 
 
 class MultiFormatGenerator:
-    def generate_story_sequence(self, hero_img_path: Path, script_payload: Dict[str, Any], output_dir: Path,
-                                scene_images: List[Path] = None, lookup=None) -> List[Path]:
+    def generate_story_sequence(self, hero_img_path: Path, script_payload: dict[str, Any], output_dir: Path,
+                                scene_images: list[Path] = None, lookup=None) -> list[Path]:
         """Two Story frames, each on its own matched photo: hook and reveal (STORY_FRAMES; QF-80). The script's
         third slide, the poll's question, is not drawn: the native poll sticker can't be posted through the API.
         Text sits on the calmest band of the photo inside Story-safe zones (clear of the profile bar
@@ -750,7 +750,7 @@ class MultiFormatGenerator:
         log.info("Generated %d Story frames -> %s", len(slides), out_dir)
         return slides
 
-    def _render_story_frame(self, photo: Path, slide: Dict[str, Any], i: int, count: int, poll: Dict[str, Any],
+    def _render_story_frame(self, photo: Path, slide: dict[str, Any], i: int, count: int, poll: dict[str, Any],
                             tight: bool = False, pages: dict[str, int] | None = None, title_px: int | None = None):
         """One Story frame and its measured layout (visual overhaul, 2026-10-29): a left-aligned editorial column
         at STORY_MARGIN, a kicker (gold bar, tracked gold capitals), a two-tone Anton title (bone, then gold), the
@@ -948,7 +948,7 @@ class MultiFormatGenerator:
         lay.shortened = [n for n, short in (("kicker", k_short), ("title_1", s1), ("title_2", s2), ("body", b_short)) if short]
 
         # Baselines, relative to the block's top.
-        rows: List[Tuple[str, float, str, Any, Any, float, int]] = []   # (name, baseline, text, font, fill, track, dx)
+        rows: list[tuple[str, float, str, Any, Any, float, int]] = []   # (name, baseline, text, font, fill, track, dx)
         y0 = cap_k + k_gap if kicker else 0
         for name, yy, txt, f, fill, dx in t_rows:
             rows.append((name, y0 + yy, txt, f, fill, 0, dx))
@@ -1048,7 +1048,7 @@ class MultiFormatGenerator:
         s = cw / cls.CAROUSEL_DESIGN_W
 
         def px(v):
-            return int(round(v * s))
+            return round(v * s)
 
         def exact(v):  # a font size or stroke width: exactly x 4/3 (FreeType and Pillow take fractional ones)
             v = v * s
@@ -1064,12 +1064,12 @@ class MultiFormatGenerator:
         x 4/3. Fitted on the large canvas itself, fit_text's 2 px steps and the fonts' hinting picked other sizes
         and line breaks (a cover heading that fitted its 920 px on one line went onto two at 1440)."""
         fit = probe_text if trial else fit_text
-        lines, font, short = fit(d, text, family, size, int(round(width / getattr(px, "s", 1.0))), max_lines,
+        lines, font, short = fit(d, text, family, size, round(width / getattr(px, "s", 1.0)), max_lines,
                                       min_size, **kw)
         return lines, get_font(family, getattr(px, "exact", px)(font.size)), short
 
     @staticmethod
-    def _fill(photo: Path, size: Tuple[int, int]) -> Image.Image:
+    def _fill(photo: Path, size: tuple[int, int]) -> Image.Image:
         """The photo scaled and centre-cropped to `size` in one Lanczos resample from the file itself (the
         pipeline's upscaled copy for a low-resolution source), never from a smaller intermediate."""
         return cover_crop(photo, size).convert("RGB")
@@ -1078,7 +1078,7 @@ class MultiFormatGenerator:
     def _save_slide(cls, im: Image.Image, path: Path) -> None:
         im.save(path, "JPEG", **cls.CAROUSEL_JPEG)
 
-    def _match_photos(self, cards: List[Dict[str, Any]], stills: List[Path], strict: bool = False) -> List[Path]:
+    def _match_photos(self, cards: list[dict[str, Any]], stills: list[Path], strict: bool = False) -> list[Path]:
         """One photo per slide, matched to what the slide says (the scene planner's vision matching). `strict`: a
         failed match raises PhotoMatchFailed instead of rotating the photos (a carousel drawn at its slot is held
         rather than posted with photos nobody matched to its slides: QF-81). A failed match is also a plan without
@@ -1107,8 +1107,8 @@ class MultiFormatGenerator:
                                    "unavailable or failed every attempt; archive captions alone are not a match)")
         return [Path(c) for c in chosen]
 
-    def _carousel_photos(self, cards: List[Dict[str, Any]], stills: List[Path], output_dir: Path,
-                         strict: bool = False) -> List[Path]:
+    def _carousel_photos(self, cards: list[dict[str, Any]], stills: list[Path], output_dir: Path,
+                         strict: bool = False) -> list[Path]:
         """The slides' photos, matched once per run and shared by both copies (platform audit, 2026-10-28: the
         Instagram and Facebook copies were matched separately, in parallel, and showed different photos for the
         same slide). The match is kept in carousel_photos.json beside the copies; the second copy to be drawn
@@ -1144,7 +1144,7 @@ class MultiFormatGenerator:
             return chosen
 
     @staticmethod
-    def route_carousel_archetype(card: Dict[str, Any], index: int, total: int) -> str:
+    def route_carousel_archetype(card: dict[str, Any], index: int, total: int) -> str:
         """Semantic intent router that selects the optimal editorial archetype."""
         if index == 0:
             return "cover"
@@ -1190,7 +1190,7 @@ class MultiFormatGenerator:
         return out
 
     @staticmethod
-    def _get_card_category(card: Dict[str, Any], archetype: str) -> str:
+    def _get_card_category(card: dict[str, Any], archetype: str) -> str:
         """The slide's badge, or "" for none. A slide may not state a qualifier its script did not (platform
         audit, 2026-10-28): keyword labels put "DISCOVERY RECORD" on a slide about marine concrete ("seawalls"
         has "wall"), "ARCHIVAL EVIDENCE" and "ENGINEERING BLUEPRINT" on slides that cite no archive or blueprint,
@@ -1215,7 +1215,7 @@ class MultiFormatGenerator:
         pad_y: int = 8,
         radius: int = 4,
         border_width: int = 1,
-    ) -> Tuple[int, int, int, int]:
+    ) -> tuple[int, int, int, int]:
         """Draws an editorial badge/pill with mathematically centered horizontal and vertical text alignment (by
         default gold text and border on the brand's PLATE at alpha 230)."""
         text_color = brand.GOLD if text_color is None else text_color
@@ -1260,7 +1260,7 @@ class MultiFormatGenerator:
     BAND_GAP = 16
 
     @staticmethod
-    def _ig_counter(cw: int) -> Tuple[int, int, int, int]:
+    def _ig_counter(cw: int) -> tuple[int, int, int, int]:
         """Where Instagram overlays its carousel counter: the measured pill (above) with room for "10/10" and
         narrower phones: the right 280 px of the top 140 px (design px; the counter is drawn at a fixed share
         of the media's width, so it scales with the canvas)."""
@@ -1300,7 +1300,7 @@ class MultiFormatGenerator:
         design = {k: kw.get(k, v) for k, v in (("pad_x", 18), ("pad_y", 8), ("radius", 4), ("border_width", 1))}
         kw = {**kw, **{k: px(v) for k, v in design.items()}}
         family = _font_family(font)
-        lines, font, short = MultiFormatGenerator._fit_text(d, text, family, int(round(font.size / getattr(px, "s", 1.0))),
+        lines, font, short = MultiFormatGenerator._fit_text(d, text, family, round(font.size / getattr(px, "s", 1.0)),
                                                             px(max_w - 2 * design["pad_x"]), 1, 16, px=px,
                                                             sentences=False)
         text = lines[0] if lines else ""
@@ -1326,7 +1326,7 @@ class MultiFormatGenerator:
     FB_COVER_MARGIN = 135
     SPLIT_PHOTO_H = 675
 
-    def _stack(self, im: Image.Image, lay, rows: List[Dict[str, Any]], x: int, bottom: int, plates: Dict[str, list]):
+    def _stack(self, im: Image.Image, lay, rows: list[dict[str, Any]], x: int, bottom: int, plates: dict[str, list]):
         """Draws `rows` (each {"name", "text", "font", "fill", "y": its baseline relative to the stack's top,
         optional "track", "x": an x offset}) so the stack's lowest ink sits on `bottom`; records each row (rows of
         one name as one block, with their lowest measured ratio). Returns (image, the stack's top)."""
@@ -1336,7 +1336,7 @@ class MultiFormatGenerator:
             return im, bottom
         low = max(d.textbbox((x + r.get("x", 0), r["y"]), r["text"], font=r["font"], anchor="ls")[3] for r in drawn)
         off = bottom - low
-        by_name: Dict[str, list] = {}
+        by_name: dict[str, list] = {}
         for r in drawn:
             if r.get("kicker"):
                 im, _ = draw_kicker(im, x, off + r["y"], r["text"], r["font"], r["fill"], lay, r["name"], plates)
@@ -1769,7 +1769,7 @@ class MultiFormatGenerator:
         return scrim(im, ph + px(60), chh, feather=px(40 if photo2 is not None else 180), target=0.0, cap=1.0,
                      floor=1.0, colour=brand.INK2)
 
-    def _render_cover(self, photo: Path, card: Dict[str, Any], cw: int, chh: int,
+    def _render_cover(self, photo: Path, card: dict[str, Any], cw: int, chh: int,
                       lay=None, tight: bool = False) -> Image.Image:
         """The cover: full-bleed, the heading in two balanced Anton lines (bone, then gold), the body under it. On the
         Facebook copy the cover is the collage's tall 2:3 hero tile, which shows the slide's centre 2:3 (x 120-1320 at
@@ -1780,7 +1780,7 @@ class MultiFormatGenerator:
         return self._slide_text(im, lay, cw, chh, card["heading"].upper(), card["body"], two_tone=True, tight=tight,
                                 b_lines=3, h_spec=(150, 72), margin=self.FB_COVER_MARGIN if facebook else None)
 
-    def _render_immersive(self, photo: Path, card: Dict[str, Any], index: int, cw: int, chh: int,
+    def _render_immersive(self, photo: Path, card: dict[str, Any], index: int, cw: int, chh: int,
                           lay=None, tight: bool = False) -> Image.Image:
         """Full-bleed photograph, the stack over an ink gradient at its foot."""
         im = self._fill(photo, (cw, chh))
@@ -1788,7 +1788,7 @@ class MultiFormatGenerator:
         return self._slide_text(im, lay, cw, chh, card["heading"].upper(), card["body"], kicker=tag, tight=tight,
                                 two_tone="wrap", h_spec=(112, 60), content=True)
 
-    def _render_comparison(self, photo1: Path, photo2: Path, card: Dict[str, Any], index: int, cw: int, chh: int,
+    def _render_comparison(self, photo1: Path, photo2: Path, card: dict[str, Any], index: int, cw: int, chh: int,
                            lay=None, tight: bool = False) -> Image.Image:
         """Two photographs stacked over the ink panel. No "REF A // SURFACE CONTEXT" labels over them: every
         comparison slide said so, whatever it showed (platform audit, 2026-10-28)."""
@@ -1797,7 +1797,7 @@ class MultiFormatGenerator:
         return self._slide_text(im, lay, cw, chh, card["heading"].upper(), card["body"], kicker=tag, full=False,
                                 tight=tight, two_tone="wrap", b_lines=4, h_spec=(96, 56), content=True)
 
-    def _render_blueprint(self, photo: Path, card: Dict[str, Any], index: int, cw: int, chh: int,
+    def _render_blueprint(self, photo: Path, card: dict[str, Any], index: int, cw: int, chh: int,
                           lay=None, tight: bool = False) -> Image.Image:
         """A structure slide: the split layout (the drafting grid it drew was decoration that said nothing)."""
         im = self._split_ground(photo, cw, chh)
@@ -1805,7 +1805,7 @@ class MultiFormatGenerator:
         return self._slide_text(im, lay, cw, chh, card["heading"].upper(), card["body"], kicker=tag, full=False,
                                 tight=tight, two_tone="wrap", b_lines=4, h_spec=(96, 56), content=True)
 
-    def _render_colossal_stat(self, photo: Path, card: Dict[str, Any], index: int, cw: int, chh: int,
+    def _render_colossal_stat(self, photo: Path, card: dict[str, Any], index: int, cw: int, chh: int,
                               lay=None, tight: bool = False) -> Image.Image:
         """A figure slide: the split layout led by the card's own figure (its first number, with its unit when it
         has one); a card without one gets no figure rather than a label in its place. No "VERIFIED BY
@@ -1824,7 +1824,7 @@ class MultiFormatGenerator:
         return self._slide_text(im, lay, cw, chh, heading, body, kicker=tag, stat=stat, full=False, tight=tight,
                                 b_lines=3, h_spec=(84, 52))   # its figure leads: bottom-aligned
 
-    def _render_debate(self, photo: Path, card: Dict[str, Any], index: int, total: int, cw: int, chh: int, poll: Dict[str, Any], f_small,
+    def _render_debate(self, photo: Path, card: dict[str, Any], index: int, total: int, cw: int, chh: int, poll: dict[str, Any], f_small,
                        share: str = "", lay=None, tight: bool = False) -> Image.Image:
         """The closing slide: full-bleed, the heading (its last line gold), the card's question, then the run's
         share-and-follow line (operator decision 2026-10-25) as a sentence under a short gold rule. No "TELL US IN
@@ -2004,7 +2004,7 @@ class MultiFormatGenerator:
                                    "labels": labels, "labels_clear": clear}
         return stack(im, lay)
 
-    def _render_editorial_split(self, photo: Path, card: Dict[str, Any], index: int, cw: int, chh: int,
+    def _render_editorial_split(self, photo: Path, card: dict[str, Any], index: int, cw: int, chh: int,
                                 lay=None, tight: bool = False) -> Image.Image:
         """Photo over ink, the stack on the ink panel."""
         im = self._split_ground(photo, cw, chh)
@@ -2012,8 +2012,8 @@ class MultiFormatGenerator:
         return self._slide_text(im, lay, cw, chh, card["heading"].upper(), card["body"], kicker=tag, full=False,
                                 tight=tight, two_tone="wrap", b_lines=4, h_spec=(96, 56), content=True)
 
-    def _render_carousel_slide(self, archetype: str, photo: Path, photo_next: Path, card: Dict[str, Any], i: int,
-                               total: int, poll: Dict[str, Any], share: str, facebook: bool, tight: bool = False,
+    def _render_carousel_slide(self, archetype: str, photo: Path, photo_next: Path, card: dict[str, Any], i: int,
+                               total: int, poll: dict[str, Any], share: str, facebook: bool, tight: bool = False,
                                subject: str = "", heading_frame: int = 2, strip: dict[str, Any] | None = None):
         """One carousel slide and its measured layout: the archetype's own text, then the brand in its band at the
         top-left. Nothing is drawn under Instagram's counter (`protected`). Both copies are free of slide chrome
@@ -2083,9 +2083,9 @@ class MultiFormatGenerator:
             im = swipe_strip(im, lay, strip)
         return im, lay
 
-    def generate_carousel_sequence(self, scene_images: List[Path], script_payload: Dict[str, Any], output_dir: Path,
+    def generate_carousel_sequence(self, scene_images: list[Path], script_payload: dict[str, Any], output_dir: Path,
                                    facebook: bool = False, graphics: list[Path] | None = None,
-                                   strict_match: bool = False) -> List[Path]:
+                                   strict_match: bool = False) -> list[Path]:
         """Multi-Template Editorial Carousel (CAROUSEL_SIZE, 1440x1800, 4:5):
         Dynamically routes each slide to one of five editorial layout archetypes
         (Full-Bleed Immersive, Comparative Side-by-Side, Architectural Blueprint, Colossal Stat, Debate).
@@ -2340,7 +2340,7 @@ def diagram_crop(poster: Image.Image) -> tuple[tuple[int, int, int], tuple[int, 
     pad = 28
     return ground, (max(0, int(xs.min()) - pad), max(0, int(ys.min()) - pad),
                     min(poster.width, int(xs.max()) + 1 + pad), min(poster.height, int(ys.max()) + 1 + pad))
-_photo_locks: Dict[str, threading.Lock] = {}
+_photo_locks: dict[str, threading.Lock] = {}
 _photo_locks_guard = threading.Lock()
 
 
@@ -2349,7 +2349,7 @@ def _photo_lock(output_dir: Path) -> threading.Lock:
         return _photo_locks.setdefault(str(Path(output_dir).resolve()), threading.Lock())
 
 
-def _recorded_photos(output_dir: Path, cards: List[Dict[str, Any]]) -> List[Path]:
+def _recorded_photos(output_dir: Path, cards: list[dict[str, Any]]) -> list[Path]:
     """The photos a copy drawn before carousel_photos.json existed recorded for these cards ([] if none)."""
     from . import still_layout
     for copy in ("carousel", "carousel_fb"):
@@ -2368,19 +2368,19 @@ def _recorded_photos(output_dir: Path, cards: List[Dict[str, Any]]) -> List[Path
 # A slide's record (still_layout.json beside it) keeps its card and photos, so the publisher can say what each
 # posted slide shows (alt text), credit every photo it shows, and pick Facebook's photos.
 
-def slide_record(slide: Path) -> Dict[str, Any]:
+def slide_record(slide: Path) -> dict[str, Any]:
     from . import still_layout
     return (still_layout.load(Path(slide)) or {}).get("recipe") or {}
 
 
-def slide_photos(slide: Path) -> List[Path]:
+def slide_photos(slide: Path) -> list[Path]:
     """The photos a slide shows: its own, and on a comparison slide the second one under it."""
     rec = slide_record(slide)
     photos = [rec.get("photo")] + ([rec.get("photo_next")] if rec.get("archetype") == "comparison" else [])
     return [Path(x) for x in photos if x]
 
 
-def photo_credit(photo: Path) -> Dict[str, Any]:
+def photo_credit(photo: Path) -> dict[str, Any]:
     """The credits.json entry of a sourced photo ({} if none). A derived copy (crop, blur, upscale) has no entry
     beside it; its lineage leads back to the original."""
     photo = Path(photo)
@@ -2407,7 +2407,7 @@ CAROUSEL_SHARE_ALIKE = "📷 These slides are licensed CC BY-SA 4.0: https://cre
 CAROUSEL_ADAPTED = "📷 Photos adapted: cropped, with text added."
 
 
-def carousel_credits(slides: List[Path]) -> Tuple[List[str], bool]:
+def carousel_credits(slides: list[Path]) -> tuple[list[str], bool]:
     """The credit line of every photo the slides show whose licence asks for one, in slide order, once each
     (credits.asset_attribution's format), and whether the slides could be read at all. A CC BY-SA photo makes
     the slides an adaptation under the same licence, which they then say (as the video does)."""
@@ -2651,14 +2651,14 @@ def _contrast(im: Image.Image, box, text_rgb) -> float:
     return round((_rel_luminance(text_rgb) + 0.05) / (bg + 0.05), 2)
 
 
-def story_credit_report(frames: List[Path]) -> Dict[str, Any]:
+def story_credit_report(frames: list[Path]) -> dict[str, Any]:
     """For the release report: {"credited": [{"frame", "lines"}], "problems": [...]}. Every frame whose photo's
     licence asks for attribution must carry that credit, drawn whole, at the contrast it needs; a frame without its
     layout record cannot show what it credited, which is a problem too."""
     from .credits import source_page_ids
     from .hold_advice import STORY_REDRAW
     credited, problems = [], []
-    by_dir: Dict[str, Dict[str, Any]] = {}
+    by_dir: dict[str, dict[str, Any]] = {}
     for frame in [Path(f) for f in frames]:
         folder = str(frame.parent)
         if folder not in by_dir:
@@ -2799,7 +2799,7 @@ def standalone_problems(rec: dict[str, Any]) -> list[str]:
     return out
 
 
-def facebook_pick(slides: List[str], limit: int = FACEBOOK_PHOTOS) -> List[str]:
+def facebook_pick(slides: list[str], limit: int = FACEBOOK_PHOTOS) -> list[str]:
     """The slides Facebook's multi-photo post gets, at most `limit` (FACEBOOK_PHOTOS, 5): its collage puts "+N"
     over the last tile it shows, so a seven-photo post hid the closing share-and-follow slide (platform audit,
     2026-10-28). The cover, the
@@ -2976,7 +2976,7 @@ def _font_family(font) -> str:
     return next((n for n, f in FONT_FILES.items() if f == base), brand.TEXT_FONT)
 
 
-def redraw_story_frame(path: Path, recipe: Dict[str, Any]) -> Dict[str, Any]:
+def redraw_story_frame(path: Path, recipe: dict[str, Any]) -> dict[str, Any]:
     """Draws one Story frame again with the tighter fit, from its kept recipe, in place (still_vision: the
     look reported its text cut off or overlapping); updates layout.json and the frame's layout record."""
     from . import still_layout
@@ -3070,7 +3070,7 @@ def swipe_strip(im: Image.Image, lay, strip: dict[str, Any]) -> Image.Image:
     return im
 
 
-def redraw_carousel_slide(path: Path, recipe: Dict[str, Any], tight: bool = True) -> Dict[str, Any]:
+def redraw_carousel_slide(path: Path, recipe: dict[str, Any], tight: bool = True) -> dict[str, Any]:
     """Draws one carousel slide again with the tighter fit (or `tight` as given), from its kept recipe, in place.
     The record keeps the strip it drew now. When slide 2's strip moved (its kicker rule did), slide 1 is drawn
     again at its own fit so its part of the strip meets slide 2's across the seam (round 4 review, 2026-11-02)."""

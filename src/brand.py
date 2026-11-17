@@ -177,8 +177,8 @@ class BrandConfig:
             if fam is not None and not isinstance(fam, str):
                 raise ValueError(f"brand {self.name!r}: font {role} = {fam!r} is not a family name")
             if isinstance(fam, str) and fam not in self.fonts:
-                from .typography import FONT_FILES
                 from .font_assets import DERIVED_FAMILIES
+                from .typography import FONT_FILES
                 if fam not in FONT_FILES and fam not in DERIVED_FAMILIES:
                     raise ValueError(f"brand {self.name!r}: font {role} = {fam!r} is not a registered family")
         # The mark (cycle 0 round 6, adversary r5-1: GOLD = INK drew an invisible diamond): its gold fill is what reads

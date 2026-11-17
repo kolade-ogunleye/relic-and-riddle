@@ -2678,7 +2678,7 @@ def _photo_outside(photo: Path | None, geo: _Geo, y1: float, top: float | None =
         lo = geo.px(MYTH_EDGE_MIN)
 
         def at(y: float, side: str) -> float:   # the feather of the panel edge at frame row y, outward to `side`
-            r = int(round(y))
+            r = round(y)
             rows = pan[max(0, r):min(H, r + lo)] if side == "up" else pan[max(0, r - lo):min(H, r)]
             colour = rows.reshape(-1, 3).mean(axis=0) if rows.size else np.asarray(brand.INK, np.float32)
             return band_edge.feather(out_l, y, side, colour, 1.0, lo, W)
@@ -3915,7 +3915,7 @@ def _hook_gold(lines: Sequence[str], claim: str = "") -> tuple[int, int | None]:
 
 def _hue_sat(im: Image.Image, box: Sequence[float]) -> tuple[float, float]:
     """The mean hue (degrees, circular) and saturation (0..255) of `im` inside `box`."""
-    b = [int(round(v)) for v in box]
+    b = [round(v) for v in box]
     b = [max(0, b[0]), max(0, b[1]), min(im.width, b[2]), min(im.height, b[3])]
     a = np.asarray(im.crop(b).convert("HSV"), np.float32)
     if not a.size:

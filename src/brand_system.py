@@ -361,17 +361,17 @@ DEVIATIONS: Mapping[str, tuple[str, str, tuple, str]] = MappingProxyType({
                            (136, 128, 120, 112, 104, 100, 96, 92, 88, 84), "F"),
     "end card share 9:16": ("body", "end_card.SHARE_SIZES", (58, 56, 54), "E"),
     "end screen hand-off 16:9": ("body", "end_card.LANDSCAPE_SHARE_SIZES", (64, 60, 56), "E"),
-    "YouTube headline": ("display_xl", "youtube_thumbnail: the ladder 190 / 160, then a recorded last resort in 4 px "
-                         "steps to 96 (round 7)", (190, 160, 96, 4), "B"),
-    "Reel cover titles": ("display_xl", "cover_design: the style's line-1 size (100-120) x lockup.line_ratio, one "
-                          "fallback tier x 0.8, a recorded last resort (round 7)", (100, 120, 0.8), "B"),
+    "YouTube headline": ("display_xl", ("youtube_thumbnail: the ladder 190 / 160, then a recorded last resort in 4 px "
+                          "steps to 96 (round 7)"), (190, 160, 96, 4), "B"),
+    "Reel cover titles": ("display_xl", ("cover_design: the style's line-1 size (100-120) x lockup.line_ratio, one "
+                           "fallback tier x 0.8, a recorded last resort (round 7)"), (100, 120, 0.8), "B"),
     "carousel content heading": ("display_l", "multi_format: FB 150 / 140 design px (IG is on the ladder, round 7)",
                                  (150, 140), "D"),
-    "carousel stat heading": ("display_m", "multi_format: the colossal-stat slide's heading, 84 to 52 design px in "
-                              "2 px steps through the engine", (84, 52, 2), "D"),
-    "Story title": ("display_xl", "multi_format: one size per Story (story_title_px), one line a field from 150 down "
+    "carousel stat heading": ("display_m", ("multi_format: the colossal-stat slide's heading, 84 to 52 design px in "
+                               "2 px steps through the engine"), (84, 52, 2), "D"),
+    "Story title": ("display_xl", ("multi_format: one size per Story (story_title_px), one line a field from 150 down "
                     "to heading.story_one_line_floor 106; a wrapped title never under heading.story_floor 120; below "
-                    "them refused, never drawn (round 7)", (150, 106, 120), "D"),
+                    "them refused, never drawn (round 7)"), (150, 106, 120), "D"),
     "then-and-now THEN / NOW": ("data_label", "then_now.kicker_px(): 48 px 9:16, cap-fitted 16:9", (48,), "A"),
 })
 

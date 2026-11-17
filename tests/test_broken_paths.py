@@ -7,7 +7,6 @@ Regression tests for code paths that used to fail outright.
 import pytest
 
 
-
 def _starving(monkeypatch):
     from src import fact_sheet, script_engine
     def starve(topic):
@@ -20,6 +19,7 @@ def _starving(monkeypatch):
 
 def test_fact_starved_topic_surfaces_for_auto_advance(monkeypatch):
     import pytest
+
     from src.fact_sheet import FactStarvedTopicError
     script_engine = _starving(monkeypatch)
     monkeypatch.setattr(script_engine.ScriptEngine, "_load_curated", staticmethod(lambda tid: None))
@@ -38,6 +38,7 @@ def test_fact_starved_topic_still_uses_a_curated_script(monkeypatch, curated_pay
 
 def _bank_topic(topic_id):
     import json
+
     from src.config import TOPICS_DIR
     bank = json.loads((TOPICS_DIR / "topic_bank.json").read_text(encoding="utf-8"))["topics"]
     return next(t for t in bank if t["id"] == topic_id)
@@ -45,6 +46,7 @@ def _bank_topic(topic_id):
 
 def _unesco():
     import pytest
+
     from src.unesco import UNESCOEngine
     engine = UNESCOEngine()
     if not engine.cache_file.exists() or len(engine.load_sites()) < 1000:

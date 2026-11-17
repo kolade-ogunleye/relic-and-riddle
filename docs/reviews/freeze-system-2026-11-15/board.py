@@ -230,9 +230,9 @@ def _masthead_surfaces(hero_path: Path, topic: str, dev: Path, work: Path):
     the carousel cover's grade and top-edge scrim, the YouTube thumbnail's photo and gradient, the end screen's and
     end card's dim and softening, through end_card.frames, at REVEAL_S), as (surface, image, the renderer's own masthead record, the masthead's crop
     box). The narration's last frame is the hero itself on the end screen and card."""
+    import board_extras as bx
     from PIL import Image, ImageOps
 
-    import board_extras as bx
     from src import end_card
     from src.multi_format import MultiFormatGenerator, standalone_subject
     from src.script_engine import end_card_share, share_prompt
@@ -428,7 +428,8 @@ def draw_table(rows, widths):
 def element_rows():
     """The element rows the preview panel found missing (heading/accent, figure face, credit, rule, plate; F22) and
     the leading, per canvas, every value read from src/brand_system.py (and the palette from src/brand.py)."""
-    from src import brand, brand_system as bs
+    from src import brand
+    from src import brand_system as bs
     canv = list(bs.CANVASES)
 
     def tokens(*prefixes):
@@ -453,7 +454,7 @@ def element_rows():
         return [fn(c) for c in canv]
 
     def hexc(rgb):
-        return "#%02X%02X%02X" % tuple(rgb)
+        return "#{:02X}{:02X}{:02X}".format(*tuple(rgb))
     rule = sys_value("rule.weight")
     radius = sys_value("plate.radius")
     out = [("element", *[f"{c} {w}x{h}" for c, (w, h) in bs.CANVASES.items()], "shared tokens")]
@@ -478,8 +479,8 @@ def element_rows():
                                                      for r in ("display_xl", "display_l", "body", "label")
                                                      if bs.TYPE[c].get(r))),
                 tokens("lead.")))
-    out.append(("spacing", *per(lambda c: ", ".join(f"{k} {v}" for k, v in bs.SPACING[c].items())), "safe boxes: "
-                "src/safe_zones.py"))
+    out.append(("spacing", *per(lambda c: ", ".join(f"{k} {v}" for k, v in bs.SPACING[c].items())), ("safe boxes: "
+                "src/safe_zones.py")))
     return out
 
 
@@ -555,7 +556,7 @@ def main() -> None:
         tiles = [(p.stem, Image.open(p).convert("RGB")) for p in heroes]
         sheets: dict[str, tuple[list, int | None, int]] = {}
 
-        def add(item: dict) -> None:
+        def add(item: dict, tiles=tiles) -> None:
             tiles.append((f"{item['name']} | {item['label']}", item["image"]))
             manifest["labels"][item["name"]] = item["label"]
         if r in (3, 4):

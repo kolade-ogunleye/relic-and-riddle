@@ -640,7 +640,9 @@ def frames(last: Image.Image, share: str, stats: dict[str, Any] | None = None, *
     kicker_plate = credits_plate = None
     if extras:
         k = extras["kicker"]
-        from .multi_format import plan_kicker   # round 7 (F20, sweep): the one kicker gate (gold, else bone, else none)
+        from .multi_format import (
+            plan_kicker,  # round 7 (F20, sweep): the one kicker gate (gold, else bone, else none)
+        )
         kicker_plate, kicker_rec = plan_kicker(rest, k["text_xy"], k["text"], k["font"], colour_of("kicker.colour"),
                                                "ls", k["track"])
         if stats is not None:

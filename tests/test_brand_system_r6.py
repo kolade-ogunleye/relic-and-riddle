@@ -31,7 +31,7 @@ X, BASE, W, H = 107, 133, 1440, 700
 GATE = brand_system.tok("contrast.masthead_gate")
 
 
-def _mixed(sky: int, dark: int = 40, x0: int = 400) -> Image.Image:
+def _mixed(sky: int, dark: int = 0, x0: int = 400) -> Image.Image:
     """A flat bright sky with a dark mass under some of the name's letters: bone needs the sky dark, INK the mass light."""
     a = np.full((H, W, 3), sky, np.uint8)
     a[:, x0:x0 + 200] = dark

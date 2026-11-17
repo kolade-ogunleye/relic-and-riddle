@@ -8,8 +8,12 @@ Its ground is solved in the order the operator ruled (round 3 (2)): nothing wher
 else a soft INK gradient from the top edge (full width, never bounded in x, easing out by smoothstep), as light as
 the target needs and never past `scrim.masthead_peak` (0.60) at its peak; else that 0.60 gradient plus the name's
 own halo up to `halo.masthead_max` (0.16); else, under the same shape, the ground's highlights levelled down (the
-park's step 5: no hue changed, never under `scrim.levels_floor`); else the light-ground variant (the name in INK on the
-untouched ground) where that reads better; else (operator ruling 4, 2026-11-16) the HALO EXCEPTION: the least halo
+park's step 5: no hue changed, never under `scrim.levels_floor`); else the light-ground variant (the name in INK) where
+that reads better. Round 7 (preview panel F7: the INK variant was never chosen, even on near-white): the light variant
+sits on its own least LIFT, a bone gradient from the top edge in the dark scrim's shape and under its cap
+(scrim.masthead_peak), recorded as `light_lift`; it is taken where bone under the full dark scrim and its halo stays
+short of the target and the light variant reaches it (only a light ground lets INK reach the target), and again
+before the exception wherever bone misses the gate; else (operator ruling 4, 2026-11-16) the HALO EXCEPTION: the least halo
 above HALO_CAP (0.16), up to HALO_EXCEPTION_CAP (0.24), that brings the bone name to the gate, recorded as
 `halo_exception` (brand_system's gate pair; no brand moves either).
 
@@ -88,8 +92,9 @@ def group_width(size: float) -> float:
     return 2 * spec["mark_r"] + spec["gap"] + tracked_width(brand.MASTHEAD, font_for(size), spec["track"])
 
 
-def top_scrim(im: Image.Image, peak: float, reach: float) -> Image.Image:
-    """An INK gradient from the top edge (alpha `peak` there) easing out by smoothstep to nothing at y `reach`."""
+def top_scrim(im: Image.Image, peak: float, reach: float, colour=None) -> Image.Image:
+    """An INK gradient from the top edge (alpha `peak` there) easing out by smoothstep to nothing at y `reach`;
+    `colour` another fill (the light-ground variant's lift: masthead.colour_dark, bone)."""
     import numpy as np
     if peak <= 0:
         return im
@@ -98,7 +103,8 @@ def top_scrim(im: Image.Image, peak: float, reach: float) -> Image.Image:
     v = np.clip(1 - y / max(1.0, float(reach)), 0, 1)
     ramp = v * v * (3 - 2 * v)
     mask = Image.fromarray(np.round(ramp * 255 * peak).astype(np.uint8).reshape(H, 1)).resize((W, H))
-    layer = Image.new("RGBA", im.size, tuple(colour_of("plate.shade")) + (255,))
+    fill = tuple(colour_of("plate.shade")) if colour is None else tuple(colour)
+    layer = Image.new("RGBA", im.size, fill[:3] + (255,))
     layer.putalpha(mask)
     return Image.alpha_composite(im.convert("RGBA"), layer).convert(im.mode)
 
@@ -343,6 +349,32 @@ def plan(im: Image.Image, x0: float, baseline: float, size: float, reach: float 
             halo = min(halo_cap, halo + inc)
         return best
 
+    def light(goal):
+        """(plate, ratio, ground, lift) of the light-ground variant (the name in INK) on the least bone LIFT from the
+        top edge (the dark scrim's shape and cap, scrim.masthead_peak) at which it reaches `goal`; None if even the
+        full lift does not (cycle 0 round 7, preview panel F7: the INK variant was never chosen on near-white)."""
+        q, qgot = name(base, ink, step="light variant")
+        if qgot >= goal:
+            return q, qgot, base, 0.0
+        full = top_scrim(base, peak_max, reach, bone)
+        q, qgot = name(full, ink, step=f"light variant lift {peak_max}")
+        if qgot < goal:
+            return None
+        lo, hi = 0.0, peak_max
+        for _ in range(SCRIM_STEPS):
+            mid = (lo + hi) / 2
+            ok = name(top_scrim(base, mid, reach, bone), ink, step=f"light variant lift {mid:.3f}")[1] >= goal
+            lo, hi = (lo, mid) if ok else (mid, hi)
+        g = top_scrim(base, hi, reach, bone)
+        q, qgot = name(g, ink, step=f"light variant lift {hi:.3f}")
+        return q, qgot, g, round(hi, 3)
+
+    def take_light(found):
+        nonlocal p, got, ground
+        p, got, ground, lift = found
+        rec.update(variant="light", scrim_peak=0.0, light_lift=lift)
+        rec.pop("levels_ceiling", None)
+
     p, got = name(base, bone, step="bone")
     ground = base
     if got < target:
@@ -360,6 +392,13 @@ def plan(im: Image.Image, x0: float, baseline: float, size: float, reach: float 
             ground, rec["scrim_peak"] = top, peak_max
             p, got = name(ground, bone, halo_max, step=f"scrim {peak_max}")
     if got < target and rec["scrim_peak"] >= peak_max:
+        # F7 (round 7): where bone under the full dark scrim and its halo stays short of the target, the light-ground
+        # variant on its least lift is taken when IT reaches the target (it reads better; ruling 1: INK only on light
+        # grounds, and only a light ground lets INK reach the target under a lift within the scrim's cap)
+        found = light(target)
+        if found is not None:
+            take_light(found)
+    if got < target and rec["scrim_peak"] >= peak_max:
         # Park step 5 (2026-11-04), within the rulings: under the same top-edge shape, the ground's highlights are
         # levelled down (no hue changed, the peak stays 0.60 and the halo 0.16): the least change that reaches the
         # target, else the least that reaches the gate. Only where the 0.60 scrim and the halo left the name short.
@@ -374,12 +413,16 @@ def plan(im: Image.Image, x0: float, baseline: float, size: float, reach: float 
                 break
         if met is not None and met[3] > got:
             rec["levels_ceiling"], ground, p, got = met
-    if got < gate:                                            # bone cannot reach the gate: the light-ground variant
-        q, qgot = name(base, ink, step="light variant")
-        if qgot > got:
-            p, ground, got = q, base, qgot
-            rec.update(variant="light", scrim_peak=0.0)
-            rec.pop("levels_ceiling", None)
+    if got < gate:                         # bone cannot reach the gate: the light-ground variant, on its least lift
+        found = light(gate)
+        if found is not None:
+            take_light(found)
+        else:
+            q, qgot = name(base, ink, step="light variant")
+            if qgot > got:
+                p, ground, got = q, base, qgot
+                rec.update(variant="light", scrim_peak=0.0, light_lift=0.0)
+                rec.pop("levels_ceiling", None)
     rec["halo_exception"] = False
     if got < gate:
         # Operator ruling 4 (2026-11-16): only where no ruled step within scrim 0.60 / halo 0.16 (and the light

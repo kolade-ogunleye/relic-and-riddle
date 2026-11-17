@@ -166,7 +166,7 @@ TOKEN_RANGES: Mapping[str, tuple[float, float]] = MappingProxyType({
     "kicker.rule_gap": (0.2, 2.0),        # caps
     "kicker.rule_thick": (0.08, 0.50),    # caps
     "motion.back": (0.0, 4.0),
-    "motion.rise_s": (0, 40),             # px
+    "motion.rise_s": (0, 24),             # px (round 7: at 40 the WATCH NEXT kicker entered the video slot; the gap is 37)
 })
 
 # Joint limits where two tokens interact (round 5: the edge at its maximum on the mark at its minimum radius left no gold

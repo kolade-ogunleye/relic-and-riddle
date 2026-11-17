@@ -241,13 +241,14 @@ def _masthead(max_w: int, room: float | None = None) -> dict[str, Any]:
         spec = masthead_spec(size)
         font = get_font(brand.MASTHEAD_FONT, size, weight=spec["weight"])
         r, gap = round(spec["mark_r"]), round(spec["gap"])
-        group = 2 * r + gap + tracked_width(brand.MASTHEAD, font, spec["track"])
+        from .masthead import group_width
+        group = group_width(size)   # round 7: the one fit width (masthead.group_width, its drawn bounds)
         return {"text": brand.MASTHEAD, "font": font, "track": spec["track"], "mark_r": r, "gap": gap,
                 "width": round(group), "size": size, "edge": spec["edge"]}
     first = at(start)
     if first["width"] > room:
-        for size in fit_ladder(start)[1:]:
-            got = at(round(size))
+        for size in fit_ladder(start)[1:]:   # round 7 (sweep): the ladder's own sizes, never rounded below its floor
+            got = at(size)
             if got["width"] <= room:
                 return got
         return first
@@ -257,8 +258,8 @@ def _masthead(max_w: int, room: float | None = None) -> dict[str, Any]:
         font = get_font(brand.MASTHEAD_FONT, size, weight=spec["weight"])
         track = spec["track"]
         r, gap = round(spec["mark_r"]), round(spec["gap"])
-        name_w = tracked_width(brand.MASTHEAD, font, track)
-        group = 2 * r + gap + name_w
+        from .masthead import group_width
+        group = group_width(size)
         if group > goal and best is not None:
             break
         best = {"text": brand.MASTHEAD, "font": font, "track": track, "mark_r": r, "gap": gap, "width": round(group),
@@ -581,32 +582,35 @@ def frames(last: Image.Image, share: str, stats: dict[str, Any] | None = None, *
 
     # Every line is planned on the card's last frame (the ground at rest) and drawn from that plan on each frame.
     rest = ground((total - 1) / FPS)
-    brand_plate = plan_text(rest, lay["masthead_xy"], mast["text"], mast["font"], colour_of("masthead.colour_dark"),
-                            "lt", mast["track"], target=tok("contrast.masthead_target"),
-                            max_halo=tok("halo.masthead_max"))
-    # The system's ONE masthead gate (src/masthead.py verify, cycle 0 round 6: the card had its own and passed a mark
-    # at 1.38:1): the room, the name judged as every masthead is (the worst glyph), and the mark measured on the pixels
-    # it changes, on the card's ground at rest; failing closed, the record says why. Ruling 4: a name short of the gate
-    # within the halo cap takes the least halo above it up to the exception's ceiling that reaches the gate.
+    # The masthead (cycle 0 round 7): planned by the system's planner for a ground it cannot scrim (masthead.plan_on:
+    # bone at the least halo, the light variant, the ruling-4 exception; halo.step and colour_light read), then the
+    # ONE gate (masthead.verify: room, name, mark) on the ground at rest AND on every frame where the name is fully
+    # opaque (sweep r7: an earlier opaque frame read 4.73 while the resting frame recorded 16.60); failing closed.
     from . import masthead
-    mast_worst = masthead.judge(rest, brand_plate)
-    gate = tok("contrast.masthead_gate")
+    brand_plate, mast_worst, plan_rec = masthead.plan_on(rest, lay["masthead_xy"], "lt", mast["font"], mast["track"],
+                                                         mast["text"])
     # its room: the 9:16 column (the Reel box); on 16:9, from its left edge to END_SCREEN_GAP short of the video slot
     room = (lay["max_width"] if not landscape else
             END_SCREEN_SLOTS["video"][0] - END_SCREEN_GAP - (lay["masthead_xy"][0] - 2 * mast["mark_r"] - mast["gap"]))
-    mast_rec: dict[str, Any] = {"shown": True, "contrast": round(mast_worst, 2), "best_tried": round(mast_worst, 2),
-                                "size": mast["size"],
-                                "group_width": mast["width"], "room": room, "halo_exception": False}
-    if mast_worst < gate and mast["width"] <= room:
-        found = masthead.exception_plate(rest, lambda h: plan_text(
-            rest, lay["masthead_xy"], mast["text"], mast["font"], colour_of("masthead.colour_dark"), "lt",
-            mast["track"], target=tok("contrast.masthead_target"), min_halo=h, max_halo=h))
-        if found is not None:
-            brand_plate, mast_worst = found
-            mast_rec.update(halo_exception=True, halo_exception_cap=masthead.HALO_EXCEPTION_CAP,
-                            halo=brand_plate.halo, best_tried=round(mast_worst, 2))
-    masthead.verify(rest, brand_plate, mark_diamond(lay), lay["masthead"].get("edge", 3), mast_rec,
-                    judged=mast_worst, width=mast["width"], room=room)
+    mast_rec: dict[str, Any] = {"shown": True, "contrast": round(mast_worst, 2), "size": mast["size"],
+                                "group_width": mast["width"], "room": room, **plan_rec}
+    diamond, edge = mark_diamond(lay), lay["masthead"].get("edge", 3)
+    if masthead.verify(rest, brand_plate, diamond, edge, mast_rec, judged=mast_worst, width=mast["width"],
+                       room=room) is not None:
+        worst_frame = None
+        for i in range(total):
+            t = i / FPS
+            if ease((t - 0.15) / 0.4) < 1.0:
+                continue
+            frame_rec: dict[str, Any] = dict(plan_rec)
+            if masthead.verify(ground(t), brand_plate, diamond, edge, frame_rec) is None:
+                worst_frame = (i, frame_rec)
+                break
+            mast_rec["contrast_min_frames"] = round(min(mast_rec.get("contrast_min_frames", 99.0),
+                                                        frame_rec["contrast"]), 2)
+        if worst_frame is not None:
+            i, frame_rec = worst_frame
+            mast_rec.update(shown=False, reason=f"{frame_rec['reason']} (on frame {i}, fully opaque)")
     mast_shown = mast_rec["shown"]
     if not mast_shown:
         log.warning("End card: %s", mast_rec["reason"])
@@ -623,13 +627,20 @@ def frames(last: Image.Image, share: str, stats: dict[str, Any] | None = None, *
         if credits:
             c = extras["credits"]
             credits_plate = plan_text(rest, c["xy"], c["text"], c["font"], brand.STONE_LT, "ls", c["track"])
+    refused_lines = _gate_lines(ground, total, width, height, landscape, word_plates, follow_plate, credits_plate)
+    if "share" in refused_lines:
+        word_plates = []
+    if "follow" in refused_lines:
+        follow_plate = None
+    if "credits" in refused_lines:
+        credits_plate = None
     share_done = 0.45 + 0.055 * max(0, len(word_plates) - 1) + 0.3   # the last word has risen
     if stats is not None:
         stats.update(dim=dim, box=[round(v, 1) for v in lay["box"]], share_lines=[" ".join(ln) for ln in lay["lines"]],
                      share_size=lay["share_font"].size, follow_size=lay["follow_font"].size if lay["follow"] else None,
                      follow=lay["follow"], safe_width=lay["max_width"], masthead_width=mast["width"],
                      size=[width, height], seconds=seconds, masthead_top=lay["masthead_top"], text=text,
-                     masthead=mast_rec)
+                     masthead=mast_rec, refused_lines=refused_lines)
         if landscape:
             stats.update(kicker=KICKER, slot_frames=bool(slot_frames), credits_line=bool(credits),
                          push=LANDSCAPE_PUSH, handoff=text == brand.HANDOFF_LINE,
@@ -684,6 +695,59 @@ def frames(last: Image.Image, share: str, stats: dict[str, Any] | None = None, *
             if credits_plate is not None:
                 stats["contrast_credits"] = credits_plate.measure(frame)
         yield frame
+
+
+LINE_GATES = {"share": "contrast.text", "follow": "contrast.kicker", "credits": "contrast.text"}
+
+
+def _line_room(width: int, height: int, landscape: bool) -> tuple[list, list]:
+    """(the boxes a line must lie inside, the boxes it must not touch): 9:16, the Reel column (the organic Reel box,
+    reel_column); 16:9, the frame, clear of YouTube's element slots and the timestamp corner."""
+    if not landscape:
+        cx, w = reel_column(width, height)
+        return [(cx - w / 2, 0, cx + w / 2, height)], []
+    return [(0, 0, width, height)], [*END_SCREEN_SLOTS.values(), YOUTUBE_TIMESTAMP_ZONE]
+
+
+def _gate_lines(ground, total: int, width: int, height: int, landscape: bool, word_plates, follow_plate,
+                credits_plate) -> dict[str, str]:
+    """Cycle 0 round 7 (sweep: share text drawn at 4.32 and the follow line at 3.54 without refusal; a longer follow
+    or hand-off line ran out of the Reel box or into the video slot): every end-card line passes its gate (LINE_GATES)
+    as the system judges text (masthead.judge, the worst glyph) on EVERY frame where it is fully opaque, and lies
+    inside its room (_line_room); else it is not drawn and the record says why. {line: reason} for those refused."""
+    from . import masthead
+    inside, clear = _line_room(width, height, landscape)
+    lines = {"share": (word_plates, lambda k: 0.45 + 0.055 * k, 0.3),
+             "follow": ([follow_plate] if follow_plate is not None else [], lambda k: BELL_AT - 0.35, 0.35),
+             "credits": ([credits_plate] if credits_plate is not None else [],
+                         lambda k: 0.45 + 0.055 * max(0, len(word_plates) - 1) + 0.3 + 0.3, 0.5)}
+    refused: dict[str, str] = {}
+    for name, (plates, start, dur) in lines.items():
+        plates = [p for p in plates if p is not None and not p.empty]
+        if not plates:
+            continue
+        gate = tok(LINE_GATES[name])
+        for p in plates:
+            x0, y0, x1, y1 = p.box
+            if not any(a <= x0 and b <= y0 and x1 <= c and y1 <= d for a, b, c, d in inside) or any(
+                    x0 < c and a < x1 and y0 < d and b < y1 for a, b, c, d in clear):
+                refused[name] = f"{name} line not drawn: '{p.text}' ink {p.box} runs out of its room"
+                break
+        if name in refused:
+            continue
+        for k, p in enumerate(plates):
+            t0 = start(k) + dur   # when this plate is fully opaque (frames()'s own timing)
+            for i in range(max(0, int(np.ceil(t0 * FPS))), total):
+                got = masthead.judge(ground(i / FPS), p)
+                if got < gate:
+                    refused[name] = (f"{name} line not drawn: '{p.text}' reaches {got:.2f}:1 on frame {i}, under the "
+                                     f"{gate}:1 gate")
+                    break
+            if name in refused:
+                break
+    for name, why in refused.items():
+        log.warning("End card: %s", why)
+    return refused
 
 
 def bed_tail(reel: bool) -> float:

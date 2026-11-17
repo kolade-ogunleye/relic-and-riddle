@@ -109,6 +109,19 @@ def top_scrim(im: Image.Image, peak: float, reach: float, colour=None) -> Image.
     return Image.alpha_composite(im.convert("RGBA"), layer).convert(im.mode)
 
 
+def _slope_reach(im: Image.Image, reach: float, peak: float, bone, ink, lift: bool = False) -> float:
+    """`reach`, lengthened where the top-edge shapes would otherwise step faster than scrim.slope_max on `im`."""
+    import numpy as np
+    top = np.asarray(im.convert("L").crop((0, 0, im.width, max(1, min(im.height, int(reach))))), dtype=np.float32)
+    hi, lo = float(np.percentile(top, 95)), float(np.percentile(top, 5))
+    luma = (lambda c: 0.299 * c[0] + 0.587 * c[1] + 0.114 * c[2])
+    if lift:   # the light variant's bone lift moves the darkest band toward bone
+        rise = peak * max(0.0, luma(bone) - lo)
+    else:      # the dark scrim moves the brightest band toward INK, and the levels lower it
+        rise = peak * max(0.0, hi - luma(ink)) + (255 - tok("scrim.levels_floor")) * hi / 255
+    return max(reach, 1.5 * rise / tok("scrim.slope_max"))
+
+
 def levelled(im: Image.Image, ceiling: int, reach: float) -> Image.Image:
     """`im` with its output levels scaled to `ceiling` (0-255 -> 0-ceiling) under the top scrim's shape: fully at the
     top edge, easing out by smoothstep to the untouched photograph at y `reach` (no hue changed)."""
@@ -310,6 +323,12 @@ def plan(im: Image.Image, x0: float, baseline: float, size: float, reach: float 
     xy = (x0 + 2 * spec["mark_r"] + spec["gap"], baseline)
     reach = baseline + 6 * cap_height(font) if reach is None else reach
     bone, ink = colour_of("masthead.colour_dark"), colour_of("masthead.colour_light")
+    # round 7 (sweep: an accepted scrim stepped 0.58-0.70 luma/px): the top-edge shapes (dark scrim, light lift,
+    # levels) never step faster than scrim.slope_max. Smoothstep's steepest slope is 1.5 x its rise over its reach;
+    # the rise is what the shape can move this ground's brightest band (95th percentile luma over the reach) by: the
+    # scrim's full alpha toward INK (or the lift's toward bone) plus the levels' drop. A dark ground keeps its reach.
+    reach, lift_reach = (_slope_reach(im, float(reach), peak_max, bone, ink, lift) for lift in (False, True))
+    bone, ink = colour_of("masthead.colour_dark"), colour_of("masthead.colour_light")
     base = im.convert("RGB")
     width = group_width(size)
     rec: dict[str, Any] = {"variant": "dark", "scrim_peak": 0.0, "halo": 0.0, "size": round(float(size), 1),
@@ -324,9 +343,9 @@ def plan(im: Image.Image, x0: float, baseline: float, size: float, reach: float 
         log.warning("%s", rec["reason"])
         p = plan_text(base, xy, brand.MASTHEAD, font, bone, "ls", spec["track"], target=target, max_halo=0.0)
         return base, p, rec
-    seen = {"best": 0.0, "step": None, "dark": 0.0, "light": 0.0}   # the best overall and per variant
+    seen = {"best": 0.0, "step": None, "dark": 0.0, "light": 0.0, "trial": None}   # the best overall and per variant
 
-    def name(ground, fill, halo_cap=0.0, step="", start=0.0, inc=None, goal=None):
+    def name(ground, fill, halo_cap=0.0, step="", start=0.0, inc=None, goal=None, variant=None):
         """(plate, judged ratio): the least halo (from `start` in `inc` steps, halo.step by default, up to `halo_cap`)
         at which the judged ratio reaches `goal` (the target by default), else the halo that reads best. Every try
         updates the best seen (the record's best_tried)."""
@@ -338,10 +357,10 @@ def plan(im: Image.Image, x0: float, baseline: float, size: float, reach: float 
             p = plan_text(ground, xy, brand.MASTHEAD, font, fill, "ls", spec["track"], target=target,
                           min_halo=halo, max_halo=halo)
             got = judge(ground, p)
+            v = variant or ("light" if "light" in step else "dark")   # by the step tried, never by colour (r7)
             if got > seen["best"]:
-                seen.update(best=got, step=f"{step} halo {round(halo, 2)}".strip())
-            variant = "dark" if tuple(fill) == tuple(bone) else "light"
-            seen[variant] = max(seen[variant], got)
+                seen.update(best=got, step=f"{step} halo {round(halo, 2)}".strip(), trial=(ground, p, v))
+            seen[v] = max(seen[v], got)
             if best is None or got > best[1]:
                 best = (p, got)
             if got >= goal or halo >= halo_cap - 1e-9 or not p.light:
@@ -356,16 +375,16 @@ def plan(im: Image.Image, x0: float, baseline: float, size: float, reach: float 
         q, qgot = name(base, ink, step="light variant")
         if qgot >= goal:
             return q, qgot, base, 0.0
-        full = top_scrim(base, peak_max, reach, bone)
+        full = top_scrim(base, peak_max, lift_reach, bone)
         q, qgot = name(full, ink, step=f"light variant lift {peak_max}")
         if qgot < goal:
             return None
         lo, hi = 0.0, peak_max
         for _ in range(SCRIM_STEPS):
             mid = (lo + hi) / 2
-            ok = name(top_scrim(base, mid, reach, bone), ink, step=f"light variant lift {mid:.3f}")[1] >= goal
+            ok = name(top_scrim(base, mid, lift_reach, bone), ink, step=f"light variant lift {mid:.3f}")[1] >= goal
             lo, hi = (lo, mid) if ok else (mid, hi)
-        g = top_scrim(base, hi, reach, bone)
+        g = top_scrim(base, hi, lift_reach, bone)
         q, qgot = name(g, ink, step=f"light variant lift {hi:.3f}")
         return q, qgot, g, round(hi, 3)
 
@@ -454,6 +473,12 @@ def plan(im: Image.Image, x0: float, baseline: float, size: float, reach: float 
             if ceiling is not None:
                 rec["levels_ceiling"] = ceiling
             log.info("masthead: halo exception (ruling 4): halo %.2f reaches %.2f:1", p.halo, got)
+    if got < gate and seen["best"] >= gate and seen["trial"] is not None:
+        # round 7 (sweep r7 measure #10): a trial that reached the gate is never discarded because a later step of
+        # the path worsened (the steps are not monotonic on every ground): the best trial is drawn, and says which
+        ground, p, v = seen["trial"]
+        got = seen["best"]
+        rec.update(variant=v, best_trial_taken=seen["step"])
     _, detail = glyph_contrast(ground, p)
     rec.update(halo=p.halo, contrast=round(got, 2), contrast_whole=p.measure(p.draw(ground)),
                contrast_unaided=p.contrast_unaided, best_tried=round(seen["best"], 2), best_step=seen["step"],
@@ -490,6 +515,58 @@ def draw_mark(d: ImageDraw.ImageDraw, diamond, edge: int, alpha: int | None = No
             d.polygon(diamond, outline=(*tuple(edge_colour)[:3], int(alpha)), width=edge)
 
 
+def plan_on(ground: Image.Image, xy, anchor: str, font, track: float, text: str | None = None
+            ) -> tuple[Any, float, dict[str, Any]]:
+    """The name planned on a ground the masthead cannot scrim (the end card's, which moves): (plate, judged ratio,
+    record). The same ruled order as `plan` without the ground steps: bone at the least halo (halo.step steps up to
+    HALO_CAP) that reaches the target, else its best; under the gate, the light-ground variant (masthead.colour_light);
+    still under it, the ruling-4 exception (the least halo above HALO_CAP up to HALO_EXCEPTION_CAP that reaches the
+    gate). The record carries the variant, the halo, halo_exception and the best of EVERY trial (round 7: a failed
+    exception search kept its first ratio)."""
+    from .typography import plan_text
+    text = brand.MASTHEAD if text is None else text
+    target, gate = tok("contrast.masthead_target"), tok("contrast.masthead_gate")
+    bone, ink = colour_of("masthead.colour_dark"), colour_of("masthead.colour_light")
+    cap, step, inc = tok("halo.masthead_max"), tok("halo.step"), tok("halo.exception_step")
+    seen: dict[str, Any] = {"best": 0.0, "step": None, "dark": 0.0, "light": 0.0}
+
+    def at(fill, halo, variant, label):
+        q = plan_text(ground, xy, text, font, fill, anchor, track, target=target, min_halo=halo, max_halo=halo)
+        g = judge(ground, q)
+        if g > seen["best"]:
+            seen.update(best=g, step=f"{label} halo {round(halo, 2)}")
+        seen[variant] = max(seen[variant], g)
+        return q, g
+
+    best, halo = None, 0.0
+    while True:
+        q, g = at(bone, halo, "dark", "bone")
+        if best is None or g > best[1]:
+            best = (q, g, halo)
+        if g >= target or halo >= cap - 1e-9 or not q.light:
+            break
+        halo = min(cap, halo + step)
+    p, got, _ = best
+    rec: dict[str, Any] = {"variant": "dark", "halo_exception": False}
+    if got < gate:
+        q, g = at(ink, 0.0, "light", "light variant")
+        if g > got:
+            p, got = q, g
+            rec["variant"] = "light"
+    if got < gate:
+        h = cap + inc
+        while h <= HALO_EXCEPTION_CAP + 1e-9:
+            q, g = at(bone, min(h, HALO_EXCEPTION_CAP), "dark", "exception")
+            if g >= gate:
+                p, got = q, g
+                rec.update(variant="dark", halo_exception=True, halo_exception_cap=HALO_EXCEPTION_CAP)
+                break
+            h += inc
+    rec.update(halo=p.halo, best_tried=round(seen["best"], 2), best_step=seen["step"],
+               best_dark=round(seen["dark"], 2), best_light=round(seen["light"], 2))
+    return p, got, rec
+
+
 def exception_plate(ground: Image.Image, plate_at) -> tuple[Any, float] | None:
     """Operator ruling 4 (2026-11-16) for a surface whose ground the masthead cannot scrim (the end card's, which
     moves): (plate, judged ratio) at the LEAST halo above HALO_CAP, in halo.exception_step steps up to
@@ -521,6 +598,15 @@ def verify(ground: Image.Image, plate, diamond, edge: int, rec: dict[str, Any], 
     rec["contrast"] = round(got, 2)
     if width is not None and room is not None and width > room + 1e-9:
         rec["reason"] = f"masthead not drawn: its group is {width} px wide, its room {room} px"
+        log.warning("%s", rec["reason"])
+        return None
+    xs, ys = [x for x, _ in diamond], [y for _, y in diamond]
+    bx = plate.box if not plate.empty else (min(xs), min(ys), max(xs), max(ys))
+    gx0, gy0 = min(bx[0], min(xs) - edge), min(bx[1], min(ys) - edge)
+    gx1, gy1 = max(bx[2], max(xs) + edge), max(bx[3], max(ys) + edge)
+    if gx0 < 0 or gy0 < 0 or gx1 > ground.width or gy1 > ground.height:   # round 7: never a clipped masthead
+        rec["reason"] = (f"masthead not drawn: its group ({gx0:.0f}, {gy0:.0f}, {gx1:.0f}, {gy1:.0f}) runs off the "
+                         f"{ground.width}x{ground.height} canvas")
         log.warning("%s", rec["reason"])
         return None
     cap = HALO_EXCEPTION_CAP if rec.get("halo_exception") else tok("halo.masthead_max")

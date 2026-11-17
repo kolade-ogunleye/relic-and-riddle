@@ -1273,13 +1273,6 @@ class MultiFormatGenerator:
         px = self._px(cw)
         return (px(40), px(30), cw - px(40), chh - px(30))
 
-    def _header_bottom(self, d: ImageDraw.ImageDraw, cw: int, tight: bool) -> int:
-        """The bottom of the header band: the brand, top-left."""
-        px = self._px(cw)
-        b = d.textbbox((px(80), px(self.HEADER_Y)), brand.MASTHEAD, font=get_font(brand.TEXT_FONT, px.exact(28)), anchor="lt",
-                       stroke_width=px.exact(2))
-        return b[3] + (px(10) if tight else 0)
-
     def _footer_top(self, chh: int) -> int:
         """The lowest y a slide's text may reach: the zone's bottom less two gaps. Nothing is drawn under the
         text any more (the swipe cues are gone, operator 2026-10-28; Instagram's dots sit below the media).
@@ -1292,24 +1285,6 @@ class MultiFormatGenerator:
         text = drawable(text, font)  # no emoji, no missing-glyph boxes (2026-10-29)
         d.text(xy, text, font=font, fill=fill, anchor=anchor, **kw)
         return tuple(d.textbbox(xy, text, font=font, anchor=anchor, stroke_width=kw.get("stroke_width", 0)))
-
-    @staticmethod
-    def _badge(d, lay, name, text, x0, y0, font, max_w: int = 920, px=round, **kw):
-        """A badge that fits its width, recorded as its pill. `max_w`, the padding, radius and border are design
-        px, drawn through `px` (_px)."""
-        design = {k: kw.get(k, v) for k, v in (("pad_x", 18), ("pad_y", 8), ("radius", 4), ("border_width", 1))}
-        kw = {**kw, **{k: px(v) for k, v in design.items()}}
-        family = _font_family(font)
-        lines, font, short = MultiFormatGenerator._fit_text(d, text, family, round(font.size / getattr(px, "s", 1.0)),
-                                                            px(max_w - 2 * design["pad_x"]), 1, 16, px=px,
-                                                            sentences=False)
-        text = lines[0] if lines else ""
-        box = MultiFormatGenerator._draw_badge(d, text, x0, y0, font, **kw)
-        if lay is not None:
-            lay.add(name, box)
-            if short:
-                lay.shortened.append(name)
-        return box
 
     # The overhaul's slide grammar (visual critic round 4, 2026-10-29). Every slide's text is one stack, measured
     # first and set bottom-aligned on one shared line, KEY_BOTTOM less KEY_GAP: the line sits inside the profile

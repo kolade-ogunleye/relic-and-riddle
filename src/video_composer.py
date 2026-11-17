@@ -1454,7 +1454,7 @@ def unkerned_length(font: Any, text: str) -> float:
 
 def _record_caption_faces(words: list[Any], font_name: str, upper: bool) -> None:
     """Each caption word no bundled face draws, recorded once per run on the surface "captions" (QF-94) for the
-    review card: libass draws it in a system face, and the measures (unkerned_length, _glyph_box) take it in the
+    review card: libass draws it in a system face, and the measure (unkerned_length) takes it in the
     caption face itself, never refusing it. Recorded here, once per build, because those measures are cached."""
     from .font_engine import choose_face, missing_glyphs, record_glyph_event, surface
     from .typography import get_font
@@ -1471,21 +1471,6 @@ def _record_caption_faces(words: list[Any], font_name: str, upper: bool) -> None
 def _reel_ass_size(size: float) -> float:
     """The ASS Fontsize build_subtitles writes for a 9:16 caption at nominal size `size`."""
     return FONT_SIZE_ASS if size >= FONT_SIZE else round(size / 0.5625)
-
-
-@lru_cache(maxsize=512)
-def _glyph_box(ch: str) -> tuple[int, int, int, int] | None:
-    """The ink box of one caption glyph at _LIBASS_REF_PX (cached: rendering it is the measure's slow part).
-    Boxed in the face unkerned_length measures it in (QF-94): the caption face, or the bundled fallback face that
-    draws it; a glyph no bundled face draws in the caption face itself (its missing-glyph box, as before QF-94),
-    never refused: libass draws it in a system face (recorded by _record_caption_faces)."""
-    from .font_engine import LIBASS_FEATURES, choose_face, plain_face
-    from .typography import get_font
-    font = get_font(_caption_family(), _LIBASS_REF_PX)
-    face = choose_face(ch, font)
-    if face is None:
-        return plain_face(font).getmask(ch, features=list(LIBASS_FEATURES)).getbbox()
-    return face.getmask(ch, features=list(LIBASS_FEATURES)).getbbox()
 
 
 @lru_cache(maxsize=8192)
@@ -5386,6 +5371,6 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 
 # The caption measures cached by words alone are taken in the caption face (_caption_family): dropped when the brand
 # changes, so a brand with another caption face never reads the previous one's (QF-35a).
-for _cached in (_glyph_box, _libass_line, _caption_line_run, _caption_line_ink, _two_line_options, _two_line_cached,
+for _cached in (_libass_line, _caption_line_run, _caption_line_ink, _two_line_options, _two_line_cached,
                 _reel_caption_lines):
     _brand.on_change(_cached.cache_clear)

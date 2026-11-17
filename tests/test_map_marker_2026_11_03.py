@@ -59,12 +59,13 @@ def test_pin_label_sits_over_the_head_and_flips_near_the_top() -> None:
     head_top = 960 - graphics.PIN_HEIGHT
     last_base = max(xy[1] for _t, xy, _a in lay.rows)
     assert last_base == pytest.approx(head_top - graphics.MARKER_LABEL_GAP) and lay.position == "above"
-    assert len(lay.rows) <= graphics.MARKER_LABEL_ROWS and lay.font_px == graphics.MARKER_LABEL_PX
+    # cycle 0 round 7 (F14): the place-label role's size (Anton MARKER_LABEL_PX before)
+    assert len(lay.rows) <= graphics.MARKER_LABEL_ROWS and lay.font_px == graphics.place_steps(1080, 1920)[0]
     top = graphics.get_text_box(1080, 1920)[1]
     near = graphics.pin_layout((540.0, top + 120.0), "Derinkuyu Underground City", 1080, 1920)
     assert near.position == "flip" and near.label_box[1] >= top + 120
     wide = graphics.pin_layout((960.0, 540.0), "Derinkuyu", 1920, 1080)
-    assert wide.font_px == graphics.MARKER_LABEL_PX_WIDE
+    assert wide.font_px == graphics.place_steps(1920, 1080)[0]
 
 
 def test_dot_is_an_ink_core_in_a_bone_ring() -> None:
@@ -100,7 +101,7 @@ def test_dot_label_takes_the_first_free_imhof_place(size, order) -> None:
         b = lay.label_box                                                 # force the next one: its far edge
         blocked.append({"above": (b[0], b[1], b[2], b[1] + 4), "below": (b[0], b[3] - 4, b[2], b[3]),
                         "right": (b[2] - 4, b[1], b[2], b[3]), "left": (b[0], b[1], b[0] + 4, b[3])}[want])
-        cap = graphics.cap_height(graphics.get_font("Anton", lay.font_px))
+        cap = graphics.cap_height(graphics.place_font(lay.font_px))      # cycle 0 round 7: the place-label face
         if want in ("right", "left"):                                     # its first row's cap middle on the dot
             assert lay.rows[0][1][1] - cap / 2 == pytest.approx(anchor[1])
         else:

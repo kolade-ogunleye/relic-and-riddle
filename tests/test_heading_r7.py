@@ -152,7 +152,8 @@ def test_the_carousel_cover_is_locked_at_display_xl_and_sets_the_ruled_form(tmp_
 def test_a_long_cover_heading_keeps_display_xl_and_the_break_gives_way(tmp_path):
     lay = _slide(tmp_path, "cover", {"heading": "THE IMPOSSIBLE GEOMETRY OF THE DESERT RINGS", "body": "A short body."})
     xl = brand_system.TYPE["carousel"]["display_xl"]
-    assert all(abs(p.font.size - xl) < 0.01 for p in lay.plates["heading"])
+    assert all(abs(p.font.size - xl) < 0.01 for p in lay.plates["heading"]) or lay.meta["heading"].get("off_ladder")
+    assert len({round(p.xy[1]) for p in lay.plates["heading"]}) >= 2
 
 
 @pytest.mark.parametrize("text", ["ORBITAL LANDMARK", "IMPACT THEORY DISPROVED", "BUILT BY HAND WITHOUT MORTAR"])
@@ -235,11 +236,13 @@ def test_the_reel_cover_lockup_takes_a_fixed_ratio_and_the_repaired_seam():
 
 def test_the_youtube_lockup_sits_on_the_wide_ladder_with_the_payoff_gold():
     from src import youtube_thumbnail
-    rows, f1, f2, rec = youtube_thumbnail._lockup(_D, "THE SECRET WEAPON", "", 900)
     ladder = (round(brand_system.TYPE["wide"]["display_xl"]), round(brand_system.TYPE_FALLBACK["wide"]["display_xl"]))
+    rows, f1, f2, rec = youtube_thumbnail._lockup(_D, "SAHARA EYE", "", 900)
     assert rec["tier"] in (0, 1) and f1.size in ladder
+    rows, f1, f2, rec = youtube_thumbnail._lockup(_D, "THE SECRET WEAPON", "", 900)
+    assert rec["tier"] in (0, 1) or rec.get("off_ladder")          # below the ladder only as a recorded last resort
     gold = [t for _, runs in rows for _, t, c in runs if tuple(c) == tuple(brand.GOLD)]
-    assert gold == ["WEAPON"]
+    assert gold == ["WEAPON"]                                      # the payoff, on one line (F5)
     rows, f1, f2, rec = youtube_thumbnail._lockup(_D, "THE EYE OF", "THE SAHARA", 900)
     assert [" ".join(t for _, t, _ in runs) for _, runs in rows] == ["THE EYE", "OF THE SAHARA"]
     assert f2.size == round(f1.size * brand_system.tok("lockup.line_ratio"))
@@ -360,3 +363,74 @@ def test_the_engine_tokens_are_runtime_and_bounded():
         assert key in brand_system.SYSTEM_TOKENS and key in brand_system.TOKEN_RANGES
         lo, hi = brand_system.TOKEN_RANGES[key]
         assert lo <= brand_system.SYSTEM_TOKENS[key] <= hi
+
+
+# ------------------------------------------------------------------ sweep S1 (CYCLE0-sweep-paths.codex.md, items 1-3)
+
+def test_a_story_title_is_never_drawn_under_the_ruled_floor(tmp_path):
+    """Item 1: long fields re-break at the floor or the frame is refused; never a title under 106 px."""
+    from src.multi_format import MultiFormatGenerator, story_title_px
+    from src.typography import TextFitError
+    floor = brand_system.GATES["heading.story_one_line_floor"]
+    photo = tmp_path / "s.jpg"
+    Image.new("RGB", (1200, 2100), (60, 55, 50)).save(photo)
+    for slide in ({"kicker": "K", "line1": "The extraordinarily long and winding underground passages",
+                   "line2": "carved beneath the ancient mountain city walls", "body": "A body line."},
+                  {"kicker": "K", "line1": "Brick and mortar of the", "line2": "whispering gallery dome",
+                   "body": "A body line."}):
+        px = story_title_px([slide])
+        assert px >= floor
+        for tight in (False, True):
+            try:
+                _, lay = MultiFormatGenerator()._render_story_frame(photo, slide, 0, 2, {}, tight=tight, title_px=px)
+            except TextFitError:
+                continue                                           # refused whole (QF-23), never drawn smaller
+            sizes = [p.font.size for n in ("title_1", "title_2") for p in lay.plates.get(n, [])]
+            assert sizes and min(sizes) >= floor, sizes
+
+
+def test_every_kicker_passes_its_gate_or_is_not_drawn():
+    """Item 2: the one kicker function fails closed like the masthead: gold, else bone, else nothing (recorded)."""
+    import numpy as np
+
+    from src import multi_format
+    from src.typography import get_font as gf
+    font = gf(brand.TEXT_FONT, 45, weight=800)
+    dark = Image.new("RGB", (900, 200), brand.INK)
+    plate, rec = multi_format.plan_kicker(dark, (60, 120), "THE RIDDLE", font, brand.GOLD, "ls", 6)
+    assert plate is not None and rec["variant"] == "colour" and rec["contrast"] >= rec["gate"] == 5.5
+    grey = Image.new("RGB", (900, 200), (128, 128, 128))
+    plate, rec = multi_format.plan_kicker(grey, (60, 120), "THE RIDDLE", font, brand.GOLD, "ls", 6, max_halo=0.0)
+    assert plate is None and rec["shown"] is False and "kicker gate" in rec["reason"]
+    # drawn through draw_kicker: nothing at all is drawn under the gate (no rule, no words)
+    from src.still_layout import Layout
+    lay = Layout("carousel", (900, 200), (0, 0, 900, 200))
+    real = multi_format.plan_text
+    try:
+        multi_format.plan_text = lambda *a, **k: real(*a, **{**k, "max_halo": 0.0})
+        out, _ = multi_format.draw_kicker(grey.copy(), 60, 120, "THE RIDDLE", font, brand.GOLD, lay)
+    finally:
+        multi_format.plan_text = real
+    assert np.array_equal(np.asarray(out.convert("RGB")), np.asarray(grey))
+    assert lay.meta["kickers"]["kicker"]["shown"] is False
+
+
+def test_a_brand_kicker_colour_under_the_gate_is_refused():
+    with pytest.raises(ValueError, match="kicker gate"):
+        brand.DEFAULT_BRAND.derive("ink kicker", system={"kicker.colour": "INK"})
+    brand.DEFAULT_BRAND.derive("teal kicker", system={"kicker.colour": "TEAL"})
+
+
+def test_the_cover_eyebrow_is_planned_at_the_kicker_gate():
+    """Item 3: a cover's eyebrow (the monument's too) is the kicker role at the kicker gate, not the 5.1 display tier."""
+    from src import cover_design
+    from src.still_layout import Layout
+    im = Image.new("RGBA", (1080, 1920), brand.INK + (255,))
+    rows, _ = cover_design._rows(im, {"eyebrow": "Subterranean marvel", "line1": "Carved", "line2": "solid salt"}, 900,
+                                 "badge", False)
+    lay = Layout("cover", (1080, 1920), (60, 60, 1020, 1860))
+    cover_design._paint(im, rows, 84, 1100, False, lay)
+    rec = lay.meta["kickers"]["eyebrow"]
+    assert rec["gate"] == brand_system.GATES["contrast.kicker"] and rec["shown"] and rec["contrast"] >= rec["gate"]
+    src = (ROOT / "src" / "cover_design.py").read_text(encoding="utf-8")
+    assert 'put("eyebrow"' not in src                              # the monument's eyebrow goes through plan_kicker

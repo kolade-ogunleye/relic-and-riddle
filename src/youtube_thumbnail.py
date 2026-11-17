@@ -368,11 +368,16 @@ def _draw_kicker(im, x, baseline, text, font, feed_kw):
     bar_w, gap = max(8, round(ch * tok("kicker.rule"))), round(ch * tok("kicker.rule_gap"))
     thick = max(3, round(ch * tok("kicker.rule_thick")))
     mid = baseline - ch / 2
+    from .brand_system import GATES
+    from .multi_format import plan_kicker
+    kw = dict(feed_kw, target=max(feed_kw.get("target", 0), GATES["contrast.kicker"]))
+    plate, rec = plan_kicker(im, (x + bar_w + gap, baseline), text, font, colour, "ls",
+                             tok("kicker.track") * font.size, **kw)
+    if plate is None:   # fail closed under the kicker gate (sweep S1)
+        return im, None, rec
     ImageDraw.Draw(im).rectangle([round(x), round(mid - thick / 2), round(x) + bar_w - 1,
-                                  round(mid - thick / 2) + thick - 1], fill=tuple(colour))
-    plate = plan_text(im, (x + bar_w + gap, baseline), text, font, colour, "ls", tok("kicker.track") * font.size,
-                      **feed_kw)
-    return plate.draw(im), plate
+                                  round(mid - thick / 2) + thick - 1], fill=tuple(plate.fill))
+    return plate.draw(im), plate, rec
 
 
 def _qual_font(text: str, width: float):
@@ -678,8 +683,10 @@ def _render(source, copy, focus, meta, figure, youtube_title, illustration, targ
                 h_h += cap_height(f_k) + _kicker_gap(f_k)
         y = round(centre - (pitch * (len(lines) - 1) + cap_height(f) + h_h) / 2 + h_h + cap_height(f))
         if f_k:
-            im, p_k = _draw_kicker(im, LEFT, y - cap_height(f) - _kicker_gap(f_k), kicker, f_k, feed("kicker", f_k))
-            plates.append(("kicker", p_k))
+            im, p_k, meta["kicker"] = _draw_kicker(im, LEFT, y - cap_height(f) - _kicker_gap(f_k), kicker, f_k,
+                                                   feed("kicker", f_k))
+            if p_k is not None:
+                plates.append(("kicker", p_k))
         if f_h:
             # The hedge on its own line above the headline (round 4), as on the covers ("ESTIMATED"), at the
             # feed floor and gated like every other line (r7: it was texture).

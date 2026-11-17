@@ -381,26 +381,36 @@ def _paint(im, rows, x, top, centered, lay):
             top = line_top
         line_top = top
         if row.get("kicker"):
-            # Round 7 (F20): the system kicker (the gold tab retired): a flat lead rule at mid-cap, then the words
+            # Round 7 (F20): the system kicker (the gold tab retired): a flat lead rule at mid-cap, then the words,
+            # planned at the kicker gate (multi_format.plan_kicker: gold, else bone, else not drawn and recorded)
+            from .multi_format import plan_kicker
             from .typography import tracked_width
             rule, gap, thick = kicker_lead(row["font"])
             w_txt = tracked_width(row["text"], row["font"], row.get("track", 0))
             x0 = x - (rule + gap + w_txt) / 2 if centered else x
             mid = top - row["font"].getbbox(row["text"], anchor="ls")[1] - cap_h_of(row["font"]) / 2
-            ImageDraw.Draw(im).rectangle([round(x0), round(mid - thick / 2), round(x0) + rule - 1,
-                                          round(mid - thick / 2) + thick - 1], fill=tuple(row["fill"]) + (255,))
-            if lay is not None:
-                lay.meta.setdefault("kicker_rule", {})[row["name"]] = [round(x0), round(mid - thick / 2),
-                                                                       round(x0) + rule, round(mid + thick / 2)]
             xy, anchor = _top_anchor((x0 + rule + gap, top), row["text"], row["font"], "lt", row.get("track", 0))
-        elif "dx" in row:
-            x0 = (x - row["line_w"] / 2 if centered else x) + row["dx"]
-            xy, anchor = _top_anchor((x0, top), row["text"], row["font"], "lt", row.get("track", 0))
+            plate, rec = plan_kicker(im, xy, row["text"], row["font"], row["fill"], anchor, row.get("track", 0))
+            if lay is not None:
+                lay.meta.setdefault("kickers", {})[row["name"]] = rec
+            if plate is not None:
+                ImageDraw.Draw(im).rectangle([round(x0), round(mid - thick / 2), round(x0) + rule - 1,
+                                              round(mid - thick / 2) + thick - 1], fill=tuple(plate.fill) + (255,))
+                if lay is not None:
+                    lay.meta.setdefault("kicker_rule", {})[row["name"]] = [round(x0), round(mid - thick / 2),
+                                                                           round(x0) + rule, round(mid + thick / 2)]
+                im = plate.draw(im)
+                plates.setdefault(row["name"], []).append(plate)
         else:
-            xy, anchor = _top_anchor((x, top), row["text"], row["font"], "mt" if centered else "lt", row.get("track", 0))
-        im, plate = place_text(im, xy, row["text"], row["font"], row["fill"], anchor=anchor, target=5.1,
-                               track=row.get("track", 0), halo_px=0 if row.get("tab") else None)
-        plates.setdefault(row["name"], []).append(plate)
+            if "dx" in row:
+                x0 = (x - row["line_w"] / 2 if centered else x) + row["dx"]
+                xy, anchor = _top_anchor((x0, top), row["text"], row["font"], "lt", row.get("track", 0))
+            else:
+                xy, anchor = _top_anchor((x, top), row["text"], row["font"], "mt" if centered else "lt",
+                                         row.get("track", 0))
+            im, plate = place_text(im, xy, row["text"], row["font"], row["fill"], anchor=anchor, target=5.1,
+                                   track=row.get("track", 0), halo_px=0 if row.get("tab") else None)
+            plates.setdefault(row["name"], []).append(plate)
         if not row.get("same_line"):
             top += row["height"] + row["gap"]
     for name, ps in plates.items():
@@ -1279,12 +1289,20 @@ def _monument(im, copy, lay, tight, source, focus, figure=None):
         plates.setdefault(name, []).append(plate)
 
     for t, f, c in eyebrow_rows:
-        rule, rgap, thick = kicker_lead(f)   # round 7 (F20): the system kicker's lead rule
+        # round 7 (F20 + sweep S1): the system kicker: its lead rule, planned at the kicker gate (5.5), gold, else
+        # bone, else not drawn (recorded in lay.meta["kickers"])
+        from .multi_format import plan_kicker
+        rule, rgap, thick = kicker_lead(f)
         base_k = y - f.getbbox(t, anchor="ls")[1]
         mid = base_k - cap_h_of(f) / 2
-        ImageDraw.Draw(im).rectangle([margin, round(mid - thick / 2), margin + rule - 1,
-                                      round(mid - thick / 2) + thick - 1], fill=tuple(c) + (255,))
-        put("eyebrow", t, f, c, (margin + rule + rgap, y))
+        k_plate, k_rec = plan_kicker(im, (margin + rule + rgap, base_k), t, f, c, "ls", kicker_track(f))
+        if lay is not None:
+            lay.meta.setdefault("kickers", {})["eyebrow"] = k_rec
+        if k_plate is not None:
+            ImageDraw.Draw(im).rectangle([margin, round(mid - thick / 2), margin + rule - 1,
+                                          round(mid - thick / 2) + thick - 1], fill=tuple(k_plate.fill) + (255,))
+            im = k_plate.draw(im)
+            plates.setdefault("eyebrow", []).append(k_plate)
         y += text_size(measure, t, f)[1] + gaps["eyebrow"]
     if q_font:
         y += eyebrow_to_q or 0

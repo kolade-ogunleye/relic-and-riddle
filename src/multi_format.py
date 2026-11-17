@@ -18,15 +18,46 @@ from typing import Any, Dict, List, Tuple
 
 from PIL import Image, ImageDraw
 
-from .config import VIDEO_WIDTH, VIDEO_HEIGHT
+from . import brand, brand_system
+from .brand_system import (
+    GATES,
+    LINE_END_LAST_RESORT,
+    LINE_END_NEVER,
+    colour_of,
+    tok,
+    type_px,
+)
+from .config import VIDEO_HEIGHT, VIDEO_WIDTH
 from .font_engine import GlyphRefused, choose_face, surface
-from .typography import (cap_height, drawable, field_font, fit_font, fit_line, fit_text, cover_crop, get_font,
-                         is_video, plan_text, probe_text, record_contrast, spoken_units, text_size, tracked_width,
-                         wrap_text, LayoutError, TextFitError)
-from . import brand
-from . import brand_system
-from .brand_system import GATES, LINE_END_LAST_RESORT, LINE_END_NEVER, colour_of, tok, type_px
-from .heading import GOLD_ROLES, Form, field_runs, ideal_seam, lockup_fields, set_field, set_heading
+from .heading import (
+    GOLD_ROLES,
+    Form,
+    field_runs,
+    ideal_seam,
+    lockup_fields,
+    set_field,
+    set_heading,
+)
+from .typography import (
+    LayoutError,
+    TextFitError,
+    cap_height,
+    cover_crop,
+    drawable,
+    field_font,
+    fit_font,
+    fit_line,
+    fit_text,
+    get_font,
+    is_video,
+    plan_text,
+    probe_text,
+    record_contrast,
+    spoken_units,
+    text_size,
+    tracked_width,
+    wrap_text,
+)
 
 log = logging.getLogger(__name__)
 
@@ -361,6 +392,27 @@ def kicker_width(text: str, font) -> float:
     return rule * ch + gap * ch + tracked_width(text, font, font.size * track)
 
 
+def plan_kicker(im: Image.Image, xy, text: str, font, colour, anchor: str = "ls", track: float = 0.0, **kw):
+    """The ONE kicker's gate (round 7, F20 + sweep S1): the kicker planned at the kicker tier (contrast.kicker, 5.5)
+    in its colour (kicker.colour); where that misses on this ground, the bone variant (the accent rule's warm-ground
+    fallback); where that misses too, no kicker (fail closed, like the masthead). Returns (plate or None, record):
+    the record names the variant drawn, its measured ratio, and the reason when none is."""
+    gate = GATES["contrast.kicker"]
+    kw.setdefault("target", gate)
+    tried = []
+    for variant, fill in (("colour", tuple(colour)), ("bone", tuple(brand.BONE))):
+        if variant == "bone" and fill == tuple(colour):
+            continue
+        plate = plan_text(im, xy, text, font, fill, anchor, track=track, **kw)
+        tried.append((variant, plate.contrast))
+        if plate.empty or (plate.contrast is not None and plate.contrast >= gate - 1e-9):
+            return plate, {"variant": variant, "contrast": plate.contrast, "gate": gate, "shown": True}
+    best = max((c for _, c in tried if c is not None), default=None)
+    log.warning("Kicker %r not drawn: %s below the %.1f:1 kicker gate in every variant", text, best, gate)
+    return None, {"shown": False, "gate": gate, "best_tried": best, "tried": tried,
+                  "reason": f"under the {gate}:1 kicker gate in gold and bone (best {best})"}
+
+
 def draw_kicker(im: Image.Image, x: float, baseline: float, text: str, font, colour=None, lay=None,
                 name: str = "kicker", plates=None) -> Tuple[Image.Image, Tuple[int, int, int, int]]:
     """A kicker: a short gold rule at mid-cap height, then the words in tracked gold capitals (the covers'
@@ -372,11 +424,13 @@ def draw_kicker(im: Image.Image, x: float, baseline: float, text: str, font, col
     bar_w, gap = max(8, round(ch * rule)), round(ch * rule_gap)
     thick = max(3, round(ch * rule_thick))
     mid = baseline - ch / 2
-    d = ImageDraw.Draw(im)
-    d.rectangle([round(x), round(mid - thick / 2), round(x) + bar_w - 1, round(mid - thick / 2) + thick - 1],
-                fill=tuple(colour))
-    plate = plan_text(im, (x + bar_w + gap, baseline), text, font, colour, "ls", track=font.size * track,
-                      target=KICKER_TARGET)
+    plate, rec = plan_kicker(im, (x + bar_w + gap, baseline), text, font, colour, "ls", track=font.size * track)
+    if isinstance(getattr(lay, "meta", None), dict):
+        lay.meta.setdefault("kickers", {})[name] = rec
+    if plate is None:   # fail closed: no rule and no words under the gate (recorded)
+        return im, (int(round(x)), int(round(baseline - ch)), int(round(x)), int(round(baseline)))
+    ImageDraw.Draw(im).rectangle([round(x), round(mid - thick / 2), round(x) + bar_w - 1,
+                                  round(mid - thick / 2) + thick - 1], fill=tuple(plate.fill))
     im = plate.draw(im)
     box = (int(round(x)), min(plate.box[1], int(round(baseline - ch))), plate.box[2], max(plate.box[3], int(round(baseline))))
     if lay is not None:
@@ -832,7 +886,10 @@ class MultiFormatGenerator:
         # one-line floor), one line a field at it, else the engine's break at it. Only a block the box cannot hold at
         # that size steps down further (recorded as story_size_off).
         story_px = title_px if title_px else story_title_px([slide], tight=tight, poll=poll if asks_poll else None)
-        t_size, t_min = (min(story_px, 124), 56) if tight else (story_px, 64)
+        # Never under the ruled floor (sweep S1: long titles drew at 76-104 px): below it the frame re-breaks at the
+        # floor or is refused (QF-23: TextFitError), never drawn smaller.
+        t_min = GATES["heading.story_one_line_floor"]
+        t_size = max(t_min, min(story_px, 124)) if tight else max(t_min, story_px)
         trials = [(t_size, False), (t_size, True)] + [(sz, True) for sz in range(t_size - 2, t_min - 1, -2)]
         f_body = get_font(brand.TEXT_FONT, STORY_BODY_PX, weight=STORY_BODY_WEIGHT)
         n_body = len(wrap_text(d, " ".join(body.split()), f_body, max_w)) if body.strip() else 0
@@ -1425,7 +1482,10 @@ class MultiFormatGenerator:
         fallback = {k: round(v * 3 / 4, 2) for k, v in brand_system.TYPE_FALLBACK["carousel"].items()}
         form = None
         if two_tone is True and h_spec[0] >= design["display_xl"]:
-            form = set_heading(heading, measure, design_w, (design["display_xl"],), lockup=True, locked_lines=3)
+            form = set_heading(heading, measure, design_w, (design["display_xl"],), lockup=True, locked_lines=4)
+            if form is None:   # a recorded last resort (off_ladder) rather than a refused cover
+                form = set_heading(heading, measure, design_w, (design["display_xl"],), lockup=True,
+                                   last_resort_floor=fallback["display_xl"])
         elif content:
             spec = self.CONTENT_HEADING_FB if getattr(_render_state, "facebook", False) else self.CONTENT_HEADING
             form = set_heading(heading, measure, design_w, spec, last_resort_floor=round(spec[1] * 0.9))
@@ -1925,8 +1985,8 @@ class MultiFormatGenerator:
         "collides with the spacecraft's solar panel"). `heading_frame`: the deck's content frame (1 or 2 heading
         lines, _deck_heading_frame); 2, round 2's frame, when the slide is drawn alone. `strip`: the Instagram copy's
         swipe strip on slide 1 or 2 (swipe_strip)."""
-        from .still_layout import Layout
         from .script_engine import facebook_photo_caption, neutral_cues
+        from .still_layout import Layout
         clean = facebook_photo_caption if facebook else neutral_cues
         card = dict(card, heading=typeset(clean(card.get("heading") or "")), body=typeset(clean(card.get("body") or "")))
         share = typeset(clean(share or ""))

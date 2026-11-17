@@ -412,6 +412,7 @@ SIZE_SITES: Mapping[str, str] = MappingProxyType({
     "multi_format:MultiFormatGenerator._rows": "D",
     "multi_format:MultiFormatGenerator._set_heading": "D",
     "multi_format:MultiFormatGenerator._set_heading.measure": "D",
+    "multi_format:MultiFormatGenerator._slide_text.place": "D",
     "multi_format:story_body_lines": "D",
     "multi_format:story_credit_fit": "D",
     "multi_format:story_title_px": "D",

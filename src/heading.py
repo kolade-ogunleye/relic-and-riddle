@@ -260,7 +260,8 @@ def _choose(words, cut_sets, fits, balance_min, seam_pref, strict, measure, lone
 def set_heading(text: str, measure: Callable[[str, float], float], width: float, sizes: Sequence[float],
                 max_lines: int = 2, seam: int | None = None, lockup: bool = False,
                 balance_min: float | None = None, locked_lines: int = 0,
-                last_resort_floor: float | None = None, extra_lines: int = 0) -> Form | None:
+                last_resort_floor: float | None = None, extra_lines: int = 0,
+                final_floor: float | None = None) -> Form | None:
     """The heading `text` set on the ladder `sizes` (first size, then at most the recorded fallback): None when no
     valid form fits `width` at any of them. `measure(line, size)` is a line's drawn width at `size`. `seam`: an
     authored line1 / line2 seam (word index) the break prefers; `lockup`: the payoff run is gold (else the heading is
@@ -269,7 +270,8 @@ def set_heading(text: str, measure: Callable[[str, float], float], width: float,
     `extra_lines`: before that, up to this many lines on the ladder (valid forms only; recorded by the line count).
     `last_resort_floor`: an interior's last resort when no valid form sets on the ladder: the fallback tier stepped
     down 2 px at a time to this floor (valid forms only), then a lone-word row at the fallback tier; each recorded
-    (off_ladder / lone_last_resort), so a heading is refused only where even that does not set."""
+    (off_ladder / lone_last_resort), so a heading is refused only where even that does not set. `final_floor`: below
+    that, further 2 px steps to this floor (a face too wide for every form on the ladder; recorded off_ladder)."""
     words = tuple(" ".join(str(text or "").split()).split())
     if not words:
         return None
@@ -302,8 +304,14 @@ def set_heading(text: str, measure: Callable[[str, float], float], width: float,
             off.append(size)
             stages.append((None, size, [()] + multi, 0.0, False))
             size -= 2
-        lone_sets = multi
+        lone_sets = [c for n in range(1, max(max_lines, extra_lines)) for c in itertools.combinations(points, n)]
         stages.append((len(sizes) - 1, sizes[-1], lone_sets, 0.0, False))
+        stages += [(None, size, lone_sets, 0.0, False) for size in off]   # never refused while a form sets
+        if final_floor is not None:   # a face too wide for every form above (a second brand): smaller, valid, recorded
+            size = (off[-1] if off else sizes[-1]) - 2
+            while size >= final_floor:
+                stages.append((None, size, lone_sets, 0.0, False))
+                size -= 2
     for tier, size, cut_sets, bmin, strict in stages:
         lone_ok = cut_sets is lone_sets
         got = _choose(words, cut_sets, fits_at(size), bmin, seam, strict, lambda t, s=size: measure(t, s), lone_ok)

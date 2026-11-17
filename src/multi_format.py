@@ -1507,7 +1507,8 @@ class MultiFormatGenerator:
                                    last_resort_floor=fallback["display_xl"])
         elif content:
             spec = self.CONTENT_HEADING_FB if getattr(_render_state, "facebook", False) else self.CONTENT_HEADING
-            form = set_heading(heading, measure, design_w, spec, extra_lines=3, last_resort_floor=round(spec[1] * 0.9))
+            form = set_heading(heading, measure, design_w, spec, extra_lines=3, last_resort_floor=round(spec[1] * 0.9),
+                               final_floor=round(spec[1] * 0.6))
         elif two_tone is True:
             form = set_heading(heading, measure, design_w, (design["display_m"] * scale, fallback["display_m"] * scale),
                                lockup=True)

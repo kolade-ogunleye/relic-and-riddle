@@ -888,9 +888,11 @@ class MultiFormatGenerator:
         story_px = title_px if title_px else story_title_px([slide], tight=tight, poll=poll if asks_poll else None)
         # Never under the ruled floor (sweep S1: long titles drew at 76-104 px): below it the frame re-breaks at the
         # floor or is refused (QF-23: TextFitError), never drawn smaller.
-        t_min = GATES["heading.story_one_line_floor"]
+        # Ruling (FREEZE-PARK round 4 (2), round 3 (3)(1)): one line a field down to heading.story_one_line_floor (106);
+        # a title that wraps never under heading.story_floor (120).
+        t_min, wrap_floor = GATES["heading.story_one_line_floor"], GATES["heading.story_floor"]
         t_size = max(t_min, min(story_px, 124)) if tight else max(t_min, story_px)
-        trials = [(t_size, False), (t_size, True)] + [(sz, True) for sz in range(t_size - 2, t_min - 1, -2)]
+        trials = [(t_size, False)] + [(sz, True) for sz in range(max(t_size, wrap_floor), wrap_floor - 1, -2)]
         f_body = get_font(brand.TEXT_FONT, STORY_BODY_PX, weight=STORY_BODY_WEIGHT)
         n_body = len(wrap_text(d, " ".join(body.split()), f_body, max_w)) if body.strip() else 0
 
@@ -986,6 +988,13 @@ class MultiFormatGenerator:
             im = plate.draw(im)
             lay.plates.setdefault(name, []).append(plate)
             by_name.setdefault(name, []).append(plate)
+        # Round 7 (real-runs sweep S2): every line's ratio as finally composed (title_1's ring holds title_2's ink,
+        # drawn after it was planned: 8.37 planned, 7.20 delivered), not as planned
+        for plates_ in by_name.values():
+            for p in plates_:
+                m = p.measure(im)
+                if m is not None:
+                    p.contrast = m
         for name, plates_ in by_name.items():   # each element one block, in reading order
             record_contrast(lay, name, plates_)
         y_end = top + block
@@ -1002,7 +1011,9 @@ class MultiFormatGenerator:
             if measured:
                 credit["contrast"] = round(min(measured), 2)
         base = im.convert("RGB")
+        kickers = (getattr(lay, "meta", None) or {}).get("kickers") if isinstance(getattr(lay, "meta", None), dict) else None
         lay.meta = {"frame": None, "size": [VIDEO_WIDTH, VIDEO_HEIGHT], "photo_credit": credit,
+                    **({"kickers": kickers} if kickers else {}),
                     "body_source": " ".join(body.split()), "body_drawn": " ".join(body_lines),
                     "body_px": font_b.size, "body_lines": len(body_lines),
                     "title_px": size, "story_title_px": story_px, "story_size_off": size != t_size,
@@ -1330,6 +1341,11 @@ class MultiFormatGenerator:
             im = plate.draw(im)
             by_name.setdefault(r["name"], []).append(plate)
             plates.setdefault(r["name"], []).append(plate)
+        for ps in by_name.values():   # round 7 (sweep S2): each ratio on the finally composed stack
+            for p in ps:
+                m = p.measure(im)
+                if m is not None:
+                    p.contrast = m
         for name, ps in by_name.items():
             record_contrast(lay, name, ps)
         top = min(d.textbbox((x + r.get("x", 0), off + r["y"]), r["text"], font=r["font"], anchor="ls")[1] for r in drawn)
@@ -1579,13 +1595,21 @@ class MultiFormatGenerator:
             # face had shrunk single bodies to 27-33 design px, a size per slide)
             # Round 5: nor does its own fit shrink it: a content body that does not set in its lines at the deck size
             # takes one more line (the layout gives in lines, never in size); only then is it shortened as before.
-            b_size = body_spec[0] * (1.0 if facebook_heading else scale)
+            # Round 7 (real-runs sweep S1): one body size per deck, a ladder step only: on a cover, stat or CTA slide
+            # whose stack takes a smaller scale the body takes its one fallback tier (TYPE_FALLBACK carousel body),
+            # never the stack's continuous scale (41.3 px against 48 on two real decks)
+            b_size = body_spec[0] if (facebook_heading or scale >= 1.0) else body_spec[1]
             if facebook_heading:
                 b_lines_, font_b, b_short = self._body(d, px, body, width, b_lines, b_size, b_size, trial=True)
                 if b_short:
                     b_lines_, font_b, b_short = self._body(d, px, body, width, b_lines + 1, b_size, b_size)
             else:
-                b_lines_, font_b, b_short = self._body(d, px, body, width, b_lines, b_size, body_spec[1])
+                b_lines_, font_b, b_short = self._body(d, px, body, width, b_lines, b_size, b_size, trial=True)
+                if b_short and b_size != body_spec[1]:
+                    b_size = body_spec[1]
+                    b_lines_, font_b, b_short = self._body(d, px, body, width, b_lines, b_size, b_size, trial=True)
+                if b_short:   # one more line at the tier, never a smaller size (refitted and logged if still short)
+                    b_lines_, font_b, b_short = self._body(d, px, body, width, b_lines + 1, b_size, b_size)
             step = round(font_b.size * self.BODY_LEADING)
             y += round(font_b.size * tok("band.body_gap"))   # round 7 (F3): one heading-body gap token
             for j, line in enumerate(b_lines_):

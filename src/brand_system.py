@@ -121,8 +121,8 @@ GATES: Mapping[str, Any] = MappingProxyType({
     # ---- the masthead on a cover the profile grid shows (QF-87): its cap height at 124 px wide, or no masthead
     "masthead.grid_cap": 9,
     # ---- headings (rulings)
-    "heading.story_one_line_floor": 106,   # round 4 (2): Story one-line-a-field floor, px
-    "heading.story_floor": 120,            # round 3 (3)(1): else
+    "heading.story_one_line_floor": 106,   # round 4 (2): Story one-line-a-field floor, px (multi_format reads it)
+    "heading.story_floor": 120,            # round 3 (3)(1): else (a wrapped Story title; multi_format reads it)
     # ---- captions
     "motion.caption_cps": 17.0,       # captions shown at most this many characters per second (config.CAPTION_MAX_CPS)
 })
@@ -306,8 +306,9 @@ DEVIATIONS: Mapping[str, tuple[str, str, tuple, str]] = MappingProxyType({
                                  (150, 140), "D"),
     "carousel stat heading": ("display_m", "multi_format: the colossal-stat slide's heading, 84 to 52 design px in "
                               "2 px steps through the engine", (84, 52, 2), "D"),
-    "Story title": ("display_xl", "multi_format: one size per Story, 150 to the ruled one-line floor 106 (round 7)",
-                    (150, 106), "D"),
+    "Story title": ("display_xl", "multi_format: one size per Story (story_title_px), one line a field from 150 down "
+                    "to heading.story_one_line_floor 106; a wrapped title never under heading.story_floor 120; below "
+                    "them refused, never drawn (round 7)", (150, 106, 120), "D"),
     "then-and-now THEN / NOW": ("data_label", "then_now.kicker_px(): 48 px 9:16, cap-fitted 16:9", (48,), "A"),
 })
 

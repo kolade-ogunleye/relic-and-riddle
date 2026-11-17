@@ -450,3 +450,40 @@ def test_the_end_screen_kicker_takes_the_one_gate(ground, monkeypatch):
         assert rec["contrast"] >= rec["gate"]
     else:
         assert "kicker gate" in rec["reason"]
+
+
+# ------------------------------------------------------------------ real-runs sweep (CYCLE0-sweep-realruns.claude.md)
+
+def test_the_story_floors_are_read_from_the_gates(monkeypatch, tmp_path):
+    """S1: the Story's two ruled floors are what the renderer reads (moving a gate moves the frame)."""
+    src = (ROOT / "src" / "multi_format.py").read_text(encoding="utf-8")
+    assert 'GATES["heading.story_one_line_floor"]' in src and 'GATES["heading.story_floor"]' in src
+    from src.multi_format import MultiFormatGenerator
+    photo = tmp_path / "s.jpg"
+    Image.new("RGB", (1200, 2100), (60, 55, 50)).save(photo)
+    slide = {"kicker": "K", "line1": "Rings of rock", "line2": "worn by wind", "body": "A body line."}
+    _, lay = MultiFormatGenerator()._render_story_frame(photo, slide, 0, 2, {})
+    sizes = {p.font.size for n in ("title_1", "title_2") for p in lay.plates[n]}
+    assert len(sizes) == 1 and min(sizes) >= brand_system.GATES["heading.story_one_line_floor"]
+
+
+def test_a_non_content_body_keeps_the_ladder(tmp_path):
+    """S1: a cover's (or a stat / CTA slide's) body is the deck's body size or its one fallback tier, never the
+    stack's continuous scale (41.3 px on two real decks)."""
+    lay = _slide(tmp_path, "cover", {"heading": "THE IMPOSSIBLE GEOMETRY OF THE DESERT RINGS AND THE WINDS",
+                                     "body": "A concentric formation in Mauritania that has long fascinated observers "
+                                             "from orbit, and from the ground, for many decades of study."})
+    ladder = {round(brand_system.TYPE["carousel"]["body"], 2), round(brand_system.TYPE_FALLBACK["carousel"]["body"], 2)}
+    assert {round(p.font.size, 2) for p in lay.plates["body"]} <= ladder
+
+
+def test_story_title_contrast_is_recorded_on_the_composed_frame(tmp_path):
+    """S2: each title line's recorded ratio is measured after every line is drawn (title_2's ink sits in title_1's
+    ring)."""
+    from src.multi_format import MultiFormatGenerator
+    photo = tmp_path / "s.jpg"
+    Image.new("RGB", (1200, 2100), (90, 80, 70)).save(photo)
+    im, lay = MultiFormatGenerator()._render_story_frame(
+        photo, {"kicker": "K", "line1": "The desert eye", "line2": "seen from space", "body": "A body."}, 0, 2, {})
+    for p in lay.plates["title_1"]:
+        assert p.contrast == pytest.approx(p.measure(im.convert("RGBA")), abs=0.05)

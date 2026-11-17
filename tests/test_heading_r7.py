@@ -470,7 +470,7 @@ def test_the_story_floors_are_read_from_the_gates(monkeypatch, tmp_path):
 def test_a_non_content_body_keeps_the_ladder(tmp_path):
     """S1: a cover's (or a stat / CTA slide's) body is the deck's body size or its one fallback tier, never the
     stack's continuous scale (41.3 px on two real decks)."""
-    lay = _slide(tmp_path, "cover", {"heading": "THE IMPOSSIBLE GEOMETRY OF THE DESERT RINGS AND THE WINDS",
+    lay = _slide(tmp_path, "cover", {"heading": "THE IMPOSSIBLE GEOMETRY OF THE DESERT RINGS",
                                      "body": "A concentric formation in Mauritania that has long fascinated observers "
                                              "from orbit, and from the ground, for many decades of study."})
     ladder = {round(brand_system.TYPE["carousel"]["body"], 2), round(brand_system.TYPE_FALLBACK["carousel"]["body"], 2)}

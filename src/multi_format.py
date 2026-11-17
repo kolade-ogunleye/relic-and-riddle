@@ -1500,7 +1500,7 @@ class MultiFormatGenerator:
         if two_tone is True and h_spec[0] >= design["display_xl"]:
             form = set_heading(heading, measure, design_w, (design["display_xl"],), lockup=True, locked_lines=4)
             if form is None:   # a recorded last resort (off_ladder) rather than a refused cover
-                form = set_heading(heading, measure, design_w, (design["display_xl"],), lockup=True,
+                form = set_heading(heading, measure, design_w, (design["display_xl"],), lockup=True, max_lines=4,
                                    last_resort_floor=fallback["display_xl"])
         elif content:
             spec = self.CONTENT_HEADING_FB if getattr(_render_state, "facebook", False) else self.CONTENT_HEADING

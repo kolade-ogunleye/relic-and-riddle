@@ -80,7 +80,11 @@ def test_cover_delivered_contrast_and_profile_crop(tmp_path, monkeypatch, ground
     cover, grid = engine.generate_thumbnails(_hero(tmp_path, ground), PAYLOAD, tmp_path / "out",
                                              style=style, variants=False)
     entry = _assert_delivered_text(cover, layouts[-1])
-    assert entry["recipe"]["style"] == style
+    # round 7 integration: the monument on the bright ground leaves its title line "DOWN" (its figure is the hero) at
+    # 2.84:1 in the 124 px grid tile, under the grid proof's tile gate (contrast.grid 3.0): the cover falls back to
+    # Discovery, recorded (grid_fallback), and is checked as drawn
+    fallback = entry["recipe"].get("grid_fallback") or {}
+    assert entry["recipe"]["style"] == style or (fallback.get("from") == style and "gate 3.0" in str(fallback["fails"]))
     assert not entry["shortened"]
     _assert_profile_crop(cover, grid)
 
@@ -100,6 +104,12 @@ def test_cover_redraw_keeps_delivered_contrast_metadata(tmp_path, monkeypatch, s
     cover, grid = VisualEngine().generate_thumbnails(_hero(tmp_path, "bright"), PAYLOAD, tmp_path / "out",
                                                     style=style, variants=False)
     before = still_layout.load(cover)
+    if (before["recipe"].get("grid_fallback") or {}).get("from") == style:
+        # round 7 integration: drawn as the recorded fallback (the grid proof's tile gate, see above), so the layout
+        # this test captures (the declined style's) is not the delivered one: the fallback's own redraw is checked
+        # by its own parameter
+        assert before["recipe"]["style"] != style
+        return
     entry = still_layout.redraw(cover)
     assert entry is not None and entry["tight"]
     assert entry["attempts"] == before["attempts"] + 1

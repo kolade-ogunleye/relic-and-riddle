@@ -401,6 +401,7 @@ def plan_kicker(im: Image.Image, xy, text: str, font, colour, anchor: str = "ls"
     the record names the variant drawn, its measured ratio, and the reason when none is."""
     gate = GATES["contrast.kicker"]
     kw.setdefault("target", gate)
+    text = drawable(text, font)   # no emoji, no missing-glyph box (the old kicker path's rule, 2026-10-29)
     tried = []
     for variant, fill in (("colour", tuple(colour)), ("bone", tuple(brand.BONE))):
         if variant == "bone" and fill == tuple(colour):
@@ -1528,11 +1529,16 @@ class MultiFormatGenerator:
         # to its measure: a cover (two_tone True) at display_xl, locked (the break and the band give way); a content
         # slide at display_l, else its one fallback tier; a two-line break goes before a stop word. A cover lockup's
         # payoff run is gold on one line or two; an interior heading is bone but for a stated quantity.
+        # what no bundled face draws (an emoji) is stripped before the engine sets the line (as _text did: 2026-10-29)
+        heading = " ".join(drawable(heading, get_font(brand.DISPLAY_FONT, 100)).split())
         form, font_h = (self._set_heading(d, px, heading, width, two_tone, scale, h_spec, facebook_heading)
                         if heading.strip() else (None, None))
         _render_state.heading_form = form
         for j, line_runs in enumerate(form.runs() if form else ()):
             ch = cap_height(font_h)
+            if j == 0 and kicker:   # the kicker's gap is to the heading's highest ink (an accented capital rises)
+                rise = -d.textbbox((0, 0), " ".join(t for t, _ in line_runs), font=font_h, anchor="ls")[1] - ch
+                y += max(0, rise)
             y += ch if j == 0 else round(ch * 1.13)
             x = 0
             for text, role in line_runs:
@@ -1622,7 +1628,10 @@ class MultiFormatGenerator:
             kb = None
             if kick:   # the kicker from the frame's top tier cap, so a fallback-tier heading does not move it
                 spec = self.CONTENT_HEADING_FB if facebook else self.CONTENT_HEADING
-                kb = first - cap_height(get_font(brand.DISPLAY_FONT, px.exact(spec[0]))) - kicker_gap(kick["font"].size)
+                # the gap is to the heading's highest ink: an accented capital ("ÇATALHÖYÜK") rises above the cap line
+                ink_top = min(ink(r, shift, 1) for r in heads if r["y"] + shift == first)
+                kb = (min(first - cap_height(get_font(brand.DISPLAY_FONT, px.exact(spec[0]))), ink_top)
+                      - kicker_gap(kick["font"].size))
                 out = [dict(r, y=kb) if r["name"] == "kicker" else r for r in out]
             fixed.update(kicker=kb, heading=first, heading_last=max(r["y"] for r in heads) + shift,
                          heading_frame=frame["heading_lines"], heading_lines=n_heads)

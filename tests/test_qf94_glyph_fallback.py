@@ -484,10 +484,10 @@ def test_a_story_frame_no_face_can_draw_is_refused_and_the_others_drawn(tmp_path
     gen = MultiFormatGenerator()
     real = gen._render_story_frame
 
-    def frame(ph, slide, i, count, poll, tight=False):
+    def frame(ph, slide, i, count, poll, tight=False, title_px=None):   # round 7: the Story's one title size
         if i == refused:
             raise GlyphRefused("ابن", "IBMPlexMono-Medium.ttf", "ابن")
-        return real(ph, slide, i, count, poll, tight=tight)
+        return real(ph, slide, i, count, poll, tight=tight, title_px=title_px)
     monkeypatch.setattr(gen, "_render_story_frame", frame)
     slide = {"kicker": "THE HEIST", "line1": "A ROOM", "line2": "OF AMBER", "body": "It was taken in 1941."}
     stale = tmp_path / "run" / "stories" / name

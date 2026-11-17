@@ -46,12 +46,12 @@ ALLOW = {
     ("multi_format", "STRENGTH_FIGURE", "(3, 2, 1)"): "ranks",
     ("end_card", "SHARE_SIZES", "(58, 56, 54)"): "type sizes",
     # the design system's declared surface size systems (brand_system.DEVIATIONS, cycle 0 round 2)
-    ("brand_system", "DEVIATIONS", "(128, 120, 112)"): "type sizes (hook, 3 lines)",
+    # round 7 (lane HEADING): the deviations as the heading engine left them
+    ("brand_system", "DEVIATIONS", "(128, 120, 112, 104)"): "type sizes (hook, 3 lines; 104 on the F19 measure)",
     ("brand_system", "DEVIATIONS", "(58, 56, 54)"): "type sizes (end card share)",
     ("brand_system", "DEVIATIONS", "(64, 60, 56)"): "type sizes (end screen hand-off)",
-    ("brand_system", "DEVIATIONS", "(190, 96, 4)"): "type sizes (YouTube headline from, floor, step)",
-    ("brand_system", "DEVIATIONS", "(100, 164, 96)"): "type sizes (cover titles min, max, floor)",
-    ("brand_system", "DEVIATIONS", "(138, 124, 150, 140)"): "type sizes (carousel heading IG / FB)",
+    ("brand_system", "DEVIATIONS", "(190, 160, 96, 4)"): "type sizes (YouTube headline ladder, last-resort floor, step)",
+    ("brand_system", "DEVIATIONS", "(84, 52, 2)"): "type sizes (carousel stat heading from, floor, step)",
     ("brand_system", "DEVIATIONS", "(150, 106, 120)"): "type sizes (Story title)",
     ("end_card", "LANDSCAPE_SHARE_SIZES", "(64, 60, 56)"): "type sizes",
     ("end_card", "layout", "(44, 40, 36)"): "type sizes",

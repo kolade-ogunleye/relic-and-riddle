@@ -223,6 +223,11 @@ def test_facebook_headings_are_set_at_140_px_where_they_fit(photos, tmp_path) ->
         card = {"heading": heading, "body": "Initially considered an impact crater, the theory was disproved."}
         _, fb = gen._render_carousel_slide("editorial_split", photos[0], photos[1], card, 2, 7, {}, "", True, subject="S")
         _, ig = gen._render_carousel_slide("editorial_split", photos[0], photos[1], card, 2, 7, {}, "", False, subject="S")
+        # round 7 (F1 before F4): where Facebook's 140 tier sets the heading only with a lone last word ("IMPACT
+        # THEORY / DISPROVED"), the engine's recorded last resort sets a valid form below it (off_ladder, recorded)
+        if fb.meta["heading"].get("off_ladder"):
+            assert fb.meta["heading"]["lines"] == ["IMPACT", "THEORY DISPROVED"]
+            continue
         assert fb.plates["heading"][0].font.size >= px.exact(140) - 0.01
         assert fb.plates["heading"][0].font.size > ig.plates["heading"][0].font.size
         assert not fb.problems()

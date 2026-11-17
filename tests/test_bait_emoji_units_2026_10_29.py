@@ -135,9 +135,12 @@ def test_the_number_card_and_carousel_use_the_narration_unit(gen, tmp_path, monk
     assert "".join(seen).startswith("25+MILES") and "KM" not in " ".join(seen)
     drawn = _spy_text(monkeypatch)
     photo = _photo(tmp_path)
-    gen._render_carousel_slide("immersive", photo, photo, {"heading": spoken_units("40+ km wide", RICHAT),
-                                                           "body": "Rings of rock."}, 1, 7, {}, "", False)
-    assert "25+ MILES WIDE" in drawn
+    _, lay = gen._render_carousel_slide("immersive", photo, photo, {"heading": spoken_units("40+ km wide", RICHAT),
+                                                                    "body": "Rings of rock."}, 1, 7, {}, "", False)
+    # round 7 (F5, ruling 3): the heading's stated quantity is its own gold run beside the bone rest of the line: the
+    # line is whole ("25+ MILES WIDE", one engine form) and drawn as its two runs, each whole
+    assert lay.meta["heading"]["lines"] == ["25+ MILES WIDE"]
+    assert "25+ MILES" in drawn and "WIDE" in drawn and "KM" not in " ".join(drawn)
 
 
 # ------------------------------------------------------------------ 6. above the caption band's gap

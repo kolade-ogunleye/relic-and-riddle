@@ -24,11 +24,10 @@ from typing import Any
 
 import pytest
 
-from src import brand, brand_system, geo, graphics, typography
+from src import brand, brand_system, graphics, typography
 
 ROOT = Path(__file__).resolve().parents[1]
 TALL, WIDE = (1080, 1920), (1920, 1080)
-needs_geo = pytest.mark.skipif(not geo.available(), reason="Natural Earth data not installed")
 
 # The real Wieliczka scale fact (output/run_wieliczka_salt_mine_1792974672/script_metadata.json), as a literal.
 WIELICZKA = {"value": 327.0, "unit": "m", "dimension": "depth", "subject": "Wieliczka Salt Mine", "approximate": True}
@@ -316,14 +315,13 @@ def test_no_9x16_graphic_label_is_under_the_floor(tmp_path, plan_only, job):
     assert drawn and not under, under
 
 
-@needs_geo
 @pytest.mark.parametrize("job", ["map", "route"])
 def test_no_9x16_map_or_route_label_is_under_the_floor(tmp_path, monkeypatch, plan_only, job):
-    from tests.surface_registry import GRAPHIC_INPUTS
-    points = {"istanbul": (41.0082, 28.9784), "ankara": (39.9334, 32.8597), "derinkuyu": (38.3735, 34.7347)}
-    monkeypatch.setattr(geo, "locate", lambda topic: dict(       # the stops' own coordinates: no network
-        zip(("lat", "lon"), points[topic["location"]["name"].lower()]), label=topic["location"]["name"],
-        approximate=False, matched="name", country=topic["location"]["country"]))
+    """Drawn on the observer's synthetic world (tests/surface_registry._synthetic_geo: never skipped for the missing
+    Natural Earth files, never the network), so it runs the same in CI."""
+    from tests.surface_registry import GRAPHIC_INPUTS, _synthetic_geo
+    for mod, name, value in _synthetic_geo():
+        monkeypatch.setattr(mod, name, value)
     GRAPHIC_INPUTS[f"render_{job}"](None, tmp_path / f"{job}.mp4", TALL)
     drawn = {p.text: p.font.size for p in plan_only if not p.empty}
     under = {t: s for t, s in drawn.items() if s < 27}

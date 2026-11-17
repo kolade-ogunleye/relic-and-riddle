@@ -6,11 +6,16 @@ alone (read-only). It runs from the release that is currently installed, under t
 account, which cannot read .env, so it imports nothing from src.
 
 Busy means any of:
-- a run is being made, waits for its review, or is approved and about to publish;
-- a review is open (its wait lives in the run's worker process);
+- a run is being made, is approved and about to publish, or is publishing;
+- a run awaiting review has a decision nothing has acted on yet (or no review recorded yet);
 - a scheduled post is due within the next hour;
-- a daemon job holds a busy lease (fact sheets, the improvement cycle, package updates);
+- a daemon job holds a busy lease (fact sheets, the improvement cycle, package updates); the production run's lease
+  does not count while its worker only waits on a review that is still undecided;
 - the daily run starts within 15 minutes or began less than 15 minutes ago.
+
+An open review alone is idle (QF-70): it is stored in the database, the card keeps working, and the daemon resumes its
+wait after the restart (main.resume_reviews); a review that waited past its window stays pending and stale. Holding
+every release for as long as a review stayed open blocked installs for up to a day.
 
 Prints one JSON object: {"idle": bool, "reasons": [...]}; exit code 0 when idle, 3 when busy,
 2 when the state cannot be read (the deployer then waits, never guesses).
@@ -25,7 +30,8 @@ import sys
 from datetime import datetime, timedelta, timezone
 from typing import List, Optional
 
-BUSY_RUN_STATUSES = ("producing", "pending_approval", "approved")
+BUSY_RUN_STATUSES = ("producing", "approved", "publishing")
+PRODUCTION_LEASE = "the production run"   # main.busy_lease of the daemon's production worker
 POST_HORIZON = timedelta(hours=1)
 # An install takes about 8 minutes end to end (2026-10-24: 3-7 min measured), so 15 minutes keeps a release
 # clear of the daily run; 45 held rc20 for half an hour before the run had even started.
@@ -70,9 +76,12 @@ def check(db_path: str, now: Optional[datetime] = None) -> List[str]:
         marks = ",".join("?" * len(BUSY_RUN_STATUSES))
         for row in db.execute(f"SELECT run_id, status FROM runs WHERE status IN ({marks})", BUSY_RUN_STATUSES):
             reasons.append(f"run {row['run_id']} is {row['status']}")
-        open_reviews = db.execute("SELECT COUNT(*) FROM approvals WHERE decision = 'pending'").fetchone()[0]
-        if open_reviews:
-            reasons.append(f"{open_reviews} review(s) open")
+        undecided = {r["run_id"] for r in db.execute(
+            "SELECT r.run_id FROM runs r JOIN approvals a ON a.run_id = r.run_id "
+            "WHERE r.status = 'pending_approval' AND a.decision = 'pending'")}
+        for row in db.execute("SELECT run_id FROM runs WHERE status = 'pending_approval'"):
+            if row["run_id"] not in undecided:   # decided and about to be acted on, or its card not recorded yet
+                reasons.append(f"run {row['run_id']} has a review decision awaiting action")
         for row in db.execute("SELECT kind, due_at FROM scheduled_posts WHERE status = 'pending'"):
             due = _parse(row["due_at"])
             if due and due - now <= POST_HORIZON:
@@ -81,7 +90,10 @@ def check(db_path: str, now: Optional[datetime] = None) -> List[str]:
                                    (SCHEDULE_KEY, LEASE_PREFIX + "%")).fetchall())
         for key, value in settings.items():
             if key.startswith(LEASE_PREFIX) and value:
-                started = _parse(json.loads(value).get("started"))
+                lease = json.loads(value)
+                started = _parse(lease.get("started"))
+                if key == LEASE_PREFIX + PRODUCTION_LEASE and lease.get("review") in undecided:
+                    continue   # its worker only waits on that undecided review (main.review_wait_lease)
                 if started and now - started < LEASE_MAX_AGE:
                     reasons.append(f"the daemon is running {key[len(LEASE_PREFIX):]}")
         daily = _daily_reason(settings.get(SCHEDULE_KEY), now)

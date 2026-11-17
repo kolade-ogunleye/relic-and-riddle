@@ -180,9 +180,12 @@ follows its candidates). It installs it only when:
 2. the release's offline suite passes in a worktree beside production, on 4 workers (once per
    candidate commit: the pass is remembered in `logs\Deploy\precheck-<tag>.json`, so a release
    waiting for production to be idle is not tested again every check);
-3. production is idle: no run producing, awaiting review or approved, no open review, no post due
-   within an hour, no daemon job holding a busy lease, clear of the daily run (15 minutes before
-   to 15 after), and no backup running.
+3. production is idle: no run producing, approved or publishing, no review decision waiting to be
+   acted on, no post due within an hour, no daemon job holding a busy lease, clear of the daily run
+   (15 minutes before to 15 after), and no backup running. An open, undecided review alone is idle
+   (QF-70): it is kept in the database, the production worker waiting on it is stopped with the
+   rest and the daemon resumes the wait after the restart; a review whose window passed stays
+   pending (stale) until it is resent or rejected.
 
 It then writes `control\Pipeline.hold`. The launcher stops the daemon's worker tree while the
 managed task keeps running, the deployer checks the release out (installing changed

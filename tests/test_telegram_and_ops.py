@@ -9,7 +9,7 @@ def test_wait_never_auto_approves_when_unconfigured(db):
     db.record_approval("r1", "01_topic")
     bot = TelegramApprovalBot(db=db, bot_token="", chat_id="")
     assert bot.wait_for_decision("r1", timeout_seconds=0.3, poll_interval=0.05) == "timeout"
-    assert db.get_approval("r1")["decision"] == "timeout"
+    assert db.get_approval("r1")["decision"] == "pending"
 
 
 def test_wait_picks_up_cli_decision(db):

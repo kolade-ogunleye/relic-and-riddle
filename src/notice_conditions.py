@@ -214,8 +214,9 @@ def sync(db, now: float | None = None) -> dict[str, int]:
             "SELECT dedupe_key FROM notifications WHERE state = 'open' AND dedupe_key LIKE 'fail:%'")]
     for key in fails:
         run = db.get_run(key.partition(":")[2]) if key.partition(":")[2] else None
-        if run and run.get("status") not in STOPPED + ("timeout",):   # a timed-out review waits for Resend
-            counts["resolved"] += notes.close_key(db, key, notes.RESOLVED)
+        stale = getattr(db, "review_stale", None)   # QF-70: a stale review is still pending, and waits for Resend
+        if run and run.get("status") not in STOPPED + ("timeout",) and not (callable(stale) and stale(run["run_id"])):
+            counts["resolved"] += notes.close_key(db, key, notes.RESOLVED)   # a timed-out review waits for Resend
     return counts
 
 

@@ -33,6 +33,9 @@ TIMEOUT_HOLD_DAYS = 7  # a timed-out review's topic waits this long for Resend o
 REVIEW_CLAIM_PREFIX = "review-claim:"
 UNDOABLE = ("approved", "rejected")
 UNDONE_BY = "undone"   # decided_by of a review an Undo reopened: the worker's wait goes on (it never acts on it)
+# QF-70: a review whose window passed undecided. It stays pending (never "timeout", never a failed topic) until a
+# decision or a new delivery of its card; the setting holds when it went stale.
+REVIEW_STALE_PREFIX = "review-stale:"
 
 log = logging.getLogger(__name__)
 
@@ -375,6 +378,13 @@ class PipelineDatabase:
             held = {r[0] for r in conn.execute(
                 "SELECT topic_id FROM runs WHERE status = 'timeout' AND updated_at >= ?",
                 ((datetime.now(timezone.utc) - timedelta(days=TIMEOUT_HOLD_DAYS)).isoformat(),))}
+            # QF-70: a render whose review is still undecided, open or stale, holds its topic for as long as it
+            # waits (a stale review is never failed, and its topic is queued again): a 12-hour review left its topic
+            # "in_production" past STALE_PRODUCTION_HOURS, when it could be picked and made a second time.
+            waiting = {r[0] for r in conn.execute(
+                "SELECT r.topic_id FROM runs r JOIN approvals a ON a.run_id = r.run_id "
+                "WHERE r.status = 'pending_approval' AND a.decision = 'pending'")} & {r["id"] for r in rows}
+            held |= waiting
             # QF-73: a topic on an editorial hold, or a sensitive one whose audience day is not clear, waits.
             from .topic_policy import topic_problem
             editorial_held = {r["id"] for r in rows if r["id"] not in held and topic_problem(conn, r["id"])}
@@ -384,7 +394,7 @@ class PipelineDatabase:
             if editorial_held:
                 raise QueueEmpty("Every topic left is on an editorial hold or waits for a clear day between sensitive "
                                  "topics (reconcile any unconfirmed publication).")
-            if held:  # not empty: what is left waits for a decision on a timed-out review
+            if held:  # not empty: what is left waits for a decision on a timed-out (stale) review
                 raise QueueEmpty("Every topic left waits for a timed-out review: Resend or Reject it (Reviews).")
             raise QueueEmpty("No unpublished topics left. Add new ones with /ideas research (or `python main.py topic propose`).")
 
@@ -635,6 +645,36 @@ class PipelineDatabase:
                 -- a new card ends what an Undo gave back: its wait narrows the 24 h placeholder again (UI-02 review 3)
             """, (run_id, topic_id, message_id, _now(), UNDONE_BY))
             conn.execute("UPDATE approvals SET expires_at=? WHERE run_id=?", (time.time() + 86400, run_id))
+            conn.execute("DELETE FROM settings WHERE key = ?", (REVIEW_STALE_PREFIX + run_id,))   # delivered again
+
+    def mark_review_stale(self, run_id: str) -> bool:
+        """QF-70: the review's window passed with no decision. It stays pending and its render is kept; its topic goes
+        back to the queue ("queued", held there by get_next_topic while the review waits), never "failed": a missed
+        window had failed the topic for TIMEOUT_HOLD_DAYS and then let it be made again. One transaction with the check
+        that the review is still undecided (a decision tapped at the last moment wins). True when it was marked now."""
+        with self._conn() as conn:
+            conn.execute("BEGIN IMMEDIATE")
+            # 'timeout': one the sweep recorded before QF-70 on a run still awaiting review, which is pending again
+            row = conn.execute("SELECT r.topic_id FROM runs r JOIN approvals a ON a.run_id = r.run_id WHERE r.run_id = ? "
+                               "AND r.status = 'pending_approval' AND a.decision IN ('pending', 'timeout')",
+                               (run_id,)).fetchone()
+            if row is None or conn.execute("SELECT 1 FROM settings WHERE key = ?",
+                                           (REVIEW_STALE_PREFIX + run_id,)).fetchone():
+                return False
+            conn.execute("UPDATE approvals SET decision = 'pending', decision_timestamp = NULL, decided_by = NULL "
+                         "WHERE run_id = ? AND decision = 'timeout'", (run_id,))
+            conn.execute("INSERT INTO settings (key, value, updated_at) VALUES (?, ?, ?)",
+                         (REVIEW_STALE_PREFIX + run_id, _now(), _now()))
+            # Only while the topic is still this run's and still in production: a topic archived, rejected or moved
+            # on to another run meanwhile is left as it is
+            conn.execute("UPDATE topics SET status = 'queued', updated_at = ? WHERE id = ? AND status = 'in_production' "
+                         "AND (last_run_id = ? OR last_run_id IS NULL)", (_now(), row["topic_id"], run_id))
+            return True
+
+    def review_stale(self, run_id: str) -> bool:
+        """True while the run's undecided review has gone stale (mark_review_stale) and was not delivered again."""
+        with self._conn() as conn:
+            return conn.execute("SELECT 1 FROM settings WHERE key = ?", (REVIEW_STALE_PREFIX + run_id,)).fetchone() is not None
 
     def update_approval_decision(self, run_id: str, decision: str, decided_by: Optional[str] = None) -> bool:
         """Records a decision only while the approval is still pending. Returns True if applied."""
@@ -889,11 +929,15 @@ class PipelineDatabase:
         return [dict(r) for r in rows]
 
     def timed_out_reviews(self) -> List[Dict[str, Any]]:
-        """Renders whose review timed out within TIMEOUT_HOLD_DAYS: they wait for Resend or Reject."""
+        """Renders whose review timed out: they wait for Resend or Reject. A stale review (QF-70: still pending, its
+        window passed) for as long as it waits; one recorded "timeout" before QF-70 within TIMEOUT_HOLD_DAYS."""
         cutoff = (datetime.now(timezone.utc) - timedelta(days=TIMEOUT_HOLD_DAYS)).isoformat()
         with self._conn() as conn:
-            rows = conn.execute("SELECT run_id, topic_id, updated_at FROM runs WHERE status = 'timeout' AND updated_at >= ? "
-                                "ORDER BY updated_at DESC", (cutoff,)).fetchall()
+            rows = conn.execute(
+                "SELECT r.run_id, r.topic_id, s.value AS updated_at FROM runs r JOIN approvals a ON a.run_id = r.run_id "
+                "JOIN settings s ON s.key = ? || r.run_id WHERE r.status = 'pending_approval' AND a.decision = 'pending' "
+                "UNION ALL SELECT run_id, topic_id, updated_at FROM runs WHERE status = 'timeout' AND updated_at >= ? "
+                "ORDER BY updated_at DESC", (REVIEW_STALE_PREFIX, cutoff)).fetchall()
         return [dict(r) for r in rows]
 
     def list_recent_runs(self, limit: int = 5) -> List[Dict[str, Any]]:
@@ -932,8 +976,9 @@ class PipelineDatabase:
             SELECT a.run_id, a.topic_id, a.created_at, a.telegram_message_id, r.script_payload_json
             FROM approvals a LEFT JOIN runs r ON a.run_id = r.run_id
             WHERE a.decision = 'pending'
+              AND NOT EXISTS (SELECT 1 FROM settings s WHERE s.key = ? || a.run_id)   -- a stale one: timed_out_reviews
             ORDER BY a.rowid DESC
-            """).fetchall()
+            """, (REVIEW_STALE_PREFIX,)).fetchall()
         return [
             {
                 "run_id": r["run_id"],

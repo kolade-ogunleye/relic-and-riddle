@@ -413,8 +413,9 @@ def test_stale_approval_click_rejected_and_buttons_stripped(db, monkeypatch, del
 
 def test_cleanup_stale_approvals_sweeps_timed_out(db, monkeypatch):
     from datetime import datetime, timezone, timedelta
-    old_time = (datetime.now(timezone.utc) - timedelta(hours=3)).isoformat()
+    old_time = (datetime.now(timezone.utc) - timedelta(hours=13)).isoformat()
     db.create_run("r9", "01_topic")
+    db.update_run("r9", "pending_approval")
     db.record_approval("r9", "01_topic", message_id=88)
     # Manually backdate created_at
     with db._conn() as conn:
@@ -423,9 +424,9 @@ def test_cleanup_stale_approvals_sweeps_timed_out(db, monkeypatch):
     bot = TelegramApprovalBot(db=db, bot_token="123:abc", chat_id="555", approver_ids={"555"})
     edited = []
     monkeypatch.setattr(bot, "_api", lambda m, **kw: edited.append((m, kw)) or {"message_id": 1})
-    cleaned = bot.cleanup_stale_approvals(max_age_hours=2)
+    cleaned = bot.cleanup_stale_approvals(max_age_hours=12)
     assert cleaned == 1
-    assert db.get_approval("r9")["decision"] == "timeout"
+    assert db.get_approval("r9")["decision"] == "pending"
     assert any(e[0] == "editMessageReplyMarkup" for e in edited)
 
 

@@ -108,3 +108,51 @@ Describe 'Release verification' {
         $r.ExitCode | Should -Be $Code
     }
 }
+
+Describe 'Release gate asked again before the worker stops (QF-70)' {
+    BeforeAll {
+        $script:gateApp = Join-Path $TestDrive 'gateapp'
+        New-Item -ItemType Directory -Path (Join-Path $script:gateApp 'scripts') -Force | Out-Null
+        New-Item -ItemType Directory -Path (Join-Path $script:gateApp 'data') -Force | Out-Null
+        $script:venvPython = (Get-Command python -ErrorAction SilentlyContinue).Source
+        if ($env:QF_PYTHON) { $script:venvPython = $env:QF_PYTHON }
+        function Set-FakeGate([string]$Body) {
+            Set-Content -LiteralPath (Join-Path $script:gateApp 'scripts/release_gate.py') -Value $Body -Encoding ASCII
+        }
+    }
+
+    It 'is idle when the gate exits 0' {
+        Set-FakeGate 'import json, sys; print(json.dumps({"idle": True, "reasons": []})); sys.exit(0)'
+        $r = Test-ContentReleaseGate -Python $script:venvPython -AppRoot $script:gateApp
+        $r.Idle | Should -BeTrue
+    }
+
+    It 'is busy, with the gate''s reasons, when it exits 3' {
+        Set-FakeGate 'import json, sys; print(json.dumps({"idle": False, "reasons": ["run r1 has a review decision awaiting action"]})); sys.exit(3)'
+        $r = Test-ContentReleaseGate -Python $script:venvPython -AppRoot $script:gateApp
+        $r.Idle | Should -BeFalse
+        $r.Detail | Should -Match 'awaiting action'
+    }
+
+    It 'is busy when the gate cannot be read or run (never a guess)' {
+        Set-FakeGate 'import sys; sys.exit(2)'
+        (Test-ContentReleaseGate -Python $script:venvPython -AppRoot $script:gateApp).Idle | Should -BeFalse
+        (Test-ContentReleaseGate -Python (Join-Path $TestDrive 'no-python.exe') -AppRoot $script:gateApp).Idle | Should -BeFalse
+    }
+
+    It 'is busy when the gate does not answer in time' {
+        Set-FakeGate 'import time; time.sleep(30)'
+        $r = Test-ContentReleaseGate -Python $script:venvPython -AppRoot $script:gateApp -TimeoutSeconds 1
+        $r.Idle | Should -BeFalse
+        $r.Detail | Should -Match 'did not answer'
+    }
+
+    It 'the launcher declines the hold while the gate is busy, and stops the worker only once it is idle' {
+        $launcher = Get-Content -LiteralPath (Join-Path $PSScriptRoot '../runtime/Start-ContentVmWorkload.ps1') -Raw
+        $check = $launcher.IndexOf('Test-ContentReleaseGate')
+        $kill = $launcher.IndexOf('taskkill.exe')
+        $check | Should -BeGreaterThan 0
+        $check | Should -BeLessThan $kill
+        $launcher | Should -Match "State declined"
+    }
+}

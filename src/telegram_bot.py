@@ -1240,6 +1240,10 @@ def illustration_review_items(payload: dict[str, Any], run_dir: Path) -> list[li
                 f"({e(str(r.get('licence') or '?'))}" + (f", {e(str(r['url'])[:300])}" if r.get("url") else "") + ")")})
     return [items[i:i + 10] for i in range(0, len(items), 10)]
 
+# QF-70: the production worker's wait on a review handed to the daemon before the daily run (wait_for_decision)
+HANDED_OFF = "handed_off"
+
+
 class TelegramApprovalBot:
     def __init__(
         self,
@@ -5072,8 +5076,17 @@ class TelegramApprovalBot:
             from .telegram_state import put
             put(self.db, "timeout-notice", run_id, notice)
 
+    def _went_stale(self, run_id: str) -> bool:
+        """The review's window passed undecided: marked stale, still pending (QF-70: db.mark_review_stale); a database
+        without stale reviews records "timeout" as before. True when this call marked it."""
+        mark = getattr(self.db, "mark_review_stale", None)
+        if callable(mark):
+            return bool(mark(run_id))
+        return self.db.update_approval_decision(run_id, "timeout", decided_by="system")
+
     def cleanup_stale_approvals(self, max_age_hours: int = 26) -> int:  # past the longest review window (24 h)
-        """Sweeps any pending approvals older than max_age_hours, marks them timed out, and strips buttons."""
+        """Sweeps any pending approvals older than max_age_hours: each is marked stale (still pending, QF-70), its
+        buttons are stripped and the timeout notice offers Resend."""
         if not hasattr(self.db, "list_pending_approvals"):
             return 0
         cleaned = 0
@@ -5090,7 +5103,7 @@ class TelegramApprovalBot:
                 age_hours = (now - created).total_seconds() / 3600.0
                 if age_hours >= max_age_hours:
                     r_id = item["run_id"]
-                    if self.db.update_approval_decision(r_id, "timeout", decided_by="stale_sweeper"):
+                    if self._went_stale(r_id):
                         self.dismiss_approval_buttons(r_id)
                         cleaned += 1
                         try:  # one notice failing must not stop the sweep of the others
@@ -6301,10 +6314,23 @@ class TelegramApprovalBot:
             work, resource=f"{action}:{target}", navigation=(message_id, is_media, revision), late=late)
 
     def wait_for_decision(self, run_id: str, timeout_seconds: Optional[int] = None, poll_interval: int = 5,
-                          reminder_after: int = 1800, window: Optional[Callable[[], int]] = None) -> str:
+                          reminder_after: int = 1800, window: Optional[Callable[[], int]] = None,
+                          hand_off_at: float | None = None) -> str:
         """Returns 'approved', 'rejected', 'regenerate', or 'timeout'. Never auto-approves. One reminder
-        after `reminder_after` seconds when the window is long enough; on timeout, a Resend button."""
+        after `reminder_after` seconds when the window is long enough; on timeout, a Resend button.
+        'timeout' is this wait's outcome, never a decision (QF-70): the review stays pending and goes stale
+        (db.mark_review_stale), its render kept and its topic queued; a wait on a review already stale returns
+        'timeout' at once (a resumed wait never opens a new window on a card nobody re-sent).
+        The wait keeps the card's own window (QF-70 review 1): a wait resumed after a restart ends when the card it
+        follows closes (approvals.expires_at, which taps are checked against), and its reminder comes at the card's
+        own reminder time; it never opens a fresh window from the restart. `hand_off_at` (epoch seconds): the
+        production worker gives the wait to the daemon then if the review is still undecided (HANDED_OFF), so the
+        daily run that needs the worker's run lock is never skipped by an open review (operator, 2026-11-16)."""
         timeout_seconds = timeout_seconds or APPROVAL_TIMEOUT_SECONDS
+        stale = getattr(self.db, "review_stale", None)
+        if callable(stale) and stale(run_id):
+            decided = (self.db.get_approval(run_id) or {}).get("decision")
+            return decided if decided and decided != "pending" else "timeout"
         with self.db._conn() as conn:
             # A review an Undo reopened keeps the time the Undo gave it (UI-02); any other is narrowed to this wait
             conn.execute("UPDATE approvals SET expires_at=CASE WHEN decided_by='undone' THEN MAX(COALESCE(expires_at,0),?) "
@@ -6314,6 +6340,22 @@ class TelegramApprovalBot:
         started = time.monotonic()
         deadline = started + timeout_seconds
         reminded = timeout_seconds < reminder_after + 600  # no reminder for a short window
+        card = self.db.get_approval(run_id) or {}
+        if card.get("decided_by") != "undone":   # an Undo's own time is followed below, as before
+            try:   # the card closes when its expires_at says (a resumed wait: the card delivered before the restart)
+                deadline = min(deadline, started + float(card["expires_at"]) - time.time())
+            except (KeyError, TypeError, ValueError):
+                pass
+        try:   # its reminder is due at the card's delivery + reminder_after, not the restart's
+            delivered_at = datetime.fromisoformat(str(card.get("created_at")))
+            if delivered_at.tzinfo is None:
+                delivered_at = delivered_at.replace(tzinfo=UTC)
+            open_for = max(0.0, (datetime.now(UTC) - delivered_at).total_seconds())
+            started -= min(open_for, max(0.0, timeout_seconds))
+            if open_for >= reminder_after and open_for > 60:   # a resumed wait (a fresh one starts at delivery)
+                reminded = True   # its time passed before this wait began: said then, never twice
+        except (TypeError, ValueError):
+            pass
         offset: Optional[int] = None  # unconfirmed taps (e.g. made just before this wait) still count
         reminder: List[Any] = []  # the reminder's message, removed once the review is decided
         delivered: Optional[str] = None  # when the card was last sent: a resend restarts the window
@@ -6338,6 +6380,10 @@ class TelegramApprovalBot:
                         deadline = max(deadline, time.monotonic() + again)
                         reminded = again < reminder_after + 600
                         started = time.monotonic()
+                        with self.db._conn() as conn:   # the new card closes when this wait does (taps check it)
+                            conn.execute("UPDATE approvals SET expires_at = ? WHERE run_id = ? AND decision = 'pending' "
+                                         "AND COALESCE(decided_by, '') != 'undone'",
+                                         (time.time() + deadline - time.monotonic(), run_id))
                         for old in [m for m in reminder if type(m) is int]:  # the earlier reminder's button is stale
                             self._delete_soon(old)
                         reminder.clear()
@@ -6353,6 +6399,9 @@ class TelegramApprovalBot:
                 if approval and approval["decision"] != "pending":
                     log.info("Decision for %s: %s (by %s)", run_id, approval["decision"], approval.get("decided_by"))
                     return approval["decision"]
+                if hand_off_at is not None and time.time() >= hand_off_at:
+                    log.info("The wait on %s's review goes to the daemon before the daily run.", run_id)
+                    return HANDED_OFF
 
                 if not self.is_configured() or self.background_polling:
                     time.sleep(poll_interval)
@@ -6375,12 +6424,13 @@ class TelegramApprovalBot:
                     log.warning("Telegram polling error (will retry): %s", e)
                     time.sleep(poll_interval)
 
-            if self.db.update_approval_decision(run_id, "timeout", decided_by="system"):
-                log.warning("No decision for %s within %ss.", run_id, timeout_seconds)
+            if self._went_stale(run_id):
+                log.warning("No decision for %s within %ss; the review stays pending, marked stale.", run_id, timeout_seconds)
                 self.dismiss_approval_buttons(run_id)
                 self.timeout_notice(run_id)
                 return "timeout"
-            return (self.db.get_approval(run_id) or {}).get("decision", "timeout")
+            decided = (self.db.get_approval(run_id) or {}).get("decision", "timeout")
+            return "timeout" if decided == "pending" else decided
         finally:
             for old in [m for m in reminder if type(m) is int]:
                 self._delete_soon(old)  # each stayed after the approval, offering a dead button

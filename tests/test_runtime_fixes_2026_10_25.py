@@ -63,6 +63,7 @@ def test_a_resent_review_is_not_swept_by_its_first_delivery_time(db):
     initialize(db)
     topic = db.list_all_topics()[0]["id"]
     db.create_run("run_s", topic)
+    db.update_run("run_s", "pending_approval")   # a rendered run awaiting review (QF-70 marks only such a review stale)
     db.record_approval("run_s", topic, 1)
     old = (datetime.now(timezone.utc) - timedelta(hours=30)).isoformat()
     with db._conn() as conn:

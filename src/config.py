@@ -324,7 +324,11 @@ def _approver_ids(raw: str) -> set:
 
 # The bot's own ID (token prefix) can never be an approver.
 TELEGRAM_APPROVER_IDS = _approver_ids(os.getenv("TELEGRAM_APPROVER_IDS", TELEGRAM_CHAT_ID)) - {TELEGRAM_BOT_TOKEN.split(":")[0]}
-APPROVAL_TIMEOUT_SECONDS = int(os.getenv("APPROVAL_TIMEOUT_SECONDS", "3600"))
+# How long a review card stays open at least (QF-70: 12 hours, a floor no setting lowers; a 1-hour window could close
+# while the operator slept). With scheduled posting the window runs to 20 minutes before the next free slot, between
+# this and 24 hours (main._approval_window). A window that passes undecided leaves the review pending and stale.
+REVIEW_WINDOW_FLOOR_SECONDS = 12 * 3600
+APPROVAL_TIMEOUT_SECONDS = max(REVIEW_WINDOW_FLOOR_SECONDS, int(os.getenv("APPROVAL_TIMEOUT_SECONDS") or REVIEW_WINDOW_FLOOR_SECONDS))
 
 
 def _positive_minutes(name: str, default: str, environment: dict[str, str] | None = None) -> float:

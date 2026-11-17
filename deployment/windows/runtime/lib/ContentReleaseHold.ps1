@@ -9,7 +9,7 @@ $ErrorActionPreference = 'Stop'
 function Write-ContentHoldState {
     param(
         [Parameter(Mandatory)][string]$Path,
-        [Parameter(Mandatory)][ValidateSet('held', 'verifying', 'verified', 'resumed')][string]$State,
+        [Parameter(Mandatory)][ValidateSet('held', 'verifying', 'verified', 'resumed', 'declined')][string]$State,
         [string]$Commit = '',
         [object]$Passed = $null,
         [object]$ExitCode = $null,
@@ -69,6 +69,41 @@ function Invoke-ContentReleaseVerification {
         $detail = if ($code -eq 0) { 'the test suite passed' } else { "the test suite failed (exit $code); see $name.stdout.log" }
         return [pscustomobject]@{ Passed = ($code -eq 0); ExitCode = $code; Detail = $detail }
     } finally { Close-ContentLoggedProcess -Worker $run }
+}
+
+function Test-ContentReleaseGate {
+    # QF-70: the deployer checks scripts/release_gate.py once and then writes the hold; the launcher stops the
+    # worker tree later. An open review is idle, so an Approve tapped in between could be acted on, and killed
+    # mid-act. The launcher asks the gate again immediately before it stops the worker, and holds only when it is
+    # still idle. Returns @{ Idle; Detail }; a gate that cannot run or answer is busy (never a guess).
+    param(
+        [Parameter(Mandatory)][string]$Python,
+        [Parameter(Mandatory)][string]$AppRoot,
+        [int]$TimeoutSeconds = 60
+    )
+    $gate = Join-Path $AppRoot 'scripts/release_gate.py'
+    $database = Join-Path $AppRoot 'data/pipeline.db'
+    try {
+        $info = [Diagnostics.ProcessStartInfo]::new($Python)
+        foreach ($argument in @('-I', $gate, '--db', $database)) { $info.ArgumentList.Add($argument) }
+        $info.WorkingDirectory = $AppRoot
+        $info.RedirectStandardOutput = $true
+        $info.RedirectStandardError = $true
+        $info.UseShellExecute = $false
+        $process = [Diagnostics.Process]::Start($info)
+        $stdout = $process.StandardOutput.ReadToEndAsync()
+        $null = $process.StandardError.ReadToEndAsync()
+        if (-not $process.WaitForExit($TimeoutSeconds * 1000)) {
+            $process.Kill($true)
+            return [pscustomobject]@{ Idle = $false; Detail = "the release gate did not answer within $TimeoutSeconds s" }
+        }
+        $reasons = ''
+        try { $reasons = ((($stdout.Result) | ConvertFrom-Json).reasons) -join '; ' } catch { $reasons = [string]$stdout.Result }
+        if ($process.ExitCode -eq 0) { return [pscustomobject]@{ Idle = $true; Detail = 'idle' } }
+        return [pscustomobject]@{ Idle = $false; Detail = "busy: $reasons" }
+    } catch {
+        return [pscustomobject]@{ Idle = $false; Detail = "the release gate could not run: $_" }
+    }
 }
 
 function Wait-ContentReleaseHold {

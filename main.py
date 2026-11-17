@@ -41,6 +41,7 @@ from typing import Any, Dict, List, Optional, Tuple
 from src.config import ASSETS_DIR, CURATED_SCRIPTS_DIR, DAILY_RUN_TIME, OUTPUT_DIR, POST_SCHEDULING, TIMEZONE
 from src.credits import caption_credit_line, generate_provenance_ledger, load_credits
 from src.db import REVIEW_CLAIM_PREFIX, UNDONE_BY, UNDOABLE, PipelineDatabase, QueueEmpty
+from src.telegram_bot import HANDED_OFF
 from src.control import clip_words, heartbeat_text, is_paused, make_command_handler, ping_healthcheck, record_run_mode
 from src import beat_images, callouts, colour_balance, config, footage, graphics, motion, notifications, post_schedule, privacy, then_now, worker_deadline
 from src.llm import claude_available as llm_available
@@ -1522,8 +1523,9 @@ class PipelineCoordinator:
             self.telegram_bot.send_approval_request(video, Path(run["thumbnail_cover_path"]), run["script_payload"], run_id)
         decision, acted = self._decide_review(run_id, lambda d: self._after_approval(run_id, dry_run=dry_run)
                                               if d == "approved" else self._settle_decision(run_id, run["topic_id"], d))
-        if decision is None:  # another wait already owns this review: the card was only brought down
-            return {"run_id": run_id, "decision": "pending", "already_waiting": True, "topic_id": run["topic_id"]}
+        if decision is None or decision == HANDED_OFF:  # another wait owns (or takes on) this review
+            return {"run_id": run_id, "decision": "pending", "already_waiting": True, "topic_id": run["topic_id"],
+                    "handed_off": decision == HANDED_OFF}
         if decision == "approved":
             return {"run_id": run_id, "decision": decision, **(acted or {"already_acted": True})}
         return {"run_id": run_id, "decision": decision, "status": decision, "topic_id": run["topic_id"]}
@@ -1583,10 +1585,19 @@ class PipelineCoordinator:
                     decision = decided
                 else:
                     self.telegram_bot.approval_window = self._approval_window   # a resend's window is sized again from it
-                    decision = self.telegram_bot.wait_for_decision(run_id, self._approval_window())
+                    with review_wait_lease(self.db, run_id):   # QF-70: an open review alone is idle for a release
+                        hand_off = daily_hand_off_at(self.db)
+                        decision = (self.telegram_bot.wait_for_decision(run_id, self._approval_window(),
+                                                                        hand_off_at=hand_off)
+                                    if hand_off is not None else
+                                    self.telegram_bot.wait_for_decision(run_id, self._approval_window()))
+                    if decision == HANDED_OFF:   # the daemon takes the wait on: this worker ends, the daily run starts
+                        return HANDED_OFF, None
                 if decided or decision not in UNDOABLE or not undone_before_acting(
                         self.db, run_id, decision, getattr(self, "telegram_bot", None)):
                     break
+            if decision in ("approved", "rejected", "regenerate"):
+                wait_while_release_held()   # QF-70: never act inside a release install's stop window
             if decision != "approved":
                 return decision, act(decision)
             stamp = str((self.db.get_approval(run_id) or {}).get("decision_timestamp") or "")
@@ -1697,11 +1708,18 @@ class PipelineCoordinator:
         """A review decided anything but Approve: the run's and the topic's state, the same whichever wait
         saw it (the run's own, a Resend's, or one resumed after a restart). The two paths had drifted:
         a timeout failed the topic in one and left it in production in the other, and one of them alerted
-        a second time after the wait's own "no decision" notice (2026-10-23 audit)."""
+        a second time after the wait's own "no decision" notice (2026-10-23 audit).
+        A timeout is no decision (QF-70): the review stays pending and stale, its render kept for Resend and its topic
+        queued (db.mark_review_stale, done by the wait); it had failed the run and the topic."""
+        if decision == "timeout":
+            mark = getattr(self.db, "mark_review_stale", None)
+            if callable(mark):
+                mark(run_id)
+            log.info("Not publishing %s: no decision within its window; the review stays pending.", run_id)
+            return
         run_status, topic_status = {
             "rejected": ("rejected", "rejected"),
             "regenerate": ("regenerate", None),   # the regeneration run takes the topic on
-            "timeout": ("timeout", "failed"),     # the render is kept for Resend; the topic may be retried
         }.get(decision, ("failed", "failed"))
         self.db.update_run(run_id, run_status)
         if topic_status:
@@ -3981,6 +3999,8 @@ class PipelineCoordinator:
             decision, acted = self._decide_review(run_id, act)
             if decision is None:  # another wait owns this review (it acts on the decision): nothing to do here
                 return {**result, "decision": "pending", "status": "pending_approval"}
+            if decision == HANDED_OFF:   # the daemon follows the review from here (daily_hand_off_at)
+                return {**result, "decision": "pending", "status": "pending_approval", "handed_off": True}
             result["decision"] = decision
         if decision != "approved":
             result["status"] = decision
@@ -6087,12 +6107,134 @@ def busy_lease(db: PipelineDatabase, job: str):
             log.debug("Could not clear the %s lease: %s", job, e)
 
 
+PRODUCTION_LEASE = "the production run"   # scripts/release_gate.py names it too
+
+
+def _lease_review(db: PipelineDatabase, run_id: str | None) -> bool:
+    """Writes (or, with None, removes) the review the production lease's worker is waiting on; only while the daemon
+    holds that lease. True when the lease was there to mark."""
+    key = "busy:" + PRODUCTION_LEASE
+    with db._conn() as conn:
+        conn.execute("BEGIN IMMEDIATE")
+        row = conn.execute("SELECT value FROM settings WHERE key = ?", (key,)).fetchone()
+        if not row or not row["value"]:
+            return False
+        lease = json.loads(row["value"])
+        if run_id:
+            lease["review"] = run_id
+        else:
+            lease.pop("review", None)
+        conn.execute("UPDATE settings SET value = ?, updated_at = ? WHERE key = ?",
+                     (json.dumps(lease), datetime.now(UTC).isoformat(), key))
+        return True
+
+
+DAEMON_SCHEDULE_KEY = "daemon_schedule"   # the daily run's time, recorded by the daemon (release_gate reads it)
+DAILY_HAND_OFF = timedelta(minutes=15)   # the release gate's own margin before the daily run (BEFORE_DAILY)
+
+
+def daily_hand_off_at(db: PipelineDatabase, now: datetime | None = None) -> float | None:
+    """When the daemon's production worker gives an undecided review's wait to the daemon (operator ruling 1,
+    2026-11-16): 15 minutes before the next daily run, so the daily run, which needs the run lock the worker holds,
+    always starts. Only in a worker the daemon supervises (RELIC_WORKER_ATTEMPT, its production lease held, its
+    schedule recorded); None otherwise (the bot's own workers, the command line)."""
+    if not config.WORKER_ATTEMPT_ID:
+        return None
+    try:
+        if not db.get_setting("busy:" + PRODUCTION_LEASE):
+            return None
+        schedule = json.loads(db.get_setting(DAEMON_SCHEDULE_KEY) or "{}")
+        from zoneinfo import ZoneInfo
+        hour, minute = (int(x) for x in str(schedule["time"]).split(":"))
+        zone = ZoneInfo(str(schedule["timezone"]))
+    except (AttributeError, KeyError, TypeError, ValueError, LookupError):
+        return None
+    local = (now or datetime.now(UTC)).astimezone(zone)
+    start = local.replace(hour=hour, minute=minute, second=0, microsecond=0)
+    if start <= local:
+        start += timedelta(days=1)
+    return (start - DAILY_HAND_OFF).timestamp()
+
+
+@contextlib.contextmanager
+def review_wait_lease(db: PipelineDatabase, run_id: str):
+    """While the daemon's production worker only waits on a human review, its lease names that review, so the release
+    deployer counts it idle as long as the review is undecided (scripts/release_gate.py, QF-70): the wait is stored,
+    and the daemon resumes it after the restart (resume_reviews). A decision makes the run busy again by its state.
+    Only in a supervised worker (RELIC_WORKER_ATTEMPT); best effort, never stops the wait."""
+    marked = False
+    if config.WORKER_ATTEMPT_ID:
+        try:
+            marked = _lease_review(db, run_id)
+        except Exception as e:  # noqa: BLE001 - the lease stays busy: a release then waits, as before
+            log.debug("Could not mark the production lease as a review wait: %s", e)
+    try:
+        yield
+    finally:
+        if marked:
+            try:
+                _lease_review(db, None)
+            except Exception as e:  # noqa: BLE001 - the daemon clears the lease when the worker ends
+                log.debug("Could not unmark the production lease: %s", e)
+
+
 def clear_busy_leases(db: PipelineDatabase) -> None:
     with db._conn() as conn:
         conn.execute("UPDATE settings SET value = '' WHERE key LIKE 'busy:%'")
 
 
 RELEASE_RECEIPT_ENV = "RELIC_RELEASE_RECEIPT"  # set by the production launcher; written by the release deployer
+RELEASE_HOLD_POLL_SECONDS = 5.0
+
+
+def release_hold_path() -> Path | None:
+    """control/Pipeline.hold, the release deployer's request to stop the worker tree (beside control/release.json,
+    which the production launcher names in RELIC_RELEASE_RECEIPT); None outside the production launcher."""
+    receipt = os.environ.get(RELEASE_RECEIPT_ENV)
+    return Path(receipt).parent / "Pipeline.hold" if receipt else None
+
+
+def wait_while_release_held(sleep=time.sleep) -> None:
+    """A review decision is acted on only while no release hold is pending (QF-70 review 2): the launcher asks the
+    release gate again just before it stops the worker tree, and a decision recorded after that check (a V1 card or
+    the command line, acted on at the next poll) could otherwise be acted on and killed mid-act. While the hold
+    exists the decision stays recorded and waits; if the tree is stopped, the daemon acts on it after the restart
+    (resume_reviews), and if the hold is declined or cleared, it is acted on now."""
+    hold = release_hold_path()
+    said = False
+    while hold is not None and hold.exists():
+        if not said:
+            log.info("A release is being installed; the review decision is acted on once it is done.")
+            said = True
+        sleep(RELEASE_HOLD_POLL_SECONDS)
+
+
+MANUAL_QUEUE_KEY = "manual-runs-queued"   # QF-70: manual runs waiting for the run lock (persisted)
+_MANUAL_QUEUE_LOCK = threading.Lock()
+
+
+def queue_manual_run(db, run: dict[str, Any]) -> int:
+    """Puts a manual production run (a /produce batch's next episode, a regeneration, a re-render) behind the run in
+    progress, persisted so a restart keeps it (QF-70 review 2: it found the run lock held and was dropped with a log
+    line, after the operator had been told it was queued). Returns how many wait."""
+    with _MANUAL_QUEUE_LOCK:
+        queued = json.loads(db.get_setting(MANUAL_QUEUE_KEY) or "[]")
+        queued.append({k: run.get(k) for k in ("content_format", "extra", "resume")})
+        db.set_setting(MANUAL_QUEUE_KEY, json.dumps(queued))
+        return len(queued)
+
+
+def next_manual_run(db) -> dict[str, Any] | None:
+    """The first queued manual run, taken off the queue (None when it is empty)."""
+    with _MANUAL_QUEUE_LOCK:
+        try:
+            queued = json.loads(db.get_setting(MANUAL_QUEUE_KEY) or "[]")
+        except (AttributeError, TypeError, ValueError):
+            return None
+        if not queued:
+            return None
+        db.set_setting(MANUAL_QUEUE_KEY, json.dumps(queued[1:]))
+        return queued[0]
 
 
 def announce_release(db: PipelineDatabase, bot, startup: bool = False) -> Optional[str]:
@@ -6878,7 +7020,7 @@ def main(argv=None) -> int:
         release_note = None  # after an installed release: the notice that opens the one dashboard panel
         try:  # leases left by the previous process; the schedule the release deployer keeps clear of
             clear_busy_leases(coordinator.db)
-            coordinator.db.set_setting("daemon_schedule", json.dumps({"time": args.time, "timezone": TIMEZONE}))
+            coordinator.db.set_setting(DAEMON_SCHEDULE_KEY, json.dumps({"time": args.time, "timezone": TIMEZONE}))
             release_note = announce_release(coordinator.db, bot, startup=True)
         except Exception as e:
             log.warning("Could not record the daemon's release state: %s", e)
@@ -6925,6 +7067,16 @@ def main(argv=None) -> int:
                 coordinator.db.set_setting(PRODUCE_KEY, "0")
                 bot.notify("⏹ Batch production stopped: the last episode did not finish cleanly.", group="runs")
 
+        def drain_manual_queue() -> None:
+            """Starts the first manual run waiting behind the one that just ended (or, at startup, behind a restart)."""
+            try:
+                queued = next_manual_run(coordinator.db)
+            except Exception as e:  # noqa: BLE001 - the queue is kept; the next run's end tries again
+                log.warning("Could not read the queued manual runs: %s", e)
+                return
+            if queued:
+                scheduler.add_job(production_run, kwargs={"manual": True, **queued})
+
         def production_run(manual: bool = False, content_format: str = "reel", extra: Optional[List[str]] = None,
                            resume: Optional[str] = None):
             if not manual and is_paused(coordinator.db):
@@ -6933,16 +7085,38 @@ def main(argv=None) -> int:
                            transient=True, ttl_minutes=23 * 60 + 50, group="runs", key="paused-skip")
                 return
             if not run_lock.acquire(blocking=False):
+                if manual:   # QF-70: queued behind the run in progress, started when it ends (never dropped)
+                    waiting = queue_manual_run(coordinator.db, {"content_format": content_format, "extra": extra,
+                                                                "resume": resume})
+                    log.info("A run is in progress; this manual run waits behind it (%d queued).", waiting)
+                    return
                 log.warning("A run is already in progress; skipping.")
+                if not manual:   # QF-70: the daily run is never skipped silently
+                    notifications.say(bot.notify, "⚠️ <b>Today's run was skipped</b>: another run was still in "
+                                      "progress when it was due. Start one from the dashboard when that run ends.",
+                                      group="needs", key="daily-skipped", replace=True)
                 return
             status = None
+            handed_off = False
             try:
                 # Each run in its own process: a crash costs the run, never the daemon (its bot and schedule).
-                with busy_lease(coordinator.db, "the production run"):
+                with busy_lease(coordinator.db, PRODUCTION_LEASE):
                     result = run_in_worker(content_format, dry_run=args.dry_run, schedule_posts=POST_SCHEDULING, extra=extra,
                                            resume=resume)  # supervised against this process's database
                 status = result.get("status")
-                if status in ("published", "simulated", "rejected", "scheduled"):
+                if status == "pending_approval" and result.get("handed_off") and result.get("run_id"):
+                    # QF-70 (operator ruling 1): the worker gave its open review's wait to the daemon before the
+                    # daily run. The review stays open with its own window; a /produce batch waits for that decision
+                    # and then goes on as before (continue_batch is called by the wait, not here).
+                    handed_off = True
+                    ping_healthcheck()
+                    follow_review(result["run_id"], resend=False,
+                                  after=lambda decided: continue_batch(decided, resumed=resume is not None, manual=manual))
+                    label = html.escape(coordinator.db.run_label(result["run_id"]))
+                    bot.notify(f"🎬 <b>{label}</b> still waits for your review; the daily run can start meanwhile."
+                               + (" The batch's next episode starts after your decision." if manual and int(
+                                   coordinator.db.get_setting(PRODUCE_KEY) or 0) > 0 else ""), group="runs")
+                elif status in ("published", "simulated", "rejected", "scheduled"):
                     ping_healthcheck()
                 elif status == "queue_empty":
                     ping_healthcheck()  # the system is healthy; it just has nothing new to make
@@ -6984,8 +7158,10 @@ def main(argv=None) -> int:
                 log.exception("Run failed: %s", e)
             finally:
                 run_lock.release()
+                drain_manual_queue()   # QF-70: the next manual run waiting behind this one starts now
                 try:
-                    continue_batch(status, resumed=resume is not None, manual=manual)
+                    if not handed_off:   # a handed-off review's wait continues the batch once it is decided
+                        continue_batch(status, resumed=resume is not None, manual=manual)
                 except Exception as e:
                     log.warning("Batch continuation failed: %s", e)
 
@@ -7004,6 +7180,7 @@ def main(argv=None) -> int:
         daily = scheduler.add_job(production_run, CronTrigger(hour=hour, minute=minute, timezone=TIMEZONE),
                                   kwargs={"content_format": "dual"},
                                   max_instances=1, coalesce=True, misfire_grace_time=3600)
+        drain_manual_queue()   # QF-70: manual runs queued before a restart start once it is up
 
         def next_run() -> Optional[str]:
             when = getattr(daily, "next_run_time", None)  # set once the scheduler is running
@@ -7117,12 +7294,14 @@ def main(argv=None) -> int:
 
         review_waits: set = set()  # runs this process is waiting on (the sweep must not start a second)
 
-        def follow_review(run_id: str, resend: bool) -> None:
+        def follow_review(run_id: str, resend: bool, after=None) -> None:
             """Waits on a review in the background and acts on its decision; a Regenerate becomes a
-            production run of the same topic, in its worker, guided by the reason given."""
+            production run of the same topic, in its worker, guided by the reason given. `after(status)`: called
+            with the outcome once the wait ends (a /produce batch whose review the worker handed over, QF-70)."""
             def work():
                 owner = run_id not in review_waits  # only the wait that added it takes it out (a resend's
                 review_waits.add(run_id)            # early return removed the id the running wait still needed)
+                result: dict[str, Any] = {}
                 try:
                     result = coordinator.request_approval(run_id, dry_run=args.dry_run, resend=resend)
                 except Exception as e:
@@ -7133,6 +7312,11 @@ def main(argv=None) -> int:
                 finally:
                     if owner:
                         review_waits.discard(run_id)
+                    if after is not None:
+                        try:
+                            after(result.get("status") or result.get("decision"))
+                        except Exception as e:  # noqa: BLE001 - the batch says what happened; the wait is done
+                            log.warning("Batch continuation after the review failed: %s", e)
                 if result.get("decision") == "regenerate":
                     run = coordinator.db.get_run(run_id) or {}
                     scheduler.add_job(production_run, kwargs={

@@ -381,7 +381,8 @@ def test_both_decision_paths_settle_a_timeout_the_same_way(db):
     c.topic_engine = SimpleNamespace(record_status=lambda tid, status, run_id=None: statuses.append(status))
     c._alert = lambda *a, **k: alerts.append(a)
     c._settle_decision("run_r", db.list_all_topics()[0]["id"], "timeout")
-    assert db.get_run("run_r")["status"] == "timeout" and statuses == ["failed"] and alerts == []
+    assert db.get_run("run_r")["status"] == "pending_approval" and statuses == [] and alerts == []
+    assert db.get_topic_by_id(db.list_all_topics()[0]["id"])["status"] == "queued"
 
 
 def test_the_regeneration_limit_holds_across_restarts(db, monkeypatch):

@@ -1,0 +1,46 @@
+{
+ "after_the_window": {
+  "wait_outcome": "timeout",
+  "decision": "pending",
+  "run": "pending_approval",
+  "topic": "queued",
+  "listed_under_timed_out_reviews": true
+ },
+ "resumed_wait": {
+  "wait_ends_after_the_card_closed_s": 0,
+  "stale_when_the_wait_ends": true
+ },
+ "daily_run_hand_off": {
+  "worker_wait_ends_before_the_daily_run": true,
+  "review_still_open": true
+ },
+ "topic_made_again_8_days_after_a_missed_window": false,
+ "topic_made_again_7_h_into_an_open_review": false,
+ "floor": {
+  "timeout_with_APPROVAL_TIMEOUT_SECONDS_3600_s": 43200,
+  "window_with_a_slot_2_h_away_s": 43200
+ },
+ "release_gate": {
+  "open undecided review": {
+   "idle": true,
+   "reasons": 0
+  },
+  "review past its window": {
+   "idle": true,
+   "reasons": 0
+  },
+  "production worker waiting on that review": {
+   "idle": true,
+   "reasons": 0
+  },
+  "control: decided review, not acted on yet": {
+   "idle": false,
+   "reasons": 1
+  },
+  "control: publishing": {
+   "idle": false,
+   "reasons": 1
+  }
+ },
+ "acceptance_met": true
+}

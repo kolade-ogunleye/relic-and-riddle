@@ -230,6 +230,10 @@ def warn_shipped_changes(owner=None) -> List[str]:
     return changed
 
 
+# QF-114: a Telegram approval whose review card record no longer exists cannot be checked against what was approved.
+CARD_RECORD_GONE = "the record of the review card you approved is gone, so what posts cannot be checked against it"
+
+
 class CarouselCreditHold(ValueError):
     """A carousel that cannot carry the photo credits its licences ask for as it is drawn (QF-126): not posted, and
     held (PipelineCoordinator._hold_carousel) with the hold alert's Redraw when a redraw can be made, and as a
@@ -1986,6 +1990,9 @@ class PipelineCoordinator:
                                 if post["kind"] == "carousel" else ("", ""))
         except ValueError as e:   # its caption is not the one the review card showed (QF-43)
             return f"🔁 Not retried: {html.escape(str(e))}"
+        broken = self._binding_problem(post["run_id"])
+        if broken:   # QF-114: a retry posts only the review you approved
+            return f"🔁 Not retried: {html.escape(broken)}."
         attempt = int(detail.get("retries") or 0) + 1
         platforms = sorted(failed)
         res = self.publisher.publish_photos(post["run_id"], run.get("topic_id"), post["kind"], frames, caption=caption,
@@ -2057,6 +2064,9 @@ class PipelineCoordinator:
         srt = master.with_suffix(".srt")
         if not srt.is_file():
             return f"💬 The run's caption file ({html.escape(srt.name)}) is no longer kept."
+        broken = self._binding_problem(run_id)
+        if broken:   # QF-114: only the review you approved goes up
+            return f"💬 Captions not added: {html.escape(broken)}."
         try:
             res = FacebookPageReelsPublisher().upload_captions(video_id, srt)
         except NotConfigured:
@@ -2106,6 +2116,9 @@ class PipelineCoordinator:
         cover = Path(run.get("thumbnail_cover_path") or Path(run.get("master_video_path") or "").parent / "thumbnail_cover.jpg")
         if not cover.is_file():
             return f"🖼 The run's cover ({html.escape(cover.name)}) is no longer kept."
+        broken = self._binding_problem(run_id)
+        if broken:   # QF-114: only the review you approved goes up
+            return f"🖼 Cover not set: {html.escape(broken)}."
         try:
             res = FacebookPageReelsPublisher().set_cover(video_id, cover)
         except NotConfigured:
@@ -2144,6 +2157,9 @@ class PipelineCoordinator:
         cover = Path(run.get("thumbnail_cover_path") or Path(run.get("master_video_path") or "").parent / "thumbnail_cover.jpg")
         if not cover.is_file():
             return f"▶️ The run's cover ({html.escape(cover.name)}) is no longer kept."
+        broken = self._binding_problem(run_id)
+        if broken:   # QF-114: only the review you approved goes up
+            return f"▶️ Thumbnail not set: {html.escape(broken)}."
         res = UploadPostPublisher().set_youtube_thumbnail(video_id, cover)
         self.db.record_publication(run["topic_id"], run_id, "youtube:thumbnail", "published" if res.get("set") else "failed",
                                    {k: v for k, v in res.items() if k != "thumbnails"})
@@ -2183,6 +2199,9 @@ class PipelineCoordinator:
             return "▶️ The last YouTube Short's outcome is unknown: check YouTube Studio first, so it never goes up twice."
         if not config.YOUTUBE_SHORTS:
             return "▶️ YouTube Shorts are turned off (YOUTUBE_SHORTS)."
+        broken = self._binding_problem(run_id)
+        if broken:   # QF-114: the Short uploads the master you approved, or nothing
+            return f"▶️ Not posted: {html.escape(broken)}."
         envelope = self.publisher.build_envelope(run_id, Path(run["master_video_path"]), Path(run["thumbnail_cover_path"]),
                                                  Path(run["thumbnail_grid_path"]), run["script_payload"])
         short = self.publisher.publish_short(envelope, dry_run=False)   # behind the voice licence gate (QF-127)
@@ -4475,6 +4494,16 @@ class PipelineCoordinator:
         if not files:
             self.db.update_scheduled_post(post["id"], "failed", detail={"error": "image files are missing"})
             return "failed"
+        broken = self._binding_problem(post["run_id"])
+        if broken:   # QF-114: only the review you approved posts; a retry would find the same change
+            self.db.update_scheduled_post(post["id"], "failed", detail={"error": f"not the review you approved: {broken}",
+                                                                        "binding": True})
+            name = {"story": "Stories", "carousel": "Carousel"}.get(kind, kind)
+            _notice(self, f"❌ <b>{name} not posted</b> for {html.escape(self.db.run_label(post['run_id']))}: "
+                    f"{html.escape(broken)}. Nothing was posted. Make a new version: it comes to you for review first.",
+                    section="needs", key=f"post-failed:{post['id']}", run=post["run_id"], replace=True,
+                    buttons=[[{"text": "📋 Details", "callback_data": f"cpost:{self.db.run_key(post['run_id'])}"}]])
+            return "failed"
         if kind == "story":   # frames redrawn after booking must still carry their photo credits (2026-10-29)
             from src.hold_advice import BOOKED, for_surface
             from src.release import story_credit_problems
@@ -5002,15 +5031,66 @@ class PipelineCoordinator:
         if approval.get("decision") != "approved" or approval.get("telegram_message_id") is None:
             return None
         shown = get(self.db, "review-card", f"{run_id}:{approval['telegram_message_id']}")
-        if not shown:
-            return None
+        if not shown:   # QF-114: held before the carousel takes its slot, as every other post is
+            return CARD_RECORD_GONE + ", so it is not posted as the carousel you approved"
         try:
             now = review_fingerprint(self.db, run_id)
         except Exception as e:  # noqa: BLE001 - a reviewed file missing or unreadable: held, with the reason
             return f"a file of the review you approved can no longer be read ({e})"
         if now != shown:
             return "its plan or files changed after you approved the review, so it is not the carousel you approved"
+        changed = self._files_changed(run_id, approval)
+        if changed:   # QF-114: checked here too, before the carousel takes its slot
+            return f"its {changed} changed after you approved the review, so it is not the carousel you approved"
         return None
+
+    def _files_changed(self, run_id: str, approval: dict) -> str | None:
+        """The files recorded with the approved card (telegram_state.review_files: composition record, provenance
+        ledger, captions) that differ now, named; None when none does or the card has no file record (QF-114)."""
+        from src.telegram_state import get, review_files
+        recorded = get(self.db, "review-files", f"{run_id}:{approval['telegram_message_id']}")
+        if not isinstance(recorded, dict) or not recorded:
+            return None
+        current = review_files(self.db, run_id)
+        changed = [name for name, digest in recorded.items() if current.get(name) != digest]
+        return " and ".join(changed) if changed else None
+
+    def _binding_problem(self, run_id: str) -> str | None:
+        """Why this run is no longer the review you approved (QF-114), or None. Checked before every real post (the
+        Reel, its Stories and carousel, their retries, Post now and the booking): the review fingerprint (the copy,
+        video, cover, Stories and carousel) against the approved card's, and the master's composition record and
+        provenance ledger and captions against those recorded with that card. An approval with no card (the
+        auto-approve flag: no message) is not bound, as before. A Telegram approval whose card record is gone (purged
+        before review records were kept for good, telegram_state.put) cannot be checked, so it is held. A card
+        recorded before QF-114 has no file record: only its fingerprint is checked."""
+        from src.telegram_state import get, review_fingerprint
+        approval = self.db.get_approval(run_id) or {}
+        if approval.get("decision") != "approved" or approval.get("telegram_message_id") is None:
+            return None
+        key = f"{run_id}:{approval['telegram_message_id']}"
+        try:
+            shown = get(self.db, "review-card", key)
+        except sqlite3.OperationalError:   # no Telegram records in this database: no card was ever recorded
+            return None
+        if not shown:
+            return CARD_RECORD_GONE
+        try:
+            now = review_fingerprint(self.db, run_id)
+        except Exception as e:  # noqa: BLE001 - a reviewed file missing or unreadable: held, with the reason
+            return f"a file of the review you approved can no longer be read ({e})"
+        if now != shown:
+            return "its video, cover, Stories, carousel or text changed after you approved the review"
+        changed = self._files_changed(run_id, approval)
+        if changed:
+            return f"its {changed} changed after you approved the review"
+        return None
+
+    def _require_binding(self, run_id: str) -> None:
+        """Raises ReleaseBlocked when the run is not the review you approved (QF-114)."""
+        broken = self._binding_problem(run_id)
+        if broken:
+            from src.release import ReleaseBlocked
+            raise ReleaseBlocked(f"Not posted: {broken}. Make a new version: it comes to you for review first.")
 
     RECHECK_WAIT_PREFIX = "fact_recheck_wait:"
     RECHECK_MAX_TRIES = 6            # then it waits for Post now (which tries once more)
@@ -5077,6 +5157,8 @@ class PipelineCoordinator:
         """The release gate, after the fact re-check a code update calls for (QF-110)."""
         from src.release import require_release
         if not dry_run:
+            if run.get("run_id"):
+                self._require_binding(run["run_id"])   # QF-114: only the review you approved posts
             self._recheck_facts(run, retry_now=retry_now)
         return require_release(run, dry_run=dry_run)
 

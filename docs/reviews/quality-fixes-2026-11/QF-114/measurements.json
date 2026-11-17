@@ -1,0 +1,87 @@
+{
+ "posted_by_path": {
+  "none": {
+   "reel": true,
+   "stories": true,
+   "stories retry": true,
+   "youtube short": true,
+   "facebook cover": true,
+   "facebook captions": true,
+   "youtube thumbnail": true,
+   "carousel takes its slot": true
+  },
+  "master": {
+   "reel": false,
+   "stories": false,
+   "stories retry": false,
+   "youtube short": false,
+   "facebook cover": false,
+   "facebook captions": false,
+   "youtube thumbnail": false,
+   "carousel takes its slot": false
+  },
+  "composition record": {
+   "reel": false,
+   "stories": false,
+   "stories retry": false,
+   "youtube short": false,
+   "facebook cover": false,
+   "facebook captions": false,
+   "youtube thumbnail": false,
+   "carousel takes its slot": false
+  },
+  "provenance ledger": {
+   "reel": false,
+   "stories": false,
+   "stories retry": false,
+   "youtube short": false,
+   "facebook cover": false,
+   "facebook captions": false,
+   "youtube thumbnail": false,
+   "carousel takes its slot": false
+  },
+  "cover": {
+   "reel": false,
+   "stories": false,
+   "stories retry": false,
+   "youtube short": false,
+   "facebook cover": false,
+   "facebook captions": false,
+   "youtube thumbnail": false,
+   "carousel takes its slot": false
+  },
+  "public copy": {
+   "reel": false,
+   "stories": false,
+   "stories retry": false,
+   "youtube short": false,
+   "facebook cover": false,
+   "facebook captions": false,
+   "youtube thumbnail": false,
+   "carousel takes its slot": false
+  },
+  "captions": {
+   "reel": false,
+   "stories": false,
+   "stories retry": false,
+   "youtube short": false,
+   "facebook cover": false,
+   "facebook captions": false,
+   "youtube thumbnail": false,
+   "carousel takes its slot": false
+  },
+  "card record gone": {
+   "reel": false,
+   "stories": false,
+   "stories retry": false,
+   "youtube short": false,
+   "facebook cover": false,
+   "facebook captions": false,
+   "youtube thumbnail": false,
+   "carousel takes its slot": false
+  }
+ },
+ "uploads_of_a_swapped_review": 0,
+ "upload_attempts_of_a_swapped_review": 56,
+ "unchanged_review_posts_on_every_path": true
+}

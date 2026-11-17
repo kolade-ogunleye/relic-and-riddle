@@ -15,12 +15,25 @@ def initialize(db):
             PRIMARY KEY(namespace,key))""")
 
 
+KEPT = ("review-card", "review-files")   # never purged (QF-114)
+
+
 def put(db, namespace, key, value):
+    # QF-114: every card also binds the master's composition record and its provenance ledger as they are now, so a
+    # post can be checked against the review you approved (the fingerprint binds the copy, video, cover, Stories and
+    # carousel; these two records it does not). Recorded here, wherever a card is recorded.
+    files = review_files(db, str(key).rsplit(":", 1)[0]) if namespace == "review-card" else None
     with db._conn() as conn:
         conn.execute("INSERT OR REPLACE INTO telegram_transport VALUES (?,?,?,?)",
                      (namespace, str(key), json.dumps(value), time.time()))
-        conn.execute("DELETE FROM telegram_transport WHERE namespace<>'inbox' AND touched<?", (time.time()-90*86400,))
-        conn.execute("DELETE FROM telegram_transport WHERE rowid IN (SELECT rowid FROM telegram_transport WHERE namespace=? ORDER BY touched DESC LIMIT -1 OFFSET 10000)", (namespace,))
+        if files is not None:
+            conn.execute("INSERT OR REPLACE INTO telegram_transport VALUES (?,?,?,?)",
+                         ("review-files", str(key), json.dumps(files), time.time()))
+        # Review records are kept for good (QF-114): a post is checked against its card for as long as it can post.
+        conn.execute("DELETE FROM telegram_transport WHERE namespace NOT IN ('inbox', 'review-card', 'review-files') "
+                     "AND touched<?", (time.time()-90*86400,))
+        if namespace not in KEPT:
+            conn.execute("DELETE FROM telegram_transport WHERE rowid IN (SELECT rowid FROM telegram_transport WHERE namespace=? ORDER BY touched DESC LIMIT -1 OFFSET 10000)", (namespace,))
 
 
 def get(db, namespace, key, default=None):
@@ -64,6 +77,28 @@ def prepare(db, payload):
                     button["callback_data"] = encode(db, button["callback_data"])
         result["reply_markup"] = json.dumps(markup)
     return result
+
+
+# The master's records and its caption file, beside it (the captions go up on Facebook from the episode's button).
+REVIEW_FILES = {"composition record": ".composition.json", "provenance ledger": "provenance.json", "captions": ".srt"}
+
+
+def review_files(db, run_id) -> dict:
+    """{name: SHA-256 or None} of the run's master's composition record, its provenance ledger and its caption file
+    (QF-114)."""
+    from pathlib import Path
+    run = db.get_run(run_id) or {}
+    if not run.get("master_video_path"):
+        return {}
+    master = Path(run["master_video_path"])
+    out = {}
+    for name, suffix in REVIEW_FILES.items():
+        path = master.with_suffix(suffix) if suffix.startswith(".") else master.parent / suffix
+        try:
+            out[name] = hashlib.sha256(path.read_bytes()).hexdigest()
+        except OSError:
+            out[name] = None
+    return out
 
 
 def review_fingerprint(db, run_id):

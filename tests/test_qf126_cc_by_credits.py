@@ -489,7 +489,7 @@ def test_a_carousel_held_for_its_credits_offers_redraw_only_when_a_redraw_can_be
     monkeypatch.setattr(main, "_notice", lambda self, text, **kw: said.append((text, kw)))
     coordinator = _coordinator()
     coordinator.db = SimpleNamespace(get_run=lambda run_id: {"topic_id": "t1"}, run_label=lambda run_id: "The stair",
-                                     run_key=lambda run_id: "k1",
+                                     run_key=lambda run_id: "k1", get_approval=lambda run_id: None,   # QF-114: unbound
                                      update_scheduled_post=lambda post_id, status, **kw: saved.append((post_id, status, kw)))
     # (were it sent, as before this rule: a publisher that says so, so the difference is this test's assertion)
     coordinator.publisher = SimpleNamespace(publish_photos=lambda *a, **k: {"status": "published"})
@@ -651,7 +651,7 @@ def _holding_coordinator(monkeypatch):
     monkeypatch.setattr(main, "_notice", lambda self, text, **kw: said.append((text, kw)))
     coordinator = _coordinator()
     coordinator.db = SimpleNamespace(get_run=lambda run_id: {"topic_id": "t1"}, run_label=lambda run_id: "The stair",
-                                     run_key=lambda run_id: "k1",
+                                     run_key=lambda run_id: "k1", get_approval=lambda run_id: None,   # QF-114: unbound
                                      update_scheduled_post=lambda post_id, status, **kw: saved.append((post_id, status, kw)))
     coordinator.publisher = SimpleNamespace(publish_photos=lambda *a, **k: {"status": "published"})
     coordinator._close_booking_item = lambda post: None

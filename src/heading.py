@@ -208,11 +208,11 @@ def ideal_seam(words: Sequence[str]) -> int | None:
     best = None
     for k in break_points(words):
         cand = lines_of(words, (k,))
-        if not valid(cand):
+        if not valid(cand, lone_ok=True):   # the payoff may be one word ("THE SECRET / WEAPON": WEAPON gold)
             continue
         conj = bare(words[k - 1]) in brand_system.LINE_END_LAST_RESORT
         a, b = len(cand[0]), len(cand[1])
-        score = (conj, -min(a, b) / max(a, b))
+        score = (conj, not valid(cand), -min(a, b) / max(a, b))
         if best is None or score < best[0]:
             best = (score, k)
     return best[1] if best else None
@@ -234,7 +234,7 @@ _ISSUED: list = []   # instrumentation hook (tests): every Form the engine hands
 
 
 def _issue(form: Form) -> Form:
-    for hook in list(_ISSUED):
+    for hook in tuple(_ISSUED):
         hook(form)
     return form
 

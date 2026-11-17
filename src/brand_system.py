@@ -248,7 +248,9 @@ TYPE_FALLBACK: Mapping[str, Mapping[str, float]] = MappingProxyType({
     "tall": MappingProxyType({"display_xl": 120, "display_l": 124, "display_m": 96, "body": 40, "credit": 22}),
     "carousel": MappingProxyType({k: v * 4 / 3 for k, v in {"display_xl": 138, "display_l": 124, "display_m": 96,
                                                             "body": 34}.items()}),
-    "wide": MappingProxyType({"display_xl": 150, "display_l": 152, "display_m": 112, "body": 46, "credit": 22}),
+    # wide display_xl 160 (round 7, was 150): the YouTube headline's one fallback tier holds its feed floor
+    # (youtube_thumbnail.HERO_FLOOR: 12 px of cap at 168 px wide; 150 gave 11.3)
+    "wide": MappingProxyType({"display_xl": 160, "display_l": 152, "display_m": 112, "body": 46, "credit": 22}),
 })
 # Feed-size floors, canvas px (RUBRIC PL2, rulings): nothing a role draws is smaller.
 TYPE_FLOOR: Mapping[str, Mapping[str, float]] = MappingProxyType({

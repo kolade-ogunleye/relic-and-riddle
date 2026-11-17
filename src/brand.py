@@ -103,6 +103,9 @@ BRAND_TEXT: Mapping[str, str] = MappingProxyType({
 })
 
 
+LIBASS_ROLES = ("caption", "caption_wide", "badge")   # font roles libass draws (a system face may be named)
+
+
 def _ratio(a: RGB, b: RGB) -> float:
     """The WCAG contrast ratio of two sRGB colours."""
     def lum(c):
@@ -176,7 +179,9 @@ class BrandConfig:
         for role, fam in self.fonts.items():
             if fam is not None and not isinstance(fam, str):
                 raise ValueError(f"brand {self.name!r}: font {role} = {fam!r} is not a family name")
-            if isinstance(fam, str) and fam not in self.fonts:
+            # the faces Pillow draws must be bundled; the roles libass draws (the captions and the reconstruction
+            # badge) may name a system face, which libass resolves and the measures stand in for (QF-35a)
+            if isinstance(fam, str) and fam not in self.fonts and role not in LIBASS_ROLES:
                 from .font_assets import DERIVED_FAMILIES
                 from .typography import FONT_FILES
                 if fam not in FONT_FILES and fam not in DERIVED_FAMILIES:

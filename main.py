@@ -1121,11 +1121,14 @@ class PipelineCoordinator:
             # so they are drawn while the documentary renders (one worker: the engine keeps per-call state).
             thumb_pool = concurrent.futures.ThreadPoolExecutor(max_workers=1, thread_name_prefix="deep-thumbs")
             from src.font_engine import on_surface
-            fut_thumbs = thumb_pool.submit(lambda: (
-                on_surface("cover", self.visual_engine.generate_thumbnails, hero_img, payload, run_dir,
-                           variants=False),
-                on_surface("YouTube thumbnail", self.visual_engine.generate_youtube_thumbnail, hero_img, payload,
-                           run_dir / "thumbnail_youtube_16x9.jpg")))
+            # Cycle 0 round 8 (ruling 6, panel MG-3): each surface is drawn and refused on its own (refusal.LayoutError
+            # recorded per surface, cover_job_results), so a YouTube refusal never discards a drawn Reel cover and grid
+            fut_thumbs = thumb_pool.submit(cover_job, (
+                ("cover", lambda: on_surface("cover", self.visual_engine.generate_thumbnails, hero_img, payload,
+                                             run_dir, variants=False)),
+                ("YouTube thumbnail", lambda: on_surface("YouTube thumbnail",
+                                                         self.visual_engine.generate_youtube_thumbnail, hero_img,
+                                                         payload, run_dir / "thumbnail_youtube_16x9.jpg"))))
             thumb_pool.shutdown(wait=False)
             step(4, "Rendering the documentary, preparing review")
             try:
@@ -1255,7 +1258,7 @@ class PipelineCoordinator:
 
         self._check_cancel(run_id)
         # Thumbnails: vertical cover, square grid, and 16:9 widescreen YouTube key-art
-        (thumb_916, thumb_1x1), thumb_yt = fut_thumbs.result()
+        (thumb_916, thumb_1x1), thumb_yt = cover_job_results(fut_thumbs.result(), payload)
         payload["thumbnail_youtube"] = str(thumb_yt)
         (run_dir / "script_metadata.json").write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
 
@@ -5589,6 +5592,34 @@ def graph_reason(error: Exception) -> str:
     text = str(error)
     found = re.search(r"""['"]message['"]:\s*['"](.+?)['"],\s*['"](?:type|code)['"]""", text)
     return (found[1] if found else text)[:300]
+
+
+def cover_job(jobs) -> list[tuple[str, Any, Any]]:
+    """Cycle 0 round 8 (operator ruling 6, panel MG-3): the deep dive's cover surfaces drawn one by one, each refusal
+    (refusal.LayoutError, the one refusal type) kept with its surface instead of aborting the rest: [(surface,
+    result or None, error or None)]. Any other error propagates."""
+    from src.refusal import LayoutError
+    out = []
+    for name, fn in jobs:
+        try:
+            out.append((name, fn(), None))
+        except LayoutError as e:
+            out.append((name, None, e))
+    return out
+
+
+def cover_job_results(results, payload: dict[str, Any]) -> list[Any]:
+    """The cover job's results in order; every refused surface recorded in payload["layout_holds"] (surface, class,
+    code, reason) for the review card, then the first refusal raised: the deep dive cannot be published without its
+    covers, so its run stops with the reason recorded, never a bare traceback."""
+    from src.refusal import record
+    refused = [(name, e) for name, _, e in results if e is not None]
+    for name, e in refused:
+        log.error("%s refused: %s", name, e)
+        payload.setdefault("layout_holds", []).append(record(e, name))
+    if refused:
+        raise refused[0][1]
+    return [r for _, r, _ in results]
 
 
 LAYOUT_HELD_DIR = "held"   # a held deck's frames, under its own folder: out of the posting globs (non-recursive)

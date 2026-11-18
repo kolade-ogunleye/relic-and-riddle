@@ -25,6 +25,7 @@ from .font_engine import (
     resolve_features,
     shape,
 )
+from .refusal import LayoutError
 
 FONT_FILES = {"Anton": "Anton-Regular.ttf", "Montserrat": "Montserrat-Variable.ttf", "Cinzel": "Cinzel-Variable.ttf",
               "IBM Plex Mono": "IBMPlexMono-SemiBold.ttf"}
@@ -257,12 +258,7 @@ def fit_lines(draw: ImageDraw.ImageDraw, text: str, font: ImageFont.FreeTypeFont
     raise TextFitError(text, wrap_text(draw, text, f, max_width), f, max_width, max_lines)
 
 
-class LayoutError(ValueError):
-    """A card, slide, cover or graphic that cannot be drawn as designed without cutting checked copy (or, in the
-    parked freeze work, without dropping a required credit): the surface is refused and held, never delivered
-    shortened (QF-23; freeze panel round 2, F1 and F8). The one refusal type: the stills' hold
-    (main.hold_layout_error), the graphics' (graphics.make_all) and the review card's "Held" list all catch this
-    class, and every more particular refusal subclasses it (TextFitError; the park's BodyFitError)."""
+# LayoutError: the one refusal type (src/refusal.py, cycle 0 round 8), imported here where every renderer reads it
 
 
 class TextFitError(LayoutError):

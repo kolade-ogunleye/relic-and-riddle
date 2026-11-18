@@ -174,6 +174,11 @@ def main() -> None:
             raise RuntimeError(f"{name}: nothing was encoded")
         save(name, hz)
 
+    def refused(e) -> dict:
+        """A recorded refusal (src/refusal.py: the one refusal type): its class, code and reason."""
+        return {"refused": str(getattr(e, "reason", None) or e)[:200], "class": type(e).__name__,
+                "code": str(getattr(e, "code", "") or "")}
+
     def job(group: str, name: str, fn) -> None:
         if only and group not in only:
             return
@@ -346,15 +351,40 @@ def main() -> None:
             hero = fx.path(case["hero"]["photo"])
             payload = fx.payload(case)
             d = work / f"cover_{case['topic']}"
-            reel, grid = VisualEngine().generate_thumbnails(hero, payload, d, style=case["hero"].get("style") or "badge",
-                                                            variants=False)
-            yt = VisualEngine().generate_youtube_thumbnail(hero, payload, d / "yt.jpg")
-            for tag, p in (("reel", reel), ("grid", grid), ("youtube", yt)):
-                frames_of(f"cover__{case['topic']}__{tag}", [Image.open(p)])
+            # cycle 0 round 8 (ruling 6): each surface drawn and refused on its own, the refusal recorded (a YouTube
+            # TextFitError discarded the drawable Tunguska reel and grid in round 7)
+            from src.refusal import LayoutError
+            try:
+                reel, grid = VisualEngine().generate_thumbnails(hero, payload, d, variants=False,
+                                                                style=case["hero"].get("style") or "badge")
+                for tag, p in (("reel", reel), ("grid", grid)):
+                    frames_of(f"cover__{case['topic']}__{tag}", [Image.open(p)])
+            except LayoutError as e:
+                for tag in ("reel", "grid"):
+                    result["surfaces"][f"cover__{case['topic']}__{tag}"] = refused(e)
+            try:
+                frames_of(f"cover__{case['topic']}__youtube",
+                          [Image.open(VisualEngine().generate_youtube_thumbnail(hero, payload, d / "yt.jpg"))])
+            except LayoutError as e:
+                result["surfaces"][f"cover__{case['topic']}__youtube"] = refused(e)
         job("covers", f"cover {case['topic']}", cover)
 
     # ------------------------------------------------------------------ carousels, gallery, Stories
     from src.multi_format import MultiFormatGenerator
+    from src.refusal import LayoutError
+
+    def draw_social(gen, kind, r, rec):
+        if kind == "story":
+            im, _ = gen._render_story_frame(Path(r["photo"]), r["slide"], int(r["index"]), int(r["count"]),
+                                            r.get("poll") or {}, tight=bool(rec.get("tight")))
+        else:
+            im, _ = gen._render_carousel_slide(
+                r["archetype"], Path(r["photo"]), Path(r["photo_next"]), r["card"], int(r["index"]),
+                int(r["total"]), r.get("poll") or {}, r.get("share") or "", bool(r.get("facebook")),
+                tight=bool(rec.get("tight")), subject=r.get("subject") or "",
+                heading_frame=int(r.get("heading_frame") or 2))
+        return im
+
     for case in fx.load("social"):
         if not case.get("exact_recipes"):
             continue
@@ -370,16 +400,13 @@ def main() -> None:
                     r = rec.get("recipe") or {}
                     if not r:
                         continue
-                    if kind == "story":
-                        im, _ = gen._render_story_frame(Path(r["photo"]), r["slide"], int(r["index"]), int(r["count"]),
-                                                        r.get("poll") or {}, tight=bool(rec.get("tight")))
-                    else:
-                        im, _ = gen._render_carousel_slide(
-                            r["archetype"], Path(r["photo"]), Path(r["photo_next"]), r["card"], int(r["index"]),
-                            int(r["total"]), r.get("poll") or {}, r.get("share") or "", bool(r.get("facebook")),
-                            tight=bool(rec.get("tight")), subject=r.get("subject") or "",
-                            heading_frame=int(r.get("heading_frame") or 2))
-                    frames_of(f"social__{run.name[4:]}__{kind}_{Path(frame_name).stem}", [im])
+                    key = f"social__{run.name[4:]}__{kind}_{Path(frame_name).stem}"
+                    try:
+                        im = draw_social(gen, kind, r, rec)
+                    except LayoutError as e:   # round 8: one frame refused, recorded; the deck's others still draw
+                        result["surfaces"][key] = refused(e)
+                        continue
+                    frames_of(key, [im])
         job("social", f"social {run.name}", social)
 
     # ------------------------------------------------------------------ hook, chapter and myth cards
@@ -406,7 +433,7 @@ def main() -> None:
                     try:
                         plan = make(ph, size)
                     except dc.CardRefused as e:   # recorded, never hidden: both trees must refuse alike
-                        result["surfaces"][key] = {"refused": str(e)[:200]}
+                        result["surfaces"][key] = refused(e)
                         continue
                     if plan is None:
                         continue

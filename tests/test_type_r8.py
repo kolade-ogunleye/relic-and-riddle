@@ -170,3 +170,57 @@ def test_the_reel_lockup_line_2_grows_to_the_grid_floor():
         assert got["line2"][0].size >= got["line1"][0].size
     got, rec = cover_design._lockup(_draw(), {"line1": "OLD", "line2": "SALT"}, 900, 108)
     assert "line2_grown" not in rec and got["line2"][0].size == 108   # Anton at 108 already clears it
+
+
+# ------------------------------------------------------------------ ruling 6: one recorded refusal type
+def test_every_refusal_a_renderer_raises_is_the_one_refusal_type():
+    """Ruling 6: TextFitError, GlyphRefused, CardRefused and StoryCreditFitError are all refusal.LayoutError, so a
+    caller that records LayoutError records every one (the cards' CardRefused was a bare ValueError)."""
+    import ast
+    import importlib
+    from pathlib import Path
+
+    from src.refusal import LayoutError
+    root = Path(__file__).resolve().parents[1] / "src"
+    found = []
+    for mod in ("typography", "font_engine", "design_cards", "multi_format", "cover_design", "youtube_thumbnail",
+                "graphics", "end_card", "then_now", "callouts", "masthead", "still_layout"):
+        tree = ast.parse((root / f"{mod}.py").read_text(encoding="utf-8"))
+        for node in ast.walk(tree):
+            if isinstance(node, ast.ClassDef) and (node.name.endswith("Refused") or node.name.endswith("FitError")):
+                found.append((mod, node.name))
+                cls = getattr(importlib.import_module(f"src.{mod}"), node.name)
+                assert issubclass(cls, LayoutError), f"{mod}.{node.name} is not a LayoutError"
+    assert {("typography", "TextFitError"), ("font_engine", "GlyphRefused"), ("design_cards", "CardRefused")} <= set(found)
+
+
+def test_the_cover_job_refuses_per_surface_and_records_it():
+    """Panel MG-3: the deep dive's cover job evaluated the Reel cover, grid and YouTube thumbnail as one tuple, so a
+    YouTube TextFitError discarded a drawn Reel cover and grid. Each surface is drawn on its own; a refusal is
+    recorded on the payload (surface, class, code, reason) and the run stops with that reason."""
+    import main
+    from src.typography import TextFitError
+
+    def youtube():
+        raise TextFitError("FLATTENED FOREST", ["FLATTENED FOREST"], None, 904, 1)
+    drawn = []
+    results = main.cover_job((("cover", lambda: drawn.append("reel") or ("reel.jpg", "grid.jpg")),
+                              ("YouTube thumbnail", youtube)))
+    assert drawn == ["reel"] and results[0][1] == ("reel.jpg", "grid.jpg") and results[1][2] is not None
+    payload: dict = {}
+    with pytest.raises(LayoutError):
+        main.cover_job_results(results, payload)
+    assert payload["layout_holds"] == [{"surface": "YouTube thumbnail", "refused": "TextFitError",
+                                        "code": "TextFitError", "reason": results[1][2].reason}]
+    assert main.cover_job_results(main.cover_job((("a", lambda: 1), ("b", lambda: 2))), {}) == [1, 2]
+
+
+# ------------------------------------------------------------------ ruling 4 on the cards: the lone "RINGS"
+def test_the_struck_myth_never_ends_on_a_short_word_alone():
+    """Panel TY-A-10 / AD S2: the 16:9 struck myth column set EXTRATERRESTRIALS / CONSTRUCTED / THE CIRCULAR /
+    RINGS. A lone-row last resort may keep a long word alone in the middle (the panel's M2 exception), never a short
+    word alone on the last row."""
+    from tests import test_freeze_cards_2026_11_04 as fc
+    plan = fc.plan_myth(fc.LONG_ET, fc.WIDE)
+    myth = [e.text for e in plan.elements if e.name.startswith("myth_") and e.text and e.text != "MYTH"]
+    assert myth[-1] == "THE CIRCULAR RINGS" and all(len(ln.split()) > 1 or len(ln) >= 11 for ln in myth), myth

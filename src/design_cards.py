@@ -77,6 +77,7 @@ from .graphics import (
 from .heading import valid as heading_valid
 from .multi_format import typeset
 from .photo_hygiene import remap_focus, without_caption_strip
+from .refusal import LayoutError
 from .safe_zones import graphics_box, text_box
 from .still_layout import Layout
 from .typography import (
@@ -221,8 +222,9 @@ _ROLE_FACE = {"claim": ("display", None), "title": ("display", None), "fact": ("
               "eyebrow": ("text", 800), "myth": ("text", 600)}   # brand font roles (QF-35a), the family read when checked
 
 
-class CardRefused(ValueError):
-    """A card that cannot be drawn whole and true; `reason` says why (written to <out>.design.json)."""
+class CardRefused(LayoutError):
+    """A card that cannot be drawn whole and true; `reason` says why (written to <out>.design.json). Cycle 0 round 8
+    (ruling 6): a LayoutError, the one refusal type every caller records."""
 
     def __init__(self, reason: str, code: str = ""):
         super().__init__(reason)
@@ -1732,8 +1734,22 @@ def plan_chapter_card(spec: ChapterCard, sheet: dict, width: int = 1080, height:
                 fit3 = next(((P, ls) for P in sizes if (ls := three(P)) and not _stop_end(ls)), None)
             if fit3 and (fit is None or fit3[0] >= fit[0] + CHAPTER_THREE_GAIN):
                 fit = fit3
-            if fit is None and refused is not None:
-                raise refused
+    else:
+        refused = None
+    tall_left = TALL_LEFT
+    if fit is None and not geo.wide:
+        # Cycle 0 round 8 (operator ruling 3): the 9:16 margin column (TALL_LEFT..TALL_RIGHT) steps down the ladder;
+        # only where it refuses at the floor the card takes the box column (MYTH_BOX_COLUMN, as the myth card does),
+        # on every card type, recorded (anchors "margin": "box")
+        box_x, box_w = MYTH_BOX_COLUMN
+        try:
+            fit = _w1_ladder(sizes, lambda P: _design_wrap(t, brand.DISPLAY_FONT, None, P, box_w, 2, geo, even=True))
+        except CardRefused:
+            fit = None
+        if fit is not None:
+            tall_left = box_x
+    if fit is None and refused is not None:
+        raise refused
     if fit is None:
         raise CardRefused("the title does not fit two lines at the floor size")
     P, lines = fit
@@ -1765,7 +1781,7 @@ def plan_chapter_card(spec: ChapterCard, sheet: dict, width: int = 1080, height:
                               geo.box((TALL_LEFT if not geo.wide else 153, y0, 1766 if geo.wide else TALL_RIGHT, y1)))
                    if spec.photo else 0.0)
         plan = _chapter_compose(spec, geo, rest, drift, last_t, seconds, frames, cited, prov, P, lines, num, total_t,
-                                div_x, title_x, edge)
+                                div_x, title_x, edge, tall_left=tall_left)
         # C5 / C6: the total is GOLD type now (no longer muted), so C3 measures it with the rest
         dmin = min((p.contrast for nm, p in plan.meta["_contrast"] if p.contrast is not None), default=None)
         if sat <= CHAPTER_SAT_MAX or (dmin is not None and dmin >= CHAPTER_SAT_TARGET) or attempt == CHAPTER_SAT_STEPS:
@@ -1778,7 +1794,7 @@ def plan_chapter_card(spec: ChapterCard, sheet: dict, width: int = 1080, height:
 
 def _chapter_compose(spec: ChapterCard, geo: _Geo, rest: Image.Image, drift: Any, last_t: float, seconds: float,
                      frames: int, cited: Any, prov: Any, P: int, lines: list[str], num: str, total_t: str,
-                     div_x: int, title_x: int, edge: int) -> CardPlan:
+                     div_x: int, title_x: int, edge: int, tall_left: int = TALL_LEFT) -> CardPlan:
     card = _Card("chapter", geo, rest)
     cap, step = round(0.86 * P), round(0.98 * P)
     col_tall = _numeral_tall(spec.total)
@@ -1792,15 +1808,17 @@ def _chapter_compose(spec: ChapterCard, geo: _Geo, rest: Image.Image, drift: Any
         H, _, R = _chapter_tall_block(P, lines)
         Bn = R + 340
         first = Bn + 56 + cap
-        _kicker(card, "kicker", "CHAPTER", TALL_LEFT, R, brand.GOLD, brand.GOLD, (0.10, 0.30), (0.15, REVEAL))
-        n_start, num_x = 0.25, TALL_LEFT
+        _kicker(card, "kicker", "CHAPTER", tall_left, R, brand.GOLD, brand.GOLD, (0.10, 0.30), (0.15, REVEAL))
+        n_start, num_x = 0.25, tall_left
         card.text("numeral", num, brand.DISPLAY_FONT, None, npx, brand.GOLD, num_x, Bn, ("ease", n_start, REVEAL), "display",
                   rise=False, settle=(n_start, FIGURE_SETTLE))
         baselines = [first + o for o in off]
         for k, (ln, b) in enumerate(zip(lines, baselines)):
-            card.text(f"title_{k}", ln, brand.DISPLAY_FONT, None, P, brand.BONE, TALL_LEFT, b, ("ease", t0 + dt * k, REVEAL, TITLE_ALPHA),
+            card.text(f"title_{k}", ln, brand.DISPLAY_FONT, None, P, brand.BONE, tall_left, b, ("ease", t0 + dt * k, REVEAL, TITLE_ALPHA),
                       "display")
         anchors.update(R=R, Bn=Bn, title_baselines=baselines, block_centre=round(R + H / 2, 1), block_h=H)
+        if tall_left != TALL_LEFT:
+            anchors["margin"] = "box"   # ruling 3: the box column, only where the margin column refuses at the floor
         if total_t:
             # C6: the chapter count after the numeral in the kicker's GOLD, baseline-aligned, revealed after the
             # numeral's settle
@@ -2302,6 +2320,20 @@ def _myth_fit(m_draw: str, f_draw: str, host: str | None, geo: _Geo, column: tup
             return len(w) == 1 or all(x.lower().strip(".,;:") in _STOP for x in w)
         return len(lines) > 1 and len(text.split()) >= 4 and any(alone(ln) for ln in lines)
 
+    def lone_last(lines: list[str], text: str, pm: int | None = None) -> bool:
+        """Cycle 0 round 8 (ruling 4; panel TY-A-10: the 16:9 struck myth ended on a lone "RINGS"): the LAST row a
+        short word alone, the phrase exception aside (heading.phrase_row). A lone middle row of a long word may be a
+        last resort; a short last word alone is the very last one."""
+        from .heading import phrase_row
+        if not lone(lines, text, pm) or len(lines[-1].split()) != 1:
+            return False
+        w = lines[-1].strip(".,;:")
+        if pm is not None and geo.wide and (len(w) >= LONE_WORD_CHARS
+                                            or _width(lines[-1], get_font(brand.DISPLAY_FONT, pm))
+                                            >= LONE_WORD_SHARE * m_meas):
+            return False
+        return not phrase_row(lines)
+
     def bare_first():
         """The 9:16 card with no source: one myth share, as before the freeze panel."""
         fits = []
@@ -2381,7 +2413,8 @@ def _myth_fit(m_draw: str, f_draw: str, host: str | None, geo: _Geo, column: tup
             if hosted and pm < MYTH_WIDE_MYTH_FLOOR:
                 continue
             ml = mwrap(pm, m_max)
-            if not ml or (lone(ml, m_draw, pm) and not allow_lone):
+            # round 8: allow_lone 1 takes a lone row but not a short word alone on the last row; 2 takes either
+            if not ml or (lone(ml, m_draw, pm) and (not allow_lone or (allow_lone == 1 and lone_last(ml, m_draw, pm)))):
                 continue
             m_step = round(MYTH_STEP * pm)
             m_low = kick + MYTH_LABEL_AIR[True] + _cap(pm) + _lead(ml, pm, m_step, _cap(pm))[-1]
@@ -2425,7 +2458,8 @@ def _myth_fit(m_draw: str, f_draw: str, host: str | None, geo: _Geo, column: tup
 
     def first_fit():
         if geo.wide:
-            return wide_first(bool(host)) or wide_first(bool(host), allow_lone=True)
+            return (wide_first(bool(host)) or wide_first(bool(host), allow_lone=1)
+                    or wide_first(bool(host), allow_lone=2))
         if host:
             extra = f_max + MYTH_EXTRA_LINE
             tries = ((f_max, MYTH_FLOOR_916, False), (extra, MYTH_FLOOR_916, False),
@@ -3448,21 +3482,29 @@ def plan_quote_card(spec: QuoteCard, sheet: dict, width: int = 1080, height: int
     citation = cite[0] if cite else ""
     # review 2026-11-03 (4): the largest size that fits, full stop. A smaller size is never taken to save a line
     # (the 25 % "unwrap" rule set a 75-character quote at 58 px); an extra line is preferred, down to the floor.
-    fit = None
-    for P in sizes:
-        cap_lines = max_lines if geo.wide else QUOTE_LINES_LARGE
-        if P > QUOTE_SHORT_PX[geo.wide]:
-            cap_lines = QUOTE_SHORT_LINES
-        lines = _design_wrap(body, brand.TEXT_FONT, 600, P, measure, cap_lines, geo)
-        if not lines:
-            continue
-        if geo.wide:
-            room = _quote_wide_height(P, len(lines), sp_extra, len(cite)) <= QUOTE_WIDE_ROOM
-        else:
-            room = _quote_tall_height(P, len(lines), len(sp_lines), len(cite)) <= QUOTE_TALL_ROOM
-        if room:
-            fit = (P, lines)
-            break
+    def quote_fit(measure_):
+        for P in sizes:
+            cap_lines = max_lines if geo.wide else QUOTE_LINES_LARGE
+            if P > QUOTE_SHORT_PX[geo.wide]:
+                cap_lines = QUOTE_SHORT_LINES
+            lines = _design_wrap(body, brand.TEXT_FONT, 600, P, measure_, cap_lines, geo)
+            if not lines:
+                continue
+            if geo.wide:
+                room = _quote_wide_height(P, len(lines), sp_extra, len(cite)) <= QUOTE_WIDE_ROOM
+            else:
+                room = _quote_tall_height(P, len(lines), len(sp_lines), len(cite)) <= QUOTE_TALL_ROOM
+            if room:
+                return P, lines
+        return None
+    fit = quote_fit(measure)
+    margin = "margin"
+    if fit is None and not geo.wide:
+        # Cycle 0 round 8 (operator ruling 3): the box column only where the margin column refuses at the floor
+        fit = quote_fit(MYTH_BOX_COLUMN[1])
+        if fit is not None:
+            x_mark = x_text = MYTH_BOX_COLUMN[0]
+            margin = "box"
     if fit is None:
         raise CardRefused("the quote does not fit its lines at the floor size")
     P, lines = fit
@@ -3523,7 +3565,7 @@ def plan_quote_card(spec: QuoteCard, sheet: dict, width: int = 1080, height: int
     meta = {"provenance": {"quote": {"source": "card_field", "kind": "quotes", "id": spec.quote_src.id,
                                      "fact_id": qf["fact_id"]}},
             "anchors": {"M": M, "quote_baselines": baselines, "rule_top": rule_top, "speaker": sp_base,
-                        "quote_px": P, "citation_lines": len(cite)},
+                        "quote_px": P, "citation_lines": len(cite), "margin": margin},
             "rest_s": 1.00, "_r": {"drift": drift, "items": card.items, "last_t": last_t, "rest": rest},
             "_contrast": card.contrast, "_marks": card.marks}
     return _marks_ok(card.plan("quote", seconds, frames, (qf["fact_id"],), meta))
@@ -4017,6 +4059,16 @@ def plan_hook_frame(spec: HookFrame, sheet: dict, width: int = 1080, height: int
                     out.append((px, ls))
         return out
     cands = hook_fits(HOOK_MEASURE)
+    left, margin = TALL_LEFT, "margin"
+    if not cands:
+        # Cycle 0 round 8 (operator ruling 3): the margin column steps down the ladder; only where it refuses at the
+        # floor the claim takes the box column (MYTH_BOX_COLUMN, as the myth and chapter cards do), recorded
+        try:
+            cands = hook_fits(MYTH_BOX_COLUMN[1])
+        except CardRefused:
+            cands = []
+        if cands:
+            left, margin = MYTH_BOX_COLUMN[0], "box"
     if not cands:
         raise CardRefused(f"the claim does not fit three lines at {HOOK_SIZES[3][-1]} px")
     P, lines = cands[0]
@@ -4030,9 +4082,9 @@ def plan_hook_frame(spec: HookFrame, sheet: dict, width: int = 1080, height: int
     cx = HOOK_CENTRE_X * width / 1080      # the plate position's axis (QF-24: the box's, not the frame's)
 
     def line_x(ln: str, centred: bool) -> int:
-        """The line's ink-left x: TALL_LEFT (flush left), or centred on the box's axis under the centred masthead."""
+        """The line's ink-left x: the column's left edge (flush left), or centred on the box's axis under the centred masthead."""
         if not centred:
-            return TALL_LEFT
+            return left
         ib = _ink(ln, f_claim)
         return round(cx - (ib[2] - ib[0]) / 2)
 
@@ -4042,7 +4094,7 @@ def plan_hook_frame(spec: HookFrame, sheet: dict, width: int = 1080, height: int
             ib, x = _ink(ln, f_claim), line_x(ln, centred)
             boxes.append((x, b + ib[1], x + ib[2] - ib[0], b + ib[3]))
         if eyebrow:
-            ex = round(cx - eb_w / 2) if centred else TALL_LEFT
+            ex = round(cx - eb_w / 2) if centred else left
             boxes.append((min(ex, cx - 22) if centred else ex, g["E"] - 46, ex + int(eb_w), g["E"] + 4))
         return _union(boxes)
     position = None
@@ -4095,11 +4147,11 @@ def plan_hook_frame(spec: HookFrame, sheet: dict, width: int = 1080, height: int
     n = len(lines)
     on_plate = position == "plate"       # one title panel under the masthead
     centred = on_plate                   # operator 2026-11-04: the panel centred again (the rework's flush left undone)
-    # freeze panel H3: one alignment axis per position: flush left at TALL_LEFT on the wash (the masthead's mark too),
+    # freeze panel H3: one alignment axis per position: flush left at the column's left edge on the wash (the masthead's mark too),
     # all centred on the plate. The masthead's geometry and layout record; its plate is re-planned at HOOK_TARGET
     lay.meta["masthead"] = hook_masthead_record()
     xs = [line_x(ln, centred) for ln in lines]
-    eb_x = round(cx - eb_w / 2) if centred else TALL_LEFT
+    eb_x = round(cx - eb_w / 2) if centred else left
     gold_ks, gold_from = _hook_gold_lines(lines, t)
     gold_k = gold_ks[0]
     rows = []
@@ -4140,7 +4192,7 @@ def plan_hook_frame(spec: HookFrame, sheet: dict, width: int = 1080, height: int
     rule = None
     if eyebrow:
         E = geo["E"]
-        rule = (round(cx) - 22, E - 46, round(cx) + 22, E - 42) if centred else (TALL_LEFT, E - 46, TALL_LEFT + 44, E - 42)
+        rule = (round(cx) - 22, E - 46, round(cx) + 22, E - 42) if centred else (left, E - 46, left + 44, E - 42)
         under = _rule_halo(bg, under, rule)
     ground0 = Image.alpha_composite(bg.convert("RGBA"), under).convert("RGB")
     # two mark layers: `marks` under the plates (the disclosure's INK plate, which its text sits on) and `top` over
@@ -4218,7 +4270,7 @@ def plan_hook_frame(spec: HookFrame, sheet: dict, width: int = 1080, height: int
                 drawn[nm] = round(min(min(vals), drawn.get(nm, 99.0)), 2)
     drawn_min = min(drawn.values()) if drawn else None
     meta = {"anchors": {"P": P, "lines": n, "baselines": geo["baselines"], "T": geo["T"], "E": geo["E"] if eyebrow
-                        else None, "block_top": block_top, "L": L, "position": position},
+                        else None, "block_top": block_top, "L": L, "position": position, "margin": margin},
             "caption_clear_until_s": CAPTION_CLEAR, "grid_proof": proof, "withheld": withheld, "focus": focus,
             "scrim": scrim_rec, "mast_band": None, "diamond_contrast": diamond_c, "eyebrow_dropped": eyebrow_dropped,
             "masthead": lay.meta.get("masthead", {"shown": True}),

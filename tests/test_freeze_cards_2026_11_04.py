@@ -45,6 +45,17 @@ FOOT, RIGHT, LEFT = dc.TALL_FOOT, dc.TALL_RIGHT, dc.TALL_LEFT
 AXIS = dc.HOOK_CENTRE_X     # QF-24: the hook's plate position centres on the box's axis, x 480 (540 on the ads box)
 
 
+def refused_wide(m, size) -> bool:
+    """Cycle 0 round 8 (ruling 4 on every row, lander ruling: the M2 long-word exception closed): LONG_ET's only 16:9
+    forms leave a word alone in a middle row (EXTRATERRESTRIALS / CONSTRUCTED / THE CIRCULAR RINGS), so on 16:9 it is a
+    declared refusal, as LONGEST916 is on 9:16; True when `m` is it on a wide frame, checked here."""
+    if not (m is LONG_ET and size[0] > size[1]):
+        return False
+    with pytest.raises(dc.CardRefused, match="line limit"):
+        plan_myth(m, size)
+    return True
+
+
 def refused_tall(m) -> bool:
     """QF-24: LONGEST916 is refused on 9:16 (never drawn with a stop-word end); True when `m` is it, checked here.
     Round 7: the engine refuses the never-word ends at every size, so the refusal can read "line limit" too."""
@@ -100,6 +111,8 @@ def test_t1_strike_overhang_clamped_to_the_zone(size):
         if size[0] < size[1] and m is LONGEST916:
             with pytest.raises(dc.CardRefused, match="stop word|line limit"):
                 plan_myth(m, size)
+            continue
+        if refused_wide(m, size):
             continue
         plan = plan_myth(m, size)
         e = els(plan)
@@ -236,8 +249,10 @@ def test_m1_refusal_code(monkeypatch):
 
 # ------------------------------------------------------------------------------------------------ M2 / M3 16:9
 def test_m2_wide_long_myth_keeps_its_size():
-    """M2: the 16:9 long myth sets the fact at >= 88 and the myth at >= 64 in <= 4 lines (it was 64 / 44)."""
-    a = plan_myth(LONG_ET, WIDE).meta["anchors"]
+    """M2: the 16:9 long myth sets the fact at >= 88 and the myth at >= 64 in <= 4 lines (it was 64 / 44). Round 8:
+    LONG_ET is refused on 16:9 (refused_wide), so the long 16:9 myth is LONGEST169."""
+    assert refused_wide(LONG_ET, WIDE)
+    a = plan_myth(LONGEST169, WIDE).meta["anchors"]
     assert a["px"] >= 88 and a["myth_px"] >= 64 and len(a["myth_baselines"]) <= 4, a
 
 
@@ -248,15 +263,20 @@ def test_m2_wide_no_regression():
 
 
 def test_m2_long_word_is_not_lone():
-    """M2: on 16:9 a one-word myth line of >= 12 letters is a long word filling its line, not a lone word."""
-    a = plan_myth(LONG_ET, WIDE)
-    assert a.drawn_text["myth_0"] == "EXTRATERRESTRIALS"
+    """M2: on 16:9 a one-word myth line of >= 12 letters is a long word filling its line, not a lone word. Round 8
+    (lander ruling): that exception is closed for a middle row: no 16:9 form sets LONG_ET without CONSTRUCTED alone in
+    the middle, so it is refused (recorded), never drawn with the lone row; a long word opening the block stays."""
+    assert refused_wide(LONG_ET, WIDE)
+    assert not dc._wrap("EXTRATERRESTRIALS CONSTRUCTED THE CIRCULAR RINGS", dc.get_font("Anton", 88), 617, 4,
+                        even=True)
 
 
 @pytest.mark.parametrize("m", [SHORT, LONG_ET, LONGEST916, LONGEST169])
 def test_m3_wide_columns_share_their_rules(m):
     """M3: the MYTH and FACT kicker rules stand at one y, the taller column's block is centred on 475 (+/- 2)
     and stays inside 129..816."""
+    if refused_wide(m, WIDE):
+        return
     plan = plan_myth(m, WIDE)
     e, a = els(plan), plan.meta["anchors"]
     assert e["myth_rule"].box[1] == e["fact_rule"].box[1]
@@ -284,7 +304,7 @@ def test_m4_pair_cohesion(verdict):
 def test_m5_strike_geometry_and_colour(size, verdict):
     """M5 (M11, round 2: thickness clamp(round(0.08 x Pm), 5, 10), was 0.10 / 6..12; a 1 px keyline): its centre 0.55-0.60 of the cap above the baseline; an INK
     keyline above and below; GOLD under the pen, #B18728 on the last frame; the twin still >= PLACE_TARGET."""
-    plan = plan_myth(LONG_ET, size, verdict=verdict)
+    plan = plan_myth(LONGEST169 if size == WIDE else LONG_ET, size, verdict=verdict)   # round 8: refused_wide
     a = plan.meta["anchors"]
     Pm = a["myth_px"]
     cap = dc._cap(Pm)
@@ -341,7 +361,8 @@ def test_m7_longest_wide_card_plans():
     its read; the short card's timing moves by <= 0.3 s (t_s 1.85, 6.0 s recorded)."""
     plan = plan_myth(LONGEST169, WIDE)
     assert plan.seconds <= dc.MAX_SECONDS
-    for p in (plan, plan_myth(SHORT), plan_myth(LONG_ET), plan_myth(LONG_ET, WIDE)):
+    assert refused_wide(LONG_ET, WIDE)   # round 8
+    for p in (plan, plan_myth(SHORT), plan_myth(LONG_ET)):
         f0 = p.meta["t_f"] + 0.10
         fact = " ".join(v for k, v in sorted(p.drawn_text.items()) if k.startswith("fact_") and k[5:].isdigit())
         held = p.seconds - dc.TRANS_DUR - p.meta["rest_f"]
@@ -426,7 +447,7 @@ def test_h1_claim_size_by_line_count(ground, photos):
     # round 7 integration (F19, the PLATE lane): on the 687 px measure (x 137-824) the two-line claim takes the next
     # size down again, 136 (was 144 on the 735 px box)
     expect = [("The ring", "f_len", 1, 192), ("About 40 km across", "f_len", 2, 136),
-              ("Concentric sandstone quartzite", "f_geo", 3, 128), ("Ridges rise from the desert", "fz_hook", None, 152)]
+              ("Quartzite ridges form the ring", "f_geo", 3, 128), ("Ridges rise from the desert", "fz_hook", None, 152)]
     for claim, fid, n, px in expect:
         plan = hook_plan(photos[ground], claim, fid)
         a = plan.meta["anchors"]
@@ -435,7 +456,8 @@ def test_h1_claim_size_by_line_count(ground, photos):
         assert a["P"] <= px
         e = els(plan)
         titles = [x for x in plan.elements if x.name.startswith("title_")]
-        assert max(x.box[2] for x in titles) <= RIGHT
+        # round 8 (ruling 3): the box column only where the margin column refuses at the floor, recorded
+        assert max(x.box[2] for x in titles) <= (RIGHT if a.get("margin") != "box" else graphics_box()[2])
         top = min(x.box[1] for x in plan.elements if x.name.startswith(("title_", "eyebrow")))
         # QF-87 (lander ruling 2026-11-13: the row's rule 'masthead >= 9 px at the 124 px tile or absent' reaches the hook frame): the 64 px masthead is 5.2 px there, so the card draws none and lay.meta['masthead'] says why; the block keeps its place, 56 px under the masthead's reserved line (was e["brand"].box[3])
         assert "brand" not in e and top >= dc._hook_mast_foot() + 56 - 1, (claim, top)
@@ -490,7 +512,7 @@ def test_h3_one_axis_per_position(photos):
 def test_h4_dissolve(photos):
     """H4: a smoothstep dissolve: the plate band's mean luma moves <= 70 per frame over frames 33-42; everything is
     gone by 1.40 s; frames 0-32 at full alpha."""
-    plan = hook_plan(photos["sky"], "Concentric sandstone quartzite", "f_geo")
+    plan = hook_plan(photos["sky"], "Quartzite ridges form the ring", "f_geo")
     assert plan.meta["scrim"]["mode"] == "plate"
     y0, y1 = plan.meta["scrim"]["plate"]
     lum = [float(np.asarray(dc.frame_at(plan, i).convert("L"))[y0:y1].mean()) for i in range(32, 44)]
@@ -765,6 +787,7 @@ RICHAT_ACTS = ("Introduction: A Desert Landmark from Space", ACT2, ACT3, "Archae
                "International Heritage Recognition")
 # measured (raqm): 16:9 two lines at 176..96 px (one line from 184), 9:16 two or three lines (C6) at 136..84 px
 CHAPTER_FLOOR = {False: 84, True: 96}
+TALL_REFUSED_ACTS: set = set()   # round 8: none (act 2 takes the box column at its floor, ruling 3)
 RICHAT_EXPECT = {   # (format wide?, act): (title px, lines)
     (True, 1): (144, ["INTRODUCTION: A DESERT", "LANDMARK FROM SPACE"]),
     (True, 4): (128, ["ARCHAEOLOGICAL EVIDENCE", "AND REFUTED CLAIMS"]),
@@ -775,8 +798,10 @@ RICHAT_EXPECT = {   # (format wide?, act): (title px, lines)
     # round 7 integration (F19): on the 687 px measure (x 137-824) acts 1 and 4 set at 88 and act 5 at 120 (one ladder
     # step each), the same lines
     (False, 1): (88, ["INTRODUCTION:", "A DESERT LANDMARK", "FROM SPACE"]),
-    (False, 4): (88, ["ARCHAEOLOGICAL", "EVIDENCE", "AND REFUTED CLAIMS"]),
-    (False, 5): (120, ["INTERNATIONAL", "HERITAGE", "RECOGNITION"]),
+    # cycle 0 round 8 (ruling 4 on every row, lander ruling): no middle row holds one word. Act 4 takes the engine's
+    # conjunction-end last resort (recorded); acts 2 and 5 the box column at its floor (ruling 3)
+    (False, 4): (104, ["ARCHAEOLOGICAL", "EVIDENCE AND", "REFUTED CLAIMS"]),
+    (False, 5): (88, ["INTERNATIONAL", "HERITAGE RECOGNITION"]),
 }
 
 
@@ -789,11 +814,15 @@ def test_d1_every_richat_act_is_drawn(size):
     288 to the graphics foot (QF-24: 1090 on the organic box, right edge 848; 1058 and 888 on the ads box)."""
     wide = size[0] > size[1]
     for n, title in enumerate(RICHAT_ACTS, 1):
+        if not wide and n in TALL_REFUSED_ACTS:
+            with pytest.raises(dc.CardRefused):
+                chapter_plan(size, n, ACTS, title)
+            continue
         p = chapter_plan(size, n, ACTS, title)
         e, a = els(p), p.meta["anchors"]
         lines = lines_of(p, "title")
         assert " ".join(lines) == " ".join(title.upper().split()), (n, lines)
-        assert no_stop_end(lines), (n, lines)
+        assert no_stop_end(lines) or a.get("conjunction_end_last_resort"), (n, lines)
         assert a["title_px"] >= CHAPTER_FLOOR[wide], (n, a["title_px"])
         if (wide, n) in RICHAT_EXPECT:
             assert (a["title_px"], lines) == RICHAT_EXPECT[(wide, n)], (n, a["title_px"], lines)
@@ -810,7 +839,8 @@ def test_d1_every_richat_act_is_drawn(size):
         else:
             z = graphics_box(*size)
             assert 2 <= len(lines) <= 3, (n, lines)
-            assert max(x.box[2] for x in titles) <= RIGHT
+            # round 8 (ruling 3): the box column only at the floor, recorded; its right edge is the box's
+            assert max(x.box[2] for x in titles) <= (RIGHT if a.get("margin") != "box" else z[2])
             assert all(z[0] <= x.box[0] and x.box[2] <= z[2] and z[1] <= x.box[1] and x.box[3] <= z[3]
                        for x in p.elements), n
             assert max(x.box[3] for x in p.elements) <= FOOT + 1 and min(x.box[1] for x in p.elements) >= 288
@@ -881,9 +911,12 @@ def test_w2_richat_myth_breaks(field, richat):
 @pytest.mark.parametrize("size", [TALL, WIDE])
 def test_w2_every_fixture_line_end(size, photos, richat):
     """W2: no planned chapter, myth, fact or hook line other than the last ends on a W1_STOPS word."""
-    plans = [chapter_plan(size, 2, ACTS, t) for t in (ACT2, ACT3, "The Eye of the Great Sahara")]
+    # round 8: act 2 is refused on 9:16 (TALL_REFUSED_ACTS) and LONG_ET on 16:9 (refused_wide), never drawn
+    plans = [chapter_plan(size, 2, ACTS, t) for t in ((ACT2,) if size == WIDE else ()) + (ACT3, "The Eye of the Great Sahara")]
     # QF-24: LONGEST916 is refused on 9:16 (refused_tall), never drawn with a stop-word end
-    plans += [plan_myth(m, size) for m in (SHORT, LONG_ET) + ((LONGEST916, LONGEST169) if size == WIDE else ())]
+    plans += [plan_myth(m, size) for m in (SHORT,) + ((LONG_ET,) if size == TALL else ())
+              + ((LONGEST916, LONGEST169) if size == WIDE else ())]
+    assert size == TALL or refused_wide(LONG_ET, size)
     assert size == WIDE or refused_tall(LONGEST916)
     plans += [richat_myth(richat, c, size=size) for c in (RICHAT_SHORT, RICHAT_LONG)]
     if size == TALL:
@@ -901,11 +934,12 @@ def test_c6_tall_chapter_fill():
     measure, foot 1090; 788 and 1058 on the ads box) act 3's two lines set at no more than 112, so C6's rule takes
     three at 128 ("ORIGIN DEBATES / AND ROCK / DATING", 16 px over two), and its taller block centres at 710 (it was
     two lines, centred at >= 734)."""
+    # cycle 0 round 8 (ruling 4 on every row, lander ruling): act 2's DOCUMENTED / PHYSICAL / ARCHITECTURE left a word
+    # alone in the middle row; it takes the box column at its floor (ruling 3, recorded); act 3 is unchanged (a lone
+    # last row stays the scored last resort; middle rows are hard)
     p2 = chapter_plan(TALL, 2, ACTS, ACT2)
-    assert lines_of(p2, "title") == ["DOCUMENTED", "PHYSICAL", "ARCHITECTURE"] and p2.meta["anchors"]["title_px"] >= 128
+    assert lines_of(p2, "title") == ["DOCUMENTED PHYSICAL", "ARCHITECTURE"] and p2.meta["anchors"]["margin"] == "box"
     p3 = chapter_plan(TALL, 3, ACTS, ACT3)
-    # cycle 0 round 7 (panel F19): on the margin token's 687 px measure (735 on the box's edges) act 3's three lines
-    # set one ladder step lower, 120
     assert lines_of(p3, "title") == ["ORIGIN DEBATES", "AND ROCK", "DATING"] and p3.meta["anchors"]["title_px"] >= 120
     assert max(e.box[2] for e in p3.elements if e.name.startswith("title_")) <= RIGHT
     for p in (p2, p3, chapter_plan(TALL)):
@@ -913,6 +947,7 @@ def test_c6_tall_chapter_fill():
         assert max(e.box[3] for e in p.elements) <= FOOT + 1 and min(e.box[1] for e in p.elements) >= 288
         assert abs(a["block_centre"] - min(864, FOOT - a["block_h"] / 2)) <= 2
     assert p3.meta["anchors"]["block_centre"] >= 694
+
 
 
 @pytest.mark.parametrize("ground", GROUNDS)
@@ -1022,8 +1057,8 @@ def test_h6_plate_flush_left_and_feathered(photos):
     the box's 735 px on its axis, x 480; 192..888 on x 540 on the ads box), while the wash keeps flush left at the
     box's left edge (QF-24: x 113; x 100 on the ads box); the plate's luma ramps over >= 60 px at its top and bottom
     edges with no row step over 20."""
-    normal = hook_plan(photos["dark"], "Concentric sandstone quartzite", "f_geo")
-    plan = hook_plan(photos["sky"], "Concentric sandstone quartzite", "f_geo")
+    normal = hook_plan(photos["dark"], "Quartzite ridges form the ring", "f_geo")
+    plan = hook_plan(photos["sky"], "Quartzite ridges form the ring", "f_geo")
     a = plan.meta["anchors"]
     assert a["position"] == "plate" and a["P"] <= normal.meta["anchors"]["P"]
     e = els(plan)
@@ -1048,7 +1083,7 @@ def test_h6_dissolve(photos):
     too: test_fr1_h6_dissolve_measured_on_the_frame_at_the_spec_time) and every hook alpha is 0 from 1.40 s; frames
     0..32 at full
     alpha; the plate band moves <= 70 luma per frame over frames 33..42."""
-    plan = hook_plan(photos["sky"], "Concentric sandstone quartzite", "f_geo")
+    plan = hook_plan(photos["sky"], "Quartzite ridges form the ring", "f_geo")
     assert dc.HOOK_FADE == 0.16 and dc.HOOK_GROUND_HOLD == 1.22
     for e in plan.elements:
         assert all(dc.alpha_at(plan, e.name, i / 30) == 1.0 for i in range(33))
@@ -1065,7 +1100,7 @@ def test_fr1_h6_dissolve_measured_on_the_frame_at_the_spec_time(ground, photos, 
     """Fix round 1 (review: test at the spec time, not a chosen frame): the frame on screen at t = 1.22 s (frame
     floor(1.22 x 30) = 36, shown 1.200-1.233 s) has every type element at alpha <= 0.10, measured on its pixels: the
     type's share of the difference between the same frame composed with the type whole and with it gone."""
-    plan = hook_plan(photos[ground], "Concentric sandstone quartzite", "f_geo")
+    plan = hook_plan(photos[ground], "Quartzite ridges form the ring", "f_geo")
     i = math.floor(1.22 * 30 + 1e-9)
     assert i == 36
     assert all(dc.alpha_at(plan, e.name, i / 30) <= 0.10 for e in plan.elements)
@@ -1122,6 +1157,8 @@ def test_m10_wide_columns(richat):
 @pytest.mark.parametrize("m", [SHORT, LONG_ET, LONGEST169])
 def test_m10_symmetric_overhang(m):
     """M10 (3): on 16:9 both ends of every strike overhang round(0.06 x Pm)."""
+    if refused_wide(m, WIDE):
+        return
     plan = plan_myth(m, WIDE)
     e = els(plan)
     ov = round(0.06 * plan.meta["anchors"]["myth_px"])

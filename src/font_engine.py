@@ -34,6 +34,8 @@ from fontTools.ttLib import TTFont
 from fontTools.ttLib.tables._c_m_a_p import CmapSubtable
 from PIL import Image, ImageDraw, ImageFont
 
+from .refusal import LayoutError
+
 log = logging.getLogger(__name__)
 
 # Graphic text (Pillow) is set with the face's kerning, and with its case-sensitive forms when the run has no
@@ -187,7 +189,7 @@ def _pictograph(ch: str) -> bool:
     return unicodedata.category(ch) == "So" and (cp >= 0x1F000 or 0x2600 <= cp <= 0x27BF)
 
 
-class GlyphRefused(ValueError):
+class GlyphRefused(LayoutError):   # cycle 0 round 8: the one refusal type
     """A field no bundled face can draw whole: it is not drawn (never a dropped letter); `reason` says why."""
 
     def __init__(self, text: str, face: str, missing: str):
@@ -275,7 +277,8 @@ def choose_face(text, font):
         return font
     for fallback in getattr(font, "_rr_fallbacks", ()):
         if not _missing(fallback, text):
-            face = _fallback_font(fallback, path, getattr(font, "_rr_variations", ()), font.size)
+            face = _fallback_font(fallback, path, getattr(font, "_rr_variations", ()),
+                                  raster_px(font) if hasattr(font, "_rr_px") else font.size)
             face._rr_family = getattr(font, "_rr_family", None)
             face._rr_brand_font = font
             return face

@@ -151,10 +151,12 @@ class BrandConfig:
         unknown = sorted(set(self.system) - set(SYSTEM_TOKENS))
         if unknown:   # a SPEC value no renderer reads yet, or a typo: an override that would change nothing
             raise ValueError(f"brand {self.name!r}: {unknown} are not runtime tokens (src/brand_system.py)")
-        from .brand_system import TOKEN_RANGES
+        from .brand_system import TOKEN_DERIVED, TOKEN_RANGES
         for key, (lo, hi) in TOKEN_RANGES.items():
             value = self.system[key]
-            if not (isinstance(value, (int, float)) and lo <= value <= hi):
+            if key in TOKEN_DERIVED and value == TOKEN_DERIVED[key]:
+                continue   # derived at read time (src/brand_system.py TOKEN_DERIVED)
+            if not (isinstance(value, (int, float)) and not isinstance(value, bool) and lo <= value <= hi):
                 raise ValueError(f"brand {self.name!r}: {key} = {value!r} is outside its range {lo}..{hi}")
         from .brand_system import TOKEN_JOINT
         for key, factor, other in TOKEN_JOINT:
@@ -238,13 +240,53 @@ class BrandConfig:
             role = family
         return role
 
-    def font(self, role: str) -> str:
+    def family(self, role: str) -> str:
+        """The family `role` names (the end of its alias chain; None reads the configured setting), as written."""
         role = self._font_role(role)
         family = self.fonts[role]
         if family is None:
             from . import config
             family = {"caption": config.FONT_NAME, "caption_wide": config.CAPTION_WIDE_FONT}[role]
         return family
+
+    def font(self, role: str) -> str:
+        family = self.family(role)
+        if self._font_role(role) == "display":
+            # cycle 0 round 8 (ruling 6): the display face's sizes are in reference units (src/brand_system.py
+            # "face-relative display type"); a face that resolves them to other px is named as a DisplayFace
+            from .brand_system import display_px_scale
+            scale = display_px_scale(self)
+            if abs(scale - 1.0) > 1e-9:
+                return DisplayFace(family, scale)
+        return family
+
+
+class DisplayFace(str):
+    """The display role's family name when the brand's display face resolves the system's reference sizes to its own
+    px (cycle 0 round 8, operator ruling 6): it equals the family name (a comparison, a record, a registry lookup
+    read it as the family), and carries `px_scale`, the brand face's px per reference px, which typography.get_font
+    applies (the font is rasterised at the scaled px; its `.size` stays the size asked for). The reference face is
+    never wrapped (scale 1.0), so the default brand's fonts are exactly as before."""
+
+    px_scale: float = 1.0
+
+    def __new__(cls, family: str, px_scale: float):
+        obj = super().__new__(cls, family)
+        obj.px_scale = float(px_scale)
+        return obj
+
+    def __eq__(self, other) -> bool:   # two scales of one family are two faces (a cache keeps them apart)
+        if isinstance(other, DisplayFace):
+            return str.__eq__(self, other) and self.px_scale == other.px_scale
+        return str.__eq__(self, other)
+
+    def __ne__(self, other) -> bool:
+        return not self.__eq__(other)
+
+    __hash__ = str.__hash__   # equal to its family name in every registry lookup
+
+    def __reduce__(self):
+        return (DisplayFace, (str.__str__(self), self.px_scale))
 
 
 DEFAULT_BRAND = BrandConfig()
@@ -278,9 +320,27 @@ def fingerprint(config: BrandConfig | None = None) -> str:
     return hashlib.sha256(json.dumps(body, sort_keys=True, ensure_ascii=True).encode("ascii")).hexdigest()
 
 
-def configure(config: BrandConfig | None) -> BrandConfig:
-    """Make `config` (None: the default) the active brand for the whole process; returns the one it replaced."""
+class BrandRefused(ValueError):
+    """A brand whose display face cannot set the fit corpus (src/brand_system.py validate_display, operator ruling 6):
+    refused when it is configured, with every line it cannot set, never run by run in production."""
+
+    def __init__(self, name: str, fails: list[str]):
+        self.fails = list(fails)
+        super().__init__(f"brand {name!r}: its display type does not set the fit corpus: " + "; ".join(fails))
+
+
+def configure(config: BrandConfig | None, validate: bool = True) -> BrandConfig:
+    """Make `config` (None: the default) the active brand for the whole process; returns the one it replaced. A brand
+    is validated first (ruling 6): BrandRefused when its display face cannot set the fit corpus on its surfaces at
+    their floors. `validate=False` is for an evidence harness or a test of the re-theme mechanism only (the board's
+    second palette, which the corpus refuses): every surface still refuses on its own floors (refusal.LayoutError),
+    so nothing is drawn under a floor either way; the harness records validate_display's list."""
     global _active
+    if validate and config is not None and config is not DEFAULT_BRAND:
+        from .brand_system import validate_display
+        fails = validate_display(config)
+        if fails:
+            raise BrandRefused(config.name, fails)
     previous, _active = _active, config or DEFAULT_BRAND
     if _active is not previous:
         for clear in _on_change:
@@ -289,13 +349,14 @@ def configure(config: BrandConfig | None) -> BrandConfig:
 
 
 @contextmanager
-def use(config: BrandConfig) -> Iterator[BrandConfig]:
-    """Draw with `config` inside the block (process-wide, so the graphics' frame threads see it too)."""
-    previous = configure(config)
+def use(config: BrandConfig, validate: bool = True) -> Iterator[BrandConfig]:
+    """Draw with `config` inside the block (process-wide, so the graphics' frame threads see it too); `validate` as
+    configure's."""
+    previous = configure(config, validate)
     try:
         yield config
     finally:
-        configure(previous)
+        configure(previous, validate=False)   # restoring the brand the block replaced
 
 
 FONT_ROLES = {"DISPLAY_FONT": "display", "MASTHEAD_FONT": "masthead", "TEXT_FONT": "text", "DATA_FONT": "data",

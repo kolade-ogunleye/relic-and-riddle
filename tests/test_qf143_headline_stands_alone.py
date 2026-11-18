@@ -24,13 +24,15 @@ def _photo() -> Image.Image:
 
 
 def _lines(plates, names) -> list[str]:
-    """Round 7: a headline line in two colour runs (the payoff gold) is several plates on one baseline: joined."""
+    """Round 7: a headline line in two colour runs (the payoff gold) is several plates on one baseline: joined.
+    Cycle 0 round 8 (operator ruling 7, the two-line tier): one field set on two rows is still one field (its
+    element's rows, consecutive, joined): a break is not a cut."""
     out: list = []
     for n, p in plates:
         if n not in names:
             continue
-        if out and out[-1][0] == n and abs(out[-1][1] - p.xy[1]) < 1:
-            out[-1] = (n, out[-1][1], out[-1][2] + " " + p.text)
+        if out and out[-1][0] == n:
+            out[-1] = (n, p.xy[1], out[-1][2] + " " + p.text)
         else:
             out.append((n, p.xy[1], p.text))
     return [t for _, _, t in out]
@@ -54,8 +56,13 @@ def _check(copy: dict, plates, meta: dict) -> None:
         if len(lines) == 1:
             assert words[0] not in {"OF", "THAN"}, f"a lone line opens on a joiner: {last!r}"
             assert not (words[0] in {"AND", "OR", "BUT", "NOR"} and words[1:2] in (["THE"], ["A"], ["AN"])),                 f"a lone line carries on a list: {last!r}"
-    # never cut (QF-23): each drawn line is a whole verified field, at most without its trailing mark
+    # never cut (QF-23): each drawn line is a whole verified field, at most without its trailing mark. Cycle 0
+    # round 8 (ruling 4, one form per run): the two headline fields may be drawn in the ruled form (line 1's closing
+    # function words open line 2), so the headline as a whole is the two fields' words, whole and in order
     fields = [" ".join(str(copy.get(k) or "").upper().split()) for k in ("eyebrow", "line1", "line2", "tagline")]
+    both = " ".join(f for f in fields[1:3] if f)
+    if len(lines) == 2 and " ".join(lines).replace("…", "...").replace("’", "'") == both:
+        drawn = [t for t in drawn if t not in lines]
     for t in drawn:
         t = t.replace("…", "...").replace("’", "'")
         assert any(t == f or (f.startswith(t) and f[len(t):].strip() and not f[len(t):].strip(LEAD + " "))
@@ -107,11 +114,20 @@ def test_a_line_left_out_as_a_fragment_is_on_the_review_card() -> None:
 
 
 def test_a_line_that_stands_alone_is_drawn_unchanged() -> None:
-    copy = {"line1": "BEHIND ONE WALL...", "line2": "A FORGOTTEN CITY"}
+    # cycle 0 round 8 (lander ruling: nothing is drawn under its floor): "BEHIND ONE WALL... / A FORGOTTEN CITY"
+    # holds no form at the 12 px feed floor (it drew off the ladder, under it), so it is a recorded refusal now
+    from src.refusal import LayoutError
+    with pytest.raises(LayoutError, match="feed floor"):
+        youtube_thumbnail.render(_photo(), {"line1": "BEHIND ONE WALL...", "line2": "A FORGOTTEN CITY"})
+    copy = {"line1": "ONE WALL...", "line2": "A LOST CITY"}
     _, plates = youtube_thumbnail.render(_photo(), copy)
-    assert _headline(plates) == ["BEHIND ONE WALL…", "A FORGOTTEN CITY"]
-    _, plates = youtube_thumbnail.render(_photo(), {"line1": "THE RICHAT STRUCTURE:", "line2": "SAHARA EYE"})
-    assert _headline(plates) == ["THE RICHAT STRUCTURE:", "SAHARA EYE"]   # the colon leads into a drawn line
+    assert _headline(plates) == ["ONE WALL…", "A LOST CITY"]
+    # round 8: the dev Richat pair holds no form at the feed floor either (THE RICHAT / STRUCTURE: leaves a noun alone,
+    # ruling 4), so it is a recorded refusal; the colon still leads into a drawn line where the pair holds its floor
+    with pytest.raises(LayoutError, match="feed floor"):
+        youtube_thumbnail.render(_photo(), {"line1": "THE RICHAT STRUCTURE:", "line2": "SAHARA EYE"})
+    _, plates = youtube_thumbnail.render(_photo(), {"line1": "THE RINGS:", "line2": "SAHARA EYE"})
+    assert _headline(plates) == ["THE RINGS:", "SAHARA EYE"]   # the colon leads into a drawn line
 
 
 # Round 2 (review 1, finding 1): whole lines a writer chose, labelled by hand (the oracle is this table, not the
@@ -127,14 +143,23 @@ def test_a_whole_authored_line_stands_alone_when_it_reads_whole(line, stands) ->
     copy = {"eyebrow": "STONE PUZZLE", "line1": line, "line2": "A MUCH LONGER SECOND LINE HERE",
             "tagline": "NO ONE KNOWS"}
     meta: dict = {}
-    _, plates = youtube_thumbnail.render(_photo(), copy, meta=meta)
+    from src.refusal import LayoutError
+    try:
+        _, plates = youtube_thumbnail.render(_photo(), copy, meta=meta)
+    except LayoutError as e:
+        # cycle 0 round 8 (lander ruling): a whole line that holds no form at the feed floor is a recorded refusal,
+        # never drawn under it (nor cut)
+        assert stands and "feed floor" in str(e)
+        return
     texts = {}
     for n in {n for n, _ in plates}:
         joined = _lines(plates, (n,))
         texts[n] = (joined[0] if joined else "").replace("’", "'")
     if stands:
         assert texts.get("title_1") == line, f"{line!r} is a whole line and must be drawn"
-        assert texts.get("kicker") == "STONE PUZZLE"   # the kicker over it is kept
+        # the kicker over it is kept where it holds its feed floor, else dropped and recorded (round 8: never drawn
+        # under its floor; "STONE PUZZLE" does not fit the column at the floor)
+        assert texts.get("kicker") == "STONE PUZZLE" or meta["headline_fill_dropped"]["text"] == "STONE PUZZLE"
         assert "headline_fragment" not in meta
     else:
         assert line not in texts.values(), f"{line!r} dangles alone and must not be drawn"

@@ -2403,6 +2403,7 @@ _COPY_PREFIXES = (
     (HEADLINE_PROBLEM + "title", ("title",)), (HEADLINE_PROBLEM + "thumbnail", ("thumbnail",)),
     (HEADLINE_PROBLEM + "caption", ("caption",)),
     (trace_check.COVER_PROBLEM, ("thumbnail",)),   # a cover line that drops a limit or a size's measure
+    ("Cover fit: ", ("thumbnail",)),   # round 8: a headline the YouTube thumbnail or Reel cover cannot set (cover_fit)
 )
 _BAIT_FIELD = re.compile(r"^Engagement bait in the (title|caption|carousel_caption|first_comment|share_line|poll"
                          r"|story slide \d+|carousel slide \d+) \(")
@@ -2562,7 +2563,24 @@ def draft_problems(pkg: ScriptPackage) -> List[str]:
     attempt too (production, Hal Saflieni 2026-10-27)."""
     return (validate_structure(pkg) + spoken_length_problems(pkg) + hook_problems(pkg.narration_script)
             + payoff_problems(pkg.narration_script, pkg.payoff_sentence) + hedge_problems(pkg.narration_script)
-            + story_problems(pkg) + headline_problems(pkg) + cover_problems(pkg))
+            + story_problems(pkg) + headline_problems(pkg) + cover_problems(pkg) + cover_fit_problems(pkg))
+
+
+def cover_fit_problems(pkg: ScriptPackage) -> list[str]:
+    """Cycle 0 round 8 (lander ruling: no surface draws under its floor; close it upstream): the cover copy as the
+    Reel cover will set it, checked with the renderers' own rule (src/cover_fit.py), so an
+    over-long headline goes to the copy edit (a thumbnail-only problem, _COPY_PREFIXES) instead of being refused at
+    render after the documentary."""
+    if getattr(pkg, "thumbnail", None) is None:
+        return []
+    from . import cover_fit
+    from .visual_engine import _in_spoken_units, documentary_cover_copy
+    payload = {"thumbnail": pkg.thumbnail.model_dump(), "title": getattr(pkg, "title", "") or "",
+               "narration_script": getattr(pkg, "narration_script", "") or ""}
+    copy = _in_spoken_units(documentary_cover_copy(payload), payload)
+    # a Reel's copy sets the Reel cover (and grid); the YouTube thumbnail is the documentary's, whose cover copy is its
+    # title (main.documentary_cover), checked in the deep dive's own draft retry (main: cover_fit before render)
+    return cover_fit.fit_problems(copy, youtube=False)
 
 
 def cover_problems(pkg: ScriptPackage, sheet: dict[str, Any] | None = None) -> list[str]:
@@ -2584,8 +2602,12 @@ def blocking_problems(problems: List[str]) -> List[str]:
     missing, misplaced or hook-repeating payoff (QF-15, operator ruling 2026-11-10), after the same one edit; a payoff
     that names none of the opening's nouns ships flagged (payoff_note). QF-16 (ruling 2026-11-11): a disputed fact in
     the opening, payoff or loop blocks after that edit; another qualifier there ships flagged (hedge_note)."""
+    # Cycle 0 round 8 (lander ruling): a cover headline that cannot set at its floors (COVER_FIT_PROBLEM) gets the copy
+    # edit (_narrow_edits) and never sends the whole draft back; one the edit cannot fix ships and is refused at render,
+    # recorded on the review card (main.cover_job_results), never a silent stop
     return [p for p in problems
-            if not p.startswith((STORY_PROBLEM, HOOK_SIGNAL_PROBLEM, PAYOFF_NOUN_PROBLEM, HEDGE_WORDING_PROBLEM))]
+            if not p.startswith((STORY_PROBLEM, HOOK_SIGNAL_PROBLEM, PAYOFF_NOUN_PROBLEM, HEDGE_WORDING_PROBLEM,
+                                 "Cover fit: "))]
 
 
 def hook_signal_note(narration: str) -> str:
@@ -3176,7 +3198,8 @@ class ScriptEngine:
                 pkg, problems = edited, draft_problems(edited)
             elif any(p.startswith((HOOK_PROBLEM, PAYOFF_PROBLEM, HEDGE_PROBLEM)) for p in blocking()):
                 return pkg, problems   # a fault the edit could not fix sends the draft back: no further edit is spent
-        if not blocking() or not all(narrow(p) for p in blocking()):
+        fit = any(p.startswith("Cover fit: ") for p in problems)   # round 8: edited even when nothing else blocks
+        if not (blocking() or fit) or not all(narrow(p) for p in blocking()):
             return pkg, problems
         if any(STORY_OVERFLOW.match(p) for p in blocking()):
             # A Story body over three lines is shortened in place (one short call), as on its own.
@@ -3184,6 +3207,7 @@ class ScriptEngine:
             if shortened is not None:
                 pkg, problems = shortened, draft_problems(shortened)
         copy = [p for p in blocking() if copy_problem_fields(p, pkg) is not None]
+        copy += [p for p in problems if p.startswith("Cover fit: ") and p not in copy]   # round 8: the cover's fit
         for p in copy:
             if p.startswith(HEADLINE_PROBLEM):   # a figure the sheet does not support: a finding, then the copy edit
                 improve.note("script.headline_figure", p[:300], "structure")

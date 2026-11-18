@@ -364,7 +364,8 @@ def test_the_run_names_the_surface_of_then_now_callouts_and_thumbnails():
     src = (ROOT / "main.py").read_text(encoding="utf-8")
     assert src.count('on_surface, "graphic then/now", then_now.make') == 2
     assert len(re.findall(r'on_surface, "photo callouts",\s*callouts\.make', src)) == 2
-    assert 'on_surface("YouTube thumbnail", self.visual_engine.generate_youtube_thumbnail' in src
+    # cycle 0 round 8: the deep dive's cover job draws each surface on its own (main.cover_job), so the call wraps
+    assert re.search(r'on_surface\(\s*"YouTube thumbnail", self\.visual_engine\.generate_youtube_thumbnail', src)
     assert src.count('on_surface("cover", self.visual_engine.generate_thumbnails') == 2
 
 

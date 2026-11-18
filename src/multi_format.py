@@ -219,6 +219,9 @@ def story_title_px(slides: list[dict[str, Any]], tight: bool = False, poll: dict
     takes the least over its frames (a reveal frame's figure sets apart and does not vote): never below 106."""
     design = 124 if tight else round(brand_system.type_px("display_xl", "tall"))
     floor = GATES["heading.story_one_line_floor"]
+    # cycle 0 round 8 (panel TY-A-6): the tall canvas's display ladder steps only (150, 138, 124, 120, 112 down to
+    # the floor), never a size between them (the Richat Story drew 128); sizes in reference units (ruling 6)
+    steps = [round(s) for s in brand_system.display_steps("tall", floor) if s <= design]
     d = ImageDraw.Draw(Image.new("RGB", (8, 8)))
     sizes = []
     for i, slide in enumerate(slides):
@@ -228,7 +231,7 @@ def story_title_px(slides: list[dict[str, Any]], tight: bool = False, poll: dict
         fields = [t for t in (l1, l2) if t.strip()]
         if not fields:
             continue
-        one = next((sz for sz in range(design, floor - 1, -2)
+        one = next((sz for sz in steps
                     if all(d.textlength(t, font=get_font(brand.DISPLAY_FONT, sz)) <= STORY_TITLE_W for t in fields)),
                    None)
         sizes.append(one or design)
@@ -908,7 +911,9 @@ class MultiFormatGenerator:
         # a title that wraps never under heading.story_floor (120).
         t_min, wrap_floor = GATES["heading.story_one_line_floor"], GATES["heading.story_floor"]
         t_size = max(t_min, min(story_px, 124)) if tight else max(t_min, story_px)
-        trials = [(t_size, False)] + [(sz, True) for sz in range(max(t_size, wrap_floor), wrap_floor - 1, -2)]
+        # round 8 (TY-A-6): a wrapped title takes the tall display ladder's steps too, never a 2 px fit between them
+        trials = [(t_size, False)] + [(round(sz), True) for sz in brand_system.display_steps("tall", wrap_floor)
+                                      if sz <= max(t_size, wrap_floor)]
         f_body = get_font(brand.TEXT_FONT, STORY_BODY_PX, weight=STORY_BODY_WEIGHT)
         n_body = len(wrap_text(d, " ".join(body.split()), f_body, max_w)) if body.strip() else 0
 

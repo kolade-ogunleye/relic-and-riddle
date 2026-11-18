@@ -30,7 +30,7 @@ from typing import Any
 from PIL import Image, ImageDraw, ImageOps
 
 from . import brand
-from .typography import cap_height, fit_font, get_font, plan_text, tracked_width
+from .typography import cap_height, get_font, plan_text, tracked_width
 
 W, H = 1920, 1080
 LEFT = 96
@@ -279,16 +279,33 @@ def _low_contrast(meta: dict) -> list:
             and row.get("contrast_246") is not None and row["contrast_246"] < 4.5]
 
 
-def _lockup(measure, l1: str, l2: str, width: float):
-    """The headline lockup (round 7, F1 / F21): ([(element name, [(dx, text, colour)]) per drawn line], line-1
-    font, line-2 font, record). One size for the lockup's lines (lockup.line_ratio: line 2 over line 1); the wide
-    display_xl ladder; each field whole on one line (QF-143); line 2 gold but its opening function words; one field
-    alone is a lockup whose payoff run (the engine's seam) is gold. Below the ladder (a recorded last resort) the old
-    4 px steps to 96."""
+def feed_floor_px(floor: float) -> int:
+    """The least display size (reference units: brand.DISPLAY_FONT) whose drawn cap holds `floor` px at YouTube's
+    168 px feed width (HERO_FLOOR or LINE_FLOOR): a gate on drawn ink as a size the ladder is held at (cycle 0
+    round 8, ruling 6: a face of smaller cap takes a larger reference size; Anton: 160 for the hero, 94 a line)."""
+    from .brand_system import px_for_cap
+    return px_for_cap(brand.DISPLAY_FONT, floor * W / FEED_WIDTHS[0])
+
+
+def _lockup(measure, l1: str, l2: str, width: float, kickerless: bool = False, room: float | None = None):
+    """The headline lockup (round 7, F1 / F21; round 8, rulings 4, 5, 7): ([(element name, [(dx, text, colour)]) per
+    drawn line], line-1 font, line-2 font, record). One size for the lockup's lines (lockup.line_ratio, a minimum:
+    line 2 never smaller than line 1); the wide display_xl ladder (190, its fallback 160), never under the hero
+    line's feed floor (HERO_FLOOR at 168 px wide, feed_floor_px); line 2 gold but its opening function words; one
+    field alone is a lockup whose payoff run (the engine's seam) is gold.
+
+    One form per run (ruling 4, panel BC-8): the two fields are set in the RULED form every other surface sets
+    (heading.lockup_fields: line 1's closing function words open line 2, CARVED / FROM SOLID SALT), each field one
+    line, else (ruling 7) two lines (the two-line tier, valid forms; the phrase exception keeps a payoff word alone:
+    THE SECRET / WEAPON), at most three rows in all. Where the ruled form cannot hold the feed floor on the ladder,
+    the authored whole lines (QF-23 / QF-143) are set instead and the record says why (form_diverges: legibility at
+    feed size outranks one form across surfaces). The kickerless variant (ruling 5): with no kicker drawn above it,
+    the headline takes its larger size on two lines before the fallback size on one ("one size up": the kicker's
+    room). Below the ladder only a recorded last resort (off_ladder, 4 px steps, valid forms) down to 96; where
+    none sets, LayoutError (a recorded refusal, never type drawn past its column)."""
     from .brand_system import TYPE, TYPE_FALLBACK, tok
-    from .heading import GOLD_ROLES, field_runs, set_field, set_heading
-    # QF-23 / QF-143 (operator decisions): each headline line is a whole verified line drawn as written, one line a
-    # field: the engine gives the lockup its ladder and its accent here, never a re-break or a moved word
+    from .heading import GOLD_ROLES, field_runs, lockup_fields, set_field, set_heading
+    from .typography import LayoutError
     ratio = tok("lockup.line_ratio")
 
     def width_at(t, sz):
@@ -301,58 +318,136 @@ def _lockup(measure, l1: str, l2: str, width: float):
             dx += measure.textlength(t + " ", font=font)
         return out
 
-    def attempt(s1, tier):
-        s2 = round(s1 * ratio)
-        rows = []
-        for key, text, sz, gold in (("title_1", l1, s1, False), ("title_2", l2, s2, True)):
+    def attempt(f1, f2, s1, tier, n):
+        s2 = max(s1, round(s1 * ratio))
+        rows, forms_ = [], []
+        for key, text, sz, gold in (("title_1", f1, s1, False), ("title_2", f2, s2, True)):
             if not text:
                 continue
-            if not (l1 and l2):
-                form = set_heading(text, width_at, width, (sz,), max_lines=1, lockup=True)
+            if not (f1 and f2):
+                form = set_heading(text, width_at, width, (sz,), max_lines=n, lockup=True)
                 line_runs = form.runs() if form else None
             else:
-                form = set_field(text, width_at, width, sz, max_lines=1)
+                form = set_field(text, width_at, width, sz, max_lines=n)
                 line_runs = field_runs(text, form.cuts, gold) if form else None
             if line_runs is None:
                 return None
+            forms_.append(form)
             font = get_font(brand.DISPLAY_FONT, sz)
             rows += [(key, runs_of(lr, font)) for lr in line_runs]
+        if len(rows) > 3:
+            return None
+        if room is not None:
+            ch = cap_height(get_font(brand.DISPLAY_FONT, s2))
+            if (len(rows) - 1) * int(ch * 1.18) + ch > room:
+                return None
+        phrase = [f.record["phrase_exception"] for f in forms_ if f.record.get("phrase_exception")]
         return rows, get_font(brand.DISPLAY_FONT, s1), get_font(brand.DISPLAY_FONT, s2), {
-            "tier": tier, "sizes": [s1, s2], "ratio": ratio, "line1": l1, "line2": l2}
-    for tier, s1 in enumerate((round(TYPE["wide"]["display_xl"]), round(TYPE_FALLBACK["wide"]["display_xl"]))):
-        got = attempt(s1, tier)
-        if got:
-            return got
-    size = round(TYPE_FALLBACK["wide"]["display_xl"]) - 4
-    while size > 96:
-        got = attempt(size, None)
-        if got:
-            got[3]["off_ladder"] = True
-            return got
-        size -= 4
-    font = get_font(brand.DISPLAY_FONT, 96)
-    rows = [(k, [(0, t, c)]) for k, t, c in (("title_1", l1, brand.BONE), ("title_2", l2, brand.GOLD)) if t]
-    return rows, font, font, {"tier": None, "off_ladder": True, "sizes": [96, 96], "ratio": ratio}
+            "tier": tier, "sizes": [s1, s2], "ratio": ratio, "line1": f1, "line2": f2, "rows": len(rows),
+            **({"phrase_exception": phrase} if phrase else {})}
+
+    floor = feed_floor_px(HERO_FLOOR)
+    ladder = (round(TYPE["wide"]["display_xl"]), round(TYPE_FALLBACK["wide"]["display_xl"]))
+    sizes = sorted({max(s, floor) for s in ladder}, reverse=True)
+    order = [(s, t, 1) for t, s in enumerate(sizes)] + [(s, t, 2) for t, s in enumerate(sizes)]
+    if kickerless and tok("lockup.kickerless_up") and len(sizes) > 1:
+        order = [(sizes[0], 0, 1), (sizes[0], 0, 2)] + [(s, t + 1, n) for t, s in enumerate(sizes[1:]) for n in (1, 2)]
+    forms = []
+    if l1 and l2:
+        r1, r2, _ = lockup_fields(l1, l2)
+        forms.append((r1, r2, None))
+        if (r1, r2) != (l1, l2):
+            forms.append((l1, l2, "the ruled form does not hold the feed floor on the ladder"))
+    else:
+        forms.append((l1, l2, None))
+
+    def done(got, why):
+        if kickerless:
+            got[3]["kickerless"] = True
+        if why:
+            got[3]["form_diverges"] = {"ruled": list(forms[0][:2]), "drawn": [got[3]["line1"], got[3]["line2"]],
+                                       "reason": why}
+        return got
+    for f1, f2, why in forms:
+        for s1, tier, n in order:
+            got = attempt(f1, f2, s1, tier, n)
+            if got:
+                return done(got, why)
+    # Lander ruling (cycle 0 round 8): no surface draws under its floor. The ladder above is held at the hero's feed
+    # floor; a headline no form sets there is refused (recorded), never drawn smaller (round 7 stepped off the ladder
+    # to 96 px: the second palette drew 5.8-9.8 px of cap at the 168 px feed against the 12 px floor)
+    raise LayoutError(f"the YouTube headline {' / '.join(t for t in (l1, l2) if t)!r} sets in no form of "
+                      f"{round(width)} px at its {floor} px feed floor or more")
 
 
-KICKER_MIN_PX = 72   # F20 on YouTube: the kicker's least size (the retired Anton fill kicker's floor)
+def _title_form(measure, title: str, width: float, room: float):
+    """(lines, font, record) for the figure branch's title under the figure (cycle 0 round 8, ruling 7; panel MG-2:
+    it was a continuous fit from 150 to 90 that refused where two lines fit). The wide display ladder's steps from
+    152 down (brand_system.display_steps), never under its feed floor (LINE_FLOOR at 168 px wide), one line, else
+    the two-line tier (valid forms), in `room` px of height; else LayoutError (recorded, never drawn unfit)."""
+    from .brand_system import display_steps
+    from .heading import set_heading
+    from .typography import LayoutError
+    floor = feed_floor_px(LINE_FLOOR)
+    steps = [s for s in display_steps("wide") if s <= 152]
+    sizes = sorted({max(round(s), floor) for s in steps}, reverse=True)
+
+    def width_at(t, sz):
+        return measure.textlength(t, font=get_font(brand.DISPLAY_FONT, sz))
+    for n in (1, 2):
+        for tier, sz in enumerate(sizes):
+            form = set_heading(title, width_at, width, (sz,), max_lines=n)
+            if form is None:
+                continue
+            f = get_font(brand.DISPLAY_FONT, sz)
+            ch = cap_height(f)
+            if (len(form.lines) - 1) * int(ch * 1.18) + ch > room:
+                continue
+            rec = {"size": sz, "tier": tier, "lines": list(form.lines)}
+            if form.record.get("phrase_exception"):
+                rec["phrase_exception"] = form.record["phrase_exception"]
+            return list(form.lines), f, rec
+    raise LayoutError(f"the YouTube title {title!r} sets in no form of {round(width)} px at {sizes[-1]} px or more")
 
 
 def _kicker_font(text: str, width: float):
     """F20 on YouTube: the system kicker's face and weight at the least size whose cap holds LINE_FLOOR at 168 px
-    wide; where its rule, gap and tracked words do not fit `width` there, the largest size down to KICKER_MIN_PX
-    that does (the feed check then records it under the floor); None below that."""
+    wide, when its rule, gap and tracked words fit `width` there; else None (not drawn, recorded by the caller).
+    Round 8 (lander ruling: no surface draws under its floor): it no longer steps under the floor to fit."""
     from .brand_system import tok
     size = QUAL_PX
     while cap_height(get_font(brand.TEXT_FONT, size, weight=tok("kicker.weight"))) * FEED_WIDTHS[0] / W < LINE_FLOOR:
         size += 2
-    while size >= KICKER_MIN_PX:
-        font = get_font(brand.TEXT_FONT, size, weight=tok("kicker.weight"))
-        ch = cap_height(font)
-        if (tok("kicker.rule") + tok("kicker.rule_gap")) * ch + tracked_width(text, font, tok("kicker.track") * size)                 <= width:
-            return font
-        size -= 2
+    font = get_font(brand.TEXT_FONT, size, weight=tok("kicker.weight"))
+    ch = cap_height(font)
+    if (tok("kicker.rule") + tok("kicker.rule_gap")) * ch + tracked_width(text, font, tok("kicker.track") * size) <= width:
+        return font
     return None
+
+
+# The figure's size steps (reference units; round 8: they were a continuous fit from NUM_MAX down to 160 in a column
+# less a fixed 300 px reservation for the unit), each held at the hero's feed floor; the unit at UNIT_RATIO of the
+# figure, never under its line floor (LINE_FLOOR at 168 px wide: "SQ MI" drew 6.0 px against 7 in the second palette)
+FIGURE_STEPS = (300, 260, 220, 190, 160)
+FIGURE_UNIT_GAP = 20
+
+
+def _figure_fonts(measure, number: str, unit: str, width: float, dim_w: float = 0.0):
+    """(figure font, unit font, record): the largest FIGURE_STEPS size, held at the hero's feed floor, at which the
+    numeral, the gap and its unit (or the dimension words under the unit, `dim_w`, whichever is wider) fit `width`,
+    the unit at UNIT_RATIO of it and at least its own feed floor; else LayoutError (recorded, never under a floor)."""
+    from .typography import LayoutError
+    num_floor, unit_floor = feed_floor_px(HERO_FLOOR), feed_floor_px(LINE_FLOOR)
+    sizes = sorted({max(s, num_floor) for s in FIGURE_STEPS}, reverse=True)
+    for tier, s in enumerate(sizes):
+        f_num = get_font(brand.DISPLAY_FONT, s)
+        f_unit = get_font(brand.DISPLAY_FONT, max(80, round(s * UNIT_RATIO), unit_floor))
+        need = measure.textlength(number, font=f_num)
+        if unit:
+            need += FIGURE_UNIT_GAP + max(measure.textlength(unit, font=f_unit), dim_w)
+        if need <= width:
+            return f_num, f_unit, {"size": s, "unit_size": f_unit.size, "tier": tier}
+    raise LayoutError(f"the figure {number} {unit} does not fit {round(width)} px at its feed floors")
 
 
 def _kicker_gap(font) -> int:
@@ -477,6 +572,7 @@ def _render(source, copy, focus, meta, figure, youtube_title, illustration, targ
         plates.append(("brand", name))
     # The band under the masthead the hero stack is centred in (round 4: it sat at a fixed y 560).
     centre = round((top + cap_height(f_brand) + BAND_PAD[0] + H - BAND_PAD[1]) / 2)
+    band = (H - BAND_PAD[1]) - (top + cap_height(f_brand) + BAND_PAD[0])   # the stack's height (round 8)
 
     # The type never reaches the reviewed feature: its column ends 48 px short of it.
     right = TEXT_RIGHT
@@ -574,20 +670,25 @@ def _render(source, copy, focus, meta, figure, youtube_title, illustration, targ
             else:
                 meta["title_overlap"] = True
         title = typeset(title)
-        # The numeral fills its column up to NUM_MAX.
-        f_num = fit_font(measure, number, brand.DISPLAY_FONT, NUM_MAX, width - (300 if unit else 0), 160)
-        f_unit = get_font(brand.DISPLAY_FONT, max(80, int(f_num.size * UNIT_RATIO)))
         f_dim = get_font(brand.TEXT_FONT, DIM_PX, weight=700)
         dim_lines = (dimension.split() if dimension and measure.textlength(dimension, font=f_dim) > 300 else (
             [dimension] if dimension else []))[:2] if unit else []
+        # The numeral on its size steps, held at its feed floor, its unit at its own (round 8, lander ruling)
+        f_num, f_unit, meta["figure_form"] = _figure_fonts(
+            measure, number, unit, width, max((measure.textlength(t, font=f_dim) for t in dim_lines), default=0.0))
         q_lines, f_q, q_track = q_fit if (q_fit and qualifier) else ([], None, QUAL_TRACK)
         num_w = measure.textlength(number, font=f_num)
-        f_t = fit_font(measure, title, brand.DISPLAY_FONT, 150, width, 90) if title else None
+        q_h = (len(q_lines) * cap_height(f_q) + (len(q_lines) - 1) * QUAL_LEADING + 28) if f_q else 0
+        # Round 8 (ruling 7, panel MG-2): the title under the figure on the wide display ladder, one line, else the
+        # two-line tier, in the band's height left under the figure (it was a continuous fit 150 -> 90 that refused
+        # where two lines fit, and its TextFitError aborted the run's whole cover job)
+        t_lines, f_t, meta["title_form"] = _title_form(measure, title, width, band - q_h - cap_height(f_num) - (
+            DIM_TITLE_GAP if dim_lines else 0)) if title else ([], None, None)
+        t_pitch = int(cap_height(f_t) * 1.18) if f_t else 0
         gap_t = round(TITLE_GAP_EM * f_t.size) if f_t else 0
         if dim_lines:   # the dimension word ends on the figure's baseline: the title keeps clear of it (r5: ~12 px)
             gap_t = max(gap_t, DIM_TITLE_GAP)
-        q_h = (len(q_lines) * cap_height(f_q) + (len(q_lines) - 1) * QUAL_LEADING + 28) if f_q else 0
-        stack = q_h + cap_height(f_num) + (gap_t + cap_height(f_t) if f_t else 0)
+        stack = q_h + cap_height(f_num) + (gap_t + cap_height(f_t) + (len(t_lines) - 1) * t_pitch if f_t else 0)
         base = round(centre - stack / 2 + q_h + cap_height(f_num))
         for k, line in enumerate(q_lines if f_q else []):
             yq = base - cap_height(f_num) - 28 - (len(q_lines) - 1 - k) * (cap_height(f_q) + QUAL_LEADING)
@@ -599,7 +700,7 @@ def _render(source, copy, focus, meta, figure, youtube_title, illustration, targ
         im = p_num.draw(im)
         plates.append(("figure", p_num))
         if unit:
-            nx = LEFT + num_w + 20
+            nx = LEFT + num_w + FIGURE_UNIT_GAP
             pitch = cap_height(f_dim) + 12
             unit_base = base - (len(dim_lines) * pitch + 6 if dim_lines else 0)
             p_unit = plan_text(im, (nx, unit_base), unit, f_unit, brand.GOLD, "ls", **feed("figure_unit", f_unit))
@@ -610,8 +711,8 @@ def _render(source, copy, focus, meta, figure, youtube_title, illustration, targ
                 p_dim = plan_text(im, (nx, yb), t, f_dim, brand.BONE, "ls", 2, target=5.1)
                 im = p_dim.draw(im)
                 plates.append(("figure_dim", p_dim))
-        if title:
-            p_t = plan_text(im, (LEFT, base + gap_t + cap_height(f_t)), title, f_t, brand.BONE, "ls",
+        for k, line in enumerate(t_lines):
+            p_t = plan_text(im, (LEFT, base + gap_t + cap_height(f_t) + k * t_pitch), line, f_t, brand.BONE, "ls",
                             **feed("title", f_t))
             im = p_t.draw(im)
             plates.append(("title", p_t))
@@ -663,13 +764,6 @@ def _render(source, copy, focus, meta, figure, youtube_title, illustration, targ
                 meta["headline_fill_from"] = fill[0]
                 kicker = typeset(fill[1])
         h_lines, f_h, h_track = h_fit if (hedge and h_fit) else ([], None, QUAL_TRACK)
-        # Round 7 (F1, F21): the headline is the YouTube lockup, set by the heading engine: the authored seam repaired
-        # (line 1's closing function words open line 2, in bone), line 2 at lockup.line_ratio x line 1's size, the
-        # pair on the wide display_xl ladder (190, then its one fallback tier 150), each line whole, else the engine's
-        # break; the payoff run gold on one line or two. Below the ladder only as a recorded last resort.
-        lines, f, _, lock = _lockup(measure, typeset(l1), typeset(l2), width)
-        meta["lockup"] = lock
-        pitch = int(cap_height(f) * 1.18)
         h_h = (len(h_lines) * cap_height(f_h) + (len(h_lines) - 1) * QUAL_LEADING + HEDGE_GAP) if f_h else 0
         f_k = None
         if kicker:
@@ -683,6 +777,15 @@ def _render(source, copy, focus, meta, figure, youtube_title, illustration, targ
                 kicker = ""
             else:
                 h_h += cap_height(f_k) + _kicker_gap(f_k)
+        # Round 7 (F1, F21) and round 8 (rulings 4, 5, 7): the headline is the YouTube lockup, set by the heading
+        # engine in the run's one ruled form (the authored seam repaired, as on the Reel cover), line 2 at least
+        # line 1's size, the pair on the wide display_xl ladder held at its feed floor, one line a field, else the
+        # two-line tier; kickerless (no kicker, no hedge above it), the larger size on two lines first. Below the
+        # ladder only as a recorded last resort; a headline no form sets is a recorded refusal (LayoutError).
+        lines, f, f2, lock = _lockup(measure, typeset(l1), typeset(l2), width, kickerless=not (f_k or f_h),
+                                    room=band - h_h)
+        meta["lockup"] = lock
+        pitch = int(cap_height(f2) * 1.18)
         y = round(centre - (pitch * (len(lines) - 1) + cap_height(f) + h_h) / 2 + h_h + cap_height(f))
         if f_k:
             im, p_k, meta["kicker"] = _draw_kicker(im, LEFT, y - cap_height(f) - _kicker_gap(f_k), kicker, f_k,
@@ -700,7 +803,8 @@ def _render(source, copy, focus, meta, figure, youtube_title, illustration, targ
                 plates.append(("qualifier", p_h))
         for k, (name, runs) in enumerate(lines):
             for dx, t, colour in runs:
-                p = plan_text(im, (LEFT + dx, y + k * pitch), t, f, colour, "ls", **feed(name, f))
+                fr = f2 if name == "title_2" else f   # line 2 at its own size (lockup.line_ratio, a minimum)
+                p = plan_text(im, (LEFT + dx, y + k * pitch), t, fr, colour, "ls", **feed(name, fr))
                 im = p.draw(im)
                 plates.append((name, p))
     if illustration:

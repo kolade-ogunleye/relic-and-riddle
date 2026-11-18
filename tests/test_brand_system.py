@@ -376,6 +376,23 @@ def _lockup_ratio():
     return got["line2"][0].size
 
 
+def _display_raster():
+    """Cycle 0 round 8 (ruling 6): the px the display face is rasterised at for the reference size 150."""
+    from src.font_engine import raster_px
+    from src.typography import get_font
+    return raster_px(get_font(brand.DISPLAY_FONT, 150))
+
+
+def _kickerless_headline():
+    """Ruling 5: a kickerless one-field headline's size and rows (the larger size on two lines first)."""
+    from PIL import ImageDraw
+
+    from src import youtube_thumbnail
+    _, _, _, rec = youtube_thumbnail._lockup(ImageDraw.Draw(Image.new("RGB", (8, 8))), "", "STONE GIANTS",
+                                             904, kickerless=True)
+    return rec["sizes"], rec["rows"]
+
+
 def _card_centre():
     from src import design_cards
     return design_cards._chapter_tall_block(120, ["A B"])[2]
@@ -418,6 +435,9 @@ TOKEN_PROBES = {   # token -> (an override value, a probe of the renderer that r
     "place.px": (40, lambda: _graphics().place_steps(1080, 1920)),
     "place.halo_px": (12, _place_plate),
     "place.halo_max": (0.08, _place_plate),
+    # cycle 0 round 8 (lane TYPE): the display face's cap share (ruling 6) and the kickerless headline (ruling 5)
+    "type.display_cap": (0.8, _display_raster),
+    "lockup.kickerless_up": (0, _kickerless_headline),
 }
 
 

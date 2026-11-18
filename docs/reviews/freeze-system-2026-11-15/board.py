@@ -514,7 +514,7 @@ def main() -> None:
     if a.brand == "second":   # rows 1, 2, 12, 13 in QF-35a's test brand too
         sys.path.insert(0, str(tree / "docs/reviews/quality-fixes-2026-11/QF-35a"))
         import render_surfaces
-        brand.configure(render_surfaces.second_brand(brand))
+        brand.configure(render_surfaces.second_brand(brand), validate=False)   # round 8: evidence (the corpus refuses it)
     sys.path.insert(0, str(Path(__file__).resolve().parent))
     import board_extras as bx
     work = Path(tempfile.mkdtemp(prefix="board-"))

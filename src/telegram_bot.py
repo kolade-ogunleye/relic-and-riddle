@@ -538,6 +538,8 @@ def layout_hold_lines(holds: Any) -> list[str]:
             name = LAYOUT_HOLD_NAMES.get(deck) or ("graphic: " + deck.split("/", 1)[1] if deck.startswith("graphics/")
                                                    else deck)
             out.append(f"{name}: {h.get('error') or 'held'}")
+        elif isinstance(h, dict) and h.get("surface"):   # cycle 0 round 8: a cover surface refused (main.cover_job)
+            out.append(f"{h['surface']}: {h.get('reason') or 'held'}")
     return out
 
 

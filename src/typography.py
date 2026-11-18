@@ -25,6 +25,7 @@ from .font_engine import (
     resolve_features,
     shape,
 )
+from .refusal import LayoutError
 
 FONT_FILES = {"Anton": "Anton-Regular.ttf", "Montserrat": "Montserrat-Variable.ttf", "Cinzel": "Cinzel-Variable.ttf",
               "IBM Plex Mono": "IBMPlexMono-SemiBold.ttf"}
@@ -72,26 +73,34 @@ def fallback_files(name: str) -> list[str]:
     return noto + sorted(others, key=lambda f: not any(a[0] == "wght" for a in inspect_font(str(FONTS_DIR / f)).axes))
 
 
-@lru_cache(maxsize=96)
+@lru_cache(maxsize=96, typed=True)
 def get_font(name: str, size: int, fonts_dir: Path = FONTS_DIR, weight: Optional[int] = None) -> ImageFont.FreeTypeFont:
     """A bundled font at `size`; `weight` picks an instance of a variable font (the type hierarchy uses
     Montserrat 500/600/700 and Cinzel 700) or a static family's file (IBM Plex Mono 500/600), else the pinned
-    default."""
+    default. `name` may be the display role's brand.DisplayFace (cycle 0 round 8, ruling 6): `size` is then in the
+    system's reference units and the face is rasterised at size x its px_scale (font._rr_px), `.size` staying the
+    size asked for, as a QF-94 fallback face does (the cache is typed: a DisplayFace never shares a plain family's
+    entry)."""
     from .font_assets import DERIVED_FAMILIES, derived_font
     if isinstance(size, float) and size.is_integer():
         # round 7: a ladder size computed in float (150.0) is the integer size; a shared font cache would otherwise hand
         # an integer caller a font whose .size is a float (Image.new then refuses it)
         size = int(size)
-    path = derived_font(name, fonts_dir) if name in DERIVED_FAMILIES else fonts_dir / font_file(name, weight)
+    scale = getattr(name, "px_scale", None) if type(name) is not str else None
+    family = str.__str__(name) if scale is not None else name
+    path = derived_font(family, fonts_dir) if family in DERIVED_FAMILIES else fonts_dir / font_file(family, weight)
     if not path.exists():
         raise FileNotFoundError(f"Required font missing: {path}")
-    font = FeaturedFont(str(path), size)   # default OpenType features on every measure and mask (font_engine)
+    raster = max(1, round(size * scale)) if scale is not None else size
+    font = FeaturedFont(str(path), raster)   # default OpenType features on every measure and mask (font_engine)
+    if scale is not None:
+        font.size, font._rr_px = size, raster
     font._rr_family = name
-    font._rr_fallbacks = tuple(str(fonts_dir / f) for f in fallback_files(name) if (fonts_dir / f).is_file())
-    if name in VARIABLE_WEIGHTS:
+    font._rr_fallbacks = tuple(str(fonts_dir / f) for f in fallback_files(family) if (fonts_dir / f).is_file())
+    if family in VARIABLE_WEIGHTS:
         # Variable fonts default to their lightest instance; pin a legible weight.
         axes = inspect_font(str(path)).axes
-        chosen = {"wght": weight or VARIABLE_WEIGHTS[name]}
+        chosen = {"wght": weight or VARIABLE_WEIGHTS[family]}
         values = []
         for tag, minimum, default, maximum in axes:
             value = chosen.get(tag, default)
@@ -249,12 +258,7 @@ def fit_lines(draw: ImageDraw.ImageDraw, text: str, font: ImageFont.FreeTypeFont
     raise TextFitError(text, wrap_text(draw, text, f, max_width), f, max_width, max_lines)
 
 
-class LayoutError(ValueError):
-    """A card, slide, cover or graphic that cannot be drawn as designed without cutting checked copy (or, in the
-    parked freeze work, without dropping a required credit): the surface is refused and held, never delivered
-    shortened (QF-23; freeze panel round 2, F1 and F8). The one refusal type: the stills' hold
-    (main.hold_layout_error), the graphics' (graphics.make_all) and the review card's "Held" list all catch this
-    class, and every more particular refusal subclasses it (TextFitError; the park's BodyFitError)."""
+# LayoutError: the one refusal type (src/refusal.py, cycle 0 round 8), imported here where every renderer reads it
 
 
 class TextFitError(LayoutError):

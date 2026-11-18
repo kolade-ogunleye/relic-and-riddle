@@ -313,13 +313,15 @@ def _thumbnail(copy, **kw):
     from src import youtube_thumbnail
     meta = {}
     youtube_thumbnail.render(Image.new("RGB", (1920, 1080), (90, 80, 70)), copy, meta=meta, **kw)
-    # round 7 (F5): a line's colour runs (the payoff gold) are separate plates on one baseline: joined into the line
+    # round 7 (F5): a line's colour runs (the payoff gold) are separate plates on one baseline: joined into the line;
+    # cycle 0 round 8 (operator ruling 7, the two-line tier): a field set on two rows is one field (a break is not
+    # a cut), so an element's consecutive rows are joined too
     titles: list = []
     last = None
     for n, p in meta["_plates"]:
         if not (n.startswith("title") or n == "kicker"):
             continue
-        key = (n, round(p.xy[1]))
+        key = n
         if key == last:
             titles[-1] += " " + p.text
         else:
@@ -348,6 +350,10 @@ def test_the_thumbnail_headline_is_a_whole_verified_line_or_none_never_a_cut_one
     text = TelegramApprovalBot.format_card_text({"title": "T", "narration_script": "x.", "first_comment": "?",
                                                  "thumbnail_note": note}, "run_x")
     assert "drawn without its headline" in text
-    # a headline that fits is drawn as it was
-    meta, titles = _thumbnail({**whole, "line1": "THE LOST SCIENCE"})
-    assert titles == ["THE LOST SCIENCE", "GREEK ASTRONOMY"] and not youtube_thumbnail.headline_note(meta)
+    # a headline that fits is drawn as it was (round 8, lander ruling: at its feed floor; "THE LOST SCIENCE / GREEK
+    # ASTRONOMY" holds no form there and is a recorded refusal)
+    from src.refusal import LayoutError
+    with pytest.raises(LayoutError, match="feed floor"):
+        _thumbnail({**whole, "line1": "THE LOST SCIENCE"})
+    meta, titles = _thumbnail({**whole, "line1": "LOST SCIENCE"})
+    assert titles == ["LOST SCIENCE", "GREEK ASTRONOMY"] and not youtube_thumbnail.headline_note(meta)

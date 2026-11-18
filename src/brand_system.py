@@ -31,6 +31,12 @@ still doing so is listed in DEVIATIONS (its owner group ports it). Faces by role
 display -> brand display face; kicker, body, label -> text face; figure -> display face (a stated quantity is set
 like a heading: one voice for the claim and its number); data_label, credit, badge -> data face; masthead ->
 masthead face. At most three voices on a frame (display, text, data), the masthead counted apart.
+Face-relative display type (round 8, operator ruling 6): every display size and floor above is written in the
+reference display face's px (reference_display(): the default brand's display face, Anton); a brand's display face resolves it by its cap height
+(tok("type.display_cap"), a brand token, derived from the face's metrics when the brand does not write it, so the face
+sets the reference measure), and a brand is validated when it is configured against the fit corpus (the board's real
+long titles, validate_display: BrandRefused). One refusal type for every renderer: typography.LayoutError (cards'
+CardRefused, the Story's and the covers' TextFitError, the YouTube headline's), recorded by every caller per surface.
 
 Heading rules (HEADING, line_end_ok; ONE engine, src/heading.py, round 7): every renderer that breaks a heading or
 a display line sets it there (carousel, Story, Reel cover, YouTube, cards; caption bursts read its never set). One
@@ -38,7 +44,10 @@ line when it fits at the role's tier, else the one fallback tier, else a balance
 longer); never a size fitted to the measure. No line other than the last ends on LINE_END_NEVER (articles,
 prepositions, of / in / from / near: HARD, the operator's rule; the break goes BEFORE the stop word: THE EYE / OF THE
 SAHARA); a conjunction end (LINE_END_LAST_RESORT) only when no other break fits; no lone-word row in a heading of
-three words or more; a value never splits from its unit; every copy of a heading sets the same form. A cover is
+three words or more, except (ruling 4) a complete phrase alone on the last row (a predicate, a row the line before
+closes with punctuation, a lockup's payoff run) whose break balances >= 0.55 (IMPACT THEORY / DISPROVED); no row of
+function words only (OR, FROM: never, in any last resort); a value never splits from its unit; every copy of a
+heading sets the same form (a surface that cannot hold its floor in the run's ruled form records form_diverges). A cover is
 LOCKED at display_xl (>= 1.08 x display_l): the break and the band give way, never its size. The Story takes one
 title size (the least over its frames, one line a field, never under 106 px). The text band: the body hangs from
 the heading's last baseline by one gap per canvas (band.body_gap), so heading tops take two positions per deck.
@@ -50,7 +59,8 @@ words from the authored line1 / line2 seam, else the engine's seam); an INTERIOR
 is never gold but for a stated quantity (ruling 3). Function words that open the accent line stay bone ("THE EYE /
 OF THE SAHARA"); a leading alternative "OR" may stay gold. Body, kickers' words on photographs where gold clashes
 (warm ground) and function words are never gold. Gold-on-gold fallback, one rule: the gold line turns bone (the
-plate is never added for colour). A lockup's line 2 is lockup.line_ratio x line 1's size (never fitted per cover). GOLD_DIM only for a line that sits behind text (a spine). TEAL / CORAL only as a chart's second
+plate is never added for colour). A lockup's line 2 is at least lockup.line_ratio x line 1's size (never fitted
+per cover; round 8, ruling 7: the ratio is a minimum, and the Reel lockup's line 2 grows to the profile grid's floor). GOLD_DIM only for a line that sits behind text (a spine). TEAL / CORAL only as a chart's second
 and third series; a map's marks are gold and bone, never another hue.
 
 Masthead (MASTHEAD, masthead_spec): one treatment: the gold diamond (outlined in INK) then the brand name in the
@@ -124,6 +134,7 @@ a dissolve only at an act change; captions <= 17 cps shown.
 """
 from __future__ import annotations
 
+import functools
 from collections.abc import Mapping
 from types import MappingProxyType
 from typing import Any
@@ -220,6 +231,13 @@ SYSTEM_TOKENS: Mapping[str, Any] = MappingProxyType({
     "halo.label_max": 0.16,           # an overlay label's halo alpha, never above (the masthead's cap)
     "halo.label_spread": 0.33,        # em: an overlay label's one halo spread (21 px at 64 px)
     "plate.gutter": 24,               # design px (1080 wide) of INK between two photographs side by side
+    # ---- face-relative display type (cycle 0 round 8, operator ruling 6): the display face's cap height as a share
+    # of the reference ladder's (every display size and floor in TYPE / TYPE_FALLBACK / DEVIATIONS / the rulings is
+    # written in reference-display units); "measure": derived from the face's own metrics (display_cap_of)
+    "type.display_cap": "measure",
+    # ---- the YouTube headline's kickerless variant (ruling 5): with no kicker drawn above it, the headline takes
+    # its ladder's larger size on two lines before the fallback size on one ("one size up", the kicker's room)
+    "lockup.kickerless_up": 1,
 })
 
 # The range a brand may set each numeric runtime token to (BrandConfig refuses a value outside it), so "any value the
@@ -254,7 +272,12 @@ TOKEN_RANGES: Mapping[str, tuple[float, float]] = MappingProxyType({
     "halo.label_max": (0.0, 0.16),        # never above the masthead's ruled cap
     "halo.label_spread": (0.15, 0.60),    # em
     "plate.gutter": (8, 64),              # design px
+    "type.display_cap": (0.45, 1.25),     # of the reference caps ("measure" derives it; TOKEN_DERIVED)
+    "lockup.kickerless_up": (0, 1),       # 0: the kickerless headline keeps the kickered order
 })
+# Tokens whose default is derived at read time rather than written (the value a brand may also give): BrandConfig
+# accepts the named word or a value in TOKEN_RANGES.
+TOKEN_DERIVED: Mapping[str, str] = MappingProxyType({"type.display_cap": "measure"})
 
 # Joint limits where two tokens interact (round 5: the edge at its maximum on the mark at its minimum radius left no gold
 # at all): (token, factor, other) means token <= factor x other. BrandConfig refuses a brand that breaks one.
@@ -357,21 +380,29 @@ DEVIATIONS: Mapping[str, tuple[str, str, tuple, str]] = MappingProxyType({
                                      (184, 176, 168, 160, 152, 144, 136, 128, 120), "F"),
     "chapter title 16:9, two lines": ("display_l", "design_cards.CHAPTER_WIDE_TWO",
                                       (176, 168, 160, 152, 144, 136, 128, 120, 112, 104, 96), "F"),
-    "chapter title 9:16": ("display_l", "design_cards.plan_chapter_card: 136 down to 84 (inline ladder)",
+    "chapter title 9:16": ("display_l", ("design_cards.plan_chapter_card: 136 down to 84 (inline ladder). Declared, "
+                           "round 8: the tall display steps end at 96, and on the 687 px margin column real act titles "
+                           "set only at 88 (Richat acts 1 and 5, three lines / the box column); on the steps they would "
+                           "be refused (operator decision 2026-11-05: draw every chapter card)"),
                            (136, 128, 120, 112, 104, 100, 96, 92, 88, 84), "F"),
     "end card share 9:16": ("body", "end_card.SHARE_SIZES", (58, 56, 54), "E"),
     "end screen hand-off 16:9": ("body", "end_card.LANDSCAPE_SHARE_SIZES", (64, 60, 56), "E"),
-    "YouTube headline": ("display_xl", ("youtube_thumbnail: the ladder 190 / 160, then a recorded last resort in 4 px "
-                          "steps to 96 (round 7)"), (190, 160, 96, 4), "B"),
+    "YouTube headline": ("display_xl", ("youtube_thumbnail: the ladder 190 / 160 held at the hero's feed floor, one "
+                          "line a field, else the two-line tier (round 8, ruling 7); then a recorded last resort in 4 "
+                          "px steps to 96; else refused (LayoutError)"), (190, 160, 96, 4), "B"),
     "Reel cover titles": ("display_xl", ("cover_design: the style's line-1 size (100-120) x lockup.line_ratio, one "
                            "fallback tier x 0.8, a recorded last resort (round 7)"), (100, 120, 0.8), "B"),
     "carousel content heading": ("display_l", "multi_format: FB 150 / 140 design px (IG is on the ladder, round 7)",
                                  (150, 140), "D"),
     "carousel stat heading": ("display_m", ("multi_format: the colossal-stat slide's heading, 84 to 52 design px in "
                                "2 px steps through the engine"), (84, 52, 2), "D"),
-    "Story title": ("display_xl", ("multi_format: one size per Story (story_title_px), one line a field from 150 down "
-                    "to heading.story_one_line_floor 106; a wrapped title never under heading.story_floor 120; below "
-                    "them refused, never drawn (round 7)"), (150, 106, 120), "D"),
+    "Story title": ("display_xl", ("multi_format: one size per Story (story_title_px) on the tall display ladder's "
+                    "steps (150, 138, 124, 120, 112; round 8), one line a field down to heading.story_one_line_floor "
+                    "106; a wrapped title never under heading.story_floor 120; below them refused, never drawn"),
+                    (150, 106, 120), "D"),
+    "YouTube figure": ("figure", ("youtube_thumbnail.FIGURE_STEPS (round 8: was a fit 300 -> 160), held at the "
+                       "hero's feed floor; the unit at UNIT_RATIO, at least its line floor"), (300, 260, 220, 190, 160),
+                       "B"),
     "then-and-now THEN / NOW": ("data_label", "then_now.kicker_px(): 48 px 9:16, cap-fitted 16:9", (48,), "A"),
 })
 
@@ -403,6 +434,7 @@ SIZE_SITES: Mapping[str, str] = MappingProxyType({
     "design_cards:_myth_compose": "F",
     "design_cards:_myth_fit.fwrap": "F",
     "design_cards:_myth_fit.lone.alone": "F",
+    "design_cards:_myth_fit.lone_last": "F",        # cycle 0 round 8: a short last word alone (ruling 4)
     "design_cards:_myth_wrap": "F",
     "design_cards:_numeral_column": "F",
     "design_cards:_numeral_tall": "F",
@@ -417,6 +449,7 @@ SIZE_SITES: Mapping[str, str] = MappingProxyType({
     "design_cards:plan_hook_frame.hook_fits": "F",
     "design_cards:plan_myth_fact": "F",
     "design_cards:plan_quote_card": "F",
+    "design_cards:plan_quote_card.quote_fit": "F",  # cycle 0 round 8: the margin, then the box column (ruling 3)
     "end_card:_follow_plate": "E",
     "end_card:_masthead": "E",
     "end_card:_masthead.at": "E",
@@ -497,6 +530,9 @@ SIZE_SITES: Mapping[str, str] = MappingProxyType({
     "youtube_thumbnail:_lockup.width_at": "B",
     "youtube_thumbnail:_qual_font": "B",
     "youtube_thumbnail:_render": "B",
+    "youtube_thumbnail:_figure_fonts": "B",        # cycle 0 round 8: the figure and unit held at their feed floors
+    "youtube_thumbnail:_title_form": "B",          # cycle 0 round 8 (ruling 7): the figure title's ladder + two-line tier
+    "youtube_thumbnail:_title_form.width_at": "B",
 })
 
 # Sites the static scan cannot see because the font is made one call away (a font_engine helper rasterising a shaped
@@ -667,3 +703,153 @@ def masthead_shown_on_grid(cap_px: float, canvas_w: int, grid_w: int = 124) -> b
     """QF-87: a cover the profile grid shows carries the masthead only when its cap height there reaches the token."""
     return cap_px * grid_w / canvas_w >= tok("masthead.grid_cap")
 
+
+
+# ---- face-relative display type (cycle 0 round 8, operator ruling 6) -------------------------------------------------
+# Every display size and floor the system writes (TYPE / TYPE_FALLBACK display roles, the cards' ladders, the cover
+# and YouTube lockups, the Story's floors) is in reference-display units: the px the reference display face (Anton,
+# the face the ladder was measured on) is set at. A brand's display face resolves them to its own px by its cap
+# height: px = size x (REFERENCE cap / face cap) x tok("type.display_cap"), where type.display_cap is the face's cap
+# height as a share of the reference's at the same size step. A brand may write it (a brand token, like a colour);
+# "measure" derives it from the face's metrics so the face sets the reference ladder's MEASURE: a line that fits
+# its column in the reference face fits it in the brand's (a wider face takes a smaller cap: Montserrat about 0.53,
+# where px-for-px it set 1.53x wider and refused 35 surfaces of the second palette). The reference face resolves to
+# itself exactly (scale 1.0: the default brand's pixels are unchanged). Gates on drawn ink (the profile grid's 9 px,
+# the YouTube feed floors, contrast) are measured on the font as drawn, never in reference units, so a smaller cap
+# meets them or the surface takes its recorded step (cover_design._lockup, youtube_thumbnail._lockup). The renderer
+# reads it through brand.DISPLAY_FONT (brand.DisplayFace): the size a caller asks for is the reference size, the
+# face is rasterised at the brand's px (font._rr_px, as a QF-94 fallback face is), and .size stays the asked size.
+def reference_display() -> str:
+    """The reference display face: the default brand's display family (the face the system's ladder was measured on)."""
+    from . import brand
+    return str(brand.DEFAULT_BRAND.family("display"))
+
+
+REFERENCE_SAMPLE = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"   # the measure sample: every capital once
+
+
+def face_metrics(family: str, weight: int | None = None) -> tuple[float, float]:
+    """(cap height per px, the sample's advance per px) of a bundled family, measured at 1000 px."""
+    return _face_metrics(str.__str__(str(family)), weight)
+
+
+@functools.lru_cache(maxsize=32)
+def _face_metrics(family: str, weight: int | None) -> tuple[float, float]:
+    from .typography import cap_height, get_font
+    f = get_font(family, 1000, weight=weight)
+    return cap_height(f) / 1000.0, float(f.getlength(REFERENCE_SAMPLE)) / 1000.0
+
+
+def display_cap_of(config=None) -> float:
+    """The display face's cap height as a share of the reference's (type.display_cap): the brand's value, or
+    (the token's "measure") the share at which the face sets REFERENCE_SAMPLE at the reference face's width."""
+    from . import brand
+    cfg = config or brand.active()
+    value = cfg.system.get("type.display_cap", "measure")
+    family = cfg.family("display")
+    if value != TOKEN_DERIVED["type.display_cap"]:
+        return float(value)
+    if str(family) == reference_display():
+        return 1.0
+    ref_cap, ref_set = face_metrics(reference_display())
+    cap, set_w = face_metrics(str(family))
+    return (ref_set / set_w) * cap / ref_cap
+
+
+def display_px_scale(config=None) -> float:
+    """px of the brand's display face per reference px (1.0 for the reference face at its own caps)."""
+    from . import brand
+    cfg = config or brand.active()
+    family = str(cfg.family("display"))
+    share = display_cap_of(cfg)
+    if family == reference_display() and share == 1.0:
+        return 1.0
+    ref_cap, _ = face_metrics(reference_display())
+    cap, _ = face_metrics(family)
+    return share * ref_cap / cap
+
+
+def display_steps(canvas: str, floor: float = 0.0) -> tuple[float, ...]:
+    """Every display size step of `canvas` (TYPE and TYPE_FALLBACK's display roles), largest first, none under
+    `floor`: the size ladder a display line takes (cycle 0 round 8: the Story title's 128 px was a size between
+    steps, panel TY-A-6)."""
+    roles = ("display_xl", "display_l", "display_m")
+    steps = {float(TYPE[canvas][r]) for r in roles} | {float(TYPE_FALLBACK[canvas][r]) for r in roles}
+    return tuple(sorted((s for s in steps if s >= floor), reverse=True))
+
+
+def px_for_cap(family, cap_px: float, start: int = 8, limit: int = 1000) -> int:
+    """The least size (in the size units `family` is asked in: reference units for brand.DISPLAY_FONT) whose drawn
+    cap height reaches `cap_px`: a gate on drawn ink (a feed or grid floor) as a size the ladder can be held at."""
+    from .typography import cap_height, get_font
+    lo, hi = start, limit
+    if cap_height(get_font(family, hi)) < cap_px:
+        return hi
+    while lo < hi:
+        mid = (lo + hi) // 2
+        if cap_height(get_font(family, mid)) >= cap_px:
+            hi = mid
+        else:
+            lo = mid + 1
+    return lo
+
+
+# The brand fit check (ruling 6): each surface's measure (canvas px), its display floor (reference units: the least
+# size its ladder sets a title at before a recorded last resort) and the lines it may take. A corpus line is set by
+# the heading engine (src/heading.py: valid forms only) in the brand's display face; a brand that cannot set a
+# corpus line on its surface is refused at configuration (brand.configure: BrandRefused), not run by run.
+FIT_SPECS: Mapping[str, tuple[tuple[float, Any, int], ...]] = MappingProxyType({
+    # (measure px, floor, lines): a floor is a reference size, or ("cap", px): the least size whose DRAWN cap reaches
+    # px (a feed or grid gate on ink, so a face of smaller cap takes a larger size: lander ruling, round 8)
+    "story": ((860, 106, 1), (860, 120, 2)),   # multi_format.STORY_TITLE_W; heading.story_* floors (one line, else two)
+    "youtube": ((904, ("cap", 12 * 1920 / 168), 2),),   # youtube_thumbnail: the lockup at the hero's feed floor
+    "youtube_title": ((904, ("cap", 7 * 1920 / 168), 2),),   # the figure branch's title at its line floor
+    "reel": ((912, ("cap", 9 * 1080 / 124), 2),),   # cover_design: 1080 - 2 x 84; the profile grid's 9 px floor
+    "hook_tall": ((687, 104, 3), (735, 104, 3)),   # design_cards.HOOK_MEASURE, else the box column (ruling 3)
+    "card_tall": ((687, 84, 3), (735, 84, 3)),     # the 9:16 chapter ladder's floor, the margin then the box column
+})
+LOCKUP_SURFACES = frozenset(("youtube", "reel", "story"))   # a lockup: its payoff run is a phrase (heading, ruling 4)
+FIT_CORPUS_FILE = "type_fit_corpus.json"
+
+
+def fit_corpus() -> list[dict]:
+    import json
+    from pathlib import Path
+    path = Path(__file__).resolve().parents[1] / "data" / FIT_CORPUS_FILE
+    return list(json.loads(path.read_text(encoding="utf-8"))["lines"])
+
+
+def validate_display(config) -> list[str]:
+    """The corpus lines `config`'s display face cannot set on their surface (FIT_SPECS), as readable reasons ([]: the
+    brand's type sets the board's real long titles). Cached per display face and type.display_cap."""
+    face = config.font("display")
+    return list(_validate(str.__str__(face), float(getattr(face, "px_scale", 1.0)), round(display_cap_of(config), 3)))
+
+
+@functools.lru_cache(maxsize=16)
+def _validate(family: str, px_scale: float, cap: float) -> tuple[str, ...]:
+    from PIL import Image, ImageDraw
+
+    from . import brand
+    from .heading import set_heading
+    from .typography import get_font
+    face = brand.DisplayFace(family, px_scale) if px_scale != 1.0 else family
+    d = ImageDraw.Draw(Image.new("RGB", (8, 8)))
+
+    def measure(t, sz):
+        return d.textlength(t, font=get_font(face, sz))
+    fails = []
+    for line in fit_corpus():
+        specs = FIT_SPECS[line["surface"]]
+        lockup = line["surface"] in LOCKUP_SURFACES
+
+        def size_of(floor):
+            return px_for_cap(face, floor[1]) if isinstance(floor, tuple) else floor
+        # a legal form: the engine's hard rules (never-end words, a value with its unit, no lone-word row but the
+        # phrase exception), at the surface's floor (round 8, lander ruling: nothing is drawn under a floor)
+        if not any(set_heading(line["text"], measure, w, (size_of(floor),), max_lines=n, lockup=lockup,
+                               balance_min=0.0) is not None for w, floor, n in specs):
+            w, floor, n = specs[-1]
+            fails.append(f"{line['surface']}: {line['text']!r} does not set in {n} line(s) of {w} px at "
+                         f"{size_of(floor)} (display {family}, cap {cap:.3f})")
+    return tuple(fails)

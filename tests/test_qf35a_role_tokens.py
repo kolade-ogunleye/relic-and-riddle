@@ -248,7 +248,7 @@ def test_old_module_names_follow_the_active_brand():
     from src import video_composer as vc
     assert hasattr(brand, "use"), "no brand configuration object"
     second = _second_brand()
-    with brand.use(second):
+    with brand.use(second, validate=False):
         gold = second.colour("GOLD")
         assert graphics.GOLD == multi_format.GOLD == end_card.GOLD == then_now.GOLD == gold
         assert graphics.WHITE == second.colour("BONE") and graphics.SEA == second.colour("INK")
@@ -288,7 +288,7 @@ def test_a_second_brand_renders_through_the_frozen_designs(tmp_path):
         return int((np.abs(a - np.array(rgb)).max(axis=2) <= tol).sum())
 
     today = list(end_card.frames(ground, "Send this to someone who loves a mystery.", {}))[-1]
-    with brand.use(second):
+    with brand.use(second, validate=False):
         lay = end_card.layout("Send this to someone who loves a mystery.")
         drawn = list(end_card.frames(ground, "Send this to someone who loves a mystery.", {}))[-1]
     assert lay["masthead"]["text"] == "SECOND TEST BRAND"
@@ -304,7 +304,7 @@ def test_measures_cached_in_a_brand_face_follow_the_brand():
     from src import design_cards as dc
     assert hasattr(brand, "use"), "no brand configuration object"
     cap, year = dc._cap(120), then_now.year_cap("portrait")
-    with brand.use(_second_brand()):
+    with brand.use(_second_brand(), validate=False):
         assert dc._cap(120) != cap and then_now.year_cap("portrait") != year
     assert dc._cap(120) == cap and then_now.year_cap("portrait") == year
 
@@ -331,7 +331,7 @@ def test_a_brand_configured_after_import_reaches_the_caption_file(tmp_path):
             encoding="utf-8")
     for kw in ({}, {"width": 1920, "height": 1080}):
         before = written("before.ass", **kw)
-        previous = brand.configure(second)
+        previous = brand.configure(second, validate=False)
         try:
             swapped = written("swapped.ass", **kw)
         finally:
@@ -351,7 +351,7 @@ def test_a_design_drawn_on_another_thread_reads_the_swapped_brand():
     assert hasattr(brand, "use"), "no brand configuration object"
     second = _second_brand()
     with ThreadPoolExecutor(max_workers=1) as pool:
-        with brand.use(second):
+        with brand.use(second, validate=False):
             seen = pool.submit(lambda: (graphics.GOLD, brand.MASTHEAD, brand.DISPLAY_FONT)).result()
         after = pool.submit(lambda: (graphics.GOLD, brand.MASTHEAD, brand.DISPLAY_FONT)).result()
     assert seen == (second.colour("GOLD"), "SECOND TEST BRAND", "Montserrat")
@@ -396,9 +396,9 @@ def test_the_16x9_caption_face_libass_draws_is_the_caption_wide_role(tmp_path):
     today = written("today.ass")
     assert _style(today, "CapText")[1:3] == ["RR Sans", str(vc.ass_font_size("Montserrat", px, 700))]
     assert "fontname: RRSans.ttf" in today
-    with brand.use(_third_brand()):
+    with brand.use(_third_brand(), validate=False):
         third = written("third.ass")
-        with (brand.use(brand.active().derive("unbundled", fonts={"caption_wide": "No Such Face"})),
+        with (brand.use(brand.active().derive("unbundled", fonts={"caption_wide": "No Such Face"}), validate=False),
               pytest.raises(ValueError, match="no static instance")):
             written("refused.ass")
     assert _style(third, "CapText")[1:3] == ["RR Serif", str(vc.ass_font_size("Cinzel", px, 700))]
@@ -424,7 +424,7 @@ def test_the_reconstruction_badge_reads_its_face_from_the_brand(tmp_path):
         # QF-133: the data face's measured 600 file, by the name libass knows it by
         assert _style(today, "ReconBadge")[1] == _style(today, "ReconPlate")[1] == "IBM Plex Mono SmBld"
         assert brand.BADGE_FONT == brand.DATA_FONT == "IBM Plex Mono" and vc.RECON_FONT == "IBM Plex Mono"
-        with brand.use(_third_brand()):
+        with brand.use(_third_brand(), validate=False):
             third = written("third.ass", **kw)
             assert vc.RECON_FONT == brand.BADGE_FONT == "Cinzel"
         # round 2: the variable Cinzel draws as its static 600 instance, the weight the badge is measured at, embedded
@@ -449,7 +449,7 @@ def test_the_dense_timeline_and_the_colour_vision_roles_follow_the_brand():
     today = timeline_dense.plan(events, 1080, 1920)
     assert today is not None and today["year_font"].getname()[0] == "Anton"
     third = _third_brand()
-    with brand.use(third):
+    with brand.use(third, validate=False):
         theirs = timeline_dense.plan(events, 1080, 1920)
         assert colour_vision.ROLES["gold"] == third.colour("GOLD") != (242, 182, 48)
         assert colour_vision.HOME_TINT == third.colour("HOME_TINT")
@@ -472,7 +472,7 @@ def test_a_timeline_span_too_thin_to_read_its_own_colour_is_measured_on_its_draw
     from src import brand, graphics
     from src.typography import get_font, plan_text
     ground = Image.fromarray(np.full((200, 600, 3), 10, np.uint8))
-    with brand.use(_third_brand()):
+    with brand.use(_third_brand(), validate=False):
         thin, read = get_font(brand.TEXT_FONT, 10, weight=300), get_font(brand.TEXT_FONT, 26, weight=700)
         # lane MEASURE r7 (sweep #9): plan_text no longer raises on a thin face; it reads the ink as drawn
         direct = plan_text(ground, (20, 100), "6 YEARS LATER", thin, brand.STONE, "ls", track=2)
@@ -495,12 +495,12 @@ import test_qf35a_role_tokens as t
 mode = sys.argv[2]
 foreign = t._third_brand().derive("every face moved", fonts={"text": "Cinzel", "masthead": "Montserrat"})
 if mode in ("foreign", "restored"):
-    brand.configure(foreign)
+    brand.configure(foreign, validate=False)
 mods = [importlib.import_module("src." + m) for m in t.FROZEN + ("colour_vision",)]
 if mode == "restored":
     brand.configure(None)
 if mode == "after":
-    brand.configure(foreign)
+    brand.configure(foreign, validate=False)
 
 def simple(v, depth=0):
     if isinstance(v, (bool, int, float, str, type(None))):

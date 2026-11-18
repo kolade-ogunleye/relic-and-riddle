@@ -325,28 +325,43 @@ def _lockup(measure, copy, width, size, single_gold=True):
     if l1 and l2:
         l1, l2, _ = lockup_fields(l1, l2)
     ratio = tok("lockup.line_ratio")
+    # cycle 0 round 8 (operator ruling 7): lockup.line_ratio is a MINIMUM: line 2 (the payoff) grows past s1 x ratio,
+    # up to the grid floor's size, until its cap clears the profile grid's floor at the 124 px tile (GRID_HOOK
+    # title_2), where it still sets; recorded (line2_grown). The ratio's one value is never fitted per cover.
+    from .brand_system import px_for_cap
+    grid_px = px_for_cap(brand.DISPLAY_FONT, GRID_HOOK["title_2"] / GRID_SCALE[0])
 
     def width_at(t, sz):
         return measure.textlength(t, font=get_font(brand.DISPLAY_FONT, sz))
+
+    def set_one(text, sz, gold):
+        if not (l1 and l2):   # one field: a lockup of its own (its payoff gold unless the caller has one)
+            form = set_heading(text, width_at, width, (sz,), lockup=single_gold)
+            return form.runs() if form else None
+        form = set_field(text, width_at, width, sz)
+        return field_runs(text, form.cuts, gold) if form else None
     for tier, scale in enumerate((1.0, LOCKUP_FALLBACK)):
-        s1 = round(size * scale)
+        # round 8 (ruling 6 and the lander's floor ruling): line 1 too never steps under the grid floor's size (a
+        # face of smaller cap: the second palette's Tunguska lockup drew 7.0 px at the tile)
+        s1 = max(round(size * scale), grid_px)
         s2 = round(s1 * ratio)
-        out, ok = {}, True
+        out, ok, grown = {}, True, None
         for key, text, sz, gold in (("line1", l1, s1, False), ("line2", l2, s2, True)):
             if not text:
                 continue
-            if not (l1 and l2):   # one field: a lockup of its own (its payoff gold unless the caller has one)
-                form = set_heading(text, width_at, width, (sz,), lockup=single_gold)
-                runs = form.runs() if form else None
-            else:
-                form = set_field(text, width_at, width, sz)
-                runs = field_runs(text, form.cuts, gold) if form else None
+            runs = set_one(text, sz, gold)
             if runs is None:
                 ok = False
                 break
+            if key == "line2" and l1 and sz < grid_px:
+                big = set_one(text, grid_px, gold)
+                if big is not None:
+                    grown, sz, runs = {"from": sz, "to": grid_px}, grid_px, big
+                    s2 = grid_px
             out[key] = (get_font(brand.DISPLAY_FONT, sz), runs)
         if ok:
-            return out, {"tier": tier, "sizes": [s1, s2], "ratio": ratio, "line1": l1, "line2": l2}
+            return out, {"tier": tier, "sizes": [s1, s2], "ratio": ratio, "line1": l1, "line2": l2,
+                         **({"line2_grown": grown} if grown else {})}
     out, off = {}, []
     for key, text, gold in (("line1", l1, False), ("line2", l2, True)):
         if not text:

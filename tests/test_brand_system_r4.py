@@ -347,7 +347,7 @@ def test_a_content_body_keeps_one_size_through_the_deck(tmp_path, palette, faceb
     Image.new("RGB", (1600, 2000), (150, 120, 90)).save(photo)
     cfg = _second_brand() if palette == "second" else brand.DEFAULT_BRAND
     sizes = set()
-    with brand.use(cfg):
+    with brand.use(cfg, validate=False):   # the second palette (round 8: refused by the fit corpus)
         for i, (arche, card) in enumerate(DECK, start=1):
             _, lay = MultiFormatGenerator()._render_carousel_slide(arche, photo, photo, card, i, 7, {}, "", facebook,
                                                                   subject="EYE OF THE SAHARA")
@@ -452,7 +452,7 @@ def test_generated_decks_keep_one_body_size(tmp_path, palette, facebook, deck):
     cards = [c for _, c in GENERATED_DECKS[deck]]
     archetypes = [a for a, _ in GENERATED_DECKS[deck]]
     sizes = set()
-    with brand.use(cfg):
+    with brand.use(cfg, validate=False):   # the second palette (round 8: refused by the fit corpus)
         gen = MultiFormatGenerator()
         frame = gen._deck_heading_frame(cards, archetypes, facebook)
         _render_state.heading_frame = frame

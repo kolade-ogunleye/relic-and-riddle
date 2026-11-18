@@ -105,6 +105,57 @@ def _lone_row(spans: Sequence[tuple[int, int]], n: int) -> bool:
     return any(b - a < 2 for a, b in spans[1:-1])
 
 
+# Cycle 0 round 8 (operator ruling 4): the phrase exception to the no-lone-row rule. A one-word LAST row may stand when
+# it is a complete phrase of its own and the break's balance is >= heading.balance_min (0.55): IMPACT THEORY /
+# DISPROVED (0.69) beats IMPACT / THEORY DISPROVED (0.40, a split compound noun). A complete phrase is a predicate
+# (a past participle: DISPROVED, FOUND, LOST, BURIED), a row the line before closes with punctuation ("THE TRUTH: /
+# REVEALED"), or a lockup's payoff run (the seam the copy states its payoff from: THE SECRET / WEAPON). A noun left
+# alone under its modifiers is not one ("SEEN FROM / SPACE" stays refused). Middle rows keep the rule.
+_PARTICIPLES = frozenset((
+    "found", "lost", "built", "made", "sunk", "hidden", "broken", "frozen", "stolen", "forgotten", "risen", "fallen",
+    "drawn", "gone", "won", "done", "known", "seen", "shown", "thrown", "torn", "worn", "born", "begun", "sung", "hung",
+    "struck", "split", "cast", "set", "kept", "left", "held", "sold", "told", "bound", "ground", "dug", "spun", "swept",
+    "unseen", "unknown", "undone", "untold", "overthrown", "rewritten", "written", "taken", "given", "beaten"))
+_NOT_PARTICIPLES = frozenset(("hundred", "sacred", "naked", "wicked", "kindred", "rugged", "jagged", "ragged", "red",
+                              "bed", "shed", "seed", "need", "speed", "greed", "breed", "deed", "steed", "weed", "feed",
+                              "creed", "bleed", "tweed", "led", "fled", "wed", "sled", "bred", "fed", "naked",
+                              "beloved", "learned", "aged", "blessed", "crooked", "wretched", "dogged", "hatred"))
+
+
+# a stated quantity's dimension word completes it ("ABOUT 40 KM / ACROSS"): a phrase of its own after a figure
+_DIMENSIONS = frozenset(("across", "wide", "tall", "deep", "long", "high", "thick", "old", "away", "heavy", "around"))
+
+
+def predicate(word: str, after: str = "") -> bool:
+    """A word that completes a phrase on its own (a past participle; a dimension word after a figure), for the phrase
+    exception."""
+    w = bare(word)
+    if w in _DIMENSIONS and any(c.isdigit() for c in after):
+        return True
+    if not w.isalpha() or w in _NOT_PARTICIPLES:
+        return False
+    return w in _PARTICIPLES or (len(w) >= 5 and w.endswith("ed"))
+
+
+def phrase_row(lines: Sequence[str], widths: Sequence[float] | None = None, seam: int | None = None) -> bool:
+    """Whether a lone last row of `lines` stands under the phrase exception (ruling 4): the row is a complete phrase
+    (a predicate, a row the line before closes with punctuation, or the lockup payoff from word `seam`) and the two
+    last lines balance >= heading.balance_min (measured `widths`, else characters)."""
+    if len(lines) < 2:
+        return False
+    last = lines[-1].split()
+    if len(last) != 1:
+        return False
+    before = lines[-2].rstrip()
+    start = sum(len(ln.split()) for ln in lines[:-1])
+    prev = lines[-2].split()
+    if not (predicate(last[0], " ".join(prev[-2:])) or before.endswith(tuple(_CLOSE))
+            or (seam is not None and seam == start)):
+        return False
+    ws = list(widths[-2:]) if widths is not None and len(widths) >= 2 else [len(lines[-2]), len(lines[-1])]
+    return max(ws) > 0 and min(ws) / max(ws) >= brand_system.SPEC["heading.balance_min"]
+
+
 def _drop_comma(line: str) -> str:
     return line[:-1].rstrip() if line.endswith(",") else line
 
@@ -115,9 +166,11 @@ def lines_of(words: Sequence[str], cuts: Sequence[int]) -> tuple[str, ...]:
     return tuple(_drop_comma(t) if i < len(out) - 1 else t for i, t in enumerate(out))
 
 
-def valid(lines: Sequence[str], lone_ok: bool = False) -> bool:
+def valid(lines: Sequence[str], lone_ok: bool = False, widths: Sequence[float] | None = None,
+          seam: int | None = None) -> bool:
     """A drawn form obeys the engine's hard rules: no line but the last ends on a never word; no lone-word row (unless
-    `lone_ok`: a locked cover's last resort, where the break gives way before the size does)."""
+    `lone_ok`: a locked cover's last resort, where the break gives way before the size does; or a last row the phrase
+    exception holds, phrase_row: ruling 4, measured on `widths` when given)."""
     words = " ".join(lines).split()
     spans, k = [], 0
     for ln in lines:
@@ -128,10 +181,18 @@ def valid(lines: Sequence[str], lone_ok: bool = False) -> bool:
         return False
     if any(not end_ok(ln.split()[-1]) for ln in lines[:-1]):
         return False
+    # cycle 0 round 8 (panel: "SACRED PATHS / OR / ASTRONOMY", "CARVED / FROM"): a row of function words only is
+    # never a row, at any word count and in any last resort (it is the break's hinge, not a line of the heading)
+    if len(lines) > 1 and any(all(bare(w) in brand_system.LINE_END_NEVER or bare(w) in brand_system.LINE_END_LAST_RESORT
+                                  for w in ln.split()) for ln in lines):
+        return False
     bonded = _bonded(words)
     if any(b in bonded for _, b in spans[:-1]):
         return False
-    return lone_ok or not _lone_row(spans, len(words))
+    if lone_ok or not _lone_row(spans, len(words)):
+        return True
+    # the phrase exception: the last row alone may stand (middle rows keep the rule)
+    return not any(b - a < 2 for a, b in spans[1:-1]) and phrase_row(lines, widths, seam)
 
 
 @dataclass
@@ -241,15 +302,17 @@ def _issue(form: Form) -> Form:
     return form
 
 
-def _choose(words, cut_sets, fits, balance_min, seam_pref, strict, measure, lone_ok=False):
+def _choose(words, cut_sets, fits, balance_min, seam_pref, strict, measure, lone_ok=False, phrase_seam=None):
     best = None
     for cuts in cut_sets:
         lines = lines_of(words, cuts)
-        if not fits(lines) or not valid(lines, lone_ok):
+        if not fits(lines):
+            continue
+        lens = [measure(t) for t in lines]
+        if not valid(lines, lone_ok, lens, phrase_seam):
             continue
         conj = sum(bare(words[k - 1]) in brand_system.LINE_END_LAST_RESORT
                    and not lines[i].endswith(tuple(_CLOSE)) for i, k in enumerate(cuts))
-        lens = [measure(t) for t in lines]
         bal = min(lens) / max(lens) if len(lens) > 1 and max(lens) > 0 else 1.0
         if strict and cuts and (conj or bal < balance_min):
             continue
@@ -314,15 +377,22 @@ def set_heading(text: str, measure: Callable[[str, float], float], width: float,
             while size >= final_floor:
                 stages.append((None, size, lone_sets, 0.0, False))
                 size -= 2
+    # ruling 4: a lockup's payoff run is a complete phrase (the authored seam, else the engine's ideal one)
+    phrase_seam = seam if seam is not None else (ideal_seam(words) if lockup else None)
     for tier, size, cut_sets, bmin, strict in stages:
         lone_ok = cut_sets is lone_sets
-        got = _choose(words, cut_sets, fits_at(size), bmin, seam, strict, lambda t, s=size: measure(t, s), lone_ok)
+        got = _choose(words, cut_sets, fits_at(size), bmin, seam, strict, lambda t, s=size: measure(t, s), lone_ok,
+                      phrase_seam)
         if got is None:
             continue
         _, cuts, conj, bal = got
         acc = seam if seam is not None else (cuts[-1] if cuts else ideal_seam(words))
+        drawn = lines_of(words, cuts)
+        phrase = (not lone_ok and len(cuts) > 0 and _lone_row(
+            [(a, b) for a, b in itertools.pairwise((0, *cuts, len(words)))], len(words)))
         return _issue(Form(words, tuple(cuts), size, tier, acc, lockup,
                            {"balance": round(bal, 3), "conjunction_end": bool(conj),
+                            **({"phrase_exception": drawn[-1]} if phrase else {}),
                             **({"locked_last_resort": True} if lone_ok else {}),
                             **({"off_ladder": True} if tier is None else {})}))
     return None

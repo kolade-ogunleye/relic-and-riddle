@@ -330,3 +330,13 @@ def test_the_masthead_box_is_kept_off_a_foreign_object_where_the_window_allows()
     crop = im.crop((round(centred[0] + mbox[0] * k), round(mbox[1] * k), round(centred[0] + mbox[2] * k),
                     round(mbox[3] * k)))
     assert hero_window.foreign_object(crop)                         # the centred window had it under the masthead
+
+
+def test_the_routes_fast_plate_draw_lays_the_held_plate_too():
+    """graphics.draw_plate (the route's per-frame draw in the plate's own box) draws a label's held plate as
+    TextPlate.draw does: the same pixels."""
+    ground = _stripes((900, 300))
+    p = graphics.place_plate(ground, (100, 150), "CATHERINE PALACE", graphics.place_font(34), "ls")
+    assert p.variant == "plate"
+    fast = graphics.draw_plate(ground.copy(), p, 0.7, 3)
+    assert np.array_equal(np.asarray(fast), np.asarray(p.draw(ground, 0.7, 3).convert("RGB")))

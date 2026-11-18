@@ -1076,6 +1076,9 @@ def draw_plate(im: Image.Image, plate: Any, alpha: float = 1.0, dy: int = 0) -> 
     `im` (RGB) is changed in place and returned."""
     if getattr(plate, "empty", True) or alpha <= 0 or im.mode != "RGB" or plate.glyphs is None:
         return plate.draw(im, alpha, dy)
+    backing = getattr(plate, "backing", None)
+    if backing is not None:   # cycle 0 round 8: a label on its held plate draws its share of the plate first
+        im.paste(backing.draw(im, alpha, dy))
     h, w = plate.glyphs.shape
     x0, y0 = plate.origin[0], plate.origin[1] + int(dy)
     region = im.crop((x0, y0, x0 + w, y0 + h)).convert("RGBA")

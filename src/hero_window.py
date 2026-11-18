@@ -346,7 +346,9 @@ def deck_window(src_size: tuple[int, int], out_size: tuple[int, int], k: int = 0
     span = (oh * sw / sh) / ow if horizontal else (ow * sh / sw) / oh   # the source / window length on that axis
     L = 1.0 / span if span > 0 else 1.0            # the window's share of the free axis
     grid = [i / (DECK_STEPS - 1) for i in range(DECK_STEPS)]
-    keep = [p for p in grid if p * (1 - L) <= 0.5 <= p * (1 - L) + L] or [0.5]   # the centre stays in view
+    lo, hi = ((0.5 - L) / (1 - L), 0.5 / (1 - L)) if L < 1 else (0.5, 0.5)   # the centre stays in view
+    lo, hi = max(0.0, lo), min(1.0, hi)
+    keep = sorted({round(p, 4) for p in grid if lo - 1e-9 <= p <= hi + 1e-9} | {round(lo, 4), round(hi, 4), 0.5})
 
     def overlap(p: float, q: float) -> float:
         return max(0.0, L - abs(p - q) * (1 - L)) / L if L > 0 else 1.0
@@ -379,7 +381,8 @@ def deck_window(src_size: tuple[int, int], out_size: tuple[int, int], k: int = 0
             worst = max((overlap(p, q) for q in positions), default=0.0)
             # past DECK_OVERLAP_MAX the least overlap wins; under it every position is as good, so the masthead
             # box's ground decides, then the centre
-            return (round(min(worst, 1.0), 3) if worst >= DECK_OVERLAP_MAX else 0.0, clear(p) is False, abs(p - 0.5))
+            return (round(min(worst, 1.0), 3) if worst > DECK_OVERLAP_MAX + 1e-6 else 0.0, clear(p) is False,
+                    abs(p - 0.5))
         best = min(keep, key=key)
         positions.append(best)
         cleared.append(clear(best))

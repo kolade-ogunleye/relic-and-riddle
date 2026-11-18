@@ -260,3 +260,73 @@ def test_the_caption_cps_cap_has_one_source_and_holds_a_burst_into_its_pause():
     timings = vc.burst_timings([tight, after])
     rec = vc.reading_rates([tight, after], timings)
     assert rec["over_max"] >= 1 and rec["over_max_pace"] == rec["over_max"] and not rec["timing_defects"]
+
+
+# ---------------------------------------------------------------- hero window (consensus 3)
+from src import hero_window  # noqa: E402
+
+
+def _museum(label_rows=("THE ANTIKYTHERA MECHANISM", "BRONZE GEARING, 2ND CENTURY BC"), at=0.86, size=(1500, 2000)):
+    """A synthetic exhibit: a mottled bronze object up top, a white plinth label with printed lines at `at` of the
+    height (the Antikythera stand-in's museum label, panel CD-5 / AD S2-2)."""
+    rng = np.random.default_rng(7)
+    arr = (rng.normal(90, 25, (size[1] // 20, size[0] // 20, 3)).clip(0, 255)).astype(np.uint8)
+    im = Image.fromarray(arr).resize(size, Image.BILINEAR)
+    d = ImageDraw.Draw(im)
+    font = typography.get_font(brand.TEXT_FONT, 60, weight=700)
+    top = round(at * size[1])
+    d.rectangle([60, top - 40, size[0] - 60, top + 90 * len(label_rows)], fill=(236, 234, 228))
+    for k, row in enumerate(label_rows):
+        d.text((110, top + 80 * k), row, font=font, fill=(150, 70, 30))
+    return im
+
+
+def test_photographed_text_at_the_edge_is_kept_out_of_every_window():
+    im = _museum()
+    lines = hero_window.text_lines(im)
+    assert len(lines) >= 2                                        # both label lines found, OCR-free
+    bands = hero_window.photo_text(im)
+    assert bands and bands[0][0] == "row" and bands[0][1] < 0.86 * 2000 < bands[0][2]
+    x0, y0, x1, y1 = hero_window.clean(im)[1]
+    assert y1 <= bands[0][1] and y0 == 0                          # the clean region (every crop) stops above it
+
+
+def test_text_across_the_middle_is_the_subject_and_stays():
+    rows = tuple(f"LINE {k} OF THE DOCUMENT TEXT" for k in range(6))
+    im = _museum(rows, at=0.30, size=(1500, 2000))               # a document: its lines reach the middle
+    assert hero_window.text_lines(im) and hero_window.photo_text(im) == []
+
+
+def test_solid_shapes_in_a_row_are_not_text():
+    im = Image.new("RGB", (1600, 1200), (180, 170, 150))
+    d = ImageDraw.Draw(im)
+    for k in range(10):                                           # a row of windows / posts near the foot
+        d.rectangle([100 + 140 * k, 1000, 160 + 140 * k, 1060], fill=(40, 40, 40))
+    assert hero_window.photo_text(im) == []
+
+
+def test_a_deck_shows_a_photograph_again_in_another_window_keeping_its_centre():
+    src, out = (3000, 2000), (1440, 1800)            # a landscape photo on a 4:5 slide: horizontal slack
+    first = hero_window.deck_window(src, out, 0)
+    second = hero_window.deck_window(src, out, 1)
+    assert first["centering"] == (0.5, 0.5) and first["overlap"] == 0.0
+    assert second["centering"][0] != 0.5 and second["overlap"] < 1.0
+    box = hero_window._fit_box(src, out, second["centering"])
+    assert box[0] <= src[0] / 2 <= box[2]                          # the centre (the subject) stays in view
+    wide = hero_window.deck_window((6000, 2000), out, 1)            # room to spare: under DECK_OVERLAP_MAX
+    assert wide["overlap"] <= hero_window.DECK_OVERLAP_MAX + 1e-3
+
+
+def test_the_masthead_box_is_kept_off_a_foreign_object_where_the_window_allows():
+    im = Image.new("RGB", (3000, 2000), (196, 170, 120))           # desert
+    d = ImageDraw.Draw(im)
+    d.rectangle([700, 0, 1800, 120], fill=(250, 250, 250))         # a wing's white skin with a red trim
+    d.rectangle([700, 120, 1800, 160], fill=(200, 20, 30))
+    mbox = (80, 54, 700, 160)                                      # the carousel's masthead box (1440 x 1800 px)
+    win = hero_window.deck_window(im.size, (1440, 1800), 0, mbox, im)
+    assert win["masthead_clear"] is True and win["centering"][0] != 0.5
+    centred = hero_window._fit_box(im.size, (1440, 1800), (0.5, 0.5))
+    k = (centred[2] - centred[0]) / 1440
+    crop = im.crop((round(centred[0] + mbox[0] * k), round(mbox[1] * k), round(centred[0] + mbox[2] * k),
+                    round(mbox[3] * k)))
+    assert hero_window.foreign_object(crop)                         # the centred window had it under the masthead

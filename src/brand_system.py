@@ -118,8 +118,9 @@ Figures (FIGURE; operator ruling 3, 2026-11-16): a stated quantity ("144 FT", "1
 (GOLD), and stays gold at rest: a figure that steps back for the next one dims its words, never its figure. Its
 conversion ("1,073 FT" under "ABOUT 327 M DEEP") is a stated quantity too: the same face and colour, at most
 tok("figure.conversion") of the lead figure's size and never larger than the line it sits with. The data face sets
-only ruler, axis and index figures, units and dimensions on a drawing, credits and the reconstruction badge
-(tabular lining figures). A drawing's number and its unit are joined by tok("data.unit_gap") em of ink gap, never
+only ruler, axis and index figures (a ruler's own unit with them), credits and the reconstruction badge (tabular
+lining figures); a drawing's stated quantities, with their units and dimension words, are in the figure face (round
+8, ruling 8: graphics.quantity_plate). A drawing's number and its unit are joined by tok("data.unit_gap") em of ink gap, never
 the mono face's whole word space ("0 FT" read as two words). A range's en dash centred within 0.03 em of the
 figures' centre with at least 0.06 em of ink gap each side. The unit lead is the signed fact's own unit: a metre
 fact leads in metres (figure, ruler, dimensions, meaning), the other unit is its conversion. Zero datum (truth):
@@ -409,10 +410,13 @@ DEVIATIONS: Mapping[str, tuple[str, str, tuple, str]] = MappingProxyType({
     "end card share 9:16": ("body", "end_card.SHARE_SIZES", (58, 56, 54), "E"),
     "end screen hand-off 16:9": ("body", "end_card.LANDSCAPE_SHARE_SIZES", (64, 60, 56), "E"),
     "YouTube headline": ("display_xl", ("youtube_thumbnail: the ladder 190 / 160 held at the hero's feed floor, one "
-                          "line a field, else the two-line tier (round 8, ruling 7); then a recorded last resort in 4 "
-                          "px steps to 96; else refused (LayoutError)"), (190, 160, 96, 4), "B"),
+                          "line a field, else the two-line tier (round 8, ruling 7); else refused (LayoutError: nothing "
+                          "under the feed floor; round 7's 4 px last resort to 96 is retired)"), (190, 160), "B"),
     "Reel cover titles": ("display_xl", ("cover_design: the style's line-1 size (100-120) x lockup.line_ratio, one "
-                           "fallback tier x 0.8, a recorded last resort (round 7)"), (100, 120, 0.8), "B"),
+                           "fallback tier x 0.8, each line at least the grid floor's size (round 8, ruling 7: "
+                           "px_for_cap of the 9 px cap at the 124 px tile, 92 in Anton; line 2 grows to it); a "
+                           "recorded last resort the grid proof refuses under that floor (visual_engine."
+                           "_grid_enforced)"), (100, 120, 0.8, 92), "B"),
     "carousel content heading": ("display_l", "multi_format: FB 150 / 140 design px (IG is on the ladder, round 7)",
                                  (150, 140), "D"),
     "carousel stat heading": ("display_m", ("multi_format: the colossal-stat slide's heading, 84 to 52 design px in "
@@ -584,7 +588,6 @@ RUNTIME_SIZE_SITES: Mapping[str, str] = MappingProxyType({
     "graphics:quantity_plate": "A",          # cycle 0 round 8: a stated quantity's runs, drawn in a font sized by its caller
     "masthead:plan_on.at": "system",
     "multi_format:MultiFormatGenerator._stack": "D",
-    "youtube_thumbnail:feed_floor_px": "B",  # cycle 0 round 8: brand_system.px_for_cap measures the display face's cap
 })
 
 # Heading break vocabulary: one list for every surface (there were five).

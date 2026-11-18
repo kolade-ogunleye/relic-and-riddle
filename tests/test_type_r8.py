@@ -319,3 +319,38 @@ def test_a_reel_cover_under_its_grid_floor_in_every_style_is_refused():
             ve._grid_enforced(Image.new("RGB", (1080, 1920)), {"line1": "X"}, "badge", None, Lay(), 1)
     finally:
         still_layout.Layout = orig
+
+
+def test_the_reel_lockups_last_resort_never_ships_under_the_grid_floor():
+    """Round-8 integration (observed-size review item 4): the Reel lockup's last resort (cover_design._lockup:
+    fit_text down to min(64, size), recorded off_ladder) can set under the grid floor's size; the 9:16 cover is
+    always drawn with enforce=True (visual_engine.generate_thumbnails -> _grid_enforced), its grid proof flags every
+    such line as a hook under its floor ("px cap at 124"), and a cover that stays under it in every fitting style is
+    refused (LayoutError), never saved."""
+    from src import cover_design, still_layout
+    from src.brand_system import px_for_cap
+    from src.visual_engine import VisualEngine
+    photo = Image.new("RGBA", (1600, 1200), (120, 110, 95, 255))
+    copy = {"eyebrow": "X", "line1": "830 SQUARE MILES", "line2": "FLATTENED FOREST", "tagline": "T"}
+    with brand.use(_second(), validate=False):
+        grid_px = px_for_cap(brand.DISPLAY_FONT, cover_design.GRID_HOOK["title_2"] / cover_design.GRID_SCALE[0])
+        lay = still_layout.Layout("cover", (1080, 1920), (60, 420, 1020, 1500))
+        cover_design.render_cover(photo.resize((1080, 1920)), copy, "minimal", lay=lay, source=photo)
+        assert lay.meta["lockup"].get("off_ladder")
+        under = [e["name"] for e in lay.elements if e["name"].startswith("title") and e["px"] < grid_px]
+        assert under, "the last resort set no line under the grid floor's size: this test no longer reaches it"
+        fails = lay.meta["grid_proof"]["hook_fails"]
+        for name in under:
+            assert any(f.startswith(f"{name} ") and "px cap at 124" in f for f in fails), (name, fails)
+        ve = VisualEngine.__new__(VisualEngine)
+        ve._renderer = lambda style: (lambda im, copy, lay=None, tight=False: im)
+        ve._render_checked = lambda im, copy, style: (im, lay, 1)
+        ve._hero_fit = lambda: (None, None)
+        ve._figure = None
+        orig = still_layout.Layout
+        try:
+            still_layout.Layout = lambda *a, **k: lay   # the tighter redraw and every other style: still under it
+            with pytest.raises(LayoutError, match="px cap at 124"):
+                ve._grid_enforced(Image.new("RGB", (1080, 1920)), copy, "minimal", None, lay, 1)
+        finally:
+            still_layout.Layout = orig

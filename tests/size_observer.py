@@ -37,6 +37,13 @@ def normalise(qualname: str) -> str:
     return ".".join(parts) or "<module>"
 
 
+# A face measure, not a type size (cycle 0 round 8 integration, observed-size review): brand_system.px_for_cap
+# binary-searches the face (8..1000) for the least size whose drawn cap reaches a floor; its probe fonts are never
+# drawn, and recorded at the caller they declared sizes up to 1000 px there and hid the one real size (the floor's
+# result, drawn through get_font at the surface, where it is still recorded).
+MEASURES = {("brand_system", "px_for_cap")}
+
+
 def _sites() -> list[str]:
     """The surface site making the font (and, inside a surface loader, its caller's too), or ["<outside>"] (a test's own
     call, or an internal one)."""
@@ -47,6 +54,8 @@ def _sites() -> list[str]:
         if path.parent.name == "src" and path.parent.parent == ROOT:
             mod = path.stem
             qual = normalise(f.f_code.co_qualname)
+            if (mod, qual) in MEASURES:
+                return []
             if mod in SURFACE_MODULES and mod not in INTERNAL:
                 out.append(f"{mod}:{qual}")
                 if qual.rsplit(".", 1)[-1] not in WRAPPERS:

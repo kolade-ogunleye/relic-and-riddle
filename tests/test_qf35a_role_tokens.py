@@ -49,7 +49,7 @@ ALLOW = {
     ("brand_system", "DEVIATIONS", "(128, 120, 112, 104)"): "type sizes (hook, 3 lines; 104 on the F19 measure)",
     ("brand_system", "DEVIATIONS", "(58, 56, 54)"): "type sizes (end card share)",
     ("brand_system", "DEVIATIONS", "(64, 60, 56)"): "type sizes (end screen hand-off)",
-    ("brand_system", "DEVIATIONS", "(190, 160, 96, 4)"): "type sizes (YouTube headline ladder, last-resort floor, step)",
+    ("brand_system", "DEVIATIONS", "(190, 160)"): "type sizes (YouTube headline ladder; r8: no last resort)",
     ("brand_system", "DEVIATIONS", "(84, 52, 2)"): "type sizes (carousel stat heading from, floor, step)",
     ("brand_system", "DEVIATIONS", "(150, 106, 120)"): "type sizes (Story title)",
     ("end_card", "LANDSCAPE_SHARE_SIZES", "(64, 60, 56)"): "type sizes",

@@ -282,7 +282,7 @@ def _low_contrast(meta: dict) -> list:
 def feed_floor_px(floor: float) -> int:
     """The least display size (reference units: brand.DISPLAY_FONT) whose drawn cap holds `floor` px at YouTube's
     168 px feed width (HERO_FLOOR or LINE_FLOOR): a gate on drawn ink as a size the ladder is held at (cycle 0
-    round 8, ruling 6: a face of smaller cap takes a larger reference size; Anton: 160 for the hero, 94 a line)."""
+    round 8, ruling 6: a face of smaller cap takes a larger reference size; Anton: 160 for the hero, 93 a line)."""
     from .brand_system import px_for_cap
     return px_for_cap(brand.DISPLAY_FONT, floor * W / FEED_WIDTHS[0])
 
@@ -301,8 +301,9 @@ def _lockup(measure, l1: str, l2: str, width: float, kickerless: bool = False, r
     the authored whole lines (QF-23 / QF-143) are set instead and the record says why (form_diverges: legibility at
     feed size outranks one form across surfaces). The kickerless variant (ruling 5): with no kicker drawn above it,
     the headline takes its larger size on two lines before the fallback size on one ("one size up": the kicker's
-    room). Below the ladder only a recorded last resort (off_ladder, 4 px steps, valid forms) down to 96; where
-    none sets, LayoutError (a recorded refusal, never type drawn past its column)."""
+    room). Nothing is set below the ladder held at the feed floor (lander ruling, round 8: round 7's 4 px last resort
+    down to 96 is retired): where no form sets there, LayoutError (a recorded refusal, never type drawn past its
+    column or under its floor)."""
     from .brand_system import TYPE, TYPE_FALLBACK, tok
     from .heading import GOLD_ROLES, field_runs, lockup_fields, set_field, set_heading
     from .typography import LayoutError

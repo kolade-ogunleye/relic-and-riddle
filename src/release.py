@@ -233,6 +233,11 @@ def write_release_report(run, dry_run=False):
     stories = story_credit_problems(master.parent)
     if stories is not None:
         add("story_credits", not stories, stories or "Every Story frame credits its photo as its licence asks.")
+    # Cycle 0 round 8 (QF-147, structural): every drawn number on every recorded surface is a signed value of the
+    # run with its unit and hedge (src/figure_gate.py); a mismatch fails closed and names surface, figure and value.
+    from .figure_gate import release_check as _figure_gate
+    fg_status, fg_detail = _figure_gate(master.parent, payload)
+    checks.append({"name": "drawn_figures", "status": fg_status, "detail": fg_detail})
     refused_frames = story_refusals(master.parent)
     if refused_frames:   # QF-94: shown and decided by the operator, never a silent short Story
         add("story_frames", False, refused_frames, review=True)
@@ -673,6 +678,7 @@ PLAIN_CHECKS = {"facts": "Fact check", "provenance": "Source files", "compositio
                 "credit_lines": "Credit lines", "credit_phrases": "Credit lines", "share_alike_licence": "Licence notice",
                 "licence_credits": "Licence credits",
                 "story_credits": "Story credits", "story_frames": "Story frames", "visual_checks": "Video check",
+                "drawn_figures": "Drawn figures",
                 "media_measurement": "Video file", "picture_measurement": "Picture", "audio_measurement": "Sound",
                 "release_report": "Release report"}
 

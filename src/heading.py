@@ -66,17 +66,16 @@ def is_function(word: str) -> bool:
 
 
 def _figure_words(words: Sequence[str]) -> set[int]:
-    """Indices of the words of a stated quantity: a number, its "+" and its unit ("25+ MILES", "1,073 FT", "1963")."""
-    from .typography import _FIGURE
-    out = {i for i, w in enumerate(words) if any(c.isdigit() for c in w)}
-    text, starts, k = "", [], 0
-    for w in words:
-        starts.append(k)
-        text += w + " "
-        k += len(w) + 1
-    for m in _FIGURE.finditer(text):
-        out |= {i for i, s in enumerate(starts) if m.start() <= s < m.end()}
-    return out
+    """Indices of the words of a stated quantity: a number, its "+", its scale word and its unit ("25+ MILES",
+    "1,073 FT", "20,000 PEOPLE", "1963"). Cycle 0 round 8 (ruling 8): the one gold-scope rule, src/figures.py."""
+    from .figures import gold_word_indices
+    return gold_word_indices(words)
+
+
+def _qualifier_words(words: Sequence[str]) -> set[int]:
+    """Indices of a stated quantity's hedge and dimension words (ABOUT, UP TO, TALL, ACROSS): bone (ruling 8)."""
+    from .figures import qualifier_word_indices
+    return qualifier_word_indices(words)
 
 
 def _bonded(words: Sequence[str]) -> set[int]:
@@ -175,6 +174,9 @@ def roles(words: Sequence[str], seam: int | None) -> list[str]:
         else:   # the run is function words only: no payoff
             for i in range(seam, len(words)):
                 out[i] = PLAIN
+    for i in _qualifier_words(words):   # ruling 8: a quantity's qualifiers stay bone, in a payoff run too
+        if out[i] == ACCENT:
+            out[i] = LEAD
     for i in _figure_words(words):
         out[i] = FIGURE
     return out

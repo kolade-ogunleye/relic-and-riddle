@@ -477,7 +477,7 @@ class VisualEngine:
         from .scene_planner import is_illustration
         meta: dict[str, Any] = {}
         script_payload.pop("thumbnail_note", None)   # this render's note only (QF-23)
-        im, _ = youtube_thumbnail.render(src, copy, focus, meta=meta, figure=cover_figure(copy, script_payload),
+        im, drawn_plates = youtube_thumbnail.render(src, copy, focus, meta=meta, figure=cover_figure(copy, script_payload),
                                          youtube_title=script_payload.get("youtube_title") or None,
                                          illustration=is_illustration(Path(hero_image_path)),
                                          reveal=reveal_line(script_payload))
@@ -488,12 +488,15 @@ class VisualEngine:
             qa = youtube_thumbnail.downscale_check(saved.convert("RGB"), meta)
         import json
         output_path.with_suffix(".qa.json").write_text(json.dumps(
-            {k: meta.get(k) for k in ("downscale", "downscale_ok", "downscale_fails", "title_overlap",
-                                      "figure_withheld", "figure_declined", "tension_from", "text_over_focus",
-                                      "headline_fill_from", "tagline_dropped", "year_event", "ink_edge",
-                                      "headline_from", "headline_dropped", "headline_lines_dropped",
-                                      "headline_fragment")},
-            indent=1, ensure_ascii=False), encoding="utf-8")
+            {**{k: meta.get(k) for k in ("downscale", "downscale_ok", "downscale_fails", "title_overlap",
+                                         "figure_withheld", "figure_declined", "tension_from", "text_over_focus",
+                                         "headline_fill_from", "tagline_dropped", "year_event", "ink_edge",
+                                         "headline_from", "headline_dropped", "headline_lines_dropped",
+                                         "headline_fragment")},
+             # cycle 0 round 8: the drawn text of every line, for the release gate's figure check (figure_gate)
+             "elements": [{"name": n, "text": getattr(pl, "text", ""), "box": [int(v) for v in pl.box]}
+                          for n, pl in (drawn_plates or []) if not getattr(pl, "empty", False)]},
+            indent=1, ensure_ascii=False), encoding="utf-8", newline="\n")
         # QF-23 (option 1): a headline the four-word budget holds only cut is never drawn cut; the review card says
         # what the thumbnail drew instead
         note = youtube_thumbnail.headline_note(meta)
@@ -583,8 +586,10 @@ def reveal_line(script_payload: dict[str, Any]) -> str | None:
 def _in_spoken_units(copy: Dict[str, Any], script_payload: Dict[str, Any]) -> Dict[str, Any]:
     """The cover's lines with each figure in the unit the narration speaks (Richat's cover said "40+ KM" while the
     narration said "25 miles": one unit per run, 2026-10-29)."""
+    from .figures import deck_lead   # cycle 0 round 8: one lead unit per run (the signed scale fact decides)
     narration = script_payload.get("narration_script") or ""
-    return {k: spoken_units(v, narration) if isinstance(v, str) else v for k, v in copy.items()}
+    lead = deck_lead(script_payload)
+    return {k: spoken_units(v, narration, lead) if isinstance(v, str) else v for k, v in copy.items()}
 
 
 def documentary_cover_copy(script_payload: Dict[str, Any]) -> Dict[str, str]:

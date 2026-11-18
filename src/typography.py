@@ -387,6 +387,9 @@ _PAIR = _re_mod.compile(r"(?<![\w.])(?P<n1>" + _NUM + r")\s*(?P<u1>" + _UNIT_ALT
                         + r")(?![\w²])\s*\)?", _re_mod.IGNORECASE)
 
 
+_SPAN_END = _re_mod.compile(r"\d[\d,]*(?:\.\d+)?\s*(?:-|–|—|to|and)\s*$", _re_mod.IGNORECASE)
+
+
 def _unit(token: str):
     info = _UNITS.get(" ".join(token.lower().split()))
     return info
@@ -400,17 +403,22 @@ def _number(raw: str) -> float:
     return float(raw.replace(",", ""))
 
 
-def spoken_units(text: str, narration: str) -> str:
-    """`text` (a cover line, a slide, a number card) with each figure in the unit the narration speaks for it."""
-    if not text or not narration or not _FIGURE.search(text):
+def spoken_units(text: str, narration: str, lead: str | None = None) -> str:
+    """`text` (a cover line, a slide, a number card) with each figure in the unit the narration speaks for it.
+    `lead` ("imperial" / "metric"; cycle 0 round 8, one lead unit per run): the run's signed scale fact's system,
+    which decides a length's lead over the narration's (src/figures.py deck_lead). A figure that ends a span ("41.75
+    and 42 meters") is never converted alone: its other end would stay in the other unit (a false span)."""
+    if not text or not (narration or lead) or not _FIGURE.search(text):
         return text or ""
     spoken: Dict[str, str] = {}                           # dimension -> the system the narration speaks first
-    for m in _FIGURE.finditer(narration):
+    for m in _FIGURE.finditer(narration or ""):
         info = _unit(m.group("unit"))
         if info and _figure_ok(m):
             spoken.setdefault(info[0], info[1])
+    if lead in ("imperial", "metric"):
+        spoken["length"] = lead
     pairs = []                                            # ((value, unit), (value, unit)) the narration gives
-    for m in _PAIR.finditer(narration):
+    for m in _PAIR.finditer(narration or ""):
         a, b = _unit(m.group("u1")), _unit(m.group("u2"))
         if a and b and a[0] == b[0] and a[1] != b[1]:
             pairs.append(((m.group("n1"), m.group("u1")), (m.group("n2"), m.group("u2"))))
@@ -429,6 +437,8 @@ def spoken_units(text: str, narration: str) -> str:
     def in_spoken_unit(m) -> Optional[str]:
         info = _unit(m.group("unit"))
         if not info or not _figure_ok(m) or spoken.get(info[0], info[1]) == info[1]:
+            return None
+        if _SPAN_END.search(text[:m.start()]):            # the far end of a span: never converted alone
             return None
         value = _number(m.group("num"))
         for one, other in pairs:
@@ -964,7 +974,9 @@ class TextPlate:
 
     def record(self) -> Dict[str, Any]:
         """What the still's layout keeps about this element."""
-        rec = {"contrast": self.contrast, "contrast_unaided": self.contrast_unaided, "halo": self.halo,
+        # cycle 0 round 8: the drawn text itself, so the release gate's figure check (src/figure_gate.py) reads every
+        # drawn number from the record
+        rec = {"text": self.text, "contrast": self.contrast, "contrast_unaided": self.contrast_unaided, "halo": self.halo,
                "fill": list(self.fill), "font": Path(getattr(self.font, "path", "") or "").name,
                "px": round(float(self.font.size), 1)}
         if getattr(self.font, "_rr_fallback_for", None):   # set in a fallback face: the face it stands in for (QF-94)
@@ -1015,7 +1027,26 @@ def record_contrast(layout, name: str, plates: List[TextPlate], zone=None):
     box = layout.add(name, union([p.box for p in plates]), zone)
     worst = min(plates, key=lambda p: p.contrast if p.contrast is not None else 99.0)
     layout.elements[-1].update(worst.record())
+    layout.elements[-1]["text"] = drawn_text(plates)   # every line of the block, not the worst one's alone
     return box
+
+
+def drawn_text(plates) -> str:
+    """The words several plates draw, in reading order (by baseline, then x), runs on one line and the lines joined
+    by spaces, so a hedge on one run ("UP TO") and its figure on the next read as one figure."""
+    ps = [p for p in plates if not getattr(p, "empty", False) and getattr(p, "text", "")]
+    if not ps:
+        return ""
+    lines: list[list] = []
+    for p in sorted(ps, key=lambda p: p.box[1]):
+        y0, y1 = p.box[1], p.box[3]
+        if lines:   # the same line when the boxes overlap over half the shorter one's height
+            ly0, ly1 = min(q.box[1] for q in lines[-1]), max(q.box[3] for q in lines[-1])
+            if min(y1, ly1) - max(y0, ly0) > 0.5 * min(y1 - y0, ly1 - ly0):
+                lines[-1].append(p)
+                continue
+        lines.append([p])
+    return " ".join(" ".join(str(p.text).split()) for line in lines for p in sorted(line, key=lambda q: q.box[0]))
 
 
 def remeasure(layout, im: Image.Image, plates: Dict[str, List[TextPlate]]) -> None:

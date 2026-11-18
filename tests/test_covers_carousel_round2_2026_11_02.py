@@ -247,6 +247,10 @@ def test_a_run_with_an_explanatory_graphic_gets_one_diagram_slide_in_both_copies
     run = tmp_path / "run"
     poster = _poster(run / "graphics" / "graphic_section.jpg")
     _poster(run / "graphics" / "graphic_numbers.jpg")              # a photo-backed card: never a diagram slide
+    # cycle 0 round 8: a stored poster is embedded only when stamped as drawn under the active brand by this code
+    # (multi_format.current_poster); an unstamped one is redrawn from the signed field, else no diagram slide
+    from src import graphics
+    graphics._write_stamp(poster.with_suffix(".mp4"))
     gen = MultiFormatGenerator()
     ig = gen.generate_carousel_sequence(photos * 2, dict(ROMAN, title="Roman concrete"), run)
     fb = gen.generate_carousel_sequence(photos * 2, dict(ROMAN, title="Roman concrete"), run, facebook=True)
@@ -261,6 +265,15 @@ def test_a_run_with_an_explanatory_graphic_gets_one_diagram_slide_in_both_copies
     assert multi_format.slide_alt_text(ig[3]).startswith("A diagram from the video.")
     assert multi_format.slide_photos(ig[3]) == [poster]
     assert multi_format.photo_credit(poster) == {}
+
+
+def test_an_unstamped_poster_with_no_signed_field_gets_no_diagram_slide(photos, tmp_path) -> None:
+    """Cycle 0 round 8: a stale stored poster (no stamp: older code or another brand) is never embedded; with no
+    signed field to redraw it from, the slide keeps its photo."""
+    run = tmp_path / "run"
+    _poster(run / "graphics" / "graphic_section.jpg")
+    slides = MultiFormatGenerator().generate_carousel_sequence(photos * 2, dict(ROMAN, title="Roman concrete"), run)
+    assert "diagram" not in [r["recipe"]["archetype"] for r in _records(slides)]
 
 
 def test_without_a_graphic_poster_the_carousel_is_unchanged(photos, tmp_path) -> None:
@@ -303,7 +316,9 @@ def test_the_reveal_frame_makes_its_figure_the_monument(tmp_path) -> None:
     _, lay = _frame(tmp_path, slide, 1)
     fig, unit = lay.plates["figure"][0], lay.plates["figure_unit"][0]
     assert fig.text == "280" and fig.fill == brand.GOLD and fig.font.size >= 280
-    assert unit.text == "FT DEEP" and unit.box[1] > fig.box[3]
+    # cycle 0 round 8 (ruling 8): the unit gold with its number, the dimension word bone, on one baseline
+    assert unit.text == "FT" and unit.fill == brand.GOLD and unit.box[1] > fig.box[3]
+    assert lay.plates["figure_unit"][1].text == "DEEP" and lay.plates["figure_unit"][1].fill == brand.BONE
     assert lay.plates["figure_qualifier"][0].text == "ABOUT"
     placed = " ".join(p.text for ps in lay.plates.values() for p in ps)
     assert "~" not in placed

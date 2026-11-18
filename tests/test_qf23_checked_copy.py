@@ -350,6 +350,10 @@ def test_the_thumbnail_headline_is_a_whole_verified_line_or_none_never_a_cut_one
     text = TelegramApprovalBot.format_card_text({"title": "T", "narration_script": "x.", "first_comment": "?",
                                                  "thumbnail_note": note}, "run_x")
     assert "drawn without its headline" in text
-    # a headline that fits is drawn as it was
-    meta, titles = _thumbnail({**whole, "line1": "THE LOST SCIENCE"})
-    assert titles == ["THE LOST SCIENCE", "GREEK ASTRONOMY"] and not youtube_thumbnail.headline_note(meta)
+    # a headline that fits is drawn as it was (round 8, lander ruling: at its feed floor; "THE LOST SCIENCE / GREEK
+    # ASTRONOMY" holds no form there and is a recorded refusal)
+    from src.refusal import LayoutError
+    with pytest.raises(LayoutError, match="feed floor"):
+        _thumbnail({**whole, "line1": "THE LOST SCIENCE"})
+    meta, titles = _thumbnail({**whole, "line1": "LOST SCIENCE"})
+    assert titles == ["LOST SCIENCE", "GREEK ASTRONOMY"] and not youtube_thumbnail.headline_note(meta)

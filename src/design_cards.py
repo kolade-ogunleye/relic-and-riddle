@@ -446,7 +446,13 @@ def _wrap(text: str, font: Any, measure: int, max_lines: int, min_lines: int = 1
             cand = [" ".join(words[i:j]) for i, j in spans]
             if _qualifier_split(cand):
                 continue
-            if even and not heading_valid(cand, lone_ok=True):   # round 7 (F1): the engine's hard never-end set
+            # round 7 (F1): the engine's hard never-end set; cycle 0 round 8 (ruling 4, lander ruling): a MIDDLE row
+            # never holds one word, at any size ("ARCHAEOLOGICAL / EVIDENCE / AND REFUTED CLAIMS" and the M2 long-word
+            # exception "EXTRATERRESTRIALS / CONSTRUCTED / ..." are no longer forms); a lone last row stays the
+            # scored last resort it was (one more line first, F18; the myth's lone_last), the phrase exception aside
+            if even and not heading_valid(cand, lone_ok=True):
+                continue
+            if even and len(words) >= 3 and any(j - i == 1 for i, j in spans[1:-1]):
                 continue
             mean = sum(ws) / len(ws)
             lone = sum(j - i == 1 or all(w.lower().strip(".,;:") in _STOP for w in words[i:j]) for i, j in spans
@@ -1748,6 +1754,15 @@ def plan_chapter_card(spec: ChapterCard, sheet: dict, width: int = 1080, height:
             fit = None
         if fit is not None:
             tall_left = box_x
+    conj_last_resort = False
+    if fit is None and not geo.wide:
+        # Cycle 0 round 8 (ruling 4 made hard on every row, lander ruling): where the only three-line forms left a
+        # word alone in the middle ("ARCHAEOLOGICAL / EVIDENCE / AND REFUTED CLAIMS"), the heading engine's own last
+        # resort, a conjunction end (LINE_END_LAST_RESORT, never an article or a preposition), sets the card rather
+        # than refusing a real chapter title (operator decision 2026-11-05: draw every chapter card); recorded
+        fit = next(((P, ls) for P in sizes if (ls := three(P)) and not any(
+            ln.split()[-1].lower().strip(".,;:") in LINE_END_NEVER for ln in ls[:-1])), None)
+        conj_last_resort = fit is not None
     if fit is None and refused is not None:
         raise refused
     if fit is None:
@@ -1782,6 +1797,8 @@ def plan_chapter_card(spec: ChapterCard, sheet: dict, width: int = 1080, height:
                    if spec.photo else 0.0)
         plan = _chapter_compose(spec, geo, rest, drift, last_t, seconds, frames, cited, prov, P, lines, num, total_t,
                                 div_x, title_x, edge, tall_left=tall_left)
+        if conj_last_resort:
+            plan.meta["anchors"]["conjunction_end_last_resort"] = True
         # C5 / C6: the total is GOLD type now (no longer muted), so C3 measures it with the rest
         dmin = min((p.contrast for nm, p in plan.meta["_contrast"] if p.contrast is not None), default=None)
         if sat <= CHAPTER_SAT_MAX or (dmin is not None and dmin >= CHAPTER_SAT_TARGET) or attempt == CHAPTER_SAT_STEPS:

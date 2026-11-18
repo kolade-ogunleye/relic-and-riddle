@@ -270,7 +270,7 @@ class DisplayFace(str):
 
     px_scale: float = 1.0
 
-    def __new__(cls, family: str, px_scale: float):  # noqa: PYI034
+    def __new__(cls, family: str, px_scale: float):
         obj = super().__new__(cls, family)
         obj.px_scale = float(px_scale)
         return obj
@@ -314,11 +314,14 @@ class BrandRefused(ValueError):
         super().__init__(f"brand {name!r}: its display type does not set the fit corpus: " + "; ".join(fails))
 
 
-def configure(config: BrandConfig | None) -> BrandConfig:
+def configure(config: BrandConfig | None, validate: bool = True) -> BrandConfig:
     """Make `config` (None: the default) the active brand for the whole process; returns the one it replaced. A brand
-    is validated first (ruling 6): BrandRefused when its display face cannot set the fit corpus on its surfaces."""
+    is validated first (ruling 6): BrandRefused when its display face cannot set the fit corpus on its surfaces at
+    their floors. `validate=False` is for an evidence harness or a test of the re-theme mechanism only (the board's
+    second palette, which the corpus refuses): every surface still refuses on its own floors (refusal.LayoutError),
+    so nothing is drawn under a floor either way; the harness records validate_display's list."""
     global _active
-    if config is not None and config is not DEFAULT_BRAND:
+    if validate and config is not None and config is not DEFAULT_BRAND:
         from .brand_system import validate_display
         fails = validate_display(config)
         if fails:
@@ -331,13 +334,14 @@ def configure(config: BrandConfig | None) -> BrandConfig:
 
 
 @contextmanager
-def use(config: BrandConfig) -> Iterator[BrandConfig]:
-    """Draw with `config` inside the block (process-wide, so the graphics' frame threads see it too)."""
-    previous = configure(config)
+def use(config: BrandConfig, validate: bool = True) -> Iterator[BrandConfig]:
+    """Draw with `config` inside the block (process-wide, so the graphics' frame threads see it too); `validate` as
+    configure's."""
+    previous = configure(config, validate)
     try:
         yield config
     finally:
-        configure(previous)
+        configure(previous, validate=False)   # restoring the brand the block replaced
 
 
 FONT_ROLES = {"DISPLAY_FONT": "display", "MASTHEAD_FONT": "masthead", "TEXT_FONT": "text", "DATA_FONT": "data",

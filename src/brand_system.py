@@ -380,7 +380,10 @@ DEVIATIONS: Mapping[str, tuple[str, str, tuple, str]] = MappingProxyType({
                                      (184, 176, 168, 160, 152, 144, 136, 128, 120), "F"),
     "chapter title 16:9, two lines": ("display_l", "design_cards.CHAPTER_WIDE_TWO",
                                       (176, 168, 160, 152, 144, 136, 128, 120, 112, 104, 96), "F"),
-    "chapter title 9:16": ("display_l", "design_cards.plan_chapter_card: 136 down to 84 (inline ladder)",
+    "chapter title 9:16": ("display_l", ("design_cards.plan_chapter_card: 136 down to 84 (inline ladder). Declared, "
+                           "round 8: the tall display steps end at 96, and on the 687 px margin column real act titles "
+                           "set only at 88 (Richat acts 1 and 5, three lines / the box column); on the steps they would "
+                           "be refused (operator decision 2026-11-05: draw every chapter card)"),
                            (136, 128, 120, 112, 104, 100, 96, 92, 88, 84), "F"),
     "end card share 9:16": ("body", "end_card.SHARE_SIZES", (58, 56, 54), "E"),
     "end screen hand-off 16:9": ("body", "end_card.LANDSCAPE_SHARE_SIZES", (64, 60, 56), "E"),
@@ -397,6 +400,9 @@ DEVIATIONS: Mapping[str, tuple[str, str, tuple, str]] = MappingProxyType({
                     "steps (150, 138, 124, 120, 112; round 8), one line a field down to heading.story_one_line_floor "
                     "106; a wrapped title never under heading.story_floor 120; below them refused, never drawn"),
                     (150, 106, 120), "D"),
+    "YouTube figure": ("figure", ("youtube_thumbnail.FIGURE_STEPS (round 8: was a fit 300 -> 160), held at the "
+                       "hero's feed floor; the unit at UNIT_RATIO, at least its line floor"), (300, 260, 220, 190, 160),
+                       "B"),
     "then-and-now THEN / NOW": ("data_label", "then_now.kicker_px(): 48 px 9:16, cap-fitted 16:9", (48,), "A"),
 })
 
@@ -428,6 +434,7 @@ SIZE_SITES: Mapping[str, str] = MappingProxyType({
     "design_cards:_myth_compose": "F",
     "design_cards:_myth_fit.fwrap": "F",
     "design_cards:_myth_fit.lone.alone": "F",
+    "design_cards:_myth_fit.lone_last": "F",        # cycle 0 round 8: a short last word alone (ruling 4)
     "design_cards:_myth_wrap": "F",
     "design_cards:_numeral_column": "F",
     "design_cards:_numeral_tall": "F",
@@ -442,6 +449,7 @@ SIZE_SITES: Mapping[str, str] = MappingProxyType({
     "design_cards:plan_hook_frame.hook_fits": "F",
     "design_cards:plan_myth_fact": "F",
     "design_cards:plan_quote_card": "F",
+    "design_cards:plan_quote_card.quote_fit": "F",  # cycle 0 round 8: the margin, then the box column (ruling 3)
     "end_card:_follow_plate": "E",
     "end_card:_masthead": "E",
     "end_card:_masthead.at": "E",
@@ -522,6 +530,7 @@ SIZE_SITES: Mapping[str, str] = MappingProxyType({
     "youtube_thumbnail:_lockup.width_at": "B",
     "youtube_thumbnail:_qual_font": "B",
     "youtube_thumbnail:_render": "B",
+    "youtube_thumbnail:_figure_fonts": "B",        # cycle 0 round 8: the figure and unit held at their feed floors
     "youtube_thumbnail:_title_form": "B",          # cycle 0 round 8 (ruling 7): the figure title's ladder + two-line tier
     "youtube_thumbnail:_title_form.width_at": "B",
 })
@@ -789,13 +798,17 @@ def px_for_cap(family, cap_px: float, start: int = 8, limit: int = 1000) -> int:
 # size its ladder sets a title at before a recorded last resort) and the lines it may take. A corpus line is set by
 # the heading engine (src/heading.py: valid forms only) in the brand's display face; a brand that cannot set a
 # corpus line on its surface is refused at configuration (brand.configure: BrandRefused), not run by run.
-FIT_SPECS: Mapping[str, tuple[tuple[float, float, int], ...]] = MappingProxyType({
+FIT_SPECS: Mapping[str, tuple[tuple[float, Any, int], ...]] = MappingProxyType({
+    # (measure px, floor, lines): a floor is a reference size, or ("cap", px): the least size whose DRAWN cap reaches
+    # px (a feed or grid gate on ink, so a face of smaller cap takes a larger size: lander ruling, round 8)
     "story": ((860, 106, 1), (860, 120, 2)),   # multi_format.STORY_TITLE_W; heading.story_* floors (one line, else two)
-    "youtube": ((904, 160, 2),),               # youtube_thumbnail TEXT_RIGHT - LEFT; wide display_xl fallback tier
-    "reel": ((912, 86, 2),),                   # cover_design: 1080 - 2 x 84; the badge style's fallback tier (108 x 0.8)
-    "hook_tall": ((687, 104, 3),),             # design_cards.HOOK_MEASURE; the 3-line hook ladder's floor
-    "card_tall": ((687, 84, 3),),              # the 9:16 chapter ladder's floor
+    "youtube": ((904, ("cap", 12 * 1920 / 168), 2),),   # youtube_thumbnail: the lockup at the hero's feed floor
+    "youtube_title": ((904, ("cap", 7 * 1920 / 168), 2),),   # the figure branch's title at its line floor
+    "reel": ((912, ("cap", 9 * 1080 / 124), 2),),   # cover_design: 1080 - 2 x 84; the profile grid's 9 px floor
+    "hook_tall": ((687, 104, 3), (735, 104, 3)),   # design_cards.HOOK_MEASURE, else the box column (ruling 3)
+    "card_tall": ((687, 84, 3), (735, 84, 3)),     # the 9:16 chapter ladder's floor, the margin then the box column
 })
+LOCKUP_SURFACES = frozenset(("youtube", "reel", "story"))   # a lockup: its payoff run is a phrase (heading, ruling 4)
 FIT_CORPUS_FILE = "type_fit_corpus.json"
 
 
@@ -828,11 +841,15 @@ def _validate(family: str, px_scale: float, cap: float) -> tuple[str, ...]:
     fails = []
     for line in fit_corpus():
         specs = FIT_SPECS[line["surface"]]
-        # a legal form: the engine's hard rules (never-end words, a value with its unit); a lone-word row is the
-        # surfaces' own recorded last resort, so it counts here (a form exists), as it does where they draw it
-        if not any(set_heading(line["text"], measure, w, (floor,), max_lines=1, locked_lines=n,
+        lockup = line["surface"] in LOCKUP_SURFACES
+
+        def size_of(floor):
+            return px_for_cap(face, floor[1]) if isinstance(floor, tuple) else floor
+        # a legal form: the engine's hard rules (never-end words, a value with its unit, no lone-word row but the
+        # phrase exception), at the surface's floor (round 8, lander ruling: nothing is drawn under a floor)
+        if not any(set_heading(line["text"], measure, w, (size_of(floor),), max_lines=n, lockup=lockup,
                                balance_min=0.0) is not None for w, floor, n in specs):
             w, floor, n = specs[-1]
-            fails.append(f"{line['surface']}: {line['text']!r} does not set in {n} line(s) of {w} px at {floor} "
-                         f"(display {family}, cap {cap:.3f})")
+            fails.append(f"{line['surface']}: {line['text']!r} does not set in {n} line(s) of {w} px at "
+                         f"{size_of(floor)} (display {family}, cap {cap:.3f})")
     return tuple(fails)

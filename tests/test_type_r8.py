@@ -45,7 +45,7 @@ def test_a_wider_display_face_sets_the_reference_measure():
     and the corpus lines the Story refused ("THE ACOUSTIC DOME", "THE DESERT EYE" at 106) now fit 860 px."""
     d = _draw()
     ref = {t: d.textlength(t, font=get_font("Anton", 106)) for t in ("THE ACOUSTIC DOME", "THE DESERT EYE")}
-    with brand.use(_second()):
+    with brand.use(_second(), validate=False):
         face = brand.DISPLAY_FONT
         assert face == "Montserrat" and isinstance(face, brand.DisplayFace)
         assert 0.45 <= brand_system.display_cap_of() <= 0.6
@@ -60,9 +60,15 @@ def test_a_wider_display_face_sets_the_reference_measure():
 
 def test_a_brand_may_write_its_display_cap_and_is_validated_when_configured():
     """Ruling 6: the token is a brand token; a brand whose display face then cannot set the fit corpus on its
-    surfaces is refused at configuration (BrandRefused, every failing line listed), never run by run."""
+    surfaces AT THEIR FLOORS is refused at configuration (BrandRefused, every failing line listed), never run by run.
+    Lander ruling (round 8): the board's YouTube headlines are in the corpus at the 12 px feed floor; the second
+    palette's Montserrat cannot set them there (5.8-9.8 px in round 8's first build), so it is refused."""
     assert brand_system.validate_display(brand.DEFAULT_BRAND) == []
-    assert brand_system.validate_display(_second()) == []
+    fails = brand_system.validate_display(_second())
+    assert any("youtube: 'THE SECRET WEAPON'" in f for f in fails)
+    with pytest.raises(brand.BrandRefused):
+        brand.configure(_second())
+    assert brand.active() is brand.DEFAULT_BRAND
     too_big = _second().derive("Montserrat at Anton's caps", system={"type.display_cap": 1.0})
     with pytest.raises(brand.BrandRefused) as e:
         brand.configure(too_big)
@@ -121,7 +127,7 @@ def test_the_youtube_figure_title_has_a_two_line_tier():
     """AD MG-2 / BC: "FLATTENED FOREST" did not fit one line of 904 px at 90 px in the second palette (a TextFitError
     that aborted the Tunguska cover job). It now takes the two-line tier on the ladder, at its feed floor."""
     from src import youtube_thumbnail as yt
-    with brand.use(_second()):
+    with brand.use(_second(), validate=False):
         lines, f, rec = yt._title_form(_draw(), "FLATTENED FOREST", 904, 600)
         assert lines == ["FLATTENED", "FOREST"] and rec["tier"] is not None
         assert cap_height(f) * yt.FEED_WIDTHS[0] / yt.W >= yt.LINE_FLOOR
@@ -159,18 +165,24 @@ def test_a_headline_no_form_sets_is_a_recorded_refusal_never_drawn_past_its_colu
 
 
 # ------------------------------------------------------------------ ruling 7: the Reel lockup's line 2
-def test_the_reel_lockup_line_2_grows_to_the_grid_floor():
-    """Build 7 1b / ruling 7: in a wide face line 2 at line 1's size drew 7.0 px of cap at the 124 px tile (floor 9);
-    the ratio is a minimum and line 2 grows until the tile clears its floor, where it sets (recorded)."""
+def test_the_reel_lockup_never_steps_under_the_grid_floor():
+    """Build 7 1b / ruling 7 and the lander's floor ruling: in a wide face line 2 at line 1's size drew 7.0 px of cap at
+    the 124 px tile (floor 9). The ratio is a minimum and both lines' ladder sizes are held at the grid floor's size;
+    where the copy does not set there (the second palette's "830 SQUARE MILES", one bonded quantity) the lockup can
+    only take its recorded off-ladder last resort, which the cover's grid proof then refuses (never delivered)."""
     from src import cover_design
-    with brand.use(_second()):
-        got, rec = cover_design._lockup(_draw(), {"line1": "830 SQUARE MILES", "line2": "FLATTENED FOREST"}, 912, 86)
-        cap2 = cap_height(got["line2"][0]) * cover_design.GRID_SCALE[0]
-        assert rec.get("line2_grown") and cap2 >= cover_design.GRID_HOOK["title_2"]
-        assert got["line2"][0].size >= got["line1"][0].size
-    got, rec = cover_design._lockup(_draw(), {"line1": "OLD", "line2": "SALT"}, 900, 108)
-    assert "line2_grown" not in rec and got["line2"][0].size == 108   # Anton at 108 already clears it
-
+    floor = cover_design.GRID_HOOK["title_2"]
+    got, rec = cover_design._lockup(_draw(), {"line1": "OLD", "line2": "SALT"}, 900, 86)   # Anton's fallback tier
+    for key in ("line1", "line2"):
+        assert cap_height(got[key][0]) * cover_design.GRID_SCALE[0] >= floor
+    assert got["line2"][0].size >= got["line1"][0].size
+    with brand.use(_second(), validate=False):
+        got, rec = cover_design._lockup(_draw(), {"line1": "BRICK DOME", "line2": "FLATTENED FOREST"}, 912, 86)
+        assert not rec.get("off_ladder")
+        for key in ("line1", "line2"):
+            assert cap_height(got[key][0]) * cover_design.GRID_SCALE[0] >= floor
+        _, rec = cover_design._lockup(_draw(), {"line1": "830 SQUARE MILES", "line2": "FLATTENED FOREST"}, 912, 86)
+        assert rec.get("off_ladder")
 
 # ------------------------------------------------------------------ ruling 6: one recorded refusal type
 def test_every_refusal_a_renderer_raises_is_the_one_refusal_type():
@@ -216,11 +228,80 @@ def test_the_cover_job_refuses_per_surface_and_records_it():
 
 
 # ------------------------------------------------------------------ ruling 4 on the cards: the lone "RINGS"
-def test_the_struck_myth_never_ends_on_a_short_word_alone():
-    """Panel TY-A-10 / AD S2: the 16:9 struck myth column set EXTRATERRESTRIALS / CONSTRUCTED / THE CIRCULAR /
-    RINGS. A lone-row last resort may keep a long word alone in the middle (the panel's M2 exception), never a short
-    word alone on the last row."""
+def test_no_one_word_middle_row_in_a_card_heading():
+    """Ruling 4 (lander ruling, round 8: middle rows too): the 9:16 chapter act 4 set ARCHAEOLOGICAL / EVIDENCE / AND
+    REFUTED CLAIMS and the 16:9 struck myth EXTRATERRESTRIALS / CONSTRUCTED / THE CIRCULAR / RINGS (the M2 long-word
+    exception). The act sets with the engine's own last resort, a conjunction end (recorded); the stress myth has no
+    legal form on the 16:9 column at its floors and is refused (recorded), never drawn with a lone row."""
+    from src import design_cards as dc
     from tests import test_freeze_cards_2026_11_04 as fc
-    plan = fc.plan_myth(fc.LONG_ET, fc.WIDE)
-    myth = [e.text for e in plan.elements if e.name.startswith("myth_") and e.text and e.text != "MYTH"]
-    assert myth[-1] == "THE CIRCULAR RINGS" and all(len(ln.split()) > 1 or len(ln) >= 11 for ln in myth), myth
+    plan = fc.chapter_plan(fc.TALL, 4, 5, fc.RICHAT_ACTS[3])
+    assert plan.meta["anchors"]["title_lines"] == ["ARCHAEOLOGICAL", "EVIDENCE AND", "REFUTED CLAIMS"]
+    assert plan.meta["anchors"]["conjunction_end_last_resort"] is True
+    with pytest.raises(dc.CardRefused):
+        fc.plan_myth(fc.LONG_ET, fc.WIDE)
+    for m, size in ((fc.LONG_ET, fc.TALL), (fc.SHORT, fc.WIDE), (fc.LONGEST169, fc.WIDE)):
+        p = fc.plan_myth(m, size)
+        rows = [e.text for e in p.elements if e.name.startswith(("myth_", "fact_")) and e.text
+                and e.text not in ("MYTH", "FACT")]
+        assert heading.valid(rows[:2]) or len(rows) < 3
+    assert dc._wrap("EXTRATERRESTRIALS CONSTRUCTED THE CIRCULAR RINGS", get_font("Anton", 88), 617, 4,
+                    even=True) is None
+
+
+# ------------------------------------------------------------------ lander ruling: nothing drawn under its floor
+COPIES = ({"line1": "THE SECRET WEAPON"}, {"line1": "CARVED FROM", "line2": "SOLID SALT"},
+          {"line2": "SAHARA EYE", "eyebrow": "DESERT ANOMALY"}, {"line1": "THE 6-TON ROOM"},
+          {"line1": "A VERY LONG HEADLINE", "line2": "THAT RUNS ON AND ON"})
+
+
+@pytest.mark.parametrize("palette", ["default", "second"])
+def test_no_youtube_line_is_drawn_under_its_feed_floor(palette):
+    """Every YouTube thumbnail either draws every line at or above its feed floor (HERO_FLOOR / LINE_FLOOR at 168 px
+    wide: downscale_check records no cap failure) or is a recorded refusal (LayoutError). The second palette's
+    headlines that drew 5.8-9.8 px now refuse; its figure unit ("SQ MI" 6.0 px against 7) holds its floor."""
+    from src import youtube_thumbnail as yt
+    photo = Image.new("RGB", (1920, 1080), (70, 64, 58))
+    cfg = _second() if palette == "second" else brand.DEFAULT_BRAND
+    drawn = refused = 0
+    with brand.use(cfg, validate=False):
+        for copy in COPIES:
+            meta: dict = {}
+            try:
+                yt.render(photo, copy, meta=meta)
+            except LayoutError:
+                refused += 1
+                continue
+            drawn += 1
+            assert not [f for f in meta["downscale_fails"] if "px cap" in f], (copy, meta["downscale_fails"])
+        f_num, f_unit, _ = yt._figure_fonts(_draw(), "830", "SQ MI", 904)
+        assert cap_height(f_unit) * yt.FEED_WIDTHS[0] / yt.W >= yt.LINE_FLOOR
+        assert cap_height(f_num) * yt.FEED_WIDTHS[0] / yt.W >= yt.HERO_FLOOR
+        assert yt._kicker_font("A KICKER FAR TOO WIDE FOR ANY COLUMN AT ALL", 600) is None
+    assert drawn and (palette == "default" or refused)
+
+
+def test_a_reel_cover_under_its_grid_floor_in_every_style_is_refused():
+    """The profile grid's 9 px floor: a cover whose element stays under it in every fitting style is a recorded
+    refusal (it was delivered with grid_hold on its record)."""
+    from src import still_layout
+    from src.visual_engine import VisualEngine
+    fail = ["title_1 7.0 px cap at 124 px (floor 9)"]
+
+    class Lay:
+        meta = {"grid_proof": {"hook_fails": fail}}  # noqa: RUF012  (a stub)
+
+        def problems(self):
+            return []
+    ve = VisualEngine.__new__(VisualEngine)
+    ve._renderer = lambda style: (lambda im, copy, lay=None, tight=False: im)
+    ve._render_checked = lambda im, copy, style: (im, Lay(), 1)
+    ve._hero_fit = lambda: (None, None)
+    ve._figure = None
+    orig = still_layout.Layout
+    try:
+        still_layout.Layout = lambda *a, **k: Lay()
+        with pytest.raises(LayoutError, match="grid floor|px cap at 124"):
+            ve._grid_enforced(Image.new("RGB", (1080, 1920)), {"line1": "X"}, "badge", None, Lay(), 1)
+    finally:
+        still_layout.Layout = orig

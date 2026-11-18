@@ -123,9 +123,16 @@ _NOT_PARTICIPLES = frozenset(("hundred", "sacred", "naked", "wicked", "kindred",
                               "beloved", "learned", "aged", "blessed", "crooked", "wretched", "dogged", "hatred"))
 
 
-def predicate(word: str) -> bool:
-    """A word that completes a phrase on its own (a past participle), for the phrase exception."""
+# a stated quantity's dimension word completes it ("ABOUT 40 KM / ACROSS"): a phrase of its own after a figure
+_DIMENSIONS = frozenset(("across", "wide", "tall", "deep", "long", "high", "thick", "old", "away", "heavy", "around"))
+
+
+def predicate(word: str, after: str = "") -> bool:
+    """A word that completes a phrase on its own (a past participle; a dimension word after a figure), for the phrase
+    exception."""
     w = bare(word)
+    if w in _DIMENSIONS and any(c.isdigit() for c in after):
+        return True
     if not w.isalpha() or w in _NOT_PARTICIPLES:
         return False
     return w in _PARTICIPLES or (len(w) >= 5 and w.endswith("ed"))
@@ -142,7 +149,9 @@ def phrase_row(lines: Sequence[str], widths: Sequence[float] | None = None, seam
         return False
     before = lines[-2].rstrip()
     start = sum(len(ln.split()) for ln in lines[:-1])
-    if not (predicate(last[0]) or before.endswith(tuple(_CLOSE)) or (seam is not None and seam == start)):
+    prev = lines[-2].split()
+    if not (predicate(last[0], " ".join(prev[-2:])) or before.endswith(tuple(_CLOSE))
+            or (seam is not None and seam == start)):
         return False
     ws = list(widths[-2:]) if widths is not None and len(widths) >= 2 else [len(lines[-2]), len(lines[-1])]
     return max(ws) > 0 and min(ws) / max(ws) >= brand_system.SPEC["heading.balance_min"]

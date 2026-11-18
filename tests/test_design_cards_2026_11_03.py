@@ -388,7 +388,7 @@ def test_boxes_16x9(size, photos):
 
 
 @pytest.mark.parametrize("claim,ids,n", [("The ring", ("f_len",), 1), ("About 40 km across", ("f_len",), 2),
-                                         ("Concentric sandstone quartzite", ("f_geo",), 3)])
+                                         ("Quartzite ridges form the ring", ("f_geo",), 3)])
 def test_hook_in_crops(claim, ids, n, photos):
     plan = dc.plan_hook_frame(hook(photos["dark"], claim=claim, fact_ids=ids, eyebrow="The Richat ring"), SHEET)
     assert plan.meta["anchors"]["lines"] == n
@@ -1035,7 +1035,13 @@ def test_myth_169_block_is_centred(size, photos):
     for spec in (myth(), myth(myth_text="Extraterrestrials constructed the circular rings", myth_fact_id="f_et",
                               fact_text="Wind and water slowly eroded the dome over millions of years into "
                                         "concentric rings", fact_id="f_et")):
-        plan = dc.plan_myth_fact(spec, SHEET, w, h)
+        try:
+            plan = dc.plan_myth_fact(spec, SHEET, w, h)
+        except dc.CardRefused:
+            # cycle 0 round 8 (ruling 4 on every row): the long myth's only 16:9 forms leave CONSTRUCTED alone in a
+            # middle row (the closed M2 exception): refused, recorded; the short myth still plans
+            assert spec.myth_text.startswith("Extraterrestrials")
+            continue
         a = plan.meta["anchors"]
         # freeze panel round 2 (M10 (4), deliberate change): the 16:9 source drop is max(68, round(0.58 P)) (was 56)
         low = max(a["myth_baselines"][-1], a["fact_baselines"][-1] + (dc._source_drop(a["px"], True)

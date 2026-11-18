@@ -1,23 +1,97 @@
 {
-  "about": "Cycle 0 round 8 (operator ruling 6): the brand fit corpus. Real long titles from the design board's runs (the lines the second palette refused in round 7, and the longest ruled forms), each with the surface it is set on. brand_system.validate_display sets every one in the brand's display face on its surface's measure at that surface's ladder floor (FIT_SPECS); a brand whose face cannot is refused when it is configured, never run by run in production.",
+  "about": "Cycle 0 round 8 (operator ruling 6): the brand fit corpus. Real long titles from the design board's runs (the lines the second palette refused in round 7, and the longest ruled forms), each with the surface it is set on. brand_system.validate_display sets every one in the brand's display face on its surface's measure at that surface's ladder floor (FIT_SPECS); a brand whose face cannot is refused when it is configured, never run by run in production. Round 8 (lander ruling): the board's YouTube headlines in both palettes are in it, each set at its drawn-cap feed floor.",
   "lines": [
-    {"text": "THE ACOUSTIC DOME", "surface": "story"},
-    {"text": "THE DESERT EYE", "surface": "story"},
-    {"text": "SEEN FROM SPACE", "surface": "story"},
-    {"text": "BRICK AND MORTAR", "surface": "story"},
-    {"text": "SACRED PATHS OR ASTRONOMY", "surface": "story"},
-    {"text": "FLATTENED FOREST", "surface": "youtube"},
-    {"text": "THE SECRET WEAPON", "surface": "youtube"},
-    {"text": "THE 6-TON ROOM", "surface": "youtube"},
-    {"text": "FROM SOLID SALT", "surface": "youtube"},
-    {"text": "THE WHISPERING VAULT", "surface": "reel"},
-    {"text": "IMPACT THEORY DISPROVED", "surface": "reel"},
-    {"text": "LINES IN THE SAND", "surface": "reel"},
-    {"text": "830 SQUARE MILES", "surface": "reel"},
-    {"text": "FLATTENED FOREST", "surface": "reel"},
-    {"text": "THE EYE OF THE SAHARA", "surface": "reel"},
-    {"text": "ABOUT 40 KM ACROSS", "surface": "hook_tall"},
-    {"text": "THE WHISPERING GALLERY", "surface": "card_tall"},
-    {"text": "BUILT TO CARRY A WHISPER", "surface": "card_tall"}
+    {
+      "text": "THE ACOUSTIC DOME",
+      "surface": "story"
+    },
+    {
+      "text": "THE DESERT EYE",
+      "surface": "story"
+    },
+    {
+      "text": "SEEN FROM SPACE",
+      "surface": "story"
+    },
+    {
+      "text": "BRICK AND MORTAR",
+      "surface": "story"
+    },
+    {
+      "text": "SACRED PATHS OR ASTRONOMY",
+      "surface": "story"
+    },
+    {
+      "text": "FLATTENED FOREST",
+      "surface": "youtube_title"
+    },
+    {
+      "text": "THE SECRET WEAPON",
+      "surface": "youtube"
+    },
+    {
+      "text": "THE 6-TON ROOM",
+      "surface": "youtube"
+    },
+    {
+      "text": "THE WHISPERING VAULT",
+      "surface": "reel"
+    },
+    {
+      "text": "IMPACT THEORY DISPROVED",
+      "surface": "reel"
+    },
+    {
+      "text": "LINES IN THE SAND",
+      "surface": "reel"
+    },
+    {
+      "text": "830 SQUARE MILES",
+      "surface": "reel"
+    },
+    {
+      "text": "FLATTENED FOREST",
+      "surface": "reel"
+    },
+    {
+      "text": "THE EYE OF THE SAHARA",
+      "surface": "reel"
+    },
+    {
+      "text": "ABOUT 40 KM ACROSS",
+      "surface": "hook_tall"
+    },
+    {
+      "text": "SAHARA EYE",
+      "surface": "youtube"
+    },
+    {
+      "text": "CARVED FROM",
+      "surface": "youtube"
+    },
+    {
+      "text": "SOLID SALT",
+      "surface": "youtube"
+    },
+    {
+      "text": "CARVED",
+      "surface": "youtube"
+    },
+    {
+      "text": "ORIGIN DEBATES AND ROCK DATING",
+      "surface": "card_tall"
+    },
+    {
+      "text": "INTRODUCTION: A DESERT LANDMARK FROM SPACE",
+      "surface": "card_tall"
+    },
+    {
+      "text": "ARCHAEOLOGICAL EVIDENCE AND REFUTED CLAIMS",
+      "surface": "card_tall"
+    },
+    {
+      "text": "INTERNATIONAL HERITAGE RECOGNITION",
+      "surface": "card_tall"
+    }
   ]
 }

@@ -341,7 +341,9 @@ def _lockup(measure, copy, width, size, single_gold=True):
         form = set_field(text, width_at, width, sz)
         return field_runs(text, form.cuts, gold) if form else None
     for tier, scale in enumerate((1.0, LOCKUP_FALLBACK)):
-        s1 = round(size * scale)
+        # round 8 (ruling 6 and the lander's floor ruling): line 1 too never steps under the grid floor's size (a
+        # face of smaller cap: the second palette's Tunguska lockup drew 7.0 px at the tile)
+        s1 = max(round(size * scale), grid_px)
         s2 = round(s1 * ratio)
         out, ok, grown = {}, True, None
         for key, text, sz, gold in (("line1", l1, s1, False), ("line2", l2, s2, True)):

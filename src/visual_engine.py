@@ -383,6 +383,13 @@ class VisualEngine:
                 return o_out, o_lay, attempts + o_att, other, {"grid_fallback": {"from": style, "to": other,
                                                                                  "fails": first}}
         log.warning("Cover %s fails the profile-grid proof in every fitting style: %s", style, "; ".join(first))
+        # Cycle 0 round 8 (lander ruling: no surface draws under its floor): an element under its grid floor in every
+        # fitting style is a recorded refusal (refusal.LayoutError), never a cover delivered under its floor; a
+        # failure of another kind (contrast on the tile, the 3:4 crop) stays on the record as before
+        floors = [f for f in first if "px cap at 124" in f]
+        if floors:
+            from .refusal import LayoutError
+            raise LayoutError("the cover's " + "; ".join(floors) + " in every fitting style")
         return out, lay, attempts, style, {"grid_hold": first}
 
     def _hero_fit(self):

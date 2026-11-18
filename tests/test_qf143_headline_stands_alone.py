@@ -114,11 +114,20 @@ def test_a_line_left_out_as_a_fragment_is_on_the_review_card() -> None:
 
 
 def test_a_line_that_stands_alone_is_drawn_unchanged() -> None:
-    copy = {"line1": "BEHIND ONE WALL...", "line2": "A FORGOTTEN CITY"}
+    # cycle 0 round 8 (lander ruling: nothing is drawn under its floor): "BEHIND ONE WALL... / A FORGOTTEN CITY"
+    # holds no form at the 12 px feed floor (it drew off the ladder, under it), so it is a recorded refusal now
+    from src.refusal import LayoutError
+    with pytest.raises(LayoutError, match="feed floor"):
+        youtube_thumbnail.render(_photo(), {"line1": "BEHIND ONE WALL...", "line2": "A FORGOTTEN CITY"})
+    copy = {"line1": "ONE WALL...", "line2": "A LOST CITY"}
     _, plates = youtube_thumbnail.render(_photo(), copy)
-    assert _headline(plates) == ["BEHIND ONE WALL…", "A FORGOTTEN CITY"]
-    _, plates = youtube_thumbnail.render(_photo(), {"line1": "THE RICHAT STRUCTURE:", "line2": "SAHARA EYE"})
-    assert _headline(plates) == ["THE RICHAT STRUCTURE:", "SAHARA EYE"]   # the colon leads into a drawn line
+    assert _headline(plates) == ["ONE WALL…", "A LOST CITY"]
+    # round 8: the dev Richat pair holds no form at the feed floor either (THE RICHAT / STRUCTURE: leaves a noun alone,
+    # ruling 4), so it is a recorded refusal; the colon still leads into a drawn line where the pair holds its floor
+    with pytest.raises(LayoutError, match="feed floor"):
+        youtube_thumbnail.render(_photo(), {"line1": "THE RICHAT STRUCTURE:", "line2": "SAHARA EYE"})
+    _, plates = youtube_thumbnail.render(_photo(), {"line1": "THE RINGS:", "line2": "SAHARA EYE"})
+    assert _headline(plates) == ["THE RINGS:", "SAHARA EYE"]   # the colon leads into a drawn line
 
 
 # Round 2 (review 1, finding 1): whole lines a writer chose, labelled by hand (the oracle is this table, not the
@@ -134,14 +143,23 @@ def test_a_whole_authored_line_stands_alone_when_it_reads_whole(line, stands) ->
     copy = {"eyebrow": "STONE PUZZLE", "line1": line, "line2": "A MUCH LONGER SECOND LINE HERE",
             "tagline": "NO ONE KNOWS"}
     meta: dict = {}
-    _, plates = youtube_thumbnail.render(_photo(), copy, meta=meta)
+    from src.refusal import LayoutError
+    try:
+        _, plates = youtube_thumbnail.render(_photo(), copy, meta=meta)
+    except LayoutError as e:
+        # cycle 0 round 8 (lander ruling): a whole line that holds no form at the feed floor is a recorded refusal,
+        # never drawn under it (nor cut)
+        assert stands and "feed floor" in str(e)
+        return
     texts = {}
     for n in {n for n, _ in plates}:
         joined = _lines(plates, (n,))
         texts[n] = (joined[0] if joined else "").replace("’", "'")
     if stands:
         assert texts.get("title_1") == line, f"{line!r} is a whole line and must be drawn"
-        assert texts.get("kicker") == "STONE PUZZLE"   # the kicker over it is kept
+        # the kicker over it is kept where it holds its feed floor, else dropped and recorded (round 8: never drawn
+        # under its floor; "STONE PUZZLE" does not fit the column at the floor)
+        assert texts.get("kicker") == "STONE PUZZLE" or meta["headline_fill_dropped"]["text"] == "STONE PUZZLE"
         assert "headline_fragment" not in meta
     else:
         assert line not in texts.values(), f"{line!r} dangles alone and must not be drawn"

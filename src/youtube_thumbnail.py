@@ -30,7 +30,7 @@ from typing import Any
 from PIL import Image, ImageDraw, ImageOps
 
 from . import brand
-from .typography import cap_height, fit_font, get_font, plan_text, tracked_width
+from .typography import cap_height, get_font, plan_text, tracked_width
 
 W, H = 1920, 1080
 LEFT = 96
@@ -373,17 +373,11 @@ def _lockup(measure, l1: str, l2: str, width: float, kickerless: bool = False, r
             got = attempt(f1, f2, s1, tier, n)
             if got:
                 return done(got, why)
-    for f1, f2, why in forms:
-        size = min(sizes) - 4
-        while size >= 96:
-            for n in (1, 2):
-                got = attempt(f1, f2, size, None, n)
-                if got:
-                    got[3]["off_ladder"] = True
-                    return done(got, why)
-            size -= 4
+    # Lander ruling (cycle 0 round 8): no surface draws under its floor. The ladder above is held at the hero's feed
+    # floor; a headline no form sets there is refused (recorded), never drawn smaller (round 7 stepped off the ladder
+    # to 96 px: the second palette drew 5.8-9.8 px of cap at the 168 px feed against the 12 px floor)
     raise LayoutError(f"the YouTube headline {' / '.join(t for t in (l1, l2) if t)!r} sets in no form of "
-                      f"{round(width)} px down to 96 px")
+                      f"{round(width)} px at its {floor} px feed floor or more")
 
 
 def _title_form(measure, title: str, width: float, room: float):
@@ -416,24 +410,44 @@ def _title_form(measure, title: str, width: float, room: float):
     raise LayoutError(f"the YouTube title {title!r} sets in no form of {round(width)} px at {sizes[-1]} px or more")
 
 
-KICKER_MIN_PX = 72   # F20 on YouTube: the kicker's least size (the retired Anton fill kicker's floor)
-
-
 def _kicker_font(text: str, width: float):
     """F20 on YouTube: the system kicker's face and weight at the least size whose cap holds LINE_FLOOR at 168 px
-    wide; where its rule, gap and tracked words do not fit `width` there, the largest size down to KICKER_MIN_PX
-    that does (the feed check then records it under the floor); None below that."""
+    wide, when its rule, gap and tracked words fit `width` there; else None (not drawn, recorded by the caller).
+    Round 8 (lander ruling: no surface draws under its floor): it no longer steps under the floor to fit."""
     from .brand_system import tok
     size = QUAL_PX
     while cap_height(get_font(brand.TEXT_FONT, size, weight=tok("kicker.weight"))) * FEED_WIDTHS[0] / W < LINE_FLOOR:
         size += 2
-    while size >= KICKER_MIN_PX:
-        font = get_font(brand.TEXT_FONT, size, weight=tok("kicker.weight"))
-        ch = cap_height(font)
-        if (tok("kicker.rule") + tok("kicker.rule_gap")) * ch + tracked_width(text, font, tok("kicker.track") * size)                 <= width:
-            return font
-        size -= 2
+    font = get_font(brand.TEXT_FONT, size, weight=tok("kicker.weight"))
+    ch = cap_height(font)
+    if (tok("kicker.rule") + tok("kicker.rule_gap")) * ch + tracked_width(text, font, tok("kicker.track") * size) <= width:
+        return font
     return None
+
+
+# The figure's size steps (reference units; round 8: they were a continuous fit from NUM_MAX down to 160 in a column
+# less a fixed 300 px reservation for the unit), each held at the hero's feed floor; the unit at UNIT_RATIO of the
+# figure, never under its line floor (LINE_FLOOR at 168 px wide: "SQ MI" drew 6.0 px against 7 in the second palette)
+FIGURE_STEPS = (300, 260, 220, 190, 160)
+FIGURE_UNIT_GAP = 20
+
+
+def _figure_fonts(measure, number: str, unit: str, width: float, dim_w: float = 0.0):
+    """(figure font, unit font, record): the largest FIGURE_STEPS size, held at the hero's feed floor, at which the
+    numeral, the gap and its unit (or the dimension words under the unit, `dim_w`, whichever is wider) fit `width`,
+    the unit at UNIT_RATIO of it and at least its own feed floor; else LayoutError (recorded, never under a floor)."""
+    from .typography import LayoutError
+    num_floor, unit_floor = feed_floor_px(HERO_FLOOR), feed_floor_px(LINE_FLOOR)
+    sizes = sorted({max(s, num_floor) for s in FIGURE_STEPS}, reverse=True)
+    for tier, s in enumerate(sizes):
+        f_num = get_font(brand.DISPLAY_FONT, s)
+        f_unit = get_font(brand.DISPLAY_FONT, max(80, round(s * UNIT_RATIO), unit_floor))
+        need = measure.textlength(number, font=f_num)
+        if unit:
+            need += FIGURE_UNIT_GAP + max(measure.textlength(unit, font=f_unit), dim_w)
+        if need <= width:
+            return f_num, f_unit, {"size": s, "unit_size": f_unit.size, "tier": tier}
+    raise LayoutError(f"the figure {number} {unit} does not fit {round(width)} px at its feed floors")
 
 
 def _kicker_gap(font) -> int:
@@ -656,12 +670,12 @@ def _render(source, copy, focus, meta, figure, youtube_title, illustration, targ
             else:
                 meta["title_overlap"] = True
         title = typeset(title)
-        # The numeral fills its column up to NUM_MAX.
-        f_num = fit_font(measure, number, brand.DISPLAY_FONT, NUM_MAX, width - (300 if unit else 0), 160)
-        f_unit = get_font(brand.DISPLAY_FONT, max(80, int(f_num.size * UNIT_RATIO)))
         f_dim = get_font(brand.TEXT_FONT, DIM_PX, weight=700)
         dim_lines = (dimension.split() if dimension and measure.textlength(dimension, font=f_dim) > 300 else (
             [dimension] if dimension else []))[:2] if unit else []
+        # The numeral on its size steps, held at its feed floor, its unit at its own (round 8, lander ruling)
+        f_num, f_unit, meta["figure_form"] = _figure_fonts(
+            measure, number, unit, width, max((measure.textlength(t, font=f_dim) for t in dim_lines), default=0.0))
         q_lines, f_q, q_track = q_fit if (q_fit and qualifier) else ([], None, QUAL_TRACK)
         num_w = measure.textlength(number, font=f_num)
         q_h = (len(q_lines) * cap_height(f_q) + (len(q_lines) - 1) * QUAL_LEADING + 28) if f_q else 0
@@ -685,7 +699,7 @@ def _render(source, copy, focus, meta, figure, youtube_title, illustration, targ
         im = p_num.draw(im)
         plates.append(("figure", p_num))
         if unit:
-            nx = LEFT + num_w + 20
+            nx = LEFT + num_w + FIGURE_UNIT_GAP
             pitch = cap_height(f_dim) + 12
             unit_base = base - (len(dim_lines) * pitch + 6 if dim_lines else 0)
             p_unit = plan_text(im, (nx, unit_base), unit, f_unit, brand.GOLD, "ls", **feed("figure_unit", f_unit))

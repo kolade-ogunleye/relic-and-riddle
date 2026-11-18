@@ -127,10 +127,22 @@ def main() -> None:
     from PIL import Image
 
     from src import brand, callouts, graphics, then_now
+    def configure_evidence(cfg):
+        """Cycle 0 round 8 (ruling 6): a brand is validated when configured (BrandRefused). The board renders the test
+        brands as evidence even where the fit corpus refuses them (every surface still refuses on its own floors),
+        and records the corpus's verdict; a tree without validation takes the brand as before."""
+        try:
+            brand.configure(cfg, validate=False)
+        except TypeError:
+            brand.configure(cfg)
+            return None
+        from src.brand_system import validate_display
+        return validate_display(cfg)
+    brand_validation = None
     if a.brand == "third":
-        brand.configure(third_brand(brand))
+        brand_validation = configure_evidence(third_brand(brand))
     elif a.brand != "default":   # second-colours: the test brand with today's display face (the cards' fit)
-        brand.configure(second_brand(brand, "Montserrat" if a.brand == "second" else None))
+        brand_validation = configure_evidence(second_brand(brand, "Montserrat" if a.brand == "second" else None))
     from src import geo
     geo.CACHE_FILE = dev / "data" / "geo_cache.json"     # read-only: the dev checkout's located places
 
@@ -485,6 +497,7 @@ def main() -> None:
     job("captions", "captions", captions)
 
     shutil.rmtree(work, ignore_errors=True)
+    result["brand_validation"] = brand_validation   # round 8: the fit corpus's verdict on the brand (None: default)
     result["count"] = len(result["surfaces"])
     a.out.write_text(json.dumps(result, indent=1, sort_keys=True), encoding="utf-8", newline="\n")
     print(result["count"], "surfaces,", len(result["errors"]), "errors,", round(sum(result["seconds"].values())), "s")

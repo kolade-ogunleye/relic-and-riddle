@@ -245,9 +245,13 @@ def test_the_youtube_lockup_sits_on_the_wide_ladder_with_the_payoff_gold():
     assert gold == ["WEAPON"]                                      # the payoff, on one line (F5)
     # QF-23 / QF-143 (operator decisions): YouTube draws each verified line whole, as written; the payoff line gold
     # but for its opening function words
-    rows, f1, f2, rec = youtube_thumbnail._lockup(_D, "BEHIND ONE WALL", "A FORGOTTEN CITY", 900)
-    assert [" ".join(t for _, t, _ in runs) for _, runs in rows] == ["BEHIND ONE WALL", "A FORGOTTEN CITY"]
-    assert [t for _, t, c in rows[1][1] if tuple(c) == tuple(brand.GOLD)] == ["FORGOTTEN CITY"]
+    # round 8 (lander ruling): no size under the hero's feed floor: a pair that holds no form there is refused
+    from src.refusal import LayoutError
+    with pytest.raises(LayoutError):
+        youtube_thumbnail._lockup(_D, "BEHIND ONE WALL", "A FORGOTTEN CITY", 900)
+    rows, f1, f2, rec = youtube_thumbnail._lockup(_D, "ONE WALL", "A LOST CITY", 900)
+    assert [" ".join(t for _, t, _ in runs) for _, runs in rows] == ["ONE WALL", "A LOST CITY"]
+    assert [t for _, t, c in rows[1][1] if tuple(c) == tuple(brand.GOLD)] == ["LOST CITY"]
     assert f2.size == round(f1.size * brand_system.tok("lockup.line_ratio"))
 
 
@@ -293,7 +297,7 @@ def test_one_kicker_on_every_surface():
     # the carousel and the Story size from the ladder; one gap token
     assert multi_format.kicker_gap(40) == round(brand_system.tok("kicker.gap") * 40)
     # YouTube: the text face at the kicker's weight
-    f = youtube_thumbnail._kicker_font("SAHARA EYE", 900)
+    f = youtube_thumbnail._kicker_font("SAHARA EYE", 1600)   # round 8: at its feed floor only (it needs the room)
     assert f is not None and Path(f.path).name == Path(get_font(brand.TEXT_FONT, 80, weight=800).path).name
 
 
@@ -530,7 +534,7 @@ def test_the_second_brands_covers_set_their_real_headings(tmp_path, text, facebo
     from src.multi_format import MultiFormatGenerator
     photo = tmp_path / "p.jpg"
     Image.new("RGB", (1600, 2000), (70, 70, 70)).save(photo)
-    with brand.use(_second()):
+    with brand.use(_second(), validate=False):
         _, lay = MultiFormatGenerator()._render_carousel_slide("cover", photo, photo, {"heading": text, "body": "A body."},
                                                                0, 7, {}, "", facebook, subject="TEST")
     form = lay.meta["heading"]
@@ -542,7 +546,7 @@ def test_the_second_brands_reel_cover_lockup_sets_flattened_forest():
     """Round 7 integration: the Tunguska Reel cover's lockup (830 SQUARE MILES / FLATTENED FOREST) sets in the second
     brand on the lockup's tiers or its recorded last resort, never refused."""
     from src import cover_design
-    with brand.use(_second()):
+    with brand.use(_second(), validate=False):
         got, rec = cover_design._lockup(_D, {"line1": "830 SQUARE MILES", "line2": "FLATTENED FOREST"}, 912, 108)
     assert set(got) == {"line1", "line2"}
     assert " ".join(t for line in got["line2"][1] for t, _ in line) == "FLATTENED FOREST"

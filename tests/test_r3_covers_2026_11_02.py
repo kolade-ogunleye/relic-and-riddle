@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 
 import numpy as np
+import pytest
 from PIL import Image, ImageDraw
 
 from src import brand, cover_selector, youtube_thumbnail
@@ -273,10 +274,14 @@ def test_thumbnail_subject_line_gives_way_when_it_repeats_the_video_title() -> N
 
 
 def test_thumbnail_is_measured_at_feed_size() -> None:
+    # cycle 0 round 8 (lander ruling: nothing under its floor): the pair that drew title_1 under its 12 px floor
+    # is a recorded refusal now; the feed check still measures every drawn line (and would record such a failure)
+    from src.refusal import LayoutError
+    with pytest.raises(LayoutError, match="feed floor"):
+        youtube_thumbnail.render(_photo(), {"line1": "BEHIND ONE WALL...", "line2": "A FORGOTTEN CITY"})
     meta = {}
-    youtube_thumbnail.render(_photo(), {"line1": "BEHIND ONE WALL...", "line2": "A FORGOTTEN CITY"}, meta=meta)
+    youtube_thumbnail.render(_photo(), {"line1": "ONE WALL...", "line2": "A LOST CITY"}, meta=meta)
     assert set(meta["downscale"]["title_1"]) >= {"cap_168", "cap_246", "contrast_168", "contrast_246"}
-    assert not meta["downscale_ok"] and any("title_1" in f and "floor 12" in f for f in meta["downscale_fails"])
     meta = {}
     youtube_thumbnail.render(_photo(), {"line1": "THE 25-MILE", "line2": "SAHARA EYE"}, meta=meta)
     assert meta["downscale_ok"], meta["downscale_fails"]

@@ -277,7 +277,8 @@ def choose_face(text, font):
         return font
     for fallback in getattr(font, "_rr_fallbacks", ()):
         if not _missing(fallback, text):
-            face = _fallback_font(fallback, path, getattr(font, "_rr_variations", ()), raster_px(font))
+            face = _fallback_font(fallback, path, getattr(font, "_rr_variations", ()),
+                                  raster_px(font) if hasattr(font, "_rr_px") else font.size)
             face._rr_family = getattr(font, "_rr_family", None)
             face._rr_brand_font = font
             return face

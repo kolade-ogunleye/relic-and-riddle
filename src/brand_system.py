@@ -32,7 +32,7 @@ display -> brand display face; kicker, body, label -> text face; figure -> displ
 like a heading: one voice for the claim and its number); data_label, credit, badge -> data face; masthead ->
 masthead face. At most three voices on a frame (display, text, data), the masthead counted apart.
 Face-relative display type (round 8, operator ruling 6): every display size and floor above is written in the
-reference display face's px (REFERENCE_DISPLAY, Anton); a brand's display face resolves it by its cap height
+reference display face's px (reference_display(): the default brand's display face, Anton); a brand's display face resolves it by its cap height
 (tok("type.display_cap"), a brand token, derived from the face's metrics when the brand does not write it, so the face
 sets the reference measure), and a brand is validated when it is configured against the fit corpus (the board's real
 long titles, validate_display: BrandRefused). One refusal type for every renderer: typography.LayoutError (cards'
@@ -134,6 +134,7 @@ a dissolve only at an act change; captions <= 17 cps shown.
 """
 from __future__ import annotations
 
+import functools
 from collections.abc import Mapping
 from types import MappingProxyType
 from typing import Any
@@ -232,7 +233,7 @@ SYSTEM_TOKENS: Mapping[str, Any] = MappingProxyType({
     "plate.gutter": 24,               # design px (1080 wide) of INK between two photographs side by side
     # ---- face-relative display type (cycle 0 round 8, operator ruling 6): the display face's cap height as a share
     # of the reference ladder's (every display size and floor in TYPE / TYPE_FALLBACK / DEVIATIONS / the rulings is
-    # written in REFERENCE_DISPLAY units); "measure": derived from the face's own metrics (display_cap_of)
+    # written in reference-display units); "measure": derived from the face's own metrics (display_cap_of)
     "type.display_cap": "measure",
     # ---- the YouTube headline's kickerless variant (ruling 5): with no kicker drawn above it, the headline takes
     # its ladder's larger size on two lines before the fallback size on one ("one size up", the kicker's room)
@@ -697,7 +698,7 @@ def masthead_shown_on_grid(cap_px: float, canvas_w: int, grid_w: int = 124) -> b
 
 # ---- face-relative display type (cycle 0 round 8, operator ruling 6) -------------------------------------------------
 # Every display size and floor the system writes (TYPE / TYPE_FALLBACK display roles, the cards' ladders, the cover
-# and YouTube lockups, the Story's floors) is in REFERENCE_DISPLAY units: the px the reference display face (Anton,
+# and YouTube lockups, the Story's floors) is in reference-display units: the px the reference display face (Anton,
 # the face the ladder was measured on) is set at. A brand's display face resolves them to its own px by its cap
 # height: px = size x (REFERENCE cap / face cap) x tok("type.display_cap"), where type.display_cap is the face's cap
 # height as a share of the reference's at the same size step. A brand may write it (a brand token, like a colour);
@@ -709,29 +710,25 @@ def masthead_shown_on_grid(cap_px: float, canvas_w: int, grid_w: int = 124) -> b
 # meets them or the surface takes its recorded step (cover_design._lockup, youtube_thumbnail._lockup). The renderer
 # reads it through brand.DISPLAY_FONT (brand.DisplayFace): the size a caller asks for is the reference size, the
 # face is rasterised at the brand's px (font._rr_px, as a QF-94 fallback face is), and .size stays the asked size.
-REFERENCE_DISPLAY = "Anton"
+def reference_display() -> str:
+    """The reference display face: the default brand's display family (the face the system's ladder was measured on)."""
+    from . import brand
+    return str(brand.DEFAULT_BRAND.family("display"))
+
+
 REFERENCE_SAMPLE = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"   # the measure sample: every capital once
 
 
 def face_metrics(family: str, weight: int | None = None) -> tuple[float, float]:
     """(cap height per px, the sample's advance per px) of a bundled family, measured at 1000 px."""
-    return _face_metrics(str(family), weight)
+    return _face_metrics(str.__str__(str(family)), weight)
 
 
-def _face_metrics_uncached(family: str, weight: int | None) -> tuple[float, float]:
+@functools.lru_cache(maxsize=32)
+def _face_metrics(family: str, weight: int | None) -> tuple[float, float]:
     from .typography import cap_height, get_font
     f = get_font(family, 1000, weight=weight)
     return cap_height(f) / 1000.0, float(f.getlength(REFERENCE_SAMPLE)) / 1000.0
-
-
-_FACE_METRICS: dict = {}
-
-
-def _face_metrics(family: str, weight: int | None) -> tuple[float, float]:
-    key = (family, weight)
-    if key not in _FACE_METRICS:
-        _FACE_METRICS[key] = _face_metrics_uncached(family, weight)
-    return _FACE_METRICS[key]
 
 
 def display_cap_of(config=None) -> float:
@@ -743,9 +740,9 @@ def display_cap_of(config=None) -> float:
     family = cfg.family("display")
     if value != TOKEN_DERIVED["type.display_cap"]:
         return float(value)
-    if str(family) == REFERENCE_DISPLAY:
+    if str(family) == reference_display():
         return 1.0
-    ref_cap, ref_set = face_metrics(REFERENCE_DISPLAY)
+    ref_cap, ref_set = face_metrics(reference_display())
     cap, set_w = face_metrics(str(family))
     return (ref_set / set_w) * cap / ref_cap
 
@@ -756,9 +753,9 @@ def display_px_scale(config=None) -> float:
     cfg = config or brand.active()
     family = str(cfg.family("display"))
     share = display_cap_of(cfg)
-    if family == REFERENCE_DISPLAY and share == 1.0:
+    if family == reference_display() and share == 1.0:
         return 1.0
-    ref_cap, _ = face_metrics(REFERENCE_DISPLAY)
+    ref_cap, _ = face_metrics(reference_display())
     cap, _ = face_metrics(family)
     return share * ref_cap / cap
 
@@ -809,20 +806,21 @@ def fit_corpus() -> list[dict]:
     return list(json.loads(path.read_text(encoding="utf-8"))["lines"])
 
 
-_VALIDATED: dict = {}
-
-
 def validate_display(config) -> list[str]:
     """The corpus lines `config`'s display face cannot set on their surface (FIT_SPECS), as readable reasons ([]: the
     brand's type sets the board's real long titles). Cached per display face and type.display_cap."""
+    face = config.font("display")
+    return list(_validate(str.__str__(face), float(getattr(face, "px_scale", 1.0)), round(display_cap_of(config), 3)))
+
+
+@functools.lru_cache(maxsize=16)
+def _validate(family: str, px_scale: float, cap: float) -> tuple[str, ...]:
     from PIL import Image, ImageDraw
 
+    from . import brand
     from .heading import set_heading
     from .typography import get_font
-    face = config.font("display")
-    key = (str.__str__(face), getattr(face, "px_scale", 1.0))
-    if key in _VALIDATED:
-        return list(_VALIDATED[key])
+    face = brand.DisplayFace(family, px_scale) if px_scale != 1.0 else family
     d = ImageDraw.Draw(Image.new("RGB", (8, 8)))
 
     def measure(t, sz):
@@ -836,6 +834,5 @@ def validate_display(config) -> list[str]:
                                balance_min=0.0) is not None for w, floor, n in specs):
             w, floor, n = specs[-1]
             fails.append(f"{line['surface']}: {line['text']!r} does not set in {n} line(s) of {w} px at {floor} "
-                         f"(display {str.__str__(face)}, cap {display_cap_of(config):.3f})")
-    _VALIDATED[key] = tuple(fails)
-    return fails
+                         f"(display {family}, cap {cap:.3f})")
+    return tuple(fails)

@@ -1126,9 +1126,9 @@ class PipelineCoordinator:
             fut_thumbs = thumb_pool.submit(cover_job, (
                 ("cover", lambda: on_surface("cover", self.visual_engine.generate_thumbnails, hero_img, payload,
                                              run_dir, variants=False)),
-                ("YouTube thumbnail", lambda: on_surface("YouTube thumbnail",
-                                                         self.visual_engine.generate_youtube_thumbnail, hero_img,
-                                                         payload, run_dir / "thumbnail_youtube_16x9.jpg"))))
+                ("YouTube thumbnail", lambda: on_surface(
+                    "YouTube thumbnail", self.visual_engine.generate_youtube_thumbnail, hero_img, payload,
+                    run_dir / "thumbnail_youtube_16x9.jpg"))))
             thumb_pool.shutdown(wait=False)
             step(4, "Rendering the documentary, preparing review")
             try:

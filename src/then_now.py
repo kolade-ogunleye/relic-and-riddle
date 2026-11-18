@@ -1484,7 +1484,6 @@ def render(old: Path, old_year: int, new: Path, new_year: int, out: Path, width:
     split0 = compose(pushed(a_src, CLIP_SECONDS, size), pushed(b_src, CLIP_SECONDS, size), split)
     alone0 = {"then": compose(pushed(a_src, 0.0, size), pushed(b_src, 0.0, size), edge),
               "now": compose(pushed(a_src, t_far, size), pushed(b_src, t_far, size), 0)}
-    at = {"then": edge, "now": 0}
 
     def ink_boxes(which: str, ln: tuple) -> list:
         kxy, fxy, anchor = ln
@@ -1521,9 +1520,10 @@ def render(old: Path, old_year: int, new: Path, new_year: int, out: Path, width:
     # held INK plate holding the kicker's rule. The pair keeps one colour role: one marker in gold and the other in
     # bone are both set in bone (round 4's rule); INK type on paper and a plate on a busy ground are each the one
     # rule's answer to its own ground. The halo up to 1.0 and the glows are retired.
+    import numpy as np
+
     from .brand_system import colour_of
     from .typography import plan_label
-    import numpy as np
     rules = {w: marker_rule(lines[w][0], words[w], key, lines[w][2]) for w in years}
     lightest = {w: Image.fromarray(np.maximum(np.asarray(split0), np.asarray(alone0[w]))) for w in years}
     darkest = {w: Image.fromarray(np.minimum(np.asarray(split0), np.asarray(alone0[w]))) for w in years}

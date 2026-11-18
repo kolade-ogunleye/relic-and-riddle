@@ -167,6 +167,29 @@ process by the src renderers as the pipeline calls them, on real run inputs (eac
   frame, after the type has faded.
 A failed extra is recorded in `board.json` `errors` and the board goes on.
 
+Round 8 (official panel 1, consensus 8; lane BOARD; evidence only, no design change):
+- `board_motion.py`: production-encoder clips in `<out>/clips` (listed in `board.json` `clips` with frames, seconds,
+  sha256 and the encoder line) for rows 7 (captions), 9 and 12 (16:9 end screen, 9:16 end card, loop bridge with
+  FOLLOW into the Reel's frame 0, the hook, the act dissolve). Each sequence is drawn once, encoded once by
+  `delivery_video_encoder` and decoded once; the row-12 strips are labelled with real frame times and come with their
+  luma / alpha curves (`row12_motion_*_curves.png`), the end card's measured rise, the hook's `_hook_alpha` and the
+  dissolve's measured mix; the ease plot has real axes; row 9 adds FOLLOW where it is held and the end card at rest.
+- `row13_motion_tokens.png/json`: every motion value the tree holds (brand_system `motion.*` by kind, the eases with
+  `motion.back`'s overshoot, the renderers' timing constants, the act dissolve's frames, the caption ASS's word ease
+  and plate fade, and every timing call in the end card, bridge and hook code, with its line).
+- `row07_captions_cps.png/json`: per caption case and burst, on-screen seconds, characters, shown CPS, the spoken
+  window, the word it ends on (never-end words flagged) and the composer's own `last_reading_rate`.
+- `board_evidence.py`: every tile's label carries its pairing class (STAND-IN / FORCED) and a probe kind without a
+  rule stops the board; the caption grounds are drawn by the tree under review (a stored graphic frame is re-drawn);
+  `refusals_<brand>.png/json` is the palette's refusal table (surface, what, reason); `peer_feed_<feed>.png` is a
+  feed sheet per feed surface at real pixel size (`--peers <dir>` with `<dir>/<feed>/*.jpg`; without it the slots
+  hold the channel's other runs, labelled STAND-IN).
+- `render_surfaces.py` passes the Story's one title size as production does (`story_title_px` over the Story) and
+  records it (`story_title_px` in surfaces.json); a cover's Reel/grid and its YouTube thumbnail, and each social frame,
+  are recorded on their own (one refusal no longer drops its siblings).
+- Time: `board_speed.py` memoises the end card's ground inside its line gate (exact: same frames and stats, checked);
+  `run_surfaces.py` starts render_surfaces.py with it; every row's time is printed and kept in `board.json` `seconds`.
+
 ## Acceptance
 
 `python measure.py <repo root>`: the masthead on six committed grounds at the three carried sizes, all within the

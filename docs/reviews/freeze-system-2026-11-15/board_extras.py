@@ -15,8 +15,10 @@ Cases (each tile's label says which it is):
 - the hook frame: the tests' committed hook card on the real heroes (as render_surfaces.py), at the frame the claim is
   held (frame 0, the Reel's first frame), not the clip's last frame (after the type has faded).
 - captions: the catalogue's caption cases on their own run's caption-free ground at that narration time
-  (fixtures.background_at), through the master's picture chain (video_composer.picture_chain, the subtitles filter in
-  it) and the delivery encoder (encoding.delivery_video_encoder), a 0.2 s clip, decoded as BT.709.
+  (fixtures.background_at; round 8: a stored graphic frame there is re-drawn by this tree, board_evidence.
+  caption_ground), through the master's picture chain (video_composer.picture_chain, the subtitles filter in it) and
+  the delivery encoder (encoding.delivery_video_encoder), one clip per case from 0 to the end of its third burst,
+  decoded as BT.709 once (the still, the burst-change frames and the clip itself).
 - the disclosure badge on the cover and the YouTube thumbnail: no run has had an illustrated hero, so the bright run's
   cover and thumbnail are drawn with scene_planner.is_illustration answering yes for its hero (labelled FORCED).
 """
@@ -36,7 +38,6 @@ BRIGHT_HERO = Path("assets") / "unfinished_obelisk_aswan" / "01_commons.jpg"
 NEAR_WHITE_HERO = Path("assets") / "antikythera_mechanism" / "01_commons.jpg"
 STAND_IN = "STAND-IN: antikythera photo, Aswan run copy (no antikythera run)"
 CAPTION_TOPICS = ("amber_room_heist", "richat_structure_sahara_eye")
-CAPTION_CLIP_S = 0.2
 
 _cache: dict[str, Any] = {}
 
@@ -252,39 +253,48 @@ def _esc(p: Path) -> str:
     return str(p.resolve()).replace("\\", "/").replace(":", "\\:")
 
 
-def encode_caption_frame(ground, ass: Path, t: float, size: tuple[int, int], fonts: Path, work: Path, tag: str):
-    """One frame at narration time `t` of `ground` with `ass` burned in by the master's picture chain
-    (video_composer.picture_chain: BT.709 in, 16-bit RGB, lens vignette, the subtitles filter, BT.709 out) and the
-    delivery encoder (encoding.delivery_video_encoder plus the master's colour tags), decoded as BT.709. A
-    CAPTION_CLIP_S still clip: the captions at `t` on the run's own picture, as the delivered file carries them."""
-    from src.encoding import BT709_TO_RGB, delivery_video_encoder, to_bt709
+CAPTION_CLIP_BURSTS = 3     # round 8: each caption clip runs from 0 to the end of its third burst (at most 6 s)
+
+
+def encode_caption_clip(ground, ass: Path, t0: float, seconds: float, size: tuple[int, int], fonts: Path,
+                        clip: Path) -> dict[str, Any]:
+    """Round 8 (MO-1): one production-encoder clip of narration time t0 .. t0 + seconds: `ground` held, `ass` burned in
+    by the master's picture chain (video_composer.picture_chain: BT.709 in, 16-bit RGB, lens vignette, the
+    subtitles filter, BT.709 out) and the delivery encoder. {path, sha256, encoder}."""
+    import hashlib
+
+    from src.encoding import delivery_video_encoder, to_bt709
     from src.video_composer import VIDEO_FPS, picture_chain
     w, h = size
-    still = work / f"{tag}_ground.png"
+    still = clip.with_suffix(".ground.png")
     ground.save(still)
     chain = picture_chain("null", w, h, captions=f"subtitles='{_esc(ass)}':fontsdir='{_esc(fonts)}'")
-    graph = (f"[0:v]scale=out_color_matrix=bt709:out_range=tv,format=yuv420p,setpts=PTS+{t:.3f}/TB,"
+    graph = (f"[0:v]scale=out_color_matrix=bt709:out_range=tv,format=yuv420p,setpts=PTS+{t0:.3f}/TB,"
              f"format=yuv420p,{chain},format=yuv420p,{to_bt709('bt709')}[v]")
-    mp4, png = work / f"{tag}.mp4", work / f"{tag}.png"
-    subprocess.run(["ffmpeg", "-v", "error", "-y", "-loop", "1", "-framerate", str(VIDEO_FPS), "-t", f"{CAPTION_CLIP_S}",
+    subprocess.run(["ffmpeg", "-v", "error", "-y", "-loop", "1", "-framerate", str(VIDEO_FPS), "-t", f"{seconds:.3f}",
                     "-i", str(still), "-filter_complex", graph, "-map", "[v]", *delivery_video_encoder(),
                     "-pix_fmt", "yuv420p", "-color_range", "tv", "-color_primaries", "bt709", "-color_trc", "bt709",
-                    "-colorspace", "bt709", "-r", str(VIDEO_FPS), str(mp4)],
-                   check=True, capture_output=True, timeout=300)
-    subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", str(mp4), "-vf", f"{BT709_TO_RGB},format=rgb24",
-                    "-frames:v", "1", str(png)], check=True, capture_output=True, timeout=120)
-    return _rgb(png)
+                    "-colorspace", "bt709", "-r", str(VIDEO_FPS), str(clip)],
+                   check=True, capture_output=True, timeout=600)
+    still.unlink(missing_ok=True)
+    return {"path": clip, "sha256": hashlib.sha256(clip.read_bytes()).hexdigest(),
+            "encoder": "picture_chain + subtitles, " + " ".join(delivery_video_encoder())}
 
 
-def caption_frames(tree: Path, work: Path) -> list[dict[str, Any]]:
-    """The catalogue's caption cases of the board's heroes, as render_surfaces.py builds their ASS (same time: the
-    first burst, words[3]), each without and with the reconstruction badge, burned into the run's own ground."""
+def caption_frames(tree: Path, work: Path, clips: Path | None = None) -> list[dict[str, Any]]:
+    """The catalogue's caption cases of the board's heroes, as render_surfaces.py builds their ASS, each without and
+    with the reconstruction badge, burned into the run's ground AS THIS TREE DRAWS IT (board_evidence.caption_ground:
+    a stored graphic is re-drawn) in ONE production-encoder clip per case (0 to the end of its third burst), decoded
+    once: the still at the first burst (words[3], as before), the burst-change frames and the clip itself. Each item
+    also carries the ASS text, the words and the composer's reading-rate record (the CPS table)."""
     if "captions" in _cache:
         return _cache["captions"]
+    import board_evidence as be
+    import board_motion as bm
     import fixtures as fx
-    from PIL import Image, ImageOps
 
     from src import video_composer as vc
+    clips = clips or work
     out = []
     for case in fx.load("captions"):
         if case["topic"] not in CAPTION_TOPICS:
@@ -294,16 +304,27 @@ def caption_frames(tree: Path, work: Path) -> list[dict[str, Any]]:
         size = (1920, 1080) if wide else (1080, 1920)
         t = float(words[min(3, len(words) - 1)]["start"]) + 0.05
         end = float(words[-1]["start"]) + float(words[-1].get("dur", 1.0))
-        ground_src = fx.background_at(case, t)
-        ground = ImageOps.fit(_rgb(Path(ground_src)), size, Image.LANCZOS)
+        ground, note = be.caption_ground(case, t, size, work)
         for suffix, recon in (("", None), ("__badge", [(0.0, end)])):
             ass = work / f"enc_{case['topic']}{suffix}.ass"
             kw = {"width": 1920, "height": 1080} if wide else {}
-            vc.VideoComposer().build_subtitles(words, ass, emphasis=case.get("emphasis_words") or None,
-                                               reconstruction_intervals=recon, **kw)
-            im = encode_caption_frame(ground, ass, t, size, tree / "fonts", work, f"enc_{case['topic']}{suffix}")
-            out.append({"name": f"captions__{case['topic']}{suffix}__encoded", "badge": bool(suffix), "image": im,
-                        "label": f"production encode t={t:.2f}s on the run's ground {Path(str(ground_src)).name}"})
+            comp = vc.VideoComposer()
+            comp.build_subtitles(words, ass, emphasis=case.get("emphasis_words") or None,
+                                 reconstruction_intervals=recon, **kw)
+            text = ass.read_text(encoding="utf-8")
+            bursts = be.ass_bursts(text)
+            seconds = min(6.0, max(t + 0.5, bursts[min(CAPTION_CLIP_BURSTS, len(bursts)) - 1]["hide"] if bursts else 3.0))
+            name = f"captions__{case['topic']}{suffix}__encoded"
+            clip = encode_caption_clip(ground, ass, 0.0, seconds, size, tree / "fonts", clips / f"{name}.mp4")
+            k_t = round(t * bm.FPS)
+            changes = {round(b["show"] * bm.FPS) for b in bursts[1:CAPTION_CLIP_BURSTS]}
+            keep = {k_t} | {c + d for c in changes for d in range(-1, 5)}
+            seq = bm.Seq(name, clip, size, None, keep=lambda i, keep=keep: i in keep)
+            clip["frames"] = seq.n
+            out.append({"name": name, "badge": bool(suffix), "image": seq.kept.get(k_t), "seq": seq, "clip": clip,
+                        "ass": text, "words": words, "record": getattr(comp, "last_reading_rate", None),
+                        "case": case["topic"], "format": case.get("format"), "changes": sorted(changes),
+                        "label": f"production encode t={t:.2f}s (frame {k_t} of the clip) on {note}"})
     _cache["captions"] = out
     return out
 

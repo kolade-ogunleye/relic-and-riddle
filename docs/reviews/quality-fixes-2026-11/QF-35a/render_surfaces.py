@@ -363,8 +363,9 @@ def main() -> None:
             hero = fx.path(case["hero"]["photo"])
             payload = fx.payload(case)
             d = work / f"cover_{case['topic']}"
-            # cycle 0 round 8 (ruling 6): each surface drawn and refused on its own, the refusal recorded (a YouTube
-            # TextFitError discarded the drawable Tunguska reel and grid in round 7)
+            # cycle 0 round 8 (ruling 6; panel AD MG-3): each surface drawn and refused on its own, so a YouTube
+            # refusal never takes the Reel cover and the grid tile with it: a refusal (src/refusal.LayoutError) is a
+            # surface record {"refused", "class", "code"}; any other error is recorded under the surface's own name
             from src.refusal import LayoutError
             try:
                 reel, grid = VisualEngine().generate_thumbnails(hero, payload, d, variants=False,
@@ -374,27 +375,35 @@ def main() -> None:
             except LayoutError as e:
                 for tag in ("reel", "grid"):
                     result["surfaces"][f"cover__{case['topic']}__{tag}"] = refused(e)
+            except Exception:  # noqa: BLE001
+                result["errors"][f"cover__{case['topic']}__reel"] = traceback.format_exc()[-1200:]
             try:
                 frames_of(f"cover__{case['topic']}__youtube",
                           [Image.open(VisualEngine().generate_youtube_thumbnail(hero, payload, d / "yt.jpg"))])
             except LayoutError as e:
                 result["surfaces"][f"cover__{case['topic']}__youtube"] = refused(e)
+            except Exception:  # noqa: BLE001
+                result["errors"][f"cover__{case['topic']}__youtube"] = traceback.format_exc()[-1200:]
         job("covers", f"cover {case['topic']}", cover)
 
     # ------------------------------------------------------------------ carousels, gallery, Stories
     from src.multi_format import MultiFormatGenerator
     from src.refusal import LayoutError
 
-    def draw_social(gen, kind, r, rec):
+    def draw_social(gen, kind, r, rec, title_px=None):
+        """One recorded frame redrawn as production draws it: a Story at its deck's one title size (the recipe's,
+        else story_title_px over the deck); a carousel slide with the run's lead unit and its deck window (round 8)."""
         if kind == "story":
             im, _ = gen._render_story_frame(Path(r["photo"]), r["slide"], int(r["index"]), int(r["count"]),
-                                            r.get("poll") or {}, tight=bool(rec.get("tight")))
+                                            r.get("poll") or {}, tight=bool(rec.get("tight")),
+                                            title_px=int(r.get("title_px") or title_px or 0) or None)
         else:
             im, _ = gen._render_carousel_slide(
                 r["archetype"], Path(r["photo"]), Path(r["photo_next"]), r["card"], int(r["index"]),
                 int(r["total"]), r.get("poll") or {}, r.get("share") or "", bool(r.get("facebook")),
                 tight=bool(rec.get("tight")), subject=r.get("subject") or "",
-                heading_frame=int(r.get("heading_frame") or 2))
+                heading_frame=int(r.get("heading_frame") or 2), lead=r.get("lead"),
+                window=int(r.get("window") or 0))
         return im
 
     for case in fx.load("social"):
@@ -403,21 +412,35 @@ def main() -> None:
         run = fx.path(case["run"])
 
         def social(run=run):
+            from src.multi_format import story_title_px
             gen = MultiFormatGenerator()
             for sub, kind in (("carousel", "carousel"), ("carousel_fb", "fb"), ("stories", "story")):
                 rec_file = run / sub / "still_layout.json"
                 if not rec_file.is_file():
                     continue
-                for frame_name, rec in sorted(json.loads(rec_file.read_text(encoding="utf-8")).items()):
+                recs = json.loads(rec_file.read_text(encoding="utf-8"))
+                title_px = None
+                if kind == "story":   # cycle 0 round 8 (panel AD E1): the Story's ONE title size, as production
+                    # passes it (multi_format.py: story_title_px over the Story's slides, poll {}); a recipe that
+                    # recorded its size keeps it
+                    slides = [r["slide"] for r in sorted(((v.get("recipe") or {}) for v in recs.values()),
+                                                         key=lambda r: int(r.get("index", 0))) if r]
+                    title_px = story_title_px(slides, poll={}) if slides else None
+                for frame_name, rec in sorted(recs.items()):
                     r = rec.get("recipe") or {}
                     if not r:
                         continue
                     key = f"social__{run.name[4:]}__{kind}_{Path(frame_name).stem}"
-                    try:
-                        im = draw_social(gen, kind, r, rec)
-                    except LayoutError as e:   # round 8: one frame refused, recorded; the deck's others still draw
+                    try:   # round 8: one frame's refusal never takes the run's other frames with it
+                        im = draw_social(gen, kind, r, rec, title_px)
+                    except LayoutError as e:   # a refusal: the one record shape {"refused", "class", "code"}
                         result["surfaces"][key] = refused(e)
                         continue
+                    except Exception:  # noqa: BLE001
+                        result["errors"][key] = traceback.format_exc()[-1200:]
+                        continue
+                    if kind == "story":
+                        result.setdefault("story_title_px", {})[key] = int(r.get("title_px") or title_px or 0) or None
                     frames_of(key, [im])
         job("social", f"social {run.name}", social)
 

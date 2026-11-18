@@ -263,6 +263,21 @@ def active() -> BrandConfig:
     return _active
 
 
+def fingerprint(config: BrandConfig | None = None) -> str:
+    """A hash of everything a brand draws with (cycle 0 round 8, diagram slides): its resolved palette, faces, text and
+    system tokens. A drawing stamped with another fingerprint (a stored poster drawn under an earlier brand or token
+    set) is not this brand's drawing."""
+    import hashlib
+    import json
+    cfg = config or _active
+    body = {"name": cfg.name, "palette": {k: list(cfg.colour(k)) for k in sorted(cfg.palette)},
+            "fonts": {k: cfg.font(k) if k not in ("caption", "caption_wide") else str(cfg.fonts[k])
+                      for k in sorted(cfg.fonts)},
+            "text": dict(sorted(cfg.text.items())),
+            "system": {k: repr(v) for k, v in sorted(cfg.system.items())}}
+    return hashlib.sha256(json.dumps(body, sort_keys=True, ensure_ascii=True).encode("ascii")).hexdigest()
+
+
 def configure(config: BrandConfig | None) -> BrandConfig:
     """Make `config` (None: the default) the active brand for the whole process; returns the one it replaced."""
     global _active

@@ -671,8 +671,11 @@ class MultiFormatGenerator:
             (out_dir / name).unlink(missing_ok=True)
         poll: dict[str, Any] = {}  # no frame asks the poll: it would turn the reveal into a question frame
         # One unit per run: figures in the unit the narration speaks (2026-10-29); matched to photos as written.
+        # Cycle 0 round 8: one lead unit per run (the signed scale fact's system decides; figures.deck_lead).
         narration = script_payload.get("narration_script") or ""
-        slides_data = [{k: (spoken_units(v, narration) if isinstance(v, str) else v) for k, v in s.items()}
+        from .figures import deck_lead
+        lead = deck_lead(script_payload)
+        slides_data = [{k: (spoken_units(v, narration, lead) if isinstance(v, str) else v) for k, v in s.items()}
                        for s in slides_data]
         layout = []  # each frame's text block, for the audit and the evidence renders
         title_px = story_title_px(slides_data, poll=poll)   # round 7 (F10): one title size per Story
@@ -854,11 +857,18 @@ class MultiFormatGenerator:
                 y += (STORY_FIGURE_GAP if out else 0) + cap_height(f_fig)
                 if inline:
                     out.append(("figure_qualifier", y, hero["qualifier"], q_font, brand.BONE, 0))
-                out.append(("figure", y, hero["number"], f_fig, brand.GOLD, round(q_w) if inline else 0))
+                out.append(("figure", y, hero["number"], f_fig, figure_colour(), round(q_w) if inline else 0))
                 if hero["unit"]:
                     y += STORY_FIGURE_GAP + cap_height(f_unit)
                     # Under the numeral it measures (inline: indented past the qualifier, so "FT DEEP" reads with "280").
-                    out.append(("figure_unit", y, hero["unit"], f_unit, brand.BONE, round(q_w) if inline else 0))
+                    # Cycle 0 round 8 (ruling 8): the unit is gold with its number; the dimension word ("DEEP") bone.
+                    from .figures import DIMENSION_WORDS
+                    uw = hero["unit"].split()
+                    n_unit = next((i for i, w in enumerate(uw) if w.lower() in DIMENSION_WORDS), len(uw))
+                    ux = round(q_w) if inline else 0
+                    for part, is_gold in unit_runs(hero["unit"], n_unit):
+                        out.append(("figure_unit", y, part, f_unit, figure_colour() if is_gold else brand.BONE, ux))
+                        ux += round(d.textlength(part + " ", font=f_unit))
                 return out, y
             f = get_font(brand.DISPLAY_FONT, size)
             # Round 7 (F1, F10): each field set by the engine at the Story's one size: one line, else a valid break
@@ -1494,8 +1504,12 @@ class MultiFormatGenerator:
             y += kicker_gap(fk.size)
             short += ["kicker"] if ks else []
         if stat:
-            m = re.match(r"(\S+)\s*(.*)", stat)
-            num, unit = m.group(1), m.group(2).strip()
+            # Cycle 0 round 8 (QF-147, ruling 8): the figure whole, in its parts (src/figures.py split_drawn): the hedge
+            # in bone on its own line over the figure, at the unit's size ("UP TO"); the number and its unit in gold
+            # (the figure face's colour), the unit beside the number, smaller; the dimension word after it in bone.
+            from .figures import split_drawn
+            hedge, num, unit_g, tail = split_drawn(stat)
+            unit = " ".join(x for x in (unit_g, tail) if x)
             size, stacked = 225 * scale, []
             while True:
                 fs, fu = get_font(brand.DISPLAY_FONT, fx(size)), get_font(brand.DISPLAY_FONT, fx(max(40, size * 0.42)))
@@ -1517,17 +1531,30 @@ class MultiFormatGenerator:
                         size -= 6
                     break
                 size -= 6
+            gold = figure_colour()
+            if hedge:
+                fq = fu if not stacked else get_font(brand.DISPLAY_FONT, fx(max(40, size * 0.42)))
+                y += cap_height(fq)
+                rows.append({"name": "stat", "text": hedge, "font": fq, "fill": brand.BONE, "y": y, "part": "hedge"})
+                y += round(cap_height(fq) * 0.6)
             y += cap_height(fs)
-            rows.append({"name": "stat", "text": num, "font": fs, "fill": brand.GOLD, "y": y})
+            rows.append({"name": "stat", "text": num, "font": fs, "fill": gold, "y": y, "part": "number"})
+
+            def unit_rows(line: str, x: int, yy: int, offset: int) -> None:
+                """One unit line in its runs: the unit gold, the dimension word bone (ruling 8)."""
+                for text_, is_gold in unit_runs(line, len(unit_g.split()), offset):
+                    rows.append({"name": "stat", "text": text_, "font": fu, "y": yy, "x": x,
+                                 "fill": gold if is_gold else brand.BONE, "part": "unit" if is_gold else "tail"})
+                    x += int(d.textlength(text_ + " ", font=fu))
             if unit and stacked:
                 ux = int(d.textlength(num, font=fs)) + px(22)
                 step = round(cap_height(fu) * 1.25)
+                done = 0
                 for j, half in enumerate(stacked):
-                    rows.append({"name": "stat", "text": half, "font": fu, "fill": brand.BONE,
-                                 "y": y - (len(stacked) - 1 - j) * step, "x": ux})
+                    unit_rows(half, ux, y - (len(stacked) - 1 - j) * step, done)
+                    done += len(half.split())
             elif unit:
-                rows.append({"name": "stat", "text": unit, "font": fu, "fill": brand.BONE, "y": y,
-                             "x": int(d.textlength(num, font=fs)) + px(18)})
+                unit_rows(unit, int(d.textlength(num, font=fs)) + px(18), y, 0)
             y += px(30 * scale)
         # Round 7 (F1, F2, F4, F5): the heading is set by the one engine (src/heading.py) on the type ladder, never fitted
         # to its measure: a cover (two_tone True) at display_xl, locked (the break and the band give way); a content
@@ -1766,19 +1793,27 @@ class MultiFormatGenerator:
 
     def _render_colossal_stat(self, photo: Path, card: dict[str, Any], index: int, cw: int, chh: int,
                               lay=None, tight: bool = False) -> Image.Image:
-        """A figure slide: the split layout led by the card's own figure (its first number, with its unit when it
-        has one); a card without one gets no figure rather than a label in its place. No "VERIFIED BY
-        ARCHEOLOGICAL RECORD" pill (platform audit, 2026-10-28)."""
+        """A figure slide: the split layout led by the figure its BODY states, whole (src/figures.py: hedge, number or
+        span, unit; cycle 0 round 8, QF-147). The body is the slide's signed copy and must state the drawn figure: a
+        body that states none gets the no-figure layout, never a figure from the heading over a body about something
+        else ("280 FEET" over "between eight and 18 levels"), a truncation ("11" for 11.5 ft, "41" for 41.75 m), one
+        end of a span ("18 LEVELS", "137 FEET") or a figure without its hedge ("20,000 PEOPLE" for "up to 20,000").
+        The drawn figure is checked against the body (figures.truth_faults) and recorded with its parts. No "VERIFIED
+        BY ARCHEOLOGICAL RECORD" pill (platform audit, 2026-10-28)."""
+        from . import figures
         heading, body = card["heading"].upper(), card["body"]
         im = self._split_ground(photo, cw, chh)
-        # A span is drawn whole ("94–104 MILLION YEARS AGO"), never as its first number (round 3, 2026-11-02).
-        span = range_figure(f"{heading} {body}")
-        stat_match = None if span else re.search(
-            r"(\b\d+[\d,]*\+?(?:\s*(?:TONS?|PEOPLE|FEET|FT|METERS?|M|STORIES|LEVELS))?)\b", f"{heading} {body}",
-            re.IGNORECASE)
-        stat = " ".join(x for x in span if x) if span else stat_match.group(1).upper() if stat_match else ""
-        if lay is not None and stat:
-            lay.meta["stat"] = stat
+        fig = figures.stat_figure(body)
+        stat = fig.drawn() if fig is not None else ""
+        faults = figures.truth_faults(stat, [body]) if stat else []
+        if faults:   # never drawn: a figure the body does not state whole (the critic's own check, fail closed)
+            log.warning("Stat slide figure withheld (%s).", "; ".join(faults))
+            stat = ""
+        if lay is not None:
+            lay.meta["stat_figure"] = ({**fig.record(), "source": "body", "faults": faults} if fig is not None
+                                       else {"drawn": "", "source": "", "reason": "the body states no figure"})
+            if stat:
+                lay.meta["stat"] = stat
         tag = self._tag(self._get_card_category(card, "colossal_stat"), index)
         return self._slide_text(im, lay, cw, chh, heading, body, kicker=tag, stat=stat, full=False, tight=tight,
                                 b_lines=3, h_spec=(84, 52))   # its figure leads: bottom-aligned
@@ -2080,9 +2115,19 @@ class MultiFormatGenerator:
         archetypes = self.sequence_archetypes(cards)
         diagram = carousel_diagram(output_dir, cards, graphics)
         if diagram:
+            # cycle 0 round 8: the drawing as the active brand and this code draw it, from the signed field; never a
+            # stale stored poster (current_poster); no drawing that can be redrawn -> the slide keeps its photo
+            drawn_poster, why = current_poster(output_dir, diagram[1], script_payload)
+            log.info("Carousel diagram slide %d: %s.", diagram[0] + 1, why)
+            diagram = (diagram[0], drawn_poster) if drawn_poster is not None else None
+        if diagram:
             archetypes = [("diagram" if i == diagram[0] else a) for i, a in enumerate(archetypes)]
-        # One unit per run: figures in the unit the narration speaks (2026-10-29), after the photo match.
-        cards = [dict(card, **{k: spoken_units(card[k], narration) for k in ("heading", "body")
+        # One unit per run: figures in the unit the narration speaks (2026-10-29), after the photo match; cycle 0
+        # round 8: the signed scale fact's unit decides a length's lead for the whole deck (the diagram slide leads
+        # in it, so every other slide states it first: figures.deck_lead).
+        from .figures import deck_lead
+        lead = deck_lead(script_payload)
+        cards = [dict(card, **{k: spoken_units(card[k], narration, lead) for k in ("heading", "body")
                                if isinstance(card.get(k), str)}) for card in cards]
         frame = self._deck_heading_frame(cards, archetypes, facebook)   # one frame for every slide of this copy
         # Instagram's swipe strip (round 4): slide 2 is drawn first, so slide 1's strip meets slide 2's kicker rule.
@@ -2142,6 +2187,24 @@ def range_figure(text: str) -> tuple[str, str] | None:
         if a < b:
             return f"{lo}\u2013{m.group('b')}", " ".join(m.group("unit").upper().split())
     return None
+
+
+def figure_colour() -> tuple[int, int, int]:
+    """A stated quantity's colour (the figure.colour token: GOLD by default; ruling 3, ruling 8)."""
+    return colour_of("figure.colour")
+
+
+def unit_runs(line: str, gold_words: int, offset: int = 0) -> list[tuple[str, bool]]:
+    """A unit line's runs [(text, gold)]: its first `gold_words` words (counted from `offset`, the words of the
+    unit set on earlier lines) are the unit, gold; the rest (the dimension word: TALL, DEEP, AGO) bone (ruling 8)."""
+    out: list[tuple[str, bool]] = []
+    for i, w in enumerate(line.split()):
+        g = offset + i < gold_words
+        if out and out[-1][1] == g:
+            out[-1] = (out[-1][0] + " " + w, g)
+        else:
+            out.append((w, g))
+    return out
 
 
 CAROUSEL_PHOTOS = "carousel_photos.json"
@@ -2283,6 +2346,76 @@ def carousel_diagram(output_dir: Path, cards: list[dict[str, Any]],
         except OSError as e:
             log.warning("Carousel diagram choice not recorded (%s).", e)
         return chosen
+
+
+REDRAWN_DIR = "graphics_redrawn"   # <run>/graphics_redrawn/<brand+code key>/graphic_<kind>.jpg (cycle 0 round 8)
+# The signed field each diagram kind draws (graphics.make_all), and its renderer's name.
+_DIAGRAM_FIELDS = {"scale": ("scale_fact", "render_scale"), "section": ("cross_section", "render_cross_section"),
+                   "route": ("route", "render_route"), MAP_KIND: (None, "render_map")}
+
+
+def current_poster(output_dir: Path, poster: Path, payload: dict[str, Any] | None) -> tuple[Path | None, str]:
+    """(the poster a diagram slide embeds, why): the run's stored poster only when it was drawn under the active brand
+    by this drawing code (graphics.poster_current: its stamp); else the drawing redrawn from the run's SIGNED field
+    under the active brand (poster only, no clip encoded) into REDRAWN_DIR keyed by brand + code, and reused while
+    that key holds; (None, reason) when it cannot be redrawn (no signed field, no recorded place for a map): the slide
+    then keeps its photo layout. Cycle 0 round 8 (consensus 2): the Aswan diagram slide embedded a stale bar chart
+    from older code with a #FED700 bar, unchanged under the second palette."""
+    from . import graphics
+    poster = Path(poster)
+    if graphics.poster_current(poster):
+        return poster, "stored poster drawn under the active brand by this code"
+    kind = poster.stem.replace("graphic_", "", 1)
+    field, renderer = _DIAGRAM_FIELDS.get(kind, (None, None))
+    if renderer is None:
+        return None, f"no renderer redraws a {kind} diagram"
+    narration = (payload or {}).get("narration_script") or ""
+    if kind == MAP_KIND:
+        spec = _recorded_place(poster)
+        if not spec:
+            return None, "the map's place is not recorded beside its poster: it cannot be redrawn"
+    else:
+        spec = (payload or {}).get(field)
+        if not spec:
+            return None, f"the run has no signed {field} to redraw its {kind} diagram from"
+    size = (VIDEO_WIDTH, VIDEO_HEIGHT)
+    try:
+        with Image.open(poster) as im:
+            size = im.size
+    except OSError:
+        pass
+    import hashlib
+    stamp = graphics.stamp()
+    # the cache key: the brand and its tokens, the drawing code, and what is drawn (the signed field, its size)
+    what = hashlib.sha256(json.dumps([spec, list(size), narration if kind == MAP_KIND else ""], sort_keys=True,
+                                     default=str).encode("utf-8")).hexdigest()
+    key = stamp["brand"][:12] + stamp["code"][:12] + what[:12]
+    out = Path(output_dir) / REDRAWN_DIR / key / f"graphic_{kind}.mp4"
+    if out.with_suffix(".jpg").is_file() and graphics.poster_current(out.with_suffix(".jpg")):
+        return out.with_suffix(".jpg"), "redrawn under the active brand (cached)"
+    try:
+        with graphics.poster_only():
+            if kind == MAP_KIND:
+                made = graphics.render_map(spec, out, width=size[0], height=size[1], narration=narration)
+            else:
+                made = getattr(graphics, renderer)(spec, out, width=size[0], height=size[1])
+    except Exception as e:  # noqa: BLE001  a drawing that cannot be redrawn is not shown (the photo slide stays)
+        log.warning("Diagram slide: the %s diagram could not be redrawn (%s).", kind, e)
+        return None, f"the {kind} diagram could not be redrawn ({type(e).__name__})"
+    if not made or not out.with_suffix(".jpg").is_file():
+        return None, f"the {kind} renderer drew nothing from the signed field"
+    return out.with_suffix(".jpg"), "redrawn from the signed field under the active brand"
+
+
+def _recorded_place(poster: Path) -> dict[str, Any] | None:
+    """The place a stored map poster was drawn for (its lineage record's inputs), or None."""
+    side = Path(str(Path(poster).with_suffix(".mp4")) + ".lineage.json")
+    try:
+        data = json.loads(side.read_text(encoding="utf-8")) if side.is_file() else {}
+    except (OSError, ValueError):
+        return None
+    place = ((data.get("settings") or {}).get("inputs") or {}).get("place")
+    return place if isinstance(place, dict) and place.get("lat") is not None else None
 
 
 def diagram_crop(poster: Image.Image) -> tuple[tuple[int, int, int], tuple[int, int, int, int]]:

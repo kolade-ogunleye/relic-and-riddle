@@ -584,7 +584,9 @@ def _in_spoken_units(copy: Dict[str, Any], script_payload: Dict[str, Any]) -> Di
     """The cover's lines with each figure in the unit the narration speaks (Richat's cover said "40+ KM" while the
     narration said "25 miles": one unit per run, 2026-10-29)."""
     narration = script_payload.get("narration_script") or ""
-    return {k: spoken_units(v, narration) if isinstance(v, str) else v for k, v in copy.items()}
+    from .figures import deck_lead   # cycle 0 round 8: one lead unit per run (the signed scale fact decides)
+    lead = deck_lead(script_payload)
+    return {k: spoken_units(v, narration, lead) if isinstance(v, str) else v for k, v in copy.items()}
 
 
 def documentary_cover_copy(script_payload: Dict[str, Any]) -> Dict[str, str]:

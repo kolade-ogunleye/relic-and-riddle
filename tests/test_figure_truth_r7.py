@@ -155,11 +155,15 @@ def _plates_with(made, text):
 def test_the_scale_figure_and_its_conversion_are_the_figure_face_in_gold(tmp_path, plan_only, size):
     graphics.render_scale(WIELICZKA, tmp_path / "scale.mp4", *size)
     figure_family = graphics.figure_font(40).getname()[0]
-    for text in ("ABOUT 327 M DEEP", "1,073 FT"):
+    # Round 8 (operator ruling 8): the number and its unit gold, the hedge and the dimension word bone; one face
+    for text in ("327 M", "1,073 FT"):
         plates = _plates_with(plan_only, text)
         assert plates and all(_family(p.font) == figure_family and p.fill == tuple(brand.GOLD) for p in plates), text
+    for text in ("ABOUT", "DEEP"):
+        plates = _plates_with(plan_only, text)
+        assert plates and all(_family(p.font) == figure_family and p.fill == tuple(brand.BONE) for p in plates), text
     conv = _plates_with(plan_only, "1,073 FT")[0].font.size
-    lead = _plates_with(plan_only, "ABOUT 327 M DEEP")[0].font.size
+    lead = _plates_with(plan_only, "327 M")[0].font.size
     assert conv <= brand_system.tok("figure.conversion") * lead + 1
     data_family = graphics.data_font(30).getname()[0]
     assert {_family(p.font) for p in plan_only if p.text in ("0", "M", "100", "200", "300")} == {data_family}

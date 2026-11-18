@@ -204,7 +204,6 @@ _FACT_KEYS = ("id", "statement", "kind", "disputed", "hedge", "evidence")
 _NUM = re.compile(r"\d[\d,]*(?:\.\d+)?")
 _WORDS = re.compile(r"\d[\d,]*(?:\.\d+)?|[a-z]+(?:'[a-z]+)?")
 _RANGE = re.compile(r"(\d[\d,]*(?:\.\d+)?)\s*(?:to|and|-|–|—)\s*(\d[\d,]*(?:\.\d+)?)", re.IGNORECASE)
-_FIG_RUN = re.compile(r"(?<![\w.])\d[\d,]*(?:\.\d+)?(?:–\d[\d,]*(?:\.\d+)?)?\+?")
 _MAGNITUDE = re.compile(r"(?:\s*(?:-|–|—|to)\s*\d[\d,]*(?:\.\d+)?)?[\s-]*(hundred|thousand|million|billion|trillion|"
                         r"bn|mn)\b", re.IGNORECASE)
 _MAG_ALIAS = {"bn": "billion", "mn": "million"}
@@ -1332,19 +1331,9 @@ class _Card:
             plates = [plan(X0 + f.getlength(text[:sum(len(s) for s, _ in parts[:j])]), Y, s, f, c, 0.0, tgt,
                            halo_px) for j, (s, c) in enumerate(parts) if s.strip()]
         elif runs:
-            parts = []
-            pos = 0
-            for m in _FIG_RUN.finditer(text):
-                end = m.end()
-                fm = _FIGURE.match(text, m.start() + (m.group(0).rfind("–") + 1 if "–" in m.group(0) else 0))
-                if fm and _unit(fm.group("unit")):
-                    end = max(end, fm.end())
-                if m.start() > pos:
-                    parts.append((text[pos:m.start()], fill))
-                parts.append((text[m.start():end], brand.GOLD))
-                pos = end
-            if pos < len(text):
-                parts.append((text[pos:], fill))
+            # cycle 0 round 8 (ruling 8): the one gold scope (src/figures.py): number, span, scale word and unit gold
+            from .figures import gold_runs
+            parts = [(t, brand.GOLD if g else fill) for t, g in gold_runs(text)]
             plates = [plan(X0 + f.getlength(text[:sum(len(s) for s, _ in parts[:j])]), Y, s, f, c, 0.0, tgt,
                            halo_px) for j, (s, c) in enumerate(parts) if s.strip()]
         else:
@@ -4107,6 +4096,15 @@ def plan_hook_frame(spec: HookFrame, sheet: dict, width: int = 1080, height: int
         if k == gold_k and gold_from:
             rows += [(ln[:gold_from], brand.DISPLAY_FONT, None, P, brand.BONE, x, b, 0.0),
                      (ln[gold_from:], brand.DISPLAY_FONT, None, P, brand.GOLD, x + f_claim.getlength(ln[:gold_from]), b, 0.0)]
+        elif k in gold_ks and any(ch.isdigit() for ch in ln):
+            # cycle 0 round 8 (ruling 8): a figure line gilds its number and unit only; its qualifiers and dimension
+            # word ("ABOUT", "ACROSS") stay bone (the whole "ABOUT 40 KM ACROSS" run was gold)
+            from .figures import gold_runs
+            off = 0
+            for part, is_gold in gold_runs(ln):
+                rows.append((part, brand.DISPLAY_FONT, None, P, brand.GOLD if is_gold else brand.BONE,
+                             x + f_claim.getlength(ln[:off]), b, 0.0))
+                off += len(part)
         else:
             rows.append((ln, brand.DISPLAY_FONT, None, P, brand.GOLD if k in gold_ks else brand.BONE, x, b, 0.0))
     eb_row = eb_box = None

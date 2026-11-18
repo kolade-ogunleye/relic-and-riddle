@@ -266,10 +266,84 @@ class LayoutConstraintSolver:
         return t <= line_y <= b and not (r <= lx0 or l >= lx1)
 
 
+# ------------------------------------------------------- the drawing's stamp (cycle 0 round 8, diagram slides)
+# Every graphic's poster carries the brand it was drawn under and the drawing code it was drawn by (<clip>.brand.json):
+# a carousel diagram slide embeds a stored poster only when both match the active brand and this code; otherwise the
+# drawing is redrawn from the signed fact (multi_format.current_poster), never a stale poster (the panel's Aswan
+# diagram: a #FED700 bar chart from older code, unchanged under the second palette).
+BRAND_STAMP = ".brand.json"
+_POSTER_ONLY = None   # set below: a context variable; True draws every frame and keeps the poster, no clip encoded
+
+
+@lru_cache(maxsize=1)
+def drawing_code() -> str:
+    """A hash of the code a graphic's pixels depend on (this module, the brand, its system, the type engine)."""
+    import hashlib
+    here = Path(__file__).parent
+    h = hashlib.sha256()
+    for name in ("graphics.py", "brand.py", "brand_system.py", "typography.py", "figures.py", "raster.py"):
+        f = here / name
+        h.update(name.encode("ascii") + (f.read_bytes() if f.is_file() else b""))
+    return h.hexdigest()
+
+
+def stamp() -> dict[str, str]:
+    """The active brand's fingerprint and the drawing code's hash."""
+    return {"brand": brand.fingerprint(), "code": drawing_code()}
+
+
+def stamp_of(poster: Path) -> dict[str, str]:
+    """A poster's recorded stamp ({} when it has none: drawn before stamps, or by hand)."""
+    import json
+    side = Path(str(Path(poster).with_suffix(".mp4")) + BRAND_STAMP)
+    try:
+        data = json.loads(side.read_text(encoding="utf-8")) if side.is_file() else {}
+    except (OSError, ValueError):
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
+def poster_current(poster: Path) -> bool:
+    """Whether a stored poster was drawn under the active brand by this code."""
+    return stamp_of(poster) == stamp()
+
+
+def poster_only():
+    """A context (`with poster_only():`) in which a graphic's frames are drawn and its poster kept, but no clip is
+    encoded: a carousel diagram slide needs the resting frame only."""
+    import contextlib
+
+    @contextlib.contextmanager
+    def ctx():
+        token = _POSTER_ONLY.set(True)
+        try:
+            yield
+        finally:
+            _POSTER_ONLY.reset(token)
+    return ctx()
+
+
+def _write_stamp(out: Path) -> None:
+    import json
+    try:
+        Path(str(out) + BRAND_STAMP).write_text(json.dumps(stamp(), indent=1), encoding="utf-8", newline="\n")
+    except OSError as e:   # a stamp is a cache key: without it the poster is redrawn when a slide needs it
+        log.warning("Graphic stamp not written for %s (%s).", Path(out).name, e)
+
+
 @bounded_encode
 def _encode(frames: Iterable[Image.Image], out: Path, n: int, width: int = VIDEO_WIDTH, height: int = VIDEO_HEIGHT) -> Path:
-    """Raw RGB frames piped to ffmpeg (local only) -> H.264 MP4 + poster JPEG of the last frame."""
+    """Raw RGB frames piped to ffmpeg (local only) -> H.264 MP4 + poster JPEG of the last frame, stamped with the
+    brand and drawing code (BRAND_STAMP). Under poster_only() the frames are drawn and only the poster is kept."""
     out.parent.mkdir(parents=True, exist_ok=True)
+    if _POSTER_ONLY.get():
+        last = None
+        for frame in frames:
+            last = frame
+        if last is not None:
+            last.convert("RGB").save(out.with_suffix(".jpg"), quality=90)
+            _write_stamp(out)
+        return out
     from .encoding import BT709_FLAGS, RGB_TO_BT709, delivery_video_encoder
     # the production encoder on every machine (QF-134): a graphic clip is part of the delivered master
     enc_args = delivery_video_encoder()
@@ -291,7 +365,13 @@ def _encode(frames: Iterable[Image.Image], out: Path, n: int, width: int = VIDEO
             proc.kill()
     if last is not None:
         last.convert("RGB").save(out.with_suffix(".jpg"), quality=90)
+        _write_stamp(out)
     return out
+
+
+import contextvars as _ctxvars  # noqa: E402
+
+_POSTER_ONLY = _ctxvars.ContextVar("graphics_poster_only", default=False)
 
 
 # ------------------------------------------------------- contrast on the graded frame (2026-10-29)
@@ -8147,6 +8227,31 @@ def data_font(px: float, weight: int = 600) -> FreeTypeFont:
     return get_font(brand.DATA_FONT, max(1, round(px)), weight=weight)
 
 
+def quantity_plate(ground: Image.Image, xy: tuple[float, float], text: str, font, anchor: str = "ls",
+                   track: float = 0.0, halo_px: int | None = None, bone=None) -> Any:
+    """A stated quantity as drawn on a graphic (cycle 0 round 8, operator ruling 8: one gold scope on every quantity
+    surface): its number and unit in the figure colour, its qualifiers and dimension word ("ABOUT", "LONG") in bone
+    (`bone`: the qualifiers' colour, BONE by default), each run planned at a measured contrast and recorded as ONE
+    element whose text is the whole figure (src/figures.py gold_runs). `anchor` "ls" or "ms" (centred on x)."""
+    from .figures import gold_runs
+    runs = gold_runs(text) or [(text, False)]
+    x, y = xy
+    widths = [tracked_width(r, font, track) + (track if k < len(runs) - 1 else 0) for k, (r, _g) in enumerate(runs)]
+    if anchor[0] == "m":
+        x -= sum(widths) / 2
+    plates = []
+    for (r, gold), w in zip(runs, widths):
+        if r.strip():
+            lead = tracked_width(r[:len(r) - len(r.lstrip())], font, track) if r[:1].isspace() else 0.0
+            plates.append(plan_text(ground, (x + lead, y), r.strip(), font, figure_fill() if gold else (bone or brand.BONE),
+                                    "l" + anchor[1], track=track, halo_px=halo_px))
+        x += w
+    plates = [p for p in plates if not p.empty]
+    if len(plates) == 1:
+        return plates[0]
+    return _JoinedPlate(plates, ground, " ".join(text.split()))
+
+
 def figure_fill() -> tuple[int, int, int]:
     """A stated quantity's colour (figure.colour: GOLD by default), at rest and stepping back alike."""
     from .brand_system import colour_of
@@ -8552,7 +8657,16 @@ def scale_figure(fact: dict[str, Any], feet: float, depth: bool) -> tuple[str, s
     "ABOUT 327 M DEEP" over "1,073 FT"."""
     hedge = "ABOUT " if fact.get("approximate", True) else ""
     main, conversion = measure_text(feet, lead_unit(fact))
-    return hedge + main + (" DEEP" if depth else " TALL"), conversion
+    return hedge + main + " " + dimension_word(fact, depth), conversion
+
+
+def dimension_word(fact: dict[str, Any], depth: bool | None = None) -> str:
+    """The word a scale figure says it measures, from the signed dimension (cycle 0 round 8: a length is never
+    labelled TALL; the Aswan obelisk never stood): DEEP, LONG or TALL."""
+    dim = str(fact.get("dimension") or "").strip().lower()
+    if depth or dim == "depth":
+        return "DEEP"
+    return "LONG" if dim == "length" else "TALL"
 
 
 def _short(feet: float, unit: str = "FT") -> str:
@@ -8586,7 +8700,7 @@ def _scale_case_name(fact: dict[str, Any]) -> str:
     """The payload subject in its own case, without a trailing dimension word ("Kailasa Temple height" ->
     "Kailasa Temple"), for the sentence-case line of meaning."""
     words = str(fact.get("subject") or "").split()
-    while words and words[-1].upper() in ("HEIGHT", "DEPTH", "TALL", "DEEP"):
+    while words and words[-1].upper() in ("HEIGHT", "DEPTH", "TALL", "DEEP", "LENGTH", "LONG"):
         words.pop()
     return " ".join(words)
 
@@ -8627,6 +8741,16 @@ def scale_meaning_lines(fact: dict[str, Any], feet: float, ref_label: str, ref_f
     subject = _scale_case_name(fact)
     near = max(feet, ref_feet) / min(feet, ref_feet) < 1.1
     ratio = comparison_ratio(max(feet, ref_feet), min(feet, ref_feet))
+    if dimension_word(fact) == "LONG":   # round 8: a length set against a landmark's height says so, never "as tall"
+        if not subject:
+            return [f"{_cap_first(ref)}: {say(ref_feet)} tall.",
+                    "Nearly the same length." if near else f"About {ratio} times the length."]
+        first = f"{subject}: {hedge}{say(feet)} long"
+        if near:
+            return [first + ".", f"{_cap_first(ref)}, {say(ref_feet)} tall, is nearly its length."]
+        if ref_feet > feet:
+            return [first + ".", f"{_cap_first(ref)}, {say(ref_feet)} tall, is about {ratio} times its length."]
+        return [first + ",", f"about {ratio} times the height of {ref}, {say(ref_feet)}."]
     if not subject:
         return [f"{_cap_first(ref)}: {say(ref_feet)}.", "Nearly the same height." if near else f"About {ratio} times as tall."]
     first = f"{subject}: {hedge}{say(feet)}"
@@ -8790,17 +8914,18 @@ def _render_scale_vertical(fact, feet, ref_label, ref_feet, depth, out, width, h
     ground = Image.new("RGB", (width, height), brand.SEA)
     xt = x0                                                # on the inset edge, well inside the box
     plates = [("subject", plan_text(ground, (xt, y_sub), subject, f_sub, brand.STONE_LT, "ls", track=3)),
-              ("figure", plan_text(ground, (xt, y_fig), figure, f_fig, figure_fill(), "ls"))]
+              ("figure", quantity_plate(ground, (xt, y_fig), figure, f_fig, "ls"))]   # ruling 8: ABOUT, LONG bone
     if metric:
-        plates.append(("figure_metric", plan_text(ground, (xt, y_met), metric, f_met, figure_fill(), "ls")))
+        plates.append(("figure_metric", quantity_plate(ground, (xt, y_met), metric, f_met, "ls")))
     plates += [(f"meaning{k}", plan_text(ground, (xt, y_mean0 + k * mean_step), t, f_mean, brand.BONE, "ls"))
                for k, t in enumerate(mean_lines)]
     heads = [pl.box for name, pl in plates if name in ("subject", "figure", "figure_metric")]
     ref_grey = brand.STONE_LT
     width_per_px = _silhouette_width(ref_label)            # the landmark's width per px of its height
-    # The drawing's dimensions (the bracket's gap, the block's and the landmark's figures) are figures on a drawing:
-    # the data face (ruling 3; Montserrat 800 set them before)
-    f_note = data_font(max(28, floor))
+    # The drawing's dimensions (the bracket's gap, the block's and the landmark's figures) are stated quantities:
+    # the figure face, number and unit gold and the hedge bone (cycle 0 round 8, rulings 3 and 8; the data face set
+    # them in round 7: two faces for one quantity on one frame). Rulers stay in the data face.
+    f_note = figure_font(max(28, floor))
     f_rule = data_font(SCALE_RULER_PX)
     rulers: list[tuple[float, Any]] = []
     ruler_rows: list[dict[str, Any]] = []                   # the critic's records (ruler_record)
@@ -8849,7 +8974,7 @@ def _render_scale_vertical(fact, feet, ref_label, ref_feet, depth, out, width, h
         if ref_feet > feet:          # above the ground line, never across it
             note_y = min(note_y, line_y - SCALE_NOTE_LIFT)   # its measured ring clear of the bone line
         if note_x is not None and bracket[2] - bracket[1] >= 6:
-            plates.append(("bracket", plan_text(ground, (note_x, note_y), note, f_note, brand.GOLD, "ls", track=2)))
+            plates.append(("bracket", quantity_plate(ground, (note_x, note_y), note, f_note, "ls", track=2)))
         datum = line_y - 0.5                                # the 3 px ground line's centre (line_y - 2 .. line_y + 1)
         for ft, text, is_floor in _depth_ruler(feet, hedge, unit):
             yy = line_y + ft * px_ft
@@ -8881,7 +9006,7 @@ def _render_scale_vertical(fact, feet, ref_label, ref_feet, depth, out, width, h
         rule_x = x0 + round(max(ruler_label_width(t, f_rule_h, 1) for _f, t in height_ruler(max(feet, ref_feet), unit))) + 16
         shaft = (rule_x + 30, rule_x + 30 + block)
         room = x1 - shaft[1] - 40 - 20                      # beside the subject's block
-        f_blk = data_font(max(28, floor))                   # dimensions on the drawing: the data face (ruling 3)
+        f_blk = figure_font(max(28, floor))                 # stated quantities on the drawing: the figure face (r8)
         blk_text = hedge + _short(feet, unit)               # hedged like the figure: never more precise
         ref_txt_w = tracked_width(_short(ref_feet, unit), f_blk, 2)
         # Each part keeps SCALE_TEXT_GAP under the heading lines over its own columns (heading_clear; round 5
@@ -8914,13 +9039,13 @@ def _render_scale_vertical(fact, feet, ref_label, ref_feet, depth, out, width, h
         plates += [(f"ruler{j}", pl) for j, (_, pl) in enumerate(rulers)]
         # The subject's block is labelled with its own figure, so the gold block reads as the subject at a
         # glance (round-2 panel, 2026-11-02); the same words as the figure above, never new ones.
-        plates.append(("block_label", plan_text(ground, ((shaft[0] + shaft[1]) / 2, base_y - feet * px_ft - 16),
-                                                blk_text, f_blk, brand.GOLD, "ms", track=2)))
+        plates.append(("block_label", quantity_plate(ground, ((shaft[0] + shaft[1]) / 2, base_y - feet * px_ft - 16),
+                                                     blk_text, f_blk, "ms", track=2)))
         # and the landmark's figure at its top, on a hairline tick (round 3)
         ref_top = base_y - ref_feet * px_ft
         tick_x = ref_cx + max(0.05 * ref_feet * px_ft, 6)        # just right of the landmark's top
-        ref_note = plan_text(ground, (tick_x + 34, ref_top + cap_height(f_blk) / 2), _short(ref_feet, unit), f_blk,
-                             brand.STONE_LT, "ls", track=2)
+        ref_note = quantity_plate(ground, (tick_x + 34, ref_top + cap_height(f_blk) / 2), _short(ref_feet, unit),
+                                  f_blk, "ls", track=2)
         if ref_note.box[2] <= box_x1 and not LayoutConstraintSolver.boxes_intersect(ref_note.box, plates[-1][1].box, 8):
             plates.append(("ref_label", ref_note))
             bracket = (tick_x, ref_top, ref_top)
@@ -9149,7 +9274,7 @@ def _render_scale_wide(fact: dict[str, Any], feet: float, ref_label: str, ref_fe
     # The ground plane ends inside the frame on both sides (round 3: it ran off x 0 into the dark and stopped
     # hard at x 1000 mid-frame), from title-safe to just short of the column of words.
     gx0, gx1 = WIDE_LEFT, cx0 - 50
-    f_note = data_font(g.f(30))                 # the drawing's dimensions in the data face (ruling 3)
+    f_note = figure_font(g.f(30))               # stated quantities on the drawing: the figure face (rulings 3, 8)
     f_rule = data_font(g.f(28))
     # name, text, font, colour, x, baseline, anchor; a ruler figure's anchor is "ruler" and its y is its tick's (its
     # datum's), the label centred on it (F11, ruler_label)
@@ -9172,7 +9297,7 @@ def _render_scale_wide(fact: dict[str, Any], feet: float, ref_label: str, ref_fe
             ann.append((f"ruler{j}", text, f_rule, brand.GOLD if is_floor else brand.STONE_LT, shaft[0] - 30,
                         line_y - 0.5 if ft == 0 else line_y + ft * px_ft, "ruler"))
     else:
-        f_blk = data_font(g.f(30))
+        f_blk = figure_font(g.f(30))
         ann.append(("block_label", hedge + _short(feet, unit), f_blk, brand.GOLD, (shaft[0] + shaft[1]) / 2,
                     base_y - feet * px_ft - 18, "ms"))
         ref_top = base_y - ref_feet * px_ft
@@ -9250,12 +9375,16 @@ def _render_scale_wide(fact: dict[str, Any], feet: float, ref_label: str, ref_fe
 
     shown: set[str] = {"ref_label"} | {a[0] for a in ann if a[0].startswith("ruler")}
     final = drawing(1e9)
-    plates = [(name, plan_text(final, (X(cx0 + 4), Y(col_top + yb)), text, font, colour, "ls", track=track))
+    plates = [(name, quantity_plate(final, (X(cx0 + 4), Y(col_top + yb)), text, font, "ls", track=track)
+               if name.startswith("figure") else
+               plan_text(final, (X(cx0 + 4), Y(col_top + yb)), text, font, colour, "ls", track=track))
               for name, text, font, colour, track, yb in rows]
     ruler_rows: list[dict[str, Any]] = []
     for name, text, font, colour, x, yb, anchor in ann:
         if anchor == "ruler":                                         # F11: centred on its tick, a zero on its datum
             plate = ruler_label(final, X(x), Y(yb), text, font, colour, "r", track=S(1))
+        elif name in ("bracket", "block_label", "ref_label"):           # stated quantities: ruling 8's runs
+            plate = quantity_plate(final, (X(x), Y(yb)), text, font, anchor, track=S(1))
         else:
             plate = plan_text(final, (X(x), Y(yb)), text, font, colour, anchor, track=S(1))
         if plate.box[0] < X(WIDE_TITLE_SAFE[0]) or plate.box[2] > X(cx0 - 20):
@@ -9498,10 +9627,12 @@ def _stat_layout(d: ImageDraw.ImageDraw, card: dict[str, Any], num_px: int, widt
         rows.append({"name": "figure", "kind": "figure", "text": num, "font": f_num, "y": y, "width": num_w})
     if unit and below:
         y += round(cap_height(f_unit) * 1.45)
-        rows.append({"name": "unit", "kind": "text", "text": unit, "font": f_unit, "y": y, "x": 0, "fill": brand.BONE})
+        rows.append({"name": "unit", "kind": "unit", "text": unit, "font": f_unit, "y": y, "x": 0,
+                     "fill": figure_fill() if num else brand.BONE})
     elif unit:
-        rows.append({"name": "unit", "kind": "text", "text": unit, "font": f_unit, "y": y, "x": (num_w + 24) if num else 0,
-                     "fill": brand.BONE})
+        # ruling 8 (cycle 0 round 8): the unit is the quantity's, gold with its number; with no number it is a heading
+        rows.append({"name": "unit", "kind": "unit", "text": unit, "font": f_unit, "y": y, "x": (num_w + 24) if num else 0,
+                     "fill": figure_fill() if num else brand.BONE})
     f_lab_px = round(46 * scale)
     lines, f_lab, _ = fit_text(d, card["label"].upper(), brand.TEXT_FONT, max(word_floor, f_lab_px), width - 120, 2,
                                max(word_floor, label_min if label_min is not None else max(26, round(f_lab_px * 0.75))),
@@ -9798,10 +9929,12 @@ def _stat_clip(cards: list[dict[str, Any]], plans: list[dict[str, Any]], bg: Ima
             if r["kind"] == "kicker":
                 bx0, by0, bx1, by1 = r.get("bar", (0, 0, 44, 4))
                 r["rule"] = (x0 + bx0, p["y0"] + by0, x0 + bx1, p["y0"] + by1)
+                # ruling 8 (cycle 0 round 8): the prefix is the figure's qualifier ("EST. OVER"): bone, never gold;
+                # its rule keeps the kicker's colour
                 r["plates"] = [plan_text(rest, (x0, yy), r["text"], r["font"],
-                                         brand.GOLD, "ls", track=r["font"].size * 0.15)]
-                # cycle 0 round 7 (F13): a stepped-back card dims its words one way, to STONE_LT like its label and
-                # unit (the kicker's STONE twin measured 4.09:1 on the gold-on-gold ground, under the 4.5 gate)
+                                         brand.BONE, "ls", track=r["font"].size * 0.15)]
+                # cycle 0 round 7 (F13): a stepped-back card dims its words one way, to STONE_LT like its label
+                # (the kicker's STONE twin measured 4.09:1 on the gold-on-gold ground, under the 4.5 gate)
                 r["fill"], r["dim_fill"] = brand.GOLD, brand.STONE_LT
             elif r["kind"] == "figure":
                 # F13 (ruling 3): the figure face in gold, at rest and when it steps back for the second card (it
@@ -9820,7 +9953,9 @@ def _stat_clip(cards: list[dict[str, Any]], plans: list[dict[str, Any]], bg: Ima
             else:
                 r["plates"] = [plan_text(rest, (x0 + r.get("x", 0), yy), r["text"], r["font"], r["fill"], "ls",
                                          track=r.get("track", 0))]
-                r["dim_fill"] = r["fill"] if r["kind"] == "count" else brand.STONE_LT   # a conversion stays gold
+                # a conversion and a unit stay gold (the quantity never steps back; ruling 8: one treatment for both
+                # twin cards' number and unit, MG-4)
+                r["dim_fill"] = r["fill"] if r["kind"] in ("count", "unit") else brand.STONE_LT
             r["twins"] = [_twin(rest, pl, r["dim_fill"]) for pl in r["plates"]] if p["dims"] else []
             shown = r["twins"] or r["plates"]
             if r["kind"] == "figure":
@@ -11887,8 +12022,10 @@ def make_all(payload: dict[str, Any], topic: dict[str, Any], work_dir: Path, pho
         if name in ("map", "route"):
             source_files += [p for p in (geo.COUNTRIES_FILE, geo.RELIEF_FILE) if p.is_file()]
         from .encoding import delivery_video_encoder
+        # cycle 0 round 8: the brand and its tokens are an input (a graphic cached under another brand is not reused)
         inputs = {"sources": file_inputs(source_files), "place": place, "width": width,
                   "height": height, "fps": VIDEO_FPS, "encoder": delivery_video_encoder(),
+                  "brand": brand.fingerprint(),
                   "spec": {key: payload.get(key) for key in ("stat_cards", "cross_section", "route",
                            "timeline", "scale_fact")}}
         if name in ("numbers", "map"):  # figures (a map's scale bar) in the narration's units (2026-10-29)

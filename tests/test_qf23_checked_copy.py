@@ -313,13 +313,15 @@ def _thumbnail(copy, **kw):
     from src import youtube_thumbnail
     meta = {}
     youtube_thumbnail.render(Image.new("RGB", (1920, 1080), (90, 80, 70)), copy, meta=meta, **kw)
-    # round 7 (F5): a line's colour runs (the payoff gold) are separate plates on one baseline: joined into the line
+    # round 7 (F5): a line's colour runs (the payoff gold) are separate plates on one baseline: joined into the line;
+    # cycle 0 round 8 (operator ruling 7, the two-line tier): a field set on two rows is one field (a break is not
+    # a cut), so an element's consecutive rows are joined too
     titles: list = []
     last = None
     for n, p in meta["_plates"]:
         if not (n.startswith("title") or n == "kicker"):
             continue
-        key = (n, round(p.xy[1]))
+        key = n
         if key == last:
             titles[-1] += " " + p.text
         else:

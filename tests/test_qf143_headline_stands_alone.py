@@ -24,13 +24,15 @@ def _photo() -> Image.Image:
 
 
 def _lines(plates, names) -> list[str]:
-    """Round 7: a headline line in two colour runs (the payoff gold) is several plates on one baseline: joined."""
+    """Round 7: a headline line in two colour runs (the payoff gold) is several plates on one baseline: joined.
+    Cycle 0 round 8 (operator ruling 7, the two-line tier): one field set on two rows is still one field (its
+    element's rows, consecutive, joined): a break is not a cut."""
     out: list = []
     for n, p in plates:
         if n not in names:
             continue
-        if out and out[-1][0] == n and abs(out[-1][1] - p.xy[1]) < 1:
-            out[-1] = (n, out[-1][1], out[-1][2] + " " + p.text)
+        if out and out[-1][0] == n:
+            out[-1] = (n, p.xy[1], out[-1][2] + " " + p.text)
         else:
             out.append((n, p.xy[1], p.text))
     return [t for _, _, t in out]
@@ -54,8 +56,13 @@ def _check(copy: dict, plates, meta: dict) -> None:
         if len(lines) == 1:
             assert words[0] not in {"OF", "THAN"}, f"a lone line opens on a joiner: {last!r}"
             assert not (words[0] in {"AND", "OR", "BUT", "NOR"} and words[1:2] in (["THE"], ["A"], ["AN"])),                 f"a lone line carries on a list: {last!r}"
-    # never cut (QF-23): each drawn line is a whole verified field, at most without its trailing mark
+    # never cut (QF-23): each drawn line is a whole verified field, at most without its trailing mark. Cycle 0
+    # round 8 (ruling 4, one form per run): the two headline fields may be drawn in the ruled form (line 1's closing
+    # function words open line 2), so the headline as a whole is the two fields' words, whole and in order
     fields = [" ".join(str(copy.get(k) or "").upper().split()) for k in ("eyebrow", "line1", "line2", "tagline")]
+    both = " ".join(f for f in fields[1:3] if f)
+    if len(lines) == 2 and " ".join(lines).replace("…", "...").replace("’", "'") == both:
+        drawn = [t for t in drawn if t not in lines]
     for t in drawn:
         t = t.replace("…", "...").replace("’", "'")
         assert any(t == f or (f.startswith(t) and f[len(t):].strip() and not f[len(t):].strip(LEAD + " "))

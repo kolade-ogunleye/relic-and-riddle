@@ -185,6 +185,7 @@ def fit_sample(text: str, font, track: float, room: float) -> str:
 def row1_specimen(out: Path, dev: Path) -> list[str]:
     """Every type role at its token size (true px), face, weight and tracking, per canvas: one sheet on INK and one
     over a real hero under the held plate tier."""
+    import board_evidence as be
     from PIL import Image, ImageDraw
 
     from src import brand, brand_system
@@ -235,9 +236,11 @@ def row1_specimen(out: Path, dev: Path) -> list[str]:
                 # marked "...", so every specimen line is seen whole at its true size
                 lines = [fit_sample(text, font, track, w - 48) for text in lines]
                 for k, text in enumerate(lines):
-                    p = plan_text(im, (24, round(base_y + k * (step or 0))), text, font, fill, "ls", track,
-                                  target=brand_system.tok("contrast.place"))
-                    im = p.draw(im)
+                    p = be.guarded(f"row 1 specimen {canvas} {ground} {role}", plan_text, im,
+                                   (24, round(base_y + k * (step or 0))), text, font, fill, "ls", track,
+                                   target=brand_system.tok("contrast.place"))
+                    if p is not None:   # round 8: a refused sample is in the refusal table, the sheet goes on
+                        im = p.draw(im)
                 y += h
             name = f"row01_specimen_{canvas}_{ground}"
             im.save(out / f"{name}.png")
@@ -256,7 +259,10 @@ def _masthead_surfaces(hero_path: Path, topic: str, dev: Path, work: Path):
     """Each surface that carries the masthead, drawn by its own renderer on `hero_path` (its real ground treatment:
     the carousel cover's grade and top-edge scrim, the YouTube thumbnail's photo and gradient, the end screen's and
     end card's dim and softening, through end_card.frames, at REVEAL_S), as (surface, image, the renderer's own masthead record, the masthead's crop
-    box). The narration's last frame is the hero itself on the end screen and card."""
+    box). The narration's last frame is the hero itself on the end screen and card. A surface whose renderer refuses
+    (round 8: the tree's LayoutError, through board_evidence.guarded) yields (surface, None, {"refused": reason},
+    None): recorded, and the other surfaces go on."""
+    import board_evidence as be
     import board_extras as bx
     from PIL import Image, ImageOps
 
@@ -268,27 +274,46 @@ def _masthead_surfaces(hero_path: Path, topic: str, dev: Path, work: Path):
     note = "" if topic in GROUND_RUNS else f" (copy: {run[4:]}, STAND-IN)"
     hero = Image.open(hero_path).convert("RGB")
     cards = payload["carousel_slides"]
-    im, lay = MultiFormatGenerator()._render_carousel_slide(
-        "cover", hero_path, hero_path, cards[0], 0, len(cards), payload.get("poll") or {}, share_prompt(payload),
-        False, subject=standalone_subject(payload))
-    rec = dict(lay.meta.get("masthead") or {})
-    box = rec.get("box") or (0, 0, 640, 140)
-    yield "carousel 1440 cover slide" + note, im.convert("RGB"), rec, (0, 0, min(im.width, round(box[2]) + 140),
-                                                                       min(im.height, round(box[3]) + 120))
+
+    def refused(surface):
+        return {"refused": be.REFUSED[-1][2] if be.REFUSED and be.REFUSED[-1][0] == surface else "refused"}
+    surface = f"row 2 {topic} carousel 1440 cover slide"
+    got = be.guarded(surface, MultiFormatGenerator()._render_carousel_slide,
+                     "cover", hero_path, hero_path, cards[0], 0, len(cards), payload.get("poll") or {},
+                     share_prompt(payload), False, subject=standalone_subject(payload))
+    if got is None:
+        yield "carousel 1440 cover slide" + note, None, refused(surface), None
+    else:
+        im, lay = got
+        rec = dict(lay.meta.get("masthead") or {})
+        box = rec.get("box") or (0, 0, 640, 140)
+        yield "carousel 1440 cover slide" + note, im.convert("RGB"), rec, (0, 0, min(im.width, round(box[2]) + 140),
+                                                                           min(im.height, round(box[3]) + 120))
     yt = bx.youtube(hero_path, payload, work / f"row2_{topic}_yt.jpg")
-    rec = dict(yt["masthead"] or {})
-    box = rec.get("box") or (0, 0, 760, 170)
-    yield "youtube 1920" + note, yt["image"], rec, (0, 0, round(box[2]) + 160, round(box[3]) + 120)
-    for size, what in (((1920, 1080), "end screen 1920"), ((1080, 1920), "end card 9:16")):
-        stats: dict = {}
-        last = None
+    if yt["image"] is None:
+        yield "youtube 1920" + note, None, {"refused": be.REFUSED[-1][2] if be.REFUSED else "refused"}, None
+    else:
+        rec = dict(yt["masthead"] or {})
+        box = rec.get("box") or (0, 0, 760, 170)
+        yield "youtube 1920" + note, yt["image"], rec, (0, 0, round(box[2]) + 160, round(box[3]) + 120)
+
+    def at_reveal(ground, share, stats):
         # the frame at REVEAL_S: the dim and the masthead fully in (the record is the renderer's own, judged on the
         # ground at rest); drawing on to the rest frame would cost the whole 10 s clip for a ~1 % push
-        for k, last in enumerate(end_card.frames(ImageOps.fit(hero, size, Image.LANCZOS), end_card_share(payload)[0],
-                                                 stats)):
+        last = None
+        for k, last in enumerate(end_card.frames(ground, share, stats)):
             if k >= round(REVEAL_S * end_card.FPS):
                 break
+        return last
+    for size, what in (((1920, 1080), "end screen 1920"), ((1080, 1920), "end card 9:16")):
+        stats: dict = {}
+        surface = f"row 2 {topic} {what}"
+        last = be.guarded(surface, at_reveal, ImageOps.fit(hero, size, Image.LANCZOS), end_card_share(payload)[0],
+                          stats)
         what += f" (frame at {REVEAL_S}s)"
+        if last is None:
+            yield what + note, None, refused(surface), None
+            continue
         rec = dict(stats.get("masthead") or {})
         top = int(stats.get("masthead_top") or 0)
         msize = int(rec.get("size") or 64)
@@ -305,6 +330,7 @@ def row2_masthead(out: Path, dev: Path, work: Path) -> list[str]:
     renderer on dark, busy, bright and near-white real heroes (row 2 simulates each surface's real ground treatment:
     preview panel 1, F7/F22), with the renderer's own record; then each surface at 246 px wide (the feed), whole at
     2x and its masthead region at 6x (nearest). Labels sit above the tiles, never over them."""
+    import board_evidence as be
     from PIL import Image
     grounds = {"dark wieliczka": "wieliczka_salt_mine/01_commons.jpg", "busy amber": "amber_room_heist/01_commons.jpg",
                "bright aswan": "unfinished_obelisk_aswan/01_commons.jpg",
@@ -320,6 +346,9 @@ def row2_masthead(out: Path, dev: Path, work: Path) -> list[str]:
             t0 = time.perf_counter()
             recs[f"{g} | {s}"] = {k: v for k, v in rec.items() if k != "box"} | (
                 {"box": [round(v) for v in rec["box"]]} if rec.get("box") else {})
+            if im is None:   # round 8: the renderer refused; the tile says so (and the refusal table lists it)
+                tiles.append((f"{g} | {s} | REFUSED", be.refusal_tile(s, rec.get("refused", ""))))
+                continue
             if rec.get("shown", True) and "contrast" in rec:
                 state = (f"{rec.get('variant', 'bone')} {rec.get('contrast')}:1 (worst letter) scrim "
                          f"{rec.get('scrim_peak', '-')} halo {rec.get('halo', '-')}"
@@ -369,51 +398,54 @@ def row12_motion(out: Path, dev: Path, work: Path, manifest: dict) -> list[str]:
         clip_rec(seq, "9, 12", f"{name} of the catalogue's {seq.topic} case {seq.index}"
                  + (f" ({cls}: {why})" if cls != be.REAL else ""))
     # the 16:9 end screen: every 3rd frame, and its curves
-    es = end["endscreen_169"]
-    sheet(bm.strip(es, scale_h=270, label="end screen 16:9 "), out / "row12_motion_endscreen", tile_h=270, cols=6)
-    t = [i / bm.FPS for i in range(es.n)]
-    bm.plot({"frame mean": (t, es.luma), **{k: (t, v) for k, v in es.regions.items()}},
-            f"16:9 end screen ({es.topic}, case {es.index}): luma of the decoded clip per frame", "luma (0-255)",
-            (0, 255)).save(out / "row12_motion_endscreen_curves.png")
-    bm.plot({"frame-to-frame MAD": (t, es.mad)}, "16:9 end screen: frame-to-frame mean absolute difference",
-            "MAD (0-255)", (0, max(10.0, max(es.mad) * 1.1))).save(out / "row12_motion_endscreen_steps.png")
-    made += ["row12_motion_endscreen", "row12_motion_endscreen_curves", "row12_motion_endscreen_steps"]
+    es = end.get("endscreen_169")
+    if es is not None:
+        sheet(bm.strip(es, scale_h=270, label="end screen 16:9 "), out / "row12_motion_endscreen", tile_h=270, cols=6)
+        t = [i / bm.FPS for i in range(es.n)]
+        bm.plot({"frame mean": (t, es.luma), **{k: (t, v) for k, v in es.regions.items()}},
+                f"16:9 end screen ({es.topic}, case {es.index}): luma of the decoded clip per frame", "luma (0-255)",
+                (0, 255)).save(out / "row12_motion_endscreen_curves.png")
+        bm.plot({"frame-to-frame MAD": (t, es.mad)}, "16:9 end screen: frame-to-frame mean absolute difference",
+                "MAD (0-255)", (0, max(10.0, max(es.mad) * 1.1))).save(out / "row12_motion_endscreen_steps.png")
+        made += ["row12_motion_endscreen", "row12_motion_endscreen_curves", "row12_motion_endscreen_steps"]
     # the 9:16 end card: every frame of its reveal, the share block's rise (measured) and the curves
-    ec = end["endcard_916"]
-    sheet(bm.strip(ec, scale_h=576, label="end card 9:16 "), out / "row12_motion_endcard916", tile_h=576, cols=8)
-    t = [i / bm.FPS for i in range(ec.n)]
-    bm.plot({"frame mean": (t, ec.luma), **{k: (t, v) for k, v in ec.regions.items()}},
-            f"9:16 end card ({ec.topic}, case {ec.index}): luma of the decoded clip per frame", "luma (0-255)",
-            (0, 255)).save(out / "row12_motion_endcard916_curves.png")
-    made += ["row12_motion_endcard916", "row12_motion_endcard916_curves"]
-    box = ec.stats.get("box")
-    if box:
-        b = tuple(int(round(v)) for v in box)
-        crop = (max(0, b[0] - 20), max(0, b[1] - 40), min(1080, b[2] + 20), min(1920, b[3] + 40))
-        rise = bm.rise_px(ec, b, ec.n - 1)
-        tiles = [(f"{n} | offset {rise.get(fno(n), '-')} px", im)
-                 for n, im in bm.strip(ec, crop=crop, scale_h=0, label="share block ") if 9 <= fno(n) <= 40]
-        sheet(tiles, out / "row12_motion_rise", tile_h=None, cols=4)
-        ks = sorted(rise)
-        bm.plot({"share block offset (measured)": ([k / bm.FPS for k in ks], [rise[k] for k in ks])},
-                "9:16 end card: the share block's rise, measured (row-profile correlation against the rest frame)",
-                "px below rest", (0, 24), marks={"first word starts": 0.45}).save(out / "row12_motion_rise_curve.png")
-        made += ["row12_motion_rise", "row12_motion_rise_curve"]
+    ec = end.get("endcard_916")
+    if ec is not None:
+        sheet(bm.strip(ec, scale_h=576, label="end card 9:16 "), out / "row12_motion_endcard916", tile_h=576, cols=8)
+        t = [i / bm.FPS for i in range(ec.n)]
+        bm.plot({"frame mean": (t, ec.luma), **{k: (t, v) for k, v in ec.regions.items()}},
+                f"9:16 end card ({ec.topic}, case {ec.index}): luma of the decoded clip per frame", "luma (0-255)",
+                (0, 255)).save(out / "row12_motion_endcard916_curves.png")
+        made += ["row12_motion_endcard916", "row12_motion_endcard916_curves"]
+        box = ec.stats.get("box")
+        if box:
+            b = tuple(int(round(v)) for v in box)
+            crop = (max(0, b[0] - 20), max(0, b[1] - 40), min(1080, b[2] + 20), min(1920, b[3] + 40))
+            rise = bm.rise_px(ec, b, ec.n - 1)
+            tiles = [(f"{n} | offset {rise.get(fno(n), '-')} px", im)
+                     for n, im in bm.strip(ec, crop=crop, scale_h=0, label="share block ") if 9 <= fno(n) <= 40]
+            sheet(tiles, out / "row12_motion_rise", tile_h=None, cols=4)
+            ks = sorted(rise)
+            bm.plot({"share block offset (measured)": ([k / bm.FPS for k in ks], [rise[k] for k in ks])},
+                    "9:16 end card: the share block's rise, measured (row-profile correlation against the rest frame)",
+                    "px below rest", (0, 24), marks={"first word starts": 0.45}).save(out / "row12_motion_rise_curve.png")
+            made += ["row12_motion_rise", "row12_motion_rise_curve"]
     # the loop bridge with FOLLOW, into the Reel's frame 0 (the clip's last frame)
-    br = end["bridge_follow_916"]
-    total = br.n - 1
-    tiles = [(f"{'Reel frame 0' if fno(n) == total else f'k{fno(n):02d}'} t={fno(n) / bm.FPS:.3f}s "
-              f"(frame {fno(n)} of {total})", im) for n, im in bm.strip(br, scale_h=576)]
-    sheet(tiles, out / "row12_motion_bridge", tile_h=576, cols=8)
-    t = [i / bm.FPS for i in range(br.n)]
-    bm.plot({"frame mean": (t, br.luma), **{k: (t, v) for k, v in br.regions.items()}},
-            f"loop bridge with FOLLOW ({br.topic}): luma per frame, the last point is the Reel's frame 0",
-            "luma (0-255)", (0, 255)).save(out / "row12_motion_bridge_curves.png")
-    bm.plot({"FOLLOW alpha (end_card.follow_alpha)": (t[:total], [end_card.follow_alpha(i, total) for i in range(total)]),
-             "frame-to-frame MAD / 25": (t, [m / 25 for m in br.mad])},
-            "loop bridge: FOLLOW's alpha as the renderer computes it, and the frame steps", "alpha (0-1)",
-            (0, 1)).save(out / "row12_motion_bridge_alpha.png")
-    made += ["row12_motion_bridge", "row12_motion_bridge_curves", "row12_motion_bridge_alpha"]
+    br = end.get("bridge_follow_916")
+    if br is not None:
+        total = br.n - 1
+        tiles = [(f"{'Reel frame 0' if fno(n) == total else f'k{fno(n):02d}'} t={fno(n) / bm.FPS:.3f}s "
+                  f"(frame {fno(n)} of {total})", im) for n, im in bm.strip(br, scale_h=576)]
+        sheet(tiles, out / "row12_motion_bridge", tile_h=576, cols=8)
+        t = [i / bm.FPS for i in range(br.n)]
+        bm.plot({"frame mean": (t, br.luma), **{k: (t, v) for k, v in br.regions.items()}},
+                f"loop bridge with FOLLOW ({br.topic}): luma per frame, the last point is the Reel's frame 0",
+                "luma (0-255)", (0, 255)).save(out / "row12_motion_bridge_curves.png")
+        bm.plot({"FOLLOW alpha (end_card.follow_alpha)": (t[:total], [end_card.follow_alpha(i, total) for i in range(total)]),
+                 "frame-to-frame MAD / 25": (t, [m / 25 for m in br.mad])},
+                "loop bridge: FOLLOW's alpha as the renderer computes it, and the frame steps", "alpha (0-1)",
+                (0, 1)).save(out / "row12_motion_bridge_alpha.png")
+        made += ["row12_motion_bridge", "row12_motion_bridge_curves", "row12_motion_bridge_alpha"]
     # the hook: hold and fade
     hook = bm.hook_sequence(clips)
     if hook.get("seq"):
@@ -436,17 +468,21 @@ def row12_motion(out: Path, dev: Path, work: Path, manifest: dict) -> list[str]:
     for g, why in hook.get("refused", {}).items():
         manifest["labels"][f"card__hook__{g}__916 (row 12)"] = f"REFUSED: {why}"
     # the act dissolve
-    diss = bm.act_dissolve(dev, clips, bx.ASWAN_DECK_RUN)
-    ds = diss["seq"]
-    clip_rec(ds, "12", f"act dissolve ({bm.act_fade_frames()} frames, xfade dissolve) between the run's stills "
-             f"{', '.join(diss['stills'])}, held still (camera push left out)")
-    sheet(bm.strip(ds, scale_h=576, label="act dissolve "), out / "row12_motion_dissolve", tile_h=576, cols=8)
-    t = [i / bm.FPS for i in range(len(diss["mix"]))]
-    bm.plot({"mix (least squares, a -> b)": (t, diss["mix"]), "share of pixels nearer b": (t, diss["nearer_b"])},
-            f"act dissolve: {diss['fade_s']:.3f} s from {diss['hold_s']:.2f} s, measured on the decoded clip",
-            "share (0-1)", (0, 1), marks={"start": diss["hold_s"], "end": diss["hold_s"] + diss["fade_s"]}
-            ).save(out / "row12_motion_dissolve_curves.png")
-    made += ["row12_motion_dissolve", "row12_motion_dissolve_curves"]
+    diss = bm.act_dissolve(dev, clips, bx.ASWAN_DECK_RUN) or {"missing": "act dissolve not drawn"}
+    if "missing" in diss:
+        be.REFUSED.append(("act dissolve (row 12)", "not drawn (evidence)", diss["missing"][:400]))
+    else:
+        ds = diss["seq"]
+        clip_rec(ds, "12", f"act dissolve ({diss['spec']['frames']} frames, xfade transition={diss['spec']['transition']}, "
+                 f"{diss['spec']['source']}) between the run's stills "
+                 f"{', '.join(diss['stills'])}, held still (camera push left out)")
+        sheet(bm.strip(ds, scale_h=576, label="act dissolve "), out / "row12_motion_dissolve", tile_h=576, cols=8)
+        t = [i / bm.FPS for i in range(len(diss["mix"]))]
+        bm.plot({"mix (least squares, a -> b)": (t, diss["mix"]), "share of pixels nearer b": (t, diss["nearer_b"])},
+                f"act dissolve: {diss['fade_s']:.3f} s from {diss['hold_s']:.2f} s, measured on the decoded clip",
+                "share (0-1)", (0, 1), marks={"start": diss["hold_s"], "end": diss["hold_s"] + diss["fade_s"]}
+                ).save(out / "row12_motion_dissolve_curves.png")
+        made += ["row12_motion_dissolve", "row12_motion_dissolve_curves"]
     # each named ease on real axes (row13_motion_tokens lists the durations that use each)
     curves = {name: ([k / 100 for k in range(101)], [fn(k / 100) for k in range(101)])
               for name, fn in brand_system.EASES.items()}
@@ -525,8 +561,11 @@ def caption_cases(work: Path) -> list[dict]:
         wide = case.get("format") == "16:9"
         ass = work / f"cps_{case['topic']}_{'169' if wide else '916'}.ass"
         comp = vc.VideoComposer()
-        comp.build_subtitles(words, ass, emphasis=case.get("emphasis_words") or None,
-                             **({"width": 1920, "height": 1080} if wide else {}))
+        import board_evidence as be
+        if be.guarded(f"captions {case['topic']} {case.get('format')} (ASS)", comp.build_subtitles, words, ass,
+                      emphasis=case.get("emphasis_words") or None,
+                      **({"width": 1920, "height": 1080} if wide else {})) is None and not ass.is_file():
+            continue
         out.append({"topic": case["topic"], "format": case.get("format"), "words": words,
                     "ass": ass.read_text(encoding="utf-8"), "record": getattr(comp, "last_reading_rate", None)})
     CAPTION_CACHE["cases"] = out
@@ -675,8 +714,8 @@ def peer_feeds(out: Path, dev: Path, work: Path, peers: Path | None, manifest: d
     fb1 = load(lambda n: n.startswith("social__") and n.endswith("__fb_carousel_slide_01"))
     extra_c = bx._cache.get("covers") or []
     deck = (bx._cache.get("deck") or [])[:1]
-    extra_reels = [(c["name"] + "__reel", c["reel"]) for c in extra_c]
-    extra_yt = [(c["name"] + "__youtube", c["youtube"]) for c in extra_c]
+    extra_reels = [(c["name"] + "__reel", c["reel"]) for c in extra_c if c.get("reel") is not None]
+    extra_yt = [(c["name"] + "__youtube", c["youtube"]) for c in extra_c if c.get("youtube") is not None]
     extra_car = [(i["name"], i["image"]) for i in deck]
     plan = {"ig_grid": ([x for x in reels + car1 if hero(x[0])] + extra_reels, reels + car1),
             "ig_feed": ([x for x in car1 if hero(x[0])] + extra_car, car1 + reels),
@@ -774,6 +813,13 @@ def main() -> None:
         import render_surfaces
         brand.configure(render_surfaces.second_brand(brand), validate=False)   # round 8: evidence (the corpus refuses it)
     import board_evidence as be
+    if a.brand == "second":   # the configure-time validation's own list, in this palette's refusal table
+        try:
+            from src.brand_system import validate_display
+            for why in validate_display(brand.active()) or []:
+                be.REFUSED.append(("brand (configure-time fit corpus)", "brand refused at configure", str(why)[:400]))
+        except ImportError:
+            pass
     import board_extras as bx
     import board_motion as bm
     work = Path(tempfile.mkdtemp(prefix="board-"))
@@ -803,6 +849,7 @@ def main() -> None:
         if r not in rows:
             continue
         t0 = time.perf_counter()
+        n_refused = len(be.REFUSED)
         pngs = sorted((out / "surfaces").glob("*.png"))
         pick = [p for p in pngs if p.stem.startswith(prefixes)]
         if r == 4:
@@ -825,16 +872,20 @@ def main() -> None:
 
         def add(item: dict, tiles=tiles) -> None:
             if item.get("image") is None:
+                if item.get("refused"):   # round 8: the renderer refused this surface; its row says so
+                    tiles.append((be.label(item["name"], "REFUSED"), be.refusal_tile(item["name"], item["refused"])))
                 return
             tiles.append((be.label(item["name"], item["label"]), item["image"]))
             manifest["labels"][item["name"]] = be.label(item["name"], item["label"])
         if r in (3, 4):
             for c in extra("covers", lambda: bx.covers(dev, work), []):
                 if r == 3:
-                    add({"name": c["name"] + "__reel", "label": c["label"], "image": c["reel"]})
-                    add({"name": c["name"] + "__grid", "label": c["label"], "image": c["grid"]})
+                    for k in ("reel", "grid"):
+                        add({"name": c["name"] + f"__{k}", "label": c["label"], "image": c[k],
+                             "refused": (c.get("refused") or {}).get(k)})
                 else:
-                    add({"name": c["name"] + "__youtube", "label": c["label"], "image": c["youtube"]})
+                    add({"name": c["name"] + "__youtube", "label": c["label"], "image": c["youtube"],
+                         "refused": (c.get("refused") or {}).get("youtube")})
         if r == 3:   # each Reel cover as the profile grid shows it
             reels = [(n, im) for n, im in tiles if n.split(" | ")[0].endswith("reel")]
             sheets["row03_reel_cover_grid_crops"] = (
@@ -926,6 +977,10 @@ def main() -> None:
                 add(item)
             for item in extra("cover badges", lambda: bx.cover_badges(dev, work), []):
                 add(item)
+        for surface, what, why in be.REFUSED[n_refused:]:   # round 8: a refusal on its row, never a gap or an abort
+            if surface.startswith(("youtube ", "reel cover + grid ")):
+                continue   # the covers' refusals are shown on their own rows (3 and 4) by add()
+            tiles.append((f"{surface} | {what}", be.refusal_tile(surface, why)))
         sheet(tiles, out / f"row{r:02d}_{name}", tile_h=960)
         manifest["rows"][str(r)] = [n.split(" | ")[0] for n, _ in tiles]
         for sname, (stiles, th, cols) in sheets.items():

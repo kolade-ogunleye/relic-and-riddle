@@ -85,18 +85,28 @@ def youtube(hero: Path, payload: dict[str, Any], path: Path) -> dict[str, Any]:
         meta.update(k.get("meta") or {})
         return got
     youtube_thumbnail.render = spy
-    try:
-        yt = VisualEngine().generate_youtube_thumbnail(hero, _copy.deepcopy(payload), path)
+    import board_evidence as be
+    try:   # round 8: a refusal is recorded (board_evidence.guarded) and the image is None
+        yt = be.guarded(f"youtube {Path(hero).parent.name}/{Path(hero).name}", VisualEngine().generate_youtube_thumbnail,
+                        hero, _copy.deepcopy(payload), path)
     finally:
         youtube_thumbnail.render = real_render
-    return {"image": _rgb(yt), "masthead": meta.get("masthead")}
+    return {"image": _rgb(yt) if yt else None, "masthead": meta.get("masthead")}
 
 
 def _thumbnails(hero: Path, payload: dict[str, Any], d: Path) -> dict[str, Any]:
+    import board_evidence as be
     from src.visual_engine import VisualEngine
-    reel, grid = VisualEngine().generate_thumbnails(hero, _copy.deepcopy(payload), d, style="badge", variants=False)
-    yt = youtube(hero, payload, d / "yt.jpg")
-    return {"reel": _rgb(reel), "grid": _rgb(grid), "youtube": yt["image"], "masthead": yt["masthead"]}
+    got = be.guarded(f"reel cover + grid {Path(hero).parent.name}/{Path(hero).name}", VisualEngine().generate_thumbnails,
+                     hero, _copy.deepcopy(payload), d, style="badge", variants=False)
+    reel, grid = got if got else (None, None)
+    refused = {"reel": be.REFUSED[-1][2]} if got is None and be.REFUSED else {}
+    yt = youtube(hero, payload, d / "yt.jpg")   # on its own: a refused thumbnail never drops the cover, nor the reverse
+    if yt["image"] is None and be.REFUSED:
+        refused["youtube"] = be.REFUSED[-1][2]
+    refused["grid"] = refused.get("reel")
+    return {"reel": _rgb(reel) if reel else None, "grid": _rgb(grid) if grid else None, "youtube": yt["image"],
+            "masthead": yt["masthead"], "refused": {k: v for k, v in refused.items() if v}}
 
 
 def grid_crops(reel) -> list[tuple[str, Any]]:
@@ -171,7 +181,12 @@ def aswan_deck(dev: Path, work: Path) -> list[dict[str, Any]]:
     (d / CAROUSEL_PHOTOS).write_text(json.dumps({"key": key, "photos": [str(p) for p in photos]}, indent=1),
                                      encoding="utf-8", newline="\n")
     graphics = sorted((run / "graphics").glob("graphic_*.mp4"))
-    slides = MultiFormatGenerator().generate_carousel_sequence(stills, payload, d, facebook=False, graphics=graphics)
+    import board_evidence as be
+    slides = be.guarded(f"carousel deck {ASWAN_DECK_RUN[4:]}", MultiFormatGenerator().generate_carousel_sequence,
+                        stills, payload, d, facebook=False, graphics=graphics, default=None)
+    if slides is None:
+        _cache["deck"] = []
+        return []
     rec = json.loads((d / "carousel" / "still_layout.json").read_text(encoding="utf-8"))
     out = []
     for p in slides:
@@ -198,10 +213,15 @@ def near_white_slides(dev: Path) -> list[dict[str, Any]]:
     cards = payload["carousel_slides"]
     arch = MultiFormatGenerator.sequence_archetypes(cards)
     gen = MultiFormatGenerator()
+    import board_evidence as be
     out = []
     for i in (0, 1):
-        im, lay = gen._render_carousel_slide(arch[i], hero, hero, cards[i], i, len(cards), payload.get("poll") or {},
-                                             share_prompt(payload), False, subject=standalone_subject(payload))
+        got = be.guarded(f"social__antikythera_mechanism_near_white__carousel_slide_{i + 1:02d}",
+                         gen._render_carousel_slide, arch[i], hero, hero, cards[i], i, len(cards),
+                         payload.get("poll") or {}, share_prompt(payload), False, subject=standalone_subject(payload))
+        if got is None:
+            continue
+        im, lay = got
         out.append({"name": f"social__antikythera_mechanism_near_white__carousel_slide_{i + 1:02d}",
                     "archetype": arch[i], "image": im.convert("RGB"), "label": STAND_IN,
                     "masthead": (getattr(lay, "meta", None) or {}).get("masthead")})
@@ -304,7 +324,10 @@ def caption_frames(tree: Path, work: Path, clips: Path | None = None) -> list[di
         size = (1920, 1080) if wide else (1080, 1920)
         t = float(words[min(3, len(words) - 1)]["start"]) + 0.05
         end = float(words[-1]["start"]) + float(words[-1].get("dur", 1.0))
-        ground, note = be.caption_ground(case, t, size, work)
+        got = be.guarded(f"caption ground {case['topic']} t={t:.2f}s", be.caption_ground, case, t, size, work)
+        if got is None:
+            continue
+        ground, note = got
         for suffix, recon in (("", None), ("__badge", [(0.0, end)])):
             ass = work / f"enc_{case['topic']}{suffix}.ass"
             kw = {"width": 1920, "height": 1080} if wide else {}
@@ -333,6 +356,7 @@ def caption_frames(tree: Path, work: Path, clips: Path | None = None) -> list[di
 def hook_frames() -> list[dict[str, Any]]:
     """The tests' hook card (render_surfaces.py's cards job, same grounds and key) at the frames the claim is held:
     frame 0 (the Reel's first frame) and the last frame before the type starts to fade."""
+    import board_evidence as be
     import fixtures as fx
 
     from src import config
@@ -346,7 +370,7 @@ def hook_frames() -> list[dict[str, Any]]:
     for g, ph in grounds.items():
         try:
             plan = fc.hook_plan(ph)
-        except dc.CardRefused as e:
+        except be._refusal_type() as e:   # round 8: the one refusal type (CardRefused is one), recorded
             out.append({"name": f"card__hook__{g}__916", "refused": str(e)[:200]})
             continue
         held = [k for k in range(plan.frames) if dc._hook_alpha(k / dc.VIDEO_FPS) >= 0.999]   # the type's own curve
@@ -378,8 +402,10 @@ def callout_held(work: Path) -> list[dict[str, Any]]:
         frames.extend(im.convert("RGB") for im in fr)
         return Path(out)
     callouts._encode = keep
+    import board_evidence as be
     try:
-        callouts.render(hero, kept, work / "callout_916.mp4", width=w, height=h, reveal=[0.6, 2.2])
+        be.guarded("callouts__reference_pair__916 (held frame)", callouts.render, hero, kept,
+                   work / "callout_916.mp4", width=w, height=h, reveal=[0.6, 2.2])
     finally:
         callouts._encode = real
     if not frames:
@@ -408,8 +434,9 @@ def cover_badges(dev: Path, work: Path) -> list[dict[str, Any]]:
     with _illustrated():
         made = _thumbnails(hero, _payload(dev, ASWAN_COVER_RUN), work / "badge")
     why = f"FORCED illustration flag: run {ASWAN_COVER_RUN[4:]}'s hero and copy (no run had an illustrated hero)"
-    return [{"name": "cover_badge__unfinished_obelisk_aswan__reel", "image": made["reel"], "label": why},
-            {"name": "thumbnail_badge__unfinished_obelisk_aswan__youtube", "image": made["youtube"], "label": why}]
+    return [x for x in ({"name": "cover_badge__unfinished_obelisk_aswan__reel", "image": made["reel"], "label": why},
+                        {"name": "thumbnail_badge__unfinished_obelisk_aswan__youtube", "image": made["youtube"],
+                         "label": why}) if x["image"] is not None]
 
 
 if __name__ == "__main__":   # pragma: no cover

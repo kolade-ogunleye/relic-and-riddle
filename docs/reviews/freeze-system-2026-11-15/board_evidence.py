@@ -20,6 +20,56 @@ from pathlib import Path
 from typing import Any
 
 REAL, STAND_IN, FORCED = "REAL", "STAND-IN", "FORCED"
+
+
+# ---------------------------------------------------------------------------------------------- refusals as records
+REFUSED: list[tuple[str, str, str]] = []   # (surface, what, reason): every refusal the board's own calls met
+
+
+def _refusal_type():
+    """The tree's one refusal type (src/refusal.py, round 8); on an older tree its typography.TextFitError."""
+    try:
+        from src.refusal import LayoutError
+        return LayoutError
+    except ImportError:
+        from src.typography import TextFitError
+        return TextFitError
+
+
+def guarded(surface: str, fn, *a, default=None, **k):
+    """fn(*a, **k), or `default` when the renderer refuses (the tree's LayoutError and its subclasses): the refusal
+    is recorded in REFUSED (the palette's refusal table, and a refusal tile on its row) and the board goes on. Every
+    board call into a renderer goes through here; anything else that raises is a real failure, left to the caller."""
+    try:
+        return fn(*a, **k)
+    except _refusal_type() as e:
+        try:
+            from src.refusal import record
+            rec = record(e, surface)
+        except ImportError:
+            rec = {"refused": type(e).__name__, "reason": str(e)}
+        REFUSED.append((surface, f"refused ({rec['refused']})", str(rec["reason"])[:400]))
+        print(f"board: {surface} refused: {rec['reason']}", flush=True)
+        return default
+
+
+def refusal_tile(surface: str, reason: str, size=(960, 540)):
+    """A grey tile that says the surface was refused and why (its row shows the refusal, never a gap)."""
+    from PIL import Image, ImageDraw, ImageFont
+    im = Image.new("RGB", size, (70, 70, 70))
+    d = ImageDraw.Draw(im)
+    f = ImageFont.load_default(size=26)
+    words, lines, cur = f"REFUSED  {surface}:  {reason}".split(), [], ""
+    for w in words:
+        if cur and d.textlength(f"{cur} {w}", font=f) > size[0] - 40:
+            lines.append(cur)
+            cur = w
+        else:
+            cur = f"{cur} {w}".strip()
+    lines.append(cur)
+    for i, ln in enumerate(lines[:16]):
+        d.text((20, 20 + 32 * i), ln, fill=(255, 220, 120), font=f)
+    return im
 CARD_GROUNDS = {"richat": "Richat Structure", "amber": "Amber Room", "obelisk": "unfinished obelisk (Aswan)"}
 RICHAT_COPY = ("myth_richat", "chapter_act1", "chapter_act4", "hook")
 # names whose kind is a probe by construction: each must match a STAND-IN / FORCED rule or a stated REAL rule
@@ -221,6 +271,7 @@ def refusals(surfaces: dict[str, Any] | None, manifest: dict[str, Any], extra: l
     for name, lab in sorted((manifest.get("labels") or {}).items()):
         if str(lab).startswith("REFUSED:"):
             rows.append((name, "refused (recorded)", str(lab)[len("REFUSED:"):].strip()))
+    rows += [r for r in REFUSED if r not in rows]
     rows += extra
     return rows
 

@@ -213,7 +213,12 @@ def end_sequences(clips: Path, topic: str = "unfinished_obelisk_aswan") -> dict[
     for name, (size, make, idx, case) in jobs.items():
         t0 = time.perf_counter()
         stats: dict[str, Any] = {}
-        clip = encode(make(stats), clips / f"{name}__{idx}_{topic}.mp4", size)
+        path = clips / f"{name}__{idx}_{topic}.mp4"
+        import board_evidence as be   # round 8: a refusal is recorded, the other sequences go on
+        clip = be.guarded(f"{name} ({topic}, case {idx})", encode, make(stats), path, size)
+        if clip is None:
+            path.unlink(missing_ok=True)
+            continue
         regions = _end_regions(name, stats, size)
         every = 3 if clip["frames"] > 60 else 1
         seq = Seq(name, clip, size, regions, keep=lambda i, e=every: i % e == 0 or i == clip["frames"] - 1)
@@ -260,18 +265,23 @@ def hook_sequence(clips: Path) -> dict[str, Any]:
     heroes = {h["topic"]: fx.path(h["photo"]) for h in fx.section("cards")["hero_photos"]}
     grounds = {"richat": fx.still("richat_structure_sahara_eye_01_commons_960.jpg"),
                "obelisk": heroes["unfinished_obelisk_aswan"], "amber": heroes["amber_room_heist"]}
+    import board_evidence as be
     refused, res = {}, {}
     for g, ph in grounds.items():
         try:
             plan = fc.hook_plan(ph)
-        except dc.CardRefused as e:
+        except be._refusal_type() as e:   # the one refusal type (CardRefused is one): recorded, next ground
             refused[g] = str(e)[:200]
             continue
         t0 = time.perf_counter()
-        size = dc.frame_at(plan, 0).size
-        clip = encode((dc.frame_at(plan, k).convert("RGB") for k in range(plan.frames)),
-                      clips / f"hook__{g}__916.mp4", size)
-        seq = Seq("hook", clip, size, None, keep=lambda i: True)
+        path = clips / f"hook__{g}__916.mp4"
+        clip = be.guarded(f"card__hook__{g}__916 (clip)", lambda: encode(
+            (dc.frame_at(plan, k).convert("RGB") for k in range(plan.frames)), path, dc.frame_at(plan, 0).size))
+        if clip is None:
+            path.unlink(missing_ok=True)
+            refused[g] = "a frame refused while drawing (see the refusal table)"
+            continue
+        seq = Seq("hook", clip, dc.frame_at(plan, 0).size, None, keep=lambda i: True)
         seq.seconds = round(time.perf_counter() - t0, 1)
         res = {"seq": seq, "ground": g, "claim": " / ".join(fc.claim_lines(plan)), "plan_frames": plan.frames}
         break
@@ -280,16 +290,50 @@ def hook_sequence(clips: Path) -> dict[str, Any]:
     return res
 
 
-def act_dissolve(dev: Path, clips: Path, run: str) -> dict[str, Any]:
-    """The act-change dissolve as video_composer builds it (ffmpeg xfade=transition=dissolve over the composer's own
-    fade, `fades` in VideoComposer: 8 frames at VIDEO_FPS) between two of the run's real scene stills at 9:16,
-    held still (the camera push is left out, so only the dissolve moves), through the delivery encoder."""
+def act_dissolve_spec() -> dict[str, Any]:
+    """The act dissolve as this tree's composer drives it, read from its code, never assumed: the length from
+    video_composer.act_dissolve_s() (round 8: tok("motion.act_dissolve") in whole frames), else the older literal
+    `fades = [N / VIDEO_FPS`; the transition from its xfade line. {seconds, frames, transition, source}; a value
+    that cannot be found is None and `source` says so (an evidence table never raises)."""
+    out: dict[str, Any] = {"seconds": None, "frames": None, "transition": None, "source": "not found"}
+    try:
+        from src import video_composer as vc
+        text = Path(inspect.getsourcefile(vc)).read_text(encoding="utf-8")
+    except Exception as e:  # noqa: BLE001
+        out["source"] = f"not found (video_composer: {type(e).__name__})"
+        return out
+    fn = getattr(vc, "act_dissolve_s", None)
+    if callable(fn):
+        try:
+            out.update(seconds=float(fn()), source="video_composer.act_dissolve_s() (tok motion.act_dissolve)")
+        except Exception as e:  # noqa: BLE001
+            out["source"] = f"not found (act_dissolve_s raised {type(e).__name__}: {e})"
+    else:
+        m = re.search(r"fades\s*=\s*\[\s*(\d+)\s*/\s*VIDEO_FPS", text)
+        if m:
+            out.update(seconds=int(m.group(1)) / FPS, source="video_composer.py literal `fades = [N / VIDEO_FPS`")
+    if out["seconds"] is not None:
+        out["frames"] = round(out["seconds"] * FPS)
+    m = re.search(r"xfade=transition=(\w+)", text)
+    out["transition"] = m.group(1) if m else None
+    return out
+
+
+def act_dissolve(dev: Path, clips: Path, run: str) -> dict[str, Any] | None:
+    """The act-change dissolve as video_composer builds it (ffmpeg xfade with the composer's own transition and
+    length, act_dissolve_spec) between two of the run's real scene stills at 9:16, held still (the camera push is left
+    out, so only the dissolve moves), through the delivery encoder. None (with the reason in "missing") when the
+    tree's dissolve cannot be read."""
     if "dissolve" in _cache:
         return _cache["dissolve"]
     from PIL import Image, ImageOps
 
     from src.encoding import delivery_video_encoder
     import board_extras as bx
+    spec = act_dissolve_spec()
+    if spec["seconds"] is None or spec["transition"] is None:
+        _cache["dissolve"] = {"missing": f"act dissolve not drawn: {spec}"}
+        return _cache["dissolve"]
     t0 = time.perf_counter()
     stills = bx._scene_stills(dev / "output" / run)[:2]
     size = (1080, 1920)
@@ -298,10 +342,10 @@ def act_dissolve(dev: Path, clips: Path, run: str) -> dict[str, Any]:
         p = clips / f"_dissolve_{k}.png"
         ImageOps.fit(Image.open(s).convert("RGB"), size, Image.LANCZOS).save(p)
         paths.append(p)
-    fade = act_fade_frames() / FPS
+    fade, tr = spec["seconds"], spec["transition"]
     hold = 0.5
     path = clips / f"act_dissolve__{run[4:]}__916.mp4"
-    graph = (f"[0:v]format=rgb24[a];[1:v]format=rgb24[b];[a][b]xfade=transition=dissolve:duration={fade:.9f}:"
+    graph = (f"[0:v]format=rgb24[a];[1:v]format=rgb24[b];[a][b]xfade=transition={tr}:duration={fade:.9f}:"
              f"offset={hold:.9f},{_graph()}[v]")
     subprocess.run(["ffmpeg", "-v", "error", "-y", "-loop", "1", "-framerate", str(FPS), "-t", f"{hold + fade:.4f}",
                     "-i", str(paths[0]), "-loop", "1", "-framerate", str(FPS), "-t", f"{hold + fade + hold:.4f}",
@@ -309,7 +353,7 @@ def act_dissolve(dev: Path, clips: Path, run: str) -> dict[str, Any]:
                     "-pix_fmt", "yuv420p", "-color_range", "tv", "-color_primaries", "bt709", "-color_trc", "bt709",
                     "-colorspace", "bt709", "-r", str(FPS), str(path)], check=True, capture_output=True, timeout=300)
     clip = {"path": path, "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
-            "encoder": f"xfade=transition=dissolve:duration={fade:.4f} then " + " ".join(delivery_video_encoder())}
+            "encoder": f"xfade=transition={tr}:duration={fade:.4f} then " + " ".join(delivery_video_encoder())}
     a = np.asarray(Image.open(paths[0]).resize((270, 480)), np.float32)
     b = np.asarray(Image.open(paths[1]).resize((270, 480)), np.float32)
     seq = Seq("act_dissolve", clip, size, None,
@@ -324,19 +368,10 @@ def act_dissolve(dev: Path, clips: Path, run: str) -> dict[str, Any]:
     for p in paths:
         p.unlink(missing_ok=True)
     seq.seconds = round(time.perf_counter() - t0, 1)
-    out = {"seq": seq, "mix": mix, "nearer_b": nearer_b, "fade_s": fade, "hold_s": hold,
+    out = {"seq": seq, "mix": mix, "nearer_b": nearer_b, "fade_s": fade, "hold_s": hold, "spec": spec,
            "stills": [Path(s).name for s in stills]}
     _cache["dissolve"] = out
     return out
-
-
-def act_fade_frames() -> int:
-    """The act dissolve's length in frames as video_composer.py writes it (the `fades = [N / VIDEO_FPS ...` line)."""
-    src = Path(inspect.getsourcefile(__import__("src.video_composer", fromlist=["x"])))
-    m = re.search(r"fades\s*=\s*\[\s*(\d+)\s*/\s*VIDEO_FPS", src.read_text(encoding="utf-8"))
-    if not m:
-        raise RuntimeError("video_composer.py: the act dissolve's `fades = [N / VIDEO_FPS` line is gone")
-    return int(m.group(1))
 
 
 def rise_px(seq: Seq, box: tuple, rest_i: int) -> dict[int, int]:
@@ -398,42 +433,69 @@ def ass_motion(ass_text: str) -> dict[str, list]:
 def motion_rows(ass_texts: dict[str, str]) -> list[tuple]:
     """(name, value, kind, what it times) for every motion value the tree holds: brand_system's motion.* (gate,
     runtime token, written SPEC), its eases (with motion.back's overshoot), the renderers' own timing constants, the
-    act dissolve, the caption ASS's eases and fades, and every timing call in the end card, bridge and hook code."""
-    from src import brand_system as bs
-    from src import design_cards as dc
-    from src import end_card as ec
+    act dissolve, the caption ASS's eases and fades, and every timing call in the end card, bridge and hook code.
+    An evidence table never raises: a part this tree does not have is a "not found" row saying why."""
     rows: list[tuple] = [("name", "value", "kind", "what it times / where")]
-    for kind, table in (("gate", bs.GATES), ("runtime token", getattr(bs, "SYSTEM_TOKENS", {})), ("SPEC (written)", bs.SPEC)):
-        for k, v in table.items():
-            if k.startswith("motion."):
-                rows.append((k, v, kind, "src/brand_system.py"))
-    back = bs.tok("motion.back")
-    peak = max(bs.ease_out_back(i / 1000) for i in range(1001))
-    for name, fn in bs.EASES.items():
-        doc = (fn.__doc__ or "").strip().split("\n")[0] or "min(1, max(0, t))"
-        extra = f"; overshoot {100 * (peak - 1):.1f} % at motion.back {back}" if name == "ease_out_back" else ""
-        rows.append((f"ease {name}", f"y(0.25)={fn(0.25):.3f} y(0.5)={fn(0.5):.3f}", "ease", doc + extra))
-    consts = [(ec, ("FPS", "SECONDS", "END_SCREEN_SECONDS", "LOOP_SECONDS", "LOOP_TIMES", "LOOP_CROSSFADE", "LOOP_DIM",
-                    "LOOP_PUSH", "LOOP_PUSH_CAP", "LANDSCAPE_PUSH", "LOOP_FOLLOW_FRAMES", "LOOP_FOLLOW_RISE", "BELL_AT",
-                    "LOOP_MAX_STEP_L", "LOOP_MAX_MAD")),
-              (dc, ("HOOK_SECONDS", "HOOK_HOLD", "HOOK_FADE", "HOOK_GROUND_HOLD", "HOOK_GROUND_FADE", "CAPTION_CLEAR",
-                    "REVEAL"))]
-    for mod, names in consts:
-        for n in names:
-            if hasattr(mod, n):
-                rows.append((f"{mod.__name__.split('.')[-1]}.{n}", getattr(mod, n), "module constant (drives now)",
-                             f"src/{mod.__name__.split('.')[-1]}.py"))
-    rows.append(("act dissolve", f"{act_fade_frames()} frames = {act_fade_frames() / FPS:.3f} s",
-                 "module literal (drives now)", "src/video_composer.py `fades = [N / VIDEO_FPS` (xfade dissolve)"))
-    for case, text in ass_texts.items():
-        m = ass_motion(text)
-        rows.append((f"captions {case}", "; ".join(f"{k} x{v}" for k, v in m["word_ease"]) or "none",
-                     "built ASS (drives now)", "word ease \\t(a,b): the word's alpha in"))
-        rows.append((f"captions {case}", "; ".join(f"{k} x{v}" for k, v in m["plate_fade"]) or "none",
-                     "built ASS (drives now)", "plate fade \\fad(in,out)"))
-    for mod, fns in ((ec, ("frames", "loop_bridge", "follow_alpha", "kicker_rise", "_gate_lines")),
-                     (dc, ("_hook_alpha", "frame_at"))):
-        for line in ease_calls(mod, fns):
-            rows.append((f"{mod.__name__.split('.')[-1]}.{line.split(':')[0]}", line.split("  ", 1)[1],
-                         "timing call (source)", f"line {line.split(':')[1].split()[0]}"))
+
+    def part(name: str, fn) -> None:
+        try:
+            fn()
+        except Exception as e:  # noqa: BLE001
+            rows.append((name, "not found", "not on this tree", f"{type(e).__name__}: {e}"[:300]))
+
+    def tokens():
+        from src import brand_system as bs
+        for kind, table in (("gate", bs.GATES), ("runtime token", getattr(bs, "SYSTEM_TOKENS", {})),
+                            ("SPEC (written)", bs.SPEC)):
+            for k, v in table.items():
+                if k.startswith("motion."):
+                    rows.append((k, v, kind, "src/brand_system.py"))
+
+    def eases():
+        from src import brand_system as bs
+        back = bs.tok("motion.back")
+        peak = max(bs.ease_out_back(i / 1000) for i in range(1001))
+        for name, fn in bs.EASES.items():
+            doc = (fn.__doc__ or "").strip().splitlines()[0] if (fn.__doc__ or "").strip() else "min(1, max(0, t))"
+            extra = f"; overshoot {100 * (peak - 1):.1f} % at motion.back {back}" if name == "ease_out_back" else ""
+            rows.append((f"ease {name}", f"y(0.25)={fn(0.25):.3f} y(0.5)={fn(0.5):.3f}", "ease", doc + extra))
+
+    def consts():
+        from src import design_cards as dc
+        from src import end_card as ec
+        for mod, names in ((ec, ("FPS", "SECONDS", "END_SCREEN_SECONDS", "LOOP_SECONDS", "LOOP_TIMES", "LOOP_CROSSFADE",
+                                 "LOOP_DIM", "LOOP_PUSH", "LOOP_PUSH_CAP", "LANDSCAPE_PUSH", "LOOP_FOLLOW_FRAMES",
+                                 "LOOP_FOLLOW_RISE", "BELL_AT", "LOOP_MAX_STEP_L", "LOOP_MAX_MAD")),
+                           (dc, ("HOOK_SECONDS", "HOOK_HOLD", "HOOK_FADE", "HOOK_GROUND_HOLD", "HOOK_GROUND_FADE",
+                                 "CAPTION_CLEAR", "REVEAL"))):
+            short = mod.__name__.split(".")[-1]
+            for n in names:
+                rows.append((f"{short}.{n}", getattr(mod, n) if hasattr(mod, n) else "not found",
+                             "module constant (drives now)" if hasattr(mod, n) else "not on this tree", f"src/{short}.py"))
+
+    def dissolve():
+        spec = act_dissolve_spec()
+        rows.append(("act dissolve", (f"{spec['frames']} frames = {spec['seconds']:.3f} s, xfade transition="
+                                      f"{spec['transition'] or 'not found'}") if spec["seconds"] is not None
+                     else "not found", "composer (drives now)", spec["source"]))
+
+    def captions():
+        for case, text in ass_texts.items():
+            m = ass_motion(text)
+            rows.append((f"captions {case}", "; ".join(f"{k} x{v}" for k, v in m["word_ease"]) or "none",
+                         "built ASS (drives now)", "word ease \\t(a,b): the word's alpha in"))
+            rows.append((f"captions {case}", "; ".join(f"{k} x{v}" for k, v in m["plate_fade"]) or "none",
+                         "built ASS (drives now)", "plate fade \\fad(in,out)"))
+
+    def calls():
+        from src import design_cards as dc
+        from src import end_card as ec
+        for mod, fns in ((ec, ("frames", "loop_bridge", "follow_alpha", "kicker_rise", "_gate_lines")),
+                         (dc, ("_hook_alpha", "frame_at"))):
+            for line in ease_calls(mod, fns):
+                rows.append((f"{mod.__name__.split('.')[-1]}.{line.split(':')[0]}", line.split("  ", 1)[1],
+                             "timing call (source)", f"line {line.split(':')[1].split()[0]}"))
+    for name, fn in (("motion tokens", tokens), ("eases", eases), ("timing constants", consts),
+                     ("act dissolve", dissolve), ("caption ASS motion", captions), ("timing calls", calls)):
+        part(name, fn)
     return rows

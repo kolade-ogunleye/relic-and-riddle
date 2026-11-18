@@ -17,6 +17,7 @@ FFmpeg assembly embodying the locked production standards:
 4. H.264 CRF 18 (slow), TV-range yuv420p, AAC 48 kHz, +faststart for streaming.
 """
 
+import itertools
 import json
 import logging
 import math
@@ -107,6 +108,7 @@ from .config import (
 from .typography import is_video
 from . import brand as _brand
 from .brand_system import LINE_END_NEVER as _LINE_END_NEVER
+from .brand_system import NEVER_END_WORDS as _NEVER_END_WORDS
 from .brand_system import GATES
 
 # the caption reading-rate cap: ONE source, the gate (cycle 0 round 8; config.CAPTION_MAX_CPS holds the same value)
@@ -654,7 +656,7 @@ DANGLING_TAILS = {
     "which", "who", "whom", "whose", "where", "when", "why", "how",
     # Copulas & Auxiliaries (dangling verb tails before predicates)
     "is", "was", "are", "were", "been", "being",
-} | set(_LINE_END_NEVER)
+} | set(_LINE_END_NEVER) | set(_NEVER_END_WORDS)
 # Cycle 0 round 8 (panel consensus 5: the Richat 16:9 burst ended "is situated near" because the round-4 base and the
 # sidecar cues read their own tail set, which lacked NEAR / ONTO / VIA / PER): the heading engine's never-end set
 # (brand_system.LINE_END_NEVER) is part of the caption tails, so every caption path (the freeze-pass builder, the
@@ -667,6 +669,10 @@ DANGLING_TAILS = {
 # prepositions, conjunctions and the relative and wh- words that open a clause. A copula is no such tail (IT WAS |
 # HIDDEN UNDERGROUND reads; it keeps DANGLING_PENALTY in the burst's own score).
 DANGLING_ENDS = DANGLING_TAILS - {"is", "was", "are", "were", "been", "being"}
+# Cycle 0 round 8 (rules2 F4): the derived closed class (brand_system.NEVER_END_WORDS: ACROSS, ALONG, UPON, ALONGSIDE,
+# MOST, BOTH ...) is in DANGLING_ENDS, the one hard never-end set; never_end_end() is the one predicate every caption
+# path and every caption record (reading_rates "never_end", the board's caption rows) count with.
+assert _NEVER_END_WORDS <= DANGLING_ENDS
 # Freeze pass C8 (2026-11-04): a closed, topic-agnostic list of pre-modifiers that read as cut off at a burst's end
 # mid-sentence (THE MEMORIAL | TEMPLE, A TOTAL | HEIGHT), unless a comma ends them; a possessive (THE MINE'S |
 # ROCK SALT) and a hyphenated measure (THEIR 13-FOOT | (4 M)) are dangling ends too (_dangles).
@@ -896,6 +902,25 @@ def _hard_dangles(word: str) -> bool:
         return False
     # round 8: DANGLING_ENDS holds the heading engine's never-end set (DANGLING_TAILS), on every caption path
     return _bare(word) in DANGLING_ENDS
+
+
+def never_end_end(word: str) -> bool:
+    """The ONE never-end predicate (cycle 0 round 8, rules2 F4): a burst ending mid-sentence on `word` ends on the
+    closed class (DANGLING_ENDS, holding brand_system.NEVER_END_WORDS) with no punctuation closing it. The breakers
+    weigh it (_split_defects) and the records count with it (reading_rates, the board's caption rows), so a record
+    never counts fewer than the breaker sees."""
+    return _hard_dangles(str(word or ""))
+
+
+def never_end_bursts(phrases) -> list[str]:
+    """The bursts (text) of `phrases` (lists of words, or of word dicts) that end on a never-end word, the last
+    burst aside (nothing follows it)."""
+    out = []
+    for k, p in enumerate(phrases[:-1]):
+        ws = [w.get("word", "") if isinstance(w, dict) else str(w) for w in p]
+        if ws and never_end_end(ws[-1]):
+            out.append(" ".join(ws))
+    return out
 
 
 # Review round 4 (2026-11-04): the phrase builder's soft costs, summed per split after the hard defects. A lone
@@ -2181,7 +2206,9 @@ def reading_rates(phrases: list[list[dict[str, Any]]], timings: list[tuple[float
             "over_max_pace": len(pace), "over_max_held_short": len(fast) - len(pace),
             "over_20": sum(r["shown_cps"] > 20 for r in rows),
             "worst": {k: worst[k] for k in ("at", "text", "shown_cps", "spoken_cps")} if worst else None,
-            "timing_defects": [{k: r[k] for k in ("at", "text", "shown_cps", "spoken_cps")} for r in rows if r["defect"]]}
+            "timing_defects": [{k: r[k] for k in ("at", "text", "shown_cps", "spoken_cps")} for r in rows if r["defect"]],
+            # rules2 F4: the bursts ending mid-sentence on a never-end word, counted by the breakers' own predicate
+            "never_end": never_end_bursts(phrases)}
 
 
 def emphasis_bonds(words: list[dict[str, Any]], emphasis: list[str] | None) -> set[int]:
@@ -2683,7 +2710,9 @@ def caption_phrases(words: list[dict[str, Any]], emphasis: list[str] | None = No
                                               fits_bonded=fits_bonded, base_cuts=base, loose=loose,
                                               held_soft=_base_figure_links(words, base) & loose)
         phrases = merge_short_bursts(phrases, fits, CAPTION_WIDE_MAX_WORDS, max_chars=CAPTION_WIDE_MAX_CHARS)
-        return _rejoin_base(phrases, words, base, lambda ph: len(ph) <= CAPTION_WIDE_MAX_WORDS and fits(ph))
+        phrases = _rejoin_base(phrases, words, base, lambda ph: len(ph) <= CAPTION_WIDE_MAX_WORDS and fits(ph))
+        return _never_end_repair(phrases, words, lambda ph: (
+            1 <= len(ph) <= CAPTION_WIDE_MAX_WORDS and not _function_only(ph) and fits(ph)))
     base = round4_burst_cuts(words, emphasis)
     loose = _base_yields(words, emphasis, base)
     bonds = (caption_bonds(words) | _held_runs(words, emphasis_bonds(words, emphasis) - caption_bonds(words),
@@ -2694,7 +2723,100 @@ def caption_phrases(words: list[dict[str, Any]], emphasis: list[str] | None = No
     phrases = _rejoin_base(phrases, words, base, lambda ph: (
         len(ph) <= MAX_BURST_WORDS and len(" ".join(_phrase_words(ph))) <= MAX_BURST_CHARS
         and _fits_caption_burst(ph)))
-    return _two_line_phrasing(phrases, words, base)
+    phrases = _two_line_phrasing(phrases, words, base)
+    return _never_end_repair(phrases, words, lambda ph: (
+        2 <= len(ph) <= MAX_BURST_WORDS and len(" ".join(_phrase_words(ph))) <= MAX_BURST_CHARS
+        and not _function_only(ph) and _fits_caption_burst(ph)))
+
+
+def _never_end_repair(phrases: list[list[dict[str, Any]]], words: list[dict[str, Any]],
+                      allowed: Callable[[list[dict[str, Any]]], bool]) -> list[list[dict[str, Any]]]:
+    """Cycle 0 round 8 (rules2 F4): the last pass of both burst paths (9:16 and 16:9). A burst ending mid-sentence on
+    a never-end word (never_end_end: the closed class, brand_system.NEVER_END_WORDS) takes the first words of the
+    next burst, else gives its tail to it, else the two are one: the least change whose bursts both hold the path's
+    caps (`allowed`), split no bond or atomic pair (caption_bonds, name_bonds), end on no never-end word and add no
+    reading-rate defect (rate_defect). Where none holds (a bonded range too long for one burst) the end stays and
+    every record counts it (never_end_bursts). Every word keeps its order and time."""
+    out = [list(p) for p in phrases if p]
+    if len(out) < 2:
+        return out
+    pos = {id(w): k for k, w in enumerate(words)}
+    raw = [w["word"] for w in words]
+    protected = name_bonds(raw) | caption_bonds(words)
+
+    def cut_ok(a: list[dict[str, Any]], b: list[dict[str, Any]]) -> bool:
+        return (pos[id(a[-1])] not in protected and not never_end_end(a[-1]["word"])
+                and not _is_atomic_boundary(a[-1]["word"], b[0]["word"]))
+
+    def defects(trial: list[list[dict[str, Any]]], at: list[int]) -> int:
+        timing = burst_timings(trial)
+        return sum(rate_defect(trial, q, timing[q][0], timing[q][1]) for q in at if 0 <= q < len(trial))
+
+    i = 0
+    while i < len(out) - 1:
+        left, right = out[i], out[i + 1]
+        if _ends_sentence(left) or not never_end_end(left[-1]["word"]):
+            i += 1
+            continue
+        before = defects(out, [i, i + 1])
+        trials = ([(left + right[:t], right[t:]) for t in range(1, len(right))]
+                  + [(left[:-t], left[-t:] + right) for t in range(1, len(left))])
+        done = False
+        for a, b in trials:
+            if allowed(a) and allowed(b) and cut_ok(a, b):
+                trial = out[:i] + [a, b] + out[i + 2:]
+                if defects(trial, [i, i + 1]) <= before:
+                    out, done = trial, True
+                    break
+        if not done and allowed(left + right):
+            trial = out[:i] + [left + right] + out[i + 2:]
+            if defects(trial, [i]) <= before:
+                out, done = trial, True
+                continue   # the joined burst is checked again
+        if not done:   # the burst before it and the one after re-cut together (TRAVEL ACROSS | AN ESTIMATED 144-FOOT)
+            got = _window_recut(out, i, allowed, cut_ok, defects)
+            if got is not None:
+                out = got
+        i += 1
+    if [w for p in out for w in p] != words:
+        raise RuntimeError("caption never-end repair lost or reordered a word")
+    return out
+
+
+def _window_recut(out, i: int, allowed, cut_ok, defects):
+    """_never_end_repair's last resort: bursts i-1, i and i+1 (those there are, inside burst i's sentence) re-cut
+    into as many bursts (else one fewer, else one more), every cut allowed (cut_ok: no bond, no never-end end), every
+    burst within the caps; the fewest soft ends (_dangles: a pre-modifier, a possessive), then the burst count kept,
+    then the fewest moved cuts; no added rate defect. None when no such cut holds."""
+    lo = i - 1 if i > 0 and not _ends_sentence(out[i - 1]) else i
+    hi = i + 1
+    span = out[lo:hi + 1]
+    flat = [w for p in span for w in p]
+    n, k = len(flat), len(span)
+    if n > 16:
+        return None
+    old_cuts, at = set(), 0
+    for p in span[:-1]:
+        at += len(p)
+        old_cuts.add(at)
+    best = None
+    for m in (k, k - 1, k + 1):   # as many bursts, else one fewer, else one more
+        if not 1 <= m <= n:
+            continue
+        for cuts in itertools.combinations(range(1, n), m - 1):
+            bounds = (0, *cuts, n)
+            parts = [flat[a:b] for a, b in zip(bounds, bounds[1:])]
+            if not all(allowed(p) for p in parts) or not all(cut_ok(a, b) for a, b in zip(parts, parts[1:])):
+                continue
+            score = (sum(_dangles(p[-1]["word"]) for p in parts[:-1]), abs(m - k), len(set(cuts) ^ old_cuts))
+            if best is None or score < best[0]:
+                best = (score, parts)
+    if best is None:
+        return None
+    trial = out[:lo] + best[1] + out[hi + 1:]
+    if defects(trial, list(range(lo, hi + 1))) > defects(out, list(range(lo, hi + 1))):
+        return None
+    return trial
 
 
 def _two_line_phrasing(phrases: list[list[dict[str, Any]]], words: list[dict[str, Any]],

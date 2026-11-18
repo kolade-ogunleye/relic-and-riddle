@@ -174,8 +174,9 @@ def test_the_label_halo_is_one_spread_and_capped():
         tree = ast.parse((ROOT / "src" / path).read_text(encoding="utf-8"))
         return {n.name for n in ast.walk(tree) if isinstance(n, ast.FunctionDef)
                 and any(isinstance(c, ast.Call) and getattr(c.func, "id", "") == name for c in ast.walk(n))}
-    assert {"_follow_plate", "frames"} <= users("end_card.py", "plan_label")
-    assert "plan_label" in users("typography.py", "label_halo")
+    # rules2 R1: the end screen plans its labels as one set (typography.plan_label_set, which calls plan_label)
+    assert "_follow_plate" in users("end_card.py", "plan_label") and "frames" in users("end_card.py", "plan_label_set")
+    assert "plan_label" in users("typography.py", "label_halo") and "plan_label_set" in users("typography.py", "plan_label")
 
 
 # ----------------------------------------------------------------------------------------- F9: hero windows

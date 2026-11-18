@@ -978,11 +978,14 @@ class MultiFormatGenerator:
                     y += STORY_FIGURE_GAP + cap_height(f_unit)
                     # Under the numeral it measures (inline: indented past the qualifier, so "FT DEEP" reads with "280").
                     # Cycle 0 round 8 (ruling 8): the unit is gold with its number; the dimension word ("DEEP") bone.
-                    from .figures import DIMENSION_WORDS
+                    # rules2 F5: which unit words are gold is the one gold scope's word (figures.gold_word_indices on
+                    # the whole figure: qualifier, number and unit), never a local split
+                    from .figures import gold_word_indices
+                    lead = (hero["qualifier"].split() if hero["qualifier"] else []) + hero["number"].split()
                     uw = hero["unit"].split()
-                    n_unit = next((i for i, w in enumerate(uw) if w.lower() in DIMENSION_WORDS), len(uw))
+                    gold_set = {i - len(lead) for i in gold_word_indices(lead + uw) if i >= len(lead)}
                     ux = round(q_w) if inline else 0
-                    for part, is_gold in unit_runs(hero["unit"], n_unit):
+                    for part, is_gold in unit_runs(hero["unit"], gold_set):
                         out.append(("figure_unit", y, part, f_unit, figure_colour() if is_gold else brand.BONE, ux))
                         ux += round(d.textlength(part + " ", font=f_unit))
                 return out, y
@@ -2382,12 +2385,13 @@ def figure_colour() -> tuple[int, int, int]:
     return colour_of("figure.colour")
 
 
-def unit_runs(line: str, gold_words: int, offset: int = 0) -> list[tuple[str, bool]]:
+def unit_runs(line: str, gold_words, offset: int = 0) -> list[tuple[str, bool]]:
     """A unit line's runs [(text, gold)]: its first `gold_words` words (counted from `offset`, the words of the
-    unit set on earlier lines) are the unit, gold; the rest (the dimension word: TALL, DEEP, AGO) bone (ruling 8)."""
+    unit set on earlier lines) are the unit, gold; the rest (the dimension word: TALL, DEEP, AGO) bone (ruling 8).
+    `gold_words` may be the set of the unit's gold word indices (figures.gold_word_indices)."""
     out: list[tuple[str, bool]] = []
     for i, w in enumerate(line.split()):
-        g = offset + i < gold_words
+        g = (offset + i in gold_words) if isinstance(gold_words, (set, frozenset)) else offset + i < gold_words
         if out and out[-1][1] == g:
             out[-1] = (out[-1][0] + " " + w, g)
         else:

@@ -4234,9 +4234,13 @@ def plan_hook_frame(spec: HookFrame, sheet: dict, width: int = 1080, height: int
         lay_plates["eyebrow"] = it["parts"]
     n = len(lines)
     for k, (ln, x, b) in enumerate(zip(lines, xs, geo["baselines"])):
-        gold = k in gold_ks and not gold_from
+        # cycle 0 round 8 (rules2 F5, ruling 8): a figure line is DRAWN in the one gold scope (src/figures.py gold_runs,
+        # card.text runs=True: number and unit gold, ABOUT / ACROSS bone), as its scrim rows above are planned; it
+        # drew the whole line gold ("ABOUT 40 KM" on the board's hook f00 / f32)
+        figure_line = k in gold_ks and any(ch.isdigit() for ch in ln)
+        gold = k in gold_ks and not gold_from and not figure_line
         it = card.text(f"title_{k}", ln, brand.DISPLAY_FONT, None, P, brand.GOLD if gold else brand.BONE, x, b, hook, "display", rise=False,
-                       halo_px=0, gold_from=gold_from if k == gold_k else None)
+                       halo_px=0, gold_from=gold_from if k == gold_k else None, runs=figure_line)
         plates += it["parts"]
         for p in it["parts"]:
             lay_plates["title_2" if p.fill == brand.GOLD else "title_1"].append(p)

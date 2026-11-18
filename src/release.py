@@ -238,6 +238,12 @@ def write_release_report(run, dry_run=False):
     from .figure_gate import release_check as _figure_gate
     fg_status, fg_detail = _figure_gate(master.parent, payload)
     checks.append({"name": "drawn_figures", "status": fg_status, "detail": fg_detail})
+    # Operator ruling B (2026-11-18): signed values that state one quantity two ways hold the run for review, both
+    # values named (figure_gate.contradictions)
+    from .figure_gate import contradictions as _contradictions
+    disagree = _contradictions(payload)
+    checks.append({"name": "signed_figures_agree", "status": "needs_review" if disagree else "pass",
+                   "detail": disagree or "No two signed values state one quantity two ways."})
     refused_frames = story_refusals(master.parent)
     if refused_frames:   # QF-94: shown and decided by the operator, never a silent short Story
         add("story_frames", False, refused_frames, review=True)
@@ -678,7 +684,7 @@ PLAIN_CHECKS = {"facts": "Fact check", "provenance": "Source files", "compositio
                 "credit_lines": "Credit lines", "credit_phrases": "Credit lines", "share_alike_licence": "Licence notice",
                 "licence_credits": "Licence credits",
                 "story_credits": "Story credits", "story_frames": "Story frames", "visual_checks": "Video check",
-                "drawn_figures": "Drawn figures",
+                "drawn_figures": "Drawn figures", "signed_figures_agree": "Signed figures disagree",
                 "media_measurement": "Video file", "picture_measurement": "Picture", "audio_measurement": "Sound",
                 "release_report": "Release report"}
 

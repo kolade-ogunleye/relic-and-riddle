@@ -1841,7 +1841,7 @@ class MultiFormatGenerator:
         heading, body = card["heading"].upper(), card["body"]
         im = self._split_ground(photo, cw, chh)
         fig = figures.stat_figure(body)
-        stat = fig.drawn() if fig is not None else ""
+        stat = fig.drawn(era=False) if fig is not None else ""   # as round 8 drew it (an era is a design change)
         faults = figures.truth_faults(stat, [body]) if stat else []
         if faults:   # never drawn: a figure the body does not state whole (the critic's own check, fail closed)
             log.warning("Stat slide figure withheld (%s).", "; ".join(faults))

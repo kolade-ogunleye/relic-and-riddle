@@ -183,6 +183,12 @@ def _elements(run_dir: Path) -> Iterable[tuple[str, str, dict[str, Any]]]:
         except (OSError, ValueError):
             continue
         surface = rec_file.relative_to(run_dir).as_posix().replace(".contrast.json", "")
+        if isinstance(data, dict) and data.get("clip") == "captions":
+            # the caption file's bursts are cards of ONE spoken sequence: a hedge on one card ("AS MANY") and its
+            # figure on the next ("AS 20,000 PEOPLE") are one figure, so the cue text is judged joined, in order
+            # (production audit 2026-11-18: runs 1793314157, 1793433058)
+            yield surface, "captions", {"name": "captions", "text": caption_sequence(data)}
+            continue
         joined: list[dict[str, Any]] = []
         for e in (data.get("elements") or []) if isinstance(data, dict) else []:
             if not isinstance(e, dict):
@@ -196,6 +202,32 @@ def _elements(run_dir: Path) -> Iterable[tuple[str, str, dict[str, Any]]]:
             joined.append({**e, "_last": t})
         for e in joined:
             yield surface, str(e.get("name") or ""), e
+
+
+def caption_sequence(record: Mapping[str, Any]) -> str:
+    """A caption record's burst texts joined in burst order, each burst once (its bone and gold elements carry the
+    same text)."""
+    seen: dict[int, str] = {}
+    for k, e in enumerate(record.get("elements") or []):
+        if not isinstance(e, dict):
+            continue
+        m = re.match(r"caption\s+(\d+)", str(e.get("name") or ""))
+        key = int(m.group(1)) if m else 10 ** 6 + k
+        seen.setdefault(key, " ".join(str(e.get("text") or "").split()))
+    return " ".join(t for _k, t in sorted(seen.items()) if t)
+
+
+# The drawn surfaces each run renders whose layout records carry their drawn text (still_layout.json, the graphics'
+# and cards' contrast records, the thumbnail's qa record): a run with such a surface and no judged text is held,
+# never passed (production audit 2026-11-18: three published runs passed with 0 elements judged).
+DRAWN_SURFACES = ("carousel/carousel_slide_*.jpg", "carousel_fb/carousel_slide_*.jpg", "stories/story_*.jpg",
+                  "graphics/graphic_*.mp4", "thumbnail_*.jpg")
+
+
+def drawn_surfaces(run_dir: Path) -> list[str]:
+    """The run's drawn surface files (DRAWN_SURFACES), relative to the run."""
+    run_dir = Path(run_dir)
+    return sorted({f.relative_to(run_dir).as_posix() for pat in DRAWN_SURFACES for f in run_dir.glob(pat)})
 
 
 TEXT_NAMES = re.compile(r"^(heading|body|kicker|stat|title|eyebrow|line|tagline|badge|share|figure|label|unit|"
@@ -247,6 +279,7 @@ def check_run(run_dir: Path, payload: Mapping[str, Any]) -> dict[str, Any]:
     faults, unrecorded = [], []
     judged = derived = 0
     surfaces: set[str] = set()
+    texted: set[str] = set()        # the surfaces whose records carry drawn text
     for surface, name, e in _merged(_elements(run_dir)):
         if not _is_text(e):
             continue
@@ -254,6 +287,7 @@ def check_run(run_dir: Path, payload: Mapping[str, Any]) -> dict[str, Any]:
         if "text" not in e:
             unrecorded.append(f"{surface} {name}: its record carries no drawn text")
             continue
+        texted.add(surface)
         text = str(e.get("text") or "")
         if not any(ch.isdigit() for ch in text) and not any(w in text.lower().split() for w in figures.NUMBER_WORDS):
             continue
@@ -275,13 +309,23 @@ def check_run(run_dir: Path, payload: Mapping[str, Any]) -> dict[str, Any]:
                 near = _nearest(f, signed)
                 faults.append(f"{surface} ({name}): drew {f.drawn()!r}: {fault.split(': ', 1)[-1]}"
                               + (f"; nearest signed value {near!r}" if near else ""))
+    # Fail closed (production audit 2026-11-18): a drawn surface with no record carrying its text is never passed
+    # unjudged. Carousel slides, Story frames and graphics record their text by construction, so each one is checked;
+    # the root covers and thumbnails when no surface of the run recorded any text at all.
+    def recorded(rel: str) -> bool:
+        stem = rel.rsplit(".", 1)[0]
+        return bool({rel, stem, f"cover/{rel}"} & texted)
+    present = drawn_surfaces(run_dir)
+    missing = [rel for rel in present if not recorded(rel) and ("/" in rel or not texted)]
+    unrecorded += [f"{rel}: drawn, but no layout record carries its drawn text" for rel in missing]
     return {"faults": faults, "unrecorded": unrecorded, "judged": judged, "derived": derived,
-            "surfaces": len(surfaces)}
+            "surfaces": len(surfaces), "drawn_surfaces": len(present)}
 
 
 def release_check(run_dir: Path, payload: Mapping[str, Any]) -> tuple[str, list[str] | str]:
     """(status, detail) for the release report: "fail" with one line per fault; "needs_review" when an element's
-    record carries no text (it cannot be judged); else "pass" with the counts."""
+    record carries no text, or a drawn surface has no record carrying its text (it cannot be judged: never a pass
+    with nothing judged); else "pass" with the counts."""
     res = check_run(run_dir, payload)
     if res["faults"]:
         return "fail", res["faults"]
@@ -300,3 +344,76 @@ def held_note(payload: Mapping[str, Any]) -> str:
     held = [str(h.get("surface") or h.get("deck") or "?") for h in (payload.get("layout_holds") or [])
             if isinstance(h, Mapping)]
     return (f" Held, not drawn (refused, shown on the card): {', '.join(held)}." if held else "")
+
+
+# ------------------------------------------------------------------------------- contradictory signed values (ruling B)
+# Operator ruling (2026-11-18, B): a run whose signed values for the SAME quantity disagree is held for review, both
+# values named (audit run 1793034688: 9,600-8,200 BCE on a carousel slide, 9500-9000 BCE in the narration, Story
+# and number card). "Same quantity", conservatively: two signed spans in the same unit and era whose intervals overlap
+# but whose ends differ, whose dimension words do not differ (DEEP vs LONG are two quantities), and whose own sentences
+# share a content word (the subject: "enclosures", "megaliths"). Two different quantities (a founding and an
+# abandonment date, a depth and a width, two counts) never match; a single value inside a span is not a contradiction.
+_STOP = frozenset(("about", "above", "after", "again", "against", "along", "among", "around", "because", "before",
+                   "being", "below", "between", "beyond", "could", "during", "every", "first", "known", "later",
+                   "least", "might", "never", "other", "over", "since", "their", "there", "these", "those",
+                   "through", "under", "until", "which", "while", "within", "without", "would", "years", "century",
+                   "centuries", "built", "began", "ended", "dated", "dates", "between", "roughly", "nearly",
+                   "approximately", "estimated"))
+
+
+def signed_items(payload: Mapping[str, Any]) -> list[tuple[str, str]]:
+    """(field path, text) of the run's signed copy, for naming where a value is signed."""
+    out: list[tuple[str, str]] = []
+
+    def walk(v: Any, path: str) -> None:
+        if isinstance(v, str):
+            if v.strip():
+                out.append((path, v))
+        elif isinstance(v, Mapping):
+            for k, x in v.items():
+                walk(x, f"{path}.{k}" if path else str(k))
+        elif isinstance(v, (list, tuple)):
+            for i, x in enumerate(v):
+                walk(x, f"{path}[{i + 1}]")
+    for key in SIGNED_COPY_KEYS:
+        walk(payload.get(key), key)
+    return out
+
+
+def _sentence(text: str, start: int, end: int) -> str:
+    a = max(text.rfind(". ", 0, start), text.rfind("; ", 0, start))
+    b = min([x for x in (text.find(". ", end), text.find("; ", end)) if x >= 0] or [len(text)])
+    return text[a + 1 if a >= 0 else 0:b]
+
+
+def _content_words(text: str) -> set[str]:
+    return {w for w in re.findall(r"[a-z]+", text.lower()) if len(w) >= 5 and w not in _STOP}
+
+
+def contradictions(payload: Mapping[str, Any]) -> list[str]:
+    """One line per pair of signed spans that state the same quantity differently (see above), naming both values
+    and where each is signed; [] when the run's signed values agree."""
+    spans = []
+    for path, text in signed_items(payload):
+        for f in figures.parse(text):
+            if f.hi and len(f.values) == 2:
+                lo, hi = sorted(f.values)
+                spans.append((path, f, lo, hi, _content_words(_sentence(text, f.start, f.end))))
+    out, seen = [], set()
+    for i, (pa, fa, la, ha, wa) in enumerate(spans):
+        for pb, fb, lb, hb, wb in spans[i + 1:]:
+            if (la, ha) == (lb, hb) or figures._canon(fa.unit) != figures._canon(fb.unit):
+                continue
+            if not figures._era_ok(fa.era, fb.era) or bool(fa.era) != bool(fb.era):
+                continue
+            if fa.tail and fb.tail and fa.tail != fb.tail:
+                continue
+            if max(la, lb) > min(ha, hb) or not (wa & wb):
+                continue
+            key = tuple(sorted((fa.drawn(), fb.drawn())))
+            if key in seen:
+                continue
+            seen.add(key)
+            out.append(f"the signed copy states one quantity two ways: {fa.drawn()!r} ({pa}) and {fb.drawn()!r} "
+                       f"({pb}); shared words: {', '.join(sorted(wa & wb)[:4])}")
+    return out

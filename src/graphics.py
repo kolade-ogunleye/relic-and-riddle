@@ -9486,8 +9486,13 @@ def _shown_value(value: str, p: float) -> str:
     the value counts together: "280 FT (85 M)" counted the feet up while the metres sat at 85 from the first
     frame, so the two units disagreed until the count landed (number card, 2026-10-29). The count moves in the
     figure's own precision (count_step), and a second figure ("(85 M)") follows the first one's shown fraction,
-    so the two still name the same depth on every frame (round 3, 2026-11-02)."""
+    so the two still name the same depth on every frame (round 3, 2026-11-02). Operator ruling A (2026-11-18): only
+    what figures.counts allows counts; a year, a date, a span or a range is shown whole on every frame."""
     import re
+
+    from .figures import counts
+    if not counts(value):
+        return value
     pattern = r"\d[\d,]*(?:\.\d+)?"
 
     def is_year(raw: str, num: float) -> bool:

@@ -36,6 +36,8 @@ NUMBER_WORDS = {"zero": 0, "one": 1, "two": 2, "three": 3, "four": 4, "five": 5,
                 "sixteen": 16, "seventeen": 17, "eighteen": 18, "nineteen": 19, "twenty": 20, "thirty": 30,
                 "forty": 40, "fifty": 50, "sixty": 60, "seventy": 70, "eighty": 80, "ninety": 90}
 SCALE_WORDS = ("thousand", "million", "billion", "trillion")
+SCALE_VALUE = {"thousand": 1e3, "million": 1e6, "billion": 1e9, "trillion": 1e12}
+ERAS = ("bc", "bce", "ad", "ce")
 # Count units: a number of these is a stated quantity whose unit is gold with it (ruling 8). Closed and generic.
 COUNT_UNITS = ("people", "persons", "levels", "level", "storeys", "storey", "stories", "floors", "tons", "ton",
                "tonnes", "tonne", "hours", "hour", "days", "day", "weeks", "months", "years", "year", "centuries",
@@ -92,10 +94,13 @@ class Figure:
     gold: list[tuple[int, int]] = field(default_factory=list)
     lead_hedge: bool = False       # the hedge is the sentence's lead ("By one estimate,"), not beside the number
     measured: bool = False         # the unit is a measurement unit (FT, M, KM ...), not a count
+    era: str = ""                  # "BC", "BCE", "AD", "CE" (a date's era; never gold, never dropped)
 
     @property
     def values(self) -> tuple[float, ...]:
-        return tuple(_value(x) for x in (self.lo, self.hi) if x)
+        """The numbers' values, their scale word applied ("1.2 MILLION" = 1,200,000; "two thousand" = 2,000)."""
+        k = SCALE_VALUE.get(self.scale.lower(), 1.0)
+        return tuple(_value(x.rstrip("+")) * k for x in (self.lo, self.hi) if x)
 
     @property
     def number(self) -> str:
@@ -108,15 +113,20 @@ class Figure:
         """Number and unit, the gold run ("137–138 FT", "20,000 PEOPLE")."""
         return " ".join(x for x in (self.number, self.unit) if x)
 
-    def drawn(self) -> str:
-        """The whole figure as a slide draws it: hedge, number, unit and the dimension word that says what it measures
-        ("UP TO 20,000 PEOPLE", "ROUGHLY 137–138 FT", "94–104 MILLION YEARS AGO")."""
-        return " ".join(x for x in (self.hedge, self.quantity, self.tail) if x)
+    def drawn(self, era: bool = True) -> str:
+        """The whole figure: hedge, number, unit, the dimension word that says what it measures and its era ("UP TO
+        20,000 PEOPLE", "ROUGHLY 137–138 FT", "94–104 MILLION YEARS AGO", "9500–9000 BCE", "AD 43"). The era is
+        kept so a re-parse reads the same figure (a descending BCE span without it read as two numbers). `era`
+        False: without it (the stat slide's drawn figure, unchanged in round-8 integration: drawing an era there is
+        a design change for the panel)."""
+        pre = "AD" if era and self.era == "AD" else ""
+        post = self.era if era and self.era not in ("", "AD") else ""
+        return " ".join(x for x in (self.hedge, pre, self.quantity, self.tail, post) if x)
 
     def record(self) -> dict[str, Any]:
         return {"hedge": self.hedge, "number": self.number, "unit": self.unit, "span": bool(self.hi),
                 "conversion": self.conv.quantity if self.conv else "", "tail": self.tail,
-                "values": list(self.values), "drawn": self.drawn()}
+                "values": list(self.values), "era": self.era, "drawn": self.drawn(era=False)}
 
 
 def _value(raw: str) -> float:
@@ -235,7 +245,8 @@ def parse(text: str) -> list[Figure]:
         if not _is_num(tok):   # a number word: only as a span's low end or with its unit ("eight to 18", "two tons")
             between = any(toks[k][0].lower() == "between" for k in range(max(0, i - 3), i))
             nxt = _number_after_sep(toks, num[1], between=between)
-            if nxt is None and _unit_at(toks, num[1]) is None:
+            scaled = num[1] < len(toks) and toks[num[1]][0].lower() in SCALE_WORDS
+            if nxt is None and _unit_at(toks, num[1]) is None and not scaled:
                 i += 1
                 continue
         fig, i = _figure_from(text, toks, i)
@@ -289,12 +300,17 @@ def _figure_from(text: str, toks, i: int) -> tuple[Figure, int]:
         gold[-1] = (gold[-1][0], toks[u_after - 1][2])
         j = u_after
     conv1, j = _conversion(text, toks, j)
+    era = ""
+    if i > 0 and toks[i - 1][0].lower() == "ad":            # "AD 43"
+        era = "AD"
+    if j < len(toks) and toks[j][0].lower() in ERAS:        # "205 BC to 87 BC", "9500 BCE"
+        era, j = toks[j][0].upper(), j + 1
     hi = ""
     sep = _number_after_sep(toks, j, between=between)
     if sep and not plus:
         s, k, after = sep
         h_lo, h_hi = _value(lo), _value(toks[k][0])
-        if h_lo < h_hi or _counts_down(toks, after):
+        if h_lo < h_hi or _counts_down(toks, after) or era in ("BC", "BCE"):
             hi = toks[k][0]
             if s in ("-", "–", "—") and not unit1:
                 gold[-1] = (gold[-1][0], toks[k][2])   # "137-138": one gold run with its dash
@@ -316,6 +332,8 @@ def _figure_from(text: str, toks, i: int) -> tuple[Figure, int]:
                                start=conv1.start, end=conv2.end, gold=conv1.gold + conv2.gold)
             elif conv2 and not conv1:
                 conv1 = conv2
+            if j < len(toks) and toks[j][0].lower() in ERAS:
+                era, j = toks[j][0].upper(), j + 1
     end = toks[j - 1][2]
     tail = ""
     m = _match_phrase(toks, j, DIMENSION_WORDS)
@@ -328,8 +346,10 @@ def _figure_from(text: str, toks, i: int) -> tuple[Figure, int]:
         lead = bool(drawn_hedge)
     lo_drawn = lo + plus
     start = toks[h_start][1] if h_start is not None else toks[i][1]
+    if not _is_num(toks[i][0]) and scale:
+        gold = []   # a spelled-out scaled number ("two thousand years ago"): judged, never gilded (no pixel change)
     fig = Figure(lo=lo_drawn, hi=hi, unit=unit, hedge=drawn_hedge, scale=scale, conv=conv1, tail=tail, start=start,
-                 end=end, gold=gold, lead_hedge=lead, measured=measured)
+                 end=end, gold=gold, lead_hedge=lead, measured=measured, era=era)
     return fig, j
 
 
@@ -366,7 +386,7 @@ def stat_figure(body: str, lead: str | None = None) -> Figure | None:
     """The figure a carousel stat slide draws: the body's first figure with a unit or a scale word (a measured size,
     a count of people or levels, a span), whole, with its hedge; None when the body states none (the slide's no-figure
     layout). A pair ("280 feet (85 m)") leads in `lead` ("imperial" / "metric": the deck's one lead unit) when given."""
-    figs = parse(body)
+    figs = [f for f in parse(body) if f.gold]   # a judged-only figure (a spelled-out scaled number) is never drawn
     measured = [f for f in figs if f.unit or f.scale]
     for fig in measured or figs[:1]:     # a unit-less figure (a year, "over 600") only when the body states no other
         if lead and fig.conv is not None and fig.measured and _system(fig.unit) not in (None, lead) \
@@ -402,6 +422,8 @@ def split_drawn(drawn: str) -> tuple[str, str, str, str]:
     if not figs:
         return "", "", "", drawn.strip()
     f = figs[0]
+    if not f.gold:
+        return "", "", "", drawn.strip()
     a, gold_end = f.gold[0][0], f.gold[-1][1]
     num = f"{f.lo}–{f.hi}" if f.hi else f.lo
     at = drawn.find(num, a)
@@ -423,6 +445,12 @@ def _canon(unit: str) -> str:
     return singular.get(u, u)
 
 
+def _era_ok(a: str, b: str) -> bool:
+    """Two figures' eras agree (BC = BCE, AD = CE; a figure with no era agrees with any)."""
+    canon = {"BCE": "BC", "CE": "AD"}
+    return not a or not b or canon.get(a, a) == canon.get(b, b)
+
+
 def signed_figures(texts: Iterable[str]) -> list[Figure]:
     out: list[Figure] = []
     for t in texts:
@@ -439,7 +467,7 @@ def truth_faults(drawn: str, signed: Iterable[str] | Iterable[Figure]) -> list[s
     faults = []
     for d in parse(drawn):
         views = [(s, v) for s in figs for v in (s, s.conv) if v is not None
-                 and _canon(v.unit) == _canon(d.unit) and (v.scale or "") == (d.scale or "")]
+                 and _canon(v.unit) == _canon(d.unit) and _era_ok(d.era, v.era)]
         exact = [(s, v) for s, v in views if v.values == d.values]
         if exact:
             if not d.hedge and all(s.hedge for s, _v in exact):
@@ -520,6 +548,8 @@ def qualifier_word_indices(words: Sequence[str]) -> set[int]:
     gold = gold_word_indices(words)
     out = set()
     for f in parse(text):
+        if not f.gold:
+            continue
         ranges = [(f.start, f.gold[0][0])]
         if f.tail:
             tail_at = text.upper().find(f.tail, f.end)
@@ -528,3 +558,20 @@ def qualifier_word_indices(words: Sequence[str]) -> set[int]:
         for a, b in ranges:
             out |= {i for i, s in enumerate(starts) if a <= s < b and i not in gold}
     return out
+
+
+# ------------------------------------------------------------------------------- count-up (operator ruling A)
+def counts(value: str) -> bool:
+    """Whether a drawn figure may count up (operator ruling A, 2026-11-18): only a single plain quantity ("20,000",
+    "280 FT (85 M)", "EST. 144 FT": its hedge stays visible and only the number counts). Years, dates, spans and
+    ranges never count: they appear whole, with the same rise and fade as other text (a year, an era date, "YEARS
+    AGO", any span "9500-9000 BCE", "94-104"). The one rule every animated figure asks (graphics._shown_value)."""
+    figs = parse(value or "")
+    if len(figs) != 1:
+        return False
+    f = figs[0]
+    if f.hi or f.era or f.tail in ("AGO", "OLD") or (f.conv is not None and f.conv.hi):
+        return False
+    raw = f.lo.rstrip("+")
+    year = not f.unit and not f.scale and re.fullmatch(r"[0-9]{3,4}", raw) and 1000 <= float(raw) <= 2199
+    return not year    # a year (or what reads as one) never counts; a plain quantity, a duration included, does

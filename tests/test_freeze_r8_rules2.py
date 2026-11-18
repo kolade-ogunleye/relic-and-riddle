@@ -212,7 +212,7 @@ def test_the_never_end_set_is_the_derived_closed_class_and_every_caption_set_hol
     assert set(data["classes"]) == {"preposition", "determiner", "quantifier", "conjunction", "ruled"}
     assert brand_system.NEVER_END_WORDS == frozenset(data["words"]) | brand_system.LINE_END_NEVER
     assert {"across", "along", "upon", "alongside", "most", "both"} <= brand_system.NEVER_END_WORDS
-    assert brand_system.LINE_END_NEVER <= brand_system.NEVER_END_WORDS <= vc.DANGLING_ENDS
+    assert brand_system.LINE_END_NEVER <= brand_system.NEVER_END_WORDS <= vc.NEVER_END and vc.DANGLING_ENDS <= vc.NEVER_END
     assert all(vc.never_end_end(w) for w in brand_system.NEVER_END_WORDS)
     assert not vc.never_end_end("across,") and not vc.never_end_end("both.")   # punctuation closes it
 

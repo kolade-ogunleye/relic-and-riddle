@@ -656,7 +656,7 @@ DANGLING_TAILS = {
     "which", "who", "whom", "whose", "where", "when", "why", "how",
     # Copulas & Auxiliaries (dangling verb tails before predicates)
     "is", "was", "are", "were", "been", "being",
-} | set(_LINE_END_NEVER) | set(_NEVER_END_WORDS)
+} | set(_LINE_END_NEVER)
 # Cycle 0 round 8 (panel consensus 5: the Richat 16:9 burst ended "is situated near" because the round-4 base and the
 # sidecar cues read their own tail set, which lacked NEAR / ONTO / VIA / PER): the heading engine's never-end set
 # (brand_system.LINE_END_NEVER) is part of the caption tails, so every caption path (the freeze-pass builder, the
@@ -669,10 +669,12 @@ DANGLING_TAILS = {
 # prepositions, conjunctions and the relative and wh- words that open a clause. A copula is no such tail (IT WAS |
 # HIDDEN UNDERGROUND reads; it keeps DANGLING_PENALTY in the burst's own score).
 DANGLING_ENDS = DANGLING_TAILS - {"is", "was", "are", "were", "been", "being"}
-# Cycle 0 round 8 (rules2 F4): the derived closed class (brand_system.NEVER_END_WORDS: ACROSS, ALONG, UPON, ALONGSIDE,
-# MOST, BOTH ...) is in DANGLING_ENDS, the one hard never-end set; never_end_end() is the one predicate every caption
-# path and every caption record (reading_rates "never_end", the board's caption rows) count with.
-assert _NEVER_END_WORDS <= DANGLING_ENDS
+# Cycle 0 round 8 (rules2 F4): NEVER_END = the derived closed class (brand_system.NEVER_END_WORDS: ACROSS, ALONG,
+# UPON, ALONGSIDE, MOST, BOTH ...) with DANGLING_ENDS: the one never-end set. never_end_end() is the one predicate
+# the last pass of both burst paths (_never_end_repair) and every caption record (reading_rates "never_end", the
+# board's caption rows) read. DANGLING_TAILS / DANGLING_ENDS stay the round-4 base's and the cue builder's own sets
+# (operator decision 2026-11-04: the base is HEAD 0036b18's phrasing; the HEAD regression gate pins it).
+NEVER_END = frozenset(DANGLING_ENDS) | _NEVER_END_WORDS
 # Freeze pass C8 (2026-11-04): a closed, topic-agnostic list of pre-modifiers that read as cut off at a burst's end
 # mid-sentence (THE MEMORIAL | TEMPLE, A TOTAL | HEIGHT), unless a comma ends them; a possessive (THE MINE'S |
 # ROCK SALT) and a hyphenated measure (THEIR 13-FOOT | (4 M)) are dangling ends too (_dangles).
@@ -909,7 +911,10 @@ def never_end_end(word: str) -> bool:
     closed class (DANGLING_ENDS, holding brand_system.NEVER_END_WORDS) with no punctuation closing it. The breakers
     weigh it (_split_defects) and the records count with it (reading_rates, the board's caption rows), so a record
     never counts fewer than the breaker sees."""
-    return _hard_dangles(str(word or ""))
+    word = str(word or "")
+    if CLAUSE_PUNCT.search(word) or TERMINAL_PUNCT.search(word):
+        return False
+    return _bare(word) in NEVER_END
 
 
 def never_end_bursts(phrases) -> list[str]:
@@ -2712,7 +2717,7 @@ def caption_phrases(words: list[dict[str, Any]], emphasis: list[str] | None = No
         phrases = merge_short_bursts(phrases, fits, CAPTION_WIDE_MAX_WORDS, max_chars=CAPTION_WIDE_MAX_CHARS)
         phrases = _rejoin_base(phrases, words, base, lambda ph: len(ph) <= CAPTION_WIDE_MAX_WORDS and fits(ph))
         return _never_end_repair(phrases, words, lambda ph: (
-            1 <= len(ph) <= CAPTION_WIDE_MAX_WORDS and not _function_only(ph) and fits(ph)))
+            2 <= len(ph) <= CAPTION_WIDE_MAX_WORDS and not _function_only(ph) and fits(ph)))
     base = round4_burst_cuts(words, emphasis)
     loose = _base_yields(words, emphasis, base)
     bonds = (caption_bonds(words) | _held_runs(words, emphasis_bonds(words, emphasis) - caption_bonds(words),
@@ -2727,6 +2732,9 @@ def caption_phrases(words: list[dict[str, Any]], emphasis: list[str] | None = No
     return _never_end_repair(phrases, words, lambda ph: (
         2 <= len(ph) <= MAX_BURST_WORDS and len(" ".join(_phrase_words(ph))) <= MAX_BURST_CHARS
         and not _function_only(ph) and _fits_caption_burst(ph)))
+
+
+CAPTION_REPAIR_DWELL_S = 0.5   # rules2 F4: a never-end repair never leaves a burst up for less than this
 
 
 def _never_end_repair(phrases: list[list[dict[str, Any]]], words: list[dict[str, Any]],
@@ -2749,8 +2757,10 @@ def _never_end_repair(phrases: list[list[dict[str, Any]]], words: list[dict[str,
                 and not _is_atomic_boundary(a[-1]["word"], b[0]["word"]))
 
     def defects(trial: list[list[dict[str, Any]]], at: list[int]) -> int:
-        timing = burst_timings(trial)
-        return sum(rate_defect(trial, q, timing[q][0], timing[q][1]) for q in at if 0 <= q < len(trial))
+        """Rate defects, and bursts up under the half-second dwell, among bursts `at` (a move adds neither)."""
+        timing = burst_timings(trial, dwell=True)
+        return sum(rate_defect(trial, q, timing[q][0], timing[q][1])
+                   + (timing[q][1] - timing[q][0] < CAPTION_REPAIR_DWELL_S - 1e-6) for q in at if 0 <= q < len(trial))
 
     i = 0
     while i < len(out) - 1:

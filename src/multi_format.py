@@ -1809,8 +1809,16 @@ class MultiFormatGenerator:
         if faults:   # never drawn: a figure the body does not state whole (the critic's own check, fail closed)
             log.warning("Stat slide figure withheld (%s).", "; ".join(faults))
             stat = ""
+        lead = getattr(_render_state, "lead", None)
+        system = figures._system(fig.unit) if fig is not None and fig.measured else None
+        kept = bool(lead and system and system != lead)
         if lay is not None:
-            lay.meta["stat_figure"] = ({**fig.record(), "source": "body", "faults": faults} if fig is not None
+            # the deck's figure record (cycle 0 round 8, lander ruling): a figure the body states in one unit only,
+            # with no signed pair in the deck's lead unit, stays in its own unit (truth outranks one system), and says so
+            lay.meta["stat_figure"] = ({**fig.record(), "source": "body", "faults": faults, "deck_lead": lead,
+                                        "lead_unit": ("kept: no signed pair in the deck's lead unit" if kept
+                                                      else "deck lead" if system else "")}
+                                       if fig is not None
                                        else {"drawn": "", "source": "", "reason": "the body states no figure"})
             if stat:
                 lay.meta["stat"] = stat
@@ -2008,7 +2016,8 @@ class MultiFormatGenerator:
 
     def _render_carousel_slide(self, archetype: str, photo: Path, photo_next: Path, card: dict[str, Any], i: int,
                                total: int, poll: dict[str, Any], share: str, facebook: bool, tight: bool = False,
-                               subject: str = "", heading_frame: int = 2, strip: dict[str, Any] | None = None):
+                               subject: str = "", heading_frame: int = 2, strip: dict[str, Any] | None = None,
+                               lead: str | None = None):
         """One carousel slide and its measured layout: the archetype's own text, then the brand in its band at the
         top-left. Nothing is drawn under Instagram's counter (`protected`). Both copies are free of slide chrome
         (operator, 2026-10-28); `facebook` now changes only the words: the grid copy's slide text says nothing
@@ -2029,6 +2038,7 @@ class MultiFormatGenerator:
         _render_state.subject = typeset(subject).upper() if i > 0 else ""
         _render_state.facebook = bool(facebook)
         _render_state.heading_frame = 2 if int(heading_frame or 2) > 1 else 1
+        _render_state.lead = lead
         cw, chh = self.CAROUSEL_SIZE
         lay = Layout("carousel", (cw, chh), self._zone(cw, chh), tight=tight,
                      protected=[("instagram_counter", self._ig_counter(cw))])
@@ -2147,7 +2157,7 @@ class MultiFormatGenerator:
                 lambda tight, strip=strip: self._render_carousel_slide(archetype, photo, photo_next, card, i, total,
                                                                        poll, share, facebook, tight=tight,
                                                                        subject=subject, heading_frame=frame,
-                                                                       strip=strip))
+                                                                       strip=strip, lead=lead))
             drew = lay.meta.get("swipe_strip") or {}
             if i == 1 and drew.get("box"):
                 strips[0] = {"side": "right", "y0": drew["box"][1], "y1": drew["box"][3]}
@@ -2157,7 +2167,7 @@ class MultiFormatGenerator:
             still_layout.save(path, lay, {"renderer": "multi_format.redraw_carousel_slide", "archetype": archetype,
                                           "photo": str(photo), "photo_next": str(photo_next), "card": card, "index": i,
                                           "total": total, "poll": poll, "share": share, "facebook": facebook,
-                                          "subject": subject, "heading_frame": frame,
+                                          "subject": subject, "heading_frame": frame, "lead": lead,
                                           **({"strip": drew} if drew else {})}, attempts)
             drawn_paths[i] = path
         slides = [drawn_paths[i] for i in range(total)]
@@ -3173,7 +3183,7 @@ def redraw_carousel_slide(path: Path, recipe: dict[str, Any], tight: bool = True
                                          recipe["card"], int(recipe["index"]), int(recipe["total"]),
                                          recipe.get("poll") or {}, recipe.get("share") or "", bool(recipe.get("facebook")),
                                          tight=tight, subject=recipe.get("subject") or "",
-                                         heading_frame=int(recipe.get("heading_frame") or 2),
+                                         heading_frame=int(recipe.get("heading_frame") or 2), lead=recipe.get("lead"),
                                          strip=_redraw_strip(recipe.get("strip"), path))
     gen._save_slide(im, path)
     _delivered_contrast(lay, path)

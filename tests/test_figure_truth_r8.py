@@ -344,6 +344,43 @@ def test_a_figure_drawn_in_parts_is_judged_whole(tmp_path):
     assert any("story_02_reveal.jpg (figure)" in f for f in figure_gate.check_run(run, payload)["faults"])
 
 
+@pytest.mark.parametrize("size", [(1080, 1920), (1920, 1080)], ids=["9x16", "16x9"])
+def test_number_cards_take_the_runs_lead_unit_from_signed_pairs_only(tmp_path, plan_only, size):
+    """Lander ruling (round 8): the number cards in make_all take figures.deck_lead like every other surface."""
+    narration = "It reaches about 85 m (280 ft) down, and its widest hall spans 40 m."
+    cards = [{"value": "85 m (280 ft)", "label": "Depth"}]
+
+    def card(lead):
+        out = graphics.render_stat_cards(cards, tmp_path / f"n_{lead}.mp4", width=size[0], height=size[1],
+                                         narration=narration, lead=lead)
+        rec = json.loads(Path(str(out) + graphics.CONTRAST_SIDECAR).read_text(encoding="utf-8"))
+        return {e["name"]: e["text"] for e in rec["elements"]}
+    feet = card("imperial")
+    assert feet["figure"] == "280" and feet["unit"] == "FT" and feet["secondary"] == "85 M"
+    metres = card("metric")
+    assert metres["figure"] == "85" and metres["unit"] == "M" and metres["secondary"] == "280 FT"
+    # a single-unit figure with no signed pair is never converted (no invented number)
+    single = graphics.render_stat_cards([{"value": "40 m", "label": "Hall"}], tmp_path / "s.mp4", width=size[0],
+                                        height=size[1], narration="The hall spans 40 m.", lead="imperial")
+    rec = json.loads(Path(str(single) + graphics.CONTRAST_SIDECAR).read_text(encoding="utf-8"))
+    assert {e["name"]: e["text"] for e in rec["elements"]}["figure"] == "40"
+
+
+def test_make_all_passes_the_runs_lead_to_the_number_cards():
+    src = (ROOT / "src" / "graphics.py").read_text(encoding="utf-8")
+    assert "lead=deck_lead(payload)" in src
+
+
+def test_a_figure_kept_in_its_own_unit_is_recorded_on_the_stat_slide(tmp_path):
+    p = _photo(tmp_path)
+    _im, lay = multi_format.MultiFormatGenerator()._render_carousel_slide(
+        "colossal_stat", p, p, {"heading": "A FIGURE", "body": QF147[4][0]}, 3, 7, {}, "", False, subject="S",
+        lead="imperial")
+    rec = lay.meta["stat_figure"]
+    assert rec["drawn"] == "ROUGHLY 41.75–42 M" and rec["deck_lead"] == "imperial"
+    assert rec["lead_unit"].startswith("kept")
+
+
 def test_the_release_report_carries_the_gate():
     src = (ROOT / "src" / "release.py").read_text(encoding="utf-8")
     assert '"drawn_figures"' in src and "figure_gate" in src

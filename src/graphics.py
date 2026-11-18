@@ -9657,7 +9657,7 @@ def _stat_layout(d: ImageDraw.ImageDraw, card: dict[str, Any], num_px: int, widt
 
 
 def render_stat_cards(cards: list[dict[str, Any]], out: Path, photo: Path | None = None, width: int = VIDEO_WIDTH, height: int = VIDEO_HEIGHT,
-                      narration: str = "") -> Path | None:
+                      narration: str = "", lead: str | None = None) -> Path | None:
     """1-2 headline figures counting up to their value, each with its label (visual overhaul, 2026-10-29).
     9:16: left-aligned on the text margin over the photo itself (pushing in), an adaptive ink gradient behind the
     block; the figure in gold Anton with its digits on fixed cells, right-aligned so they roll in place, its unit
@@ -9666,12 +9666,15 @@ def render_stat_cards(cards: list[dict[str, Any]], out: Path, photo: Path | None
     it. Every line is drawn at a measured contrast, re-measured on the graded last frame (<clip>.contrast.json).
     `narration`: the run's narration, whose units the figures are drawn in (typography.spoken_units)."""
     # One unit per run: a figure in the other system is drawn in the unit the voice speaks (2026-10-29).
-    cards = [dict(c, value=spoken_scale(figure_text(spoken_units(str(c.get("value") or ""), narration)), narration),
-                  label=spoken_units(str(c.get("label") or ""), narration)) for c in cards[:2]]
+    # cycle 0 round 8: the run's one lead unit (figures.deck_lead: the signed scale fact's) decides a length's lead,
+    # as on every other surface; only signed pairs convert (typography.spoken_units)
+    cards = [dict(c, value=spoken_scale(figure_text(spoken_units(str(c.get("value") or ""), narration, lead)),
+                                        narration),
+                  label=spoken_units(str(c.get("label") or ""), narration, lead)) for c in cards[:2]]
     if not cards:
         return None
     if width > height:
-        return _render_stat_cards_landscape(cards, out, photo, width, height)
+        return _render_stat_cards_landscape(cards, out, photo, width, height, lead=lead)
     n = int(CLIP_SECONDS * VIDEO_FPS)
     top, bottom = get_text_bounds(width, height)
     x_text = inset_x0(width, height)                     # the shared inset edge (was M, 84)
@@ -10029,14 +10032,17 @@ def _stat_clip(cards: list[dict[str, Any]], plans: list[dict[str, Any]], bg: Ima
 
 
 def _render_stat_cards_landscape(cards: list[dict[str, Any]], out: Path, photo: Path | None = None, width: int = VIDEO_WIDTH, height: int = VIDEO_HEIGHT,
-                      narration: str = "") -> Path | None:
+                      narration: str = "", lead: str | None = None) -> Path | None:
     """16:9 (the documentary, 2026-11-02 review): the 9:16 card's type set for the wide frame over the dark photo
     backdrop. One card centred as a block, two side by side in the title-safe halves; the figure in gold Anton on
     fixed cells counting up, its unit in bone beside it (under it when the pair cannot share a line), the label in
     bone Montserrat at 40 px or more, every line at a measured contrast (<clip>.contrast.json).
     `narration`: the run's narration, whose units the figures are drawn in (typography.spoken_units)."""
-    cards = [dict(c, value=spoken_scale(figure_text(spoken_units(str(c.get("value") or ""), narration)), narration),
-                  label=spoken_units(str(c.get("label") or ""), narration)) for c in cards[:2]]
+    # cycle 0 round 8: the run's one lead unit (figures.deck_lead: the signed scale fact's) decides a length's lead,
+    # as on every other surface; only signed pairs convert (typography.spoken_units)
+    cards = [dict(c, value=spoken_scale(figure_text(spoken_units(str(c.get("value") or ""), narration, lead)),
+                                        narration),
+                  label=spoken_units(str(c.get("label") or ""), narration, lead)) for c in cards[:2]]
     if not cards:
         return None
     n = int(CLIP_SECONDS * VIDEO_FPS)
@@ -11968,13 +11974,15 @@ def make_all(payload: dict[str, Any], topic: dict[str, Any], work_dir: Path, pho
     `grade_bias`: the bias the master grades this run's photos with (QF-86; default the palette's grade_bias); a
     photo drawn inside a graphic takes the same grade (src/photo_grade.py)."""
     from .art_direction import use_palette
+    from .figures import deck_lead
     use_palette(palette)
     bias = float((palette or {}).get("grade_bias") or 0.0) if grade_bias is None else float(grade_bias)
     made: list[Path] = []
     jobs = []
     if payload.get("stat_cards"):
         jobs.append(("numbers", lambda: render_stat_cards(payload["stat_cards"], work_dir / "graphic_numbers.mp4", photo, width=width, height=height,
-                                                                narration=payload.get("narration_script") or "")))
+                                                                narration=payload.get("narration_script") or "",
+                                                                lead=deck_lead(payload))))
     if payload.get("cross_section"):
         jobs.append(("cross-section", lambda: render_cross_section(payload["cross_section"], work_dir / "graphic_section.mp4", width=width, height=height)))
     if payload.get("route"):

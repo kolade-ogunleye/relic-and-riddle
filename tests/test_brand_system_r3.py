@@ -180,19 +180,19 @@ def test_the_end_card_fail_closed_record_carries_its_reason():
 
 # ------------------------------------------------- tokens drive every caller (r2 finding 2), on complete renders
 
-def _story_render(tmp_path):
+def _story_render(tmp_path, ground=(120, 110, 95)):
     from src.multi_format import MultiFormatGenerator
     photo = tmp_path / "s.jpg"
-    Image.new("RGB", (1080, 1920), (120, 110, 95)).save(photo)
+    Image.new("RGB", (1080, 1920), ground).save(photo)
     im, lay = MultiFormatGenerator()._render_story_frame(
         photo, {"kicker": "DID YOU KNOW?", "line1": "ONE MAN", "line2": "KNOCKED", "body": "Short."}, 0, 3, {})
     return np.asarray(im.convert("RGB")).tobytes(), lay
 
 
-def _carousel_render(tmp_path, facebook):
+def _carousel_render(tmp_path, facebook, ground=(150, 120, 90)):
     from src.multi_format import MultiFormatGenerator
     photo = tmp_path / "c.jpg"
-    Image.new("RGB", (1600, 2000), (150, 120, 90)).save(photo)
+    Image.new("RGB", (1600, 2000), ground).save(photo)
     im, lay = MultiFormatGenerator()._render_carousel_slide(
         "immersive", photo, photo, {"heading": "IMPACT THEORY DISPROVED", "body": "The theory was disproved in 1969."},
         1, 7, {}, "", facebook, subject="EYE OF THE SAHARA")
@@ -203,10 +203,15 @@ def _carousel_render(tmp_path, facebook):
 @pytest.mark.parametrize("token,value", [("kicker.weight", 500), ("kicker.colour", "TEAL"), ("kicker.track", 0.3),
                                          ("kicker.rule_thick", 0.4)])
 def test_kicker_tokens_change_the_complete_surfaces(tmp_path, surface, token, value):
+    # cycle 0 round 8 (operator ruling 2, typography.plan_label): on the mid ground both gold and TEAL fall to the
+    # kicker's bone variant under the 0.16 label halo cap (the colour token then cannot show); the colour probe runs
+    # on a dark ground where each colour holds the kicker gate itself
+    ground = {"ground": (40, 36, 30)} if token == "kicker.colour" else {}
+
     def render():
         if surface == "story":
-            return _story_render(tmp_path)
-        return _carousel_render(tmp_path, surface == "facebook")
+            return _story_render(tmp_path, **ground)
+        return _carousel_render(tmp_path, surface == "facebook", **ground)
     before, lay = render()
     assert any(e["name"] == "kicker" for e in lay.elements), "the surface draws a kicker"
     with brand.use(brand.DEFAULT_BRAND.derive(f"{token} probe", system={token: value})):
@@ -214,7 +219,7 @@ def test_kicker_tokens_change_the_complete_surfaces(tmp_path, surface, token, va
     assert during != before, (surface, token)
     k = next(e for e in lay2.elements if e["name"] == "kicker")
     if token == "kicker.colour":
-        assert tuple(k["fill"]) in (tuple(brand.TEAL), tuple(brand.BONE))   # TEAL, or bone on a clashing ground
+        assert tuple(k["fill"]) == tuple(brand.TEAL)   # the token's colour, drawn (it holds the gate on this ground)
 
 
 # ------------------------------------------------- every type-size site is on the ladder or declared (r2 finding 3)

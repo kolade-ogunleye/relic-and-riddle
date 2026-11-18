@@ -256,7 +256,10 @@ def test_depth_ruler_marks() -> None:
 def test_depth_carries_a_bracket_with_the_gap_and_a_data_face_ruler(tmp_path, monkeypatch, size) -> None:
     st = _render(monkeypatch, lambda: graphics.render_scale(DEPTH, tmp_path / "s.mp4", width=size[0], height=size[1]))
     rows = dict(st["plates"])
-    assert rows["bracket"].text == "ABOUT 25 FT" and rows["bracket"].fill == brand.GOLD
+    # cycle 0 round 8 (operator ruling 8, graphics.quantity_plate): the qualifier bone, the number and unit gold
+    assert rows["bracket"].text == "ABOUT 25 FT"
+    assert [(p.text, tuple(p.fill)) for p in rows["bracket"].plates] == [("ABOUT", tuple(brand.BONE)),
+                                                                         ("25 FT", tuple(brand.GOLD))]
     assert "ABOUT 25 FT" in " ".join(graphics.scale_meaning(DEPTH, 280.0, "Statue of Liberty (total)", 305.0, True))
     rulers = [p for n, p in st["plates"] if n.startswith("ruler")]
     assert [p.text for p in rulers][0] == "0 FT" and rulers[-1].text == "ABOUT 280 FT"

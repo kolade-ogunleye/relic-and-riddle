@@ -63,7 +63,11 @@ def test_every_style_sets_its_eyebrow_in_tracked_montserrat_800_at_36_px_or_more
     if style == "depth_sandwich":   # on the paper card: ink, never the mono data face
         assert eyebrow["fill"] == list(brand.INK)
     elif style != "badge":           # badge: ink capitals on the gold tab (existing test)
-        assert eyebrow["fill"] == list(brand.GOLD) and tagline["fill"] == list(brand.STONE_LT)
+        # cycle 0 round 8 (operator ruling 2, typography.plan_label): an overlay kicker is gold where gold holds the
+        # kicker gate under the label halo cap (0.16), else its bone variant; the record names the variant drawn
+        # (this synthetic photo's monument eyebrow: gold needed the retired halo exception, so bone at 6.7:1)
+        want = {"bone": brand.BONE}.get((lay.meta.get("kickers") or {}).get("eyebrow", {}).get("variant"), brand.GOLD)
+        assert eyebrow["fill"] == list(want) and tagline["fill"] == list(brand.STONE_LT)
     assert not [p for p in lay.problems() if "overlap" in p or "cut_off" in p]
     for e in lay.elements:   # every line in the profile grid's centre square
         if e["name"] not in ("brand_mark", "dimension", "rule"):

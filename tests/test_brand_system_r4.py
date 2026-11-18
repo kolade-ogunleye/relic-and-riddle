@@ -149,10 +149,14 @@ def test_checkerboards_at_every_tracking(track, cell):
 
 
 def test_token_ranges_cover_every_numeric_runtime_token_and_are_enforced():
+    # cycle 0 round 8: a derived token (TOKEN_DERIVED, type.display_cap "measure") is numeric too, its default read
+    # from the face; a brand may give a number in its range
     numeric = {k for k, v in brand_system.SYSTEM_TOKENS.items() if isinstance(v, (int, float))}
+    numeric |= set(brand_system.TOKEN_DERIVED)
     assert numeric == set(brand_system.TOKEN_RANGES)
     for k, (lo, hi) in brand_system.TOKEN_RANGES.items():
-        assert lo <= brand_system.SYSTEM_TOKENS[k] <= hi, k
+        if k not in brand_system.TOKEN_DERIVED:
+            assert lo <= brand_system.SYSTEM_TOKENS[k] <= hi, k
         with pytest.raises(ValueError, match="outside its range"):
             brand.DEFAULT_BRAND.derive("out", system={k: hi + abs(hi) + 1})
 

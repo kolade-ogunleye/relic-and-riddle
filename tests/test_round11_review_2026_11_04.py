@@ -316,24 +316,27 @@ def test_the_pin_and_its_name_cover_little_of_a_thin_island(caplog) -> None:
     w, h = 1080, 1920
     anchor = (540.0, 900.0)
     home = np.zeros((h, w), bool)
-    # cycle 0 round 7 (F14): the site name is the place-label role (34 px, Anton 64 before), so on the 1,000 px atoll
-    # the pin and its name already cover 0.117 (under PIN_ISLAND_COVER_MAX) and are left in place; the slide is shown
-    # on a 600 px atoll, where they cover 0.195
+    # cycle 0 round 7 (F14): the site name is the place-label role (34 px, Anton 64 before). Round 8 (operator ruling
+    # 1): the site one step up (48 px, graphics.site_steps), so "FUNAFUTI ATOLL" (435 px) fits beside the pin's head
+    # on neither side of the 9:16 box and no slide lessens its cover: the name is "Funafuti". On a 1,200 px atoll
+    # the pin and its name cover ~0.105 (under PIN_ISLAND_COVER_MAX) and are left in place; the move is shown on a
+    # 600 px atoll, where they cover 0.210 centred above
+    name = "Funafuti"
     long_ = np.zeros((h, w), bool)
-    long_[400:1400, 515:575] = True
-    plain = graphics.pin_layout(anchor, "Funafuti Atoll", w, h)
-    assert graphics.pin_layout(anchor, "Funafuti Atoll", w, h, home=long_) == plain
+    long_[400:1600, 515:575] = True
+    plain = graphics.pin_layout(anchor, name, w, h)
+    assert graphics.pin_layout(anchor, name, w, h, home=long_) == plain
     home[600:1200, 515:575] = True                       # a thin north-south atoll, 60 px wide, under the pin
     before = graphics.island_cover([plain.label_box, plain.marker_box], home)
     with caplog.at_level(logging.INFO, logger=graphics.log.name):
-        lay = graphics.pin_layout(anchor, "Funafuti Atoll", w, h, home=home)
+        lay = graphics.pin_layout(anchor, name, w, h, home=home)
     after = graphics.island_cover([lay.label_box, lay.marker_box], home)
     assert after < before and after <= graphics.PIN_ISLAND_COVER_MAX + 0.05
     assert "of the island" in caplog.text
     # a large island the label barely touches is left as it is
     big = np.zeros((h, w), bool)
     big[700:1600, 100:1000] = True
-    assert graphics.pin_layout(anchor, "Funafuti Atoll", w, h, home=big) == plain
+    assert graphics.pin_layout(anchor, name, w, h, home=big) == plain
 
 
 def test_island_cover_is_the_islands_share_not_the_boxs() -> None:

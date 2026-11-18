@@ -1069,8 +1069,9 @@ CLOUD_Y = 180.0
 
 @lru_cache(maxsize=4)
 def year_cap(key: str) -> int:
-    """The measured cap height of the Anton year at YEAR_PX[key]."""
-    return cap_height(get_font(brand.DISPLAY_FONT, YEAR_PX[key]))
+    """The measured cap height of the year as drawn (year_font: the figure face at YEAR_PX[key]; cycle 0 round 8
+    integration: it measured the Anton year, a second font of its own the drawn year no longer uses)."""
+    return cap_height(year_font(key))
 
 
 brand.on_change(year_cap.cache_clear)   # a measure in the display face: dropped when the brand changes

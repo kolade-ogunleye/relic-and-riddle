@@ -403,7 +403,7 @@ DEVIATIONS: Mapping[str, tuple[str, str, tuple, str]] = MappingProxyType({
                                       (176, 168, 160, 152, 144, 136, 128, 120, 112, 104, 96), "F"),
     "chapter title 9:16": ("display_l", ("design_cards.plan_chapter_card: 136 down to 84 (inline ladder). Declared, "
                            "round 8: the tall display steps end at 96, and on the 687 px margin column real act titles "
-                           "set only at 88 (Richat acts 1 and 5, three lines / the box column); on the steps they would "
+                           "set only at 88 (two real runs' act titles, three lines / the box column); on the steps they would "
                            "be refused (operator decision 2026-11-05: draw every chapter card)"),
                            (136, 128, 120, 112, 104, 100, 96, 92, 88, 84), "F"),
     "end card share 9:16": ("body", "end_card.SHARE_SIZES", (58, 56, 54), "E"),
@@ -532,7 +532,6 @@ SIZE_SITES: Mapping[str, str] = MappingProxyType({
     "multi_format:story_credit_fit": "D",
     "multi_format:story_title_px": "D",
     "then_now:kicker_font": "A",        # cycle 0 round 8: the system kicker at the ladder's kicker size
-    "then_now:year_cap": "A",
     "then_now:year_font": "A",          # the year in the figure face (ruling 3)
     "timeline_dense:_fits_both_formats": "A",
     "timeline_dense:_plan": "A",
@@ -582,8 +581,10 @@ RUNTIME_SIZE_SITES: Mapping[str, str] = MappingProxyType({
     "graphics:_year_plates": "A",
     "graphics:draw_plate": "A",
     "graphics:ink_box": "A",
+    "graphics:quantity_plate": "A",          # cycle 0 round 8: a stated quantity's runs, drawn in a font sized by its caller
     "masthead:plan_on.at": "system",
     "multi_format:MultiFormatGenerator._stack": "D",
+    "youtube_thumbnail:feed_floor_px": "B",  # cycle 0 round 8: brand_system.px_for_cap measures the display face's cap
 })
 
 # Heading break vocabulary: one list for every surface (there were five).

@@ -30,7 +30,11 @@ for _f in NO_LEAD["facts"]:
 RICHAT = {"eyebrow": "DESERT ANOMALY", "line1": "THE 25-MILE", "line2": "SAHARA EYE", "tagline": "CARVED BY NATURE"}
 GUMBAZ = {"eyebrow": "ANCIENT ACOUSTICS", "line1": "THE 144-FOOT", "line2": "WHISPERING DOME",
           "tagline": "BUILT WITHOUT RINGS", "badge": "EST. 144 FT (44 M)"}
-DERINKUYU = {"eyebrow": "BURIED HISTORY", "line1": "BEHIND ONE WALL...", "line2": "A FORGOTTEN CITY",
+# Cycle 0 round 8 (type lane, lander ruling: nothing drawn under its floor): the authored "A FORGOTTEN CITY" no longer
+# sets on the YouTube headline in 904 px at its 160 px feed floor (four rows; the lockup takes three) and is refused
+# there (the copy stage's cover_fit check sends such a headline back); these tests' subject is the year and the fade,
+# so the second line is one the lockup sets
+DERINKUYU = {"eyebrow": "BURIED HISTORY", "line1": "BEHIND ONE WALL...", "line2": "A LOST CITY",
              "tagline": "DERINKUYU, 1963"}
 
 
@@ -386,7 +390,7 @@ def test_the_ink_fade_is_soft_and_the_type_sits_in_solid_ink() -> None:
         assert row[int(end) + 2] >= 254                                      # gone by the subject's centre
     meta = {}
     _, plates = youtube_thumbnail.render(_photo((200, 170, 120)).convert("RGB"),
-                                          {"line1": "BEHIND ONE WALL", "line2": "A FORGOTTEN CITY"}, meta=meta)
+                                          {"line1": "BEHIND ONE WALL", "line2": "A LOST CITY"}, meta=meta)   # r8: see DERINKUYU
     title_right = max(p.box[2] for n, p in plates if n.startswith("title"))
     assert meta["ink_edge"] >= title_right
 
@@ -429,6 +433,13 @@ def test_the_grid_fallback_passes_the_heros_focus_to_fitting(tmp_path, monkeypat
     lay = Layout("cover", (1080, 1920), (60, 420, 1020, 1500))
     lay.meta["grid_proof"] = {"hook_fails": ["title_1 outside the 3:4 crop"]}
     im = _photo().resize((1080, 1920))
+    # cycle 0 round 8: on this flat synthetic photo the tighter monument redraw now passes the grid proof itself (and
+    # returns before the fallback); the subject here is the fallback, so the tighter redraw is made to fail
+    from src.typography import TextFitError
+
+    def no_tight(*_a, **_k):
+        raise TextFitError("the tighter fit does not hold the copy whole (test)")
+    monkeypatch.setattr(engine, "_renderer", lambda style: no_tight)
     engine._grid_enforced(im, dict(GUMBAZ), "monument", im, lay, 1)
     assert got == [(small, (1600, 1200))]
 

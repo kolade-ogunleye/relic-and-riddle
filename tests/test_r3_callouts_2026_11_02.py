@@ -315,9 +315,16 @@ def test_no_shade_when_the_halo_already_holds(tmp_path, monkeypatch):
     then_now.render(tmp_path / "a.jpg", 1925, tmp_path / "b.jpg", 2019, tmp_path / "x.mp4")
     assert calls == []
     monkeypatch.setattr(then_now, "INK_ON_PAPER", False)   # freeze panel 2026-11-04 step 1: a white ground takes ink type
+    # Cycle 0 round 8 (operator ruling 2, the rules lane's then-and-now port): the glows are retired; on a near-white
+    # ground with ink type off, the one overlay-label rule (typography.plan_label) holds the marker on its INK plate
+    from src import typography
+    variants = []
+    real_plan = typography.plan_label
+    monkeypatch.setattr(typography, "plan_label",
+                        lambda *a, **k: (lambda r: variants.append(r[1].get("variant")) or r)(real_plan(*a, **k)))
     w = _photo(tmp_path / "w.jpg", lo=240, hi=256)
     then_now.render(w, 1925, w, 2019, tmp_path / "y.mp4")
-    assert calls                                                           # near-white: the shade steps in
+    assert calls == [] and variants and set(variants) == {"plate"}, variants   # near-white: the held plate, no glow
 
 
 # ---------------------------------------------------------------- round-3 review fixes

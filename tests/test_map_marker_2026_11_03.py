@@ -59,13 +59,14 @@ def test_pin_label_sits_over_the_head_and_flips_near_the_top() -> None:
     head_top = 960 - graphics.PIN_HEIGHT
     last_base = max(xy[1] for _t, xy, _a in lay.rows)
     assert last_base == pytest.approx(head_top - graphics.MARKER_LABEL_GAP) and lay.position == "above"
-    # cycle 0 round 7 (F14): the place-label role's size (Anton MARKER_LABEL_PX before)
-    assert len(lay.rows) <= graphics.MARKER_LABEL_ROWS and lay.font_px == graphics.place_steps(1080, 1920)[0]
+    # cycle 0 round 7 (F14): the place-label role's size (Anton MARKER_LABEL_PX before); round 8 (operator ruling 1):
+    # the story's own site one step up (graphics.site_steps: place.px x place.site_step)
+    assert len(lay.rows) <= graphics.MARKER_LABEL_ROWS and lay.font_px == graphics.site_steps(1080, 1920)[0]
     top = graphics.get_text_box(1080, 1920)[1]
     near = graphics.pin_layout((540.0, top + 120.0), "Derinkuyu Underground City", 1080, 1920)
     assert near.position == "flip" and near.label_box[1] >= top + 120
     wide = graphics.pin_layout((960.0, 540.0), "Derinkuyu", 1920, 1080)
-    assert wide.font_px == graphics.place_steps(1920, 1080)[0]
+    assert wide.font_px == graphics.site_steps(1920, 1080)[0]
 
 
 def test_dot_is_an_ink_core_in_a_bone_ring() -> None:
@@ -93,7 +94,10 @@ def test_dot_edge_is_antialiased() -> None:
 @pytest.mark.parametrize("size, order", [((1080, 1920), ("above", "below", "right", "left")),
                                          ((1920, 1080), ("right", "left", "above", "below"))])
 def test_dot_label_takes_the_first_free_imhof_place(size, order) -> None:
-    anchor = (size[0] / 2, size[1] / 2)
+    # cycle 0 round 8 (operator ruling 1): the site label is one size step up (graphics.site_steps), so on 9:16 the
+    # dot sits on the graphics box's centre line (x 480; at the frame's 540 the larger right label crossed the box)
+    b = graphics.get_text_box(*size)
+    anchor = (round((b[0] + b[2]) / 2), size[1] / 2)
     blocked: list = []
     for want in order:
         lay = graphics.dot_layout(anchor, "Derinkuyu", *size, obstacles=blocked)

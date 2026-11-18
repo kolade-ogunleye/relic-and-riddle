@@ -249,6 +249,14 @@ def test_vertical_graphics_share_the_inset_text_edge(tmp_path, monkeypatch, name
     st = _render(monkeypatch, jobs[name])
     boxes = [p.box for _, p in st["plates"]]
     left = min(b[0] for b in boxes)
-    assert graphics.INSET_X0 - 2 <= left <= graphics.INSET_X0 + 4, (name, left)
+    if name == "numbers":
+        # cycle 0 round 8 (panel consensus 7, MO-4): the 9:16 number card's block is centred on the caption axis
+        # (graphics.tall_axis_x), never left of the text inset
+        right = max(b[2] for b in boxes)
+        assert left >= graphics.INSET_X0 - 2, (name, left)
+        assert left <= graphics.INSET_X0 + 4 or abs((left + right) / 2 - graphics.tall_axis_x(1080, 1920)) <= 16, (
+            name, left, right)
+    else:
+        assert graphics.INSET_X0 - 2 <= left <= graphics.INSET_X0 + 4, (name, left)
     x0, y0, x1, y1 = graphics.get_text_box(1080, 1920)
     assert all(x0 <= b[0] and b[2] <= x1 and y0 <= b[1] and b[3] <= y1 for b in boxes), name

@@ -9,10 +9,20 @@
   44.0
  ],
  "cover_design:_lockup": [
+  70.0,
+  86.0,
+  91.0,
+  92.0,
+  94.0,
   100.0,
+  101.0,
   104.0,
   108.0,
-  110.0
+  110.0,
+  132.0,
+  256.0,
+  504.0,
+  1000.0
  ],
  "cover_design:_lockup.width_at": [
   100.0,
@@ -87,12 +97,10 @@
   62.0,
   68.0,
   76.0,
-  86.0,
+  78.0,
   88.0,
   92.0,
-  98.0,
-  104.0,
-  110.0
+  104.0
  ],
  "design_cards:_design_wrap": [
   58.0,
@@ -106,13 +114,10 @@
   78.0,
   80.0,
   82.0,
-  86.0,
   88.0,
   92.0,
-  98.0,
   100.0,
   104.0,
-  110.0,
   144.0,
   168.0,
   176.0
@@ -129,13 +134,10 @@
   78.0,
   80.0,
   82.0,
-  86.0,
   88.0,
   92.0,
-  98.0,
   100.0,
   104.0,
-  110.0,
   144.0,
   168.0,
   176.0,
@@ -167,6 +169,16 @@
   80.0,
   82.0
  ],
+ "design_cards:_myth_fit.lone_last": [
+  66.0,
+  68.0,
+  70.0,
+  74.0,
+  76.0,
+  78.0,
+  80.0,
+  82.0
+ ],
  "design_cards:_myth_wrap": [
   58.0,
   60.0,
@@ -179,11 +191,7 @@
   78.0,
   80.0,
   82.0,
-  86.0,
-  92.0,
-  98.0,
-  104.0,
-  110.0
+  92.0
  ],
  "design_cards:_paint": [
   241.0,
@@ -236,10 +244,12 @@
  ],
  "design_cards:plan_quote_card": [
   28.0,
-  104.0,
-  144.0,
   240.0,
   288.0
+ ],
+ "design_cards:plan_quote_card.quote_fit": [
+  104.0,
+  144.0
  ],
  "end_card:_masthead": [
   65.0,
@@ -323,12 +333,8 @@
   38.0,
   76.0
  ],
- "graphics:_render_scale_vertical.compose": [
-  28.0
- ],
  "graphics:_render_scale_wide": [
-  28.0,
-  92.0
+  28.0
  ],
  "graphics:_render_timeline_tall": [
   42.0
@@ -578,6 +584,7 @@
   144.0
  ],
  "graphics:figure_font": [
+  28.0,
   38.0,
   44.0,
   54.0,
@@ -743,6 +750,12 @@
  "graphics:neighbour_plates": [
   26.0
  ],
+ "graphics:quantity_plate": [
+  28.0,
+  38.0,
+  76.0,
+  92.0
+ ],
  "graphics:relief_base": [
   16.0,
   19.0,
@@ -790,70 +803,26 @@
   37.333
  ],
  "multi_format:MultiFormatGenerator._render_story_frame": [
-  89.0,
-  98.0,
+  83.0,
+  91.0,
   99.0,
-  130.0,
-  296.0
+  276.0
  ],
  "multi_format:MultiFormatGenerator._render_story_frame.title_plan": [
-  89.0,
-  98.0,
+  83.0,
+  91.0,
   99.0,
-  130.0,
-  296.0
+  276.0
  ],
  "multi_format:MultiFormatGenerator._rows": [
   100.0,
   126.0
  ],
- "multi_format:MultiFormatGenerator._set_heading": [
-  173.333
- ],
  "multi_format:MultiFormatGenerator._set_heading.measure": [
-  130.0,
-  132.0,
-  134.0,
   140.0
- ],
- "multi_format:MultiFormatGenerator._stack": [
-  173.333
  ],
  "multi_format:story_credit_fit": [
   26.0
- ],
- "multi_format:story_title_px": [
-  106.0,
-  108.0,
-  110.0,
-  116.0,
-  118.0,
-  122.0,
-  126.0,
-  130.0,
-  132.0,
-  134.0,
-  140.0,
-  142.0,
-  144.0,
-  146.0,
-  148.0
- ],
- "then_now:_kicker_px_for_cap": [
-  25.0,
-  26.0,
-  28.0,
-  29.0,
-  31.0,
-  33.0,
-  35.0,
-  37.0,
-  38.0,
-  41.0,
-  42.0,
-  43.0,
-  44.0,
-  45.0
  ],
  "timeline_dense:_plan": [
   82.0,
@@ -922,33 +891,12 @@
   82.0
  ],
  "youtube_thumbnail:_kicker_font": [
-  74.0,
-  76.0,
-  78.0,
-  80.0,
-  82.0,
-  86.0,
-  88.0,
-  92.0,
-  94.0,
   98.0,
   100.0,
   104.0,
   106.0,
   108.0,
   110.0
- ],
- "youtube_thumbnail:_lockup.attempt": [
-  140.0,
-  144.0,
-  148.0,
-  156.0
- ],
- "youtube_thumbnail:_lockup.width_at": [
-  140.0,
-  144.0,
-  148.0,
-  156.0
  ],
  "youtube_thumbnail:_qual_font": [
   100.0,
@@ -958,13 +906,23 @@
  ],
  "youtube_thumbnail:_render": [
   44.0,
-  116.0,
+  116.0
+ ],
+ "youtube_thumbnail:feed_floor_px": [
+  70.0,
+  86.0,
+  92.0,
+  94.0,
+  101.0,
   132.0,
-  134.0,
-  140.0,
-  142.0,
-  144.0,
-  146.0,
-  148.0
+  148.0,
+  156.0,
+  158.0,
+  159.0,
+  163.0,
+  194.0,
+  256.0,
+  504.0,
+  1000.0
  ]
 }

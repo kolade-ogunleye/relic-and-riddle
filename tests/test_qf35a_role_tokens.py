@@ -35,7 +35,6 @@ ALLOW = {
     ("graphics", "NEIGHBOUR_PX_STEPS", "(0, 2, 4, 6)"): "px steps",
     ("graphics", "WIDE_PRIMARY_MIN", "(48, 28, 22)"): "px minimums",
     ("graphics", "ROUTE_NAME_STEPS", "(34, 32, 30, 28)"): "px steps",
-    ("graphics", "_stat_clip", "(0, 0, 44, 4)"): "a bar box default",
     ("graphics", "name_places", "(1, 2, 3)"): "line counts",
     ("graphics", "name_places", "(4, 5, 6, 7)"): "preference ranks",
     ("graphics", "name_places", "(0, 3, 4)"): "an empty array's shape",
@@ -544,11 +543,13 @@ def test_no_module_value_is_measured_from_the_brand_at_import():
     parent, foreign, restored, after = (_module_values(m) for m in ("default", "foreign", "restored", "after"))
     moved = {f"{m}.{k}": (parent[m].get(k), foreign[m].get(k)) for m in parent
              for k in set(parent[m]) | set(foreign[m]) if parent[m].get(k) != foreign[m].get(k)
-             and k not in ("KICKER_PX", "BAND_FALL")}
+             and k != "BAND_FALL"}
     assert moved == {}
     assert restored == parent
-    # the brand-measured names follow the brand, configured before or after the import alike
-    for k in ("KICKER_PX", "BAND_FALL"):
+    # the brand-measured name follows the brand, configured before or after the import alike. Cycle 0 round 8 (rules
+    # lane, ruling 3 port): KICKER_PX is the system kicker's ladder size (then_now.kicker_px: type_px "kicker"), no
+    # longer measured in the data face, so it is the same under every brand (held by `moved == {}` above)
+    for k in ("BAND_FALL",):
         assert after["src.then_now"][k] == foreign["src.then_now"][k] != parent["src.then_now"][k]
 
 

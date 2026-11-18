@@ -369,7 +369,7 @@ def _encode(frames: Iterable[Image.Image], out: Path, n: int, width: int = VIDEO
     return out
 
 
-import contextvars as _ctxvars  # noqa: E402
+import contextvars as _ctxvars
 
 _POSTER_ONLY = _ctxvars.ContextVar("graphics_poster_only", default=False)
 

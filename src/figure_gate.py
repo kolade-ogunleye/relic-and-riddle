@@ -8,10 +8,12 @@ element of every surface the run recorded is read from its layout record, every 
 (src/figures.py: hedge, number or span, scale word, unit), and each must be a signed value of the run in its unit,
 whole, with its hedge:
 
-- the records: every still_layout.json under the run (covers and YouTube thumbnails at the root, carousel/,
-  carousel_fb/, stories/ and any other still) and every <clip>.contrast.json (graphics, number cards, scale and
-  section, map and route, timeline, hook / chapter / myth / quote cards, callouts, then-and-now): each text element's
-  "text" (typography.TextPlate.record and record_contrast record it; graphics sidecars always did);
+- the records: every still_layout.json under the run (the Reel covers and grid tile at the root, carousel/,
+  carousel_fb/, stories/ and any other still), every <clip>.contrast.json (graphics, number cards, scale and
+  section, map and route, timeline, hook / chapter / myth / quote cards, callouts, then-and-now, the caption file's
+  bursts), the YouTube thumbnail's <thumb>.qa.json "elements" and the end card's line in the master's
+  composition.json: each text element's "text" (typography.TextPlate.record and record_contrast record it now;
+  graphics sidecars always did);
 - the signed values: the run's signed copy (narration, title, captions, carousel and Story slides, cover copy, the
   end card, the share line, the fact sheet's statements and hedges) and its signed graphics fields (stat cards, the
   scale fact with its hedge, the cross-section, the timeline, the route);
@@ -37,9 +39,10 @@ from typing import Any
 
 from . import figures
 
-# Elements whose numbers are derived from signed values or structural (named and counted, never a claim):
-DERIVED = re.compile(r"^(ruler|axis|tick|scale$|scale_secondary|scale_bar|meaning|ref_label|ref_note|bracket|numeral|"
-                     r"total|chapter|header_brand|masthead|photo_credit|credit|licence|share|swipe|progress|counter|"
+# Elements whose numbers are derived from signed values, from a photo's own record (then-and-now capture years:
+# then_now's honesty rule) or structural (named and counted, never a claim):
+DERIVED = re.compile(r"^(then_year|now_year|ruler|axis|tick|scale$|scale_secondary|scale_bar|meaning|ref_label|"
+                     r"ref_note|bracket|numeral|total|chapter|header_brand|masthead|photo_credit|credit|licence|swipe|progress|counter|"
                      r"source|badge)", re.IGNORECASE)
 CONVERSION = re.compile(r"^(figure_metric|secondary|conversion|figure_conv)", re.IGNORECASE)
 SKIP_DIRS = ("stage_cache", "source_versions", "archive", "graphics_redrawn_tmp")
@@ -155,6 +158,23 @@ def _elements(run_dir: Path) -> Iterable[tuple[str, str, dict[str, Any]]]:
                         e = {**e, "_own": str(card["body"])}   # a stat slide's figure: its own body states it
                     yield f"{rec_file.parent.relative_to(run_dir).as_posix().replace('.', '') or 'cover'}/{still}", \
                         str(e.get("name") or ""), e
+    for rec_file in sorted(run_dir.rglob("*.qa.json")):   # the YouTube thumbnail's drawn lines (visual_engine)
+        if any(p in SKIP_DIRS for p in rec_file.relative_to(run_dir).parts):
+            continue
+        try:
+            data = json.loads(rec_file.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            continue
+        for e in (data.get("elements") or []) if isinstance(data, dict) else []:
+            if isinstance(e, dict):
+                yield rec_file.relative_to(run_dir).as_posix().replace(".qa.json", ""), str(e.get("name") or ""), e
+    for rec_file in sorted(run_dir.glob("*.composition.json")):   # the end card's share line as drawn
+        try:
+            card = json.loads(rec_file.read_text(encoding="utf-8")).get("end_card") or {}
+        except (OSError, ValueError, AttributeError):
+            continue
+        if isinstance(card, dict) and card.get("text"):
+            yield "end_card", "end_card", {"name": "end_card", "text": str(card["text"])}
     for rec_file in sorted(run_dir.rglob("*.contrast.json")):
         if any(p in SKIP_DIRS for p in rec_file.relative_to(run_dir).parts):
             continue

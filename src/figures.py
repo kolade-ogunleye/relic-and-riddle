@@ -85,7 +85,7 @@ class Figure:
     unit: str = ""
     hedge: str = ""
     scale: str = ""
-    conv: "Figure | None" = None
+    conv: Figure | None = None
     tail: str = ""
     start: int = 0
     end: int = 0
@@ -152,9 +152,8 @@ def _match_phrase(toks: Sequence[tuple[str, int, int]], i: int, phrases: Iterabl
         n = len(words)
         if i + n > len(toks):
             continue
-        if all(toks[i + k][0].lower() == words[k] for k in range(n)):
-            if best is None or n > best[1] - i:
-                best = (p, i + n)
+        if all(toks[i + k][0].lower() == words[k] for k in range(n)) and (best is None or n > best[1] - i):
+            best = (p, i + n)
     return best
 
 

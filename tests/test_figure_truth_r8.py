@@ -61,7 +61,7 @@ def test_unseen_phrasings_are_drawn_whole(body, new):
     assert fig is not None and fig.drawn() == new
     assert figures.truth_faults(new, [body]) == []
     # each one part-dropped form fails: no hedge, one end of a span, a truncated decimal
-    h, num, unit, tail = figures.split_drawn(new)
+    h, num, unit, _tail = figures.split_drawn(new)
     if h:
         assert figures.truth_faults(" ".join(x for x in (num, unit) if x), [body])
     if "\u2013" in num:
@@ -83,7 +83,7 @@ def test_ruling_8_gold_scope():
     assert figures.gold_runs("ABOUT 138 FT LONG") == [("ABOUT ", False), ("138 FT", True), (" LONG", False)]
     assert figures.gold_runs("THE 1,200-TON STONE") == [("THE ", False), ("1,200-TON", True), (" STONE", False)]
     # the heading engine: a payoff run's qualifiers step to bone (LEAD), the quantity gold (FIGURE)
-    runs = heading.runs("ABOUT 40 KM ACROSS".split(), [], 0)[0]
+    runs = heading.runs(["ABOUT", "40", "KM", "ACROSS"], [], 0)[0]
     assert runs == [("ABOUT", heading.LEAD), ("40 KM", heading.FIGURE), ("ACROSS", heading.LEAD)]
 
 
@@ -316,6 +316,18 @@ def test_the_gate_on_every_figure_bearing_surface(tmp_path, body, old, new, surf
             (run / folder / f"{name}.contrast.json").write_text(json.dumps({"elements": [el]}), encoding="utf-8")
         status, _ = figure_gate.release_check(run, payload)
         assert status == ("pass" if ok else "fail"), (surface, drawn)
+
+
+def test_the_gate_reads_the_youtube_thumbnail_and_the_end_card(tmp_path):
+    run, payload = _run(tmp_path, "UP TO 20,000 PEOPLE")
+    (run / "thumbnail_youtube.qa.json").write_text(json.dumps({"elements": [
+        {"name": "figure", "text": "20,000"}, {"name": "figure_unit", "text": "PEOPLE"}]}), encoding="utf-8")
+    res = figure_gate.check_run(run, payload)
+    assert any("thumbnail_youtube (figure)" in f for f in res["faults"]), "a hedge-dropped thumbnail figure is held"
+    (run / "thumbnail_youtube.qa.json").unlink()
+    (run / "x_master.composition.json").write_text(json.dumps({"end_card": {"text": "One of 18 levels? Share."}}),
+                                                   encoding="utf-8")
+    assert any(f.startswith("end_card") for f in figure_gate.check_run(run, payload)["faults"])
 
 
 def test_the_release_report_carries_the_gate():

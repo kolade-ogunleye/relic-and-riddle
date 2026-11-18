@@ -403,7 +403,7 @@ def _number(raw: str) -> float:
     return float(raw.replace(",", ""))
 
 
-def spoken_units(text: str, narration: str, lead: Optional[str] = None) -> str:
+def spoken_units(text: str, narration: str, lead: str | None = None) -> str:
     """`text` (a cover line, a slide, a number card) with each figure in the unit the narration speaks for it.
     `lead` ("imperial" / "metric"; cycle 0 round 8, one lead unit per run): the run's signed scale fact's system,
     which decides a length's lead over the narration's (src/figures.py deck_lead). A figure that ends a span ("41.75

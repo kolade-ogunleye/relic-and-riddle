@@ -591,7 +591,8 @@ def _render(source, copy, focus, meta, figure, youtube_title, illustration, targ
         base = round(centre - stack / 2 + q_h + cap_height(f_num))
         for k, line in enumerate(q_lines if f_q else []):
             yq = base - cap_height(f_num) - 28 - (len(q_lines) - 1 - k) * (cap_height(f_q) + QUAL_LEADING)
-            p_q = plan_text(im, (LEFT, yq), line, f_q, brand.GOLD, "ls", q_track, **feed(q_name, f_q))
+            # ruling 8 (cycle 0 round 8): a figure's qualifier is bone; its number and unit gold
+            p_q = plan_text(im, (LEFT, yq), line, f_q, brand.BONE, "ls", q_track, **feed(q_name, f_q))
             im = p_q.draw(im)
             plates.append((q_name, p_q))
         p_num = plan_text(im, (LEFT, base), number, f_num, brand.GOLD, "ls", **feed("figure", f_num))
@@ -694,7 +695,7 @@ def _render(source, copy, focus, meta, figure, youtube_title, illustration, targ
             foot = y - cap_height(f) - (cap_height(f_k) + _kicker_gap(f_k) if f_k else 0) - HEDGE_GAP
             for k, line in enumerate(h_lines):
                 yh = foot - (len(h_lines) - 1 - k) * (cap_height(f_h) + QUAL_LEADING)
-                p_h = plan_text(im, (LEFT, yh), line, f_h, brand.GOLD, "ls", h_track, **feed("qualifier", f_h))
+                p_h = plan_text(im, (LEFT, yh), line, f_h, brand.BONE, "ls", h_track, **feed("qualifier", f_h))
                 im = p_h.draw(im)
                 plates.append(("qualifier", p_h))
         for k, (name, runs) in enumerate(lines):

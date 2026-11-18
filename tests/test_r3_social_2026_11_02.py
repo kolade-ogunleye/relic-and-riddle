@@ -98,7 +98,9 @@ def test_the_reveal_sets_qualifier_and_unit_as_one_matched_bone_pair(tmp_path) -
     _, lay = _frame(tmp_path, slide, 1)
     q, fig, unit = (lay.plates[n][0] for n in ("figure_qualifier", "figure", "figure_unit"))
     assert q.font.size == unit.font.size and q.font.path == unit.font.path      # one face, one size
-    assert q.fill == unit.fill == brand.BONE and fig.fill == brand.GOLD          # the numeral is the one gold read
+    # cycle 0 round 8 (operator ruling 8): the number and its unit gold, the qualifier and the dimension word bone
+    assert q.fill == brand.BONE and fig.fill == brand.GOLD and unit.fill == brand.GOLD and unit.text == "FT"
+    assert [p.text for p in lay.plates["figure_unit"]] == ["FT", "DEEP"] and lay.plates["figure_unit"][1].fill == brand.BONE
     assert unit.box[1] - fig.box[3] <= 40 and fig.box[1] - q.box[3] <= 40          # tightened around the numeral
 
 

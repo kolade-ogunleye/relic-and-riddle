@@ -330,6 +330,20 @@ def test_the_gate_reads_the_youtube_thumbnail_and_the_end_card(tmp_path):
     assert any(f.startswith("end_card") for f in figure_gate.check_run(run, payload)["faults"])
 
 
+def test_a_figure_drawn_in_parts_is_judged_whole(tmp_path):
+    """A Story reveal or cover draws its qualifier, number and unit as separate elements: one figure."""
+    run, payload = _run(tmp_path, "UP TO 20,000 PEOPLE")
+    (run / "stories").mkdir()
+    parts = [{"name": "figure_qualifier", "text": "ABOUT"}, {"name": "figure", "text": "280"},
+             {"name": "figure_unit", "text": "FT"}, {"name": "figure_unit", "text": "DEEP"}]
+    rec = {"story_02_reveal.jpg": {"elements": [{**e, "box": [0, 0, 1, 1]} for e in parts]}}
+    (run / "stories" / "still_layout.json").write_text(json.dumps(rec), encoding="utf-8")
+    assert figure_gate.check_run(run, payload)["faults"] == []
+    rec["story_02_reveal.jpg"]["elements"] = rec["story_02_reveal.jpg"]["elements"][1:]   # the hedge dropped
+    (run / "stories" / "still_layout.json").write_text(json.dumps(rec), encoding="utf-8")
+    assert any("story_02_reveal.jpg (figure)" in f for f in figure_gate.check_run(run, payload)["faults"])
+
+
 def test_the_release_report_carries_the_gate():
     src = (ROOT / "src" / "release.py").read_text(encoding="utf-8")
     assert '"drawn_figures"' in src and "figure_gate" in src

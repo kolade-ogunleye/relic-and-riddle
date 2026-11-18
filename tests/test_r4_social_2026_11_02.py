@@ -351,7 +351,10 @@ def test_the_reveal_draws_a_span_whole_and_never_its_first_number(tmp_path) -> N
     slide = {"kicker": "WHEN", "line1": "ANCIENT ROCKS", "line2": "94-104 MILLION YEARS OLD", "body": "They cooled."}
     _, lay = _story(tmp_path, slide, 1)
     assert lay.plates["figure"][0].text == "94–104" and lay.meta["hero_figure"] == "94–104"
-    assert lay.plates["figure_unit"][0].text == "MILLION YEARS OLD" and not lay.problems()
+    # cycle 0 round 8 (ruling 8): the unit gold with its number, the dimension word "OLD" bone, one baseline
+    units = lay.plates["figure_unit"]
+    assert [u.text for u in units] == ["MILLION YEARS", "OLD"] and units[0].xy[1] == units[1].xy[1]
+    assert units[0].fill == brand.GOLD and units[1].fill == brand.BONE and not lay.problems()
 
 
 def test_the_qualifier_sits_inline_on_the_numerals_baseline(tmp_path) -> None:

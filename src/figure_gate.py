@@ -210,6 +210,36 @@ def _is_text(e: Mapping[str, Any]) -> bool:
             or bool(TEXT_NAMES.match(str(e.get("name") or ""))))
 
 
+# A figure drawn in parts (a cover's or Story frame's qualifier, figure, unit and dimension word; a number card's prefix,
+# figure and unit) is judged as the one figure its consecutive part elements draw ("ABOUT" + "280" + "FT DEEP").
+FIGURE_PARTS = re.compile(r"^(figure_qualifier|qualifier|hedge|figure|figure_unit|figure_dim|unit|prefix)$",
+                          re.IGNORECASE)
+
+
+def _merged(elements: Iterable[tuple[str, str, dict[str, Any]]]) -> Iterable[tuple[str, str, dict[str, Any]]]:
+    held: list[tuple[str, str, dict[str, Any]]] = []
+
+    def flush():
+        if not held:
+            return []
+        if len(held) == 1 or any("text" not in e for _s, _n, e in held):
+            return list(held)
+        text = " ".join(str(e.get("text") or "") for _s, _n, e in held)
+        return [(held[0][0], "figure", {**held[0][2], "name": "figure", "text": text})]
+    for item in elements:
+        surface, name, _e = item
+        if FIGURE_PARTS.match(name) and (not held or held[-1][0] == surface):
+            held.append(item)
+            continue
+        yield from flush()
+        held = []
+        if FIGURE_PARTS.match(name):
+            held.append(item)
+            continue
+        yield item
+    yield from flush()
+
+
 def check_run(run_dir: Path, payload: Mapping[str, Any]) -> dict[str, Any]:
     """The gate on one run: {"faults": [...], "unrecorded": [...], "judged": n, "derived": n, "surfaces": n}. Each
     fault names the surface, the element, the drawn figure, what is wrong and the nearest signed value."""
@@ -217,7 +247,7 @@ def check_run(run_dir: Path, payload: Mapping[str, Any]) -> dict[str, Any]:
     faults, unrecorded = [], []
     judged = derived = 0
     surfaces: set[str] = set()
-    for surface, name, e in _elements(run_dir):
+    for surface, name, e in _merged(_elements(run_dir)):
         if not _is_text(e):
             continue
         surfaces.add(surface)

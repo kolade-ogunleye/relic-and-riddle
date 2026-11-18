@@ -631,25 +631,39 @@ def frames(last: Image.Image, share: str, stats: dict[str, Any] | None = None, *
     words = _word_xs(lay, width)
     word_plates = [plan_text(rest, (round(x), y), w, lay["share_font"], brand.BONE) for _, _, w, x, y in words]
     follow_plate = None
-    if lay["follow"]:   # an overlay label: the one overlay-label rule (operator ruling 2, typography.plan_label)
-        from .typography import plan_label
-        planned, follow_rec = plan_label(rest, [((lay["centre_x"], lay["follow_y"]), brand.FOLLOW_LINE,
-                                                 lay["follow_font"], "ma", lay["spacing"])], (brand.GOLD, brand.BONE),
-                                         target=tok(LINE_GATES["follow"]))
-        follow_plate = planned[0] if planned else None
-        if stats is not None:
-            stats["follow_gate"] = follow_rec
     extras = end_screen_extras(width) if landscape else None
     kicker_plate = credits_plate = None
+    # The end screen's overlay labels (the follow line, the WATCH NEXT kicker) are ONE set (cycle 0 round 8 R1):
+    # planned together by the one overlay-label rule (operator ruling 2) on one treatment, typography.plan_label_set
+    # (each its own only when no one step holds on both grounds: the gate is never traded).
+    from .brand_system import GATES as _K_GATES
+    from .multi_format import finish_kicker, kicker_label
+    from .typography import plan_label_set
+    members, names = [], []
+    if lay["follow"]:
+        members.append({"ground": rest, "rows": [((lay["centre_x"], lay["follow_y"]), brand.FOLLOW_LINE,
+                                                   lay["follow_font"], "ma", lay["spacing"])],
+                        "colours": (brand.GOLD, brand.BONE), "target": tok(LINE_GATES["follow"])})
+        names.append("follow")
     if extras:
         k = extras["kicker"]
-        from .multi_format import (
-            plan_kicker,  # round 7 (F20, sweep): the one kicker gate (gold, else bone, else none)
-        )
-        kicker_plate, kicker_rec = plan_kicker(rest, k["text_xy"], k["text"], k["font"], colour_of("kicker.colour"),
-                                               "ls", k["track"], rule=k["rule"])
-        if stats is not None:
-            stats["kicker_gate"] = kicker_rec
+        k_gate = _K_GATES["contrast.kicker"]   # round 7 (F20, sweep): the one kicker gate, as plan_kicker's
+        members.append(kicker_label(rest, k["text_xy"], k["text"], k["font"], colour_of("kicker.colour"), "ls",
+                                    k["track"], k["rule"], k_gate))
+        names.append("kicker")
+    planned_set, set_rec = plan_label_set(members) if members else ([], None)
+    for name, (planned, rec) in zip(names, planned_set):
+        if name == "follow":
+            follow_plate = planned[0] if planned else None
+            if stats is not None:
+                stats["follow_gate"] = rec
+        else:
+            kicker_plate, kicker_rec = finish_kicker(planned, rec, k["rule"], k_gate, k_gate, k["text"])
+            if stats is not None:
+                stats["kicker_gate"] = kicker_rec
+    if stats is not None and set_rec is not None:
+        stats["label_set"] = set_rec
+    if extras:
         if credits:
             c = extras["credits"]
             credits_plate = plan_text(rest, c["xy"], c["text"], c["font"], brand.STONE_LT, "ls", c["track"])

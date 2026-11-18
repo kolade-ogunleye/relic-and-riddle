@@ -1123,9 +1123,9 @@ def plan_label(ground: Image.Image, rows, colours, *, target: float, halo_px: in
     from .brand import BONE, INK
     from .brand_system import label_halo, tok
     rows = [(xy, drawable(text, font), font, anchor, track) for xy, text, font, anchor, track in rows]
-    size_px = max(float(r[2].size) for r in rows)
-    spread, cap = label_halo(size_px)
-    spread = int(spread if halo_px is None else halo_px)
+    size_px = float(rows[0][2].size)    # the plate's padding is the first row's (a marker's kicker over its year)
+    _, cap = label_halo(size_px)
+    spreads = [int(label_halo(r[2].size)[0] if halo_px is None else halo_px) for r in rows]   # each row its own
     cap = min(cap, float(tok("halo.label_max")) if halo_max is None else min(float(halo_max), cap))
     dark = dark_ground if dark_ground is not None else ground
     tried: list[tuple[str, float | None]] = []
@@ -1165,8 +1165,8 @@ def plan_label(ground: Image.Image, rows, colours, *, target: float, halo_px: in
         variant = "bone" if all(f == tuple(BONE) for f in fills) else ("colour" if k == 0 else "bone")
         if order_of[variant] < first:
             continue
-        plates = [plan_text(ground, xy, text, font, f, anchor, track, target=target, halo_px=spread, max_halo=cap,
-                            halo_pad=full_halo_pad(spread)) for (xy, text, font, anchor, track), f in zip(rows, fills)]
+        plates = [plan_text(ground, xy, text, font, f, anchor, track, target=target, halo_px=sp, max_halo=cap,
+                            halo_pad=full_halo_pad(sp)) for (xy, text, font, anchor, track), f, sp in zip(rows, fills, spreads)]
         if holds(plates, many):
             return done(plates, variant)
     if ink and order_of["ink"] >= first:

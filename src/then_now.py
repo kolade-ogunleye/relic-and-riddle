@@ -1518,8 +1518,9 @@ def render(old: Path, old_year: int, new: Path, new_year: int, out: Path, width:
     # label, planned by typography.plan_label on the lightest and the darkest of the pictures it sits on (its split
     # and its alone frame): the kicker in kicker.colour and the year in figure.colour on the label halo (<= 0.16),
     # else bone, else INK type (only where the ground under it is paper: paper_gate keeps ink off line art), else a
-    # held INK plate holding the kicker's rule. The pair takes ONE variant (the later of the two each needs), so the
-    # two markers read in one treatment. The halo up to 1.0 and the glows are retired.
+    # held INK plate holding the kicker's rule. The pair keeps one colour role: one marker in gold and the other in
+    # bone are both set in bone (round 4's rule); INK type on paper and a plate on a busy ground are each the one
+    # rule's answer to its own ground. The halo up to 1.0 and the glows are retired.
     from .brand_system import colour_of
     from .typography import plan_label
     import numpy as np
@@ -1536,19 +1537,9 @@ def render(old: Path, old_year: int, new: Path, new_year: int, out: Path, width:
                           dark_ground=darkest[which], ink=INK_ON_PAPER and gate[which]["ok"], extra=[rules[which]],
                           start=start)
 
-    from .typography import LABEL_VARIANTS
     planned = {w: plan(w, "colour") for w in years}
-    start = "colour"
-    while True:
-        variants = [rec["variant"] for _, rec in planned.values() if rec["shown"]]
-        if len(set(variants)) <= 1:
-            break
-        start = max(variants, key=LABEL_VARIANTS.index)
-        replanned = {w: plan(w, start) for w in years}
-        if all(r["shown"] for _, r in replanned.values()) or not all(r["shown"] for _, r in planned.values()):
-            planned = replanned
-        if start == LABEL_VARIANTS[-1]:
-            break
+    if {rec["variant"] for _, rec in planned.values() if rec["shown"]} == {"colour", "bone"}:
+        planned = {w: (plan(w, "bone") if rec["variant"] == "colour" else (ps, rec)) for w, (ps, rec) in planned.items()}
     plates: dict[str, list] = {}
     mode: dict[str, str] = {}
     for w in years:

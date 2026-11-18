@@ -113,8 +113,10 @@ def test_one_paper_marker_makes_the_other_kicker_bone(tmp_path, monkeypatch):
     then_now.render(old, 1941, new, 1942, tmp_path / "x.mp4")
     assert then_now.LAST_PAPER["then"]["mode"] == "ink" and then_now.LAST_PAPER["now"]["mode"] == "bone/gold"
     rows = dict(got["rows"])
-    assert rows["now_kicker"].fill == tuple(then_now.WHITE)
-    assert rows["now_year"].fill == tuple(then_now.WHITE)
+    # cycle 0 round 8 (panel consensus 7): the other marker is the system kicker in its colour (gold), its year gold
+    # (ruling 3); round 4's "two neutrals" pair rule is retired
+    assert rows["now_kicker"].fill == tuple(then_now.GOLD)
+    assert rows["now_year"].fill == tuple(then_now.GOLD)
 
 
 def test_a_non_paper_render_plans_as_before(tmp_path, monkeypatch):

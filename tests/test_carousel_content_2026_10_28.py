@@ -124,8 +124,11 @@ def test_a_stat_slide_shows_the_cards_own_figure_and_no_verified_badge(topic, mo
                                             {}, "", False, tight=tight)
         names = {e["name"] for e in lay.elements}
         assert lay.problems() == [] and "stat" in names and not names & {"verified", "badge"}
-        # The figure and its unit are drawn as two lines on one baseline since 2026-10-29 (the unit smaller, in bone).
-        assert "134" in drawn and "METERS" in drawn and not any("VERIFIED" in t for t in drawn)
+        # The figure and its unit are drawn as two lines on one baseline since 2026-10-29 (the unit smaller). Cycle 0
+        # round 8 (QF-147): the body's figure whole by the figure rules, its unit in the short form ("M", as every
+        # graphic draws it) and its hedge with it.
+        assert "134" in drawn and "M" in drawn and not any("VERIFIED" in t for t in drawn)
+        assert lay.meta["stat"].endswith("134 M")
     # A stat-routed card with no figure gets no stat line (it used to show the category label instead).
     _, lay = gen._render_carousel_slide("colossal_stat", topic["photos"][0], topic["photos"][1],
                                         {"heading": "DEEP", "body": "The mine runs deep below the town."}, 2, 7, {}, "", False)

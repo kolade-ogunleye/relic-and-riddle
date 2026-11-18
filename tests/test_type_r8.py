@@ -196,7 +196,8 @@ def test_every_refusal_a_renderer_raises_is_the_one_refusal_type():
     root = Path(__file__).resolve().parents[1] / "src"
     found = []
     for mod in ("typography", "font_engine", "design_cards", "multi_format", "cover_design", "youtube_thumbnail",
-                "graphics", "end_card", "then_now", "callouts", "masthead", "still_layout"):
+                "graphics", "end_card", "then_now", "callouts", "masthead", "still_layout",
+                "hero_window", "video_composer", "figures", "figure_gate", "cover_fit"):   # + the r8 lanes' modules
         tree = ast.parse((root / f"{mod}.py").read_text(encoding="utf-8"))
         for node in ast.walk(tree):
             if isinstance(node, ast.ClassDef) and (node.name.endswith("Refused") or node.name.endswith("FitError")):

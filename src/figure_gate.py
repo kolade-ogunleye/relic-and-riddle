@@ -290,4 +290,13 @@ def release_check(run_dir: Path, payload: Mapping[str, Any]) -> tuple[str, list[
                                                          if len(res["unrecorded"]) > 12 else [])
     return "pass", (f"Every drawn number is a signed value with its unit and hedge: {res['judged']} figure "
                     f"element(s) on {res['surfaces']} surface(s); {res['derived']} derived (rulers, scale bars, "
-                    "conversions' references, numerals) judged by their own critics.")
+                    "conversions' references, numerals) judged by their own critics." + held_note(payload))
+
+
+def held_note(payload: Mapping[str, Any]) -> str:
+    """The surfaces this render refused (refusal.LayoutError, payload["layout_holds"]: the cover job's per-surface
+    records and the decks' holds), named in the gate's pass so it never reads as judging a surface that was not
+    drawn (cycle 0 round 8 integration: the cover job holds a refused surface; its own checks block the release)."""
+    held = [str(h.get("surface") or h.get("deck") or "?") for h in (payload.get("layout_holds") or [])
+            if isinstance(h, Mapping)]
+    return (f" Held, not drawn (refused, shown on the card): {', '.join(held)}." if held else "")

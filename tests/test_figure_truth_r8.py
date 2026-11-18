@@ -283,6 +283,20 @@ def test_the_gate_passes_the_whole_figure(tmp_path, drawn):
     assert status == "pass"
 
 
+def test_the_gate_names_the_surfaces_a_refusal_held(tmp_path):
+    """Round-8 integration (type lane's cover job x truth lane's gate): a surface refused with a LayoutError is held
+    on the payload (refusal.record), not drawn; the gate's pass names it, never reading as having judged it."""
+    from src.refusal import LayoutError, record
+    run, payload = _run(tmp_path, "UP TO 20,000 PEOPLE")
+    payload["layout_holds"] = [record(LayoutError("no form sets"), "YouTube thumbnail"),
+                               {"deck": "graphics/stat", "error": "no fit", "moved": []}]
+    status, detail = figure_gate.release_check(run, payload)
+    assert status == "pass"
+    assert "Held, not drawn" in detail and "YouTube thumbnail" in detail and "graphics/stat" in detail
+    payload.pop("layout_holds")
+    assert "Held" not in figure_gate.release_check(run, payload)[1]
+
+
 def test_the_gate_judges_every_record_kind_and_holds_an_unrecorded_text(tmp_path):
     run, payload = _run(tmp_path, "UP TO 20,000 PEOPLE")
     (run / "graphics").mkdir()

@@ -644,7 +644,11 @@ DANGLING_TAILS = {
     "which", "who", "whom", "whose", "where", "when", "why", "how",
     # Copulas & Auxiliaries (dangling verb tails before predicates)
     "is", "was", "are", "were", "been", "being",
-}
+} | set(_LINE_END_NEVER)
+# Cycle 0 round 8 (panel consensus 5: the Richat 16:9 burst ended "is situated near" because the round-4 base and the
+# sidecar cues read their own tail set, which lacked NEAR / ONTO / VIA / PER): the heading engine's never-end set
+# (brand_system.LINE_END_NEVER) is part of the caption tails, so every caption path (the freeze-pass builder, the
+# round-4 base it refines, the 16:9 one-line bursts, the merges and the sidecar cues) reads ONE never-end set.
 # Words that carry no content of their own (review, 2026-11-03: OF THE was a burst at 80 px): a burst made of these
 # alone is never formed where another split fits. The dangling tails (articles, determiners, prepositions,
 # conjunctions, relative words, copulas) plus the auxiliaries. Personal pronouns are left out: a subject and its
@@ -880,9 +884,8 @@ def _hard_dangles(word: str) -> bool:
     relative word) with no punctuation closing it: the phrase builder's hard defect (review round 4)."""
     if CLAUSE_PUNCT.search(word) or TERMINAL_PUNCT.search(word):
         return False
-    # round 7 (F1): the heading engine's never-end set is a burst's hard defect too (the 16:9 burst ended on "near");
-    # the round-4 base (round4_burst_cuts) keeps HEAD 0036b18's own set
-    return _bare(word) in DANGLING_ENDS or _bare(word) in _LINE_END_NEVER
+    # round 8: DANGLING_ENDS holds the heading engine's never-end set (DANGLING_TAILS), on every caption path
+    return _bare(word) in DANGLING_ENDS
 
 
 # Review round 4 (2026-11-04): the phrase builder's soft costs, summed per split after the hard defects. A lone
@@ -2229,7 +2232,8 @@ def _r4_atomic_boundary(w1_raw: str, w2_raw: str) -> bool:
 
 
 def _r4_split_defects(split: List[List[Dict[str, Any]]]) -> int:
-    """_split_defects as at HEAD 0036b18: every DANGLING_ENDS end mid-sentence is a defect."""
+    """_split_defects as at HEAD 0036b18: every DANGLING_ENDS end mid-sentence is a defect (round 8: DANGLING_ENDS
+    carries the heading engine's never-end set, so the base never cuts on NEAR either)."""
     defects = 0
     for k, chunk in enumerate(split):
         if _function_only(chunk):

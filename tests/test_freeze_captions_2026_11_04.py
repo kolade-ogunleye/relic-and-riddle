@@ -1629,7 +1629,11 @@ GATE_FORCED = {
     ("edge", "cues", "ago,", "between"): ("article", "HEAD's cue ended on BELOW THE (the next opened on SEA.)"),
     # fix round 3 (review: a new cue end goes before a determiner, not mid-phrase): one word back from HEAD's THE
     ("odessa_catacombs", "cues", "used", "the"): ("article", "HEAD's cue ended on PARTISANS USED THE"),
-    ("run:richat_structure_sahara_eye", "cues", "Plateau", "within"): ("article", "HEAD's cue ended on WITHIN THE"),
+    # cycle 0 round 8 (panel consensus 5): HEAD's 16:9 burst and cue end on NEAR, the heading engine's never-end word,
+    # so the cut goes before it (THE RICHAT STRUCTURE IS SITUATED | NEAR OUADANE ...); the cue's PLATEAU | WITHIN
+    # entry (HEAD's cue ended on WITHIN THE) is gone with it: the next cue now runs to MAURITANIA.
+    ("run:richat_structure_sahara_eye", "16:9", "situated", "near"): ("never", "HEAD's burst ended on NEAR"),
+    ("run:richat_structure_sahara_eye", "cues", "situated", "near"): ("never", "HEAD's cue ended on NEAR"),
     # fix round 3 (review blocker: THIS CIRCULAR || GEOLOGICAL FORMATION split the noun phrase; was circular|geological
     # and structure|as): the forced end goes before the determiner, and the next cue ends before THE STRUCTURE
     ("run:richat_structure_sahara_eye", "cues", "formed", "this"):
@@ -1663,9 +1667,31 @@ def test_round4_base_is_head_0036b18():
     (pinned to raqm, operator decision 2026-11-05: head_0036b18_cuts.json is HEAD 0036b18's own phrasing under raqm)."""
     require_raqm()
     for case, words, emph, h in _gate_cases():
-        assert sorted(vc.round4_burst_cuts(words, emph)) == h["9:16"], case
-        assert sorted(vc.round4_burst_cuts(words, emph, True, 1440)) == h["16:9"], case
-        assert sorted(vc.round4_cue_ends(words)) == h["cues"], case
+        raw = [w["word"] for w in words]
+        for fmt, got in (("9:16", vc.round4_burst_cuts(words, emph)), ("16:9", vc.round4_burst_cuts(words, emph, True, 1440)),
+                         ("cues", vc.round4_cue_ends(words))):
+            _head_or_never_moved(case, fmt, raw, set(got), set(h[fmt]))
+
+
+# Cycle 0 round 8 (panel consensus 5): the heading engine's never-end set joined the caption tails, so the base no
+# longer cuts after a word HEAD 0036b18's own set lacked (NEAR, ONTO, VIA, PER: the Richat 16:9 burst "is situated
+# near"). Such a HEAD cut moves; every other cut stays HEAD's. Updated from exact equality for that reason.
+_ROUND8_NEVER = frozenset({"near", "onto", "via", "per"})
+
+
+def _head_or_never_moved(case, fmt, raw, got, head):
+    never = {k for k in head if vc._bare(raw[k]) in _ROUND8_NEVER and not vc.CLAUSE_PUNCT.search(raw[k])}
+    assert not {k for k in got if vc._hard_dangles(raw[k])} - {k for k in head if vc._hard_dangles(raw[k])} - never, (case, fmt)
+    assert not never & got, (case, fmt, "a cut after a never-end word")
+    if not never:
+        assert got == head, (case, fmt)
+        return
+    bounds = sorted(head | {-1, len(raw) - 1})
+    moved = set()
+    for k in never:   # the HEAD bursts either side of a moved cut may change; nothing outside them
+        i = bounds.index(k)
+        moved |= set(range(bounds[i - 1] + 1, bounds[i + 1] + 1))
+    assert (got ^ head) <= moved, (case, fmt, sorted(got ^ head))
 
 
 def test_head_regression_gate():

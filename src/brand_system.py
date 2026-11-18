@@ -87,11 +87,19 @@ finish), so the edge has its own, steeper token; the field gate is unchanged. Ed
 hard with a rule: a hard band or plate edge reads as a caption bar or a slab at feed size (the panel's lid and slab),
 and a rule would add an element to every band. Two photographs side by side are two windows on an INK gutter of
 tok("plate.gutter") design px (a hairline gutter reads as a seam in one composite picture). Overlay labels over a
-picture (the loop bridge's FOLLOW, the end card's follow line; graphics' map labels are lane A's to port) take ONE
-halo spread (tok("halo.label_spread") em) and a halo alpha never above tok("halo.label_max") (0.16, the masthead's
-cap); where bone cannot reach its gate within it, a light ground takes the INK variant (ruling 1, as the masthead),
-label_halo(). Hero windows: no delivered crop of a photograph contains a panel seam or a printed banner row
-(src/hero_window.py). Margins on 9:16 cards and the end card: the Reel safe box inset by safe_zones.TEXT_INSET.
+picture (operator ruling 2, 2026-11-17: the loop bridge's FOLLOW, the end card's follow line, every kicker (the end
+screen's WATCH NEXT among them), a map's and a route's place labels, a then-and-now marker) are planned by ONE rule,
+typography.plan_label: their colour on ONE halo spread (tok("halo.label_spread") em) never deeper than
+tok("halo.label_max") (0.16, the masthead's cap); else INK type (dark type first where it fits, judged on the
+darkest ground under it); else a HELD INK PLATE behind the label (INK at tok("plate.held"), round the label's ink by
+tok("plate.label_pad") em, corners tok("plate.radius") at 1080 wide), fading and rising with the label on its own
+motion curve. The halo exception (0.24-1.0 clouds) is retired for these labels; a label no variant carries is not
+drawn and recorded. Hero windows: no delivered crop of a photograph contains a panel seam, a printed banner row or
+photographed text at its top or bottom edge (a label, a plaque, a sign); a deck that shows one photograph again
+takes a window overlapping the earlier ones as little as the picture allows, its centre kept; the masthead's box is
+kept off a foreign object where the window allows (src/hero_window.py). 9:16 content centred while a graphic is on
+screen shares the caption plate's axis (graphics.tall_axis_x). Margins on 9:16 cards and the end card: the Reel safe
+box inset by safe_zones.TEXT_INSET.
 
 Contrast tiers (CONTRAST): text 4.5 (gate, WCAG AA on delivered pixels), place 4.8 (what placement aims for),
 display 5.1 (large display rows on covers, hook and YouTube), kicker 5.5 (small gold capitals, so a platform
@@ -101,8 +109,9 @@ re-encode leaves 4.5), masthead gate 5.5 and target 6.5, high 7.0 (an ink figure
 Kicker (KICKER): text face 800, tracked 0.15 em capitals, GOLD, led by a flat gold rule one cap long at mid-cap
 height, 0.55 cap from the words; one gap to the heading (kicker.gap em). Round 7 (F20): the one kicker on the
 carousel, the Story, the cards (the rule-above retired), the Reel covers (the gold tab retired), the end screen's
-WATCH NEXT and YouTube (the bone Anton fill line retired; there at the feed floor). THEN / NOW over a year are data
-labels (data face), not kickers.
+WATCH NEXT and YouTube (the bone Anton fill line retired; there at the feed floor), the number cards' prefix
+("EST. OVER": the rule above retired) and then-and-now's THEN / NOW over its year (round 8: the data-face label
+retired), each at the ladder's kicker size.
 
 Figures (FIGURE; operator ruling 3, 2026-11-16): a stated quantity ("144 FT", "1963", "25 MILES", a number card's
 "36", a scale's "327 M") is set in the figure face tok("figure.face") (the display face) in tok("figure.colour")
@@ -121,8 +130,9 @@ Place labels (PLACE): a site's name on a map and a stop's name on a route are on
 "label", the text face) at tok("place.weight"), tok("place.px") per canvas design px (one fallback ladder to the
 canvas floor), a halo of one spread tok("place.halo_px") never deeper than tok("place.halo_max") (0.16, the system
 halo cap); where bone cannot reach the placement target (contrast.place) within that cap the label takes the
-light-ground INK variant, and where neither does (a flat mid-grey band, a busy relief) bone takes the least halo that
-reaches it: the gate outranks the cap (logged as an exception, flagged past HALO_EXCEPTION_CAP, 0.24).
+light-ground INK variant, and where neither does (a flat mid-grey band, a busy relief) a held INK plate (the
+overlay-label rule above; the halo exception is retired, operator ruling 2). The story's own site is ONE step up
+(operator ruling 1): tok("place.px") x tok("place.site_step"), the same face (graphics.site_steps).
 
 Label floor (TYPE_FLOOR, label_floor_px): on 9:16 no graphic label is drawn under TYPE_FLOOR["tall"]["label"]
 (27 px on 1080 wide, about a 20 px cap: 10 pt on a phone).
@@ -238,6 +248,15 @@ SYSTEM_TOKENS: Mapping[str, Any] = MappingProxyType({
     # ---- the YouTube headline's kickerless variant (ruling 5): with no kicker drawn above it, the headline takes
     # its ladder's larger size on two lines before the fallback size on one ("one size up", the kicker's room)
     "lockup.kickerless_up": 1,
+    # ---- the held plate behind an overlay label on a bright ground (operator ruling 2, 2026-11-17: typography.plan_label)
+    "plate.held": 0.875,              # INK alpha of a plate text sits on over moving pictures (caption pill 0x20, badge)
+    "plate.radius": 14,               # px at 1080 wide (caption pill); scaled by the canvas width
+    "plate.label_pad": 0.35,          # em of the label's size: the plate's margin round the label's ink
+    # ---- place labels: the story's own site one step up (operator ruling 1, 2026-11-17)
+    "place.site_step": 1.4,           # the site label's px over the place labels' (graphics.site_steps)
+    # ---- the act dissolve (cycle 0 round 8, lander's scope: production drew 8 frames of xfade "dissolve", a per-pixel
+    # dither, against the written 0.5 s): the only dissolve in a Reel or a master, at an act change, a true crossfade
+    "motion.act_dissolve": 0.5,       # seconds (video_composer.act_dissolve_s, rounded to whole frames)
 })
 
 # The range a brand may set each numeric runtime token to (BrandConfig refuses a value outside it), so "any value the
@@ -274,6 +293,11 @@ TOKEN_RANGES: Mapping[str, tuple[float, float]] = MappingProxyType({
     "plate.gutter": (8, 64),              # design px
     "type.display_cap": (0.45, 1.25),     # of the reference caps ("measure" derives it; TOKEN_DERIVED)
     "lockup.kickerless_up": (0, 1),       # 0: the kickerless headline keeps the kickered order
+    "plate.held": (0.75, 1.0),            # a plate under 0.75 lets a bright ground through (bone then misses its gate)
+    "plate.radius": (0, 40),              # px at 1080 wide
+    "plate.label_pad": (0.15, 0.80),      # em
+    "place.site_step": (1.15, 1.8),       # one step: above the tracked country names, never a second display voice
+    "motion.act_dissolve": (0.2, 1.0),    # seconds: a dissolve, never a cut nor a held mix
 })
 # Tokens whose default is derived at read time rather than written (the value a brand may also give): BrandConfig
 # accepts the named word or a value in TOKEN_RANGES.
@@ -290,9 +314,7 @@ TOKEN_JOINT: tuple[tuple[str, float, str], ...] = (
 # measured-change test) in the commit that makes a renderer read it.
 SPEC: Mapping[str, Any] = MappingProxyType({
     "plate.opaque": 1.0,              # a callout's plate
-    "plate.held": 0.875,              # a plate text sits on over moving pictures (caption pill 0x20, badge)
     "plate.panel": 0.78,              # a map / chart panel over a drawn ground (200 / 255)
-    "plate.radius": 14,               # px at 1080 wide (caption pill); scaled by the canvas width
     # ---- credits and the AI-reconstruction badge (one style each; ported by their groups)
     "credit.weight": 500,             # the data face
     "credit.track": 0.04,             # em
@@ -321,7 +343,6 @@ SPEC: Mapping[str, Any] = MappingProxyType({
     "motion.rise_m": 10,              # a single line (the follow line, FOLLOW)
     "motion.hook_hold": 1.07,         # the hook's type hold
     "motion.hook_fade": 0.16,         # the hook type's fade-in (an element reveal, not a scene fade)
-    "motion.act_dissolve": 0.5,       # the only dissolve in a Reel, at an act change
     "motion.loop_crossfade": 0.5,     # the loop bridge's crossfade (0.7 for the purely visual bridge)
     "motion.pop_scale": 1.4,          # a pin / lantern's pop: 1 -> this -> 1
     "motion.push_per_frame": 0.0016,  # the camera's forward drift
@@ -403,7 +424,6 @@ DEVIATIONS: Mapping[str, tuple[str, str, tuple, str]] = MappingProxyType({
     "YouTube figure": ("figure", ("youtube_thumbnail.FIGURE_STEPS (round 8: was a fit 300 -> 160), held at the "
                        "hero's feed floor; the unit at UNIT_RATIO, at least its line floor"), (300, 260, 220, 190, 160),
                        "B"),
-    "then-and-now THEN / NOW": ("data_label", "then_now.kicker_px(): 48 px 9:16, cap-fitted 16:9", (48,), "A"),
 })
 
 # Every SITE that sets a type size off the ladder (a function of a surface module calling a font loader with a
@@ -511,11 +531,9 @@ SIZE_SITES: Mapping[str, str] = MappingProxyType({
     "multi_format:story_body_lines": "D",
     "multi_format:story_credit_fit": "D",
     "multi_format:story_title_px": "D",
-    "then_now:_kicker_px_for_cap": "A",
-    "then_now:marker_lines": "A",
-    "then_now:marker_xy": "A",
-    "then_now:render": "A",
+    "then_now:kicker_font": "A",        # cycle 0 round 8: the system kicker at the ladder's kicker size
     "then_now:year_cap": "A",
+    "then_now:year_font": "A",          # the year in the figure face (ruling 3)
     "timeline_dense:_fits_both_formats": "A",
     "timeline_dense:_plan": "A",
     "video_composer:VideoComposer.build_subtitles": "C",

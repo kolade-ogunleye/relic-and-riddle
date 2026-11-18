@@ -52,10 +52,13 @@ def test_hard_cuts_land_on_every_beat_without_transition_overlap(tmp_path, monke
 
 
 @pytest.mark.parametrize('wide', [False, True])
-def test_only_an_explicit_act_change_has_an_eight_frame_dissolve(tmp_path, monkeypatch, wide):
+def test_only_an_explicit_act_change_has_the_act_dissolve(tmp_path, monkeypatch, wide):
+    # cycle 0 round 8 (lander's scope): the act dissolve reads tok("motion.act_dissolve") (0.5 s, 15 frames) and is a
+    # true crossfade (xfade fade); it was 8 frames of xfade "dissolve", ffmpeg's per-pixel dither. Updated for that.
     out, graph = render_cuts(tmp_path, monkeypatch, acts=[2.0], wide=wide)
     assert graph.count('xfade=') == 1
-    assert 'xfade=transition=dissolve:duration=0.266666667:offset=1.866666667' in graph
+    assert vc.act_dissolve_s() == pytest.approx(0.5)
+    assert 'xfade=transition=fade:duration=0.500000000:offset=1.750000000' in graph
     assert graph.count('concat=n=2:v=1:a=0') == 3
     assert 'fadeblack' not in graph and 'transition=zoomin' not in graph
     seconds = subprocess.run(['ffprobe', '-v', 'error', '-select_streams', 'v:0',

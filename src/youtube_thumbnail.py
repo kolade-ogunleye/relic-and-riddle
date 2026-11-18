@@ -468,7 +468,9 @@ def _draw_kicker(im, x, baseline, text, font, feed_kw):
     from .multi_format import plan_kicker
     kw = dict(feed_kw, target=max(feed_kw.get("target", 0), GATES["contrast.kicker"]))
     plate, rec = plan_kicker(im, (x + bar_w + gap, baseline), text, font, colour, "ls",
-                             tok("kicker.track") * font.size, **kw)
+                             tok("kicker.track") * font.size,
+                             rule=(round(x), round(mid - thick / 2), round(x) + bar_w - 1, round(mid - thick / 2) + thick - 1),
+                             **kw)
     if plate is None:   # fail closed under the kicker gate (sweep S1)
         return im, None, rec
     ImageDraw.Draw(im).rectangle([round(x), round(mid - thick / 2), round(x) + bar_w - 1,

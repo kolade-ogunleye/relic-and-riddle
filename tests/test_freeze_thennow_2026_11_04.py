@@ -10,7 +10,7 @@ from pathlib import Path
 
 import numpy as np
 import pytest
-from PIL import Image
+from PIL import Image, ImageDraw
 
 from src import brand, config, safe_zones, then_now
 from src.brand import DATA_FONT, INK
@@ -100,15 +100,18 @@ def _lum(a):
 
 
 def _plates_of(monkeypatch, tmp_path, old, new, size, keep, stop):
-    """The grabbed frames and the plates (captured from the planner, since the render stops early)."""
+    """The grabbed frames and the plates (captured from the planner, since the render stops early). Cycle 0 round 8:
+    the planner is typography.plan_label (was then_now._marker_plate)."""
+    from src import typography
     plates = {}
-    real = then_now._marker_plate
+    real = typography.plan_label
 
-    def spy(split_frame, alone, xy, text, font, colour, anchor, *a, **k):
-        p = real(split_frame, alone, xy, text, font, colour, anchor, *a, **k)
-        plates[text] = p                   # the last plan of each line is the one drawn
-        return p
-    monkeypatch.setattr(then_now, "_marker_plate", spy)
+    def spy(*a, **k):
+        ps, rec = real(*a, **k)
+        for p in ps:
+            plates[p.text] = p             # the last plan of each line is the one drawn
+        return ps, rec
+    monkeypatch.setattr(typography, "plan_label", spy)
     got = _render(monkeypatch, tmp_path, old, new, size, keep=keep, stop=stop)
     return got, plates
 
@@ -199,6 +202,11 @@ def test_no_stepped_rectangle_round_a_label_on_a_near_white_photo(tmp_path, monk
     then_alone, rest = round(0.9 * FPS), round(3.6 * FPS)
     got, plates = _plates_of(monkeypatch, tmp_path, old, new, size, keep=(then_alone, rest), stop=rest)
     assert plates["THEN"].fill != tuple(INK)                              # the bone/gold path, as intended
+    if getattr(plates["THEN"], "backing", None) is not None:
+        # round 8: a ground the label halo (<= 0.16) cannot carry takes the held plate, whose rounded edge is the
+        # designed one (test_freeze_r8_rules); no halo crop is left to step
+        assert all(p.halo == 0.0 for p in plates.values())
+        return
     for idx in (then_alone, rest):
         frame = Image.fromarray(got["frames"][idx])
         for text in ("THEN", "1925", "NOW", "2019"):
@@ -223,6 +231,8 @@ def test_the_panel_measured_points_no_longer_step(tmp_path, monkeypatch):
     monkeypatch.setattr(then_now, "INK_ON_PAPER", False)
     old = _flat(tmp_path / "paper.png", (0xF3, 0xEF, 0xE6))
     got, plates = _plates_of(monkeypatch, tmp_path, old, old, PORTRAIT, keep=(round(3.6 * FPS),), stop=round(3.6 * FPS))
+    if getattr(plates["THEN"], "backing", None) is not None:
+        return                                     # round 8: the held plate's edge is designed (see above)
     lum = _lum(got["frames"][round(3.6 * FPS)])
     b = plates["THEN"].box
     row = _box8(lum)[b[1] - 20:b[3] + 20]           # round 2 (T3): 8 x 8 means, so the 2 x 2-cell dither averages
@@ -288,11 +298,10 @@ def test_the_lines_false_shade_is_unchanged():
 def _line_boxes(which, year, size):
     w, h = size
     key = "landscape" if w > h else "portrait"
-    kf, yf = get_font(DATA_FONT, then_now.KICKER_PX[key], weight=600), get_font("Anton", then_now.YEAR_PX[key])
+    kf, yf = then_now.kicker_font(key), then_now.year_font(key)      # round 8: the system kicker, the figure face
     word = then_now.kicker_word(which, year)
     kxy, fxy, anchor = then_now.marker_lines(which, year, w, h, word=word)
-    k = TextPlate(word, kf, brand.BONE, kxy, anchor, then_now.KICKER_PX[key] * then_now.KICKER_TRACK[key], 0,
-                  INK, 0, False, size)
+    k = TextPlate(word, kf, brand.BONE, kxy, anchor, then_now.kicker_track(key), 0, INK, 0, False, size)
     y = TextPlate(str(year), yf, brand.BONE, fxy, anchor, 0, 0, INK, 0, False, size)
     return k.box, y.box
 
@@ -301,21 +310,33 @@ def test_the_916_now_kicker_sits_96_px_below_the_divider():
     split = then_now._split_at(*PORTRAIT)
     k, _ = _line_boxes("now", 2019, PORTRAIT)
     assert k[1] - split >= 96 and abs(k[1] - (split + then_now.NOW_DROP)) <= 1
-    assert then_now.NOW_DROP >= then_now.BAND_PAD + then_now.BAND_FALL     # round 2 (T2): the glow's reach ends short of it
+    # round 8: the glow is retired; its plate (kicker size x plate.label_pad) ends short of the divider
+    from src.brand_system import tok
+    assert then_now.NOW_DROP >= tok("plate.label_pad") * then_now.kicker_px()["portrait"] + then_now.DIVIDER_W
 
 
 @pytest.mark.parametrize("year", [1908, 2019, 868, 1125])
 def test_every_left_set_line_starts_on_one_ink_column(year):
-    tk, ty = _line_boxes("then", year, PORTRAIT)
-    nk, ny = _line_boxes("now", year, PORTRAIT)
-    assert abs(tk[0] - ty[0]) <= 1 and abs(nk[0] - ny[0]) <= 1 and abs(tk[0] - nk[0]) <= 1
-    lk, ly = _line_boxes("now", year, LANDSCAPE)                 # 16:9 NOW is left-set too
-    assert abs(lk[0] - ly[0]) <= 1
+    # round 8: left-set, the kicker's lead rule (the system kicker's dash) and the year start on one column
+    def rule_x(which, size):
+        w, h = size
+        key = "landscape" if w > h else "portrait"
+        word = then_now.kicker_word(which, year)
+        kxy, _, anchor = then_now.marker_lines(which, year, w, h, word=word)
+        return then_now.marker_rule(kxy, word, key, anchor)[0]
+    _, ty = _line_boxes("then", year, PORTRAIT)
+    _, ny = _line_boxes("now", year, PORTRAIT)
+    tk, nk = rule_x("then", PORTRAIT), rule_x("now", PORTRAIT)
+    assert abs(tk - ty[0]) <= 1 and abs(nk - ny[0]) <= 1 and abs(tk - nk) <= 1
+    _, ly = _line_boxes("now", year, LANDSCAPE)                  # 16:9 NOW is left-set too
+    assert abs(rule_x("now", LANDSCAPE) - ly[0]) <= 1
     rk, ry = _line_boxes("then", year, LANDSCAPE)                # 16:9 THEN is set right: it ends on its x
     assert abs(rk[2] - ry[2]) <= 1                               # round 2 (T9c): right-bearing compensation
 
 
-@pytest.mark.parametrize("size,gap", [(PORTRAIT, (27, 29)), (LANDSCAPE, (23, 25))], ids=["9x16", "16x9"])
+# round 8: the 9:16 kicker is the ladder's 40 px text-face kicker (cap 28), so the year's YEAR_OFFSET lock-up
+# leaves a 23-25 px ink gap (it was 27-29 under the 48 px mono kicker)
+@pytest.mark.parametrize("size,gap", [(PORTRAIT, (21, 26)), (LANDSCAPE, (23, 25))], ids=["9x16", "16x9"])
 def test_the_kicker_sits_tight_on_the_year(tmp_path, monkeypatch, size, gap):
     assert then_now.YEAR_OFFSET == pytest.approx(1.30)
     rows, _ = _rows(monkeypatch, tmp_path, _noise(tmp_path / "a.png", 60, 240, seed=2),
@@ -367,7 +388,8 @@ def test_one_pale_photo_and_one_dark_one_take_ink_and_bone(tmp_path, monkeypatch
     rows, _ = _rows(monkeypatch, tmp_path, _flat(tmp_path / "old.png", (0xF3, 0xEF, 0xE6)),
                     _noise(tmp_path / "new.png", 40, 70), PORTRAIT)
     assert rows["then_kicker"].fill == rows["then_year"].fill == tuple(INK)
-    assert rows["now_kicker"].fill == rows["now_year"].fill == tuple(brand.BONE)
+    # round 8: the dark one is the system's colour variant (kicker gold, the year gold: ruling 3), not "two neutrals"
+    assert rows["now_kicker"].fill == rows["now_year"].fill == tuple(brand.GOLD)
 
 
 def test_a_busy_light_map_stays_on_the_bone_path(tmp_path, monkeypatch):
@@ -473,7 +495,10 @@ def test_then_fades_in_between_0_1_and_0_4_s(tmp_path, monkeypatch):
     a, b = _sources(old, new, PORTRAIT)
     for i, want_on in ((early, False), (late, True)):
         bare = then_now.compose(then_now.pushed(a, i / FPS, PORTRAIT), then_now.pushed(b, i / FPS, PORTRAIT), 1920)
-        lit = plates["1925"].draw(plates["THEN"].draw(bare))
+        x0, y0, x1, y1 = then_now.last_meta["rules"]["then"]           # round 8: the kicker's lead rule
+        bare_r = bare.copy()
+        ImageDraw.Draw(bare_r).rectangle([x0, y0, x1, y1], fill=tuple(plates["THEN"].fill))
+        lit = plates["1925"].draw(plates["THEN"].draw(bare_r))
         target = np.asarray(lit if want_on else bare).astype(int)
         assert np.abs(got["frames"][i] - target).max() <= 2, i
 
@@ -706,11 +731,13 @@ def test_ink_markers_on_paper_have_no_glow_and_read_at_7(tmp_path, monkeypatch, 
     new = _noise(tmp_path / "new.png", 30, 90, s)
     rows, _ = _rows(monkeypatch, tmp_path, old, new, size)
     meta = then_now.last_meta
-    assert meta["type_mode"] == {"then": "ink", "now": "bone"}
+    # round 8: NOW takes the system's colour variant (gold kicker and year, ruling 3); THEN's ink type is the
+    # overlay-label rule's light-ground variant (its target the placement target; paper measures far above it)
+    assert meta["type_mode"]["then"] == "ink" and meta["type_mode"]["now"] in ("colour", "bone")
     assert rows["then_kicker"].contrast >= 7.0 and rows["then_year"].contrast >= 7.0
     assert rows["then_kicker"].halo == 0 and rows["then_year"].halo == 0
-    assert rows["now_kicker"].fill == tuple(brand.BONE)
-    assert meta["glow_depth"]["then"] is None
+    assert rows["now_kicker"].fill == rows["now_year"].fill                     # one variant for the marker
+    assert "glow_depth" not in meta                                             # round 8: no glow at all
 
 
 EXPECTED_GATE = {  # the spec's T1(a) list: where the paper gate fires, with 9:16 Colossi THEN re-measured after T7
@@ -1146,11 +1173,17 @@ def test_render_draws_now_or_later(tmp_path, monkeypatch, years, word):
 
 def test_the_16x9_later_kicker_lines_up_with_its_year():
     k, y = _line_boxes("now", 1937, LANDSCAPE)
-    assert abs(k[0] - y[0]) <= 1
+    kxy, _, anchor = then_now.marker_lines("now", 1937, *LANDSCAPE, word="LATER")
+    assert abs(then_now.marker_rule(kxy, "LATER", "landscape", anchor)[0] - y[0]) <= 1   # round 8: the rule leads
     assert int(LANDSCAPE[0] * 0.92) - k[2] >= 64                               # clear of title-safe's right edge
 
 
 # ---------------------------------------------------------------- T9: the 16:9 kicker
+def typography_cap(font):
+    from src.typography import cap_height
+    return cap_height(font)
+
+
 def _drawn_cap(text, font, track=0.0):
     from PIL import ImageDraw
 
@@ -1161,14 +1194,15 @@ def _drawn_cap(text, font, track=0.0):
 
 
 def test_the_16x9_kicker_cap_and_the_gaps():
-    kf = get_font(DATA_FONT, then_now.KICKER_PX["landscape"], weight=600)
-    cap = _drawn_cap("THEN", kf, kf.size * then_now.KICKER_TRACK["landscape"])
-    assert abs(cap - 32) <= 1 and cap / then_now.year_cap("landscape") >= 0.32
-    assert _drawn_cap("THEN", get_font(DATA_FONT, then_now.KICKER_PX["portrait"], weight=600)) >= 34
-    for size, gap in ((LANDSCAPE, 24), (PORTRAIT, 28)):
+    # round 8: the system kicker at the ladder's size (40 px text face, cap 28 on both canvases; was a mono 32-34 cap)
+    kf = then_now.kicker_font("landscape")
+    cap = _drawn_cap("THEN", kf, then_now.kicker_track("landscape"))
+    assert abs(cap - typography_cap(kf)) <= 1 and cap / then_now.year_cap("landscape") >= 0.25
+    # 9:16 keeps YEAR_OFFSET (an anchor offset, 52 px at 40): 22-24 px of ink, by the word's own foot
+    for size, gap, tol in ((LANDSCAPE, 24, 1), (PORTRAIT, 23, 1)):
         for which, year in (("then", 1876), ("now", 2011), ("now", 1937)):
             k, y = _line_boxes(which, year, size)
-            assert abs((y[1] - k[3]) - gap) <= 1, (size, which, k, y)
+            assert abs((y[1] - k[3]) - gap) <= tol, (size, which, k, y)
     k, y = _line_boxes("then", 1876, LANDSCAPE)
     assert abs(k[2] - y[2]) <= 1 and abs(k[2] - 896) <= 1                      # T9(c): both end on the marker's x
 

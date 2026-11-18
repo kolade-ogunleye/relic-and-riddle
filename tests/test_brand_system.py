@@ -320,6 +320,17 @@ def _place_plate(ground=(108, 108, 108)):
     return p.fill, p.halo, p.glyphs.shape, getattr(p, "halo_exception", False)
 
 
+def _held_label():
+    # cycle 0 round 8 (operator ruling 2): a place label on a busy ground (black and white stripes, 3 px) that neither
+    # bone (halo <= 0.16) nor INK type carries takes the held INK plate: its pixels as drawn
+    g = _graphics()
+    arr = np.zeros((300, 900, 3), np.uint8)
+    arr[::6] = arr[1::6] = arr[2::6] = 255
+    im = Image.fromarray(arr)
+    p = g.place_plate(im, (100, 150), "CATHERINE PALACE", g.place_font(34), "ls")
+    return p.variant, np.asarray(p.draw(im)).tobytes()
+
+
 def _band_edge_profile():
     from src import multi_format
     im = Image.new("RGB", (400, 1800), (217, 217, 217))
@@ -438,6 +449,12 @@ TOKEN_PROBES = {   # token -> (an override value, a probe of the renderer that r
     # cycle 0 round 8 (lane TYPE): the display face's cap share (ruling 6) and the kickerless headline (ruling 5)
     "type.display_cap": (0.8, _display_raster),
     "lockup.kickerless_up": (0, _kickerless_headline),
+    # cycle 0 round 8 (lane RULES): the held plate behind an overlay label, and the site's own place-label step
+    "plate.held": (0.95, _held_label),
+    "plate.radius": (30, _held_label),
+    "plate.label_pad": (0.6, _held_label),
+    "place.site_step": (1.2, lambda: _graphics().site_steps(1080, 1920)),
+    "motion.act_dissolve": (0.8, lambda: __import__("src.video_composer", fromlist=["x"]).act_dissolve_s()),
 }
 
 
@@ -445,7 +462,7 @@ def test_every_runtime_token_has_a_probe():
     assert set(TOKEN_PROBES) == set(brand_system.SYSTEM_TOKENS)
     assert not set(brand_system.SPEC) & set(brand_system.SYSTEM_TOKENS)
     with pytest.raises(ValueError, match="not runtime tokens"):
-        brand.DEFAULT_BRAND.derive("spec override", system={"plate.held": 0.5})
+        brand.DEFAULT_BRAND.derive("spec override", system={"plate.panel": 0.5})
 
 
 @pytest.mark.parametrize("token", sorted(TOKEN_PROBES))

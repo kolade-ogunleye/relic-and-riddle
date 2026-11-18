@@ -408,7 +408,9 @@ def _paint(im, rows, x, top, centered, lay):
             x0 = x - (rule + gap + w_txt) / 2 if centered else x
             mid = top - row["font"].getbbox(row["text"], anchor="ls")[1] - cap_h_of(row["font"]) / 2
             xy, anchor = _top_anchor((x0 + rule + gap, top), row["text"], row["font"], "lt", row.get("track", 0))
-            plate, rec = plan_kicker(im, xy, row["text"], row["font"], row["fill"], anchor, row.get("track", 0))
+            plate, rec = plan_kicker(im, xy, row["text"], row["font"], row["fill"], anchor, row.get("track", 0),
+                                     rule=(round(x0), round(mid - thick / 2), round(x0) + rule - 1,
+                                           round(mid - thick / 2) + thick - 1))
             if lay is not None:
                 lay.meta.setdefault("kickers", {})[row["name"]] = rec
             if plate is not None:
@@ -1212,7 +1214,8 @@ def _monument(im, copy, lay, tight, source, focus, figure=None):
         rule, rgap, thick = kicker_lead(f)
         base_k = y - f.getbbox(t, anchor="ls")[1]
         mid = base_k - cap_h_of(f) / 2
-        k_plate, k_rec = plan_kicker(im, (margin + rule + rgap, base_k), t, f, c, "ls", kicker_track(f))
+        k_plate, k_rec = plan_kicker(im, (margin + rule + rgap, base_k), t, f, c, "ls", kicker_track(f),
+                                     rule=(margin, round(mid - thick / 2), margin + rule - 1, round(mid - thick / 2) + thick - 1))
         if lay is not None:
             lay.meta.setdefault("kickers", {})["eyebrow"] = k_rec
         if k_plate is not None:

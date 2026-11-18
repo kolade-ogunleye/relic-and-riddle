@@ -68,7 +68,6 @@ from .config import (
     CAPTION_PLATE_SLACK,
     CAPTION_READ_PER_CHAR,
     CAPTION_READ_BASE,
-    CAPTION_MAX_CPS,
     CAPTION_CPS_TIMING_SLACK_S,
     CAPTION_FIRST_FRAME_WHOLE_S,
     CAPTION_CUT_SNAP_FRAMES,
@@ -108,6 +107,10 @@ from .config import (
 from .typography import is_video
 from . import brand as _brand
 from .brand_system import LINE_END_NEVER as _LINE_END_NEVER
+from .brand_system import GATES
+
+# the caption reading-rate cap: ONE source, the gate (cycle 0 round 8; config.CAPTION_MAX_CPS holds the same value)
+CAPTION_MAX_CPS = float(GATES["motion.caption_cps"])
 
 # Caption colours from the brand tokens (visual overhaul, 2026-10-29): spoken words in bone, the script's key words
 # in the brand gold (#FFD700 until then, one of three golds on screen), upcoming words in light stone. The style
@@ -544,6 +547,13 @@ REEL_PLATE_H = round(REEL_CAP_H + 2 * REEL_PAD_Y)   # one plate height per Reel
 MAX_CAPTION_WIDTH = min(CAPTION_REEL_TEXT_WIDTH, _REEL_UI.box()[2] - _REEL_UI.box()[0] - 2 * REEL_PAD_X)
 
 
+def act_dissolve_s() -> float:
+    """The act dissolve's length (cycle 0 round 8): tok("motion.act_dissolve") in whole frames, ONE source for the
+    composer's xfade (a true crossfade, transition=fade: "dissolve" is ffmpeg's per-pixel random dither)."""
+    from .brand_system import tok
+    return max(1, round(float(tok("motion.act_dissolve")) * VIDEO_FPS)) / VIDEO_FPS
+
+
 def reel_caption_centre_x(width: int = VIDEO_WIDTH, height: int = VIDEO_HEIGHT) -> int:
     """The x a 9:16 caption is centred on: the frame's centre when the widest pill fits around it inside the Reel
     box, else the box's centre (x 480 at 1080 x 1920: the shared organic Reel box is x 113-848)."""
@@ -644,7 +654,11 @@ DANGLING_TAILS = {
     "which", "who", "whom", "whose", "where", "when", "why", "how",
     # Copulas & Auxiliaries (dangling verb tails before predicates)
     "is", "was", "are", "were", "been", "being",
-}
+} | set(_LINE_END_NEVER)
+# Cycle 0 round 8 (panel consensus 5: the Richat 16:9 burst ended "is situated near" because the round-4 base and the
+# sidecar cues read their own tail set, which lacked NEAR / ONTO / VIA / PER): the heading engine's never-end set
+# (brand_system.LINE_END_NEVER) is part of the caption tails, so every caption path (the freeze-pass builder, the
+# round-4 base it refines, the 16:9 one-line bursts, the merges and the sidecar cues) reads ONE never-end set.
 # Words that carry no content of their own (review, 2026-11-03: OF THE was a burst at 80 px): a burst made of these
 # alone is never formed where another split fits. The dangling tails (articles, determiners, prepositions,
 # conjunctions, relative words, copulas) plus the auxiliaries. Personal pronouns are left out: a subject and its
@@ -880,9 +894,8 @@ def _hard_dangles(word: str) -> bool:
     relative word) with no punctuation closing it: the phrase builder's hard defect (review round 4)."""
     if CLAUSE_PUNCT.search(word) or TERMINAL_PUNCT.search(word):
         return False
-    # round 7 (F1): the heading engine's never-end set is a burst's hard defect too (the 16:9 burst ended on "near");
-    # the round-4 base (round4_burst_cuts) keeps HEAD 0036b18's own set
-    return _bare(word) in DANGLING_ENDS or _bare(word) in _LINE_END_NEVER
+    # round 8: DANGLING_ENDS holds the heading engine's never-end set (DANGLING_TAILS), on every caption path
+    return _bare(word) in DANGLING_ENDS
 
 
 # Review round 4 (2026-11-04): the phrase builder's soft costs, summed per split after the hard defects. A lone
@@ -1920,6 +1933,15 @@ def _word_end(w: dict[str, Any]) -> float:
     return start + 0.3
 
 
+def cps_need(phrase: Any) -> float:
+    """Seconds a burst must be up to be shown at most GATES["motion.caption_cps"] characters a second (cycle 0 round
+    8, the caption reading-rate rule): its characters, spaces included, over the cap. burst_timings holds a burst
+    that long into a following pause (never past the next burst's appearance); a burst whose own words are spoken
+    faster than the cap cannot be held within its spoken window, and reading_rates records it as the narration's
+    pace (no split helps there: a split shares the same words and the same seconds)."""
+    return len(" ".join(_phrase_words(phrase))) / float(GATES["motion.caption_cps"])
+
+
 def reading_need(phrase: Any) -> float:
     """Seconds a burst wants on screen to be read (round 3 reading-rate guard): CAPTION_READ_PER_CHAR a shown
     character plus CAPTION_READ_BASE."""
@@ -2089,7 +2111,8 @@ def burst_timings(
         else:
             next_show = None
             hide = last_end + 0.10
-        need = max(reading_need(phrase), CAPTION_MIN_ON_SCREEN_S)   # D1: every burst up half a second
+        need = max(reading_need(phrase), CAPTION_MIN_ON_SCREEN_S,   # D1: every burst up half a second
+                   cps_need(phrase))                                # round 8: never faster than the cps gate
         if dwell:   # freeze pass C10 (9:16): a figure burst up CAPTION_DIGIT_MIN_S, every burst whole for a beat
             need = max(need, CAPTION_DIGIT_MIN_S if _has_figure(phrase) else 0.0)
         if hide - show < need:
@@ -2151,7 +2174,11 @@ def reading_rates(phrases: list[list[dict[str, Any]]], timings: list[tuple[float
                      "defect": rate_defect(phrases, i, show, hide)})
     fast = [r for r in rows if r["shown_cps"] > CAPTION_MAX_CPS]
     worst = max(rows, key=lambda r: r["shown_cps"], default=None)
+    # round 8: why each burst over the cap is over it: its own words are spoken that fast (the narration's pace; no
+    # hold within its spoken window or split can slow it), or not (a timing the cps rule should have held: a defect)
+    pace = [r for r in fast if r["spoken_cps"] is None or r["spoken_cps"] > CAPTION_MAX_CPS]
     return {"max_cps": CAPTION_MAX_CPS, "bursts": len(rows), "over_max": len(fast),
+            "over_max_pace": len(pace), "over_max_held_short": len(fast) - len(pace),
             "over_20": sum(r["shown_cps"] > 20 for r in rows),
             "worst": {k: worst[k] for k in ("at", "text", "shown_cps", "spoken_cps")} if worst else None,
             "timing_defects": [{k: r[k] for k in ("at", "text", "shown_cps", "spoken_cps")} for r in rows if r["defect"]]}
@@ -2229,7 +2256,8 @@ def _r4_atomic_boundary(w1_raw: str, w2_raw: str) -> bool:
 
 
 def _r4_split_defects(split: List[List[Dict[str, Any]]]) -> int:
-    """_split_defects as at HEAD 0036b18: every DANGLING_ENDS end mid-sentence is a defect."""
+    """_split_defects as at HEAD 0036b18: every DANGLING_ENDS end mid-sentence is a defect (round 8: DANGLING_ENDS
+    carries the heading engine's never-end set, so the base never cuts on NEAR either)."""
     defects = 0
     for k, chunk in enumerate(split):
         if _function_only(chunk):
@@ -4730,7 +4758,8 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         applied only to photographic stills before compositing; zero gives the neutral photo curve.
         durations: seconds on screen per scene (e.g. from scene_planner beats). Hard cuts land
         on these boundaries, rounded to the nearest video frame. Only boundaries explicitly
-        listed in act_cuts get an eight-frame dissolve. Without durations, scenes share the narration equally.
+        listed in act_cuts get the act dissolve (act_dissolve_s: tok("motion.act_dissolve"), a true crossfade).
+        Without durations, scenes share the narration equally.
         Supports both 9:16 vertical (Reels) and 16:9 widescreen (Documentaries) with aspect-aware photo compositing.
         """
         from .delivery_profiles import get_delivery_profile
@@ -4844,7 +4873,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         # A cut consumes no overlap. Only an actual act boundary gets a dissolve;
         # each adjacent clip supplies half its overlap so later boundaries never drift.
         boundaries = [round(sum(durations[:k + 1]) * VIDEO_FPS) / VIDEO_FPS for k in range(n - 1)]
-        fades = [8 / VIDEO_FPS if any(abs(b - a) <= 0.5 / VIDEO_FPS + 1e-6 for a in (act_cuts or []))
+        fades = [act_dissolve_s() if any(abs(b - a) <= 0.5 / VIDEO_FPS + 1e-6 for a in (act_cuts or []))
                  else 0.0 for b in boundaries]
         starts = [0.0, *[b - fade / 2 for b, fade in zip(boundaries, fades)]]
         ends = [*[b + fade / 2 for b, fade in zip(boundaries, fades)],
@@ -4948,7 +4977,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             out = f"[x{k}]" if k < n - 2 else f"[{timeline}]"
             if fades[k]:
                 off = boundaries[k] - fades[k] / 2
-                filter_parts.append(f"{curr}[c{k + 1}]xfade=transition=dissolve:duration={fades[k]:.9f}:offset={off:.9f}{out}")
+                filter_parts.append(f"{curr}[c{k + 1}]xfade=transition=fade:duration={fades[k]:.9f}:offset={off:.9f}{out}")
             else:
                 filter_parts.append(f"{curr}[c{k + 1}]concat=n=2:v=1:a=0,fps={VIDEO_FPS},settb=AVTB{out}")
             curr = out

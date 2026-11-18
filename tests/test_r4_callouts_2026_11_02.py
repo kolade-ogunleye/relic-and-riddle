@@ -254,11 +254,14 @@ def test_each_label_is_recorded_on_its_worst_delivered_frame(tmp_path, monkeypat
 
 
 # ---------------------------------------------------------------- then and now: kickers
-def test_kickers_have_a_34px_cap_on_916_and_easier_tracking():
-    f = get_font(DATA_FONT, then_now.KICKER_PX["portrait"], weight=600)
-    assert -f.getbbox("THEN", anchor="ls")[1] >= 34
-    # freeze panel round 2 (T9): the 16:9 kicker is the smallest size with a 32 px THEN cap (46), tracked 0.118
-    assert then_now.KICKER_PX["landscape"] == 46 and then_now.KICKER_TRACK == {"portrait": 0.15, "landscape": 0.118}
+def test_kickers_are_the_system_kicker_at_the_ladder_size():
+    # cycle 0 round 8 (panel consensus 7): THEN / NOW is the system kicker at the ladder's size (text face 800,
+    # kicker.track); the mono 34 px-cap kicker and its per-format tracking are retired
+    from src.brand_system import tok, type_px
+    assert then_now.KICKER_PX == {"portrait": type_px("kicker", "tall"), "landscape": type_px("kicker", "wide")}
+    f = then_now.kicker_font("portrait")
+    assert -f.getbbox("THEN", anchor="ls")[1] >= 27                       # the 9:16 label floor's cap and more
+    assert then_now.kicker_track("portrait") == pytest.approx(tok("kicker.track") * f.size)
 
 
 def _encode_capture(monkeypatch):
@@ -283,8 +286,9 @@ def test_both_kickers_share_one_colour(tmp_path, monkeypatch):
     then_now.render(tmp_path / "old.jpg", 1925, tmp_path / "new.jpg", 2019, tmp_path / "x.mp4")
     kickers = {name: p for name, p in got["rows"] if name.endswith("kicker")}
     colours = {p.fill for p in kickers.values()}
-    # freeze panel round 2 (T1): the flat 250 sky is paper, so THEN is ink; the other kicker is bone, not gold
-    assert colours == {tuple(then_now.INK), tuple(then_now.WHITE)}, colours
+    # freeze panel round 2 (T1): the flat 250 sky is paper, so THEN is ink; round 8: the other kicker is the system
+    # kicker (gold, or bone where gold misses: the overlay-label rule's colour then bone)
+    assert tuple(then_now.INK) in colours and len(colours) == 2, colours
 
 
 def test_markers_stay_inside_the_safe_box_at_the_larger_size(tmp_path, monkeypatch):
@@ -388,18 +392,24 @@ def test_16x9_then_shade_leaves_the_recent_photo_alone_on_the_split(tmp_path, mo
     assert last[:, :split - 3].max() > 0 and last[:, split + 3:].max() == 0
 
 
-def test_render_draws_the_band_when_the_halo_falls_short(tmp_path, monkeypatch):
-    monkeypatch.setattr(then_now, "INK_ON_PAPER", False)   # freeze panel 2026-11-04 (S5): a white pair takes ink type
+def test_a_white_pair_takes_the_held_plate_not_the_glow_band(tmp_path, monkeypatch):
+    """Cycle 0 round 8 (operator ruling 2): the glow band is retired (its 0.2-0.88 shade read as a cloud); a white
+    ground the label halo (<= 0.16) and INK type (here forced off) cannot carry takes the held INK plate, and
+    every marker holds its floor. Replaces round 4's three band tests (render draws the band, the band deepens
+    in order, a white 9:16 pair draws both bands)."""
+    monkeypatch.setattr(then_now, "INK_ON_PAPER", False)
     calls = []
     real = then_now.band_mask
     monkeypatch.setattr(then_now, "band_mask", lambda *a, **k: calls.append(a[0]) or real(*a, **k))
-    _encode_capture(monkeypatch)
-    w = _photo(tmp_path / "w.jpg", lo=240, hi=256)
+    got = _encode_capture(monkeypatch)
+    w = _photo(tmp_path / "w.jpg", lo=244, hi=256)
     then_now.render(w, 1925, w, 2019, tmp_path / "y.mp4")
-    assert calls
+    assert not calls
+    assert then_now.last_meta["type_mode"] == {"then": "plate", "now": "plate"}
+    for _, p in got["rows"]:
+        assert p.halo == 0.0 and (p.measure(got["last"]) or 0) >= then_now.PLACE_TARGET
 
 
-# ---------------------------------------------------------------- then and now: one shared push
 def test_push_is_shared_eased_and_four_percent():
     assert then_now.push_at(0) == 1.0 and then_now.push_at(then_now.CLIP_SECONDS) == pytest.approx(1.04)
     # freeze panel round 2 (T4): linear, equal steps every frame
@@ -467,38 +477,3 @@ def test_old_candidates_are_filtered_but_recent_ones_are_not(monkeypatch):
 
 
 # ---------------------------------------------------------------- then and now: a light glow (review r8, r9)
-def test_band_starts_light_and_stops_at_the_first_depth_that_holds(tmp_path, monkeypatch):
-    monkeypatch.setattr(then_now, "INK_ON_PAPER", False)   # freeze panel round 2 (T1): a bright flat THEN takes ink type
-    depths = []
-    real = then_now.band_mask
-    monkeypatch.setattr(then_now, "band_mask",
-                        lambda *a, **k: depths.append(a[4] if len(a) > 4 else k.get("alpha")) or real(*a, **k))
-    got = _encode_capture(monkeypatch)
-    w = _photo(tmp_path / "w.jpg", size=(2100, 1200), lo=240, hi=256)
-    d = _photo(tmp_path / "d.jpg", size=(2100, 1200), lo=30, hi=70)
-    then_now.render(w, 1925, d, 2019, tmp_path / "z.mp4", width=1920, height=1080)
-    assert depths and depths[0] == then_now.BAND_STEPS[0] < then_now.SHADE_STEPS[0]
-    assert list(depths) == list(then_now.BAND_STEPS[:len(depths)])     # deepened in order, only as far as needed
-    final = got["last"]
-    for _, p in got["rows"]:
-        assert (p.measure(final) or 0) >= then_now.PLACE_TARGET          # and every marker still holds its floor
-
-
-def test_916_white_pair_draws_both_bands(tmp_path, monkeypatch):
-    monkeypatch.setattr(then_now, "INK_ON_PAPER", False)   # freeze panel 2026-11-04 (S5): a white pair takes ink type
-    calls = []
-    real = then_now.band_mask
-    monkeypatch.setattr(then_now, "band_mask", lambda *a, **k: calls.append(a[0]) or real(*a, **k))
-    got = _encode_capture(monkeypatch)
-    w = _photo(tmp_path / "w.jpg", lo=244, hi=256)
-    v = _photo(tmp_path / "v.jpg", seed=2, lo=244, hi=256)
-    then_now.render(w, 1925, v, 2019, tmp_path / "y.mp4")
-    assert "then" in calls and "now" in calls
-    final = np.asarray(got["last"].convert("L")).astype(int)
-    rows = dict(got["rows"])
-    _nx0, ny0, nx1, ny1 = rows["now_year"].box
-    y = (ny0 + ny1) // 2
-    assert final[y, nx1 + 30] < final[1500, 1000] - 25                   # the NOW glow shows beside its year
-    assert abs(final[y, 1040] - final[1500, 1000]) <= 6                  # and is gone across the frame: no bar
-    for _, p in got["rows"]:
-        assert (p.measure(got["last"]) or 0) >= then_now.PLACE_TARGET

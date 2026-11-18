@@ -114,23 +114,34 @@ def test_the_follow_sits_in_the_reel_box_reads_and_leaves_the_seam_alone(case):
         assert np.array_equal(np.asarray(follow[i]), np.asarray(plain[i]))
     x0, y0, x1, y1 = follow_stats["follow_box"]
     bx0, by0, bx1, by1 = safe_zones.union(*safe_zones.DELIVERABLES["reel"]).box()
-    halo = end_card.LOOP_FOLLOW_HALO
-    assert bx0 <= x0 - halo and x1 + halo <= bx1 and by0 <= y0 - halo and y1 + halo + end_card.LOOP_FOLLOW_RISE <= by1
-    assert y1 + halo + end_card.LOOP_FOLLOW_RISE < safe_zones.caption_band_top()      # clear of frame 0's caption
+    # cycle 0 round 8 (operator ruling 2): what the word draws round its ink is its label halo (one spread, at most
+    # 0.16) or its held plate; the halo exception's 40 px spread is retired. Both stay inside the Reel box.
+    from src.brand_system import label_halo
+    from src.typography import full_halo_pad
+    if follow_stats["follow_plate"]:
+        px0, py0, px1, py1 = follow_stats["follow_plate"]["box"]
+        reach = max(x0 - px0, y0 - py0, px1 - x1, py1 - y1)
+    else:
+        reach = full_halo_pad(label_halo(end_card.LOOP_FOLLOW_SIZE)[0]) if follow_stats["follow_halo"] else 0
+    assert bx0 <= x0 - reach and x1 + reach <= bx1 and by0 <= y0 - reach and y1 + reach + end_card.LOOP_FOLLOW_RISE <= by1
+    assert y1 + reach + end_card.LOOP_FOLLOW_RISE < safe_zones.caption_band_top()      # clear of frame 0's caption
     # QF-24 (decision 2026-11-13, (b)): FOLLOW centres in the organic Reel box (end_card.reel_column, x 480), as the
     # captions do; x 540 was the ads box's centred width
     assert abs((x0 + x1) / 2 - end_card.reel_column()[0]) <= 2 and end_card.reel_column()[0] == 480
 
 
 def test_a_follow_that_cannot_read_is_left_off_and_the_review_card_says_so(monkeypatch, tmp_path):
-    # no halo to speak of, on a mid grey where neither bone (label halo <= 0.16) nor the INK variant reads (cycle 0
-    # round 7: on white the INK variant now reads, so white no longer forces the skip)
-    monkeypatch.setattr(end_card, "LOOP_FOLLOW_HALO", 1)
+    # cycle 0 round 8 (operator ruling 2): on a mid grey neither bone (label halo <= 0.16) nor INK type reads, so the
+    # FOLLOW takes its held INK plate (test_freeze_r8_rules); the skip path is forced here by a label rule that
+    # carries no variant, as a ground no plate could hold would
+    from src import typography
+    monkeypatch.setattr(typography, "plan_label", lambda *a, **k: ([], {
+        "shown": False, "reason": "under 4.8:1 in every overlay-label variant (best 3.1)"}))
     white = Image.new("RGB", (1080, 1920), (128, 128, 128))
     stats = {}
     frames = list(end_card.loop_bridge(white, white, "Send this on.", stats, line=False, follow=True))
     assert len(frames) == 30 and stats["follow"] is False and stats["text"] is None and stats["follow_requested"]
-    assert "needs 4.5:1" in stats["follow_skipped"]
+    assert "every overlay-label variant" in stats["follow_skipped"]
     master = tmp_path / "m_master.mp4"
     master.with_suffix(".composition.json").write_text(json.dumps(
         {"end_card": {**stats, "variant": end_card.LOOP_VARIANT, "start_s": 3.0, "duration_s": 1.0}}), encoding="utf-8")

@@ -128,8 +128,12 @@ def test_a_multi_row_label_lays_its_plate_once():
     out = ground
     for q in plates:
         out = q.draw(out)
-    x0, y0, _x1, y1 = rec["plate"]["box"]
-    col = np.asarray(out.convert("L"), np.float32)[y0 + 4:y1 - 4, x0 + 5]
+    a, b = plates[0].backing.parent.box, plates[1].backing.parent.box
+    assert a[3] == b[1]                                                  # the rows' plates meet, no gap, no overlap
+    assert a[0] < plates[0].box[0] and b[2] > plates[1].box[2]           # each hugs its own row (stepped)
+    assert b[0] > a[0] and b[2] < a[2]                                   # PALACE's plate is narrower than CATHERINE's
+    x = max(a[0], b[0]) + 4                                              # a column inside both, clear of the glyphs
+    col = np.asarray(out.convert("L"), np.float32)[a[1] + 4:b[3] - 4, x]
     assert col.max() - col.min() < 40                                    # one even plate, no doubled band at the seam
 
 

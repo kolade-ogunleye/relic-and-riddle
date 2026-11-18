@@ -1562,8 +1562,9 @@ def render(old: Path, old_year: int, new: Path, new_year: int, out: Path, width:
         ps = [p for p in plates[which] if not p.empty]
         if not ps:
             return (0, 0, 0, 0)
-        if getattr(ps[0], "backing", None) is not None:
-            return tuple(ps[0].backing.parent.box)
+        if getattr(ps[0], "backing", None) is not None:   # its rows' plates, together
+            bx = [p.backing.parent.box for p in ps if getattr(p, "backing", None) is not None]
+            return (min(b[0] for b in bx), min(b[1] for b in bx), max(b[2] for b in bx), max(b[3] for b in bx))
         pad = max((full_halo_pad(label_halo(p.font.size)[0]) if p.halo > 0 else 0) for p in ps)
         boxes = [p.box for p in ps] + [rules[which]]
         return (min(b[0] for b in boxes) - pad, min(b[1] for b in boxes) - pad,

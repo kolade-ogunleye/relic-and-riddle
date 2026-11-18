@@ -1022,29 +1022,32 @@ def place_text(im: Image.Image, xy, text: str, font, fill, anchor: str = "la", t
 #   1. its own colour(s) (gold, else bone) on a halo of one spread never deeper than tok("halo.label_max") (0.16);
 #   2. the light-ground variant: INK type, no halo ("dark type first where it fits"), judged on the darkest ground
 #      it sits on;
-#   3. a HELD INK PLATE behind the label (LabelBacking: INK at tok("plate.held"), one rounded rectangle round the
-#      label's ink padded by tok("plate.label_pad") em, corners tok("plate.radius") at 1080 wide), its colour on it.
+#   3. a HELD INK PLATE behind the label (LabelBacking: INK at tok("plate.held"), round each row's ink padded by
+#      tok("plate.label_pad") em of the first row's size, corners tok("plate.radius") at 1080 wide), its colour on it.
 # The halo exception (a halo past the cap: 0.24-1.0 clouds) is retired for these labels; a label none of the three
 # carries is not drawn and the record says why. The masthead keeps its own ruled exception (ruling 4, 2026-11-16).
 LABEL_VARIANTS = ("colour", "bone", "ink", "plate")
 
 
 class LabelBacking:
-    """The held INK plate behind one overlay label: a rounded rectangle on `box` (canvas px, kept to the canvas
-    `size`), INK at `alpha`, corner `radius`, drawn antialiased (4x). Each row of the label draws its own BAND of it
-    (band(): split half way between rows), so the rows drawn together lay the plate once, with no seam and no doubled
-    alpha, and a row judged alone still sits on its share."""
+    """The held INK plate behind one row of an overlay label: a rounded rectangle on `box` (canvas px, kept to the
+    canvas `size`), INK at `alpha`, corner `radius` on the `corners` (tl, tr, br, bl) it rounds, drawn antialiased
+    (4x). A label of several rows lays one plate per row, each hugging its row's ink, the rows' plates meeting half
+    way between the rows with square inner corners (plan_label): one stepped plate, no seam, no doubled alpha, and no
+    plate reaching past its own row's words over a neighbour's (a route's country name read 1.04:1 under a two-row
+    stop name's single plate)."""
 
     SS = 4
 
-    def __init__(self, box, size, alpha: float, radius: float):
+    def __init__(self, box, size, alpha: float, radius: float, corners=(True, True, True, True)):
         x0, y0 = max(0, round(box[0])), max(0, round(box[1]))
         x1, y1 = min(int(size[0]), round(box[2])), min(int(size[1]), round(box[3]))
         self.box, self.alpha, self.radius = (x0, y0, max(x0 + 1, x1), max(y0 + 1, y1)), float(alpha), float(radius)
         w, h = self.box[2] - x0, self.box[3] - y0
         r = max(0.0, min(self.radius, w / 2, h / 2))
         big = Image.new("L", (w * self.SS, h * self.SS), 0)
-        ImageDraw.Draw(big).rounded_rectangle([0, 0, w * self.SS - 1, h * self.SS - 1], round(r * self.SS), fill=255)
+        ImageDraw.Draw(big).rounded_rectangle([0, 0, w * self.SS - 1, h * self.SS - 1], round(r * self.SS), fill=255,
+                                              corners=tuple(bool(c) for c in corners))
         self.mask = big.resize((w, h), Image.BOX)
         self.devices: list[tuple[tuple[int, int, int, int], tuple[int, int, int]]] = []   # (box, colour) drawn ON it
 
@@ -1094,17 +1097,6 @@ class _BackingBand:
 
     def record(self) -> dict[str, Any]:
         return self.parent.record()
-
-
-def label_backing(boxes, size, font_px: float, width: int | None = None) -> LabelBacking:
-    """The held plate round `boxes` (a label's ink boxes, and any device it draws with it: a kicker's rule): padded by
-    tok("plate.label_pad") em of `font_px`, INK at tok("plate.held"), corners tok("plate.radius") at 1080 wide scaled
-    by the canvas `width` (default the canvas's own)."""
-    from .brand_system import scaled, tok
-    pad = tok("plate.label_pad") * float(font_px)
-    box = (min(b[0] for b in boxes) - pad, min(b[1] for b in boxes) - pad,
-           max(b[2] for b in boxes) + pad, max(b[3] for b in boxes) + pad)
-    return LabelBacking(box, size, float(tok("plate.held")), scaled(tok("plate.radius"), width or size[0]))
 
 
 def plan_label(ground: Image.Image, rows, colours, *, target: float, halo_px: int | None = None,
@@ -1179,12 +1171,21 @@ def plan_label(ground: Image.Image, rows, colours, *, target: float, halo_px: in
     bare = [TextPlate(text, font, INK, xy, anchor, track, 0, INK, 0, False, ground.size) for xy, text, font, anchor, track in rows]
     boxes = [p.box for p in bare if not p.empty] + [tuple(b) for b in extra]
     if boxes:
-        backing = label_backing(boxes, ground.size, size_px)
+        from .brand_system import scaled
+        pad = tok("plate.label_pad") * size_px
         order = sorted(range(len(rows)), key=lambda i: bare[i].box[1])
-        cuts = [backing.box[1]] + [round((bare[order[j]].box[3] + bare[order[j + 1]].box[1]) / 2)
-                                   for j in range(len(order) - 1)] + [backing.box[3]]
-        bands = {i: backing.band(cuts[j], cuts[j + 1]) for j, i in enumerate(order)}
-        backed = backing.draw(ground)
+        cuts = ([min(b[1] for b in boxes) - pad] + [round((bare[order[j]].box[3] + bare[order[j + 1]].box[1]) / 2)
+                                                    for j in range(len(order) - 1)] + [max(b[3] for b in boxes) + pad])
+        bands = {}
+        backed = ground
+        for j, i in enumerate(order):   # one plate per row, hugging its ink (and the devices in its rows)
+            own = [bare[i].box] + [tuple(b) for b in extra if cuts[j] <= (b[1] + b[3]) / 2 <= cuts[j + 1]]
+            first, last = j == 0, j == len(order) - 1
+            row = LabelBacking((min(b[0] for b in own) - pad, cuts[j], max(b[2] for b in own) + pad, cuts[j + 1]),
+                               ground.size, float(tok("plate.held")), scaled(tok("plate.radius"), ground.size[0]),
+                               corners=(first, first, last, last))
+            bands[i] = row.band(row.box[1], row.box[3])
+            backed = row.draw(backed)
         for colour in colours:
             variant = "plate"
             plates = []

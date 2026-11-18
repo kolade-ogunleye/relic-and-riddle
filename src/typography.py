@@ -328,7 +328,7 @@ def fit_line(draw: ImageDraw.ImageDraw, text: str, name: str, size: int, max_wid
     return (lines[0] if lines else ""), font, short
 
 
-def cover_crop(path: Path, size: Tuple[int, int], centering: Tuple[float, float] = (0.5, 0.5)) -> Image.Image:
+def cover_crop(path: Path, size: Tuple[int, int], centering: tuple[float, float] = (0.5, 0.5)) -> Image.Image:
     """Scales and crops an image to fill `size` without distorting it: centred, or at `centering` (ImageOps.fit's, 0-1
     along each axis: the deck window rule, hero_window.deck_window), inside the hero window's clean region."""
     from .photo_hygiene import without_caption_strip
@@ -1038,25 +1038,25 @@ class LabelBacking:
     SS = 4
 
     def __init__(self, box, size, alpha: float, radius: float):
-        x0, y0 = max(0, int(round(box[0]))), max(0, int(round(box[1])))
-        x1, y1 = min(int(size[0]), int(round(box[2]))), min(int(size[1]), int(round(box[3])))
+        x0, y0 = max(0, round(box[0])), max(0, round(box[1]))
+        x1, y1 = min(int(size[0]), round(box[2])), min(int(size[1]), round(box[3]))
         self.box, self.alpha, self.radius = (x0, y0, max(x0 + 1, x1), max(y0 + 1, y1)), float(alpha), float(radius)
         w, h = self.box[2] - x0, self.box[3] - y0
         r = max(0.0, min(self.radius, w / 2, h / 2))
         big = Image.new("L", (w * self.SS, h * self.SS), 0)
         ImageDraw.Draw(big).rounded_rectangle([0, 0, w * self.SS - 1, h * self.SS - 1], round(r * self.SS), fill=255)
         self.mask = big.resize((w, h), Image.BOX)
-        self.devices: List[Tuple[Tuple[int, int, int, int], Tuple[int, int, int]]] = []   # (box, colour) drawn ON it
+        self.devices: list[tuple[tuple[int, int, int, int], tuple[int, int, int]]] = []   # (box, colour) drawn ON it
 
     def band(self, y0: float, y1: float) -> "_BackingBand":
         """The plate's rows from canvas y `y0` to `y1` (clamped to its box)."""
-        return _BackingBand(self, max(self.box[1], int(round(y0))), min(self.box[3], int(round(y1))))
+        return _BackingBand(self, max(self.box[1], round(y0)), min(self.box[3], round(y1)))
 
     def draw(self, im: Image.Image, alpha: float = 1.0, dy: int = 0) -> Image.Image:
         """The whole plate on `im` (planning: the ground the label's rows are judged on)."""
         return self.band(self.box[1], self.box[3]).draw(im, alpha, dy)
 
-    def record(self) -> Dict[str, Any]:
+    def record(self) -> dict[str, Any]:
         return {"box": list(self.box), "alpha": round(self.alpha, 4), "radius": round(self.radius, 1)}
 
 
@@ -1092,11 +1092,11 @@ class _BackingBand:
         rgba.paste(region, (x0, y))
         return rgba if mode == "RGBA" else rgba.convert(mode)
 
-    def record(self) -> Dict[str, Any]:
+    def record(self) -> dict[str, Any]:
         return self.parent.record()
 
 
-def label_backing(boxes, size, font_px: float, width: Optional[int] = None) -> LabelBacking:
+def label_backing(boxes, size, font_px: float, width: int | None = None) -> LabelBacking:
     """The held plate round `boxes` (a label's ink boxes, and any device it draws with it: a kicker's rule): padded by
     tok("plate.label_pad") em of `font_px`, INK at tok("plate.held"), corners tok("plate.radius") at 1080 wide scaled
     by the canvas `width` (default the canvas's own)."""
@@ -1107,9 +1107,9 @@ def label_backing(boxes, size, font_px: float, width: Optional[int] = None) -> L
     return LabelBacking(box, size, float(tok("plate.held")), scaled(tok("plate.radius"), width or size[0]))
 
 
-def plan_label(ground: Image.Image, rows, colours, *, target: float, halo_px: Optional[int] = None,
-               halo_max: Optional[float] = None, dark_ground: Optional[Image.Image] = None, extra=(),
-               ink: bool = True, start: str = "colour") -> Tuple[List[TextPlate], Dict[str, Any]]:
+def plan_label(ground: Image.Image, rows, colours, *, target: float, halo_px: int | None = None,
+               halo_max: float | None = None, dark_ground: Image.Image | None = None, extra=(),
+               ink: bool = True, start: str = "colour") -> tuple[list[TextPlate], dict[str, Any]]:
     """An overlay label's rows ((xy, text, font, anchor, track) each) planned by the ONE rule above, every row in one
     variant: (plates, record). `colours` are the label's own fills in order (a kicker: gold, then bone); `ground` is
     the brightest picture it sits on (where bone is weakest), `dark_ground` the darkest (where INK type is weakest;
@@ -1128,14 +1128,14 @@ def plan_label(ground: Image.Image, rows, colours, *, target: float, halo_px: Op
     spread = int(spread if halo_px is None else halo_px)
     cap = min(cap, float(tok("halo.label_max")) if halo_max is None else min(float(halo_max), cap))
     dark = dark_ground if dark_ground is not None else ground
-    tried: List[Tuple[str, Optional[float]]] = []
+    tried: list[tuple[str, float | None]] = []
 
-    def drawn(plates: List[TextPlate], im: Image.Image) -> Image.Image:
+    def drawn(plates: list[TextPlate], im: Image.Image) -> Image.Image:
         for p in plates:
             im = p.draw(im)
         return im
 
-    def holds(plates: List[TextPlate], grounds) -> bool:
+    def holds(plates: list[TextPlate], grounds) -> bool:
         if not plates or all(p.empty for p in plates):
             return False
         worst = min((p.contrast if p.contrast is not None else 0.0) for p in plates if not p.empty)
@@ -1145,7 +1145,7 @@ def plan_label(ground: Image.Image, rows, colours, *, target: float, halo_px: Op
         tried.append((variant, round(worst, 3)))
         return worst >= target - 1e-9
 
-    def done(plates: List[TextPlate], name: str):
+    def done(plates: list[TextPlate], name: str):
         for p in plates:
             p.variant, p.halo_exception = name, False
         vals = [p.contrast for p in plates if not p.empty and p.contrast is not None]

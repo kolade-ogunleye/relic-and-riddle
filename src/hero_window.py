@@ -156,7 +156,7 @@ def _glyph_blobs(g: np.ndarray, polarity: int, lo: float, hi: float) -> np.ndarr
     bw = cv2.adaptiveThreshold(g, 255, cv2.ADAPTIVE_THRESH_MEAN_C, polarity, block, 18)
     _n, _lab, st, _c = cv2.connectedComponentsWithStats(bw, connectivity=8)
     st = st[1:].astype(np.float64)
-    x, y, w, h, area = st.T if len(st) else (np.zeros(0),) * 5
+    _x, _y, w, h, area = st.T if len(st) else (np.zeros(0),) * 5
     fill = area / np.maximum(1.0, w * h)
     keep = (h >= lo) & (h <= hi) & (w <= 1.6 * h) & (w >= 0.12 * h) & (fill >= 0.12) & (fill <= 0.85)
     return st[keep][:, :4]

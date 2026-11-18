@@ -2149,10 +2149,10 @@ class MultiFormatGenerator:
             photo_next = photos[(i + 1) % len(photos)]
             strip = strips.get(i)
             im, lay, attempts = still_layout.drawn(
-                lambda tight, strip=strip: self._render_carousel_slide(archetype, photo, photo_next, card, i, total,
+                lambda tight, strip=strip, window=showing[i]: self._render_carousel_slide(archetype, photo, photo_next, card, i, total,
                                                                        poll, share, facebook, tight=tight,
                                                                        subject=subject, heading_frame=frame,
-                                                                       strip=strip, window=showing[i]))
+                                                                       strip=strip, window=window))
             drew = lay.meta.get("swipe_strip") or {}
             if i == 1 and drew.get("box"):
                 strips[0] = {"side": "right", "y0": drew["box"][1], "y1": drew["box"][3]}

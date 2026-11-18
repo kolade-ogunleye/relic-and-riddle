@@ -54,16 +54,16 @@ def test_no_caption_path_ends_on_a_never_end_word_on_the_richat_narration():
 
 
 # ---------------------------------------------------------------- overlay labels on bright grounds (ruling 2)
-import ast  # noqa: E402
-import inspect  # noqa: E402
-import textwrap  # noqa: E402
+import ast
+import inspect
+import textwrap
 
-import numpy as np  # noqa: E402
-import pytest  # noqa: E402
-from PIL import Image, ImageDraw  # noqa: E402
+import numpy as np
+import pytest
+from PIL import Image, ImageDraw
 
-from src import brand, end_card, graphics, multi_format, then_now, typography  # noqa: E402
-from src.brand_system import tok  # noqa: E402
+from src import brand, end_card, graphics, multi_format, then_now, typography
+from src.brand_system import tok
 
 
 def _stripes(size=(900, 300), period=6):
@@ -107,7 +107,7 @@ def test_the_held_plate_fades_and_rises_with_its_label():
     plates, rec = _label(ground)
     assert rec["variant"] == "plate"
     p = plates[0]
-    x0, y0, x1, y1 = rec["plate"]["box"]
+    x0, y0, _x1, y1 = rec["plate"]["box"]
     probe = (x0 + 3, y0 + 4, x0 + 9, y1 - 4)     # plate, clear of the glyphs (its left padding)
 
     def dark(im):
@@ -128,7 +128,7 @@ def test_a_multi_row_label_lays_its_plate_once():
     out = ground
     for q in plates:
         out = q.draw(out)
-    x0, y0, x1, y1 = rec["plate"]["box"]
+    x0, y0, _x1, y1 = rec["plate"]["box"]
     col = np.asarray(out.convert("L"), np.float32)[y0 + 4:y1 - 4, x0 + 5]
     assert col.max() - col.min() < 40                                    # one even plate, no doubled band at the seam
 
@@ -187,7 +187,7 @@ def test_the_story_site_is_one_place_label_step_up_in_the_same_face():
         site, place = graphics.site_steps(*size), graphics.place_steps(*size)
         assert site[0] == round(place[0] * tok("place.site_step"))
         assert site[0] >= 1.15 * place[0] and site[-1] == place[-1]
-        lines, font = graphics.marker_label_lines("Catherine Palace", *size)
+        _lines, font = graphics.marker_label_lines("Catherine Palace", *size)
         assert font.size == site[0]
         assert graphics.place_font(font.size).path == font.path        # the place-label face, never the display face
 
@@ -203,7 +203,7 @@ def test_then_and_now_uses_the_system_kicker_and_a_gold_figure_year():
         size = (1080, 1920) if key == "portrait" else (1920, 1080)
         for which in ("then", "now"):
             word = which.upper()
-            kxy, fxy, anchor = then_now.marker_lines(which, 1934, *size)
+            kxy, _fxy, anchor = then_now.marker_lines(which, 1934, *size)
             rule = then_now.marker_rule(kxy, word, key, anchor)
             words = typography.TextPlate(word, kf, brand.BONE, kxy, anchor, then_now.kicker_track(key), 0,
                                          brand.INK, 0, False, size).box
@@ -235,7 +235,7 @@ def test_the_9x16_number_card_shares_the_caption_axis():
 
 # ---------------------------------------------------------------- motion: the act dissolve and the caption cps rule
 def test_the_act_dissolve_reads_its_token_and_is_a_true_crossfade():
-    from src.video_composer import VideoComposer, VIDEO_FPS, act_dissolve_s
+    from src.video_composer import VIDEO_FPS, VideoComposer, act_dissolve_s
     assert act_dissolve_s() == round(tok("motion.act_dissolve") * VIDEO_FPS) / VIDEO_FPS == 0.5
     src = inspect.getsource(VideoComposer.compose_video)
     assert "act_dissolve_s()" in src and "transition=fade:" in src and "transition=dissolve" not in src
@@ -249,7 +249,7 @@ def test_the_caption_cps_cap_has_one_source_and_holds_a_burst_into_its_pause():
     assert vc.CAPTION_MAX_CPS == GATES["motion.caption_cps"] == config.CAPTION_MAX_CPS == 17.0
     # 46 characters spoken in 1.6 s (28.8 cps), then a 2 s pause: the burst holds into the pause to 46 / 17 s
     words = [{"word": w, "start": 0.2 + 0.32 * k, "dur": 0.3} for k, w in enumerate(
-        "Visible from space as a massive desert landmark,".split())]
+        ["Visible", "from", "space", "as", "a", "massive", "desert", "landmark,"])]
     nxt = [{"word": "Then", "start": 5.0, "dur": 0.3}, {"word": "more.", "start": 5.35, "dur": 0.3}]
     show, hide, _ = vc.burst_timings([words, nxt])[0]
     chars = len(" ".join(w["word"] for w in words))
@@ -263,7 +263,7 @@ def test_the_caption_cps_cap_has_one_source_and_holds_a_burst_into_its_pause():
 
 
 # ---------------------------------------------------------------- hero window (consensus 3)
-from src import hero_window  # noqa: E402
+from src import hero_window
 
 
 def _museum(label_rows=("THE ANTIKYTHERA MECHANISM", "BRONZE GEARING, 2ND CENTURY BC"), at=0.86, size=(1500, 2000)):
@@ -287,7 +287,7 @@ def test_photographed_text_at_the_edge_is_kept_out_of_every_window():
     assert len(lines) >= 2                                        # both label lines found, OCR-free
     bands = hero_window.photo_text(im)
     assert bands and bands[0][0] == "row" and bands[0][1] < 0.86 * 2000 < bands[0][2]
-    x0, y0, x1, y1 = hero_window.clean(im)[1]
+    _x0, y0, _x1, y1 = hero_window.clean(im)[1]
     assert y1 <= bands[0][1] and y0 == 0                          # the clean region (every crop) stops above it
 
 

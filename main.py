@@ -146,7 +146,20 @@ def documentary_cover(title: str, max_line: int = 22) -> Dict[str, str]:
     words, line1 = title.upper().split(), ""
     while words and (not line1 or len(f"{line1} {words[0]}") <= max_line):
         line1 = f"{line1} {words.pop(0)}".strip()
-    return {"eyebrow": "DOCUMENTARY", "line1": line1, "line2": " ".join(words), "tagline": "EXPLORE THE EVIDENCE"}
+    split = {"eyebrow": "DOCUMENTARY", "line1": line1, "line2": " ".join(words), "tagline": "EXPLORE THE EVIDENCE"}
+    # Cycle 0 round 8 (lander ruling: a headline that cannot set is closed upstream): of the title's whole-word
+    # splits, the first (the 22-character one, then the others, most even first) that the YouTube thumbnail and the
+    # Reel cover set at their floors (src/cover_fit.py: the renderers' own rule); else the 22-character split, which
+    # the deep dive's draft retry then sends back for a shorter title
+    from src import cover_fit
+    all_words = title.upper().split()
+    if not cover_fit.fit_problems(split) or len(all_words) < 2:
+        return split
+    for k in sorted(range(1, len(all_words)), key=lambda k: abs(len(" ".join(all_words[:k])) - len(" ".join(all_words[k:])))):
+        cand = dict(split, line1=" ".join(all_words[:k]), line2=" ".join(all_words[k:]))
+        if not cover_fit.fit_problems(cand):
+            return cand
+    return split
 
 
 def warn_missing_geo_files() -> List[str]:
@@ -884,6 +897,20 @@ class PipelineCoordinator:
                     passed, act_issues = self.script_engine.verify_deep_dive_act_by_act(deep_dive_pkg, topic)
                     log.info("Deep-dive draft %d: %s", draft, "all acts trace to the fact sheet" if passed
                              else f"REJECTED ({len(act_issues)} finding(s))")
+                    # Cycle 0 round 8 (lander ruling): the title is the documentary's cover copy (documentary_cover);
+                    # one the YouTube thumbnail or the Reel cover cannot set at its floors (the renderers' own rule,
+                    # src/cover_fit.py) goes back in this retry for a shorter title, never refused after the render;
+                    # past the last draft it renders and a refusal holds the run on the review card
+                    from src import cover_fit
+                    fit = cover_fit.fit_problems(documentary_cover(deep_dive_pkg.title),
+                                                 deep_dive_pkg.youtube_title) if passed else []
+                    if fit and draft < 3:
+                        log.warning("Deep-dive draft %d: the title does not set on its covers (%s)", draft, fit)
+                        feedback = ("The title is the cover's headline and does not set on the YouTube thumbnail or "
+                                    "the Reel cover at its size floor; write a shorter title (fewer, shorter words, "
+                                    "each half a whole phrase), stating only what the fact sheet says:\n"
+                                    + "\n".join(f"- {p}" for p in fit))
+                        continue
                     if passed:
                         break
                     feedback = ("The fact checker rejected these sentences; remove or reword each so it states only "
@@ -1258,8 +1285,11 @@ class PipelineCoordinator:
 
         self._check_cancel(run_id)
         # Thumbnails: vertical cover, square grid, and 16:9 widescreen YouTube key-art
-        (thumb_916, thumb_1x1), thumb_yt = cover_job_results(fut_thumbs.result(), payload)
-        payload["thumbnail_youtube"] = str(thumb_yt)
+        # Cycle 0 round 8 (lander ruling): a refused cover surface holds the run with its LayoutError on the review
+        # card (payload["layout_holds"]; the release gate's thumbnail checks then fail), never a silent stop
+        covers, thumb_yt = cover_job_results(fut_thumbs.result(), payload)
+        thumb_916, thumb_1x1 = covers or (None, None)
+        payload["thumbnail_youtube"] = str(thumb_yt) if thumb_yt else ""
         (run_dir / "script_metadata.json").write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
 
         self.db.update_run(
@@ -1267,7 +1297,7 @@ class PipelineCoordinator:
             "pending_approval",
             master_video_path=master_mp4,
             script_payload=payload,
-            thumbnail_cover_path=thumb_yt,
+            thumbnail_cover_path=thumb_yt or thumb_916,
             thumbnail_grid_path=thumb_1x1,
             parent_run_id=parent_run_id,
             content_format="deep_dive",
@@ -1298,7 +1328,7 @@ class PipelineCoordinator:
             # (a dry run reported "simulated" and skipped the review card, as the Richat test showed).
             "status": ("simulated" if dry_run else "approved") if auto_approve else "pending_approval",
             "master_video": str(master_mp4),
-            "thumbnail_youtube": str(thumb_yt),
+            "thumbnail_youtube": str(thumb_yt) if thumb_yt else "",
             "duration_seconds": vo_dur,
             "format": "deep_dive_16x9",
         }
@@ -1472,7 +1502,8 @@ class PipelineCoordinator:
             video = proxy if proxy.exists() else Path(run["master_video_path"])
             # QF-126: the card shows, and Approve posts, the copy with its credits
             run = PipelineCoordinator._recredited(self, run)
-            self.telegram_bot.send_approval_request(video, Path(run["thumbnail_cover_path"]), run["script_payload"], run_id)
+            self.telegram_bot.send_approval_request(video, Path(run["thumbnail_cover_path"] or run_dir / "thumbnail_cover.jpg"),
+                                                    run["script_payload"], run_id)
         decision, acted = self._decide_review(run_id, lambda d: self._after_approval(run_id, dry_run=dry_run)
                                               if d == "approved" else self._settle_decision(run_id, run["topic_id"], d))
         if decision is None:  # another wait already owns this review: the card was only brought down
@@ -5609,16 +5640,15 @@ def cover_job(jobs) -> list[tuple[str, Any, Any]]:
 
 
 def cover_job_results(results, payload: dict[str, Any]) -> list[Any]:
-    """The cover job's results in order; every refused surface recorded in payload["layout_holds"] (surface, class,
-    code, reason) for the review card, then the first refusal raised: the deep dive cannot be published without its
-    covers, so its run stops with the reason recorded, never a bare traceback."""
+    """The cover job's results in order, None for a refused surface; every refusal recorded in payload["layout_holds"]
+    (surface, class, code, reason) for the review card (telegram_bot.layout_hold_lines). Round 8 (lander ruling): the
+    run is held, not stopped: it reaches the review card with the refusal on it, and the release gate's thumbnail
+    checks fail, so it cannot be approved without its covers."""
     from src.refusal import record
-    refused = [(name, e) for name, _, e in results if e is not None]
-    for name, e in refused:
-        log.error("%s refused: %s", name, e)
-        payload.setdefault("layout_holds", []).append(record(e, name))
-    if refused:
-        raise refused[0][1]
+    for name, _, e in results:
+        if e is not None:
+            log.error("%s refused: %s", name, e)
+            payload.setdefault("layout_holds", []).append(record(e, name))
     return [r for _, r, _ in results]
 
 

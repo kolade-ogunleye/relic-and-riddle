@@ -220,11 +220,24 @@ def test_the_cover_job_refuses_per_surface_and_records_it():
                               ("YouTube thumbnail", youtube)))
     assert drawn == ["reel"] and results[0][1] == ("reel.jpg", "grid.jpg") and results[1][2] is not None
     payload: dict = {}
-    with pytest.raises(LayoutError):
-        main.cover_job_results(results, payload)
+    # round 8 (lander ruling): the run is held, not stopped: the refused surface is None, its refusal on the card
+    assert main.cover_job_results(results, payload) == [("reel.jpg", "grid.jpg"), None]
     assert payload["layout_holds"] == [{"surface": "YouTube thumbnail", "refused": "TextFitError",
                                         "code": "TextFitError", "reason": results[1][2].reason}]
+    from src.telegram_bot import layout_hold_lines
+    assert layout_hold_lines(payload["layout_holds"]) == [f"YouTube thumbnail: {results[1][2].reason}"]
     assert main.cover_job_results(main.cover_job((("a", lambda: 1), ("b", lambda: 2))), {}) == [1, 2]
+
+
+def test_the_cover_copy_is_fit_checked_before_render_with_the_renderers_rule():
+    """Lander ruling (round 8): a headline that cannot set at its floors is found at the copy stage by the renderers'
+    own functions (src/cover_fit.py), a thumbnail-only copy problem for the copy edit, never a draft rewrite."""
+    from src import cover_fit, script_engine
+    bad = cover_fit.fit_problems({"line1": "BEHIND ONE WALL...", "line2": "A FORGOTTEN CITY"})
+    assert bad and bad[0].startswith(cover_fit.COVER_FIT_PROBLEM + "YouTube thumbnail") and "feed floor" in bad[0]
+    assert cover_fit.fit_problems({"line1": "ONE WALL...", "line2": "A LOST CITY"}) == []
+    assert script_engine.copy_problem_fields(bad[0], None) == ("thumbnail",)
+    assert script_engine.blocking_problems(bad) == []
 
 
 # ------------------------------------------------------------------ ruling 4 on the cards: the lone "RINGS"

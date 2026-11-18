@@ -16,7 +16,7 @@ import threading
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageOps
 
 from . import brand, brand_system
 from .brand_system import (
@@ -394,26 +394,36 @@ def kicker_width(text: str, font) -> float:
     return rule * ch + gap * ch + tracked_width(text, font, font.size * track)
 
 
-def plan_kicker(im: Image.Image, xy, text: str, font, colour, anchor: str = "ls", track: float = 0.0, **kw):
-    """The ONE kicker's gate (round 7, F20 + sweep S1): the kicker planned at the kicker tier (contrast.kicker, 5.5)
-    in its colour (kicker.colour); where that misses on this ground, the bone variant (the accent rule's warm-ground
-    fallback); where that misses too, no kicker (fail closed, like the masthead). Returns (plate or None, record):
-    the record names the variant drawn, its measured ratio, and the reason when none is."""
+def plan_kicker(im: Image.Image, xy, text: str, font, colour, anchor: str = "ls", track: float = 0.0,
+                rule=None, **kw):
+    """The ONE kicker's gate (round 7, F20 + sweep S1) on the ONE overlay-label rule (operator ruling 2, 2026-11-17:
+    typography.plan_label): the kicker planned at the kicker tier (contrast.kicker, 5.5) in its colour (kicker.colour)
+    on a halo never deeper than tok("halo.label_max"); else the bone variant (the accent rule's warm-ground fallback);
+    else INK type (the light-ground variant); else its colour on a held INK plate that also holds its lead `rule`
+    (a box, drawn on the plate in the plate's fill); else no kicker (fail closed, like the masthead). The halo past
+    the cap (plan_text's default 0.95: the end screen's WATCH NEXT cloud on bright stone) is retired. Returns (plate or
+    None, record): the record names the variant drawn, its measured ratio, and the reason when none is."""
+    from .typography import plan_label
     gate = GATES["contrast.kicker"]
-    kw.setdefault("target", gate)
+    target = max(gate, float(kw.pop("target", gate)))
+    kw.pop("halo_px", None), kw.pop("max_halo", None), kw.pop("min_halo", None)   # the label rule sets the halo
     text = drawable(text, font)   # no emoji, no missing-glyph box (the old kicker path's rule, 2026-10-29)
-    tried = []
-    for variant, fill in (("colour", tuple(colour)), ("bone", tuple(brand.BONE))):
-        if variant == "bone" and fill == tuple(colour):
-            continue
-        plate = plan_text(im, xy, text, font, fill, anchor, track=track, **kw)
-        tried.append((variant, plate.contrast))
-        if plate.empty or (plate.contrast is not None and plate.contrast >= gate - 1e-9):
-            return plate, {"variant": variant, "contrast": plate.contrast, "gate": gate, "shown": True}
-    best = max((c for _, c in tried if c is not None), default=None)
-    log.warning("Kicker %r not drawn: %s below the %.1f:1 kicker gate in every variant", text, best, gate)
-    return None, {"shown": False, "gate": gate, "best_tried": best, "tried": tried,
-                  "reason": f"under the {gate}:1 kicker gate in gold and bone (best {best})"}
+    if not text.strip():
+        return plan_text(im, xy, text, font, tuple(colour), anchor, track=track), {
+            "variant": "colour", "contrast": None, "gate": gate, "shown": True}
+    colours = tuple(dict.fromkeys((tuple(colour[:3]), tuple(brand.BONE))))
+    plates, rec = plan_label(im, [(xy, text, font, anchor, track)], colours, target=target,
+                             extra=[rule] if rule is not None else ())
+    if rec["shown"]:
+        plate = plates[0]
+        if rule is not None and getattr(plate, "backing", None) is not None:
+            plate.backing.parent.devices.append((tuple(rule), tuple(plate.fill)))   # the rule rides on its plate
+        return plate, {"variant": rec["variant"], "contrast": plate.contrast, "gate": gate, "target": target,
+                       "shown": True, "halo": plate.halo, "plate": rec.get("plate")}
+    log.warning("Kicker %r not drawn: %s below the %.1f:1 kicker gate in every variant", text, rec["best_tried"], target)
+    return None, {"shown": False, "gate": gate, "target": target, "best_tried": rec["best_tried"],
+                  "tried": rec["tried"], "reason": f"under the {target}:1 kicker gate in every overlay-label variant "
+                                                   f"(best {rec['best_tried']})"}
 
 
 def draw_kicker(im: Image.Image, x: float, baseline: float, text: str, font, colour=None, lay=None,
@@ -427,7 +437,9 @@ def draw_kicker(im: Image.Image, x: float, baseline: float, text: str, font, col
     bar_w, gap = max(8, round(ch * rule)), round(ch * rule_gap)
     thick = max(3, round(ch * rule_thick))
     mid = baseline - ch / 2
-    plate, rec = plan_kicker(im, (x + bar_w + gap, baseline), text, font, colour, "ls", track=font.size * track)
+    rule_box = (round(x), round(mid - thick / 2), round(x) + bar_w - 1, round(mid - thick / 2) + thick - 1)
+    plate, rec = plan_kicker(im, (x + bar_w + gap, baseline), text, font, colour, "ls", track=font.size * track,
+                             rule=rule_box)
     if isinstance(getattr(lay, "meta", None), dict):
         lay.meta.setdefault("kickers", {})[name] = rec
     if plate is None:   # fail closed: no rule and no words under the gate (recorded)
@@ -1070,10 +1082,30 @@ class MultiFormatGenerator:
         return lines, get_font(family, getattr(px, "exact", px)(font.size)), short
 
     @staticmethod
-    def _fill(photo: Path, size: tuple[int, int]) -> Image.Image:
-        """The photo scaled and centre-cropped to `size` in one Lanczos resample from the file itself (the
-        pipeline's upscaled copy for a low-resolution source), never from a smaller intermediate."""
-        return cover_crop(photo, size).convert("RGB")
+    def _fill(photo: Path, size: tuple[int, int], top: bool = True) -> Image.Image:
+        """The photo scaled and cropped to `size` in one Lanczos resample from the file itself (the pipeline's
+        upscaled copy for a low-resolution source), never from a smaller intermediate. Its window (cycle 0 round 8,
+        the deck window rule, hero_window.deck_window): centred, unless this deck shows the photograph again
+        (_render_state.window_k: its earlier showings), when it overlaps them as little as the picture allows
+        keeping its centre; and (`top`: the picture runs under the masthead) one whose masthead box holds no
+        foreign object is preferred. The choice is recorded in _render_state.window_rec."""
+        k = int(getattr(_render_state, "window_k", 0) or 0)
+        mbox = getattr(_render_state, "masthead_box", None) if top else None
+        centering = (0.5, 0.5)
+        from .image_presentation import full_image
+        if (k or mbox) and not full_image(photo):
+            from .hero_window import deck_window
+            from .photo_hygiene import without_caption_strip
+            with Image.open(photo) as im:
+                clean, _ = without_caption_strip(ImageOps.exif_transpose(im).convert("RGB"))
+            win = deck_window(clean.size, size, k, mbox, clean)
+            centering = win["centering"]
+            rec = getattr(_render_state, "window_rec", None)
+            if isinstance(rec, list):
+                rec.append({"photo": Path(photo).name, "size": list(size), "showing": k,
+                            "centering": [round(v, 3) for v in centering], "overlap": win["overlap"],
+                            "masthead_clear": win["masthead_clear"]})
+        return cover_crop(photo, size, centering).convert("RGB")
 
     @classmethod
     def _save_slide(cls, im: Image.Image, path: Path) -> None:
@@ -1724,7 +1756,7 @@ class MultiFormatGenerator:
             gutter = px(tok("plate.gutter"))
             half = (ph + px(40) - gutter) // 2
             im.paste(self._fill(photo, (cw, half)), (0, 0))
-            im.paste(self._fill(photo2, (cw, ph + px(150) - half - gutter)), (0, half + gutter))
+            im.paste(self._fill(photo2, (cw, ph + px(150) - half - gutter), top=False), (0, half + gutter))
         return scrim(im, ph + px(60), chh, feather=px(40 if photo2 is not None else 180), target=0.0, cap=1.0,
                      floor=1.0, colour=brand.INK2)
 
@@ -1973,7 +2005,8 @@ class MultiFormatGenerator:
 
     def _render_carousel_slide(self, archetype: str, photo: Path, photo_next: Path, card: dict[str, Any], i: int,
                                total: int, poll: dict[str, Any], share: str, facebook: bool, tight: bool = False,
-                               subject: str = "", heading_frame: int = 2, strip: dict[str, Any] | None = None):
+                               subject: str = "", heading_frame: int = 2, strip: dict[str, Any] | None = None,
+                               window: int = 0):
         """One carousel slide and its measured layout: the archetype's own text, then the brand in its band at the
         top-left. Nothing is drawn under Instagram's counter (`protected`). Both copies are free of slide chrome
         (operator, 2026-10-28); `facebook` now changes only the words: the grid copy's slide text says nothing
@@ -1995,6 +2028,17 @@ class MultiFormatGenerator:
         _render_state.facebook = bool(facebook)
         _render_state.heading_frame = 2 if int(heading_frame or 2) > 1 else 1
         cw, chh = self.CAROUSEL_SIZE
+        # cycle 0 round 8 (the deck window rule, hero_window.deck_window): `window` is how many earlier slides of
+        # this deck show the same photograph; the masthead's box (top-left, HEADER_Y) is kept off foreign objects
+        from . import masthead as _mh
+        _px = self._px(cw)
+        _size = type_px("masthead", "carousel") * cw / 1440
+        _mx = _px(self.FB_COVER_MARGIN) if facebook and archetype == "cover" else _px(80)
+        _base = _px(self.HEADER_Y) + cap_height(_mh.font_for(_size))
+        _render_state.window_k = max(0, int(window or 0))
+        _render_state.masthead_box = (_mx - _px(16), _px(self.HEADER_Y) - _px(16),
+                                      _mx + _mh.group_width(_size) + _px(16), _base + _px(16))
+        _render_state.window_rec = []
         lay = Layout("carousel", (cw, chh), self._zone(cw, chh), tight=tight,
                      protected=[("instagram_counter", self._ig_counter(cw))])
         lay.plates = {}
@@ -2016,6 +2060,9 @@ class MultiFormatGenerator:
             im = self._render_debate(photo, card, i, total, cw, chh, poll, f_small, share=share, lay=lay, tight=tight)
         else:
             im = self._render_editorial_split(photo, card, i, cw, chh, lay=lay, tight=tight)
+        if _render_state.window_rec:
+            lay.meta["windows"] = list(_render_state.window_rec)
+        _render_state.window_k, _render_state.masthead_box, _render_state.window_rec = 0, None, None
 
         # The brand, top-left (clear of Instagram's counter, see HEADER_Y): the system's one masthead
         # (src/masthead.py, cycle 0): the gold diamond, then the masthead face in tracked bone capitals at the
@@ -2092,6 +2139,9 @@ class MultiFormatGenerator:
             order = [1, 0] + order[2:]
             strips[1] = {"side": "left"}
         drawn_paths: dict[int, Path] = {}
+        # the deck window rule (cycle 0 round 8): how many earlier slides show each slide's photograph
+        shown = [None if archetypes[j] == "diagram" else Path(photos[j]) for j in range(total)]
+        showing = [sum(1 for q in shown[:j] if q is not None and q == shown[j]) for j in range(total)]
         for i in order:
             card = cards[i]
             archetype = archetypes[i]
@@ -2102,7 +2152,7 @@ class MultiFormatGenerator:
                 lambda tight, strip=strip: self._render_carousel_slide(archetype, photo, photo_next, card, i, total,
                                                                        poll, share, facebook, tight=tight,
                                                                        subject=subject, heading_frame=frame,
-                                                                       strip=strip))
+                                                                       strip=strip, window=showing[i]))
             drew = lay.meta.get("swipe_strip") or {}
             if i == 1 and drew.get("box"):
                 strips[0] = {"side": "right", "y0": drew["box"][1], "y1": drew["box"][3]}
@@ -2112,7 +2162,7 @@ class MultiFormatGenerator:
             still_layout.save(path, lay, {"renderer": "multi_format.redraw_carousel_slide", "archetype": archetype,
                                           "photo": str(photo), "photo_next": str(photo_next), "card": card, "index": i,
                                           "total": total, "poll": poll, "share": share, "facebook": facebook,
-                                          "subject": subject, "heading_frame": frame,
+                                          "subject": subject, "heading_frame": frame, "window": showing[i],
                                           **({"strip": drew} if drew else {})}, attempts)
             drawn_paths[i] = path
         slides = [drawn_paths[i] for i in range(total)]
@@ -3041,7 +3091,8 @@ def redraw_carousel_slide(path: Path, recipe: dict[str, Any], tight: bool = True
                                          recipe.get("poll") or {}, recipe.get("share") or "", bool(recipe.get("facebook")),
                                          tight=tight, subject=recipe.get("subject") or "",
                                          heading_frame=int(recipe.get("heading_frame") or 2),
-                                         strip=_redraw_strip(recipe.get("strip"), path))
+                                         strip=_redraw_strip(recipe.get("strip"), path),
+                                         window=int(recipe.get("window") or 0))
     gen._save_slide(im, path)
     _delivered_contrast(lay, path)
     prior = still_layout.load(path) or {}

@@ -127,7 +127,107 @@ def caption_strips(im: Image.Image, small: np.ndarray, scale: float) -> list[Ban
     return [("row", 0, px)] if edge == "top" else [("row", im.size[1] - px, im.size[1])]
 
 
-DETECTORS: list[Detector] = [caption_strips, panel_seams]
+# ---- photographed text (cycle 0 round 8, official panel 1 consensus 3: the Antikythera museum label "Ο ΜΗΧΑΝΙΣΜΟΣ
+# ΤΩΝ ΑΝΤΙΚΥΘΗΡΩΝ / THE ANTIKYTHERA MECHANISM" read through the carousel's body band and the Reel cover's strip).
+# OCR-free: a TEXT LINE is a chain of at least TEXT_MIN_GLYPHS glyph-like blobs (local-contrast components, either
+# polarity) of one height (TEXT_CAP_MIN..TEXT_CAP_MAX of the picture's height, heights within TEXT_HEIGHT_CV), each
+# beside the next (a gap under TEXT_GAP_MAX x the height, feet within TEXT_BASE_TOL of it: a tilted label still
+# chains), never all one width (TEXT_WIDTH_CV) and never solid (a fill of 0.12-0.85: windows, posts and columns fill
+# their boxes). A picture whose text reaches its middle (a document, a map, a manuscript, a museum panel: the text IS the subject)
+# keeps it. Otherwise text (lines of TEXT_LINE_MIN_W of the width or more) in the outer TEXT_EDGE_SHARE at the top or the bottom (a label, a plaque, a sign in front
+# of or under the subject) is one forbidden row band per edge, so every crop keeps copy and the masthead off it.
+TEXT_ANALYSIS = 1600     # px: the longer side text is analysed at (a 4000 px photo's 1 % cap is 16 px here)
+TEXT_CAP_MIN = 0.008     # of the picture's height: smaller is texture
+TEXT_CAP_MAX = 0.06      # larger is architecture
+TEXT_MIN_GLYPHS = 6
+TEXT_HEIGHT_CV = 0.22
+TEXT_WIDTH_CV = 0.06     # capitals of one label are near one width (0.09 measured); a solid shape fails the fill test
+TEXT_GAP_MAX = 0.9
+TEXT_BASE_TOL = 0.22     # of the height: a glyph's foot against its neighbour's
+TEXT_EDGE_SHARE = 0.35
+TEXT_MARGIN = 0.6        # of the line's height, kept clear above and below it
+TEXT_LINE_MIN_W = 0.10   # of the picture's width: a shorter chain is texture (eaves, railings, distant arcades:
+                         # 31 of 574 pool photos measured 0.02-0.09; the Antikythera label's lines 0.24-0.63)
+
+
+def _glyph_blobs(g: np.ndarray, polarity: int, lo: float, hi: float) -> np.ndarray:
+    import cv2
+    block = int(max(15, 2 * round(hi) + 1)) | 1
+    bw = cv2.adaptiveThreshold(g, 255, cv2.ADAPTIVE_THRESH_MEAN_C, polarity, block, 18)
+    _n, _lab, st, _c = cv2.connectedComponentsWithStats(bw, connectivity=8)
+    st = st[1:].astype(np.float64)
+    x, y, w, h, area = st.T if len(st) else (np.zeros(0),) * 5
+    fill = area / np.maximum(1.0, w * h)
+    keep = (h >= lo) & (h <= hi) & (w <= 1.6 * h) & (w >= 0.12 * h) & (fill >= 0.12) & (fill <= 0.85)
+    return st[keep][:, :4]
+
+
+def text_lines(im: Image.Image) -> list[tuple[int, int, int, int]]:
+    """Photographed text lines (x0, y0, x1, y1, image px) anywhere in `im` (see the rule above)."""
+    import cv2
+    w, h = im.size
+    scale = min(1.0, TEXT_ANALYSIS / max(w, h))
+    g = np.asarray(im.convert("L").resize((max(1, round(w * scale)), max(1, round(h * scale))),
+                                          Image.Resampling.BOX), np.uint8)
+    hs = g.shape[0]
+    lo, hi = max(4.0, TEXT_CAP_MIN * hs), TEXT_CAP_MAX * hs
+    lines: list[tuple[int, int, int, int]] = []
+    for polarity in (cv2.THRESH_BINARY_INV, cv2.THRESH_BINARY):     # dark glyphs on light, light on dark
+        blobs = _glyph_blobs(g, polarity, lo, hi)
+        if len(blobs) < TEXT_MIN_GLYPHS:
+            continue
+        order = np.argsort(blobs[:, 0])
+        bx, by, bw_, bh = (blobs[order, k] for k in range(4))
+        foot, right = by + bh, bx + bw_
+        nxt = np.full(len(bx), -1)
+        for i in range(len(bx)):                   # each glyph's nearest right neighbour on its baseline
+            j0 = np.searchsorted(bx, right[i] - 0.2 * bh[i], "left")
+            j1 = np.searchsorted(bx, right[i] + TEXT_GAP_MAX * bh[i], "right")
+            if j1 <= j0:
+                continue
+            cand = np.arange(j0, j1)
+            cand = cand[(cand != i) & (np.abs(foot[cand] - foot[i]) <= TEXT_BASE_TOL * bh[i])
+                        & (np.abs(bh[cand] - bh[i]) <= 0.35 * bh[i])]
+            if len(cand):
+                nxt[i] = cand[np.argmin(bx[cand] - right[i])]
+        has_prev = np.zeros(len(bx), bool)
+        has_prev[nxt[nxt >= 0]] = True
+        for start in np.flatnonzero(~has_prev):
+            chain, k = [], int(start)
+            while k >= 0 and k not in chain and len(chain) < 400:
+                chain.append(k)
+                k = int(nxt[k])
+            if len(chain) < TEXT_MIN_GLYPHS:
+                continue
+            ch = np.array(chain)
+            if bh[ch].std() / bh[ch].mean() > TEXT_HEIGHT_CV or bw_[ch].std() / bw_[ch].mean() < TEXT_WIDTH_CV:
+                continue
+            x0, y0, x1, y1 = bx[ch].min(), by[ch].min(), right[ch].max(), foot[ch].max()
+            lines.append((int(x0 / scale), int(y0 / scale), int(np.ceil(x1 / scale)), int(np.ceil(y1 / scale))))
+    return lines
+
+
+def photo_text(im: Image.Image, small: np.ndarray | None = None, scale: float = 1.0) -> list[Band]:
+    """Photographed text at the picture's top or bottom edge (the outer TEXT_EDGE_SHARE), one forbidden row band per
+    edge (its lines, TEXT_MARGIN of a line's height either side); none where the text reaches the middle (the
+    picture is a document, a map or a panel: its text is the subject)."""
+    w, h = im.size
+    found = [ln for ln in text_lines(im) if ln[2] - ln[0] >= TEXT_LINE_MIN_W * w]
+    if any(ln[3] > TEXT_EDGE_SHARE * h and ln[1] < (1 - TEXT_EDGE_SHARE) * h for ln in found):
+        return []
+    bands: list[Band] = []
+    for edge in ("top", "bottom"):
+        near = [ln for ln in found if (ln[3] <= TEXT_EDGE_SHARE * h if edge == "top" else ln[1] >= (1 - TEXT_EDGE_SHARE) * h)]
+        if not near:
+            continue
+        pad = max(TEXT_MARGIN * (ln[3] - ln[1]) for ln in near)
+        a = max(0, int(min(ln[1] for ln in near) - pad))
+        b = min(h, int(np.ceil(max(ln[3] for ln in near) + pad)))
+        bands.append(("row", a, b))
+    return bands
+
+
+DETECTORS: list[Detector] = [caption_strips, panel_seams, photo_text]
 
 
 def register(detector: Detector) -> None:
@@ -198,6 +298,108 @@ def clean(im: Image.Image) -> tuple[Image.Image, tuple[int, int, int, int], list
     if found:
         log.info("Hero window: %s cut away; the clean region is %s of %s.", found, box, im.size)
     return cur, box, found
+
+
+# ---- the deck window rule and the masthead box (cycle 0 round 8, official panel 1 consensus 3): Aswan s6 and s7
+# showed one photograph in near-identical windows on consecutive slides (the swipe stalls, CD-6), and Nazca s1 set the
+# masthead on an aircraft wing's red trim and white skin (CD-4). A deck that shows one photograph again takes a window
+# that overlaps its earlier ones as little as the picture allows (under DECK_OVERLAP_MAX where it can), and every
+# window keeps the picture's centre (the subject: subject visibility ranks above rhythm); among those, one whose
+# masthead box holds no foreign object (foreign_object) is preferred.
+DECK_OVERLAP_MAX = 0.5
+DECK_STEPS = 9           # candidate positions along the free axis, 0..1
+FOREIGN_CHROMA = 90      # RGB max - min: a saturated man-made colour (a red trim, a sign), not sand, stone or sky
+FOREIGN_SHARE = 0.03     # of the masthead box
+FOREIGN_LINE = 0.4       # a straight edge at least this share of the box's width (a wing's, a sign's)
+
+
+def foreign_object(region: Image.Image) -> bool:
+    """Does `region` (the masthead box on a candidate window) hold a foreign object: a saturated, straight-edged
+    shape (FOREIGN_SHARE of its pixels at FOREIGN_CHROMA or more, and a straight edge of FOREIGN_LINE of its width)?"""
+    import cv2
+    rgb = np.asarray(region.convert("RGB"), np.int16)
+    if rgb.size == 0:
+        return False
+    chroma = rgb.max(axis=2) - rgb.min(axis=2)
+    if float((chroma >= FOREIGN_CHROMA).mean()) < FOREIGN_SHARE:
+        return False
+    g = np.asarray(region.convert("L"), np.uint8)
+    edges = cv2.Canny(g, 60, 160)
+    lines = cv2.HoughLinesP(edges, 1, np.pi / 180, threshold=30, minLineLength=max(8, int(FOREIGN_LINE * g.shape[1])),
+                            maxLineGap=4)
+    return lines is not None and len(lines) > 0
+
+
+def deck_window(src_size: tuple[int, int], out_size: tuple[int, int], k: int = 0,
+                masthead_box: tuple[float, float, float, float] | None = None,
+                image: Image.Image | None = None) -> dict:
+    """The window (ImageOps.fit centering) for the k-th showing (0 = first) of one photograph (its clean region is
+    `src_size`) in a deck, at `out_size`: every window holds the picture's centre; occurrence k takes the position
+    whose largest overlap with occurrences 0..k-1 (each chosen the same way) is least, then (with `image`, the clean
+    picture, and `masthead_box`, out px) one with no foreign object in the masthead box, then the nearest the centre.
+    {"centering", "overlap" (the largest with an earlier showing), "masthead_clear", "positions"}."""
+    sw, sh = src_size
+    ow, oh = out_size
+    if sw <= 0 or sh <= 0:
+        return {"centering": (0.5, 0.5), "overlap": 0.0, "masthead_clear": None, "positions": [0.5]}
+    horizontal = sw / sh > ow / oh                 # the free axis: across a wider picture, down a taller one
+    span = (oh * sw / sh) / ow if horizontal else (ow * sh / sw) / oh   # the source / window length on that axis
+    L = 1.0 / span if span > 0 else 1.0            # the window's share of the free axis
+    grid = [i / (DECK_STEPS - 1) for i in range(DECK_STEPS)]
+    keep = [p for p in grid if p * (1 - L) <= 0.5 <= p * (1 - L) + L] or [0.5]   # the centre stays in view
+
+    def overlap(p: float, q: float) -> float:
+        return max(0.0, L - abs(p - q) * (1 - L)) / L if L > 0 else 1.0
+
+    small = None
+    if image is not None and masthead_box is not None:
+        small = image.convert("RGB")
+        small.thumbnail((640, 640))
+    seen: dict[float, bool | None] = {}
+
+    def clear(p: float) -> bool | None:
+        if small is None:
+            return None
+        if p not in seen:
+            seen[p] = _clear_at(p)
+        return seen[p]
+
+    def _clear_at(p: float) -> bool:
+        cen = (p, 0.5) if horizontal else (0.5, p)
+        win = _fit_box(small.size, out_size, cen)
+        kx, ky = (win[2] - win[0]) / ow, (win[3] - win[1]) / oh
+        x0, y0, x1, y1 = masthead_box
+        box = (round(win[0] + x0 * kx), round(win[1] + y0 * ky), round(win[0] + x1 * kx), round(win[1] + y1 * ky))
+        return not foreign_object(small.crop(box))
+
+    positions: list[float] = []
+    cleared: list[bool | None] = []
+    for _ in range(k + 1):
+        def key(p: float):
+            worst = max((overlap(p, q) for q in positions), default=0.0)
+            # past DECK_OVERLAP_MAX the least overlap wins; under it every position is as good, so the masthead
+            # box's ground decides, then the centre
+            return (round(min(worst, 1.0), 3) if worst >= DECK_OVERLAP_MAX else 0.0, clear(p) is False, abs(p - 0.5))
+        best = min(keep, key=key)
+        positions.append(best)
+        cleared.append(clear(best))
+    p = positions[-1]
+    worst = max((overlap(p, q) for q in positions[:-1]), default=0.0)
+    return {"centering": (p, 0.5) if horizontal else (0.5, p), "overlap": round(worst, 3),
+            "masthead_clear": cleared[-1], "positions": positions}
+
+
+def _fit_box(src: tuple[int, int], out: tuple[int, int], centering: tuple[float, float]) -> tuple[float, ...]:
+    """The box ImageOps.fit crops from a `src`-sized picture for `out` at `centering` (src px)."""
+    sw, sh = src
+    ow, oh = out
+    if sw / sh > ow / oh:
+        cw, ch = sh * ow / oh, sh
+    else:
+        cw, ch = sw, sw * oh / ow
+    x0 = (sw - cw) * centering[0]
+    y0 = (sh - ch) * centering[1]
+    return (x0, y0, x0 + cw, y0 + ch)
 
 
 def window_problems(window: Image.Image, detectors: Iterable[Detector] | None = None) -> list[Band]:

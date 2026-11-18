@@ -68,7 +68,6 @@ from .config import (
     CAPTION_PLATE_SLACK,
     CAPTION_READ_PER_CHAR,
     CAPTION_READ_BASE,
-    CAPTION_MAX_CPS,
     CAPTION_CPS_TIMING_SLACK_S,
     CAPTION_FIRST_FRAME_WHOLE_S,
     CAPTION_CUT_SNAP_FRAMES,
@@ -108,6 +107,10 @@ from .config import (
 from .typography import is_video
 from . import brand as _brand
 from .brand_system import LINE_END_NEVER as _LINE_END_NEVER
+from .brand_system import GATES
+
+# the caption reading-rate cap: ONE source, the gate (cycle 0 round 8; config.CAPTION_MAX_CPS holds the same value)
+CAPTION_MAX_CPS = float(GATES["motion.caption_cps"])
 
 # Caption colours from the brand tokens (visual overhaul, 2026-10-29): spoken words in bone, the script's key words
 # in the brand gold (#FFD700 until then, one of three golds on screen), upcoming words in light stone. The style
@@ -542,6 +545,13 @@ REEL_PLATE_H = round(REEL_CAP_H + 2 * REEL_PAD_Y)   # one plate height per Reel
 # frame (reel_caption_centre_x): centred on the frame the organic box leaves 616 px (its right rail, 232 px, is wider
 # than its left, 113 px), which would cut every line to 560 px and form new bursts (QF-24).
 MAX_CAPTION_WIDTH = min(CAPTION_REEL_TEXT_WIDTH, _REEL_UI.box()[2] - _REEL_UI.box()[0] - 2 * REEL_PAD_X)
+
+
+def act_dissolve_s() -> float:
+    """The act dissolve's length (cycle 0 round 8): tok("motion.act_dissolve") in whole frames, ONE source for the
+    composer's xfade (a true crossfade, transition=fade: "dissolve" is ffmpeg's per-pixel random dither)."""
+    from .brand_system import tok
+    return max(1, round(float(tok("motion.act_dissolve")) * VIDEO_FPS)) / VIDEO_FPS
 
 
 def reel_caption_centre_x(width: int = VIDEO_WIDTH, height: int = VIDEO_HEIGHT) -> int:
@@ -1923,6 +1933,15 @@ def _word_end(w: dict[str, Any]) -> float:
     return start + 0.3
 
 
+def cps_need(phrase: Any) -> float:
+    """Seconds a burst must be up to be shown at most GATES["motion.caption_cps"] characters a second (cycle 0 round
+    8, the caption reading-rate rule): its characters, spaces included, over the cap. burst_timings holds a burst
+    that long into a following pause (never past the next burst's appearance); a burst whose own words are spoken
+    faster than the cap cannot be held within its spoken window, and reading_rates records it as the narration's
+    pace (no split helps there: a split shares the same words and the same seconds)."""
+    return len(" ".join(_phrase_words(phrase))) / float(GATES["motion.caption_cps"])
+
+
 def reading_need(phrase: Any) -> float:
     """Seconds a burst wants on screen to be read (round 3 reading-rate guard): CAPTION_READ_PER_CHAR a shown
     character plus CAPTION_READ_BASE."""
@@ -2092,7 +2111,8 @@ def burst_timings(
         else:
             next_show = None
             hide = last_end + 0.10
-        need = max(reading_need(phrase), CAPTION_MIN_ON_SCREEN_S)   # D1: every burst up half a second
+        need = max(reading_need(phrase), CAPTION_MIN_ON_SCREEN_S,   # D1: every burst up half a second
+                   cps_need(phrase))                                # round 8: never faster than the cps gate
         if dwell:   # freeze pass C10 (9:16): a figure burst up CAPTION_DIGIT_MIN_S, every burst whole for a beat
             need = max(need, CAPTION_DIGIT_MIN_S if _has_figure(phrase) else 0.0)
         if hide - show < need:
@@ -2154,7 +2174,11 @@ def reading_rates(phrases: list[list[dict[str, Any]]], timings: list[tuple[float
                      "defect": rate_defect(phrases, i, show, hide)})
     fast = [r for r in rows if r["shown_cps"] > CAPTION_MAX_CPS]
     worst = max(rows, key=lambda r: r["shown_cps"], default=None)
+    # round 8: why each burst over the cap is over it: its own words are spoken that fast (the narration's pace; no
+    # hold within its spoken window or split can slow it), or not (a timing the cps rule should have held: a defect)
+    pace = [r for r in fast if r["spoken_cps"] is None or r["spoken_cps"] > CAPTION_MAX_CPS]
     return {"max_cps": CAPTION_MAX_CPS, "bursts": len(rows), "over_max": len(fast),
+            "over_max_pace": len(pace), "over_max_held_short": len(fast) - len(pace),
             "over_20": sum(r["shown_cps"] > 20 for r in rows),
             "worst": {k: worst[k] for k in ("at", "text", "shown_cps", "spoken_cps")} if worst else None,
             "timing_defects": [{k: r[k] for k in ("at", "text", "shown_cps", "spoken_cps")} for r in rows if r["defect"]]}
@@ -4734,7 +4758,8 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         applied only to photographic stills before compositing; zero gives the neutral photo curve.
         durations: seconds on screen per scene (e.g. from scene_planner beats). Hard cuts land
         on these boundaries, rounded to the nearest video frame. Only boundaries explicitly
-        listed in act_cuts get an eight-frame dissolve. Without durations, scenes share the narration equally.
+        listed in act_cuts get the act dissolve (act_dissolve_s: tok("motion.act_dissolve"), a true crossfade).
+        Without durations, scenes share the narration equally.
         Supports both 9:16 vertical (Reels) and 16:9 widescreen (Documentaries) with aspect-aware photo compositing.
         """
         from .delivery_profiles import get_delivery_profile
@@ -4848,7 +4873,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         # A cut consumes no overlap. Only an actual act boundary gets a dissolve;
         # each adjacent clip supplies half its overlap so later boundaries never drift.
         boundaries = [round(sum(durations[:k + 1]) * VIDEO_FPS) / VIDEO_FPS for k in range(n - 1)]
-        fades = [8 / VIDEO_FPS if any(abs(b - a) <= 0.5 / VIDEO_FPS + 1e-6 for a in (act_cuts or []))
+        fades = [act_dissolve_s() if any(abs(b - a) <= 0.5 / VIDEO_FPS + 1e-6 for a in (act_cuts or []))
                  else 0.0 for b in boundaries]
         starts = [0.0, *[b - fade / 2 for b, fade in zip(boundaries, fades)]]
         ends = [*[b + fade / 2 for b, fade in zip(boundaries, fades)],
@@ -4952,7 +4977,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             out = f"[x{k}]" if k < n - 2 else f"[{timeline}]"
             if fades[k]:
                 off = boundaries[k] - fades[k] / 2
-                filter_parts.append(f"{curr}[c{k + 1}]xfade=transition=dissolve:duration={fades[k]:.9f}:offset={off:.9f}{out}")
+                filter_parts.append(f"{curr}[c{k + 1}]xfade=transition=fade:duration={fades[k]:.9f}:offset={off:.9f}{out}")
             else:
                 filter_parts.append(f"{curr}[c{k + 1}]concat=n=2:v=1:a=0,fps={VIDEO_FPS},settb=AVTB{out}")
             curr = out

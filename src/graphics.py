@@ -2064,6 +2064,18 @@ def place_steps(width: int, height: int) -> list[int]:
     return list(dict.fromkeys(floored(px, width, height) for px in range(top, low - 1, -2))) or [top]
 
 
+def site_steps(width: int, height: int) -> list[int]:
+    """The story's own site's label sizes (operator ruling 1, 2026-11-17: the place-label face, ONE larger size step
+    for the site so the map keeps one focal label): place.px x place.site_step first, then down by 2 to the place
+    labels' own last step, each at least the 9:16 label floor. The tracked country names and the route's stops stay
+    on place_steps."""
+    from .brand_system import tok
+    k = place_scale(width, height)
+    top = round(tok("place.px") * tok("place.site_step") * k)
+    low = place_steps(width, height)[-1]
+    return list(dict.fromkeys(floored(px, width, height) for px in range(top, low - 1, -2))) or [top]
+
+
 def place_font(px: float) -> FreeTypeFont:
     """The place-label face at `px` (the label role's face, place.weight)."""
     from .brand_system import FACE, tok
@@ -2072,51 +2084,23 @@ def place_font(px: float) -> FreeTypeFont:
 
 def place_plates(rest: Image.Image, rows: Sequence[tuple[tuple[float, float], str, Any, str]],
                  track: float = 0) -> list[TextPlate]:
-    """One place label's rows ((xy, text, font, anchor) each) as measured plates, one variant for the whole label:
-    BONE on an INK halo of one spread (place.halo_px), each row's the least that reaches the placement target
-    (contrast.place, 4.8, so the drawn frame keeps the 4.5 gate) and never deeper than place.halo_max; where a row
-    stays under it within that cap, the INK light-ground variant (no halo) if every row reaches it so. One variant per
-    label (round 7 integration: an INK row beside bone rows sat in their halos and drew at 3.1:1). Gates outrank the
-    cap: where neither variant holds, bone takes, row by row, the least halo that reaches the target, the exception
-    logged with its depth (flagged past HALO_EXCEPTION_CAP, 0.24) and marked on the plates (halo_exception); never a
-    label under the gate to keep a halo light."""
-    from .brand_system import HALO_EXCEPTION_CAP, tok
+    """One place label's rows ((xy, text, font, anchor) each) as measured plates, one variant for the whole label, by
+    the ONE overlay-label rule (typography.plan_label; operator ruling 2, 2026-11-17): BONE on an INK halo of one
+    spread (place.halo_px) never deeper than place.halo_max, reaching the placement target (contrast.place, 4.8, so the
+    drawn frame keeps the 4.5 gate) as planned and as drawn; else the INK light-ground variant (no halo); else a held
+    INK plate behind the label, bone on it. The halo exception (bone at a halo past the cap, 0.24-0.95: a cloud) is
+    retired. One variant per label (round 7 integration: an INK row beside bone rows sat in their halos and drew at
+    3.1:1). A label no variant carries is returned empty (nothing drawn) and logged."""
+    from .brand_system import tok
+    from .typography import plan_label
     target = GATES["contrast.place"]
-
-    def ok(plates: list[TextPlate]) -> bool:      # as planned and as the record will measure it drawn here
-        return all(p.empty or (p.contrast is not None and p.contrast >= target
-                               and (p.measure(p.draw(rest)) or 0) >= target) for p in plates)
-
-    def mark(plates: list[TextPlate], exception: bool) -> list[TextPlate]:
-        for p in plates:
-            p.halo_exception = exception
-        return plates
-    bone = [plan_text(rest, xy, text, font, brand.BONE, anchor, track=track, halo_px=tok("place.halo_px"),
-                      max_halo=tok("place.halo_max")) for xy, text, font, anchor in rows]
-    if ok(bone):
-        return mark(bone, False)
-    ink = [plan_text(rest, xy, text, font, brand.INK, anchor, track=track, halo_px=0) for xy, text, font, anchor in rows]
-    if ok(ink):
-        return mark(ink, False)
-    deeper = []
-    for xy, text, font, anchor in rows:
-        # each row checked as the record will read it (TextPlate.measure on the row drawn on this ground): where the
-        # planning judgement reads higher than the measure (a top_first route row planned 5.01, measured 4.37 on
-        # the same pixels), the halo steps on until the measure holds too
-        halo = 0.0
-        while True:
-            row = plan_text(rest, xy, text, font, brand.BONE, anchor, track=track, halo_px=tok("place.halo_px"),
-                            min_halo=halo)
-            got = None if row.empty else row.measure(row.draw(rest))
-            if got is None or got >= target or row.halo >= 0.95:
-                break
-            halo = row.halo + 0.08
-        deeper.append(row)
-    worst = max((p.halo for p in deeper), default=0.0)
-    (log.warning if worst > HALO_EXCEPTION_CAP + 1e-9 else log.info)(
-        "Place label %r: no variant reaches %.1f within halo %.2f; bone at halo up to %.2f (exception).",
-        " ".join(text for _xy, text, _f, _a in rows), target, tok("place.halo_max"), worst)
-    return mark(deeper, True)
+    plates, rec = plan_label(rest, [(xy, text, font, anchor, track) for xy, text, font, anchor in rows], (brand.BONE,),
+                             target=target, halo_px=tok("place.halo_px"), halo_max=tok("place.halo_max"))
+    if not rec["shown"]:
+        log.warning("Place label %r not drawn: %s.", " ".join(text for _xy, text, _f, _a in rows), rec["reason"])
+        return [TextPlate(text, font, brand.BONE, xy, anchor, track, 0, brand.INK, 0, False, (0, 0))
+                for xy, text, font, anchor in rows]   # empty plates (zero canvas): callers draw and record nothing
+    return plates
 
 
 def place_plate(rest: Image.Image, xy: tuple[float, float], text: str, font, anchor: str = "la",
@@ -2126,12 +2110,13 @@ def place_plate(rest: Image.Image, xy: tuple[float, float], text: str, font, anc
 
 
 def marker_label_lines(text: str, width: int, height: int) -> tuple[list[str], FreeTypeFont]:
-    """The site's name in the place-label role (place_steps, place_font) on at most MARKER_LABEL_ROWS balanced rows
-    no wider than the orientation's measure, stepping down only where no break holds it."""
+    """The site's name in the place-label face (place_font) at the site's own step (site_steps, ruling 1) on at most
+    MARKER_LABEL_ROWS balanced rows no wider than the orientation's measure, stepping down only where no break holds
+    it."""
     k = place_scale(width, height)
     measure = (MARKER_LABEL_MEASURE if height > width else MARKER_LABEL_MEASURE_WIDE) * k
     shown = " ".join(text.split()).upper()
-    steps = place_steps(width, height)
+    steps = site_steps(width, height)
     for px in steps:
         font = field_font(shown, place_font(px))                               # the name's rows in one face (QF-94)
         lines = route_name_lines(text, font, measure, MARKER_LABEL_ROWS)
@@ -9442,6 +9427,14 @@ def _cells(d: ImageDraw.ImageDraw, text: str, font) -> list[tuple[str, float]]:
     return [(c, cell if c.isdigit() else d.textlength(c, font=font)) for c in text]
 
 
+def tall_axis_x(width: int, height: int) -> int:
+    """The one horizontal axis of 9:16 content centred while a graphic is on screen (cycle 0 round 8, MO-4): the x the
+    9:16 caption plate is centred on (video_composer.reel_caption_centre_x: the organic Reel box's centre, 480 at
+    1080 x 1920), so a graphic's centred block and the caption under it share one axis."""
+    from .video_composer import reel_caption_centre_x
+    return reel_caption_centre_x(width, height)
+
+
 def _stat_layout(d: ImageDraw.ImageDraw, card: dict[str, Any], num_px: int, width: int, scale: float = 1.0,
                  label_min: int | None = None, num_min: int = 120, word_floor: int = 0) -> dict[str, Any]:
     """One card measured (offsets from its block's top, x from the left margin): the figure's font fitted so the
@@ -9482,15 +9475,19 @@ def _stat_layout(d: ImageDraw.ImageDraw, card: dict[str, Any], num_px: int, widt
     rows: list[dict[str, Any]] = []
     y = 0
     if pre:
-        f_k = get_font(brand.TEXT_FONT, max(word_floor, round(40 * scale)), weight=800)
-        bar_w = round(44 * scale)
-        bar_h = max(3, round(4 * scale))
-        y += bar_h
-        bar_y = y
-        y += round(14 * scale)
-        y += cap_height(f_k)
-        rows.append({"name": "prefix", "kind": "kicker", "text": pre, "font": f_k, "y": y,
-                     "bar": (0, round(bar_y - bar_h), bar_w, round(bar_y))})
+        # cycle 0 round 8 (panel consensus 7, BC-5 / AD MG-4): the prefix ("EST. OVER") is the SYSTEM kicker, one
+        # lead device on every surface: the text face at kicker.weight, tracked kicker.track em, led by its flat rule
+        # one cap long at mid-cap, kicker.rule_gap caps before the words (the rule above it is retired)
+        from .brand_system import tok
+        f_k = get_font(brand.TEXT_FONT, max(word_floor, round(40 * scale)), weight=tok("kicker.weight"))
+        ch = cap_height(f_k)
+        bar_w, bar_gap = max(8, round(ch * tok("kicker.rule"))), round(ch * tok("kicker.rule_gap"))
+        bar_h = max(3, round(ch * tok("kicker.rule_thick")))
+        y += ch
+        mid = y - ch / 2
+        rows.append({"name": "prefix", "kind": "kicker", "text": pre, "font": f_k, "y": y, "x": bar_w + bar_gap,
+                     "track": tok("kicker.track") * f_k.size,
+                     "bar": (0, round(mid - bar_h / 2), bar_w - 1, round(mid - bar_h / 2) + bar_h - 1)})
         y += round(34 * scale)
     y += cap_height(f_num if num else f_unit)
     num_y = y
@@ -9521,6 +9518,7 @@ def _stat_layout(d: ImageDraw.ImageDraw, card: dict[str, Any], num_px: int, widt
     high = min([0] + [d.textbbox((0, r["y"]), r["text"], font=r["font"], anchor="ls")[1] for r in rows])
     right = max(r.get("x", 0) + (r["width"] if r["kind"] == "figure" else
                                  tracked_width(r["text"], r["font"], r.get("track", 0))) for r in rows)
+    right = max(right, max((r["bar"][2] + 1 for r in rows if r.get("bar")), default=0))
     return {"rows": rows, "top": high, "bottom": low, "height": low - high, "num_y": num_y, "figure_px": size,
             "width": right}
 
@@ -9569,9 +9567,14 @@ def render_stat_cards(cards: list[dict[str, Any]], out: Path, photo: Path | None
         if total <= bottom - top:
             break
     y = max(top, (top + bottom) // 2 - total // 2)
+    # cycle 0 round 8 (panel consensus 7, MO-4: the Amber card's stack sat about 60 px off the caption plate's axis
+    # below it, two centred stacks on two axes): the card block is centred on the 9:16 caption axis (tall_axis_x, the
+    # organic Reel box's centre the caption plate and FOLLOW use), never left of the text inset
+    block_w = max(p["width"] for p in plans)
+    x_block = max(x_text, round(tall_axis_x(width, height) - block_w / 2))
     for p in plans:
         p["y0"] = y - p["top"]
-        p["x0"] = x_text
+        p["x0"] = x_block
         y += p["height"] + gap
     if photo and Path(photo).exists():
         from .photo_grade import cover
@@ -9796,13 +9799,14 @@ def _stat_clip(cards: list[dict[str, Any]], plans: list[dict[str, Any]], bg: Ima
         for r in p["rows"]:
             yy = p["y0"] + r["y"]
             if r["kind"] == "kicker":
-                bx0, by0, bx1, by1 = r.get("bar", (0, 0, 44, 4))
+                bx0, by0, bx1, by1 = r["bar"]
                 r["rule"] = (x0 + bx0, p["y0"] + by0, x0 + bx1, p["y0"] + by1)
-                r["plates"] = [plan_text(rest, (x0, yy), r["text"], r["font"],
-                                         brand.GOLD, "ls", track=r["font"].size * 0.15)]
+                from .brand_system import colour_of
+                r["plates"] = [plan_text(rest, (x0 + r["x"], yy), r["text"], r["font"],
+                                         colour_of("kicker.colour"), "ls", track=r["track"])]
                 # cycle 0 round 7 (F13): a stepped-back card dims its words one way, to STONE_LT like its label and
                 # unit (the kicker's STONE twin measured 4.09:1 on the gold-on-gold ground, under the 4.5 gate)
-                r["fill"], r["dim_fill"] = brand.GOLD, brand.STONE_LT
+                r["fill"], r["dim_fill"] = colour_of("kicker.colour"), brand.STONE_LT
             elif r["kind"] == "figure":
                 # F13 (ruling 3): the figure face in gold, at rest and when it steps back for the second card (it
                 # stepped back to stone: "36" in stone beside "13,000" in gold); its words dim, the figure does not
@@ -9874,7 +9878,7 @@ def _stat_clip(cards: list[dict[str, Any]], plans: list[dict[str, Any]], bg: Ima
                                          ox + (dx1 - ox) * sc + shift, base + (dy1 - (yy - dy)) * sc], fill=fill)
                     else:
                         if r["kind"] == "kicker":
-                            x0, y0, x1, y1 = r.get("rule", r.get("bar", (p["x0"], yy, p["x0"] + 44, yy + 3)))
+                            x0, y0, x1, y1 = r["rule"]
                             fill = _lerp(r["fill"], r["dim_fill"], dim)
                             raster.Draw(im, "RGBA").rectangle([x0, y0 + dy, x1, y1 + dy], fill=(*fill, int(255 * a)))
                         for pl in r["plates"]:

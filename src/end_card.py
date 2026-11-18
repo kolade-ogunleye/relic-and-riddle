@@ -123,13 +123,13 @@ FOLLOW_TRACK = 0.12      # the follow line's letter spacing, as a share of its s
 # measured 3.5-3.7:1 on a white frame and under 4.5:1 on one of seven real Reel endings; bone holds 4.8:1 on all.
 # It rises in over LOOP_FOLLOW_FRAMES[0] frames from the bridge's first frame and fades out over its last
 # LOOP_FOLLOW_FRAMES[1] frames, so the bridge's first and last frames carry none of it and the seam still lands on
-# frame 0. Its halo is solved on the lightest of the pictures it sits on (_follow_plate) and every full-opacity frame
-# is measured; under LOOP_FOLLOW_MIN the bridge is shipped without it (the review card says so).
+# frame 0. It is planned by the one overlay-label rule (_follow_plate: label halo, INK type, then a held INK plate) on
+# the lightest and darkest of the pictures it sits on and every full-opacity frame is measured; under LOOP_FOLLOW_MIN
+# the bridge is shipped without it (the review card says so).
 LOOP_FOLLOW = "FOLLOW"
 LOOP_FOLLOW_SIZE = 64
 LOOP_FOLLOW_FRAMES = (6, 8)
 LOOP_FOLLOW_RISE = 10                   # px it rises while it comes in (the end card's follow line: 10)
-LOOP_FOLLOW_HALO = 40                   # px: the halo's spread, wide enough to hold 4.8:1 on a near-white picture
 LOOP_FOLLOW_MIN = 4.5                   # WCAG AA on every full-opacity frame (the plan aims for brand.PLACE_TARGET)
 
 _FOLLOW_CLAUSE = re.compile(r"[\s,;:—–-]*(?:and\s+|then\s+|&\s+)?(?:please\s+)?follow\b.*$", re.IGNORECASE)
@@ -631,11 +631,14 @@ def frames(last: Image.Image, share: str, stats: dict[str, Any] | None = None, *
     words = _word_xs(lay, width)
     word_plates = [plan_text(rest, (round(x), y), w, lay["share_font"], brand.BONE) for _, _, w, x, y in words]
     follow_plate = None
-    if lay["follow"]:   # an overlay label: the label-halo token's one spread and cap (cycle 0 round 7, panel F15)
-        from .brand_system import label_halo
-        spread, cap = label_halo(lay["follow_font"].size)
-        follow_plate = plan_text(rest, (lay["centre_x"], lay["follow_y"]), brand.FOLLOW_LINE, lay["follow_font"],
-                                 brand.GOLD, "ma", lay["spacing"], halo_px=spread, max_halo=cap)
+    if lay["follow"]:   # an overlay label: the one overlay-label rule (operator ruling 2, typography.plan_label)
+        from .typography import plan_label
+        planned, follow_rec = plan_label(rest, [((lay["centre_x"], lay["follow_y"]), brand.FOLLOW_LINE,
+                                                 lay["follow_font"], "ma", lay["spacing"])], (brand.GOLD, brand.BONE),
+                                         target=tok(LINE_GATES["follow"]))
+        follow_plate = planned[0] if planned else None
+        if stats is not None:
+            stats["follow_gate"] = follow_rec
     extras = end_screen_extras(width) if landscape else None
     kicker_plate = credits_plate = None
     if extras:
@@ -644,7 +647,7 @@ def frames(last: Image.Image, share: str, stats: dict[str, Any] | None = None, *
             plan_kicker,  # round 7 (F20, sweep): the one kicker gate (gold, else bone, else none)
         )
         kicker_plate, kicker_rec = plan_kicker(rest, k["text_xy"], k["text"], k["font"], colour_of("kicker.colour"),
-                                               "ls", k["track"])
+                                               "ls", k["track"], rule=k["rule"])
         if stats is not None:
             stats["kicker_gate"] = kicker_rec
         if credits:
@@ -936,7 +939,9 @@ def loop_bridge(last: Image.Image, first: Image.Image, share: str,
                          follow_box=list(follow_plate.box) if follow_plate is not None else None,
                          follow_size=LOOP_FOLLOW_SIZE if follow_plate is not None else None,
                          follow_halo=follow_plate.halo if follow_plate is not None else None,
-                         follow_variant=getattr(follow_plate, "variant", None) if follow_plate is not None else None)
+                         follow_variant=getattr(follow_plate, "variant", None) if follow_plate is not None else None,
+                         follow_plate=(follow_plate.backing.record() if getattr(follow_plate, "backing", None) is not None
+                                       else None))
 
 
 def follow_alpha(i: int, total: int) -> float:
@@ -947,13 +952,13 @@ def follow_alpha(i: int, total: int) -> float:
 
 
 def _follow_plate(a_img: Image.Image, b_img: Image.Image, a_rate: float, open_push: float, total: int):
-    """The bridge's FOLLOW plate, its halo solved on the brightest picture it can sit on: per pixel, the lightest of
-    the outgoing shot (undimmed) and the incoming frame 0, each at the first and the last frame it is fully up. Every
-    frame under it is a mix of those two (and the dim only darkens), so the halo holds on all of them; or (None, why)
-    when even the strongest halo leaves it under LOOP_FOLLOW_MIN there (the bridge then ships without it). Solved on
-    the two endpoint frames only, 3 of 31 production endings measured under 4.5:1 mid-crossfade (QF-83 real_data)."""
-    from .brand_system import label_halo
-    from .typography import cap_height, full_halo_pad, plan_text
+    """The bridge's FOLLOW plate (typography.plan_label), planned on the brightest picture it can sit on: per pixel,
+    the lightest of the outgoing shot (undimmed) and the incoming frame 0, each at the first and the last frame it is
+    fully up, and its INK variant on the darkest. Every frame under it is a mix of those two (and the dim only
+    darkens), so the variant holds on all of them; or (None, why) when no variant reaches the placement target there
+    (the bridge then ships without it). Solved on the two endpoint frames only, 3 of 31 production endings measured
+    under 4.5:1 mid-crossfade (QF-83 real_data)."""
+    from .typography import cap_height, drawable, plan_label
     width, height = a_img.size
     font = get_font(brand.TEXT_FONT, LOOP_FOLLOW_SIZE, weight=800)
     spacing = LOOP_FOLLOW_SIZE * FOLLOW_TRACK
@@ -963,35 +968,23 @@ def _follow_plate(a_img: Image.Image, b_img: Image.Image, a_rate: float, open_pu
     outgoing = [_pushed(a_img, 1 + a_rate * (i + 1), width, height) for i in (up[0], up[-1])]
     incoming = [_pulled(b_img, 1 + open_push * (i - total), width, height) for i in (up[0], up[-1])]
     lightest = Image.fromarray(np.maximum.reduce(outgoing + incoming).clip(0, 255).astype(np.uint8))
-    # Cycle 0 round 7 (panel F15: a dark halo cloud at 1x on bright stone): the overlay-label halo token first, ONE
-    # spread and an alpha never above tok("halo.label_max"); where bone cannot reach the floor within it, the
-    # light-ground INK variant (ruling 1, as the masthead), judged on the DARKEST picture under it (the outgoing shot
-    # fully dimmed, the incoming frame 0); only where neither reads, the pre-round-7 halo (LOOP_FOLLOW_HALO spread,
-    # up to 1.0), recorded as the halo exception: whether that stays, becomes a plate or fails closed is the
-    # operator's (the FOLLOW is on in production, QF-83).
-    spread, cap = label_halo(LOOP_FOLLOW_SIZE)
-    plate = plan_text(lightest, xy, LOOP_FOLLOW, font, brand.BONE, "ms", spacing, halo_px=spread,
-                      halo_pad=full_halo_pad(spread), max_halo=cap)
-    if plate.empty:
+    # Operator ruling 2 (2026-11-17; panel F15 / MO-2: a 0.47-deep halo cloud held still while the ground crossfaded
+    # under it): the ONE overlay-label rule, typography.plan_label. Bone on the label halo (one spread, never above
+    # tok("halo.label_max")) judged on the LIGHTEST picture under it; else INK type judged on the DARKEST (the outgoing
+    # shot fully dimmed, the incoming frame 0); else a held INK plate behind the word, which loop_bridge fades and
+    # raises on the FOLLOW's own alpha curve (TextPlate.draw draws it with the word). The halo exception (a 40 px
+    # spread up to 1.0) is retired. Every frame under it is a mix of those two grounds and the dim only darkens.
+    if not drawable(LOOP_FOLLOW, font).strip():
         return None, "the word did not render"
-    plate.variant = "bone"
-    if (plate.contrast or 0.0) >= LOOP_FOLLOW_MIN:
-        return plate, None
     shape = (fit_dim(a_img)[0] * LOOP_DIM)[..., None]
     ink = np.array(brand.INK, np.float32)
     darkest = Image.fromarray(np.minimum.reduce([g * (1 - shape) + ink * shape for g in outgoing] + incoming)
                               .clip(0, 255).astype(np.uint8))
-    dark = plan_text(darkest, xy, LOOP_FOLLOW, font, brand.INK, "ms", spacing, halo_px=spread,
-                     halo_pad=full_halo_pad(spread), max_halo=0.0)
-    if (dark.contrast or 0.0) >= LOOP_FOLLOW_MIN:
-        dark.variant = "ink"
-        return dark, None
-    plate = plan_text(lightest, xy, LOOP_FOLLOW, font, brand.BONE, "ms", spacing, halo_px=LOOP_FOLLOW_HALO,
-                      halo_pad=full_halo_pad(LOOP_FOLLOW_HALO), max_halo=1.0)
-    plate.variant = "halo_exception"
-    if (plate.contrast or 0.0) < LOOP_FOLLOW_MIN:
-        return None, f"{plate.contrast or 0.0:.2f}:1 at its strongest halo (needs {LOOP_FOLLOW_MIN}:1)"
-    return plate, None
+    plates, rec = plan_label(lightest, [(xy, LOOP_FOLLOW, font, "ms", spacing)], (brand.BONE,),
+                             target=max(LOOP_FOLLOW_MIN, brand.PLACE_TARGET), dark_ground=darkest)
+    if not rec["shown"]:
+        return None, rec["reason"]
+    return plates[0], None
 
 
 def seam_problems(stats: dict[str, Any]) -> list[str]:

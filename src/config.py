@@ -840,7 +840,7 @@ CAPTION_PLATE_SLACK = 96   # px: bursts within this of a run's plate width share
 # than CAPTION_MAX_CPS characters a second are logged.
 CAPTION_READ_PER_CHAR = 0.045
 CAPTION_READ_BASE = 0.25
-CAPTION_MAX_CPS = 17.0
+CAPTION_MAX_CPS = 17.0    # brand_system GATES["motion.caption_cps"] is the source the composer reads (held equal)
 # QF-88 (operator decision, decisions QF-88-question, option B): the render fails when the caption timing shows a burst
 # faster than CAPTION_MAX_CPS and for less time than its own words take to say, by more than CAPTION_CPS_TIMING_SLACK_S
 # (a timing defect; the slack is the two-frame lead every burst shows with, which the programme's start clamps, plus

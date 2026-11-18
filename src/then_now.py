@@ -395,36 +395,55 @@ def source(topic: dict[str, Any], work_dir: Path) -> tuple[Path, dict[str, Any],
 # (about 46 px), tracked per format (0.118 of size on 16:9, the panel's cut on 0.15), and its year sits
 # KICKER_GAP_WIDE px of ink below it (measured on the drawn glyphs). 9:16 keeps its 34 px cap, 0.15 tracking and
 # its measured 28 px gap.
+# Cycle 0 round 8 (official panel 1 consensus 7, BC-4 / CD-12 / TY-A-7: the one surface family untouched since round
+# 1): THEN / NOW is the SYSTEM kicker (brand_system KICKER: the text face at kicker.weight, tracked kicker.track em, in
+# kicker.colour, led by its flat rule one cap long at mid-cap, kicker.rule_gap caps from the words) at the ladder's
+# kicker size per canvas; the year is a stated quantity (operator ruling 3: the figure face in figure.colour, gold);
+# both are one overlay label planned by the ONE rule (typography.plan_label, operator ruling 2): the label halo (one
+# spread, <= 0.16), INK type where the ground is paper, else a held INK plate. The halo boxes and glows are retired.
 YEAR_PX = {"portrait": 128, "landscape": 112}
-KICKER_CAP_WIDE = 32
 KICKER_GAP_WIDE = 24
-KICKER_TRACK = {"portrait": 0.15, "landscape": 0.118}   # the kicker's letter spacing, as a share of its size
-
-
-@lru_cache(maxsize=8)
-def _kicker_px_for_cap(cap: int) -> int:
-    """The smallest kicker size whose measured "THEN" cap height (its ink above the baseline) is at least `cap`."""
-    for px in range(24, 96):
-        if -get_font(brand.DATA_FONT, px, weight=600).getbbox("THEN", anchor="ls")[1] >= cap:
-            return px
-    return 96
 
 
 def kicker_px() -> dict[str, int]:
-    """The kicker's size per orientation: 48 on 9:16; on 16:9 the size whose THEN cap reaches KICKER_CAP_WIDE in the
-    active brand's data face (measured when drawn, QF-35a round 2: a value taken at import kept the first brand's)."""
-    return {"portrait": 48, "landscape": _kicker_px_for_cap(KICKER_CAP_WIDE)}
+    """The kicker's size per orientation: the system kicker's ladder size (brand_system TYPE "kicker") on the tall and
+    wide canvases."""
+    from .brand_system import type_px
+    return {"portrait": round(type_px("kicker", "tall")), "landscape": round(type_px("kicker", "wide"))}
+
+
+def kicker_font(key: str) -> Any:
+    """The THEN / NOW kicker's font: the system kicker (text face, kicker.weight) at kicker_px()[key]."""
+    from .brand_system import FACE, tok
+    return get_font(brand.active().font(FACE["kicker"]), kicker_px()[key], weight=tok("kicker.weight"))
+
+
+def kicker_track(key: str) -> float:
+    from .brand_system import tok
+    return tok("kicker.track") * kicker_px()[key]
+
+
+def kicker_lead(font: Any) -> tuple[int, int, int]:
+    """The kicker's lead rule on `font`: (length, gap to the words, thickness) px, the system kicker's tokens."""
+    from .brand_system import tok
+    ch = cap_height(font)
+    return (max(8, round(ch * tok("kicker.rule"))), round(ch * tok("kicker.rule_gap")),
+            max(3, round(ch * tok("kicker.rule_thick"))))
+
+
+def year_font(key: str) -> Any:
+    """The year's font: a stated quantity, the figure face (operator ruling 3) at YEAR_PX[key]."""
+    from .graphics import figure_font
+    return figure_font(YEAR_PX[key])
 
 
 # The kicker sits on the year as one lock-up: on 9:16 the year's anchor YEAR_OFFSET kicker sizes below the
-# kicker's. Each left-set line's first ink starts at the marker's x and each right-set line's last ink ends on it
-# (optical alignment measured from the drawn glyphs), so THEN, NOW and every leading digit line up. On 9:16 the NOW
-# kicker's cap top sits NOW_DROP px below the divider. Halo spread: KICKER_HALO px for the kicker, plan_text's own
-# default for the year, each cropped wide enough for its whole tail (typography.full_halo_pad).
+# kicker's. Left-set, the kicker's lead rule and the year's first ink start on the marker's column; right-set, the
+# kicker's last ink and the year's end on the marker's x (optical alignment measured from the drawn glyphs). On 9:16
+# the NOW kicker's cap top sits NOW_DROP px below the divider.
 YEAR_OFFSET = 1.30
 NOW_DROP = 96
 SPLIT_TALL = 0.4                    # 9:16: the divider's resting y as a share of the height (768 at 1920)
-KICKER_HALO = 36
 # Freeze panel 2026-11-04 (T8, fact safety): the recent photo's kicker reads NOW only for a photo at most
 # NOW_YEARS years old (UTC); an older "recent" photo reads LATER. The years drawn are always the ones passed in.
 NOW_YEARS = 25
@@ -943,8 +962,7 @@ def marker_xy(which: str, width: int, height: int, side: str = "left", word: str
     x, anchor = (x1 - 18, "rt") if side == "right" else (x0 + 18, "lt")
     if which == "then":
         return x, max(y0 + 42, TEXT_TOP), anchor
-    kicker = get_font(brand.DATA_FONT, kicker_px()["portrait"], weight=600)
-    return x, split + NOW_DROP - kicker.getbbox(word or "NOW", anchor="lt")[1], anchor
+    return x, split + NOW_DROP - kicker_font("portrait").getbbox(word or "NOW", anchor="lt")[1], anchor
 
 
 def _ink_left(font: Any, text: str) -> int:
@@ -979,25 +997,34 @@ def _ink(font: Any, text: str, track: float = 0, anchor: str = "lt") -> tuple[in
 
 def marker_lines(which: str, year: int, width: int, height: int, word: str | None = None,
                  side: str = "left") -> tuple[tuple[int, int], tuple[int, int], str]:
-    """(kicker xy, year xy, anchor) of a marker whose kicker reads `word` (default which.upper()). Left-set lines
-    are shifted by their first glyph's measured side bearing, so the kicker's and the year's first ink start on one
-    column (the column where the THEN kicker set at the marker's x inks); right-set ones (16:9 THEN, 9:16 side
-    "right") are shifted by their drawn last ink, so both end on the marker's x. The year sits YEAR_OFFSET kicker
-    sizes below on 9:16, and KICKER_GAP_WIDE px of drawn ink below the kicker's ink on 16:9."""
+    """(kicker words' xy, year xy, anchor) of a marker whose kicker reads `word` (default which.upper()). Left-set,
+    the kicker's lead rule starts on the marker's column and its words follow the rule's gap; the year's first ink
+    starts on the column (shifted by its measured side bearing). Right-set (16:9 THEN, 9:16 side "right"), the
+    kicker's words and the year end on the marker's x (their drawn last ink), the rule before the words. The year sits
+    YEAR_OFFSET kicker sizes below on 9:16, and KICKER_GAP_WIDE px of drawn ink below the kicker's ink on 16:9."""
     word = word or which.upper()
     x, y, anchor = marker_xy(which, width, height, side, word)
     key = "landscape" if width > height else "portrait"
-    kicker = get_font(brand.DATA_FONT, kicker_px()[key], weight=600)
-    figure = get_font(brand.DISPLAY_FONT, YEAR_PX[key])
-    track = kicker_px()[key] * KICKER_TRACK[key]
+    kicker, figure, track = kicker_font(key), year_font(key), kicker_track(key)
+    rule, gap, _ = kicker_lead(kicker)
     if key == "landscape":
         fy = y + _ink(kicker, word, track)[3] + KICKER_GAP_WIDE - _ink(figure, str(year))[1]
     else:
         fy = y + round(kicker_px()[key] * YEAR_OFFSET)
     if anchor[0] == "r":
         return ((x - _ink(kicker, word, track, "rt")[2], y), (x - _ink(figure, str(year), 0, "rt")[2], fy), anchor)
-    column = x + _ink_left(kicker, "THEN")
-    return (column - _ink_left(kicker, word), y), (column - _ink_left(figure, str(year)), fy), anchor
+    return (x + rule + gap - _ink_left(kicker, word), y), (x - _ink_left(figure, str(year)), fy), anchor
+
+
+def marker_rule(kxy: tuple[int, int], word: str, key: str, anchor: str) -> tuple[int, int, int, int]:
+    """The kicker's lead rule (x0, y0, x1, y1, inclusive) before its words set at `kxy` with `anchor`: one cap long
+    at mid-cap, kicker.rule_gap caps before the words' first ink."""
+    font, track = kicker_font(key), kicker_track(key)
+    rule, gap, thick = kicker_lead(font)
+    ink = _ink(font, word, track, anchor)
+    x_end = kxy[0] + ink[0] - gap
+    mid = kxy[1] + ink[3] - cap_height(font) / 2
+    return (round(x_end - rule), round(mid - thick / 2), round(x_end) - 1, round(mid - thick / 2) + thick - 1)
 
 
 def _marker_plate(split_frame: Image.Image, alone: Image.Image, xy: tuple[int, int], text: str, font: Any,
@@ -1047,7 +1074,6 @@ def year_cap(key: str) -> int:
 
 
 brand.on_change(year_cap.cache_clear)   # a measure in the display face: dropped when the brand changes
-brand.on_change(_kicker_px_for_cap.cache_clear)   # the kicker size measured in the data face (round 2)
 
 
 def band_fall(width: int, height: int) -> int:
@@ -1446,9 +1472,7 @@ def render(old: Path, old_year: int, new: Path, new_year: int, out: Path, width:
     a_src, b_src, framing = frame_pair(old, new, width, height)
     n = int(CLIP_SECONDS * VIDEO_FPS)
     key = "landscape" if width > height else "portrait"
-    kicker_font = get_font(brand.DATA_FONT, kicker_px()[key], weight=600)
-    year_font = get_font(brand.DISPLAY_FONT, YEAR_PX[key])
-    track = kicker_px()[key] * KICKER_TRACK[key]
+    k_font, y_font, track = kicker_font(key), year_font(key), kicker_track(key)
     split = _split_at(width, height)
     edge = max(width, height)
     srcs = {"then": a_src, "now": b_src}
@@ -1465,7 +1489,7 @@ def render(old: Path, old_year: int, new: Path, new_year: int, out: Path, width:
     def ink_boxes(which: str, ln: tuple) -> list:
         kxy, fxy, anchor = ln
         return [TextPlate(text, font, brand.BONE, xy, anchor, tr, 0, brand.INK, 0, False, size).box
-                for text, font, xy, tr in ((words[which], kicker_font, kxy, track), (str(years[which]), year_font, fxy, 0))]
+                for text, font, xy, tr in ((words[which], k_font, kxy, track), (str(years[which]), y_font, fxy, 0))]
 
     def padded(boxes: list, pad: int, clip: tuple) -> tuple:
         return (max(clip[0], min(b[0] for b in boxes) - pad), max(clip[1], min(b[1] for b in boxes) - pad),
@@ -1490,174 +1514,78 @@ def render(old: Path, old_year: int, new: Path, new_year: int, out: Path, width:
         ok, st = paper_gate(ink_boxes(w, lines[w]), [(split0, panel_box(w, width, height)), (alone0[w], (0, 0, width, height))])
         gate[w] = {"ok": ok, "split": st[0], "alone": st[1]}
 
-    def drawn(ps: list, im: Image.Image) -> Image.Image:
-        for p in ps:
-            im = p.draw(im)
-        return im
+    # Cycle 0 round 8 (operator ruling 2; panel consensus 7): each marker (its kicker and its year) is ONE overlay
+    # label, planned by typography.plan_label on the lightest and the darkest of the pictures it sits on (its split
+    # and its alone frame): the kicker in kicker.colour and the year in figure.colour on the label halo (<= 0.16),
+    # else bone, else INK type (only where the ground under it is paper: paper_gate keeps ink off line art), else a
+    # held INK plate holding the kicker's rule. The pair takes ONE variant (the later of the two each needs), so the
+    # two markers read in one treatment. The halo up to 1.0 and the glows are retired.
+    from .brand_system import colour_of
+    from .typography import plan_label
+    import numpy as np
+    rules = {w: marker_rule(lines[w][0], words[w], key, lines[w][2]) for w in years}
+    lightest = {w: Image.fromarray(np.maximum(np.asarray(split0), np.asarray(alone0[w]))) for w in years}
+    darkest = {w: Image.fromarray(np.minimum(np.asarray(split0), np.asarray(alone0[w]))) for w in years}
+    fills = [colour_of("kicker.colour"), colour_of("figure.colour")]
 
-    def short(ps: list, split_im: Image.Image, alone_im: Image.Image) -> bool:
-        """Is any marker line under PLACE_TARGET as drawn with its marker's other line (measured on the delivered
-        pixels, on the split and on the marker's alone frame)?"""
-        on_split, on_alone = drawn(ps, split_im), drawn(ps, alone_im)
-        return any(min(p.contrast or 0, p.measure(on_split) or 0, p.measure(on_alone) or 0) < PLACE_TARGET
-                   for p in ps)   # review round 2 (T2b): the planned ratio too, not only the drawn ones
+    def plan(which: str, start: str):
+        kxy, fxy, anchor = lines[which]
+        return plan_label(lightest[which], [(kxy, words[which], k_font, anchor, track),
+                                            (fxy, str(years[which]), y_font, anchor, 0)],
+                          ([tuple(c) for c in fills], [tuple(brand.BONE)] * 2), target=PLACE_TARGET,
+                          dark_ground=darkest[which], ink=INK_ON_PAPER and gate[which]["ok"], extra=[rules[which]],
+                          start=start)
 
+    from .typography import LABEL_VARIANTS
+    planned = {w: plan(w, "colour") for w in years}
+    start = "colour"
+    while True:
+        variants = [rec["variant"] for _, rec in planned.values() if rec["shown"]]
+        if len(set(variants)) <= 1:
+            break
+        start = max(variants, key=LABEL_VARIANTS.index)
+        replanned = {w: plan(w, start) for w in years}
+        if all(r["shown"] for _, r in replanned.values()) or not all(r["shown"] for _, r in planned.values()):
+            planned = replanned
+        if start == LABEL_VARIANTS[-1]:
+            break
     plates: dict[str, list] = {}
     mode: dict[str, str] = {}
-    for w in ("then", "now"):
-        if not (INK_ON_PAPER and gate[w]["ok"]):
-            continue
-        kxy, fxy, anchor = lines[w]
-        ps = [_marker_plate(split0, alone0[w], kxy, words[w], kicker_font, brand.INK, anchor, track, halo_px=0, min_halo=0.0),
-              _marker_plate(split0, alone0[w], fxy, str(years[w]), year_font, brand.INK, anchor, 0, halo_px=0, min_halo=0.0)]
-        if short(ps, split0, alone0[w]) or min(p.contrast or 0 for p in ps) < INK_TARGET:
-            log.info("Then-and-now: ink type on paper plans %s for %s (under %.1f); bone/gold type instead.",
-                     "/".join(f"{p.contrast or 0:.2f}" for p in ps), w, INK_TARGET)
-            gate[w]["ink_short"] = [round(p.contrast or 0, 2) for p in ps]
-            continue
-        plates[w], mode[w] = ps, "ink"
-    rest = [w for w in ("then", "now") if w not in plates]
-    shades: dict[str, Any] = {}          # each bone/gold marker's glow (float alpha, its whole photo)
-    steps: dict[str, str] = {}
-    depth: dict[str, float] = {}
-    colours: dict[str, Any] = {}
-    pair_colour: list[Any] = [brand.BONE if len(rest) == 1 and plates else None]
-
-    def split_shaded() -> Image.Image:
-        if not shades:
-            return split0
-        return _shade(split0, _union([(clip_to_photo(m, w, split), 1.0) for w, m in shades.items()]))
-
-    def alone_shaded(which: str) -> Image.Image:
-        if not shades:
-            return alone0[which]
-        return _shade(alone0[which], _union([(clip_to_photo(m, w, at[which]), 1.0) for w, m in shades.items()]))
-
-    def plan_marker(which: str, split_im: Image.Image, alone_im: Image.Image, max_halo: float) -> list:
-        kxy, fxy, anchor = lines[which]
-        # Gold, unless a bright sky keeps it under 4.5:1 at a full halo: then bone, which clears it there.
-        for colour in ((pair_colour[0],) if pair_colour[0] is not None else (brand.GOLD, brand.BONE)):
-            kicker = _marker_plate(split_im, alone_im, kxy, words[which], kicker_font, colour, anchor, track,
-                                   halo_px=KICKER_HALO, min_halo=0.5, target=PLACE_TARGET + 0.6, max_halo=max_halo)
-            colours[which] = colour
-            if (kicker.contrast or 0) >= PLACE_TARGET and (kicker.measure(alone_im) or 0) >= PLACE_TARGET:
-                break
-        figure = _marker_plate(split_im, alone_im, fxy, str(years[which]), year_font, brand.BONE, anchor, 0, halo_px=None,
-                               min_halo=0.35, max_halo=max_halo)
-        return [kicker, figure]
-
-    def halo_cap(which: str) -> float:
-        """The halo's cap while a glow is used: GLOW_HALO_CAP, or 1.0 on a ground whose local mean luma is at least
-        CLOUD_Y, where a glow reads as a grey cloud and the tight halo is the lesser darkening (review round 3)."""
-        return 1.0 if (gate[which]["split"] or {}).get("mean", 0.0) >= CLOUD_Y else GLOW_HALO_CAP
-
-    def plan_all() -> dict[str, list]:
-        shades.clear()
-        steps.clear()
-        depth.clear()
-        ps = {w: plan_marker(w, split0, alone0[w], 1.0) for w in rest}
-        if not any(short(ps[w], split0, alone0[w]) for w in rest):
-            steps.update({w: "halo" for w in rest})
-            return ps
-        # A glow is needed: the pair's halo is capped at GLOW_HALO_CAP (1.0 on a bright ground, review round 3) and
-        # the shortfall made up in order.
-        for w in rest:
-            sp, al = split_shaded(), alone_shaded(w)
-            cap_w = halo_cap(w)
-            p = plan_marker(w, sp, al, cap_w)
-            if not short(p, sp, al):
-                ps[w], steps[w] = p, f"halo<={cap_w:.2f}"
-                continue
-            boxes = [q.box for q in p]
-            mean_y = (gate[w]["split"] or {}).get("mean", 0.0)
-            capped = [d for d in BAND_STEPS if d <= GLOW_BRIGHT_CAP + 1e-9] if mean_y >= GLOW_BRIGHT_Y else list(BAND_STEPS)
-            ladder = ([(d, cap_w, "glow" if cap_w < 1.0 else "glow (halo 1.0 first)") for d in capped]
-                      + ([(capped[-1], 1.0, "glow+halo<=1.0")] if cap_w < 1.0 else [])
-                      + [(d, 1.0, "deep glow") for d in BAND_STEPS if d > capped[-1]])
-            for d, mh, step in ladder:
-                if depth.get(w) != d:
-                    shades[w] = band_mask(w, boxes, width, height, d, pos=at[w], as_float=True, ground_y=mean_y)
-                sp, al = split_shaded(), alone_shaded(w)
-                p = plan_marker(w, sp, al, mh)
-                steps[w], depth[w] = f"{step} {d:.2f}", d
-                if not short(p, sp, al):
-                    break
-            ps[w] = p
-        return ps
-
-    if rest:
-        planned = plan_all()
-        if len(rest) == 2 and len({colours[w] for w in rest}) > 1:   # one gold, one bone: both bone
-            pair_colour[0] = brand.BONE
-            planned = plan_all()
-        # One halo for the pair (T2): the largest any bone/gold line needed, at least PAIR_HALO_FLOOR.
-        halo_h = max(p.halo for w in rest for p in planned[w])
-        if halo_h > 0:
-            halo_h = max(halo_h, PAIR_HALO_FLOOR)
-        # Review round 2 (T2b): the pair's one halo can leave a line short that its own plan held (Odessa 9:16
-        # ink off: NOW's kicker at 4.78). Then the shortfall is made up in T2's order, with the halo kept one for
-        # the pair: the halo up to its cap (GLOW_HALO_CAP while a glow is used), the short marker's glow a step
-        # deeper up to the bright-ground cap, the halo up to 1.0, then the deeper BAND_STEPS.
-        def resolve_pair() -> list:
-            sp = split_shaded()
-            bad = []
-            for w in rest:
-                al = alone_shaded(w)
-                for p in planned[w]:
-                    p.solve(al, PLACE_TARGET, min_halo=halo_h, max_halo=halo_h)
-                    p.solve(sp, PLACE_TARGET, min_halo=halo_h, max_halo=halo_h)
-                if short(planned[w], sp, al):
-                    bad.append(w)
-            return bad
-
-        def deepen(w: str, cap: float, step: str) -> bool:
-            nxt = [d for d in BAND_STEPS if d > (depth.get(w) or 0.0) + 1e-9 and d <= cap + 1e-9]
-            if not nxt:
-                return False
-            shades[w] = band_mask(w, [q.box for q in planned[w]], width, height, nxt[0], pos=at[w], as_float=True,
-                                  ground_y=(gate[w]["split"] or {}).get("mean"))
-            depth[w], steps[w] = nxt[0], f"{step} {nxt[0]:.2f} (pair)"
-            return True
-
-        bad = resolve_pair()
-        while bad:
-            hcap = min(halo_cap(w) for w in shades) if shades else 1.0
-            if halo_h < hcap - 1e-9:
-                halo_h = min(hcap, round(halo_h + 0.05, 4))
-            elif not any([deepen(w, GLOW_BRIGHT_CAP if (gate[w]["split"] or {}).get("mean", 0.0) >= GLOW_BRIGHT_Y
-                                 else 1.0, "glow") for w in bad]):
-                if halo_h < 1.0 - 1e-9:
-                    halo_h = min(1.0, round(halo_h + 0.05, 4))
-                    for w in bad:
-                        steps[w] = f"glow+halo<=1.0 {depth.get(w) or 0.0:.2f} (pair)"
-                elif not any([deepen(w, 1.0, "deep glow") for w in bad]):
-                    log.info("Then-and-now: %s short at the pair's halo %.2f and the deepest glow.", bad, halo_h)
-                    break
-            bad = resolve_pair()
-        for w in rest:
-            plates[w], mode[w] = planned[w], ("gold" if colours[w] == brand.GOLD else "bone")
-    else:
-        halo_h = 0.0
-    log.info("Then-and-now type: THEN %s, NOW %s (%s); halo %.2f; %s.", mode["then"], mode["now"],
-             "/".join(words[w] for w in ("then", "now")), halo_h,
-             ", ".join(f"{w} {steps[w]}" for w in rest) or "no bone/gold marker")
+    for w in years:
+        ps, rec = planned[w]
+        if not rec["shown"]:
+            log.warning("Then-and-now: the %s marker is not drawn: %s.", w, rec["reason"])
+        plates[w], mode[w] = ps, (rec["variant"] if rec["shown"] else "none")
+        if rec["shown"] and getattr(ps[0], "backing", None) is not None:
+            ps[0].backing.parent.devices.append((rules[w], tuple(ps[0].fill)))   # the rule rides on its plate
+    halo_h = max((p.halo for w in years for p in plates[w]), default=0.0)
+    log.info("Then-and-now type: THEN %s, NOW %s (%s); halo %.2f.", mode["then"], mode["now"],
+             "/".join(words[w] for w in ("then", "now")), halo_h)
     LAST_PAPER.clear()
     LAST_PAPER.update({w: {**gate[w], "mode": "ink" if mode[w] == "ink" else "bone/gold"} for w in years})
 
-    # The group schedule (T5): G is each marker's ink boxes padded by its lines' own halo spreads.
-    spread = {w: (0, 0) if mode[w] == "ink" else (KICKER_HALO, _year_halo_px(year_font)) for w in years}
-    groups = {w: (min(p.box[0] - s for p, s in zip(plates[w], spread[w])), min(p.box[1] - s for p, s in zip(plates[w], spread[w])),
-                  max(p.box[2] + s for p, s in zip(plates[w], spread[w])), max(p.box[3] + s for p, s in zip(plates[w], spread[w])))
-              for w in years}
+    # The group schedule (T5): G is each marker's ink boxes and rule, padded by its halo's tail, or its plate.
+    from .brand_system import label_halo
+
+    def group(which: str) -> tuple:
+        ps = [p for p in plates[which] if not p.empty]
+        if not ps:
+            return (0, 0, 0, 0)
+        if getattr(ps[0], "backing", None) is not None:
+            return tuple(ps[0].backing.parent.box)
+        pad = max((full_halo_pad(label_halo(p.font.size)[0]) if p.halo > 0 else 0) for p in ps)
+        boxes = [p.box for p in ps] + [rules[which]]
+        return (min(b[0] for b in boxes) - pad, min(b[1] for b in boxes) - pad,
+                max(b[2] for b in boxes) + pad, max(b[3] for b in boxes) + pad)
+    groups = {w: group(w) for w in years}
     positions = [divider_at(i / VIDEO_FPS, width, height) for i in range(n)]
     sched = {w: group_alpha([group_clear(groups[w], w, positions[i], width, height) for i in range(n)]) for w in years}
     for i in range(n):
         sched["then"][i] *= _ease((i / VIDEO_FPS - 0.1) / 0.3)
 
-    meta = {"type_mode": dict(mode), "kicker": dict(words), "halo": round(halo_h, 2), "glow_step": dict(steps),
-            "glow_depth": {w: depth.get(w) for w in years},
-            "glow_fall": {w: glow_fall(width, height, depth[w], (gate[w]["split"] or {}).get("mean")) if depth.get(w)
-                          else None for w in years},
+    meta = {"type_mode": dict(mode), "kicker": dict(words), "halo": round(halo_h, 2),
+            "label": {w: {k: v for k, v in planned[w][1].items() if k != "tried"} for w in years},
+            "rules": {w: list(rules[w]) for w in years},
             "paper_gate": gate, "side": side_meta,
             "framing": framing, "groups": {w: list(groups[w]) for w in years},
             "planned_contrast": {f"{w}_{part}": round(p.contrast or 0, 2) for w in ("then", "now")
@@ -1670,10 +1598,13 @@ def render(old: Path, old_year: int, new: Path, new_year: int, out: Path, width:
     def layer(which: str, t: float, g: float) -> Image.Image:
         """One photo at this frame's push with its own glow and labels at the group alpha `g`."""
         im = pushed(srcs[which], t, size)
-        if g <= 0:
+        if g <= 0 or not plates[which]:
             return im
-        if which in shades:
-            im = _shade(im, shades[which], g)
+        if getattr(plates[which][0], "backing", None) is None:   # the kicker's rule (on a plate, the plate draws it)
+            x0, y0, x1, y1 = rules[which]
+            lay = Image.new("RGBA", im.size, (0, 0, 0, 0))
+            ImageDraw.Draw(lay).rectangle([x0, y0, x1, y1], fill=tuple(plates[which][0].fill) + (round(255 * g),))
+            im = Image.alpha_composite(im.convert("RGBA"), lay).convert("RGB")
         for p in plates[which]:
             im = p.draw(im, g)
         return im
@@ -1698,7 +1629,7 @@ def render(old: Path, old_year: int, new: Path, new_year: int, out: Path, width:
     clip = _encode(frames(), out, n, width=width, height=height)
     if "frame" in final:
         record_contrast(clip, final["frame"], [(f"{w}_{part}", p) for w in ("then", "now")
-                                               for part, p in zip(("kicker", "year"), plates[w])])
+                                               for part, p in zip(("kicker", "year"), plates[w]) if plates[w]])
         side_car = Path(str(clip) + ".contrast.json")
         try:
             if side_car.exists():

@@ -168,11 +168,14 @@ def test_the_label_halo_is_one_spread_and_capped():
     spread, cap = brand_system.label_halo(64)
     assert spread == round(brand_system.tok("halo.label_spread") * 64) and cap <= 0.16
     assert brand_system.TOKEN_RANGES["halo.label_max"][1] <= brand_system.HALO_CAP   # never above the ruled cap
-    src = (ROOT / "src" / "end_card.py").read_text(encoding="utf-8")
-    tree = ast.parse(src)
-    users = {n.name for n in ast.walk(tree) if isinstance(n, ast.FunctionDef)
-             and any(isinstance(c, ast.Call) and getattr(c.func, "id", "") == "label_halo" for c in ast.walk(n))}
-    assert {"_follow_plate", "frames"} <= users                              # both follow labels read the token
+    # cycle 0 round 8 (operator ruling 2): both follow labels plan through typography.plan_label, which reads the
+    # token (label_halo); updated from "each calls label_halo itself"
+    def users(path, name):
+        tree = ast.parse((ROOT / "src" / path).read_text(encoding="utf-8"))
+        return {n.name for n in ast.walk(tree) if isinstance(n, ast.FunctionDef)
+                and any(isinstance(c, ast.Call) and getattr(c.func, "id", "") == name for c in ast.walk(n))}
+    assert {"_follow_plate", "frames"} <= users("end_card.py", "plan_label")
+    assert "plan_label" in users("typography.py", "label_halo")
 
 
 # ----------------------------------------------------------------------------------------- F9: hero windows

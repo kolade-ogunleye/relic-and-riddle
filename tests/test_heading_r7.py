@@ -402,18 +402,24 @@ def test_every_kicker_passes_its_gate_or_is_not_drawn():
     dark = Image.new("RGB", (900, 200), brand.INK)
     plate, rec = multi_format.plan_kicker(dark, (60, 120), "THE RIDDLE", font, brand.GOLD, "ls", 6)
     assert plate is not None and rec["variant"] == "colour" and rec["contrast"] >= rec["gate"] == 5.5
+    # cycle 0 round 8 (operator ruling 2): a mid grey that neither gold, bone nor INK type carries takes the held
+    # INK plate (it was refused); the fail-closed path is forced by a label rule that carries no variant
     grey = Image.new("RGB", (900, 200), (128, 128, 128))
-    plate, rec = multi_format.plan_kicker(grey, (60, 120), "THE RIDDLE", font, brand.GOLD, "ls", 6, max_halo=0.0)
-    assert plate is None and rec["shown"] is False and "kicker gate" in rec["reason"]
-    # drawn through draw_kicker: nothing at all is drawn under the gate (no rule, no words)
-    from src.still_layout import Layout
-    lay = Layout("carousel", (900, 200), (0, 0, 900, 200))
-    real = multi_format.plan_text
+    plate, rec = multi_format.plan_kicker(grey, (60, 120), "THE RIDDLE", font, brand.GOLD, "ls", 6)
+    assert plate is not None and rec["variant"] in ("ink", "plate") and rec["contrast"] >= rec["gate"]
+    from src import typography
+    real = typography.plan_label
+    typography.plan_label = lambda *a, **k: ([], {"shown": False, "tried": [("plate", 3.1)], "best_tried": 3.1,
+                                                  "reason": "none"})
     try:
-        multi_format.plan_text = lambda *a, **k: real(*a, **{**k, "max_halo": 0.0})
+        plate, rec = multi_format.plan_kicker(grey, (60, 120), "THE RIDDLE", font, brand.GOLD, "ls", 6)
+        assert plate is None and rec["shown"] is False and "kicker gate" in rec["reason"]
+        # drawn through draw_kicker: nothing at all is drawn under the gate (no rule, no words)
+        from src.still_layout import Layout
+        lay = Layout("carousel", (900, 200), (0, 0, 900, 200))
         out, _ = multi_format.draw_kicker(grey.copy(), 60, 120, "THE RIDDLE", font, brand.GOLD, lay)
     finally:
-        multi_format.plan_text = real
+        typography.plan_label = real
     assert np.array_equal(np.asarray(out.convert("RGB")), np.asarray(grey))
     assert lay.meta["kickers"]["kicker"]["shown"] is False
 

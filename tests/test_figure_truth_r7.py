@@ -241,12 +241,14 @@ def test_a_drawn_number_is_joined_to_its_unit_by_the_token_gap():
 # ----------------------------------------------------------------------------------- F14 place labels
 
 def test_one_place_label_role_for_the_map_and_the_route():
+    # cycle 0 round 8 (operator ruling 1): the story's own site is one step up, the same face (was place.px)
     _lines, font = graphics.marker_label_lines("Catherine Palace", *TALL)
-    assert _family(font) == brand.TEXT_FONT and font.size == brand_system.tok("place.px")
+    assert _family(font) == brand.TEXT_FONT
+    assert font.size == round(brand_system.tok("place.px") * brand_system.tok("place.site_step"))
     assert graphics.place_steps(*TALL) == [34, 32, 30, 28] == list(graphics.ROUTE_NAME_STEPS)
     assert graphics.place_steps(*WIDE)[0] == 34
     with brand.use(brand.DEFAULT_BRAND.derive("bigger places", system={"place.px": 40})):
-        assert graphics.marker_label_lines("Catherine Palace", *TALL)[1].size == 40
+        assert graphics.marker_label_lines("Catherine Palace", *TALL)[1].size == round(40 * 1.4)
         assert graphics.place_steps(*TALL)[0] == 40
 
 
@@ -259,16 +261,14 @@ def test_a_place_labels_halo_never_passes_the_system_cap(ground):
     assert plate.contrast >= brand_system.tok("contrast.place"), (ground, plate.fill, plate.contrast)
 
 
-def test_on_the_mid_grey_dead_band_the_gate_outranks_the_cap_up_to_the_exception_ceiling():
-    """A flat 120-luma ground: bone at 0.16 measures 4.31, INK 4.38; bone takes the least deeper halo that reaches
-    the placement target (round 7 integration: the gate outranks the cap; a busy route relief needed more than 0.24)."""
+def test_on_the_mid_grey_dead_band_the_label_takes_the_held_plate():
+    """A flat 120-luma ground: bone at 0.16 measures 4.31, INK 4.38. Cycle 0 round 8 (operator ruling 2): the
+    halo exception (bone at the least deeper halo, a cloud) is retired; the label takes a held INK plate, bone on it,
+    no halo. Updated from the round-7 exception for that reason."""
     rest = graphics.Image.new("RGB", (900, 300), (120, 120, 120))
     plate = graphics.place_plate(rest, (100, 150), "CATHERINE PALACE", graphics.place_font(34), "ls")
-    assert plate.contrast >= brand_system.tok("contrast.place")
-    assert plate.halo > brand_system.tok("place.halo_max")
-    lighter = graphics.plan_text(rest, (100, 150), "CATHERINE PALACE", graphics.place_font(34), brand.BONE, "ls",
-                                 halo_px=brand_system.tok("place.halo_px"), max_halo=plate.halo - 0.08)
-    assert lighter.contrast < brand_system.tok("contrast.place")            # the least halo that reaches it
+    assert plate.variant == "plate" and plate.halo == 0.0 and plate.fill == tuple(brand.BONE)
+    assert plate.measure(plate.draw(rest)) >= brand_system.tok("contrast.place")
 
 
 def test_no_place_label_is_planned_outside_the_role():

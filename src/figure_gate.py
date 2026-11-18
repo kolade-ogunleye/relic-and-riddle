@@ -24,7 +24,15 @@ whole, with its hedge:
 
 Elements that draw derived or structural numbers are named and counted, not judged here: ruler and axis ticks (the
 zero-datum critic judges them), a map's scale bar, the reference landmark's sourced figure and its note, the line of
-meaning's ratio, a chapter numeral and its total, credits and licence lines. An element whose record carries no text
+meaning's ratio, a chapter numeral and its total, credits and licence lines. A timeline's gap label ("53 YEARS
+LATER") is derived AND checked (SYS-R8-1): its record carries the rule and its two operands (graphics.derive_gap), and
+the gate re-computes figures.elapsed from them, each operand a signed timeline year; a wrong gap fails.
+
+Captions are judged across the spoken sequence, never card by card: the bursts joined in order, read with the
+narration's own punctuation wherever the caption words are the narration's words (caption_text: a sentence's lead
+hedge and its full stops survive; a word that differs is judged as drawn). A deep dive's narration is its acts'
+narration_text (narration()). So a hedge the narration states as a sentence's lead is the caption's hedge too, and a
+caption that drops the hedge's words, or changes a figure, fails. An element whose record carries no text
 (a record written before records carried it) cannot be judged and holds the run for review: fail closed.
 
 Topic-agnostic: no topic names; the vocabularies are src/figures.py's.
@@ -46,14 +54,15 @@ DERIVED = re.compile(r"^(then_year|now_year|ruler|axis|tick|scale$|scale_seconda
                      r"source|badge)", re.IGNORECASE)
 CONVERSION = re.compile(r"^(figure_metric|secondary|conversion|figure_conv)", re.IGNORECASE)
 SKIP_DIRS = ("stage_cache", "source_versions", "archive", "graphics_redrawn_tmp")
-CONVERT_TOL = 0.02     # a conversion within 2 % of a signed value in the other system (rounded as measurement_text)
+# a conversion within 2 % of a signed value in the other system: figures' one constant, which the renderers' conversion
+# rule (figures.converted_number) draws within, so the two never disagree (SYS-R8-1)
+CONVERT_TOL = figures.CONVERT_TOL
 SIGNED_COPY_KEYS = ("narration_script", "title", "caption", "description", "carousel_caption", "carousel_slides",
                     "story_slides", "thumbnail", "thumbnail_youtube", "hook_sentence", "closing_sentence", "end_card",
                     "share_line", "first_comment", "poll", "photo_labels", "emphasis_words", "stat_cards", "location")
 
-_FT_PER = {"FT": 1.0, "M": 3.28084, "KM": 3280.84, "MILES": 5280.0, "MI": 5280.0, "CM": 0.0328084, "IN": 1 / 12,
-           "YD": 3.0}
-_LB_PER = {"LB": 1.0, "KG": 2.20462, "TONNES": 2204.62, "TONS": 2000.0}
+_FT_PER = figures.LENGTH_PER_FT
+_LB_PER = figures.MASS_PER_LB
 
 
 def _strings(value: Any) -> Iterable[str]:
@@ -67,11 +76,34 @@ def _strings(value: Any) -> Iterable[str]:
             yield from _strings(v)
 
 
+def narration(payload: Mapping[str, Any]) -> str:
+    """The run's narration as one text: the Reel's narration_script, or a deep dive's acts' own narration_text in act
+    order, each act a sentence of its own (SYS-R8-1: a deep-dive payload has no narration_script, so its captions and
+    its hedges were judged without the narration they speak)."""
+    text = payload.get("narration_script")
+    if isinstance(text, str) and text.strip():
+        return text
+    acts = payload.get("acts") or []
+    parts = []
+    for act in sorted((a for a in acts if isinstance(a, Mapping)), key=lambda a: a.get("act_number") or 0):
+        t = " ".join(str(act.get("narration_text") or "").split())
+        if t:
+            parts.append(t if t[-1] in ".!?" else t + ".")
+    return " ".join(parts)
+
+
 def signed_texts(payload: Mapping[str, Any]) -> list[str]:
-    """The run's signed copy and its signed graphics fields, as texts the figure parser reads."""
+    """The run's signed copy and its signed graphics fields, as texts the figure parser reads (a deep dive: its acts'
+    narration and titles and its YouTube title too)."""
     out: list[str] = []
     for key in SIGNED_COPY_KEYS:
         out += list(_strings(payload.get(key)))
+    if not payload.get("narration_script") and payload.get("acts"):
+        out.append(narration(payload))
+        for act in payload.get("acts") or []:
+            if isinstance(act, Mapping) and act.get("act_title"):
+                out.append(str(act["act_title"]))
+        out += list(_strings(payload.get("youtube_title")))
     sheet = payload.get("fact_sheet") or {}
     for fact in (sheet.get("facts") or []) if isinstance(sheet, Mapping) else []:
         if isinstance(fact, Mapping):
@@ -96,12 +128,7 @@ def signed_texts(payload: Mapping[str, Any]) -> list[str]:
 
 
 def _in_feet(value: float, unit: str) -> tuple[str, float] | None:
-    u = figures._canon(unit)
-    if u in _FT_PER:
-        return "length", value * _FT_PER[u]
-    if u in _LB_PER:
-        return "mass", value * _LB_PER[u]
-    return None
+    return figures.in_base(value, unit)
 
 
 def _converts(d: figures.Figure, signed: list[figures.Figure], need_hedge: bool = True) -> bool:
@@ -110,9 +137,7 @@ def _converts(d: figures.Figure, signed: list[figures.Figure], need_hedge: bool 
         for v in (s, s.conv):
             if v is None or not v.unit or len(v.values) != len(d.values):
                 continue
-            pairs = [(_in_feet(a, d.unit), _in_feet(b, v.unit)) for a, b in zip(d.values, v.values)]
-            if all(x and y and x[0] == y[0] and abs(x[1] - y[1]) <= CONVERT_TOL * max(abs(y[1]), 1e-9) + 1e-9
-                   for x, y in pairs):
+            if all(figures.within_tol(a, d.unit, b, v.unit) for a, b in zip(d.values, v.values)):
                 if need_hedge and s.hedge and not d.hedge and all(o.hedge for o in signed if o.values == s.values):
                     continue
                 return True
@@ -186,8 +211,9 @@ def _elements(run_dir: Path) -> Iterable[tuple[str, str, dict[str, Any]]]:
         if isinstance(data, dict) and data.get("clip") == "captions":
             # the caption file's bursts are cards of ONE spoken sequence: a hedge on one card ("AS MANY") and its
             # figure on the next ("AS 20,000 PEOPLE") are one figure, so the cue text is judged joined, in order
-            # (production audit 2026-11-18: runs 1793314157, 1793433058)
-            yield surface, "captions", {"name": "captions", "text": caption_sequence(data)}
+            # (production audit 2026-11-18: runs 1793314157, 1793433058); check_run reads the narration's
+            # punctuation where the words are the narration's (caption_text, SYS-R8-1)
+            yield surface, "captions", {"name": "captions", "text": caption_sequence(data), "_captions": True}
             continue
         joined: list[dict[str, Any]] = []
         for e in (data.get("elements") or []) if isinstance(data, dict) else []:
@@ -202,6 +228,34 @@ def _elements(run_dir: Path) -> Iterable[tuple[str, str, dict[str, Any]]]:
             joined.append({**e, "_last": t})
         for e in joined:
             yield surface, str(e.get("name") or ""), e
+
+
+_WORD = re.compile(r"\S+")
+
+
+def _norm(word: str) -> str:
+    return re.sub(r"[^\w]", "", word.lower())
+
+
+def caption_text(sequence: str, narration_text: str) -> str:
+    """The caption sequence as the parser reads it (SYS-R8-1): a caption's words carry no punctuation, so a sentence's
+    lead ("By one estimate, ...") and its full stops were lost, and its hedge with them. Where the caption words ARE
+    the narration's words, in order (difflib over the words, letters and digits only), the narration's own text for
+    them is read, punctuation and all; a caption word that differs from the narration (a changed figure, a dropped
+    hedge word) stays as drawn and is judged as drawn. Captions are judged across the sequence, not card by card."""
+    if not narration_text or not sequence:
+        return sequence
+    import difflib
+    cap = sequence.split()
+    nar = [(m.group(0), m.start(), m.end()) for m in _WORD.finditer(narration_text)]
+    sm = difflib.SequenceMatcher(None, [_norm(w) for w in cap], [_norm(w) for w, _a, _b in nar], autojunk=False)
+    out: list[str] = []
+    for tag, i1, i2, j1, j2 in sm.get_opcodes():
+        if tag == "equal":
+            out.append(narration_text[nar[j1][1]:nar[j2 - 1][2]])
+        elif i2 > i1:
+            out.append(" ".join(cap[i1:i2]))
+    return " ".join(out)
 
 
 def caption_sequence(record: Mapping[str, Any]) -> str:
@@ -272,10 +326,61 @@ def _merged(elements: Iterable[tuple[str, str, dict[str, Any]]]) -> Iterable[tup
     yield from flush()
 
 
+# A timeline's gap label rows ("gap2", its continuation "gap2_1"): derived from the two signed years it spans.
+GAP = re.compile(r"^gap\d+(?:_\d+)?$")
+
+
+def _signed_years(payload: Mapping[str, Any]) -> dict[int, bool]:
+    """{year: approximate} of the run's signed timeline entries (negative years BC)."""
+    out: dict[int, bool] = {}
+    for ev in payload.get("timeline") or []:
+        if isinstance(ev, Mapping) and ev.get("year") is not None:
+            try:
+                out[int(ev["year"])] = bool(ev.get("approximate"))
+            except (TypeError, ValueError):
+                continue
+    return out
+
+
+def gap_faults(text: str, derived: Mapping[str, Any] | None, payload: Mapping[str, Any]) -> list[str]:
+    """[] when a gap label's figure is the elapsed time figures.elapsed gives between two signed years; else one line
+    per fault. With the renderer's `derived` record (its rule and operands: graphics.derive_gap) the arithmetic is
+    re-computed from those operands, each of which must be a signed timeline year at its signed precision. A record
+    without one (written before records carried operands) is checked against every ordered pair of signed years (the
+    renderer draws a gap between two kept entries, oldest first): the label passes only when one pair's rule gives it."""
+    figs = [f for f in figures.parse(text) if f.values]
+    if not figs:
+        return []                 # a continuation row ("LATER"): no figure
+    if len(figs) != 1 or figs[0].hi:
+        return ["a gap label states one elapsed time"]
+    d = figs[0]
+    shown, hedged = round(d.values[0]), bool(d.hedge)
+    years = _signed_years(payload)
+    if isinstance(derived, Mapping) and derived.get("rule") == "elapsed_years":
+        a, b, approx = int(derived["from"]), int(derived["to"]), bool(derived.get("approximate"))
+        out = [f"its operand {y} is not a signed timeline year" for y in (a, b) if y not in years]
+        if not out and approx != (years[a] or years[b]):
+            out.append(f"its operands' precision (approximate {approx}) is not the signed dates'")
+        want = figures.elapsed(a, b, approx)
+        if want is None:
+            out.append(f"no gap is drawn under two years ({a} to {b})")
+        elif (shown, hedged) != want:
+            out.append(f"the elapsed time from {a} to {b} is {'ABOUT ' if want[1] else ''}{want[0]:,} years by the "
+                       "timeline's rule")
+        return out
+    ordered = sorted(years)
+    for i, a in enumerate(ordered):
+        for b in ordered[i + 1:]:
+            if figures.elapsed(a, b, years[a] or years[b]) == (shown, hedged):
+                return []
+    return [f"no two signed timeline years are {'about ' if hedged else ''}{shown:,} years apart by the timeline's rule"]
+
+
 def check_run(run_dir: Path, payload: Mapping[str, Any]) -> dict[str, Any]:
     """The gate on one run: {"faults": [...], "unrecorded": [...], "judged": n, "derived": n, "surfaces": n}. Each
     fault names the surface, the element, the drawn figure, what is wrong and the nearest signed value."""
     signed = figures.signed_figures(signed_texts(payload))
+    spoken = narration(payload)
     faults, unrecorded = [], []
     judged = derived = 0
     surfaces: set[str] = set()
@@ -289,7 +394,14 @@ def check_run(run_dir: Path, payload: Mapping[str, Any]) -> dict[str, Any]:
             continue
         texted.add(surface)
         text = str(e.get("text") or "")
+        if e.get("_captions"):
+            text = caption_text(text, spoken)
         if not any(ch.isdigit() for ch in text) and not any(w in text.lower().split() for w in figures.NUMBER_WORDS):
+            continue
+        if GAP.match(name):         # a derived gap label: its arithmetic between two signed years, never a claim
+            derived += 1
+            for fault in gap_faults(text, e.get("derived"), payload):
+                faults.append(f"{surface} ({name}): drew {text!r}: {fault}")
             continue
         if DERIVED.match(name):
             derived += 1
@@ -397,7 +509,7 @@ def contradictions(payload: Mapping[str, Any]) -> list[str]:
     for path, text in signed_items(payload):
         for f in figures.parse(text):
             if f.hi and len(f.values) == 2:
-                lo, hi = sorted(f.values)
+                lo, hi = sorted(f.years)         # an era-crossing span on one time line (BC negative)
                 spans.append((path, f, lo, hi, _content_words(_sentence(text, f.start, f.end))))
     out, seen = [], set()
     for i, (pa, fa, la, ha, wa) in enumerate(spans):

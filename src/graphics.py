@@ -21,7 +21,7 @@ import re
 import subprocess
 import uuid
 import weakref
-from collections.abc import Callable, Iterable, Iterator, Sequence
+from collections.abc import Callable, Iterable, Iterator, Mapping, Sequence
 from dataclasses import dataclass
 from functools import cache, lru_cache
 from itertools import pairwise
@@ -119,6 +119,7 @@ def inset_x1(width: int = VIDEO_WIDTH, height: int = VIDEO_HEIGHT) -> int:
     """The right edge of a 9:16 graphic's drawings on this frame (INSET_X1 on 1080 wide)."""
     return safe_zones.graphics_box(width, height)[2] - round(INSET_PAD_RIGHT * width / VIDEO_WIDTH)
 
+from .figures import converted_number
 from .reference_facts import (
     REFERENCE_FILE,
     measurement_text,
@@ -494,7 +495,9 @@ def _grade_like(ground: Image.Image, frame: Image.Image, graded: Image.Image) ->
 def record_contrast(out: Path, frame: Image.Image, plates: list[tuple[str, Any]],
                     rulers: Sequence[dict[str, Any]] | None = None) -> dict[str, Any]:
     """Each element's ratio on the clip's last frame as drawn and as graded, written beside the clip; with `rulers`
-    (ruler_record rows) the ruler labels' datums too, checked by the critic's zero_datum_faults (logged)."""
+    (ruler_record rows) the ruler labels' datums too, checked by the critic's zero_datum_faults (logged). A plate
+    carrying a derivation (`plate.derived`, set by derive_gap: a timeline gap label's rule and operands) writes it on
+    its row as "derived", what the drawn-figure gate re-computes the figure from (SYS-R8-1)."""
     import json
     graded = graded_frame(frame, Path(out).parent / "stage_cache" / "contrast")
     rows = []
@@ -504,6 +507,8 @@ def record_contrast(out: Path, frame: Image.Image, plates: list[tuple[str, Any]]
         rows.append({"name": name, "text": plate.text, "planned": plate.contrast, "drawn": plate.measure(frame),
                      "graded": plate.measure(graded) if graded is not None else None, "halo": plate.halo,
                      "box": list(plate.box)})
+        if isinstance(getattr(plate, "derived", None), Mapping):
+            rows[-1]["derived"] = dict(plate.derived)
     vals = [r["graded"] if r["graded"] is not None else r["drawn"] for r in rows]
     vals = [v for v in vals if v is not None]
     record = {"clip": Path(out).name, "target": brand.TEXT_CONTRAST, "graded": graded is not None,
@@ -5738,21 +5743,31 @@ def _probe_tracked(probe: ImageDraw.ImageDraw, text: str, name: str, px: int, wi
 
 
 def years_between(a: int, b: int) -> int:
-    """Calendar years from year `a` to year `b` (negative years are BC; there is no year 0)."""
-    return (b - a) - (1 if a < 0 < b else 0)
+    """Calendar years from year `a` to year `b` (negative years are BC; there is no year 0): figures.years_between."""
+    from .figures import years_between as _between
+    return _between(a, b)
 
 
 def gap_text(a: dict[str, Any], b: dict[str, Any]) -> str:
     """The elapsed time drawn on the spine between two entries ("40 YEARS LATER"; when either date is approximate,
-    "ABOUT 1,500 YEARS LATER", rounded to the nearest 100 from 500 years, 10 from 50; "" for less than two years)."""
-    years = years_between(int(a["year"]), int(b["year"]))
-    if years < 2:
+    "ABOUT 1,500 YEARS LATER", rounded to the nearest 100 from 500 years, 10 from 50; "" for less than two years).
+    The arithmetic is figures.elapsed, the one rule the drawn-figure gate re-computes from the operands each timeline
+    records with the label (derive_gap; SYS-R8-1)."""
+    from .figures import gap_record
+    rec = gap_record(a, b)
+    if rec is None:
         return ""
-    if a.get("approximate") or b.get("approximate"):
-        # An approximate date cannot give an exact span (2026-11-02): round to what the dates support.
-        step = 100 if years >= 500 else 10 if years >= 50 else 1
-        return f"ABOUT {max(step, round(years / step) * step):,} YEARS LATER"
-    return f"{years:,} YEARS LATER"
+    return f"{'ABOUT ' if rec['hedged'] else ''}{rec['years']:,} YEARS LATER"
+
+
+def derive_gap(plate: Any, a: dict[str, Any], b: dict[str, Any]) -> Any:
+    """`plate` (a gap label's row, any of its rows) marked with its derivation (figures.gap_record: the rule, the two
+    entries' years and precision, the figure the rule gives), which record_contrast writes on its row, so the
+    drawn-figure gate checks the gap's arithmetic instead of judging it as a claim (SYS-R8-1). Returns `plate`."""
+    from .figures import gap_record
+    if plate is not None:
+        plate.derived = gap_record(a, b)
+    return plate
 
 
 def spaced_positions(events: list[dict[str, Any]], y_first: float, y_last: float, need: float) -> list[float]:
@@ -6945,7 +6960,7 @@ def _render_timeline_tall(events: list[dict[str, Any]], out: Path, width: int, h
                         SPAN_MIN_PX, b - a)
         plate = _plan_thin(ground, xy, text, font, brand.STONE, "ls", halo_px=None, track=2)
         gaps.append((k, plate))
-        plates.append((f"gap{k}", plate))
+        plates.append((f"gap{k}", derive_gap(plate, events[k - 1], events[k])))
     # the years' ink outweighs their labels' (TALL_INK_RATIO), logged where it does not
     for k, en in enumerate(entries):
         yi = sum(int((pl.glyphs > 127).sum()) for pl in en["year_plates"] if pl.glyphs is not None)
@@ -8121,7 +8136,7 @@ def _render_timeline_wide(events: list[dict[str, Any]], out: Path, width: int, h
         for j, (ln, y) in enumerate(zip(lines, ys)):
             plate = plan_text(ground, (cx, y), ln, span_fonts[fi], brand.STONE_LT, "ms", track=S(1))
             gaps.append((k, plate))
-            plates.append((f"gap{k}" if j == 0 else f"gap{k}_{j}", plate))
+            plates.append((f"gap{k}" if j == 0 else f"gap{k}_{j}", derive_gap(plate, events[k - 1], events[k])))
     marks = [(k, (xs[k - 1] + xs[k]) / 2) for k in spacing.breaks]
     end = min(run1, xs[-1] + 24) if last_left else max(xs[-1] + blocks[-1]["w"], xs[-1] + 60)
     sched = reveal_schedule(len(entries), CLIP_SECONDS)
@@ -8280,11 +8295,17 @@ def per_ft(unit: str) -> float:
 
 def measure_text(feet: float, unit: str = "FT") -> tuple[str, str]:
     """A sourced size as (lead, conversion) in the lead `unit`: the same two figures as measurement_text, never more
-    precise ("1,073 FT", "327 M" for a foot lead; "327 M", "1,073 FT" for a metre lead)."""
+    precise ("1,073 FT", "327 M" for a foot lead; "327 M", "1,073 FT" for a metre lead). The conversion is
+    figures.converted_number's (SYS-R8-1): the fewest decimals within the gate's CONVERT_TOL of the lead's value, so
+    a metre lead converts from its metres ("6.5 M" -> "21 FT"; feet and inches only on a foot lead)."""
     text = measurement_text(feet)
     ft_part, _, m_part = text.partition(" (")
     m_part = m_part.rstrip(")")
-    return (m_part, ft_part) if unit == "M" else (ft_part, m_part)
+    if unit == "M":
+        metres = feet / FT_PER_M
+        lead = f"{metres:,.0f} M" if feet >= 20 else f"{metres:.1f} M"
+        return lead, f"{converted_number(metres, 'M', 'FT')} FT"
+    return ft_part, m_part
 
 
 def _unit_split(text: str) -> tuple[str, str]:
@@ -10548,7 +10569,7 @@ def _render_cross_section(cs: dict[str, Any], levels: list[dict[str, Any]], tota
         return figure_font(conversion_px(lead.size, f_lab.size, label_floor(width, height)))
     inline_w = max((probe.textbbox((0, 0), f"{lv['depth_ft']:,.0f} FT", font=f_deep if k == len(levels) - 1 else f_fig,
                                    anchor="ls")[2] + S(14)
-                    + probe.textbbox((0, 0), f"{lv['depth_ft'] / 3.28084:,.0f} M", font=f_conv(k), anchor="ls")[2])
+                    + probe.textbbox((0, 0), f"{converted_number(lv['depth_ft'], 'FT', 'M')} M", font=f_conv(k), anchor="ls")[2])
                    for k, lv in enumerate(levels))
     label_x = min(label_x, L.right - (math.ceil(inline_w) + 1) / g.k)
     rooms_x1 = min(rooms_x1, label_x - (L.label_x - L.rooms_x1))
@@ -10779,7 +10800,7 @@ def _render_cross_section(cs: dict[str, Any], levels: list[dict[str, Any]], tota
         # its words dim, its figures do not
         bright = _plan(final, (X(label_x), Y(fig_base)), fig, b["font"], figure_fill(), "ls")
         timed.append((f"level{k}_depth", bright, t_in, None, None))
-        metres = _plan(final, (bright.box[2] + S(14), Y(fig_base)), f"{lv['depth_ft'] / 3.28084:,.0f} M",
+        metres = _plan(final, (bright.box[2] + S(14), Y(fig_base)), f"{converted_number(lv['depth_ft'], 'FT', 'M')} M",
                        f_conv(k), figure_fill(), "ls")
         timed.append((f"level{k}_metres", metres, t_in, None, None))
         for j, ln in enumerate(b["lines"]):

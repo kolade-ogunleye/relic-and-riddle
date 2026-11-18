@@ -235,7 +235,7 @@ def render(events, out, width, height, photo, layout):
         plate = g._plan_thin(ground, (g.tall_left_x(left, gap_y, text, gap_font, 2), gap_y), text,
                              gap_font, g.brand.STONE, "ls", halo_px=None, track=2)
         gaps.append((index + 1, plate))
-        plates.append((f"gap{index + 1}", plate))
+        plates.append((f"gap{index + 1}", g.derive_gap(plate, events[index], events[index + 1])))
 
     g.log.info("Timeline: five entries use a date column; long proper names keep the full measure.")
     if cap < g.TALL_YEAR_RATIO * layout["label_cap"]:

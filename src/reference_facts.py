@@ -22,9 +22,13 @@ def selected_reference(scale_fact):
 
 
 def measurement_text(feet):
-    metres = feet / 3.28084
-    return (f"{feet:,.0f} FT ({metres:,.0f} M)" if feet >= 20 else
-            f"{int(feet)} FT {round((feet % 1) * 12)} IN ({metres:.1f} M)")
+    """A size in feet as drawn with its metres: "280 FT (85 M)"; under 20 ft, feet and inches ("5 FT 9 IN (1.75 M)").
+    The metres are figures.converted_number's (SYS-R8-1): the fewest decimals within the drawn-figure gate's
+    CONVERT_TOL of the feet ("15 FT (4.6 M)"; whole metres drew "5 M", 9 % over)."""
+    from .figures import converted_number
+    metres = converted_number(feet, "FT", "M")
+    return (f"{feet:,.0f} FT ({metres} M)" if feet >= 20 else
+            f"{int(feet)} FT {round((feet % 1) * 12)} IN ({metres} M)")
 
 
 def with_reference_evidence(sheet, payload):

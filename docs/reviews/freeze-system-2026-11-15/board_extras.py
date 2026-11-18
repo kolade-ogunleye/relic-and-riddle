@@ -287,6 +287,7 @@ def encode_caption_clip(ground, ass: Path, t0: float, seconds: float, size: tupl
     from src.video_composer import VIDEO_FPS, picture_chain
     w, h = size
     still = clip.with_suffix(".ground.png")
+    clip.parent.mkdir(parents=True, exist_ok=True)   # the caption row runs before the motion row makes <out>/clips
     ground.save(still)
     chain = picture_chain("null", w, h, captions=f"subtitles='{_esc(ass)}':fontsdir='{_esc(fonts)}'")
     graph = (f"[0:v]scale=out_color_matrix=bt709:out_range=tv,format=yuv420p,setpts=PTS+{t0:.3f}/TB,"

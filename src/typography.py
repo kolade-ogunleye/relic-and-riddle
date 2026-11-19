@@ -393,6 +393,39 @@ _PAIR = _re_mod.compile(r"(?<![\w.])(?P<n1>" + _NUM + r")\s*(?P<u1>" + _UNIT_ALT
 
 
 _SPAN_END = _re_mod.compile(r"\d[\d,]*(?:\.\d+)?\s*(?:-|–|—|to|and)\s*$", _re_mod.IGNORECASE)
+# A span with its one unit ("41.75 and 42 meters", "41.75–42 M", "137 to 138 FT"), and a span the narration signs
+# with its conversion: "137 and 138 feet (41.75 to 42 m)", "137-138 ft (41.75-42 m)" (freeze SYS-D-2), or one pair
+# per end, "between 137 feet (41.75 m) and 138 feet (42 m)" (read from two _PAIRs joined by a connective).
+_SPAN_MID = r"\s*(?:-|–|—)\s*|\s+(?:to|and)\s+"
+_SPAN = _re_mod.compile(r"(?<![\w.])(?P<lo>" + _NUM + r")(?P<mid>" + _SPAN_MID + r")(?P<hi>" + _NUM
+                        + r")(?P<sep>[  -]?)(?P<unit>" + _UNIT_ALT + r")(?![\w²])", _re_mod.IGNORECASE)
+_SPAN_PAIR = _re_mod.compile(
+    r"(?<![\w.])(?P<lo1>" + _NUM + r")(?:" + _SPAN_MID + r")(?P<hi1>" + _NUM + r")(?P<s1>[  -]?)(?P<u1>"
+    + _UNIT_ALT + r")(?![\w²])\s*[(/]\s*(?:about\s+|or\s+|roughly\s+|some\s+|nearly\s+|almost\s+)?(?P<lo2>" + _NUM
+    + r")(?:" + _SPAN_MID + r")(?P<hi2>" + _NUM + r")(?P<s2>[  -]?)(?P<u2>" + _UNIT_ALT + r")(?![\w²])",
+    _re_mod.IGNORECASE)
+_SPAN_JOIN = _re_mod.compile(r"\s*(?:-|–|—|to|and)\s*", _re_mod.IGNORECASE)
+
+
+def _unit_ok(sep: str, unit: str) -> bool:
+    """A figure's unit is read as one only with a space or hyphen before "m" / "in" (as _figure_ok)."""
+    return bool(sep) or unit.lower() not in ("m", "in")
+
+
+def _span_pairs(narration: str) -> list[tuple[tuple[str, str, str], tuple[str, str, str]]]:
+    """Every span the narration signs with its conversion: [((lo, hi, unit), (lo, hi, unit))], the two units of one
+    dimension in the two systems."""
+    from itertools import pairwise
+    out = []
+    for m in _SPAN_PAIR.finditer(narration or ""):
+        if _unit_ok(m.group("s1"), m.group("u1")) and _unit_ok(m.group("s2"), m.group("u2")):
+            out.append(((m.group("lo1"), m.group("hi1"), m.group("u1")), (m.group("lo2"), m.group("hi2"), m.group("u2"))))
+    singles = list(_PAIR.finditer(narration or ""))
+    for m1, m2 in pairwise(singles):
+        if _SPAN_JOIN.fullmatch(narration[m1.end():m2.start()]) and _unit(m1.group("u1")) == _unit(m2.group("u1"))                 and _unit(m1.group("u2")) == _unit(m2.group("u2")):
+            out.append(((m1.group("n1"), m2.group("n1"), m1.group("u1")), (m1.group("n2"), m2.group("n2"), m1.group("u2"))))
+    return [(a, b) for a, b in out if _unit(a[2]) and _unit(b[2]) and _unit(a[2])[0] == _unit(b[2])[0]
+            and _unit(a[2])[1] != _unit(b[2])[1]]
 
 
 def _unit(token: str):
@@ -412,7 +445,10 @@ def spoken_units(text: str, narration: str, lead: str | None = None) -> str:
     """`text` (a cover line, a slide, a number card) with each figure in the unit the narration speaks for it.
     `lead` ("imperial" / "metric"; cycle 0 round 8, one lead unit per run): the run's signed scale fact's system,
     which decides a length's lead over the narration's (src/figures.py deck_lead). A figure that ends a span ("41.75
-    and 42 meters") is never converted alone: its other end would stay in the other unit (a false span)."""
+    and 42 meters") is never converted alone: its other end would stay in the other unit (a false span). A whole span
+    is converted when the narration signs that span with its pair ("137 and 138 feet (41.75 to 42 m)": "between
+    roughly 41.75 and 42 meters" -> "between roughly 137 and 138 feet"), both ends or neither, keeping the text's own
+    connective and hedge (freeze SYS-D-2)."""
     if not text or not (narration or lead) or not _FIGURE.search(text):
         return text or ""
     spoken: Dict[str, str] = {}                           # dimension -> the system the narration speaks first
@@ -439,11 +475,11 @@ def spoken_units(text: str, narration: str, lead: str | None = None) -> str:
             word = abbr if short else " ".join(token.lower().split())
         return word.upper() if like.isupper() else word
 
-    def in_spoken_unit(m) -> Optional[str]:
+    def in_spoken_unit(m, current: str) -> Optional[str]:
         info = _unit(m.group("unit"))
         if not info or not _figure_ok(m) or spoken.get(info[0], info[1]) == info[1]:
             return None
-        if _SPAN_END.search(text[:m.start()]):            # the far end of a span: never converted alone
+        if _SPAN_END.search(current[:m.start()]):         # the far end of a span: never converted alone
             return None
         value = _number(m.group("num"))
         for one, other in pairs:
@@ -468,8 +504,37 @@ def spoken_units(text: str, narration: str, lead: str | None = None) -> str:
                       flags=_re_mod.IGNORECASE)
     if dual:  # both units already drawn: only their order follows the narration ("280 FT (85 M)" stays whole)
         return out
+    # A span drawn in the other system's unit: the narration's own span in its unit, whole (SYS-D-2).
+    span_pairs = _span_pairs(narration)
+
+    def span_in_spoken_unit(m) -> Optional[str]:
+        info = _unit(m.group("unit"))
+        if not info or not _unit_ok(m.group("sep"), m.group("unit")) or spoken.get(info[0], info[1]) == info[1]:
+            return None
+        lo, hi = _number(m.group("lo")), _number(m.group("hi"))
+        for one, other in span_pairs:
+            for (a, b, u), (a2, b2, u2) in ((one, other), (other, one)):
+                if (_unit(u)[:2] + _unit(u)[3:] == info[:2] + info[3:] and (_number(a), _number(b)) == (lo, hi)
+                        and _unit(u2)[1] == spoken[info[0]]):
+                    sep = m.group("sep")
+                    return f"{a2}{m.group('mid')}{b2}{sep}{styled(u2, m.group('unit'), sep == '-')}"
+        return None
+    if span_pairs:
+        from .figures import truth_faults
+        # a span drawn with its own conversion ("137–138 FT (41.75–42 M)") already holds both units: left whole
+        dual_spans = [(d.start(), d.end()) for d in _SPAN_PAIR.finditer(text)]
+        for m in reversed(list(_SPAN.finditer(text))):
+            new = None if any(a < m.end() and m.start() < b for a, b in dual_spans) else span_in_spoken_unit(m)
+            if new is None:
+                continue
+            converted = text[:m.start()] + new + text[m.end():]
+            # truth: the converted span is a signed figure as drawn (its hedge too: a hedged signed lead drawn
+            # without the text's own hedge is a figure_gate fault, so that span stays in its own unit)
+            if len(truth_faults(converted, [narration])) <= len(truth_faults(text, [narration])):
+                text = converted
     # One unit drawn, the other system's: the narration's own figure in its unit.
-    return _FIGURE.sub(lambda m: in_spoken_unit(m) or m.group(0), text)
+    current = text
+    return _FIGURE.sub(lambda m: in_spoken_unit(m, current) or m.group(0), current)
 
 
 # ---------------------------------------------------------------- a figure and its unit on one line (2026-10-29)

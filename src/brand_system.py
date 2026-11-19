@@ -232,6 +232,8 @@ SYSTEM_TOKENS: Mapping[str, Any] = MappingProxyType({
     "figure.colour": "GOLD",          # a palette role
     "figure.conversion": 0.5,         # the conversion's px, at most this share of its lead figure's
     "data.unit_gap": 0.2,             # em: the ink gap joining a drawing's number to its unit (the mono space is 0.6)
+    "figure.dash_gap_em": 0.06,       # em: a range's en dash keeps at least this ink gap to each figure (font_engine
+                                      # opens a face's span dash by the least spacing that holds it; SYS batch 1)
     # ---- place labels: a map's site name and a route's stop names (one role)
     "place.weight": 800,
     "place.px": 34,                   # design px (1080 wide on 9:16, 1920 on 16:9), stepping down to the canvas floor
@@ -284,6 +286,7 @@ TOKEN_RANGES: Mapping[str, tuple[float, float]] = MappingProxyType({
     "motion.rise_s": (0, 24),             # px (round 7: at 40 the WATCH NEXT kicker entered the video slot; the gap is 37)
     "figure.conversion": (0.3, 1.0),
     "data.unit_gap": (0.0, 0.6),          # em
+    "figure.dash_gap_em": (0.03, 0.15),   # em: never touching, never a word space
     "place.weight": (400, 900),
     "place.px": (27, 48),                 # never under the 9:16 label floor
     "place.halo_px": (8, 31),
@@ -333,7 +336,6 @@ SPEC: Mapping[str, Any] = MappingProxyType({
     "heading.cover_over_interior": 1.08,   # the cover heading is at least this x the deck's largest interior one
     # ---- figures
     "figure.dash_centre_em": 0.03,    # an en dash's centre within this of the figures' centre
-    "figure.dash_gap_em": 0.06,       # and at least this ink gap each side
     # ---- rules and dividers (px at 1080 wide; scaled by the canvas)
     "rule.weight": 4,
     "rule.hairline": 1,
@@ -364,15 +366,23 @@ TYPE: Mapping[str, Mapping[str, float | None]] = MappingProxyType({
     "wide": MappingProxyType({"display_xl": 190, "display_l": 184, "display_m": 136, "figure": 360, "kicker": 40,
                               "body": 52, "label": 34, "data_label": 34, "credit": 24, "masthead": 64}),
 })
-# At most one fallback tier per role (a size the role may drop to when the first does not set the copy).
+# At most one fallback tier per role (a size the role may drop to when the first does not set the copy). Each tier
+# keeps the display hierarchy (display_xl > display_l > display_m on every canvas, in TYPE and here: SYS batch 1,
+# the tall tier had the cover role's fallback under the interior heading's, 120 < 124).
 TYPE_FALLBACK: Mapping[str, Mapping[str, float]] = MappingProxyType({
-    "tall": MappingProxyType({"display_xl": 120, "display_l": 124, "display_m": 96, "body": 40, "credit": 22}),
+    "tall": MappingProxyType({"display_xl": 124, "display_l": 120, "display_m": 96, "body": 40, "credit": 22}),
     "carousel": MappingProxyType({k: v * 4 / 3 for k, v in {"display_xl": 138, "display_l": 124, "display_m": 96,
                                                             "body": 34}.items()}),
     # wide display_xl 160 (round 7, was 150): the YouTube headline's one fallback tier holds its feed floor
     # (youtube_thumbnail.HERO_FLOOR: 12 px of cap at 168 px wide; 150 gave 11.3)
     "wide": MappingProxyType({"display_xl": 160, "display_l": 152, "display_m": 112, "body": 46, "credit": 22}),
 })
+# The figure role's one step ladder (reference display units; freeze SYS-D-1): a stated quantity drawn as a hero
+# figure takes the largest step its surface's measure holds, never a size fitted between steps. Its head is the tall
+# canvas's figure size. Read by youtube_thumbnail.FIGURE_STEPS (each step held at the hero's feed floor) and the
+# Story reveal (multi_format.STORY_FIGURE_STEPS: the largest step whose numeral fits the title measure); declared
+# in DEVIATIONS (the role's one size is TYPE's, the steps under it are this ladder's).
+FIGURE_STEPS: tuple[int, ...] = (300, 260, 220, 190, 160)
 # Feed-size floors, canvas px (RUBRIC PL2, rulings): nothing a role draws is smaller.
 TYPE_FLOOR: Mapping[str, Mapping[str, float]] = MappingProxyType({
     "tall": MappingProxyType({"label": 27, "data_label": 27, "credit": 22}),
@@ -417,17 +427,19 @@ DEVIATIONS: Mapping[str, tuple[str, str, tuple, str]] = MappingProxyType({
                            "px_for_cap of the 9 px cap at the 124 px tile, 92 in Anton; line 2 grows to it); a "
                            "recorded last resort the grid proof refuses under that floor (visual_engine."
                            "_grid_enforced)"), (100, 120, 0.8, 92), "B"),
-    "carousel content heading": ("display_l", "multi_format: FB 150 / 140 design px (IG is on the ladder, round 7)",
-                                 (150, 140), "D"),
     "carousel stat heading": ("display_m", ("multi_format: the colossal-stat slide's heading, 84 to 52 design px in "
                                "2 px steps through the engine"), (84, 52, 2), "D"),
     "Story title": ("display_xl", ("multi_format: one size per Story (story_title_px) on the tall display ladder's "
                     "steps (150, 138, 124, 120, 112; round 8), one line a field down to heading.story_one_line_floor "
-                    "106; a wrapped title never under heading.story_floor 120; below them refused, never drawn"),
+                    "106; a wrapped title never under heading.story_floor 120; below them refused, never drawn; the "
+                    "reveal frame's title at the Story size, its qualifier and unit at display_m's fallback step (96)"),
                     (150, 106, 120), "D"),
-    "YouTube figure": ("figure", ("youtube_thumbnail.FIGURE_STEPS (round 8: was a fit 300 -> 160), held at the "
-                       "hero's feed floor; the unit at UNIT_RATIO, at least its line floor"), (300, 260, 220, 190, 160),
-                       "B"),
+    "YouTube figure": ("figure", ("youtube_thumbnail.FIGURE_STEPS: brand_system.FIGURE_STEPS (round 8: was a fit "
+                       "300 -> 160), held at the hero's feed floor; the unit at UNIT_RATIO, at least its line floor"),
+                       FIGURE_STEPS, "B"),
+    "Story reveal figure": ("figure", ("multi_format.STORY_FIGURE_STEPS: brand_system.FIGURE_STEPS (cycle 1: was a "
+                            "fit 276 -> 160), the largest step whose numeral fits the title measure"), FIGURE_STEPS,
+                            "D"),
 })
 
 # Every SITE that sets a type size off the ladder (a function of a surface module calling a font loader with a
@@ -479,7 +491,6 @@ SIZE_SITES: Mapping[str, str] = MappingProxyType({
     "end_card:_masthead.at": "E",
     "end_card:end_screen_extras": "E",
     "end_card:layout": "E",
-    "graphics:_plan": "A",
     "graphics:_probe_tracked": "A",
     "graphics:_render_cross_section": "A",
     "graphics:_render_cross_section.build": "A",
@@ -510,7 +521,6 @@ SIZE_SITES: Mapping[str, str] = MappingProxyType({
     "graphics:neighbour_plates": "A",
     "graphics:place_font": "A",
     "graphics:relief_base": "A",
-    "graphics:ruler_label": "A",
     "graphics:render_route": "A",
     "graphics:render_route.name_places": "A",
     "graphics:scale_bar": "A",
@@ -575,7 +585,9 @@ RUNTIME_SIZE_SITES: Mapping[str, str] = MappingProxyType({
     "graphics:_dash_rule": "A",
     "graphics:_italic_mask": "A",
     "graphics:_place_name": "A",
+    "graphics:_plan": "A",                # QF-138 (lane A c1): sized by its callers, measured and drawn here
     "graphics:_plan_thin": "A",
+    "graphics:ruler_label": "A",          # QF-138 (lane A c1): sized by its callers, measured and drawn here
     "graphics:_render_cross_section.compose": "A",
     "graphics:_render_scale_vertical.compose": "A",
     "graphics:_render_timeline_tall": "A",

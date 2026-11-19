@@ -148,9 +148,11 @@ def test_a_stacked_lockup_never_leaves_a_one_word_middle_row():
     assert not heading.lockup_valid(["THE 1,200-TON", "BEDROCK", "MONSTER"], seam=2, fields=True)
     assert not heading.lockup_valid(["DRAWN", "WITHOUT", "EVER FLYING"], seam=2, fields=True)
     assert heading.lockup_valid(["THE 1,200-TON", "BEDROCK MONSTER"], seam=2, fields=True)
-    # the authored field boundary is the copy's own line end (QF-23 / QF-143: CARVED FROM / SOLID SALT drawn whole)
-    assert heading.lockup_valid(["CARVED FROM", "SOLID SALT"], seam=2, fields=True)
+    # the authored field boundary frees a row of the bonded-unit reading, never of the never-end rule (SYS-B-1:
+    # CARVED FROM / SOLID SALT, a row ending on FROM, is invalid as fields and as one heading)
+    assert not heading.lockup_valid(["CARVED FROM", "SOLID SALT"], seam=2, fields=True)
     assert not heading.lockup_valid(["CARVED FROM", "SOLID SALT"])
+    assert heading.lockup_valid(["CARVED", "FROM SOLID SALT"], seam=1, fields=True)   # the ruled seam (lockup_fields)
 
 
 def test_the_aswan_headline_holds_no_form_at_its_floor_and_is_refused():
@@ -180,6 +182,21 @@ REAL_COPIES = [("830 SQUARE MILES", "FLATTENED FOREST"), ("CARVED DEEP", "UNDERG
                ("THE SECRET OF", "DAMASCUS STEEL"), ("THE SECRET WEAPON", "WATER COULD NOT STOP"),
                ("THE SINGING", "720-TON TITAN"), ("THE UNBROKEN", "VOYNICH CODE"), ("THE VANISHED", "AMBER ROOM"),
                ("TRAPPED IN BEDROCK", "NEVER COMPLETED"), ("WHY ROMAN CONCRETE", "HEALS ITSELF")]
+
+
+@pytest.mark.parametrize("l1, l2", REAL_COPIES)
+def test_a_field_boundary_never_exempts_a_row_from_the_never_end_rule(l1, l2):
+    """SYS-B-1: every stacking of the copy's words in two or three rows, at either seam (authored or ruled), that
+    lockup_valid(fields=True) accepts ends every row but the last on a word that may end a line."""
+    import itertools
+    r1, _, _ = heading.lockup_fields(l1, l2)
+    words = (l1 + " " + l2).split()
+    for seam in {len(l1.split()), len(r1.split())}:
+        for n in (1, 2):
+            for cuts in itertools.combinations(range(1, len(words)), n):
+                rows = heading.lines_of(words, cuts)
+                if heading.lockup_valid(rows, seam=seam, fields=True):
+                    assert all(heading.end_ok(r.split()[-1]) for r in rows[:-1]), (rows, seam)
 
 
 @pytest.mark.parametrize("l1, l2", REAL_COPIES)

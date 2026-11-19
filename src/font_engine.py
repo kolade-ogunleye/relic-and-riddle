@@ -78,18 +78,49 @@ class FeaturedFont(ImageFont.FreeTypeFont):
     A string this face cannot map whole is measured and drawn in its field_face (QF-94): never a missing-glyph box,
     never a dropped letter, and GlyphRefused when no bundled face maps it."""
 
+    def _span_widen(self, text, features) -> float:
+        """The px a figure span's dash spacing adds to `text` (span_extra_px each side of each span dash)."""
+        if not isinstance(text, str) or SPAN_DASH not in text:
+            return 0.0
+        return 2 * span_extra_px(self, text, features) * len(span_dashes(text))
+
     def getlength(self, text, mode="", direction=None, features=None, language=None):
         face = field_face(text, self)
         if face is not self:
             return face.getlength(text, mode, direction, features, language)
-        return super().getlength(text, mode, direction, list(resolve_features(text, features)), language)
+        return (super().getlength(text, mode, direction, list(resolve_features(text, features)), language)
+                + self._span_widen(text, features))
 
     def getbbox(self, text, mode="", direction=None, features=None, language=None, stroke_width=0, anchor=None):
         face = field_face(text, self)
         if face is not self:
             return face.getbbox(text, mode, direction, features, language, stroke_width, anchor)
-        return super().getbbox(text, mode, direction, list(resolve_features(text, features)), language,
-                               stroke_width, anchor)
+        box = super().getbbox(text, mode, direction, list(resolve_features(text, features)), language,
+                              stroke_width, anchor)
+        widen = self._span_widen(text, features)
+        if not widen:
+            return box
+        shift = {"m": widen / 2, "r": widen}.get((anchor or "la")[0], 0.0)   # the anchor's share of the extra
+        return (round(box[0] - shift), box[1], round(box[2] + widen - shift), box[3])
+
+    def _span_mask(self, text, mode, features, stroke_width, anchor, start):
+        """getmask2 for a figure span with its dash spacing: each glyph shaping placed, rasterised as draw_run
+        draws a spaced run, into one mask (Pillow's own layout cannot open the dash)."""
+        features = resolve_features(text, features)
+        run = shape(text, self, 0, features)
+        pad = math.ceil(raster_px(self)) * 2 + 2 * int(stroke_width or 0)
+        sx, sy = start or (0.0, 0.0)
+        canvas = Image.new("L", (math.ceil(run.advance) + 2 * pad, 2 * pad), 0)
+        placed, raster = _placed_glyphs(run, (pad + sx, pad + sy), text, self, anchor or "la", features)
+        draw = ImageDraw.Draw(canvas)
+        for position, char, raster_font in placed:
+            draw.text(position, char, font=raster_font, fill=255, anchor="ls", stroke_width=stroke_width,
+                      features=raster)
+        box = canvas.getbbox() or (pad, pad, pad + 1, pad + 1)
+        out = canvas.crop(box)
+        if mode == "1":
+            out = out.point(lambda v: 255 if v >= 128 else 0).convert("1")
+        return out.im, (box[0] - pad, box[1] - pad)
 
     def getmask(self, text, mode="", direction=None, features=None, language=None, stroke_width=0, anchor=None,
                 ink=0, start=None):
@@ -105,6 +136,8 @@ class FeaturedFont(ImageFont.FreeTypeFont):
         if face is not self:
             return face.getmask2(text, mode, direction, features, language, stroke_width, anchor, ink, start,
                                  *args, **kwargs)
+        if mode in ("", "L", "1") and not direction and self._span_widen(text, features):
+            return self._span_mask(text, mode, features, stroke_width, anchor, start)
         return super().getmask2(text, mode, direction, list(resolve_features(text, features)), language,
                                 stroke_width, anchor, ink, start, *args, **kwargs)
 
@@ -440,11 +473,92 @@ def _feature_values(features: tuple[str, ...], tracking: float) -> dict[str, boo
     return values
 
 
+# A range's en dash (brand_system SPEC figure.dash_gap_em; freeze SYS batch 1): at least that much ink gap each side
+# of an en dash between two figures ("137–138"). Anton draws U+2013 as its hyphen (0.25 em) and sets it 0.04-0.06 em
+# from the figures; a second brand's faces touch it (Montserrat, Cinzel: 0 em at "4–4"). Every run the repo shapes
+# opens a span dash by the least spacing that brings the face's tightest digit pair to the token, the same on both
+# sides, measured once per face on the glyphs shaping chooses (the `case` form included); a face that already holds
+# the token is unchanged, and text without a figure span is never touched.
+SPAN_DASH = "–"
+
+
+def span_dashes(text: str) -> tuple[int, ...]:
+    """The character indices of every en dash between two figures in `text` ("94–104": the dash)."""
+    return tuple(i for i in range(1, len(text) - 1)
+                 if text[i] == SPAN_DASH and text[i - 1].isdigit() and text[i + 1].isdigit())
+
+
+def dash_gap_em() -> float:
+    """The active brand's span-dash gap token (em), read now."""
+    from .brand_system import tok
+    return float(tok("figure.dash_gap_em"))
+
+
+_GAP_PX = 200.0   # the size a face's span gap is measured at
+
+
+def span_gap_band(path: str, size: float, variations: tuple[tuple[str, float], ...], text: str,
+                  features: tuple[str, ...], gap: float = 0.0) -> tuple[float, float]:
+    """(left, right) ink gap in px between a three-glyph span "a–b" and its dash, read in the dash's own rows (the
+    nearest ink of each figure level with the dash), as the run is shaped with the span spacing for token `gap` (0:
+    the face's own setting)."""
+    run = _shape(path, size, variations, text, 0.0, features, gap)
+    font = _glyph_font(path, size, variations)
+    raster = ["-" + tag for tag in sorted(inspect_font(path).features)]
+    pad = int(size * 2)
+    canvas = np.zeros((pad * 2, int(run.advance) + pad * 2), dtype=bool)
+    boxes = []
+    for glyph in run.glyphs:
+        mask, (ox, oy) = font.getmask2(chr(_GLYPH_CODEPOINT + glyph.index), anchor="ls", features=raster)
+        arr = np.asarray(mask, dtype=np.uint8).reshape(mask.size[1], mask.size[0]) >= 128
+        x0, y0 = round(pad // 2 + glyph.x + ox), round(pad + oy - glyph.y)
+        layer = np.zeros_like(canvas)
+        layer[y0:y0 + arr.shape[0], x0:x0 + arr.shape[1]] = arr
+        boxes.append(layer)
+    if len(boxes) != 3 or not boxes[1].any():
+        return (math.inf, math.inf)
+    rows = np.where(boxes[1].any(1))[0]
+    cols = np.where(boxes[1].any(0))[0]
+    band = slice(rows.min(), rows.max() + 1)
+    left = np.where(boxes[0][band].any(0))[0]
+    right = np.where(boxes[2][band].any(0))[0]
+    gl = (cols.min() - 1 - left.max()) if left.size else math.inf
+    gr = (right.min() - cols.max() - 1) if right.size else math.inf
+    return (float(gl), float(gr))
+
+
+@lru_cache(maxsize=64)
+def _tightest_span_em(path: str, variations: tuple[tuple[str, float], ...], features: tuple[str, ...]) -> float:
+    """The face's own tightest span-dash ink gap over every digit pair (em), less one px of the measure's rounding."""
+    worst = math.inf
+    for a in "0123456789":
+        for b in "0123456789":
+            worst = min(worst, *span_gap_band(path, _GAP_PX, variations, a + SPAN_DASH + b, features))
+    return (worst - 1.0) / _GAP_PX if math.isfinite(worst) else math.inf
+
+
+def _span_extra_em(path: str, variations: tuple[tuple[str, float], ...], features: tuple[str, ...],
+                   gap: float) -> float:
+    """The spacing (em, each side) a span dash takes in this face: the token less the face's tightest digit pair."""
+    return max(0.0, gap - _tightest_span_em(path, variations, features)) if gap else 0.0
+
+
+def span_extra_px(font, text, features=None) -> float:
+    """The spacing (px, each side of each span dash) `font` sets `text`'s span dashes with (0 for none)."""
+    if not span_dashes(text):
+        return 0.0
+    return _span_extra_em(str(font.path), getattr(font, "_rr_variations", ()), resolve_features(text, features),
+                          dash_gap_em()) * raster_px(font)
+
+
 @lru_cache(maxsize=16384)
 def _shape(path: str, size: float, variations: tuple[tuple[str, float], ...], text: str,
-           tracking: float, features: tuple[str, ...]) -> GlyphRun:
+           tracking: float, features: tuple[str, ...], gap: float = 0.0) -> GlyphRun:
+    """The shaped run; `gap`: the span-dash token (em) its figure spans are opened to (0: as the face sets them)."""
     if not text:
         return GlyphRun((), 0.0)
+    dashes = span_dashes(text) if gap else ()
+    extra = _span_extra_em(path, variations, features, gap) * size if dashes else 0.0
     font = hb.Font(_face(path))
     scale = round(size * 64)
     font.scale = (scale, scale)
@@ -459,9 +573,13 @@ def _shape(path: str, size: float, variations: tuple[tuple[str, float], ...], te
     glyphs = []
     x = y = 0.0
     for index, (info, pos) in enumerate(zip(infos, positions)):
+        opens = extra and info.cluster in dashes and (index == 0 or infos[index - 1].cluster != info.cluster)
+        x += extra if opens else 0.0
         glyphs.append(Glyph(info.codepoint, info.cluster, x + pos.x_offset / 64, y + pos.y_offset / 64))
         x += pos.x_advance / 64
         y += pos.y_advance / 64
+        if extra and info.cluster in dashes and (index + 1 == len(infos) or infos[index + 1].cluster != info.cluster):
+            x += extra
         if index + 1 < len(infos) and infos[index + 1].cluster != info.cluster:
             x += tracking          # between clusters only: a base letter keeps its combining marks
     return GlyphRun(tuple(glyphs), x)
@@ -471,7 +589,7 @@ def shape_in_face(text: str, font, tracking: float = 0, features=None) -> GlyphR
     """`text` shaped in `font` itself, missing glyphs and all (their .notdef advance): for a measure of text that
     another renderer draws (libass's captions, which take a system face for what the bundled ones lack)."""
     return _shape(str(font.path), raster_px(font), getattr(font, "_rr_variations", ()),
-                  text, float(tracking), resolve_features(text, features))
+                  text, float(tracking), resolve_features(text, features))   # libass sets no span spacing
 
 
 def shape(text: str, font, tracking: float = 0, features=None) -> GlyphRun:
@@ -479,7 +597,8 @@ def shape(text: str, font, tracking: float = 0, features=None) -> GlyphRun:
     `tracking` px between clusters. A field `font` cannot map whole is shaped in its field_face (QF-94)."""
     font = field_face(text, font)
     return _shape(str(font.path), raster_px(font), getattr(font, "_rr_variations", ()),
-                  text, float(tracking), resolve_features(text, features))
+                  text, float(tracking), resolve_features(text, features),
+                  dash_gap_em() if span_dashes(text) else 0.0)
 
 
 @lru_cache(maxsize=16)
@@ -601,7 +720,7 @@ def draw_run(draw, xy, text: str, font, fill, anchor="la", tracking=0, stroke=0,
     in its field_face (QF-94)."""
     font = field_face(text, font)
     features = resolve_features(text, features)
-    if not tracking:
+    if not tracking and not span_extra_px(font, text, features):
         draw.text(xy, text, font=font, fill=fill, anchor=anchor, features=list(features),
                   stroke_width=stroke, stroke_fill=stroke_fill)
         return tuple(round(value) for value in draw.textbbox(
@@ -633,7 +752,8 @@ def glyph_masks(size, xy, text: str, font, anchor="la", tracking=0, features=Non
     run = shape(text, font, tracking, features)
     if not run.glyphs:
         return []
-    placed, raster_features = _placed_glyphs(run, xy, text, font, anchor, features, whole=not tracking)
+    placed, raster_features = _placed_glyphs(run, xy, text, font, anchor, features,
+                                             whole=not tracking and not span_extra_px(font, text, features))
     out = []
     for (pos, char, raster_font), glyph in zip(placed, run.glyphs):
         box = _ImageDraw.Draw(_Image.new("L", (1, 1))).textbbox(pos, char, font=raster_font, anchor="ls",

@@ -148,11 +148,17 @@ def test_the_kickerless_headline_takes_the_larger_size_on_two_lines():
 
 def test_one_form_per_run_and_a_recorded_divergence():
     """Ruling 4 / panel BC-8: the YouTube lockup sets the run's ruled form (the Reel cover's CARVED / FROM SOLID
-    SALT) wherever it holds the feed floor; Wieliczka's does not at Anton's widths, so the authored whole lines are
-    drawn and the record says why (never a silent second form)."""
+    SALT) wherever it holds the feed floor. Lane B cycle 1 (r8i AD final): where it does not, the authored whole lines
+    are no longer drawn (CARVED FROM / ends on a never-end word): no valid form sets, a recorded refusal that the
+    copy stage (cover_fit) sends to the copy edit."""
+    from src import heading
     from src import youtube_thumbnail as yt
-    _, _, _, rec = yt._lockup(_draw(), "CARVED FROM", "SOLID SALT", 904)
-    assert rec["form_diverges"]["ruled"] == ["CARVED", "FROM SOLID SALT"]
+    try:
+        _, _, _, rec = yt._lockup(_draw(), "CARVED FROM", "SOLID SALT", 904)
+    except LayoutError:
+        pass
+    else:
+        assert all(heading.end_ok(t.split()[-1]) for t in rec["drawn_rows"][:-1]), rec
     _, _, _, rec = yt._lockup(_draw(), "CARVED FROM", "SOLID SALT", 1400)
     assert (rec["line1"], rec["line2"]) == ("CARVED", "FROM SOLID SALT") and "form_diverges" not in rec
 

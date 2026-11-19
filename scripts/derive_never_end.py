@@ -5,7 +5,8 @@ counted zero, because the breaker's tail set and the record's set were two hand-
 English CLOSED CLASS (prepositions, articles and determiners, quantifiers, conjunctions), derived here, never added to
 by hand:
 
-- the lexicon: spaCy's English STOP_WORDS (spacy==3.8.18), scikit-learn's ENGLISH_STOP_WORDS (the Glasgow list) and
+- the lexicon: spaCy's English STOP_WORDS (spacy==3.8.18), scikit-learn's ENGLISH_STOP_WORDS (the Glasgow list,
+  vendored as data/nlp/glasgow_stop_words.txt from scikit-learn 1.9.1, so CI derives without scikit-learn) and
   the WordNet-derived lemma index the pinned English model ships (data/nlp/en_core_web_sm/lemmatizer), so a string
   is a word only when one of those real lists has it;
 - the classes, by the pinned en_core_web_sm tagger's Penn Treebank tags:
@@ -27,6 +28,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "data" / "never_end_words.json"
 MODEL = ROOT / "data" / "nlp" / "en_core_web_sm"
+GLASGOW = ROOT / "data" / "nlp" / "glasgow_stop_words.txt"
 DET_FRAME = "They carried {} the stones."
 CORPUS_DIRS = ("data/fact_sheets", "data/script_library", "storyboard", "data/topics")
 MIN_USES, MAJORITY = 2, 0.5
@@ -62,8 +64,9 @@ def derive() -> dict:
     import collections
 
     import spacy
-    from sklearn.feature_extraction.text import ENGLISH_STOP_WORDS
     from spacy.lang.en.stop_words import STOP_WORDS
+    # scikit-learn's ENGLISH_STOP_WORDS (the Glasgow list), vendored in data/nlp so the derivation needs no scikit-learn
+    ENGLISH_STOP_WORDS = {w for w in GLASGOW.read_text(encoding="utf-8").split("\n") if w and not w.startswith("#")}
     from spacy.lookups import Lookups
 
     sys.path.insert(0, str(ROOT))

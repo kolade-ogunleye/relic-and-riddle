@@ -328,6 +328,10 @@ def check(ctx) -> list[dict[str, Any]]:
                 # spoken words instead misaligns where a caption sets a figure differently from its spoken tokens
                 src_word = ln.split()[-1] if ln.split() else spoken[pos - 1]
                 bare = src_word.strip("\"'‘’“”").lower()
+                words_ln = ln.split()
+                after_number = len(words_ln) >= 2 and any(ch.isdigit() for ch in words_ln[-2])
+                if after_number and bare in ("in", "ft", "m", "mi"):
+                    continue    # a unit after its figure ("1,905 in": inches), not the preposition
                 if bare in NEVER_END_WORDS and src_word[-1] not in ".,;:!?—–)…":
                     if burst_end:   # the composer's own record (reading_rates never_end) counts burst ends
                         fail("LINE_END", f"captions: a burst ends on {src_word!r}: {burst!r}"

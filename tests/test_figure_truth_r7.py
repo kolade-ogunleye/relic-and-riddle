@@ -192,8 +192,11 @@ def test_a_number_cards_conversion_is_the_figure_face_in_gold(tmp_path, plan_onl
 @pytest.mark.parametrize("size", [TALL, WIDE], ids=["9x16", "16x9"])
 def test_the_cross_sections_depths_and_metres_stay_gold(tmp_path, plan_only, size):
     graphics.render_cross_section(SECTION, tmp_path / "section.mp4", *size)
-    # the metres by the one conversion rule (SYS-R8-1: whole metres drew "5 M" for 15 ft, outside the gate's tolerance)
-    metres = [f"{figures.converted_number(lv['depth_ft'], 'FT', 'M')} M" for lv in SECTION["levels"]]
+    # the metres by the one conversion rule (SYS-R8-1: whole metres drew "5 M" for 15 ft, outside the gate's tolerance),
+    # converted as one column at one precision (SYS-A-1: figures.converted_numbers; each member within the gate's
+    # tolerance, test_figure_gate_sys_r8_1)
+    column = figures.converted_numbers([lv["depth_ft"] for lv in SECTION["levels"]], "FT", "M")
+    metres = [f"{m} M" for m in column]
     for text in ("15 FT", "35 FT", "140 FT", "280 FT", *metres):
         plates = _plates_with(plan_only, text)
         assert plates and all(p.fill == tuple(brand.GOLD) for p in plates), text

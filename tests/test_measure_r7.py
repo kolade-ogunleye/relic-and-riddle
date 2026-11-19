@@ -321,7 +321,9 @@ def test_no_renderer_measures_text_contrast_its_own_way():
                 name = f.id if isinstance(f, ast.Name) else f.attr if isinstance(f, ast.Attribute) else None
                 if name in ("ring_contrast", "text_contrast", "glyph_contrast", "typography_glyph_contrast"):
                     calls.setdefault(name, set()).add(path.name)
-    assert calls["ring_contrast"] <= {"typography.py"}, calls["ring_contrast"]
+    # QF-136: the advisory visual critic reads ring_contrast on glyph masks it finds in the delivered pixels itself, so
+    # its measure stays independent of what any renderer recorded (the method is typography's; the masks are its own)
+    assert calls["ring_contrast"] <= {"typography.py", "visual_critic.py"}, calls["ring_contrast"]
     assert {"graphics.py", "video_qa.py"} <= calls["text_contrast"]
     assert {"masthead.py", "design_cards.py"} <= calls["glyph_contrast"] | calls.get("typography_glyph_contrast", set())
     src = (ROOT / "src" / "masthead.py").read_text(encoding="utf-8")

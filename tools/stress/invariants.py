@@ -334,10 +334,13 @@ def check(ctx) -> list[dict[str, Any]]:
                     continue    # a unit after its figure ("1,905 in": inches), not the preposition
                 if bare in NEVER_END_WORDS and src_word[-1] not in ".,;:!?—–)…":
                     if burst_end:   # the composer's own record (reading_rates never_end) counts burst ends
-                        fail("LINE_END", f"captions: a burst ends on {src_word!r}: {burst!r}"
-                                         + ("; recorded by the composer (reading_rates never_end)"
-                                            if " ".join(burst.split()) in recorded else
-                                            "; not in the composer's record"))
+                        if " ".join(burst.split()) in recorded:
+                            fail("LINE_END", f"captions: a burst ends on {src_word!r}: {burst!r}; recorded by the "
+                                             "composer (reading_rates never_end)")
+                        else:       # the composer reads the spoken word's own punctuation (a sentence end the
+                            # burst does not show): its predicate is the authority, so this is a note only
+                            ctx.notes.append(f"captions: burst {burst!r} ends on {src_word!r}, which the composer's "
+                                             "never-end record does not count (punctuation in the spoken word)")
                     else:           # a line break inside a burst: only the board's evidence counts these
                         fail("LINE_END_BREAK", f"captions: a line inside a burst ends on {src_word!r}: {ln!r} "
                                                f"(burst {burst!r})")

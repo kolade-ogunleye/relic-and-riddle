@@ -138,7 +138,8 @@ def compute_act_chapters(acts: List[Any], words: List[Dict[str, Any]], total_dur
     return chapters, formatted_text, cue_timestamps
 
 
-def documentary_cover(title: str, max_line: int = 22) -> Dict[str, str]:
+def documentary_cover(title: str, max_line: int = 22, payload: Dict[str, Any] | None = None,
+                      hero: Any = None) -> Dict[str, str]:
     """Documentary cover text: the fact-checked title over two lines split on whole words (the first line up to
     max_line characters, the rest of the title whole on the second), with an eyebrow and tagline that make no
     factual claim. QF-23: never cut; it was cut mid-word with an ellipsis at max_line characters. A title the
@@ -150,14 +151,33 @@ def documentary_cover(title: str, max_line: int = 22) -> Dict[str, str]:
     # Cycle 0 round 8 (lander ruling: a headline that cannot set is closed upstream): of the title's whole-word
     # splits, the first (the 22-character one, then the others, most even first) that the YouTube thumbnail and the
     # Reel cover set at their floors (src/cover_fit.py: the renderers' own rule); else the 22-character split, which
-    # the deep dive's draft retry then sends back for a shorter title
+    # the deep dive's draft retry then sends back for a shorter title. Lane B cycle 1: with the run's `payload` (the
+    # render's inputs: its figure check and badge) and `hero` when known, so the check is the render's decision
     from src import cover_fit
+    from src.visual_engine import youtube_cover_copy
+    ctx = dict(payload or {})
+
+    def problems(cand):
+        return cover_fit.fit_problems(youtube_cover_copy(dict(ctx, thumbnail=cand)),
+                                      str(ctx.get("youtube_title") or ""), payload=ctx, hero=hero)
+    from src.youtube_thumbnail import LINE_WORDS
+
+    def within(c):
+        return all(len(c[k].split()) <= LINE_WORDS for k in ("line1", "line2"))
     all_words = title.upper().split()
-    if not cover_fit.fit_problems(split) or len(all_words) < 2:
+    if len(all_words) < 2 or (within(split) and not problems(split)):
         return split
-    for k in sorted(range(1, len(all_words)), key=lambda k: abs(len(" ".join(all_words[:k])) - len(" ".join(all_words[k:])))):
-        cand = dict(split, line1=" ".join(all_words[:k]), line2=" ".join(all_words[k:]))
-        if not cover_fit.fit_problems(cand):
+    cands = [dict(split, line1=" ".join(all_words[:k]), line2=" ".join(all_words[k:])) for k in
+             sorted(range(1, len(all_words)), key=lambda k: abs(len(" ".join(all_words[:k])) - len(" ".join(all_words[k:]))))]
+    # QF-109 (lane B cycle 1, the split part): a split whose two lines both hold the YouTube headline's line budget
+    # first (youtube_thumbnail.LINE_WORDS: a longer line is left out of the thumbnail whole), most even first
+    for cand in [c for c in cands if within(c)] + [split] + [c for c in cands if not within(c)]:
+        if not problems(cand):
+            return cand
+    # lane B cycle 1: no split sets on both (the YouTube check without a hero holds every column a hero can leave):
+    # the first one the Reel cover sets, so only the YouTube problem goes back to the draft retry
+    for cand in [split] + cands:
+        if not cover_fit.fit_problems(cand, youtube=False):
             return cand
     return split
 
@@ -436,6 +456,27 @@ class PipelineCoordinator:
                 result["deep_dive_run"] = {"status": "failed", "error": str(e)}
 
         return result
+
+    def _inherit_graphics_data(self, tid: str, parent_run_id: Optional[str], payload: Dict[str, Any]) -> None:
+        """The verified graphics data a documentary inherits into `payload` (fields it lacks): the parent Reel's, else
+        the topic's curated script's. One place, read by the payload and by the thumbnail's copy-stage fit check
+        (lane B cycle 1: the thumbnail's badge is read from these fields, so the check reads them too)."""
+        if parent_run_id:
+            parent_run = self.db.get_run(parent_run_id)
+            if parent_run and parent_run.get("script_payload"):
+                p_pay = parent_run["script_payload"]
+                for k in ("stat_cards", "cross_section", "timeline", "scale_fact", "route", "photo_labels"):
+                    if p_pay.get(k) and not payload.get(k):
+                        payload[k] = p_pay[k]
+        curated_path = CURATED_SCRIPTS_DIR / f"{tid}.json"
+        if curated_path.exists():
+            try:
+                c_data = json.loads(curated_path.read_text(encoding="utf-8"))
+                for k in ("stat_cards", "cross_section", "timeline", "scale_fact", "route", "photo_labels"):
+                    if c_data.get(k) and not payload.get(k):
+                        payload[k] = c_data[k]
+            except Exception:
+                pass
 
     def _check_cancel(self, run_id):
         """A stage boundary: an operator's cancel, or the run deadline (src/worker_deadline.py), stops the run here."""
@@ -903,12 +944,19 @@ class PipelineCoordinator:
                     # past the last draft it renders and a refusal holds the run on the review card
                     # SYS-R8-3: the copy the thumbnail render sets (visual_engine.youtube_cover_copy: each figure in the
                     # narration's unit), so the check and the render never read different words
+                    # Lane B cycle 1: and with the render's own inputs (the graphics data the badge is read from, the
+                    # hero), so the check never passes a title the thumbnail render refuses
                     from src import cover_fit
                     from src.visual_engine import youtube_cover_copy
-                    fit = cover_fit.fit_problems(youtube_cover_copy({
-                        "thumbnail": documentary_cover(deep_dive_pkg.title), "title": deep_dive_pkg.title,
-                        "narration_script": " ".join(a.narration_text for a in deep_dive_pkg.acts)}),
-                        deep_dive_pkg.youtube_title) if passed else []
+                    fit = []
+                    if passed:
+                        fit_ctx = {"topic_id": tid, "title": deep_dive_pkg.title,
+                                   "youtube_title": getattr(deep_dive_pkg, "youtube_title", "") or "",
+                                   "narration_script": " ".join(a.narration_text for a in deep_dive_pkg.acts)}
+                        self._inherit_graphics_data(tid, parent_run_id, fit_ctx)
+                        fit_ctx["thumbnail"] = documentary_cover(deep_dive_pkg.title, payload=fit_ctx, hero=hero_img)
+                        fit = cover_fit.fit_problems(youtube_cover_copy(fit_ctx), fit_ctx["youtube_title"],
+                                                     payload=fit_ctx, hero=hero_img)
                     if fit and draft < 3:
                         log.warning("Deep-dive draft %d: the title does not set on its covers (%s)", draft, fit)
                         feedback = ("The title is the cover's headline and does not set on the YouTube thumbnail or "
@@ -933,7 +981,10 @@ class PipelineCoordinator:
                 raise ValueError("Deep-dive fact verification failed: " + "; ".join(act_issues or []))
             step(1, f"Documentary script verified ({len(deep_dive_pkg.acts)} acts)")
             # Cover copy is the fact-checked title only; the eyebrow and tagline assert nothing.
-            thumbnail_copy = documentary_cover(deep_dive_pkg.title)
+            fit_ctx = {"topic_id": tid, "title": deep_dive_pkg.title,
+                       "youtube_title": getattr(deep_dive_pkg, "youtube_title", "") or "", "narration_script": raw_narration}
+            self._inherit_graphics_data(tid, parent_run_id, fit_ctx)
+            thumbnail_copy = documentary_cover(deep_dive_pkg.title, payload=fit_ctx, hero=hero_img)
 
             payload = {
                 "topic_id": tid,
@@ -1079,23 +1130,7 @@ class PipelineCoordinator:
             *scene_media, hero_img = privacy.anonymize_all([*scene_media, hero_img])
 
             # Inherit or load verified graphics data into payload
-            if parent_run_id:
-                parent_run = self.db.get_run(parent_run_id)
-                if parent_run and parent_run.get("script_payload"):
-                    p_pay = parent_run["script_payload"]
-                    for k in ("stat_cards", "cross_section", "timeline", "scale_fact", "route", "photo_labels"):
-                        if p_pay.get(k) and not payload.get(k):
-                            payload[k] = p_pay[k]
-
-            curated_path = CURATED_SCRIPTS_DIR / f"{tid}.json"
-            if curated_path.exists():
-                try:
-                    c_data = json.loads(curated_path.read_text(encoding="utf-8"))
-                    for k in ("stat_cards", "cross_section", "timeline", "scale_fact", "route", "photo_labels"):
-                        if c_data.get(k) and not payload.get(k):
-                            payload[k] = c_data[k]
-                except Exception:
-                    pass
+            self._inherit_graphics_data(tid, parent_run_id, payload)
 
             # Generate original channel graphics concurrently (map, cross-section, numbers, callouts, then/now)
             graphics_dir = run_dir / "graphics"

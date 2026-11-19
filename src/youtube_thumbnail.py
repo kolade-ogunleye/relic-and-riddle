@@ -35,15 +35,22 @@ from .typography import cap_height, get_font, plan_text, tracked_width
 W, H = 1920, 1080
 LEFT = 96
 TEXT_RIGHT = 1000
+COLUMN_MIN = 640          # the narrowest type column a reviewed feature leaves (its left edge - 48 px, never less)
 TIMESTAMP_ZONE = (1620, 950, 1920, 1080)
 FOCUS_X = 1340            # where the reviewed feature's centre is placed
 FOCUS_MIN_X = 1250        # a clamped crop that leaves it left of here is enlarged ...
 FOCUS_LAND = (1300, 1380)  # ... until it lands in this band
 MAX_ZOOM = 1.35           # never more than this beyond the cover fill
 SHADE_ALPHA, SHADE_SOLID, SHADE_END = 0.85, 0.42 * W, 1040   # the left ink: 85% over the left 42%, then fading
+MARK_RATIO_MAX = 0.78     # lane B cycle 2 (panel 2, PL): the masthead group's drawn width at most this share of the
+                          # hook's first row (rubric CD2 / PL3: a mark at >= 80 % of the title competes with it); the
+                          # masthead takes the largest step of its own fit ladder that holds it, never under the
+                          # ladder's floor (proposed as the system token masthead.hook_ratio_max, SYS-B-2)
 BRAND_PX = 64             # the masthead's size (2026-11-02 round 2: 44 px read small); its track, mark and gap are
                           # the system's (src/brand_system.py masthead.*)
 MAX_WORDS = 4             # across the headline lines
+LINE_WORDS = 3            # a headline line's budget on the no-figure path (QF-23 option 1: a longer line is left out
+                          # whole, never cut); main.documentary_cover prefers a title split within it (QF-109)
 UNIT_RATIO = 0.5          # the unit beside the figure, at half its size
 TITLE_GAP_EM = 0.08       # the figure's baseline to the title's caps, in title ems
 DIM_PX = 44               # the claim's dimension word under the unit (figure_dim)
@@ -52,6 +59,7 @@ QUAL_PX = 96              # the copy's qualifier over the figure (figure_qualifi
 # brand.DISPLAY_FONT: r7: the kicker's face when one word cannot hold the floor in the text face (_qual_font)
 QUAL_WEIGHT, QUAL_TRACK = 800, 3   # brand.TEXT_FONT, the covers' eyebrow face (r5 review: in IBM Plex Mono
                                                             # the period took a full cell, "EST ." with a gap)
+TITLE_LINE_GAP = 0.18     # lane B cycle 2: the clear field over the title's cap line, a share of its cap (pitch 1.18)
 DIM_TITLE_GAP = 40        # px of clear field from the dimension word's baseline to the title's cap line
 PLATE_TARGET = 5.1        # every line's planned ratio at full size ...
 FEED_TARGET_STEP, FEED_TARGET_MAX = 1.0, 9.1   # ... raised per line until it holds 4.5 at 246 px wide
@@ -239,12 +247,15 @@ def _type_edge(plates) -> float | None:
 
 def render(source: Image.Image, copy: dict[str, Any], focus: dict | None = None,
            meta: dict | None = None, figure: dict | None = None, youtube_title: str | None = None,
-           illustration: bool = False, reveal: str | None = None) -> tuple[Image.Image, list]:
+           illustration: bool = False, reveal: str | None = None,
+           column: float | None = None) -> tuple[Image.Image, list]:
     """(the 1920x1080 thumbnail, its text plates) from a hero photograph and the cover copy. `meta`, when given,
     receives the crop's zoom and the reviewed feature's box on the canvas (`focus_box`). `figure`: the fact
     sheet's word on the hero figure (cover_design.figure_check); `youtube_title`: the video's title, so the
     thumbnail does not repeat it; `illustration`: the photo is a generated illustration (the disclosure label);
-    `reveal`: the script's reveal or takeaway line (a tagline that answers it is never drawn).
+    `reveal`: the script's reveal or takeaway line (a tagline that answers it is never drawn). `column`: the type
+    column's width, forced (lane B cycle 1: the copy-stage check, src/cover_fit.py, probes the widths a hero can
+    leave, type_column, without the hero); None: the column the photo's reviewed feature leaves.
 
     The feed-size gate closes the loop (r5 review, 2026-11-02: the delivered Gol Gumbaz sample planned its title
     at 5.1 full size and measured 4.43 at 246 px wide, failing its own gate): a line whose ratio falls under 4.5
@@ -253,11 +264,14 @@ def render(source: Image.Image, copy: dict[str, Any], focus: dict | None = None,
     targets: dict[str, float] = {}
     given = dict(meta or {})
     edge = None
+    mark_room = None
     while True:
         trial = dict(given)   # each attempt starts from the caller's meta, so nothing stale carries over
-        im, plates = _render(source, copy, focus, trial, figure, youtube_title, illustration, targets, edge, reveal)
+        im, plates = _render(source, copy, focus, trial, figure, youtube_title, illustration, targets, edge, reveal,
+                             column, mark_room)
         if edge is None and _type_edge(plates) is not None:
             edge = _type_edge(plates)
+            mark_room = _mark_room(plates)
             continue
         low = [n for n in _low_contrast(trial) if targets.get(n, PLATE_TARGET) + FEED_TARGET_STEP <= FEED_TARGET_MAX]
         if not low:
@@ -271,6 +285,39 @@ def render(source: Image.Image, copy: dict[str, Any], focus: dict | None = None,
     if meta is not None:
         meta.update(trial)
     return im, plates
+
+
+def _ink_x(plate) -> tuple[float, float]:
+    """A plate's glyph ink, left and right on the canvas (its font's box at its anchor, tracked width added)."""
+    b = plate.font.getbbox(plate.text, anchor=plate.anchor)
+    extra = (plate.track or 0) * max(0, len(plate.text) - 1)
+    return plate.xy[0] + b[0], plate.xy[0] + b[2] + extra
+
+
+def hook_row(plates) -> float | None:
+    """The drawn width of the hook's first row: the headline's first row (every run on its baseline), else the figure
+    with its unit; the qualifier and kicker above it are not the hook. None when neither is drawn."""
+    drawn = [(n, p) for n, p in plates if not p.empty]
+    rows = [p for n, p in drawn if n in ("figure", "figure_unit")]
+    if not rows:
+        heads = [p for n, p in drawn if n in ("title_1", "title_2", "title")]
+        if not heads:
+            return None
+        top = min(p.xy[1] for p in heads)
+        rows = [p for p in heads if abs(p.xy[1] - top) < 1]
+    xs = [_ink_x(p) for p in rows]
+    return max(x for _, x in xs) - min(x for x, _ in xs)
+
+
+def _mark_room(plates) -> float | None:
+    """The masthead group's room (MARK_RATIO_MAX of the hook's first row), never under its fit ladder's floor size's
+    own width (the mark steps down, it is never refused for this); None with no hook drawn."""
+    from . import masthead
+    row = hook_row(plates)
+    if row is None:
+        return None
+    floor = masthead.fit_ladder(BRAND_PX)[-1]
+    return max(MARK_RATIO_MAX * row, masthead.group_width(floor, LEFT) + 0.5)
 
 
 def _low_contrast(meta: dict) -> list:
@@ -297,18 +344,18 @@ def _lockup(measure, l1: str, l2: str, width: float, kickerless: bool = False, r
     One form per run (ruling 4, panel BC-8): the two fields are set in the RULED form every other surface sets
     (heading.lockup_fields: line 1's closing function words open line 2, CARVED / FROM SOLID SALT), each field one
     line, else (ruling 7) two lines (the two-line tier, valid forms; the phrase exception keeps a payoff word alone:
-    THE SECRET / WEAPON), at most three rows in all. Where the ruled form cannot hold the feed floor on the ladder,
-    the authored whole lines (QF-23 / QF-143) are set instead and the record says why (form_diverges: legibility at
-    feed size outranks one form across surfaces). Where neither field form sets without a one-word middle row (R2),
-    the headline's words are set as one heading (SYS-R8-3: every valid break of the whole, up to three rows, the
-    payoff gold from the copy's field seam), recorded the same way (record["form"]: ruled / authored / one heading).
+    THE SECRET / WEAPON), at most three rows in all. Where the ruled form does not set without a one-word middle row
+    (R2) or under the floor, the headline's words are set as one heading (SYS-R8-3: every valid break of the whole, up
+    to three rows, the payoff gold from the copy's field seam), recorded (record["form"]: ruled / one heading;
+    form_diverges says why). Lane B cycle 1: the authored whole lines are no longer a form (they differ from the
+    ruled form only by a never-end line end, CARVED FROM /); no row but the last ends on a never-end word.
     The kickerless variant (ruling 5): with no kicker drawn above it,
     the headline takes its larger size on two lines before the fallback size on one ("one size up": the kicker's
     room). Nothing is set below the ladder held at the feed floor (lander ruling, round 8: round 7's 4 px last resort
     down to 96 is retired): where no form sets there, LayoutError (a recorded refusal, never type drawn past its
     column or under its floor)."""
     from .brand_system import TYPE, TYPE_FALLBACK, tok
-    from .heading import GOLD_ROLES, field_runs, lockup_fields, lockup_valid, set_field, set_heading
+    from .heading import GOLD_ROLES, end_ok, field_runs, lockup_fields, lockup_valid, set_field, set_heading
     from .typography import LayoutError
     ratio = tok("lockup.line_ratio")
 
@@ -352,6 +399,10 @@ def _lockup(measure, l1: str, l2: str, width: float, kickerless: bool = False, r
         if not lockup_valid([t for t, _ in drawn_rows], [width_at(t, sz) for t, sz in drawn_rows], seam,
                             fields=bool(f1 and f2)):
             return None
+        # lane B cycle 1: the field boundary is a line end like any other (lockup_valid exempts it from the never-end
+        # check): no row but the last ends on a never-end word, in any form
+        if any(not end_ok(t.split()[-1]) for t, _ in drawn_rows[:-1]):
+            return None
         if room is not None:
             ch = cap_height(get_font(brand.DISPLAY_FONT, s2))
             if (len(rows) - 1) * int(ch * 1.18) + ch > room:
@@ -376,8 +427,12 @@ def _lockup(measure, l1: str, l2: str, width: float, kickerless: bool = False, r
     if l1 and l2:
         r1, r2, _ = lockup_fields(l1, l2)
         forms.append(("ruled", r1, r2, order, None, None))
-        if (r1, r2) != (l1, l2):
-            forms.append(("authored", l1, l2, order, None, "the ruled form does not hold the feed floor on the ladder"))
+        # Freeze lane B cycle 1 (r8i AD final, LANE-AB carry-in): no "authored" form. The ruled form differs from the
+        # authored lines only where line 1 ends on a never-end word (heading.lockup_fields moves exactly those words),
+        # so the authored lines drawn whole were always a never-end line end (CARVED FROM / SOLID SALT) that
+        # heading.lockup_valid's field-boundary exemption let through: one copy in two forms, one of them breaking the
+        # heading rule. Every form tried here obeys the never-end rule on every row but the last; where none sets at
+        # the floor the headline is refused and goes to the copy edit (cover_fit).
         # SYS-R8-3 (cycle 0 round 8): a two-word field the column cannot hold whole must break, and stacked under the
         # other field it leaves a one-word middle row (R2, heading.lockup_valid: ROMAN / CONCRETE / HEALS ITSELF), so
         # each field form is refused. Before the run's headline is refused, the copy's words are set as ONE heading
@@ -443,6 +498,29 @@ def _title_form(measure, title: str, width: float, room: float):
     raise LayoutError(f"the YouTube title {title!r} sets in no form of {round(width)} px at {sizes[-1]} px or more")
 
 
+# Lane B cycle 1 (cover_fit and the render, one decision): the helpers whose result depends on the type column's
+# width beyond a plain fit (they choose a branch, a form or a size that changes the height left for the headline).
+# Each call is reported to the hooks (fn, bound arguments) so the copy-stage check can find every width at which the
+# render's choice changes and set the copy there (src/cover_fit.py); nothing else reads them.
+_WIDTH_GATES: list = []
+
+
+def _width_gate(fn):
+    import functools
+    import inspect
+    sig = inspect.signature(fn)
+
+    @functools.wraps(fn)
+    def gated(*args, **kw):
+        if _WIDTH_GATES:
+            bound = sig.bind(*args, **kw)
+            for hook in tuple(_WIDTH_GATES):
+                hook(gated, fn, bound)
+        return fn(*args, **kw)
+    return gated
+
+
+@_width_gate
 def _kicker_font(text: str, width: float):
     """F20 on YouTube: the system kicker's face and weight at the least size whose cap holds LINE_FLOOR at 168 px
     wide, when its rule, gap and tracked words fit `width` there; else None (not drawn, recorded by the caller).
@@ -466,6 +544,7 @@ from .brand_system import FIGURE_STEPS  # the system's one figure ladder (SYS-D-
 FIGURE_UNIT_GAP = 20
 
 
+@_width_gate
 def _figure_fonts(measure, number: str, unit: str, width: float, dim_w: float = 0.0):
     """(figure font, unit font, record): the largest FIGURE_STEPS size, held at the hero's feed floor, at which the
     numeral, the gap and its unit (or the dimension words under the unit, `dim_w`, whichever is wider) fit `width`,
@@ -512,6 +591,7 @@ def _draw_kicker(im, x, baseline, text, font, feed_kw):
     return plate.draw(im), plate, rec
 
 
+@_width_gate
 def _qual_font(text: str, width: float):
     """(lines, font, track) for a qualifier or event kicker at LINE_FLOOR px of cap height at 168 px wide: one line
     (tracked, else untracked), else two at the word break that balances them (16:9 has the height the 9:16 cover
@@ -544,7 +624,18 @@ def _qual_font(text: str, width: float):
     return None
 
 
-def _render(source, copy, focus, meta, figure, youtube_title, illustration, targets, edge=None, reveal=None):
+def type_column(focus_box) -> float:
+    """The type column's width: TEXT_RIGHT - LEFT, ending 48 px short of the reviewed feature on the canvas
+    (`focus_box`, as _photo places it) where that leaves at least COLUMN_MIN; a feature reaching further left is wider
+    than the frame's right side and the type keeps its column (recorded as text_over_focus)."""
+    right = TEXT_RIGHT
+    if focus_box and LEFT + COLUMN_MIN <= focus_box[0] - 48 < right:
+        right = focus_box[0] - 48
+    return right - LEFT
+
+
+def _render(source, copy, focus, meta, figure, youtube_title, illustration, targets, edge=None, reveal=None,
+            column=None, mark_room=None):
     def feed(name: str, font) -> dict:
         """plan_text's target (and, once raised, a wider halo: at feed size a 21-31 px halo shrinks to 3-4 px and
         stops separating the glyph from a busy photo) for line `name`."""
@@ -602,7 +693,10 @@ def _render(source, copy, focus, meta, figure, youtube_title, illustration, targ
     f_brand = masthead.font_for(BRAND_PX)
     top = 72
     mode = im.mode
-    im, name, meta["masthead"], _ = masthead.draw(im, LEFT, top + cap_height(f_brand), BRAND_PX)
+    # lane B cycle 2: the group within MARK_RATIO_MAX of the hook's first row (render's second pass), on the masthead's
+    # own fit ladder; the baseline and the band below keep the canvas size's, so the hero stack does not move
+    im, name, meta["masthead"], _ = masthead.draw(im, LEFT, top + cap_height(f_brand), BRAND_PX,
+                                                  max_width=mark_room)
     im = im.convert(mode)
     if name is not None:   # fail closed: an undrawn masthead (under its gate) is recorded in meta["masthead"]
         plates.append(("brand", name))
@@ -610,12 +704,9 @@ def _render(source, copy, focus, meta, figure, youtube_title, illustration, targ
     centre = round((top + cap_height(f_brand) + BAND_PAD[0] + H - BAND_PAD[1]) / 2)
     band = (H - BAND_PAD[1]) - (top + cap_height(f_brand) + BAND_PAD[0])   # the stack's height (round 8)
 
-    # The type never reaches the reviewed feature: its column ends 48 px short of it.
-    right = TEXT_RIGHT
+    # The type never reaches the reviewed feature: its column ends 48 px short of it (type_column).
     fb = meta.get("focus_box")
-    if fb and LEFT + 640 <= fb[0] - 48 < right:   # a feature reaching further left than that is wider than the
-        right = fb[0] - 48                       # frame's right side: the type keeps its column (recorded below)
-    width = right - LEFT
+    width = float(column) if column is not None else type_column(fb)
     found = monument_figure(copy)
     q_raw = figure_qualifier(copy, found)[0] if (found and found[1]) else ""
     same = bool(figure and found and str(figure.get("number")) == found[0])
@@ -667,6 +758,13 @@ def _render(source, copy, focus, meta, figure, youtube_title, illustration, targ
         rest = dict(copy)
         if field in ("line1", "line2"):
             rest[field] = _without(str(copy[field]), span)
+        elif field in ("tagline", "eyebrow"):
+            # lane B cycle 1 (QF-143 review finding 3): the year that became the hero leaves the line it came from,
+            # so a fallback headline from that line never draws it twice ("1963 / FOUND IN 1963"); what is left is a
+            # line only when it still stands on its own (QF-141 withheld_fragment)
+            from .cover_design import withheld_fragment
+            left = _without(str(copy.get(field) or ""), span)
+            rest[field] = "" if withheld_fragment(left) else left
         named = [(k, str(rest.get(k) or "")) for k in ("line1", "line2")]
         if not unit:   # a year: the payoff line (the second) under it, else the first
             named = [(k, ln) for k, ln in named[::-1] if ln.strip()][:1]
@@ -724,6 +822,19 @@ def _render(source, copy, focus, meta, figure, youtube_title, illustration, targ
         gap_t = round(TITLE_GAP_EM * f_t.size) if f_t else 0
         if dim_lines:   # the dimension word ends on the figure's baseline: the title keeps clear of it (r5: ~12 px)
             gap_t = max(gap_t, DIM_TITLE_GAP)
+        if f_t:
+            # lane B cycle 2 (panel 2, TY): the gap is measured from the figure row's lowest INK, not its baseline: the
+            # tail of a Q in the unit ("SQ MI") hung 11 px under the baseline onto the title's cap top (0-1 px). The
+            # title's cap line sits one heading line gap (TITLE_LINE_GAP of its cap, the lockup's own 1.18 pitch) under
+            # that ink (proposed as a system spacing token, SYS-B-3)
+            foot = max(0, f_num.getbbox(number, anchor="ls")[3])
+            if unit:
+                pitch_d = cap_height(f_dim) + 12
+                raise_u = (len(dim_lines) * pitch_d + 6) if dim_lines else 0
+                foot = max(foot, f_unit.getbbox(unit, anchor="ls")[3] - raise_u)
+                if dim_lines:
+                    foot = max(foot, f_dim.getbbox(dim_lines[-1], anchor="ls")[3])
+            gap_t = max(gap_t, foot + round(TITLE_LINE_GAP * cap_height(f_t)))
         stack = q_h + cap_height(f_num) + (gap_t + cap_height(f_t) + (len(t_lines) - 1) * t_pitch if f_t else 0)
         base = round(centre - stack / 2 + q_h + cap_height(f_num))
         for k, line in enumerate(q_lines if f_q else []):
@@ -760,7 +871,7 @@ def _render(source, copy, focus, meta, figure, youtube_title, illustration, targ
             if found_h:
                 withhold_here(f"the hedge {hedge[0]!r} does not fit at feed size", found_h)
             hedge = None
-        l1, l2 = _words(copy.get("line1", ""), 3), _words(copy.get("line2", ""), 3)
+        l1, l2 = _words(copy.get("line1", ""), LINE_WORDS), _words(copy.get("line2", ""), LINE_WORDS)
         long_lines = [k for k, t in (("line1", l1), ("line2", l2)) if str(copy.get(k) or "").strip() and not t]
         if l1 and l2:
             l2 = _end(l2)   # QF-143: the headline never ends on a mark that leads on
@@ -784,6 +895,18 @@ def _render(source, copy, focus, meta, figure, youtube_title, illustration, targ
                                             "no verified line fits the 3-word headline lines whole")
         elif long_lines:
             meta["headline_lines_dropped"] = long_lines   # the other line stands alone, whole
+        if youtube_title and (l1 or l2) and len(_content(f"{l1} {l2}") & _content(youtube_title)) >= 2:
+            # lane B cycle 1 (lane findings 2026-11-16): a headline line that repeats the video title gives way to
+            # the pair's other line where that one stands alone (the copy's own headline field); else it is drawn as
+            # written and recorded (title_overlap). The eyebrow and tagline are not taken here: on a documentary they
+            # are the claim-free labels (DOCUMENTARY, EXPLORE THE EVIDENCE), never a headline.
+            fresh = [(k, t) for k, t in (("line1", l1), ("line2", l2))
+                     if t and len(_content(t) & _content(youtube_title)) < 2 and _alone(t)]
+            if l1 and l2 and len(fresh) == 1:
+                meta["tension_from"] = fresh[0][0]
+                l1, l2 = ("", _alone(fresh[0][1])) if fresh[0][0] == "line2" else (_alone(fresh[0][1]), "")
+            else:
+                meta["title_overlap"] = True
         kicker = ""
         if bool(l1) != bool(l2) and ("figure_withheld" in meta or "figure_declined" in meta
                                      or "headline_lines_dropped" in meta):

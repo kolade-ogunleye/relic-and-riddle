@@ -359,6 +359,8 @@ def _lockup(measure, copy, width, size, single_gold=True):
                     grown, sz, runs = {"from": sz, "to": grid_px}, grid_px, big
                     s2 = grid_px
             out[key] = (get_font(brand.DISPLAY_FONT, sz), runs)
+        if ok and l1 and l2 and not _stack_valid(measure, out, len(l1.split())):
+            ok = False   # lane B cycle 1 (SYS-R8-2 open question 5): the stacked rows obey the heading rules too
         if ok:
             return out, {"tier": tier, "sizes": [s1, s2], "ratio": ratio, "line1": l1, "line2": l2,
                          **({"line2_grown": grown} if grown else {})}
@@ -371,6 +373,25 @@ def _lockup(measure, copy, width, size, single_gold=True):
         off.append("title_1" if key == "line1" else "title_2")
         out[key] = (font, [[(ln, "accent" if gold else "plain")] for ln in lines])
     return out, {"tier": None, "off_ladder": off, "ratio": ratio, "line1": l1, "line2": l2}
+
+
+def _stack_valid(measure, out, seam):
+    """Lane B cycle 1 (SYS-R8-2's open question 5, the Reel's part of R2): a two-field lockup's drawn rows, every field
+    stacked, obey the heading rules (heading.lockup_valid: no one-word middle row, THE 1,200-TON / BEDROCK / MONSTER;
+    the phrase exception on the last row only) and no row but the last ends on a never-end word (the field boundary
+    included, as on YouTube). A lockup that fails takes the next tier, then the recorded last resort, which the
+    grid proof refuses and the copy stage (cover_fit) sends to the copy edit."""
+    from .heading import end_ok, lockup_valid
+    rows, widths = [], []
+    for key in ("line1", "line2"):
+        if key in out:
+            font, runs = out[key]
+            for line_runs in runs:
+                text = " ".join(t for t, _ in line_runs)
+                rows.append(text)
+                widths.append(measure.textlength(text, font=font))
+    return (lockup_valid(rows, widths, seam, fields=True)
+            and all(end_ok(r.split()[-1]) for r in rows[:-1] if r.split()))
 
 
 def _height(rows):
@@ -884,6 +905,13 @@ def withhold_figure(copy, figure, force=False):
     for key in ("eyebrow", "line1", "line2", "tagline", "badge"):
         text = str(out.get(key) or "")
         cut = False
+        # QF-142: the figure in its other forms first, whole (a plain cut inside one would leave its other end): a
+        # span or range that has it at either end ("25 TO ALMOST 31 MI", "144-150 FT", "BETWEEN 130 AND 144 FT"),
+        # with the hedge it carries, and spelled out ("TWENTY-FIVE MILES"); src/figures.parse reads every stated
+        # quantity whole (system rule, read only), the spelled-out numbers are matched here with the unit after them
+        for a, b in reversed(_other_forms(text, value)):
+            text = _without(text, (a, b))
+            cut = True
         for m in reversed(list(_FIGURE.finditer(text))):
             info = _unit(m.group("unit"))
             if info and _figure_ok(m) and abs(float(m.group("num").replace(",", "")) - value) < 1e-9:
@@ -898,6 +926,59 @@ def withhold_figure(copy, figure, force=False):
         # QF-141: what the figure leaves of its phrase is drawn only when it still says something on its own
         # ("327 METERS DOWN" left "DOWN" on the cover); a fragment is not drawn (no words are added).
         out[key] = "" if cut and withheld_fragment(text) else text
+    return out
+
+
+def _spelled_value(words):
+    """The value of a spelled-out number (["TWENTY", "FIVE"], ["ONE", "HUNDRED", "FORTY", "FOUR"]), or None."""
+    from .figures import NUMBER_WORDS, SCALE_VALUE
+    total, cur, seen = 0.0, 0.0, False
+    for w in words:
+        lw = w.lower()
+        if lw in NUMBER_WORDS:
+            cur += NUMBER_WORDS[lw]
+            seen = True
+        elif lw == "hundred" and seen:
+            cur *= 100
+        elif lw in SCALE_VALUE and seen:
+            total += cur * SCALE_VALUE[lw]
+            cur = 0.0
+        elif lw == "and" and seen:
+            continue
+        else:
+            return None
+    return total + cur if seen else None
+
+
+def _other_forms(text, value):
+    """QF-142: the character spans of `value` in `text` beyond the plain figure withhold_figure cuts: every stated
+    quantity src/figures.parse reads whole (its hedge to its unit or conversion) that is a span or range with `value`
+    at either end, and spelled-out numbers equal to `value` followed by a unit. Sorted, not overlapping."""
+    import re
+
+    from .figures import NUMBER_WORDS, parse
+    from .typography import _unit
+    spans = []
+    for f in parse(text):
+        if f.hi and (f.unit or f.measured) and any(abs(v - value) < 1e-9 for v in f.values):
+            spans.append((f.start, f.end))
+    names = sorted((w.upper() for w in NUMBER_WORDS), key=len, reverse=True) + ["HUNDRED", "THOUSAND", "MILLION", "AND"]
+    alt = "|".join(re.escape(w) for w in names)
+    hedge = r"(?:(?:" + _QUAL + r")\s+)?"
+    for m in re.finditer(r"(?<![\w-])" + hedge + r"((?:" + alt + r")(?:[\s-]+(?:" + alt + r"))*)\s+([A-Z][A-Z.]*)",
+                         text, re.IGNORECASE):
+        words = [w for w in re.split(r"[\s-]+", m.group(1)) if w]
+        while words and words[-1].upper() == "AND":
+            words.pop()
+        if _unit(m.group(2)) and _spelled_value(words) is not None and abs(_spelled_value(words) - value) < 1e-9:
+            spans.append((m.start(), m.end()))
+    spans.sort()
+    out = []
+    for a, b in spans:
+        if out and a < out[-1][1]:
+            out[-1] = (out[-1][0], max(out[-1][1], b))
+        else:
+            out.append((a, b))
     return out
 
 
@@ -1013,23 +1094,29 @@ def _without(text, span):
     WAY OUT" -> "THE SECRET. NO WAY OUT"); two separating marks the cut brings together are one."""
     import re
     left, right = text[:span[0]], text[span[1]:]
-    if not re.match(r"\s*\w", right):
-        # an article right before the figure, with no word after it, was the figure's ("(THE 144 FT)")
+    if not re.search(r"\w", re.split(r"[)\]}”’»]", right, maxsplit=1)[0]):
+        # an article right before the figure, with no word after it (before the bracket it closes), was the figure's
+        # ("(THE 144 FT)"); QF-142: a word behind an opening bracket follows it ("THE 144 FT (WOW) SHAFT")
         left = re.sub(r"(?:(?<=[\s(\[{“‘«\"'])|^)(?:THE|A|AN)\s+$", "", left, flags=re.IGNORECASE)
     while left and right and left[-1] in _PAIRS and right[0] == _PAIRS[left[-1]]:
         left, right = left[:-1], right[1:]                         # a pair the cut empties
     if _opens(left):
-        right = right.lstrip()                                     # "( DEEP)" -> "(DEEP)"
+        # "( DEEP)" -> "(DEEP)"; QF-142: "(144 FT, 9 LEVELS)" -> "(9 LEVELS)": the mark that followed the figure
+        # inside the brackets separated it from what is left, and separates nothing now
+        right = re.sub(r"^[\s" + re.escape(_TRAIL_MARKS) + r"]+", "", right)
     if _closes(right.lstrip(), left):
         right = right.lstrip()
-        left = left.rstrip()                                       # "(DEEP )" -> "(DEEP)"
+        # "(DEEP )" -> "(DEEP)"; QF-142: "(9 LEVELS, 144 FT)" -> "(9 LEVELS)"
+        left = re.sub(r"[\s" + re.escape(_TRAIL_MARKS) + r"]+$", "", left)
     start = re.fullmatch(r"[\s" + re.escape(_LEAD_MARKS) + r"]*(?:(?:THE|A|AN)\s*)?", left,
                          flags=re.IGNORECASE) is not None
     end = re.fullmatch(r"\s*[.?!]*\s*", right) is not None
     if start:
         # "THE 25-MILE EYE" -> "THE EYE"; "THE 144 FT. NO WAY OUT" -> "NO WAY OUT"
         article = re.sub(r"^[\s" + re.escape(_LEAD_MARKS) + r"]+", "", left).strip()
-        keep = article and re.match(r"\s*\w", right)
+        # QF-142: the article stays when words follow the cut, behind a bracket too ("THE 144 FT (WOW) SHAFT" ->
+        # "THE (WOW) SHAFT"; it dropped THE)
+        keep = article and re.search(r"\w", right)
         left = article + " " if keep else ""
         right = right.lstrip() if keep else re.sub(r"^[\s" + re.escape(_LEAD_MARKS) + r"]+", "", right)
     if end:
@@ -1375,8 +1462,52 @@ def cap_h(font):
     return -font.getbbox("8", anchor="ls")[1]
 
 
+# Operator ruling 7 (2026-11-16, lane B cycle 1): a cover tagline emptied by a withheld figure falls back to another
+# already-verified line of the run's copy (never invented text), empty only if none fits. The lines are the run's
+# carousel slide headings (verified with the script; short display lines), in deck order. A fallback is a tagline in
+# its own right: two to four words, at most TAGLINE_FALLBACK_CHARS, no figure (a number would need its own check),
+# no call to action, a phrase that stands alone (withheld_fragment), new to the headline (redundant_tagline) and not
+# answering the reveal (resolving_tagline); the one sharing the fewest words with the headline and eyebrow is taken.
+TAGLINE_FALLBACK_CHARS = 24
+_CTA_WORDS = frozenset({"FOLLOW", "SAVE", "SHARE", "COMMENT", "SUBSCRIBE", "LIKE", "TAP", "SWIPE", "CLICK", "YOUR",
+                        "YOU", "LINK", "WATCH"})
+
+
+def tagline_alternates(script_payload):
+    """[(source, line)]: the run's verified lines a withheld tagline may fall back to (fallback_tagline)."""
+    out = []
+    for i, slide in enumerate(script_payload.get("carousel_slides") or [], 1):
+        text = " ".join(str((slide or {}).get("heading") or "").split()).upper() if isinstance(slide, dict) else ""
+        if text:
+            out.append((f"carousel slide {i} heading", text))
+    return out
+
+
+def fallback_tagline(copy, alternates, reveal=None):
+    """(source, line) for the tagline (ruling 7) from `alternates`, or None when none fits."""
+    import re
+    def words(t):
+        return {w for w in re.findall(r"[A-Z0-9']+", str(t or "").upper()) if w not in _STOP}
+    shown = words(" ".join(str(copy.get(k) or "") for k in ("line1", "line2", "eyebrow")))
+    best = None
+    for order, (source, text) in enumerate(alternates):
+        t = " ".join(str(text or "").split()).upper()
+        n = len(re.findall(r"[^\W_]+(?:'[^\W_]+)*", t))
+        if not (2 <= n <= 4) or len(t) > TAGLINE_FALLBACK_CHARS or any(c.isdigit() for c in t):
+            continue
+        if words(t) & _CTA_WORDS or t.endswith("?") or withheld_fragment(t):
+            continue
+        cand = dict(copy, tagline=t)
+        if redundant_tagline(cand) or resolving_tagline(cand, reveal):
+            continue
+        score = (len(words(t) & shown), order)
+        if best is None or score < best[0]:
+            best = (score, (source, t))
+    return best[1] if best else None
+
+
 def render_cover(im, copy, style, center_y=960, lay=None, tight=False, source=None, focus=None, figure=None,
-                 illustration=False, reveal=None):
+                 illustration=False, reveal=None, alternates=None):
     """Render the three existing choices and the editorial rotation.
 
     A: a bone-paper archival print, inset image over a compact caption.
@@ -1391,7 +1522,9 @@ def render_cover(im, copy, style, center_y=960, lay=None, tight=False, source=No
     (a range, a disputed value) is lifted out of the headline on every style; the monument draws a figure only
     when the check lets it stand. `illustration`: the hero is a generated illustration, so the window carries
     the on-screen disclosure label (the existing wording, video_composer.RECON_BADGE_LABEL). `reveal` (round 4):
-    the script's reveal or takeaway line; a tagline that answers it is dropped (resolving_tagline).
+    the script's reveal or takeaway line; a tagline that answers it is dropped (resolving_tagline). `alternates`
+    (tagline_alternates): the run's other verified lines a tagline the withheld figure emptied falls back to
+    (operator ruling 7, 2026-11-16; fallback_tagline).
     """
     why = resolving_tagline(copy, reveal)
     if why:
@@ -1404,6 +1537,16 @@ def render_cover(im, copy, style, center_y=960, lay=None, tight=False, source=No
             lay.meta["figure_withheld"] = {"number": figure.get("number"), "unit": figure.get("unit"),
                                            "reason": figure.get("reason"),
                                            **_dropped_fields(copy, withheld)}
+        if str(copy.get("tagline") or "").strip() and not str(withheld.get("tagline") or "").strip():
+            fb = fallback_tagline(withheld, alternates or (), reveal)
+            if fb:
+                withheld = dict(withheld, tagline=fb[1])
+                if lay is not None:
+                    lay.meta["tagline_fallback"] = {"from": fb[0], "text": fb[1],
+                                                    "reason": "the tagline was withheld with the figure"}
+            elif lay is not None and alternates:
+                lay.meta["tagline_fallback"] = {"from": None, "text": "",
+                                                "reason": "no other verified line of the run fits as a tagline"}
         copy = withheld
     out = _render(im, copy, style, lay, tight, source, focus, figure)
     if illustration:

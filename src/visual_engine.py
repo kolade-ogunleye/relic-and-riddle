@@ -286,6 +286,9 @@ class VisualEngine:
         self._figure = cover_figure(copy, script_payload)
         # The script's reveal line (round 4): a tagline that answers it is not drawn on the cover.
         self._reveal = reveal_line(script_payload)
+        # Operator ruling 7 (lane B cycle 1): the run's verified lines a tagline the withheld figure emptied falls back to
+        from .cover_design import tagline_alternates
+        self._tagline_alternates = tagline_alternates(script_payload)
         from .scene_planner import is_illustration
         self._illustration = is_illustration(Path(hero_image_path))
 
@@ -459,7 +462,8 @@ class VisualEngine:
                             source=getattr(self, "_hero_source", None), focus=getattr(self, "_hero_focus", None),
                             figure=getattr(self, "_figure", None),
                             illustration=bool(getattr(self, "_illustration", False)),
-                            reveal=getattr(self, "_reveal", None))
+                            reveal=getattr(self, "_reveal", None),
+                            alternates=getattr(self, "_tagline_alternates", None))
 
     def generate_youtube_thumbnail(
         self,
@@ -471,23 +475,10 @@ class VisualEngine:
         photograph full-bleed, the masthead, one figure or a two-tone Anton headline on a left ink gradient,
         YouTube's timestamp corner clear. (Cycle 0 round 7: the legacy depth-layered thumbnail, no caller, retired.)"""
         from . import youtube_thumbnail
-        from .cover_design import reviewed_focus
-        from .photo_hygiene import clean_hero
-        with Image.open(hero_image_path) as source:
-            src = ImageOps.exif_transpose(source).convert("RGBA")
-        from .image_presentation import full_image
-        src.info["essential_full_image"] = full_image(Path(hero_image_path))
-        src, focus = clean_hero(src, reviewed_focus(Path(hero_image_path)))
-        copy = youtube_cover_copy(script_payload)
-        # The badge is not drawn here; it is read for the qualifier the covers' copy sets on the figure ("EST.").
-        copy.setdefault("badge", _in_spoken_units({"b": extract_curiosity_badge(script_payload)}, script_payload)["b"])
-        from .scene_planner import is_illustration
+        inputs = youtube_render_inputs(script_payload, hero_image_path)
         meta: dict[str, Any] = {}
         script_payload.pop("thumbnail_note", None)   # this render's note only (QF-23)
-        im, drawn_plates = youtube_thumbnail.render(src, copy, focus, meta=meta, figure=cover_figure(copy, script_payload),
-                                         youtube_title=script_payload.get("youtube_title") or None,
-                                         illustration=is_illustration(Path(hero_image_path)),
-                                         reveal=reveal_line(script_payload))
+        im, drawn_plates = youtube_thumbnail.render(meta=meta, **inputs)
         output_path.parent.mkdir(parents=True, exist_ok=True)
         im.save(output_path, quality=95)
         # The feed-size proof on the delivered JPEG (round 3), kept beside the thumbnail for QA to read.
@@ -597,6 +588,32 @@ def _in_spoken_units(copy: Dict[str, Any], script_payload: Dict[str, Any]) -> Di
     narration = script_payload.get("narration_script") or ""
     lead = deck_lead(script_payload)
     return {k: spoken_units(v, narration, lead) if isinstance(v, str) else v for k, v in copy.items()}
+
+
+def youtube_render_inputs(script_payload: Dict[str, Any], hero_image_path: Path | None = None,
+                          copy: Dict[str, str] | None = None) -> Dict[str, Any]:
+    """The YouTube thumbnail render's inputs (youtube_thumbnail.render keyword arguments, but meta): the one place
+    they are made, read by generate_youtube_thumbnail and by the copy-stage fit check (src/cover_fit.py), so the check
+    and the render are one decision (freeze lane B cycle 1: the check rendered without the figure check and the badge
+    and passed copy the render refuses). `copy`: the cover copy (default youtube_cover_copy(script_payload)). Without a
+    hero, `source` is None and focus / illustration are absent (the check probes the columns a hero can leave)."""
+    copy = dict(copy if copy is not None else youtube_cover_copy(script_payload))
+    # The badge is not drawn; it is read for the qualifier the covers' copy sets on the figure ("EST.").
+    copy.setdefault("badge", _in_spoken_units({"b": extract_curiosity_badge(script_payload)}, script_payload)["b"])
+    out: Dict[str, Any] = {"source": None, "copy": copy, "focus": None, "figure": cover_figure(copy, script_payload),
+                           "youtube_title": script_payload.get("youtube_title") or None,
+                           "reveal": reveal_line(script_payload)}
+    if hero_image_path is not None:
+        from .cover_design import reviewed_focus
+        from .image_presentation import full_image
+        from .photo_hygiene import clean_hero
+        from .scene_planner import is_illustration
+        with Image.open(hero_image_path) as source:
+            src = ImageOps.exif_transpose(source).convert("RGBA")
+        src.info["essential_full_image"] = full_image(Path(hero_image_path))
+        out["source"], out["focus"] = clean_hero(src, reviewed_focus(Path(hero_image_path)))
+        out["illustration"] = is_illustration(Path(hero_image_path))
+    return out
 
 
 def youtube_cover_copy(script_payload: Dict[str, Any]) -> Dict[str, str]:

@@ -59,13 +59,13 @@ def _words(l1, l2):
 
 def _oracle(l1, l2, width=WIDTH):
     """Every valid form of the copy at or above the floor in at most three rows: [(rows, size)]. A form is valid under
-    the engine's own rules (heading.valid) with the payoff seam at the ruled field boundary (heading.lockup_fields),
-    the authored boundary the copy's own line end (QF-23 / QF-143: an authored line drawn whole)."""
+    the engine's own rules (heading.valid) with the payoff seam at the ruled field boundary (heading.lockup_fields).
+    Lane B cycle 1: the authored field boundary is a line end like any other (never on a never-end word: CARVED FROM /
+    is not a form)."""
     _, sizes = _sizes()
     r1, r2, _ = heading.lockup_fields(l1, l2)
     words = _words(r1, r2)
     seams = ({len(r1.split()), len(l1.split())} if l1 and l2 else set()) if r2 else {None}
-    bounds = {len(l1.split())} if l1 and l2 else set()
     out = []
     for size in sizes:
         for n in (0, 1, 2):
@@ -74,8 +74,7 @@ def _oracle(l1, l2, width=WIDTH):
                 widths = [_width(t, size) for t in rows]
                 if max(widths) > width:
                     continue
-                free = [i for i, k in enumerate(cuts) if k in bounds]
-                if any(heading.valid(rows, widths=widths, seam=s, free_ends=free) for s in seams):
+                if any(heading.valid(rows, widths=widths, seam=s) for s in seams):
                     out.append((rows, size))
     return out
 
@@ -108,7 +107,9 @@ def test_a_drawn_youtube_lockup_obeys_the_rules_and_a_refusal_means_no_valid_for
         assert all(len(t.split()) >= 2 for t in lines[1:-1]), lines
         # the drawn words are the copy's words, in order (a break comma is the only mark a break may drop)
         assert [w.rstrip(",") for w in " ".join(lines).split()] == [w.rstrip(",") for w in _words(l1, l2)]
-        assert rec["drawn_rows"] == lines and rec["form"] in ("ruled", "authored", "one heading")
+        assert rec["drawn_rows"] == lines and rec["form"] in ("ruled", "one heading")
+        # lane B cycle 1: no row but the last ends on a never-end word, in any form (the authored bypass is closed)
+        assert all(heading.end_ok(t.split()[-1]) for t in lines[:-1]), lines
         if rec["form"] != "ruled":
             assert rec["form_diverges"]["form"] == rec["form"] and rec["form_diverges"]["reason"]
             assert rec["form_diverges"]["rows"] == lines
@@ -178,7 +179,7 @@ def test_the_deep_dive_fit_check_reads_the_copy_the_thumbnail_render_sets(monkey
                "title": "T", "narration_script": "The ring is about 25 miles across."}
     seen = {}
 
-    def fake_render(src, copy, *a, **k):
+    def fake_render(*a, copy, **k):
         seen["copy"] = {k2: copy[k2] for k2 in ("eyebrow", "line1", "line2", "tagline")}
         raise LayoutError("stop")
     monkeypatch.setattr(yt, "render", fake_render)

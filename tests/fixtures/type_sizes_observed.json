@@ -772,16 +772,37 @@
   26.0
  ],
  "masthead:font_for": [
+  50.0,
+  54.0,
+  56.0,
+  58.0,
+  60.0,
+  62.0,
   65.0,
   66.0,
   67.0,
   68.0
  ],
  "masthead:group_width": [
+  50.0,
+  54.0,
+  56.0,
+  58.0,
+  60.0,
+  62.0,
   65.0,
   66.0,
   67.0,
   68.0
+ ],
+ "masthead:mark_geometry": [
+  50.0
+ ],
+ "masthead:plan": [
+  50.0
+ ],
+ "masthead:plan.name": [
+  50.0
  ],
  "masthead:plan_on.at": [
   67.0

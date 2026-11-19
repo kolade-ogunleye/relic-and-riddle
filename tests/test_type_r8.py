@@ -184,6 +184,12 @@ def test_the_reel_lockup_never_steps_under_the_grid_floor():
     assert got["line2"][0].size >= got["line1"][0].size
     with brand.use(_second(), validate=False):
         got, rec = cover_design._lockup(_draw(), {"line1": "BRICK DOME", "line2": "FLATTENED FOREST"}, 912, 86)
+        # lane B cycle 1: in this face the pair stacks only as BRICK DOME / FLATTENED / FOREST, a one-word middle row
+        # (R2), so it takes the recorded last resort the grid proof refuses; where a pair stacks validly the floor holds
+        if not rec.get("off_ladder"):
+            for key in ("line1", "line2"):
+                assert cap_height(got[key][0]) * cover_design.GRID_SCALE[0] >= floor
+        got, rec = cover_design._lockup(_draw(), {"line1": "OLD DOME", "line2": "LOST CITY"}, 912, 86)
         assert not rec.get("off_ladder")
         for key in ("line1", "line2"):
             assert cap_height(got[key][0]) * cover_design.GRID_SCALE[0] >= floor
@@ -236,13 +242,17 @@ def test_the_cover_job_refuses_per_surface_and_records_it():
     assert main.cover_job_results(main.cover_job((("a", lambda: 1), ("b", lambda: 2))), {}) == [1, 2]
 
 
-def test_the_cover_copy_is_fit_checked_before_render_with_the_renderers_rule():
+def test_the_cover_copy_is_fit_checked_before_render_with_the_renderers_rule(tmp_path):
     """Lander ruling (round 8): a headline that cannot set at its floors is found at the copy stage by the renderers'
-    own functions (src/cover_fit.py), a thumbnail-only copy problem for the copy edit, never a draft rewrite."""
+    own functions (src/cover_fit.py), a thumbnail-only copy problem for the copy edit, never a draft rewrite. Lane B
+    cycle 1: judged on the hero when given (a flat unreviewed hero leaves the full column), else at every column a
+    hero can leave."""
     from src import cover_fit, script_engine
-    bad = cover_fit.fit_problems({"line1": "BEHIND ONE WALL...", "line2": "A FORGOTTEN CITY"})
+    hero = tmp_path / "hero.jpg"
+    Image.new("RGB", (1920, 1080), (90, 80, 70)).save(hero)
+    bad = cover_fit.fit_problems({"line1": "BEHIND ONE WALL...", "line2": "A FORGOTTEN CITY"}, hero=hero)
     assert bad and bad[0].startswith(cover_fit.COVER_FIT_PROBLEM + "YouTube thumbnail") and "feed floor" in bad[0]
-    assert cover_fit.fit_problems({"line1": "ONE WALL...", "line2": "A LOST CITY"}) == []
+    assert cover_fit.fit_problems({"line1": "ONE WALL...", "line2": "A LOST CITY"}, hero=hero) == []
     assert script_engine.copy_problem_fields(bad[0], None) == ("thumbnail",)
     assert script_engine.blocking_problems(bad) == []
 

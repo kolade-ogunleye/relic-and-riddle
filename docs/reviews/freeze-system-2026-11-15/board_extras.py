@@ -145,12 +145,13 @@ def hero_copies(dev: Path, heroes) -> list[tuple[str, dict[str, Any]]]:
 
 def fits(payload: dict[str, Any], surface: str) -> list[str]:
     """cover_fit's problems for `payload` on `surface` ("youtube", or "reel" / "grid": the Reel cover's lockup), on
-    the copy that surface's renderer sets (visual_engine.youtube_cover_copy, the one copy the fit check reads)."""
+    the copy that surface's renderer sets (visual_engine.youtube_cover_copy, the one copy the fit check reads), with the run's payload (figure check, badge)
+    and no hero: the stand-in's copy must set at every column a hero can leave (lane B cycle 1, cover_fit one decision)."""
     from src import cover_fit
     from src.visual_engine import youtube_cover_copy
     yt = surface == "youtube"
     return cover_fit.fit_problems(youtube_cover_copy(payload), str(payload.get("youtube_title") or "") if yt else "",
-                                  youtube=yt, reel=not yt)
+                                  youtube=yt, reel=not yt, payload=payload)
 
 
 def standin_copies(dev: Path, heroes, surface: str, refused_run: str) -> list[tuple[str, dict[str, Any]]]:

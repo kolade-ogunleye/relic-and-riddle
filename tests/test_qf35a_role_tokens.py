@@ -46,6 +46,8 @@ ALLOW = {
     ("graphics", "_draw_liberty", "(105, 160, 128, 118)"): "foundation step geometry (y0, y1, half widths)",
     ("graphics", "_draw_liberty", "(160, 213, 110, 102)"): "foundation step geometry (y0, y1, half widths)",
     ("graphics", "_draw_liberty", "(98, 213, 250, 56)"): "pedestal course geometry (half width, y0, y1, shade x)",
+    ("graphics", "landmark_mask", "(255, 255, 255)"): ("the mask's ink on a black analysis image (lane A c2: the pixels "
+                                                       "the referent note keeps off), never drawn on a frame"),
     ("design_cards", "plan_chapter_card", "(120, 112, 104, 96)"): "type sizes",
     ("multi_format", "MAP_FADE", "(160, 110, 56)"): "fade lengths",
     ("multi_format", "STRENGTH_FIGURE", "(3, 2, 1)"): "ranks",

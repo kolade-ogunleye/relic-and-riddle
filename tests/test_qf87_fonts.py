@@ -295,8 +295,10 @@ def test_the_hook_frame_draws_no_masthead_under_nine_pixels(tmp_path, fact_recor
 
 
 @pytest.mark.parametrize("text,lines", [
-    ("of Army Group North", (["of"], ["Army", "Group", "North"])),                       # amber: the name whole
-    ("when Königsberg Castle", (["when"], ["Königsberg", "Castle"])),                    # amber: whole, at 80
+    # lane C cycle 1 (N1, the final round-8 AD check): line 1 never ends on a never-end word where another break
+    # is valid, so these two names break inside (was OF / ARMY GROUP NORTH and WHEN / KÖNIGSBERG CASTLE at 80)
+    ("of Army Group North", (["of", "Army"], ["Group", "North"])),                       # amber
+    ("when Königsberg Castle", (["when", "Königsberg"], ["Castle"])),                    # amber, at 74
     ("to Central Asian traditions", (["to", "Central", "Asian"], ["traditions"])),       # gol gumbaz
     ("near the Podkamennaya", (["near"], ["the", "Podkamennaya"])),                      # tunguska: no other break
 ])
@@ -306,7 +308,7 @@ def test_two_line_breaks_keep_names_and_phrases_whole(text, lines):
     lone function word on line 1 when another break fits. The four real bursts draw at 80."""
     words = text.split()
     k, size = video_composer.reel_caption_lines(words)
-    assert (words[:k], words[k:]) == lines and size == 80
+    assert (words[:k], words[k:]) == lines and size == (74 if text == "when Königsberg Castle" else 80)
 
 
 @pytest.mark.parametrize("text,lines", [

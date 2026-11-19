@@ -242,7 +242,9 @@ def test_the_three_review_sentences():
     # THEY REMOVED AN | ESTIMATED 200,000 TONS stays: every other split breaks a rule that ranks above a dangling
     # end (a lone AN is a function-word-only burst; AN ESTIMATED 200,000 TONS fits only at 67 px, under the burst
     # floor, as tests/test_operator_batch_2026_11_03.py pins; AN ESTIMATED | 200,000 splits the hedge's bond)
-    assert "ESTIMATED 200,000 TONS" in removed
+    # lane C cycle 1: AN ESTIMATED / 200,000 TONS now draws on two lines at 80, broken after its whole hedge
+    # (video_composer._hedge_break), so THEY REMOVED | AN ESTIMATED 200,000 TONS (was THEY REMOVED AN | ...)
+    assert "AN ESTIMATED 200,000 TONS" in removed and "THEY REMOVED" in removed, removed
 
 
 @pytest.mark.parametrize("text", DOCUMENTARY)

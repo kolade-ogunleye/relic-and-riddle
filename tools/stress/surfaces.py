@@ -598,6 +598,11 @@ def d_endcard(case, ctx: Ctx):
     from src import end_card
     _memo_end_card()
     share = inputs(case)["share_line"]
+    if case.get("mode") in ("realistic", "mutation"):
+        # as production hands it over (script_engine.end_card_share): the share half of a line that passes the
+        # writer's share-line checks, else the plain fallback; the edge generator hands the renderer its raw line
+        from src.script_engine import end_card_share
+        share = end_card_share({"share_line": share, "narration_script": ""})[0]
     ctx.payload = {"share_line": share, "narration_script": _signed(share), "topic_id": "stress_topic"}
     with Image.open(_ground(case, 0, ctx.work)) as src:
         last = src.convert("RGB")

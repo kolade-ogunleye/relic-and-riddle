@@ -185,6 +185,11 @@ def main(argv=None) -> int:
                     help="edge: the hostile generator; realistic: sampled from the corpus's measured distributions on "
                          "real photos; mutation: real runs' own copy and photos with one controlled change")
     ap.add_argument("--min-count", type=int, default=3, help="the fewest cases a surface runs under --budget")
+    ap.add_argument("--replay", type=Path, help="run every case file in this folder (a report's cases/) instead of "
+                                                "generating; with --surface, only those surfaces")
+    ap.add_argument("--reground", action="store_true",
+                    help="with --replay: every photo ground replaced by a real hero (chosen by the case id), so a "
+                         "failure that survives does not depend on a synthetic ground")
     ap.add_argument("--workers", type=int, default=2)
     ap.add_argument("--scale-by-cost", action="store_true")
     ap.add_argument("--budget", type=float, default=0.0,
@@ -236,6 +241,23 @@ def main(argv=None) -> int:
     if unknown:
         ap.error(f"unknown surface(s) {unknown}; one of {', '.join(surfaces.SURFACES)}")
     cases = []
+    if a.replay:
+        import hashlib
+
+        import realism
+        heroes = list(realism.real_heroes())
+        for f in sorted(a.replay.glob("*.json")):
+            case = json.loads(f.read_text(encoding="utf-8"))
+            if case["surface"] not in names:
+                continue
+            if a.reground and heroes:
+                h = int(hashlib.sha256(case["id"].encode()).hexdigest(), 16)
+                case["ground"] = [{"kind": "real", "path": heroes[(h + 7 * k) % len(heroes)], "seed": 0,
+                                   "variant": 0} for k in range(4)]
+                case["id"] += "-RG"
+                case["regrounded"] = True
+            cases.append(case)
+        names = []
     for s in names:
         n = (3 if surfaces.COST.get(s, 1) < 300 else 1) if a.quick else a.count
         if a.scale_by_cost and not a.quick:

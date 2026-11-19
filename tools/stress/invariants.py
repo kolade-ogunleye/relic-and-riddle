@@ -147,7 +147,9 @@ def check(ctx) -> list[dict[str, Any]]:
                     v = x["_plate"].measure(im["im"]) if im is not None else None
                 except Exception:  # noqa: BLE001
                     v = None
-                k = int(x["box"][1])
+                # one line row: ink tops within a third of the line's height (a trial break's row sits a few px off)
+                tol = max(4, (x["box"][3] - x["box"][1]) // 3)
+                k = next((y for y in best if abs(y - int(x["box"][1])) <= tol), int(x["box"][1]))
                 if k not in best or (v or 0) > (best[k][0] or 0):
                     best[k] = (v, x)
             chosen = [x for _v, x in best.values()]

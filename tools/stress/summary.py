@@ -53,3 +53,37 @@ def digest(rep: dict) -> str:
 if __name__ == "__main__":
     sys.stdout.reconfigure(encoding="utf-8")
     print(digest(json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))))
+
+
+def modes_table(parts: dict[str, list[dict]]) -> str:
+    """Failure classes per surface, per mode, with the REACHABLE / GUARDED split of the failing cases and one
+    real-run-derived repro (a mutation case) where one exists. `parts`: mode -> results (report.partial.jsonl rows,
+    each with its "reach" tag; an edge run re-tagged by realism.py retag carries it too)."""
+    from surfaces import LANE
+    rows: dict[tuple[str, str], dict] = {}
+    for mode, results in parts.items():
+        for r in results:
+            if r.get("status") != "fail":
+                continue
+            tagged = (r.get("reach") or {}).get("tag", "UNTAGGED")
+            data = (r.get("reach") or {}).get("data_tag", "UNTAGGED")
+            for cls in sorted({f["cls"] for f in r.get("failures") or []}):
+                row = rows.setdefault((r["surface"], cls), {})
+                cell = row.setdefault(mode, {"n": 0, "REACHABLE": 0, "GUARDED": 0, "data_reachable": 0})
+                cell["n"] += 1
+                cell[tagged] = cell.get(tagged, 0) + 1
+                cell["data_reachable"] += data == "REACHABLE"
+                if mode == "mutation" and "repro" not in row:
+                    row["repro"] = f"{r['id']} ({r.get('real_run')}: {r.get('mutation')})"
+    modes = list(parts)
+    out = ["| surface | lane | class | " + " | ".join(f"{m} fail (R/G; data-R)" for m in modes) +
+           " | real-run repro |", "|---|---|---|" + "---|" * len(modes) + "---|"]
+    for (surface, cls), row in sorted(rows.items()):
+        cells = []
+        for m in modes:
+            c = row.get(m)
+            cells.append(f"{c['n']} ({c.get('REACHABLE', 0)}/{c.get('GUARDED', 0)}; {c['data_reachable']})" if c
+                         else "0")
+        out.append(f"| {surface} | {LANE.get(surface, '?')} | {cls} | " + " | ".join(cells) +
+                   f" | {row.get('repro', '-')} |")
+    return "\n".join(out)

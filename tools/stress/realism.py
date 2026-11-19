@@ -282,9 +282,12 @@ def realistic_inputs(fam: str, rnd) -> dict:
         return {"title": " ".join(w.capitalize() for w in _text(rnd, "title", 5, caps=False).split()[:6]),
                 "number": num, "total": max(num, 5)}
     if fam == "myth":
-        m = _text(rnd, "carousel.body", 8, caps=False)
+        # the corpus holds no myth field (0 myths on the sheets): a myth and its correction at the lengths a card
+        # field is written to (the cards' own text limits), neutral words
+        m = " ".join(rnd.choice(gen.WORDS) for _ in range(rnd.randint(3, 6))).capitalize()
         lead = max(m.split(), key=len)
-        return {"myth": m, "fact": f"{lead} {_text(rnd, 'carousel.body', 10, caps=False)}"[:84]}
+        fact = f"{lead.capitalize()} {' '.join(rnd.choice(gen.WORDS) for _ in range(rnd.randint(3, 6)))}"
+        return {"myth": m, "fact": fact}
     if fam == "callout":
         return {"labels": [_text(rnd, "photo_labels", 2, caps=False).lower() for _ in range(3)]}
     if fam in ("endcard", "bridge", "endscreen"):
@@ -439,7 +442,7 @@ def _swap_number(text: str, rnd) -> tuple[str, str, str]:
     except ValueError:
         return text, "", ""
     nv = v * rnd.choice((0.01, 0.1, 7.3, 13, 1000))
-    new = f"{nv:,.1f}" if "." in old else f"{round(nv):,}"
+    new = f"{nv:,.1f}" if ("." in old or nv < 1) else f"{round(nv):,}"
     return text[:m.start()] + new + text[m.end():], old, new
 
 
@@ -551,7 +554,9 @@ def mutation_inputs(fam: str, real: tuple, kind: str, rnd) -> tuple[dict | None,
         new, old, nv = _swap_number(text, rnd)
         what = f"swap the figure {old} -> {nv} in {'/'.join(map(str, t))}"
         if "narration" in inp and old:
-            inp["narration"] = inp["narration"].replace(old, nv, 1)
+            # the same figure where the narration states it, matched whole (never inside a longer number)
+            inp["narration"] = re.sub(r"(?<![\d,.])" + re.escape(old) + r"(?![\d,]|\.\d)", nv, inp["narration"],
+                                      count=1)
         _ = flat
     if fam in ("captions", "badge"):
         inp["words"][t[-1]]["word"] = new if kind != "lengthen" else new.split()[0]
@@ -619,3 +624,45 @@ def build_mutation(surface: str, count: int, seed: int) -> tuple[list[dict], lis
         out.append(case)
         i += 1
     return out, sorted(set(skipped))
+
+
+# ------------------------------------------------------------------------------------------------ re-tag a run
+def retag(parts: list[Path], seed: int, root: Path) -> dict:
+    """Every result of an edge run (its report.partial.jsonl files) with its case rebuilt (surfaces.build at the
+    run's own count per surface, deterministic) and tagged: {id: {"status", "failures", "reach"}}."""
+    import surfaces
+    results: dict[str, dict] = {}
+    for part in parts:
+        for line in part.read_text(encoding="utf-8").splitlines():
+            if line.strip():
+                r = json.loads(line)
+                results[r["id"]] = r
+    per: dict[str, int] = {}
+    for r in results.values():
+        per[r["surface"]] = per.get(r["surface"], 0) + 1
+    out = {}
+    for surface, n in sorted(per.items()):
+        for case in surfaces.build(surface, n, seed):
+            r = results.get(case["id"])
+            if r is None:
+                continue
+            out[case["id"]] = {"surface": surface, "status": r["status"], "failures": r["failures"],
+                               "refusal": r.get("refusal"), "reach": tag(case, root)}
+    return out
+
+
+if __name__ == "__main__":
+    import argparse
+    import sys
+    ap = argparse.ArgumentParser()
+    ap.add_argument("cmd", choices=("retag",))
+    ap.add_argument("parts", type=Path, nargs="+")
+    ap.add_argument("--seed", type=int, required=True)
+    ap.add_argument("--tree", type=Path, default=HERE.parents[1])
+    ap.add_argument("--out", type=Path, required=True)
+    a = ap.parse_args()
+    sys.path.insert(0, str(a.tree))
+    a.out.parent.mkdir(parents=True, exist_ok=True)
+    got = retag(a.parts, a.seed, a.out.parent / "_grounds")
+    a.out.write_text(json.dumps(got, indent=1, ensure_ascii=False), encoding="utf-8", newline="\n")
+    print(f"{len(got)} results tagged -> {a.out}")

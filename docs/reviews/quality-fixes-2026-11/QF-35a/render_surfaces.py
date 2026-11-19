@@ -2,7 +2,7 @@
 
     python render_surfaces.py <tree> <dev checkout holding output/run_*> <out.json> [--brand second|second-colours|third]
                               [--keep <dir>]
-                              [--only map,numbers,...] [--per-kind N]
+                              [--only map,numbers,...] [--per-kind N] [--jobs <file>] [--list-jobs <file>]
 
 Run it on the base tree and on this row's tree: with the default brand the two JSON files must hold the same hash for
 every surface (0 differing pixels; compare.py). With --brand second the frozen designs draw the test brand of
@@ -126,6 +126,9 @@ def main() -> None:
     ap.add_argument("--per-kind", type=int, default=0, help="at most this many runs per graphic kind (0: all)")
     ap.add_argument("--jobs", type=Path, help="a file of job names (one per line, as the result's `seconds` keys): "
                     "run only those (the round-2 re-render of the surfaces a change reaches plus a random sample)")
+    ap.add_argument("--list-jobs", type=Path, help="write the job names this run would render (one per line, in "
+                    "order, after --only / --per-kind / --jobs) to this file and render nothing (board.py --workers "
+                    "shards the list)")
     a = ap.parse_args()
     tree, dev = a.tree.resolve(), a.dev.resolve()
     only = set(filter(None, a.only.split(",")))
@@ -167,6 +170,7 @@ def main() -> None:
         a.keep.mkdir(parents=True, exist_ok=True)
     work = Path(tempfile.mkdtemp(prefix="qf35a-"))
     clips: dict[str, Hasher] = {}
+    listed: list[str] | None = [] if a.list_jobs else None
 
     def encode(frames, out, n, width=None, height=None, **_k):
         hz = clips.setdefault(Path(out).name, Hasher())
@@ -207,6 +211,9 @@ def main() -> None:
         if only and group not in only:
             return
         if jobs is not None and name not in jobs:
+            return
+        if listed is not None:   # --list-jobs: the name only, nothing drawn
+            listed.append(name)
             return
         t0 = time.perf_counter()
         try:
@@ -535,6 +542,10 @@ def main() -> None:
     job("captions", "captions", captions)
 
     shutil.rmtree(work, ignore_errors=True)
+    if listed is not None:
+        a.list_jobs.write_text("".join(f"{n}\n" for n in listed), encoding="utf-8", newline="\n")
+        print(len(listed), "jobs listed")
+        return
     result["brand_validation"] = brand_validation   # round 8: the fit corpus's verdict on the brand (None: default)
     result["count"] = len(result["surfaces"])
     a.out.write_text(json.dumps(result, indent=1, sort_keys=True), encoding="utf-8", newline="\n")

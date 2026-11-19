@@ -54,6 +54,21 @@ def guarded(surface: str, fn, *a, default=None, **k):
         return default
 
 
+def captured(fn, *a, **k):
+    """fn(*a, **k) in a board.py --workers process: (its value, the refusals it recorded in this process's REFUSED),
+    so the board process records them (replay) where the one-process board would have."""
+    n = len(REFUSED)
+    value = fn(*a, **k)
+    return value, REFUSED[n:]
+
+
+def replay(future):
+    """A captured call's value; its refusals appended to REFUSED now (an exception in the worker is raised here)."""
+    value, refused = future.result()
+    REFUSED.extend(refused)
+    return value
+
+
 def refusal_tile(surface: str, reason: str, size=(960, 540)):
     """A grey tile that says the surface was refused and why (its row shows the refusal, never a gap)."""
     from PIL import Image, ImageDraw, ImageFont

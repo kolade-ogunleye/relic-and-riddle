@@ -396,13 +396,19 @@ def test_thumbnail_masthead_figure_and_word_budget() -> None:
     assert "title" not in dict(plates) and "no verified line fits" in meta["headline_dropped"]
     _, plates = youtube_thumbnail.render(src, {"line1": "THE 25-MILE", "line2": "SAHARA EYE"})
     names = dict(plates)
-    # cycle 0 (2026-11-15): one masthead treatment on every surface: bone (the light-ground variant ink), never gold
-    assert names["brand"].fill in (brand.BONE, brand.INK) and names["brand"].font.size >= 60
+    # cycle 0 (2026-11-15): one masthead treatment on every surface: bone (the light-ground variant ink), never gold.
+    # Lane B cycle 2: the masthead never competes with the hook (youtube_thumbnail.MARK_RATIO_MAX of its first row), so
+    # its size is a step of its own fit ladder, never under the ladder's floor (50 on this short hook), not a fixed 60
+    from src import masthead
+    ladder = masthead.fit_ladder(youtube_thumbnail.BRAND_PX)
+    assert names["brand"].fill in (brand.BONE, brand.INK)
+    assert any(abs(names["brand"].font.size - s) < 0.5 for s in ladder) and names["brand"].font.size >= ladder[-1] - 0.5
     assert names["figure_unit"].font.size == pytest.approx(names["figure"].font.size * 0.5, abs=2)
     words = ["25", "MILES"] + names["title"].text.split()
     assert len(words) <= youtube_thumbnail.MAX_WORDS
     gap = names["title"].box[1] - names["figure"].box[3]
-    assert gap <= 0.12 * names["title"].font.size + 4
+    # lane B cycle 2: the title's cap line sits TITLE_LINE_GAP of its cap under the figure row's lowest ink (was 0.12)
+    assert gap <= youtube_thumbnail.TITLE_LINE_GAP * names["title"].font.size + 4
     # a year in the tagline is the hero when there is no measured figure: four words in all
     _, plates = youtube_thumbnail.render(src, DERINKUYU)
     texts = {n: p.text for n, p in plates}

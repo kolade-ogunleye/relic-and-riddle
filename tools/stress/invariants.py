@@ -69,6 +69,25 @@ def _overlap(a, b) -> tuple[int, int]:
     return min(a[2], b[2]) - max(a[0], b[0]), min(a[3], b[3]) - max(a[1], b[1])
 
 
+def _ink_overlap(a, b) -> int | None:
+    """Pixels where two plates' ink (each grown by 1 px) touch, on the canvas; None when a mask is missing."""
+    import numpy as np
+    if a.full is None or b.full is None:
+        return None
+    ma, mb = np.asarray(a.full) > 96, np.asarray(b.full) > 96
+    (ax, ay), (bx, by) = a.origin, b.origin
+    x0, y0 = max(ax, bx), max(ay, by)
+    x1, y1 = min(ax + ma.shape[1], bx + mb.shape[1]), min(ay + ma.shape[0], by + mb.shape[0])
+    if x1 <= x0 or y1 <= y0:
+        return 0
+    sa = ma[y0 - ay:y1 - ay, x0 - ax:x1 - ax]
+    sb = mb[y0 - by:y1 - by, x0 - bx:x1 - bx]
+    import cv2
+    grow = np.ones((3, 3), np.uint8)
+    sa = cv2.dilate(sa.astype(np.uint8), grow) > 0
+    return int((sa & sb).sum())
+
+
 def check(ctx) -> list[dict[str, Any]]:
     import capture
     fails: list[dict[str, Any]] = []
@@ -117,17 +136,18 @@ def check(ctx) -> list[dict[str, Any]]:
                 if _near(u, rb, 3):
                     chosen = group
                     break
-        if len({_norm(x["text"]) for x in chosen}) < len(chosen):
-            # the same line drawn at two places (a trial and the delivered one): the one the delivered pixels show
+        if len(chosen) > 1:
+            # a block's lines drawn more than once (a trial break or place and the delivered one): per line row (its
+            # ink top), the plate the delivered pixels show (its measured ratio highest; a trial reads about 1.0)
             im = next((i for i in images if i["name"] in str(r.get("surface", ""))
                        and tuple(i["im"].size) == tuple(r["canvas"])), None)
-            best: dict[str, tuple] = {}
+            best: dict[int, tuple] = {}
             for x in chosen:
                 try:
                     v = x["_plate"].measure(im["im"]) if im is not None else None
                 except Exception:  # noqa: BLE001
                     v = None
-                k = _norm(x["text"])
+                k = int(x["box"][1])
                 if k not in best or (v or 0) > (best[k][0] or 0):
                     best[k] = (v, x)
             chosen = [x for _v, x in best.values()]
@@ -231,7 +251,10 @@ def check(ctx) -> list[dict[str, Any]]:
                     continue
                 ox, oy = _overlap(a["box"], b["box"])
                 if ox > COLLIDE_PX and oy > COLLIDE_PX:
-                    fail("COLLISION", f"{im['name']}: {a['text']!r} {a['box']} overlaps {b['text']!r} {b['box']}")
+                    n = _ink_overlap(a["_plate"], b["_plate"])
+                    if n is None or n > 0:   # the boxes overlap AND the ink does (an accent over a gap is not)
+                        fail("COLLISION", f"{im['name']}: {a['text']!r} {a['box']} overlaps {b['text']!r} "
+                                          f"{b['box']}" + (f" ({n} ink px touch)" if n is not None else ""))
     for p in ctx.problems:
         fail("LAYOUT_PROBLEM", p)
 

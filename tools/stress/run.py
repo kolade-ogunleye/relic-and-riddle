@@ -177,12 +177,41 @@ def main(argv=None) -> int:
     ap.add_argument("--budget", type=float, default=0.0,
                     help="seconds per surface: a surface runs min(--count, budget / its measured cost), at least 3")
     ap.add_argument("--repro", type=Path, help="replay one case file (cases/<id>.json) and print its result")
+    ap.add_argument("--merge", type=Path, nargs="+",
+                    help="build report.json and failures.jpg in --out from these report.partial.jsonl files (a later "
+                         "file's result for a case id replaces an earlier one's); renders nothing")
     a = ap.parse_args(argv)
     tree = a.tree.resolve()
     out = (a.out or Path.cwd() / "stress_out").resolve()
     out.mkdir(parents=True, exist_ok=True)
     sys.path.insert(0, str(HERE))
     import surfaces
+    if a.merge:
+        import shutil
+        got: dict[str, dict] = {}
+        for part in a.merge:
+            for line in part.read_text(encoding="utf-8").splitlines():
+                if line.strip():
+                    r = json.loads(line)
+                    got[r["id"]] = r
+                    for f in r.get("frames") or []:
+                        src = part.parent / "frames" / f
+                        if src.is_file() and src.parent != out / "frames":
+                            (out / "frames").mkdir(parents=True, exist_ok=True)
+                            shutil.copy(src, out / "frames" / f)
+                    case = part.parent / "cases" / f"{r['id']}.json"
+                    if case.is_file() and case.parent != out / "cases":
+                        (out / "cases").mkdir(parents=True, exist_ok=True)
+                        shutil.copy(case, out / "cases" / case.name)
+        results = sorted(got.values(), key=lambda r: r["id"])
+        rep = summarise(results, {"tree": str(tree), "seed": a.seed, "merged": [str(p) for p in a.merge],
+                                  "cases": len(results), "workers": 2,
+                                  "wall_seconds": round(sum(r["seconds"] for r in results) / 2, 1)})
+        (out / "report.json").write_text(json.dumps(rep, indent=1, ensure_ascii=False), encoding="utf-8",
+                                         newline="\n")
+        contact_sheet(out, results)
+        print(f"merged {len(results)} cases -> {out / 'report.json'}")
+        return 0
     if a.repro:
         case = json.loads(a.repro.read_text(encoding="utf-8"))
         _init(str(tree), str(out))

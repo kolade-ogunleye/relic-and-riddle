@@ -2574,13 +2574,18 @@ def cover_fit_problems(pkg: ScriptPackage) -> list[str]:
     if getattr(pkg, "thumbnail", None) is None:
         return []
     from . import cover_fit
-    from .visual_engine import _in_spoken_units, documentary_cover_copy
+    from .delivery_profiles import get_delivery_profile
+    from .visual_engine import youtube_cover_copy
     payload = {"thumbnail": pkg.thumbnail.model_dump(), "title": getattr(pkg, "title", "") or "",
                "narration_script": getattr(pkg, "narration_script", "") or ""}
-    copy = _in_spoken_units(documentary_cover_copy(payload), payload)
-    # a Reel's copy sets the Reel cover (and grid); the YouTube thumbnail is the documentary's, whose cover copy is its
-    # title (main.documentary_cover), checked in the deep dive's own draft retry (main: cover_fit before render)
-    return cover_fit.fit_problems(copy, youtube=False)
+    copy = youtube_cover_copy(payload)
+    # a Reel's copy sets the Reel cover (and grid). The YouTube thumbnail is checked here only where the Reel's own
+    # delivery publishes one (SYS-R8-3: the reel profile's requires_youtube_thumbnail; today it does not: the 16:9
+    # thumbnail is the documentary's, whose cover copy is its title (main.documentary_cover), checked in the deep
+    # dive's own draft retry), so a Reel's copy is never sent back for a surface the Reel does not draw
+    youtube = get_delivery_profile("reel").requires_youtube_thumbnail
+    return cover_fit.fit_problems(copy, str(getattr(pkg, "youtube_title", "") or "") if youtube else "",
+                                  youtube=youtube)
 
 
 def cover_problems(pkg: ScriptPackage, sheet: dict[str, Any] | None = None) -> list[str]:

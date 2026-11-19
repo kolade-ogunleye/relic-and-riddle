@@ -478,7 +478,7 @@ class VisualEngine:
         from .image_presentation import full_image
         src.info["essential_full_image"] = full_image(Path(hero_image_path))
         src, focus = clean_hero(src, reviewed_focus(Path(hero_image_path)))
-        copy = _in_spoken_units(documentary_cover_copy(script_payload), script_payload)
+        copy = youtube_cover_copy(script_payload)
         # The badge is not drawn here; it is read for the qualifier the covers' copy sets on the figure ("EST.").
         copy.setdefault("badge", _in_spoken_units({"b": extract_curiosity_badge(script_payload)}, script_payload)["b"])
         from .scene_planner import is_illustration
@@ -597,6 +597,13 @@ def _in_spoken_units(copy: Dict[str, Any], script_payload: Dict[str, Any]) -> Di
     narration = script_payload.get("narration_script") or ""
     lead = deck_lead(script_payload)
     return {k: spoken_units(v, narration, lead) if isinstance(v, str) else v for k, v in copy.items()}
+
+
+def youtube_cover_copy(script_payload: Dict[str, Any]) -> Dict[str, str]:
+    """The cover copy the YouTube thumbnail sets (generate_youtube_thumbnail), each figure in the narration's unit:
+    the one copy its pre-render fit check reads too (src/cover_fit.py; main's deep-dive draft retry), so the check
+    and the render never see different words (SYS-R8-3)."""
+    return _in_spoken_units(documentary_cover_copy(script_payload), script_payload)
 
 
 def documentary_cover_copy(script_payload: Dict[str, Any]) -> Dict[str, str]:

@@ -299,7 +299,10 @@ def _lockup(measure, l1: str, l2: str, width: float, kickerless: bool = False, r
     line, else (ruling 7) two lines (the two-line tier, valid forms; the phrase exception keeps a payoff word alone:
     THE SECRET / WEAPON), at most three rows in all. Where the ruled form cannot hold the feed floor on the ladder,
     the authored whole lines (QF-23 / QF-143) are set instead and the record says why (form_diverges: legibility at
-    feed size outranks one form across surfaces). The kickerless variant (ruling 5): with no kicker drawn above it,
+    feed size outranks one form across surfaces). Where neither field form sets without a one-word middle row (R2),
+    the headline's words are set as one heading (SYS-R8-3: every valid break of the whole, up to three rows, the
+    payoff gold from the copy's field seam), recorded the same way (record["form"]: ruled / authored / one heading).
+    The kickerless variant (ruling 5): with no kicker drawn above it,
     the headline takes its larger size on two lines before the fallback size on one ("one size up": the kicker's
     room). Nothing is set below the ladder held at the feed floor (lander ruling, round 8: round 7's 4 px last resort
     down to 96 is retired): where no form sets there, LayoutError (a recorded refusal, never type drawn past its
@@ -319,14 +322,16 @@ def _lockup(measure, l1: str, l2: str, width: float, kickerless: bool = False, r
             dx += measure.textlength(t + " ", font=font)
         return out
 
-    def attempt(f1, f2, s1, tier, n):
+    def attempt(f1, f2, s1, tier, n, at=None):
         s2 = max(s1, round(s1 * ratio))
         rows, forms_, drawn_rows, seam = [], [], [], None
         for key, text, sz, gold in (("title_1", f1, s1, False), ("title_2", f2, s2, True)):
             if not text:
                 continue
             if not (f1 and f2):
-                form = set_heading(text, width_at, width, (sz,), max_lines=n, lockup=True)
+                # one field: the engine's lockup, its payoff run from `at` (the copy's own field seam, when the two
+                # fields are set as one heading), else from the engine's ideal seam
+                form = set_heading(text, width_at, width, (sz,), max_lines=n, seam=at, lockup=True)
                 line_runs = form.runs() if form else None
                 seam = form.seam if form else None
             else:
@@ -354,6 +359,7 @@ def _lockup(measure, l1: str, l2: str, width: float, kickerless: bool = False, r
         phrase = [f.record["phrase_exception"] for f in forms_ if f.record.get("phrase_exception")]
         return rows, get_font(brand.DISPLAY_FONT, s1), get_font(brand.DISPLAY_FONT, s2), {
             "tier": tier, "sizes": [s1, s2], "ratio": ratio, "line1": f1, "line2": f2, "rows": len(rows),
+            "drawn_rows": [t for t, _ in drawn_rows], "seam": seam,
             **({"phrase_exception": phrase} if phrase else {})}
 
     floor = feed_floor_px(HERO_FLOOR)
@@ -362,27 +368,44 @@ def _lockup(measure, l1: str, l2: str, width: float, kickerless: bool = False, r
     order = [(s, t, 1) for t, s in enumerate(sizes)] + [(s, t, 2) for t, s in enumerate(sizes)]
     if kickerless and tok("lockup.kickerless_up") and len(sizes) > 1:
         order = [(sizes[0], 0, 1), (sizes[0], 0, 2)] + [(s, t + 1, n) for t, s in enumerate(sizes[1:]) for n in (1, 2)]
+    # SYS-R8-3: a heading set as one field may take the third row the lockup allows, only once one and two lines have
+    # failed at every size (so nothing that sets on fewer rows changes)
+    order3 = order + [(s, t, 3) for t, s in enumerate(sizes)]
+    # (form name, line 1, line 2, the order it is tried in, the payoff seam, why it is not the ruled form)
     forms = []
     if l1 and l2:
         r1, r2, _ = lockup_fields(l1, l2)
-        forms.append((r1, r2, None))
+        forms.append(("ruled", r1, r2, order, None, None))
         if (r1, r2) != (l1, l2):
-            forms.append((l1, l2, "the ruled form does not hold the feed floor on the ladder"))
+            forms.append(("authored", l1, l2, order, None, "the ruled form does not hold the feed floor on the ladder"))
+        # SYS-R8-3 (cycle 0 round 8): a two-word field the column cannot hold whole must break, and stacked under the
+        # other field it leaves a one-word middle row (R2, heading.lockup_valid: ROMAN / CONCRETE / HEALS ITSELF), so
+        # each field form is refused. Before the run's headline is refused, the copy's words are set as ONE heading
+        # (heading.set_heading, lockup, at most three rows: every valid break of the whole headline, the cuts across
+        # the field seam among them, ROMAN / CONCRETE THAT / HEALS ITSELF), the payoff run gold from the copy's own
+        # field seam. The same words in the same order, the same ladder held at the same floor, the engine's rules
+        # (heading.valid: no one-word middle row, the phrase exception on the last row only); the record says why.
+        # (A two-line tier on one field only is already in the field forms: a field that fits one line takes it.)
+        if r2:
+            forms.append(("one heading", f"{r1} {r2}", "", order3, len(r1.split()),
+                          "no field form holds the feed floor on the ladder in three rows without a one-word middle "
+                          "row; the headline is set as one heading"))
     else:
-        forms.append((l1, l2, None))
+        forms.append(("ruled", l1, l2, order3, None, None))
 
-    def done(got, why):
+    def done(got, name, why):
+        got[3]["form"] = name
         if kickerless:
             got[3]["kickerless"] = True
         if why:
-            got[3]["form_diverges"] = {"ruled": list(forms[0][:2]), "drawn": [got[3]["line1"], got[3]["line2"]],
-                                       "reason": why}
+            got[3]["form_diverges"] = {"ruled": list(forms[0][1:3]), "drawn": [got[3]["line1"], got[3]["line2"]],
+                                       "form": name, "rows": list(got[3]["drawn_rows"]), "reason": why}
         return got
-    for f1, f2, why in forms:
-        for s1, tier, n in order:
-            got = attempt(f1, f2, s1, tier, n)
+    for name, f1, f2, tries, at, why in forms:
+        for s1, tier, n in tries:
+            got = attempt(f1, f2, s1, tier, n, at)
             if got:
-                return done(got, why)
+                return done(got, name, why)
     # Lander ruling (cycle 0 round 8): no surface draws under its floor. The ladder above is held at the hero's feed
     # floor; a headline no form sets there is refused (recorded), never drawn smaller (round 7 stepped off the ladder
     # to 96 px: the second palette drew 5.8-9.8 px of cap at the 168 px feed against the 12 px floor)

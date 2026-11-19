@@ -901,9 +901,14 @@ class PipelineCoordinator:
                     # one the YouTube thumbnail or the Reel cover cannot set at its floors (the renderers' own rule,
                     # src/cover_fit.py) goes back in this retry for a shorter title, never refused after the render;
                     # past the last draft it renders and a refusal holds the run on the review card
+                    # SYS-R8-3: the copy the thumbnail render sets (visual_engine.youtube_cover_copy: each figure in the
+                    # narration's unit), so the check and the render never read different words
                     from src import cover_fit
-                    fit = cover_fit.fit_problems(documentary_cover(deep_dive_pkg.title),
-                                                 deep_dive_pkg.youtube_title) if passed else []
+                    from src.visual_engine import youtube_cover_copy
+                    fit = cover_fit.fit_problems(youtube_cover_copy({
+                        "thumbnail": documentary_cover(deep_dive_pkg.title), "title": deep_dive_pkg.title,
+                        "narration_script": " ".join(a.narration_text for a in deep_dive_pkg.acts)}),
+                        deep_dive_pkg.youtube_title) if passed else []
                     if fit and draft < 3:
                         log.warning("Deep-dive draft %d: the title does not set on its covers (%s)", draft, fit)
                         feedback = ("The title is the cover's headline and does not set on the YouTube thumbnail or "

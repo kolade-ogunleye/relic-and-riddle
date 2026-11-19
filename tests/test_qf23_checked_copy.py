@@ -355,5 +355,11 @@ def test_the_thumbnail_headline_is_a_whole_verified_line_or_none_never_a_cut_one
     from src.refusal import LayoutError
     with pytest.raises(LayoutError, match="feed floor"):
         _thumbnail({**whole, "line1": "THE LOST SCIENCE"})
-    meta, titles = _thumbnail({**whole, "line1": "LOST SCIENCE"})
-    assert titles == ["LOST SCIENCE", "GREEK ASTRONOMY"] and not youtube_thumbnail.headline_note(meta)
+    # cycle 0 round 8 (R2, SYS-R8-3): GREEK ASTRONOMY does not hold the column whole at the floor, and broken under
+    # LOST SCIENCE it leaves GREEK a one-word middle row; no arrangement of the four words holds the floor in three
+    # rows (tests/test_sys_r8_3_youtube_forms.py proves it by enumeration): a recorded refusal for the copy edit,
+    # never a lone middle row and never smaller
+    with pytest.raises(LayoutError, match="feed floor"):
+        _thumbnail({**whole, "line1": "LOST SCIENCE"})
+    meta, titles = _thumbnail({**whole, "line1": "LOST SCIENCE", "line2": "OF THE STARS"})
+    assert titles == ["LOST SCIENCE", "OF THE STARS"] and not youtube_thumbnail.headline_note(meta)

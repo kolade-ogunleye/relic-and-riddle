@@ -132,10 +132,14 @@ def _in_feet(value: float, unit: str) -> tuple[str, float] | None:
 
 
 def _converts(d: figures.Figure, signed: list[figures.Figure], need_hedge: bool = True) -> bool:
-    """A drawn measured figure that is a signed one's conversion to the other unit (within CONVERT_TOL)."""
+    """A drawn measured figure that is a signed one's conversion to the other unit (within CONVERT_TOL). A figure in
+    the signed value's own unit is never a conversion of it: drawn == signed, judged exactly by figures.truth_faults
+    (SYS-R8 integration: the tolerance passed "6 M" for a signed 6.1 m and "85 M" for 85.3 m, a precision loss)."""
     for s in signed:
         for v in (s, s.conv):
             if v is None or not v.unit or len(v.values) != len(d.values):
+                continue
+            if figures._canon(v.unit) == figures._canon(d.unit):
                 continue
             if all(figures.within_tol(a, d.unit, b, v.unit) for a, b in zip(d.values, v.values)):
                 if need_hedge and s.hedge and not d.hedge and all(o.hedge for o in signed if o.values == s.values):

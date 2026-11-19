@@ -8293,18 +8293,56 @@ def per_ft(unit: str) -> float:
     return 1 / FT_PER_M if unit == "M" else 1.0
 
 
-def measure_text(feet: float, unit: str = "FT") -> tuple[str, str]:
+def signed_number(value: float) -> str:
+    """A signed value written at its own precision, with thousands commas ("6.5", "1,073", "11.25"; never rounded)."""
+    text = f"{float(value):.6f}".rstrip("0").rstrip(".")
+    dp = len(text.partition(".")[2])
+    return f"{float(value):,.{dp}f}"
+
+
+def signed_lead(fact: dict[str, Any] | None, feet: float, unit: str) -> float | None:
+    """The signed value a scale figure in the lead `unit` states, when `feet` is that fact's own size: its `value` in
+    its own unit (a metre fact in M, a foot fact in FT); None when the fact signs another unit or another size."""
+    if not isinstance(fact, dict) or fact.get("value") in (None, ""):
+        return None
+    try:
+        value = float(fact["value"])
+    except (TypeError, ValueError):
+        return None
+    own = lead_unit(fact)
+    if own != unit or (own == "FT" and str(fact.get("unit") or "ft").strip().lower() not in ("ft", "feet", "foot")):
+        return None
+    in_feet = value * FT_PER_M if own == "M" else value
+    return value if abs(in_feet - feet) <= 0.005 * max(abs(feet), 1e-9) else None
+
+
+def _lead_values(lead: str) -> tuple[float, ...]:
+    """The numbers a drawn lead states, as the drawn-figure gate parses them ("6 M" -> (6.0,); "11 FT 6 IN" ->
+    (11.0, 6.0): two figures, which no single signed value is)."""
+    from .figures import parse
+    return tuple(v for f in parse(lead) for v in f.values)
+
+
+def measure_text(feet: float, unit: str = "FT", signed: float | None = None) -> tuple[str, str]:
     """A sourced size as (lead, conversion) in the lead `unit`: the same two figures as measurement_text, never more
     precise ("1,073 FT", "327 M" for a foot lead; "327 M", "1,073 FT" for a metre lead). The conversion is
     figures.converted_number's (SYS-R8-1): the fewest decimals within the gate's CONVERT_TOL of the lead's value, so
-    a metre lead converts from its metres ("6.5 M" -> "21 FT"; feet and inches only on a foot lead)."""
+    a metre lead converts from its metres ("6.5 M" -> "21 FT"; feet and inches only on a foot lead).
+    `signed` (signed_lead: the signed value in the lead unit): drawn == signed (SYS-R8 integration). Wherever the
+    usual rounding would draw another number (a 6.5 m fact drew "6 M", an 11.5 ft one "11 FT 6 IN"), the lead is the
+    signed value at its signed precision ("6.5 M", "11.5 FT") and the conversion is made from it; a lead the rounding
+    already draws as the signed number is unchanged."""
     text = measurement_text(feet)
     ft_part, _, m_part = text.partition(" (")
     m_part = m_part.rstrip(")")
     if unit == "M":
         metres = feet / FT_PER_M
         lead = f"{metres:,.0f} M" if feet >= 20 else f"{metres:.1f} M"
+        if signed is not None and _lead_values(lead) != (float(signed),):
+            metres, lead = float(signed), f"{signed_number(signed)} M"
         return lead, f"{converted_number(metres, 'M', 'FT')} FT"
+    if signed is not None and _lead_values(ft_part) != (float(signed),):
+        return f"{signed_number(signed)} FT", f"{converted_number(float(signed), 'FT', 'M')} M"
     return ft_part, m_part
 
 
@@ -8663,9 +8701,10 @@ def scale_figure(fact: dict[str, Any], feet: float, depth: bool) -> tuple[str, s
     """The scale graphic's figure in its two parts (round 3, 2026-11-02): the hedged lead figure and the dimension
     ("ABOUT 280 FT DEEP") and its conversion on its own line ("85 M"); the same figures as measurement_text, never
     more precise. Cycle 0 round 7 (panel F12): the lead is the signed fact's own unit, so a metre fact reads
-    "ABOUT 327 M DEEP" over "1,073 FT"."""
+    "ABOUT 327 M DEEP" over "1,073 FT". The lead is the signed value at its signed precision (signed_lead)."""
     hedge = "ABOUT " if fact.get("approximate", True) else ""
-    main, conversion = measure_text(feet, lead_unit(fact))
+    unit = lead_unit(fact)
+    main, conversion = measure_text(feet, unit, signed_lead(fact, feet, unit))
     return hedge + main + " " + dimension_word(fact, depth), conversion
 
 
@@ -8678,8 +8717,9 @@ def dimension_word(fact: dict[str, Any], depth: bool | None = None) -> str:
     return "LONG" if dim == "length" else "TALL"
 
 
-def _short(feet: float, unit: str = "FT") -> str:
-    return measure_text(feet, unit)[0]
+def _short(feet: float, unit: str = "FT", fact: dict[str, Any] | None = None) -> str:
+    """The lead figure alone; given the scale `fact` whose size `feet` is, at its signed precision (signed_lead)."""
+    return measure_text(feet, unit, signed_lead(fact, feet, unit))[0]
 
 
 def comparison_ratio(big: float, small: float) -> str:
@@ -8714,9 +8754,10 @@ def _scale_case_name(fact: dict[str, Any]) -> str:
     return " ".join(words)
 
 
-def _ft(feet: float, unit: str = "FT") -> str:
-    """A sourced figure as a sentence writes it in the lead `unit` ("305 ft", "5 ft 9 in", "93 m")."""
-    return re.sub(r"(?<=\d) (FT|IN|M)\b", lambda m: " " + m.group(1).lower(), _short(feet, unit))
+def _ft(feet: float, unit: str = "FT", fact: dict[str, Any] | None = None) -> str:
+    """A sourced figure as a sentence writes it in the lead `unit` ("305 ft", "5 ft 9 in", "93 m"); given the scale
+    `fact` whose size `feet` is, at its signed precision (signed_lead)."""
+    return re.sub(r"(?<=\d) (FT|IN|M)\b", lambda m: " " + m.group(1).lower(), _short(feet, unit, fact))
 
 
 def _landmark_name(ref_label: str) -> str:
@@ -8741,8 +8782,8 @@ def scale_meaning_lines(fact: dict[str, Any], feet: float, ref_label: str, ref_f
     gap = abs(ref_feet - feet)
     u = lead_unit(fact)                      # cycle 0 round 7 (F12): every figure in the fact's own unit
 
-    def say(v: float) -> str:
-        return _ft(v, u)
+    def say(v: float, own: bool = False) -> str:   # `own`: the subject's signed size, at its signed precision
+        return _ft(v, u, fact if own else None)
     if depth:
         return ([f"{_cap_first(ref)}, {say(ref_feet)},", f"would show only its top {hedge}{say(gap)}."]
                 if ref_feet > feet else
@@ -8754,7 +8795,7 @@ def scale_meaning_lines(fact: dict[str, Any], feet: float, ref_label: str, ref_f
         if not subject:
             return [f"{_cap_first(ref)}: {say(ref_feet)} tall.",
                     "Nearly the same length." if near else f"About {ratio} times the length."]
-        first = f"{subject}: {hedge}{say(feet)} long"
+        first = f"{subject}: {hedge}{say(feet, own=True)} long"
         if near:
             return [first + ".", f"{_cap_first(ref)}, {say(ref_feet)} tall, is nearly its length."]
         if ref_feet > feet:
@@ -8762,7 +8803,7 @@ def scale_meaning_lines(fact: dict[str, Any], feet: float, ref_label: str, ref_f
         return [first + ",", f"about {ratio} times the height of {ref}, {say(ref_feet)}."]
     if not subject:
         return [f"{_cap_first(ref)}: {say(ref_feet)}.", "Nearly the same height." if near else f"About {ratio} times as tall."]
-    first = f"{subject}: {hedge}{say(feet)}"
+    first = f"{subject}: {hedge}{say(feet, own=True)}"
     if near:
         return [first + ".", f"{_cap_first(ref)}, {say(ref_feet)}, is nearly the same height."]
     if ref_feet > feet:
@@ -8840,11 +8881,13 @@ def _monolith(d: ImageDraw.ImageDraw, x0: float, x1: float, base_y: float, h: fl
                     d.rectangle([bx0, ya, bx1, yb], fill=shade)
 
 
-def _depth_ruler(feet: float, hedge: str, unit: str = "FT") -> list[tuple[float, str, bool]]:
+def _depth_ruler(feet: float, hedge: str, unit: str = "FT",
+                 fact: dict[str, Any] | None = None) -> list[tuple[float, str, bool]]:
     """The depth ruler's marks (round 3, 2026-11-02; it replaces five unlabelled strata that suggested levels
     that do not exist): (feet, label, is the floor) for "0 FT" at the ground, the round hundreds above the floor
     (fifties under 200, tens under 40, in the ruler's `unit`), none within a fifth of a step of it, and the payload
-    figure, hedged like the figure, at the floor. A metre fact's ruler counts metres (cycle 0 round 7, F12)."""
+    figure, hedged like the figure, at the floor (at its signed precision given the `fact`: signed_lead). A metre fact's
+    ruler counts metres (cycle 0 round 7, F12)."""
     k = per_ft(unit)
     depth = feet * k
     step = _ruler_step(depth)
@@ -8853,7 +8896,7 @@ def _depth_ruler(feet: float, hedge: str, unit: str = "FT") -> list[tuple[float,
     while v < depth - step * 0.2:
         marks.append((v / k, f"{v:,}", False))
         v += step
-    marks.append((feet, f"{hedge}{_short(feet, unit)}", True))
+    marks.append((feet, f"{hedge}{_short(feet, unit, fact)}", True))
     return marks
 
 
@@ -8985,7 +9028,7 @@ def _render_scale_vertical(fact, feet, ref_label, ref_feet, depth, out, width, h
         if note_x is not None and bracket[2] - bracket[1] >= 6:
             plates.append(("bracket", quantity_plate(ground, (note_x, note_y), note, f_note, "ls", track=2)))
         datum = line_y - 0.5                                # the 3 px ground line's centre (line_y - 2 .. line_y + 1)
-        for ft, text, is_floor in _depth_ruler(feet, hedge, unit):
+        for ft, text, is_floor in _depth_ruler(feet, hedge, unit, fact):
             yy = line_y + ft * px_ft
             rx = shaft[0] - 26
             f_rule = data_font(SCALE_RULER_PX)
@@ -9016,7 +9059,7 @@ def _render_scale_vertical(fact, feet, ref_label, ref_feet, depth, out, width, h
         shaft = (rule_x + 30, rule_x + 30 + block)
         room = x1 - shaft[1] - 40 - 20                      # beside the subject's block
         f_blk = figure_font(max(28, floor))                 # stated quantities on the drawing: the figure face (r8)
-        blk_text = hedge + _short(feet, unit)               # hedged like the figure: never more precise
+        blk_text = hedge + _short(feet, unit, fact)         # hedged like the figure, at its signed precision
         ref_txt_w = tracked_width(_short(ref_feet, unit), f_blk, 2)
         # Each part keeps SCALE_TEXT_GAP under the heading lines over its own columns (heading_clear; round 5
         # review, 2026-11-02: a flat 40 px reserve under the metric line took 13 % off the landmark): the block's
@@ -9301,13 +9344,13 @@ def _render_scale_wide(fact: dict[str, Any], feet: float, ref_label: str, ref_fe
         if bracket[2] - bracket[1] >= 6:
             ann.append(("bracket", f"{hedge}{_short(abs(ref_feet - feet), unit)}", f_note, brand.GOLD, note_x, note_y,
                         "ls"))
-        for j, (ft, text, is_floor) in enumerate(_depth_ruler(feet, hedge, unit)):
+        for j, (ft, text, is_floor) in enumerate(_depth_ruler(feet, hedge, unit, fact)):
             # F11: "0 FT" on the ground line's centre (it sat 1.5 caps under it, about 20 px off its datum)
             ann.append((f"ruler{j}", text, f_rule, brand.GOLD if is_floor else brand.STONE_LT, shaft[0] - 30,
                         line_y - 0.5 if ft == 0 else line_y + ft * px_ft, "ruler"))
     else:
         f_blk = figure_font(g.f(30))
-        ann.append(("block_label", hedge + _short(feet, unit), f_blk, brand.GOLD, (shaft[0] + shaft[1]) / 2,
+        ann.append(("block_label", hedge + _short(feet, unit, fact), f_blk, brand.GOLD, (shaft[0] + shaft[1]) / 2,
                     base_y - feet * px_ft - 18, "ms"))
         ref_top = base_y - ref_feet * px_ft
         tick_x = ref_cx + max(0.05 * ref_feet * px_ft, 6)        # just right of the landmark's top

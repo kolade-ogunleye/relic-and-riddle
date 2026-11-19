@@ -387,9 +387,11 @@ def test_one_pale_photo_and_one_dark_one_take_ink_and_bone(tmp_path, monkeypatch
     gold, so the pair reads as two neutrals."""
     rows, _ = _rows(monkeypatch, tmp_path, _flat(tmp_path / "old.png", (0xF3, 0xEF, 0xE6)),
                     _noise(tmp_path / "new.png", 40, 70), PORTRAIT)
-    assert rows["then_kicker"].fill == rows["then_year"].fill == tuple(INK)
-    # round 8: the dark one is the system's colour variant (kicker gold, the year gold: ruling 3), not "two neutrals"
-    assert rows["now_kicker"].fill == rows["now_year"].fill == tuple(brand.GOLD)
+    # round 8 (rules2 R1, lander ruling 2: the set rule; as test_thennow_paper's pair): the pair is ONE set on one
+    # step. The dark marker may not take INK type, so neither does the pair: both markers draw in one fill each, the
+    # system's colour (kicker and year gold, ruling 3); THEN ink beside NOW gold was the R1 regression itself
+    assert rows["then_kicker"].fill == rows["now_kicker"].fill == tuple(brand.GOLD)
+    assert rows["then_year"].fill == rows["now_year"].fill == tuple(brand.GOLD)
 
 
 def test_a_busy_light_map_stays_on_the_bone_path(tmp_path, monkeypatch):
@@ -731,9 +733,10 @@ def test_ink_markers_on_paper_have_no_glow_and_read_at_7(tmp_path, monkeypatch, 
     new = _noise(tmp_path / "new.png", 30, 90, s)
     rows, _ = _rows(monkeypatch, tmp_path, old, new, size)
     meta = then_now.last_meta
-    # round 8: NOW takes the system's colour variant (gold kicker and year, ruling 3); THEN's ink type is the
-    # overlay-label rule's light-ground variant (its target the placement target; paper measures far above it)
-    assert meta["type_mode"]["then"] == "ink" and meta["type_mode"]["now"] in ("colour", "bone")
+    # round 8 (rules2 R1, lander ruling 2: the set rule): the pair is ONE set on one step. INK type cannot hold on
+    # NOW's dark busy ground and gold/bone on a halo cannot hold on THEN's paper, so both markers take the held INK
+    # plate (they took ink and colour on their own before the set rule)
+    assert meta["type_mode"]["then"] == meta["type_mode"]["now"] == "plate"
     assert rows["then_kicker"].contrast >= 7.0 and rows["then_year"].contrast >= 7.0
     assert rows["then_kicker"].halo == 0 and rows["then_year"].halo == 0
     assert rows["now_kicker"].fill == rows["now_year"].fill                     # one variant for the marker

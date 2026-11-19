@@ -520,6 +520,7 @@ SIZE_SITES: Mapping[str, str] = MappingProxyType({
     "graphics:marker_label_lines": "A",
     "graphics:neighbour_plates": "A",
     "graphics:place_font": "A",
+    "graphics:referent_block": "A",       # lane A c2: the figure and its referent note as one block
     "graphics:relief_base": "A",
     "graphics:render_route": "A",
     "graphics:render_route.name_places": "A",
@@ -527,6 +528,7 @@ SIZE_SITES: Mapping[str, str] = MappingProxyType({
     "graphics:scale_figure_lines": "A",
     "graphics:scale_label_font": "A",
     "graphics:water_labels": "A",
+    "graphics:with_region_line": "A",     # lane A c2: the map label's region line under the name
     "masthead:font_for": "system",
     "masthead:group_width": "system",
     "masthead:mark_geometry": "system",
@@ -539,6 +541,7 @@ SIZE_SITES: Mapping[str, str] = MappingProxyType({
     "multi_format:MultiFormatGenerator._render_debate.with_share": "D",
     "multi_format:MultiFormatGenerator._render_story_frame": "D",
     "multi_format:MultiFormatGenerator._render_story_frame.title_plan": "D",
+    "multi_format:MultiFormatGenerator._render_story_frame.title_plan.field_rows": "D",   # lane D c2
     "multi_format:MultiFormatGenerator._rows": "D",
     "multi_format:MultiFormatGenerator._set_heading": "D",
     "multi_format:MultiFormatGenerator._set_heading.measure": "D",

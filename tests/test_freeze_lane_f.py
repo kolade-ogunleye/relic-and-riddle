@@ -39,12 +39,14 @@ def test_lane_f_hook_ground_leaves_with_type():
 
 @pytest.mark.parametrize("ground", ["sky", "dark", "warm"])
 def test_lane_f_no_empty_plate_on_the_drawn_frames(ground, photos):
-    """Measured on the pixels: on a frame whose type is gone, the plate band departs from the bare pushed photo by at
-    most HOOK_EMPTY_MAX of the full plate's departure (frame 0), so no empty band is ever on screen."""
+    """Measured on the pixels: on a frame whose type is gone, the ground (the plate band, or on a wash ground the whole
+    frame) departs from the bare pushed photo by at most HOOK_EMPTY_MAX of its full departure (frame 0), so no empty
+    plate or wash is ever on screen. A wash ground is judged on the whole frame, never skipped (CI's skip baseline)."""
     plan = F.hook_plan(photos[ground], "Quartzite ridges form the ring", "f_geo")
-    if plan.meta["scrim"]["mode"] != "plate":
-        pytest.skip("wash ground: no plate band")
-    y0, y1 = plan.meta["scrim"]["plate"]
+    if plan.meta["scrim"]["mode"] == "plate":
+        y0, y1 = plan.meta["scrim"]["plate"]
+    else:
+        y0, y1 = 0, None
     bg = plan.meta["_r"]["bg"]
 
     def departure(i):

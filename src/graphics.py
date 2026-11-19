@@ -2709,8 +2709,11 @@ def with_region_line(lay: MarkerLayout, text: str, width: int, height: int,
         if not (inside(rb) and inside(name_box)):
             why = "the name and its region line do not fit the text box"
             continue
-        if LayoutConstraintSolver.boxes_intersect(rb, mb, MARKER_LABEL_CLEAR * k) or (
-                over and LayoutConstraintSolver.boxes_intersect(name_box, mb, 0)):
+        # the label's own air to the marker is kept, not added to: the line ends no lower than the name's foot did
+        # (a comma's tail aside) over its marker, and never touches the marker either way
+        if LayoutConstraintSolver.boxes_intersect(rb, mb, 0) or (
+                over and (rb[3] > lb[3] + cap_height(f) * 0.3
+                          or LayoutConstraintSolver.boxes_intersect(name_box, mb, 0))):
             why = "under the name it would sit over the marker"
             continue
         LAST_REGION_LINE.update({"shown": True, "px": px, "box": list(rb), "side": "below", "rise": round(rise, 1)})

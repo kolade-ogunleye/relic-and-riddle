@@ -105,9 +105,14 @@ STORY_BODY_LINES = 3
 STORY_BODY_WEIGHT = 600  # Montserrat SemiBold (2026-11-02 round 2: stated, so a default elsewhere cannot thin it)
 STORY_TITLE_W = 860      # the title's measure: three lines at its design size before it shrinks (2026-11-02)
 STORY_TITLE_LINES = 3
-STORY_FIGURE_RATIO = 2.0  # the reveal's hero figure against the title's design size (150 -> 300 px)
-STORY_FIGURE_PAIR = 0.3   # the qualifier and the unit, one size, against the figure's
-STORY_FIGURE_GAP = 18     # qualifier to figure and figure to unit, cap to cap (28 and 22 before round 3)
+# Freeze lane D cycle 1 (carry-in 1): the reveal's hero figure takes the figure role's size steps (the system's
+# figure ladder: TYPE["tall"]["figure"] 300, then the steps youtube_thumbnail.FIGURE_STEPS declares, held equal by
+# tests), the largest whose numeral fits the title's measure; never a continuous fit (it was fit_font 276 -> 160).
+# The qualifier and the unit are one matched pair on the tall display ladder's least step (story_figure_pair_px:
+# TYPE_FALLBACK["tall"]["display_m"], 96; about 0.3 of the 300 figure, as round 3 designed); the reveal's title takes
+# the Story's one title size (story_title_px), never a share of it under the Story floors (it was 0.66 x: 91 at 138).
+STORY_FIGURE_STEPS = (300, 260, 220, 190, 160)
+STORY_FIGURE_GAP = 18    # qualifier to figure and figure to unit, cap to cap (28 and 22 before round 3)
 STORY_INLINE_GAP = 0.45   # an inline qualifier to its numeral, as a share of the qualifier's cap height (round 4)
 # The poll frame's sticker room sits directly under the question (2026-11-02 round 2: at y 1300-1560 it was half a
 # screen from the words it answers), on a quiet ink panel, nothing drawn in it; recorded per frame in layout.json
@@ -123,7 +128,23 @@ STORY_STICKER_W = 760
 STORY_STICKER_GAP = 36
 STORY_STICKER_FEATHER = 120
 STORY_STICKER_TARGET = 0.37
-_QUALIFIER = re.compile(r"^(ABOUT|APPROX\.?|APPROXIMATELY|ROUGHLY|NEARLY|ALMOST|SOME|OVER|UP TO|MORE THAN|AROUND)$")
+def story_qualifier(prefix: str) -> str | None:
+    """A Story title's words before its figure as the hedge the figure is drawn with, or None when they are not one:
+    the system's one hedge list (src/figures.py HEDGES; QF-145, operator ruling 6: "ESTIMATED" is a qualifier), an
+    abbreviation spelled out (HEDGE_DRAWN: "EST." -> "ESTIMATED"). It was a list of its own without ESTIMATED,
+    AN ESTIMATED, AT LEAST or CIRCA, so "ESTIMATED 44 M" stayed a plain title on the reveal."""
+    from .figures import HEDGE_DRAWN, HEDGES
+    p = " ".join((prefix or "").split()).lower()
+    if p and p not in HEDGES and len(p) > 1 and p + "." in HEDGES:   # "APPROX" / "EST" written without the stop
+        p += "."
+    if not p or p not in HEDGES:
+        return None
+    return HEDGE_DRAWN.get(p, p).upper()
+
+
+def story_figure_pair_px() -> int:
+    """The reveal's qualifier and unit size: the tall display ladder's least step (read at call time)."""
+    return round(brand_system.TYPE_FALLBACK["tall"]["display_m"])
 
 
 _RANGE_DASH = re.compile(r"(?<![\w.,-])(\d[\d,]*(?:\.\d+)?)\s*(?:-|\u2014|\s\u2013\s)\s*(\d[\d,]*(?:\.\d+)?)(?![\d-])")
@@ -172,9 +193,10 @@ def story_figure(line1: str, line2: str):
     number, unit, field, (a, b) = found
     text = line1 if field == "line1" else line2
     prefix, suffix = text[:a].strip(), text[b:].strip()
-    if prefix and not _QUALIFIER.match(prefix):
+    qualifier = story_qualifier(prefix) if prefix else ""
+    if qualifier is None:
         return None   # words before the figure ("THE 144-FOOT DOME") read as a phrase: the frame stays a title
-    return {"number": number, "unit": " ".join(x for x in (unit, suffix) if x), "qualifier": prefix,
+    return {"number": number, "unit": " ".join(x for x in (unit, suffix) if x), "qualifier": qualifier,
             "title": line2 if field == "line1" else line1}
 
 
@@ -189,11 +211,12 @@ def _story_span(line1: str, line2: str):
             if float(lo.replace(",", "")) >= float(m.group("b").replace(",", "")):
                 continue
             prefix, suffix = text[:m.start()].strip(), text[m.end():].strip()
-            if prefix and not _QUALIFIER.match(prefix):
+            qualifier = story_qualifier(prefix) if prefix else ""
+            if qualifier is None:
                 return {}
             unit = " ".join(m.group("unit").upper().split())
             return {"number": f"{lo}\u2013{m.group('b')}", "unit": " ".join(x for x in (unit, suffix) if x),
-                    "qualifier": prefix, "title": line2 if field == "line1" else line1, "span": True}
+                    "qualifier": qualifier, "title": line2 if field == "line1" else line1, "span": True}
     return None
 
 
@@ -217,7 +240,8 @@ def story_title_px(slides: list[dict[str, Any]], tight: bool = False, poll: dict
     """The Story's ONE title size (round 7, F10; ruling FREEZE-PARK round 4 (2)): for each frame, the largest size
     from the design size (TYPE tall display_xl; tight 124) down to the ruled one-line floor (106) at which every
     field sets on one line; a frame none of those sets keeps the design size (the engine breaks it there). The Story
-    takes the least over its frames (a reveal frame's figure sets apart and does not vote): never below 106."""
+    takes the least over its frames (a reveal frame's figure sets apart and does not vote; its title, drawn at the
+    Story's size since lane D cycle 1, votes as a field): never below 106."""
     design = 124 if tight else round(brand_system.type_px("display_xl", "tall"))
     floor = GATES["heading.story_one_line_floor"]
     # cycle 0 round 8 (panel TY-A-6): the tall canvas's display ladder steps only (150, 138, 124, 120, 112 down to
@@ -227,9 +251,8 @@ def story_title_px(slides: list[dict[str, Any]], tight: bool = False, poll: dict
     sizes = []
     for i, slide in enumerate(slides):
         l1, l2 = story_fields(slide, poll)
-        if i == 1 and story_figure(l1, l2):
-            continue
-        fields = [t for t in (l1, l2) if t.strip()]
+        hero = story_figure(l1, l2) if i == 1 else None
+        fields = [t for t in ((hero["title"],) if hero else (l1, l2)) if t.strip()]
         if not fields:
             continue
         one = next((sz for sz in steps
@@ -992,22 +1015,43 @@ class MultiFormatGenerator:
         sticker = STORY_STICKER_H if asks_poll else 0
         room = text_floor - (sy0 + 30)                           # the height the whole block may take
 
-        def title_plan(size: int, wrap: bool = True):
+        def title_plan(size: int, wrap: bool = True, fig_from: int = 0):
             """(rows, height) of the title at `size`: rows of (name, baseline offset from the title's top, text,
-            font, fill, x offset)."""
+            font, fill, x offset). `fig_from`: the reveal figure's first step tried (STORY_FIGURE_STEPS[fig_from:])."""
             out, y = [], 0
+            f = get_font(brand.DISPLAY_FONT, size)
+
+            def field_rows(name: str, text: str, gold: bool) -> None:
+                """One title field set by the engine at the Story's one size: one line, else a valid break (before a
+                stop word, no lone-word row); `gold`: the payoff field, gold but for the function words that open it."""
+                nonlocal y
+                form = set_field(text, lambda t, sz: d.textlength(t, font=get_font(brand.DISPLAY_FONT, sz)),
+                                 STORY_TITLE_W if wrap else 10 ** 6, size, max_lines=2 if wrap else 1)
+                if form is None and wrap:   # the break gives way before the size (a lone row, recorded), never under
+                    form = set_heading(text, lambda t, sz: d.textlength(t, font=get_font(brand.DISPLAY_FONT, sz)),
+                                       STORY_TITLE_W, (size,), max_lines=1, locked_lines=2, balance_min=0.0)
+                if form is None:   # no break at this size: the field on one line (fits() then refuses it)
+                    form = Form(tuple(text.split()), (), size, 0)
+                for line_runs in field_runs(text, form.cuts, gold):
+                    y += cap_height(f) if not out else round(cap_height(f) * 1.13)
+                    dx = 0
+                    for run, role in line_runs:
+                        out.append((name, y, run, f, brand.GOLD if role in GOLD_ROLES else brand.BONE, dx))
+                        dx += round(d.textlength(run + " ", font=f))
+
             if hero:
-                # The qualifier and the unit are one matched pair (round 3, 2026-11-02): one face, one size, in bone, so
-                # the numeral is the frame's single gold read and three type tiers no longer stack around one number.
-                f_fig = fit_font(d, hero["number"], brand.DISPLAY_FONT, round(size * STORY_FIGURE_RATIO), STORY_TITLE_W, 160)
-                f_unit = get_font(brand.DISPLAY_FONT, max(56, round(f_fig.size * STORY_FIGURE_PAIR)))
+                # The qualifier and the unit are one matched pair (round 3, 2026-11-02): one face, one size, so three
+                # type tiers no longer stack around one number. Lane D cycle 1: the figure on the figure role's steps
+                # (STORY_FIGURE_STEPS, the largest whose numeral fits the measure; the least when none does, which
+                # fits() refuses), the pair at story_figure_pair_px, the title the Story's one size and a bone field
+                # (the figure is the frame's gold read; a quantity in it keeps the one gold scope, field_runs).
+                f_fig = next((get_font(brand.DISPLAY_FONT, s) for s in STORY_FIGURE_STEPS[fig_from:]
+                              if d.textlength(hero["number"], font=get_font(brand.DISPLAY_FONT, s)) <= STORY_TITLE_W),
+                             get_font(brand.DISPLAY_FONT, STORY_FIGURE_STEPS[-1]))
+                f_unit = get_font(brand.DISPLAY_FONT, story_figure_pair_px())
                 q_font = f_unit
-                f_title = get_font(brand.DISPLAY_FONT, round(size * 0.66))
-                h_form = set_heading(hero["title"], lambda t, sz: d.textlength(t, font=get_font(brand.DISPLAY_FONT, sz)),
-                                     STORY_TITLE_W, (f_title.size,), max_lines=3, balance_min=0.0)                     if hero["title"] else None
-                for ln in (h_form.lines if h_form else [hero["title"]] if hero["title"] else []):
-                    y += cap_height(f_title) if not out else round(cap_height(f_title) * 1.13)
-                    out.append(("title_1", y, ln, f_title, brand.BONE, 0))
+                if hero["title"]:
+                    field_rows("title_1", hero["title"], False)
                 # Round 4 (2026-11-02): the qualifier sits inline before the numeral, on its baseline, at the unit's
                 # size ("ABOUT 280"): on a line of its own it read as a one-word headline line. Stacked above the
                 # numeral only when the inline pair is wider than the title's measure.
@@ -1036,26 +1080,10 @@ class MultiFormatGenerator:
                         out.append(("figure_unit", y, part, f_unit, figure_colour() if is_gold else brand.BONE, ux))
                         ux += round(d.textlength(part + " ", font=f_unit))
                 return out, y
-            f = get_font(brand.DISPLAY_FONT, size)
-            # Round 7 (F1, F10): each field set by the engine at the Story's one size: one line, else a valid break
-            # (before a stop word, no lone-word row); the second field is the payoff, gold but for the function words
-            # that open it (bone).
+            # Round 7 (F1, F10): each field set by the engine at the Story's one size; the second field is the payoff.
             for name, text, gold in (("title_1", l1, False), ("title_2", l2, True)):
-                if not text:
-                    continue
-                form = set_field(text, lambda t, sz: d.textlength(t, font=get_font(brand.DISPLAY_FONT, sz)),
-                                 STORY_TITLE_W if wrap else 10 ** 6, size, max_lines=2 if wrap else 1)
-                if form is None and wrap:   # the break gives way before the size (a lone row, recorded), never under
-                    form = set_heading(text, lambda t, sz: d.textlength(t, font=get_font(brand.DISPLAY_FONT, sz)),
-                                       STORY_TITLE_W, (size,), max_lines=1, locked_lines=2, balance_min=0.0)
-                if form is None:   # no break at this size: the field on one line (fits() then refuses it)
-                    form = Form(tuple(text.split()), (), size, 0)
-                for line_runs in field_runs(text, form.cuts, gold):
-                    y += cap_height(f) if not out else round(cap_height(f) * 1.13)
-                    dx = 0
-                    for run, role in line_runs:
-                        out.append((name, y, run, f, brand.GOLD if role in GOLD_ROLES else brand.BONE, dx))
-                        dx += round(d.textlength(run + " ", font=f))
+                if text:
+                    field_rows(name, text, gold)
             return out, y
 
         def fits(plan) -> bool:
@@ -1085,9 +1113,11 @@ class MultiFormatGenerator:
                 sticker_h + 2 * STORY_STICKER_GAP if sticker_h else 0)
             need = (lines - 1) * b_step + b_gap + 12 if lines else 0
             for size_, wrap_ in trials:
-                plan = title_plan(size_, wrap_)
-                if fits(plan) and plan[1] + fixed_ + need <= room:
-                    return size_, wrap_, fixed_
+                # the reveal: the title keeps the Story's size; the figure steps down its own steps first
+                for ff in (range(len(STORY_FIGURE_STEPS)) if hero else (0,)):
+                    plan = title_plan(size_, wrap_, ff)
+                    if fits(plan) and plan[1] + fixed_ + need <= room:
+                        return size_, wrap_, fixed_, ff
             return None
         got = choose(sticker, n_body)
         if got is None and sticker:
@@ -1095,14 +1125,20 @@ class MultiFormatGenerator:
             # to POLL_STICKER_ROOM below the box, as before 2026-11-02, rather than the body being cut.
             sticker = 0
             got = choose(0, n_body)
-        got = got or choose(sticker, min(n_body, STORY_BODY_LINES)) or (t_min, True, None)
-        size, wrap, fixed = got
+        got = got or choose(sticker, min(n_body, STORY_BODY_LINES))
+        if got is None and hero:
+            # lane D cycle 1: a reveal whose figure sets on no step within the box is the two-tone title frame,
+            # on the same ladder and floors, before anything is refused
+            hero = None
+            got = choose(sticker, n_body) or choose(sticker, min(n_body, STORY_BODY_LINES))
+        got = got or (t_min, True, None, 0)
+        size, wrap, fixed, fig_from = got
         if fixed is None:
             fixed = (cap_k + k_gap if kicker else 0) + (110 if i == 0 else 0) + (
                 sticker + 2 * STORY_STICKER_GAP if sticker else 0)
         if asks_poll and not sticker:
             lay.meta_room = [0, POLL_STICKER_ROOM[0], VIDEO_WIDTH, POLL_STICKER_ROOM[1]]
-        t_rows, t_height = title_plan(size, wrap)
+        t_rows, t_height = title_plan(size, wrap, fig_from)
         s1 = s2 = False
         if not fits((t_rows, t_height)):   # even the floor does not fit: one line each, whole or refused (QF-23)
             l1, font_t, s1 = fit_line(d, l1, brand.DISPLAY_FONT, t_min, STORY_TITLE_W, t_min)
@@ -1992,8 +2028,15 @@ class MultiFormatGenerator:
         heading, body = card["heading"].upper(), card["body"]
         im = self._split_ground(photo, cw, chh)
         fig = figures.stat_figure(body)
-        stat = fig.drawn(era=False) if fig is not None else ""   # as round 8 drew it (an era is a design change)
+        # Lane D cycle 1 (carry-in 4): the figure is drawn whole WITH its era ("9500–9000 BCE", "ABOUT 2560 BC"),
+        # the era in the unit's place and bone (src/figures.py: an era is never gold): round 8 drew it without
+        # (era=False), so a descending BCE span failed its own truth check and was withheld, and a single BC year
+        # was drawn bare ("ABOUT 2560" for "about 2560 BC", a different year). An era-crossing span ("500 BC–AD
+        # 500") has no stat layout (its eras sit inside the number): withheld, recorded (truth, fail closed).
+        stat = fig.drawn(era=True) if fig is not None else ""
         faults = figures.truth_faults(stat, [body]) if stat else []
+        if fig is not None and fig.era_hi:
+            faults = faults + [f"{stat!r}: an era-crossing span has no stat layout"]
         if faults:   # never drawn: a figure the body does not state whole (the critic's own check, fail closed)
             log.warning("Stat slide figure withheld (%s).", "; ".join(faults))
             stat = ""
@@ -2003,7 +2046,8 @@ class MultiFormatGenerator:
         if lay is not None:
             # the deck's figure record (cycle 0 round 8, lander ruling): a figure the body states in one unit only,
             # with no signed pair in the deck's lead unit, stays in its own unit (truth outranks one system), and says so
-            lay.meta["stat_figure"] = ({**fig.record(), "source": "body", "faults": faults, "deck_lead": lead,
+            lay.meta["stat_figure"] = ({**fig.record(), "drawn": stat, "source": "body", "faults": faults,
+                                        "deck_lead": lead,
                                         "lead_unit": ("kept: no signed pair in the deck's lead unit" if kept
                                                       else "deck lead" if system else "")}
                                        if fig is not None
@@ -2058,6 +2102,42 @@ class MultiFormatGenerator:
             ImageDraw.Draw(im).rectangle([px(self.MARGIN), top, px(self.MARGIN) + px(96), top + px(6) - 1], fill=brand.GOLD)
         return im
 
+    def _diagram_fit(self, size: tuple[int, int], box: tuple[int, int, int, int], cw: int, facebook: bool,
+                     lines: int) -> tuple[int, int, float]:
+        """(top, bottom, k): the room a diagram slide's drawing takes on a `lines` deck frame (above the deck's
+        kicker, under the masthead) and the scale `k` its drawn box (`box` of a poster of `size`) is laid at."""
+        px = self._px(cw)
+        kb = self._content_baselines(px, facebook, lines)[0]
+        top, bottom = px(self.HEADER_Y) + px(80), kb - px(34) - px(34)   # the kicker cap, then air
+        w, h = max(1, box[2] - box[0]), max(1, box[3] - box[1])
+        return top, bottom, min((cw - 2 * px(self.MARGIN - 24)) / w, max(1, bottom - top) / h)
+
+    def diagram_legible(self, poster: Path, facebook_lines: tuple[tuple[bool, int], ...]) -> tuple[bool, dict]:
+        """Lane D cycle 1 (r8 AD R3): whether a drawing laid on the diagram slide keeps every label at the carousel's
+        label floor (brand_system.label_floor_px of the slide: TYPE_FLOOR["carousel"]["label"], 36 px on 1440) on
+        every copy and frame in `facebook_lines` ((facebook, frame lines) pairs). A drawing guarantees its own canvas's
+        floor only (graphics.label_floor: 27 px on a 9:16 poster, none on 16:9), so at scale k its labels are at
+        least k x that: the slide holds it only when k x poster floor >= slide floor. The 9:16 scale drawing shrunk
+        to ~0.4 of the slide drew 19 px labels; such a slide keeps its photo until the drawing is drawn for the
+        slide's own canvas (SYS-D request). The locator map is laid full bleed at 1440/1080 (27 x 4/3 = 36) and is
+        judged the same way, by its own scale."""
+        from . import graphics
+        from .brand_system import label_floor_px
+        cw, chh = self.CAROUSEL_SIZE
+        with Image.open(poster) as src:
+            g = src.convert("RGB")
+        own = graphics.label_floor(*g.size)
+        need = label_floor_px(cw, chh)
+        if is_map_poster(poster):
+            ks = [cw / g.width]
+        else:
+            _ground, box = diagram_crop(g)
+            ks = [self._diagram_fit(g.size, box, cw, fb, lines)[2] for fb, lines in facebook_lines]
+        k = min(ks)
+        rec = {"poster_floor_px": own, "scale": round(k, 3), "label_px_at_least": round(own * k, 1),
+               "slide_floor_px": round(need, 1)}
+        return own * k >= need - 1e-6, rec
+
     def _render_diagram(self, poster: Path, card: dict[str, Any], index: int, cw: int, chh: int,
                         lay=None, tight: bool = False) -> Image.Image:
         """The run's explanatory graphic (its poster frame) re-laid at 4:5 (2026-11-02 panel round 2): the drawing
@@ -2076,13 +2156,9 @@ class MultiFormatGenerator:
         # longer than the deck frame (see place() in _slide_text) takes the two-line frame here too.
         heading = card["heading"].upper()
         lines = max(self._frame_lines(), self._heading_lines(ImageDraw.Draw(im), px, heading, cw - 2 * px(self.MARGIN)))
-        kb = self._content_baselines(px, facebook, lines)[0]
-        top, bottom = px(self.HEADER_Y) + px(80), kb - px(34) - px(34)   # the kicker cap, then air
+        top, bottom, k = self._diagram_fit(g.size, box, cw, facebook, lines)
         art = g.crop(box)
-        art.thumbnail((cw - 2 * px(self.MARGIN - 24), max(1, bottom - top)), Image.Resampling.LANCZOS)
-        if art.width < cw - 2 * px(self.MARGIN - 24) and art.height < bottom - top:   # small drawings scale up
-            k = min((cw - 2 * px(self.MARGIN - 24)) / art.width, (bottom - top) / art.height)
-            art = g.crop(box).resize((round(art.width * k), round(art.height * k)), Image.Resampling.LANCZOS)
+        art = art.resize((max(1, round(art.width * k)), max(1, round(art.height * k))), Image.Resampling.LANCZOS)
         ax, ay = (cw - art.width) // 2, top + (bottom - top - art.height) // 2
         # Feathered into the ground over its padding, so the drawing's own soft backdrop shows no hard edge.
         from PIL import ImageFilter
@@ -2326,12 +2402,23 @@ class MultiFormatGenerator:
         slides = []
         archetypes = self.sequence_archetypes(cards)
         diagram = carousel_diagram(output_dir, cards, graphics)
+        withheld: dict[str, Any] | None = None
         if diagram:
             # cycle 0 round 8: the drawing as the active brand and this code draw it, from the signed field; never a
             # stale stored poster (current_poster); no drawing that can be redrawn -> the slide keeps its photo
             drawn_poster, why = current_poster(output_dir, diagram[1], script_payload)
             log.info("Carousel diagram slide %d: %s.", diagram[0] + 1, why)
             diagram = (diagram[0], drawn_poster) if drawn_poster is not None else None
+        if diagram:
+            # lane D cycle 1 (r8 AD R3): a drawing laid too small for the carousel's label floor is not the deck's
+            # drawn slide; the slide keeps its photo. Judged on the two-line frame (the smaller room) of both copies,
+            # so the Instagram and Facebook copies decide the same (one set, ruling c).
+            ok, why_small = self.diagram_legible(diagram[1], ((False, 2), (True, 2)))
+            if not ok:
+                log.warning("Carousel diagram slide %d withheld: its labels would draw under the carousel label "
+                            "floor (%s); the slide keeps its photo.", diagram[0] + 1, why_small)
+                withheld = {"slide": diagram[0] + 1, "poster": str(diagram[1]), **why_small}
+                diagram = None
         if diagram:
             archetypes = [("diagram" if i == diagram[0] else a) for i, a in enumerate(archetypes)]
         # One unit per run: figures in the unit the narration speaks (2026-10-29), after the photo match; cycle 0
@@ -2417,6 +2504,8 @@ class MultiFormatGenerator:
                                           "subject": subject, "heading_frame": frame, "lead": lead,
                                           "window": showing[i],
                                           **({"kicker_step": list(deck_step)} if deck_step else {}),
+                                          **({"diagram_withheld": withheld}
+                                             if withheld and i == withheld["slide"] - 1 else {}),
                                           **({"strip": drew} if drew else {})}, attempts)
             drawn_paths[i] = path
         slides = [drawn_paths[i] for i in range(total)]

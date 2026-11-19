@@ -515,7 +515,8 @@ def branches() -> dict[str, dict[str, Callable]]:
         "then_now.render": {"linework": _only("tall", _then_now_linework)},
         "youtube_thumbnail.render": {
             "illustration": _youtube_with({"title": "THE EYE OF THE SAHARA"}, illustration=True),
-            "lockup": _youtube_with({"line1": "A CITY", "line2": "UNDER THE FIELDS"}),
+            # rules2 R2: A CITY / UNDER / THE FIELDS (a one-word middle row) is refused at the feed floor now
+            "lockup": _youtube_with({"line1": "A CITY", "line2": "UNDER A FIELD"}),
             "hedged": _youtube_with(GUMBAZ_COPY, checked=True),
             "one_line_kicker": _youtube_with({"eyebrow": "DESERT ANOMALY", "line1": "THE RICHAT STRUCTURE OF MAURITANIA",
                                               "line2": "SAHARA EYE"}),

@@ -319,7 +319,9 @@ def test_a_fact_checked_payload_without_a_sheet_lets_no_figure_be_the_hero(monke
     assert fig["sheet_missing"] and not fig["monument_ok"]
     assert "monument" not in cover_selector.fitting(GUMBAZ, fig)
     meta = {}
-    _, plates = youtube_thumbnail.render(_photo().convert("RGB"), GUMBAZ, meta=meta, figure=fig)
+    # rules2 R2: THE 144-FOOT / WHISPERING / DOME (a one-word middle row) sets no legal form at the feed floor and is
+    # refused; this test is about the figure, so its headline is one that sets
+    _, plates = youtube_thumbnail.render(_photo().convert("RGB"), {**GUMBAZ, "line2": "THE DOME"}, meta=meta, figure=fig)
     assert "figure" not in {n for n, _ in plates} and "did not load" in meta["figure_declined"]
     assert cover_figure(GUMBAZ, {"title": "no fact check"}) is None   # never claimed: the old rule
 

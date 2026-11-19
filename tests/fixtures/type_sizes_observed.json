@@ -813,18 +813,6 @@
  "multi_format:MultiFormatGenerator._render_carousel_slide": [
   37.333
  ],
- "multi_format:MultiFormatGenerator._render_story_frame": [
-  83.0,
-  91.0,
-  99.0,
-  276.0
- ],
- "multi_format:MultiFormatGenerator._render_story_frame.title_plan": [
-  83.0,
-  91.0,
-  99.0,
-  276.0
- ],
  "multi_format:MultiFormatGenerator._rows": [
   100.0,
   126.0

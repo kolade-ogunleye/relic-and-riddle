@@ -220,28 +220,24 @@ def test_body_lines_are_34_px_or_more_hold_34_characters_and_end_on_more_than_on
     assert 1.35 <= step / body[0].font.size <= 1.42
 
 
-def test_facebook_headings_are_set_at_140_px_where_they_fit(photos, tmp_path) -> None:
+def test_facebook_headings_take_the_instagram_form(photos, tmp_path) -> None:
+    """Lane D cycle 2 (lander ruling 1, SYS-D-4): one form per heading across the copies; the Facebook 150 / 140 tier
+    (which wrapped ORBITAL / LANDMARK where Instagram set one line) is retired."""
     gen = MultiFormatGenerator()
-    px = MultiFormatGenerator._px(MultiFormatGenerator.CAROUSEL_SIZE[0])
-    for heading in ("ANCIENT COOLING", "IMPACT THEORY DISPROVED"):
+    for heading in ("ANCIENT COOLING", "IMPACT THEORY DISPROVED", "ORBITAL LANDMARK"):
         card = {"heading": heading, "body": "Initially considered an impact crater, the theory was disproved."}
         _, fb = gen._render_carousel_slide("editorial_split", photos[0], photos[1], card, 2, 7, {}, "", True, subject="S")
         _, ig = gen._render_carousel_slide("editorial_split", photos[0], photos[1], card, 2, 7, {}, "", False, subject="S")
-        # round 7 (F1 before F4): where Facebook's 140 tier sets the heading only with a lone last word ("IMPACT
-        # THEORY / DISPROVED"), the engine's recorded last resort sets a valid form below it (off_ladder, recorded)
-        if fb.meta["heading"].get("off_ladder"):
-            assert fb.meta["heading"]["lines"] == ["IMPACT", "THEORY DISPROVED"]
-            continue
-        assert fb.plates["heading"][0].font.size >= px.exact(140) - 0.01
-        assert fb.plates["heading"][0].font.size > ig.plates["heading"][0].font.size
+        assert [p.text for p in fb.plates["heading"]] == [p.text for p in ig.plates["heading"]]
+        assert {p.font.size for p in fb.plates["heading"]} == {p.font.size for p in ig.plates["heading"]}
         assert not fb.problems()
 
 
-def _poster(path: Path) -> Path:
+def _poster(path: Path, box=(120, 400, 900, 1000)) -> Path:
     im = Image.new("RGB", (1080, 1920), brand.INK)
     d = ImageDraw.Draw(im)
-    d.rectangle((120, 400, 900, 1000), outline=brand.GOLD, width=6)
-    d.line((120, 700, 900, 700), fill=brand.BONE, width=4)
+    d.rectangle(box, outline=brand.GOLD, width=6)
+    d.line((box[0], (box[1] + box[3]) // 2, box[2], (box[1] + box[3]) // 2), fill=brand.BONE, width=4)
     path.parent.mkdir(parents=True, exist_ok=True)
     im.save(path)
     return path
@@ -249,7 +245,9 @@ def _poster(path: Path) -> Path:
 
 def test_a_run_with_an_explanatory_graphic_gets_one_diagram_slide_in_both_copies(photos, tmp_path) -> None:
     run = tmp_path / "run"
-    poster = _poster(run / "graphics" / "graphic_section.jpg")
+    # lane D cycle 1: a drawing compact enough that the slide lays it at >= 4/3 (its 9:16 label floor reaches the
+    # carousel's); a larger one is withheld (tests/test_freeze_lane_d_c1.py)
+    poster = _poster(run / "graphics" / "graphic_section.jpg", (340, 760, 740, 1100))
     _poster(run / "graphics" / "graphic_numbers.jpg")              # a photo-backed card: never a diagram slide
     # cycle 0 round 8: a stored poster is embedded only when stamped as drawn under the active brand by this code
     # (multi_format.current_poster); an unstamped one is redrawn from the signed field, else no diagram slide
@@ -269,6 +267,22 @@ def test_a_run_with_an_explanatory_graphic_gets_one_diagram_slide_in_both_copies
     assert multi_format.slide_alt_text(ig[3]).startswith("A diagram from the video.")
     assert multi_format.slide_photos(ig[3]) == [poster]
     assert multi_format.photo_credit(poster) == {}
+
+
+def test_a_drawing_laid_under_the_label_floor_is_withheld_in_both_copies(photos, tmp_path) -> None:
+    """Lane D cycle 1 (r8 AD R3): a 9:16 drawing the slide would shrink under the carousel label floor is not the
+    deck's drawn slide in either copy; the slide keeps its photo and its recipe says why."""
+    run = tmp_path / "run"
+    poster = _poster(run / "graphics" / "graphic_section.jpg", (60, 200, 1020, 1700))
+    from src import graphics
+    graphics._write_stamp(poster.with_suffix(".mp4"))
+    gen = MultiFormatGenerator()
+    for fb in (False, True):
+        recs = _records(gen.generate_carousel_sequence(photos * 2, dict(ROMAN, title="Roman concrete"), run,
+                                                       facebook=fb))
+        assert "diagram" not in [r["recipe"]["archetype"] for r in recs]
+        held = [r["recipe"]["diagram_withheld"] for r in recs if r["recipe"].get("diagram_withheld")]
+        assert len(held) == 1 and held[0]["label_px_at_least"] < held[0]["slide_floor_px"]
 
 
 def test_an_unstamped_poster_with_no_signed_field_gets_no_diagram_slide(photos, tmp_path) -> None:

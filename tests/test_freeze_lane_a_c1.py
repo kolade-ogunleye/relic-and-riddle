@@ -356,7 +356,7 @@ def test_the_region_line_joins_the_site_label_on_its_far_side_under_the_gates(ab
     out = graphics.with_region_line(lay, "ADRAR PLATEAU, MAURITANIA", *TALL, box)
     rec = graphics.LAST_REGION_LINE
     assert rec["shown"] and len(out.extra) == 1
-    text, (x, base), anchor, px = out.extra[0]
+    text, (_x, _base), _anchor, px = out.extra[0]
     assert text == "ADRAR PLATEAU, MAURITANIA" and px < lay.font_px            # one step under the site's
     assert px >= graphics.label_floor(*TALL)                                   # never under the floor
     rb = rec["box"]

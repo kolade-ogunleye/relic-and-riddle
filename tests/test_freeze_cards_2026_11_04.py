@@ -523,8 +523,8 @@ def test_h4_dissolve(photos):
     for e in plan.elements:
         assert all(dc.alpha_at(plan, e.name, i / 30) == 1.0 for i in range(33))
         assert dc.alpha_at(plan, e.name, 1.40) == 0.0
-    # H6 (5), round 2: the ground holds to 1.22 s (was 1.16) and fades over 0.18 s to CAPTION_CLEAR
-    assert dc._hook_alpha(1.40, dc.HOOK_GROUND_HOLD) == 0.0 and dc._hook_alpha(1.22, dc.HOOK_GROUND_HOLD) == 1.0
+    # lane F cycle 1: the ground leaves with its type and is gone by CAPTION_CLEAR (test_lane_f_hook_ground_leaves_with_type)
+    assert dc._hook_ground_alpha(dc.CAPTION_CLEAR) == 0.0
     bg = plan.meta["_r"]["bg"]
     assert T.mad(dc.frame_at(plan, 42), dc._pushed_in(bg, 1 + 0.0016 * 42)) <= 1
 
@@ -1087,12 +1087,12 @@ def test_h6_dissolve(photos):
     0..32 at full
     alpha; the plate band moves <= 70 luma per frame over frames 33..42."""
     plan = hook_plan(photos["sky"], "Quartzite ridges form the ring", "f_geo")
-    assert dc.HOOK_FADE == 0.16 and dc.HOOK_GROUND_HOLD == 1.22
+    assert dc.HOOK_FADE == 0.16
     for e in plan.elements:
         assert all(dc.alpha_at(plan, e.name, i / 30) == 1.0 for i in range(33))
         assert dc.alpha_at(plan, e.name, 1.22) <= 0.10, (e.name, dc.alpha_at(plan, e.name, 1.22))
         assert dc.alpha_at(plan, e.name, 1.40) == 0.0
-    assert dc._hook_alpha(1.40, dc.HOOK_GROUND_HOLD) == 0.0
+    assert dc._hook_ground_alpha(1.40) == 0.0
     y0, y1 = plan.meta["scrim"]["plate"]
     lum = [float(np.asarray(dc.frame_at(plan, i).convert("L"))[y0:y1].mean()) for i in range(33, 43)]
     assert max(abs(b - a) for a, b in zip(lum, lum[1:])) <= 70, lum

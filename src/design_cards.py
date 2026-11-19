@@ -100,14 +100,20 @@ VERSION = "design-cards-1"
 HOOK_SECONDS = 1.5
 # s: every hook element at full alpha before this (frames 0-32: frame 32 is 1.067 s). Freeze panel round 4 (review:
 # with H6's HOOK_FADE 0.16 a 1.10 hold left the type at 0.156 alpha at 1.22 s, against <= 0.10): 1.09, so the type
-# is at 0.092 at 1.22 s and gone at 1.25, before the plate and wash leave from HOOK_GROUND_HOLD (was 1.10).
+# is at 0.092 at 1.22 s and gone at 1.25 (the plate and wash now leave with it: HOOK_GROUND_HOLD below).
 # Fix round 1 (review: measure at the spec time, not a chosen instant): the frame on screen at 1.22 s is frame 36
 # (1.200 s), which a 1.09 hold left at 0.21 alpha; 1.07 puts frame 36 at 0.092 and keeps frames 0-32 whole (32 is
 # 1.067 s), gone by frame 37 (1.233 s)
-HOOK_HOLD = 1.07
-HOOK_FADE = 0.16            # s: freeze panel H6 (5): then a smoothstep dissolve of the type (H4: 0.24)
-HOOK_GROUND_HOLD = 1.22     # s: the plate and wash dissolve a beat after the type (H6: was 1.16) ...
-HOOK_GROUND_FADE = 0.18     # s: ... over this, so they end at CAPTION_CLEAR
+HOOK_HOLD = 1.07            # = brand_system SPEC motion.hook_hold (written; SYS-F-1 asks for it to drive)
+HOOK_FADE = 0.16            # s: freeze panel H6 (5): then a smoothstep dissolve of the type (= SPEC motion.hook_fade)
+# Freeze lane F cycle 1 (panel 2 MO, clips\hook__obelisk__916 f037-f039): the plate and wash held to 1.22 s and left
+# over 0.18 s, so for three frames after the type had gone (1.233 s) an empty INK band stood across the photo at
+# 0.98-0.58 alpha. The ground now leaves WITH its type: from the same HOOK_HOLD, over one frame longer than the type's
+# fade, so (1) the ground is never thinner than the type it carries (ground alpha >= type alpha at every t) and (2) on
+# the first frame without type the ground is at most HOOK_EMPTY_MAX (it is 0.064 at frame 37, gone at frame 38).
+HOOK_GROUND_HOLD = HOOK_HOLD
+HOOK_GROUND_FADE = HOOK_FADE + 1.0 / VIDEO_FPS
+HOOK_EMPTY_MAX = 0.10       # the ground's alpha on any frame whose type is gone (the type's own 0.10 rule, mirrored)
 CAPTION_CLEAR = 1.40        # s: the composer's first caption burst may start here
 HOOK_TARGET = 5.1           # the hook's planned contrast (the brand's own plate keeps PLACE_TARGET)
 REVEAL = 0.40               # s: a line's reveal
@@ -341,10 +347,13 @@ def _smoothstep(x: float) -> float:
 
 def _hook_alpha(t: float, hold: float = HOOK_HOLD, fade: float | None = None) -> float:
     """Freeze panel H4: a real dissolve, 1 - smoothstep((t - hold) / fade): the type (claim, eyebrow, masthead) from
-    HOOK_HOLD over HOOK_FADE, the plate and wash from HOOK_GROUND_HOLD over HOOK_GROUND_FADE (H6)."""
-    if fade is None:
-        fade = HOOK_GROUND_FADE if hold == HOOK_GROUND_HOLD else HOOK_FADE
-    return 1.0 - _smoothstep((t - hold) / fade)
+    HOOK_HOLD over HOOK_FADE (the default), the plate and wash through _hook_ground_alpha."""
+    return 1.0 - _smoothstep((t - hold) / (HOOK_FADE if fade is None else fade))
+
+
+def _hook_ground_alpha(t: float) -> float:
+    """The plate, wash and marks: from HOOK_GROUND_HOLD over HOOK_GROUND_FADE (they leave with the type)."""
+    return _hook_alpha(t, HOOK_GROUND_HOLD, HOOK_GROUND_FADE)
 
 
 class _Geo:
@@ -4313,7 +4322,7 @@ def _over(im: Image.Image, layer: Image.Image, a: float) -> Image.Image:
 def _hook_compose(r: Mapping[str, Any], i: int) -> Image.Image:
     im = _pushed_in(r["bg"], 1.0 + LOOP_PUSH * i)
     t = i / VIDEO_FPS
-    a, g = _hook_alpha(t), _hook_alpha(t, HOOK_GROUND_HOLD, HOOK_GROUND_FADE)
+    a, g = _hook_alpha(t), _hook_ground_alpha(t)
     if g <= 0:
         return im
     im = _over(im, r["under"], g)

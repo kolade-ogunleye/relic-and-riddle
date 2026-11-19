@@ -286,9 +286,9 @@ def test_both_kickers_share_one_colour(tmp_path, monkeypatch):
     then_now.render(tmp_path / "old.jpg", 1925, tmp_path / "new.jpg", 2019, tmp_path / "x.mp4")
     kickers = {name: p for name, p in got["rows"] if name.endswith("kicker")}
     colours = {p.fill for p in kickers.values()}
-    # freeze panel round 2 (T1): the flat 250 sky is paper, so THEN is ink; round 8: the other kicker is the system
-    # kicker (gold, or bone where gold misses: the overlay-label rule's colour then bone)
-    assert tuple(then_now.INK) in colours and len(colours) == 2, colours
+    # cycle 0 round 8 (rules2 R1, lander ruling 2: the set rule): the pair is ONE set on one step, so both kickers
+    # share one colour again (the dark marker may not take INK type, so the paper one does not either)
+    assert len(colours) == 1 and tuple(then_now.INK) not in colours, colours
 
 
 def test_markers_stay_inside_the_safe_box_at_the_larger_size(tmp_path, monkeypatch):

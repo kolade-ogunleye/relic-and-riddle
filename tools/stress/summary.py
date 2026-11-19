@@ -73,8 +73,10 @@ def modes_table(parts: dict[str, list[dict]]) -> str:
                 cell["n"] += 1
                 cell[tagged] = cell.get(tagged, 0) + 1
                 cell["data_reachable"] += data == "REACHABLE"
-                if mode == "mutation" and "repro" not in row:
+                control = str(r.get("mutation") or "").startswith("control")
+                if mode == "mutation" and ("repro" not in row or (control and not row.get("control"))):
                     row["repro"] = f"{r['id']} ({r.get('real_run')}: {r.get('mutation')})"
+                    row["control"] = control
     modes = list(parts)
     out = ["| surface | lane | class | " + " | ".join(f"{m} fail (R/G; data-R)" for m in modes) +
            " | real-run repro |", "|---|---|---|" + "---|" * len(modes) + "---|"]

@@ -256,3 +256,41 @@ def test_the_composer_record_names_the_drawn_line_defects(tmp_path):
     def norm(t: str) -> str:
         return " ".join(re.sub(r"[^\w/ ]", "", t).lower().split())
     assert [norm(d) for d in drawn] == [norm(r) for r in rec], (drawn, rec)
+
+
+@pytest.mark.parametrize("name,words,emph,wide", [c for c in CASES if not c[3]], ids=[c[0] for c in CASES if not c[3]])
+def test_every_burst_over_the_caps_is_a_bond_or_in_the_bond_extra_record(name, words, emph, wide):
+    """Ruling 5 (lander, 2026-11-20): the bond extra (+1 word / +2 characters) is used on a 9:16 burst only where it
+    removes a defect, and is recorded. Every burst past MAX_BURST_WORDS or MAX_BURST_CHARS is either one bonded group
+    (every boundary inside it a bond: a name with its lead-in, a figure with its hedge, range or unit) or in the
+    record, with the defect it removed; the record names nothing within the caps."""
+    log: list = []
+    phrases = vc.caption_phrases(words, emph or None, wide, bond_extra=log)
+    assert phrases == _phrases(name, words, emph, wide)
+    pos = {id(w): k for k, w in enumerate(words)}
+    held = vc.caption_bonds(words) | vc.unit_links(words)
+    logged = {e["text"] for e in log}
+    for p in phrases:
+        if not vc.over_caps(p):
+            continue
+        bonded = all(pos[id(p[j])] in held for j in range(len(p) - 1))
+        assert bonded or " ".join(w["word"] for w in p) in logged, (name, [w["word"] for w in p])
+    for e in log:
+        assert e["removed"] in ("never_end_end", "line_defect") and e["was"]
+        assert any(" ".join(w["word"] for w in p) == e["text"] and vc.over_caps(p) for p in phrases), e
+    assert _record(phrases, wide)["bond_extra"] == []   # reading_rates names only what it is given
+    rec = vc.reading_rates(phrases, vc.burst_timings(phrases, dwell=True), bond_extra=log)
+    assert rec["bond_extra"] == log
+
+
+def test_the_repair_records_a_burst_it_forms_with_the_bond_extra():
+    """The relaxed tier's record, driven directly: a never-end end only a burst past the caps removes is joined and
+    named with the defect it removed (the real runs need none today: their records are empty)."""
+    words = _timed("Echoes travel across the hall.")
+    log: list = []
+    out = vc._never_end_repair([words[:3], words[3:]], words, lambda p: False,
+                               relaxed=lambda p: len(p) == vc.MAX_BURST_WORDS + vc.CAPTION_BOND_EXTRA_WORDS,
+                               bond_extra=log)
+    assert out == [words] and vc.over_caps(words)
+    assert log == [{"at": 0.0, "text": "Echoes travel across the hall.", "removed": "never_end_end",
+                    "was": "Echoes travel across"}]

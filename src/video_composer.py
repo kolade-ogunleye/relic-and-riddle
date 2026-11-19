@@ -2346,7 +2346,7 @@ def line_defect_bursts(phrases) -> list[str]:
 
 
 def reading_rates(phrases: list[list[dict[str, Any]]], timings: list[tuple[float, float, list[float]]],
-                  widescreen: bool = False) -> dict[str, Any]:
+                  widescreen: bool = False, bond_extra: list[dict[str, Any]] | None = None) -> dict[str, Any]:
     """Each burst's reading rate as delivered (QF-88): its characters, spaces included, over its time on screen
     ("shown"), against the rate its own words are spoken at: over the time they hold the narration, from its first
     word's start to the next burst's first word where that follows without a pause (CAPTION_PAUSE_GAP), else to its
@@ -2380,7 +2380,10 @@ def reading_rates(phrases: list[list[dict[str, Any]]], timings: list[tuple[float
             # lane C cycle 1: and the 9:16 two-line bursts whose line break the repair could not make valid
             "line_defect": [] if widescreen else line_defect_bursts(phrases),
             # lane C cycle 2: and those whose line break splits a proper name (recorded, as ruled)
-            "name_split": [] if widescreen else name_split_bursts(phrases)}
+            "name_split": [] if widescreen else name_split_bursts(phrases),
+            # lane C ruling 5: the bursts the repair formed with the bond extra (+1 word / +2 characters), each with
+            # the defect it removed (caption_phrases' bond_extra)
+            "bond_extra": list(bond_extra or [])}
 
 
 def emphasis_bonds(words: list[dict[str, Any]], emphasis: list[str] | None) -> set[int]:
@@ -2858,7 +2861,8 @@ def _rejoin_base(phrases: list[list[dict[str, Any]]], words: list[dict[str, Any]
 
 
 def caption_phrases(words: list[dict[str, Any]], emphasis: list[str] | None = None, widescreen: bool = False,
-                    max_width: int | None = None) -> list[list[dict[str, Any]]]:
+                    max_width: int | None = None,
+                    bond_extra: list[dict[str, Any]] | None = None) -> list[list[dict[str, Any]]]:
     """The bursts build_subtitles draws (9:16 Reel bursts, or 16:9 one-line bursts): the grammatical partition
     with every bond (caption_bonds, and the key terms with their hedges: emphasis_bonds), then merge_short_bursts.
     9:16 joins also keep each burst on screen for its dwell (freeze pass C10). Fix round 1 (operator decision
@@ -2911,9 +2915,14 @@ def caption_phrases(words: list[dict[str, Any]], emphasis: list[str] | None = No
                 and len(" ".join(shown)) <= MAX_BURST_CHARS + CAPTION_BOND_EXTRA_CHARS and not _function_only(ph)
                 and not reel_line_defect(ph)
                 and (_fits_caption_burst(ph) or _caption_ink_width(shown, CAPTION_BOND_MIN_SIZE) <= _ink_budget()))
-    return _never_end_repair(phrases, words, strict, relaxed, line_defect=reel_line_defect, lenient=lambda ph: (
+    # `bond_extra` (lane C ruling 5): each burst the repair forms with the bond extra, and the defect it removed
+    out = _never_end_repair(phrases, words, strict, relaxed, line_defect=reel_line_defect, lenient=lambda ph: (
         2 <= len(ph) <= MAX_BURST_WORDS and len(" ".join(_phrase_words(ph))) <= MAX_BURST_CHARS
-        and not _function_only(ph) and _fits_caption_burst(ph)))
+        and not _function_only(ph) and _fits_caption_burst(ph)), bond_extra=bond_extra)
+    if bond_extra is not None:   # only those that stay in the result (a later repair may re-cut one)
+        kept = {" ".join(w["word"] for w in p) for p in out}
+        bond_extra[:] = [e for e in bond_extra if e["text"] in kept]
+    return out
 
 
 CAPTION_REPAIR_DWELL_S = 0.5   # rules2 F4: a never-end repair never leaves a burst up for less than this
@@ -2923,7 +2932,8 @@ def _never_end_repair(phrases: list[list[dict[str, Any]]], words: list[dict[str,
                       allowed: Callable[[list[dict[str, Any]]], bool],
                       relaxed: Callable[[list[dict[str, Any]]], bool] | None = None,
                       line_defect: Callable[[list[dict[str, Any]]], bool] | None = None,
-                      lenient: Callable[[list[dict[str, Any]]], bool] | None = None) -> list[list[dict[str, Any]]]:
+                      lenient: Callable[[list[dict[str, Any]]], bool] | None = None,
+                      bond_extra: list[dict[str, Any]] | None = None) -> list[list[dict[str, Any]]]:
     """Cycle 0 round 8 (rules2 F4): the last pass of both burst paths (9:16 and 16:9). A burst ending mid-sentence on
     a never-end word (never_end_end: the closed class, brand_system.NEVER_END_WORDS) takes the first words of the
     next burst, else gives its tail to it, else the two are one: the least change whose bursts both hold the path's
@@ -2998,11 +3008,25 @@ def _never_end_repair(phrases: list[list[dict[str, Any]]], words: list[dict[str,
             if got is None:   # the burst before it and the one after re-cut together (TRAVEL ACROSS | AN ESTIMATED)
                 got = _window_recut(out, i, ok, cut_ok, defects)
             if got is not None:
+                if ok is relaxed and bond_extra is not None:
+                    # lane C ruling 5: every burst the relaxed tier forms past the caps, with the defect it removed
+                    removed = "line_defect" if lines and line_defect(out[i]) else "never_end_end"
+                    old = {tuple(id(w) for w in p) for p in out}
+                    for p in got:
+                        if tuple(id(w) for w in p) not in old and over_caps(p):
+                            bond_extra.append({"at": round(float(p[0].get("start", 0.0)), 2),
+                                               "text": " ".join(w["word"] for w in p), "removed": removed,
+                                               "was": " ".join(w["word"] for w in out[i])})
                 out = got
             i += 1
     if [w for p in out for w in p] != words:
         raise RuntimeError("caption never-end repair lost or reordered a word")
     return out
+
+
+def over_caps(phrase) -> bool:
+    """A 9:16 burst past MAX_BURST_WORDS words or MAX_BURST_CHARS characters (as shown)."""
+    return len(phrase) > MAX_BURST_WORDS or len(" ".join(_phrase_words(phrase))) > MAX_BURST_CHARS
 
 
 def _window_recut(out, i: int, allowed, cut_ok, defects):
@@ -4633,7 +4657,8 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 
         key = emphasis_indices(words, emphasis)
         hedge_of = hedge_figures(words, emphasis)  # a hedge's gold waits for its figure (round 3)
-        phrases = caption_phrases(words, emphasis, is_widescreen, max_caption_width)
+        bond_extra: list[dict[str, Any]] = []
+        phrases = caption_phrases(words, emphasis, is_widescreen, max_caption_width, bond_extra=bond_extra)
         # The whole first frame is a Reel (9:16) feature only: a 16:9 documentary's first line appears with its
         # narration, as in round 3 (round 4 fix: it jumped to 0.0, up to 0.6 s before the voice).
         if is_widescreen:
@@ -4644,7 +4669,8 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         if not is_widescreen:
             timings = snap_to_cuts(phrases, timings, cuts)
         # QF-88: CPS enforced where the caption timing decides it; the narration's own pace is recorded only.
-        self.last_reading_rate = rates = reading_rates(phrases, timings, widescreen=is_widescreen)
+        self.last_reading_rate = rates = reading_rates(phrases, timings, widescreen=is_widescreen,
+                                                       bond_extra=bond_extra)
         if timeline_offset_s:
             # QF-25 on QF-88: the record's times are on the master's clock, like the events below (a hooked master
             # starts its captions timeline_offset_s late; the release gate prints these times for the operator)

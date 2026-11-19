@@ -1,0 +1,29 @@
+{
+ "frames": 10,
+ "frames_failed": 0,
+ "frames_judged": [
+  "covers/amber_room_heist/thumbnail_cover.jpg",
+  "covers/amber_room_heist/thumbnail_profile_grid.jpg",
+  "covers/greek_fire_siphon/thumbnail_cover.jpg",
+  "covers/greek_fire_siphon/thumbnail_profile_grid.jpg",
+  "covers/richat_structure_sahara_eye/thumbnail_cover.jpg",
+  "covers/richat_structure_sahara_eye/thumbnail_profile_grid.jpg",
+  "covers/tunguska_event_1908/thumbnail_cover.jpg",
+  "covers/tunguska_event_1908/thumbnail_profile_grid.jpg",
+  "covers/wieliczka_salt_mine/thumbnail_cover.jpg",
+  "covers/wieliczka_salt_mine/thumbnail_profile_grid.jpg"
+ ],
+ "gate": "pass",
+ "memory_peak_mb": {
+  "main": 417.0,
+  "sum": 3135.0,
+  "workers": [
+   737.0,
+   696.4,
+   645.0,
+   639.6
+  ]
+ },
+ "seconds": 113.36,
+ "tip": "6a7ef303 (QF-141 landed)"
+}

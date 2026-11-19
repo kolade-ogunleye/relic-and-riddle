@@ -77,6 +77,15 @@ def test_check_fails_loudly_on_another_release_a_missing_library_or_filter(tmp_p
     assert "formats" in problems[2] and problems[2].endswith(": webm")
 
 
+def test_the_lists_name_every_filter_src_uses_without_a_binary():
+    # QF-136: a report key named "threshold" read as the ffmpeg filter of that name and stopped CI at setup (the key is
+    # "limit" now). Hermetic: the universe is the lists plus filters a full build has, so a new one is caught here too.
+    cf = _check_ffmpeg()
+    extra = {"threshold", "gblur", "zoompan", "drawtext", "palettegen"}
+    used = cf.find_src_usage(ROOT, set(cf.FILTERS) | extra, set(cf.ENCODERS), set(cf.FORMATS))
+    assert used["filters"] <= set(cf.FILTERS), sorted(used["filters"] - set(cf.FILTERS))
+
+
 def test_check_reports_a_missing_binary(tmp_path):
     cf = _check_ffmpeg()
 

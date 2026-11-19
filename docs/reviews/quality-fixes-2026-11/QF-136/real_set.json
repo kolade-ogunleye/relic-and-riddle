@@ -1,0 +1,225 @@
+{
+ "coverage": {
+  "findings": [],
+  "not_gated": [
+   "graphics other than maps (place name only): number cards, timelines, scale, cross-section, then-and-now, callouts, quote cards fail as uncovered (QF-136b); a graphic's clip is judged on its poster (last) frame only, and a clip with no poster record fails as unjudged media",
+   "map labels other than the place (seas, countries) and map label placement",
+   "text outside the truth's fields: text burned into the photograph (a source's licence banner), the licence credit block, the masthead, a carousel's share line, Story poll option rows and the 'REPLY WITH A OR B' line (extra words are looked for inside the truth's own recorded boxes and on its own lines only; QF-144 crops photo-borne banners at source)",
+   "the cover's badge copy and the thumbnail variants a/b/c (the harness renders covers without variants)",
+   "end card and loop bridge, first frame, chapter / hook / myth cards in run folders (the harness renders them)",
+   "the YouTube thumbnail (unjudged media: it fails as coverage)",
+   "captions: reading speed (CPS) and punctuation (narration words are compared without it)",
+   "colour-vision (CVD) contrast, lone function words, faux capitals",
+   "an accent added over a busy ground (judged on a plain plate only)",
+   "a glyph cut away from a frame or zone edge by under a column of ink (cuts are judged where a word meets a frame or zone edge)",
+   "faces hidden by the text itself (only faces the detector still finds are judged)"
+  ],
+  "not_judged": []
+ },
+ "device": "DmlExecutionProvider",
+ "face_seconds": 5.75,
+ "failing": [
+  {
+   "classes": [
+    "coverage"
+   ],
+   "findings": [
+    {
+     "basis": "record",
+     "class": "coverage",
+     "detail": "no truth for this frame: its record has no recipe, or its renderer or graphic kind has no truth reader (the renderer's own record is never truth)",
+     "element": ""
+    }
+   ],
+   "frame": "graphics/amber_room_heist_1792790550/numbers_169.png"
+  },
+  {
+   "classes": [
+    "coverage"
+   ],
+   "findings": [
+    {
+     "basis": "record",
+     "class": "coverage",
+     "detail": "no truth for this frame: its record has no recipe, or its renderer or graphic kind has no truth reader (the renderer's own record is never truth)",
+     "element": ""
+    }
+   ],
+   "frame": "graphics/amber_room_heist_1792790550/numbers_916.png"
+  },
+  {
+   "classes": [
+    "coverage"
+   ],
+   "findings": [
+    {
+     "basis": "record",
+     "class": "coverage",
+     "detail": "no truth for this frame: its record has no recipe, or its renderer or graphic kind has no truth reader (the renderer's own record is never truth)",
+     "element": ""
+    }
+   ],
+   "frame": "graphics/amber_room_heist_1792790550/timeline_169.png"
+  },
+  {
+   "classes": [
+    "coverage"
+   ],
+   "findings": [
+    {
+     "basis": "record",
+     "class": "coverage",
+     "detail": "no truth for this frame: its record has no recipe, or its renderer or graphic kind has no truth reader (the renderer's own record is never truth)",
+     "element": ""
+    }
+   ],
+   "frame": "graphics/amber_room_heist_1792790550/timeline_916.png"
+  },
+  {
+   "classes": [
+    "coverage"
+   ],
+   "findings": [
+    {
+     "basis": "record",
+     "class": "coverage",
+     "detail": "no truth for this frame: its record has no recipe, or its renderer or graphic kind has no truth reader (the renderer's own record is never truth)",
+     "element": ""
+    }
+   ],
+   "frame": "graphics/amber_room_heist_1792801257/numbers_169.png"
+  },
+  {
+   "classes": [
+    "coverage"
+   ],
+   "findings": [
+    {
+     "basis": "record",
+     "class": "coverage",
+     "detail": "no truth for this frame: its record has no recipe, or its renderer or graphic kind has no truth reader (the renderer's own record is never truth)",
+     "element": ""
+    }
+   ],
+   "frame": "graphics/amber_room_heist_1792801257/numbers_916.png"
+  },
+  {
+   "classes": [
+    "coverage"
+   ],
+   "findings": [
+    {
+     "basis": "record",
+     "class": "coverage",
+     "detail": "no truth for this frame: its record has no recipe, or its renderer or graphic kind has no truth reader (the renderer's own record is never truth)",
+     "element": ""
+    }
+   ],
+   "frame": "graphics/amber_room_heist_1792801257/timeline_169.png"
+  },
+  {
+   "classes": [
+    "coverage"
+   ],
+   "findings": [
+    {
+     "basis": "record",
+     "class": "coverage",
+     "detail": "no truth for this frame: its record has no recipe, or its renderer or graphic kind has no truth reader (the renderer's own record is never truth)",
+     "element": ""
+    }
+   ],
+   "frame": "graphics/amber_room_heist_1792801257/timeline_916.png"
+  }
+ ],
+ "frames": 150,
+ "frames_failed": 8,
+ "gate": "fail",
+ "kinds": {
+  "caption": 10,
+  "card": 16,
+  "graphic": 12,
+  "still": 112
+ },
+ "memory_peak_mb": {
+  "main": 375.4,
+  "sum": 5603.6,
+  "workers": [
+   1365.6,
+   1332.0,
+   1287.2,
+   1243.4
+  ]
+ },
+ "per_class": {
+  "contrast": {
+   "findings": 0,
+   "frames_failed": 0,
+   "pass": true
+  },
+  "coverage": {
+   "findings": 8,
+   "frames_failed": 8,
+   "pass": false
+  },
+  "face_overlap": {
+   "findings": 0,
+   "frames_failed": 0,
+   "pass": true
+  },
+  "glyph_fallback": {
+   "findings": 0,
+   "frames_failed": 0,
+   "pass": true
+  },
+  "mark_contrast": {
+   "findings": 0,
+   "frames_failed": 0,
+   "pass": true
+  },
+  "overlap": {
+   "findings": 0,
+   "frames_failed": 0,
+   "pass": true
+  },
+  "plate_overrun": {
+   "findings": 0,
+   "frames_failed": 0,
+   "pass": true
+  },
+  "record_mismatch": {
+   "findings": 0,
+   "frames_failed": 0,
+   "pass": true
+  },
+  "safe_zone": {
+   "findings": 0,
+   "frames_failed": 0,
+   "pass": true
+  },
+  "text_cut": {
+   "findings": 0,
+   "frames_failed": 0,
+   "pass": true
+  },
+  "text_identity": {
+   "findings": 0,
+   "frames_failed": 0,
+   "pass": true
+  }
+ },
+ "seconds": 1331.51,
+ "thresholds": {
+  "face_score": 0.6,
+  "face_share": 0.02,
+  "identity_extra_max": 0.15,
+  "identity_missing_max": 0.15,
+  "nontext_contrast": 3.0,
+  "pixel_box_tolerance_px": 1,
+  "plate_tolerance_px": 0,
+  "record_tolerance_px": 10,
+  "style_ncc": 0.7,
+  "text_contrast": 4.5,
+  "word_ncc": 0.6
+ }
+}

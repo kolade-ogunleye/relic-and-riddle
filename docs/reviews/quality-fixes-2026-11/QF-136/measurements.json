@@ -1,0 +1,145 @@
+{
+ "caught_total": 152,
+ "clean_set": {
+  "findings": {
+   "contrast": 0,
+   "coverage": 0,
+   "face_overlap": 0,
+   "glyph_fallback": 0,
+   "mark_contrast": 0,
+   "overlap": 0,
+   "plate_overrun": 0,
+   "record_mismatch": 0,
+   "safe_zone": 0,
+   "text_cut": 0,
+   "text_identity": 0
+  },
+  "frames": 28,
+  "frames_failed": 0
+ },
+ "gate_recall_min": 1.0,
+ "planted": {
+  "contrast": {
+   "caught": 10,
+   "gate_failed": 10,
+   "planted": 10
+  },
+  "coverage": {
+   "caught": 10,
+   "gate_failed": 10,
+   "planted": 10
+  },
+  "glyph_fallback": {
+   "caught": 10,
+   "gate_failed": 10,
+   "planted": 10
+  },
+  "mark_contrast": {
+   "caught": 10,
+   "gate_failed": 10,
+   "planted": 10
+  },
+  "overlap": {
+   "caught": 4,
+   "gate_failed": 10,
+   "planted": 10
+  },
+  "plate_overrun": {
+   "caught": 10,
+   "gate_failed": 10,
+   "planted": 10
+  },
+  "record_mismatch": {
+   "caught": 10,
+   "gate_failed": 10,
+   "planted": 10
+  },
+  "safe_zone": {
+   "caught": 10,
+   "gate_failed": 10,
+   "planted": 10
+  },
+  "text_cut": {
+   "caught": 10,
+   "gate_failed": 10,
+   "planted": 10
+  },
+  "text_identity": {
+   "caught": 68,
+   "gate_failed": 70,
+   "planted": 70
+  },
+  "text_identity/add_accent": {
+   "caught": 5,
+   "gate_failed": 5,
+   "planted": 5
+  },
+  "text_identity/add_word": {
+   "caught": 5,
+   "gate_failed": 5,
+   "planted": 5
+  },
+  "text_identity/case": {
+   "caught": 5,
+   "gate_failed": 5,
+   "planted": 5
+  },
+  "text_identity/change": {
+   "caught": 5,
+   "gate_failed": 5,
+   "planted": 5
+  },
+  "text_identity/change_digit": {
+   "caught": 5,
+   "gate_failed": 5,
+   "planted": 5
+  },
+  "text_identity/drop_digit": {
+   "caught": 5,
+   "gate_failed": 5,
+   "planted": 5
+  },
+  "text_identity/drop_first": {
+   "caught": 5,
+   "gate_failed": 5,
+   "planted": 5
+  },
+  "text_identity/drop_last": {
+   "caught": 5,
+   "gate_failed": 5,
+   "planted": 5
+  },
+  "text_identity/drop_middle": {
+   "caught": 5,
+   "gate_failed": 5,
+   "planted": 5
+  },
+  "text_identity/drop_punct": {
+   "caught": 5,
+   "gate_failed": 5,
+   "planted": 5
+  },
+  "text_identity/drop_short_word": {
+   "caught": 4,
+   "gate_failed": 5,
+   "planted": 5
+  },
+  "text_identity/prefix": {
+   "caught": 4,
+   "gate_failed": 5,
+   "planted": 5
+  },
+  "text_identity/swap_words": {
+   "caught": 5,
+   "gate_failed": 5,
+   "planted": 5
+  },
+  "text_identity/transpose": {
+   "caught": 5,
+   "gate_failed": 5,
+   "planted": 5
+  }
+ },
+ "planted_total": 160,
+ "recall_min": 0.4
+}

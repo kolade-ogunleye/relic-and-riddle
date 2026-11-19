@@ -208,7 +208,16 @@ def _reset_photo_set_count() -> list[str]:
     from src import control
     deadline = time.monotonic() + 60
     for thread in [t for t in threading.enumerate() if t.name in _COUNT_THREADS]:
-        thread.join(max(0.0, deadline - time.monotonic()))
+        # threading.enumerate() also lists a thread still in start() (its "limbo"); joining it then raises
+        # "cannot join thread before it is started" (CI 44596810807 teardown), so wait for it to start, then join
+        while True:
+            try:
+                thread.join(max(0.0, deadline - time.monotonic()))
+                break
+            except RuntimeError:
+                if time.monotonic() >= deadline:
+                    break
+                time.sleep(0.01)
     alive = [t.name for t in threading.enumerate() if t.name in _COUNT_THREADS and t.is_alive()]
     with control._count_lock:
         control._READY_CACHE.clear()

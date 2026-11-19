@@ -312,3 +312,70 @@ def test_a_carousel_diagram_is_the_drawing_alone_at_the_carousel_label_floor(tmp
     for e in rec["elements"]:
         bx0, by0, bx1, by1 = e["box"]
         assert 0 <= bx0 and bx1 <= box[0] and 0 <= by0 and by1 <= box[1], (e["name"], e["box"])
+
+
+# ------------------------------------------------------------------------------------------------ cycle 2
+
+@pytest.mark.parametrize("fact", [OBELISK, WIELICZKA, KAILASA], ids=["length", "depth", "height"])
+def test_the_diagram_slide_copy_is_the_graphics_own_verified_words(tmp_path, plan_only, fact):
+    """Ruling 4: a carousel diagram slide sets only the scale graphic's own figure, conversion and meaning, the
+    strings the 9:16 graphic draws from the signed fact (never new wording)."""
+    copy = graphics.scale_copy(fact)
+    rec = _record(graphics.render_scale(fact, tmp_path / "s.mp4", *TALL))
+    texts = {e["name"]: e["text"] for e in rec["elements"]}
+    assert texts["figure"] == copy["figure"] and texts.get("figure_metric", "") == copy["metric"]
+    drawn = " ".join(t for n, t in sorted(texts.items()) if n.startswith("meaning"))
+    assert " ".join(" ".join(copy["meaning"]).split()) == " ".join(drawn.split())
+
+
+@pytest.mark.parametrize("place,want", [
+    ({"label": "Ouadane", "region": "Adrar Plateau", "city": "Adrar Plateau", "country": "Mauritania"},
+     "ADRAR PLATEAU, MAURITANIA"),
+    ({"label": "Catherine Palace", "country": "Russia"}, ""),
+    ({"label": "Wieliczka", "city": "Wieliczka", "country": "Poland"}, ""),
+    ({"label": "Kailasa Temple, Ellora Caves", "region": "Ellora Caves", "country": "India"}, ""),
+    ({"label": "Pantheon", "city": "Rome", "country": "Italy"}, "ROME, ITALY"),
+])
+def test_the_region_line_names_the_recorded_region_never_the_site_again(place, want):
+    assert graphics.region_line(place) == want
+
+
+def _layout(anchor=(540.0, 900.0), above=True):
+    lines, font = graphics.marker_label_lines("Ouadane", *TALL)
+    base = anchor[1] - 120 if above else anchor[1] + 120
+    rows = graphics._label_rows(lines, font, anchor[0], base, "ms")
+    lb = graphics._rows_box(rows, font)
+    return graphics.MarkerLayout("pin", anchor, tuple(rows), font.size, lb, "above" if above else "below", None,
+                                 (anchor[0] - 20, anchor[1] - 70, anchor[0] + 20, anchor[1]))
+
+
+@pytest.mark.parametrize("above", [True, False], ids=["label-over-pin", "label-under-pin"])
+def test_the_region_line_joins_the_site_label_on_its_far_side_under_the_gates(above):
+    box = graphics.get_text_box(*TALL)
+    lay = _layout(above=above)
+    out = graphics.with_region_line(lay, "ADRAR PLATEAU, MAURITANIA", *TALL, box)
+    rec = graphics.LAST_REGION_LINE
+    assert rec["shown"] and len(out.extra) == 1
+    text, (x, base), anchor, px = out.extra[0]
+    assert text == "ADRAR PLATEAU, MAURITANIA" and px < lay.font_px            # one step under the site's
+    assert px >= graphics.label_floor(*TALL)                                   # never under the floor
+    rb = rec["box"]
+    assert box[0] <= rb[0] and rb[2] <= box[2] and box[1] <= rb[1] and rb[3] <= box[3]
+    assert not graphics.LayoutConstraintSolver.boxes_intersect(rb, lay.marker_box, 0)
+    assert (rb[3] <= lay.label_box[1]) if above else (rb[1] >= lay.label_box[3])   # the far side from the marker
+    assert out.label_box[1] <= rb[1] and out.label_box[3] >= rb[3]            # the label box holds it
+    # one member of the label set: planned with the site's rows, one treatment
+    ground = Image.new("RGB", TALL, (200, 190, 170))
+    plates = graphics.label_plates_for(ground, out)
+    names = [n for n, _ in plates]
+    assert names.count("region") == 1 and names.count("place") == len(lay.rows)
+    variants = {getattr(p, "variant", None) for _, p in plates}
+    assert len(variants) == 1
+
+
+def test_a_region_line_with_no_place_is_not_drawn_and_says_why():
+    lay = _layout()
+    tiny = (lay.label_box[0], lay.label_box[1], lay.label_box[2], lay.label_box[3])   # no room past the label
+    out = graphics.with_region_line(lay, "ADRAR PLATEAU, MAURITANIA", *TALL, tiny)
+    assert out is lay and not graphics.LAST_REGION_LINE["shown"] and graphics.LAST_REGION_LINE["reason"]
+    assert graphics.with_region_line(lay, "", *TALL, graphics.get_text_box(*TALL)) is lay

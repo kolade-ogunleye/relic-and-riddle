@@ -2128,6 +2128,9 @@ class MarkerLayout:
     position: str
     leader: tuple[tuple[float, float], tuple[float, float]] | None
     marker_box: Box
+    # lane A cycle 2 (lander ruling 1): the site's region line, a member row of the same label in its own (place
+    # step) size: ((text, (x, baseline), anchor, px), ...); label_box includes it (with_region_line)
+    extra: tuple[tuple[str, tuple[float, float], str, int], ...] = ()
 
 
 # ---- the place-label role (cycle 0 round 7, panel F14): a map's site name and a route's stop names are one element,
@@ -2635,9 +2638,79 @@ def _draw_leader(im: Image.Image, leader: tuple[tuple[float, float], tuple[float
 
 def label_plates_for(rest: Image.Image, layout: MarkerLayout) -> list[tuple[str, TextPlate]]:
     """The site's name rows as measured plates in the place-label role (place_plate; Anton on a 0.6 glow with a
-    soft shadow before, cycle 0 round 7 F14)."""
+    soft shadow before, cycle 0 round 7 F14), its region line (layout.extra) in the same label: one member of the
+    map's label set, one treatment."""
     font = field_font(" ".join(t for t, _xy, _a in layout.rows), place_font(layout.font_px))
-    return [("place", p) for p in place_plates(rest, [(xy, text, font, anchor) for text, xy, anchor in layout.rows])]
+    rows = [(xy, text, font, anchor) for text, xy, anchor in layout.rows]
+    rows += [(xy, text, field_font(text, place_font(px)), anchor) for text, xy, anchor, px in layout.extra]
+    plates = place_plates(rest, rows)
+    n = len(layout.rows)
+    return [("place" if j < n else "region", p) for j, p in enumerate(plates)]
+
+
+# ---- the site's region line (design-freeze lane A cycle 2, lander ruling 1): 581a8666 (2026-11-05, wip, never
+# review-passed) dropped the map's city / country line, so "ADRAR PLATEAU, MAURITANIA" was drawn nowhere. It is a
+# member row of the site's own label: the place-label face at the place labels' own step (place_steps: one step under
+# the site's, so the site keeps the focal size), set on the label's far side from its marker, planned with the label
+# (one treatment: plan_label_set), never under the floor, never outside the text box, never over the marker; a line
+# that has no such place is not drawn and the reason is recorded (LAST_REGION_LINE).
+REGION_LINE_GAP = 0.45          # x the site font's cap height: the region line's ink air to the name's ink
+LAST_REGION_LINE: dict[str, Any] = {}
+
+
+def region_line(place: dict[str, Any]) -> str:
+    """The site's region line in capitals: its recorded region (else its city) and its country ("ADRAR PLATEAU,
+    MAURITANIA"), each part only once and never the site's own name; "" when the place records no region or city
+    (the country alone is named by its fill)."""
+    label = " ".join(str(place.get("label") or "").split()).upper()
+    area = " ".join(str(place.get("region") or place.get("city") or "").split()).upper()
+    country = " ".join(str(place.get("country") or "").split()).upper()
+    if not area or area == label or area in label:
+        return ""
+    return ", ".join(dict.fromkeys(x for x in (area, country) if x and x != label))
+
+
+def with_region_line(lay: MarkerLayout, text: str, width: int, height: int,
+                     box: tuple[float, float, float, float]) -> MarkerLayout:
+    """`lay` with the region line `text` as its extra row (see region_line): on the label's far side from the marker
+    (above a label that sits over its marker, else under it), on the rows' own x and anchor, at the largest place step
+    whose ink fits the label measure, inside `box` (the text box) and clear of the marker's box; `lay` unchanged (and
+    the reason recorded in LAST_REGION_LINE) when no step or side holds it."""
+    LAST_REGION_LINE.clear()
+    LAST_REGION_LINE.update({"text": text, "shown": False, "reason": ""})
+    if not text or not lay.rows:
+        LAST_REGION_LINE["reason"] = "no region recorded for the place" if not text else "the site has no label"
+        return lay
+    k = place_scale(width, height)
+    measure = (MARKER_LABEL_MEASURE if height > width else MARKER_LABEL_MEASURE_WIDE) * k
+    site = place_font(lay.font_px)
+    gap = cap_height(site) * REGION_LINE_GAP
+    _t0, (x, _b0), anchor = lay.rows[0]
+    lb, mb = lay.label_box, lay.marker_box
+    over = lb[3] <= lay.anchor[1]                       # the label sits over its marker: the line goes above it
+    why = "wider than the label measure at every place step"
+    for px in place_steps(width, height):
+        if px >= lay.font_px:
+            continue                                    # one step under the site's: the site keeps the focal size
+        f = field_font(text, place_font(px))
+        for above in ((True, False) if over else (False, True)):
+            base = lb[1] - gap if above else lb[3] + gap + cap_height(f)
+            rb = ink_box((x, base), text, f, anchor, 0)
+            if rb is None:
+                continue
+            if rb[2] - rb[0] > measure:
+                break
+            if not (box[0] <= rb[0] and rb[2] <= box[2] and box[1] <= rb[1] and rb[3] <= box[3]):
+                why = "outside the text box on either side of the label"
+                continue
+            if LayoutConstraintSolver.boxes_intersect(rb, mb, MARKER_LABEL_CLEAR * k):
+                why = "over the marker on either side of the label"
+                continue
+            LAST_REGION_LINE.update({"shown": True, "px": px, "box": list(rb), "side": "above" if above else "below"})
+            return dataclasses.replace(lay, label_box=_union([lb, rb]), extra=((text, (x, base), anchor, px),))
+    LAST_REGION_LINE["reason"] = why
+    log.info("Map: the region line %r is not drawn: %s.", text, why)
+    return lay
 
 
 # ------------------------------------------------------------- round 6 (2026-11-03): the locator's framing and words
@@ -4966,6 +5039,8 @@ def _render_map(place: dict[str, Any], out: Path, width: int = VIDEO_WIDTH, heig
                             ground=ground_word(part_f, home_f, land_f))
         if style == "leader":
             lay = leader_marker(anchor, label, width, height, land_f, part_f, k)
+    if not area:      # lane A cycle 2 (ruling 1): the region line, a member row of the site's label
+        lay = with_region_line(lay, region_line(place), width, height, (sx0, sy0, sx1, sy1))
     # the country's name never stacks on the site's name like a title over it: it keeps out of the run beyond the
     # label on its side (to 200 px past it), as well as the label's own air
     lb = lay.label_box
@@ -8996,6 +9071,21 @@ def _bracket(d: ImageDraw.ImageDraw, x: float, y0: float, y1: float, tick: float
 
 
 DIAGRAM_PAD = 48     # px (at 1440 wide) round a carousel diagram's drawing (render_scale drawing_floor)
+
+
+def scale_copy(fact: dict[str, Any]) -> dict[str, Any] | None:
+    """The words a carousel diagram slide may set beside the drawing alone (lane A cycle 2, lander ruling 4: only
+    verified fields, no new wording): exactly the strings the scale graphic itself draws from the signed fact, the
+    figure ("ABOUT 138 FT LONG"), its conversion ("42 M") and the line of meaning (scale_meaning_lines, sentence
+    case, one string per line); None when the fact draws no scale (no reference in range)."""
+    feet = fact["value"] * (3.28084 if fact["unit"] == "m" else 1.0)
+    ref = pick_reference(feet)
+    if ref is None or feet <= 0:
+        return None
+    depth = fact.get("dimension") == "depth"
+    figure, metric = scale_figure(fact, feet, depth)
+    return {"figure": figure, "metric": metric,
+            "meaning": scale_meaning_lines(fact, feet, ref[0], ref[1], depth)}
 
 
 def diagram_label_floor(slide_width: int) -> float:

@@ -324,7 +324,9 @@ def check(ctx) -> list[dict[str, Any]]:
                 pos += len(ln.split())
                 if n == len(rows) - 1 or pos < 1 or pos > len(spoken):
                     continue
-                src_word = spoken[pos - 1]
+                # the line's own last word as drawn (the caption keeps the narration's punctuation); counting the
+                # spoken words instead misaligns where a caption sets a figure differently from its spoken tokens
+                src_word = ln.split()[-1] if ln.split() else spoken[pos - 1]
                 bare = src_word.strip("\"'‘’“”").lower()
                 if bare in NEVER_END_WORDS and src_word[-1] not in ".,;:!?—–)…":
                     if burst_end:   # the composer's own record (reading_rates never_end) counts burst ends

@@ -220,20 +220,16 @@ def test_body_lines_are_34_px_or_more_hold_34_characters_and_end_on_more_than_on
     assert 1.35 <= step / body[0].font.size <= 1.42
 
 
-def test_facebook_headings_are_set_at_140_px_where_they_fit(photos, tmp_path) -> None:
+def test_facebook_headings_take_the_instagram_form(photos, tmp_path) -> None:
+    """Lane D cycle 2 (lander ruling 1, SYS-D-4): one form per heading across the copies; the Facebook 150 / 140 tier
+    (which wrapped ORBITAL / LANDMARK where Instagram set one line) is retired."""
     gen = MultiFormatGenerator()
-    px = MultiFormatGenerator._px(MultiFormatGenerator.CAROUSEL_SIZE[0])
-    for heading in ("ANCIENT COOLING", "IMPACT THEORY DISPROVED"):
+    for heading in ("ANCIENT COOLING", "IMPACT THEORY DISPROVED", "ORBITAL LANDMARK"):
         card = {"heading": heading, "body": "Initially considered an impact crater, the theory was disproved."}
         _, fb = gen._render_carousel_slide("editorial_split", photos[0], photos[1], card, 2, 7, {}, "", True, subject="S")
         _, ig = gen._render_carousel_slide("editorial_split", photos[0], photos[1], card, 2, 7, {}, "", False, subject="S")
-        # round 7 (F1 before F4): where Facebook's 140 tier sets the heading only with a lone last word ("IMPACT
-        # THEORY / DISPROVED"), the engine's recorded last resort sets a valid form below it (off_ladder, recorded)
-        if fb.meta["heading"].get("off_ladder"):
-            assert fb.meta["heading"]["lines"] == ["IMPACT", "THEORY DISPROVED"]
-            continue
-        assert fb.plates["heading"][0].font.size >= px.exact(140) - 0.01
-        assert fb.plates["heading"][0].font.size > ig.plates["heading"][0].font.size
+        assert [p.text for p in fb.plates["heading"]] == [p.text for p in ig.plates["heading"]]
+        assert {p.font.size for p in fb.plates["heading"]} == {p.font.size for p in ig.plates["heading"]}
         assert not fb.problems()
 
 
